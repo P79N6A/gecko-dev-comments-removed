@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef MOZ_UNITS_H_
 #define MOZ_UNITS_H_
 
@@ -25,9 +26,20 @@ struct CSSPixel {
                                      NSAppUnitsToFloatPixels(aPoint.y, float(nsDeviceContext::AppUnitsPerCSSPixel())));
   }
 
+  static gfx::IntPointTyped<CSSPixel> FromAppUnitsRounded(const nsPoint& aPoint) {
+    return gfx::IntPointTyped<CSSPixel>(NSAppUnitsToIntPixels(aPoint.x, float(nsDeviceContext::AppUnitsPerCSSPixel())),
+                                        NSAppUnitsToIntPixels(aPoint.y, float(nsDeviceContext::AppUnitsPerCSSPixel())));
+  }
+
   static nsPoint ToAppUnits(const gfx::PointTyped<CSSPixel>& aPoint) {
     return nsPoint(NSFloatPixelsToAppUnits(aPoint.x, float(nsDeviceContext::AppUnitsPerCSSPixel())),
                    NSFloatPixelsToAppUnits(aPoint.y, float(nsDeviceContext::AppUnitsPerCSSPixel())));
+  }
+
+  static nsPoint ToAppUnits(const gfx::IntPointTyped<CSSPixel>& aPoint)
+  {
+    return nsPoint(NSIntPixelsToAppUnits(aPoint.x, nsDeviceContext::AppUnitsPerCSSPixel()),
+                   NSIntPixelsToAppUnits(aPoint.y, nsDeviceContext::AppUnitsPerCSSPixel()));
   }
 
   static gfx::RectTyped<CSSPixel> FromAppUnits(const nsRect& aRect) {
