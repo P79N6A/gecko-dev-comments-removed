@@ -965,7 +965,10 @@ sip_util_extract_sdp (ccsipCCB_t *ccb, sipMessage_t *message)
     
 
 
-    sipsdp_src_dest_create(CCSIP_DEST_SDP_BIT, &sip_msg_sdp);
+
+
+
+    sipsdp_src_dest_create("", CCSIP_DEST_SDP_BIT, &sip_msg_sdp);
     if ((sip_msg_sdp == NULL) || (sip_msg_sdp->dest_sdp == NULL)) {
         
         CCSIP_DEBUG_ERROR(get_debug_string(DEBUG_SIP_SDP_CREATE_BUF_ERROR),

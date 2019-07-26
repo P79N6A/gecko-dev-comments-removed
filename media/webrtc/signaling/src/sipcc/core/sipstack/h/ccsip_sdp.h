@@ -21,10 +21,11 @@
 
 
 PMH_EXTERN boolean sip_sdp_init(void);
-PMH_EXTERN void *sipsdp_create(void);
+PMH_EXTERN sdp_t *sipsdp_create(const char *peerconnection);
 PMH_EXTERN cc_sdp_t *sipsdp_info_create(void);
 PMH_EXTERN void sipsdp_src_dest_free(uint16_t flags, cc_sdp_t **sdp_info);
-PMH_EXTERN void sipsdp_src_dest_create(uint16_t flags, cc_sdp_t **sdp_info);
+PMH_EXTERN void sipsdp_src_dest_create(const char *peerconnection,
+    uint16_t flags, cc_sdp_t **sdp_info);
 PMH_EXTERN void sipsdp_free(cc_sdp_t **sip_sdp);
 
 
@@ -37,18 +38,6 @@ PMH_EXTERN void sipsdp_free(cc_sdp_t **sip_sdp);
 
 
 #define SIPSDP_MAX_SESSION_VERSION_LENGTH 32
-
-
-
-
-
-
-
-
-
-
-PMH_EXTERN cc_sdp_t *sipsdp_create_from_buf(char *buf, uint32_t nbytes,
-                                            cc_sdp_t *sdp);
 
 
 
