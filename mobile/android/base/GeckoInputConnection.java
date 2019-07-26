@@ -481,6 +481,40 @@ class GeckoInputConnection
         return this;
     }
 
+    @Override
+    public boolean sendKeyEvent(KeyEvent event) {
+        
+        
+        
+        super.sendKeyEvent(event);
+        final View v = getView();
+        if (v == null) {
+            return false;
+        }
+        final Handler icHandler = mEditableClient.getInputConnectionHandler();
+        final Handler mainHandler = v.getRootView().getHandler();
+        if (icHandler.getLooper() != mainHandler.getLooper()) {
+            
+            
+            
+            synchronized (icHandler) {
+                mainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (icHandler) {
+                            icHandler.notify();
+                        }
+                    }
+                });
+                try {
+                    icHandler.wait();
+                } catch (InterruptedException e) {
+                }
+            }
+        }
+        return false; 
+    }
+
     public boolean onKeyPreIme(int keyCode, KeyEvent event) {
         return false;
     }

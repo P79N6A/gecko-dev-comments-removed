@@ -458,10 +458,17 @@ final class GeckoEditable
     
 
     @Override
-    public void sendEvent(GeckoEvent event) {
-        if (DEBUG) {
+    public void sendEvent(final GeckoEvent event) {
+        if (!onIcThread()) {
             
-            assertOnIcThread();
+            
+            mIcRunHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    sendEvent(event);
+                }
+            });
+            return;
         }
         
 
@@ -477,18 +484,24 @@ final class GeckoEditable
 
     @Override
     public Editable getEditable() {
-        if (DEBUG) {
+        if (!onIcThread()) {
             
-            assertOnIcThread();
+            if (DEBUG) {
+                Log.i(LOGTAG, "getEditable() called on non-IC thread");
+            }
+            return null;
         }
         return mProxy;
     }
 
     @Override
     public void setUpdateGecko(boolean update) {
-        if (DEBUG) {
+        if (!onIcThread()) {
             
-            assertOnIcThread();
+            if (DEBUG) {
+                Log.i(LOGTAG, "setUpdateGecko() called on non-IC thread");
+            }
+            return;
         }
         if (update) {
             icUpdateGecko(false);
