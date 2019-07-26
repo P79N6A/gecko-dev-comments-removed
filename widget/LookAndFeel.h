@@ -257,6 +257,15 @@ public:
 
 
 
+    eIntID_WindowsGlass,
+
+    
+
+
+
+
+
+
     eIntID_TouchEnabled,
 
     

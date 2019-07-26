@@ -396,6 +396,11 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
     case eIntID_DWMCompositor:
         aResult = nsUXThemeData::CheckForCompositor();
         break;
+    case eIntID_WindowsGlass:
+        
+        aResult = (nsUXThemeData::CheckForCompositor() &&
+                   WinUtils::GetWindowsVersion() < WinUtils::WIN8_VERSION);
+        break;
     case eIntID_AlertNotificationOrigin:
         aResult = 0;
         {
