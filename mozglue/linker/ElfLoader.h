@@ -54,6 +54,9 @@ __dl_mmap(void *handle, void *addr, size_t length, off_t offset);
 MFBT_API void
 __dl_munmap(void *handle, void *addr, size_t length);
 
+MFBT_API bool
+IsSignalHandlingBroken();
+
 }
 
 
@@ -295,6 +298,10 @@ public:
     return registeredHandler;
   }
 
+  bool isSignalHandlingBroken() {
+    return signalHandlingBroken;
+  }
+
 protected:
   SEGVHandler();
   ~SEGVHandler();
@@ -316,6 +323,11 @@ private:
   
 
 
+  static void test_handler(int signum, siginfo_t *info, void *context);
+
+  
+
+
 
   static const size_t stackSize = 12 * 1024;
 
@@ -331,6 +343,7 @@ private:
   MappedPtr stackPtr;
 
   bool registeredHandler;
+  bool signalHandlingBroken;
 };
 
 

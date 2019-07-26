@@ -152,6 +152,12 @@ __dl_munmap(void *handle, void *addr, size_t length)
   return reinterpret_cast<LibHandle *>(handle)->MappableMUnmap(addr, length);
 }
 
+MFBT_API bool
+IsSignalHandlingBroken()
+{
+  return ElfLoader::Singleton.isSignalHandlingBroken();
+}
+
 namespace {
 
 
@@ -903,38 +909,87 @@ Divert(T func, T new_func)
 #endif
 
 SEGVHandler::SEGVHandler()
-: registeredHandler(false)
+: registeredHandler(false), signalHandlingBroken(false)
 {
-  if (!Divert(sigaction, __wrap_sigaction))
-    return;
   
 
-  if (sigaltstack(NULL, &oldStack) == -1 || !oldStack.ss_sp ||
-      oldStack.ss_size < stackSize) {
-    stackPtr.Assign(MemoryRange::mmap(NULL, stackSize, PROT_READ | PROT_WRITE,
-                                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
-    stack_t stack;
-    stack.ss_sp = stackPtr;
-    stack.ss_size = stackSize;
-    stack.ss_flags = 0;
-    sigaltstack(&stack, NULL);
+
+  oldStack.ss_flags = SS_ONSTACK;
+  if (!Divert(sigaction, __wrap_sigaction))
+    return;
+
+  
+  sys_sigaction(SIGSEGV, NULL, &this->action);
+
+  
+
+
+
+
+  struct sigaction action;
+  action.sa_sigaction = &SEGVHandler::test_handler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_SIGINFO | SA_NODEFER;
+  action.sa_restorer = NULL;
+  if (sys_sigaction(SIGSEGV, &action, NULL))
+    return;
+  stackPtr.Assign(MemoryRange::mmap(NULL, PageSize(), PROT_NONE,
+                                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
+  if (stackPtr.get() == MAP_FAILED)
+    return;
+
+  *((volatile int*)stackPtr.get()) = 123;
+  stackPtr.Assign(MAP_FAILED, 0);
+  if (signalHandlingBroken) {
+    
+    sys_sigaction(SIGSEGV, &this->action, NULL);
+    return;
+  }
+
+  
+
+  if (sigaltstack(NULL, &oldStack) == 0) {
+    if (oldStack.ss_flags == SS_ONSTACK)
+      oldStack.ss_flags = 0;
+    if (!oldStack.ss_sp || oldStack.ss_size < stackSize) {
+      stackPtr.Assign(MemoryRange::mmap(NULL, stackSize, PROT_READ | PROT_WRITE,
+                                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
+      if (stackPtr.get() == MAP_FAILED)
+        return;
+      stack_t stack;
+      stack.ss_sp = stackPtr;
+      stack.ss_size = stackSize;
+      stack.ss_flags = 0;
+      if (sigaltstack(&stack, NULL) != 0)
+        return;
+    }
   }
   
 
-  struct sigaction action;
   action.sa_sigaction = &SEGVHandler::handler;
-  sigemptyset(&action.sa_mask);
   action.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
-  action.sa_restorer = NULL;
-  registeredHandler = !sys_sigaction(SIGSEGV, &action, &this->action);
+  registeredHandler = !sys_sigaction(SIGSEGV, &action, NULL);
 }
 
 SEGVHandler::~SEGVHandler()
 {
   
-  sigaltstack(&oldStack, NULL);
+  if (oldStack.ss_flags != SS_ONSTACK)
+    sigaltstack(&oldStack, NULL);
   
-  sys_sigaction(SIGSEGV, &this->action, NULL);
+  if (registeredHandler)
+    sys_sigaction(SIGSEGV, &this->action, NULL);
+}
+
+
+
+
+void SEGVHandler::test_handler(int signum, siginfo_t *info, void *context)
+{
+  SEGVHandler &that = ElfLoader::Singleton;
+  if (signum != SIGSEGV || info == NULL || info->si_addr != that.stackPtr.get())
+    that.signalHandlingBroken = true;
+  mprotect(that.stackPtr, that.stackPtr.GetLength(), PROT_READ | PROT_WRITE);
 }
 
 
