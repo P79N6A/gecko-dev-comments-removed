@@ -9,6 +9,7 @@
 #define js_ion_liverangeallocator_h__
 
 #include "RegisterAllocator.h"
+#include "StackSlotAllocator.h"
 
 
 
@@ -167,6 +168,10 @@ class LiveInterval
 
 
     struct Range {
+        Range()
+          : from(),
+            to()
+        { }
         Range(CodePosition f, CodePosition t)
           : from(f),
             to(t)
@@ -177,6 +182,17 @@ class LiveInterval
 
         
         CodePosition to;
+
+        bool empty() const {
+            return from >= to;
+        }
+
+        
+        bool contains(const Range *other) const;
+
+        
+        
+        void intersect(const Range *other, Range *pre, Range *inside, Range *post) const;
     };
 
   private:
@@ -257,22 +273,35 @@ class LiveInterval
     void setIndex(uint32_t index) {
         index_ = index;
     }
-    Requirement *requirement() {
+    const Requirement *requirement() const {
         return &requirement_;
     }
     void setRequirement(const Requirement &requirement) {
         
         
         JS_ASSERT(requirement.kind() != Requirement::SAME_AS_OTHER);
-
-        
-        
-        JS_ASSERT_IF(requirement.kind() == Requirement::FIXED,
-                     !requirement.allocation().isRegister());
-
         requirement_ = requirement;
     }
-    Requirement *hint() {
+    bool addRequirement(const Requirement &newRequirement) {
+        
+        
+        JS_ASSERT(newRequirement.kind() != Requirement::SAME_AS_OTHER);
+
+        if (newRequirement.kind() == Requirement::FIXED) {
+            if (requirement_.kind() == Requirement::FIXED)
+                return newRequirement.allocation() == requirement_.allocation();
+            requirement_ = newRequirement;
+            return true;
+        }
+
+        JS_ASSERT(newRequirement.kind() == Requirement::REGISTER);
+        if (requirement_.kind() == Requirement::FIXED)
+            return requirement_.allocation().isRegister();
+
+        requirement_ = newRequirement;
+        return true;
+    }
+    const Requirement *hint() const {
         return &hint_;
     }
     void setHint(const Requirement &hint) {
@@ -319,6 +348,7 @@ class VirtualRegister
 
   public:
     bool init(uint32_t id, LBlock *block, LInstruction *ins, LDefinition *def, bool isTemp) {
+        JS_ASSERT(block && !block_);
         id_ = id;
         block_ = block;
         ins_ = ins;
@@ -357,6 +387,11 @@ class VirtualRegister
         JS_ASSERT(numIntervals() > 0);
         return getInterval(numIntervals() - 1);
     }
+    void replaceInterval(LiveInterval *old, LiveInterval *interval) {
+        JS_ASSERT(intervals_[old->index()] == old);
+        interval->setIndex(old->index());
+        intervals_[old->index()] = interval;
+    }
     bool addInterval(LiveInterval *interval) {
         JS_ASSERT(interval->numRanges());
 
@@ -371,6 +406,7 @@ class VirtualRegister
         }
         if (!found)
             found = intervals_.end();
+        interval->setIndex(found - intervals_.begin());
         return intervals_.insert(found, interval);
     }
     bool isDouble() const {
@@ -469,11 +505,22 @@ class LiveRangeAllocator : public RegisterAllocator
     
     LiveInterval *fixedIntervalsUnion;
 
+    
+    
+    
+    
+    
+    bool forLSRA;
+
+    
+    StackSlotAllocator stackSlotAllocator;
+
   public:
-    LiveRangeAllocator(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph)
+    LiveRangeAllocator(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph, bool forLSRA)
       : RegisterAllocator(mir, lir, graph),
         liveIn(NULL),
-        fixedIntervalsUnion(NULL)
+        fixedIntervalsUnion(NULL),
+        forLSRA(forLSRA)
     {
     }
 
@@ -510,6 +557,31 @@ class LiveRangeAllocator : public RegisterAllocator
             }
         }
 #endif
+    }
+
+#ifdef JS_NUNBOX32
+    VREG *otherHalfOfNunbox(VirtualRegister *vreg) {
+        signed offset = OffsetToOtherHalfOfNunbox(vreg->type());
+        VREG *other = &vregs[vreg->def()->virtualRegister() + offset];
+        AssertTypesFormANunbox(vreg->type(), other->type());
+        return other;
+    }
+#endif
+
+    bool addMove(LMoveGroup *moves, LiveInterval *from, LiveInterval *to) {
+        if (*from->getAllocation() == *to->getAllocation())
+            return true;
+        return moves->add(from->getAllocation(), to->getAllocation());
+    }
+
+    bool moveInput(CodePosition pos, LiveInterval *from, LiveInterval *to) {
+        LMoveGroup *moves = getInputMoveGroup(pos);
+        return addMove(moves, from, to);
+    }
+
+    bool moveAfter(CodePosition pos, LiveInterval *from, LiveInterval *to) {
+        LMoveGroup *moves = getMoveGroupAfter(pos);
+        return addMove(moves, from, to);
     }
 };
 
