@@ -39,10 +39,34 @@ namespace xpc {
 
 using namespace XrayUtils;
 
+inline bool
+IsTypedArrayKey(JSProtoKey key)
+{
+#ifdef DEBUG
+    bool isTypedArraySlow = key == JSProto_Int8Array ||
+                            key == JSProto_Uint8Array ||
+                            key == JSProto_Int16Array ||
+                            key == JSProto_Uint16Array ||
+                            key == JSProto_Int32Array ||
+                            key == JSProto_Uint32Array ||
+                            key == JSProto_Float32Array ||
+                            key == JSProto_Float64Array ||
+                            key == JSProto_Uint8ClampedArray;
+#endif
+    bool isTypedArray = key >= JSProto_Int8Array &&
+                        key <= JSProto_Uint8ClampedArray;
+    MOZ_ASSERT(isTypedArray == isTypedArraySlow, "Somebody reordered jsprototypes.h!");
+    static_assert(JSProto_Uint8ClampedArray - JSProto_Int8Array == 8,
+                  "New prototype added in typed array range");
+    return isTypedArray;
+}
+
 
 static bool
 IsJSXraySupported(JSProtoKey key)
 {
+    if (IsTypedArrayKey(key))
+        return true;
     switch (key) {
       case JSProto_Date:
       case JSProto_Object:
@@ -464,24 +488,8 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
             return SilentFailure(cx, id, "Value not same-origin with target");
 
         
-        if (GetXrayType(propObj) == NotXray) {
-            
-            
-            
-            
-            
-            
-            
-            JSProtoKey key = IdentifyStandardInstanceOrPrototype(propObj);
-            if (key != JSProto_Uint8ClampedArray &&
-                key != JSProto_Int8Array && key != JSProto_Uint8Array &&
-                key != JSProto_Int16Array && key != JSProto_Uint16Array &&
-                key != JSProto_Int32Array && key != JSProto_Uint32Array &&
-                key != JSProto_Float32Array && key != JSProto_Float64Array)
-            {
-                return SilentFailure(cx, id, "Value not Xrayable");
-            }
-        }
+        if (GetXrayType(propObj) == NotXray)
+            return SilentFailure(cx, id, "Value not Xrayable");
 
         
         if (JS_ObjectIsCallable(cx, propObj))
@@ -537,6 +545,13 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
                     return false;
             }
             return JS_WrapPropertyDescriptor(cx, desc);
+        } else if (IsTypedArrayKey(key)) {
+            if (IsArrayIndex(GetArrayIndexFromId(cx, id))) {
+                JS_ReportError(cx, "Accessing TypedArray data over Xrays is slow, and forbidden "
+                                   "in order to encourage performant code. To copy TypedArrays "
+                                   "across origin boundaries, consider using Components.utils.cloneInto().");
+                return false;
+            }
         }
 
         
@@ -782,6 +797,14 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
                 }
             }
             return JS_WrapAutoIdVector(cx, props);
+        } else if (IsTypedArrayKey(key)) {
+            uint32_t length = JS_GetTypedArrayLength(target);
+            
+            
+            if (!props.reserve(length))
+                return false;
+            for (int32_t i = 0; i <= int32_t(length - 1); ++i)
+                props.infallibleAppend(INT_TO_JSID(i));
         }
 
         
