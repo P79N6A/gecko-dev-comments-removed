@@ -587,34 +587,6 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement)
     return p.forget();
 }
 
-namespace {
-struct SpecialPermission {
-    const char* perm;           
-    ChildPrivileges privs;      
-};
-}
-
-static ChildPrivileges
-PrivilegesForApp(mozIApplication* aApp)
-{
-    const SpecialPermission specialPermissions[] = {
-        
-        
-        { "camera", base::PRIVILEGES_CAMERA }
-    };
-    for (size_t i = 0; i < ArrayLength(specialPermissions); ++i) {
-        const char* const permission = specialPermissions[i].perm;
-        bool hasPermission = false;
-        if (NS_FAILED(aApp->HasPermission(permission, &hasPermission))) {
-            NS_WARNING("Unable to check permissions.  Breakage may follow.");
-            break;
-        } else if (hasPermission) {
-            return specialPermissions[i].privs;
-        }
-    }
-    return base::PRIVILEGES_DEFAULT;
-}
-
  ProcessPriority
 ContentParent::GetInitialProcessPriority(Element* aFrameElement)
 {
@@ -733,7 +705,7 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     }
 
     if (!p) {
-        ChildPrivileges privs = PrivilegesForApp(ownApp);
+        ChildPrivileges privs = base::PRIVILEGES_DEFAULT;
         p = MaybeTakePreallocatedAppProcess(manifestURL, privs,
                                             initialPriority);
         if (!p) {
