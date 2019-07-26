@@ -173,7 +173,10 @@ this.wire = function wire(aRoot, aSelectorOrElement, aDescriptor)
 
 
 
-this.showFilePicker = function showFilePicker(path, toSave, parentWindow, callback)
+
+
+this.showFilePicker = function showFilePicker(path, toSave, parentWindow,
+                                              callback, suggestedFilename)
 {
   if (typeof(path) == "string") {
     try {
@@ -212,6 +215,10 @@ this.showFilePicker = function showFilePicker(path, toSave, parentWindow, callba
       callback(fp.file);
     }
   };
+
+  if (toSave && suggestedFilename) {
+    fp.defaultString = suggestedFilename;
+  }
 
   fp.init(parentWindow, _(key + ".title"), mode);
   fp.appendFilters(_(key + ".filter"), "*.css");
