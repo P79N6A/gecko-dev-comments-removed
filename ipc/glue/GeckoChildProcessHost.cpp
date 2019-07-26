@@ -21,6 +21,7 @@
 #include "nsILocalFileMac.h"
 #endif
 
+#include "MainThreadUtils.h"
 #include "prprf.h"
 #include "prenv.h"
 
@@ -29,6 +30,7 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
 
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/Omnijar.h"
 #include <sys/stat.h>
@@ -61,6 +63,9 @@ static const bool kLowRightsSubprocesses =
   false
 #endif
   ;
+
+mozilla::StaticRefPtr<nsIFile> GeckoChildProcessHost::sGreDir;
+mozilla::DebugOnly<bool> GeckoChildProcessHost::sGreDirCached;
 
 static bool
 ShouldHaveDirectoryService()
@@ -120,29 +125,26 @@ GeckoChildProcessHost::~GeckoChildProcessHost()
 #endif
 }
 
-void GetPathToBinary(FilePath& exePath)
+
+void
+GeckoChildProcessHost::GetPathToBinary(FilePath& exePath)
 {
   if (ShouldHaveDirectoryService()) {
-    nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
-    NS_ASSERTION(directoryService, "Expected XPCOM to be available");
-    if (directoryService) {
-      nsCOMPtr<nsIFile> greDir;
-      nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
-      if (NS_SUCCEEDED(rv)) {
+    MOZ_ASSERT(sGreDirCached);
+    if (sGreDir) {
 #ifdef OS_WIN
-        nsString path;
-        greDir->GetPath(path);
+      nsString path;
+      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetPath(path)));
 #else
-        nsCString path;
-        greDir->GetNativePath(path);
+      nsCString path;
+      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetNativePath(path)));
 #endif
-        exePath = FilePath(path.get());
+      exePath = FilePath(path.get());
 #ifdef MOZ_WIDGET_COCOA
-        
-        
-        exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_BUNDLE);
+      
+      
+      exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_BUNDLE);
 #endif
-      }
     }
   }
 
@@ -226,9 +228,11 @@ uint32_t GeckoChildProcessHost::GetSupportedArchitecturesForProcessType(GeckoPro
 {
 #ifdef MOZ_WIDGET_COCOA
   if (type == GeckoProcessType_Plugin) {
+
     
     static uint32_t pluginContainerArchs = 0;
     if (pluginContainerArchs == 0) {
+      CacheGreDir();
       FilePath exePath;
       GetPathToBinary(exePath);
       nsresult rv = GetArchitecturesForBinary(exePath.value().c_str(), &pluginContainerArchs);
@@ -256,6 +260,42 @@ GeckoChildProcessHost::PrepareLaunch()
 #ifdef XP_WIN
   InitWindowsGroupID();
 #endif
+  CacheGreDir();
+}
+
+
+void
+GeckoChildProcessHost::CacheGreDir()
+{
+  
+  
+  
+  
+
+#ifdef MOZ_WIDGET_GONK
+  
+  
+
+  
+  
+  MOZ_ASSERT(NS_IsMainThread());
+#endif
+
+  if (ShouldHaveDirectoryService()) {
+    nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
+    MOZ_ASSERT(directoryService, "Expected XPCOM to be available");
+    if (directoryService) {
+      
+      
+      nsCOMPtr<nsIFile> greDir;
+      nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
+      if (NS_SUCCEEDED(rv)) {
+        sGreDir = greDir;
+        mozilla::ClearOnShutdown(&sGreDir);
+      }
+    }
+  }
+  sGreDirCached = true;
 }
 
 #ifdef XP_WIN
@@ -467,7 +507,7 @@ AddAppDirToCommandLine(std::vector<std::string>& aCmdLine)
                                           getter_AddRefs(appDir));
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString path;
-        appDir->GetNativePath(path);
+        MOZ_ALWAYS_TRUE(NS_SUCCEEDED(appDir->GetNativePath(path)));
 #if defined(XP_WIN)
         aCmdLine.AppendLooseValue(UTF8ToWide("-appdir"));
         aCmdLine.AppendLooseValue(UTF8ToWide(path.get()));
@@ -519,51 +559,46 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   
   
   if (ShouldHaveDirectoryService()) {
-    nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
-    NS_ASSERTION(directoryService, "Expected XPCOM to be available");
-    if (directoryService) {
-      nsCOMPtr<nsIFile> greDir;
-      nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
-      if (NS_SUCCEEDED(rv)) {
-        nsCString path;
-        greDir->GetNativePath(path);
+    MOZ_ASSERT(sGreDirCached);
+    if (sGreDir) {
+      nsCString path;
+      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetNativePath(path)));
 # if defined(OS_LINUX) || defined(OS_BSD)
 #  if defined(MOZ_WIDGET_ANDROID)
-        path += "/lib";
+      path += "/lib";
 #  endif  
-        const char *ld_library_path = PR_GetEnv("LD_LIBRARY_PATH");
-        nsCString new_ld_lib_path;
-        if (ld_library_path && *ld_library_path) {
-            new_ld_lib_path.Assign(path.get());
-            new_ld_lib_path.AppendLiteral(":");
-            new_ld_lib_path.Append(ld_library_path);
-            newEnvVars["LD_LIBRARY_PATH"] = new_ld_lib_path.get();
-        } else {
-            newEnvVars["LD_LIBRARY_PATH"] = path.get();
-        }
-# elif OS_MACOSX
-        newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        const char* prevInterpose = PR_GetEnv("DYLD_INSERT_LIBRARIES");
-        nsCString interpose;
-        if (prevInterpose) {
-          interpose.Assign(prevInterpose);
-          interpose.AppendLiteral(":");
-        }
-        interpose.Append(path.get());
-        interpose.AppendLiteral("/libplugin_child_interpose.dylib");
-        newEnvVars["DYLD_INSERT_LIBRARIES"] = interpose.get();
-# endif  
+      const char *ld_library_path = PR_GetEnv("LD_LIBRARY_PATH");
+      nsCString new_ld_lib_path;
+      if (ld_library_path && *ld_library_path) {
+          new_ld_lib_path.Assign(path.get());
+          new_ld_lib_path.AppendLiteral(":");
+          new_ld_lib_path.Append(ld_library_path);
+          newEnvVars["LD_LIBRARY_PATH"] = new_ld_lib_path.get();
+      } else {
+          newEnvVars["LD_LIBRARY_PATH"] = path.get();
       }
+# elif OS_MACOSX
+      newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      const char* prevInterpose = PR_GetEnv("DYLD_INSERT_LIBRARIES");
+      nsCString interpose;
+      if (prevInterpose) {
+        interpose.Assign(prevInterpose);
+        interpose.AppendLiteral(":");
+      }
+      interpose.Append(path.get());
+      interpose.AppendLiteral("/libplugin_child_interpose.dylib");
+      newEnvVars["DYLD_INSERT_LIBRARIES"] = interpose.get();
+# endif  
     }
   }
 #endif  

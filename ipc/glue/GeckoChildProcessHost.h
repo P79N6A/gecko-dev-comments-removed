@@ -11,11 +11,16 @@
 #include "base/waitable_event.h"
 #include "chrome/common/child_process_host.h"
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/StaticPtr.h"
 
+#include "nsCOMPtr.h"
 #include "nsXULAppAPI.h"        
 #include "nsString.h"
+
+class nsIFile;
 
 namespace mozilla {
 namespace ipc {
@@ -186,6 +191,9 @@ private:
   bool RunPerformAsyncLaunch(StringVector aExtraOpts=StringVector(),
 			     base::ProcessArchitecture aArch=base::GetCurrentProcessArchitecture());
 
+  static void GetPathToBinary(FilePath& exePath);
+  static void CacheGreDir();
+
   
   
   
@@ -194,6 +202,9 @@ private:
   
   
   std::queue<IPC::Message> mQueue;
+
+  static StaticRefPtr<nsIFile> sGreDir;
+  static DebugOnly<bool> sGreDirCached;
 };
 
 #ifdef MOZ_NUWA_PROCESS
