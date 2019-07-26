@@ -535,6 +535,8 @@ AudioContext::Shutdown()
 
   Suspend();
 
+  mDecoder.Shutdown();
+
   
   
   

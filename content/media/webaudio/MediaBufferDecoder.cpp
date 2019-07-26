@@ -539,6 +539,17 @@ MediaBufferDecoder::EnsureThreadPoolInitialized()
   return true;
 }
 
+void
+MediaBufferDecoder::Shutdown() {
+  if (mThreadPool) {
+    
+    
+    
+    mThreadPool->SetThreadLimit(0);
+    mThreadPool = nullptr;
+  }
+}
+
 WebAudioDecodeJob::WebAudioDecodeJob(const nsACString& aContentType,
                                      AudioContext* aContext,
                                      const ArrayBuffer& aBuffer,
