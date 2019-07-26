@@ -2076,14 +2076,14 @@ RangeAnalysis::truncate()
             
             
             const Range *r = iter->range();
-            bool hasRoundingErrors = !r || r->hasRoundingErrors();
+            bool canHaveRoundingErrors = !r || r->canHaveRoundingErrors();
 
             
             
             if (iter->isDiv() && iter->toDiv()->specialization() == MIRType_Int32)
-                hasRoundingErrors = false;
+                canHaveRoundingErrors = false;
 
-            if (hasRoundingErrors)
+            if (canHaveRoundingErrors)
                 continue;
 
             

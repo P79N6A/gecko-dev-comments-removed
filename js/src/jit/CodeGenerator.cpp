@@ -7489,7 +7489,7 @@ CodeGenerator::emitAssertRangeD(const Range *r, FloatRegister input, FloatRegist
     
     
 
-    if (!r->isInfinite()) {
+    if (!r->canBeInfiniteOrNaN()) {
         
         Label exponentLoOk;
         masm.loadConstantDouble(pow(2.0, r->exponent() + 1), temp);

@@ -393,7 +393,7 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
     
     masm.ucomisd(first, second);
     masm.j(Assembler::NotEqual, &minMaxInst);
-    if (!ins->mir()->range() || ins->mir()->range()->isInfinite())
+    if (!ins->mir()->range() || ins->mir()->range()->canBeInfiniteOrNaN())
         masm.j(Assembler::Parity, &nan);
 
     
@@ -408,7 +408,7 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
     
     
     
-    if (!ins->mir()->range() || ins->mir()->range()->isInfinite()) {
+    if (!ins->mir()->range() || ins->mir()->range()->canBeInfiniteOrNaN()) {
         masm.bind(&nan);
         masm.ucomisd(first, first);
         masm.j(Assembler::Parity, &done);
