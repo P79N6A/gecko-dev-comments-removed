@@ -818,7 +818,7 @@ class GeckoInputConnection
     }
 
     @Override
-    public void notifyIMEEnabled(int state, String typeHint, String modeHint, String actionHint) {
+    public void notifyIMEContext(int state, String typeHint, String modeHint, String actionHint) {
         
         
         
@@ -901,7 +901,7 @@ final class DebugGeckoInputConnection
             if ("notifyIME".equals(method.getName()) && arg == args[0]) {
                 log.append(GeckoEditable.getConstantName(
                     GeckoEditableListener.class, "NOTIFY_IME_", arg));
-            } else if ("notifyIMEEnabled".equals(method.getName()) && arg == args[0]) {
+            } else if ("notifyIMEContext".equals(method.getName()) && arg == args[0]) {
                 log.append(GeckoEditable.getConstantName(
                     GeckoEditableListener.class, "IME_STATE_", arg));
             } else {

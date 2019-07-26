@@ -327,15 +327,10 @@ public class GeckoAppShell
         }
     }
 
-    public static void notifyIMEEnabled(int state, String typeHint,
-                                        String modeHint, String actionHint,
-                                        boolean landscapeFS) {
-        
-        
-        
-        
+    public static void notifyIMEContext(int state, String typeHint,
+                                        String modeHint, String actionHint) {
         if (mEditableListener != null) {
-            mEditableListener.notifyIMEEnabled(state, typeHint,
+            mEditableListener.notifyIMEContext(state, typeHint,
                                                modeHint, actionHint);
         }
     }

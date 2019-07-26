@@ -59,7 +59,7 @@ interface GeckoEditableListener {
     final int IME_STATE_PLUGIN = 3;
 
     void notifyIME(int type, int state);
-    void notifyIMEEnabled(int state, String typeHint,
+    void notifyIMEContext(int state, String typeHint,
                           String modeHint, String actionHint);
     void onSelectionChange(int start, int end);
     void onTextChange(String text, int start, int oldEnd, int newEnd);
@@ -697,12 +697,12 @@ final class GeckoEditable
     }
 
     @Override
-    public void notifyIMEEnabled(final int state, final String typeHint,
+    public void notifyIMEContext(final int state, final String typeHint,
                           final String modeHint, final String actionHint) {
         
         
         if (DEBUG) {
-            Log.d(LOGTAG, "notifyIMEEnabled(" +
+            Log.d(LOGTAG, "notifyIMEContext(" +
                           getConstantName(GeckoEditableListener.class, "IME_STATE_", state) +
                           ", \"" + typeHint + "\", \"" + modeHint + "\", \"" + actionHint + "\")");
         }
@@ -718,7 +718,7 @@ final class GeckoEditable
                 if (v != null) {
                     mListener = GeckoInputConnection.create(v, GeckoEditable.this);
                     v.setInputConnectionHandler((InputConnectionHandler)mListener);
-                    mListener.notifyIMEEnabled(state, typeHint, modeHint, actionHint);
+                    mListener.notifyIMEContext(state, typeHint, modeHint, actionHint);
                 }
             }
         });
