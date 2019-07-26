@@ -532,11 +532,8 @@ js::GetOwnProperty(JSContext *cx, Handle<ObjectImpl*> obj, PropertyId pid_, unsi
         return false;
     }
 
-    
-    UnrootedShape shape = obj->nativeLookup(cx, pid);
+    RootedShape shape(cx, obj->nativeLookup(cx, pid));
     if (!shape) {
-        DropUnrooted(shape);
-
         
         Class *clasp = obj->getClass();
         JSResolveOp resolve = clasp->resolve;
@@ -689,6 +686,7 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
 
     Rooted<ObjectImpl*> current(cx, obj);
 
+    RootedValue getter(cx);
     do {
         MOZ_ASSERT(current);
 
@@ -719,8 +717,8 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
 
         
         if (desc.isAccessorDescriptor()) {
-            Value get = desc.getterValue();
-            if (get.isUndefined()) {
+            getter = desc.getterValue();
+            if (getter.isUndefined()) {
                 vp->setUndefined();
                 return true;
             }
@@ -730,7 +728,7 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
                 return false;
 
             
-            args.setCallee(get);
+            args.setCallee(getter);
             args.setThis(ObjectValue(*current));
 
             bool ok = Invoke(cx, args);
@@ -920,6 +918,7 @@ js::SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
     NEW_OBJECT_REPRESENTATION_ONLY();
 
     Rooted<ObjectImpl*> current(cx, obj);
+    RootedValue setter(cx);
 
     MOZ_ASSERT(receiver);
 
@@ -953,7 +952,7 @@ js::SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
             }
 
             if (ownDesc.isAccessorDescriptor()) {
-                Value setter = ownDesc.setterValue();
+                setter = ownDesc.setterValue();
                 if (setter.isUndefined()) {
                     *succeeded = false;
                     return true;
