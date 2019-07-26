@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "inDOMView.h"
 #include "inIDOMUtils.h"
 

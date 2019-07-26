@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsHTMLTags.h"
 #include "nsCRT.h"
 #include "nsReadableUtils.h"

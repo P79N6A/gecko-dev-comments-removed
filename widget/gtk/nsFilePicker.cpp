@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/Types.h"
 
 #include <gtk/gtk.h>
 

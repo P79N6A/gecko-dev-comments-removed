@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/HTMLIFrameElementBinding.h"
 #include "nsMappedAttributes.h"

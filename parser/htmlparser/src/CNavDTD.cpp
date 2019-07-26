@@ -4,8 +4,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsISupports.h"
 #include "nsISupportsImpl.h"
 #include "nsIParser.h"

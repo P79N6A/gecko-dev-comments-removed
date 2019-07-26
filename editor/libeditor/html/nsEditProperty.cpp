@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsMemory.h"
 #include "nsStaticAtom.h"
 #include "nsEditProperty.h"

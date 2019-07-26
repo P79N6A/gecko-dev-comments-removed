@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include <android/log.h>
 #include <dlfcn.h>
 #include <prthread.h>

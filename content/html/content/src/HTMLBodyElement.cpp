@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "HTMLBodyElement.h"
 #include "mozilla/dom/HTMLBodyElementBinding.h"
 #include "nsAttrValueInlines.h"

@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "mozilla/dom/HTMLTableElement.h"
 #include "nsAttrValueInlines.h"
 #include "nsRuleData.h"

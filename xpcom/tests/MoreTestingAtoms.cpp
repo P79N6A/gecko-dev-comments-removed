@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "MoreTestingAtoms.h"
 #include "nsStaticAtom.h"
 #include "nsMemory.h"

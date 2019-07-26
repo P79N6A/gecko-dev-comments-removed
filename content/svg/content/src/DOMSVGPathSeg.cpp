@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "DOMSVGPathSeg.h"
 #include "DOMSVGPathSegList.h"
 #include "SVGAnimatedPathSegList.h"

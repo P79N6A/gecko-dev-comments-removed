@@ -9,8 +9,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsGkAtoms.h"
 #include "nsStaticAtom.h"
 

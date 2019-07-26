@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "prlink.h"
 #include "gfxTypes.h"
 

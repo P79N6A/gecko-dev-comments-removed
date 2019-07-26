@@ -15,7 +15,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Util.h"  
 #include "gfxASurface.h"
 #include "gfxPattern.h"  
 #include "gfxDrawable.h"

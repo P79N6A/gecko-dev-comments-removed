@@ -4,8 +4,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsFormSubmission.h"
 
 #include "nsCOMPtr.h"

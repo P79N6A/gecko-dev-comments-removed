@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "mozilla/dom/HTMLTableCellElement.h"
 #include "mozilla/dom/HTMLTableElement.h"
 #include "mozilla/dom/HTMLTableRowElement.h"
