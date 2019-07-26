@@ -19,12 +19,12 @@
 
 
 
-#define NSSUTIL_VERSION  "3.16.2 Beta"
+#define NSSUTIL_VERSION  "3.16.2"
 #define NSSUTIL_VMAJOR   3
 #define NSSUTIL_VMINOR   16
 #define NSSUTIL_VPATCH   2
 #define NSSUTIL_VBUILD   0
-#define NSSUTIL_BETA     PR_TRUE
+#define NSSUTIL_BETA     PR_FALSE
 
 SEC_BEGIN_PROTOS
 

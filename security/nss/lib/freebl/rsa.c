@@ -1416,9 +1416,6 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
 	goto cleanup;            \
     }
     
-
-
-    
     CHECK_MPI_OK( mp_mul(&p, &q, &res) );
     VERIFY_MPI_EQUAL(&res, &n);
     
@@ -1435,10 +1432,6 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
     
     CHECK_MPI_OK( mp_mulmod(&d, &e, &qsub1, &res) );
     VERIFY_MPI_EQUAL_1(&res);
-    
-
-
-
     
     CHECK_MPI_OK( mp_mod(&d, &psub1, &res) );
     VERIFY_MPI_EQUAL(&res, &d_p);
