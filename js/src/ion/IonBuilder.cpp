@@ -6091,8 +6091,15 @@ IonBuilder::setStaticName(HandleObject staticObject, HandlePropertyName name)
     
     
     
+    
+    
+    
+    
+    
+    
     MIRType slotType = MIRType_None;
     if (propertyTypes && !staticObject->getSlot(shape->slot()).isUndefined()) {
+        staticType->getFromPrototypes(cx, id, propertyTypes);
         JSValueType knownType = propertyTypes->getKnownTypeTag(cx);
         if (knownType != JSVAL_TYPE_UNKNOWN)
             slotType = MIRTypeFromValueType(knownType);
