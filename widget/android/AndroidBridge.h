@@ -488,29 +488,27 @@ private:
 
 class AutoLocalJNIFrame {
 public:
-    AutoLocalJNIFrame(int nEntries = 128)
-        : mEntries(nEntries), mHasFrameBeenPushed(false)
+    AutoLocalJNIFrame(int nEntries = 15)
+        : mEntries(nEntries)
+        , mJNIEnv(AndroidBridge::GetJNIEnv())
+        , mHasFrameBeenPushed(false)
     {
-        mJNIEnv = AndroidBridge::GetJNIEnv();
+        MOZ_ASSERT(mJNIEnv);
         Push();
     }
 
-    AutoLocalJNIFrame(JNIEnv* aJNIEnv, int nEntries = 128)
-        : mEntries(nEntries), mHasFrameBeenPushed(false)
+    AutoLocalJNIFrame(JNIEnv* aJNIEnv, int nEntries = 15)
+        : mEntries(nEntries)
+        , mJNIEnv(aJNIEnv ? aJNIEnv : AndroidBridge::GetJNIEnv())
+        , mHasFrameBeenPushed(false)
     {
-        mJNIEnv = aJNIEnv ? aJNIEnv : AndroidBridge::GetJNIEnv();
-
+        MOZ_ASSERT(mJNIEnv);
         Push();
     }
 
-    
-    
-    
-    void Purge() {
-        if (mJNIEnv) {
-            if (mHasFrameBeenPushed)
-                mJNIEnv->PopLocalFrame(nullptr);
-            Push();
+    ~AutoLocalJNIFrame() {
+        if (mHasFrameBeenPushed) {
+            Pop();
         }
     }
 
@@ -520,42 +518,43 @@ public:
 
     bool CheckForException() {
         if (mJNIEnv->ExceptionCheck()) {
-            mJNIEnv->ExceptionDescribe();
-            mJNIEnv->ExceptionClear();
+            AndroidBridge::HandleUncaughtException(mJNIEnv);
             return true;
         }
-
         return false;
     }
 
-    ~AutoLocalJNIFrame() {
-        if (!mJNIEnv)
-            return;
+    
+    
+    
+    void Purge() {
+        Pop();
+        Push();
+    }
 
-        CheckForException();
-
-        if (mHasFrameBeenPushed)
-            mJNIEnv->PopLocalFrame(nullptr);
+    template <typename ReturnType = jobject>
+    ReturnType Pop(ReturnType aResult = nullptr) {
+        MOZ_ASSERT(mHasFrameBeenPushed);
+        mHasFrameBeenPushed = false;
+        return static_cast<ReturnType>(
+            mJNIEnv->PopLocalFrame(static_cast<jobject>(aResult)));
     }
 
 private:
     void Push() {
-        if (!mJNIEnv)
-            return;
-
+        MOZ_ASSERT(!mHasFrameBeenPushed);
         
         
         
-        jint ret = mJNIEnv->PushLocalFrame(mEntries + 1);
-        NS_ABORT_IF_FALSE(ret == 0, "Failed to push local JNI frame");
-        if (ret < 0)
+        if (mJNIEnv->PushLocalFrame(mEntries + 1) != 0) {
             CheckForException();
-        else
-            mHasFrameBeenPushed = true;
+            return;
+        }
+        mHasFrameBeenPushed = true;
     }
 
-    int mEntries;
-    JNIEnv* mJNIEnv;
+    const int mEntries;
+    JNIEnv* const mJNIEnv;
     bool mHasFrameBeenPushed;
 };
 
