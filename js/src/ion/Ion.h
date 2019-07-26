@@ -94,7 +94,7 @@ struct IonOptions
     
     
     
-    bool rangeAnalysis;
+    bool edgeCaseAnalysis;
 
     
     
@@ -152,7 +152,7 @@ struct IonOptions
         limitScriptSize(true),
         lsra(true),
         inlining(true),
-        rangeAnalysis(true),
+        edgeCaseAnalysis(true),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
         usesBeforeInlining(usesBeforeCompile),

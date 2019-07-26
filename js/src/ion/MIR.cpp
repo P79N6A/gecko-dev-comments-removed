@@ -43,7 +43,7 @@
 #include "LICM.h" 
 #include "MIR.h"
 #include "MIRGraph.h"
-#include "RangeAnalysis.h"
+#include "EdgeCaseAnalysis.h"
 #include "jsnum.h"
 #include "jstypedarrayinlines.h" 
 
@@ -186,13 +186,13 @@ MDefinition::foldsTo(bool useValueNumbers)
 }
 
 void
-MDefinition::analyzeRangeForward()
+MDefinition::analyzeEdgeCasesForward()
 {
     return;
 }
 
 void
-MDefinition::analyzeRangeBackward()
+MDefinition::analyzeEdgeCasesBackward()
 {
     return;
 }
@@ -695,7 +695,7 @@ MDiv::foldsTo(bool useValueNumbers)
 }
 
 void
-MDiv::analyzeRangeForward()
+MDiv::analyzeEdgeCasesForward()
 {
     
     if (specialization_ != MIRType_Int32)
@@ -727,7 +727,7 @@ MDiv::analyzeRangeForward()
 }
 
 void
-MDiv::analyzeRangeBackward()
+MDiv::analyzeEdgeCasesBackward()
 {
     if (canBeNegativeZero_)
         canBeNegativeZero_ = NeedNegativeZeroCheck(this);
@@ -737,7 +737,7 @@ void
 MDiv::analyzeTruncateBackward()
 {
     if (!isTruncated())
-        setTruncated(js::ion::RangeAnalysis::AllUsesTruncate(this));
+        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
 }
 
 bool
@@ -813,7 +813,7 @@ void
 MAdd::analyzeTruncateBackward()
 {
     if (!isTruncated())
-        setTruncated(js::ion::RangeAnalysis::AllUsesTruncate(this));
+        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
 }
 
 bool
@@ -830,7 +830,7 @@ void
 MSub::analyzeTruncateBackward()
 {
     if (!isTruncated())
-        setTruncated(js::ion::RangeAnalysis::AllUsesTruncate(this));
+        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
 }
 
 bool
@@ -860,7 +860,7 @@ MMul::foldsTo(bool useValueNumbers)
 }
 
 void
-MMul::analyzeRangeForward()
+MMul::analyzeEdgeCasesForward()
 {
     
     
@@ -884,7 +884,7 @@ MMul::analyzeRangeForward()
 }
 
 void
-MMul::analyzeRangeBackward()
+MMul::analyzeEdgeCasesBackward()
 {
     if (canBeNegativeZero_)
         canBeNegativeZero_ = NeedNegativeZeroCheck(this);
@@ -1164,7 +1164,7 @@ MToInt32::foldsTo(bool useValueNumbers)
 }
 
 void
-MToInt32::analyzeRangeBackward()
+MToInt32::analyzeEdgeCasesBackward()
 {
     canBeNegativeZero_ = NeedNegativeZeroCheck(this);
 }
