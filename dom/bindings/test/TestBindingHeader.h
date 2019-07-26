@@ -117,7 +117,13 @@ public:
 
 
 
-  
+
+  static
+  already_AddRefed<TestInterface> Test(const GlobalObject&, ErrorResult&);
+  static
+  already_AddRefed<TestInterface> Test(const GlobalObject&, const nsAString&,
+                                       ErrorResult&);
+
   
   int8_t ReadonlyByte();
   int8_t WritableByte();
