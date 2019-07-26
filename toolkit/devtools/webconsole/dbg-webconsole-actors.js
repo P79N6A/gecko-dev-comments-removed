@@ -56,13 +56,26 @@ function WebConsoleActor(aConnection, aParentActor)
 
   if (aParentActor instanceof BrowserTabActor &&
       aParentActor.browser instanceof Ci.nsIDOMWindow) {
-    this._window = aParentActor.browser;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this._window = Services.wm.getMostRecentWindow("navigator:browser");
+    this._isGlobalActor = true;
   }
   else if (aParentActor instanceof BrowserTabActor &&
            aParentActor.browser instanceof Ci.nsIDOMElement) {
+    
+    
     this._window = aParentActor.browser.contentWindow;
   }
   else {
+    
     this._window = Services.wm.getMostRecentWindow("navigator:browser");
     this._isGlobalActor = true;
   }
