@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaEngineWebRTC.h"
 
@@ -21,9 +21,9 @@ extern PRLogModuleInfo* GetMediaManagerLog();
 #define LOG(msg)
 #endif
 
-
-
-
+/**
+ * Webrtc audio source.
+ */
 NS_IMPL_THREADSAFE_ISUPPORTS0(MediaEngineWebRTCAudioSource)
 
 void
@@ -44,6 +44,60 @@ MediaEngineWebRTCAudioSource::GetUUID(nsAString& aUUID)
   }
 
   return;
+}
+
+nsresult
+MediaEngineWebRTCAudioSource::Config(bool aEchoOn, uint32_t aEcho,
+                                     bool aAgcOn, uint32_t aAGC,
+                                     bool aNoiseOn, uint32_t aNoise)
+{
+  LOG(("Audio config: aec: %d, agc: %d, noise: %d",
+       aEchoOn ? aEcho : -1,
+       aAgcOn ? aAGC : -1,
+       aNoiseOn ? aNoise : -1));
+
+  bool update_agc = (mAgcOn == aAgcOn);
+  bool update_noise = (mNoiseOn == aNoiseOn);
+  mAgcOn = aAgcOn;
+  mNoiseOn = aNoiseOn;
+
+  if ((webrtc::AgcModes) aAGC != webrtc::kAgcUnchanged) {
+    if (mAGC != (webrtc::AgcModes) aAGC) {
+      update_agc = true;
+      mAGC = (webrtc::AgcModes) aAGC;
+    }
+  }
+  if ((webrtc::NsModes) aNoise != webrtc::kNsUnchanged) {
+    if (mNoiseSuppress != (webrtc::NsModes) aNoise) {
+      update_noise = true;
+      mNoiseSuppress = (webrtc::NsModes) aNoise;
+    }
+  }
+
+  if (mInitDone) {
+    int error;
+#if 0
+    // Until we can support feeding our full output audio from the browser
+    // through the MediaStream, this won't work.  Or we need to move AEC to
+    // below audio input and output, perhaps invoked from here.
+    mEchoOn = aEchoOn;
+    if ((webrtc::EcModes) aEcho != webrtc::kEcUnchanged)
+      mEchoCancel = (webrtc::EcModes) aEcho;
+    mVoEProcessing->SetEcStatus(mEchoOn, aEcho);
+#else
+    (void) aEcho; (void) aEchoOn; // suppress warnings
+#endif
+
+    if (update_agc &&
+      0 != (error = mVoEProcessing->SetAgcStatus(mAgcOn, (webrtc::AgcModes) aAGC))) {
+      LOG(("%s Error setting AGC Status: %d ",__FUNCTION__, error));
+    }
+    if (update_noise &&
+      0 != (error = mVoEProcessing->SetNsStatus(mNoiseOn, (webrtc::NsModes) aNoise))) {
+      LOG(("%s Error setting NoiseSuppression Status: %d ",__FUNCTION__, error));
+    }
+  }
+  return NS_OK;
 }
 
 nsresult
@@ -106,6 +160,11 @@ MediaEngineWebRTCAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
   }
   mState = kStarted;
 
+  // Configure audio processing in webrtc code
+  Config(mEchoOn, webrtc::kEcUnchanged,
+         mAgcOn, webrtc::kAgcUnchanged,
+         mNoiseOn, webrtc::kNsUnchanged);
+
   if (mVoEBase->StartReceive(mChannel)) {
     return NS_ERROR_FAILURE;
   }
@@ -113,7 +172,7 @@ MediaEngineWebRTCAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
     return NS_ERROR_FAILURE;
   }
 
-  
+  // Attach external media processor, so this::Process will be called.
   mVoERender->RegisterExternalMediaProcessing(mChannel, webrtc::kRecordingPerChannel, *this);
 
   return NS_OK;
@@ -126,7 +185,7 @@ MediaEngineWebRTCAudioSource::Stop(SourceMediaStream *aSource, TrackID aID)
     ReentrantMonitorAutoEnter enter(mMonitor);
 
     if (!mSources.RemoveElement(aSource)) {
-      
+      // Already stopped - this is allowed
       return NS_OK;
     }
     if (!mSources.IsEmpty()) {
@@ -161,7 +220,7 @@ MediaEngineWebRTCAudioSource::NotifyPull(MediaStreamGraph* aGraph,
                                          StreamTime aDesiredTime,
                                          TrackTicks &aLastEndTime)
 {
-  
+  // Ignore - we push audio data
 #ifdef DEBUG
   TrackTicks target = TimeToTicksRoundUp(SAMPLE_FREQUENCY, aDesiredTime);
   TrackTicks delta = target - aLastEndTime;
@@ -192,6 +251,11 @@ MediaEngineWebRTCAudioSource::Init()
     return;
   }
 
+  mVoEProcessing = webrtc::VoEAudioProcessing::GetInterface(mVoiceEngine);
+  if (!mVoEProcessing) {
+    return;
+  }
+
   mChannel = mVoEBase->CreateChannel();
   if (mChannel < 0) {
     return;
@@ -201,7 +265,7 @@ MediaEngineWebRTCAudioSource::Init()
     return;
   }
 
-  
+  // Check for availability.
   webrtc::VoEHardware* ptrVoEHw = webrtc::VoEHardware::GetInterface(mVoiceEngine);
   if (ptrVoEHw->SetRecordingDevice(mCapIndex)) {
     ptrVoEHw->Release();
@@ -215,7 +279,7 @@ MediaEngineWebRTCAudioSource::Init()
     return;
   }
 
-  
+  // Set "codec" to PCM, 32kHz on 1 channel
   webrtc::VoECodec* ptrVoECodec;
   webrtc::CodecInst codec;
   ptrVoECodec = webrtc::VoECodec::GetInterface(mVoiceEngine);
@@ -228,7 +292,7 @@ MediaEngineWebRTCAudioSource::Init()
   codec.rate = SAMPLE_RATE;
   codec.plfreq = SAMPLE_FREQUENCY;
   codec.pacsize = SAMPLE_LENGTH;
-  codec.pltype = 0; 
+  codec.pltype = 0; // Default payload type
 
   if (ptrVoECodec->SetSendCodec(mChannel, codec)) {
     return;
@@ -241,7 +305,7 @@ void
 MediaEngineWebRTCAudioSource::Shutdown()
 {
   if (!mInitDone) {
-    
+    // duplicate these here in case we failed during Init()
     if (mChannel != -1) {
       mVoENetwork->DeRegisterExternalTransport(mChannel);
     }
@@ -255,7 +319,7 @@ MediaEngineWebRTCAudioSource::Shutdown()
 
   if (mState == kStarted) {
     while (!mSources.IsEmpty()) {
-      Stop(mSources[0], kAudioTrack); 
+      Stop(mSources[0], kAudioTrack); // XXX change to support multiple tracks
     }
     MOZ_ASSERT(mState == kStopped);
   }
@@ -306,8 +370,8 @@ MediaEngineWebRTCAudioSource::Process(const int channel,
 
     SourceMediaStream *source = mSources[i];
     if (source) {
-      
-      
+      // This is safe from any thread, and is safe if the track is Finished
+      // or Destroyed
       source->AppendToTrack(mTrackID, &segment);
     }
   }

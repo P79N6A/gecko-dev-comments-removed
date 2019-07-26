@@ -35,6 +35,7 @@
 #include "voice_engine/include/voe_audio_processing.h"
 #include "voice_engine/include/voe_volume_control.h"
 #include "voice_engine/include/voe_external_media.h"
+#include "voice_engine/include/voe_audio_processing.h"
 
 
 #include "video_engine/include/vie_base.h"
@@ -90,6 +91,9 @@ public:
   virtual nsresult Start(SourceMediaStream*, TrackID);
   virtual nsresult Stop(SourceMediaStream*, TrackID);
   virtual nsresult Snapshot(uint32_t aDuration, nsIDOMFile** aFile);
+  virtual nsresult Config(bool aEchoOn, uint32_t aEcho,
+                          bool aAgcOn, uint32_t aAGC,
+                          bool aNoiseOn, uint32_t aNoise) { return NS_OK; };
   virtual void NotifyPull(MediaStreamGraph* aGraph,
                           SourceMediaStream *aSource,
                           TrackID aId,
@@ -177,6 +181,10 @@ public:
     , mCapIndex(aIndex)
     , mChannel(-1)
     , mInitDone(false)
+    , mEchoOn(false), mAgcOn(false), mNoiseOn(false)
+    , mEchoCancel(webrtc::kEcDefault)
+    , mAGC(webrtc::kAgcDefault)
+    , mNoiseSuppress(webrtc::kNsDefault)
     , mNullTransport(nullptr) {
     MOZ_ASSERT(aVoiceEnginePtr);
     mState = kReleased;
@@ -194,6 +202,10 @@ public:
   virtual nsresult Start(SourceMediaStream*, TrackID);
   virtual nsresult Stop(SourceMediaStream*, TrackID);
   virtual nsresult Snapshot(uint32_t aDuration, nsIDOMFile** aFile);
+  virtual nsresult Config(bool aEchoOn, uint32_t aEcho,
+                          bool aAgcOn, uint32_t aAGC,
+                          bool aNoiseOn, uint32_t aNoise);
+
   virtual void NotifyPull(MediaStreamGraph* aGraph,
                           SourceMediaStream *aSource,
                           TrackID aId,
@@ -218,6 +230,7 @@ private:
   webrtc::VoEBase* mVoEBase;
   webrtc::VoEExternalMedia* mVoERender;
   webrtc::VoENetwork*  mVoENetwork;
+  webrtc::VoEAudioProcessing *mVoEProcessing;
 
   
   
@@ -232,6 +245,11 @@ private:
 
   nsString mDeviceName;
   nsString mDeviceUUID;
+
+  bool mEchoOn, mAgcOn, mNoiseOn;
+  webrtc::EcModes  mEchoCancel;
+  webrtc::AgcModes mAGC;
+  webrtc::NsModes  mNoiseSuppress;
 
   NullTransport *mNullTransport;
 };
