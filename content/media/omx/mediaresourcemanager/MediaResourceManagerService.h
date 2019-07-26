@@ -73,7 +73,7 @@ protected:
   
   
   Mutex mLock;
-  typedef Vector<sp<IBinder> > Fifo;
+  typedef List<sp<IBinder> > Fifo;
   
   
   Fifo mVideoCodecRequestQueue;
