@@ -93,7 +93,7 @@ public:
 
 
   ThreadSharedFloatArrayBufferList* GetThreadSharedChannelsForRate(JSContext* aContext,
-                                                                   uint32_t aRate,
+                                                                   uint32_t* aRate,
                                                                    uint32_t* aLength);
 
   
@@ -113,12 +113,6 @@ protected:
   
   
   nsRefPtr<ThreadSharedFloatArrayBufferList> mSharedChannels;
-
-  
-  
-  nsRefPtr<ThreadSharedFloatArrayBufferList> mResampledChannels;
-  uint32_t mResampledChannelsRate;
-  uint32_t mResampledChannelsLength;
 
   uint32_t mLength;
   float mSampleRate;
