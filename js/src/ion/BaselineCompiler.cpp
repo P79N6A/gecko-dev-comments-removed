@@ -624,6 +624,13 @@ BaselineCompiler::emit_JSOP_POP()
 }
 
 bool
+BaselineCompiler::emit_JSOP_POPN()
+{
+    frame.popn(GET_UINT16(pc));
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_DUP()
 {
     
