@@ -1017,7 +1017,7 @@ js::NukeCrossCompartmentWrapper(JSContext *cx, JSObject *wrapper)
 
 
 JS_FRIEND_API(JSBool)
-js::NukeCrossCompartmentWrappers(JSContext* cx, 
+js::NukeCrossCompartmentWrappers(JSContext* cx,
                                  const CompartmentFilter& sourceFilter,
                                  const CompartmentFilter& targetFilter,
                                  js::NukeReferencesToWindow nukeReferencesToWindow)

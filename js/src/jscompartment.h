@@ -193,6 +193,7 @@ struct JSCompartment : public js::gc::GraphNodeBase
     enum CompartmentGCState {
         NoGC,
         Mark,
+        MarkGray,
         Sweep,
         Finished
     };
@@ -250,14 +251,27 @@ struct JSCompartment : public js::gc::GraphNodeBase
 
     bool isGCMarking() {
         if (rt->isHeapCollecting())
-            return gcState == Mark;
+            return gcState == Mark || gcState == MarkGray;
         else
             return needsBarrier();
+    }
+
+    bool isGCMarkingBlack() {
+        return gcState == Mark;
+    }
+
+    bool isGCMarkingGray() {
+        return gcState == MarkGray;
     }
 
     bool isGCSweeping() {
         return gcState == Sweep;
     }
+
+    bool isGCFinished() {
+        return gcState == Finished;
+    }
+
 
     size_t                       gcBytes;
     size_t                       gcTriggerBytes;
@@ -339,6 +353,15 @@ struct JSCompartment : public js::gc::GraphNodeBase
 
     
     unsigned                     gcIndex;
+
+    
+
+
+
+
+
+
+    js::RawObject                gcIncomingGrayPointers;
 
   private:
     
