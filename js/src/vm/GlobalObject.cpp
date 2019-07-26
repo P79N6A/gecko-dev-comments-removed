@@ -372,16 +372,12 @@ GlobalObject::resolveConstructor(JSContext *cx, Handle<GlobalObject*> global, JS
     
 
     
-    RootedObject ctor(cx, clasp->spec.createConstructor(cx, key));
-    if (!ctor)
-        return false;
-
     
-    if (const JSFunctionSpec *funs = clasp->spec.constructorFunctions) {
-        if (!JS_DefineFunctions(cx, ctor, funs))
-            return false;
-    }
-
+    
+    
+    
+    
+    
     
     
     
@@ -390,13 +386,33 @@ GlobalObject::resolveConstructor(JSContext *cx, Handle<GlobalObject*> global, JS
         proto = clasp->spec.createPrototype(cx, key);
         if (!proto)
             return false;
+
+        global->setPrototype(key, ObjectValue(*proto));
     }
+
+    
+    RootedObject ctor(cx, clasp->spec.createConstructor(cx, key));
+    if (!ctor)
+        return false;
+
+    RootedId id(cx, NameToId(ClassName(key, cx)));
+    if (!global->addDataProperty(cx, id, constructorPropertySlot(key), 0))
+        return false;
+
+    global->setConstructor(key, ObjectValue(*ctor));
+    global->setConstructorPropertySlot(key, ObjectValue(*ctor));
+
+    
     if (const JSFunctionSpec *funs = clasp->spec.prototypeFunctions) {
         if (!JS_DefineFunctions(cx, proto, funs))
             return false;
     }
     if (const JSPropertySpec *props = clasp->spec.prototypeProperties) {
         if (!JS_DefineProperties(cx, proto, props))
+            return false;
+    }
+    if (const JSFunctionSpec *funs = clasp->spec.constructorFunctions) {
+        if (!JS_DefineFunctions(cx, ctor, funs))
             return false;
     }
 
@@ -409,7 +425,10 @@ GlobalObject::resolveConstructor(JSContext *cx, Handle<GlobalObject*> global, JS
         return false;
 
     
-    return initBuiltinConstructor(cx, global, key, ctor, proto);
+    
+    types::AddTypePropertyId(cx, global, id, ObjectValue(*ctor));
+
+    return true;
 }
 
  bool
