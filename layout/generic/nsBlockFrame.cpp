@@ -2514,7 +2514,8 @@ nsBlockFrame::PullFrame(nsBlockReflowState& aState,
 {
   
   if (end_lines() != aLine.next()) {
-    return PullFrameFrom(aState, aLine, this, false, mFrames, aLine.next());
+    return PullFrameFrom(aState, aLine, this, false, mFrames, mLines,
+                         aLine.next());
   }
 
   NS_ASSERTION(!GetOverflowLines(),
@@ -2526,14 +2527,14 @@ nsBlockFrame::PullFrame(nsBlockReflowState& aState,
     
     if (!nextInFlow->mLines.empty()) {
       return PullFrameFrom(aState, aLine, nextInFlow, false,
-                           nextInFlow->mFrames,
+                           nextInFlow->mFrames, nextInFlow->mLines,
                            nextInFlow->mLines.begin());
     }
 
     FrameLines* overflowLines = nextInFlow->GetOverflowLines();
     if (overflowLines) {
       return PullFrameFrom(aState, aLine, nextInFlow, true,
-                           overflowLines->mFrames,
+                           overflowLines->mFrames, overflowLines->mLines,
                            overflowLines->mLines.begin());
     }
 
@@ -2550,6 +2551,7 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
                             nsBlockFrame*        aFromContainer,
                             bool                 aFromOverflowLine,
                             nsFrameList&         aFromFrameList,
+                            nsLineList&          aFromLineList,
                             nsLineList::iterator aFromLine)
 {
   nsLineBox* fromLine = aFromLine;
@@ -2606,26 +2608,16 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
   } else {
     
     
-    FrameLines* overflowLines =
-      aFromOverflowLine ? aFromContainer->RemoveOverflowLines() : nullptr;
-    nsLineList* fromLineList =
-      aFromOverflowLine ? &overflowLines->mLines : &aFromContainer->mLines;
-    if (aFromLine.next() != fromLineList->end())
+    if (aFromLine.next() != aFromLineList.end()) {
       aFromLine.next()->MarkPreviousMarginDirty();
-
-    fromLineList->erase(aFromLine);
+    }
+    aFromLineList.erase(aFromLine);
     
     aFromContainer->FreeLineBox(fromLine);
 
     
-    if (aFromOverflowLine) {
-      if (!fromLineList->empty()) {
-        aFromContainer->SetOverflowLines(overflowLines);
-      } else {
-        delete overflowLines;
-        
-        
-      }
+    if (aFromOverflowLine && aFromFrameList.IsEmpty()) {
+      aFromContainer->DestroyOverflowLines();
     }
   }
 
