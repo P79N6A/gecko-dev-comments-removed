@@ -423,8 +423,6 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
     
     
     nsHTMLFramesetBlankFrame* blankFrame = new (shell) nsHTMLFramesetBlankFrame(pseudoStyleContext);
-    if (!blankFrame)
-      return NS_ERROR_OUT_OF_MEMORY;
 
     result = blankFrame->Init(mContent, this, nullptr);
     if (NS_FAILED(result)) {
