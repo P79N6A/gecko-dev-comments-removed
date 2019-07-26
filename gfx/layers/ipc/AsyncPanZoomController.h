@@ -606,7 +606,7 @@ private:
 
 
 
-  bool ConvertToGecko(const ScreenPoint& aPoint, CSSIntPoint* aOut);
+  bool ConvertToGecko(const ScreenPoint& aPoint, CSSPoint* aOut);
 
   
 
