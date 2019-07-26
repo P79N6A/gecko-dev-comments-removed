@@ -53,6 +53,7 @@
 
 #include "prprf.h"
 #include "nsNodeUtils.h"
+#include "nsJSUtils.h"
 
 
 
@@ -1413,6 +1414,84 @@ nsXBLBinding::ResolveAllFields(JSContext *cx, JSObject *obj) const
   }
 
   return true;
+}
+
+bool
+nsXBLBinding::LookupMember(JSContext* aCx, JS::HandleId aId,
+                           JSPropertyDescriptor* aDesc)
+{
+  
+  MOZ_ASSERT(!aDesc->obj);
+
+  
+  
+  if (!JSID_IS_STRING(aId)) {
+    return true;
+  }
+  nsDependentJSString name(aId);
+
+  
+  if (!mBoundElement || !mBoundElement->GetWrapper()) {
+    return false;
+  }
+
+  
+  JSObject* boundScope =
+    js::GetGlobalForObjectCrossCompartment(mBoundElement->GetWrapper());
+
+  
+  {
+    JSAutoCompartment ac(aCx, boundScope);
+    js::RootedId id(aCx, aId);
+    if (!JS_WrapId(aCx, id.address()) ||
+        !LookupMemberInternal(aCx, name, id, aDesc, boundScope))
+    {
+      return false;
+    }
+  }
+
+  
+  return JS_WrapPropertyDescriptor(aCx, aDesc);
+}
+
+bool
+nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
+                                   JS::HandleId aNameAsId,
+                                   JSPropertyDescriptor* aDesc,
+                                   JSObject* aBoundScope)
+{
+  
+  
+  if (!mJSClass) {
+    if (!mNextBinding) {
+      return true;
+    }
+    return mNextBinding->LookupMemberInternal(aCx, aName, aNameAsId,
+                                              aDesc, aBoundScope);
+  }
+
+  
+  
+  js::RootedValue classObject(aCx);
+  if (!JS_GetProperty(aCx, aBoundScope, mJSClass->name, classObject.address())) {
+    return false;
+  }
+  MOZ_ASSERT(classObject.isObject());
+
+  
+  
+  nsXBLProtoImpl* impl = mPrototypeBinding->GetImplementation();
+  if (impl && !impl->LookupMember(aCx, aName, aNameAsId, aDesc,
+                                  &classObject.toObject()))
+  {
+    return false;
+  }
+  if (aDesc->obj || !mNextBinding) {
+    return true;
+  }
+
+  return mNextBinding->LookupMemberInternal(aCx, aName, aNameAsId, aDesc,
+                                            aBoundScope);
 }
 
 void

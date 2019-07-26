@@ -15,6 +15,7 @@
 #include "nsTArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupportsImpl.h"
+#include "jsapi.h"
 
 class nsXBLPrototypeBinding;
 class nsIContent;
@@ -66,6 +67,23 @@ public:
 
   bool IsStyleBinding() const { return mIsStyleBinding; }
   void SetIsStyleBinding(bool aIsStyle) { mIsStyleBinding = aIsStyle; }
+
+  
+
+
+
+
+  bool LookupMember(JSContext* aCx, JS::HandleId aId, JSPropertyDescriptor* aDesc);
+
+protected:
+
+  
+
+
+  bool LookupMemberInternal(JSContext* aCx, nsString& aName, JS::HandleId aNameAsId,
+                            JSPropertyDescriptor* aDesc, JSObject* aBoundScope);
+
+public:
 
   void MarkForDeath();
   bool MarkedForDeath() const { return mMarkedForDeath; }
