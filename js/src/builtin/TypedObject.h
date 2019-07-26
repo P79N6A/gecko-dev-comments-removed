@@ -736,6 +736,14 @@ extern const JSJitInfo ObjectIsTypeDescrJitInfo;
 
 
 
+bool ObjectIsTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo ObjectIsTypedObjectJitInfo;
+
+
+
+
+
+
 bool ObjectIsOpaqueTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ObjectIsOpaqueTypedObjectJitInfo;
 
@@ -746,6 +754,20 @@ extern const JSJitInfo ObjectIsOpaqueTypedObjectJitInfo;
 
 bool ObjectIsTransparentTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ObjectIsTransparentTypedObjectJitInfo;
+
+
+
+bool TypeDescrIsSimpleType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsSimpleTypeJitInfo;
+
+bool TypeDescrIsArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsArrayTypeJitInfo;
+
+bool TypeDescrIsSizedArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsSizedArrayTypeJitInfo;
+
+bool TypeDescrIsUnsizedArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsUnsizedArrayTypeJitInfo;
 
 
 
@@ -965,6 +987,20 @@ inline bool
 JSObject::is<js::TypedObject>() const
 {
     return IsTypedObjectClass(getClass());
+}
+
+template<>
+inline bool
+JSObject::is<js::SizedArrayTypeDescr>() const
+{
+    return getClass() == &js::SizedArrayTypeDescr::class_;
+}
+
+template<>
+inline bool
+JSObject::is<js::UnsizedArrayTypeDescr>() const
+{
+    return getClass() == &js::UnsizedArrayTypeDescr::class_;
 }
 
 #endif

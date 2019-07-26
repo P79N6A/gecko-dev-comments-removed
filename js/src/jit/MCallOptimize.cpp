@@ -158,12 +158,25 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
         return inlineToObject(callInfo);
 
     
+    if (native == intrinsic_ObjectIsTypedObject)
+        return inlineHasClasses(callInfo,
+                                &TransparentTypedObject::class_, &OpaqueTypedObject::class_);
     if (native == intrinsic_ObjectIsTransparentTypedObject)
         return inlineHasClass(callInfo, &TransparentTypedObject::class_);
     if (native == intrinsic_ObjectIsOpaqueTypedObject)
         return inlineHasClass(callInfo, &OpaqueTypedObject::class_);
     if (native == intrinsic_ObjectIsTypeDescr)
         return inlineObjectIsTypeDescr(callInfo);
+    if (native == intrinsic_TypeDescrIsSimpleType)
+        return inlineHasClasses(callInfo,
+                                &ScalarTypeDescr::class_, &ReferenceTypeDescr::class_);
+    if (native == intrinsic_TypeDescrIsArrayType)
+        return inlineHasClasses(callInfo,
+                                &SizedArrayTypeDescr::class_, &UnsizedArrayTypeDescr::class_);
+    if (native == intrinsic_TypeDescrIsSizedArrayType)
+        return inlineHasClass(callInfo, &SizedArrayTypeDescr::class_);
+    if (native == intrinsic_TypeDescrIsUnsizedArrayType)
+        return inlineHasClass(callInfo, &UnsizedArrayTypeDescr::class_);
 
     
     if (native == testingFunc_inParallelSection)
@@ -1549,8 +1562,11 @@ IonBuilder::inlineNewDenseArrayForParallelExecution(CallInfo &callInfo)
 }
 
 IonBuilder::InliningStatus
-IonBuilder::inlineHasClass(CallInfo &callInfo, const Class *clasp)
+IonBuilder::inlineHasClasses(CallInfo &callInfo, const Class *clasp1, const Class *clasp2)
 {
+    
+    
+    
     if (callInfo.constructing() || callInfo.argc() != 1)
         return InliningStatus_NotInlined;
 
@@ -1562,11 +1578,28 @@ IonBuilder::inlineHasClass(CallInfo &callInfo, const Class *clasp)
     types::TemporaryTypeSet *types = callInfo.getArg(0)->resultTypeSet();
     const Class *knownClass = types ? types->getKnownClass() : nullptr;
     if (knownClass) {
-        pushConstant(BooleanValue(knownClass == clasp));
+        pushConstant(BooleanValue(knownClass == clasp1 || knownClass == clasp2));
     } else {
-        MHasClass *hasClass = MHasClass::New(alloc(), callInfo.getArg(0), clasp);
-        current->add(hasClass);
-        current->push(hasClass);
+        MHasClass *hasClass1 = MHasClass::New(alloc(), callInfo.getArg(0), clasp1);
+        current->add(hasClass1);
+        if (clasp2 == nullptr) {
+            current->push(hasClass1);
+        } else {
+            
+            MHasClass *hasClass2 = MHasClass::New(alloc(), callInfo.getArg(0), clasp2);
+            current->add(hasClass2);
+            MBitOr *either = MBitOr::New(alloc(), hasClass1, hasClass2);
+            either->infer(inspector, pc);
+            current->add(either);
+            
+            MNot *resultInverted = MNot::New(alloc(), either);
+            resultInverted->infer();
+            current->add(resultInverted);
+            MNot *result = MNot::New(alloc(), resultInverted);
+            result->infer();
+            current->add(result);
+            current->push(result);
+        }
     }
 
     callInfo.setImplicitlyUsedUnchecked();
