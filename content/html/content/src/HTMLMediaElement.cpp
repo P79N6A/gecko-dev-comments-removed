@@ -2938,6 +2938,7 @@ void HTMLMediaElement::SeekCompleted()
   DispatchAsyncEvent(NS_LITERAL_STRING("seeked"));
   
   AddRemoveSelfReference();
+  mTextTracks->DidSeek();
 }
 
 void HTMLMediaElement::NotifySuspendedByCache(bool aIsSuspended)
@@ -3866,7 +3867,7 @@ HTMLMediaElement::AddTextTrack(TextTrackKind aKind,
                                const nsAString& aLabel,
                                const nsAString& aLanguage)
 {
-  return mTextTracks->AddTextTrack(aKind, aLabel, aLanguage);
+  return mTextTracks->AddTextTrack(this, aKind, aLabel, aLanguage);
 }
 
 } 

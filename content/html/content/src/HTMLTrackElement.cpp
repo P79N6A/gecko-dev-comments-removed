@@ -126,7 +126,7 @@ HTMLTrackElement::Track()
   if (!mTrack) {
     
     
-    mTrack = new TextTrack(OwnerDoc()->GetParentObject());
+    mTrack = new TextTrack(OwnerDoc()->GetParentObject(), mMediaParent);
   }
 
   return mTrack;
@@ -146,7 +146,8 @@ HTMLTrackElement::CreateTextTrack()
     kind = TextTrackKind::Subtitles;
   }
 
-  mTrack = new TextTrack(OwnerDoc()->GetParentObject(), kind, label, srcLang);
+  mTrack = new TextTrack(OwnerDoc()->GetParentObject(), mMediaParent, kind,
+                         label, srcLang);
 
   if (mMediaParent) {
     mMediaParent->AddTextTrack(mTrack);
