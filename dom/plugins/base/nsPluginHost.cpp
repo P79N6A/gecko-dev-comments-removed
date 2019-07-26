@@ -2063,7 +2063,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     if (pluginTag) {
       seenBefore = true;
       
-      if (LL_NE(fileModTime, pluginTag->mLastModifiedTime)) {
+      if (fileModTime != pluginTag->mLastModifiedTime) {
         
         enabled = (pluginTag->Flags() & NS_PLUGIN_FLAG_ENABLED) != 0;
         pluginTag = nullptr;
