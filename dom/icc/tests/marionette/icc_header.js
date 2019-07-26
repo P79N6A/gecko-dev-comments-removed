@@ -1,6 +1,8 @@
 
 
 
+const {Cc: Cc, Ci: Ci, Cr: Cr, Cu: Cu} = SpecialPowers;
+
 SpecialPowers.addPermission("mobileconnection", true, document);
 
 let iccManager = navigator.mozIccManager;

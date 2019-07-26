@@ -31,24 +31,39 @@ function setEmulatorMccMnc(mcc, mnc) {
 taskHelper.push(function basicTest() {
   let iccInfo = icc.iccInfo;
 
-  is(iccInfo.iccType, "sim");
   
   
   is(iccInfo.iccid, 89014103211118510720);
-  
-  
-  is(iccInfo.mcc, 310);
-  is(iccInfo.mnc, 260);
-  is(iccInfo.spn, "Android");
-  
-  
-  is(iccInfo.msisdn, "15555215554");
+
+  if (iccInfo instanceof Ci.nsIDOMMozGsmIccInfo) {
+    log("Test Gsm IccInfo");
+    is(iccInfo.iccType, "sim");
+    is(iccInfo.spn, "Android");
+    
+    
+    is(iccInfo.mcc, 310);
+    is(iccInfo.mnc, 260);
+    
+    
+    is(iccInfo.msisdn, "15555215554");
+  } else {
+    log("Test Cdma IccInfo");
+    is(iccInfo.iccType, "ruim");
+    
+    
+    
+    is(iccInfo.mdn, "8587777777");
+    
+    
+    
+    is(iccInfo.prlVersion, 1);
+  }
 
   taskHelper.runNext();
 });
 
 
-taskHelper.push(function testDisplayConditionChange() {
+taskHelper.push(function testGsmDisplayConditionChange() {
   function testSPN(mcc, mnc, expectedIsDisplayNetworkNameRequired,
                    expectedIsDisplaySpnRequired, callback) {
     icc.addEventListener("iccinfochange", function handler() {
@@ -73,6 +88,12 @@ taskHelper.push(function testDisplayConditionChange() {
     [123, 456, false, true], 
     [310, 260,  true, true], 
   ];
+
+  
+  if (!(icc.iccInfo instanceof Ci.nsIDOMMozGsmIccInfo)) {
+    taskHelper.runNext();
+    return;
+  }
 
   (function do_call(index) {
     let next = index < (testCases.length - 1) ? do_call.bind(null, index + 1) : taskHelper.runNext.bind(taskHelper);
