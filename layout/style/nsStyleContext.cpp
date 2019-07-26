@@ -110,17 +110,20 @@ void nsStyleContext::AddChild(nsStyleContext* aChild)
                aChild->mNextSibling == aChild,
                "child already in a child list");
 
-  nsStyleContext **list = aChild->mRuleNode->IsRoot() ? &mEmptyChild : &mChild;
+  nsStyleContext **listPtr = aChild->mRuleNode->IsRoot() ? &mEmptyChild : &mChild;
+  
+  
+  nsStyleContext *list = *listPtr;
 
   
-  if (*list) {
+  if (list) {
     
-    aChild->mNextSibling = (*list);
-    aChild->mPrevSibling = (*list)->mPrevSibling;
-    (*list)->mPrevSibling->mNextSibling = aChild;
-    (*list)->mPrevSibling = aChild;
+    aChild->mNextSibling = list;
+    aChild->mPrevSibling = list->mPrevSibling;
+    list->mPrevSibling->mNextSibling = aChild;
+    list->mPrevSibling = aChild;
   }
-  (*list) = aChild;
+  (*listPtr) = aChild;
 }
 
 void nsStyleContext::RemoveChild(nsStyleContext* aChild)
