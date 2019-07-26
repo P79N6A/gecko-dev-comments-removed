@@ -9,7 +9,6 @@
 
 let protocol = devtools.require("devtools/server/protocol");
 let {method, Arg, Option, RetVal} = protocol;
-let promise = devtools.require("sdk/core/promise");
 let events = devtools.require("sdk/event/core");
 
 function simpleHello() {
@@ -127,35 +126,45 @@ function run_test()
       do_check_true(false, "simpleThrow shouldn't succeed!");
     }, error => {
       do_check_eq(sequence++, 3); 
-      return promise.resolve(null);
     }));
+
+    
+    
+    
+    let deferAfterRejection = promise.defer();
 
     calls.push(rootClient.promiseThrow().then(() => {
       do_check_true(false, "promiseThrow shouldn't succeed!");
     }, error => {
       do_check_eq(sequence++, 4); 
       do_check_true(true, "simple throw should throw");
-      return promise.resolve(null);
+      deferAfterRejection.resolve();
     }));
 
     calls.push(rootClient.simpleReturn().then(ret => {
-      do_check_eq(sequence, 5); 
-      do_check_eq(ret, sequence++); 
+      return deferAfterRejection.promise.then(function () {
+        do_check_eq(sequence, 5); 
+        do_check_eq(ret, sequence++); 
+      });
     }));
 
     
     
     calls.push(rootClient.promiseReturn(1).then(ret => {
-      do_check_eq(sequence, 6); 
-      do_check_eq(ret, sequence++); 
+      return deferAfterRejection.promise.then(function () {
+        do_check_eq(sequence, 6); 
+        do_check_eq(ret, sequence++); 
+      });
     }));
 
     calls.push(rootClient.simpleReturn().then(ret => {
-      do_check_eq(sequence, 7); 
-      do_check_eq(ret, sequence++); 
+      return deferAfterRejection.promise.then(function () {
+        do_check_eq(sequence, 7); 
+        do_check_eq(ret, sequence++); 
+      });
     }));
 
-    promise.all.apply(null, calls).then(() => {
+    promise.all(calls).then(() => {
       client.close(() => {
         do_test_finished();
       });

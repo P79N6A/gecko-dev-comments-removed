@@ -5,7 +5,6 @@
 
 
 
-const { defer } = devtools.require("sdk/core/promise");
 var gClient;
 var gThreadActor;
 
@@ -26,7 +25,7 @@ function run_test() {
 
 function test_nesting() {
   const thread = gThreadActor;
-  const { resolve, reject, promise } = defer();
+  const { resolve, reject, promise: p } = promise.defer();
 
   
   
@@ -68,7 +67,7 @@ function test_nesting() {
     eventLoop.enter();
   });
 
-  do_check_eq(thread.synchronize(promise), true);
+  do_check_eq(thread.synchronize(p), true);
 
   
   do_check_eq(++currentStep, 4);

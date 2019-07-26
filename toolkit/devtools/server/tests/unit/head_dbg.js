@@ -10,6 +10,7 @@ const Cr = Components.results;
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 const Services = devtools.require("Services");
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 
 
