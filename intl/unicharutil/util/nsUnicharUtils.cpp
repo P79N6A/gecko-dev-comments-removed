@@ -36,7 +36,7 @@ static const uint8_t gASCIIToLower [128] = {
 
 
 
-static MOZ_ALWAYS_INLINE uint32_t
+static NS_ALWAYS_INLINE uint32_t
 ToLowerCase_inline(uint32_t aChar)
 {
   if (IS_ASCII(aChar)) {
@@ -46,7 +46,7 @@ ToLowerCase_inline(uint32_t aChar)
   return mozilla::unicode::GetLowercase(aChar);
 }
 
-static MOZ_ALWAYS_INLINE uint32_t
+static NS_ALWAYS_INLINE uint32_t
 ToLowerCaseASCII_inline(const uint32_t aChar)
 {
   if (IS_ASCII(aChar)) {
@@ -271,7 +271,7 @@ CaseInsensitiveCompare(const PRUnichar *a,
 
 
 
-static MOZ_ALWAYS_INLINE uint32_t
+static NS_ALWAYS_INLINE uint32_t
 GetLowerUTF8Codepoint(const char* aStr, const char* aEnd, const char **aNext)
 {
   
