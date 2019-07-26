@@ -87,7 +87,7 @@ static bool DeleteAdjacencyEntry(nsHashKey *aKey, void *aData, void* closure) {
     delete entry->key;
     delete entry->data.edges;
     delete entry;
-    return true;   
+    return true;
 }
 
 nsresult
@@ -135,7 +135,7 @@ nsStreamConverterService::BuildGraph() {
         nsAutoCString entryString;
         rv = entry->GetData(entryString);
         if (NS_FAILED(rv)) return rv;
-        
+
         
         nsAutoCString contractID(NS_ISTREAMCONVERTER_KEY);
         contractID.Append(entryString);
@@ -216,7 +216,7 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
         data->data.edges = edgeArray;
         mAdjacencyList->Put(newToKey, data);
     }
-    
+
     
     
 
@@ -259,7 +259,7 @@ nsStreamConverterService::ParseFromTo(const char *aContractID, nsCString &aFromR
 
 static bool InitBFSTable(nsHashKey *aKey, void *aData, void* closure) {
     NS_ASSERTION((SCTableData*)aData, "no data in the table enumeration");
-    
+
     nsHashtable *BFSTable = (nsHashtable*)closure;
     if (!BFSTable) return false;
 
@@ -278,7 +278,7 @@ static bool InitBFSTable(nsHashKey *aKey, void *aData, void* closure) {
     data->data.state = state;
 
     BFSTable->Put(aKey, data);
-    return true;   
+    return true;
 }
 
 
@@ -434,7 +434,7 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
         BFSState *curState = data->data.state;
 
         nsCStringKey *key = data->key;
-        
+
         if (fromStr.Equals(key->GetString())) {
             
             *aEdgeList = shortestPath;
@@ -457,7 +457,7 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
 
         newContractID.AppendLiteral("&to=");
         newContractID.Append(key->GetString());
-    
+
         
         rv = shortestPath->AppendElement(newContractID) ? NS_OK : NS_ERROR_FAILURE;  
         NS_ASSERTION(NS_SUCCEEDED(rv), "AppendElement failed");
@@ -555,7 +555,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
             converter = do_CreateInstance(lContractID, &rv);
 
             if (NS_FAILED(rv)) {
-                delete converterChain;                
+                delete converterChain;
                 return rv;
             }
 
@@ -582,7 +582,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
         
         rv = converter->Convert(aFromStream, aFromType, aToType, aContext, _retval);
     }
-    
+
     return rv;
 }
 
@@ -677,7 +677,7 @@ nsStreamConverterService::AsyncConvertData(const char *aFromType,
 
         rv = listener->AsyncConvertData(aFromType, aToType, aListener, aContext);
     }
-    
+
     return rv;
 
 }
