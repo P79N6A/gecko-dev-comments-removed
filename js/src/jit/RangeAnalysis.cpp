@@ -1246,6 +1246,33 @@ MMod::computeRange()
 
     
     
+    if (unsigned_) {
+        
+        
+        uint32_t lhsBound = Max<uint32_t>(lhs.lower(), lhs.upper());
+        uint32_t rhsBound = Max<uint32_t>(rhs.lower(), rhs.upper());
+
+        
+        
+        
+        
+        if (lhs.lower() <= -1 && lhs.upper() >= -1)
+            lhsBound = UINT32_MAX;
+        if (rhs.lower() <= -1 && rhs.upper() >= -1)
+            rhsBound = UINT32_MAX;
+
+        
+        
+        JS_ASSERT(!lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart());
+        --rhsBound;
+
+        
+        setRange(Range::NewUInt32Range(0, Min(lhsBound, rhsBound)));
+        return;
+    }
+
+    
+    
     
     int64_t a = Abs<int64_t>(rhs.lower());
     int64_t b = Abs<int64_t>(rhs.upper());
@@ -1291,8 +1318,15 @@ MDiv::computeRange()
 
     
     
-    if (rhs.lower() > 0 && lhs.lower() >= 0)
+    if (lhs.lower() >= 0 && rhs.lower() >= 1) {
         setRange(new Range(0, lhs.upper(), true, lhs.exponent()));
+    } else if (unsigned_ && rhs.lower() >= 1) {
+        
+        
+        JS_ASSERT(!lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart());
+        
+        setRange(Range::NewUInt32Range(0, UINT32_MAX));
+    }
 }
 
 void

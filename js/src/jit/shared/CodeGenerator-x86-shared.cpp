@@ -794,17 +794,37 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
 
     JS_ASSERT_IF(output == eax, ToRegister(ins->remainder()) == edx);
 
-    masm.testl(rhs, rhs);
+    ReturnZero *ool = nullptr;
 
-    ReturnZero *ool = new ReturnZero(output);
-    masm.j(Assembler::Zero, ool->entry());
-    if (!addOutOfLineCode(ool))
-        return false;
+    
+    if (ins->canBeDivideByZero()) {
+        masm.testl(rhs, rhs);
+        if (ins->mir()->isTruncated()) {
+            if (!ool)
+                ool = new ReturnZero(output);
+            masm.j(Assembler::Zero, ool->entry());
+        } else {
+            if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+                return false;
+        }
+    }
 
     masm.mov(ImmWord(0), edx);
     masm.udiv(rhs);
 
-    masm.bind(ool->rejoin());
+    
+    
+    if (!ins->mir()->isTruncated()) {
+        masm.testl(output, output);
+        if (!bailoutIf(Assembler::Signed, ins->snapshot()))
+            return false;
+    }
+
+    if (ool) {
+        if (!addOutOfLineCode(ool))
+            return false;
+        masm.bind(ool->rejoin());
+    }
 
     return true;
 }
