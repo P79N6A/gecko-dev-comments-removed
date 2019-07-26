@@ -8,6 +8,7 @@
 #include "nsIWindowWatcher.h"
 #include "nsCOMPtr.h"
 #include "nsIComponentManager.h"
+#include "nsCxPusher.h"
 #include "nsIServiceManager.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -32,6 +33,14 @@ nsNSSDialogHelper::openDialog(
   if (!parent) {
     windowWatcher->GetActiveWindow(getter_AddRefs(parent));
   }
+
+  
+  
+  
+  
+  MOZ_ASSERT(!strncmp("chrome://", url, strlen("chrome://")));
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   nsCOMPtr<nsIDOMWindow> newWindow;
   rv = windowWatcher->OpenWindow(parent,
