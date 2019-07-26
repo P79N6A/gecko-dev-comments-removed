@@ -5495,16 +5495,11 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
                             std::max(mHorResizeMargin - mNonClientOffset.left,
                                      kResizableBorderMinSize));
 
-  bool allowContentOverride = false;
-  
-  
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
-    allowContentOverride = mSizeMode == nsSizeMode_Maximized ||
-                           (mx >= winRect.left + nonClientSize.left &&
-                            mx <= winRect.right - nonClientSize.right &&
-                            my >= winRect.top + nonClientSize.top &&
-                            my <= winRect.bottom - nonClientSize.bottom);
-  }
+  bool allowContentOverride = mSizeMode == nsSizeMode_Maximized ||
+                              (mx >= winRect.left + nonClientSize.left &&
+                               mx <= winRect.right - nonClientSize.right &&
+                               my >= winRect.top + nonClientSize.top &&
+                               my <= winRect.bottom - nonClientSize.bottom);
 
   
   
