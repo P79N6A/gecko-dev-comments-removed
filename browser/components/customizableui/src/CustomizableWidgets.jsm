@@ -912,3 +912,36 @@ if (Services.metro && Services.metro.supported) {
 }
 #endif
 #endif
+
+#ifdef NIGHTLY_BUILD
+
+
+
+
+
+
+if (Services.prefs.getBoolPref("browser.tabs.remote")) {
+  let getCommandFunction = function(aOpenRemote) {
+    return function(aEvent) {
+      let win = aEvent.view;
+      if (win && typeof win.OpenBrowserWindow == "function") {
+        win.OpenBrowserWindow({remote: aOpenRemote});
+      }
+    };
+  }
+
+  let openRemote = !Services.prefs.getBoolPref("browser.tabs.remote.autostart");
+  
+  
+  let buttonLabel = openRemote ? "New e10s Window"
+                               : "New Non-e10s Window";
+
+  CustomizableWidgets.push({
+    id: "e10s-button",
+    label: buttonLabel,
+    tooltiptext: buttonLabel,
+    defaultArea: CustomizableUI.AREA_PANEL,
+    onCommand: getCommandFunction(openRemote),
+  });
+}
+#endif
