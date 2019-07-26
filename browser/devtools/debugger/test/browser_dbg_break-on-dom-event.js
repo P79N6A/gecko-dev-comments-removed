@@ -67,8 +67,21 @@ function testBreakOnAll()
       });
 
       gThreadClient.resume(function() {
+        
+        
+        window.focus();
+        gBrowser.selectedBrowser.focus();
+        gButton.focus();
+
+        
+        gInput.addEventListener("focus", function onfocus() {
+          gInput.removeEventListener("focus", onfocus, false);
+          executeSoon(function() {
+            EventUtils.synthesizeKey("e", { shiftKey: 1 }, content);
+          });
+        }, false);
+
         gInput.focus();
-        EventUtils.synthesizeKey("e", { shiftKey: 1 }, content);
       });
     });
   });
@@ -94,8 +107,21 @@ function testBreakOnDisabled()
       testBreakOnNone();
     }, false);
 
+    
+    
+    window.focus();
+    gBrowser.selectedBrowser.focus();
+    gButton.focus();
+
+    
+    gInput.addEventListener("focus", function onfocus() {
+      gInput.removeEventListener("focus", onfocus, false);
+      executeSoon(function() {
+        EventUtils.synthesizeKey("e", { shiftKey: 1 }, content);
+      });
+    }, false);
+
     gInput.focus();
-    EventUtils.synthesizeKey("e", { shiftKey: 1 }, content);
   });
 }
 
@@ -117,8 +143,21 @@ function testBreakOnNone()
       testBreakOnClick();
     }, false);
 
+    
+    
+    window.focus();
+    gBrowser.selectedBrowser.focus();
+    gButton.focus();
+
+    
+    gInput.addEventListener("focus", function onfocus() {
+      gInput.removeEventListener("focus", onfocus, false);
+      executeSoon(function() {
+        EventUtils.synthesizeKey("g", { shiftKey: 1 }, content);
+      });
+    }, false);
+
     gInput.focus();
-    EventUtils.synthesizeKey("g", { shiftKey: 1 }, content);
   });
 }
 
