@@ -18,228 +18,20 @@
 
 
 #include "nsPresArena.h"
+
+#include "mozilla/Poison.h"
 #include "nsCRT.h"
 #include "nsDebug.h"
-#include "prinit.h"
 #include "nsArenaMemoryStats.h"
-#include "nsCOMPtr.h"
-#include "nsServiceManagerUtils.h"
 #include "nsPrintfCString.h"
-
-#ifdef MOZ_CRASHREPORTER
-#include "nsICrashReporter.h"
-#endif
-
-#ifdef _WIN32
-# include <windows.h>
-#elif !defined(__OS2__)
-# include <unistd.h>
-# include <sys/mman.h>
-# ifndef MAP_ANON
-#  ifdef MAP_ANONYMOUS
-#   define MAP_ANON MAP_ANONYMOUS
-#  else
-#   error "Don't know how to get anonymous memory"
-#  endif
-# endif
-#endif
 
 
 static const size_t ARENA_PAGE_SIZE = 8192;
-
-
-
-
-
-
-
-
-
-#ifdef _WIN32
-static void *
-ReserveRegion(uintptr_t region, uintptr_t size)
-{
-  return VirtualAlloc((void *)region, size, MEM_RESERVE, PAGE_NOACCESS);
-}
-
-static void
-ReleaseRegion(void *region, uintptr_t size)
-{
-  VirtualFree(region, size, MEM_RELEASE);
-}
-
-static bool
-ProbeRegion(uintptr_t region, uintptr_t size)
-{
-  SYSTEM_INFO sinfo;
-  GetSystemInfo(&sinfo);
-  if (region >= (uintptr_t)sinfo.lpMaximumApplicationAddress &&
-      region + size >= (uintptr_t)sinfo.lpMaximumApplicationAddress) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-static uintptr_t
-GetDesiredRegionSize()
-{
-  SYSTEM_INFO sinfo;
-  GetSystemInfo(&sinfo);
-  return sinfo.dwAllocationGranularity;
-}
-
-#define RESERVE_FAILED 0
-
-#elif defined(__OS2__)
-static void *
-ReserveRegion(uintptr_t region, uintptr_t size)
-{
-  
-  
-  return (void*)0xFFFD0000;
-}
-
-static void
-ReleaseRegion(void *region, uintptr_t size)
-{
-  return;
-}
-
-static bool
-ProbeRegion(uintptr_t region, uintptr_t size)
-{
-  
-  
-  return false;
-}
-
-static uintptr_t
-GetDesiredRegionSize()
-{
-  
-  return 0x1000;
-}
-
-#define RESERVE_FAILED 0
-
-#else 
-
-static void *
-ReserveRegion(uintptr_t region, uintptr_t size)
-{
-  return mmap(reinterpret_cast<void*>(region), size, PROT_NONE, MAP_PRIVATE|MAP_ANON, -1, 0);
-}
-
-static void
-ReleaseRegion(void *region, uintptr_t size)
-{
-  munmap(region, size);
-}
-
-static bool
-ProbeRegion(uintptr_t region, uintptr_t size)
-{
-  if (madvise(reinterpret_cast<void*>(region), size, MADV_NORMAL)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-static uintptr_t
-GetDesiredRegionSize()
-{
-  return sysconf(_SC_PAGESIZE);
-}
-
-#define RESERVE_FAILED MAP_FAILED
-
-#endif 
-
-PR_STATIC_ASSERT(sizeof(uintptr_t) == 4 || sizeof(uintptr_t) == 8);
-PR_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void *));
-
-static uintptr_t
-ReservePoisonArea(uintptr_t rgnsize)
-{
-  if (sizeof(uintptr_t) == 8) {
-    
-    
-    
-    return
-      (((uintptr_t(0x7FFFFFFFu) << 31) << 1 | uintptr_t(0xF0DEAFFFu))
-       & ~(rgnsize-1));
-
-  } else {
-    
-    uintptr_t candidate = (0xF0DEAFFF & ~(rgnsize-1));
-    void *result = ReserveRegion(candidate, rgnsize);
-    if (result == (void *)candidate) {
-      
-      return candidate;
-    }
-
-    
-    
-    if (ProbeRegion(candidate, rgnsize)) {
-      
-      if (result != RESERVE_FAILED)
-        ReleaseRegion(result, rgnsize);
-      return candidate;
-    }
-
-    
-    
-    if (result != RESERVE_FAILED) {
-      return uintptr_t(result);
-    }
-
-    
-    
-    result = ReserveRegion(0, rgnsize);
-    if (result != RESERVE_FAILED) {
-      return uintptr_t(result);
-    }
-
-    NS_RUNTIMEABORT("no usable poison region identified");
-    return 0;
-  }
-}
-
-static uintptr_t ARENA_POISON;
-static PRCallOnceType ARENA_POISON_guard;
-
-static PRStatus
-ARENA_POISON_init()
-{
-  uintptr_t rgnsize = GetDesiredRegionSize();
-  uintptr_t rgnbase = ReservePoisonArea(rgnsize);
-
-  if (rgnsize == 0) 
-    return PR_FAILURE;
-
-  ARENA_POISON = rgnbase + rgnsize/2 - 1;
-
-#ifdef MOZ_CRASHREPORTER
-  nsCOMPtr<nsICrashReporter> cr =
-    do_GetService("@mozilla.org/toolkit/crash-reporter;1");
-  bool enabled;
-  if (cr && NS_SUCCEEDED(cr->GetEnabled(&enabled)) && enabled) {
-    cr->AnnotateCrashReport(NS_LITERAL_CSTRING("FramePoisonBase"),
-                            nsPrintfCString("%.16llx", uint64_t(rgnbase)));
-    cr->AnnotateCrashReport(NS_LITERAL_CSTRING("FramePoisonSize"),
-                            nsPrintfCString("%lu", uint32_t(rgnsize)));
-  }
-#endif
-  return PR_SUCCESS;
-}
 
 nsPresArena::nsPresArena()
 {
   mFreeLists.Init();
   PL_INIT_ARENA_POOL(&mPool, "PresArena", ARENA_PAGE_SIZE);
-  PR_CallOnce(&ARENA_POISON_guard, ARENA_POISON_init);
 }
 
 nsPresArena::~nsPresArena()
@@ -283,14 +75,14 @@ nsPresArena::Allocate(uint32_t aCode, size_t aSize)
       char* limit = p + list->mEntrySize;
       for (; p < limit; p += sizeof(uintptr_t)) {
         uintptr_t val = *reinterpret_cast<uintptr_t*>(p);
-        NS_ABORT_IF_FALSE(val == ARENA_POISON,
+        NS_ABORT_IF_FALSE(val == mozPoisonValue(),
                           nsPrintfCString("PresArena: poison overwritten; "
                                           "wanted %.16llx "
                                           "found %.16llx "
                                           "errors in bits %.16llx",
-                                          uint64_t(ARENA_POISON),
+                                          uint64_t(mozPoisonValue()),
                                           uint64_t(val),
-                                          uint64_t(ARENA_POISON ^ val)
+                                          uint64_t(mozPoisonValue() ^ val)
                                           ).get());
       }
     }
@@ -319,7 +111,7 @@ nsPresArena::Free(uint32_t aCode, void* aPtr)
   char* p = reinterpret_cast<char*>(aPtr);
   char* limit = p + list->mEntrySize;
   for (; p < limit; p += sizeof(uintptr_t)) {
-    *reinterpret_cast<uintptr_t*>(p) = ARENA_POISON;
+    *reinterpret_cast<uintptr_t*>(p) = mozPoisonValue();
   }
 
   MOZ_MAKE_MEM_NOACCESS(aPtr, list->mEntrySize);
@@ -412,10 +204,4 @@ nsPresArena::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
   EnumerateData data = { aArenaStats, 0 };
   mFreeLists.EnumerateEntries(FreeListEnumerator, &data);
   aArenaStats->mOther = mallocSize - data.total;
-}
-
- uintptr_t
-nsPresArena::GetPoisonValue()
-{
-  return ARENA_POISON;
 }

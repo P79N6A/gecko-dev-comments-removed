@@ -87,15 +87,6 @@ public:
   void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                            nsArenaMemoryStats* aArenaStats);
 
-  
-
-
-
-
-
-
-  static uintptr_t GetPoisonValue();
-
 private:
   NS_HIDDEN_(void*) Allocate(uint32_t aCode, size_t aSize);
   NS_HIDDEN_(void) Free(uint32_t aCode, void* aPtr);
