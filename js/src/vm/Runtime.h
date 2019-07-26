@@ -805,13 +805,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     JSVersion defaultVersion_;
 
-    
 #ifdef JS_THREADSAFE
-  public:
-    void *ownerThread() const { return ownerThread_; }
-    void clearOwnerThread();
-    void setOwnerThread();
   private:
+    
     void *ownerThread_;
     friend bool js::CurrentThreadCanAccessRuntime(JSRuntime *rt);
   public:

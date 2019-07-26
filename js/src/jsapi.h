@@ -5120,34 +5120,8 @@ JS_GetCurrentThread();
 
 
 
-
-
-
-
-
-
 extern JS_PUBLIC_API(void)
 JS_AbortIfWrongThread(JSRuntime *rt);
-
-extern JS_PUBLIC_API(void)
-JS_ClearRuntimeThread(JSRuntime *rt);
-
-extern JS_PUBLIC_API(void)
-JS_SetRuntimeThread(JSRuntime *rt);
-
-class JSAutoSetRuntimeThread
-{
-    JSRuntime *runtime_;
-
-  public:
-    JSAutoSetRuntimeThread(JSRuntime *runtime) : runtime_(runtime) {
-        JS_SetRuntimeThread(runtime_);
-    }
-
-    ~JSAutoSetRuntimeThread() {
-        JS_ClearRuntimeThread(runtime_);
-    }
-};
 
 
 
