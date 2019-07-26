@@ -1189,7 +1189,7 @@ MediaStreamGraphImpl::RunThread()
     
     for (uint32_t i = 0; i < mStreams.Length(); ++i) {
       MediaStream* stream = mStreams[i];
-      if (!doneAllProducing && !stream->IsFinishedOnGraphThread()) {
+      if (!doneAllProducing) {
         ProcessedMediaStream* ps = stream->AsProcessedStream();
         if (ps) {
           AudioNodeStream* n = stream->AsAudioNodeStream();
