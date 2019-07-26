@@ -87,10 +87,10 @@ webidl_files = \
   HTMLOListElement.webidl \
   HTMLOptGroupElement.webidl \
   HTMLOptionsCollection.webidl \
-  HTMLOutputElement.webidl \
   HTMLParagraphElement.webidl \
   HTMLParamElement.webidl \
   HTMLPreElement.webidl \
+  HTMLProgressElement.webidl \
   HTMLPropertiesCollection.webidl \
   HTMLQuoteElement.webidl \
   HTMLScriptElement.webidl \
@@ -140,15 +140,10 @@ webidl_files = \
   SVGAnimationElement.webidl \
   SVGCircleElement.webidl \
   SVGClipPathElement.webidl \
-  SVGComponentTransferFunctionElement.webidl \
   SVGDefsElement.webidl \
   SVGDescElement.webidl \
   SVGElement.webidl \
   SVGEllipseElement.webidl \
-  SVGFEFuncAElement.webidl \
-  SVGFEFuncBElement.webidl \
-  SVGFEFuncGElement.webidl \
-  SVGFEFuncRElement.webidl \
   SVGFitToViewBox.webidl \
   SVGForeignObjectElement.webidl \
   SVGGElement.webidl \
