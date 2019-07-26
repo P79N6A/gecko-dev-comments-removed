@@ -229,6 +229,8 @@ class MediaDecoder : public nsIObserver,
                      public AbstractMediaDecoder
 {
 public:
+  class DecodedStreamGraphListener;
+
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
@@ -353,6 +355,11 @@ public:
                       int64_t aInitialTime, SourceMediaStream* aStream);
     ~DecodedStreamData();
 
+    virtual void NotifyMainThreadStateChanged() MOZ_OVERRIDE;
+
+    StreamTime GetLastOutputTime() { return mListener->GetLastOutputTime(); }
+    bool IsFinished() { return mListener->IsFinishedOnMainThread(); }
+
     
     
     int64_t mLastAudioPacketTime; 
@@ -382,14 +389,50 @@ public:
     
     const nsRefPtr<SourceMediaStream> mStream;
     
+    nsRefPtr<DecodedStreamGraphListener> mListener;
+    
     
     bool mHaveBlockedForPlayState;
     
     
     bool mHaveBlockedForStateMachineNotPlaying;
-
-    virtual void NotifyMainThreadStateChanged() MOZ_OVERRIDE;
   };
+
+  class DecodedStreamGraphListener : public MediaStreamListener {
+  public:
+    DecodedStreamGraphListener(MediaStream* aStream);
+    virtual void NotifyOutput(MediaStreamGraph* aGraph, GraphTime aCurrentTime) MOZ_OVERRIDE;
+
+    StreamTime GetLastOutputTime()
+    {
+      MutexAutoLock lock(mMutex);
+      return mLastOutputTime;
+    }
+    void Forget()
+    {
+      MutexAutoLock lock(mMutex);
+      mStream = nullptr;
+    }
+    void SetFinishedOnMainThread(bool aFinished)
+    {
+      MutexAutoLock lock(mMutex);
+      mStreamFinishedOnMainThread = aFinished;
+    }
+    bool IsFinishedOnMainThread()
+    {
+      MutexAutoLock lock(mMutex);
+      return mStreamFinishedOnMainThread;
+    }
+  private:
+    Mutex mMutex;
+    
+    nsRefPtr<MediaStream> mStream;
+    
+    StreamTime mLastOutputTime;
+    
+    bool mStreamFinishedOnMainThread;
+  };
+
   struct OutputStreamData {
     void Init(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
     {

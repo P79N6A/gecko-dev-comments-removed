@@ -328,9 +328,16 @@ public:
     mDecoder = nullptr;
   }
 
-   
-   
-   void NotifyAudioAvailableListener();
+  
+  
+  
+  
+  
+  void SetSyncPointForMediaStream();
+
+  
+  
+  void NotifyAudioAvailableListener();
 
   
   
@@ -622,6 +629,12 @@ private:
   
   
   
+  StreamTime mSyncPointInMediaStream;
+  int64_t mSyncPointInDecodedStream; 
+
+  
+  
+  
   bool mResetPlayStartTime;
 
   
@@ -742,6 +755,8 @@ private:
   
   bool mPositionChangeQueued;
 
+  
+  
   
   
   
