@@ -119,9 +119,10 @@ typedef enum {
 
 
 enum {
-  CUBEB_OK = 0,                   
-  CUBEB_ERROR = -1,               
-  CUBEB_ERROR_INVALID_FORMAT = -2 
+  CUBEB_OK = 0,                       
+  CUBEB_ERROR = -1,                   
+  CUBEB_ERROR_INVALID_FORMAT = -2,    
+  CUBEB_ERROR_INVALID_PARAMETER = -3  
 };
 
 
