@@ -1094,12 +1094,14 @@ GripClient.prototype = {
 
 
 
-  getSignature: function GC_getSignature(aOnResponse) {
+
+
+  getParameterNames: function GC_getParameterNames(aOnResponse) {
     if (this._grip["class"] !== "Function") {
-      throw "getSignature is only valid for function grips.";
+      throw "getParameterNames is only valid for function grips.";
     }
 
-    let packet = { to: this.actor, type: "nameAndParameters" };
+    let packet = { to: this.actor, type: "parameterNames" };
     this._client.request(packet, function (aResponse) {
                                    if (aOnResponse) {
                                      aOnResponse(aResponse);
