@@ -10,91 +10,158 @@ const Cu = Components.utils;
 Cu.import("resource:///modules/devtools/Target.jsm");
 Cu.import("resource:///modules/devtools/Toolbox.jsm");
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
+Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 
 let gClient;
+let gConnectionTimeout;
+
+XPCOMUtils.defineLazyGetter(window, 'l10n', function () {
+  return Services.strings.createBundle('chrome://browser/locale/devtools/connection-screen.properties');
+});
+
+
+
+
+
+window.addEventListener("DOMContentLoaded", function onDOMReady() {
+  window.removeEventListener("DOMContentLoaded", onDOMReady, true);
+  let host = Services.prefs.getCharPref("devtools.debugger.remote-host");
+  let port = Services.prefs.getIntPref("devtools.debugger.remote-port");
+
+  if (host) {
+    document.getElementById("host").value = host;
+  }
+
+  if (port) {
+    document.getElementById("port").value = port;
+  }
+
+}, true);
+
+
+
 
 function submit() {
+  
   document.body.classList.add("connecting");
 
+  
   let host = document.getElementById("host").value;
+  Services.prefs.setCharPref("devtools.debugger.remote-host", host);
+
   let port = document.getElementById("port").value;
-  if (!host) {
-    host = Services.prefs.getCharPref("devtools.debugger.remote-host");
-  } else {
-    Services.prefs.setCharPref("devtools.debugger.remote-host", host);
-  }
-  if (!port) {
-    port = Services.prefs.getIntPref("devtools.debugger.remote-port");
-  } else {
-    Services.prefs.setIntPref("devtools.debugger.remote-port", port);
-  }
+  Services.prefs.setIntPref("devtools.debugger.remote-port", port);
 
+  
   let transport = debuggerSocketConnect(host, port);
-  let client = gClient = new DebuggerClient(transport);
+  gClient = new DebuggerClient(transport);
+  let delay = Services.prefs.getIntPref("devtools.debugger.remote-timeout");
+  gConnectionTimeout = setTimeout(handleConnectionTimeout, delay);
+  gClient.connect(onConnectionReady);
+}
 
-  client.connect(function(aType, aTraits) {
-    client.listTabs(function(aResponse) {
-      document.body.classList.remove("connecting");
-      document.body.classList.add("actors-mode");
 
-      let parent = document.getElementById("actors");
-      let focusSet = false;
 
-      
-      let globals = JSON.parse(JSON.stringify(aResponse));
-      delete globals.tabs;
-      delete globals.selected;
-      
-      
-      if (Object.keys(globals).length > 1) {
-        let a = document.createElement("a");
-        a.onclick = function() {
-          connect(globals, true);
-        }
 
-        a.title = a.textContent = "Remote process";
-        a.href = "#";
+function onConnectionReady(aType, aTraits) {
+  clearTimeout(gConnectionTimeout);
+  gClient.listTabs(function(aResponse) {
+    document.body.classList.remove("connecting");
+    document.body.classList.add("actors-mode");
 
-        parent.appendChild(a);
+    let parent = document.getElementById("actors");
+
+    
+    let globals = JSON.parse(JSON.stringify(aResponse));
+    delete globals.tabs;
+    delete globals.selected;
+    
+    
+
+    
+    for (let i = 0; i < aResponse.tabs.length; i++) {
+      buildLink(aResponse.tabs[i], parent, i == aResponse.selected);
+    }
+
+    
+    if (Object.keys(globals).length > 1) {
+      let a = document.createElement("a");
+      a.onclick = function() {
+        openToolbox(globals, true);
+
       }
+      a.title = a.textContent = window.l10n.GetStringFromName("remoteProcess");
+      a.className = "remote-process";
+      a.href = "#";
+      parent.appendChild(a);
+    }
+    
+    let selectedLink = parent.querySelector("a.selected");
+    if (selectedLink) {
+      parent.insertBefore(selectedLink, parent.firstChild);
+    }
 
-      
-      if (aResponse.tabs.length > 0) {
-        let header = document.createElement("div");
-        header.innerHTML = "Tabs:";
-        parent.appendChild(header);
-      }
-      for (let i = 0; i < aResponse.tabs.length; i++) {
-        let tab = aResponse.tabs[i];
+    
+    let firstLink = parent.querySelector("a:first-of-type");
+    if (firstLink) {
+      firstLink.focus();
+    }
 
-        let a = document.createElement("a");
-        a.onclick = function() {
-          connect(tab);
-        }
-
-        a.title = a.textContent = tab.title;
-        a.href = "#";
-
-        if (i == aResponse.selected) {
-          a.title += " [*]";
-          a.textContent = a.title;
-        }
-
-        parent.appendChild(a);
-
-        if (!focusSet) {
-          a.focus();
-          focusSet = true;
-        }
-      }
-    });
   });
 }
 
-function connect(form, chrome=false) {
+
+
+
+function buildLink(tab, parent, selected) {
+  let a = document.createElement("a");
+  a.onclick = function() {
+    openToolbox(tab);
+  }
+
+  a.textContent = tab.title;
+  a.title = tab.url;
+  if (!a.textContent) {
+    a.textContent = tab.url;
+  }
+  a.href = "#";
+
+  if (selected) {
+    a.classList.add("selected");
+  }
+
+  parent.appendChild(a);
+}
+
+
+
+
+function showError(type) {
+  document.body.className = "error";
+  let activeError = document.querySelector(".error-message.active");
+  if (activeError) {
+    activeError.classList.remove("active");
+  }
+  activeError = document.querySelector(".error-" + type);
+  if (activeError) {
+    activeError.classList.add("active");
+  }
+}
+
+
+
+
+function handleConnectionTimeout() {
+  showError("timeout");
+}
+
+
+
+
+
+function openToolbox(form, chrome=false) {
   let target = TargetFactory.forRemote(form, gClient, chrome);
   gDevTools.showToolbox(target, "webconsole", Toolbox.HostType.WINDOW);
-  window.close();
 }

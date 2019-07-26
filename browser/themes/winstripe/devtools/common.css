@@ -1,16 +1,16 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Font for code */
+
+
+
+
+
 
 .devtools-monospace {
   font: message-box;
   font-family: monospace;
 }
 
-/* Toolbar and Toolbar items */
+
 
 .devtools-toolbar {
   -moz-appearance: none;
@@ -132,8 +132,9 @@
   -moz-box-align: center;
 }
 
-/* Search input */
 
+
+.devtools-textinput,
 .devtools-searchinput {
   -moz-appearance: none;
   margin: 0 3px;
@@ -141,6 +142,15 @@
   box-shadow: inset 0 1px 0 hsla(211,68%,6%,.05), 0 0 0 1px hsla(210,40%,83%,.1);
   border-radius: 2px;
   background-color: transparent;
+  background-image: -moz-linear-gradient(hsla(210,16%,76%,.15), hsla(210,16%,76%,.35));
+  padding: 3px;
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+  color: inherit;
+}
+
+.devtools-searchinput {
   background-image: url(magnifying-glass.png), -moz-linear-gradient(hsla(210,16%,76%,.15), hsla(210,16%,76%,.35));
   background-repeat: no-repeat;
   background-position: 4px center, top left, top left;
@@ -148,10 +158,6 @@
   padding-bottom: 0;
   -moz-padding-start: 18px;
   -moz-padding-end: 12px;
-  transition-property: background-color, border-color, box-shadow;
-  transition-duration: 150ms;
-  transition-timing-function: ease;
-  color: inherit;
 }
 
 .devtools-searchinput[focused] {
@@ -174,7 +180,7 @@
   color: hsl(208,10%,66%);
 }
 
-/* Close button */
+
 
 .devtools-closebutton {
   list-style-image: url("chrome://browser/skin/devtools/toolbarbutton-close.png");
@@ -197,7 +203,7 @@
   -moz-image-region: rect(0, 48px, 16px, 32px);
 }
 
-/* Splitters */
+
 
 .devtools-horizontal-splitter {
   -moz-appearance: none;
@@ -220,7 +226,7 @@
   position: relative;
 }
 
-/* In-tools sidebar */
+
 
 .devtools-sidebar-tabs {
   -moz-appearance: none;
@@ -279,32 +285,32 @@
   color: white !important;
 }
 
-/* Theme */
+
 
 .devtools-theme-background {
   background-color: white;
 }
 
 .devtools-theme-comment {
-  color: hsl(90,2%,46%); /* grey */
+  color: hsl(90,2%,46%); 
 }
 
 .devtools-theme-keyword {
-  color: hsl(276,44%,45%); /* purple */
+  color: hsl(276,44%,45%); 
 }
 
 .devtools-theme-string {
-  color: hsl(72,100%,27%); /* green */
+  color: hsl(72,100%,27%); 
 }
 
 .devtools-theme-tagname {
-  color: hsl(208,81%,21%); /* dark blue */
+  color: hsl(208,81%,21%); 
 }
 
 .devtools-theme-attrname {
-  color: hsl(208,56%,40%); /* blue */
+  color: hsl(208,56%,40%); 
 }
 
 .devtools-theme-attrvalue {
-  color: hsl(24,85%,39%); /* orange */
+  color: hsl(24,85%,39%); 
 }
