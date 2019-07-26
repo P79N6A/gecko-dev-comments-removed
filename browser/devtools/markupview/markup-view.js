@@ -76,7 +76,6 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
 
   
   let options = {
-    fixedWidth: true,
     autoSelect: true,
     theme: "auto"
   };
