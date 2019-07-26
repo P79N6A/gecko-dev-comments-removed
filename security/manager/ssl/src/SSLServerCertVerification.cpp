@@ -105,7 +105,6 @@
 #include "nsICertOverrideService.h"
 #include "nsISiteSecurityService.h"
 #include "nsNSSComponent.h"
-#include "nsNSSCleaner.h"
 #include "nsRecentBadCerts.h"
 #include "nsNSSIOLayer.h"
 #include "nsNSSShutDown.h"
@@ -127,7 +126,6 @@
 #include "secerr.h"
 #include "secport.h"
 #include "sslerr.h"
-#include "ocsp.h"
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gPIPNSSLog;
@@ -136,9 +134,6 @@ extern PRLogModuleInfo* gPIPNSSLog;
 namespace mozilla { namespace psm {
 
 namespace {
-
-NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
-NSSCleanupAutoPtrClass_WithParam(PLArenaPool, PORT_FreeArena, FalseParam, false)
 
 
 nsIThreadPool* gCertVerificationThreadPool = nullptr;
@@ -311,13 +306,12 @@ MapCertErrorToProbeValue(PRErrorCode errorCode)
 }
 
 SECStatus
-MozillaPKIXDetermineCertOverrideErrors(CERTCertificate* cert,
-                                       const char* hostName, PRTime now,
-                                       PRErrorCode defaultErrorCodeToReport,
-                                        uint32_t& collectedErrors,
-                                        PRErrorCode& errorCodeTrust,
-                                        PRErrorCode& errorCodeMismatch,
-                                        PRErrorCode& errorCodeExpired)
+DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
+                            PRTime now, PRErrorCode defaultErrorCodeToReport,
+                             uint32_t& collectedErrors,
+                             PRErrorCode& errorCodeTrust,
+                             PRErrorCode& errorCodeMismatch,
+                             PRErrorCode& errorCodeExpired)
 {
   MOZ_ASSERT(cert);
   MOZ_ASSERT(hostName);
@@ -550,129 +544,6 @@ CertErrorRunnable::RunOnTargetThread()
 
 
 
-
-
-
-
-uint32_t
-PRErrorCodeToOverrideType(PRErrorCode errorCode)
-{
-  switch (errorCode)
-  {
-    case SEC_ERROR_UNKNOWN_ISSUER:
-    case SEC_ERROR_UNTRUSTED_ISSUER:
-    case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
-    case SEC_ERROR_UNTRUSTED_CERT:
-    case SEC_ERROR_INADEQUATE_KEY_USAGE:
-    case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
-      
-      return nsICertOverrideService::ERROR_UNTRUSTED;
-    case SSL_ERROR_BAD_CERT_DOMAIN:
-      return nsICertOverrideService::ERROR_MISMATCH;
-    case SEC_ERROR_EXPIRED_CERTIFICATE:
-      return nsICertOverrideService::ERROR_TIME;
-    default:
-      return 0;
-  }
-}
-
-SECStatus
-NSSDetermineCertOverrideErrors(CertVerifier& certVerifier,
-                               CERTCertificate* cert,
-                               const SECItem* stapledOCSPResponse,
-                               TransportSecurityInfo* infoObject,
-                               PRTime now,
-                               PRErrorCode defaultErrorCodeToReport,
-                                uint32_t& collectedErrors,
-                                PRErrorCode& errorCodeTrust,
-                                PRErrorCode& errorCodeMismatch,
-                                PRErrorCode& errorCodeExpired)
-{
-  MOZ_ASSERT(cert);
-  MOZ_ASSERT(infoObject);
-  MOZ_ASSERT(defaultErrorCodeToReport != 0);
-  MOZ_ASSERT(collectedErrors == 0);
-  MOZ_ASSERT(errorCodeTrust == 0);
-  MOZ_ASSERT(errorCodeMismatch == 0);
-  MOZ_ASSERT(errorCodeExpired == 0);
-
-  if (defaultErrorCodeToReport == 0) {
-    NS_ERROR("No error code set during certificate validation failure.");
-    PR_SetError(PR_INVALID_STATE_ERROR, 0);
-    return SECFailure;
-  }
-
-  
-  
-  
-  if (PRErrorCodeToOverrideType(defaultErrorCodeToReport) == 0) {
-    PR_SetError(defaultErrorCodeToReport, 0);
-    return SECFailure;
-  }
-
-  PLArenaPool* log_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-  PLArenaPoolCleanerFalseParam log_arena_cleaner(log_arena);
-  if (!log_arena) {
-    NS_ERROR("PORT_NewArena failed");
-    return SECFailure; 
-  }
-
-  CERTVerifyLog* verify_log = PORT_ArenaZNew(log_arena, CERTVerifyLog);
-  if (!verify_log) {
-    NS_ERROR("PORT_ArenaZNew failed");
-    return SECFailure; 
-  }
-  CERTVerifyLogContentsCleaner verify_log_cleaner(verify_log);
-  verify_log->arena = log_arena;
-
-  
-  
-  
-  
-  
-  
-  
-  certVerifier.VerifyCert(cert, certificateUsageSSLServer,
-                          now, infoObject, infoObject->GetHostNameRaw(),
-                          0, stapledOCSPResponse, nullptr, nullptr, verify_log);
-
-  
-  if (CERT_VerifyCertName(cert, infoObject->GetHostNameRaw()) != SECSuccess) {
-    collectedErrors |= nsICertOverrideService::ERROR_MISMATCH;
-    errorCodeMismatch = SSL_ERROR_BAD_CERT_DOMAIN;
-  }
-
-  CERTVerifyLogNode* i_node;
-  for (i_node = verify_log->head; i_node; i_node = i_node->next) {
-    uint32_t overrideType = PRErrorCodeToOverrideType(i_node->error);
-    
-    if (overrideType == 0) {
-      PR_SetError(i_node->error, 0);
-      return SECFailure;
-    }
-    collectedErrors |= overrideType;
-    if (overrideType == nsICertOverrideService::ERROR_UNTRUSTED) {
-      if (errorCodeTrust == 0) {
-        errorCodeTrust = i_node->error;
-      }
-    } else if (overrideType == nsICertOverrideService::ERROR_MISMATCH) {
-      if (errorCodeMismatch == 0) {
-        errorCodeMismatch = i_node->error;
-      }
-    } else if (overrideType == nsICertOverrideService::ERROR_TIME) {
-      if (errorCodeExpired == 0) {
-        errorCodeExpired = i_node->error;
-      }
-    } else {
-      MOZ_CRASH("unexpected return value from PRErrorCodeToOverrideType");
-    }
-  }
-
-  return SECSuccess;
-}
-
-
-
 CertErrorRunnable*
 CreateCertErrorRunnable(CertVerifier& certVerifier,
                         PRErrorCode defaultErrorCodeToReport,
@@ -690,37 +561,10 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
   PRErrorCode errorCodeTrust = 0;
   PRErrorCode errorCodeMismatch = 0;
   PRErrorCode errorCodeExpired = 0;
-
-  SECStatus rv;
-  switch (certVerifier.mImplementation) {
-    case CertVerifier::classic:
-#ifndef NSS_NO_LIBPKIX
-    case CertVerifier::libpkix:
-#endif
-      rv = NSSDetermineCertOverrideErrors(certVerifier, cert, stapledOCSPResponse,
-                                          infoObject, now,
-                                          defaultErrorCodeToReport,
-                                          collected_errors, errorCodeTrust,
-                                          errorCodeMismatch, errorCodeExpired);
-      break;
-
-    case CertVerifier::mozillapkix:
-      rv = MozillaPKIXDetermineCertOverrideErrors(cert,
-                                                  infoObject->GetHostNameRaw(),
-                                                  now, defaultErrorCodeToReport,
-                                                  collected_errors,
-                                                  errorCodeTrust,
-                                                  errorCodeMismatch,
-                                                  errorCodeExpired);
-      break;
-
-    default:
-      MOZ_CRASH("unexpected CertVerifier implementation");
-      PR_SetError(defaultErrorCodeToReport, 0);
-      return nullptr;
-
-  }
-  if (rv != SECSuccess) {
+  if (DetermineCertOverrideErrors(cert, infoObject->GetHostNameRaw(), now,
+                                  defaultErrorCodeToReport, collected_errors,
+                                  errorCodeTrust, errorCodeMismatch,
+                                  errorCodeExpired) != SECSuccess) {
     return nullptr;
   }
 
@@ -908,57 +752,6 @@ AuthCertificate(CertVerifier& certVerifier, TransportSecurityInfo* infoObject,
 
   
   
-  if (certVerifier.mImplementation == CertVerifier::classic) {
-    if (stapledOCSPResponse) {
-      CERTCertDBHandle* handle = CERT_GetDefaultCertDB();
-      rv = CERT_CacheOCSPResponseFromSideChannel(handle, cert, PR_Now(),
-                                                 stapledOCSPResponse,
-                                                 infoObject);
-      if (rv != SECSuccess) {
-        
-        
-        
-        
-        PRErrorCode ocspErrorCode = PR_GetError();
-        if (ocspErrorCode != SEC_ERROR_OCSP_OLD_RESPONSE) {
-          
-          Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 4);
-          return rv;
-        } else {
-          
-          Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 3);
-        }
-      } else {
-        
-        Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 1);
-      }
-    } else {
-      
-      Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 2);
-
-      uint32_t reasonsForNotFetching = 0;
-
-      char* ocspURI = CERT_GetOCSPAuthorityInfoAccessLocation(cert);
-      if (!ocspURI) {
-        reasonsForNotFetching |= 1; 
-      } else {
-        if (std::strncmp(ocspURI, "http://", 7)) { 
-          reasonsForNotFetching |= 1; 
-        }
-        PORT_Free(ocspURI);
-      }
-
-      if (!certVerifier.mOCSPDownloadEnabled) {
-        reasonsForNotFetching |= 2;
-      }
-
-      Telemetry::Accumulate(Telemetry::SSL_OCSP_MAY_FETCH,
-                            reasonsForNotFetching);
-    }
-  }
-
-  
-  
   bool saveIntermediates =
     !(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE);
 
@@ -1078,34 +871,11 @@ SSLServerCertVerificationJob::Run()
   if (mInfoObject->isAlreadyShutDown()) {
     error = SEC_ERROR_USER_CANCELLED;
   } else {
-    Telemetry::ID successTelemetry;
-    Telemetry::ID failureTelemetry;
-    switch (mCertVerifier->mImplementation) {
-      case CertVerifier::classic:
-        successTelemetry
-          = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_CLASSIC;
-        failureTelemetry
-          = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_CLASSIC;
-        break;
-      case CertVerifier::mozillapkix:
-        successTelemetry
-          = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX;
-        failureTelemetry
-          = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_MOZILLAPKIX;
-        break;
-#ifndef NSS_NO_LIBPKIX
-      case CertVerifier::libpkix:
-        successTelemetry
-          = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_LIBPKIX;
-        failureTelemetry
-          = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_LIBPKIX;
-        break;
-#endif
-      default:
-        MOZ_CRASH("Unknown CertVerifier mode");
-    }
+    Telemetry::ID successTelemetry
+      = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX;
+    Telemetry::ID failureTelemetry
+      = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_MOZILLAPKIX;
 
-    
     
     
     PR_SetError(0, 0);

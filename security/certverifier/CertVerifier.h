@@ -26,15 +26,14 @@ public:
   
   
   SECStatus VerifyCert(CERTCertificate* cert,
-                       const SECCertificateUsage usage,
-                       const PRTime time,
+                       SECCertificateUsage usage,
+                       PRTime time,
                        void* pinArg,
                        const char* hostname,
-                       const Flags flags = 0,
+                       Flags flags = 0,
         const SECItem* stapledOCSPResponse = nullptr,
        mozilla::pkix::ScopedCERTCertList* validationChain = nullptr,
-       SECOidTag* evOidPolicy = nullptr ,
-       CERTVerifyLog* verifyLog = nullptr);
+       SECOidTag* evOidPolicy = nullptr);
 
   SECStatus VerifySSLServerCert(
                     CERTCertificate* peerCert,
@@ -45,15 +44,6 @@ public:
                     bool saveIntermediatesInPermanentDatabase = false,
     mozilla::pkix::ScopedCERTCertList* certChainOut = nullptr,
     SECOidTag* evOidPolicy = nullptr);
-
-
-  enum implementation_config {
-    classic = 0,
-#ifndef NSS_NO_LIBPKIX
-    libpkix = 1,
-#endif
-    mozillapkix = 2
-  };
 
   enum pinning_enforcement_config {
     pinningDisabled = 0,
@@ -70,38 +60,19 @@ public:
 
   bool IsOCSPDownloadEnabled() const { return mOCSPDownloadEnabled; }
 
-  CertVerifier(implementation_config ic,
-#ifndef NSS_NO_LIBPKIX
-               missing_cert_download_config ac, crl_download_config cdc,
-#endif
-               ocsp_download_config odc, ocsp_strict_config osc,
+  CertVerifier(ocsp_download_config odc, ocsp_strict_config osc,
                ocsp_get_config ogc,
                pinning_enforcement_config pinningEnforcementLevel);
   ~CertVerifier();
 
   void ClearOCSPCache() { mOCSPCache.Clear(); }
 
-  const implementation_config mImplementation;
-#ifndef NSS_NO_LIBPKIX
-  const bool mMissingCertDownloadEnabled;
-  const bool mCRLDownloadEnabled;
-#endif
   const bool mOCSPDownloadEnabled;
   const bool mOCSPStrict;
   const bool mOCSPGETEnabled;
   const pinning_enforcement_config mPinningEnforcementLevel;
 
 private:
-  SECStatus MozillaPKIXVerifyCert(CERTCertificate* cert,
-      const SECCertificateUsage usage,
-      const PRTime time,
-      void* pinArg,
-      const Flags flags,
-      ChainValidationCallbackState* callbackState,
-       const SECItem* stapledOCSPResponse,
-       mozilla::pkix::ScopedCERTCertList* validationChain,
-       SECOidTag* evOidPolicy);
-
   OCSPCache mOCSPCache;
 };
 

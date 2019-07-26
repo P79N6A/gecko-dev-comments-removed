@@ -31,70 +31,48 @@ function run_test() {
     var cert = certdb.findCertByNickname(null, ca_name);
   }
 
-  run_test_in_mode(true);
-  run_test_in_mode(false);
-}
-
-function run_test_in_mode(useMozillaPKIX) {
-  Services.prefs.setBoolPref("security.use_mozillapkix_verification", useMozillaPKIX);
-  clearOCSPCache();
-  clearSessionCache();
-
-  
-  var allCAUsages = useMozillaPKIX
-                  ? 'SSL CA'
-                  : 'Client,Server,Sign,Encrypt,SSL CA,Status Responder';
-
   
   
-  var ca_usages = [allCAUsages,
+  var ca_usages = ['SSL CA',
                    'SSL CA',
-                   allCAUsages,
-                   useMozillaPKIX ? ''
-                                  : 'Client,Server,Sign,Encrypt,Status Responder'];
+                   'SSL CA',
+                   ''];
 
   
-  var basicEndEntityUsages = useMozillaPKIX
-                           ? 'Client,Server,Sign,Encrypt,Object Signer'
-                           : 'Client,Server,Sign,Encrypt';
+  var basicEndEntityUsages = 'Client,Server,Sign,Encrypt,Object Signer';
   var basicEndEntityUsagesWithObjectSigner = basicEndEntityUsages + ",Object Signer"
 
   
   
-  var statusResponderUsages = (useMozillaPKIX ? "" : "Server,") + "Status Responder";
-  var statusResponderUsagesFull
-      = useMozillaPKIX ? statusResponderUsages
-                       : basicEndEntityUsages + ',Object Signer,Status Responder';
-
   var ee_usages = [
     [ basicEndEntityUsages,
       basicEndEntityUsages,
       basicEndEntityUsages,
       '',
-      statusResponderUsagesFull,
+      'Status Responder',
       'Client,Server',
       'Sign,Encrypt,Object Signer',
-      statusResponderUsages
+      'Status Responder'
     ],
 
     [ basicEndEntityUsages,
       basicEndEntityUsages,
       basicEndEntityUsages,
       '',
-      statusResponderUsagesFull,
+      'Status Responder',
       'Client,Server',
       'Sign,Encrypt,Object Signer',
-      statusResponderUsages
+      'Status Responder'
     ],
 
     [ basicEndEntityUsages,
       basicEndEntityUsages,
       basicEndEntityUsages,
       '',
-      statusResponderUsagesFull,
+      'Status Responder',
       'Client,Server',
       'Sign,Encrypt,Object Signer',
-      statusResponderUsages
+      'Status Responder'
     ],
 
     
@@ -103,14 +81,14 @@ function run_test_in_mode(useMozillaPKIX) {
     
     
     
-    [ useMozillaPKIX ? '' : basicEndEntityUsages,
-      useMozillaPKIX ? '' : basicEndEntityUsages,
-      useMozillaPKIX ? '' : basicEndEntityUsages,
+    [ '',
       '',
-      useMozillaPKIX ? '' : statusResponderUsagesFull,
-      useMozillaPKIX ? '' : 'Client,Server',
-      useMozillaPKIX ? '' : 'Sign,Encrypt,Object Signer',
-      useMozillaPKIX ? '' : 'Server,Status Responder'
+      '',
+      '',
+      '',
+      '',
+      '',
+      ''
      ]
   ];
 

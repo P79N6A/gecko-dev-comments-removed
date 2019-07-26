@@ -26,10 +26,6 @@ bool CertIsAuthoritativeForEVPolicy(const CERTCertificate* cert,
                                     const mozilla::pkix::CertPolicyId& policy);
 #endif
 
-#ifndef NSS_NO_LIBPKIX
-CERTCertList* GetRootsForOid(SECOidTag oid_tag);
-#endif
-
 } } 
 
 #endif 

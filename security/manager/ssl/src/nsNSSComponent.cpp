@@ -58,7 +58,6 @@
 #include "sslproto.h"
 #include "secmod.h"
 #include "secmime.h"
-#include "ocsp.h"
 #include "secerr.h"
 #include "sslerr.h"
 
@@ -243,10 +242,10 @@ bool EnsureNSSInitialized(EnsureNSSOperator op)
 }
 
 static void
-SetClassicOCSPBehaviorFromPrefs( CertVerifier::ocsp_download_config* odc,
-                                 CertVerifier::ocsp_strict_config* osc,
-                                 CertVerifier::ocsp_get_config* ogc,
-                                const MutexAutoLock& )
+GetOCSPBehaviorFromPrefs( CertVerifier::ocsp_download_config* odc,
+                          CertVerifier::ocsp_strict_config* osc,
+                          CertVerifier::ocsp_get_config* ogc,
+                         const MutexAutoLock& )
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(odc);
@@ -266,8 +265,6 @@ SetClassicOCSPBehaviorFromPrefs( CertVerifier::ocsp_download_config* odc,
   *ogc = Preferences::GetBool("security.OCSP.GET.enabled", false)
        ? CertVerifier::ocsp_get_enabled
        : CertVerifier::ocsp_get_disabled;
-
-  SetClassicOCSPBehavior(*odc, *osc, *ogc);
 
   SSL_ClearSessionCache();
 }
@@ -991,43 +988,10 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
     Telemetry::Accumulate(Telemetry::CERT_OCSP_REQUIRED, ocspRequired);
   }
 
-#ifndef NSS_NO_LIBPKIX
-  bool crlDownloading = Preferences::GetBool("security.CRL_download.enabled",
-                                             false);
-  bool aiaDownloadEnabled =
-    Preferences::GetBool("security.missing_cert_download.enabled", false);
-
-#endif
   bool ocspStaplingEnabled = Preferences::GetBool("security.ssl.enable_ocsp_stapling",
                                                   true);
   PublicSSLState()->SetOCSPStaplingEnabled(ocspStaplingEnabled);
   PrivateSSLState()->SetOCSPStaplingEnabled(ocspStaplingEnabled);
-
-  CertVerifier::implementation_config certVerifierImplementation
-    = CertVerifier::classic;
-
-  
-  if (Preferences::GetBool("security.use_mozillapkix_verification", true)) {
-    certVerifierImplementation = CertVerifier::mozillapkix;
-  } else {
-#ifndef NSS_NO_LIBPKIX
-  if (Preferences::GetBool("security.use_libpkix_verification", false)) {
-    certVerifierImplementation = CertVerifier::libpkix;
-  }
-#endif
-  }
-
-  if (isInitialSetting) {
-    if (certVerifierImplementation == CertVerifier::classic) {
-      Telemetry::Accumulate(Telemetry::CERT_VALIDATION_LIBRARY, 1);
-#ifndef NSS_NO_LIBPKIX
-    } else if (certVerifierImplementation == CertVerifier::libpkix) {
-      Telemetry::Accumulate(Telemetry::CERT_VALIDATION_LIBRARY, 2);
-#endif
-    } else if (certVerifierImplementation == CertVerifier::mozillapkix) {
-      Telemetry::Accumulate(Telemetry::CERT_VALIDATION_LIBRARY, 3);
-    }
-  }
 
   
   CertVerifier::pinning_enforcement_config
@@ -1043,30 +1007,9 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
   CertVerifier::ocsp_strict_config osc;
   CertVerifier::ocsp_get_config ogc;
 
-  SetClassicOCSPBehaviorFromPrefs(&odc, &osc, &ogc, lock);
-  mDefaultCertVerifier = new SharedCertVerifier(
-      certVerifierImplementation,
-#ifndef NSS_NO_LIBPKIX
-      aiaDownloadEnabled ?
-        CertVerifier::missing_cert_download_on : CertVerifier::missing_cert_download_off,
-      crlDownloading ?
-        CertVerifier::crl_download_allowed : CertVerifier::crl_local_only,
-#endif
-      odc, osc, ogc, pinningEnforcementLevel);
-
-  
-  
-  if (certVerifierImplementation == CertVerifier::mozillapkix) {
-    
-    
-    CERT_OCSPCacheSettings(-1, 1*60*60L, 24*60*60L);
-  } else {
-    
-    
-    CERT_OCSPCacheSettings(1000, 1*60*60L, 24*60*60L);
-  }
-
-  CERT_ClearOCSPCache();
+  GetOCSPBehaviorFromPrefs(&odc, &osc, &ogc, lock);
+  mDefaultCertVerifier = new SharedCertVerifier(odc, osc, ogc,
+                                                pinningEnforcementLevel);
 }
 
 
@@ -1275,7 +1218,6 @@ nsNSSComponent::InitializeNSS()
   setValidationOptions(true, lock);
 
   mHttpForNSS.initTable();
-  mHttpForNSS.registerHttpClient();
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
   LaunchSmartCardThreads();
@@ -1301,7 +1243,6 @@ nsNSSComponent::ShutdownNSS()
     mNSSInitialized = false;
 
     PK11_SetPasswordFunc((PK11PasswordFunc)nullptr);
-    mHttpForNSS.unregisterHttpClient();
 
     Preferences::RemoveObserver(this, "security.");
     if (NS_FAILED(CipherSuiteChangeObserver::StopObserve())) {
@@ -1670,14 +1611,9 @@ nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
                            Preferences::GetBool("security.ssl.enable_alpn",
                                                 ALPN_ENABLED_DEFAULT));
     } else if (prefName.EqualsLiteral("security.OCSP.enabled") ||
-               prefName.EqualsLiteral("security.CRL_download.enabled") ||
-               prefName.EqualsLiteral("security.fresh_revocation_info.require") ||
-               prefName.EqualsLiteral("security.missing_cert_download.enabled") ||
                prefName.EqualsLiteral("security.OCSP.require") ||
                prefName.EqualsLiteral("security.OCSP.GET.enabled") ||
                prefName.EqualsLiteral("security.ssl.enable_ocsp_stapling") ||
-               prefName.EqualsLiteral("security.use_mozillapkix_verification") ||
-               prefName.EqualsLiteral("security.use_libpkix_verification") ||
                prefName.EqualsLiteral("security.cert_pinning.enforcement_level")) {
       MutexAutoLock lock(mutex);
       setValidationOptions(false, lock);

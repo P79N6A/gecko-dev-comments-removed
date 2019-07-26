@@ -33,14 +33,6 @@ SECStatus LoadLoadableRoots( const char* dir,
 void UnloadLoadableRoots(const char* modNameUTF8);
 
 
-
-
-void
-SetClassicOCSPBehavior(CertVerifier::ocsp_download_config enabled,
-                       CertVerifier::ocsp_strict_config strict,
-                       CertVerifier::ocsp_get_config get);
-
-
 char* DefaultServerNicknameForCert(CERTCertificate* cert);
 
 void SaveIntermediateCerts(const mozilla::pkix::ScopedCERTCertList& certList);

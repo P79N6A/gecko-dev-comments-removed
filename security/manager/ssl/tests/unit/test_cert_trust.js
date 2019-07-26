@@ -39,20 +39,17 @@ function check_cert_err_generic(cert, expected_error, usage) {
   do_check_eq(error,  expected_error);
 };
 
-function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKIX) {
+function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA) {
   
   check_cert_err_generic(ee_cert, 0, certificateUsageSSLServer);
   check_cert_err_generic(ee_cert, 0, certificateUsageSSLClient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageSSLCA);  
   check_cert_err_generic(ee_cert, 0, certificateUsageEmailSigner);
   check_cert_err_generic(ee_cert, 0, certificateUsageEmailRecipient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? 0
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert, 0,
                          certificateUsageObjectSigner); 
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : 0,
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageVerifyCA);
   
   
@@ -66,60 +63,45 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                          certificateUsageSSLServer);
   check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageSSLClient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageSSLCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageEmailSigner);
   check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageEmailRecipient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_UNTRUSTED_ISSUER
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageObjectSigner);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : 0,
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageVerifyCA);
   
   
   
   
-  check_cert_err_generic(ee_cert, (!isRootCA && useMozillaPKIX)
-                                    ? SEC_ERROR_UNTRUSTED_ISSUER
-                                    : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert,
+                         !isRootCA ? SEC_ERROR_UNTRUSTED_ISSUER
+                                   : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
-
 
   
   
   setCertTrust(cert_to_modify_trust, 'T,T,T');
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageSSLServer);
 
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER 
-                                                            : 0
-                                           : 0,
+  
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageSSLClient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageSSLCA);
 
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageEmailSigner);
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageEmailRecipient);
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_INADEQUATE_CERT_TYPE
-                                           : useMozillaPKIX ? 0
-                                                            : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageObjectSigner);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : 0,
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -129,49 +111,33 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
   setCertTrust(cert_to_modify_trust, 'p,C,C');
   check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageSSLServer);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? 0  
-                                                 : SEC_ERROR_UNTRUSTED_ISSUER,
-                         certificateUsageSSLClient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+
+  
+  check_cert_err_generic(ee_cert, 0, certificateUsageSSLClient);
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageSSLCA);
   check_cert_err_generic(ee_cert, 0, certificateUsageEmailSigner);
   check_cert_err_generic(ee_cert, 0, certificateUsageEmailRecipient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? 0
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
-                         certificateUsageObjectSigner);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : 0,
+  check_cert_err_generic(ee_cert, 0, certificateUsageObjectSigner);
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageVerifyCA);
-  
-  
-  
-  
-  check_cert_err_generic(ee_cert, (!isRootCA && useMozillaPKIX)
-                                    ? SEC_ERROR_UNTRUSTED_ISSUER
-                                    : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert,
+                         isRootCA ? SEC_ERROR_INADEQUATE_CERT_TYPE
+                                  : SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageStatusResponder);
 
   
   setCertTrust(cert_to_modify_trust, ',C,C');
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageSSLServer);
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? 0  
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
-                         certificateUsageSSLClient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  
+  check_cert_err_generic(ee_cert, 0, certificateUsageSSLClient);
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageSSLCA);
   check_cert_err_generic(ee_cert, 0, certificateUsageEmailSigner);
   check_cert_err_generic(ee_cert, 0, certificateUsageEmailRecipient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? 0
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
-                         certificateUsageObjectSigner);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : 0,
+  check_cert_err_generic(ee_cert, 0, certificateUsageObjectSigner);
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -179,22 +145,16 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
   
   setCertTrust(cert_to_modify_trust, 'C,p,C');
   check_cert_err_generic(ee_cert, 0, certificateUsageSSLServer);
-  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNTRUSTED_ISSUER
-                                           : useMozillaPKIX ? SEC_ERROR_UNTRUSTED_ISSUER
-                                                            : 0, 
+  check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageSSLClient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageSSLCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageEmailSigner);
   check_cert_err_generic(ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                          certificateUsageEmailRecipient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? 0
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
-                         certificateUsageObjectSigner);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : 0,
+  check_cert_err_generic(ee_cert, 0, certificateUsageObjectSigner);
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -203,34 +163,26 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
   
   setCertTrust(cert_to_modify_trust, 'C,,C');
   check_cert_err_generic(ee_cert, 0, certificateUsageSSLServer);
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageSSLClient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageSSLCA);
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageEmailSigner);
-  check_cert_err_generic(ee_cert, isRootCA ? useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
-                                                            : SEC_ERROR_UNTRUSTED_ISSUER
-                                           : 0,
+  check_cert_err_generic(ee_cert, isRootCA ? SEC_ERROR_UNKNOWN_ISSUER : 0,
                          certificateUsageEmailRecipient);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? 0
-                                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
-                         certificateUsageObjectSigner);
-  check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : 0,
+  check_cert_err_generic(ee_cert, 0, certificateUsageObjectSigner);
+  check_cert_err_generic(ee_cert, SEC_ERROR_CA_CERT_INVALID,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
 }
 
 
-function run_test_in_mode(useMozillaPKIX) {
-  Services.prefs.setBoolPref("security.use_mozillapkix_verification", useMozillaPKIX);
+function run_test() {
+  for (let i = 0 ; i < certList.length; i++) {
+    load_cert(certList[i], ',,');
+  }
 
   let ca_cert = certdb.findCertByNickname(null, 'ca');
   do_check_false(!ca_cert)
@@ -240,17 +192,8 @@ function run_test_in_mode(useMozillaPKIX) {
   do_check_false(!ee_cert);
 
   setup_basic_trusts(ca_cert, int_cert);
-  test_ca_distrust(ee_cert, ca_cert, true, useMozillaPKIX);
+  test_ca_distrust(ee_cert, ca_cert, true);
 
   setup_basic_trusts(ca_cert, int_cert);
-  test_ca_distrust(ee_cert, int_cert, false, useMozillaPKIX);
-}
-
-function run_test() {
-  for (let i = 0 ; i < certList.length; i++) {
-    load_cert(certList[i], ',,');
-  }
-
-  run_test_in_mode(true);
-  run_test_in_mode(false);
+  test_ca_distrust(ee_cert, int_cert, false);
 }
