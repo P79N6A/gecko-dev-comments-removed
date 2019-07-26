@@ -2860,3 +2860,51 @@ int vcmOnSdpParseError(const char *peerconnection, const char *message) {
 }
 
 
+
+
+
+
+
+static int vcmDisableRtcpComponent_m(const char *peerconnection, int level) {
+#ifdef MOZILLA_INTERNAL_API
+  MOZ_ASSERT(NS_IsMainThread());
+#endif
+  MOZ_ASSERT(level > 0);
+
+  sipcc::PeerConnectionWrapper pc(peerconnection);
+  ENSURE_PC(pc, VCM_ERROR);
+
+  CSFLogDebug( logTag, "%s: disabling rtcp component %d", __FUNCTION__, level);
+  mozilla::RefPtr<NrIceMediaStream> stream = pc.impl()->media()->
+    ice_media_stream(level-1);
+  MOZ_ASSERT(stream);
+  if (!stream) {
+    return VCM_ERROR;
+  }
+
+  
+  nsresult res = stream->DisableComponent(2);
+  MOZ_ASSERT(NS_SUCCEEDED(res));
+  if (!NS_SUCCEEDED(res)) {
+    return VCM_ERROR;
+  }
+
+  return 0;
+}
+
+
+
+
+
+
+
+int vcmDisableRtcpComponent(const char *peerconnection, int level) {
+  int ret;
+  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
+      WrapRunnableNMRet(&vcmDisableRtcpComponent_m,
+                        peerconnection,
+                        level,
+                        &ret));
+  return ret;
+}
+

@@ -1036,6 +1036,14 @@ int vcmGetILBCMode();
 int vcmOnSdpParseError(const char *peercconnection, const char *message);
 
 
+
+
+
+
+
+int vcmDisableRtcpComponent(const char *peerconnection, int level);
+
+
 #ifdef __cplusplus
 }
 #endif
