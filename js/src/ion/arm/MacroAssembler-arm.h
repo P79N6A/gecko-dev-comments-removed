@@ -549,7 +549,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     void boxDouble(const FloatRegister &src, const ValueOperand &dest);
-    void boxNonDouble(JSValueType type, const Register &src, const ValueOperand &dest);
 
     
     
