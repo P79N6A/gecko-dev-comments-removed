@@ -375,18 +375,6 @@ public:
   
 
 
-
-
-
-
-
-  bool IsFixedItem(nsDisplayItem* aItem,
-                   const nsIFrame** aAnimatedGeometryRoot = nullptr,
-                   const nsIFrame* aOverrideAnimatedGeometryScrolledRoot = nullptr);
-
-  
-
-
   bool ShouldSyncDecodeImages() { return mSyncDecodeImages; }
 
   
