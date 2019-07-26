@@ -12,6 +12,7 @@ import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.fxa.authenticator.AccountPickler;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.sync.FxAccountSyncAdapter;
+import org.mozilla.gecko.fxa.sync.FxAccountSyncStatusHelper;
 import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.Utils;
 
@@ -60,6 +61,13 @@ public class FirefoxAccounts {
       SyncHint.SCHEDULE_NOW,
       SyncHint.IGNORE_LOCAL_RATE_LIMIT,
       SyncHint.IGNORE_REMOTE_SERVER_BACKOFF);
+
+  public interface SyncStatusListener {
+    public Context getContext();
+    public Account getAccount();
+    public void onSyncStarted();
+    public void onSyncFinished();
+  }
 
   
 
@@ -206,7 +214,9 @@ public class FirefoxAccounts {
 
 
 
-  public static void requestSync(Account account, EnumSet<SyncHint> syncHints, String[] stagesToSync, String[] stagesToSkip) {
+
+
+  public static void requestSync(final Account account, EnumSet<SyncHint> syncHints, String[] stagesToSync, String[] stagesToSkip) {
     if (account == null) {
       throw new IllegalArgumentException("account must not be null");
     }
@@ -221,8 +231,37 @@ public class FirefoxAccounts {
     Logger.info(LOG_TAG, "Requesting sync.");
     logSyncHints(syncHints);
 
-    for (String authority : AndroidFxAccount.getAndroidAuthorities()) {
-      ContentResolver.requestSync(account, authority, extras);
-    }
+    
+    
+    ThreadPool.run(new Runnable() {
+      @Override
+      public void run() {
+        for (String authority : AndroidFxAccount.getAndroidAuthorities()) {
+          ContentResolver.requestSync(account, authority, extras);
+        }
+      }
+    });
+  }
+
+  
+
+
+
+
+
+
+  public static void addSyncStatusListener(SyncStatusListener syncStatusListener) {
+    
+    FxAccountSyncStatusHelper.getInstance().startObserving(syncStatusListener);
+  }
+
+  
+
+
+
+
+  public static void removeSyncStatusListener(SyncStatusListener syncStatusListener) {
+    
+    FxAccountSyncStatusHelper.getInstance().stopObserving(syncStatusListener);
   }
 }
