@@ -58,8 +58,6 @@
 #include "SVGMotionSMILAttr.h"
 #include "nsAttrValueOrString.h"
 #include "nsSMILAnimationController.h"
-#include "nsDOMCSSDeclaration.h"
-#include "mozilla/dom/SVGElementBinding.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -80,82 +78,6 @@ nsSVGEnumMapping nsSVGElement::sSVGUnitTypesMap[] = {
 nsSVGElement::nsSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsSVGElementBase(aNodeInfo)
 {
-}
-
-JSObject*
-nsSVGElement::WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
-{
-  return SVGElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
-}
-
-
-
-
-NS_IMETHODIMP
-nsSVGElement::GetClassName(nsIDOMSVGAnimatedString** aClassName)
-{
-  *aClassName = ClassName().get();
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsSVGElement::GetStyle(nsIDOMCSSStyleDeclaration** aStyle)
-{
-  ErrorResult rv;
-  NS_ADDREF(*aStyle = GetStyle(rv));
-  return rv.ErrorCode();
-}
-
-nsICSSDeclaration*
-nsSVGElement::GetStyle(ErrorResult& rv)
-{
-  nsresult res;
-  nsICSSDeclaration* style = nsSVGElementBase::GetStyle(&res);
-  if (NS_FAILED(res)) {
-    rv.Throw(res);
-    return nullptr;
-  }
-
-  return style;
-}
-
-
-NS_IMETHODIMP
-nsSVGElement::GetPresentationAttribute(const nsAString& aName,
-                                       nsIDOMCSSValue** aReturn)
-{
-  
-  
-  
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-already_AddRefed<CSSValue>
-nsSVGElement::GetPresentationAttribute(const nsAString& aName, ErrorResult& rv)
-{
-  rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return nullptr;
-}
-
-
-
-
-void
-nsSVGElement::DidAnimateClass()
-{
-  nsAutoString src;
-  mClassAttribute.GetAnimValue(src, this);
-  if (!mClassAnimAttr) {
-    mClassAnimAttr = new nsAttrValue();
-  }
-  mClassAnimAttr->ParseAtomArray(src);
-
-  nsIPresShell* shell = OwnerDoc()->GetShell();
-  if (shell) {
-    shell->RestyleForAnimation(this, eRestyle_Self);
-  }
 }
 
 nsresult
@@ -270,15 +192,6 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGElementBase)
 
 
 
-const nsAttrValue*
-nsSVGElement::DoGetClasses() const
-{
-  if (mClassAttribute.IsAnimated()) {
-    return mClassAnimAttr;
-  }
-  return nsSVGElementBase::DoGetClasses();
-}
-
 nsresult
 nsSVGElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                          nsIContent* aBindingParent,
@@ -359,6 +272,7 @@ nsSVGElement::ParseAttribute(int32_t aNamespaceID,
   bool didSetResult = false;
 
   if (aNamespaceID == kNameSpaceID_None) {
+
     
     LengthAttributesInfo lengthInfo = GetLengthInfo();
 
@@ -648,12 +562,6 @@ nsSVGElement::ParseAttribute(int32_t aNamespaceID,
         foundMatch = true;
       }
     }
-
-    if (aAttribute == nsGkAtoms::_class) {
-      mClassAttribute.SetBaseValue(aValue, this, false);
-      aResult.ParseAtomArray(aValue);
-      return true;
-    }
   }
 
   if (!foundMatch) {
@@ -879,11 +787,6 @@ nsSVGElement::UnsetAttrInternal(int32_t aNamespaceID, nsIAtom* aName,
         stringListInfo.Reset(i);
         return;
       }
-    }
-
-    if (aName == nsGkAtoms::_class) {
-      mClassAttribute.Init();
-      return;
     }
   }
 
@@ -1151,50 +1054,22 @@ NS_IMETHODIMP nsSVGElement::SetId(const nsAString & aId)
 NS_IMETHODIMP
 nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
 {
-  ErrorResult rv;
-  NS_IF_ADDREF(*aOwnerSVGElement = GetOwnerSVGElement(rv));
-  return rv.ErrorCode();
-}
+  NS_IF_ADDREF(*aOwnerSVGElement = GetCtx());
 
-nsSVGSVGElement*
-nsSVGElement::GetOwnerSVGElement(ErrorResult& rv)
-{
-  nsSVGSVGElement* ownerSVGElement = GetCtx();
-
-  
-  
-  if (!ownerSVGElement && Tag() != nsGkAtoms::svg) {
-    rv.Throw(NS_ERROR_FAILURE);
+  if (*aOwnerSVGElement || Tag() == nsGkAtoms::svg) {
+    
+    return NS_OK;
   }
-
-  return ownerSVGElement;
+  
+  return NS_ERROR_FAILURE;
 }
 
 
 NS_IMETHODIMP
 nsSVGElement::GetViewportElement(nsIDOMSVGElement * *aViewportElement)
 {
-  nsCOMPtr<nsSVGElement> elem = GetViewportElement();
-  nsCOMPtr<nsIDOMSVGElement> svgElem = do_QueryInterface(elem);
-  svgElem.forget(aViewportElement);
+  *aViewportElement = SVGContentUtils::GetNearestViewportElement(this).get();
   return NS_OK;
-}
-
-already_AddRefed<nsSVGElement>
-nsSVGElement::GetViewportElement()
-{
-  nsCOMPtr<nsIDOMSVGElement> elem =
-    SVGContentUtils::GetNearestViewportElement(this);
-  nsCOMPtr<nsSVGElement> svgElem = do_QueryInterface(elem);
-  return svgElem.forget();
-}
-
-already_AddRefed<nsIDOMSVGAnimatedString>
-nsSVGElement::ClassName()
-{
-  nsCOMPtr<nsIDOMSVGAnimatedString> className;
-  mClassAttribute.ToDOMAnimatedString(getter_AddRefs(className), this);
-  return className.forget();
 }
 
 
@@ -2742,10 +2617,6 @@ nsSVGElement::GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName)
           return segList->ToSMILAttr(this);
         }
       }
-    }
-
-    if (aName == nsGkAtoms::_class) {
-      return mClassAttribute.ToSMILAttr(this);
     }
   }
 
