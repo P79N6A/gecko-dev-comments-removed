@@ -853,6 +853,11 @@ add_test(function test_hawk_authenticated_request() {
   let timeOffset = -1 * clockSkew;
   let localTime = then + clockSkew;
 
+  
+  let acceptLanguage = Cc['@mozilla.org/supports-string;1'].createInstance(Ci.nsISupportsString);
+  acceptLanguage.data = 'zu-NP'; 
+  Services.prefs.setComplexValue('intl.accept_languages', Ci.nsISupportsString, acceptLanguage);
+
   let credentials = {
     id: "eyJleHBpcmVzIjogMTM2NTAxMDg5OC4x",
     key: "qTZf4ZFpAMpMoeSsX3zVRjiqmNs=",
@@ -869,6 +874,14 @@ add_test(function test_hawk_authenticated_request() {
       let authorization = request.getHeader("Authorization");
       let tsMS = parseInt(/ts="(\d+)"/.exec(authorization)[1], 10) * 1000;
       do_check_eq(tsMS, then);
+
+      
+      
+      
+      
+      
+      let lang = request.getHeader('Accept-Language');
+      do_check_eq(lang, acceptLanguage);
 
       let message = "yay";
       response.setStatusLine(request.httpVersion, 200, "OK");
@@ -895,4 +908,9 @@ add_test(function test_hawk_authenticated_request() {
   };
   let request = new HAWKAuthenticatedRESTRequest(url, credentials, extra);
   request.post(postData, onComplete, onProgress);
+
+  Services.prefs.resetUserPrefs();
+  let pref = Services.prefs.getComplexValue('intl.accept_languages',
+                                            Ci.nsIPrefLocalizedString);
+  do_check_neq(acceptLanguage.data, pref.data);
 });
