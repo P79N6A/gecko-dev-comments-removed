@@ -194,7 +194,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     
     
     uint8_t direction;
-    nsIFrame* containerFrame = ll.GetLineContainerFrame();
+    nsIFrame* containerFrame = ll.LineContainerFrame();
     if (containerFrame->StyleTextReset()->mUnicodeBidi &
         NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
       FramePropertyTable *propTable = aPresContext->PropertyTable();

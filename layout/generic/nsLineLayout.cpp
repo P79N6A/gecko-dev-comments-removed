@@ -80,6 +80,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
     mDirtyNextLine(false),
     mLineAtStart(false)
 {
+  MOZ_ASSERT(aOuterReflowState, "aOuterReflowState must not be null");
   NS_ASSERTION(aFloatManager || aOuterReflowState->frame->GetType() ==
                                   nsGkAtoms::letterFrame,
                "float manager should be present");
@@ -188,14 +189,14 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
 
   
   
-  if (!(GetLineContainerFrame()->GetStateBits() &
-      NS_FRAME_IN_CONSTRAINED_HEIGHT)) {
+  if (!(LineContainerFrame()->GetStateBits() &
+        NS_FRAME_IN_CONSTRAINED_HEIGHT)) {
 
     
     
     
     nscoord maxLineBoxWidth =
-      GetLineContainerFrame()->PresContext()->PresShell()->MaxLineBoxWidth();
+      LineContainerFrame()->PresContext()->PresShell()->MaxLineBoxWidth();
 
     if (maxLineBoxWidth > 0 &&
         psd->mRightEdge - psd->mLeftEdge > maxLineBoxWidth) {
@@ -205,7 +206,7 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
 
   mTopEdge = aY;
 
-  psd->mNoWrap = !mStyleText->WhiteSpaceCanWrap(GetLineContainerFrame());
+  psd->mNoWrap = !mStyleText->WhiteSpaceCanWrap(LineContainerFrame());
   psd->mDirection = aDirection;
   psd->mChangedFrameDirection = false;
 

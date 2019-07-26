@@ -7533,7 +7533,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   }
 
   uint32_t flowEndInTextRun;
-  nsIFrame* lineContainer = aLineLayout.GetLineContainerFrame();
+  nsIFrame* lineContainer = aLineLayout.LineContainerFrame();
   gfxContext* ctx = aRenderingContext->ThebesContext();
   const nsTextFragment* frag = mContent->GetText();
 
@@ -7884,7 +7884,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   
   
   
-  UnionAdditionalOverflow(presContext, *aLineLayout.GetLineContainerRS(),
+  UnionAdditionalOverflow(presContext, *aLineLayout.LineContainerRS(),
                           provider, &aMetrics.VisualOverflow(), false);
 
   
