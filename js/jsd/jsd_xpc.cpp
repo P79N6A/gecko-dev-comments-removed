@@ -41,7 +41,7 @@
 
 using mozilla::AutoSafeJSContext;
 using mozilla::AutoPushJSContext;
-using mozilla::dom::AutoSystemCaller;
+using mozilla::dom::AutoNoJSAPI;
 
 
 
@@ -3011,7 +3011,7 @@ jsdService::EnterNestedEventLoop (jsdINestCallback *callback, uint32_t *_rval)
     
     
     nsresult rv = NS_OK;
-    AutoSystemCaller asc;
+    AutoNoJSAPI nojsapi;
     uint32_t nestLevel = ++mNestedLoopLevel;
     nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
 

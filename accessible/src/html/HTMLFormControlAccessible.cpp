@@ -474,7 +474,7 @@ HTMLTextFieldAccessible::GetEditor() const
   
   
   
-  mozilla::dom::AutoSystemCaller asc;
+  mozilla::dom::AutoNoJSAPI nojsapi;
 
   nsCOMPtr<nsIEditor> editor;
   editableElt->GetEditor(getter_AddRefs(editor));

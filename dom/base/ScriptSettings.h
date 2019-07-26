@@ -86,8 +86,8 @@ struct ScriptSettingsStackEntry {
     MOZ_ASSERT_IF(mGlobalObject, mGlobalObject->GetGlobalJSObject());
   }
 
-  bool IsSystemSingleton() { return this == &SystemSingleton; }
-  static ScriptSettingsStackEntry SystemSingleton;
+  bool NoJSAPI() { return this == &NoJSAPISingleton; }
+  static ScriptSettingsStackEntry NoJSAPISingleton;
 
 private:
   ScriptSettingsStackEntry() : mGlobalObject(nullptr)
@@ -200,10 +200,13 @@ private:
 
 
 
-class AutoSystemCaller {
+
+
+
+class AutoNoJSAPI {
 public:
-  AutoSystemCaller(bool aIsMainThread = NS_IsMainThread());
-  ~AutoSystemCaller();
+  AutoNoJSAPI(bool aIsMainThread = NS_IsMainThread());
+  ~AutoNoJSAPI();
 private:
   dom::ScriptSettingsStack& mStack;
   mozilla::Maybe<AutoCxPusher> mCxPusher;

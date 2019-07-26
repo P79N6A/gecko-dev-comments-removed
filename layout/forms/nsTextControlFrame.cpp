@@ -263,7 +263,7 @@ nsTextControlFrame::EnsureEditorInitialized()
 
     
     
-    mozilla::dom::AutoSystemCaller asc;
+    mozilla::dom::AutoNoJSAPI nojsapi;
 
     
     class EnsureSetFocus {

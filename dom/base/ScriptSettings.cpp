@@ -23,7 +23,7 @@ namespace dom {
 class ScriptSettingsStack;
 static mozilla::ThreadLocal<ScriptSettingsStack*> sScriptSettingsTLS;
 
-ScriptSettingsStackEntry ScriptSettingsStackEntry::SystemSingleton;
+ScriptSettingsStackEntry ScriptSettingsStackEntry::NoJSAPISingleton;
 
 class ScriptSettingsStack {
 public:
@@ -34,13 +34,13 @@ public:
 
   void Push(ScriptSettingsStackEntry* aSettings) {
     
-    MOZ_ASSERT_IF(mStack.Length() == 0 || mStack.LastElement()->IsSystemSingleton(),
+    MOZ_ASSERT_IF(mStack.Length() == 0 || mStack.LastElement()->NoJSAPI(),
                   aSettings->mIsCandidateEntryPoint);
     mStack.AppendElement(aSettings);
   }
 
-  void PushSystem() {
-    mStack.AppendElement(&ScriptSettingsStackEntry::SystemSingleton);
+  void PushNoJSAPI() {
+    mStack.AppendElement(&ScriptSettingsStackEntry::NoJSAPISingleton);
   }
 
   void Pop() {
@@ -160,7 +160,7 @@ GetWebIDLCallerPrincipal()
 
   
   
-  if (!entry || entry->IsSystemSingleton()) {
+  if (!entry || entry->NoJSAPI()) {
     return nullptr;
   }
   AutoEntryScript* aes = static_cast<AutoEntryScript*>(entry);
@@ -271,17 +271,19 @@ AutoIncumbentScript::~AutoIncumbentScript()
   mStack.Pop();
 }
 
-AutoSystemCaller::AutoSystemCaller(bool aIsMainThread)
+AutoNoJSAPI::AutoNoJSAPI(bool aIsMainThread)
   : mStack(ScriptSettingsStack::Ref())
 {
+  MOZ_ASSERT_IF(nsContentUtils::GetCurrentJSContextForThread(),
+                !JS_IsExceptionPending(nsContentUtils::GetCurrentJSContextForThread()));
   if (aIsMainThread) {
     mCxPusher.construct(static_cast<JSContext*>(nullptr),
                          true);
   }
-  mStack.PushSystem();
+  mStack.PushNoJSAPI();
 }
 
-AutoSystemCaller::~AutoSystemCaller()
+AutoNoJSAPI::~AutoNoJSAPI()
 {
   mStack.Pop();
 }

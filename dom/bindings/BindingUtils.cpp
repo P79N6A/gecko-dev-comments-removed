@@ -2037,7 +2037,7 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
   
   
   {
-    AutoSystemCaller asc;
+    AutoNoJSAPI nojsapi;
 
     
     nsCOMPtr<nsISupports> implISupports = do_CreateInstance(aContractId);

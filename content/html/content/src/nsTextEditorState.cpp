@@ -1252,7 +1252,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     
     
     
-    AutoSystemCaller asc;
+    AutoNoJSAPI nojsapi;
 
     rv = newEditor->Init(domdoc, GetRootNode(), mSelCon, editorFlags);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1741,7 +1741,7 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
     
     
     { 
-      AutoSystemCaller asc;
+      AutoNoJSAPI nojsapi;
 
       mEditor->OutputToString(NS_LITERAL_STRING("text/plain"), flags,
                               aValue);
@@ -1820,7 +1820,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
       
       
       {
-        AutoSystemCaller asc;
+        AutoNoJSAPI nojsapi;
 
         nsCOMPtr<nsISelection> domSel;
         nsCOMPtr<nsISelectionPrivate> selPriv;

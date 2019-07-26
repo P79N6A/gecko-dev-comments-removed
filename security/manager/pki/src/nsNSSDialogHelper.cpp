@@ -39,7 +39,7 @@ nsNSSDialogHelper::openDialog(
   
   
   MOZ_ASSERT(!strncmp("chrome://", url, strlen("chrome://")));
-  mozilla::dom::AutoSystemCaller asc;
+  mozilla::dom::AutoNoJSAPI nojsapi;
 
   nsCOMPtr<nsIDOMWindow> newWindow;
   rv = windowWatcher->OpenWindow(parent,

@@ -11472,9 +11472,9 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       
       
       
-      Maybe<AutoSystemCaller> asc;
+      Maybe<AutoNoJSAPI> nojsapi;
       if (!aContentModal) {
-        asc.construct();
+        nojsapi.construct();
       }
 
 

@@ -946,7 +946,7 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
   *aWindowIsNew = (containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW);
 
   {
-    dom::AutoSystemCaller asc;
+    dom::AutoNoJSAPI nojsapi;
 
     
     
