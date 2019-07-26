@@ -194,7 +194,7 @@ struct IonScript
     bool hasSPSInstrumentation_;
 
     
-    bool recompiling_;
+    uint32_t recompiling_;
 
     
     
@@ -346,6 +346,9 @@ struct IonScript
     }
     static inline size_t offsetOfRefcount() {
         return offsetof(IonScript, refcount_);
+    }
+    static inline size_t offsetOfRecompiling() {
+        return offsetof(IonScript, recompiling_);
     }
 
   public:
