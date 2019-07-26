@@ -460,12 +460,11 @@ public:
 
     
     
-    if (!mPlace.hidden &&
-        mPlace.transitionType != nsINavHistoryService::TRANSITION_EMBED &&
-        mPlace.transitionType != nsINavHistoryService::TRANSITION_FRAMED_LINK) {
+    if (mPlace.transitionType != nsINavHistoryService::TRANSITION_EMBED) {
       navHistory->NotifyOnVisit(uri, mPlace.visitId, mPlace.visitTime,
                                 mPlace.sessionId, mReferrer.visitId,
-                                mPlace.transitionType, mPlace.guid);
+                                mPlace.transitionType, mPlace.guid,
+                                mPlace.hidden);
     }
 
     nsCOMPtr<nsIObserverService> obsService =
