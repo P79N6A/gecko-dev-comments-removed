@@ -75,11 +75,20 @@ add_test(function test_read_icc_ucs2_string() {
 add_test(function test_read_8bit_unpacked_to_string() {
   let worker = newUint8Worker();
   let helper = worker.GsmPDUHelper;
-  let buf = worker.Buf;
   const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+  const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
 
   
+  
   for (let i = 0; i < PDU_NL_EXTENDED_ESCAPE; i++) {
+    helper.writeHexOctet(i);
+  }
+
+  
+  helper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+  helper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+
+  for (let i = PDU_NL_EXTENDED_ESCAPE + 1; i < langTable.length; i++) {
     helper.writeHexOctet(i);
   }
 
@@ -89,8 +98,228 @@ add_test(function test_read_8bit_unpacked_to_string() {
     helper.writeHexOctet(0xff);
   }
 
-  do_check_eq(helper.read8BitUnpackedToString(PDU_NL_EXTENDED_ESCAPE + ffLen),
+  do_check_eq(helper.read8BitUnpackedToString(PDU_NL_EXTENDED_ESCAPE),
               langTable.substring(0, PDU_NL_EXTENDED_ESCAPE));
+  do_check_eq(helper.read8BitUnpackedToString(2), " ");
+  do_check_eq(helper.read8BitUnpackedToString(langTable.length -
+                                              PDU_NL_EXTENDED_ESCAPE - 1 + ffLen),
+              langTable.substring(PDU_NL_EXTENDED_ESCAPE + 1));
+
+  
+  for (let i = 0; i < langShiftTable.length; i++) {
+    helper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+    helper.writeHexOctet(i);
+  }
+
+  
+  do_check_eq(helper.read8BitUnpackedToString(PDU_NL_RESERVED_CONTROL  * 2),
+              langShiftTable.substring(0, PDU_NL_RESERVED_CONTROL));
+  
+  do_check_eq(helper.read8BitUnpackedToString(2), " ");
+  
+  do_check_eq(helper.read8BitUnpackedToString(
+                (PDU_NL_EXTENDED_ESCAPE - PDU_NL_RESERVED_CONTROL - 1)  * 2),
+              langShiftTable.substring(PDU_NL_RESERVED_CONTROL + 1,
+                                       PDU_NL_EXTENDED_ESCAPE));
+  
+  do_check_eq(helper.read8BitUnpackedToString(2), " ");
+  
+  do_check_eq(helper.read8BitUnpackedToString(
+                (langShiftTable.length - PDU_NL_EXTENDED_ESCAPE - 1)  * 2),
+              langShiftTable.substring(PDU_NL_EXTENDED_ESCAPE + 1));
+
+  run_next_test();
+});
+
+
+
+
+
+
+add_test(function test_write_string_to_8bit_unpacked() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+  const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+  
+  let ffLen = 2;
+  let str;
+
+  
+  helper.writeStringTo8BitUnpacked(langTable.length + ffLen, langTable);
+
+  for (let i = 0; i < langTable.length; i++) {
+    do_check_eq(helper.readHexOctet(), i);
+  }
+
+  for (let i = 0; i < ffLen; i++) {
+    do_check_eq(helper.readHexOctet(), 0xff);
+  }
+
+  
+  str = "\u000c\u20ac";
+  helper.writeStringTo8BitUnpacked(4, str);
+
+  do_check_eq(helper.read8BitUnpackedToString(4), str);
+
+  
+  
+  
+  str = "\u000c\u20ac\u00a3";
+
+  
+  
+  
+  
+  helper.writeStringTo8BitUnpacked(7, str);
+
+  do_check_eq(helper.read8BitUnpackedToString(7), str);
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_write_string_to_8bit_unpacked_with_max_octets_written() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+  const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+  
+  
+  helper.writeStringTo8BitUnpacked(3, langTable.substring(0, 4));
+  helper.writeHexOctet(0xff); 
+  for (let i = 0; i < 3; i++) {
+    do_check_eq(helper.readHexOctet(), i);
+  }
+  do_check_false(helper.readHexOctet() == 4);
+
+  
+  
+  let str = "\u000c\u00a3";
+  helper.writeStringTo8BitUnpacked(3, str);
+  do_check_eq(helper.read8BitUnpackedToString(3), str);
+
+  str = "\u00a3\u000c";
+  helper.writeStringTo8BitUnpacked(3, str);
+  do_check_eq(helper.read8BitUnpackedToString(3), str);
+
+  
+  
+  str = "\u000c\u000c";
+  helper.writeStringTo8BitUnpacked(3, str);
+  helper.writeHexOctet(0xff); 
+  do_check_eq(helper.read8BitUnpackedToString(4), str.substring(0, 1));
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_write_alpha_identifier() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  
+  let ffLen = 2;
+
+  
+  helper.writeAlphaIdentifier(10, null);
+  do_check_eq(helper.readAlphaIdentifier(10), "");
+
+  
+  let str = "Mozilla";
+  helper.writeAlphaIdentifier(str.length + ffLen, str);
+  do_check_eq(helper.readAlphaIdentifier(str.length + ffLen), str);
+
+  
+  str = "Mozilla\u694a";
+  helper.writeAlphaIdentifier(str.length * 2 + ffLen, str);
+  
+  do_check_eq(helper.readAlphaIdentifier(str.length * 2 + ffLen), str);
+
+  
+  
+  str = "\u694a";
+  helper.writeAlphaIdentifier(3, str);
+  do_check_eq(helper.readAlphaIdentifier(3), str);
+
+  
+  
+  str = "\u694a\u694a";
+  helper.writeAlphaIdentifier(4, str);
+  helper.writeHexOctet(0xff); 
+  do_check_eq(helper.readAlphaIdentifier(5), str.substring(0, 1));
+
+  
+  helper.writeAlphaIdentifier(0, "1");
+  helper.writeHexOctet(0xff); 
+  do_check_eq(helper.readAlphaIdentifier(1), "");
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_write_alpha_id_dialling_number() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  const recordSize = 32;
+
+  
+  let contactW = {
+    alphaId: "Mozilla",
+    number: "1234567890"
+  };
+  helper.writeAlphaIdDiallingNumber(recordSize, contactW.alphaId,
+                                    contactW.number);
+
+  let contactR = helper.readAlphaIdDiallingNumber(recordSize);
+  do_check_eq(contactW.alphaId, contactR.alphaId);
+  do_check_eq(contactW.number, contactR.number);
+
+  
+  let contactUCS2 = {
+    alphaId: "火狐",
+    number: "+1234567890"
+  };
+  helper.writeAlphaIdDiallingNumber(recordSize, contactUCS2.alphaId,
+                                    contactUCS2.number);
+  contactR = helper.readAlphaIdDiallingNumber(recordSize);
+  do_check_eq(contactUCS2.alphaId, contactR.alphaId);
+  do_check_eq(contactUCS2.number, contactR.number);
+
+  
+  helper.writeAlphaIdDiallingNumber(recordSize);
+  contactR = helper.readAlphaIdDiallingNumber(recordSize);
+  do_check_eq(contactR, null);
+
+  
+  
+  
+  
+  
+  let longContact = {
+    alphaId: "AAAAAAAAABBBBBBBBBCCCCCCCCC",
+    number: "123456789012345678901234567890",
+  };
+  helper.writeAlphaIdDiallingNumber(recordSize, longContact.alphaId,
+                                    longContact.number);
+  contactR = helper.readAlphaIdDiallingNumber(recordSize);
+  do_check_eq(contactR.alphaId, "AAAAAAAAABBBBBBBBB");
+  do_check_eq(contactR.number, "12345678901234567890");
+
+  
+  longContact.number = "+123456789012345678901234567890";
+  helper.writeAlphaIdDiallingNumber(recordSize, longContact.alphaId,
+                                    longContact.number);
+  contactR = helper.readAlphaIdDiallingNumber(recordSize);
+  do_check_eq(contactR.alphaId, "AAAAAAAAABBBBBBBBB");
+  do_check_eq(contactR.number, "+12345678901234567890");
+
   run_next_test();
 });
 
@@ -208,6 +437,22 @@ add_test(function test_is_icc_service_available() {
   test_table([0x08], "ADN", true, false);
   test_table([0x08], "FDN", false, false);
   test_table([0x08], "SDN", false, true);
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_is_gsm_8bit_alphabet() {
+  let worker = newUint8Worker();
+  let ICCUtilsHelper = worker.ICCUtilsHelper;
+  const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+  const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+  do_check_eq(ICCUtilsHelper.isGsm8BitAlphabet(langTable), true);
+  do_check_eq(ICCUtilsHelper.isGsm8BitAlphabet(langShiftTable), true);
+  do_check_eq(ICCUtilsHelper.isGsm8BitAlphabet("\uaaaa"), false);
 
   run_next_test();
 });
