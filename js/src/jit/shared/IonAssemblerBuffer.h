@@ -245,10 +245,8 @@ struct AssemblerBuffer
     
     void perforate() {
         Slice *tmp = newSlice(LifoAlloc_);
-        if (!tmp) {
+        if (!tmp)
             m_oom = true;
-            return;
-        }
         bufferSize += tail->size();
         tail->setNext(tmp);
         tail = tmp;

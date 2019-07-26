@@ -241,15 +241,17 @@ class CallObject : public ScopeObject
 
 
 
+
     static CallObject *
-    create(JSContext *cx, HandleShape shape, HandleTypeObject type);
+    create(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots);
 
     
 
 
 
+
     static CallObject *
-    createSingleton(JSContext *cx, HandleShape shape);
+    createSingleton(JSContext *cx, HandleShape shape, HeapSlot *slots);
 
     static CallObject *
     createTemplateObject(JSContext *cx, HandleScript script, gc::InitialHeap heap);
