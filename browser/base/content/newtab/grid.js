@@ -53,6 +53,11 @@ let gGrid = {
     });
     addEventListener("load", this);
     addEventListener("resize", this);
+
+    
+    if (document.readyState == "complete") {
+      this.handleEvent({type: "load"});
+    }
   },
 
   
