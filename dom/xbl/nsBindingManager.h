@@ -8,7 +8,7 @@
 
 #include "nsIContent.h"
 #include "nsStubMutationObserver.h"
-#include "pldhash.h"
+#include "nsHashKeys.h"
 #include "nsInterfaceHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsURIHashKey.h"
@@ -170,7 +170,8 @@ protected:
   
   
   
-  nsAutoPtr<PLDHashTable> mWrapperTable;
+  typedef nsInterfaceHashtable<nsISupportsHashKey, nsIXPConnectWrappedJS> WrapperHashtable;
+  nsAutoPtr<WrapperHashtable> mWrapperTable;
 
   
   
