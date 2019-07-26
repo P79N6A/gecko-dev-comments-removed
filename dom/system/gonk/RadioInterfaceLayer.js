@@ -1768,7 +1768,8 @@ RadioInterface.prototype = {
   
   _smsHandledWakeLock: null,
   _smsHandledWakeLockTimer: null,
-  _cancelSmsHandledWakeLockTimer: function _cancelSmsHandledWakeLockTimer() {
+
+  _releaseSmsHandledWakeLock: function _releaseSmsHandledWakeLock() {
     if (DEBUG) this.debug("Releasing the CPU wake lock for handling SMS.");
     if (this._smsHandledWakeLockTimer) {
       this._smsHandledWakeLockTimer.cancel();
@@ -1796,7 +1797,7 @@ RadioInterface.prototype = {
     }
     if (DEBUG) this.debug("Setting the timer for releasing the CPU wake lock.");
     this._smsHandledWakeLockTimer
-        .initWithCallback(this._cancelSmsHandledWakeLockTimer.bind(this),
+        .initWithCallback(this._releaseSmsHandledWakeLock.bind(this),
                           SMS_HANDLED_WAKELOCK_TIMEOUT,
                           Ci.nsITimer.TYPE_ONE_SHOT);
 
@@ -2175,7 +2176,7 @@ RadioInterface.prototype = {
         break;
       case NS_XPCOM_SHUTDOWN_OBSERVER_ID:
         
-        this._cancelSmsHandledWakeLockTimer();
+        this._releaseSmsHandledWakeLock();
 
         
         for each (let apnSetting in this.apnSettings.byAPN) {
