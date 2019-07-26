@@ -196,6 +196,20 @@ DeriveConstructing(StackFrame *fp, StackFrame *entryFp, IonJSFrameLayout *js)
     }
 }
 
+static inline bool
+IsInitialFrame(IonJSFrameLayout *jsFrame)
+{
+    IonFrameIterator iter(jsFrame);
+    ++iter;
+
+    for (; !iter.done(); ++iter) {
+        if (iter.isScripted())
+            return false;
+    }
+
+    return true;
+}
+
 static uint32
 ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
 {
@@ -218,17 +232,27 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
     activation->setBailout(br);
 
     StackFrame *fp;
-    if (in.callee()) {
+    if (IsInitialFrame(in.fp())) {
         
-        fp = cx->stack.pushBailoutFrame(cx, *in.callee(), in.script(), br->frameGuard());
+        
+        
+        
+        
+        fp = cx->fp();
+        cx->regs().sp = fp->base();
     } else {
-        
-        
-        
-        
-        HandleObject prevScopeChain = cx->fp()->scopeChain();
-        Value thisv = cx->fp()->thisValue();
-        fp = cx->stack.pushBailoutFrame(cx, in.script(), *prevScopeChain, thisv, br->frameGuard());
+        if (in.callee()) {
+            
+            fp = cx->stack.pushBailoutFrame(cx, *in.callee(), in.script(), br->frameGuard());
+        } else {
+            
+            
+            
+            
+            HandleObject prevScopeChain = cx->fp()->scopeChain();
+            Value thisv = cx->fp()->thisValue();
+            fp = cx->stack.pushBailoutFrame(cx, in.script(), *prevScopeChain, thisv, br->frameGuard());
+        }
     }
 
     if (!fp)
@@ -466,7 +490,7 @@ ion::RecompileForInlining()
     return true;
 }
 
-JSBool
+uint32
 ion::ThunkToInterpreter(Value *vp)
 {
     JSContext *cx = GetIonContext()->cx;
@@ -485,14 +509,43 @@ ion::ThunkToInterpreter(Value *vp)
     if (JSOp(*pc) == JSOP_LOOPENTRY)
         cx->regs().pc = GetNextPc(pc);
 
-    bool ok = Interpret(cx, br->entryfp(), JSINTERP_BAILOUT);
+    if (activation->entryfp() == br->entryfp()) {
+        
+        
+        
+        
+        vp->setMagic(JS_ION_BAILOUT);
+        return Interpret_Ok;
+    }
 
-    if (ok)
+    InterpretStatus status = Interpret(cx, br->entryfp(), JSINTERP_BAILOUT);
+
+    if (status == Interpret_OSR) {
+        IonSpew(IonSpew_Bailouts, "Performing inline OSR %s:%d",
+                cx->fp()->script()->filename,
+                PCToLineNumber(cx->fp()->script(), cx->regs().pc));
+
+        
+        
+        
+        
+        
+        
+        
+        StackFrame *fp = cx->fp();
+
+        fp->setRunningInIon();
+        vp->setPrivate(fp);
+        return Interpret_OSR;
+    }
+
+    if (status == Interpret_Ok)
         *vp = br->entryfp()->returnValue();
 
     
     
     cx->delete_(br);
 
-    return ok ? JS_TRUE : JS_FALSE;
+    return status;
 }
+

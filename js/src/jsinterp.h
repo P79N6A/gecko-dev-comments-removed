@@ -235,11 +235,18 @@ enum InterpMode
     JSINTERP_BAILOUT   = 3  
 };
 
+enum InterpretStatus
+{
+    Interpret_Error    = 0, 
+    Interpret_Ok       = 1, 
+    Interpret_OSR      = 2  
+};
 
 
 
 
-extern JS_NEVER_INLINE bool
+
+extern JS_NEVER_INLINE InterpretStatus
 Interpret(JSContext *cx, StackFrame *stopFp, InterpMode mode = JSINTERP_NORMAL);
 
 extern bool

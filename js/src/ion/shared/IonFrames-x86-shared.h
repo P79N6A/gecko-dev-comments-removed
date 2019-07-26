@@ -188,6 +188,14 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     }
 };
 
+class IonOsrFrameLayout : public IonJSFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        return sizeof(IonOsrFrameLayout);
+    }
+ };
+
 
 class InvalidationBailoutStack
 {

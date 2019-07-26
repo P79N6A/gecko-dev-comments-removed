@@ -203,6 +203,7 @@ GenerateBailoutTail(MacroAssembler &masm)
     Label reflow;
     Label interpret;
     Label exception;
+    Label osr;
 
     
     
@@ -220,48 +221,68 @@ GenerateBailoutTail(MacroAssembler &masm)
     masm.j(Assembler::LessThan, &reflow);
 
     
-    masm.setupUnalignedABICall(0, rdx);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, RecompileForInlining));
+    {
+        masm.setupUnalignedABICall(0, rdx);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, RecompileForInlining));
 
-    masm.testl(rax, rax);
-    masm.j(Assembler::Zero, &exception);
+        masm.testl(rax, rax);
+        masm.j(Assembler::Zero, &exception);
+    }
 
     masm.jmp(&interpret);
 
     
     masm.bind(&reflow);
-    masm.setupUnalignedABICall(1, rdx);
-    masm.passABIArg(rax);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
+    {
+        masm.setupUnalignedABICall(1, rdx);
+        masm.passABIArg(rax);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
 
-    masm.testl(rax, rax);
-    masm.j(Assembler::Zero, &exception);
+        masm.testl(rax, rax);
+        masm.j(Assembler::Zero, &exception);
+    }
 
     masm.bind(&interpret);
-    
-    masm.subq(Imm32(sizeof(Value)), rsp);
-    masm.movq(rsp, rcx);
+    {
+        
+        masm.subq(Imm32(sizeof(Value)), rsp);
+        masm.movq(rsp, rcx);
+
+        
+        masm.setupUnalignedABICall(1, rdx);
+        masm.passABIArg(rcx);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
+
+        
+        masm.popValue(JSReturnOperand);
+
+        
+        masm.testl(rax, rax);
+        masm.j(Assembler::Zero, &exception);
+
+        
+        masm.leaveExitFrame();
+
+        
+        masm.cmpl(rax, Imm32(Interpret_OSR));
+        masm.j(Assembler::Equal, &osr);
+
+        
+        masm.ret();
+    }
 
     
-    masm.setupUnalignedABICall(1, rdx);
-    masm.passABIArg(rcx);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
+    masm.bind(&osr);
+    {
+        masm.unboxPrivate(JSReturnOperand, OsrFrameReg);
+        masm.performOsr();
+    }
 
     
-    masm.popValue(JSReturnOperand);
-
-    
-    masm.testl(rax, rax);
-    masm.j(Assembler::Zero, &exception);
-
-    
-    masm.leaveExitFrame();
-
-    
-    masm.ret();
-
     masm.bind(&exception);
-    masm.handleException();
+    {
+        masm.handleException();
+    }
 }
 
 IonCode *

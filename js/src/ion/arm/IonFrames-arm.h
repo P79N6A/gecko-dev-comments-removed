@@ -162,6 +162,14 @@ class IonExitFooterFrame
     }
 };
 
+class IonOsrFrameLayout : public IonJSFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        return sizeof(IonOsrFrameLayout);
+    }
+};
+
 
 class IonExitFrameLayout : public IonCommonFrameLayout
 {

@@ -678,8 +678,12 @@ ContextStack::ensureOnTop(JSContext *cx, MaybeReportError report, unsigned nvars
 
 
 
+
+
+
+
     FrameRegs *regs = cx->maybeRegs();
-    if (regs && !regs->fp()->runningInIon()) {
+    if (regs && report != DONT_REPORT_ERROR) {
         JSFunction *fun = NULL;
         if (JSInlinedSite *site = regs->inlined()) {
             mjit::JITChunk *chunk = regs->fp()->jit()->chunk(regs->pc);
@@ -1186,14 +1190,6 @@ StackIter::settleOnNewState()
 
                 while (!ionFrames_.done() && !ionFrames_.isScripted())
                     ++ionFrames_;
-
-                if (ionFrames_.done()) {
-                    
-                    
-                    ++ionActivations_;
-                    popFrame();
-                    continue;
-                }
 
                 state_ = ION;
                 ionInlineFrames_ = ion::InlineFrameIterator(&ionFrames_);

@@ -195,16 +195,11 @@ uint32 InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut);
 
 
 
-JSBool ThunkToInterpreter(Value *vp);
+uint32 ThunkToInterpreter(Value *vp);
 
 uint32 ReflowTypeInfo(uint32 bailoutResult);
 
 uint32 RecompileForInlining();
-
-
-
-
-
 
 } 
 } 

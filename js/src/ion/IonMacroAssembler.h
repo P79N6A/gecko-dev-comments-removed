@@ -434,6 +434,13 @@ class MacroAssembler : public MacroAssemblerSpecific
         }
 
     }
+
+    
+    
+    void performOsr();
+
+    
+    void maybeRemoveOsrFrame(Register scratch);
 };
 
 } 

@@ -257,6 +257,7 @@ typedef enum JSWhyMagic
     JS_IS_CONSTRUCTING,          
     JS_OVERWRITTEN_CALLEE,       
     JS_ION_ERROR,                
+    JS_ION_BAILOUT,              
     JS_GENERIC_MAGIC             
 } JSWhyMagic;
 

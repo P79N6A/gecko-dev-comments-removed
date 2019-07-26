@@ -453,3 +453,75 @@ MacroAssembler::getNewObject(JSContext *cx, const Register &result,
                  Address(result, JSObject::getPrivateDataOffset(nfixed)));
     }
 }
+
+void
+MacroAssembler::maybeRemoveOsrFrame(Register scratch)
+{
+    
+    
+    
+    Label osrRemoved;
+    movePtr(Address(StackPointer, IonCommonFrameLayout::offsetOfDescriptor()), scratch);
+    and32(Imm32(FRAMETYPE_MASK), scratch);
+    branch32(Assembler::NotEqual, scratch, Imm32(IonFrame_Osr), &osrRemoved);
+    addPtr(Imm32(sizeof(IonOsrFrameLayout)), StackPointer);
+    bind(&osrRemoved);
+}
+
+void
+MacroAssembler::performOsr()
+{
+    GeneralRegisterSet regs = GeneralRegisterSet::All();
+
+    
+    regs.take(OsrFrameReg);
+
+    
+    maybeRemoveOsrFrame(regs.getAny());
+
+    const Register script = regs.takeAny();
+    const Register calleeToken = regs.takeAny();
+
+    
+    loadPtr(Address(OsrFrameReg, StackFrame::offsetOfExec()), script);
+    mov(script, calleeToken);
+
+    Label isFunction, performOsr;
+    branchTest32(Assembler::NonZero,
+                 Address(OsrFrameReg, StackFrame::offsetOfFlags()),
+                 Imm32(StackFrame::FUNCTION),
+                 &isFunction);
+
+    {
+        
+        orPtr(Imm32(CalleeToken_Script), calleeToken);
+        jump(&performOsr);
+    }
+
+    bind(&isFunction);
+    {
+        
+        orPtr(Imm32(CalleeToken_Function), calleeToken);
+        loadPtr(Address(script, JSFunction::offsetOfNativeOrScript()), script);
+    }
+
+    bind(&performOsr);
+
+    const Register ionScript = regs.takeAny();
+    const Register osrEntry = regs.takeAny();
+
+    loadPtr(Address(script, offsetof(JSScript, ion)), ionScript);
+    load32(Address(ionScript, IonScript::offsetOfOsrEntryOffset()), osrEntry);
+
+    
+    const Register code = ionScript;
+    loadPtr(Address(ionScript, IonScript::offsetOfMethod()), code);
+    loadPtr(Address(code, IonCode::OffsetOfCode()), code);
+    addPtr(osrEntry, code);
+
+    
+    
+    enterOsr(calleeToken, code);
+    ret();
+}
+
