@@ -17,6 +17,7 @@ Cu.import("resource://gre/modules/LightweightThemeManager.jsm");
 Cu.import("resource://gre/modules/ctypes.jsm");
 Cu.import("resource://gre/modules/ThirdPartyCookieProbe.jsm");
 Cu.import("resource://gre/modules/TelemetryFile.jsm");
+Cu.import("resource://gre/modules/UITelemetry.jsm");
 
 
 const PAYLOAD_VERSION = 1;
@@ -562,6 +563,7 @@ TelemetryPing.prototype = {
       lateWrites: Telemetry.lateWrites,
       addonHistograms: this.getAddonHistograms(),
       addonDetails: AddonManagerPrivate.getTelemetryDetails(),
+      UIMeasurements: UITelemetry.getUIMeasurements(),
       info: info
     };
 
