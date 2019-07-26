@@ -2320,6 +2320,8 @@ nsComputedDOMStyle::GetGridTrackSize(const nsStyleCoord& aMinValue,
 {
   
   
+  
+  
   if (aMinValue == aMaxValue) {
     nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
     SetValueToCoord(val, aMinValue, true,
@@ -2379,6 +2381,20 @@ nsComputedDOMStyle::GetGridTrackList(const nsStyleGridTrackList& aTrackList)
   }
 
   return valueList;
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridAutoColumns()
+{
+  return GetGridTrackSize(StylePosition()->mGridAutoColumnsMin,
+                          StylePosition()->mGridAutoColumnsMax);
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridAutoRows()
+{
+  return GetGridTrackSize(StylePosition()->mGridAutoRowsMin,
+                          StylePosition()->mGridAutoRowsMax);
 }
 
 CSSValue*

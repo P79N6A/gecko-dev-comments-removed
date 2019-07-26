@@ -1217,6 +1217,10 @@ struct nsStylePosition {
   nsStyleCoord  mMinHeight;             
   nsStyleCoord  mMaxHeight;             
   nsStyleCoord  mFlexBasis;             
+  nsStyleCoord  mGridAutoColumnsMin;    
+  nsStyleCoord  mGridAutoColumnsMax;    
+  nsStyleCoord  mGridAutoRowsMin;       
+  nsStyleCoord  mGridAutoRowsMax;       
   uint8_t       mBoxSizing;             
   uint8_t       mAlignContent;          
   uint8_t       mAlignItems;            
