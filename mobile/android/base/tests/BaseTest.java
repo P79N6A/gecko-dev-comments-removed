@@ -75,6 +75,8 @@ abstract class BaseTest extends BaseRobocopTest {
     public Device mDevice;
     protected DatabaseHelper mDatabaseHelper;
     protected StringHelper mStringHelper;
+    protected int mScreenMidWidth;
+    protected int mScreenMidHeight;
 
     protected void blockForGeckoReady() {
         try {
@@ -365,6 +367,27 @@ abstract class BaseTest extends BaseRobocopTest {
     }
 
     
+    
+    
+    protected boolean waitForPreferencesText(String txt) {
+        boolean foundText = waitForText(txt);
+        if (!foundText) {
+            if ((mScreenMidWidth == 0) || (mScreenMidHeight == 0)) {
+                mScreenMidWidth = mDriver.getGeckoWidth()/2;
+                mScreenMidHeight = mDriver.getGeckoHeight()/2;
+            }
+
+            
+            
+            MotionEventHelper meh = new MotionEventHelper(getInstrumentation(), mDriver.getGeckoLeft(), mDriver.getGeckoTop());
+            meh.dragSync(mScreenMidWidth, mScreenMidHeight+100, mScreenMidWidth, mScreenMidHeight-100);
+
+            foundText = mSolo.waitForText(txt);
+        }
+        return foundText;
+    }
+
+    
 
 
     public boolean waitForEnabledText(String text) {
@@ -415,7 +438,7 @@ abstract class BaseTest extends BaseRobocopTest {
         if (listLength > 1) {
             for (int i = 1; i < listLength; i++) {
                 String itemName = "^" + listItems[i] + "$";
-                if (!waitForEnabledText(itemName)) {
+                if (!waitForPreferencesText(itemName)) {
                     mSolo.scrollDown();
                 }
                 mSolo.clickOnText(itemName);
