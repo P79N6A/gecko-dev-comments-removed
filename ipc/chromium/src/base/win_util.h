@@ -74,11 +74,6 @@ bool Unsubclass(HWND window, WNDPROC subclass_proc);
 WNDPROC GetSuperclassWNDPROC(HWND window);
 
 
-
-void* SetWindowUserData(HWND hwnd, void* user_data);
-void* GetWindowUserData(HWND hwnd);
-
-
 bool IsShiftPressed();
 
 
