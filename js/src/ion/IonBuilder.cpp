@@ -2987,11 +2987,28 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
             return false;
     } else {
         
-        
         MBasicBlock *entryBlock = top;
+
+        
+        
+        
+        
+        
+        MConstant *finalConstFun =
+            MConstant::New(ObjectValue(*(targets[targets.length()-1]->toFunction())));
+        entryBlock->add(finalConstFun);
+
         for (size_t i = 0; i < targets.length(); i++) {
             
             current = entryBlock;
+
+            if (i == targets.length() - 1) {
+                constFun = finalConstFun;
+            } else {
+                constFun = MConstant::New(ObjectValue(*(targets[i]->toFunction())));
+                entryBlock->add(constFun);
+            }
+
             RootedFunction target(cx, targets[i]->toFunction());
             InlinePolymorphism poly = (i == targets.length() - 1) ?
                                         Inline_PolymorphicFinal : Inline_Polymorphic;
