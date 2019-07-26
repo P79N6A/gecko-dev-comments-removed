@@ -41,13 +41,31 @@ function SystemMessageInternal() {
 
 SystemMessageInternal.prototype = {
   sendMessage: function sendMessage(aType, aMessage, aPageURI, aManifestURI) {
-    this._sendMessage(aType, aMessage, aPageURI.spec, aManifestURI.spec);
+    debug("Broadcasting " + aType + " " + JSON.stringify(aMessage));
+    ppmm.broadcastAsyncMessage("SystemMessageManager:Message" , { type: aType,
+                                                                  msg: aMessage,
+                                                                  manifest: aManifestURI.spec });
+    this._pages.forEach(function sendMess_openPage(aPage) {
+      if (aPage.type != aType ||
+          aPage.manifest != aManifestURI.spec ||
+          aPage.uri != aPageURI.spec) {
+        return;
+      }
+
+      this._processPage(aPage, aMessage);
+    }.bind(this))
   },
 
   broadcastMessage: function broadcastMessage(aType, aMessage) {
+    debug("Broadcasting " + aType + " " + JSON.stringify(aMessage));
+    
     this._pages.forEach(function(aPage) {
       if (aPage.type == aType) {
-        this._sendMessage(aType, aMessage, aPage.uri, aPage.manifest);
+        ppmm.broadcastAsyncMessage("SystemMessageManager:Message" , { type: aType,
+                                                                      msg: aMessage,
+                                                                      manifest: aPage.manifest });
+
+        this._processPage(aPage, aMessage);
       }
     }.bind(this))
   },
@@ -101,33 +119,20 @@ SystemMessageInternal.prototype = {
     }
   },
 
-  _sendMessage: function _sendMessage(aType, aMessage, aPageURI, aManifestURI) {
-    debug("Broadcasting " + aType + " " + JSON.stringify(aMessage));
-    ppmm.broadcastAsyncMessage("SystemMessageManager:Message" , { type: aType,
-                                                                  msg: aMessage,
-                                                                  manifest: aManifestURI });
+  _processPage: function _processPage(aPage, aMessage) {
+    
+    aPage.pending.push(aMessage);
+    if (aPage.pending.length > kMaxPendingMessages) {
+      aPage.pending.splice(0, 1);
+    }
 
     
-    this._pages.forEach(function sendMess_openPage(aPage) {
-      if (aPage.type != aType ||
-          aPage.manifest != aManifestURI ||
-          aPage.uri != aPageURI) {
-        return;
-      }
-
-      aPage.pending.push(aMessage);
-      if (aPage.pending.length > kMaxPendingMessages) {
-        aPage.pending.splice(0, 1);
-      }
-
-      
-      let page = { uri: aPage.uri,
-                   manifest: aPage.manifest,
-                   type: aPage.type,
-                   target: aMessage.target };
-      debug("Asking to open  " + JSON.stringify(page));
-      Services.obs.notifyObservers(this, "system-messages-open-app", JSON.stringify(page));
-    }.bind(this))
+    let page = { uri: aPage.uri,
+                 manifest: aPage.manifest,
+                 type: aPage.type,
+                 target: aMessage.target };
+    debug("Asking to open  " + JSON.stringify(page));
+    Services.obs.notifyObservers(this, "system-messages-open-app", JSON.stringify(page));
   },
 
   classID: Components.ID("{70589ca5-91ac-4b9e-b839-d6a88167d714}"),
