@@ -358,7 +358,7 @@ public:
   MediaDecoderReader(MediaDecoder* aDecoder);
   virtual ~MediaDecoderReader();
 
-  NS_INLINE_DECL_REFCOUNTING(MediaDecoderReader);
+  NS_INLINE_DECL_REFCOUNTING(MediaDecoderReader)
 
   
   
