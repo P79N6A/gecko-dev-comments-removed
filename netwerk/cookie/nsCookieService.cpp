@@ -1647,12 +1647,22 @@ nsCookieService::SetCookieStringInternal(nsIURI             *aHostURI,
   CookieStatus cookieStatus = CheckPrefs(aHostURI, aIsForeign, requireHostMatch,
                                          aCookieHeader.get());
   
+  
   switch (cookieStatus) {
   case STATUS_REJECTED:
     NotifyRejected(aHostURI);
-    return;
+    if (aIsForeign) {
+      NotifyThirdParty(aHostURI, false, aChannel);
+    }
+    return; 
   case STATUS_REJECTED_WITH_ERROR:
     return;
+  case STATUS_ACCEPTED: 
+  case STATUS_ACCEPT_SESSION:
+    if (aIsForeign) {
+      NotifyThirdParty(aHostURI, true, aChannel);
+    }
+    break;
   default:
     break;
   }
@@ -1685,8 +1695,50 @@ nsCookieService::SetCookieStringInternal(nsIURI             *aHostURI,
 void
 nsCookieService::NotifyRejected(nsIURI *aHostURI)
 {
-  if (mObserverService)
+  if (mObserverService) {
     mObserverService->NotifyObservers(aHostURI, "cookie-rejected", nullptr);
+  }
+}
+
+
+
+void
+nsCookieService::NotifyThirdParty(nsIURI *aHostURI, bool aIsAccepted, nsIChannel *aChannel)
+{
+  if (!mObserverService) {
+    return;
+  }
+  const char* topic = aIsAccepted ? "third-party-cookie-accepted"
+    : "third-party-cookie-rejected";
+
+  do {
+    
+    if (!aChannel) {
+      break;
+    }
+    nsCOMPtr<nsIURI> channelURI;
+    nsresult rv = aChannel->GetURI(getter_AddRefs(channelURI));
+    if (NS_FAILED(rv)) {
+      break;
+    }
+
+    nsAutoCString referringHost;
+    rv = channelURI->GetHost(referringHost);
+    if (NS_FAILED(rv)) {
+      break;
+    }
+
+    nsAutoString referringHostUTF16 = NS_ConvertUTF8toUTF16(referringHost);
+    mObserverService->NotifyObservers(aHostURI,
+                                      topic,
+                                      referringHostUTF16.get());
+    return;
+  } while (0);
+
+  
+  mObserverService->NotifyObservers(aHostURI,
+                                    topic,
+                                    NS_LITERAL_STRING("?").get());
 }
 
 
