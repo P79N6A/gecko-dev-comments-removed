@@ -178,42 +178,11 @@ TokenKindIsDecl(TokenKind tt)
 #endif
 }
 
-struct TokenPtr {
-    uint32_t            index;          
-    uint32_t            lineno;         
-
-    bool operator==(const TokenPtr& bptr) const {
-        return index == bptr.index && lineno == bptr.lineno;
-    }
-
-    bool operator!=(const TokenPtr& bptr) const {
-        return index != bptr.index || lineno != bptr.lineno;
-    }
-
-    bool operator <(const TokenPtr& bptr) const {
-        return lineno < bptr.lineno ||
-               (lineno == bptr.lineno && index < bptr.index);
-    }
-
-    bool operator <=(const TokenPtr& bptr) const {
-        return lineno < bptr.lineno ||
-               (lineno == bptr.lineno && index <= bptr.index);
-    }
-
-    bool operator >(const TokenPtr& bptr) const {
-        return !(*this <= bptr);
-    }
-
-    bool operator >=(const TokenPtr& bptr) const {
-        return !(*this < bptr);
-    }
-};
-
 struct TokenPos {
-    TokenPtr          begin;          
-    TokenPtr          end;            
+    uint32_t          begin;          
+    uint32_t          end;            
 
-    static TokenPos make(const TokenPtr &begin, const TokenPtr &end) {
+    static TokenPos make(uint32_t begin, uint32_t end) {
         JS_ASSERT(begin <= end);
         TokenPos pos = {begin, end};
         return pos;
@@ -262,7 +231,6 @@ enum DecimalPoint { NoDecimal = false, HasDecimal = true };
 struct Token {
     TokenKind           type;           
     TokenPos            pos;            
-    const jschar        *ptr;           
     union {
         struct {                        
             JSOp        op;             
@@ -434,7 +402,7 @@ class TokenStream
 
     
     JSContext *getContext() const { return cx; }
-    bool onCurrentLine(const TokenPos &pos) const { return lineno == pos.end.lineno; }
+    bool onCurrentLine(const TokenPos &pos) const { return srcCoords.isOnThisLine(pos.end, lineno); }
     const Token &currentToken() const { return tokens[cursor]; }
     bool isCurrentTokenType(TokenKind type) const {
         return currentToken().type == type;
@@ -442,9 +410,6 @@ class TokenStream
     bool isCurrentTokenType(TokenKind type1, TokenKind type2) const {
         TokenKind type = currentToken().type;
         return type == type1 || type == type2;
-    }
-    size_t offsetOfToken(const Token &tok) const {
-        return tok.ptr - userbuf.base();
     }
     const CharBuffer &getTokenbuf() const { return tokenbuf; }
     const char *getFilename() const { return filename; }
@@ -483,15 +448,15 @@ class TokenStream
     
     
     
-    bool reportCompileErrorNumberVA(const TokenPos &pos, unsigned flags, unsigned errorNumber,
+    bool reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigned errorNumber,
                                     va_list args);
-    bool reportStrictModeErrorNumberVA(const TokenPos &pos, bool strictMode, unsigned errorNumber,
+    bool reportStrictModeErrorNumberVA(uint32_t offset, bool strictMode, unsigned errorNumber,
                                        va_list args);
-    bool reportStrictWarningErrorNumberVA(const TokenPos &pos, unsigned errorNumber,
+    bool reportStrictWarningErrorNumberVA(uint32_t offset, unsigned errorNumber,
                                           va_list args);
 
     
-    void reportAsmJSError(ParseNode *pn, unsigned errorNumber, ...);
+    void reportAsmJSError(uint32_t offset, unsigned errorNumber, ...);
 
   private:
     
@@ -560,10 +525,8 @@ class TokenStream
     }
 
     TokenKind peekToken() {
-        if (lookahead != 0) {
-            JS_ASSERT(lookahead <= maxLookahead);
+        if (lookahead != 0)
             return tokens[(cursor + 1) & ntokensMask].type;
-        }
         TokenKind tt = getTokenInternal();
         ungetToken();
         return tt;
@@ -575,16 +538,11 @@ class TokenStream
     }
 
     TokenKind peekTokenSameLine(unsigned withFlags = 0) {
-        if (lookahead != 0) {
-            JS_ASSERT(lookahead <= maxLookahead);
-            Token &nextToken = tokens[(cursor + 1) & ntokensMask];
-            return currentToken().pos.end.lineno == nextToken.pos.begin.lineno
-                   ? nextToken.type
-                   : TOK_EOL;
-        }
-
         if (!onCurrentLine(currentToken().pos))
             return TOK_EOL;
+
+        if (lookahead != 0)
+            return tokens[(cursor + 1) & ntokensMask].type;
 
         
 
@@ -635,11 +593,6 @@ class TokenStream
     void seek(const Position &pos);
     void positionAfterLastFunctionKeyword(Position &pos);
 
-    
-
-
-    size_t endOffset(const Token &tok);
-
     size_t positionToOffset(const Position &pos) const {
         return pos.buf - userbuf.base();
     }
@@ -673,6 +626,75 @@ class TokenStream
 
 
     bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp, JSOp *topp);
+
+    
+    
+    class SourceCoords
+    {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        Vector<uint32_t, 128> lineStartOffsets_;
+        uint32_t            initialLineNum_;
+
+        
+        
+        mutable uint32_t    lastLineIndex_;
+
+        uint32_t lineIndexOf(uint32_t offset) const;
+
+        static const uint32_t MAX_PTR = UINT32_MAX;
+
+        uint32_t lineIndexToNum(uint32_t lineIndex) const { return lineIndex + initialLineNum_; }
+        uint32_t lineNumToIndex(uint32_t lineNum)   const { return lineNum   - initialLineNum_; }
+
+      public:
+        SourceCoords(JSContext *cx, uint32_t ln);
+
+        void add(uint32_t lineNum, uint32_t lineStartOffset);
+
+        bool isOnThisLine(uint32_t offset, uint32_t lineNum) const {
+            uint32_t lineIndex = lineNumToIndex(lineNum);
+            JS_ASSERT(lineIndex + 1 < lineStartOffsets_.length());  
+            return lineStartOffsets_[lineIndex] <= offset &&
+                   offset < lineStartOffsets_[lineIndex + 1];
+        }
+
+        uint32_t lineNum(uint32_t offset) const;
+        uint32_t columnIndex(uint32_t offset) const;
+        void lineNumAndColumnIndex(uint32_t offset, uint32_t *lineNum, uint32_t *columnIndex) const;
+    };
+
+    SourceCoords srcCoords;
 
   private:
     

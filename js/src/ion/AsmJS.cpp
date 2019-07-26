@@ -1092,7 +1092,8 @@ class ModuleCompiler
 
     ~ModuleCompiler() {
         if (errorString_)
-            tokenStream_.reportAsmJSError(errorNode_, JSMSG_USE_ASM_TYPE_FAIL, errorString_);
+            tokenStream_.reportAsmJSError(errorNode_->pn_pos.begin, JSMSG_USE_ASM_TYPE_FAIL,
+                                          errorString_);
 
         
         if (!stackOverflowLabel_.bound())
