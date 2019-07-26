@@ -993,7 +993,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
   if (!sJSObjWrappers.ops) {
     
 
-    static PLDHashTableOps ops =
+    static const PLDHashTableOps ops =
       {
         PL_DHashAllocTable,
         PL_DHashFreeTable,
