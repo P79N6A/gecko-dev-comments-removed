@@ -163,15 +163,6 @@ private:
 
 
 
-  nsresult CheckStorageEntry(CacheStorage const* aStorage,
-                             nsIURI* aURI,
-                             const nsACString & aIdExtension,
-                             bool* aResult);
-
-  
-
-
-
   nsresult DoomStorageEntry(CacheStorage const* aStorage,
                             nsIURI* aURI,
                             const nsACString & aIdExtension,
