@@ -2812,24 +2812,7 @@ public:
         return *mPixelFormat;
     }
 
-
-    GLuint CreateTextureForOffscreen(const GLFormats& formats,
-                                     const gfxIntSize& size);
-    GLuint CreateTexture(GLenum internalFormat,
-                         GLenum format, GLenum type,
-                         const gfxIntSize& size);
-    GLuint CreateRenderbuffer(GLenum format,
-                              GLsizei samples,
-                              const gfxIntSize& size);
     bool IsFramebufferComplete(GLuint fb, GLenum* status = nullptr);
-
-    
-    void CreateRenderbuffersForOffscreen(const GLFormats& formats,
-                                         const gfxIntSize& size,
-                                         bool multisample,
-                                         GLuint* colorMSRB,
-                                         GLuint* depthRB,
-                                         GLuint* stencilRB);
 
     
     void AttachBuffersToFB(GLuint colorTex, GLuint colorRB,
