@@ -340,6 +340,12 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         ::JS_ReportPendingException(cx);
     }
 
+    
+    
+    if (!JS_WrapValue(cx, &v)) {
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+
     if (NS_FAILED(rv)) {
         rv = NS_ERROR_MALFORMED_URI;
     }
