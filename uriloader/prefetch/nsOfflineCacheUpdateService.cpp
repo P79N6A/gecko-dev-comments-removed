@@ -502,6 +502,14 @@ nsOfflineCacheUpdateService::Schedule(nsIURI *aManifestURI,
 
     nsresult rv;
 
+    if (aWindow) {
+      
+      
+      
+      nsCOMPtr<nsIDOMOfflineResourceList> appCacheWindowObject;
+      aWindow->GetApplicationCache(getter_AddRefs(appCacheWindowObject));
+    }
+
     rv = update->Init(aManifestURI, aDocumentURI, aDocument,
                       aCustomProfileDir, aAppID, aInBrowser);
     NS_ENSURE_SUCCESS(rv, rv);
