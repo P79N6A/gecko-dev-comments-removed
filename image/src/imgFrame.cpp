@@ -170,7 +170,7 @@ imgFrame::~imgFrame()
   mPalettedImageData = nullptr;
 
   if (mInformedDiscardTracker) {
-    DiscardTracker::InformAllocation(-4 * mSize.height * mSize.width);
+    DiscardTracker::InformDeallocation(4 * mSize.height * mSize.width);
   }
 }
 
@@ -203,6 +203,11 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
       NS_WARNING("moz_malloc for paletted image data should succeed");
     NS_ENSURE_TRUE(mPalettedImageData, NS_ERROR_OUT_OF_MEMORY);
   } else {
+    
+    if (!DiscardTracker::TryAllocation(4 * mSize.width * mSize.height)) {
+      NS_WARNING("Exceed the hard limit of decode image size");
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
     
     
     
@@ -238,22 +243,20 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
       } else if (!mImageSurface->CairoStatus()) {
         NS_WARNING("gfxImageSurface should have good CairoStatus");
       }
+
+      
+      
+      DiscardTracker::InformDeallocation(4 * mSize.width * mSize.height);
       return NS_ERROR_OUT_OF_MEMORY;
     }
+
+    mInformedDiscardTracker = true;
 
 #ifdef XP_MACOSX
     if (!ShouldUseImageSurfaces()) {
       mQuartzSurface = new gfxQuartzImageSurface(mImageSurface);
     }
 #endif
-  }
-
-  
-  
-  
-  if (!mPalettedImageData) {
-    DiscardTracker::InformAllocation(4 * mSize.width * mSize.height);
-    mInformedDiscardTracker = true;
   }
 
   return NS_OK;
@@ -314,7 +317,7 @@ nsresult imgFrame::Optimize()
         
         
         if (mInformedDiscardTracker) {
-          DiscardTracker::InformAllocation(-4 * mSize.width * mSize.height);
+          DiscardTracker::InformDeallocation(4 * mSize.width * mSize.height);
           mInformedDiscardTracker = false;
         }
 
