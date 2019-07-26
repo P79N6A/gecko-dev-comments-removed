@@ -62,6 +62,7 @@ DevTools.prototype = {
 
 
 
+
   registerTool: function DT_registerTool(toolDefinition) {
     let toolId = toolDefinition.id;
 
@@ -69,8 +70,13 @@ DevTools.prototype = {
       throw new Error("Invalid definition.id");
     }
 
-    toolDefinition.visibilityswitch = toolDefinition.visibilityswitch ||
-        "devtools." + toolId + ".enabled";
+    
+    
+    
+    if (devtools.defaultTools && devtools.defaultTools.indexOf(toolDefinition) == -1) {
+      toolDefinition.visibilityswitch = "devtools." + toolId + ".enabled";
+    }
+
     this._tools.set(toolId, toolDefinition);
 
     this.emit("tool-registered", toolId);
@@ -139,7 +145,7 @@ DevTools.prototype = {
     let tool = this._tools.get(toolId);
     if (!tool) {
       return null;
-    } else if (tool.id == "options") {
+    } else if (!tool.visibilityswitch) {
       return tool;
     }
 
@@ -553,7 +559,8 @@ let gDevToolsBrowser = {
 
     
     try {
-      if (!Services.prefs.getBoolPref(toolDefinition.visibilityswitch)) {
+      if (toolDefinition.visibilityswitch &&
+         !Services.prefs.getBoolPref(toolDefinition.visibilityswitch)) {
         return;
       }
     } catch(e) {}
