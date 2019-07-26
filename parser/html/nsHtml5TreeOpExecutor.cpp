@@ -938,15 +938,9 @@ nsHtml5TreeOpExecutor::GetViewSourceBaseURI()
     nsCOMPtr<nsIViewSourceChannel> vsc;
     vsc = do_QueryInterface(mDocument->GetChannel());
     if (vsc) {
-      bool isSrcdocChannel;
-      
-      
-      nsresult rv = vsc->GetIsSrcdocChannel(&isSrcdocChannel);
-      if (NS_SUCCEEDED(rv) && isSrcdocChannel) {
-        rv =  vsc->GetBaseURI(getter_AddRefs(mViewSourceBaseURI));
-        if (NS_SUCCEEDED(rv) && mViewSourceBaseURI) {
-          return mViewSourceBaseURI;
-        }
+      nsresult rv =  vsc->GetBaseURI(getter_AddRefs(mViewSourceBaseURI));
+      if (NS_SUCCEEDED(rv) && mViewSourceBaseURI) {
+        return mViewSourceBaseURI;
       }
     }
 
