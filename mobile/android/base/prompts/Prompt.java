@@ -104,7 +104,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
         if (!TextUtils.isEmpty(title)) {
             
-            builder.setTitle(title.substring(0, Math.min(title.length(), 256) - 1));
+            builder.setTitle(title.substring(0, Math.min(title.length(), 256)));
         }
 
         if (!TextUtils.isEmpty(text)) {
