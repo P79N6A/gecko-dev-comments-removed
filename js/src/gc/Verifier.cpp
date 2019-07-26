@@ -255,7 +255,7 @@ JS::CheckStackRoots(JSContext *cx)
     
     
     
-    void *firstScanned = rooters.begin();
+    void *firstScanned = NULL;
     for (Rooter *p = rooters.begin(); p != rooters.end(); p++) {
         if (p->rooter->scanned) {
             uintptr_t *addr = reinterpret_cast<uintptr_t*>(p->rooter);
@@ -274,15 +274,17 @@ JS::CheckStackRoots(JSContext *cx)
     
     
     Rooter *firstToScan = rooters.begin();
-    for (Rooter *p = rooters.begin(); p != rooters.end(); p++) {
+    if (firstScanned) {
+        for (Rooter *p = rooters.begin(); p != rooters.end(); p++) {
 #if JS_STACK_GROWTH_DIRECTION < 0
-        if (p->rooter >= firstScanned)
+            if (p->rooter >= firstScanned)
 #else
-        if (p->rooter <= firstScanned)
+            if (p->rooter <= firstScanned)
 #endif
-        {
-            Swap(*firstToScan, *p);
-            ++firstToScan;
+            {
+                Swap(*firstToScan, *p);
+                ++firstToScan;
+            }
         }
     }
 
