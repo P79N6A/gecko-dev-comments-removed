@@ -21,7 +21,7 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 #include "nsITelemetry.h"
-#include "nsIJSContextStack.h"
+#include "nsIXPConnect.h"
 #include "jsapi.h"
 #include "prio.h"
 
@@ -505,10 +505,9 @@ int main(int argc, char** argv)
   
   
   
-  nsCOMPtr<nsIThreadJSContextStack> stack =
-    do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-  if (stack)
-    cx = stack->GetSafeJSContext();
+  nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
+  if (xpc)
+    cx = xpc->GetSafeJSContext();
 
   bool use_js = !!cx;
   JSAutoRequest req(cx);
