@@ -308,7 +308,8 @@ nsUnknownContentTypeDialog.prototype = {
             
             
             
-            if (result.exists())
+            
+            if (result.exists() && this.getFinalLeafName(result.leafName) == result.leafName)
               result.remove(false);
           }
           catch (ex) {
@@ -342,6 +343,18 @@ nsUnknownContentTypeDialog.prototype = {
     }.bind(this)).then(null, Components.utils.reportError);
   },
 
+  getFinalLeafName: function (aLeafName, aFileExt)
+  {
+    
+    
+    aLeafName = aLeafName.replace(/^\.+/, "");
+
+    if (aLeafName == "")
+      aLeafName = "unnamed" + (aFileExt ? "." + aFileExt : "");
+
+    return aLeafName;
+  },
+
   
 
 
@@ -366,12 +379,8 @@ nsUnknownContentTypeDialog.prototype = {
       throw new Components.Exception("Destination directory non-existing or permission error",
                                      Components.results.NS_ERROR_FILE_ACCESS_DENIED);
     }
-    
-    
-    aLeafName = aLeafName.replace(/^\.+/, "");
 
-    if (aLeafName == "")
-      aLeafName = "unnamed" + (aFileExt ? "." + aFileExt : "");
+    aLeafName = this.getFinalLeafName(aLeafName, aFileExt);
     aLocalFolder.append(aLeafName);
 
     
