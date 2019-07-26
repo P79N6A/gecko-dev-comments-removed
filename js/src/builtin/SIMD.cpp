@@ -336,6 +336,14 @@ JSObject *
 SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
 {
     
+    
+    
+    
+    
+    if (!global->getOrCreateTypedObjectModule(cx))
+        return nullptr;
+
+    
     RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
     if(!objProto)
         return nullptr;
