@@ -29,6 +29,7 @@
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/PCompositorParent.h"
+#include "mozilla/layers/APZTestData.h"
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"
 #include "nsSize.h"                     
@@ -222,6 +223,7 @@ public:
     
     PCompositorParent* mCrossProcessParent;
     TargetConfig mTargetConfig;
+    APZTestData mApzTestData;
   };
 
   
@@ -229,7 +231,7 @@ public:
 
 
 
-  static const LayerTreeState* GetIndirectShadowTree(uint64_t aId);
+  static LayerTreeState* GetIndirectShadowTree(uint64_t aId);
 
   float ComputeRenderIntegrity();
 
