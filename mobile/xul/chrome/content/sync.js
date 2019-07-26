@@ -476,7 +476,7 @@ let WeaveGlue = {
     
     let lastSync = Weave.Svc.Prefs.get("lastSync");
     if (lastSync != null) {
-      let syncDate = new Date(lastSync).toLocaleFormat("%a %R");
+      let syncDate = new Date(lastSync).toLocaleFormat("%a %H:%M");
       let dateStr = this._bundle.formatStringFromName("lastSync2.label", [syncDate], 1);
       sync.setAttribute("title", dateStr);
     }
