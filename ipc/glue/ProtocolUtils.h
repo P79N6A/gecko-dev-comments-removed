@@ -22,6 +22,10 @@
 #include "mozilla/ipc/MessageLink.h"
 #include "mozilla/LinkedList.h"
 
+#if defined(ANDROID) && defined(DEBUG)
+#include <android/log.h>
+#endif
+
 
 
 namespace {
