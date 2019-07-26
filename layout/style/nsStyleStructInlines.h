@@ -142,4 +142,20 @@ nsStyleDisplay::IsAbsolutelyPositioned(const nsIFrame* aFrame) const
   return IsAbsolutelyPositionedStyle() && !aFrame->IsSVGText();
 }
 
+uint8_t
+nsStyleVisibility::GetEffectivePointerEvents(nsIFrame* aFrame) const
+{
+  if (aFrame->GetContent() && !aFrame->GetContent()->GetParent()) {
+    
+    
+    
+    
+    nsIFrame* f = aFrame->GetContent()->GetPrimaryFrame();
+    if (f) {
+      return f->GetStyleVisibility()->mPointerEvents;
+    }
+  }
+  return mPointerEvents;
+}
+
 #endif 

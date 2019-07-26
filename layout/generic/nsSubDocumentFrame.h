@@ -136,6 +136,12 @@ protected:
 
   nsIFrame* ObtainIntrinsicSizeFrame();
 
+  
+
+
+
+  bool PassPointerEventsToChildren();
+
   nsRefPtr<nsFrameLoader> mFrameLoader;
   nsIView* mInnerView;
   bool mIsInline;

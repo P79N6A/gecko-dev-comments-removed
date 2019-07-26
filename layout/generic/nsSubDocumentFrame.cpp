@@ -235,6 +235,23 @@ nsSubDocumentFrame::GetSubdocumentRootFrame()
   return subdocView ? subdocView->GetFrame() : nullptr;
 }
 
+bool
+nsSubDocumentFrame::PassPointerEventsToChildren()
+{
+  if (GetStyleVisibility()->mPointerEvents != NS_STYLE_POINTER_EVENTS_NONE) {
+    return true;
+  }
+  
+  
+  
+  
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozpasspointerevents) &&
+      PresContext()->IsChrome()) {
+    return true;
+  }
+  return false;
+}
+
 NS_IMETHODIMP
 nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                      const nsRect&           aDirtyRect,
@@ -243,8 +260,9 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!IsVisibleForPainting(aBuilder))
     return NS_OK;
 
-  if (aBuilder->IsForEventDelivery() &&
-      GetStyleVisibility()->mPointerEvents == NS_STYLE_POINTER_EVENTS_NONE)
+  
+  
+  if (aBuilder->IsForEventDelivery() && !PassPointerEventsToChildren())
     return NS_OK;
 
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);

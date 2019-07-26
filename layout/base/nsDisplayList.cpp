@@ -1277,7 +1277,7 @@ void nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
         nsIFrame *f = outFrames.ElementAt(j);
         
         if (!GetMouseThrough(f) &&
-            f->GetStyleVisibility()->mPointerEvents != NS_STYLE_POINTER_EVENTS_NONE) {
+            f->GetStyleVisibility()->GetEffectivePointerEvents(f) != NS_STYLE_POINTER_EVENTS_NONE) {
           writeFrames->AppendElement(f);
         }
       }
