@@ -21,13 +21,36 @@ XPCOMUtils.defineLazyGetter(this, "DebuggerServer", function () {
 
 
 
+function makeProfile(name) {
+  return {
+    name: name,
+    timeStarted: null,
+    timeEnded: null
+  };
+}
+
+
+
+
 
 function ProfilerConnection(client) {
   this.client = client;
+  this.startTime = 0;
 }
 
 ProfilerConnection.prototype = {
   actor: null,
+  startTime: null,
+
+  
+
+
+
+
+
+  get currentTime() {
+    return (new Date()).getTime() - this.startTime;
+  },
 
   
 
@@ -71,7 +94,13 @@ ProfilerConnection.prototype = {
       interval: 1,
       features: ["js"],
     };
-    this.client.request(message, aCallback);
+
+    this.client.request(message, function () {
+      
+      
+      this.startTime = (new Date()).getTime();
+      aCallback.apply(null, Array.slice(arguments));
+    }.bind(this));
   },
 
   
@@ -113,9 +142,12 @@ ProfilerConnection.prototype = {
 
 function ProfilerController(target) {
   this.profiler = new ProfilerConnection(target.client);
+  this.pool = {};
+
   
   
   this._connected = !!target.chrome;
+
   if (target.chrome) {
     this.profiler.actor = target.form.profilerActor;
   }
@@ -163,10 +195,47 @@ ProfilerController.prototype = {
 
 
 
+  isProfileRecording: function PC_isProfileRecording(profile) {
+    return profile.timeStarted !== null && profile.timeEnded === null;
+  },
 
-  start: function PC_start(aCallback) {
-    this.profiler.startProfiler(function onStart(aResponse) {
-      aCallback(aResponse.error);
+  
+
+
+
+
+
+
+
+
+
+  start: function PC_start(name, cb) {
+    if (this.pool[name]) {
+      return;
+    }
+
+    let profile = this.pool[name] = makeProfile(name);
+    let profiler = this.profiler;
+
+    
+    if (this.isProfileRecording(profile)) {
+      return void cb();
+    }
+
+    this.isActive(function (err, isActive) {
+      if (isActive) {
+        profile.timeStarted = profiler.currentTime;
+        return void cb();
+      }
+
+      profiler.startProfiler(function onStart(aResponse) {
+        if (aResponse.error) {
+          return void cb(aResponse.error);
+        }
+
+        profile.timeStarted = profiler.currentTime;
+        cb();
+      });
     });
   },
 
@@ -178,23 +247,60 @@ ProfilerController.prototype = {
 
 
 
-  stop: function PC_stop(aCallback) {
-    this.profiler.getProfileData(function onData(aResponse) {
-      let data = aResponse.profile;
-      if (aResponse.error) {
-        Cu.reportError("Failed to fetch profile data before stopping the profiler.");
+
+
+  stop: function PC_stop(name, cb) {
+    let profiler = this.profiler;
+    let profile = this.pool[name];
+
+    if (!profile || !this.isProfileRecording(profile)) {
+      return;
+    }
+
+    let isRecording = function () {
+      for (let name in this.pool) {
+        if (this.isProfileRecording(this.pool[name])) {
+          return true;
+        }
       }
 
-      this.profiler.stopProfiler(function onStop(aResponse) {
-        aCallback(aResponse.error, data);
+      return false;
+    }.bind(this);
+
+    let onStop = function (data) {
+      if (isRecording()) {
+        return void cb(null, data);
+      }
+
+      profiler.stopProfiler(function onStopProfiler(response) {
+        cb(response.error, data);
       });
-    }.bind(this));
+    }.bind(this);
+
+    profiler.getProfileData(function onData(aResponse) {
+      if (aResponse.error) {
+        Cu.reportError("Failed to fetch profile data before stopping the profiler.");
+        return void cb(aResponse.error, null);
+      }
+
+      let data = aResponse.profile;
+      profile.timeEnded = profiler.currentTime;
+
+      data.threads = data.threads.map(function (thread) {
+        let samples = thread.samples.filter(function (sample) {
+          return sample.time >= profile.timeStarted;
+        });
+        return { samples: samples };
+      });
+
+      onStop(data);
+    });
   },
 
   
 
 
-  destroy: function PC_destroy(aCallback) {
+  destroy: function PC_destroy() {
     this.profiler.destroy();
     this.profiler = null;
   }
