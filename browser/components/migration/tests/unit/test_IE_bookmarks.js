@@ -11,7 +11,7 @@ function run_test() {
   do_check_true(migrator.sourceExists);
 
   
-  let availableSources = migrator.getMigrateData("FieldOfFlowers", false);
+  let availableSources = migrator.getMigrateData(null, false);
   do_check_true((availableSources & MigrationUtils.resourceTypes.BOOKMARKS) > 0);
 
   
@@ -52,5 +52,5 @@ function run_test() {
   }, "Migration:Ended", false);
 
   migrator.migrate(MigrationUtils.resourceTypes.BOOKMARKS, null,
-                   "FieldOfFlowers");
+                   null);
 }

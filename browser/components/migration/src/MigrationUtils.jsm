@@ -100,6 +100,9 @@ this.MigratorPrototype = {
 
 
 
+
+
+
   get sourceProfiles() null,
 
   
@@ -313,14 +316,15 @@ this.MigratorPrototype = {
 
   
   _getMaybeCachedResources: function PMB__getMaybeCachedResources(aProfile) {
+    let profileKey = aProfile ? aProfile.id : "";
     if (this._resourcesByProfile) {
-      if (aProfile in this._resourcesByProfile)
-        return this._resourcesByProfile[aProfile];
+      if (profileKey in this._resourcesByProfile)
+        return this._resourcesByProfile[profileKey];
     }
     else {
       this._resourcesByProfile = { };
     }
-    return this._resourcesByProfile[aProfile] = this.getResources(aProfile);
+    return this._resourcesByProfile[profileKey] = this.getResources(aProfile);
   }
 };
 
