@@ -820,9 +820,21 @@ this.PlacesDBUtils = {
 
 
 
-  telemetry: function PDBU_telemetry(aTasks)
+
+
+
+
+
+
+
+
+
+
+  telemetry: function PDBU_telemetry(aTasks, aHealthReportCallback=null)
   {
     let tasks = new Tasks(aTasks);
+
+    let isTelemetry = !aHealthReportCallback;
 
     
     
@@ -844,11 +856,15 @@ this.PlacesDBUtils = {
     
     
     
+    
+    
     let probes = [
       { histogram: "PLACES_PAGES_COUNT",
+        healthreport: true,
         query:     "SELECT count(*) FROM moz_places" },
 
       { histogram: "PLACES_BOOKMARKS_COUNT",
+        healthreport: true,
         query:     "SELECT count(*) FROM moz_bookmarks b "
                  + "JOIN moz_bookmarks t ON t.id = b.parent "
                  + "AND t.parent <> :tags_folder "
@@ -944,7 +960,11 @@ this.PlacesDBUtils = {
       places_root: PlacesUtils.placesRootId
     };
 
-    function reportTelemetry(aProbe, aValue) {
+    let outstandingProbes = 0;
+
+    function reportResult(aProbe, aValue) {
+      outstandingProbes--;
+
       try {
         let value = aValue;
         if ("callback" in aProbe) {
@@ -956,13 +976,27 @@ this.PlacesDBUtils = {
       } catch (ex) {
         Components.utils.reportError(ex);
       }
+
+      if (!outstandingProbes && aHealthReportCallback) {
+        try {
+          aHealthReportCallback(probeValues);
+        } catch (ex) {
+          Components.utils.reportError(ex);
+        }
+      }
     }
 
     for (let i = 0; i < probes.length; i++) {
       let probe = probes[i];
- 
+
+      if (!isTelemetry && !probe.healthreport) {
+        continue;
+      }
+
+      outstandingProbes++;
+
       if (!("query" in probe)) {
-        reportTelemetry(probe);
+        reportResult(probe);
         continue;
       }
 
@@ -978,7 +1012,7 @@ this.PlacesDBUtils = {
           handleError: PlacesDBUtils._handleError,
           handleResult: function (aResultSet) {
             let row = aResultSet.getNextRow();
-            reportTelemetry(probe, row.getResultByIndex(0));
+            reportResult(probe, row.getResultByIndex(0));
           },
           handleCompletion: function () {}
         });
