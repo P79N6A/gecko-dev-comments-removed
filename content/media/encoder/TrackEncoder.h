@@ -222,6 +222,8 @@ public:
     : TrackEncoder()
     , mFrameWidth(0)
     , mFrameHeight(0)
+    , mDisplayWidth(0)
+    , mDisplayHeight(0)
     , mTrackRate(0)
     , mTotalFrameDuration(0)
   {}
@@ -244,7 +246,8 @@ protected:
 
 
 
-  virtual nsresult Init(int aWidth, int aHeight, TrackRate aTrackRate) = 0;
+  virtual nsresult Init(int aWidth, int aHeight, int aDisplayWidth,
+                        int aDisplayHeight, TrackRate aTrackRate) = 0;
 
   
 
@@ -274,6 +277,16 @@ protected:
 
 
   int mFrameHeight;
+
+  
+
+
+  int mDisplayWidth;
+
+  
+
+
+  int mDisplayHeight;
 
   
 
