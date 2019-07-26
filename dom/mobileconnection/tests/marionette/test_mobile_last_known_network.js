@@ -1,47 +1,13 @@
 
 
 
-MARIONETTE_TIMEOUT = 30000;
-
-SpecialPowers.addPermission("mobilenetwork", true, document);
-
-let connection = navigator.mozMobileConnections[0];
-ok(connection instanceof MozMobileConnection,
-   "connection is instanceof " + connection.constructor);
+MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = "head.js";
 
 
-function testLastKnownNetwork() {
-  log("testLastKnownNetwork: " + connection.lastKnownNetwork);
+startTestCommon(function() {
   
-  is(connection.lastKnownNetwork, "310-260");
-  runNextTest();
-}
-
-function testLastKnownHomeNetwork() {
-  log("testLastKnownHomeNetwork: " + connection.lastKnownHomeNetwork);
+  is(mobileConnection.lastKnownNetwork, "310-260");
   
-  is(connection.lastKnownHomeNetwork, "310-260");
-  runNextTest();
-}
-
-let tests = [
-  testLastKnownNetwork,
-  testLastKnownHomeNetwork
-];
-
-function runNextTest() {
-  let test = tests.shift();
-  if (!test) {
-    cleanUp();
-    return;
-  }
-
-  test();
-}
-
-function cleanUp() {
-  SpecialPowers.removePermission("mobilenetwork", document);
-  finish();
-}
-
-runNextTest();
+  is(mobileConnection.lastKnownHomeNetwork, "310-260");
+});
