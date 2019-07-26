@@ -185,13 +185,7 @@ helpers.openTab = function(url, options) {
   options.browser = tabbrowser.getBrowserForTab(options.tab);
   options.target = TargetFactory.forTab(options.tab);
 
-  options.browser.contentWindow.location = url;
-
-  return helpers.listenOnce(options.browser, "load", true).then(function() {
-    options.document = options.browser.contentDocument;
-    options.window = options.document.defaultView;
-    return options;
-  });
+  return helpers.navigate(url, options);
 };
 
 
@@ -225,11 +219,37 @@ helpers.closeTab = function(options) {
 
 
 helpers.openToolbar = function(options) {
+  options = options || {};
+  options.chromeWindow = options.chromeWindow || window;
+
   return options.chromeWindow.DeveloperToolbar.show(true).then(function() {
     var display = options.chromeWindow.DeveloperToolbar.display;
     options.automator = createFFDisplayAutomator(display);
     options.requisition = display.requisition;
+    return options;
   });
+};
+
+
+
+
+helpers.navigate = function(url, options) {
+  options = options || {};
+  options.chromeWindow = options.chromeWindow || window;
+  options.tab = options.tab || options.chromeWindow.gBrowser.selectedTab;
+
+  var tabbrowser = options.chromeWindow.gBrowser;
+  options.browser = tabbrowser.getBrowserForTab(options.tab);
+
+  var promise = helpers.listenOnce(options.browser, "load", true).then(function() {
+    options.document = options.browser.contentDocument;
+    options.window = options.document.defaultView;
+    return options;
+  });
+
+  options.browser.contentWindow.location = url;
+
+  return promise;
 };
 
 
@@ -1086,6 +1106,12 @@ Object.defineProperty(helpers, 'timingSummary', {
   },
   enumerable: true
 });
+
+
+
+
+
+
 
 
 

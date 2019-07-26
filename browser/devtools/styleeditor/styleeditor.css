@@ -3,6 +3,23 @@
 
 
 
+#style-editor-chrome {
+  -moz-box-flex: 1;
+}
+
+.csscoverage-report-container {
+  -moz-box-flex: 1;
+}
+
+.csscoverage-report {
+  -moz-box-orient: horizontal;
+}
+
+.csscoverage-report-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .stylesheet-error-message {
   display: none;
 }

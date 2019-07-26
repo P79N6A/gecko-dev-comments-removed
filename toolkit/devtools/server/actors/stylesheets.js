@@ -781,6 +781,53 @@ let StyleSheetActor = protocol.ActorClass({
 
 
 
+
+
+
+
+const getRuleLocation = exports.getRuleLocation = function(rule) {
+  let reply = {
+    line: DOMUtils.getRuleLine(rule),
+    column: DOMUtils.getRuleColumn(rule)
+  };
+
+  let sheet = rule.parentStyleSheet;
+  if (sheet.ownerNode && sheet.ownerNode.localName === "style") {
+     
+     
+     
+     let text = sheet.ownerNode.textContent;
+     
+     
+     let start = text.substring(0, text.indexOf("{"));
+     let relativeStartLine = start.split("\n").length;
+
+     let absoluteStartLine;
+     let i = 0;
+     while (absoluteStartLine == null) {
+       let irule = sheet.cssRules[i];
+       if (irule instanceof Ci.nsIDOMCSSStyleRule) {
+         absoluteStartLine = DOMUtils.getRuleLine(irule);
+       }
+       else if (irule == null) {
+         break;
+       }
+
+       i++;
+     }
+
+     if (absoluteStartLine != null) {
+       let offset = absoluteStartLine - relativeStartLine;
+       reply.line -= offset;
+     }
+  }
+
+  return reply;
+};
+
+
+
+
 var StyleSheetFront = protocol.FrontClass(StyleSheetActor, {
   initialize: function(conn, form) {
     protocol.Front.prototype.initialize.call(this, conn, form);

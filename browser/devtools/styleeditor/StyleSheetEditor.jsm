@@ -5,7 +5,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["StyleSheetEditor"];
+this.EXPORTED_SYMBOLS = ["StyleSheetEditor", "prettifyCSS"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -40,6 +40,9 @@ const CHECK_LINKED_SHEET_DELAY=500;
 
 
 const MAX_CHECK_COUNT=10;
+
+
+const UNUSED_CLASS = "cm-unused-line";
 
 
 
@@ -209,16 +212,55 @@ StyleSheetEditor.prototype = {
 
 
   fetchSource: function(callback) {
-    this.styleSheet.getText().then((longStr) => {
+    return this.styleSheet.getText().then((longStr) => {
       longStr.string().then((source) => {
         this._state.text = prettifyCSS(source);
         this.sourceLoaded = true;
 
-        callback(source);
+        if (callback) {
+          callback(source);
+        }
+        return source;
       });
     }, e => {
       this.emit("error", LOAD_ERROR, this.styleSheet.href);
+      throw e;
     })
+  },
+
+  
+
+
+
+
+
+
+
+  addUnusedRegion: function(region) {
+    this.sourceEditor.addLineClass(region.start.line - 1, UNUSED_CLASS);
+    if (region.end) {
+      for (let i = region.start.line; i <= region.end.line; i++) {
+        this.sourceEditor.addLineClass(i - 1, UNUSED_CLASS);
+      }
+    }
+  },
+
+  
+
+
+  addUnusedRegions: function(regions) {
+    for (let region of regions) {
+      this.addUnusedRegion(region);
+    }
+  },
+
+  
+
+
+  removeAllUnusedRegions: function() {
+    for (let i = 0; i < this.sourceEditor.lineCount(); i++) {
+      this.sourceEditor.removeLineClass(i, UNUSED_CLASS);
+    }
   },
 
   
