@@ -388,6 +388,14 @@ BroadcastSetThreadSandbox()
 
 
 
+static bool
+IsSandboxingSupported(void)
+{
+  return prctl(PR_GET_SECCOMP) != -1;
+}
+
+
+
 
 
 
@@ -408,7 +416,9 @@ SetCurrentProcessSandbox()
   }
 #endif
 
-  BroadcastSetThreadSandbox();
+  if (IsSandboxingSupported()) {
+    BroadcastSetThreadSandbox();
+  }
 }
 
 } 
