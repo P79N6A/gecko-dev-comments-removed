@@ -402,7 +402,7 @@ struct udphdr {
 #else 
 #include <sys/cdefs.h> 
 #include <sys/socket.h>
-#if defined(__Userspace_os_DragonFly) || defined(__Userspace_os_FreeBSD) || defined(__Userspace_os_Linux) || defined(__Userspace_os_NetBSD) || defined(__Userspace_os_OpenBSD)
+#if defined(__Userspace_os_DragonFly) || defined(__Userspace_os_FreeBSD) || defined(__Userspace_os_Linux) || defined(__Userspace_os_NetBSD) || defined(__Userspace_os_OpenBSD) || defined(ANDROID)
 #include <pthread.h>
 #endif
 typedef pthread_mutex_t userland_mutex_t;
@@ -484,7 +484,7 @@ struct sx {int dummy;};
 
 #include <sys/types.h>
 #if !defined(__Userspace_os_Windows)
-#if defined(INET) || defined(INET6)
+#if !defined(ANDROID) && (defined(INET) || defined(INET6))
 #include <ifaddrs.h>
 #endif
 
