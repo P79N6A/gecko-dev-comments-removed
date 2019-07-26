@@ -10,13 +10,15 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/debug.js");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/debug.js", this);
+Cu.import("resource://gre/modules/Services.jsm", this);
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 #ifndef MOZ_WIDGET_GONK
-Cu.import("resource://gre/modules/LightweightThemeManager.jsm");
+Cu.import("resource://gre/modules/LightweightThemeManager.jsm", this);
 #endif
-Cu.import("resource://gre/modules/ThirdPartyCookieProbe.jsm");
+Cu.import("resource://gre/modules/ThirdPartyCookieProbe.jsm", this);
+Cu.import("resource://gre/modules/Promise.jsm", this);
+Cu.import("resource://gre/modules/Task.jsm", this);
 
 
 const PAYLOAD_VERSION = 1;
@@ -127,30 +129,57 @@ let processInfo = {
 this.EXPORTED_SYMBOLS = ["TelemetryPing"];
 
 this.TelemetryPing = Object.freeze({
+  
+
+
+
   getPayload: function() {
     return Impl.getPayload();
   },
-  saveHistograms: function(aFile, aSync) {
-    return Impl.saveHistograms(aFile, aSync);
+  
+
+
+
+
+
+  testSaveHistograms: function(aFile) {
+    return Impl.testSaveHistograms(aFile);
   },
+  
+
+
   gatherStartup: function() {
     return Impl.gatherStartup();
   },
-  enableLoadSaveNotifications: function() {
-    return Impl.enableLoadSaveNotifications();
-  },
-  cacheProfileDirectory: function() {
-    return Impl.cacheProfileDirectory();
-  },
+  
+
+
+
+
   setAddOns: function(aAddOns) {
     return Impl.setAddOns(aAddOns);
   },
+  
+
+
+
+
   testPing: function(aServer) {
     return Impl.testPing(aServer);
   },
-  testLoadHistograms: function(aFile, aSync) {
-    return Impl.testLoadHistograms(aFile, aSync);
+  
+
+
+
+
+
+  testLoadHistograms: function(aFile) {
+    return Impl.testLoadHistograms(aFile);
   },
+  
+
+
+
   submissionPath: function() {
     return Impl.submissionPath();
   },
@@ -163,24 +192,22 @@ this.TelemetryPing = Object.freeze({
 
 
   reset: function() {
-    this.uninstall();
-    this.setup();
+    return Task.spawn(function*(){
+      yield this.uninstall();
+      yield this.setup();
+    }.bind(this));
   },
   
 
 
   setup: function() {
-    Impl.setup(true);
+    return Impl.setup(true);
   },
   
 
 
   uninstall: function() {
-    try {
-      Impl.uninstall();
-    } catch (ex) {
-      
-    }
+    return Impl.uninstall();
   },
   
 
@@ -269,7 +296,9 @@ let Impl = {
     gWasDebuggerAttached = gWasDebuggerAttached || isDebuggerAttached;
     ret.debuggerAttached = new Number(gWasDebuggerAttached);
 
-    ret.js = Cu.getJSEngineTelemetryValue();
+    ret.js = Cc["@mozilla.org/js/xpc/XPConnect;1"]
+      .getService(Ci.nsIJSEngineTelemetryStats)
+      .telemetryValue;
 
     let shutdownDuration = Telemetry.lastShutdownDuration;
     if (shutdownDuration)
@@ -697,46 +726,15 @@ let Impl = {
   send: function send(reason, server) {
     
     this.gatherMemory();
-    this.sendPingsFromIterator(server, reason,
+    return this.sendPingsFromIterator(server, reason,
                                Iterator(this.popPayloads(reason)));
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
   sendPingsFromIterator: function sendPingsFromIterator(server, reason, i) {
-    function finishPings(reason) {
-      if (reason == "test-ping") {
-        Services.obs.notifyObservers(null, "telemetry-test-xhr-complete", null);
-      }
-    }
+    let p = [data for (data in i)].map((data) =>
+      this.doPing(server, data).then(null, () => TelemetryFile.savePing(data, true)));
 
-    let data = null;
-    try {
-      data = i.next();
-    } catch (e if e instanceof StopIteration) {
-      finishPings(reason);
-      return;
-    }
-    function onSuccess() {
-      this.sendPingsFromIterator(server, reason, i);
-    }
-    function onError() {
-      TelemetryFile.savePing(data, true);
-      
-      finishPings(reason);
-    }
-    this.doPing(server, data,
-                onSuccess.bind(this), onError.bind(this));
+    return Promise.all(p);
   },
 
   finishPingRequest: function finishPingRequest(success, startTime, ping) {
@@ -747,7 +745,9 @@ let Impl = {
     hping.add(new Date() - startTime);
 
     if (success) {
-      TelemetryFile.cleanupPingFile(ping);
+      return TelemetryFile.cleanupPingFile(ping);
+    } else {
+      return Promise.resolve();
     }
   },
 
@@ -765,7 +765,8 @@ let Impl = {
     return "/submit/telemetry/" + slug;
   },
 
-  doPing: function doPing(server, ping, onSuccess, onError) {
+  doPing: function doPing(server, ping) {
+    let deferred = Promise.defer();
     let url = server + this.submissionPath(ping);
     let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
                   .createInstance(Ci.nsIXMLHttpRequest);
@@ -776,14 +777,19 @@ let Impl = {
 
     let startTime = new Date();
 
-    function handler(success, callback) {
+    function handler(success) {
       return function(event) {
         this.finishPingRequest(success, startTime, ping);
-        callback();
+
+        if (success) {
+          deferred.resolve();
+        } else {
+          deferred.reject(event);
+        }
       };
     }
-    request.addEventListener("error", handler(false, onError).bind(this), false);
-    request.addEventListener("load", handler(true, onSuccess).bind(this), false);
+    request.addEventListener("error", handler(false).bind(this), false);
+    request.addEventListener("load", handler(true).bind(this), false);
 
     request.setRequestHeader("Content-Encoding", "gzip");
     let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
@@ -795,6 +801,7 @@ let Impl = {
                         .createInstance(Ci.nsIStringInputStream);
     payloadStream.data = this.gzipCompressString(utf8Payload);
     request.send(payloadStream);
+    return deferred.promise;
   },
 
   gzipCompressString: function gzipCompressString(string) {
@@ -899,41 +906,39 @@ let Impl = {
     
     
     this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    function timerCallback() {
-      this._initialized = true;
-      TelemetryFile.loadSavedPings(false, (success =>
-        {
-          let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
-          success_histogram.add(success);
-        }), () =>
-        {
-          
-          
-          if (TelemetryFile.pingsOverdue > 0) {
-            
-            
-            
-            this.send("overdue-flush", this._server);
-          }
-        });
-      this.attachObservers();
-      this.gatherMemory();
+    let deferred = Promise.defer();
 
-      Telemetry.asyncFetchTelemetryData(function () {
-      });
-      delete this._timer;
+    function timerCallback() {
+      Task.spawn(function*(){
+        this._initialized = true;
+
+        yield TelemetryFile.loadSavedPings();
+        
+        
+        if (TelemetryFile.pingsOverdue > 0) {
+          
+          
+          
+          yield this.send("overdue-flush", this._server);
+        }
+
+        this.attachObservers();
+        this.gatherMemory();
+
+        Telemetry.asyncFetchTelemetryData(function () {});
+        delete this._timer;
+        deferred.resolve();
+      }.bind(this));
     }
+
     this._timer.initWithCallback(timerCallback.bind(this),
                                  aTesting ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY,
                                  Ci.nsITimer.TYPE_ONE_SHOT);
+    return deferred.promise;
   },
 
-  testLoadHistograms: function testLoadHistograms(file, sync) {
-    TelemetryFile.testLoadHistograms(file, sync, (success =>
-        {
-          let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
-          success_histogram.add(success);
-        }));
+  testLoadHistograms: function testLoadHistograms(file) {
+    return TelemetryFile.testLoadHistograms(file);
   },
 
   getFlashVersion: function getFlashVersion() {
@@ -950,13 +955,12 @@ let Impl = {
 
   savePendingPings: function savePendingPings() {
     let sessionPing = this.getSessionPayloadAndSlug("saved-session");
-    TelemetryFile.savePendingPings(sessionPing);
+    return TelemetryFile.savePendingPings(sessionPing);
   },
 
-  saveHistograms: function saveHistograms(file, sync) {
-    TelemetryFile.savePingToFile(
-      this.getSessionPayloadAndSlug("saved-session"),
-      file, sync, true);
+  testSaveHistograms: function testSaveHistograms(file) {
+    return TelemetryFile.savePingToFile(this.getSessionPayloadAndSlug("saved-session"),
+      file.path, true);
   },
 
   
@@ -977,6 +981,11 @@ let Impl = {
 #ifdef MOZ_WIDGET_ANDROID
     Services.obs.removeObserver(this, "application-background", false);
 #endif
+    if (Telemetry.canSend) {
+      return this.savePendingPings();
+    } else {
+      Promise.resolve();
+    }
   },
 
   getPayload: function getPayload() {
@@ -1000,10 +1009,6 @@ let Impl = {
     this._slowSQLStartup = Telemetry.slowSQL;
   },
 
-  enableLoadSaveNotifications: function enableLoadSaveNotifications() {
-    TelemetryFile.shouldNotifyUponSave = true;
-  },
-
   setAddOns: function setAddOns(aAddOns) {
     this._addons = aAddOns;
   },
@@ -1014,19 +1019,14 @@ let Impl = {
       this._isIdleObserver = false;
     }
     if (aTest) {
-      this.send("test-ping", aServer);
+      return this.send("test-ping", aServer);
     } else if (Telemetry.canSend) {
-      this.send("idle-daily", aServer);
+      return this.send("idle-daily", aServer);
     }
   },
 
   testPing: function testPing(server) {
-    this.sendIdlePing(true, server);
-  },
-
-  cacheProfileDirectory: function cacheProfileDirectory() {
-    
-    return;
+    return this.sendIdlePing(true, server);
   },
 
   
@@ -1078,9 +1078,6 @@ let Impl = {
       break;
     case "profile-before-change2":
       this.uninstall();
-      if (Telemetry.canSend) {
-        this.savePendingPings();
-      }
       break;
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -1107,5 +1104,5 @@ let Impl = {
       break;
 #endif
     }
-  }
+  },
 };
