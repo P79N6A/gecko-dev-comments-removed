@@ -3,6 +3,7 @@
 
 
 function test() {
+  requestLongerTimeout(2);
   Harness.authenticationCallback = get_auth_info;
   Harness.downloadFailedCallback = download_failed;
   Harness.installEndedCallback = install_ended;
