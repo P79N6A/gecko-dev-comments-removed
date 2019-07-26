@@ -54,13 +54,10 @@ public:
                         jsval* aArgv);
 
   typedef nsIDOMBlob* (*UnwrapFuncPtr)(JSContext*, JSObject*);
-  nsresult InitBlob(JSContext* aCx,
-                    uint32_t aArgc,
-                    jsval* aArgv,
-                    UnwrapFuncPtr aUnwrapFunc);
-  nsresult InitFile(JSContext* aCx,
-                    uint32_t aArgc,
-                    jsval* aArgv);
+  nsresult InitInternal(JSContext* aCx,
+                        uint32_t aArgc,
+                        jsval* aArgv,
+                        UnwrapFuncPtr aUnwrapFunc);
 
   already_AddRefed<nsIDOMBlob>
   CreateSlice(uint64_t aStart, uint64_t aLength, const nsAString& aContentType);
@@ -74,16 +71,6 @@ public:
   
   static nsresult
   NewBlob(nsISupports* *aNewObject);
-
-  
-  
-  inline static nsresult
-  NewFile(nsISupports* *aNewObject)
-  {
-    
-    
-    return NewFile(EmptyString(), aNewObject);
-  }
 
   virtual const nsTArray<nsCOMPtr<nsIDOMBlob> >*
   GetSubBlobs() const { return &mBlobs; }
