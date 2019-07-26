@@ -58,7 +58,7 @@ this.DownloadPaths = {
     
     
     
-    curFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
+    curFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0644);
     return curFile;
   },
 
