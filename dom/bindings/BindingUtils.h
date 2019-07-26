@@ -475,7 +475,7 @@ public:
 
 
 template <class T>
-inline bool
+MOZ_ALWAYS_INLINE bool
 WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
 {
   JSObject* obj = value->GetWrapperPreserveColor();
