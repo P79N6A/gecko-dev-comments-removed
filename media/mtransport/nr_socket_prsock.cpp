@@ -116,7 +116,7 @@ extern "C" {
 
 namespace mozilla {
 
-NS_IMPL_THREADSAFE_ISUPPORTS0(NrSocket)
+NS_IMPL_ISUPPORTS0(NrSocket)
 
 
 

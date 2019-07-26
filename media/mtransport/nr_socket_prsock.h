@@ -84,7 +84,7 @@ public:
   virtual uint64_t ByteCountReceived() { return 0; }
 
   
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
 
   
   int async_wait(int how, NR_async_cb cb, void *cb_arg,
