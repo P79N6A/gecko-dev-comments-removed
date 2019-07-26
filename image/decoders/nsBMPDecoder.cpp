@@ -247,12 +247,6 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
             return;
         }
 
-        
-        if (GetHeight() < 0) {
-            PostDataError();
-            return;
-        }
-
         uint32_t real_height = GetHeight();
 
         
