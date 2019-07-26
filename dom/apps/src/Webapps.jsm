@@ -2197,12 +2197,24 @@ this.DOMApplicationRegistry = {
     if (manifest.package_path) {
       
       
+      let origPath = jsonManifest.package_path;
+      if (aData.app.localInstallPath) {
+        jsonManifest.package_path = "file://" + aData.app.localInstallPath;
+      }
+      
+      
       manifest = new ManifestHelper(jsonManifest, app.manifestURL);
 
       this.queuedPackageDownload[app.manifestURL] = {
         manifest: manifest,
         app: appObject,
         callback: aInstallSuccessCallback
+      };
+
+      if (aData.app.localInstallPath) {
+        
+        
+        this.onInstallSuccessAck(app.manifestURL);
       }
     }
   },
@@ -2296,6 +2308,14 @@ this.DOMApplicationRegistry = {
 
     debug("downloadPackage " + JSON.stringify(aApp));
 
+    let fullPackagePath = aManifest.fullPackagePath();
+
+    
+    
+
+    let isLocalFileInstall =
+      Services.io.extractScheme(fullPackagePath) === 'file';
+
     let id = this._appIdForManifestURL(aApp.manifestURL);
     let app = this.webapps[id];
 
@@ -2387,10 +2407,17 @@ this.DOMApplicationRegistry = {
     function download() {
       debug("About to download " + aManifest.fullPackagePath());
 
-      let requestChannel = NetUtil.newChannel(aManifest.fullPackagePath())
-                                  .QueryInterface(Ci.nsIHttpChannel);
-      requestChannel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
-      if (app.packageEtag) {
+      let requestChannel;
+      if (isLocalFileInstall) {
+        requestChannel = NetUtil.newChannel(aManifest.fullPackagePath())
+                                .QueryInterface(Ci.nsIFileChannel);
+      } else {
+        requestChannel = NetUtil.newChannel(aManifest.fullPackagePath())
+                                .QueryInterface(Ci.nsIHttpChannel);
+        requestChannel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
+      }
+
+      if (app.packageEtag && !isLocalFileInstall) {
         debug("Add If-None-Match header: " + app.packageEtag);
         requestChannel.setRequestHeader("If-None-Match", app.packageEtag, false);
       }
@@ -2586,8 +2613,11 @@ this.DOMApplicationRegistry = {
                 let signedAppOriginsStr =
                   Services.prefs.getCharPref(
                     "dom.mozApps.signed_apps_installable_from");
-                let isSignedAppOrigin
-                  = signedAppOriginsStr.split(",").indexOf(aApp.installOrigin) > -1;
+                
+                
+                let isSignedAppOrigin = (isSigned && isLocalFileInstall) ||
+                                         signedAppOriginsStr.split(",").
+                                               indexOf(aApp.installOrigin) > -1;
                 if (!isSigned && isSignedAppOrigin) {
                   
                   
@@ -2639,8 +2669,10 @@ this.DOMApplicationRegistry = {
                   throw "INSTALL_FROM_DENIED";
                 }
 
-                let maxStatus = isSigned ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
-                                         : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+                
+                let maxStatus = isSigned || isLocalFileInstall
+                                   ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
+                                   : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
 
                 if (AppsUtils.getAppManifestStatus(manifest) > maxStatus) {
                   throw "INVALID_SECURITY_LEVEL";
