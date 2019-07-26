@@ -116,7 +116,7 @@ pref("layers.enable-tiles", true);
 #ifdef MOZ_WIDGET_COCOA
 pref("layers.progressive-paint", false);
 #else
-pref("layers.progressive-paint", true);
+pref("layers.progressive-paint", false);
 #endif
 
 
