@@ -215,6 +215,9 @@ protected:
   bool                       mRunningSample;
 
   
+  bool                       mRegisteredWithRefreshDriver;
+
+  
   
   nsIDocument* mDocument;
 
