@@ -1195,6 +1195,8 @@ BorrowedCGContext::BorrowCGContextFromDrawTarget(DrawTarget *aDT)
     
     CGContextSaveGState(cg);
 
+    CGContextConcatCTM(cg, GfxMatrixToCGAffineTransform(cgDT->mTransform));
+
     return cg;
   }
   return nullptr;
