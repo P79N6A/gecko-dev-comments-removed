@@ -33,11 +33,6 @@
 #include <unistd.h>
 #endif
 
-#ifdef SOLARIS
-#include <bsm/libbsm.h>
-#define AUE_FIPS_AUDIT 34444
-#endif
-
 #ifdef LINUX
 #include <pthread.h>
 #include <dlfcn.h>
@@ -405,34 +400,6 @@ sftk_LogAuditMessage(NSSAuditSeverity severity, NSSAuditType auditType,
 	}
 	audit_close_func(audit_fd);
 	PR_smprintf_free(message);
-    }
-#endif 
-#ifdef SOLARIS
-    {
-        int rd;
-        char *message = PR_smprintf("NSS " SOFTOKEN_LIB_NAME ": %s", msg);
-
-        if (!message) {
-            return;
-        }
-
-        
-        if ((rd = au_open()) == -1) {
-            PR_smprintf_free(message);
-            return;
-        }
-
-        
-        if (au_write(rd, au_to_text(message))) {
-            (void)au_close(rd, AU_TO_NO_WRITE, AUE_FIPS_AUDIT);
-            PR_smprintf_free(message);
-            return;
-        }
-
-        
-        (void)au_close(rd, AU_TO_WRITE, AUE_FIPS_AUDIT);
-
-        PR_smprintf_free(message);
     }
 #endif 
 #else
