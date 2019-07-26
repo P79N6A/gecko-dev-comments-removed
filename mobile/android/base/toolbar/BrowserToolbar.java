@@ -532,75 +532,85 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
+        final Tabs tabs = Tabs.getInstance();
+
+        
+        
+        
+        
+
         switch (msg) {
-            case TITLE:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
-                    updateTitle();
-                }
+            case ADDED:
+                updateTabCount(tabs.getDisplayCount());
                 break;
-            case START:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+            case RESTORED:
+                
+            case SELECTED:
+                updateTabCount(tabs.getDisplayCount());
+                mSwitchingTabs = true;
+                
+        }
+
+        if (tabs.isSelectedTab(tab)) {
+            switch (msg) {
+                case TITLE:
+                    updateTitle();
+                    break;
+
+                case START:
                     updateBackButton(canDoBack(tab));
                     updateForwardButton(canDoForward(tab));
                     Boolean showProgress = (Boolean)data;
-                    if (showProgress && tab.getState() == Tab.STATE_LOADING)
+                    if (showProgress && tab.getState() == Tab.STATE_LOADING) {
                         setProgressVisibility(true);
+                    }
                     setSecurityMode(tab.getSecurityMode());
                     setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
-                }
-                break;
-            case STOP:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+                    break;
+
+                case STOP:
                     updateBackButton(canDoBack(tab));
                     updateForwardButton(canDoForward(tab));
                     setProgressVisibility(false);
                     
                     updateTitle();
-                }
-                break;
+                    break;
 
-            case RESTORED:
-                
-            case SELECTED:
-                updateTabCount(Tabs.getInstance().getDisplayCount());
-                mSwitchingTabs = true;
-                
-
-            
-            
-            case LOAD_ERROR:
-                updateTitle();
-                
-            case LOCATION_CHANGE:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+                case SELECTED:
+                case LOAD_ERROR:
+                    updateTitle();
+                    
+                case LOCATION_CHANGE:
+                    
+                    
                     refresh();
-                }
-                mSwitchingTabs = false;
-                break;
+                    break;
 
-            case CLOSED:
-            case ADDED:
-                updateTabCount(Tabs.getInstance().getDisplayCount());
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+                case CLOSED:
+                case ADDED:
                     updateBackButton(canDoBack(tab));
                     updateForwardButton(canDoForward(tab));
-                }
-                break;
-            case FAVICON:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+                    break;
+
+                case FAVICON:
                     setFavicon(tab.getFavicon());
-                }
-                break;
-            case SECURITY_CHANGE:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+                    break;
+
+                case SECURITY_CHANGE:
                     setSecurityMode(tab.getSecurityMode());
-                }
-                break;
-            case READER_ENABLED:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+                    break;
+
+                case READER_ENABLED:
                     setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
-                }
-                break;
+                    break;
+            }
+        }
+
+        switch (msg) {
+            case SELECTED:
+            case LOAD_ERROR:
+            case LOCATION_CHANGE:
+                mSwitchingTabs = false;
         }
     }
 
