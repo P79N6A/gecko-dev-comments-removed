@@ -378,9 +378,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                 }
                 break;
             case RESTORED:
+                updateTabCount(Tabs.getInstance().getCount());
+                break;
             case SELECTED:
-                
-                
                 mAnimateSiteSecurity = false;
                 
             case LOCATION_CHANGE:

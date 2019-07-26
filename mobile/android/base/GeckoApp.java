@@ -1686,8 +1686,12 @@ abstract public class GeckoApp
             }
         }
 
-        
-        if (mRestoreMode != RESTORE_OOM) {
+        if (mRestoreMode == RESTORE_OOM) {
+            
+            
+            Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
+        } else {
+            
             getProfile().moveSessionFile();
         }
 
@@ -1695,6 +1699,7 @@ abstract public class GeckoApp
 
         
         if (mRestoreMode == RESTORE_NONE) {
+            Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
             GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Telemetry:Prompt", null));
         }
 

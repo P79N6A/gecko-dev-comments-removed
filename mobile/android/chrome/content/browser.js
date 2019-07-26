@@ -308,12 +308,6 @@ var BrowserApp = {
   },
 
   restoreSession: function (restoringOOM, sessionString) {
-    sendMessageToJava({
-      gecko: {
-        type: "Session:RestoreBegin"
-      }
-    });
-
     
     let restoreCleanup = {
       observe: function (aSubject, aTopic, aData) {
@@ -326,6 +320,7 @@ var BrowserApp = {
           });
         }
 
+        
         sendMessageToJava({
           gecko: {
             type: "Session:RestoreEnd"
