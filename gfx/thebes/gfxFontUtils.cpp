@@ -1200,8 +1200,6 @@ const char* gfxFontUtils::gMSFontNameCharsets[] =
      ""
 };
 
-#define ARRAY_SIZE(A) (sizeof(A) / sizeof(A[0]))
-
 
 
 
@@ -1217,7 +1215,7 @@ gfxFontUtils::GetCharsetForFontName(uint16_t aPlatform, uint16_t aScript, uint16
 
     case PLATFORM_ID_MAC:
         {
-            uint32_t lo = 0, hi = ARRAY_SIZE(gMacFontNameCharsets);
+            uint32_t lo = 0, hi = ArrayLength(gMacFontNameCharsets);
             MacFontNameCharsetMapping searchValue = { aScript, aLanguage, nullptr };
             for (uint32_t i = 0; i < 2; ++i) {
                 
@@ -1237,20 +1235,20 @@ gfxFontUtils::GetCharsetForFontName(uint16_t aPlatform, uint16_t aScript, uint16
                 }
 
                 
-                hi = ARRAY_SIZE(gMacFontNameCharsets);
+                hi = ArrayLength(gMacFontNameCharsets);
                 searchValue.mLanguage = ANY;
             }
         }
         break;
 
     case PLATFORM_ID_ISO:
-        if (aScript < ARRAY_SIZE(gISOFontNameCharsets)) {
+        if (aScript < ArrayLength(gISOFontNameCharsets)) {
             return gISOFontNameCharsets[aScript];
         }
         break;
 
     case PLATFORM_ID_MICROSOFT:
-        if (aScript < ARRAY_SIZE(gMSFontNameCharsets)) {
+        if (aScript < ArrayLength(gMSFontNameCharsets)) {
             return gMSFontNameCharsets[aScript];
         }
         break;
