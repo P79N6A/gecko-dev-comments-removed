@@ -45,8 +45,14 @@ class IonCode : public gc::Cell
     uint32_t dataSize_;               
     uint32_t jumpRelocTableBytes_;    
     uint32_t dataRelocTableBytes_;    
+    uint32_t preBarrierTableBytes_;   
     JSBool invalidated_;            
                                     
+
+#if JS_BITS_PER_WORD == 32
+    
+    uint32_t padding_;
+#endif
 
     IonCode()
       : code_(NULL),
@@ -60,6 +66,7 @@ class IonCode : public gc::Cell
         dataSize_(0),
         jumpRelocTableBytes_(0),
         dataRelocTableBytes_(0),
+        preBarrierTableBytes_(0),
         invalidated_(false)
     { }
 
@@ -71,6 +78,9 @@ class IonCode : public gc::Cell
     }
     uint32_t dataRelocTableOffset() const {
         return jumpRelocTableOffset() + jumpRelocTableBytes_;
+    }
+    uint32_t preBarrierTableOffset() const {
+        return dataRelocTableOffset() + dataRelocTableBytes_;
     }
 
   public:
@@ -85,6 +95,8 @@ class IonCode : public gc::Cell
     void setInvalidated() {
         invalidated_ = true;
     }
+
+    void togglePreBarriers(bool enabled);
 
     
     
@@ -192,10 +204,6 @@ struct IonScript
     uint32_t cacheEntries_;
 
     
-    uint32_t prebarrierList_;
-    uint32_t prebarrierEntries_;
-
-    
     uint32_t safepointsStart_;
     uint32_t safepointsSize_;
 
@@ -233,9 +241,6 @@ struct IonScript
     IonCache *cacheList() {
         return (IonCache *)(reinterpret_cast<uint8_t *>(this) + cacheList_);
     }
-    CodeOffsetLabel *prebarrierList() {
-        return (CodeOffsetLabel *)(reinterpret_cast<uint8_t *>(this) + prebarrierList_);
-    }
     JSScript **scriptList() const {
         return (JSScript **)(reinterpret_cast<const uint8_t *>(this) + scriptList_);
     }
@@ -250,8 +255,7 @@ struct IonScript
     static IonScript *New(JSContext *cx, uint32_t frameLocals, uint32_t frameSize,
                           size_t snapshotsSize, size_t snapshotEntries,
                           size_t constants, size_t safepointIndexEntries, size_t osiIndexEntries,
-                          size_t cacheEntries, size_t prebarrierEntries, size_t safepointsSize,
-                          size_t scriptEntries);
+                          size_t cacheEntries, size_t safepointsSize, size_t scriptEntries);
     static void Trace(JSTracer *trc, IonScript *script);
     static void Destroy(FreeOp *fop, IonScript *script);
 
@@ -366,10 +370,6 @@ struct IonScript
     size_t numCaches() const {
         return cacheEntries_;
     }
-    inline CodeOffsetLabel &getPrebarrier(size_t index);
-    size_t numPrebarriers() const {
-        return prebarrierEntries_;
-    }
     void toggleBarriers(bool enabled);
     void purgeCaches(JSCompartment *c);
     void copySnapshots(const SnapshotWriter *writer);
@@ -378,7 +378,6 @@ struct IonScript
     void copySafepointIndices(const SafepointIndex *firstSafepointIndex, MacroAssembler &masm);
     void copyOsiIndices(const OsiIndex *firstOsiIndex, MacroAssembler &masm);
     void copyCacheEntries(const IonCache *caches, MacroAssembler &masm);
-    void copyPrebarrierEntries(const CodeOffsetLabel *barriers, MacroAssembler &masm);
     void copySafepoints(const SafepointWriter *writer);
     void copyScriptEntries(JSScript **scripts);
 

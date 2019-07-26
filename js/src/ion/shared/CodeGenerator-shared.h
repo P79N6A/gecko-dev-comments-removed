@@ -62,9 +62,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     js::Vector<IonCache, 0, SystemAllocPolicy> cacheList_;
 
     
-    js::Vector<CodeOffsetLabel, 0, SystemAllocPolicy> barrierOffsets_;
-
-    
     js::Vector<uint32_t, 0, SystemAllocPolicy> pushedArgumentSlots_;
 
     
@@ -160,10 +157,6 @@ class CodeGeneratorShared : public LInstructionVisitor
         size_t index = cacheList_.length();
         masm.reportMemory(cacheList_.append(cache));
         return index;
-    }
-
-    void addPreBarrierOffset(CodeOffsetLabel offset) {
-        masm.reportMemory(barrierOffsets_.append(offset));
     }
 
   protected:
