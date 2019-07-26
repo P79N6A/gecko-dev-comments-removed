@@ -165,13 +165,33 @@ private:
 
 
 
-  nsCOMPtr<nsIFile> mAssignedTarget;
+
+  nsCOMPtr<nsIFile> mInitialTarget;
 
   
 
 
 
-  bool mAssignedTargetKeepPartial;
+
+  bool mInitialTargetKeepPartial;
+
+  
+
+
+
+
+
+
+
+
+  nsCOMPtr<nsIFile> mRenamedTarget;
+
+  
+
+
+
+
+  bool mRenamedTargetKeepPartial;
 
   
 

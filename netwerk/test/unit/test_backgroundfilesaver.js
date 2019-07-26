@@ -429,6 +429,29 @@ add_task(function test_setTarget_after_close_stream()
   destFile.remove(false);
 });
 
+add_task(function test_setTarget_fast()
+{
+  
+  let destFile1 = getTempFile(TEST_FILE_NAME_1);
+  let destFile2 = getTempFile(TEST_FILE_NAME_2);
+  let saver = new BackgroundFileSaverOutputStream();
+  let completionPromise = promiseSaverComplete(saver);
+
+  
+  yield promiseCopyToSaver(TEST_DATA_SHORT, saver, true);
+  saver.setTarget(destFile1, false);
+  saver.setTarget(destFile2, false);
+
+  
+  saver.finish(Cr.NS_OK);
+  yield completionPromise;
+
+  
+  do_check_false(destFile1.exists());
+  yield promiseVerifyContents(destFile2, TEST_DATA_SHORT);
+  destFile2.remove(false);
+});
+
 add_task(function test_setTarget_multiple()
 {
   
@@ -480,6 +503,43 @@ add_task(function test_enableAppend()
 
   
   destFile.remove(false);
+});
+
+add_task(function test_enableAppend_setTarget_fast()
+{
+  
+  let destFile1 = getTempFile(TEST_FILE_NAME_1);
+  let destFile2 = getTempFile(TEST_FILE_NAME_2);
+
+  
+  
+  for (let i = 0; i < 2; i++) {
+    let saver = new BackgroundFileSaverOutputStream();
+    saver.enableAppend();
+    let completionPromise = promiseSaverComplete(saver);
+
+    yield promiseCopyToSaver(TEST_DATA_SHORT, saver, true);
+
+    
+    
+    
+    let firstFile = (i == 0) ? destFile1 : destFile2;
+    let secondFile = (i == 0) ? destFile2 : destFile1;
+    saver.setTarget(firstFile, false);
+    saver.setTarget(secondFile, false);
+
+    saver.finish(Cr.NS_OK);
+    yield completionPromise;
+
+    
+    do_check_false(firstFile.exists());
+    let expectedContents = (i == 0 ? TEST_DATA_SHORT
+                                   : TEST_DATA_SHORT + TEST_DATA_SHORT);
+    yield promiseVerifyContents(secondFile, expectedContents);
+  }
+
+  
+  destFile1.remove(false);
 });
 
 add_task(function test_enableAppend_hash()

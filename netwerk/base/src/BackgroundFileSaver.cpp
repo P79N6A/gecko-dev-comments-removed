@@ -82,8 +82,10 @@ BackgroundFileSaver::BackgroundFileSaver()
 , mComplete(false)
 , mStatus(NS_OK)
 , mAppend(false)
-, mAssignedTarget(nullptr)
-, mAssignedTargetKeepPartial(false)
+, mInitialTarget(nullptr)
+, mInitialTargetKeepPartial(false)
+, mRenamedTarget(nullptr)
+, mRenamedTargetKeepPartial(false)
 , mAsyncCopyContext(nullptr)
 , mSha256Enabled(false)
 , mActualTarget(nullptr)
@@ -181,8 +183,13 @@ BackgroundFileSaver::SetTarget(nsIFile *aTarget, bool aKeepPartial)
   NS_ENSURE_ARG(aTarget);
   {
     MutexAutoLock lock(mLock);
-    aTarget->Clone(getter_AddRefs(mAssignedTarget));
-    mAssignedTargetKeepPartial = aKeepPartial;
+    if (!mInitialTarget) {
+      aTarget->Clone(getter_AddRefs(mInitialTarget));
+      mInitialTargetKeepPartial = aKeepPartial;
+    } else {
+      aTarget->Clone(getter_AddRefs(mRenamedTarget));
+      mRenamedTargetKeepPartial = aKeepPartial;
+    }
   }
 
   
@@ -373,15 +380,19 @@ BackgroundFileSaver::ProcessStateChange()
   }
 
   
-  nsCOMPtr<nsIFile> target;
-  bool targetKeepPartial;
-  bool sha256Enabled = false;
-  bool append = false;
+  nsCOMPtr<nsIFile> initialTarget;
+  bool initialTargetKeepPartial;
+  nsCOMPtr<nsIFile> renamedTarget;
+  bool renamedTargetKeepPartial;
+  bool sha256Enabled;
+  bool append;
   {
     MutexAutoLock lock(mLock);
 
-    target = mAssignedTarget;
-    targetKeepPartial = mAssignedTargetKeepPartial;
+    initialTarget = mInitialTarget;
+    initialTargetKeepPartial = mInitialTargetKeepPartial;
+    renamedTarget = mRenamedTarget;
+    renamedTargetKeepPartial = mRenamedTargetKeepPartial;
     sha256Enabled = mSha256Enabled;
     append = mAppend;
 
@@ -391,58 +402,67 @@ BackgroundFileSaver::ProcessStateChange()
 
   
   
-  if (!target) {
+  if (!initialTarget) {
     return NS_OK;
   }
 
+  
   bool isContinuation = !!mActualTarget;
-
-  
-  
-  int32_t creationIoFlags;
-  if (isContinuation) {
-    creationIoFlags = PR_APPEND;
-  } else {
-    creationIoFlags = (append ? PR_APPEND : PR_TRUNCATE) | PR_CREATE_FILE;
+  if (!isContinuation) {
+    
+    mActualTarget = initialTarget;
+    mActualTargetKeepPartial = initialTargetKeepPartial;
   }
 
   
+  
+  
   bool equalToCurrent = false;
-  if (isContinuation) {
-    rv = mActualTarget->Equals(target, &equalToCurrent);
+  if (renamedTarget) {
+    rv = mActualTarget->Equals(renamedTarget, &equalToCurrent);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!equalToCurrent)
     {
       
-      nsCOMPtr<nsIFile> targetParentDir;
-      rv = target->GetParent(getter_AddRefs(targetParentDir));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      nsAutoString targetName;
-      rv = target->GetLeafName(targetName);
-      NS_ENSURE_SUCCESS(rv, rv);
-
       
-      bool exists = false;
-      rv = target->Exists(&exists);
-      NS_ENSURE_SUCCESS(rv, rv);
+      
+      bool exists = true;
+      if (!isContinuation) {
+        rv = mActualTarget->Exists(&exists);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
       if (exists) {
-        rv = target->Remove(false);
+        
+        nsCOMPtr<nsIFile> renamedTargetParentDir;
+        rv = renamedTarget->GetParent(getter_AddRefs(renamedTargetParentDir));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsAutoString renamedTargetName;
+        rv = renamedTarget->GetLeafName(renamedTargetName);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        
+        rv = renamedTarget->Exists(&exists);
+        NS_ENSURE_SUCCESS(rv, rv);
+        if (exists) {
+          rv = renamedTarget->Remove(false);
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
+
+        
+        
+        
+        
+        rv = mActualTarget->MoveTo(renamedTargetParentDir, renamedTargetName);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
-      
-      
-      
-      rv = mActualTarget->MoveTo(targetParentDir, targetName);
-      NS_ENSURE_SUCCESS(rv, rv);
+      mActualTarget = renamedTarget;
+      mActualTargetKeepPartial = renamedTargetKeepPartial;
     }
   }
-
-  
-  mActualTarget = target;
-  mActualTargetKeepPartial = targetKeepPartial;
 
   
   if (!equalToCurrent) {
@@ -529,6 +549,15 @@ BackgroundFileSaver::ProcessStateChange()
   }
 
   
+  
+  int32_t creationIoFlags;
+  if (isContinuation) {
+    creationIoFlags = PR_APPEND;
+  } else {
+    creationIoFlags = (append ? PR_APPEND : PR_TRUNCATE) | PR_CREATE_FILE;
+  }
+
+  
   nsCOMPtr<nsIOutputStream> outputStream;
   rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream),
                                    mActualTarget,
@@ -604,8 +633,16 @@ BackgroundFileSaver::CheckCompletion()
 
       
       
-      if ((mAssignedTarget && mAssignedTarget != mActualTarget) ||
-          !mFinishRequested) {
+      if (!mFinishRequested) {
+        return false;
+      }
+
+      
+      
+      
+      
+      if ((mInitialTarget && !mActualTarget) ||
+          (mRenamedTarget && mRenamedTarget != mActualTarget)) {
         return false;
       }
 
