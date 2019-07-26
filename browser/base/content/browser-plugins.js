@@ -704,13 +704,19 @@ var gPluginHandler = {
       else if (pluginInfo.blocklistState != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
         url = Services.blocklist.getPluginBlocklistURL(pluginInfo.pluginTag);
       }
-      else {
-        url = Services.urlFormatter.formatURLPref("plugins.clickToActivateInfo.url");
-      }
       pluginInfo.detailsLink = url;
 
       centerActions.push(pluginInfo);
     }
+
+    if (centerActions.length == 0) {
+      
+      
+      notification.options.centerActions = [];
+      setTimeout(() => PopupNotifications.remove(notification), 0);
+      return;
+    }
+
     centerActions.sort(function(a, b) {
       return a.pluginName.localeCompare(b.pluginName);
     });
