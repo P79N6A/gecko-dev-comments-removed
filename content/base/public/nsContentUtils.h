@@ -1313,6 +1313,11 @@ public:
   
 
 
+  static bool IsExpandedPrincipal(nsIPrincipal* aPrincipal);
+
+  
+
+
   static nsIPrincipal* GetSystemPrincipal();
 
   

@@ -2,7 +2,9 @@ const Cu = Components.utils;
 function run_test() {
 
   
-  var contentSB = new Cu.Sandbox('http://www.google.com',
+  
+  
+  var contentSB = new Cu.Sandbox(['http://www.google.com'],
                                  {wantXHRConstructor: true, wantComponents: true});
 
   
