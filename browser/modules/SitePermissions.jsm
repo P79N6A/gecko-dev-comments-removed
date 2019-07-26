@@ -27,7 +27,11 @@ this.SitePermissions = {
   
 
   listPermissions: function () {
-    return Object.keys(gPermissionObject);
+    let array = Object.keys(gPermissionObject);
+    array.sort((a, b) => {
+      return this.getPermissionLabel(a).localeCompare(this.getPermissionLabel(b));
+    });
+    return array;
   },
 
   
