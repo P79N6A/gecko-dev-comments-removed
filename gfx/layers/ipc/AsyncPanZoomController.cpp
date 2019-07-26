@@ -140,7 +140,7 @@ static bool gTouchActionPropertyEnabled = false;
 
 
 
-static float gTouchStartTolerance = 1.0f/2.0f;
+static float gTouchStartTolerance = 1.0f/4.5f;
 
 
 
