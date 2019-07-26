@@ -3823,33 +3823,10 @@ RilObject.prototype = {
     
     for each (let newCall in newCalls) {
       if (newCall.isVoice) {
-        
-        if (newCall.number &&
-            newCall.toa == TOA_INTERNATIONAL &&
-            newCall.number[0] != "+") {
-          newCall.number = "+" + newCall.number;
-        }
-
-        if (newCall.state == CALL_STATE_INCOMING) {
-          newCall.isOutgoing = false;
-        } else if (newCall.state == CALL_STATE_DIALING) {
-          newCall.isOutgoing = true;
-        }
-
-        
-        newCall.isEmergency = newCall.isOutgoing &&
-                              this._isEmergencyNumber(newCall.number);
-
-        
         if (newCall.isMpty) {
           conferenceChanged = true;
-          newCall.isConference = true;
-          this.currentConference.participants[newCall.callIndex] = newCall;
-        } else {
-          newCall.isConference = false;
         }
-        this._handleChangedCallState(newCall);
-        this.currentCalls[newCall.callIndex] = newCall;
+        this._addNewVoiceCall(newCall);
       }
     }
 
@@ -3859,6 +3836,34 @@ RilObject.prototype = {
     if (conferenceChanged) {
       this._ensureConference();
     }
+  },
+
+  _addNewVoiceCall: function(newCall) {
+    
+    if (newCall.number && newCall.toa == TOA_INTERNATIONAL &&
+        newCall.number[0] != "+") {
+      newCall.number = "+" + newCall.number;
+    }
+
+    if (newCall.state == CALL_STATE_INCOMING) {
+      newCall.isOutgoing = false;
+    } else if (newCall.state == CALL_STATE_DIALING) {
+      newCall.isOutgoing = true;
+    }
+
+    
+    newCall.isEmergency = newCall.isOutgoing &&
+      this._isEmergencyNumber(newCall.number);
+
+    
+    newCall.isConference = newCall.isMpty ? true : false;
+
+    
+    if (newCall.isMpty) {
+      this.currentConference.participants[newCall.callIndex] = newCall;
+    }
+    this._handleChangedCallState(newCall);
+    this.currentCalls[newCall.callIndex] = newCall;
   },
 
   _ensureConference: function() {
