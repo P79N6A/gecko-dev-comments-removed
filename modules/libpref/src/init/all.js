@@ -109,7 +109,7 @@ pref("browser.display.normal_lineheight_calc_control", 2);
 pref("browser.display.show_image_placeholders", true); 
 
 pref("browser.display.auto_quality_min_font_size", 20);
-pref("browser.anchor_color",                "#0000EE");
+pref("browser.anchor_color",                "#0B6CDA");
 pref("browser.active_color",                "#EE0000");
 pref("browser.visited_color",               "#551A8B");
 pref("browser.underline_anchors",           true);
@@ -406,6 +406,9 @@ pref("view_source.editor.path", "");
 
 
 pref("view_source.editor.args", "");
+
+
+pref("plain_text.wrap_long_lines", false);
 
 
 pref("nglayout.events.dispatchLeftClickOnly", true);
@@ -708,10 +711,6 @@ pref("dom.send_after_paint_to_content", false);
 pref("dom.min_timeout_value", 4);
 
 pref("dom.min_background_timeout_value", 1000);
-
-
-
-pref("dom.experimental_bindings", true);
 
 
 pref("dom.xbl_scopes", true);
@@ -1790,6 +1789,7 @@ pref("dom.archivereader.enabled", false);
 
 pref("hangmonitor.timeout", 0);
 
+pref("plugins.load_appdir_plugins", false);
 
 pref("plugins.click_to_play", false);
 

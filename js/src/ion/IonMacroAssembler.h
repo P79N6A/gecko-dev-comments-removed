@@ -155,6 +155,12 @@ class MacroAssembler : public MacroAssemblerSpecific
         branchPtr(cond, Address(obj, JSObject::offsetOfShape()), shape, label);
     }
 
+    
+    void branchIfFalseBool(const Register &reg, Label *label) {
+        
+        branchTest32(Assembler::Zero, reg, Imm32(0xFF), label);
+    }
+
     void loadObjPrivate(Register obj, uint32_t nfixed, Register dest) {
         loadPtr(Address(obj, JSObject::getPrivateDataOffset(nfixed)), dest);
     }
@@ -722,7 +728,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         bind(&stackFull);
     }
 
-    void spsPushFrame(SPSProfiler *p, const char *str, UnrootedScript s, Register temp) {
+    void spsPushFrame(SPSProfiler *p, const char *str, RawScript s, Register temp) {
         Label stackFull;
         spsProfileEntryAddress(p, 0, temp, &stackFull);
 
