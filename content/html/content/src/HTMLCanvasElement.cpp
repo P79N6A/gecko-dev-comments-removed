@@ -597,9 +597,14 @@ HTMLCanvasElement::ToBlob(JSContext* aCx,
 
 #ifdef DEBUG
   if (mCurrentContext) {
+    
+    
+    
     nsIntSize elementSize = GetWidthHeight();
-    MOZ_ASSERT(elementSize.width == mCurrentContext->GetWidth());
-    MOZ_ASSERT(elementSize.height == mCurrentContext->GetHeight());
+    MOZ_ASSERT(elementSize.width == mCurrentContext->GetWidth() ||
+               (elementSize.width == 0 && mCurrentContext->GetWidth() == 1));
+    MOZ_ASSERT(elementSize.height == mCurrentContext->GetHeight() ||
+               (elementSize.height == 0 && mCurrentContext->GetHeight() == 1));
   }
 #endif
 
