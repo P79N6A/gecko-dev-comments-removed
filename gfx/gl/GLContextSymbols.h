@@ -415,6 +415,10 @@ struct GLContextSymbols
     PFNGLDRAWARRAYSINSTANCED fDrawArraysInstanced;
     typedef void (GLAPIENTRY * PFNGLDRAWELEMENTSINSTANCED) (GLenum mode, GLsizei count, GLenum type, const GLvoid* indices, GLsizei primcount);
     PFNGLDRAWELEMENTSINSTANCED fDrawElementsInstanced;
+
+    
+    typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBDIVISOR) (GLuint index, GLuint divisor);
+    PFNGLVERTEXATTRIBDIVISOR fVertexAttribDivisor;
 };
 
 }

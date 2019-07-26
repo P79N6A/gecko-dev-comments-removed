@@ -13,13 +13,20 @@ class WebGLBuffer;
 struct WebGLVertexAttribData {
     
     WebGLVertexAttribData()
-        : buf(0), stride(0), size(4), byteOffset(0),
-          type(LOCAL_GL_FLOAT), enabled(false), normalized(false)
+        : buf(0)
+        , stride(0)
+        , size(4)
+        , divisor(0) 
+        , byteOffset(0)
+        , type(LOCAL_GL_FLOAT)
+        , enabled(false)
+        , normalized(false)
     { }
 
     WebGLRefPtr<WebGLBuffer> buf;
     WebGLuint stride;
     WebGLuint size;
+    WebGLuint divisor;
     GLuint byteOffset;
     GLenum type;
     bool enabled;
