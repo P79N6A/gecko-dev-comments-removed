@@ -42,7 +42,8 @@ public:
   enum Type {
     eTokenStream,  
     eInitial,      
-    eInherit       
+    eInherit,      
+    eUnset         
   };
 
   
@@ -77,6 +78,15 @@ public:
 
 
   void PutInherit(const nsAString& aName);
+
+  
+
+
+
+
+
+
+  void PutUnset(const nsAString& aName);
 
   
 

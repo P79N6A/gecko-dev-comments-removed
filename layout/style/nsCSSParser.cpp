@@ -12482,12 +12482,15 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
   }
 
   
+  
   CSSVariableDeclarations::Type type = CSSVariableDeclarations::eTokenStream;
   if (mToken.mType == eCSSToken_Ident) {
     if (mToken.mIdent.LowerCaseEqualsLiteral("initial")) {
       type = CSSVariableDeclarations::eInitial;
     } else if (mToken.mIdent.LowerCaseEqualsLiteral("inherit")) {
       type = CSSVariableDeclarations::eInherit;
+    } else if (mToken.mIdent.LowerCaseEqualsLiteral("unset")) {
+      type = CSSVariableDeclarations::eUnset;
     }
   }
 

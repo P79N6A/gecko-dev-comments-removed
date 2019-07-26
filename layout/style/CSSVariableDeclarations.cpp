@@ -13,8 +13,10 @@
 
 
 
+
 #define INITIAL_VALUE "!"
 #define INHERIT_VALUE ";"
+#define UNSET_VALUE   ")"
 
 namespace mozilla {
 
@@ -86,6 +88,9 @@ CSSVariableDeclarations::Get(const nsAString& aName,
   } else if (value.EqualsLiteral(INHERIT_VALUE)) {
     aType = eInitial;
     aTokenStream.Truncate();
+  } else if (value.EqualsLiteral(UNSET_VALUE)) {
+    aType = eUnset;
+    aTokenStream.Truncate();
   } else {
     aType = eTokenStream;
     aTokenStream = value;
@@ -98,7 +103,8 @@ CSSVariableDeclarations::PutTokenStream(const nsAString& aName,
                                         const nsString& aTokenStream)
 {
   MOZ_ASSERT(!aTokenStream.EqualsLiteral(INITIAL_VALUE) &&
-             !aTokenStream.EqualsLiteral(INHERIT_VALUE));
+             !aTokenStream.EqualsLiteral(INHERIT_VALUE) &&
+             !aTokenStream.EqualsLiteral(UNSET_VALUE));
   mVariables.Put(aName, aTokenStream);
 }
 
@@ -112,6 +118,12 @@ void
 CSSVariableDeclarations::PutInherit(const nsAString& aName)
 {
   mVariables.Put(aName, NS_LITERAL_STRING(INHERIT_VALUE));
+}
+
+void
+CSSVariableDeclarations::PutUnset(const nsAString& aName)
+{
+  mVariables.Put(aName, NS_LITERAL_STRING(UNSET_VALUE));
 }
 
 void
@@ -163,7 +175,11 @@ CSSVariableDeclarations::EnumerateVariableForAddVariablesToResolver(
                   eCSSTokenSerialization_Nothing,
                   eCSSTokenSerialization_Nothing,
                   false);
-  } else if (aValue.EqualsLiteral(INHERIT_VALUE)) {
+  } else if (aValue.EqualsLiteral(INHERIT_VALUE) ||
+             aValue.EqualsLiteral(UNSET_VALUE)) {
+    
+    
+    
     
     
     
