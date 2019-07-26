@@ -479,7 +479,15 @@ class Assembler : public AssemblerX86Shared
     }
 
     void mov(ImmWord word, const Register &dest) {
-        movq(word, dest);
+        
+        
+        
+        
+        
+        if (word.value == 0)
+            xorl(dest, dest);
+        else
+            movq(word, dest);
     }
     void mov(ImmPtr imm, const Register &dest) {
         movq(imm, dest);
@@ -488,9 +496,6 @@ class Assembler : public AssemblerX86Shared
         masm.movq_i64r(-1, dest.code());
         AsmJSAbsoluteLink link(masm.currentOffset(), imm.kind());
         enoughMemory_ &= asmJSAbsoluteLinks_.append(link);
-    }
-    void mov(const Imm32 &imm32, const Register &dest) {
-        movl(imm32, dest);
     }
     void mov(const Operand &src, const Register &dest) {
         movq(src, dest);

@@ -281,6 +281,7 @@ MoveEmitterX86::emitGeneralMove(const MoveOperand &from, const MoveOperand &to)
 #else
         
         
+        
         masm.Push(from.base());
         masm.Pop(toPopOperand(to));
         masm.addPtr(Imm32(from.disp()), toOperand(to));

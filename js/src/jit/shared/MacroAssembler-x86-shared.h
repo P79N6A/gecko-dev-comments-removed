@@ -595,6 +595,10 @@ class MacroAssemblerX86Shared : public Assembler
 
             if (ifNaN == Assembler::NaN_IsFalse)
                 j(Assembler::Parity, &ifFalse);
+            
+            
+            
+            
             movl(Imm32(1), dest);
             j(cond, &end);
             if (ifNaN == Assembler::NaN_IsTrue)
