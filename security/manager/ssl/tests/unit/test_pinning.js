@@ -31,6 +31,7 @@ const certdb = Cc["@mozilla.org/security/x509certdb;1"]
 function test_strict() {
   
   
+  
   add_test(function() {
     Services.prefs.setIntPref("security.cert_pinning.enforcement_level", 2);
     run_next_test();
