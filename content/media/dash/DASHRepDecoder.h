@@ -178,7 +178,7 @@ public:
     mDecoderStateMachine = nullptr;
     
     MediaDecoder::Shutdown();
-    NS_ENSURE_TRUE(mShuttingDown, );
+    NS_ENSURE_TRUE_VOID(mShuttingDown);
     
     mMainDecoder = nullptr;
   }

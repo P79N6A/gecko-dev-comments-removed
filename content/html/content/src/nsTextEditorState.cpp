@@ -1426,7 +1426,7 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
 
   
   NS_ASSERTION(!aFrame || aFrame == mBoundFrame, "Unbinding from the wrong frame");
-  NS_ENSURE_TRUE(!aFrame || aFrame == mBoundFrame, );
+  NS_ENSURE_TRUE_VOID(!aFrame || aFrame == mBoundFrame);
 
   
   

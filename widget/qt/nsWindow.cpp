@@ -3251,7 +3251,8 @@ nsWindow::SetSoftwareKeyboardState(bool aOpen,
                                    const InputContextAction& aAction)
 {
     if (aOpen) {
-        NS_ENSURE_TRUE(mInputContext.mIMEState.mEnabled != IMEState::DISABLED,);
+        NS_ENSURE_TRUE_VOID(mInputContext.mIMEState.mEnabled !=
+                            IMEState::DISABLED);
 
         
         

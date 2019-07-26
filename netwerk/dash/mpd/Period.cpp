@@ -57,7 +57,7 @@ Period::GetAdaptationSet(uint32_t aIndex) const
 void
 Period::AddAdaptationSet(AdaptationSet* aAdaptationSet)
 {
-  NS_ENSURE_TRUE(aAdaptationSet,);
+  NS_ENSURE_TRUE_VOID(aAdaptationSet);
   
   if (!mAdaptationSets.Contains(aAdaptationSet)) {
     mAdaptationSets.AppendElement(aAdaptationSet);
