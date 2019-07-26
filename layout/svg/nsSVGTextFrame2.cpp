@@ -273,11 +273,7 @@ IsNonEmptyTextFrame(nsIFrame* aFrame)
     return false;
   }
 
-  nsIContent* content = textFrame->GetContent();
-  NS_ASSERTION(content && content->IsNodeOfType(nsINode::eTEXT),
-               "unexpected content type for nsTextFrame");
-
-  return static_cast<nsTextNode*>(content)->TextLength() != 0;
+  return textFrame->GetContentLength() != 0;
 }
 
 
@@ -1420,6 +1416,9 @@ TextNodeCorrespondenceRecorder::TraverseAndRecord(nsIFrame* aFrame)
   
   mNodeCharIndex = frame->GetContentEnd();
 }
+
+
+
 
 
 
