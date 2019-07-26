@@ -267,8 +267,6 @@ static char gBuf2[kBufLen];
 static char gBuf3[kBufLen];
 static char gBuf4[kBufLen];
 
-static const size_t kNoSize = size_t(-1);
-
 
 
 
@@ -1447,7 +1445,9 @@ public:
     mRecordSize.Add(aB);
   }
 
-  static const char* const kRecordKind;   
+  
+  static const char* const kRecordKind;
+  static bool recordsOverlap() { return false; }
 
   void Print(const Writer& aWriter, LocationService* aLocService,
              uint32_t aM, uint32_t aN, const char* aStr, const char* astr,
@@ -1556,7 +1556,9 @@ public:
     return RecordSize::Cmp(a->mRecordSize, b->mRecordSize);
   }
 
-  static const char* const kRecordKind;   
+  
+  static const char* const kRecordKind;
+  static bool recordsOverlap() { return true; }
 
   
 
@@ -1940,8 +1942,9 @@ PrintSortedRecords(const Writer& aWriter, LocationService* aLocService,
     }
   }
 
-  MOZ_ASSERT(aCategoryUsableSize == kNoSize ||
-             aCategoryUsableSize == cumulativeUsableSize);
+  
+  MOZ_ASSERT_IF(!Record::recordsOverlap(),
+                aCategoryUsableSize == cumulativeUsableSize);
 }
 
 static void
@@ -1983,8 +1986,9 @@ PrintSortedTraceAndFrameRecords(const Writer& aWriter,
       p->Add(tr);
     }
   }
+
   PrintSortedRecords(aWriter, aLocService, aStr, astr, frameRecordTable,
-                     kNoSize, aTotalUsableSize);
+                     aCategoryUsableSize, aTotalUsableSize);
 }
 
 
