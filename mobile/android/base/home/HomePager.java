@@ -294,15 +294,19 @@ public class HomePager extends ViewPager {
 
         
         
-        
-        boolean originalCanLoadHint = adapter.getCanLoadHint();
-        adapter.setCanLoadHint(false);
+        setAdapter(null);
 
         
         adapter.update(panelConfigs);
 
+        
+        
         final int count = (panelConfigs != null ? panelConfigs.size() : 0);
         mTabStrip.setVisibility(count > 0 ? View.VISIBLE : View.INVISIBLE);
+
+        
+        
+        setAdapter(adapter);
 
         
         
@@ -319,10 +323,6 @@ public class HomePager extends ViewPager {
                 }
             }
         }
-
-        
-        
-        adapter.setCanLoadHint(originalCanLoadHint);
     }
 
     private class ConfigLoaderCallbacks implements LoaderCallbacks<List<PanelConfig>> {
@@ -338,7 +338,6 @@ public class HomePager extends ViewPager {
 
         @Override
         public void onLoaderReset(Loader<List<PanelConfig>> loader) {
-            updateUiFromPanelConfigs(null);
         }
     }
 }
