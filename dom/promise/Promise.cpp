@@ -894,12 +894,19 @@ Promise::MaybeReportRejected()
     return;
   }
 
-  JSErrorReport* report = js::ErrorFromException(mResult);
+  
+  
+  if (!mResult.isObject()) {
+    return;
+  }
+  JSContext* cx = nsContentUtils::GetDefaultJSContextForThread();
+  JSAutoRequest ar(cx);
+  JS::Rooted<JSObject*> obj(cx, &mResult.toObject());
+  JSAutoCompartment ac(cx, obj);
+  JSErrorReport* report = JS_ErrorFromException(cx, obj);
   if (!report) {
     return;
   }
-
-  MOZ_ASSERT(mResult.isObject(), "How did we get a JSErrorReport?");
 
   
   nsCOMPtr<nsPIDOMWindow> win;
@@ -907,8 +914,8 @@ Promise::MaybeReportRejected()
 
   if (MOZ_LIKELY(NS_IsMainThread())) {
     win =
-      do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(&mResult.toObject()));
-    nsIPrincipal* principal = nsContentUtils::GetObjectPrincipal(&mResult.toObject());
+      do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(obj));
+    nsIPrincipal* principal = nsContentUtils::GetObjectPrincipal(obj);
     isChromeError = nsContentUtils::IsSystemPrincipal(principal);
   } else {
     WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
@@ -921,7 +928,7 @@ Promise::MaybeReportRejected()
   
   
   nsRefPtr<AsyncErrorReporter> r =
-    new AsyncErrorReporter(JS_GetObjectRuntime(&mResult.toObject()),
+    new AsyncErrorReporter(JS_GetObjectRuntime(obj),
                            report,
                            nullptr,
                            isChromeError,

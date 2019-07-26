@@ -4601,7 +4601,7 @@ JS_DropExceptionState(JSContext *cx, JSExceptionState *state);
 
 
 extern JS_PUBLIC_API(JSErrorReport *)
-JS_ErrorFromException(JSContext *cx, JS::HandleValue v);
+JS_ErrorFromException(JSContext *cx, JS::HandleObject obj);
 
 
 

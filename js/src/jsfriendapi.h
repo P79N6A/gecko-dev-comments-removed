@@ -814,14 +814,6 @@ IsObjectInContextCompartment(JSObject *obj, const JSContext *cx);
 
 
 
-JS_FRIEND_API(JSErrorReport*)
-ErrorFromException(JS::Value val);
-
-
-
-
-
-
 #define JSITER_ENUMERATE  0x1   /* for-in compatible hidden default iterator */
 #define JSITER_FOREACH    0x2   /* return [key, value] pair rather than key */
 #define JSITER_KEYVALUE   0x4   /* destructuring for-in wants [key, value] */

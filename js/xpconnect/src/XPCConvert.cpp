@@ -1165,7 +1165,7 @@ XPCConvert::JSValToXPCException(MutableHandleValue s,
             
             
             const JSErrorReport* report;
-            if (nullptr != (report = JS_ErrorFromException(cx, s))) {
+            if (nullptr != (report = JS_ErrorFromException(cx, obj))) {
                 JSAutoByteString message;
                 JSString* str;
                 if (nullptr != (str = ToString(cx, s)))

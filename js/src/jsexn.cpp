@@ -270,18 +270,15 @@ exn_finalize(FreeOp *fop, JSObject *obj)
 }
 
 JSErrorReport *
-js_ErrorFromException(jsval exn)
+js_ErrorFromException(JSContext *cx, HandleObject objArg)
 {
-    if (JSVAL_IS_PRIMITIVE(exn))
-        return nullptr;
-
     
     
     
     
     
     
-    JSObject *obj = UncheckedUnwrap(JSVAL_TO_OBJECT(exn));
+    RootedObject obj(cx, UncheckedUnwrap(objArg));
     if (!obj->is<ErrorObject>())
         return nullptr;
 
@@ -746,7 +743,8 @@ js_ReportUncaughtException(JSContext *cx)
     }
 
     JS_ClearPendingException(cx);
-    JSErrorReport *reportp = js_ErrorFromException(exn);
+    JSErrorReport *reportp = exnObject ? js_ErrorFromException(cx, exnObject)
+                                       : nullptr;
 
     
     RootedString str(cx, ToString<CanGC>(cx, exn));
