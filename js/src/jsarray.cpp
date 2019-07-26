@@ -2444,10 +2444,6 @@ array_splice(JSContext *cx, unsigned argc, Value *vp)
 
             
             obj->shrinkElements(cx, finalLength);
-
-            
-            if (!js_SuppressDeletedElements(cx, obj, finalLength, len))
-                return false;
         } else {
             
 
