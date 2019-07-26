@@ -253,9 +253,7 @@ let DebuggerController = {
       if (aCallback) {
         aCallback();
       }
-    }, {
-      useSourceMaps: Services.prefs.getBoolPref("devtools.debugger.source-maps-enabled")
-    });
+    }, { useSourceMaps: Prefs.sourceMapsEnabled });
   },
 
   
@@ -299,6 +297,29 @@ let DebuggerController = {
       if (aCallback) {
         aCallback();
       }
+    }, { useSourceMaps: Prefs.sourceMapsEnabled });
+  },
+
+  
+
+
+
+  reconfigureThread: function DC_reconfigureThread(aUseSourceMaps) {
+    this.client.reconfigureThread(aUseSourceMaps, (aResponse) => {
+      if (aResponse.error) {
+        let msg = "Couldn't reconfigure thread: " + aResponse.message;
+        Cu.reportError(msg);
+        dumpn(msg);
+        return;
+      }
+
+      
+      DebuggerView.Sources.empty();
+      SourceUtils.clearCache();
+      this.SourceScripts._handleTabNavigation();
+      
+      this.activeThread._clearFrames();
+      this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);
     });
   },
 
@@ -1659,6 +1680,7 @@ let Prefs = new ViewHelpers.Prefs("devtools.debugger", {
   variablesSortingEnabled: ["Bool", "ui.variables-sorting-enabled"],
   variablesOnlyEnumVisible: ["Bool", "ui.variables-only-enum-visible"],
   variablesSearchboxVisible: ["Bool", "ui.variables-searchbox-visible"],
+  sourceMapsEnabled: ["Bool", "source-maps-enabled"],
   remoteHost: ["Char", "remote-host"],
   remotePort: ["Int", "remote-port"],
   remoteAutoConnect: ["Bool", "remote-autoconnect"],

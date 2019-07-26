@@ -494,6 +494,23 @@ DebuggerClient.prototype = {
 
 
 
+  reconfigureThread: function DC_reconfigureThread(aUseSourceMaps, aOnResponse) {
+    let packet = {
+      to: this.activeThread._actor,
+      type: "reconfigure",
+      options: { useSourceMaps: aUseSourceMaps }
+    };
+    this.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
+
+
 
   release: DebuggerClient.requester({
     to: args(0),
