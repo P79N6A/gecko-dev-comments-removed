@@ -206,6 +206,41 @@ private:
 
   void FinalizeDeferredThings(DeferredFinalizeType aType);
 
+public:
+  
+  
+  MOZ_BEGIN_NESTED_ENUM_CLASS(OOMState, uint32_t)
+    
+    OK,
+
+    
+    
+    
+    
+    
+    
+    
+    Reporting,
+
+    
+    
+    
+    
+    
+    
+    
+    
+    Reported,
+
+    
+    
+    
+    
+    Recovered
+  MOZ_END_NESTED_ENUM_CLASS(OOMState)
+
+private:
+  void AnnotateAndSetOutOfMemory(OOMState *aStatePtr, OOMState aNewState);
   void OnGC(JSGCStatus aStatus);
   void OnOutOfMemory();
   void OnLargeAllocationFailure();
@@ -269,7 +304,12 @@ private:
   nsRefPtr<IncrementalFinalizeRunnable> mFinalizeRunnable;
 
   nsCOMPtr<nsIException> mPendingException;
+
+  OOMState mOutOfMemoryState;
+  OOMState mLargeAllocationFailureState;
 };
+
+MOZ_FINISH_NESTED_ENUM_CLASS(CycleCollectedJSRuntime::OOMState)
 
 } 
 
