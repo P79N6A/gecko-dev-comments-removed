@@ -3041,34 +3041,6 @@ nsXPCComponents_Utils::CreateObjectIn(HandleValue vobj, HandleValue voptions,
 
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::CreateArrayIn(HandleValue vobj, JSContext *cx,
-                                     MutableHandleValue rval)
-{
-    if (!cx)
-        return NS_ERROR_FAILURE;
-
-    
-    if (vobj.isPrimitive())
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    RootedObject scope(cx, js::UncheckedUnwrap(&vobj.toObject()));
-    RootedObject obj(cx);
-    {
-        JSAutoCompartment ac(cx, scope);
-        obj =  JS_NewArrayObject(cx, 0);
-        if (!obj)
-            return NS_ERROR_FAILURE;
-    }
-
-    if (!JS_WrapObject(cx, &obj))
-        return NS_ERROR_FAILURE;
-
-    rval.setObject(*obj);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext *cx)
 {
     if (!cx)
