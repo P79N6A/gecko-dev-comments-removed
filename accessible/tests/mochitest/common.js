@@ -83,6 +83,8 @@ const kDiscBulletText = String.fromCharCode(0x2022) + " ";
 const kCircleBulletText = String.fromCharCode(0x25e6) + " ";
 const kSquareBulletText = String.fromCharCode(0x25aa) + " ";
 
+const MAX_TRIM_LENGTH = 100;
+
 
 
 
@@ -607,7 +609,7 @@ function prettyName(aIdentifier)
     try {
       msg += ", role: " + roleToString(acc.role);
       if (acc.name)
-        msg += ", name: '" + acc.name + "'";
+        msg += ", name: '" + shortenString(acc.name) + "'";
     } catch (e) {
       msg += "defunct";
     }
@@ -625,6 +627,21 @@ function prettyName(aIdentifier)
   return " '" + aIdentifier + "' ";
 }
 
+
+
+
+
+
+function shortenString(aString, aMaxLength)
+{
+  if (aString.length <= MAX_TRIM_LENGTH)
+    return aString;
+
+  
+  var trimOffset = MAX_TRIM_LENGTH / 2;
+  return aString.substring(0, trimOffset - 1) + "..." +
+    aString.substring(aString.length - trimOffset, aString.length);
+}
 
 
 
