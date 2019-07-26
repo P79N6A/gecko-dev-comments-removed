@@ -56,21 +56,8 @@ public:
     }
     AudioNode::SetChannelCountModeValue(aMode, aRv);
   }
-  virtual void NotifyInputConnected() MOZ_OVERRIDE
-  {
-    mMediaStreamGraphUpdateIndexAtLastInputConnection =
-      mStream->Graph()->GetCurrentGraphUpdateIndex();
-  }
-  bool AcceptPlayingRefRelease(int64_t aLastGraphUpdateIndexProcessed) const
-  {
-    
-    
-    
-    return aLastGraphUpdateIndexProcessed >= mMediaStreamGraphUpdateIndexAtLastInputConnection;
-  }
 
 private:
-  int64_t mMediaStreamGraphUpdateIndexAtLastInputConnection;
   nsRefPtr<AudioBuffer> mBuffer;
   bool mNormalize;
 };

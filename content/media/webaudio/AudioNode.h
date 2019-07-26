@@ -199,8 +199,6 @@ public:
 
   void RemoveOutputParam(AudioParam* aParam);
 
-  virtual void NotifyInputConnected() {}
-
   
   
   

@@ -176,7 +176,6 @@ AudioNode::Connect(AudioNode& aDestination, uint32_t aOutput,
       ps->AllocateInputPort(mStream, MediaInputPort::FLAG_BLOCK_INPUT,
                             static_cast<uint16_t>(aInput),
                             static_cast<uint16_t>(aOutput));
-    aDestination.NotifyInputConnected();
   }
 
   

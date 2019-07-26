@@ -37,25 +37,11 @@ public:
     return this;
   }
 
-  virtual void NotifyInputConnected() MOZ_OVERRIDE
-  {
-    mMediaStreamGraphUpdateIndexAtLastInputConnection =
-      mStream->Graph()->GetCurrentGraphUpdateIndex();
-  }
-  bool AcceptPlayingRefRelease(int64_t aLastGraphUpdateIndexProcessed) const
-  {
-    
-    
-    
-    return aLastGraphUpdateIndexProcessed >= mMediaStreamGraphUpdateIndexAtLastInputConnection;
-  }
-
 private:
   static void SendDelayToStream(AudioNode* aNode);
   friend class DelayNodeEngine;
 
 private:
-  int64_t mMediaStreamGraphUpdateIndexAtLastInputConnection;
   nsRefPtr<AudioParam> mDelay;
 };
 

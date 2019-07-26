@@ -96,7 +96,6 @@ public:
       if (mLeftOverData <= 0) {
         
         
-        
         mLeftOverData = 0;
         playedBackAllLeftOvers = true;
 
@@ -173,7 +172,6 @@ DelayNode::DelayNode(AudioContext* aContext, double aMaxDelay)
               2,
               ChannelCountMode::Max,
               ChannelInterpretation::Speakers)
-  , mMediaStreamGraphUpdateIndexAtLastInputConnection(0)
   , mDelay(new AudioParam(MOZ_THIS_IN_INITIALIZER_LIST(),
                           SendDelayToStream, 0.0f))
 {
