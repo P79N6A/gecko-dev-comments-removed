@@ -20,7 +20,7 @@ namespace gfx {
 
 
 
-const uint16_t kMajorRevision = 1;
+const uint16_t kMajorRevision = 2;
 
 
 const uint16_t kMinorRevision = 0;
@@ -212,7 +212,7 @@ protected:
 
   virtual ReferencePtr GetObject() const;
 
-  DrawTarget *mDT;
+  ReferencePtr mDT;
 };
 
 class RecordedDrawTargetCreation : public RecordedEvent {
@@ -801,7 +801,7 @@ private:
   friend class RecordedEvent;
 
   ReferencePtr mRefPtr;
-  DrawTarget *mDT;
+  ReferencePtr mDT;
 
   RecordedSnapshot(std::istream &aStream);
 };
