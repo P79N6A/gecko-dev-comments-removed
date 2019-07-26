@@ -106,11 +106,11 @@ WebVTTListener::OnStopRequest(nsIRequest* aRequest,
                               nsISupports* aContext,
                               nsresult aStatus)
 {
+  
+  mParserWrapper->Flush();
   if (mElement->ReadyState() != TextTrackReadyState::FailedToLoad) {
     mElement->SetReadyState(TextTrackReadyState::Loaded);
   }
-  
-  mParserWrapper->Flush();
   return NS_OK;
 }
 
