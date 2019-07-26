@@ -309,10 +309,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
     if (forceTTY) {
         file = stdin;
     }
-    else
-#ifdef HAVE_ISATTY
-    if (!isatty(fileno(file)))
-#endif
+    else if (!isatty(fileno(file)))
     {
         
 
@@ -475,11 +472,9 @@ XPCShellEnvironment::Init()
 {
     nsresult rv;
 
-#ifdef HAVE_SETBUF
     
     
     setbuf(stdout, 0);
-#endif
 
     nsCOMPtr<nsIJSRuntimeService> rtsvc =
         do_GetService("@mozilla.org/js/xpc/RuntimeService;1");
