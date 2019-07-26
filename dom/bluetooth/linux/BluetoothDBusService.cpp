@@ -1451,7 +1451,6 @@ BluetoothDBusService::StopInternal()
 
   mConnection = nullptr;
   gThreadConnection = nullptr;
-  mBluetoothSignalObserverTable.Clear();
 
   
   sPairingReqTable.EnumerateRead(UnrefDBusMessages, nullptr);
