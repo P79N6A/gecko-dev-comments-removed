@@ -112,30 +112,19 @@ function getUserMedia(constraints, onSuccess, onError) {
 
 
 
-
-
-function runTest(aCallback, desktopSupportedOnly) {
+function runTest(aCallback) {
   SimpleTest.waitForExplicitFinish();
-
-  
-  
-  if(desktopSupportedOnly && (navigator.userAgent.indexOf('Android') > -1 ||
-     navigator.platform === '')) {
-    ok(true, navigator.userAgent + ' currently not supported');
-    SimpleTest.finish();
-  } else {
-    SpecialPowers.pushPrefEnv({'set': [
-        ['media.peerconnection.enabled', true],
-        ['media.navigator.permission.denied', true]]
-      }, function () {
-      try {
-        aCallback();
-      }
-      catch (err) {
-        unexpectedCallbackAndFinish(new Error)(err);
-      }
-    });
-  }
+  SpecialPowers.pushPrefEnv({'set': [
+    ['media.peerconnection.enabled', true],
+    ['media.navigator.permission.disabled', true]]
+  }, function () {
+    try {
+      aCallback();
+    }
+    catch (err) {
+      unexpectedCallbackAndFinish(new Error)(err);
+    }
+  });
 }
 
 
