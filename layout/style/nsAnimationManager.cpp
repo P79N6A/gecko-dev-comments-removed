@@ -12,6 +12,7 @@
 #include "nsSMILKeySpline.h"
 #include "nsEventDispatcher.h"
 #include "nsCSSFrameConstructor.h"
+#include <math.h>
 
 using namespace mozilla;
 using namespace mozilla::css;
@@ -94,15 +95,14 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
   
   
   NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
-  uint32_t whichIteration = int(currentIterationCount);
-  if (whichIteration == aIterationCount && whichIteration != 0) {
+  double whichIteration = floor(currentIterationCount);
+  if (whichIteration == aIterationCount && whichIteration != 0.0) {
     
     
     
-    --whichIteration;
+    whichIteration -= 1.0;
   }
-  double positionInIteration =
-    currentIterationCount - double(whichIteration);
+  double positionInIteration = currentIterationCount - whichIteration;
 
   bool thisIterationReverse = false;
   switch (aDirection) {
@@ -113,10 +113,15 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
       thisIterationReverse = true;
       break;
     case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE:
-      thisIterationReverse = (whichIteration & 1) == 1;
+      
+      
+      
+      
+      thisIterationReverse = (uint64_t(whichIteration) & 1) == 1;
       break;
     case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE_REVERSE:
-      thisIterationReverse = (whichIteration & 1) == 0;
+      
+      thisIterationReverse = (uint64_t(whichIteration) & 1) == 0;
       break;
   }
   if (thisIterationReverse) {
