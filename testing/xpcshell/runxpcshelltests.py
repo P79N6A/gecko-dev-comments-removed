@@ -1331,10 +1331,11 @@ class XPCShellTests(object):
             for test in running_tests:
                 if test.done:
                     done_tests.add(test)
-                    test.join()
+                    test.join(1) 
                     
                     
-                    if test.retry:
+                    if test.retry or test.is_alive():
+                        
                         self.try_again_list.append(test.test_object)
                         continue
                     
