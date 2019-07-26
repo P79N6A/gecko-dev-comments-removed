@@ -9,15 +9,10 @@
 
 
 #include "nsIDOMEventListener.h"
+#include "mozilla/dom/EventTarget.h"
 
 #include "nsCOMPtr.h"
 #include "mozilla/Attributes.h"
-
-namespace mozilla {
-namespace dom {
-class EventTarget;
-}
-}
 
 
 
@@ -35,7 +30,6 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
   nsPrintPreviewListener(mozilla::dom::EventTarget* aTarget);
-  ~nsPrintPreviewListener();
 
   
   
