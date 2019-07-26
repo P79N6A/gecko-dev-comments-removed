@@ -80,6 +80,7 @@ Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm", this);
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", this);
+Cu.import("resource://gre/modules/Task.jsm", this);
 
 XPCOMUtils.defineLazyServiceGetter(this, "gSessionStartup",
   "@mozilla.org/browser/sessionstartup;1", "nsISessionStartup");
@@ -235,7 +236,18 @@ this.SessionStore = {
 
   checkPrivacyLevel: function ss_checkPrivacyLevel(aIsHTTPS, aUseDefaultPref) {
     return SessionStoreInternal.checkPrivacyLevel(aIsHTTPS, aUseDefaultPref);
-  }
+  },
+
+  
+
+
+
+  get _internal() {
+    if (Services.prefs.getBoolPref("browser.sessionstore.debug")) {
+      return SessionStoreInternal;
+    }
+    return undefined;
+  },
 };
 
 
@@ -454,9 +466,50 @@ let SessionStoreInternal = {
 
     this._initEncoding();
 
+    this._performUpgradeBackup();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     this._sessionInitialized = true;
     this._promiseInitialization.resolve();
+  },
+
+  
+
+
+
+  _performUpgradeBackup: function ssi_performUpgradeBackup() {
+    
+    const PREF_UPGRADE = "sessionstore.upgradeBackup.latestBuildID";
+
+    let buildID = Services.appinfo.platformBuildID;
+    let latestBackup = this._prefBranch.getCharPref(PREF_UPGRADE);
+    if (latestBackup == buildID) {
+      return Promise.resolve();
+    }
+    return Task.spawn(function task() {
+      try {
+        
+        yield _SessionFile.createUpgradeBackupCopy("-" + buildID);
+
+        this._prefBranch.setCharPref(PREF_UPGRADE, buildID);
+
+        
+        yield _SessionFile.removeUpgradeBackup("-" + latestBackup);
+      } catch (ex) {
+        debug("Could not perform upgrade backup " + ex);
+        debug(ex.stack);
+      }
+    }.bind(this));
   },
 
   _initEncoding : function ssi_initEncoding() {
