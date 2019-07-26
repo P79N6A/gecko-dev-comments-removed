@@ -144,7 +144,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kGenericAccType,
+    Accessible::eListAccessible,
     kNoReqStates
   },
   { 
@@ -239,7 +239,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kGenericAccType,
+    Accessible::eListAccessible,
     states::READONLY
   },
   { 
