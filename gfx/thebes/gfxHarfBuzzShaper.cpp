@@ -83,7 +83,7 @@ hb_codepoint_t
 gfxHarfBuzzShaper::GetGlyph(hb_codepoint_t unicode,
                             hb_codepoint_t variation_selector) const
 {
-    hb_codepoint_t gid;
+    hb_codepoint_t gid = 0;
 
     if (mUseFontGetGlyph) {
         gid = mFont->GetGlyph(unicode, variation_selector);
@@ -98,6 +98,18 @@ gfxHarfBuzzShaper::GetGlyph(hb_codepoint_t unicode,
         const uint8_t* data =
             (const uint8_t*)hb_blob_get_data(mCmapTable, nullptr);
 
+        if (variation_selector) {
+            if (mUVSTableOffset) {
+                gid =
+                    gfxFontUtils::MapUVSToGlyphFormat14(data + mUVSTableOffset,
+                                                        unicode,
+                                                        variation_selector);
+            }
+            
+            
+            return gid;
+        }
+
         switch (mCmapFormat) {
         case 4:
             gid = unicode < UNICODE_BMP_LIMIT ?
@@ -110,20 +122,7 @@ gfxHarfBuzzShaper::GetGlyph(hb_codepoint_t unicode,
             break;
         default:
             NS_WARNING("unsupported cmap format, glyphs will be missing");
-            gid = 0;
             break;
-        }
-
-        if (gid && variation_selector && mUVSTableOffset) {
-            hb_codepoint_t varGID =
-                gfxFontUtils::MapUVSToGlyphFormat14(data + mUVSTableOffset,
-                                                    unicode,
-                                                    variation_selector);
-            if (varGID) {
-                gid = varGID;
-            }
-            
-            
         }
     }
 

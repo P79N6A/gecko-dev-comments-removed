@@ -274,44 +274,132 @@ typedef unsigned int			(*hb_unicode_decompose_compatibility_func_t)	(hb_unicode_
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 void
 hb_unicode_funcs_set_combining_class_func (hb_unicode_funcs_t *ufuncs,
-					   hb_unicode_combining_class_func_t combining_class_func,
+					   hb_unicode_combining_class_func_t func,
 					   void *user_data, hb_destroy_func_t destroy);
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_unicode_funcs_set_eastasian_width_func (hb_unicode_funcs_t *ufuncs,
-					   hb_unicode_eastasian_width_func_t eastasian_width_func,
+					   hb_unicode_eastasian_width_func_t func,
 					   void *user_data, hb_destroy_func_t destroy);
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_unicode_funcs_set_general_category_func (hb_unicode_funcs_t *ufuncs,
-					    hb_unicode_general_category_func_t general_category_func,
+					    hb_unicode_general_category_func_t func,
 					    void *user_data, hb_destroy_func_t destroy);
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_unicode_funcs_set_mirroring_func (hb_unicode_funcs_t *ufuncs,
-				     hb_unicode_mirroring_func_t mirroring_func,
+				     hb_unicode_mirroring_func_t func,
 				     void *user_data, hb_destroy_func_t destroy);
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_unicode_funcs_set_script_func (hb_unicode_funcs_t *ufuncs,
-				  hb_unicode_script_func_t script_func,
+				  hb_unicode_script_func_t func,
 				  void *user_data, hb_destroy_func_t destroy);
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_unicode_funcs_set_compose_func (hb_unicode_funcs_t *ufuncs,
-				   hb_unicode_compose_func_t compose_func,
+				   hb_unicode_compose_func_t func,
 				   void *user_data, hb_destroy_func_t destroy);
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_unicode_funcs_set_decompose_func (hb_unicode_funcs_t *ufuncs,
-				     hb_unicode_decompose_func_t decompose_func,
+				     hb_unicode_decompose_func_t func,
 				     void *user_data, hb_destroy_func_t destroy);
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_unicode_funcs_set_decompose_compatibility_func (hb_unicode_funcs_t *ufuncs,
-						   hb_unicode_decompose_compatibility_func_t decompose_compatibility_func,
+						   hb_unicode_decompose_compatibility_func_t func,
 						   void *user_data, hb_destroy_func_t destroy);
 
 

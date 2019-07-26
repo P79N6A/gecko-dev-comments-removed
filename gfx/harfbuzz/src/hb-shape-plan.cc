@@ -83,6 +83,20 @@ hb_shape_plan_plan (hb_shape_plan_t    *shape_plan,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 hb_shape_plan_t *
 hb_shape_plan_create (hb_face_t                     *face,
 		      const hb_segment_properties_t *props,
@@ -111,6 +125,15 @@ hb_shape_plan_create (hb_face_t                     *face,
   return shape_plan;
 }
 
+
+
+
+
+
+
+
+
+
 hb_shape_plan_t *
 hb_shape_plan_get_empty (void)
 {
@@ -134,11 +157,29 @@ hb_shape_plan_get_empty (void)
   return const_cast<hb_shape_plan_t *> (&_hb_shape_plan_nil);
 }
 
+
+
+
+
+
+
+
+
+
+
 hb_shape_plan_t *
 hb_shape_plan_reference (hb_shape_plan_t *shape_plan)
 {
   return hb_object_reference (shape_plan);
 }
+
+
+
+
+
+
+
+
 
 void
 hb_shape_plan_destroy (hb_shape_plan_t *shape_plan)
@@ -154,6 +195,20 @@ hb_shape_plan_destroy (hb_shape_plan_t *shape_plan)
   free (shape_plan);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 hb_bool_t
 hb_shape_plan_set_user_data (hb_shape_plan_t    *shape_plan,
 			     hb_user_data_key_t *key,
@@ -164,12 +219,37 @@ hb_shape_plan_set_user_data (hb_shape_plan_t    *shape_plan,
   return hb_object_set_user_data (shape_plan, key, data, destroy, replace);
 }
 
+
+
+
+
+
+
+
+
+
+
+
 void *
 hb_shape_plan_get_user_data (hb_shape_plan_t    *shape_plan,
 			     hb_user_data_key_t *key)
 {
   return hb_object_get_user_data (shape_plan, key);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 hb_bool_t
@@ -237,6 +317,20 @@ hb_shape_plan_matches (const hb_shape_plan_t          *shape_plan,
 	 ((shape_plan->default_shaper_list && proposal->shaper_list == NULL) ||
 	  (shape_plan->shaper_func == proposal->shaper_func));
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 hb_shape_plan_t *
 hb_shape_plan_create_cached (hb_face_t                     *face,
@@ -306,6 +400,16 @@ retry:
 
   return hb_shape_plan_reference (shape_plan);
 }
+
+
+
+
+
+
+
+
+
+
 
 const char *
 hb_shape_plan_get_shaper (hb_shape_plan_t *shape_plan)

@@ -73,8 +73,7 @@ hb_ft_get_glyph (hb_font_t *font HB_UNUSED,
 #ifdef HAVE_FT_FACE_GETCHARVARIANTINDEX
   if (unlikely (variation_selector)) {
     *glyph = FT_Face_GetCharVariantIndex (ft_face, unicode, variation_selector);
-    if (*glyph)
-      return true;
+    return *glyph != 0;
   }
 #endif
 
@@ -261,6 +260,15 @@ hb_ft_get_glyph_from_name (hb_font_t *font HB_UNUSED,
     *glyph = FT_Get_Name_Index (ft_face, buf);
   }
 
+  if (*glyph == 0)
+  {
+    
+    char buf[128];
+    if (!FT_Get_Glyph_Name(ft_face, 0, buf, sizeof (buf)) &&
+        len < 0 ? !strcmp (buf, name) : !strncmp (buf, name, len))
+      return true;
+  }
+
   return *glyph != 0;
 }
 
@@ -312,6 +320,15 @@ reference_table  (hb_face_t *face HB_UNUSED, hb_tag_t tag, void *user_data)
 }
 
 
+
+
+
+
+
+
+
+
+
 hb_face_t *
 hb_ft_face_create (FT_Face           ft_face,
 		   hb_destroy_func_t destroy)
@@ -347,6 +364,15 @@ hb_ft_face_finalize (FT_Face ft_face)
   hb_face_destroy ((hb_face_t *) ft_face->generic.data);
 }
 
+
+
+
+
+
+
+
+
+
 hb_face_t *
 hb_ft_face_create_cached (FT_Face ft_face)
 {
@@ -366,6 +392,16 @@ static void
 _do_nothing (void)
 {
 }
+
+
+
+
+
+
+
+
+
+
 
 
 hb_font_t *
