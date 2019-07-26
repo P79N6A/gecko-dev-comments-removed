@@ -474,27 +474,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-
-  cloneSelectedRequest: function() {
-    let selected = this.selectedItem.attachment;
-
-    
-    let menuView = this._createMenuView(selected.method, selected.url);
-
-    
-    let newItem = this.push([menuView], {
-      attachment: Object.create(selected, {
-        isCustom: { value: true }
-      })
-    });
-
-    
-    this.selectedItem = newItem;
-  },
-
-  
-
-
   openRequestInTab: function() {
     let win = Services.wm.getMostRecentWindow("navigator:browser");
     let selected = this.selectedItem.attachment;
@@ -524,13 +503,34 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  sendCustomRequest: function() {
+
+  cloneSelectedRequest: function() {
     let selected = this.selectedItem.attachment;
 
-    let data = Object.create(selected, {
-      headers: { value: selected.requestHeaders.headers }
+    
+    let menuView = this._createMenuView(selected.method, selected.url);
+
+    
+    let newItem = this.push([menuView], {
+      attachment: Object.create(selected, {
+        isCustom: { value: true }
+      })
     });
 
+    
+    this.selectedItem = newItem;
+  },
+
+  
+
+
+  sendCustomRequest: function() {
+    let selected = this.selectedItem.attachment;
+    let data = Object.create(selected);
+
+    if (selected.requestHeaders) {
+      data.headers = selected.requestHeaders.headers;
+    }
     if (selected.requestPostData) {
       data.body = selected.requestPostData.postData.text;
     }
@@ -548,9 +548,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   closeCustomRequest: function() {
     this.remove(this.selectedItem);
-
     NetMonitorView.Sidebar.toggle(false);
-   },
+  },
 
   
 
