@@ -153,8 +153,8 @@ CustomizeMode.prototype = {
       window.PanelUI.menuButton.addEventListener("click", this, false);
       window.PanelUI.menuButton.disabled = true;
 
-      window.document.getElementById("PanelUI-help").disabled = true;
-      window.document.getElementById("PanelUI-quit").disabled = true;
+      document.getElementById("PanelUI-help").setAttribute("disabled", true);
+      document.getElementById("PanelUI-quit").setAttribute("disabled", true);
 
       this._updateResetButton();
 
@@ -227,11 +227,15 @@ CustomizeMode.prototype = {
       
       
       this.dispatchToolboxEvent("customizationending");
+
       window.PanelUI.setMainView(window.PanelUI.mainView);
       window.PanelUI.menuButton.disabled = false;
 
-      window.document.getElementById("PanelUI-help").disabled = false;
-      window.document.getElementById("PanelUI-quit").disabled = false;
+      
+      
+      
+      document.getElementById("PanelUI-help").removeAttribute("disabled");
+      document.getElementById("PanelUI-quit").removeAttribute("disabled");
 
       
       
