@@ -31,6 +31,7 @@
  using webrtc::VoEExternalMedia;
  using webrtc::VoEAudioProcessing;
  using webrtc::VoEVideoSync;
+ using webrtc::VoERTP_RTCP;
 
 
 
@@ -86,6 +87,12 @@ public:
 
   virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
     const std::vector<AudioCodecConfig* >& codecConfigList);
+
+  
+
+
+
+  virtual MediaConduitErrorCode EnableAudioLevelExtension(bool enabled);
 
   
 
@@ -234,6 +241,7 @@ private:
   webrtc::VoEExternalMedia* mPtrVoEXmedia;
   webrtc::VoEAudioProcessing* mPtrVoEProcessing;
   webrtc::VoEVideoSync* mPtrVoEVideoSync;
+  webrtc::VoERTP_RTCP* mPtrVoERTP_RTCP;
   webrtc::VoERTP_RTCP* mPtrRTP;
 
   

@@ -338,6 +338,7 @@ typedef struct vcm_attrs_t_ {
   cc_boolean         mute;
   cc_boolean         is_video;
   cc_boolean         rtcp_mux;
+  cc_boolean         audio_level;
   vcm_audioAttrs_t audio; 
   vcm_videoAttrs_t video; 
   uint32_t bundle_level; 
