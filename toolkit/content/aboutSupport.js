@@ -186,6 +186,8 @@ let snapshotFormatters = {
     userJSFile.append("user.js");
     $("prefs-user-js-link").href = Services.io.newFileURI(userJSFile).spec;
     $("prefs-user-js-section").style.display = "";
+    
+    $("prefs-user-js-section").className = "";
   },
 };
 
