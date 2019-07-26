@@ -45,6 +45,11 @@
 #define SM_CXPADDEDBORDER                 92
 #endif
 
+
+#ifndef SM_MAXIMUMTOUCHES
+#define SM_MAXIMUMTOUCHES                 95
+#endif
+
 #ifndef WM_THEMECHANGED
 #define WM_THEMECHANGED                   0x031A
 #endif
