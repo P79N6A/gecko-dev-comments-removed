@@ -5,6 +5,7 @@
 
 #include "SourceSurfaceCG.h"
 #include "DrawTargetCG.h"
+#include "DataSourceSurfaceWrapper.h"
 
 #include "MacIOSurface.h"
 #include "Tools.h"
@@ -38,8 +39,12 @@ SourceSurfaceCG::GetDataSurface()
 {
   
   CGImageRetain(mImage);
-  RefPtr<DataSourceSurfaceCG> dataSurf =
-    new DataSourceSurfaceCG(mImage);
+  RefPtr<DataSourceSurface> dataSurf = new DataSourceSurfaceCG(mImage);
+
+  
+  
+  dataSurf = new DataSourceSurfaceWrapper(dataSurf);
+
   return dataSurf;
 }
 
