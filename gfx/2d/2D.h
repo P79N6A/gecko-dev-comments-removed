@@ -393,6 +393,7 @@ public:
 };
 
 class PathBuilder;
+class FlattenedPath;
 
 
 
@@ -400,7 +401,7 @@ class PathBuilder;
 class Path : public RefCounted<Path>
 {
 public:
-  virtual ~Path() {}
+  virtual ~Path();
   
   virtual BackendType GetBackendType() const = 0;
 
@@ -444,16 +445,22 @@ public:
 
 
   virtual void StreamToSink(PathSink *aSink) const = 0;
- 
+
   
 
 
   virtual FillRule GetFillRule() const = 0;
 
-  virtual Float ComputeLength() { return 0; }
+  virtual Float ComputeLength();
 
   virtual Point ComputePointAtLength(Float aLength,
-                                     Point* aTangent) { return Point(); }
+                                     Point* aTangent = nullptr);
+
+protected:
+  Path();
+  void EnsureFlattenedPath();
+
+  RefPtr<FlattenedPath> mFlattenedPath;
 };
 
 
