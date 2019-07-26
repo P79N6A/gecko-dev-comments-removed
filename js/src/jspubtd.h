@@ -206,7 +206,19 @@ struct Runtime
     
     bool needsBarrier_;
 
-    Runtime() : needsBarrier_(false) {}
+#ifdef JSGC_GENERATIONAL
+    
+    uintptr_t gcNurseryStart_;
+    uintptr_t gcNurseryEnd_;
+#endif
+
+    Runtime()
+      : needsBarrier_(false)
+#ifdef JSGC_GENERATIONAL
+      , gcNurseryStart_(0)
+      , gcNurseryEnd_(0)
+#endif
+    {}
 };
 
 } 
