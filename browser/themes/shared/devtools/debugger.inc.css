@@ -5,17 +5,28 @@
 
 
 
-#sources-pane > tabs {
-  -moz-border-end: 1px solid #222426; 
-}
 
 #sources-pane[selectedIndex="0"] + #sources-and-editor-splitter {
   border-color: transparent;
 }
 
+#sources-pane > tabs {
+  -moz-border-end: 1px solid;
+}
+
 #sources-pane .devtools-toolbar {
   border: none; 
-  -moz-border-end: 1px solid #222426; 
+  -moz-border-end: 1px solid;
+}
+
+.theme-dark #sources-pane > tabs,
+.theme-dark #sources-pane .devtools-toolbar {
+  -moz-border-end-color: black; 
+}
+
+.theme-light #sources-pane > tabs,
+.theme-light #sources-pane .devtools-toolbar {
+  -moz-border-end-color: #aaa; 
 }
 
 

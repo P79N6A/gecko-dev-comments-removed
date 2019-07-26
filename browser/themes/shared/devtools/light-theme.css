@@ -7,8 +7,13 @@
 
 
 .theme-body {
-  background: white;
-  color: black;
+  background: #fcfcfc; 
+  color: #18191a;
+}
+
+.theme-sidebar {
+  background: #f7f7f7; 
+  color: #18191a;
 }
 
 ::-moz-selection {
@@ -151,10 +156,11 @@
 }
 
 .theme-toolbar,
-.devtools-toolbar { 
-  color: hsl(210,30%,85%);
-  background-color: #343c45;
-  border-color: #060a0d;
+.devtools-toolbar,
+.devtools-sidebar-tabs > tabs { 
+  color: #585959;
+  background-color: #f0f1f2;
+  border-color: #aaa;
 }
 
 .ruleview-colorswatch,
@@ -165,8 +171,8 @@
 
 .variables-view-scope:focus > .title,
 .variable-or-property:focus > .title {
-  background:  hsl(208,56%,40%); 
-  color: white;
+  background:  #4c9ed9; 
+  color: #f5f7fa;
 }
 
 
