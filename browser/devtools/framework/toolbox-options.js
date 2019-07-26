@@ -184,16 +184,12 @@ OptionsPanel.prototype = {
 
 
 
+
   prepareRestartPreferences: function() {
-    let labels = this.panelDoc.querySelectorAll(".hidden-labels-box > label");
-    for (let label of labels) {
-      label.style.display = "none";
-    }
     let checkboxes = this.panelDoc.querySelectorAll(".hidden-labels-box > checkbox");
     for (let checkbox of checkboxes) {
       checkbox.addEventListener("command", function(target) {
-        target.nextSibling.style.display = "";
-        target.nextSibling.nextSibling.style.display = "";
+        target.parentNode.classList.toggle("visible");
       }.bind(null, checkbox));
     }
   },
