@@ -3928,7 +3928,14 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder *aBuilder,
   *aSnap = false;
   nsRect untransformedVisible;
   float factor = nsPresContext::AppUnitsPerCSSPixel();
-  if (!UntransformRectMatrix(mVisibleRect, GetTransform(factor), factor, &untransformedVisible)) {
+  
+  
+  
+  
+  
+  
+  if (ShouldPrerenderTransformedContent(aBuilder, mFrame) ||
+      !UntransformRectMatrix(mVisibleRect, GetTransform(factor), factor, &untransformedVisible)) {
       return nsRegion();
   }
 
