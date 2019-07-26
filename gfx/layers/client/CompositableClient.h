@@ -6,24 +6,20 @@
 #ifndef MOZILLA_GFX_BUFFERCLIENT_H
 #define MOZILLA_GFX_BUFFERCLIENT_H
 
-#include <stdint.h>                     
-#include <vector>                       
-#include "mozilla/Assertions.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/CompositorTypes.h"
-#include "mozilla/layers/LayersTypes.h"  
-#include "mozilla/layers/PCompositableChild.h"  
-#include "nsTraceRefcnt.h"              
+#include "mozilla/layers/PCompositableChild.h"
+#include "mozilla/layers/LayersTypes.h"
+#include "mozilla/RefPtr.h"
 
 namespace mozilla {
 namespace layers {
 
+class CompositableChild;
 class CompositableClient;
 class DeprecatedTextureClient;
 class TextureClient;
 class BufferTextureClient;
 class ImageBridgeChild;
+class ShadowableLayer;
 class CompositableForwarder;
 class CompositableChild;
 class SurfaceDescriptor;

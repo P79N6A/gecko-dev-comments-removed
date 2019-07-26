@@ -6,55 +6,20 @@
 #ifndef MOZILLA_GFX_COMPOSITOROGL_H
 #define MOZILLA_GFX_COMPOSITOROGL_H
 
-#include "./../mozilla-config.h"        
-#include "GLContext.h"                  
-#include "GLContextTypes.h"             
-#include "GLDefs.h"                     
-#include "GeckoProfilerFunc.h"          
-#include "LayerManagerOGLProgram.h"     
-#include "Units.h"                      
-#include "gfxContext.h"                 
-#include "gfxPoint.h"                   
-#include "mozilla/Assertions.h"         
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/TimeStamp.h"          
-#include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/Compositor.h"  
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/LayersTypes.h"
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsSize.h"                     
-#include "nsTArray.h"                   
-#include "nsThreadUtils.h"              
-#include "nsTraceRefcnt.h"              
-#include "nsXULAppAPI.h"                
-#include "nscore.h"                     
-class gfx3DMatrix;
-class nsIWidget;
-struct gfxMatrix;
+#include "mozilla/layers/Compositor.h"
+#include "GLContext.h"
+#include "LayerManagerOGLProgram.h"
+#include "mozilla/layers/Effects.h"
+#include "nsTArray.h"
+
+#include "mozilla/TimeStamp.h"
 
 namespace mozilla {
-namespace gfx {
-class Matrix4x4;
-}
-
 namespace layers {
 
-class CompositingRenderTarget;
-class CompositingRenderTargetOGL;
-class DataTextureSource;
-class GLManagerCompositor;
-class TextureSource;
-struct Effect;
-struct EffectChain;
 struct FPSState;
+class CompositingRenderTargetOGL;
+class GLManagerCompositor;
 
 class CompositorOGL : public Compositor
 {

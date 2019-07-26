@@ -6,17 +6,13 @@
 #ifndef MOZILLA_GFX_GLMANAGER_H
 #define MOZILLA_GFX_GLMANAGER_H
 
-#include "mozilla/gfx/Types.h"          
-#include "LayerManagerOGLProgram.h"
+#include "LayerManagerOGL.h"
 
 namespace mozilla {
 namespace gl {
 class GLContext;
 }
-
 namespace layers {
-
-class LayerManager;
 
 
 

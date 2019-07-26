@@ -2,21 +2,12 @@
 
 
 
+#include "mozilla/layers/PLayerTransactionChild.h"
 #include "ClientTiledThebesLayer.h"
-#include "FrameMetrics.h"               
-#include "Units.h"                      
-#include "ClientLayerManager.h"         
-#include "gfx3DMatrix.h"                
-#include "gfxPlatform.h"                
-#include "gfxPoint.h"                   
-#include "gfxRect.h"                    
-#include "mozilla/Assertions.h"         
-#include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/layers/LayerTransaction.h"
-#include "mozilla/mozalloc.h"           
-#include "nsRect.h"                     
-#include "nsTraceRefcnt.h"              
+#include "gfxImageSurface.h"
+#include "GeckoProfiler.h"
+#include "gfxPlatform.h"
+
 
 namespace mozilla {
 namespace layers {

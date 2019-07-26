@@ -6,10 +6,9 @@
 #ifndef MOZILLA_LAYERS_COMPOSITORTYPES_H
 #define MOZILLA_LAYERS_COMPOSITORTYPES_H
 
-#include <stdint.h>                     
-#include <sys/types.h>                  
-#include "LayersTypes.h"                
-#include "nsXULAppAPI.h"                
+#include "LayersTypes.h"
+#include "nsXULAppAPI.h"
+
 
 namespace mozilla {
 namespace layers {

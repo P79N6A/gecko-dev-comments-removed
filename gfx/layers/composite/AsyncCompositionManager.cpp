@@ -5,41 +5,21 @@
 
 
 #include "mozilla/layers/AsyncCompositionManager.h"
-#include <stdint.h>                     
-#include "AnimationCommon.h"            
-#include "CompositorParent.h"           
-#include "FrameMetrics.h"               
-#include "LayerManagerComposite.h"      
-#include "Layers.h"                     
-#include "gfxMatrix.h"                  
-#include "gfxPoint.h"                   
-#include "gfxPoint3D.h"                 
-#include "mozilla/WidgetUtils.h"        
-#include "mozilla/gfx/BaseRect.h"       
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/gfx/ScaleFactor.h"    
-#include "mozilla/layers/AsyncPanZoomController.h"
-#include "mozilla/layers/Compositor.h"  
-#include "nsAnimationManager.h"         
-#include "nsCSSPropList.h"
-#include "nsCoord.h"                    
-#include "nsDebug.h"                    
-#include "nsDeviceContext.h"            
-#include "nsDisplayList.h"              
-#include "nsMathUtils.h"                
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsStyleAnimation.h"           
-#include "nsTArray.h"                   
-#include "nsTArrayForwardDeclare.h"     
+#include "base/basictypes.h"
+
 #if defined(MOZ_WIDGET_ANDROID)
 # include <android/log.h>
 # include "AndroidBridge.h"
 #endif
 
-struct nsCSSValueList;
+#include "CompositorParent.h"
+#include "LayerManagerComposite.h" 
+
+#include "nsStyleAnimation.h"
+#include "nsDisplayList.h"
+#include "AnimationCommon.h"
+#include "nsAnimationManager.h"
+#include "mozilla/layers/AsyncPanZoomController.h"
 
 using namespace mozilla::dom;
 

@@ -6,29 +6,9 @@
 #ifndef MOZILLA_GFX_TILEDCONTENTCLIENT_H
 #define MOZILLA_GFX_TILEDCONTENTCLIENT_H
 
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include <algorithm>                    
-#include "Layers.h"                     
-#include "TiledLayerBuffer.h"           
-#include "Units.h"                      
-#include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
-#include "gfxImageSurface.h"            
-#include "gfxPoint.h"                   
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/layers/CompositableClient.h"  
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/TextureClient.h"
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
-#include "gfxReusableSurfaceWrapper.h"
+#include "mozilla/layers/ContentClient.h"
+#include "TiledLayerBuffer.h"
+#include "gfxPlatform.h"
 
 namespace mozilla {
 namespace layers {

@@ -5,19 +5,13 @@
 
 
 
+#include "ShadowLayerChild.h"
 #include "LayerTransactionChild.h"
-#include "mozilla/layers/CompositableClient.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/PCompositableChild.h"  
-#include "mozilla/layers/PLayerChild.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsDebug.h"                    
-#include "nsTArray.h"                   
+#include "ShadowLayerUtils.h"
+#include "mozilla/layers/CompositableClient.h"
 
 namespace mozilla {
 namespace layers {
-
-class PGrallocBufferChild;
 
 void
 LayerTransactionChild::Destroy()

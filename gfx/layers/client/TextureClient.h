@@ -6,34 +6,25 @@
 #ifndef MOZILLA_GFX_TEXTURECLIENT_H
 #define MOZILLA_GFX_TEXTURECLIENT_H
 
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include "GLContext.h"                  
-#include "GLTextureImage.h"             
-#include "ImageContainer.h"             
-#include "ImageTypes.h"                 
-#include "gfxASurface.h"                
-#include "gfxImageSurface.h"            
-#include "mozilla/Assertions.h"         
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/2D.h"             
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/ipc/Shmem.h"          
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsISupportsImpl.h"            
+#include "mozilla/layers/LayersSurfaces.h"
+#include "gfxASurface.h"
+#include "mozilla/layers/CompositorTypes.h" 
+#include "mozilla/RefPtr.h"
+#include "ImageContainer.h" 
 
 class gfxReusableSurfaceWrapper;
 
 namespace mozilla {
+
+namespace gl {
+class GLContext;
+}
+
 namespace layers {
 
 class ContentClient;
+class PlanarYCbCrImage;
+class Image;
 class CompositableForwarder;
 class ISurfaceAllocator;
 class CompositableClient;

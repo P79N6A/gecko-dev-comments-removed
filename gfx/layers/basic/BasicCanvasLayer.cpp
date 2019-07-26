@@ -3,13 +3,20 @@
 
 
 
+#include "mozilla/layers/PLayerTransactionParent.h"
 #include "BasicCanvasLayer.h"
-#include "basic/BasicLayers.h"          
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsISupportsImpl.h"            
-class gfxContext;
+#include "gfxImageSurface.h"
+#include "GLContext.h"
+#include "gfxUtils.h"
+#include "gfxPlatform.h"
+#include "mozilla/Preferences.h"
+#include "BasicLayersImpl.h"
+#include "SurfaceStream.h"
+#include "SharedSurfaceGL.h"
+#include "SharedSurfaceEGL.h"
+#include "GeckoProfiler.h"
+
+#include "nsXULAppAPI.h"
 
 using namespace mozilla::gfx;
 using namespace mozilla::gl;

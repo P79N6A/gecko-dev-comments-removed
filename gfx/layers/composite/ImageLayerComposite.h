@@ -6,25 +6,17 @@
 #ifndef GFX_ImageLayerComposite_H
 #define GFX_ImageLayerComposite_H
 
-#include "GLTextureImage.h"             
-#include "ImageLayers.h"                
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/layers/LayerManagerComposite.h"  
-#include "mozilla/layers/LayersTypes.h"  
-#include "nsISupportsImpl.h"            
-#include "nscore.h"                     
+#include "mozilla/layers/PLayerTransaction.h"
+#include "mozilla/layers/ShadowLayers.h"
 
-class gfx3DMatrix;
-struct nsIntPoint;
-struct nsIntRect;
+#include "mozilla/layers/LayerManagerComposite.h"
+#include "ImageLayers.h"
+#include "mozilla/Mutex.h"
 
 namespace mozilla {
 namespace layers {
 
-class CompositableHost;
 class ImageHost;
-class Layer;
 
 class ImageLayerComposite : public ImageLayer,
                             public LayerComposite

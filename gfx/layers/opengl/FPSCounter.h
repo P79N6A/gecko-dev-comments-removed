@@ -3,19 +3,14 @@
 
 
 
-#include <stddef.h>                     
-#include <algorithm>                    
-#include "GLDefs.h"                     
-#include "mozilla/TimeStamp.h"          
-#include "nsTArray.h"                   
+#include "mozilla/TimeStamp.h"
+#include "LayerManagerOGLProgram.h"
 
 namespace mozilla {
 namespace gl {
 class GLContext;
 }
 namespace layers {
-
-class ShaderProgramOGL;
 
 const double kFpsWindowMs = 250.0;
 const size_t kNumFrameTimeStamps = 16;

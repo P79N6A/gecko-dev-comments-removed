@@ -8,54 +8,58 @@
 #ifndef mozilla_layers_ShadowLayers_h
 #define mozilla_layers_ShadowLayers_h 1
 
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include "gfxASurface.h"                
-#include "gfxPoint.h"                   
-#include "mozilla/Attributes.h"         
-#include "mozilla/WidgetUtils.h"        
-#include "mozilla/dom/ScreenOrientation.h"  
-#include "mozilla/ipc/SharedMemory.h"   
-#include "mozilla/layers/CompositableForwarder.h"
-#include "mozilla/layers/CompositorTypes.h"  
-#include "nsCOMPtr.h"                   
-#include "nsRegion.h"                   
-#include "nsTArrayForwardDeclare.h"     
+#include "gfxASurface.h"
+#include "GLDefs.h"
 
-struct nsIntPoint;
-struct nsIntRect;
+#include "ImageLayers.h"
+#include "mozilla/layers/Compositor.h"
+#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/WidgetUtils.h"
+#include "mozilla/layers/ISurfaceAllocator.h"
+#include "mozilla/dom/ScreenOrientation.h"
+#include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/CompositorTypes.h"
+
+class gfxSharedImageSurface;
 
 namespace mozilla {
+
+namespace gl {
+class GLContext;
+class TextureImage;
+}
+
 namespace layers {
 
-class BasicTiledLayerBuffer;
-class CanvasClient;
-class CanvasLayerComposite;
-class CanvasSurface;
-class ColorLayerComposite;
-class CompositableChild;
-class ContainerLayerComposite;
-class ContentClient;
-class ContentClientRemote;
+class CompositableClient;
+class Edit;
 class EditReply;
-class ImageClient;
-class ImageLayerComposite;
-class Layer;
 class OptionalThebesBuffer;
 class PLayerChild;
 class PLayerTransactionChild;
 class PLayerTransactionParent;
-class RefLayerComposite;
 class ShadowableLayer;
-class Shmem;
-class ShmemTextureClient;
-class SurfaceDescriptor;
-class TextureClient;
 class ThebesLayerComposite;
+class ContainerLayerComposite;
+class ImageLayerComposite;
+class ColorLayerComposite;
+class CanvasLayerComposite;
+class RefLayerComposite;
+class SurfaceDescriptor;
 class ThebesBuffer;
-class ThebesBufferData;
 class TiledLayerComposer;
 class Transaction;
+class SurfaceDescriptor;
+class CanvasSurface;
+class DeprecatedTextureClientShmem;
+class ShmemTextureClient;
+class ContentClientRemote;
+class CompositableChild;
+class ImageClient;
+class CanvasClient;
+class ContentClient;
+class TextureClient;
+
 
 
 

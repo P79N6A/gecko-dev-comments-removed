@@ -2,22 +2,14 @@
 
 
 
-#include "LayerManagerOGLProgram.h"
-#include <stdint.h>                     
-#include "gfxMatrix.h"                  
-#include "gfxPoint.h"                   
-#include "gfxRect.h"                    
-#include "mozilla/DebugOnly.h"          
-#include "nsAString.h"
-#include "nsAutoPtr.h"                  
-#include "nsString.h"                   
-#include "prenv.h"                      
-#include "LayerManagerOGL.h"
-#include "LayerManagerOGLShaders.h"
-#include "Layers.h"
-#include "GLContext.h"
+#include "mozilla/DebugOnly.h"
 
-struct gfxRGBA;
+#include "LayerManagerOGLProgram.h"
+
+#include "LayerManagerOGLShaders.h"
+#include "LayerManagerOGL.h"
+
+#include "GLContext.h"
 
 namespace mozilla {
 namespace layers {

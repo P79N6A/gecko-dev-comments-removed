@@ -6,33 +6,17 @@
 #ifndef THEBESLAYERBUFFER_H_
 #define THEBESLAYERBUFFER_H_
 
-#include <stdint.h>                     
-#include "gfxASurface.h"                
-#include "gfxContext.h"                 
-#include "mozilla/Assertions.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/2D.h"             
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
-
-struct gfxMatrix;
-struct nsIntSize;
+#include "gfxContext.h"
+#include "gfxASurface.h"
+#include "nsRegion.h"
+#include "mozilla/layers/TextureClient.h"
+#include "mozilla/gfx/2D.h"
+#include "Layers.h"
 
 namespace mozilla {
-namespace gfx {
-class Matrix;
-}
-
 namespace layers {
 
-class DeprecatedTextureClient;
+class AutoOpenSurface;
 class ThebesLayer;
 
 

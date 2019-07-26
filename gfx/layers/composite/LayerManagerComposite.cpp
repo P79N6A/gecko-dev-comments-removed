@@ -3,64 +3,49 @@
 
 
 
-#include "LayerManagerComposite.h"
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include "CanvasLayerComposite.h"       
-#include "ColorLayerComposite.h"        
-#include "Composer2D.h"                 
-#include "CompositableHost.h"           
-#include "ContainerLayerComposite.h"    
-#include "FrameMetrics.h"               
-#include "GeckoProfilerImpl.h"          
-#include "ImageLayerComposite.h"        
-#include "Layers.h"                     
-#include "ThebesLayerComposite.h"       
-#include "TiledLayerBuffer.h"           
-#include "Units.h"                      
-#include "gfx2DGlue.h"                  
-#include "gfx3DMatrix.h"                
-#include "gfxMatrix.h"                  
-#include "gfxPlatform.h"                
+#include "mozilla/layers/PLayerTransaction.h"
+
+
+
+#include "mozilla/Util.h"
+
+#include "mozilla/layers/LayerManagerComposite.h"
+#include "ThebesLayerComposite.h"
+#include "ContainerLayerComposite.h"
+#include "ImageLayerComposite.h"
+#include "ColorLayerComposite.h"
+#include "CanvasLayerComposite.h"
+#include "CompositableHost.h"
+#include "mozilla/gfx/Matrix.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/layers/ImageHost.h"
+#include "mozilla/layers/ContentHost.h"
+#include "mozilla/layers/Compositor.h"
+
+#include "gfxContext.h"
+#include "gfxUtils.h"
+#include "gfx2DGlue.h"
 #ifdef XP_MACOSX
 #include "gfxPlatformMac.h"
+#else
+#include "gfxPlatform.h"
 #endif
-#include "gfxPoint.h"                   
-#include "gfxRect.h"                    
-#include "mozilla/Assertions.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/2D.h"             
-#include "mozilla/gfx/Matrix.h"         
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/Compositor.h"  
-#include "mozilla/layers/CompositorTypes.h"
-#include "mozilla/layers/Effects.h"     
-#include "mozilla/layers/LayersTypes.h"  
-#include "ipc/ShadowLayerUtils.h"
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsIWidget.h"                  
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
+
+#include "nsIWidget.h"
+#include "nsIServiceManager.h"
+#include "nsIConsoleService.h"
+
+#include "gfxCrashReporterUtils.h"
+
+#include "GeckoProfiler.h"
+
 #ifdef MOZ_WIDGET_ANDROID
 #include <android/log.h>
 #endif
 
-class gfxASurface;
-class gfxContext;
-struct nsIntSize;
-
-
 namespace mozilla {
 namespace layers {
-
-class ImageLayer;
 
 using namespace mozilla::gfx;
 using namespace mozilla::gl;

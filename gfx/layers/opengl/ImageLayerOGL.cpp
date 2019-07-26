@@ -3,42 +3,26 @@
 
 
 
+#include "gfxSharedImageSurface.h"
+
+#include "ImageContainer.h" 
+#include "ipc/AutoOpenSurface.h"
 #include "ImageLayerOGL.h"
-#include <stdint.h>                     
-#include "mozilla-config.h"             
-#include "GLDefs.h"                     
-#include "ImageContainer.h"             
-#include "ImageTypes.h"                 
-#include "SharedTextureImage.h"         
-#include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
-#include "gfxImageSurface.h"            
-#include "gfxUtils.h"                   
-#include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/LayersTypes.h"
-#include "nsAutoRef.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsIRunnable.h"                
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsSize.h"                     
-#include "nsThreadUtils.h"              
-#include "nscore.h"                     
-#include "LayerManagerOGL.h"            
+#include "gfxImageSurface.h"
+#include "gfxUtils.h"
+#include "yuv_convert.h"
+#include "GLContextProvider.h"
 #if defined(GL_PROVIDER_GLX)
 # include "GLXLibrary.h"
 # include "gfxXlibSurface.h"
 #endif
+#include "SharedTextureImage.h"
 
 using namespace mozilla::gfx;
 using namespace mozilla::gl;
 
 namespace mozilla {
 namespace layers {
-
-class Layer;
 
 
 

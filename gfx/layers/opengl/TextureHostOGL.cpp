@@ -4,36 +4,25 @@
 
 
 #include "TextureHostOGL.h"
-#include "GLContext.h"                  
-#include "SharedSurface.h"              
-#include "SharedSurfaceEGL.h"           
-#include "SharedSurfaceGL.h"            
-#include "SurfaceStream.h"              
-#include "SurfaceTypes.h"               
-#include "TiledLayerBuffer.h"           
-#include "gfx2DGlue.h"                  
-#include "gfxImageSurface.h"            
-#include "gfxPoint.h"                   
-#include "gfxReusableSurfaceWrapper.h"  
-#include "ipc/AutoOpenSurface.h"        
-#include "mozilla/gfx/2D.h"             
-#include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/layers/CompositorOGL.h"  
-#include "mozilla/layers/ISurfaceAllocator.h"
+#include "ipc/AutoOpenSurface.h"
+#include "gfx2DGlue.h"
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
-#include "nsPoint.h"                    
-#include "nsRegion.h"                   
+#include "GLContext.h"
+#include "gfxImageSurface.h"
+#include "SurfaceStream.h"
+#include "SharedSurface.h"
+#include "SharedSurfaceGL.h"
+#include "SharedSurfaceEGL.h"
 #ifdef XP_MACOSX
 #include "SharedSurfaceIO.h"
 #endif
+#include "mozilla/layers/CompositorOGL.h"
 
 using namespace mozilla::gl;
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
-
-class Compositor; 
 
 TemporaryRef<DeprecatedTextureHost>
 CreateDeprecatedTextureHostOGL(SurfaceDescriptorType aDescriptorType,

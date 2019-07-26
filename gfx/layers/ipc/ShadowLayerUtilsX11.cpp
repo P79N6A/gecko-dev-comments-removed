@@ -5,40 +5,21 @@
 
 
 
-#include "ShadowLayerUtilsX11.h"
-#include <X11/X.h>                      
-#include <X11/Xlib.h>                   
-#include <X11/extensions/Xrender.h>     
-#include <X11/extensions/render.h>      
-#include "cairo-xlib.h"
-#include <stdint.h>                     
-#include "GLDefs.h"                     
-#include "cairo-rename.h"
-#include "gfxASurface.h"                
-#include "gfxPlatform.h"                
-#include "gfxPoint.h"                   
-#include "gfxXlibSurface.h"             
-#include "mozilla/X11Util.h"            
-#include "mozilla/layers/CompositableForwarder.h"
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/ISurfaceAllocator.h"  
+#include "mozilla/layers/PLayerTransaction.h"
 #include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/ShadowLayers.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "prenv.h"                      
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/ISurfaceAllocator.h"
+#include "mozilla/layers/ShadowLayers.h"
+
+#include "gfxPlatform.h"
+
+#include "gfxXlibSurface.h"
+#include "mozilla/X11Util.h"
+#include "cairo-xlib.h"
 
 using namespace mozilla::gl;
 
 namespace mozilla {
-namespace gl {
-class GLContext;
-class TextureImage;
-}
-
 namespace layers {
 
 

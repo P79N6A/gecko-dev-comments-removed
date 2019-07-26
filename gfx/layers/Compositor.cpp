@@ -4,16 +4,10 @@
 
 
 #include "mozilla/layers/Compositor.h"
-#include "base/message_loop.h"          
-#include "mozilla/layers/CompositorParent.h"  
-#include "mozilla/layers/Effects.h"     
-#include "mozilla/mozalloc.h"           
+#include "mozilla/layers/Effects.h"
+#include "mozilla/layers/CompositorParent.h"
 
 namespace mozilla {
-namespace gfx {
-class Matrix4x4;
-}
-
 namespace layers {
 
  LayersBackend Compositor::sBackend = LAYERS_NONE;

@@ -6,19 +6,12 @@
 #ifndef GFX_ThebesLayerComposite_H
 #define GFX_ThebesLayerComposite_H
 
-#include "Layers.h"                     
-#include "gfxPoint.h"                   
-#include "gfxRect.h"                    
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/layers/LayerManagerComposite.h"  
-#include "mozilla/layers/LayersTypes.h"  
-#include "nsDebug.h"                    
-#include "nsRegion.h"                   
-#include "nscore.h"                     
+#include "mozilla/layers/PLayerTransaction.h"
+#include "mozilla/layers/ShadowLayers.h"
 
-struct nsIntPoint;
-struct nsIntRect;
+#include "Layers.h"
+#include "mozilla/layers/LayerManagerComposite.h"
+#include "base/task.h"
 
 
 namespace mozilla {
@@ -30,9 +23,7 @@ namespace layers {
 
 
 
-class CompositableHost;
 class ContentHost;
-class TiledLayerComposer;
 
 class ThebesLayerComposite : public ThebesLayer,
                              public LayerComposite

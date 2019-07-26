@@ -5,20 +5,9 @@
 
 
 #include "CompositorChild.h"
-#include <stddef.h>                     
-#include "Layers.h"                     
-#include "base/message_loop.h"          
-#include "base/process_util.h"          
-#include "base/task.h"                  
-#include "base/tracked.h"               
+#include "CompositorParent.h"
+#include "LayerManagerOGL.h"
 #include "mozilla/layers/LayerTransactionChild.h"
-#include "mozilla/layers/PLayerTransactionChild.h"
-#include "mozilla/mozalloc.h"           
-#include "nsDebug.h"                    
-#include "nsIObserver.h"                
-#include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
-#include "nsXULAppAPI.h"                
 
 using mozilla::layers::LayerTransactionChild;
 

@@ -6,18 +6,23 @@
 #ifndef GFX_BASICCANVASLAYER_H
 #define GFX_BASICCANVASLAYER_H
 
-#include "BasicImplData.h"              
-#include "BasicLayers.h"                
-#include "CopyableCanvasLayer.h"        
-#include "Layers.h"                     
-#include "nsDebug.h"                    
-#include "nsRegion.h"                   
-class gfxContext;
+#include "BasicLayersImpl.h"
+#include "nsXULAppAPI.h"
+#include "BasicLayers.h"
+#include "BasicImplData.h"
+#include "mozilla/layers/CanvasClient.h"
+#include "mozilla/Preferences.h"
+#include "CopyableCanvasLayer.h"
+
+#include "gfxPlatform.h"
 
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
+
+class CanvasClient2D;
+class CanvasClientWebGL;
 
 class BasicCanvasLayer : public CopyableCanvasLayer,
                          public BasicImplData

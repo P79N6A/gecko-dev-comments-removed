@@ -6,13 +6,10 @@
 #ifndef MOZILLA_GFX_TEXTURECLIENTOGL_H
 #define MOZILLA_GFX_TEXTURECLIENTOGL_H
 
-#include "GLContext.h"                  
-#include "gfxASurface.h"                
-#include "mozilla/Attributes.h"         
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/layers/CompositorTypes.h"
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/TextureClient.h"  
+#include "mozilla/layers/TextureClient.h"
+#include "ISurfaceAllocator.h" 
+#include "GLContext.h" 
+
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
 #endif
@@ -20,7 +17,7 @@
 namespace mozilla {
 namespace layers {
 
-class CompositableForwarder;
+
 
 
 

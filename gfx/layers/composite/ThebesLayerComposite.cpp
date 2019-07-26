@@ -3,37 +3,27 @@
 
 
 
+#include "ipc/AutoOpenSurface.h"
+#include "mozilla/layers/PLayerTransaction.h"
+#include "TiledLayerBuffer.h"
+
+
+
+#include "mozilla/Util.h"
+
+#include "mozilla/layers/ShadowLayers.h"
+
+#include "ThebesLayerBuffer.h"
 #include "ThebesLayerComposite.h"
-#include "mozilla-config.h"             
-#include "CompositableHost.h"           
-#include "FrameMetrics.h"               
-#include "Units.h"                      
-#include "gfx2DGlue.h"                  
-#include "gfx3DMatrix.h"                
-#include "gfxImageSurface.h"            
-#include "gfxUtils.h"                   
-#include "mozilla/Assertions.h"         
-#include "mozilla/gfx/Matrix.h"         
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/Compositor.h"  
-#include "mozilla/layers/ContentHost.h"  
-#include "mozilla/layers/Effects.h"     
-#include "mozilla/mozalloc.h"           
-#include "nsAString.h"
-#include "nsAutoPtr.h"                  
-#include "nsMathUtils.h"                
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsSize.h"                     
-#include "nsString.h"                   
-#include "nsTraceRefcnt.h"              
+#include "mozilla/layers/ContentHost.h"
+#include "gfxUtils.h"
+#include "gfx2DGlue.h"
+
+#include "mozilla/layers/CompositorTypes.h" 
+#include "mozilla/layers/Effects.h"
 
 namespace mozilla {
 namespace layers {
-
-class TiledLayerComposer;
 
 ThebesLayerComposite::ThebesLayerComposite(LayerManagerComposite *aManager)
   : ThebesLayer(aManager, nullptr)

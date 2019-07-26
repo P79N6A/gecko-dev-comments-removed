@@ -1,22 +1,8 @@
-
-
-
-
-
 #include "GLManager.h"
-#include "CompositorOGL.h"              
-#include "GLContext.h"                  
-#include "LayerManagerOGL.h"            
-#include "Layers.h"                     
-#include "mozilla/Assertions.h"         
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/layers/Compositor.h"  
+#include "LayerManagerOGL.h"
+#include "CompositorOGL.h"
 #include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/LayersTypes.h"
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsISupportsImpl.h"            
+#include "GLContext.h"
 
 using namespace mozilla::gl;
 

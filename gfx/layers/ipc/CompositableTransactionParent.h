@@ -5,13 +5,8 @@
 
 
 
-#ifndef MOZILLA_LAYERS_COMPOSITABLETRANSACTIONPARENT_H
-#define MOZILLA_LAYERS_COMPOSITABLETRANSACTIONPARENT_H
-
-#include <vector>                       
-#include "mozilla/Attributes.h"         
-#include "mozilla/layers/ISurfaceAllocator.h"  
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/ISurfaceAllocator.h"
+#include "mozilla/layers/LayerTransaction.h"
 
 namespace mozilla {
 namespace layers {
@@ -33,7 +28,8 @@ protected:
   bool IsOnCompositorSide() const MOZ_OVERRIDE { return true; }
 };
 
-} 
-} 
 
-#endif
+
+
+} 
+} 

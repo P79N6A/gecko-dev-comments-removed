@@ -6,28 +6,13 @@
 #ifndef mozilla_layers_APZCTreeManager_h
 #define mozilla_layers_APZCTreeManager_h
 
-#include <stdint.h>                     
-#include "FrameMetrics.h"               
-#include "Units.h"                      
-#include "gfxPoint.h"                   
-#include "mozilla/Assertions.h"         
-#include "mozilla/Monitor.h"            
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsEvent.h"                    
-#include "nsISupportsImpl.h"
-#include "nsTraceRefcnt.h"              
-
-class gfx3DMatrix;
-class nsInputEvent;
-template <class E> class nsTArray;
+#include "mozilla/layers/AsyncPanZoomController.h"
+#include "Layers.h"
+#include "CompositorParent.h"
 
 namespace mozilla {
-class InputData;
-
 namespace layers {
 
-class Layer;
 class AsyncPanZoomController;
 class CompositorParent;
 
@@ -116,7 +101,7 @@ class APZCTreeManager {
 
 public:
   APZCTreeManager();
-  virtual ~APZCTreeManager();
+  virtual ~APZCTreeManager() {}
 
   
 

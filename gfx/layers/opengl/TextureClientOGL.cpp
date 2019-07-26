@@ -4,17 +4,15 @@
 
 
 #include "mozilla/layers/TextureClientOGL.h"
-#include "GLContext.h"                  
-#include "mozilla/Assertions.h"         
-#include "mozilla/layers/ISurfaceAllocator.h"
-#include "nsSize.h"                     
+#include "mozilla/layers/CompositableClient.h"
+#include "mozilla/layers/CompositableForwarder.h"
+#include "GLContext.h"
+#include "gfxipc/ShadowLayerUtils.h"
 
 using namespace mozilla::gl;
 
 namespace mozilla {
 namespace layers {
-
-class CompositableForwarder;
 
 SharedTextureClientOGL::SharedTextureClientOGL()
 : mHandle(0), mIsCrossProcess(false), mInverted(false)

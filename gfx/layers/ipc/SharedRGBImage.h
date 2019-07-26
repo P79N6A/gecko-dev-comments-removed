@@ -5,29 +5,17 @@
 #ifndef SHAREDRGBIMAGE_H_
 #define SHAREDRGBIMAGE_H_
 
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include "ImageContainer.h"             
-#include "gfxASurface.h"                
-#include "gfxPoint.h"                   
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Types.h"          
-#include "nsCOMPtr.h"                   
+#include "ImageContainer.h"
+#include "ISurfaceAllocator.h"
 
 namespace mozilla {
 namespace ipc {
 class Shmem;
 }
-
 namespace layers {
-
 class BufferTextureClient;
-class ImageClient;
-class ISurfaceAllocator;
 class TextureClient;
-class SurfaceDescriptor;
+class ImageClient;
 
 already_AddRefed<Image> CreateSharedRGBImage(ImageContainer* aImageContainer,
                                              nsIntSize aSize,

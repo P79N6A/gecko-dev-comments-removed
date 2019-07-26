@@ -6,21 +6,21 @@
 #ifndef GFX_LAYERMANAGEROGLPROGRAM_H
 #define GFX_LAYERMANAGEROGLPROGRAM_H
 
-#include "GLDefs.h"                     
-#include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
-#include "mozilla/Assertions.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/Matrix.h"         
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/gfx/Types.h"
-#include "nsDebug.h"                    
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsTArray.h"                   
-#include "mozilla/layers/CompositorTypes.h"
+#include <string.h>
 
-struct gfxRGBA;
+#include "prenv.h"
+
+#include "nsString.h"
+#include "nsTArray.h"
+#include "GLContextTypes.h"
+#include "GLDefs.h"
+#include "gfx3DMatrix.h"
+#include "mozilla/layers/LayersTypes.h"
+#include "mozilla/layers/CompositorTypes.h"
+#include "gfxColor.h"
+#include "mozilla/gfx/Matrix.h"
+#include "mozilla/RefPtr.h"
+#include "gfxASurface.h"
 
 namespace mozilla {
 namespace gl {

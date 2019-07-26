@@ -3,16 +3,10 @@
 
 
 
-#include <stdint.h>                     
-#include "ImageContainer.h"             
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/ipc/Shmem.h"          
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsTraceRefcnt.h"              
-
-class gfxASurface;
+#include "ImageContainer.h"
+#include "mozilla/ipc/Shmem.h"
+#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/layers/ISurfaceAllocator.h"
 
 #ifndef MOZILLA_LAYERS_DeprecatedSharedPlanarYCbCrImage_H
 #define MOZILLA_LAYERS_DeprecatedSharedPlanarYCbCrImage_H
@@ -20,11 +14,9 @@ class gfxASurface;
 namespace mozilla {
 namespace layers {
 
-class BufferTextureClient;
 class ImageClient;
-class ISurfaceAllocator;
-class SurfaceDescriptor;
 class TextureClient;
+class BufferTextureClient;
 
 
 class DeprecatedSharedPlanarYCbCrImage : public PlanarYCbCrImage

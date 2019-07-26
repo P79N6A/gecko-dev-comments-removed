@@ -3,41 +3,31 @@
 
 
 
+#include "mozilla/layers/TextureHostOGL.h"
 #include "CompositorOGL.h"
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include <stdlib.h>                     
-#include "FPSCounter.h"                 
-#include "GLContextProvider.h"          
-#include "Layers.h"                     
-#include "gfx2DGlue.h"                  
-#include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
-#include "gfxCrashReporterUtils.h"      
-#include "gfxImageSurface.h"            
-#include "gfxMatrix.h"                  
-#include "gfxPattern.h"                 
-#include "gfxPlatform.h"                
-#include "gfxRect.h"                    
-#include "gfxUtils.h"                   
-#include "mozilla/Preferences.h"        
-#include "mozilla/Util.h"               
-#include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/layers/ImageHost.h"
+#include "mozilla/layers/ContentHost.h"
 #include "mozilla/layers/CompositingRenderTargetOGL.h"
-#include "mozilla/layers/Effects.h"     
-#include "mozilla/layers/TextureHost.h"  
-#include "mozilla/layers/TextureHostOGL.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsAString.h"
-#include "nsIConsoleService.h"          
-#include "nsIWidget.h"                  
-#include "nsLiteralString.h"            
-#include "nsMathUtils.h"                
-#include "nsRect.h"                     
-#include "nsServiceManagerUtils.h"      
-#include "nsString.h"                   
-#include "prtypes.h"                    
+#include "mozilla/Preferences.h"
+#include "mozilla/layers/ShadowLayers.h"
+#include "mozilla/layers/PLayer.h"
+#include "mozilla/layers/Effects.h"
+#include "nsIWidget.h"
+#include "FPSCounter.h"
+
+#include "gfxUtils.h"
+
+#include "GLContextProvider.h"
+
+#include "nsIServiceManager.h"
+#include "nsIConsoleService.h"
+
+#include "gfxCrashReporterUtils.h"
+
+#include "nsMathUtils.h"
+
+#include "GeckoProfiler.h"
+#include <algorithm>
 
 #if MOZ_ANDROID_OMTC
 #include "TexturePoolOGL.h"

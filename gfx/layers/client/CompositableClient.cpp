@@ -4,12 +4,11 @@
 
 
 #include "mozilla/layers/CompositableClient.h"
-#include <stdint.h>                     
-#include "gfxPlatform.h"                
-#include "mozilla/layers/CompositableForwarder.h"
-#include "mozilla/layers/TextureClient.h"  
+#include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/TextureClientOGL.h"
-#include "mozilla/mozalloc.h"           
+#include "mozilla/layers/LayerTransactionChild.h"
+#include "mozilla/layers/CompositableForwarder.h"
+#include "gfxPlatform.h"
 #ifdef XP_WIN
 #include "mozilla/layers/TextureD3D9.h"
 #include "mozilla/layers/TextureD3D11.h"

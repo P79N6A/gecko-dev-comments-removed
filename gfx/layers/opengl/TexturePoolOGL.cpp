@@ -3,12 +3,9 @@
 
 
 #include "TexturePoolOGL.h"
-#include <stdlib.h>                     
-#include "GLContext.h"                  
-#include "mozilla/Monitor.h"            
-#include "mozilla/mozalloc.h"           
-#include "nsDebug.h"                    
-#include "nsDeque.h"                    
+#include "GLContext.h"
+#include "nsDeque.h"
+#include "mozilla/Monitor.h"
 
 #define TEXTURE_POOL_SIZE 10
 

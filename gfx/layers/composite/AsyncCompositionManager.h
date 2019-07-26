@@ -6,24 +6,23 @@
 #ifndef GFX_ASYNCCOMPOSITIONMANAGER_H
 #define GFX_ASYNCCOMPOSITIONMANAGER_H
 
-#include "GeckoProfilerFunc.h"          
-#include "Units.h"                      
-#include "mozilla/layers/LayerManagerComposite.h"  
-#include "gfx3DMatrix.h"                
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/TimeStamp.h"          
-#include "mozilla/dom/ScreenOrientation.h"  
-#include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/layers/LayerTransaction.h"  
-#include "nsAutoPtr.h"                  
-#include "nsISupportsImpl.h"            
-#include "nsTraceRefcnt.h"              
+#include "gfxPoint.h"
+#include "gfx3DMatrix.h"
+#include "nsAutoPtr.h"
+#include "nsRect.h"
+#include "mozilla/dom/ScreenOrientation.h"
+#include "mozilla/gfx/Rect.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/layers/LayerTransaction.h" 
 
 namespace mozilla {
 namespace layers {
 
+class AsyncPanZoomController;
 class Layer;
+class LayerManagerComposite;
 class AutoResolveRefLayers;
 
 

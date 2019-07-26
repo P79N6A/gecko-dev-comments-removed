@@ -4,49 +4,42 @@
 
 
 #include "LayerManagerOGL.h"
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include "mozilla-config.h"             
-#include "CanvasLayerOGL.h"             
-#include "ColorLayerOGL.h"              
-#include "Composer2D.h"                 
-#include "ContainerLayerOGL.h"          
-#include "FPSCounter.h"                 
-#include "GLContext.h"                  
-#include "GLContextProvider.h"          
-#include "GeckoProfilerFunc.h"          
-#include "GeckoProfiler.h"              
-#include "ImageLayerOGL.h"              
-#include "ImageLayers.h"                
-#include "ThebesLayerOGL.h"             
-#include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
-#include "gfxContext.h"                 
-#include "gfxCrashReporterUtils.h"      
-#include "gfxImageSurface.h"            
-#include "gfxPlatform.h"                
-#include "gfxRect.h"                    
-#include "gfxUtils.h"                   
-#include "mozilla/Assertions.h"         
-#include "mozilla/Preferences.h"        
-#include "mozilla/TimeStamp.h"          
-#include "mozilla/Util.h"               
-#include "mozilla/gfx/2D.h"             
-#include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/mozalloc.h"           
-#include "nsIConsoleService.h"          
-#include "nsIWidget.h"                  
-#include "nsLiteralString.h"            
-#include "nsPoint.h"                    
-#include "nsServiceManagerUtils.h"      
-#include "nsString.h"                   
-#include "LayerManagerOGLProgram.h"     
-#ifdef XP_WIN
-#include "prenv.h"                      
-#endif
+
+#include "mozilla/layers/PLayerTransaction.h"
+#include <algorithm>
+
+
+#include "mozilla/Util.h"
+
+#include "Composer2D.h"
+#include "ThebesLayerOGL.h"
+#include "ContainerLayerOGL.h"
+#include "ImageLayerOGL.h"
+#include "ColorLayerOGL.h"
+#include "CanvasLayerOGL.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/Preferences.h"
+#include "TexturePoolOGL.h"
+
+#include "gfxContext.h"
+#include "gfxUtils.h"
+#include "gfxPlatform.h"
+#include "nsIWidget.h"
+
+#include "GLContext.h"
+#include "GLContextProvider.h"
+#include "Composer2D.h"
+#include "FPSCounter.h"
+
+#include "nsIServiceManager.h"
+#include "nsIConsoleService.h"
+
+#include "gfxCrashReporterUtils.h"
+
+#include "GeckoProfiler.h"
+
 #ifdef MOZ_WIDGET_ANDROID
 #include <android/log.h>
-#include "TexturePoolOGL.h"
 #endif
 #ifdef XP_MACOSX
 #include "gfxPlatformMac.h"

@@ -6,26 +6,17 @@
 #ifndef MOZILLA_GFX_IMAGECLIENT_H
 #define MOZILLA_GFX_IMAGECLIENT_H
 
-#include <stdint.h>                     
-#include <sys/types.h>                  
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/CompositableClient.h"  
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/TextureClient.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsCOMPtr.h"                   
-#include "nsRect.h"                     
+#include "mozilla/layers/LayersSurfaces.h"
+#include "mozilla/layers/CompositableClient.h"
+#include "mozilla/layers/TextureClient.h"
+#include "gfxPattern.h"
 
 namespace mozilla {
 namespace layers {
 
-class CompositableForwarder;
-class Image;
 class ImageContainer;
-class ShadowableLayer;
+class ImageLayer;
+class PlanarYCbCrImage;
 
 
 

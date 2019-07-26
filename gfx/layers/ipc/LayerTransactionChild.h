@@ -8,10 +8,6 @@
 #ifndef MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
 #define MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
 
-#include <stdint.h>                     
-#include "gfxPoint.h"                   
-#include "mozilla/Attributes.h"         
-#include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/PLayerTransactionChild.h"
 
 namespace mozilla {

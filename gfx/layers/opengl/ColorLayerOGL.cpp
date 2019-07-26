@@ -4,11 +4,6 @@
 
 
 #include "ColorLayerOGL.h"
-#include "gfxColor.h"                   
-#include "LayerManagerOGL.h"            
-#include "LayerManagerOGLProgram.h"     
-
-struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {

@@ -4,28 +4,31 @@
 
 
 #include "mozilla/layers/TextureClient.h"
-#include <stdint.h>                     
-#include "Layers.h"                     
-#include "gfxContext.h"                 
-#include "gfxPlatform.h"                
-#include "gfxPoint.h"                   
-#include "gfxReusableSurfaceWrapper.h"  
-#include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/ipc/SharedMemory.h"   
-#include "mozilla/layers/CompositableClient.h"  
-#include "mozilla/layers/CompositableForwarder.h"
-#include "mozilla/layers/ISurfaceAllocator.h"
-#include "mozilla/layers/ImageDataSerializer.h"
-#include "mozilla/layers/ShadowLayers.h"  
+#include "mozilla/layers/TextureClientOGL.h"
+
+#include "mozilla/layers/ImageClient.h"
+#include "mozilla/layers/CanvasClient.h"
+#include "mozilla/layers/ContentClient.h"
+#include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/SharedPlanarYCbCrImage.h"
+#include "GLContext.h"
+#include "BasicLayers.h" 
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
-#include "nsDebug.h"                    
-#include "nsTraceRefcnt.h"              
+#include "gfxReusableSurfaceWrapper.h"
+#include "gfxPlatform.h"
+#include "mozilla/layers/ImageDataSerializer.h"
+#include "gfx2DGlue.h"
+
+#include <stdint.h>
 
 using namespace mozilla::gl;
 
 namespace mozilla {
 namespace layers {
+
+
+
+
 
 TextureClient::TextureClient(TextureFlags aFlags)
   : mID(0)

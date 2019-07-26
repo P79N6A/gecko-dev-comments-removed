@@ -6,35 +6,20 @@
 #ifndef MOZILLA_GFX_COMPOSITINGRENDERTARGETOGL_H
 #define MOZILLA_GFX_COMPOSITINGRENDERTARGETOGL_H
 
-#include "mozilla-config.h"             
-#include "GLContext.h"                  
-#include "GLContextTypes.h"             
-#include "GLDefs.h"                     
-#include "gfxMatrix.h"                  
-#include "mozilla/Assertions.h"         
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/Compositor.h"  
-#include "mozilla/layers/TextureHost.h" 
-#include "mozilla/layers/CompositorOGL.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsAString.h"
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsString.h"                   
+#include "mozilla/layers/CompositorOGL.h"
+#include "mozilla/gfx/Rect.h"
+#include "gfxASurface.h"
 
-class gfxImageSurface;
+#ifdef MOZ_DUMP_PAINTING
+#include "mozilla/layers/CompositorOGL.h"
+#endif
 
 namespace mozilla {
 namespace gl {
+  class TextureImage;
   class BindableTexture;
 }
-
 namespace layers {
-
-class TextureSource;
 
 class CompositingRenderTargetOGL : public CompositingRenderTarget
 {

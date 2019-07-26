@@ -4,21 +4,16 @@
 
 
 #include "mozilla/layers/TextureHost.h"
-#include "LayersLogging.h"              
-#include "gfx2DGlue.h"                  
-#include "gfxImageSurface.h"            
-#include "mozilla/gfx/2D.h"             
-#include "mozilla/ipc/Shmem.h"          
-#include "mozilla/layers/Compositor.h"  
-#include "mozilla/layers/ISurfaceAllocator.h"  
+#include "mozilla/layers/LayersSurfaces.h"
+#include "LayersLogging.h"
+#include "nsPrintfCString.h"
+#include "mozilla/ipc/Shmem.h"
+#include "ipc/AutoOpenSurface.h"
 #include "mozilla/layers/ImageDataSerializer.h"
-#include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
-#include "nsAString.h"
-#include "nsAutoPtr.h"                  
-#include "nsPrintfCString.h"            
+#include "gfx2DGlue.h"
+#include "mozilla/gfx/2D.h"
 
-struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {

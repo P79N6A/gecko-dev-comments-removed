@@ -4,23 +4,10 @@
 
 
 #include "LayerSorter.h"
-#include <math.h>                       
-#include <stdint.h>                     
-#include <stdio.h>                      
-#include <stdlib.h>                     
-#include "DirectedGraph.h"              
-#include "Layers.h"                     
-#include "gfx3DMatrix.h"                
-#include "gfxLineSegment.h"             
-#include "gfxPoint.h"                   
-#include "gfxPoint3D.h"                 
-#include "gfxQuad.h"                    
-#include "gfxRect.h"                    
-#include "gfxTypes.h"                   
-#include "mozilla/gfx/BasePoint3D.h"    
-#include "nsRegion.h"                   
-#include "nsTArray.h"                   
+#include "DirectedGraph.h"
 #include "limits.h"
+#include "gfxLineSegment.h"
+#include "Layers.h"
 #include "mozilla/Assertions.h"
 
 namespace mozilla {

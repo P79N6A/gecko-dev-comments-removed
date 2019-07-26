@@ -6,53 +6,31 @@
 #ifndef GFX_LAYERMANAGEROGL_H
 #define GFX_LAYERMANAGEROGL_H
 
-#include <sys/types.h>                  
-#include "GLDefs.h"                     
-#include "LayerManagerOGLProgram.h"     
 #include "Layers.h"
-#include "gfxMatrix.h"                  
-#include "gfxPoint.h"                   
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/LayersTypes.h"  
-#include "nsAString.h"
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsSize.h"                     
-#include "nsTArray.h"                   
-#include "nsThreadUtils.h"              
-#include "nscore.h"                     
+#include "LayerManagerOGLProgram.h"
+
+#include "mozilla/TimeStamp.h"
+#include "nsPoint.h"
+
 #ifdef XP_WIN
 #include <windows.h>
 #endif
 
 #define BUFFER_OFFSET(i) ((char *)nullptr + (i))
 
-class gfx3DMatrix;
-class gfxASurface;
-class gfxContext;
-class nsIWidget;
-struct nsIntPoint;
+#include "gfxContext.h"
+#include "gfx3DMatrix.h"
+#include "nsIWidget.h"
+#include "GLContextTypes.h"
+#include "GLDefs.h"
 
 namespace mozilla {
 namespace gl {
 class GLContext;
 }
-namespace gfx {
-class DrawTarget;
-}
 namespace layers {
 
 class Composer2D;
-class ImageLayer;
 class LayerOGL;
 class ThebesLayerComposite;
 class ContainerLayerComposite;

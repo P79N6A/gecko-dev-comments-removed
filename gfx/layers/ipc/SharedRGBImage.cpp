@@ -2,22 +2,14 @@
 
 
 
+#include "ShadowLayers.h"
 #include "SharedRGBImage.h"
-#include "ImageTypes.h"                 
-#include "Shmem.h"                      
-#include "gfx2DGlue.h"                  
-#include "gfxPlatform.h"                
-#include "mozilla/layers/ISurfaceAllocator.h"  
-#include "mozilla/layers/ImageClient.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/TextureClient.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsRect.h"                     
-#include "nsSize.h"                     
-#include "nsTraceRefcnt.h"              
+#include "mozilla/layers/LayersSurfaces.h"
+#include "Shmem.h"
+#include "mozilla/layers/ISurfaceAllocator.h"
+#include "mozilla/layers/TextureClient.h"
+#include "mozilla/layers/ImageClient.h"
+#include "gfx2DGlue.h"
 
 
 #define MAX_FRAME_SIZE (16 * 1024 * 1024)

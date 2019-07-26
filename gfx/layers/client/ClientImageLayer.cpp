@@ -3,31 +3,15 @@
 
 
 
-#include "ClientLayerManager.h"         
-#include "ImageContainer.h"             
-#include "ImageLayers.h"                
-#include "gfxASurface.h"                
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/layers/CompositorTypes.h"
-#include "mozilla/layers/ImageClient.h"  
-#include "mozilla/layers/LayerTransaction.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
+#include "ClientLayerManager.h"
+#include "mozilla/layers/LayerTransaction.h"
+#include "mozilla/layers/ImageClient.h"
+#include "ImageContainer.h"
 
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
-
-class CompositableClient;
-class Layer;
-class ShadowableLayer;
 
 class ClientImageLayer : public ImageLayer, 
                          public ClientLayer {

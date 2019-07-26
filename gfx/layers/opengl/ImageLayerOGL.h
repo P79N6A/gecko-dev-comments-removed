@@ -6,27 +6,20 @@
 #ifndef GFX_IMAGELAYEROGL_H
 #define GFX_IMAGELAYEROGL_H
 
-#include "GLContext.h"                  
-#include "GLContextTypes.h"             
-#include "ImageContainer.h"             
-#include "ImageLayers.h"                
-#include "LayerManagerOGL.h"            
-#include "gfxPoint.h"                   
-#include "mozilla/Assertions.h"         
-#include "mozilla/Mutex.h"              
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsISupportsImpl.h"            
-#include "nsTArray.h"                   
-#include "opengl/LayerManagerOGLProgram.h"  
+#include "mozilla/layers/PLayerTransaction.h"
 
-struct nsIntPoint;
+#include "LayerManagerOGL.h"
+#include "ImageLayers.h"
+#include "ImageContainer.h"
+#include "yuv_convert.h"
+#include "mozilla/Mutex.h"
 
 namespace mozilla {
 namespace layers {
 
+class CairoImage;
+class PlanarYCbCrImage;
 class BlobYCbCrSurface;
-class Layer;
 
 
 

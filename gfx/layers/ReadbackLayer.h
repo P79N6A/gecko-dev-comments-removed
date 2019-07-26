@@ -6,21 +6,7 @@
 #ifndef GFX_READBACKLAYER_H
 #define GFX_READBACKLAYER_H
 
-#include <stdint.h>                     
-#include "Layers.h"                     
-#include "gfx3DMatrix.h"                
-#include "gfxColor.h"                   
-#include "gfxRect.h"                    
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsSize.h"                     
-#include "nscore.h"                     
-
-class gfxContext;
+#include "Layers.h"
 
 namespace mozilla {
 namespace layers {

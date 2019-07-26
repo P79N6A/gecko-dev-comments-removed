@@ -6,29 +6,20 @@
 
 
 #include "CompositableTransactionParent.h"
-#include "CompositableHost.h"           
-#include "CompositorParent.h"           
-#include "Layers.h"                     
-#include "RenderTrace.h"                
-#include "TiledLayerBuffer.h"           
-#include "mozilla/Assertions.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/layers/CompositorTypes.h"
-#include "mozilla/layers/ContentHost.h"  
+#include "ShadowLayers.h"
+#include "RenderTrace.h"
+#include "ShadowLayersManager.h"
+#include "CompositableHost.h"
+#include "mozilla/layers/ContentHost.h"
+#include "ShadowLayerParent.h"
+#include "TiledLayerBuffer.h"
 #include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/LayersTypes.h"  
-#include "mozilla/layers/TextureHost.h"  
 #include "mozilla/layers/ThebesLayerComposite.h"
-#include "mozilla/mozalloc.h"           
-#include "nsDebug.h"                    
-#include "nsRegion.h"                   
+#include "mozilla/layers/TextureHost.h"
+#include "CompositorParent.h"
 
 namespace mozilla {
 namespace layers {
-
-class BasicTiledLayerBuffer;
-class Compositor;
 
 template<typename T>
 CompositableHost* AsCompositable(const T& op)

@@ -3,23 +3,22 @@
 
 
 
+#include "ipc/AutoOpenSurface.h"
+#include "mozilla/layers/PLayerTransaction.h"
+#include "mozilla/layers/ShadowLayers.h"
+
+#include "gfxSharedImageSurface.h"
+
 #include "CanvasLayerOGL.h"
-#include "GLScreenBuffer.h"             
-#include "SharedSurface.h"              
-#include "SharedSurfaceGL.h"            
-#include "SurfaceStream.h"              
-#include "SurfaceTypes.h"               
-#include "gfx3DMatrix.h"                
-#include "gfxImageSurface.h"            
-#include "gfxPlatform.h"                
-#include "mozilla/Assertions.h"         
-#include "mozilla/gfx/Types.h"          
-#include "nsDebug.h"                    
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsSize.h"                     
-#include "LayerManagerOGL.h"            
+
+#include "gfxImageSurface.h"
+#include "gfxContext.h"
+#include "GLContextProvider.h"
+#include "gfxPlatform.h"
+#include "SharedSurfaceGL.h"
+#include "SharedSurfaceEGL.h"
+#include "SurfaceStream.h"
+#include "gfxColor.h"
 
 #ifdef XP_MACOSX
 #include "mozilla/gfx/MacIOSurface.h"
@@ -36,7 +35,6 @@
 #endif
 
 #ifdef GL_PROVIDER_GLX
-#include "GLXLibrary.h"                 
 #include "gfxXlibSurface.h"
 #endif
 

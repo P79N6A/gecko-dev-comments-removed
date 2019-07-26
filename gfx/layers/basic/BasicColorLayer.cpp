@@ -3,20 +3,8 @@
 
 
 
-#include "BasicLayersImpl.h"            
-#include "Layers.h"                     
-#include "BasicImplData.h"              
-#include "BasicLayers.h"                
-#include "gfxContext.h"                 
-#include "gfxRect.h"                    
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
+#include "mozilla/layers/PLayerTransactionParent.h"
+#include "BasicLayersImpl.h"
 
 using namespace mozilla::gfx;
 

@@ -4,24 +4,15 @@
 
 
 #include "CompositableHost.h"
-#include <map>                          
-#include <utility>                      
-#include "ContentHost.h"                
-#include "Effects.h"                    
-#include "ImageHost.h"                  
-#include "TiledContentHost.h"           
-#include "gfxImageSurface.h"            
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/TextureHost.h"  
-#include "nsAutoPtr.h"                  
-#include "nsDebug.h"                    
-#include "nsTraceRefcnt.h"              
+#include "ImageHost.h"
+#include "ContentHost.h"
+#include "TiledContentHost.h"
+#include "Effects.h"
+#include "mozilla/layers/CompositableTransactionParent.h"
+#include "mozilla/layers/TextureHost.h"
 
 namespace mozilla {
 namespace layers {
-
-class Matrix4x4;
-class Compositor;
 
 CompositableHost::CompositableHost(const TextureInfo& aTextureInfo)
   : mTextureInfo(aTextureInfo)

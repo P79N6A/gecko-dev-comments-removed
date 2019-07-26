@@ -6,44 +6,25 @@
 #ifndef GFX_LAYERS_H
 #define GFX_LAYERS_H
 
-#include <stdint.h>                     
-#include <stdio.h>                      
-#include <sys/types.h>                  
-#include "mozilla-config.h"             
-#include "FrameMetrics.h"               
-#include "Units.h"                      
-#include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
-#include "gfxColor.h"                   
-#include "gfxMatrix.h"                  
-#include "gfxPattern.h"                 
-#include "gfxPoint.h"                   
-#include "gfxRect.h"                    
-#include "mozilla/Assertions.h"         
-#include "mozilla/DebugOnly.h"          
-#include "mozilla/RefPtr.h"             
-#include "mozilla/TimeStamp.h"          
-#include "mozilla/gfx/BaseMargin.h"     
-#include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/gfx/UserData.h"       
+#include "mozilla/DebugOnly.h"
+
 #include "mozilla/layers/LayersTypes.h"
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsCSSProperty.h"              
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsSize.h"                     
-#include "nsString.h"                   
-#include "nsStyleAnimation.h"           
-#include "nsTArray.h"                   
-#include "nsTArrayForwardDeclare.h"     
-#include "nscore.h"                     
-#include "prlog.h"                      
+#include "gfxTypes.h"
+#include "gfxASurface.h"
+#include "nsRegion.h"
+#include "nsPoint.h"
+#include "nsRect.h"
+#include "nsISupportsImpl.h"
+#include "nsAutoPtr.h"
+#include "gfx3DMatrix.h"
+#include "gfxColor.h"
+#include "gfxPattern.h"
+#include "nsTArray.h"
+#include "nsThreadUtils.h"
+#include "nsStyleAnimation.h"
+#include "FrameMetrics.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/TimeStamp.h"
 
 class gfxContext;
 class nsPaintEvent;
@@ -54,10 +35,6 @@ namespace mozilla {
 
 class FrameLayerBuilder;
 class WebGLContext;
-
-namespace gfx {
-class DrawTarget;
-}
 
 namespace gl {
 class GLContext;
@@ -90,6 +67,7 @@ class LayerManagerComposite;
 class SpecificLayerAttributes;
 class SurfaceDescriptor;
 class Compositor;
+class LayerComposite;
 struct TextureFactoryIdentifier;
 struct EffectMask;
 
@@ -613,6 +591,7 @@ private:
   TimeStamp mTabSwitchStart;
 };
 
+class ThebesLayer;
 typedef InfallibleTArray<Animation> AnimationArray;
 
 struct AnimData {

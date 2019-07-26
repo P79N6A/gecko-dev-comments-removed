@@ -6,17 +6,12 @@
 #ifndef MOZILLA_GFX_COMPOSITOR_H
 #define MOZILLA_GFX_COMPOSITOR_H
 
-#include "mozilla-config.h"             
-#include "Units.h"                      
-#include "gfxPoint.h"                   
-#include "mozilla/Assertions.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/LayersTypes.h"  
-#include "nsTraceRefcnt.h"              
+#include "mozilla/gfx/Rect.h"
+#include "mozilla/gfx/Matrix.h"
+#include "gfxMatrix.h"
+#include "Layers.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/layers/CompositorTypes.h"
 
 
 
@@ -105,12 +100,10 @@
 
 class gfxContext;
 class nsIWidget;
-struct gfxMatrix;
-struct nsIntSize;
 
 namespace mozilla {
 namespace gfx {
-class Matrix4x4;
+class DrawTarget;
 }
 
 namespace layers {

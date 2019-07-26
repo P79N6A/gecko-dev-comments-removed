@@ -6,39 +6,27 @@
 #ifndef MOZILLA_GFX_IMAGEBRIDGECHILD_H
 #define MOZILLA_GFX_IMAGEBRIDGECHILD_H
 
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include "gfxPoint.h"                   
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/ipc/SharedMemory.h"   
-#include "mozilla/layers/CompositableForwarder.h"
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/PImageBridgeChild.h"
-#include "nsDebug.h"                    
-#include "nsRegion.h"                   
-class MessageLoop;
-struct nsIntPoint;
-struct nsIntRect;
+#include "nsAutoPtr.h"
+#include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/LayersTypes.h"
+
+class gfxSharedImageSurface;
 
 namespace base {
 class Thread;
 }
 
 namespace mozilla {
-namespace ipc {
-class Shmem;
-}
-
 namespace layers {
 
-class BasicTiledLayerBuffer;
 class ImageClient;
 class ImageContainer;
 class ImageBridgeParent;
+class SurfaceDescriptor;
 class CompositableClient;
 class CompositableTransaction;
+class ShadowableLayer;
 class Image;
 class TextureClient;
 

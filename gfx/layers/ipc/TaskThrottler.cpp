@@ -4,6 +4,8 @@
 
 
 
+#include "base/basictypes.h"
+#include "base/message_loop.h"
 #include "TaskThrottler.h"
 
 namespace mozilla {

@@ -3,26 +3,23 @@
 
 
 
-#include <stdint.h>                     
-#include "BasicLayers.h"                
-#include "ImageContainer.h"             
-#include "ImageTypes.h"                 
-#include "cairo.h"                      
-#include "gfxASurface.h"                
-#include "gfxImageSurface.h"            
-#include "gfxPlatform.h"                
-#include "gfxPoint.h"                   
-#include "gfxUtils.h"                   
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsAutoRef.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsThreadUtils.h"              
+#include "mozilla/ReentrantMonitor.h"
+
+#include "ImageLayers.h"
+#include "BasicLayers.h"
+#include "gfxImageSurface.h"
+
 #ifdef XP_MACOSX
 #include "gfxQuartzImageSurface.h"
 #endif
+
+#include "cairo.h"
+
+#include "gfxUtils.h"
+
+#include "gfxPlatform.h"
+
+using mozilla::ReentrantMonitor;
 
 namespace mozilla {
 namespace layers {

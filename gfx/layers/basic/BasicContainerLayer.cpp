@@ -3,23 +3,15 @@
 
 
 
+#include "BasicLayersImpl.h"
 #include "BasicContainerLayer.h"
-#include <sys/types.h>                  
-#include "BasicLayersImpl.h"            
-#include "basic/BasicImplData.h"        
-#include "basic/BasicLayers.h"          
-#include "mozilla/gfx/BaseRect.h"       
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsISupportsImpl.h"            
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
 
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
+
+
 
 BasicContainerLayer::~BasicContainerLayer()
 {

@@ -3,32 +3,14 @@
 
 
 
-#include "ImageBridgeParent.h"
-#include <stdint.h>                     
-#include "CompositableHost.h"           
-#include "base/message_loop.h"          
-#include "base/process.h"               
-#include "base/process_util.h"          
-#include "base/task.h"                  
-#include "base/tracked.h"               
-#include "gfxPoint.h"                   
-#include "mozilla/ipc/AsyncChannel.h"   
-#include "mozilla/ipc/ProtocolUtils.h"
-#include "mozilla/ipc/Transport.h"      
-#include "mozilla/layers/CompositableTransactionParent.h"
-#include "mozilla/layers/CompositorParent.h"  
+#include "base/thread.h"
+
+#include "mozilla/layers/CompositorParent.h"
+#include "mozilla/layers/ImageBridgeParent.h"
+#include "CompositableHost.h"
+#include "nsTArray.h"
+#include "nsXULAppAPI.h"
 #include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/LayerTransaction.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/PCompositableParent.h"
-#include "mozilla/layers/PImageBridgeParent.h"
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsTArray.h"                   
-#include "nsTArrayForwardDeclare.h"     
-#include "nsXULAppAPI.h"                
 
 using namespace base;
 using namespace mozilla::ipc;
@@ -36,7 +18,6 @@ using namespace mozilla::ipc;
 namespace mozilla {
 namespace layers {
 
-class PGrallocBufferParent;
 
 ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop, Transport* aTransport)
   : mMessageLoop(aLoop)

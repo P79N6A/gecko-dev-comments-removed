@@ -5,39 +5,28 @@
 
 
 
+#include <vector>
+
+#include "AutoOpenSurface.h"
+#include "CompositorParent.h"
+#include "gfxSharedImageSurface.h"
+#include "ImageLayers.h"
+#include "mozilla/layout/RenderFrameParent.h"
+#include "mozilla/unused.h"
+#include "RenderTrace.h"
+#include "ShadowLayerParent.h"
 #include "LayerTransactionParent.h"
-#include <vector>                       
-#include "CompositableHost.h"           
-#include "ImageLayers.h"                
-#include "Layers.h"                     
-#include "ShadowLayerParent.h"          
-#include "gfx3DMatrix.h"                
-#include "gfxPoint3D.h"                 
-#include "CompositableTransactionParent.h"  
-#include "ShadowLayersManager.h"        
-#include "mozilla/Assertions.h"         
-#include "mozilla/gfx/BasePoint3D.h"    
-#include "mozilla/layers/CanvasLayerComposite.h"
-#include "mozilla/layers/ColorLayerComposite.h"
-#include "mozilla/layers/Compositor.h"  
-#include "mozilla/layers/ContainerLayerComposite.h"
-#include "mozilla/layers/ImageLayerComposite.h"
-#include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/LayerTransaction.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/LayersTypes.h"  
-#include "mozilla/layers/PCompositableParent.h"
-#include "mozilla/layers/PLayerParent.h"  
+#include "ShadowLayers.h"
+#include "ShadowLayerUtils.h"
+#include "TiledLayerBuffer.h"
+#include "gfxPlatform.h"
+#include "CompositableHost.h"
 #include "mozilla/layers/ThebesLayerComposite.h"
-#include "mozilla/mozalloc.h"           
-#include "nsCoord.h"                    
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
-#include "nsLayoutUtils.h"              
-#include "nsMathUtils.h"                
-#include "nsPoint.h"                    
-#include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
+#include "mozilla/layers/ImageLayerComposite.h"
+#include "mozilla/layers/ColorLayerComposite.h"
+#include "mozilla/layers/ContainerLayerComposite.h"
+#include "mozilla/layers/CanvasLayerComposite.h"
+#include "mozilla/layers/PLayerTransaction.h"
 
 typedef std::vector<mozilla::layers::EditReply> EditReplyVector;
 
@@ -45,8 +34,6 @@ using mozilla::layout::RenderFrameParent;
 
 namespace mozilla {
 namespace layers {
-
-class PGrallocBufferParent;
 
 
 

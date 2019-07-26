@@ -4,11 +4,7 @@
 
 
 #include "ImageLayers.h"
-#include "ImageContainer.h"             
-#include "gfx3DMatrix.h"                
-#include "gfxRect.h"                    
-#include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
+#include "ImageContainer.h"
 
 namespace mozilla {
 namespace layers {

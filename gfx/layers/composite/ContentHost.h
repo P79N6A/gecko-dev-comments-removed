@@ -6,45 +6,14 @@
 #ifndef GFX_CONTENTHOST_H
 #define GFX_CONTENTHOST_H
 
-#include <stdint.h>                     
-#include <stdio.h>                      
-#include "mozilla-config.h"             
-#include "CompositableHost.h"           
-#include "ThebesLayerBuffer.h"          
-#include "mozilla/Attributes.h"         
-#include "mozilla/RefPtr.h"             
-#include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/gfx/Point.h"          
-#include "mozilla/gfx/Rect.h"           
-#include "mozilla/gfx/Types.h"          
-#include "mozilla/layers/CompositorTypes.h"  
-#include "mozilla/layers/ISurfaceAllocator.h"  
-#include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/LayersTypes.h"  
-#include "mozilla/layers/TextureHost.h"  
-#include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-#include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
-#include "nscore.h"                     
-
-class gfxImageSurface;
+#include "ThebesLayerBuffer.h"
+#include "CompositableHost.h"
 
 namespace mozilla {
-namespace gfx {
-class Matrix4x4;
-}
 namespace layers {
-class Compositor;
-class ThebesBufferData;
-class TiledLayerComposer;
-struct EffectChain;
 
+class ThebesBuffer;
+class OptionalThebesBuffer;
 struct TexturedEffect;
 
 

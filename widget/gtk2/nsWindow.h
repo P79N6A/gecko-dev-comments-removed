@@ -36,7 +36,6 @@
 
 #include "nsGtkIMModule.h"
 
-#undef LOG
 #ifdef MOZ_LOGGING
 
 

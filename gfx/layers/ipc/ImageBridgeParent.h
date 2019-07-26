@@ -3,28 +3,15 @@
 
 
 
-#include <stddef.h>                     
-#include <stdint.h>                     
-#include "CompositableTransactionParent.h"
-#include "gfxPoint.h"                   
-#include "mozilla/Assertions.h"         
-#include "mozilla/Attributes.h"         
-#include "mozilla/ipc/ProtocolUtils.h"
-#include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/layers/PImageBridgeParent.h"
-#include "nsAutoPtr.h"                  
-#include "nsISupportsImpl.h"
-#include "nsTArrayForwardDeclare.h"     
+#include "CompositableTransactionParent.h"
 
 class MessageLoop;
 
 namespace mozilla {
-namespace ipc {
-class Shmem;
-}
-
 namespace layers {
 
+class CompositorParent;
 
 
 
