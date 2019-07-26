@@ -113,6 +113,17 @@ WebrtcAudioConduit::~WebrtcAudioConduit()
     mVoiceEngine = nullptr;
   } else {
     
+    
+    mPtrVoENetwork = nullptr;
+    mPtrVoEBase = nullptr;
+    mPtrVoECodec = nullptr;
+    mPtrVoEXmedia = nullptr;
+    mPtrVoEProcessing = nullptr;
+    mPtrVoEVideoSync = nullptr;
+    mPtrVoERTP_RTCP = nullptr;
+    mPtrRTP = nullptr;
+
+    
     if(mVoiceEngine)
     {
       webrtc::VoiceEngine::Delete(mVoiceEngine);

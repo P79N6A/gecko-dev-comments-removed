@@ -116,7 +116,16 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
     
     mOtherDirection->mShutDown = true;
     mVideoEngine = nullptr;
- } else {
+  } else {
+    
+    
+    mPtrViEBase = nullptr;
+    mPtrViECapture = nullptr;
+    mPtrViECodec = nullptr;
+    mPtrViENetwork = nullptr;
+    mPtrViERender = nullptr;
+    mPtrRTP = nullptr;
+
     
     if(mVideoEngine)
     {
