@@ -1248,6 +1248,9 @@ private:
               jsval *argv,
               jsval *rval);
 
+    XPCWrappedNative* UnwrapThisIfAllowed(JSObject *obj, JSObject *fun,
+                                          unsigned argc);
+
 private:
     
     enum State {
