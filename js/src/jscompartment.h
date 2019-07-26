@@ -141,7 +141,7 @@ struct JSCompartment
     friend struct JSRuntime;
     friend struct JSContext;
     friend class js::ExclusiveContext;
-    js::ReadBarriered<js::GlobalObject> global_;
+    js::ReadBarrieredGlobalObject global_;
 
     unsigned                     enterCompartmentDepth;
 
@@ -265,7 +265,7 @@ struct JSCompartment
 
 
 
-    js::ReadBarriered<js::ScriptSourceObject> selfHostingScriptSource;
+    js::ReadBarrieredScriptSourceObject selfHostingScriptSource;
 
     
     unsigned                     gcIndex;

@@ -359,7 +359,7 @@ class JitCompartment
     friend class JitActivation;
 
     
-    typedef WeakValueCache<uint32_t, ReadBarriered<JitCode> > ICStubCodeMap;
+    typedef WeakValueCache<uint32_t, ReadBarrieredJitCode> ICStubCodeMap;
     ICStubCodeMap *stubCodes_;
 
     
@@ -379,8 +379,8 @@ class JitCompartment
     
     
     
-    ReadBarriered<JitCode> stringConcatStub_;
-    ReadBarriered<JitCode> parallelStringConcatStub_;
+    ReadBarrieredJitCode stringConcatStub_;
+    ReadBarrieredJitCode parallelStringConcatStub_;
 
     
     

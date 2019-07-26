@@ -323,7 +323,7 @@ class RegExpCompartment
 
 
 
-    ReadBarriered<JSObject> matchResultTemplateObject_;
+    ReadBarrieredObject matchResultTemplateObject_;
 
     JSObject *createMatchResultTemplateObject(JSContext *cx);
 
