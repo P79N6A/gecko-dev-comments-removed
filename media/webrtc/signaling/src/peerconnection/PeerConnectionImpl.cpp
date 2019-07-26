@@ -753,25 +753,27 @@ PeerConnectionImpl::CreateOffer(MediaConstraints& constraints) {
 
 
 
+
+
+
 NS_IMETHODIMP
 PeerConnectionImpl::CreateAnswer(const char* constraints, const char* aOffer) {
   MOZ_ASSERT(constraints);
-  MOZ_ASSERT(aOffer);
 
   CheckIceState();
   mRole = kRoleAnswerer;  
   MediaConstraints aconstraints;
-  CreateAnswer(aconstraints, aOffer);
+  CreateAnswer(aconstraints);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-PeerConnectionImpl::CreateAnswer(MediaConstraints& constraints, const char* offer) {
+PeerConnectionImpl::CreateAnswer(MediaConstraints& constraints) {
 
   cc_media_constraints_t* cc_constraints = nullptr;
   constraints.buildArray(&cc_constraints);
 
-  mCall->createAnswer(cc_constraints, offer);
+  mCall->createAnswer(cc_constraints);
   return NS_OK;
 }
 
