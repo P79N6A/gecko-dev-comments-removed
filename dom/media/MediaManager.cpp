@@ -778,6 +778,13 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   }
 #endif
 
+  static bool created = false;
+  if (!created) {
+    
+    
+    (void) MediaManager::Get();
+  }
+
   
   
   uint64_t windowID = aWindow->WindowID();
