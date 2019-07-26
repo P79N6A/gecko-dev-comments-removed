@@ -1511,3 +1511,156 @@ function Intl_NumberFormat_resolvedOptions() {
     }
     return result;
 }
+
+
+
+
+
+
+
+
+
+
+var dateTimeComponentValues = {
+    weekday: ["narrow", "short", "long"],
+    era: ["narrow", "short", "long"],
+    year: ["2-digit", "numeric"],
+    month: ["2-digit", "numeric", "narrow", "short", "long"],
+    day: ["2-digit", "numeric"],
+    hour: ["2-digit", "numeric"],
+    minute: ["2-digit", "numeric"],
+    second: ["2-digit", "numeric"],
+    timeZoneName: ["short", "long"]
+};
+
+
+var dateTimeComponents = std_Object_getOwnPropertyNames(dateTimeComponentValues);
+
+
+
+
+
+
+
+function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
+    assert(IsObject(dateTimeFormat), "InitializeDateTimeFormat");
+
+    
+    if (isInitializedIntlObject(dateTimeFormat))
+        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+
+    
+    var internals = initializeIntlObject(dateTimeFormat);
+
+    
+    var requestedLocales = CanonicalizeLocaleList(locales);
+
+    
+    options = ToDateTimeOptions(options, "any", "date");
+
+    
+    
+    var opt = new Record();
+
+    
+    var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
+    opt.localeMatcher = matcher;
+
+    
+    
+    var DateTimeFormat = dateTimeFormatInternalProperties;
+
+    
+    var localeData = DateTimeFormat.localeData;
+
+    
+    var r = ResolveLocale(DateTimeFormat.availableLocales,
+                          requestedLocales, opt,
+                          DateTimeFormat.relevantExtensionKeys,
+                          localeData);
+
+    
+    internals.locale = r.locale;
+    internals.calendar = r.ca;
+    internals.numberingSystem = r.nu;
+
+    
+    
+    var dataLocale = r.dataLocale;
+
+    
+    var tz = options.timeZone;
+    if (tz !== undefined) {
+        tz = toASCIIUpperCase(ToString(tz));
+        if (tz !== "UTC")
+            ThrowError(JSMSG_INVALID_TIME_ZONE, tz);
+    }
+    internals.timeZone = tz;
+
+    
+    opt = new Record();
+
+    
+    var i, prop;
+    for (i = 0; i < dateTimeComponents.length; i++) {
+        prop = dateTimeComponents[i];
+        var value = GetOption(options, prop, "string", dateTimeComponentValues[prop], undefined);
+        opt[prop] = value;
+    }
+
+    
+    var dataLocaleData = localeData(dataLocale);
+
+    
+    var formats = dataLocaleData.formats;
+
+    
+    matcher = GetOption(options, "formatMatcher", "string", ["basic", "best fit"], "best fit");
+    var bestFormat = (matcher === "basic")
+                     ? BasicFormatMatcher(opt, formats)
+                     : BestFitFormatMatcher(opt, formats);
+
+    
+    for (i = 0; i < dateTimeComponents.length; i++) {
+        prop = dateTimeComponents[i];
+        if (callFunction(std_Object_hasOwnProperty, bestFormat, prop)) {
+            var p = bestFormat[prop];
+            internals[prop] = p;
+        }
+    }
+
+    
+    var hr12  = GetOption(options, "hour12", "boolean", undefined, undefined);
+
+    
+    var pattern;
+    if (callFunction(std_Object_hasOwnProperty, internals, "hour")) {
+        
+        if (hr12 === undefined)
+            hr12 = dataLocaleData.hour12;
+        assert(typeof hr12 === "boolean");
+        internals.hour12 = hr12;
+
+        if (hr12) {
+            
+            var hourNo0 = dataLocaleData.hourNo0;
+            internals.hourNo0 = hourNo0;
+            pattern = bestFormat.pattern12;
+        } else {
+            
+            pattern = bestFormat.pattern;
+        }
+    } else {
+        
+        pattern = bestFormat.pattern;
+    }
+
+    
+    internals.pattern = pattern;
+
+    
+    internals.boundFormat = undefined;
+
+    
+    internals.initializedDateTimeFormat = true;
+}
