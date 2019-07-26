@@ -6059,6 +6059,7 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
   nsIFrame* frame = aFrame;
 
   if (aEvent->eventStructType == NS_TOUCH_EVENT) {
+    nsIDocument::UnlockPointer();
     FlushPendingNotifications(Flush_Layout);
     frame = GetNearestFrameContainingPresShell(this);
   }
@@ -6659,27 +6660,37 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
         nsIDocument* doc = GetCurrentEventContent() ?
                            mCurrentEventContent->OwnerDoc() : nullptr;
         nsIDocument* fullscreenAncestor = nullptr;
-        if (static_cast<const nsKeyEvent*>(aEvent)->keyCode == NS_VK_ESCAPE &&
-            (fullscreenAncestor = nsContentUtils::GetFullscreenAncestor(doc))) {
-          
-          
-          
-          
-          aEvent->mFlags.mDefaultPrevented = true;
-          aEvent->mFlags.mOnlyChromeDispatch = true;
+        if (static_cast<const nsKeyEvent*>(aEvent)->keyCode == NS_VK_ESCAPE) {
+          if ((fullscreenAncestor = nsContentUtils::GetFullscreenAncestor(doc))) {
+            
+            
+            
+            
+            aEvent->mFlags.mDefaultPrevented = true;
+            aEvent->mFlags.mOnlyChromeDispatch = true;
 
-          if (aEvent->message == NS_KEY_UP) {
-            
-            
-            
-            
-            
-            
-            
-            
-            nsIDocument::ExitFullscreen(
-              nsContentUtils::IsFullscreenApiContentOnly() ? fullscreenAncestor : nullptr,
-               true);
+            if (aEvent->message == NS_KEY_UP) {
+              
+              
+              
+              
+              
+              
+              
+              
+              nsIDocument::ExitFullscreen(
+                nsContentUtils::IsFullscreenApiContentOnly() ? fullscreenAncestor : nullptr,
+                 true);
+            }
+          }
+          nsCOMPtr<nsIDocument> pointerLockedDoc =
+            do_QueryReferent(nsEventStateManager::sPointerLockedDoc);
+          if (pointerLockedDoc) {
+            aEvent->mFlags.mDefaultPrevented = true;
+            aEvent->mFlags.mOnlyChromeDispatch = true;
+            if (aEvent->message == NS_KEY_UP) {
+              nsIDocument::UnlockPointer();
+            }
           }
         }
         

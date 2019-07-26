@@ -94,6 +94,7 @@ class nsDOMNavigationTiming;
 class nsWindowSizes;
 class nsHtml5TreeOpExecutor;
 class nsDocumentOnStack;
+class nsPointerLockPermissionRequest;
 
 namespace mozilla {
 namespace dom {
@@ -1002,9 +1003,10 @@ public:
   virtual Element* GetMozFullScreenElement(mozilla::ErrorResult& rv);
 
   void RequestPointerLock(Element* aElement);
-  bool ShouldLockPointer(Element* aElement);
+  bool ShouldLockPointer(Element* aElement, Element* aCurrentLock,
+                         bool aNoFocusCheck = false);
   bool SetPointerLock(Element* aElement, int aCursorStyle);
-  static void UnlockPointer();
+  static void UnlockPointer(nsIDocument* aDoc = nullptr);
 
   
   
@@ -1113,6 +1115,7 @@ public:
   
   virtual void SetTitle(const nsAString& aTitle, mozilla::ErrorResult& rv);
 
+  static void XPCOMShutdown();
 protected:
   nsresult doCreateShell(nsPresContext* aContext,
                          nsViewManager* aViewManager, nsStyleSet* aStyleSet,
@@ -1182,15 +1185,6 @@ protected:
   
   
   nsWeakPtr mScopeObject;
-
-  
-  
-  static nsWeakPtr sPendingPointerLockDoc;
-
-  
-  
-  
-  static nsWeakPtr sPendingPointerLockElement;
 
   
   
@@ -1279,6 +1273,16 @@ protected:
   
   bool mHasFullscreenApprovedObserver:1;
 
+  friend class nsPointerLockPermissionRequest;
+  friend class nsCallRequestFullScreen;
+  
+  
+  bool mAllowRelocking:1;
+
+  bool mAsyncFullscreenPending:1;
+
+  uint32_t mCancelledPointerLockRequests;
+
   uint8_t mXMLDeclarationBits;
 
   nsInterfaceHashtable<nsPtrHashKey<nsIContent>, nsPIBoxObject> *mBoxObjectTable;
@@ -1310,16 +1314,6 @@ private:
 
   nsresult CheckFrameOptions();
   nsresult InitCSP(nsIChannel* aChannel);
-
-  
-  
-  
-  
-  
-  static nsresult SetPendingPointerLockRequest(Element* aElement);
-
-  
-  static void ClearPendingPointerLockRequest(bool aDispatchErrorEvents);
 
   
 
