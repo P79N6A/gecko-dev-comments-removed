@@ -301,10 +301,9 @@ public:
   }
 
   NS_IMETHODIMP_TO_ERRORRESULT(GetStats, ErrorResult &rv,
-                               mozilla::dom::MediaStreamTrack *aSelector,
-                               bool internalStats)
+                               mozilla::dom::MediaStreamTrack *aSelector)
   {
-    rv = GetStats(aSelector, internalStats);
+    rv = GetStats(aSelector);
   }
 
   NS_IMETHODIMP AddIceCandidate(const char* aCandidate, const char* aMid,
@@ -487,7 +486,6 @@ private:
 #ifdef MOZILLA_INTERNAL_API
   
   void GetStats_s(uint32_t trackId,
-                  bool internalStats,
                   DOMHighResTimeStamp now);
 
   
