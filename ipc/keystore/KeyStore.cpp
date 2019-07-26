@@ -327,7 +327,7 @@ KeyStore::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
           const char *certName = (const char *)mHandlerInfo.param[0].data;
 
           
-          ScopedCERTCertificate cert = CERT_FindCertByNickname(certdb, certName);
+          CERTCertificate *cert = CERT_FindCertByNickname(certdb, certName);
           if (!cert) {
             break;
           }
