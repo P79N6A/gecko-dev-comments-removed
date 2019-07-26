@@ -107,6 +107,18 @@ DocumentFragment::DumpContent(FILE* out, int32_t aIndent,
 }
 #endif
 
+ already_AddRefed<DocumentFragment>
+DocumentFragment::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
+{
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.Get());
+  if (!window || !window->GetDoc()) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  return window->GetDoc()->CreateDocumentFragment();
+}
+
 
 NS_INTERFACE_MAP_BEGIN(DocumentFragment)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
