@@ -438,7 +438,9 @@ var SelectionHelperUI = {
 
 
 
-  attachEditSession: function attachEditSession(aMsgTarget, aX, aY) {
+
+
+  attachEditSession: function attachEditSession(aMsgTarget, aX, aY, aTarget) {
     if (!aMsgTarget || this.isActive)
       return;
     this._init(aMsgTarget);
@@ -448,6 +450,7 @@ var SelectionHelperUI = {
     
     
     this._sendAsyncMessage("Browser:SelectionAttach", {
+      target: aTarget,
       xPos: aX,
       yPos: aY
     });
@@ -468,7 +471,8 @@ var SelectionHelperUI = {
 
 
 
-  attachToCaret: function attachToCaret(aMsgTarget, aX, aY) {
+
+  attachToCaret: function attachToCaret(aMsgTarget, aX, aY, aTarget) {
     if (!this.isActive) {
       this._init(aMsgTarget);
       this._setupDebugOptions();
@@ -476,9 +480,14 @@ var SelectionHelperUI = {
       this._hideMonocles();
     }
 
-    this._lastPoint = { xPos: aX, yPos: aY };
+    this._lastCaretAttachment = {
+      target: aTarget,
+      xPos: aX,
+      yPos: aY
+    };
 
     this._sendAsyncMessage("Browser:CaretAttach", {
+      target: aTarget,
       xPos: aX,
       yPos: aY
     });
@@ -520,34 +529,10 @@ var SelectionHelperUI = {
 
 
 
-  urlbarTextboxClick: function(aEdit) {
-    
-    
-    
-    Browser.selectedTab.browser.messageManager.sendAsyncMessage("Browser:ResetLastPos", {
-      xPos: null,
-      yPos: null
-    });
-
-    if (InputSourceHelper.isPrecise || !aEdit.textLength) {
-      return;
-    }
-
-    
-    let innerRect = aEdit.inputField.getBoundingClientRect();
-    this.attachEditSession(ChromeSelectionHandler,
-                           innerRect.left,
-                           innerRect.top);
-  },
-
-  
-
-
-
 
   chromeTextboxClick: function (aEvent) {
-    this.attachEditSession(Browser.selectedTab.browser,
-                           aEvent.clientX, aEvent.clientY);
+    this.attachEditSession(Browser.selectedTab.browser, aEvent.clientX,
+        aEvent.clientY, aEvent.target);
   },
 
   
@@ -880,7 +865,8 @@ var SelectionHelperUI = {
 
   _onClick: function(aEvent) {
     if (this.layerMode == kChromeLayer && this._targetIsEditable) {
-      this.attachToCaret(this._msgTarget, aEvent.clientX, aEvent.clientY);
+      this.attachToCaret(this._msgTarget, aEvent.clientX, aEvent.clientY,
+          aEvent.target);
     }
   },
 
@@ -909,7 +895,8 @@ var SelectionHelperUI = {
 
   _onDeckOffsetChanged: function _onDeckOffsetChanged(aEvent) {
     
-    this.attachToCaret(null, this._lastPoint.xPos, this._lastPoint.yPos);
+    this.attachToCaret(null, this._lastCaretAttachment.xPos,
+        this._lastCaretAttachment.yPos, this._lastCaretAttachment.target);
   },
 
   
