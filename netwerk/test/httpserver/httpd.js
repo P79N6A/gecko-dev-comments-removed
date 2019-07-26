@@ -471,7 +471,15 @@ nsHttpServer.prototype =
   onStopListening: function(socket, status)
   {
     dumpn(">>> shutting down server on port " + socket.port);
+    for (var n in this._connections) {
+      if (!this._connections[n]._requestStarted) {
+        this._connections[n].close();
+      }
+    }
     this._socketClosed = true;
+    if (this._hasOpenConnections()) {
+      dumpn("*** open connections!!!");
+    }
     if (!this._hasOpenConnections())
     {
       dumpn("*** no open connections, notifying async from onStopListening");
@@ -1167,13 +1175,24 @@ function Connection(input, output, server, port, outgoingPort, number)
   this.request = null;
 
   
-  this._closed = this._processed = false;
+
+
+  this._closed = false;
+
+  
+  this._processed = false;
+
+  
+  this._requestStarted = false; 
 }
 Connection.prototype =
 {
   
   close: function()
   {
+    if (this._closed)
+        return;
+
     dumpn("*** closing connection " + this.number +
           " on port " + this._outgoingPort);
 
@@ -1231,6 +1250,11 @@ Connection.prototype =
     return "<Connection(" + this.number +
            (this.request ? ", " + this.request.path : "") +"): " +
            (this._closed ? "closed" : "open") + ">";
+  },
+
+  requestStarted: function()
+  {
+    this._requestStarted = true;
   }
 };
 
@@ -1417,6 +1441,7 @@ RequestReader.prototype =
     {
       this._parseRequestLine(line.value);
       this._state = READER_IN_HEADERS;
+      this._connection.requestStarted();
       return true;
     }
     catch (e)
