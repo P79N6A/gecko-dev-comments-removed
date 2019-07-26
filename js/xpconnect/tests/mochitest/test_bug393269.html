@@ -14,11 +14,7 @@
 <pre id="test">
 <script class="testbody" type="text/javascript">
 
-if (navigator.platform.startsWith("Win")) {
-  SimpleTest.expectAssertions(1, 2);
-} else {
-  SimpleTest.expectAssertions(2);
-}
+SimpleTest.expectAssertions(1, 2);
 
 (function () {
     /** Test for Bug 393269 **/
