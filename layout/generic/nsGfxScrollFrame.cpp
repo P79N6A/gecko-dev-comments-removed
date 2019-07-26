@@ -1804,6 +1804,11 @@ bool ScrollFrameHelper::IsAlwaysActive() const
     return true;
   }
 
+  const nsStyleDisplay* disp = mOuter->StyleDisplay();
+  if (disp && (disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_SCROLL)) {
+    return true;
+  }
+
   
   
   
