@@ -692,9 +692,27 @@ gfxFontUtils::MapCharToGlyph(const uint8_t *aCmapBuf, uint32_t aBufLength,
         uint32_t varGID =
             gfxFontUtils::MapUVSToGlyphFormat14(aCmapBuf + uvsOffset,
                                                 aUnicode, aVarSelector);
+        if (!varGID) {
+            aUnicode = gfxFontUtils::GetUVSFallback(aUnicode, aVarSelector);
+            if (aUnicode) {
+                switch (format) {
+                case 4:
+                    if (aUnicode < UNICODE_BMP_LIMIT) {
+                        varGID = MapCharToGlyphFormat4(aCmapBuf + offset,
+                                                       char16_t(aUnicode));
+                    }
+                    break;
+                case 12:
+                    varGID = MapCharToGlyphFormat12(aCmapBuf + offset,
+                                                    aUnicode);
+                    break;
+                }
+            }
+        }
         if (varGID) {
             gid = varGID;
         }
+
         
         
     }
