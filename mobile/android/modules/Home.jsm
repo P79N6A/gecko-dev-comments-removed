@@ -170,6 +170,10 @@ function Panel(options) {
     this.views = options.views;
 }
 
+
+
+let handlePanelsGet;
+
 let HomePanels = (function () {
   
   
@@ -186,7 +190,7 @@ let HomePanels = (function () {
     };
   };
 
-  let _handleGet = function(data) {
+  handlePanelsGet = function(data) {
     let requestId = data.requestId;
     let ids = data.ids || null;
 
@@ -339,7 +343,7 @@ this.Home = Object.freeze({
   observe: function(subject, topic, data) {
     switch(topic) {
       case "HomePanels:Get":
-        HomePanels._handleGet(JSON.parse(data));
+        handlePanelsGet(JSON.parse(data));
         break;
     }
   }
