@@ -505,7 +505,7 @@ protected:
   void EnsureWritablePath();
 
   
-  void EnsureUserSpacePath(const CanvasWindingRule& winding = CanvasWindingRuleValues::Nonzero);
+  void EnsureUserSpacePath(const CanvasWindingRule& winding = CanvasWindingRule::Nonzero);
 
   
 

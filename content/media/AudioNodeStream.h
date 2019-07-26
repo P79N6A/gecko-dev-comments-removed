@@ -55,8 +55,8 @@ public:
       mMarkAsFinishedAfterThisBlock(false),
       mAudioParamStream(false)
   {
-    mMixingMode.mChannelCountMode = dom::ChannelCountMode::Max;
-    mMixingMode.mChannelInterpretation = dom::ChannelInterpretation::Speakers;
+    mChannelCountMode = dom::ChannelCountMode::Max;
+    mChannelInterpretation = dom::ChannelInterpretation::Speakers;
     
     mHasCurrentData = true;
     MOZ_COUNT_CTOR(AudioNodeStream);
@@ -122,10 +122,8 @@ protected:
   
   uint32_t mNumberOfInputChannels;
   
-  struct {
-    dom::ChannelCountMode mChannelCountMode : 16;
-    dom::ChannelInterpretation mChannelInterpretation : 16;
-  } mMixingMode;
+  dom::ChannelCountMode mChannelCountMode;
+  dom::ChannelInterpretation mChannelInterpretation;
   
   
   bool mMarkAsFinishedAfterThisBlock;
