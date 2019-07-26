@@ -884,10 +884,15 @@ public:
 
   ProcessedMediaStream* CreateTrackUnionStream(DOMMediaStream* aWrapper);
   
+  
+  
+  enum AudioNodeStreamKind { INTERNAL_STREAM, EXTERNAL_STREAM };
+  
 
 
 
-  AudioNodeStream* CreateAudioNodeStream(AudioNodeEngine* aEngine);
+  AudioNodeStream* CreateAudioNodeStream(AudioNodeEngine* aEngine,
+                                         AudioNodeStreamKind aKind);
   
 
 

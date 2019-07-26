@@ -42,8 +42,11 @@ public:
   
 
 
-  explicit AudioNodeStream(AudioNodeEngine* aEngine)
-    : ProcessedMediaStream(nullptr), mEngine(aEngine), mLastChunk(nullptr)
+  AudioNodeStream(AudioNodeEngine* aEngine,
+                  MediaStreamGraph::AudioNodeStreamKind aKind)
+    : ProcessedMediaStream(nullptr),
+      mEngine(aEngine),
+      mKind(aKind)
   {
   }
   ~AudioNodeStream();
@@ -81,7 +84,9 @@ protected:
   
   nsAutoPtr<AudioNodeEngine> mEngine;
   
-  AudioChunk* mLastChunk;
+  AudioChunk mLastChunk;
+  
+  MediaStreamGraph::AudioNodeStreamKind mKind;
 };
 
 }

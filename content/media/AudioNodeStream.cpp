@@ -189,7 +189,7 @@ AudioNodeStream::ObtainInputBlock(AudioChunk* aTmpChunk)
     if (a->IsFinishedOnGraphThread()) {
       continue;
     }
-    AudioChunk* chunk = a->mLastChunk;
+    AudioChunk* chunk = &a->mLastChunk;
     
     
     
@@ -268,11 +268,16 @@ AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo)
     }
   }
 
-  mLastChunk = segment->AppendAndConsumeChunk(&outputChunk);
+  mLastChunk = outputChunk;
+  if (mKind == MediaStreamGraph::EXTERNAL_STREAM) {
+    segment->AppendAndConsumeChunk(&outputChunk);
+  } else {
+    segment->AppendNullData(outputChunk.GetDuration());
+  }
 
   for (uint32_t j = 0; j < mListeners.Length(); ++j) {
     MediaStreamListener* l = mListeners[j];
-    AudioChunk copyChunk = *mLastChunk;
+    AudioChunk copyChunk = outputChunk;
     AudioSegment tmpSegment;
     tmpSegment.AppendAndConsumeChunk(&copyChunk);
     l->NotifyQueuedTrackChanges(Graph(), AUDIO_NODE_STREAM_TRACK_ID,
