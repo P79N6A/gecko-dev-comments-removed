@@ -32,6 +32,7 @@ class nsICSSDeclaration;
 class nsIDocument;
 class nsDOMStringMap;
 class nsIDOMNamedNodeMap;
+class nsIHTMLCollection;
 class nsINodeInfo;
 class nsIURI;
 
@@ -220,6 +221,8 @@ public:
   virtual const nsAttrValue* DoGetClasses() const;
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
 
+  nsIHTMLCollection* Children();
+
 public:
   
 
@@ -369,8 +372,6 @@ protected:
 
 
   nsAttrAndChildArray mAttrsAndChildren;
-
-  nsContentList* GetChildrenList();
 };
 
 } 

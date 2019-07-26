@@ -70,10 +70,6 @@ public:
   nsresult CopyInnerTo(nsGenericElement* aDest);
 
   
-  NS_METHOD SetAttribute(const nsAString& aName,
-                         const nsAString& aValue);
-
-  
   virtual void Click();
   virtual int32_t TabIndexDefault()
   {

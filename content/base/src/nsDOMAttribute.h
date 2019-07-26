@@ -20,6 +20,7 @@
 #include "nsDOMAttributeMap.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsStubMutationObserver.h"
+#include "nsGenericElement.h"
 
 
 

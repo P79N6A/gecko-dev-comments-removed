@@ -51,6 +51,8 @@ class nsGenericElement;
 namespace mozilla {
 namespace dom {
 class Element;
+class EventHandlerNonNull;
+class OnErrorEventHandlerNonNull;
 template<typename T> class Optional;
 } 
 } 
@@ -1077,13 +1079,10 @@ public:
     SetTextContentInternal(aTextContent, aError);
   }
 
-  
-
-
-  nsIContent* QuerySelector(const nsAString& aSelector,
-                            nsresult *aResult);
-  nsresult QuerySelectorAll(const nsAString& aSelector,
-                            nsIDOMNodeList **aReturn);
+  nsGenericElement* QuerySelector(const nsAString& aSelector,
+                                  mozilla::ErrorResult& aResult);
+  already_AddRefed<nsINodeList> QuerySelectorAll(const nsAString& aSelector,
+                                                 mozilla::ErrorResult& aResult);
 
   
 
@@ -1615,15 +1614,24 @@ public:
 
 
 
-#define EVENT(name_, id_, type_, struct_)                         \
-  NS_IMETHOD GetOn##name_(JSContext *cx, JS::Value *vp);          \
+#define EVENT_HELPER(name_, handlerClass_)                            \
+  mozilla::dom::handlerClass_* GetOn##name_();                        \
+  void SetOn##name_(mozilla::dom::handlerClass_* listener,            \
+                    mozilla::ErrorResult& error);                     \
+  NS_IMETHOD GetOn##name_(JSContext *cx, JS::Value *vp);              \
   NS_IMETHOD SetOn##name_(JSContext *cx, const JS::Value &v);
+#define EVENT(name_, id_, type_, struct_)                             \
+  EVENT_HELPER(name_, EventHandlerNonNull)
 #define TOUCH_EVENT EVENT
 #define DOCUMENT_ONLY_EVENT EVENT
+#define ERROR_EVENT(name_, id_, type_, struct_)                         \
+  EVENT_HELPER(name_, OnErrorEventHandlerNonNull)
 #include "nsEventNameList.h"
+#undef ERROR_EVENT  
 #undef DOCUMENT_ONLY_EVENT
 #undef TOUCH_EVENT
 #undef EVENT  
+#undef EVENT_HELPER
 
 protected:
   static void Trace(nsINode *tmp, TraceCallback cb, void *closure);

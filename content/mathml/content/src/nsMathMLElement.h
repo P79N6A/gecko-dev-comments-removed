@@ -35,7 +35,7 @@ public:
   
   
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT(nsMathMLElementBase::)
+  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
 
   nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                       nsIContent* aBindingParent,
