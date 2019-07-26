@@ -66,7 +66,15 @@ public:
 
 
 
-  static int      GetSensorOrientation(uint32_t aHwHandle);
+
+
+
+
+  enum {
+    RAW_SENSOR_ORIENTATION,
+    OFFSET_SENSOR_ORIENTATION
+  };
+  static int      GetSensorOrientation(uint32_t aHwHandle, uint32_t aType = OFFSET_SENSOR_ORIENTATION);
 
   static int      AutoFocus(uint32_t aHwHandle);
   static void     CancelAutoFocus(uint32_t aHwHandle);
@@ -116,6 +124,7 @@ protected:
 #endif
   sp<GonkCameraListener>        mListener;
   bool                          mInitialized;
+  int                           mRawSensorOrientation;
   int                           mSensorOrientation;
 
   bool IsInitialized()
