@@ -178,5 +178,16 @@ WebVTTListener::OnRegion(JS::Handle<JS::Value> aRegion, JSContext* aCx)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+WebVTTListener::OnParsingError(int32_t errorCode, JSContext* cx)
+{
+  
+  
+  if (errorCode == ErrorCodes::BadSignature) {
+    mElement->SetReadyState(TextTrackReadyState::FailedToLoad);
+  }
+  return NS_OK;
+}
+
 } 
 } 

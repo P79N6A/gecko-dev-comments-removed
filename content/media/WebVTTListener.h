@@ -46,6 +46,10 @@ public:
   nsresult LoadResource();
 
 private:
+  
+  enum ErrorCodes {
+    BadSignature = 0
+  };
   static NS_METHOD ParseChunk(nsIInputStream* aInStream, void* aClosure,
                               const char* aFromSegment, uint32_t aToOffset,
                               uint32_t aCount, uint32_t* aWriteCount);
@@ -57,4 +61,4 @@ private:
 } 
 } 
 
-#endif 
+#endif
