@@ -390,6 +390,38 @@ DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, uint32_t flags,
 
 
 
+
+class ZoneStatsExtras {
+public:
+    ZoneStatsExtras()
+    {}
+
+    nsAutoCString pathPrefix;
+
+private:
+    ZoneStatsExtras(const ZoneStatsExtras &other) MOZ_DELETE;
+    ZoneStatsExtras& operator=(const ZoneStatsExtras &other) MOZ_DELETE;
+};
+
+
+
+class CompartmentStatsExtras {
+public:
+    CompartmentStatsExtras()
+    {}
+
+    nsAutoCString jsPathPrefix;
+    nsAutoCString domPathPrefix;
+
+private:
+    CompartmentStatsExtras(const CompartmentStatsExtras &other) MOZ_DELETE;
+    CompartmentStatsExtras& operator=(const CompartmentStatsExtras &other) MOZ_DELETE;
+};
+
+
+
+
+
 nsresult
 ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                                  const nsACString &rtPath,
