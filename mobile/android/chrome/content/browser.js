@@ -3451,6 +3451,10 @@ Tab.prototype = {
         }
 
         
+        if (list.indexOf("[icon]") == -1)
+          return;
+
+        
         let maxSize = 0;
 
         
