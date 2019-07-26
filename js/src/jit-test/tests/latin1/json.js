@@ -62,3 +62,14 @@ function testEvalHackNotJSON() {
     }
 }
 testEvalHackNotJSON();
+
+function testQuote() {
+    
+    var s = toLatin1("abc--\x05-'\"-\n-\u00ff++");
+    assertEq(JSON.stringify(s), '"abc--\\u0005-\'\\"-\\n-\xFF++"');
+
+    
+    s += "\uAAAA";
+    assertEq(JSON.stringify(s), '"abc--\\u0005-\'\\"-\\n-\xFF++\uAAAA"');
+}
+testQuote();
