@@ -180,7 +180,6 @@ private:
   
 
 
-
   already_AddRefed<Accessible>
     CreateAccessibleByType(nsIContent* aContent, DocAccessible* aDoc);
 
