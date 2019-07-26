@@ -603,12 +603,7 @@ nsFrameSelection::SetCaretBidiLevel(uint8_t aLevel)
 {
   
   
-  bool afterInsert = !!(mCaretBidiLevel & BIDI_LEVEL_UNDEFINED);
   mCaretBidiLevel = aLevel;
-  
-  nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
-  if (bidiKeyboard && !afterInsert)
-    bidiKeyboard->SetLangFromBidiLevel(aLevel);
   return;
 }
 

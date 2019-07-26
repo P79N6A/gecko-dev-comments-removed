@@ -30,33 +30,6 @@ NS_IMETHODIMP nsBidiKeyboard::Reset()
   return NS_OK;
 }
 
-NS_IMETHODIMP nsBidiKeyboard::SetLangFromBidiLevel(uint8_t aLevel)
-{
-  nsresult result = SetupBidiKeyboards();
-  if (NS_FAILED(result))
-    return result;
-
-  
-  wchar_t currentLocaleName[KL_NAMELENGTH];
-  wcsncpy(currentLocaleName, char16ptr_t((aLevel & 1) ? mRTLKeyboard : mLTRKeyboard), KL_NAMELENGTH);
-  currentLocaleName[KL_NAMELENGTH-1] = '\0'; 
-
-  NS_ASSERTION(*currentLocaleName, 
-    "currentLocaleName has string length == 0");
-
-#if 0
-  
-
-  if (strcmp(mCurrentLocaleName, currentLocaleName)) {
-    if (!::LoadKeyboardLayout(currentLocaleName, KLF_ACTIVATE | KLF_SUBSTITUTE_OK)) {
-      return NS_ERROR_FAILURE;
-    }
-  }
-#endif
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsBidiKeyboard::IsLangRTL(bool *aIsRTL)
 {
   *aIsRTL = false;
