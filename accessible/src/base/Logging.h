@@ -153,6 +153,11 @@ void Node(const char* aDescr, nsINode* aNode);
 
 
 
+void Document(DocAccessible* aDocument);
+
+
+
+
 void AccessibleNNode(const char* aDescr, Accessible* aAccessible);
 void AccessibleNNode(const char* aDescr, nsINode* aNode);
 
