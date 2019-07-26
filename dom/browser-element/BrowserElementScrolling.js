@@ -6,8 +6,35 @@
 
 
 const ContentPanning = {
+  
+  watchedEventsType: '',
+
+  
+  
+  hybridEvents: false,
+
   init: function cp_init() {
-    ['mousedown', 'mouseup', 'mousemove'].forEach(function(type) {
+    var events;
+    try {
+      content.document.createEvent('TouchEvent');
+      events = ['touchstart', 'touchend', 'touchmove'];
+      this.watchedEventsType = 'touch';
+#ifdef MOZ_WIDGET_GONK
+      
+      
+      
+      let appInfo = Cc["@mozilla.org/xre/app-info;1"];
+      let isParentProcess =
+        !appInfo || appInfo.getService(Ci.nsIXULRuntime)
+                           .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
+      this.hybridEvents = isParentProcess;
+#endif
+    } catch(e) {
+      
+      events = ['mousedown', 'mouseup', 'mousemove'];
+      this.watchedEventsType = 'mouse';
+    }
+    events.forEach(function(type) {
       addEventListener(type, ContentPanning, false);
     });
 
@@ -16,14 +43,20 @@ const ContentPanning = {
   },
 
   handleEvent: function cp_handleEvent(evt) {
+    if (evt.defaultPrevented)
+      return;
+
     switch (evt.type) {
       case 'mousedown':
+      case 'touchstart':
         this.onTouchStart(evt);
         break;
       case 'mousemove':
+      case 'touchmove':
         this.onTouchMove(evt);
         break;
       case 'mouseup':
+      case 'touchend':
         this.onTouchEnd(evt);
         break;
       case 'click':
@@ -40,21 +73,68 @@ const ContentPanning = {
 
   position: new Point(0 , 0),
 
+  findPrimaryPointer: function cp_findPrimaryPointer(touches) {
+    if (!('primaryPointerId' in this))
+      return null;
+
+    for (let i = 0; i < touches.length; i++) {
+      if (touches[i].identifier === this.primaryPointerId) {
+        return touches[i];
+      }
+    }
+    return null;
+  },
+
   onTouchStart: function cp_onTouchStart(evt) {
+    let screenX, screenY;
+    if (this.watchedEventsType == 'touch') {
+      if ('primaryPointerId' in this) {
+        return;
+      }
+
+      let firstTouch = evt.changedTouches[0];
+      this.primaryPointerId = firstTouch.identifier;
+      this.pointerDownTarget = firstTouch.target;
+      screenX = firstTouch.screenX;
+      screenY = firstTouch.screenY;
+    } else {
+      this.pointerDownTarget = evt.target;
+      screenX = evt.screenX;
+      screenY = evt.screenY;
+    }
     this.dragging = true;
     this.panning = false;
 
     let oldTarget = this.target;
-    [this.target, this.scrollCallback] = this.getPannable(evt.target);
+    [this.target, this.scrollCallback] = this.getPannable(this.pointerDownTarget);
 
     
     
     
     
     
-    if (this.target != null && ContentPanning._asyncPanZoomForViewportFrame) {
+    if (this.target != null && this._asyncPanZoomForViewportFrame) {
+      this.detectingScrolling = true;
       var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
-      os.notifyObservers(docShell, 'cancel-default-pan-zoom', null);
+      os.notifyObservers(docShell, 'detect-scrollable-subframe', null);
+    }
+
+    
+    
+    
+    
+    
+    if (this.pointerDownTarget !== null && !this.detectingScrolling) {
+      
+      
+      
+      if (this.target === null) {
+        this.notify(this._activationTimer);
+      } else {
+        this._activationTimer.initWithCallback(this,
+                                               this._activationDelayMs,
+                                               Ci.nsITimer.TYPE_ONE_SHOT);
+      }
     }
 
     
@@ -69,19 +149,38 @@ const ContentPanning = {
         this.preventNextClick = true;
     }
 
-
-    this.position.set(evt.screenX, evt.screenY);
+    this.position.set(screenX, screenY);
     KineticPanning.record(new Point(0, 0), evt.timeStamp);
   },
 
   onTouchEnd: function cp_onTouchEnd(evt) {
-    if (!this.dragging)
+    let touch = null;
+    if (!this.dragging ||
+        (this.watchedEventsType == 'touch' &&
+         !(touch = this.findPrimaryPointer(evt.changedTouches)))) {
       return;
-    this.dragging = false;
+    }
 
-    this.onTouchMove(evt);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let click = (this.watchedEventsType == 'mouse') ?
+      evt.detail : !KineticPanning.isPan();
+    
+    
+    
+    if (this.hybridEvents) {
+      let target =
+        content.document.elementFromPoint(touch.clientX, touch.clientY);
+      click |= (target === this.pointerDownTarget);
+    }
 
-    let click = evt.detail;
     if (this.target && click && (this.panning || this.preventNextClick)) {
       let target = this.target;
       let view = target.ownerDocument ? target.ownerDocument.defaultView
@@ -89,31 +188,84 @@ const ContentPanning = {
       view.addEventListener('click', this, true, true);
     }
 
-    if (this.panning)
+    this._resetActive();
+    this.dragging = false;
+    this.detectingScrolling = false;
+    delete this.primaryPointerId;
+    this._activationTimer.cancel();
+
+    if (this.panning) {
       KineticPanning.start(this);
+    }
   },
 
+  
+  
+  
+  
+  detectingScrolling: false,
+
   onTouchMove: function cp_onTouchMove(evt) {
-    if (!this.dragging || !this.scrollCallback)
+    if (!this.dragging)
       return;
 
+    let screenX, screenY;
+    if (this.watchedEventsType == 'touch') {
+      let primaryTouch = this.findPrimaryPointer(evt.changedTouches);
+      if (evt.touches.length > 1 || !primaryTouch)
+        return;
+      screenX = primaryTouch.screenX;
+      screenY = primaryTouch.screenY;
+    } else {
+      screenX = evt.screenX;
+      screenY = evt.screenY;
+    }
+
     let current = this.position;
-    let delta = new Point(evt.screenX - current.x, evt.screenY - current.y);
-    current.set(evt.screenX, evt.screenY);
+    let delta = new Point(screenX - current.x, screenY - current.y);
+    current.set(screenX, screenY);
 
     KineticPanning.record(delta, evt.timeStamp);
+
+    
+    if (!this.scrollCallback) {
+      return;
+    }
+
+    let isPan = KineticPanning.isPan();
+    if (this.detectingScrolling) {
+      this.detectingScrolling = false;
+      
+      if (isPan) {
+        
+        Services.obs.notifyObservers(docShell, 'cancel-default-pan-zoom', null);
+      } else {
+        
+        this.scrollCallback = null;
+        return;
+      }
+    }
+
     this.scrollCallback(delta.scale(-1));
 
     
     
-    if (!this.panning && KineticPanning.isPan()) {
+    if (!this.panning && isPan) {
       this.panning = true;
       this._resetActive();
+      this._activationTimer.cancel();
     }
-    evt.stopPropagation();
-    evt.preventDefault();
+
+    if (this.panning) {
+      evt.stopPropagation();
+      evt.preventDefault();
+    }
   },
 
+  
+  notify: function cp_notify(timer) {
+    this._setActive(this.pointerDownTarget);
+  },
 
   onKineticBegin: function cp_onKineticBegin(evt) {
   },
@@ -249,11 +401,27 @@ const ContentPanning = {
                               .getService(Ci.inIDOMUtils);
   },
 
-  _resetActive: function cp_resetActive() {
-    let root = this.target.ownerDocument || this.target.document;
+  get _activationTimer() {
+    delete this._activationTimer;
+    return this._activationTimer = Cc["@mozilla.org/timer;1"]
+                                     .createInstance(Ci.nsITimer);
+  },
 
+  get _activationDelayMs() {
+    let delay = Services.prefs.getIntPref('ui.touch_activation.delay_ms');
+    delete this._activationDelayMs;
+    return this._activationDelayMs = delay;
+  },
+
+  _resetActive: function cp_resetActive() {
+    let elt = this.target || this.pointerDownTarget;
+    let root = elt.ownerDocument || elt.document;
+    this._setActive(root.documentElement);
+  },
+
+  _setActive: function cp_setActive(elt) {
     const kStateActive = 0x00000001;
-    this._domUtils.setContentState(root.documentElement, kStateActive);
+    this._domUtils.setContentState(elt, kStateActive);
   },
 
   get _asyncPanZoomForViewportFrame() {

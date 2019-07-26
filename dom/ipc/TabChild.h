@@ -384,8 +384,18 @@ private:
     void DispatchMessageManagerMessage(const nsAString& aMessageName,
                                        const nsACString& aJSONData);
 
+    void DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
+                                       const nsIntPoint& aRefPoint);
+
     
-    void DispatchSynthesizedMouseEvent(const nsTouchEvent& aEvent);
+    
+    
+    
+    
+    
+    void FireContextMenuEvent();
+    void CancelTapTracking();
+    void UpdateTapState(const nsTouchEvent& aEvent, nsEventStatus aStatus);
 
     nsresult
     BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
@@ -411,6 +421,15 @@ private:
     uint32_t mChromeFlags;
     nsIntRect mOuterRect;
     nsIntSize mInnerSize;
+    
+    
+    nsIntPoint mGestureDownPoint;
+    
+    int32_t mActivePointerId;
+    
+    
+    
+    CancelableTask* mTapHoldTimer;
     float mOldViewportWidth;
     nscolor mLastBackgroundColor;
     ScrollingBehavior mScrolling;

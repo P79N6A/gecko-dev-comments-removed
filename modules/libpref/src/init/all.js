@@ -3927,3 +3927,8 @@ pref("dom.placeholder.show_on_focus", true);
 pref("wap.UAProf.url", "");
 pref("wap.UAProf.tagname", "x-wap-profile");
 
+
+
+
+
+pref("ui.touch_activation.delay_ms", 50);
