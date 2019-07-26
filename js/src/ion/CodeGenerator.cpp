@@ -833,8 +833,6 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     
     JS_ASSERT(!call->hasSingleTarget());
-    
-    JS_ASSERT(!call->mir()->isConstructing());
 
     
     IonCompartment *ion = gen->ionCompartment();
@@ -905,6 +903,16 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         return false;
 
     masm.bind(&end);
+
+    
+    
+    if (call->mir()->isConstructing()) {
+        Label notPrimitive;
+        masm.branchTestPrimitive(Assembler::NotEqual, JSReturnOperand, &notPrimitive);
+        masm.loadValue(Address(StackPointer, unusedStack), JSReturnOperand);
+        masm.bind(&notPrimitive);
+    }
+
     dropArguments(call->numStackArgs() + 1);
     return true;
 }
@@ -990,39 +998,6 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
         masm.loadValue(Address(StackPointer, unusedStack), JSReturnOperand);
         masm.bind(&notPrimitive);
     }
-
-    dropArguments(call->numStackArgs() + 1);
-    return true;
-}
-
-typedef bool (*InvokeConstructorFn)(JSContext *, JSObject *, uint32_t, Value *, Value *);
-static const VMFunction InvokeConstructorInfo =
-    FunctionInfo<InvokeConstructorFn>(ion::InvokeConstructor);
-
-bool
-CodeGenerator::visitCallConstructor(LCallConstructor *call)
-{
-    JS_ASSERT(call->mir()->isConstructing());
-
-    
-    const LAllocation *callee = call->getFunction();
-    Register calleereg = ToRegister(callee);
-
-    uint32_t callargslot = call->argslot();
-    uint32_t unusedStack = StackOffsetOfPassedArg(callargslot);
-
-    
-    masm.freeStack(unusedStack);
-
-    pushArg(StackPointer);                  
-    pushArg(Imm32(call->numActualArgs()));  
-    pushArg(calleereg);                     
-
-    if (!callVM(InvokeConstructorInfo, call))
-        return false;
-
-    
-    masm.reserveStack(unusedStack);
 
     dropArguments(call->numStackArgs() + 1);
     return true;
