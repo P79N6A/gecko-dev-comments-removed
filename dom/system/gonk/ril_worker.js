@@ -2897,6 +2897,13 @@ let RIL = {
   
 
 
+  reportStkServiceIsRunning: function reportStkServiceIsRunning() {
+    Buf.simpleRequest(REQUEST_REPORT_STK_SERVICE_IS_RUNNING);
+  },
+
+  
+
+
   _processICCStatus: function _processICCStatus(iccStatus) {
     this.iccStatus = iccStatus;
 
@@ -2961,6 +2968,7 @@ let RIL = {
     this.getSignalStrength();
     if (newCardState == GECKO_CARDSTATE_READY) {
       this.fetchICCRecords();
+      this.reportStkServiceIsRunning();
     }
 
     this.cardState = newCardState;
