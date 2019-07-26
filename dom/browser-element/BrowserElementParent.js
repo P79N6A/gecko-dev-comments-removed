@@ -65,8 +65,8 @@ BrowserElementParentFactory.prototype = {
     
     this._bepMap = new WeakMap();
 
-    Services.obs.addObserver(this, 'remote-browser-shown',  true);
-    Services.obs.addObserver(this, 'inprocess-browser-shown',  true);
+    Services.obs.addObserver(this, 'remote-browser-frame-shown',  true);
+    Services.obs.addObserver(this, 'in-process-browser-or-app-frame-shown',  true);
   },
 
   _browserFramesPrefEnabled: function() {
@@ -79,19 +79,11 @@ BrowserElementParentFactory.prototype = {
   },
 
   _observeInProcessBrowserFrameShown: function(frameLoader) {
-    
-    if (!frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerIsBrowserOrAppFrame) {
-      return;
-    }
     debug("In-process browser frame shown " + frameLoader);
     this._createBrowserElementParent(frameLoader,  false);
   },
 
   _observeRemoteBrowserFrameShown: function(frameLoader) {
-    
-    if (!frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerIsBrowserOrAppFrame) {
-      return;
-    }
     debug("Remote browser frame shown " + frameLoader);
     this._createBrowserElementParent(frameLoader,  true);
   },
@@ -111,10 +103,10 @@ BrowserElementParentFactory.prototype = {
         this._init();
       }
       break;
-    case 'remote-browser-shown':
+    case 'remote-browser-frame-shown':
       this._observeRemoteBrowserFrameShown(subject);
       break;
-    case 'inprocess-browser-shown':
+    case 'in-process-browser-or-app-frame-shown':
       this._observeInProcessBrowserFrameShown(subject);
       break;
     case 'content-document-global-created':
