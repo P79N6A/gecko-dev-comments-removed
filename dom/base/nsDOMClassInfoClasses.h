@@ -74,7 +74,6 @@ DOMCI_CLASS(CSSMozDocumentRule)
 DOMCI_CLASS(CSSSupportsRule)
 
 
-DOMCI_CLASS(SVGAnimatedNumber)
 DOMCI_CLASS(SVGLength)
 DOMCI_CLASS(SVGNumber)
 
