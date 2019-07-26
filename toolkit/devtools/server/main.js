@@ -59,6 +59,7 @@ function loadSubScript(aURL)
   }
 }
 
+let events = require("sdk/event/core");
 let {defer, resolve, reject, promised, all} = require("sdk/core/promise");
 this.defer = defer;
 this.resolve = resolve;
@@ -571,6 +572,7 @@ var DebuggerServer = {
           
           
           childTransport.close();
+          childTransport = null;
           aConnection.cancelForwarding(prefix);
         } else {
           
@@ -593,6 +595,20 @@ var DebuggerServer = {
     }).bind(this);
     Services.obs.addObserver(onMessageManagerDisconnect,
                              "message-manager-disconnect", false);
+
+    events.once(aConnection, "closed", () => {
+      if (childTransport) {
+        
+        
+        childTransport.close();
+        childTransport = null;
+        aConnection.cancelForwarding(prefix);
+
+        
+        mm.sendAsyncMessage("debug:disconnect");
+      }
+      Services.obs.removeObserver(onMessageManagerDisconnect, "message-manager-disconnect");
+    });
 
     mm.sendAsyncMessage("debug:connect", { prefix: prefix });
 
@@ -1156,6 +1172,11 @@ DebuggerServerConnection.prototype = {
 
   onClosed: function DSC_onClosed(aStatus) {
     dumpn("Cleaning up connection.");
+    if (!this._actorPool) {
+      
+      return;
+    }
+    events.emit(this, "closed", aStatus);
 
     this._actorPool.cleanup();
     this._actorPool = null;

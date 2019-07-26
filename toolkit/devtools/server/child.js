@@ -24,12 +24,14 @@ let chromeGlobal = this;
   
   DebuggerServer.addChildActors();
 
+  let conn;
+
   let onConnect = DevToolsUtils.makeInfallible(function (msg) {
     removeMessageListener("debug:connect", onConnect);
 
     let mm = msg.target;
 
-    let conn = DebuggerServer.connectToParent(msg.data.prefix, mm);
+    conn = DebuggerServer.connectToParent(msg.data.prefix, mm);
 
     let actor = new DebuggerServer.ContentActor(conn, chromeGlobal);
     let actorPool = new ActorPool(conn);
@@ -40,4 +42,15 @@ let chromeGlobal = this;
   });
 
   addMessageListener("debug:connect", onConnect);
+
+  let onDisconnect = DevToolsUtils.makeInfallible(function (msg) {
+    removeMessageListener("debug:disconnect", onDisconnect);
+
+    
+    
+    
+    conn.close();
+    conn = null;
+  });
+  addMessageListener("debug:disconnect", onDisconnect);
 })();
