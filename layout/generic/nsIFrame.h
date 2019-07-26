@@ -140,10 +140,6 @@ typedef uint64_t nsFrameState;
 
 
 
-#define NS_FRAME_HAS_CONTAINER_LAYER                NS_FRAME_STATE_BIT(3)
-
-
-
 
 #define NS_FRAME_EXTERNAL_REFERENCE                 NS_FRAME_STATE_BIT(4)
 
@@ -252,10 +248,6 @@ typedef uint64_t nsFrameState;
 
 
 #define NS_FRAME_DRAWING_AS_PAINTSERVER             NS_FRAME_STATE_BIT(33)
-
-
-
-#define NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT     NS_FRAME_STATE_BIT(34)
 
 
 #define NS_FRAME_HAS_CLIP                           NS_FRAME_STATE_BIT(35)

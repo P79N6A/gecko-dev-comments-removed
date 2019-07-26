@@ -43,17 +43,6 @@ public:
   
 
 
-  nscoord mAppUnitsPerDevPixel;
-
-  
-
-
-
-  nsIntPoint mPaintOffset;
-  
-  
-
-
   nsRect mBounds;
 };
 
