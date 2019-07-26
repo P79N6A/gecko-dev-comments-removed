@@ -32,7 +32,7 @@ struct PRMJTime {
 
 
 extern int64_t
-PRMJ_Now(void);
+PRMJ_Now();
 
 
 #if defined(JS_THREADSAFE) && defined(XP_WIN)
