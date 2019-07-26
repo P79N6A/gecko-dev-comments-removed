@@ -807,10 +807,11 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
     return SECSuccess;
 
   
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("BlockServerCertChangeForSpdy failed GetNegotiatedNPN() call."
             " Assuming spdy.\n"));
+  }
 
   
   ScopedCERTCertificate c(cert2->GetCert());
