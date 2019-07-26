@@ -159,13 +159,7 @@ richlistitem[type="download"][state="1"]:hover > .downloadButton.downloadShow:ac
 
 
 
-#downloads-indicator {
-  width: 35px;
-}
-
 #downloads-indicator-anchor {
-  min-width: 18px;
-  min-height: 18px;
   
 
 
@@ -177,6 +171,8 @@ richlistitem[type="download"][state="1"]:hover > .downloadButton.downloadShow:ac
 #downloads-indicator-icon {
   background: -moz-image-rect(url("chrome://browser/skin/Toolbar.png"),
                               0, 108, 18, 90) center no-repeat;
+  min-width: 18px;
+  min-height: 18px;
 }
 
 #downloads-indicator-icon:-moz-lwtheme-brighttext {
