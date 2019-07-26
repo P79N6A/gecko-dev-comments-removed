@@ -639,7 +639,8 @@ var gSyncSetup = {
       
       return;
     }
-    let controller = new Weave.SendCredentialsController(this._jpakeclient);
+    let controller = new Weave.SendCredentialsController(this._jpakeclient,
+                                                         Weave.Service);
     this._jpakeclient.controller = controller;
   },
 
