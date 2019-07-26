@@ -8,6 +8,8 @@
 #include "nsIPipe.h"
 #include "nsIMemory.h"
 #include "mozilla/Attributes.h"
+#include "nsIAsyncInputStream.h"
+#include "nsIAsyncOutputStream.h"
 
 
 nsresult TP_NewPipe2(nsIAsyncInputStream** input,
