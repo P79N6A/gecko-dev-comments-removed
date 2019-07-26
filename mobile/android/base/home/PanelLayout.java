@@ -402,8 +402,8 @@ abstract class PanelLayout extends FrameLayout {
                 mFilterStack = new LinkedList<FilterDetail>();
 
                 
-                
-                mFilterStack.push(new FilterDetail(null, mPanelConfig.getTitle()));
+                mFilterStack.push(new FilterDetail(mViewConfig.getFilter(),
+                                                   mPanelConfig.getTitle()));
             }
 
             mFilterStack.push(filter);
