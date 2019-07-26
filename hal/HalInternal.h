@@ -74,6 +74,16 @@ bool EnableAlarm();
 
 void DisableAlarm();
 
+
+
+
+void EnableSystemTimeChangeNotifications();
+
+
+
+
+void DisableSystemTimeChangeNotifications();
+
 } 
 } 
 

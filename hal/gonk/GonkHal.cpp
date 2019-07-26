@@ -670,6 +670,16 @@ GetTimezone()
   return nsCString(timezone);
 }
 
+void
+EnableSystemTimeChangeNotifications()
+{
+}
+
+void
+DisableSystemTimeChangeNotifications()
+{
+}
+
 
 
 void
