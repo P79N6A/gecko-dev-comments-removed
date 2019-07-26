@@ -11,7 +11,6 @@
 #include "nsIPrincipal.h"
 #include "nsWrapperCache.h"
 #include "nsIDOMWindow.h"
-#include "StreamBuffer.h"
 
 class nsXPCClassInfo;
 
@@ -31,12 +30,6 @@ namespace mozilla {
 
 class MediaStream;
 
-namespace dom {
-class MediaStreamTrack;
-class AudioStreamTrack;
-class VideoStreamTrack;
-}
-
 
 
 
@@ -44,12 +37,12 @@ class DOMMediaStream : public nsIDOMMediaStream,
                        public nsWrapperCache
 {
   friend class DOMLocalMediaStream;
-  typedef dom::MediaStreamTrack MediaStreamTrack;
-  typedef dom::AudioStreamTrack AudioStreamTrack;
-  typedef dom::VideoStreamTrack VideoStreamTrack;
 
 public:
-  DOMMediaStream();
+  DOMMediaStream() : mStream(nullptr), mHintContents(0)
+  {
+    SetIsDOMBinding();
+  }
   virtual ~DOMMediaStream();
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMMediaStream)
@@ -61,11 +54,7 @@ public:
   }
   virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope) MOZ_OVERRIDE;
 
-  
   double CurrentTime();
-  void GetAudioTracks(nsTArray<nsRefPtr<AudioStreamTrack> >& aTracks);
-  void GetVideoTracks(nsTArray<nsRefPtr<VideoStreamTrack> >& aTracks);
-
   MediaStream* GetStream() { return mStream; }
   bool IsFinished();
   
@@ -103,17 +92,9 @@ public:
   static already_AddRefed<DOMMediaStream>
   CreateTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents = 0);
 
-  
-  MediaStreamTrack* CreateDOMTrack(TrackID aTrackID, MediaSegment::Type aType);
-  MediaStreamTrack* GetDOMTrackFor(TrackID aTrackID);
-
 protected:
   void InitSourceStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
   void InitTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
-  void InitStreamCommon(MediaStream* aStream);
-
-  class StreamListener;
-  friend class StreamListener;
 
   
   nsCOMPtr<nsIDOMWindow> mWindow;
@@ -124,9 +105,6 @@ protected:
   
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
-
-  nsAutoTArray<nsRefPtr<MediaStreamTrack>,2> mTracks;
-  nsRefPtr<StreamListener> mListener;
 
   
   
