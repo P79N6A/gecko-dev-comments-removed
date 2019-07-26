@@ -385,10 +385,10 @@ var SelectionHelperUI = {
 
 
 
-  openEditSession: function openEditSession(aBrowser, aX, aY) {
-    if (!aBrowser || this.isActive)
+  openEditSession: function openEditSession(aMsgTarget, aX, aY) {
+    if (!aMsgTarget || this.isActive)
       return;
-    this._init(aBrowser);
+    this._init(aMsgTarget);
     this._setupDebugOptions();
 
     
@@ -408,10 +408,10 @@ var SelectionHelperUI = {
 
 
 
-  attachEditSession: function attachEditSession(aBrowser, aX, aY) {
-    if (!aBrowser || this.isActive)
+  attachEditSession: function attachEditSession(aMsgTarget, aX, aY) {
+    if (!aMsgTarget || this.isActive)
       return;
-    this._init(aBrowser);
+    this._init(aMsgTarget);
     this._setupDebugOptions();
 
     
@@ -438,9 +438,9 @@ var SelectionHelperUI = {
 
 
 
-  attachToCaret: function attachToCaret(aBrowser, aX, aY) {
+  attachToCaret: function attachToCaret(aMsgTarget, aX, aY) {
     if (!this.isActive) {
-      this._init(aBrowser);
+      this._init(aMsgTarget);
       this._setupDebugOptions();
     } else {
       this._hideMonocles();
