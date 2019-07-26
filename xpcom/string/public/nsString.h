@@ -21,9 +21,6 @@
 #include "nsReadableUtils.h"
 #endif
 
-
-#include "prtypes.h"
-
 #include NEW_H
 
   
@@ -51,9 +48,11 @@
 #include "nsTString.h"
 #include "string-template-undef.h"
 
-PR_STATIC_ASSERT(sizeof(PRUnichar) == 2);
-PR_STATIC_ASSERT(sizeof(nsString::char_type) == 2);
-PR_STATIC_ASSERT(sizeof(nsCString::char_type) == 1);
+MOZ_STATIC_ASSERT(sizeof(PRUnichar) == 2, "size of PRUnichar must be 2");
+MOZ_STATIC_ASSERT(sizeof(nsString::char_type) == 2,
+                  "size of nsString::char_type must be 2");
+MOZ_STATIC_ASSERT(sizeof(nsCString::char_type) == 1,
+                  "size of nsCString::char_type must be 1");
 
   
 
