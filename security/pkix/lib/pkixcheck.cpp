@@ -188,7 +188,13 @@ DecodeBasicConstraints(const SECItem* encodedBasicConstraints,
   }
 
   bool isCA = false;
-  if (der::OptionalBoolean(input, isCA) != der::Success) {
+  
+  
+  
+  
+  
+  
+  if (der::OptionalBoolean(input, true, isCA) != der::Success) {
     return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
   }
   basicConstraints.isCA = isCA;

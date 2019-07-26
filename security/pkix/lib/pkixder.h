@@ -374,15 +374,18 @@ Boolean(Input& input,  bool& value)
 
 
 
+
+
 inline Result
-OptionalBoolean(Input& input,  bool& value)
+OptionalBoolean(Input& input, bool allowInvalidExplicitEncoding,
+                 bool& value)
 {
   value = false;
   if (input.Peek(BOOLEAN)) {
     if (Boolean(input, value) != Success) {
       return Failure;
     }
-    if (!value) {
+    if (!allowInvalidExplicitEncoding && !value) {
       return Fail(SEC_ERROR_BAD_DER);
     }
   }
