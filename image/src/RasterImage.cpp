@@ -1195,7 +1195,7 @@ RasterImage::ApplyDecodeFlags(uint32_t aNewFlags)
     
     if (!(aNewFlags & FLAG_SYNC_DECODE))
       return false;
-    if (!CanForciblyDiscard() || mDecoder || mAnim)
+    if (!CanForciblyDiscardAndRedecode())
       return false;
     ForceDiscard();
   }
@@ -1938,6 +1938,14 @@ RasterImage::CanForciblyDiscard() {
          mHasSourceData;         
 }
 
+bool
+RasterImage::CanForciblyDiscardAndRedecode() {
+  return mDiscardable &&         
+         mHasSourceData &&       
+         !mDecoder &&            
+         !mAnim;                 
+}
+
 
 
 bool
@@ -2379,7 +2387,7 @@ RasterImage::SyncDecode()
       
       
       
-      if (!CanForciblyDiscard() || mDecoder || mAnim)
+      if (!CanForciblyDiscardAndRedecode())
         return NS_ERROR_NOT_AVAILABLE;
       ForceDiscard();
     }
@@ -2611,7 +2619,7 @@ RasterImage::Draw(gfxContext *aContext,
 
   
   if (mFrameDecodeFlags != DECODE_FLAGS_DEFAULT) {
-    if (!CanForciblyDiscard() || mDecoder || mAnim)
+    if (!CanForciblyDiscardAndRedecode())
       return NS_ERROR_NOT_AVAILABLE;
     ForceDiscard();
 
@@ -2734,7 +2742,7 @@ RasterImage::UnlockImage()
 NS_IMETHODIMP
 RasterImage::RequestDiscard()
 {
-  if (CanDiscard() && !mDecoder && !mAnim) {
+  if (CanDiscard() && CanForciblyDiscardAndRedecode()) {
     ForceDiscard();
   }
 
