@@ -902,7 +902,7 @@ Service::Observe(nsISupports *, const char *aTopic, const PRUnichar *)
 
         
         
-        if (conn->isAsyncClosing()) {
+        if (conn->isClosing()) {
           anyOpen = true;
           break;
         }

@@ -294,6 +294,32 @@ add_task(function test_asyncClose_succeeds_with_finalized_async_statement()
   gDBConn = null;
 });
 
+add_task(function test_close_then_release_statement() {
+  
+  
+  
+  let db = getOpenedDatabase();
+  let stmt = createStatement("SELECT * FROM test -- test_close_then_release_statement");
+  db.close();
+  stmt.finalize(); 
+
+  
+  gDBConn = null;
+});
+
+add_task(function test_asyncClose_then_release_statement() {
+  
+  
+  
+  let db = getOpenedDatabase();
+  let stmt = createStatement("SELECT * FROM test -- test_asyncClose_then_release_statement");
+  yield asyncClose(db);
+  stmt.finalize(); 
+
+  
+  gDBConn = null;
+});
+
 add_task(function test_close_fails_with_async_statement_ran()
 {
   let deferred = Promise.defer();

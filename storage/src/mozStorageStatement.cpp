@@ -357,12 +357,63 @@ Statement::internalFinalize(bool aDestructing)
   if (!mDBStatement)
     return NS_OK;
 
-#ifdef PR_LOGGING
-  PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Finalizing statement '%s'",
-                                      ::sqlite3_sql(mDBStatement)));
-#endif
+  int srv = SQLITE_OK;
 
-  int srv = ::sqlite3_finalize(mDBStatement);
+  if (!mDBConnection->isClosing(true)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+#ifdef PR_LOGGING
+    PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Finalizing statement '%s' during garbage-collection",
+                                        ::sqlite3_sql(mDBStatement)));
+#endif
+    srv = ::sqlite3_finalize(mDBStatement);
+  }
+#ifdef DEBUG
+  else {
+    
+    
+    
+    
+    
+    
+    
+
+    char *msg = ::PR_smprintf("SQL statement (%x) should have been finalized"
+      "before garbage-collection. For more details on this statement, set"
+      "NSPR_LOG_MESSAGES=mozStorage:5 .",
+      mDBStatement);
+    
+    
+    
+    
+    
+    
+    NS_WARNING(msg);
+    ::PR_smprintf_free(msg);
+  }
+#endif 
+
   mDBStatement = nullptr;
 
   if (mAsyncStatement) {

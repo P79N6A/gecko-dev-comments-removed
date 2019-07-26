@@ -170,8 +170,13 @@ public:
 
 
 
-  bool isAsyncClosing();
 
+
+
+
+
+
+  bool isClosing(bool aResultOnceClosed = false);
 
   nsresult initializeClone(Connection *aClone, bool aReadOnly);
 
@@ -239,7 +244,15 @@ private:
 
 
   nsCOMPtr<nsIThread> mAsyncExecutionThread;
+
   
+
+
+
+
+
+
+
 
 
 
