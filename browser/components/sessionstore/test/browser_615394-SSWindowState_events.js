@@ -2,7 +2,7 @@
 
 
 
-const stateBackup = ss.getBrowserState();
+const stateBackup = JSON.parse(ss.getBrowserState());
 const testState = {
   windows: [{
     tabs: [
@@ -76,8 +76,7 @@ function runNextTest() {
     });
   }
   else {
-    ss.setBrowserState(stateBackup);
-    finish();
+    waitForBrowserState(stateBackup, finish);
   }
 }
 
