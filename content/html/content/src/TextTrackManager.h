@@ -102,6 +102,21 @@ private:
   nsRefPtr<TextTrackCueList> mNewCues;
 
   static StaticRefPtr<nsIWebVTTParserWrapper> sParserWrapper;
+
+  bool performedTrackSelection;
+
+  
+  void HonorUserPreferencesForTrackSelection();
+  
+  void PerformTrackSelection(TextTrackKind aTextTrackKind);
+  
+  
+  void PerformTrackSelection(TextTrackKind aTextTrackKinds[], uint32_t size);
+  void GetTextTracksOfKinds(TextTrackKind aTextTrackKinds[], uint32_t size,
+                            nsTArray<TextTrack*>& aTextTracks);
+  void GetTextTracksOfKind(TextTrackKind aTextTrackKind,
+                           nsTArray<TextTrack*>& aTextTracks);
+  bool TrackIsDefault(TextTrack* aTextTrack);
 };
 
 } 
