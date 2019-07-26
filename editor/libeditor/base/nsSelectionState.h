@@ -28,10 +28,15 @@ class Selection;
 
 
 
-struct nsRangeStore 
+struct nsRangeStore MOZ_FINAL
 {
   nsRangeStore();
+
+private:
+  
   ~nsRangeStore();
+
+public:
   nsresult StoreRange(nsIDOMRange *aRange);
   nsresult GetRange(nsRange** outRange);
 
