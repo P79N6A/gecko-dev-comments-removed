@@ -144,10 +144,6 @@ ComparePolicy::adjustInputs(MInstruction *def)
 
     if (IsNullOrUndefined(specialization_)) {
         
-        
-        MDefinition *op = def->getOperand(0);
-        if (op->type() != MIRType_Value)
-            def->replaceOperand(0, boxAt(def, op));
         return true;
     }
 
