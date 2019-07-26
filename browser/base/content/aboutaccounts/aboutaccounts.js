@@ -9,8 +9,16 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 
+let fxAccountsCommon = {};
+Cu.import("resource://gre/modules/FxAccountsCommon.js", fxAccountsCommon);
+
 const PREF_LAST_FXA_USER = "identity.fxaccounts.lastSignedInUserHash";
 const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
+
+const OBSERVER_TOPICS = [
+  fxAccountsCommon.ONVERIFIED_NOTIFICATION,
+  fxAccountsCommon.ONLOGOUT_NOTIFICATION,
+];
 
 function log(msg) {
   
@@ -150,6 +158,11 @@ let wrapper = {
     xps.whenLoaded().then(() => {
       return fxAccounts.setSignedInUser(accountData);
     }).then(() => {
+      
+      
+      if (accountData.verified) {
+        showManage();
+      }
       this.injectData("message", { status: "login" });
       
       
@@ -249,23 +262,36 @@ function openPrefs() {
 }
 
 function init() {
-  if (window.location.href.contains("action=signin")) {
-    show("remote");
-    wrapper.init(fxAccounts.getAccountsSignInURI());
-  } else if (window.location.href.contains("action=signup")) {
-    show("remote");
-    wrapper.init();
-  } else if (window.location.href.contains("action=reauth")) {
-    fxAccounts.promiseAccountsForceSigninURI().then(url => {
-      show("remote");
-      wrapper.init(url);
-    });
-  } else {
-    
-    fxAccounts.getSignedInUser().then(user => {
+  fxAccounts.getSignedInUser().then(user => {
+    if (window.location.href.contains("action=signin")) {
       if (user) {
-        show("stage");
-        show("manage");
+        
+        showManage();
+      } else {
+        show("remote");
+        wrapper.init(fxAccounts.getAccountsSignInURI());
+      }
+    } else if (window.location.href.contains("action=signup")) {
+      if (user) {
+        
+        showManage();
+      } else {
+        show("remote");
+        wrapper.init();
+      }
+    } else if (window.location.href.contains("action=reauth")) {
+      
+      
+      
+      
+      fxAccounts.promiseAccountsForceSigninURI().then(url => {
+        show("remote");
+        wrapper.init(url);
+      });
+    } else {
+      
+      if (user) {
+        showManage();
         let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
         document.title = sb.GetStringFromName("manage.pageTitle");
       } else {
@@ -274,8 +300,8 @@ function init() {
         
         wrapper.init();
       }
-    });
-  }
+    }
+  });
 }
 
 function show(id) {
@@ -285,7 +311,38 @@ function hide(id) {
   document.getElementById(id).style.display = 'none';
 }
 
+function showManage() {
+  show("stage");
+  show("manage");
+  hide("remote");
+  hide("intro");
+}
+
 document.addEventListener("DOMContentLoaded", function onload() {
   document.removeEventListener("DOMContentLoaded", onload, true);
   init();
 }, true);
+
+function initObservers() {
+  function observe(subject, topic, data) {
+    log("about:accounts observed " + topic);
+    if (topic == fxAccountsCommon.ONLOGOUT_NOTIFICATION) {
+      
+      window.location = "about:accounts?action=signin";
+      return;
+    }
+    
+    window.location = "about:accounts";
+  }
+
+  for (let topic of OBSERVER_TOPICS) {
+    Services.obs.addObserver(observe, topic, false);
+  }
+  window.addEventListener("unload", function(event) {
+    log("about:accounts unloading")
+    for (let topic of OBSERVER_TOPICS) {
+      Services.obs.removeObserver(observe, topic);
+    }
+  });
+}
+initObservers();
