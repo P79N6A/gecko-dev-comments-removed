@@ -1460,11 +1460,14 @@ nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
 
   if (isJava && hasCodebase && codebaseStr.IsEmpty()) {
     
-    
     codebaseStr.AssignLiteral("/");
     
     
     
+  } else if (isJava && !hasCodebase) {
+    
+    
+    codebaseStr.AssignLiteral(".");
   }
 
   if (!codebaseStr.IsEmpty()) {
