@@ -2531,7 +2531,24 @@ class IDLNullValue(IDLObject):
 
     def _getDependentObjects(self):
         return set()
-  
+
+class IDLUndefinedValue(IDLObject):
+    def __init__(self, location):
+        IDLObject.__init__(self, location)
+        self.type = None
+        self.value = None
+
+    def coerceToType(self, type, location):
+        if not type.isAny():
+            raise WebIDLError("Cannot coerce undefined value to type %s." % type,
+                              [location])
+
+        undefinedValue = IDLUndefinedValue(self.location)
+        undefinedValue.type = type
+        return undefinedValue
+
+    def _getDependentObjects(self):
+        return set()
 
 class IDLInterfaceMember(IDLObjectWithIdentifier):
 
@@ -2909,6 +2926,22 @@ class IDLArgument(IDLObjectWithIdentifier):
             
             
             self.defaultValue = IDLNullValue(self.location)
+        elif self.type.isAny():
+            assert (self.defaultValue is None or
+                    isinstance(self.defaultValue, IDLNullValue))
+            if (self.optional and not self.variadic and
+                not self.dictionaryMember and not self.defaultValue):
+                raise WebIDLError("Arguments of type 'any' are always optional "
+                                  "and shouldn't have the 'optional' keyword "
+                                  "unless they're being given a default value "
+                                  "of 'null'",
+                                  [self.location])
+            
+            self.optional = True
+            if not self.defaultValue and not self.variadic:
+                
+                
+                self.defaultValue = IDLUndefinedValue(self.location)
 
         
         
@@ -4287,6 +4320,10 @@ class Parser(Tokenizer):
         if not optional and defaultValue:
             raise WebIDLError("Mandatory arguments can't have a default value.",
                               [self.getLocation(p, 6)])
+
+        
+        
+        
 
         if variadic:
             if optional:

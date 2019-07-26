@@ -242,31 +242,13 @@ public:
 };
 
 
-
-
 template<>
-class Optional<JS::Value> : public Optional_base<JS::Value, JS::Value>
+class Optional<JS::Value>
 {
-public:
-  Optional() :
-    Optional_base<JS::Value, JS::Value>()
-  {}
+private:
+  Optional() MOZ_DELETE;
 
-  explicit Optional(JS::Value aValue) :
-    Optional_base<JS::Value, JS::Value>(aValue)
-  {}
-
-  
-  void Construct()
-  {
-    Optional_base<JS::Value, JS::Value>::Construct(JS::UndefinedValue());
-  }
-
-  template <class T1>
-  void Construct(const T1& t1)
-  {
-    Optional_base<JS::Value, JS::Value>::Construct(t1);
-  }
+  explicit Optional(JS::Value aValue) MOZ_DELETE;
 };
 
 
