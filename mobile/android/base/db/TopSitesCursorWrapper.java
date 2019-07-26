@@ -482,6 +482,11 @@ public class TopSitesCursorWrapper implements Cursor {
         return false;
     }
 
+    public Uri getNotificationUri() {
+        
+        return null;
+    }
+
     @Override
     public void setNotificationUri(ContentResolver cr, Uri uri) {
         
