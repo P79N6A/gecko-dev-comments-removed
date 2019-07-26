@@ -39,6 +39,7 @@ class MemoryMonitor extends BroadcastReceiver {
     private static final String ACTION_MEMORY_DUMP = "org.mozilla.gecko.MEMORY_DUMP";
     private static final String ACTION_FORCE_PRESSURE = "org.mozilla.gecko.FORCE_MEMORY_PRESSURE";
 
+    
     private static final int MEMORY_PRESSURE_NONE = 0;
     private static final int MEMORY_PRESSURE_CLEANUP = 1;
     private static final int MEMORY_PRESSURE_LOW = 2;
@@ -148,8 +149,9 @@ class MemoryMonitor extends BroadcastReceiver {
 
         
         if (level >= MEMORY_PRESSURE_MEDIUM) {
+            
             if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
-                GeckoAppShell.onLowMemory();
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createLowMemoryEvent(level));
             }
 
             Favicons.getInstance().clearMemCache();
