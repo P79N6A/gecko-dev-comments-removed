@@ -986,7 +986,6 @@ void MediaDecoderStateMachine::AudioLoop()
   bool setPlaybackRate;
   bool preservesPitch;
   bool setPreservesPitch;
-  int32_t minWriteFrames = -1;
   AudioChannelType audioChannelType;
 
   {
@@ -1089,9 +1088,6 @@ void MediaDecoderStateMachine::AudioLoop()
         NS_WARNING("Setting the pitch preservation failed in AudioLoop.");
       }
     }
-    if (minWriteFrames == -1) {
-      minWriteFrames = mAudioStream->GetMinWriteSize();
-    }
     NS_ASSERTION(mReader->AudioQueue().GetSize() > 0,
                  "Should have data to play");
     
@@ -1149,23 +1145,6 @@ void MediaDecoderStateMachine::AudioLoop()
       
       bool seeking = false;
       {
-        int64_t unplayedFrames = audioDuration % minWriteFrames;
-        if (minWriteFrames > 1 && unplayedFrames > 0) {
-          
-          
-          
-          
-          
-          
-          int64_t framesToWrite = minWriteFrames - unplayedFrames;
-          if (framesToWrite < UINT32_MAX / channels) {
-            
-            
-            ReentrantMonitorAutoExit exit(mDecoder->GetReentrantMonitor());
-            WriteSilence(mAudioStream, framesToWrite);
-          }
-        }
-
         int64_t oldPosition = -1;
         int64_t position = GetMediaTime();
         while (oldPosition != position &&

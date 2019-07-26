@@ -161,10 +161,6 @@ public:
   
   virtual bool IsPaused() = 0;
 
-  
-  
-  virtual int32_t GetMinWriteSize() = 0;
-
   int GetRate() { return mOutRate; }
   int GetChannels() { return mChannels; }
 
