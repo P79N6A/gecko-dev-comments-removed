@@ -171,6 +171,9 @@ class RefTest(object):
       prefs[thispref[0]] = mozprofile.Preferences.cast(thispref[1].strip())
 
     
+    prefs['gfx.color_management.force_srgb'] = True
+
+    
     addons = []
     addons.append(os.path.join(SCRIPT_DIRECTORY, "reftest"))
 
