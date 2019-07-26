@@ -1221,15 +1221,23 @@ public:
 
   bool IsHTML() const
   {
-    return mIsRegularHTML;
+    return mType == eHTML;
+  }
+  bool IsHTMLOrXHTML() const
+  {
+    return mType == eHTML || mType == eXHTML;
   }
   bool IsXML() const
   {
     return !IsHTML();
   }
+  bool IsSVG() const
+  {
+    return mType == eSVG;
+  }
   bool IsXUL() const
   {
-    return mIsXUL;
+    return mType == eXUL;
   }
   bool IsUnstyledDocument()
   {
@@ -2402,15 +2410,6 @@ protected:
   
   bool mIsInitialDocumentInWindow;
 
-  bool mIsRegularHTML;
-  bool mIsXUL;
-
-  enum {
-    eTriUnset = 0,
-    eTriFalse,
-    eTriTrue
-  } mAllowXULXBL;
-
   
   
   bool mLoadedAsData;
@@ -2514,6 +2513,27 @@ protected:
   bool mIsLinkUpdateRegistrationsForbidden;
 #endif
 
+  enum Type {
+    eUnknown, 
+    eHTML,
+    eXHTML,
+    eGenericXML,
+    eSVG,
+    eXUL
+  };
+
+  uint8_t mType;
+
+  uint8_t mDefaultElementType;
+
+  enum {
+    eTriUnset = 0,
+    eTriFalse,
+    eTriTrue
+  };
+
+  uint8_t mAllowXULXBL;
+
   
   
   
@@ -2595,8 +2615,6 @@ protected:
 
   nsCOMPtr<nsIStructuredCloneContainer> mStateObjectContainer;
   nsCOMPtr<nsIVariant> mStateObjectCached;
-
-  uint8_t mDefaultElementType;
 
   uint32_t mInSyncOperationCount;
 

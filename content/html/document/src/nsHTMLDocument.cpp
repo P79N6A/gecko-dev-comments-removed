@@ -190,7 +190,7 @@ nsHTMLDocument::nsHTMLDocument()
   
   
 
-  mIsRegularHTML = true;
+  mType = eHTML;
   mDefaultElementType = kNameSpaceID_XHTML;
   mCompatMode = eCompatibility_NavQuirks;
 }
@@ -535,7 +535,8 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     MOZ_ASSERT(false, "Got a sink override. Should not happen for HTML doc.");
     return NS_ERROR_INVALID_ARG;
   }
-  if (!mIsRegularHTML) {
+  if (mType != eHTML) {
+    MOZ_ASSERT(mType == eXHTML);
     MOZ_ASSERT(false, "Must not set HTML doc to XHTML mode before load start.");
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
@@ -565,7 +566,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   if (!viewSource && xhtml) {
       
-      mIsRegularHTML = false;
+      mType = eXHTML;
       mCompatMode = eCompatibility_FullStandards;
       loadAsHtml5 = false;
   }
@@ -3575,7 +3576,8 @@ nsHTMLDocument::DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
 bool
 nsHTMLDocument::WillIgnoreCharsetOverride()
 {
-  if (!mIsRegularHTML) {
+  if (mType != eHTML) {
+    MOZ_ASSERT(mType == eXHTML);
     return true;
   }
   if (mCharacterSetSource == kCharsetFromByteOrderMark) {

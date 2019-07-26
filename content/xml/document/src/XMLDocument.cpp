@@ -219,6 +219,8 @@ XMLDocument::XMLDocument(const char* aContentType)
 {
   
   
+
+  mType = eGenericXML;
 }
 
 XMLDocument::~XMLDocument()
