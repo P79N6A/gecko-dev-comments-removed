@@ -24,13 +24,15 @@ public:
     return 0x2022;
   }
 
+  static bool UseOverlayScrollbars();
+
 protected:
 
   
   static const int kThemeScrollBarArrowsBoth = 2;
   static const int kThemeScrollBarArrowsUpperLeft = 3;
 
-  static bool UseOverlayScrollbars();
+  static bool SystemWantsOverlayScrollbars();
   static bool AllowOverlayScrollbarsOverlap();
 };
 
