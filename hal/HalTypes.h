@@ -82,6 +82,14 @@ enum ProcessPriority {
 
 
 
+
+
+const char*
+ProcessPriorityToString(ProcessPriority aPriority);
+
+
+
+
 enum WakeLockControl {
   WAKE_LOCK_REMOVE_ONE = -1,
   WAKE_LOCK_NO_CHANGE  = 0,
