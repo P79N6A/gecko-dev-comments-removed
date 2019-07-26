@@ -54,10 +54,6 @@ public:
     return mReader->GetBuffered(aBuffered, 0);
   }
 
-  
-  
-  int64_t ConvertToByteOffset(double aTime);
-
 private:
   MediaSourceDecoder* mParentDecoder;
   nsAutoPtr<MediaDecoderReader> mReader;

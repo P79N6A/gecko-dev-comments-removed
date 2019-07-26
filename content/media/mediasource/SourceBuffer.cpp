@@ -96,23 +96,6 @@ SubBufferDecoder::GetImageContainer()
   return mParentDecoder->GetImageContainer();
 }
 
-int64_t
-SubBufferDecoder::ConvertToByteOffset(double aTime)
-{
-  
-  
-  
-  
-  double duration = mParentDecoder->GetDuration();
-  if (duration <= 0.0 || IsNaN(duration)) {
-    return -1;
-  }
-  int64_t length = GetResource()->GetLength();
-  MOZ_ASSERT(length > 0);
-  int64_t offset = (aTime / duration) * length;
-  return offset;
-}
-
 namespace dom {
 
 void
@@ -347,56 +330,7 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
                               mDecoder->GetResource()->GetLength());
   
   mDecoder->GetResource()->AppendData(aData, aLength);
-
-  
-  
-  
-  
-  
-  const int evict_threshold = 1000000;
-  bool evicted = mDecoder->GetResource()->EvictData(evict_threshold);
-  if (evicted) {
-    double start = 0.0;
-    double end = 0.0;
-    GetBufferedStartEndTime(&start, &end);
-
-    
-    
-    mMediaSource->NotifyEvicted(0.0, start);
-  }
   StopUpdating();
-
-  
-  
-  mMediaSource->GetDecoder()->ScheduleStateMachineThread();
-}
-
-void
-SourceBuffer::GetBufferedStartEndTime(double* aStart, double* aEnd)
-{
-  nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  mDecoder->GetBuffered(ranges);
-  ranges->Normalize();
-  int length = ranges->Length();
-  ErrorResult rv;
-
-  if (aStart) {
-    *aStart = length > 0 ? ranges->Start(0, rv) : 0.0;
-  }
-
-  if (aEnd) {
-    *aEnd = length > 0 ? ranges->End(length - 1, rv) : 0.0;
-  }
-}
-
-void
-SourceBuffer::Evict(double aStart, double aEnd)
-{
-  
-  int64_t end = mDecoder->ConvertToByteOffset(aEnd);
-  if (end > 0) {
-    mDecoder->GetResource()->EvictBefore(end);
-  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED_1(SourceBuffer, nsDOMEventTargetHelper, mMediaSource)
