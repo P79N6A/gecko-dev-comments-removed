@@ -238,7 +238,7 @@ const Class UnsizedArrayTypeDescr::class_ = {
     nullptr,
     nullptr,
     nullptr,
-    TypedObject::construct,
+    TypedObject::constructUnsized,
     nullptr
 };
 
@@ -255,7 +255,7 @@ const Class SizedArrayTypeDescr::class_ = {
     nullptr,
     nullptr,
     nullptr,
-    TypedObject::construct,
+    TypedObject::constructSized,
     nullptr
 };
 
@@ -543,7 +543,7 @@ const Class StructTypeDescr::class_ = {
     nullptr, 
     nullptr, 
     nullptr, 
-    TypedObject::construct,
+    TypedObject::constructSized,
     nullptr  
 };
 
@@ -2008,6 +2008,26 @@ const Class TypedObject::class_ = {
     }
 };
 
+static int32_t
+LengthForType(TypeDescr &descr)
+{
+    switch (descr.kind()) {
+      case TypeDescr::Scalar:
+      case TypeDescr::Reference:
+      case TypeDescr::Struct:
+      case TypeDescr::X4:
+        return 0;
+
+      case TypeDescr::SizedArray:
+        return descr.as<SizedArrayTypeDescr>().length();
+
+      case TypeDescr::UnsizedArray:
+        return 0;
+    }
+
+    MOZ_ASSUME_UNREACHABLE("Invalid kind");
+}
+
  TypedObject *
 TypedObject::createZeroed(JSContext *cx,
                           HandleTypeDescr descr,
@@ -2075,53 +2095,130 @@ TypedObject::createZeroed(JSContext *cx,
 }
 
  bool
-TypedObject::construct(JSContext *cx, unsigned int argc, Value *vp)
+TypedObject::constructSized(JSContext *cx, unsigned int argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    JS_ASSERT(args.callee().is<SizedTypeDescr>());
+    Rooted<SizedTypeDescr*> callee(cx, &args.callee().as<SizedTypeDescr>());
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    if (argc == 0) {
+        int32_t length = LengthForType(*callee);
+        Rooted<TypedDatum*> obj(cx, createZeroed(cx, callee, length));
+        if (!obj)
+            return false;
+        args.rval().setObject(*obj);
+        return true;
+    }
+
+    
+    if (args[0].isObject()) {
+        
+        int32_t length = LengthForType(*callee);
+        Rooted<TypedDatum*> obj(cx, createZeroed(cx, callee, length));
+        if (!obj)
+            return false;
+
+        
+        if (!ConvertAndCopyTo(cx, obj, args[0]))
+            return false;
+        args.rval().setObject(*obj);
+        return true;
+    }
+
+    
+    JS_ReportErrorNumber(cx, js_GetErrorMessage,
+                         nullptr, JSMSG_TYPEDOBJECT_BAD_ARGS);
+    return false;
+}
+
+ bool
+TypedObject::constructUnsized(JSContext *cx, unsigned int argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
     JS_ASSERT(args.callee().is<TypeDescr>());
-    Rooted<TypeDescr*> callee(cx, &args.callee().as<TypeDescr>());
-    TypeRepresentation *typeRepr = callee->typeRepresentation();
+    Rooted<UnsizedArrayTypeDescr*> callee(cx);
+    callee = &args.callee().as<UnsizedArrayTypeDescr>();
 
     
-    uint32_t nextArg = 0;
-    int32_t length = 0;
-    switch (typeRepr->kind()) {
-      case TypeDescr::Scalar:
-      case TypeDescr::Reference:
-      case TypeDescr::Struct:
-      case TypeDescr::X4:
-        length = 0;
-        break;
+    
+    
+    
+    
+    
+    
+    
+    
 
-      case TypeDescr::SizedArray:
-        length = typeRepr->asSizedArray()->length();
-        break;
+    
+    if (argc == 0) {
+        Rooted<TypedDatum*> obj(cx, createZeroed(cx, callee, 0));
+        if (!obj)
+            return false;
+        args.rval().setObject(*obj);
+        return true;
+    }
 
-      case TypeDescr::UnsizedArray:
+    
+    if (args[0].isInt32()) {
+        int32_t length = args[0].toInt32();
+        Rooted<TypedDatum*> obj(cx, createZeroed(cx, callee, length));
+        if (!obj)
+            return false;
+        args.rval().setObject(*obj);
+        return true;
+    }
+
+    
+    if (args[0].isObject()) {
         
-        if (nextArg >= argc || !args[nextArg].isInt32()) {
+        RootedObject arg(cx, &args[0].toObject());
+        RootedValue lengthVal(cx);
+        if (!JSObject::getProperty(cx, arg, arg, cx->names().length, &lengthVal))
+            return false;
+        if (!lengthVal.isInt32()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage,
                                  nullptr, JSMSG_TYPEDOBJECT_BAD_ARGS);
             return false;
         }
-        length = args[nextArg++].toInt32();
-        break;
+        int32_t length = lengthVal.toInt32();
+
+        
+        int32_t elementSize = callee->elementType().size();
+        int32_t byteLength;
+        if (!SafeMul(elementSize, length, &byteLength)) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage,
+                                 nullptr, JSMSG_TYPEDOBJECT_BAD_ARGS);
+            return false;
+        }
+
+        
+        Rooted<TypedDatum*> obj(cx, createZeroed(cx, callee, length));
+        if (!obj)
+            return false;
+
+        
+        if (!ConvertAndCopyTo(cx, obj, args[0]))
+            return false;
+        args.rval().setObject(*obj);
+        return true;
     }
 
     
-    Rooted<TypedObject*> obj(cx, createZeroed(cx, callee, length));
-    if (!obj)
-        return nullptr;
-
-    if (nextArg < argc) {
-        RootedValue initial(cx, args[nextArg++]);
-        if (!ConvertAndCopyTo(cx, obj, initial))
-            return false;
-    }
-
-    args.rval().setObject(*obj);
-    return true;
+    JS_ReportErrorNumber(cx, js_GetErrorMessage,
+                         nullptr, JSMSG_TYPEDOBJECT_BAD_ARGS);
+    return false;
 }
 
 
