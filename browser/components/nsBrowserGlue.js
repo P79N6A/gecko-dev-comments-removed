@@ -916,11 +916,12 @@ BrowserGlue.prototype = {
     try {
       telemetryDisplayed = Services.prefs.getIntPref(PREF_TELEMETRY_DISPLAYED);
     } catch(e) {}
-    if (telemetryDisplayed === TELEMETRY_DISPLAY_REV)
+    if (telemetryDisplayed >= TELEMETRY_DISPLAY_REV)
       return;
 
 #ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
     
+
 
 
 

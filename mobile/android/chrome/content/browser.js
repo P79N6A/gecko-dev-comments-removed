@@ -7289,7 +7289,7 @@ var Telemetry = {
     try {
       telemetryDisplayed = Services.prefs.getIntPref(self._PREF_TELEMETRY_DISPLAYED);
     } catch(e) {}
-    if (telemetryDisplayed === self._TELEMETRY_DISPLAY_REV)
+    if (telemetryDisplayed >= self._TELEMETRY_DISPLAY_REV)
       return;
 
 #ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
