@@ -5999,7 +5999,7 @@ nsGlobalWindow::ResizeTo(int32_t aWidth, int32_t aHeight)
 
 
 
-  if (mDocShell->GetIsBrowserOrApp()) {
+  if (mDocShell && mDocShell->GetIsBrowserOrApp()) {
     nsIntSize size(aWidth, aHeight);
     if (!DispatchResizeEvent(size)) {
       
@@ -6039,7 +6039,7 @@ nsGlobalWindow::ResizeBy(int32_t aWidthDif, int32_t aHeightDif)
 
 
 
-  if (mDocShell->GetIsBrowserOrApp()) {
+  if (mDocShell && mDocShell->GetIsBrowserOrApp()) {
     CSSIntSize size;
     nsresult rv = GetInnerSize(size);
     NS_ENSURE_SUCCESS(rv, NS_OK);
