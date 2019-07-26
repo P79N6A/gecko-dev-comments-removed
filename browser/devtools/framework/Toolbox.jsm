@@ -478,11 +478,10 @@ Toolbox.prototype = {
 
 
   _createHost: function TBOX_createHost(hostType) {
-    let hostTab = this._getHostTab();
     if (!Hosts[hostType]) {
       throw new Error('Unknown hostType: '+ hostType);
     }
-    let newHost = new Hosts[hostType](hostTab);
+    let newHost = new Hosts[hostType](this.target.tab);
 
     
     newHost.on("window-closed", this.destroy);
@@ -523,18 +522,6 @@ Toolbox.prototype = {
 
       this.emit("host-changed");
     }.bind(this));
-  },
-
-  
-
-
-  _getHostTab: function TBOX_getHostTab() {
-    if (!this._target.isRemote && !this._target.isChrome) {
-      return this._target.tab;
-    } else {
-      let win = Services.wm.getMostRecentWindow("navigator:browser");
-      return win.gBrowser.selectedTab;
-    }
   },
 
   
