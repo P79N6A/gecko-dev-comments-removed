@@ -272,6 +272,7 @@ public:
     , mMainThreadCurrentTime(0)
     , mMainThreadFinished(false)
     , mMainThreadDestroyed(false)
+    , mGraph(nullptr)
   {
   }
   virtual ~MediaStream()
@@ -286,6 +287,10 @@ public:
 
   MediaStreamGraphImpl* GraphImpl();
   MediaStreamGraph* Graph();
+  
+
+
+  void SetGraphImpl(MediaStreamGraphImpl* aGraph);
 
   
   
@@ -515,6 +520,9 @@ protected:
   StreamTime mMainThreadCurrentTime;
   bool mMainThreadFinished;
   bool mMainThreadDestroyed;
+
+  
+  MediaStreamGraphImpl* mGraph;
 };
 
 
