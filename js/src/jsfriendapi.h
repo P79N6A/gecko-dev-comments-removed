@@ -991,7 +991,6 @@ JS_NewFloat64ArrayFromArray(JSContext *cx, JSObject *array);
 
 
 
-
 extern JS_FRIEND_API(JSObject *)
 JS_NewInt8ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
                           uint32_t byteOffset, int32_t length);
