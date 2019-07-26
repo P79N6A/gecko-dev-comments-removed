@@ -12,7 +12,7 @@ let gProcess;
 
 function test() {
   
-  requestLongerTimeout(4);
+  requestLongerTimeout(5);
 
   initChromeDebugger(aOnClose).then(aProcess => {
     gProcess = aProcess;
