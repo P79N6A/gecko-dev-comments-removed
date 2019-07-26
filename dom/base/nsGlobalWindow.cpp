@@ -3624,29 +3624,6 @@ nsGlobalWindow::GetRealParent(nsIDOMWindow** aParent)
   return NS_OK;
 }
 
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsGlobalWindow::GetScriptableTop(nsIDOMWindow **aTop)
-{
-  return GetTopImpl(aTop,  true);
-}
-
-
-
-
-
-NS_IMETHODIMP
-nsGlobalWindow::GetRealTop(nsIDOMWindow** aTop)
-{
-  return GetTopImpl(aTop,  false);
-}
-
 nsresult
 nsGlobalWindow::GetTopImpl(nsIDOMWindow** aTop, bool aScriptable)
 {
@@ -3683,6 +3660,29 @@ nsGlobalWindow::GetTopImpl(nsIDOMWindow** aTop, bool aScriptable)
   }
 
   return NS_OK;
+}
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetScriptableTop(nsIDOMWindow **aTop)
+{
+  return GetTopImpl(aTop,  true);
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetRealTop(nsIDOMWindow** aTop)
+{
+  return GetTopImpl(aTop,  false);
 }
 
 JSObject*
