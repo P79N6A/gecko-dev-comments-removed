@@ -589,12 +589,8 @@ nsStringBundleService::getStringBundle(const char *aURLSpec,
   } else {
 
     
-    nsStringBundle* bundle = new nsStringBundle(aURLSpec, mOverrideStrings);
-    NS_ADDREF(bundle);
-
-    cacheEntry = insertIntoCache(bundle, &completeKey);
-    NS_RELEASE(bundle);         
-                                
+    nsRefPtr<nsStringBundle> bundle = new nsStringBundle(aURLSpec, mOverrideStrings);
+    cacheEntry = insertIntoCache(bundle.forget(), &completeKey);
   }
 
   
@@ -610,7 +606,7 @@ nsStringBundleService::getStringBundle(const char *aURLSpec,
 }
 
 bundleCacheEntry_t *
-nsStringBundleService::insertIntoCache(nsIStringBundle* aBundle,
+nsStringBundleService::insertIntoCache(already_AddRefed<nsIStringBundle> aBundle,
                                        nsCStringKey* aHashKey)
 {
   bundleCacheEntry_t *cacheEntry;
