@@ -1764,13 +1764,16 @@ _cairo_ft_options_merge (cairo_ft_options_t *options,
 	options->base.antialias == CAIRO_ANTIALIAS_NONE) {
 	options->base.antialias = CAIRO_ANTIALIAS_NONE;
 	options->base.subpixel_order = CAIRO_SUBPIXEL_ORDER_DEFAULT;
-    }
+    } else if (options->base.antialias != CAIRO_ANTIALIAS_GRAY) {
+	
 
-    if (other->base.antialias == CAIRO_ANTIALIAS_SUBPIXEL &&
-	(options->base.antialias == CAIRO_ANTIALIAS_DEFAULT ||
-	 options->base.antialias == CAIRO_ANTIALIAS_GRAY)) {
-	options->base.antialias = CAIRO_ANTIALIAS_SUBPIXEL;
-	options->base.subpixel_order = other->base.subpixel_order;
+
+
+	if (other->base.antialias != CAIRO_ANTIALIAS_DEFAULT)
+	    options->base.antialias = other->base.antialias;
+	
+	if (options->base.subpixel_order == CAIRO_SUBPIXEL_ORDER_DEFAULT)
+	    options->base.subpixel_order = other->base.subpixel_order;
     }
 
     if (options->base.hint_style == CAIRO_HINT_STYLE_DEFAULT)
