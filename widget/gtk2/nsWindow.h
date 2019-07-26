@@ -82,10 +82,6 @@ public:
     
     void CommonCreate(nsIWidget *aParent, bool aListenForResizes);
     
-    
-    void DispatchActivateEvent(void);
-    void DispatchDeactivateEvent(void);
-
     virtual nsresult DispatchEvent(nsGUIEvent *aEvent, nsEventStatus &aStatus);
     
     
@@ -297,6 +293,11 @@ public:
     { return SynthesizeNativeMouseEvent(aPoint, GDK_MOTION_NOTIFY, 0); }
 
 protected:
+    
+    void DispatchActivateEvent(void);
+    void DispatchDeactivateEvent(void);
+    void DispatchResized(int32_t aWidth, int32_t aHeight);
+
     
     void ReparentNativeWidgetInternal(nsIWidget* aNewParent,
                                       GtkWidget* aNewContainer,

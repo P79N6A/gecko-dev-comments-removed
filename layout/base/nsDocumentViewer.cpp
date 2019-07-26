@@ -4063,7 +4063,7 @@ DocumentViewerImpl::ShouldAttachToTopLevel()
   if (nsIWidget::UsePuppetWidgets())
     return true;
 
-#ifdef XP_WIN
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
   
   
   int32_t docType;
