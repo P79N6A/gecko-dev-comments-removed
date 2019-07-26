@@ -25,9 +25,10 @@ class GroupRule;
 #define DECL_STYLE_RULE_INHERIT_NO_DOMRULE  \
 virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 
-#define DECL_STYLE_RULE_INHERIT  \
-DECL_STYLE_RULE_INHERIT_NO_DOMRULE \
-virtual nsIDOMCSSRule* GetDOMRule();
+#define DECL_STYLE_RULE_INHERIT                   \
+  DECL_STYLE_RULE_INHERIT_NO_DOMRULE              \
+  virtual nsIDOMCSSRule* GetDOMRule();            \
+  virtual nsIDOMCSSRule* GetExistingDOMRule();
 
 class Rule : public nsIStyleRule {
 protected:
@@ -106,6 +107,9 @@ public:
   
   
   virtual nsIDOMCSSRule* GetDOMRule() = 0;
+
+  
+  virtual nsIDOMCSSRule* GetExistingDOMRule() = 0;
 
   
   nsresult GetParentRule(nsIDOMCSSRule** aParentRule);
