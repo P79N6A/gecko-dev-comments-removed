@@ -60,11 +60,18 @@
 
 
 #ifdef MOZ_PROFILING
-#define SECCOMP_WHITELIST_PROFILING \
+# ifdef __NR_sigaction
+#  define SECCOMP_WHITELIST_PROFILING \
   ALLOW_SYSCALL(sigaction), \
+  ALLOW_SYSCALL(rt_sigaction), \
   ALLOW_SYSCALL(tgkill),
+# else
+#  define SECCOMP_WHITELIST_PROFILING \
+  ALLOW_SYSCALL(rt_sigaction), \
+  ALLOW_SYSCALL(tgkill),
+# endif
 #else
-#define SECCOMP_WHITELIST_PROFILING
+# define SECCOMP_WHITELIST_PROFILING
 #endif
 
 
