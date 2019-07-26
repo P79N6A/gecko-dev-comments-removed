@@ -76,7 +76,7 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
     return mConsumer == nullptr;
   }
-  
+
   void ShutdownOnMainThread()
   {
     MOZ_ASSERT(NS_IsMainThread());
@@ -480,7 +480,7 @@ void ShutdownSocketTask::Run()
   NS_ENSURE_SUCCESS_VOID(rv);
 }
 
-void  
+void
 UnixSocketImpl::Accept()
 {
   MOZ_ASSERT(!NS_IsMainThread());
