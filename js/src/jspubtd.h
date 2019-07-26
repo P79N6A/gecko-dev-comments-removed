@@ -10,6 +10,8 @@
 
 
 
+
+#include "jsprototypes.h"
 #include "jstypes.h"
 
 
@@ -106,8 +108,8 @@ typedef enum JSType {
 
 
 typedef enum JSProtoKey {
-#define JS_PROTO(name,code,init) JSProto_##name = code,
-#include "jsproto.tbl"
+#define PROTOKEY_AND_INITIALIZER(name,code,init) JSProto_##name = code,
+    JS_FOR_EACH_PROTOTYPE(PROTOKEY_AND_INITIALIZER)
 #undef JS_PROTO
     JSProto_LIMIT
 } JSProtoKey;
