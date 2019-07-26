@@ -180,7 +180,8 @@ NS_IMETHODIMP
 OfflineCacheUpdateChild::Init(nsIURI *aManifestURI,
                               nsIURI *aDocumentURI,
                               nsIDOMDocument *aDocument,
-                              nsIFile *aCustomProfileDir)
+                              nsIFile *aCustomProfileDir,
+                              nsILoadContext *aLoadContext)
 {
     nsresult rv;
 
@@ -220,6 +221,8 @@ OfflineCacheUpdateChild::Init(nsIURI *aManifestURI,
 
     if (aDocument)
         SetDocument(aDocument);
+
+    mLoadContext = aLoadContext;
 
     return NS_OK;
 }
@@ -412,10 +415,19 @@ OfflineCacheUpdateChild::Schedule()
     bool stickDocument = mDocument != nullptr; 
 
     
+    bool isInBrowserElement = false;
+    uint32_t appId = NECKO_NO_APP_ID;
+    if (mLoadContext) {
+        mLoadContext->GetIsInBrowserElement(&isInBrowserElement);
+        mLoadContext->GetAppId(&appId);
+    }
+
+    
     
     
     child->SendPOfflineCacheUpdateConstructor(this, manifestURI, documentURI,
-                                              mClientID, stickDocument);
+                                              isInBrowserElement, appId,
+                                              stickDocument);
 
     mIPCActivated = true;
     this->AddRef();
