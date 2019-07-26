@@ -11,6 +11,8 @@
 
 
 
+
+
 const EMULATOR_ADDRESS = "56:34:12:00:54:52";
 
 
@@ -34,14 +36,7 @@ const BDADDR_ALL   = "ff:ff:ff:ff:ff:ff";
 const BDADDR_LOCAL = "ff:ff:ff:00:00:00";
 
 
-const REMOTE_DEVICE_NAME = "Remote_BT_Device";
-
-
-const BT_PAIRING_REQ = "bluetooth-pairing-request";
-
-
-const BT_PAIRING_PASSKEY = 123456;
-const BT_PAIRING_PINCODE = "ABCDEFG";
+const REMOTE_DEVICE_NAME = "Remote BT Device";
 
 let Promise =
   SpecialPowers.Cu.import("resource://gre/modules/Promise.jsm").Promise;
@@ -81,33 +76,6 @@ function runEmulatorCmdSafe(aCommand) {
       deferred.reject(aResult);
     }
   });
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function wrapDomRequestAsPromise(aRequest) {
-  let deferred = Promise.defer();
-
-  ok(aRequest instanceof DOMRequest,
-     "aRequest is instanceof " + aRequest.constructor);
-
-  aRequest.onsuccess = function(aEvent) {
-    deferred.resolve(aEvent);
-  };
-  aRequest.onerror = function(aEvent) {
-    deferred.reject(aEvent);
-  };
 
   return deferred.promise;
 }
@@ -220,7 +188,9 @@ function setEmulatorDeviceProperty(aAddress, aPropertyName, aValue) {
 function getEmulatorDeviceProperty(aAddress, aPropertyName) {
   let cmd = "bt property " + aAddress + " " + aPropertyName;
   return runEmulatorCmdSafe(cmd)
-         .then(aResults => aResults[0]);
+    .then(function(aResults) {
+      return aResults[0];
+    });
 }
 
 
@@ -237,19 +207,23 @@ function getEmulatorDeviceProperty(aAddress, aPropertyName) {
 
 
 function startDiscovery(aAdapter) {
-  let request = aAdapter.startDiscovery();
+  let deferred = Promise.defer();
 
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      
-      
-      
-      
-      log("  Start discovery - Success");
-    }, function reject(aEvent) {
-      ok(false, "Start discovery - Fail");
-      throw aEvent.target.error;
-    });
+  let request = aAdapter.startDiscovery();
+  request.onsuccess = function () {
+    log("  Start discovery - Success");
+    
+    
+    
+    
+    deferred.resolve();
+  }
+  request.onerror = function (aEvent) {
+    ok(false, "Start discovery - Fail");
+    deferred.reject(aEvent.target.error);
+  }
+
+  return deferred.promise;
 }
 
 
@@ -266,51 +240,21 @@ function startDiscovery(aAdapter) {
 
 
 function stopDiscovery(aAdapter) {
-  let request = aAdapter.stopDiscovery();
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      
-      
-      
-      
-      log("  Stop discovery - Success");
-    }, function reject(aEvent) {
-      ok(false, "Stop discovery - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function waitForDevicesFound(aAdapter, aRemoteAddresses) {
   let deferred = Promise.defer();
 
-  var addrArray = [];
-  aAdapter.addEventListener("devicefound", function onevent(aEvent) {
-    if(aRemoteAddresses.indexOf(aEvent.device.address) != -1) {
-      addrArray.push(aEvent.device.address);
-    }
-    if(addrArray.length == aRemoteAddresses.length) {
-      aAdapter.removeEventListener("devicefound", onevent);
-      ok(true, "BluetoothAdapter has found all remote devices.");
-
-      deferred.resolve(addrArray);
-    }
-  });
-
+  let request = aAdapter.stopDiscovery();
+  request.onsuccess = function () {
+    log("  Stop discovery - Success");
+    
+    
+    
+    
+    deferred.resolve();
+  }
+  request.onerror = function (aEvent) {
+    ok(false, "Stop discovery - Fail");
+    deferred.reject(aEvent.target.error);
+  }
   return deferred.promise;
 }
 
@@ -329,147 +273,20 @@ function waitForDevicesFound(aAdapter, aRemoteAddresses) {
 
 
 
-function startDiscoveryAndWaitDevicesFound(aAdapter, aRemoteAddresses) {
-  let promises = [];
-
-  promises.push(waitForDevicesFound(aAdapter, aRemoteAddresses));
-  promises.push(startDiscovery(aAdapter));
-  return Promise.all(promises)
-         .then(aResults => aResults[0]);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function pair(aAdapter, aDeviceAddress) {
-  let request = aAdapter.pair(aDeviceAddress);
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      log("  Pair - Success");
-    }, function reject(aEvent) {
-      ok(false, "Pair - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function unpair(aAdapter, aDeviceAddress) {
-  let request = aAdapter.unpair(aDeviceAddress);
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      log("  Unpair - Success");
-    }, function reject(aEvent) {
-      ok(false, "Unpair - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function pairDeviceAndWait(aAdapter, aDeviceAddress) {
-  let promises = [];
-  promises.push(waitForAdapterEvent(aAdapter, "pairedstatuschanged"));
-  promises.push(pair(aAdapter, aDeviceAddress));
-  return Promise.all(promises);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function getPairedDevices(aAdapter) {
-  let request = aAdapter.getPairedDevices();
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      log("  getPairedDevices - Success");
-      let pairedDevices = request.result.slice();
-      return pairedDevices;
-    }, function reject(aEvent) {
-      ok(false, "getPairedDevices - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function getSettings(aKey) {
-  let request = navigator.mozSettings.createLock().get(aKey);
+  let deferred = Promise.defer();
 
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve(aEvent) {
-      ok(true, "getSettings(" + aKey + ")");
-      return aEvent.target.result[aKey];
-    }, function reject(aEvent) {
-      ok(false, "getSettings(" + aKey + ")");
-      throw aEvent.target.error;
-    });
+  let request = navigator.mozSettings.createLock().get(aKey);
+  request.addEventListener("success", function(aEvent) {
+    ok(true, "getSettings(" + aKey + ")");
+    deferred.resolve(aEvent.target.result[aKey]);
+  });
+  request.addEventListener("error", function() {
+    ok(false, "getSettings(" + aKey + ")");
+    deferred.reject();
+  });
+
+  return deferred.promise;
 }
 
 
@@ -486,15 +303,19 @@ function getSettings(aKey) {
 
 
 function setSettings(aSettings) {
-  let request = navigator.mozSettings.createLock().set(aSettings);
+  let deferred = Promise.defer();
 
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      ok(true, "setSettings(" + JSON.stringify(aSettings) + ")");
-    }, function reject(aEvent) {
-      ok(false, "setSettings(" + JSON.stringify(aSettings) + ")");
-      throw aEvent.target.error;
-    });
+  let request = navigator.mozSettings.createLock().set(aSettings);
+  request.addEventListener("success", function() {
+    ok(true, "setSettings(" + JSON.stringify(aSettings) + ")");
+    deferred.resolve();
+  });
+  request.addEventListener("error", function() {
+    ok(false, "setSettings(" + JSON.stringify(aSettings) + ")");
+    deferred.reject();
+  });
+
+  return deferred.promise;
 }
 
 
@@ -635,7 +456,6 @@ function waitForAdapterEvent(aAdapter, aEventName) {
 
   return deferred.promise;
 }
-
 
 
 
