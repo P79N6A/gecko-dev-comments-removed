@@ -127,7 +127,7 @@ struct ElementAnimations MOZ_FINAL
   
   bool mNeedsRefreshes;
 
-  InfallibleTArray<mozilla::StyleAnimation> mAnimations;
+  mozilla::StyleAnimationPtrArray mAnimations;
 };
 
 class nsAnimationManager MOZ_FINAL
@@ -236,7 +236,7 @@ protected:
 
 private:
   void BuildAnimations(nsStyleContext* aStyleContext,
-                       InfallibleTArray<mozilla::StyleAnimation>& aAnimations);
+                       mozilla::StyleAnimationPtrArray& aAnimations);
   bool BuildSegment(InfallibleTArray<mozilla::AnimationPropertySegment>&
                       aSegments,
                     nsCSSProperty aProperty, const nsAnimation& aAnimation,
