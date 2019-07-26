@@ -438,6 +438,15 @@ function getTab(aTarget, aWindow) {
 function initDebugger(aTarget, aWindow) {
   info("Initializing a debugger panel.");
 
+  
+  
+  
+  
+  
+  
+  info("Forcing GC for debugger test.");
+  Cu.forceGC();
+
   return getTab(aTarget, aWindow).then(aTab => {
     info("Debugee tab added successfully: " + aTarget);
 
