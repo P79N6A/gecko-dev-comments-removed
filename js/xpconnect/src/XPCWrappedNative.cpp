@@ -2370,7 +2370,7 @@ CallMethodHelper::HandleDipperParam(nsXPTCVariant* dp,
     
     
     if (type_tag == nsXPTType::T_ASTRING || type_tag == nsXPTType::T_DOMSTRING)
-        dp->val.p = new nsAutoString();
+        dp->val.p = nsXPConnect::GetRuntimeInstance()->NewShortLivedString();
     else
         dp->val.p = new nsCString();
 
