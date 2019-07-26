@@ -792,6 +792,10 @@ function DownloadsPlacesView(aRichListBox, aActive = true) {
   downloadsData.addView(this);
 
   
+  
+  DownloadsCommon.getIndicatorData(window).attention = false;
+
+  
   window.addEventListener("unload", function() {
     window.controllers.removeController(this);
     downloadsData.removeView(this);
