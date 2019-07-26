@@ -11,6 +11,7 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
+Cu.import("resource://gre/modules/ActivitiesServiceFilter.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
@@ -258,39 +259,8 @@ let Activities = {
     };
 
     let matchFunc = function matchFunc(aResult) {
-
-      function matchFuncValue(aValue, aFilter) {
-        
-
-        let values = Array.isArray(aValue) ? aValue : [aValue];
-        let filters = Array.isArray(aFilter) ? aFilter : [aFilter];
-
-        
-        let ret = false;
-        values.forEach(function(value) {
-          if (filters.indexOf(value) != -1) {
-            ret = true;
-          }
-        });
-
-        return ret;
-      }
-
-      
-      for (let prop in aMsg.options.data) {
-
-        
-        if (!(prop in aResult.description.filters)) {
-          continue;
-        }
-
-        
-        if (!matchFuncValue(aMsg.options.data[prop], aResult.description.filters[prop])) {
-          return false;
-        }
-      }
-
-      return true;
+      return ActivitiesServiceFilter.match(aMsg.options.data,
+                                           aResult.description.filters);
     };
 
     this.db.find(aMsg, successCb, errorCb, matchFunc);
