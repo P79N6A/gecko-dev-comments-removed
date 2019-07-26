@@ -140,7 +140,7 @@ MoveEmitterX86::~MoveEmitterX86()
     assertDone();
 }
 
-Operand
+Address
 MoveEmitterX86::cycleSlot()
 {
     if (pushedAtCycle_ == -1) {
@@ -149,7 +149,19 @@ MoveEmitterX86::cycleSlot()
         pushedAtCycle_ = masm.framePushed();
     }
 
-    return Operand(StackPointer, masm.framePushed() - pushedAtCycle_);
+    return Address(StackPointer, masm.framePushed() - pushedAtCycle_);
+}
+
+Address
+MoveEmitterX86::toAddress(const MoveOperand &operand) const
+{
+    if (operand.base() != StackPointer)
+        return Address(operand.base(), operand.disp());
+
+    JS_ASSERT(operand.disp() >= 0);
+
+    
+    return Address(StackPointer, operand.disp() + (masm.framePushed() - pushedAtStart_));
 }
 
 
@@ -158,15 +170,8 @@ MoveEmitterX86::cycleSlot()
 Operand
 MoveEmitterX86::toOperand(const MoveOperand &operand) const
 {
-    if (operand.isMemory() || operand.isEffectiveAddress() || operand.isFloatAddress()) {
-        if (operand.base() != StackPointer)
-            return Operand(operand.base(), operand.disp());
-
-        JS_ASSERT(operand.disp() >= 0);
-
-        
-        return Operand(StackPointer, operand.disp() + (masm.framePushed() - pushedAtStart_));
-    }
+    if (operand.isMemory() || operand.isEffectiveAddress() || operand.isFloatAddress())
+        return Operand(toAddress(operand));
     if (operand.isGeneralReg())
         return Operand(operand.reg());
 
@@ -209,16 +214,13 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, Move::Kind kind)
     
     if (kind == Move::DOUBLE) {
         if (to.isMemory()) {
-            masm.loadDouble(toOperand(to), ScratchFloatReg);
+            masm.loadDouble(toAddress(to), ScratchFloatReg);
             masm.storeDouble(ScratchFloatReg, cycleSlot());
         } else {
             masm.storeDouble(to.floatReg(), cycleSlot());
         }
     } else {
-        if (to.isMemory())
-            masm.Push(toOperand(to));
-        else
-            masm.Push(to.reg());
+        masm.Push(toOperand(to));
     }
 }
 
@@ -234,7 +236,7 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, Move::Kind kind)
     if (kind == Move::DOUBLE) {
         if (to.isMemory()) {
             masm.loadDouble(cycleSlot(), ScratchFloatReg);
-            masm.storeDouble(ScratchFloatReg, toOperand(to));
+            masm.storeDouble(ScratchFloatReg, toAddress(to));
         } else {
             masm.loadDouble(cycleSlot(), to.floatReg());
         }
@@ -255,14 +257,14 @@ MoveEmitterX86::emitGeneralMove(const MoveOperand &from, const MoveOperand &to)
     } else if (to.isGeneralReg()) {
         JS_ASSERT(from.isMemory() || from.isEffectiveAddress());
         if (from.isMemory())
-            masm.mov(toOperand(from), to.reg());
+            masm.loadPtr(toAddress(from), to.reg());
         else
             masm.lea(toOperand(from), to.reg());
     } else if (from.isMemory()) {
         
 #ifdef JS_CPU_X64
         
-        masm.mov(toOperand(from), ScratchReg);
+        masm.loadPtr(toAddress(from), ScratchReg);
         masm.mov(ScratchReg, toOperand(to));
 #else
         
@@ -292,12 +294,12 @@ MoveEmitterX86::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
     if (from.isFloatReg()) {
         masm.movsd(from.floatReg(), toOperand(to));
     } else if (to.isFloatReg()) {
-        masm.loadDouble(toOperand(from), to.floatReg());
+        masm.loadDouble(toAddress(from), to.floatReg());
     } else {
         
         JS_ASSERT(from.isMemory());
-        masm.loadDouble(toOperand(from), ScratchFloatReg);
-        masm.storeDouble(ScratchFloatReg, toOperand(to));
+        masm.loadDouble(toAddress(from), ScratchFloatReg);
+        masm.storeDouble(ScratchFloatReg, toAddress(to));
     }
 }
 
