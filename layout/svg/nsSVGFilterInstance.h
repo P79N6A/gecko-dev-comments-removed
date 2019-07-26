@@ -75,9 +75,6 @@ public:
   
 
 
-
-
-
   nsIntRect GetFilterSpaceBounds() const { return mFilterSpaceBounds; }
 
   float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const

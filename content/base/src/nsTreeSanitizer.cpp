@@ -416,7 +416,6 @@ nsIAtom** const kAttributesSVG[] = {
   &nsGkAtoms::fill_opacity, 
   &nsGkAtoms::fill_rule, 
   &nsGkAtoms::filter, 
-  &nsGkAtoms::filterRes, 
   &nsGkAtoms::filterUnits, 
   &nsGkAtoms::flood_color, 
   &nsGkAtoms::flood_opacity, 
