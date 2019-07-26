@@ -238,6 +238,16 @@ KillTimers()
   nsJSContext::KillInterSliceGCTimer();
 }
 
+
+
+static bool
+NeedsGCAfterCC()
+{
+  return sCCollectedWaitingForGC > 250 ||
+    sLikelyShortLivingObjectsNeedingGC > 2500 ||
+    sNeedsGCAfterCC;
+}
+
 class nsJSEnvironmentObserver MOZ_FINAL : public nsIObserver
 {
 public:
@@ -263,6 +273,12 @@ nsJSEnvironmentObserver::Observe(nsISupports* aSubject, const char* aTopic,
                                    nsJSContext::NonCompartmentGC,
                                    nsJSContext::ShrinkingGC);
     nsJSContext::CycleCollectNow();
+    if (NeedsGCAfterCC()) {
+      nsJSContext::GarbageCollectNow(JS::gcreason::MEM_PRESSURE,
+                                     nsJSContext::NonIncrementalGC,
+                                     nsJSContext::NonCompartmentGC,
+                                     nsJSContext::ShrinkingGC);
+    }
   } else if (!nsCRT::strcmp(aTopic, "quit-application")) {
     sShuttingDown = true;
     KillTimers();
@@ -2215,11 +2231,7 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
 
   sCCollectedWaitingForGC += aResults.mFreedRefCounted + aResults.mFreedGCed;
 
-  
-  
-  if (sCCollectedWaitingForGC > 250 ||
-      sLikelyShortLivingObjectsNeedingGC > 2500 ||
-      sNeedsGCAfterCC) {
+  if (NeedsGCAfterCC()) {
     PokeGC(JS::gcreason::CC_WAITING);
   }
 
