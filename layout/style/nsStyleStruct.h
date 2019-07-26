@@ -1595,6 +1595,7 @@ struct nsStyleDisplay {
   uint8_t mOriginalFloats;      
                                 
   uint8_t mBreakType;           
+  uint8_t mBreakInside;         
   bool mBreakBefore;    
   bool mBreakAfter;     
   uint8_t mOverflowX;           
