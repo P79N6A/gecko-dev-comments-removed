@@ -1123,17 +1123,20 @@ class MCall
     bool construct_;
     
     JSFunction *target_;
+    
+    uint32 bytecodeArgc_;
 
-    MCall(bool construct)
+    MCall(bool construct, uint32 bytecodeArgc)
       : construct_(construct),
-        target_(NULL)
+        target_(NULL),
+        bytecodeArgc_(bytecodeArgc)
     {
         setResultType(MIRType_Value);
     }
 
   public:
     INSTRUCTION_HEADER(Call);
-    static MCall *New(size_t argc, bool construct);
+    static MCall *New(size_t argc, size_t bytecodeArgc, bool construct);
 
     void initPrepareCall(MDefinition *start) {
         JS_ASSERT(start->isPrepareCall());
@@ -1172,6 +1175,11 @@ class MCall
     
     uint32 argc() const {
         return numOperands() - NumNonArgumentOperands;
+    }
+
+    
+    uint32 bytecodeArgc() const {
+        return bytecodeArgc_;
     }
 
     TypePolicy *typePolicy() {

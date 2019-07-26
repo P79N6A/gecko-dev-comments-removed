@@ -616,9 +616,9 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         
         masm.freeStack(unusedStack);
 
-        pushArg(StackPointer);          
-        pushArg(Imm32(call->nargs()));  
-        pushArg(calleereg);             
+        pushArg(StackPointer);                 
+        pushArg(Imm32(call->bytecodeArgc()));  
+        pushArg(calleereg);                    
 
         if (!callVM(InvokeFunctionInfo, call))
             return false;

@@ -2626,7 +2626,7 @@ IonBuilder::makeCall(HandleFunction target, uint32 argc, bool constructing)
     if (target && !target->isNative())
         targetArgs = Max<uint32>(target->nargs, argc);
 
-    MCall *call = MCall::New(targetArgs + 1, constructing); 
+    MCall *call = MCall::New(targetArgs + 1, argc, constructing); 
     if (!call)
         return false;
 
