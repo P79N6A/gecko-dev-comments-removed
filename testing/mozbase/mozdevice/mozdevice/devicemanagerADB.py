@@ -12,7 +12,7 @@ import time
 class DeviceManagerADB(DeviceManager):
 
     def __init__(self, host=None, port=20701, retrylimit=5, packageName='fennec',
-                 adbPath='adb', deviceSerial=None, deviceRoot=None):
+                 adbPath='adb', deviceSerial=None, deviceRoot=None, **kwargs):
         self.host = host
         self.port = port
         self.retrylimit = retrylimit
@@ -499,8 +499,11 @@ class DeviceManagerADB(DeviceManager):
         
         if self.deviceRoot:
             if not self.dirExists(self.deviceRoot):
-                if not self.mkDir(self.deviceRoot):
-                    raise DMError("Unable to create device root %s" % self.deviceRoot)
+                try:
+                    self.mkDir(self.deviceRoot)
+                except:
+                    print "Unable to create device root %s" % self.deviceRoot
+                    raise
             return
 
         
