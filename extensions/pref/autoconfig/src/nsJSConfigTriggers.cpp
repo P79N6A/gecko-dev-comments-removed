@@ -8,7 +8,6 @@
 #define FORCE_PR_LOG
 #endif
 #include "jsapi.h"
-#include "nsIXPCSecurityManager.h"
 #include "nsIXPConnect.h"
 #include "nsIJSRuntimeService.h"
 #include "nsCOMPtr.h"
