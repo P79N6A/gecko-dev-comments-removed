@@ -188,72 +188,71 @@ nsWSRunObject::PrepareToSplitAcrossBlocks(nsHTMLEditor *aHTMLEd,
 
 
 
-nsresult 
-nsWSRunObject::InsertBreak(nsCOMPtr<nsIDOMNode> *aInOutParent, 
-                           int32_t *aInOutOffset, 
-                           nsCOMPtr<nsIDOMNode> *outBRNode, 
+already_AddRefed<Element>
+nsWSRunObject::InsertBreak(nsCOMPtr<nsINode>* aInOutParent,
+                           int32_t* aInOutOffset,
                            nsIEditor::EDirection aSelect)
 {
   
   
-  NS_ENSURE_TRUE(aInOutParent && aInOutOffset && outBRNode, NS_ERROR_NULL_POINTER);
+  
+  NS_ENSURE_TRUE(aInOutParent && aInOutOffset, nullptr);
 
   nsresult res = NS_OK;
   WSFragment *beforeRun, *afterRun;
-  FindRun(*aInOutParent, *aInOutOffset, &beforeRun, false);
-  FindRun(*aInOutParent, *aInOutOffset, &afterRun, true);
-  
+  FindRun(GetAsDOMNode(*aInOutParent), *aInOutOffset, &beforeRun, false);
+  FindRun(GetAsDOMNode(*aInOutParent), *aInOutOffset, &afterRun, true);
+
   {
     
     
-    nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, aInOutParent, aInOutOffset);
+    nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, aInOutParent,
+                                aInOutOffset);
 
     
-    if (!afterRun) {
-      
-    } else if (afterRun->mType & WSType::trailingWS) {
+    if (!afterRun || (afterRun->mType & WSType::trailingWS)) {
       
     } else if (afterRun->mType & WSType::leadingWS) {
       
       
       
-      res = DeleteChars(*aInOutParent, *aInOutOffset, GetAsDOMNode(afterRun->mEndNode), afterRun->mEndOffset,
+      res = DeleteChars(GetAsDOMNode(*aInOutParent), *aInOutOffset,
+                        GetAsDOMNode(afterRun->mEndNode), afterRun->mEndOffset,
                         eOutsideUserSelectAll);
-      NS_ENSURE_SUCCESS(res, res);
+      NS_ENSURE_SUCCESS(res, nullptr);
     } else if (afterRun->mType == WSType::normalWS) {
       
       
-      WSPoint thePoint = GetCharAfter(*aInOutParent, *aInOutOffset);
+      WSPoint thePoint = GetCharAfter(GetAsDOMNode(*aInOutParent), *aInOutOffset);
       if (thePoint.mTextNode && nsCRT::IsAsciiSpace(thePoint.mChar)) {
         WSPoint prevPoint = GetCharBefore(thePoint);
         if (prevPoint.mTextNode && !nsCRT::IsAsciiSpace(prevPoint.mChar)) {
           
           res = ConvertToNBSP(thePoint);
-          NS_ENSURE_SUCCESS(res, res);
+          NS_ENSURE_SUCCESS(res, nullptr);
         }
       }
     }
+
     
-    
-    if (!beforeRun) {
-      
-    } else if (beforeRun->mType & WSType::leadingWS) {
+    if (!beforeRun || (beforeRun->mType & WSType::leadingWS)) {
       
     } else if (beforeRun->mType & WSType::trailingWS) {
       
       
-      res = DeleteChars(GetAsDOMNode(beforeRun->mStartNode), beforeRun->mStartOffset, *aInOutParent, *aInOutOffset,
+      res = DeleteChars(GetAsDOMNode(beforeRun->mStartNode), beforeRun->mStartOffset,
+                        GetAsDOMNode(*aInOutParent), *aInOutOffset,
                         eOutsideUserSelectAll);
-      NS_ENSURE_SUCCESS(res, res);
+      NS_ENSURE_SUCCESS(res, nullptr);
     } else if (beforeRun->mType == WSType::normalWS) {
       
-      res = CheckTrailingNBSP(beforeRun, *aInOutParent, *aInOutOffset);
-      NS_ENSURE_SUCCESS(res, res);
+      res = CheckTrailingNBSP(beforeRun, GetAsDOMNode(*aInOutParent), *aInOutOffset);
+      NS_ENSURE_SUCCESS(res, nullptr);
     }
   }
+
   
-  
-  return mHTMLEditor->CreateBRImpl(aInOutParent, aInOutOffset, outBRNode, aSelect);
+  return mHTMLEditor->CreateBRImpl(aInOutParent, aInOutOffset, aSelect);
 }
 
 nsresult 

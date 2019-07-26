@@ -438,6 +438,20 @@ nsPlaintextEditor::TypedText(const nsAString& aString, ETypingAction aAction)
   }
 }
 
+already_AddRefed<Element>
+nsPlaintextEditor::CreateBRImpl(nsCOMPtr<nsINode>* aInOutParent,
+                                int32_t* aInOutOffset,
+                                EDirection aSelect)
+{
+  nsCOMPtr<nsIDOMNode> parent(GetAsDOMNode(*aInOutParent));
+  nsCOMPtr<nsIDOMNode> br;
+  
+  CreateBRImpl(address_of(parent), aInOutOffset, address_of(br), aSelect);
+  *aInOutParent = do_QueryInterface(parent);
+  nsCOMPtr<Element> ret(do_QueryInterface(br));
+  return ret.forget();
+}
+
 nsresult
 nsPlaintextEditor::CreateBRImpl(nsCOMPtr<nsIDOMNode>* aInOutParent,
                                 int32_t* aInOutOffset,
