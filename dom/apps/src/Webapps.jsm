@@ -1926,6 +1926,40 @@ this.DOMApplicationRegistry = {
                 zipReader.open(zipFile);
               }
 
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              let signedAppOriginsStr =
+                Services.prefs.getCharPref(
+                  "dom.mozApps.signed_apps_installable_from");
+              let isSignedAppOrigin
+                = signedAppOriginsStr.split(",").indexOf(aApp.installOrigin) > -1;
+              if (!isSigned && isSignedAppOrigin) {
+                
+                
+                throw "INVALID_SIGNATURE";
+              } else if (isSigned && !isSignedAppOrigin) {
+                
+                
+                
+                
+                
+                throw "INSTALL_FROM_DENIED";
+              }
+
               if (!zipReader.hasEntry("manifest.webapp")) {
                 throw "MISSING_MANIFEST";
               }

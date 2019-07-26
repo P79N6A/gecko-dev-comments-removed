@@ -3919,6 +3919,18 @@ pref("dom.mozApps.maxLocalId", 1000);
 
 
 
+
+
+
+
+
+
+pref("dom.mozApps.signed_apps_installable_from", "https://marketplace.firefox.com");
+
+
+
+
+
 pref("network.activity.blipIntervalMilliseconds", 0);
 
 
