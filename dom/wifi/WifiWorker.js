@@ -235,6 +235,29 @@ var WifiManager = (function() {
     doBooleanCommand("REASSOCIATE", "OK", callback);
   }
 
+  
+  
+  
+  
+  
+  
+  
+  var reEnableBackgroundScan = false;
+  var backgroundScanEnabled = false;
+  function setBackgroundScan(enable, callback) {
+    var doEnable = (enable === "ON");
+    if (doEnable === backgroundScanEnabled) {
+      callback(false, true);
+      return;
+    }
+
+    backgroundScanEnabled = doEnable;
+    doBooleanCommand("SET pno " + (backgroundScanEnabled ? "1" : "0"), "OK",
+                     function(ok) {
+                       callback(true, ok);
+                     });
+  }
+
   var scanModeActive = false;
 
   function doSetScanModeCommand(setActive, callback) {
@@ -245,11 +268,14 @@ var WifiManager = (function() {
     if (forceActive && !scanModeActive) {
       
       doSetScanModeCommand(true, function(ignore) {
-        doBooleanCommand("SCAN", "OK", function(ok) {
-          doSetScanModeCommand(false, function(ignore) {
-            
-            
-            callback(ok);
+        setBackgroundScan("OFF", function(turned, ignore) {
+          reEnableBackgroundScan = turned;
+          doBooleanCommand("SCAN", "OK", function(ok) {
+            doSetScanModeCommand(false, function(ignore) {
+              
+              
+              callback(ok);
+            });
           });
         });
       });
@@ -575,6 +601,16 @@ var WifiManager = (function() {
         fields.state !== "SCANNING") {
       return false;
     }
+
+    
+    if (backgroundScanEnabled &&
+        (fields.state === "ASSOCIATING" ||
+         fields.state === "ASSOCIATED" ||
+         fields.state === "FOUR_WAY_HANDSHAKE" ||
+         fields.state === "GROUP_HANDSHAKE" ||
+         fields.state === "COMPLETED")) {
+      setBackgroundScan("OFF", function() {});
+    }
     fields.prevState = manager.state;
     manager.state = fields.state;
 
@@ -628,8 +664,24 @@ var WifiManager = (function() {
       dhcpInfo = { ip_address: ip_address };
 
     notifyStateChange({ state: state, fromStatus: true });
-    if (state === "COMPLETED")
-      onconnected();
+
+    
+    
+    
+    
+    switch (state) {
+      case "COMPLETED":
+        onconnected();
+        break;
+
+      case "DISCONNECTED":
+      case "INACTIVE":
+      case "SCANNING":
+        setBackgroundScan("ON", function(){});
+
+      default:
+        break;
+    }
   }
 
   
@@ -811,6 +863,10 @@ var WifiManager = (function() {
     }
     if (eventData.indexOf("CTRL-EVENT-SCAN-RESULTS") === 0) {
       debug("Notifying of scan results available");
+      if (reEnableBackgroundScan) {
+        reEnableBackgroundScan = false;
+        setBackgroundScan("ON", function() {});
+      }
       notify("scanresultsavailable");
       return true;
     }
@@ -1161,6 +1217,7 @@ var WifiManager = (function() {
   manager.setScanMode = function(mode, callback) {
     setScanModeCommand(mode === "active", callback);
   }
+  manager.setBackgroundScan = setBackgroundScan;
   manager.scan = scanCommand;
   manager.wpsPbc = wpsPbcCommand;
   manager.wpsPin = wpsPinCommand;
@@ -1644,6 +1701,8 @@ function WifiWorker() {
             WifiManager.reconnect(function(){});
           }
         });
+
+        WifiManager.setBackgroundScan("ON", function(){});
 
         WifiNetworkInterface.state =
           Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED;
