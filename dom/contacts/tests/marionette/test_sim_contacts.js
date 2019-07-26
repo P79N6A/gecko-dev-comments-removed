@@ -5,6 +5,13 @@ MARIONETTE_TIMEOUT = 30000;
 
 SpecialPowers.addPermission("contacts-read", true, document);
 
+
+
+
+
+SpecialPowers.addPermission("contacts-write", true, document);
+SpecialPowers.addPermission("contacts-create", true, document);
+
 let mozContacts = window.navigator.mozContacts;
 ok(mozContacts);
 
@@ -53,6 +60,8 @@ function runNextTest() {
 
 function cleanUp() {
   SpecialPowers.removePermission("contacts-read", document);
+  SpecialPowers.removePermission("contacts-write", document);
+  SpecialPowers.removePermission("contacts-create", document);
   finish();
 }
 
