@@ -18,6 +18,7 @@
 
 var l10n = require('../util/l10n');
 var settings = require('../settings');
+var Promise = require('../util/promise').Promise;
 
 
 
@@ -116,18 +117,16 @@ var prefList = {
   ],
   returnType: 'prefsData',
   exec: function(args, context) {
-    var deferred = context.defer();
-
-    
-    setTimeout(function() {
-      var prefsData = {
-        settings: settings.getAll(args.search),
-        search: args.search
-      };
-      deferred.resolve(prefsData);
-    }.bind(this), 10);
-
-    return deferred.promise;
+    return new Promise(function(resolve, reject) {
+      
+      setTimeout(function() {
+        var prefsData = {
+          settings: settings.getAll(args.search),
+          search: args.search
+        };
+        resolve(prefsData);
+      }.bind(this), 10);
+    });
   }
 };
 

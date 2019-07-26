@@ -118,3 +118,17 @@ function spawnTest() {
   yield helpers.closeToolbar(options);
   yield helpers.closeTab(options);
 }
+
+
+
+
+
+
+
+
+
+
+function getRegexForString(str) {
+  str = str.replace(/(\.|\\|\/|\(|\)|\[|\]|\*|\+|\?|\$|\^|\|)/g, "\\$1");
+  return new RegExp(str);
+}

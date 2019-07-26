@@ -21,7 +21,7 @@ var Cc = require('chrome').Cc;
 var Ci = require('chrome').Ci;
 
 var OS = Cu.import('resource://gre/modules/osfile.jsm', {}).OS;
-var promise = require('./promise');
+var Promise = require('../util/promise').Promise;
 
 
 
@@ -122,5 +122,5 @@ exports.stat = function(pathname) {
 
 
 exports.describe = function(pathname) {
-  return promise.resolve('');
+  return Promise.resolve('');
 };

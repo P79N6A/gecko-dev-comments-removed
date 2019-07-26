@@ -13,6 +13,9 @@ const Cc = Components.classes;
 
 
 
+const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
+const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+
 let tempScope = {};
 Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm", tempScope);
 let LayoutHelpers = tempScope.LayoutHelpers;

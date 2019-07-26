@@ -16,7 +16,7 @@
 
 'use strict';
 
-var promise = require('../util/promise');
+var Promise = require('../util/promise').Promise;
 
 
 
@@ -106,7 +106,7 @@ Connection.prototype.call = function(feature, data) {
 
 
 Connection.prototype.disconnect = function() {
-  return promise.resolve();
+  return Promise.resolve();
 };
 
 exports.Connection = Connection;

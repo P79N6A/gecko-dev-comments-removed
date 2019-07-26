@@ -32,20 +32,6 @@ function whenDelayedStartupFinished(aWindow, aCallback) {
 
 
 
-
-
-
-
-function getRegexForString(str) {
-  str = str.replace(/(\.|\\|\/|\(|\)|\[|\]|\*|\+|\?|\$|\^|\|)/g, "\\$1");
-  return new RegExp(str);
-}
-
-
-
-
-
-
 registerCleanupFunction(function tearDown() {
   window.QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIDOMWindowUtils)
@@ -53,5 +39,5 @@ registerCleanupFunction(function tearDown() {
 });
 
 function asyncTest(generator) {
-  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
+  return () => Task.spawn(generator).catch(ok.bind(null, false)).then(finish);
 }

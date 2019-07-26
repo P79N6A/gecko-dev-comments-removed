@@ -166,18 +166,16 @@ function addTabWithToolbarRunTests(win) {
 }
 
 function addWindow(windowOptions) {
-  let deferred = promise.defer();
+  return new Promise(resolve => {
+    let win = OpenBrowserWindow(windowOptions);
 
-  let win = OpenBrowserWindow(windowOptions);
-
-  
-  whenDelayedStartupFinished(win, function() {
     
-    
-    executeSoon(function() {
-      deferred.resolve(win);
+    whenDelayedStartupFinished(win, () => {
+      
+      
+      executeSoon(() => {
+        resolve(win);
+      });
     });
   });
-
-  return deferred.promise;
 }

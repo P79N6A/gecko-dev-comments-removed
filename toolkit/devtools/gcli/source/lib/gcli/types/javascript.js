@@ -16,7 +16,7 @@
 
 'use strict';
 
-var promise = require('../util/promise');
+var Promise = require('../util/promise').Promise;
 var l10n = require('../util/l10n');
 
 var Conversion = require('./types').Conversion;
@@ -86,15 +86,15 @@ JavascriptType.prototype.parse = function(arg, context) {
 
   
   if (typed === '') {
-    return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE));
+    return Promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE));
   }
   
   if (!isNaN(parseFloat(typed)) && isFinite(typed)) {
-    return promise.resolve(new Conversion(typed, arg));
+    return Promise.resolve(new Conversion(typed, arg));
   }
   
   if (typed.trim().match(/(null|undefined|NaN|Infinity|true|false)/)) {
-    return promise.resolve(new Conversion(typed, arg));
+    return Promise.resolve(new Conversion(typed, arg));
   }
 
   
@@ -103,19 +103,19 @@ JavascriptType.prototype.parse = function(arg, context) {
 
   
   if (beginning.err) {
-    return promise.resolve(new Conversion(typed, arg, Status.ERROR, beginning.err));
+    return Promise.resolve(new Conversion(typed, arg, Status.ERROR, beginning.err));
   }
 
   
   
   if (beginning.state === ParseState.COMPLEX) {
-    return promise.resolve(new Conversion(typed, arg));
+    return Promise.resolve(new Conversion(typed, arg));
   }
 
   
   
   if (beginning.state !== ParseState.NORMAL) {
-    return promise.resolve(new Conversion(typed, arg, Status.INCOMPLETE, ''));
+    return Promise.resolve(new Conversion(typed, arg, Status.INCOMPLETE, ''));
   }
 
   var completionPart = typed.substring(beginning.startPos);
@@ -130,18 +130,18 @@ JavascriptType.prototype.parse = function(arg, context) {
 
       
       if (scope == null) {
-        return promise.resolve(new Conversion(typed, arg, Status.ERROR,
+        return Promise.resolve(new Conversion(typed, arg, Status.ERROR,
                                         l10n.lookup('jstypeParseScope')));
       }
 
       if (prop === '') {
-        return promise.resolve(new Conversion(typed, arg, Status.INCOMPLETE, ''));
+        return Promise.resolve(new Conversion(typed, arg, Status.INCOMPLETE, ''));
       }
 
       
       
       if (this._isSafeProperty(scope, prop)) {
-        return promise.resolve(new Conversion(typed, arg));
+        return Promise.resolve(new Conversion(typed, arg));
       }
 
       try {
@@ -151,7 +151,7 @@ JavascriptType.prototype.parse = function(arg, context) {
         
         
         
-        return promise.resolve(new Conversion(typed, arg, Status.VALID, ''));
+        return Promise.resolve(new Conversion(typed, arg, Status.VALID, ''));
       }
     }
   }
@@ -162,24 +162,24 @@ JavascriptType.prototype.parse = function(arg, context) {
   
   
   if (prop && !prop.match(/^[0-9A-Za-z]*$/)) {
-    return promise.resolve(new Conversion(typed, arg));
+    return Promise.resolve(new Conversion(typed, arg));
   }
 
   
   if (scope == null) {
     var msg = l10n.lookupFormat('jstypeParseMissing', [ prop ]);
-    return promise.resolve(new Conversion(typed, arg, Status.ERROR, msg));
+    return Promise.resolve(new Conversion(typed, arg, Status.ERROR, msg));
   }
 
   
   
   if (!matchProp.match(/^[0-9A-Za-z]*$/)) {
-    return promise.resolve(new Conversion(typed, arg));
+    return Promise.resolve(new Conversion(typed, arg));
   }
 
   
   if (this._isIteratorOrGenerator(scope)) {
-    return promise.resolve(new Conversion(typed, arg));
+    return Promise.resolve(new Conversion(typed, arg));
   }
 
   var matchLen = matchProp.length;
@@ -219,7 +219,7 @@ JavascriptType.prototype.parse = function(arg, context) {
     }
   }
   catch (ex) {
-    return promise.resolve(new Conversion(typed, arg, Status.INCOMPLETE, ''));
+    return Promise.resolve(new Conversion(typed, arg, Status.INCOMPLETE, ''));
   }
 
   
@@ -313,8 +313,8 @@ JavascriptType.prototype.parse = function(arg, context) {
     predictions = [];
   }
 
-  return promise.resolve(new Conversion(typed, arg, status, message,
-                                  promise.resolve(predictions)));
+  return Promise.resolve(new Conversion(typed, arg, status, message,
+                                  Promise.resolve(predictions)));
 };
 
 
