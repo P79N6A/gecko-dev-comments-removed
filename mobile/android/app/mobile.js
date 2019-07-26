@@ -712,3 +712,6 @@ pref("media.webaudio.enabled", true);
 
 pref("media.navigator.enabled", false);
 pref("media.peerconnection.enabled", false);
+
+
+pref("media.useAudioChannelService", true);

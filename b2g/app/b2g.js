@@ -665,6 +665,9 @@ pref("memory_info_dumper.watch_fifo.directory", "/data/local");
 
 pref("general.useragent.enable_overrides", true);
 
+
+pref("media.useAudioChannelService", true);
+
 pref("b2g.version", @MOZ_B2G_VERSION@);
 
 
