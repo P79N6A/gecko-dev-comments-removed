@@ -7,7 +7,6 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.util.INIParser;
 import org.mozilla.gecko.util.INISection;
-import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -25,8 +24,6 @@ import java.util.Hashtable;
 
 public final class GeckoProfile {
     private static final String LOGTAG = "GeckoProfile";
-    
-    private static final String LOCK_FILE_NAME = ".active_lock";
 
     private static HashMap<String, GeckoProfile> sProfileCache = new HashMap<String, GeckoProfile>();
     private static String sDefaultProfileName = null;
@@ -36,21 +33,7 @@ public final class GeckoProfile {
     private File mMozDir;
     private File mDir;
 
-    
-    private enum LockState {
-        LOCKED,
-        UNLOCKED,
-        UNDEFINED
-    };
-    
-    
-    private LockState mLocked = LockState.UNDEFINED;
-
-    
-    private static File mGuestDir = null;
-
     private boolean mInGuestMode = false;
-    private static GeckoProfile mGuestProfile = null;
 
     static private INIParser getProfilesINI(Context context) {
       File filesDir = context.getFilesDir();
@@ -61,19 +44,8 @@ public final class GeckoProfile {
 
     public static GeckoProfile get(Context context) {
         if (context instanceof GeckoApp) {
-            
-            
-            if (((GeckoApp)context).mProfile != null) {
+            if (((GeckoApp)context).mProfile != null)
                 return ((GeckoApp)context).mProfile;
-            }
-
-            GeckoProfile guest = GeckoProfile.getGuestProfile(context);
-            
-            if (guest != null && guest.locked()) {
-                return guest;
-            }
-
-            
             return get(context, ((GeckoApp)context).getDefaultProfileName());
         }
 
@@ -140,13 +112,17 @@ public final class GeckoProfile {
     }
 
     public static GeckoProfile createGuestProfile(Context context) {
+        if (context == null) {
+            throw new IllegalArgumentException("context must be non-null");
+        }
         try {
             removeGuestProfile(context);
-            
-            
-            getGuestDir(context).mkdir();
-            GeckoProfile profile = getGuestProfile(context);
-            profile.lock();
+
+            File guestDir = context.getDir("guest", Context.MODE_PRIVATE);
+            guestDir.mkdir();
+
+            GeckoProfile profile = get(context, "guest", guestDir);
+            profile.mInGuestMode = true;
             return profile;
         } catch (Exception ex) {
             Log.e(LOGTAG, "Error creating guest profile", ex);
@@ -154,50 +130,12 @@ public final class GeckoProfile {
         return null;
     }
 
-    public static void leaveGuestSession(Context context) {
-        GeckoProfile profile = getGuestProfile(context);
-        if (profile != null) {
-            profile.unlock();
+    public static void removeGuestProfile(Context context) {
+        if (context == null) {
+            throw new IllegalArgumentException("context must be non-null");
         }
-    }
-
-    private static File getGuestDir(Context context) {
-        if (mGuestDir == null) {
-            mGuestDir = context.getDir("guest", Context.MODE_PRIVATE);
-        }
-        return mGuestDir;
-    }
-
-    private static GeckoProfile getGuestProfile(Context context) {
-        if (mGuestProfile == null) {
-            File guestDir = getGuestDir(context);
-            mGuestProfile = get(context, "guest", guestDir);
-            mGuestProfile.mInGuestMode = true;
-        }
-
-        return mGuestProfile;
-    }
-
-    public static boolean maybeCleanupGuestProfile(final Context context) {
-        
-        File guestDir = getGuestDir(context);
-        final GeckoProfile profile = getGuestProfile(context);
-        if (guestDir.exists() && !profile.locked()) {
-            
-            ThreadUtils.postToBackgroundThread(new Runnable() {
-                @Override
-                public void run() {
-                    removeGuestProfile(context);
-                }
-            });
-            return true;
-        }
-        return false;
-    }
-
-    private static void removeGuestProfile(Context context) {
         try {
-            File guestDir = getGuestDir(context);
+            File guestDir = context.getDir("guest", Context.MODE_PRIVATE);
             if (guestDir.exists()) {
                 delete(guestDir);
             }
@@ -222,52 +160,6 @@ public final class GeckoProfile {
 
         
         return file.delete();
-    }
-
-    
-    public boolean locked() {
-        if (mLocked != LockState.UNDEFINED) {
-            return mLocked == LockState.LOCKED;
-        }
-
-        File lockFile = new File(getDir(), LOCK_FILE_NAME);
-        boolean res = lockFile.exists();
-        mLocked = res ? LockState.LOCKED : LockState.UNLOCKED;
-        return res;
-    }
-
-    public boolean lock() {
-        try {
-            File lockFile = new File(getDir(), LOCK_FILE_NAME);
-            boolean result = lockFile.createNewFile();
-            if (result) {
-                mLocked = LockState.LOCKED;
-            } else {
-                mLocked = LockState.UNLOCKED;
-            }
-            return result;
-        } catch(IOException ex) {
-            Log.e(LOGTAG, "Error locking profile", ex);
-        }
-        mLocked = LockState.UNLOCKED;
-        return false;
-    }
-
-    public boolean unlock() {
-        try {
-            File lockFile = new File(getDir(), LOCK_FILE_NAME);
-            boolean result = delete(lockFile);
-            if (result) {
-                mLocked = LockState.UNLOCKED;
-            } else {
-                mLocked = LockState.LOCKED;
-            }
-            return result;
-        } catch(IOException ex) {
-            Log.e(LOGTAG, "Error unlocking profile", ex);
-        }
-        mLocked = LockState.LOCKED;
-        return false;
     }
 
     private GeckoProfile(Context context, String profileName) {
@@ -400,15 +292,10 @@ public final class GeckoProfile {
 
     private boolean remove() {
         try {
-            File dir = getDir();
-            if (dir.exists())
-                delete(dir);
-
             File mozillaDir = ensureMozillaDirectory(mContext);
             mDir = findProfileDir(mozillaDir);
-            if (mDir == null) {
+            if (mDir == null)
                 return false;
-            }
 
             INIParser parser = getProfilesINI(mContext);
 
