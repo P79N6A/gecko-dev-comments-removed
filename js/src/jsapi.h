@@ -3656,32 +3656,6 @@ JS_DumpNamedRoots(JSRuntime *rt,
                   void *data);
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JS_MAP_GCROOT_NEXT      0       /* continue mapping entries */
-#define JS_MAP_GCROOT_STOP      1       /* stop mapping entries */
-#define JS_MAP_GCROOT_REMOVE    2       /* remove and free the current entry */
-
-typedef int
-(* JSGCRootMapFun)(void *rp, JSGCRootType type, const char *name, void *data);
-
-extern JS_PUBLIC_API(uint32_t)
-JS_MapGCRoots(JSRuntime *rt, JSGCRootMapFun map, void *data);
-
 extern JS_PUBLIC_API(JSBool)
 JS_LockGCThing(JSContext *cx, void *thing);
 
