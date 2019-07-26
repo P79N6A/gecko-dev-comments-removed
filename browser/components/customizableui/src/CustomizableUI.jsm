@@ -1253,6 +1253,8 @@ let CustomizableUIInternal = {
   },
 
   getUnusedWidgets: function(aWindowPalette) {
+    let window = aWindowPalette.ownerDocument.defaultView;
+    let isWindowPrivate = PrivateBrowsingUtils.isWindowPrivate(window);
     
     
     
@@ -1264,7 +1266,9 @@ let CustomizableUIInternal = {
     
     for (let [id, widget] of gPalette) {
       if (!widget.currentArea) {
-        widgets.add(id);
+        if (widget.showInPrivateBrowsing || !isWindowPrivate) {
+          widgets.add(id);
+        }
       }
     }
 
