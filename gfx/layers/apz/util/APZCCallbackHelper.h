@@ -60,9 +60,11 @@ public:
 
     
 
-    static bool GetScrollIdentifiers(const nsIContent* aContent,
-                                     uint32_t* aPresShellIdOut,
-                                     FrameMetrics::ViewID* aViewIdOut);
+
+
+    static bool GetOrCreateScrollIdentifiers(nsIContent* aContent,
+                                             uint32_t* aPresShellIdOut,
+                                             FrameMetrics::ViewID* aViewIdOut);
 
     
 
