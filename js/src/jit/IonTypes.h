@@ -244,6 +244,64 @@ IsNullOrUndefined(MIRType type)
 #  endif
 #endif
 
+enum {
+    ArgType_General = 0x1,
+    ArgType_Double  = 0x2,
+    ArgType_Float32 = 0x3,
+
+    RetType_Shift   = 0x0,
+    ArgType_Shift   = 0x2,
+    ArgType_Mask    = 0x3
+};
+
+enum ABIFunctionType
+{
+    
+    
+    Args_General0 = ArgType_General << RetType_Shift,
+    Args_General1 = Args_General0 | (ArgType_General << (ArgType_Shift * 1)),
+    Args_General2 = Args_General1 | (ArgType_General << (ArgType_Shift * 2)),
+    Args_General3 = Args_General2 | (ArgType_General << (ArgType_Shift * 3)),
+    Args_General4 = Args_General3 | (ArgType_General << (ArgType_Shift * 4)),
+    Args_General5 = Args_General4 | (ArgType_General << (ArgType_Shift * 5)),
+    Args_General6 = Args_General5 | (ArgType_General << (ArgType_Shift * 6)),
+    Args_General7 = Args_General6 | (ArgType_General << (ArgType_Shift * 7)),
+    Args_General8 = Args_General7 | (ArgType_General << (ArgType_Shift * 8)),
+
+    
+    Args_Double_None = ArgType_Double << RetType_Shift,
+
+    
+    Args_Int_Double = Args_General0 | (ArgType_Double << ArgType_Shift),
+
+    
+    Args_Float32_Float32 = (ArgType_Float32 << RetType_Shift) | (ArgType_Float32 << ArgType_Shift),
+
+    
+    Args_Double_Double = Args_Double_None | (ArgType_Double << ArgType_Shift),
+
+    
+    Args_Double_Int = Args_Double_None | (ArgType_General << ArgType_Shift),
+
+    
+    Args_Double_DoubleInt = Args_Double_None |
+        (ArgType_General << (ArgType_Shift * 1)) |
+        (ArgType_Double << (ArgType_Shift * 2)),
+
+    
+    Args_Double_DoubleDouble = Args_Double_Double | (ArgType_Double << (ArgType_Shift * 2)),
+
+    
+    Args_Double_IntDouble = Args_Double_None |
+        (ArgType_Double << (ArgType_Shift * 1)) |
+        (ArgType_General << (ArgType_Shift * 2)),
+
+    
+    Args_Int_IntDouble = Args_General0 |
+        (ArgType_Double << (ArgType_Shift * 1)) |
+        (ArgType_General << (ArgType_Shift * 2))
+};
+
 } 
 } 
 

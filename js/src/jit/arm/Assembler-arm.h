@@ -1025,15 +1025,6 @@ class Imm16
 
 
 
-class FloatOp
-{
-    uint32_t data;
-};
-
-
-
-
-
 class Operand
 {
     

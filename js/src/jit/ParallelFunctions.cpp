@@ -7,6 +7,7 @@
 #include "jit/ParallelFunctions.h"
 
 #include "builtin/TypedObject.h"
+#include "jit/arm/Simulator-arm.h"
 #include "vm/ArrayObject.h"
 
 #include "jsgcinlines.h"
@@ -189,6 +190,13 @@ jit::CheckOverRecursedPar(ForkJoinSlice *slice)
     
     
     
+
+#ifdef JS_ARM_SIMULATOR
+    if (Simulator::Current()->overRecursed()) {
+        slice->bailoutRecord->setCause(ParallelBailoutOverRecursed);
+        return false;
+    }
+#endif
 
     uintptr_t realStackLimit;
     if (slice->isMainThread())

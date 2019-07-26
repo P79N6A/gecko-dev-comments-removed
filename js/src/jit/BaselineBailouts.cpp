@@ -4,6 +4,7 @@
 
 
 
+#include "jit/arm/Simulator-arm.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
 #include "jit/CompileInfo.h"
@@ -1336,7 +1337,12 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     
     bool overRecursed = false;
     uint8_t *newsp = info->incomingStack - (info->copyStackTop - info->copyStackBottom);
+#ifdef JS_ARM_SIMULATOR
+    if (Simulator::Current()->overRecursed(uintptr_t(newsp)))
+        overRecursed = true;
+#else
     JS_CHECK_RECURSION_WITH_SP_DONT_REPORT(cx, newsp, overRecursed = true);
+#endif
     if (overRecursed) {
         IonSpew(IonSpew_BaselineBailouts, "  Overrecursion check failed!");
         return BAILOUT_RETURN_OVERRECURSED;

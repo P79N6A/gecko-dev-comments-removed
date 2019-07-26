@@ -8722,7 +8722,15 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     masm.passABIArg(scratch);
     masm.passABIArg(argcReg);
     masm.passABIArg(vpReg);
+
+#ifdef JS_ARM_SIMULATOR
+    
+    
+    
+    masm.callWithABI(Address(BaselineStubReg, ICCall_Native::offsetOfNative()));
+#else
     masm.callWithABI(Address(callee, JSFunction::offsetOfNativeOrScript()));
+#endif
 
     
     masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
@@ -9832,7 +9840,15 @@ ICCall_Native::ICCall_Native(JitCode *stubCode, ICStub *firstMonitorStub,
     callee_(callee),
     templateObject_(templateObject),
     pcOffset_(pcOffset)
-{ }
+{
+#ifdef JS_ARM_SIMULATOR
+    
+    
+    
+    native_ = Simulator::RedirectNativeFunction(JS_FUNC_TO_DATA_PTR(void *, callee->native()),
+                                                Args_General3);
+#endif
+}
 
 ICGetPropCallDOMProxyNativeStub::ICGetPropCallDOMProxyNativeStub(Kind kind, JitCode *stubCode,
                                                                  ICStub *firstMonitorStub,

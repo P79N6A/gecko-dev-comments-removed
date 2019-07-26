@@ -332,6 +332,29 @@ static bool IsSignalHandlingBroken() { return false; }
 # define PC_sig(p) R15_sig(p)
 #endif
 
+static bool
+HandleSimulatorInterrupt(JSRuntime *rt, AsmJSActivation *activation, void *faultingAddress)
+{
+    
+    
+    
+    
+    
+
+#ifdef JS_ARM_SIMULATOR
+    const AsmJSModule &module = activation->module();
+    if (module.containsPC((void *)rt->mainThread.simulator()->get_pc()) &&
+        module.containsPC(faultingAddress))
+    {
+        activation->setResumePC(nullptr);
+        int32_t nextpc = int32_t(module.operationCallbackExit());
+        rt->mainThread.simulator()->set_resume_pc(nextpc);
+        return true;
+    }
+#endif
+    return false;
+}
+
 #if !defined(XP_MACOSX)
 static uint8_t **
 ContextToPC(CONTEXT *context)
@@ -621,6 +644,11 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
         return false;
 
     const AsmJSModule &module = activation->module();
+    if (HandleSimulatorInterrupt(rt, activation, faultingAddress)) {
+        mprotect(module.codeBase(), module.functionBytes(), PROT_EXEC);
+        return true;
+    }
+
     if (!module.containsPC(pc))
         return false;
 
@@ -863,6 +891,11 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
         return false;
 
     const AsmJSModule &module = activation->module();
+    if (HandleSimulatorInterrupt(rt, activation, faultingAddress)) {
+        mprotect(module.codeBase(), module.functionBytes(), PROT_EXEC);
+        return true;
+    }
+
     if (!module.containsPC(pc))
         return false;
 
