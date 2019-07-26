@@ -378,6 +378,16 @@ public:
     
     
     
+    uint16_t UnitsPerEm();
+    enum {
+        kMinUPEM = 16,    
+        kMaxUPEM = 16384, 
+        kInvalidUPEM = uint16_t(-1)
+    };
+
+    
+    
+    
 
     
     
@@ -472,6 +482,10 @@ protected:
     
     
     hb_blob_t* GetTableFromFontData(const void* aFontData, uint32_t aTableTag);
+
+    
+    
+    uint16_t mUnitsPerEm;
 
     
     
