@@ -22,6 +22,7 @@ const SEC_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE;
 const SSL_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SSL_ERROR_BASE;
 
 
+const SEC_ERROR_INVALID_ARGS                            = SEC_ERROR_BASE +   5; 
 const SEC_ERROR_BAD_DER                                 = SEC_ERROR_BASE +   9;
 const SEC_ERROR_EXPIRED_CERTIFICATE                     = SEC_ERROR_BASE +  11;
 const SEC_ERROR_REVOKED_CERTIFICATE                     = SEC_ERROR_BASE +  12; 
@@ -33,6 +34,7 @@ const SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE              = SEC_ERROR_BASE +  30;
 const SEC_ERROR_EXTENSION_NOT_FOUND                     = SEC_ERROR_BASE +  35; 
 const SEC_ERROR_CA_CERT_INVALID                         = SEC_ERROR_BASE +  36;
 const SEC_ERROR_INADEQUATE_KEY_USAGE                    = SEC_ERROR_BASE +  90; 
+const SEC_ERROR_INADEQUATE_CERT_TYPE                    = SEC_ERROR_BASE +  91; 
 const SEC_ERROR_CERT_NOT_IN_NAME_SPACE                  = SEC_ERROR_BASE + 112; 
 const SEC_ERROR_OCSP_MALFORMED_REQUEST                  = SEC_ERROR_BASE + 120;
 const SEC_ERROR_OCSP_SERVER_ERROR                       = SEC_ERROR_BASE + 121;
