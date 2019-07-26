@@ -413,6 +413,10 @@ bool PACDnsResolve(JSContext *cx, unsigned int argc, JS::Value *vp)
     return false;
   if (PACResolveToString(NS_ConvertUTF16toUTF8(hostName), dottedDecimal, 0)) {
     JSString *dottedDecimalString = JS_NewStringCopyZ(cx, dottedDecimal.get());
+    if (!dottedDecimalString) {
+      return false;
+    }
+
     args.rval().setString(dottedDecimalString);
   }
   else {
@@ -778,8 +782,11 @@ ProxyAutoConfig::SrcAddress(const NetAddr *remoteAddress, nsCString &localAddres
 bool
 ProxyAutoConfig::MyIPAddressTryHost(const nsCString &hostName,
                                     unsigned int timeout,
-                                    const JS::CallArgs &aArgs)
+                                    const JS::CallArgs &aArgs,
+                                    bool* aResult)
 {
+  *aResult = false;
+
   NetAddr remoteAddress;
   nsAutoCString localDottedDecimal;
   JSContext *cx = mJSRuntime->Context();
@@ -788,10 +795,14 @@ ProxyAutoConfig::MyIPAddressTryHost(const nsCString &hostName,
       SrcAddress(&remoteAddress, localDottedDecimal)) {
     JSString *dottedDecimalString =
       JS_NewStringCopyZ(cx, localDottedDecimal.get());
+    if (!dottedDecimalString) {
+      return false;
+    }
+
+    *aResult = true;
     aArgs.rval().setString(dottedDecimalString);
-    return true;
   }
-  return false;
+  return true;
 }
 
 bool
@@ -804,16 +815,21 @@ ProxyAutoConfig::MyIPAddress(const JS::CallArgs &aArgs)
   
   
   
-  if (MyIPAddressTryHost(mRunningHost, kTimeout, aArgs))
-    return true;
+  bool rvalAssigned = false;
+  if (!MyIPAddressTryHost(mRunningHost, kTimeout, aArgs, &rvalAssigned) ||
+      rvalAssigned) {
+    return rvalAssigned;
+  }
 
   
   
   
   
   remoteDottedDecimal.AssignLiteral("8.8.8.8");
-  if (MyIPAddressTryHost(remoteDottedDecimal, 0, aArgs))
-    return true;
+  if (!MyIPAddressTryHost(remoteDottedDecimal, 0, aArgs, &rvalAssigned) ||
+      rvalAssigned) {
+    return rvalAssigned;
+  }
   
   
   nsAutoCString hostName;
@@ -822,6 +838,10 @@ ProxyAutoConfig::MyIPAddress(const JS::CallArgs &aArgs)
       PACResolveToString(hostName, localDottedDecimal, kTimeout)) {
     JSString *dottedDecimalString =
       JS_NewStringCopyZ(cx, localDottedDecimal.get());
+    if (!dottedDecimalString) {
+      return false;
+    }
+
     aArgs.rval().setString(dottedDecimalString);
     return true;
   }
@@ -829,18 +849,26 @@ ProxyAutoConfig::MyIPAddress(const JS::CallArgs &aArgs)
   
   
   remoteDottedDecimal.AssignLiteral("192.168.0.1");
-  if (MyIPAddressTryHost(remoteDottedDecimal, 0, aArgs))
-    return true;
+  if (!MyIPAddressTryHost(remoteDottedDecimal, 0, aArgs, &rvalAssigned) ||
+      rvalAssigned) {
+    return rvalAssigned;
+  }
 
   
   remoteDottedDecimal.AssignLiteral("10.0.0.1");
-  if (MyIPAddressTryHost(remoteDottedDecimal, 0, aArgs))
-    return true;
+  if (!MyIPAddressTryHost(remoteDottedDecimal, 0, aArgs, &rvalAssigned) ||
+      rvalAssigned) {
+    return rvalAssigned;
+  }
 
   
   localDottedDecimal.AssignLiteral("127.0.0.1");
   JSString *dottedDecimalString =
     JS_NewStringCopyZ(cx, localDottedDecimal.get());
+  if (!dottedDecimalString) {
+    return false;
+  }
+
   aArgs.rval().setString(dottedDecimalString);
   return true;
 }
