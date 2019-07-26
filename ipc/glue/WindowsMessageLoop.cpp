@@ -280,6 +280,11 @@ ProcessOrDeferMessage(HWND hwnd,
     case WM_SYNCPAINT:
       return 0;
 
+    
+    
+    case WM_APP-1:
+      return 0;
+
     default: {
       if (uMsg && uMsg == mozilla::widget::sAppShellGeckoMsgId) {
         
@@ -391,7 +396,9 @@ WindowIsDeferredWindow(HWND hWnd)
   
   
   
+  
   if (className.EqualsLiteral("ShockwaveFlashFullScreen") ||
+      className.EqualsLiteral("QTNSHIDDEN") ||
       className.EqualsLiteral("AGFullScreenWinClass")) {
     return true;
   }
