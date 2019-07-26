@@ -2561,7 +2561,7 @@ Proxy::iterate(JSContext *cx, HandleObject proxy, unsigned flags, MutableHandleV
     vp.setUndefined(); 
     if (!handler->hasPrototype()) {
         AutoEnterPolicy policy(cx, handler, proxy, JSID_VOID,
-                               BaseProxyHandler::GET,  false);
+                               BaseProxyHandler::GET, true);
         
         
         if (!policy.allowed()) {
