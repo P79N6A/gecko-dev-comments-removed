@@ -82,8 +82,6 @@ DOMCI_CLASS(CSSRect)
 
 DOMCI_CLASS(ChromeWindow)
 
-DOMCI_CLASS(ImageDocument)
-
 #ifdef MOZ_XUL
 DOMCI_CLASS(XULTemplateBuilder)
 DOMCI_CLASS(XULTreeBuilder)
