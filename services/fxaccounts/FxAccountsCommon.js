@@ -2,6 +2,33 @@
 
 
 
+const { interfaces: Ci, utils: Cu } = Components;
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Log.jsm");
+
+
+
+
+const PREF_LOG_LEVEL = "identity.fxaccounts.loglevel";
+
+XPCOMUtils.defineLazyGetter(this, 'log', function() {
+  let log = Log.repository.getLogger("FirefoxAccounts");
+  log.addAppender(new Log.DumpAppender());
+  log.level = Log.Level.Error;
+  try {
+    let level =
+      Services.prefs.getPrefType(PREF_LOG_LEVEL) == Ci.nsIPrefBranch.PREF_STRING
+      && Services.prefs.getCharPref(PREF_LOG_LEVEL);
+    log.level = Log.Level[level] || Log.Level.Error;
+  } catch (e) {
+    log.error(e);
+  }
+
+  return log;
+});
+
 this.DATA_FORMAT_VERSION = 1;
 this.DEFAULT_STORAGE_FILENAME = "signedInUser.json";
 

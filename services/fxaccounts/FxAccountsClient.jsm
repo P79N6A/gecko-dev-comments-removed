@@ -10,6 +10,7 @@ Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
+Cu.import("resource://gre/modules/FxAccountsCommon.js");
 
 
 let _host = "https://api-accounts.dev.lcip.org/v1";
@@ -283,6 +284,9 @@ this.FxAccountsClient.prototype = {
       payload = JSON.stringify(jsonPayload);
     }
 
+    log.debug("(HAWK request) - Path: " + path + " - Method: " + method +
+              " - Payload: " + payload);
+
     xhr.open(method, URI);
     xhr.channel.loadFlags = Ci.nsIChannel.LOAD_BYPASS_CACHE |
                             Ci.nsIChannel.INHIBIT_CACHING;
@@ -300,12 +304,16 @@ this.FxAccountsClient.prototype = {
     xhr.onload = function onload() {
       try {
         let response = JSON.parse(xhr.responseText);
+        log.debug("(Response) Code: " + xhr.status + " - Status text: " +
+                  xhr.statusText + " - Response text: " + xhr.responseText);
         if (xhr.status !== 200 || response.error) {
           
           return deferred.reject(response);
         }
         deferred.resolve(response);
       } catch (e) {
+        log.error("(Response) Code: " + xhr.status + " - Status text: " +
+                  xhr.statusText);
         deferred.reject(constructError(e));
       }
     };
