@@ -2,6 +2,9 @@
 
 
 
+let Ci = Components.interfaces;
+let Cc = Components.classes;
+
 dump("### SelectionHandler.js loaded\n");
 
 var SelectionHandler = {
@@ -596,6 +599,7 @@ var SelectionHandler = {
     }
   },
 };
+this.SelectionHandler = SelectionHandler;
 
 SelectionHandler.__proto__ = new SelectionPrototype();
 SelectionHandler.init();
