@@ -57,7 +57,7 @@ public:
 
 
 
-  virtual bool ContentChannelIsActive();
+  virtual bool ContentOrNormalChannelIsActive();
 
 protected:
   void Notify();
@@ -127,6 +127,7 @@ protected:
   nsTArray<uint64_t> mChannelCounters[AUDIO_CHANNEL_INT_LAST];
 
   AudioChannelType mCurrentHigherChannel;
+  AudioChannelType mCurrentVisibleHigherChannel;
 
   nsTArray<uint64_t> mActiveContentChildIDs;
   bool mActiveContentChildIDsFrozen;
