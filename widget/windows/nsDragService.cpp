@@ -591,6 +591,13 @@ nsDragService::IsCollectionObject(IDataObject* inDataObj)
 NS_IMETHODIMP
 nsDragService::EndDragSession(bool aDoneDrag)
 {
+  
+  
+  
+  if (::GetCapture()) {
+    ::ReleaseCapture();
+  }
+
   nsBaseDragService::EndDragSession(aDoneDrag);
   NS_IF_RELEASE(mDataObject);
 

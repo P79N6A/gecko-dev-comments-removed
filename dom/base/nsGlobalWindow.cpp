@@ -8431,6 +8431,13 @@ nsGlobalWindow::EnterModalState()
   }
 
   
+  nsCOMPtr<nsIDragService> ds =
+    do_GetService("@mozilla.org/widget/dragservice;1");
+  if (ds) {
+    ds->EndDragSession(true);
+  }
+
+  
   
   
   nsIDocument* topDoc = topWin->GetExtantDoc();
