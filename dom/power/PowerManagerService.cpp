@@ -6,8 +6,10 @@
 #include "mozilla/Hal.h"
 #include "mozilla/HalWakeLock.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Services.h"
 #include "nsIDOMWakeLockListener.h"
 #include "nsIDOMWindow.h"
+#include "nsIObserverService.h"
 #include "PowerManagerService.h"
 #include "WakeLock.h"
 
@@ -80,17 +82,37 @@ PowerManagerService::Notify(const hal::WakeLockInformation& aWakeLockInfo)
   }
 }
 
+void
+PowerManagerService::SyncProfile()
+{
+  
+  
+  nsCOMPtr<nsIObserverService> obsServ = services::GetObserverService();
+  if (obsServ) {
+    NS_NAMED_LITERAL_STRING(context, "shutdown-persist");
+    obsServ->NotifyObservers(nullptr, "profile-change-net-teardown", context.get());
+    obsServ->NotifyObservers(nullptr, "profile-change-teardown", context.get());
+    obsServ->NotifyObservers(nullptr, "profile-before-change", context.get());
+  }
+}
+
 NS_IMETHODIMP
 PowerManagerService::Reboot()
 {
+  
+  SyncProfile();
   hal::Reboot();
+  MOZ_NOT_REACHED();
   return NS_OK;
 }
 
 NS_IMETHODIMP
 PowerManagerService::PowerOff()
 {
+  
+  SyncProfile();
   hal::PowerOff();
+  MOZ_NOT_REACHED();
   return NS_OK;
 }
 
