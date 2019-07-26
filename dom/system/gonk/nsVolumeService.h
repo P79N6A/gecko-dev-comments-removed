@@ -39,12 +39,12 @@ public:
   
   static void Shutdown();
 
-  void CheckMountLock(const nsAString &aMountLockName,
-                      const nsAString &aMountLockState);
-  already_AddRefed<nsVolume> FindVolumeByName(const nsAString &aName);
-  already_AddRefed<nsVolume> FindAddVolumeByName(const nsAString &aName);
-  void UpdateVolume(const nsVolume *aVolume);
-  void UpdateVolumeIOThread(const Volume *aVolume);
+  void CheckMountLock(const nsAString& aMountLockName,
+                      const nsAString& aMountLockState);
+  already_AddRefed<nsVolume> FindVolumeByName(const nsAString& aName);
+  already_AddRefed<nsVolume> FindAddVolumeByName(const nsAString& aName);
+  void UpdateVolume(const nsVolume* aVolume);
+  void UpdateVolumeIOThread(const Volume* aVolume);
 
 private:
   ~nsVolumeService();
