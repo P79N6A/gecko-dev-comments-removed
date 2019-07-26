@@ -18,6 +18,15 @@ const iceStateTransitions = {
   "closed": []
   }
 
+const signalingStateTransitions = {
+  "stable": ["have-local-offer", "have-remote-offer", "closed"],
+  "have-local-offer": ["have-remote-pranswer", "stable", "closed", "have-local-offer"],
+  "have-remote-pranswer": ["stable", "closed", "have-remote-pranswer"],
+  "have-remote-offer": ["have-local-pranswer", "stable", "closed", "have-remote-offer"],
+  "have-local-pranswer": ["stable", "closed", "have-local-pranswer"],
+  "closed": []
+}
+
 
 
 
@@ -1319,7 +1328,6 @@ function PeerConnectionWrapper(label, configuration) {
 
   info("Creating " + this);
   this._pc = new mozRTCPeerConnection(this.configuration);
-  is(this._pc.iceConnectionState, "new", "iceConnectionState starts at 'new'");
 
   
 
@@ -1342,8 +1350,6 @@ function PeerConnectionWrapper(label, configuration) {
       self.next_ice_state = "";
     }
   };
-  this.ondatachannel = unexpectedEventAndFinish(this, 'ondatachannel');
-  this.onsignalingstatechange = unexpectedEventAndFinish(this, 'onsignalingstatechange');
 
   
 
@@ -1371,6 +1377,8 @@ function PeerConnectionWrapper(label, configuration) {
     });
    };
 
+  this.ondatachannel = unexpectedEventAndFinish(this, 'ondatachannel');
+
   
 
 
@@ -1386,6 +1394,9 @@ function PeerConnectionWrapper(label, configuration) {
     self.ondatachannel = unexpectedEventAndFinish(self, 'ondatachannel');
   };
 
+  this.onsignalingstatechange = unexpectedEventAndFinish(this, 'onsignalingstatechange');
+  this.signalingStateCallbacks = {};
+
   
 
 
@@ -1394,12 +1405,15 @@ function PeerConnectionWrapper(label, configuration) {
 
 
 
-  this._pc.onsignalingstatechange = function (aEvent) {
+  this._pc.onsignalingstatechange = function (anEvent) {
     info(self + ": 'onsignalingstatechange' event fired");
 
+    Object.keys(self.signalingStateCallbacks).forEach(function(name) {
+      self.signalingStateCallbacks[name](anEvent);
+    });
     
     
-    self.onsignalingstatechange(aEvent);
+    self.onsignalingstatechange(anEvent);
     self.onsignalingstatechange = unexpectedEventAndFinish(self, 'onsignalingstatechange');
   };
 }
@@ -1665,6 +1679,28 @@ PeerConnectionWrapper.prototype = {
 
 
 
+  logSignalingState: function PCW_logSignalingState() {
+    var self = this;
+
+    function _logSignalingState(state) {
+      var newstate = self._pc.signalingState;
+      var oldstate = self.signalingStateLog[self.signalingStateLog.length - 1]
+      if (Object.keys(signalingStateTransitions).indexOf(oldstate) != -1) {
+        ok(signalingStateTransitions[oldstate].indexOf(newstate) != -1, self + ": legal signaling state transition from " + oldstate + " to " + newstate);
+      } else {
+        ok(false, self + ": old signaling state " + oldstate + " missing in signaling transition array");
+      }
+      self.signalingStateLog.push(newstate);
+    }
+
+    self.signalingStateLog = [self._pc.signalingState];
+    self.signalingStateCallbacks.logSignalingStatus = _logSignalingState;
+  },
+
+  
+
+
+
 
 
 
@@ -1748,11 +1784,11 @@ PeerConnectionWrapper.prototype = {
       var newstate = self._pc.iceConnectionState;
       var oldstate = self.iceConnectionLog[self.iceConnectionLog.length - 1]
       if (Object.keys(iceStateTransitions).indexOf(oldstate) != -1) {
-        ok(iceStateTransitions[oldstate].indexOf(newstate) != -1, "Legal ICE state transition from " + oldstate + " to " + newstate);
+        ok(iceStateTransitions[oldstate].indexOf(newstate) != -1, self + ": legal ICE state transition from " + oldstate + " to " + newstate);
       } else {
-        ok(false, "Old ICE state " + oldstate + " missing in ICE transition array");
+        ok(false, self + ": old ICE state " + oldstate + " missing in ICE transition array");
       }
-      self.iceConnectionLog.push(self._pc.iceConnectionState);
+      self.iceConnectionLog.push(newstate);
     }
 
     self.iceConnectionLog = [self._pc.iceConnectionState];
