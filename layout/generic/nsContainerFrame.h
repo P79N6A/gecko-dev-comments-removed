@@ -501,9 +501,9 @@ protected:
 
 
 
-  nsresult SetPropTableFrames(nsPresContext*                 aPresContext,
-                              nsFrameList*                   aFrameList,
-                              const FramePropertyDescriptor* aProperty);
+  void SetPropTableFrames(nsPresContext*                 aPresContext,
+                          nsFrameList*                   aFrameList,
+                          const FramePropertyDescriptor* aProperty);
 
   
 
