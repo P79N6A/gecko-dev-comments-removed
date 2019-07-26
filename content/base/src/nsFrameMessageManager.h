@@ -18,6 +18,7 @@
 #include "nsIPrincipal.h"
 #include "nsIXPConnect.h"
 #include "nsDataHashtable.h"
+#include "nsClassHashtable.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
 #include "nsThreadUtils.h"
@@ -116,7 +117,6 @@ struct nsMessageListenerInfo
   
   nsCOMPtr<nsIMessageListener> mStrongListener;
   nsWeakPtr mWeakListener;
-  nsCOMPtr<nsIAtom> mMessage;
 };
 
 class CpowHolder
@@ -268,7 +268,9 @@ private:
                        bool aIsSync);
 protected:
   friend class MMListenerRemover;
-  nsTArray<nsMessageListenerInfo> mListeners;
+  
+  
+  nsClassHashtable<nsStringHashKey, nsTArray<nsMessageListenerInfo>> mListeners;
   nsCOMArray<nsIContentFrameMessageManager> mChildManagers;
   bool mChrome;     
   bool mGlobal;     
