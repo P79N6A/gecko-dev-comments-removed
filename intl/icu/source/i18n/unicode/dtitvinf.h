@@ -373,12 +373,10 @@ private:
 
 
 
-
     void initializeData(const Locale& locale, UErrorCode& status);
 
 
     
-
 
 
 
@@ -412,7 +410,6 @@ private:
 
 
 
-
     const UnicodeString* getBestSkeleton(const UnicodeString& skeleton,
                                          int8_t& bestMatchDistanceInfo) const;
 
@@ -424,13 +421,11 @@ private:
 
 
 
-
     static void U_EXPORT2 parseSkeleton(const UnicodeString& skeleton, 
                                         int32_t* skeletonFieldWidth);
 
 
     
-
 
 
 
@@ -459,14 +454,12 @@ private:
 
 
 
-
     static IntervalPatternIndex U_EXPORT2 calendarFieldToIntervalIndex(
                                                       UCalendarDateFields field,
                                                       UErrorCode& status);
 
 
     
-
 
 
 
@@ -480,13 +473,11 @@ private:
 
 
 
-
     Hashtable* initHash(UErrorCode& status);
 
 
 
     
-
 
 
 

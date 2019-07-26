@@ -2265,6 +2265,8 @@ void        RegexCompile::compileSet(UnicodeSet *theSet)
 
 
 
+
+
 void        RegexCompile::compileInterval(int32_t InitOp,  int32_t LoopOp)
 {
     
@@ -2276,8 +2278,14 @@ void        RegexCompile::compileInterval(int32_t InitOp,  int32_t LoopOp)
 
     
     
+    
+    
+    
     int32_t   counterLoc = fRXPat->fFrameSize;
     fRXPat->fFrameSize++;
+    if (fIntervalUpper < 0) {
+        fRXPat->fFrameSize++;
+    }
 
     int32_t   op = URX_BUILD(InitOp, counterLoc);
     fRXPat->fCompiledPat->setElementAt(op, topOfBlock);
@@ -3335,13 +3343,45 @@ int32_t   RegexCompile::maxMatchLength(int32_t start, int32_t end) {
 
         case URX_CTR_INIT:
         case URX_CTR_INIT_NG:
+            
+            
+            {
+                int32_t  loopEndLoc = URX_VAL(fRXPat->fCompiledPat->elementAti(loc+1));
+                if (loopEndLoc == loc+4) {
+                    
+                    
+                    loc = loopEndLoc;
+                    break;
+                }
+                
+                int32_t maxLoopCount = fRXPat->fCompiledPat->elementAti(loc+3);
+                if (maxLoopCount == -1) {
+                    
+                    currentLen = INT32_MAX;
+                    break;
+                }
+
+                U_ASSERT(loopEndLoc >= loc+4);
+                int32_t  blockLen = maxMatchLength(loc+4, loopEndLoc-1);  
+                if (blockLen == INT32_MAX) {
+                    currentLen = blockLen;
+                    break;
+                }
+                currentLen += blockLen * maxLoopCount;
+                loc = loopEndLoc;
+                break;
+            }
+
         case URX_CTR_LOOP:
         case URX_CTR_LOOP_NG:
+            
+            
+            U_ASSERT(FALSE);
+            break;
+
         case URX_LOOP_SR_I:
         case URX_LOOP_DOT_I:
         case URX_LOOP_C:
-            
-            
             
             currentLen = INT32_MAX;
             break;

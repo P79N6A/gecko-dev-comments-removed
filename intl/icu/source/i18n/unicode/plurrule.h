@@ -38,9 +38,72 @@
 U_NAMESPACE_BEGIN
 
 class Hashtable;
+class FixedDecimal;
 class RuleChain;
-class RuleParser;
+class PluralRuleParser;
 class PluralKeywordEnumeration;
+class AndConstraint;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -219,6 +282,23 @@ public:
 
     static PluralRules* U_EXPORT2 forLocale(const Locale& locale, UPluralType type, UErrorCode& status);
 
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+
+
+    static StringEnumeration* U_EXPORT2 getAvailableLocales(UErrorCode &status);
+
+    
+
+
+
+
+
+    static UBool hasOverride(const Locale &locale);
+#endif  
+
     
 
 
@@ -240,6 +320,13 @@ public:
 
 
     UnicodeString select(double number) const;
+
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+    UnicodeString select(const FixedDecimal &number) const;
+#endif  
 
     
 
@@ -329,6 +416,14 @@ public:
 
     UnicodeString getKeywordOther() const;
 
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+
+     UnicodeString getRules() const;
+#endif  
+
     
 
 
@@ -368,28 +463,14 @@ public:
 
 private:
     RuleChain  *mRules;
-    RuleParser *mParser;
-    double     *mSamples;
-    int32_t    *mSampleInfo;
-    int32_t    mSampleInfoCount;
 
     PluralRules();   
-    int32_t getRepeatLimit() const;
-    void parseDescription(UnicodeString& ruleData, RuleChain& rules, UErrorCode &status);
-    void getNextLocale(const UnicodeString& localeData, int32_t* curIndex, UnicodeString& localeName);
-    void addRules(RuleChain& rules);
-    int32_t getNumberValue(const UnicodeString& token) const;
-    UnicodeString getRuleFromResource(const Locale& locale, UPluralType type, UErrorCode& status);
+    void            parseDescription(const UnicodeString& ruleData, UErrorCode &status);
+    int32_t         getNumberValue(const UnicodeString& token) const;
+    UnicodeString   getRuleFromResource(const Locale& locale, UPluralType type, UErrorCode& status);
+    RuleChain      *rulesForKeyword(const UnicodeString &keyword) const;
 
-    static const int32_t MAX_SAMPLES = 3;
-
-    int32_t getSamplesInternal(const UnicodeString &keyword, double *dest,
-                               int32_t destCapacity, UBool includeUnlimited,
-                               UErrorCode& status);
-    int32_t getKeywordIndex(const UnicodeString& keyword,
-                            UErrorCode& status) const;
-    void initSamples(UErrorCode& status);
-
+    friend class PluralRuleParser;
 };
 
 U_NAMESPACE_END

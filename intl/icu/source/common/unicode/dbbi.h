@@ -22,17 +22,16 @@
  
 U_NAMESPACE_BEGIN
 
-
-
-
-
-
- 
 #ifndef U_HIDE_DEPRECATED_API
+
+
+
+
+
 
 typedef RuleBasedBreakIterator DictionaryBasedBreakIterator;
 
-#endif
+#endif  
 
 U_NAMESPACE_END
 

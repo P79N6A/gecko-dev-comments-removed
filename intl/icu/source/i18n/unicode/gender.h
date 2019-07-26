@@ -29,6 +29,9 @@ class GenderInfoTest;
 U_NAMESPACE_BEGIN
 
 
+void GenderInfo_initCache(UErrorCode &status);
+
+
 
 
 
@@ -70,17 +73,10 @@ public:
 
 
 
-
     virtual ~GenderInfo();
 
 private:
     int32_t _style;
-
-
-    
-
-
-    virtual UClassID getDynamicClassID() const;
 
     
 
@@ -102,7 +98,9 @@ private:
     static const GenderInfo* getMaleTaintsInstance();
 
     static const GenderInfo* loadInstance(const Locale& locale, UErrorCode& status);
+
     friend class ::GenderInfoTest;
+    friend void GenderInfo_initCache(UErrorCode &status);
 };
 
 U_NAMESPACE_END

@@ -302,6 +302,10 @@
 
 
 
+
+
+
+
 enum {
     UCNV_EXT_INDEXES_LENGTH,            
 
@@ -444,7 +448,9 @@ ucnv_extGetUnicodeSet(const UConverterSharedData *sharedData,
 
 #define UCNV_EXT_FROM_U_LENGTH_SHIFT 24
 #define UCNV_EXT_FROM_U_ROUNDTRIP_FLAG ((uint32_t)1<<31)
-#define UCNV_EXT_FROM_U_RESERVED_MASK 0x60000000
+#define UCNV_EXT_FROM_U_GOOD_ONE_WAY_FLAG 0x40000000
+#define UCNV_EXT_FROM_U_STATUS_MASK 0xc0000000
+#define UCNV_EXT_FROM_U_RESERVED_MASK 0x20000000
 #define UCNV_EXT_FROM_U_DATA_MASK 0xffffff
 
 

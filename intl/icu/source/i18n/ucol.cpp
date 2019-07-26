@@ -556,11 +556,10 @@ ucol_cloneBinary(const UCollator *coll,
 }
 
 U_CAPI UCollator* U_EXPORT2
-ucol_safeClone(const UCollator *coll, void *stackBuffer, int32_t * pBufferSize, UErrorCode *status)
+ucol_safeClone(const UCollator *coll, void * , int32_t * pBufferSize, UErrorCode *status)
 {
     UCollator * localCollator;
     int32_t bufferSizeNeeded = (int32_t)sizeof(UCollator);
-    char *stackBufferChars = (char *)stackBuffer;
     int32_t imageSize = 0;
     int32_t rulesSize = 0;
     int32_t rulesPadding = 0;
@@ -571,15 +570,14 @@ ucol_safeClone(const UCollator *coll, void *stackBuffer, int32_t * pBufferSize, 
     int32_t* defaultReorderCodes;
     int32_t* reorderCodes;
     uint8_t* leadBytePermutationTable;
-    UBool colAllocated = FALSE;
     UBool imageAllocated = FALSE;
 
     if (status == NULL || U_FAILURE(*status)){
-        return 0;
+        return NULL;
     }
-    if ((stackBuffer && !pBufferSize) || !coll){
+    if (coll == NULL) {
        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
+        return NULL;
     }
 
     if (coll->rules && coll->freeRulesOnClose) {
@@ -599,41 +597,23 @@ ucol_safeClone(const UCollator *coll, void *stackBuffer, int32_t * pBufferSize, 
     if (coll->leadBytePermutationTable) {
         bufferSizeNeeded += 256 * sizeof(uint8_t);
     }
+
+    if (pBufferSize != NULL) {
+        int32_t inputSize = *pBufferSize;
+        *pBufferSize = 1;
+        if (inputSize == 0) {
+            return NULL;  
+        }
+    }
+
+    char *stackBufferChars = (char *)uprv_malloc(bufferSizeNeeded);
     
-    if (stackBuffer && *pBufferSize <= 0) { 
-        *pBufferSize =  bufferSizeNeeded;
-        return 0;
+    if (stackBufferChars == NULL) {
+        *status = U_MEMORY_ALLOCATION_ERROR;
+        return NULL;
     }
+    *status = U_SAFECLONE_ALLOCATED_WARNING;
 
-    
-
-
-    if (U_ALIGNMENT_OFFSET(stackBuffer) != 0) {
-        int32_t offsetUp = (int32_t)U_ALIGNMENT_OFFSET_UP(stackBufferChars);
-        if (*pBufferSize > offsetUp) {
-            *pBufferSize -= offsetUp;
-            stackBufferChars += offsetUp;
-        }
-        else {
-            
-            *pBufferSize = 1;
-        }
-    }
-    stackBuffer = (void *)stackBufferChars;
-
-    if (stackBuffer == NULL || *pBufferSize < bufferSizeNeeded) {
-        
-        stackBufferChars = (char *)uprv_malloc(bufferSizeNeeded);
-        
-        if (stackBufferChars == NULL) {
-            *status = U_MEMORY_ALLOCATION_ERROR;
-            return NULL;
-        }
-        colAllocated = TRUE;
-        if (U_SUCCESS(*status)) {
-            *status = U_SAFECLONE_ALLOCATED_WARNING;
-        }
-    }
     localCollator = (UCollator *)stackBufferChars;
     rules = (UChar *)(stackBufferChars + sizeof(UCollator) + rulesPadding);
     defaultReorderCodes = (int32_t*)((uint8_t*)rules + rulesSize);
@@ -702,7 +682,7 @@ ucol_safeClone(const UCollator *coll, void *stackBuffer, int32_t * pBufferSize, 
     localCollator->validLocale = NULL;
     localCollator->requestedLocale = NULL;
     localCollator->ucaRules = coll->ucaRules; 
-    localCollator->freeOnClose = colAllocated;
+    localCollator->freeOnClose = TRUE;
     localCollator->freeImageOnClose = imageAllocated;
     return localCollator;
 }
@@ -762,68 +742,6 @@ ucol_close(UCollator *coll)
         }
     }
     UTRACE_EXIT();
-}
-
-
-
-U_CFUNC uint8_t* U_EXPORT2
-ucol_cloneRuleData(const UCollator *coll, int32_t *length, UErrorCode *status)
-{
-    uint8_t *result = NULL;
-    if(U_FAILURE(*status)) {
-        return NULL;
-    }
-    if(coll->hasRealData == TRUE) {
-        *length = coll->image->size;
-        result = (uint8_t *)uprv_malloc(*length);
-        
-        if (result == NULL) {
-            *status = U_MEMORY_ALLOCATION_ERROR;
-            return NULL;
-        }
-        uprv_memcpy(result, coll->image, *length);
-    } else {
-        *length = (int32_t)(paddedsize(sizeof(UCATableHeader))+paddedsize(sizeof(UColOptionSet)));
-        result = (uint8_t *)uprv_malloc(*length);
-        
-        if (result == NULL) {
-            *status = U_MEMORY_ALLOCATION_ERROR;
-            return NULL;
-        }
-
-        
-        
-        
-
-        
-        uprv_memset(result, 0, *length);
-
-        
-        UCATableHeader *myData = (UCATableHeader *)result;
-        myData->size = *length;
-
-        
-        myData->options = sizeof(UCATableHeader);
-
-        
-        myData->expansion = myData->options + sizeof(UColOptionSet);
-
-        myData->magic = UCOL_HEADER_MAGIC;
-        myData->isBigEndian = U_IS_BIG_ENDIAN;
-        myData->charSetFamily = U_CHARSET_FAMILY;
-
-        
-        uprv_memcpy(myData->version, coll->image->version, sizeof(UVersionInfo));
-
-        uprv_memcpy(myData->UCAVersion, coll->image->UCAVersion, sizeof(UVersionInfo));
-        uprv_memcpy(myData->UCDVersion, coll->image->UCDVersion, sizeof(UVersionInfo));
-        uprv_memcpy(myData->formatVersion, coll->image->formatVersion, sizeof(UVersionInfo));
-        myData->jamoSpecial = coll->image->jamoSpecial;
-
-        
-        uprv_memcpy(result+paddedsize(sizeof(UCATableHeader)), coll->options, sizeof(UColOptionSet));
-    }
-    return result;
 }
 
 void ucol_setOptionsFromHeader(UCollator* result, UColOptionSet * opts, UErrorCode *status) {
@@ -4188,43 +4106,13 @@ while((start)<(end)) { \
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 U_CAPI int32_t U_EXPORT2
 ucol_mergeSortkeys(const uint8_t *src1, int32_t src1Length,
                    const uint8_t *src2, int32_t src2Length,
                    uint8_t *dest, int32_t destCapacity) {
-    int32_t destLength;
-    uint8_t b;
-
     
-    if( src1==NULL || src1Length<-2 || src1Length==0 || (src1Length>0 && src1[src1Length-1]!=0) ||
-        src2==NULL || src2Length<-2 || src2Length==0 || (src2Length>0 && src2[src2Length-1]!=0) ||
+    if( src1==NULL || src1Length<-1 || src1Length==0 || (src1Length>0 && src1[src1Length-1]!=0) ||
+        src2==NULL || src2Length<-1 || src2Length==0 || (src2Length>0 && src2[src2Length-1]!=0) ||
         destCapacity<0 || (destCapacity>0 && dest==NULL)
     ) {
         
@@ -4242,34 +4130,38 @@ ucol_mergeSortkeys(const uint8_t *src1, int32_t src1Length,
         src2Length=(int32_t)uprv_strlen((const char *)src2)+1;
     }
 
-    destLength=src1Length+src2Length-1;
+    int32_t destLength=src1Length+src2Length;
     if(destLength>destCapacity) {
         
         return destLength;
     }
 
     
-    while(*src1!=0 && *src2!=0) { 
+    uint8_t *p=dest;
+    for(;;) {
         
+        uint8_t b;
         while((b=*src1)>=2) {
             ++src1;
-            *dest++=b;
+            *p++=b;
         }
 
         
-        *dest++=2;
+        *p++=2;
 
         
         while((b=*src2)>=2) {
             ++src2;
-            *dest++=b;
+            *p++=b;
         }
 
         
         if(*src1==1 && *src2==1) {
             ++src1;
             ++src2;
-            *dest++=1;
+            *p++=1;
+        } else {
+            break;
         }
     }
 
@@ -4283,10 +4175,10 @@ ucol_mergeSortkeys(const uint8_t *src1, int32_t src1Length,
         src2=src1;
     }
     
-    uprv_strcpy((char *)dest, (const char *)src2);
+    while((*p++=*src2++)!=0) {}
 
     
-    return destLength;
+    return (int32_t)(p-dest);
 }
 
 U_NAMESPACE_BEGIN
@@ -6845,12 +6737,14 @@ ucol_setReorderCodes(UCollator* coll,
         uprv_free(coll->reorderCodes);
     }
     coll->reorderCodes = NULL;
+    coll->freeReorderCodesOnClose = FALSE;
     coll->reorderCodesLength = 0;
     if (reorderCodesLength == 0) {
         if (coll->leadBytePermutationTable != NULL && coll->freeLeadBytePermutationTableOnClose == TRUE) {
             uprv_free(coll->leadBytePermutationTable);
         }
         coll->leadBytePermutationTable = NULL;
+        coll->freeLeadBytePermutationTableOnClose = FALSE;
         return;
     }
     coll->reorderCodes = (int32_t*) uprv_malloc(reorderCodesLength * sizeof(int32_t));
@@ -7249,28 +7143,29 @@ ucol_strcollRegular(collIterate *sColl, collIterate *tColl, UErrorCode *status)
     
     if(!shifted) {
         for(;;) {
-
             
+            uint32_t sPrimary;
             do {
                 
                 sOrder = ucol_IGetNextCE(coll, sColl, status);
                 
                 UCOL_CEBUF_PUT(&sCEs, sOrder, sColl, status);
                 
-                sOrder &= UCOL_PRIMARYMASK;
-            } while(sOrder == 0);
+                sPrimary = sOrder & UCOL_PRIMARYMASK;
+            } while(sPrimary == 0);
 
             
+            uint32_t tPrimary;
             do {
                 tOrder = ucol_IGetNextCE(coll, tColl, status);
                 UCOL_CEBUF_PUT(&tCEs, tOrder, tColl, status);
-                tOrder &= UCOL_PRIMARYMASK;
-            } while(tOrder == 0);
+                tPrimary = tOrder & UCOL_PRIMARYMASK;
+            } while(tPrimary == 0);
 
             
-            if(sOrder == tOrder) {
+            if(sPrimary == tPrimary) {
                 
-                if(sOrder == UCOL_NO_MORE_CES_PRIMARY) {
+                if(sPrimary == UCOL_NO_MORE_CES_PRIMARY) {
                     break;
                 }
                 if(doHiragana && hirResult == UCOL_EQUAL) {
@@ -7283,11 +7178,11 @@ ucol_strcollRegular(collIterate *sColl, collIterate *tColl, UErrorCode *status)
                 
                 
                 if (coll->leadBytePermutationTable != NULL && !isContinuation(sOrder)) {
-                    sOrder = (coll->leadBytePermutationTable[sOrder>>24] << 24) | (sOrder & 0x00FFFFFF);
-                    tOrder = (coll->leadBytePermutationTable[tOrder>>24] << 24) | (tOrder & 0x00FFFFFF);
+                    sPrimary = (coll->leadBytePermutationTable[sPrimary>>24] << 24) | (sPrimary & 0x00FFFFFF);
+                    tPrimary = (coll->leadBytePermutationTable[tPrimary>>24] << 24) | (tPrimary & 0x00FFFFFF);
                 }
                 
-                result = (sOrder < tOrder) ?  UCOL_LESS: UCOL_GREATER;
+                result = (sPrimary < tPrimary) ?  UCOL_LESS: UCOL_GREATER;
                 goto commonReturn;
             }
         } 
@@ -7579,8 +7474,9 @@ ucol_strcollRegular(collIterate *sColl, collIterate *tColl, UErrorCode *status)
         tCE = tCEs.buf;
         for(;;) {
             while((secS & UCOL_REMOVE_CASE) == 0) {
-                secS = *(sCE++) & tertiaryMask;
-                if(!isContinuation(secS)) {
+                sOrder = *sCE++;
+                secS = sOrder & tertiaryMask;
+                if(!isContinuation(sOrder)) {
                     secS ^= caseSwitch;
                 } else {
                     secS &= UCOL_REMOVE_CASE;
@@ -7588,8 +7484,9 @@ ucol_strcollRegular(collIterate *sColl, collIterate *tColl, UErrorCode *status)
             }
 
             while((secT & UCOL_REMOVE_CASE)  == 0) {
-                secT = *(tCE++) & tertiaryMask;
-                if(!isContinuation(secT)) {
+                tOrder = *tCE++;
+                secT = tOrder & tertiaryMask;
+                if(!isContinuation(tOrder)) {
                     secT ^= caseSwitch;
                 } else {
                     secT &= UCOL_REMOVE_CASE;
@@ -8067,160 +7964,6 @@ endOfSecLoop:
 
 
 
-
-
-
-
-static const UChar32
-utf8_minLegal[4]={ 0, 0x80, 0x800, 0x10000 };
-
-#define UTF8_ERROR_VALUE_1 0x15
-#define UTF8_ERROR_VALUE_2 0x9f
-#define UTF_ERROR_VALUE 0xffff
-
-static const UChar32
-utf8_errorValue[6]={
-    UTF8_ERROR_VALUE_1, UTF8_ERROR_VALUE_2, UTF_ERROR_VALUE, 0x10ffff,
-    0x3ffffff, 0x7fffffff
-};
-
-static
-UChar32 utf8_nextCharSafeBodyNullTerm(const uint8_t *s, int32_t *pi, UChar32 c, UBool strict) {
-    int32_t i=*pi;
-    uint8_t count=U8_COUNT_TRAIL_BYTES(c);
-    U_ASSERT(count <= 5); 
-
-    if (c) {
-        uint8_t trail, illegal=0;
-
-        U8_MASK_LEAD_BYTE((c), count);
-        
-        switch(count) {
-        
-        case 5:
-        case 4:
-            
-            illegal=1;
-            break;
-        case 3:
-            trail=s[(i)];
-            if (trail==0) {
-                illegal=1;
-                break;
-            }
-            (c)=((c)<<6)|(trail&0x3f);
-            if(c<0x110) {
-                illegal|=(trail&0xc0)^0x80;
-            } else {
-                
-                illegal=1;
-                break;
-            }
-            ++(i);
-        case 2:
-            trail=s[(i)];
-            if (trail==0) {
-                illegal=1;
-                break;
-            }
-            (c)=((c)<<6)|(trail&0x3f);
-            illegal|=(trail&0xc0)^0x80;
-            ++(i);
-        case 1:
-            trail=s[(i)];
-            if (trail==0) {
-                illegal=1;
-                break;
-            }
-            (c)=((c)<<6)|(trail&0x3f);
-            illegal|=(trail&0xc0)^0x80;
-            ++(i);
-            break;
-        case 0:
-            if(strict>=0) {
-                return UTF8_ERROR_VALUE_1;
-            } else {
-                return U_SENTINEL;
-            }
-        
-        }
-
-        
-
-
-
-
-
-
-
-
-
-
-        
-        
-        if(illegal || (c)<utf8_minLegal[count] || (U_IS_SURROGATE(c) && strict!=-2)) {
-            
-            uint8_t errorCount=count;
-            
-            i=*pi;
-            while(count>0 && U8_IS_TRAIL(s[i])) {
-                ++(i);
-                --count;
-            }
-            if(strict>=0) {
-                c=utf8_errorValue[errorCount-count];
-            } else {
-                c=U_SENTINEL;
-            }
-        } else if((strict)>0 && U_IS_UNICODE_NONCHAR(c)) {
-            
-            c=utf8_errorValue[count];
-        }
-    }
-    *pi=i;
-    return c;
-}
-
-#define U8_NEXT_NULLTERM(s, i, c) { \
-    (c)=(uint8_t)(s)[(i)]; \
-    if((c)>=0x80) { \
-        uint8_t __t1, __t2; \
-        if( /* handle U+1000..U+CFFF inline */ \
-            (0xe0<(c) && (c)<=0xec) && \
-            (__t1=(uint8_t)((s)[(i)+1]-0x80))<=0x3f && __t1 != 0 && \
-            (__t2=(uint8_t)((s)[(i)+2]-0x80))<= 0x3f && __t2 != 0 \
-        ) { \
-            /* no need for (c&0xf) because the upper bits are truncated after <<12 in the cast to (UChar) */ \
-            (c)=(UChar)(((c)<<12)|(__t1<<6)|__t2); \
-            (i)+=3; \
-        } else if( /* handle U+0080..U+07FF inline */ \
-            ((c)<0xe0 && (c)>=0xc2) && \
-            (__t1=(uint8_t)((s)[(i)+1]-0x80))<=0x3f && __t1 != 0 \
-        ) { \
-            (c)=(UChar)((((c)&0x1f)<<6)|__t1); \
-            (i)+=2; \
-        } else if(U8_IS_LEAD(c)) { \
-            /* function call for "complicated" and error cases */ \
-            ++(i); \
-            (c)=utf8_nextCharSafeBodyNullTerm((const uint8_t *)s, &(i), c, -1); \
-        } else { \
-            (c)=U_SENTINEL; \
-            ++(i); \
-        } \
-    } else { \
-        if ((c)) { \
-            ++(i); \
-        } \
-    } \
-}
-
-#define U8_GET_NULLTERM(s, start, i, c) { \
-    int32_t _u8_get_index=(int32_t)(i); \
-    U8_SET_CP_START(s, start, _u8_get_index); \
-    U8_NEXT_NULLTERM(s, _u8_get_index, c); \
-}
-
-
 static UCollationResult
 ucol_strcollRegularUTF8(
                     const UCollator *coll,
@@ -8279,19 +8022,12 @@ ucol_getLatinOneContractionUTF8(const UCollator *coll, int32_t strength,
     UChar32 schar = 0, tchar = 0;
 
     for(;;) {
-        if (len == -1) {
-            U8_GET_NULLTERM((const uint8_t*)s, 0, *index, schar);
-            if (schar == 0) {
-                return(coll->latinOneCEs[strength*coll->latinOneTableLen+latinOneOffset]);
-            }
-        } else {
-            if (*index == len) {
-                return(coll->latinOneCEs[strength*coll->latinOneTableLen+latinOneOffset]);
-            }
-            U8_GET((const uint8_t*)s, 0, *index, len, schar);
+        if (*index == len) {
+            return(coll->latinOneCEs[strength*coll->latinOneTableLen+latinOneOffset]);
         }
-        if (schar == -1) {
-            schar = 0xfffd;
+        U8_GET_OR_FFFD((const uint8_t*)s, 0, *index, len, schar);
+        if (len < 0 && schar == 0) {
+            return(coll->latinOneCEs[strength*coll->latinOneTableLen+latinOneOffset]);
         }
 
         while(schar > (tchar = *(UCharOffset+offset))) { 
@@ -8346,22 +8082,15 @@ ucol_strcollUseLatin1UTF8(
     for(;;) {
         while(sOrder==0) { 
             
-            if (sLen==-1) {
-                U8_NEXT_NULLTERM(source, sIndex, sChar);
-                if (sChar == 0) {
-                    endOfSource = TRUE;
-                    sLen = sIndex;
-                    break;
-                }
-            } else {
-                if (sIndex == sLen) {
-                    endOfSource = TRUE;
-                    break;
-                }
-                U8_NEXT(source, sIndex, sLen ,sChar);
+            if (sIndex == sLen) {
+                endOfSource = TRUE;
+                break;
             }
-            if (sChar == -1) {
-                sChar = 0xfffd; 
+            U8_NEXT_OR_FFFD(source, sIndex, sLen ,sChar);
+            if (sLen < 0 && sChar == 0) {
+                endOfSource = TRUE;
+                sLen = sIndex;
+                break;
             }
             if(sChar&0xFFFFFF00) { 
                 
@@ -8386,28 +8115,21 @@ ucol_strcollUseLatin1UTF8(
 
         while(tOrder==0) {  
             
-            if (tLen == -1) {
-                U8_NEXT_NULLTERM(target, tIndex, tChar);
-                if (tChar == 0) {
-                    if(endOfSource) {
-                        tLen = tIndex;
-                        goto endOfPrimLoopU8;
-                    } else {
-                        return UCOL_GREATER;
-                    }
+            if (tIndex == tLen) {
+                if(endOfSource) {
+                    goto endOfPrimLoopU8;
+                } else {
+                    return UCOL_GREATER;
                 }
-            } else {
-                if (tIndex == tLen) {
-                    if(endOfSource) {
-                        goto endOfPrimLoopU8;
-                    } else {
-                        return UCOL_GREATER;
-                    }
-                }
-                U8_NEXT(target, tIndex, tLen, tChar);
             }
-            if (tChar == -1) {
-                tChar = 0xfffd;
+            U8_NEXT_OR_FFFD(target, tIndex, tLen, tChar);
+            if (tLen < 0 && tChar == 0) {
+                if(endOfSource) {
+                    tLen = tIndex;
+                    goto endOfPrimLoopU8;
+                } else {
+                    return UCOL_GREATER;
+                }
             }
             if(tChar&0xFFFFFF00) { 
                 
@@ -8474,7 +8196,7 @@ endOfPrimLoopU8:
                         break;
                     }
                     U_ASSERT(sLen >= 0);
-                    U8_NEXT(source, sIndex, sLen, sChar);
+                    U8_NEXT_OR_FFFD(source, sIndex, sLen, sChar);
                     U_ASSERT(sChar >= 0 && sChar <= 0xFF);
                     sOrder = elements[sChar];
                     if(sOrder > UCOL_NOT_FOUND) {
@@ -8491,7 +8213,7 @@ endOfPrimLoopU8:
                         }
                     }
                     U_ASSERT(tLen >= 0);
-                    U8_NEXT(target, tIndex, tLen, tChar);
+                    U8_NEXT_OR_FFFD(target, tIndex, tLen, tChar);
                     U_ASSERT(tChar >= 0 && tChar <= 0xFF);
                     tOrder = elements[tChar];
                     if(tOrder > UCOL_NOT_FOUND) {
@@ -8531,7 +8253,7 @@ endOfPrimLoopU8:
                         endOfSource = TRUE;
                         break;
                     }
-                    U8_PREV(source, 0, sIndex, sChar);
+                    U8_PREV_OR_FFFD(source, 0, sIndex, sChar);
                     U_ASSERT(sChar >= 0 && sChar <= 0xFF);
                     sOrder = elements[sChar];
                     
@@ -8545,7 +8267,7 @@ endOfPrimLoopU8:
                             return UCOL_GREATER;
                         }
                     }
-                    U8_PREV(target, 0, tIndex, tChar);
+                    U8_PREV_OR_FFFD(target, 0, tIndex, tChar);
                     U_ASSERT(tChar >= 0 && tChar <= 0xFF);
                     tOrder = elements[tChar];
                     
@@ -8586,7 +8308,7 @@ endOfSecLoopU8:
                     break;
                 }
                 U_ASSERT(sLen >= 0);
-                U8_NEXT(source, sIndex, sLen, sChar);
+                U8_NEXT_OR_FFFD(source, sIndex, sLen, sChar);
                 U_ASSERT(sChar >= 0 && sChar <= 0xFF);
                 sOrder = elements[sChar];
                 if(sOrder > UCOL_NOT_FOUND) {
@@ -8602,7 +8324,7 @@ endOfSecLoopU8:
                     }
                 }
                 U_ASSERT(tLen >= 0);
-                U8_NEXT(target, tIndex, tLen, tChar);
+                U8_NEXT_OR_FFFD(target, tIndex, tLen, tChar);
                 U_ASSERT(tChar >= 0 && tChar <= 0xFF);
                 tOrder = elements[tChar];
                 if(tOrder > UCOL_NOT_FOUND) {
@@ -8755,7 +8477,7 @@ ucol_strcoll( const UCollator    *coll,
         UTRACE_DATA2(UTRACE_VERBOSE, "target string = %vh ", target, targetLength);
     }
 
-    if(source == NULL || target == NULL) {
+    if((source == NULL && sourceLength != 0) || (target == NULL && targetLength != 0)) {
         
         
         UTRACE_EXIT_VALUE(UCOL_EQUAL);
@@ -8891,7 +8613,7 @@ ucol_strcollUTF8(
         return UCOL_EQUAL;
     }
 
-    if(source == NULL || target == NULL) {
+    if((source == NULL && sourceLength != 0) || (target == NULL && targetLength != 0)) {
         *status = U_ILLEGAL_ARGUMENT_ERROR;
         UTRACE_EXIT_VALUE_STATUS(UCOL_EQUAL, *status);
         return UCOL_EQUAL;
@@ -8989,36 +8711,18 @@ ucol_strcollUTF8(
         UChar32 uc32 = -1;
 
         if (!bSrcLimit) {
-            if (sourceLength >= 0) {
-                U8_GET((uint8_t*)source, 0, equalLength, sourceLength, uc32);
-            } else {
-                U8_GET_NULLTERM((uint8_t*)source, 0, equalLength, uc32);
+            U8_GET_OR_FFFD((const uint8_t*)source, 0, equalLength, sourceLength, uc32);
+            if (uc32 >= 0x10000 || ucol_unsafeCP((UChar)uc32, coll)) {
+                bUnsafeCP = TRUE;
             }
-            if (uc32 == -1) {
-                uc32 = 0xfffd;
-                bSawNonLatin1 |= TRUE;
-            } else {
-                if (uc32 >= 0x10000 || ucol_unsafeCP((UChar)uc32, coll)) {
-                    bUnsafeCP = TRUE;
-                }
-                bSawNonLatin1 |= (uc32 > 0xff);
-            }
+            bSawNonLatin1 |= (uc32 > 0xff);
         }
         if (!bTargLimit) {
-            if (targetLength >= 0) {
-                U8_GET((uint8_t*)target, 0, equalLength, targetLength, uc32);
-            } else {
-                U8_GET_NULLTERM((uint8_t*)target, 0, equalLength, uc32);
+            U8_GET_OR_FFFD((const uint8_t*)target, 0, equalLength, targetLength, uc32);
+            if (uc32 >= 0x10000 || ucol_unsafeCP((UChar)uc32, coll)) {
+                bUnsafeCP = TRUE;
             }
-            if (uc32 == -1) {
-                uc32 = 0xfffd;
-                bSawNonLatin1 |= TRUE;
-            } else {
-                if (uc32 >= 0x10000 || ucol_unsafeCP((UChar)uc32, coll)) {
-                    bUnsafeCP = TRUE;
-                }
-                bSawNonLatin1 |= (uc32 > 0xff);
-            }
+            bSawNonLatin1 |= (uc32 > 0xff);
         }
 
         if (bUnsafeCP) {
@@ -9026,7 +8730,7 @@ ucol_strcollUTF8(
                 
                 
                 
-                U8_PREV((uint8_t*)source, 0, equalLength, uc32);
+                U8_PREV_OR_FFFD((uint8_t*)source, 0, equalLength, uc32);
                 bSawNonLatin1 |= (uc32 > 0xff);
                 if (uc32 < 0x10000 && !ucol_unsafeCP((UChar)uc32, coll)) {
                     break;

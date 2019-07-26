@@ -557,7 +557,7 @@ void UVector::sort(UElementComparator *compare, UErrorCode &ec) {
 void UVector::sortWithUComparator(UComparator *compare, const void *context, UErrorCode &ec) {
     if (U_SUCCESS(ec)) {
         uprv_sortArray(elements, count, sizeof(UElement),
-                       compare, context, FALSE, &ec);
+                       compare, context, TRUE, &ec);
     }
 }
 

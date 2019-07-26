@@ -26,7 +26,6 @@
 
 
 #include "locmap.h"
-#include "unicode/uloc.h"
 #include "cstring.h"
 #include "cmemory.h"
 
@@ -132,6 +131,11 @@ static const ILcidPosixElement locmap_ ## id [] =
 
 
 
+
+
+
+
+
 ILCID_POSIX_ELEMENT_ARRAY(0x0436, af, af_ZA)
 
 ILCID_POSIX_SUBTABLE(ar) {
@@ -196,9 +200,24 @@ ILCID_POSIX_SUBTABLE(bo) {
 };
 
 ILCID_POSIX_ELEMENT_ARRAY(0x047e, br, br_FR)
-ILCID_POSIX_ELEMENT_ARRAY(0x0403, ca, ca_ES)
+
+ILCID_POSIX_SUBTABLE(ca) {
+    {0x03,   "ca"},
+    {0x0403, "ca_ES"},
+    {0x0803, "ca_ES_VALENCIA"}
+};
+
 ILCID_POSIX_ELEMENT_ARRAY(0x0483, co, co_FR)
 ILCID_POSIX_ELEMENT_ARRAY(0x045c, chr,chr_US)
+
+ILCID_POSIX_SUBTABLE(ckb) {
+    {0x92,   "ckb"},
+    {0x92,   "ku"},
+    {0x7c92, "ckb_Arab"},
+    {0x7c92, "ku_Arab"},
+    {0x0492, "ckb_Arab_IQ"},
+    {0x0492, "ku_Arab_IQ"}
+};
 
 
 ILCID_POSIX_ELEMENT_ARRAY(0x0405, cs, cs_CZ)
@@ -294,6 +313,12 @@ ILCID_POSIX_SUBTABLE(fa) {
 ILCID_POSIX_SUBTABLE(fa_AF) {
     {0x8c,   "fa_AF"},  
     {0x048c, "fa_AF"}   
+};
+
+ILCID_POSIX_SUBTABLE(ff) {
+    {0x67,   "ff"},
+    {0x7c67, "ff_Latn"},
+    {0x0867, "ff_Latn_SN"}
 };
 
 ILCID_POSIX_ELEMENT_ARRAY(0x040b, fi, fi_FI)
@@ -495,7 +520,8 @@ ILCID_POSIX_SUBTABLE(or_IN) {
 ILCID_POSIX_SUBTABLE(pa) {
     {0x46,   "pa"},
     {0x0446, "pa_IN"},
-    {0x0846, "pa_PK"}
+    {0x0846, "pa_PK"},
+    {0x0846, "pa_Arab_PK"}
 };
 
 ILCID_POSIX_ELEMENT_ARRAY(0x0479, pap, pap_AN)
@@ -585,7 +611,13 @@ ILCID_POSIX_SUBTABLE(sv) {
 
 ILCID_POSIX_ELEMENT_ARRAY(0x0441, sw, sw_KE)
 ILCID_POSIX_ELEMENT_ARRAY(0x045A, syr, syr_SY)
-ILCID_POSIX_ELEMENT_ARRAY(0x0449, ta, ta_IN)
+
+ILCID_POSIX_SUBTABLE(ta) {
+    {0x49,   "ta"},
+    {0x0449, "ta_IN"},
+    {0x0849, "ta_LK"}
+};
+
 ILCID_POSIX_ELEMENT_ARRAY(0x044a, te, te_IN)
 
 
@@ -599,9 +631,7 @@ ILCID_POSIX_ELEMENT_ARRAY(0x041e, th, th_TH)
 
 ILCID_POSIX_SUBTABLE(ti) {
     {0x73,   "ti"},
-    {0x0473, "ti_ER"},
     {0x0873, "ti_ER"},
-    {0x0873, "ti_ET"},
     {0x0473, "ti_ET"}
 };
 
@@ -609,7 +639,7 @@ ILCID_POSIX_ELEMENT_ARRAY(0x0442, tk, tk_TM)
 
 ILCID_POSIX_SUBTABLE(tn) {
     {0x32,   "tn"},
-    {0x0432, "tn_BW"},
+    {0x0832, "tn_BW"},
     {0x0432, "tn_ZA"}
 };
 
@@ -621,6 +651,7 @@ ILCID_POSIX_SUBTABLE(tzm) {
     {0x5f,   "tzm"},
     {0x7c5f, "tzm_Latn"},
     {0x085f, "tzm_Latn_DZ"},
+    {0x105f, "tzm_Tfng_MA"},
     {0x045f, "tmz"}
 };
 
@@ -714,6 +745,7 @@ static const ILcidPosixMap gPosixIDmap[] = {
     ILCID_POSIX_MAP(br),    
     ILCID_POSIX_MAP(ca),    
     ILCID_POSIX_MAP(chr),   
+    ILCID_POSIX_MAP(ckb),   
     ILCID_POSIX_MAP(co),    
     ILCID_POSIX_MAP(cs),    
     ILCID_POSIX_MAP(cy),    
@@ -728,6 +760,7 @@ static const ILcidPosixMap gPosixIDmap[] = {
     ILCID_POSIX_MAP(eu),    
     ILCID_POSIX_MAP(fa),    
     ILCID_POSIX_MAP(fa_AF), 
+    ILCID_POSIX_MAP(ff),    
     ILCID_POSIX_MAP(fi),    
     ILCID_POSIX_MAP(fil),   
     ILCID_POSIX_MAP(fo),    
@@ -931,13 +964,6 @@ getPosixID(const ILcidPosixMap *this_0, uint32_t hostID)
 
 
 
-#define FIX_LOCALE_ID_TAG_SEPARATOR(buffer, len, i) \
-    for(i = 0; i < len; i++) \
-        if (buffer[i] == '-') buffer[i] = '_';
-
-
-
-
 
 
 #define FIX_LANGUAGE_ID_TAG(buffer, len) \
@@ -951,39 +977,84 @@ getPosixID(const ILcidPosixMap *this_0, uint32_t hostID)
         } \
     }
 
-static char gPosixFromLCID[ULOC_FULLNAME_CAPACITY];
 #endif
-U_CAPI const char *
-uprv_convertToPosix(uint32_t hostid, UErrorCode* status)
+U_CAPI int32_t
+uprv_convertToPosix(uint32_t hostid, char *posixID, int32_t posixIDCapacity, UErrorCode* status)
 {
     uint16_t langID;
     uint32_t localeIndex;
+    UBool bLookup = TRUE;
+    const char *pPosixID = NULL;
+
 #ifdef USE_WINDOWS_LOCALE_API
-    int32_t ret = 0;
+    int32_t tmpLen = 0;
+    char locName[157];  
 
-    uprv_memset(gPosixFromLCID, 0, sizeof(gPosixFromLCID));
+    tmpLen = GetLocaleInfoA(hostid, LOCALE_SNAME, (LPSTR)locName, sizeof(locName)/sizeof(locName[0]));
+    if (tmpLen > 1) {
+        
 
-    ret = GetLocaleInfoA(hostid, LOCALE_SNAME, (LPSTR)gPosixFromLCID, sizeof(gPosixFromLCID));
-    if (ret > 1) {
-        FIX_LOCALE_ID_TAG_SEPARATOR(gPosixFromLCID, (uint32_t)ret, localeIndex)
-        FIX_LANGUAGE_ID_TAG(gPosixFromLCID, ret)
 
-        return gPosixFromLCID;
+        char *p = uprv_strchr(locName, '_');
+        if (p) {
+            
+            *p = 0;
+            tmpLen = uprv_strlen(locName);
+        } else {
+            
+            bLookup = FALSE;
+        }
+        
+        p = locName;
+        while (*p) {
+            if (*p == '-') {
+                *p = '_';
+            }
+            p++;
+        }
+        FIX_LANGUAGE_ID_TAG(locName, tmpLen);
+        pPosixID = locName;
     }
 #endif
-    langID = LANGUAGE_LCID(hostid);
+    if (bLookup) {
+        const char *pCandidate = NULL;
+        langID = LANGUAGE_LCID(hostid);
 
-    for (localeIndex = 0; localeIndex < gLocaleCount; localeIndex++)
-    {
-        if (langID == gPosixIDmap[localeIndex].regionMaps->hostID)
-        {
-            return getPosixID(&gPosixIDmap[localeIndex], hostid);
+        for (localeIndex = 0; localeIndex < gLocaleCount; localeIndex++) {
+            if (langID == gPosixIDmap[localeIndex].regionMaps->hostID) {
+                pCandidate = getPosixID(&gPosixIDmap[localeIndex], hostid);
+                break;
+            }
         }
+
+        
+
+
+        if (pCandidate && (pPosixID == NULL || uprv_strlen(pCandidate) > uprv_strlen(pPosixID))) {
+            pPosixID = pCandidate;
+        }
+    }
+
+    if (pPosixID) {
+        int32_t resLen = uprv_strlen(pPosixID);
+        int32_t copyLen = resLen <= posixIDCapacity ? resLen : posixIDCapacity;
+        uprv_memcpy(posixID, pPosixID, copyLen);
+        if (resLen < posixIDCapacity) {
+            posixID[resLen] = 0;
+            if (*status == U_STRING_NOT_TERMINATED_WARNING) {
+                *status = U_ZERO_ERROR;
+            }
+        } else if (resLen == posixIDCapacity) {
+            *status = U_STRING_NOT_TERMINATED_WARNING;
+        } else {
+            *status = U_BUFFER_OVERFLOW_ERROR;
+        }
+        return resLen;
     }
 
     
     *status = U_ILLEGAL_ARGUMENT_ERROR;
-    return NULL;
+    return -1;
 }
 
 

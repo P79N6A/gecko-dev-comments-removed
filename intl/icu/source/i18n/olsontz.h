@@ -16,6 +16,7 @@
 #if !UCONFIG_NO_FORMATTING
 
 #include "unicode/basictz.h"
+#include "umutex.h"
 
 struct UResourceBundle;
 
@@ -185,7 +186,7 @@ class U_I18N_API OlsonTimeZone: public BasicTimeZone {
 
 
     virtual void getOffsetFromLocal(UDate date, int32_t nonExistingTimeOpt, int32_t duplicatedTimeOpt,
-        int32_t& rawoff, int32_t& dstoff, UErrorCode& ec) ;
+        int32_t& rawoff, int32_t& dstoff, UErrorCode& ec) const;
 
     
 
@@ -233,7 +234,7 @@ class U_I18N_API OlsonTimeZone: public BasicTimeZone {
 
 
 
-    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result) ;
+    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const;
 
     
 
@@ -243,7 +244,7 @@ class U_I18N_API OlsonTimeZone: public BasicTimeZone {
 
 
 
-    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result) ;
+    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const;
 
     
 
@@ -253,7 +254,7 @@ class U_I18N_API OlsonTimeZone: public BasicTimeZone {
 
 
 
-    virtual int32_t countTransitionRules(UErrorCode& status) ;
+    virtual int32_t countTransitionRules(UErrorCode& status) const;
 
     
 
@@ -271,7 +272,7 @@ class U_I18N_API OlsonTimeZone: public BasicTimeZone {
 
 
     virtual void getTimeZoneRules(const InitialTimeZoneRule*& initial,
-        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status) ;
+        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status) const;
 
     
 
@@ -382,7 +383,11 @@ private:
     
     void clearTransitionRules(void);
     void deleteTransitionRules(void);
+    void checkTransitionRules(UErrorCode& status) const;
+
+  public:    
     void initTransitionRules(UErrorCode& status);
+  private:
 
     InitialTimeZoneRule *initialRule;
     TimeZoneTransition  *firstTZTransition;
@@ -391,7 +396,7 @@ private:
     TimeArrayTimeZoneRule   **historicRules;
     int16_t             historicRuleCount;
     SimpleTimeZone      *finalZoneWithStartYear; 
-    UBool               transitionRulesInitialized;
+    UInitOnce           transitionRulesInitOnce;
 };
 
 inline int16_t

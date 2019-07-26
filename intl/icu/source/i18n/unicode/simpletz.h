@@ -621,7 +621,7 @@ public:
 
 
     virtual void getOffsetFromLocal(UDate date, int32_t nonExistingTimeOpt, int32_t duplicatedTimeOpt,
-        int32_t& rawOffset, int32_t& dstOffset, UErrorCode& status) ;
+        int32_t& rawOffset, int32_t& dstOffset, UErrorCode& status) const;
 
     
 
@@ -709,7 +709,7 @@ public:
 
 
 
-    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result) ;
+    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const;
 
     
 
@@ -719,7 +719,7 @@ public:
 
 
 
-    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result) ;
+    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const;
 
     
 
@@ -729,7 +729,7 @@ public:
 
 
 
-    virtual int32_t countTransitionRules(UErrorCode& status) ;
+    virtual int32_t countTransitionRules(UErrorCode& status) const;
 
     
 
@@ -748,7 +748,7 @@ public:
 
 
     virtual void getTimeZoneRules(const InitialTimeZoneRule*& initial,
-        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status) ;
+        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status) const;
 
 
 public:
@@ -870,6 +870,7 @@ private:
     int32_t dstSavings;
 
     
+    void checkTransitionRules(UErrorCode& status) const;
     void initTransitionRules(UErrorCode& status);
     void clearTransitionRules(void);
     void deleteTransitionRules(void);

@@ -111,17 +111,22 @@ typedef size_t uintptr_t;
 #   define U_TZSET tzset
 #endif
 
-#ifdef U_TIMEZONE
+#if defined(U_TIMEZONE) || defined(U_HAVE_TIMEZONE)
     
 #elif U_PLATFORM == U_PF_ANDROID
 #   define U_TIMEZONE timezone
 #elif U_PLATFORM_IS_LINUX_BASED
-#   define U_TIMEZONE __timezone
+#   if !defined(__UCLIBC__)
+    
+#       define U_TIMEZONE __timezone
+#   endif
 #elif U_PLATFORM_USES_ONLY_WIN32_API
 #   define U_TIMEZONE _timezone
 #elif U_PLATFORM == U_PF_BSD && !defined(__NetBSD__)
    
 #elif U_PLATFORM == U_PF_OS400
+   
+#elif U_PLATFORM == U_PF_IPHONE
    
 #else
 #   define U_TIMEZONE timezone
@@ -180,12 +185,44 @@ typedef size_t uintptr_t;
 
 #ifdef U_HAVE_GCC_ATOMICS
     
-#elif U_GCC_MAJOR_MINOR >= 404
+#elif U_PLATFORM == U_PF_MINGW
+    #define U_HAVE_GCC_ATOMICS 0
+#elif U_GCC_MAJOR_MINOR >= 404 || defined(__clang__)
+    
+
+
+
 #   define U_HAVE_GCC_ATOMICS 1
 #else
 #   define U_HAVE_GCC_ATOMICS 0
 #endif
 
+
+
+
+
+
+
+
+
+
+#ifdef U_HAVE_STD_ATOMICS
+    
+#elif !defined(__cplusplus) || __cplusplus<201103L
+    
+#   define U_HAVE_STD_ATOMICS 0
+#elif __clang__ && __clang_major__==3 && __clang_minor__<=1
+    
+#   define U_HAVE_STD_ATOMICS 0
+#else 
+    
+    
+#   if defined(U_HAVE_ATOMIC) &&  U_HAVE_ATOMIC 
+#      define U_HAVE_STD_ATOMICS 1
+#   else
+#      define U_HAVE_STD_ATOMICS 0
+#   endif
+#endif
 
 
 

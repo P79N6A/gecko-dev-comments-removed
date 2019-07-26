@@ -16,6 +16,8 @@
 #ifndef NUMSYS
 #define NUMSYS
 
+#include "unicode/utypes.h"
+
 
 
 
@@ -23,7 +25,6 @@
 
 #define NUMSYS_NAME_CAPACITY 8
 
-#include "unicode/utypes.h"
 
 
 
@@ -37,6 +38,7 @@
 #include "unicode/uobject.h"
 
 U_NAMESPACE_BEGIN
+
 
 
 
@@ -113,6 +115,12 @@ public:
 
 
 
+
+
+
+
+
+
     static NumberingSystem* U_EXPORT2 createInstanceByName(const char* name, UErrorCode& status);
 
 
@@ -120,24 +128,28 @@ public:
 
 
 
-    int32_t getRadix();
-
-#ifndef U_HIDE_DRAFT_API
-    
 
 
-
-
-    const char * getName();
-#endif  
+    int32_t getRadix() const;
 
     
 
 
 
 
+    const char * getName() const;
 
-    virtual UnicodeString getDescription();
+    
+
+
+
+
+
+
+
+
+
+    virtual UnicodeString getDescription() const;
 
 
 

@@ -88,11 +88,6 @@
 
 
 
-
-
-
-
-
 typedef void* UClassID;
 
 U_NAMESPACE_BEGIN
@@ -223,9 +218,6 @@ public:
 
 
 
-
-
-
 class U_COMMON_API UObject : public UMemory {
 public:
     
@@ -240,7 +232,11 @@ public:
 
 
 
-    virtual UClassID getDynamicClassID() const = 0;
+
+
+
+
+    virtual UClassID getDynamicClassID() const;
 
 protected:
     
@@ -248,9 +244,7 @@ protected:
 
     
     
-    
 
-    
     
     
 
@@ -277,19 +271,6 @@ protected:
 #endif
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -331,34 +312,6 @@ protected:
         static char classID = 0; \
         return (UClassID)&classID; \
     }
-
-
-
-
-
-
-
-
-
-
-
-#define UOBJECT_DEFINE_NO_RTTI_IMPLEMENTATION(myClass) \
-    UClassID myClass::getDynamicClassID() const { return NULL; }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif  
 

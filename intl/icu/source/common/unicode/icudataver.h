@@ -18,7 +18,6 @@
 
 #include "unicode/utypes.h"
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -37,7 +36,6 @@
 
 
 
-U_DRAFT void U_EXPORT2 u_getDataVersion(UVersionInfo dataVersionFillin, UErrorCode *status);
-#endif  
+U_STABLE void U_EXPORT2 u_getDataVersion(UVersionInfo dataVersionFillin, UErrorCode *status);
 
 #endif

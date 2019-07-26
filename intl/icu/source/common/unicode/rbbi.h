@@ -607,6 +607,8 @@ public:
 
 
 
+
+
     virtual BreakIterator *  createBufferClone(void *stackBuffer,
                                                int32_t &BufferSize,
                                                UErrorCode &status);
@@ -696,7 +698,6 @@ protected:
 
 #ifndef U_HIDE_INTERNAL_API
     
-
 
 
 

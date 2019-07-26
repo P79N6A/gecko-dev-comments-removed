@@ -184,6 +184,11 @@ PossibleWord::markCurrent() {
 }
 
 
+
+
+
+
+
 #define THAI_LOOKAHEAD 3
 
 
@@ -414,6 +419,203 @@ foundBest:
 
     return wordsFound;
 }
+
+
+
+
+
+
+
+#define LAO_LOOKAHEAD 3
+
+
+#define LAO_ROOT_COMBINE_THRESHOLD 3
+
+
+
+#define LAO_PREFIX_COMBINE_THRESHOLD 3
+
+
+#define LAO_MIN_WORD 2
+
+
+#define LAO_MIN_WORD_SPAN (LAO_MIN_WORD * 2)
+
+LaoBreakEngine::LaoBreakEngine(DictionaryMatcher *adoptDictionary, UErrorCode &status)
+    : DictionaryBreakEngine((1<<UBRK_WORD) | (1<<UBRK_LINE)),
+      fDictionary(adoptDictionary)
+{
+    fLaoWordSet.applyPattern(UNICODE_STRING_SIMPLE("[[:Laoo:]&[:LineBreak=SA:]]"), status);
+    if (U_SUCCESS(status)) {
+        setCharacters(fLaoWordSet);
+    }
+    fMarkSet.applyPattern(UNICODE_STRING_SIMPLE("[[:Laoo:]&[:LineBreak=SA:]&[:M:]]"), status);
+    fMarkSet.add(0x0020);
+    fEndWordSet = fLaoWordSet;
+    fEndWordSet.remove(0x0EC0, 0x0EC4);     
+    fBeginWordSet.add(0x0E81, 0x0EAE);      
+    fBeginWordSet.add(0x0EDC, 0x0EDD);      
+    fBeginWordSet.add(0x0EC0, 0x0EC4);      
+
+    
+    fMarkSet.compact();
+    fEndWordSet.compact();
+    fBeginWordSet.compact();
+}
+
+LaoBreakEngine::~LaoBreakEngine() {
+    delete fDictionary;
+}
+
+int32_t
+LaoBreakEngine::divideUpDictionaryRange( UText *text,
+                                                int32_t rangeStart,
+                                                int32_t rangeEnd,
+                                                UStack &foundBreaks ) const {
+    if ((rangeEnd - rangeStart) < LAO_MIN_WORD_SPAN) {
+        return 0;       
+    }
+
+    uint32_t wordsFound = 0;
+    int32_t wordLength;
+    int32_t current;
+    UErrorCode status = U_ZERO_ERROR;
+    PossibleWord words[LAO_LOOKAHEAD];
+    UChar32 uc;
+    
+    utext_setNativeIndex(text, rangeStart);
+    
+    while (U_SUCCESS(status) && (current = (int32_t)utext_getNativeIndex(text)) < rangeEnd) {
+        wordLength = 0;
+
+        
+        int candidates = words[wordsFound%LAO_LOOKAHEAD].candidates(text, fDictionary, rangeEnd);
+        
+        
+        if (candidates == 1) {
+            wordLength = words[wordsFound % LAO_LOOKAHEAD].acceptMarked(text);
+            wordsFound += 1;
+        }
+        
+        else if (candidates > 1) {
+            
+            if ((int32_t)utext_getNativeIndex(text) >= rangeEnd) {
+                goto foundBest;
+            }
+            do {
+                int wordsMatched = 1;
+                if (words[(wordsFound + 1) % LAO_LOOKAHEAD].candidates(text, fDictionary, rangeEnd) > 0) {
+                    if (wordsMatched < 2) {
+                        
+                        words[wordsFound%LAO_LOOKAHEAD].markCurrent();
+                        wordsMatched = 2;
+                    }
+                    
+                    
+                    if ((int32_t)utext_getNativeIndex(text) >= rangeEnd) {
+                        goto foundBest;
+                    }
+                    
+                    
+                    do {
+                        
+                        if (words[(wordsFound + 2) % LAO_LOOKAHEAD].candidates(text, fDictionary, rangeEnd)) {
+                            words[wordsFound % LAO_LOOKAHEAD].markCurrent();
+                            goto foundBest;
+                        }
+                    }
+                    while (words[(wordsFound + 1) % LAO_LOOKAHEAD].backUp(text));
+                }
+            }
+            while (words[wordsFound % LAO_LOOKAHEAD].backUp(text));
+foundBest:
+            wordLength = words[wordsFound % LAO_LOOKAHEAD].acceptMarked(text);
+            wordsFound += 1;
+        }
+        
+        
+        
+        
+        
+        
+        if ((int32_t)utext_getNativeIndex(text) < rangeEnd && wordLength < LAO_ROOT_COMBINE_THRESHOLD) {
+            
+            
+            
+            if (words[wordsFound % LAO_LOOKAHEAD].candidates(text, fDictionary, rangeEnd) <= 0
+                  && (wordLength == 0
+                      || words[wordsFound%LAO_LOOKAHEAD].longestPrefix() < LAO_PREFIX_COMBINE_THRESHOLD)) {
+                
+                
+                int32_t remaining = rangeEnd - (current+wordLength);
+                UChar32 pc = utext_current32(text);
+                int32_t chars = 0;
+                for (;;) {
+                    utext_next32(text);
+                    uc = utext_current32(text);
+                    
+                    
+                    chars += 1;
+                    if (--remaining <= 0) {
+                        break;
+                    }
+                    if (fEndWordSet.contains(pc) && fBeginWordSet.contains(uc)) {
+                        
+                        int candidates = words[(wordsFound + 1) % LAO_LOOKAHEAD].candidates(text, fDictionary, rangeEnd);
+                        utext_setNativeIndex(text, current + wordLength + chars);
+                        if (candidates > 0) {
+                            break;
+                        }
+                    }
+                    pc = uc;
+                }
+                
+                
+                if (wordLength <= 0) {
+                    wordsFound += 1;
+                }
+                
+                
+                wordLength += chars;
+            }
+            else {
+                
+                utext_setNativeIndex(text, current+wordLength);
+            }
+        }
+        
+        
+        int32_t currPos;
+        while ((currPos = (int32_t)utext_getNativeIndex(text)) < rangeEnd && fMarkSet.contains(utext_current32(text))) {
+            utext_next32(text);
+            wordLength += (int32_t)utext_getNativeIndex(text) - currPos;
+        }
+        
+        
+        
+        
+        
+        
+
+        
+        if (wordLength > 0) {
+            foundBreaks.push((current+wordLength), status);
+        }
+    }
+
+    
+    if (foundBreaks.peeki() >= rangeEnd) {
+        (void) foundBreaks.popi();
+        wordsFound -= 1;
+    }
+
+    return wordsFound;
+}
+
+
+
+
+
 
 
 #define KHMER_LOOKAHEAD 3
@@ -667,7 +869,8 @@ CjkBreakEngine::CjkBreakEngine(DictionaryMatcher *adoptDictionary, LanguageType 
             cjSet.addAll(fHanWordSet);
             cjSet.addAll(fKatakanaWordSet);
             cjSet.addAll(fHiraganaWordSet);
-            cjSet.add(UNICODE_STRING_SIMPLE("\\uff70\\u30fc"));
+            cjSet.add(0xFF70); 
+            cjSet.add(0x30FC); 
             setCharacters(cjSet);
         }
     }

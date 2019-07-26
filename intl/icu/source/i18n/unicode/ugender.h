@@ -60,6 +60,7 @@ typedef struct UGenderInfo UGenderInfo;
 
 
 
+
 U_STABLE const UGenderInfo* U_EXPORT2
 ugender_getInstance(const char *locale, UErrorCode *status);
 
@@ -73,7 +74,7 @@ ugender_getInstance(const char *locale, UErrorCode *status);
 
 
 
-U_DRAFT UGender U_EXPORT2
+U_STABLE UGender U_EXPORT2
 ugender_getListGender(const UGenderInfo* genderinfo, const UGender *genders, int32_t size, UErrorCode *status);
 
 #endif 

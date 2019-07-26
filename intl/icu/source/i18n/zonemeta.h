@@ -52,15 +52,11 @@ public:
 
 
 
-    static UnicodeString& U_EXPORT2 getCanonicalCountry(const UnicodeString &tzid, UnicodeString &canonicalCountry);
-
-    
 
 
 
 
-
-    static UnicodeString& U_EXPORT2 getSingleCountry(const UnicodeString &tzid, UnicodeString &country);
+    static UnicodeString& U_EXPORT2 getCanonicalCountry(const UnicodeString &tzid, UnicodeString &country, UBool *isPrimary = NULL);
 
     
 
@@ -94,11 +90,27 @@ public:
 
     static TimeZone* createCustomTimeZone(int32_t offset);
 
+    
+
+
+
+
+
+    static const UChar* U_EXPORT2 getShortID(const TimeZone& tz);
+
+    
+
+
+
+
+
+    static const UChar* U_EXPORT2 getShortID(const UnicodeString& id);
+
 private:
     ZoneMeta(); 
     static UVector* createMetazoneMappings(const UnicodeString &tzid);
-    static void initAvailableMetaZoneIDs();
     static UnicodeString& formatCustomID(uint8_t hour, uint8_t min, uint8_t sec, UBool negative, UnicodeString& id);
+    static const UChar* getShortIDFromCanonical(const UChar* canonicalID);
 };
 
 U_NAMESPACE_END

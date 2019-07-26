@@ -89,7 +89,7 @@ static void initMsg(const char *pname) {
         ps = 1;
 
         
-#ifdef UCONVMSG_LINK
+#if defined(UCONVMSG_LINK) && U_PLATFORM != U_PF_OS390 
         udata_setAppData(UCONVMSG, (const void*) uconvmsg_dat, &err);
         if (U_FAILURE(err)) {
           fprintf(stderr, "%s: warning, problem installing our static resource bundle data uconvmsg: %s - trying anyways.\n",

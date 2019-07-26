@@ -154,6 +154,7 @@ U_CAPI UConverter* U_EXPORT2
 ucnv_safeClone(const UConverter* cnv, void *stackBuffer, int32_t *pBufferSize, UErrorCode *status)
 {
     UConverter *localConverter, *allocatedConverter;
+    int32_t stackBufferSize;
     int32_t bufferSizeNeeded;
     char *stackBufferChars = (char *)stackBuffer;
     UErrorCode cbErr;
@@ -182,13 +183,13 @@ ucnv_safeClone(const UConverter* cnv, void *stackBuffer, int32_t *pBufferSize, U
 
     if (status == NULL || U_FAILURE(*status)){
         UTRACE_EXIT_STATUS(status? *status: U_ILLEGAL_ARGUMENT_ERROR);
-        return 0;
+        return NULL;
     }
 
-    if (!pBufferSize || !cnv){
+    if (cnv == NULL) {
         *status = U_ILLEGAL_ARGUMENT_ERROR;
         UTRACE_EXIT_STATUS(*status);
-        return 0;
+        return NULL;
     }
 
     UTRACE_DATA3(UTRACE_OPEN_CLOSE, "clone converter %s at %p into stackBuffer %p",
@@ -198,6 +199,10 @@ ucnv_safeClone(const UConverter* cnv, void *stackBuffer, int32_t *pBufferSize, U
         
         bufferSizeNeeded = 0;
         cnv->sharedData->impl->safeClone(cnv, NULL, &bufferSizeNeeded, status);
+        if (U_FAILURE(*status)) {
+            UTRACE_EXIT_STATUS(*status);
+            return NULL;
+        }
     }
     else
     {
@@ -205,10 +210,16 @@ ucnv_safeClone(const UConverter* cnv, void *stackBuffer, int32_t *pBufferSize, U
         bufferSizeNeeded = sizeof(UConverter);
     }
 
-    if (*pBufferSize <= 0){ 
-        *pBufferSize = bufferSizeNeeded;
-        UTRACE_EXIT_VALUE(bufferSizeNeeded);
-        return 0;
+    if (pBufferSize == NULL) {
+        stackBufferSize = 1;
+        pBufferSize = &stackBufferSize;
+    } else {
+        stackBufferSize = *pBufferSize;
+        if (stackBufferSize <= 0){ 
+            *pBufferSize = bufferSizeNeeded;
+            UTRACE_EXIT_VALUE(bufferSizeNeeded);
+            return NULL;
+        }
     }
 
 
@@ -217,19 +228,19 @@ ucnv_safeClone(const UConverter* cnv, void *stackBuffer, int32_t *pBufferSize, U
 
     if (U_ALIGNMENT_OFFSET(stackBuffer) != 0) {
         int32_t offsetUp = (int32_t)U_ALIGNMENT_OFFSET_UP(stackBufferChars);
-        if(*pBufferSize > offsetUp) {
-            *pBufferSize -= offsetUp;
+        if(stackBufferSize > offsetUp) {
+            stackBufferSize -= offsetUp;
             stackBufferChars += offsetUp;
         } else {
             
-            *pBufferSize = 1;
+            stackBufferSize = 1;
         }
     }
 
     stackBuffer = (void *)stackBufferChars;
     
     
-    if (*pBufferSize < bufferSizeNeeded || stackBuffer == NULL)
+    if (stackBufferSize < bufferSizeNeeded || stackBuffer == NULL)
     {
         
         localConverter = allocatedConverter = (UConverter *) uprv_malloc (bufferSizeNeeded);
@@ -239,11 +250,8 @@ ucnv_safeClone(const UConverter* cnv, void *stackBuffer, int32_t *pBufferSize, U
             UTRACE_EXIT_STATUS(*status);
             return NULL;
         }
-        
-        if (U_SUCCESS(*status)) {
-            *status = U_SAFECLONE_ALLOCATED_WARNING;
-        }
-        
+        *status = U_SAFECLONE_ALLOCATED_WARNING;
+
         
         *pBufferSize = bufferSizeNeeded;
     } else {

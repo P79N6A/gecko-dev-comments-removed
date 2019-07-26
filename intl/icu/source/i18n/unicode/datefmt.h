@@ -28,6 +28,7 @@
 #include "unicode/numfmt.h"
 #include "unicode/format.h"
 #include "unicode/locid.h"
+#include "unicode/enumset.h"
 
 
 
@@ -38,6 +39,13 @@ U_NAMESPACE_BEGIN
 
 class TimeZone;
 class DateTimePatternGenerator;
+
+
+#if defined (_MSC_VER)
+template class U_I18N_API EnumSet<UDateFormatBooleanAttribute,
+            0, 
+            UDAT_BOOLEAN_ATTRIBUTE_COUNT>;
+#endif
 
 
 
@@ -382,20 +390,6 @@ public:
 
 
 
-    UnicodeString& format(const Formattable& obj,
-                          UnicodeString& appendTo,
-                          UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-
-
-
 
 
 
@@ -601,6 +595,9 @@ public:
 
 
 
+
+
+
     virtual void setLenient(UBool lenient);
 
     
@@ -676,6 +673,32 @@ public:
 
     virtual void setTimeZone(const TimeZone& zone);
 
+   
+
+
+
+
+
+
+
+
+
+
+    virtual DateFormat&  U_EXPORT2 setBooleanAttribute(UDateFormatBooleanAttribute attr,
+    									UBool newvalue,
+    									UErrorCode &status);
+
+    
+
+
+
+
+
+
+
+
+    virtual UBool U_EXPORT2 getBooleanAttribute(UDateFormatBooleanAttribute attr, UErrorCode &status) const;
+
 protected:
     
 
@@ -713,6 +736,7 @@ protected:
 
     NumberFormat* fNumberFormat;
 
+
 private:
     
 
@@ -723,6 +747,13 @@ private:
 
 
     static DateFormat* U_EXPORT2 create(EStyle timeStyle, EStyle dateStyle, const Locale& inLocale);
+
+     
+    
+
+
+    EnumSet<UDateFormatBooleanAttribute, 0, UDAT_BOOLEAN_ATTRIBUTE_COUNT> fBoolFlags;
+
 
 public:
 #ifndef U_HIDE_OBSOLETE_API
@@ -781,12 +812,6 @@ public:
 #endif  
 };
 
-inline UnicodeString&
-DateFormat::format(const Formattable& obj,
-                   UnicodeString& appendTo,
-                   UErrorCode& status) const {
-    return Format::format(obj, appendTo, status);
-}
 U_NAMESPACE_END
 
 #endif

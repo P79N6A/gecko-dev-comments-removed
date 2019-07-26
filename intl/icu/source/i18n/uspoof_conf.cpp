@@ -415,6 +415,7 @@ void ConfusabledataBuilder::outputData(UErrorCode &status) {
     int32_t previousKey = 0;
     for (i=0; i<numKeys; i++) {
         int32_t key =  fKeyVec->elementAti(i);
+        (void)previousKey;         
         U_ASSERT((key & 0x00ffffff) >= (previousKey & 0x00ffffff));
         U_ASSERT((key & 0xff000000) != 0);
         keys[i] = key;
@@ -479,6 +480,7 @@ void ConfusabledataBuilder::outputData(UErrorCode &status) {
         uint32_t length = static_cast<uint32_t>(fStringLengthsTable->elementAti(i+1));
         U_ASSERT(offset < stringsLength);
         U_ASSERT(length < 40);
+        (void)previousLength;  
         U_ASSERT(length > previousLength);
         stringLengths[destIndex++] = static_cast<uint16_t>(offset);
         stringLengths[destIndex++] = static_cast<uint16_t>(length);

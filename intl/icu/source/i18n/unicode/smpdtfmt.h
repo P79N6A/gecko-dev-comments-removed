@@ -224,6 +224,484 @@ class TimeZoneFormat;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class U_I18N_API SimpleDateFormat: public DateFormat {
 public:
     
@@ -425,108 +903,7 @@ public:
                                     FieldPositionIterator* posIter,
                                     UErrorCode& status) const;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual UnicodeString& format(  const Formattable& obj,
-                                    UnicodeString& appendTo,
-                                    FieldPosition& pos,
-                                    UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual UnicodeString& format(  const Formattable& obj,
-                                    UnicodeString& appendTo,
-                                    FieldPositionIterator* posIter,
-                                    UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-
-
-
-    UnicodeString& format(UDate date,
-                          UnicodeString& appendTo,
-                          FieldPosition& fieldPosition) const;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    UnicodeString& format(UDate date,
-                          UnicodeString& appendTo,
-                          FieldPositionIterator* posIter,
-                          UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-
-
-    UnicodeString& format(const Formattable& obj,
-                          UnicodeString& appendTo,
-                          UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-
-    UnicodeString& format(UDate date, UnicodeString& appendTo) const;
+    using DateFormat::parse;
 
     
 
@@ -558,75 +935,6 @@ public:
                         Calendar& cal,
                         ParsePosition& pos) const;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    UDate parse( const UnicodeString& text,
-                 ParsePosition& pos) const;
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual UDate parse( const UnicodeString& text,
-                        UErrorCode& status) const;
 
     
 
@@ -1236,61 +1544,6 @@ inline UDate
 SimpleDateFormat::get2DigitYearStart(UErrorCode& ) const
 {
     return fDefaultCenturyStart;
-}
-
-inline UnicodeString&
-SimpleDateFormat::format(const Formattable& obj,
-                         UnicodeString& appendTo,
-                         UErrorCode& status) const {
-    
-    
-    return DateFormat::format(obj, appendTo, status);
-}
-
-inline UnicodeString&
-SimpleDateFormat::format(const Formattable& obj,
-                         UnicodeString& appendTo,
-                         FieldPosition& pos,
-                         UErrorCode& status) const
-{
-    
-    
-    return DateFormat::format(obj, appendTo, pos, status);
-}
-
-inline UnicodeString&
-SimpleDateFormat::format(const Formattable& obj,
-                         UnicodeString& appendTo,
-                         FieldPositionIterator* posIter,
-                         UErrorCode& status) const
-{
-    
-    
-    return DateFormat::format(obj, appendTo, posIter, status);
-}
-
-inline UnicodeString&
-SimpleDateFormat::format(UDate date,
-                         UnicodeString& appendTo,
-                         FieldPosition& fieldPosition) const {
-    
-    
-    return DateFormat::format(date, appendTo, fieldPosition);
-}
-
-inline UnicodeString&
-SimpleDateFormat::format(UDate date,
-                         UnicodeString& appendTo,
-                         FieldPositionIterator* posIter,
-                         UErrorCode& status) const {
-    
-    
-    return DateFormat::format(date, appendTo, posIter, status);
-}
-
-inline UnicodeString&
-SimpleDateFormat::format(UDate date, UnicodeString& appendTo) const {
-    return DateFormat::format(date, appendTo);
 }
 
 U_NAMESPACE_END

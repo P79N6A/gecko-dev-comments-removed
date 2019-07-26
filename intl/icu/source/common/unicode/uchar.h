@@ -39,7 +39,7 @@ U_CDECL_BEGIN
 
 
 
-#define U_UNICODE_VERSION "6.2"
+#define U_UNICODE_VERSION "6.3"
 
 
 
@@ -481,7 +481,12 @@ typedef enum UProperty {
 
     UCHAR_WORD_BREAK=0x1014,
     
-    UCHAR_INT_LIMIT=0x1015,
+
+
+
+    UCHAR_BIDI_PAIRED_BRACKET_TYPE=0x1015,
+    
+    UCHAR_INT_LIMIT=0x1016,
 
     
 
@@ -516,9 +521,11 @@ typedef enum UProperty {
     
 
     UCHAR_CASE_FOLDING=0x4002,
+#ifndef U_HIDE_DEPRECATED_API
     
 
     UCHAR_ISO_COMMENT=0x4003,
+#endif  
     
 
     UCHAR_LOWERCASE_MAPPING=0x4004,
@@ -540,19 +547,23 @@ typedef enum UProperty {
     
 
     UCHAR_TITLECASE_MAPPING=0x400A,
+#ifndef U_HIDE_DEPRECATED_API
     
 
 
 
     UCHAR_UNICODE_1_NAME=0x400B,
+#endif  
     
 
     UCHAR_UPPERCASE_MAPPING=0x400C,
     
-    UCHAR_STRING_LIMIT=0x400D,
+
+    UCHAR_BIDI_PAIRED_BRACKET=0x400D,
     
+    UCHAR_STRING_LIMIT=0x400E,
 
-
+    
 
 
 
@@ -810,8 +821,39 @@ typedef enum UCharDirection {
     
     U_BOUNDARY_NEUTRAL            = 18,
     
+    U_FIRST_STRONG_ISOLATE        = 19,
+    
+    U_LEFT_TO_RIGHT_ISOLATE       = 20,
+    
+    U_RIGHT_TO_LEFT_ISOLATE       = 21,
+    
+    U_POP_DIRECTIONAL_ISOLATE     = 22,
+    
     U_CHAR_DIRECTION_COUNT
 } UCharDirection;
+
+
+
+
+
+
+
+typedef enum UBidiPairedBracketType {
+    
+
+
+
+
+
+    
+    U_BPT_NONE,
+    
+    U_BPT_OPEN,
+    
+    U_BPT_CLOSE,
+    
+    U_BPT_COUNT 
+} UBidiPairedBracketType;
 
 
 
@@ -1457,14 +1499,16 @@ typedef enum UEastAsianWidth {
 typedef enum UCharNameChoice {
     
     U_UNICODE_CHAR_NAME,
+#ifndef U_HIDE_DEPRECATED_API 
     
 
 
 
 
     U_UNICODE_10_CHAR_NAME,
+#endif  
     
-    U_EXTENDED_CHAR_NAME,
+    U_EXTENDED_CHAR_NAME = U_UNICODE_CHAR_NAME+2,
     
     U_CHAR_NAME_ALIAS,
     
@@ -1678,7 +1722,10 @@ typedef enum UWordBreakValues {
     U_WB_MIDNUMLET =11,         
     U_WB_NEWLINE =12,           
     U_WB_REGIONAL_INDICATOR = 13,    
-    U_WB_COUNT = 14
+    U_WB_HEBREW_LETTER = 14,     
+    U_WB_SINGLE_QUOTE = 15,     
+    U_WB_DOUBLE_QUOTE = 16,     
+    U_WB_COUNT = 17
 } UWordBreakValues;
 
 
@@ -2506,6 +2553,25 @@ u_charMirror(UChar32 c);
 
 
 
+
+
+
+
+
+U_STABLE UChar32 U_EXPORT2
+u_getBidiPairedBracket(UChar32 c);
+
+
+
+
+
+
+
+
+
+
+
+
 U_STABLE int8_t U_EXPORT2
 u_charType(UChar32 c);
 
@@ -2655,6 +2721,7 @@ u_charName(UChar32 code, UCharNameChoice nameChoice,
            char *buffer, int32_t bufferLength,
            UErrorCode *pErrorCode);
 
+#ifndef U_HIDE_DEPRECATED_API 
 
 
 
@@ -2677,6 +2744,7 @@ U_STABLE int32_t U_EXPORT2
 u_getISOComment(UChar32 c,
                 char *dest, int32_t destCapacity,
                 UErrorCode *pErrorCode);
+#endif  
 
 
 

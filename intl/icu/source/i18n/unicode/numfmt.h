@@ -163,6 +163,9 @@ class StringEnumeration;
 
 
 
+
+
+
 class U_I18N_API NumberFormat : public Format {
 public:
     
@@ -566,20 +569,6 @@ public:
 
 public:
 
-    
-
-
-
-
-
-
-
-
-
-    UnicodeString& format(const Formattable& obj,
-                          UnicodeString& appendTo,
-                          UErrorCode& status) const;
-
    
 
 
@@ -619,7 +608,6 @@ public:
     virtual void parse(const UnicodeString& text,
                        Formattable& result,
                        UErrorCode& status) const;
-
 
     
 
@@ -983,6 +971,19 @@ protected:
 
     virtual void getEffectiveCurrency(UChar* result, UErrorCode& ec) const;
 
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+
+
+
+    static NumberFormat* makeInstance(const Locale& desiredLocale,
+                                      UNumberFormatStyle style,
+                                      UBool mustBeDecimalFormat,
+                                      UErrorCode& errorCode);
+#endif  
+
 private:
 
     static UBool isStyleSupported(UNumberFormatStyle style);
@@ -1003,6 +1004,12 @@ private:
     int32_t     fMinIntegerDigits;
     int32_t     fMaxFractionDigits;
     int32_t     fMinFractionDigits;
+
+  protected:
+    static const int32_t gDefaultMaxIntegerDigits;
+    static const int32_t gDefaultMinIntegerDigits;
+ 
+  private:
     UBool      fParseIntegerOnly;
     UBool      fLenient; 
 
@@ -1110,13 +1117,6 @@ inline UBool
 NumberFormat::isLenient() const
 {
     return fLenient;
-}
-
-inline UnicodeString&
-NumberFormat::format(const Formattable& obj,
-                     UnicodeString& appendTo,
-                     UErrorCode& status) const {
-    return Format::format(obj, appendTo, status);
 }
 
 U_NAMESPACE_END

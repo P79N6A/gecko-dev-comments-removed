@@ -332,6 +332,15 @@ ucsdet_getUChars(const UCharsetMatch *ucsm,
 
 
 
+
+
+
+
+
+
+
+
+
 U_STABLE  UEnumeration * U_EXPORT2
 ucsdet_getAllDetectableCharsets(const UCharsetDetector *ucsd,  UErrorCode *status);
 
@@ -363,6 +372,40 @@ ucsdet_isInputFilterEnabled(const UCharsetDetector *ucsd);
 
 U_STABLE  UBool U_EXPORT2
 ucsdet_enableInputFilter(UCharsetDetector *ucsd, UBool filter);
+
+#ifndef U_HIDE_INTERNAL_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_INTERNAL UEnumeration * U_EXPORT2
+ucsdet_getDetectableCharsets(const UCharsetDetector *ucsd,  UErrorCode *status);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_INTERNAL void U_EXPORT2
+ucsdet_setDetectableCharset(UCharsetDetector *ucsd, const char *encoding, UBool enabled, UErrorCode *status);
+#endif  
 
 #endif
 #endif   

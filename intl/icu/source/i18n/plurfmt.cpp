@@ -8,10 +8,7 @@
 
 
 
-
-
-
-
+#include "unicode/decimfmt.h"
 #include "unicode/messagepattern.h"
 #include "unicode/plurfmt.h"
 #include "unicode/plurrule.h"
@@ -207,7 +204,7 @@ PluralFormat::format(const Formattable& obj,
     if (U_FAILURE(status)) return appendTo;
 
     if (obj.isNumeric()) {
-        return format(obj.getDouble(), appendTo, pos, status);
+        return format(obj, obj.getDouble(), appendTo, pos, status);
     } else {
         status = U_ILLEGAL_ARGUMENT_ERROR;
         return appendTo;
@@ -218,14 +215,14 @@ UnicodeString
 PluralFormat::format(int32_t number, UErrorCode& status) const {
     FieldPosition fpos(0);
     UnicodeString result;
-    return format(number, result, fpos, status);
+    return format(Formattable(number), number, result, fpos, status);
 }
 
 UnicodeString
 PluralFormat::format(double number, UErrorCode& status) const {
     FieldPosition fpos(0);
     UnicodeString result;
-    return format(number, result, fpos, status);
+    return format(Formattable(number), number, result, fpos, status);
 }
 
 
@@ -234,7 +231,7 @@ PluralFormat::format(int32_t number,
                      UnicodeString& appendTo,
                      FieldPosition& pos,
                      UErrorCode& status) const {
-    return format((double)number, appendTo, pos, status);
+    return format(Formattable(number), (double)number, appendTo, pos, status);
 }
 
 UnicodeString&
@@ -242,18 +239,44 @@ PluralFormat::format(double number,
                      UnicodeString& appendTo,
                      FieldPosition& pos,
                      UErrorCode& status) const {
+    return format(Formattable(number), (double)number, appendTo, pos, status);
+}
+
+UnicodeString&
+PluralFormat::format(const Formattable& numberObject, double number,
+                     UnicodeString& appendTo,
+                     FieldPosition& pos,
+                     UErrorCode& status) const {
     if (U_FAILURE(status)) {
         return appendTo;
     }
     if (msgPattern.countParts() == 0) {
-        return numberFormat->format(number, appendTo, pos);
+        return numberFormat->format(numberObject, appendTo, pos, status);
     }
     
-    int32_t partIndex = findSubMessage(msgPattern, 0, pluralRulesWrapper, number, status);
+    
+    double numberMinusOffset = number - offset;
+    UnicodeString numberString;
+    FieldPosition ignorePos;
+    FixedDecimal dec(numberMinusOffset);
+    if (offset == 0) {
+        numberFormat->format(numberObject, numberString, ignorePos, status);  
+        DecimalFormat *decFmt = dynamic_cast<DecimalFormat *>(numberFormat);
+        if(decFmt != NULL) {
+            dec = decFmt->getFixedDecimal(numberObject, status);
+        }
+    } else {
+        numberFormat->format(numberMinusOffset, numberString, ignorePos, status);
+        DecimalFormat *decFmt = dynamic_cast<DecimalFormat *>(numberFormat);
+        if(decFmt != NULL) {
+            dec = decFmt->getFixedDecimal(numberMinusOffset, status);
+        }
+    }
+    int32_t partIndex = findSubMessage(msgPattern, 0, pluralRulesWrapper, &dec, number, status);
+    if (U_FAILURE(status)) { return appendTo; }
     
     
     const UnicodeString& pattern = msgPattern.getPatternString();
-    number -= offset;
     int32_t prevIndex = msgPattern.getPart(partIndex).getLimit();
     for (;;) {
         const MessagePattern::Part& part = msgPattern.getPart(++partIndex);
@@ -265,7 +288,7 @@ PluralFormat::format(double number,
             (type == UMSGPAT_PART_TYPE_SKIP_SYNTAX && MessageImpl::jdkAposMode(msgPattern))) {
             appendTo.append(pattern, prevIndex, index - prevIndex);
             if (type == UMSGPAT_PART_TYPE_REPLACE_NUMBER) {
-                numberFormat->format(number, appendTo);
+                appendTo.append(numberString);
             }
             prevIndex = part.getLimit();
         } else if (type == UMSGPAT_PART_TYPE_ARG_START) {
@@ -370,7 +393,8 @@ PluralFormat::parseObject(const UnicodeString& ,
 }
 
 int32_t PluralFormat::findSubMessage(const MessagePattern& pattern, int32_t partIndex,
-                                     const PluralSelector& selector, double number, UErrorCode& ec) {
+                                     const PluralSelector& selector, void *context,
+                                     double number, UErrorCode& ec) {
     if (U_FAILURE(ec)) {
         return 0;
     }
@@ -436,7 +460,7 @@ int32_t PluralFormat::findSubMessage(const MessagePattern& pattern, int32_t part
                 }
             } else {
                 if(keyword.isEmpty()) {
-                    keyword=selector.select(number-offset, ec);
+                    keyword=selector.select(context, number-offset, ec);
                     if(msgStart!=0 && (0 == keyword.compare(other))) {
                         
                         
@@ -463,9 +487,12 @@ PluralFormat::PluralSelectorAdapter::~PluralSelectorAdapter() {
     delete pluralRules;
 }
 
-UnicodeString PluralFormat::PluralSelectorAdapter::select(double number,
+UnicodeString PluralFormat::PluralSelectorAdapter::select(void *context, double number,
                                                           UErrorCode& ) const {
-    return pluralRules->select(number);
+    (void)number;  
+    FixedDecimal *dec=static_cast<FixedDecimal *>(context);
+    U_ASSERT(dec->source==number);
+    return pluralRules->select(*dec);
 }
 
 void PluralFormat::PluralSelectorAdapter::reset() {

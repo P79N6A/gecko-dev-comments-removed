@@ -252,7 +252,9 @@ typedef enum UScriptCode {
       
       USCRIPT_PHOENICIAN                    = 91, 
       
-      USCRIPT_PHONETIC_POLLARD              = 92, 
+      USCRIPT_MIAO                          = 92, 
+      
+      USCRIPT_PHONETIC_POLLARD              = USCRIPT_MIAO,
       
       USCRIPT_RONGORONGO                    = 93, 
       
@@ -397,9 +399,14 @@ typedef enum UScriptCode {
       USCRIPT_TIRHUTA                       = 158,
 
       
+      USCRIPT_CAUCASIAN_ALBANIAN            = 159,
+      
+      USCRIPT_MAHAJANI                      = 160,
 
       
-      USCRIPT_CODE_LIMIT    = 159
+
+      
+      USCRIPT_CODE_LIMIT    = 161
 } UScriptCode;
 
 
@@ -456,7 +463,6 @@ uscript_getShortName(UScriptCode scriptCode);
 U_STABLE UScriptCode  U_EXPORT2 
 uscript_getScript(UChar32 codepoint, UErrorCode *err);
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -472,7 +478,7 @@ uscript_getScript(UChar32 codepoint, UErrorCode *err);
 
 
 
-U_DRAFT UBool U_EXPORT2
+U_STABLE UBool U_EXPORT2
 uscript_hasScript(UChar32 c, UScriptCode sc);
 
 
@@ -506,10 +512,116 @@ uscript_hasScript(UChar32 c, UScriptCode sc);
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 uscript_getScriptExtensions(UChar32 c,
                             UScriptCode *scripts, int32_t capacity,
                             UErrorCode *errorCode);
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+typedef enum UScriptUsage {
+    
+    USCRIPT_USAGE_NOT_ENCODED,
+    
+    USCRIPT_USAGE_UNKNOWN,
+    
+    USCRIPT_USAGE_EXCLUDED,
+    
+    USCRIPT_USAGE_LIMITED_USE,
+    
+    USCRIPT_USAGE_ASPIRATIONAL,
+    
+    USCRIPT_USAGE_RECOMMENDED
+} UScriptUsage;
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT int32_t U_EXPORT2
+uscript_getSampleString(UScriptCode script, UChar *dest, int32_t capacity, UErrorCode *pErrorCode);
+
+#if U_SHOW_CPLUSPLUS_API
+
+U_NAMESPACE_BEGIN
+class UnicodeString;
+U_NAMESPACE_END
+
+
+
+
+
+
+
+
+
+
+U_COMMON_API icu::UnicodeString U_EXPORT2
+uscript_getSampleUnicodeString(UScriptCode script);
+
+#endif
+
+
+
+
+
+
+
+
+
+
+U_DRAFT UScriptUsage U_EXPORT2
+uscript_getUsage(UScriptCode script);
+
+
+
+
+
+
+
+
+
+U_DRAFT UBool U_EXPORT2
+uscript_isRightToLeft(UScriptCode script);
+
+
+
+
+
+
+
+
+
+
+U_DRAFT UBool U_EXPORT2
+uscript_breaksBetweenLetters(UScriptCode script);
+
+
+
+
+
+
+
+
+
+U_DRAFT UBool U_EXPORT2
+uscript_isCased(UScriptCode script);
+
 #endif  
 
 #endif

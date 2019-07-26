@@ -171,7 +171,6 @@ uenum_openFromStringEnumeration(icu::StringEnumeration* adopted, UErrorCode* ec)
 
 #endif
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -183,10 +182,9 @@ uenum_openFromStringEnumeration(icu::StringEnumeration* adopted, UErrorCode* ec)
 
 
 
-U_DRAFT UEnumeration* U_EXPORT2
+U_STABLE UEnumeration* U_EXPORT2
 uenum_openUCharStringsEnumeration(const UChar* const strings[], int32_t count,
                                  UErrorCode* ec);
-#endif
 
 
 
@@ -201,9 +199,8 @@ uenum_openUCharStringsEnumeration(const UChar* const strings[], int32_t count,
 
 
 
-U_DRAFT UEnumeration* U_EXPORT2
+U_STABLE UEnumeration* U_EXPORT2
 uenum_openCharStringsEnumeration(const char* const strings[], int32_t count,
                                  UErrorCode* ec);
-
 
 #endif

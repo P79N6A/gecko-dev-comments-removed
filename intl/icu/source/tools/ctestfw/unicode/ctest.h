@@ -229,6 +229,16 @@ log_data_err(const char *pattern, ...);
 
 
 
+
+T_CTEST_API UBool
+T_CTEST_EXPORT2
+log_knownIssue(const char *ticket, const char *fmt, ...);
+
+
+
+
+
+
 T_CTEST_API int T_CTEST_EXPORT2 
 initArgs( int argc, const char* const argv[], ArgHandlerPtr argHandler, void *context);
 

@@ -28,6 +28,10 @@ private:
     UBool fFreshTextSet;
     static void setRecognizers(UErrorCode &status);
 
+    UBool *fEnabledRecognizers;  
+                                
+                                
+
 public:
     CharsetDetector(UErrorCode &status);
 
@@ -47,7 +51,12 @@ public:
 
 
 
-    static int32_t getDetectableCount(); 
+    static int32_t getDetectableCount();
+
+
+    static UEnumeration * getAllDetectableCharsets(UErrorCode &status);
+    UEnumeration * getDetectableCharsets(UErrorCode &status) const;
+    void setDetectableCharset(const char *encoding, UBool enabled, UErrorCode &status);
 };
 
 U_NAMESPACE_END

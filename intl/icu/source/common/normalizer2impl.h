@@ -215,8 +215,8 @@ private:
 
 class U_COMMON_API Normalizer2Impl : public UMemory {
 public:
-    Normalizer2Impl() : memory(NULL), normTrie(NULL) {
-        canonIterDataSingleton.fInstance=NULL;
+    Normalizer2Impl() : memory(NULL), normTrie(NULL), fCanonIterData(NULL) {
+        fCanonIterDataInitOnce.reset();
     }
     ~Normalizer2Impl();
 
@@ -586,7 +586,9 @@ private:
     const uint8_t *smallFCD;  
     uint8_t tccc180[0x180];  
 
-    SimpleSingleton canonIterDataSingleton;
+  public:           
+    UInitOnce       fCanonIterDataInitOnce;
+    CanonIterData  *fCanonIterData;
 };
 
 

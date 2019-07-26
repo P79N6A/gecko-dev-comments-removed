@@ -16,6 +16,9 @@
 
 
 
+
+#include "uposixdefs.h"
+
 #include "unicode/putil.h"
 #include "udatamem.h"
 #include "umapfile.h"

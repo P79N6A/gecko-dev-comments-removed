@@ -86,7 +86,4 @@ U_CAPI void U_EXPORT2 ucln_registerCleanup(ECleanupLibraryType type,
 
 U_CAPI void U_EXPORT2 ucln_cleanupOne(ECleanupLibraryType type);
 
-
-U_CFUNC UBool ucln_mutexedInit(initFunc *func, UErrorCode *status);
-
 #endif

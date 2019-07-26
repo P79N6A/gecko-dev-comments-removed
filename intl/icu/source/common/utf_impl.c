@@ -86,6 +86,19 @@ utf8_errorValue[6]={
     0x3ffffff, 0x7fffffff
 };
 
+static UChar32
+errorValue(int32_t count, int8_t strict) {
+    if(strict>=0) {
+        return utf8_errorValue[count];
+    } else if(strict==-3) {
+        return 0xfffd;
+    } else {
+        return U_SENTINEL;
+    }
+}
+
+
+
 
 
 
@@ -113,90 +126,57 @@ utf8_nextCharSafeBody(const uint8_t *s, int32_t *pi, int32_t length, UChar32 c, 
     int32_t i=*pi;
     uint8_t count=U8_COUNT_TRAIL_BYTES(c);
     U_ASSERT(count <= 5); 
-    if((i)+count<=(length)) {
-        uint8_t trail, illegal=0;
+    if(i+count<=length || length<0) {
+        uint8_t trail;
 
-        U8_MASK_LEAD_BYTE((c), count);
+        U8_MASK_LEAD_BYTE(c, count);
         
         switch(count) {
         
+        case 0:
+            
         case 5:
         case 4:
             
-            illegal=1;
             break;
         case 3:
-            trail=s[(i)++];
-            (c)=((c)<<6)|(trail&0x3f);
-            if(c<0x110) {
-                illegal|=(trail&0xc0)^0x80;
-            } else {
-                
-                illegal=1;
-                break;
-            }
+            trail=s[i++]-0x80;
+            c=(c<<6)|trail;
+            
+            if(c>=0x110 || trail>0x3f) { break; }
         case 2:
-            trail=s[(i)++];
-            (c)=((c)<<6)|(trail&0x3f);
-            illegal|=(trail&0xc0)^0x80;
+            trail=s[i++]-0x80;
+            c=(c<<6)|trail;
+            
+
+
+
+            if(((c&0xffe0)==0x360 && strict!=-2) || trail>0x3f) { break; }
         case 1:
-            trail=s[(i)++];
-            (c)=((c)<<6)|(trail&0x3f);
-            illegal|=(trail&0xc0)^0x80;
-            break;
-        case 0:
-            if(strict>=0) {
-                return UTF8_ERROR_VALUE_1;
-            } else {
-                return U_SENTINEL;
+            trail=s[i++]-0x80;
+            c=(c<<6)|trail;
+            if(trail>0x3f) { break; }
+            
+            if(c>=utf8_minLegal[count] &&
+                    
+                    (strict<=0 || !U_IS_UNICODE_NONCHAR(c))) {
+                *pi=i;
+                return c;
             }
         
         }
-
+    } else {
         
-
-
-
-
-
-
-
-
-
-
-        
-        
-        if(illegal || (c)<utf8_minLegal[count] || (U_IS_SURROGATE(c) && strict!=-2)) {
-            
-            uint8_t errorCount=count;
-            
-            i=*pi;
-            while(count>0 && U8_IS_TRAIL(s[i])) {
-                ++(i);
-                --count;
-            }
-            if(strict>=0) {
-                c=utf8_errorValue[errorCount-count];
-            } else {
-                c=U_SENTINEL;
-            }
-        } else if((strict)>0 && U_IS_UNICODE_NONCHAR(c)) {
-            
-            c=utf8_errorValue[count];
-        }
-    } else  {
-        
-        int32_t i0=i;
-        
-        while((i)<(length) && U8_IS_TRAIL(s[i])) {
-            ++(i);
-        }
-        if(strict>=0) {
-            c=utf8_errorValue[i-i0];
-        } else {
-            c=U_SENTINEL;
-        }
+        count=length-i;
     }
+
+    
+    i=*pi;
+    while(count>0 && U8_IS_TRAIL(s[i])) {
+        ++i;
+        --count;
+    }
+    c=errorValue(i-*pi, strict);
     *pi=i;
     return c;
 }
@@ -251,18 +231,15 @@ utf8_prevCharSafeBody(const uint8_t *s, int32_t start, int32_t *pi, UChar32 c, U
     int32_t i=*pi;
     uint8_t b, count=1, shift=6;
 
+    if(!U8_IS_TRAIL(c)) { return errorValue(0, strict); }
+
     
     c&=0x3f;
 
     for(;;) {
         if(i<=start) {
             
-            if(strict>=0) {
-                return UTF8_ERROR_VALUE_1;
-            } else {
-                return U_SENTINEL;
-            }
-            
+            return errorValue(0, strict);
         }
 
         
@@ -282,11 +259,7 @@ utf8_prevCharSafeBody(const uint8_t *s, int32_t start, int32_t *pi, UChar32 c, U
                         if(count>=4) {
                             count=3;
                         }
-                        if(strict>=0) {
-                            c=utf8_errorValue[count];
-                        } else {
-                            c=U_SENTINEL;
-                        }
+                        c=errorValue(count, strict);
                     } else {
                         
                     }
@@ -296,17 +269,9 @@ utf8_prevCharSafeBody(const uint8_t *s, int32_t start, int32_t *pi, UChar32 c, U
 
                     if(count<shouldCount) {
                         *pi=i;
-                        if(strict>=0) {
-                            c=utf8_errorValue[count];
-                        } else {
-                            c=U_SENTINEL;
-                        }
+                        c=errorValue(count, strict);
                     } else {
-                        if(strict>=0) {
-                            c=UTF8_ERROR_VALUE_1;
-                        } else {
-                            c=U_SENTINEL;
-                        }
+                        c=errorValue(0, strict);
                     }
                 }
                 break;
@@ -317,20 +282,12 @@ utf8_prevCharSafeBody(const uint8_t *s, int32_t start, int32_t *pi, UChar32 c, U
                 shift+=6;
             } else {
                 
-                if(strict>=0) {
-                    c=UTF8_ERROR_VALUE_1;
-                } else {
-                    c=U_SENTINEL;
-                }
+                c=errorValue(0, strict);
                 break;
             }
         } else {
             
-            if(strict>=0) {
-                c=UTF8_ERROR_VALUE_1;
-            } else {
-                c=U_SENTINEL;
-            }
+            c=errorValue(0, strict);
             break;
         }
     }

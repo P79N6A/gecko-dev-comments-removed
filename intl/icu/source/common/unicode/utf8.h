@@ -244,11 +244,47 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 
 
 
+
+
+
 #define U8_GET(s, start, i, length, c) { \
-    int32_t _u8_get_index=(int32_t)(i); \
+    int32_t _u8_get_index=(i); \
     U8_SET_CP_START(s, start, _u8_get_index); \
     U8_NEXT(s, _u8_get_index, length, c); \
 }
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define U8_GET_OR_FFFD(s, start, i, length, c) { \
+    int32_t _u8_get_index=(i); \
+    U8_SET_CP_START(s, start, _u8_get_index); \
+    U8_NEXT_OR_FFFD(s, _u8_get_index, length, c); \
+}
+#endif 
 
 
 
@@ -303,13 +339,15 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 
 
 
+
+
 #define U8_NEXT(s, i, length, c) { \
     (c)=(uint8_t)(s)[(i)++]; \
     if((c)>=0x80) { \
         uint8_t __t1, __t2; \
         if( /* handle U+1000..U+CFFF inline */ \
             (0xe0<(c) && (c)<=0xec) && \
-            (((i)+1)<(length)) && \
+            (((i)+1)<(length) || (length)<0) && \
             (__t1=(uint8_t)((s)[i]-0x80))<=0x3f && \
             (__t2=(uint8_t)((s)[(i)+1]-0x80))<= 0x3f \
         ) { \
@@ -318,19 +356,70 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
             (i)+=2; \
         } else if( /* handle U+0080..U+07FF inline */ \
             ((c)<0xe0 && (c)>=0xc2) && \
-            ((i)<(length)) && \
+            ((i)!=(length)) && \
             (__t1=(uint8_t)((s)[i]-0x80))<=0x3f \
         ) { \
-            (c)=(UChar)((((c)&0x1f)<<6)|__t1); \
+            (c)=(((c)&0x1f)<<6)|__t1; \
             ++(i); \
-        } else if(U8_IS_LEAD(c)) { \
-            /* function call for "complicated" and error cases */ \
-            (c)=utf8_nextCharSafeBody((const uint8_t *)s, &(i), (int32_t)(length), c, -1); \
         } else { \
-            (c)=U_SENTINEL; \
+            /* function call for "complicated" and error cases */ \
+            (c)=utf8_nextCharSafeBody((const uint8_t *)s, &(i), (length), c, -1); \
         } \
     } \
 }
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define U8_NEXT_OR_FFFD(s, i, length, c) { \
+    (c)=(uint8_t)(s)[(i)++]; \
+    if((c)>=0x80) { \
+        uint8_t __t1, __t2; \
+        if( /* handle U+1000..U+CFFF inline */ \
+            (0xe0<(c) && (c)<=0xec) && \
+            (((i)+1)<(length) || (length)<0) && \
+            (__t1=(uint8_t)((s)[i]-0x80))<=0x3f && \
+            (__t2=(uint8_t)((s)[(i)+1]-0x80))<= 0x3f \
+        ) { \
+            /* no need for (c&0xf) because the upper bits are truncated after <<12 in the cast to (UChar) */ \
+            (c)=(UChar)(((c)<<12)|(__t1<<6)|__t2); \
+            (i)+=2; \
+        } else if( /* handle U+0080..U+07FF inline */ \
+            ((c)<0xe0 && (c)>=0xc2) && \
+            ((i)!=(length)) && \
+            (__t1=(uint8_t)((s)[i]-0x80))<=0x3f \
+        ) { \
+            (c)=(((c)&0x1f)<<6)|__t1; \
+            ++(i); \
+        } else { \
+            /* function call for "complicated" and error cases */ \
+            (c)=utf8_nextCharSafeBody((const uint8_t *)s, &(i), (length), c, -3); \
+        } \
+    } \
+}
+#endif 
 
 
 
@@ -392,7 +481,7 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
         (s)[(i)++]=(uint8_t)((((c)>>6)&0x3f)|0x80); \
         (s)[(i)++]=(uint8_t)(((c)&0x3f)|0x80); \
     } else { \
-        (i)=utf8_appendCharSafeBody(s, (int32_t)(i), (int32_t)(capacity), c, &(isError)); \
+        (i)=utf8_appendCharSafeBody(s, (i), (capacity), c, &(isError)); \
     } \
 }
 
@@ -421,11 +510,13 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 
 
 
+
+
 #define U8_FWD_1(s, i, length) { \
     uint8_t __b=(uint8_t)(s)[(i)++]; \
     if(U8_IS_LEAD(__b)) { \
         uint8_t __count=U8_COUNT_TRAIL_BYTES(__b); \
-        if((i)+__count>(length)) { \
+        if((i)+__count>(length) && (length)>=0) { \
             __count=(uint8_t)((length)-(i)); \
         } \
         while(__count>0 && U8_IS_TRAIL((s)[i])) { \
@@ -468,9 +559,11 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 
 
 
+
+
 #define U8_FWD_N(s, i, length, n) { \
     int32_t __N=(n); \
-    while(__N>0 && (i)<(length)) { \
+    while(__N>0 && ((i)<(length) || ((length)<0 && (s)[i]!=0))) { \
         U8_FWD_1(s, i, length); \
         --__N; \
     } \
@@ -509,7 +602,7 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 
 #define U8_SET_CP_START(s, start, i) { \
     if(U8_IS_TRAIL((s)[(i)])) { \
-        (i)=utf8_back1SafeBody(s, start, (int32_t)(i)); \
+        (i)=utf8_back1SafeBody(s, start, (i)); \
     } \
 }
 
@@ -579,13 +672,42 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 #define U8_PREV(s, start, i, c) { \
     (c)=(uint8_t)(s)[--(i)]; \
     if((c)>=0x80) { \
-        if((c)<=0xbf) { \
-            (c)=utf8_prevCharSafeBody((const uint8_t *)s, start, &(i), c, -1); \
-        } else { \
-            (c)=U_SENTINEL; \
-        } \
+        (c)=utf8_prevCharSafeBody((const uint8_t *)s, start, &(i), c, -1); \
     } \
 }
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define U8_PREV_OR_FFFD(s, start, i, c) { \
+    (c)=(uint8_t)(s)[--(i)]; \
+    if((c)>=0x80) { \
+        (c)=utf8_prevCharSafeBody((const uint8_t *)s, start, &(i), c, -3); \
+    } \
+}
+#endif 
 
 
 
@@ -616,7 +738,7 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 
 #define U8_BACK_1(s, start, i) { \
     if(U8_IS_TRAIL((s)[--(i)])) { \
-        (i)=utf8_back1SafeBody(s, start, (int32_t)(i)); \
+        (i)=utf8_back1SafeBody(s, start, (i)); \
     } \
 }
 
@@ -696,8 +818,10 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
 
 
 
+
+
 #define U8_SET_CP_LIMIT(s, start, i, length) { \
-    if((start)<(i) && (i)<(length)) { \
+    if((start)<(i) && ((i)<(length) || ((length)<0 && (s)[i]!=0))) { \
         U8_BACK_1(s, start, i); \
         U8_FWD_1(s, i, length); \
     } \

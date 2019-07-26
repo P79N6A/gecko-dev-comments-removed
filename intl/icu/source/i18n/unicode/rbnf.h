@@ -808,50 +808,7 @@ public:
                                 FieldPosition& pos,
                                 UErrorCode& status) const;
 
-  
-
-
-
-
-
-
-
-
-  virtual UnicodeString& format(const Formattable& obj,
-                                UnicodeString& toAppendTo,
-                                FieldPosition& pos,
-                                UErrorCode& status) const;
-  
-
-
-
-
-
-
-
-  UnicodeString& format(const Formattable& obj,
-                        UnicodeString& result,
-                        UErrorCode& status) const;
-
-  
-
-
-
-
-
-
-   UnicodeString& format(double number,
-                         UnicodeString& output) const;
-
-  
-
-
-
-
-
-
-   UnicodeString& format(int32_t number,
-                         UnicodeString& output) const;
+  using NumberFormat::parse;
 
   
 
@@ -870,18 +827,6 @@ public:
   virtual void parse(const UnicodeString& text,
                      Formattable& result,
                      ParsePosition& parsePosition) const;
-
-
-  
-
-
-
-
-
-
-  virtual inline void parse(const UnicodeString& text,
-                      Formattable& result,
-                      UErrorCode& status) const;
 
 #if !UCONFIG_NO_COLLATION
 
@@ -1023,37 +968,6 @@ private:
 };
 
 
-
-inline UnicodeString&
-RuleBasedNumberFormat::format(const Formattable& obj,
-                              UnicodeString& result,
-                              UErrorCode& status) const
-{
-    
-    
-    
-    
-    
-    return NumberFormat::format(obj, result, status);
-}
-
-inline UnicodeString&
-RuleBasedNumberFormat::format(double number, UnicodeString& output) const {
-    FieldPosition pos(0);
-    return format(number, output, pos);
-}
-
-inline UnicodeString&
-RuleBasedNumberFormat::format(int32_t number, UnicodeString& output) const {
-    FieldPosition pos(0);
-    return format(number, output, pos);
-}
-
-inline void
-RuleBasedNumberFormat::parse(const UnicodeString& text, Formattable& result, UErrorCode& status) const
-{
-    NumberFormat::parse(text, result, status);
-}
 
 #if !UCONFIG_NO_COLLATION
 

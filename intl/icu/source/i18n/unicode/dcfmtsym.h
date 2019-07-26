@@ -187,7 +187,26 @@ public:
 
 
 
-    DecimalFormatSymbols( UErrorCode& status);
+    DecimalFormatSymbols(UErrorCode& status);
+
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static DecimalFormatSymbols* createWithLastResortData(UErrorCode& status);
+#endif  
 
     
 
@@ -311,7 +330,7 @@ public:
     static UClassID U_EXPORT2 getStaticClassID();
 
 private:
-    DecimalFormatSymbols(); 
+    DecimalFormatSymbols();
 
     
 
@@ -402,6 +421,7 @@ DecimalFormatSymbols::getSymbol(ENumberFormatSymbol symbol) const {
 }
 
 #ifndef U_HIDE_INTERNAL_API
+
 inline const UnicodeString &
 DecimalFormatSymbols::getConstSymbol(ENumberFormatSymbol symbol) const {
     const UnicodeString *strPtr;
@@ -412,7 +432,8 @@ DecimalFormatSymbols::getConstSymbol(ENumberFormatSymbol symbol) const {
     }
     return *strPtr;
 }
-#endif
+
+#endif  
 
 
 
@@ -448,7 +469,7 @@ inline const UChar*
 DecimalFormatSymbols::getCurrencyPattern() const {
     return currPattern;
 }
-#endif
+#endif 
 
 U_NAMESPACE_END
 
