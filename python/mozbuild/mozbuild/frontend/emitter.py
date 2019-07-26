@@ -126,12 +126,12 @@ class TreeMetadataEmitter(LoggingMixin):
             yield XPIDLFile(sandbox, mozpath.join(sandbox['SRCDIR'], idl),
                 xpidl_module)
 
-        if sandbox['CPP_SOURCES']:
-            for src in sandbox['CPP_SOURCES']:
+        for symbol in ('CPP_SOURCES', 'CSRCS'):
+            for src in (sandbox[symbol] or []):
                 if not os.path.exists(os.path.join(sandbox['SRCDIR'], src)):
                     raise SandboxValidationError('Reference to a file that '
-                        'doesn\'t exist in CPP_SOURCES (%s) in %s'
-                        % (src, sandbox['RELATIVEDIR']))
+                        'doesn\'t exist in %s (%s) in %s'
+                        % (symbol, src, sandbox['RELATIVEDIR']))
 
         
         
