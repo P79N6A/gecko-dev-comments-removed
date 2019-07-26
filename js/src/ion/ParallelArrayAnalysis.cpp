@@ -192,6 +192,8 @@ class ParallelArrayVisitor : public MInstructionVisitor
     SAFE_OP(TypeBarrier) 
     SAFE_OP(MonitorTypes) 
     SAFE_OP(GetPropertyCache)
+    SAFE_OP(GetPropertyPolymorphic)
+    UNSAFE_OP(SetPropertyPolymorphic)
     UNSAFE_OP(GetElementCache)
     UNSAFE_OP(BindNameCache)
     SAFE_OP(GuardShape)

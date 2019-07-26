@@ -3531,6 +3531,107 @@ class LGetPropertyCacheT : public LInstructionHelper<1, 1, 1>
     }
 };
 
+
+
+class LGetPropertyPolymorphicV : public LInstructionHelper<BOX_PIECES, 1, 0>
+{
+  public:
+    LIR_HEADER(GetPropertyPolymorphicV)
+    BOX_OUTPUT_ACCESSORS()
+
+    LGetPropertyPolymorphicV(const LAllocation &obj) {
+        setOperand(0, obj);
+    }
+    const LAllocation *obj() {
+        return getOperand(0);
+    }
+    const MGetPropertyPolymorphic *mir() const {
+        return mir_->toGetPropertyPolymorphic();
+    }
+};
+
+
+
+class LGetPropertyPolymorphicT : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(GetPropertyPolymorphicT)
+
+    LGetPropertyPolymorphicT(const LAllocation &obj, const LDefinition &temp) {
+        setOperand(0, obj);
+        setTemp(0, temp);
+    }
+    const LAllocation *obj() {
+        return getOperand(0);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+    const MGetPropertyPolymorphic *mir() const {
+        return mir_->toGetPropertyPolymorphic();
+    }
+};
+
+
+
+class LSetPropertyPolymorphicV : public LInstructionHelper<0, 1 + BOX_PIECES, 1>
+{
+  public:
+    LIR_HEADER(SetPropertyPolymorphicV)
+
+    LSetPropertyPolymorphicV(const LAllocation &obj, const LDefinition &temp) {
+        setOperand(0, obj);
+        setTemp(0, temp);
+    }
+
+    static const size_t Value = 1;
+
+    const LAllocation *obj() {
+        return getOperand(0);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+    const MSetPropertyPolymorphic *mir() const {
+        return mir_->toSetPropertyPolymorphic();
+    }
+};
+
+
+
+class LSetPropertyPolymorphicT : public LInstructionHelper<0, 2, 1>
+{
+    MIRType valueType_;
+
+  public:
+    LIR_HEADER(SetPropertyPolymorphicT)
+
+    LSetPropertyPolymorphicT(const LAllocation &obj, const LAllocation &value, MIRType valueType,
+                             const LDefinition &temp)
+      : valueType_(valueType)
+    {
+        setOperand(0, obj);
+        setOperand(1, value);
+        setTemp(0, temp);
+    }
+
+    const LAllocation *obj() {
+        return getOperand(0);
+    }
+    const LAllocation *value() {
+        return getOperand(1);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+    MIRType valueType() const {
+        return valueType_;
+    }
+    const MSetPropertyPolymorphic *mir() const {
+        return mir_->toSetPropertyPolymorphic();
+    }
+};
+
 class LGetElementCacheV : public LInstructionHelper<BOX_PIECES, 1 + BOX_PIECES, 0>
 {
   public:

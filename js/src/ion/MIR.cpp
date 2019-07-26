@@ -2234,6 +2234,39 @@ MStoreTypedArrayElementStatic::length() const
     return TypedArray::byteLength(typedArray_);
 }
 
+bool
+MGetPropertyPolymorphic::mightAlias(MDefinition *store)
+{
+    
+    
+
+    if (!store->isStoreFixedSlot() && !store->isStoreSlot())
+        return true;
+
+    for (size_t i = 0; i < numShapes(); i++) {
+        RawShape shape = this->shape(i);
+        if (shape->slot() < shape->numFixedSlots()) {
+            
+            uint32_t slot = shape->slot();
+            if (store->isStoreFixedSlot() && store->toStoreFixedSlot()->slot() != slot)
+                continue;
+            if (store->isStoreSlot())
+                continue;
+        } else {
+            
+            uint32_t slot = shape->slot() - shape->numFixedSlots();
+            if (store->isStoreSlot() && store->toStoreSlot()->slot() != slot)
+                continue;
+            if (store->isStoreFixedSlot())
+                continue;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 MDefinition *
 MAsmJSUnsignedToDouble::foldsTo(bool useValueNumbers)
 {

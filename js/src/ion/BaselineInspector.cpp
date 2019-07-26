@@ -26,36 +26,61 @@ SetElemICInspector::sawOOBTypedArrayWrite() const
     return false;
 }
 
-RawShape
-BaselineInspector::maybeMonomorphicShapeForPropertyOp(jsbytecode *pc)
+bool
+BaselineInspector::maybeShapesForPropertyOp(jsbytecode *pc, Vector<Shape *> &shapes)
 {
+    
+    
+    
+    JS_ASSERT(shapes.empty());
+
     if (!hasBaselineScript())
-        return NULL;
+        return true;
 
     JS_ASSERT(isValidPC(pc));
     const ICEntry &entry = icEntryFromPC(pc);
 
     ICStub *stub = entry.firstStub();
-    ICStub *next = stub->next();
+    while (stub->next()) {
+        RawShape shape;
+        if (stub->isGetProp_Native()) {
+            shape = stub->toGetProp_Native()->shape();
+        } else if (stub->isSetProp_Native()) {
+            shape = stub->toSetProp_Native()->shape();
+        } else {
+            shapes.clear();
+            return true;
+        }
 
-    if (!next || !next->isFallback())
-        return NULL;
+        
+        
+        bool found = false;
+        for (size_t i = 0; i < shapes.length(); i++) {
+            if (shapes[i] == shape) {
+                found = true;
+                break;
+            }
+        }
 
-    if (stub->isGetProp_Native()) {
-        JS_ASSERT(next->isGetProp_Fallback());
-        if (next->toGetProp_Fallback()->hadUnoptimizableAccess())
-            return NULL;
-        return stub->toGetProp_Native()->shape();
+        if (!found && !shapes.append(shape))
+            return false;
+
+        stub = stub->next();
     }
 
-    if (stub->isSetProp_Native()) {
-        JS_ASSERT(next->isSetProp_Fallback());
-        if (next->toSetProp_Fallback()->hadUnoptimizableAccess())
-            return NULL;
-        return stub->toSetProp_Native()->shape();
+    if (stub->isGetProp_Fallback()) {
+        if (stub->toGetProp_Fallback()->hadUnoptimizableAccess())
+            shapes.clear();
+    } else {
+        if (stub->toSetProp_Fallback()->hadUnoptimizableAccess())
+            shapes.clear();
     }
 
-    return NULL;
+    
+    if (shapes.length() > 5)
+        shapes.clear();
+
+    return true;
 }
 
 ICStub *

@@ -5364,6 +5364,143 @@ class MGetPropertyCache
 
 };
 
+
+
+class MGetPropertyPolymorphic
+  : public MUnaryInstruction,
+    public SingleObjectPolicy
+{
+    struct Entry {
+        
+        RawShape objShape;
+
+        
+        RawShape shape;
+    };
+
+    Vector<Entry, 4, IonAllocPolicy> shapes_;
+    CompilerRootPropertyName name_;
+
+    MGetPropertyPolymorphic(MDefinition *obj, HandlePropertyName name)
+      : MUnaryInstruction(obj),
+        name_(name)
+    {
+        setMovable();
+        setResultType(MIRType_Value);
+    }
+
+    PropertyName *name() const {
+        return name_;
+    }
+
+  public:
+    INSTRUCTION_HEADER(GetPropertyPolymorphic)
+
+    static MGetPropertyPolymorphic *New(MDefinition *obj, HandlePropertyName name) {
+        return new MGetPropertyPolymorphic(obj, name);
+    }
+
+    bool congruentTo(MDefinition *const &ins) const {
+        if (!ins->isGetPropertyPolymorphic())
+            return false;
+        if (name() != ins->toGetPropertyPolymorphic()->name())
+            return false;
+        return congruentIfOperandsEqual(ins);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+    bool addShape(RawShape objShape, RawShape shape) {
+        Entry entry;
+        entry.objShape = objShape;
+        entry.shape = shape;
+        return shapes_.append(entry);
+    }
+    size_t numShapes() const {
+        return shapes_.length();
+    }
+    RawShape objShape(size_t i) const {
+        return shapes_[i].objShape;
+    }
+    RawShape shape(size_t i) const {
+        return shapes_[i].shape;
+    }
+    MDefinition *obj() const {
+        return getOperand(0);
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::Load(AliasSet::ObjectFields | AliasSet::FixedSlot | AliasSet::DynamicSlot);
+    }
+
+    bool mightAlias(MDefinition *store);
+};
+
+
+
+class MSetPropertyPolymorphic
+  : public MBinaryInstruction,
+    public SingleObjectPolicy
+{
+    struct Entry {
+        
+        RawShape objShape;
+
+        
+        RawShape shape;
+    };
+
+    Vector<Entry, 4, IonAllocPolicy> shapes_;
+    bool needsBarrier_;
+
+    MSetPropertyPolymorphic(MDefinition *obj, MDefinition *value)
+      : MBinaryInstruction(obj, value),
+        needsBarrier_(false)
+    {
+    }
+
+  public:
+    INSTRUCTION_HEADER(SetPropertyPolymorphic)
+
+    static MSetPropertyPolymorphic *New(MDefinition *obj, MDefinition *value) {
+        return new MSetPropertyPolymorphic(obj, value);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+    bool addShape(RawShape objShape, RawShape shape) {
+        Entry entry;
+        entry.objShape = objShape;
+        entry.shape = shape;
+        return shapes_.append(entry);
+    }
+    size_t numShapes() const {
+        return shapes_.length();
+    }
+    RawShape objShape(size_t i) const {
+        return shapes_[i].objShape;
+    }
+    RawShape shape(size_t i) const {
+        return shapes_[i].shape;
+    }
+    MDefinition *obj() const {
+        return getOperand(0);
+    }
+    MDefinition *value() const {
+        return getOperand(1);
+    }
+    bool needsBarrier() const {
+        return needsBarrier_;
+    }
+    void setNeedsBarrier() {
+        needsBarrier_ = true;
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::Store(AliasSet::ObjectFields | AliasSet::FixedSlot | AliasSet::DynamicSlot);
+    }
+};
+
 class MDispatchInstruction
   : public MControlInstruction,
     public SingleObjectPolicy
