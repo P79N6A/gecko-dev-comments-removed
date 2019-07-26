@@ -19,7 +19,9 @@ Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
-Cu.import("resource://gre/modules/AlarmService.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "AlarmService",
+                                  "resource://gre/modules/AlarmService.jsm");
 
 this.EXPORTED_SYMBOLS = ["PushService"];
 
@@ -285,14 +287,12 @@ const STATE_READY = 3;
 this.PushService = {
   observe: function observe(aSubject, aTopic, aData) {
     switch (aTopic) {
-      case "final-ui-startup":
-        Services.obs.removeObserver(this, "final-ui-startup");
-        this.init();
-        break;
-      case "profile-change-teardown":
-        Services.obs.removeObserver(this, "profile-change-teardown");
-        this._shutdown();
-        break;
+      
+
+
+
+      case "xpcom-shutdown":
+        this.uninit();
       case "network-active-changed":         
       case "network:offline-status-changed": 
         
@@ -414,29 +414,6 @@ this.PushService = {
     if (!prefs.get("enabled"))
         return null;
 
-    Services.obs.addObserver(this, "profile-change-teardown", false);
-    Services.obs.addObserver(this, "webapps-uninstall", false);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    Services.obs.addObserver(this, this._getNetworkStateChangeEventName(), false);
-
     this._db = new PushDB(this);
 
     let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
@@ -465,6 +442,29 @@ this.PushService = {
       }
     );
 
+    Services.obs.addObserver(this, "xpcom-shutdown", false);
+    Services.obs.addObserver(this, "webapps-uninstall", false);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Services.obs.addObserver(this, this._getNetworkStateChangeEventName(), false);
+
     
     
     prefs.observe("serverURL", this);
@@ -486,11 +486,16 @@ this.PushService = {
     this._stopAlarm();
   },
 
-  _shutdown: function() {
-    debug("_shutdown()");
+  uninit: function() {
+    if (!this._started)
+      return;
 
+    debug("uninit()");
+
+    prefs.ignore("serverURL", this);
     Services.obs.removeObserver(this, this._getNetworkStateChangeEventName());
     Services.obs.removeObserver(this, "webapps-uninstall", false);
+    Services.obs.removeObserver(this, "xpcom-shutdown", false);
 
     if (this._db) {
       this._db.close();
@@ -511,8 +516,9 @@ this.PushService = {
     
     this._stopAlarm();
 
-    if (this._requestTimeoutTimer)
+    if (this._requestTimeoutTimer) {
       this._requestTimeoutTimer.cancel();
+    }
 
     debug("shutdown complete!");
   },
@@ -1453,5 +1459,3 @@ this.PushService = {
     }
   }
 }
-
-PushService.init();
