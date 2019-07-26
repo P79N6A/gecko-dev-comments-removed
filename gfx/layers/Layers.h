@@ -333,7 +333,26 @@ public:
 
 
 
+
+
+
+  enum ThebesLayerCreationHint {
+    NONE, SCROLLABLE
+  };
+
+  
+
+
+
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer() = 0;
+  
+
+
+
+
+  virtual already_AddRefed<ThebesLayer> CreateThebesLayerWithHint(ThebesLayerCreationHint) {
+    return CreateThebesLayer();
+  }
   
 
 
