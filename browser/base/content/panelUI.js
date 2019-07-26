@@ -56,6 +56,13 @@ const PanelUI = {
     this.clickCapturer.addEventListener("click", this._onCapturerClick,
                                         true);
 
+    var self = this;
+    this.subViews.addEventListener("overflow", function() {
+      
+      Services.tm.currentThread.dispatch(self._syncContainerWithSubView.bind(self),
+        Ci.nsIThread.DISPATCH_NORMAL);
+    });
+
     
     
     this._subViewObserver = new MutationObserver(function(aMutations) {
