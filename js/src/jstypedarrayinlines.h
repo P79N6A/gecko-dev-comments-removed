@@ -179,11 +179,6 @@ class ArrayBufferViewByteOffsetRef : public gc::BufferableRef
   public:
     explicit ArrayBufferViewByteOffsetRef(JSObject *obj) : obj(obj) {}
 
-    bool match(void *location) {
-        
-        return false;
-    }
-
     void mark(JSTracer *trc) {
         
         MarkObjectUnbarriered(trc, &obj, "TypedArray");

@@ -524,6 +524,8 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason)
 
     rt->gcHelperThread.waitBackgroundSweepEnd();
 
+    AutoStopVerifyingBarriers av(rt, false);
+
     
     MinorCollectionTracer trc(rt, this);
     MarkRuntime(&trc);
