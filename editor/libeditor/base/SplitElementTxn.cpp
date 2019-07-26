@@ -131,8 +131,7 @@ NS_IMETHODIMP SplitElementTxn::UndoTransaction(void)
   
   nsresult result = mEditor->JoinNodesImpl(mExistingRightNode->AsDOMNode(),
                                            mNewLeftNode->AsDOMNode(),
-                                           mParent->AsDOMNode(),
-                                           false);
+                                           mParent->AsDOMNode());
 #ifdef DEBUG
   if (gNoisy) 
   { 

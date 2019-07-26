@@ -451,12 +451,9 @@ public:
 
 
 
-
-
   nsresult JoinNodesImpl(nsIDOMNode *aNodeToKeep,
                          nsIDOMNode *aNodeToJoin,
-                         nsIDOMNode *aParent,
-                         bool        aNodeToKeepIsFirst);
+                         nsIDOMNode *aParent);
 
   
 
