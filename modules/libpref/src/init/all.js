@@ -1742,6 +1742,10 @@ pref("layout.css.flexbox.enabled", true);
 
 
 
+
+
+
+
 #ifdef RELEASE_BUILD
 pref("layout.css.font-features.enabled", false);
 #else
