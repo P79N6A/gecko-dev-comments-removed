@@ -69,7 +69,10 @@ let FunctionCallActor = protocol.ActorClass({
 
 
 
-  initialize: function(conn, [window, global, caller, type, name, stack, args, result]) {
+
+
+
+  initialize: function(conn, [window, global, caller, type, name, stack, args, result], holdWeak) {
     protocol.Actor.prototype.initialize.call(this, conn);
 
     this.details = {
@@ -81,7 +84,7 @@ let FunctionCallActor = protocol.ActorClass({
     
     
     
-    if (this._holdWeak) {
+    if (holdWeak) {
       let weakRefs = {
         window: Cu.getWeakReference(window),
         caller: Cu.getWeakReference(caller),
@@ -526,7 +529,7 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
 
 
   _onContentFunctionCall: function(...details) {
-    let functionCall = new FunctionCallActor(this.conn, details);
+    let functionCall = new FunctionCallActor(this.conn, details, this._holdWeak);
     this._functionCalls.push(functionCall);
     this.onCall(functionCall);
   }

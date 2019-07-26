@@ -9,6 +9,7 @@ const Services = require("Services");
 
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events = require("sdk/event/core");
+const { on: systemOn, off: systemOff } = require("sdk/system/events");
 const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
 const { ThreadActor } = require("devtools/server/actors/script");
@@ -289,6 +290,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     
     
     this._nativeToActorID = new Map();
+
+    this._onDestroyNode = this._onDestroyNode.bind(this);
+    this._onGlobalDestroyed = this._onGlobalDestroyed.bind(this);
   },
 
   destroy: function(conn) {
@@ -326,6 +330,11 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       performReload: reload,
       holdWeak: true
     });
+    
+    
+    
+    
+    on(this._callWatcher._contentObserver, "global-destroyed", this._onGlobalDestroyed);
   }, {
     request: { reload: Option(0, "boolean") },
     oneway: true
@@ -395,6 +404,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     }
     this.tabActor = null;
     this._initialized = false;
+    off(this._callWatcher._contentObserver, "global-destroyed", this._onGlobalDestroyed);
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
     this._callWatcher.finalize();
@@ -432,6 +442,10 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     },
     "create-node": {
       type: "createNode",
+      source: Arg(0, "audionode")
+    },
+    "destroy-node": {
+      type: "destroyNode",
       source: Arg(0, "audionode")
     }
   },
@@ -471,6 +485,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
   _onStartContext: function () {
+    systemOn("webaudio-node-demise", this._onDestroyNode);
     emit(this, "start-context");
   },
 
@@ -520,6 +535,40 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   _onCreateNode: function (node) {
     let actor = this._constructAudioNode(node);
     emit(this, "create-node", actor);
+  },
+
+  
+
+
+  _onDestroyNode: function ({data}) {
+    
+    let nativeID = ~~data;
+
+    let actor = this._getActorByNativeID(nativeID);
+
+    
+    
+    
+    if (actor) {
+      this._nativeToActorID.delete(nativeID);
+      emit(this, "destroy-node", actor);
+    }
+  },
+
+  
+
+
+
+
+  _onGlobalDestroyed: function (id) {
+    if (this._callWatcher._tracedWindowId !== id) {
+      return;
+    }
+
+    if (this._nativeToActorID) {
+      this._nativeToActorID.clear();
+    }
+    systemOff("webaudio-node-demise", this._onDestroyNode);
   }
 });
 
