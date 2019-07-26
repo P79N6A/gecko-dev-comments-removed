@@ -1626,22 +1626,8 @@ ThreadClient.prototype = {
 
     return this._threadGrips[aForm.actor] = new SourceClient(this._client,
                                                              aForm);
-  },
+  }
 
-  
-
-
-
-
-
-
-
-  getPrototypesAndProperties: DebuggerClient.requester({
-    type: "prototypesAndProperties",
-    actors: args(0)
-  }, {
-    telemetry: "PROTOTYPESANDPROPERTIES"
-  })
 };
 
 eventSource(ThreadClient.prototype);
