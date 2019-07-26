@@ -27,10 +27,12 @@ public:
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER2
 
 private:
-  ~nsAppFileLocationProvider() {}
+  ~nsAppFileLocationProvider()
+  {
+  }
 
 protected:
-  NS_METHOD CloneMozBinDirectory(nsIFile **aLocalFile);
+  NS_METHOD CloneMozBinDirectory(nsIFile** aLocalFile);
   
 
 
@@ -38,9 +40,9 @@ protected:
 
 
 
-  NS_METHOD GetProductDirectory(nsIFile **aLocalFile,
+  NS_METHOD GetProductDirectory(nsIFile** aLocalFile,
                                 bool aLocal = false);
-  NS_METHOD GetDefaultUserProfileRoot(nsIFile **aLocalFile,
+  NS_METHOD GetDefaultUserProfileRoot(nsIFile** aLocalFile,
                                       bool aLocal = false);
 
 #if defined(MOZ_WIDGET_COCOA)

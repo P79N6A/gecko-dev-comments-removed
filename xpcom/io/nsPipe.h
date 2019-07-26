@@ -19,6 +19,6 @@
 
 
 nsresult NS_HIDDEN
-nsPipeConstructor(nsISupports *outer, REFNSIID iid, void **result);
+nsPipeConstructor(nsISupports* outer, REFNSIID iid, void** result);
 
 #endif  

@@ -28,9 +28,13 @@
 class nsBinaryOutputStream : public nsIObjectOutputStream
 {
 public:
-  nsBinaryOutputStream() {}
+  nsBinaryOutputStream()
+  {
+  }
   
-  virtual ~nsBinaryOutputStream() {}
+  virtual ~nsBinaryOutputStream()
+  {
+  }
 
 protected:
   
@@ -46,7 +50,7 @@ protected:
   NS_DECL_NSIOBJECTOUTPUTSTREAM
 
   
-  nsresult WriteFully(const char *aBuf, uint32_t aCount);
+  nsresult WriteFully(const char* aBuf, uint32_t aCount);
 
   nsCOMPtr<nsIOutputStream>       mOutputStream;
   nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
@@ -67,9 +71,13 @@ protected:
 class nsBinaryInputStream : public nsIObjectInputStream
 {
 public:
-  nsBinaryInputStream() {}
+  nsBinaryInputStream()
+  {
+  }
   
-  virtual ~nsBinaryInputStream() {}
+  virtual ~nsBinaryInputStream()
+  {
+  }
 
 protected:
   

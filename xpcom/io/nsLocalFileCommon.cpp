@@ -21,27 +21,31 @@
 #endif
 
 
-void NS_StartupLocalFile()
+void
+NS_StartupLocalFile()
 {
   nsLocalFile::GlobalInit();
 }
 
-void NS_ShutdownLocalFile()
+void
+NS_ShutdownLocalFile()
 {
   nsLocalFile::GlobalShutdown();
 }
 
 #if !defined(MOZ_WIDGET_COCOA) && !defined(XP_WIN)
 NS_IMETHODIMP
-nsLocalFile::InitWithFile(nsIFile *aFile)
+nsLocalFile::InitWithFile(nsIFile* aFile)
 {
-  if (NS_WARN_IF(!aFile))
+  if (NS_WARN_IF(!aFile)) {
     return NS_ERROR_INVALID_ARG;
+  }
 
   nsAutoCString path;
   aFile->GetNativePath(path);
-  if (path.IsEmpty())
+  if (path.IsEmpty()) {
     return NS_ERROR_INVALID_ARG;
+  }
   return InitWithNativePath(path);
 }
 #endif
@@ -52,7 +56,7 @@ nsLocalFile::InitWithFile(nsIFile *aFile)
 
 
 NS_IMETHODIMP
-nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
+nsLocalFile::CreateUnique(uint32_t aType, uint32_t aAttributes)
 {
   nsresult rv;
   bool longName;
@@ -64,44 +68,43 @@ nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
   nsAutoCString pathName, leafName, rootName, suffix;
   rv = GetNativePath(pathName);
 #endif
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   longName = (pathName.Length() + kMaxSequenceNumberLength >
               kMaxFilenameLength);
-  if (!longName)
-  {
-    rv = Create(type, attributes);
-    if (rv != NS_ERROR_FILE_ALREADY_EXISTS)
+  if (!longName) {
+    rv = Create(aType, aAttributes);
+    if (rv != NS_ERROR_FILE_ALREADY_EXISTS) {
       return rv;
+    }
   }
 
 #ifdef XP_WIN
   rv = GetLeafName(leafName);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   const int32_t lastDot = leafName.RFindChar(char16_t('.'));
 #else
   rv = GetNativeLeafName(leafName);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   const int32_t lastDot = leafName.RFindChar('.');
 #endif
 
-  if (lastDot == kNotFound)
-  {
+  if (lastDot == kNotFound) {
     rootName = leafName;
-  }
-  else
-  {
+  } else {
     suffix = Substring(leafName, lastDot);      
     rootName = Substring(leafName, 0, lastDot); 
   }
 
-  if (longName)
-  {
+  if (longName) {
     int32_t maxRootLength = (kMaxFilenameLength -
                              (pathName.Length() - leafName.Length()) -
                              suffix.Length() - kMaxSequenceNumberLength);
@@ -109,8 +112,9 @@ nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
     
     
     
-    if (maxRootLength < 2)
+    if (maxRootLength < 2) {
       return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+    }
 
 #ifdef XP_WIN
     
@@ -118,28 +122,29 @@ nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
                        maxRootLength - 1 : maxRootLength);
     SetLeafName(rootName + suffix);
 #else
-    if (NS_IsNativeUTF8())
-    {
+    if (NS_IsNativeUTF8()) {
       
       
-      while (UTF8traits::isInSeq(rootName[maxRootLength]))
+      while (UTF8traits::isInSeq(rootName[maxRootLength])) {
         --maxRootLength;
+      }
 
       
-      if (maxRootLength == 0 && suffix.IsEmpty())
+      if (maxRootLength == 0 && suffix.IsEmpty()) {
         return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+      }
     }
 
     rootName.SetLength(maxRootLength);
     SetNativeLeafName(rootName + suffix);
 #endif
-    nsresult rv = Create(type, attributes);
-    if (rv != NS_ERROR_FILE_ALREADY_EXISTS)
+    nsresult rv = Create(aType, aAttributes);
+    if (rv != NS_ERROR_FILE_ALREADY_EXISTS) {
       return rv;
+    }
   }
 
-  for (int indx = 1; indx < 10000; indx++)
-  {
+  for (int indx = 1; indx < 10000; ++indx) {
     
 #ifdef XP_WIN
     SetLeafName(rootName +
@@ -148,9 +153,10 @@ nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
 #else
     SetNativeLeafName(rootName + nsPrintfCString("-%d", indx) + suffix);
 #endif
-    rv = Create(type, attributes);
-    if (NS_SUCCEEDED(rv) || rv != NS_ERROR_FILE_ALREADY_EXISTS)
+    rv = Create(aType, aAttributes);
+    if (NS_SUCCEEDED(rv) || rv != NS_ERROR_FILE_ALREADY_EXISTS) {
       return rv;
+    }
   }
 
   
@@ -165,35 +171,41 @@ static const char16_t kPathSeparatorChar       = '/';
 #error Need to define file path separator for your platform
 #endif
 
-static int32_t SplitPath(char16_t *path, char16_t **nodeArray, int32_t arrayLen)
+static int32_t
+SplitPath(char16_t* aPath, char16_t** aNodeArray, int32_t aArrayLen)
 {
-  if (*path == 0)
+  if (*aPath == 0) {
     return 0;
+  }
 
-  char16_t **nodePtr = nodeArray;
-  if (*path == kPathSeparatorChar)
-    path++;
-  *nodePtr++ = path;
+  char16_t** nodePtr = aNodeArray;
+  if (*aPath == kPathSeparatorChar) {
+    aPath++;
+  }
+  *nodePtr++ = aPath;
 
-  for (char16_t *cp = path; *cp != 0; cp++) {
+  for (char16_t* cp = aPath; *cp != 0; ++cp) {
     if (*cp == kPathSeparatorChar) {
       *cp++ = 0;
-      if (*cp == 0)
+      if (*cp == 0) {
         break;
-      if (nodePtr - nodeArray >= arrayLen)
+      }
+      if (nodePtr - aNodeArray >= aArrayLen) {
         return -1;
+      }
       *nodePtr++ = cp;
     }
   }
-  return nodePtr - nodeArray;
+  return nodePtr - aNodeArray;
 }
 
 
 NS_IMETHODIMP
-nsLocalFile::GetRelativeDescriptor(nsIFile *fromFile, nsACString& _retval)
+nsLocalFile::GetRelativeDescriptor(nsIFile* aFromFile, nsACString& aResult)
 {
-  if (NS_WARN_IF(!fromFile))
+  if (NS_WARN_IF(!aFromFile)) {
     return NS_ERROR_INVALID_ARG;
+  }
   const int32_t kMaxNodesInPath = 32;
 
   
@@ -201,68 +213,80 @@ nsLocalFile::GetRelativeDescriptor(nsIFile *fromFile, nsACString& _retval)
   
 
   nsresult rv;
-  _retval.Truncate(0);
+  aResult.Truncate(0);
 
   nsAutoString thisPath, fromPath;
-  char16_t *thisNodes[kMaxNodesInPath], *fromNodes[kMaxNodesInPath];
-  int32_t  thisNodeCnt, fromNodeCnt, nodeIndex;
+  char16_t* thisNodes[kMaxNodesInPath];
+  char16_t* fromNodes[kMaxNodesInPath];
+  int32_t thisNodeCnt, fromNodeCnt, nodeIndex;
 
   rv = GetPath(thisPath);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return rv;
-  rv = fromFile->GetPath(fromPath);
-  if (NS_FAILED(rv))
+  }
+  rv = aFromFile->GetPath(fromPath);
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   
-  char16_t *thisPathPtr; thisPath.BeginWriting(thisPathPtr);
-  char16_t *fromPathPtr; fromPath.BeginWriting(fromPathPtr);
+  char16_t* thisPathPtr;
+  thisPath.BeginWriting(thisPathPtr);
+  char16_t* fromPathPtr;
+  fromPath.BeginWriting(fromPathPtr);
 
   thisNodeCnt = SplitPath(thisPathPtr, thisNodes, kMaxNodesInPath);
   fromNodeCnt = SplitPath(fromPathPtr, fromNodes, kMaxNodesInPath);
-  if (thisNodeCnt < 0 || fromNodeCnt < 0)
+  if (thisNodeCnt < 0 || fromNodeCnt < 0) {
     return NS_ERROR_FAILURE;
+  }
 
   for (nodeIndex = 0; nodeIndex < thisNodeCnt && nodeIndex < fromNodeCnt; ++nodeIndex) {
 #ifdef XP_WIN
-    if (_wcsicmp(char16ptr_t(thisNodes[nodeIndex]), char16ptr_t(fromNodes[nodeIndex])))
+    if (_wcsicmp(char16ptr_t(thisNodes[nodeIndex]), char16ptr_t(fromNodes[nodeIndex]))) {
       break;
+    }
 #else
-    if (nsCRT::strcmp(thisNodes[nodeIndex], fromNodes[nodeIndex]))
+    if (nsCRT::strcmp(thisNodes[nodeIndex], fromNodes[nodeIndex])) {
       break;
+    }
 #endif
   }
 
   int32_t branchIndex = nodeIndex;
-  for (nodeIndex = branchIndex; nodeIndex < fromNodeCnt; nodeIndex++)
-    _retval.AppendLiteral("../");
+  for (nodeIndex = branchIndex; nodeIndex < fromNodeCnt; ++nodeIndex) {
+    aResult.AppendLiteral("../");
+  }
   for (nodeIndex = branchIndex; nodeIndex < thisNodeCnt; nodeIndex++) {
     NS_ConvertUTF16toUTF8 nodeStr(thisNodes[nodeIndex]);
-    _retval.Append(nodeStr);
-    if (nodeIndex + 1 < thisNodeCnt)
-      _retval.Append('/');
+    aResult.Append(nodeStr);
+    if (nodeIndex + 1 < thisNodeCnt) {
+      aResult.Append('/');
+    }
   }
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsLocalFile::SetRelativeDescriptor(nsIFile *fromFile, const nsACString& relativeDesc)
+nsLocalFile::SetRelativeDescriptor(nsIFile* aFromFile,
+                                   const nsACString& aRelativeDesc)
 {
   NS_NAMED_LITERAL_CSTRING(kParentDirStr, "../");
 
   nsCOMPtr<nsIFile> targetFile;
-  nsresult rv = fromFile->Clone(getter_AddRefs(targetFile));
-  if (NS_FAILED(rv))
+  nsresult rv = aFromFile->Clone(getter_AddRefs(targetFile));
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   
   
   
 
   nsCString::const_iterator strBegin, strEnd;
-  relativeDesc.BeginReading(strBegin);
-  relativeDesc.EndReading(strEnd);
+  aRelativeDesc.BeginReading(strBegin);
+  aRelativeDesc.EndReading(strEnd);
 
   nsCString::const_iterator nodeBegin(strBegin), nodeEnd(strEnd);
   nsCString::const_iterator pos(strBegin);
@@ -270,10 +294,12 @@ nsLocalFile::SetRelativeDescriptor(nsIFile *fromFile, const nsACString& relative
   nsCOMPtr<nsIFile> parentDir;
   while (FindInReadable(kParentDirStr, nodeBegin, nodeEnd)) {
     rv = targetFile->GetParent(getter_AddRefs(parentDir));
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
       return rv;
-    if (!parentDir)
+    }
+    if (!parentDir) {
       return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+    }
     targetFile = parentDir;
 
     nodeBegin = nodeEnd;
@@ -285,8 +311,9 @@ nsLocalFile::SetRelativeDescriptor(nsIFile *fromFile, const nsACString& relative
   while (nodeEnd != strEnd) {
     FindCharInReadable('/', nodeEnd, strEnd);
     targetFile->Append(NS_ConvertUTF8toUTF16(Substring(nodeBegin, nodeEnd)));
-    if (nodeEnd != strEnd) 
+    if (nodeEnd != strEnd) { 
       ++nodeEnd;
+    }
     nodeBegin = nodeEnd;
   }
 

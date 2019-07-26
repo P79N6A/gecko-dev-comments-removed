@@ -78,7 +78,9 @@ public:
 
 
 
-  static nsresult ConvertStringLineBreaks(nsString& ioString, ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks);
+  static nsresult ConvertStringLineBreaks(nsString& aIoString,
+                                          ELinebreakType aSrcBreaks,
+                                          ELinebreakType aDestBreaks);
 
 
   
@@ -96,8 +98,11 @@ public:
 
 
 
-  static nsresult ConvertLineBreaksInSitu(char **ioBuffer, ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
-                                          int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
+  static nsresult ConvertLineBreaksInSitu(char** aIoBuffer,
+                                          ELinebreakType aSrcBreaks,
+                                          ELinebreakType aDestBreaks,
+                                          int32_t aSrcLen = kIgnoreLen,
+                                          int32_t* aOutLen = nullptr);
 
 
   
@@ -114,8 +119,11 @@ public:
 
 
 
-  static nsresult ConvertUnicharLineBreaksInSitu(char16_t **ioBuffer, ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
-                                                 int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
+  static nsresult ConvertUnicharLineBreaksInSitu(char16_t** aIoBuffer,
+                                                 ELinebreakType aSrcBreaks,
+                                                 ELinebreakType aDestBreaks,
+                                                 int32_t aSrcLen = kIgnoreLen,
+                                                 int32_t* aOutLen = nullptr);
 
 };
 
