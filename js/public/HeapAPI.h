@@ -18,8 +18,11 @@ namespace js {
 
 
 
-extern bool CurrentThreadCanAccessRuntime(JSRuntime *rt);
-extern bool CurrentThreadCanAccessZone(JS::Zone *zone);
+JS_FRIEND_API(bool)
+CurrentThreadCanAccessRuntime(JSRuntime *rt);
+
+JS_FRIEND_API(bool)
+CurrentThreadCanAccessZone(JS::Zone *zone);
 
 namespace gc {
 
