@@ -115,11 +115,9 @@ public class UpdateService extends IntentService {
 
             registerForUpdates(false);
         } else if (UpdateServiceHelper.ACTION_CHECK_FOR_UPDATE.equals(intent.getAction())) {
-            Log.i(LOGTAG, "XYZZY Coming from Point 1");
             startUpdate(intent.getIntExtra(UpdateServiceHelper.EXTRA_UPDATE_FLAGS_NAME, 0));
         } else if (UpdateServiceHelper.ACTION_DOWNLOAD_UPDATE.equals(intent.getAction())) {
             
-            Log.i(LOGTAG, "XYZZY Coming from Point 2");
             startUpdate(UpdateServiceHelper.FLAG_FORCE_DOWNLOAD);
         } else if (UpdateServiceHelper.ACTION_APPLY_UPDATE.equals(intent.getAction())) {
             applyUpdate(intent.getStringExtra(UpdateServiceHelper.EXTRA_PACKAGE_PATH_NAME));
@@ -160,7 +158,6 @@ public class UpdateService extends IntentService {
             
             
             Log.i(LOGTAG, "no update has ever been attempted, checking now");
-            Log.i(LOGTAG, "XYZZY Coming from Point 3");
             startUpdate(0);
             return;
         }
@@ -204,7 +201,6 @@ public class UpdateService extends IntentService {
         
         int connectionType = netInfo.getType();
         int autoDownloadPolicy = getAutoDownloadPolicy();
-        Log.i(LOGTAG, "XYZZY Checking AutoDownloadPolicy " + Integer.toString(autoDownloadPolicy));
 
 
         
@@ -213,9 +209,6 @@ public class UpdateService extends IntentService {
 
 
 
-
-
-        Log.i(LOGTAG, "XYZZY " + Integer.toString(flags));
 
         boolean shouldStartDownload = hasFlag(flags, UpdateServiceHelper.FLAG_FORCE_DOWNLOAD) ||
             autoDownloadPolicy == UpdateServiceHelper.AUTODOWNLOAD_ENABLED ||
@@ -567,11 +560,9 @@ public class UpdateService extends IntentService {
     }
 
     private void setAutoDownloadPolicy(int policy) {
-        Log.i(LOGTAG, "XYZZY Setting AutoDownloadPolicy " + Integer.toString(policy));
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putInt(KEY_AUTODOWNLOAD_POLICY, policy);
         editor.commit();
-        Log.i(LOGTAG, "XYZZY Verifying AutoDownloadPolicy " + Integer.toString(getAutoDownloadPolicy()));
     }
 
     private void saveUpdateInfo(UpdateInfo info, File downloaded) {
