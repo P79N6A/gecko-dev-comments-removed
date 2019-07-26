@@ -1469,13 +1469,11 @@ nsDisplayBackground::nsDisplayBackground(nsDisplayListBuilder* aBuilder,
                                          nsIFrame* aFrame,
                                          uint32_t aLayer,
                                          bool aIsThemed,
-                                         const nsStyleBackground* aBackgroundStyle,
-                                         bool aSkipFixedItemBoundsCheck)
+                                         const nsStyleBackground* aBackgroundStyle)
   : nsDisplayItem(aBuilder, aFrame)
   , mBackgroundStyle(aBackgroundStyle)
   , mLayer(aLayer)
   , mIsThemed(aIsThemed)
-  , mIsFixed(false)
   , mIsBottommostLayer(true)
 {
   MOZ_COUNT_CTOR(nsDisplayBackground);
@@ -1501,36 +1499,6 @@ nsDisplayBackground::nsDisplayBackground(nsDisplayListBuilder* aBuilder,
     if (!mBackgroundStyle->mLayers[mLayer].mImage.IsEmpty() &&
         mBackgroundStyle->mLayers[mLayer].mAttachment == NS_STYLE_BG_ATTACHMENT_FIXED) {
       aBuilder->SetHasFixedItems();
-
-      
-      if (mBackgroundStyle->mLayers[mLayer].mClip == NS_STYLE_BG_CLIP_BORDER &&
-          !nsLayoutUtils::HasNonZeroCorner(mFrame->GetStyleBorder()->mBorderRadius)) {
-        if (aSkipFixedItemBoundsCheck) {
-          mIsFixed = true;
-        } else {
-          nsPresContext* presContext = mFrame->PresContext();
-          nsIFrame* rootScrollFrame = presContext->PresShell()->GetRootScrollFrame();
-          if (rootScrollFrame) {
-            bool snap;
-            nsRect bounds = GetBounds(aBuilder, &snap);
-
-            
-            
-            
-            
-            
-            
-            
-            
-            nsIScrollableFrame* scrollable = do_QueryFrame(rootScrollFrame);
-            nsRect scrollport(scrollable->GetScrollPortRect().TopLeft() +
-                              aBuilder->ToReferenceFrame(rootScrollFrame),
-                              scrollable->GetScrollPositionClampingScrollPortSize());
-
-            mIsFixed = bounds.Contains(scrollport);
-          }
-        }
-      }
     }
   }
 }
@@ -2070,12 +2038,6 @@ nsDisplayBackground::RenderingMightDependOnPositioningAreaSizeChange()
     return true;
   }
   return false;
-}
-
-bool
-nsDisplayBackground::ShouldFixToViewport(nsDisplayListBuilder* aBuilder)
-{
-  return mIsFixed;
 }
 
 static void CheckForBorderItem(nsDisplayItem *aItem, uint32_t& aFlags)
