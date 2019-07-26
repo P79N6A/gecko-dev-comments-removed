@@ -430,6 +430,24 @@ function sendMMI(aMmi) {
 
 
 
+ function setRoamingPreference(aMode) {
+  let request = mobileConnection.setRoamingPreference(aMode);
+  return wrapDomRequestAsPromise(request)
+    .then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
