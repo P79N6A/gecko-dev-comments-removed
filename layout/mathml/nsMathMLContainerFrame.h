@@ -340,6 +340,11 @@ public:
                                        uint32_t        aFlagsToUpdate);
 
   
+  static void
+  PropagateFrameFlagFor(nsIFrame* aFrame,
+                        uint64_t  aFlags);
+
+  
   
   
   

@@ -30,6 +30,21 @@ nsMathMLmmultiscriptsFrame::~nsMathMLmmultiscriptsFrame()
 {
 }
 
+uint8_t
+nsMathMLmmultiscriptsFrame::ScriptIncrement(nsIFrame* aFrame)
+{
+  if (!aFrame)
+    return 0;
+  if (mFrames.ContainsFrame(aFrame)) {
+    if (mFrames.FirstChild() == aFrame ||
+        aFrame->GetContent()->Tag() == nsGkAtoms::mprescripts_) {
+      return 0; 
+    }
+    return 1;
+  }
+  return 0; 
+}
+
 NS_IMETHODIMP
 nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
 {
@@ -41,11 +56,8 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
   
   
 
-  if (mContent->Tag() == nsGkAtoms::msup_)
-    return NS_OK;
-
   int32_t count = 0;
-  bool isSubScript = true;
+  bool isSubScript = mContent->Tag() != nsGkAtoms::msup_;
 
   nsAutoTArray<nsIFrame*, 8> subScriptFrames;
   nsIFrame* childFrame = mFrames.FirstChild();
@@ -62,6 +74,7 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
       } else {
         
       }
+      PropagateFrameFlagFor(childFrame, NS_FRAME_MATHML_SCRIPT_DESCENDANT);
       isSubScript = !isSubScript;
     }
     count++;

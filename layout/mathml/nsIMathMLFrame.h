@@ -7,6 +7,7 @@
 #define nsIMathMLFrame_h___
 
 #include "nsQueryFrame.h"
+#include "nsMathMLOperators.h"
 
 struct nsPresentationData;
 struct nsEmbellishData;
@@ -192,6 +193,13 @@ public:
                                     int32_t         aLastIndex,
                                     uint32_t        aFlagsValues,
                                     uint32_t        aWhichFlags) = 0;
+
+  
+  
+  
+  
+  virtual uint8_t
+  ScriptIncrement(nsIFrame* aFrame) = 0;
 };
 
 
