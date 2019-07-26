@@ -3949,8 +3949,12 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
 
 pref("dom.netinfo.enabled", true);
+#else
+pref("dom.netinfo.enabled", false);
+#endif
 
 #ifdef XP_WIN
 
