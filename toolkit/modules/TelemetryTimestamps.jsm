@@ -4,6 +4,8 @@
 
 this.EXPORTED_SYMBOLS = ["TelemetryTimestamps"];
 
+const Cu = Components.utils;
+
 
 
 
