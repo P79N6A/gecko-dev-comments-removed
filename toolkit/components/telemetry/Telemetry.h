@@ -173,6 +173,16 @@ void SetProfileDir(nsIFile* aProfD);
 
 
 
+void LeavingStartupStage();
+
+
+
+
+void EnteringShutdownStage();
+
+
+
+
 const uint32_t kSlowSQLThresholdForMainThread = 50;
 const uint32_t kSlowSQLThresholdForHelperThreads = 100;
 
