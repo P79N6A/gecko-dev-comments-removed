@@ -174,6 +174,11 @@ private:
   
   virtual nsresult
   PrepareAdapterInternal() MOZ_OVERRIDE;
+
+  bool
+  IsSignalRegistered(const nsAString& aNodeName) {
+    return !!mBluetoothSignalObserverTable.Get(aNodeName);
+  }
 };
 
 END_BLUETOOTH_NAMESPACE
