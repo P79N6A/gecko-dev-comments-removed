@@ -1693,6 +1693,14 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
     }
 
     
+    nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(aPrincipal);
+    if (ep)
+    {
+        *result = true;
+        return NS_OK;
+    }
+
+    
     nsIScriptContext *scriptContext = GetScriptContext(cx);
     if (!scriptContext) {
         if (aAllowIfNoScriptContext) {
