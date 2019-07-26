@@ -7,7 +7,6 @@
 #ifndef nsReadLine_h__
 #define nsReadLine_h__
 
-#include "prmem.h"
 #include "nsIInputStream.h"
 #include "mozilla/Likely.h"
 
@@ -42,43 +41,12 @@
 template<typename CharT>
 class nsLineBuffer {
   public:
+    nsLineBuffer() : start(buf), end(buf) { }
+
   CharT buf[kLineBufferSize+1];
   CharT* start;
   CharT* end;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename CharT>
-nsresult
-NS_InitLineBuffer (nsLineBuffer<CharT> ** aBufferPtr) {
-  *aBufferPtr = PR_NEW(nsLineBuffer<CharT>);
-  if (!(*aBufferPtr))
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  (*aBufferPtr)->start = (*aBufferPtr)->end = (*aBufferPtr)->buf;
-  return NS_OK;
-}
-
 
 
 
