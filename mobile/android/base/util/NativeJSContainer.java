@@ -11,6 +11,10 @@ import org.mozilla.gecko.mozglue.JNITarget;
 
 
 
+
+
+
+
 @JNITarget
 public final class NativeJSContainer extends NativeJSObject
 {
@@ -19,6 +23,13 @@ public final class NativeJSContainer extends NativeJSObject
     private NativeJSContainer(long nativeObject) {
         mNativeObject = nativeObject;
     }
+
+    
+
+
+
+    @Override
+    public native NativeJSContainer clone();
 
     
 
