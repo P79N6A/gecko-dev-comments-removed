@@ -854,3 +854,222 @@ var runtimeAvailableLocales = (function () {
     o[RuntimeDefaultLocale()] = true;
     return addOldStyleLanguageTags(o);
 }());
+
+
+
+
+
+
+
+
+
+function defineProperty(o, p, v) {
+    std_Object_defineProperty(o, p, {value: v, writable: true, enumerable: true, configurable: true});
+}
+
+
+
+
+
+
+
+
+
+
+
+var internalsMap = new WeakMap();
+
+
+
+
+
+
+
+function initializeIntlObject(o) {
+    assert(IsObject(o), "initializeIntlObject");
+    var internals = std_Object_create(null);
+    callFunction(std_WeakMap_set, internalsMap, o, internals);
+    return internals;
+}
+
+
+
+
+
+
+
+function isInitializedIntlObject(o) {
+    return callFunction(std_WeakMap_has, internalsMap, o);
+}
+
+
+
+
+
+function getInternals(o) {
+    return callFunction(std_WeakMap_get, internalsMap, o);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function checkIntlAPIObject(o, className, methodName) {
+    assert(typeof className === "string", "checkIntlAPIObject");
+    var internals = getInternals(o);
+    if (internals === undefined || internals["initialized" + className] !== true)
+        ThrowError(JSMSG_INTL_OBJECT_NOT_INITED, className, methodName, className);
+    assert(IsObject(o), "checkIntlAPIObject");
+    return internals;
+}
+
+
+
+
+
+
+
+
+
+
+
+var collatorKeyMappings = {
+    kn: {property: "numeric", type: "boolean"},
+    kf: {property: "caseFirst", type: "string", values: ["upper", "lower", "false"]}
+};
+
+
+
+
+
+
+
+function InitializeCollator(collator, locales, options) {
+    assert(IsObject(collator), "InitializeCollator");
+
+    
+    if (isInitializedIntlObject(collator))
+        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+
+    
+    var internals = initializeIntlObject(collator);
+
+    
+    var requestedLocales = CanonicalizeLocaleList(locales);
+
+    
+    if (options === undefined)
+        options = {};
+    else
+        options = ToObject(options);
+
+    
+    
+    var u = GetOption(options, "usage", "string", ["sort", "search"], "sort");
+    internals.usage = u;
+
+    
+    var Collator = collatorInternalProperties;
+
+    
+    var localeData = u === "sort" ? Collator.sortLocaleData : Collator.searchLocaleData;
+
+    
+    var opt = new Record();
+
+    
+    var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
+    opt.localeMatcher = matcher;
+
+    
+    
+    var key, mapping, property, value;
+    for (key in collatorKeyMappings) {
+        if (callFunction(std_Object_hasOwnProperty, collatorKeyMappings, key)) {
+            mapping = collatorKeyMappings[key];
+    
+            
+            value = GetOption(options, mapping.property, mapping.type, mapping.values, undefined);
+    
+            
+            if (mapping.type === "boolean" && value !== undefined)
+                value = callFunction(std_Boolean_toString, value);
+    
+            
+            opt[key] = value;
+        }
+    }
+
+    
+    
+    var relevantExtensionKeys = Collator.relevantExtensionKeys;
+
+    
+    var r = ResolveLocale(Collator.availableLocales,
+                          requestedLocales, opt,
+                          relevantExtensionKeys,
+                          localeData);
+    
+    internals.locale = r.locale;
+
+    
+    var i = 0, len = relevantExtensionKeys.length;
+    while (i < len) {
+        
+        key = relevantExtensionKeys[i];
+        if (key === "co") {
+            
+            property = "collation";
+            value = r.co === null ? "default" : r.co;
+        } else {
+            
+            mapping = collatorKeyMappings[key];
+            property = mapping.property;
+            value = r[key];
+            if (mapping.type === "boolean")
+                value = value === "true";
+        }
+
+        
+        internals[property] = value;
+
+        
+        i++;
+    }
+
+    
+    
+    var s = GetOption(options, "sensitivity", "string",
+                      ["base", "accent", "case", "variant"], undefined);
+    if (s === undefined) {
+        if (u === "sort") {
+            
+            s = "variant";
+        } else {
+            
+            var dataLocale = r.dataLocale;
+            var dataLocaleData = localeData(dataLocale);
+            s = dataLocaleData.sensitivity;
+        }
+    }
+
+    
+    internals.sensitivity = s;
+
+    
+    var ip = GetOption(options, "ignorePunctuation", "boolean", undefined, false);
+    internals.ignorePunctuation = ip;
+
+    
+    internals.boundFormat = undefined;
+
+    
+    internals.initializedCollator = true;
+}
