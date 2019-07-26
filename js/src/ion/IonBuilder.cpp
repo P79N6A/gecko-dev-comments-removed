@@ -6620,6 +6620,13 @@ IonBuilder::jsop_setelem()
             break;
         }
 
+        
+        
+        
+        SetElemICInspector icInspect(inspector->setElemICInspector(pc));
+        if (!icInspect.sawDenseWrite())
+            break;
+
         MInstruction *ins = MSetElementCache::New(object, index, value, script()->strict);
         current->add(ins);
         current->push(value);

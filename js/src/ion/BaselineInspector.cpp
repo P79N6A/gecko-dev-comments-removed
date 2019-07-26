@@ -41,6 +41,20 @@ SetElemICInspector::sawOOBTypedArrayWrite() const
 }
 
 bool
+SetElemICInspector::sawDenseWrite() const
+{
+    if (!icEntry_)
+        return false;
+
+    
+    for (ICStub *stub = icEntry_->firstStub(); stub; stub = stub->next()) {
+        if (stub->isSetElem_DenseAdd() || stub->isSetElem_Dense())
+            return true;
+    }
+    return false;
+}
+
+bool
 BaselineInspector::maybeShapesForPropertyOp(jsbytecode *pc, Vector<Shape *> &shapes)
 {
     
