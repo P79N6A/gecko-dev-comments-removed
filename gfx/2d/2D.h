@@ -27,6 +27,9 @@
 #include <string>
 #endif
 
+struct _cairo;
+typedef struct _cairo cairo_t;
+
 struct _cairo_surface;
 typedef _cairo_surface cairo_surface_t;
 
@@ -1015,6 +1018,60 @@ private:
 #endif
 
   static DrawEventRecorder *mRecorder;
+};
+
+
+
+
+
+
+
+class BorrowedCairoContext
+{
+public:
+  BorrowedCairoContext()
+    : mCairo(nullptr)
+    , mDT(nullptr)
+  { }
+
+  BorrowedCairoContext(DrawTarget *aDT)
+    : mDT(aDT)
+  {
+    mCairo = BorrowCairoContextFromDrawTarget(aDT);
+  }
+
+  
+  
+  
+  cairo_t *Init(DrawTarget *aDT)
+  {
+    MOZ_ASSERT(!mDT, "Can't initialize twice!");
+    mDT = aDT;
+    return mCairo = BorrowCairoContextFromDrawTarget(aDT);
+  }
+
+  
+  
+  
+  
+  
+  void Finish()
+  {
+    if (mCairo) {
+      ReturnCairoContextToDrawTarget(mDT, mCairo);
+      mCairo = nullptr;
+    }
+  }
+
+  ~BorrowedCairoContext() {
+    MOZ_ASSERT(!mCairo);
+  }
+
+  cairo_t *mCairo;
+private:
+  static cairo_t* BorrowCairoContextFromDrawTarget(DrawTarget *aDT);
+  static void ReturnCairoContextToDrawTarget(DrawTarget *aDT, cairo_t *aCairo);
+  DrawTarget *mDT;
 };
 
 #ifdef XP_MACOSX
