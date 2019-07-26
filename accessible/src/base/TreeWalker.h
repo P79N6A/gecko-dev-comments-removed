@@ -3,8 +3,8 @@
 
 
 
-#ifndef _nsAccTreeWalker_H_
-#define _nsAccTreeWalker_H_
+#ifndef mozilla_a11y_TreeWalker_h_
+#define mozilla_a11y_TreeWalker_h_
 
 #include "nsAutoPtr.h"
 #include "nsIContent.h"
@@ -15,23 +15,16 @@ namespace a11y {
 class Accessible;
 class DocAccessible;
 
-} 
-} 
-
 struct WalkState;
 
 
 
 
-class nsAccTreeWalker
+class TreeWalker
 {
 public:
-  typedef mozilla::a11y::Accessible Accessible;
-  typedef mozilla::a11y::DocAccessible DocAccessible;
-
-  nsAccTreeWalker(DocAccessible* aDoc, Accessible* aContext, nsIContent* aNode,
-                  bool aWalkCache = false);
-  virtual ~nsAccTreeWalker();
+  TreeWalker(Accessible* aContext, nsIContent* aNode, bool aWalkCache = false);
+  virtual ~TreeWalker();
 
   
 
@@ -46,6 +39,9 @@ public:
   }
 
 private:
+  TreeWalker();
+  TreeWalker(const TreeWalker&);
+  TreeWalker& operator =(const TreeWalker&);
 
   
 
@@ -75,5 +71,8 @@ private:
   bool mWalkCache;
   WalkState* mState;
 };
+
+} 
+} 
 
 #endif 
