@@ -1200,12 +1200,11 @@ CloneObject(JSContext *cx, HandleObject obj, Handle<js::TaggedProto> proto, Hand
 
 
 
-const unsigned DNP_CACHE_RESULT = 1;   
-const unsigned DNP_DONT_PURGE   = 2;   
-const unsigned DNP_UNQUALIFIED  = 4;   
+const unsigned DNP_DONT_PURGE   = 1;   
+const unsigned DNP_UNQUALIFIED  = 2;   
 
 
-const unsigned DNP_SKIP_TYPE    = 8;   
+const unsigned DNP_SKIP_TYPE    = 4;   
 
 
 
@@ -1291,9 +1290,6 @@ LookupNameWithGlobalDefault(JSContext *cx, HandlePropertyName name, HandleObject
 
 extern JSObject *
 js_FindVariableScope(JSContext *cx, JSFunction **funp);
-
-
-const unsigned JSGET_CACHE_RESULT = 1; 
 
 
 

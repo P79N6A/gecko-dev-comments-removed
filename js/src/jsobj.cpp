@@ -3408,8 +3408,7 @@ js::DefineNativeProperty(JSContext *cx, HandleObject obj, HandleId id, HandleVal
                          PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
                          unsigned flags, int shortid, unsigned defineHow )
 {
-    JS_ASSERT((defineHow & ~(DNP_CACHE_RESULT | DNP_DONT_PURGE |
-                             DNP_SKIP_TYPE)) == 0);
+    JS_ASSERT((defineHow & ~(DNP_DONT_PURGE | DNP_SKIP_TYPE)) == 0);
     JS_ASSERT(!(attrs & JSPROP_NATIVE_ACCESSORS));
 
     AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
@@ -4003,9 +4002,6 @@ GetPropertyHelperInline(JSContext *cx,
         return true;
     }
 
-    if (getHow & JSGET_CACHE_RESULT)
-        cx->propertyCache().fill(cx, obj, obj2, shape);
-
     
     if (!NativeGetInline<allowGC>(cx, obj, receiver, obj2, shape, getHow, vp))
         return JS_FALSE;
@@ -4272,7 +4268,7 @@ JSBool
 baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id,
                            unsigned defineHow, MutableHandleValue vp, JSBool strict)
 {
-    JS_ASSERT((defineHow & ~(DNP_CACHE_RESULT | DNP_UNQUALIFIED)) == 0);
+    JS_ASSERT((defineHow & ~DNP_UNQUALIFIED) == 0);
 
     if (JS_UNLIKELY(obj->watched())) {
         
@@ -4360,9 +4356,6 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
 
 
             if (!shape->shadowable()) {
-                if (defineHow & DNP_CACHE_RESULT)
-                    cx->propertyCache().fill(cx, obj, pobj, shape);
-
                 if (shape->hasDefaultSetter() && !shape->hasGetterValue())
                     return JS_TRUE;
 
@@ -4440,9 +4433,6 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
         return DefinePropertyOrElement(cx, obj, id, getter, setter,
                                        attrs, flags, shortid, vp, true, strict);
     }
-
-    if (defineHow & DNP_CACHE_RESULT)
-        cx->propertyCache().fill(cx, obj, obj, shape);
 
     return js_NativeSet(cx, obj, receiver, shape, strict, vp);
 }
