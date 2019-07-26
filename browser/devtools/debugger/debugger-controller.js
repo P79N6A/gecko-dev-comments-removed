@@ -1188,6 +1188,12 @@ SourceScripts.prototype = {
       return;
     }
 
+    if (aResponse.sources.length === 0) {
+      DebuggerView.Sources.emptyText = L10N.getStr("noSourcesText");
+      window.emit(EVENTS.SOURCES_ADDED);
+      return;
+    }
+
     
     for (let source of aResponse.sources) {
       
