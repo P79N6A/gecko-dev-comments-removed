@@ -11,10 +11,6 @@
   cursor: pointer;
 }
 
-.selected {
-  background-color: hsl(0,0%,90%);
-}
-
 
 
 span[tabindex] {
