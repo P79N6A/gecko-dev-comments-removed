@@ -113,7 +113,7 @@ public:
                                                     Float(clipBounds.YMost())),
                                          byRef(rectGeom));
 
-      mClippedArea = IntersectGeometry(mClippedArea, rectGeom);
+      mClippedArea = mDT->Intersect(mClippedArea, rectGeom);
     }
   }
 
@@ -161,11 +161,6 @@ private:
   
   RefPtr<ID2D1Geometry> mClippedArea;
 };
-
-ID2D1Factory *D2DFactory()
-{
-  return DrawTargetD2D::factory();
-}
 
 DrawTargetD2D::DrawTargetD2D()
   : mCurrentCachedLayer(0)
@@ -1727,6 +1722,40 @@ DrawTargetD2D::FinalizeRTForOperation(CompositionOp aOperator, const Pattern &aP
   mDevice->Draw(4, 0);
 }
 
+TemporaryRef<ID2D1Geometry>
+DrawTargetD2D::ConvertRectToGeometry(const D2D1_RECT_F& aRect)
+{
+  RefPtr<ID2D1RectangleGeometry> rectGeom;
+  factory()->CreateRectangleGeometry(&aRect, byRef(rectGeom));
+  return rectGeom.forget();
+}
+
+TemporaryRef<ID2D1Geometry>
+DrawTargetD2D::GetTransformedGeometry(ID2D1Geometry *aGeometry, const D2D1_MATRIX_3X2_F &aTransform)
+{
+  RefPtr<ID2D1PathGeometry> tmpGeometry;
+  factory()->CreatePathGeometry(byRef(tmpGeometry));
+  RefPtr<ID2D1GeometrySink> currentSink;
+  tmpGeometry->Open(byRef(currentSink));
+  aGeometry->Simplify(D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES,
+                      aTransform, currentSink);
+  currentSink->Close();
+  return tmpGeometry;
+}
+
+TemporaryRef<ID2D1Geometry>
+DrawTargetD2D::Intersect(ID2D1Geometry *aGeometryA, ID2D1Geometry *aGeometryB)
+{
+  RefPtr<ID2D1PathGeometry> pathGeom;
+  factory()->CreatePathGeometry(byRef(pathGeom));
+  RefPtr<ID2D1GeometrySink> sink;
+  pathGeom->Open(byRef(sink));
+  aGeometryA->CombineWithGeometry(aGeometryB, D2D1_COMBINE_MODE_INTERSECT, nullptr, sink);
+  sink->Close();
+
+  return pathGeom;
+}
+
 static D2D1_RECT_F
 IntersectRect(const D2D1_RECT_F& aRect1, const D2D1_RECT_F& aRect2)
 {
@@ -2262,7 +2291,7 @@ DrawTargetD2D::CreateBrushForPattern(const Pattern &aPattern, Float aAlpha)
           return nullptr;
         }
 
-        bitmap = CreatePartialBitmapForSurface(dataSurf, mTransform, mSize, pat->mExtendMode, mat, mRT); 
+        bitmap = CreatePartialBitmapForSurface(dataSurf, mat, pat->mExtendMode); 
         if (!bitmap) {
           return nullptr;
         }
@@ -2282,6 +2311,80 @@ DrawTargetD2D::CreateBrushForPattern(const Pattern &aPattern, Float aAlpha)
 
   gfxWarning() << "Invalid pattern type detected.";
   return nullptr;
+}
+
+TemporaryRef<ID2D1StrokeStyle>
+DrawTargetD2D::CreateStrokeStyleForOptions(const StrokeOptions &aStrokeOptions)
+{
+  RefPtr<ID2D1StrokeStyle> style;
+
+  D2D1_CAP_STYLE capStyle;
+  D2D1_LINE_JOIN joinStyle;
+
+  switch (aStrokeOptions.mLineCap) {
+  case CAP_BUTT:
+    capStyle = D2D1_CAP_STYLE_FLAT;
+    break;
+  case CAP_ROUND:
+    capStyle = D2D1_CAP_STYLE_ROUND;
+    break;
+  case CAP_SQUARE:
+    capStyle = D2D1_CAP_STYLE_SQUARE;
+    break;
+  }
+
+  switch (aStrokeOptions.mLineJoin) {
+  case JOIN_MITER:
+    joinStyle = D2D1_LINE_JOIN_MITER;
+    break;
+  case JOIN_MITER_OR_BEVEL:
+    joinStyle = D2D1_LINE_JOIN_MITER_OR_BEVEL;
+    break;
+  case JOIN_ROUND:
+    joinStyle = D2D1_LINE_JOIN_ROUND;
+    break;
+  case JOIN_BEVEL:
+    joinStyle = D2D1_LINE_JOIN_BEVEL;
+    break;
+  }
+
+
+  HRESULT hr;
+  if (aStrokeOptions.mDashPattern) {
+    typedef vector<Float> FloatVector;
+    
+    
+    
+    Float lineWidth = aStrokeOptions.mLineWidth;
+    FloatVector dash(aStrokeOptions.mDashPattern,
+                     aStrokeOptions.mDashPattern + aStrokeOptions.mDashLength);
+    for (FloatVector::iterator it = dash.begin(); it != dash.end(); ++it) {
+      *it /= lineWidth;
+    }
+
+    hr = factory()->CreateStrokeStyle(
+      D2D1::StrokeStyleProperties(capStyle, capStyle,
+                                  capStyle, joinStyle,
+                                  aStrokeOptions.mMiterLimit,
+                                  D2D1_DASH_STYLE_CUSTOM,
+                                  aStrokeOptions.mDashOffset),
+      &dash[0], 
+                
+      dash.size(),
+      byRef(style));
+  } else {
+    hr = factory()->CreateStrokeStyle(
+      D2D1::StrokeStyleProperties(capStyle, capStyle,
+                                  capStyle, joinStyle,
+                                  aStrokeOptions.mMiterLimit),
+      nullptr, 0, byRef(style));
+  }
+
+  if (FAILED(hr)) {
+    gfxWarning() << "Failed to create Direct2D stroke style.";
+  }
+
+  return style;
 }
 
 TemporaryRef<ID3D10Texture2D>
@@ -2419,6 +2522,131 @@ DrawTargetD2D::CreateTextureForAnalysis(IDWriteGlyphRunAnalysis *aAnalysis, cons
   }
 
   return tex;
+}
+
+TemporaryRef<ID2D1Bitmap>
+DrawTargetD2D::CreatePartialBitmapForSurface(DataSourceSurface *aSurface, Matrix &aMatrix, ExtendMode aExtendMode)
+{
+  RefPtr<ID2D1Bitmap> bitmap;
+
+  
+  
+  
+  
+
+  Matrix transform = mTransform;
+  Matrix invTransform = transform = aMatrix * transform;
+  if (!invTransform.Invert()) {
+    
+    return nullptr;
+  }
+
+  Rect rect(0, 0, Float(mSize.width), Float(mSize.height));
+
+  
+  rect = invTransform.TransformBounds(rect);
+  rect.RoundOut();
+
+  IntSize size = aSurface->GetSize();
+
+  Rect uploadRect(0, 0, Float(size.width), Float(size.height));
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (uploadRect.Contains(rect)) {
+    
+    
+    uploadRect = rect;
+  } else if (aExtendMode == EXTEND_CLAMP && uploadRect.Intersects(rect)) {
+    
+    
+    
+    uploadRect = uploadRect.Intersect(rect);
+
+    
+    
+  } else if (rect.x >= 0 && rect.XMost() < size.width) {
+    uploadRect.x = rect.x;
+    uploadRect.width = rect.width;
+  } else if (rect.y >= 0 && rect.YMost() < size.height) {
+    uploadRect.y = rect.y;
+    uploadRect.height = rect.height;
+  }
+
+
+  int stride = aSurface->Stride();
+
+  if (uploadRect.width <= mRT->GetMaximumBitmapSize() &&
+      uploadRect.height <= mRT->GetMaximumBitmapSize()) {
+
+    
+    mRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.width), uint32_t(uploadRect.height)),
+                      aSurface->GetData() + int(uploadRect.x) * 4 + int(uploadRect.y) * stride,
+                      stride,
+                      D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
+                      byRef(bitmap));
+
+    aMatrix.Translate(uploadRect.x, uploadRect.y);
+
+    return bitmap;
+  } else {
+    int Bpp = BytesPerPixel(aSurface->GetFormat());
+
+    if (Bpp != 4) {
+      
+      MOZ_ASSERT(false);
+      return nullptr;
+    }
+
+    ImageHalfScaler scaler(aSurface->GetData(), stride, size);
+
+    
+    Point topRight = transform * Point(Float(size.width), 0);
+    Point topLeft = transform * Point(0, 0);
+    Point bottomRight = transform * Point(Float(size.width), Float(size.height));
+    Point bottomLeft = transform * Point(0, Float(size.height));
+    
+    IntSize scaleSize;
+
+    scaleSize.width = int32_t(max(Distance(topRight, topLeft),
+                                  Distance(bottomRight, bottomLeft)));
+    scaleSize.height = int32_t(max(Distance(topRight, bottomRight),
+                                   Distance(topLeft, bottomLeft)));
+
+    if (unsigned(scaleSize.width) > mRT->GetMaximumBitmapSize()) {
+      
+      
+      
+      scaleSize.width = 4095;
+    }
+    if (unsigned(scaleSize.height) > mRT->GetMaximumBitmapSize()) {
+      scaleSize.height = 4095;
+    }
+
+    scaler.ScaleForSize(scaleSize);
+
+    IntSize newSize = scaler.GetSize();
+    
+    mRT->CreateBitmap(D2D1::SizeU(newSize.width, newSize.height),
+                      scaler.GetScaledData(), scaler.GetStride(),
+                      D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
+                      byRef(bitmap));
+
+    aMatrix.Scale(Float(size.width / newSize.width),
+                  Float(size.height / newSize.height));
+    return bitmap;
+  }
 }
 
 void
