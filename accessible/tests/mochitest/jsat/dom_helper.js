@@ -3,16 +3,31 @@
 
 
 
+
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 Cu.import('resource://gre/modules/Geometry.jsm');
+Cu.import("resource://gre/modules/accessibility/Gestures.jsm");
 
 var win = getMainChromeWindow(window);
 
-var winUtils = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(
-  Ci.nsIDOMWindowUtils);
+
+
+
+
+
+function convertPointCoordinates(aPoints) {
+  var dpi = Utils.dpi;
+  return aPoints.map(function convert(aPoint) {
+    return {
+      x: aPoint.x * dpi,
+      y: aPoint.y * dpi,
+      identifier: aPoint.identifier
+    };
+  });
+}
 
 
 
@@ -28,12 +43,11 @@ var winUtils = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(
 
 function calculateTouchListCoordinates(aTouchPoints) {
   var coords = [];
-  var dpi = winUtils.displayDPI;
   for (var i = 0, target = aTouchPoints[i]; i < aTouchPoints.length; ++i) {
     var bounds = getBoundsForDOMElm(target.base);
     var parentBounds = getBoundsForDOMElm('root');
     var point = new Point(target.x || 0, target.y || 0);
-    point.scale(dpi);
+    point.scale(Utils.dpi);
     point.add(bounds[0], bounds[1]);
     point.add(bounds[2] / 2, bounds[3] / 2);
     point.subtract(parentBounds[0], parentBounds[0]);
@@ -86,6 +100,9 @@ var eventMap = {
   touchmove: sendTouchEvent
 };
 
+var originalDwellThreshold = GestureSettings.dwellThreshold;
+var originalSwipeMaxDuration = GestureSettings.swipeMaxDuration;
+
 
 
 
@@ -118,12 +135,43 @@ function testMozAccessFuGesture(aExpectedGestures) {
 
 
 
+
+
+function setTimers(aTimeStamp, aRemoveDwellThreshold, aRemoveSwipeMaxDuration) {
+  GestureSettings.dwellThreshold = originalDwellThreshold;
+  GestureSettings.swipeMaxDuration = originalSwipeMaxDuration;
+  if (!aRemoveDwellThreshold && !aRemoveSwipeMaxDuration) {
+    return;
+  }
+  if (aRemoveDwellThreshold) {
+    GestureSettings.dwellThreshold = 0;
+  }
+  if (aRemoveSwipeMaxDuration) {
+    GestureSettings.swipeMaxDuration = 0;
+  }
+  GestureTracker.current.clearTimer();
+  GestureTracker.current.startTimer(aTimeStamp);
+}
+
+
+
+
+
+
+
 AccessFuTest.addSequence = function AccessFuTest_addSequence(aSequence) {
   AccessFuTest.addFunc(function testSequence() {
     testMozAccessFuGesture(aSequence.expectedGestures);
     var events = aSequence.events;
     function fireEvent(aEvent) {
-      eventMap[aEvent.type](aEvent.target, aEvent.type);
+      var event = {
+        points: convertPointCoordinates(aEvent.points),
+        type: aEvent.type
+      };
+      var timeStamp = Date.now();
+      GestureTracker.handle(event, timeStamp);
+      setTimers(timeStamp, aEvent.removeDwellThreshold,
+        aEvent.removeSwipeMaxDuration);
       processEvents();
     }
     function processEvents() {
@@ -131,11 +179,9 @@ AccessFuTest.addSequence = function AccessFuTest_addSequence(aSequence) {
         return;
       }
       var event = events.shift();
-      if (event.delay) {
-        window.setTimeout(fireEvent, event.delay, event);
-      } else {
+      SimpleTest.executeSoon(function() {
         fireEvent(event);
-      }
+      });
     }
     processEvents();
   });
