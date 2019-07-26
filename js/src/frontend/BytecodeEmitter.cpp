@@ -4745,12 +4745,12 @@ EmitNormalFor(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff
 static inline bool
 EmitFor(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
-    if (pn->pn_left->isKind(PNK_FORIN)) {
-        
-        if (pn->pn_iflags == JSITER_FOR_OF)
-            return EmitForOf(cx, bce, pn, top);
+    if (pn->pn_left->isKind(PNK_FORIN))
         return EmitForIn(cx, bce, pn, top);
-    }
+
+    if (pn->pn_left->isKind(PNK_FOROF))
+        return EmitForOf(cx, bce, pn, top);
+
     JS_ASSERT(pn->pn_left->isKind(PNK_FORHEAD));
     return EmitNormalFor(cx, bce, pn, top);
 }

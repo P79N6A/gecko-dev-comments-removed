@@ -131,6 +131,7 @@ class UpvarCookie
     F(LET) \
     F(SEQ) \
     F(FORIN) \
+    F(FOROF) \
     F(FORHEAD) \
     F(ARGSBODY) \
     F(SPREAD) \
@@ -206,6 +207,13 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
+
+
+
+
+
 
 
 

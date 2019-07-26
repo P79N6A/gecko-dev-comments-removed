@@ -564,37 +564,6 @@ UpdateNativeIterator(NativeIterator *ni, JSObject *obj)
 bool
 js::GetIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandleValue vp)
 {
-    if (flags == JSITER_FOR_OF) {
-        
-        RootedValue method(cx);
-        if (!JSObject::getProperty(cx, obj, obj, cx->names().std_iterator, &method))
-            return false;
-
-        
-        
-        
-        if (!method.isObject() || !method.toObject().isCallable()) {
-            RootedValue val(cx, ObjectOrNullValue(obj));
-            char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, val, NullPtr());
-            if (!bytes)
-                return false;
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_ITERABLE, bytes);
-            js_free(bytes);
-            return false;
-        }
-
-        if (!Invoke(cx, ObjectOrNullValue(obj), method, 0, nullptr, vp))
-            return false;
-
-        JSObject *resultObj = ToObject(cx, vp);
-        if (!resultObj)
-            return false;
-        vp.setObject(*resultObj);
-        return true;
-    }
-
-    JS_ASSERT(!(flags & JSITER_FOR_OF));
-
     Vector<Shape *, 8> shapes(cx);
     uint32_t key = 0;
 
@@ -1320,6 +1289,46 @@ const Class StopIterationObject::class_ = {
     stopiter_hasInstance,
     nullptr                  
 };
+
+bool
+ForOfIterator::init(HandleValue iterable)
+{
+    RootedObject iterableObj(cx, ToObject(cx, iterable));
+    if (!iterableObj)
+        return false;
+
+    
+    InvokeArgs args(cx);
+    if (!args.init(0))
+        return false;
+    args.setThis(ObjectValue(*iterableObj));
+
+    RootedValue callee(cx);
+    if (!JSObject::getProperty(cx, iterableObj, iterableObj, cx->names().std_iterator, &callee))
+        return false;
+
+    
+    
+    
+    if (!callee.isObject() || !callee.toObject().isCallable()) {
+        char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, iterable, NullPtr());
+        if (!bytes)
+            return false;
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_ITERABLE, bytes);
+        js_free(bytes);
+        return false;
+    }
+
+    args.setCallee(callee);
+    if (!Invoke(cx, args))
+        return false;
+
+    iterator = ToObject(cx, args.rval());
+    if (!iterator)
+        return false;
+
+    return true;
+}
 
 bool
 ForOfIterator::next(MutableHandleValue vp, bool *done)
