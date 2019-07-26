@@ -4188,6 +4188,9 @@ pref("dom.mms.retrievalRetryCount", 4);
 pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
 
 
+pref("mms.debugging.enabled", false);
+
+
 
 
 
