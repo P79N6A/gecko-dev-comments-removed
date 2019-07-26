@@ -37,6 +37,7 @@ class mozIApplication;
 
 namespace mozilla {
 namespace dom {
+class ContentParent;
 class PBrowserParent;
 class TabParent;
 struct StructuredCloneData;
@@ -154,13 +155,7 @@ protected:
   nsFrameLoader(mozilla::dom::Element* aOwner, bool aNetworkCreated);
 
 public:
-  ~nsFrameLoader() {
-    mNeedsAsyncDestroy = true;
-    if (mMessageManager) {
-      mMessageManager->Disconnect();
-    }
-    nsFrameLoader::Destroy();
-  }
+  ~nsFrameLoader();
 
   bool AsyncScrollEnabled() const
   {
@@ -436,7 +431,8 @@ private:
   bool mVisible : 1;
 
   
-  nsCOMPtr<nsIObserver> mChildHost;
+  
+  nsRefPtr<mozilla::dom::ContentParent> mContentParent;
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
 
