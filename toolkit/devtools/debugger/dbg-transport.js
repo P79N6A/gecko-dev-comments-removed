@@ -205,6 +205,13 @@ this.LocalDebuggerTransport = function LocalDebuggerTransport(aOther)
 {
   this.other = aOther;
   this.hooks = null;
+
+  
+
+
+
+
+  this._serial = this.other ? this.other._serial : { count: 0 };
 }
 
 LocalDebuggerTransport.prototype = {
@@ -214,15 +221,23 @@ LocalDebuggerTransport.prototype = {
 
   send: function LDT_send(aPacket) {
     try {
-      
+      let serial = this._serial.count++;
       if (wantLogging) {
-        dumpn("Got: " + JSON.stringify(aPacket, null, 2));
+        if (aPacket.to) {
+          dumpn("Packet " + serial + " sent to " + uneval(aPacket.to));
+        } else if (aPacket.from) {
+          dumpn("Packet " + serial + " sent from " + uneval(aPacket.from));
+        }
       }
       this._deepFreeze(aPacket);
       let other = this.other;
-      Services.tm.currentThread.dispatch({run: function() {
+      Services.tm.currentThread.dispatch(function() {
+        
+        if (wantLogging) {
+          dumpn("Received packet " + serial + ": " + JSON.stringify(aPacket, null, 2));
+        }
         other.hooks.onPacket(aPacket);
-      }}, 0);
+      }, 0);
     } catch(e) {
       let msg = "Error handling incoming packet: " + e + " - " + e.stack;
       if (Cu.reportError) {
