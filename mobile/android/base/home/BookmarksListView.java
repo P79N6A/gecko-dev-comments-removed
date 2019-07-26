@@ -7,15 +7,12 @@ package org.mozilla.gecko.home;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
-import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 import org.mozilla.gecko.util.GamepadUtils;
-import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.os.AsyncTask;
 import android.util.AttributeSet;
 import android.util.Pair;
 import android.view.LayoutInflater;
@@ -38,16 +35,25 @@ public class BookmarksListView extends HomeListView
     public static final String LOGTAG = "GeckoBookmarksListView";
 
     
-    private BookmarksListAdapter mCursorAdapter = null;
+    
+    public static interface OnRefreshFolderListener {
+
+        
+        public void onRefreshFolder(int folderId);
+
+    }
 
     
-    private BookmarksQueryTask mQueryTask = null;
+    private BookmarksListAdapter mCursorAdapter = null;
 
     
     private MotionEvent mMotionEvent;
 
     
     private int mTouchSlop;
+
+    
+    private OnRefreshFolderListener mListener;
 
     public BookmarksListView(Context context) {
         this(context, null);
@@ -74,29 +80,13 @@ public class BookmarksListView extends HomeListView
 
         setOnItemClickListener(this);
         setOnKeyListener(GamepadUtils.getListItemClickDispatcher());
-
-        mQueryTask = new BookmarksQueryTask();
-        mQueryTask.execute();
     }
 
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-
-        
-        if (mCursorAdapter != null) {
-            final Cursor cursor = mCursorAdapter.getCursor();
-            mCursorAdapter = null;
-
-            
-            ThreadUtils.postToBackgroundThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (cursor != null && !cursor.isClosed())
-                        cursor.close();
-                }
-            });
-        }
+        mCursorAdapter = null;
+        mListener = null;
     }
 
     @Override
@@ -176,12 +166,13 @@ public class BookmarksListView extends HomeListView
         }
     }
 
-    private void refreshListWithCursor(Cursor cursor) {
+    public void refreshFromCursor(Cursor cursor) {
         
-        mCursorAdapter.changeCursor(cursor);
+        mCursorAdapter.swapCursor(cursor);
+    }
 
-        
-        mQueryTask = null;
+    public void setOnRefreshFolderListener(OnRefreshFolderListener listener) {
+        mListener = listener;
     }
 
     
@@ -210,14 +201,9 @@ public class BookmarksListView extends HomeListView
 
         
         private void refreshCurrentFolder() {
-            
-            if (mQueryTask != null) {
-                mQueryTask.cancel(false);
+            if (mListener != null) {
+                mListener.onRefreshFolder(mParentStack.peek().first);
             }
-
-            final Pair<Integer, String> folderPair = mParentStack.getFirst();
-            mQueryTask = new BookmarksQueryTask();
-            mQueryTask.execute(folderPair.first);
         }
 
         
@@ -376,27 +362,6 @@ public class BookmarksListView extends HomeListView
             }
 
             return LayoutInflater.from(parent.getContext()).inflate(resId, null);
-        }
-    }
-
-    
-
-
-    private class BookmarksQueryTask extends AsyncTask<Integer, Void, Cursor> {
-        @Override
-        protected Cursor doInBackground(Integer... folderIds) {
-            int folderId = Bookmarks.FIXED_ROOT_ID;
-
-            if (folderIds.length != 0) {
-                folderId = folderIds[0].intValue();
-            }
-
-            return BrowserDB.getBookmarksInFolder(getContext().getContentResolver(), folderId);
-        }
-
-        @Override
-        protected void onPostExecute(final Cursor cursor) {
-            refreshListWithCursor(cursor);
         }
     }
 }
