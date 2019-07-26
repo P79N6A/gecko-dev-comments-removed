@@ -93,8 +93,17 @@ struct ElementAnimation
   virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
   bool IsRunningAt(mozilla::TimeStamp aTime) const;
 
+  
+  
+  mozilla::TimeDuration ElapsedDurationAt(mozilla::TimeStamp aTime) const {
+    NS_ABORT_IF_FALSE(!IsPaused() || aTime >= mPauseStart,
+                      "if paused, aTime must be at least mPauseStart");
+    return (IsPaused() ? mPauseStart : aTime) - mStartTime - mDelay;
+  }
+
   mozilla::TimeStamp mStartTime; 
   mozilla::TimeStamp mPauseStart;
+  mozilla::TimeDuration mDelay;
   mozilla::TimeDuration mIterationDuration;
 
   enum {
@@ -132,9 +141,8 @@ struct ElementAnimations MOZ_FINAL
   
   
   
-  static double GetPositionInIteration(TimeStamp aStartTime,
-                                       TimeStamp aCurrentTime,
-                                       TimeDuration aDuration,
+  static double GetPositionInIteration(TimeDuration aElapsedDuration,
+                                       TimeDuration aIterationDuration,
                                        double aIterationCount,
                                        uint32_t aDirection,
                                        bool aIsForElement = true,
