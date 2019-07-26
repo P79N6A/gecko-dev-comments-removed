@@ -851,6 +851,11 @@ public:
   
 
 
+  static bool IsPlainTextType(const nsACString& aContentType);
+
+  
+
+
 
 
 
