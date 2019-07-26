@@ -815,8 +815,6 @@ StackTrace::Get(Thread* aT)
 
 
 
-static const char* gUnreportedName = "unreported";
-
 
 class LiveBlock
 {
@@ -843,7 +841,6 @@ public:
   
 private:
   mutable const StackTrace* mReportStackTrace;  
-  mutable const char*       mReporterName;      
   mutable bool              mReportedOnAlloc;   
                                                 
 
@@ -855,22 +852,13 @@ public:
       mSampled(aSampled),
       mAllocStackTrace(aAllocStackTrace),
       mReportStackTrace(nullptr),
-      mReporterName(gUnreportedName),
       mReportedOnAlloc(false)
  {
     if (mReqSize != aReqSize)
     {
       MOZ_CRASH();              
     }
-    MOZ_ASSERT(IsSane());
-  }
-
-  bool IsSane() const
-  {
-    bool hasReporterName = mReporterName != gUnreportedName;
-    return mAllocStackTrace &&
-           (( mReportStackTrace &&  hasReporterName) ||
-            (!mReportStackTrace && !hasReporterName && !mReportedOnAlloc));
+    MOZ_ASSERT(mAllocStackTrace);
   }
 
   size_t ReqSize() const { return mReqSize; }
@@ -888,19 +876,12 @@ public:
 
   bool IsSampled() const { return mSampled; }
 
-  bool IsReported() const
-  {
-    MOZ_ASSERT(IsSane());
-    bool isRep = mReporterName != gUnreportedName;
-    return isRep;
-  }
+  bool IsReported() const { return !!mReportStackTrace; }
 
   const StackTrace* ReportStackTrace() const { return mReportStackTrace; }
-  const char* ReporterName() const { return mReporterName; }
 
   
-  void Report(Thread* aT, const char* aReporterName, bool aReportedOnAlloc)
-       const;
+  void Report(Thread* aT, bool aReportedOnAlloc) const;
 
   void UnreportIfNotReportedOnAlloc() const;
 
@@ -908,9 +889,9 @@ public:
 
   typedef const void* Lookup;
 
-  static uint32_t hash(const void* const& aPc)
+  static uint32_t hash(const void* const& aPtr)
   {
-    return mozilla::HashGeneric(aPc);
+    return mozilla::HashGeneric(aPtr);
   }
 
   static bool match(const LiveBlock& aB, const void* const& aPtr)
@@ -1130,39 +1111,20 @@ public:
   const StackTrace* const mAllocStackTrace;   
 protected:
   const StackTrace* const mReportStackTrace;  
-  const char*       const mReporterName;      
 
 public:
   LiveBlockKey(const LiveBlock& aB)
     : mAllocStackTrace(aB.mAllocStackTrace),
-      mReportStackTrace(aB.ReportStackTrace()),
-      mReporterName(aB.ReporterName())
+      mReportStackTrace(aB.ReportStackTrace())
   {
-    MOZ_ASSERT(IsSane());
-  }
-
-  bool IsSane() const
-  {
-    bool hasReporterName = mReporterName != gUnreportedName;
-    return mAllocStackTrace &&
-           (( mReportStackTrace &&  hasReporterName) ||
-            (!mReportStackTrace && !hasReporterName));
+    MOZ_ASSERT(mAllocStackTrace);
   }
 
   bool IsReported() const
   {
-    MOZ_ASSERT(IsSane());
-    bool isRep = mReporterName != gUnreportedName;
-    return isRep;
+    return !!mReportStackTrace;
   }
 
-  
-  
-  
-  
-  
-  
-  
   
 
   typedef LiveBlockKey Lookup;
@@ -1170,15 +1132,13 @@ public:
   static uint32_t hash(const LiveBlockKey& aKey)
   {
     return mozilla::HashGeneric(aKey.mAllocStackTrace,
-                                aKey.mReportStackTrace,
-                                aKey.mReporterName);
+                                aKey.mReportStackTrace);
   }
 
   static bool match(const LiveBlockKey& aA, const LiveBlockKey& aB)
   {
     return aA.mAllocStackTrace  == aB.mAllocStackTrace &&
-           aA.mReportStackTrace == aB.mReportStackTrace &&
-           aA.mReporterName     == aB.mReporterName;
+           aA.mReportStackTrace == aB.mReportStackTrace;
   }
 };
 
@@ -1192,36 +1152,18 @@ protected:
   
   const StackTrace* const mReportStackTrace1;   
   const StackTrace* const mReportStackTrace2;   
-  const char*       const mReporterName1;       
-  const char*       const mReporterName2;       
 
 public:
   DoubleReportBlockKey(const StackTrace* aAllocStackTrace,
                        const StackTrace* aReportStackTrace1,
-                       const StackTrace* aReportStackTrace2,
-                       const char* aReporterName1,
-                       const char* aReporterName2)
+                       const StackTrace* aReportStackTrace2)
     : mAllocStackTrace(aAllocStackTrace),
       mReportStackTrace1(aReportStackTrace1),
-      mReportStackTrace2(aReportStackTrace2),
-      mReporterName1(aReporterName1),
-      mReporterName2(aReporterName2)
+      mReportStackTrace2(aReportStackTrace2)
   {
-    MOZ_ASSERT(IsSane());
+    MOZ_ASSERT(mAllocStackTrace && mReportStackTrace1 && mReportStackTrace2);
   }
 
-  bool IsSane() const
-  {
-    return mAllocStackTrace &&
-           mReportStackTrace1 &&
-           mReportStackTrace2 &&
-           mReporterName1 != gUnreportedName &&
-           mReporterName2 != gUnreportedName;
-  }
-
-  
-  
-  
   
 
   typedef DoubleReportBlockKey Lookup;
@@ -1230,9 +1172,7 @@ public:
   {
     return mozilla::HashGeneric(aKey.mAllocStackTrace,
                                 aKey.mReportStackTrace1,
-                                aKey.mReportStackTrace2,
-                                aKey.mReporterName1,
-                                aKey.mReporterName2);
+                                aKey.mReportStackTrace2);
   }
 
   static bool match(const DoubleReportBlockKey& aA,
@@ -1240,9 +1180,7 @@ public:
   {
     return aA.mAllocStackTrace   == aB.mAllocStackTrace &&
            aA.mReportStackTrace1 == aB.mReportStackTrace1 &&
-           aA.mReportStackTrace2 == aB.mReportStackTrace2 &&
-           aA.mReporterName1     == aB.mReporterName1 &&
-           aA.mReporterName2     == aB.mReporterName2;
+           aA.mReportStackTrace2 == aB.mReportStackTrace2;
   }
 };
 
@@ -1386,7 +1324,7 @@ LiveBlockGroup::Print(const Writer& aWriter, LocationService* aLocService,
   mAllocStackTrace->Print(aWriter, aLocService);
 
   if (IsReported()) {
-    W("\n Reported by '%s' at\n", mReporterName);
+    W("\n Reported at\n");
     mReportStackTrace->Print(aWriter, aLocService);
   }
 
@@ -1448,10 +1386,10 @@ DoubleReportBlockGroup::Print(const Writer& aWriter,
   W(" Allocated at\n");
   mAllocStackTrace->Print(aWriter, aLocService);
 
-  W("\n Previously reported by '%s' at\n", mReporterName1);
+  W("\n Previously reported at\n");
   mReportStackTrace1->Print(aWriter, aLocService);
 
-  W("\n Now reported by '%s' at\n", mReporterName2);
+  W("\n Now reported at\n");
   mReportStackTrace2->Print(aWriter, aLocService);
 
   W("\n");
@@ -1795,22 +1733,20 @@ Init(const malloc_table_t* aMallocTable)
 
 
 void
-LiveBlock::Report(Thread* aT, const char* aReporterName, bool aOnAlloc) const
+LiveBlock::Report(Thread* aT, bool aOnAlloc) const
 {
   if (IsReported()) {
-    DoubleReportBlockKey doubleReportKey(mAllocStackTrace,
-                                         mReportStackTrace, StackTrace::Get(aT),
-                                         mReporterName, aReporterName);
+    DoubleReportBlockKey key(mAllocStackTrace, mReportStackTrace,
+                             StackTrace::Get(aT));
     DoubleReportBlockGroupTable::AddPtr p =
-      gDoubleReportBlockGroupTable->lookupForAdd(doubleReportKey);
+      gDoubleReportBlockGroupTable->lookupForAdd(key);
     if (!p) {
-      DoubleReportBlockGroup bg(doubleReportKey);
+      DoubleReportBlockGroup bg(key);
       (void)gDoubleReportBlockGroupTable->add(p, bg);
     }
     p->Add(*this);
 
   } else {
-    mReporterName     = aReporterName;
     mReportStackTrace = StackTrace::Get(aT);
     mReportedOnAlloc  = aOnAlloc;
   }
@@ -1820,13 +1756,12 @@ void
 LiveBlock::UnreportIfNotReportedOnAlloc() const
 {
   if (!mReportedOnAlloc) {
-    mReporterName     = gUnreportedName;
     mReportStackTrace = nullptr;
   }
 }
 
 static void
-ReportHelper(const void* aPtr, const char* aReporterName, bool aOnAlloc)
+ReportHelper(const void* aPtr, bool aOnAlloc)
 {
   if (!gIsDMDRunning || !aPtr) {
     return;
@@ -1838,7 +1773,7 @@ ReportHelper(const void* aPtr, const char* aReporterName, bool aOnAlloc)
   AutoLockState lock;
 
   if (LiveBlockTable::Ptr p = gLiveBlockTable->lookup(aPtr)) {
-    p->Report(t, aReporterName, aOnAlloc);
+    p->Report(t, aOnAlloc);
   } else {
     
     
@@ -1848,15 +1783,15 @@ ReportHelper(const void* aPtr, const char* aReporterName, bool aOnAlloc)
 }
 
 MOZ_EXPORT void
-Report(const void* aPtr, const char* aReporterName)
+Report(const void* aPtr)
 {
-  ReportHelper(aPtr, aReporterName,  false);
+  ReportHelper(aPtr,  false);
 }
 
 MOZ_EXPORT void
-ReportOnAlloc(const void* aPtr, const char* aReporterName)
+ReportOnAlloc(const void* aPtr)
 {
-  ReportHelper(aPtr, aReporterName,  true);
+  ReportHelper(aPtr,  true);
 }
 
 
@@ -2182,9 +2117,9 @@ void foo()
    }
 
    for (int i = 0; i <= 1; i++)
-      Report(a[i], "a01");              
-   Report(a[2], "a23");                 
-   Report(a[3], "a23");                 
+      Report(a[i]);                     
+   Report(a[2]);                        
+   Report(a[3]);                        
    
 }
 
@@ -2225,55 +2160,54 @@ RunTestMode(FILE* fp)
   
   
   char* a2 = (char*) malloc(0);
-  Report(a2, "a2");
+  Report(a2);
 
   
   
   
   char* b = new char[10];
-  ReportOnAlloc(b, "b");
+  ReportOnAlloc(b);
 
   
   
   
   char* b2 = new char;
-  ReportOnAlloc(b2, "b2");
+  ReportOnAlloc(b2);
   free(b2);
 
   
   
   char* c = (char*) calloc(10, 3);
-  Report(c, "c");
+  Report(c);
   for (int i = 0; i < 3; i++) {
-    Report(c, "c");
+    Report(c);
   }
 
   
   
-  Report((void*)(intptr_t)i, "d");
+  Report((void*)(intptr_t)i);
 
   
   
   
   char* e = (char*) malloc(4096);
   e = (char*) realloc(e, 4097);
-  Report(e, "e");
+  Report(e);
 
   
   
   
   char* e2 = (char*) realloc(nullptr, 1024);
   e2 = (char*) realloc(e2, 512);
-  Report(e2, "e2");
+  Report(e2);
 
-  
   
   
   
   char* e3 = (char*) realloc(nullptr, 1024);
   e3 = (char*) realloc(e3, 0);
   MOZ_ASSERT(e3);
-  Report(e3, "a2");
+  Report(e3);
 
   
   
@@ -2282,7 +2216,7 @@ RunTestMode(FILE* fp)
 
   
   
-  Report((void*)(intptr_t)0x0, "zero");
+  Report((void*)(intptr_t)0x0);
 
   
   
@@ -2308,11 +2242,11 @@ RunTestMode(FILE* fp)
 
   
 
-  Report(a2, "a2b");
-  Report(a2, "a2b");
+  Report(a2);
+  Report(a2);
   free(c);
   free(e);
-  Report(e2, "e2b");
+  Report(e2);
   free(e3);
 
 

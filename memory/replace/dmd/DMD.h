@@ -17,11 +17,11 @@ namespace dmd {
 
 
 MOZ_EXPORT void
-Report(const void* aPtr, const char* aReporterName);
+Report(const void* aPtr);
 
 
 MOZ_EXPORT void
-ReportOnAlloc(const void* aPtr, const char* aReporterName);
+ReportOnAlloc(const void* aPtr);
 
 class Writer
 {
