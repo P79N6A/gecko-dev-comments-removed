@@ -12,6 +12,7 @@ function test() {
   
   requestLongerTimeout(runs.length);
   waitForExplicitFinish();
+  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED);
 
   
   
