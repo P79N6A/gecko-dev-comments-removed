@@ -148,7 +148,7 @@ nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_serv
 {
   
   
-  mIceCtx = NrIceCtx::Create("PC:" + mParent->GetName(), true);
+  mIceCtx = NrIceCtx::Create("PC:" + mParent->GetHandle(), true);
   if(!mIceCtx) {
     CSFLogError(logTag, "%s: Failed to create Ice Context", __FUNCTION__);
     return NS_ERROR_FAILURE;
@@ -191,11 +191,11 @@ nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_serv
   
   
   RefPtr<NrIceMediaStream> audioStream =
-    mIceCtx->CreateStream((mParent->GetName()+": stream1/audio").c_str(), 2);
+    mIceCtx->CreateStream((mParent->GetHandle()+"/stream1/audio").c_str(), 2);
   RefPtr<NrIceMediaStream> videoStream =
-    mIceCtx->CreateStream((mParent->GetName()+": stream2/video").c_str(), 2);
+    mIceCtx->CreateStream((mParent->GetHandle()+"/stream2/video").c_str(), 2);
   RefPtr<NrIceMediaStream> dcStream =
-    mIceCtx->CreateStream((mParent->GetName()+": stream3/data").c_str(), 2);
+    mIceCtx->CreateStream((mParent->GetHandle()+"/stream3/data").c_str(), 2);
 
   if (!audioStream) {
     CSFLogError(logTag, "%s: audio stream is NULL", __FUNCTION__);
