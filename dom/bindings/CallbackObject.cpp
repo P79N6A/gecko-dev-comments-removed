@@ -141,8 +141,8 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   
   if (mExceptionHandling == eRethrowContentExceptions ||
       mExceptionHandling == eRethrowExceptions) {
-    mSavedJSContextOptions = JS_GetOptions(cx);
-    JS_SetOptions(cx, mSavedJSContextOptions | JSOPTION_DONT_REPORT_UNCAUGHT);
+    mSavedJSContextOptions = JS::ContextOptionsRef(cx);
+    JS::ContextOptionsRef(cx).setDontReportUncaught(true);
   }
 }
 
@@ -182,7 +182,7 @@ CallbackObject::CallSetup::~CallSetup()
     if (mExceptionHandling == eRethrowContentExceptions ||
         mExceptionHandling == eRethrowExceptions) {
       
-      JS_SetOptions(mCx, mSavedJSContextOptions);
+      JS::ContextOptionsRef(mCx) = mSavedJSContextOptions;
       mErrorResult.MightThrowJSException();
       if (JS_IsExceptionPending(mCx)) {
         JS::Rooted<JS::Value> exn(mCx);
