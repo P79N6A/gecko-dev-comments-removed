@@ -1292,29 +1292,6 @@ RescueOrphans(HandleObject obj)
     
     js::AutoMaybeTouchDeadZones agc(parentObj);
 
-    bool isWN = IS_WN_REFLECTOR(obj);
-
-    
-    
-    
-    
-    
-    
-    if (MOZ_UNLIKELY(JS_IsDeadWrapper(parentObj))) {
-        if (isWN) {
-            XPCWrappedNative *wn =
-                static_cast<XPCWrappedNative*>(js::GetObjectPrivate(obj));
-            rv = wn->GetScriptableInfo()->GetCallback()->PreCreate(wn->GetIdentityObject(), cx,
-                                                                   wn->GetScope()->GetGlobalJSObject(),
-                                                                   parentObj.address());
-            NS_ENSURE_SUCCESS(rv, rv);
-        } else {
-            MOZ_ASSERT(IsDOMObject(obj));
-            const DOMClass* domClass = GetDOMClass(obj);
-            parentObj = domClass->mGetParent(cx, obj);
-        }
-    }
-
     
     rv = RescueOrphans(parentObj);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1325,7 +1302,7 @@ RescueOrphans(HandleObject obj)
         return NS_OK;
 
     
-    if (isWN) {
+    if (IS_WN_REFLECTOR(obj)) {
         RootedObject realParent(cx, js::UncheckedUnwrap(parentObj));
         XPCWrappedNative *wn =
             static_cast<XPCWrappedNative*>(js::GetObjectPrivate(obj));
