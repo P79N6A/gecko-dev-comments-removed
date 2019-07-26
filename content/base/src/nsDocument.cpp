@@ -6704,6 +6704,14 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
         int32_t idx = parent->IndexOf(adoptedNode);
         MOZ_ASSERT(idx >= 0);
         parent->RemoveChildAt(idx, true);
+      } else {
+        MOZ_ASSERT(!adoptedNode->IsInDoc());
+
+        
+        
+        
+        
+        adoptedNode->AsContent()->SetXBLBinding(nullptr);
       }
 
       break;
