@@ -3,24 +3,14 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
-
-const CWD = do_get_cwd();
-function checkOS(os) {
-  const nsILocalFile_ = "nsILocalFile" + os;
-  return nsILocalFile_ in Components.interfaces &&
-         CWD instanceof Components.interfaces[nsILocalFile_];
-}
-const isMac = checkOS("Mac");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 var DELIM = ":";
 if ("@mozilla.org/windows-registry-key;1" in Components.classes)
   DELIM = "|";
 
-var gProfD = do_get_profile();
+var gProfD = do_get_profile_startup();
 var gDirSvc = Cc["@mozilla.org/file/directory_service;1"].
              getService(Ci.nsIProperties);
 
@@ -49,13 +39,16 @@ function write_registry(version, info) {
 }
 
 function run_test() {
+  var plugin = get_test_plugintag();
+  do_check_true(plugin == null);
+
   var file = get_test_plugin();
   if (!file)
     do_throw("Plugin library not found");
 
   
   var registry = "";
-  if (isMac) {
+  if (gIsOSX) {
     registry += file.leafName + DELIM + "$\n";
     registry += file.path + DELIM + "$\n";
   } else {
@@ -74,7 +67,10 @@ function run_test() {
               DELIM + "tst" + DELIM + "$\n";
   write_registry("0.9", registry);
 
-  var plugin = get_test_plugintag();
+  
+  do_get_profile();
+
+  plugin = get_test_plugintag();
   if (!plugin)
     do_throw("Plugin tag not found");
 
@@ -88,4 +84,7 @@ function run_test() {
   
   do_check_true(plugin.disabled);
   do_check_false(plugin.blocklisted);
+
+  
+  Services.prefs.clearUserPref("plugin.importedState");
 }

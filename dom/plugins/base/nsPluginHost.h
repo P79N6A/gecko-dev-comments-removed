@@ -152,7 +152,7 @@ public:
   
   
   nsresult UpdatePluginInfo(nsPluginTag* aPluginTag);
-  
+
   
   
   static bool IsTypeWhitelisted(const char *aType);

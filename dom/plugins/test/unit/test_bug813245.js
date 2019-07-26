@@ -3,17 +3,7 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
-
-const CWD = do_get_cwd();
-function checkOS(os) {
-  const nsILocalFile_ = "nsILocalFile" + os;
-  return nsILocalFile_ in Components.interfaces &&
-         CWD instanceof Components.interfaces[nsILocalFile_];
-}
-const isMac = checkOS("Mac");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 var DELIM = ":";
@@ -64,7 +54,7 @@ function run_test() {
   
   let registry = "";
 
-  if (isMac) {
+  if (gIsOSX) {
     registry += file.leafName + DELIM + "$\n";
     registry += file.path + DELIM + "$\n";
   } else {
@@ -94,4 +84,7 @@ function run_test() {
   
   
   do_check_eq(plugin.version, "1.0.0.0");
+
+  
+  Services.prefs.clearUserPref("plugin.importedState");
 }
