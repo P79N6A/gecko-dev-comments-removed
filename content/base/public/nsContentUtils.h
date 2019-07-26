@@ -1295,8 +1295,9 @@ public:
 #ifdef DEBUG
   static bool AreJSObjectsHeld(void* aScriptObjectHolder); 
 
-  static void CheckCCWrapperTraversal(nsISupports* aScriptObjectHolder,
-                                      nsWrapperCache* aCache);
+  static void CheckCCWrapperTraversal(void* aScriptObjectHolder,
+                                      nsWrapperCache* aCache,
+                                      nsScriptObjectTracer* aTracer);
 #endif
 
   static void PreserveWrapper(nsISupports* aScriptObjectHolder,
@@ -1309,15 +1310,23 @@ public:
       MOZ_ASSERT(ccISupports);
       nsXPCOMCycleCollectionParticipant* participant;
       CallQueryInterface(ccISupports, &participant);
-      HoldJSObjects(ccISupports, participant);
+      PreserveWrapper(ccISupports, aCache, participant);
+    }
+  }
+  static void PreserveWrapper(void* aScriptObjectHolder,
+                              nsWrapperCache* aCache,
+                              nsScriptObjectTracer* aTracer)
+  {
+    if (!aCache->PreservingWrapper()) {
+      HoldJSObjects(aScriptObjectHolder, aTracer);
       aCache->SetPreservingWrapper(true);
 #ifdef DEBUG
       
-      CheckCCWrapperTraversal(ccISupports, aCache);
+      CheckCCWrapperTraversal(aScriptObjectHolder, aCache, aTracer);
 #endif
     }
   }
-  static void ReleaseWrapper(nsISupports* aScriptObjectHolder,
+  static void ReleaseWrapper(void* aScriptObjectHolder,
                              nsWrapperCache* aCache);
   static void TraceWrapper(nsWrapperCache* aCache, TraceCallback aCallback,
                            void *aClosure);
@@ -2125,18 +2134,6 @@ public:
 
   static bool GetSVGGlyphExtents(Element *aElement, const gfxMatrix& aSVGToAppSpace,
                                  gfxRect *aResult);
-
-  
-
-
-
-
-
-
-
-  static bool InternalIsSupported(nsISupports* aObject,
-                                  const nsAString& aFeature,
-                                  const nsAString& aVersion);
 
 private:
   static bool InitializeEventTable();
