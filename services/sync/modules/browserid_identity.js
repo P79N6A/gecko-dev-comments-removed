@@ -241,6 +241,7 @@ this.BrowserIDManager.prototype = {
 
 
 
+
   set account(value) {
     throw "account setter should be not used in BrowserIDManager";
   },
