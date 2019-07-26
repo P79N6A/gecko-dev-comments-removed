@@ -628,12 +628,19 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
 
         StableCharPtr chars = src->chars();
         bool exprBody = fun->isExprClosure();
-        
-        
-        bool funCon = script->sourceStart == 0 && script->scriptSource()->argumentsNotIncluded();
 
         
         
+        
+        
+        bool funCon = !fun->isArrow() &&
+                      script->sourceStart == 0 &&
+                      script->sourceEnd == script->scriptSource()->length() &&
+                      script->scriptSource()->argumentsNotIncluded();
+
+        
+        
+        JS_ASSERT_IF(funCon, !fun->isArrow());
         JS_ASSERT_IF(funCon, !exprBody);
         JS_ASSERT_IF(!funCon && !fun->isArrow(), src->length() > 0 && chars[0] == '(');
 
