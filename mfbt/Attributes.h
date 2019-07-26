@@ -118,10 +118,17 @@
 
 
 
+
+
+
+
+
 #ifdef MOZ_HAVE_CXX11_CONSTEXPR
 #  define MOZ_CONSTEXPR         constexpr
+#  define MOZ_CONSTEXPR_VAR     constexpr
 #else
 #  define MOZ_CONSTEXPR
+#  define MOZ_CONSTEXPR_VAR     const
 #endif
 
 
