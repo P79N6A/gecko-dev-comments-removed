@@ -2643,12 +2643,6 @@ nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
       nsIScrollableFrame* frameToScroll =
         lastScrollFrame->GetScrollTargetFrame();
       if (frameToScroll) {
-        nsIFrame* activeRootFrame = nsLayoutUtils::GetActiveScrolledRootFor(
-                                      lastScrollFrame, nullptr);
-        if (!nsLayoutUtils::GetCrossDocParentFrame(activeRootFrame)) {
-          
-          aEvent->viewPortIsScrollTargetParent = true;
-        }
         return frameToScroll;
       }
     }
@@ -2714,14 +2708,7 @@ nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
       aTargetFrame->PresContext()->FrameManager()->GetRootFrame());
   aOptions =
     static_cast<ComputeScrollTargetOptions>(aOptions & ~START_FROM_PARENT);
-  if (newFrame) {
-    return ComputeScrollTarget(newFrame, aEvent, aOptions);
-  }
-
-  
-  
-  aEvent->viewPortIsScrollTargetParent = true;
-  return nullptr;
+  return newFrame ? ComputeScrollTarget(newFrame, aEvent, aOptions) : nullptr;
 }
 
 nsSize

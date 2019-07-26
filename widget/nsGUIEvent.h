@@ -1345,8 +1345,7 @@ public:
     deltaMode(nsIDOMWheelEvent::DOM_DELTA_PIXEL),
     customizedByUserPrefs(false), isMomentum(false), isPixelOnlyDevice(false),
     lineOrPageDeltaX(0), lineOrPageDeltaY(0), scrollType(SCROLL_DEFAULT),
-    overflowDeltaX(0.0), overflowDeltaY(0.0),
-    viewPortIsScrollTargetParent(false)
+    overflowDeltaX(0.0), overflowDeltaY(0.0)
   {
   }
 
@@ -1425,11 +1424,6 @@ public:
   
   double overflowDeltaX;
   double overflowDeltaY;
-
-  
-  
-  
-  bool viewPortIsScrollTargetParent;
 };
 
 } 
