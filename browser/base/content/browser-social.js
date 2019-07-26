@@ -8,8 +8,6 @@ let SocialUI,
     SocialFlyout,
     SocialMarks,
     SocialShare,
-    SocialMenu,
-    SocialToolbar,
     SocialSidebar,
     SocialStatus;
 
@@ -70,6 +68,11 @@ SocialUI = {
     gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
     document.getElementById("PanelUI-popup").addEventListener("popupshown", SocialMarks.updatePanelButtons, true);
 
+    
+    
+    document.getElementById("viewSidebarMenu").addEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
+    document.getElementById("social-statusarea-popup").addEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
+
     if (!Social.initialized) {
       Social.init();
     } else if (Social.providers.length > 0) {
@@ -95,6 +98,8 @@ SocialUI = {
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
 
     document.getElementById("PanelUI-popup").removeEventListener("popupshown", SocialMarks.updatePanelButtons, true);
+    document.getElementById("viewSidebarMenu").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
+    document.getElementById("social-statusarea-popup").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
   },
 
   _matchesCurrentProvider: function (origin) {
@@ -129,22 +134,19 @@ SocialUI = {
           
           
           this._updateActiveUI();
-          this._updateMenuItems();
 
           SocialFlyout.unload();
           SocialChatBar.update();
           SocialShare.update();
           SocialSidebar.update();
-          SocialToolbar.update();
           SocialStatus.populateToolbarPalette();
           SocialMarks.populateToolbarPalette();
-          SocialMenu.populate();
           break;
         case "social:providers-changed":
           
           this._updateActiveUI();
           
-          SocialToolbar.populateProviderMenus();
+          SocialSidebar.clearProviderMenus();
           SocialShare.populateProviderMenu();
           SocialStatus.populateToolbarPalette();
           SocialMarks.populateToolbarPalette();
@@ -153,21 +155,12 @@ SocialUI = {
         
         case "social:ambient-notification-changed":
           SocialStatus.updateButton(data);
-          if (this._matchesCurrentProvider(data)) {
-            SocialToolbar.updateButton();
-            SocialMenu.populate();
-          }
           break;
         case "social:profile-changed":
           
           
           
           SocialStatus.updateButton(data);
-          if (this._matchesCurrentProvider(data)) {
-            SocialToolbar.updateProvider();
-          }
-          
-          SocialToolbar.populateProviderMenus();
           break;
         case "social:frameworker-error":
           if (this.enabled && Social.provider.origin == data) {
@@ -179,7 +172,7 @@ SocialUI = {
           if (data == "social.sidebar.open") {
             SocialSidebar.update();
           } else if (data == "social.toast-notifications.enabled") {
-            SocialToolbar.updateButton();
+            SocialSidebar.updateToggleNotifications();
           }
           break;
       }
@@ -189,28 +182,11 @@ SocialUI = {
     }
   },
 
-  nonBrowserWindowInit: function SocialUI_nonBrowserInit() {
-    
-    document.getElementById("menu_socialAmbientMenu").hidden = true;
-  },
-
-  
-  showProfile: function SocialUI_showProfile() {
-    if (Social.provider.haveLoggedInUser())
-      openUILinkIn(Social.provider.profile.profileURL, "tab");
-    else {
-      
-      openUILinkIn(Social.provider.origin, "tab");
-    }
-  },
-
   _updateActiveUI: function SocialUI_updateActiveUI() {
     
     
     let enabled = Social.providers.length > 0 && !this._chromeless &&
                   !PrivateBrowsingUtils.isWindowPrivate(window);
-    let broadcaster = document.getElementById("socialActiveBroadcaster");
-    broadcaster.hidden = !enabled;
 
     let toggleCommand = document.getElementById("Social:Toggle");
     toggleCommand.setAttribute("hidden", enabled ? "false" : "true");
@@ -236,15 +212,6 @@ SocialUI = {
       toggleCommand.setAttribute("label", label);
       toggleCommand.setAttribute("accesskey", accesskey);
     }
-  },
-
-  _updateMenuItems: function () {
-    let provider = Social.provider || Social.defaultProvider;
-    if (!provider)
-      return;
-    
-    for (let id of ["menu_socialSidebar", "menu_socialAmbientMenu"])
-      document.getElementById(id).setAttribute("label", provider.name);
   },
 
   
@@ -333,9 +300,10 @@ SocialUI = {
 
       
       notificationPanel.hidden = false;
-      setTimeout(function () {
-        notificationPanel.openPopup(SocialToolbar.button, "bottomcenter topright");
-      }, 0);
+      
+      
+      
+      
     });
   },
 
@@ -804,398 +772,12 @@ SocialShare = {
   }
 };
 
-SocialMenu = {
-  populate: function SocialMenu_populate() {
-    let submenu = document.getElementById("menu_social-statusarea-popup");
-    let ambientMenuItems = submenu.getElementsByClassName("ambient-menuitem");
-    while (ambientMenuItems.length)
-      submenu.removeChild(ambientMenuItems.item(0));
-
-    let separator = document.getElementById("socialAmbientMenuSeparator");
-    separator.hidden = true;
-    let provider = SocialUI.enabled ? Social.provider : null;
-    if (!provider)
-      return;
-
-    let iconNames = Object.keys(provider.ambientNotificationIcons);
-    for (let name of iconNames) {
-      let icon = provider.ambientNotificationIcons[name];
-      if (!icon.label || !icon.menuURL)
-        continue;
-      separator.hidden = false;
-      let menuitem = document.createElement("menuitem");
-      menuitem.setAttribute("label", icon.label);
-      menuitem.classList.add("ambient-menuitem");
-      menuitem.addEventListener("command", function() {
-        openUILinkIn(icon.menuURL, "tab");
-      }, false);
-      submenu.insertBefore(menuitem, separator);
-    }
-  }
-};
-
-
-SocialToolbar = {
-  
-  
-  get _dynamicResizer() {
-    delete this._dynamicResizer;
-    this._dynamicResizer = new DynamicResizeWatcher();
-    return this._dynamicResizer;
-  },
-
-  update: function() {
-    this._updateButtonHiddenState();
-    this.updateProvider();
-    this.populateProviderMenus();
-  },
-
-  
-  updateProvider: function () {
-    let provider = Social.provider;
-    
-    
-    
-    
-    
-    if (provider && (!provider.statusURL || !Social.allowMultipleWorkers)) {
-      this.button.setAttribute("label", provider.name);
-      this.button.setAttribute("tooltiptext", provider.name);
-      this.button.style.listStyleImage = "url(" + provider.iconURL + ")";
-    } else {
-      this.button.setAttribute("label", gNavigatorBundle.getString("service.toolbarbutton.label"));
-      this.button.setAttribute("tooltiptext", gNavigatorBundle.getString("service.toolbarbutton.tooltiptext"));
-      this.button.style.removeProperty("list-style-image");
-    }
-    if (provider)
-      this.updateProfile();
-    this.updateButton();
-  },
-
-  get button() {
-    return document.getElementById("social-provider-button");
-  },
-
-  
-  
-  _updateButtonHiddenState: function SocialToolbar_updateButtonHiddenState() {
-    let socialEnabled = SocialUI.enabled;
-    for (let className of ["social-statusarea-separator", "social-statusarea-user"]) {
-      for (let element of document.getElementsByClassName(className))
-        element.hidden = !socialEnabled;
-    }
-    let toggleNotificationsCommand = document.getElementById("Social:ToggleNotifications");
-    toggleNotificationsCommand.setAttribute("hidden", !socialEnabled);
-
-    
-    
-    
-    
-    let tbi = document.getElementById("social-provider-button");
-    if (tbi) {
-      
-      let next = tbi.nextSibling;
-      let currentOrigin = Social.provider ? Social.provider.origin : null;
-
-      while (next) {
-        let button = next;
-        next = next.nextSibling;
-        
-        let frameId = button.getAttribute("notificationFrameId");
-        let frame = document.getElementById(frameId);
-        if (!socialEnabled || frame.getAttribute("origin") != currentOrigin) {
-          SharedFrame.forgetGroup(frame.id);
-          frame.parentNode.removeChild(frame);
-          button.parentNode.removeChild(button);
-        }
-      }
-    }
-  },
-
-  updateProfile: function SocialToolbar_updateProfile() {
-    
-    
-    
-    if (!Social.provider)
-      return;
-    let profile = Social.provider.profile || {};
-    let userPortrait = profile.portrait;
-
-    let userDetailsBroadcaster = document.getElementById("socialBroadcaster_userDetails");
-    let loggedInStatusValue = profile.userName ||
-                              userDetailsBroadcaster.getAttribute("notLoggedInLabel");
-
-    
-    
-    if (userPortrait) {
-      userDetailsBroadcaster.setAttribute("src", userPortrait);
-      userDetailsBroadcaster.setAttribute("image", userPortrait);
-    } else {
-      userDetailsBroadcaster.removeAttribute("src");
-      userDetailsBroadcaster.removeAttribute("image");
-    }
-
-    userDetailsBroadcaster.setAttribute("value", loggedInStatusValue);
-    userDetailsBroadcaster.setAttribute("label", loggedInStatusValue);
-  },
-
-  updateButton: function SocialToolbar_updateButton() {
-    this._updateButtonHiddenState();
-    let panel = document.getElementById("social-notification-panel");
-    panel.hidden = !SocialUI.enabled;
-
-    let command = document.getElementById("Social:ToggleNotifications");
-    command.setAttribute("checked", Services.prefs.getBoolPref("social.toast-notifications.enabled"));
-
-    const CACHE_PREF_NAME = "social.cached.ambientNotificationIcons";
-    
-    
-    if (!SocialUI.enabled ||
-        (!Social.provider.haveLoggedInUser() && Social.provider.profile !== undefined)) {
-      
-      
-      
-      
-      Services.prefs.clearUserPref(CACHE_PREF_NAME);
-      return;
-    }
-
-    
-    
-    
-    
-    
-    if (Social.provider.statusURL && Social.allowMultipleWorkers)
-      return;
-
-    let icons = Social.provider.ambientNotificationIcons;
-    let iconNames = Object.keys(icons);
-
-    if (Social.provider.profile === undefined) {
-      
-      
-      let cached;
-      try {
-        cached = JSON.parse(Services.prefs.getComplexValue(CACHE_PREF_NAME,
-                                                           Ci.nsISupportsString).data);
-      } catch (ex) {}
-      if (cached && cached.provider == Social.provider.origin && cached.data) {
-        icons = cached.data;
-        iconNames = Object.keys(icons);
-        
-        for each(let name in iconNames) {
-          icons[name].counter = '';
-        }
-      }
-    } else {
-      
-      
-      let str = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
-      str.data = JSON.stringify({provider: Social.provider.origin, data: icons});
-      Services.prefs.setComplexValue(CACHE_PREF_NAME,
-                                     Ci.nsISupportsString,
-                                     str);
-    }
-
-    let toolbarButtons = document.createDocumentFragment();
-
-    let createdFrames = [];
-
-    for each(let name in iconNames) {
-      let icon = icons[name];
-
-      let notificationFrameId = "social-status-" + icon.name;
-      let notificationFrame = document.getElementById(notificationFrameId);
-
-      if (!notificationFrame) {
-        notificationFrame = SharedFrame.createFrame(
-          notificationFrameId, 
-          panel, 
-          {
-            "type": "content",
-            "mozbrowser": "true",
-            "class": "social-panel-frame",
-            "id": notificationFrameId,
-            "tooltip": "aHTMLTooltip",
-
-            
-            
-            "style": "width: " + PANEL_MIN_WIDTH + "px;",
-
-            "origin": Social.provider.origin,
-            "src": icon.contentPanel
-          }
-        );
-
-        createdFrames.push(notificationFrame);
-      } else {
-        notificationFrame.setAttribute("origin", Social.provider.origin);
-        SharedFrame.updateURL(notificationFrameId, icon.contentPanel);
-      }
-
-      let toolbarButtonId = "social-notification-icon-" + icon.name;
-      let toolbarButton = document.getElementById(toolbarButtonId);
-      if (!toolbarButton) {
-        toolbarButton = document.createElement("toolbarbutton");
-        toolbarButton.setAttribute("type", "badged");
-        toolbarButton.setAttribute("class", "toolbarbutton-1 chromeclass-toolbar-additional");
-        toolbarButton.setAttribute("id", toolbarButtonId);
-        toolbarButton.setAttribute("notificationFrameId", notificationFrameId);
-        toolbarButton.addEventListener("mousedown", function (event) {
-          if (event.button == 0 && panel.state == "closed")
-            SocialToolbar.showAmbientPopup(toolbarButton);
-        });
-
-        toolbarButtons.appendChild(toolbarButton);
-      }
-
-      toolbarButton.style.listStyleImage = "url(" + icon.iconURL + ")";
-      toolbarButton.setAttribute("label", icon.label);
-      toolbarButton.setAttribute("tooltiptext", icon.label);
-
-      let badge = icon.counter || "";
-      toolbarButton.setAttribute("badge", badge);
-      let ariaLabel = icon.label;
-      
-      if (badge)
-        ariaLabel = gNavigatorBundle.getFormattedString("social.aria.toolbarButtonBadgeText",
-                                                        [ariaLabel, badge]);
-      toolbarButton.setAttribute("aria-label", ariaLabel);
-    }
-    let socialToolbarItem = document.getElementById("social-toolbar-item");
-    socialToolbarItem.appendChild(toolbarButtons);
-
-    for (let frame of createdFrames) {
-      if (frame.socialErrorListener)
-        frame.socialErrorListener.remove();
-      if (frame.docShell) {
-        frame.docShell.isActive = false;
-        Social.setErrorListener(frame, this.setPanelErrorMessage.bind(this));
-      }
-    }
-  },
-
-  showAmbientPopup: function SocialToolbar_showAmbientPopup(aToolbarButton) {
-    
-    SocialFlyout.panel.hidePopup();
-
-    let panel = document.getElementById("social-notification-panel");
-    let notificationFrameId = aToolbarButton.getAttribute("notificationFrameId");
-    let notificationFrame = document.getElementById(notificationFrameId);
-
-    let wasAlive = SharedFrame.isGroupAlive(notificationFrameId);
-    SharedFrame.setOwner(notificationFrameId, notificationFrame);
-
-    
-    
-    let frameIter = panel.firstElementChild;
-    while (frameIter) {
-      frameIter.collapsed = (frameIter != notificationFrame);
-      frameIter = frameIter.nextElementSibling;
-    }
-
-    function dispatchPanelEvent(name) {
-      let evt = notificationFrame.contentDocument.createEvent("CustomEvent");
-      evt.initCustomEvent(name, true, true, {});
-      notificationFrame.contentDocument.documentElement.dispatchEvent(evt);
-    }
-
-    let dynamicResizer = this._dynamicResizer;
-    panel.addEventListener("popuphidden", function onpopuphiding() {
-      panel.removeEventListener("popuphidden", onpopuphiding);
-      aToolbarButton.removeAttribute("open");
-      aToolbarButton.parentNode.removeAttribute("open");
-      dynamicResizer.stop();
-      notificationFrame.docShell.isActive = false;
-      dispatchPanelEvent("socialFrameHide");
-    });
-
-    panel.addEventListener("popupshown", function onpopupshown() {
-      panel.removeEventListener("popupshown", onpopupshown);
-      
-      
-      
-      
-      aToolbarButton.setAttribute("open", "true");
-      aToolbarButton.parentNode.setAttribute("open", "true");
-      notificationFrame.docShell.isActive = true;
-      notificationFrame.docShell.isAppTab = true;
-      if (notificationFrame.contentDocument.readyState == "complete" && wasAlive) {
-        dynamicResizer.start(panel, notificationFrame);
-        dispatchPanelEvent("socialFrameShow");
-      } else {
-        
-        notificationFrame.addEventListener("load", function panelBrowserOnload(e) {
-          notificationFrame.removeEventListener("load", panelBrowserOnload, true);
-          dynamicResizer.start(panel, notificationFrame);
-          setTimeout(function() {
-            dispatchPanelEvent("socialFrameShow");
-          }, 0);
-        }, true);
-      }
-    });
-
-    let navBar = document.getElementById("nav-bar");
-    let anchor = document.getAnonymousElementByAttribute(aToolbarButton, "class", "toolbarbutton-badge-container");
-    
-    
-    setTimeout(function() {
-      panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
-    }, 0);
-  },
-
-  setPanelErrorMessage: function SocialToolbar_setPanelErrorMessage(aNotificationFrame) {
-    if (!aNotificationFrame)
-      return;
-
-    let src = aNotificationFrame.getAttribute("src");
-    aNotificationFrame.removeAttribute("src");
-    aNotificationFrame.webNavigation.loadURI("about:socialerror?mode=tryAgainOnly&url=" +
-                                             encodeURIComponent(src), null, null, null, null);
-    let panel = aNotificationFrame.parentNode;
-    sizeSocialPanelToContent(panel, aNotificationFrame);
-  },
-
-  populateProviderMenus: function SocialToolbar_renderProviderMenus() {
-    let providerMenuSeps = document.getElementsByClassName("social-provider-menu");
-    for (let providerMenuSep of providerMenuSeps)
-      this._populateProviderMenu(providerMenuSep);
-  },
-
-  _populateProviderMenu: function SocialToolbar_renderProviderMenu(providerMenuSep) {
-    let menu = providerMenuSep.parentNode;
-    
-    
-    while (providerMenuSep.previousSibling.nodeName == "menuitem") {
-      menu.removeChild(providerMenuSep.previousSibling);
-    }
-    
-    let providers = [p for (p of Social.providers) if (p.workerURL || p.sidebarURL)];
-    if (providers.length < 2) {
-      providerMenuSep.hidden = true;
-      return;
-    }
-    for (let provider of providers) {
-      let menuitem = document.createElement("menuitem");
-      menuitem.className = "menuitem-iconic social-provider-menuitem";
-      menuitem.setAttribute("image", provider.iconURL);
-      menuitem.setAttribute("label", provider.name);
-      menuitem.setAttribute("origin", provider.origin);
-      if (provider == Social.provider) {
-        menuitem.setAttribute("checked", "true");
-      } else {
-        menuitem.setAttribute("oncommand", "Social.setProviderByOrigin(this.getAttribute('origin'));");
-      }
-      menu.insertBefore(menuitem, providerMenuSep);
-    }
-    providerMenuSep.hidden = false;
-  }
-}
-
 SocialSidebar = {
   
   get canShow() {
-    return SocialUI.enabled && Social.provider.sidebarURL;
+    if (PrivateBrowsingUtils.isWindowPrivate(window))
+      return false;
+    return [p for (p of Social.providers) if (p.enabled && p.sidebarURL)].length > 0;
   },
 
   
@@ -1215,7 +797,15 @@ SocialSidebar = {
     sbrowser.contentDocument.documentElement.dispatchEvent(evt);
   },
 
+  updateToggleNotifications: function() {
+    let command = document.getElementById("Social:ToggleNotifications");
+    command.setAttribute("checked", Services.prefs.getBoolPref("social.toast-notifications.enabled"));
+    command.setAttribute("hidden", !SocialUI.enabled);
+  },
+
   update: function SocialSidebar_update() {
+    this.updateToggleNotifications();
+    this._updateHeader();
     clearTimeout(this._unloadTimeoutId);
     
     let command = document.getElementById("Social:ToggleSidebar");
@@ -1253,6 +843,9 @@ SocialSidebar = {
 
       
       if (sbrowser.getAttribute("src") != Social.provider.sidebarURL) {
+        
+        
+        sbrowser.docShell.createAboutBlankContentViewer(null);
         Social.setErrorListener(sbrowser, this.setSidebarErrorMessage.bind(this));
         
         sbrowser.docShell.isAppTab = true;
@@ -1262,16 +855,19 @@ SocialSidebar = {
 
       
       if (sbrowser.contentDocument.readyState != "complete") {
+        document.getElementById("social-sidebar-button").setAttribute("loading", "true");
         sbrowser.addEventListener("load", SocialSidebar._loadListener, true);
       } else {
         this.setSidebarVisibilityState(true);
       }
     }
+    this._updateCheckedMenuItems(this.opened && this.provider ? this.provider.origin : null);
   },
 
   _loadListener: function SocialSidebar_loadListener() {
     let sbrowser = document.getElementById("social-sidebar-browser");
     sbrowser.removeEventListener("load", SocialSidebar._loadListener, true);
+    document.getElementById("social-sidebar-button").removeAttribute("loading");
     SocialSidebar.setSidebarVisibilityState(true);
   },
 
@@ -1301,6 +897,108 @@ SocialSidebar = {
       let url = encodeURIComponent(Social.provider.sidebarURL);
       sbrowser.loadURI("about:socialerror?mode=tryAgain&url=" + url, null, null);
     }
+  },
+
+  
+  get provider() {
+    return Social.provider;
+  },
+
+  setProvider: function(origin) {
+    Social.setProviderByOrigin(origin);
+    this._updateHeader();
+    this._updateCheckedMenuItems(origin);
+  },
+
+  _updateHeader: function() {
+    let provider = this.provider;
+    let image, title;
+    if (provider) {
+      image = "url(" + (provider.icon32URL || provider.iconURL) + ")";
+      title = provider.name;
+    }
+    document.getElementById("social-sidebar-favico").style.listStyleImage = image;
+    document.getElementById("social-sidebar-title").value = title;
+  },
+
+  _updateCheckedMenuItems: function(origin) {
+    
+    let menuitems = document.getElementsByClassName("social-provider-menuitem");
+    for (let mi of menuitems) {
+      if (origin && mi.getAttribute("origin") == origin) {
+        mi.setAttribute("checked", "true");
+        mi.setAttribute("oncommand", "SocialSidebar.hide();");
+      } else if (mi.getAttribute("checked")) {
+        mi.removeAttribute("checked");
+        mi.setAttribute("oncommand", "SocialSidebar.show(this.getAttribute('origin'));");
+      }
+    }
+  },
+
+  show: function(origin) {
+    
+    this.setProvider(origin);
+    Services.prefs.setBoolPref("social.sidebar.open", true);
+  },
+
+  hide: function() {
+    Services.prefs.setBoolPref("social.sidebar.open", false);
+    this._updateCheckedMenuItems();
+  },
+
+  populateSidebarMenu: function(event) {
+    
+    
+    
+    
+    let popup = event.target;
+    let providerMenuSeps = popup.getElementsByClassName("social-provider-menu");
+    if (providerMenuSeps[0].previousSibling.nodeName == "menuseparator")
+      SocialSidebar._populateProviderMenu(providerMenuSeps[0]);
+  },
+
+  clearProviderMenus: function() {
+    
+    
+    let providerMenuSeps = document.getElementsByClassName("social-provider-menu");
+    for (let providerMenuSep of providerMenuSeps) {
+      while (providerMenuSep.previousSibling.nodeName == "menuitem") {
+        let menu = providerMenuSep.parentNode;
+        menu.removeChild(providerMenuSep.previousSibling);
+      }
+    }
+  },
+
+  _populateProviderMenu: function(providerMenuSep) {
+    let menu = providerMenuSep.parentNode;
+    
+    
+    while (providerMenuSep.previousSibling.nodeName == "menuitem") {
+      menu.removeChild(providerMenuSep.previousSibling);
+    }
+    
+    let providers = [p for (p of Social.providers) if (p.sidebarURL)];
+    if (providers.length < 2 && menu.id != "viewSidebarMenu") {
+      providerMenuSep.hidden = true;
+      return;
+    }
+    let topSep = providerMenuSep.previousSibling;
+    for (let provider of providers) {
+      let menuitem = document.createElement("menuitem");
+      menuitem.className = "menuitem-iconic social-provider-menuitem";
+      menuitem.setAttribute("image", provider.iconURL);
+      menuitem.setAttribute("label", provider.name);
+      menuitem.setAttribute("origin", provider.origin);
+      if (this.opened && provider == this.provider) {
+        menuitem.setAttribute("checked", "true");
+        menuitem.setAttribute("oncommand", "SocialSidebar.hide();");
+      } else {
+        menuitem.setAttribute("oncommand", "SocialSidebar.show(this.getAttribute('origin'));");
+      }
+      menu.insertBefore(menuitem, providerMenuSep);
+    }
+    topSep.hidden = topSep.nextSibling == providerMenuSep;
+    providerMenuSep.hidden = !providerMenuSep.nextSibling;
   }
 }
 
