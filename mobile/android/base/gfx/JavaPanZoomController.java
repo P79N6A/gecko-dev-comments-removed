@@ -129,6 +129,8 @@ class JavaPanZoomController
     private float mAutonavZoomDelta;
     
     private AxisLockMode mMode;
+    
+    private boolean mMediumPress;
 
     public JavaPanZoomController(PanZoomTarget target, View view, EventDispatcher eventDispatcher) {
         mTarget = target;
@@ -1233,6 +1235,23 @@ class JavaPanZoomController
     }
 
     @Override
+    public boolean onDown(MotionEvent motionEvent) {
+        mMediumPress = false;
+        return false;
+    }
+
+    @Override
+    public void onShowPress(MotionEvent motionEvent) {
+        
+        
+        
+        
+        
+        
+        mMediumPress = true;
+    }
+
+    @Override
     public void onLongPress(MotionEvent motionEvent) {
         sendPointToGecko("Gesture:LongPress", motionEvent);
     }
@@ -1240,7 +1259,9 @@ class JavaPanZoomController
     @Override
     public boolean onSingleTapUp(MotionEvent motionEvent) {
         
-        if (!mTarget.getZoomConstraints().getAllowZoom()) {
+        
+        
+        if (mMediumPress || !mTarget.getZoomConstraints().getAllowZoom()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         
