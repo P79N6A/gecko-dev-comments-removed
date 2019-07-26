@@ -361,6 +361,40 @@ struct ComponentsInterfaceShimEntry {
 #define DEFINE_SHIM(name) \
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOM ## name, name)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
 {
   DEFINE_SHIM(AnimationEvent),
