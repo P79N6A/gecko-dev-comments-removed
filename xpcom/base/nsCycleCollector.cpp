@@ -1178,7 +1178,8 @@ private:
 
     void BeginCollection(ccType aCCType, nsICycleCollectorListener *aManualListener);
     void MarkRoots(SliceBudget &aBudget);
-    void ScanRoots();
+    void ScanRoots(bool aFullySynchGraphBuild);
+    void ScanIncrementalRoots();
     void ScanWeakMaps();
 
     
@@ -2303,6 +2304,16 @@ nsCycleCollector::ForgetSkippable(bool aRemoveChildlessNodes,
                                   bool aAsyncSnowWhiteFreeing)
 {
     CheckThreadSafety();
+
+    
+    
+    
+    
+    
+    if (mIncrementalPhase != IdlePhase) {
+        return;
+    }
+
     if (mJSRuntime) {
         mJSRuntime->PrepareForForgetSkippable();
     }
@@ -2474,28 +2485,138 @@ nsCycleCollector::ScanWeakMaps()
     }
 }
 
+
+class PurpleScanBlackVisitor
+{
+public:
+    PurpleScanBlackVisitor(GCGraph &aGraph, uint32_t &aCount, bool &aFailed)
+        : mGraph(aGraph), mCount(aCount), mFailed(aFailed)
+    {
+    }
+
+    void
+    Visit(nsPurpleBuffer &aBuffer, nsPurpleBufferEntry *aEntry)
+    {
+        MOZ_ASSERT(aEntry->mObject, "Entries with null mObject shouldn't be in the purple buffer.");
+        MOZ_ASSERT(aEntry->mRefCnt->get() != 0, "Snow-white objects shouldn't be in the purple buffer.");
+
+        void *obj = aEntry->mObject;
+        if (!aEntry->mParticipant) {
+            obj = CanonicalizeXPCOMParticipant(static_cast<nsISupports*>(obj));
+            MOZ_ASSERT(obj, "Don't add objects that don't participate in collection!");
+        }
+
+        PtrInfo *pi = mGraph.FindNode(obj);
+        if (!pi) {
+            return;
+        }
+        MOZ_ASSERT(pi->mParticipant, "No dead objects should be in the purple buffer.");
+        if (pi->mColor == black) {
+            return;
+        }
+        GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mCount, mFailed)).Walk(pi);
+    }
+
+private:
+    GCGraph &mGraph;
+    uint32_t &mCount;
+    bool &mFailed;
+};
+
+
+
+
 void
-nsCycleCollector::ScanRoots()
+nsCycleCollector::ScanIncrementalRoots()
 {
     TimeLog timeLog;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool failed = false;
+    PurpleScanBlackVisitor purpleScanBlackVisitor(mGraph, mWhiteNodeCount, failed);
+    mPurpleBuf.VisitEntries(purpleScanBlackVisitor);
+    timeLog.Checkpoint("ScanIncrementalRoots::fix purple");
+
+    
+    
+    
+    
+    
+    if (mJSRuntime) {
+        nsCycleCollectionParticipant *jsParticipant = mJSRuntime->GCThingParticipant();
+        nsCycleCollectionParticipant *zoneParticipant = mJSRuntime->ZoneParticipant();
+        NodePool::Enumerator etor(mGraph.mNodes);
+
+        while (!etor.IsDone()) {
+            PtrInfo *pi = etor.GetNext();
+
+            if (pi->mRefCount != 0 || pi->mColor == black) {
+                continue;
+            }
+
+            if (pi->mParticipant == jsParticipant) {
+                if (xpc_GCThingIsGrayCCThing(pi->mPointer)) {
+                    continue;
+                }
+            } else if (pi->mParticipant == zoneParticipant) {
+                JS::Zone *zone = static_cast<JS::Zone*>(pi->mPointer);
+                if (js::ZoneGlobalsAreAllGray(zone)) {
+                    continue;
+                }
+            } else {
+                MOZ_ASSERT(false, "Non-JS thing with 0 refcount? Treating as live.");
+            }
+
+            GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount, failed)).Walk(pi);
+        }
+
+        timeLog.Checkpoint("ScanIncrementalRoots::fix JS");
+    }
+
+    if (failed) {
+        NS_ASSERTION(false, "Ran out of memory in ScanIncrementalRoots");
+        CC_TELEMETRY(_OOM, true);
+    }
+}
+
+void
+nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild)
+{
     AutoRestore<bool> ar(mScanInProgress);
     MOZ_ASSERT(!mScanInProgress);
     mScanInProgress = true;
     mWhiteNodeCount = 0;
     MOZ_ASSERT(mIncrementalPhase == ScanAndCollectWhitePhase);
 
+    if (!aFullySynchGraphBuild) {
+        ScanIncrementalRoots();
+    }
+
+    TimeLog timeLog;
+
     
     
     
     bool failed = false;
     GraphWalker<scanVisitor>(scanVisitor(mWhiteNodeCount, failed)).WalkFromRoots(mGraph);
+    timeLog.Checkpoint("ScanRoots::WalkFromRoots");
 
     if (failed) {
         NS_ASSERTION(false, "Ran out of memory in ScanRoots");
         CC_TELEMETRY(_OOM, true);
     }
 
+    
     ScanWeakMaps();
+    timeLog.Checkpoint("ScanRoots::ScanWeakMaps");
 
     if (mListener) {
         mListener->BeginResults();
@@ -2526,9 +2647,8 @@ nsCycleCollector::ScanRoots()
 
         mListener->End();
         mListener = nullptr;
+        timeLog.Checkpoint("ScanRoots::listener");
     }
-
-    timeLog.Checkpoint("ScanRoots()");
 }
 
 
@@ -2891,7 +3011,7 @@ nsCycleCollector::Collect(ccType aCCType,
             
             
             PrintPhase("ScanRoots");
-            ScanRoots();
+            ScanRoots(startedIdle);
             PrintPhase("CollectWhite");
             collectedAny = CollectWhite();
             break;
