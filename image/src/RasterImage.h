@@ -479,6 +479,7 @@ private:
       : scale(aScale)
       , dstLocked(false)
       , done(false)
+      , stopped(false)
     {
       MOZ_ASSERT(!aSrcFrame->GetIsPaletted());
       MOZ_ASSERT(aScale.width > 0 && aScale.height > 0);
@@ -574,6 +575,10 @@ private:
     mozilla::gfx::SurfaceFormat srcFormat;
     bool dstLocked;
     bool done;
+    
+    
+    
+    bool stopped;
   };
 
   enum ScaleStatus
@@ -627,11 +632,13 @@ private:
 
   
   
-  void SetScaleResult(ScaleRequest* request);
+  
+  void ScalingStart(ScaleRequest* request);
 
   
   
-  void SetResultPending(ScaleRequest* request);
+  
+  void ScalingDone(ScaleRequest* request, ScaleStatus status);
 
   
 
@@ -845,6 +852,11 @@ private:
 
   inline bool CanScale(gfxPattern::GraphicsFilter aFilter, gfxSize aScale);
   ScaleResult mScaleResult;
+
+  
+  
+  
+  ScaleRequest* mScaleRequest;
 
   
   enum eShutdownIntent {

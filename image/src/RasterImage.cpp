@@ -179,7 +179,8 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mInDecoder(false),
   mAnimationFinished(false),
   mFinishing(false),
-  mInUpdateImageContainer(false)
+  mInUpdateImageContainer(false),
+  mScaleRequest(nullptr)
 {
   
   mDiscardTrackerNode.img = this;
@@ -2623,9 +2624,13 @@ RasterImage::ScaleRunner::Run()
   
   ScaleRequest* request = mScaleRequest;
 
-  request->done = mozilla::gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
-                                      request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
-                                      request->srcFormat);
+  if (!request->stopped) {
+    request->done = mozilla::gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
+                                        request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
+                                        request->srcFormat);
+  } else {
+    request->done = false;
+  }
 
   
   
@@ -2649,7 +2654,7 @@ RasterImage::ScaleRunner::ScaleRunner(RasterImage* aImage, const gfxSize& aScale
     return;
   }
 
-  aImage->SetResultPending(request);
+  aImage->ScalingStart(request);
 
   mScaleRequest = request;
 }
@@ -2664,27 +2669,27 @@ RasterImage::DrawRunner::Run()
   
   mScaleRequest->ReleaseSurfaces();
 
-  
-  if (mScaleRequest->done) {
-    RasterImage* image = mScaleRequest->weakImage;
-    if (image) {
-      nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(image->mObserver));
-      if (observer) {
-        imgFrame *scaledFrame = mScaleRequest->dstFrame.get();
-        scaledFrame->ImageUpdated(scaledFrame->GetRect());
-        observer->FrameChanged(&mScaleRequest->srcRect);
-      }
+  nsRefPtr<RasterImage> image = mScaleRequest->weakImage.get();
 
-      image->SetScaleResult(mScaleRequest);
+  
+  if (mScaleRequest->done && image) {
+    nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(image->mObserver));
+    if (observer) {
+      imgFrame *scaledFrame = mScaleRequest->dstFrame.get();
+      scaledFrame->ImageUpdated(scaledFrame->GetRect());
+      observer->FrameChanged(&mScaleRequest->srcRect);
     }
   }
 
-  
-  else {
-    RasterImage* image = mScaleRequest->weakImage;
-    if (image) {
-      image->SetScaleResult(nullptr);
+  if (image) {
+    ScaleStatus status;
+    if (mScaleRequest->done) {
+      status = SCALE_DONE;
+    } else {
+      status = SCALE_INVALID;
     }
+
+    image->ScalingDone(mScaleRequest, status);
   }
 
   return NS_OK;
@@ -2720,9 +2725,21 @@ RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
 }
 
 void
-RasterImage::SetScaleResult(ScaleRequest* request)
+RasterImage::ScalingStart(ScaleRequest* request)
 {
-  if (request) {
+  MOZ_ASSERT(request);
+  mScaleResult.scale = request->scale;
+  mScaleResult.status = SCALE_PENDING;
+  mScaleRequest = request;
+}
+
+void
+RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
+{
+  MOZ_ASSERT(status == SCALE_DONE || status == SCALE_INVALID);
+  MOZ_ASSERT(request);
+
+  if (status == SCALE_DONE) {
     MOZ_ASSERT(request->done);
     mScaleResult.status = SCALE_DONE;
     mScaleResult.frame = request->dstFrame;
@@ -2731,14 +2748,13 @@ RasterImage::SetScaleResult(ScaleRequest* request)
     mScaleResult.status = SCALE_INVALID;
     mScaleResult.frame = nullptr;
   }
-}
 
-void
-RasterImage::SetResultPending(ScaleRequest* request)
-{
-  MOZ_ASSERT(request);
-  mScaleResult.scale = request->scale;
-  mScaleResult.status = SCALE_PENDING;
+  
+  
+  
+  if (mScaleRequest == request) {
+    mScaleRequest = nullptr;
+  }
 }
 
 void
@@ -2778,6 +2794,11 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
 
     
     else if (!(mScaleResult.status == SCALE_PENDING && mScaleResult.scale == scale)) {
+      
+      if (mScaleRequest) {
+        mScaleRequest->stopped = true;
+      }
+
       nsRefPtr<ScaleRunner> runner = new ScaleRunner(this, scale, frame);
       if (runner->IsOK()) {
         if (!sScaleWorkerThread) {
