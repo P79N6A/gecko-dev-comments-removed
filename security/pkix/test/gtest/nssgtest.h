@@ -44,7 +44,7 @@ public:
   {
   }
 
-  SECStatusWithPRErrorCode(SECStatus rv)
+  explicit SECStatusWithPRErrorCode(SECStatus rv)
     : mRv(rv)
     , mErrorCode(rv == SECSuccess ? 0 : PR_GetError())
   {
