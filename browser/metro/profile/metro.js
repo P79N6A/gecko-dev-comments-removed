@@ -231,7 +231,7 @@ pref("accessibility.browsewithcaret", false);
 pref("app.update.showInstalledUI", false);
 
 
-pref("browser.search.defaultenginename", "chrome://browser/locale/browser.properties");
+pref("browser.search.defaultenginename", "chrome://browser/locale/region.properties");
 
 
 pref("browser.ssl_override_behavior", 2);
@@ -241,9 +241,9 @@ pref("browser.xul.error_pages.expert_bad_cert", false);
 pref("browser.search.log", false);
 
 
-pref("browser.search.order.1", "chrome://browser/locale/browser.properties");
-pref("browser.search.order.2", "chrome://browser/locale/browser.properties");
-pref("browser.search.order.3", "chrome://browser/locale/browser.properties");
+pref("browser.search.order.1", "chrome://browser/locale/region.properties");
+pref("browser.search.order.2", "chrome://browser/locale/region.properties");
+pref("browser.search.order.3", "chrome://browser/locale/region.properties");
 
 
 pref("browser.search.update", true);
