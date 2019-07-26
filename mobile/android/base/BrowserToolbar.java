@@ -40,7 +40,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
-import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.ViewSwitcher;
 
@@ -53,12 +52,16 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                                        GeckoMenu.ActionItemBarPresenter,
                                        Animation.AnimationListener {
     private static final String LOGTAG = "GeckoToolbar";
-    private GeckoRelativeLayout mLayout;
+    private LinearLayout mLayout;
+    private View mAwesomeBar;
     private LayoutParams mAwesomeBarParams;
-    private View mAwesomeBarContent;
     private View mAwesomeBarEntry;
-    private ImageView mAwesomeBarRightEdge;
+    private int mAwesomeBarEntryRightMargin;
+    private GeckoFrameLayout mAwesomeBarRightEdge;
     private BrowserToolbarBackground mAddressBarBg;
+    private View mAddressBarView;
+    private BrowserToolbarBackground.CurveTowards mAddressBarBgCurveTowards;
+    private int mAddressBarBgRightMargin;
     private GeckoTextView mTitle;
     private int mTitlePadding;
     private boolean mSiteSecurityVisible;
@@ -102,6 +105,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     private TranslateAnimation mTitleSlideRight;
 
     private int mAddressBarViewOffset;
+    private int mAddressBarViewOffsetNoForward;
     private int mDefaultForwardMargin;
     private PropertyAnimator mForwardAnim = null;
 
@@ -127,23 +131,49 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         mAnimatingEntry = false;
     }
 
-    public void from(RelativeLayout layout) {
+    public void from(LinearLayout layout) {
         if (mLayout != null) {
             
             layout.setVisibility(mLayout.getVisibility());
         }
+        mLayout = layout;
+        mLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+            }
+        });
 
-        mLayout = (GeckoRelativeLayout) layout;
+        mShowSiteSecurity = false;
+        mShowReader = false;
 
-        mLayout.setOnClickListener(new Button.OnClickListener() {
+        mAnimatingEntry = false;
+
+        mAddressBarBg = (BrowserToolbarBackground) mLayout.findViewById(R.id.address_bar_bg);
+        mAddressBarView = mLayout.findViewById(R.id.addressbar);
+        mAddressBarViewOffset = mActivity.getResources().getDimensionPixelSize(R.dimen.addressbar_offset_left);
+        mAddressBarViewOffsetNoForward = mActivity.getResources().getDimensionPixelSize(R.dimen.addressbar_offset_left_noforward);
+        mDefaultForwardMargin = mActivity.getResources().getDimensionPixelSize(R.dimen.forward_default_offset);
+        mAwesomeBarRightEdge = (GeckoFrameLayout) mLayout.findViewById(R.id.awesome_bar_right_edge);
+        mAwesomeBarEntry = mLayout.findViewById(R.id.awesome_bar_entry);
+
+        
+        
+        mTabsPaneWidth = 0;
+
+        mTitle = (GeckoTextView) mLayout.findViewById(R.id.awesome_bar_title);
+        mTitlePadding = mTitle.getPaddingRight();
+        if (Build.VERSION.SDK_INT >= 16)
+            mTitle.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+
+        mAwesomeBar = mLayout.findViewById(R.id.awesome_bar);
+        mAwesomeBar.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mActivity.autoHideTabs();
                 onAwesomeBarSearch();
             }
         });
-
-        mLayout.setOnCreateContextMenuListener(new View.OnCreateContextMenuListener() {
+        mAwesomeBar.setOnCreateContextMenuListener(new View.OnCreateContextMenuListener() {
             @Override
             public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
                 MenuInflater inflater = mActivity.getMenuInflater();
@@ -175,30 +205,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                 }
             }
         });
-
-        mShowSiteSecurity = false;
-        mShowReader = false;
-
-        mAnimatingEntry = false;
-
-        mAddressBarBg = (BrowserToolbarBackground) mLayout.findViewById(R.id.address_bar_bg);
-        mAddressBarViewOffset = mActivity.getResources().getDimensionPixelSize(R.dimen.addressbar_offset_left);
-        mDefaultForwardMargin = mActivity.getResources().getDimensionPixelSize(R.dimen.forward_default_offset);
-        mAwesomeBarContent = mLayout.findViewById(R.id.awesome_bar_content);
-        mAwesomeBarEntry = mLayout.findViewById(R.id.awesome_bar_entry);
-
-        
-        mAwesomeBarRightEdge = (ImageView) mLayout.findViewById(R.id.awesome_bar_right_edge);
-        mAwesomeBarRightEdge.getDrawable().setLevel(5000);
-
-        
-        
-        mTabsPaneWidth = 0;
-
-        mTitle = (GeckoTextView) mLayout.findViewById(R.id.awesome_bar_title);
-        mTitlePadding = mTitle.getPaddingRight();
-        if (Build.VERSION.SDK_INT >= 16)
-            mTitle.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
 
         mTabs = (ShapedButton) mLayout.findViewById(R.id.tabs);
         mTabs.setOnClickListener(new Button.OnClickListener() {
@@ -317,11 +323,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         });
 
         mShadow = (ImageView) mLayout.findViewById(R.id.shadow);
-        mShadow.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-            }
-        });
 
         mHandler = new Handler();
         mSlideUpIn = new TranslateAnimation(0, 0, 40, 0);
@@ -380,7 +381,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                     int tail = (width - height) / 2;
 
                     Rect bounds = new Rect(0, 0, tail, height);
-                    TailTouchDelegate delegate = new TailTouchDelegate(bounds, mShadow);
+                    TailTouchDelegate delegate = new TailTouchDelegate(bounds, mAddressBarView);
                     mTabs.setTouchDelegate(delegate);
                 }
             });
@@ -412,7 +413,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             }
         }
 
-        mFocusOrder = Arrays.asList(mBack, mForward, mLayout, mReader, mSiteSecurity, mStop, mTabs);
+        mFocusOrder = Arrays.asList(mBack, mForward, mAwesomeBar, mReader, mSiteSecurity, mStop, mTabs);
     }
 
     public View getLayout() {
@@ -498,7 +499,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     }
 
     public void setNextFocusDownId(int nextId) {
-        mLayout.setNextFocusDownId(nextId);
+        mAwesomeBar.setNextFocusDownId(nextId);
         mTabs.setNextFocusDownId(nextId);
         mBack.setNextFocusDownId(nextId);
         mForward.setNextFocusDownId(nextId);
@@ -543,8 +544,52 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         return mInflater.inflate(R.layout.tabs_counter, null);
     }
 
-    private int getAwesomeBarAnimTranslation() {
-        return mLayout.getWidth() - mAwesomeBarEntry.getRight();
+    private int prepareAwesomeBarAnimation() {
+        
+        mAwesomeBar.setSelected(true);
+
+        
+        
+        
+        MarginLayoutParams entryParams = (MarginLayoutParams) mAwesomeBarEntry.getLayoutParams();
+        mAwesomeBarEntryRightMargin = entryParams.rightMargin;
+        entryParams.rightMargin = 0;
+        mAwesomeBarEntry.requestLayout();
+
+        
+        
+        MarginLayoutParams barParams = (MarginLayoutParams) mAddressBarBg.getLayoutParams();
+        mAddressBarBgRightMargin = barParams.rightMargin;
+        barParams.rightMargin = 0;
+        mAddressBarBgCurveTowards = mAddressBarBg.getCurveTowards();
+        mAddressBarBg.setCurveTowards(BrowserToolbarBackground.CurveTowards.NONE);
+
+        
+        
+        int translation = mAwesomeBarEntryRightMargin;
+
+        if (mActionItemBar.getVisibility() == View.VISIBLE) {
+            
+            
+            MarginLayoutParams itemBarParams = (MarginLayoutParams) mActionItemBar.getLayoutParams();
+            translation = itemBarParams.rightMargin + mActionItemBar.getWidth() - entryParams.leftMargin;
+
+            
+            View awesomeBarParent = (View) mAwesomeBar.getParent();
+            mAwesomeBarParams = (LayoutParams) awesomeBarParent.getLayoutParams();
+            awesomeBarParent.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                              ViewGroup.LayoutParams.MATCH_PARENT));
+
+            
+            MarginLayoutParams rightEdgeParams = (MarginLayoutParams) mAwesomeBarRightEdge.getLayoutParams();
+            rightEdgeParams.rightMargin = itemBarParams.rightMargin + mActionItemBar.getWidth() - 100;
+            mAwesomeBarRightEdge.requestLayout();
+        }
+
+        
+        mAwesomeBarRightEdge.setVisibility(View.VISIBLE);
+
+        return translation;
     }
 
     public void fromAwesomeBarSearch(String url) {
@@ -565,11 +610,8 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         
         
         
-        if (!mLayout.isSelected()) {
-            
-            mLayout.setSelected(true);
-
-            final int translation = getAwesomeBarAnimTranslation();
+        if (!mAwesomeBar.isSelected()) {
+            int translation = prepareAwesomeBarAnimation();
 
             proxy = AnimatorProxy.create(mAwesomeBarRightEdge);
             proxy.setTranslationX(translation);
@@ -631,7 +673,27 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             @Override
             public void onPropertyAnimationEnd() {
                 
-                mLayout.setSelected(false);
+                mAwesomeBar.setSelected(false);
+
+                
+                MarginLayoutParams entryParams = (MarginLayoutParams) mAwesomeBarEntry.getLayoutParams();
+                entryParams.rightMargin = mAwesomeBarEntryRightMargin;
+                mAwesomeBarEntry.requestLayout();
+
+                
+                MarginLayoutParams barParams = (MarginLayoutParams) mAddressBarBg.getLayoutParams();
+                barParams.rightMargin = mAddressBarBgRightMargin;
+                mAddressBarBg.setCurveTowards(mAddressBarBgCurveTowards);
+
+                
+                
+                
+                
+                if (mActionItemBar.getVisibility() == View.VISIBLE)
+                    ((View) mAwesomeBar.getParent()).setLayoutParams(mAwesomeBarParams);
+
+                
+                mAwesomeBarRightEdge.setVisibility(View.INVISIBLE);
 
                 PropertyAnimator buttonsAnimator = new PropertyAnimator(150);
 
@@ -673,10 +735,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         final PropertyAnimator contentAnimator = new PropertyAnimator(250);
         contentAnimator.setUseHardwareLayer(false);
 
-        final int translation = getAwesomeBarAnimTranslation();
-
-        
-        mLayout.setSelected(true);
+        int translation = prepareAwesomeBarAnimation();
 
         if (mActionItemBar.getVisibility() == View.VISIBLE) {
             contentAnimator.attach(mFavicon,
@@ -800,7 +859,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     }
 
     public void prepareTabsAnimation(PropertyAnimator animator, int width) {
-        animator.attach(mAwesomeBarEntry,
+        
+        
+        animator.attach(mAwesomeBarRightEdge,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        -width);
+
+        animator.attach(mAwesomeBar,
                         PropertyAnimator.Property.TRANSLATION_X,
                         width);
         animator.attach(mAddressBarBg,
@@ -842,7 +907,8 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
     public void adjustTabsAnimation(boolean reset) {
         int width = reset ? 0 : mTabsPaneWidth;
-        mAwesomeBarEntry.setTranslationX(width);
+        mAwesomeBarRightEdge.setTranslationX(-width);
+        mAwesomeBar.setTranslationX(width);
         mAddressBarBg.setTranslationX(width);
         mTabs.setTranslationX(width);
         mTabsCount.setTranslationX(width);
@@ -1005,7 +1071,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             title = null;
 
         mTitle.setText(title);
-        mLayout.setContentDescription(title != null ? title : mTitle.getHint());
+        mAwesomeBar.setContentDescription(title != null ? title : mTitle.getHint());
     }
 
     private void setFavicon(Bitmap image) {
@@ -1041,7 +1107,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     }
 
     public void requestFocusFromTouch() {
-        mLayout.requestFocusFromTouch();
+        mAwesomeBar.requestFocusFromTouch();
     }
 
     public void updateBackButton(boolean enabled) {
@@ -1064,7 +1130,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             return;
 
         mForwardAnim = new PropertyAnimator(FORWARD_ANIMATION_DURATION);
-        final int width = mForward.getWidth() / 2;
+        final int width = mForward.getWidth()/2;
 
         mForwardAnim.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
             @Override
@@ -1073,9 +1139,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                     
                     
                     ViewGroup.MarginLayoutParams layoutParams =
-                        (ViewGroup.MarginLayoutParams)mAwesomeBarContent.getLayoutParams();
-                    layoutParams.leftMargin = 0;
-                    mAwesomeBarContent.requestLayout();
+                        (ViewGroup.MarginLayoutParams)mAddressBarView.getLayoutParams();
+                    layoutParams.leftMargin = mAddressBarViewOffsetNoForward;
+                    mAddressBarView.requestLayout();
                     
                     
                     
@@ -1086,7 +1152,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             public void onPropertyAnimationEnd() {
                 if (enabled) {
                     ViewGroup.MarginLayoutParams layoutParams =
-                        (ViewGroup.MarginLayoutParams)mAwesomeBarContent.getLayoutParams();
+                        (ViewGroup.MarginLayoutParams)mAddressBarView.getLayoutParams();
                     layoutParams.leftMargin = mAddressBarViewOffset;
 
                     AnimatorProxy proxy = AnimatorProxy.create(mTitle);
@@ -1095,19 +1161,19 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                     proxy.setTranslationX(0);
                     proxy = AnimatorProxy.create(mSiteSecurity);
                     proxy.setTranslationX(0);
+
                 }
 
                 ViewGroup.MarginLayoutParams layoutParams =
                     (ViewGroup.MarginLayoutParams)mForward.getLayoutParams();
-                layoutParams.leftMargin = mDefaultForwardMargin + (mForward.isEnabled() ? mForward.getWidth() / 2 : 0);
+                layoutParams.leftMargin = mDefaultForwardMargin + (mForward.isEnabled() ? mForward.getWidth()/2 : 0);
                 AnimatorProxy proxy = AnimatorProxy.create(mForward);
                 proxy.setTranslationX(0);
 
-                mAwesomeBarContent.requestLayout();
+                mAddressBarView.requestLayout();
                 mForwardAnim = null;
             }
         });
-
         prepareForwardAnimation(mForwardAnim, enabled, width);
         mForwardAnim.start();
     }
@@ -1116,7 +1182,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         if (!enabled) {
             anim.attach(mForward,
                       PropertyAnimator.Property.TRANSLATION_X,
-                      -width);
+                      -1*width);
             anim.attach(mForward,
                       PropertyAnimator.Property.ALPHA,
                       0);
@@ -1133,12 +1199,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             
             
             
+            int startTrans = mAddressBarViewOffset - mAddressBarViewOffsetNoForward;
             AnimatorProxy proxy = AnimatorProxy.create(mTitle);
-            proxy.setTranslationX(mAddressBarViewOffset);
+            proxy.setTranslationX(startTrans);
             proxy = AnimatorProxy.create(mFavicon);
-            proxy.setTranslationX(mAddressBarViewOffset);
+            proxy.setTranslationX(startTrans);
             proxy = AnimatorProxy.create(mSiteSecurity);
-            proxy.setTranslationX(mAddressBarViewOffset);
+            proxy.setTranslationX(startTrans);
         } else {
             anim.attach(mForward,
                       PropertyAnimator.Property.TRANSLATION_X,
@@ -1148,13 +1215,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                       1);
             anim.attach(mTitle,
                       PropertyAnimator.Property.TRANSLATION_X,
-                      mAddressBarViewOffset);
+                      mAddressBarViewOffset - mAddressBarViewOffsetNoForward);
             anim.attach(mFavicon,
                       PropertyAnimator.Property.TRANSLATION_X,
-                      mAddressBarViewOffset);
+                      mAddressBarViewOffset - mAddressBarViewOffsetNoForward);
             anim.attach(mSiteSecurity,
                       PropertyAnimator.Property.TRANSLATION_X,
-                      mAddressBarViewOffset);
+                      mAddressBarViewOffset - mAddressBarViewOffsetNoForward);
         }
     }
 
@@ -1200,7 +1267,12 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             updateForwardButton(tab.canDoForward());
 
             mAddressBarBg.setPrivateMode(tab.isPrivate());
-            mLayout.setPrivateMode(tab.isPrivate());
+
+            if (mAwesomeBar instanceof GeckoButton)
+                ((GeckoButton) mAwesomeBar).setPrivateMode(tab.isPrivate());
+            else if (mAwesomeBar instanceof GeckoRelativeLayout)
+                ((GeckoRelativeLayout) mAwesomeBar).setPrivateMode(tab.isPrivate());
+
             mTabs.setPrivateMode(tab.isPrivate());
             mTitle.setPrivateMode(tab.isPrivate());
             mMenu.setPrivateMode(tab.isPrivate());
@@ -1236,5 +1308,44 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             mMenuPopup.dismiss();
 
         return true;
+    }
+
+    public static class RightEdge extends GeckoFrameLayout {
+        private BrowserApp mActivity;
+
+        public RightEdge(Context context, AttributeSet attrs) {
+            super(context, attrs);
+            mActivity = (BrowserApp) context;
+        }
+
+        @Override
+        public void onLightweightThemeChanged() {
+            Drawable drawable = mActivity.getLightweightTheme().getDrawable(this);
+            if (drawable == null)
+                return;
+
+            StateListDrawable stateList = new StateListDrawable();
+            stateList.addState(new int[] { R.attr.state_private }, new ColorDrawable(mActivity.getResources().getColor(R.color.background_private)));
+            stateList.addState(new int[] {}, drawable);
+
+            int[] padding =  new int[] { getPaddingLeft(),
+                                         getPaddingTop(),
+                                         getPaddingRight(),
+                                         getPaddingBottom()
+                                       };
+            setBackgroundDrawable(stateList);
+            setPadding(padding[0], padding[1], padding[2], padding[3]);
+        }
+
+        @Override
+        public void onLightweightThemeReset() {
+            int[] padding =  new int[] { getPaddingLeft(),
+                                         getPaddingTop(),
+                                         getPaddingRight(),
+                                         getPaddingBottom()
+                                       };
+            setBackgroundResource(R.drawable.address_bar_bg);
+            setPadding(padding[0], padding[1], padding[2], padding[3]);
+        }
     }
 }
