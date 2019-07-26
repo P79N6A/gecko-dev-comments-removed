@@ -659,11 +659,11 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
             argDisp += sizeof(void *);
             break;
           case VMFunction::DoubleByValue:
-            JS_NOT_REACHED("VMCalls with double-size value arguments is not supported.");
-            masm.passABIArg(MoveOperand(argsBase, argDisp));
-            argDisp += sizeof(void *);
-            masm.passABIArg(MoveOperand(argsBase, argDisp));
-            argDisp += sizeof(void *);
+            
+            
+            JS_ASSERT(f.argPassedInFloatReg(explicitArg));
+            masm.passABIArg(MoveOperand(argsBase, argDisp, MoveOperand::FLOAT));
+            argDisp += sizeof(double);
             break;
           case VMFunction::WordByRef:
             masm.passABIArg(MoveOperand(argsBase, argDisp, MoveOperand::EFFECTIVE));

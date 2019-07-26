@@ -575,6 +575,8 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
                 argDisp += sizeof(void *);
                 break;
               case VMFunction::DoubleByValue:
+                
+                
                 masm.passABIArg(MoveOperand(argsBase, argDisp));
                 argDisp += sizeof(void *);
                 masm.passABIArg(MoveOperand(argsBase, argDisp));
