@@ -230,6 +230,7 @@ private:
 
   
   nsRefPtr<gfxImageSurface>     mSinglePaintBuffer;
+  RefPtr<gfx::DrawTarget>       mSinglePaintDrawTarget;
   nsIntPoint                    mSinglePaintBufferOffset;
 
   BasicTiledLayerTile ValidateTileInternal(BasicTiledLayerTile aTile,
