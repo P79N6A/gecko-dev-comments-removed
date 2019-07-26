@@ -109,6 +109,7 @@ public:
 
 
 
+
   bool ConnectSco(BluetoothReplyRunnable* aRunnable = nullptr);
   bool DisconnectSco();
   bool ListenSco();
@@ -188,6 +189,7 @@ private:
   bool mCMER;
   bool mConnectScoRequest;
   bool mSlcConnected;
+  bool mHspConnected;
 #ifdef MOZ_B2G_RIL
   bool mFirstCKPD;
   int mNetworkSelectionMode;
