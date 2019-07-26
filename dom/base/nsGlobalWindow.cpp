@@ -7375,8 +7375,7 @@ public:
                                   static_cast<nsGlobalWindow*>(window->GetCurrentInnerWindow());
       NS_ENSURE_TRUE(currentInner, NS_OK);
 
-      JSContext* cx = nsContentUtils::GetSafeJSContext();
-
+      AutoSafeJSContext cx;
       JS::Rooted<JSObject*> obj(cx, currentInner->FastGetGlobalJSObject());
       
       if (obj && !js::IsSystemCompartment(js::GetObjectCompartment(obj))) {
