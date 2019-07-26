@@ -35,6 +35,7 @@ IonBuilder::IonBuilder(JSContext *cx, TempAllocator *temp, MIRGraph *graph,
     backgroundCodegen_(NULL),
     recompileInfo(cx->compartment->types.compiledInfo),
     cx(cx),
+    abortReason_(AbortReason_Disable),
     loopDepth_(loopDepth),
     callerResumePoint_(NULL),
     callerBuilder_(NULL),
@@ -360,6 +361,7 @@ IonBuilder::build()
         return false;
 
     JS_ASSERT(loopDepth_ == 0);
+    abortReason_ = AbortReason_NoAbort;
     return true;
 }
 
@@ -3172,8 +3174,16 @@ IonBuilder::jsop_call_inline(HandleFunction callee, uint32_t argc, bool construc
     }
 
     
-    if (!inlineBuilder.buildInline(this, inlineResumePoint, thisDefn, argv))
+    if (!inlineBuilder.buildInline(this, inlineResumePoint, thisDefn, argv)) {
+        JS_ASSERT(calleeScript->hasAnalysis());
+
+        
+        if (inlineBuilder.abortReason_ == AbortReason_Disable)
+            calleeScript->analysis()->setIonUninlineable();
+
+        abortReason_ = AbortReason_Inlining;
         return false;
+    }
 
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
 
