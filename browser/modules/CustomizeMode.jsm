@@ -29,10 +29,6 @@ Cu.import("resource:///modules/CustomizableUI.jsm");
 
 function CustomizeMode(aWindow) {
   this.window = aWindow;
-  
-  
-  CustomizableUI.registerWindow(this.window);
-
   this.document = aWindow.document;
   
   
