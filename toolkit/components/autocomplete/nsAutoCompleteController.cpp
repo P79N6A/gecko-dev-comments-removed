@@ -441,7 +441,7 @@ nsAutoCompleteController::HandleKeyNavigation(uint32_t aKey, bool *_retval)
 #endif
       if (*_retval) {
         
-        if (mResults.Count() > 0) {
+        if (!mResults.IsEmpty()) {
           if (mRowCount) {
             OpenPopup();
           }
@@ -688,8 +688,7 @@ NS_IMETHODIMP
 nsAutoCompleteController::OnSearchResult(nsIAutoCompleteSearch *aSearch, nsIAutoCompleteResult* aResult)
 {
   
-  uint32_t count = mSearches.Count();
-  for (uint32_t i = 0; i < count; ++i) {
+  for (uint32_t i = 0; i < mSearches.Length(); ++i) {
     if (mSearches[i] == aSearch) {
       ProcessResult(i, aResult);
     }
@@ -1003,7 +1002,7 @@ nsAutoCompleteController::BeforeSearches()
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mSearchesOngoing = mSearches.Count();
+  mSearchesOngoing = mSearches.Length();
   mSearchesFailed = 0;
   mFirstSearchResult = true;
 
@@ -1019,7 +1018,7 @@ nsAutoCompleteController::StartSearch(uint16_t aSearchType)
   NS_ENSURE_STATE(mInput);
   nsCOMPtr<nsIAutoCompleteInput> input = mInput;
 
-  for (int32_t i = 0; i < mSearches.Count(); ++i) {
+  for (uint32_t i = 0; i < mSearches.Length(); ++i) {
     nsCOMPtr<nsIAutoCompleteSearch> search = mSearches[i];
 
     
@@ -1071,9 +1070,7 @@ void
 nsAutoCompleteController::AfterSearches()
 {
   mResultCache.Clear();
-  
-  
-  if (mSearchesFailed == static_cast<uint32_t>(mSearches.Count()))
+  if (mSearchesFailed == mSearches.Length())
     PostSearchCleanup();
 }
 
@@ -1085,9 +1082,7 @@ nsAutoCompleteController::StopSearch()
 
   
   if (mSearchStatus == nsIAutoCompleteController::STATUS_SEARCHING) {
-    uint32_t count = mSearches.Count();
-
-    for (uint32_t i = 0; i < count; ++i) {
+    for (uint32_t i = 0; i < mSearches.Length(); ++i) {
       nsCOMPtr<nsIAutoCompleteSearch> search = mSearches[i];
       search->StopSearch();
     }
@@ -1115,7 +1110,7 @@ nsAutoCompleteController::StartSearches()
   uint32_t immediateSearchesCount = mImmediateSearchesCount;
   if (timeout == 0) {
     
-    immediateSearchesCount = mSearches.Count();
+    immediateSearchesCount = mSearches.Length();
   }
 
   if (immediateSearchesCount > 0) {
@@ -1124,9 +1119,7 @@ nsAutoCompleteController::StartSearches()
       return rv;
     StartSearch(nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_IMMEDIATE);
 
-    
-    
-    if (static_cast<uint32_t>(mSearches.Count()) == immediateSearchesCount) {
+    if (mSearches.Length() == immediateSearchesCount) {
       
       
       
@@ -1207,8 +1200,7 @@ nsAutoCompleteController::EnterMatch(bool aIsPopupSelection)
     if (forceComplete && value.IsEmpty()) {
       
       
-      uint32_t count = mResults.Count();
-      for (uint32_t i = 0; i < count; ++i) {
+      for (uint32_t i = 0; i < mResults.Length(); ++i) {
         nsIAutoCompleteResult *result = mResults[i];
 
         if (result) {
@@ -1685,12 +1677,11 @@ nsAutoCompleteController::RowIndexToSearch(int32_t aRowIndex, int32_t *aSearchIn
   *aSearchIndex = -1;
   *aItemIndex = -1;
 
-  uint32_t count = mSearches.Count();
   uint32_t index = 0;
 
   
   
-  for (uint32_t i = 0; i < count; ++i) {
+  for (uint32_t i = 0; i < mSearches.Length(); ++i) {
     nsIAutoCompleteResult *result = mResults.SafeObjectAt(i);
     if (!result)
       continue;
