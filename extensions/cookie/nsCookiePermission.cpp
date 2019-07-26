@@ -238,7 +238,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       
       
       if ((*aIsSession && mCookiesAlwaysAcceptSession) ||
-          InPrivateBrowsing()) {
+          (aChannel && NS_UsePrivateBrowsing(aChannel))) {
         *aResult = true;
         return NS_OK;
       }
@@ -273,16 +273,6 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       if (NS_FAILED(rv)) return rv;
 
       
-      nsCOMPtr<nsIDOMWindow> parent;
-      if (aChannel) {
-        nsCOMPtr<nsILoadContext> ctx;
-        NS_QueryNotificationCallbacks(aChannel, ctx);
-        if (ctx) {
-          ctx->GetAssociatedWindow(getter_AddRefs(parent));
-        }
-      }
-
-      
       
       
       bool foundCookie = false;
@@ -310,7 +300,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
 
       bool rememberDecision = false;
       int32_t dialogRes = nsICookiePromptService::DENY_COOKIE;
-      rv = cookiePromptService->CookieDialog(parent, aCookie, hostPort, 
+      rv = cookiePromptService->CookieDialog(nullptr, aCookie, hostPort, 
                                              countFromHost, foundCookie,
                                              &rememberDecision, &dialogRes);
       if (NS_FAILED(rv)) return rv;
@@ -367,15 +357,4 @@ nsCookiePermission::Observe(nsISupports     *aSubject,
   if (prefBranch)
     PrefChanged(prefBranch, NS_LossyConvertUTF16toASCII(aData).get());
   return NS_OK;
-}
-
-bool
-nsCookiePermission::InPrivateBrowsing()
-{
-  bool inPrivateBrowsingMode = false;
-  if (!mPBService)
-    mPBService = do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-  if (mPBService)
-    mPBService->GetPrivateBrowsingEnabled(&inPrivateBrowsingMode);
-  return inPrivateBrowsingMode;
 }
