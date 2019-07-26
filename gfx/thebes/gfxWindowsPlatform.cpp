@@ -49,7 +49,6 @@ using namespace mozilla::gfx;
 #include "gfxD2DSurface.h"
 
 #include <d3d10_1.h>
-#include <dxgi.h>
 
 #include "mozilla/gfx/2D.h"
 
@@ -88,6 +87,12 @@ extern "C" {
 using namespace mozilla;
 
 #ifdef CAIRO_HAS_D2D_SURFACE
+
+static const char *kFeatureLevelPref =
+  "gfx.direct3d.last_used_feature_level_idx";
+static const int kSupportedFeatureLevels[] =
+  { D3D10_FEATURE_LEVEL_10_1, D3D10_FEATURE_LEVEL_10_0,
+    D3D10_FEATURE_LEVEL_9_3 };
 
 NS_MEMORY_REPORTER_IMPLEMENT(
     D2DCache,
@@ -504,6 +509,42 @@ gfxWindowsPlatform::UpdateRenderMode()
     InitBackendPrefs(canvasMask, contentMask);
 }
 
+#ifdef CAIRO_HAS_D2D_SURFACE
+HRESULT
+gfxWindowsPlatform::CreateDevice(nsRefPtr<IDXGIAdapter1> &adapter1,
+                                 int featureLevelIndex)
+{
+  nsModuleHandle d3d10module(LoadLibrarySystem32(L"d3d10_1.dll"));
+  if (!d3d10module)
+    return E_FAIL;
+  D3D10CreateDevice1Func createD3DDevice =
+    (D3D10CreateDevice1Func)GetProcAddress(d3d10module, "D3D10CreateDevice1");
+  if (!createD3DDevice)
+    return E_FAIL;
+
+  nsRefPtr<ID3D10Device1> device;
+  HRESULT hr =
+    createD3DDevice(adapter1, D3D10_DRIVER_TYPE_HARDWARE, NULL,
+                    D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+                    D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+                    static_cast<D3D10_FEATURE_LEVEL1>(kSupportedFeatureLevels[featureLevelIndex]),
+                    D3D10_1_SDK_VERSION, getter_AddRefs(device));
+
+  
+  
+  
+  
+  if (device) {
+    mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
+
+    
+    Preferences::SetInt(kFeatureLevelPref, featureLevelIndex);
+  }
+
+  return device ? S_OK : hr;
+}
+#endif
+
 void
 gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
 {
@@ -519,154 +560,69 @@ gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
 
     mozilla::ScopedGfxFeatureReporter reporter("D2D", aAttemptForce);
 
-    HMODULE d3d10module = LoadLibraryA("d3d10_1.dll");
-    D3D10CreateDevice1Func createD3DDevice = (D3D10CreateDevice1Func)
-        GetProcAddress(d3d10module, "D3D10CreateDevice1");
     nsRefPtr<ID3D10Device1> device;
 
-    if (createD3DDevice) {
-        HMODULE dxgiModule = LoadLibraryA("dxgi.dll");
-        CreateDXGIFactory1Func createDXGIFactory1 = (CreateDXGIFactory1Func)
-            GetProcAddress(dxgiModule, "CreateDXGIFactory1");
+    nsModuleHandle dxgiModule(LoadLibrarySystem32(L"dxgi.dll"));
+    CreateDXGIFactory1Func createDXGIFactory1 = (CreateDXGIFactory1Func)
+        GetProcAddress(dxgiModule, "CreateDXGIFactory1");
 
-        
-        
-        nsRefPtr<IDXGIAdapter1> adapter1;
-        if (createDXGIFactory1) {
-            nsRefPtr<IDXGIFactory1> factory1;
-            HRESULT hr = createDXGIFactory1(__uuidof(IDXGIFactory1),
-                                            getter_AddRefs(factory1));
+    int supportedFeatureLevelsCount = ArrayLength(kSupportedFeatureLevels);
+    
+    if (!IsRunningInWindowsMetro()) {
+      supportedFeatureLevelsCount--;
+    }
 
-            if (FAILED(hr) || !factory1) {
-              
-              
-              return;
-            }
+    
+    
+    
+    int featureLevelIndex = Preferences::GetInt(kFeatureLevelPref, 0);
+    if (featureLevelIndex >= supportedFeatureLevelsCount || featureLevelIndex < 0) {
+      featureLevelIndex = 0;
+    }
 
-            bool checkDX10 =
-              Preferences::GetBool("gfx.direct3d.checkDX10", true);
-            hr = factory1->EnumAdapters1(0, getter_AddRefs(adapter1));
-            if (SUCCEEDED(hr) && adapter1) {
-              
-              
-              if (!checkDX10) {
-                
-                
-                
-                
-                
-                hr = adapter1->CheckInterfaceSupport(__uuidof(ID3D10Device),
-                                                     nullptr);
-                if (SUCCEEDED(hr)) {
-                  checkDX10 = true;
-                  Preferences::SetBool("gfx.direct3d.checkDX10", true);
-                }
-              }
-            } else {
-              
-              
-              return;
-            }
+    
+    
+    nsRefPtr<IDXGIAdapter1> adapter1;
+    if (createDXGIFactory1) {
+        nsRefPtr<IDXGIFactory1> factory1;
+        HRESULT hr = createDXGIFactory1(__uuidof(IDXGIFactory1),
+                                        getter_AddRefs(factory1));
 
-            
-            
-            
-            if (!checkDX10) {
-              return;
-            }
+        if (FAILED(hr) || !factory1) {
+          
+          
+          return;
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        HRESULT hr = E_FAIL;
-        bool preferD3D10_1 = 
-          Preferences::GetBool("gfx.direct3d.prefer_10_1", false);
-        if (preferD3D10_1) {
-            hr = createD3DDevice(
-                  adapter1, 
-                  D3D10_DRIVER_TYPE_HARDWARE,
-                  NULL,
-                  D3D10_CREATE_DEVICE_BGRA_SUPPORT |
-                  D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
-                  D3D10_FEATURE_LEVEL_10_1,
-                  D3D10_1_SDK_VERSION,
-                  getter_AddRefs(device));
-
-            
-            
-            
-            
-            if (FAILED(hr)) {
-                Preferences::SetBool("gfx.direct3d.prefer_10_1", false);
-            } else {
-                mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
-            }
+        hr = factory1->EnumAdapters1(0, getter_AddRefs(adapter1));
+        if (FAILED(hr) || !adapter1) {
+          
+          
+          return;
         }
+    }
 
-        if (!preferD3D10_1 || FAILED(hr)) {
-            
-            
-            
-            nsRefPtr<ID3D10Device1> device1;
-            hr = createD3DDevice(
-                  adapter1, 
-                  D3D10_DRIVER_TYPE_HARDWARE,
-                  NULL,
-                  D3D10_CREATE_DEVICE_BGRA_SUPPORT |
-                  D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
-                  D3D10_FEATURE_LEVEL_10_0,
-                  D3D10_1_SDK_VERSION,
-                  getter_AddRefs(device1));
+    
+    
+    HRESULT hr = E_FAIL;
+    for (int i = featureLevelIndex; i < supportedFeatureLevelsCount; i++) {
+      hr = CreateDevice(adapter1, i);
+      
+      if (SUCCEEDED(hr)) {
+        break;
+      }
+    }
 
-            if (SUCCEEDED(hr)) {
-                device = device1;
-                if (preferD3D10_1) {
-                  mD2DDevice = 
-                    cairo_d2d_create_device_from_d3d10device(device);
-                }
-            }
-        }
-
+    
+    
+    if (SUCCEEDED(hr)) {
+      for (int i = featureLevelIndex - 1; i >= 0; i--) {
+        hr = CreateDevice(adapter1, i);
         
-        if (!preferD3D10_1 && SUCCEEDED(hr)) {
-            
-            
-            
-            
-            
-            
-            nsRefPtr<ID3D10Device1> device1;
-            hr = createD3DDevice(
-                  adapter1, 
-                  D3D10_DRIVER_TYPE_HARDWARE,
-                  NULL,
-                  D3D10_CREATE_DEVICE_BGRA_SUPPORT |
-                  D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
-                  D3D10_FEATURE_LEVEL_10_1,
-                  D3D10_1_SDK_VERSION,
-                  getter_AddRefs(device1));
-
-            if (SUCCEEDED(hr)) {
-                device = device1;
-                Preferences::SetBool("gfx.direct3d.prefer_10_1", true);
-            }
-            mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
+        if (FAILED(hr)) {
+          break;
         }
-
-        if (FAILED(hr) || !device) {
-          Preferences::SetBool("gfx.direct3d.checkDX10", false);
-        }
+      }
     }
 
     if (!mD2DDevice && aAttemptForce) {
