@@ -416,7 +416,7 @@ public:
 
 
 
-  virtual int32_t IndexOf(nsINode* aPossibleChild) const = 0;
+  virtual int32_t IndexOf(const nsINode* aPossibleChild) const = 0;
 
   
 
