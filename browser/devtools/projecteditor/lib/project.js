@@ -25,6 +25,14 @@ const gEncoder = new TextEncoder();
 
 
 
+
+
+
+
+
+
+
+
 var Project = Class({
   extends: EventTarget,
 
@@ -88,6 +96,7 @@ var Project = Class({
       for (let [path, store] of this.localStores) {
         yield store.refresh();
       }
+      emit(this, "refresh-complete");
     }.bind(this));
   },
 
