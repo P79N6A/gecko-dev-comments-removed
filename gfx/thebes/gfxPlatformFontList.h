@@ -253,6 +253,9 @@ protected:
     static PLDHashOperator LookupMissedFaceNamesProc(nsStringHashKey *aKey,
                                                      void *aUserArg);
 
+    static PLDHashOperator LookupMissedOtherNamesProc(nsStringHashKey *aKey,
+                                                      void *aUserArg);
+
     
     virtual void PreloadNamesList();
 
@@ -313,6 +316,9 @@ protected:
 
     
     nsAutoPtr<nsTHashtable<nsStringHashKey> > mFaceNamesMissed;
+
+    
+    nsAutoPtr<nsTHashtable<nsStringHashKey> > mOtherNamesMissed;
 
     
     
