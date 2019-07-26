@@ -234,50 +234,6 @@ struct IdleObserverHolder
   }
 };
 
-static inline already_AddRefed<nsIVariant>
-CreateVoidVariant()
-{
-  nsCOMPtr<nsIWritableVariant> writable =
-    do_CreateInstance(NS_VARIANT_CONTRACTID);
-  writable->SetAsVoid();
-  return writable.forget();
-}
-
-
-
-
-
-
-
-
-
-
-class DialogValueHolder : public nsISupports
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(DialogValueHolder)
-
-  DialogValueHolder(nsIPrincipal* aSubject, nsIVariant* aValue)
-    : mOrigin(aSubject)
-    , mValue(aValue) {}
-  nsresult Get(nsIPrincipal* aSubject, nsIVariant** aResult)
-  {
-    nsCOMPtr<nsIVariant> result;
-    if (aSubject->Subsumes(mOrigin)) {
-      result = mValue;
-    } else {
-      result = CreateVoidVariant();
-    }
-    result.forget(aResult);
-    return NS_OK;
-  }
-  virtual ~DialogValueHolder() {}
-private:
-  nsCOMPtr<nsIPrincipal> mOrigin;
-  nsCOMPtr<nsIVariant> mValue;
-};
-
 
 
 
@@ -615,7 +571,7 @@ public:
   virtual void DisableNetworkEvent(uint32_t aType);
 #endif 
 
-  virtual nsresult SetArguments(nsIArray *aArguments);
+  virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin);
 
   static bool DOMWindowDumpEnabled();
 
@@ -1157,13 +1113,8 @@ protected:
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
   nsCOMPtr<nsIControllers>      mControllers;
-
-  
   nsCOMPtr<nsIArray>            mArguments;
-
-  
-  nsRefPtr<DialogValueHolder> mDialogArguments;
-
+  nsCOMPtr<nsIPrincipal>        mArgumentsOrigin;
   nsRefPtr<Navigator>           mNavigator;
   nsRefPtr<nsScreen>            mScreen;
   nsRefPtr<nsDOMWindowList>     mFrames;

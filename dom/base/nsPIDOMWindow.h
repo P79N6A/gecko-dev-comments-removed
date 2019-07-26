@@ -58,8 +58,8 @@ class AudioContext;
 }
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x7202842a, 0x0e24, 0x46dc, \
-  { 0xb2, 0x25, 0xd2, 0x9d, 0x28, 0xda, 0x87, 0xd8 } }
+{ 0x81fe131f, 0x57c9, 0x4992, \
+  { 0xa7, 0xad, 0x82, 0x67, 0x3f, 0xc4, 0xe2, 0x53 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -607,10 +607,7 @@ public:
 
 
 
-
-
-
-  virtual nsresult SetArguments(nsIArray *aArguments) = 0;
+  virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin) = 0;
 
   
 
