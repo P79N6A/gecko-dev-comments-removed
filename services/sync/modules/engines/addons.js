@@ -347,10 +347,22 @@ AddonsStore.prototype = {
     
     
     
+    
+    
     if (!addon) {
-      this._log.warn("Requested to update record but add-on not found: " +
-                     record.addonID);
+      this.create(record);
       return;
+    }
+
+    
+    
+    
+    
+    
+    if (addon.pendingOperations & AddonManager.PENDING_UNINSTALL) {
+      addon.cancelUninstall();
+
+      
     }
 
     let cb = Async.makeSpinningCallback();
