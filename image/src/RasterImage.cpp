@@ -2755,6 +2755,12 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   
   
+  if (mBytesDecoded > mSourceData.Length())
+    return NS_OK;
+
+  
+  
+  
   if (mFinishing)
     return NS_OK;
 
@@ -2899,6 +2905,12 @@ RasterImage::SyncDecode()
   
   
   if (mDecoded)
+    return NS_OK;
+
+  
+  
+  
+  if (mBytesDecoded > mSourceData.Length())
     return NS_OK;
 
   
@@ -3285,6 +3297,8 @@ RasterImage::DecodeSomeData(uint32_t aMaxBytes)
   
   if (mBytesDecoded == mSourceData.Length())
     return NS_OK;
+
+  MOZ_ASSERT(mBytesDecoded < mSourceData.Length());
 
   
   uint32_t bytesToDecode = std::min(aMaxBytes,
