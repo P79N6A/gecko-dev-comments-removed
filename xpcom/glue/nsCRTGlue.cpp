@@ -299,7 +299,43 @@ vprintf_stderr(const char *fmt, va_list args)
 void
 vprintf_stderr(const char *fmt, va_list args)
 {
-  __android_log_vprint(ANDROID_LOG_INFO, "Gecko", fmt, args);
+  if (!fmt) {
+    return;
+  }
+
+  
+  
+
+  static char printf_buffer[2048];
+  static size_t printf_buffer_idx = 0;
+
+  size_t old_idx = printf_buffer_idx;
+  printf_buffer_idx +=
+    vsnprintf(printf_buffer + printf_buffer_idx,
+              sizeof(printf_buffer) - printf_buffer_idx,
+              fmt, args);
+
+  
+  
+  if (printf_buffer_idx >= sizeof(printf_buffer)) {
+    printf_buffer[old_idx] = '\0';
+    printf_buffer_idx = 0;
+    __android_log_print(ANDROID_LOG_INFO, "Gecko", printf_buffer);
+    __android_log_vprint(ANDROID_LOG_INFO, "Gecko", fmt, args);
+    return;
+  }
+
+  
+  
+  char* last_newline = strrchr(printf_buffer + old_idx, '\n');
+  if (last_newline) {
+    last_newline[0] = '\0';
+    __android_log_print(ANDROID_LOG_INFO, "Gecko", printf_buffer);
+
+    char* remainder = last_newline + 1;
+    printf_buffer_idx = strlen(remainder);
+    memmove(printf_buffer, remainder, printf_buffer_idx + 1);
+  }
 }
 #else
 void
