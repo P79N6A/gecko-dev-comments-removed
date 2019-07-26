@@ -150,8 +150,6 @@ protected:
   uint32_t  mRunningEvent;  
   uint32_t  mStackSize;
 
-  uint32_t  mProcessingEvent;
-
   struct nsThreadShutdownContext *mShutdownContext;
 
   bool mShutdownRequired;
