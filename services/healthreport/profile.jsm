@@ -129,27 +129,14 @@ ProfileCreationTimeAccessor.prototype = {
       function onStatSuccess(info) {
         
         
-        let date;
-        if ("winBirthDate" in info) {
-          date = info.winBirthDate;
-        } else if ("macBirthDate" in info) {
-          date = info.macBirthDate;
-        }
-
+        let date = info.winBirthDate || info.macBirthDate;
         if (!date || !date.getTime()) {
           
           
           
           
-          
-          self._log.debug("No birth date: using ctime/mtime.");
-          try {
-            date = info.creationDate ||
-                   info.lastModificationDate ||
-                   info.unixLastStatusChangeDate;
-          } catch (ex) {
-            self._log.debug("Exception fetching creation date: " + ex);
-          }
+          self._log.debug("No birth date. Using mtime.");
+          date = info.lastModificationDate;
         }
 
         if (date) {
