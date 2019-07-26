@@ -122,8 +122,8 @@ PluginModuleParent::PluginModuleParent(const char* aFilePath)
     , mShutdown(false)
     , mClearSiteDataSupported(false)
     , mGetSitesWithDataSupported(false)
-    , mNPNIface(NULL)
-    , mPlugin(NULL)
+    , mNPNIface(nullptr)
+    , mPlugin(nullptr)
     , mTaskFactory(MOZ_THIS_IN_INITIALIZER_LIST())
 #ifdef XP_WIN
     , mPluginCpuUsageOnHang()
@@ -754,7 +754,7 @@ PluginModuleParent::AllocPPluginIdentifierParent(const nsCString& aString,
 {
     if (aTemporary) {
         NS_ERROR("Plugins don't create temporary identifiers.");
-        return NULL; 
+        return nullptr; 
     }
 
     NPIdentifier npident = aString.IsVoid() ?
@@ -786,7 +786,7 @@ PluginModuleParent::AllocPPluginInstanceParent(const nsCString& aMimeType,
                                                NPError* rv)
 {
     NS_ERROR("Not reachable!");
-    return NULL;
+    return nullptr;
 }
 
 bool
@@ -804,9 +804,9 @@ PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
     aFuncs->javaClass = nullptr;
 
     
-    aFuncs->newp = NULL;
-    aFuncs->clearsitedata = NULL;
-    aFuncs->getsiteswithdata = NULL;
+    aFuncs->newp = nullptr;
+    aFuncs->clearsitedata = nullptr;
+    aFuncs->getsiteswithdata = nullptr;
 
     aFuncs->destroy = NPP_Destroy;
     aFuncs->setwindow = NPP_SetWindow;
@@ -820,9 +820,9 @@ PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
     aFuncs->urlnotify = NPP_URLNotify;
     aFuncs->getvalue = NPP_GetValue;
     aFuncs->setvalue = NPP_SetValue;
-    aFuncs->gotfocus = NULL;
-    aFuncs->lostfocus = NULL;
-    aFuncs->urlredirectnotify = NULL;
+    aFuncs->gotfocus = nullptr;
+    aFuncs->lostfocus = nullptr;
+    aFuncs->urlredirectnotify = nullptr;
 
     
     
@@ -1064,7 +1064,7 @@ PluginModuleParent::InstCast(NPP instance)
     
     
     if (!ip)
-        return NULL;
+        return nullptr;
 
     if (instance != ip->mNPP) {
         NS_RUNTIMEABORT("Corrupted plugin data.");
@@ -1078,7 +1078,7 @@ PluginModuleParent::StreamCast(NPP instance,
 {
     PluginInstanceParent* ip = InstCast(instance);
     if (!ip)
-        return NULL;
+        return nullptr;
 
     BrowserStreamParent* sp =
         static_cast<BrowserStreamParent*>(static_cast<AStream*>(s->pdata));
@@ -1456,7 +1456,7 @@ PluginModuleParent::AnswerProcessSomeEvents()
 
     int i = 0;
     for (; i < kMaxChancesToProcessEvents; ++i)
-        if (!g_main_context_iteration(NULL, FALSE))
+        if (!g_main_context_iteration(nullptr, FALSE))
             break;
 
     PLUGIN_LOG_DEBUG(("... quitting mini nested loop; processed %i tasks", i));
@@ -1616,7 +1616,7 @@ PluginModuleParent::RecvNPN_SetException(PPluginScriptableObjectParent* aActor,
 {
     PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
 
-    NPObject* aNPObj = NULL;
+    NPObject* aNPObj = nullptr;
     if (aActor) {
         aNPObj = static_cast<PluginScriptableObjectParent*>(aActor)->GetObject(true);
         if (!aNPObj) {

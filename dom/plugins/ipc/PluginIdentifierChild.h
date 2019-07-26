@@ -68,7 +68,7 @@ public:
 
 protected:
   PluginIdentifierChild(bool aIsString)
-    : mCanonicalIdentifier(NULL)
+    : mCanonicalIdentifier(nullptr)
     , mHashed(false)
     , mTemporaryRefs(0)
     , mIsString(aIsString)

@@ -384,8 +384,8 @@ private:
     {
         NPObjectData(const NPObject* key)
             : nsPtrHashKey<NPObject>(key)
-            , instance(NULL)
-            , actor(NULL)
+            , instance(nullptr)
+            , actor(nullptr)
         { }
 
         

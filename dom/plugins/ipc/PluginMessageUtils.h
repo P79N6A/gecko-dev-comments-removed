@@ -249,7 +249,7 @@ inline const char*
 NullableStringGet(const nsCString& str)
 {
   if (str.IsVoid())
-    return NULL;
+    return nullptr;
 
   return str.get();
 }
@@ -534,7 +534,7 @@ struct ParamTraits<NPNSString*>
       return false;
     }
     if (!haveString) {
-      *aResult = NULL;
+      *aResult = nullptr;
       return true;
     }
 
@@ -609,7 +609,7 @@ struct ParamTraits<NSCursorInfo>
       return false;
     }
 
-    uint8_t* data = NULL;
+    uint8_t* data = nullptr;
     if (dataLength != 0) {
       if (!aMsg->ReadBytes(aIter, (const char**)&data, dataLength) || !data) {
         return false;

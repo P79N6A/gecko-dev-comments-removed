@@ -153,7 +153,7 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
                 }
                 break;
             case NPCocoaEventDrawRect:
-                aResult->event.data.draw.context = NULL;
+                aResult->event.data.draw.context = nullptr;
                 if (!aMsg->ReadDouble(aIter, &aResult->event.data.draw.x)) {
                     return false;
                 }

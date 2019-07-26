@@ -81,7 +81,7 @@ PluginProcessChild::Init()
 #ifdef XP_WIN
     
     
-    ::OleInitialize(NULL);
+    ::OleInitialize(nullptr);
 #endif
 
     
