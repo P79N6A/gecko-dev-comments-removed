@@ -1611,7 +1611,7 @@ nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
     
     nsresult rv;
     nsIPrincipal* subject =
-        GetFunctionObjectPrincipal(aCx, (JSObject *)aFunObj, nullptr, &rv);
+        GetFunctionObjectPrincipal(aCx, (JSObject *)aFunObj, &rv);
 
     
     if (NS_SUCCEEDED(rv) && !subject)
@@ -1971,7 +1971,6 @@ nsScriptSecurityManager::GetScriptPrincipal(JSScript *script,
 nsIPrincipal*
 nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
                                                     JSObject *obj,
-                                                    JSStackFrame *fp,
                                                     nsresult *rv)
 {
     NS_PRECONDITION(rv, "Null out param");
@@ -1996,22 +1995,7 @@ nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
         return nullptr;
     }
 
-    JSScript *frameScript = fp ? JS_GetFrameScript(cx, fp) : nullptr;
-
-    if (frameScript && frameScript != script)
-    {
-        
-        
-        
-        
-        
-        
-        
-        
-
-        script = frameScript;
-    }
-    else if (!js::IsOriginalScriptFunction(fun))
+    if (!js::IsOriginalScriptFunction(fun))
     {
         
         

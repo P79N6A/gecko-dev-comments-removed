@@ -442,10 +442,8 @@ private:
     
     
     
-    
     static nsIPrincipal*
-    GetFunctionObjectPrincipal(JSContext* cx, JSObject* obj, JSStackFrame *fp,
-                               nsresult* rv);
+    GetFunctionObjectPrincipal(JSContext* cx, JSObject* obj, nsresult* rv);
 
     
 
