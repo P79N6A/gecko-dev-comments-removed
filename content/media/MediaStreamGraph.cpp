@@ -499,16 +499,18 @@ MediaStreamGraphImpl::UpdateStreamOrderForStream(mozilla::LinkedList<MediaStream
       
       if (!iter) {
         
+        
+        
         iter = aStack->getLast();
+        MOZ_ASSERT(iter->AsAudioNodeStream());
         iter->AsAudioNodeStream()->Mute();
       } else {
         MOZ_ASSERT(iter);
         do {
-          
-          
-          
-          MOZ_ASSERT(iter->AsAudioNodeStream());
-          iter->AsAudioNodeStream()->Mute();
+          AudioNodeStream* nodeStream = iter->AsAudioNodeStream();
+          if (nodeStream) {
+            nodeStream->Mute();
+          }
         } while((iter = iter->getNext()));
       }
     }
