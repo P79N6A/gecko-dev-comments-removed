@@ -14,13 +14,96 @@ this.PhoneNumber = (function (dataBase) {
   
   'use strict';
 
+  
+  const MIN_LENGTH_FOR_NSN = 2;
+
+  const STAR_SIGN = "*";
   const UNICODE_DIGITS = /[\uFF10-\uFF19\u0660-\u0669\u06F0-\u06F9]/g;
-  const ALPHA_CHARS = /[a-zA-Z]/g;
   const NON_ALPHA_CHARS = /[^a-zA-Z]/g;
   const NON_DIALABLE_CHARS = /[^,#+\*\d]/g;
-  const PLUS_CHARS = /^[+\uFF0B]+/g;
+  const PLUS_CHARS = "+\uFF0B";
   const BACKSLASH = /\\/g;
   const SPLIT_FIRST_GROUP = /^(\d+)(.*)$/;
+
+  
+
+
+
+
+
+
+
+  const VALID_PUNCTUATION = "-x\u2010-\u2015\u2212\u30FC\uFF0D-\uFF0F \u00A0"
+                          + "\u200B\u2060\u3000()\uFF08\uFF09\uFF3B\uFF3D."
+                          + "\\[\\]/~\u2053\u223C\uFF5E";
+  const VALID_DIGITS = "0-9\uFF10-\uFF19\u0660-\u0669\u06F0-\u06F9";
+  const VALID_ALPHA = "a-zA-Z";
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const MIN_LENGTH_PHONE_NUMBER
+    = "[" + VALID_DIGITS + "]{" + MIN_LENGTH_FOR_NSN + "}";
+  const VALID_PHONE_NUMBER
+    = "[" + PLUS_CHARS + "]*"
+    + "(?:[" + VALID_PUNCTUATION + STAR_SIGN + "]*" + "[" + VALID_DIGITS + "]){3,}"
+    + "[" + VALID_PUNCTUATION + STAR_SIGN + VALID_ALPHA + VALID_DIGITS + "]*";
+
+  
+
+
+
+  const CAPTURING_EXTN_DIGITS = "([" + VALID_DIGITS + "]{1,7})";
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const EXTN_PATTERNS_FOR_PARSING
+    = ";ext=" + CAPTURING_EXTN_DIGITS + "|" + "[ \u00A0\\t,]*"
+    + "(?:e?xt(?:ensi(?:o\u0301?|\u00F3))?n?|\uFF45?\uFF58\uFF54\uFF4E?|"
+    + "[,x\uFF58#\uFF03~\uFF5E]|int|anexo|\uFF49\uFF4E\uFF54)"
+    + "[:\\.\uFF0E]?[ \u00A0\\t,-]*" + CAPTURING_EXTN_DIGITS + "#?|"
+    + "[- ]+([" + VALID_DIGITS + "]{1,5})#";
+
+  const VALID_ALPHA_PATTERN = new RegExp("[" + VALID_ALPHA + "]", "g");
+  const LEADING_PLUS_CHARS_PATTERN = new RegExp("^[" + PLUS_CHARS + "]+", "g");
+
+  
+  
+  
+  const VALID_PHONE_NUMBER_PATTERN =
+    new RegExp("^" + MIN_LENGTH_PHONE_NUMBER + "$|"
+               + "^" + VALID_PHONE_NUMBER + "(?:" + EXTN_PATTERNS_FOR_PARSING + ")?$", "i");
 
   
   
@@ -222,11 +305,11 @@ this.PhoneNumber = (function (dataBase) {
                             function (ch) {
                               return String.fromCharCode(48 + (ch.charCodeAt(0) & 0xf));
                             });
-    number = number.replace(ALPHA_CHARS,
+    number = number.replace(VALID_ALPHA_PATTERN,
                             function (ch) {
                               return (ch.toLowerCase().charCodeAt(0) - 97)/3+2 | 0;
                             });
-    number = number.replace(PLUS_CHARS, "+");
+    number = number.replace(LEADING_PLUS_CHARS_PATTERN, "+");
     number = number.replace(NON_DIALABLE_CHARS, "");
     return number;
   }
@@ -307,7 +390,7 @@ this.PhoneNumber = (function (dataBase) {
 
     
     if (number[0] === '+')
-      return ParseInternationalNumber(number.replace(PLUS_CHARS, ""));
+      return ParseInternationalNumber(number.replace(LEADING_PLUS_CHARS_PATTERN, ""));
 
     
     var md = FindMetaDataForRegion(defaultRegion.toUpperCase());
@@ -360,7 +443,21 @@ this.PhoneNumber = (function (dataBase) {
     return null;
   }
 
+  function IsViablePhoneNumber(number) {
+    if (number == null || number.length < MIN_LENGTH_FOR_NSN) {
+      return false;
+    }
+
+    let matchedGroups = number.match(VALID_PHONE_NUMBER_PATTERN);
+    if (matchedGroups && matchedGroups[0].length == number.length) {
+      return true;
+    }
+
+    return false;
+  }
+
   return {
+    IsViable: IsViablePhoneNumber,
     Parse: ParseNumber,
     Normalize: NormalizeNumber
   };
