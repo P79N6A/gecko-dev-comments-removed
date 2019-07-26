@@ -404,7 +404,7 @@ class LDefinition
     
     enum Policy {
         
-        DEFAULT,
+        REGISTER,
 
         
         
@@ -412,7 +412,7 @@ class LDefinition
         
         
         
-        PRESET,
+        FIXED,
 
         
         
@@ -448,24 +448,24 @@ class LDefinition
     }
 
   public:
-    LDefinition(uint32_t index, Type type, Policy policy = DEFAULT) {
+    LDefinition(uint32_t index, Type type, Policy policy = REGISTER) {
         set(index, type, policy);
     }
 
-    explicit LDefinition(Type type, Policy policy = DEFAULT) {
+    explicit LDefinition(Type type, Policy policy = REGISTER) {
         set(0, type, policy);
     }
 
     LDefinition(Type type, const LAllocation &a)
       : output_(a)
     {
-        set(0, type, PRESET);
+        set(0, type, FIXED);
     }
 
     LDefinition(uint32_t index, Type type, const LAllocation &a)
       : output_(a)
     {
-        set(index, type, PRESET);
+        set(index, type, FIXED);
     }
 
     LDefinition() : bits_(0)
@@ -493,11 +493,11 @@ class LDefinition
     const LAllocation *output() const {
         return &output_;
     }
-    bool isPreset() const {
-        return policy() == PRESET;
+    bool isFixed() const {
+        return policy() == FIXED;
     }
     bool isBogusTemp() const {
-        return isPreset() && output()->isConstantIndex();
+        return isFixed() && output()->isConstantIndex();
     }
     void setVirtualRegister(uint32_t index) {
         JS_ASSERT(index < VREG_MASK);
@@ -508,7 +508,7 @@ class LDefinition
         output_ = a;
         if (!a.isUse()) {
             bits_ &= ~(POLICY_MASK << POLICY_SHIFT);
-            bits_ |= PRESET << POLICY_SHIFT;
+            bits_ |= FIXED << POLICY_SHIFT;
         }
     }
     void setReusedInput(uint32_t operand) {

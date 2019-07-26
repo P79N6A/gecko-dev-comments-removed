@@ -290,7 +290,7 @@ BacktrackingAllocator::tryGroupReusedRegister(uint32_t def, uint32_t use)
     
 
     if (usedReg.numIntervals() != 1 ||
-        (usedReg.def()->isPreset() && !usedReg.def()->output()->isRegister())) {
+        (usedReg.def()->isFixed() && !usedReg.def()->output()->isRegister())) {
         reg.setMustCopyInput();
         return true;
     }
@@ -405,7 +405,7 @@ BacktrackingAllocator::groupAndQueueRegisters()
         
         
         LDefinition *def = reg.def();
-        if (def->policy() == LDefinition::PRESET && !def->output()->isRegister()) {
+        if (def->policy() == LDefinition::FIXED && !def->output()->isRegister()) {
             reg.setCanonicalSpill(*def->output());
             if (reg.group() && reg.group()->spill.isUse())
                 reg.group()->spill = *def->output();
@@ -650,10 +650,10 @@ BacktrackingAllocator::setIntervalRequirement(LiveInterval *interval)
         
 
         LDefinition::Policy policy = reg->def()->policy();
-        if (policy == LDefinition::PRESET) {
+        if (policy == LDefinition::FIXED) {
             
             if (IonSpewEnabled(IonSpew_RegAlloc)) {
-                IonSpew(IonSpew_RegAlloc, "  Requirement %s, preset by definition",
+                IonSpew(IonSpew_RegAlloc, "  Requirement %s, fixed by definition",
                         reg->def()->output()->toString());
             }
             interval->setRequirement(Requirement(*reg->def()->output()));
@@ -1097,7 +1097,7 @@ BacktrackingAllocator::isRegisterDefinition(LiveInterval *interval)
     if (reg.ins()->isPhi())
         return false;
 
-    if (reg.def()->policy() == LDefinition::PRESET && !reg.def()->output()->isRegister())
+    if (reg.def()->policy() == LDefinition::FIXED && !reg.def()->output()->isRegister())
         return false;
 
     return true;
@@ -1411,7 +1411,7 @@ BacktrackingAllocator::minimalInterval(const LiveInterval *interval, bool *pfixe
     if (interval->index() == 0) {
         VirtualRegister &reg = vregs[interval->vreg()];
         if (pfixed)
-            *pfixed = reg.def()->policy() == LDefinition::PRESET && reg.def()->output()->isRegister();
+            *pfixed = reg.def()->policy() == LDefinition::FIXED && reg.def()->output()->isRegister();
         return minimalDef(interval, reg.ins());
     }
 
@@ -1457,7 +1457,7 @@ BacktrackingAllocator::computeSpillWeight(const LiveInterval *interval)
 
     if (interval->index() == 0) {
         VirtualRegister *reg = &vregs[interval->vreg()];
-        if (reg->def()->policy() == LDefinition::PRESET && reg->def()->output()->isRegister())
+        if (reg->def()->policy() == LDefinition::FIXED && reg->def()->output()->isRegister())
             usesTotal += 2000;
         else if (!reg->ins()->isPhi())
             usesTotal += 2000;
