@@ -435,9 +435,9 @@ BasicTableLayoutStrategy::ComputeIntrinsicWidths(nsRenderingContext* aRenderingC
     nscoord min = 0, pref = 0, max_small_pct_pref = 0, nonpct_pref_total = 0;
     float pct_total = 0.0f; 
     int32_t colCount = cellMap->GetColCount();
-    nscoord spacing = mTableFrame->GetCellSpacingX();
-    nscoord add = spacing; 
-                           
+    
+    
+    nscoord add = mTableFrame->GetCellSpacingX(colCount);
 
     for (int32_t col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
@@ -446,7 +446,7 @@ BasicTableLayoutStrategy::ComputeIntrinsicWidths(nsRenderingContext* aRenderingC
             continue;
         }
         if (mTableFrame->ColumnHasCellSpacingBefore(col)) {
-            add += spacing;
+            add += mTableFrame->GetCellSpacingX(col - 1);
         }
         min += colFrame->GetMinCoord();
         pref = NSCoordSaturatingAdd(pref, colFrame->GetPrefCoord());
@@ -654,22 +654,23 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                   aColCount == mTableFrame->GetCellMap()->GetColCount()),
             "Computing final column widths, but didn't get full column range");
 
-    
-    nscoord spacing = mTableFrame->GetCellSpacingX();
-    nscoord subtract = 0;    
+
+    nscoord subtract = 0;
     
     
     
     for (int32_t col = aFirstCol + 1; col < aFirstCol + aColCount; ++col) {
         if (mTableFrame->ColumnHasCellSpacingBefore(col)) {
-            subtract += spacing;
+            
+            subtract += mTableFrame->GetCellSpacingX(col - 1);
         }
     }
     if (aWidthType == BTLS_FINAL_WIDTH) {
         
         
         
-        subtract += spacing * 2;
+        subtract += (mTableFrame->GetCellSpacingX(-1) +
+                     mTableFrame->GetCellSpacingX(aColCount));
     }
     aWidth = NSCoordSaturatingSubtract(aWidth, subtract, nscoord_MAX);
 
