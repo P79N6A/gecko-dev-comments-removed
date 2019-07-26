@@ -526,7 +526,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    UN8x4_MUL_UN8_ADD_UN8x4_MUL_UN8 (result, isa, s, ida);	\
 	    								\
 	    *(dest + i) = result +					\
-		(DIV_ONE_UN8 (sa * (uint32_t)da) << A_SHIFT) +		\
+		(DIV_ONE_UN8 (sa * da) << A_SHIFT) +			\
 		(blend_ ## name (RED_8 (d), da, RED_8 (s), sa) << R_SHIFT) + \
 		(blend_ ## name (GREEN_8 (d), da, GREEN_8 (s), sa) << G_SHIFT) + \
 		(blend_ ## name (BLUE_8 (d), da, BLUE_8 (s), sa));	\
@@ -556,7 +556,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    UN8x4_MUL_UN8x4_ADD_UN8x4_MUL_UN8 (result, ~m, s, ida);     \
             								\
 	    result +=							\
-	        (DIV_ONE_UN8 (ALPHA_8 (m) * (uint32_t)da) << A_SHIFT) +	\
+	        (DIV_ONE_UN8 (ALPHA_8 (m) * da) << A_SHIFT) +		\
 	        (blend_ ## name (RED_8 (d), da, RED_8 (s), RED_8 (m)) << R_SHIFT) + \
 	        (blend_ ## name (GREEN_8 (d), da, GREEN_8 (s), GREEN_8 (m)) << G_SHIFT) + \
 	        (blend_ ## name (BLUE_8 (d), da, BLUE_8 (s), BLUE_8 (m))); \
@@ -893,6 +893,7 @@ PDF_SEPARABLE_BLEND_MODE (exclusion)
 
 
 
+
 #define CH_MIN(c) (c[0] < c[1] ? (c[0] < c[2] ? c[0] : c[2]) : (c[1] < c[2] ? c[1] : c[2]))
 #define CH_MAX(c) (c[0] > c[1] ? (c[0] > c[2] ? c[0] : c[2]) : (c[1] > c[2] ? c[1] : c[2]))
 #define LUM(c) ((c[0] * 30 + c[1] * 59 + c[2] * 11) / 100)
@@ -930,7 +931,7 @@ PDF_SEPARABLE_BLEND_MODE (exclusion)
 	    blend_ ## name (c, dc, da, sc, sa);				\
             								\
 	    *(dest + i) = result +					\
-		(DIV_ONE_UN8 (sa * (uint32_t)da) << A_SHIFT) +		\
+		(DIV_ONE_UN8 (sa * da) << A_SHIFT) +			\
 		(DIV_ONE_UN8 (c[0]) << R_SHIFT) +			\
 		(DIV_ONE_UN8 (c[1]) << G_SHIFT) +			\
 		(DIV_ONE_UN8 (c[2]));					\
@@ -1146,7 +1147,6 @@ PDF_NON_SEPARABLE_BLEND_MODE (hsl_luminosity)
 #undef CH_MAX
 #undef CH_MIN
 #undef PDF_NON_SEPARABLE_BLEND_MODE
-
 
 
 

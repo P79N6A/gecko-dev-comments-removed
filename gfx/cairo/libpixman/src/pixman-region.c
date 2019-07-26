@@ -2041,10 +2041,10 @@ PREFIX (_subtract) (region_type_t *reg_d,
 
 
 
-PIXMAN_EXPORT pixman_bool_t
-PREFIX (_inverse) (region_type_t *new_reg,  
-		   region_type_t *reg1,     
-		   box_type_t *   inv_rect) 
+pixman_bool_t
+PIXMAN_EXPORT PREFIX (_inverse) (region_type_t *new_reg,  
+                                 region_type_t *reg1,     
+                                 box_type_t *   inv_rect) 
 {
     region_type_t inv_reg; 
 
@@ -2137,9 +2137,9 @@ find_box_for_y (box_type_t *begin, box_type_t *end, int y)
 
 
 
-PIXMAN_EXPORT pixman_region_overlap_t
-PREFIX (_contains_rectangle) (region_type_t *  region,
-			      box_type_t *     prect)
+pixman_region_overlap_t
+PIXMAN_EXPORT PREFIX (_contains_rectangle) (region_type_t *  region,
+                                            box_type_t *     prect)
 {
     box_type_t *     pbox;
     box_type_t *     pbox_end;
