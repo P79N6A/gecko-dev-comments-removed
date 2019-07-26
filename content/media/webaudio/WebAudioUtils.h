@@ -24,15 +24,22 @@ namespace dom {
 
 class AudioParamTimeline;
 
-struct WebAudioUtils {
-  static const size_t MaxChannelCount;
+namespace WebAudioUtils {
+  
+  
+  
+  const size_t MaxChannelCount = 32;
+  
+  
+  const uint32_t MinSampleRate = 8000;
+  const uint32_t MaxSampleRate = 192000;
 
-  static bool FuzzyEqual(float v1, float v2)
+  inline bool FuzzyEqual(float v1, float v2)
   {
     using namespace std;
     return fabsf(v1 - v2) < 1e-7f;
   }
-  static bool FuzzyEqual(double v1, double v2)
+  inline bool FuzzyEqual(double v1, double v2)
   {
     using namespace std;
     return fabs(v1 - v2) < 1e-7;
@@ -42,7 +49,7 @@ struct WebAudioUtils {
 
 
 
-  static double ComputeSmoothingRate(double aDuration, double aSampleRate)
+  inline double ComputeSmoothingRate(double aDuration, double aSampleRate)
   {
     return 1.0 - std::exp(-1.0 / (aDuration * aSampleRate));
   }
@@ -56,15 +63,15 @@ struct WebAudioUtils {
 
 
 
-  static void ConvertAudioParamToTicks(AudioParamTimeline& aParam,
-                                       AudioNodeStream* aSource,
-                                       AudioNodeStream* aDest);
+  void ConvertAudioParamToTicks(AudioParamTimeline& aParam,
+                                AudioNodeStream* aSource,
+                                AudioNodeStream* aDest);
 
   
 
 
 
-  static float ConvertLinearToDecibels(float aLinearValue, float aMinDecibels)
+  inline float ConvertLinearToDecibels(float aLinearValue, float aMinDecibels)
   {
     return aLinearValue ? 20.0f * std::log10(aLinearValue) : aMinDecibels;
   }
@@ -72,7 +79,7 @@ struct WebAudioUtils {
   
 
 
-  static float ConvertDecibelsToLinear(float aDecibels)
+  inline float ConvertDecibelsToLinear(float aDecibels)
   {
     return std::pow(10.0f, 0.05f * aDecibels);
   }
@@ -80,24 +87,24 @@ struct WebAudioUtils {
   
 
 
-  static float ConvertDecibelToLinear(float aDecibel)
+  inline float ConvertDecibelToLinear(float aDecibel)
   {
     return std::pow(10.0f, 0.05f * aDecibel);
   }
 
-  static void FixNaN(double& aDouble)
+  inline void FixNaN(double& aDouble)
   {
     if (IsNaN(aDouble) || IsInfinite(aDouble)) {
       aDouble = 0.0;
     }
   }
 
-  static double DiscreteTimeConstantForSampleRate(double timeConstant, double sampleRate)
+  inline double DiscreteTimeConstantForSampleRate(double timeConstant, double sampleRate)
   {
     return 1.0 - std::exp(-1.0 / (sampleRate * timeConstant));
   }
 
-  static bool IsTimeValid(double aTime)
+  inline bool IsTimeValid(double aTime)
   {
     return aTime >= 0 &&  aTime <= (MEDIA_TIME_MAX >> MEDIA_TIME_FRAC_BITS);
   }
@@ -165,7 +172,7 @@ struct WebAudioUtils {
 
 
   template <typename IntType, typename FloatType>
-  static IntType TruncateFloatToInt(FloatType f)
+  IntType TruncateFloatToInt(FloatType f)
   {
     using namespace std;
 
@@ -196,26 +203,26 @@ struct WebAudioUtils {
     return IntType(f);
   }
 
-  static void Shutdown();
+  void Shutdown();
 
-  static int
+  int
   SpeexResamplerProcess(SpeexResamplerState* aResampler,
                         uint32_t aChannel,
                         const float* aIn, uint32_t* aInLen,
                         float* aOut, uint32_t* aOutLen);
 
-  static int
+  int
   SpeexResamplerProcess(SpeexResamplerState* aResampler,
                         uint32_t aChannel,
                         const int16_t* aIn, uint32_t* aInLen,
                         float* aOut, uint32_t* aOutLen);
 
-  static int
+  int
   SpeexResamplerProcess(SpeexResamplerState* aResampler,
                         uint32_t aChannel,
                         const int16_t* aIn, uint32_t* aInLen,
                         int16_t* aOut, uint32_t* aOutLen);
-  };
+  }
 
 }
 }
