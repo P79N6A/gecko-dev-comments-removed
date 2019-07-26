@@ -3015,19 +3015,13 @@ nsCxPusher::Push(nsIDOMEventTarget *aCurrentTarget)
     return true;
   }
 
-  JSContext* cx = nullptr;
-
-  if (scx) {
-    cx = scx->GetNativeContext();
-    
-    NS_ENSURE_TRUE(cx, false);
-  }
+  JSContext* cx = scx ? scx->GetNativeContext() : nullptr;
 
   
   
   
   
-  return Push(cx);
+  return Push(cx, ASSERT_SCRIPT_CONTEXT);
 }
 
 bool
@@ -3059,7 +3053,7 @@ nsCxPusher::RePush(nsIDOMEventTarget *aCurrentTarget)
 }
 
 bool
-nsCxPusher::Push(JSContext *cx, bool aRequiresScriptContext)
+nsCxPusher::Push(JSContext *cx, PushBehavior behavior)
 {
   if (mPushedSomething) {
     NS_ERROR("Whaaa! No double pushing with nsCxPusher::Push()!");
@@ -3075,7 +3069,8 @@ nsCxPusher::Push(JSContext *cx, bool aRequiresScriptContext)
   
   
   mScx = GetScriptContextFromJSContext(cx);
-  if (!mScx && aRequiresScriptContext) {
+  MOZ_ASSERT_IF(behavior == ASSERT_SCRIPT_CONTEXT, mScx);
+  if (!mScx && behavior == REQUIRE_SCRIPT_CONTEXT) {
     
     return true;
   }
@@ -6838,7 +6833,9 @@ AutoJSContext::Init(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
 
   if (!mCx) {
     mCx = nsContentUtils::GetSafeJSContext();
-    bool result = mPusher.Push(mCx);
+    
+    
+    bool result = mPusher.Push(mCx, nsCxPusher::REQUIRE_SCRIPT_CONTEXT);
     if (!result || !mCx) {
       MOZ_CRASH();
     }

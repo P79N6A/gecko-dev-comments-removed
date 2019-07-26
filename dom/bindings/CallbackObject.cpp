@@ -91,7 +91,7 @@ CallbackObject::CallSetup::CallSetup(JSObject* const aCallback,
   mAr.construct(cx);
 
   
-  if (!mCxPusher.Push(cx, false)) {
+  if (!mCxPusher.Push(cx, nsCxPusher::ALWAYS_PUSH)) {
     return;
   }
 
