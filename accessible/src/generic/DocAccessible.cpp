@@ -86,7 +86,7 @@ DocAccessible::
 {
   mFlags |= eDocAccessible | eNotNodeMapEntry;
   if (mPresShell)
-    mPresShell->SetAccDocument(this);
+    mPresShell->SetDocAccessible(this);
 
   mDependentIDsHash.Init();
   
@@ -636,7 +636,7 @@ DocAccessible::Shutdown()
     logging::DocDestroy("document shutdown", mDocument, this);
 #endif
 
-  mPresShell->SetAccDocument(nullptr);
+  mPresShell->SetDocAccessible(nullptr);
 
   if (mNotificationController) {
     mNotificationController->Shutdown();

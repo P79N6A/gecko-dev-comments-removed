@@ -277,9 +277,20 @@ public:
   nsIViewManager* GetViewManager() const { return mViewManager; }
 
 #ifdef ACCESSIBILITY
-  void SetAccDocument(DocAccessible* aAccDocument)
+  
+
+
+  DocAccessible* GetDocAccessible() const
   {
-    mAccDocument = aAccDocument;
+    return mDocAccessible;
+  }
+
+  
+
+
+  void SetDocAccessible(DocAccessible* aDocAccessible)
+  {
+    mDocAccessible = aDocAccessible;
   }
 #endif
 
@@ -1371,7 +1382,7 @@ protected:
   nsWeakPtr                 mForwardingContainer;
   nsRefreshDriver*          mHiddenInvalidationObserverRefreshDriver;
 #ifdef ACCESSIBILITY
-  DocAccessible* mAccDocument;
+  DocAccessible* mDocAccessible;
 #endif
 
 #ifdef DEBUG
