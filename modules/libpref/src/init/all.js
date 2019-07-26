@@ -2097,11 +2097,7 @@ pref("svg.svg-iframe.enabled", false);
 
 
 
-#ifdef RELEASE_BUILD
 pref("svg.new-getBBox.enabled", false);
-#else
-pref("svg.new-getBBox.enabled", true);
-#endif
 
 
 pref("font.default.ar", "sans-serif");
