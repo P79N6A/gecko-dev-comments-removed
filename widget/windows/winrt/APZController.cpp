@@ -137,10 +137,8 @@ public:
 
         
         
-        CSSIntPoint actualScrollOffset;
-        utils->GetScrollXY(false, &actualScrollOffset.x, &actualScrollOffset.y);
         if (mLastOffsetOut) {
-          *mLastOffsetOut = actualScrollOffset;
+          *mLastOffsetOut = mFrameMetrics.mScrollOffset;
         }
         if (mLastScrollIdOut) {
           mLastScrollIdOut->mScrollId = mFrameMetrics.mScrollId;
