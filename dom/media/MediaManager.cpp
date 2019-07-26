@@ -1311,6 +1311,9 @@ MediaManager::GetUserMedia(JSContext* aCx, bool aPrivileged,
   if (Preferences::GetBool("media.navigator.permission.disabled", false)) {
     aPrivileged = true;
   }
+  if (!Preferences::GetBool("media.navigator.video.enabled", true)) {
+    c.mVideo = false;
+  }
 
   
 
