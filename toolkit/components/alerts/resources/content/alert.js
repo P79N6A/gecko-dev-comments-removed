@@ -53,6 +53,7 @@ function prefillAlertInfo() {
 }
 
 function onAlertLoad() {
+  const ALERT_DURATION_IMMEDIATE = 4000;
   
   
   
@@ -86,7 +87,7 @@ function onAlertLoad() {
   window.moveTo(x, y);
 
   if (Services.prefs.getBoolPref("alerts.disableSlidingEffect")) {
-    setTimeout(closeAlert, 4000);
+    setTimeout(closeAlert, ALERT_DURATION_IMMEDIATE);
     return;
   }
 
