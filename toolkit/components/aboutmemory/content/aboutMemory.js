@@ -724,6 +724,7 @@ DReport.prototype = {
 
 DReport.PRESENT_IN_FIRST_ONLY  = 1;
 DReport.PRESENT_IN_SECOND_ONLY = 2;
+DReport.ADDED_FOR_BALANCE = 3;
 
 
 
@@ -1117,8 +1118,26 @@ function fillInTree(aRoot)
       for (let i = 0; i < aT._kids.length; i++) {
         kidsBytes += fillInNonLeafNodes(aT._kids[i]);
       }
-      assert(aT._amount === undefined, "_amount already set for non-leaf node");
-      aT._amount = kidsBytes;
+
+      
+      
+      
+      
+      
+      if (aT._amount !== undefined &&
+          (aT._presence === DReport.PRESENT_IN_FIRST_ONLY ||
+           aT._presence === DReport.PRESENT_IN_SECOND_ONLY)) {
+        aT._amount += kidsBytes;
+        let fake = new TreeNode('(fake child)', aT._units);
+        fake._presence = DReport.ADDED_FOR_BALANCE;
+        fake._amount = aT._amount - kidsBytes;
+        aT._kids.push(fake);
+        delete aT._presence;
+      } else {
+        assert(aT._amount === undefined,
+               "_amount already set for non-leaf node")
+        aT._amount = kidsBytes;
+      }
       aT._description = "The sum of all entries below this one.";
     }
     return aT._amount;
@@ -1580,23 +1599,28 @@ function appendMrNameSpan(aP, aDescription, aUnsafeName, aIsInvalid, aNMerged,
   }
 
   if (aPresence) {
-    let c, nth;
+    let c, title;
     switch (aPresence) {
      case DReport.PRESENT_IN_FIRST_ONLY:
       c = '-';
-      nth = "first";
+      title = "This value was only present in the first set of memory reports.";
       break;
      case DReport.PRESENT_IN_SECOND_ONLY:
       c = '+';
-      nth = "second";
+      title = "This value was only present in the second set of memory reports.";
+      break;
+     case DReport.ADDED_FOR_BALANCE:
+      c = '!';
+      title = "One of the sets of memory reports lacked children for this " +
+              "node's parent. This is a fake child node added to make the " +
+              "two memory sets comparable.";
       break;
      default: assert(false, "bad presence");
       break;
     }
     let noteSpan = appendElementWithText(aP, "span", "mrNote",
                                          " [" + c + "]\n");
-    noteSpan.title =
-      "This value was only present in the " + nth + " set of memory reports.";
+    noteSpan.title = title;
   }
 }
 
