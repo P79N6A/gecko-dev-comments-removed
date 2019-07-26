@@ -98,14 +98,37 @@ abstract public class BrowserApp extends GeckoApp
     private static final int FEEDBACK_LAUNCH_COUNT = 15;
 
     
+
+    
+    
     private static final float TOOLBAR_MOVEMENT_THRESHOLD = 0.3f;
+
+    
     private boolean mDynamicToolbarEnabled = false;
+
+    
+    
     private View mToolbarSpacer = null;
+
+    
+    
     private float mLastTouchX = 0.0f;
     private float mLastTouchY = 0.0f;
+
+    
+    
     private float mToolbarSubpixelAccumulation = 0.0f;
+
+    
+    
     private boolean mToolbarLocked = false;
+
+    
+    
     private boolean mToolbarThresholdPassed = false;
+
+    
+    private boolean mToolbarPinned = false;
 
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
@@ -186,7 +209,7 @@ abstract public class BrowserApp extends GeckoApp
 
     @Override
     public boolean onInterceptTouchEvent(View view, MotionEvent event) {
-        if (!mDynamicToolbarEnabled) {
+        if (!mDynamicToolbarEnabled || mToolbarPinned) {
             return super.onInterceptTouchEvent(view, event);
         }
 
@@ -936,6 +959,15 @@ abstract public class BrowserApp extends GeckoApp
             mMainLayoutAnimator.attach(mMainLayout,
                                        PropertyAnimator.Property.SCROLL_Y,
                                        -height);
+        }
+
+        
+        
+        if (width > 0 && height > 0) {
+            mToolbarPinned = true;
+            mBrowserToolbar.animateVisibility(true);
+        } else {
+            mToolbarPinned = false;
         }
 
         mMainLayoutAnimator.start();
