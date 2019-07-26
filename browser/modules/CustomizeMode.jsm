@@ -160,11 +160,6 @@ CustomizeMode.prototype = {
     let window = this.window;
     let document = this.document;
 
-    
-    let evt = document.createEvent("CustomEvent");
-    evt.initCustomEvent("CustomizationEnd", true, true, {changed: this._changed});
-    window.dispatchEvent(evt);
-
     if (this._changed) {
       
       
@@ -187,6 +182,11 @@ CustomizeMode.prototype = {
 
     
     this.areas = [];
+
+    
+    let evt = document.createEvent("CustomEvent");
+    evt.initCustomEvent("CustomizationEnd", true, true, {changed: this._changed});
+    window.dispatchEvent(evt);
 
     window.PanelUI.replaceMainView(window.PanelUI.mainView);
 
