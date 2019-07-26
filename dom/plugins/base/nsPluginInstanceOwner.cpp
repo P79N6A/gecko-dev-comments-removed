@@ -168,6 +168,15 @@ nsPluginInstanceOwner::GetImageContainer()
   
   if (AndroidBridge::Bridge()->GetAPIVersion() < 11)
     return nullptr;
+
+  LayoutDeviceRect r = GetPluginRect();
+
+  
+  
+  float xResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetXResolution();
+  float yResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetYResolution();
+  ScreenSize screenSize = (r * LayoutDeviceToScreenScale(xResolution, yResolution)).Size();
+  mInstance->NotifySize(nsIntSize(screenSize.width, screenSize.height));
   
   container = LayerManager::CreateImageContainer();
 
@@ -175,22 +184,15 @@ nsPluginInstanceOwner::GetImageContainer()
   nsRefPtr<Image> img = container->CreateImage(&format, 1);
 
   SharedTextureImage::Data data;
+  data.mSize = gfx::IntSize(r.width, r.height);
   data.mHandle = mInstance->CreateSharedHandle();
   data.mShareType = mozilla::gl::SharedTextureShareType::SameProcess;
   data.mInverted = mInstance->Inverted();
-
-  LayoutDeviceRect r = GetPluginRect();
-  data.mSize = gfx::IntSize(r.width, r.height);
 
   SharedTextureImage* pluginImage = static_cast<SharedTextureImage*>(img.get());
   pluginImage->SetData(data);
 
   container->SetCurrentImageInTransaction(img);
-
-  float xResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetXResolution();
-  float yResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetYResolution();
-  ScreenSize screenSize = (r * LayoutDeviceToScreenScale(xResolution, yResolution)).Size();
-  mInstance->NotifySize(nsIntSize(screenSize.width, screenSize.height));
 
   return container.forget();
 #endif
