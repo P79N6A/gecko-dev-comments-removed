@@ -8,11 +8,19 @@
 
 #if defined(_WIN64)
 
+#ifdef _MSC_VER
 #include "vp8_rtcd_x86_64-win64-vs8.h"
+#else
+#include "vp8_rtcd_x86_64-win64-gcc.h"
+#endif
 
 #elif defined(_WIN32)
 
+#ifdef _MSC_VER
 #include "vp8_rtcd_x86-win32-vs8.h"
+#else
+#include "vp8_rtcd_x86-win32-gcc.h"
+#endif
 
 #elif defined(__APPLE__) && defined(__x86_64__)
 
