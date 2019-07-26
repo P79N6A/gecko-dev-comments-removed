@@ -32,14 +32,23 @@ function dial() {
   ok(outgoing);
   is(outgoing.number, number);
   is(outgoing.state, "dialing");
-
   is(outgoing, telephony.active);
   
   is(telephony.calls.length, 1);
   is(telephony.calls[0], outgoing);
 
-  
-  runEmulatorCmd("gsm list", cmdCallback);
+  outgoing.onalerting = function onalerting(event) {
+    log("Received 'onalerting' call event.");
+    is(outgoing, event.call);
+    is(outgoing.state, "alerting");
+
+    runEmulatorCmd("gsm list", function(result) {
+      log("Call list is now: " + result);
+      is(result[0], "outbound to  " + number + " : ringing");
+      is(result[1], "OK");
+      answer();
+    });
+  };  
 }
 
 function answer() {
@@ -121,26 +130,6 @@ function hangUp() {
   };
 
   outgoing.hangUp();
-}
-
-function cmdCallback(result) {
-  let unknownState = "outbound to  " + number + " : unknown";
-  let alertingState = "outbound to " + number + " : alerting";
-
-  log("Call list is now: " + result);
-
-  switch (result[0]) {
-    
-    case "OK":
-      runEmulatorCmd("gsm list", cmdCallback);
-      break;
-    
-    case unknownState: 
-    case alertingState:
-      is(result[1], "OK");
-      answer();
-      break;
-  }
 }
 
 function cleanUp() {
