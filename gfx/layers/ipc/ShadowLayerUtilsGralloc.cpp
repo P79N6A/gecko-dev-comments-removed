@@ -349,23 +349,36 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
   
   
 #if ANDROID_VERSION <= 15
-  char propValue[PROPERTY_VALUE_MAX];
-  property_get("ro.product.device", propValue, "None");
-  if (strcmp("crespo",propValue) == 0) {
-    NS_WARNING("Nexus S has issues with gralloc, falling back to shmem");
+  static bool checkedDevice = false;
+  static bool disableGralloc = false;
+
+  if (!checkedDevice) {
+    char propValue[PROPERTY_VALUE_MAX];
+    property_get("ro.product.device", propValue, "None");
+
+    if (strcmp("crespo",propValue) == 0) {
+      NS_WARNING("Nexus S has issues with gralloc, falling back to shmem");
+      disableGralloc = true;
+    } else if (strcmp("peak", propValue) == 0) {
+      NS_WARNING("Geeksphone Peak has issues with gralloc, falling back to shmem");
+      disableGralloc = true;
+    }
+
+    checkedDevice = true;
+  }
+
+  if (disableGralloc) {
     return false;
   }
 #endif
 
   
-
-
-
-
-  gfxIntSize allocSize = aSize;
-  allocSize.width = std::max(aSize.width, 32);
-  allocSize.height = std::max(aSize.height, 32);
-
+  
+  
+  
+  if (aSize.width < 64) {
+    return false;
+  }
   PROFILER_LABEL("ShadowLayerForwarder", "PlatformAllocSurfaceDescriptor");
   
   
@@ -374,7 +387,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
   bool defaultRBSwap;
 
   if (aCaps & USING_GL_RENDERING_ONLY) {
-    gc = AllocGrallocBuffer(allocSize,
+    gc = AllocGrallocBuffer(aSize,
                             PixelFormatForContentType(aContent),
                             GraphicBuffer::USAGE_HW_RENDER |
                             GraphicBuffer::USAGE_HW_TEXTURE,
@@ -383,7 +396,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
     
     defaultRBSwap = false;
   } else {
-    gc = AllocGrallocBuffer(allocSize,
+    gc = AllocGrallocBuffer(aSize,
                             PixelFormatForContentType(aContent),
                             GraphicBuffer::USAGE_SW_READ_OFTEN |
                             GraphicBuffer::USAGE_SW_WRITE_OFTEN |
@@ -407,7 +420,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
   GrallocBufferActor* gba = static_cast<GrallocBufferActor*>(gc);
   gba->InitFromHandle(handle.get_MagicGrallocBufferHandle());
 
-  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, allocSize,
+  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, aSize,
                                        false,
                                       defaultRBSwap);
   return true;
