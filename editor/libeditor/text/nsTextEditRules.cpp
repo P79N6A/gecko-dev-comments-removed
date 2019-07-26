@@ -514,22 +514,25 @@ nsTextEditRules::HandleNewLines(nsString &aString,
     break;
   case nsIPlaintextEditor::eNewlinesStripSurroundingWhitespace:
     {
-      
-      
-      int32_t firstCRLF = aString.FindCharInSet(CRLF);
-      while (firstCRLF >= 0)
+      nsString result;
+      int32_t offset = 0;
+      while (offset < aString.Length())
       {
-        uint32_t wsBegin = firstCRLF, wsEnd = firstCRLF + 1;
+        int32_t nextCRLF = aString.FindCharInSet(CRLF, offset);
+        if (nextCRLF < 0) {
+          result.Append(nsDependentSubstring(aString, offset));
+          break;
+        }
+        uint32_t wsBegin = nextCRLF;
         
-        while (wsBegin > 0 && NS_IS_SPACE(aString[wsBegin - 1]))
+        while (wsBegin > offset && NS_IS_SPACE(aString[wsBegin - 1]))
           --wsBegin;
-        while (wsEnd < aString.Length() && NS_IS_SPACE(aString[wsEnd]))
-          ++wsEnd;
-        
-        aString.Cut(wsBegin, wsEnd - wsBegin);
-        
-        firstCRLF = aString.FindCharInSet(CRLF);
+        result.Append(nsDependentSubstring(aString, offset, wsBegin - offset));
+        offset = nextCRLF + 1;
+        while (offset < aString.Length() && NS_IS_SPACE(aString[offset]))
+          ++offset;
       }
+      aString = result;
     }
     break;
   case nsIPlaintextEditor::eNewlinesPasteIntact:
