@@ -105,8 +105,25 @@ var WifiManager = (function() {
 
   let {sdkVersion, unloadDriverEnabled, schedScanRecovery, driverDelay, ifname} = getStartupPrefs();
 
-  var controlWorker = new ChromeWorker(WIFIWORKER_WORKER);
-  var eventWorker = new ChromeWorker(WIFIWORKER_WORKER);
+  let wifiListener = {
+    onWaitEvent: function(event) {
+      if (handleEvent(event)) {
+        waitForEvent();
+      }
+    },
+
+    onCommand: function(event) {
+      onmessageresult(event);
+    }
+  }
+
+  let wifiService = Cc["@mozilla.org/wifi/service;1"];
+  if (wifiService) {
+    wifiService = wifiService.getService(Ci.nsIWifiProxyService);
+    wifiService.start(wifiListener);
+  } else {
+    debug("No wifi service component available!");
+  }
 
   var manager = {};
   manager.ifname = ifname;
@@ -127,49 +144,23 @@ var WifiManager = (function() {
     obj.id = id;
     if (callback)
       controlCallbacks[id] = callback;
-    controlWorker.postMessage(obj);
+    wifiService.sendCommand(obj);
   }
 
-  function onerror(e) {
-    
-    
-    
-    
-    
-    
-    
-    
-    e.preventDefault();
-
-    var worker = (this === controlWorker) ? "control" : "event";
-
-    debug("Got an error from the " + worker + " worker: " + e.filename +
-          ":" + e.lineno + ": " + e.message + "\n");
-  }
-
-  controlWorker.onerror = onerror;
-  eventWorker.onerror = onerror;
-
-  controlWorker.onmessage = function(e) {
-    var data = e.data;
+  let onmessageresult = function(data) {
     var id = data.id;
     var callback = controlCallbacks[id];
     if (callback) {
       callback(data);
       delete controlCallbacks[id];
     }
-  };
+  }
 
   
   var recvErrors = 0;
-  eventWorker.onmessage = function(e) {
-    
-    if (handleEvent(e.data.event))
-      waitForEvent();
-  };
 
   function waitForEvent() {
-    eventWorker.postMessage({ cmd: "wait_for_event" });
+    wifiService.waitForEvent();
   }
 
   
@@ -778,9 +769,10 @@ var WifiManager = (function() {
   }
 
   function configureInterface(ifname, ipaddr, mask, gateway, dns1, dns2, callback) {
-    controlMessage({ cmd: "ifc_configure", ifname: ifname,
+    let message = { cmd: "ifc_configure", ifname: ifname,
                      ipaddr: ipaddr, mask: mask, gateway: gateway,
-                     dns1: dns1, dns2: dns2}, function(data) {
+                     dns1: dns1, dns2: dns2};
+    controlMessage(message, function(data) {
       callback(!data.status);
     });
   }

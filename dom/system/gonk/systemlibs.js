@@ -209,7 +209,7 @@ this.libnetutils = (function () {
     let c_dhcp_do_request_renew;
 
     
-    if (sdkVersion >= 18) {
+    if (sdkVersion >= 18) { 
       dnslistbuf[0] = dns1buf;
       dnslistbuf[1] = dns2buf;
       c_dhcp_do_request =
@@ -236,7 +236,7 @@ this.libnetutils = (function () {
                         ctypes.int.ptr,   
                         ctypes.char.ptr,  
                         ctypes.char.ptr); 
-    } else if (sdkVersion >= 16) {
+    } else if (sdkVersion >= 16) { 
       c_dhcp_do_request =
         library.declare("dhcp_do_request", ctypes.default_abi,
                         ctypes.int,       
@@ -249,7 +249,7 @@ this.libnetutils = (function () {
                         ctypes.char.ptr,  
                         ctypes.int.ptr,   
                         ctypes.char.ptr); 
-    } else {
+    } else { 
       c_dhcp_do_request =
         library.declare("dhcp_do_request", ctypes.default_abi,
                         ctypes.int,      
@@ -337,7 +337,7 @@ this.libnetutils = (function () {
     iface.ifc_reset_connections = function(ifname, reset_mask) {
       return c_ifc_reset_connections(ifname, reset_mask) | 0;
     }
-  } else {
+  } else { 
     let ints = ctypes.int.array(8)();
     let c_dhcp_do_request =
       library.declare("dhcp_do_request", ctypes.default_abi,

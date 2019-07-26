@@ -226,6 +226,8 @@ enum InflateUTF8Action {
 
 static const uint32_t REPLACE_UTF8 = 0xFFFD;
 
+
+
 template <InflateUTF8Action action>
 static bool
 InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_t *dstlenp,
