@@ -2448,6 +2448,9 @@ CharIterator::MatchesFilter() const
 
 
 
+
+
+
 class SVGCharClipDisplayItem : public nsCharClipDisplayItem {
 public:
   SVGCharClipDisplayItem(const TextRenderedRun& aRun)
@@ -2458,6 +2461,9 @@ public:
 
   NS_DISPLAY_DECL_NAME("SVGText", TYPE_TEXT)
 };
+
+
+
 
 
 
@@ -2730,6 +2736,21 @@ SVGTextDrawPathCallbacks::FillAndStroke()
   }
 }
 
+
+
+
+NS_IMETHODIMP
+GlyphMetricsUpdater::Run()
+{
+  if (mFrame) {
+    mFrame->mPositioningDirty = true;
+    nsSVGUtils::InvalidateBounds(mFrame, false);
+    nsSVGUtils::ScheduleReflowSVG(mFrame);
+    mFrame->mGlyphMetricsUpdater = nullptr;
+  }
+  return NS_OK;
+}
+
 }
 
 
@@ -2827,6 +2848,15 @@ nsSVGTextFrame2::Init(nsIContent* aContent,
 
   mMutationObserver.StartObserving(this);
   return rv;
+}
+
+void
+nsSVGTextFrame2::DestroyFrom(nsIFrame* aDestructRoot)
+{
+  if (mGlyphMetricsUpdater) {
+    mGlyphMetricsUpdater->Revoke();
+  }
+  nsSVGTextFrame2Base::DestroyFrom(aDestructRoot);
 }
 
 NS_IMETHODIMP
@@ -4548,9 +4578,23 @@ nsSVGTextFrame2::ShouldRenderAsPath(nsRenderingContext* aContext,
 void
 nsSVGTextFrame2::NotifyGlyphMetricsChange()
 {
-  mPositioningDirty = true;
-  nsSVGUtils::InvalidateBounds(this, false);
-  nsSVGUtils::ScheduleReflowSVG(this);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mGlyphMetricsUpdater) {
+    return;
+  }
+  mGlyphMetricsUpdater = new GlyphMetricsUpdater(this);
+  nsContentUtils::AddScriptRunner(mGlyphMetricsUpdater.get());
 }
 
 void
