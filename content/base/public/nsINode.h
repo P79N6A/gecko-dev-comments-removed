@@ -10,7 +10,6 @@
 #include "nsCOMPtr.h"               
 #include "nsGkAtoms.h"              
 #include "nsIDOMNode.h"
-#include "nsIDOMNodeSelector.h"     
 #include "nsINodeInfo.h"            
 #include "nsIVariant.h"             
 #include "nsNodeInfoManager.h"      
@@ -1760,29 +1759,6 @@ inline nsINode* NODE_FROM(C& aContent, D& aDocument)
     return static_cast<nsINode*>(aContent);
   return static_cast<nsINode*>(aDocument);
 }
-
-
-
-
-class nsNodeSelectorTearoff MOZ_FINAL : public nsIDOMNodeSelector
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_NSIDOMNODESELECTOR
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSelectorTearoff)
-
-  nsNodeSelectorTearoff(nsINode *aNode) : mNode(aNode)
-  {
-  }
-
-private:
-  ~nsNodeSelectorTearoff() {}
-
-private:
-  nsCOMPtr<nsINode> mNode;
-};
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsINode, NS_INODE_IID)
 

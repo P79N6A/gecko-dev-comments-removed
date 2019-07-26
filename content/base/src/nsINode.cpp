@@ -2194,33 +2194,6 @@ nsINode::Length() const
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_1(nsNodeSelectorTearoff, mNode)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsNodeSelectorTearoff)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMNodeSelector)
-NS_INTERFACE_MAP_END_AGGREGATED(mNode)
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(nsNodeSelectorTearoff)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(nsNodeSelectorTearoff)
-
-NS_IMETHODIMP
-nsNodeSelectorTearoff::QuerySelector(const nsAString& aSelector,
-                                     nsIDOMElement **aReturn)
-{
-  ErrorResult rv;
-  nsIContent* result = mNode->QuerySelector(aSelector, rv);
-  return result ? CallQueryInterface(result, aReturn) : rv.ErrorCode();
-}
-
-NS_IMETHODIMP
-nsNodeSelectorTearoff::QuerySelectorAll(const nsAString& aSelector,
-                                        nsIDOMNodeList **aReturn)
-{
-  ErrorResult rv;
-  *aReturn = mNode->QuerySelectorAll(aSelector, rv).get();
-  return rv.ErrorCode();
-}
-
 
 
 
