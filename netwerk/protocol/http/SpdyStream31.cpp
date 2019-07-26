@@ -103,6 +103,13 @@ SpdyStream31::ReadSegments(nsAHttpSegmentReader *reader,
   nsresult rv = NS_ERROR_UNEXPECTED;
   mRequestBlockedOnRead = 0;
 
+  
+  
+  if (count > (mChunkSize + 8)) {
+    uint32_t numchunks = count / (mChunkSize + 8);
+    count = numchunks * (mChunkSize + 8);
+  }
+
   switch (mUpstreamState) {
   case GENERATING_SYN_STREAM:
   case GENERATING_REQUEST_BODY:
@@ -694,10 +701,10 @@ SpdyStream31::TransmitFrame(const char *buf,
   
   
 
-  rv = mSegmentReader->OnReadSegment(reinterpret_cast<char*>(mTxInlineFrame.get()),
-                                     mTxInlineFrameUsed,
-                                     &transmittedCount);
-  LOG3(("SpdyStream31::TransmitFrame for inline session=%p "
+  rv = mSession->BufferOutput(reinterpret_cast<char*>(mTxInlineFrame.get()),
+                              mTxInlineFrameUsed,
+                              &transmittedCount);
+  LOG3(("SpdyStream31::TransmitFrame for inline BufferOutput session=%p "
         "stream=%p result %x len=%d",
         mSession, this, rv, transmittedCount));
 
@@ -723,8 +730,15 @@ SpdyStream31::TransmitFrame(const char *buf,
       return NS_ERROR_UNEXPECTED;
     }
 
-    rv = mSegmentReader->OnReadSegment(buf, mTxStreamFrameSize,
-                                       &transmittedCount);
+    
+    
+    if (mSession->AmountOfOutputBuffered()) {
+      rv = mSession->BufferOutput(buf, mTxStreamFrameSize,
+                                  &transmittedCount);
+    } else {
+      rv = mSession->OnReadSegment(buf, mTxStreamFrameSize,
+                                   &transmittedCount);
+    }
 
     LOG3(("SpdyStream31::TransmitFrame for regular session=%p "
           "stream=%p result %x len=%d",
@@ -744,6 +758,8 @@ SpdyStream31::TransmitFrame(const char *buf,
 
     *countUsed += mTxStreamFrameSize;
   }
+
+  mSession->FlushOutputQueue();
 
   
   UpdateTransportSendEvents(mTxInlineFrameUsed + mTxStreamFrameSize);
