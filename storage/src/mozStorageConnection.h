@@ -191,6 +191,16 @@ public:
 
   int stepStatement(sqlite3* aNativeConnection, sqlite3_stmt* aStatement);
 
+  
+
+
+
+
+  nsresult beginTransactionInternal(sqlite3 *aNativeConnection,
+                                    int32_t aTransactionType=TRANSACTION_DEFERRED);
+  nsresult commitTransactionInternal(sqlite3 *aNativeConnection);
+  nsresult rollbackTransactionInternal(sqlite3 *aNativeConnection);
+
   bool connectionReady();
 
   
@@ -226,7 +236,9 @@ private:
 
 
 
-  int executeSql(const char *aSqlString);
+
+
+  int executeSql(sqlite3 *aNativeConnection, const char *aSqlString);
 
   
 
