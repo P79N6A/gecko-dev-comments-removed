@@ -68,6 +68,10 @@
 #include "nsCRT.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMEventTarget.h"
+#ifdef MOZ_XTF
+#include "nsIXTFService.h"
+static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
+#endif
 #include "nsIMIMEService.h"
 #include "nsLWBrkCIID.h"
 #include "nsILineBreaker.h"
@@ -191,6 +195,9 @@ nsIThreadJSContextStack *nsContentUtils::sThreadJSContextStack;
 nsIParserService *nsContentUtils::sParserService = nullptr;
 nsINameSpaceManager *nsContentUtils::sNameSpaceManager;
 nsIIOService *nsContentUtils::sIOService;
+#ifdef MOZ_XTF
+nsIXTFService *nsContentUtils::sXTFService = nullptr;
+#endif
 imgILoader *nsContentUtils::sImgLoader;
 imgILoader *nsContentUtils::sPrivateImgLoader;
 imgICache *nsContentUtils::sImgCache;
@@ -948,6 +955,21 @@ nsContentUtils::ParseSandboxAttributeToFlags(const nsAString& aSandboxAttrValue)
   return out;
 }
 
+#ifdef MOZ_XTF
+nsIXTFService*
+nsContentUtils::GetXTFService()
+{
+  if (!sXTFService) {
+    nsresult rv = CallGetService(kXTFServiceCID, &sXTFService);
+    if (NS_FAILED(rv)) {
+      sXTFService = nullptr;
+    }
+  }
+
+  return sXTFService;
+}
+#endif
+
 #ifdef IBMBIDI
 nsIBidiKeyboard*
 nsContentUtils::GetBidiKeyboard()
@@ -1451,6 +1473,9 @@ nsContentUtils::Shutdown()
   NS_IF_RELEASE(sIOService);
   NS_IF_RELEASE(sLineBreaker);
   NS_IF_RELEASE(sWordBreaker);
+#ifdef MOZ_XTF
+  NS_IF_RELEASE(sXTFService);
+#endif
   NS_IF_RELEASE(sImgLoader);
   NS_IF_RELEASE(sPrivateImgLoader);
   NS_IF_RELEASE(sImgCache);
@@ -2147,20 +2172,11 @@ static inline bool IsAutocompleteOff(const nsIContent* aElement)
  nsresult
 nsContentUtils::GenerateStateKey(nsIContent* aContent,
                                  const nsIDocument* aDocument,
-                                 nsIStatefulFrame::SpecialStateID aID,
                                  nsACString& aKey)
 {
   aKey.Truncate();
 
   uint32_t partID = aDocument ? aDocument->GetPartID() : 0;
-
-  
-  
-  if (nsIStatefulFrame::eNoID != aID) {
-    KeyAppendInt(partID, aKey);  
-    KeyAppendInt(aID, aKey);
-    return NS_OK;
-  }
 
   
   NS_ENSURE_TRUE(aContent, NS_ERROR_FAILURE);
@@ -2177,9 +2193,6 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
   nsCOMPtr<nsIHTMLDocument> htmlDocument(do_QueryInterface(aContent->GetCurrentDoc()));
 
   KeyAppendInt(partID, aKey);  
-  
-  
-  KeyAppendInt(nsIStatefulFrame::eNoID, aKey);
   bool generatedUniqueKey = false;
 
   if (htmlDocument) {

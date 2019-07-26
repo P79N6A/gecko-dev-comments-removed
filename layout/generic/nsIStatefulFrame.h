@@ -21,14 +21,7 @@ class nsIStatefulFrame
 
   
   
-  
-  enum SpecialStateID {eNoID=0, eDocumentScrollState};
-
-  
-  
-  
-  
-  NS_IMETHOD SaveState(SpecialStateID aStateID, nsPresState** aState) = 0;
+  NS_IMETHOD SaveState(nsPresState** aState) = 0;
 
   
   NS_IMETHOD RestoreState(nsPresState* aState) = 0;
