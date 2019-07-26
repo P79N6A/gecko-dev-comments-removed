@@ -15,6 +15,7 @@
 #include "MetroAppShell.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TouchEvents.h"
+#include "mozilla/Preferences.h"  
 #include "WinUtils.h"
 #include "nsIPresShell.h"
 #include "nsEventStateManager.h"
@@ -51,6 +52,11 @@ namespace {
 
   
   typedef ABI::Windows::UI::Core::ICoreAcceleratorKeys ICoreAcceleratorKeys;
+
+  
+
+
+  static bool gTouchActionPropertyEnabled = false;
 
   
 
@@ -255,6 +261,7 @@ MetroInput::MetroInput(MetroWidget* aWidget,
   NS_ASSERTION(aWidget, "Attempted to create MetroInput for null widget!");
   NS_ASSERTION(aWindow, "Attempted to create MetroInput for null window!");
 
+  Preferences::AddBoolVarCache(&gTouchActionPropertyEnabled, "layout.css.touch_action.enabled", gTouchActionPropertyEnabled);
   mTokenPointerPressed.value = 0;
   mTokenPointerReleased.value = 0;
   mTokenPointerMoved.value = 0;
@@ -492,6 +499,31 @@ bool
 MetroInput::ShouldDeliverInputToRecognizer()
 {
   return mRecognizerWantsEvents;
+}
+
+void
+MetroInput::GetAllowedTouchBehavior(WidgetTouchEvent* aTransformedEvent, nsTArray<TouchBehaviorFlags>& aOutBehaviors)
+{
+  mWidget->ApzcGetAllowedTouchBehavior(aTransformedEvent, aOutBehaviors);
+
+  for (uint32_t i = 0; i < aOutBehaviors.Length(); i++) {
+    if (aOutBehaviors[i] & AllowedTouchBehavior::UNKNOWN) {
+      
+      
+      aOutBehaviors[i] = mWidget->ContentGetAllowedTouchBehavior(aTransformedEvent->touches[i]->mRefPoint);
+    }
+  }
+}
+
+bool
+MetroInput::IsTouchBehaviorForbidden(const nsTArray<TouchBehaviorFlags>& aTouchBehaviors)
+{
+  for (size_t i = 0; i < aTouchBehaviors.Length(); i++) {
+    if (aTouchBehaviors[i] == AllowedTouchBehavior::NONE)
+      return true;
+  }
+
+  return false;
 }
 
 
@@ -1135,6 +1167,28 @@ static void DumpTouchIds(const char* aTarget, WidgetTouchEvent* aEvent)
   }
 }
 
+static void DumpTouchBehavior(nsTArray<uint32_t>& aBehavior)
+{
+  WinUtils::Log("DumpTouchBehavior: Touch behavior flags set for current touch session:");
+  for (uint32_t i = 0; i < aBehavior.Length(); i++) {
+    if (mozilla::layers::AllowedTouchBehavior::VERTICAL_PAN & aBehavior[i]) {
+      WinUtils::Log("VERTICAL_PAN");
+    }
+
+    if (mozilla::layers::AllowedTouchBehavior::HORIZONTAL_PAN & aBehavior[i]) {
+      WinUtils::Log("HORIZONTAL_PAN");
+    }
+
+    if (mozilla::layers::AllowedTouchBehavior::UNKNOWN & aBehavior[i]) {
+      WinUtils::Log("UNKNOWN");
+    }
+
+    if ((mozilla::layers::AllowedTouchBehavior::NONE & aBehavior[i]) == 0) {
+      WinUtils::Log("NONE");
+    }
+  }
+}
+
 
 
 
@@ -1153,16 +1207,114 @@ static void DumpTouchIds(const char* aTarget, WidgetTouchEvent* aEvent)
 
 #define DUMP_TOUCH_IDS(...)
 
+
+#define DUMP_ALLOWED_TOUCH_BEHAVIOR(...)
+
+void
+MetroInput::HandleFirstTouchStartEvent(WidgetTouchEvent* aEvent)
+{
+  nsEventStatus contentStatus = nsEventStatus_eIgnore;
+
+  WidgetTouchEvent transformedEvent(*aEvent);
+  DUMP_TOUCH_IDS("APZC(1)", aEvent);
+  mWidget->ApzReceiveInputEvent(aEvent, &mTargetAPZCGuid, &transformedEvent);
+
+  if (gTouchActionPropertyEnabled) {
+    nsTArray<TouchBehaviorFlags> touchBehaviors;
+    
+    
+    
+    
+    GetAllowedTouchBehavior(&transformedEvent, touchBehaviors);
+    
+    
+    
+    
+    DUMP_ALLOWED_TOUCH_BEHAVIOR(touchBehaviors);
+    mWidget->ApzcSetAllowedTouchBehavior(mTargetAPZCGuid, touchBehaviors);
+    if (IsTouchBehaviorForbidden(touchBehaviors)) {
+      mContentConsumingTouch = true;
+    }
+  }
+
+  DUMP_TOUCH_IDS("DOM(2)", aEvent);
+  mWidget->DispatchEvent(&transformedEvent, contentStatus);
+  if (nsEventStatus_eConsumeNoDefault == contentStatus) {
+    mContentConsumingTouch = true;
+  }
+
+  if (mContentConsumingTouch) {
+    mCancelable = false;
+    mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
+    DispatchTouchCancel(aEvent);
+  }
+
+  
+  
+  mRecognizerWantsEvents = !(nsEventStatus_eConsumeNoDefault == contentStatus);
+
+  
+  
+  if (!ShouldDeliverInputToRecognizer()) {
+    mGestureRecognizer->CompleteGesture();
+  }
+}
+
+void
+MetroInput::HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent)
+{
+  mCancelable = false;
+
+  nsEventStatus contentStatus = nsEventStatus_eIgnore;
+  nsEventStatus apzcStatus = nsEventStatus_eIgnore;
+
+  WidgetTouchEvent transformedEvent(*aEvent);
+  DUMP_TOUCH_IDS("APZC(2)", aEvent);
+  apzcStatus = mWidget->ApzReceiveInputEvent(aEvent, &mTargetAPZCGuid, &transformedEvent);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  DUMP_TOUCH_IDS("DOM(3)", aEvent);
+  mWidget->DispatchEvent(&transformedEvent, contentStatus);
+
+  
+  
+  if (nsEventStatus_eConsumeNoDefault == contentStatus) {
+    
+    mContentConsumingTouch = true;
+  } else if (nsEventStatus_eConsumeNoDefault == apzcStatus) {
+    
+    mApzConsumingTouch = true;
+  }
+
+  
+  
+  if (mContentConsumingTouch) {
+    mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
+    DispatchTouchCancel(aEvent);
+  } else {
+    mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid);
+  }
+
+  if (mApzConsumingTouch) {
+    
+    DispatchTouchCancel(&transformedEvent);
+  }
+}
+
 void
 MetroInput::DeliverNextQueuedTouchEvent()
 {
-  nsEventStatus status;
-  WidgetTouchEvent* event =
-    static_cast<WidgetTouchEvent*>(mInputEventQueue.PopFront());
-  MOZ_ASSERT(event);
-
-  AutoDeleteEvent wrap(event);
-
   
 
 
@@ -1185,6 +1337,15 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
 
 
+
+
+  nsEventStatus status = nsEventStatus_eIgnore;
+
+  WidgetTouchEvent* event =
+    static_cast<WidgetTouchEvent*>(mInputEventQueue.PopFront());
+  MOZ_ASSERT(event);
+
+  AutoDeleteEvent wrap(event);
 
   
   
@@ -1215,50 +1376,16 @@ MetroInput::DeliverNextQueuedTouchEvent()
     return;
   }
 
-  
-  
-  
-  if (mCancelable) {
-    WidgetTouchEvent transformedEvent(*event);
-    DUMP_TOUCH_IDS("APZC(1)", event);
-    mWidget->ApzReceiveInputEvent(event, &mTargetAPZCGuid, &transformedEvent);
-    DUMP_TOUCH_IDS("DOM(2)", event);
-    mWidget->DispatchEvent(&transformedEvent, status);
-    if (event->message == NS_TOUCH_START) {
-      mContentConsumingTouch = (nsEventStatus_eConsumeNoDefault == status);
-      
-      
-      
-      if (mContentConsumingTouch) {
-        mCancelable = false;
-        mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
-        DispatchTouchCancel(event);
-      }
-      
-      
-      mRecognizerWantsEvents = !(nsEventStatus_eConsumeNoDefault == status);
-    } else if (event->message == NS_TOUCH_MOVE) {
-      mCancelable = false;
-      
-      if (!mContentConsumingTouch) {
-        mContentConsumingTouch = (nsEventStatus_eConsumeNoDefault == status);
-      }
-      
-      
-      if (mContentConsumingTouch) {
-        mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
-        DispatchTouchCancel(event);
-      } else {
-        mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid);
-      }
-    }
-    
-    
-    if (!ShouldDeliverInputToRecognizer()) {
-      mGestureRecognizer->CompleteGesture();
-    }
+  if (mCancelable && event->message == NS_TOUCH_START) {
+    HandleFirstTouchStartEvent(event);
+    return;
+  } else if (mCancelable && event->message == NS_TOUCH_MOVE) {
+    HandleFirstTouchMoveEvent(event);
     return;
   }
+  
+  
+  
 
   
   
@@ -1267,13 +1394,22 @@ MetroInput::DeliverNextQueuedTouchEvent()
     
     
     TransformTouchEvent(event);
-    DUMP_TOUCH_IDS("DOM(3)", event);
+    DUMP_TOUCH_IDS("DOM(4)", event);
     mWidget->DispatchEvent(event, status);
     return;
   }
 
-  DUMP_TOUCH_IDS("APZC(2)", event);
+  DUMP_TOUCH_IDS("APZC(3)", event);
   status = mWidget->ApzReceiveInputEvent(event, nullptr);
+
+  
+  
+  if (gTouchActionPropertyEnabled && event->message == NS_TOUCH_START) {
+    nsTArray<TouchBehaviorFlags> touchBehaviors;
+    GetAllowedTouchBehavior(event, touchBehaviors);
+    DUMP_ALLOWED_TOUCH_BEHAVIOR(touchBehaviors);
+    mWidget->ApzcSetAllowedTouchBehavior(mTargetAPZCGuid, touchBehaviors);
+  }
 
   
   if (!mApzConsumingTouch) {
@@ -1283,7 +1419,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
       return;
     }
     TransformTouchEvent(event);
-    DUMP_TOUCH_IDS("DOM(4)", event);
+    DUMP_TOUCH_IDS("DOM(5)", event);
     mWidget->DispatchEvent(event, status);
   }
 }
@@ -1313,10 +1449,10 @@ MetroInput::DispatchTouchCancel(WidgetTouchEvent* aEvent)
     return;
   }
   if (mContentConsumingTouch) {
-    DUMP_TOUCH_IDS("APZC(3)", &touchEvent);
+    DUMP_TOUCH_IDS("APZC(4)", &touchEvent);
     mWidget->ApzReceiveInputEvent(&touchEvent, nullptr);
   } else {
-    DUMP_TOUCH_IDS("DOM(5)", &touchEvent);
+    DUMP_TOUCH_IDS("DOM(6)", &touchEvent);
     mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
   }
 }

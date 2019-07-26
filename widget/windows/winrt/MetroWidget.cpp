@@ -4,6 +4,7 @@
 
 
 
+#include "ContentHelper.h"
 #include "LayerManagerD3D10.h"
 #include "MetroWidget.h"
 #include "MetroApp.h"
@@ -686,7 +687,7 @@ MetroWidget::DeliverNextKeyboardEvent()
     delete event;
     return;
   }
-  
+
   if (DispatchWindowEvent(event) && event->message == NS_KEY_DOWN) {
     
     
@@ -1017,6 +1018,31 @@ CompositorParent* MetroWidget::NewCompositorParent(int aSurfaceWidth, int aSurfa
   }
 
   return compositor;
+}
+
+MetroWidget::TouchBehaviorFlags
+MetroWidget::ContentGetAllowedTouchBehavior(const nsIntPoint& aPoint)
+{
+  return ContentHelper::GetAllowedTouchBehavior(this, aPoint);
+}
+
+void
+MetroWidget::ApzcGetAllowedTouchBehavior(WidgetInputEvent* aTransformedEvent,
+                                         nsTArray<TouchBehaviorFlags>& aOutBehaviors)
+{
+  LogFunction();
+  return APZController::sAPZC->GetAllowedTouchBehavior(aTransformedEvent, aOutBehaviors);
+}
+
+void
+MetroWidget::ApzcSetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid,
+                                         nsTArray<TouchBehaviorFlags>& aBehaviors)
+{
+  LogFunction();
+  if (!APZController::sAPZC) {
+    return;
+  }
+  APZController::sAPZC->SetAllowedTouchBehavior(aGuid, aBehaviors);
 }
 
 void

@@ -73,6 +73,9 @@ class MetroInput : public Microsoft::WRL::RuntimeClass<IInspectable>
   InspectableClass(L"MetroInput", BaseTrust);
 
 private:
+  typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
+  typedef uint32_t TouchBehaviorFlags;
+
   
   typedef ABI::Windows::Devices::Input::PointerDeviceType PointerDeviceType;
 
@@ -187,6 +190,13 @@ private:
 
   
   
+  void GetAllowedTouchBehavior(WidgetTouchEvent* aTransformedEvent, nsTArray<TouchBehaviorFlags>& aOutBehaviors);
+
+  
+  bool IsTouchBehaviorForbidden(const nsTArray<TouchBehaviorFlags>& aTouchBehaviors);
+
+  
+  
   
   
   
@@ -212,6 +222,7 @@ private:
   bool mApzConsumingTouch;
   bool mCancelable;
   bool mRecognizerWantsEvents;
+
   nsTArray<uint32_t> mCanceledIds;
 
   
@@ -277,6 +288,9 @@ private:
   
   void DeliverNextQueuedEventIgnoreStatus();
   void DeliverNextQueuedTouchEvent();
+
+  void HandleFirstTouchStartEvent(WidgetTouchEvent* aEvent);
+  void HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent);
 
   
   void DispatchEventIgnoreStatus(WidgetGUIEvent* aEvent);
