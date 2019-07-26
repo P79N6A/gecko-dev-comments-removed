@@ -856,8 +856,6 @@ function DownloadsViewItem(aDataItem, aElement)
   this._element = aElement;
   this.dataItem = aDataItem;
 
-  this.wasDone = this.dataItem.done;
-  this.wasInProgress = this.dataItem.inProgress;
   this.lastEstimatedSecondsLeft = Infinity;
 
   
@@ -910,7 +908,7 @@ DownloadsViewItem.prototype = {
 
 
 
-  onStateChange: function DVI_onStateChange()
+  onStateChange: function DVI_onStateChange(aOldState)
   {
     
     
@@ -918,17 +916,10 @@ DownloadsViewItem.prototype = {
     
     
     
-    if (!this.wasDone && this.dataItem.openable) {
+    if (aOldState != Ci.nsIDownloadManager.DOWNLOAD_FINISHED &&
+        aOldState != this.dataItem.state) {
       this._element.setAttribute("image", this.image + "&state=normal");
     }
-
-    
-    if (this.wasInProgress && !this.dataItem.inProgress) {
-      this.endTime = Date.now();
-    }
-
-    this.wasDone = this.dataItem.done;
-    this.wasInProgress = this.dataItem.inProgress;
 
     
     this._element.setAttribute("state", this.dataItem.state);

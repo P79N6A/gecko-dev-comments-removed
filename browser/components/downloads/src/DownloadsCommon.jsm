@@ -941,7 +941,7 @@ DownloadsDataCtor.prototype = {
   
   
 
-  onDownloadStateChange: function DD_onDownloadStateChange(aState, aDownload)
+  onDownloadStateChange: function DD_onDownloadStateChange(aOldState, aDownload)
   {
 #ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
     if (aDownload.isPrivate != this._isPrivate) {
@@ -954,13 +954,15 @@ DownloadsDataCtor.prototype = {
     
     
     
-    let isNew = aState == nsIDM.DOWNLOAD_NOTSTARTED ||
-                aState == nsIDM.DOWNLOAD_QUEUED;
+    let isNew = aOldState == nsIDM.DOWNLOAD_NOTSTARTED ||
+                aOldState == nsIDM.DOWNLOAD_QUEUED;
 
     let dataItem = this._getOrAddDataItem(aDownload, isNew);
     if (!dataItem) {
       return;
     }
+
+    let wasInProgress = dataItem.inProgress;
 
     dataItem.state = aDownload.state;
     dataItem.referrer = aDownload.referrer && aDownload.referrer.spec;
@@ -968,6 +970,10 @@ DownloadsDataCtor.prototype = {
     dataItem.startTime = Math.round(aDownload.startTime / 1000);
     dataItem.currBytes = aDownload.amountTransferred;
     dataItem.maxBytes = aDownload.size;
+
+    if (wasInProgress && !dataItem.inProgress) {
+      dataItem.endTime = Date.now();
+    }
 
     
     
@@ -981,7 +987,7 @@ DownloadsDataCtor.prototype = {
     }
 
     this._views.forEach(
-      function (view) view.getViewItem(dataItem).onStateChange()
+      function (view) view.getViewItem(dataItem).onStateChange(aOldState)
     );
 
     if (isNew && !dataItem.newDownloadNotified) {
@@ -1729,7 +1735,7 @@ DownloadsIndicatorDataCtor.prototype = {
     let data = this._isPrivate ? PrivateDownloadsIndicatorData
                                : DownloadsIndicatorData;
     return Object.freeze({
-      onStateChange: function DIVI_onStateChange()
+      onStateChange: function DIVI_onStateChange(aOldState)
       {
         if (aDataItem.state == nsIDM.DOWNLOAD_FINISHED ||
             aDataItem.state == nsIDM.DOWNLOAD_FAILED) {
@@ -2004,7 +2010,7 @@ DownloadsSummaryData.prototype = {
   {
     let self = this;
     return Object.freeze({
-      onStateChange: function DIVI_onStateChange()
+      onStateChange: function DIVI_onStateChange(aOldState)
       {
         
         self._lastRawTimeLeft = -1;
