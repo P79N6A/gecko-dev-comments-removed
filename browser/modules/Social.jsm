@@ -57,13 +57,12 @@ this.Social = {
     return this._provider;
   },
   set provider(val) {
-    
-    this._setProvider(val, true);
+    this._setProvider(val);
   },
 
   
   
-  _setProvider: function (provider, notify) {
+  _setProvider: function (provider) {
     if (this._provider == provider)
       return;
 
@@ -84,10 +83,8 @@ this.Social = {
       Services.prefs.setBoolPref("social.enabled", enabled);
     }
 
-    if (notify) {
-      let origin = this._provider && this._provider.origin;
-      Services.obs.notifyObservers(null, "social:provider-set", origin);
-    }
+    let origin = this._provider && this._provider.origin;
+    Services.obs.notifyObservers(null, "social:provider-set", origin);
   },
 
   get defaultProvider() {
@@ -97,41 +94,37 @@ this.Social = {
     return provider || this.providers[0];
   },
 
-  init: function Social_init(callback) {
+  init: function Social_init() {
     this._disabledForSafeMode = Services.appinfo.inSafeMode && this.enabled;
 
     if (this.providers) {
-      schedule(callback);
       return;
     }
 
     
     SocialService.getProviderList(function (providers) {
-      
-      
-      this._updateProviderCache(providers, false);
-      callback();
+      this._updateProviderCache(providers);
     }.bind(this));
 
     
     SocialService.registerProviderListener(function providerListener(topic, data) {
       
       if (topic == "provider-added" || topic == "provider-removed") {
-        this._updateProviderCache(data, true);
+        this._updateProviderCache(data);
         Services.obs.notifyObservers(null, "social:providers-changed", null);
       }
     }.bind(this));
   },
 
   
-  _updateProviderCache: function (providers, notifyProviderChange) {
+  _updateProviderCache: function (providers) {
     this.providers = providers;
 
     
     if (!SocialService.enabled)
       return;
     
-    this._setProvider(this.defaultProvider, notifyProviderChange);
+    this._setProvider(this.defaultProvider);
   },
 
   set enabled(val) {

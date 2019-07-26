@@ -31,7 +31,20 @@ let SocialUI = {
       SocialChatBar.update();
     });
 
-    Social.init(this._providerReady.bind(this));
+    SocialChatBar.init();
+    SocialShareButton.init();
+    SocialMenu.init();
+    SocialToolbar.init();
+    SocialSidebar.init();
+
+    Social.init();
+    
+    
+    
+    if (Social.provider) {
+      this.observe(null, "social:provider-set", Social.provider.origin);
+      this.observe(null, "social:providers-changed", null);
+    }
   },
 
   
@@ -46,18 +59,6 @@ let SocialUI = {
 
     Services.prefs.removeObserver("social.sidebar.open", this);
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
-  },
-
-  
-  _providerReady: function SocialUI_providerReady() {
-    this._updateActiveUI();
-    this._updateMenuItems();
-
-    SocialChatBar.update();
-    SocialShareButton.init();
-    SocialMenu.populate();
-    SocialToolbar.init();
-    SocialSidebar.init();
   },
 
   
@@ -335,6 +336,8 @@ let SocialUI = {
 }
 
 let SocialChatBar = {
+  init: function() {
+  },
   get chatbar() {
     return document.getElementById("pinnedchats");
   },
@@ -556,7 +559,6 @@ let SocialFlyout = {
 let SocialShareButton = {
   
   init: function SSB_init() {
-    this.updateProvider();
   },
 
   
@@ -703,6 +705,9 @@ let SocialShareButton = {
 };
 
 var SocialMenu = {
+  init: function SocialMenu_init() {
+  },
+
   populate: function SocialMenu_populate() {
     let submenu = document.getElementById("menu_social-statusarea-popup");
     let ambientMenuItems = submenu.getElementsByClassName("ambient-menuitem");
@@ -740,8 +745,6 @@ var SocialToolbar = {
     let accesskey = gNavigatorBundle.getString("social.removeProvider.accesskey");
     let removeCommand = document.getElementById("Social:Remove");
     removeCommand.setAttribute("accesskey", accesskey);
-
-    this.updateProvider();
     this._dynamicResizer = new DynamicResizeWatcher();
   },
 
@@ -1073,7 +1076,6 @@ var SocialSidebar = {
     Social.setErrorListener(sbrowser, this.setSidebarErrorMessage.bind(this));
     
     sbrowser.docShell.isAppTab = true;
-    this.update();
   },
 
   
