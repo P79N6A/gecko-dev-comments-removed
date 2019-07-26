@@ -3,6 +3,7 @@
 
 
 
+
 "use strict";
 
 const { Cu, Cc, Ci, components } = require("chrome");
@@ -19,6 +20,11 @@ const XUL_NS      = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.x
 
 
 const MAX_VERTICAL_OFFSET = 3;
+
+
+
+const RE_SCRATCHPAD_ERROR = /(?:@Scratchpad\/\d+:|\()(\d+):?(\d+)?(?:\)|\n)/;
+const RE_JUMP_TO_LINE = /^(\d+):?(\d+)?/;
 
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events  = require("devtools/toolkit/event-emitter");
@@ -752,7 +758,28 @@ Editor.prototype = {
     div.appendChild(txt);
     div.appendChild(inp);
 
-    this.openDialog(div, (line) => this.setCursor({ line: line - 1, ch: 0 }));
+    if (!this.hasMultipleSelections()) {
+      let cm = editors.get(this);
+      let sel = cm.getSelection();
+      
+      
+      
+      let match = sel.match(RE_SCRATCHPAD_ERROR);
+      if (match) {
+        let [ , line, column ] = match;
+        inp.value = column ? line + ":" + column : line;
+        inp.selectionStart = inp.selectionEnd = inp.value.length;
+      }
+    }
+
+    this.openDialog(div, (line) => {
+      
+      let match = line.toString().match(RE_JUMP_TO_LINE);
+      if (match) {
+        let [ , line, column ] = match;
+        this.setCursor({line: line - 1, ch: column ? column - 1 : 0 });
+      }
+    });
   },
 
   
