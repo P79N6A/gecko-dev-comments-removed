@@ -119,10 +119,10 @@
 
 
 
-
-#if defined(__cplusplus) && defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
+#if defined(__cplusplus)
+#if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
   typedef enum class tag_nsresult : uint32_t
-#elif defined(__cplusplus) && defined(MOZ_HAVE_CXX11_ENUM_TYPE)
+#elif defined(MOZ_HAVE_CXX11_ENUM_TYPE)
   
   typedef enum tag_nsresult : uint32_t
 #else
@@ -136,11 +136,18 @@
     #undef ERROR
   } nsresult;
 
-#if defined(__cplusplus) && defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
+#if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
   
 
-  #include "ErrorListDefines.h"
+  #include "ErrorListCxxDefines.h"
 #endif
+#else 
+  
+
+
+  typedef uint32_t nsresult;
+  #include "ErrorListCDefines.h"
+#endif 
 
 #undef SUCCESS_OR_FAILURE
 #undef SUCCESS
