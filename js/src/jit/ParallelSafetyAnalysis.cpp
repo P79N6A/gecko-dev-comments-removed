@@ -75,6 +75,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
 
     bool replaceWithNewPar(MInstruction *newInstruction, JSObject *templateObject);
     bool replace(MInstruction *oldInstruction, MInstruction *replacementInstruction);
+    bool replaceLastIns(MInstruction *oldInstruction, MControlInstruction *replacementInstruction);
 
     bool visitSpecializedInstruction(MInstruction *ins, MIRType spec, uint32_t flags);
 
@@ -106,7 +107,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
         return cx_;
     }
 
-    bool convertToBailout(MBasicBlock *block, MInstruction *ins);
+    bool convertToBailout(MInstructionIterator &iter);
 
     
     
@@ -281,7 +282,6 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     SAFE_OP(NewDenseArrayPar)
     SAFE_OP(NewCallObjectPar)
     SAFE_OP(LambdaPar)
-    SAFE_OP(AbortPar)
     UNSAFE_OP(ArrayConcat)
     UNSAFE_OP(GetDOMProperty)
     UNSAFE_OP(GetDOMMember)
@@ -329,6 +329,16 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     UNSAFE_OP(ConvertElementsToDoubles)
 };
 
+static void
+TransplantResumePoint(MInstruction *oldInstruction, MInstruction *replacementInstruction)
+{
+    if (MResumePoint *rp = oldInstruction->resumePoint()) {
+        replacementInstruction->setResumePoint(rp);
+        if (rp->instruction() == oldInstruction)
+            rp->setInstruction(replacementInstruction);
+    }
+}
+
 bool
 ParallelSafetyAnalysis::analyze()
 {
@@ -354,10 +364,9 @@ ParallelSafetyAnalysis::analyze()
             
             
             
-            MInstruction *instr = nullptr;
-            for (MInstructionIterator ins(block->begin());
-                 ins != block->end() && !visitor.unsafe();)
-            {
+            MInstruction *ins = nullptr;
+            MInstructionIterator iter(block->begin());
+            while (iter != block->end() && !visitor.unsafe()) {
                 if (mir_->shouldCancel("ParallelSafetyAnalysis"))
                     return false;
 
@@ -365,10 +374,10 @@ ParallelSafetyAnalysis::analyze()
                 
                 
                 
-                instr = *ins++;
+                ins = *iter++;
 
-                if (!instr->accept(&visitor)) {
-                    SpewMIR(instr, "Unaccepted");
+                if (!ins->accept(&visitor)) {
+                    SpewMIR(ins, "Unaccepted");
                     return false;
                 }
             }
@@ -391,7 +400,10 @@ ParallelSafetyAnalysis::analyze()
                 }
 
                 
-                if (!visitor.convertToBailout(*block, instr))
+                
+                
+                
+                if (!visitor.convertToBailout(--iter))
                     return false;
             }
         }
@@ -406,79 +418,30 @@ ParallelSafetyAnalysis::analyze()
     IonSpewPass("UCEAfterParallelSafetyAnalysis");
     AssertExtendedGraphCoherency(graph_);
 
-    if (!removeResumePointOperands())
-        return false;
-    IonSpewPass("RemoveResumePointOperands");
-    AssertExtendedGraphCoherency(graph_);
-
     return true;
 }
 
 bool
-ParallelSafetyAnalysis::removeResumePointOperands()
+ParallelSafetyVisitor::convertToBailout(MInstructionIterator &iter)
 {
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    MConstant *udef = nullptr;
-    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-        if (udef)
-            replaceOperandsOnResumePoint(block->entryResumePoint(), udef);
-
-        for (MInstructionIterator ins(block->begin()); ins != block->end(); ins++) {
-            if (ins->isStart()) {
-                JS_ASSERT(udef == nullptr);
-                udef = MConstant::New(graph_.alloc(), UndefinedValue());
-                block->insertAfter(*ins, udef);
-            } else if (udef) {
-                if (MResumePoint *resumePoint = ins->resumePoint())
-                    replaceOperandsOnResumePoint(resumePoint, udef);
-            }
-        }
-    }
-    return true;
-}
-
-void
-ParallelSafetyAnalysis::replaceOperandsOnResumePoint(MResumePoint *resumePoint,
-                                                     MDefinition *withDef)
-{
-    for (size_t i = 0, e = resumePoint->numOperands(); i < e; i++)
-        resumePoint->replaceOperand(i, withDef);
-}
-
-bool
-ParallelSafetyVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
-{
+    MInstruction *ins = *iter;
+    MBasicBlock *block = ins->block();
     JS_ASSERT(unsafe()); 
     JS_ASSERT(block->isMarked()); 
 
-    
-    
-    
-    
-    
-    for (size_t i = 0, e = block->numSuccessors(); i < e; i++)
-        block->getSuccessor(i)->removePredecessor(block);
     clearUnsafe();
-    block->discardAllPhis();
-    block->discardAllInstructions();
-    block->end(MAbortPar::New(graph_.alloc()));
+
+    
+    
+    for (size_t i = 0; i < block->numSuccessors(); i++)
+        block->getSuccessor(i)->removePredecessor(block);
+    block->discardAllInstructionsStartingAt(iter);
+
+    
+    MBail *bailout = MBail::New(graph_.alloc());
+    TransplantResumePoint(ins, bailout);
+    block->end(bailout);
     return true;
 }
 
@@ -503,8 +466,8 @@ ParallelSafetyVisitor::visitNewCallObject(MNewCallObject *ins)
         SpewMIR(ins, "call with dynamic slots");
         return markUnsafe();
     }
-    replace(ins, MNewCallObjectPar::New(alloc(), ForkJoinContext(), ins));
-    return true;
+
+    return replace(ins, MNewCallObjectPar::New(alloc(), ForkJoinContext(), ins));
 }
 
 bool
@@ -514,8 +477,8 @@ ParallelSafetyVisitor::visitNewRunOnceCallObject(MNewRunOnceCallObject *ins)
         SpewMIR(ins, "call with dynamic slots");
         return markUnsafe();
     }
-    replace(ins, MNewCallObjectPar::New(alloc(), ForkJoinContext(), ins));
-    return true;
+
+    return replace(ins, MNewCallObjectPar::New(alloc(), ForkJoinContext(), ins));
 }
 
 bool
@@ -527,8 +490,7 @@ ParallelSafetyVisitor::visitLambda(MLambda *ins)
     }
 
     
-    replace(ins, MLambdaPar::New(alloc(), ForkJoinContext(), ins));
-    return true;
+    return replace(ins, MLambdaPar::New(alloc(), ForkJoinContext(), ins));
 }
 
 bool
@@ -598,22 +560,18 @@ bool
 ParallelSafetyVisitor::replaceWithNewPar(MInstruction *newInstruction,
                                          JSObject *templateObject)
 {
-    replace(newInstruction, MNewPar::New(alloc(), ForkJoinContext(), templateObject));
-    return true;
+    return replace(newInstruction, MNewPar::New(alloc(), ForkJoinContext(), templateObject));
 }
 
 bool
 ParallelSafetyVisitor::replace(MInstruction *oldInstruction,
                                MInstruction *replacementInstruction)
 {
+    TransplantResumePoint(oldInstruction, replacementInstruction);
+
     MBasicBlock *block = oldInstruction->block();
     block->insertBefore(oldInstruction, replacementInstruction);
     oldInstruction->replaceAllUsesWith(replacementInstruction);
-    MResumePoint *rp = oldInstruction->resumePoint();
-    if (rp && rp->instruction() == oldInstruction) {
-        rp->setInstruction(replacementInstruction);
-        replacementInstruction->setResumePoint(rp);
-    }
     block->discard(oldInstruction);
 
     
@@ -628,6 +586,17 @@ ParallelSafetyVisitor::replace(MInstruction *oldInstruction,
     }
     JS_ASSERT(oldInstruction->type() == replacementInstruction->type());
 
+    return true;
+}
+
+bool
+ParallelSafetyVisitor::replaceLastIns(MInstruction *oldInstruction,
+                                      MControlInstruction *replacementInstruction)
+{
+    TransplantResumePoint(oldInstruction, replacementInstruction);
+    MBasicBlock *block = oldInstruction->block();
+    block->discardLastIns();
+    block->end(replacementInstruction);
     return true;
 }
 
@@ -794,13 +763,8 @@ ParallelSafetyVisitor::visitSpecializedInstruction(MInstruction *ins, MIRType sp
 bool
 ParallelSafetyVisitor::visitThrow(MThrow *thr)
 {
-    MBasicBlock *block = thr->block();
-    JS_ASSERT(block->lastIns() == thr);
-    block->discardLastIns();
-    MAbortPar *bailout = MAbortPar::New(alloc());
-    if (!bailout)
-        return false;
-    block->end(bailout);
+    JS_ASSERT(thr->block()->lastIns() == thr);
+    replaceLastIns(thr, MBail::New(alloc()));
     return true;
 }
 

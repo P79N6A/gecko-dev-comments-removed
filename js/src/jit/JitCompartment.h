@@ -172,6 +172,9 @@ class JitRuntime
     JitCode *bailoutHandler_;
 
     
+    JitCode *parallelBailoutHandler_;
+
+    
     
     JitCode *argumentsRectifier_;
     void *argumentsRectifierReturnAddr_;
@@ -237,7 +240,7 @@ class JitRuntime
     JitCode *generateEnterJIT(JSContext *cx, EnterJitType type);
     JitCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void **returnAddrOut);
     JitCode *generateBailoutTable(JSContext *cx, uint32_t frameClass);
-    JitCode *generateBailoutHandler(JSContext *cx);
+    JitCode *generateBailoutHandler(JSContext *cx, ExecutionMode mode);
     JitCode *generateInvalidator(JSContext *cx);
     JitCode *generatePreBarrier(JSContext *cx, MIRType type);
     JitCode *generateMallocStub(JSContext *cx);
@@ -304,8 +307,12 @@ class JitRuntime
     JitCode *getBaselineDebugModeOSRHandler(JSContext *cx);
     void *getBaselineDebugModeOSRHandlerAddress(JSContext *cx, bool popFrameReg);
 
-    JitCode *getGenericBailoutHandler() const {
-        return bailoutHandler_;
+    JitCode *getGenericBailoutHandler(ExecutionMode mode) const {
+        switch (mode) {
+          case SequentialExecution: return bailoutHandler_;
+          case ParallelExecution:   return parallelBailoutHandler_;
+          default:                  MOZ_ASSUME_UNREACHABLE("No such execution mode");
+        }
     }
 
     JitCode *getExceptionTail() const {
