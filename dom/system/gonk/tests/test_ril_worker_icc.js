@@ -626,6 +626,7 @@ add_test(function test_spn_display_condition() {
 
 
 
+
 add_test(function test_stk_proactive_command_more_time() {
   let worker = newUint8Worker();
   let pduHelper = worker.GsmPDUHelper;
@@ -648,6 +649,143 @@ add_test(function test_stk_proactive_command_more_time() {
   do_check_eq(tlv.value.commandNumber, 0x01);
   do_check_eq(tlv.value.typeOfCommand, STK_CMD_MORE_TIME);
   do_check_eq(tlv.value.commandQualifier, 0x00);
+
+  run_next_test();
+});
+
+add_test(function read_network_name() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  let buf = worker.Buf;
+
+  
+  function writeNetworkName(isUCS2, requireCi, name) {
+    let codingOctet = 0x80;
+    let len;
+    if (requireCi) {
+      codingOctet |= 0x08;
+    }
+
+    if (isUCS2) {
+      codingOctet |= 0x10;
+      len = name.length * 2;
+    } else {
+      let spare = (8 - (name.length * 7) % 8) % 8;
+      codingOctet |= spare;
+      len = Math.ceil(name.length * 7 / 8);
+    }
+    helper.writeHexOctet(codingOctet);
+
+    if (isUCS2) {
+      helper.writeUCS2String(name);
+    } else {
+      helper.writeStringAsSeptets(name, 0, 0, 0);
+    }
+
+    return len + 1; 
+  }
+
+  function testNetworkName(isUCS2, requireCi, name) {
+    let len = writeNetworkName(isUCS2, requireCi, name);
+    do_check_eq(helper.readNetworkName(len), name);
+  }
+
+  testNetworkName( true,  true, "Test Network Name1");
+  testNetworkName( true, false, "Test Network Name2");
+  testNetworkName(false,  true, "Test Network Name3");
+  testNetworkName(false, false, "Test Network Name4");
+
+  run_next_test();
+});
+
+add_test(function test_update_network_name() {
+  let RIL = newWorker({
+    postRILMessage: function fakePostRILMessage(data) {
+      
+    },
+    postMessage: function fakePostMessage(message) {
+      
+    }
+  }).RIL;
+
+  function testNetworkNameIsNull(operatorMcc, operatorMnc) {
+    RIL.operator.mcc = operatorMcc;
+    RIL.operator.mnc = operatorMnc;
+    do_check_eq(RIL.updateNetworkName(), null);
+  }
+
+  function testNetworkName(operatorMcc, operatorMnc,
+                            expectedLongName, expectedShortName) {
+    RIL.operator.mcc = operatorMcc;
+    RIL.operator.mnc = operatorMnc;
+    let result = RIL.updateNetworkName();
+
+    do_check_eq(result[0], expectedLongName);
+    do_check_eq(result[1], expectedShortName);
+  }
+
+  
+  do_check_eq(RIL.updateNetworkName(), null);
+
+  
+  RIL.iccInfo.mcc = 123;
+  RIL.iccInfo.mnc = 456;
+
+  RIL.voiceRegistrationState = {
+    cell: {
+      gsmLocationAreaCode: 0x1000
+    }
+  };
+  RIL.operator = {};
+
+  
+  RIL.iccInfoPrivate = {
+    PNN: [
+      {"fullName": "PNN1Long", "shortName": "PNN1Short"},
+      {"fullName": "PNN2Long", "shortName": "PNN2Short"},
+      {"fullName": "PNN3Long", "shortName": "PNN3Short"},
+      {"fullName": "PNN4Long", "shortName": "PNN4Short"}
+    ]
+  };
+
+  
+  testNetworkNameIsNull(123, 457);
+
+  
+  
+  testNetworkName(123, 456, "PNN1Long", "PNN1Short");
+
+  
+  RIL.iccInfoPrivate.OPL = [
+    {
+      "mcc": 123,
+      "mnc": 456,
+      "lacTacStart": 0,
+      "lacTacEnd": 0xFFFE,
+      "pnnRecordId": 4
+    },
+    {
+      "mcc": 123,
+      "mnc": 457,
+      "lacTacStart": 0,
+      "lacTacEnd": 0x0010,
+      "pnnRecordId": 3
+    },
+    {
+      "mcc": 123,
+      "mnc": 457,
+      "lacTacStart": 0,
+      "lacTacEnd": 0x1010,
+      "pnnRecordId": 2
+    }
+  ];
+
+  
+  testNetworkName(123, 456, "PNN4Long", "PNN4Short");
+
+  
+  
+  testNetworkName(123, 457, "PNN2Long", "PNN2Short");
 
   run_next_test();
 });
