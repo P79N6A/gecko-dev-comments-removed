@@ -1935,7 +1935,7 @@ RadioInterface.prototype = {
     if (message.networkTimeZoneInMinutes != (new Date()).getTimezoneOffset()) {
       let absTimeZoneInMinutes = Math.abs(message.networkTimeZoneInMinutes);
       let timeZoneStr = "UTC";
-      timeZoneStr += (message.networkTimeZoneInMinutes >= 0 ? "+" : "-");
+      timeZoneStr += (message.networkTimeZoneInMinutes > 0 ? "-" : "+");
       timeZoneStr += ("0" + Math.floor(absTimeZoneInMinutes / 60)).slice(-2);
       timeZoneStr += ":";
       timeZoneStr += ("0" + absTimeZoneInMinutes % 60).slice(-2);
