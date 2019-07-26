@@ -354,7 +354,7 @@ nsCharsetConverterManager::GetCharsetLangGroupRaw(const char * aCharset,
 
   if (NS_SUCCEEDED(rv)) {
     ToLowerCase(langGroup); 
-    *aResult = NS_NewAtom(langGroup);
+    *aResult = NS_NewAtom(langGroup).get();
   }
 
   return rv;

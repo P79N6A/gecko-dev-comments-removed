@@ -3,6 +3,7 @@
 
 
 #include "nsHtml5Atom.h"
+#include "nsAutoPtr.h"
 
 nsHtml5Atom::nsHtml5Atom(const nsAString& aString)
 {
