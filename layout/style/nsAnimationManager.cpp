@@ -315,16 +315,15 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
     ComputedTiming computedTiming =
       GetPositionInIteration(elapsedDuration, anim->mTiming);
 
-    if (computedTiming.mPhase == ComputedTiming::AnimationPhase_After) {
-      
-      if (anim->mLastNotification != ElementAnimation::LAST_NOTIFICATION_END) {
-        anim->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
-        AnimationEventInfo ei(mElement, anim->mName, NS_ANIMATION_END,
-                              elapsedDuration, PseudoElement());
-        aEventsToDispatch.AppendElement(ei);
-      }
-    } else if (computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) {
-      if (!anim->IsPaused()) {
+    
+    
+    
+    switch (computedTiming.mPhase) {
+      case ComputedTiming::AnimationPhase_Before:
+        
+        break;
+
+      case ComputedTiming::AnimationPhase_Active:
         
         if (computedTiming.mCurrentIteration != anim->mLastNotification) {
           
@@ -342,7 +341,18 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
                                 elapsedDuration, PseudoElement());
           aEventsToDispatch.AppendElement(ei);
         }
-      }
+        break;
+
+      case ComputedTiming::AnimationPhase_After:
+        
+        if (anim->mLastNotification !=
+            ElementAnimation::LAST_NOTIFICATION_END) {
+          anim->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
+          AnimationEventInfo ei(mElement, anim->mName, NS_ANIMATION_END,
+                                elapsedDuration, PseudoElement());
+          aEventsToDispatch.AppendElement(ei);
+        }
+        break;
     }
   }
 }
