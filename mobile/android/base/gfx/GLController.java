@@ -301,9 +301,17 @@ public class GLController {
             initEGL();
             try {
                 mEGLSurfaceForCompositor = mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, mView.getNativeWindow(), null);
+                
+                
+                if (mEGLSurfaceForCompositor == EGL10.EGL_NO_SURFACE) {
+                    mEGLSurfaceForCompositor = null;
+                }
             } catch (Exception e) {
                 Log.e(LOGTAG, "eglCreateWindowSurface threw", e);
             }
+        }
+        if (mEGLSurfaceForCompositor == null) {
+            Log.w(LOGTAG, "eglCreateWindowSurface returned no surface!");
         }
         return mEGLSurfaceForCompositor != null;
     }
