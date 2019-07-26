@@ -53,6 +53,8 @@ public abstract class GeckoAsyncTask<Params, Progress, Result> {
         return this;
     }
 
+    
+    protected void onPostExecute(Result result) { }
+
     protected abstract Result doInBackground(Params... params);
-    protected abstract void onPostExecute(Result result);
 }
