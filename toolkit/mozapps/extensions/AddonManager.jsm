@@ -464,6 +464,7 @@ var gUpdateEnabled = true;
 var gAutoUpdateDefault = true;
 var gHotfixID = null;
 
+var gUpdateCheckInProgress = false;
 
 
 
@@ -478,7 +479,6 @@ var AddonManagerInternal = {
   startupChanges: {},
   
   telemetryDetails: {},
-
 
   
   typesProxy: Proxy.create({
@@ -1142,6 +1142,12 @@ var AddonManagerInternal = {
       throw Components.Exception("AddonManager is not initialized",
                                  Cr.NS_ERROR_NOT_INITIALIZED);
 
+    if (gUpdateCheckInProgress) {
+      throw Components.Exception("Background update check already in progress",
+                                 Cr.NS_ERROR_UNEXPECTED);
+    }
+    gUpdateCheckInProgress = true;
+
     return Task.spawn(function* backgroundUpdateTask() {
       let hotfixID = this.hotfixID;
 
@@ -1284,6 +1290,7 @@ var AddonManagerInternal = {
         }
       }
 
+      gUpdateCheckInProgress = false;
       Services.obs.notifyObservers(null,
                                    "addons-background-update-complete",
                                    null);
