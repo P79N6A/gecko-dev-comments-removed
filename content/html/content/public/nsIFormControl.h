@@ -69,9 +69,14 @@ enum InputElementTypes {
   eInputElementTypesMax
 };
 
-PR_STATIC_ASSERT((uint32_t)eFormControlsWithoutSubTypesMax < (uint32_t)NS_FORM_BUTTON_ELEMENT);
-PR_STATIC_ASSERT((uint32_t)eButtonElementTypesMax < (uint32_t)NS_FORM_INPUT_ELEMENT);
-PR_STATIC_ASSERT((uint32_t)eInputElementTypesMax  < 1<<8);
+static_assert(static_cast<uint32_t>(eFormControlsWithoutSubTypesMax) <
+              static_cast<uint32_t>(NS_FORM_BUTTON_ELEMENT),
+              "Too many FormControlsTypes without sub-types");
+static_assert(static_cast<uint32_t>(eButtonElementTypesMax) <
+              static_cast<uint32_t>(NS_FORM_INPUT_ELEMENT),
+              "Too many ButtonElementTypes");
+static_assert(static_cast<uint32_t>(eInputElementTypesMax) < 1<<8,
+              "Too many form control types");
 
 #define NS_IFORMCONTROL_IID   \
 { 0x4b89980c, 0x4dcd, 0x428f, \

@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Util.h"
 
@@ -167,10 +168,14 @@ nsDOMDataTransfer::SetEffectAllowed(const nsAString& aEffectAllowed)
     return NS_OK;
   }
 
-  PR_STATIC_ASSERT(nsIDragService::DRAGDROP_ACTION_NONE == 0);
-  PR_STATIC_ASSERT(nsIDragService::DRAGDROP_ACTION_COPY == 1);
-  PR_STATIC_ASSERT(nsIDragService::DRAGDROP_ACTION_MOVE == 2);
-  PR_STATIC_ASSERT(nsIDragService::DRAGDROP_ACTION_LINK == 4);
+  static_assert(nsIDragService::DRAGDROP_ACTION_NONE == 0,
+                "DRAGDROP_ACTION_NONE constant is wrong");
+  static_assert(nsIDragService::DRAGDROP_ACTION_COPY == 1,
+                "DRAGDROP_ACTION_COPY constant is wrong");
+  static_assert(nsIDragService::DRAGDROP_ACTION_MOVE == 2,
+                "DRAGDROP_ACTION_MOVE constant is wrong");
+  static_assert(nsIDragService::DRAGDROP_ACTION_LINK == 4,
+                "DRAGDROP_ACTION_LINK constant is wrong");
 
   for (uint32_t e = 0; e < ArrayLength(sEffects); e++) {
     if (aEffectAllowed.EqualsASCII(sEffects[e])) {
