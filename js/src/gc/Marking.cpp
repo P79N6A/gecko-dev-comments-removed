@@ -596,7 +596,7 @@ ShouldMarkCrossCompartment(JSTracer *trc, RawObject src, Cell *cell)
 
 
             if (!cell->isMarked())
-                DelayCrossCompartmentGrayMarking(src, cell);
+                DelayCrossCompartmentGrayMarking(src);
             return false;
         }
         return c->isGCMarkingGray();
