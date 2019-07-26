@@ -24,10 +24,8 @@
 #include "jsapi.h"
 #include "jsutil.h"
 
-#ifdef __cplusplus
 #include "js/HashTable.h"
 #include "js/Vector.h"
-#endif
 
 
 
@@ -64,10 +62,6 @@ typedef struct JSSpecializedNative  JSSpecializedNative;
 
 
 
-
-#ifdef __cplusplus
-
-extern "C++" {
 
 class JSDependentString;
 class JSExtensibleString;
@@ -234,14 +228,6 @@ namespace WTF {
 class BumpPointerAllocator;
 
 } 
-
-} 
-
-#else
-
-typedef struct JSAtom JSAtom;
-
-#endif  
 
 
 typedef enum JSTrapStatus {
