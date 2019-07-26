@@ -165,6 +165,7 @@
 #include "nsDeque.h"
 #include "nsCycleCollector.h"
 #include "nsThreadUtils.h"
+#include "nsXULAppAPI.h"
 #include "prenv.h"
 #include "nsPrintfCString.h"
 #include "nsTArray.h"
@@ -173,7 +174,7 @@
 #include "nsICycleCollectorListener.h"
 #include "nsIMemoryReporter.h"
 #include "nsIFile.h"
-#include "nsDumpUtils.h"
+#include "nsMemoryInfoDumper.h"
 #include "xpcpublic.h"
 #include "GeckoProfiler.h"
 #include "js/SliceBudget.h"
@@ -223,6 +224,12 @@ using namespace mozilla;
 
 
 
+
+
+
+
+
+
 struct nsCycleCollectorParams
 {
     bool mLogAll;
@@ -233,17 +240,37 @@ struct nsCycleCollectorParams
     nsCycleCollectorParams() :
         mLogAll      (PR_GetEnv("MOZ_CC_LOG_ALL") != nullptr),
         mLogShutdown (PR_GetEnv("MOZ_CC_LOG_SHUTDOWN") != nullptr),
-        mAllTracesAtShutdown (PR_GetEnv("MOZ_CC_ALL_TRACES_AT_SHUTDOWN") != nullptr),
-        mLogThisThread(true)
+        mAllTracesAtShutdown (PR_GetEnv("MOZ_CC_ALL_TRACES_AT_SHUTDOWN") != nullptr)
     {
         const char* logThreadEnv = PR_GetEnv("MOZ_CC_LOG_THREAD");
+        bool threadLogging = true;
         if (logThreadEnv && !!strcmp(logThreadEnv, "all")) {
             if (NS_IsMainThread()) {
-                mLogThisThread = !strcmp(logThreadEnv, "main");
+                threadLogging = !strcmp(logThreadEnv, "main");
             } else {
-                mLogThisThread = !strcmp(logThreadEnv, "worker");
+                threadLogging = !strcmp(logThreadEnv, "worker");
             }
         }
+
+        const char* logProcessEnv = PR_GetEnv("MOZ_CC_LOG_PROCESS");
+        bool processLogging = true;
+        if (logProcessEnv && !!strcmp(logProcessEnv, "all")) {
+            switch (XRE_GetProcessType()) {
+                case GeckoProcessType_Default:
+                    processLogging = !strcmp(logProcessEnv, "main");
+                    break;
+                case GeckoProcessType_Plugin:
+                    processLogging = !strcmp(logProcessEnv, "plugins");
+                    break;
+                case GeckoProcessType_Content:
+                    processLogging = !strcmp(logProcessEnv, "content");
+                    break;
+                default:
+                    processLogging = false;
+                    break;
+            }
+        }
+        mLogThisThread = threadLogging && processLogging;
     }
 
     bool LogThisCC(bool aIsShutdown)
@@ -1727,14 +1754,7 @@ private:
             NS_NewNativeLocalFile(nsCString(env),  true,
                                   &logFile);
         }
-
-        
-        
-        
-        nsresult rv = nsDumpUtils::OpenTempFile(
-                                     filename,
-                                     &logFile,
-                                     NS_LITERAL_CSTRING("memory-reports"));
+        nsresult rv = nsMemoryInfoDumper::OpenTempFile(filename, &logFile);
         if (NS_FAILED(rv)) {
           NS_IF_RELEASE(logFile);
           return nullptr;
