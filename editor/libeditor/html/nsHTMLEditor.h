@@ -486,6 +486,8 @@ protected:
 
 
   
+  static already_AddRefed<mozilla::dom::Element>
+    GetEnclosingTable(nsINode* aNode);
   static nsCOMPtr<nsIDOMNode> GetEnclosingTable(nsIDOMNode *aNode);
 
   
