@@ -373,7 +373,7 @@ BasicCompositor::BeginFrame(const gfx::Rect *aClipRectIn,
   if (mCopyTarget) {
     
     
-    mDrawTarget = gfxPlatform::GetPlatform()->CreateOffscreenDrawTarget(IntSize(1,1), FORMAT_B8G8R8A8);
+    mDrawTarget = gfxPlatform::GetPlatform()->CreateOffscreenCanvasDrawTarget(IntSize(1,1), FORMAT_B8G8R8A8);
   } else {
     mDrawTarget = mWidget->StartRemoteDrawing();
   }
