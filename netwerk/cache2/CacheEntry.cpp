@@ -1490,56 +1490,55 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
     return;
   }
 
-  {
-    mozilla::MutexAutoUnlock unlock(mLock);
+  mozilla::MutexAutoUnlock unlock(mLock);
 
-    MOZ_ASSERT(CacheStorageService::IsOnManagementThread());
+  MOZ_ASSERT(CacheStorageService::IsOnManagementThread());
 
-    if (aOperations & Ops::FRECENCYUPDATE) {
-      #ifndef M_LN2
-      #define M_LN2 0.69314718055994530942
-      #endif
+  if (aOperations & Ops::FRECENCYUPDATE) {
+    #ifndef M_LN2
+    #define M_LN2 0.69314718055994530942
+    #endif
 
-      
-      static double half_life = CacheObserver::HalfLifeSeconds();
-      
-      static double const decay = (M_LN2 / half_life) / static_cast<double>(PR_USEC_PER_SEC);
+    
+    static double half_life = CacheObserver::HalfLifeSeconds();
+    
+    static double const decay = (M_LN2 / half_life) / static_cast<double>(PR_USEC_PER_SEC);
 
-      double now_decay = static_cast<double>(PR_Now()) * decay;
+    double now_decay = static_cast<double>(PR_Now()) * decay;
 
-      if (mFrecency == 0) {
-        mFrecency = now_decay;
-      }
-      else {
-        
-        
-        mFrecency = log(exp(mFrecency - now_decay) + 1) + now_decay;
-      }
-      LOG(("CacheEntry FRECENCYUPDATE [this=%p, frecency=%1.10f]", this, mFrecency));
-
-      
-      
-      nsRefPtr<nsRunnableMethod<CacheEntry> > event =
-        NS_NewRunnableMethod(this, &CacheEntry::StoreFrecency);
-      NS_DispatchToMainThread(event);
+    if (mFrecency == 0) {
+      mFrecency = now_decay;
     }
-
-    if (aOperations & Ops::REGISTER) {
-      LOG(("CacheEntry REGISTER [this=%p]", this));
-
-      CacheStorageService::Self()->RegisterEntry(this);
+    else {
+      
+      
+      mFrecency = log(exp(mFrecency - now_decay) + 1) + now_decay;
     }
+    LOG(("CacheEntry FRECENCYUPDATE [this=%p, frecency=%1.10f]", this, mFrecency));
 
-    if (aOperations & Ops::UNREGISTER) {
-      LOG(("CacheEntry UNREGISTER [this=%p]", this));
+    
+    
+    nsRefPtr<nsRunnableMethod<CacheEntry> > event =
+      NS_NewRunnableMethod(this, &CacheEntry::StoreFrecency);
+    NS_DispatchToMainThread(event);
+  }
 
-      CacheStorageService::Self()->UnregisterEntry(this);
-    }
-  } 
+  if (aOperations & Ops::REGISTER) {
+    LOG(("CacheEntry REGISTER [this=%p]", this));
+
+    CacheStorageService::Self()->RegisterEntry(this);
+  }
+
+  if (aOperations & Ops::UNREGISTER) {
+    LOG(("CacheEntry UNREGISTER [this=%p]", this));
+
+    CacheStorageService::Self()->UnregisterEntry(this);
+  }
 
   if (aOperations & Ops::CALLBACKS) {
     LOG(("CacheEntry CALLBACKS (invoke) [this=%p]", this));
 
+    mozilla::MutexAutoLock lock(mLock);
     InvokeCallbacks();
   }
 }
