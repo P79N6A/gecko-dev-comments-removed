@@ -189,14 +189,14 @@ this.Promise = Object.freeze({
 
 
 
-  every: function (aValues)
+  all: function (aValues)
   {
     if (!Array.isArray(aValues)) {
-      throw new Error("Promise.every() expects an array of promises or values.");
+      throw new Error("Promise.all() expects an array of promises or values.");
     }
 
     if (!aValues.length) {
-      return Promise.resolve(undefined);
+      return Promise.resolve([]);
     }
 
     let countdown = aValues.length;
