@@ -992,7 +992,6 @@ public:
 
 
 
-
   virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder)
   { return false; }
 
