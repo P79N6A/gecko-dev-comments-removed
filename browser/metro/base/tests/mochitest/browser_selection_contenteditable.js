@@ -38,7 +38,7 @@ gTests.push({
     let div = gWindow.document.getElementById("testdiv");
     ok(div, "have the div");
 
-    sendElementTap(gWindow, div, 295); 
+    sendElementTap(gWindow, div, 287); 
 
     yield waitForCondition(function () {
         return SelectionHelperUI.isCaretUIVisible;

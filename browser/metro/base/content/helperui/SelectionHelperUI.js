@@ -614,11 +614,21 @@ var SelectionHelperUI = {
     
     
     
+    
+    let xpos = this._cachedCaretPos ? this._cachedCaretPos.xPos :
+      this._msgTarget.ctobx(targetMark.xPos, true);
+    let ypos = this._cachedCaretPos ? this._cachedCaretPos.yPos :
+      this._msgTarget.ctoby(targetMark.yPos, true);
+
+    
+    
+    
+    
     this._sendAsyncMessage("Browser:SelectionSwitchMode", {
       newMode: "selection",
       change: targetMark.tag,
-      xPos: this._msgTarget.ctobx(targetMark.xPos, true),
-      yPos: this._msgTarget.ctoby(targetMark.yPos, true),
+      xPos: xpos,
+      yPos: ypos,
     });
   },
 
@@ -1097,6 +1107,7 @@ var SelectionHelperUI = {
   markerDragStart: function markerDragStart(aMarker) {
     let json = this._getMarkerBaseMessage(aMarker.tag);
     if (aMarker.tag == "caret") {
+      this._cachedCaretPos = null;
       this._sendAsyncMessage("Browser:CaretMove", json);
       return;
     }
@@ -1123,8 +1134,13 @@ var SelectionHelperUI = {
         this._transitionFromCaretToSelection(aDirection);
         return false;
       }
+      
+      if (!this._cachedCaretPos) {
+        this._cachedCaretPos = this._getMarkerBaseMessage(aMarker.tag).caret;
+      }
       return true;
     }
+    this._cachedCaretPos = null;
 
     
     this._hideMonocles();
