@@ -1090,7 +1090,7 @@ pref("devtools.commands.dir", "");
 
 pref("devtools.appmanager.enabled", true);
 pref("devtools.appmanager.lastTab", "help");
-pref("devtools.appmanager.manifestEditor.enabled", false);
+pref("devtools.appmanager.manifestEditor.enabled", true);
 
 
 pref("devtools.toolbox.footer.height", 250);
