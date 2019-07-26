@@ -26,7 +26,7 @@ class ParallelCompileContext
     JSContext *cx_;
 
     
-    AutoObjectVector worklist_;
+    AutoScriptVector worklist_;
 
     
     bool analyzeAndGrowWorklist(MIRGenerator *mir, MIRGraph &graph);
@@ -41,7 +41,7 @@ class ParallelCompileContext
     { }
 
     
-    bool appendToWorklist(HandleFunction fun);
+    bool appendToWorklist(HandleScript script);
 
     ExecutionMode executionMode() {
         return ParallelExecution;
