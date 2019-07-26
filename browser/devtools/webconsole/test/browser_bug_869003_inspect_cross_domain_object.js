@@ -12,6 +12,11 @@ let gWebConsole, gJSTerm, gVariablesView;
 
 function test()
 {
+  
+  
+  
+  requestLongerTimeout(2);
+
   addTab("data:text/html;charset=utf8,<p>hello");
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
