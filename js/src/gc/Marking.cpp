@@ -591,17 +591,6 @@ ShouldMarkCrossCompartment(JSTracer *trc, RawObject src, Cell *cell)
 
     JS_ASSERT(color == BLACK || color == GRAY);
     if (color == BLACK) {
-        
-
-
-
-
-
-
-        if (cell->isMarked(GRAY)) {
-            JS_ASSERT(!cell->compartment()->isCollecting());
-            trc->runtime->gcFoundBlackGrayEdges = true;
-        }
         return c->isGCMarking();
     } else {
         if (c->isGCMarkingBlack()) {
