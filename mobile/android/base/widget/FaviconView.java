@@ -154,11 +154,37 @@ public class FaviconView extends ImageView {
         formatImage();
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     public void updateAndScaleImage(Bitmap bitmap, String key) {
         updateImageInternal(bitmap, key, true);
     }
 
+    
+
+
+
+
+
+
+
     public void updateImage(Bitmap bitmap, String key) {
         updateImageInternal(bitmap, key, false);
+    }
+
+    public Bitmap getBitmap() {
+        return mIconBitmap;
     }
 }

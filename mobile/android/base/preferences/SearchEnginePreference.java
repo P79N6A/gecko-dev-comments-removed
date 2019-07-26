@@ -10,10 +10,10 @@ import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
-import android.os.Build;
 import android.preference.Preference;
 import android.text.SpannableString;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import org.json.JSONException;
@@ -21,15 +21,13 @@ import org.json.JSONObject;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.widget.FaviconView;
 
 
 
 
 public class SearchEnginePreference extends Preference {
     private static final String LOGTAG = "SearchEnginePreference";
-
-    
-    public static int sIconSize;
 
     
     public static final int INDEX_SET_DEFAULT_BUTTON = 0;
@@ -52,6 +50,13 @@ public class SearchEnginePreference extends Preference {
     private final SearchPreferenceCategory mParentCategory;
 
     
+    private BitmapDrawable mPromptIcon;
+    
+    private Bitmap mIconBitmap;
+
+    private FaviconView mFaviconView;
+
+    
 
 
 
@@ -65,7 +70,8 @@ public class SearchEnginePreference extends Preference {
         Resources res = getContext().getResources();
 
         
-        sIconSize = res.getDimensionPixelSize(R.dimen.searchpreferences_icon_size);
+        setLayoutResource(R.layout.preference_search_engine);
+
         setOnPreferenceClickListener(new OnPreferenceClickListener() {
             @Override
             public boolean onPreferenceClick(Preference preference) {
@@ -89,9 +95,23 @@ public class SearchEnginePreference extends Preference {
 
 
 
+
+    @Override
+    protected void onBindView(View view) {
+        super.onBindView(view);
+        
+        mFaviconView = ((FaviconView) view.findViewById(R.id.search_engine_icon));
+        mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+    }
+
+    
+
+
+
+
     public void setSearchEngineFromJSON(JSONObject geckoEngineJSON) throws JSONException {
         final String engineName = geckoEngineJSON.getString("name");
-        SpannableString titleSpannable = new SpannableString(engineName);
+        final SpannableString titleSpannable = new SpannableString(engineName);
         mIsImmutableEngine = geckoEngineJSON.getBoolean("immutable");
 
         if (mIsImmutableEngine) {
@@ -100,18 +120,14 @@ public class SearchEnginePreference extends Preference {
         }
         setTitle(titleSpannable);
 
+        final String iconURI = geckoEngineJSON.getString("iconURI");
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            
-            String iconURI = geckoEngineJSON.getString("iconURI");
-            Bitmap iconBitmap = BitmapUtils.getBitmapFromDataURI(iconURI);
-            
-            if (iconBitmap == null) {
-                return;
-            }
-            Bitmap scaledIconBitmap = Bitmap.createScaledBitmap(iconBitmap, sIconSize, sIconSize, false);
-            BitmapDrawable drawable = new BitmapDrawable(scaledIconBitmap);
-            setIcon(drawable);
+        try {
+            mIconBitmap = BitmapUtils.getBitmapFromDataURI(iconURI);
+        } catch (IllegalArgumentException e) {
+            Log.e(LOGTAG, "IllegalArgumentException creating Bitmap. Most likely a zero-length bitmap.", e);
+        } catch (NullPointerException e) {
+            Log.e(LOGTAG, "NullPointerException creating Bitmap. Most likely a zero-length bitmap.", e);
         }
     }
 
@@ -177,9 +193,11 @@ public class SearchEnginePreference extends Preference {
         });
 
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            builder.setIcon(getIcon());
+        
+        if (mPromptIcon == null && mIconBitmap != null) {
+            mPromptIcon = new BitmapDrawable(mFaviconView.getBitmap());
         }
+        builder.setIcon(mPromptIcon);
 
         
         ThreadUtils.postToUiThread(new Runnable() {
@@ -221,7 +239,7 @@ public class SearchEnginePreference extends Preference {
 
     private void configureShownDialog() {
         
-        TextView defaultButton = (TextView) mDialog.getListView().getChildAt(INDEX_SET_DEFAULT_BUTTON);
+        final TextView defaultButton = (TextView) mDialog.getListView().getChildAt(INDEX_SET_DEFAULT_BUTTON);
         
         if (mIsDefaultEngine) {
             defaultButton.setEnabled(false);

@@ -166,7 +166,7 @@ class SearchEngineRow extends AnimatedHeightLayout {
         mSearchEngine = searchEngine;
 
         
-        mIconView.updateImage(mSearchEngine.icon, mSearchEngine.name);
+        mIconView.updateAndScaleImage(mSearchEngine.icon, mSearchEngine.name);
 
         
         setDescriptionOnSuggestion(mUserEnteredTextView, mUserEnteredTextView.getText().toString());
