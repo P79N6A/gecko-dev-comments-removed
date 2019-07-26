@@ -29,7 +29,7 @@ const nsIDM = Ci.nsIDownloadManager;
 
 const DESTINATION_FILE_URI_ANNO  = "downloads/destinationFileURI";
 const DESTINATION_FILE_NAME_ANNO = "downloads/destinationFileName";
-const DOWNLOAD_STATE_ANNO        = "downloads/state";
+const DOWNLOAD_META_DATA_ANNO    = "downloads/metaData";
 
 const DOWNLOAD_VIEW_SUPPORTED_COMMANDS =
  ["cmd_delete", "cmd_copy", "cmd_paste", "cmd_selectAll",
@@ -119,7 +119,7 @@ DownloadElementShell.prototype = {
     this._dataItem = aValue;
     let shouldUpdate = false;
     if (this._dataItem) {
-      this._targetFileInfoFetched = false;
+      this._invalidateMetaDataAndTargetFileInfo();
       
       
       shouldUpdate = !this.ensureActive();
@@ -155,11 +155,9 @@ DownloadElementShell.prototype = {
       if (!this._dataItem) {
         if (!this._placesNode)
           throw new Error("Should always have either a dataItem or a placesNode");
-        this._targetFileInfoFetched = false;
-        if (this.active) {
+        this._invalidateMetaDataAndTargetFileInfo();
+        if (this.active)
           this._updateStatusUI();
-          this._fetchTargetFileInfo();
-        }
       }
     }
     return aNode;
@@ -275,7 +273,7 @@ DownloadElementShell.prototype = {
         this._targetFileInfoFetched = true;
         this._targetFileExists = true;
         this._targetFileSize = fileInfo.size;
-        delete this._state;
+        this._getDownloadMetaData().fileSize = this._targetFileSize;
         this._updateDownloadStatusUI();
       }.bind(this),
 
@@ -305,26 +303,35 @@ DownloadElementShell.prototype = {
 
 
 
-  getDownloadState: function DES_getDownloadState(aForceUpdate = false) {
-    if (aForceUpdate || !("_state" in this)) {
+
+  _getDownloadMetaData: function DES__getDownloadMetaData() {
+    if (!this._metaData) {
       if (this._dataItem) {
-        this._state = this._dataItem.state;
+        this._metaData = {
+          state: this._dataItem.state,
+          endTime: this._dataItem.endTime
+        };
+        if (this._dataItem.done)
+          this._metaData.fileSize = this._dataItem.maxBytes;
       }
       else {
         try {
-          this._state = this._getAnnotation(DOWNLOAD_STATE_ANNO);
+          this._metaData = JSON.parse(this._getAnnotation(DOWNLOAD_META_DATA_ANNO));
         }
-        catch (ex) {
-          if (!this._targetFileInfoFetched || !this._targetFileExists)
-            this._state = undefined;
-          else if (this._targetFileSize > 0)
-            this._state = nsIDM.DOWNLOAD_FINISHED;
-          else
-            this._state = nsIDM.DOWNLOAD_FAILED;
+        catch(ex) {
+          this._metaData = { };
+          if (this._targetFileInfoFetched && this._targetFileExists) {
+            this._metaData.state = this._targetFileSize > 0 ?
+              nsIDM.DOWNLOAD_FINISHED : nsIDM.DOWNLOAD_FAILED;
+            this._metaData.fileSize = this._targetFileSize;
+          }
+
+          
+          this._metaData.endTime = this._placesNode.time / 1000;
         }
       }
     }
-    return this._state;
+    return this._metaData;
   },
 
   
@@ -361,7 +368,8 @@ DownloadElementShell.prototype = {
 
     
     let stateLabel = "";
-    switch (this.getDownloadState()) {
+    let state = this._getDownloadMetaData().state;
+    switch (state) {
       case nsIDM.DOWNLOAD_FAILED:
         stateLabel = s.stateFailed;
         break;
@@ -379,8 +387,9 @@ DownloadElementShell.prototype = {
         break;
       case nsIDM.DOWNLOAD_FINISHED:{
         
-        if (this._targetFileInfoFetched && this._targetFileExists) {
-          let [size, unit] = DownloadUtils.convertByteUnits(this._targetFileSize);
+        let metaData = this._getDownloadMetaData();
+        if ("fileSize" in metaData) {
+          let [size, unit] = DownloadUtils.convertByteUnits(metaData.fileSize);
           stateLabel = s.sizeWithUnits(size, unit);
           break;
         }
@@ -396,10 +405,8 @@ DownloadElementShell.prototype = {
                    this.downloadURI;
     let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
 
-    
-    let date = this._dataItem && this._dataItem.endTime ||
-               (this._placesNode.time / 1000);
-    let [displayDate, fullDate] = DownloadUtils.getReadableDates(new Date(date));
+    let date = new Date(this._getDownloadMetaData().endTime);
+    let [displayDate, fullDate] = DownloadUtils.getReadableDates(date);
 
     
     
@@ -421,7 +428,7 @@ DownloadElementShell.prototype = {
   
   
   _updateDownloadStatusUI: function  DES__updateDownloadStatusUI() {
-    let state = this.getDownloadState(true);
+    let state = this._getDownloadMetaData().state;
     if (state !== undefined)
       this._element.setAttribute("state", state);
 
@@ -486,12 +493,20 @@ DownloadElementShell.prototype = {
       else if (aAnnoName == DESTINATION_FILE_NAME_ANNO) {
         this._element.setAttribute("displayName", this._displayName);
       }
-      else if (aAnnoName == DOWNLOAD_STATE_ANNO) {
+      else if (aAnnoName == DOWNLOAD_META_DATA_ANNO) {
+        this._invalidateMetaDataAndTargetFileInfo();
         this._updateDownloadStatusUI();
         if (this._element.selected)
           goUpdateDownloadCommands();
       }
     }
+  },
+
+  _invalidateMetaDataAndTargetFileInfo: function DES__invalidateMetaDataAndTargetFileInfo() {
+    this._metaData = null;
+    this._targetFileInfoFetched = false;
+    if (this.active)
+      this._fetchTargetFileInfo();
   },
 
   
@@ -500,12 +515,11 @@ DownloadElementShell.prototype = {
         aOldState != this.dataItem.state) {
       
       this._element.setAttribute("image", this._icon + "&state=normal");
-
-      this._targetFileInfoFetched = false;
       if (this.active)
         this._fetchTargetFileInfo();
     }
 
+    this._metaData = null;
     this._updateDownloadStatusUI();
     if (this._element.selected)
       goUpdateDownloadCommands();
@@ -664,7 +678,7 @@ DownloadElementShell.prototype = {
       }
       return "";
     }
-    let command = getDefaultCommandForState(this.getDownloadState());
+    let command = getDefaultCommandForState(this._getDownloadMetaData().state);
     if (this.isCommandEnabled(command))
       this.doCommand(command);
   }
@@ -745,7 +759,7 @@ DownloadsPlacesView.prototype = {
       this._cachedAnnotations = new Map();
       for (let name of [ DESTINATION_FILE_URI_ANNO,
                          DESTINATION_FILE_NAME_ANNO,
-                         DOWNLOAD_STATE_ANNO ]) {
+                         DOWNLOAD_META_DATA_ANNO ]) {
         let results = PlacesUtils.annotations.getAnnotationsWithName(name);
         for (let result of results) {
           let url = result.uri.spec;
@@ -766,8 +780,8 @@ DownloadsPlacesView.prototype = {
       annotations.set(DESTINATION_FILE_NAME_ANNO, NOT_AVAILABLE);
     }
     
-    if (!annotations.has(DOWNLOAD_STATE_ANNO)) {
-      annotations.set(DOWNLOAD_STATE_ANNO, NOT_AVAILABLE);
+    if (!annotations.has(DOWNLOAD_META_DATA_ANNO)) {
+      annotations.set(DOWNLOAD_META_DATA_ANNO, NOT_AVAILABLE);
     }
     return annotations;
   },
@@ -1325,7 +1339,7 @@ DownloadsPlacesView.prototype = {
 
     
     let contextMenu = document.getElementById("downloadsContextMenu");
-    let state = element._shell.getDownloadState();
+    let state = element._shell._getDownloadMetaData().state;
     if (state !== undefined)
       contextMenu.setAttribute("state", state);
     else
