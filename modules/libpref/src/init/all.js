@@ -1449,6 +1449,17 @@ pref("mousewheel.with_win.action", 1);
 
 
 
+pref("mousewheel.default.action.override_x", -1);
+pref("mousewheel.with_alt.action.override_x", -1);
+pref("mousewheel.with_control.action.override_x", -1);
+pref("mousewheel.with_meta.action.override_x", -1);  
+pref("mousewheel.with_shift.action.override_x", -1);
+pref("mousewheel.with_win.action.override_x", -1);
+
+
+
+
+
 pref("mousewheel.default.delta_multiplier_x", 100);
 pref("mousewheel.default.delta_multiplier_y", 100);
 pref("mousewheel.default.delta_multiplier_z", 100);

@@ -350,7 +350,7 @@ protected:
     
 
 
-    enum Action
+    enum Action MOZ_ENUM_TYPE(uint8_t)
     {
       ACTION_NONE = 0,
       ACTION_SCROLL,
@@ -428,6 +428,12 @@ protected:
     double mMultiplierY[COUNT_OF_MULTIPLIERS];
     double mMultiplierZ[COUNT_OF_MULTIPLIERS];
     Action mActions[COUNT_OF_MULTIPLIERS];
+    
+
+
+
+
+    Action mOverriddenActionsX[COUNT_OF_MULTIPLIERS];
 
     static WheelPrefs* sInstance;
   };
@@ -860,4 +866,4 @@ private:
     (!NS_IS_ACTIVATION_EVENT(event) && (event)->message != NS_MOUSE_CLICK && \
      (event)->message != NS_MOUSE_DOUBLECLICK)
 
-#endif 
+#endif

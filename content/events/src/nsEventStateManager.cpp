@@ -5457,13 +5457,25 @@ nsEventStateManager::WheelPrefs::Init(
 
   nsAutoCString prefNameAction(basePrefName);
   prefNameAction.AppendLiteral("action");
-  mActions[aIndex] =
-    static_cast<Action>(Preferences::GetInt(prefNameAction.get(),
-                                            ACTION_SCROLL));
-  if (mActions[aIndex] < ACTION_NONE || mActions[aIndex] > ACTION_LAST) {
+  int32_t action = Preferences::GetInt(prefNameAction.get(), ACTION_SCROLL);
+  if (action < ACTION_NONE || action > ACTION_LAST) {
     NS_WARNING("Unsupported action pref value, replaced with 'Scroll'.");
-    mActions[aIndex] = ACTION_SCROLL;
+    action = ACTION_SCROLL;
   }
+  mActions[aIndex] = static_cast<Action>(action);
+
+  
+  
+  
+  prefNameAction.AppendLiteral(".override_x");
+  int32_t actionOverrideX = Preferences::GetInt(prefNameAction.get(), -1);
+  if (actionOverrideX < -1 || actionOverrideX > ACTION_LAST) {
+    NS_WARNING("Unsupported action override pref value, didn't override.");
+    actionOverrideX = -1;
+  }
+  mOverriddenActionsX[aIndex] = (actionOverrideX == -1)
+                              ? static_cast<Action>(action)
+                              : static_cast<Action>(actionOverrideX);
 }
 
 void
@@ -5524,21 +5536,25 @@ nsEventStateManager::WheelPrefs::ComputeActionFor(widget::WheelEvent* aEvent)
   Index index = GetIndexFor(aEvent);
   Init(index);
 
-  if (mActions[index] == ACTION_NONE || mActions[index] == ACTION_SCROLL) {
-    return mActions[index];
+  bool deltaXPreferred =
+    (std::abs(aEvent->deltaX) > std::abs(aEvent->deltaY) &&
+     std::abs(aEvent->deltaX) > std::abs(aEvent->deltaZ));
+  Action* actions = deltaXPreferred ? mOverriddenActionsX : mActions;
+  if (actions[index] == ACTION_NONE || actions[index] == ACTION_SCROLL) {
+    return actions[index];
   }
 
   
   if (aEvent->isMomentum) {
     
     Init(INDEX_DEFAULT);
-    return (mActions[INDEX_DEFAULT] == ACTION_SCROLL) ? ACTION_SCROLL :
-                                                        ACTION_NONE;
+    return (actions[INDEX_DEFAULT] == ACTION_SCROLL) ? ACTION_SCROLL :
+                                                       ACTION_NONE;
   }
 
   
   
-  return !aEvent->GetPreferredIntDelta() ? ACTION_NONE : mActions[index];
+  return !aEvent->GetPreferredIntDelta() ? ACTION_NONE : actions[index];
 }
 
 bool
