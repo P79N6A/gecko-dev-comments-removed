@@ -332,6 +332,89 @@ protected:
   virtual void CreateFrontBufferAndNotify(const nsIntRect& aBufferRect) MOZ_OVERRIDE;
 };
 
+
+
+
+
+
+
+class ContentClientIncremental : public ContentClientRemote
+{
+public:
+  ContentClientIncremental(CompositableForwarder* aFwd)
+    : ContentClientRemote(aFwd)
+    , mContentType(gfxASurface::CONTENT_COLOR_ALPHA)
+    , mHasBuffer(false)
+    , mHasBufferOnWhite(false)
+  {
+    mTextureInfo.mCompositableType = BUFFER_CONTENT_INC;
+  }
+
+  typedef ThebesLayerBuffer::PaintState PaintState;
+  typedef ThebesLayerBuffer::ContentType ContentType;
+
+  virtual TextureInfo GetTextureInfo() const
+  {
+    return mTextureInfo;
+  }
+
+  virtual void Clear()
+  {
+    mBufferRect.SetEmpty();
+    mHasBuffer = false;
+    mHasBufferOnWhite = false;
+  }
+  virtual ThebesLayerBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+                                                         ThebesLayerBuffer::ContentType aContentType,
+                                                         uint32_t aFlags);
+
+  virtual void Updated(const nsIntRegion& aRegionToDraw,
+                       const nsIntRegion& aVisibleRegion,
+                       bool aDidSelfCopy);
+
+  virtual void EndPaint()
+  {
+    if (IsSurfaceDescriptorValid(mUpdateDescriptor)) {
+      mForwarder->DestroySharedSurface(&mUpdateDescriptor);
+    }
+    if (IsSurfaceDescriptorValid(mUpdateDescriptorOnWhite)) {
+      mForwarder->DestroySharedSurface(&mUpdateDescriptorOnWhite);
+    }
+  }
+
+private:
+
+  enum BufferType{
+    BUFFER_BLACK,
+    BUFFER_WHITE
+  };
+
+  void NotifyBufferCreated(ContentType aType, uint32_t aFlags)
+  {
+    mTextureInfo.mTextureFlags = aFlags | HostRelease;
+    mContentType = aType;
+
+    mForwarder->CreatedIncrementalBuffer(this,
+                                         mTextureInfo,
+                                         mBufferRect);
+
+  }
+
+  already_AddRefed<gfxASurface> GetUpdateSurface(BufferType aType, nsIntRegion& aUpdateRegion);
+
+  TextureInfo mTextureInfo;
+  nsIntRect mBufferRect;
+  nsIntPoint mBufferRotation;
+
+  SurfaceDescriptor mUpdateDescriptor;
+  SurfaceDescriptor mUpdateDescriptorOnWhite;
+
+  ContentType mContentType;
+
+  bool mHasBuffer;
+  bool mHasBufferOnWhite;
+};
+
 }
 }
 
