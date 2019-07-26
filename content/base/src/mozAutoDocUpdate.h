@@ -2,6 +2,9 @@
 
 
 
+#ifndef mozAutoDocUpdate_h_
+#define mozAutoDocUpdate_h_
+
 #include "nsContentUtils.h"
 #include "nsIDocument.h"
 #include "nsIDocumentObserver.h"
@@ -82,3 +85,5 @@ public:
 private:
   nsCOMPtr<nsIDocument> mDocument;
 };
+
+#endif
