@@ -51,6 +51,7 @@ public class SQLiteBridge {
     private static native void closeDatabase(long aDb);
 
     
+    @RobocopTarget
     public SQLiteBridge(String aDb) throws SQLiteBridgeException {
         mDb = aDb;
     }
