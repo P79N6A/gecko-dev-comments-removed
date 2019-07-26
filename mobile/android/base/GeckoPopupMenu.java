@@ -130,6 +130,15 @@ public class GeckoPopupMenu implements GeckoMenu.Callback,
         }
     }
 
+    
+
+
+
+
+    public void showArrowToAnchor(boolean show) {
+        mMenuPopup.showArrowToAnchor(show);
+    }
+
     @Override
     public boolean onMenuItemSelected(MenuItem item) {
         if (mClickListener != null)
