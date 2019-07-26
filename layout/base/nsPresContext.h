@@ -305,7 +305,22 @@ public:
   
 
 
-  nsIAtom* Medium() { return mMedium; }
+  nsIAtom* Medium() {
+    if (!mIsEmulatingMedia)
+      return mMedium;
+    return mMediaEmulated;
+  }
+
+  
+
+
+
+  void EmulateMedium(const nsAString& aMediaType);
+
+  
+
+
+  void StopEmulatingMedium();
 
   void* AllocateFromShell(size_t aSize)
   {
@@ -1151,6 +1166,7 @@ protected:
   nsRefPtr<nsAnimationManager> mAnimationManager;
   nsIAtom*              mMedium;        
                                         
+  nsCOMPtr<nsIAtom> mMediaEmulated;
 
   nsILinkHandler*       mLinkHandler;   
 
@@ -1260,6 +1276,7 @@ protected:
   unsigned              mPendingUIResolutionChanged : 1;
   unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
+  unsigned              mIsEmulatingMedia : 1;
   
   
   unsigned              mAllInvalidated : 1;
