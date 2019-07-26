@@ -24,12 +24,21 @@ function discovery_observer(subject, topic, data) {
   run_next_test();
 };
 
+var testTarget = {
+  target: "test:service",
+  factory: function(service) {   }
+};
+
 add_test(function test_default() {
   do_register_cleanup(function cleanup() {
+    SimpleServiceDiscovery.unregisterTarget(testTarget);
     Services.obs.removeObserver(discovery_observer, "ssdp-service-found");
   });
 
   Services.obs.addObserver(discovery_observer, "ssdp-service-found", false);
+
+  
+  SimpleServiceDiscovery.registerTarget(testTarget);
 
   
   let service = {

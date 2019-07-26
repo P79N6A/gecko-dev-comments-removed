@@ -3,6 +3,16 @@
 
 "use strict";
 
+
+
+var rokuTarget = {
+  target: "roku:ecp",
+  factory: function(aService) {
+    Cu.import("resource://gre/modules/RokuApp.jsm");
+    return new RokuApp(aService);
+  }
+};
+
 var CastingApps = {
   _castMenuId: -1,
 
@@ -12,10 +22,7 @@ var CastingApps = {
     }
 
     
-    SimpleServiceDiscovery.registerTarget("roku:ecp", function(aService) {
-      Cu.import("resource://gre/modules/RokuApp.jsm");
-      return new RokuApp(aService);
-    });
+    SimpleServiceDiscovery.registerTarget(rokuTarget);
 
     
     SimpleServiceDiscovery.search(120 * 1000);
@@ -252,6 +259,10 @@ var CastingApps = {
   },
 
   _findCastableVideo: function _findCastableVideo(aBrowser) {
+      if (!aBrowser) {
+        return null;
+      }
+
       
       
       let castableVideo = null;
@@ -451,4 +462,3 @@ var CastingApps = {
     }
   }
 };
-

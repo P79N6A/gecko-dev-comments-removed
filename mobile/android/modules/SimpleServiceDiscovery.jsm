@@ -225,10 +225,28 @@ var SimpleServiceDiscovery = {
     }
   },
 
-  registerTarget: function registerTarget(aTarget, aAppFactory) {
+  registerTarget: function registerTarget(aTarget) {
     
-    if (!this._targets.has(aTarget)) {
-      this._targets.set(aTarget, { target: aTarget, factory: aAppFactory });
+    if (!("target" in aTarget) || !("factory" in aTarget)) {
+      
+      throw "Registration requires a target and a location";
+    }
+
+    
+    if (!this._targets.has(aTarget.target)) {
+      this._targets.set(aTarget.target, aTarget);
+    }
+  },
+
+  unregisterTarget: function unregisterTarget(aTarget) {
+    
+    if (!("target" in aTarget) || !("factory" in aTarget)) {
+      return;
+    }
+
+    
+    if (this._targets.has(aTarget.target)) {
+      this._targets.delete(aTarget.target);
     }
   },
 
@@ -260,6 +278,29 @@ var SimpleServiceDiscovery = {
     return array;
   },
 
+  
+  _filterService: function _filterService(aService) {
+    let target = this._targets.get(aService.target);
+    if (!target) {
+      return false;
+    }
+
+    
+    if (!("filters" in target)) {
+      return true;
+    }
+
+    
+    let filters = target.filters;
+    for (let filter in filters) {
+      if (filter in aService && aService[filter] != filters[filter]) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+
   _processService: function _processService(aService) {
     
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
@@ -277,6 +318,11 @@ var SimpleServiceDiscovery = {
         aService.uuid = doc.querySelector("UDN").textContent;
         aService.manufacturer = doc.querySelector("manufacturer").textContent;
         aService.modelName = doc.querySelector("modelName").textContent;
+
+        
+        if (!this._filterService(aService)) {
+          return;
+        }
 
         
         if (!this._services.has(aService.uuid)) {
