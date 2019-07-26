@@ -28,10 +28,21 @@
 #include <unistd.h>
 #endif
 
+#if defined(XP_LINUX) || defined(__FreeBSD__) || defined(XP_MACOSX)
+#define MOZ_SUPPORTS_FIFO 1
+#endif
+
 #if defined(XP_LINUX) || defined(__FreeBSD__)
+#define MOZ_SUPPORTS_RT_SIGNALS 1
+#endif
+
+#if defined(MOZ_SUPPORTS_RT_SIGNALS)
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#endif
+
+#if defined(MOZ_SUPPORTS_FIFO)
 #include "mozilla/Preferences.h"
 #endif
 
@@ -91,7 +102,7 @@ private:
 
 } 
 
-#if defined(XP_LINUX) || defined(__FreeBSD__) 
+#if defined(MOZ_SUPPORTS_RT_SIGNALS) 
 namespace {
 
 
@@ -124,16 +135,6 @@ static uint8_t sDumpAboutMemorySignum;
 static uint8_t sDumpAboutMemoryAfterMMUSignum; 
 static uint8_t sGCAndCCDumpSignum;             
 
-void doMemoryReport(const nsCString& inputStr)
-{
-  bool doMMUMemoryReport = inputStr == NS_LITERAL_CSTRING("minimize memory report");
-  LOG("FifoWatcher(command:%s) dispatching memory report runnable.", inputStr.get());
-  nsRefPtr<DumpMemoryInfoToTempDirRunnable> runnable =
-    new DumpMemoryInfoToTempDirRunnable( EmptyString(),
-                                        doMMUMemoryReport);
-  NS_DispatchToMainThread(runnable);
-}
-
 void doMemoryReport(const uint8_t recvSig)
 {
   
@@ -142,17 +143,6 @@ void doMemoryReport(const uint8_t recvSig)
   nsRefPtr<DumpMemoryInfoToTempDirRunnable> runnable =
     new DumpMemoryInfoToTempDirRunnable( EmptyString(),
                                         doMMUFirst);
-  NS_DispatchToMainThread(runnable);
-}
-
-void doGCCCDump(const nsCString& inputStr)
-{
-  bool doAllTracesGCCCDump = inputStr == NS_LITERAL_CSTRING("gc log");
-  LOG("FifoWatcher(command:%s) dispatching GC/CC log runnable.", inputStr.get());
-  nsRefPtr<GCAndCCLogDumpRunnable> runnable =
-    new GCAndCCLogDumpRunnable( EmptyString(),
-                              doAllTracesGCCCDump,
-                               true);
   NS_DispatchToMainThread(runnable);
 }
 
@@ -165,6 +155,33 @@ void doGCCCDump(const uint8_t recvSig)
          EmptyString(),
          true,
          true);
+  NS_DispatchToMainThread(runnable);
+}
+
+} 
+#endif 
+
+#if defined(MOZ_SUPPORTS_FIFO) 
+namespace {
+
+void doMemoryReport(const nsCString& inputStr)
+{
+  bool doMMUMemoryReport = inputStr == NS_LITERAL_CSTRING("minimize memory report");
+  LOG("FifoWatcher(command:%s) dispatching memory report runnable.", inputStr.get());
+  nsRefPtr<DumpMemoryInfoToTempDirRunnable> runnable =
+    new DumpMemoryInfoToTempDirRunnable( EmptyString(),
+                                        doMMUMemoryReport);
+  NS_DispatchToMainThread(runnable);
+}
+
+void doGCCCDump(const nsCString& inputStr)
+{
+  bool doAllTracesGCCCDump = inputStr == NS_LITERAL_CSTRING("gc log");
+  LOG("FifoWatcher(command:%s) dispatching GC/CC log runnable.", inputStr.get());
+  nsRefPtr<GCAndCCLogDumpRunnable> runnable =
+    new GCAndCCLogDumpRunnable( EmptyString(),
+                              doAllTracesGCCCDump,
+                               true);
   NS_DispatchToMainThread(runnable);
 }
 
@@ -221,7 +238,7 @@ nsMemoryInfoDumper::~nsMemoryInfoDumper()
  void
 nsMemoryInfoDumper::Initialize()
 {
-#if defined(XP_LINUX) || defined(__FreeBSD__)
+#if defined(MOZ_SUPPORTS_RT_SIGNALS)
   SignalPipeWatcher* sw = SignalPipeWatcher::GetSingleton();
 
   
@@ -233,7 +250,9 @@ nsMemoryInfoDumper::Initialize()
   
   sGCAndCCDumpSignum = SIGRTMIN + 2;
   sw->RegisterCallback(sGCAndCCDumpSignum, doGCCCDump);
+#endif
 
+#if defined(MOZ_SUPPORTS_FIFO)
   if (!SetupFifo()) {
     
     
