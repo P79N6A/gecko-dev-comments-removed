@@ -29,10 +29,12 @@ var tests = {
 
     function triggerIconPanel() {
       let statusIcons = document.getElementById("social-status-iconbox");
-      ok(!statusIcons.firstChild.hidden, "status icon is visible");
-      
-      let panel = document.getElementById("social-notification-panel");
-      EventUtils.synthesizeMouseAtCenter(statusIcons.firstChild, {});
+      waitForCondition(function() statusIcons.firstChild && !statusIcons.firstChild.hidden,
+                       function() {
+        
+        let panel = document.getElementById("social-notification-panel");
+        EventUtils.synthesizeMouseAtCenter(statusIcons.firstChild, {});
+      }, "Status icon didn't become non-hidden");
     }
 
     let port = Social.provider.getWorkerPort();
@@ -40,6 +42,10 @@ var tests = {
     port.onmessage = function (e) {
       let topic = e.data.topic;
       switch (topic) {
+        case "test-init-done":
+          iconsReady = true;
+          checkNext();
+          break;
         case "got-panel-message":
           ok(true, "got panel message");
           
@@ -67,24 +73,5 @@ var tests = {
       }
     }
     port.postMessage({topic: "test-init"});
-
-    
-    
-    
-    
-    if (Social.provider.workerAPI.initialized) {
-      iconsReady = true;
-      checkNext();
-    } else {
-      Services.obs.addObserver(function obs() {
-        Services.obs.removeObserver(obs, "social:ambient-notification-changed");
-        
-        
-        executeSoon(function () {
-          iconsReady = true;
-          checkNext();
-        });
-      }, "social:ambient-notification-changed", false);
-    }
   }
 }
