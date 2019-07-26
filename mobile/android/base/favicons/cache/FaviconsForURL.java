@@ -43,8 +43,12 @@ public class FaviconsForURL {
         FaviconCacheElement c = new FaviconCacheElement(favicon, isPrimary, imageSize, this);
 
         int index = Collections.binarySearch(mFavicons, c);
+
+        
+        
         if (index < 0) {
-            index = 0;
+            index++;
+            index = -index;
         }
         mFavicons.add(index, c);
 
