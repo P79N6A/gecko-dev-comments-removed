@@ -468,6 +468,44 @@ SimpleTest.requestLongerTimeout = function (factor) {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SimpleTest.expectAssertions = function(min, max) {
+    if (parentRunner) {
+        parentRunner.expectAssertions(min, max);
+    }
+}
+
 SimpleTest.waitForFocus_started = false;
 SimpleTest.waitForFocus_loaded = false;
 SimpleTest.waitForFocus_focused = false;
