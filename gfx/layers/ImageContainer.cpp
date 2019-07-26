@@ -135,7 +135,11 @@ ImageContainer::ImageContainer(int flag)
   if (flag == ENABLE_ASYNC && ImageBridgeChild::IsCreated()) {
     
     
-    mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(BUFFER_IMAGE_BUFFERED).drop();
+    if (gfxPlatform::GetPlatform()->UseDeprecatedTextures()) {
+      mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(BUFFER_IMAGE_BUFFERED).drop();
+    } else {
+      mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(BUFFER_IMAGE_SINGLE).drop();
+    }
     MOZ_ASSERT(mImageClient);
   }
 }
