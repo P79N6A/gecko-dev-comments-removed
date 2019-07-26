@@ -53,8 +53,8 @@ private:
   bool GetNextChunk(uint32_t* aChunk, uint32_t* aChunkSize);
   bool LoadFormatChunk(uint32_t aChunkSize);
   bool FindDataOffset(uint32_t aChunkSize);
-  bool LoadListChunk(uint32_t aChunkSize, nsAutoPtr<nsHTMLMediaElement::MetadataTags> &aTags);
-  bool LoadAllChunks(nsAutoPtr<nsHTMLMediaElement::MetadataTags> &aTags);
+  bool LoadListChunk(uint32_t aChunkSize, nsAutoPtr<dom::HTMLMediaElement::MetadataTags> &aTags);
+  bool LoadAllChunks(nsAutoPtr<dom::HTMLMediaElement::MetadataTags> &aTags);
 
   
   

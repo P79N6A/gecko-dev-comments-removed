@@ -7,11 +7,13 @@
 #define MediaDecoderOwner_h_
 #include "AbstractMediaDecoder.h"
 
-class nsHTMLMediaElement;
-
 namespace mozilla {
 
 class VideoFrameContainer;
+
+namespace dom {
+class HTMLMediaElement;
+}
 
 class MediaDecoderOwner
 {
@@ -36,7 +38,7 @@ public:
 
   
   
-  virtual nsHTMLMediaElement* GetMediaElement()
+  virtual dom::HTMLMediaElement* GetMediaElement()
   {
     return nullptr;
   }

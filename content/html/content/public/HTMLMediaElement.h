@@ -3,8 +3,8 @@
 
 
 
-#if !defined(nsHTMLMediaElement_h__)
-#define nsHTMLMediaElement_h__
+#ifndef mozilla_dom_HTMLMediaElement_h
+#define mozilla_dom_HTMLMediaElement_h
 
 #include "nsIDOMHTMLMediaElement.h"
 #include "nsGenericHTMLElement.h"
@@ -39,10 +39,13 @@ class MediaResource;
 class MediaDecoder;
 }
 
-class nsHTMLMediaElement : public nsGenericHTMLElement,
-                           public nsIObserver,
-                           public mozilla::MediaDecoderOwner,
-                           public nsIAudioChannelAgentCallback
+namespace mozilla {
+namespace dom {
+
+class HTMLMediaElement : public nsGenericHTMLElement,
+                         public nsIObserver,
+                         public MediaDecoderOwner,
+                         public nsIAudioChannelAgentCallback
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -52,16 +55,13 @@ public:
   typedef mozilla::MediaResource MediaResource;
   typedef mozilla::MediaDecoderOwner MediaDecoderOwner;
   typedef mozilla::MetadataTags MetadataTags;
-  typedef mozilla::AudioStream AudioStream;
-  typedef mozilla::MediaDecoder MediaDecoder;
-  typedef mozilla::DOMMediaStream DOMMediaStream;
 
-  mozilla::CORSMode GetCORSMode() {
+  CORSMode GetCORSMode() {
     return mCORSMode;
   }
 
-  nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~nsHTMLMediaElement();
+  HTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual ~HTMLMediaElement();
 
   
 
@@ -82,7 +82,7 @@ public:
 
   
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLMediaElement,
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLMediaElement,
                                            nsGenericHTMLElement)
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
@@ -194,7 +194,7 @@ public:
   
   
   virtual VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE;
-  ImageContainer* GetImageContainer();
+  layers::ImageContainer* GetImageContainer();
 
   
   
@@ -255,7 +255,7 @@ public:
 
   
   
-  static mozilla::CanPlayStatus GetCanPlay(const nsAString& aType);
+  static CanPlayStatus GetCanPlay(const nsAString& aType);
 
   
 
@@ -296,7 +296,7 @@ public:
 
   bool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
-  nsresult CopyInnerTo(mozilla::dom::Element* aDest);
+  nsresult CopyInnerTo(Element* aDest);
 
   
 
@@ -334,13 +334,13 @@ protected:
   class WakeLockBoolWrapper {
   public:
     WakeLockBoolWrapper(bool val = false) : mValue(val), mOuter(NULL), mWakeLock(NULL) {}
-    void SetOuter(nsHTMLMediaElement* outer) { mOuter = outer; }
+    void SetOuter(HTMLMediaElement* outer) { mOuter = outer; }
     operator bool() { return mValue; }
     WakeLockBoolWrapper& operator=(bool val);
     bool operator !() const { return !mValue; }
   private:
     bool mValue;
-    nsHTMLMediaElement* mOuter;
+    HTMLMediaElement* mOuter;
     nsCOMPtr<nsIDOMMozWakeLock> mWakeLock;
   };
 
@@ -415,7 +415,7 @@ protected:
 
 
 
-  nsHTMLMediaElement* LookupMediaElementURITable(nsIURI* aURI);
+  HTMLMediaElement* LookupMediaElementURITable(nsIURI* aURI);
 
   
 
@@ -597,7 +597,7 @@ protected:
 
   
   
-  virtual nsHTMLMediaElement* GetMediaElement() MOZ_FINAL MOZ_OVERRIDE
+  virtual HTMLMediaElement* GetMediaElement() MOZ_FINAL MOZ_OVERRIDE
   {
     return this;
   }
@@ -771,7 +771,7 @@ protected:
   nsAutoPtr<AudioStream> mAudioStream;
 
   
-  mozilla::dom::TimeRanges mPlayed;
+  TimeRanges mPlayed;
 
   
   double mCurrentPlayRangeStart;
@@ -880,7 +880,7 @@ protected:
   bool mMediaSecurityVerified;
 
   
-  mozilla::CORSMode mCORSMode;
+  CORSMode mCORSMode;
 
   
   bool mHasAudio;
@@ -889,7 +889,7 @@ protected:
   bool mDownloadSuspendedByCache;
 
   
-  mozilla::dom::AudioChannelType mAudioChannelType;
+  AudioChannelType mAudioChannelType;
 
   
   bool mChannelSuspended;
@@ -901,4 +901,7 @@ protected:
   nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 };
 
-#endif
+} 
+} 
+
+#endif 

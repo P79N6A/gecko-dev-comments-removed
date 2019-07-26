@@ -196,7 +196,7 @@ DASHReader::ReadMetadata(VideoInfo* aInfo,
   
   for (uint i = 0; i < mVideoReaders.Length(); i++) {
     
-    nsAutoPtr<nsHTMLMediaElement::MetadataTags> tags;
+    nsAutoPtr<HTMLMediaElement::MetadataTags> tags;
     rv = mVideoReaders[i]->ReadMetadata(&videoInfo, getter_Transfers(tags));
     NS_ENSURE_SUCCESS(rv, rv);
     

@@ -565,7 +565,7 @@ DASHDecoder::CreateSubChannel(nsIURI* aUrl, nsIChannel** aChannel)
   NS_ENSURE_ARG(aUrl);
 
   NS_ENSURE_TRUE(mOwner, NS_ERROR_NULL_POINTER);
-  nsHTMLMediaElement* element = mOwner->GetMediaElement();
+  HTMLMediaElement* element = mOwner->GetMediaElement();
   NS_ENSURE_TRUE(element, NS_ERROR_NULL_POINTER);
 
   nsCOMPtr<nsILoadGroup> loadGroup =
