@@ -13,8 +13,6 @@ function run_test() {
   _("When imported, Service.onStartup is called");
   initTestLogging("Trace");
 
-  new SyncTestingInfrastructure();
-
   
   Service.identity.username = "johndoe";
 
