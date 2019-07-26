@@ -75,6 +75,7 @@
 #include "nsWidgetsCID.h"
 #include "nsContentCID.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/Telemetry.h"
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
@@ -2345,10 +2346,21 @@ nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsObjectLoadingContent::ScriptRequestPluginInstance(bool aCallerIsContentJS,
+nsresult
+nsObjectLoadingContent::ScriptRequestPluginInstance(JSContext* aCx,
                                                     nsNPAPIPluginInstance **aResult)
 {
+  
+  
+  
+  
+  
+  MOZ_ASSERT_IF(nsContentUtils::GetCurrentJSContext(),
+                aCx == nsContentUtils::GetCurrentJSContext());
+  bool callerIsContentJS = (!nsContentUtils::IsCallerChrome() &&
+                            !nsContentUtils::IsCallerXBL() &&
+                            js::IsContextRunningJS(aCx));
+
   nsCOMPtr<nsIContent> thisContent =
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
 
@@ -2357,7 +2369,7 @@ nsObjectLoadingContent::ScriptRequestPluginInstance(bool aCallerIsContentJS,
   
   
   
-  if (aCallerIsContentJS && !mScriptRequested &&
+  if (callerIsContentJS && !mScriptRequested &&
       InActiveDocument(thisContent) && mType == eType_Null &&
       mFallbackType >= eFallbackClickToPlay) {
     nsCOMPtr<nsIRunnable> ev =
@@ -2628,27 +2640,7 @@ nsObjectLoadingContent::NotifyContentObjectWrapper()
     return;
   }
 
-  JSAutoCompartment ac(cx, obj);
-
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-  JSObject* canonicalPrototype = nullptr;
-  if (thisContent->IsDOMBinding()) {
-    canonicalPrototype =
-      GetCanonicalPrototype(cx, JS_GetGlobalForObject(cx, obj));
-  } else{
-    nsContentUtils::XPConnect()->
-      GetWrappedNativeOfNativeObject(cx, sgo->GetGlobalJSObject(), thisContent,
-                                     NS_GET_IID(nsISupports),
-                                     getter_AddRefs(wrapper));
-  }
-
-  nsHTMLPluginObjElementSH::SetupProtoChain(cx, obj, wrapper, canonicalPrototype);
-}
-
-JSObject*
-nsObjectLoadingContent::GetCanonicalPrototype(JSContext* aCx, JSObject* aGlobal)
-{
-  return nullptr;
+  SetupProtoChain(cx, obj);
 }
 
 NS_IMETHODIMP
@@ -2874,48 +2866,197 @@ nsObjectLoadingContent::LegacyCall(JSContext* aCx,
     return JS::UndefinedValue();
   }
 
-  JS::Value retval;
-  bool otherRetval;
-  nsresult rv =
-    nsHTMLPluginObjElementSH::DoCall(nullptr, aCx, obj, args.Length(),
-                                     args.Elements(), &retval, aThisVal,
-                                     &otherRetval);
+  nsRefPtr<nsNPAPIPluginInstance> pi;
+  nsresult rv = ScriptRequestPluginInstance(aCx, getter_AddRefs(pi));
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return JS::UndefinedValue();
   }
 
-  if (!otherRetval) {
+  
+  if (!pi) {
+    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+    return JS::UndefinedValue();
+  }
+
+  JSObject *pi_obj;
+  JSObject *pi_proto;
+
+  rv = GetPluginJSObject(aCx, obj, pi, &pi_obj, &pi_proto);
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+    return JS::UndefinedValue();
+  }
+
+  if (!pi_obj) {
+    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+    return JS::UndefinedValue();
+  }
+
+  JS::Value retval;
+  bool ok = ::JS::Call(aCx, aThisVal, pi_obj, args.Length(),
+                       args.Elements(), &retval);
+  if (!ok) {
     aRv.Throw(NS_ERROR_FAILURE);
     return JS::UndefinedValue();
   }
+
+  Telemetry::Accumulate(Telemetry::PLUGIN_CALLED_DIRECTLY, true);
   return retval;
 }
 
 void
 nsObjectLoadingContent::SetupProtoChain(JSContext* aCx, JSObject* aObject)
 {
-  
-  
-  
-  JSAutoCompartment ac(aCx, aObject);
   MOZ_ASSERT(nsCOMPtr<nsIContent>(do_QueryInterface(
     static_cast<nsIObjectLoadingContent*>(this)))->IsDOMBinding());
-  if (nsContentUtils::IsSafeToRunScript()) {
-    nsHTMLPluginObjElementSH::SetupProtoChain(aCx, aObject, nullptr,
-                                              GetCanonicalPrototype(aCx,
-                                                                    JS_GetGlobalForObject(aCx, aObject)));
-  } else {
+
+  if (mType != eType_Plugin) {
+    return;
+  }
+
+  if (!nsContentUtils::IsSafeToRunScript()) {
     
     
     nsCOMPtr<nsIScriptContext> scriptContext = GetScriptContextFromJSContext(aCx);
 
-    nsRefPtr<nsHTMLPluginObjElementSH::SetupProtoChainRunner> runner =
-      new nsHTMLPluginObjElementSH::SetupProtoChainRunner(nullptr,
-                                                          scriptContext,
-                                                          this);
+    nsRefPtr<SetupProtoChainRunner> runner =
+      new SetupProtoChainRunner(scriptContext, this);
     nsContentUtils::AddScriptRunner(runner);
+    return;
   }
+
+  
+  
+  
+  MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
+
+  JSAutoRequest ar(aCx);
+  JSAutoCompartment ac(aCx, aObject);
+
+  nsRefPtr<nsNPAPIPluginInstance> pi;
+  nsresult rv = ScriptRequestPluginInstance(aCx, getter_AddRefs(pi));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  if (!pi) {
+    
+    return;
+  }
+
+  JSObject *pi_obj; 
+  JSObject *pi_proto; 
+
+  rv = GetPluginJSObject(aCx, aObject, pi, &pi_obj, &pi_proto);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  if (!pi_obj) {
+    
+    return;
+  }
+
+  
+  
+
+  JSObject *my_proto =
+    GetDOMClass(aObject)->mGetProto(aCx, JS_GetGlobalForObject(aCx, aObject));
+  MOZ_ASSERT(my_proto);
+
+  
+  if (!::JS_SetPrototype(aCx, aObject, pi_obj)) {
+    return;
+  }
+
+  if (pi_proto && js::GetObjectClass(pi_proto) != &js::ObjectClass) {
+    
+    
+    if (pi_proto != my_proto && !::JS_SetPrototype(aCx, pi_proto, my_proto)) {
+      return;
+    }
+  } else {
+    
+    
+    
+    if (!::JS_SetPrototype(aCx, pi_obj, my_proto)) {
+      return;
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+}
+
+
+nsresult
+nsObjectLoadingContent::GetPluginJSObject(JSContext *cx, JSObject *obj,
+                                          nsNPAPIPluginInstance *plugin_inst,
+                                          JSObject **plugin_obj,
+                                          JSObject **plugin_proto)
+{
+  *plugin_obj = nullptr;
+  *plugin_proto = nullptr;
+
+  JSAutoRequest ar(cx);
+
+  
+  
+  
+  JSAutoCompartment ac(cx, obj);
+
+  if (plugin_inst) {
+    plugin_inst->GetJSObject(cx, plugin_obj);
+    if (*plugin_obj) {
+      if (!::JS_GetPrototype(cx, *plugin_obj, plugin_proto)) {
+        return NS_ERROR_UNEXPECTED;
+      }
+    }
+  }
+
+  return NS_OK;
 }
 
 void
@@ -2970,15 +3111,45 @@ nsObjectLoadingContent::DoNewResolve(JSContext* aCx, JSHandleObject aObject,
 {
   
 
-  bool callerIsContentJS = (!nsContentUtils::IsCallerChrome() &&
-                            !nsContentUtils::IsCallerXBL() &&
-                            js::IsContextRunningJS(aCx));
-
   nsRefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = ScriptRequestPluginInstance(callerIsContentJS,
-                                            getter_AddRefs(pi));
+  nsresult rv = ScriptRequestPluginInstance(aCx, getter_AddRefs(pi));
   if (NS_FAILED(rv)) {
     return mozilla::dom::Throw<true>(aCx, rv);
   }
   return true;
 }
+
+
+nsObjectLoadingContent::SetupProtoChainRunner::SetupProtoChainRunner(
+    nsIScriptContext* scriptContext,
+    nsObjectLoadingContent* aContent)
+  : mContext(scriptContext)
+  , mContent(aContent)
+{
+}
+
+NS_IMETHODIMP
+nsObjectLoadingContent::SetupProtoChainRunner::Run()
+{
+  
+  
+  nsCxPusher pusher;
+  JSContext* cx = mContext ? mContext->GetNativeContext()
+                           : nsContentUtils::GetSafeJSContext();
+  pusher.Push(cx);
+
+  nsCOMPtr<nsIContent> content;
+  CallQueryInterface(mContent.get(), getter_AddRefs(content));
+  JSObject* obj = content->GetWrapper();
+  if (!obj) {
+    
+    return NS_OK;
+  }
+  nsObjectLoadingContent* objectLoadingContent =
+    static_cast<nsObjectLoadingContent*>(mContent.get());
+  objectLoadingContent->SetupProtoChain(cx, obj);
+  return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS1(nsObjectLoadingContent::SetupProtoChainRunner, nsIRunnable)
+

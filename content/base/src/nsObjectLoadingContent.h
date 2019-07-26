@@ -143,15 +143,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-
-
-
-    
-
-
-
-    virtual JSObject* GetCanonicalPrototype(JSContext* aCx, JSObject* aGlobal);
-
     
     void SetupProtoChain(JSContext* aCx, JSObject* aObject);
 
@@ -442,6 +433,34 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
     nsObjectFrame* GetExistingFrame();
+
+    
+    class SetupProtoChainRunner MOZ_FINAL : public nsIRunnable
+    {
+    public:
+      NS_DECL_ISUPPORTS
+
+      SetupProtoChainRunner(nsIScriptContext* scriptContext,
+                            nsObjectLoadingContent* aContent);
+
+      NS_IMETHOD Run();
+
+    private:
+      nsCOMPtr<nsIScriptContext> mContext;
+      
+      
+      nsRefPtr<nsIObjectLoadingContent> mContent;
+    };
+
+    
+    nsresult ScriptRequestPluginInstance(JSContext* aCx,
+                                         nsNPAPIPluginInstance** aResult);
+
+    
+    static nsresult GetPluginJSObject(JSContext *cx, JSObject *obj,
+                                      nsNPAPIPluginInstance *plugin_inst,
+                                      JSObject **plugin_obj,
+                                      JSObject **plugin_proto);
 
     
     nsCOMPtr<nsIStreamListener> mFinalListener;
