@@ -95,10 +95,10 @@ BasicTiledLayerBuffer::PaintThebes(BasicTiledThebesLayer* aLayer,
     
     
     nsIntRect paintBounds = aPaintRegion.GetBounds();
-    useSinglePaintBuffer = GetTileStart(paintBounds.x) !=
-                           GetTileStart(paintBounds.XMost() - 1) ||
-                           GetTileStart(paintBounds.y) !=
-                           GetTileStart(paintBounds.YMost() - 1);
+    useSinglePaintBuffer = RoundDownToTileEdge(paintBounds.x) !=
+                           RoundDownToTileEdge(paintBounds.XMost() - 1) ||
+                           RoundDownToTileEdge(paintBounds.y) !=
+                           RoundDownToTileEdge(paintBounds.YMost() - 1);
   }
 
   if (useSinglePaintBuffer) {
