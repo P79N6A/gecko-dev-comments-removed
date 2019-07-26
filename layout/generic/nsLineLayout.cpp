@@ -731,6 +731,16 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   printf("\n");
 #endif
 
+  if (mCurrentSpan == mRootSpan) {
+    pfd->mFrame->Properties().Remove(nsIFrame::LineBaselineOffset());
+  } else {
+#ifdef DEBUG
+    bool hasLineOffset;
+    pfd->mFrame->Properties().Get(nsIFrame::LineBaselineOffset(), &hasLineOffset);
+    NS_ASSERTION(!hasLineOffset, "LineBaselineOffset was set but was not expected");
+#endif
+  }
+
   mTextJustificationNumSpaces = 0;
   mTextJustificationNumLetters = 0;
 
@@ -1455,22 +1465,6 @@ nsLineLayout::VerticalAlignLine()
     }
   }
   PlaceTopBottomFrames(psd, -mBStartEdge, lineBSize);
-
-  
-  
-  
-  
-  
-  if (rootPFD.mFrame->StyleContext()->HasTextDecorationLines()) {
-    for (const PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
-      const nsIFrame *const f = pfd->mFrame;
-      if (f->VerticalAlignEnum() != NS_STYLE_VERTICAL_ALIGN_BASELINE) {
-        const nscoord offset = baselineBCoord - pfd->mBounds.BStart(lineWM);
-        f->Properties().Set(nsIFrame::LineBaselineOffset(),
-                            NS_INT32_TO_PTR(offset));
-      }
-    }
-  }
 
   
   mLineBox->SetBounds(lineWM,
