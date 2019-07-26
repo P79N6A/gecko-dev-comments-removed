@@ -96,6 +96,14 @@ public:
   
 
 
+
+
+  
+  double GetValueAsFractionOfRange();
+
+  
+
+
   bool ShouldUseNativeStyle() const;
 
   double GetValueAtEventPoint(nsGUIEvent* aEvent);
@@ -125,14 +133,6 @@ private:
 
   void DoUpdateRangeProgressFrame(nsIFrame* aProgressFrame,
                                   const nsSize& aRangeSize);
-
-  
-
-
-
-
-
-  double GetValueAsFractionOfRange();
 
   
 
