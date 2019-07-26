@@ -6,6 +6,7 @@
 #ifndef nsEventStates_h__
 #define nsEventStates_h__
 
+#include "mozilla/Attributes.h"
 #include "nsDebug.h"
 
 
@@ -20,7 +21,7 @@ class nsEventStates
 public:
   typedef uint64_t InternalType;
 
-  nsEventStates()
+  MOZ_CONSTEXPR nsEventStates()
     : mStates(0)
   { }
 
@@ -29,12 +30,12 @@ public:
   
   
   
-  explicit nsEventStates(InternalType aStates)
+  explicit MOZ_CONSTEXPR nsEventStates(InternalType aStates)
     : mStates(aStates)
   { }
 
-  nsEventStates(const nsEventStates& aEventStates) {
-    mStates = aEventStates.mStates;
+  MOZ_CONSTEXPR nsEventStates(const nsEventStates& aEventStates)
+    : mStates(aEventStates.mStates) {
   }
 
   nsEventStates& operator=(const nsEventStates& aEventStates) {
@@ -42,7 +43,7 @@ public:
     return *this;
   }
 
-  nsEventStates operator|(const nsEventStates& aEventStates) const {
+  nsEventStates MOZ_CONSTEXPR operator|(const nsEventStates& aEventStates) const {
     return nsEventStates(mStates | aEventStates.mStates);
   }
 
@@ -54,7 +55,7 @@ public:
   
   
   
-  nsEventStates operator&(const nsEventStates& aEventStates) const {
+  nsEventStates MOZ_CONSTEXPR operator&(const nsEventStates& aEventStates) const {
     return nsEventStates(mStates & aEventStates.mStates);
   }
 
