@@ -1897,104 +1897,6 @@ nsBoxFrame::SupportsOrdinalsInChildren()
   return true;
 }
 
-template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-static nsIFrame*
-SortedMerge(nsIFrame *aLeft, nsIFrame *aRight)
-{
-  NS_PRECONDITION(aLeft && aRight, "SortedMerge must have non-empty lists");
-
-  nsIFrame *result;
-  
-  if (IsLessThanOrEqual(aLeft, aRight)) {
-    result = aLeft;
-    aLeft = aLeft->GetNextSibling();
-    if (!aLeft) {
-      result->SetNextSibling(aRight);
-      return result;
-    }
-  }
-  else {
-    result = aRight;
-    aRight = aRight->GetNextSibling();
-    if (!aRight) {
-      result->SetNextSibling(aLeft);
-      return result;
-    }
-  }
-
-  nsIFrame *last = result;
-  for (;;) {
-    if (IsLessThanOrEqual(aLeft, aRight)) {
-      last->SetNextSibling(aLeft);
-      last = aLeft;
-      aLeft = aLeft->GetNextSibling();
-      if (!aLeft) {
-        last->SetNextSibling(aRight);
-        return result;
-      }
-    }
-    else {
-      last->SetNextSibling(aRight);
-      last = aRight;
-      aRight = aRight->GetNextSibling();
-      if (!aRight) {
-        last->SetNextSibling(aLeft);
-        return result;
-      }
-    }
-  }
-}
-
-template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-static nsIFrame*
-MergeSort(nsIFrame *aSource)
-{
-  NS_PRECONDITION(aSource, "MergeSort null arg");
-
-  nsIFrame *sorted[32] = { nullptr };
-  nsIFrame **fill = &sorted[0];
-  nsIFrame **left;
-  nsIFrame *rest = aSource;
-
-  do {
-    nsIFrame *current = rest;
-    rest = rest->GetNextSibling();
-    current->SetNextSibling(nullptr);
-
-    
-    
-    
-    
-    for (left = &sorted[0]; left != fill && *left; ++left) {
-      current = SortedMerge<IsLessThanOrEqual>(*left, current);
-      *left = nullptr;
-    }
-
-    
-    *left = current;
-
-    if (left == fill)
-      ++fill;
-  } while (rest);
-
-  
-  nsIFrame *result = nullptr;
-  for (left = &sorted[0]; left != fill; ++left) {
-    if (*left) {
-      result = result ? SortedMerge<IsLessThanOrEqual>(*left, result) : *left;
-    }
-  }
-  return result;
-}
-
-
-
-template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-bool IsFrameListSorted(nsFrameList& aFrameList);
-
-template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-void SortFrameList(nsFrameList& aFrameList);
-
 
 
 bool
@@ -2008,46 +1910,9 @@ void
 nsBoxFrame::CheckBoxOrder()
 {
   if (SupportsOrdinalsInChildren() &&
-      !IsFrameListSorted<IsBoxOrdinalLEQ>(mFrames)) {
-    SortFrameList<IsBoxOrdinalLEQ>(mFrames);
+      !nsLayoutUtils::IsFrameListSorted<IsBoxOrdinalLEQ>(mFrames)) {
+    nsLayoutUtils::SortFrameList<IsBoxOrdinalLEQ>(mFrames);
   }
-}
-
-template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-bool
-IsFrameListSorted(nsFrameList& aFrameList)
-{
-  if (aFrameList.IsEmpty()) {
-    
-    return true;
-  }
-
-  
-  
-  nsFrameList::Enumerator trailingIter(aFrameList);
-  nsFrameList::Enumerator iter(aFrameList);
-  iter.Next(); 
-
-  
-  while (!iter.AtEnd()) {
-    MOZ_ASSERT(!trailingIter.AtEnd(), "trailing iter shouldn't finish first");
-    if (!IsLessThanOrEqual(trailingIter.get(), iter.get())) {
-      return false;
-    }
-    trailingIter.Next();
-    iter.Next();
-  }
-
-  
-  return true;
-}
-
-template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-void
-SortFrameList(nsFrameList& aFrameList)
-{
-  nsIFrame* head = MergeSort<IsLessThanOrEqual>(aFrameList.FirstChild());
-  aFrameList = nsFrameList(head, nsLayoutUtils::GetLastSibling(head));
 }
 
 nsresult

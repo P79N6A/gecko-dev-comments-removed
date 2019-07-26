@@ -240,6 +240,23 @@ public:
 
 
 
+
+
+
+  template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+  static void SortFrameList(nsFrameList& aFrameList);
+
+  
+
+
+
+  template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+  static bool IsFrameListSorted(nsFrameList& aFrameList);
+
+  
+
+
+
   static nsIFrame* GetLastContinuationWithChild(nsIFrame* aFrame);
 
   
@@ -1769,6 +1786,13 @@ public:
 #endif
 
 private:
+  
+  template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+  static nsIFrame* SortedMerge(nsIFrame *aLeft, nsIFrame *aRight);
+
+  template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+  static nsIFrame* MergeSort(nsIFrame *aSource);
+
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
   static uint32_t sFontSizeInflationLineThreshold;
@@ -1777,6 +1801,136 @@ private:
   static bool sFontSizeInflationForceEnabled;
   static bool sFontSizeInflationDisabledInMasterProcess;
 };
+
+
+
+
+template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+ nsIFrame*
+nsLayoutUtils::SortedMerge(nsIFrame *aLeft, nsIFrame *aRight)
+{
+  NS_PRECONDITION(aLeft && aRight, "SortedMerge must have non-empty lists");
+
+  nsIFrame *result;
+  
+  if (IsLessThanOrEqual(aLeft, aRight)) {
+    result = aLeft;
+    aLeft = aLeft->GetNextSibling();
+    if (!aLeft) {
+      result->SetNextSibling(aRight);
+      return result;
+    }
+  }
+  else {
+    result = aRight;
+    aRight = aRight->GetNextSibling();
+    if (!aRight) {
+      result->SetNextSibling(aLeft);
+      return result;
+    }
+  }
+
+  nsIFrame *last = result;
+  for (;;) {
+    if (IsLessThanOrEqual(aLeft, aRight)) {
+      last->SetNextSibling(aLeft);
+      last = aLeft;
+      aLeft = aLeft->GetNextSibling();
+      if (!aLeft) {
+        last->SetNextSibling(aRight);
+        return result;
+      }
+    }
+    else {
+      last->SetNextSibling(aRight);
+      last = aRight;
+      aRight = aRight->GetNextSibling();
+      if (!aRight) {
+        last->SetNextSibling(aLeft);
+        return result;
+      }
+    }
+  }
+}
+
+template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+ nsIFrame*
+nsLayoutUtils::MergeSort(nsIFrame *aSource)
+{
+  NS_PRECONDITION(aSource, "MergeSort null arg");
+
+  nsIFrame *sorted[32] = { nullptr };
+  nsIFrame **fill = &sorted[0];
+  nsIFrame **left;
+  nsIFrame *rest = aSource;
+
+  do {
+    nsIFrame *current = rest;
+    rest = rest->GetNextSibling();
+    current->SetNextSibling(nullptr);
+
+    
+    
+    
+    
+    for (left = &sorted[0]; left != fill && *left; ++left) {
+      current = SortedMerge<IsLessThanOrEqual>(*left, current);
+      *left = nullptr;
+    }
+
+    
+    *left = current;
+
+    if (left == fill)
+      ++fill;
+  } while (rest);
+
+  
+  nsIFrame *result = nullptr;
+  for (left = &sorted[0]; left != fill; ++left) {
+    if (*left) {
+      result = result ? SortedMerge<IsLessThanOrEqual>(*left, result) : *left;
+    }
+  }
+  return result;
+}
+
+template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+ void
+nsLayoutUtils::SortFrameList(nsFrameList& aFrameList)
+{
+  nsIFrame* head = MergeSort<IsLessThanOrEqual>(aFrameList.FirstChild());
+  aFrameList = nsFrameList(head, GetLastSibling(head));
+}
+
+template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+ bool
+nsLayoutUtils::IsFrameListSorted(nsFrameList& aFrameList)
+{
+  if (aFrameList.IsEmpty()) {
+    
+    return true;
+  }
+
+  
+  
+  nsFrameList::Enumerator trailingIter(aFrameList);
+  nsFrameList::Enumerator iter(aFrameList);
+  iter.Next(); 
+
+  
+  while (!iter.AtEnd()) {
+    MOZ_ASSERT(!trailingIter.AtEnd(), "trailing iter shouldn't finish first");
+    if (!IsLessThanOrEqual(trailingIter.get(), iter.get())) {
+      return false;
+    }
+    trailingIter.Next();
+    iter.Next();
+  }
+
+  
+  return true;
+}
 
 template<typename PointType, typename RectType, typename CoordType>
  bool
