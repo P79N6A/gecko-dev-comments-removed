@@ -1821,16 +1821,20 @@ ContentPermissionPrompt.prototype = {
 
     var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
 
-    var requestingWindow = aRequest.window.top;
-    var chromeWin = this._getChromeWindow(requestingWindow).wrappedJSObject;
-    var browser = chromeWin.gBrowser.getBrowserForDocument(requestingWindow.document);
+    var browser;
+    try {
+      
+      browser = aRequest.element;
+    } catch (e) {}
     if (!browser) {
+      var requestingWindow = aRequest.window.top;
       
       browser = requestingWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                                   .getInterface(Ci.nsIWebNavigation)
                                   .QueryInterface(Ci.nsIDocShell)
                                   .chromeEventHandler;
     }
+    var chromeWin = browser.ownerDocument.defaultView;
     var requestPrincipal = aRequest.principal;
 
     
