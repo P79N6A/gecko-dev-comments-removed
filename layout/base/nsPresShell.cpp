@@ -3455,6 +3455,9 @@ PresShell::DispatchSynthMouseMove(WidgetGUIEvent* aEvent,
   if (!targetView)
     return;
   targetView->GetViewManager()->DispatchEvent(aEvent, targetView, &status);
+  if (MOZ_UNLIKELY(mIsDestroying)) {
+    return;
+  }
   if (aFlushOnHoverChange &&
       hoverGenerationBefore != restyleManager->GetHoverGeneration()) {
     
