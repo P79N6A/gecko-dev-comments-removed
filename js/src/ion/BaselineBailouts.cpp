@@ -600,20 +600,25 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
 
     
     jsbytecode *pc = script->code + iter.pcOffset();
+    JSOp op = JSOp(*pc);
     bool resumeAfter = iter.resumeAfter();
 
     
     
     
     if (!resumeAfter) {
-        while (JSOp(*pc) == JSOP_GOTO)
-            pc += GET_JUMP_OFFSET(pc);
-        if (JSOp(*pc) == JSOP_LOOPENTRY)
-            pc = GetNextPc(pc);
+        while (true) {
+            op = JSOp(*pc);
+            if (op == JSOP_GOTO)
+                pc += GET_JUMP_OFFSET(pc);
+            else if (op == JSOP_LOOPENTRY || op == JSOP_NOP || op == JSOP_LOOPHEAD)
+                pc = GetNextPc(pc);
+            else
+                break;
+        }
     }
 
     uint32_t pcOff = pc - script->code;
-    JSOp op = JSOp(*pc);
     bool isCall = js_CodeSpec[op].format & JOF_INVOKE;
     BaselineScript *baselineScript = script->baselineScript();
 
