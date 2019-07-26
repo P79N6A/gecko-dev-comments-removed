@@ -351,6 +351,8 @@ PeerConnectionImpl::ConvertRTCConfiguration(const JS::Value& aSrc,
   }
   for (uint32_t i = 0; i < len; i++) {
     nsresult rv;
+    
+    
     RTCIceServer server;
     {
       JS::Value v;
