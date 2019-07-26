@@ -58,6 +58,7 @@
 #define PROCESSOR_LOGGING_H__
 
 #include <iostream>
+#include <sstream>
 #include <string>
 
 #include "common/using_std_string.h"
@@ -94,12 +95,15 @@ class LogStream {
   
   ~LogStream();
 
+  
+  
   template<typename T> std::ostream& operator<<(const T &t) {
-    return stream_ << t;
+    return str_ << t;
   }
 
  private:
   std::ostream &stream_;
+  std::ostringstream str_;
 
   
   explicit LogStream(const LogStream &that);
@@ -129,6 +133,9 @@ string HexString(int number);
 int ErrnoString(string *error_string);
 
 }  
+
+
+bool is_power_of_2(uint64_t);
 
 #ifndef BPLOG_INIT
 #define BPLOG_INIT(pargc, pargv)
