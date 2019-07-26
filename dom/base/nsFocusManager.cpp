@@ -1755,8 +1755,6 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   
   
   if (aIsNewDocument) {
-    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nullptr,
-                                     GetFocusMoveActionCause(aFlags));
     nsIDocument* doc = aWindow->GetExtantDoc();
     if (doc)
       SendFocusOrBlurEvent(NS_FOCUS_CONTENT, presShell, doc,
