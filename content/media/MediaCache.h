@@ -196,7 +196,7 @@ public:
       mHasHadUpdate(false),
       mClosed(false),
       mDidNotifyDataEnded(false), mResourceID(0),
-      mIsSeekable(false), mCacheSuspended(false),
+      mIsTransportSeekable(false), mCacheSuspended(false),
       mChannelEnded(false),
       mChannelOffset(0), mStreamLength(-1),  
       mStreamOffset(0), mPlaybackBytesPerSecond(10000),
@@ -222,7 +222,7 @@ public:
   
   
   
-  void SetSeekable(bool aIsSeekable);
+  void SetTransportSeekable(bool aIsTransportSeekable);
   
   
   void Close();
@@ -324,7 +324,7 @@ public:
   
   void SetPlaybackRate(uint32_t aBytesPerSecond);
   
-  bool IsSeekable();
+  bool IsTransportSeekable();
 
   
   
@@ -447,7 +447,7 @@ private:
   
   int64_t mResourceID;
   
-  bool mIsSeekable;
+  bool mIsTransportSeekable;
   
   
   

@@ -52,11 +52,14 @@ public:
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
 
   
+  
   virtual bool IsSeekableInBufferedRanges() {
     return true;
   }
 
 private:
+  
+  ReentrantMonitor mMonitor;
 
   
   
@@ -217,6 +220,13 @@ private:
   bool ReadHeaders(OggCodecState* aState);
 
   
+  bool ReadOggChain();
+
+  
+  
+  void SetChained(bool aIsChained);
+
+  
   
   
   ogg_packet* NextOggPacket(OggCodecState* aCodecState);
@@ -274,6 +284,13 @@ private:
   
   
   nsIntRect mPicture;
+
+  
+  
+  bool mIsChained;
+
+  
+  int64_t mDecodedAudioFrames;
 };
 
 } 

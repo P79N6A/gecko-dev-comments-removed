@@ -96,7 +96,7 @@ public:
   void SetInfinite(bool aInfinite);
 
   
-  void SetSeekable(bool aSeekable);
+  void SetMediaSeekable(bool aSeekable);
 
   
   

@@ -214,10 +214,14 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
         rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-Content-Duration"), durationText);
       }
 
+      
+      
       if (NS_SUCCEEDED(rv)) {
         double duration = durationText.ToDouble(&ec);
         if (ec == NS_OK && duration >= 0) {
           mDecoder->SetDuration(duration);
+        } else {
+          mDecoder->SetInfinite(true);
         }
       } else {
         mDecoder->SetInfinite(true);
@@ -305,8 +309,8 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       mDecoder->SetInfinite(false);
     }
   }
-  mDecoder->SetSeekable(seekable);
-  mCacheStream.SetSeekable(seekable);
+  mDecoder->SetTransportSeekable(seekable);
+  mCacheStream.SetTransportSeekable(seekable);
 
   nsCOMPtr<nsICachingChannel> cc = do_QueryInterface(aRequest);
   if (cc) {
@@ -419,7 +423,7 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
   
   if (mReopenOnError &&
       aStatus != NS_ERROR_PARSED_DATA_CACHED && aStatus != NS_BINDING_ABORTED &&
-      (mOffset == 0 || mCacheStream.IsSeekable())) {
+      (mOffset == 0 || mCacheStream.IsTransportSeekable())) {
     
     
     
@@ -803,7 +807,7 @@ void ChannelMediaResource::Suspend(bool aCloseImmediately)
   }
 
   if (mChannel) {
-    if (aCloseImmediately && mCacheStream.IsSeekable()) {
+    if (aCloseImmediately && mCacheStream.IsTransportSeekable()) {
       
       mIgnoreClose = true;
       CloseChannel();

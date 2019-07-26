@@ -25,6 +25,7 @@
 #include "nsIDOMWakeLock.h"
 #include "AudioChannelCommon.h"
 #include "DecoderTraits.h"
+#include "MediaMetadataManager.h"
 
 
 
@@ -119,8 +120,8 @@ public:
   
   
   
-  virtual void MetadataLoaded(uint32_t aChannels,
-                              uint32_t aRate,
+  virtual void MetadataLoaded(int aChannels,
+                              int aRate,
                               bool aHasAudio,
                               const MetadataTags* aTags) MOZ_FINAL MOZ_OVERRIDE;
 

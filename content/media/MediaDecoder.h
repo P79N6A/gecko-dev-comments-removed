@@ -504,11 +504,14 @@ public:
   void SetMediaDuration(int64_t aDuration) MOZ_FINAL MOZ_OVERRIDE;
 
   
-  virtual void SetSeekable(bool aSeekable);
-
+  virtual void SetMediaSeekable(bool aMediaSeekable) MOZ_FINAL MOZ_OVERRIDE;
+  virtual void SetTransportSeekable(bool aTransportSeekable) MOZ_FINAL MOZ_OVERRIDE;
   
-  virtual bool IsSeekable();
-  bool IsMediaSeekable() MOZ_FINAL MOZ_OVERRIDE;
+  
+  virtual bool IsMediaSeekable() MOZ_FINAL MOZ_OVERRIDE;
+  
+  
+  virtual bool IsTransportSeekable();
 
   
   virtual nsresult GetSeekable(nsTimeRanges* aSeekable);
@@ -634,6 +637,15 @@ public:
   AudioChannelType GetAudioChannelType() { return mAudioChannelType; }
 
   
+  
+  
+  void QueueMetadata(int64_t aPublishTime,
+                     int aChannels,
+                     int aRate,
+                     bool aHasAudio,
+                     MetadataTags* aTags);
+
+  
 
 
 
@@ -649,10 +661,7 @@ public:
 
   
   
-  void MetadataLoaded(uint32_t aChannels,
-                      uint32_t aRate,
-                      bool aHasAudio,
-                      const MetadataTags* aTags);
+  void MetadataLoaded(int aChannels, int aRate, bool aHasAudio, MetadataTags* aTags);
 
   
   
@@ -904,7 +913,10 @@ public:
 
   
   
-  bool mSeekable;
+  bool mTransportSeekable;
+
+  
+  bool mMediaSeekable;
 
   
 

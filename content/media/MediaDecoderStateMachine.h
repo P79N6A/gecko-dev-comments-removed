@@ -182,7 +182,13 @@ public:
   
   
   
-  void SetSeekable(bool aSeekable);
+  void SetTransportSeekable(bool aSeekable);
+
+  
+  
+  
+  
+  void SetMediaSeekable(bool aSeekable);
 
   
   
@@ -257,9 +263,14 @@ public:
     return mEndTime;
   }
 
-  bool IsSeekable() {
+  bool IsTransportSeekable() {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-    return mSeekable;
+    return mTransportSeekable;
+  }
+
+  bool IsMediaSeekable() {
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+    return mMediaSeekable;
   }
 
   
@@ -321,6 +332,8 @@ public:
   
   
   bool IsShutdown();
+
+  void QueueMetadata(int64_t aPublishTime, int aChannels, int aRate, bool aHasAudio, MetadataTags* aTags);
 
 protected:
   virtual uint32_t GetAmpleVideoFrames() { return mAmpleVideoFrames; }
@@ -702,7 +715,11 @@ private:
 
   
   
-  bool mSeekable;
+  bool mTransportSeekable;
+
+  
+  
+  bool mMediaSeekable;
 
   
   
@@ -785,6 +802,8 @@ private:
   
   
   VideoInfo mInfo;
+
+  mozilla::MediaMetadataManager mMetadataManager;
 };
 
 } 
