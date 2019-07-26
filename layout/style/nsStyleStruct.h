@@ -1107,19 +1107,7 @@ struct nsStylePosition {
   nsStyleCoord  mZIndex;                
 
   bool WidthDependsOnContainer() const
-    {
-      return mWidth.GetUnit() == eStyleUnit_Auto ||
-        WidthCoordDependsOnContainer(mWidth);
-    }
-
-  
-  
-  
-  
-  
-  
-  
-  
+    { return WidthCoordDependsOnContainer(mWidth); }
   bool MinWidthDependsOnContainer() const
     { return WidthCoordDependsOnContainer(mMinWidth); }
   bool MaxWidthDependsOnContainer() const
