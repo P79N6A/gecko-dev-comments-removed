@@ -19,6 +19,7 @@ class nsIRunnable;
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
+#include "nsThreadUtils.h"
 #include "nsRect.h"
 
 namespace mozilla {
@@ -129,6 +130,8 @@ public:
   
   
   
+  
+  
   void Notify(imgRequestProxy* proxy);
 
   
@@ -136,8 +139,12 @@ public:
   
   
   
+  
+  
   void NotifyCurrentState(imgRequestProxy* proxy);
 
+  
+  
   
   
   
@@ -153,16 +160,23 @@ public:
   
   void AddConsumer(imgRequestProxy* aConsumer);
   bool RemoveConsumer(imgRequestProxy* aConsumer, nsresult aStatus);
-  size_t ConsumerCount() const { return mConsumers.Length(); }
+  size_t ConsumerCount() const {
+    MOZ_ASSERT(NS_IsMainThread(), "Use mConsumers on main thread only");
+    return mConsumers.Length();
+  }
 
   
   
   
   bool FirstConsumerIs(imgRequestProxy* aConsumer) {
+    MOZ_ASSERT(NS_IsMainThread(), "Use mConsumers on main thread only");
     return mConsumers.SafeElementAt(0, nullptr) == aConsumer;
   }
 
-  void AdoptConsumers(imgStatusTracker* aTracker) { mConsumers = aTracker->mConsumers; }
+  void AdoptConsumers(imgStatusTracker* aTracker) {
+    MOZ_ASSERT(NS_IsMainThread(), "Use mConsumers on main thread only");
+    mConsumers = aTracker->mConsumers;
+  }
 
   
   
@@ -187,6 +201,8 @@ public:
   void RecordDecoded();
 
   
+  
+  
   void RecordStartDecode();
   void SendStartDecode(imgRequestProxy* aProxy);
   void RecordStartContainer(imgIContainer* aContainer);
@@ -207,12 +223,18 @@ public:
   void SendImageIsAnimated(imgRequestProxy *aProxy);
 
   
+  
+  
   void RecordStartRequest();
   void SendStartRequest(imgRequestProxy* aProxy);
   void RecordStopRequest(bool aLastPart, nsresult aStatus);
   void SendStopRequest(imgRequestProxy* aProxy, bool aLastPart, nsresult aStatus);
 
+  
+  
   void OnStartRequest();
+  
+  
   void OnDataAvailable();
   void OnStopRequest(bool aLastPart, nsresult aStatus);
   void OnDiscard();
@@ -231,6 +253,7 @@ public:
   void RecordUnblockOnload();
   void SendUnblockOnload(imgRequestProxy* aProxy);
 
+  
   void MaybeUnblockOnload();
 
   void RecordError();
@@ -256,6 +279,7 @@ public:
 
   
   
+  
   void SyncNotifyDifference(const mozilla::image::ImageStatusDiff& aDiff);
 
   nsIntRect GetInvalidRect() const { return mInvalidRect; }
@@ -267,8 +291,11 @@ private:
   friend class imgStatusTrackerNotifyingObserver;
   imgStatusTracker(const imgStatusTracker& aOther);
 
+  
   void FireFailureNotification();
 
+  
+  
   static void SyncNotifyState(nsTObserverArray<imgRequestProxy*>& proxies,
                               bool hasImage, uint32_t state,
                               nsIntRect& dirtyRect, bool hadLastPart);
@@ -282,6 +309,7 @@ private:
   
   mozilla::image::Image* mImage;
 
+  
   
   
   nsTObserverArray<imgRequestProxy*> mConsumers;
