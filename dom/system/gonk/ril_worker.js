@@ -1382,6 +1382,42 @@ let RIL = {
 
 
 
+
+  updateICCContact: function updateICCContact(options) {
+    let onsuccess = function onsuccess() {
+      
+      options.rilMessageType = "icccontactupdate";
+      RIL.sendDOMMessage(options);
+    }.bind(this);
+
+    let onerror = function onerror(errorMsg) {
+      options.rilMessageType = "icccontactupdate";
+      options.errorMsg = errorMsg;
+      RIL.sendDOMMessage(options);
+    }.bind(this);
+
+    if (!this.appType || !options.contact) {
+      onerror(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
+      return;
+    }
+
+    
+    
+    if (options.contact.recordId) {
+      ICCContactHelper.updateICCContact(
+        this.appType, options.contactType, options.contact, onsuccess, onerror);
+    } else {
+      ICCContactHelper.addICCContact(
+        this.appType, options.contactType, options.contact, onsuccess, onerror);
+    }
+  },
+
+  
+
+
+
+
+
   setRadioPower: function setRadioPower(options) {
     Buf.newParcel(REQUEST_RADIO_POWER);
     Buf.writeUint32(1);
@@ -8871,6 +8907,41 @@ let ICCRecordHelper = {
 
 
 
+
+
+
+  updateADN: function updateADN(fileId, contact, onsuccess, onerror) {
+    function dataWriter(recordSize) {
+      GsmPDUHelper.writeAlphaIdDiallingNumber(recordSize,
+                                              contact.alphaId,
+                                              contact.number);
+    }
+
+    function callback(options) {
+      if (onsuccess) {
+        onsuccess();
+      }
+    }
+
+    if (!contact || !contact.recordId) {
+      if (onerror) {
+        onerror("Invalid parameter.");
+      }
+      return;
+    }
+
+    ICCIOHelper.updateLinearFixedEF({fileId: fileId,
+                                     recordNumber: contact.recordId,
+                                     dataWriter: dataWriter.bind(this),
+                                     callback: callback.bind(this),
+                                     onerror: onerror});
+  },
+
+  
+
+
+
+
   getMBDN: function getMBDN() {
     function callback(options) {
       let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
@@ -9230,6 +9301,39 @@ let ICCRecordHelper = {
 
 
 
+  getADNFreeRecordId: function getADNFreeRecordId(fileId, onsuccess, onerror) {
+    function callback(options) {
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
+      if (!contact) {
+        
+        if (onsuccess) {
+          onsuccess(options.p1);
+        }
+        return;
+      }
+
+      if (options.p1 < options.totalRecords) {
+        ICCIOHelper.loadNextRecord(options);
+      } else {
+        
+        if (onerror) {
+          onerror("No free record found.");
+        }
+      }
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: fileId,
+                                   callback: callback.bind(this),
+                                   onerror: onerror});
+  },
+
+  
+
+
+
+
+
+
 
 
   readPLMNEntries: function readPLMNEntries(length) {
@@ -9566,6 +9670,88 @@ let ICCContactHelper = {
 
 
 
+
+
+  findFreeICCContact: function findFreeICCContact(appType, contactType, onsuccess, onerror) {
+    switch (contactType) {
+      case "ADN":
+        switch (appType) {
+          case CARD_APPTYPE_SIM:
+            ICCRecordHelper.getADNFreeRecordId(ICC_EF_ADN, onsuccess, onerror);
+            break;
+          case CARD_APPTYPE_USIM:
+            let gotPbrCb = function gotPbrCb(pbr) {
+              if (pbr.adn) {
+                ICCRecordHelper.getADNFreeRecordId(pbr.adn.fileId, onsuccess, onerror);
+              }
+            }.bind(this);
+
+            ICCRecordHelper.readPBR(gotPbrCb, onerror);
+            break;
+        }
+        break;
+      default:
+        if (onerror) {
+          onerror(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
+        }
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  addICCContact: function addICCContact(appType, contactType, contact, onsuccess, onerror) {
+    let foundFreeCb = function foundFreeCb(recordId) {
+      contact.recordId = recordId;
+      ICCContactHelper.updateICCContact(appType, contactType, contact, onsuccess, onerror);
+    }.bind(this);
+
+    
+    ICCContactHelper.findFreeICCContact(appType, contactType, foundFreeCb, onerror);
+  },
+
+  
+
+
+
+
+
+
+
+
+  updateICCContact: function updateICCContact(appType, contactType, contact, onsuccess, onerror) {
+    switch (contactType) {
+      case "ADN":
+        switch (appType) {
+          case CARD_APPTYPE_SIM:
+            this.updateSimContact(contact, onsuccess, onerror);
+            break;
+          case CARD_APPTYPE_USIM:
+            this.updateUSimContact(contact, onsuccess, onerror);
+            break;
+        }
+        break;
+      default:
+        if (onerror) {
+          onerror(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
+        }
+        break;
+    }
+  },
+
+  
+
+
+
+
+
   readUSimContacts: function readUSimContacts(onsuccess, onerror) {
     let gotPbrCb = function gotPbrCb(pbr) {
       if (pbr.adn) {
@@ -9588,6 +9774,38 @@ let ICCContactHelper = {
 
   readSimContacts: function readSimContacts(onsuccess, onerror) {
     ICCRecordHelper.readADN(ICC_EF_ADN, onsuccess, onerror);
+  },
+
+  
+
+
+
+
+
+
+  updateUSimContact: function updateUSimContact(contact, onsuccess, onerror) {
+    let gotPbrCb = function gotPbrCb(pbr) {
+      if (pbr.adn) {
+        ICCRecordHelper.updateADN(pbr.adn.fileId, contact, onsuccess, onerror);
+      } else {
+        if (onerror) {
+          onerror("Cannot access ADN.");
+        }
+      }
+    }.bind(this);
+
+    ICCRecordHelper.readPBR(gotPbrCb, onerror);
+  },
+
+  
+
+
+
+
+
+
+  updateSimContact: function updateSimContact(contact, onsuccess, onerror) {
+    ICCRecordHelper.updateADN(ICC_EF_ADN, contact, onsuccess, onerror);
   },
 };
 
