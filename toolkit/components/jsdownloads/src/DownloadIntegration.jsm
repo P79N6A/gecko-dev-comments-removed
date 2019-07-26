@@ -611,6 +611,17 @@ this.DownloadIntegration = {
       }
 #endif
 
+      
+      
+      
+      
+      
+      try {
+        yield OS.File.setPermissions(aDownload.target.path);
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+
       gDownloadPlatform.downloadDone(NetUtil.newURI(aDownload.source.url),
                                      new FileUtils.File(aDownload.target.path),
                                      aDownload.contentType,
