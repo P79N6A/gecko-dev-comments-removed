@@ -61,14 +61,16 @@ function test_blank() {
 function test_chrome() {
   let oldTab = gBrowser.selectedTab;
 
+  
+  
   loadNewTab("chrome://mozapps/content/extensions/extensions.xul", function(aNewTab) {
-    is(getIdentityMode(), "chromeUI", "Identity should be chrome");
+    is(getIdentityMode(), "unknownIdentity", "Identity should be chrome");
 
     gBrowser.selectedTab = oldTab;
     is(getIdentityMode(), "unknownIdentity", "Identity should be unknown");
 
     gBrowser.selectedTab = aNewTab;
-    is(getIdentityMode(), "chromeUI", "Identity should be chrome");
+    is(getIdentityMode(), "unknownIdentity", "Identity should be chrome");
 
     gBrowser.removeTab(aNewTab);
 

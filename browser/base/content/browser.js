@@ -6344,8 +6344,15 @@ var gIdentityHandler = {
       uri.host;
     } catch (e) { unknown = true; }
 
-    if ((uri.scheme == "chrome" || uri.scheme == "about") &&
-        uri.spec !== "about:blank") {
+    
+    
+    let chromeWhitelist = ["about:addons", "about:app-manager", "about:config",
+                           "about:crashes", "about:healthreport", "about:home",
+                           "about:newaddon", "about:permissions", "about:preferences",
+                           "about:privatebrowsing", "about:sessionstore",
+                           "about:support", "about:welcomeback"];
+    let lowercaseSpec = uri.spec.toLowerCase();
+    if (chromeWhitelist.some(function(whitelistedSpec) lowercaseSpec.startsWith(whitelistedSpec))) {
       this.setMode(this.IDENTITY_MODE_CHROMEUI);
     } else if (unknown) {
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
