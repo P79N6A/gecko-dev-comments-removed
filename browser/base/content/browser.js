@@ -6876,11 +6876,17 @@ let gRemoteTabsUI = {
 
 function switchToTabHavingURI(aURI, aOpenNew, aOpenParams) {
   
+  
+  const kPrivateBrowsingWhitelist = new Set([
+    "about:customizing",
+  ]);
+  
   function switchIfURIInWindow(aWindow) {
     
     
-    if ((PrivateBrowsingUtils.isWindowPrivate(window) ||
-        PrivateBrowsingUtils.isWindowPrivate(aWindow)) &&
+    if (!kPrivateBrowsingWhitelist.has(aURI.spec) &&
+        (PrivateBrowsingUtils.isWindowPrivate(window) ||
+         PrivateBrowsingUtils.isWindowPrivate(aWindow)) &&
         !PrivateBrowsingUtils.permanentPrivateBrowsing) {
       return false;
     }
