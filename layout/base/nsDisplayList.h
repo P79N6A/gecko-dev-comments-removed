@@ -2569,7 +2569,28 @@ public:
   NS_DISPLAY_DECL_NAME("FixedPosition", TYPE_FIXED_POSITION)
 
 protected:
+  void SetFixedPositionLayerData(Layer* const aLayer, nsIFrame* aViewportFrame,
+                                 nsSize aViewportSize, nsPresContext* aPresContext,
+                                 const ContainerParameters& aContainerParameters);
   nsIFrame* mFixedPosFrame;
+};
+
+
+
+
+
+
+class nsDisplayStickyPosition : public nsDisplayFixedPosition {
+public:
+  nsDisplayStickyPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                          nsIFrame* aStickyPosFrame, nsDisplayList* aList);
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayStickyPosition();
+#endif
+
+  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                             LayerManager* aManager,
+                                             const ContainerParameters& aContainerParameters) MOZ_OVERRIDE;
 };
 
 

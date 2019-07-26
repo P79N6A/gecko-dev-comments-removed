@@ -1736,6 +1736,12 @@ WrapPreserve3DListInternal(nsIFrame* aFrame, nsDisplayListBuilder *aBuilder, nsD
   return NS_OK;
 }
 
+static bool
+IsScrollFrameActive(nsIScrollableFrame* aScrollableFrame)
+{
+  return aScrollableFrame && aScrollableFrame->IsScrollingActive();
+}
+
 static nsresult
 WrapPreserve3DList(nsIFrame* aFrame, nsDisplayListBuilder* aBuilder, nsDisplayList *aList)
 {
@@ -1813,10 +1819,14 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
   bool useOpacity = HasOpacity() && !nsSVGUtils::CanOptimizeOpacity(this);
   bool usingSVGEffects = nsSVGIntegrationUtils::UsingEffectsForFrame(this);
+  bool useStickyPosition = disp->mPosition == NS_STYLE_POSITION_STICKY &&
+    IsScrollFrameActive(nsLayoutUtils::GetNearestScrollableFrame(GetParent(),
+                        nsLayoutUtils::SCROLLABLE_SAME_DOC |
+                        nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN));
 
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
-  if (isTransformed || useOpacity || usingSVGEffects) {
+  if (isTransformed || useOpacity || usingSVGEffects || useStickyPosition) {
     
     
     
@@ -1935,6 +1945,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     resultList.AppendNewToTop(
         new (aBuilder) nsDisplayOpacity(aBuilder, this, &resultList));
   }
+  
+
+  if (useStickyPosition) {
+    resultList.AppendNewToTop(
+        new (aBuilder) nsDisplayStickyPosition(aBuilder, this, this,
+                                               &resultList));
+  }
 
   
 
@@ -1960,13 +1977,6 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   }
 
   aList->AppendToTop(&resultList);
-}
-
-static bool
-IsRootScrollFrameActive(nsIPresShell* aPresShell)
-{
-  nsIScrollableFrame* sf = aPresShell->GetRootScrollFrameAsScrollable();
-  return sf && sf->IsScrollingActive();
 }
 
 static nsDisplayItem*
@@ -2127,7 +2137,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED &&
     !child->GetParent()->GetParent() && !aBuilder->IsInFixedPosition() &&
-    IsRootScrollFrameActive(PresContext()->PresShell()) && !isSVG;
+    IsScrollFrameActive(PresContext()->PresShell()->GetRootScrollFrameAsScrollable()) &&
+    !isSVG;
 
   nsDisplayListBuilder::AutoBuildingDisplayList
     buildingForChild(aBuilder, child, pseudoStackingContext, buildFixedPositionItem);
