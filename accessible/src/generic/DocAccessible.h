@@ -365,7 +365,7 @@ protected:
 
 
 
-  void AddDependentIDsFor(Accessible* aRelProvider,
+  void AddDependentIDsFor(dom::Element* aRelProviderElm,
                           nsIAtom* aRelAttr = nullptr);
 
   
@@ -376,7 +376,7 @@ protected:
 
 
 
-  void RemoveDependentIDsFor(Accessible* aRelProvider,
+  void RemoveDependentIDsFor(dom::Element* aRelProviderElm,
                              nsIAtom* aRelAttr = nullptr);
 
   
