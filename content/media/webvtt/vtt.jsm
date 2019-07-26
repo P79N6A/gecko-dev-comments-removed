@@ -137,7 +137,7 @@ this.EXPORTED_SYMBOLS = ["WebVTTParser"];
     }
   }
 
-  function parseCue(input, cue) {
+  function parseCue(input, cue, regionList) {
     
     function consumeTimeStamp() {
       var ts = parseTimeStamp(input);
@@ -156,7 +156,13 @@ this.EXPORTED_SYMBOLS = ["WebVTTParser"];
       parseOptions(input, function (k, v) {
         switch (k) {
         case "region":
-          settings.set(k, v);
+          
+          for (var i = regionList.length - 1; i >= 0; i--) {
+            if (regionList[i].id === v) {
+              settings.set(k, regionList[i].region);
+              break;
+            }
+          }
           break;
         case "vertical":
           settings.alt(k, v, ["rl", "lr"]);
@@ -188,7 +194,7 @@ this.EXPORTED_SYMBOLS = ["WebVTTParser"];
       }, /:/, /\s/);
 
       
-      cue.regionId = settings.get("region", "");
+      cue.region = settings.get("region", null);
       cue.vertical = settings.get("vertical", "");
       cue.line = settings.get("line", "auto");
       cue.lineAlign = settings.get("lineAlign", "start");
@@ -1027,6 +1033,7 @@ this.EXPORTED_SYMBOLS = ["WebVTTParser"];
     this.state = "INITIAL";
     this.buffer = "";
     this.decoder = decoder || new TextDecoder("utf8");
+    this.regionList = [];
   }
 
   
@@ -1190,9 +1197,8 @@ this.EXPORTED_SYMBOLS = ["WebVTTParser"];
 
         
         
-        if (self.onregion && settings.has("id")) {
+        if (settings.has("id")) {
           var region = new self.window.VTTRegion();
-          region.id = settings.get("id");
           region.width = settings.get("width", 100);
           region.lines = settings.get("lines", 3);
           region.regionAnchorX = settings.get("regionanchorX", 0);
@@ -1200,7 +1206,14 @@ this.EXPORTED_SYMBOLS = ["WebVTTParser"];
           region.viewportAnchorX = settings.get("viewportanchorX", 0);
           region.viewportAnchorY = settings.get("viewportanchorY", 100);
           region.scroll = settings.get("scroll", "");
-          self.onregion(region);
+          
+          self.onregion && self.onregion(region);
+          
+          
+          self.regionList.push({
+            id: settings.get("id"),
+            region: region
+          });
         }
       }
 
@@ -1281,7 +1294,7 @@ this.EXPORTED_SYMBOLS = ["WebVTTParser"];
           case "CUE":
             
             try {
-              parseCue(line, self.cue);
+              parseCue(line, self.cue, self.regionList);
             } catch (e) {
               
               if (!(e instanceof ParsingError)) {
