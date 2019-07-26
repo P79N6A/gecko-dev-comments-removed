@@ -15,14 +15,6 @@
 
 class nsSVGElement;
 
-
-
-
-
-
-#define MOZILLA_DOMSVGPATHSEG_IID \
-  { 0x494A7566, 0xDC26, 0x40C8, { 0x91, 0x22, 0x52, 0xAB, 0xD7, 0x68, 0x70, 0xC4 } }
-
 #define MOZ_SVG_LIST_INDEX_BIT_COUNT 31
 
 namespace mozilla {
@@ -92,13 +84,11 @@ namespace mozilla {
 
 
 
-class DOMSVGPathSeg : public nsISupports,
-                      public nsWrapperCache
+class DOMSVGPathSeg : public nsWrapperCache
 {
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGPATHSEG_IID)
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPathSeg)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGPathSeg)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGPathSeg)
 
   
 
@@ -232,8 +222,6 @@ protected:
   uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
   uint32_t mIsAnimValItem:1; 
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGPathSeg, MOZILLA_DOMSVGPATHSEG_IID)
 
 class DOMSVGPathSegClosePath
   : public DOMSVGPathSeg
