@@ -260,6 +260,7 @@ const load = iced(function load(loader, module) {
     let stack = error.stack || Error().stack;
     let frames = parseStack(stack).filter(isntLoaderFrame);
     let toString = String(error);
+    let file = sourceURI(fileName);
 
     
     
@@ -271,6 +272,13 @@ const load = iced(function load(loader, module) {
       lineNumber = caller.lineNumber;
       message = "Module `" + module.id + "` is not found at " + module.uri;
       toString = message;
+    }
+    
+    
+    
+    
+    else if (frames[frames.length - 1].fileName !== file) {
+      frames.push({ fileName: file, lineNumber: lineNumber, name: "" });
     }
 
     let prototype = typeof(error) === "object" ? error.constructor.prototype :
