@@ -36,8 +36,6 @@ class GLContext;
 class TextureImage
 {
     NS_INLINE_DECL_REFCOUNTING(TextureImage)
-protected:
-    typedef gfxASurface::gfxImageFormat ImageFormat;
 public:
     enum TextureState
     {
@@ -206,8 +204,10 @@ public:
 
 
 
-    virtual gfx::SurfaceFormat GetTextureFormat() {
-        return mTextureFormat;
+
+    virtual ShaderProgramType GetShaderProgramType()
+    {
+         return mShaderType;
     }
 
     
@@ -258,7 +258,7 @@ protected:
     nsIntSize mSize;
     GLenum mWrapMode;
     ContentType mContentType;
-    gfx::SurfaceFormat mTextureFormat;
+    ShaderProgramType mShaderType;
     gfxPattern::GraphicsFilter mFilter;
     Flags mFlags;
 };
@@ -276,6 +276,7 @@ class BasicTextureImage
     : public TextureImage
 {
 public:
+    typedef gfxASurface::gfxImageFormat ImageFormat;
     virtual ~BasicTextureImage();
 
     BasicTextureImage(GLuint aTexture,
