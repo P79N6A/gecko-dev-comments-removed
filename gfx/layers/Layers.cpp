@@ -200,12 +200,6 @@ namespace layers {
 Layer*
 LayerManager::GetPrimaryScrollableLayer()
 {
-  
-  
-#ifndef MOZ_WIDGET_ANDROID
-  return nullptr;
-#endif
-
   if (!mRoot) {
     return nullptr;
   }
