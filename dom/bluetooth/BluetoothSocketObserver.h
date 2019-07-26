@@ -21,26 +21,26 @@ class BluetoothSocketObserver
 public:
   virtual void ReceiveSocketData(BluetoothSocket* aSocket,
                                  nsAutoPtr<UnixSocketRawData>& aMessage) = 0;
- 
+
    
 
 
 
 
-  virtual void OnConnectSuccess(BluetoothSocket* aSocket) = 0;
- 
+  virtual void OnSocketConnectSuccess(BluetoothSocket* aSocket) = 0;
+
    
 
 
 
-  virtual void OnConnectError(BluetoothSocket* aSocket) = 0;
- 
+  virtual void OnSocketConnectError(BluetoothSocket* aSocket) = 0;
+
    
 
 
 
 
-  virtual void OnDisconnect(BluetoothSocket* aSocket) = 0;
+  virtual void OnSocketDisconnect(BluetoothSocket* aSocket) = 0;
 
 };
 
