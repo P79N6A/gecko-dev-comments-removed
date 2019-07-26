@@ -216,7 +216,8 @@ this.OutputGenerator = {
     }
 
     let typeName = Utils.getAttributes(aAccessible)['text-input-type'];
-    if (!typeName) {
+    
+    if (!typeName || typeName === 'text') {
       return;
     }
     aDesc.push(gStringBundle.GetStringFromName('textInputType_' + typeName));
