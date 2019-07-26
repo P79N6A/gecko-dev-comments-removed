@@ -502,7 +502,6 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
     
     
     
-    
     fe = GDIFontEntry::CreateFontEntry(nsDependentString(lpelfe->elfFullName),
                                        feType, (logFont.lfItalic == 0xFF),
                                        (uint16_t) (logFont.lfWeight), 0,
@@ -578,8 +577,23 @@ GDIFontFamily::FindStyleVariations()
 
     ReleaseDC(nullptr, hdc);
 
-    if (mIsBadUnderlineFamily)
+    if (mIsBadUnderlineFamily) {
         SetBadUnderlineFonts();
+    }
+
+    
+    
+    
+    size_t count = mAvailableFonts.Length();
+    for (size_t i = 0; i < count; ++i) {
+        if (mAvailableFonts[i]->IsItalic()) {
+            for (uint32_t j = 0; j < count; ++j) {
+                static_cast<GDIFontEntry*>(mAvailableFonts[j].get())->
+                    mFamilyHasItalicFace = true;
+            }
+            break;
+        }
+    }
 }
 
 
@@ -767,7 +781,7 @@ gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
         lookup->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL,
         lookup->mWeight, aProxyEntry->mStretch, nullptr,
-        lookup->Family()->HasItalicFace());
+        static_cast<GDIFontEntry*>(lookup)->mFamilyHasItalicFace);
         
     if (!fe)
         return nullptr;

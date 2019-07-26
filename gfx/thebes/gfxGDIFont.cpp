@@ -289,8 +289,7 @@ gfxGDIFont::Initialize()
     
     
     
-    bool useCairoFakeItalic = wantFakeItalic &&
-        (fe->Family()->HasItalicFace() || fe->mFamilyHasItalicFace);
+    bool useCairoFakeItalic = wantFakeItalic && fe->mFamilyHasItalicFace;
 
     if (mAdjustedSize == 0.0) {
         mAdjustedSize = mStyle.size;
