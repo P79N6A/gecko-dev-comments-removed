@@ -1343,7 +1343,7 @@ CopyDecompiledTextForDecomposedOp(JSPrinter *jp, jsbytecode *pc)
 
 static int
 ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
-                   jsbytecode **pcstack, jsbytecode **lastDecomposedPC);
+                   jsbytecode **pcstack);
 
 #define FAILED_EXPRESSION_DECOMPILER ((char *) 1)
 
@@ -4709,7 +4709,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                     LifoAllocScope las(&cx->tempLifoAlloc());
                     outerLocalNames = jp->localNames;
                     if (!SetPrinterLocalNames(cx, fun->script(), jp))
-                            return NULL;
+                        return NULL;
 
                     inner = fun->script();
                     if (!InitSprintStack(cx, &ss2, jp, StackDepth(inner))) {
@@ -5501,6 +5501,7 @@ DecompileCode(JSPrinter *jp, JSScript *script, jsbytecode *pc, unsigned len,
             return false;
     }
 
+    
     JSScript *oldscript = jp->script;
     BindingVector *oldLocalNames = jp->localNames;
     if (!SetPrinterLocalNames(cx, script, jp))
@@ -5751,118 +5752,503 @@ js_DecompileFunction(JSPrinter *jp)
     return JS_TRUE;
 }
 
-char *
-js_DecompileValueGenerator(JSContext *cx, int spindex, jsval v,
-                           JSString *fallback)
+static JSObject *
+GetBlockChainAtPC(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
-    JSScript *script;
-    jsbytecode *pc;
-    ScriptFrameIter frameIter(cx);
+    jsbytecode *start = script->main();
+    
+    JS_ASSERT(pc >= start && pc < script->code + script->length);
 
+    JSObject *blockChain = NULL;
+    for (jsbytecode *p = start; p < pc; p += GetBytecodeLength(p)) {
+        JSOp op = JSOp(*p);
+
+        switch (op) {
+          case JSOP_ENTERBLOCK:
+          case JSOP_ENTERLET0:
+          case JSOP_ENTERLET1: {
+            JSObject *child = script->getObject(p);
+            JS_ASSERT_IF(blockChain, child->asBlock().stackDepth() >= blockChain->asBlock().stackDepth());
+            blockChain = child;
+            break;
+          }
+          case JSOP_LEAVEBLOCK:
+          case JSOP_LEAVEBLOCKEXPR:
+          case JSOP_LEAVEFORLETIN: {
+            
+            
+            
+            
+            jssrcnote *sn = js_GetSrcNote(script, p);
+            if (!(sn && SN_TYPE(sn) == SRC_HIDDEN)) {
+                JS_ASSERT(blockChain);
+                blockChain = blockChain->asStaticBlock().enclosingBlock();
+                JS_ASSERT_IF(blockChain, blockChain->isBlock());
+            }
+            break;
+          }
+          default:
+            break;
+        }
+    }
+    
+    return blockChain;
+}
+
+class PCStack
+{
+    JSContext *cx;
+    jsbytecode **stack;
+    int depth_;
+
+  public:
+    explicit PCStack(JSContext *cx)
+        : cx(cx),
+          stack(NULL),
+          depth_(0)
+    {}
+    ~PCStack();
+    bool init(JSContext *cx, JSScript *script, jsbytecode *pc);
+    int depth() const { return depth_; }
+    jsbytecode *operator[](int i) const;
+};
+
+PCStack::~PCStack()
+{
+    cx->free_(stack);
+}
+
+bool
+PCStack::init(JSContext *cx, JSScript *script, jsbytecode *pc)
+{
+    stack = static_cast<jsbytecode **>(cx->malloc_(StackDepth(script) * sizeof(*stack)));
+    if (!stack)
+        return false;
+    depth_ = ReconstructPCStack(cx, script, pc, stack);
+    JS_ASSERT(depth_ >= 0);
+    return true;
+}
+
+
+jsbytecode *
+PCStack::operator[](int i) const
+{
+    if (i < 0) {
+        i += depth_;
+        JS_ASSERT(i >= 0);
+    }
+    JS_ASSERT(i < depth_);
+    return stack[i];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct ExpressionDecompiler
+{
+    JSContext *cx;
+    StackFrame *fp;
+    RootedScript script;
+    RootedFunction fun;
+    BindingVector *localNames;
+    Sprinter sprinter;
+
+    ExpressionDecompiler(JSContext *cx, JSScript *script, JSFunction *fun)
+        : cx(cx),
+          script(cx, script),
+          fun(cx, fun),
+          localNames(NULL),
+          sprinter(cx)
+    {}
+    ~ExpressionDecompiler();
+    bool init();
+    bool decompilePC(jsbytecode *pc);
+    JSAtom *getVar(unsigned slot);
+    JSAtom *getArg(unsigned slot);
+    JSAtom *findLetVar(jsbytecode *pc, unsigned depth);
+    JSAtom *loadAtom(jsbytecode *pc);
+    bool quote(JSString *s, uint32_t quote);
+    bool write(const char *s);
+    bool write(JSString *s);
+    bool getOutput(char **out);
+};
+
+bool
+ExpressionDecompiler::decompilePC(jsbytecode *pc)
+{
+    JS_ASSERT(script->code <= pc && pc < script->code + script->length);
+    
+    PCStack pcstack(cx);
+    if (!pcstack.init(cx, script, pc))
+        return NULL;
+
+    JSOp op = (JSOp)*pc;
+
+    
+    JS_ASSERT(op != JSOP_CASE && op != JSOP_DUP && op != JSOP_DUP2);
+
+    if (const char *token = CodeToken[op]) {
+        
+        switch (js_CodeSpec[op].nuses) {
+          case 2: {
+            jssrcnote *sn = js_GetSrcNote(script, pc);
+            if (!sn || SN_TYPE(sn) != SRC_ASSIGNOP)
+                return write("(") &&
+                       decompilePC(pcstack[-2]) &&
+                       write(" ") &&
+                       write(token) &&
+                       write(" ") &&
+                       decompilePC(pcstack[-1]) &&
+                       write(")");
+            break;
+          }
+          case 1:
+            return write(token) &&
+                   write("(") &&
+                   decompilePC(pcstack[-1]) &&
+                   write(")");
+          default:
+            break;
+        }
+    }
+
+    switch (op) {
+      case JSOP_GETGNAME:
+      case JSOP_CALLGNAME:
+      case JSOP_NAME:
+      case JSOP_CALLNAME:
+        return write(loadAtom(pc));
+      case JSOP_GETARG:
+      case JSOP_CALLARG: {
+        unsigned slot = GET_ARGNO(pc);
+        JSAtom *atom = getArg(slot);
+        if (!atom)
+            break; 
+        return write(atom);
+      }
+      case JSOP_GETLOCAL:
+      case JSOP_CALLLOCAL: {
+        unsigned i = GET_SLOTNO(pc);
+        JSAtom *atom;
+        if (i >= script->nfixed) {
+            i -= script->nfixed;
+            JS_ASSERT(i < unsigned(pcstack.depth()));
+            atom = findLetVar(pc, i);
+            if (!atom)
+                return decompilePC(pcstack[i]); 
+        } else {
+            atom = getVar(i);
+        }
+        JS_ASSERT(atom);
+        return write(atom);
+      }
+      case JSOP_CALLALIASEDVAR:
+      case JSOP_GETALIASEDVAR: {
+        JSAtom *atom = ScopeCoordinateName(cx->runtime, script, pc);
+        JS_ASSERT(atom);
+        return write(atom);
+      }
+      case JSOP_LENGTH:
+      case JSOP_GETPROP:
+      case JSOP_CALLPROP: {
+        JSAtom *prop = (op == JSOP_LENGTH) ? cx->runtime->atomState.lengthAtom : loadAtom(pc);
+        if (!decompilePC(pcstack[-1]))
+            return false;
+        if (IsIdentifier(prop))
+            return write(".") &&
+                   quote(prop, '\0');
+        else
+            return write("[") &&
+                   quote(prop, '\'') &&
+                   write("]") >= 0;
+        return true;
+      }
+      case JSOP_GETELEM:
+      case JSOP_CALLELEM:
+        return decompilePC(pcstack[-2]) &&
+               write("[") &&
+               decompilePC(pcstack[-1]) &&
+               write("]");
+      case JSOP_NULL:
+        return write(js_null_str);
+      case JSOP_TRUE:
+        return write(js_true_str);
+      case JSOP_FALSE:
+        return write(js_false_str);
+      case JSOP_ZERO:
+      case JSOP_ONE:
+      case JSOP_INT8:
+      case JSOP_UINT16:
+      case JSOP_UINT24:
+      case JSOP_INT32: {
+        int32_t i;
+        switch (op) {
+          case JSOP_ZERO:
+            i = 0;
+            break;
+          case JSOP_ONE:
+            i = 1;
+            break;
+          case JSOP_INT8:
+            i = GET_INT8(pc);
+            break;
+          case JSOP_UINT16:
+            i = GET_UINT16(pc);
+            break;
+          case JSOP_UINT24:
+            i = GET_UINT24(pc);
+            break;
+          case JSOP_INT32:
+            i = GET_INT32(pc);
+            break;
+          default:
+            JS_NOT_REACHED("wat?");
+        }
+        return sprinter.printf("%d", i) >= 0;
+      }
+      case JSOP_STRING:
+        return quote(loadAtom(pc), '"');
+      case JSOP_UNDEFINED:
+        return write(js_undefined_str);
+      case JSOP_THIS:
+        
+        
+        return write(js_this_str);
+      case JSOP_CALL:
+      case JSOP_FUNCALL:
+        return decompilePC(pcstack[-(GET_ARGC(pc) + 2)]) &&
+               write("(...)");
+      default:
+        break;
+    }
+    return write("(intermediate value)");
+}
+
+ExpressionDecompiler::~ExpressionDecompiler()
+{
+    cx->delete_<BindingVector>(localNames);
+}
+
+bool
+ExpressionDecompiler::init()
+{
+    if (!sprinter.init())
+        return false;
+
+    localNames = cx->new_<BindingVector>(cx);
+    if (!localNames)
+        return false;
+    if (!GetOrderedBindings(cx, script->bindings, localNames))
+        return false;
+
+    return true;
+}
+
+bool
+ExpressionDecompiler::write(const char *s)
+{
+    return sprinter.put(s) >= 0;
+}
+
+bool
+ExpressionDecompiler::write(JSString *s)
+{
+    return sprinter.putString(s) >= 0;
+}
+
+bool
+ExpressionDecompiler::quote(JSString *s, uint32_t quote)
+{
+    return QuoteString(&sprinter, s, quote) >= 0;
+}
+
+JSAtom *
+ExpressionDecompiler::loadAtom(jsbytecode *pc)
+{
+    return script->getAtom(GET_UINT32_INDEX(pc));
+}
+
+JSAtom *
+ExpressionDecompiler::findLetVar(jsbytecode *pc, unsigned depth)
+{
+    if (script->hasObjects()) {
+        JSObject *chain = GetBlockChainAtPC(cx, script, pc);
+        if (!chain)
+            return NULL;
+        JS_ASSERT(chain->isBlock());
+        do {
+            BlockObject &block = chain->asBlock();
+            uint32_t blockDepth = block.stackDepth();
+            uint32_t blockCount = block.slotCount();
+            if (uint32_t(depth - blockDepth) < uint32_t(blockCount)) {
+                for (Shape::Range r(block.lastProperty()); !r.empty(); r.popFront()) {
+                    const Shape &shape = r.front();
+                    if (shape.shortid() == int(depth - blockDepth)) {
+                        
+                        
+                        
+                        if (JSID_IS_ATOM(shape.propid()))
+                            return JSID_TO_ATOM(shape.propid());
+                    }
+                }
+            }
+            chain = chain->enclosingScope();
+        } while (chain->isBlock());
+    }
+    return NULL;
+}
+
+JSAtom *
+ExpressionDecompiler::getArg(unsigned slot)
+{
+    JS_ASSERT(fun);
+    JS_ASSERT(slot < script->bindings.count());
+    return (*localNames)[slot].maybeName;
+}
+
+JSAtom *
+ExpressionDecompiler::getVar(unsigned slot)
+{
+    JS_ASSERT(fun);
+    slot += fun->nargs;
+    JS_ASSERT(slot < script->bindings.count());
+    return (*localNames)[slot].maybeName;
+}
+
+bool
+ExpressionDecompiler::getOutput(char **res)
+{
+    ptrdiff_t len = sprinter.stringEnd() - sprinter.stringAt(0);
+    *res = static_cast<char *>(cx->malloc_(len + 1));
+    if (!*res)
+        return false;
+    js_memcpy(*res, sprinter.stringAt(0), len);
+    (*res)[len] = 0;
+    return true;
+}
+
+static bool
+FindStartPC(JSContext *cx, ScriptFrameIter &iter, int spindex, Value v, jsbytecode **valuepc)
+{
+    jsbytecode *current = *valuepc;
+
+    if (spindex == JSDVG_IGNORE_STACK)
+        return true;
+
+    *valuepc = NULL;
+
+    PCStack pcstack(cx);
+    if (!pcstack.init(cx, iter.script(), current))
+        return false;
+
+    if (spindex == JSDVG_SEARCH_STACK) {
+        size_t index = iter.numFrameSlots();
+        Value s;
+
+        
+        
+        
+        do {
+            if (!index)
+                return true;
+            s = iter.frameSlotValue(--index);
+        } while (s != v);
+        if (index < size_t(pcstack.depth()))
+            *valuepc = pcstack[index];
+    } else {
+        *valuepc = pcstack[spindex];
+    }
+    return true;
+}
+
+static bool
+DecompileExpressionFromStack(JSContext *cx, int spindex, Value v, char **res)
+{
     JS_ASSERT(spindex < 0 ||
               spindex == JSDVG_IGNORE_STACK ||
               spindex == JSDVG_SEARCH_STACK);
 
-#ifdef JS_MORE_DETERMINISTIC
-    
+    *res = NULL;
 
+    ScriptFrameIter frameIter(cx);
 
-
-
-    goto do_fallback;
-#endif
     if (frameIter.done())
-        goto do_fallback;
+        return true;
 
     if (!cx->hasfp() || !cx->fp()->isScriptFrame())
-        goto do_fallback;
+        return true;
 
-    script = frameIter.script();
-    pc = frameIter.pc();
+    JSScript *script = frameIter.script();
+    jsbytecode *valuepc = frameIter.pc();
+    JSFunction *fun = frameIter.isFunctionFrame()
+                      ? frameIter.callee()
+                      : NULL;
 
-    JS_ASSERT(script->code <= pc && pc < script->code + script->length);
+    JS_ASSERT(script->code <= valuepc && valuepc < script->code + script->length);
 
-    if (pc < script->main())
-        goto do_fallback;
+    
+    if (valuepc < script->main())
+        return true;
 
-    if (spindex != JSDVG_IGNORE_STACK) {
-        jsbytecode **pcstack;
+    if (!FindStartPC(cx, frameIter, spindex, v, &valuepc))
+        return false;
+    if (!valuepc)
+        return true;
 
-        
+    ExpressionDecompiler ea(cx, script, fun);
+    if (!ea.init())
+        return false;
+    if (!ea.decompilePC(valuepc))
+        return false;
 
+    return ea.getOutput(res);
+}
 
-
-        pcstack = (jsbytecode **)
-                  cx->malloc_(StackDepth(script) * sizeof *pcstack);
-        if (!pcstack)
-            return NULL;
-        jsbytecode *lastDecomposedPC = NULL;
-        int pcdepth = ReconstructPCStack(cx, script, pc, pcstack, &lastDecomposedPC);
-        if (pcdepth < 0)
-            goto release_pcstack;
-
-        if (spindex != JSDVG_SEARCH_STACK) {
-            JS_ASSERT(spindex < 0);
-            pcdepth += spindex;
-            if (pcdepth < 0)
-                goto release_pcstack;
-            pc = pcstack[pcdepth];
-        } else {
-            size_t index = frameIter.numFrameSlots();
-            Value s;
-
-            
-
-
-
-
-            do {
-                if (!index) {
-                    pcdepth = -1;
-                    goto release_pcstack;
-                }
-                s = frameIter.frameSlotValue(--index);
-            } while(s != v);
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (index < size_t(pcdepth)) {
-                pc = pcstack[index];
-                if (lastDecomposedPC) {
-                    size_t len = GetDecomposeLength(lastDecomposedPC,
-                                                    js_CodeSpec[*lastDecomposedPC].length);
-                    if (unsigned(pc - lastDecomposedPC) < len)
-                        pc = lastDecomposedPC;
-                }
-            }
-        }
-
-      release_pcstack:
-        cx->free_(pcstack);
-        if (pcdepth < 0)
-            goto do_fallback;
-    }
-
+char *
+js_DecompileValueGenerator(JSContext *cx, int spindex, jsval v,
+                           JSString *fallback)
+{
     {
-        char *name = DecompileExpression(cx, script, script->function(), pc);
-        if (name != FAILED_EXPRESSION_DECOMPILER)
-            return name;
+        char *result;
+        if (!DecompileExpressionFromStack(cx, spindex, v, &result))
+            return NULL;
+        if (result) {
+            if (strcmp(result, "(intermediate value)"))
+                return result;
+            cx->free_(result);
+        }
     }
-
-  do_fallback:
     if (!fallback) {
+        if (v.isUndefined())
+            return JS_strdup(cx, js_undefined_str); 
         fallback = js_ValueToSource(cx, v);
         if (!fallback)
             return NULL;
@@ -5957,7 +6343,7 @@ DecompileExpression(JSContext *cx, JSScript *script, JSFunction *fun,
     if (!g.pcstack)
         return NULL;
 
-    int pcdepth = ReconstructPCStack(cx, script, begin, g.pcstack, NULL);
+    int pcdepth = ReconstructPCStack(cx, script, begin, g.pcstack);
     if (pcdepth < 0)
          return FAILED_EXPRESSION_DECOMPILER;
 
@@ -5976,7 +6362,7 @@ DecompileExpression(JSContext *cx, JSScript *script, JSFunction *fun,
 unsigned
 js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
-    return ReconstructPCStack(cx, script, pc, NULL, NULL);
+    return ReconstructPCStack(cx, script, pc, NULL);
 }
 
 #define LOCAL_ASSERT(expr)      LOCAL_ASSERT_RV(expr, -1);
@@ -6038,7 +6424,7 @@ SimulateOp(JSContext *cx, JSScript *script, JSOp op, const JSCodeSpec *cs,
 
 static int
 ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
-                   jsbytecode **pcstack, jsbytecode **lastDecomposedPC)
+                   jsbytecode **pcstack)
 {
     
 
@@ -6056,15 +6442,10 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
     for (; pc < target; pc += oplen) {
         JSOp op = JSOp(*pc);
         const JSCodeSpec *cs = &js_CodeSpec[op];
-        oplen = cs->length;
-        if (oplen < 0)
-            oplen = js_GetVariableBytecodeLength(pc);
+        oplen = GetBytecodeLength(pc);
 
-        if (cs->format & JOF_DECOMPOSE) {
-            if (lastDecomposedPC)
-                *lastDecomposedPC = pc;
+        if (cs->format & JOF_DECOMPOSE)
             continue;
-        }
 
         if (op == JSOP_GOTO) {
             ptrdiff_t jmpoff = GET_JUMP_OFFSET(pc);

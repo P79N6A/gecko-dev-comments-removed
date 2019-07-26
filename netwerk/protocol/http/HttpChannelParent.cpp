@@ -29,7 +29,7 @@ namespace net {
 
 HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding)
   : mIPCClosed(false)
-  , mStoredStatus(0)
+  , mStoredStatus(NS_OK)
   , mStoredProgress(0)
   , mStoredProgressMax(0)
   , mSentRedirect1Begin(false)
@@ -509,8 +509,8 @@ HttpChannelParent::OnProgress(nsIRequest *aRequest,
 {
   
   
-  if (mStoredStatus == nsISocketTransport::STATUS_RECEIVING_FROM ||
-      mStoredStatus == nsITransport::STATUS_READING)
+  if (mStoredStatus == NS_NET_STATUS_RECEIVING_FROM ||
+      mStoredStatus == NS_NET_STATUS_READING)
   {
     mStoredProgress = aProgress;
     mStoredProgressMax = aProgressMax;
@@ -532,8 +532,8 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
                             const PRUnichar *aStatusArg)
 {
   
-  if (aStatus == nsISocketTransport::STATUS_RECEIVING_FROM ||
-      aStatus == nsITransport::STATUS_READING)
+  if (aStatus == NS_NET_STATUS_RECEIVING_FROM ||
+      aStatus == NS_NET_STATUS_READING)
   {
     mStoredStatus = aStatus;
     return NS_OK;

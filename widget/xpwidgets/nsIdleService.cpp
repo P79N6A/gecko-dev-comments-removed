@@ -645,6 +645,8 @@ nsIdleService::IdleTimerCallback(void)
         notifyList.AppendObject(curListener.observer);
         
         curListener.isIdle = true;
+        
+        mAnyObserverIdle = true;
       } else {
         
         mDeltaToNextIdleSwitchInS = PR_MIN(mDeltaToNextIdleSwitchInS,
@@ -665,9 +667,6 @@ nsIdleService::IdleTimerCallback(void)
   if (!numberOfPendingNotifications) {
     return;
   }
-
-  
-  mAnyObserverIdle = true;
 
   
   nsAutoString timeStr;

@@ -88,6 +88,7 @@
 #include "nsAutoLayoutPhase.h"
 #include "nsCSSRenderingBorders.h"
 #include "nsRenderingContext.h"
+#include "nsStyleStructInlines.h"
 
 #ifdef MOZ_XUL
 #include "nsIRootBox.h"
@@ -360,12 +361,6 @@ GetFieldSetBlockFrame(nsIFrame* aFieldsetFrame)
 
 
 
-static bool
-IsInlineOutside(nsIFrame* aFrame)
-{
-  return aFrame->GetStyleDisplay()->IsInlineOutside();
-}
-
 
 
 
@@ -474,7 +469,7 @@ GetLastSpecialSibling(nsIFrame* aFrame, bool aReturnEmptyTrailingInline)
     if (!next ||
         (!aReturnEmptyTrailingInline && !next->GetFirstPrincipalChild() &&
          !GetSpecialSibling(next))) {
-      NS_ASSERTION(!next || !IsInlineOutside(frame),
+      NS_ASSERTION(!next || !frame->IsInlineOutside(),
                    "Should have a block here!");
       return frame;
     }
@@ -561,7 +556,7 @@ static void
 FindFirstBlock(nsFrameList::FrameLinkEnumerator& aLink)
 {
   for ( ; !aLink.AtEnd(); aLink.Next()) {
-    if (!IsInlineOutside(aLink.NextFrame())) {
+    if (!aLink.NextFrame()->IsInlineOutside()) {
       return;
     }
   }
@@ -575,7 +570,7 @@ FindFirstNonBlock(const nsFrameList& aList)
 {
   nsFrameList::FrameLinkEnumerator link(aList);
   for (; !link.AtEnd(); link.Next()) {
-    if (IsInlineOutside(link.NextFrame())) {
+    if (link.NextFrame()->IsInlineOutside()) {
       break;
     }
   }
@@ -1068,8 +1063,12 @@ nsFrameConstructorState::GetGeometricParent(const nsStyleDisplay* aStyleDisplay,
   
   
   
-  if (aStyleDisplay->IsFloating() && mFloatedItems.containingBlock) {
-    NS_ASSERTION(!aStyleDisplay->IsAbsolutelyPositioned(),
+  if (aContentParentFrame && aContentParentFrame->IsSVGText()) {
+    return aContentParentFrame;
+  }
+
+  if (aStyleDisplay->IsFloatingStyle() && mFloatedItems.containingBlock) {
+    NS_ASSERTION(!aStyleDisplay->IsAbsolutelyPositionedStyle(),
                  "Absolutely positioned _and_ floating?");
     return mFloatedItems.containingBlock;
   }
@@ -1120,7 +1119,7 @@ nsFrameConstructorState::AddChild(nsIFrame* aNewFrame,
   }
   else
 #endif 
-  if (aCanBeFloated && disp->IsFloating() &&
+  if (aCanBeFloated && aNewFrame->IsFloating() &&
       mFloatedItems.containingBlock) {
     NS_ASSERTION(aNewFrame->GetParent() == mFloatedItems.containingBlock,
                  "Float whose parent is not the float containing block?");
@@ -1929,7 +1928,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   const nsStyleDisplay* display = outerStyleContext->GetStyleDisplay();
 
   
-  if (display->IsPositioned()) {
+  if (display->IsPositioned(aParentFrame)) {
     aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
   }
   if (aItem.mFCData->mBits & FCDATA_USE_CHILD_ITEMS) {
@@ -2474,8 +2473,8 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
                           state.GetGeometricParent(display,
                                                    mDocElementContainingBlock),
                           mDocElementContainingBlock, styleContext,
-                          &contentFrame, frameItems, display->IsPositioned(),
-                          nullptr);
+                          &contentFrame, frameItems,
+                          display->IsPositioned(contentFrame), nullptr);
       if (NS_FAILED(rv) || frameItems.IsEmpty())
         return rv;
       *aNewFrame = frameItems.FirstChild();
@@ -2973,9 +2972,9 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
          
       comboBox->SetDropDown(listFrame);
 
-      NS_ASSERTION(!listStyle->GetStyleDisplay()->IsPositioned(),
+      NS_ASSERTION(!listFrame->IsPositioned(),
                    "Ended up with positioned dropdown list somehow.");
-      NS_ASSERTION(!listStyle->GetStyleDisplay()->IsFloating(),
+      NS_ASSERTION(!listFrame->IsFloating(),
                    "Ended up with floating dropdown list somehow.");
       
       
@@ -3137,7 +3136,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   nsFrameConstructorSaveState absoluteSaveState;
   nsFrameItems                childItems;
 
-  if (aStyleDisplay->IsPositioned()) {
+  if (newFrame->IsPositioned()) {
     aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
   }
 
@@ -3356,8 +3355,8 @@ nsCSSFrameConstructor::FindHTMLData(Element* aElement,
           nsCSSAnonBoxes::fieldsetContent) ||
        !aElement->GetParent() ||
        !aElement->GetParent()->IsHTML(nsGkAtoms::fieldset) ||
-       aStyleContext->GetStyleDisplay()->IsFloating() ||
-       aStyleContext->GetStyleDisplay()->IsAbsolutelyPositioned())) {
+       aStyleContext->GetStyleDisplay()->IsFloatingStyle() ||
+       aStyleContext->GetStyleDisplay()->IsAbsolutelyPositionedStyle())) {
     
     
     
@@ -3679,7 +3678,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       
       
       const nsStyleDisplay* blockDisplay = blockContext->GetStyleDisplay();
-      if (blockDisplay->IsPositioned()) {
+      if (blockDisplay->IsPositioned(blockFrame)) {
         maybeAbsoluteContainingBlockDisplay = blockDisplay;
         maybeAbsoluteContainingBlock = blockFrame;
       }
@@ -3714,7 +3713,8 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
     if (bits & FCDATA_FORCE_NULL_ABSPOS_CONTAINER) {
       aState.PushAbsoluteContainingBlock(nullptr, absoluteSaveState);
     } else if (!(bits & FCDATA_SKIP_ABSPOS_PUSH) &&
-               maybeAbsoluteContainingBlockDisplay->IsPositioned()) {
+               maybeAbsoluteContainingBlockDisplay->IsPositioned
+                   (maybeAbsoluteContainingBlock)) {
       aState.PushAbsoluteContainingBlock(maybeAbsoluteContainingBlock,
                                          absoluteSaveState);
     }
@@ -4308,15 +4308,16 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
                                        Element* aElement,
+                                       nsIFrame* aParentFrame,
                                        nsStyleContext* aStyleContext)
 {
   PR_STATIC_ASSERT(eParentTypeCount < (1 << (32 - FCDATA_PARENT_TYPE_OFFSET)));
 
   
   
-  NS_ASSERTION(!(aDisplay->IsFloating() ||
-                 aDisplay->IsAbsolutelyPositioned()) ||
-               aDisplay->IsBlockOutside(),
+  NS_ASSERTION(!(aDisplay->IsFloatingStyle() ||
+                 aDisplay->IsAbsolutelyPositionedStyle()) ||
+               aDisplay->IsBlockOutsideStyle(),
                "Style system did not apply CSS2.1 section 9.7 fixups");
 
   
@@ -4340,14 +4341,15 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
   
   
   
-  if (aDisplay->IsBlockInside() &&
+  if ((aParentFrame ? aDisplay->IsBlockInside(aParentFrame) :
+                      aDisplay->IsBlockInsideStyle()) &&
       aDisplay->IsScrollableOverflow() &&
       !propagatedScrollToViewport) {
     
     
     
     if (mPresShell->GetPresContext()->IsPaginated() &&
-        aDisplay->IsBlockOutside() &&
+        aDisplay->IsBlockOutsideStyle() &&
         !aElement->IsInNativeAnonymousSubtree()) {
       static const FrameConstructionData sForcedNonScrollableBlockData =
         FULL_CTOR_FCDATA(FCDATA_FORCED_NON_SCROLLABLE_BLOCK,
@@ -4361,7 +4363,8 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
   }
 
   
-  if (aDisplay->IsBlockInside()) {
+  if ((aParentFrame ? aDisplay->IsBlockInside(aParentFrame) :
+                      aDisplay->IsBlockInsideStyle())) {
     static const FrameConstructionData sNonScrollableBlockData =
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructNonScrollableBlock);
     return &sNonScrollableBlockData;
@@ -4424,8 +4427,10 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
                        &nsCSSFrameConstructor::ConstructTableCell) }
   };
 
-  return FindDataByInt(aDisplay->mDisplay, aElement, aStyleContext,
-                       sDisplayData, ArrayLength(sDisplayData));
+  return FindDataByInt((aParentFrame ? aDisplay->GetDisplay(aParentFrame) :
+                                       aDisplay->mDisplay),
+                       aElement, aStyleContext, sDisplayData,
+                       ArrayLength(sDisplayData));
 }
 
 nsresult
@@ -4455,7 +4460,8 @@ nsCSSFrameConstructor::ConstructScrollableBlock(nsFrameConstructorState& aState,
   nsresult rv = ConstructBlock(aState,
                                scrolledContentStyle->GetStyleDisplay(), content,
                                *aNewFrame, *aNewFrame, scrolledContentStyle,
-                               &scrolledFrame, blockItem, aDisplay->IsPositioned(),
+                               &scrolledFrame, blockItem,
+                               aDisplay->IsPositioned(scrolledFrame),
                                aItem.mPendingBinding);
   if (NS_UNLIKELY(NS_FAILED(rv))) {
     
@@ -4487,10 +4493,11 @@ nsCSSFrameConstructor::ConstructNonScrollableBlock(nsFrameConstructorState& aSta
   
   bool clipPaginatedOverflow =
     (aItem.mFCData->mBits & FCDATA_FORCED_NON_SCROLLABLE_BLOCK) != 0;
-  if (aDisplay->IsAbsolutelyPositioned() ||
-      aDisplay->IsFloating() ||
-      NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay ||
-      clipPaginatedOverflow) {
+  if ((aDisplay->IsAbsolutelyPositionedStyle() ||
+       aDisplay->IsFloatingStyle() ||
+       NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay ||
+       clipPaginatedOverflow) &&
+      !aParentFrame->IsSVGText()) {
     *aNewFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
     if (clipPaginatedOverflow) {
       (*aNewFrame)->AddStateBits(NS_BLOCK_CLIP_PAGINATED_OVERFLOW);
@@ -4502,7 +4509,7 @@ nsCSSFrameConstructor::ConstructNonScrollableBlock(nsFrameConstructorState& aSta
   return ConstructBlock(aState, aDisplay, aItem.mContent,
                         aState.GetGeometricParent(aDisplay, aParentFrame),
                         aParentFrame, styleContext, aNewFrame,
-                        aFrameItems, aDisplay->IsPositioned(),
+                        aFrameItems, aDisplay->IsPositioned(*aNewFrame),
                         aItem.mPendingBinding);
 }
 
@@ -4659,7 +4666,7 @@ nsCSSFrameConstructor::FindMathMLData(Element* aElement,
     
     
     
-    if (aStyleContext->GetStyleDisplay()->IsBlockOutside()) {
+    if (aStyleContext->GetStyleDisplay()->IsBlockOutsideStyle()) {
       static const FrameConstructionData sBlockMathData =
         FCDATA_DECL(FCDATA_FORCE_NULL_ABSPOS_CONTAINER |
                     FCDATA_WRAP_KIDS_IN_BLOCKS,
@@ -5254,7 +5261,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
 
     
     if (!data) {
-      data = FindDisplayData(display, element, styleContext);
+      data = FindDisplayData(display, element, aParentFrame, styleContext);
     }
 
     NS_ASSERTION(data, "Should have frame construction data now");
@@ -5294,8 +5301,9 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   bool canHavePageBreak =
     (aFlags & ITEM_ALLOW_PAGE_BREAK) &&
     aState.mPresContext->IsPaginated() &&
-    !display->IsAbsolutelyPositioned() &&
-    !(bits & FCDATA_IS_TABLE_PART);
+    !display->IsAbsolutelyPositionedStyle() &&
+    !(bits & FCDATA_IS_TABLE_PART) &&
+    !(bits & FCDATA_IS_SVG_TEXT);
 
   if (canHavePageBreak && display->mBreakBefore) {
     AddPageBreakItem(aContent, aStyleContext, aItems);
@@ -5346,7 +5354,8 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
        (!aParentFrame || 
         aParentFrame->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE)) ||
       
-      display->IsInlineOutside() ||
+      (aParentFrame ? display->IsInlineOutside(aParentFrame) :
+                      display->IsInlineOutsideStyle()) ||
       
       isPopup;
 
@@ -5376,8 +5385,10 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
     
     
     
-    item->mIsBlock =
-      !isInline && !display->IsAbsolutelyPositioned() && !display->IsFloating();
+    item->mIsBlock = !isInline &&
+                     !display->IsAbsolutelyPositionedStyle() &&
+                     !display->IsFloatingStyle() &&
+                     !(bits & FCDATA_IS_SVG_TEXT);
   }
 
   if (item->mIsAllInline) {
@@ -5596,8 +5607,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
     
     
     
-    const nsStyleDisplay* disp = frame->GetStyleDisplay();
-    if (!disp->IsPositioned()) {
+    if (!frame->IsPositioned()) {
       continue;
     }
     nsIFrame* absPosCBCandidate = nullptr;
@@ -5773,7 +5783,7 @@ nsCSSFrameConstructor::AppendFramesToParent(nsFrameConstructorState&       aStat
     
     
     
-    if (aFrameList.NotEmpty() && !IsInlineOutside(aFrameList.FirstChild())) {
+    if (aFrameList.NotEmpty() && !aFrameList.FirstChild()->IsInlineOutside()) {
       
       nsIFrame* firstContinuation = aParentFrame->GetFirstContinuation();
       if (firstContinuation->PrincipalChildList().IsEmpty()) {
@@ -5804,8 +5814,9 @@ nsCSSFrameConstructor::AppendFramesToParent(nsFrameConstructorState&       aStat
     if (!aFrameList.IsEmpty()) {
       const nsStyleDisplay* parentDisplay = aParentFrame->GetStyleDisplay();
       bool positioned =
-        parentDisplay->mPosition == NS_STYLE_POSITION_RELATIVE ||
-        parentDisplay->HasTransform();
+        (parentDisplay->mPosition == NS_STYLE_POSITION_RELATIVE ||
+         parentDisplay->HasTransform()) &&
+        !aParentFrame->IsSVGText();
       nsFrameItems ibSiblings;
       CreateIBSiblings(aState, aParentFrame, positioned, aFrameList,
                        ibSiblings);
@@ -5851,8 +5862,8 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
       grandparentType = grandparentFrame->GetType();
     }
   }
-    
-  PRUint8 siblingDisplay = aSibling->GetStyleDisplay()->mDisplay;
+
+  PRUint8 siblingDisplay = aSibling->GetDisplay();
   if ((NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == siblingDisplay) ||
       (NS_STYLE_DISPLAY_TABLE_COLUMN       == siblingDisplay) ||
       (NS_STYLE_DISPLAY_TABLE_CAPTION      == siblingDisplay) ||
@@ -6681,11 +6692,11 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   if (nsLayoutUtils::GetAsBlock(parentFrame) && !haveFirstLetterStyle &&
       !haveFirstLineStyle && !parentSpecial) {
     items.SetLineBoundaryAtStart(!prevSibling ||
-        !prevSibling->GetStyleDisplay()->IsInlineOutside() ||
+        !prevSibling->IsInlineOutside() ||
         prevSibling->GetType() == nsGkAtoms::brFrame);
     
     items.SetLineBoundaryAtEnd(!parentAfterFrame ||
-        !parentAfterFrame->GetStyleDisplay()->IsInlineOutside());
+        !parentAfterFrame->IsInlineOutside());
   }
   
   
@@ -7061,15 +7072,15 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
   
   
   
-  const nsStyleDisplay* parentDisplay = parentFrame->GetStyleDisplay();
+  PRUint8 parentDisplay = parentFrame->GetDisplay();
 
   
   
   
-  if ((NS_STYLE_DISPLAY_BLOCK == parentDisplay->mDisplay) ||
-      (NS_STYLE_DISPLAY_LIST_ITEM == parentDisplay->mDisplay) ||
-      (NS_STYLE_DISPLAY_INLINE == parentDisplay->mDisplay) ||
-      (NS_STYLE_DISPLAY_INLINE_BLOCK == parentDisplay->mDisplay)) {
+  if ((NS_STYLE_DISPLAY_BLOCK == parentDisplay) ||
+      (NS_STYLE_DISPLAY_LIST_ITEM == parentDisplay) ||
+      (NS_STYLE_DISPLAY_INLINE == parentDisplay) ||
+      (NS_STYLE_DISPLAY_INLINE_BLOCK == parentDisplay)) {
     
     if (containingBlock) {
       haveFirstLetterStyle = HasFirstLetterStyle(containingBlock);
@@ -9705,7 +9716,7 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
     
     
     newItem->mIsAllInline = newItem->mHasInlineEnds =
-      newItem->mStyleContext->GetStyleDisplay()->IsInlineOutside();
+      newItem->mStyleContext->GetStyleDisplay()->IsInlineOutsideStyle();
 
     
     
@@ -9990,7 +10001,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLineFrame(
 
   
   nsFrameList::FrameLinkEnumerator link(aFrameItems);
-  while (!link.AtEnd() && IsInlineOutside(link.NextFrame())) {
+  while (!link.AtEnd() && link.NextFrame()->IsInlineOutside()) {
     link.Next();
   }
 
@@ -10427,7 +10438,7 @@ nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
 
     
     const nsStyleDisplay* display = sc->GetStyleDisplay();
-    if (display->IsFloating()) {
+    if (display->IsFloating(aParentFrame)) {
       
       CreateFloatingLetterFrame(state, aBlockFrame, aTextContent, textFrame,
                                 blockContent, aParentFrame, sc, aResult);
@@ -11022,7 +11033,8 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   bool positioned =
     NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay &&
     (NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition ||
-     aDisplay->HasTransform());
+     aDisplay->HasTransform()) &&
+    !aParentFrame->IsSVGText();
 
   nsIFrame* newFrame = NS_NewInlineFrame(mPresShell, styleContext);
   if (!newFrame) {
@@ -11122,7 +11134,7 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
     
     
     NS_PRECONDITION(aChildItems.NotEmpty(), "Should have child items");
-    NS_PRECONDITION(!IsInlineOutside(aChildItems.FirstChild()),
+    NS_PRECONDITION(!aChildItems.FirstChild()->IsInlineOutside(),
                     "Must have list starting with block");
 
     
@@ -11573,7 +11585,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   
   
   
-  while (IsFrameSpecial(aContainingBlock) || IsInlineOutside(aContainingBlock) ||
+  while (IsFrameSpecial(aContainingBlock) || aContainingBlock->IsInlineOutside() ||
          aContainingBlock->GetStyleContext()->GetPseudo()) {
     aContainingBlock = aContainingBlock->GetParent();
     NS_ASSERTION(aContainingBlock,

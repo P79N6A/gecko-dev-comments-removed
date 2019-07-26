@@ -53,6 +53,7 @@
 #include "FrameLayerBuilder.h"
 #include "nsRenderingContext.h"
 #include "TextOverflow.h"
+#include "nsStyleStructInlines.h"
 #include "mozilla/Util.h" 
 
 #ifdef IBMBIDI
@@ -1575,11 +1576,14 @@ nsBlockFrame::MarkLineDirty(line_iterator aLine, const nsLineList* aLineList)
 
 
 
-bool static inline IsAlignedLeft(const PRUint8 aAlignment,
-                                 const PRUint8 aDirection,
-                                 const PRUint8 aUnicodeBidi)
+static inline bool
+IsAlignedLeft(PRUint8 aAlignment,
+              PRUint8 aDirection,
+              PRUint8 aUnicodeBidi,
+              nsIFrame* aFrame)
 {
-  return (NS_STYLE_TEXT_ALIGN_LEFT == aAlignment ||
+  return (aFrame->IsSVGText() ||
+          NS_STYLE_TEXT_ALIGN_LEFT == aAlignment ||
           ((NS_STYLE_TEXT_ALIGN_DEFAULT == aAlignment &&
             NS_STYLE_DIRECTION_LTR == aDirection) ||
            (NS_STYLE_TEXT_ALIGN_END == aAlignment &&
@@ -1597,7 +1601,8 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
       
     IsAlignedLeft(styleText->mTextAlign, 
                   aState.mReflowState.mStyleVisibility->mDirection,
-                  styleTextReset->mUnicodeBidi) &&
+                  styleTextReset->mUnicodeBidi,
+                  this) &&
       
       
       !GetStylePadding()->mPadding.GetLeft().HasPercent();
@@ -1636,7 +1641,8 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
     bool skipLastLine = NS_STYLE_TEXT_ALIGN_AUTO == styleText->mTextAlignLast ||
       IsAlignedLeft(styleText->mTextAlignLast,
                     aState.mReflowState.mStyleVisibility->mDirection,
-                    styleTextReset->mUnicodeBidi);
+                    styleTextReset->mUnicodeBidi,
+                    this);
 
     for (line_iterator line = begin_lines(), line_end = end_lines();
          line != line_end;
@@ -2631,7 +2637,7 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
   NS_ABORT_IF_FALSE(fromLine->GetChildCount(), "empty line");
   NS_ABORT_IF_FALSE(aLine->GetChildCount(), "empty line");
 
-  NS_ASSERTION(fromLine->IsBlock() == fromLine->mFirstChild->GetStyleDisplay()->IsBlockOutside(),
+  NS_ASSERTION(fromLine->IsBlock() == fromLine->mFirstChild->IsBlockOutside(),
                "Disagreement about whether it's a block or not");
 
   if (fromLine->IsBlock()) {
@@ -4253,10 +4259,12 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
 
 
 
-  bool isLastLine = ((NS_STYLE_TEXT_ALIGN_AUTO != styleText->mTextAlignLast ||
-                            NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign) &&
-                       (aLineLayout.GetLineEndsInBR() ||
-                        IsLastLine(aState, aLine)));
+  bool isLastLine =
+    !IsSVGText() &&
+    ((NS_STYLE_TEXT_ALIGN_AUTO != styleText->mTextAlignLast ||
+      NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign) &&
+     (aLineLayout.GetLineEndsInBR() ||
+      IsLastLine(aState, aLine)));
   aLineLayout.HorizontalAlignFrames(aLine->mBounds, isLastLine);
   
   
@@ -4948,11 +4956,11 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     NS_ASSERTION(!aPrevSibling || aPrevSibling->GetNextSibling() == newFrame,
                  "Unexpected aPrevSibling");
     NS_ASSERTION(newFrame->GetType() != nsGkAtoms::placeholderFrame ||
-                 (!newFrame->GetStyleDisplay()->IsAbsolutelyPositioned() &&
-                  !newFrame->GetStyleDisplay()->IsFloating()),
+                 (!newFrame->IsAbsolutelyPositioned() &&
+                  !newFrame->IsFloating()),
                  "Placeholders should not float or be positioned");
 
-    bool isBlock = newFrame->GetStyleDisplay()->IsBlockOutside();
+    bool isBlock = newFrame->IsBlockOutside();
 
     
     
@@ -5125,8 +5133,7 @@ nsBlockFrame::DoRemoveOutOfFlowFrame(nsIFrame* aFrame)
   nsBlockFrame* block = (nsBlockFrame*)aFrame->GetParent();
 
   
-  const nsStyleDisplay* display = aFrame->GetStyleDisplay();
-  if (display->IsAbsolutelyPositioned()) {
+  if (aFrame->IsAbsolutelyPositioned()) {
     
     block->GetAbsoluteContainingBlock()->RemoveFrame(block,
                                                      kAbsoluteList,
@@ -5636,7 +5643,7 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
   NS_PRECONDITION(aPresContext && aChild, "null pointer");
 
   if ((aChild->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-      aChild->GetStyleDisplay()->IsFloating()) {
+      aChild->IsFloating()) {
     bool removed = mFloats.RemoveFrameIfPresent(aChild);
     if (!removed) {
       nsFrameList* list = GetPushedFloats();
@@ -6472,7 +6479,7 @@ nsBlockFrame::ChildIsDirty(nsIFrame* aChild)
 {
   
   if (aChild->GetStateBits() & NS_FRAME_OUT_OF_FLOW &&
-      aChild->GetStyleDisplay()->IsAbsolutelyPositioned()) {
+      aChild->IsAbsolutelyPositioned()) {
     
   } else if (aChild == GetOutsideBullet()) {
     
@@ -6564,7 +6571,8 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
         mParent->GetStyleContext()->GetPseudo() == nullptr) ||
        pseudo == nsCSSAnonBoxes::fieldsetContent ||
        pseudo == nsCSSAnonBoxes::scrolledContent ||
-       pseudo == nsCSSAnonBoxes::columnContent) &&
+       pseudo == nsCSSAnonBoxes::columnContent ||
+       pseudo == nsCSSAnonBoxes::mozSVGText) &&
       !IsFrameOfType(eMathML) &&
       nsRefPtr<nsStyleContext>(GetFirstLetterStyle(presContext)) != nullptr;
     NS_ASSERTION(haveFirstLetterStyle ==

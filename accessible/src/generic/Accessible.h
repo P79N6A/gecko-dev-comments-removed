@@ -129,7 +129,7 @@ public:
   
 
 
-  virtual bool Init();
+  virtual void Init();
 
   
 

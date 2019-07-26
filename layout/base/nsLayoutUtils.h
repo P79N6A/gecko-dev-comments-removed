@@ -1311,8 +1311,8 @@ public:
 
 
   static PRUint32 GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
-                                          const nsStyleText* aStyleText,
-                                          const nsStyleFont* aStyleFont);
+                                          const nsStyleFont* aStyleFont,
+                                          nscoord aLetterSpacing);
 
   
 

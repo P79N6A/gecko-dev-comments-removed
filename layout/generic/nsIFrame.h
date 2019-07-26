@@ -23,8 +23,9 @@
 #include <stdio.h>
 #include "nsQueryFrame.h"
 #include "nsEvent.h"
-#include "nsStyleStruct.h"
 #include "nsStyleContext.h"
+#include "nsStyleStruct.h"
+#include "nsStyleStructFwd.h"
 #include "nsIContent.h"
 #include "nsHTMLReflowMetrics.h"
 #include "gfxMatrix.h"
@@ -296,6 +297,10 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_HAS_CACHED_BACKGROUND              NS_FRAME_STATE_BIT(46)
+
+
+
+#define NS_FRAME_IS_SVG_TEXT                        NS_FRAME_STATE_BIT(47)
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
@@ -2499,7 +2504,9 @@ public:
 
   bool IsPseudoStackingContextFromStyle() {
     const nsStyleDisplay* disp = GetStyleDisplay();
-    return disp->mOpacity != 1.0f || disp->IsPositioned() || disp->IsFloating();
+    return disp->mOpacity != 1.0f ||
+           disp->IsPositioned(this) ||
+           disp->IsFloating(this);
   }
   
   virtual bool HonorPrintBackgroundSettings() { return true; }
@@ -2834,6 +2841,27 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   };
   bool IsVisibleConsideringAncestors(PRUint32 aFlags = 0) const;
 
+  inline bool IsBlockInside() const;
+  inline bool IsBlockOutside() const;
+  inline bool IsInlineOutside() const;
+  inline PRUint8 GetDisplay() const;
+  inline bool IsFloating() const;
+  inline bool IsPositioned() const;
+  inline bool IsRelativelyPositioned() const;
+  inline bool IsAbsolutelyPositioned() const;
+
+  
+
+
+
+
+
+
+  PRUint8 VerticalAlignEnum() const;
+  enum { eInvalidVerticalAlign = 0xFF };
+
+  bool IsSVGText() const { return mState & NS_FRAME_IS_SVG_TEXT; }
+
 protected:
   
   nsRect           mRect;
@@ -3144,4 +3172,55 @@ FrameLinkEnumerator(const nsFrameList& aList, nsIFrame* aPrevFrame)
   mPrev = aPrevFrame;
   mFrame = aPrevFrame ? aPrevFrame->GetNextSibling() : aList.FirstChild();
 }
+
+#include "nsStyleStructInlines.h"
+
+bool
+nsIFrame::IsFloating() const
+{
+  return GetStyleDisplay()->IsFloating(this);
+}
+
+bool
+nsIFrame::IsPositioned() const
+{
+  return GetStyleDisplay()->IsPositioned(this);
+}
+
+bool
+nsIFrame::IsRelativelyPositioned() const
+{
+  return GetStyleDisplay()->IsRelativelyPositioned(this);
+}
+
+bool
+nsIFrame::IsAbsolutelyPositioned() const
+{
+  return GetStyleDisplay()->IsAbsolutelyPositioned(this);
+}
+
+bool
+nsIFrame::IsBlockInside() const
+{
+  return GetStyleDisplay()->IsBlockInside(this);
+}
+
+bool
+nsIFrame::IsBlockOutside() const
+{
+  return GetStyleDisplay()->IsBlockOutside(this);
+}
+
+bool
+nsIFrame::IsInlineOutside() const
+{
+  return GetStyleDisplay()->IsInlineOutside(this);
+}
+
+PRUint8
+nsIFrame::GetDisplay() const
+{
+  return GetStyleDisplay()->GetDisplay(this);
+}
+
 #endif 

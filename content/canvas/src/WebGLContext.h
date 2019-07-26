@@ -1361,6 +1361,11 @@ protected:
         return mAlreadyGeneratedWarnings < 32;
     }
 
+    uint64_t mLastUseIndex;
+
+    void LoseOldestWebGLContextIfLimitExceeded();
+    void UpdateLastUseIndex();
+
 #ifdef XP_MACOSX
     
     
@@ -3174,12 +3179,14 @@ class WebGLMemoryMultiReporterWrapper
     
     typedef nsTArray<const WebGLContext*> ContextsArrayType;
     ContextsArrayType mContexts;
-    
+
     nsCOMPtr<nsIMemoryMultiReporter> mReporter;
 
     static WebGLMemoryMultiReporterWrapper* UniqueInstance();
 
     static ContextsArrayType & Contexts() { return UniqueInstance()->mContexts; }
+
+    friend class WebGLContext;
 
   public:
 

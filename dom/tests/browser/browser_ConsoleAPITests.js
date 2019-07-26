@@ -1,7 +1,7 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 const TEST_URI = "http://example.com/browser/dom/tests/browser/test-console-api.html";
 
@@ -73,13 +73,13 @@ function testLocationData(aMessageObject) {
 }
 
 function startGroupTest() {
-  // Reset the observer function to cope with the fabricated test data.
+  
   ConsoleObserver.observe = function CO_observe(aSubject, aTopic, aData) {
     try {
       testConsoleGroup(aSubject.wrappedJSObject);
     } catch (ex) {
-      // XXX Exceptions in this function currently aren't reported, because of
-      // some XPConnect weirdness, so report them manually
+      
+      
       ok(false, "Exception thrown in CO_observe: " + ex);
     }
   };
@@ -130,13 +130,13 @@ function startTraceTest() {
 }
 
 function startLocationTest() {
-  // Reset the observer function to cope with the fabricated test data.
+  
   ConsoleObserver.observe = function CO_observe(aSubject, aTopic, aData) {
     try {
       testLocationData(aSubject.wrappedJSObject);
     } catch (ex) {
-      // XXX Exceptions in this function currently aren't reported, because of
-      // some XPConnect weirdness, so report them manually
+      
+      
       ok(false, "Exception thrown in CO_observe: " + ex);
     }
   };
@@ -165,8 +165,8 @@ function observeConsoleTest() {
   win.console.info("arg", "extra arg");
   yield;
 
-  // We don't currently support width and precision qualifiers, but we don't
-  // choke on them either.
+  
+  
   expect("warn", "Lesson 1: PI is approximately equal to 3.14159");
   win.console.warn("Lesson %d: %s is approximately equal to %1.2f",
                    1,
@@ -190,12 +190,12 @@ function observeConsoleTest() {
   win.console.log("%d, %s, %l", 2, "a", 3);
   yield;
 
-  // Bug #692550 handle null and undefined.
+  
   expect("log", "null, undefined");
   win.console.log("%s, %s", null, undefined);
   yield;
 
-  // Bug #696288 handle object as first argument.
+  
   let obj = { a: 1 };
   expect("log", obj, "a");
   win.console.log(obj, "a");
@@ -236,13 +236,13 @@ function consoleAPISanityTest() {
 }
 
 function startTimeTest() {
-  // Reset the observer function to cope with the fabricated test data.
+  
   ConsoleObserver.observe = function CO_observe(aSubject, aTopic, aData) {
     try {
       testConsoleTime(aSubject.wrappedJSObject);
     } catch (ex) {
-      // XXX Exceptions in this function currently aren't reported, because of
-      // some XPConnect weirdness, so report them manually
+      
+      
       ok(false, "Exception thrown in CO_observe: " + ex);
     }
   };
@@ -270,13 +270,13 @@ function testConsoleTime(aMessageObject) {
 }
 
 function startTimeEndTest() {
-  // Reset the observer function to cope with the fabricated test data.
+  
   ConsoleObserver.observe = function CO_observe(aSubject, aTopic, aData) {
     try {
       testConsoleTimeEnd(aSubject.wrappedJSObject);
     } catch (ex) {
-      // XXX Exceptions in this function currently aren't reported, because of
-      // some XPConnect weirdness, so report them manually
+      
+      
       ok(false, "Exception thrown in CO_observe: " + ex);
     }
   };
@@ -309,13 +309,13 @@ function testConsoleTimeEnd(aMessageObject) {
 }
 
 function startEmptyTimerTest() {
-  // Reset the observer function to cope with the fabricated test data.
+  
   ConsoleObserver.observe = function CO_observe(aSubject, aTopic, aData) {
     try {
       testEmptyTimer(aSubject.wrappedJSObject);
     } catch (ex) {
-      // XXX Exceptions in this function currently aren't reported, because of
-      // some XPConnect weirdness, so report them manually
+      
+      
       ok(false, "Exception thrown in CO_observe: " + ex);
     }
   };
@@ -336,7 +336,7 @@ function testEmptyTimer(aMessageObject) {
   is(aMessageObject.functionName, "namelessTimer", "functionName matches");
   ok(aMessageObject.lineNumber == 31 || aMessageObject.lineNumber == 32,
      "lineNumber matches");
-  // Test finished
+  
   ConsoleObserver.destroy();
   finish();
 }
@@ -356,8 +356,8 @@ var ConsoleObserver = {
     try {
       testConsoleData(aSubject.wrappedJSObject);
     } catch (ex) {
-      // XXX Exceptions in this function currently aren't reported, because of
-      // some XPConnect weirdness, so report them manually
+      
+      
       ok(false, "Exception thrown in CO_observe: " + ex);
     }
   }

@@ -1676,7 +1676,7 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
 
     PRUint32 flags = gfxTextRunFactory::TEXT_NEED_BOUNDING_BOX |
       GetTextRunFlags(text.Length()) |
-      nsLayoutUtils::GetTextRunFlagsForStyle(GetStyleContext(), GetStyleText(), GetStyleFont());
+      nsLayoutUtils::GetTextRunFlagsForStyle(GetStyleContext(), GetStyleFont(), 0);
 
     
     

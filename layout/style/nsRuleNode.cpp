@@ -4853,7 +4853,7 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
       canStoreInRuleTree = false;
     }
 
-    if (display->IsAbsolutelyPositioned()) {
+    if (display->IsAbsolutelyPositionedStyle()) {
       
       
       EnsureBlockDisplay(display->mDisplay);

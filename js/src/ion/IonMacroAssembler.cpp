@@ -402,7 +402,7 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 
         
         
-        size_t nslots = JS_MIN(templateObject->numFixedSlots(), templateObject->slotSpan());
+        size_t nslots = Min(templateObject->numFixedSlots(), templateObject->slotSpan());
         for (unsigned i = 0; i < nslots; i++) {
             storeValue(templateObject->getFixedSlot(i),
                        Address(obj, JSObject::getFixedSlotOffset(i)));

@@ -20,6 +20,7 @@
 #include "nsFirstLetterFrame.h"
 #include "nsUnicodeProperties.h"
 #include "nsTextFrame.h"
+#include "nsStyleStructInlines.h"
 
 #undef NOISY_BIDI
 #undef REALLY_NOISY_BIDI
@@ -517,7 +518,7 @@ CreateContinuation(nsIFrame*  aFrame,
   
   
   if (parent->GetType() == nsGkAtoms::letterFrame &&
-      parent->GetStyleDisplay()->IsFloating()) {
+      parent->IsFloating()) {
     nsFirstLetterFrame* letterFrame = do_QueryFrame(parent);
     rv = letterFrame->CreateContinuationForFloatingParent(presContext, aFrame,
                                                           aNewFrame, aIsFluid);
@@ -1092,7 +1093,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
         
         aBpd->AppendUnichar(content->IsHTML(nsGkAtoms::wbr) ?
                             kZWSP : kObjectSubstitute);
-        if (!frame->GetStyleContext()->GetStyleDisplay()->IsInlineOutside()) {
+        if (!frame->IsInlineOutside()) {
           
           ResolveParagraphWithinBlock(aBlockFrame, aBpd);
         }
