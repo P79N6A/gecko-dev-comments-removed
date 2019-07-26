@@ -23,18 +23,21 @@ extern bool gBluetoothDebugFlag;
 
 
 
-#define BT_LOGD(args...)                                             \
+
+#define BT_LOGD(msg, ...)                                            \
   do {                                                               \
     if (gBluetoothDebugFlag) {                                       \
-      __android_log_print(ANDROID_LOG_INFO, "GeckoBluetooth", args); \
+      __android_log_print(ANDROID_LOG_INFO, "GeckoBluetooth",        \
+                          "%s: " msg, __FUNCTION__, ##__VA_ARGS__);  \
     }                                                                \
   } while(0)
 
 
 
 
-#define BT_LOGR(args...)                                             \
-  __android_log_print(ANDROID_LOG_INFO, "GeckoBluetooth", args)      \
+#define BT_LOGR(msg, ...)                                            \
+  __android_log_print(ANDROID_LOG_INFO, "GeckoBluetooth",            \
+                      "%s: " msg, __FUNCTION__, ##__VA_ARGS__)       \
 
 
 
@@ -43,15 +46,15 @@ extern bool gBluetoothDebugFlag;
   NS_WARNING(nsPrintfCString(args).get())                            \
 
 #else
-#define BT_LOGD(args, ...)                                           \
+#define BT_LOGD(msg, ...)                                            \
   do {                                                               \
     if (gBluetoothDebugFlag) {                                       \
-      printf(args, ##__VA_ARGS__);                                   \
+      printf("%s: " msg, __FUNCTION__, ##__VA_ARGS__);               \
     }                                                                \
   } while(0)
 
-#define BT_LOGR(args, ...) printf(args, ##__VA_ARGS__)
-#define BT_WARNING(args, ...) printf(args, ##__VA_ARGS__)
+#define BT_LOGR(msg, ...) printf("%s: " msg, __FUNCTION__, ##__VA_ARGS__))
+#define BT_WARNING(msg, ...) printf("%s: " msg, __FUNCTION__, ##__VA_ARGS__))
 #endif
 
 #define BEGIN_BLUETOOTH_NAMESPACE \
@@ -99,6 +102,9 @@ extern bool gBluetoothDebugFlag;
 #define BLUETOOTH_ADDRESS_LENGTH 17
 #define BLUETOOTH_ADDRESS_NONE   "00:00:00:00:00:00"
 #define BLUETOOTH_ADDRESS_BYTES  6
+
+
+#define ERR_INTERNAL_ERROR "InternalError"
 
 BEGIN_BLUETOOTH_NAMESPACE
 
