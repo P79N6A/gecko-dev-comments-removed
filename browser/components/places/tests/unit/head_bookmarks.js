@@ -63,10 +63,10 @@ let (XULAppInfo = {
 }
 
 
-let isWin8OrHigher = Services.sysinfo.getProperty("hasWindowsTouchInterface");
+let isMetroSupported = Services.metro && Services.metro.supported;
 const SMART_BOOKMARKS_VERSION = 6
 const SMART_BOOKMARKS_ON_TOOLBAR = 1;
-const SMART_BOOKMARKS_ON_MENU = isWin8OrHigher ? 4 : 3; 
+const SMART_BOOKMARKS_ON_MENU = isMetroSupported ? 4 : 3; 
 
 
 const DEFAULT_BOOKMARKS_ON_TOOLBAR = 1;
