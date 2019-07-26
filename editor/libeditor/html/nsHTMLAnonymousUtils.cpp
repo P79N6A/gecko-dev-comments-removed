@@ -248,7 +248,7 @@ nsHTMLEditor::DeleteRefToAnonymousNode(nsIDOMElement* aElement,
       content->UnbindFromTree();
     }
   }
-}  
+}
 
 
 
