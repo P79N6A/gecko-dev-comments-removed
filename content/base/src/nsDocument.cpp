@@ -1986,7 +1986,7 @@ nsDocument::Init()
   mRadioGroups.Init();
 
   
-  nsINode::nsSlots* slots = GetSlots();
+  nsINode::nsSlots* slots = Slots();
 
   
   
