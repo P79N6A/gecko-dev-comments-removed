@@ -156,12 +156,9 @@ let HomeBanner = (function () {
   });
 })();
 
-function Panel(options) {
-  if ("id" in options)
-    this.id = options.id;
-
-  if ("title" in options)
-    this.title = options.title;
+function Panel(id, options) {
+  this.id = id;
+  this.title = options.title;
 
   if ("layout" in options)
     this.layout = options.layout;
@@ -179,15 +176,74 @@ let HomePanels = (function () {
   
   
   
+  
+  
   let _registeredPanels = {};
 
-  let _panelToJSON = function(panel) {
-    return {
-      id: panel.id,
-      title: panel.title,
-      layout: panel.layout,
-      views: panel.views
-    };
+  
+  let Layout = Object.freeze({
+    FRAME: "frame"
+  });
+
+  
+  let View = Object.freeze({
+    LIST: "list",
+    GRID: "grid"
+  });
+
+  
+  let Item = Object.freeze({
+    ARTICLE: "article",
+    IMAGE: "image"
+  });
+
+  
+  let ItemHandler = Object.freeze({
+    BROWSER: "browser",
+    INTENT: "intent"
+  });
+
+  let _generatePanel = function(id) {
+    let panel = new Panel(id, _registeredPanels[id]());
+
+    if (!panel.id || !panel.title) {
+      throw "Home.panels: Can't create a home panel without an id and title!";
+    }
+
+    if (!_valueExists(Layout, panel.layout)) {
+      throw "Home.panels: Invalid layout for panel: panel.id = " + panel.id + ", panel.layout =" + panel.layout;
+    }
+
+    for (let view of panel.views) {
+      if (!_valueExists(View, view.type)) {
+        throw "Home.panels: Invalid view type: panel.id = " + panel.id + ", view.type = " + view.type;
+      }
+
+      if (!view.itemType) {
+        if (view.type == View.LIST) {
+          
+          view.itemType = Item.ARTICLE;
+        } else if (view.type == View.GRID) {
+          
+          view.itemType = Item.IMAGE;
+        }
+      } else if (!_valueExists(Item, view.itemType)) {
+        throw "Home.panels: Invalid item type: panel.id = " + panel.id + ", view.itemType = " + view.itemType;
+      }
+
+      if (!view.itemHandler) {
+        
+        view.itemHandler = ItemHandler.BROWSER;
+      } else if (!_valueExists(ItemHandler, view.itemHandler)) {
+        throw "Home.panels: Invalid item handler: panel.id = " + panel.id + ", view.itemHandler = " + view.itemHandler;
+      }
+
+      if (!view.dataset) {
+        throw "Home.panels: No dataset provided for view: panel.id = " + panel.id + ", view.type = " + view.type;
+      }
+    }
+
+    return panel;
   };
 
   handlePanelsGet = function(data) {
@@ -196,11 +252,13 @@ let HomePanels = (function () {
 
     let panels = [];
     for (let id in _registeredPanels) {
-      let panel = _registeredPanels[id];
-
       
-      if (ids == null || ids.indexOf(panel.id) >= 0) {
-        panels.push(_panelToJSON(panel));
+      if (ids == null || ids.indexOf(id) >= 0) {
+        try {
+          panels.push(_generatePanel(id));
+        } catch(e) {
+          Cu.reportError("Home.panels: Invalid options, panel.id = " + id + ": " + e);
+        }
       }
     }
 
@@ -228,75 +286,22 @@ let HomePanels = (function () {
   };
 
   return Object.freeze({
-    
-    Layout: Object.freeze({
-      FRAME: "frame"
-    }),
+    Layout: Layout,
+    View: View,
+    Item: Item,
+    ItemHandler: ItemHandler,
 
-    
-    View: Object.freeze({
-      LIST: "list",
-      GRID: "grid"
-    }),
-
-    
-    Item: Object.freeze({
-      ARTICLE: "article",
-      IMAGE: "image"
-    }),
-
-    
-    ItemHandler: Object.freeze({
-      BROWSER: "browser",
-      INTENT: "intent"
-    }),
-
-    register: function(options) {
-      let panel = new Panel(options);
-
+    register: function(id, optionsCallback) {
       
-      if (panel.id in _registeredPanels) {
-        throw "Home.panels: Panel already exists: id = " + panel.id;
+      if (id in _registeredPanels) {
+        throw "Home.panels: Panel already exists: id = " + id;
       }
 
-      if (!panel.id || !panel.title) {
-        throw "Home.panels: Can't create a home panel without an id and title!";
+      if (!optionsCallback || typeof optionsCallback !== "function") {
+        throw "Home.panels: Panel callback must be a function: id = " + id;
       }
 
-      if (!_valueExists(this.Layout, panel.layout)) {
-        throw "Home.panels: Invalid layout for panel: panel.id = " + panel.id + ", panel.layout =" + panel.layout;
-      }
-
-      for (let view of panel.views) {
-        if (!_valueExists(this.View, view.type)) {
-          throw "Home.panels: Invalid view type: panel.id = " + panel.id + ", view.type = " + view.type;
-        }
-
-        if (!view.itemType) {
-          if (view.type == this.View.LIST) {
-            
-            view.itemType = this.Item.ARTICLE;
-          } else if (view.type == this.View.GRID) {
-            
-            view.itemType = this.Item.IMAGE;
-          }
-        } else if (!_valueExists(this.Item, view.itemType)) {
-          throw "Home.panels: Invalid item type: panel.id = " + panel.id + ", view.itemType = " + view.itemType;
-        }
-
-        if (!view.itemHandler) {
-          
-          view.itemHandler = this.ItemHandler.BROWSER;
-        } else if (!_valueExists(this.ItemHandler, view.itemHandler)) {
-          throw "Home.panels: Invalid item handler: panel.id = " + panel.id + ", view.itemHandler = " + view.itemHandler;
-        }
-
-        if (!view.dataset) {
-          throw "Home.panels: No dataset provided for view: panel.id = " + panel.id + ", view.type = " + view.type;
-        }
-      }
-
-      _registeredPanels[panel.id] = panel;
+      _registeredPanels[id] = optionsCallback;
     },
 
     unregister: function(id) {
@@ -310,7 +315,7 @@ let HomePanels = (function () {
 
       sendMessageToJava({
         type: "HomePanels:Install",
-        panel: _panelToJSON(_registeredPanels[id])
+        panel: _generatePanel(id)
       });
     },
 
@@ -328,7 +333,7 @@ let HomePanels = (function () {
 
       sendMessageToJava({
         type: "HomePanels:Update",
-        panel: _panelToJSON(_registeredPanels[id])
+        panel: _generatePanel(id)
       });
     }
   });
