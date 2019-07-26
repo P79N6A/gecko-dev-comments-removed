@@ -307,3 +307,42 @@ function waitFor (subject, eventName) {
   subject.once(eventName, deferred.resolve);
   return deferred.promise;
 }
+
+
+
+
+
+
+
+function testFilterButtons(aMonitor, aFilterType) {
+  let doc = aMonitor.panelWin.document;
+  let target = doc.querySelector("#requests-menu-filter-" + aFilterType + "-button");
+  let buttons = doc.querySelectorAll(".requests-menu-footer-button");
+
+  
+  let checkStatus = [(button == target) ? 1 : 0 for (button of buttons)]
+  testFilterButtonsCustom(aMonitor, checkStatus);
+}
+
+
+
+
+
+
+
+
+
+function testFilterButtonsCustom(aMonitor, aIsChecked) {
+  let doc = aMonitor.panelWin.document;
+  let buttons = doc.querySelectorAll(".requests-menu-footer-button");
+  for (let i = 0; i < aIsChecked.length; i++) {
+    let button = buttons[i];
+    if (aIsChecked[i]) {
+      is(button.hasAttribute("checked"), true,
+        "The " + button.id + " button should have a 'checked' attribute.");
+    } else {
+      is(button.hasAttribute("checked"), false,
+        "The " + button.id + " button should not have a 'checked' attribute.");
+    }
+  }
+}

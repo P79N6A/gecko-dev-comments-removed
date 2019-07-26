@@ -596,6 +596,17 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+  filterOnlyOn: function(aType = "all") {
+    this._activeFilters.slice().forEach(this._disableFilter, this);
+    this.filterOn(aType);
+  },
+
+  
+
+
+
+
+
 
 
   _disableFilter: function (aType) {
@@ -2465,7 +2476,7 @@ PerformanceStatisticsView.prototype = {
     });
 
     chart.on("click", (_, item) => {
-      NetMonitorView.RequestsMenu.filterOn(item.label);
+      NetMonitorView.RequestsMenu.filterOnlyOn(item.label);
       NetMonitorView.showNetworkInspectorView();
     });
 
