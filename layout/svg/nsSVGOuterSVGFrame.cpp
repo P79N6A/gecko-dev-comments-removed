@@ -851,8 +851,12 @@ nsSVGOuterSVGFrame::IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame)
 {
   if (!mContent->GetParent()) {
     
-    nsCOMPtr<nsISupports> container = PresContext()->GetContainerWeak();
-    nsCOMPtr<nsIDOMWindow> window = do_GetInterface(container);
+    nsCOMPtr<nsIDocShell> docShell = PresContext()->GetDocShell();
+    nsCOMPtr<nsIDOMWindow> window;
+    if (docShell) {
+      window = docShell->GetWindow();
+    }
+
     if (window) {
       nsCOMPtr<nsIDOMElement> frameElement;
       window->GetFrameElement(getter_AddRefs(frameElement));

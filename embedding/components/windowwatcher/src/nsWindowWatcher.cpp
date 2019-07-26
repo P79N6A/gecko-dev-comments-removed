@@ -801,10 +801,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     
     nsCOMPtr<nsPIDOMWindow> newWindow = do_QueryInterface(*_retval);
-#ifdef DEBUG
-    nsCOMPtr<nsPIDOMWindow> newDebugWindow = do_GetInterface(newDocShell);
-    NS_ASSERTION(newWindow == newDebugWindow, "Different windows??");
-#endif
+    NS_ASSERTION(newWindow == newDocShell->GetWindow(), "Different windows??");
+
     
     
     
@@ -1312,8 +1310,10 @@ nsWindowWatcher::GetWindowByName(const char16_t *aTargetName,
     FindItemWithName(aTargetName, nullptr, nullptr, getter_AddRefs(treeItem));
   }
 
-  nsCOMPtr<nsIDOMWindow> domWindow = do_GetInterface(treeItem);
-  domWindow.swap(*aResult);
+  if (treeItem) {
+    nsCOMPtr<nsIDOMWindow> domWindow = treeItem->GetWindow();
+    domWindow.forget(aResult);
+  }
 
   return NS_OK;
 }
@@ -1734,7 +1734,7 @@ nsWindowWatcher::GetCallerTreeItem(nsIDocShellTreeItem* aParentItem)
   return callerItem.forget();
 }
 
-already_AddRefed<nsIDOMWindow>
+nsPIDOMWindow*
 nsWindowWatcher::SafeGetWindowByName(const nsAString& aName,
                                      nsIDOMWindow* aCurrentWindow)
 {
@@ -1755,8 +1755,7 @@ nsWindowWatcher::SafeGetWindowByName(const nsAString& aName,
                      getter_AddRefs(foundItem));
   }
 
-  nsCOMPtr<nsIDOMWindow> foundWin = do_GetInterface(foundItem);
-  return foundWin.forget();
+  return foundItem ? foundItem->GetWindow() : nullptr;
 }
 
 
@@ -1772,8 +1771,10 @@ nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem *aOpenedItem,
 {
   nsresult rv = NS_ERROR_FAILURE;
 
+  NS_ENSURE_ARG(aOpenedWindow);
+
   *aOpenedWindow = 0;
-  nsCOMPtr<nsPIDOMWindow> piOpenedWindow(do_GetInterface(aOpenedItem));
+  nsCOMPtr<nsPIDOMWindow> piOpenedWindow = aOpenedItem->GetWindow();
   if (piOpenedWindow) {
     if (aParent) {
       piOpenedWindow->SetOpenerWindow(aParent, aWindowIsNew); 

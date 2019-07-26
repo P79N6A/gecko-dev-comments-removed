@@ -546,7 +546,7 @@ public:
     return static_cast<nsGlobalWindow *>(top.get());
   }
 
-  already_AddRefed<nsIDOMWindow> GetChildWindow(const nsAString& aName);
+  nsPIDOMWindow* GetChildWindow(const nsAString& aName);
 
   
   

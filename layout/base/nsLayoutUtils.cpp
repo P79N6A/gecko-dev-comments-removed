@@ -5392,7 +5392,7 @@ nsLayoutUtils::GetDeviceContextForScreenInfo(nsPIDOMWindow* aWindow)
     
     
     
-    nsCOMPtr<nsPIDOMWindow> win = do_GetInterface(docShell);
+    nsCOMPtr<nsPIDOMWindow> win = docShell->GetWindow();
     if (!win) {
       
       return nullptr;

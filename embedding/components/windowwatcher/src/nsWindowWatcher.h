@@ -22,6 +22,7 @@
 class  nsIURI;
 class  nsIDocShellTreeItem;
 class  nsIDocShellTreeOwner;
+class nsPIDOMWindow;
 class  nsIWebBrowserChrome;
 class  nsString;
 class  nsWatcherWindowEnumerator;
@@ -64,7 +65,7 @@ protected:
   
   
   
-  already_AddRefed<nsIDOMWindow>
+  nsPIDOMWindow*
     SafeGetWindowByName(const nsAString& aName, nsIDOMWindow* aCurrentWindow);
 
   
