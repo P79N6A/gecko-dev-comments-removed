@@ -904,6 +904,8 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
 void
 nsObjectLoadingContent::NotifyOwnerDocumentActivityChanged()
 {
+  
+  
 
   
   
