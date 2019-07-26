@@ -108,12 +108,9 @@ function add_tests_in_mode(useMozillaPKIX) {
   add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
 
   
-  if (!useMozillaPKIX) {
-    
-    add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
-                        clearSessionCache);
-    add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
-  }
+  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
+                      clearSessionCache);
+  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
 
   
   
