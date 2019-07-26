@@ -27,6 +27,7 @@
 #include "nsISupportsImpl.h"            
 #include "nsIWidget.h"                  
 #include "prenv.h"                      
+#include "nsLayoutUtils.h"
 #ifdef XP_WIN
 #include "gfxWindowsPlatform.h"
 #endif
@@ -655,6 +656,17 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
     if (mHasBuffer &&
         (mContentType != contentType ||
          (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != mHasBufferOnWhite)) {
+#ifdef MOZ_DUMP_PAINTING
+      if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+        if (mContentType != contentType) {
+          printf_stderr("Layer's content type has changed\n");
+        }
+        if ((mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != mHasBufferOnWhite) {
+          printf_stderr("Layer's component alpha status has changed\n");
+        }
+        printf_stderr("Invalidating entire layer %p\n", aLayer);
+      }
+#endif
       
       
       result.mRegionToInvalidate = aLayer->GetValidRegion();
