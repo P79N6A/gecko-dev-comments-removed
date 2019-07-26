@@ -25,8 +25,9 @@ tabbrowser {
   visibility: collapse;
 }
 
-#tabbrowser-tabs:not([overflow="true"])[using-closing-tabs-spacer] ~ #alltabs-button {
-  visibility: hidden; 
+#tabbrowser-tabs[overflow=true] > .tabbrowser-arrowscrollbox > .scrollbutton-up[collapsed=true],
+#tabbrowser-tabs[overflow=true] > .tabbrowser-arrowscrollbox > .scrollbutton-down[collapsed=true] {
+  visibility: visible; 
 }
 
 .tabbrowser-tab {
