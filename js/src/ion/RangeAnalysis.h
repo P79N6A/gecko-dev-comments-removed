@@ -4,20 +4,20 @@
 
 
 
-#ifndef jsion_ion_edge_case_analysis_h__
-#define jsion_ion_edge_case_analysis_h__
+#ifndef jsion_ion_range_analysis_h__
+#define jsion_ion_range_analysis_h__
 
 namespace js {
 namespace ion {
 
 class MIRGraph;
 
-class EdgeCaseAnalysis
+class RangeAnalysis
 {
     MIRGraph &graph;
 
   public:
-    EdgeCaseAnalysis(MIRGraph &graph);
+    RangeAnalysis(MIRGraph &graph);
     bool analyzeEarly();
     bool analyzeLate();
     static bool AllUsesTruncate(MInstruction *m);
