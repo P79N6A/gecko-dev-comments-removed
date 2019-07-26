@@ -211,6 +211,8 @@ private:
 
 
 
+
+
 class DeprecatedTextureClientD3D9 : public DeprecatedTextureClient
 {
 public:
