@@ -25,6 +25,24 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
 XPCOMUtils.defineLazyGetter(this, "gTextDecoder", () => new TextDecoder());
 XPCOMUtils.defineLazyGetter(this, "gTextEncoder", () => new TextEncoder());
 
+
+
+
+
+
+
+function generateHash(aString) {
+  let cryptoHash = Cc["@mozilla.org/security/hash;1"]
+                     .createInstance(Ci.nsICryptoHash);
+  cryptoHash.init(Ci.nsICryptoHash.MD5);
+  let stringStream = Cc["@mozilla.org/io/string-input-stream;1"]
+                       .createInstance(Ci.nsIStringInputStream);
+  stringStream.data = aString;
+  cryptoHash.updateFromStream(stringStream, -1);
+  
+  return cryptoHash.finish(true).replace("/", "-", "g");
+}
+
 this.BookmarkJSONUtils = Object.freeze({
   
 
@@ -105,7 +123,13 @@ this.BookmarkJSONUtils = Object.freeze({
 
 
 
-  exportToFile: function BJU_exportToFile(aFilePath) {
+
+
+
+
+
+
+  exportToFile: function BJU_exportToFile(aFilePath, aOptions={}) {
     if (aFilePath instanceof Ci.nsIFile) {
       Deprecated.warning("Passing an nsIFile to BookmarksJSONUtils.exportToFile " +
                          "is deprecated. Please use an OS.File path string instead.",
@@ -125,12 +149,29 @@ this.BookmarkJSONUtils = Object.freeze({
         Components.utils.reportError("Unable to report telemetry.");
       }
 
+      startTime = Date.now();
+      let hash = generateHash(jsonString);
+      
+      try {
+        Services.telemetry
+                .getHistogramById("PLACES_BACKUPS_HASHING_MS")
+                .add(Date.now() - startTime);
+      } catch (ex) {
+        Components.utils.reportError("Unable to report telemetry.");
+      }
+
+      if (hash === aOptions.failIfHashIs) {
+        let e = new Error("Hash conflict");
+        e.becauseSameHash = true;
+        throw e;
+      }
+
       
       
       
       yield OS.File.writeAtomic(aFilePath, jsonString,
                                 { tmpPath: OS.Path.join(aFilePath + ".tmp") });
-      return count;
+      return { count: count, hash: hash };
     });
   },
 
