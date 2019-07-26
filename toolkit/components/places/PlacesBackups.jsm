@@ -309,27 +309,25 @@ this.PlacesBackups = {
       let mostRecentBackupFile = yield this.getMostRecentBackup();
 
       if (!aForceBackup) {
-        let numberOfBackupsToDelete = 0;
-        if (aMaxBackups !== undefined && aMaxBackups > -1) {
-          let backupFiles = yield this.getBackupFiles();
-          numberOfBackupsToDelete = backupFiles.length - aMaxBackups;
+        let backupFiles = yield this.getBackupFiles();
+        
+        if (backupFiles.length > 0 && typeof aMaxBackups == "number" &&
+            aMaxBackups > -1 && backupFiles.length >= aMaxBackups) {
+          let numberOfBackupsToDelete = backupFiles.length - aMaxBackups;
 
           
           
           
-          if (!mostRecentBackupFile ||
-              !this._isFilenameWithSameDate(OS.Path.basename(mostRecentBackupFile),
-                                            newBackupFilename))
+          if (!this._isFilenameWithSameDate(OS.Path.basename(mostRecentBackupFile),
+                                            newBackupFilename)) {
             numberOfBackupsToDelete++;
-        }
-
-        while (numberOfBackupsToDelete--) {
-          this._entries.pop();
-          if (!this._backupFiles) {
-            yield this.getBackupFiles();
           }
-          let oldestBackup = this._backupFiles.pop();
-          yield OS.File.remove(oldestBackup);
+
+          while (numberOfBackupsToDelete--) {
+            this._entries.pop();
+            let oldestBackup = this._backupFiles.pop();
+            yield OS.File.remove(oldestBackup);
+          }
         }
 
         
