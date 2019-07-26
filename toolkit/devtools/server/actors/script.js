@@ -4547,6 +4547,8 @@ EnvironmentActor.prototype = {
       let arg = {};
 
       let value = this.obj.getVariable(name);
+      
+      
       if (value && value.optimizedOut) {
         continue;
       }
@@ -4583,18 +4585,11 @@ EnvironmentActor.prototype = {
         continue;
       }
 
-      let value;
-      try {
-        value = this.obj.getVariable(name);
-        if (value && value.optimizedOut) {
-          continue;
-        }
-      } catch (e) {
-        
-        
-        if (name != "arguments") {
-          throw e;
-        }
+      let value = this.obj.getVariable(name);
+      
+      
+      if (value && (value.optimizedOut || value.missingArguments)) {
+        continue;
       }
 
       

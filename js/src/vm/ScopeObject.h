@@ -801,6 +801,10 @@ class DebugScopeObject : public ProxyObject
 
     
     bool isForDeclarative() const;
+
+    
+    
+    bool getMaybeSentinelValue(JSContext *cx, HandleId id, MutableHandleValue vp);
 };
 
 

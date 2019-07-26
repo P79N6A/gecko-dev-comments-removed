@@ -473,6 +473,10 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
+
+
+
+
     bool wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
 
     
