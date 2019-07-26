@@ -102,6 +102,16 @@ public class TabCounter extends GeckoTextSwitcher
         mCount = count;
     }
 
+    
+    
+    
+    void onEnterEditingMode() {
+        final int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            getChildAt(i).clearAnimation();
+        }
+    }
+
     private AnimationSet createAnimation(float startAngle, float endAngle,
                                          FadeMode fadeMode,
                                          float zEnd, boolean reverse) {
