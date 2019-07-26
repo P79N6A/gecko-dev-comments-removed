@@ -208,6 +208,13 @@ public:
 
 NS_IMPL_ISUPPORTS1(AppClearDataObserver, nsIObserver)
 
+static bool
+IsExpandedPrincipal(nsIPrincipal* aPrincipal)
+{
+  nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(aPrincipal);
+  return !!ep;
+}
+
 } 
 
 
@@ -644,6 +651,11 @@ nsPermissionManager::AddFromPrincipal(nsIPrincipal* aPrincipal,
     return NS_OK;
   }
 
+  
+  if (IsExpandedPrincipal(aPrincipal)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   return AddInternal(aPrincipal, nsDependentCString(aType), aPermission, 0,
                      aExpireType, aExpireTime, eNotify, eWriteToDB);
 }
@@ -875,6 +887,11 @@ nsPermissionManager::RemoveFromPrincipal(nsIPrincipal* aPrincipal,
   }
 
   
+  if (IsExpandedPrincipal(aPrincipal)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  
   return AddInternal(aPrincipal,
                      nsDependentCString(aType),
                      nsIPermissionManager::UNKNOWN_ACTION,
@@ -1024,6 +1041,11 @@ nsPermissionManager::GetPermissionObject(nsIPrincipal* aPrincipal,
     return NS_OK;
   }
 
+  
+  if (IsExpandedPrincipal(aPrincipal)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   nsAutoCString host;
   nsresult rv = GetHostForPrincipal(aPrincipal, host);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1078,6 +1100,34 @@ nsPermissionManager::CommonTestPermission(nsIPrincipal* aPrincipal,
 
   if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
     *aPermission = nsIPermissionManager::ALLOW_ACTION;
+    return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(aPrincipal);
+  if (ep) {
+    nsTArray<nsCOMPtr<nsIPrincipal>>* whitelist;
+    nsresult rv = ep->GetWhiteList(&whitelist);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    *aPermission = nsIPermissionManager::DENY_ACTION;
+    for (size_t i = 0; i < whitelist->Length(); ++i) {
+      uint32_t perm;
+      rv = CommonTestPermission(whitelist->ElementAt(i), aType, &perm, aExactHostMatch,
+                                aIncludingSession);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (perm == nsIPermissionManager::ALLOW_ACTION) {
+        *aPermission = perm;
+        return NS_OK;
+      } else if (perm == nsIPermissionManager::PROMPT_ACTION) {
+        
+        *aPermission = perm;
+      }
+    }
+
     return NS_OK;
   }
 
@@ -1816,6 +1866,11 @@ nsPermissionManager::UpdateExpireTime(nsIPrincipal* aPrincipal,
 
   if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
     return NS_OK;
+  }
+
+  
+  if (IsExpandedPrincipal(aPrincipal)) {
+    return NS_ERROR_INVALID_ARG;
   }
 
   nsAutoCString host;
