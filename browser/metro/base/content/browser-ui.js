@@ -2,6 +2,7 @@
 
 
 
+"use strict";
 
 Cu.import("resource://gre/modules/PageThumbs.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm")
@@ -82,8 +83,8 @@ var BrowserUI = {
   get _forward() { return document.getElementById("cmd_forward"); },
 
   lastKnownGoodURL: "", 
-  init: function() {
 
+  init: function() {
     
     if (Services.prefs.getBoolPref(debugServerStateChanged)) {
       this.runDebugServer();
@@ -123,11 +124,11 @@ var BrowserUI = {
 
     
     
-    messageManager.addMessageListener("pageshow", function() {
+    messageManager.addMessageListener("pageshow", function onPageShow() {
       if (getBrowser().currentURI.spec == "about:blank")
         return;
 
-      messageManager.removeMessageListener("pageshow", arguments.callee, true);
+      messageManager.removeMessageListener("pageshow", onPageShow);
 
       setTimeout(function() {
         let event = document.createEvent("Events");
@@ -142,9 +143,9 @@ var BrowserUI = {
     });
 
     
-    window.addEventListener("UIReadyDelayed", function(aEvent) {
+    window.addEventListener("UIReadyDelayed", function delayedInit(aEvent) {
       Util.dumpLn("* delay load started...");
-      window.removeEventListener(aEvent.type, arguments.callee, false);
+      window.removeEventListener("UIReadyDelayed",  delayedInit, false);
 
       
       Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
