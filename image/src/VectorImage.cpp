@@ -488,20 +488,35 @@ VectorImage::RequestRefresh(const mozilla::TimeStamp& aTime)
   
   EvaluateAnimation();
 
-  if (mHasPendingInvalidation && mStatusTracker) {
-    
-    
-    
-    
-    
-    
-    
+  if (mHasPendingInvalidation) {
+    SendInvalidationNotifications();
+    mHasPendingInvalidation = false;
+  }
+}
+
+void
+VectorImage::SendInvalidationNotifications()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (mStatusTracker) {
     SurfaceCache::Discard(this);
     mStatusTracker->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
     mStatusTracker->OnStopFrame();
   }
-
-  mHasPendingInvalidation = false;
 }
 
 
@@ -1127,7 +1142,11 @@ VectorImage::OnDataAvailable(nsIRequest* aRequest, nsISupports* aCtxt,
 void
 VectorImage::InvalidateObserversOnNextRefreshDriverTick()
 {
-  mHasPendingInvalidation = true;
+  if (mHaveAnimations) {
+    mHasPendingInvalidation = true;
+  } else {
+    SendInvalidationNotifications();
+  }
 }
 
 } 
