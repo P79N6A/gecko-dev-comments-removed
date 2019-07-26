@@ -103,10 +103,6 @@ pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  16384);
 
 
-pref("network.seer.max-db-size", 2097152); 
-pref("network.seer.preserve", 50); 
-
-
 pref("browser.display.history.maxresults", 100);
 
 
@@ -816,9 +812,10 @@ pref("browser.snippets.statsUrl", "https://snippets-stats.mozilla.org/mobile");
 
 
 pref("browser.snippets.enabled", false);
+pref("browser.snippets.syncPromo.enabled", false);
 
 #ifdef MOZ_ANDROID_SYNTHAPKS
 
 
-pref("browser.webapps.apkFactoryUrl", "http://dapk.net/application.apk");
+pref("browser.webapps.apkFactoryUrl", "http://107.22.148.17:8080/application.apk");
 #endif
