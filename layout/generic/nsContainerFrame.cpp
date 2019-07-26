@@ -250,19 +250,16 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
   mFrames.DestroyFramesFrom(aDestructRoot);
 
   
-  nsPresContext* prescontext = PresContext();
-
-  DestroyOverflowList(prescontext, aDestructRoot);
+  FramePropertyTable* props = PresContext()->PropertyTable();
+  SafelyDestroyFrameListProp(aDestructRoot, props, OverflowProperty());
 
   if (IsFrameOfType(nsIFrame::eCanContainOverflowContainers)) {
-    FramePropertyTable* props = prescontext->PropertyTable();
     SafelyDestroyFrameListProp(aDestructRoot, props,
                                OverflowContainersProperty());
     SafelyDestroyFrameListProp(aDestructRoot, props,
                                ExcessOverflowContainersProperty());
   }
 
-  
   nsSplittableFrame::DestroyFrom(aDestructRoot);
 }
 
