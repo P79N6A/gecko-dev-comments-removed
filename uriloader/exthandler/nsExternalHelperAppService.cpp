@@ -2006,6 +2006,10 @@ nsExternalAppHandler::OnDataAvailable(nsIRequest *request, nsISupports * aCtxt,
 NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISupports *aCtxt,
                                                   nsresult aStatus)
 {
+  LOG(("nsExternalAppHandler::OnStopRequest\n"
+       "  mCanceled=%d, mTransfer=0x%p, aStatus=0x%08X\n",
+       mCanceled, mTransfer.get(), aStatus));
+
   mStopRequestIssued = true;
 
   
@@ -2038,6 +2042,10 @@ NS_IMETHODIMP
 nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
                                      nsresult aStatus)
 {
+  LOG(("nsExternalAppHandler::OnSaveComplete\n"
+       "  aSaver=0x%p, aStatus=0x%08X, mCanceled=%d, mTransfer=0x%p\n",
+       aSaver, aStatus, mCanceled, mTransfer.get()));
+
   if (!mCanceled) {
     
     (void)mSaver->GetSha256Hash(mHash);
@@ -2049,6 +2057,18 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
     if (NS_FAILED(aStatus)) {
       nsAutoString path;
       mTempFile->GetPath(path);
+
+      
+      
+      
+      
+      
+      if (!mTransfer) {
+        nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
+        
+        CreateFailedTransfer(channel && NS_UsePrivateBrowsing(channel));
+      }
+
       SendStatusChange(kWriteError, aStatus, nullptr, path);
       if (!mCanceled)
         Cancel(aStatus);
@@ -2114,6 +2134,8 @@ NS_IMETHODIMP nsExternalAppHandler::GetSuggestedFileName(nsAString& aSuggestedFi
 
 nsresult nsExternalAppHandler::CreateTransfer()
 {
+  LOG(("nsExternalAppHandler::CreateTransfer"));
+
   MOZ_ASSERT(NS_IsMainThread(), "Must create transfer on main thread");
   
   
