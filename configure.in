@@ -3887,7 +3887,6 @@ LIBJPEG_TURBO_ASFLAGS=
 LIBJPEG_TURBO_X86_ASM=
 LIBJPEG_TURBO_X64_ASM=
 LIBJPEG_TURBO_ARM_ASM=
-MOZ_LOOP=$NIGHTLY_BUILD
 MOZ_PERMISSIONS=1
 MOZ_PLACES=1
 MOZ_SOCIAL=1
@@ -5887,6 +5886,15 @@ if test "$MOZ_GAMEPAD"; then
         MOZ_GAMEPAD_BACKEND=cocoa
         ;;
     WINNT)
+        case "$MOZ_WINSDK_MAXVER" in
+        # We support building with the Windows 7 SDK otherwise, but
+        # Gamepad support requires the Windows 8 SDK for some HID headers.
+        0x0601*)
+          AC_MSG_ERROR([The Windows 8 SDK or newer is required to build Gamepad support. Please install a newer Windows SDK or reconfigure with --disable-gamepad to disable gamepad support.])
+          ;;
+        *)
+          ;;
+        esac
         MOZ_GAMEPAD_BACKEND=windows
         ;;
     Linux)
@@ -8296,12 +8304,6 @@ MOZ_ARG_DISABLE_BOOL(ctypes,
 AC_SUBST(BUILD_CTYPES)
 if test "$BUILD_CTYPES"; then
     AC_DEFINE(BUILD_CTYPES)
-fi
-
-dnl Build Loop if required
-AC_SUBST(MOZ_LOOP)
-if test "$MOZ_LOOP"; then
-  AC_DEFINE(MOZ_LOOP)
 fi
 
 dnl Build Places if required
