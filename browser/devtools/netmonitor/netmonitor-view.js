@@ -2140,16 +2140,17 @@ NetworkDetailsView.prototype = {
       }
       if (jsonMimeType || jsonObject) {
         
-        let jsonpRegex = /^[a-zA-Z0-9_$]+\(|\)$/g;
-        let sanitizedJSON = aString.replace(jsonpRegex, "");
-        let callbackPadding = aString.match(jsonpRegex);
+        
+        
+        let jsonpRegex = /^\s*([\w$]+)\s*\(\s*([^]*)\s*\)\s*;?\s*$/;
+        let [_, callbackPadding, jsonpString] = aString.match(jsonpRegex) || [];
 
         
         
         
-        if (sanitizedJSON != aString) {
+        if (callbackPadding && jsonpString) {
           try {
-            jsonObject = JSON.parse(sanitizedJSON);
+            jsonObject = JSON.parse(jsonpString);
           } catch (e) {
             jsonObjectParseError = e;
           }
@@ -2159,7 +2160,7 @@ NetworkDetailsView.prototype = {
         if (jsonObject) {
           $("#response-content-json-box").hidden = false;
           let jsonScopeName = callbackPadding
-            ? L10N.getFormatStr("jsonpScopeName", callbackPadding[0].slice(0, -1))
+            ? L10N.getFormatStr("jsonpScopeName", callbackPadding)
             : L10N.getStr("jsonScopeName");
 
           return this._json.controller.setSingleVariable({
