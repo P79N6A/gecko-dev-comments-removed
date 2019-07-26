@@ -601,6 +601,8 @@ class LocationService
 
   struct Entry
   {
+    static const void* const kUnused;
+
     const void* mPc;        
     char*       mFunction;  
     const char* mLibrary;   
@@ -608,7 +610,7 @@ class LocationService
     ptrdiff_t   mLOffset;
 
     Entry()
-      : mPc(nullptr), mFunction(nullptr), mLibrary(nullptr), mLOffset(0)
+      : mPc(kUnused), mFunction(nullptr), mLibrary(nullptr), mLOffset(0)
     {}
 
     ~Entry()
@@ -665,7 +667,7 @@ public:
     MOZ_ASSERT(index < kNumEntries);
     Entry& entry = mEntries[index];
 
-    MOZ_ASSERT(aPc);    
+    MOZ_ASSERT(aPc != Entry::kUnused);
     if (entry.mPc != aPc) {
       mNumCacheMisses++;
 
@@ -732,7 +734,7 @@ public:
   {
     size_t n = 0;
     for (size_t i = 0; i < kNumEntries; i++) {
-      if (mEntries[i].mPc) {
+      if (mEntries[i].mPc != Entry::kUnused) {
         n++;
       }
     }
@@ -742,6 +744,10 @@ public:
   size_t NumCacheHits()   const { return mNumCacheHits; }
   size_t NumCacheMisses() const { return mNumCacheMisses; }
 };
+
+
+const void* const LocationService::Entry::kUnused =
+  reinterpret_cast<const void* const>(intptr_t(-1));
 
 
 
