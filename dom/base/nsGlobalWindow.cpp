@@ -5771,13 +5771,12 @@ nsGlobalWindow::Blur()
 
   
   
-  nsresult rv = NS_OK;
 
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
   nsCOMPtr<nsIEmbeddingSiteWindow> siteWindow(do_GetInterface(treeOwner));
   if (siteWindow) {
     
-    rv = siteWindow->Blur();
+    siteWindow->Blur();
 
     
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -5790,7 +5789,7 @@ nsGlobalWindow::Blur()
     }
   }
 
-  return rv;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
