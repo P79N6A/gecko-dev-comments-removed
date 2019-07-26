@@ -15,9 +15,7 @@
 #endif
 #ifdef MOZ_OPUS
 #include <opus/opus.h>
-extern "C" {
 #include "opus/opus_multistream.h"
-}
 
 #include "nsBuiltinDecoderStateMachine.h"
 #include "nsBuiltinDecoderReader.h"
