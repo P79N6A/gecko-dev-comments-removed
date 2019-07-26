@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef DEVM_H
 #define DEVM_H
 
 #ifdef DEBUG
-static const char DEVM_CVS_ID[] = "@(#) $RCSfile: devm.h,v $ $Revision: 1.12 $ $Date: 2010/01/08 02:00:58 $";
+static const char DEVM_CVS_ID[] = "@(#) $RCSfile: devm.h,v $ $Revision: 1.13 $ $Date: 2012/04/25 14:49:42 $";
 #endif 
 
 #ifndef BASE_H

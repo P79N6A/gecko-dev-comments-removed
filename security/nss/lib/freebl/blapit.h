@@ -6,40 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _BLAPIT_H_
 #define _BLAPIT_H_
 
@@ -68,6 +34,9 @@
 
 #define NSS_AES                 0
 #define NSS_AES_CBC             1
+#define NSS_AES_CTS             2
+#define NSS_AES_CTR             3
+#define NSS_AES_GCM             4
 
 
 #define NSS_CAMELLIA                 0
@@ -77,8 +46,32 @@
 #define NSS_SEED		0
 #define NSS_SEED_CBC		1
 
-#define DSA_SIGNATURE_LEN 	40	/* Bytes */
-#define DSA_SUBPRIME_LEN	20	/* Bytes */
+#define DSA1_SUBPRIME_LEN	20			/* Bytes */
+#define DSA1_SIGNATURE_LEN 	(DSA1_SUBPRIME_LEN*2)	/* Bytes */
+#define DSA_MAX_SUBPRIME_LEN	32			/* Bytes */
+#define DSA_MAX_SIGNATURE_LEN 	(DSA_MAX_SUBPRIME_LEN*2)/* Bytes */
+
+
+
+
+
+#if defined(__GNUC__) && (__GNUC__ > 3)
+
+typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
+#define DSA_SUBPRIME_LEN ((__BLAPI_DEPRECATED)DSA1_SUBPRIME_LEN)
+#define DSA_SIGNATURE_LEN ((__BLAPI_DEPRECATED)DSA1_SIGNATURE_LEN)
+#define DSA_Q_BITS ((__BLAPI_DEPRECATED)(DSA1_SUBPRIME_LEN*8))
+#else
+#ifdef _WIN32
+
+
+#pragma deprecated(DSA_SUBPRIME_LEN, DSA_SIGNATURE_LEN, DSA_QBITS)
+#endif
+#define DSA_SUBPRIME_LEN  DSA1_SUBPRIME_LEN
+#define DSA_SIGNATURE_LEN DSA1_SIGNATURE_LEN
+#define DSA_Q_BITS 	  (DSA1_SUBPRIME_LEN*8)
+#endif
+
 
 
 
@@ -139,10 +132,10 @@
 
 
 #define RSA_MIN_MODULUS_BITS   128
-#define RSA_MAX_MODULUS_BITS  8192
+#define RSA_MAX_MODULUS_BITS 16384
 #define RSA_MAX_EXPONENT_BITS   64
 #define DH_MIN_P_BITS	       128
-#define DH_MAX_P_BITS         3072
+#define DH_MAX_P_BITS        16384
 
 
 
@@ -167,9 +160,28 @@
 
 
 
-#define DSA_Q_BITS       160
-#define DSA_MAX_P_BITS	1024
+
+
+
+
+
+
+
+
+
+
+
+
+#define DSA1_Q_BITS      160
+#define DSA_MAX_P_BITS	3072
 #define DSA_MIN_P_BITS	 512
+#define DSA_MAX_Q_BITS   256
+#define DSA_MIN_Q_BITS   160
+
+#if DSA_MAX_Q_BITS != DSA_MAX_SUBPRIME_LEN*8
+#error "Inconsistent declaration of DSA SUBPRIME/Q parameters in blapit.h"
+#endif
+
 
 
 

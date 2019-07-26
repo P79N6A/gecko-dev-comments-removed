@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSSCKFW_H
 #define NSSCKFW_H
 
 #ifdef DEBUG
-static const char NSSCKFW_CVS_ID[] = "@(#) $RCSfile: nssckfw.h,v $ $Revision: 1.5 $ $Date: 2005/12/16 00:48:01 $";
+static const char NSSCKFW_CVS_ID[] = "@(#) $RCSfile: nssckfw.h,v $ $Revision: 1.6 $ $Date: 2012/04/25 14:49:28 $";
 #endif 
 
 

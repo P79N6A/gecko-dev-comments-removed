@@ -2,40 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: binst.c,v $ $Revision: 1.5 $ $Date: 2008/01/23 07:34:49 $";
+static const char CVS_ID[] = "@(#) $RCSfile: binst.c,v $ $Revision: 1.6 $ $Date: 2012/04/25 14:49:29 $";
 #endif 
 
 #include "builtins.h"

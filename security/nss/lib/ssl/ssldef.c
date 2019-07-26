@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "cert.h"
 #include "ssl.h"
 #include "sslimpl.h"
@@ -138,6 +106,11 @@ int ssl_DefSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
 	    return rv;
 	}
 	sent += rv;
+	
+	if (IS_DTLS(ss) && (len > sent)) { 
+	    
+	    return sent;
+	}
     } while (len > sent);
     ss->lastWriteBlocked = 0;
     return sent;

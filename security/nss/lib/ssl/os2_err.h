@@ -16,38 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern void nss_MD_os2_map_accept_error(PRInt32 err);
 extern void nss_MD_os2_map_acceptex_error(PRInt32 err);
 extern void nss_MD_os2_map_access_error(PRInt32 err);

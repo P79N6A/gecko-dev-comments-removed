@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "sechash.h"
 #include "secoidt.h"
 #include "secerr.h"
@@ -311,7 +279,7 @@ HASH_ResultLenContext(HASHContext *context)
 SECStatus
 HASH_HashBuf(HASH_HashType type,
 	     unsigned char *dest,
-	     unsigned char *src,
+	     const unsigned char *src,
 	     PRUint32 src_len)
 {
     HASHContext *cx;

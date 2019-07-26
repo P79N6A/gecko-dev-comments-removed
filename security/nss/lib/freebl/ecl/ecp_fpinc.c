@@ -14,40 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef PREFIX
 #define PREFIX(b) PREFIX1(ECFP_BSIZE, b)
 #define PREFIX1(bsize, b) PREFIX2(bsize, b)

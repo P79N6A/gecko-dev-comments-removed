@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef DEVTM_H
 #define DEVTM_H
 
 #ifdef DEBUG
-static const char DEVTM_CVS_ID[] = "@(#) $RCSfile: devtm.h,v $ $Revision: 1.4 $ $Date: 2005/01/20 02:25:47 $";
+static const char DEVTM_CVS_ID[] = "@(#) $RCSfile: devtm.h,v $ $Revision: 1.5 $ $Date: 2012/04/25 14:49:42 $";
 #endif 
 
 

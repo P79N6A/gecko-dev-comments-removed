@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pk11func.h"
 #include "secmod.h"
 #include "secmodi.h"
@@ -51,9 +19,29 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern SECStatus
-PK11_PQG_ParamGenSeedLen( unsigned int j, unsigned int seedBytes,
-				 PQGParams **pParams, PQGVerify **pVfy)
+PK11_PQG_ParamGenV2(unsigned int L, unsigned int N,
+	 unsigned int seedBytes, PQGParams **pParams, PQGVerify **pVfy)
 {
     PK11SlotInfo *slot = NULL;
     CK_ATTRIBUTE genTemplate[5];
@@ -72,13 +60,14 @@ PK11_PQG_ParamGenSeedLen( unsigned int j, unsigned int seedBytes,
 	{ CKA_NETSCAPE_PQG_SEED, NULL, 0 },
 	{ CKA_NETSCAPE_PQG_H, NULL, 0 },
     };
+    CK_ULONG primeBits = L;
+    CK_ULONG subPrimeBits = N;
     int pTemplateCount = sizeof(pTemplate)/sizeof(pTemplate[0]);
     int vTemplateCount = sizeof(vTemplate)/sizeof(vTemplate[0]);
     PRArenaPool *parena = NULL;
     PRArenaPool *varena = NULL;
     PQGParams *params = NULL;
     PQGVerify *verify = NULL;
-    CK_ULONG primeBits = PQG_INDEX_TO_PBITS(j);
     CK_ULONG seedBits = seedBytes*8;
 
     *pParams = NULL;
@@ -89,6 +78,10 @@ PK11_PQG_ParamGenSeedLen( unsigned int j, unsigned int seedBytes,
 	goto loser;
     }
     PK11_SETATTRS(attrs, CKA_PRIME_BITS,&primeBits,sizeof(primeBits)); attrs++;
+    if (subPrimeBits != 0) {
+    	PK11_SETATTRS(attrs, CKA_SUB_PRIME_BITS, 
+				&subPrimeBits, sizeof(subPrimeBits)); attrs++;
+    }
     if (seedBits != 0) {
     	PK11_SETATTRS(attrs, CKA_NETSCAPE_PQG_SEED_BITS, 
 					&seedBits, sizeof(seedBits)); attrs++;
@@ -99,7 +92,35 @@ PK11_PQG_ParamGenSeedLen( unsigned int j, unsigned int seedBytes,
     slot = PK11_GetInternalSlot();
     if (slot == NULL) {
 	
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	goto loser;
+    }
+
+    
+    if (primeBits > 1024) {
+	CK_MECHANISM_INFO mechanism_info;
+
+	if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
+	crv = PK11_GETTAB(slot)->C_GetMechanismInfo(slot->slotID,
+			CKM_DSA_PARAMETER_GEN, &mechanism_info);
+	if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
+	
+
+
+	if ((crv != CKR_OK) || (mechanism_info.ulMaxKeySize < primeBits)) {
+	    PK11_FreeSlot(slot);
+	    slot = PK11_GetBestSlotWithAttributes(CKM_DSA_PARAMETER_GEN, 0,
+						primeBits, NULL);
+	    if (slot == NULL) {
+		PORT_SetError(SEC_ERROR_NO_TOKEN); 
+		goto loser;
+	    }
+	    
+
+	    if (seedBits) {
+		attrs--;
+	    }
+	}
     }
 
     
@@ -201,10 +222,24 @@ loser:
 
 
 
+
+extern SECStatus
+PK11_PQG_ParamGenSeedLen( unsigned int j, unsigned int seedBytes,
+				 PQGParams **pParams, PQGVerify **pVfy)
+{
+    unsigned int primeBits = PQG_INDEX_TO_PBITS(j);
+    return PK11_PQG_ParamGenV2(primeBits, 0, seedBytes, pParams, pVfy);
+}
+
+
+
+
+
 extern SECStatus
 PK11_PQG_ParamGen(unsigned int j, PQGParams **pParams, PQGVerify **pVfy)
 {
-    return PK11_PQG_ParamGenSeedLen(j, 0, pParams, pVfy);
+    unsigned int primeBits = PQG_INDEX_TO_PBITS(j);
+    return PK11_PQG_ParamGenV2(primeBits, 0, 0, pParams, pVfy);
 }
 
 
@@ -251,16 +286,23 @@ PK11_PQG_VerifyParams(const PQGParams *params, const PQGVerify *vfy,
 						params->prime.len); attrs++;
     PK11_SETATTRS(attrs, CKA_SUBPRIME, params->subPrime.data, 
 						params->subPrime.len); attrs++;
-    PK11_SETATTRS(attrs, CKA_BASE,params->base.data,params->base.len); attrs++;
+    if (params->base.len) {
+        PK11_SETATTRS(attrs, CKA_BASE,params->base.data,params->base.len);
+	 attrs++;
+    }
     PK11_SETATTRS(attrs, CKA_TOKEN, &ckfalse, sizeof(ckfalse)); attrs++;
     if (vfy) {
-	counter = vfy->counter;
-	PK11_SETATTRS(attrs, CKA_NETSCAPE_PQG_COUNTER, 
+	if (vfy->counter != -1) {
+	    counter = vfy->counter;
+	    PK11_SETATTRS(attrs, CKA_NETSCAPE_PQG_COUNTER, 
 			&counter, sizeof(counter)); attrs++;
+	}
 	PK11_SETATTRS(attrs, CKA_NETSCAPE_PQG_SEED, 
 			vfy->seed.data, vfy->seed.len); attrs++;
-	PK11_SETATTRS(attrs, CKA_NETSCAPE_PQG_H, 
+	if (vfy->h.len) {
+	    PK11_SETATTRS(attrs, CKA_NETSCAPE_PQG_H, 
 			vfy->h.data, vfy->h.len); attrs++;
+	}
     }
 
     keyCount = attrs - keyTempl;

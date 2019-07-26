@@ -4,48 +4,16 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKCS11I_H_
 #define _PKCS11I_H_ 1
 
 #include "nssilock.h"
 #include "seccomon.h"
 #include "secoidt.h"
-#include "lowkeyti.h"
+#include "lowkeyti.h" 
 #include "pkcs11t.h"
 
-#include "sftkdbt.h"
+#include "sftkdbt.h" 
 #include "hasht.h"
 
 
@@ -98,8 +66,6 @@
 				  
 
 #define MAX_KEY_LEN 256 	  /* maximum symmetric key length in bytes */
-
-#define MULTIACCESS "multiaccess:"
 
 
 
@@ -578,8 +544,6 @@ typedef struct sftk_parametersStr {
 
 
 
-#define PATH_SEPARATOR "/"
-#define SECMOD_DB "secmod.db"
 #define CERT_DB_FMT "%scert%s.db"
 #define KEY_DB_FMT "%skey%s.db"
 
@@ -609,8 +573,7 @@ extern SFTKAttribute *sftk_FindAttribute(SFTKObject *object,
 					 CK_ATTRIBUTE_TYPE type);
 extern void sftk_FreeAttribute(SFTKAttribute *attribute);
 extern CK_RV sftk_AddAttributeType(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
-				   void *valPtr,
-				  CK_ULONG length);
+				   const void *valPtr, CK_ULONG length);
 extern CK_RV sftk_Attribute2SecItem(PLArenaPool *arena, SECItem *item,
 				    SFTKObject *object, CK_ATTRIBUTE_TYPE type);
 extern CK_RV sftk_MultipleAttribute2SecItem(PLArenaPool *arena, 
@@ -636,9 +599,9 @@ extern void sftk_nullAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type);
 extern CK_RV sftk_GetULongAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
                                                          CK_ULONG *longData);
 extern CK_RV sftk_forceAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
-				 void *value, unsigned int len);
+				 const void *value, unsigned int len);
 extern CK_RV sftk_defaultAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
-				   void *value, unsigned int len);
+				   const void *value, unsigned int len);
 extern unsigned int sftk_MapTrust(CK_TRUST trust, PRBool clientAuth);
 
 extern SFTKObject *sftk_NewObject(SFTKSlot *slot);
@@ -690,6 +653,13 @@ extern CK_RV sftk_MechAllowsOperation(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE 
 
 
 NSSLOWKEYPrivateKey *sftk_FindKeyByPublicKey(SFTKSlot *slot, SECItem *dbKey);
+
+
+
+
+CK_RV sftk_parseParameters(char *param, sftk_parameters *parsed, PRBool isFIPS);
+void sftk_freeParams(sftk_parameters *params);
+
 
 
 

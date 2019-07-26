@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mp_gf2m.h"
 #include "mp_gf2m-priv.h"
 #include "mplogic.h"
@@ -359,7 +324,8 @@ mp_bmod(const mp_int *a, const unsigned int p[], mp_int *r)
     z = MP_DIGITS(r);
 
     
-    dN = p[0] / MP_DIGIT_BITS;
+    
+    dN = p[0] >> MP_DIGIT_BITS_LOG_2;
     used = MP_USED(r);
 
     for (j = used - 1; j > dN;) {
@@ -373,9 +339,11 @@ mp_bmod(const mp_int *a, const unsigned int p[], mp_int *r)
         for (k = 1; p[k] > 0; k++) {
             
             n = p[0] - p[k];
-            d0 = n % MP_DIGIT_BITS;  
+            
+            d0 = n & MP_DIGIT_BITS_MASK;
             d1 = MP_DIGIT_BITS - d0;
-            n /= MP_DIGIT_BITS;
+            
+            n >>= MP_DIGIT_BITS_LOG_2;
             z[j-n] ^= (zz>>d0);
             if (d0) 
                 z[j-n-1] ^= (zz<<d1);
@@ -383,7 +351,8 @@ mp_bmod(const mp_int *a, const unsigned int p[], mp_int *r)
 
         
         n = dN;  
-        d0 = p[0] % MP_DIGIT_BITS;
+        
+        d0 = p[0] & MP_DIGIT_BITS_MASK;
         d1 = MP_DIGIT_BITS - d0;
         z[j-n] ^= (zz >> d0);
         if (d0) 
@@ -394,19 +363,26 @@ mp_bmod(const mp_int *a, const unsigned int p[], mp_int *r)
     
     while (j == dN) {
 
-        d0 = p[0] % MP_DIGIT_BITS;
+        
+        d0 = p[0] & MP_DIGIT_BITS_MASK;
         zz = z[dN] >> d0;  
         if (zz == 0) break;
         d1 = MP_DIGIT_BITS - d0;
 
         
-        if (d0) z[dN] = (z[dN] << d1) >> d1; 
+        if (d0) {
+	    z[dN] = (z[dN] << d1) >> d1; 
+	} else {
+	    z[dN] = 0;
+	}
         *z ^= zz; 
 
         for (k = 1; p[k] > 0; k++) {
             
-            n = p[k] / MP_DIGIT_BITS;
-            d0 = p[k] % MP_DIGIT_BITS;
+            
+            n = p[k] >> MP_DIGIT_BITS_LOG_2;
+            
+            d0 = p[k] & MP_DIGIT_BITS_MASK;
             d1 = MP_DIGIT_BITS - d0;
             z[n] ^= (zz << d0);
             tmp = zz >> d1;

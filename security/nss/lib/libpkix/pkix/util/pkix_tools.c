@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkix_tools.h"
 
 #define CACHE_ITEM_PERIOD_SECONDS  (3600)  /* one hour */

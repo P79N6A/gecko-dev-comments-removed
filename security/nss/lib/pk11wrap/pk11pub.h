@@ -1,39 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PK11PUB_H_
 #define _PK11PUB_H_
 #include "plarena.h"
@@ -180,9 +147,14 @@ PRBool PK11_IsPresent(PK11SlotInfo *slot);
 PRBool PK11_DoesMechanism(PK11SlotInfo *slot, CK_MECHANISM_TYPE type);
 PK11SlotList * PK11_GetAllTokens(CK_MECHANISM_TYPE type,PRBool needRW,
 					PRBool loadCerts, void *wincx);
-PK11SlotInfo *PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int count,
-							void *wincx);
+PK11SlotInfo *PK11_GetBestSlotMultipleWithAttributes(CK_MECHANISM_TYPE *type, 
+		CK_FLAGS *mechFlag, unsigned int *keySize, 
+		unsigned int count, void *wincx);
+PK11SlotInfo *PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, 
+					unsigned int count, void *wincx);
 PK11SlotInfo *PK11_GetBestSlot(CK_MECHANISM_TYPE type, void *wincx);
+PK11SlotInfo *PK11_GetBestSlotWithAttributes(CK_MECHANISM_TYPE type, 
+		CK_FLAGS mechFlag, unsigned int keySize, void *wincx);
 CK_MECHANISM_TYPE PK11_GetBestWrapMechanism(PK11SlotInfo *slot);
 int PK11_GetBestKeyLength(PK11SlotInfo *slot, CK_MECHANISM_TYPE type);
 

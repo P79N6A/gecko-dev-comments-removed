@@ -6,39 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __sslt_h_
 #define __sslt_h_
 
@@ -190,6 +157,16 @@ typedef struct SSLCipherSuiteInfoStr {
 } SSLCipherSuiteInfo;
 
 typedef enum {
+    ssl_variant_stream = 0,
+    ssl_variant_datagram = 1
+} SSLProtocolVariant;
+
+typedef struct SSLVersionRangeStr {
+    PRUint16 min;
+    PRUint16 max;
+} SSLVersionRange;
+
+typedef enum {
     SSL_sni_host_name                    = 0,
     SSL_sni_type_total
 } SSLSniNameType;
@@ -202,11 +179,12 @@ typedef enum {
     ssl_elliptic_curves_xtn          = 10,
     ssl_ec_point_formats_xtn         = 11,
 #endif
+    ssl_use_srtp_xtn                 = 14,
     ssl_session_ticket_xtn           = 35,
     ssl_next_proto_nego_xtn          = 13172,
     ssl_renegotiation_info_xtn       = 0xff01	
 } SSLExtensionType;
 
-#define SSL_MAX_EXTENSIONS             6
+#define SSL_MAX_EXTENSIONS             7
 
 #endif 

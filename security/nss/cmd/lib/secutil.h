@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _SEC_UTIL_H_
 #define _SEC_UTIL_H_
 
@@ -47,10 +15,16 @@
 #include "secder.h"
 #include <stdio.h>
 
+#include "basicutil.h"
+#include "sslerr.h"
+#include "sslt.h"
+
+
 #define SEC_CT_PRIVATE_KEY		"private-key"
 #define SEC_CT_PUBLIC_KEY		"public-key"
 #define SEC_CT_CERTIFICATE		"certificate"
 #define SEC_CT_CERTIFICATE_REQUEST	"certificate-request"
+#define SEC_CT_CERTIFICATE_ID           "certificate-identity"
 #define SEC_CT_PKCS7			"pkcs7"
 #define SEC_CT_CRL			"crl"
 #define SEC_CT_NAME			"name"
@@ -66,12 +40,6 @@
 
 #define SECU_Strerror PORT_ErrorToString
 
-#ifdef SECUTIL_NEW
-typedef int (*SECU_PPFunc)(PRFileDesc *out, SECItem *item, 
-                           char *msg, int level);
-#else
-typedef int (*SECU_PPFunc)(FILE *out, SECItem *item, char *msg, int level);
-#endif
 
 typedef struct {
     enum {
@@ -172,12 +140,6 @@ extern PRBool SECU_GetWrapEnabled();
 extern void SECU_EnableWrap(PRBool enable);
 
 
-extern void SECU_PrintError(char *progName, char *msg, ...);
-
-
-extern void SECU_PrintSystemError(char *progName, char *msg, ...);
-
-
 
 extern void
 SECU_printCertProblems(FILE *outfile, CERTCertDBHandle *handle, 
@@ -197,15 +159,8 @@ SECU_displayVerifyLog(FILE *outfile, CERTVerifyLog *log,
                       PRBool verbose);
 
 
-extern SECStatus SECU_FileToItem(SECItem *dst, PRFileDesc *src);
-extern SECStatus SECU_TextFileToItem(SECItem *dst, PRFileDesc *src);
-
-
 extern SECStatus 
 SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii);
-
-
-extern void SECU_Indent(FILE *out, int level);
 
 
 extern void SECU_PrintInteger(FILE *out, SECItem *i, char *m, int level);
@@ -216,12 +171,6 @@ extern SECOidTag SECU_PrintObjectID(FILE *out, SECItem *oid, char *m, int level)
 
 extern void SECU_PrintAlgorithmID(FILE *out, SECAlgorithmID *a, char *m,
 				  int level);
-
-
-extern void SECU_PrintAsHex(FILE *out, SECItem *i, const char *m, int level);
-
-
-extern void SECU_PrintBuf(FILE *out, const char *msg, const void *vp, int len);
 
 
 
@@ -263,15 +212,15 @@ extern int SECU_PrintCertificateRequest(FILE *out, SECItem *der, char *m,
 
 extern int SECU_PrintCertificate(FILE *out, SECItem *der, char *m, int level);
 
+extern int SECU_PrintDumpDerIssuerAndSerial(FILE *out, SECItem *der, char *m,
+                                 int level);
+
 
 extern int SECU_PrintDERName(FILE *out, SECItem *der, const char *m, int level);
 
 
 extern void SECU_PrintTrustFlags(FILE *out, CERTCertTrust *trust, char *m, 
                                  int level);
-
-
-extern int SECU_PrintRSAPublicKey(FILE *out, SECItem *der, char *m, int level);
 
 extern int SECU_PrintSubjectPublicKeyInfo(FILE *out, SECItem *der, char *m, 
                                           int level);
@@ -280,6 +229,12 @@ extern int SECU_PrintSubjectPublicKeyInfo(FILE *out, SECItem *der, char *m,
 
 extern int SECU_PrintPrivateKey(FILE *out, SECItem *der, char *m, int level);
 #endif
+
+
+extern void SECU_PrintRSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level);
+
+
+extern void SECU_PrintDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level);
 
 
 extern int SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m,
@@ -295,6 +250,10 @@ extern SECStatus SECU_PKCS11Init(PRBool readOnly);
 
 extern int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m, 
                                 int level, SECU_PPFunc inner);
+
+
+extern int SECU_PrintSignedContent(FILE *out, SECItem *der, char *m, int level,
+                                   SECU_PPFunc inner);
 
 
 extern SECStatus SEC_PrintCertificateAndTrust(CERTCertificate *cert,
@@ -333,8 +292,6 @@ extern char *SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 extern SECStatus DER_PrettyPrint(FILE *out, SECItem *it, PRBool raw);
 
 extern char *SECU_SECModDBName(void);
-
-extern void SECU_PrintPRandOSError(char *progName);
 
 extern SECStatus SECU_RegisterDynamicOids(void);
 
@@ -421,30 +378,25 @@ SECU_SECItemHexStringToBinary(SECItem* srcdest);
 
 
 
-typedef struct {
-    char flag;
-    PRBool needsArg;
-    char *arg;
-    PRBool activated;
-    char *longform;
-} secuCommandFlag;
 
 
-typedef struct
-{
-    int numCommands;
-    int numOptions;
-
-    secuCommandFlag *commands;
-    secuCommandFlag *options;
-} secuCommand;
 
 
-SECStatus 
-SECU_ParseCommandLine(int argc, char **argv, char *progName,
-		      const secuCommand *cmd);
-char *
-SECU_GetOptionArg(const secuCommand *cmd, int optionNum);
+
+
+
+
+
+
+
+
+
+SECStatus
+SECU_ParseSSLVersionRangeString(const char *input,
+                                const SSLVersionRange defaultVersionRange,
+                                const PRBool defaultEnableSSL2,
+                                SSLVersionRange *vrange,
+                                PRBool *enableSSL2);
 
 
 

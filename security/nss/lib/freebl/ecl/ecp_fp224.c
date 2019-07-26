@@ -1,40 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ecp_fp.h"
 #include <stdlib.h>
@@ -44,9 +10,9 @@
 
 #include "ecp_fpinc.c"
 
-
-
-
+/* Performs a single step of reduction, just on the uppermost float
+ * (assumes already tidied), and then retidies. Note, this does not
+ * guarantee that the result will be less than p. */
 void
 ecfp224_singleReduce(double *r, const EC_group_fp * group)
 {
@@ -67,11 +33,11 @@ ecfp224_singleReduce(double *r, const EC_group_fp * group)
 	ecfp_positiveTidy(r, group);
 }
 
-
-
-
-
-
+/* 
+ * Performs imperfect reduction.  This might leave some negative terms,
+ * and one more reduction might be required for the result to be between 0 
+ * and p-1. x should be be an array of at least 20, and r at least 10 x
+ * and r can be the same, but then the upper parts of r are not zeroed */
 void
 ecfp224_reduce(double *r, double *x, const EC_group_fp * group)
 {
@@ -82,8 +48,8 @@ ecfp224_reduce(double *r, double *x, const EC_group_fp * group)
 	ECFP_ASSERT(group->primeBitSize == 224);
 	ECFP_ASSERT(group->numDoubles == 10);
 
-	
-
+	/* Tidy just the upper bits of x.  Don't need to tidy the lower ones
+	 * yet. */
 	ecfp_tidyUpper(x, group);
 
 	x10 = x[10] + x[16] * ecfp_twom128;
@@ -91,7 +57,7 @@ ecfp224_reduce(double *r, double *x, const EC_group_fp * group)
 	x12 = x[12] + x[18] * ecfp_twom128;
 	x13 = x[13] + x[19] * ecfp_twom128;
 
-	
+	/* Tidy up, or we won't have enough bits later to add it in */
 	q = x10 + group->alpha[11];
 	q -= group->alpha[11];
 	x10 -= q;
@@ -123,17 +89,17 @@ ecfp224_reduce(double *r, double *x, const EC_group_fp * group)
 	r[1] = x[1] - x11 * ecfp_twom224;
 	r[0] = x[0] - x10 * ecfp_twom224;
 
-	
-
-
-
+	/* 
+	 * Tidy up just r[ECFP_NUMDOUBLES-2] so that the number of reductions
+	 * is accurate plus or minus one.  (Rather than tidy all to make it
+	 * totally accurate) */
 	q = r[ECFP_NUMDOUBLES - 2] + group->alpha[ECFP_NUMDOUBLES - 1];
 	q -= group->alpha[ECFP_NUMDOUBLES - 1];
 	r[ECFP_NUMDOUBLES - 2] -= q;
 	r[ECFP_NUMDOUBLES - 1] += q;
 
-	
-	
+	/* Tidy up the excess bits on r[ECFP_NUMDOUBLES-1] using reduction */
+	/* Use ecfp_beta so we get a positive res */
 	q = r[ECFP_NUMDOUBLES - 1] - ecfp_beta_224;
 	q += group->bitSize_alpha;
 	q -= group->bitSize_alpha;
@@ -145,14 +111,14 @@ ecfp224_reduce(double *r, double *x, const EC_group_fp * group)
 	ecfp_tidyShort(r, group);
 }
 
-
+/* Sets group to use optimized calculations in this file */
 mp_err
 ec_group_set_nistp224_fp(ECGroup *group)
 {
 
 	EC_group_fp *fpg;
 
-	
+	/* Allocate memory for floating point group data */
 	fpg = (EC_group_fp *) malloc(sizeof(EC_group_fp));
 	if (fpg == NULL) {
 		return MP_MEM;

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "seccomon.h"
 #include "secmod.h"
 #include "secmodi.h"
@@ -553,8 +519,8 @@ int
 PK11_SignatureLen(SECKEYPrivateKey *key)
 {
     int val;
-    CK_ATTRIBUTE theTemplate = { CKA_EC_PARAMS, NULL, 0 };
-    SECItem params = {siBuffer, NULL, 0};
+    SECItem attributeItem = {siBuffer, NULL, 0};
+    SECStatus rv;
     int length; 
 
     switch (key->keyType) {
@@ -566,24 +532,33 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
 	return (unsigned long) val;
 	
     case fortezzaKey:
-    case dsaKey:
 	return 40;
+
+    case dsaKey:
+        rv = PK11_ReadAttribute(key->pkcs11Slot, key->pkcs11ID, CKA_SUBPRIME, 
+				NULL, &attributeItem);
+        if (rv == SECSuccess) {
+	    length = attributeItem.len;
+	    if ((length > 0) && attributeItem.data[0] == 0) {
+		length--;
+	    }
+	    PORT_Free(attributeItem.data);
+	    return length*2;
+	}
+	return pk11_backupGetSignLength(key);
+
     case ecKey:
-	if (PK11_GetAttributes(NULL, key->pkcs11Slot, key->pkcs11ID,
-			       &theTemplate, 1) == CKR_OK) {
-	    if (theTemplate.pValue != NULL) {
-	        params.len = theTemplate.ulValueLen;
-		params.data = (unsigned char *) theTemplate.pValue;
-	        length = SECKEY_ECParamsToBasePointOrderLen(&params);
-	        PORT_Free(theTemplate.pValue);
-		if (length == 0) {
-		    return pk11_backupGetSignLength(key);
-		}
+        rv = PK11_ReadAttribute(key->pkcs11Slot, key->pkcs11ID, CKA_EC_PARAMS, 
+				NULL, &attributeItem);
+	if (rv == SECSuccess) {
+	    length = SECKEY_ECParamsToBasePointOrderLen(&attributeItem);
+	    PORT_Free(attributeItem.data);
+	    if (length != 0) {
 		length = ((length + 7)/8) * 2;
 		return length;
 	    }
 	}
-	break;
+	return pk11_backupGetSignLength(key);
     default:
 	break;
     }
@@ -639,7 +614,8 @@ PK11_VerifyRecover(SECKEYPublicKey *key,
     mech.mechanism = PK11_MapSignKeyType(key->keyType);
 
     if (slot == NULL) {
-	slot = PK11_GetBestSlot(mech.mechanism,wincx);
+	slot = PK11_GetBestSlotWithAttributes(mech.mechanism,
+				CKF_VERIFY_RECOVER,0,wincx);
 	if (slot == NULL) {
 	    	PORT_SetError( SEC_ERROR_NO_MODULE );
 		return SECFailure;
@@ -696,8 +672,21 @@ PK11_Verify(SECKEYPublicKey *key, SECItem *sig, SECItem *hash, void *wincx)
     mech.mechanism = PK11_MapSignKeyType(key->keyType);
 
     if (slot == NULL) {
-	slot = PK11_GetBestSlot(mech.mechanism,wincx);
-       
+	unsigned int length =  0;
+	if ((mech.mechanism == CKM_DSA) && 
+				
+
+
+				(key->u.dsa.params.prime.len > 129)) {
+	    
+
+	    length = key->u.dsa.params.prime.len;
+	    if (key->u.dsa.params.prime.data[0] == 0) {
+		length --;
+	    }
+	}
+	slot = PK11_GetBestSlotWithAttributes(mech.mechanism,
+						CKF_VERIFY,length,wincx);
 	if (slot == NULL) {
 	    PORT_SetError( SEC_ERROR_NO_MODULE );
 	    return SECFailure;
@@ -764,6 +753,12 @@ PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, SECItem *hash)
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
     }
+	
+
+
+	if (SECKEY_HAS_ATTRIBUTE_SET(key,CKA_ALWAYS_AUTHENTICATE)) {
+		PK11_DoPassword(slot, PR_FALSE, key->wincx, PR_TRUE);
+	}
     len = sig->len;
     crv = PK11_GETTAB(slot)->C_Sign(session,hash->data,
 					hash->len, sig->data, &len);
@@ -816,6 +811,13 @@ pk11_PrivDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
     }
+	
+
+
+	
+	if (SECKEY_HAS_ATTRIBUTE_SET(key,CKA_ALWAYS_AUTHENTICATE)) {
+		PK11_DoPassword(slot, PR_FALSE, key->wincx, PR_TRUE);
+	}
     crv = PK11_GETTAB(slot)->C_Decrypt(session,enc, encLen, data, &out);
     if (!owner || !(slot->isThreadSafe)) PK11_ExitSlotMonitor(slot);
     pk11_CloseSession(slot,session,owner);
@@ -863,7 +865,7 @@ pk11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
     }
     out = SECKEY_PublicKeyStrength(key);
 
-    slot = PK11_GetBestSlot(mech->mechanism, wincx);
+    slot = PK11_GetBestSlotWithAttributes(mech->mechanism,CKF_ENCRYPT,0,wincx);
     if (slot == NULL) {
 	PORT_SetError( SEC_ERROR_NO_MODULE );
 	return SECFailure;

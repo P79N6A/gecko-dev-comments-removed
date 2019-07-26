@@ -22,39 +22,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _SDB_H
 #define _SDB_H 1
 #include "pkcs11t.h"
@@ -69,7 +36,7 @@ typedef struct SDBStr SDB;
 struct SDBStr {
     void *private;
     int  version;
-    SDBType sdb_type;
+    int  reserved;
     int  sdb_flags;
     void *app_private;
     CK_RV (*sdb_FindObjectsInit)(SDB *sdb, const CK_ATTRIBUTE *template, 

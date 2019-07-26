@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _MP_GF2M_PRIV_H_
 #define _MP_GF2M_PRIV_H_
 
@@ -46,8 +11,14 @@ extern const mp_digit mp_gf2m_sqr_tb[16];
 
 #if defined(MP_USE_UINT_DIGIT)
 #define MP_DIGIT_BITS 32
+
+#define MP_DIGIT_BITS_LOG_2 5
+#define MP_DIGIT_BITS_MASK 0x1f
 #else
 #define MP_DIGIT_BITS 64
+
+#define MP_DIGIT_BITS_LOG_2 6
+#define MP_DIGIT_BITS_MASK 0x3f
 #endif
 
 

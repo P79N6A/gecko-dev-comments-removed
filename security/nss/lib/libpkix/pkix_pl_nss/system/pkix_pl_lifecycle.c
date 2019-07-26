@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkix_pl_lifecycle.h"
 
 PKIX_Boolean pkix_pl_initialized = PKIX_FALSE;

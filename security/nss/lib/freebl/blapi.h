@@ -6,39 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _BLAPI_H_
 #define _BLAPI_H_
 
@@ -1262,6 +1229,11 @@ PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len,
 extern SECStatus
 PRNGTEST_Uninstantiate(void);
 
+extern SECStatus
+PRNGTEST_RunHealthTests(void);
+
+
+
 
 
 
@@ -1270,6 +1242,8 @@ extern SECStatus
 PQG_ParamGen(unsigned int j, 	   
              PQGParams **pParams,  
 	     PQGVerify **pVfy);    
+
+
 
 
 
@@ -1293,6 +1267,21 @@ PQG_ParamGenSeedLen(
 
 
 
+
+
+
+
+
+
+
+
+extern SECStatus
+PQG_ParamGenV2(
+             unsigned int L, 	     
+             unsigned int N, 	     
+	     unsigned int seedBytes, 
+             PQGParams **pParams,    
+	     PQGVerify **pVfy);      
 
 
 

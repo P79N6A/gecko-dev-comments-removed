@@ -1,45 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ecp.h"
 #include "mplogic.h"
@@ -48,10 +9,10 @@
 #include <assert.h>
 #endif
 
-
-
-
-
+/* Converts a point P(px, py) from affine coordinates to Jacobian
+ * projective coordinates R(rx, ry, rz). Assumes input is already
+ * field-encoded using field_enc, and returns output that is still
+ * field-encoded. */
 mp_err
 ec_GFp_pt_aff2jac(const mp_int *px, const mp_int *py, mp_int *rx,
 				  mp_int *ry, mp_int *rz, const ECGroup *group)
@@ -72,10 +33,10 @@ ec_GFp_pt_aff2jac(const mp_int *px, const mp_int *py, mp_int *rx,
 	return res;
 }
 
-
-
-
-
+/* Converts a point P(px, py, pz) from Jacobian projective coordinates to
+ * affine coordinates R(rx, ry).  P and R can share x and y coordinates.
+ * Assumes input is already field-encoded using field_enc, and returns
+ * output that is still field-encoded. */
 mp_err
 ec_GFp_pt_jac2aff(const mp_int *px, const mp_int *py, const mp_int *pz,
 				  mp_int *rx, mp_int *ry, const ECGroup *group)
@@ -90,13 +51,13 @@ ec_GFp_pt_jac2aff(const mp_int *px, const mp_int *py, const mp_int *pz,
 	MP_CHECKOK(mp_init(&z2));
 	MP_CHECKOK(mp_init(&z3));
 
-	
+	/* if point at infinity, then set point at infinity and exit */
 	if (ec_GFp_pt_is_inf_jac(px, py, pz) == MP_YES) {
 		MP_CHECKOK(ec_GFp_pt_set_inf_aff(rx, ry));
 		goto CLEANUP;
 	}
 
-	
+	/* transform (px, py, pz) into (px / pz^2, py / pz^3) */
 	if (mp_cmp_d(pz, 1) == 0) {
 		MP_CHECKOK(mp_copy(px, rx));
 		MP_CHECKOK(mp_copy(py, ry));
@@ -115,16 +76,16 @@ ec_GFp_pt_jac2aff(const mp_int *px, const mp_int *py, const mp_int *pz,
 	return res;
 }
 
-
-
+/* Checks if point P(px, py, pz) is at infinity. Uses Jacobian
+ * coordinates. */
 mp_err
 ec_GFp_pt_is_inf_jac(const mp_int *px, const mp_int *py, const mp_int *pz)
 {
 	return mp_cmp_z(pz);
 }
 
-
-
+/* Sets P(px, py, pz) to be the point at infinity.  Uses Jacobian
+ * coordinates. */
 mp_err
 ec_GFp_pt_set_inf_jac(mp_int *px, mp_int *py, mp_int *pz)
 {
@@ -132,13 +93,13 @@ ec_GFp_pt_set_inf_jac(mp_int *px, mp_int *py, mp_int *pz)
 	return MP_OKAY;
 }
 
-
-
-
-
-
-
-
+/* Computes R = P + Q where R is (rx, ry, rz), P is (px, py, pz) and Q is
+ * (qx, qy, 1).  Elliptic curve points P, Q, and R can all be identical.
+ * Uses mixed Jacobian-affine coordinates. Assumes input is already
+ * field-encoded using field_enc, and returns output that is still
+ * field-encoded. Uses equation (2) from Brown, Hankerson, Lopez, and
+ * Menezes. Software Implementation of the NIST Elliptic Curves Over Prime
+ * Fields. */
 mp_err
 ec_GFp_pt_add_jac_aff(const mp_int *px, const mp_int *py, const mp_int *pz,
 					  const mp_int *qx, const mp_int *qy, mp_int *rx,
@@ -160,8 +121,8 @@ ec_GFp_pt_add_jac_aff(const mp_int *px, const mp_int *py, const mp_int *pz,
 	MP_CHECKOK(mp_init(&C2));
 	MP_CHECKOK(mp_init(&C3));
 
-	
-
+	/* If either P or Q is the point at infinity, then return the other
+	 * point */
 	if (ec_GFp_pt_is_inf_jac(px, py, pz) == MP_YES) {
 		MP_CHECKOK(ec_GFp_pt_aff2jac(qx, qy, rx, ry, rz, group));
 		goto CLEANUP;
@@ -173,37 +134,37 @@ ec_GFp_pt_add_jac_aff(const mp_int *px, const mp_int *py, const mp_int *pz,
 		goto CLEANUP;
 	}
 
-	
+	/* A = qx * pz^2, B = qy * pz^3 */
 	MP_CHECKOK(group->meth->field_sqr(pz, &A, group->meth));
 	MP_CHECKOK(group->meth->field_mul(&A, pz, &B, group->meth));
 	MP_CHECKOK(group->meth->field_mul(&A, qx, &A, group->meth));
 	MP_CHECKOK(group->meth->field_mul(&B, qy, &B, group->meth));
 
-	
+	/* C = A - px, D = B - py */
 	MP_CHECKOK(group->meth->field_sub(&A, px, &C, group->meth));
 	MP_CHECKOK(group->meth->field_sub(&B, py, &D, group->meth));
 
-	
+	/* C2 = C^2, C3 = C^3 */
 	MP_CHECKOK(group->meth->field_sqr(&C, &C2, group->meth));
 	MP_CHECKOK(group->meth->field_mul(&C, &C2, &C3, group->meth));
 
-	
+	/* rz = pz * C */
 	MP_CHECKOK(group->meth->field_mul(pz, &C, rz, group->meth));
 
-	
+	/* C = px * C^2 */
 	MP_CHECKOK(group->meth->field_mul(px, &C2, &C, group->meth));
-	
+	/* A = D^2 */
 	MP_CHECKOK(group->meth->field_sqr(&D, &A, group->meth));
 
-	
+	/* rx = D^2 - (C^3 + 2 * (px * C^2)) */
 	MP_CHECKOK(group->meth->field_add(&C, &C, rx, group->meth));
 	MP_CHECKOK(group->meth->field_add(&C3, rx, rx, group->meth));
 	MP_CHECKOK(group->meth->field_sub(&A, rx, rx, group->meth));
 
-	
+	/* C3 = py * C^3 */
 	MP_CHECKOK(group->meth->field_mul(py, &C3, &C3, group->meth));
 
-	
+	/* ry = D * (px * C^2 - rx) - py * C^3 */
 	MP_CHECKOK(group->meth->field_sub(&C, rx, ry, group->meth));
 	MP_CHECKOK(group->meth->field_mul(&D, ry, ry, group->meth));
 	MP_CHECKOK(group->meth->field_sub(ry, &C3, ry, group->meth));
@@ -218,16 +179,16 @@ ec_GFp_pt_add_jac_aff(const mp_int *px, const mp_int *py, const mp_int *pz,
 	return res;
 }
 
-
-
-
-
-
-
-
-
-
-
+/* Computes R = 2P.  Elliptic curve points P and R can be identical.  Uses 
+ * Jacobian coordinates.
+ *
+ * Assumes input is already field-encoded using field_enc, and returns 
+ * output that is still field-encoded.
+ *
+ * This routine implements Point Doubling in the Jacobian Projective 
+ * space as described in the paper "Efficient elliptic curve exponentiation 
+ * using mixed coordinates", by H. Cohen, A Miyaji, T. Ono.
+ */
 mp_err
 ec_GFp_pt_dbl_jac(const mp_int *px, const mp_int *py, const mp_int *pz,
 				  mp_int *rx, mp_int *ry, mp_int *rz, const ECGroup *group)
@@ -250,14 +211,14 @@ ec_GFp_pt_dbl_jac(const mp_int *px, const mp_int *py, const mp_int *pz,
 	}
 
 	if (mp_cmp_d(pz, 1) == 0) {
-		
+		/* M = 3 * px^2 + a */
 		MP_CHECKOK(group->meth->field_sqr(px, &t0, group->meth));
 		MP_CHECKOK(group->meth->field_add(&t0, &t0, &M, group->meth));
 		MP_CHECKOK(group->meth->field_add(&t0, &M, &t0, group->meth));
 		MP_CHECKOK(group->meth->
 				   field_add(&t0, &group->curvea, &M, group->meth));
 	} else if (mp_cmp_int(&group->curvea, -3) == 0) {
-		
+		/* M = 3 * (px + pz^2) * (px - pz^2) */
 		MP_CHECKOK(group->meth->field_sqr(pz, &M, group->meth));
 		MP_CHECKOK(group->meth->field_add(px, &M, &t0, group->meth));
 		MP_CHECKOK(group->meth->field_sub(px, &M, &t1, group->meth));
@@ -265,7 +226,7 @@ ec_GFp_pt_dbl_jac(const mp_int *px, const mp_int *py, const mp_int *pz,
 		MP_CHECKOK(group->meth->field_add(&M, &M, &t0, group->meth));
 		MP_CHECKOK(group->meth->field_add(&t0, &M, &M, group->meth));
 	} else {
-		
+		/* M = 3 * (px^2) + a * (pz^4) */
 		MP_CHECKOK(group->meth->field_sqr(px, &t0, group->meth));
 		MP_CHECKOK(group->meth->field_add(&t0, &t0, &M, group->meth));
 		MP_CHECKOK(group->meth->field_add(&t0, &M, &t0, group->meth));
@@ -276,8 +237,8 @@ ec_GFp_pt_dbl_jac(const mp_int *px, const mp_int *py, const mp_int *pz,
 		MP_CHECKOK(group->meth->field_add(&M, &t0, &M, group->meth));
 	}
 
-	
-	
+	/* rz = 2 * py * pz */
+	/* t0 = 4 * py^2 */
 	if (mp_cmp_d(pz, 1) == 0) {
 		MP_CHECKOK(group->meth->field_add(py, py, rz, group->meth));
 		MP_CHECKOK(group->meth->field_sqr(rz, &t0, group->meth));
@@ -287,15 +248,15 @@ ec_GFp_pt_dbl_jac(const mp_int *px, const mp_int *py, const mp_int *pz,
 		MP_CHECKOK(group->meth->field_sqr(&t0, &t0, group->meth));
 	}
 
-	
+	/* S = 4 * px * py^2 = px * (2 * py)^2 */
 	MP_CHECKOK(group->meth->field_mul(px, &t0, &S, group->meth));
 
-	
+	/* rx = M^2 - 2 * S */
 	MP_CHECKOK(group->meth->field_add(&S, &S, &t1, group->meth));
 	MP_CHECKOK(group->meth->field_sqr(&M, rx, group->meth));
 	MP_CHECKOK(group->meth->field_sub(rx, &t1, rx, group->meth));
 
-	
+	/* ry = M * (S - rx) - 8 * py^4 */
 	MP_CHECKOK(group->meth->field_sqr(&t0, &t1, group->meth));
 	if (mp_isodd(&t1)) {
 		MP_CHECKOK(mp_add(&t1, &group->meth->irr, &t1));
@@ -313,14 +274,14 @@ ec_GFp_pt_dbl_jac(const mp_int *px, const mp_int *py, const mp_int *pz,
 	return res;
 }
 
-
+/* by default, this routine is unused and thus doesn't need to be compiled */
 #ifdef ECL_ENABLE_GFP_PT_MUL_JAC
-
-
-
-
-
-
+/* Computes R = nP where R is (rx, ry) and P is (px, py). The parameters
+ * a, b and p are the elliptic curve coefficients and the prime that
+ * determines the field GFp.  Elliptic curve points P and R can be
+ * identical.  Uses mixed Jacobian-affine coordinates. Assumes input is
+ * already field-encoded using field_enc, and returns output that is still 
+ * field-encoded. Uses 4-bit window method. */
 mp_err
 ec_GFp_pt_mul_jac(const mp_int *n, const mp_int *px, const mp_int *py,
 				  mp_int *rx, mp_int *ry, const ECGroup *group)
@@ -338,13 +299,13 @@ ec_GFp_pt_mul_jac(const mp_int *n, const mp_int *px, const mp_int *py,
 	ARGCHK(group != NULL, MP_BADARG);
 	ARGCHK((n != NULL) && (px != NULL) && (py != NULL), MP_BADARG);
 
-	
+	/* initialize precomputation table */
 	for (i = 0; i < 16; i++) {
 		MP_CHECKOK(mp_init(&precomp[i][0]));
 		MP_CHECKOK(mp_init(&precomp[i][1]));
 	}
 
-	
+	/* fill precomputation table */
 	mp_zero(&precomp[0][0]);
 	mp_zero(&precomp[0][1]);
 	MP_CHECKOK(mp_copy(px, &precomp[1][0]));
@@ -358,12 +319,12 @@ ec_GFp_pt_mul_jac(const mp_int *n, const mp_int *px, const mp_int *py,
 
 	d = (mpl_significant_bits(n) + 3) / 4;
 
-	
+	/* R = inf */
 	MP_CHECKOK(mp_init(&rz));
 	MP_CHECKOK(ec_GFp_pt_set_inf_jac(rx, ry, &rz));
 
 	for (i = d - 1; i >= 0; i--) {
-		
+		/* compute window ni */
 		ni = MP_GET_BIT(n, 4 * i + 3);
 		ni <<= 1;
 		ni |= MP_GET_BIT(n, 4 * i + 2);
@@ -371,18 +332,18 @@ ec_GFp_pt_mul_jac(const mp_int *n, const mp_int *px, const mp_int *py,
 		ni |= MP_GET_BIT(n, 4 * i + 1);
 		ni <<= 1;
 		ni |= MP_GET_BIT(n, 4 * i);
-		
+		/* R = 2^4 * R */
 		MP_CHECKOK(ec_GFp_pt_dbl_jac(rx, ry, &rz, rx, ry, &rz, group));
 		MP_CHECKOK(ec_GFp_pt_dbl_jac(rx, ry, &rz, rx, ry, &rz, group));
 		MP_CHECKOK(ec_GFp_pt_dbl_jac(rx, ry, &rz, rx, ry, &rz, group));
 		MP_CHECKOK(ec_GFp_pt_dbl_jac(rx, ry, &rz, rx, ry, &rz, group));
-		
+		/* R = R + (ni * P) */
 		MP_CHECKOK(ec_GFp_pt_add_jac_aff
 				   (rx, ry, &rz, &precomp[ni][0], &precomp[ni][1], rx, ry,
 					&rz, group));
 	}
 
-	
+	/* convert result S to affine coordinates */
 	MP_CHECKOK(ec_GFp_pt_jac2aff(rx, ry, &rz, rx, ry, group));
 
   CLEANUP:
@@ -395,13 +356,13 @@ ec_GFp_pt_mul_jac(const mp_int *n, const mp_int *px, const mp_int *py,
 }
 #endif
 
-
-
-
-
-
-
-
+/* Elliptic curve scalar-point multiplication. Computes R(x, y) = k1 * G + 
+ * k2 * P(x, y), where G is the generator (base point) of the group of
+ * points on the elliptic curve. Allows k1 = NULL or { k2, P } = NULL.
+ * Uses mixed Jacobian-affine coordinates. Input and output values are
+ * assumed to be NOT field-encoded. Uses algorithm 15 (simultaneous
+ * multiple point multiplication) from Brown, Hankerson, Lopez, Menezes.
+ * Software Implementation of the NIST Elliptic Curves over Prime Fields. */
 mp_err
 ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 				   const mp_int *py, mp_int *rx, mp_int *ry,
@@ -427,14 +388,14 @@ ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 			 && ((k2 == NULL) || (px == NULL)
 				 || (py == NULL))), MP_BADARG);
 
-	
+	/* if some arguments are not defined used ECPoint_mul */
 	if (k1 == NULL) {
 		return ECPoint_mul(group, k2, px, py, rx, ry);
 	} else if ((k2 == NULL) || (px == NULL) || (py == NULL)) {
 		return ECPoint_mul(group, k1, NULL, NULL, rx, ry);
 	}
 
-	
+	/* initialize precomputation table */
 	for (i = 0; i < 4; i++) {
 		for (j = 0; j < 4; j++) {
 			MP_CHECKOK(mp_init(&precomp[i][j][0]));
@@ -442,8 +403,8 @@ ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 		}
 	}
 
-	
-	
+	/* fill precomputation table */
+	/* assign {k1, k2} = {a, b} such that len(a) >= len(b) */
 	if (mpl_significant_bits(k1) < mpl_significant_bits(k2)) {
 		a = k2;
 		b = k1;
@@ -473,7 +434,7 @@ ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 			MP_CHECKOK(mp_copy(py, &precomp[0][1][1]));
 		}
 	}
-	
+	/* precompute [*][0][*] */
 	mp_zero(&precomp[0][0][0]);
 	mp_zero(&precomp[0][0][1]);
 	MP_CHECKOK(group->
@@ -483,14 +444,14 @@ ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 			   point_add(&precomp[1][0][0], &precomp[1][0][1],
 						 &precomp[2][0][0], &precomp[2][0][1],
 						 &precomp[3][0][0], &precomp[3][0][1], group));
-	
+	/* precompute [*][1][*] */
 	for (i = 1; i < 4; i++) {
 		MP_CHECKOK(group->
 				   point_add(&precomp[0][1][0], &precomp[0][1][1],
 							 &precomp[i][0][0], &precomp[i][0][1],
 							 &precomp[i][1][0], &precomp[i][1][1], group));
 	}
-	
+	/* precompute [*][2][*] */
 	MP_CHECKOK(group->
 			   point_dbl(&precomp[0][1][0], &precomp[0][1][1],
 						 &precomp[0][2][0], &precomp[0][2][1], group));
@@ -500,7 +461,7 @@ ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 							 &precomp[i][0][0], &precomp[i][0][1],
 							 &precomp[i][2][0], &precomp[i][2][1], group));
 	}
-	
+	/* precompute [*][3][*] */
 	MP_CHECKOK(group->
 			   point_add(&precomp[0][1][0], &precomp[0][1][1],
 						 &precomp[0][2][0], &precomp[0][2][1],
@@ -514,7 +475,7 @@ ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 
 	d = (mpl_significant_bits(a) + 1) / 2;
 
-	
+	/* R = inf */
 	MP_CHECKOK(mp_init(&rz));
 	MP_CHECKOK(ec_GFp_pt_set_inf_jac(rx, ry, &rz));
 
@@ -525,10 +486,10 @@ ec_GFp_pts_mul_jac(const mp_int *k1, const mp_int *k2, const mp_int *px,
 		bi = MP_GET_BIT(b, 2 * i + 1);
 		bi <<= 1;
 		bi |= MP_GET_BIT(b, 2 * i);
-		
+		/* R = 2^2 * R */
 		MP_CHECKOK(ec_GFp_pt_dbl_jac(rx, ry, &rz, rx, ry, &rz, group));
 		MP_CHECKOK(ec_GFp_pt_dbl_jac(rx, ry, &rz, rx, ry, &rz, group));
-		
+		/* R = R + (ai * A + bi * B) */
 		MP_CHECKOK(ec_GFp_pt_add_jac_aff
 				   (rx, ry, &rz, &precomp[ai][bi][0], &precomp[ai][bi][1],
 					rx, ry, &rz, group));

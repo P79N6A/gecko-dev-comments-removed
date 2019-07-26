@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKIX_SIGNATURECHECKER_H
 #define _PKIX_SIGNATURECHECKER_H
 

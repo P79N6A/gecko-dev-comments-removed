@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
@@ -53,8 +21,27 @@
 #include "mpprime.h"
 #include "secmpi.h"
 
-#define DH_SECRET_KEY_LEN      20
 #define KEA_DERIVED_SECRET_LEN 128
+
+
+static unsigned int
+dh_GetSecretKeyLen(unsigned int primeLen)
+{
+    
+    if (primeLen >= 1920) { 
+        return 64;  
+    }
+    if (primeLen >= 960) { 
+        return 48;  
+    }
+    if (primeLen >= 384) { 
+        return 32;  
+    }
+    if (primeLen >= 256) { 
+        return 28;  
+    }
+    return 20;  
+}
 
 SECStatus 
 DH_GenParam(int primeLen, DHParams **params)
@@ -186,7 +173,8 @@ DH_NewKey(DHParams *params, DHPrivateKey **privKey)
     CHECK_SEC_OK( SECITEM_CopyItem(arena, &key->base, &params->base) );
     SECITEM_TO_MPINT(key->base, &g);
     
-    SECITEM_AllocItem(arena, &key->privateValue, DH_SECRET_KEY_LEN);
+    SECITEM_AllocItem(arena, &key->privateValue,
+                      dh_GetSecretKeyLen(params->prime.len));
     RNG_GenerateGlobalRandomBytes(key->privateValue.data, 
                                   key->privateValue.len);
     SECITEM_TO_MPINT( key->privateValue, &xa );

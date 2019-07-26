@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
@@ -238,7 +206,7 @@ MD5_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
 	MD5_Begin(&cx);
 	MD5_Update(&cx, src, src_length);
 	MD5_End(&cx, dest, &len, MD5_HASH_LEN);
-
+	memset(&cx, 0, sizeof cx);
 	return SECSuccess;
 }
 
@@ -257,7 +225,7 @@ MD5_NewContext(void)
 void 
 MD5_DestroyContext(MD5Context *cx, PRBool freeit)
 {
-
+	memset(cx, 0, sizeof *cx);
 	if (freeit) {
 	    PORT_Free(cx);
 	}

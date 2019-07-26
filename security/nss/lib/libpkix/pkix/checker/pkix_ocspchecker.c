@@ -8,40 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkix_ocspchecker.h"
 #include "pkix_pl_ocspcertid.h"
 #include "pkix_error.h"

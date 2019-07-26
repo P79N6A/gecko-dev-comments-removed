@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
@@ -100,7 +67,7 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 
 
 	    inf.cipherSuite           = ss->ssl3.hs.cipher_suite;
-	    inf.compressionMethod     = ss->ssl3.crSpec->compression_method;
+	    inf.compressionMethod     = ss->ssl3.cwSpec->compression_method;
 	    ssl_ReleaseSpecReadLock(ss);
 	    inf.compressionMethodName =
 		ssl_GetCompressionMethodName(inf.compressionMethod);
@@ -335,7 +302,7 @@ SSL_GetNegotiatedHostInfo(PRFileDesc *fd)
             ss->ssl3.initialized) { 
             SECItem *crsName;
             ssl_GetSpecReadLock(ss); 
-            crsName = &ss->ssl3.crSpec->srvVirtName;
+            crsName = &ss->ssl3.cwSpec->srvVirtName;
             if (crsName->data) {
                 sniName = SECITEM_DupItem(crsName);
             }
@@ -354,4 +321,67 @@ SSL_GetNegotiatedHostInfo(PRFileDesc *fd)
         sniName->len  = PORT_Strlen(name);
     }
     return sniName;
+}
+
+SECStatus
+SSL_ExportKeyingMaterial(PRFileDesc *fd,
+                         const char *label, unsigned int labelLen,
+                         PRBool hasContext,
+                         const unsigned char *context, unsigned int contextLen,
+                         unsigned char *out, unsigned int outLen)
+{
+    sslSocket *ss;
+    unsigned char *val = NULL;
+    unsigned int valLen, i;
+    SECStatus rv = SECFailure;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in ExportKeyingMaterial",
+		 SSL_GETPID(), fd));
+	return SECFailure;
+    }
+
+    if (ss->version < SSL_LIBRARY_VERSION_3_1_TLS) {
+	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION);
+	return SECFailure;
+    }
+
+    
+    valLen = SSL3_RANDOM_LENGTH * 2;
+    if (hasContext) {
+	valLen += 2  + contextLen;
+    }
+    val = PORT_Alloc(valLen);
+    if (!val) {
+	return SECFailure;
+    }
+    i = 0;
+    PORT_Memcpy(val + i, &ss->ssl3.hs.client_random.rand, SSL3_RANDOM_LENGTH);
+    i += SSL3_RANDOM_LENGTH;
+    PORT_Memcpy(val + i, &ss->ssl3.hs.server_random.rand, SSL3_RANDOM_LENGTH);
+    i += SSL3_RANDOM_LENGTH;
+    if (hasContext) {
+	val[i++] = contextLen >> 8;
+	val[i++] = contextLen;
+	PORT_Memcpy(val + i, context, contextLen);
+	i += contextLen;
+    }
+    PORT_Assert(i == valLen);
+
+    
+
+
+    ssl_GetSpecReadLock(ss);
+    if (!ss->ssl3.cwSpec->master_secret && !ss->ssl3.cwSpec->msItem.len) {
+	PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
+	rv = SECFailure;
+    } else {
+	rv = ssl3_TLSPRFWithMasterSecret(ss->ssl3.cwSpec, label, labelLen, val,
+					 valLen, out, outLen);
+    }
+    ssl_ReleaseSpecReadLock(ss);
+
+    PORT_ZFree(val, valLen);
+    return rv;
 }

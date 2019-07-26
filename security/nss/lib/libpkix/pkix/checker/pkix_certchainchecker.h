@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKIX_CERTCHAINCHECKER_H
 #define _PKIX_CERTCHAINCHECKER_H
 

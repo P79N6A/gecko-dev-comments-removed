@@ -1,40 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mpi.h"
 #include "mplogic.h"
@@ -51,7 +17,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-
+/* Time k repetitions of operation op. */
 #define M_TimeOperation(op, k) { \
 	double dStart, dNow, dUserTime; \
 	struct rusage ru; \
@@ -67,7 +33,7 @@
 	if (dUserTime) printf("    %-45s k: %6i, t: %6.2f sec\n", #op, k, dUserTime); \
 }
 
-
+/* Test curve using generic field arithmetic. */
 #define ECTEST_GENERIC_GF2M(name_c, name) \
 	printf("Testing %s using generic implementation...\n", name_c); \
 	params = EC_GetNamedCurveParams(name); \
@@ -86,7 +52,7 @@
 	MP_CHECKOK( ectest_curve_GF2m(group, ectestPrint, ectestTime, 1) ); \
 	printf("... okay.\n");
 
-
+/* Test curve using specific field arithmetic. */
 #define ECTEST_NAMED_GF2M(name_c, name) \
 	printf("Testing %s using specific implementation...\n", name_c); \
 	ECGroup_free(group); \
@@ -99,9 +65,9 @@
 		printf("... okay.\n"); \
 	}
 
-
-
-
+/* Performs basic tests of elliptic curve cryptography over binary
+ * polynomial fields. If tests fail, then it prints an error message,
+ * aborts, and returns an error code. Otherwise, returns 0. */
 int
 ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 				  int generic)
@@ -112,7 +78,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	mp_err res;
 	char s[1000];
 
-	
+	/* initialize values */
 	MP_CHECKOK(mp_init(&one));
 	MP_CHECKOK(mp_init(&order_1));
 	MP_CHECKOK(mp_init(&gx));
@@ -124,7 +90,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	MP_CHECKOK(mp_set_int(&one, 1));
 	MP_CHECKOK(mp_sub(&group->order, &one, &order_1));
 
-	
+	/* encode base point */
 	if (group->meth->field_dec) {
 		MP_CHECKOK(group->meth->field_dec(&group->genx, &gx, group->meth));
 		MP_CHECKOK(group->meth->field_dec(&group->geny, &gy, group->meth));
@@ -134,7 +100,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 
 	if (ectestPrint) {
-		
+		/* output base point */
 		printf("  base point P:\n");
 		MP_CHECKOK(mp_toradix(&gx, s, 16));
 		printf("    %s\n", s);
@@ -150,8 +116,8 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 
 #ifdef ECL_ENABLE_GF2M_PT_MUL_AFF
-	
-
+	/* multiply base point by order - 1 and check for negative of base
+	 * point */
 	MP_CHECKOK(ec_GF2m_pt_mul_aff
 			   (&order_1, &group->genx, &group->geny, &rx, &ry, group));
 	if (ectestPrint) {
@@ -170,8 +136,8 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 #endif
 
-	
-
+	/* multiply base point by order - 1 and check for negative of base
+	 * point */
 	MP_CHECKOK(ec_GF2m_pt_mul_mont
 			   (&order_1, &group->genx, &group->geny, &rx, &ry, group));
 	if (ectestPrint) {
@@ -190,8 +156,8 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 
 #ifdef ECL_ENABLE_GF2M_PROJ
-	
-
+	/* multiply base point by order - 1 and check for negative of base
+	 * point */
 	MP_CHECKOK(ec_GF2m_pt_mul_proj
 			   (&order_1, &group->genx, &group->geny, &rx, &ry, group));
 	if (ectestPrint) {
@@ -210,8 +176,8 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 #endif
 
-	
-
+	/* multiply base point by order - 1 and check for negative of base
+	 * point */
 	MP_CHECKOK(ECPoint_mul(group, &order_1, NULL, NULL, &rx, &ry));
 	if (ectestPrint) {
 		printf("  (order-1)*P (ECPoint_mul):\n");
@@ -227,8 +193,8 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 		goto CLEANUP;
 	}
 
-	
-
+	/* multiply base point by order - 1 and check for negative of base
+	 * point */
 	MP_CHECKOK(ECPoint_mul(group, &order_1, &gx, &gy, &rx, &ry));
 	if (ectestPrint) {
 		printf("  (order-1)*P (ECPoint_mul):\n");
@@ -245,7 +211,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 
 #ifdef ECL_ENABLE_GF2M_PT_MUL_AFF
-	
+	/* multiply base point by order and check for point at infinity */
 	MP_CHECKOK(ec_GF2m_pt_mul_aff
 			   (&group->order, &group->genx, &group->geny, &rx, &ry,
 				group));
@@ -263,7 +229,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 #endif
 
-	
+	/* multiply base point by order and check for point at infinity */
 	MP_CHECKOK(ec_GF2m_pt_mul_mont
 			   (&group->order, &group->genx, &group->geny, &rx, &ry,
 				group));
@@ -281,7 +247,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 
 #ifdef ECL_ENABLE_GF2M_PROJ
-	
+	/* multiply base point by order and check for point at infinity */
 	MP_CHECKOK(ec_GF2m_pt_mul_proj
 			   (&group->order, &group->genx, &group->geny, &rx, &ry,
 				group));
@@ -299,7 +265,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 #endif
 
-	
+	/* multiply base point by order and check for point at infinity */
 	MP_CHECKOK(ECPoint_mul(group, &group->order, NULL, NULL, &rx, &ry));
 	if (ectestPrint) {
 		printf("  (order)*P (ECPoint_mul):\n");
@@ -314,7 +280,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 		goto CLEANUP;
 	}
 
-	
+	/* multiply base point by order and check for point at infinity */
 	MP_CHECKOK(ECPoint_mul(group, &group->order, &gx, &gy, &rx, &ry));
 	if (ectestPrint) {
 		printf("  (order)*P (ECPoint_mul):\n");
@@ -329,7 +295,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 		goto CLEANUP;
 	}
 
-	
+	/* check that (order-1)P + (order-1)P + P == (order-1)P */
 	MP_CHECKOK(ECPoints_mul
 			   (group, &order_1, &order_1, &gx, &gy, &rx, &ry));
 	MP_CHECKOK(ECPoints_mul(group, &one, &one, &rx, &ry, &rx, &ry));
@@ -348,7 +314,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 		goto CLEANUP;
 	}
 
-	
+	/* test validate_point function */
 	if (ECPoint_validate(group, &gx, &gy) != MP_YES) {
 		printf("  Error: validate point on base point failed.\n");
 		res = MP_NO;
@@ -362,14 +328,14 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	}
 
 	if (ectestTime) {
-		
+		/* compute random scalar */
 		size = mpl_significant_bits(&group->meth->irr);
 		if (size < MP_OKAY) {
 			goto CLEANUP;
 		}
 		MP_CHECKOK(mpp_random_size(&n, (size + ECL_BITS - 1) / ECL_BITS));
 		MP_CHECKOK(group->meth->field_mod(&n, &n, group->meth));
-		
+		/* timed test */
 		if (generic) {
 #ifdef ECL_ENABLE_GF2M_PT_MUL_AFF
 			M_TimeOperation(MP_CHECKOK
@@ -410,7 +376,7 @@ ectest_curve_GF2m(ECGroup *group, int ectestPrint, int ectestTime,
 	return res;
 }
 
-
+/* Prints help information. */
 void
 printUsage()
 {
@@ -421,9 +387,9 @@ printUsage()
 		("	--time      Benchmark point operations and print results.\n");
 }
 
-
-
-
+/* Performs tests of elliptic curve cryptography over binary polynomial
+ * fields. If tests fail, then it prints an error message, aborts, and
+ * returns an error code. Otherwise, returns 0. */
 int
 main(int argv, char **argc)
 {
@@ -435,7 +401,7 @@ main(int argv, char **argc)
 	ECCurveParams *params = NULL;
 	mp_err res;
 
-	
+	/* read command-line arguments */
 	for (i = 1; i < argv; i++) {
 		if ((strcasecmp(argc[i], "time") == 0)
 			|| (strcasecmp(argc[i], "-time") == 0)
@@ -451,10 +417,10 @@ main(int argv, char **argc)
 		}
 	}
 
-	
+	/* generic arithmetic tests */
 	ECTEST_GENERIC_GF2M("SECT-131R1", ECCurve_SECG_CHAR2_131R1);
 
-	
+	/* specific arithmetic tests */
 	ECTEST_NAMED_GF2M("NIST-K163", ECCurve_NIST_K163);
 	ECTEST_NAMED_GF2M("NIST-B163", ECCurve_NIST_B163);
 	ECTEST_NAMED_GF2M("NIST-K233", ECCurve_NIST_K233);

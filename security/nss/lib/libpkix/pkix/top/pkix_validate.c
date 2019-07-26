@@ -8,40 +8,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkix_validate.h"
+#include "pkix_pl_common.h"
 
 
 
@@ -733,6 +701,10 @@ pkix_CheckChain(
         void *nbioContext = NULL;
         PKIX_PL_Cert *cert = NULL;
         PKIX_PL_Cert *issuer = NULL;
+        PKIX_PL_NssContext *nssContext = NULL;
+        CERTCertList *certList = NULL;
+        const CERTChainVerifyCallback *chainVerifyCallback = NULL;
+        CERTCertificate *nssCert = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckChain");
         PKIX_NULLCHECK_FOUR(certs, checkers, revChecker, pCertCheckedIndex);
@@ -742,11 +714,70 @@ pkix_CheckChain(
         nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
         revChecking = *pRevChecking;
+        nssContext = (PKIX_PL_NssContext *)plContext;
+        chainVerifyCallback = &nssContext->chainVerifyCallback;
+
+        if (chainVerifyCallback->isChainValid != NULL) {
+                PRBool chainOK = PR_FALSE; 
+                SECStatus rv;
+
+                certList = CERT_NewCertList();
+                if (certList == NULL) {
+                        PKIX_ERROR_ALLOC_ERROR();
+                }
+
+                
+                PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
+                        (anchor, &cert, plContext),
+                        PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
+
+                PKIX_CHECK(
+                        PKIX_PL_Cert_GetCERTCertificate(cert, &nssCert, plContext),
+                        PKIX_CERTGETCERTCERTIFICATEFAILED);
+
+                rv = CERT_AddCertToListHead(certList, nssCert);
+                if (rv != SECSuccess) {
+                        PKIX_ERROR_ALLOC_ERROR();
+                }
+                
+                nssCert = NULL;
+                PKIX_DECREF(cert);
+
+                
+                for (j = *pCertCheckedIndex; j < numCerts; j++) {
+                        PKIX_CHECK(PKIX_List_GetItem(
+                                certs, j, (PKIX_PL_Object **)&cert, plContext),
+                                PKIX_LISTGETITEMFAILED);
+
+                        PKIX_CHECK(
+                                PKIX_PL_Cert_GetCERTCertificate(cert, &nssCert, plContext),
+                                PKIX_CERTGETCERTCERTIFICATEFAILED);
+
+                        rv = CERT_AddCertToListHead(certList, nssCert);
+                        if (rv != SECSuccess) {
+                                PKIX_ERROR_ALLOC_ERROR();
+                        }
+                        
+                        nssCert = NULL;
+                        PKIX_DECREF(cert);
+                }
+
+                rv = (*chainVerifyCallback->isChainValid)
+                     (chainVerifyCallback->isChainValidArg, certList, &chainOK);
+                if (rv != SECSuccess) {
+                       PKIX_ERROR_FATAL(PKIX_CHAINVERIFYCALLBACKFAILED);
+                }
+
+                if (!chainOK) {
+                        PKIX_ERROR(PKIX_CHAINVERIFYCALLBACKFAILED);
+                }
+
+        }
 
         PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
                 (anchor, &cert, plContext),
                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
-        
+
         for (j = *pCertCheckedIndex; j < numCerts; j++) {
 
                 PORT_Assert(cert);
@@ -842,6 +873,14 @@ cleanup:
         }
 
 fatal:
+        if (nssCert) {
+                CERT_DestroyCertificate(nssCert);
+        }
+
+        if (certList) {
+                CERT_DestroyCertList(certList);
+        }
+
         PKIX_DECREF(checkCertError);
         PKIX_DECREF(cert);
         PKIX_DECREF(issuer);

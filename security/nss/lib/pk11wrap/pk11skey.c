@@ -6,40 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "seccomon.h"
 #include "secmod.h"
 #include "nssilock.h"
@@ -849,23 +815,48 @@ pk11_CopyToSlot(PK11SlotInfo *slot,CK_MECHANISM_TYPE type,
 
 
 
+
 PK11SymKey *
-pk11_ForceSlot(PK11SymKey *symKey,CK_MECHANISM_TYPE type,
-						CK_ATTRIBUTE_TYPE operation)
+pk11_ForceSlotMultiple(PK11SymKey *symKey, CK_MECHANISM_TYPE *type,
+			int mechCount, CK_ATTRIBUTE_TYPE operation)
 {
     PK11SlotInfo *slot = symKey->slot;
     PK11SymKey *newKey = NULL;
+    PRBool needToCopy = PR_FALSE;
+    int i;
 
-    if ((slot== NULL) || !PK11_DoesMechanism(slot,type)) {
-	slot = PK11_GetBestSlot(type,symKey->cx);
+    if (slot == NULL) {
+	needToCopy = PR_TRUE;
+    } else {
+	i = 0;
+	while ((i < mechCount) && (needToCopy == PR_FALSE)) {
+	    if (!PK11_DoesMechanism(slot,type[i])) {
+		needToCopy = PR_TRUE;
+	    }
+	    i++;
+	}
+    }
+
+    if (needToCopy == PR_TRUE) {
+	slot = PK11_GetBestSlotMultiple(type,mechCount,symKey->cx);
 	if (slot == NULL) {
 	    PORT_SetError( SEC_ERROR_NO_MODULE );
 	    return NULL;
 	}
-	newKey = pk11_CopyToSlot(slot, type, operation, symKey);
+	newKey = pk11_CopyToSlot(slot, type[0], operation, symKey);
 	PK11_FreeSlot(slot);
     }
     return newKey;
+}
+
+
+
+
+PK11SymKey *
+pk11_ForceSlot(PK11SymKey *symKey,CK_MECHANISM_TYPE type,
+						CK_ATTRIBUTE_TYPE operation)
+{
+    return pk11_ForceSlotMultiple(symKey, &type, 1, operation);
 }
 
 PK11SymKey *
@@ -1565,6 +1556,239 @@ PK11_DeriveWithTemplate( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
 
 
 
+static PK11SymKey *pk11_ConcatenateBaseAndData(PK11SymKey *base,
+	CK_BYTE *data, CK_ULONG dataLen, CK_MECHANISM_TYPE target,
+	CK_ATTRIBUTE_TYPE operation)
+{
+    CK_KEY_DERIVATION_STRING_DATA mechParams;
+    SECItem param;
+
+    if (base == NULL) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    mechParams.pData = data;
+    mechParams.ulLen = dataLen;
+    param.data = (unsigned char *)&mechParams;
+    param.len = sizeof(CK_KEY_DERIVATION_STRING_DATA);
+
+    return PK11_Derive(base, CKM_CONCATENATE_BASE_AND_DATA,
+				&param, target, operation, 0);
+}
+
+
+
+static PK11SymKey *pk11_ConcatenateBaseAndKey(PK11SymKey *base,
+			PK11SymKey *key, CK_MECHANISM_TYPE target,
+			CK_ATTRIBUTE_TYPE operation, CK_ULONG keySize)
+{
+    SECItem param;
+
+    if ((base == NULL) || (key == NULL)) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    param.data = (unsigned char *)&(key->objectID);
+    param.len = sizeof(CK_OBJECT_HANDLE);
+
+    return PK11_Derive(base, CKM_CONCATENATE_BASE_AND_KEY,
+				&param, target, operation, keySize);
+}
+
+
+
+
+static PK11SymKey *pk11_HashKeyDerivation(PK11SymKey *toBeHashed,
+	CK_MECHANISM_TYPE hashMechanism, CK_MECHANISM_TYPE target,
+	CK_ATTRIBUTE_TYPE operation, CK_ULONG keySize)
+{
+    return PK11_Derive(toBeHashed, hashMechanism, NULL, target, operation, keySize);
+}
+
+
+
+static PK11SymKey *pk11_ANSIX963Derive(PK11SymKey *sharedSecret,
+		CK_EC_KDF_TYPE kdf, SECItem *sharedData,
+		CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation,
+		CK_ULONG keySize)
+{
+    CK_KEY_TYPE keyType;
+    CK_MECHANISM_TYPE hashMechanism, mechanismArray[4];
+    CK_ULONG derivedKeySize, HashLen, counter, maxCounter, bufferLen;
+    CK_ULONG SharedInfoLen;
+    CK_BYTE *buffer = NULL;
+    PK11SymKey *toBeHashed, *hashOutput;
+    PK11SymKey *newSharedSecret = NULL;
+    PK11SymKey *oldIntermediateResult, *intermediateResult = NULL;
+
+    if (sharedSecret == NULL) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    switch (kdf) {
+    case CKD_SHA1_KDF:
+	HashLen = SHA1_LENGTH;
+	hashMechanism = CKM_SHA1_KEY_DERIVATION;
+	break;
+    case CKD_SHA224_KDF:
+	HashLen = SHA224_LENGTH;
+	hashMechanism = CKM_SHA224_KEY_DERIVATION;
+	break;
+    case CKD_SHA256_KDF:
+	HashLen = SHA256_LENGTH;
+	hashMechanism = CKM_SHA256_KEY_DERIVATION;
+	break;
+    case CKD_SHA384_KDF:
+	HashLen = SHA384_LENGTH;
+	hashMechanism = CKM_SHA384_KEY_DERIVATION;
+	break;
+    case CKD_SHA512_KDF:
+	HashLen = SHA512_LENGTH;
+	hashMechanism = CKM_SHA512_KEY_DERIVATION;
+	break;
+    default:
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    derivedKeySize = keySize;
+    if (derivedKeySize == 0) {
+	keyType = PK11_GetKeyType(target,keySize);
+	derivedKeySize = pk11_GetPredefinedKeyLength(keyType);
+	if (derivedKeySize == 0) {
+	    derivedKeySize = HashLen;
+	}
+    }
+
+    
+
+
+    if (derivedKeySize > 254 * HashLen) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    maxCounter = derivedKeySize / HashLen;
+    if (derivedKeySize > maxCounter * HashLen)
+	maxCounter++;
+
+    if ((sharedData == NULL) || (sharedData->data == NULL))
+	SharedInfoLen = 0;
+    else
+	SharedInfoLen = sharedData->len;
+
+    bufferLen = SharedInfoLen + 4;
+    
+    
+
+    buffer = (unsigned char *)PORT_Alloc(bufferLen);
+    if (buffer == NULL) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return NULL;
+    }
+
+    buffer[0] = 0;
+    buffer[1] = 0;
+    buffer[2] = 0;
+    buffer[3] = 1;
+    if (SharedInfoLen > 0) {
+	PORT_Memcpy(&buffer[4], sharedData->data, SharedInfoLen);
+    }
+
+    
+
+
+
+    mechanismArray[0] = CKM_CONCATENATE_BASE_AND_DATA;
+    mechanismArray[1] = hashMechanism;
+    mechanismArray[2] = CKM_CONCATENATE_BASE_AND_KEY;
+    mechanismArray[3] = target;
+
+    newSharedSecret = pk11_ForceSlotMultiple(sharedSecret,
+					 mechanismArray, 4, operation);
+    if (newSharedSecret != NULL) {
+	sharedSecret = newSharedSecret;
+    }
+
+    for(counter=1; counter <= maxCounter; counter++) {
+	
+	toBeHashed = pk11_ConcatenateBaseAndData(sharedSecret, buffer,
+					bufferLen, hashMechanism, operation);
+	if (toBeHashed == NULL) {
+	    goto loser;
+	}
+
+	
+	if (maxCounter == 1) {
+	    
+
+
+
+	    hashOutput = pk11_HashKeyDerivation(toBeHashed, hashMechanism,
+						target, operation, keySize);
+	} else {
+	    
+
+	    hashOutput = pk11_HashKeyDerivation(toBeHashed, hashMechanism,
+				CKM_CONCATENATE_BASE_AND_KEY, operation, 0);
+	}
+	PK11_FreeSymKey(toBeHashed);
+	if (hashOutput == NULL) {
+	    goto loser;
+	}
+
+	
+	oldIntermediateResult = intermediateResult;
+
+	if (oldIntermediateResult == NULL) {
+	    intermediateResult = hashOutput;
+	} else {
+	    if (counter == maxCounter) {
+		
+
+		intermediateResult =
+		    pk11_ConcatenateBaseAndKey(oldIntermediateResult,
+				hashOutput, target, operation, keySize);
+	    } else {
+		
+
+		intermediateResult =
+		    pk11_ConcatenateBaseAndKey(oldIntermediateResult,
+				hashOutput, CKM_CONCATENATE_BASE_AND_KEY,
+				operation, 0);
+	    }
+
+	    PK11_FreeSymKey(hashOutput);
+	    PK11_FreeSymKey(oldIntermediateResult);
+	    if (intermediateResult == NULL) {
+		goto loser;
+	    }
+	}
+
+	
+	buffer[3]++;
+    }
+
+    PORT_ZFree(buffer, bufferLen);
+    if (newSharedSecret != NULL)
+	PK11_FreeSymKey(newSharedSecret);
+    return intermediateResult;
+
+loser:
+    if (buffer != NULL)
+	PORT_ZFree(buffer, bufferLen);
+    if (newSharedSecret != NULL)
+	PK11_FreeSymKey(newSharedSecret);
+    if (intermediateResult != NULL)
+	PK11_FreeSymKey(intermediateResult);
+    return NULL;
+}
+
+
+
 
 
 
@@ -1711,7 +1935,7 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
 	    keyType = PK11_GetKeyType(target,keySize);
 	    key_size = keySize;
 	    if (key_size == 0) {
-		if (pk11_GetPredefinedKeyLength(keyType)) {
+		if ((key_size = pk11_GetPredefinedKeyLength(keyType))) {
 		    templateCount --;
 		} else {
 		    
@@ -1771,6 +1995,23 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
    return NULL;
 }
 
+
+
+static CK_ULONG
+pk11_ECPubKeySize(SECItem *publicValue)
+{
+    if (publicValue->data[0] == 0x04) {
+	
+	return((publicValue->len - 1)/2);
+    } else if ( (publicValue->data[0] == 0x02) ||
+		(publicValue->data[0] == 0x03)) {
+	
+	return(publicValue->len - 1);
+    }
+    
+    return(0);
+}
+
 static PK11SymKey *
 pk11_PubDeriveECKeyWithKDF(
 		    SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
@@ -1781,6 +2022,7 @@ pk11_PubDeriveECKeyWithKDF(
 {
     PK11SlotInfo           *slot            = privKey->pkcs11Slot;
     PK11SymKey             *symKey;
+    PK11SymKey             *SharedSecret;
     CK_MECHANISM            mechanism;
     CK_RV                   crv;
     CK_BBOOL                cktrue          = CK_TRUE;
@@ -1796,7 +2038,9 @@ pk11_PubDeriveECKeyWithKDF(
 	PORT_SetError(SEC_ERROR_BAD_KEY);
 	return NULL;
     }
-    if ((kdf < CKD_NULL) || (kdf > CKD_SHA1_KDF)) {
+    if ((kdf != CKD_NULL) && (kdf != CKD_SHA1_KDF) &&
+	(kdf != CKD_SHA224_KDF) && (kdf != CKD_SHA256_KDF) &&
+	(kdf != CKD_SHA384_KDF) && (kdf != CKD_SHA512_KDF)) {
 	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return NULL;
     }
@@ -1819,17 +2063,33 @@ pk11_PubDeriveECKeyWithKDF(
     keyType = PK11_GetKeyType(target,keySize);
     key_size = keySize;
     if (key_size == 0) {
-	if (pk11_GetPredefinedKeyLength(keyType)) {
+	if ((key_size = pk11_GetPredefinedKeyLength(keyType))) {
 	    templateCount --;
 	} else {
 	    
 
 	    switch (kdf) {
 	    case CKD_NULL:
-		key_size = (pubKey->u.ec.publicValue.len-1)/2;
+		key_size = pk11_ECPubKeySize(&pubKey->u.ec.publicValue);
+		if (key_size == 0) {
+		    PK11_FreeSymKey(symKey);
+		    return NULL;
+		}
 		break;
 	    case CKD_SHA1_KDF:
 		key_size = SHA1_LENGTH;
+		break;
+	    case CKD_SHA224_KDF:
+		key_size = SHA224_LENGTH;
+		break;
+	    case CKD_SHA256_KDF:
+		key_size = SHA256_LENGTH;
+		break;
+	    case CKD_SHA384_KDF:
+		key_size = SHA384_LENGTH;
+		break;
+	    case CKD_SHA512_KDF:
+		key_size = SHA512_LENGTH;
 		break;
 	    default:
 		PORT_Assert(!"Invalid CKD");
@@ -1883,6 +2143,60 @@ pk11_PubDeriveECKeyWithKDF(
 	    templateCount, &symKey->objectID);
 	pk11_ExitKeyMonitor(symKey);
 
+	if ((crv != CKR_OK) && (kdf != CKD_NULL)) {
+	    
+
+
+
+	    CK_ULONG derivedKeySize = key_size;
+
+	    keyType = CKK_GENERIC_SECRET;
+	    key_size = pk11_ECPubKeySize(&pubKey->u.ec.publicValue);
+	    if (key_size == 0) {
+		SECITEM_FreeItem(pubValue,PR_TRUE);
+		goto loser;
+	    }
+	    SharedSecret = symKey;
+	    SharedSecret->size = key_size;
+
+	    mechParams->kdf             = CKD_NULL;
+	    mechParams->ulSharedDataLen = 0;
+	    mechParams->pSharedData     = NULL;
+	    mechParams->ulPublicDataLen = pubKey->u.ec.publicValue.len;
+	    mechParams->pPublicData     = pubKey->u.ec.publicValue.data;
+
+	    pk11_EnterKeyMonitor(SharedSecret);
+	    crv = PK11_GETTAB(slot)->C_DeriveKey(SharedSecret->session,
+			    &mechanism, privKey->pkcs11ID, keyTemplate,
+			    templateCount, &SharedSecret->objectID);
+	    pk11_ExitKeyMonitor(SharedSecret);
+
+	    if (crv != CKR_OK) {
+		
+
+		mechParams->ulPublicDataLen =  pubValue->len;
+		mechParams->pPublicData     =  pubValue->data;
+
+		pk11_EnterKeyMonitor(SharedSecret);
+		crv = PK11_GETTAB(slot)->C_DeriveKey(SharedSecret->session,
+				&mechanism, privKey->pkcs11ID, keyTemplate,
+				templateCount, &SharedSecret->objectID);
+		pk11_ExitKeyMonitor(SharedSecret);
+	    }
+
+	    
+	    if (crv == CKR_OK) {
+		    symKey = pk11_ANSIX963Derive(SharedSecret, kdf,
+					sharedData, target, operation,
+					derivedKeySize);
+		    PK11_FreeSymKey(SharedSecret);
+		    if (symKey == NULL) {
+			SECITEM_FreeItem(pubValue,PR_TRUE);
+			PORT_ZFree(mechParams, sizeof(CK_ECDH1_DERIVE_PARAMS));
+			return NULL;
+		    }
+	    }
+	}
 	SECITEM_FreeItem(pubValue,PR_TRUE);
     }
 

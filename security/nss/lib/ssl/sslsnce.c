@@ -43,38 +43,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "seccomon.h"
 
 #if defined(XP_UNIX) || defined(XP_WIN32) || defined (XP_OS2) || defined(XP_BEOS)
@@ -86,7 +54,12 @@
 #include "pk11func.h"
 #include "base64.h"
 #include "keyhi.h"
+#ifdef NO_PKCS11_BYPASS
+#include "blapit.h"
+#include "sechash.h"
+#else
 #include "blapi.h"
+#endif
 
 #include <stdio.h>
 
@@ -448,8 +421,12 @@ CacheSrvName(cacheDesc * cache, SECItem *name, sidCacheEntry *sce)
     snce.type = name->type;
     snce.nameLen = name->len;
     PORT_Memcpy(snce.name, name->data, snce.nameLen);
+#ifdef NO_PKCS11_BYPASS
+    HASH_HashBuf(HASH_AlgSHA256, snce.nameHash, name->data, name->len);
+#else
     SHA256_HashBuf(snce.nameHash, (unsigned char*)name->data,
                    name->len);
+#endif
     
     ndx = Get32BitNameHash(name);
     
@@ -557,7 +534,7 @@ ConvertToSID(sidCacheEntry *    from,
     sslSessionID *to;
     uint16 version = from->version;
 
-    to = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+    to = PORT_ZNew(sslSessionID);
     if (!to) {
 	return 0;
     }
@@ -1328,7 +1305,7 @@ ssl_ConfigServerSessionIDCacheInstanceWithOpt(cacheDesc *cache,
 {
     SECStatus rv;
 
-    PORT_Assert(sizeof(sidCacheEntry) == 224);
+    PORT_Assert(sizeof(sidCacheEntry) == 192);
     PORT_Assert(sizeof(certCacheEntry) == 4096);
     PORT_Assert(sizeof(srvNameCacheEntry) == 1072);
 

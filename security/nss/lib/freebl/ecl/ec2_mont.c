@@ -2,42 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ec2.h"
 #include "mplogic.h"
 #include "mp_gf2m.h"

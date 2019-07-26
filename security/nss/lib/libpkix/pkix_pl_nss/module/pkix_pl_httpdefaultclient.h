@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKIX_PL_HTTPDEFAULTCLIENT_H
 #define _PKIX_PL_HTTPDEFAULTCLIENT_H
 

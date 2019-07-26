@@ -6,39 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdio.h>
 #include "cryptohi.h"
 #include "sechash.h"
@@ -359,7 +326,18 @@ SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 	    algID = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION;
 	    break;
 	  case dsaKey:
-	    algID = SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
+	    
+	    switch (PK11_SignatureLen(pk)) {
+		case 448:
+		    algID = SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST;
+		    break;
+		case 512:
+		    algID = SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST;
+		    break;
+		default:
+		    algID = SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
+		    break;
+	    }
 	    break;
 	  case ecKey:
 	    algID = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
@@ -495,6 +473,10 @@ SEC_GetSignatureAlgorithmOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	case SEC_OID_UNKNOWN:	
 	case SEC_OID_SHA1:
 	    sigTag = SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST; break;
+	case SEC_OID_SHA224:
+	    sigTag = SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST; break;
+	case SEC_OID_SHA256:
+	    sigTag = SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST; break;
 	default:
 	    break;
 	}

@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKIX_NAMECONSTRAINTSCHECKER_H
 #define _PKIX_NAMECONSTRAINTSCHECKER_H
 

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "cert.h"
 #include "secitem.h"
 #include "keyhi.h"
@@ -615,6 +582,7 @@ DoRecv(sslSocket *ss, unsigned char *out, int len, int flags)
     if (!(flags & PR_MSG_PEEK)) {
 	ss->gs.readOffset += amount;
     }
+    PORT_Assert(ss->gs.readOffset <= ss->gs.writeOffset);
     rv = amount;
 
     SSL_TRC(30, ("%d: SSL[%d]: amount=%d available=%d",
@@ -628,8 +596,11 @@ done:
 
 
 
+
+
+
 SSLKEAType
-ssl_FindCertKEAType(CERTCertificate * cert)
+NSS_FindCertKEAType(CERTCertificate * cert)
 {
   SSLKEAType keaType = kt_null; 
   int tag;
@@ -643,7 +614,6 @@ ssl_FindCertKEAType(CERTCertificate * cert)
   case SEC_OID_PKCS1_RSA_ENCRYPTION:
     keaType = kt_rsa;
     break;
-
   case SEC_OID_X942_DIFFIE_HELMAN_KEY:
     keaType = kt_dh;
     break;
@@ -659,7 +629,6 @@ ssl_FindCertKEAType(CERTCertificate * cert)
  loser:
   
   return keaType;
-
 }
 
 static const PRCallOnceType pristineCallOnce;
@@ -801,7 +770,7 @@ SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
 	return SECFailure;
     }
 
-    if (kea != ssl_FindCertKEAType(cert)) {
+    if (kea != NSS_FindCertKEAType(cert)) {
     	PORT_SetError(SSL_ERROR_CERT_KEA_MISMATCH);
 	return SECFailure;
     }

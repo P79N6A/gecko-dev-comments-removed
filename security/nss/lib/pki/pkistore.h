@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef PKISTORE_H
 #define PKISTORE_H
 
 #ifdef DEBUG
-static const char PKISTORE_CVS_ID[] = "@(#) $RCSfile: pkistore.h,v $ $Revision: 1.12 $ $Date: 2008/06/06 01:19:31 $";
+static const char PKISTORE_CVS_ID[] = "@(#) $RCSfile: pkistore.h,v $ $Revision: 1.13 $ $Date: 2012/04/25 14:50:07 $";
 #endif 
 
 #ifndef NSSPKIT_H

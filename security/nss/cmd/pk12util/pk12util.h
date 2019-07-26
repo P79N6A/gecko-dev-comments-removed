@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define PK12UERR_USER_CANCELLED 1
 #define PK12UERR_USAGE 2
 #define PK12UERR_CERTDB_OPEN 8

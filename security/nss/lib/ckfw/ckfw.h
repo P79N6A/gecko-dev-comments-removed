@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef CKFW_H
 #define CKFW_H
 
 #ifdef DEBUG
-static const char CKFW_CVS_ID[] = "@(#) $RCSfile: ckfw.h,v $ $Revision: 1.10 $ $Date: 2007/10/06 01:41:28 $";
+static const char CKFW_CVS_ID[] = "@(#) $RCSfile: ckfw.h,v $ $Revision: 1.11 $ $Date: 2012/04/25 14:49:28 $";
 #endif 
 
 

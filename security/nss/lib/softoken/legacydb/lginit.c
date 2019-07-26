@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "lowkeyi.h"
 #include "pcert.h"
 #include "keydbi.h"
@@ -562,7 +530,7 @@ lg_init(SDB **pSdb, int flags, NSSLOWCERTCertDBHandle *certdbPtr,
 
     sdb->private = lgdb_p;
     sdb->version = 0;
-    sdb->sdb_type = SDB_LEGACY;
+    
     sdb->sdb_flags = flags;
     sdb->app_private = NULL;
     sdb->sdb_FindObjectsInit = lg_FindObjectsInit;

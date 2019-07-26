@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mpi.h"
 
 #define CHECK_SEC_OK(func) if (SECSuccess != (rv = func)) goto cleanup

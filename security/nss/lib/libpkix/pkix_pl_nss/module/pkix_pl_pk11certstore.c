@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkix_pl_pk11certstore.h"
 
 
@@ -278,12 +245,8 @@ pkix_pl_Pk11CertStore_CertQuery(
                         PKIX_PL_NSSCALLRV
                                 (CERTSTORE,
                                 nssCert,
-                                CERT_NewTempCertificate,
-                                        (dbHandle,
-                                        &(node->cert->derCert),
-                                        NULL, 
-                                        PR_FALSE,
-                                        PR_TRUE)); 
+                                CERT_DupCertificate,
+                                        (node->cert));
 
                         if (!nssCert) {
                                 continue; 

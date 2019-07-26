@@ -7,40 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKIXT_H
 #define _PKIXT_H
 
@@ -373,6 +339,7 @@ typedef enum {
 
 typedef enum    {
 #include "pkix_errorstrings.h"
+, PKIX_NUMERRORCODES
 } PKIX_ERRORCODE;
 
 extern const char * const PKIX_ErrorText[];

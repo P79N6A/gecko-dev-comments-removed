@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nspr.h"
 #include "prtypes.h"
 #include "prtime.h"
@@ -97,7 +65,7 @@ static void
 error_out(char  *error_string)
 {
     printf("Content-type: text/plain\n\n");
-    printf(error_string);
+    printf("%s", error_string);
     fflush(stderr);
     fflush(stdout);
     exit(1);
@@ -1429,7 +1397,7 @@ string_to_ipaddress(char *string)
 		}
 	    }
 	}
-	if (value >= 0 || value < 256) {
+	if (value >= 0 && value < 256) {
 	    *(ipaddress->data + j) = value;
 	} else {
 	    error_out("ERROR: Improperly formated IP Address");

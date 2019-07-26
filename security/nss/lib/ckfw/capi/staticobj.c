@@ -2,42 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: staticobj.c,v $ $Revision: 1.3 $ $Date: 2009/04/09 02:28:50 $""; @(#) $RCSfile: staticobj.c,v $ $Revision: 1.3 $ $Date: 2009/04/09 02:28:50 $";
+static const char CVS_ID[] = "@(#) $RCSfile: staticobj.c,v $ $Revision: 1.4 $ $Date: 2012/04/25 14:49:30 $""; @(#) $RCSfile: staticobj.c,v $ $Revision: 1.4 $ $Date: 2012/04/25 14:49:30 $";
 #endif 
 
 #ifndef CKCAPI_H

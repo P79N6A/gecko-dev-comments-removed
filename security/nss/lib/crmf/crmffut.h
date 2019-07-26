@@ -15,38 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern CRMFSinglePubInfo* 
       CRMF_CreateSinglePubInfo(CRMFPublicationMethod  inPubMethod,
 			       CRMFGeneralName       *pubLocation);

@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKIX_PL_HTTPCERTSTORE_H
 #define _PKIX_PL_HTTPCERTSTORE_H
 

@@ -8,40 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mpi-priv.h"
 #if defined(OSF1)
 #include <c_asm.h>

@@ -1,40 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "cryptohi.h"
 #include "keyhi.h"
 #include "secoid.h"
@@ -362,8 +328,16 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
         
 
 
+
+
+
+
+
+
 	if ( (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST) &&
              (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_SDN702_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX962_EC_PUBLIC_KEY) ) {
@@ -406,6 +380,8 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
 
 	if ( (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST) &&
              (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_SDN702_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX962_EC_PUBLIC_KEY) ) {            
@@ -1034,7 +1010,7 @@ SECKEY_SignatureLen(const SECKEYPublicKey *pubk)
     	b0 = pubk->u.rsa.modulus.data[0];
     	return b0 ? pubk->u.rsa.modulus.len : pubk->u.rsa.modulus.len - 1;
     case dsaKey:
-    	return DSA_SIGNATURE_LEN;
+	return pubk->u.dsa.params.subPrime.len * 2;
     case ecKey:
 	
 	size =	SECKEY_ECParamsToBasePointOrderLen(
@@ -1955,6 +1931,7 @@ SECKEY_CacheStaticFlags(SECKEYPrivateKey* key)
     if (key && key->pkcs11Slot && key->pkcs11ID) {
         key->staticflags |= SECKEY_Attributes_Cached;
         SECKEY_CacheAttribute(key, CKA_PRIVATE);
+        SECKEY_CacheAttribute(key, CKA_ALWAYS_AUTHENTICATE);
         rv = SECSuccess;
     }
     return rv;

@@ -1,41 +1,8 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* Prototypes of the functions defined in the assembler file.  */
 void intel_aes_encrypt_init_128(const unsigned char *key, PRUint32 *expanded);
 void intel_aes_encrypt_init_192(const unsigned char *key, PRUint32 *expanded);
 void intel_aes_encrypt_init_256(const unsigned char *key, PRUint32 *expanded);

@@ -2,42 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: ctoken.c,v $ $Revision: 1.2 $ $Date: 2005/11/15 00:13:58 $";
+static const char CVS_ID[] = "@(#) $RCSfile: ctoken.c,v $ $Revision: 1.3 $ $Date: 2012/04/25 14:49:30 $";
 #endif 
 
 #include "ckcapi.h"

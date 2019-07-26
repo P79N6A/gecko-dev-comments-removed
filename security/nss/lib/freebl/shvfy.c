@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
@@ -47,6 +15,8 @@
 #include "seccomon.h"
 #include "stdio.h"
 #include "prmem.h"
+#include "hasht.h"
+#include "pqg.h"
 
 
 
@@ -330,7 +300,8 @@ BLAPI_SHVerifyFile(const char *shName)
     char *checkName = NULL;
     PRFileDesc *checkFD = NULL;
     PRFileDesc *shFD = NULL;
-    SHA1Context *hashcx = NULL;
+    void  *hashcx = NULL;
+    const SECHashObject *hashObj = NULL;
     SECItem signature = { 0, NULL, 0 };
     SECItem hash;
     int bytesRead, offset;
@@ -344,7 +315,7 @@ BLAPI_SHVerifyFile(const char *shName)
     PRBool result = PR_FALSE; 
 
     unsigned char buf[4096];
-    unsigned char hashBuf[SHA1_LENGTH];
+    unsigned char hashBuf[HASH_LENGTH_MAX];
 
     PORT_Memset(&key,0,sizeof(key));
     hash.data = hashBuf;
@@ -419,6 +390,11 @@ BLAPI_SHVerifyFile(const char *shName)
     PR_Close(checkFD);
     checkFD = NULL;
 
+    hashObj = HASH_GetRawHashObject(PQG_GetHashType(&key.params));
+    if (hashObj == NULL) {
+	goto loser;
+    }
+
     
 #ifdef FREEBL_USE_PRELINK
     shFD = bl_OpenUnPrelink(shName,&pid);
@@ -434,15 +410,15 @@ BLAPI_SHVerifyFile(const char *shName)
     }
 
     
-    hashcx = SHA1_NewContext();
+    hashcx = hashObj->create();
     if (hashcx == NULL) {
 	goto loser;
     }
-    SHA1_Begin(hashcx);
+    hashObj->begin(hashcx);
 
     count = 0;
     while ((bytesRead = PR_Read(shFD, buf, sizeof(buf))) > 0) {
-	SHA1_Update(hashcx, buf, bytesRead);
+	hashObj->update(hashcx, buf, bytesRead);
 	count += bytesRead;
     }
 #ifdef FREEBL_USE_PRELINK
@@ -452,7 +428,7 @@ BLAPI_SHVerifyFile(const char *shName)
 #endif
     shFD = NULL;
 
-    SHA1_End(hashcx, hash.data, &hash.len, hash.len);
+    hashObj->end(hashcx, hash.data, &hash.len, hash.len);
 
 
     
@@ -496,7 +472,9 @@ loser:
 	PR_Close(shFD);
     }
     if (hashcx != NULL) {
-	SHA1_DestroyContext(hashcx,PR_TRUE);
+	if (hashObj) {
+	    hashObj->destroy(hashcx,PR_TRUE);
+	}
     }
     if (signature.data != NULL) {
 	PORT_Free(signature.data);

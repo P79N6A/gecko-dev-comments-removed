@@ -1,43 +1,9 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* Uses Montgomery reduction for field arithmetic.  See mpi/mpmontg.c for
+ * code implementation. */
 
 #include "mpi.h"
 #include "mplogic.h"
@@ -47,8 +13,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
-
+/* Construct a generic GFMethod for arithmetic over prime fields with
+ * irreducible irr. */
 GFMethod *
 GFMethod_consGFp_mont(const mp_int *irr)
 {
@@ -86,9 +52,9 @@ GFMethod_consGFp_mont(const mp_int *irr)
 	return meth;
 }
 
+/* Wrapper functions for generic prime field arithmetic. */
 
-
-
+/* Field multiplication using Montgomery reduction. */
 mp_err
 ec_GFp_mul_mont(const mp_int *a, const mp_int *b, mp_int *r,
 				const GFMethod *meth)
@@ -96,16 +62,16 @@ ec_GFp_mul_mont(const mp_int *a, const mp_int *b, mp_int *r,
 	mp_err res = MP_OKAY;
 
 #ifdef MP_MONT_USE_MP_MUL
-	
-
-
+	/* if MP_MONT_USE_MP_MUL is defined, then the function s_mp_mul_mont
+	 * is not implemented and we have to use mp_mul and s_mp_redc directly 
+	 */
 	MP_CHECKOK(mp_mul(a, b, r));
 	MP_CHECKOK(s_mp_redc(r, (mp_mont_modulus *) meth->extra1));
 #else
 	mp_int s;
 
 	MP_DIGITS(&s) = 0;
-	
+	/* s_mp_mul_mont doesn't allow source and destination to be the same */
 	if ((a == r) || (b == r)) {
 		MP_CHECKOK(mp_init(&s));
 		MP_CHECKOK(s_mp_mul_mont
@@ -120,24 +86,24 @@ ec_GFp_mul_mont(const mp_int *a, const mp_int *b, mp_int *r,
 	return res;
 }
 
-
+/* Field squaring using Montgomery reduction. */
 mp_err
 ec_GFp_sqr_mont(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	return ec_GFp_mul_mont(a, a, r, meth);
 }
 
-
+/* Field division using Montgomery reduction. */
 mp_err
 ec_GFp_div_mont(const mp_int *a, const mp_int *b, mp_int *r,
 				const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
 
-	
-
-
-
+	/* if A=aZ represents a encoded in montgomery coordinates with Z and # 
+	 * and \ respectively represent multiplication and division in
+	 * montgomery coordinates, then A\B = (a/b)Z = (A/B)Z and Binv =
+	 * (1/b)Z = (1/B)(Z^2) where B # Binv = Z */
 	MP_CHECKOK(ec_GFp_div(a, b, r, meth));
 	MP_CHECKOK(ec_GFp_enc_mont(r, r, meth));
 	if (a == NULL) {
@@ -147,8 +113,8 @@ ec_GFp_div_mont(const mp_int *a, const mp_int *b, mp_int *r,
 	return res;
 }
 
-
-
+/* Encode a field element in Montgomery form. See s_mp_to_mont in
+ * mpi/mpmontg.c */
 mp_err
 ec_GFp_enc_mont(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
@@ -163,7 +129,7 @@ ec_GFp_enc_mont(const mp_int *a, mp_int *r, const GFMethod *meth)
 	return res;
 }
 
-
+/* Decode a field element from Montgomery form. */
 mp_err
 ec_GFp_dec_mont(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
@@ -177,8 +143,8 @@ ec_GFp_dec_mont(const mp_int *a, mp_int *r, const GFMethod *meth)
 	return res;
 }
 
-
-
+/* Free the memory allocated to the extra fields of Montgomery GFMethod
+ * object. */
 void
 ec_GFp_extra_free_mont(GFMethod *meth)
 {

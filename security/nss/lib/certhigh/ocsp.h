@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _OCSP_H_
 #define _OCSP_H_
 
@@ -304,7 +272,7 @@ CERT_EncodeOCSPRequest(PLArenaPool *arena, CERTOCSPRequest *request,
 
 
 extern CERTOCSPRequest *
-CERT_DecodeOCSPRequest(SECItem *src);
+CERT_DecodeOCSPRequest(const SECItem *src);
 
 
 
@@ -394,7 +362,7 @@ CERT_DestroyOCSPResponse(CERTOCSPResponse *response);
 
 extern SECItem *
 CERT_GetEncodedOCSPResponse(PLArenaPool *arena, CERTCertList *certList,
-			    char *location, PRTime time,
+			    const char *location, PRTime time,
 			    PRBool addServiceLocator,
 			    CERTCertificate *signerCert, void *pwArg,
 			    CERTOCSPRequest **pRequest);

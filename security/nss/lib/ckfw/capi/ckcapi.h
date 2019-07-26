@@ -2,45 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef CKCAPI_H
 #define CKCAPI_H 1
 
 #ifdef DEBUG
-static const char CKCAPI_CVS_ID[] = "@(#) $RCSfile: ckcapi.h,v $ $Revision: 1.4 $ $Date: 2011/02/02 17:13:40 $";
+static const char CKCAPI_CVS_ID[] = "@(#) $RCSfile: ckcapi.h,v $ $Revision: 1.5 $ $Date: 2012/04/25 14:49:30 $";
 #endif 
 
 #include "nssckmdt.h"

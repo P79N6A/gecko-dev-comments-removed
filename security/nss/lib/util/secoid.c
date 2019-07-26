@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "secoid.h"
 #include "pkcs11t.h"
 #include "secitem.h"
@@ -64,6 +31,7 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
         "  " __DATE__ " " __TIME__;
 
 
+
 #define USGOV                   0x60, 0x86, 0x48, 0x01, 0x65
 #define MISSI	                USGOV, 0x02, 0x01, 0x01
 #define MISSI_OLD_KEA_DSS	MISSI, 0x0c
@@ -76,6 +44,7 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 #define NISTALGS    USGOV, 3, 4
 #define AES         NISTALGS, 1
 #define SHAXXX      NISTALGS, 2
+#define DSA2        NISTALGS, 3
 
 
 
@@ -113,10 +82,6 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 #define PKCS7			PKCS, 0x07
 #define PKCS9			PKCS, 0x09
 #define PKCS12			PKCS, 0x0c
-
-
-
-#define FORTEZZA_ALG 0x60, 0x86, 0x48, 0x01, 0x65, 0x02, 0x01, 0x01
 
 
 #define ALGORITHM		0x2b, 0x0e, 0x03, 0x02
@@ -447,6 +412,8 @@ CONST_OID pkcs12KeyUsageAttr[]          	= { 2, 5, 29, 15 };
 
 CONST_OID ansix9DSASignature[]               	= { ANSI_X9_ALGORITHM, 0x01 };
 CONST_OID ansix9DSASignaturewithSHA1Digest[] 	= { ANSI_X9_ALGORITHM, 0x03 };
+CONST_OID nistDSASignaturewithSHA224Digest[]	= { DSA2, 0x01 };
+CONST_OID nistDSASignaturewithSHA256Digest[]	= { DSA2, 0x02 };
 
 
 CONST_OID verisignUserNotices[]     		= { VERISIGN, 1, 7, 1, 1 };
@@ -486,7 +453,7 @@ CONST_OID pkixOCSPResponderExtendedKeyUsage[] 	= { PKIX_KEY_USAGE, 9 };
 CONST_OID netscapeSMimeKEA[] 			= { NETSCAPE_ALGS, 0x01 };
 
 
-CONST_OID skipjackCBC[] 			= { FORTEZZA_ALG, 0x04 };
+CONST_OID skipjackCBC[] 			= { MISSI, 0x04 };
 CONST_OID dhPublicKey[] 			= { ANSI_X942_ALGORITHM, 0x1 };
 
 CONST_OID aes128_ECB[] 				= { AES, 1 };
@@ -1659,6 +1626,14 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "Business Category",
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
 
+    OD( nistDSASignaturewithSHA224Digest,
+	SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST,
+	"DSA with SHA-224 Signature",
+	CKM_INVALID_MECHANISM , INVALID_CERT_EXTENSION),
+    OD( nistDSASignaturewithSHA256Digest,
+	SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST,
+	"DSA with SHA-256 Signature",
+	CKM_INVALID_MECHANISM , INVALID_CERT_EXTENSION)
 };
 
 
@@ -1941,9 +1916,12 @@ SECOID_Init(void)
 	
 	xOids[SEC_OID_MD2                           ].notPolicyFlags = ~0;
 	xOids[SEC_OID_MD4                           ].notPolicyFlags = ~0;
+	xOids[SEC_OID_MD5                           ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
+	xOids[SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC].notPolicyFlags = ~0;
+	xOids[SEC_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC].notPolicyFlags = ~0;
     }
 
     envVal = PR_GetEnv("NSS_HASH_ALG_SUPPORT");

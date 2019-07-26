@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKIX_BASICCONSTRAINTSCHECKER_H
 #define _PKIX_BASICCONSTRAINTSCHECKER_H
 

@@ -17,39 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PKCS11T_H_
 #define _PKCS11T_H_ 1
 
@@ -919,6 +886,12 @@ typedef CK_ULONG          CK_MECHANISM_TYPE;
 #define CKM_AES_MAC_GENERAL            0x00001084
 #define CKM_AES_CBC_PAD                0x00001085
 
+#define CKM_AES_CTR                    0x00001086
+
+#define CKM_AES_GCM                    0x00001087
+#define CKM_AES_CCM                    0x00001088
+#define CKM_AES_CTS                    0x00001089
+
 
 #define CKM_BLOWFISH_KEY_GEN           0x00001090
 #define CKM_BLOWFISH_CBC               0x00001091
@@ -1302,6 +1275,10 @@ typedef CK_ULONG CK_EC_KDF_TYPE;
 
 #define CKD_NULL                 0x00000001
 #define CKD_SHA1_KDF             0x00000002
+#define CKD_SHA224_KDF           0x00000005
+#define CKD_SHA256_KDF           0x00000006
+#define CKD_SHA384_KDF           0x00000007
+#define CKD_SHA512_KDF           0x00000008
 
 
 
@@ -1517,6 +1494,34 @@ typedef struct CK_AES_CBC_ENCRYPT_DATA_PARAMS {
 } CK_AES_CBC_ENCRYPT_DATA_PARAMS;
 
 typedef CK_AES_CBC_ENCRYPT_DATA_PARAMS CK_PTR CK_AES_CBC_ENCRYPT_DATA_PARAMS_PTR;
+
+typedef struct CK_AES_CTR_PARAMS {
+  CK_ULONG     ulCounterBits;
+  CK_BYTE      cb[16];
+} CK_AES_CTR_PARAMS;
+
+typedef CK_AES_CTR_PARAMS CK_PTR CK_AES_CTR_PARAMS_PTR;
+
+typedef struct CK_AES_GCM_PARAMS {
+  CK_BYTE_PTR  pIv;
+  CK_ULONG     ulIvLen;
+  CK_BYTE_PTR  pAAD;
+  CK_ULONG     ulAADLen;
+  CK_ULONG     ulTagBits;
+} CK_AES_GCM_PARAMS;
+
+typedef CK_AES_GCM_PARAMS CK_PTR CK_AES_GCM_PARAMS_PTR;
+
+typedef struct CK_AES_CCM_PARAMS {
+  CK_ULONG     ulDataLen;
+  CK_BYTE_PTR  pNonce;
+  CK_ULONG     ulNonceLen;
+  CK_BYTE_PTR  pAAD;
+  CK_ULONG     ulAADLen;
+  CK_ULONG     ulMACLen;
+} CK_AES_CCM_PARAMS;
+
+typedef CK_AES_CCM_PARAMS CK_PTR CK_AES_CCM_PARAMS_PTR;
 
 
 

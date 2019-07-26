@@ -1,41 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ecp_fp.h"
 #include "mpprime.h"
@@ -45,7 +10,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-
+/* Time k repetitions of operation op. */
 #define M_TimeOperation(op, k) { \
   double dStart, dNow, dUserTime; \
   struct rusage ru; \
@@ -61,7 +26,7 @@
   if (dUserTime) printf("    %-45s\n      k: %6i, t: %6.2f sec, k/t: %6.2f ops/sec\n", #op, k, dUserTime, k/dUserTime); \
 }
 
-
+/* Test curve using specific floating point field arithmetic. */
 #define M_TestCurve(name_c, name) { \
   printf("Testing %s using specific floating point implementation...\n", name_c); \
   ECGroup_free(ecgroup); \
@@ -77,7 +42,7 @@
   } \
 }
 
-
+/* Outputs a floating point double (currently not used) */
 void
 d_output(const double *u, int len, char *name, const EC_group_fp * group)
 {
@@ -91,8 +56,8 @@ d_output(const double *u, int len, char *name, const EC_group_fp * group)
 	printf("\n");
 }
 
-
-
+/* Tests a point p in Jacobian coordinates, comparing against the
+ * expected affine result (x, y). */
 mp_err
 testJacPoint(ecfp_jac_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 {
@@ -112,10 +77,10 @@ testJacPoint(ecfp_jac_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	ecfp_fp2i(&ry, p->y, ecgroup);
 	ecfp_fp2i(&rz, p->z, ecgroup);
 
-	
+	/* convert result R to affine coordinates */
 	ec_GFp_pt_jac2aff(&rx, &ry, &rz, &rx, &ry, ecgroup);
 
-	
+	/* Compare to expected result */
 	if ((mp_cmp(&rx, x) != 0) || (mp_cmp(&ry, y) != 0)) {
 		printf("  Error: Jacobian Floating Point Incorrect.\n");
 		MP_CHECKOK(mp_toradix(&rx, s, 16));
@@ -138,8 +103,8 @@ testJacPoint(ecfp_jac_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	return res;
 }
 
-
-
+/* Tests a point p in Chudnovsky Jacobian coordinates, comparing against
+ * the expected affine result (x, y). */
 mp_err
 testChudPoint(ecfp_chud_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 {
@@ -148,7 +113,7 @@ testChudPoint(ecfp_chud_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	mp_int rx, ry, rz, rz2, rz3, test;
 	mp_err res = MP_OKAY;
 
-	
+	/* Initialization */
 	MP_DIGITS(&rx) = 0;
 	MP_DIGITS(&ry) = 0;
 	MP_DIGITS(&rz) = 0;
@@ -163,14 +128,14 @@ testChudPoint(ecfp_chud_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&rz3));
 	MP_CHECKOK(mp_init(&test));
 
-	
+	/* Convert to integers */
 	ecfp_fp2i(&rx, p->x, ecgroup);
 	ecfp_fp2i(&ry, p->y, ecgroup);
 	ecfp_fp2i(&rz, p->z, ecgroup);
 	ecfp_fp2i(&rz2, p->z2, ecgroup);
 	ecfp_fp2i(&rz3, p->z3, ecgroup);
 
-	
+	/* Verify z2, z3 are valid */
 	mp_sqrmod(&rz, &ecgroup->meth->irr, &test);
 	if (mp_cmp(&test, &rz2) != 0) {
 		printf("  Error: rzp2 not valid\n");
@@ -184,10 +149,10 @@ testChudPoint(ecfp_chud_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 		goto CLEANUP;
 	}
 
-	
+	/* convert result R to affine coordinates */
 	ec_GFp_pt_jac2aff(&rx, &ry, &rz, &rx, &ry, ecgroup);
 
-	
+	/* Compare against expected result */
 	if ((mp_cmp(&rx, x) != 0) || (mp_cmp(&ry, y) != 0)) {
 		printf("  Error: Chudnovsky Floating Point Incorrect.\n");
 		MP_CHECKOK(mp_toradix(&rx, s, 16));
@@ -213,8 +178,8 @@ testChudPoint(ecfp_chud_pt * p, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	return res;
 }
 
-
-
+/* Tests a point p in Modified Jacobian coordinates, comparing against the 
+ * expected affine result (x, y). */
 mp_err
 testJmPoint(ecfp_jm_pt * r, mp_int *x, mp_int *y, ECGroup *ecgroup)
 {
@@ -223,7 +188,7 @@ testJmPoint(ecfp_jm_pt * r, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	mp_int rx, ry, rz, raz4, test;
 	mp_err res = MP_OKAY;
 
-	
+	/* Initialization */
 	MP_DIGITS(&rx) = 0;
 	MP_DIGITS(&ry) = 0;
 	MP_DIGITS(&rz) = 0;
@@ -236,13 +201,13 @@ testJmPoint(ecfp_jm_pt * r, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&raz4));
 	MP_CHECKOK(mp_init(&test));
 
-	
+	/* Convert to integer */
 	ecfp_fp2i(&rx, r->x, ecgroup);
 	ecfp_fp2i(&ry, r->y, ecgroup);
 	ecfp_fp2i(&rz, r->z, ecgroup);
 	ecfp_fp2i(&raz4, r->az4, ecgroup);
 
-	
+	/* Verify raz4 = rz^4 * a */
 	mp_sqrmod(&rz, &ecgroup->meth->irr, &test);
 	mp_sqrmod(&test, &ecgroup->meth->irr, &test);
 	mp_mulmod(&test, &ecgroup->curvea, &ecgroup->meth->irr, &test);
@@ -258,10 +223,10 @@ testJmPoint(ecfp_jm_pt * r, mp_int *x, mp_int *y, ECGroup *ecgroup)
 		goto CLEANUP;
 	}
 
-	
+	/* convert result R to affine coordinates */
 	ec_GFp_pt_jac2aff(&rx, &ry, &rz, &rx, &ry, ecgroup);
 
-	
+	/* Compare against expected result */
 	if ((mp_cmp(&rx, x) != 0) || (mp_cmp(&ry, y) != 0)) {
 		printf("  Error: Modified Jacobian Floating Point Incorrect.\n");
 		MP_CHECKOK(mp_toradix(&rx, s, 16));
@@ -285,7 +250,7 @@ testJmPoint(ecfp_jm_pt * r, mp_int *x, mp_int *y, ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests point addition of Jacobian + Affine -> Jacobian */
 mp_err
 testPointAddJacAff(ECGroup *ecgroup)
 {
@@ -295,7 +260,7 @@ testPointAddJacAff(ECGroup *ecgroup)
 	ecfp_aff_pt q;
 	EC_group_fp *group = (EC_group_fp *) ecgroup->extra1;
 
-	
+	/* Init */
 	MP_DIGITS(&pz) = 0;
 	MP_DIGITS(&rx2) = 0;
 	MP_DIGITS(&ry2) = 0;
@@ -307,22 +272,22 @@ testPointAddJacAff(ECGroup *ecgroup)
 
 	MP_CHECKOK(mp_set_int(&pz, 5));
 
-	
+	/* Set p */
 	ecfp_i2fp(p.x, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(p.z, &pz, ecgroup);
-	
+	/* Set q */
 	ecfp_i2fp(q.x, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(q.y, &ecgroup->genx, ecgroup);
 
-	
+	/* Do calculations */
 	group->pt_add_jac_aff(&p, &q, &r, group);
 
-	
+	/* Do calculation in integer to compare against */
 	MP_CHECKOK(ec_GFp_pt_add_jac_aff
 			   (&ecgroup->genx, &ecgroup->geny, &pz, &ecgroup->geny,
 				&ecgroup->genx, &rx2, &ry2, &rz2, ecgroup));
-	
+	/* convert result R to affine coordinates */
 	ec_GFp_pt_jac2aff(&rx2, &ry2, &rz2, &rx2, &ry2, ecgroup);
 
 	MP_CHECKOK(testJacPoint(&r, &rx2, &ry2, ecgroup));
@@ -341,7 +306,7 @@ testPointAddJacAff(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests point addition in Jacobian coordinates */
 mp_err
 testPointAddJac(ECGroup *ecgroup)
 {
@@ -350,7 +315,7 @@ testPointAddJac(ECGroup *ecgroup)
 	ecfp_jac_pt p, q, r;
 	EC_group_fp *group = (EC_group_fp *) ecgroup->extra1;
 
-	
+	/* Init */
 	MP_DIGITS(&pz) = 0;
 	MP_DIGITS(&qx) = 0;
 	MP_DIGITS(&qy) = 0;
@@ -369,25 +334,25 @@ testPointAddJac(ECGroup *ecgroup)
 	MP_CHECKOK(mp_set_int(&pz, 5));
 	MP_CHECKOK(mp_set_int(&qz, 105));
 
-	
+	/* Set p */
 	ecfp_i2fp(p.x, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(p.z, &pz, ecgroup);
-	
+	/* Set q */
 	ecfp_i2fp(q.x, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(q.y, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(q.z, &qz, ecgroup);
 
-	
+	/* Do calculations */
 	group->pt_add_jac(&p, &q, &r, group);
 
-	
+	/* Do calculation in integer to compare against */
 	ec_GFp_pt_jac2aff(&ecgroup->geny, &ecgroup->genx, &qz, &qx, &qy,
 					  ecgroup);
 	MP_CHECKOK(ec_GFp_pt_add_jac_aff
 			   (&ecgroup->genx, &ecgroup->geny, &pz, &qx, &qy, &rx2, &ry2,
 				&rz2, ecgroup));
-	
+	/* convert result R to affine coordinates */
 	ec_GFp_pt_jac2aff(&rx2, &ry2, &rz2, &rx2, &ry2, ecgroup);
 
 	MP_CHECKOK(testJacPoint(&r, &rx2, &ry2, ecgroup));
@@ -409,7 +374,7 @@ testPointAddJac(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests point addition in Chudnovsky Jacobian Coordinates */
 mp_err
 testPointAddChud(ECGroup *ecgroup)
 {
@@ -440,8 +405,8 @@ testPointAddChud(ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&iz));
 	MP_CHECKOK(mp_init(&test));
 
-	
-	
+	/* Test Chudnovsky form addition */
+	/* Set p */
 	MP_CHECKOK(mp_set_int(&pz, 5));
 	ecfp_i2fp(p.x, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
@@ -451,7 +416,7 @@ testPointAddChud(ECGroup *ecgroup)
 	mp_mulmod(&test, &pz, &ecgroup->meth->irr, &test);
 	ecfp_i2fp(p.z3, &test, ecgroup);
 
-	
+	/* Set q */
 	MP_CHECKOK(mp_set_int(&qz, 105));
 	ecfp_i2fp(q.x, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(q.y, &ecgroup->genx, ecgroup);
@@ -463,7 +428,7 @@ testPointAddChud(ECGroup *ecgroup)
 
 	group->pt_add_chud(&p, &q, &r, group);
 
-	
+	/* Calculate addition to compare against */
 	ec_GFp_pt_jac2aff(&ecgroup->geny, &ecgroup->genx, &qz, &qx, &qy,
 					  ecgroup);
 	ec_GFp_pt_add_jac_aff(&ecgroup->genx, &ecgroup->geny, &pz, &qx, &qy,
@@ -492,8 +457,8 @@ testPointAddChud(ECGroup *ecgroup)
 	return res;
 }
 
-
-
+/* Tests point addition in Modified Jacobian + Chudnovsky Jacobian ->
+ * Modified Jacobian coordinates. */
 mp_err
 testPointAddJmChud(ECGroup *ecgroup)
 {
@@ -528,12 +493,12 @@ testPointAddJmChud(ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&iz));
 	MP_CHECKOK(mp_init(&test));
 
-	
-	
+	/* Test Modified Jacobian form addition */
+	/* Set p */
 	ecfp_i2fp(p.x, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(group->curvea, &ecgroup->curvea, ecgroup);
-	
+	/* paz4 = az^4 */
 	MP_CHECKOK(mp_set_int(&pz, 5));
 	mp_sqrmod(&pz, &ecgroup->meth->irr, &paz4);
 	mp_sqrmod(&paz4, &ecgroup->meth->irr, &paz4);
@@ -541,7 +506,7 @@ testPointAddJmChud(ECGroup *ecgroup)
 	ecfp_i2fp(p.z, &pz, ecgroup);
 	ecfp_i2fp(p.az4, &paz4, ecgroup);
 
-	
+	/* Set q */
 	MP_CHECKOK(mp_set_int(&qz, 105));
 	ecfp_i2fp(q.x, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(q.y, &ecgroup->genx, ecgroup);
@@ -551,10 +516,10 @@ testPointAddJmChud(ECGroup *ecgroup)
 	mp_mulmod(&test, &qz, &ecgroup->meth->irr, &test);
 	ecfp_i2fp(q.z3, &test, ecgroup);
 
-	
+	/* Do calculation */
 	group->pt_add_jm_chud(&p, &q, &r, group);
 
-	
+	/* Calculate addition to compare against */
 	ec_GFp_pt_jac2aff(&ecgroup->geny, &ecgroup->genx, &qz, &qx, &qy,
 					  ecgroup);
 	ec_GFp_pt_add_jac_aff(&ecgroup->genx, &ecgroup->geny, &pz, &qx, &qy,
@@ -586,7 +551,7 @@ testPointAddJmChud(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests point doubling in Modified Jacobian coordinates */
 mp_err
 testPointDoubleJm(ECGroup *ecgroup)
 {
@@ -609,12 +574,12 @@ testPointDoubleJm(ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&rz2));
 	MP_CHECKOK(mp_init(&raz4));
 
-	
+	/* Set p */
 	ecfp_i2fp(p.x, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(group->curvea, &ecgroup->curvea, ecgroup);
 
-	
+	/* paz4 = az^4 */
 	MP_CHECKOK(mp_set_int(&pz, 5));
 	mp_sqrmod(&pz, &ecgroup->meth->irr, &paz4);
 	mp_sqrmod(&paz4, &ecgroup->meth->irr, &paz4);
@@ -627,12 +592,12 @@ testPointDoubleJm(ECGroup *ecgroup)
 
 	M_TimeOperation(group->pt_dbl_jm(&p, &r, group), 100000);
 
-	
+	/* Calculate doubling to compare against */
 	ec_GFp_pt_dbl_jac(&ecgroup->genx, &ecgroup->geny, &pz, &rx2, &ry2,
 					  &rz2, ecgroup);
 	ec_GFp_pt_jac2aff(&rx2, &ry2, &rz2, &rx2, &ry2, ecgroup);
 
-	
+	/* Do comparison and check az^4 */
 	MP_CHECKOK(testJmPoint(&r, &rx2, &ry2, ecgroup));
 
   CLEANUP:
@@ -651,7 +616,7 @@ testPointDoubleJm(ECGroup *ecgroup)
 
 }
 
-
+/* Tests point doubling in Chudnovsky Jacobian coordinates */
 mp_err
 testPointDoubleChud(ECGroup *ecgroup)
 {
@@ -675,20 +640,20 @@ testPointDoubleChud(ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&py));
 	MP_CHECKOK(mp_init(&pz));
 
-	
+	/* Set p2 = 2P */
 	ecfp_i2fp(p.x, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(group->curvea, &ecgroup->curvea, ecgroup);
 
 	group->pt_dbl_aff2chud(&p, &p2, group);
 
-	
+	/* Calculate doubling to compare against */
 	MP_CHECKOK(mp_set_int(&pz, 1));
 	ec_GFp_pt_dbl_jac(&ecgroup->genx, &ecgroup->geny, &pz, &rx2, &ry2,
 					  &rz2, ecgroup);
 	ec_GFp_pt_jac2aff(&rx2, &ry2, &rz2, &rx2, &ry2, ecgroup);
 
-	
+	/* Do comparison and check az^4 */
 	MP_CHECKOK(testChudPoint(&p2, &rx2, &ry2, ecgroup));
 
   CLEANUP:
@@ -707,7 +672,7 @@ testPointDoubleChud(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Test point doubling in Jacobian coordinates */
 mp_err
 testPointDoubleJac(ECGroup *ecgroup)
 {
@@ -734,7 +699,7 @@ testPointDoubleJac(ECGroup *ecgroup)
 
 	MP_CHECKOK(mp_set_int(&pz, 5));
 
-	
+	/* Set p2 = 2P */
 	ecfp_i2fp(p.x, &ecgroup->genx, ecgroup);
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(p.z, &pz, ecgroup);
@@ -743,12 +708,12 @@ testPointDoubleJac(ECGroup *ecgroup)
 	group->pt_dbl_jac(&p, &p2, group);
 	M_TimeOperation(group->pt_dbl_jac(&p, &p2, group), 100000);
 
-	
+	/* Calculate doubling to compare against */
 	ec_GFp_pt_dbl_jac(&ecgroup->genx, &ecgroup->geny, &pz, &rx2, &ry2,
 					  &rz2, ecgroup);
 	ec_GFp_pt_jac2aff(&rx2, &ry2, &rz2, &rx2, &ry2, ecgroup);
 
-	
+	/* Do comparison */
 	MP_CHECKOK(testJacPoint(&p2, &rx2, &ry2, ecgroup));
 
   CLEANUP:
@@ -768,7 +733,7 @@ testPointDoubleJac(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests a point multiplication (various algorithms) */
 mp_err
 testPointMul(ECGroup *ecgroup)
 {
@@ -776,7 +741,7 @@ testPointMul(ECGroup *ecgroup)
 	char s[1000];
 	mp_int rx, ry, order_1;
 
-	
+	/* Init */
 	MP_DIGITS(&rx) = 0;
 	MP_DIGITS(&ry) = 0;
 	MP_DIGITS(&order_1) = 0;
@@ -788,7 +753,7 @@ testPointMul(ECGroup *ecgroup)
 	MP_CHECKOK(mp_set_int(&order_1, 1));
 	MP_CHECKOK(mp_sub(&ecgroup->order, &order_1, &order_1));
 
-	
+	/* Test Algorithm 1: Jacobian-Affine Double & Add */
 	ec_GFp_pt_mul_jac_fp(&order_1, &ecgroup->genx, &ecgroup->geny, &rx,
 						 &ry, ecgroup);
 	MP_CHECKOK(ecgroup->meth->field_neg(&ry, &ry, ecgroup->meth));
@@ -817,7 +782,7 @@ testPointMul(ECGroup *ecgroup)
 		goto CLEANUP;
 	}
 
-	
+	/* Test Algorithm 2: 4-bit Window in Jacobian */
 	ec_GFp_point_mul_jac_4w_fp(&order_1, &ecgroup->genx, &ecgroup->geny,
 							   &rx, &ry, ecgroup);
 	MP_CHECKOK(ecgroup->meth->field_neg(&ry, &ry, ecgroup->meth));
@@ -846,7 +811,7 @@ testPointMul(ECGroup *ecgroup)
 		goto CLEANUP;
 	}
 
-	
+	/* Test Algorithm 3: wNAF with modified Jacobian coordinates */
 	ec_GFp_point_mul_wNAF_fp(&order_1, &ecgroup->genx, &ecgroup->geny, &rx,
 							 &ry, ecgroup);
 	MP_CHECKOK(ecgroup->meth->field_neg(&ry, &ry, ecgroup->meth));
@@ -887,8 +852,8 @@ testPointMul(ECGroup *ecgroup)
 	return res;
 }
 
-
-
+/* Tests point multiplication with a random scalar repeatedly, comparing
+ * for consistency within different algorithms. */
 mp_err
 testPointMulRandom(ECGroup *ecgroup)
 {
@@ -910,7 +875,7 @@ testPointMulRandom(ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&n));
 
 	for (i = 0; i < 100; i++) {
-		
+		/* compute random scalar */
 		size = mpl_significant_bits(&ecgroup->meth->irr);
 		if (size < MP_OKAY) {
 			res = MP_NO;
@@ -965,7 +930,7 @@ testPointMulRandom(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests the time required for a point multiplication */
 mp_err
 testPointMulTime(ECGroup *ecgroup)
 {
@@ -981,7 +946,7 @@ testPointMulTime(ECGroup *ecgroup)
 	MP_CHECKOK(mp_init(&ry));
 	MP_CHECKOK(mp_init(&n));
 
-	
+	/* compute random scalar */
 	size = mpl_significant_bits(&ecgroup->meth->irr);
 	if (size < MP_OKAY) {
 		res = MP_NO;
@@ -1019,7 +984,7 @@ testPointMulTime(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests pre computation of Chudnovsky Jacobian points used in wNAF form */
 mp_err
 testPreCompute(ECGroup *ecgroup)
 {
@@ -1047,12 +1012,12 @@ testPreCompute(ECGroup *ecgroup)
 	ecfp_i2fp(p.y, &ecgroup->geny, ecgroup);
 	ecfp_i2fp(group->curvea, &(ecgroup->curvea), ecgroup);
 
-	
+	/* Perform precomputation */
 	group->precompute_chud(precomp, &p, group);
 
 	M_TimeOperation(group->precompute_chud(precomp, &p, group), 10000);
 
-	
+	/* Calculate addition to compare against */
 	MP_CHECKOK(mp_copy(&ecgroup->genx, &x));
 	MP_CHECKOK(mp_copy(&ecgroup->geny, &y));
 	MP_CHECKOK(ecgroup->meth->field_neg(&y, &ny, ecgroup->meth));
@@ -1080,8 +1045,8 @@ testPreCompute(ECGroup *ecgroup)
 	return res;
 }
 
-
-
+/* Given a curve using floating point arithmetic, test it. This method
+ * specifies which of the above tests to run. */
 mp_err
 testCurve(ECGroup *ecgroup)
 {
@@ -1102,14 +1067,14 @@ testCurve(ECGroup *ecgroup)
 	return res;
 }
 
-
+/* Tests a number of curves optimized using floating point arithmetic */
 int
 main(void)
 {
 	mp_err res = MP_OKAY;
 	ECGroup *ecgroup = NULL;
 
-	
+	/* specific arithmetic tests */
 	M_TestCurve("SECG-160R1", ECCurve_SECG_PRIME_160R1);
 	M_TestCurve("SECG-192R1", ECCurve_SECG_PRIME_192R1);
 	M_TestCurve("SEGC-224R1", ECCurve_SECG_PRIME_224R1);

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
@@ -42,7 +10,8 @@
 #include "secerr.h"
 #include "pkcs11t.h"
 #include "blapi.h"
-#include "sechash.h"
+#include "hasht.h"
+#include "plhash.h"
 #include "nsslowhash.h"
 
 

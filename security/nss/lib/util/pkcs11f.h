@@ -18,38 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 CK_PKCS11_FUNCTION_INFO(C_Initialize)
 #ifdef CK_NEED_ARG_LIST
 (

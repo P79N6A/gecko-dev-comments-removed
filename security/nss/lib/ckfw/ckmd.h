@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef CKMD_H
 #define CKMD_H
 
 #ifdef DEBUG
-static const char CKMD_CVS_ID[] = "@(#) $RCSfile: ckmd.h,v $ $Revision: 1.3 $ $Date: 2005/01/20 02:25:45 $";
+static const char CKMD_CVS_ID[] = "@(#) $RCSfile: ckmd.h,v $ $Revision: 1.4 $ $Date: 2012/04/25 14:49:28 $";
 #endif 
 
 

@@ -6,44 +6,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef  _SECMODTI_H_
 #define  _SECMODTI_H_ 1
 #include "prmon.h"
 #include "prtypes.h"
 #include "nssilckt.h"
-#include "pk11init.h"
 #include "secmodt.h"
 #include "pkcs11t.h"
 

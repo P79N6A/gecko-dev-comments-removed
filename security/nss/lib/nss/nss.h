@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __nss_h_
 #define __nss_h_
 
@@ -66,12 +34,12 @@
 
 
 
-#define NSS_VERSION  "3.13.6.0" _NSS_ECC_STRING _NSS_CUSTOMIZED
+#define NSS_VERSION  "3.14.0.0" _NSS_ECC_STRING _NSS_CUSTOMIZED " Beta"
 #define NSS_VMAJOR   3
-#define NSS_VMINOR   13
-#define NSS_VPATCH   6
+#define NSS_VMINOR   14
+#define NSS_VPATCH   0
 #define NSS_VBUILD   0
-#define NSS_BETA     PR_FALSE
+#define NSS_BETA     PR_TRUE
 
 #ifndef RC_INVOKED
 
@@ -152,7 +120,6 @@ struct NSSInitParametersStr {
    
 
 SEC_BEGIN_PROTOS
-
 
 
 

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PK11PQG_H_
 #define  _PK11PQG_H_ 1
 
@@ -69,6 +37,25 @@ extern SECStatus PK11_PQG_ParamGenSeedLen( unsigned int j,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern SECStatus
+PK11_PQG_ParamGenV2(unsigned int L, unsigned int N, unsigned int seedBytes,
+		    PQGParams **pParams, PQGVerify **pVfy);
 
 
 

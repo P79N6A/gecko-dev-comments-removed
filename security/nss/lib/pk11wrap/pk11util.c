@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "seccomon.h"
 #include "secmod.h"
 #include "nssilock.h"
@@ -46,6 +14,7 @@
 #include "secerr.h"
 #include "dev.h"
 #include "pkcs11ni.h"
+#include "utilpars.h"
 
 
 
@@ -1114,7 +1083,7 @@ secmod_HandleWaitForSlotEvent(SECMODModule *mod,  unsigned long flags,
 	}
 	SECMOD_ReleaseReadLock(moduleLock);
 	
-	if (!removableSlotsFound) {
+	if ((mod->slotCount !=0) && !removableSlotsFound) {
 	    error =SEC_ERROR_NO_SLOT_SELECTED;
 	    PZ_Lock(mod->refLock);
 	    break;
@@ -1283,6 +1252,9 @@ SECMOD_HasRemovableSlots(SECMODModule *mod)
 	ret = PR_TRUE;
 	break;
     }
+    if (mod->slotCount == 0 ) {
+	ret = PR_TRUE;
+    }
     SECMOD_ReleaseReadLock(moduleLock);
     return ret;
 }
@@ -1400,7 +1372,7 @@ SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
     }
 
     
-    escSpec = secmod_DoubleEscape(moduleSpec, '>', ']');
+    escSpec = NSSUTIL_DoubleEscape(moduleSpec, '>', ']');
     if (escSpec == NULL) {
 	PK11_FreeSlot(slot);
 	return NULL;
@@ -1421,7 +1393,17 @@ SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
 	return NULL;
     }
 
-    return SECMOD_FindSlotByID(mod, slotID);
+    slot = SECMOD_FindSlotByID(mod, slotID);
+    if (slot) {
+	
+
+	if (slot->nssToken && slot->nssToken->slot) {
+	    nssSlot_ResetDelay(slot->nssToken->slot);
+	}
+	
+	(void)PK11_IsPresent(slot);
+    }
+    return slot;
 }
 
 

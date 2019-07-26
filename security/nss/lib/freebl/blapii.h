@@ -5,40 +5,19 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _BLAPII_H_
 #define _BLAPII_H_
 
 #include "blapit.h"
+
+
+#define MAX_BLOCK_SIZE 16
+
+typedef SECStatus (*freeblCipherFunc)(void *cx, unsigned char *output,
+                          unsigned int *outputLen, unsigned int maxOutputLen,
+                          const unsigned char *input, unsigned int inputLen,
+			  unsigned int blocksize);
+typedef void (*freeblDestroyFunc)(void *cx, PRBool freeit);
 
 SEC_BEGIN_PROTOS
 

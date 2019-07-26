@@ -2,40 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: certdecode.c,v $ $Revision: 1.17 $ $Date: 2007/11/16 05:29:27 $";
+static const char CVS_ID[] = "@(#) $RCSfile: certdecode.c,v $ $Revision: 1.18 $ $Date: 2012/04/25 14:50:07 $";
 #endif 
 
 #ifndef PKIT_H

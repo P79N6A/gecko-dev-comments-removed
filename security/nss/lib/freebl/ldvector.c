@@ -1,43 +1,10 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * ldvector.c - platform dependent DSO containing freebl implementation.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* $Id: ldvector.c,v 1.32 2012/06/28 17:55:05 rrelyea%redhat.com Exp $ */
 
 #ifdef FREEBL_NO_DEPEND
 extern int FREEBL_InitStubs(void);
@@ -125,13 +92,13 @@ static const struct FREEBLVectorStr vector =
     PQG_ParamGenSeedLen,
     PQG_VerifyParams,
 
-    
+    /* End of Version 3.001. */
 
     RSA_PrivateKeyOpDoubleChecked,
     RSA_PrivateKeyCheck,
     BL_Cleanup,
 
-    
+    /* End of Version 3.002. */
 
     SHA256_NewContext,
     SHA256_DestroyContext,
@@ -169,19 +136,19 @@ static const struct FREEBLVectorStr vector =
     SHA384_Flatten,
     SHA384_Resurrect,
 
-    
+    /* End of Version 3.003. */
 
     AESKeyWrap_CreateContext,
     AESKeyWrap_DestroyContext,
     AESKeyWrap_Encrypt,
     AESKeyWrap_Decrypt,
 
-    
+    /* End of Version 3.004. */
 
     BLAPI_SHVerify,
     BLAPI_VerifySelf,
 
-    
+    /* End of Version 3.005. */
 
     EC_NewKey,
     EC_NewKeyFromSeed,
@@ -191,8 +158,8 @@ static const struct FREEBLVectorStr vector =
     ECDSA_VerifyDigest,
     ECDSA_SignDigestWithSeed,
 
-    
-    
+    /* End of Version 3.006. */
+    /* End of Version 3.007. */
 
     AES_InitContext,
     AESKeyWrap_InitContext,
@@ -226,12 +193,12 @@ static const struct FREEBLVectorStr vector =
 
     RNG_SystemInfoForRNG,
 
-    
+    /* End of Version 3.008. */
 
     FIPS186Change_GenerateX,
     FIPS186Change_ReduceModQForDSA,
 
-    
+    /* End of Version 3.009. */
     Camellia_InitContext,
     Camellia_AllocateContext,
     Camellia_CreateContext,
@@ -242,7 +209,7 @@ static const struct FREEBLVectorStr vector =
     PQG_DestroyParams,
     PQG_DestroyVerify,
 
-    
+    /* End of Version 3.010. */
 
     SEED_InitContext,
     SEED_AllocateContext,
@@ -260,7 +227,7 @@ static const struct FREEBLVectorStr vector =
 
     PRNGTEST_Uninstantiate,
 
-    
+    /* End of Version 3.011. */
 
     RSA_PopulatePrivateKey,
 
@@ -271,7 +238,7 @@ static const struct FREEBLVectorStr vector =
     JPAKE_Round2,
     JPAKE_Final,
 
-    
+    /* End of Version 3.012 */
 
     TLS_P_hash,
     SHA224_NewContext,
@@ -286,9 +253,14 @@ static const struct FREEBLVectorStr vector =
     SHA224_Flatten,
     SHA224_Resurrect,
     SHA224_Clone,
-    BLAPI_SHVerifyFile
+    BLAPI_SHVerifyFile,
 
-    
+    /* End of Version 3.013 */
+
+    PQG_ParamGenV2,
+    PRNGTEST_RunHealthTests
+
+    /* End of Version 3.014 */
 };
 
 const FREEBLVector * 
@@ -297,7 +269,7 @@ FREEBL_GetVector(void)
     extern const char __nss_freebl_rcsid[];
     extern const char __nss_freebl_sccsid[];
 
-    
+    /* force a reference that won't get optimized away */
     volatile char c;
 
     c = __nss_freebl_rcsid[0] + __nss_freebl_sccsid[0]; 

@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ecp.h"
 #include "mpi.h"
 #include "mplogic.h"
@@ -157,8 +123,9 @@ ec_GFp_nistp192_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 					(r0b == 0xffffffff)) ) {
 			
 			MP_ADD_CARRY(r0a, 1, r0a, 0, carry);
-			r0b += carry;
-			r1a = r1b = r2a = r2b = 0;
+			MP_ADD_CARRY(r0b, carry, r0a, 0, carry);
+			r1a += 1+carry;
+			r1b = r2a = r2b = 0;
 		}
 
 		
@@ -263,8 +230,9 @@ ec_GFp_nistp192_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 		      ((r1 == MP_DIGIT_MAX) || 
 			((r1 == (MP_DIGIT_MAX-1)) && (r0 == MP_DIGIT_MAX))))) {
 			
-			r0++;
-			r1 = r2 = 0;
+			MP_ADD_CARRY(r0, 1, r0, 0, carry);
+			r1 += 1+carry;
+			r2 = 0;
 		}
 		
 		if (a != r) {
@@ -276,7 +244,7 @@ ec_GFp_nistp192_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 		MP_USED(r) = 3;
 #endif
 	}
-
+	s_mp_clamp(r);
   CLEANUP:
 	return res;
 }

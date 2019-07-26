@@ -9,39 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "prerror.h"
 #include "prprf.h"
 #include "plarena.h"
@@ -138,7 +105,7 @@ static struct OCSPGlobalStruct {
 static SECItem *
 ocsp_GetEncodedOCSPResponseFromRequest(PRArenaPool *arena, 
                                        CERTOCSPRequest *request,
-                                       char *location, int64 time,
+                                       const char *location, int64 time,
                                        PRBool addServiceLocator,
                                        void *pwArg,
                                        CERTOCSPRequest **pRequest);
@@ -1509,7 +1476,7 @@ CERT_EncodeOCSPRequest(PRArenaPool *arena, CERTOCSPRequest *request,
 
 
 CERTOCSPRequest *
-CERT_DecodeOCSPRequest(SECItem *src)
+CERT_DecodeOCSPRequest(const SECItem *src)
 {
     PRArenaPool *arena = NULL;
     SECStatus rv = SECFailure;
@@ -2941,7 +2908,7 @@ loser:
 
 
 static PRFileDesc *
-ocsp_SendEncodedRequest(char *location, SECItem *encodedRequest)
+ocsp_SendEncodedRequest(const char *location, SECItem *encodedRequest)
 {
     char *hostname = NULL;
     char *path = NULL;
@@ -3300,7 +3267,7 @@ CERT_ParseURL(const char *url, char **pHostname, PRUint16 *pPort, char **pPath)
 static SECItem *
 fetchOcspHttpClientV1(PRArenaPool *arena, 
                       const SEC_HttpClientFcnV1 *hcv1, 
-                      char *location, 
+                      const char *location, 
                       SECItem *encodedRequest)
 {
     char *hostname = NULL;
@@ -3450,7 +3417,7 @@ loser:
 
 SECItem *
 CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
-			    char *location, int64 time,
+			    const char *location, int64 time,
 			    PRBool addServiceLocator,
 			    CERTCertificate *signerCert, void *pwArg,
 			    CERTOCSPRequest **pRequest)
@@ -3468,7 +3435,7 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
 static SECItem *
 ocsp_GetEncodedOCSPResponseFromRequest(PRArenaPool *arena, 
                                        CERTOCSPRequest *request,
-                                       char *location, int64 time,
+                                       const char *location, int64 time,
                                        PRBool addServiceLocator,
                                        void *pwArg,
                                        CERTOCSPRequest **pRequest)
@@ -3529,7 +3496,7 @@ static SECItem *
 ocsp_GetEncodedOCSPResponseForSingleCert(PRArenaPool *arena, 
                                          CERTOCSPCertID *certID, 
                                          CERTCertificate *singleCert, 
-                                         char *location, int64 time,
+                                         const char *location, int64 time,
                                          PRBool addServiceLocator,
                                          void *pwArg,
                                          CERTOCSPRequest **pRequest)

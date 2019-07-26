@@ -8,46 +8,22 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __sslproto_h_
 #define __sslproto_h_
 
 
 #define SSL_LIBRARY_VERSION_2			0x0002
 #define SSL_LIBRARY_VERSION_3_0			0x0300
-#define SSL_LIBRARY_VERSION_3_1_TLS		0x0301
+#define SSL_LIBRARY_VERSION_TLS_1_0		0x0301
+#define SSL_LIBRARY_VERSION_TLS_1_1		0x0302
+
+#define SSL_LIBRARY_VERSION_DTLS_1_0		0x0302
+
+
+#define SSL_LIBRARY_VERSION_3_1_TLS SSL_LIBRARY_VERSION_TLS_1_0 
+
+
+#define SSL_LIBRARY_VERSION_DTLS_1_0_WIRE       ((~0x0100) & 0xffff)
 
 
 #define SSL_HL_ERROR_HBYTES			3
@@ -227,5 +203,12 @@
 
 #define SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA 	0xfeff
 #define SSL_RSA_FIPS_WITH_DES_CBC_SHA      	0xfefe
+
+
+
+#define SRTP_AES128_CM_HMAC_SHA1_80		0x0001
+#define SRTP_AES128_CM_HMAC_SHA1_32		0x0002
+#define SRTP_NULL_HMAC_SHA1_80			0x0005
+#define SRTP_NULL_HMAC_SHA1_32			0x0006
 
 #endif 

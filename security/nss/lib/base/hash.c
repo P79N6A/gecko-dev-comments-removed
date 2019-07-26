@@ -2,40 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: hash.c,v $ $Revision: 1.11 $ $Date: 2008/02/03 01:59:48 $";
+static const char CVS_ID[] = "@(#) $RCSfile: hash.c,v $ $Revision: 1.12 $ $Date: 2012/04/25 14:49:26 $";
 #endif 
 
 

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkcs11.h"
 #include "pkcs11i.h"
 #include "lowkeyi.h"
@@ -57,7 +24,7 @@
 
 static SFTKAttribute *
 sftk_NewAttribute(SFTKObject *object,
-	CK_ATTRIBUTE_TYPE type, CK_VOID_PTR value, CK_ULONG len)
+	CK_ATTRIBUTE_TYPE type, const void *value, CK_ULONG len)
 {
     SFTKAttribute *attribute;
 
@@ -529,7 +496,7 @@ sftk_nullAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type)
 
 static CK_RV
 sftk_forceTokenAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type, 
-						void *value, unsigned int len)
+				const void *value, unsigned int len)
 {
     CK_ATTRIBUTE attribute;
     SFTKDBHandle *dbHandle = NULL;
@@ -556,8 +523,8 @@ sftk_forceTokenAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type,
 
 
 CK_RV
-sftk_forceAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type, void *value,
-						unsigned int len)
+sftk_forceAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type, 
+				const void *value, unsigned int len)
 {
     SFTKAttribute *attribute;
     void *att_val = NULL;
@@ -816,8 +783,8 @@ sftk_DeleteAttributeType(SFTKObject *object,CK_ATTRIBUTE_TYPE type)
 }
 
 CK_RV
-sftk_AddAttributeType(SFTKObject *object,CK_ATTRIBUTE_TYPE type,void *valPtr,
-							CK_ULONG length)
+sftk_AddAttributeType(SFTKObject *object,CK_ATTRIBUTE_TYPE type,
+				const void *valPtr, CK_ULONG length)
 {
     SFTKAttribute *attribute;
     attribute = sftk_NewAttribute(object,type,valPtr,length);

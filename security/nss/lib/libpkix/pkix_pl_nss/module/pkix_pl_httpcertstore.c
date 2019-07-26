@@ -10,39 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkix_pl_httpcertstore.h"
 extern PKIX_PL_HashTable *httpSocketCache;
 SEC_ASN1_MKSUB(CERT_IssuerAndSNTemplate)

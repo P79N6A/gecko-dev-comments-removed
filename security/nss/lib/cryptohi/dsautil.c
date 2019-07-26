@@ -1,46 +1,13 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "cryptohi.h"
 #include "secasn1.h"
 #include "secitem.h"
 #include "prerr.h"
 
-#ifndef DSA_SUBPRIME_LEN
-#define DSA_SUBPRIME_LEN 20	/* bytes */
+#ifndef DSA1_SUBPRIME_LEN
+#define DSA1_SUBPRIME_LEN 20	/* bytes */
 #endif
 
 typedef struct {
@@ -252,8 +219,8 @@ loser:
 SECStatus
 DSAU_EncodeDerSig(SECItem *dest, SECItem *src)
 {
-    PORT_Assert(src->len == 2 * DSA_SUBPRIME_LEN);
-    if (src->len != 2 * DSA_SUBPRIME_LEN) {
+    PORT_Assert(src->len == 2 * DSA1_SUBPRIME_LEN);
+    if (src->len != 2 * DSA1_SUBPRIME_LEN) {
     	PORT_SetError( PR_INVALID_ARGUMENT_ERROR );
 	return SECFailure;
     }
@@ -285,7 +252,7 @@ DSAU_EncodeDerSigWithLen(SECItem *dest, SECItem *src, unsigned int len)
 SECItem *
 DSAU_DecodeDerSig(const SECItem *item)
 {
-    return common_DecodeDerSig(item, DSA_SUBPRIME_LEN);
+    return common_DecodeDerSig(item, DSA1_SUBPRIME_LEN);
 }
 
 

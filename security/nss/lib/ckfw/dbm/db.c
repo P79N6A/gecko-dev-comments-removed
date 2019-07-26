@@ -2,40 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: db.c,v $ $Revision: 1.6 $ $Date: 2006/03/02 22:48:54 $";
+static const char CVS_ID[] = "@(#) $RCSfile: db.c,v $ $Revision: 1.7 $ $Date: 2012/04/25 14:49:30 $";
 #endif 
 
 #include "ckdbm.h"

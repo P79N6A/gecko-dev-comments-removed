@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __ssl_h_
 #define __ssl_h_
 
@@ -83,6 +51,12 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 
 
+SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
+
+
+
+
+
 
 
 
@@ -100,17 +74,34 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                		  
 #define SSL_HANDSHAKE_AS_SERVER		6 /* force connect to hs as server */
                                		  
+
+
 #define SSL_ENABLE_SSL2			7 /* enable ssl v2 (off by default) */
+
+
+
+
 #define SSL_ENABLE_SSL3		        8 /* enable ssl v3 (on by default) */
+
 #define SSL_NO_CACHE		        9 /* don't use the session cache */
                     		          
 #define SSL_REQUIRE_CERTIFICATE        10 /* (SSL_REQUIRE_FIRST_HANDSHAKE */
                                           
 #define SSL_ENABLE_FDX                 11 /* permit simultaneous read/write */
                                           
+
+
+
+
+
 #define SSL_V2_COMPATIBLE_HELLO        12 /* send v3 client hello in v2 fmt */
                                           
+
+
+
+
 #define SSL_ENABLE_TLS		       13 /* enable TLS (on by default) */
+
 #define SSL_ROLLBACK_DETECTION         14 /* for compatibility, default: on */
 #define SSL_NO_STEP_DOWN               15 /* Disable export cipher suites   */
                                           
@@ -257,6 +248,77 @@ SSL_IMPORT SECStatus SSL_CipherPrefSetDefault(PRInt32 cipher, PRBool enabled);
 SSL_IMPORT SECStatus SSL_CipherPrefGetDefault(PRInt32 cipher, PRBool *enabled);
 SSL_IMPORT SECStatus SSL_CipherPolicySet(PRInt32 cipher, PRInt32 policy);
 SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_VersionRangeGetSupported(
+    SSLProtocolVariant protocolVariant, SSLVersionRange *vrange);
+
+
+
+
+SSL_IMPORT SECStatus SSL_VersionRangeGetDefault(
+    SSLProtocolVariant protocolVariant, SSLVersionRange *vrange);
+
+
+
+
+SSL_IMPORT SECStatus SSL_VersionRangeSetDefault(
+    SSLProtocolVariant protocolVariant, const SSLVersionRange *vrange);
+
+
+SSL_IMPORT SECStatus SSL_VersionRangeGet(PRFileDesc *fd,
+					 SSLVersionRange *vrange);
+
+
+SSL_IMPORT SECStatus SSL_VersionRangeSet(PRFileDesc *fd,
+					 const SSLVersionRange *vrange);
+
 
 
 
@@ -661,6 +723,28 @@ NSS_GetClientAuthData(void *                       arg,
 
 
 
+
+
+
+
+SSL_IMPORT SECStatus SSL_SetSRTPCiphers(PRFileDesc *fd,
+					const PRUint16 *ciphers,
+					unsigned int numCiphers);
+
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_GetSRTPCipher(PRFileDesc *fd,
+				       PRUint16 *cipher);
+
+
+
+
+
+
+
 SSL_IMPORT SECStatus NSS_CmpCertChainWCANames(CERTCertificate *cert, 
                                           CERTDistNames *caNames);
 
@@ -708,6 +792,21 @@ SSL_IMPORT SECItem *SSL_GetNegotiatedHostInfo(PRFileDesc *fd);
 
 
 
+
+
+SSL_IMPORT SECStatus SSL_ExportKeyingMaterial(PRFileDesc *fd,
+                                              const char *label,
+                                              unsigned int labelLen,
+                                              PRBool hasContext,
+                                              const unsigned char *context,
+                                              unsigned int contextLen,
+                                              unsigned char *out,
+                                              unsigned int outLen);
+
+
+
+
+
 SSL_IMPORT CERTCertificate * SSL_LocalCertificate(PRFileDesc *fd);
 
 
@@ -749,6 +848,13 @@ SSL_IMPORT SECStatus SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
                                                       SSLExtensionType extId,
                                                       PRBool *yes);
 
+
+
+
+
+
+SSL_IMPORT SECStatus DTLS_GetHandshakeTimeout(PRFileDesc *socket,
+                                              PRIntervalTime *timeout);
 
 
 

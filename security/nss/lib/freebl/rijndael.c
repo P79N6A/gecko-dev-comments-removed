@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
@@ -46,6 +14,10 @@
 #include "prtypes.h"
 #include "blapi.h"
 #include "rijndael.h"
+
+#include "cts.h"
+#include "ctr.h"
+#include "gcm.h"
 
 #if USE_HW_AES
 #include "intel-aes.h"
@@ -988,8 +960,13 @@ AESContext * AES_AllocateContext(void)
 }
 
 
-SECStatus   
-AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
+
+
+
+
+
+static SECStatus   
+aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
 	        const unsigned char *iv, int mode, unsigned int encrypt,
 	        unsigned int blocksize)
 {
@@ -1050,18 +1027,20 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	memcpy(cx->iv, iv, blocksize);
 #if USE_HW_AES
 	if (use_hw_aes) {
-	    cx->worker = intel_aes_cbc_worker(encrypt, keysize);
+	    cx->worker = (freeblCipherFunc)
+				intel_aes_cbc_worker(encrypt, keysize);
 	} else
 #endif
-	    cx->worker = (encrypt
+	    cx->worker = (freeblCipherFunc) (encrypt
 			  ? &rijndael_encryptCBC : &rijndael_decryptCBC);
     } else {
 #if  USE_HW_AES
 	if (use_hw_aes) {
-	    cx->worker = intel_aes_ecb_worker(encrypt, keysize);
+	    cx->worker = (freeblCipherFunc) 
+				intel_aes_ecb_worker(encrypt, keysize);
 	} else
 #endif
-	    cx->worker = (encrypt
+	    cx->worker = (freeblCipherFunc) (encrypt
 			  ? &rijndael_encryptECB : &rijndael_decryptECB);
     }
     PORT_Assert((cx->Nb * (cx->Nr + 1)) <= RIJNDAEL_MAX_EXP_KEY_SIZE);
@@ -1094,11 +1073,77 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 		goto cleanup;
 	}
     }
+    cx->worker_cx = cx;
+    cx->destroy = NULL;
+    cx->isBlock = PR_TRUE;
     return SECSuccess;
 cleanup:
     return SECFailure;
 }
 
+SECStatus   
+AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
+	        const unsigned char *iv, int mode, unsigned int encrypt,
+	        unsigned int blocksize)
+{
+    int basemode = mode;
+    PRBool baseencrypt = encrypt;
+    SECStatus rv;
+
+    switch (mode) {
+    case NSS_AES_CTS:
+	basemode = NSS_AES_CBC;
+	break;
+    case NSS_AES_GCM:
+    case NSS_AES_CTR:
+	basemode = NSS_AES;
+	baseencrypt = PR_TRUE;
+	break;
+    }
+    rv = aes_InitContext(cx, key, keysize, iv, basemode, 
+					baseencrypt, blocksize);
+    if (rv != SECSuccess) {
+	AES_DestroyContext(cx, PR_TRUE);
+	return rv;
+    }
+
+    
+    switch (mode) {
+    case NSS_AES_CTS:
+	cx->worker_cx = CTS_CreateContext(cx, cx->worker, iv, blocksize);
+	cx->worker = (freeblCipherFunc) 
+			(encrypt ?  CTS_EncryptUpdate : CTS_DecryptUpdate);
+	cx->destroy = (freeblDestroyFunc) CTS_DestroyContext;
+	cx->isBlock = PR_FALSE;
+	break;
+    case NSS_AES_GCM:
+	cx->worker_cx = GCM_CreateContext(cx, cx->worker, iv, blocksize);
+	cx->worker = (freeblCipherFunc)
+			(encrypt ? GCM_EncryptUpdate : GCM_DecryptUpdate);
+	cx->destroy = (freeblDestroyFunc) GCM_DestroyContext;
+	cx->isBlock = PR_FALSE;
+	break;
+    case NSS_AES_CTR:
+	cx->worker_cx = CTR_CreateContext(cx, cx->worker, iv, blocksize);
+	cx->worker = (freeblCipherFunc) CTR_Update ;
+	cx->destroy = (freeblDestroyFunc) CTR_DestroyContext;
+	cx->isBlock = PR_FALSE;
+	break;
+    default:
+	
+
+	return SECSuccess;
+    }
+    
+    if (cx->worker_cx == NULL) {
+	
+	cx->destroy = NULL; 
+			    
+	AES_DestroyContext(cx, PR_TRUE);
+	return SECFailure;
+    }
+    return SECSuccess;
+}
 
 
 
@@ -1131,6 +1176,9 @@ void
 AES_DestroyContext(AESContext *cx, PRBool freeit)
 {
 
+    if (cx->worker_cx && cx->destroy) {
+	(*cx->destroy)(cx->worker_cx, PR_TRUE);
+    }
     if (freeit)
 	PORT_Free(cx);
 }
@@ -1153,7 +1201,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     blocksize = 4 * cx->Nb;
-    if (inputLen % blocksize != 0) {
+    if (cx->isBlock && (inputLen % blocksize != 0)) {
 	PORT_SetError(SEC_ERROR_INPUT_LEN);
 	return SECFailure;
     }
@@ -1162,7 +1210,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
-    return (*cx->worker)(cx, output, outputLen, maxOutputLen,	
+    return (*cx->worker)(cx->worker_cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
 }
 
@@ -1184,7 +1232,7 @@ AES_Decrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     blocksize = 4 * cx->Nb;
-    if (inputLen % blocksize != 0) {
+    if (cx->isBlock && (inputLen % blocksize != 0)) {
 	PORT_SetError(SEC_ERROR_INPUT_LEN);
 	return SECFailure;
     }
@@ -1193,6 +1241,6 @@ AES_Decrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
-    return (*cx->worker)(cx, output, outputLen, maxOutputLen,	
+    return (*cx->worker)(cx->worker_cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
 }

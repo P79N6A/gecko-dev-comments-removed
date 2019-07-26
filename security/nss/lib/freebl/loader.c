@@ -1,43 +1,10 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * loader.c - load platform dependent DSO containing freebl implementation.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* $Id: loader.c,v 1.57 2012/06/28 17:55:05 rrelyea%redhat.com Exp $ */
 
 #include "loader.h"
 #include "prmem.h"
@@ -48,7 +15,7 @@
 static const char* default_name =
     SHLIB_PREFIX"freebl"SHLIB_VERSION"."SHLIB_SUFFIX;
 
-
+/* getLibName() returns the name of the library to load. */
 
 #if defined(SOLARIS) && defined(__sparc)
 #include <stddef.h>
@@ -87,18 +54,18 @@ getLibName(void)
     buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
     if (buflen <= 0) 
 	return NULL;
-    
+    /* sysinfo output is always supposed to be NUL terminated, but ... */
     if (buflen < sizeof buf) 
     	buf[buflen] = '\0';
     else
     	buf[(sizeof buf) - 1] = '\0';
-    
-
-
-
-
-
-
+    /* The ISA list is a space separated string of names of ISAs and
+     * ISA extensions, in order of decreasing performance.
+     * There are two different ISAs with which NSS's crypto code can be
+     * accelerated. If both are in the list, we take the first one.
+     * If one is in the list, we use it, and if neither then we use
+     * the base unaccelerated code.
+     */
     found_int_hybrid = strstr(buf, int_hybrid_isa);
     found_fpu_hybrid = strstr(buf, fpu_hybrid_isa);
     if (found_fpu_hybrid && 
@@ -113,9 +80,9 @@ getLibName(void)
 }
 
 #elif defined(HPUX) && !defined(NSS_USE_64) && !defined(__ia64)
-
-
-
+/* This code tests to see if we're running on a PA2.x CPU.
+** It returns true (1) if so, and false (0) otherwise.
+*/
 static const char *
 getLibName(void)
 {
@@ -125,7 +92,7 @@ getLibName(void)
 	        : "libfreebl_32int_3.sl" ;
 }
 #else
-
+/* default case, for platforms/ABIs that have only one freebl shared lib. */
 static const char * getLibName(void) { return default_name; }
 #endif
 
@@ -147,8 +114,8 @@ static const char *libraryName = NULL;
 
 #include "genload.c"
 
-
-
+/* This function must be run only once. */
+/*  determine if hybrid platform, then actually load the DSO. */
 static PRStatus
 freebl_LoadDSO( void ) 
 {
@@ -883,6 +850,7 @@ PQG_ParamGenSeedLen( unsigned int j, unsigned int seedBytes,
   return (vector->p_PQG_ParamGenSeedLen)(j, seedBytes, pParams, pVfy);
 }
 
+
 SECStatus   
 PQG_VerifyParams(const PQGParams *params, const PQGVerify *vfy, 
 		 SECStatus *result)
@@ -919,15 +887,15 @@ BL_Cleanup(void)
 void
 BL_Unload(void)
 {
-  
-
-
-
+  /* This function is not thread-safe, but doesn't need to be, because it is
+   * only called from functions that are also defined as not thread-safe,
+   * namely C_Finalize in softoken, and the SSL bypass shutdown callback called
+   * from NSS_Shutdown. */
   char *disableUnload = NULL;
   vector = NULL;
-  
-
-
+  /* If an SSL socket is configured with SSL_BYPASS_PKCS11, but the application
+   * never does a handshake on it, BL_Unload will be called even though freebl
+   * was never loaded. So, don't assert blLib. */
   if (blLib) {
       disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
       if (!disableUnload) {
@@ -939,7 +907,7 @@ BL_Unload(void)
   loadFreeBLOnce = pristineCallOnce;
 }
 
-
+/* ============== New for 3.003 =============================== */
 
 SECStatus 
 SHA256_Hash(unsigned char *dest, const char *src)
@@ -1259,12 +1227,12 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
   return vector->p_BLAPI_SHVerify(name, addr);
 }
 
-
-
-
-
-
-
+/*
+ * The Caller is expected to pass NULL as the name, which will
+ * trigger the p_BLAPI_VerifySelf() to return 'TRUE'. Pass the real
+ * name of the shared library we loaded (the static libraryName set
+ * in freebl_LoadDSO) to p_BLAPI_VerifySelf.
+ */
 PRBool
 BLAPI_VerifySelf(const char *name)
 {
@@ -1274,7 +1242,7 @@ BLAPI_VerifySelf(const char *name)
   return vector->p_BLAPI_VerifySelf(libraryName);
 }
 
-
+/* ============== New for 3.006 =============================== */
 
 SECStatus 
 EC_NewKey(ECParams * params, ECPrivateKey ** privKey)
@@ -1339,7 +1307,7 @@ ECDSA_SignDigestWithSeed(ECPrivateKey * key, SECItem * signature,
       seed, seedlen );
 }
 
-
+/* ============== New for 3.008 =============================== */
 
 AESContext *
 AES_AllocateContext(void)
@@ -1597,7 +1565,7 @@ FIPS186Change_ReduceModQForDSA(const unsigned char *w,
   return (vector->p_FIPS186Change_ReduceModQForDSA)(w, q, xj);
 }
 
-
+/* === new for Camellia === */
 SECStatus 
 Camellia_InitContext(CamelliaContext *cx, const unsigned char *key, 
 		unsigned int keylen, const unsigned char *iv, int mode,
@@ -1871,4 +1839,22 @@ BLAPI_SHVerifyFile(const char *name)
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return PR_FALSE;
   return vector->p_BLAPI_SHVerifyFile(name);
+}
+
+/* === new for DSA-2 === */
+SECStatus
+PQG_ParamGenV2( unsigned int L, unsigned int N, unsigned int seedBytes, 
+               PQGParams **pParams, PQGVerify **pVfy)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_PQG_ParamGenV2)(L, N, seedBytes, pParams, pVfy); 
+}
+
+PRBool
+PRNGTEST_RunHealthTests(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return PR_FALSE;
+  return vector->p_PRNGTEST_RunHealthTests();
 }

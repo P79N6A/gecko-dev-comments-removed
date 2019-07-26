@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "secder.h"
 #include <limits.h>
 #include "secerr.h"
@@ -216,6 +184,12 @@ DER_GetInteger(SECItem *it)
     unsigned long overflow = 0x1ffUL << (((sizeof(ival) - 1) * 8) - 1);
     unsigned long ofloinit;
 
+    PORT_Assert(len);
+    if (!len) {
+	PORT_SetError(SEC_ERROR_INPUT_LEN);
+	return 0;
+    }
+
     if (*cp & 0x80)
     	ival = -1L;
     ofloinit = ival & overflow;
@@ -246,6 +220,12 @@ DER_GetUInteger(SECItem *it)
     unsigned len = it->len;
     unsigned char *cp = it->data;
     unsigned long overflow = 0xffUL << ((sizeof(ival) - 1) * 8);
+
+    PORT_Assert(len);
+    if (!len) {
+	PORT_SetError(SEC_ERROR_INPUT_LEN);
+	return 0;
+    }
 
     
     if (*cp & 0x80) {

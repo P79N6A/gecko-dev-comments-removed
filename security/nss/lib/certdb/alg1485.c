@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "prprf.h"
 #include "cert.h"
 #include "certi.h"
@@ -207,9 +175,9 @@ IsPrintable(unsigned char *data, unsigned len)
 }
 
 static void
-skipSpace(char **pbp, char *endptr)
+skipSpace(const char **pbp, const char *endptr)
 {
-    char *bp = *pbp;
+    const char *bp = *pbp;
     while (bp < endptr && OPTIONAL_SPACE(*bp)) {
 	bp++;
     }
@@ -217,9 +185,10 @@ skipSpace(char **pbp, char *endptr)
 }
 
 static SECStatus
-scanTag(char **pbp, char *endptr, char *tagBuf, int tagBufSize)
+scanTag(const char **pbp, const char *endptr, char *tagBuf, int tagBufSize)
 {
-    char *bp, *tagBufp;
+    const char *bp;
+    char *tagBufp;
     int taglen;
 
     PORT_Assert(tagBufSize > 0);
@@ -264,9 +233,10 @@ scanTag(char **pbp, char *endptr, char *tagBuf, int tagBufSize)
 
 
 static int
-scanVal(char **pbp, char *endptr, char *valBuf, int valBufSize)  
+scanVal(const char **pbp, const char *endptr, char *valBuf, int valBufSize)  
 {
-    char *bp, *valBufp;
+    const char *bp;
+    char *valBufp;
     int vallen = 0;
     PRBool isQuoted;
     
@@ -390,11 +360,11 @@ loser:
 
 
 static CERTAVA *
-ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr)
+ParseRFC1485AVA(PRArenaPool *arena, const char **pbp, const char *endptr)
 {
     CERTAVA *a;
     const NameToKind *n2k;
-    char *bp;
+    const char *bp;
     int       vt = -1;
     int       valLen;
     SECOidTag kind  = SEC_OID_UNKNOWN;
@@ -478,11 +448,11 @@ loser:
 }
 
 static CERTName *
-ParseRFC1485Name(char *buf, int len)
+ParseRFC1485Name(const char *buf, int len)
 {
     SECStatus rv;
     CERTName *name;
-    char *bp, *e;
+    const char *bp, *e;
     CERTAVA *ava;
     CERTRDN *rdn = NULL;
 
@@ -548,7 +518,7 @@ ParseRFC1485Name(char *buf, int len)
 }
 
 CERTName *
-CERT_AsciiToName(char *string)
+CERT_AsciiToName(const char *string)
 {
     CERTName *name;
     name = ParseRFC1485Name(string, PORT_Strlen(string));

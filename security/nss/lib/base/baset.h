@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef BASET_H
 #define BASET_H
 
 #ifdef DEBUG
-static const char BASET_CVS_ID[] = "@(#) $RCSfile: baset.h,v $ $Revision: 1.8 $ $Date: 2005/01/20 02:25:45 $";
+static const char BASET_CVS_ID[] = "@(#) $RCSfile: baset.h,v $ $Revision: 1.9 $ $Date: 2012/04/25 14:49:26 $";
 #endif 
 
 

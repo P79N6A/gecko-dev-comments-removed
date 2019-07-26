@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CERT_H_
 #define _CERT_H_
 
@@ -66,7 +34,7 @@ SEC_BEGIN_PROTOS
 
 
 
-extern CERTName *CERT_AsciiToName(char *string);
+extern CERTName *CERT_AsciiToName(const char *string);
 
 
 
@@ -129,7 +97,7 @@ extern SECStatus CERT_AddAVA(PLArenaPool *arena, CERTRDN *rdn, CERTAVA *ava);
 
 
 
-extern SECComparison CERT_CompareRDN(CERTRDN *a, CERTRDN *b);
+extern SECComparison CERT_CompareRDN(const CERTRDN *a, const CERTRDN *b);
 
 
 
@@ -161,7 +129,7 @@ extern SECStatus CERT_AddRDN(CERTName *name, CERTRDN *rdn);
 
 
 
-extern SECComparison CERT_CompareName(CERTName *a, CERTName *b);
+extern SECComparison CERT_CompareName(const CERTName *a, const CERTName *b);
 
 
 

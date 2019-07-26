@@ -9,39 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define MINIMUM_MSG_LENGTH 5
 
 #include "pkix_pl_ldapdefaultclient.h"

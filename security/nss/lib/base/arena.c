@@ -2,40 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: arena.c,v $ $Revision: 1.13 $ $Date: 2010/03/15 08:29:31 $";
+static const char CVS_ID[] = "@(#) $RCSfile: arena.c,v $ $Revision: 1.15 $ $Date: 2012/07/06 18:19:32 $";
 #endif 
 
 
@@ -56,6 +24,9 @@ static const char CVS_ID[] = "@(#) $RCSfile: arena.c,v $ $Revision: 1.13 $ $Date
 #include "plarena.h"
 
 #include <string.h>
+
+
+
 
 
 
@@ -872,6 +843,39 @@ nss_zalloc_arena_locked
 
 
 NSS_IMPLEMENT void *
+NSS_ZAlloc
+(
+  NSSArena *arenaOpt,
+  PRUint32 size
+)
+{
+  return nss_ZAlloc(arenaOpt, size);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NSS_IMPLEMENT void *
 nss_ZAlloc
 (
   NSSArena *arenaOpt,
@@ -951,6 +955,32 @@ nss_ZAlloc
 
 
 
+NSS_IMPLEMENT PRStatus
+NSS_ZFreeIf
+(
+  void *pointer
+)
+{
+   return nss_ZFreeIf(pointer);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 NSS_IMPLEMENT PRStatus
 nss_ZFreeIf
@@ -997,6 +1027,36 @@ nss_ZFreeIf
     return PR_SUCCESS;
   }
   
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NSS_EXTERN void *
+NSS_ZRealloc
+(
+  void *pointer,
+  PRUint32 newSize
+)
+{
+    return nss_ZRealloc(pointer, newSize);
 }
 
 

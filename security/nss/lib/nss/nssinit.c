@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <ctype.h>
 #include <string.h>
 #include "seccomon.h"
@@ -64,6 +32,7 @@
 #include "secmodi.h"
 #include "ocspti.h"
 #include "ocspi.h"
+#include "utilpars.h"
 
 
 
@@ -405,39 +374,39 @@ nss_InitModules(const char *configdir, const char *certPrefix,
 
 
 
-    lconfigdir = secmod_DoubleEscape(configdir, '\'', '\"');
+    lconfigdir = NSSUTIL_DoubleEscape(configdir, '\'', '\"');
     if (lconfigdir == NULL) {
 	goto loser;
     }
-    lcertPrefix = secmod_DoubleEscape(certPrefix, '\'', '\"');
+    lcertPrefix = NSSUTIL_DoubleEscape(certPrefix, '\'', '\"');
     if (lcertPrefix == NULL) {
 	goto loser;
     }
-    lkeyPrefix = secmod_DoubleEscape(keyPrefix, '\'', '\"');
+    lkeyPrefix = NSSUTIL_DoubleEscape(keyPrefix, '\'', '\"');
     if (lkeyPrefix == NULL) {
 	goto loser;
     }
-    lsecmodName = secmod_DoubleEscape(secmodName, '\'', '\"');
+    lsecmodName = NSSUTIL_DoubleEscape(secmodName, '\'', '\"');
     if (lsecmodName == NULL) {
 	goto loser;
     }
-    lupdateDir = secmod_DoubleEscape(updateDir, '\'', '\"');
+    lupdateDir = NSSUTIL_DoubleEscape(updateDir, '\'', '\"');
     if (lupdateDir == NULL) {
 	goto loser;
     }
-    lupdCertPrefix = secmod_DoubleEscape(updCertPrefix, '\'', '\"');
+    lupdCertPrefix = NSSUTIL_DoubleEscape(updCertPrefix, '\'', '\"');
     if (lupdCertPrefix == NULL) {
 	goto loser;
     }
-    lupdKeyPrefix = secmod_DoubleEscape(updKeyPrefix, '\'', '\"');
+    lupdKeyPrefix = NSSUTIL_DoubleEscape(updKeyPrefix, '\'', '\"');
     if (lupdKeyPrefix == NULL) {
 	goto loser;
     }
-    lupdateID = secmod_DoubleEscape(updateID, '\'', '\"');
+    lupdateID = NSSUTIL_DoubleEscape(updateID, '\'', '\"');
     if (lupdateID == NULL) {
 	goto loser;
     }
-    lupdateName = secmod_DoubleEscape(updateName, '\'', '\"');
+    lupdateName = NSSUTIL_DoubleEscape(updateName, '\'', '\"');
     if (lupdateName == NULL) {
 	goto loser;
     }
@@ -749,6 +718,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     
     PZ_NotifyAllCondVar(nssInitCondition);
     PZ_Unlock(nssInitLock);
+
+    if (initContextPtr && configStrings) {
+	PR_smprintf_free(configStrings);
+    }
 
     return SECSuccess;
 
@@ -1292,10 +1265,6 @@ NSS_VersionCheck(const char *importedVersion)
     }
     if (vmajor == NSS_VMAJOR && vminor == NSS_VMINOR &&
         vpatch == NSS_VPATCH && vbuild > NSS_VBUILD) {
-        return PR_FALSE;
-    }
-    
-    if (PR_VersionCheck(PR_VERSION) == PR_FALSE) {
         return PR_FALSE;
     }
     return PR_TRUE;

@@ -3,48 +3,13 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _RIJNDAEL_H_
 #define _RIJNDAEL_H_ 1
 
+#include "blapii.h"
+
 #define RIJNDAEL_MIN_BLOCKSIZE 16 /* bytes */
 #define RIJNDAEL_MAX_BLOCKSIZE 32 /* bytes */
-
-typedef SECStatus AESFunc(AESContext *cx, unsigned char *output,
-                          unsigned int *outputLen, unsigned int maxOutputLen,
-                          const unsigned char *input, unsigned int inputLen, 
-                          unsigned int blocksize);
 
 typedef SECStatus AESBlockFunc(AESContext *cx, 
                                unsigned char *output,
@@ -83,13 +48,21 @@ typedef SECStatus AESBlockFunc(AESContext *cx,
 
 
 
+
+
+
 struct AESContextStr
 {
     unsigned int   Nb;
     unsigned int   Nr;
-    AESFunc       *worker;
+    freeblCipherFunc worker;
+    
+
     unsigned char iv[RIJNDAEL_MAX_BLOCKSIZE];
     PRUint32      expandedKey[RIJNDAEL_MAX_EXP_KEY_SIZE];
+    freeblDestroyFunc destroy;
+    void	      *worker_cx;
+    PRBool	      isBlock;
 };
 
 #endif 

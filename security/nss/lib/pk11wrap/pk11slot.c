@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "seccomon.h"
 #include "secmod.h"
 #include "nssilock.h"
@@ -50,6 +17,7 @@
 #include "dev.h" 
 #include "dev3hack.h" 
 #include "pkim.h"
+#include "utilpars.h"
 
 
 
@@ -1991,11 +1959,60 @@ PK11_GetPrivateKeyTokens(CK_MECHANISM_TYPE type,PRBool needRW,void *wincx)
 
 
 
+PRBool
+pk11_filterSlot(PK11SlotInfo *slot, CK_MECHANISM_TYPE mechanism, 
+	CK_FLAGS mechanismInfoFlags, unsigned int keySize) 
+{
+    CK_MECHANISM_INFO mechanism_info;
+    CK_RV crv = CKR_OK;
+
+    
+
+    if ((keySize == 0) && (mechanism == CKM_RSA_PKCS) && (slot->hasRSAInfo)) {
+	mechanism_info.flags = slot->RSAInfoFlags;
+    } else {
+	if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
+    	crv = PK11_GETTAB(slot)->C_GetMechanismInfo(slot->slotID, mechanism, 
+							&mechanism_info);
+	if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
+	
+	if ((crv == CKR_OK) && (mechanism == CKM_RSA_PKCS) 
+						&& (!slot->hasRSAInfo)) {
+	    slot->RSAInfoFlags = mechanism_info.flags;
+	    slot->hasRSAInfo = PR_TRUE;
+	}
+    }
+    
+    if (crv != CKR_OK ) {
+	return PR_TRUE;
+    }
+    if (keySize && ((mechanism_info.ulMinKeySize > keySize)
+			|| (mechanism_info.ulMaxKeySize < keySize)) ) {
+	
+
+	return PR_TRUE;
+    }
+    if (mechanismInfoFlags && ((mechanism_info.flags & mechanismInfoFlags) !=
+				mechanismInfoFlags) ) {
+	return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+
+
+
+
+
+
+
+
 
 
 
 PK11SlotInfo *
-PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
+PK11_GetBestSlotMultipleWithAttributes(CK_MECHANISM_TYPE *type, 
+		CK_FLAGS *mechanismInfoFlags, unsigned int *keySize, 
+		unsigned int mech_count, void *wincx)
 {
     PK11SlotList *list = NULL;
     PK11SlotListElement *le ;
@@ -2046,7 +2063,17 @@ PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
 		    doExit = PR_TRUE;
 		    break;
 		}
+		if ((mechanismInfoFlags && mechanismInfoFlags[i]) ||
+			(keySize && keySize[i])) {
+		    if (pk11_filterSlot(le->slot, type[i], 
+			    mechanismInfoFlags ?  mechanismInfoFlags[i] : 0,
+			    keySize ? keySize[i] : 0)) {
+			doExit = PR_TRUE;
+			break;
+		    }
+		}
 	    }
+    
 	    if (doExit) continue;
 	      
 	    if (listNeedLogin && le->slot->needLogin) {
@@ -2067,11 +2094,27 @@ PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
     return NULL;
 }
 
+PK11SlotInfo *
+PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, 
+			 unsigned int mech_count, void *wincx)
+{
+    return PK11_GetBestSlotMultipleWithAttributes(type, NULL, NULL, 
+						mech_count, wincx);
+}
+
 
 PK11SlotInfo *
 PK11_GetBestSlot(CK_MECHANISM_TYPE type, void *wincx)
 {
-    return PK11_GetBestSlotMultiple(&type, 1, wincx);
+    return PK11_GetBestSlotMultipleWithAttributes(&type, NULL, NULL, 1, wincx);
+}
+
+PK11SlotInfo *
+PK11_GetBestSlotWithAttributes(CK_MECHANISM_TYPE type, CK_FLAGS mechanismFlags,
+		unsigned int keySize, void *wincx)
+{
+    return PK11_GetBestSlotMultipleWithAttributes(&type, &mechanismFlags,
+						 &keySize, 1, wincx);
 }
 
 int

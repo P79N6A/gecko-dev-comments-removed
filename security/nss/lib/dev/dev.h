@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef DEV_H
 #define DEV_H
 
@@ -44,7 +12,7 @@
 
 
 #ifdef DEBUG
-static const char DEV_CVS_ID[] = "@(#) $RCSfile: dev.h,v $ $Revision: 1.42 $ $Date: 2010/01/08 02:00:58 $";
+static const char DEV_CVS_ID[] = "@(#) $RCSfile: dev.h,v $ $Revision: 1.43 $ $Date: 2012/04/25 14:49:42 $";
 #endif 
 
 #ifndef NSSDEV_H

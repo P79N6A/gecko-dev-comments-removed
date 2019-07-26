@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CERTT_H_
 #define _CERTT_H_
 
@@ -893,6 +861,40 @@ typedef struct {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef SECStatus (*CERTChainVerifyCallbackFunc)
+                                             (void *isChainValidArg,
+                                              const CERTCertList *currentChain,
+                                              PRBool *chainOK);
+
+
+
+
+
+typedef struct {
+    CERTChainVerifyCallbackFunc isChainValid;
+    void *isChainValidArg;
+} CERTChainVerifyCallback;
+
+
+
+
+
+
 typedef enum {
    cert_pi_end             = 0, 
 
@@ -955,6 +957,10 @@ typedef enum {
 
 
    cert_pi_useAIACertFetch = 12, 
+
+
+   cert_pi_chainVerifyCallback = 13,
+                                
 
 
    cert_pi_max                  
@@ -1198,6 +1204,7 @@ typedef struct CERTValParamInValueStr {
         const CERTCertificate* cert;
         const CERTCertList *chain;
         const CERTRevocationFlags *revocation;
+        const CERTChainVerifyCallback *chainVerifyCallback;
     } pointer;
     union {
         const PRInt32  *pi;

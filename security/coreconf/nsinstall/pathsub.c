@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <assert.h>
 #if defined(FREEBSD) || defined(BSDI) || defined(DARWIN)
 #include <sys/types.h>

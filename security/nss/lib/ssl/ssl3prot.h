@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __ssl3proto_h_
 #define __ssl3proto_h_
 
@@ -60,6 +27,9 @@ typedef uint16 ssl3CipherSuite;
 #define SSL3_RANDOM_LENGTH		32
 
 #define SSL3_RECORD_HEADER_LENGTH	 5
+
+
+#define DTLS_RECORD_HEADER_LENGTH       13
 
 #define MAX_FRAGMENT_LENGTH		16384
      
@@ -150,6 +120,7 @@ typedef enum {
     hello_request	= 0, 
     client_hello	= 1, 
     server_hello	= 2,
+    hello_verify_request = 3,
     new_session_ticket	= 4,
     certificate 	= 11, 
     server_key_exchange = 12,
