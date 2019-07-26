@@ -270,6 +270,7 @@ class DoubleToStringConverter {
   
   MFBT_API bool ToPrecision(double value,
                    int precision,
+                   bool* used_exponential_notation,
                    StringBuilder* result_builder) const;
 
   enum DtoaMode {
