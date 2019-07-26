@@ -105,6 +105,9 @@ public:
 
   void Ended();
 
+  
+  void Evict(double aStart, double aEnd);
+
 private:
   friend class AsyncEventRunner<SourceBuffer>;
   void DispatchSimpleEvent(const char* aName);
@@ -117,6 +120,10 @@ private:
 
   
   void AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv);
+
+  
+  
+  void GetBufferedStartEndTime(double* aStart, double* aEnd);
 
   nsRefPtr<MediaSource> mMediaSource;
 
