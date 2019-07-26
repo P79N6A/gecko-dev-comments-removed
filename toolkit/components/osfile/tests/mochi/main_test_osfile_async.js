@@ -134,6 +134,14 @@ let reference_dir_contents = function reference_dir_contents(path) {
   return result;
 };
 
+
+function toggleDebugTest (pref, consoleListener) {
+  Services.prefs.setBoolPref("toolkit.osfile.log", pref);
+  Services.prefs.setBoolPref("toolkit.osfile.log.redirect", pref);
+  Services.console[pref ? "registerListener" : "unregisterListener"](
+    consoleListener);
+}
+
 let test = maketest("Main", function main(test) {
   return Task.spawn(function() {
     SimpleTest.waitForExplicitFinish();
@@ -813,24 +821,13 @@ let test_debug_test = maketest("debug_test", function debug_test(test) {
         if (aMessage.message.indexOf("TEST OS") < 0) {
           return;
         }
-        test.ok(true, "DEBUG TEST messages are logged correctly.")
+        test.ok(true, "DEBUG TEST messages are logged correctly.");
       }
     };
-    
-    function toggleDebugTest (pref) {
-      OS.Shared.DEBUG = pref;
-      OS.Shared.TEST = pref;
-      Services.console[pref ? "registerListener" : "unregisterListener"](
-        consoleListener);
-    }
-    
-    let originalPref = OS.Shared.DEBUG;
-    toggleDebugTest(true);
+    toggleDebugTest(true, consoleListener);
     
     let fileExists = yield OS.File.exists(EXISTING_FILE);
-    toggleDebugTest(false);
-    
-    OS.Shared.DEBUG = originalPref;
+    toggleDebugTest(false, consoleListener);
   });
 });
 
@@ -839,8 +836,6 @@ let test_debug_test = maketest("debug_test", function debug_test(test) {
 
 let test_system_shutdown = maketest("system_shutdown", function system_shutdown(test) {
   return Task.spawn(function () {
-    
-    let originalDebug = OS.Shared.DEBUG;
     
     let logCounter = 0;
     
@@ -854,10 +849,7 @@ let test_system_shutdown = maketest("system_shutdown", function system_shutdown(
         
         
         let cleanUp = function cleanUp() {
-          Services.console.unregisterListener(listener);
-          OS.Shared.DEBUG = originalDebug;
-          OS.Shared.TEST = false;
-          test.info("Unregistered listener for resource " + resource);
+          toggleDebugTest(false, listener);
         };
         waitObservation.promise.then(cleanUp, cleanUp);
 
@@ -893,7 +885,7 @@ let test_system_shutdown = maketest("system_shutdown", function system_shutdown(
             }
           }
         };
-        Services.console.registerListener(listener);
+        toggleDebugTest(true, listener);
         logStart = Date.now();
         f();
         

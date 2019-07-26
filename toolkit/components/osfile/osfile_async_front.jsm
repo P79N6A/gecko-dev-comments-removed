@@ -21,13 +21,15 @@
 
 this.EXPORTED_SYMBOLS = ["OS"];
 
-Components.utils.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm", this);
+let SharedAll = {};
+Components.utils.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm", SharedAll);
+
+
+let OS = SharedAll.OS;
 
 let LOG = OS.Shared.LOG.bind(OS.Shared, "Controller");
+
 let isTypedArray = OS.Shared.isTypedArray;
-
-
-let DEBUG = OS.Shared.DEBUG;
 
 
 let OSError;
@@ -155,23 +157,48 @@ let Scheduler = {
   }
 };
 
+const PREF_OSFILE_LOG = "toolkit.osfile.log";
+const PREF_OSFILE_LOG_REDIRECT = "toolkit.osfile.log.redirect";
 
-if (DEBUG === true) {
-  Scheduler.post("SET_DEBUG", [DEBUG]);
+
+
+
+
+
+
+
+let readDebugPref = function readDebugPref(prefName, oldPref = false) {
+  let pref = oldPref;
+  try {
+    pref = Services.prefs.getBoolPref(prefName);
+  } catch (x) {
+    
+  }
+  
+  return pref;
+};
+
+
+
+
+
+Services.prefs.addObserver(PREF_OSFILE_LOG,
+  function prefObserver(aSubject, aTopic, aData) {
+    OS.Shared.DEBUG = readDebugPref(PREF_OSFILE_LOG, OS.Shared.DEBUG);
+    Scheduler.post("SET_DEBUG", [OS.Shared.DEBUG]);
+  }, false);
+OS.Shared.DEBUG = readDebugPref(PREF_OSFILE_LOG, false);
+
+Services.prefs.addObserver(PREF_OSFILE_LOG_REDIRECT,
+  function prefObserver(aSubject, aTopic, aData) {
+    OS.Shared.TEST = readDebugPref(PREF_OSFILE_LOG_REDIRECT, OS.Shared.TEST);
+  }, false);
+OS.Shared.TEST = readDebugPref(PREF_OSFILE_LOG_REDIRECT, false);
+
+
+if (OS.Shared.DEBUG === true) {
+  Scheduler.post("SET_DEBUG", [true]);
 }
-
-
-
-Object.defineProperty(OS.Shared, "DEBUG", {
-    configurable: true,
-    get: function () {
-        return DEBUG;
-    },
-    set: function (newVal) {
-        Scheduler.post("SET_DEBUG", [newVal]);
-        DEBUG = newVal;
-    }
-});
 
 
 const WEB_WORKERS_SHUTDOWN_TOPIC = "web-workers-shutdown";

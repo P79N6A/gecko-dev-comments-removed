@@ -19,10 +19,12 @@
   (function(exports) {
      "use strict";
 
-     
-     if (exports.OS.File) {
-       return; 
+     exports.OS = require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm").OS;
+      
+     if (exports.OS && exports.OS.File) {
+        return; 
      }
+
      exports.OS.Win.File._init();
      let Const = exports.OS.Constants.Win;
      let WinFile = exports.OS.Win.File;
