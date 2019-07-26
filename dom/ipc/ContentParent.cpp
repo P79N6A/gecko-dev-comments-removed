@@ -197,28 +197,20 @@ MemoryReportRequestParent::~MemoryReportRequestParent()
 }
 
 
-
-
-class ContentParentMemoryReporter MOZ_FINAL : public nsIMemoryReporter
+class ContentParentsMemoryReporter MOZ_FINAL : public MemoryMultiReporter
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIMEMORYREPORTER
-    NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MallocSizeOf)
+    ContentParentsMemoryReporter()
+      : MemoryMultiReporter("content-parents")
+    {}
+
+    NS_IMETHOD CollectReports(nsIMemoryReporterCallback* cb,
+                              nsISupports* aClosure);
 };
 
-NS_IMPL_ISUPPORTS1(ContentParentMemoryReporter, nsIMemoryReporter)
-
 NS_IMETHODIMP
-ContentParentMemoryReporter::GetName(nsACString& aName)
-{
-    aName.AssignLiteral("ContentParents");
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-ContentParentMemoryReporter::CollectReports(nsIMemoryReporterCallback* cb,
-                                            nsISupports* aClosure)
+ContentParentsMemoryReporter::CollectReports(nsIMemoryReporterCallback* cb,
+                                             nsISupports* aClosure)
 {
     nsAutoTArray<ContentParent*, 16> cps;
     ContentParent::GetAllEvenIfDead(cps);
@@ -468,8 +460,7 @@ ContentParent::StartUp()
         return;
     }
 
-    nsRefPtr<ContentParentMemoryReporter> mr = new ContentParentMemoryReporter();
-    NS_RegisterMemoryReporter(mr);
+    NS_RegisterMemoryReporter(new ContentParentsMemoryReporter());
 
     sCanLaunchSubprocesses = true;
 

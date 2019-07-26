@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsDOMFile.h"
 
 #include "nsCExternalHandlerService.h"
@@ -645,15 +646,12 @@ nsDOMMemoryFile::DataOwner::sMemoryReporterRegistered;
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(DOMMemoryFileDataOwnerMallocSizeOf)
 
 class nsDOMMemoryFileDataOwnerMemoryReporter MOZ_FINAL
-  : public nsIMemoryReporter
+  : public MemoryMultiReporter
 {
-  NS_DECL_THREADSAFE_ISUPPORTS
-
-  NS_IMETHOD GetName(nsACString& aName)
-  {
-    aName.AssignASCII("dom-memory-file-data-owner");
-    return NS_OK;
-  }
+public:
+  nsDOMMemoryFileDataOwnerMemoryReporter()
+    : MemoryMultiReporter("dom-memory-file-data-owner")
+  {}
 
   NS_IMETHOD CollectReports(nsIMemoryReporterCallback *aCallback,
                             nsISupports *aClosure)
@@ -727,9 +725,6 @@ class nsDOMMemoryFileDataOwnerMemoryReporter MOZ_FINAL
     return NS_OK;
   }
 };
-
-NS_IMPL_ISUPPORTS1(nsDOMMemoryFileDataOwnerMemoryReporter,
-                   nsIMemoryReporter)
 
  void
 nsDOMMemoryFile::DataOwner::EnsureMemoryReporterRegistered()
