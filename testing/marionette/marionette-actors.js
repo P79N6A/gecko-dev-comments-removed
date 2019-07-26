@@ -1655,8 +1655,10 @@ MarionetteDriverActor.prototype = {
                                    .getInterface(Ci.nsIDOMWindowUtils)
                                    .getOuterWindowWithId(message.json.value);
 
-        if ((listenerWindow.location.href != message.json.href) &&
+        if (!listenerWindow || (listenerWindow.location.href != message.json.href) &&
             (this.currentRemoteFrame !== null)) {
+          
+          
           
           
           
