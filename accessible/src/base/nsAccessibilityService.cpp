@@ -901,26 +901,22 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     return nullptr;
   }
 
-  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
-  if (!content)
+  if (!aNode->IsContent())
     return nullptr;
 
-  
-  
-  
-  
-  nsWeakFrame weakFrame = content->GetPrimaryFrame();
+  nsIContent* content = aNode->AsContent();
+  nsIFrame* frame = content->GetPrimaryFrame();
 
   
   
-  if (!weakFrame.GetFrame() || !weakFrame->GetStyleVisibility()->IsVisible()) {
-    if (aIsSubtreeHidden && !weakFrame.GetFrame())
+  if (!frame || !frame->GetStyleVisibility()->IsVisible()) {
+    if (aIsSubtreeHidden && !frame)
       *aIsSubtreeHidden = true;
 
     return nullptr;
   }
 
-  if (weakFrame.GetFrame()->GetContent() != content) {
+  if (frame->GetContent() != content) {
     
     
     
@@ -929,7 +925,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
 
 #ifdef DEBUG
-  nsImageFrame* imageFrame = do_QueryFrame(weakFrame.GetFrame());
+  nsImageFrame* imageFrame = do_QueryFrame(frame);
   NS_ASSERTION(imageFrame && content->IsHTML() && content->Tag() == nsGkAtoms::area,
                "Unknown case of not main content for the frame!");
 #endif
@@ -937,17 +933,10 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   }
 
 #ifdef DEBUG
-  nsImageFrame* imageFrame = do_QueryFrame(weakFrame.GetFrame());
+  nsImageFrame* imageFrame = do_QueryFrame(frame);
   NS_ASSERTION(!imageFrame || !content->IsHTML() || content->Tag() != nsGkAtoms::area,
                "Image map manages the area accessible creation!");
 #endif
-
-  DocAccessible* docAcc =
-    GetAccService()->GetDocAccessible(aNode->OwnerDoc());
-  if (!docAcc) {
-    NS_NOTREACHED("Node has no host document accessible!");
-    return nullptr;
-  }
 
   
   nsRefPtr<Accessible> newAcc;
@@ -955,7 +944,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   
   if (content->IsNodeOfType(nsINode::eTEXT)) {
     nsAutoString text;
-    weakFrame->GetRenderedText(&text, nullptr, nullptr, 0, UINT32_MAX);
+    frame->GetRenderedText(&text, nullptr, nullptr, 0, UINT32_MAX);
     if (text.IsEmpty()) {
       if (aIsSubtreeHidden)
         *aIsSubtreeHidden = true;
@@ -963,8 +952,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
       return nullptr;
     }
 
-    newAcc = weakFrame->CreateAccessible();
-    if (docAcc->BindToDocument(newAcc, nullptr)) {
+    newAcc = frame->CreateAccessible();
+    if (aDoc->BindToDocument(newAcc, nullptr)) {
       newAcc->AsTextLeaf()->SetText(text);
       return newAcc;
     }
@@ -982,16 +971,16 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     
     
-    if (nsLayoutUtils::GetAllInFlowRectsUnion(weakFrame,
-                                              weakFrame->GetParent()).IsEmpty()) {
+    if (nsLayoutUtils::GetAllInFlowRectsUnion(frame,
+                                              frame->GetParent()).IsEmpty()) {
       if (aIsSubtreeHidden)
         *aIsSubtreeHidden = true;
 
       return nullptr;
     }
 
-    newAcc = new HyperTextAccessibleWrap(content, docAcc);
-    if (docAcc->BindToDocument(newAcc, aria::GetRoleMap(aNode)))
+    newAcc = new HyperTextAccessibleWrap(content, aDoc);
+    if (aDoc->BindToDocument(newAcc, aria::GetRoleMap(aNode)))
       return newAcc;
     return nullptr;
   }
@@ -1009,8 +998,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     roleMapEntry = nullptr;
   }
 
-  if (weakFrame.IsAlive() && !newAcc && isHTML) {  
-    nsIAtom *frameType = weakFrame.GetFrame()->GetType();
+  if (!newAcc && isHTML) {  
+    nsIAtom* frameType = frame->GetType();
 
     bool partOfHTMLTable =
       frameType == nsGkAtoms::tableCaptionFrame ||
@@ -1083,12 +1072,12 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
         if (roleMapEntry->role == roles::TABLE ||
             roleMapEntry->role == roles::TREE_TABLE) {
-          newAcc = new ARIAGridAccessibleWrap(content, docAcc);
+          newAcc = new ARIAGridAccessibleWrap(content, aDoc);
 
         } else if (roleMapEntry->role == roles::GRID_CELL ||
             roleMapEntry->role == roles::ROWHEADER ||
             roleMapEntry->role == roles::COLUMNHEADER) {
-          newAcc = new ARIAGridCellAccessibleWrap(content, docAcc);
+          newAcc = new ARIAGridCellAccessibleWrap(content, aDoc);
         }
       }
     }
@@ -1099,8 +1088,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
       
       
       
-      newAcc = CreateHTMLAccessibleByMarkup(weakFrame.GetFrame(), content,
-                                            docAcc, legalPartOfHTMLTable);
+      newAcc = CreateHTMLAccessibleByMarkup(frame, content, aDoc,
+                                            legalPartOfHTMLTable);
 
       if (!newAcc && (!partOfHTMLTable || legalPartOfHTMLTable)) {
         
@@ -1109,12 +1098,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
         
         
         
-        nsIFrame* f = weakFrame.GetFrame();
-        if (!f) {
-          f = aDoc->PresShell()->GetRealPrimaryFrameFor(content);
-        }
-        if (f->GetType() == nsGkAtoms::tableCaptionFrame &&
-           f->GetRect().IsEmpty()) {
+        if (frame->GetType() == nsGkAtoms::tableCaptionFrame &&
+            frame->GetRect().IsEmpty()) {
           
           
           if (aIsSubtreeHidden)
@@ -1124,7 +1109,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
         }
 
         
-        newAcc = f->CreateAccessible();
+        newAcc = frame->CreateAccessible();
       }
     }
   }
@@ -1132,7 +1117,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   if (!newAcc) {
     
     
-    newAcc = CreateAccessibleByType(content, docAcc);
+    newAcc = CreateAccessibleByType(content, aDoc);
   }
 
   if (!newAcc) {
@@ -1140,25 +1125,23 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     nsIAtom* tag = content->Tag();
     if ((tag == nsGkAtoms::deck) || (tag == nsGkAtoms::tabpanels)) {
-      newAcc = new XULDeckAccessible(content, docAcc);
+      newAcc = new XULDeckAccessible(content, aDoc);
     } else if (content->IsSVG(nsGkAtoms::svg)) {
-      newAcc = new EnumRoleAccessible(content, docAcc, roles::DIAGRAM);
+      newAcc = new EnumRoleAccessible(content, aDoc, roles::DIAGRAM);
     } else if (content->IsMathML(nsGkAtoms::math)) {
-      newAcc = new EnumRoleAccessible(content, docAcc, roles::EQUATION);
+      newAcc = new EnumRoleAccessible(content, aDoc, roles::EQUATION);
     }
   }
 
-  if (!newAcc) {
-    newAcc = CreateAccessibleForDeckChild(weakFrame.GetFrame(), content,
-                                          docAcc);
-  }
+  if (!newAcc)
+    newAcc = CreateAccessibleForDeckChild(frame, content, aDoc);
 
   
   
   
   
   if (!newAcc && content->Tag() != nsGkAtoms::body && content->GetParent() &&
-      ((weakFrame.GetFrame() && weakFrame.GetFrame()->IsFocusable()) ||
+      (frame->IsFocusable() ||
        (isHTML && nsCoreUtils::HasClickListener(content)) ||
        HasUniversalAriaProperty(content) || roleMapEntry ||
        HasRelatedContent(content) || nsCoreUtils::IsXLink(content))) {
@@ -1167,15 +1150,14 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     if (isHTML) {
       
-      newAcc = new HyperTextAccessibleWrap(content, docAcc);
-    }
-    else {  
+      newAcc = new HyperTextAccessibleWrap(content, aDoc);
+    } else {  
       
-      newAcc = new AccessibleWrap(content, docAcc);
+      newAcc = new AccessibleWrap(content, aDoc);
     }
   }
 
-  return docAcc->BindToDocument(newAcc, roleMapEntry) ? newAcc : nullptr;
+  return aDoc->BindToDocument(newAcc, roleMapEntry) ? newAcc : nullptr;
 }
 
 
@@ -1293,7 +1275,7 @@ nsAccessibilityService::CreateAccessibleByType(nsIContent* aContent,
 
   if (type == nsIAccessibleProvider::OuterDoc) {
     Accessible* accessible = new OuterDocAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
@@ -1573,7 +1555,7 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
     if (nsCoreUtils::IsHTMLTableHeader(aContent)) {
       Accessible* accessible =
         new HTMLTableHeaderCellAccessibleWrap(aContent, aDoc);
-      NS_IF_ADDREF(accessible);
+      NS_ADDREF(accessible);
       return accessible;
     }
 
@@ -1584,38 +1566,38 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
   nsIAtom* tag = aContent->Tag();
   if (tag == nsGkAtoms::figcaption) {
     Accessible* accessible = new HTMLFigcaptionAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   if (tag == nsGkAtoms::figure) {
     Accessible* accessible = new HTMLFigureAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   if (tag == nsGkAtoms::legend) {
     Accessible* accessible = new HTMLLegendAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   if (tag == nsGkAtoms::option) {
     Accessible* accessible = new HTMLSelectOptionAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   if (tag == nsGkAtoms::optgroup) {
     Accessible* accessible = new HTMLSelectOptGroupAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   if (tag == nsGkAtoms::ul || tag == nsGkAtoms::ol ||
       tag == nsGkAtoms::dl) {
     Accessible* accessible = new HTMLListAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
@@ -1626,12 +1608,12 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
     if (roleMapEntry && roleMapEntry->role != roles::NOTHING &&
         roleMapEntry->role != roles::LINK) {
       Accessible* accessible = new HyperTextAccessibleWrap(aContent, aDoc);
-      NS_IF_ADDREF(accessible);
+      NS_ADDREF(accessible);
       return accessible;
     }
 
     Accessible* accessible = new HTMLLinkAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
@@ -1639,7 +1621,7 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
     
     
     Accessible* accessible = new HTMLLIAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
@@ -1656,20 +1638,20 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
       tag == nsGkAtoms::h6 ||
       tag == nsGkAtoms::q) {
     Accessible* accessible = new HyperTextAccessibleWrap(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   if (tag == nsGkAtoms::output) {
     Accessible* accessible = new HTMLOutputAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   if (tag == nsGkAtoms::progress) {
     Accessible* accessible =
       new HTMLProgressMeterAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
@@ -1759,18 +1741,18 @@ nsAccessibilityService::CreateAccessibleForDeckChild(nsIFrame* aFrame,
     if (parentFrame && parentFrame->GetType() == nsGkAtoms::deckFrame) {
       
       
-      nsCOMPtr<nsIContent> parentContent = parentFrame->GetContent();
+      nsIContent* parentContent = parentFrame->GetContent();
 #ifdef MOZ_XUL
       if (parentContent->NodeInfo()->Equals(nsGkAtoms::tabpanels,
                                             kNameSpaceID_XUL)) {
         Accessible* accessible = new XULTabpanelAccessible(aContent, aDoc);
-        NS_IF_ADDREF(accessible);
+        NS_ADDREF(accessible);
         return accessible;
       }
 #endif
       Accessible* accessible = new EnumRoleAccessible(aContent, aDoc,
                                                       roles::PROPERTYPAGE);
-      NS_IF_ADDREF(accessible);
+      NS_ADDREF(accessible);
       return accessible;
     }
   }
@@ -1798,13 +1780,13 @@ nsAccessibilityService::CreateAccessibleForXULTree(nsIContent* aContent,
   
   if (count == 1) {
     Accessible* accessible = new XULTreeAccessible(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
+    NS_ADDREF(accessible);
     return accessible;
   }
 
   
   Accessible* accessible = new XULTreeGridAccessibleWrap(aContent, aDoc);
-  NS_IF_ADDREF(accessible);
+  NS_ADDREF(accessible);
   return accessible;
 }
 #endif
