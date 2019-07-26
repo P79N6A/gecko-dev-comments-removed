@@ -58,6 +58,7 @@ var std_Object_create = Object.create;
 var std_Object_getOwnPropertyNames = Object.getOwnPropertyNames;
 var std_Object_hasOwnProperty = Object.prototype.hasOwnProperty;
 var std_RegExp_test = RegExp.prototype.test;
+var Std_String = String;
 var std_String_fromCharCode = String.fromCharCode;
 var std_String_charCodeAt = String.prototype.charCodeAt;
 var std_String_indexOf = String.prototype.indexOf;
@@ -128,6 +129,13 @@ function ToBoolean(v) {
 
 function ToNumber(v) {
     return +v;
+}
+
+
+
+function ToString(v) {
+    assert(arguments.length > 0, "__toString");
+    return Std_String(v);
 }
 
 
