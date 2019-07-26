@@ -599,6 +599,25 @@ class MOsrEntry : public MNullaryInstruction
 };
 
 
+
+class MNop : public MNullaryInstruction
+{
+  protected:
+    MNop() {
+    }
+
+  public:
+    INSTRUCTION_HEADER(Nop);
+    static MNop *New() {
+        return new MNop();
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
 class MConstant : public MNullaryInstruction
 {
     Value value_;
