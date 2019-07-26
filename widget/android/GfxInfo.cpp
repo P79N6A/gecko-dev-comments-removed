@@ -429,10 +429,20 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
+        
+        
+        
         bool isWhitelisted =
           cModel.Equals("LT28h", nsCaseInsensitiveCStringComparator()) ||
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator()) ||
           cModel.Equals("galaxy nexus", nsCaseInsensitiveCStringComparator()); 
+
+        if (cModel.Equals("SGH-I717", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("SGH-I727", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("SGH-T989", nsCaseInsensitiveCStringComparator()))
+        {
+          isWhitelisted = false;
+        }
 
         if (!isWhitelisted) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
