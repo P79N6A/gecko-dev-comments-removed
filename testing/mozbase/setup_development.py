@@ -30,9 +30,8 @@ here = os.path.dirname(os.path.abspath(__file__))
 
 mozbase_packages = [i for i in os.listdir(here)
                     if os.path.exists(os.path.join(here, i, 'setup.py'))]
-test_packages = [ "mock" 
-                  ]
-extra_packages = [ "sphinx" 
+extra_packages = ["sphinx", 
+                  "mock",   
                   ]
 
 def cycle_check(order, dependencies):
@@ -246,10 +245,6 @@ def main(args=sys.argv[1:]):
     for package, version in pypi_deps.items():
         
         call(['easy_install', version])
-
-    
-    for package in test_packages:
-        call(['easy_install', package])
 
     
     if options.extra:

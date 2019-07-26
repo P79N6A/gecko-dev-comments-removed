@@ -253,14 +253,13 @@ class B2GRemoteReftest(RefTest):
                 sys.exit(5)
 
         
-        if profileDir:
-            extensionDir = os.path.join(profileDir, 'extensions', 'staged')
-            for filename in os.listdir(extensionDir):
-                try:
-                    self._devicemanager._checkCmd(['shell', 'rm', '-rf',
-                                                     os.path.join(self.bundlesDir, filename)])
-                except DMError:
-                    pass
+        extensionDir = os.path.join(profileDir, 'extensions', 'staged')
+        for filename in os.listdir(extensionDir):
+            try:
+                self._devicemanager._checkCmdAs(['shell', 'rm', '-rf',
+                                                 os.path.join(self.bundlesDir, filename)])
+            except DMError:
+                pass
 
         
         if self.originalProfilesIni:
@@ -277,8 +276,8 @@ class B2GRemoteReftest(RefTest):
             self._devicemanager.removeDir(self.remoteTestRoot)
 
             
-            self._devicemanager._checkCmd(['shell', 'rm', '-f', self.userJS])
-            self._devicemanager._checkCmd(['shell', 'dd', 'if=%s.orig' % self.userJS, 'of=%s' % self.userJS])
+            self._devicemanager._checkCmdAs(['shell', 'rm', '-f', self.userJS])
+            self._devicemanager._checkCmdAs(['shell', 'dd', 'if=%s.orig' % self.userJS, 'of=%s' % self.userJS])
 
             
             
@@ -442,9 +441,9 @@ class B2GRemoteReftest(RefTest):
         
         extensionDir = os.path.join(profileDir, 'extensions', 'staged')
         
-        self._devicemanager._checkCmd(['remount'])
+        self._devicemanager._checkCmdAs(['remount'])
         for filename in os.listdir(extensionDir):
-            self._devicemanager._checkCmd(['shell', 'rm', '-rf',
+            self._devicemanager._checkCmdAs(['shell', 'rm', '-rf',
                                              os.path.join(self.bundlesDir, filename)])
         try:
             self._devicemanager.pushDir(extensionDir, self.bundlesDir)
@@ -454,8 +453,8 @@ class B2GRemoteReftest(RefTest):
 
         
         
-        self._devicemanager._checkCmd(['shell', 'rm', '-f', '%s.orig' % self.userJS])
-        self._devicemanager._checkCmd(['shell', 'dd', 'if=%s' % self.userJS, 'of=%s.orig' % self.userJS])
+        self._devicemanager._checkCmdAs(['shell', 'rm', '-f', '%s.orig' % self.userJS])
+        self._devicemanager._checkCmdAs(['shell', 'dd', 'if=%s' % self.userJS, 'of=%s.orig' % self.userJS])
         self._devicemanager.pushFile(os.path.join(profileDir, "user.js"), self.userJS)
 
         self.updateProfilesIni(self.remoteProfile)
