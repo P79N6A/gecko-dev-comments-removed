@@ -675,6 +675,13 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
                          aPresContext->AppUnitsToDevPixels(aMaxSize.width),
                        aMaxSize.height == NS_INTRINSICSIZE ? NS_MAXSIZE :
                          aPresContext->AppUnitsToDevPixels(aMaxSize.height));
+
+  
+  if (devMinSize.width > devMaxSize.width)
+    devMaxSize.width = devMinSize.width;
+  if (devMinSize.height > devMaxSize.height)
+    devMaxSize.height = devMinSize.height;
+
   widget::SizeConstraints constraints(devMinSize, devMaxSize);
 
   
