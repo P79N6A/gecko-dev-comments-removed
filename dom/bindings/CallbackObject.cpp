@@ -69,7 +69,6 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   JSObject* realCallback = js::UncheckedUnwrap(aCallback->CallbackPreserveColor());
   JSContext* cx = nullptr;
   nsIGlobalObject* globalObject = nullptr;
-  Maybe< JS::Rooted<JSObject*> > callbackRooter;
 
   if (mIsMainThread) {
     
@@ -90,7 +89,6 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
                              
                              
                              : nsContentUtils::GetSafeJSContext();
-      callbackRooter.construct(cx, realCallback);
       globalObject = win;
     } else {
       
@@ -98,11 +96,9 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
       globalObject = xpc::GetNativeForGlobal(glob);
       MOZ_ASSERT(globalObject);
       cx = nsContentUtils::GetSafeJSContext();
-      callbackRooter.construct(cx, realCallback);
     }
   } else {
     cx = workers::GetCurrentThreadJSContext();
-    callbackRooter.construct(cx, realCallback);
     globalObject = workers::GetCurrentThreadWorkerPrivate()->GlobalScope();
   }
 
