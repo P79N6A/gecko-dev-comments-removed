@@ -419,6 +419,16 @@ public class TopSitesPanel extends HomeFragment {
         mList.setHeaderDividersEnabled(c != null && c.getCount() > mMaxGridEntries);
     }
 
+    private void updateUiWithThumbnails(Map<String, Bitmap> thumbnails) {
+        if (mGridAdapter != null) {
+            mGridAdapter.updateThumbnails(thumbnails);
+        }
+
+        
+        
+        ThreadUtils.resetGeckoPriority();
+    }
+
     private static class TopSitesLoader extends SimpleCursorLoader {
         
         private static final int SEARCH_LIMIT = 30;
@@ -640,7 +650,7 @@ public class TopSitesPanel extends HomeFragment {
 
                 
                 
-                if (BrowserDB.hasSuggestedImageUrl(url)) {
+                if (TextUtils.isEmpty(url) || BrowserDB.hasSuggestedImageUrl(url)) {
                     continue;
                 }
 
@@ -648,6 +658,8 @@ public class TopSitesPanel extends HomeFragment {
             } while (i++ < mMaxGridEntries && c.moveToNext());
 
             if (urls.isEmpty()) {
+                
+                updateUiWithThumbnails(new HashMap<String, Bitmap>());
                 return;
             }
 
@@ -785,13 +797,7 @@ public class TopSitesPanel extends HomeFragment {
 
         @Override
         public void onLoadFinished(Loader<Map<String, Bitmap>> loader, Map<String, Bitmap> thumbnails) {
-            if (mGridAdapter != null) {
-                mGridAdapter.updateThumbnails(thumbnails);
-            }
-
-            
-            
-            ThreadUtils.resetGeckoPriority();
+            updateUiWithThumbnails(thumbnails);
         }
 
         @Override
