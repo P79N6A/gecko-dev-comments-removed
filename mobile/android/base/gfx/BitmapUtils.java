@@ -27,6 +27,7 @@ import org.mozilla.gecko.R;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.NoSuchFieldException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -282,11 +283,28 @@ public final class BitmapUtils {
         if ("drawable".equals(scheme)) {
             String resource = resourceUrl.getSchemeSpecificPart();
             resource = resource.substring(resource.lastIndexOf('/') + 1);
+
             try {
                 final Class<R.drawable> drawableClass = R.drawable.class;
                 final Field f = drawableClass.getField(resource);
                 icon = f.getInt(null);
-            } catch (final Exception e) {} 
+            } catch (final NoSuchFieldException e1) {
+
+                
+                try {
+                    final Class<android.R.drawable> drawableClass = android.R.drawable.class;
+                    final Field f = drawableClass.getField(resource);
+                    icon = f.getInt(null);
+                } catch (final NoSuchFieldException e2) {
+                    
+                } catch(Exception e3) {
+                    Log.i(LOGTAG, "Exception getting drawable", e3);
+                }
+
+            } catch (Exception e4) {
+              Log.i(LOGTAG, "Exception getting drawable", e4);
+            }
+
             resourceUrl = null;
         }
         return icon;
