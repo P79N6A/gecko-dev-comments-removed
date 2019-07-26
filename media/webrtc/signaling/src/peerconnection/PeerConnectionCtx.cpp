@@ -24,6 +24,7 @@
 #include "nsIObserver.h"
 #include "mozilla/Services.h"
 #include "StaticPtr.h"
+#include "mozilla/SyncRunnable.h"
 
 static const char* logTag = "PeerConnectionCtx";
 
@@ -265,13 +266,10 @@ void PeerConnectionCtx::onCallEvent(ccapi_call_event_e aCallEvent,
   
   
   
-  
-  
-  RUN_ON_THREAD(gMainThread,
+  mozilla::SyncRunnable::DispatchToThread(gMainThread,
                 WrapRunnable(this,
                              &PeerConnectionCtx::onCallEvent_m,
-                             aCallEvent, aCall, aInfo),
-                NS_DISPATCH_SYNC);
+                             aCallEvent, aCall, aInfo));
 }
 
 
