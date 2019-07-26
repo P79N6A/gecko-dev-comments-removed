@@ -3853,16 +3853,27 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         
         
         
+        
+        
+        
+        
+        
         deallocShmem = MethodDefn(MethodDecl(
             'DeallocShmem',
             params=[ Decl(_shmemType(ref=1), memvar.name) ],
             ret=Type.BOOL))
         okvar = ExprVar('ok')
 
+        ifbad = StmtIf(ExprNot(okvar))
+        ifbad.addifstmt(_runtimeAbort('bad Shmem'))
+
         deallocShmem.addstmts([
             StmtDecl(Decl(Type.BOOL, okvar.name),
                      init=ExprCall(p.destroySharedMemory(),
                                    args=[ memvar ])),
+            CppDirective('ifdef', 'DEBUG'),
+            ifbad,
+            CppDirective('endif', '// DEBUG'),
             StmtExpr(_shmemForget(memvar)),
             StmtReturn(okvar)
         ])
