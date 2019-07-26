@@ -1,22 +1,22 @@
-/*
- * loader.h - load platform dependent DSO containing freebl implementation.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: loader.h,v 1.38 2012/06/28 17:55:05 rrelyea%redhat.com Exp $ */
+
+
+
+
+
+
+
 
 #ifndef _LOADER_H_
 #define _LOADER_H_ 1
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x030E
+#define FREEBL_VERSION 0x030F
 
 struct FREEBLVectorStr {
 
-  unsigned short length;  /* of this struct in bytes */
-  unsigned short version; /* of this struct. */
+  unsigned short length;  
+  unsigned short version; 
 
   RSAPrivateKey * (* p_RSA_NewKey)(int         keySizeInBits,
 				 SECItem *   publicExponent);
@@ -224,7 +224,7 @@ struct FREEBLVectorStr {
  SECStatus (* p_PQG_VerifyParams)(const PQGParams *params, 
                                   const PQGVerify *vfy, SECStatus *result);
 
-  /* Version 3.001 came to here */
+  
 
   SECStatus (* p_RSA_PrivateKeyOpDoubleChecked)(RSAPrivateKey *key,
                               unsigned char *output,
@@ -234,7 +234,7 @@ struct FREEBLVectorStr {
 
   void (* p_BL_Cleanup)(void);
 
-  /* Version 3.002 came to here */
+  
 
  SHA256Context *(* p_SHA256_NewContext)(void);
  void (* p_SHA256_DestroyContext)(SHA256Context *cx, PRBool freeit);
@@ -281,7 +281,7 @@ struct FREEBLVectorStr {
  SECStatus (* p_SHA384_Flatten)(SHA384Context *cx,unsigned char *space);
  SHA384Context * (* p_SHA384_Resurrect)(unsigned char *space, void *arg);
 
-  /* Version 3.003 came to here */
+  
 
  AESKeyWrapContext * (* p_AESKeyWrap_CreateContext)(const unsigned char *key, 
                    const unsigned char *iv, int encrypt, unsigned int keylen);
@@ -298,12 +298,12 @@ struct FREEBLVectorStr {
             unsigned int *outputLen, unsigned int maxOutputLen,
             const unsigned char *input, unsigned int inputLen);
 
-  /* Version 3.004 came to here */
+  
 
  PRBool (*p_BLAPI_SHVerify)(const char *name, PRFuncPtr addr);
  PRBool (*p_BLAPI_VerifySelf)(const char *name);
 
-  /* Version 3.005 came to here */
+  
 
  SECStatus (* p_EC_NewKey)(ECParams *           params, 
                            ECPrivateKey **	privKey);
@@ -336,13 +336,13 @@ struct FREEBLVectorStr {
                              const unsigned char * seed,
                              const int          seedlen);
 
-  /* Version 3.006 came to here */
+  
 
-  /* no modification to FREEBLVectorStr itself 
-   * but ECParamStr was modified 
-   */
+  
 
-  /* Version 3.007 came to here */
+
+
+  
 
  SECStatus (* p_AES_InitContext)(AESContext *cx,
 				 const unsigned char *key, 
@@ -415,7 +415,7 @@ struct FREEBLVectorStr {
 
  void (* p_RNG_SystemInfoForRNG)(void);
 
-  /* Version 3.008 came to here */
+  
 
  SECStatus (* p_FIPS186Change_GenerateX)(unsigned char *XKEY,
                                          const unsigned char *XSEEDj,
@@ -424,7 +424,7 @@ struct FREEBLVectorStr {
                                                 const unsigned char *q,
                                                 unsigned char *xj);
 
-  /* Version 3.009 came to here */
+  
 
  SECStatus (* p_Camellia_InitContext)(CamelliaContext *cx,
 				 const unsigned char *key, 
@@ -457,7 +457,7 @@ struct FREEBLVectorStr {
 
  void (* p_PQG_DestroyVerify)(PQGVerify *vfy);
 
-  /* Version 3.010 came to here */
+  
 
  SECStatus (* p_SEED_InitContext)(SEEDContext *cx,
                                  const unsigned char *key,
@@ -506,7 +506,7 @@ struct FREEBLVectorStr {
 				   unsigned int additional_len);
 
  SECStatus (* p_PRNGTEST_Uninstantiate)(void);
-   /* Version 3.011 came to here */
+   
 
  SECStatus (*p_RSA_PopulatePrivateKey)(RSAPrivateKey *key);
 
@@ -535,7 +535,7 @@ struct FREEBLVectorStr {
                             const SECItem * gx4, const SECItem * x2s,
                             const SECItem * B, SECItem * K);
 
-  /* Version 3.012 came to here */
+  
 
  SECStatus (* p_TLS_P_hash)(HASH_HashType hashAlg,
                             const SECItem *secret,
@@ -561,15 +561,43 @@ struct FREEBLVectorStr {
  void (* p_SHA224_Clone)(SHA224Context *dest, SHA224Context *src);
  PRBool (*p_BLAPI_SHVerifyFile)(const char *name);
 
-  /* Version 3.013 came to here */
+  
 
  SECStatus (* p_PQG_ParamGenV2)( unsigned int L, unsigned int N,
                                 unsigned int seedBytes, 
                                 PQGParams **pParams, PQGVerify **pVfy); 
  SECStatus (*p_PRNGTEST_RunHealthTests)(void);
 
-  /* Version 3.014 came to here */
-};
+  
+
+ SECStatus (* p_HMAC_ConstantTime)(
+     unsigned char *result,
+     unsigned int *resultLen,
+     unsigned int maxResultLen,
+     const SECHashObject *hashObj,
+     const unsigned char *secret,
+     unsigned int secretLen,
+     const unsigned char *header,
+     unsigned int headerLen,
+     const unsigned char *body,
+     unsigned int bodyLen,
+     unsigned int bodyTotalLen);
+
+ SECStatus (* p_SSLv3_MAC_ConstantTime)(
+     unsigned char *result,
+     unsigned int *resultLen,
+     unsigned int maxResultLen,
+     const SECHashObject *hashObj,
+     const unsigned char *secret,
+     unsigned int secretLen,
+     const unsigned char *header,
+     unsigned int headerLen,
+     const unsigned char *body,
+     unsigned int bodyLen,
+     unsigned int bodyTotalLen);
+
+  
+ };
 
 typedef struct FREEBLVectorStr FREEBLVector;
 

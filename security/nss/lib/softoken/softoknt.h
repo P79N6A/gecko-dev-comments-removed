@@ -20,9 +20,6 @@ typedef enum {
     RSA_BlockPrivate0 = 0,	
     RSA_BlockPrivate = 1,	
     RSA_BlockPublic = 2,	
-    RSA_BlockOAEP = 3,		
-				
-
     RSA_BlockRaw = 4,		
     RSA_BlockTotal
 } RSA_BlockType;

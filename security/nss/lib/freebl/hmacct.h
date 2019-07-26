@@ -1,0 +1,38 @@
+
+
+
+
+#ifndef _ALGHMACCT_H_
+#define _ALGHMACCT_H_
+
+SEC_BEGIN_PROTOS
+
+extern SECStatus HMAC_ConstantTime(
+    unsigned char *result,
+    unsigned int *resultLen,
+    unsigned int maxResultLen,
+    const SECHashObject *hashObj,
+    const unsigned char *secret,
+    unsigned int secretLen,
+    const unsigned char *header,
+    unsigned int headerLen,
+    const unsigned char *body,
+    unsigned int bodyLen,
+    unsigned int bodyTotalLen);
+
+extern SECStatus SSLv3_MAC_ConstantTime(
+    unsigned char *result,
+    unsigned int *resultLen,
+    unsigned int maxResultLen,
+    const SECHashObject *hashObj,
+    const unsigned char *secret,
+    unsigned int secretLen,
+    const unsigned char *header,
+    unsigned int headerLen,
+    const unsigned char *body,
+    unsigned int bodyLen,
+    unsigned int bodyTotalLen);
+
+SEC_END_PROTOS
+
+#endif

@@ -19,137 +19,42 @@
 #define RSA_BLOCK_PRIVATE_PAD_OCTET	0xff
 #define RSA_BLOCK_AFTER_PAD_OCTET	0x00
 
-#define OAEP_SALT_LEN		8
-#define OAEP_PAD_LEN		8
-#define OAEP_PAD_OCTET		0x00
-
-#define FLAT_BUFSIZE 512	/* bytes to hold flattened SHA1Context. */
-
 
 static const unsigned char eightZeros[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-static SHA1Context *
-SHA1_CloneContext(SHA1Context *original)
-{
-    SHA1Context *  clone	= NULL;
-    unsigned char *pBuf;
-    int            sha1ContextSize = SHA1_FlattenSize(original);
-    SECStatus      frv;
-    unsigned char  buf[FLAT_BUFSIZE];
 
-    PORT_Assert(sizeof buf >= sha1ContextSize);
-    if (sizeof buf >= sha1ContextSize) {
-    	pBuf = buf;
-    } else {
-        pBuf = PORT_Alloc(sha1ContextSize);
-	if (!pBuf)
-	    goto done;
-    }
 
-    frv = SHA1_Flatten(original, pBuf);
-    if (frv == SECSuccess) {
-	clone = SHA1_Resurrect(pBuf, NULL);
-	memset(pBuf, 0, sha1ContextSize);
-    }
-done:
-    if (pBuf != buf)
-    	PORT_Free(pBuf);
-    return clone;
+
+
+static unsigned char constantTimeEQ8(unsigned char a, unsigned char b) {
+    unsigned char c = ~(a - b | b - a);
+    c >>= 7;
+    return c;
 }
 
 
 
 
-static SECStatus
-oaep_xor_with_h1(unsigned char *data, unsigned int datalen,
-		 unsigned char *salt, unsigned int saltlen)
-{
-    SHA1Context *sha1cx;
-    unsigned char *dp, *dataend;
-    unsigned char end_octet;
 
-    sha1cx = SHA1_NewContext();
-    if (sha1cx == NULL) {
-	return SECFailure;
-    }
-
-    
-
-
-
-    SHA1_Begin (sha1cx);
-    SHA1_Update (sha1cx, salt, saltlen);
-    end_octet = 0;
-
-    dp = data;
-    dataend = data + datalen;
-
-    while (dp < dataend) {
-	SHA1Context *sha1cx_h1;
-	unsigned int sha1len, sha1off;
-	unsigned char sha1[SHA1_LENGTH];
-
-	
-
-
-	sha1cx_h1 = SHA1_CloneContext (sha1cx);
-	SHA1_Update (sha1cx_h1, &end_octet, 1);
-	SHA1_End (sha1cx_h1, sha1, &sha1len, sizeof(sha1));
-	SHA1_DestroyContext (sha1cx_h1, PR_TRUE);
-	PORT_Assert (sha1len == SHA1_LENGTH);
-
-	
-
-
-
-
-	sha1off = 0;
-	if ((dataend - dp) < SHA1_LENGTH)
-	    sha1off = SHA1_LENGTH - (dataend - dp);
-	while (sha1off < SHA1_LENGTH)
-	    *dp++ ^= sha1[sha1off++];
-
-	
-
-
-	end_octet++;
-    }
-
-    SHA1_DestroyContext (sha1cx, PR_TRUE);
-    return SECSuccess;
+static unsigned char constantTimeCompare(const unsigned char *a,
+                                         const unsigned char *b,
+                                         unsigned int len) {
+    unsigned char tmp = 0;
+    unsigned int i;
+    for (i = 0; i < len; ++i, ++a, ++b)
+        tmp |= *a ^ *b;
+    return constantTimeEQ8(0x00, tmp);
 }
 
 
 
 
-static SECStatus
-oaep_xor_with_h2(unsigned char *salt, unsigned int saltlen,
-		 unsigned char *data, unsigned int datalen)
+
+static unsigned int constantTimeCondition(unsigned int c,
+                                          unsigned int a,
+                                          unsigned int b)
 {
-    unsigned char sha1[SHA1_LENGTH];
-    unsigned char *psalt, *psha1, *saltend;
-    SECStatus rv;
-
-    
-
-
-    rv = SHA1_HashBuf (sha1, data, datalen);
-    if (rv != SECSuccess) {
-	return rv;
-    }
-
-    
-
-
-    PORT_Assert (saltlen <= SHA1_LENGTH);
-    saltend = salt + saltlen;
-    psalt = salt;
-    psha1 = sha1 + SHA1_LENGTH - saltlen;
-    while (psalt < saltend) {
-	*psalt++ ^= *psha1++;
-    }
-
-    return SECSuccess;
+    return (~(c - 1) & a) | ((c - 1) & b);
 }
 
 
@@ -265,97 +170,6 @@ rsa_FormatOneBlock(unsigned modulusLen, RSA_BlockType blockType,
 	PORT_Memcpy (bp, data->data, data->len);
 	break;
 
-      
-
-
-
-      case RSA_BlockOAEP:
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-	rv = RNG_GenerateGlobalRandomBytes(bp, OAEP_SALT_LEN);
-	if (rv != SECSuccess) {
-	    sftk_fatalError = PR_TRUE;
-	    PORT_Free (block);
-	    return NULL;
-	}
-	bp += OAEP_SALT_LEN;
-
-	
-
-
-	PORT_Memset (bp, OAEP_PAD_OCTET, OAEP_PAD_LEN);
-	bp += OAEP_PAD_LEN;
-
-	
-
-
-	PORT_Memcpy (bp, data->data, data->len);
-	bp += data->len;
-
-	
-
-
-	if (bp < (block + modulusLen)) {
-	    rv = RNG_GenerateGlobalRandomBytes(bp, block - bp + modulusLen);
-	    if (rv != SECSuccess) {
-		sftk_fatalError = PR_TRUE;
-		PORT_Free (block);
-		return NULL;
-	    }
-	}
-
-	
-
-
-
-
-
-
-
-	if (oaep_xor_with_h1(block + 2 + OAEP_SALT_LEN,
-			     modulusLen - 2 - OAEP_SALT_LEN,
-			     block + 2, OAEP_SALT_LEN) != SECSuccess) {
-	    PORT_Free (block);
-	    return NULL;
-	}
-
-	
-
-
-
-
-
-	if (oaep_xor_with_h2(block + 2, OAEP_SALT_LEN,
-			     block + 2 + OAEP_SALT_LEN,
-			     modulusLen - 2 - OAEP_SALT_LEN) != SECSuccess) {
-	    PORT_Free (block);
-	    return NULL;
-	}
-
-	break;
-
       default:
 	PORT_Assert (0);
 	PORT_Free (block);
@@ -393,26 +207,6 @@ rsa_FormatBlock(SECItem *result, unsigned modulusLen,
 
 
 	PORT_Assert (data->len <= (modulusLen - (3 + RSA_BLOCK_MIN_PAD_LEN)));
-
-	result->data = rsa_FormatOneBlock(modulusLen, blockType, data);
-	if (result->data == NULL) {
-	    result->len = 0;
-	    return SECFailure;
-	}
-	result->len = modulusLen;
-
-	break;
-
-      case RSA_BlockOAEP:
-	
-
-
-
-
-
-
-	PORT_Assert (data->len <= (modulusLen - (2 + OAEP_SALT_LEN
-						 + OAEP_PAD_LEN)));
 
 	result->data = rsa_FormatOneBlock(modulusLen, blockType, data);
 	if (result->data == NULL) {
@@ -968,6 +762,266 @@ MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
 
 
 static SECStatus
+eme_oaep_decode(unsigned char *output, unsigned int *outputLen,
+                unsigned int maxOutputLen,
+                const unsigned char *input, unsigned int inputLen,
+                HASH_HashType hashAlg, HASH_HashType maskHashAlg,
+                const unsigned char *label, unsigned int labelLen)
+{
+    const SECHashObject *hash;
+    void *hashContext;
+    SECStatus rv = SECFailure;
+    unsigned char labelHash[HASH_LENGTH_MAX];
+    unsigned int i, maskLen, paddingOffset;
+    unsigned char *mask = NULL, *tmpOutput = NULL;
+    unsigned char isGood, foundPaddingEnd;
+
+    hash = HASH_GetRawHashObject(hashAlg);
+
+    
+    if (inputLen < (hash->length * 2) + 2) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+
+    
+    hashContext = (*hash->create)();
+    if (hashContext == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+    (*hash->begin)(hashContext);
+    if (labelLen > 0)
+        (*hash->update)(hashContext, label, labelLen);
+    (*hash->end)(hashContext, labelHash, &i, sizeof(labelHash));
+    (*hash->destroy)(hashContext, PR_TRUE);
+
+    tmpOutput = (unsigned char*)PORT_Alloc(inputLen);
+    if (tmpOutput == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        goto done;
+    }
+
+    maskLen = inputLen - hash->length - 1;
+    mask = (unsigned char*)PORT_Alloc(maskLen);
+    if (mask == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        goto done;
+    }
+
+    PORT_Memcpy(tmpOutput, input, inputLen);
+
+    
+    MGF1(maskHashAlg, mask, hash->length, &tmpOutput[1 + hash->length],
+         inputLen - hash->length - 1);
+    
+    for (i = 0; i < hash->length; ++i)
+        tmpOutput[1 + i] ^= mask[i];
+
+    
+    MGF1(maskHashAlg, mask, maskLen, &tmpOutput[1], hash->length);
+    
+    for (i = 0; i < maskLen; ++i)
+        tmpOutput[1 + hash->length + i] ^= mask[i];
+
+    
+
+
+
+    paddingOffset = 0;
+    isGood = 1;
+    foundPaddingEnd = 0;
+
+    
+    isGood &= constantTimeEQ8(0x00, tmpOutput[0]);
+
+    
+    isGood &= constantTimeCompare(&labelHash[0],
+                                  &tmpOutput[1 + hash->length],
+                                  hash->length);
+
+    
+
+    for (i = 1 + (hash->length * 2); i < inputLen; ++i) {
+        unsigned char isZero = constantTimeEQ8(0x00, tmpOutput[i]);
+        unsigned char isOne = constantTimeEQ8(0x01, tmpOutput[i]);
+        
+
+
+
+        paddingOffset = constantTimeCondition(isOne & ~foundPaddingEnd, i,
+                                              paddingOffset);
+        
+
+
+
+
+
+
+
+
+        foundPaddingEnd = constantTimeCondition(isOne, 1, foundPaddingEnd);
+        
+
+
+
+
+
+
+
+
+
+        isGood = constantTimeCondition(~foundPaddingEnd & ~isZero, 0, isGood);
+    }
+
+    
+
+
+
+
+    if (!(isGood & foundPaddingEnd)) {
+        PORT_SetError(SEC_ERROR_BAD_DATA);
+        goto done;
+    }
+
+    
+
+    ++paddingOffset; 
+
+    *outputLen = inputLen - paddingOffset;
+    if (*outputLen > maxOutputLen) {
+        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+        goto done;
+    }
+
+    if (*outputLen)
+        PORT_Memcpy(output, &tmpOutput[paddingOffset], *outputLen);
+    rv = SECSuccess;
+
+done:
+    if (mask)
+        PORT_ZFree(mask, maskLen);
+    if (tmpOutput)
+        PORT_ZFree(tmpOutput, inputLen);
+    return rv;
+}
+
+
+
+
+
+
+
+static SECStatus
+eme_oaep_encode(unsigned char *em, unsigned int emLen,
+                const unsigned char *input, unsigned int inputLen,
+                HASH_HashType hashAlg, HASH_HashType maskHashAlg,
+                const unsigned char *label, unsigned int labelLen)
+{
+    const SECHashObject *hash;
+    void *hashContext;
+    SECStatus rv;
+    unsigned char *mask;
+    unsigned int reservedLen, dbMaskLen, i;
+
+    hash = HASH_GetRawHashObject(hashAlg);
+
+    
+    reservedLen = (2 * hash->length) + 2;
+    if (emLen < reservedLen || inputLen > (emLen - reservedLen)) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    *em = 0x00;
+
+    
+    hashContext = (*hash->create)();
+    if (hashContext == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+    (*hash->begin)(hashContext);
+    if (labelLen > 0)
+        (*hash->update)(hashContext, label, labelLen);
+    (*hash->end)(hashContext, &em[1 + hash->length], &i, hash->length);
+    (*hash->destroy)(hashContext, PR_TRUE);
+
+    
+    if (emLen - reservedLen - inputLen > 0) {
+        PORT_Memset(em + 1 + (hash->length * 2), 0x00,
+                    emLen - reservedLen - inputLen);
+    }
+
+    
+
+
+
+
+    em[emLen - inputLen - 1] = 0x01;
+    if (inputLen)
+        PORT_Memcpy(em + emLen - inputLen, input, inputLen);
+
+    
+    rv = RNG_GenerateGlobalRandomBytes(em + 1, hash->length);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    
+    dbMaskLen = emLen - hash->length - 1;
+    mask = (unsigned char*)PORT_Alloc(dbMaskLen);
+    if (mask == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+    MGF1(maskHashAlg, mask, dbMaskLen, em + 1, hash->length);
+    
+    for (i = 0; i < dbMaskLen; ++i)
+        em[1 + hash->length + i] ^= mask[i];
+
+    
+    MGF1(maskHashAlg, mask, hash->length, &em[1 + hash->length], dbMaskLen);
+    
+    for (i = 0; i < hash->length; ++i)
+        em[1 + i] ^= mask[i];
+
+    PORT_ZFree(mask, dbMaskLen);
+    return SECSuccess;
+}
+
+
+
+
+
+
+
+
+
+
+static SECStatus
 emsa_pss_encode(unsigned char *em, unsigned int emLen,
                 const unsigned char *mHash, HASH_HashType hashAlg,
                 HASH_HashType maskHashAlg, unsigned int sLen)
@@ -1008,7 +1062,7 @@ emsa_pss_encode(unsigned char *em, unsigned int emLen,
     (*hash->destroy)(hash_context, PR_TRUE);
 
     
-    memset(em, 0, dbMaskLen - sLen - 1);
+    PORT_Memset(em, 0, dbMaskLen - sLen - 1);
     em[dbMaskLen - sLen - 1] = 0x01;
 
     
@@ -1249,5 +1303,147 @@ RSA_SignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params, NSSLOWKEYPrivateKey *key,
 
 done:
     PORT_Free(pss_encoded);
+    return rv;
+}
+
+
+SECStatus
+RSA_EncryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
+                NSSLOWKEYPublicKey *key,
+                unsigned char *output, unsigned int *outputLen,
+                unsigned int maxOutputLen,
+                const unsigned char *input, unsigned int inputLen)
+{
+    SECStatus rv = SECFailure;
+    unsigned int modulusLen = nsslowkey_PublicModulusLen(key);
+    unsigned char *oaepEncoded = NULL;
+    unsigned char *sourceData = NULL;
+    unsigned int sourceDataLen = 0;
+
+    HASH_HashType hashAlg;
+    HASH_HashType maskHashAlg;
+
+    if (maxOutputLen < modulusLen) {
+        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+        return SECFailure;
+    }
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey) {
+        PORT_SetError(SEC_ERROR_INVALID_KEY);
+        return SECFailure;
+    }
+
+    hashAlg = GetHashTypeFromMechanism(oaepParams->hashAlg);
+    maskHashAlg = GetHashTypeFromMechanism(oaepParams->mgf);
+    if ((hashAlg == HASH_AlgNULL) || (maskHashAlg == HASH_AlgNULL)) {
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+    }
+
+    
+
+
+
+
+    if (oaepParams->source != CKZ_DATA_SPECIFIED) {
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+    }
+    sourceData = (unsigned char*)oaepParams->pSourceData;
+    sourceDataLen = oaepParams->ulSourceDataLen;
+    if ((sourceDataLen == 0 && sourceData != NULL) ||
+        (sourceDataLen > 0 && sourceData == NULL)) {
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+    }
+
+    oaepEncoded = (unsigned char *)PORT_Alloc(modulusLen);
+    if (oaepEncoded == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+    rv = eme_oaep_encode(oaepEncoded, modulusLen, input, inputLen,
+                         hashAlg, maskHashAlg, sourceData, sourceDataLen);
+    if (rv != SECSuccess)
+        goto done;
+
+    rv = RSA_PublicKeyOp(&key->u.rsa, output, oaepEncoded);
+    if (rv != SECSuccess)
+        goto done;
+    *outputLen = modulusLen;
+
+done:
+    PORT_Free(oaepEncoded);
+    return rv;
+}
+
+
+SECStatus
+RSA_DecryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
+                NSSLOWKEYPrivateKey *key,
+                unsigned char *output, unsigned int *outputLen,
+                unsigned int maxOutputLen,
+                const unsigned char *input, unsigned int inputLen)
+{
+    SECStatus rv = SECFailure;
+    unsigned int modulusLen = nsslowkey_PrivateModulusLen(key);
+    unsigned char *oaepEncoded = NULL;
+    unsigned char *sourceData = NULL;
+    unsigned int sourceDataLen = 0;
+
+    HASH_HashType hashAlg = GetHashTypeFromMechanism(oaepParams->hashAlg);
+    HASH_HashType maskHashAlg = GetHashTypeFromMechanism(oaepParams->mgf);
+
+    if ((hashAlg == HASH_AlgNULL) || (maskHashAlg == HASH_AlgNULL)) {
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+    }
+
+    if (inputLen != modulusLen) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey) {
+        PORT_SetError(SEC_ERROR_INVALID_KEY);
+        return SECFailure;
+    }
+
+    
+
+
+
+
+    if (oaepParams->source != CKZ_DATA_SPECIFIED) {
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+    }
+    sourceData = (unsigned char*)oaepParams->pSourceData;
+    sourceDataLen = oaepParams->ulSourceDataLen;
+    if ((sourceDataLen == 0 && sourceData != NULL) ||
+        (sourceDataLen > 0 && sourceData == NULL)) {
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+    }
+
+    oaepEncoded = (unsigned char *)PORT_Alloc(modulusLen);
+    if (oaepEncoded == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+
+    rv = RSA_PrivateKeyOpDoubleChecked(&key->u.rsa, oaepEncoded, input);
+    if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+        sftk_fatalError = PR_TRUE;
+        goto done;
+    }
+
+    rv = eme_oaep_decode(output, outputLen, maxOutputLen, oaepEncoded,
+                         modulusLen, hashAlg, maskHashAlg, sourceData,
+                         sourceDataLen);
+
+done:
+    if (oaepEncoded)
+        PORT_ZFree(oaepEncoded, modulusLen);
     return rv;
 }

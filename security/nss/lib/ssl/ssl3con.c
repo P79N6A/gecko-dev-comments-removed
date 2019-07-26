@@ -1846,7 +1846,6 @@ static const unsigned char mac_pad_2 [60] = {
 
 
 
-
 static SECStatus
 ssl3_ComputeRecordMAC(
     ssl3CipherSpec *   spec,
@@ -2024,6 +2023,128 @@ ssl3_ComputeRecordMAC(
 	ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
     }
     return rv;
+}
+
+
+
+
+
+
+
+static SECStatus
+ssl3_ComputeRecordMACConstantTime(
+    ssl3CipherSpec *   spec,
+    PRBool             useServerMacKey,
+    PRBool             isDTLS,
+    SSL3ContentType    type,
+    SSL3ProtocolVersion version,
+    SSL3SequenceNumber seq_num,
+    const SSL3Opaque * input,
+    int                inputLen,
+    int                originalLen,
+    unsigned char *    outbuf,
+    unsigned int *     outLen)
+{
+    CK_MECHANISM_TYPE            macType;
+    CK_NSS_MAC_CONSTANT_TIME_PARAMS params;
+    SECItem                      param, inputItem, outputItem;
+    SECStatus                    rv;
+    unsigned char                header[13];
+    PK11SymKey *                 key;
+    int                          recordLength;
+
+    PORT_Assert(inputLen >= spec->mac_size);
+    PORT_Assert(originalLen >= inputLen);
+
+    if (spec->bypassCiphers) {
+	
+
+	goto fallback;
+    }
+
+    if (spec->mac_def->mac == mac_null) {
+	*outLen = 0;
+	return SECSuccess;
+    }
+
+    header[0] = (unsigned char)(seq_num.high >> 24);
+    header[1] = (unsigned char)(seq_num.high >> 16);
+    header[2] = (unsigned char)(seq_num.high >>  8);
+    header[3] = (unsigned char)(seq_num.high >>  0);
+    header[4] = (unsigned char)(seq_num.low  >> 24);
+    header[5] = (unsigned char)(seq_num.low  >> 16);
+    header[6] = (unsigned char)(seq_num.low  >>  8);
+    header[7] = (unsigned char)(seq_num.low  >>  0);
+    header[8] = type;
+
+    macType = CKM_NSS_HMAC_CONSTANT_TIME;
+    recordLength = inputLen - spec->mac_size;
+    if (spec->version <= SSL_LIBRARY_VERSION_3_0) {
+	macType = CKM_NSS_SSL3_MAC_CONSTANT_TIME;
+	header[9] = recordLength >> 8;
+	header[10] = recordLength;
+	params.ulHeaderLen = 11;
+    } else {
+	if (isDTLS) {
+	    SSL3ProtocolVersion dtls_version;
+
+	    dtls_version = dtls_TLSVersionToDTLSVersion(version);
+	    header[9] = dtls_version >> 8;
+	    header[10] = dtls_version;
+	} else {
+	    header[9] = version >> 8;
+	    header[10] = version;
+	}
+	header[11] = recordLength >> 8;
+	header[12] = recordLength;
+	params.ulHeaderLen = 13;
+    }
+
+    params.macAlg = spec->mac_def->mmech;
+    params.ulBodyTotalLen = originalLen;
+    params.pHeader = header;
+
+    param.data = (unsigned char*) &params;
+    param.len = sizeof(params);
+    param.type = 0;
+
+    inputItem.data = (unsigned char *) input;
+    inputItem.len = inputLen;
+    inputItem.type = 0;
+
+    outputItem.data = outbuf;
+    outputItem.len = *outLen;
+    outputItem.type = 0;
+
+    key = spec->server.write_mac_key;
+    if (!useServerMacKey) {
+	key = spec->client.write_mac_key;
+    }
+
+    rv = PK11_SignWithSymKey(key, macType, &param, &outputItem, &inputItem);
+    if (rv != SECSuccess) {
+	if (PORT_GetError() == SEC_ERROR_INVALID_ALGORITHM) {
+	    goto fallback;
+	}
+
+	*outLen = 0;
+	rv = SECFailure;
+	ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
+	return rv;
+    }
+
+    PORT_Assert(outputItem.len == (unsigned)spec->mac_size);
+    *outLen = outputItem.len;
+
+    return rv;
+
+fallback:
+    
+
+    inputLen -= spec->mac_size;
+    return ssl3_ComputeRecordMAC(spec, useServerMacKey, isDTLS, type,
+				 version, seq_num, input, inputLen,
+				 outbuf, outLen);
 }
 
 static PRBool
@@ -9538,6 +9659,186 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 
 
 
+#define DUPLICATE_MSB_TO_ALL(x) ( (unsigned)( (int)(x) >> (sizeof(int)*8-1) ) )
+#define DUPLICATE_MSB_TO_ALL_8(x) ((unsigned char)(DUPLICATE_MSB_TO_ALL(x)))
+
+
+
+static unsigned int
+SECStatusToMask(SECStatus rv)
+{
+    unsigned int good;
+    
+
+    good = rv ^ SECSuccess;
+    good--;
+    return DUPLICATE_MSB_TO_ALL(good);
+}
+
+
+static unsigned char
+ssl_ConstantTimeGE(unsigned int a, unsigned int b)
+{
+    a -= b;
+    return DUPLICATE_MSB_TO_ALL(~a);
+}
+
+
+static unsigned char
+ssl_ConstantTimeEQ8(unsigned char a, unsigned char b)
+{
+    unsigned int c = a ^ b;
+    c--;
+    return DUPLICATE_MSB_TO_ALL_8(c);
+}
+
+static SECStatus
+ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
+			  unsigned int blockSize,
+			  unsigned int macSize)
+{
+    unsigned int paddingLength, good, t;
+    const unsigned int overhead = 1  + macSize;
+
+    
+
+    if (overhead > plaintext->len) {
+	return SECFailure;
+    }
+
+    paddingLength = plaintext->buf[plaintext->len-1];
+    
+    t = plaintext->len;
+    t -= paddingLength+overhead;
+    
+    good = DUPLICATE_MSB_TO_ALL(~t);
+    
+    t = blockSize - (paddingLength+1);
+    good &= DUPLICATE_MSB_TO_ALL(~t);
+    plaintext->len -= good & (paddingLength+1);
+    return (good & SECSuccess) | (~good & SECFailure);
+}
+
+static SECStatus
+ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
+{
+    unsigned int paddingLength, good, t, toCheck, i;
+    const unsigned int overhead = 1  + macSize;
+
+    
+
+    if (overhead > plaintext->len) {
+	return SECFailure;
+    }
+
+    paddingLength = plaintext->buf[plaintext->len-1];
+    t = plaintext->len;
+    t -= paddingLength+overhead;
+    
+    good = DUPLICATE_MSB_TO_ALL(~t);
+
+    
+
+
+
+
+
+
+
+
+    toCheck = 255; 
+    if (toCheck > plaintext->len-1) {
+	toCheck = plaintext->len-1;
+    }
+
+    for (i = 0; i < toCheck; i++) {
+	unsigned int t = paddingLength - i;
+	
+
+	unsigned char mask = DUPLICATE_MSB_TO_ALL(~t);
+	unsigned char b = plaintext->buf[plaintext->len-1-i];
+	
+
+	good &= ~(mask&(paddingLength ^ b));
+    }
+
+    
+
+
+
+    good &= good >> 4;
+    good &= good >> 2;
+    good &= good >> 1;
+    good <<= sizeof(good)*8-1;
+    good = DUPLICATE_MSB_TO_ALL(good);
+
+    plaintext->len -= good & (paddingLength+1);
+    return (good & SECSuccess) | (~good & SECFailure);
+}
+
+
+
+
+
+
+static void
+ssl_CBCExtractMAC(sslBuffer *plaintext,
+		  unsigned int originalLength,
+		  SSL3Opaque* out,
+		  unsigned int macSize)
+{
+    unsigned char rotatedMac[MAX_MAC_LENGTH];
+    
+
+    unsigned macEnd = plaintext->len;
+    unsigned macStart = macEnd - macSize;
+    
+
+    unsigned scanStart = 0;
+    unsigned i, j, divSpoiler;
+    unsigned char rotateOffset;
+
+    if (originalLength > macSize + 255 + 1)
+	scanStart = originalLength - (macSize + 255 + 1);
+
+    
+
+
+
+
+
+
+    divSpoiler = macSize >> 1;
+    divSpoiler <<= (sizeof(divSpoiler)-1)*8;
+    rotateOffset = (divSpoiler + macStart - scanStart) % macSize;
+
+    memset(rotatedMac, 0, macSize);
+    for (i = scanStart; i < originalLength;) {
+	for (j = 0; j < macSize && i < originalLength; i++, j++) {
+	    unsigned char macStarted = ssl_ConstantTimeGE(i, macStart);
+	    unsigned char macEnded = ssl_ConstantTimeGE(i, macEnd);
+	    unsigned char b = 0;
+	    b = plaintext->buf[i];
+	    rotatedMac[j] |= b & macStarted & ~macEnded;
+	}
+    }
+
+    
+
+    memset(out, 0, macSize);
+    for (i = 0; i < macSize; i++) {
+	unsigned char offset =
+	    (divSpoiler + macSize - rotateOffset + i) % macSize;
+	for (j = 0; j < macSize; j++) {
+	    out[j] |= rotatedMac[i] & ssl_ConstantTimeEQ8(j, offset);
+	}
+    }
+}
+
+
+
+
+
 
 
 
@@ -9563,15 +9864,18 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     ssl3CipherSpec *     crSpec;
     SECStatus            rv;
     unsigned int         hashBytes = MAX_MAC_LENGTH + 1;
-    unsigned int         padding_length;
     PRBool               isTLS;
-    PRBool               padIsBad = PR_FALSE;
     SSL3ContentType      rType;
     SSL3Opaque           hash[MAX_MAC_LENGTH];
+    SSL3Opaque           givenHashBuf[MAX_MAC_LENGTH];
+    SSL3Opaque          *givenHash;
     sslBuffer           *plaintext;
     sslBuffer            temp_buf;
     PRUint64             dtls_seq_num;
     unsigned int         ivLen = 0;
+    unsigned int         originalLen = 0;
+    unsigned int         good;
+    unsigned int         minLength;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
 
@@ -9639,6 +9943,30 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 	}
     }
 
+    good = (unsigned)-1;
+    minLength = crSpec->mac_size;
+    if (cipher_def->type == type_block) {
+	
+	minLength++;
+	if (crSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1) {
+	    
+	    minLength += cipher_def->iv_size;
+	}
+    }
+
+    
+
+    if (cText->buf->len < minLength) {
+	SSL_DBG(("%d: SSL3[%d]: HandleRecord, record too small.",
+		 SSL_GETPID(), ss->fd));
+	
+	ssl_ReleaseSpecReadLock(ss);
+	SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
+	
+	PORT_SetError(SSL_ERROR_BAD_MAC_READ);
+	return SECFailure;
+    }
+
     if (cipher_def->type == type_block &&
 	crSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1) {
 	
@@ -9656,16 +9984,6 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	    return SECFailure;
 	}
-	if (ivLen > cText->buf->len) {
-	    SSL_DBG(("%d: SSL3[%d]: HandleRecord, IV length check failed",
-		     SSL_GETPID(), ss->fd));
-	    
-	    ssl_ReleaseSpecReadLock(ss);
-	    SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
-	    
-	    PORT_SetError(SSL_ERROR_BAD_MAC_READ);
-	    return SECFailure;
-	}
 
 	PRINT_BUF(80, (ss, "IV (ciphertext):", cText->buf->buf, ivLen));
 
@@ -9676,12 +9994,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 	rv = crSpec->decode(crSpec->decodeContext, iv, &decoded,
 			    sizeof(iv), cText->buf->buf, ivLen);
 
-	if (rv != SECSuccess) {
-	    
-
-
-	    padIsBad = PR_TRUE;
-	}
+	good &= SECStatusToMask(rv);
     }
 
     
@@ -9723,54 +10036,70 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     rv = crSpec->decode(
 	crSpec->decodeContext, plaintext->buf, (int *)&plaintext->len,
 	plaintext->space, cText->buf->buf + ivLen, cText->buf->len - ivLen);
+    good &= SECStatusToMask(rv);
 
     PRINT_BUF(80, (ss, "cleartext:", plaintext->buf, plaintext->len));
-    if (rv != SECSuccess) {
-        
 
-
-        padIsBad = PR_TRUE;
-    }
+    originalLen = plaintext->len;
 
     
-    if (cipher_def->type == type_block && !padIsBad) {
-        PRUint8 * pPaddingLen = plaintext->buf + plaintext->len - 1;
-	padding_length = *pPaddingLen;
-	
-	if (padding_length + 1 + crSpec->mac_size > plaintext->len)
-	    padIsBad = PR_TRUE;
-	else {
-            plaintext->len -= padding_length + 1;
-            
-            if (isTLS) {
-                PRUint8 *p;
-                for (p = pPaddingLen - padding_length; p < pPaddingLen; ++p) {
-                    padIsBad |= *p ^ padding_length;
-                }
-            }
-        }
-    }
+    if (cipher_def->type == type_block) {
+	const unsigned int blockSize = cipher_def->iv_size;
+	const unsigned int macSize = crSpec->mac_size;
 
-    
-    if (plaintext->len >= crSpec->mac_size)
-	plaintext->len -= crSpec->mac_size;
-    else
-    	padIsBad = PR_TRUE;	
+	if (crSpec->version <= SSL_LIBRARY_VERSION_3_0) {
+	    good &= SECStatusToMask(ssl_RemoveSSLv3CBCPadding(
+			plaintext, blockSize, macSize));
+	} else {
+	    good &= SECStatusToMask(ssl_RemoveTLSCBCPadding(
+			plaintext, macSize));
+	}
+    }
 
     
     rType = cText->type;
-    rv = ssl3_ComputeRecordMAC( crSpec, (PRBool)(!ss->sec.isServer),
-        IS_DTLS(ss), rType, cText->version,
-        IS_DTLS(ss) ? cText->seq_num : crSpec->read_seq_num,
-	plaintext->buf, plaintext->len, hash, &hashBytes);
-    if (rv != SECSuccess) {
-        padIsBad = PR_TRUE;     
+    if (cipher_def->type == type_block) {
+	rv = ssl3_ComputeRecordMACConstantTime(
+	    crSpec, (PRBool)(!ss->sec.isServer),
+	    IS_DTLS(ss), rType, cText->version,
+	    IS_DTLS(ss) ? cText->seq_num : crSpec->read_seq_num,
+	    plaintext->buf, plaintext->len, originalLen,
+	    hash, &hashBytes);
+
+	ssl_CBCExtractMAC(plaintext, originalLen, givenHashBuf,
+			  crSpec->mac_size);
+	givenHash = givenHashBuf;
+
+	
+
+
+
+	plaintext->len -= crSpec->mac_size;
+    } else {
+	
+	plaintext->len -= crSpec->mac_size;
+
+	rv = ssl3_ComputeRecordMAC(
+	    crSpec, (PRBool)(!ss->sec.isServer),
+	    IS_DTLS(ss), rType, cText->version,
+	    IS_DTLS(ss) ? cText->seq_num : crSpec->read_seq_num,
+	    plaintext->buf, plaintext->len,
+	    hash, &hashBytes);
+
+	
+
+	givenHash = plaintext->buf + plaintext->len;
     }
 
-    
-    if (hashBytes != (unsigned)crSpec->mac_size || padIsBad || 
-	NSS_SecureMemcmp(plaintext->buf + plaintext->len, hash,
-	                 crSpec->mac_size) != 0) {
+    good &= SECStatusToMask(rv);
+
+    if (hashBytes != (unsigned)crSpec->mac_size ||
+	NSS_SecureMemcmp(givenHash, hash, crSpec->mac_size) != 0) {
+	
+	good = 0;
+    }
+
+    if (good == 0) {
 	
 	ssl_ReleaseSpecReadLock(ss);
 

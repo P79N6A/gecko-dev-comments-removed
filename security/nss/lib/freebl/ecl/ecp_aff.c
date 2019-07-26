@@ -287,9 +287,8 @@ ec_GFp_validate_point(const mp_int *px, const mp_int *py, const ECGroup *group)
 	MP_CHECKOK( group->meth->field_sqr(&pyt, &accl, group->meth) );
 	
 	MP_CHECKOK( group->meth->field_sqr(&pxt, &tmp, group->meth) );
-	MP_CHECKOK( group->meth->field_mul(&pxt, &tmp, &accr, group->meth) );
-	MP_CHECKOK( group->meth->field_mul(&group->curvea, &pxt, &tmp, group->meth) );
-	MP_CHECKOK( group->meth->field_add(&tmp, &accr, &accr, group->meth) );
+	MP_CHECKOK( group->meth->field_add(&tmp, &group->curvea, &tmp, group->meth) );
+	MP_CHECKOK( group->meth->field_mul(&tmp, &pxt, &accr, group->meth) );
 	MP_CHECKOK( group->meth->field_add(&accr, &group->curveb, &accr, group->meth) );
 	
 	MP_CHECKOK( group->meth->field_sub(&accl, &accr, &accr, group->meth) );

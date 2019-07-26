@@ -6,7 +6,7 @@
 #define _PKCS11N_H_
 
 #ifdef DEBUG
-static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.28 $ $Date: 2012/04/25 14:50:16 $";
+static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.31 $ $Date: 2013/02/07 01:29:19 $";
 #endif 
 
 
@@ -195,6 +195,9 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.28 $
 #define CKM_NSS_JPAKE_FINAL_SHA384  (CKM_NSS + 17)
 #define CKM_NSS_JPAKE_FINAL_SHA512  (CKM_NSS + 18)
 
+#define CKM_NSS_HMAC_CONSTANT_TIME      (CKM_NSS + 19)
+#define CKM_NSS_SSL3_MAC_CONSTANT_TIME  (CKM_NSS + 20)
+
 
 
 
@@ -239,6 +242,20 @@ typedef struct CK_NSS_JPAKERound2Params {
 typedef struct CK_NSS_JPAKEFinalParams {
     CK_NSS_JPAKEPublicValue B; 
 } CK_NSS_JPAKEFinalParams;
+
+
+
+
+
+
+
+
+typedef struct CK_NSS_MAC_CONSTANT_TIME_PARAMS {
+    CK_MECHANISM_TYPE macAlg;   
+    CK_ULONG ulBodyTotalLen;    
+    CK_BYTE * pHeader;          
+    CK_ULONG ulHeaderLen;       
+} CK_NSS_MAC_CONSTANT_TIME_PARAMS;
 
 
 
