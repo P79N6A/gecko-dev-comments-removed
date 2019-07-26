@@ -69,6 +69,35 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGPointList)
 NS_INTERFACE_MAP_END
 
 
+
+
+
+class MOZ_STACK_CLASS AutoChangePointListNotifier
+{
+public:
+  AutoChangePointListNotifier(DOMSVGPointList* aPointList MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    : mPointList(aPointList)
+  {
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    mEmptyOrOldValue =
+      mPointList->Element()->WillChangePointList();
+  }
+
+  ~AutoChangePointListNotifier()
+  {
+    mPointList->Element()->DidChangePointList(mEmptyOrOldValue);
+    if (mPointList->AttrIsAnimating()) {
+      mPointList->Element()->AnimationNeedsResample();
+    }
+  }
+
+private:
+  DOMSVGPointList* mPointList;
+  nsAttrValue      mEmptyOrOldValue;
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+
  already_AddRefed<DOMSVGPointList>
 DOMSVGPointList::GetDOMWrapper(void *aList,
                                nsSVGElement *aElement,
@@ -180,7 +209,7 @@ DOMSVGPointList::Clear(ErrorResult& aError)
   }
 
   if (LengthNoFlush() > 0) {
-    nsAttrValue emptyOrOldValue = Element()->WillChangePointList();
+    AutoChangePointListNotifier notifier(this);
     
     
     
@@ -197,10 +226,6 @@ DOMSVGPointList::Clear(ErrorResult& aError)
     }
 
     InternalList().Clear();
-    Element()->DidChangePointList(emptyOrOldValue);
-    if (AttrIsAnimating()) {
-      Element()->AnimationNeedsResample();
-    }
   }
 }
 
@@ -283,7 +308,7 @@ DOMSVGPointList::InsertItemBefore(nsISVGPoint& aNewItem, uint32_t aIndex,
     return nullptr;
   }
 
-  nsAttrValue emptyOrOldValue = Element()->WillChangePointList();
+  AutoChangePointListNotifier notifier(this);
   
   MaybeInsertNullInAnimValListAt(aIndex);
 
@@ -297,10 +322,6 @@ DOMSVGPointList::InsertItemBefore(nsISVGPoint& aNewItem, uint32_t aIndex,
 
   UpdateListIndicesFromIndex(mItems, aIndex + 1);
 
-  Element()->DidChangePointList(emptyOrOldValue);
-  if (AttrIsAnimating()) {
-    Element()->AnimationNeedsResample();
-  }
   return domItem.forget();
 }
 
@@ -323,7 +344,7 @@ DOMSVGPointList::ReplaceItem(nsISVGPoint& aNewItem, uint32_t aIndex,
     domItem = domItem->Clone(); 
   }
 
-  nsAttrValue emptyOrOldValue = Element()->WillChangePointList();
+  AutoChangePointListNotifier notifier(this);
   if (mItems[aIndex]) {
     
     
@@ -337,10 +358,6 @@ DOMSVGPointList::ReplaceItem(nsISVGPoint& aNewItem, uint32_t aIndex,
   
   domItem->InsertingIntoList(this, aIndex, IsAnimValList());
 
-  Element()->DidChangePointList(emptyOrOldValue);
-  if (AttrIsAnimating()) {
-    Element()->AnimationNeedsResample();
-  }
   return domItem.forget();
 }
 
@@ -357,7 +374,7 @@ DOMSVGPointList::RemoveItem(uint32_t aIndex, ErrorResult& aError)
     return nullptr;
   }
 
-  nsAttrValue emptyOrOldValue = Element()->WillChangePointList();
+  AutoChangePointListNotifier notifier(this);
   
   
   
@@ -375,10 +392,6 @@ DOMSVGPointList::RemoveItem(uint32_t aIndex, ErrorResult& aError)
 
   UpdateListIndicesFromIndex(mItems, aIndex);
 
-  Element()->DidChangePointList(emptyOrOldValue);
-  if (AttrIsAnimating()) {
-    Element()->AnimationNeedsResample();
-  }
   return result.forget();
 }
 

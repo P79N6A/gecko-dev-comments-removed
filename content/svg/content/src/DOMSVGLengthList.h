@@ -42,6 +42,7 @@ class DOMSVGLength;
 class DOMSVGLengthList MOZ_FINAL : public nsISupports,
                                    public nsWrapperCache
 {
+  friend class AutoChangeLengthListNotifier;
   friend class DOMSVGLength;
 
 public:
@@ -92,6 +93,14 @@ public:
 
   
   void InternalListLengthWillChange(uint32_t aNewLength);
+
+  
+
+
+
+  bool IsAnimating() const {
+    return mAList->IsAnimating();
+  }
 
   uint32_t NumberOfItems() const
   {

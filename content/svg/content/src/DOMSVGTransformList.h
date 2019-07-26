@@ -36,6 +36,7 @@ class SVGTransform;
 class DOMSVGTransformList MOZ_FINAL : public nsISupports,
                                       public nsWrapperCache
 {
+  friend class AutoChangeTransformListNotifier;
   friend class dom::SVGTransform;
 
 public:
@@ -86,6 +87,14 @@ public:
 
   
   void InternalListLengthWillChange(uint32_t aNewLength);
+
+  
+
+
+
+  bool IsAnimating() const {
+    return mAList->IsAnimating();
+  }
 
   uint32_t NumberOfItems() const
   {

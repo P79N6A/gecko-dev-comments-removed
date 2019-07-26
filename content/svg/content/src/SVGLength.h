@@ -113,48 +113,9 @@ public:
 
 
 
-
-
-  bool SetFromUserUnitValue(float aUserUnitValue,
-                              nsSVGElement *aElement,
-                              uint8_t aAxis) {
-    float uuPerUnit = GetUserUnitsPerUnit(aElement, aAxis);
-    float value = aUserUnitValue / uuPerUnit;
-    if (uuPerUnit > 0 && NS_finite(value)) {
-      mValue = value;
-      NS_ASSERTION(IsValid(), "Set invalid SVGLength");
-      return true;
-    }
-    return false;
-  }
-
-  
-
-
-
-
-
   float GetValueInSpecifiedUnit(uint8_t aUnit,
                                 const nsSVGElement *aElement,
                                 uint8_t aAxis) const;
-
-  
-
-
-
-
-
-
-  bool ConvertToUnit(uint32_t aUnit, nsSVGElement *aElement, uint8_t aAxis) {
-    float val = GetValueInSpecifiedUnit(aUnit, aElement, aAxis);
-    if (NS_finite(val)) {
-      mValue = val;
-      mUnit = aUnit;
-      NS_ASSERTION(IsValid(), "Set invalid SVGLength");
-      return true;
-    }
-    return false;
-  }
 
   bool IsPercentage() const {
     return mUnit == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE;
@@ -165,14 +126,6 @@ public:
            unit <= nsIDOMSVGLength::SVG_LENGTHTYPE_PC;
   }
 
-private:
-
-#ifdef DEBUG
-  bool IsValid() const {
-    return NS_finite(mValue) && IsValidUnitType(mUnit);
-  }
-#endif
-
   
 
 
@@ -181,6 +134,14 @@ private:
 
 
   float GetUserUnitsPerUnit(const nsSVGElement *aElement, uint8_t aAxis) const;
+
+private:
+
+#ifdef DEBUG
+  bool IsValid() const {
+    return NS_finite(mValue) && IsValidUnitType(mUnit);
+  }
+#endif
 
   
 

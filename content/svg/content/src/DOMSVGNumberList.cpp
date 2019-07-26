@@ -75,6 +75,36 @@ DOMSVGNumberList::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
   return mozilla::dom::SVGNumberListBinding::Wrap(cx, scope, this);
 }
 
+
+
+
+
+class MOZ_STACK_CLASS AutoChangeNumberListNotifier
+{
+public:
+  AutoChangeNumberListNotifier(DOMSVGNumberList* aNumberList MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    : mNumberList(aNumberList)
+  {
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    mEmptyOrOldValue =
+      mNumberList->Element()->WillChangeNumberList(mNumberList->AttrEnum());
+  }
+
+  ~AutoChangeNumberListNotifier()
+  {
+    mNumberList->Element()->DidChangeNumberList(mNumberList->AttrEnum(),
+                                                mEmptyOrOldValue);
+    if (mNumberList->IsAnimating()) {
+      mNumberList->Element()->AnimationNeedsResample();
+    }
+  }
+
+private:
+  DOMSVGNumberList* mNumberList;
+  nsAttrValue       mEmptyOrOldValue;
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 void
 DOMSVGNumberList::InternalListLengthWillChange(uint32_t aNewLength)
 {
@@ -129,7 +159,7 @@ DOMSVGNumberList::Clear(ErrorResult& error)
   }
 
   if (LengthNoFlush() > 0) {
-    nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
+    AutoChangeNumberListNotifier notifier(this);
     
     
     
@@ -137,10 +167,6 @@ DOMSVGNumberList::Clear(ErrorResult& error)
 
     mItems.Clear();
     InternalList().Clear();
-    Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
-    if (mAList->IsAnimating()) {
-      Element()->AnimationNeedsResample();
-    }
   }
 }
 
@@ -231,7 +257,7 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
     return nullptr;
   }
 
-  nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
+  AutoChangeNumberListNotifier notifier(this);
   
   MaybeInsertNullInAnimValListAt(index);
 
@@ -245,10 +271,6 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
 
   UpdateListIndicesFromIndex(mItems, index + 1);
 
-  Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
-  if (mAList->IsAnimating()) {
-    Element()->AnimationNeedsResample();
-  }
   return domItem.forget();
 }
 
@@ -275,7 +297,7 @@ DOMSVGNumberList::ReplaceItem(nsIDOMSVGNumber *newItem,
     domItem = domItem->Clone(); 
   }
 
-  nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
+  AutoChangeNumberListNotifier notifier(this);
   if (mItems[index]) {
     
     
@@ -289,10 +311,6 @@ DOMSVGNumberList::ReplaceItem(nsIDOMSVGNumber *newItem,
   
   domItem->InsertingIntoList(this, AttrEnum(), index, IsAnimValList());
 
-  Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
-  if (mAList->IsAnimating()) {
-    Element()->AnimationNeedsResample();
-  }
   return domItem.forget();
 }
 
@@ -318,7 +336,7 @@ DOMSVGNumberList::RemoveItem(uint32_t index,
   
   nsRefPtr<nsIDOMSVGNumber> result = GetItemAt(index);
 
-  nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
+  AutoChangeNumberListNotifier notifier(this);
   
   
   mItems[index]->RemovingFromList();
@@ -328,10 +346,6 @@ DOMSVGNumberList::RemoveItem(uint32_t index,
 
   UpdateListIndicesFromIndex(mItems, index);
 
-  Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
-  if (mAList->IsAnimating()) {
-    Element()->AnimationNeedsResample();
-  }
   return result.forget();
 }
 
