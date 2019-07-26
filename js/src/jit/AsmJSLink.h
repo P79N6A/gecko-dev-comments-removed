@@ -16,7 +16,7 @@ namespace js {
 
 
 extern JSFunction *
-NewAsmJSModuleFunction(JSContext *cx, JSFunction *originalFun, HandleObject moduleObj);
+NewAsmJSModuleFunction(ExclusiveContext *cx, JSFunction *originalFun, HandleObject moduleObj);
 
 
 extern bool

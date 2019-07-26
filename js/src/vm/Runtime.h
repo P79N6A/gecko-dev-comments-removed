@@ -1305,6 +1305,15 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::AsmJSMachExceptionHandler asmJSMachExceptionHandler;
 #endif
 
+    
+    
+  private:
+    bool signalHandlersInstalled_;
+  public:
+    bool signalHandlersInstalled() const {
+        return signalHandlersInstalled_;
+    }
+
 #ifdef JS_THREADSAFE
 # ifdef JS_ION
     js::WorkerThreadState *workerThreadState;

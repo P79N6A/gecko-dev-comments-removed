@@ -11,6 +11,7 @@
 
 namespace js {
 
+class ExclusiveContext;
 class AsmJSModule;
 class SPSProfiler;
 namespace frontend {
@@ -29,7 +30,8 @@ typedef frontend::ParseContext<frontend::FullParseHandler> AsmJSParseContext;
 
 
 extern bool
-CompileAsmJS(JSContext *cx, AsmJSParser &parser, frontend::ParseNode *stmtList, bool *validated);
+CompileAsmJS(ExclusiveContext *cx, AsmJSParser &parser, frontend::ParseNode *stmtList,
+             bool *validated);
 
 
 

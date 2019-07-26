@@ -205,10 +205,6 @@ class IonRuntime
 
     
     
-    bool signalHandlersInstalled_;
-
-    
-    
     bool ionCodeProtected_;
 
     
@@ -257,9 +253,6 @@ class IonRuntime
         return ionAlloc_;
     }
 
-    bool signalHandlersInstalled() {
-        return signalHandlersInstalled_;
-    }
     bool ionCodeProtected() {
         return ionCodeProtected_;
     }

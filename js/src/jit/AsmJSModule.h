@@ -717,7 +717,7 @@ class AsmJSModuleObject : public JSObject
 
     
     
-    static AsmJSModuleObject *create(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *module);
+    static AsmJSModuleObject *create(ExclusiveContext *cx, ScopedJSDeletePtr<AsmJSModule> *module);
 
     AsmJSModule &module() const;
 

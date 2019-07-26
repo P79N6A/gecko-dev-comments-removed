@@ -266,7 +266,10 @@ struct ThreadSafeContext : ContextFriendFields,
 
     
     uint64_t gcNumber() { return runtime_->gcNumber; }
+    size_t gcSystemPageSize() { return runtime_->gcSystemPageSize; }
     bool isHeapBusy() { return runtime_->isHeapBusy(); }
+    bool signalHandlersInstalled() const { return runtime_->signalHandlersInstalled(); }
+    bool jitSupportsFloatingPoint() const { return runtime_->jitSupportsFloatingPoint; }
 
     
     DtoaState *dtoaState() {
@@ -366,6 +369,15 @@ class ExclusiveContext : public ThreadSafeContext
     ScriptDataTable &scriptDataTable() {
         return runtime_->scriptDataTable();
     }
+
+#if defined(JS_ION) && defined(JS_THREADSAFE)
+    
+    
+    
+    WorkerThreadState *workerThreadState() {
+        return runtime_->workerThreadState;
+    }
+#endif
 };
 
 inline void

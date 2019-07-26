@@ -633,8 +633,13 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     err.report.errorNumber = errorNumber;
     err.report.filename = filename;
     err.report.originPrincipals = originPrincipals;
-    err.report.lineno = srcCoords.lineNum(offset);
-    err.report.column = srcCoords.columnIndex(offset);
+    if (offset == NoOffset) {
+        err.report.lineno = 0;
+        err.report.column = 0;
+    } else {
+        err.report.lineno = srcCoords.lineNum(offset);
+        err.report.column = srcCoords.columnIndex(offset);
+    }
 
     err.argumentsType = (flags & JSREPORT_UC) ? ArgumentsAreUnicode : ArgumentsAreASCII;
 
@@ -652,7 +657,7 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     
     
     
-    if (err.report.lineno == lineno) {
+    if (offset != NoOffset && err.report.lineno == lineno) {
         const jschar *tokenStart = userbuf.base() + offset;
 
         

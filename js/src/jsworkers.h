@@ -201,11 +201,11 @@ OffThreadCompilationEnabled(JSContext *cx)
 
 
 bool
-EnsureWorkerThreadsInitialized(JSRuntime *rt);
+EnsureWorkerThreadsInitialized(ExclusiveContext *cx);
 
 
 bool
-StartOffThreadAsmJSCompile(JSContext *cx, AsmJSParallelTask *asmData);
+StartOffThreadAsmJSCompile(ExclusiveContext *cx, AsmJSParallelTask *asmData);
 
 
 
@@ -236,28 +236,25 @@ WaitForOffThreadParsingToFinish(JSRuntime *rt);
 
 class AutoLockWorkerThreadState
 {
-    JSRuntime *rt;
+    WorkerThreadState &state;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
   public:
-
-    AutoLockWorkerThreadState(JSRuntime *rt
+    AutoLockWorkerThreadState(WorkerThreadState &state
                               MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : rt(rt)
+      : state(state)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 #ifdef JS_WORKER_THREADS
-        JS_ASSERT(rt->workerThreadState);
-        rt->workerThreadState->lock();
+        state.lock();
 #else
-        (void)this->rt;
+        (void)state;
 #endif
     }
 
-    ~AutoLockWorkerThreadState()
-    {
+    ~AutoLockWorkerThreadState() {
 #ifdef JS_WORKER_THREADS
-        rt->workerThreadState->unlock();
+        state.unlock();
 #endif
     }
 };

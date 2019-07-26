@@ -1771,7 +1771,7 @@ LIRGenerator::visitInterruptCheck(MInterruptCheck *ins)
     
     
 #ifndef JS_CPU_ARM
-    if (GetIonContext()->runtime->ionRuntime()->signalHandlersInstalled()) {
+    if (GetIonContext()->runtime->signalHandlersInstalled()) {
         LInterruptCheckImplicit *lir = new LInterruptCheckImplicit();
         return add(lir) && assignSafepoint(lir, ins);
     }
