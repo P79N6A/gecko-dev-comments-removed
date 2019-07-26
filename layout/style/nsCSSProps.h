@@ -398,10 +398,17 @@ public:
   static const int32_t kFloatKTable[];
   static const int32_t kFloatEdgeKTable[];
   static const int32_t kFontKTable[];
+  static const int32_t kFontKerningKTable[];
   static const int32_t kFontSizeKTable[];
   static const int32_t kFontStretchKTable[];
   static const int32_t kFontStyleKTable[];
+  static const int32_t kFontSynthesisKTable[];
   static const int32_t kFontVariantKTable[];
+  static const int32_t kFontVariantCapsKTable[];
+  static const int32_t kFontVariantEastAsianKTable[];
+  static const int32_t kFontVariantLigaturesKTable[];
+  static const int32_t kFontVariantNumericKTable[];
+  static const int32_t kFontVariantPositionKTable[];
   static const int32_t kFontWeightKTable[];
   static const int32_t kIMEModeKTable[];
   static const int32_t kLineHeightKTable[];
