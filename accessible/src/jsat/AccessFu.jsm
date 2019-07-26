@@ -356,7 +356,56 @@ this.AccessFu = {
 
   
   
-  _processedMessageManagers: []
+  _processedMessageManagers: [],
+
+  
+
+
+
+
+
+
+
+
+
+  adjustContentBounds: function(aJsonBounds, aBrowser, aToCSSPixels, aFromDevicePixels) {
+    let bounds = new Rect(aJsonBounds.left, aJsonBounds.top,
+                          aJsonBounds.right - aJsonBounds.left,
+                          aJsonBounds.bottom - aJsonBounds.top);
+    let win = Utils.win;
+    let dpr = win.devicePixelRatio;
+    let vp = Utils.getViewport(win);
+    let offset = { left: -win.mozInnerScreenX, top: -win.mozInnerScreenY };
+
+    if (!aBrowser.contentWindow) {
+      
+      
+      let clientRect = aBrowser.getBoundingClientRect();
+      let win = aBrowser.ownerDocument.defaultView;
+      offset.left += clientRect.left + win.mozInnerScreenX;
+      offset.top += clientRect.top + win.mozInnerScreenY;
+    }
+
+    
+    
+    
+    
+    if (!aFromDevicePixels && vp) {
+      bounds = bounds.scale(vp.zoom / dpr, vp.zoom / dpr);
+    }
+
+    
+    
+    bounds = bounds.translate(offset.left * dpr, offset.top * dpr);
+
+    
+    
+    if (aToCSSPixels) {
+      bounds = bounds.scale(1 / dpr, 1 / dpr);
+    }
+
+    return bounds.expandToIntegers();
+  }
 };
 
 var Output = {
@@ -472,7 +521,7 @@ var Output = {
         }
 
         let padding = aDetails.padding;
-        let r = this._adjustBounds(aDetails.bounds, aBrowser);
+        let r = AccessFu.adjustContentBounds(aDetails.bounds, aBrowser, true);
 
         
         highlightBox.style.display = 'none';
@@ -536,7 +585,7 @@ var Output = {
     for each (let androidEvent in aDetails) {
       androidEvent.type = 'Accessibility:Event';
       if (androidEvent.bounds)
-        androidEvent.bounds = this._adjustBounds(androidEvent.bounds, aBrowser, true);
+        androidEvent.bounds = AccessFu.adjustContentBounds(androidEvent.bounds, aBrowser);
 
       switch(androidEvent.eventType) {
         case ANDROID_VIEW_TEXT_CHANGED:
@@ -559,33 +608,6 @@ var Output = {
 
   Braille: function Braille(aDetails, aBrowser) {
     Logger.debug('Braille output: ' + aDetails.text);
-  },
-
-  _adjustBounds: function(aJsonBounds, aBrowser, aIncludeZoom) {
-    let bounds = new Rect(aJsonBounds.left, aJsonBounds.top,
-                          aJsonBounds.right - aJsonBounds.left,
-                          aJsonBounds.bottom - aJsonBounds.top);
-    let vp = Utils.getViewport(Utils.win) || { zoom: 1.0, offsetY: 0 };
-    let root = Utils.win;
-    let offset = { left: -root.mozInnerScreenX, top: -root.mozInnerScreenY };
-    let scale = 1 / Utils.getPixelsPerCSSPixel(Utils.win);
-
-    if (!aBrowser.contentWindow) {
-      
-      
-      let clientRect = aBrowser.getBoundingClientRect();
-      let win = aBrowser.ownerDocument.defaultView;
-      offset.left += clientRect.left + win.mozInnerScreenX;
-      offset.top += clientRect.top + win.mozInnerScreenY;
-    }
-
-    let newBounds = bounds.scale(scale, scale).translate(offset.left, offset.top);
-
-    if (aIncludeZoom) {
-      newBounds = newBounds.scale(vp.zoom, vp.zoom);
-    }
-
-    return newBounds.expandToIntegers();
   }
 };
 
@@ -615,9 +637,6 @@ var Input = {
         this._handleKeypress(aEvent);
         break;
       case 'mozAccessFuGesture':
-        let vp = Utils.getViewport(Utils.win) || { zoom: 1.0 };
-        aEvent.detail.x *= vp.zoom;
-        aEvent.detail.y *= vp.zoom;
         this._handleGesture(aEvent.detail);
         break;
       }
@@ -796,10 +815,10 @@ var Input = {
 
   activateContextMenu: function activateContextMenu(aMessage) {
     if (Utils.MozBuildApp === 'mobile/android') {
-      let vp = Utils.getViewport(Utils.win) || { zoom: 1.0 };
+      let p = AccessFu.adjustContentBounds(aMessage.bounds, Utils.CurrentBrowser,
+                                           true, true).center();
       Services.obs.notifyObservers(null, 'Gesture:LongPress',
-                                   JSON.stringify({x: aMessage.x / vp.zoom,
-                                                   y: aMessage.y / vp.zoom}));
+                                   JSON.stringify({x: p.x, y: p.y}));
     }
   },
 
