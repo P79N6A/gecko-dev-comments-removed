@@ -74,7 +74,7 @@ class MemoryMonitor extends BroadcastReceiver {
         if (increaseMemoryPressure(MEMORY_PRESSURE_HIGH)) {
             
             
-            GeckoAppShell.geckoEventSync();
+            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createNoOpEvent());
         }
     }
 

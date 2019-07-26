@@ -334,11 +334,6 @@ public class GeckoAppShell
         }
     }
 
-    public static void sendEventToGeckoSync(GeckoEvent e) {
-        sendEventToGecko(e);
-        geckoEventSync();
-    }
-
     
     public static native void notifyGeckoOfEvent(GeckoEvent event);
 
@@ -372,29 +367,31 @@ public class GeckoAppShell
         }
     }
 
-    private static final GeckoEvent sSyncEvent = GeckoEvent.createSyncEvent();
-    private static boolean sWaitingForSyncAck;
+    private static final Object sEventAckLock = new Object();
+    private static boolean sWaitingForEventAck;
 
     
-    public static void geckoEventSync() {
+    public static void sendEventToGeckoSync(GeckoEvent e) {
+        e.setAckNeeded(true);
+
         long time = SystemClock.uptimeMillis();
         boolean isMainThread = (GeckoApp.mAppContext.getMainLooper().getThread() == Thread.currentThread());
 
-        synchronized (sSyncEvent) {
-            if (sWaitingForSyncAck) {
+        synchronized (sEventAckLock) {
+            if (sWaitingForEventAck) {
                 
                 Log.e(LOGTAG, "geckoEventSync() may have been called twice concurrently!", new Exception());
                 
             }
 
-            GeckoAppShell.sendEventToGecko(sSyncEvent);
-            sWaitingForSyncAck = true;
+            sendEventToGecko(e);
+            sWaitingForEventAck = true;
             while (true) {
                 try {
-                    sSyncEvent.wait(100);
+                    sEventAckLock.wait(100);
                 } catch (InterruptedException ie) {
                 }
-                if (!sWaitingForSyncAck) {
+                if (!sWaitingForEventAck) {
                     
                     break;
                 }
@@ -402,7 +399,7 @@ public class GeckoAppShell
                 Log.d(LOGTAG, "Gecko event sync taking too long: " + waited + "ms");
                 if (isMainThread && waited >= 4000) {
                     Log.w(LOGTAG, "Gecko event sync took too long, aborting!", new Exception());
-                    sWaitingForSyncAck = false;
+                    sWaitingForEventAck = false;
                     break;
                 }
             }
@@ -410,10 +407,10 @@ public class GeckoAppShell
     }
 
     
-    public static void acknowledgeEventSync() {
-        synchronized (sSyncEvent) {
-            sWaitingForSyncAck = false;
-            sSyncEvent.notifyAll();
+    public static void acknowledgeEvent() {
+        synchronized (sEventAckLock) {
+            sWaitingForEventAck = false;
+            sEventAckLock.notifyAll();
         }
     }
 
