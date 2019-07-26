@@ -85,8 +85,6 @@ private:
   static void GetNodeString(nsIContent* inNode, nsAString & outNodeString);
   static void CreateLinkText(const nsAString& inURL, const nsAString & inText,
                               nsAString& outLinkText);
-  static void GetSelectedLink(nsISelection* inSelection,
-                              nsIContent **outLinkNode);
 
   nsCOMPtr<nsPIDOMWindow> mWindow;
   nsCOMPtr<nsIContent> mTarget;
@@ -465,13 +463,6 @@ DragDataProducer::Produce(DataTransfer* aDataTransfer,
 
     
     if (haveSelectedContent) {
-      link = do_QueryInterface(selectedImageOrLinkNode);
-      if (link && mIsAltKeyPressed) {
-        
-        *aCanDrag = false;
-        return NS_OK;
-      }
-
       selection.swap(*aSelection);
     } else if (selectedImageOrLinkNode) {
       
@@ -876,126 +867,9 @@ DragDataProducer::GetDraggableSelectionData(nsISelection* inSelection,
       }
 
       
-      GetSelectedLink(inSelection, outImageOrLinkNode);
-
-      
       *outDragSelectedText = true;
     }
   }
 
   return NS_OK;
-}
-
-
-void
-DragDataProducer::GetSelectedLink(nsISelection* inSelection,
-                                  nsIContent **outLinkNode)
-{
-  *outLinkNode = nullptr;
-
-  nsCOMPtr<nsIDOMNode> selectionStartNode;
-  inSelection->GetAnchorNode(getter_AddRefs(selectionStartNode));
-  nsCOMPtr<nsIDOMNode> selectionEndNode;
-  inSelection->GetFocusNode(getter_AddRefs(selectionEndNode));
-
-  
-  
-
-  if (selectionStartNode == selectionEndNode) {
-    nsCOMPtr<nsIContent> selectionStart = do_QueryInterface(selectionStartNode);
-    nsCOMPtr<nsIContent> link = FindParentLinkNode(selectionStart);
-    if (link) {
-      link.swap(*outLinkNode);
-    }
-
-    return;
-  }
-
-  
-
-  
-  
-  
-  
-
-  
-  
-
-  int32_t startOffset, endOffset;
-  {
-    nsCOMPtr<nsIDOMRange> range;
-    inSelection->GetRangeAt(0, getter_AddRefs(range));
-    if (!range) {
-      return;
-    }
-
-    nsCOMPtr<nsIDOMNode> tempNode;
-    range->GetStartContainer( getter_AddRefs(tempNode));
-    if (tempNode != selectionStartNode) {
-      selectionEndNode = selectionStartNode;
-      selectionStartNode = tempNode;
-      inSelection->GetAnchorOffset(&endOffset);
-      inSelection->GetFocusOffset(&startOffset);
-    } else {
-      inSelection->GetAnchorOffset(&startOffset);
-      inSelection->GetFocusOffset(&endOffset);
-    }
-  }
-
-  
-  
-
-  nsAutoString nodeStr;
-  selectionStartNode->GetNodeValue(nodeStr);
-  if (nodeStr.IsEmpty() ||
-      startOffset+1 >= static_cast<int32_t>(nodeStr.Length())) {
-    nsCOMPtr<nsIDOMNode> curr = selectionStartNode;
-    nsIDOMNode* next;
-
-    while (curr) {
-      curr->GetNextSibling(&next);
-
-      if (next) {
-        selectionStartNode = dont_AddRef(next);
-        break;
-      }
-
-      curr->GetParentNode(&next);
-      curr = dont_AddRef(next);
-    }
-  }
-
-  
-
-  if (endOffset == 0) {
-    nsCOMPtr<nsIDOMNode> curr = selectionEndNode;
-    nsIDOMNode* next;
-
-    while (curr) {
-      curr->GetPreviousSibling(&next);
-
-      if (next){
-        selectionEndNode = dont_AddRef(next);
-        break;
-      }
-
-      curr->GetParentNode(&next);
-      curr = dont_AddRef(next);
-    }
-  }
-
-  
-  
-  nsCOMPtr<nsIContent> selectionStart = do_QueryInterface(selectionStartNode);
-  nsCOMPtr<nsIContent> link = FindParentLinkNode(selectionStart);
-  if (link) {
-    nsCOMPtr<nsIContent> selectionEnd = do_QueryInterface(selectionEndNode);
-    nsCOMPtr<nsIContent> link2 = FindParentLinkNode(selectionEnd);
-
-    if (link == link2) {
-      NS_IF_ADDREF(*outLinkNode = link);
-    }
-  }
-
-  return;
 }
