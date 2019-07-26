@@ -23,5 +23,6 @@ this.DevToolsUtils = {
   reportException: reportException,
   makeInfallible: makeInfallible,
   yieldingEach: yieldingEach,
+  reportingDisabled: false , 
   defineLazyPrototypeGetter: defineLazyPrototypeGetter
 };
