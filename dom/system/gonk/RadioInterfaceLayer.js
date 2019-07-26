@@ -40,11 +40,11 @@ const kSmsSentObserverTopic              = "sms-sent";
 const kSmsDeliveredObserverTopic         = "sms-delivered";
 const kMozSettingsChangedObserverTopic   = "mozsettings-changed";
 const kSysMsgListenerReadyObserverTopic  = "system-message-listener-ready";
-const kTimeNitzAutomaticUpdateEnabled    = "time.nitz.automatic-update.enabled";
 const DOM_SMS_DELIVERY_RECEIVED          = "received";
 const DOM_SMS_DELIVERY_SENT              = "sent";
 
-const RIL_IPC_TELEPHONY_MSG_NAMES = [
+const RIL_IPC_MSG_NAMES = [
+  "RIL:GetRilContext",
   "RIL:EnumerateCalls",
   "RIL:GetMicrophoneMuted",
   "RIL:SetMicrophoneMuted",
@@ -59,10 +59,6 @@ const RIL_IPC_TELEPHONY_MSG_NAMES = [
   "RIL:RejectCall",
   "RIL:HoldCall",
   "RIL:ResumeCall",
-];
-
-const RIL_IPC_MOBILECONNECTION_MSG_NAMES = [
-  "RIL:GetRilContext",
   "RIL:GetAvailableNetworks",
   "RIL:SelectNetwork",
   "RIL:SelectNetworkAuto",
@@ -72,7 +68,7 @@ const RIL_IPC_MOBILECONNECTION_MSG_NAMES = [
   "RIL:SendUSSD",
   "RIL:CancelUSSD",
   "RIL:SendStkResponse",
-  "RIL:SendStkMenuSelection",
+  "RIL:SendStkMenuSelection"
 ];
 
 XPCOMUtils.defineLazyServiceGetter(this, "gSmsService",
@@ -102,10 +98,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
 XPCOMUtils.defineLazyServiceGetter(this, "gNetworkManager",
                                    "@mozilla.org/network/manager;1",
                                    "nsINetworkManager");
-
-XPCOMUtils.defineLazyServiceGetter(this, "gTimeService",
-                                   "@mozilla.org/time/timeservice;1",
-                                   "nsITimeService");
 
 XPCOMUtils.defineLazyGetter(this, "WAP", function () {
   let WAP = {};
@@ -244,16 +236,9 @@ function RadioInterfaceLayer() {
   
   lock.get("ril.callwaiting.enabled", this);
 
-  
-  
-  lock.get(kTimeNitzAutomaticUpdateEnabled, this);
-
   this._messageManagerByRequest = {};
 
-  for (let msgname of RIL_IPC_TELEPHONY_MSG_NAMES) {
-    ppmm.addMessageListener(msgname, this);
-  }
-  for (let msgname of RIL_IPC_MOBILECONNECTION_MSG_NAMES) {
+  for each (let msgname in RIL_IPC_MSG_NAMES) {
     ppmm.addMessageListener(msgname, this);
   }
   Services.obs.addObserver(this, "xpcom-shutdown", false);
@@ -283,23 +268,6 @@ RadioInterfaceLayer.prototype = {
 
   receiveMessage: function receiveMessage(msg) {
     debug("Received '" + msg.name + "' message from content process");
-    if (RIL_IPC_TELEPHONY_MSG_NAMES.indexOf(msg.name) != -1) {
-      if (!msg.target.assertPermission("telephony")) {
-        debug("Telephony message " + msg.name +
-              " from a content process with no 'telephony' privileges.");
-        return null;
-      }
-    } else if (RIL_IPC_MOBILECONNECTION_MSG_NAMES.indexOf(msg.name) != -1) {
-      if (!msg.target.assertPermission("mobileconnection")) {
-        debug("MobileConnection message " + msg.name +
-              " from a content process with no 'mobileconnection' privileges.");
-        return null;
-      }
-    } else {
-      debug("Ignoring unknown message type: " + msg.name);
-      return null;
-    }
-
     switch (msg.name) {
       case "RIL:GetRilContext":
         
@@ -478,7 +446,17 @@ RadioInterfaceLayer.prototype = {
         this.handleDataCallList(message);
         break;
       case "nitzTime":
-        this.handleNitzTime(message);
+        
+        
+        
+        
+        
+        
+        
+        debug("nitzTime networkTime=" + message.networkTimeInSeconds +
+              " timezone=" + message.networkTimeZoneInMinutes +
+              " dst=" + message.dstFlag +
+              " timestamp=" + message.localTimeStampInMS);
         break;
       case "iccinfochange":
         this.handleICCInfoChange(message);
@@ -1221,35 +1199,6 @@ RadioInterfaceLayer.prototype = {
                                   [message.datacalls, message.datacalls.length]);
   },
 
-  
-
-
-  handleNitzTime: function handleNitzTime(message) {
-    if (!this._nitzAutomaticUpdateEnabled) {
-      return;
-    }
-    
-    
-    gTimeService.set(
-      message.networkTimeInMS + (Date.now() - message.receiveTimeInMS));
-
-    
-    
-    
-    
-    
-    
-    if (message.networkTimeZoneInMinutes != (new Date()).getTimezoneOffset()) {
-      let absTimeZoneInMinutes = Math.abs(message.networkTimeZoneInMinutes);
-      let timeZoneStr = "UTC";
-      timeZoneStr += (message.networkTimeZoneInMinutes >= 0 ? "+" : "-");
-      timeZoneStr += ("0" + Math.floor(absTimeZoneInMinutes / 60)).slice(-2);
-      timeZoneStr += ":";
-      timeZoneStr += ("0" + absTimeZoneInMinutes % 60).slice(-2);
-      gSettingsService.createLock().set("time.timezone", timeZoneStr, null);
-    }
-  },
-
   handleICCInfoChange: function handleICCInfoChange(message) {
     let oldIcc = this.rilContext.icc;
     this.rilContext.icc = message;
@@ -1309,10 +1258,7 @@ RadioInterfaceLayer.prototype = {
         this.handle(setting.key, setting.value);
         break;
       case "xpcom-shutdown":
-        for (let msgname of RIL_IPC_TELEPHONY_MSG_NAMES) {
-          ppmm.removeMessageListener(msgname, this);
-        }
-        for (let msgname of RIL_IPC_MOBILECONNECTION_MSG_NAMES) {
+        for each (let msgname in RIL_IPC_MSG_NAMES) {
           ppmm.removeMessageListener(msgname, this);
         }
         
@@ -1347,10 +1293,7 @@ RadioInterfaceLayer.prototype = {
   _oldRilDataEnabledState: null,
 
   
-  
-  _nitzAutomaticUpdateEnabled: null,
 
-  
   handle: function handle(aName, aResult) {
     switch(aName) {
       case "ril.radio.disabled":
@@ -1402,9 +1345,6 @@ RadioInterfaceLayer.prototype = {
       case "ril.callwaiting.enabled":
         this._callWaitingEnabled = aResult;
         this.setCallWaitingEnabled(this._callWaitingEnabled);
-        break;
-      case kTimeNitzAutomaticUpdateEnabled:
-        this._nitzAutomaticUpdateEnabled = aResult;
         break;
     };
   },
