@@ -14,7 +14,8 @@ const {ELEMENT_STYLE, PSEUDO_ELEMENTS} = require("devtools/server/actors/styles"
 const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 const {Tooltip, SwatchColorPickerTooltip} = require("devtools/shared/widgets/Tooltip");
 const {OutputParser} = require("devtools/output-parser");
-const { PrefObserver, PREF_ORIG_SOURCES } = require("devtools/styleeditor/utils");
+const {PrefObserver, PREF_ORIG_SOURCES} = require("devtools/styleeditor/utils");
+const {parseSingleValue, parseDeclarations} = require("devtools/styleinspector/css-parsing-utils");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -582,7 +583,7 @@ Rule.prototype = {
 
     let promise = aModifications.apply().then(() => {
       let cssProps = {};
-      for (let cssProp of parseCSSText(this.style.cssText)) {
+      for (let cssProp of parseDeclarations(this.style.cssText)) {
         cssProps[cssProp.name] = cssProp;
       }
 
@@ -692,7 +693,7 @@ Rule.prototype = {
   _getTextProperties: function() {
     let textProps = [];
     let store = this.elementStyle.store;
-    let props = parseCSSText(this.style.cssText);
+    let props = parseDeclarations(this.style.cssText);
     for (let prop of props) {
       let name = prop.name;
       if (this.inherited && !domUtils.isInheritedProperty(name)) {
@@ -1852,15 +1853,11 @@ RuleEditor.prototype = {
 
     
     
-    this.multipleAddedProperties = parseCSSText(aValue);
-    if (!this.multipleAddedProperties.length) {
-      this.multipleAddedProperties = [{
-        name: aValue,
-        value: "",
-        priority: ""
-      }];
-    }
+    
+    this.multipleAddedProperties = parseDeclarations(aValue).filter(d => d.name);
 
+    
+    
     this.editor.input.blur();
   },
 
@@ -2263,17 +2260,16 @@ TextPropertyEditor.prototype = {
       if (aValue.trim() === "") {
         this.remove();
       } else {
+        
+        
+        let properties = parseDeclarations(aValue);
 
-        
-        
-        let properties = parseCSSText(aValue);
-        if (properties.length > 0) {
+        if (properties.length) {
           this.prop.setName(properties[0].name);
-          this.prop.setValue(properties[0].value, properties[0].priority);
-
-          this.ruleEditor.addProperties(properties.slice(1), this.prop);
-        } else {
-          this.prop.setName(aValue);
+          if (properties.length > 1) {
+            this.prop.setValue(properties[0].value, properties[0].priority);
+            this.ruleEditor.addProperties(properties.slice(1), this.prop);
+          }
         }
       }
     }
@@ -2320,7 +2316,7 @@ TextPropertyEditor.prototype = {
     let {propertiesToAdd,firstValue} = this._getValueAndExtraProperties(aValue);
 
     
-    let val = parseCSSValue(firstValue);
+    let val = parseSingleValue(firstValue);
     this.prop.setValue(val.value, val.priority);
     this.removeOnRevert = false;
     this.committed.value = this.prop.value;
@@ -2363,29 +2359,24 @@ TextPropertyEditor.prototype = {
     
     
     
-    let properties = parseCSSText(aValue);
-    let propertiesToAdd = [];
     let firstValue = aValue;
+    let propertiesToAdd = [];
 
-    if (properties.length > 0) {
+    let properties = parseDeclarations(aValue);
+
+    
+    if (properties.length) {
       
-      
-      let propertiesNoName = parseCSSText("a:" + aValue);
-      let enteredValueFirst = propertiesNoName.length > properties.length;
-
-      let firstProp = properties[0];
-      propertiesToAdd = properties.slice(1);
-
-      if (enteredValueFirst) {
-        firstProp = propertiesNoName[0];
-        propertiesToAdd = propertiesNoName.slice(1);
+      if (!properties[0].name && properties[0].value) {
+        firstValue = properties[0].value;
+        propertiesToAdd = properties.slice(1);
       }
-
       
       
-      firstValue = enteredValueFirst ?
-        firstProp.value + "!" + firstProp.priority :
-        firstProp.name + ": " + firstProp.value + "!" + firstProp.priority;
+      else if (properties[0].name && properties[0].value) {
+        firstValue = properties[0].name + ": " + properties[0].value;
+        propertiesToAdd = properties.slice(1);
+      }
     }
 
     return {
@@ -2395,7 +2386,7 @@ TextPropertyEditor.prototype = {
   },
 
   _applyNewValue: function(aValue) {
-    let val = parseCSSValue(aValue);
+    let val = parseSingleValue(aValue);
     
     if (val.value.trim() === "") {
       this.remove();
@@ -2419,7 +2410,7 @@ TextPropertyEditor.prototype = {
       return;
     }
 
-    let val = parseCSSValue(aValue);
+    let val = parseSingleValue(aValue);
 
     
     
@@ -2439,7 +2430,7 @@ TextPropertyEditor.prototype = {
   isValid: function(aValue) {
     let name = this.prop.name;
     let value = typeof aValue == "undefined" ? this.prop.value : aValue;
-    let val = parseCSSValue(value);
+    let val = parseSingleValue(value);
 
     let style = this.doc.createElementNS(HTML_NS, "div").style;
     let prefs = Services.prefs;
@@ -2609,60 +2600,10 @@ function throttle(func, wait, scope) {
 
 
 
-
-
-
-
-function parseCSSValue(aValue) {
-  let pieces = aValue.split("!", 2);
-  return {
-    value: pieces[0].trim(),
-    priority: (pieces.length > 1 ? pieces[1].trim() : "")
-  };
-}
-
-
-
-
-
-
-
-
-
-
-
-function parseCSSText(aCssText) {
-  let lines = aCssText.match(CSS_LINE_RE);
-  let props = [];
-
-  [].forEach.call(lines, (line, i) => {
-    let [, name, value, priority] = CSS_PROP_RE.exec(line) || [];
-
-    
-    
-    if (!name && line && i > 0) {
-      name = line;
-    }
-
-    if (name) {
-      props.push({
-        name: name.trim(),
-        value: value || "",
-        priority: priority || ""
-      });
-    }
-  });
-
-  return props;
-}
-
-
-
-
-
 function blurOnMultipleProperties(e) {
   setTimeout(() => {
-    if (parseCSSText(e.target.value).length) {
+    let props = parseDeclarations(e.target.value);
+    if (props.length > 1) {
       e.target.blur();
     }
   }, 0);
