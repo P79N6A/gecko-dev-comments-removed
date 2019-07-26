@@ -9,50 +9,11 @@
 
 #include "mozilla/ThreadLocal.h"
 
-#include <stdarg.h>
-
 #include "jscntxt.h"
 
-#include "gc/ForkJoinNursery.h"
 #include "gc/GCInternals.h"
 
 #include "jit/Ion.h"
-
-#ifdef DEBUG
-  #define FORKJOIN_SPEW
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -355,7 +316,7 @@ class ForkJoinContext : public ThreadSafeContext
     
     ParallelBailoutRecord *const bailoutRecord;
 
-#ifdef FORKJOIN_SPEW
+#ifdef DEBUG
     
     IonLIRTraceData traceData;
 
@@ -451,21 +412,6 @@ class ForkJoinContext : public ThreadSafeContext
         return offsetof(ForkJoinContext, worker_);
     }
 
-#ifdef JSGC_FJGENERATIONAL
-    
-    gc::ForkJoinNursery &fjNursery() { return fjNursery_; }
-
-    
-    
-    void evacuateLiveData() { fjNursery_.evacuatingGC(); }
-
-    
-    
-    static size_t offsetOfFJNursery() {
-        return offsetof(ForkJoinContext, fjNursery_);
-    }
-#endif
-
   private:
     friend class AutoSetForkJoinContext;
 
@@ -473,11 +419,6 @@ class ForkJoinContext : public ThreadSafeContext
     static mozilla::ThreadLocal<ForkJoinContext*> tlsForkJoinContext;
 
     ForkJoinShared *const shared_;
-
-#ifdef JSGC_FJGENERATIONAL
-    gc::ForkJoinGCShared gcShared_;
-    gc::ForkJoinNursery fjNursery_;
-#endif
 
     ThreadPoolWorker *worker_;
 
@@ -563,15 +504,13 @@ enum SpewChannel {
     SpewOps,
     SpewCompile,
     SpewBailouts,
-    SpewGC,
     NumSpewChannels
 };
 
-#if defined(FORKJOIN_SPEW) && defined(JS_THREADSAFE) && defined(JS_ION)
+#if defined(DEBUG) && defined(JS_THREADSAFE) && defined(JS_ION)
 
 bool SpewEnabled(SpewChannel channel);
 void Spew(SpewChannel channel, const char *fmt, ...);
-void SpewVA(SpewChannel channel, const char *fmt, va_list args);
 void SpewBeginOp(JSContext *cx, const char *name);
 void SpewBailout(uint32_t count, HandleScript script, jsbytecode *pc,
                  ParallelBailoutCause cause);
@@ -585,7 +524,6 @@ void SpewBailoutIR(IonLIRTraceData *data);
 
 static inline bool SpewEnabled(SpewChannel channel) { return false; }
 static inline void Spew(SpewChannel channel, const char *fmt, ...) { }
-static inline void SpewVA(SpewChannel channel, const char *fmt, va_list args) { }
 static inline void SpewBeginOp(JSContext *cx, const char *name) { }
 static inline void SpewBailout(uint32_t count, HandleScript script,
                                jsbytecode *pc, ParallelBailoutCause cause) {}

@@ -41,10 +41,6 @@ class ScopeObject;
 class Shape;
 class UnownedBaseShape;
 
-namespace gc {
-class ForkJoinNursery;
-}
-
 unsigned GetCPUCount();
 
 enum HeapState {
@@ -170,42 +166,6 @@ template <> struct MapTypeToFinalizeKind<jit::JitCode>      { static const Alloc
 #if defined(JSGC_GENERATIONAL) || defined(DEBUG)
 static inline bool
 IsNurseryAllocable(AllocKind kind)
-{
-    JS_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
-    static const bool map[] = {
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-    };
-    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
-    return map[kind];
-}
-#endif
-
-#if defined(JSGC_FJGENERATIONAL)
-
-
-
-static inline bool
-IsFJNurseryAllocable(AllocKind kind)
 {
     JS_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
     static const bool map[] = {
@@ -822,7 +782,6 @@ class ArenaLists
     inline void normalizeBackgroundFinalizeState(AllocKind thingKind);
 
     friend class js::Nursery;
-    friend class js::gc::ForkJoinNursery;
 };
 
 

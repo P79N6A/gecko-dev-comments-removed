@@ -1195,7 +1195,7 @@ function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
   
   const inBaseOffset = TYPEDOBJ_BYTEOFFSET(inArray);
 
-  ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode), outArray);
+  ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode));
   return outArray;
 
   function mapThread(workerId, sliceStart, sliceEnd) {
@@ -1251,17 +1251,11 @@ function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
         inOffset += inGrainTypeSize;
         outOffset += outGrainTypeSize;
 
-#ifndef JSGC_FJGENERATIONAL
-        
-        
-        
-        
         
         
         
         if (outGrainTypeIsTransparent)
           ClearThreadLocalArenas();
-#endif
       }
     }
 

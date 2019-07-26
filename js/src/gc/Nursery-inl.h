@@ -18,40 +18,51 @@ namespace js {
 namespace gc {
 
 
-inline RelocationOverlay *
-RelocationOverlay::fromCell(Cell *cell)
-{
-    JS_ASSERT(!cell->isTenured());
-    return reinterpret_cast<RelocationOverlay *>(cell);
-}
 
-inline bool
-RelocationOverlay::isForwarded() const
-{
-    return magic_ == Relocated;
-}
 
-inline Cell *
-RelocationOverlay::forwardingAddress() const
-{
-    JS_ASSERT(isForwarded());
-    return newLocation_;
-}
 
-inline void
-RelocationOverlay::forwardTo(Cell *cell)
+class RelocationOverlay
 {
-    JS_ASSERT(!isForwarded());
-    magic_ = Relocated;
-    newLocation_ = cell;
-    next_ = nullptr;
-}
+    friend class MinorCollectionTracer;
 
-inline RelocationOverlay *
-RelocationOverlay::next() const
-{
-    return next_;
-}
+    
+    static const uintptr_t Relocated = uintptr_t(0xbad0bad1);
+
+    
+    uintptr_t magic_;
+
+    
+    Cell *newLocation_;
+
+    
+    RelocationOverlay *next_;
+
+  public:
+    static RelocationOverlay *fromCell(Cell *cell) {
+        JS_ASSERT(!cell->isTenured());
+        return reinterpret_cast<RelocationOverlay *>(cell);
+    }
+
+    bool isForwarded() const {
+        return magic_ == Relocated;
+    }
+
+    Cell *forwardingAddress() const {
+        JS_ASSERT(isForwarded());
+        return newLocation_;
+    }
+
+    void forwardTo(Cell *cell) {
+        JS_ASSERT(!isForwarded());
+        magic_ = Relocated;
+        newLocation_ = cell;
+        next_ = nullptr;
+    }
+
+    RelocationOverlay *next() const {
+        return next_;
+    }
+};
 
 } 
 } 
