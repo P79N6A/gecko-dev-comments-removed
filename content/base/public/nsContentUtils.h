@@ -1409,7 +1409,7 @@ public:
   
 
 
-  static nsresult SetDataTransferInEvent(nsDragEvent* aDragEvent);
+  static nsresult SetDataTransferInEvent(mozilla::WidgetDragEvent* aDragEvent);
 
   
   
@@ -1420,7 +1420,7 @@ public:
 
 
   static bool CheckForSubFrameDrop(nsIDragSession* aDragSession,
-                                   nsDragEvent* aDropEvent);
+                                   mozilla::WidgetDragEvent* aDropEvent);
 
   
 

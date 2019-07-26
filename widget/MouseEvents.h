@@ -425,7 +425,6 @@ typedef WidgetWheelEvent                WheelEvent;
 
 
 typedef mozilla::WidgetMouseEvent       nsMouseEvent;
-typedef mozilla::WidgetDragEvent        nsDragEvent;
 typedef mozilla::WidgetMouseScrollEvent nsMouseScrollEvent;
 
 #endif
