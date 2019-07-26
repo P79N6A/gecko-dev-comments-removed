@@ -127,22 +127,22 @@ public:
 
   void SetValueAtTime(float aValue, float aStartTime, ErrorResult& aRv)
   {
-    InsertEvent(Event(Event::Type::SetValue, aStartTime, aValue), aRv);
+    InsertEvent(Event(Event::SetValue, aStartTime, aValue), aRv);
   }
 
   void LinearRampToValueAtTime(float aValue, float aEndTime, ErrorResult& aRv)
   {
-    InsertEvent(Event(Event::Type::LinearRamp, aEndTime, aValue), aRv);
+    InsertEvent(Event(Event::LinearRamp, aEndTime, aValue), aRv);
   }
 
   void ExponentialRampToValueAtTime(float aValue, float aEndTime, ErrorResult& aRv)
   {
-    InsertEvent(Event(Event::Type::ExponentialRamp, aEndTime, aValue), aRv);
+    InsertEvent(Event(Event::ExponentialRamp, aEndTime, aValue), aRv);
   }
 
   void SetTargetAtTime(float aTarget, float aStartTime, float aTimeConstant, ErrorResult& aRv)
   {
-    InsertEvent(Event(Event::Type::SetTarget, aStartTime, aTarget, aTimeConstant), aRv);
+    InsertEvent(Event(Event::SetTarget, aStartTime, aTarget, aTimeConstant), aRv);
   }
 
   void SetValueCurveAtTime(const FloatArrayWrapper& aValues, float aStartTime, float aDuration, ErrorResult& aRv)
@@ -165,10 +165,10 @@ public:
     bool bailOut = false;
     for (unsigned i = 0; !bailOut && i < mEvents.Length(); ++i) {
       switch (mEvents[i].mType) {
-      case Event::Type::SetValue:
-      case Event::Type::SetTarget:
-      case Event::Type::LinearRamp:
-      case Event::Type::ExponentialRamp:
+      case Event::SetValue:
+      case Event::SetTarget:
+      case Event::LinearRamp:
+      case Event::ExponentialRamp:
         if (aTime == mEvents[i].mTime) {
           
           do {
@@ -183,7 +183,7 @@ public:
           bailOut = true;
         }
         break;
-      case Event::Type::SetValueCurve:
+      case Event::SetValueCurve:
         
         break;
       default:
@@ -204,17 +204,17 @@ public:
     
     if (!previous) {
       switch (next->mType) {
-      case Event::Type::SetValue:
-      case Event::Type::SetTarget:
+      case Event::SetValue:
+      case Event::SetTarget:
         
         return mValue;
-      case Event::Type::LinearRamp:
+      case Event::LinearRamp:
         
         return LinearInterpolate(0.0f, mValue, next->mTime, next->mValue, aTime);
-      case Event::Type::ExponentialRamp:
+      case Event::ExponentialRamp:
         
         return ExponentialInterpolate(0.0f, mValue, next->mTime, next->mValue, aTime);
-      case Event::Type::SetValueCurve:
+      case Event::SetValueCurve:
         
         return 0.0f;
       }
@@ -222,7 +222,7 @@ public:
     }
 
     
-    if (previous->mType == Event::Type::SetTarget) {
+    if (previous->mType == Event::SetTarget) {
       
       return ExponentialApproach(previous->mTime, mValue, previous->mValue,
                                  previous->mTimeConstant, aTime);
@@ -231,15 +231,15 @@ public:
     
     if (!next) {
       switch (previous->mType) {
-      case Event::Type::SetValue:
-      case Event::Type::LinearRamp:
-      case Event::Type::ExponentialRamp:
+      case Event::SetValue:
+      case Event::LinearRamp:
+      case Event::ExponentialRamp:
         
         return previous->mValue;
-      case Event::Type::SetValueCurve:
+      case Event::SetValueCurve:
         
         return 0.0f;
-      case Event::Type::SetTarget:
+      case Event::SetTarget:
         MOZ_ASSERT(false, "unreached");
       }
       MOZ_ASSERT(false, "unreached");
@@ -249,28 +249,28 @@ public:
 
     
     switch (next->mType) {
-    case Event::Type::LinearRamp:
+    case Event::LinearRamp:
       return LinearInterpolate(previous->mTime, previous->mValue, next->mTime, next->mValue, aTime);
-    case Event::Type::ExponentialRamp:
+    case Event::ExponentialRamp:
       return ExponentialInterpolate(previous->mTime, previous->mValue, next->mTime, next->mValue, aTime);
-    case Event::Type::SetValue:
-    case Event::Type::SetTarget:
-    case Event::Type::SetValueCurve:
+    case Event::SetValue:
+    case Event::SetTarget:
+    case Event::SetValueCurve:
       break;
     }
 
     
     switch (previous->mType) {
-    case Event::Type::SetValue:
-    case Event::Type::LinearRamp:
-    case Event::Type::ExponentialRamp:
+    case Event::SetValue:
+    case Event::LinearRamp:
+    case Event::ExponentialRamp:
       
       
       return previous->mValue;
-    case Event::Type::SetValueCurve:
+    case Event::SetValueCurve:
       
       return 0.0f;
-    case Event::Type::SetTarget:
+    case Event::SetTarget:
       MOZ_ASSERT(false, "unreached");
     }
 
@@ -310,7 +310,7 @@ private:
     
     
     for (unsigned i = 0; i < mEvents.Length(); ++i) {
-      if (mEvents[i].mType == Event::Type::SetValueCurve &&
+      if (mEvents[i].mType == Event::SetValueCurve &&
           mEvents[i].mTime <= aEvent.mTime &&
           (mEvents[i].mTime + mEvents[i].mDuration) >= aEvent.mTime) {
         aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
@@ -320,7 +320,7 @@ private:
 
     
     
-    if (aEvent.mType == Event::Type::SetValueCurve) {
+    if (aEvent.mType == Event::SetValueCurve) {
       for (unsigned i = 0; i < mEvents.Length(); ++i) {
         if (mEvents[i].mTime >= aEvent.mTime &&
             mEvents[i].mTime <= (aEvent.mTime + aEvent.mDuration)) {
