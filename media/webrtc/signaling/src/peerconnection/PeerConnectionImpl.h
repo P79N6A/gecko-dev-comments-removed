@@ -61,6 +61,7 @@ namespace dom {
 class RTCConfiguration;
 class MediaConstraintsInternal;
 class MediaStreamTrack;
+class RTCStatsReportInternal;
 
 #ifdef USE_FAKE_PCOBSERVER
 typedef test::AFakePCObserver PeerConnectionObserver;
@@ -475,6 +476,17 @@ private:
 
   
   nsresult IceStateChange_m(mozilla::dom::PCImplIceState aState);
+
+#ifdef MOZILLA_INTERNAL_API
+  
+  void GetStats_s(uint32_t trackId,
+                  DOMHighResTimeStamp now);
+
+  
+  void OnStatsReport_m(uint32_t trackId,
+                       nsresult result,
+                       nsAutoPtr<mozilla::dom::RTCStatsReportInternal> report);
+#endif
 
   
   
