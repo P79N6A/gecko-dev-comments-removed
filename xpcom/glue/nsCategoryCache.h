@@ -59,7 +59,7 @@ class NS_COM_GLUE nsCategoryObserver MOZ_FINAL : public nsIObserver {
 
 
 template<class T>
-class nsCategoryCache : protected nsCategoryListener {
+class nsCategoryCache MOZ_FINAL : protected nsCategoryListener {
   public:
     explicit nsCategoryCache(const char* aCategory);
     ~nsCategoryCache() { if (mObserver) mObserver->ListenerDied(); }
