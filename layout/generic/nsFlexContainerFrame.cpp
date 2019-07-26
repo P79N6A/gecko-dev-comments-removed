@@ -2406,12 +2406,7 @@ FlexboxAxisTracker::FlexboxAxisTracker(
   
   
   
-  
-  
-  
-  
-  
-  static bool sPreventBottomToTopChildOrdering = false;
+  static bool sPreventBottomToTopChildOrdering = true;
 
   if (sPreventBottomToTopChildOrdering) {
     
