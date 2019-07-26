@@ -35,8 +35,17 @@ public class GfxInfoThread extends Thread {
     public static boolean hasData() {
         
         
-        synchronized (sInstance) {
-            return sInstance.mData != null;
+        
+        
+        
+        
+        
+        GfxInfoThread instance = sInstance;
+        if (instance == null) {
+            return true;
+        }
+        synchronized (instance) {
+            return instance.mData != null;
         }
     }
 

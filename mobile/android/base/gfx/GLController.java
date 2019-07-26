@@ -124,8 +124,6 @@ public class GLController {
                 
                 
                 
-                
-                
                 if (!mCompositorCreated && !GfxInfoThread.hasData()) {
                     mView.postDelayed(this, 1);
                     return;
