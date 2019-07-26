@@ -796,6 +796,11 @@ protected:
 
 
   void SetMutedInternal(uint32_t aMuted);
+  
+
+
+
+  void SetVolumeInternal();
 
   
 
