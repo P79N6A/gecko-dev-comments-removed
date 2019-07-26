@@ -137,6 +137,18 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
 
                 
                 
+                CompileInfo &info = block->info();
+                if (!info.script()->strict()) {
+                    uint32_t slot = uses->index();
+                    uint32_t firstArgSlot = info.firstArgSlot();
+                    if (firstArgSlot <= slot && slot - firstArgSlot < info.nargs()) {
+                        uses++;
+                        continue;
+                    }
+                }
+
+                
+                
                 
                 
                 
