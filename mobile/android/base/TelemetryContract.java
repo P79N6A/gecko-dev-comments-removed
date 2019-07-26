@@ -17,6 +17,15 @@ public interface TelemetryContract {
     public interface Event {
         
         public static final String POLICY_NOTIFICATION_SUCCESS = "policynotification.success.1:";
+
+        
+        public static final String TOP_SITES_PIN = "pin.1";
+
+        
+        public static final String TOP_SITES_UNPIN = "unpin.1";
+
+        
+        public static final String TOP_SITES_EDIT = "edit.1";
     }
 
     
