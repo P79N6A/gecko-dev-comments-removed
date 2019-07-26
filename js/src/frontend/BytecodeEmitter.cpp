@@ -1477,7 +1477,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
         return true;
 
     switch (pn->getArity()) {
-      case PN_CODE:
+      case PN_FUNC:
         
 
 
