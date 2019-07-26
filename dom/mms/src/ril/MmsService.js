@@ -57,6 +57,16 @@ XPCOMUtils.defineLazyGetter(this, "MMS", function () {
 function MmsService() {
   Services.obs.addObserver(this, kXpcomShutdownObserverTopic, false);
   Services.obs.addObserver(this, kNetworkInterfaceStateChangedTopic, false);
+  try {
+    this.urlUAProf = Services.prefs.getCharPref('wap.UAProf.url');
+  } catch (e) {
+    this.urlUAProf = "";
+  }
+  try {
+    this.tagnameUAProf = Services.prefs.getCharPref('wap.UAProf.tagname');
+  } catch (e) {
+    this.tagnameUAProf = "x-wap-profile";
+  }
 }
 MmsService.prototype = {
 
@@ -77,6 +87,10 @@ MmsService.prototype = {
 
   
   proxyFilterRefCount: 0,
+
+  
+  urlUAProf: null,
+  tagnameUAProf: null,
 
   
 
@@ -157,6 +171,10 @@ MmsService.prototype = {
         xhr.setRequestHeader("Content-Length", istream.available());
       } else {
         xhr.setRequestHeader("Content-Length", 0);
+      }
+
+      if(this.urlUAProf !== "") {
+        xhr.setRequestHeader(this.tagnameUAProf, this.urlUAProf);
       }
 
       

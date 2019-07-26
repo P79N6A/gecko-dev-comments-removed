@@ -591,3 +591,7 @@ pref("font.size.inflation.disabledInMasterProcess", true);
 
 
 pref("memory.free_dirty_pages", true);
+
+
+pref("wap.UAProf.url", "");
+pref("wap.UAProf.tagname", "x-wap-profile");

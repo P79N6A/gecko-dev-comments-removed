@@ -3872,3 +3872,8 @@ pref("dom.browserElement.maxScreenshotDelayMS", 2000);
 
 
 pref("dom.placeholder.show_on_focus", true);
+
+
+pref("wap.UAProf.url", "");
+pref("wap.UAProf.tagname", "x-wap-profile");
+
