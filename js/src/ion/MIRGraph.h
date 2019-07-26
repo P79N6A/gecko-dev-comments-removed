@@ -106,6 +106,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     MDefinition *scopeChain();
 
     
+    bool increaseSlots(size_t num);
+
+    
     
     void initSlot(uint32_t index, MDefinition *ins);
 
@@ -219,6 +222,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     }
     jsbytecode *pc() const {
         return pc_;
+    }
+    uint32_t nslots() const {
+        return slots_.length();
     }
     uint32_t id() const {
         return id_;

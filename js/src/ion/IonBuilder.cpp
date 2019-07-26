@@ -2857,6 +2857,11 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
     
 
     
+    uint32_t depth = current->stackDepth() + callInfo.argc() + 2;
+    if (depth > current->nslots())
+        current->increaseSlots(depth - current->nslots());
+
+    
     callInfo.pushFormals(current);
 
     MResumePoint *resumePoint =
@@ -3984,8 +3989,22 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     
     current->pop();
 
+    
+    types::StackTypeSet *barrier;
+    types::StackTypeSet *types = oracle->returnTypeSet(script(), pc, &barrier);
+    callInfo.setTypeInfo(types, barrier);
+
+    
+    if (target != NULL) {
+        AutoObjectVector targets(cx);
+        targets.append(target);
+
+        if (makeInliningDecision(targets, argc))
+            return inlineScriptedCall(target, callInfo);
+    }
+
     callInfo.wrapArgs(current);
-    return makeCall(target, callInfo, funTypes, false);
+    return makeCallBarrier(target, callInfo, funTypes, false);
 }
 
 bool

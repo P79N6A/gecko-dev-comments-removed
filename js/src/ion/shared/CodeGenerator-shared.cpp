@@ -223,7 +223,11 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
         DebugOnly<jsbytecode *> bailPC = pc;
         if (mir->mode() == MResumePoint::ResumeAfter)
           bailPC = GetNextPc(pc);
-        JS_ASSERT_IF(GetIonContext()->cx,
+
+        
+        
+        
+        JS_ASSERT_IF(GetIonContext()->cx && JSOp(*bailPC) != JSOP_FUNAPPLY,
                      exprStack == js_ReconstructStackDepth(GetIonContext()->cx, script, bailPC));
 
 #ifdef TRACK_SNAPSHOTS

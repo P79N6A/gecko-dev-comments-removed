@@ -541,8 +541,12 @@ TypeInferenceOracle::canInlineCall(HandleScript caller, jsbytecode *pc)
 {
     JS_ASSERT(types::IsInlinableCall(pc));
 
+    JSOp op = JSOp(*pc);
     Bytecode *code = caller->analysis()->maybeCode(pc);
-    if (code->monitoredTypes)
+
+    
+    
+    if (op != JSOP_FUNAPPLY && code->monitoredTypes)
         return false;
 
     
