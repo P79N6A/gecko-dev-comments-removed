@@ -969,6 +969,9 @@ IsLowerableFunCallOrApply(jsbytecode *pc)
 #endif
 }
 
+Shape *
+GetPICSingleShape(JSContext *cx, JSScript *script, jsbytecode *pc, bool constructing);
+
 } 
 
 inline mjit::JITChunk *
