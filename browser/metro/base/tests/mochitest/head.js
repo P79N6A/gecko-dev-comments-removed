@@ -561,6 +561,25 @@ function waitForObserver(aObsEvent, aTimeoutMs) {
 
 
 
+
+
+
+
+function notifyPrecise()
+{
+  Services.obs.notifyObservers(null, "metro_precise_input", null);
+}
+
+function notifyImprecise()
+{
+  Services.obs.notifyObservers(null, "metro_imprecise_input", null);
+}
+
+
+
+
+
+
 function synthesizeNativeMouse(aElement, aOffsetX, aOffsetY, aMsg) {
   let x = aOffsetX;
   let y = aOffsetY;
