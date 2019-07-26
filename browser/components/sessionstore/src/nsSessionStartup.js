@@ -126,15 +126,16 @@ SessionStartup.prototype = {
       return;
     }
 
-    this._initialState =  this._parseStateString(stateString);
+    this._initialState = this._parseStateString(stateString);
 
     let shouldResumeSessionOnce = Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
     let shouldResumeSession = shouldResumeSessionOnce ||
           Services.prefs.getIntPref("browser.startup.page") == BROWSER_STARTUP_RESUME_SESSION;
 
     
-    if (!shouldResumeSessionOnce)
+    if (!shouldResumeSessionOnce && this._initialState) {
       delete this._initialState.lastSessionState;
+    }
 
     let resumeFromCrash = Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash");
 
