@@ -109,6 +109,9 @@ static const uint32_t QUICK_BUFFERING_LOW_DATA_USECS = 1000000;
 
 PR_STATIC_ASSERT(QUICK_BUFFERING_LOW_DATA_USECS <= AMPLE_AUDIO_USECS);
 
+
+static const uint32_t AUDIOSTREAM_MIN_WRITE_BEFORE_START_USECS = 200000;
+
 static TimeDuration UsecsToDuration(int64_t aUsecs) {
   return TimeDuration::FromMilliseconds(static_cast<double>(aUsecs) / USECS_PER_MS);
 }
@@ -952,6 +955,19 @@ bool MediaDecoderStateMachine::IsPlaying()
   return !mPlayStartTime.IsNull();
 }
 
+
+
+static void
+StartAudioStreamPlaybackIfNeeded(AudioStream* aStream)
+{
+  
+  if (!aStream->IsStarted() &&
+      static_cast<double>(aStream->GetWritten()) / aStream->GetRate() >=
+      static_cast<double>(AUDIOSTREAM_MIN_WRITE_BEFORE_START_USECS) / USECS_PER_S) {
+    aStream->Start();
+  }
+}
+
 static void WriteSilence(AudioStream* aStream, uint32_t aFrames)
 {
   uint32_t numSamples = aFrames * aStream->GetChannels();
@@ -959,6 +975,8 @@ static void WriteSilence(AudioStream* aStream, uint32_t aFrames)
   buf.SetLength(numSamples);
   memset(buf.Elements(), 0, numSamples * sizeof(AudioDataValue));
   aStream->Write(buf.Elements(), aFrames);
+
+  StartAudioStreamPlaybackIfNeeded(aStream);
 }
 
 void MediaDecoderStateMachine::AudioLoop()
@@ -1110,6 +1128,11 @@ void MediaDecoderStateMachine::AudioLoop()
     {
       
       
+      if (!mAudioStream->IsStarted()) {
+        mAudioStream->Start();
+      }
+      
+      
       bool seeking = false;
       {
         int64_t unplayedFrames = audioDuration % minWriteFrames;
@@ -1211,6 +1234,8 @@ uint32_t MediaDecoderStateMachine::PlayFromAudioQueue(uint64_t aFrameOffset,
   }
   mAudioStream->Write(audio->mAudioData,
                       audio->mFrames);
+
+  StartAudioStreamPlaybackIfNeeded(mAudioStream);
 
   offset = audio->mOffset;
   frames = audio->mFrames;
