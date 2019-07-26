@@ -2298,8 +2298,10 @@ this.DOMApplicationRegistry = {
 
       dump("-- webapps.js uninstall " + app.manifestURL + "\n");
 
-      if (!app.removable)
-        return;
+      if (!app.removable) {
+        debug("Error: cannot unintall a non-removable app.");
+        break;
+      }
 
       
       
@@ -2343,6 +2345,9 @@ this.DOMApplicationRegistry = {
       return;
     }
 
+    
+    
+    
     aMm.sendAsyncMessage("Webapps:Uninstall:Return:KO", aData);
   },
 
