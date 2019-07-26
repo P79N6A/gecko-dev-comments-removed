@@ -682,110 +682,112 @@ nsLayoutUtils::GetDisplayPort(nsIContent* aContent, nsRect *aResult)
     return false;
   }
 
-  if (aResult) {
-    if (rectData && marginsData) {
-      
-      if (rectData->mPriority > marginsData->mPriority) {
-        marginsData = nullptr;
-      } else {
-        rectData = nullptr;
-      }
-    }
+  if (!aResult) {
+    
+    
+    return true;
+  }
 
-    if (rectData) {
-      *aResult = rectData->mRect;
+  if (rectData && marginsData) {
+    
+    if (rectData->mPriority > marginsData->mPriority) {
+      marginsData = nullptr;
     } else {
-      nsRect* baseData =
-        static_cast<nsRect*>(aContent->GetProperty(nsGkAtoms::DisplayPortBase));
-      nsRect base;
-      if (baseData) {
-        base = *baseData;
-      }
-
-      nsIFrame* frame = aContent->GetPrimaryFrame();
-      if (frame) {
-        bool isRoot = false;
-        if (aContent->OwnerDoc()->GetRootElement() == aContent) {
-          
-          
-          frame = frame->PresContext()->PresShell()->GetRootScrollFrame();
-          isRoot = true;
-        }
-
-        
-        nsPresContext* presContext = frame->PresContext();
-        int32_t auPerDevPixel = presContext->AppUnitsPerDevPixel();
-        gfxSize res = presContext->PresShell()->GetCumulativeResolution();
-        gfxSize parentRes = res;
-        if (isRoot) {
-          
-          
-          gfxSize localRes = presContext->PresShell()->GetResolution();
-          parentRes.width /= localRes.width;
-          parentRes.height /= localRes.height;
-        }
-        LayerRect rect;
-        rect.x = parentRes.width * NSAppUnitsToFloatPixels(base.x, auPerDevPixel);
-        rect.y = parentRes.height * NSAppUnitsToFloatPixels(base.y, auPerDevPixel);
-        rect.width =
-          parentRes.width * NSAppUnitsToFloatPixels(base.width, auPerDevPixel);
-        rect.height =
-          parentRes.height * NSAppUnitsToFloatPixels(base.height, auPerDevPixel);
-
-        rect.Inflate(marginsData->mMargins);
-
-        nsIScrollableFrame* scrollableFrame = frame->GetScrollTargetFrame();
-        nsPoint scrollPos(
-          scrollableFrame ? scrollableFrame->GetScrollPosition() : nsPoint(0,0));
-        if (marginsData->mAlignmentX > 0 || marginsData->mAlignmentY > 0) {
-          
-          if (marginsData->mAlignmentX == 0) {
-            marginsData->mAlignmentX = 1;
-          }
-          if (marginsData->mAlignmentY == 0) {
-            marginsData->mAlignmentY = 1;
-          }
-
-          LayerPoint scrollPosLayer(
-            res.width * NSAppUnitsToFloatPixels(scrollPos.x, auPerDevPixel),
-            res.height * NSAppUnitsToFloatPixels(scrollPos.y, auPerDevPixel));
-          rect += scrollPosLayer;
-
-          
-          
-          
-          
-          rect.Inflate(1);
-
-          float left =
-            marginsData->mAlignmentX * floor(rect.x / marginsData->mAlignmentX);
-          float top =
-            marginsData->mAlignmentY * floor(rect.y / marginsData->mAlignmentY);
-          float right =
-            marginsData->mAlignmentX * ceil(rect.XMost() / marginsData->mAlignmentX);
-          float bottom =
-            marginsData->mAlignmentY * ceil(rect.YMost() / marginsData->mAlignmentY);
-          rect = LayerRect(left, top, right - left, bottom - top);
-          rect -= scrollPosLayer;
-        }
-
-        nsRect result;
-        result.x = NSFloatPixelsToAppUnits(rect.x / res.width, auPerDevPixel);
-        result.y = NSFloatPixelsToAppUnits(rect.y / res.height, auPerDevPixel);
-        result.width =
-          NSFloatPixelsToAppUnits(rect.width / res.width, auPerDevPixel);
-        result.height =
-          NSFloatPixelsToAppUnits(rect.height / res.height, auPerDevPixel);
-
-        
-        nsRect expandedScrollableRect = CalculateExpandedScrollableRect(frame);
-        result = expandedScrollableRect.Intersect(result + scrollPos) - scrollPos;
-
-        *aResult = result;
-      }
+      rectData = nullptr;
     }
   }
 
+  if (rectData) {
+    
+    *aResult = rectData->mRect;
+  } else {
+    
+    nsRect* baseData =
+      static_cast<nsRect*>(aContent->GetProperty(nsGkAtoms::DisplayPortBase));
+    nsRect base;
+    if (baseData) {
+      base = *baseData;
+    }
+
+    nsIFrame* frame = aContent->GetPrimaryFrame();
+    if (!frame) {
+      
+      
+      NS_WARNING("Attempting to get a displayport from a content with no primary frame!");
+      *aResult = base;
+      return true;
+    }
+
+    bool isRoot = false;
+    if (aContent->OwnerDoc()->GetRootElement() == aContent) {
+      
+      
+      frame = frame->PresContext()->PresShell()->GetRootScrollFrame();
+      isRoot = true;
+    }
+
+    
+    nsPresContext* presContext = frame->PresContext();
+    int32_t auPerDevPixel = presContext->AppUnitsPerDevPixel();
+    gfxSize res = presContext->PresShell()->GetCumulativeResolution();
+    gfxSize parentRes = res;
+    if (isRoot) {
+      
+      
+      gfxSize localRes = presContext->PresShell()->GetResolution();
+      parentRes.width /= localRes.width;
+      parentRes.height /= localRes.height;
+    }
+    LayerRect rect;
+    rect.x = parentRes.width * NSAppUnitsToFloatPixels(base.x, auPerDevPixel);
+    rect.y = parentRes.height * NSAppUnitsToFloatPixels(base.y, auPerDevPixel);
+    rect.width = parentRes.width * NSAppUnitsToFloatPixels(base.width, auPerDevPixel);
+    rect.height = parentRes.height * NSAppUnitsToFloatPixels(base.height, auPerDevPixel);
+
+    rect.Inflate(marginsData->mMargins);
+
+    nsIScrollableFrame* scrollableFrame = frame->GetScrollTargetFrame();
+    nsPoint scrollPos(scrollableFrame ? scrollableFrame->GetScrollPosition() : nsPoint(0,0));
+    if (marginsData->mAlignmentX > 0 || marginsData->mAlignmentY > 0) {
+      
+      if (marginsData->mAlignmentX == 0) {
+        marginsData->mAlignmentX = 1;
+      }
+      if (marginsData->mAlignmentY == 0) {
+        marginsData->mAlignmentY = 1;
+      }
+
+      LayerPoint scrollPosLayer(
+        res.width * NSAppUnitsToFloatPixels(scrollPos.x, auPerDevPixel),
+        res.height * NSAppUnitsToFloatPixels(scrollPos.y, auPerDevPixel));
+      rect += scrollPosLayer;
+
+      
+      
+      
+      
+      rect.Inflate(1);
+
+      float left = marginsData->mAlignmentX * floor(rect.x / marginsData->mAlignmentX);
+      float top = marginsData->mAlignmentY * floor(rect.y / marginsData->mAlignmentY);
+      float right = marginsData->mAlignmentX * ceil(rect.XMost() / marginsData->mAlignmentX);
+      float bottom = marginsData->mAlignmentY * ceil(rect.YMost() / marginsData->mAlignmentY);
+      rect = LayerRect(left, top, right - left, bottom - top);
+      rect -= scrollPosLayer;
+    }
+
+    nsRect result;
+    result.x = NSFloatPixelsToAppUnits(rect.x / res.width, auPerDevPixel);
+    result.y = NSFloatPixelsToAppUnits(rect.y / res.height, auPerDevPixel);
+    result.width = NSFloatPixelsToAppUnits(rect.width / res.width, auPerDevPixel);
+    result.height = NSFloatPixelsToAppUnits(rect.height / res.height, auPerDevPixel);
+
+    
+    nsRect expandedScrollableRect = CalculateExpandedScrollableRect(frame);
+    result = expandedScrollableRect.Intersect(result + scrollPos) - scrollPos;
+
+    *aResult = result;
+  }
   return true;
 }
 
