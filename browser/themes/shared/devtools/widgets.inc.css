@@ -61,8 +61,13 @@
 
 .breadcrumbs-widget-container {
   -moz-margin-end: 3px;
-  max-height: 24px; 
-  height: 24px; 
+  max-height: 25px; 
+  height: 25px; 
+  
+
+
+
+  margin-bottom: -1px;
 }
 
 .scrollbutton-up,
@@ -147,7 +152,7 @@
 #breadcrumb-separator-after,
 #breadcrumb-separator-normal {
   width: 12px;
-  height: 24px;
+  height: 25px;
   overflow: hidden;
 }
 
@@ -186,7 +191,7 @@
   content: "";
   display: block;
   width: 25px;
-  height: 24px;
+  height: 25px;
   transform: translateX(-18px) rotate(45deg);
   -moz-box-sizing: border-box;
 }
@@ -194,7 +199,7 @@
 .breadcrumbs-widget-item {
   background-color: transparent;
   -moz-appearance: none;
-  min-height: 24px;
+  min-height: 25px;
   min-width: 65px;
   margin: 0;
   padding: 0 8px 0 20px;
@@ -881,6 +886,10 @@
 }
 
 
+
+.variables-view-searchinput {
+  min-height: 24px;
+}
 
 .variable-or-property[unmatched] {
   border: none;
