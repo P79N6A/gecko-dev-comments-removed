@@ -483,7 +483,7 @@ nsIMEStateManager::SetIMEState(const IMEState &aState,
           willSubmit = true;
         
         } else if (formElement && formElement->Tag() == nsGkAtoms::form && formElement->IsHTML() &&
-                   static_cast<dom::HTMLFormElement*>(formElement)->HasSingleTextControl()) {
+                   !static_cast<dom::HTMLFormElement*>(formElement)->ImplicitSubmissionIsDisabled()) {
           willSubmit = true;
         }
       }

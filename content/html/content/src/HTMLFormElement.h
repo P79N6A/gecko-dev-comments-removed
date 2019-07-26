@@ -220,7 +220,8 @@ public:
 
 
 
-  bool HasSingleTextControl() const;
+
+  bool ImplicitSubmissionIsDisabled() const;
 
   
 
