@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef MOZILLA_GFX_BLUR_H_
 #define MOZILLA_GFX_BLUR_H_
 
@@ -62,8 +64,7 @@ public:
                const Rect* aDirtyRect,
                const Rect* aSkipRect);
 
-  AlphaBoxBlur(uint8_t* aData,
-               const Rect& aRect,
+  AlphaBoxBlur(const Rect& aRect,
                int32_t aStride,
                float aSigma);
 
@@ -72,18 +73,9 @@ public:
   
 
 
-
-
-  unsigned char* GetData();
-
-  
-
-
-
   IntSize GetSize();
 
   
-
 
 
   int32_t GetStride();
@@ -103,7 +95,17 @@ public:
 
 
 
-  void Blur();
+
+
+
+  int32_t GetSurfaceAllocationSize() const;
+
+  
+
+
+
+
+  void Blur(uint8_t* aData);
 
   
 
@@ -115,9 +117,11 @@ public:
 
 private:
 
-  void BoxBlur_C(int32_t aLeftLobe, int32_t aRightLobe, int32_t aTopLobe,
+  void BoxBlur_C(uint8_t* aData,
+                 int32_t aLeftLobe, int32_t aRightLobe, int32_t aTopLobe,
                  int32_t aBottomLobe, uint32_t *aIntegralImage, size_t aIntegralImageStride);
-  void BoxBlur_SSE2(int32_t aLeftLobe, int32_t aRightLobe, int32_t aTopLobe,
+  void BoxBlur_SSE2(uint8_t* aData,
+                    int32_t aLeftLobe, int32_t aRightLobe, int32_t aTopLobe,
                     int32_t aBottomLobe, uint32_t *aIntegralImage, size_t aIntegralImageStride);
 
   static CheckedInt<int32_t> RoundUpToMultipleOf4(int32_t aVal);
@@ -152,17 +156,12 @@ private:
   
 
 
-  uint8_t* mData;
-
-  
-
-
-  bool mFreeData;
-
-  
-
-
   int32_t mStride;
+
+  
+
+
+  int32_t mSurfaceAllocationSize;
 
   
 

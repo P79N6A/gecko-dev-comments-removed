@@ -46,6 +46,25 @@ public:
 
 
     gfxImageSurface(const gfxIntSize& size, gfxImageFormat format, bool aClear = true);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    gfxImageSurface(const gfxIntSize& aSize, gfxImageFormat aFormat,
+                    long aStride, int32_t aMinimalAllocation, bool aClear);
+
     gfxImageSurface(cairo_surface_t *csurf);
 
     virtual ~gfxImageSurface();
@@ -104,7 +123,14 @@ protected:
     gfxImageSurface();
     void InitWithData(unsigned char *aData, const gfxIntSize& aSize,
                       long aStride, gfxImageFormat aFormat);
+    
+
+
+
+
+    void AllocateAndInit(long aStride, int32_t aMinimalAllocation, bool aClear);
     void InitFromSurface(cairo_surface_t *csurf);
+
     long ComputeStride() const { return ComputeStride(mSize, mFormat); }
 
 
