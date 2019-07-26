@@ -217,6 +217,9 @@ XULDocument::~XULDocument()
     
     
     mForwardReferences.Clear();
+    
+    
+    mPersistenceIds.Clear();
 
     
     if (mBroadcasterMap) {
@@ -2180,6 +2183,11 @@ XULDocument::ApplyPersistentAttributes()
     ApplyPersistentAttributesInternal();
     mApplyingPersistedAttrs = false;
 
+    
+    
+    mRestrictPersistence = true;
+    mPersistenceIds.Clear();
+
     return NS_OK;
 }
 
@@ -2222,6 +2230,9 @@ XULDocument::ApplyPersistentAttributesInternal()
         nsXULContentUtils::MakeElementID(this, nsDependentCString(uri), id);
 
         if (id.IsEmpty())
+            continue;
+
+        if (mRestrictPersistence && !mPersistenceIds.Contains(id))
             continue;
 
         
@@ -2975,6 +2986,15 @@ XULDocument::ResumeWalk()
                     
                     rv = element->AppendChildTo(child, false);
                     if (NS_FAILED(rv)) return rv;
+
+                    
+                    
+                    if (mRestrictPersistence) {
+                        nsIAtom* id = child->GetID();
+                        if (id) {
+                            mPersistenceIds.PutEntry(nsDependentAtomString(id));
+                        }
+                    }
 
                     
                     

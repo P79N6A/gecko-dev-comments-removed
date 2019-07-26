@@ -328,6 +328,12 @@ protected:
     
 
 
+    bool                           mRestrictPersistence;
+    nsTHashtable<nsStringHashKey>  mPersistenceIds;
+
+    
+
+
 
     nsTArray<nsRefPtr<nsCSSStyleSheet> > mOverlaySheets;
 
