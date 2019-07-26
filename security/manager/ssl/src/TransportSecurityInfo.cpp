@@ -20,6 +20,7 @@
 #include "nsIProgrammingLanguage.h"
 #include "nsIArray.h"
 #include "nsComponentManagerUtils.h"
+#include "nsReadableUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "PSMRunnable.h"
 
@@ -624,12 +625,21 @@ GetSubjectAltNames(CERTCertificate *nssCert,
     nsAutoString name;
     switch (current->type) {
       case certDNSName:
-        name.AssignASCII((char*)current->name.other.data, current->name.other.len);
-        if (!allNames.IsEmpty()) {
-          allNames.AppendLiteral(", ");
+        {
+          nsDependentCSubstring nameFromCert(reinterpret_cast<char*>
+                                              (current->name.other.data),
+                                              current->name.other.len);
+          
+          
+          if (IsASCII(nameFromCert)) {
+            name.Assign(NS_ConvertASCIItoUTF16(nameFromCert));
+            if (!allNames.IsEmpty()) {
+              allNames.AppendLiteral(", ");
+            }
+            ++nameCount;
+            allNames.Append(name);
+          }
         }
-        ++nameCount;
-        allNames.Append(name);
         break;
 
       case certIPAddress:
@@ -709,8 +719,15 @@ AppendErrorTextMismatch(const nsString &host,
   if (!useSAN) {
     char *certName = CERT_GetCommonName(&nssCert->subject);
     if (certName) {
-      ++nameCount;
-      allNames.Assign(NS_ConvertUTF8toUTF16(certName));
+      nsDependentCSubstring commonName(certName, strlen(certName));
+      if (IsUTF8(commonName)) {
+        
+        
+        
+        
+        ++nameCount;
+        allNames.Assign(NS_ConvertUTF8toUTF16(commonName));
+      }
       PORT_Free(certName);
     }
   }
