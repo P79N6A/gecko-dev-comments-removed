@@ -6232,13 +6232,368 @@ Parser<ParseHandler>::newRegExp()
 
 template <typename ParseHandler>
 typename ParseHandler::Node
+Parser<ParseHandler>::arrayInitializer()
+{
+    JS_ASSERT(tokenStream.isCurrentTokenType(TOK_LB));
+
+    TokenKind tt;
+    Node pn2;
+
+    Node pn = handler.newList(PNK_ARRAY, null(), JSOP_NEWINIT);
+    if (!pn)
+        return null();
+    handler.setBlockId(pn, pc->blockidGen);
+
+    if (tokenStream.matchToken(TOK_RB, TokenStream::Operand)) {
+        
+
+
+
+        handler.setListFlag(pn, PNX_NONCONST);
+    } else {
+        bool spread = false, missingTrailingComma = false;
+        uint32_t index = 0;
+        for (; ; index++) {
+            if (index == JSObject::NELEMENTS_LIMIT) {
+                report(ParseError, false, null(), JSMSG_ARRAY_INIT_TOO_BIG);
+                return null();
+            }
+
+            tt = tokenStream.peekToken(TokenStream::Operand);
+            if (tt == TOK_RB)
+                break;
+
+            if (tt == TOK_COMMA) {
+                tokenStream.consumeKnownToken(TOK_COMMA);
+                pn2 = handler.newElision();
+                if (!pn2)
+                    return null();
+                handler.setListFlag(pn, PNX_SPECIALARRAYINIT | PNX_NONCONST);
+            } else if (tt == TOK_TRIPLEDOT) {
+                spread = true;
+                handler.setListFlag(pn, PNX_SPECIALARRAYINIT | PNX_NONCONST);
+
+                tokenStream.consumeKnownToken(TOK_TRIPLEDOT);
+                uint32_t begin = pos().begin;
+                Node inner = assignExpr();
+                if (!inner)
+                    return null();
+
+                pn2 = handler.newUnary(PNK_SPREAD, JSOP_NOP, begin, inner);
+                if (!pn2)
+                    return null();
+            } else {
+                pn2 = assignExpr();
+                if (!pn2)
+                    return null();
+                if (foldConstants && !FoldConstants(context, &pn2, this))
+                    return null();
+                if (!handler.isConstant(pn2))
+                    handler.setListFlag(pn, PNX_NONCONST);
+            }
+            handler.addList(pn, pn2);
+
+            if (tt != TOK_COMMA) {
+                
+                if (!tokenStream.matchToken(TOK_COMMA)) {
+                    missingTrailingComma = true;
+                    break;
+                }
+            }
+        }
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (index == 0 && !spread && tokenStream.matchToken(TOK_FOR) && missingTrailingComma) {
+            if (!arrayInitializerComprehensionTail(pn))
+                return null();
+        }
+
+        MUST_MATCH_TOKEN(TOK_RB, JSMSG_BRACKET_AFTER_LIST);
+    }
+    handler.setEndPosition(pn, pos().end);
+    return pn;
+}
+
+template <typename ParseHandler>
+typename ParseHandler::Node
+Parser<ParseHandler>::objectLiteral()
+{
+    JS_ASSERT(tokenStream.isCurrentTokenType(TOK_LC));
+
+    TokenKind tt;
+    JSOp op;
+    Node pn2, pn3, pnval;
+
+    
+
+
+
+    AtomIndexMap seen;
+
+    enum AssignmentType {
+        GET     = 0x1,
+        SET     = 0x2,
+        VALUE   = 0x4 | GET | SET
+    };
+
+    Node pn = handler.newList(PNK_OBJECT, null(), JSOP_NEWINIT);
+    if (!pn)
+        return null();
+
+    RootedAtom atom(context);
+    Value tmp;
+    for (;;) {
+        TokenKind ltok = tokenStream.getToken(TokenStream::KeywordIsName);
+        switch (ltok) {
+          case TOK_NUMBER:
+            tmp = DoubleValue(tokenStream.currentToken().number());
+            atom = ToAtom<CanGC>(context, HandleValue::fromMarkedLocation(&tmp));
+            if (!atom)
+                return null();
+            pn3 = newNumber(tokenStream.currentToken());
+            break;
+          case TOK_NAME:
+            {
+                atom = tokenStream.currentToken().name();
+                if (atom == context->names().get) {
+                    op = JSOP_INITPROP_GETTER;
+                } else if (atom == context->names().set) {
+                    op = JSOP_INITPROP_SETTER;
+                } else {
+                    pn3 = handler.newIdentifier(atom, pos());
+                    if (!pn3)
+                        return null();
+                    break;
+                }
+
+                tt = tokenStream.getToken(TokenStream::KeywordIsName);
+                if (tt == TOK_NAME) {
+                    atom = tokenStream.currentToken().name();
+                    pn3 = newName(atom->asPropertyName());
+                    if (!pn3)
+                        return null();
+                } else if (tt == TOK_STRING) {
+                    atom = tokenStream.currentToken().atom();
+
+                    uint32_t index;
+                    if (atom->isIndex(&index)) {
+                        pn3 = handler.newNumber(index, NoDecimal, pos());
+                        if (!pn3)
+                            return null();
+                        tmp = DoubleValue(index);
+                        atom = ToAtom<CanGC>(context, HandleValue::fromMarkedLocation(&tmp));
+                        if (!atom)
+                            return null();
+                    } else {
+                        pn3 = stringLiteral();
+                        if (!pn3)
+                            return null();
+                    }
+                } else if (tt == TOK_NUMBER) {
+                    double number = tokenStream.currentToken().number();
+                    tmp = DoubleValue(number);
+                    atom = ToAtom<CanGC>(context, HandleValue::fromMarkedLocation(&tmp));
+                    if (!atom)
+                        return null();
+                    pn3 = newNumber(tokenStream.currentToken());
+                    if (!pn3)
+                        return null();
+                } else {
+                    tokenStream.ungetToken();
+                    pn3 = handler.newIdentifier(atom, pos());
+                    if (!pn3)
+                        return null();
+                    break;
+                }
+
+                JS_ASSERT(op == JSOP_INITPROP_GETTER || op == JSOP_INITPROP_SETTER);
+
+                handler.setListFlag(pn, PNX_NONCONST);
+
+                
+                Rooted<PropertyName*> funName(context, NULL);
+                TokenStream::Position start(keepAtoms);
+                tokenStream.tell(&start);
+                pn2 = functionDef(funName, start, op == JSOP_INITPROP_GETTER ? Getter : Setter,
+                                  Expression);
+                if (!pn2)
+                    return null();
+                pn2 = handler.newBinary(PNK_COLON, pn3, pn2, op);
+                goto skip;
+            }
+          case TOK_STRING: {
+            atom = tokenStream.currentToken().atom();
+            uint32_t index;
+            if (atom->isIndex(&index)) {
+                pn3 = handler.newNumber(index, NoDecimal, pos());
+                if (!pn3)
+                    return null();
+            } else {
+                pn3 = stringLiteral();
+                if (!pn3)
+                    return null();
+            }
+            break;
+          }
+          case TOK_RC:
+            goto end_obj_init;
+          default:
+            report(ParseError, false, null(), JSMSG_BAD_PROP_ID);
+            return null();
+        }
+
+        op = JSOP_INITPROP;
+        tt = tokenStream.getToken();
+        if (tt == TOK_COLON) {
+            pnval = assignExpr();
+            if (!pnval)
+                return null();
+
+            if (foldConstants && !FoldConstants(context, &pnval, this))
+                return null();
+
+            
+
+
+
+
+            if (!handler.isConstant(pnval) || atom == context->names().proto)
+                handler.setListFlag(pn, PNX_NONCONST);
+        }
+#if JS_HAS_DESTRUCTURING_SHORTHAND
+        else if (ltok == TOK_NAME && (tt == TOK_COMMA || tt == TOK_RC)) {
+            
+
+
+
+            if (!abortIfSyntaxParser())
+                return null();
+            tokenStream.ungetToken();
+            if (!tokenStream.checkForKeyword(atom->charsZ(), atom->length(), NULL))
+                return null();
+            handler.setListFlag(pn, PNX_DESTRUCT | PNX_NONCONST);
+            PropertyName *name = handler.isName(pn3);
+            JS_ASSERT(atom);
+            pn3 = newName(name);
+            if (!pn3)
+                return null();
+            pnval = pn3;
+        }
+#endif
+        else {
+            report(ParseError, false, null(), JSMSG_COLON_AFTER_ID);
+            return null();
+        }
+
+        pn2 = handler.newBinary(PNK_COLON, pn3, pnval, op);
+      skip:
+        if (!pn2)
+            return null();
+        handler.addList(pn, pn2);
+
+        
+
+
+
+
+
+        AssignmentType assignType;
+        if (op == JSOP_INITPROP) {
+            assignType = VALUE;
+        } else if (op == JSOP_INITPROP_GETTER) {
+            assignType = GET;
+        } else if (op == JSOP_INITPROP_SETTER) {
+            assignType = SET;
+        } else {
+            MOZ_ASSUME_UNREACHABLE("bad opcode in object initializer");
+        }
+
+        AtomIndexAddPtr p = seen.lookupForAdd(atom);
+        if (p) {
+            jsatomid index = p.value();
+            AssignmentType oldAssignType = AssignmentType(index);
+            if ((oldAssignType & assignType) &&
+                (oldAssignType != VALUE || assignType != VALUE || pc->sc->needStrictChecks()))
+            {
+                JSAutoByteString name;
+                if (!AtomToPrintableString(context, atom, &name))
+                    return null();
+
+                ParseReportKind reportKind =
+                    (oldAssignType == VALUE && assignType == VALUE && !pc->sc->needStrictChecks())
+                    ? ParseWarning
+                    : (pc->sc->needStrictChecks() ? ParseStrictError : ParseError);
+                if (!report(reportKind, pc->sc->strict, null(),
+                            JSMSG_DUPLICATE_PROPERTY, name.ptr()))
+                {
+                    return null();
+                }
+            }
+            p.value() = assignType | oldAssignType;
+        } else {
+            if (!seen.add(p, atom, assignType))
+                return null();
+        }
+
+        tt = tokenStream.getToken();
+        if (tt == TOK_RC)
+            goto end_obj_init;
+        if (tt != TOK_COMMA) {
+            report(ParseError, false, null(), JSMSG_CURLY_AFTER_LIST);
+            return null();
+        }
+    }
+
+  end_obj_init:
+    handler.setEndPosition(pn, pos().end);
+    return pn;
+}
+
+template <typename ParseHandler>
+typename ParseHandler::Node
 Parser<ParseHandler>::primaryExpr(TokenKind tt)
 {
     JS_ASSERT(tokenStream.isCurrentTokenType(tt));
-
-    Node pn, pn2, pn3;
-    JSOp op;
-
     JS_CHECK_RECURSION(context, return null());
 
     switch (tt) {
@@ -6246,350 +6601,10 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
         return functionExpr();
 
       case TOK_LB:
-      {
-        pn = handler.newList(PNK_ARRAY, null(), JSOP_NEWINIT);
-        if (!pn)
-            return null();
-        handler.setBlockId(pn, pc->blockidGen);
-
-        if (tokenStream.matchToken(TOK_RB, TokenStream::Operand)) {
-            
-
-
-
-            handler.setListFlag(pn, PNX_NONCONST);
-        } else {
-            bool spread = false, missingTrailingComma = false;
-            unsigned index = 0;
-            for (; ; index++) {
-                if (index == JSObject::NELEMENTS_LIMIT) {
-                    report(ParseError, false, null(), JSMSG_ARRAY_INIT_TOO_BIG);
-                    return null();
-                }
-
-                tt = tokenStream.peekToken(TokenStream::Operand);
-                if (tt == TOK_RB)
-                    break;
-
-                if (tt == TOK_COMMA) {
-                    tokenStream.consumeKnownToken(TOK_COMMA);
-                    pn2 = handler.newElision();
-                    if (!pn2)
-                        return null();
-                    handler.setListFlag(pn, PNX_SPECIALARRAYINIT | PNX_NONCONST);
-                } else if (tt == TOK_TRIPLEDOT) {
-                    spread = true;
-                    handler.setListFlag(pn, PNX_SPECIALARRAYINIT | PNX_NONCONST);
-
-                    tokenStream.consumeKnownToken(TOK_TRIPLEDOT);
-                    uint32_t begin = pos().begin;
-                    Node inner = assignExpr();
-                    if (!inner)
-                        return null();
-
-                    pn2 = handler.newUnary(PNK_SPREAD, JSOP_NOP, begin, inner);
-                    if (!pn2)
-                        return null();
-                } else {
-                    pn2 = assignExpr();
-                    if (!pn2)
-                        return null();
-                    if (foldConstants && !FoldConstants(context, &pn2, this))
-                        return null();
-                    if (!handler.isConstant(pn2))
-                        handler.setListFlag(pn, PNX_NONCONST);
-                }
-                handler.addList(pn, pn2);
-
-                if (tt != TOK_COMMA) {
-                    
-                    if (!tokenStream.matchToken(TOK_COMMA)) {
-                        missingTrailingComma = true;
-                        break;
-                    }
-                }
-            }
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (index == 0 && !spread && tokenStream.matchToken(TOK_FOR) && missingTrailingComma) {
-                if (!arrayInitializerComprehensionTail(pn))
-                    return null();
-            }
-
-            MUST_MATCH_TOKEN(TOK_RB, JSMSG_BRACKET_AFTER_LIST);
-        }
-        handler.setEndPosition(pn, pos().end);
-        return pn;
-      }
+        return arrayInitializer();
 
       case TOK_LC:
-      {
-        Node pnval;
-
-        
-
-
-
-        AtomIndexMap seen;
-
-        enum AssignmentType {
-            GET     = 0x1,
-            SET     = 0x2,
-            VALUE   = 0x4 | GET | SET
-        };
-
-        pn = handler.newList(PNK_OBJECT, null(), JSOP_NEWINIT);
-        if (!pn)
-            return null();
-
-        RootedAtom atom(context);
-        Value tmp;
-        for (;;) {
-            TokenKind ltok = tokenStream.getToken(TokenStream::KeywordIsName);
-            switch (ltok) {
-              case TOK_NUMBER:
-                tmp = DoubleValue(tokenStream.currentToken().number());
-                atom = ToAtom<CanGC>(context, HandleValue::fromMarkedLocation(&tmp));
-                if (!atom)
-                    return null();
-                pn3 = newNumber(tokenStream.currentToken());
-                break;
-              case TOK_NAME:
-                {
-                    atom = tokenStream.currentToken().name();
-                    if (atom == context->names().get) {
-                        op = JSOP_INITPROP_GETTER;
-                    } else if (atom == context->names().set) {
-                        op = JSOP_INITPROP_SETTER;
-                    } else {
-                        pn3 = handler.newIdentifier(atom, pos());
-                        if (!pn3)
-                            return null();
-                        break;
-                    }
-
-                    tt = tokenStream.getToken(TokenStream::KeywordIsName);
-                    if (tt == TOK_NAME) {
-                        atom = tokenStream.currentToken().name();
-                        pn3 = newName(atom->asPropertyName());
-                        if (!pn3)
-                            return null();
-                    } else if (tt == TOK_STRING) {
-                        atom = tokenStream.currentToken().atom();
-
-                        uint32_t index;
-                        if (atom->isIndex(&index)) {
-                            pn3 = handler.newNumber(index, NoDecimal, pos());
-                            if (!pn3)
-                                return null();
-                            tmp = DoubleValue(index);
-                            atom = ToAtom<CanGC>(context, HandleValue::fromMarkedLocation(&tmp));
-                            if (!atom)
-                                return null();
-                        } else {
-                            pn3 = stringLiteral();
-                            if (!pn3)
-                                return null();
-                        }
-                    } else if (tt == TOK_NUMBER) {
-                        double number = tokenStream.currentToken().number();
-                        tmp = DoubleValue(number);
-                        atom = ToAtom<CanGC>(context, HandleValue::fromMarkedLocation(&tmp));
-                        if (!atom)
-                            return null();
-                        pn3 = newNumber(tokenStream.currentToken());
-                        if (!pn3)
-                            return null();
-                    } else {
-                        tokenStream.ungetToken();
-                        pn3 = handler.newIdentifier(atom, pos());
-                        if (!pn3)
-                            return null();
-                        break;
-                    }
-
-                    JS_ASSERT(op == JSOP_INITPROP_GETTER || op == JSOP_INITPROP_SETTER);
-
-                    handler.setListFlag(pn, PNX_NONCONST);
-
-                    
-                    Rooted<PropertyName*> funName(context, NULL);
-                    TokenStream::Position start(keepAtoms);
-                    tokenStream.tell(&start);
-                    pn2 = functionDef(funName, start, op == JSOP_INITPROP_GETTER ? Getter : Setter,
-                                      Expression);
-                    if (!pn2)
-                        return null();
-                    pn2 = handler.newBinary(PNK_COLON, pn3, pn2, op);
-                    goto skip;
-                }
-              case TOK_STRING: {
-                atom = tokenStream.currentToken().atom();
-                uint32_t index;
-                if (atom->isIndex(&index)) {
-                    pn3 = handler.newNumber(index, NoDecimal, pos());
-                    if (!pn3)
-                        return null();
-                } else {
-                    pn3 = stringLiteral();
-                    if (!pn3)
-                        return null();
-                }
-                break;
-              }
-              case TOK_RC:
-                goto end_obj_init;
-              default:
-                report(ParseError, false, null(), JSMSG_BAD_PROP_ID);
-                return null();
-            }
-
-            op = JSOP_INITPROP;
-            tt = tokenStream.getToken();
-            if (tt == TOK_COLON) {
-                pnval = assignExpr();
-                if (!pnval)
-                    return null();
-
-                if (foldConstants && !FoldConstants(context, &pnval, this))
-                    return null();
-
-                
-
-
-
-
-                if (!handler.isConstant(pnval) || atom == context->names().proto)
-                    handler.setListFlag(pn, PNX_NONCONST);
-            }
-#if JS_HAS_DESTRUCTURING_SHORTHAND
-            else if (ltok == TOK_NAME && (tt == TOK_COMMA || tt == TOK_RC)) {
-                
-
-
-
-                if (!abortIfSyntaxParser())
-                    return null();
-                tokenStream.ungetToken();
-                if (!tokenStream.checkForKeyword(atom->charsZ(), atom->length(), NULL))
-                    return null();
-                handler.setListFlag(pn, PNX_DESTRUCT | PNX_NONCONST);
-                PropertyName *name = handler.isName(pn3);
-                JS_ASSERT(atom);
-                pn3 = newName(name);
-                if (!pn3)
-                    return null();
-                pnval = pn3;
-            }
-#endif
-            else {
-                report(ParseError, false, null(), JSMSG_COLON_AFTER_ID);
-                return null();
-            }
-
-            pn2 = handler.newBinary(PNK_COLON, pn3, pnval, op);
-          skip:
-            if (!pn2)
-                return null();
-            handler.addList(pn, pn2);
-
-            
-
-
-
-
-
-            AssignmentType assignType;
-            if (op == JSOP_INITPROP) {
-                assignType = VALUE;
-            } else if (op == JSOP_INITPROP_GETTER) {
-                assignType = GET;
-            } else if (op == JSOP_INITPROP_SETTER) {
-                assignType = SET;
-            } else {
-                MOZ_ASSUME_UNREACHABLE("bad opcode in object initializer");
-            }
-
-            AtomIndexAddPtr p = seen.lookupForAdd(atom);
-            if (p) {
-                jsatomid index = p.value();
-                AssignmentType oldAssignType = AssignmentType(index);
-                if ((oldAssignType & assignType) &&
-                    (oldAssignType != VALUE || assignType != VALUE || pc->sc->needStrictChecks()))
-                {
-                    JSAutoByteString name;
-                    if (!AtomToPrintableString(context, atom, &name))
-                        return null();
-
-                    ParseReportKind reportKind =
-                        (oldAssignType == VALUE && assignType == VALUE && !pc->sc->needStrictChecks())
-                        ? ParseWarning
-                        : (pc->sc->needStrictChecks() ? ParseStrictError : ParseError);
-                    if (!report(reportKind, pc->sc->strict, null(),
-                                JSMSG_DUPLICATE_PROPERTY, name.ptr()))
-                    {
-                        return null();
-                    }
-                }
-                p.value() = assignType | oldAssignType;
-            } else {
-                if (!seen.add(p, atom, assignType))
-                    return null();
-            }
-
-            tt = tokenStream.getToken();
-            if (tt == TOK_RC)
-                goto end_obj_init;
-            if (tt != TOK_COMMA) {
-                report(ParseError, false, null(), JSMSG_CURLY_AFTER_LIST);
-                return null();
-            }
-        }
-
-      end_obj_init:
-        handler.setEndPosition(pn, pos().end);
-        return pn;
-      }
+        return objectLiteral();
 
 #if JS_HAS_BLOCK_SCOPE
       case TOK_LET:
@@ -6599,8 +6614,7 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
       case TOK_LP:
       {
         bool genexp;
-
-        pn = parenExpr(&genexp);
+        Node pn = parenExpr(&genexp);
         if (!pn)
             return null();
         pn = handler.setInParens(pn);
