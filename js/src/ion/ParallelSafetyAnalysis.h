@@ -4,8 +4,8 @@
 
 
 
-#ifndef ion_ParallelArrayAnalysis_h
-#define ion_ParallelArrayAnalysis_h
+#ifndef ion_ParallelSafetyAnalysis_h
+#define ion_ParallelSafetyAnalysis_h
 
 #include "MIR.h"
 #include "CompileInfo.h"
@@ -22,7 +22,7 @@ class AutoDestroyAllocator;
 
 
 
-class ParallelArrayAnalysis
+class ParallelSafetyAnalysis
 {
     MIRGenerator *mir_;
     MIRGraph &graph_;
@@ -31,8 +31,8 @@ class ParallelArrayAnalysis
     void replaceOperandsOnResumePoint(MResumePoint *resumePoint, MDefinition *withDef);
 
   public:
-    ParallelArrayAnalysis(MIRGenerator *mir,
-                          MIRGraph &graph)
+    ParallelSafetyAnalysis(MIRGenerator *mir,
+                           MIRGraph &graph)
       : mir_(mir),
         graph_(graph)
     {}
