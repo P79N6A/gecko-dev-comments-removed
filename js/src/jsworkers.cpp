@@ -204,6 +204,13 @@ void
 WorkerThreadState::notify(CondVar which)
 {
     JS_ASSERT(isLocked());
+    PR_NotifyCondVar((which == MAIN) ? mainWakeup : helperWakeup);
+}
+
+void
+WorkerThreadState::notifyAll(CondVar which)
+{
+    JS_ASSERT(isLocked());
     PR_NotifyAllCondVar((which == MAIN) ? mainWakeup : helperWakeup);
 }
 
@@ -218,8 +225,11 @@ WorkerThread::destroy()
     {
         AutoLockWorkerThreadState lock(runtime);
         terminate = true;
-        state.notify(WorkerThreadState::WORKER);
+
+        
+        state.notifyAll(WorkerThreadState::WORKER);
     }
+
     PR_JoinThread(thread);
 }
 
