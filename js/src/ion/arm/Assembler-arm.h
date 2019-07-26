@@ -1410,8 +1410,6 @@ class Assembler
     BufferOffset as_dtm(LoadStore ls, Register rn, uint32_t mask,
                 DTMMode mode, DTMWriteBack wb, Condition c = Always);
     
-    void as_WritePoolEntry(Instruction *addr, Condition c, uint32_t data);
-    
     BufferOffset as_Imm32Pool(Register dest, uint32_t value, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
     
     BufferOffset as_BranchPool(uint32_t value, RepatchLabel *label, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
@@ -1791,7 +1789,7 @@ class InstDTR : public Instruction
     { }
 
     static bool isTHIS(const Instruction &i);
-    static InstDTR *asTHIS(const Instruction &i);
+    static InstDTR *asTHIS(Instruction &i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(Instruction));
@@ -1803,7 +1801,7 @@ class InstLDR : public InstDTR
         : InstDTR(IsLoad, IsWord, mode, rt, addr, c)
     { }
     static bool isTHIS(const Instruction &i);
-    static InstLDR *asTHIS(const Instruction &i);
+    static InstLDR *asTHIS(Instruction &i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(InstLDR));

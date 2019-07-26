@@ -325,53 +325,29 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 {
     JS_ASSERT(input != ScratchFloatReg);
 #ifdef JS_CPU_ARM
+    Label notSplit;
     ma_vimm(0.5, ScratchFloatReg);
-    if (hasVFPv3()) {
-        Label notSplit;
-        ma_vadd(input, ScratchFloatReg, ScratchFloatReg);
-        
-        
-        as_vcvtFixed(ScratchFloatReg, false, 24, true);
-        
-        as_vxfer(output, InvalidReg, ScratchFloatReg, FloatToCore);
-        
-        
-        
-        ma_tst(output, Imm32(0x00ffffff));
-        
-        ma_lsr(Imm32(24), output, output);
-        
-        
-        ma_b(&notSplit, NonZero);
-        as_vxfer(ScratchRegister, InvalidReg, input, FloatToCore);
-        ma_cmp(ScratchRegister, Imm32(0));
-        
-        
-        ma_bic(Imm32(1), output, NoSetCond, Zero);
-        bind(&notSplit);
-
-    } else {
-        Label outOfRange;
-        ma_vcmpz(input);
-        
-        ma_vadd(input, ScratchFloatReg, input);
-        
-        as_vcvt(VFPRegister(ScratchFloatReg).uintOverlay(), VFPRegister(input));
-        
-        as_vxfer(output, InvalidReg, ScratchFloatReg, FloatToCore);
-        as_vmrs(pc);
-        ma_b(&outOfRange, Overflow);
-        ma_cmp(output, Imm32(0xff));
-        ma_mov(Imm32(0xff), output, NoSetCond, Above);
-        ma_b(&outOfRange, Above);
-        
-        as_vcvt(ScratchFloatReg, VFPRegister(ScratchFloatReg).uintOverlay());
-        
-        as_vcmp(ScratchFloatReg, input);
-        as_vmrs(pc);
-        ma_bic(Imm32(1), output, NoSetCond, Zero);
-        bind(&outOfRange);
-    }
+    ma_vadd(input, ScratchFloatReg, ScratchFloatReg);
+    
+    
+    as_vcvtFixed(ScratchFloatReg, false, 24, true);
+    
+    as_vxfer(output, InvalidReg, ScratchFloatReg, FloatToCore);
+    
+    
+    
+    ma_tst(output, Imm32(0x00ffffff));
+    
+    ma_lsr(Imm32(24), output, output);
+    
+    
+    ma_b(&notSplit, NonZero);
+    as_vxfer(ScratchRegister, InvalidReg, input, FloatToCore);
+    ma_cmp(ScratchRegister, Imm32(0));
+    
+    
+    ma_bic(Imm32(1), output, NoSetCond, Zero);
+    bind(&notSplit);
 #else
 
     Label positive, done;

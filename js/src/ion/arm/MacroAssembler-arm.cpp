@@ -260,15 +260,7 @@ MacroAssemblerARM::ma_alu(Register src1, Imm32 imm, Register dest,
         if ((imm.value >> 16) != 0)
             as_movt(ScratchRegister, (imm.value >> 16) & 0xffff, c);
     } else {
-        
-        
-        if (op == op_mov) {
-            as_Imm32Pool(dest, imm.value, NULL, c);
-            return;
-        } else {
-            
-            as_Imm32Pool(ScratchRegister, imm.value, NULL, c);
-        }
+        JS_NOT_REACHED("non-ARMv7 loading of immediates NYI.");
     }
     as_alu(dest, src1, O2Reg(ScratchRegister), op, sc, c);
 }
@@ -309,17 +301,11 @@ MacroAssemblerARM::ma_movPatchable(Imm32 imm_, Register dest,
     switch(rs) {
       case L_MOVWT:
         as_movw(dest, Imm16(imm & 0xffff), c, i);
-        
-        
-        
         i = NextInst(i);
         as_movt(dest, Imm16(imm >> 16 & 0xffff), c, i);
         break;
       case L_LDR:
-        if(i == NULL)
-            as_Imm32Pool(dest, imm, NULL, c);
-        else
-            as_WritePoolEntry(i, c, imm);
+        
         break;
     }
 }
@@ -345,13 +331,7 @@ MacroAssemblerARM::ma_mov(const ImmGCPtr &ptr, Register dest)
     
     
     writeDataRelocation(ptr);
-    RelocStyle rs;
-    if (hasMOVWT()) {
-        rs = L_MOVWT;
-    } else {
-        rs = L_LDR;
-    }
-    ma_movPatchable(Imm32(ptr.value), dest, Always, rs);
+    ma_movPatchable(Imm32(ptr.value), dest, Always, L_MOVWT);
 }
 
     
@@ -1252,23 +1232,22 @@ MacroAssemblerARM::ma_vimm(double value, FloatRegister dest, Condition cc)
         double d;
     } dpun;
     dpun.d = value;
-    if (hasVFPv3()) {
-        if (dpun.s.lo == 0) {
-            if (dpun.s.hi == 0) {
-                
-                VFPImm dblEnc(0x3FF00000);
-                as_vimm(dest, dblEnc, cc);
-                as_vsub(dest, dest, dest, cc);
-                return;
-            }
 
-            VFPImm dblEnc(dpun.s.hi);
-            if (dblEnc.isValid()) {
-                as_vimm(dest, dblEnc, cc);
-                return;
-            }
-
+    if ((dpun.s.lo) == 0) {
+        if (dpun.s.hi == 0) {
+            
+            VFPImm dblEnc(0x3FF00000);
+            as_vimm(dest, dblEnc, cc);
+            as_vsub(dest, dest, dest, cc);
+            return;
         }
+
+        VFPImm dblEnc(dpun.s.hi);
+        if (dblEnc.isValid()) {
+            as_vimm(dest, dblEnc, cc);
+            return;
+        }
+
     }
     
     as_FImm64Pool(dest, value, NULL, cc);
