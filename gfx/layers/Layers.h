@@ -467,6 +467,15 @@ public:
   virtual void SetIsFirstPaint() {}
 
   
+
+
+
+
+
+
+  virtual void FlushRendering() { }
+
+  
   
   
   

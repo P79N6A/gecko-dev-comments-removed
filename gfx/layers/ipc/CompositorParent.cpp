@@ -249,6 +249,18 @@ CompositorParent::RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
   return true;
 }
 
+bool
+CompositorParent::RecvFlushRendering()
+{
+  
+  
+  if (mCurrentCompositeTask) {
+    mCurrentCompositeTask->Cancel();
+    ComposeToTarget(nullptr);
+  }
+  return true;
+}
+
 void
 CompositorParent::ActorDestroy(ActorDestroyReason why)
 {
@@ -743,6 +755,7 @@ public:
   virtual bool RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
                                 SurfaceDescriptor* aOutSnapshot)
   { return true; }
+  virtual bool RecvFlushRendering() MOZ_OVERRIDE { return true; }
 
   virtual PLayerTransactionParent*
     AllocPLayerTransaction(const LayersBackend& aBackendType,
