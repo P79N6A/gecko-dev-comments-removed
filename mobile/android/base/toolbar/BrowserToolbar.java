@@ -37,6 +37,8 @@ import org.mozilla.gecko.widget.ThemedRelativeLayout;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
@@ -136,7 +138,7 @@ public class BrowserToolbar extends ThemedRelativeLayout
     private MenuPopup menuPopup;
     private List<View> focusOrder;
 
-    private final View editCancel;
+    private final ImageView editCancel;
 
     private boolean shouldShrinkURLBar = false;
 
@@ -218,7 +220,7 @@ public class BrowserToolbar extends ThemedRelativeLayout
         actionItemBar = (LinearLayout) findViewById(R.id.menu_items);
         hasSoftMenuButton = !HardwareUtils.hasMenuButton();
 
-        editCancel = findViewById(R.id.edit_cancel);
+        editCancel = (ImageView) findViewById(R.id.edit_cancel);
 
         
         
@@ -604,9 +606,8 @@ public class BrowserToolbar extends ThemedRelativeLayout
         }
 
         
-        
-        final LayoutParams lp = (LayoutParams) editCancel.getLayoutParams();
-        return editCancel.getLeft() - lp.leftMargin - urlBarEntry.getRight();
+        final LayoutParams lp = (LayoutParams) urlEditLayout.getLayoutParams();
+        return urlEditLayout.getRight() - lp.rightMargin - urlBarEntry.getRight();
     }
 
     private int getUrlBarCurveTranslation() {
@@ -1101,6 +1102,10 @@ public class BrowserToolbar extends ThemedRelativeLayout
         }
 
         updateProgressVisibility();
+
+        
+        
+        urlEditLayout.clearFocus();
 
         if (Build.VERSION.SDK_INT < 11) {
             stopEditingWithoutAnimation();
