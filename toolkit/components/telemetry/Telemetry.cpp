@@ -2066,7 +2066,7 @@ CreateJSHangHistogram(JSContext* cx, const Telemetry::HangHistogram& hang)
     return nullptr;
   }
 
-  const Telemetry::HangHistogram::Stack& hangStack = hang.GetStack();
+  const Telemetry::HangStack& hangStack = hang.GetStack();
   JS::RootedObject stack(cx,
     JS_NewArrayObject(cx, hangStack.length()));
   if (!ret) {
@@ -3027,15 +3027,63 @@ TimeHistogram::Add(PRIntervalTime aTime)
   operator[](index)++;
 }
 
+const char*
+HangStack::InfallibleAppendViaBuffer(const char* aText, size_t aLength)
+{
+  MOZ_ASSERT(this->canAppendWithoutRealloc(1));
+  
+  MOZ_ASSERT(mBuffer.canAppendWithoutRealloc(aLength + 1));
+
+  const char* const entry = mBuffer.end();
+  mBuffer.infallibleAppend(aText, aLength);
+  mBuffer.infallibleAppend('\0'); 
+  this->infallibleAppend(entry);
+  return entry;
+}
+
+const char*
+HangStack::AppendViaBuffer(const char* aText, size_t aLength)
+{
+  if (!this->reserve(this->length() + 1)) {
+    return nullptr;
+  }
+
+  
+  const char* const prevStart = mBuffer.begin();
+  const char* const prevEnd = mBuffer.end();
+
+  
+  if (!mBuffer.reserve(mBuffer.length() + aLength + 1)) {
+    return nullptr;
+  }
+
+  if (prevStart != mBuffer.begin()) {
+    
+    for (const char** entry = this->begin(); entry != this->end(); entry++) {
+      if (*entry >= prevStart && *entry < prevEnd) {
+        
+        *entry += mBuffer.begin() - prevStart;
+      }
+    }
+  }
+
+  return InfallibleAppendViaBuffer(aText, aLength);
+}
+
 uint32_t
-HangHistogram::GetHash(const Stack& aStack)
+HangHistogram::GetHash(const HangStack& aStack)
 {
   uint32_t hash = 0;
   for (const char* const* label = aStack.begin();
        label != aStack.end(); label++) {
     
 
-    hash = AddToHash(hash, *label);
+
+    if (aStack.IsInBuffer(*label)) {
+      hash = AddToHash(hash, HashString(*label));
+    } else {
+      hash = AddToHash(hash, *label);
+    }
   }
   return hash;
 }
@@ -3049,7 +3097,7 @@ HangHistogram::operator==(const HangHistogram& aOther) const
   if (mStack.length() != aOther.mStack.length()) {
     return false;
   }
-  return PodEqual(mStack.begin(), aOther.mStack.begin(), mStack.length());
+  return mStack == aOther.mStack;
 }
 
 

@@ -137,7 +137,7 @@ public:
   
   ThreadStackHelper mStackHelper;
   
-  Telemetry::HangHistogram::Stack mHangStack;
+  Telemetry::HangStack mHangStack;
   
   Telemetry::ThreadHangStats mStats;
 
