@@ -1968,8 +1968,6 @@ nsFlexContainerFrame::GenerateFlexItems(
 {
   MOZ_ASSERT(aFlexItems.IsEmpty(), "Expecting outparam to start out empty");
 
-  
-  
   aFlexItems.SetCapacity(mFrames.GetLength());
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
     FlexItem* item = aFlexItems.AppendElement(
@@ -2226,15 +2224,10 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   const FlexboxAxisTracker axisTracker(this);
 
   
-  
   nsTArray<FlexItem> items;
   nsresult rv = GenerateFlexItems(aPresContext, aReflowState,
                                   axisTracker, items);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
 
   const nscoord contentBoxMainSize =
     ComputeFlexContainerMainSize(aReflowState, axisTracker, items);
