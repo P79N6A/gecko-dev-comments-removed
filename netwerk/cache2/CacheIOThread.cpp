@@ -60,6 +60,28 @@ nsresult CacheIOThread::Dispatch(nsIRunnable* aRunnable, uint32_t aLevel)
   if (mShutdown && (PR_GetCurrentThread() != mThread))
     return NS_ERROR_UNEXPECTED;
 
+  return DispatchInternal(aRunnable, aLevel);
+}
+
+nsresult CacheIOThread::DispatchAfterPendingOpens(nsIRunnable* aRunnable)
+{
+  MonitorAutoLock lock(mMonitor);
+
+  if (mShutdown && (PR_GetCurrentThread() != mThread))
+    return NS_ERROR_UNEXPECTED;
+
+  
+  
+  mEventQueue[OPEN_PRIORITY].AppendElements(mEventQueue[OPEN]);
+  mEventQueue[OPEN].Clear();
+
+  return DispatchInternal(aRunnable, OPEN_PRIORITY);
+}
+
+nsresult CacheIOThread::DispatchInternal(nsIRunnable* aRunnable, uint32_t aLevel)
+{
+  mMonitor.AssertCurrentThreadOwns();
+
   mEventQueue[aLevel].AppendElement(aRunnable);
   if (mLowestLevelWaiting > aLevel)
     mLowestLevelWaiting = aLevel;
