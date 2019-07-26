@@ -1,3 +1,6 @@
+load(libdir + "asserts.js");
+
+
 
 
 
@@ -12,4 +15,4 @@ var handler = {
         assertEq(args[1], 3);
     }
 }
-assertEq(new (new Proxy(target, handler))(2, 3), undefined);
+assertThrowsInstanceOf(function () {new (new Proxy(target, handler))(2, 3)}, TypeError);
