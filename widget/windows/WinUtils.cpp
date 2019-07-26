@@ -958,7 +958,9 @@ AsyncDeleteIconFromDisk::~AsyncDeleteIconFromDisk()
 {
 }
 
-AsyncDeleteAllFaviconsFromDisk::AsyncDeleteAllFaviconsFromDisk()
+AsyncDeleteAllFaviconsFromDisk::
+  AsyncDeleteAllFaviconsFromDisk(bool aIgnoreRecent)
+  : mIgnoreRecent(aIgnoreRecent)
 {
 }
 
@@ -996,6 +998,24 @@ NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
       bool exists;
       if (NS_FAILED(currFile->Exists(&exists)) || !exists)
         continue;
+
+      if (mIgnoreRecent) {
+        
+        
+        int64_t fileModTime = 0;
+        rv = currFile->GetLastModifiedTime(&fileModTime);
+        fileModTime /= PR_MSEC_PER_SEC;
+        
+        
+        
+        int32_t icoNoDeleteSeconds =
+          FaviconHelper::GetICOCacheSecondsTimeout() + 600;
+        int64_t nowTime = PR_Now() / int64_t(PR_USEC_PER_SEC);
+        if (NS_FAILED(rv) ||
+          (nowTime - fileModTime) < icoNoDeleteSeconds) {
+          continue;
+        }
+      }
 
       
       currFile->Remove(false);
