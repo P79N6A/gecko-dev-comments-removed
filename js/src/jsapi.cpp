@@ -6206,7 +6206,6 @@ HideScriptedCaller(JSContext *cx)
 
     
     
-    
     Activation *act = cx->runtime()->mainThread.activation();
     if (!act)
         return;
