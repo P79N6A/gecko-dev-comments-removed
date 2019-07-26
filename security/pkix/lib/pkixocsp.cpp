@@ -965,11 +965,11 @@ CreateEncodedOCSPRequest(PLArenaPool* arena,
   }
 
   uint8_t* d = encodedRequest->data;
-  *d++ = 0x30; *d++ = totalLen - 2;  
-  *d++ = 0x30; *d++ = totalLen - 4;  
-  *d++ = 0x30; *d++ = totalLen - 6;  
-  *d++ = 0x30; *d++ = totalLen - 8;  
-  *d++ = 0x30; *d++ = totalLen - 10; 
+  *d++ = 0x30; *d++ = totalLen - 2u;  
+  *d++ = 0x30; *d++ = totalLen - 4u;  
+  *d++ = 0x30; *d++ = totalLen - 6u;  
+  *d++ = 0x30; *d++ = totalLen - 8u;  
+  *d++ = 0x30; *d++ = totalLen - 10u; 
 
   
   for (size_t i = 0; i < PR_ARRAY_SIZE(hashAlgorithm); ++i) {
