@@ -932,7 +932,7 @@ CycleCollectedJSRuntime::UsefulToMergeZones() const
     
     
     nsIScriptContext* scx = GetScriptContextFromJSContext(cx);
-    JS::RootedObject global(cx, scx ? scx->GetNativeGlobal() : nullptr);
+    JS::RootedObject global(cx, scx ? scx->GetWindowProxyPreserveColor() : nullptr);
     if (!global || !js::GetObjectParent(global)) {
       continue;
     }
