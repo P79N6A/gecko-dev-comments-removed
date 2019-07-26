@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef __CrossOriginWrapper_h__
 #define __CrossOriginWrapper_h__
 

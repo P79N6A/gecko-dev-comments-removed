@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef __ChromeObjectWrapper_h__
 #define __ChromeObjectWrapper_h__
 

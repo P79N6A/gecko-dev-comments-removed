@@ -6,7 +6,6 @@
 
 
 
-
 #include "xpcprivate.h"
 #include "nsWrapperCacheInlines.h"
 #include "XPCLog.h"

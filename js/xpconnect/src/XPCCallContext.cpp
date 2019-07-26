@@ -6,7 +6,6 @@
 
 
 
-
 #include "xpcprivate.h"
 #include "jswrapper.h"
 

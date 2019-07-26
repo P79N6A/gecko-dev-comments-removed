@@ -4,7 +4,6 @@
 
 
 
-
 #include "WaiveXrayWrapper.h"
 #include "WrapperFactory.h"
 #include "jsapi.h"

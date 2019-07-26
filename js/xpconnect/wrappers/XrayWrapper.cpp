@@ -4,7 +4,6 @@
 
 
 
-
 #include "XrayWrapper.h"
 #include "AccessCheck.h"
 #include "WrapperFactory.h"

@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef qsObjectHelper_h
 #define qsObjectHelper_h
 

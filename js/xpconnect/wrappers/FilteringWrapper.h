@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef __FilteringWrapper_h__
 #define __FilteringWrapper_h__
 

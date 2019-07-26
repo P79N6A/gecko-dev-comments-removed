@@ -6,7 +6,6 @@
 
 
 
-
 #include "xpcprivate.h"
 #include "jsprf.h"
 #include "mozilla/dom/BindingUtils.h"

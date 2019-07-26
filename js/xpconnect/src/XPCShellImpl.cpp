@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsXULAppAPI.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
