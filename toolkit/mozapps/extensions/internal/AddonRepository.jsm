@@ -601,52 +601,66 @@ this.AddonRepository = {
 
 
 
-
-
-  repopulateCache: function(aIds, aCallback, aTimeout) {
-    this._repopulateCacheInternal(aIds, aCallback, false, aTimeout);
+  repopulateCache: function(aTimeout) {
+    return this._repopulateCacheInternal(false, aTimeout);
   },
 
-  _repopulateCacheInternal: function (aIds, aCallback, aSendPerformance, aTimeout) {
-    
-    function repopulateAddonManager() {
-      AddonManagerPrivate.updateAddonRepositoryData(aCallback);
-    }
+  
 
-    logger.debug("Repopulate add-on cache with " + aIds.toSource());
+
+
+  _clearCache: function () {
+    this._addons = null;
+    this._pendingCallbacks = null;
+    return AddonDatabase.delete().then(() =>
+      new Promise((resolve, reject) =>
+        AddonManagerPrivate.updateAddonRepositoryData(resolve))
+    );
+  },
+
+  _repopulateCacheInternal: Task.async(function* (aSendPerformance, aTimeout) {
+    let allAddons = yield new Promise((resolve, reject) =>
+      AddonManager.getAllAddons(resolve));
+
+    
+    let allAddons = [a for (a of allAddons) if (a.id != AddonManager.hotfixID)];
+
     
     if (!this.cacheEnabled) {
       logger.debug("Clearing cache because it is disabled");
-      this._addons = null;
-      this._pendingCallbacks = null;
-      AddonDatabase.delete(repopulateAddonManager);
-      return;
+      return this._clearCache();
     }
 
-    let self = this;
-    getAddonsToCache(aIds, function repopulateCache_getAddonsToCache(aAddons) {
-      
-      if (aAddons.length == 0) {
-        logger.debug("Clearing cache because 0 add-ons were requested");
-        self._addons = null;
-        self._pendingCallbacks = null;
-        AddonDatabase.delete(repopulateAddonManager);
-        return;
-      }
+    let ids = [a.id for (a of allAddons)];
+    logger.debug("Repopulate add-on cache with " + ids.toSource());
 
-      self._beginGetAddons(aAddons, {
+    let self = this;
+    let addonsToCache = yield new Promise((resolve, reject) =>
+      getAddonsToCache(ids, resolve));
+
+    
+    if (addonsToCache.length == 0) {
+      logger.debug("Clearing cache because 0 add-ons were requested");
+      return this._clearCache();
+    }
+
+    yield new Promise((resolve, reject) =>
+      self._beginGetAddons(addonsToCache, {
         searchSucceeded: function repopulateCacheInternal_searchSucceeded(aAddons) {
           self._addons = {};
           aAddons.forEach(function(aAddon) { self._addons[aAddon.id] = aAddon; });
-          AddonDatabase.repopulate(aAddons, repopulateAddonManager);
+          AddonDatabase.repopulate(aAddons, resolve);
         },
         searchFailed: function repopulateCacheInternal_searchFailed() {
           logger.warn("Search failed when repopulating cache");
-          repopulateAddonManager();
+          resolve();
         }
-      }, aSendPerformance, aTimeout);
-    });
-  },
+      }, aSendPerformance, aTimeout));
+
+    
+    yield new Promise((resolve, reject) =>
+      AddonManagerPrivate.updateAddonRepositoryData(resolve));
+  }),
 
   
 
@@ -864,12 +878,8 @@ this.AddonRepository = {
 
 
 
-
-
-
-
-  backgroundUpdateCheck: function AddonRepo_backgroundUpdateCheck(aIDs, aCallback) {
-    this._repopulateCacheInternal(aIDs, aCallback, true);
+  backgroundUpdateCheck: function () {
+    return this._repopulateCacheInternal(true);
   },
 
   
@@ -1653,6 +1663,7 @@ var AddonDatabase = {
 
 
 
+
   delete: function AD_delete(aCallback) {
     this.DB = BLANK_DB();
 
@@ -1665,6 +1676,7 @@ var AddonDatabase = {
                                  this.jsonFile, error))
       .then(() => this._deleting = null)
       .then(aCallback);
+    return this._deleting;
   },
 
   toJSON: function AD_toJSON() {

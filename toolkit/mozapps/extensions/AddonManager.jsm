@@ -1160,39 +1160,38 @@ var AddonManagerInternal = {
         Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", scope);
         scope.LightweightThemeManager.updateCurrentTheme();
 
-        let aAddons = yield new Promise((resolve, reject) => this.getAllAddons(resolve));
-
-        
-        var ids = [a.id for each (a in aAddons) if (a.id != hotfixID)];
+        let allAddons = yield new Promise((resolve, reject) => this.getAllAddons(resolve));
 
         
         
-        yield new Promise((resolve, reject) => AddonRepository.backgroundUpdateCheck(ids, resolve));
+        yield AddonRepository.backgroundUpdateCheck();
 
         
         let updates = [];
 
-        for (let aAddon of aAddons) {
-          if (aAddon.id == hotfixID) {
+        for (let addon of allAddons) {
+          if (addon.id == hotfixID) {
             continue;
           }
 
           
           
           updates.push(new Promise((resolve, reject) => {
-            aAddon.findUpdates({
+            addon.findUpdates({
               onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
                 
                 
+                logger.debug("Found update for add-on ${id}", aAddon);
                 if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
                     AddonManager.shouldAutoUpdate(aAddon)) {
                   
                   
+                  logger.debug("Starting install of ${id}", aAddon);
                   aInstall.install();
                 }
               },
 
-              onUpdateFinished: resolve
+              onUpdateFinished: aAddon => { logger.debug("onUpdateFinished for ${id}", aAddon); resolve(); }
             }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
           }));
         }
