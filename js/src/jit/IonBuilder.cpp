@@ -4572,6 +4572,11 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
 
     
     
+    if (templateObj->type()->isLongLivedForJITAlloc())
+        current->add(MPostWriteBarrier::New(callObj));
+
+    
+    
     current->add(MStoreFixedSlot::New(callObj, CallObject::enclosingScopeSlot(), scope));
     current->add(MStoreFixedSlot::New(callObj, CallObject::calleeSlot(), callee));
 

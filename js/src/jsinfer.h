@@ -410,6 +410,12 @@ enum {
     OBJECT_FLAG_DYNAMIC_MASK          = 0x00ff0000,
 
     
+    OBJECT_FLAG_TENURE_COUNT_MASK     = 0x7f000000,
+    OBJECT_FLAG_TENURE_COUNT_SHIFT    = 24,
+    OBJECT_FLAG_TENURE_COUNT_LIMIT    =
+        OBJECT_FLAG_TENURE_COUNT_MASK >> OBJECT_FLAG_TENURE_COUNT_SHIFT,
+
+    
 
 
 
@@ -1114,6 +1120,39 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
     
+
+    
+
+    
+
+
+
+
+    const static uint32_t MaxJITAllocTenures = OBJECT_FLAG_TENURE_COUNT_LIMIT - 2;
+
+    
+
+
+
+    const static uint32_t MaxCachedAllocTenures = 64;
+
+    
+    bool incrementTenureCount();
+    uint32_t tenureCount() const {
+        return (flags & OBJECT_FLAG_TENURE_COUNT_MASK) >> OBJECT_FLAG_TENURE_COUNT_SHIFT;
+    }
+
+    bool isLongLivedForCachedAlloc() const {
+        return tenureCount() >= MaxCachedAllocTenures;
+    }
+
+    bool isLongLivedForJITAlloc() const {
+        return tenureCount() >= MaxJITAllocTenures;
+    }
+
+    gc::InitialHeap initialHeapForJITAlloc() const {
+        return isLongLivedForJITAlloc() ? gc::TenuredHeap : gc::DefaultHeap;
+    }
 
     
 

@@ -4681,6 +4681,24 @@ class LPostWriteBarrierV : public LInstructionHelper<0, 1 + BOX_PIECES, 1>
 };
 
 
+class LPostWriteBarrierAllSlots : public LInstructionHelper<0, 1, 0>
+{
+  public:
+    LIR_HEADER(PostWriteBarrierAllSlots)
+
+    LPostWriteBarrierAllSlots(const LAllocation &obj) {
+        setOperand(0, obj);
+    }
+
+    const MPostWriteBarrier *mir() const {
+        return mir_->toPostWriteBarrier();
+    }
+    const LAllocation *object() {
+        return getOperand(0);
+    }
+};
+
+
 class LGuardClass : public LInstructionHelper<0, 1, 1>
 {
   public:
