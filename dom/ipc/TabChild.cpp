@@ -18,6 +18,7 @@
 #include "mozilla/dom/PContentChild.h"
 #include "mozilla/dom/PContentDialogChild.h"
 #include "mozilla/ipc/DocumentRendererChild.h"
+#include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/PLayersChild.h"
@@ -37,6 +38,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsIAppsService.h"
 #include "nsIBaseWindow.h"
+#include "nsICachedFileDescriptorListener.h"
 #include "nsIComponentManager.h"
 #include "nsIDocumentInlines.h"
 #include "nsIDOMClassInfo.h"
@@ -118,6 +120,98 @@ class ContentDialogChild : public PContentDialogChild
 public:
   virtual bool Recv__delete__(const InfallibleTArray<int>& aIntParams,
                               const InfallibleTArray<nsString>& aStringParams);
+};
+
+class TabChild::CachedFileDescriptorInfo
+{
+    struct PathOnlyComparatorHelper
+    {
+        bool Equals(const nsAutoPtr<CachedFileDescriptorInfo>& a,
+                    const CachedFileDescriptorInfo& b) const
+        {
+            return a->mPath == b.mPath;
+        }
+    };
+
+    struct PathAndCallbackComparatorHelper
+    {
+        bool Equals(const nsAutoPtr<CachedFileDescriptorInfo>& a,
+                    const CachedFileDescriptorInfo& b) const
+        {
+            return a->mPath == b.mPath &&
+                   a->mCallback == b.mCallback;
+        }
+    };
+
+public:
+    nsString mPath;
+    FileDescriptor mFileDescriptor;
+    nsCOMPtr<nsICachedFileDescriptorListener> mCallback;
+    bool mCanceled;
+
+    CachedFileDescriptorInfo(const nsAString& aPath)
+      : mPath(aPath), mCanceled(false)
+    { }
+
+    CachedFileDescriptorInfo(const nsAString& aPath,
+                             const FileDescriptor& aFileDescriptor)
+      : mPath(aPath), mFileDescriptor(aFileDescriptor), mCanceled(false)
+    { }
+
+    CachedFileDescriptorInfo(const nsAString& aPath,
+                             nsICachedFileDescriptorListener* aCallback)
+      : mPath(aPath), mCallback(aCallback), mCanceled(false)
+    { }
+
+    PathOnlyComparatorHelper PathOnlyComparator() const
+    {
+        return PathOnlyComparatorHelper();
+    }
+
+    PathAndCallbackComparatorHelper PathAndCallbackComparator() const
+    {
+        return PathAndCallbackComparatorHelper();
+    }
+
+    void FireCallback() const
+    {
+        mCallback->OnCachedFileDescriptor(mPath, mFileDescriptor);
+    }
+};
+
+class TabChild::CachedFileDescriptorCallbackRunnable : public nsRunnable
+{
+    typedef TabChild::CachedFileDescriptorInfo CachedFileDescriptorInfo;
+
+    nsAutoPtr<CachedFileDescriptorInfo> mInfo;
+
+public:
+    CachedFileDescriptorCallbackRunnable(CachedFileDescriptorInfo* aInfo)
+      : mInfo(aInfo)
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+        MOZ_ASSERT(aInfo);
+        MOZ_ASSERT(!aInfo->mPath.IsEmpty());
+        MOZ_ASSERT(aInfo->mCallback);
+    }
+
+    void Dispatch()
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+
+        nsresult rv = NS_DispatchToCurrentThread(this);
+        NS_ENSURE_SUCCESS_VOID(rv);
+    }
+
+private:
+    NS_IMETHOD Run()
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+        MOZ_ASSERT(mInfo);
+
+        mInfo->FireCallback();
+        return NS_OK;
+    }
 };
 
 StaticRefPtr<TabChild> sPreallocatedTab;
@@ -1114,6 +1208,130 @@ TabChild::RecvLoadURL(const nsCString& uri)
 #endif
 
     return true;
+}
+
+bool
+TabChild::RecvCacheFileDescriptor(const nsString& aPath,
+                                  const FileDescriptor& aFileDescriptor)
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!aPath.IsEmpty());
+
+    
+    
+
+    
+    const CachedFileDescriptorInfo search(aPath);
+    uint32_t index =
+        mCachedFileDescriptorInfos.IndexOf(search, 0,
+                                           search.PathOnlyComparator());
+    if (index == mCachedFileDescriptorInfos.NoIndex) {
+        
+        
+        mCachedFileDescriptorInfos.AppendElement(
+            new CachedFileDescriptorInfo(aPath, aFileDescriptor));
+        return true;
+    }
+
+    nsAutoPtr<CachedFileDescriptorInfo>& info =
+        mCachedFileDescriptorInfos[index];
+
+    MOZ_ASSERT(info);
+    MOZ_ASSERT(info->mPath == aPath);
+    MOZ_ASSERT(!info->mFileDescriptor.IsValid());
+    MOZ_ASSERT(info->mCallback);
+
+    
+    
+    if (info->mCanceled) {
+        
+        if (aFileDescriptor.IsValid()) {
+            nsRefPtr<CloseFileRunnable> runnable =
+                new CloseFileRunnable(aFileDescriptor);
+            runnable->Dispatch();
+        }
+    } else {
+        
+        info->mFileDescriptor = aFileDescriptor;
+
+        
+        
+        info->FireCallback();
+    }
+
+    mCachedFileDescriptorInfos.RemoveElementAt(index);
+    return true;
+}
+
+bool
+TabChild::GetCachedFileDescriptor(const nsAString& aPath,
+                                  nsICachedFileDescriptorListener* aCallback)
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!aPath.IsEmpty());
+    MOZ_ASSERT(aCallback);
+
+    
+    
+    const CachedFileDescriptorInfo search(aPath);
+    uint32_t index =
+        mCachedFileDescriptorInfos.IndexOf(search, 0,
+                                           search.PathOnlyComparator());
+    if (index == mCachedFileDescriptorInfos.NoIndex) {
+        
+        
+        mCachedFileDescriptorInfos.AppendElement(
+            new CachedFileDescriptorInfo(aPath, aCallback));
+        return false;
+    }
+
+    nsAutoPtr<CachedFileDescriptorInfo>& info =
+        mCachedFileDescriptorInfos[index];
+
+    MOZ_ASSERT(info);
+    MOZ_ASSERT(info->mPath == aPath);
+    MOZ_ASSERT(!info->mCallback);
+    MOZ_ASSERT(!info->mCanceled);
+
+    info->mCallback = aCallback;
+
+    nsRefPtr<CachedFileDescriptorCallbackRunnable> runnable =
+        new CachedFileDescriptorCallbackRunnable(info.forget());
+    runnable->Dispatch();
+
+    mCachedFileDescriptorInfos.RemoveElementAt(index);
+    return true;
+}
+
+void
+TabChild::CancelCachedFileDescriptorCallback(
+                                     const nsAString& aPath,
+                                     nsICachedFileDescriptorListener* aCallback)
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!aPath.IsEmpty());
+    MOZ_ASSERT(aCallback);
+
+    const CachedFileDescriptorInfo search(aPath, aCallback);
+    uint32_t index =
+        mCachedFileDescriptorInfos.IndexOf(search, 0,
+                                           search.PathAndCallbackComparator());
+    if (index == mCachedFileDescriptorInfos.NoIndex) {
+        
+        return;
+    }
+
+    nsAutoPtr<CachedFileDescriptorInfo>& info =
+        mCachedFileDescriptorInfos[index];
+
+    MOZ_ASSERT(info);
+    MOZ_ASSERT(info->mPath == aPath);
+    MOZ_ASSERT(!info->mFileDescriptor.IsValid());
+    MOZ_ASSERT(info->mCallback == aCallback);
+    MOZ_ASSERT(!info->mCanceled);
+
+    
+    info->mCanceled = true;
 }
 
 void
