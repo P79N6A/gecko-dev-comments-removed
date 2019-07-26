@@ -843,6 +843,16 @@ WebConsoleFrame.prototype = {
         
         
         this._setMenuState(target, state);
+
+        
+        
+        
+        if (target.getAttribute("category") == "css" && state) {
+          let csslogMenuItem = target.querySelector("menuitem[prefKey=csslog]");
+          csslogMenuItem.setAttribute("checked", false);
+          this.setFilterState("csslog", false);
+        }
+
         break;
       }
 
