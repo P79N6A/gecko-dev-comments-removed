@@ -20,8 +20,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '0.8.641';
-PDFJS.build = '19485c3';
+PDFJS.version = '0.8.681';
+PDFJS.build = '48c672b';
 
 (function pdfjsWrapper() {
   
@@ -2994,7 +2994,7 @@ var LinkAnnotation = (function LinkAnnotationClosure() {
     if (action) {
       var linkType = action.get('S').name;
       if (linkType === 'URI') {
-        var url = action.get('URI');
+        var url = addDefaultProtocolToUrl(action.get('URI'));
         
         
         if (!isValidUrl(url, false)) {
@@ -3028,6 +3028,14 @@ var LinkAnnotation = (function LinkAnnotationClosure() {
       var dest = dict.get('Dest');
       data.dest = isName(dest) ? dest.name : dest;
     }
+  }
+
+  
+  function addDefaultProtocolToUrl(url) {
+    if (url.indexOf('www.') === 0) {
+      return ('http://' + url);
+    }
+    return url;
   }
 
   Util.inherit(LinkAnnotation, Annotation, {
@@ -14909,7 +14917,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       
       
       if (!!(flags & FontFlags.Symbolic)) {
-        baseEncoding = !properties.file ? Encodings.symbolsEncoding :
+        baseEncoding = !properties.file ? Encodings.SymbolSetEncoding :
                                           Encodings.MacRomanEncoding;
       }
       if (dict.has('Encoding')) {
@@ -15756,8 +15764,8 @@ var Encodings = {
     'oacute', 'ocircumflex', 'otilde', 'odieresis', 'divide', 'oslash',
     'ugrave', 'uacute', 'ucircumflex', 'udieresis', 'yacute', 'thorn',
     'ydieresis'],
-  symbolsEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+  SymbolSetEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
     'space', 'exclam', 'universal', 'numbersign', 'existential', 'percent',
     'ampersand', 'suchthat', 'parenleft', 'parenright', 'asteriskmath', 'plus',
     'comma', 'minus', 'period', 'slash', 'zero', 'one', 'two', 'three', 'four',
@@ -18607,6 +18615,17 @@ var Font = (function FontClosure() {
           error('cmap table has unsupported format: ' + format);
         }
 
+        
+        mappings.sort(function (a, b) {
+          return a.charcode - b.charcode;
+        });
+        for (var i = 1; i < mappings.length; i++) {
+          if (mappings[i - 1].charcode === mappings[i].charcode) {
+            mappings.splice(i, 1);
+            i--;
+          }
+        }
+
         return {
           platformId: potentialTable.platformId,
           encodingId: potentialTable.encodingId,
@@ -18693,6 +18712,10 @@ var Font = (function FontClosure() {
             i += repeat;
             coordinatesLength += repeat * xyLength;
           }
+        }
+        
+        if (coordinatesLength === 0) {
+          return 0;
         }
         var glyphDataLength = j + coordinatesLength;
         if (glyphDataLength > glyf.length) {
@@ -18792,6 +18815,13 @@ var Font = (function FontClosure() {
           };
         }
         var locaData = loca.data;
+        var locaDataSize = itemSize * (1 + numGlyphs);
+        
+        if (locaData.length !== locaDataSize) {
+          locaData = new Uint8Array(locaDataSize);
+          locaData.set(loca.data.subarray(0, locaDataSize));
+          loca.data = locaData;
+        }
         
         var oldGlyfData = glyf.data;
         var oldGlyfDataLength = oldGlyfData.length;
@@ -18835,9 +18865,7 @@ var Font = (function FontClosure() {
             glyf.data.set(newGlyfData.subarray(0, writeOffset));
           }
           glyf.data.set(newGlyfData.subarray(0, firstEntryLength), writeOffset);
-          loca.data = new Uint8Array(locaData.length + itemSize);
-          loca.data.set(locaData);
-          itemEncode(loca.data, locaData.length,
+          itemEncode(loca.data, locaData.length - itemSize,
                      writeOffset + firstEntryLength);
         } else {
           glyf.data = newGlyfData.subarray(0, writeOffset);
@@ -19037,6 +19065,11 @@ var Font = (function FontClosure() {
                 callstack.push({data: data, i: i, stackTop: stack.length - 1});
                 functionsCalled.push(funcId);
                 var pc = ttContext.functionsDefined[funcId];
+                if (!pc) {
+                  warn('TT: CALL non-existent function');
+                  ttContext.hintsValid = false;
+                  return;
+                }
                 data = pc.data;
                 i = pc.i;
               }
@@ -19057,6 +19090,11 @@ var Font = (function FontClosure() {
               lastEndf = i;
             } else {
               var pc = callstack.pop();
+              if (!pc) {
+                warn('TT: ENDF bad stack');
+                ttContext.hintsValid = false;
+                return;
+              }
               var funcId = functionsCalled.pop();
               data = pc.data;
               i = pc.i;
@@ -19156,7 +19194,7 @@ var Font = (function FontClosure() {
         }
       }
 
-      function sanitizeTTPrograms(fpgm, prep) {
+      function sanitizeTTPrograms(fpgm, prep, cvt) {
         var ttContext = {
           functionsDefined: [],
           functionsUsed: [],
@@ -19172,6 +19210,11 @@ var Font = (function FontClosure() {
         }
         if (fpgm) {
           checkInvalidFunctions(ttContext, maxFunctionDefs);
+        }
+        if (cvt && (cvt.length & 1)) {
+          var cvtData = new Uint8Array(cvt.length + 1);
+          cvtData.set(cvt.data);
+          cvt.data = cvtData;
         }
         return ttContext.hintsValid;
       }
@@ -19190,6 +19233,9 @@ var Font = (function FontClosure() {
       for (var i = 0; i < numTables; i++) {
         var table = readTableEntry(font);
         if (VALID_TABLES.indexOf(table.tag) < 0) {
+          continue; 
+        }
+        if (table.length === 0) {
           continue; 
         }
         tables[table.tag] = table;
@@ -19226,7 +19272,14 @@ var Font = (function FontClosure() {
       var numGlyphs = int16(font.getBytes(2));
       var maxFunctionDefs = 0;
       if (version >= 0x00010000 && tables.maxp.length >= 22) {
-        font.pos += 14;
+        
+        font.pos += 8;
+        var maxZones = int16(font.getBytes(2));
+        if (maxZones > 2) { 
+          tables.maxp.data[14] = 0;
+          tables.maxp.data[15] = 2;
+        }
+        font.pos += 4;
         maxFunctionDefs = int16(font.getBytes(2));
       }
 
@@ -19241,10 +19294,11 @@ var Font = (function FontClosure() {
       }
 
       var hintsValid = sanitizeTTPrograms(tables.fpgm, tables.prep,
-                                          maxFunctionDefs);
+                                          tables['cvt '], maxFunctionDefs);
       if (!hintsValid) {
         delete tables.fpgm;
         delete tables.prep;
+        delete tables['cvt '];
       }
 
       
@@ -19278,7 +19332,6 @@ var Font = (function FontClosure() {
       if (isTrueType) {
         var isGlyphLocationsLong = int16([tables.head.data[50],
                                           tables.head.data[51]]);
-
         sanitizeGlyphLocations(tables.loca, tables.glyf, numGlyphs,
                                isGlyphLocationsLong, hintsValid, dupFirstEntry);
       }
@@ -20082,8 +20135,10 @@ var Font = (function FontClosure() {
           var glyph = this.charToGlyph(charcode);
           glyphs.push(glyph);
           
-          if (charcode == 0x20)
+          
+          if (length === 1 && chars.charCodeAt(i - 1) === 0x20) {
             glyphs.push(null);
+          }
         }
       }
       else {
@@ -20725,19 +20780,34 @@ var Type1Parser = (function Type1ParserClosure() {
 
               for (var j = 0; j < size; j++) {
                 var token = this.getToken();
-                if (token === 'dup') {
-                  var index = this.readInt();
-                  this.getToken(); 
-                  var glyph = this.getToken();
-                  encoding[index] = glyph;
-                  this.getToken(); 
+                
+                while (token !== 'dup' && token !== 'def') {
+                  token = this.getToken();
+                  if (token === null) {
+                    return; 
+                  }
                 }
+                if (token === 'def') {
+                  break; 
+                }
+                var index = this.readInt();
+                this.getToken(); 
+                var glyph = this.getToken();
+                encoding[index] = glyph;
+                this.getToken(); 
               }
             }
             if (properties.overridableEncoding && encoding) {
               properties.baseEncoding = encoding;
               break;
             }
+            break;
+          case 'FontBBox':
+            var fontBBox = this.readNumberArray();
+            
+            properties.ascent = fontBBox[3];
+            properties.descent = fontBBox[1];
+            properties.ascentScaled = true;
             break;
         }
       }
@@ -20822,12 +20892,32 @@ var CFFStandardStrings = [
 
 var Type1Font = function Type1Font(name, file, properties) {
   
-  var headerBlock = new Stream(file.getBytes(properties.length1));
+  
+  
+  var PFB_HEADER_SIZE = 6;
+  var headerBlockLength = properties.length1;
+  var eexecBlockLength = properties.length2;
+  var pfbHeader = file.peekBytes(PFB_HEADER_SIZE);
+  var pfbHeaderPresent = pfbHeader[0] == 0x80 && pfbHeader[1] == 0x01;
+  if (pfbHeaderPresent) {
+    file.skip(PFB_HEADER_SIZE);
+    headerBlockLength = (pfbHeader[5] << 24) | (pfbHeader[4] << 16) |
+                        (pfbHeader[3] << 8) | pfbHeader[2];
+  }
+
+  
+  var headerBlock = new Stream(file.getBytes(headerBlockLength));
   var headerBlockParser = new Type1Parser(headerBlock);
   headerBlockParser.extractFontHeader(properties);
 
+  if (pfbHeaderPresent) {
+    pfbHeader = file.getBytes(PFB_HEADER_SIZE);
+    eexecBlockLength = (pfbHeader[5] << 24) | (pfbHeader[4] << 16) |
+                       (pfbHeader[3] << 8) | pfbHeader[2];
+  }
+
   
-  var eexecBlock = new Stream(file.getBytes(properties.length2));
+  var eexecBlock = new Stream(file.getBytes(eexecBlockLength));
   var eexecBlockParser = new Type1Parser(eexecBlock, true);
   var data = eexecBlockParser.extractFontProgram();
   for (var info in data.properties)
