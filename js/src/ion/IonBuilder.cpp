@@ -3029,7 +3029,7 @@ IonBuilder::makePolyInlineDispatch(JSContext *cx, AutoObjectVector &targets, int
                                                          MResumePoint::ResumeAt);
     if (!preCallResumePoint)
         return NULL;
-    size_t preCallFuncDefnIdx = preCallResumePoint->numOperands() - (((size_t) argc) + 2);
+    DebugOnly<size_t> preCallFuncDefnIdx = preCallResumePoint->numOperands() - (((size_t) argc) + 2);
     JS_ASSERT(preCallResumePoint->getOperand(preCallFuncDefnIdx) == funcDefn);
 
     MDefinition *targetObject = getPropCache->object();
@@ -3594,6 +3594,10 @@ IonBuilder::jsop_funcall(uint32 argc)
 bool
 IonBuilder::jsop_funapply(uint32 argc)
 {
+    RootedFunction native(cx, getSingleCallTarget(argc, pc));
+    if (argc != 2)
+        return makeCall(native, argc, false);
+
     
     
     types::StackTypeSet *argObjTypes = oracle->getCallArg(script, argc, 2, pc);
@@ -3601,18 +3605,15 @@ IonBuilder::jsop_funapply(uint32 argc)
     if (isArgObj == MaybeArguments)
         return abort("fun.apply with MaybeArguments");
 
-    RootedFunction native(cx, getSingleCallTarget(argc, pc));
-
     
     if (isArgObj != DefinitelyArguments)
         return makeCall(native, argc, false);
 
     if (!native ||
         !native->isNative() ||
-        native->native() != js_fun_apply ||
-        argc != 2)
+        native->native() != js_fun_apply)
     {
-        return abort("unrecognized fun.apply sequence");
+        return abort("fun.apply speculation failed");
     }
 
     
