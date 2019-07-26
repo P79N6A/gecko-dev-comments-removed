@@ -5,41 +5,43 @@
 
 
 
+
+
+
+
+
+
+
 const TEST_URI = "data:text/html;charset=utf8,<p>dead objects!";
 
 function test()
 {
   let hud = null;
 
-  addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    info("open the browser console");
-    HUDService.toggleBrowserConsole().then(onBrowserConsoleOpen);
-  }, true);
+  Task.spawn(runner).then(finishTest);
 
-  function onBrowserConsoleOpen(aHud)
-  {
-    hud = aHud;
+  function* runner() {
+    let {tab} = yield loadTab(TEST_URI);
+
+    info("open the browser console");
+
+    hud = yield HUDService.toggleBrowserConsole();
     ok(hud, "browser console opened");
 
     hud.jsterm.clearOutput();
-    hud.jsterm.execute("Cu = Components.utils;" +
-                       "Cu.import('resource://gre/modules/Services.jsm');" +
-                       "chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');" +
-                       "foobarzTezt = chromeWindow.content.document;" +
-                       "delete chromeWindow", onAddVariable);
-  }
 
-  function onAddVariable()
-  {
+    
+
+    yield execute("Cu = Components.utils;" +
+                  "Cu.import('resource://gre/modules/Services.jsm');" +
+                  "chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');" +
+                  "foobarzTezt = chromeWindow.content.document;" +
+                  "delete chromeWindow");
+
     gBrowser.removeCurrentTab();
 
-    hud.jsterm.execute("foobarzTezt", onReadVariable);
-  }
+    let msg = yield execute("foobarzTezt");
 
-  function onReadVariable(msg)
-  {
     isnot(hud.outputNode.textContent.indexOf("[object DeadObject]"), -1,
           "dead object found");
 
@@ -49,38 +51,36 @@ function test()
       EventUtils.synthesizeKey(c, {}, hud.iframeWindow);
     }
 
-    hud.jsterm.execute(null, () => {
-      
-      executeSoon(onReadProperty.bind(null, msg));
-    });
-  }
+    yield execute();
 
-  function onReadProperty(deadObjectMessage)
-  {
     isnot(hud.outputNode.textContent.indexOf("can't access dead object"), -1,
           "'cannot access dead object' message found");
 
     
-    let clickable = deadObjectMessage.querySelector("a");
+    let clickable = msg.querySelector("a");
     ok(clickable, "clickable object found");
     isnot(clickable.textContent.indexOf("[object DeadObject]"), -1,
           "message text check");
 
-    hud.jsterm.once("variablesview-fetched", onFetched);
-    EventUtils.synthesizeMouse(clickable, 2, 2, {}, hud.iframeWindow);
-  }
+    msg.scrollIntoView();
 
-  function onFetched()
-  {
+    executeSoon(() => {
+      EventUtils.synthesizeMouseAtCenter(clickable, {}, hud.iframeWindow);
+    });
+
+    yield hud.jsterm.once("variablesview-fetched");
     ok(true, "variables view fetched");
-    hud.jsterm.execute("delete window.foobarzTezt; 2013-26", onCalcResult);
+
+    msg = yield execute("delete window.foobarzTezt; 2013-26");
+
+    isnot(msg.textContent.indexOf("1987"), -1, "result message found");
   }
 
-  function onCalcResult()
-  {
-    isnot(hud.outputNode.textContent.indexOf("1987"), -1, "result message found");
-
-    
-    executeSoon(finishTest);
+  function execute(str) {
+    let deferred = promise.defer();
+    hud.jsterm.execute(str, (msg) => {
+      deferred.resolve(msg);
+    });
+    return deferred.promise;
   }
 }
