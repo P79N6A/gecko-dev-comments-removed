@@ -335,6 +335,14 @@ public:
 
   void FlushRepaintForOverscrollHandoff();
 
+  
+
+
+  void SetTestAsyncScrollOffset(const CSSPoint& aPoint)
+  {
+    mTestAsyncScrollOffset = aPoint;
+  }
+
 protected:
   
 
@@ -722,6 +730,9 @@ private:
 
   
   bool mPreventDefaultSet;
+
+  
+  CSSPoint mTestAsyncScrollOffset;
 
   RefPtr<AsyncPanZoomAnimation> mAnimation;
 

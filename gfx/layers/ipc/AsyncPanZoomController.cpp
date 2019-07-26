@@ -1571,7 +1571,8 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() {
     lastPaintScrollOffset = mLastContentPaintMetrics.mScrollOffset;
   }
 
-  CSSPoint currentScrollOffset = mFrameMetrics.mScrollOffset;
+  CSSPoint currentScrollOffset = mFrameMetrics.mScrollOffset +
+    mTestAsyncScrollOffset;
 
   
   
