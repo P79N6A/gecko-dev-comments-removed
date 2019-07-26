@@ -1,4 +1,3 @@
-
 function f(code) {
     eval(code)
 }
