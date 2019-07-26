@@ -25,14 +25,16 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
+                                  "resource://gre/modules/DownloadStore.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm")
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "env",
                                    "@mozilla.org/process/environment;1",
                                    "nsIEnvironment");
@@ -51,6 +53,44 @@ XPCOMUtils.defineLazyGetter(this, "gStringBundle", function() {
 this.DownloadIntegration = {
   
   testMode: false,
+  dontLoad: false,
+
+  
+
+
+
+
+  _store: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  loadPersistent: function DI_loadPersistent(aList)
+  {
+    if (this.dontLoad) {
+      return Promise.resolve();
+    }
+
+    if (this._store) {
+      throw new Error("loadPersistent may be called only once.");
+    }
+
+    this._store = new DownloadStore(aList, OS.Path.join(
+                                              OS.Constants.Path.profileDir,
+                                              "downloads.json"));
+    return this._store.load();
+  },
 
   
 

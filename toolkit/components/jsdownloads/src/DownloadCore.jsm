@@ -440,6 +440,23 @@ DownloadSource.prototype = {
 
 
   referrer: null,
+
+  
+
+
+
+
+  serialize: function DS_serialize()
+  {
+    let serialized = { uri: this.uri.spec };
+    if (this.isPrivate) {
+      serialized.isPrivate = true;
+    }
+    if (this.referrer) {
+      serialized.referrer = this.referrer.spec;
+    }
+    return serialized;
+  },
 };
 
 
@@ -456,6 +473,16 @@ DownloadTarget.prototype = {
 
 
   file: null,
+
+  
+
+
+
+
+  serialize: function DT_serialize()
+  {
+    return { file: this.file.path };
+  },
 };
 
 
@@ -552,6 +579,16 @@ DownloadSaver.prototype = {
 
 
   cancel: function DS_cancel()
+  {
+    throw new Error("Not implemented.");
+  },
+
+  
+
+
+
+
+  serialize: function DS_serialize()
   {
     throw new Error("Not implemented.");
   },
@@ -685,6 +722,14 @@ DownloadCopySaver.prototype = {
       this._backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
       this._backgroundFileSaver = null;
     }
+  },
+
+  
+
+
+  serialize: function DCS_serialize()
+  {
+    return { type: "copy" };
   },
 };
 

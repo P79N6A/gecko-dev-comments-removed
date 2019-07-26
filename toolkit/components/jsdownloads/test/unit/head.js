@@ -75,6 +75,8 @@ const TEST_INTERRUPTIBLE_GZIP_URI = NetUtil.newURI(HTTP_BASE +
                                                    TEST_INTERRUPTIBLE_GZIP_PATH);
 
 const TEST_TARGET_FILE_NAME = "test-download.txt";
+const TEST_STORE_FILE_NAME = "test-downloads.json";
+
 const TEST_DATA_SHORT = "This test string is downloaded.";
 
 const TEST_DATA_SHORT_GZIP_ENCODED_FIRST = [
@@ -182,6 +184,32 @@ function promiseSimpleDownload(aSourceURI) {
     target: { file: getTempFile(TEST_TARGET_FILE_NAME) },
     saver: { type: "copy" },
   });
+}
+
+
+
+
+
+
+
+
+function promiseNewDownloadList() {
+  
+  Downloads._promisePublicDownloadList = null;
+  return Downloads.getPublicDownloadList();
+}
+
+
+
+
+
+
+
+
+function promiseNewPrivateDownloadList() {
+  
+  Downloads._privateDownloadList = null;
+  return Downloads.getPrivateDownloadList();
 }
 
 
@@ -420,4 +448,7 @@ add_task(function test_common_initialize()
       bos.writeByteArray(TEST_DATA_SHORT_GZIP_ENCODED_SECOND,
                          TEST_DATA_SHORT_GZIP_ENCODED_SECOND.length);
     });
+
+  
+  DownloadIntegration.dontLoad = true;
 });

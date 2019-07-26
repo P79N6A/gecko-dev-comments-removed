@@ -29,8 +29,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
                                   "resource://gre/modules/DownloadIntegration.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadList",
                                   "resource://gre/modules/DownloadList.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
-                                  "resource://gre/modules/DownloadStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadUIHelper",
                                   "resource://gre/modules/DownloadUIHelper.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
@@ -173,12 +171,27 @@ this.Downloads = {
 
   getPublicDownloadList: function D_getPublicDownloadList()
   {
-    if (!this._publicDownloadList) {
-      this._publicDownloadList = new DownloadList(true);
+    if (!this._promisePublicDownloadList) {
+      this._promisePublicDownloadList = Task.spawn(
+        function task_D_getPublicDownloadList() {
+          let list = new DownloadList(true);
+          try {
+            yield DownloadIntegration.loadPersistent(list);
+          } catch (ex) {
+            Cu.reportError(ex);
+          }
+          throw new Task.Result(list);
+        });
     }
-    return Promise.resolve(this._publicDownloadList);
+    return this._promisePublicDownloadList;
   },
-  _publicDownloadList: null,
+
+  
+
+
+
+
+  _promisePublicDownloadList: null,
 
   
 

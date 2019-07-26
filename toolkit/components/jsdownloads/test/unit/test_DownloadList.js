@@ -15,35 +15,6 @@
 
 
 
-
-
-
-
-function promiseNewDownloadList() {
-  
-  Downloads._publicDownloadList = null;
-  return Downloads.getPublicDownloadList();
-}
-
-
-
-
-
-
-
-
-function promiseNewPrivateDownloadList() {
-  
-  Downloads._privateDownloadList = null;
-  return Downloads.getPrivateDownloadList();
-}
-
-
-
-
-
-
-
 add_task(function test_construction()
 {
   let downloadListOne = yield promiseNewDownloadList();
