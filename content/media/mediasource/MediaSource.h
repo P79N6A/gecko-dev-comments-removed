@@ -80,8 +80,6 @@ public:
   
   void SetReadyState(MediaSourceReadyState aState);
 
-  void GetBuffered(TimeRanges* aRanges);
-
  
   MediaSourceDecoder* GetDecoder()
   {
