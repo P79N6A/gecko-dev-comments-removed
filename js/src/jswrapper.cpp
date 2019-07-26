@@ -953,6 +953,8 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
     Value origv = ObjectValue(*origTarget);
     JSCompartment *wcompartment = wobj->compartment();
 
+    AutoDisableProxyCheck adpc(cx->runtime);
+
     
     
     

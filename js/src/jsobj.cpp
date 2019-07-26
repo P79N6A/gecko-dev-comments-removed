@@ -1773,6 +1773,12 @@ bool
 JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *aArg, JSObject *bArg,
                               TradeGutsReserved &reserved)
 {
+    
+
+
+
+    AutoSuppressGC suppress(cx);
+
     RootedObject a(cx, aArg);
     RootedObject b(cx, bArg);
     JS_ASSERT(a->compartment() == b->compartment());
@@ -1783,19 +1789,6 @@ JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *aArg, JSObject *bArg,
 
 
 
-
-#ifdef JSGC_INCREMENTAL
-    
-
-
-
-
-    JS::Zone *zone = a->zone();
-    if (zone->needsBarrier()) {
-        MarkChildren(zone->barrierTracer(), a);
-        MarkChildren(zone->barrierTracer(), b);
-    }
-#endif
 
     
 
@@ -2015,6 +2008,24 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
         a->lastProperty()->listp = &a->shape_;
     if (b->inDictionaryMode())
         b->lastProperty()->listp = &b->shape_;
+
+#ifdef JSGC_INCREMENTAL
+    
+
+
+
+
+
+
+
+
+
+    JS::Zone *zone = a->zone();
+    if (zone->needsBarrier()) {
+        MarkChildren(zone->barrierTracer(), a);
+        MarkChildren(zone->barrierTracer(), b);
+    }
+#endif
 }
 
 

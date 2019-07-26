@@ -956,6 +956,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     bool                gcStrictCompartmentChecking;
 
+#ifdef DEBUG
     
 
 
@@ -963,6 +964,9 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
     uintptr_t           gcDisableStrictProxyCheckingCount;
+#else
+    uintptr_t           unused1;
+#endif
 
     
 
