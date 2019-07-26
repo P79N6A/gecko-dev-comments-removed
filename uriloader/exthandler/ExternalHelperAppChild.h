@@ -28,7 +28,7 @@ public:
     
     void SetHandler(nsIStreamListener *handler) { mHandler = handler; }
 
-    virtual bool RecvCancel(const nsresult& aStatus);
+    virtual bool RecvCancel(const nsresult& aStatus) MOZ_OVERRIDE;
 private:
     nsCOMPtr<nsIStreamListener> mHandler;
     nsresult mStatus;
