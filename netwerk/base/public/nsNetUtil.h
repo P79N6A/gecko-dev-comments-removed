@@ -1341,6 +1341,12 @@ NS_UsePrivateBrowsing(nsIChannel *channel)
 
 
 
+#define NECKO_NO_APP_ID 0
+
+#define NECKO_UNKNOWN_APP_ID 4294967295
+
+
+
 
 
 inline bool
