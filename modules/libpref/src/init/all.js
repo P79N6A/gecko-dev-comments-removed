@@ -1409,6 +1409,8 @@ pref("network.predictor.preserve", 80);
 
 pref("network.negotiate-auth.allow-insecure-ntlm-v1", false);
 
+pref("network.negotiate-auth.allow-insecure-ntlm-v1-https", true);
+
 
 
 pref("network.negotiate-auth.trusted-uris", "");
