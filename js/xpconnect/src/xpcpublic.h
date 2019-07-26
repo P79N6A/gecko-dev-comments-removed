@@ -70,8 +70,8 @@ private:
 JSObject *
 TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject target);
 
-bool IsXBLScope(JSCompartment *compartment);
-bool IsInXBLScope(JSObject *obj);
+bool IsContentXBLScope(JSCompartment *compartment);
+bool IsInContentXBLScope(JSObject *obj);
 
 
 
@@ -90,8 +90,9 @@ JSObject *
 GetXBLScope(JSContext *cx, JSObject *contentScope);
 
 inline JSObject *
-GetXBLScopeOrGlobal(JSContext *cx, JSObject *obj) {
-    if (IsInXBLScope(obj))
+GetXBLScopeOrGlobal(JSContext *cx, JSObject *obj)
+{
+    if (IsInContentXBLScope(obj))
         return js::GetGlobalForObjectCrossCompartment(obj);
     return GetXBLScope(cx, obj);
 }
@@ -99,14 +100,14 @@ GetXBLScopeOrGlobal(JSContext *cx, JSObject *obj) {
 
 
 bool
-AllowXBLScope(JSCompartment *c);
+AllowContentXBLScope(JSCompartment *c);
 
 
 
 
 
 bool
-UseXBLScope(JSCompartment *c);
+UseContentXBLScope(JSCompartment *c);
 
 bool
 IsSandboxPrototypeProxy(JSObject *obj);

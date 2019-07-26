@@ -1579,7 +1579,7 @@ IsChromeOrXBL(JSContext* cx, JSObject* )
     
     
     
-    return AccessCheck::isChrome(c) || IsXBLScope(c) || !AllowXBLScope(c);
+    return AccessCheck::isChrome(c) || IsContentXBLScope(c) || !AllowContentXBLScope(c);
 }
 
 } 

@@ -160,7 +160,7 @@ public:
 protected:
 
   bool mMarkedForDeath;
-  bool mUsingXBLScope;
+  bool mUsingContentXBLScope;
 
   nsXBLPrototypeBinding* mPrototypeBinding; 
   nsCOMPtr<nsIContent> mContent; 

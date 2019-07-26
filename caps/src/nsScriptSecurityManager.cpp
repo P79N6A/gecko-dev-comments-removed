@@ -1039,7 +1039,7 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     }
 
     
-    if (!xpc::AllowXBLScope(js::GetContextCompartment(cx)))
+    if (!xpc::AllowContentXBLScope(js::GetContextCompartment(cx)))
     {
         return NS_OK;
     }

@@ -1405,7 +1405,7 @@ WrapNativeParent(JSContext* cx, T* p, nsWrapperCache* cache,
 
   
   
-  if (xpc::IsInXBLScope(parent)) {
+  if (xpc::IsInContentXBLScope(parent)) {
     return parent;
   }
   JS::Rooted<JSObject*> rootedParent(cx, parent);

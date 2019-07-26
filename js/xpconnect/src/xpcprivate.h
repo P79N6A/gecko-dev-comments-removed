@@ -1020,8 +1020,8 @@ public:
     void TraceSelf(JSTracer *trc) {
         MOZ_ASSERT(mGlobalJSObject);
         mGlobalJSObject.trace(trc, "XPCWrappedNativeScope::mGlobalJSObject");
-        if (mXBLScope)
-            mXBLScope.trace(trc, "XPCWrappedNativeScope::mXBLScope");
+        if (mContentXBLScope)
+            mContentXBLScope.trace(trc, "XPCWrappedNativeScope::mXBLScope");
         if (mXrayExpandos.initialized())
             mXrayExpandos.trace(trc);
     }
@@ -1097,15 +1097,15 @@ public:
     
     
     
-    JSObject *EnsureXBLScope(JSContext *cx);
+    JSObject *EnsureContentXBLScope(JSContext *cx);
 
     XPCWrappedNativeScope(JSContext *cx, JS::HandleObject aGlobal);
 
     nsAutoPtr<JSObject2JSObjectMap> mWaiverWrapperMap;
 
-    bool IsXBLScope() { return mIsXBLScope; }
-    bool AllowXBLScope();
-    bool UseXBLScope() { return mUseXBLScope; }
+    bool IsContentXBLScope() { return mIsContentXBLScope; }
+    bool AllowContentXBLScope();
+    bool UseContentXBLScope() { return mUseContentXBLScope; }
 
 protected:
     virtual ~XPCWrappedNativeScope();
@@ -1132,13 +1132,13 @@ private:
     
     
     
-    JS::ObjectPtr                    mXBLScope;
+    JS::ObjectPtr                    mContentXBLScope;
 
     nsAutoPtr<DOMExpandoSet> mDOMExpandoSet;
 
     JS::WeakMapPtr<JSObject*, JSObject*> mXrayExpandos;
 
-    bool mIsXBLScope;
+    bool mIsContentXBLScope;
 
     
     
@@ -1151,8 +1151,8 @@ private:
     
     
     
-    bool mAllowXBLScope;
-    bool mUseXBLScope;
+    bool mAllowContentXBLScope;
+    bool mUseContentXBLScope;
 };
 
 
