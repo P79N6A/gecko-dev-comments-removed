@@ -9,10 +9,17 @@
 
 
 
+
+
+
+
+
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
   "DownloadList",
+  "DownloadCombinedList",
 ];
 
 
@@ -25,10 +32,6 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/sdk/core/promise.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -41,17 +44,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 
 
-
-
-
-function DownloadList(aIsPublic) {
+function DownloadList() {
   this._downloads = [];
   this._views = new Set();
-  
-  
-  if (aIsPublic) {
-    PlacesUtils.history.addObserver(this, false);
-  }
 }
 
 DownloadList.prototype = {
@@ -88,16 +83,7 @@ DownloadList.prototype = {
   add: function DL_add(aDownload) {
     this._downloads.push(aDownload);
     aDownload.onchange = this._change.bind(this, aDownload);
-
-    for (let view of this._views) {
-      try {
-        if (view.onDownloadAdded) {
-          view.onDownloadAdded(aDownload);
-        }
-      } catch (ex) {
-        Cu.reportError(ex);
-      }
-    }
+    this._notifyAllViews("onDownloadAdded", aDownload);
   },
 
   
@@ -117,16 +103,7 @@ DownloadList.prototype = {
     if (index != -1) {
       this._downloads.splice(index, 1);
       aDownload.onchange = null;
-
-      for (let view of this._views) {
-        try {
-          if (view.onDownloadRemoved) {
-            view.onDownloadRemoved(aDownload);
-          }
-        } catch (ex) {
-          Cu.reportError(ex);
-        }
-      }
+      this._notifyAllViews("onDownloadRemoved", aDownload);
     }
   },
 
@@ -137,15 +114,7 @@ DownloadList.prototype = {
 
 
   _change: function DL_change(aDownload) {
-    for (let view of this._views) {
-      try {
-        if (view.onDownloadChanged) {
-          view.onDownloadChanged(aDownload);
-        }
-      } catch (ex) {
-        Cu.reportError(ex);
-      }
-    }
+    this._notifyAllViews("onDownloadChanged", aDownload);
   },
 
   
@@ -181,7 +150,7 @@ DownloadList.prototype = {
   {
     this._views.add(aView);
 
-    if (aView.onDownloadAdded) {
+    if ("onDownloadAdded" in aView) {
       for (let download of this._downloads) {
         try {
           aView.onDownloadAdded(download);
@@ -202,6 +171,26 @@ DownloadList.prototype = {
   removeView: function DL_removeView(aView)
   {
     this._views.delete(aView);
+  },
+
+  
+
+
+
+
+
+
+
+  _notifyAllViews: function (aMethodName, aDownload) {
+    for (let view of this._views) {
+      try {
+        if (aMethodName in view) {
+          view[aMethodName](aDownload);
+        }
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    }
   },
 
   
@@ -239,29 +228,107 @@ DownloadList.prototype = {
       }
     }.bind(this)).then(null, Cu.reportError);
   },
-
-  
-  
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver]),
-
-  
-  
-
-  onDeleteURI: function DL_onDeleteURI(aURI, aGUID) {
-    this.removeFinished(download => aURI.equals(NetUtil.newURI(
-                                                download.source.url)));
-  },
-
-  onClearHistory: function DL_onClearHistory() {
-    this.removeFinished();
-  },
-
-  onTitleChanged: function () {},
-  onBeginUpdateBatch: function () {},
-  onEndUpdateBatch: function () {},
-  onVisit: function () {},
-  onPageChanged: function () {},
-  onDeleteVisits: function () {},
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function DownloadCombinedList(aPublicList, aPrivateList)
+{
+  DownloadList.call(this);
+  this._publicList = aPublicList;
+  this._privateList = aPrivateList;
+  aPublicList.addView(this);
+  aPrivateList.addView(this);
+}
+
+DownloadCombinedList.prototype = {
+  __proto__: DownloadList.prototype,
+
+  
+
+
+  _publicList: null,
+
+  
+
+
+  _privateList: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  add: function (aDownload)
+  {
+    if (aDownload.source.isPrivate) {
+      this._privateList.add(aDownload);
+    } else {
+      this._publicList.add(aDownload);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  remove: function (aDownload)
+  {
+    if (aDownload.source.isPrivate) {
+      this._privateList.remove(aDownload);
+    } else {
+      this._publicList.remove(aDownload);
+    }
+  },
+
+  
+  
+
+  onDownloadAdded: function (aDownload)
+  {
+    this._downloads.push(aDownload);
+    this._notifyAllViews("onDownloadAdded", aDownload);
+  },
+
+  onDownloadChanged: function (aDownload)
+  {
+    this._notifyAllViews("onDownloadChanged", aDownload);
+  },
+
+  onDownloadRemoved: function (aDownload)
+  {
+    let index = this._downloads.indexOf(aDownload);
+    if (index != -1) {
+      this._downloads.splice(index, 1);
+    }
+    this._notifyAllViews("onDownloadRemoved", aDownload);
+  },
+};

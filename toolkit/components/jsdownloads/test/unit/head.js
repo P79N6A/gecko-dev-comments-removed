@@ -364,10 +364,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
 
   let deferred = Promise.defer();
 
-  let isPrivate = aOptions && aOptions.isPrivate;
-  let promise = isPrivate ? Downloads.getPrivateDownloadList()
-                          : Downloads.getPublicDownloadList();
-  promise.then(function (aList) {
+  Downloads.getList(Downloads.ALL).then(function (aList) {
     
     
     aList.addView({
@@ -382,6 +379,8 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
         deferred.resolve(aDownload);
       },
     });
+
+    let isPrivate = aOptions && aOptions.isPrivate;
 
     
     
@@ -417,7 +416,7 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
 
   let deferred = Promise.defer();
 
-  Downloads.getPublicDownloadList().then(function (aList) {
+  Downloads.getList(Downloads.PUBLIC).then(function (aList) {
     
     
     aList.addView({
@@ -471,10 +470,22 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
 
 
 
-function promiseNewDownloadList() {
+
+
+
+function promiseDownloadStopped(aDownload) {
+  if (!aDownload.stopped) {
+    
+    
+    return aDownload.start();
+  }
+
+  if (aDownload.succeeded) {
+    return Promise.resolve();
+  }
+
   
-  Downloads._promisePublicDownloadList = null;
-  return Downloads.getPublicDownloadList();
+  return Promise.reject(aDownload.error || new Error("Download canceled."));
 }
 
 
@@ -484,10 +495,24 @@ function promiseNewDownloadList() {
 
 
 
-function promiseNewPrivateDownloadList() {
+
+
+
+function promiseNewList(aIsPrivate)
+{
+  let type = aIsPrivate ? Downloads.PRIVATE : Downloads.PUBLIC;
+
   
-  Downloads._promisePrivateDownloadList = null;
-  return Downloads.getPrivateDownloadList();
+  if (type in Downloads._listPromises) {
+    delete Downloads._listPromises[type];
+  }
+
+  
+  if (Downloads.ALL in Downloads._listPromises) {
+    delete Downloads._listPromises[Downloads.ALL];
+  }
+
+  return Downloads.getList(type);
 }
 
 

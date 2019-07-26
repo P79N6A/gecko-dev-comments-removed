@@ -39,6 +39,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/sdk/core/promise.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
@@ -47,6 +49,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+
 XPCOMUtils.defineLazyServiceGetter(this, "gDownloadPlatform",
                                    "@mozilla.org/toolkit/download-platform;1",
                                    "mozIDownloadPlatform");
@@ -59,7 +62,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gMIMEService",
 XPCOMUtils.defineLazyServiceGetter(this, "gExternalProtocolService",
                                    "@mozilla.org/uriloader/external-protocol-service;1",
                                    "nsIExternalProtocolService");
- 
+
 XPCOMUtils.defineLazyGetter(this, "gParentalControlsService", function() {
   if ("@mozilla.org/parental-controls-service;1" in Cc) {
     return Cc["@mozilla.org/parental-controls-service;1"]
@@ -161,6 +164,9 @@ this.DownloadIntegration = {
   initializePublicDownloadList: function(aList) {
     return Task.spawn(function task_DI_initializePublicDownloadList() {
       if (this.dontLoadList) {
+        
+        
+        new DownloadHistoryObserver(aList);
         return;
       }
 
@@ -209,7 +215,10 @@ this.DownloadIntegration = {
 
       
       
+      
+      
       new DownloadAutoSaveView(aList, this._store);
+      new DownloadHistoryObserver(aList);
     }.bind(this));
   },
 
@@ -816,7 +825,7 @@ this.DownloadObserver = {
         break;
       case "last-pb-context-exited":
         let deferred = Task.spawn(function() {
-          let list = yield Downloads.getPrivateDownloadList();
+          let list = yield Downloads.getList(Downloads.PRIVATE);
           let downloads = yield list.getAll();
 
           for (let download of downloads) {
@@ -839,6 +848,61 @@ this.DownloadObserver = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference])
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function DownloadHistoryObserver(aList)
+{
+  this._list = aList;
+  PlacesUtils.history.addObserver(this, false);
+}
+
+DownloadHistoryObserver.prototype = {
+  
+
+
+  _list: null,
+
+  
+  
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver]),
+
+  
+  
+
+  onDeleteURI: function DL_onDeleteURI(aURI, aGUID) {
+    this._list.removeFinished(download => aURI.equals(NetUtil.newURI(
+                                                      download.source.url)));
+  },
+
+  onClearHistory: function DL_onClearHistory() {
+    this._list.removeFinished();
+  },
+
+  onTitleChanged: function () {},
+  onBeginUpdateBatch: function () {},
+  onEndUpdateBatch: function () {},
+  onVisit: function () {},
+  onPageChanged: function () {},
+  onDeleteVisits: function () {},
+};
+
+
+
+
+
 
 
 

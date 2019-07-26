@@ -73,10 +73,10 @@ function promiseExpirableDownloadVisit(aSourceUrl)
 
 add_task(function test_construction()
 {
-  let downloadListOne = yield promiseNewDownloadList();
-  let downloadListTwo = yield promiseNewDownloadList();
-  let privateDownloadListOne = yield promiseNewPrivateDownloadList();
-  let privateDownloadListTwo = yield promiseNewPrivateDownloadList();
+  let downloadListOne = yield promiseNewList();
+  let downloadListTwo = yield promiseNewList();
+  let privateDownloadListOne = yield promiseNewList(true);
+  let privateDownloadListTwo = yield promiseNewList(true);
 
   do_check_neq(downloadListOne, downloadListTwo);
   do_check_neq(privateDownloadListOne, privateDownloadListTwo);
@@ -88,7 +88,7 @@ add_task(function test_construction()
 
 add_task(function test_add_getAll()
 {
-  let list = yield promiseNewDownloadList();
+  let list = yield promiseNewList();
 
   let downloadOne = yield promiseNewDownload();
   list.add(downloadOne);
@@ -114,7 +114,7 @@ add_task(function test_add_getAll()
 
 add_task(function test_remove()
 {
-  let list = yield promiseNewDownloadList();
+  let list = yield promiseNewList();
 
   list.add(yield promiseNewDownload());
   list.add(yield promiseNewDownload());
@@ -133,86 +133,146 @@ add_task(function test_remove()
 
 
 
+
+add_task(function test_DownloadCombinedList_add_remove_getAll()
+{
+  let publicList = yield promiseNewList();
+  let privateList = yield promiseNewList(true);
+  let combinedList = yield Downloads.getList(Downloads.ALL);
+
+  let publicDownload = yield promiseNewDownload();
+  let privateDownload = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt"), isPrivate: true },
+    target: getTempFile(TEST_TARGET_FILE_NAME).path,
+  });
+
+  publicList.add(publicDownload);
+  privateList.add(privateDownload);
+
+  do_check_eq((yield combinedList.getAll()).length, 2);
+
+  combinedList.remove(publicDownload);
+  combinedList.remove(privateDownload);
+
+  do_check_eq((yield combinedList.getAll()).length, 0);
+
+  combinedList.add(publicDownload);
+  combinedList.add(privateDownload);
+
+  do_check_eq((yield publicList.getAll()).length, 1);
+  do_check_eq((yield privateList.getAll()).length, 1);
+  do_check_eq((yield combinedList.getAll()).length, 2);
+
+  publicList.remove(publicDownload);
+  privateList.remove(privateDownload);
+
+  do_check_eq((yield combinedList.getAll()).length, 0);
+});
+
+
+
+
+
+
 add_task(function test_notifications_add_remove()
 {
-  let list = yield promiseNewDownloadList();
+  for (let isCombined of [false, true]) {
+    
+    let list = yield promiseNewList();
+    if (isCombined) {
+      list = yield Downloads.getList(Downloads.ALL);
+    }
 
-  let downloadOne = yield promiseNewDownload();
-  let downloadTwo = yield promiseNewDownload();
-  list.add(downloadOne);
-  list.add(downloadTwo);
+    let downloadOne = yield promiseNewDownload();
+    let downloadTwo = yield Downloads.createDownload({
+      source: { url: httpUrl("source.txt"), isPrivate: true },
+      target: getTempFile(TEST_TARGET_FILE_NAME).path,
+    });
+    list.add(downloadOne);
+    list.add(downloadTwo);
 
-  
-  let addNotifications = 0;
-  let viewOne = {
-    onDownloadAdded: function (aDownload) {
-      
-      if (addNotifications == 0) {
+    
+    let addNotifications = 0;
+    let viewOne = {
+      onDownloadAdded: function (aDownload) {
+        
+        if (addNotifications == 0) {
+          do_check_eq(aDownload, downloadOne);
+        } else if (addNotifications == 1) {
+          do_check_eq(aDownload, downloadTwo);
+        }
+        addNotifications++;
+      },
+    };
+    list.addView(viewOne);
+    do_check_eq(addNotifications, 2);
+
+    
+    list.add(yield promiseNewDownload());
+    do_check_eq(addNotifications, 3);
+
+    
+    let removeNotifications = 0;
+    let viewTwo = {
+      onDownloadRemoved: function (aDownload) {
         do_check_eq(aDownload, downloadOne);
-      } else if (addNotifications == 1) {
-        do_check_eq(aDownload, downloadTwo);
-      }
-      addNotifications++;
-    },
-  };
-  list.addView(viewOne);
-  do_check_eq(addNotifications, 2);
+        removeNotifications++;
+      },
+    };
+    list.addView(viewTwo);
+    list.remove(downloadOne);
+    do_check_eq(removeNotifications, 1);
 
-  
-  list.add(yield promiseNewDownload());
-  do_check_eq(addNotifications, 3);
+    
+    list.removeView(viewTwo);
+    list.remove(downloadTwo);
+    do_check_eq(removeNotifications, 1);
 
-  
-  let removeNotifications = 0;
-  let viewTwo = {
-    onDownloadRemoved: function (aDownload) {
-      do_check_eq(aDownload, downloadOne);
-      removeNotifications++;
-    },
-  };
-  list.addView(viewTwo);
-  list.remove(downloadOne);
-  do_check_eq(removeNotifications, 1);
-
-  
-  list.removeView(viewTwo);
-  list.remove(downloadTwo);
-  do_check_eq(removeNotifications, 1);
-
-  
-  list.removeView(viewOne);
-  list.add(yield promiseNewDownload());
-  do_check_eq(addNotifications, 3);
+    
+    list.removeView(viewOne);
+    list.add(yield promiseNewDownload());
+    do_check_eq(addNotifications, 3);
+  }
 });
+
 
 
 
 
 add_task(function test_notifications_change()
 {
-  let list = yield promiseNewDownloadList();
+  for (let isCombined of [false, true]) {
+    
+    let list = yield promiseNewList();
+    if (isCombined) {
+      list = yield Downloads.getList(Downloads.ALL);
+    }
 
-  let downloadOne = yield promiseNewDownload();
-  let downloadTwo = yield promiseNewDownload();
-  list.add(downloadOne);
-  list.add(downloadTwo);
+    let downloadOne = yield promiseNewDownload();
+    let downloadTwo = yield Downloads.createDownload({
+      source: { url: httpUrl("source.txt"), isPrivate: true },
+      target: getTempFile(TEST_TARGET_FILE_NAME).path,
+    });
+    list.add(downloadOne);
+    list.add(downloadTwo);
 
-  
-  let receivedOnDownloadChanged = false;
-  list.addView({
-    onDownloadChanged: function (aDownload) {
-      do_check_eq(aDownload, downloadOne);
-      receivedOnDownloadChanged = true;
-    },
-  });
-  yield downloadOne.start();
-  do_check_true(receivedOnDownloadChanged);
+    
+    let receivedOnDownloadChanged = false;
+    list.addView({
+      onDownloadChanged: function (aDownload) {
+        do_check_eq(aDownload, downloadOne);
+        receivedOnDownloadChanged = true;
+      },
+    });
+    yield downloadOne.start();
+    do_check_true(receivedOnDownloadChanged);
 
-  
-  receivedOnDownloadChanged = false;
-  list.remove(downloadTwo);
-  yield downloadTwo.start();
-  do_check_false(receivedOnDownloadChanged);
+    
+    receivedOnDownloadChanged = false;
+    list.remove(downloadTwo);
+    yield downloadTwo.start();
+    do_check_false(receivedOnDownloadChanged);
+  }
 });
 
 
@@ -220,7 +280,7 @@ add_task(function test_notifications_change()
 
 add_task(function test_notifications_this()
 {
-  let list = yield promiseNewDownloadList();
+  let list = yield promiseNewList();
 
   
   let receivedOnDownloadAdded = false;
@@ -271,7 +331,7 @@ add_task(function test_history_expiration()
   
   Services.prefs.setIntPref("places.history.expiration.max_pages", 0);
 
-  let list = yield promiseNewDownloadList();
+  let list = yield promiseNewList();
   let downloadOne = yield promiseNewDownload();
   let downloadTwo = yield promiseNewDownload(httpUrl("interruptible.txt"));
 
@@ -317,7 +377,7 @@ add_task(function test_history_expiration()
 
 add_task(function test_history_clear()
 {
-  let list = yield promiseNewDownloadList();
+  let list = yield promiseNewList();
   let downloadOne = yield promiseNewDownload();
   let downloadTwo = yield promiseNewDownload();
   list.add(downloadOne);
@@ -349,7 +409,7 @@ add_task(function test_history_clear()
 
 add_task(function test_removeFinished()
 {
-  let list = yield promiseNewDownloadList();
+  let list = yield promiseNewList();
   let downloadOne = yield promiseNewDownload();
   let downloadTwo = yield promiseNewDownload();
   let downloadThree = yield promiseNewDownload();

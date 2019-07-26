@@ -25,6 +25,8 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/DownloadCore.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadCombinedList",
+                                  "resource://gre/modules/DownloadList.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
                                   "resource://gre/modules/DownloadIntegration.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadList",
@@ -44,6 +46,19 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 
 this.Downloads = {
+  
+
+
+  get PUBLIC() "{Downloads.PUBLIC}",
+  
+
+
+  get PRIVATE() "{Downloads.PRIVATE}",
+  
+
+
+  get ALL() "{Downloads.ALL}",
+
   
 
 
@@ -140,22 +155,43 @@ this.Downloads = {
 
 
 
-  getPublicDownloadList: function D_getPublicDownloadList()
+
+
+
+
+
+
+  getList: function (aType)
   {
-    if (!this._promisePublicDownloadList) {
-      this._promisePublicDownloadList = Task.spawn(
-        function task_D_getPublicDownloadList() {
-          let list = new DownloadList(true);
+    if (aType != Downloads.PUBLIC && aType != Downloads.PRIVATE &&
+        aType != Downloads.ALL) {
+      throw new Error("Invalid aType argument.");
+    }
+
+    if (!(aType in this._listPromises)) {
+      this._listPromises[aType] = Task.spawn(function () {
+        let list;
+        if (aType == Downloads.ALL) {
+          list = new DownloadCombinedList(
+                       (yield this.getList(Downloads.PUBLIC)),
+                       (yield this.getList(Downloads.PRIVATE)));
+        } else {
+          list = new DownloadList();
           try {
-            yield DownloadIntegration.addListObservers(list, false);
-            yield DownloadIntegration.initializePublicDownloadList(list);
+            yield DownloadIntegration.addListObservers(
+                                        list, aType == Downloads.PRIVATE);
+            if (aType == Downloads.PUBLIC) {
+              yield DownloadIntegration.initializePublicDownloadList(list);
+            }
           } catch (ex) {
             Cu.reportError(ex);
           }
-          throw new Task.Result(list);
-        });
+        }
+        throw new Task.Result(list);
+      }.bind(this));
     }
-    return this._promisePublicDownloadList;
+
+    return this._listPromises[aType];
   },
 
   
@@ -163,41 +199,7 @@ this.Downloads = {
 
 
 
-  _promisePublicDownloadList: null,
-
-  
-
-
-
-
-
-
-
-
-
-  getPrivateDownloadList: function D_getPrivateDownloadList()
-  {
-    if (!this._promisePrivateDownloadList) {
-      this._promisePrivateDownloadList = Task.spawn(
-        function task_D_getPublicDownloadList() {
-          let list = new DownloadList(false);
-          try {
-            yield DownloadIntegration.addListObservers(list, true);
-          } catch (ex) {
-            Cu.reportError(ex);
-          }
-          throw new Task.Result(list);
-        });
-    }
-    return this._promisePrivateDownloadList;
-  },
-
-  
-
-
-
-
-  _promisePrivateDownloadList: null,
+  _listPromises: {},
 
   
 
