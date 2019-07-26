@@ -1214,22 +1214,29 @@ private:
     XPCCallContext(const XPCCallContext& r); 
     XPCCallContext& operator= (const XPCCallContext& r); 
 
+    
+    
+    
+    
+    
+    
+    
+    
     friend class XPCLazyCallContext;
-    XPCCallContext(XPCContext::LangType callerLanguage,
-                   JSContext* cx,
-                   JSBool callBeginRequest,
-                   JS::HandleObject obj,
-                   JS::HandleObject flattenedJSObject,
-                   XPCWrappedNative* wn,
-                   XPCWrappedNativeTearOff* tearoff);
+    XPCCallContext(JSContext *cx);
+    void LazyInit(XPCContext::LangType callerLanguage,
+                  JSBool callBeginRequest,
+                  JS::HandleObject obj,
+                  JS::HandleObject flattenedJSObject,
+                  XPCWrappedNative* wn,
+                  XPCWrappedNativeTearOff* tearoff);
 
     enum WrapperInitOptions {
         WRAPPER_PASSED_TO_CONSTRUCTOR,
         INIT_SHOULD_LOOKUP_WRAPPER
     };
 
-    void Init(XPCContext::LangType callerLanguage,
-              JSBool callBeginRequest,
+    void Init(JSBool callBeginRequest,
               JS::HandleObject obj,
               JS::HandleObject funobj,
               WrapperInitOptions wrapperInitOptions,
@@ -1323,7 +1330,6 @@ public:
         : mCallBeginRequest(callerLanguage == NATIVE_CALLER ?
                             CALL_BEGINREQUEST : DONT_CALL_BEGINREQUEST),
           mCcx(nullptr),
-          mCcxToDestroy(nullptr),
           mCx(cx),
           mCallerLanguage(callerLanguage),
           mObj(cx, obj),
@@ -1335,6 +1341,16 @@ public:
         NS_ASSERTION(callerLanguage == NATIVE_CALLER ||
                      callerLanguage == JS_CALLER,
                      "Can't deal with unknown caller language!");
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        mCcxToDestroy = new (mData.addr()) XPCCallContext(mCx);
 #ifdef DEBUG
         AssertContextIsTopOfStack(cx);
 #endif
@@ -1388,16 +1404,15 @@ public:
     XPCCallContext &GetXPCCallContext()
     {
         if (!mCcx) {
-            XPCCallContext *data = mData.addr();
             xpc_UnmarkGrayObject(mObj);
             xpc_UnmarkGrayObject(mFlattenedJSObject);
-            mCcxToDestroy = mCcx =
-                new (data) XPCCallContext(mCallerLanguage, mCx,
-                                          mCallBeginRequest == CALL_BEGINREQUEST,
-                                          mObj,
-                                          mFlattenedJSObject,
-                                          mWrapper,
-                                          mTearOff);
+            mCcxToDestroy = mCcx = mData.addr();
+            mCcx->LazyInit(mCallerLanguage,
+                           mCallBeginRequest == CALL_BEGINREQUEST,
+                           mObj,
+                           mFlattenedJSObject,
+                           mWrapper,
+                           mTearOff);
             if (!mCcx->IsValid()) {
                 NS_ERROR("This is not supposed to fail!");
             }
