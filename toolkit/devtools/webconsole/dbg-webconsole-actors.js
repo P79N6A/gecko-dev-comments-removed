@@ -50,12 +50,17 @@ XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIStorage",
 
 
 
-
-function WebConsoleActor(aConnection, aTabActor)
+function WebConsoleActor(aConnection, aParentActor)
 {
   this.conn = aConnection;
-  if (aTabActor instanceof BrowserTabActor) {
-    this._browser = aTabActor.browser;
+
+  if (aParentActor instanceof BrowserTabActor &&
+      aParentActor.browser instanceof Ci.nsIDOMWindow) {
+    this._window = aParentActor.browser;
+  }
+  else if (aParentActor instanceof BrowserTabActor &&
+           aParentActor.browser instanceof Ci.nsIDOMElement) {
+    this._window = aParentActor.browser.contentWindow;
   }
   else {
     this._window = Services.wm.getMostRecentWindow("navigator:browser");
@@ -73,14 +78,6 @@ function WebConsoleActor(aConnection, aTabActor)
 
 WebConsoleActor.prototype =
 {
-  
-
-
-
-
-
-  _browser: null,
-
   
 
 
@@ -137,7 +134,7 @@ WebConsoleActor.prototype =
 
 
 
-  get window() this._browser ? this._browser.contentWindow : this._window,
+  get window() this._window,
 
   _window: null,
 
@@ -220,7 +217,7 @@ WebConsoleActor.prototype =
     this._objectActorsPool = null;
     this._networkEventActorsPool = null;
     this._sandboxLocation = this.sandbox = null;
-    this.conn = this._browser = this._window = null;
+    this.conn = this._window = null;
   },
 
   
@@ -332,26 +329,18 @@ WebConsoleActor.prototype =
           startedListeners.push(listener);
           break;
         case "FileActivity":
-          if (this._isGlobalActor) {
-            
-            
-            break;
-          }
           if (!this.consoleProgressListener) {
             this.consoleProgressListener =
-              new ConsoleProgressListener(this._browser, this);
+              new ConsoleProgressListener(this.window, this);
           }
           this.consoleProgressListener.startMonitor(this.consoleProgressListener.
                                                     MONITOR_FILE_ACTIVITY);
           startedListeners.push(listener);
           break;
         case "LocationChange":
-          if (this._isGlobalActor) {
-            break;
-          }
           if (!this.consoleProgressListener) {
             this.consoleProgressListener =
-              new ConsoleProgressListener(this._browser, this);
+              new ConsoleProgressListener(this.window, this);
           }
           this.consoleProgressListener.startMonitor(this.consoleProgressListener.
                                                     MONITOR_LOCATION_CHANGE);
