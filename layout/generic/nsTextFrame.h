@@ -24,6 +24,11 @@ class PropertyProvider;
 
 #define TEXT_IS_IN_TOKEN_MATHML          NS_FRAME_STATE_BIT(32)
 
+
+
+
+#define TEXT_IS_IN_SINGLE_CHAR_MI        NS_FRAME_STATE_BIT(59)
+
 #define TEXT_HAS_FONT_INFLATION          NS_FRAME_STATE_BIT(61)
 
 typedef nsFrame nsTextFrameBase;

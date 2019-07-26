@@ -13,6 +13,9 @@
 #include "nsUnicodeProperties.h"
 #include "nsSpecialCasingData.h"
 #include "mozilla/gfx/2D.h"
+#include "nsTextFrameUtils.h"
+#include "nsIPersistentProperties2.h"
+#include "nsNetUtil.h"
 
 
 #define LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE  0x0130
@@ -397,37 +400,7 @@ nsTransformingTextRunFactory::MakeTextRun(const uint8_t* aString, uint32_t aLeng
                      aStyles, aOwnsFactory);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
+void
 MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
                          const bool* aCharsToMerge, const bool* aDeletedChars)
 {
@@ -513,7 +486,7 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
   NS_ASSERTION(offset == aDest->GetLength(), "Bad offset calculations");
 }
 
-static gfxTextRunFactory::Parameters
+gfxTextRunFactory::Parameters
 GetParametersForInner(nsTransformedTextRun* aTextRun, uint32_t* aFlags,
     gfxContext* aRefContext)
 {

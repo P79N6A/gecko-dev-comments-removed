@@ -42,7 +42,13 @@ public:
     
     
     
-    TEXT_HAS_TRAILING_BREAK  = 0x4000000
+    TEXT_HAS_TRAILING_BREAK  = 0x4000000,
+
+    
+    
+    
+    
+    TEXT_IS_SINGLE_CHAR_MI   = 0x8000000
 
     
     

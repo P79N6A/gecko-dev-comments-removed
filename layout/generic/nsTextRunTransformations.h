@@ -133,4 +133,43 @@ private:
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
+                         const bool* aCharsToMerge, const bool* aDeletedChars);
+
+gfxTextRunFactory::Parameters
+GetParametersForInner(nsTransformedTextRun* aTextRun, uint32_t* aFlags,
+                      gfxContext* aRefContext);
+
+
 #endif 
