@@ -87,6 +87,8 @@
 #include "StructuredCloneUtils.h"
 #include "TabParent.h"
 #include "URIUtils.h"
+#include "nsIWebBrowserChrome.h"
+#include "nsIDocShell.h"
 
 #ifdef ANDROID
 # include "gfxAndroidPlatform.h"
@@ -419,10 +421,29 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         if (nsRefPtr<ContentParent> cp = GetNewOrUsed(aContext.IsBrowserElement())) {
             nsRefPtr<TabParent> tp(new TabParent(aContext));
             tp->SetOwnerElement(aFrameElement);
+            uint32_t chromeFlags = 0;
+
+            
+            
+            nsCOMPtr<Element> frameElement = do_QueryInterface(aFrameElement);
+            MOZ_ASSERT(frameElement);
+            nsIDocShell* docShell =
+                frameElement->OwnerDoc()->GetWindow()->GetDocShell();
+            MOZ_ASSERT(docShell);
+            nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
+            if (loadContext && loadContext->UsePrivateBrowsing()) {
+                chromeFlags |= nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW;
+            }
+            bool affectLifetime;
+            docShell->GetAffectPrivateSessionLifetime(&affectLifetime);
+            if (affectLifetime) {
+                chromeFlags |= nsIWebBrowserChrome::CHROME_PRIVATE_LIFETIME;
+            }
+
             PBrowserParent* browser = cp->SendPBrowserConstructor(
                 tp.forget().get(), 
                 aContext.AsIPCTabContext(),
-                 0);
+                chromeFlags);
             return static_cast<TabParent*>(browser);
         }
         return nullptr;
