@@ -897,6 +897,12 @@ function getMessageElementText(aElement)
 
 
 
+
+
+
+
+
+
 function waitForMessages(aOptions)
 {
   gPendingOutputTest++;
@@ -905,6 +911,7 @@ function waitForMessages(aOptions)
   let rulesMatched = 0;
   let listenerAdded = false;
   let deferred = promise.defer();
+  aOptions.matchCondition = aOptions.matchCondition || "all";
 
   function checkText(aRule, aText)
   {
@@ -1154,9 +1161,15 @@ function waitForMessages(aOptions)
     }
   }
 
+  function allRulesMatched()
+  {
+    return aOptions.matchCondition == "all" && rulesMatched == rules.length ||
+           aOptions.matchCondition == "any" && rulesMatched > 0;
+  }
+
   function maybeDone()
   {
-    if (rulesMatched == rules.length) {
+    if (allRulesMatched()) {
       if (listenerAdded) {
         webconsole.ui.off("messages-added", onMessagesAdded);
         webconsole.ui.off("messages-updated", onMessagesAdded);
@@ -1169,7 +1182,7 @@ function waitForMessages(aOptions)
   }
 
   function testCleanup() {
-    if (rulesMatched == rules.length) {
+    if (allRulesMatched()) {
       return;
     }
 
@@ -1198,7 +1211,7 @@ function waitForMessages(aOptions)
 
   executeSoon(() => {
     onMessagesAdded("messages-added", webconsole.outputNode.childNodes);
-    if (rulesMatched != rules.length) {
+    if (!allRulesMatched()) {
       listenerAdded = true;
       registerCleanupFunction(testCleanup);
       webconsole.ui.on("messages-added", onMessagesAdded);
