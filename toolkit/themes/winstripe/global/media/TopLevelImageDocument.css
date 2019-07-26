@@ -1,0 +1,17 @@
+
+
+
+
+@media not print {
+  
+
+  body {
+    color: #eee;
+    background: #222 url("chrome://global/skin/media/imagedoc-darknoise.png");
+  }
+
+  img.decoded {
+    background: hsl(0,0%,90%) url("chrome://global/skin/media/imagedoc-lightnoise.png");
+    color: #222;
+  }
+}
