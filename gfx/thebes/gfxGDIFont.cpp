@@ -486,7 +486,8 @@ gfxGDIFont::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
     int devWidth;
     if (GetCharWidthI(dc, aGID, 1, nullptr, &devWidth)) {
         
-        width = (devWidth & 0x7fff) << 16;
+        devWidth = std::min(std::max(0, devWidth), 0x7fff);
+        width = devWidth << 16;
         mGlyphWidths->Put(aGID, width);
         return width;
     }
