@@ -32,17 +32,8 @@ function checkResults(xhr)
   return true;
 }
 
-var httpServersClosed = 0;
-function finishIfDone()
-{
-  if (++httpServersClosed == 2)
-    do_test_finished();
-}
-
 function run_test()
 {
-  do_test_pending();
-
   httpserver.registerPathHandler(testpath, serverHandler);
   httpserver.start(4444);
 
@@ -55,6 +46,14 @@ function run_test()
   checkResults(res);
 
   
+  var async = cu.evalInSandbox('var async = createXHR("4444/simple", true); async', sb);
+  async.addEventListener("readystatechange", function(event) {
+    if (checkResults(async))
+      httpserver.stop(do_test_finished);
+  }, false);
+  async.send(null);
+
+  
   try {
     cu.evalInSandbox('var createXHR = ' + createXHR.toString(), sb);
     var res = cu.evalInSandbox('var sync = createXHR("4445/negative"); sync.send(null); sync', sb);
@@ -62,28 +61,8 @@ function run_test()
   } catch (e) {
     do_check_true(true);
   }
-
-  httpserver2.stop(finishIfDone);
-
   
-  sb.finish = function(){
-    httpserver.stop(finishIfDone);
-  }
-
-  sb.checkResults = checkResults;
-  
-  sb.do_check_eq = do_check_eq;
-
-  function changeListener(event) {
-    if (checkResults(async))
-      finish();
-  }
-
-  var async = cu.evalInSandbox('var async = createXHR("4444/simple", true);' +
-                               'async.addEventListener("readystatechange", ' +
-                                                       changeListener.toString() + ', false);' +
-                               'async', sb);
-  async.send(null);
+  do_test_pending();
 }
 
 function serverHandler(metadata, response)
