@@ -31,6 +31,7 @@
 #include "mozilla/TextComposition.h"    
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/Element.h"        
+#include "mozilla/dom/Text.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAString.h"                  
 #include "nsCCUncollectableMarker.h"    
@@ -2441,6 +2442,16 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
   return NS_OK;
 }
 
+
+nsresult nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
+                                              Text* aTextNode,
+                                              int32_t aOffset,
+                                              bool aSuppressIME)
+{
+  return InsertTextIntoTextNodeImpl(aStringToInsert,
+      static_cast<nsIDOMCharacterData*>(GetAsDOMNode(aTextNode)),
+      aOffset, aSuppressIME);
+}
 
 nsresult nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert, 
                                               nsIDOMCharacterData *aTextNode, 
