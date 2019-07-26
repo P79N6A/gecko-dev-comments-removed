@@ -162,6 +162,13 @@ struct JSSettings
   }
 };
 
+enum WorkerPreference
+{
+  WORKERPREF_DUMP = 0, 
+  WORKERPREF_PROMISE,  
+  WORKERPREF_COUNT
+};
+
 
 bool
 ResolveWorkerClasses(JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,

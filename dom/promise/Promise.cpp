@@ -20,8 +20,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsJSEnvironment.h"
 
-#include "mozilla/dom/RuntimeService.h"
-
 namespace mozilla {
 namespace dom {
 
@@ -256,23 +254,14 @@ Promise::EnabledForScope(JSContext* aCx, JSObject* )
       return true;
     }
   } else {
-    RuntimeService* service = RuntimeService::GetService();
-    MOZ_ASSERT(service);
-    
-    
-    if (service->PromiseEnabled()) {
-      return true;
-    }
+    WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+    return workerPrivate->PromiseEnabled() || workerPrivate->UsesSystemPrincipal();
   }
   
   
   
   
   
-  if (!NS_IsMainThread()) {
-    return workers::GetWorkerPrivateFromContext(aCx)->UsesSystemPrincipal();
-  }
-
   nsIPrincipal* prin = nsContentUtils::GetSubjectPrincipal();
   return nsContentUtils::IsSystemPrincipal(prin) ||
     prin->GetAppStatus() == nsIPrincipal::APP_STATUS_CERTIFIED;
