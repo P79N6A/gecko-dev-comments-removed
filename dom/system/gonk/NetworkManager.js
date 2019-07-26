@@ -245,7 +245,7 @@ NetworkManager.prototype = {
             }
             
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
-              this.resetRoutingTable(this._activeInfo);
+              this.resetRoutingTable(network);
             }
             
             CaptivePortalDetectionHelper.notify(CaptivePortalDetectionHelper.EVENT_DISCONNECT, network);
