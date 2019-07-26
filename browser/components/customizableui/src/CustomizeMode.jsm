@@ -666,7 +666,7 @@ CustomizeMode.prototype = {
   
   makePaletteItem: function(aWidget, aPlace) {
     let widgetNode = aWidget.forWindow(this.window).node;
-    let wrapper = this.createWrapper(widgetNode, aPlace);
+    let wrapper = this.createOrUpdateWrapper(widgetNode, aPlace);
     wrapper.appendChild(widgetNode);
     return wrapper;
   },
@@ -728,7 +728,8 @@ CustomizeMode.prototype = {
     if (!this.isCustomizableItem(aNode)) {
       return aNode;
     }
-    let wrapper = this.createWrapper(aNode, aPlace);
+    let wrapper = this.createOrUpdateWrapper(aNode, aPlace);
+
     
     
     
@@ -741,13 +742,19 @@ CustomizeMode.prototype = {
     return wrapper;
   },
 
-  createWrapper: function(aNode, aPlace) {
-    let wrapper = this.document.createElement("toolbarpaletteitem");
+  createOrUpdateWrapper: function(aNode, aPlace, aIsUpdate) {
+    let wrapper;
+    if (aIsUpdate && aNode.parentNode && aNode.parentNode.localName == "toolbarpaletteitem") {
+      wrapper = aNode.parentNode;
+      aPlace = wrapper.getAttribute("place");
+    } else {
+      wrapper = this.document.createElement("toolbarpaletteitem");
+      
+      
+      
+      wrapper.setAttribute("place", aPlace);
+    }
 
-    
-    
-    
-    wrapper.setAttribute("place", aPlace);
 
     
     
@@ -802,8 +809,11 @@ CustomizeMode.prototype = {
       aNode.removeAttribute(contextMenuAttrName);
     }
 
-    wrapper.addEventListener("mousedown", this);
-    wrapper.addEventListener("mouseup", this);
+    
+    if (!aIsUpdate) {
+      wrapper.addEventListener("mousedown", this);
+      wrapper.addEventListener("mouseup", this);
+    }
 
     return wrapper;
   },
@@ -1745,10 +1755,7 @@ CustomizeMode.prototype = {
     if (targetArea != currentArea) {
       this.unwrapToolbarItem(aDraggedItem.parentNode);
       
-      if (currentSibling)
-        currentParent.insertBefore(aDraggedItem, currentSibling);
-      else
-        currentParent.appendChild(aDraggedItem);
+      currentParent.insertBefore(aDraggedItem, currentSibling);
       
       if (areaType) {
         if (currentType === false)
@@ -1756,6 +1763,7 @@ CustomizeMode.prototype = {
         else
           aDraggedItem.setAttribute(kAreaType, currentType);
       }
+      this.createOrUpdateWrapper(aDraggedItem, null, true);
       CustomizableUI.onWidgetDrag(aDraggedItem.id);
     } else {
       aDraggedItem.parentNode.hidden = true;
