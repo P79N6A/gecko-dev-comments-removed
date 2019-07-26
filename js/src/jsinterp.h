@@ -172,7 +172,8 @@ enum InterpMode
     JSINTERP_NORMAL    = 0, 
     JSINTERP_REJOIN    = 1, 
     JSINTERP_SKIP_TRAP = 2, 
-    JSINTERP_BAILOUT   = 3  
+    JSINTERP_BAILOUT   = 3, 
+    JSINTERP_RETHROW   = 4  
 };
 
 enum InterpretStatus
