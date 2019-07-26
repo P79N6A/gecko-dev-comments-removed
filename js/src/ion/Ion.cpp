@@ -1225,7 +1225,7 @@ IonCompile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, 
 
     TypeInferenceOracle oracle;
 
-    if (!oracle.init(cx, script))
+    if (!oracle.init(cx, script,  false))
         return AbortReason_Disable;
 
     AutoFlushCache afc("IonCompile");
