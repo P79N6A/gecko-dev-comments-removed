@@ -412,6 +412,8 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                     updateBackButton(tab.canDoBack());
                     updateForwardButton(tab.canDoForward());
                     setProgressVisibility(false);
+                    
+                    setTitle(tab.getDisplayTitle());
                 }
                 break;
             case RESTORED:
@@ -536,7 +538,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         return translation;
     }
 
-    public void fromAwesomeBarSearch() {
+    public void fromAwesomeBarSearch(String url) {
+        
+        
+        if (url != null && url.length() > 0) {
+            setTitle(url);
+        }
+
         if (mActivity.isTablet() || Build.VERSION.SDK_INT < 11) {
             return;
         }
@@ -995,7 +1003,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         }
     }
 
-    public void setTitle(CharSequence title) {
+    private void setTitle(CharSequence title) {
         Tab tab = Tabs.getInstance().getSelectedTab();
 
         
@@ -1004,8 +1012,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
         
         
-        if (tab != null && ("about:home".equals(tab.getURL()) ||
-                            "about:privatebrowsing".equals(tab.getURL())))
+        
+        if (tab != null && ("about:home".equals(title) ||
+                            "about:privatebrowsing".equals(title)))
             title = null;
 
         mTitle.setText(title);
