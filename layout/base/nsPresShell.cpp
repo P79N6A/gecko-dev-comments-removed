@@ -5512,6 +5512,12 @@ PresShell::Paint(nsView*        aViewToPaint,
     aViewToPaint->GetWidget()->GetLayerManager(&isRetainingManager);
   NS_ASSERTION(layerManager, "Must be in paint event");
 
+  if (!layerManager) {
+    
+    
+    MOZ_CRASH();
+  }
+
   
   
   
