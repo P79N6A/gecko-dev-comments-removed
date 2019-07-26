@@ -462,7 +462,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
-    mozilla::Array<MoveResolver::MoveOperand, 2> floatArgsInGPR;
+    mozilla::Array<MoveOperand, 2> floatArgsInGPR;
     mozilla::Array<bool, 2> floatArgsInGPRValid;
 
     
@@ -485,9 +485,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         setFramePushed(framePushed_ + value);
     }
   public:
-    typedef MoveResolver::MoveOperand MoveOperand;
-    typedef MoveResolver::Move Move;
-
     enum Result {
         GENERAL,
         DOUBLE,
@@ -1505,4 +1502,4 @@ typedef MacroAssemblerARMCompat MacroAssemblerSpecific;
 } 
 } 
 
-#endif 
+#endif
