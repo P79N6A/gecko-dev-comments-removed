@@ -15,8 +15,10 @@ const RIL_MOBILEMESSAGEDATABASESERVICE_CID = Components.ID("{29785f90-6b5b-11e2-
 
 const DEBUG = false;
 const DB_NAME = "sms";
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 const MESSAGE_STORE_NAME = "sms";
+const THREAD_STORE_NAME = "thread";
+const PARTICIPANT_STORE_NAME = "participant";
 const MOST_RECENT_STORE_NAME = "most-recent";
 
 const DELIVERY_SENDING = "sending";
@@ -197,6 +199,10 @@ MobileMessageDatabaseService.prototype = {
           case 6:
             if (DEBUG) debug("Upgrade to version 7. Use multiple entry indexes.");
             self.upgradeSchema6(event.target.transaction);
+            break;
+          case 7:
+            if (DEBUG) debug("Upgrade to version 8. Add participant/thread stores.");
+            self.upgradeSchema7(db, event.target.transaction);
             break;
           default:
             event.target.transaction.abort();
@@ -410,6 +416,150 @@ MobileMessageDatabaseService.prototype = {
       messageRecord.readIndex = [messageRecord.read, timestamp];
       cursor.update(messageRecord);
       cursor.continue();
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  upgradeSchema7: function upgradeSchema7(db, transaction) {
+    
+
+
+
+
+
+
+
+    let participantStore = db.createObjectStore(PARTICIPANT_STORE_NAME,
+                                                { keyPath: "id",
+                                                  autoIncrement: true });
+    participantStore.createIndex("addresses", "addresses", { multiEntry: true });
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    let threadStore = db.createObjectStore(THREAD_STORE_NAME,
+                                           { keyPath: "id",
+                                             autoIncrement: true });
+    threadStore.createIndex("participantIds", "participantIds");
+    threadStore.createIndex("lastTimestamp", "lastTimestamp");
+
+    
+
+
+
+    let messageStore = transaction.objectStore(MESSAGE_STORE_NAME);
+    messageStore.createIndex("threadId", "threadIdIndex");
+    messageStore.createIndex("participantIds", "participantIdsIndex",
+                             { multiEntry: true });
+
+    
+    let mostRecentStore = transaction.objectStore(MOST_RECENT_STORE_NAME);
+    let self = this;
+    let mostRecentRequest = mostRecentStore.openCursor();
+    mostRecentRequest.onsuccess = function(event) {
+      let mostRecentCursor = event.target.result;
+      if (!mostRecentCursor) {
+        db.deleteObjectStore(MOST_RECENT_STORE_NAME);
+
+        
+        
+        messageStore.deleteIndex("number");
+        return;
+      }
+
+      let mostRecentRecord = mostRecentCursor.value;
+
+      
+      
+      
+      let number = mostRecentRecord.senderOrReceiver;
+      self.findParticipantRecordByAddress(participantStore, number, true,
+                                          function (participantRecord) {
+        
+        let threadRecord = {
+          participantIds: [participantRecord.id],
+          participantAddresses: [number],
+          lastMessageId: mostRecentRecord.id,
+          lastTimestamp: mostRecentRecord.timestamp,
+          subject: mostRecentRecord.body,
+          unreadCount: mostRecentRecord.unreadCount,
+        };
+        let addThreadRequest = threadStore.add(threadRecord);
+        addThreadRequest.onsuccess = function (event) {
+          threadRecord.id = event.target.result;
+
+          let numberRange = IDBKeyRange.bound([number, 0], [number, ""]);
+          let messageRequest = messageStore.index("number")
+                                           .openCursor(numberRange, NEXT);
+          messageRequest.onsuccess = function (event) {
+            let messageCursor = event.target.result;
+            if (!messageCursor) {
+              
+              mostRecentCursor.continue();
+              return;
+            }
+
+            let messageRecord = messageCursor.value;
+            
+            let matchSenderOrReceiver = false;
+            if (messageRecord.delivery == DELIVERY_RECEIVED) {
+              if (messageRecord.sender == number) {
+                matchSenderOrReceiver = true;
+              }
+            } else if (messageRecord.receiver == number) {
+              matchSenderOrReceiver = true;
+            }
+            if (!matchSenderOrReceiver) {
+              
+              messageCursor.continue();
+              return;
+            }
+
+            messageRecord.threadId = threadRecord.id;
+            messageRecord.threadIdIndex = [threadRecord.id,
+                                           messageRecord.timestamp];
+            messageRecord.participantIdsIndex = [
+              [participantRecord.id, messageRecord.timestamp]
+            ];
+            messageCursor.update(messageRecord);
+            
+            messageCursor.continue();
+          };
+          messageRequest.onerror = function () {
+            
+            mostRecentCursor.continue();
+          };
+        };
+        addThreadRequest.onerror = function () {
+          
+          mostRecentCursor.continue();
+        };
+      });
     };
   },
 
@@ -649,6 +799,104 @@ MobileMessageDatabaseService.prototype = {
     return false;
   },
 
+  findParticipantRecordByAddress: function findParticipantRecordByAddress(
+      aParticipantStore, aAddress, aCreate, aCallback) {
+    if (DEBUG) {
+      debug("findParticipantRecordByAddress("
+            + JSON.stringify(aAddress) + ", " + aCreate + ")");
+    }
+
+    
+    
+    
+
+    let request = aParticipantStore.index("addresses").get(aAddress);
+    request.onsuccess = (function (event) {
+      let participantRecord = event.target.result;
+      
+      
+      if (participantRecord) {
+        if (DEBUG) {
+          debug("findParticipantRecordByAddress: got "
+                + JSON.stringify(participantRecord));
+        }
+        aCallback(participantRecord);
+        return;
+      }
+
+      
+      let parsedAddress = PhoneNumberUtils.parseWithMCC(aAddress, null);
+      
+      aParticipantStore.openCursor().onsuccess = (function (event) {
+        let cursor = event.target.result;
+        if (!cursor) {
+          
+          if (!aCreate) {
+            aCallback(null);
+            return;
+          }
+
+          let participantRecord = { addresses: [aAddress] };
+          let addRequest = aParticipantStore.add(participantRecord);
+          addRequest.onsuccess = function (event) {
+            participantRecord.id = event.target.result;
+            if (DEBUG) {
+              debug("findParticipantRecordByAddress: created "
+                    + JSON.stringify(participantRecord));
+            }
+            aCallback(participantRecord);
+          };
+          return;
+        }
+
+        let participantRecord = cursor.value;
+        for each (let storedAddress in participantRecord.addresses) {
+          let match = false;
+          if (parsedAddress) {
+            
+            
+            
+            
+            if (storedAddress.endsWith(parsedAddress.nationalNumber)) {
+              match = true;
+            }
+          } else {
+            
+            
+            
+            let parsedStoredAddress =
+              PhoneNumberUtils.parseWithMCC(storedAddress, null);
+            if (parsedStoredAddress
+                && aAddress.endsWith(parsedStoredAddress.nationalNumber)) {
+              match = true;
+            }
+          }
+          if (!match) {
+            
+            continue;
+          }
+
+          
+          if (aCreate) {
+            
+            
+            participantRecord.addresses.push(aAddress);
+            cursor.update(participantRecord);
+          }
+          if (DEBUG) {
+            debug("findParticipantRecordByAddress: got "
+                  + JSON.stringify(cursor.value));
+          }
+          aCallback(participantRecord);
+          return;
+        }
+
+        
+        cursor.continue();
+      }).bind(this);
+    }).bind(this);
+  },
+
   saveRecord: function saveRecord(aMessageRecord, aCallback) {
     this.lastMessageId += 1;
     aMessageRecord.id = this.lastMessageId;
@@ -728,17 +976,6 @@ MobileMessageDatabaseService.prototype = {
       return null;
     }
     return number;
-  },
-
-  makePhoneNumberInternational: function makePhoneNumberInternational(aNumber) {
-    if (!aNumber) {
-      return aNumber;
-    }
-    let parsedNumber = PhoneNumberUtils.parse(aNumber.toString());
-    if (!parsedNumber || !parsedNumber.internationalNumber) {
-      return aNumber;
-    }
-    return parsedNumber.internationalNumber;
   },
 
   
