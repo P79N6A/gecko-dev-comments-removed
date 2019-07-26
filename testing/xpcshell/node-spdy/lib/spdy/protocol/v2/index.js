@@ -1,7 +1,3 @@
-
-
-
-
 var v2;
 
 try {
@@ -12,3 +8,5 @@ try {
 module.exports = v2;
 
 v2.Framer = require('./framer').Framer;
+
+v2.dictionary = require('./dictionary').dictionary;

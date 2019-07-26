@@ -1,7 +1,3 @@
-
-
-
-
 var zlibpool = exports,
     spdy = require('../spdy');
 
@@ -10,7 +6,10 @@ var zlibpool = exports,
 
 
 function Pool() {
-  this.pool = [];
+  this.pool = {
+    'spdy/2': [],
+    'spdy/3': []
+  };
 }
 
 
@@ -26,13 +25,16 @@ var x = 0;
 
 
 
-Pool.prototype.get = function get(callback) {
-  if (this.pool.length > 0) {
-    return this.pool.pop();
+Pool.prototype.get = function get(version, callback) {
+  if (this.pool[version].length > 0) {
+    return this.pool[version].pop();
   } else {
+    var id = version.split('/', 2)[1];
+
     return {
-      deflate: spdy.utils.createDeflate(),
-      inflate: spdy.utils.createInflate()
+      version: version,
+      deflate: spdy.utils.createDeflate(id),
+      inflate: spdy.utils.createInflate(id)
     };
   }
 };
@@ -50,7 +52,7 @@ Pool.prototype.put = function put(pair) {
 
   function done() {
     if (--waiting === 0) {
-      self.pool.push(pair);
+      self.pool[pair.version].push(pair);
     }
   }
 };

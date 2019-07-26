@@ -1,7 +1,3 @@
-
-
-
-
 var parser = exports;
 
 var spdy = require('../spdy'),
@@ -9,15 +5,21 @@ var spdy = require('../spdy'),
     stream = require('stream'),
     Buffer = require('buffer').Buffer;
 
+var legacy = !stream.Duplex;
+
+if (legacy) {
+  var DuplexStream = stream;
+} else {
+  var DuplexStream = stream.Duplex;
+}
 
 
 
 
 
 
-
-function Parser(connection, deflate, inflate) {
-  stream.Stream.call(this);
+function Parser(connection) {
+  DuplexStream.call(this);
 
   this.drained = true;
   this.paused = false;
@@ -26,25 +28,32 @@ function Parser(connection, deflate, inflate) {
   this.waiting = 8;
 
   this.state = { type: 'frame-head' };
-  this.deflate = deflate;
-  this.inflate = inflate;
+  this.socket = connection.socket;
+  this.connection = connection;
   this.framer = null;
 
   this.connection = connection;
 
-  this.readable = this.writable = true;
+  if (legacy) {
+    this.readable = this.writable = true;
+  }
 }
-util.inherits(Parser, stream.Stream);
+util.inherits(Parser, DuplexStream);
 
 
 
 
 
 
+parser.create = function create(connection) {
+  return new Parser(connection);
+};
 
 
-parser.create = function create(connection, deflate, inflate) {
-  return new Parser(connection, deflate, inflate);
+
+
+
+Parser.prototype.destroy = function destroy() {
 };
 
 
@@ -52,7 +61,12 @@ parser.create = function create(connection, deflate, inflate) {
 
 
 
-Parser.prototype.write = function write(data) {
+
+
+Parser.prototype._write = function write(data, encoding, cb) {
+  
+  if (!cb) cb = function() {};
+
   if (data !== undefined) {
     
     this.buffer.push(data);
@@ -63,7 +77,7 @@ Parser.prototype.write = function write(data) {
   if (this.paused) return false;
 
   
-  if (this.buffered < this.waiting) return;
+  if (this.buffered < this.waiting) return cb();
 
   
   if (data !== undefined) this.drained = false;
@@ -106,13 +120,16 @@ Parser.prototype.write = function write(data) {
     self.paused = false;
 
     
-    if (err) return self.emit('error', err);
+    if (err) {
+      cb();
+      return self.emit('error', err);
+    }
 
     
     self.waiting = waiting;
 
     if (self.waiting <= self.buffered) {
-      self.write();
+      self._write(undefined, null, cb);
     } else {
       process.nextTick(function() {
         if (self.drained) return;
@@ -121,16 +138,54 @@ Parser.prototype.write = function write(data) {
         self.drained = true;
         self.emit('drain');
       });
+
+      cb();
     }
   });
 };
 
+if (legacy) {
+  
+  
+  
+  
+  
+  
+  
+  Parser.prototype.write = Parser.prototype._write;
+
+  
+  
+  
+  
+  Parser.prototype.end = function end() {
+    this.emit('end');
+  };
+}
 
 
 
 
-Parser.prototype.end = function end() {
-  this.emit('end');
+
+
+Parser.prototype.createFramer = function createFramer(version) {
+  if (spdy.protocol[version]) {
+    this.emit('version', version);
+
+    this.framer = new spdy.protocol[version].Framer(
+      spdy.utils.zwrap(this.connection._deflate),
+      spdy.utils.zwrap(this.connection._inflate)
+    );
+
+    
+    this.connection._framer = this.framer;
+    this.emit('framer', this.framer);
+  } else {
+    this.emit(
+      'error',
+      new Error('Unknown protocol version requested: ' + version)
+    );
+  }
 };
 
 
@@ -146,16 +201,7 @@ Parser.prototype.execute = function execute(state, data, callback) {
 
     
     if (!this.framer && header.control) {
-      if (spdy.protocol[header.version]) {
-        this.framer = new spdy.protocol[header.version].Framer(
-          spdy.utils.zwrap(this.deflate),
-          spdy.utils.zwrap(this.inflate)
-        );
-
-        
-        this.connection.framer = this.framer;
-        this.emit('_framer', this.framer);
-      }
+      this.createFramer(header.version);
     }
 
     state.type = 'frame-body';

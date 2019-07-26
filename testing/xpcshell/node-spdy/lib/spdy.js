@@ -1,7 +1,3 @@
-
-
-
-
 var spdy = exports;
 
 
@@ -18,6 +14,7 @@ try {
 
 
 spdy.protocol[2] = require('./spdy/protocol/v2');
+spdy.protocol[3] = require('./spdy/protocol/v3');
 
 spdy.parser = require('./spdy/parser');
 
