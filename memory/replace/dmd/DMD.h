@@ -42,6 +42,15 @@ private:
 
 
 
+
+
+
+MOZ_EXPORT void
+ClearReports();
+
+
+
+
 MOZ_EXPORT void
 Dump(Writer aWriter);
 

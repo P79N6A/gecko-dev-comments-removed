@@ -562,6 +562,12 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+#ifdef MOZ_DMD
+  dmd::ClearReports();
+#endif
+
+  
 
   
   DUMP(writer, "{\n  \"version\": 1,\n");
@@ -656,7 +662,7 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
 
   DMDWriteState state(dmdWriter);
   dmd::Writer w(DMDWrite, &state);
-  mozilla::dmd::Dump(w);
+  dmd::Dump(w);
 
   rv = dmdWriter->Finish();
   NS_ENSURE_SUCCESS(rv, rv);

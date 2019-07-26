@@ -1928,9 +1928,10 @@ SizeOf(Sizes* aSizes)
   SizeOfInternal(aSizes);
 }
 
-static void
-ClearGlobalState()
+MOZ_EXPORT void
+ClearReports()
 {
+  
   
   
   for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
@@ -2126,7 +2127,7 @@ Dump(Writer aWriter)
 
   InfallibleAllocPolicy::delete_(locService);
 
-  ClearGlobalState();
+  ClearReports();
 
   StatusMsg("}\n");
 }
