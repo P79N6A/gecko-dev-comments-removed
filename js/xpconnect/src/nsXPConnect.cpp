@@ -659,14 +659,14 @@ nsXPConnect::GetWrappedNativeOfJSObject(JSContext * aJSContext,
 
     RootedObject aJSObj(aJSContext, aJSObjArg);
     aJSObj = js::CheckedUnwrap(aJSObj,  false);
-    if (aJSObj && IS_WN_REFLECTOR(aJSObj)) {
-        NS_IF_ADDREF(*_retval = XPCWrappedNative::Get(aJSObj));
-        return NS_OK;
+    if (!aJSObj || !IS_WN_REFLECTOR(aJSObj)) {
+        *_retval = nullptr;
+        return NS_ERROR_FAILURE;
     }
 
-    
-    *_retval = nullptr;
-    return NS_ERROR_FAILURE;
+    nsRefPtr<XPCWrappedNative> temp = XPCWrappedNative::Get(aJSObj);
+    temp.forget(_retval);
+    return NS_OK;
 }
 
 
