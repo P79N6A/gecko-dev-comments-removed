@@ -44,19 +44,35 @@ let wrapper = {
     }
   },
 
-  onLogin: function (data) {
-    log("Received: 'login'. Data:" + JSON.stringify(data));
-    this.injectData("message", { status: "login" });
+  
+
+
+
+
+
+  onLogin: function (accountData) {
+    log("Received: 'login'. Data:" + JSON.stringify(accountData));
+
+    fxAccounts.setSignedInUser(accountData).then(
+      () => this.injectData("message", { status: "login" }),
+      (err) => this.injectData("message", { status: "error", error: err })
+    );
   },
 
-  onCreate: function (data) {
-    log("Received: 'create'. Data:" + JSON.stringify(data));
-    this.injectData("message", { status: "create" });
-  },
+  
 
-  onVerified: function (data) {
-    log("Received: 'verified'. Data:" + JSON.stringify(data));
-    this.injectData("message", { status: "verified" });
+
+
+
+
+
+  onVerified: function (accountData) {
+    log("Received: 'verified'. Data:" + JSON.stringify(accountData));
+
+    fxAccounts.setSignedInUser(accountData).then(
+      () => this.injectData("message", { status: "verified" }),
+      (err) => this.injectData("message", { status: "error", error: err })
+    );
   },
 
   handleRemoteCommand: function (evt) {
@@ -64,9 +80,6 @@ let wrapper = {
     let data = evt.detail.data;
 
     switch (evt.detail.command) {
-      case "create":
-        this.onCreate(data);
-        break;
       case "login":
         this.onLogin(data);
         break;
