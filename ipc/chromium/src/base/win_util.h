@@ -33,9 +33,6 @@ void GetNonClientMetrics(NONCLIENTMETRICS* metrics);
 WinVersion GetWinVersion();
 
 
-void GetServicePackLevel(int* major, int* minor);
-
-
 bool IsShiftPressed();
 
 
