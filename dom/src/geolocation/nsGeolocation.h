@@ -67,6 +67,7 @@ class nsGeolocationRequest
   bool IsActive() {return !mCleared;}
   bool Allowed() {return mAllowed;}
   void SetTimeoutTimer();
+  nsIPrincipal* GetPrincipal();
 
   ~nsGeolocationRequest();
 
@@ -125,7 +126,7 @@ public:
   PRBool IsBetterPosition(nsIDOMGeoPosition *aSomewhere);
 
   
-  nsresult StartDevice(bool aRequestPrivate);
+  nsresult StartDevice(nsIPrincipal* aPrincipal, bool aRequestPrivate);
 
   
   void     StopDevice();
