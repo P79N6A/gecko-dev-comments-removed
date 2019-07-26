@@ -328,11 +328,15 @@ nsXULPopupManager::AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow)
   
   
   
+
+  
+  nsTArray<nsMenuPopupFrame *> list;
+
   nsMenuChainItem* item = mNoHidePanels;
   while (item) {
     
     
-    nsMenuPopupFrame* frame= item->Frame();
+    nsMenuPopupFrame* frame = item->Frame();
     if (frame->GetAutoPosition()) {
       nsIContent* popup = frame->GetContent();
       if (popup) {
@@ -342,7 +346,7 @@ nsXULPopupManager::AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow)
           if (window) {
             window = window->GetPrivateRoot();
             if (window == aWindow) {
-              frame->SetPopupPosition(nullptr, true, false);
+              list.AppendElement(frame);
             }
           }
         }
@@ -350,6 +354,17 @@ nsXULPopupManager::AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow)
     }
 
     item = item->GetParent();
+  }
+
+  for (int32_t l = list.Length() - 1; l >= 0; l--) {
+    list[l]->SetPopupPosition(nullptr, true, false);
+  }
+}
+
+void nsXULPopupManager::AdjustPopupsOnWindowChange(nsIPresShell* aPresShell)
+{
+  if (aPresShell->GetDocument()) {
+    AdjustPopupsOnWindowChange(aPresShell->GetDocument()->GetWindow());
   }
 }
 

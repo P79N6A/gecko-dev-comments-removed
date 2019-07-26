@@ -301,7 +301,10 @@ public:
   
   static nsXULPopupManager* GetInstance();
 
+  
+  
   void AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow);
+  void AdjustPopupsOnWindowChange(nsIPresShell* aPresShell);
 
   
   
