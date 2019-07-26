@@ -314,6 +314,7 @@ TokenStream::TokenStream(ExclusiveContext *cx, const CompileOptions &options,
     oneCharTokens[unsigned(';')] = TOK_SEMI;
     oneCharTokens[unsigned(',')] = TOK_COMMA;
     oneCharTokens[unsigned('?')] = TOK_HOOK;
+    oneCharTokens[unsigned(':')] = TOK_COLON;
     oneCharTokens[unsigned('[')] = TOK_LB;
     oneCharTokens[unsigned(']')] = TOK_RB;
     oneCharTokens[unsigned('{')] = TOK_LC;
@@ -1000,7 +1001,6 @@ enum FirstCharKind {
     Equals,
     String,
     Dec,
-    Colon,
     Plus,
     BasePrefix,
 
@@ -1024,7 +1024,6 @@ enum FirstCharKind {
 
 
 
-
 static const uint8_t firstCharKinds[] = {
 
  _______, _______, _______, _______, _______, _______, _______, _______, _______,   Space,
@@ -1032,7 +1031,7 @@ static const uint8_t firstCharKinds[] = {
  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
  _______, _______,   Space, _______,  String, _______,   Ident, _______, _______,  String,
  OneChar, OneChar, _______,    Plus, OneChar, _______,     Dot, _______, BasePrefix,  Dec,
-     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,   Colon, OneChar,
+     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec, OneChar, OneChar,
  _______,  Equals, _______, OneChar, _______,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
@@ -1379,11 +1378,6 @@ TokenStream::getTokenInternal()
         }
         tp->setNumber(dval, decimalPoint);
         tt = TOK_NUMBER;
-        goto out;
-    }
-
-    if (c1kind == Colon) {
-        tt = TOK_COLON;
         goto out;
     }
 
