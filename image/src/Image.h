@@ -57,9 +57,7 @@ public:
 
 
 
-
-  virtual nsresult Init(imgDecoderObserver* aObserver,
-                        const char* aMimeType,
+  virtual nsresult Init(const char* aMimeType,
                         uint32_t aFlags) = 0;
 
   virtual imgStatusTracker& GetStatusTracker() = 0;

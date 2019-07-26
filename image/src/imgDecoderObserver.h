@@ -32,8 +32,7 @@
 
 
 
-class imgDecoderObserver : public mozilla::RefCounted<imgDecoderObserver>,
-                           public mozilla::SupportsWeakPtr<imgDecoderObserver>
+class imgDecoderObserver : public mozilla::RefCounted<imgDecoderObserver>
 {
 public:
   virtual ~imgDecoderObserver() = 0;

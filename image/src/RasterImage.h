@@ -122,7 +122,6 @@ class nsIInputStream;
 
 
 
-
 class ScaleRequest;
 
 namespace mozilla {
@@ -157,8 +156,7 @@ public:
   virtual nsresult StopAnimation();
 
   
-  nsresult Init(imgDecoderObserver* aObserver,
-                const char* aMimeType,
+  nsresult Init(const char* aMimeType,
                 uint32_t aFlags);
   virtual nsIntRect FrameRect(uint32_t aWhichFrame) MOZ_OVERRIDE;
 
@@ -644,8 +642,6 @@ private:
   
   int32_t                    mLoopCount;
   
-  mozilla::WeakPtr<imgDecoderObserver> mObserver;
-
   
   uint32_t                   mLockCount;
   DiscardTracker::Node       mDiscardTrackerNode;
