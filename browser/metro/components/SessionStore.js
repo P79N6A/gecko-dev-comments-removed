@@ -16,6 +16,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
   "@mozilla.org/xre/app-info;1", "nsICrashReporter");
 #endif
 
+XPCOMUtils.defineLazyModuleGetter(this, "CrashMonitor",
+  "resource://gre/modules/CrashMonitor.jsm");
+
 XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
   "@mozilla.org/uuid-generator;1", "nsIUUIDGenerator");
 
@@ -75,6 +78,25 @@ SessionStore.prototype = {
     } catch (ex) {
       
     }
+
+    CrashMonitor.previousCheckpoints.then(checkpoints => {
+      let previousSessionCrashed = false;
+
+      if (checkpoints) {
+        
+        
+        previousSessionCrashed = !checkpoints["sessionstore-final-state-write-complete"];
+      } else {
+        
+        
+        
+        
+        previousSessionCrashed = Services.metro.previousExecutionState == 1 ||
+          Services.metro.previousExecutionState == 2;
+      }
+
+      Services.telemetry.getHistogramById("SHUTDOWN_OK").add(!previousSessionCrashed);
+    });
 
     try {
       let shutdownWasUnclean = false;
@@ -291,8 +313,8 @@ SessionStore.prototype = {
         if (this._saveTimer) {
           this._saveTimer.cancel();
           this._saveTimer = null;
-          this.saveState();
         }
+        this.saveState();
         break;
       case "browser:purge-session-history": 
         this._clearDisk();
@@ -644,6 +666,9 @@ SessionStore.prototype = {
     let istream = converter.convertToInputStream(aData);
     NetUtil.asyncCopy(istream, ostream, function(rc) {
       if (Components.isSuccessCode(rc)) {
+        if (Services.startup.shuttingDown) {
+          Services.obs.notifyObservers(null, "sessionstore-final-state-write-complete", "");
+        }
         Services.obs.notifyObservers(null, "sessionstore-state-write-complete", "");
       }
     });
