@@ -12,7 +12,7 @@
 #include "nsString.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
-#include "jsapi.h"              
+#include "js/Class.h"           
 #include "nsTArray.h"
 
 class nsXBLBinding;

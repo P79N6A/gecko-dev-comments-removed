@@ -224,7 +224,7 @@ class Descriptor(DescriptorProvider):
 
         
         if self.nativeType == "JSObject":
-            headerDefault = "jsapi.h"
+            headerDefault = "js/TypeDecls.h"
         elif self.interface.isCallback() or self.interface.isJSImplemented():
             
             
