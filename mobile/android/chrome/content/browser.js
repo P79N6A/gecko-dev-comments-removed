@@ -3368,8 +3368,6 @@ Tab.prototype = {
       case "DOMContentLoaded": {
         let target = aEvent.originalTarget;
 
-        LoginManagerContent.onContentLoaded(aEvent);
-
         
         if (target != this.browser.contentDocument)
           return;

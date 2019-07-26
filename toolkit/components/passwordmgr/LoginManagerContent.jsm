@@ -14,7 +14,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 var gEnabled = false, gDebug = false, gAutofillForms = true; 
-var gUseDOMFormHasPassword = false; 
 
 function log(...pieces) {
     function generateLogMessage(args) {
@@ -72,7 +71,6 @@ var observer = {
         gDebug = Services.prefs.getBoolPref("signon.debug");
         gEnabled = Services.prefs.getBoolPref("signon.rememberSignons");
         gAutofillForms = Services.prefs.getBoolPref("signon.autofillForms");
-        gUseDOMFormHasPassword = Services.prefs.getBoolPref("signon.useDOMFormHasPassword");
     },
 };
 
@@ -94,32 +92,8 @@ var LoginManagerContent = {
         return this.__formFillService;
     },
 
-    onContentLoaded : function (event) {
-      
-      if (gUseDOMFormHasPassword)
-          return;
-
-      if (!event.isTrusted)
-          return;
-
-      if (!gEnabled)
-          return;
-
-      let domDoc = event.target;
-
-      
-      if (!(domDoc instanceof Ci.nsIDOMHTMLDocument))
-          return;
-
-      this._fillDocument(domDoc);
-    },
-
 
     onFormPassword: function (event) {
-      
-      if (!gUseDOMFormHasPassword)
-          return;
-
       if (!event.isTrusted)
           return;
 
@@ -549,91 +523,6 @@ var LoginManagerContent = {
         
         prompter = getPrompter(win);
         prompter.promptToSavePassword(formLogin);
-    },
-
-
-    
-
-
-
-
-
-    _fillDocument : function (doc) {
-        var forms = doc.forms;
-        if (!forms || forms.length == 0)
-            return;
-
-        var formOrigin = LoginUtils._getPasswordOrigin(doc.documentURI);
-
-        
-        if (!Services.logins.countLogins(formOrigin, "", null))
-            return;
-
-        
-        
-        if (Services.logins.uiBusy) {
-            log("deferring fillDoc for", doc.documentURI);
-            let self = this;
-            let observer = {
-                QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
-
-                observe: function (subject, topic, data) {
-                    log("Got deferred fillDoc notification:", topic);
-                    
-                    Services.obs.removeObserver(this, "passwordmgr-crypto-login");
-                    Services.obs.removeObserver(this, "passwordmgr-crypto-loginCanceled");
-                    if (topic == "passwordmgr-crypto-loginCanceled")
-                        return;
-                    self._fillDocument(doc);
-                },
-                handleEvent : function (event) {
-                    
-                }
-            };
-            
-            
-            
-            
-            Services.obs.addObserver(observer, "passwordmgr-crypto-login", true);
-            Services.obs.addObserver(observer, "passwordmgr-crypto-loginCanceled", true);
-            doc.addEventListener("mozCleverClosureHack", observer);
-            return;
-        }
-
-        log("fillDocument processing", forms.length, "forms on", doc.documentURI);
-
-        var autofillForm = gAutofillForms && !PrivateBrowsingUtils.isWindowPrivate(doc.defaultView);
-        var previousActionOrigin = null;
-        var foundLogins = null;
-
-        
-        
-        const MAX_FORMS = 40; 
-        var skip_from = -1, skip_to = -1;
-        if (forms.length > MAX_FORMS) {
-            log("fillDocument limiting number of forms filled to", MAX_FORMS);
-            let chunk_size = MAX_FORMS / 2;
-            skip_from = chunk_size;
-            skip_to   = forms.length - chunk_size;
-        }
-
-        for (var i = 0; i < forms.length; i++) {
-            
-            if (i == skip_from)
-              i = skip_to;
-
-            var form = forms[i];
-
-            
-            
-            var actionOrigin = LoginUtils._getActionOrigin(form);
-            if (actionOrigin != previousActionOrigin) {
-                foundLogins = null;
-                previousActionOrigin = actionOrigin;
-            }
-            log("_fillDocument processing form[", i, "]");
-            foundLogins = this._fillForm(form, autofillForm, false, false, foundLogins)[1];
-        } 
     },
 
 
