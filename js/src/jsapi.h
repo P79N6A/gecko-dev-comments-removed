@@ -3792,7 +3792,7 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp);
 
 
 
-extern JS_PUBLIC_API(JSBool)
+extern JS_PUBLIC_API(bool)
 JS_ArrayIterator(JSContext *cx, unsigned argc, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)

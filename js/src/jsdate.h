@@ -65,7 +65,7 @@ extern JS_FRIEND_API(int)
 js_DateGetSeconds(JSObject *obj);
 
 
-JSBool
+bool
 js_Date(JSContext *cx, unsigned argc, js::Value *vp);
 
 #endif 

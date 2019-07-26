@@ -24,12 +24,12 @@ IsAsmJSModuleNative(JSNative native);
 
 
 
-extern JSBool
+extern bool
 IsAsmJSModule(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
 
-extern JSBool
+extern bool
 IsAsmJSFunction(JSContext *cx, unsigned argc, JS::Value *vp);
 
 #else 
@@ -40,7 +40,7 @@ IsAsmJSModuleNative(JSNative native)
     return false;
 }
 
-inline JSBool
+inline bool
 IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -48,7 +48,7 @@ IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-inline JSBool
+inline bool
 IsAsmJSModule(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);

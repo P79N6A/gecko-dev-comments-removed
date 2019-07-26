@@ -86,7 +86,7 @@ ParallelArrayObject::initProps(JSContext *cx, HandleObject obj)
     return true;
 }
 
- JSBool
+ bool
 ParallelArrayObject::construct(JSContext *cx, unsigned argc, Value *vp)
 {
     RootedFunction ctor(cx, getConstructor(cx, argc));
@@ -123,7 +123,7 @@ ParallelArrayObject::newInstance(JSContext *cx, NewObjectKind newKind )
     return result;
 }
 
- JSBool
+ bool
 ParallelArrayObject::constructHelper(JSContext *cx, MutableHandleFunction ctor, CallArgs &args0)
 {
     RootedObject result(cx, newInstance(cx, TenuredObject));

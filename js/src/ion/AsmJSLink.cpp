@@ -301,7 +301,7 @@ static const unsigned ASM_EXPORT_INDEX_SLOT = 1;
 
 
 
-static JSBool
+static bool
 CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs callArgs = CallArgsFromVp(argc, vp);
@@ -561,7 +561,7 @@ SendBlocksToPerf(JSContext *cx, AsmJSModule &module)
 
 
 
-static JSBool
+static bool
 LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -656,7 +656,7 @@ IsMaybeWrappedNativeFunction(const Value &v, Native native)
     return obj->is<JSFunction>() && obj->as<JSFunction>().maybeNative() == native;
 }
 
-JSBool
+bool
 js::IsAsmJSModule(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -665,7 +665,7 @@ js::IsAsmJSModule(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-JSBool
+bool
 js::IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);

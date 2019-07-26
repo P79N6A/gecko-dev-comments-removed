@@ -7598,7 +7598,7 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     Label success, exception;
-    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+    masm.branchIfFalseBool(ReturnReg, &exception);
 
     
     masm.loadValue(Address(StackPointer, IonNativeExitFrameLayout::offsetOfResult()), R0);

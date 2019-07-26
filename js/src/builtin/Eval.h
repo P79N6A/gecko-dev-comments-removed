@@ -16,7 +16,7 @@ namespace js {
 
 
 
-extern JSBool
+extern bool
 IndirectEval(JSContext *cx, unsigned argc, Value *vp);
 
 

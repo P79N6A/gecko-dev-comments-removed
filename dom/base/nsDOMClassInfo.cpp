@@ -3782,12 +3782,12 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
 
 
-static JSBool
+static bool
 ContentWindowGetter(JSContext *cx, unsigned argc, jsval *vp)
 {
   JSObject *obj = JS_THIS_OBJECT(cx, vp);
   if (!obj)
-    return JS_FALSE;
+    return false;
 
   JS::Rooted<JS::Value> value(cx);
   bool result = ::JS_GetProperty(cx, obj, "content", &value);
@@ -4817,7 +4817,7 @@ nsHTMLDocumentSH::ReleaseDocument(JSFreeOp *fop, JSObject *obj)
   }
 }
 
-JSBool
+bool
 nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
 {
   
@@ -4828,13 +4828,13 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
     
     xpc::Throw(cx, NS_ERROR_INVALID_ARG);
 
-    return JS_FALSE;
+    return false;
   }
 
   
   JS::Rooted<JSString*> str(cx, ::JS_ValueToString(cx, JS_ARGV(cx, vp)[0]));
   if (!str) {
-    return JS_FALSE;
+    return false;
   }
 
   
@@ -4847,14 +4847,14 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
   } else {
     self = JS_THIS_OBJECT(cx, vp);
     if (!self)
-      return JS_FALSE;
+      return false;
   }
 
   size_t length;
   JS::Anchor<JSString *> anchor(str);
   const jschar *chars = ::JS_GetStringCharsAndLength(cx, str, &length);
   if (!chars) {
-    return JS_FALSE;
+    return false;
   }
 
   JS::Rooted<JS::Value> value(cx);

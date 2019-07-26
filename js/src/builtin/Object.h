@@ -15,7 +15,7 @@ extern const JSFunctionSpec object_methods[];
 extern const JSFunctionSpec object_static_methods[];
 
 
-extern JSBool
+extern bool
 obj_construct(JSContext *cx, unsigned argc, js::Value *vp);
 
 } 

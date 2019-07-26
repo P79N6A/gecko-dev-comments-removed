@@ -42,7 +42,7 @@ struct JSContext;
 class JSObject;
 
 
-typedef JSBool
+typedef bool
 (* JSNative)(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
@@ -53,7 +53,7 @@ typedef js::ParallelResult
 
 
 
-typedef JSBool
+typedef bool
 (* JSThreadSafeNative)(js::ThreadSafeContext *cx, unsigned argc, JS::Value *vp);
 
 
@@ -61,7 +61,7 @@ typedef JSBool
 
 
 template <JSThreadSafeNative threadSafeNative>
-inline JSBool
+inline bool
 JSNativeThreadSafeWrapper(JSContext *cx, unsigned argc, JS::Value *vp);
 
 template <JSThreadSafeNative threadSafeNative>

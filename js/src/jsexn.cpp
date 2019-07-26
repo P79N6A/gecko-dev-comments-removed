@@ -42,7 +42,7 @@ using mozilla::PodArrayZero;
 using mozilla::PodZero;
 
 
-static JSBool
+static bool
 Exception(JSContext *cx, unsigned argc, Value *vp);
 
 static void
@@ -524,7 +524,7 @@ FilenameToString(JSContext *cx, const char *filename)
     return JS_NewStringCopyZ(cx, filename);
 }
 
-static JSBool
+static bool
 Exception(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -602,7 +602,7 @@ Exception(JSContext *cx, unsigned argc, Value *vp)
 }
 
 
-static JSBool
+static bool
 exn_toString(JSContext *cx, unsigned argc, Value *vp)
 {
     JS_CHECK_RECURSION(cx, return false);
@@ -681,7 +681,7 @@ exn_toString(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-static JSBool
+static bool
 exn_toSource(JSContext *cx, unsigned argc, Value *vp)
 {
     JS_CHECK_RECURSION(cx, return false);

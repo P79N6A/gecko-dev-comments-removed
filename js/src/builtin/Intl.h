@@ -43,7 +43,7 @@ namespace js {
 
 
 
-extern JSBool
+extern bool
 intl_Collator(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -54,7 +54,7 @@ intl_Collator(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_Collator_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -65,7 +65,7 @@ intl_Collator_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_availableCollations(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -78,7 +78,7 @@ intl_availableCollations(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_CompareStrings(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -91,7 +91,7 @@ intl_CompareStrings(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_NumberFormat(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -102,7 +102,7 @@ intl_NumberFormat(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_NumberFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -112,7 +112,7 @@ intl_NumberFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_numberingSystem(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -123,7 +123,7 @@ intl_numberingSystem(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_FormatNumber(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -136,7 +136,7 @@ intl_FormatNumber(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_DateTimeFormat(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -147,7 +147,7 @@ intl_DateTimeFormat(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_DateTimeFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -158,7 +158,7 @@ intl_DateTimeFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_availableCalendars(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -169,7 +169,7 @@ intl_availableCalendars(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_patternForSkeleton(JSContext *cx, unsigned argc, Value *vp);
 
 
@@ -181,7 +181,7 @@ intl_patternForSkeleton(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 intl_FormatDateTime(JSContext *cx, unsigned argc, Value *vp);
 
 } 

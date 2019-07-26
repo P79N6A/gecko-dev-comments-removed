@@ -1,15 +1,15 @@
-/* vim: set ts=8 sts=4 et sw=4 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include <stdlib.h>
 #include <errno.h>
 #ifdef HAVE_IO_H
-#include <io.h>     /* for isatty() */
+#include <io.h>     
 #endif
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>     /* for isatty() */
+#include <unistd.h>     
 #endif
 
 #include "base/basictypes.h"
@@ -86,7 +86,7 @@ Environment(JSObject* global)
     return static_cast<XPCShellEnvironment*>(v.get().toPrivate());
 }
 
-static JSBool
+static bool
 Print(JSContext *cx,
       unsigned argc,
       JS::Value *vp)
@@ -98,10 +98,10 @@ Print(JSContext *cx,
     for (i = n = 0; i < argc; i++) {
         str = JS_ValueToString(cx, argv[i]);
         if (!str)
-            return JS_FALSE;
+            return false;
         JSAutoByteString bytes(cx, str);
         if (!bytes)
-            return JS_FALSE;
+            return false;
         fprintf(stdout, "%s%s", i ? " " : "", bytes.ptr());
         fflush(stdout);
     }
@@ -109,7 +109,7 @@ Print(JSContext *cx,
     if (n)
         fputc('\n', stdout);
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
-    return JS_TRUE;
+    return true;
 }
 
 static JSBool
@@ -126,7 +126,7 @@ GetLine(char *bufp,
     return JS_TRUE;
 }
 
-static JSBool
+static bool
 Dump(JSContext *cx,
      unsigned argc,
      JS::Value *vp)
@@ -135,21 +135,21 @@ Dump(JSContext *cx,
 
     JSString *str;
     if (!argc)
-        return JS_TRUE;
+        return true;
 
     str = JS_ValueToString(cx, JS_ARGV(cx, vp)[0]);
     if (!str)
-        return JS_FALSE;
+        return false;
     JSAutoByteString bytes(cx, str);
     if (!bytes)
-      return JS_FALSE;
+      return false;
 
     fputs(bytes.ptr(), stdout);
     fflush(stdout);
-    return JS_TRUE;
+    return true;
 }
 
-static JSBool
+static bool
 Load(JSContext *cx,
      unsigned argc,
      JS::Value *vp)
@@ -158,21 +158,21 @@ Load(JSContext *cx,
 
     JS::Rooted<JSObject*> obj(cx, JS_THIS_OBJECT(cx, vp));
     if (!obj)
-        return JS_FALSE;
+        return false;
 
     JS::Value *argv = JS_ARGV(cx, vp);
     for (unsigned i = 0; i < argc; i++) {
         JSString *str = JS_ValueToString(cx, argv[i]);
         if (!str)
-            return JS_FALSE;
+            return false;
         argv[i] = STRING_TO_JSVAL(str);
         JSAutoByteString filename(cx, str);
         if (!filename)
-            return JS_FALSE;
+            return false;
         FILE *file = fopen(filename.ptr(), "r");
         if (!file) {
             JS_ReportError(cx, "cannot open file '%s' for reading", filename.ptr());
-            return JS_FALSE;
+            return false;
         }
         JS::CompileOptions options(cx);
         options.setUTF8(true)
@@ -182,17 +182,17 @@ Load(JSContext *cx,
         JSScript *script = JS::Compile(cx, rootedObj, options, file);
         fclose(file);
         if (!script)
-            return JS_FALSE;
+            return false;
 
         if (!JS_ExecuteScript(cx, obj, script, result.address())) {
-            return JS_FALSE;
+            return false;
         }
     }
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
-    return JS_TRUE;
+    return true;
 }
 
-static JSBool
+static bool
 Version(JSContext *cx,
         unsigned argc,
         JS::Value *vp)
@@ -202,17 +202,17 @@ Version(JSContext *cx,
     if (argc > 0 && JSVAL_IS_INT(argv[0]))
         JS_SetVersionForCompartment(js::GetContextCompartment(cx),
                                     JSVersion(JSVAL_TO_INT(argv[0])));
-    return JS_TRUE;
+    return true;
 }
 
-static JSBool
+static bool
 BuildDate(JSContext *cx, unsigned argc, JS::Value *vp)
 {
     fprintf(stdout, "built on %s at %s\n", __DATE__, __TIME__);
-    return JS_TRUE;
+    return true;
 }
 
-static JSBool
+static bool
 Quit(JSContext *cx,
      unsigned argc,
      JS::Value *vp)
@@ -220,10 +220,10 @@ Quit(JSContext *cx,
     XPCShellEnvironment* env = Environment(JS::CurrentGlobalOrNull(cx));
     env->SetIsQuitting();
 
-    return JS_FALSE;
+    return false;
 }
 
-static JSBool
+static bool
 DumpXPC(JSContext *cx,
         unsigned argc,
         JS::Value *vp)
@@ -232,17 +232,17 @@ DumpXPC(JSContext *cx,
 
     if (argc > 0) {
         if (!JS_ValueToInt32(cx, JS_ARGV(cx, vp)[0], &depth))
-            return JS_FALSE;
+            return false;
     }
 
     nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
     if(xpc)
         xpc->DebugDump(int16_t(depth));
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
-    return JS_TRUE;
+    return true;
 }
 
-static JSBool
+static bool
 GC(JSContext *cx,
    unsigned argc,
    JS::Value *vp)
@@ -253,11 +253,11 @@ GC(JSContext *cx,
     js_DumpGCStats(rt, stdout);
 #endif
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
-    return JS_TRUE;
+    return true;
 }
 
 #ifdef JS_GC_ZEAL
-static JSBool
+static bool
 GCZeal(JSContext *cx, 
        unsigned argc,
        JS::Value *vp)
@@ -266,16 +266,16 @@ GCZeal(JSContext *cx,
 
   uint32_t zeal;
   if (!JS_ValueToECMAUint32(cx, argv[0], &zeal))
-    return JS_FALSE;
+    return false;
 
   JS_SetGCZeal(cx, uint8_t(zeal), JS_DEFAULT_ZEAL_FREQ);
-  return JS_TRUE;
+  return true;
 }
 #endif
 
 #ifdef DEBUG
 
-static JSBool
+static bool
 DumpHeap(JSContext *cx,
          unsigned argc,
          JS::Value *vp)
@@ -298,10 +298,10 @@ DumpHeap(JSContext *cx,
 
         str = JS_ValueToString(cx, *vp);
         if (!str)
-            return JS_FALSE;
+            return false;
         *vp = STRING_TO_JSVAL(str);
         if (!fileName.encodeLatin1(cx, str))
-            return JS_FALSE;
+            return false;
     }
 
     vp = argv + 1;
@@ -324,7 +324,7 @@ DumpHeap(JSContext *cx,
         uint32_t depth;
 
         if (!JS_ValueToECMAUint32(cx, *vp, &depth))
-            return JS_FALSE;
+            return false;
         maxDepth = depth;
     }
 
@@ -342,7 +342,7 @@ DumpHeap(JSContext *cx,
         if (!dumpFile) {
             fprintf(stderr, "dumpHeap: can't open %s: %s\n",
                     fileName.ptr(), strerror(errno));
-            return JS_FALSE;
+            return false;
         }
     }
 
@@ -358,10 +358,10 @@ DumpHeap(JSContext *cx,
     fprintf(stderr,
             "dumpHeap: argument %u is not null or a heap-allocated thing\n",
             (unsigned)(vp - argv));
-    return JS_FALSE;
+    return false;
 }
 
-#endif /* DEBUG */
+#endif 
 
 const JSFunctionSpec gGlobalFunctions[] =
 {
@@ -392,7 +392,7 @@ typedef enum JSShellErrNum
 #undef MSGDEF
 } JSShellErrNum;
 
-} /* anonymous namespace */
+} 
 
 void
 XPCShellEnvironment::ProcessFile(JSContext *cx,
@@ -418,14 +418,14 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
     if (!isatty(fileno(file)))
 #endif
     {
-        /*
-         * It's not interactive - just execute it.
-         *
-         * Support the UNIX #! shell hack; gobble the first line if it starts
-         * with '#'.  TODO - this isn't quite compatible with sharp variables,
-         * as a legal js program (using sharp variables) might start with '#'.
-         * But that would require multi-character lookahead.
-         */
+        
+
+
+
+
+
+
+
         int ch = fgetc(file);
         if (ch == '#') {
             while((ch = fgetc(file)) != EOF) {
@@ -449,7 +449,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
         return;
     }
 
-    /* It's an interactive filehandle; drop into read-eval-print loop. */
+    
     lineno = 1;
     hitEOF = JS_FALSE;
     do {
@@ -459,12 +459,12 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
         JSAutoRequest ar(cx);
         JSAutoCompartment ac(cx, obj);
 
-        /*
-         * Accumulate lines until we get a 'compilable unit' - one that either
-         * generates an error (before running out of source) or that compiles
-         * cleanly.  This should be whenever we get a complete statement that
-         * coincides with the end of a line.
-         */
+        
+
+
+
+
+
         startline = lineno;
         do {
             if (!GetLine(bufp, file, startline == lineno ? "js> " : "")) {
@@ -475,7 +475,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
             lineno++;
         } while (!JS_BufferIsCompilableUnit(cx, obj, buffer, strlen(buffer)));
 
-        /* Clear any pending exception from previous failed compiles.  */
+        
         JS_ClearPendingException(cx);
         script =
             JS_CompileScriptForPrincipals(cx, obj, env->GetPrincipal(), buffer,
@@ -485,7 +485,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
 
             ok = JS_ExecuteScript(cx, obj, script, result.address());
             if (ok && result != JSVAL_VOID) {
-                /* Suppress error reports from JS_ValueToString(). */
+                
                 older = JS_SetErrorReporter(cx, NULL);
                 str = JS_ValueToString(cx, result);
                 JSAutoByteString bytes;
@@ -539,7 +539,7 @@ XPCShellDirProvider::GetFile(const char *prop,
     return NS_ERROR_FAILURE;
 }
 
-// static
+
 XPCShellEnvironment*
 XPCShellEnvironment::CreateEnvironment()
 {
@@ -579,8 +579,8 @@ XPCShellEnvironment::Init()
     nsresult rv;
 
 #ifdef HAVE_SETBUF
-    // unbuffer stdout so that output is in the correct order; note that stderr
-    // is unbuffered by default
+    
+    
     setbuf(stdout, 0);
 #endif
 
