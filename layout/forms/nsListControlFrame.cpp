@@ -1177,7 +1177,7 @@ nsListControlFrame::GetSelectedIndex()
   return aIndex;
 }
 
-already_AddRefed<nsIContent>
+dom::HTMLOptionElement*
 nsListControlFrame::GetCurrentOption()
 {
   
@@ -1186,43 +1186,24 @@ nsListControlFrame::GetCurrentOption()
     GetSelectedIndex() : mEndSelectionIndex;
 
   if (focusedIndex != kNothingSelected) {
-    return GetOptionContent(focusedIndex);
+    return GetOption(SafeCast<uint32_t>(focusedIndex));
   }
 
+  
   nsRefPtr<dom::HTMLSelectElement> selectElement =
     dom::HTMLSelectElement::FromContent(mContent);
-  NS_ASSERTION(selectElement, "Can't be null");
 
-  
-  
-  nsCOMPtr<nsIDOMNode> node;
-
-  uint32_t length;
-  selectElement->GetLength(&length);
-  if (length) {
-    bool isDisabled = true;
-    for (uint32_t i = 0; i < length && isDisabled; i++) {
-      if (NS_FAILED(selectElement->Item(i, getter_AddRefs(node))) || !node) {
-        break;
-      }
-      if (NS_FAILED(selectElement->IsOptionDisabled(i, &isDisabled))) {
-        break;
-      }
-      if (isDisabled) {
-        node = nullptr;
-      } else {
-        break;
-      }
-    }
+  for (uint32_t i = 0, length = selectElement->Length(); i < length; ++i) {
+    dom::HTMLOptionElement* node = selectElement->Item(i);
     if (!node) {
       return nullptr;
     }
+
+    if (!selectElement->IsOptionDisabled(node)) {
+      return node;
+    }
   }
 
-  if (node) {
-    nsCOMPtr<nsIContent> focusedOption = do_QueryInterface(node);
-    return focusedOption.forget();
-  }
   return nullptr;
 }
 

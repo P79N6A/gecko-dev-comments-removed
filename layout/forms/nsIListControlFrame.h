@@ -12,6 +12,12 @@
 class nsAString;
 class nsIContent;
 
+namespace mozilla {
+namespace dom {
+class HTMLOptionElement;
+} 
+} 
+
 
 
 
@@ -41,7 +47,7 @@ public:
 
 
 
-  virtual already_AddRefed<nsIContent> GetCurrentOption() = 0;
+  virtual mozilla::dom::HTMLOptionElement* GetCurrentOption() = 0;
 
   
 
