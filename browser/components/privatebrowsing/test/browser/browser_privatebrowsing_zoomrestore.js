@@ -30,7 +30,7 @@ function test() {
       Services.obs.removeObserver(onLocationChange, topic);
       if (++n == 2)
         doTest(aIsZoomedWindow, aWindow, aCallback);
-    }, "browser-fullZoom:location-change", false);
+    }, "FullZoom:TESTS:location-change", false);
 
     browser.loadURI("about:blank");
   }
