@@ -526,20 +526,10 @@ public:
                                      nsTArray<ViewID> &aOutIDs,
                                      bool aIgnoreRootScrollFrame);
 
-  enum FrameForPointFlags {
-    
-
-
-
-    IGNORE_PAINT_SUPPRESSION = 0x01,
-    
-
-
-
-    IGNORE_ROOT_SCROLL_FRAME = 0x02
-  };
-
   
+
+
+
 
 
 
@@ -547,9 +537,13 @@ public:
 
 
   static nsIFrame* GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt,
-                                    uint32_t aFlags = 0);
+                                    bool aShouldIgnoreSuppression = false,
+                                    bool aIgnoreRootScrollFrame = false);
 
   
+
+
+
 
 
 
@@ -559,7 +553,8 @@ public:
 
   static nsresult GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
                                    nsTArray<nsIFrame*> &aOutFrames,
-                                   uint32_t aFlags = 0);
+                                   bool aShouldIgnoreSuppression = false,
+                                   bool aIgnoreRootScrollFrame = false);
 
   
 
