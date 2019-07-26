@@ -71,6 +71,10 @@
 #include "nsILoadContext.h"
 #include "ipc/nsGUIEventIPC.h"
 
+#ifdef DEBUG
+#include "PCOMContentPermissionRequestChild.h"
+#endif 
+
 #define BROWSER_ELEMENT_CHILD_SCRIPT \
     NS_LITERAL_STRING("chrome://global/content/BrowserElementChild.js")
 
@@ -1141,6 +1145,20 @@ TabChild::ArraysToParams(const InfallibleTArray<int>& aIntParams,
   }
 }
 
+#ifdef DEBUG
+PContentPermissionRequestChild*
+TabChild:: SendPContentPermissionRequestConstructor(PContentPermissionRequestChild* aActor,
+                                                    const nsCString& aType,
+                                                    const nsCString& aAccess,
+                                                    const IPC::Principal& aPrincipal)
+{
+  PCOMContentPermissionRequestChild* child = static_cast<PCOMContentPermissionRequestChild*>(aActor);
+  PContentPermissionRequestChild* request = PBrowserChild::SendPContentPermissionRequestConstructor(aActor, aType, aAccess, aPrincipal);
+  child->mIPCOpen = true;
+  return request;
+}
+#endif 
+
 void
 TabChild::DestroyWindow()
 {
@@ -1990,8 +2008,7 @@ TabChild::DeallocPContentDialogChild(PContentDialogChild* aDialog)
 }
 
 PContentPermissionRequestChild*
-TabChild::AllocPContentPermissionRequestChild(const InfallibleTArray<PermissionRequest>& aRequests,
-                                              const IPC::Principal& aPrincipal)
+TabChild::AllocPContentPermissionRequestChild(const nsCString& aType, const nsCString& aAccess, const IPC::Principal&)
 {
   NS_RUNTIMEABORT("unused");
   return nullptr;
@@ -2358,6 +2375,12 @@ TabChild::GetMessageManager(nsIContentFrameMessageManager** aResult)
   }
   *aResult = nullptr;
   return NS_ERROR_FAILURE;
+}
+
+void
+TabChild::SendRequestFocus(bool aCanFocus)
+{
+  PBrowserChild::SendRequestFocus(aCanFocus);
 }
 
 PIndexedDBChild*
