@@ -239,6 +239,20 @@ public:
                                              const nsAString *aAttribute,
                                              const nsAString *aValue,
                                              bool aSuppressTransaction);
+  
+
+
+
+
+
+
+
+
+  nsresult    RemoveCSSEquivalentToHTMLStyle(mozilla::dom::Element* aElement,
+                                             nsIAtom* aHTMLProperty,
+                                             const nsAString* aAttribute,
+                                             const nsAString* aValue,
+                                             bool aSuppressTransaction);
 
   
 
