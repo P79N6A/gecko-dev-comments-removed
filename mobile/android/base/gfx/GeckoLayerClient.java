@@ -191,8 +191,8 @@ public class GeckoLayerClient
 
 
 
-    void setViewportSize(FloatSize size) {
-        mViewportMetrics = mViewportMetrics.setViewportSize(size);
+    void setViewportSize(int width, int height) {
+        mViewportMetrics = mViewportMetrics.setViewportSize(width, height);
 
         if (mGeckoIsReady) {
             
@@ -311,7 +311,7 @@ public class GeckoLayerClient
             default:
             case UPDATE:
                 
-                metrics = messageMetrics.setViewportSize(oldMetrics.getSize());
+                metrics = messageMetrics.setViewportSize(oldMetrics.getWidth(), oldMetrics.getHeight());
                 abortPanZoomAnimation();
                 break;
             case PAGE_SIZE:
@@ -629,7 +629,7 @@ public class GeckoLayerClient
 
     
     public void surfaceChanged(int width, int height) {
-        setViewportSize(new FloatSize(width, height));
+        setViewportSize(width, height);
 
         
         

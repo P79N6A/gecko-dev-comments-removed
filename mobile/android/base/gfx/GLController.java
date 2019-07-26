@@ -127,7 +127,7 @@ public class GLController {
         
         mView.post(new Runnable() {
             public void run() {
-                mView.setViewportSize(new IntSize(mWidth, mHeight));
+                mView.setViewportSize(mWidth, mHeight);
             }
         });
     }
