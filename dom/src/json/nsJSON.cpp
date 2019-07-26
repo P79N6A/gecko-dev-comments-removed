@@ -216,7 +216,7 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue,
       toJSON.isObject() &&
       JS_ObjectIsCallable(cx, &toJSON.toObject())) {
     
-    if (!JS_CallFunctionValue(cx, obj, toJSON, 0, NULL, val.address())) {
+    if (!JS_CallFunctionValue(cx, obj, toJSON, 0, nullptr, val.address())) {
       if (JS_IsExceptionPending(cx))
         
         return NS_OK;

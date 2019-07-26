@@ -2392,7 +2392,7 @@ WorkerPrivateParent<Derived>::_finalize(JSFreeOp* aFop)
   
   
   
-  WorkerPrivateParent<Derived>* extraSelfRef = NULL;
+  WorkerPrivateParent<Derived>* extraSelfRef = nullptr;
 
   if (!mParent && !mMainThreadObjectsForgotten) {
     AssertIsOnMainThread();
