@@ -61,7 +61,7 @@ public:
   ErrorCallbackRunnable(
     already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
     already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
-    const nsString& aErrorMsg, uint64_t aWindowID)
+    const nsAString& aErrorMsg, uint64_t aWindowID)
     : mSuccess(aSuccess)
     , mError(aError)
     , mErrorMsg(aErrorMsg)
@@ -553,7 +553,7 @@ public:
   }
 
   nsresult
-  Denied()
+  Denied(const nsAString& aErrorMsg)
   {
       
       
@@ -561,7 +561,7 @@ public:
       
       
       nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
-      error->OnError(NS_LITERAL_STRING("PERMISSION_DENIED"));
+      error->OnError(aErrorMsg);
 
       
       nsRefPtr<MediaManager> manager(MediaManager::GetInstance());
@@ -570,7 +570,7 @@ public:
       
       
       NS_DispatchToMainThread(new ErrorCallbackRunnable(
-        mSuccess, mError, NS_LITERAL_STRING("PERMISSION_DENIED"), mWindowID
+        mSuccess, mError, aErrorMsg, mWindowID
       ));
 
       
@@ -1197,7 +1197,7 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
       array->Count(&len);
       MOZ_ASSERT(len);
       if (!len) {
-        gUMRunnable->Denied(); 
+        gUMRunnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED")); 
         return NS_OK;
       }
       for (uint32_t i = 0; i < len; i++) {
@@ -1225,6 +1225,16 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
   }
 
   if (!strcmp(aTopic, "getUserMedia:response:deny")) {
+    nsString errorMessage(NS_LITERAL_STRING("PERMISSION_DENIED"));
+
+    if (aSubject) {
+      nsCOMPtr<nsISupportsString> msg(do_QueryInterface(aSubject));
+      MOZ_ASSERT(msg);
+      msg->GetData(errorMessage);
+      if (errorMessage.IsEmpty())
+        errorMessage.Assign(NS_LITERAL_STRING("UNKNOWN_ERROR"));
+    }
+
     nsString key(aData);
     nsRefPtr<nsRunnable> runnable;
     if (!mActiveCallbacks.Get(key, getter_AddRefs(runnable))) {
@@ -1234,7 +1244,7 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
 
     GetUserMediaRunnable* gUMRunnable =
       static_cast<GetUserMediaRunnable*>(runnable.get());
-    gUMRunnable->Denied();
+    gUMRunnable->Denied(errorMessage);
     return NS_OK;
   }
 
