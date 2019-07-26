@@ -51,12 +51,15 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                                        Animation.AnimationListener {
     private static final String LOGTAG = "GeckoToolbar";
     private LinearLayout mLayout;
-    private Button mAwesomeBar;
+    private View mAwesomeBar;
+    private View mAwesomeBarRightEdge;
+    private View mAddressBarBg;
     private TextView mTitle;
     private int mTitlePadding;
     private boolean mSiteSecurityVisible;
     private boolean mAnimateSiteSecurity;
     private ImageButton mTabs;
+    private int mTabsPaneWidth;
     private ImageView mBack;
     private ImageView mForward;
     public ImageButton mFavicon;
@@ -112,12 +115,29 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         mShowSiteSecurity = false;
         mShowReader = false;
 
+        
+        
+        
+        mAddressBarBg = mLayout.findViewById(R.id.address_bar_bg);
+
+        
+        
+        
+        
+        
+        
+        mAwesomeBarRightEdge = mLayout.findViewById(R.id.awesome_bar_right_edge);
+
+        
+        
+        mTabsPaneWidth = 0;
+
         mTitle = (TextView) mLayout.findViewById(R.id.awesome_bar_title);
         mTitlePadding = mTitle.getPaddingRight();
         if (Build.VERSION.SDK_INT >= 16)
             mTitle.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
 
-        mAwesomeBar = (Button) mLayout.findViewById(R.id.awesome_bar);
+        mAwesomeBar = mLayout.findViewById(R.id.awesome_bar);
         mAwesomeBar.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
                 mActivity.autoHideTabs();
@@ -460,6 +480,54 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         updateTabs(mActivity.areTabsShown());
     }
 
+    public void prepareTabsAnimation(PropertyAnimator animator, int width) {
+        
+        
+        animator.attach(mAwesomeBarRightEdge,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        -width);
+
+        animator.attach(mAwesomeBar,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mAddressBarBg,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mTabs,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mTabsCount,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mBack,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mForward,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mTitle,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mFavicon,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+        animator.attach(mSiteSecurity,
+                        PropertyAnimator.Property.TRANSLATION_X,
+                        width);
+
+        mTabsPaneWidth = width;
+
+        
+        
+        
+        if (mTabsPaneWidth > 0)
+            setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
+    }
+
+    public void finishTabsAnimation() {
+        setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
+    }
+
     public void updateTabs(boolean areTabsShown) {
         if (areTabsShown) {
             mTabs.getBackground().setLevel(TABS_EXPANDED);
@@ -511,7 +579,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         
         
         
-        mTitle.setPadding(0, 0, (!mShowReader && !isLoading ? mTitlePadding : 0), 0);
+        mTitle.setPadding(0, 0, (!mShowReader && !isLoading ? mTitlePadding : 0) + mTabsPaneWidth, 0);
 
         updateFocusOrder();
     }

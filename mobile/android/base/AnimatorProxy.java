@@ -1,0 +1,303 @@
+
+
+
+
+
+package org.mozilla.gecko;
+
+import android.graphics.Matrix;
+import android.graphics.RectF;
+import android.os.Build;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.Transformation;
+
+import java.lang.ref.WeakReference;
+import java.util.WeakHashMap;
+
+public class AnimatorProxy {
+    private static final WeakHashMap<View, AnimatorProxy> PROXIES =
+            new WeakHashMap<View, AnimatorProxy>();
+
+    private static interface AnimatorProxyImpl {
+        public int getScrollX();
+        public int getScrollY();
+        public void scrollTo(int scrollX, int scrollY);
+
+        public float getTranslationX();
+        public void setTranslationX(float translationX);
+
+        public float getTranslationY();
+        public void setTranslationY(float translationY);
+    }
+
+    private AnimatorProxyImpl mImpl;
+
+    private AnimatorProxy(AnimatorProxyImpl impl) {
+        mImpl = impl;
+    }
+
+    public static AnimatorProxy create(View view) {
+        AnimatorProxy proxy = PROXIES.get(view);
+        boolean needsAnimationProxy = (Build.VERSION.SDK_INT < 11);
+
+        
+        
+        if (proxy == null || (needsAnimationProxy && proxy.mImpl != view.getAnimation())) {
+            AnimatorProxyImpl impl = (needsAnimationProxy ? new AnimatorProxyPreHC(view) :
+                                                            new AnimatorProxyPostHC(view));
+
+            proxy = new AnimatorProxy(impl);
+            PROXIES.put(view, proxy);
+        }
+
+        return proxy;
+    }
+
+    public int getScrollX() {
+        return mImpl.getScrollX();
+    }
+
+    public int getScrollY() {
+        return mImpl.getScrollY();
+    }
+
+    public void scrollTo(int scrollX, int scrollY) {
+        mImpl.scrollTo(scrollX, scrollY);
+    }
+
+    public float getTranslationX() {
+        return mImpl.getTranslationX();
+    }
+
+    public void setTranslationX(float translationX) {
+        mImpl.setTranslationX(translationX);
+    }
+
+    public float getTranslationY() {
+        return mImpl.getTranslationY();
+    }
+
+    public void setTranslationY(float translationY) {
+        mImpl.setTranslationY(translationY);
+    }
+
+    
+
+
+
+
+
+
+    private static class AnimatorProxyPreHC extends Animation implements AnimatorProxyImpl {
+        private WeakReference<View> mViewRef;
+
+        private final RectF mBefore;
+        private final RectF mAfter;
+        private final Matrix mTempMatrix;
+
+        private float mTranslationX;
+        private float mTranslationY;
+
+        public AnimatorProxyPreHC(View view) {
+            mBefore = new RectF();
+            mAfter = new RectF();
+            mTempMatrix = new Matrix();
+
+            mTranslationX = 0;
+            mTranslationY = 0;
+
+            loadCurrentTransformation(view);
+
+            setDuration(0);
+            setFillAfter(true);
+            view.setAnimation(this);
+
+            mViewRef = new WeakReference<View>(view);
+        }
+
+        private void loadCurrentTransformation(View view) {
+            Animation animation = view.getAnimation();
+            if (animation == null)
+                return;
+
+            Transformation transformation = new Transformation();
+            float[] matrix = new float[9];
+
+            animation.getTransformation(AnimationUtils.currentAnimationTimeMillis(), transformation);
+            transformation.getMatrix().getValues(matrix);
+
+            mTranslationX = matrix[Matrix.MTRANS_X];
+            mTranslationY = matrix[Matrix.MTRANS_Y];
+        }
+
+        private void prepareForUpdate() {
+            View view = mViewRef.get();
+            if (view != null)
+                computeRect(mBefore, view);
+        }
+
+        private void computeRect(final RectF r, View view) {
+            final float w = view.getWidth();
+            final float h = view.getHeight();
+
+            r.set(0, 0, w, h);
+
+            final Matrix m = mTempMatrix;
+            m.reset();
+            transformMatrix(m, view);
+            mTempMatrix.mapRect(r);
+
+            r.offset(view.getLeft(), view.getTop());
+        }
+
+        private void transformMatrix(Matrix m, View view) {
+            m.postTranslate(mTranslationX, mTranslationY);
+        }
+
+        private void invalidateAfterUpdate() {
+            View view = mViewRef.get();
+            if (view == null || view.getParent() == null)
+                return;
+
+            final RectF after = mAfter;
+            computeRect(after, view);
+            after.union(mBefore);
+
+            ((View)view.getParent()).invalidate(
+                    (int) Math.floor(after.left),
+                    (int) Math.floor(after.top),
+                    (int) Math.ceil(after.right),
+                    (int) Math.ceil(after.bottom));
+        }
+
+        @Override
+        public int getScrollX() {
+            View view = mViewRef.get();
+            if (view != null)
+                return view.getScrollX();
+
+            return 0;
+        }
+
+        @Override
+        public int getScrollY() {
+            View view = mViewRef.get();
+            if (view != null)
+                return view.getScrollY();
+
+            return 0;
+        }
+
+        @Override
+        public void scrollTo(int scrollX, int scrollY) {
+            View view = mViewRef.get();
+            if (view != null)
+                view.scrollTo(scrollX, scrollY);
+        }
+
+        @Override
+        public float getTranslationX() {
+            return mTranslationX;
+        }
+
+        @Override
+        public void setTranslationX(float translationX) {
+            if (mTranslationX == translationX)
+                return;
+
+            prepareForUpdate();
+            mTranslationX = translationX;
+            invalidateAfterUpdate();
+        }
+
+        @Override
+        public float getTranslationY() {
+            return mTranslationY;
+        }
+
+        @Override
+        public void setTranslationY(float translationY) {
+            if (mTranslationY == translationY)
+                return;
+
+            prepareForUpdate();
+            mTranslationY = translationY;
+            invalidateAfterUpdate();
+        }
+
+        @Override
+        protected void applyTransformation(float interpolatedTime, Transformation t) {
+            View view = mViewRef.get();
+            if (view != null)
+                transformMatrix(t.getMatrix(), view);
+        }
+    }
+
+    private static class AnimatorProxyPostHC implements AnimatorProxyImpl {
+        private WeakReference<View> mViewRef;
+
+        public AnimatorProxyPostHC(View view) {
+            mViewRef = new WeakReference<View>(view);
+        }
+
+        @Override
+        public int getScrollX() {
+            View view = mViewRef.get();
+            if (view != null)
+                return view.getScrollX();
+
+            return 0;
+        }
+
+        @Override
+        public int getScrollY() {
+            View view = mViewRef.get();
+            if (view != null)
+                return view.getScrollY();
+
+            return 0;
+        }
+
+        @Override
+        public void scrollTo(int scrollX, int scrollY) {
+            View view = mViewRef.get();
+            if (view != null)
+                view.scrollTo(scrollX, scrollY);
+        }
+
+        @Override
+        public float getTranslationX() {
+            View view = mViewRef.get();
+            if (view != null)
+                return view.getTranslationX();
+
+            return 0;
+        }
+
+        @Override
+        public void setTranslationX(float translationX) {
+            View view = mViewRef.get();
+            if (view != null)
+                view.setTranslationX(translationX);
+        }
+
+        @Override
+        public float getTranslationY() {
+            View view = mViewRef.get();
+            if (view != null)
+                return view.getTranslationY();
+
+            return 0;
+        }
+
+        @Override
+        public void setTranslationY(float translationY) {
+            View view = mViewRef.get();
+            if (view != null)
+                view.setTranslationY(translationY);
+        }
+    }
+}
+
