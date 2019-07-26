@@ -1043,26 +1043,13 @@ SVGSVGElement::ShouldSynthesizeViewBox() const
     !GetParent();
 }
 
-
-
-static void
-ReleasePreserveAspectRatioPropertyValue(void*    aObject,       
-                                        nsIAtom* aPropertyName, 
-                                        void*    aPropertyValue,
-                                        void*    aData          )
-{
-  SVGPreserveAspectRatio* valPtr =
-    static_cast<SVGPreserveAspectRatio*>(aPropertyValue);
-  delete valPtr;
-}
-
 bool
 SVGSVGElement::SetPreserveAspectRatioProperty(const SVGPreserveAspectRatio& aPAR)
 {
   SVGPreserveAspectRatio* pAROverridePtr = new SVGPreserveAspectRatio(aPAR);
   nsresult rv = SetProperty(nsGkAtoms::overridePreserveAspectRatio,
                             pAROverridePtr,
-                            ReleasePreserveAspectRatioPropertyValue,
+                            nsINode::DeleteProperty<SVGPreserveAspectRatio>,
                             true);
   NS_ABORT_IF_FALSE(rv != NS_PROPTABLE_PROP_OVERWRITTEN,
                     "Setting override value when it's already set...?"); 
@@ -1158,25 +1145,13 @@ SVGSVGElement::FlushImageTransformInvalidation()
   }
 }
 
-
-static void
-ReleaseViewBoxPropertyValue(void*    aObject,       
-                            nsIAtom* aPropertyName, 
-                            void*    aPropertyValue,
-                            void*    aData          )
-{
-  nsSVGViewBoxRect* valPtr =
-    static_cast<nsSVGViewBoxRect*>(aPropertyValue);
-  delete valPtr;
-}
-
 bool
 SVGSVGElement::SetViewBoxProperty(const nsSVGViewBoxRect& aViewBox)
 {
   nsSVGViewBoxRect* pViewBoxOverridePtr = new nsSVGViewBoxRect(aViewBox);
   nsresult rv = SetProperty(nsGkAtoms::viewBox,
                             pViewBoxOverridePtr,
-                            ReleaseViewBoxPropertyValue,
+                            nsINode::DeleteProperty<nsSVGViewBoxRect>,
                             true);
   NS_ABORT_IF_FALSE(rv != NS_PROPTABLE_PROP_OVERWRITTEN,
                     "Setting override value when it's already set...?"); 
@@ -1235,25 +1210,13 @@ SVGSVGElement::ClearZoomAndPanProperty()
   return UnsetProperty(nsGkAtoms::zoomAndPan);
 }
 
-
-static void
-ReleaseTransformPropertyValue(void*    aObject,       
-                              nsIAtom* aPropertyName, 
-                              void*    aPropertyValue,
-                              void*    aData          )
-{
-  SVGTransformList* valPtr =
-    static_cast<SVGTransformList*>(aPropertyValue);
-  delete valPtr;
-}
-
 bool
 SVGSVGElement::SetTransformProperty(const SVGTransformList& aTransform)
 {
   SVGTransformList* pTransformOverridePtr = new SVGTransformList(aTransform);
   nsresult rv = SetProperty(nsGkAtoms::transform,
                             pTransformOverridePtr,
-                            ReleaseTransformPropertyValue,
+                            nsINode::DeleteProperty<SVGTransformList>,
                             true);
   NS_ABORT_IF_FALSE(rv != NS_PROPTABLE_PROP_OVERWRITTEN,
                     "Setting override value when it's already set...?"); 

@@ -694,6 +694,15 @@ public:
   
 
 
+  template<class T>
+  static void DeleteProperty(void *, nsIAtom *, void *aPropertyValue, void *)
+  {
+    delete static_cast<T *>(aPropertyValue);
+  }
+
+  
+
+
 
 
 
