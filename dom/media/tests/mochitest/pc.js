@@ -608,16 +608,28 @@ DataChannelTest.prototype = Object.create(PeerConnectionTest.prototype, {
         }
       }
 
-      
-      this.pcRemote.registerDataChannelOpenEvents(function (channel) {
-        remoteChannel = channel;
-        check_next_test();
-      });
+      if (!options.negotiated) {
+        
+        this.pcRemote.registerDataChannelOpenEvents(function (channel) {
+          remoteChannel = channel;
+          check_next_test();
+        });
+      }
 
       
       this.pcLocal.createDataChannel(options, function (channel) {
         localChannel = channel;
-        check_next_test();
+
+        if (options.negotiated) {
+          
+          options.id = options.id || channel.id;  
+          self.pcRemote.createDataChannel(options, function (channel) {
+            remoteChannel = channel;
+            check_next_test();
+          });
+        } else {
+          check_next_test();
+	}
       });
     }
   },
@@ -824,6 +836,35 @@ DataChannelWrapper.prototype = {
   get label() {
     return this._channel.label;
   },
+
+  
+
+
+
+
+  get protocol() {
+    return this._channel.protocol;
+  },
+
+  
+
+
+
+
+  get id() {
+    return this._channel.id;
+  },
+
+  
+
+
+
+
+  get reliable() {
+    return this._channel.reliable;
+  },
+
+  
 
   
 
