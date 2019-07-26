@@ -921,8 +921,18 @@ DownloadsViewItem.prototype = {
                                             DownloadsCommon.strings.statePaused,
                                             transfer);
     } else if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
+      
+      
+      
+      [status] =
+        DownloadUtils.getDownloadStatusNoRate(this.dataItem.currBytes,
+                                              this.dataItem.maxBytes,
+                                              this.dataItem.speed,
+                                              this.lastEstimatedSecondsLeft);
+
+      
       let newEstimatedSecondsLeft;
-      [status, newEstimatedSecondsLeft] =
+      [statusTip, newEstimatedSecondsLeft] =
         DownloadUtils.getDownloadStatus(this.dataItem.currBytes,
                                         this.dataItem.maxBytes,
                                         this.dataItem.speed,

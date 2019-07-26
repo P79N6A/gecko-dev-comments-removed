@@ -55,6 +55,7 @@ const kDownloadProperties =
 
 let gStr = {
   statusFormat: "statusFormat3",
+  statusFormatNoRate: "statusFormatNoRate",
   transferSameUnits: "transferSameUnits2",
   transferDiffUnits: "transferDiffUnits2",
   transferNoTotal: "transferNoTotal2",
@@ -103,6 +104,63 @@ this.DownloadUtils = {
   getDownloadStatus: function DU_getDownloadStatus(aCurrBytes, aMaxBytes,
                                                    aSpeed, aLastSec)
   {
+    let [transfer, timeLeft, newLast, normalizedSpeed]
+      = this._deriveTransferRate(aCurrBytes, aMaxBytes, aSpeed, aLastSec);
+
+    let [rate, unit] = DownloadUtils.convertByteUnits(normalizedSpeed);
+    let params = [transfer, rate, unit, timeLeft];
+    let status = gBundle.formatStringFromName(gStr.statusFormat, params,
+                                              params.length);
+    return [status, newLast];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getDownloadStatusNoRate:
+  function DU_getDownloadStatusNoRate(aCurrBytes, aMaxBytes, aSpeed,
+                                      aLastSec)
+  {
+    let [transfer, timeLeft, newLast]
+      = this._deriveTransferRate(aCurrBytes, aMaxBytes, aSpeed, aLastSec);
+
+    let params = [transfer, timeLeft];
+    let status = gBundle.formatStringFromName(gStr.statusFormatNoRate, params,
+                                              params.length);
+    return [status, newLast];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _deriveTransferRate: function DU__deriveTransferRate(aCurrBytes,
+                                                       aMaxBytes, aSpeed,
+                                                       aLastSec)
+  {
     if (aMaxBytes == null)
       aMaxBytes = -1;
     if (aSpeed == null)
@@ -115,13 +173,8 @@ this.DownloadUtils = {
       (aMaxBytes - aCurrBytes) / aSpeed : -1;
 
     let transfer = DownloadUtils.getTransferTotal(aCurrBytes, aMaxBytes);
-    let [rate, unit] = DownloadUtils.convertByteUnits(aSpeed);
     let [timeLeft, newLast] = DownloadUtils.getTimeLeft(seconds, aLastSec);
-
-    let params = [transfer, rate, unit, timeLeft];
-    let status = gBundle.formatStringFromName(gStr.statusFormat, params,
-                                              params.length);
-    return [status, newLast];
+    return [transfer, timeLeft, newLast, aSpeed];
   },
 
   
