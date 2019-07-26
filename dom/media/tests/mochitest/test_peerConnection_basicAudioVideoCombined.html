@@ -23,6 +23,11 @@
 </div>
 <pre id="test">
 <script type="application/javascript">
+
+if (navigator.platform.indexOf("Linux") != 0) {
+  SimpleTest.expectAssertions(0, 1);
+}
+
   var audioLocal;
   var videoLocal;
   var videoPCLocal;

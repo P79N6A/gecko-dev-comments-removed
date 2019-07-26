@@ -19,6 +19,10 @@
           src="../attributes.js"></script>
 
   <script type="application/javascript">
+    if (navigator.platform.indexOf("Linux") == 0) {
+      SimpleTest.expectAssertions(0, 1);
+    }
+
     function doTest()
     {
       // aria

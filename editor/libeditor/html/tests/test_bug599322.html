@@ -21,6 +21,8 @@
 
 /** Test for Bug 599322.patch **/
 
+SimpleTest.expectAssertions(1);
+
 SimpleTest.waitForExplicitFinish();
 addLoadEvent(function() {
   var src = document.getElementById("src");
