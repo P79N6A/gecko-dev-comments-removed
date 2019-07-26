@@ -563,6 +563,51 @@ function getRuleViewLinkByIndex(view, index) {
 
 
 
+let focusNewRuleViewProperty = Task.async(function*(ruleEditor) {
+  info("Clicking on a close ruleEditor brace to start editing a new property");
+  ruleEditor.closeBrace.scrollIntoView();
+  let editor = yield focusEditableField(ruleEditor.closeBrace);
+
+  is(inplaceEditor(ruleEditor.newPropSpan), editor, "Focused editor is the new property editor.");
+  is(ruleEditor.rule.textProps.length,  0, "Starting with one new text property.");
+  is(ruleEditor.propertyList.children.length, 1, "Starting with two property editors.");
+
+  return editor;
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+let createNewRuleViewProperty = Task.async(function*(ruleEditor, inputValue) {
+  info("Creating a new property editor");
+  let editor = yield focusNewRuleViewProperty(ruleEditor);
+
+  info("Entering the value " + inputValue);
+  editor.input.value = inputValue;
+
+  info("Submitting the new value and waiting for value field focus");
+  let onFocus = once(ruleEditor.element, "focus", true);
+  EventUtils.synthesizeKey("VK_RETURN", {},
+    ruleEditor.element.ownerDocument.defaultView);
+  yield onFocus;
+});
+
+
+
+
+
+
+
+
 
 
 
