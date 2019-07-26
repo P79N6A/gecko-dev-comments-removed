@@ -75,13 +75,13 @@ class BaseTestFrontendUnits(MarionetteTestCase):
         commonPath = os.path.commonprefix([__file__, os.getcwd()])
 
         
-        relPath = os.path.relpath(os.path.dirname(__file__), commonPath)
+        self.relPath = os.path.relpath(os.path.dirname(__file__), commonPath)
 
-        relPath = urllib.pathname2url(os.path.join(relPath, srcdir_path))
+        self.relPath = urllib.pathname2url(os.path.join(self.relPath, srcdir_path))
 
         
         self.server_prefix = urlparse.urljoin("http://localhost:" + str(self.port),
-                                              relPath)
+                                              self.relPath)
 
     def check_page(self, page):
 
@@ -103,15 +103,26 @@ class BaseTestFrontendUnits(MarionetteTestCase):
         
         
 
-        raise AssertionError(self.get_failure_details())
+        raise AssertionError(self.get_failure_details(page))
 
-    def get_failure_details(self):
+    def get_failure_details(self, page):
         fail_nodes = self.marionette.find_elements("css selector",
                                                    '.test.fail')
-        details = ["%d failure(s) encountered:" % len(fail_nodes)]
+        fullPageUrl = urlparse.urljoin(self.relPath, page)
+
+        details = ["%s: %d failure(s) encountered:" % (fullPageUrl, len(fail_nodes))]
+
         for node in fail_nodes:
+            errorText = node.find_element("css selector", '.error').text
+
+            
+            
+            
+
+            
             details.append(
-                node.find_element("tag name", 'h2').text.split("\n")[0])
+                "TEST-UNEXPECTED-FAIL | %s | %s - %s" % \
+                (fullPageUrl, node.find_element("tag name", 'h2').text.split("\n")[0], errorText.split("\n")[0]))
             details.append(
-                node.find_element("css selector", '.error').text)
+                errorText)
         return "\n".join(details)
