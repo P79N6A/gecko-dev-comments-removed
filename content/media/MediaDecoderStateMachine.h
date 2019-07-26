@@ -547,12 +547,16 @@ private:
   
   nsresult EnqueueDecodeMetadataTask();
 
+  nsresult DispatchAudioDecodeTaskIfNeeded();
+
   
   
   
-   
-   
+  
+  
   nsresult EnsureAudioDecodeTaskQueued();
+
+  nsresult DispatchVideoDecodeTaskIfNeeded();
 
   
   
@@ -573,7 +577,8 @@ private:
   
   
   
-  void UpdateIdleState();
+  
+  void DispatchDecodeTasksIfNeeded();
 
   
   
