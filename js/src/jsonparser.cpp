@@ -465,19 +465,6 @@ JSONParser::advancePropertyName()
     if (*current == '"')
         return readString<PropertyName>();
 
-    if (parsingMode == LegacyJSON && *current == '}') {
-        
-
-
-
-
-
-
-
-        current++;
-        return token(ObjectClose);
-    }
-
     error("expected double-quoted property name");
     return token(Error);
 }
@@ -659,13 +646,6 @@ JSONParser::parse(MutableHandleValue vp)
                 }
                 goto JSONValue;
             }
-            if (token == ObjectClose) {
-                JS_ASSERT(state == FinishObjectMember);
-                JS_ASSERT(parsingMode == LegacyJSON);
-                if (!finishObject(&value, stack.back().properties()))
-                    return false;
-                break;
-            }
             if (token == OOM)
                 return false;
             if (token != Error)
@@ -754,24 +734,6 @@ JSONParser::parse(MutableHandleValue vp)
               }
 
               case ArrayClose:
-                if (parsingMode == LegacyJSON &&
-                    !stack.empty() &&
-                    stack.back().state == FinishArrayElement) {
-                    
-
-
-
-
-
-
-
-
-                    if (!finishArray(&value, stack.back().elements()))
-                        return false;
-                    break;
-                }
-                
-
               case ObjectClose:
               case Colon:
               case Comma:
