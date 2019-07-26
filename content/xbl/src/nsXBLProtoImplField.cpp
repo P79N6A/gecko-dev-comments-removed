@@ -414,7 +414,7 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   
   JSObject* scopeObject = xpc::GetXBLScope(cx, aBoundNode);
   JSAutoCompartment ac(cx, scopeObject);
-  jsval result = JSVAL_NULL;
+  JS::Value result = JSVAL_NULL;
 
   JSObject* wrappedNode = aBoundNode;
   if (!JS_WrapObject(cx, &wrappedNode))
