@@ -148,6 +148,7 @@
 #include "mozilla/dom/workers/Workers.h"
 
 #include "nsIDOMFile.h"
+#include "nsDOMBlobBuilder.h" 
 
 #include "nsIEventListenerService.h"
 #include "nsIMessageManager.h"
