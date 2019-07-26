@@ -56,6 +56,11 @@ class BaseTestFrontendUnits(MarionetteTestCase):
     def setUp(self):
         super(BaseTestFrontendUnits, self).setUp()
 
+        
+        
+        
+        self.marionette.set_search_timeout(10000)
+
     def set_server_prefix(self, srcdir_path=None):
         self.server_prefix = urlparse.urljoin("http://localhost:" + str(PORT),
                                               srcdir_path)
