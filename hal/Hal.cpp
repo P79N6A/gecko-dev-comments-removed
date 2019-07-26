@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "Hal.h"
 #include "HalImpl.h"
 #include "HalSandbox.h"
@@ -50,8 +17,15 @@
 #include "nsIWebNavigation.h"
 #include "nsITabChild.h"
 #include "nsIDocShell.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "WindowIdentifier.h"
+#include "mozilla/dom/ScreenOrientation.h"
+
+#ifdef XP_WIN
+#include <process.h>
+#define getpid _getpid
+#endif
 
 using namespace mozilla::services;
 
@@ -106,7 +80,7 @@ WindowIsActive(nsIDOMWindow *window)
   return !hidden;
 }
 
-nsAutoPtr<WindowIdentifier::IDArrayType> gLastIDToVibrate;
+StaticAutoPtr<WindowIdentifier::IDArrayType> gLastIDToVibrate;
 
 void InitLastIDToVibrate()
 {
@@ -117,13 +91,13 @@ void InitLastIDToVibrate()
 } 
 
 void
-Vibrate(const nsTArray<uint32>& pattern, nsIDOMWindow* window)
+Vibrate(const nsTArray<uint32_t>& pattern, nsIDOMWindow* window)
 {
   Vibrate(pattern, WindowIdentifier(window));
 }
 
 void
-Vibrate(const nsTArray<uint32>& pattern, const WindowIdentifier &id)
+Vibrate(const nsTArray<uint32_t>& pattern, const WindowIdentifier &id)
 {
   AssertMainThread();
 
@@ -185,7 +159,7 @@ CancelVibrate(const WindowIdentifier &id)
   if (InSandbox()) {
     hal_sandbox::CancelVibrate(id);
   }
-  else if (*gLastIDToVibrate == id.AsArray()) {
+  else if (gLastIDToVibrate && *gLastIDToVibrate == id.AsArray()) {
     
     
     
@@ -211,26 +185,54 @@ public:
   }
 
   void RemoveObserver(Observer<InfoType>* aObserver) {
-    MOZ_ASSERT(mObservers);
-    mObservers->RemoveObserver(aObserver);
+    bool removed = mObservers && mObservers->RemoveObserver(aObserver);
+    if (!removed) {
+      NS_WARNING("RemoveObserver() called for unregistered observer");
+      return;
+    }
 
     if (mObservers->Length() == 0) {
       DisableNotifications();
 
-      delete mObservers;
-      mObservers = 0;
+      OnNotificationsDisabled();
 
-      mHasValidCache = false;
+      delete mObservers;
+      mObservers = nullptr;
     }
   }
 
+  void BroadcastInformation(const InfoType& aInfo) {
+    
+    
+    
+    
+    
+    if (!mObservers) {
+      return;
+    }
+    mObservers->Broadcast(aInfo);
+  }
+
+protected:
+  virtual void EnableNotifications() = 0;
+  virtual void DisableNotifications() = 0;
+  virtual void OnNotificationsDisabled() {}
+
+private:
+  mozilla::ObserverList<InfoType>* mObservers;
+};
+
+template <class InfoType>
+class CachingObserversManager : public ObserversManager<InfoType>
+{
+public:
   InfoType GetCurrentInformation() {
     if (mHasValidCache) {
       return mInfo;
     }
 
-    mHasValidCache = true;
     GetCurrentInformationInternal(&mInfo);
+    mHasValidCache = true;
     return mInfo;
   }
 
@@ -240,22 +242,22 @@ public:
   }
 
   void BroadcastCachedInformation() {
-    MOZ_ASSERT(mObservers);
-    mObservers->Broadcast(mInfo);
+    this->BroadcastInformation(mInfo);
   }
 
 protected:
-  virtual void EnableNotifications() = 0;
-  virtual void DisableNotifications() = 0;
   virtual void GetCurrentInformationInternal(InfoType*) = 0;
 
+  virtual void OnNotificationsDisabled() {
+    mHasValidCache = false;
+  }
+
 private:
-  mozilla::ObserverList<InfoType>* mObservers;
   InfoType                mInfo;
   bool                    mHasValidCache;
 };
 
-class BatteryObserversManager : public ObserversManager<BatteryInformation>
+class BatteryObserversManager : public CachingObserversManager<BatteryInformation>
 {
 protected:
   void EnableNotifications() {
@@ -273,7 +275,7 @@ protected:
 
 static BatteryObserversManager sBatteryObservers;
 
-class NetworkObserversManager : public ObserversManager<NetworkInformation>
+class NetworkObserversManager : public CachingObserversManager<NetworkInformation>
 {
 protected:
   void EnableNotifications() {
@@ -290,6 +292,38 @@ protected:
 };
 
 static NetworkObserversManager sNetworkObservers;
+
+class WakeLockObserversManager : public ObserversManager<WakeLockInformation>
+{
+protected:
+  void EnableNotifications() {
+    PROXY_IF_SANDBOXED(EnableWakeLockNotifications());
+  }
+
+  void DisableNotifications() {
+    PROXY_IF_SANDBOXED(DisableWakeLockNotifications());
+  }
+};
+
+static WakeLockObserversManager sWakeLockObservers;
+
+class ScreenConfigurationObserversManager : public CachingObserversManager<ScreenConfiguration>
+{
+protected:
+  void EnableNotifications() {
+    PROXY_IF_SANDBOXED(EnableScreenConfigurationNotifications());
+  }
+
+  void DisableNotifications() {
+    PROXY_IF_SANDBOXED(DisableScreenConfigurationNotifications());
+  }
+
+  void GetCurrentInformationInternal(ScreenConfiguration* aInfo) {
+    PROXY_IF_SANDBOXED(GetCurrentScreenConfiguration(aInfo));
+  }
+};
+
+static ScreenConfigurationObserversManager sScreenConfigurationObservers;
 
 void
 RegisterBatteryObserver(BatteryObserver* aObserver)
@@ -332,6 +366,22 @@ void SetScreenEnabled(bool enabled)
   PROXY_IF_SANDBOXED(SetScreenEnabled(enabled));
 }
 
+bool GetCpuSleepAllowed()
+{
+  
+  
+  
+  
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(GetCpuSleepAllowed());
+}
+
+void SetCpuSleepAllowed(bool allowed)
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(SetCpuSleepAllowed(allowed));
+}
+
 double GetScreenBrightness()
 {
   AssertMainThread();
@@ -342,6 +392,72 @@ void SetScreenBrightness(double brightness)
 {
   AssertMainThread();
   PROXY_IF_SANDBOXED(SetScreenBrightness(clamped(brightness, 0.0, 1.0)));
+}
+
+bool SetLight(LightType light, const hal::LightConfiguration& aConfig)
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(SetLight(light, aConfig));
+}
+
+bool GetLight(LightType light, hal::LightConfiguration* aConfig)
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(GetLight(light, aConfig));
+}
+
+static StaticAutoPtr<ObserverList<SystemTimeChange>> sSystemTimeObserver;
+
+static void
+InitializeSystemTimeChangeObserver()
+{
+  if (!sSystemTimeObserver) {
+    sSystemTimeObserver = new ObserverList<SystemTimeChange>;
+    ClearOnShutdown(&sSystemTimeObserver);
+  }
+}
+
+void
+RegisterSystemTimeChangeObserver(SystemTimeObserver *aObserver)
+{
+  AssertMainThread();
+  InitializeSystemTimeChangeObserver();
+  sSystemTimeObserver->AddObserver(aObserver);
+}
+
+void
+UnregisterSystemTimeChangeObserver(SystemTimeObserver *aObserver)
+{
+  AssertMainThread();
+  sSystemTimeObserver->RemoveObserver(aObserver);
+}
+
+void
+NotifySystemTimeChange(const hal::SystemTimeChange& aReason)
+{
+  InitializeSystemTimeChangeObserver();
+  sSystemTimeObserver->Broadcast(aReason);
+}
+ 
+void 
+AdjustSystemClock(int32_t aDeltaMilliseconds)
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(AdjustSystemClock(aDeltaMilliseconds));
+}
+
+void 
+SetTimezone(const nsCString& aTimezoneSpec)
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(SetTimezone(aTimezoneSpec));
+}
+
+nsCString
+GetTimezone()
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(GetTimezone());
 }
 
 void
@@ -357,14 +473,15 @@ DisableSensorNotifications(SensorType aSensor) {
 }
 
 typedef mozilla::ObserverList<SensorData> SensorObserverList;
-static SensorObserverList *gSensorObservers = NULL;
+static SensorObserverList* gSensorObservers = nullptr;
 
 static SensorObserverList &
 GetSensorObservers(SensorType sensor_type) {
   MOZ_ASSERT(sensor_type < NUM_SENSOR_TYPE);
   
-  if(gSensorObservers == NULL)
+  if(!gSensorObservers) {
     gSensorObservers = new SensorObserverList[NUM_SENSOR_TYPE];
+  }
   return gSensorObservers[sensor_type];
 }
 
@@ -382,14 +499,26 @@ RegisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
 
 void
 UnregisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
-  SensorObserverList &observers = GetSensorObservers(aSensor);
-
   AssertMainThread();
-  
-  observers.RemoveObserver(aObserver);
-  if(observers.Length() == 0) {
-    DisableSensorNotifications(aSensor);
+
+  if (!gSensorObservers) {
+    return;
   }
+
+  SensorObserverList &observers = GetSensorObservers(aSensor);
+  if (!observers.RemoveObserver(aObserver) || observers.Length() > 0) {
+    return;
+  }
+  DisableSensorNotifications(aSensor);
+
+  
+  for (int i = 0; i < NUM_SENSOR_TYPE; i++) {
+    if (gSensorObservers[i].Length() > 0) {
+      return;
+    }
+  }
+  delete [] gSensorObservers;
+  gSensorObservers = nullptr;
 }
 
 void
@@ -439,6 +568,217 @@ void PowerOff()
 {
   AssertMainThread();
   PROXY_IF_SANDBOXED(PowerOff());
+}
+
+void
+RegisterWakeLockObserver(WakeLockObserver* aObserver)
+{
+  AssertMainThread();
+  sWakeLockObservers.AddObserver(aObserver);
+}
+
+void
+UnregisterWakeLockObserver(WakeLockObserver* aObserver)
+{
+  AssertMainThread();
+  sWakeLockObservers.RemoveObserver(aObserver);
+}
+
+void
+ModifyWakeLock(const nsAString &aTopic,
+               hal::WakeLockControl aLockAdjust,
+               hal::WakeLockControl aHiddenAdjust)
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(ModifyWakeLock(aTopic, aLockAdjust, aHiddenAdjust));
+}
+
+void
+GetWakeLockInfo(const nsAString &aTopic, WakeLockInformation *aWakeLockInfo)
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(GetWakeLockInfo(aTopic, aWakeLockInfo));
+}
+
+void
+NotifyWakeLockChange(const WakeLockInformation& aInfo)
+{
+  AssertMainThread();
+  sWakeLockObservers.BroadcastInformation(aInfo);
+}
+
+void
+RegisterScreenConfigurationObserver(ScreenConfigurationObserver* aObserver)
+{
+  AssertMainThread();
+  sScreenConfigurationObservers.AddObserver(aObserver);
+}
+
+void
+UnregisterScreenConfigurationObserver(ScreenConfigurationObserver* aObserver)
+{
+  AssertMainThread();
+  sScreenConfigurationObservers.RemoveObserver(aObserver);
+}
+
+void
+GetCurrentScreenConfiguration(ScreenConfiguration* aScreenConfiguration)
+{
+  AssertMainThread();
+  *aScreenConfiguration = sScreenConfigurationObservers.GetCurrentInformation();
+}
+
+void
+NotifyScreenConfigurationChange(const ScreenConfiguration& aScreenConfiguration)
+{
+  sScreenConfigurationObservers.CacheInformation(aScreenConfiguration);
+  sScreenConfigurationObservers.BroadcastCachedInformation();
+}
+
+bool
+LockScreenOrientation(const dom::ScreenOrientation& aOrientation)
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(LockScreenOrientation(aOrientation));
+}
+
+void
+UnlockScreenOrientation()
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(UnlockScreenOrientation());
+}
+
+void
+EnableSwitchNotifications(hal::SwitchDevice aDevice) {
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(EnableSwitchNotifications(aDevice));
+}
+
+void
+DisableSwitchNotifications(hal::SwitchDevice aDevice) {
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(DisableSwitchNotifications(aDevice));
+}
+
+hal::SwitchState GetCurrentSwitchState(hal::SwitchDevice aDevice)
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(GetCurrentSwitchState(aDevice));
+}
+
+typedef mozilla::ObserverList<SwitchEvent> SwitchObserverList;
+
+static SwitchObserverList *sSwitchObserverLists = NULL;
+
+static SwitchObserverList&
+GetSwitchObserverList(hal::SwitchDevice aDevice) {
+  MOZ_ASSERT(0 <= aDevice && aDevice < NUM_SWITCH_DEVICE); 
+  if (sSwitchObserverLists == NULL) {
+    sSwitchObserverLists = new SwitchObserverList[NUM_SWITCH_DEVICE];
+  }
+  return sSwitchObserverLists[aDevice];
+}
+
+static void
+ReleaseObserversIfNeeded() {
+  for (int i = 0; i < NUM_SWITCH_DEVICE; i++) {
+    if (sSwitchObserverLists[i].Length() != 0)
+      return;
+  }
+
+  
+  delete [] sSwitchObserverLists;
+  sSwitchObserverLists = NULL;
+}
+
+void
+RegisterSwitchObserver(hal::SwitchDevice aDevice, hal::SwitchObserver *aObserver)
+{
+  AssertMainThread();
+  SwitchObserverList& observer = GetSwitchObserverList(aDevice);
+  observer.AddObserver(aObserver);
+  if (observer.Length() == 1) {
+    EnableSwitchNotifications(aDevice);
+  }
+}
+
+void
+UnregisterSwitchObserver(hal::SwitchDevice aDevice, hal::SwitchObserver *aObserver)
+{
+  AssertMainThread();
+
+  if (!sSwitchObserverLists) {
+    return;
+  }
+
+  SwitchObserverList& observer = GetSwitchObserverList(aDevice);
+  if (!observer.RemoveObserver(aObserver) || observer.Length() > 0) {
+    return;
+  }
+
+  DisableSwitchNotifications(aDevice);
+  ReleaseObserversIfNeeded();
+}
+
+void
+NotifySwitchChange(const hal::SwitchEvent& aEvent)
+{
+  
+  
+  if (!sSwitchObserverLists)
+    return;
+
+  SwitchObserverList& observer = GetSwitchObserverList(aEvent.device());
+  observer.Broadcast(aEvent);
+}
+
+static AlarmObserver* sAlarmObserver;
+
+bool
+RegisterTheOneAlarmObserver(AlarmObserver* aObserver)
+{
+  MOZ_ASSERT(!InSandbox());
+  MOZ_ASSERT(!sAlarmObserver);
+
+  sAlarmObserver = aObserver;
+  RETURN_PROXY_IF_SANDBOXED(EnableAlarm());
+}
+
+void
+UnregisterTheOneAlarmObserver()
+{
+  if (sAlarmObserver) {
+    sAlarmObserver = nullptr;
+    PROXY_IF_SANDBOXED(DisableAlarm());
+  }
+}
+
+void
+NotifyAlarmFired()
+{
+  if (sAlarmObserver) {
+    sAlarmObserver->Notify(void_t());
+  }
+}
+
+bool
+SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
+{
+  
+  MOZ_ASSERT(sAlarmObserver);
+  RETURN_PROXY_IF_SANDBOXED(SetAlarm(aSeconds, aNanoseconds));
+}
+
+void
+SetProcessPriority(int aPid, ProcessPriority aPriority)
+{
+  if (InSandbox()) {
+    hal_sandbox::SetProcessPriority(aPid, aPriority);
+  }
+  else {
+    hal_impl::SetProcessPriority(aPid, aPriority);
+  }
 }
 
 } 

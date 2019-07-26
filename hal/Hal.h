@@ -4,41 +4,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_Hal_h
-#define mozilla_Hal_h 1
+#define mozilla_Hal_h
 
 #include "mozilla/hal_sandbox/PHal.h"
 #include "base/basictypes.h"
@@ -47,7 +14,9 @@
 #include "prlog.h"
 #include "mozilla/dom/battery/Types.h"
 #include "mozilla/dom/network/Types.h"
+#include "mozilla/dom/power/Types.h"
 #include "mozilla/hal_sandbox/PHal.h"
+#include "mozilla/dom/ScreenOrientation.h"
 
 
 
@@ -68,12 +37,20 @@ class nsIDOMWindow;
 
 namespace mozilla {
 
+template <class T>
+class Observer;
+
 namespace hal {
+
+typedef Observer<void_t> AlarmObserver;
+typedef Observer<ScreenConfiguration> ScreenConfigurationObserver;
 
 class WindowIdentifier;
 
 extern PRLogModuleInfo *sHalLog;
 #define HAL_LOG(msg) PR_LOG(mozilla::hal::sHalLog, PR_LOG_DEBUG, msg)
+
+typedef Observer<SystemTimeChange> SystemTimeObserver;
 
 } 
 
@@ -94,9 +71,9 @@ namespace MOZ_HAL_NAMESPACE {
 
 
 
-void Vibrate(const nsTArray<uint32>& pattern,
+void Vibrate(const nsTArray<uint32_t>& pattern,
              nsIDOMWindow* aWindow);
-void Vibrate(const nsTArray<uint32>& pattern,
+void Vibrate(const nsTArray<uint32_t>& pattern,
              const hal::WindowIdentifier &id);
 
 
@@ -173,6 +150,34 @@ void SetScreenBrightness(double brightness);
 
 
 
+bool GetCpuSleepAllowed();
+
+
+
+
+
+void SetCpuSleepAllowed(bool allowed);
+
+
+
+
+
+
+
+
+
+
+
+bool SetLight(hal::LightType light, const hal::LightConfiguration& aConfig);
+
+
+
+
+bool GetLight(hal::LightType light, hal::LightConfiguration* aConfig);
+
+
+
+
 
 
 
@@ -236,12 +241,201 @@ void NotifyNetworkChange(const hal::NetworkInformation& aNetworkInfo);
 
 
 
+
+void AdjustSystemClock(int32_t aDeltaMilliseconds);
+
+
+
+
+
+
+void SetTimezone(const nsCString& aTimezoneSpec);
+
+
+
+
+
+nsCString GetTimezone();
+
+
+
+
+
+void RegisterSystemTimeChangeObserver(hal::SystemTimeObserver* aObserver);
+
+
+
+
+
+void UnregisterSystemTimeChangeObserver(hal::SystemTimeObserver* aObserver);
+
+
+
+
+
+void NotifySystemTimeChange(const hal::SystemTimeChange& aReason);
+
+
+
+
 void Reboot();
 
 
 
 
 void PowerOff();
+
+
+
+
+
+
+void EnableWakeLockNotifications();
+
+
+
+
+
+
+void DisableWakeLockNotifications();
+
+
+
+
+
+void RegisterWakeLockObserver(WakeLockObserver* aObserver);
+
+
+
+
+
+void UnregisterWakeLockObserver(WakeLockObserver* aObserver);
+
+
+
+
+
+
+
+void ModifyWakeLock(const nsAString &aTopic,
+                    hal::WakeLockControl aLockAdjust,
+                    hal::WakeLockControl aHiddenAdjust);
+
+
+
+
+
+
+void GetWakeLockInfo(const nsAString &aTopic, hal::WakeLockInformation *aWakeLockInfo);
+
+
+
+
+
+void NotifyWakeLockChange(const hal::WakeLockInformation& aWakeLockInfo);
+
+
+
+
+
+void RegisterScreenConfigurationObserver(hal::ScreenConfigurationObserver* aScreenConfigurationObserver);
+
+
+
+
+
+void UnregisterScreenConfigurationObserver(hal::ScreenConfigurationObserver* aScreenConfigurationObserver);
+
+
+
+
+void GetCurrentScreenConfiguration(hal::ScreenConfiguration* aScreenConfiguration);
+
+
+
+
+
+void NotifyScreenConfigurationChange(const hal::ScreenConfiguration& aScreenConfiguration);
+
+
+
+
+
+bool LockScreenOrientation(const dom::ScreenOrientation& aOrientation);
+
+
+
+
+void UnlockScreenOrientation();
+
+
+
+
+
+
+
+void RegisterSwitchObserver(hal::SwitchDevice aDevice, hal::SwitchObserver *aSwitchObserver);
+
+
+
+
+void UnregisterSwitchObserver(hal::SwitchDevice aDevice, hal::SwitchObserver *aSwitchObserver);
+
+
+
+
+
+
+void NotifySwitchChange(const hal::SwitchEvent& aEvent);
+
+
+
+
+hal::SwitchState GetCurrentSwitchState(hal::SwitchDevice aDevice);
+
+
+
+
+
+
+
+bool RegisterTheOneAlarmObserver(hal::AlarmObserver* aObserver);
+
+
+
+
+
+void UnregisterTheOneAlarmObserver();
+
+
+
+
+
+
+void NotifyAlarmFired();
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool SetAlarm(int32_t aSeconds, int32_t aNanoseconds);
+
+
+
+
+
+
+
+
+void SetProcessPriority(int aPid, hal::ProcessPriority aPriority);
 
 } 
 } 

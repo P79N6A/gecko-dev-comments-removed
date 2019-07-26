@@ -74,6 +74,13 @@ enum WakeLockControl {
   NUM_WAKE_LOCK
 };
 
+enum SystemTimeChange {
+  SYS_TIME_CHANGE_UNKNOWN = -1,
+  SYS_TIME_CHANGE_CLOCK,
+  SYS_TIME_CHANGE_TZ,
+  SYS_TIME_CHANGE_GUARD
+};
+
 } 
 } 
 
@@ -147,6 +154,15 @@ struct ParamTraits<mozilla::hal::ProcessPriority>:
 };
 
 
+
+
+template <>
+struct ParamTraits<mozilla::hal::SystemTimeChange>
+  : public EnumSerializer<mozilla::hal::SystemTimeChange,
+                          mozilla::hal::SYS_TIME_CHANGE_UNKNOWN,
+                          mozilla::hal::SYS_TIME_CHANGE_GUARD>
+{};
+ 
 } 
 
 #endif 
