@@ -2,33 +2,214 @@
 
 
 
-
-#include "nsFrameIterator.h"
-#include "nsIFrame.h"
+#include "nsCOMPtr.h"
 #include "nsGkAtoms.h"
+
+#include "nsFrameTraversal.h"
+#include "nsFrameList.h"
 #include "nsPlaceholderFrame.h"
 
-nsFrameIterator::nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
-                                 nsIteratorType aType, uint32_t aFlags)
-  : mPresContext(aPresContext)
-  , mOffEdge(0)
-  , mType(aType)
+
+class nsFrameIterator : public nsIFrameEnumerator
 {
-  mFollowOOFs = (aFlags & FLAG_FOLLOW_OUT_OF_FLOW) != 0;
-  mLockScroll = (aFlags & FLAG_LOCK_SCROLL) != 0;
-  mVisual = (aFlags & FLAG_VISUAL) != 0;
-  if (mFollowOOFs && aStart)
+public:
+  typedef nsIFrame::ChildListID ChildListID;
+
+  NS_DECL_ISUPPORTS
+
+  virtual ~nsFrameIterator() {}
+
+  virtual void First();
+  virtual void Next();
+  virtual nsIFrame* CurrentItem();
+  virtual bool IsDone();
+
+  virtual void Last();
+  virtual void Prev();
+
+  nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
+                  nsIteratorType aType, bool aLockScroll, bool aFollowOOFs);
+
+protected:
+  void      setCurrent(nsIFrame *aFrame){mCurrent = aFrame;}
+  nsIFrame *getCurrent(){return mCurrent;}
+  void      setStart(nsIFrame *aFrame){mStart = aFrame;}
+  nsIFrame *getStart(){return mStart;}
+  nsIFrame *getLast(){return mLast;}
+  void      setLast(nsIFrame *aFrame){mLast = aFrame;}
+  PRInt8    getOffEdge(){return mOffEdge;}
+  void      setOffEdge(PRInt8 aOffEdge){mOffEdge = aOffEdge;}
+  void      SetLockInScrollView(bool aLockScroll){mLockScroll = aLockScroll;}
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  nsIFrame* GetParentFrame(nsIFrame* aFrame);
+  
+  nsIFrame* GetParentFrameNotPopup(nsIFrame* aFrame);
+
+  nsIFrame* GetFirstChild(nsIFrame* aFrame);
+  nsIFrame* GetLastChild(nsIFrame* aFrame);
+
+  nsIFrame* GetNextSibling(nsIFrame* aFrame);
+  nsIFrame* GetPrevSibling(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+  
+  virtual nsIFrame* GetFirstChildInner(nsIFrame* aFrame);
+  virtual nsIFrame* GetLastChildInner(nsIFrame* aFrame);  
+
+  virtual nsIFrame* GetNextSiblingInner(nsIFrame* aFrame);
+  virtual nsIFrame* GetPrevSiblingInner(nsIFrame* aFrame);
+
+  nsIFrame* GetPlaceholderFrame(nsIFrame* aFrame);
+  bool      IsPopupFrame(nsIFrame* aFrame);
+
+  nsPresContext* mPresContext;
+  bool mLockScroll;
+  bool mFollowOOFs;
+  nsIteratorType mType;
+
+private:
+  nsIFrame *mStart;
+  nsIFrame *mCurrent;
+  nsIFrame *mLast; 
+  PRInt8    mOffEdge; 
+};
+
+
+
+
+class nsVisualIterator: public nsFrameIterator
+{
+public:
+  nsVisualIterator(nsPresContext* aPresContext, nsIFrame *aStart,
+                   nsIteratorType aType, bool aLockScroll, bool aFollowOOFs) :
+  nsFrameIterator(aPresContext, aStart, aType, aLockScroll, aFollowOOFs) {}
+
+protected:
+  nsIFrame* GetFirstChildInner(nsIFrame* aFrame);
+  nsIFrame* GetLastChildInner(nsIFrame* aFrame);  
+  
+  nsIFrame* GetNextSiblingInner(nsIFrame* aFrame);
+  nsIFrame* GetPrevSiblingInner(nsIFrame* aFrame);  
+};
+
+
+
+nsresult NS_CreateFrameTraversal(nsIFrameTraversal** aResult)
+{
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = nullptr;
+
+  nsCOMPtr<nsIFrameTraversal> t(new nsFrameTraversal());
+
+  *aResult = t;
+  NS_ADDREF(*aResult);
+
+  return NS_OK;
+}
+
+nsresult
+NS_NewFrameTraversal(nsIFrameEnumerator **aEnumerator,
+                     nsPresContext* aPresContext,
+                     nsIFrame *aStart,
+                     nsIteratorType aType,
+                     bool aVisual,
+                     bool aLockInScrollView,
+                     bool aFollowOOFs)
+{
+  if (!aEnumerator || !aStart)
+    return NS_ERROR_NULL_POINTER;
+  nsCOMPtr<nsIFrameEnumerator> trav;
+  if (aVisual) {
+    trav = new nsVisualIterator(aPresContext, aStart, aType,
+                                aLockInScrollView, aFollowOOFs);
+  } else {
+    trav = new nsFrameIterator(aPresContext, aStart, aType,
+                               aLockInScrollView, aFollowOOFs);
+  }
+  trav.forget(aEnumerator);
+  return NS_OK;
+}
+
+
+nsFrameTraversal::nsFrameTraversal()
+{
+}
+
+nsFrameTraversal::~nsFrameTraversal()
+{
+}
+
+NS_IMPL_ISUPPORTS1(nsFrameTraversal,nsIFrameTraversal)
+
+NS_IMETHODIMP 
+ nsFrameTraversal::NewFrameTraversal(nsIFrameEnumerator **aEnumerator,
+                                     nsPresContext* aPresContext,
+                                     nsIFrame *aStart,
+                                     PRInt32 aType,
+                                     bool aVisual,
+                                     bool aLockInScrollView,
+                                     bool aFollowOOFs)
+{
+  return NS_NewFrameTraversal(aEnumerator, aPresContext, aStart,
+                              static_cast<nsIteratorType>(aType),
+                              aVisual, aLockInScrollView, aFollowOOFs);  
+}
+
+
+
+NS_IMPL_ISUPPORTS1(nsFrameIterator, nsIFrameEnumerator)
+
+nsFrameIterator::nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
+                                 nsIteratorType aType, bool aLockInScrollView,
+                                 bool aFollowOOFs)
+{
+  mOffEdge = 0;
+  mPresContext = aPresContext;
+  if (aFollowOOFs && aStart)
     aStart = nsPlaceholderFrame::GetRealFrameFor(aStart);
   setStart(aStart);
   setCurrent(aStart);
   setLast(aStart);
+  mType = aType;
+  SetLockInScrollView(aLockInScrollView);
+  mFollowOOFs = aFollowOOFs;
 }
+
+
 
 nsIFrame*
 nsFrameIterator::CurrentItem()
 {
-  return mOffEdge ? nullptr : mCurrent;
+  if (mOffEdge)
+    return nullptr;
+
+  return mCurrent;
 }
+
+
 
 bool
 nsFrameIterator::IsDone()
@@ -65,7 +246,7 @@ nsFrameIterator::Last()
   while ((result = GetLastChild(parent))) {
     parent = result;
   }
-
+  
   setCurrent(parent);
   if (!parent)
     setOffEdge(1);
@@ -146,7 +327,7 @@ nsFrameIterator::Prev()
     if (result)
       parent = result;
   }
-
+  
   if (parent != getCurrent()) {
     result = parent;
   } else {
@@ -189,7 +370,7 @@ nsFrameIterator::GetParentFrame(nsIFrame* aFrame)
     aFrame = GetPlaceholderFrame(aFrame);
   if (aFrame)
     return aFrame->GetParent();
-
+  
   return nullptr;
 }
 
@@ -203,7 +384,7 @@ nsFrameIterator::GetParentFrameNotPopup(nsIFrame* aFrame)
     if (!IsPopupFrame(parent))
       return parent;
   }
-
+    
   return nullptr;
 }
 
@@ -215,7 +396,7 @@ nsFrameIterator::GetFirstChild(nsIFrame* aFrame)
     return nullptr;
   if (result && mFollowOOFs) {
     result = nsPlaceholderFrame::GetRealFrameFor(result);
-
+    
     if (IsPopupFrame(result))
       result = GetNextSibling(result);
   }
@@ -230,7 +411,7 @@ nsFrameIterator::GetLastChild(nsIFrame* aFrame)
     return nullptr;
   if (result && mFollowOOFs) {
     result = nsPlaceholderFrame::GetRealFrameFor(result);
-
+    
     if (IsPopupFrame(result))
       result = GetPrevSibling(result);
   }
@@ -275,41 +456,24 @@ nsFrameIterator::GetPrevSibling(nsIFrame* aFrame)
 
 nsIFrame*
 nsFrameIterator::GetFirstChildInner(nsIFrame* aFrame) {
-  if (mVisual) {
-    return aFrame->PrincipalChildList().GetNextVisualFor(nullptr);
-  }
   return aFrame->GetFirstPrincipalChild();
 }
 
 nsIFrame*
 nsFrameIterator::GetLastChildInner(nsIFrame* aFrame) {
-  if (mVisual) {
-    return aFrame->PrincipalChildList().GetPrevVisualFor(nullptr);
-  }
   return aFrame->PrincipalChildList().LastChild();
 }
 
 nsIFrame*
 nsFrameIterator::GetNextSiblingInner(nsIFrame* aFrame) {
-  if (mVisual) {
-    nsIFrame* parent = GetParentFrame(aFrame);
-    if (!parent)
-      return nullptr;
-    return parent->PrincipalChildList().GetNextVisualFor(aFrame);
-  }
   return aFrame->GetNextSibling();
 }
 
 nsIFrame*
 nsFrameIterator::GetPrevSiblingInner(nsIFrame* aFrame) {
-  if (mVisual) {
-    nsIFrame* parent = GetParentFrame(aFrame);
-    if (!parent)
-      return nullptr;
-    return parent->PrincipalChildList().GetPrevVisualFor(aFrame);
-  }
   return aFrame->GetPrevSibling();
 }
+
 
 nsIFrame*
 nsFrameIterator::GetPlaceholderFrame(nsIFrame* aFrame)
@@ -335,3 +499,30 @@ nsFrameIterator::IsPopupFrame(nsIFrame* aFrame)
           aFrame->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_POPUP);
 }
 
+
+
+nsIFrame*
+nsVisualIterator::GetFirstChildInner(nsIFrame* aFrame) {
+  return aFrame->PrincipalChildList().GetNextVisualFor(nullptr);
+}
+
+nsIFrame*
+nsVisualIterator::GetLastChildInner(nsIFrame* aFrame) {
+  return aFrame->PrincipalChildList().GetPrevVisualFor(nullptr);
+}
+
+nsIFrame*
+nsVisualIterator::GetNextSiblingInner(nsIFrame* aFrame) {
+  nsIFrame* parent = GetParentFrame(aFrame);
+  if (!parent)
+    return nullptr;
+  return parent->PrincipalChildList().GetNextVisualFor(aFrame);
+}
+
+nsIFrame*
+nsVisualIterator::GetPrevSiblingInner(nsIFrame* aFrame) {
+  nsIFrame* parent = GetParentFrame(aFrame);
+  if (!parent)
+    return nullptr;
+  return parent->PrincipalChildList().GetPrevVisualFor(aFrame);
+}
