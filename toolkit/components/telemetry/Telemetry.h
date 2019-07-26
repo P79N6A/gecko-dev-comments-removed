@@ -46,6 +46,17 @@ void Accumulate(ID id, uint32_t sample);
 
 
 
+
+
+void Accumulate(const char* name, uint32_t sample);
+
+
+
+
+
+
+
+
 void AccumulateTimeDelta(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
 
 
