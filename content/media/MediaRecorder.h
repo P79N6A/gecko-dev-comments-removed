@@ -8,7 +8,7 @@
 #define MediaRecorder_h
 
 #include "mozilla/dom/MediaRecorderBinding.h"
-#include "nsDOMEventTargetHelper.h"
+#include "mozilla/DOMEventTargetHelper.h"
 
 
 #define MAX_ALLOW_MEMORY_BUFFER 1024000
@@ -35,7 +35,7 @@ namespace dom {
 
 
 
-class MediaRecorder : public nsDOMEventTargetHelper
+class MediaRecorder : public DOMEventTargetHelper
 {
   class Session;
   friend class CreateAndDispatchBlobEventRunnable;
@@ -52,7 +52,7 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaRecorder,
-                                           nsDOMEventTargetHelper)
+                                           DOMEventTargetHelper)
 
   
   
