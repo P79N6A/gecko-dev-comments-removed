@@ -1748,10 +1748,6 @@ this.DOMApplicationRegistry = {
     switch (message.name) {
       case "Webapps:ClearBrowserData":
         this._clearPrivateData(appId, true);
-        
-        
-        
-        this._clearPrivateData(0, true);
         break;
     }
   },
