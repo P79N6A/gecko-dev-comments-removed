@@ -46,6 +46,7 @@
 #include "PeerConnectionImplEnumsBinding.cpp"
 
 #include "mtransport_test_utils.h"
+#include "gtest_ringbuffer_dumper.h"
 MtransportTestUtils *test_utils;
 nsCOMPtr<nsIThread> gThread;
 
@@ -103,51 +104,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 namespace test {
-class RingbufferDumper : public ::testing::EmptyTestEventListener {
-  void ClearRingBuffer_s() {
-    RLogRingBuffer::CreateInstance();
-    
-    RLogRingBuffer::GetInstance()->SetLogLimit(0);
-    RLogRingBuffer::GetInstance()->SetLogLimit(UINT32_MAX);
-  }
-
-  void DestroyRingBuffer_s() {
-    RLogRingBuffer::DestroyInstance();
-  }
-
-  void DumpRingBuffer_s() {
-      std::deque<std::string> logs;
-      
-      RLogRingBuffer::GetInstance()->GetAny(0, &logs);
-      for (auto l = logs.begin(); l != logs.end(); ++l) {
-        std::cout << *l << std::endl;
-      }
-      ClearRingBuffer_s();
-  }
-
-  virtual void OnTestStart(const ::testing::TestInfo& testInfo) {
-    mozilla::SyncRunnable::DispatchToThread(
-      test_utils->sts_target(),
-      WrapRunnable(this, &RingbufferDumper::ClearRingBuffer_s));
-  }
-
-  virtual void OnTestEnd(const ::testing::TestInfo& testInfo) {
-    mozilla::SyncRunnable::DispatchToThread(
-      test_utils->sts_target(),
-      WrapRunnable(this, &RingbufferDumper::DestroyRingBuffer_s));
-  }
-
-  
-  virtual void OnTestPartResult(const ::testing::TestPartResult& testResult) {
-    if (testResult.failed()) {
-      
-      mozilla::SyncRunnable::DispatchToThread(
-        test_utils->sts_target(),
-        WrapRunnable(this, &RingbufferDumper::DumpRingBuffer_s));
-    }
-  }
-};
-
 std::string indent(const std::string &s, int width = 4) {
   std::string prefix;
   std::string out;
@@ -3722,7 +3678,7 @@ int main(int argc, char **argv) {
   ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();
   
-  listeners.Append(new test::RingbufferDumper);
+  listeners.Append(new test::RingbufferDumper(test_utils));
   test_utils->sts_target()->Dispatch(
     WrapRunnableNM(&TestStunServer::GetInstance), NS_DISPATCH_SYNC);
 
