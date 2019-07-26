@@ -19,8 +19,6 @@ namespace ion {
     _(TableSwitch)                                                          \
     _(Goto)                                                                 \
     _(Test)                                                                 \
-    _(TypeObjectDispatch)                                                   \
-    _(FunctionDispatch)                                                     \
     _(PolyInlineDispatch)                                                   \
     _(Compare)                                                              \
     _(Phi)                                                                  \
@@ -29,6 +27,7 @@ namespace ion {
     _(OsrScopeChain)                                                        \
     _(ReturnFromCtor)                                                       \
     _(CheckOverRecursed)                                                    \
+    _(RecompileCheck)                                                       \
     _(DefVar)                                                               \
     _(DefFun)                                                               \
     _(CreateThis)                                                           \
@@ -99,6 +98,7 @@ namespace ion {
     _(FunctionEnvironment)                                                  \
     _(TypeBarrier)                                                          \
     _(MonitorTypes)                                                         \
+    _(ExcludeType)                                                          \
     _(GetPropertyCache)                                                     \
     _(GetElementCache)                                                      \
     _(BindNameCache)                                                        \
@@ -123,7 +123,7 @@ namespace ion {
     _(LoadTypedArrayElement)                                                \
     _(LoadTypedArrayElementHole)                                            \
     _(StoreTypedArrayElement)                                               \
-    _(EffectiveAddress)                                                     \
+    _(StoreTypedArrayElementHole)                                           \
     _(ClampToUint8)                                                         \
     _(LoadFixedSlot)                                                        \
     _(StoreFixedSlot)                                                       \
@@ -152,22 +152,6 @@ namespace ion {
     _(FunctionBoundary)                                                     \
     _(GetDOMProperty)                                                       \
     _(SetDOMProperty)                                                       \
-    _(AsmJSNeg)                                                             \
-    _(AsmJSUDiv)                                                            \
-    _(AsmJSUMod)                                                            \
-    _(AsmJSUnsignedToDouble)                                                \
-    _(AsmJSLoadHeap)                                                        \
-    _(AsmJSStoreHeap)                                                       \
-    _(AsmJSLoadGlobalVar)                                                   \
-    _(AsmJSStoreGlobalVar)                                                  \
-    _(AsmJSLoadFuncPtr)                                                     \
-    _(AsmJSLoadFFIFunc)                                                     \
-    _(AsmJSReturn)                                                          \
-    _(AsmJSParameter)                                                       \
-    _(AsmJSVoidReturn)                                                      \
-    _(AsmJSPassStackArg)                                                    \
-    _(AsmJSCall)                                                            \
-    _(AsmJSCheckOverRecursed)                                               \
     _(ParCheckOverRecursed)                                                 \
     _(ParNewCallObject)                                                     \
     _(ParNew)                                                               \

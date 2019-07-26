@@ -317,6 +317,13 @@ LIRGeneratorARM::visitGuardShape(MGuardShape *ins)
 }
 
 bool
+LIRGeneratorARM::visitRecompileCheck(MRecompileCheck *ins)
+{
+    LRecompileCheck *lir = new LRecompileCheck(temp(LDefinition::GENERAL));
+    return assignSnapshot(lir, Bailout_RecompileCheck) && add(lir, ins);
+}
+
+bool
 LIRGeneratorARM::visitStoreTypedArrayElement(MStoreTypedArrayElement *ins)
 {
     JS_ASSERT(ins->elements()->type() == MIRType_Elements);
@@ -331,6 +338,25 @@ LIRGeneratorARM::visitStoreTypedArrayElement(MStoreTypedArrayElement *ins)
     LAllocation index = useRegisterOrConstant(ins->index());
     LAllocation value = useRegisterOrNonDoubleConstant(ins->value());
     return add(new LStoreTypedArrayElement(elements, index, value), ins);
+}
+
+bool
+LIRGeneratorARM::visitStoreTypedArrayElementHole(MStoreTypedArrayElementHole *ins)
+{
+    JS_ASSERT(ins->elements()->type() == MIRType_Elements);
+    JS_ASSERT(ins->index()->type() == MIRType_Int32);
+    JS_ASSERT(ins->length()->type() == MIRType_Int32);
+
+    if (ins->isFloatArray())
+        JS_ASSERT(ins->value()->type() == MIRType_Double);
+    else
+        JS_ASSERT(ins->value()->type() == MIRType_Int32);
+
+    LUse elements = useRegister(ins->elements());
+    LAllocation length = useRegisterOrConstant(ins->length());
+    LAllocation index = useRegisterOrConstant(ins->index());
+    LAllocation value = useRegisterOrNonDoubleConstant(ins->value());
+    return add(new LStoreTypedArrayElementHole(elements, length, index, value), ins);
 }
 
 bool

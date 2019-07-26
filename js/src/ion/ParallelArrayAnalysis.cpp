@@ -131,6 +131,7 @@ class ParallelArrayVisitor : public MInstructionVisitor
     UNSAFE_OP(OsrScopeChain)
     UNSAFE_OP(ReturnFromCtor)
     CUSTOM_OP(CheckOverRecursed)
+    DROP_OP(RecompileCheck)
     UNSAFE_OP(DefVar)
     UNSAFE_OP(DefFun)
     UNSAFE_OP(CreateThis)
@@ -193,6 +194,7 @@ class ParallelArrayVisitor : public MInstructionVisitor
     SAFE_OP(FunctionEnvironment) 
     SAFE_OP(TypeBarrier) 
     SAFE_OP(MonitorTypes) 
+    SAFE_OP(ExcludeType) 
     UNSAFE_OP(GetPropertyCache)
     UNSAFE_OP(GetElementCache)
     UNSAFE_OP(BindNameCache)
@@ -215,6 +217,7 @@ class ParallelArrayVisitor : public MInstructionVisitor
     SAFE_OP(LoadTypedArrayElement)
     SAFE_OP(LoadTypedArrayElementHole)
     MAYBE_WRITE_GUARDED_OP(StoreTypedArrayElement, elements)
+    WRITE_GUARDED_OP(StoreTypedArrayElementHole, elements)
     UNSAFE_OP(ClampToUint8)
     SAFE_OP(LoadFixedSlot)
     WRITE_GUARDED_OP(StoreFixedSlot, object)
@@ -263,25 +266,6 @@ class ParallelArrayVisitor : public MInstructionVisitor
     SAFE_OP(ParCheckInterrupt)
     SAFE_OP(ParCheckOverRecursed)
     SAFE_OP(PolyInlineDispatch)
-    SAFE_OP(FunctionDispatch)
-    SAFE_OP(TypeObjectDispatch)
-    UNSAFE_OP(EffectiveAddress)
-    UNSAFE_OP(AsmJSUnsignedToDouble)
-    UNSAFE_OP(AsmJSNeg)
-    UNSAFE_OP(AsmJSUDiv)
-    UNSAFE_OP(AsmJSUMod)
-    UNSAFE_OP(AsmJSLoadHeap)
-    UNSAFE_OP(AsmJSStoreHeap)
-    UNSAFE_OP(AsmJSLoadGlobalVar)
-    UNSAFE_OP(AsmJSStoreGlobalVar)
-    UNSAFE_OP(AsmJSLoadFuncPtr)
-    UNSAFE_OP(AsmJSLoadFFIFunc)
-    UNSAFE_OP(AsmJSReturn)
-    UNSAFE_OP(AsmJSVoidReturn)
-    UNSAFE_OP(AsmJSPassStackArg)
-    UNSAFE_OP(AsmJSParameter)
-    UNSAFE_OP(AsmJSCall)
-    UNSAFE_OP(AsmJSCheckOverRecursed)
 
     
     UNSAFE_OP(ConvertElementsToDoubles)
@@ -300,21 +284,21 @@ ParallelCompileContext::appendToWorklist(HandleFunction fun)
     
     if (!script->canParallelIonCompile()) {
         Spew(SpewCompile, "Skipping %p:%s:%u, canParallelIonCompile() is false",
-             fun.get(), script->filename(), script->lineno);
+             fun.get(), script->filename, script->lineno);
         return true;
     }
 
     
     if (script->parallelIon == ION_COMPILING_SCRIPT) {
         Spew(SpewCompile, "Skipping %p:%s:%u, off-main-thread compilation in progress",
-             fun.get(), script->filename(), script->lineno);
+             fun.get(), script->filename, script->lineno);
         return true;
     }
 
     
     if (script->parallelIon && script->parallelIon->bailoutExpected()) {
         Spew(SpewCompile, "Skipping %p:%s:%u, bailout expected",
-             fun.get(), script->filename(), script->lineno);
+             fun.get(), script->filename, script->lineno);
         return true;
     }
 
@@ -323,7 +307,7 @@ ParallelCompileContext::appendToWorklist(HandleFunction fun)
     
     if (script->getUseCount() < js_IonOptions.usesBeforeCompileParallel) {
         Spew(SpewCompile, "Skipping %p:%s:%u, use count %u < %u",
-             fun.get(), script->filename(), script->lineno,
+             fun.get(), script->filename, script->lineno,
              script->getUseCount(), js_IonOptions.usesBeforeCompileParallel);
         return true;
     }
@@ -531,7 +515,7 @@ ParallelArrayVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
             continue;
 
         
-        MBasicBlock *bailBlock = MBasicBlock::NewParBailout(graph_, pred->info(), pred, pc);
+        MBasicBlock *bailBlock = MBasicBlock::NewParBailout(graph_, block->info(), pred, pc);
         if (!bailBlock)
             return false;
 

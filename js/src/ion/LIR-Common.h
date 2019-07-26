@@ -508,7 +508,8 @@ class LCheckOverRecursed : public LInstructionHelper<0, 0, 1>
   public:
     LIR_HEADER(CheckOverRecursed)
 
-    LCheckOverRecursed(const LDefinition &limitreg) {
+    LCheckOverRecursed(const LDefinition &limitreg)
+    {
         setTemp(0, limitreg);
     }
 
@@ -1228,47 +1229,6 @@ class LTestVAndBranch : public LInstructionHelper<0, BOX_PIECES, 3>
     }
 };
 
-
-
-class LFunctionDispatch : public LInstructionHelper<0, 1, 0>
-{
-    
-    
-
-  public:
-    LIR_HEADER(FunctionDispatch);
-
-    LFunctionDispatch(const LAllocation &in) {
-        setOperand(0, in);
-    }
-
-    MFunctionDispatch *mir() {
-        return mir_->toFunctionDispatch();
-    }
-};
-
-class LTypeObjectDispatch : public LInstructionHelper<0, 1, 1>
-{
-    
-    
-
-  public:
-    LIR_HEADER(TypeObjectDispatch);
-
-    LTypeObjectDispatch(const LAllocation &in, const LDefinition &temp) {
-        setOperand(0, in);
-        setTemp(0, temp);
-    }
-
-    const LDefinition *temp() {
-        return getTemp(0);
-    }
-
-    MTypeObjectDispatch *mir() {
-        return mir_->toTypeObjectDispatch();
-    }
-};
-
 class LPolyInlineDispatch : public LInstructionHelper<0, 1, 1>
 {
   
@@ -1921,16 +1881,6 @@ class LMinMaxD : public LInstructionHelper<1, 2, 0>
     }
     MMinMax *mir() const {
         return mir_->toMinMax();
-    }
-};
-
-
-class LNegI : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(NegI);
-    LNegI(const LAllocation &num) {
-        setOperand(0, num);
     }
 };
 
@@ -3097,23 +3047,34 @@ class LStoreTypedArrayElement : public LInstructionHelper<0, 3, 0>
     }
 };
 
-class LEffectiveAddress : public LInstructionHelper<1, 2, 0>
+class LStoreTypedArrayElementHole : public LInstructionHelper<0, 4, 0>
 {
   public:
-    LIR_HEADER(EffectiveAddress);
+    LIR_HEADER(StoreTypedArrayElementHole)
 
-    LEffectiveAddress(const LAllocation &base, const LAllocation &index) {
-        setOperand(0, base);
-        setOperand(1, index);
+    LStoreTypedArrayElementHole(const LAllocation &elements, const LAllocation &length,
+                                const LAllocation &index, const LAllocation &value)
+    {
+        setOperand(0, elements);
+        setOperand(1, length);
+        setOperand(2, index);
+        setOperand(3, value);
     }
-    const MEffectiveAddress *mir() const {
-        return mir_->toEffectiveAddress();
+
+    const MStoreTypedArrayElementHole *mir() const {
+        return mir_->toStoreTypedArrayElementHole();
     }
-    const LAllocation *base() {
+    const LAllocation *elements() {
         return getOperand(0);
     }
-    const LAllocation *index() {
+    const LAllocation *length() {
         return getOperand(1);
+    }
+    const LAllocation *index() {
+        return getOperand(2);
+    }
+    const LAllocation *value() {
+        return getOperand(3);
     }
 };
 
@@ -3805,10 +3766,11 @@ class LParDump : public LCallInstructionHelper<0, BOX_PIECES, 0>
 };
 
 
-class LTypeBarrier : public LInstructionHelper<0, BOX_PIECES, 1>
+class LTypeBarrier : public LInstructionHelper<BOX_PIECES, BOX_PIECES, 1>
 {
   public:
     LIR_HEADER(TypeBarrier)
+    BOX_OUTPUT_ACCESSORS()
 
     LTypeBarrier(const LDefinition &temp) {
         setTemp(0, temp);
@@ -3838,6 +3800,27 @@ class LMonitorTypes : public LInstructionHelper<0, BOX_PIECES, 1>
 
     const MMonitorTypes *mir() const {
         return mir_->toMonitorTypes();
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+};
+
+
+class LExcludeType : public LInstructionHelper<0, BOX_PIECES, 1>
+{
+  public:
+    LIR_HEADER(ExcludeType);
+    BOX_OUTPUT_ACCESSORS();
+
+    LExcludeType(const LDefinition &temp) {
+        setTemp(0, temp);
+    }
+
+    static const size_t Input = 0;
+
+    const MExcludeType *mir() const {
+        return mir_->toExcludeType();
     }
     const LDefinition *temp() {
         return getTemp(0);
@@ -4010,7 +3993,7 @@ class LFunctionBoundary : public LInstructionHelper<0, 0, 1>
         return getTemp(0);
     }
 
-    RawScript script() {
+    UnrootedScript script() {
         return mir_->toFunctionBoundary()->script();
     }
 
@@ -4023,173 +4006,6 @@ class LFunctionBoundary : public LInstructionHelper<0, 0, 1>
     }
 };
 
-class LAsmJSLoadHeap : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(AsmJSLoadHeap);
-    LAsmJSLoadHeap(const LAllocation &ptr) {
-        setOperand(0, ptr);
-    }
-    MAsmJSLoadHeap *mir() const {
-        return mir_->toAsmJSLoadHeap();
-    }
-    const LAllocation *ptr() {
-        return getOperand(0);
-    }
-};
-
-class LAsmJSStoreHeap : public LInstructionHelper<0, 2, 0>
-{
-  public:
-    LIR_HEADER(AsmJSStoreHeap);
-    LAsmJSStoreHeap(const LAllocation &ptr, const LAllocation &value) {
-        setOperand(0, ptr);
-        setOperand(1, value);
-    }
-    MAsmJSStoreHeap *mir() const {
-        return mir_->toAsmJSStoreHeap();
-    }
-    const LAllocation *ptr() {
-        return getOperand(0);
-    }
-    const LAllocation *value() {
-        return getOperand(1);
-    }
-};
-
-class LAsmJSLoadGlobalVar : public LInstructionHelper<1, 0, 0>
-{
-  public:
-    LIR_HEADER(AsmJSLoadGlobalVar);
-    MAsmJSLoadGlobalVar *mir() const {
-        return mir_->toAsmJSLoadGlobalVar();
-    }
-};
-
-class LAsmJSStoreGlobalVar : public LInstructionHelper<0, 1, 0>
-{
-  public:
-    LIR_HEADER(AsmJSStoreGlobalVar);
-    LAsmJSStoreGlobalVar(const LAllocation &value) {
-        setOperand(0, value);
-    }
-    MAsmJSStoreGlobalVar *mir() const {
-        return mir_->toAsmJSStoreGlobalVar();
-    }
-    const LAllocation *value() {
-        return getOperand(0);
-    }
-};
-
-class LAsmJSLoadFFIFunc : public LInstructionHelper<1, 0, 0>
-{
-  public:
-    LIR_HEADER(AsmJSLoadFFIFunc);
-    MAsmJSLoadFFIFunc *mir() const {
-        return mir_->toAsmJSLoadFFIFunc();
-    }
-};
-
-class LAsmJSParameter : public LInstructionHelper<1, 0, 0>
-{
-  public:
-    LIR_HEADER(AsmJSParameter);
-};
-
-class LAsmJSReturn : public LInstructionHelper<0, 1, 0>
-{
-  public:
-    LIR_HEADER(AsmJSReturn);
-};
-
-class LAsmJSVoidReturn : public LInstructionHelper<0, 0, 0>
-{
-  public:
-    LIR_HEADER(AsmJSVoidReturn);
-};
-
-class LAsmJSPassStackArg : public LInstructionHelper<0, 1, 0>
-{
-  public:
-    LIR_HEADER(AsmJSPassStackArg);
-    LAsmJSPassStackArg(const LAllocation &arg) {
-        setOperand(0, arg);
-    }
-    MAsmJSPassStackArg *mir() const {
-        return mirRaw()->toAsmJSPassStackArg();
-    }
-    const LAllocation *arg() {
-        return getOperand(0);
-    }
-};
-
-class LAsmJSCall : public LInstruction
-{
-    LAllocation *operands_;
-    uint32_t numOperands_;
-    LDefinition def_;
-
-  public:
-    LIR_HEADER(AsmJSCall);
-
-    LAsmJSCall(LAllocation *operands, uint32_t numOperands)
-      : operands_(operands),
-        numOperands_(numOperands),
-        def_(LDefinition::BogusTemp())
-    {}
-
-    MAsmJSCall *mir() const {
-        return mir_->toAsmJSCall();
-    }
-
-    bool isCall() const {
-        return true;
-    };
-
-    
-    size_t numDefs() const {
-        return def_.isBogusTemp() ? 0 : 1;
-    }
-    LDefinition *getDef(size_t index) {
-        JS_ASSERT(numDefs() == 1);
-        JS_ASSERT(index == 0);
-        return &def_;
-    }
-    void setDef(size_t index, const LDefinition &def) {
-        JS_ASSERT(index == 0);
-        def_ = def;
-    }
-    size_t numOperands() const {
-        return numOperands_;
-    }
-    LAllocation *getOperand(size_t index) {
-        JS_ASSERT(index < numOperands_);
-        return &operands_[index];
-    }
-    void setOperand(size_t index, const LAllocation &a) {
-        JS_ASSERT(index < numOperands_);
-        operands_[index] = a;
-    }
-    size_t numTemps() const {
-        return 0;
-    }
-    LDefinition *getTemp(size_t index) {
-        JS_NOT_REACHED("no temps");
-    }
-    void setTemp(size_t index, const LDefinition &a) {
-        JS_NOT_REACHED("no temps");
-    }
-};
-
-class LAsmJSCheckOverRecursed : public LInstructionHelper<0, 0, 0>
-{
-  public:
-    LIR_HEADER(AsmJSCheckOverRecursed)
-
-    MAsmJSCheckOverRecursed *mir() const {
-        return mir_->toAsmJSCheckOverRecursed();
-    }
-};
 
 } 
 } 
