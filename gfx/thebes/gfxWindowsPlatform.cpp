@@ -33,6 +33,8 @@
 #include "mozilla/layers/CompositorParent.h"   
 #include "DeviceManagerD3D9.h"
 
+#include "WinUtils.h"
+
 #ifdef CAIRO_HAS_DWRITE_FONT
 #include "gfxDWriteFontList.h"
 #include "gfxDWriteFonts.h"
@@ -45,10 +47,6 @@
 #include "gfx2DGlue.h"
 
 #include <string>
-
-using namespace mozilla;
-using namespace mozilla::gfx;
-using namespace mozilla::layers;
 
 #ifdef CAIRO_HAS_D2D_SURFACE
 #include "gfxD2DSurface.h"
@@ -67,6 +65,9 @@ using namespace mozilla::layers;
 #include "d3dkmtQueryStatistics.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
+using namespace mozilla::layers;
+using namespace mozilla::widget;
 
 #ifdef CAIRO_HAS_D2D_SURFACE
 
@@ -363,8 +364,6 @@ gfxWindowsPlatform::gfxWindowsPlatform()
  
     CoInitialize(nullptr); 
 
-    mScreenDC = GetDC(nullptr);
-
 #ifdef CAIRO_HAS_D2D_SURFACE
     RegisterStrongMemoryReporter(new GfxD2DSurfaceCacheReporter());
     RegisterStrongMemoryReporter(new GfxD2DSurfaceVramReporter());
@@ -384,7 +383,6 @@ gfxWindowsPlatform::~gfxWindowsPlatform()
 {
     mDeviceManager = nullptr;
 
-    ::ReleaseDC(nullptr, mScreenDC);
     
     
 #ifdef CAIRO_HAS_D2D_SURFACE
@@ -399,6 +397,12 @@ gfxWindowsPlatform::~gfxWindowsPlatform()
 
  
     CoUninitialize();
+}
+
+double
+gfxWindowsPlatform::GetDPIScale()
+{
+  return WinUtils::LogToPhysFactor();
 }
 
 void

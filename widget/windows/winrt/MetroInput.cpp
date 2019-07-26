@@ -15,6 +15,7 @@
 #include "MetroAppShell.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TouchEvents.h"
+#include "WinUtils.h"
 
 
 #include <windows.ui.core.h> 
@@ -26,6 +27,7 @@
 using namespace ABI::Windows; 
 using namespace Microsoft; 
 using namespace mozilla;
+using namespace mozilla::widget;
 using namespace mozilla::widget::winrt;
 using namespace mozilla::dom;
 
@@ -75,8 +77,8 @@ namespace {
 
     nsIntPoint touchPoint = MetroUtils::LogToPhys(position);
     nsIntPoint touchRadius;
-    touchRadius.x = MetroUtils::LogToPhys(contactRect.Width) / 2;
-    touchRadius.y = MetroUtils::LogToPhys(contactRect.Height) / 2;
+    touchRadius.x = WinUtils::LogToPhys(contactRect.Width) / 2;
+    touchRadius.y = WinUtils::LogToPhys(contactRect.Height) / 2;
     return new Touch(pointerId,
                      touchPoint,
                      
@@ -122,8 +124,8 @@ namespace {
     props->get_Pressure(&pressure);
     nsIntPoint touchPoint = MetroUtils::LogToPhys(position);
     nsIntPoint touchRadius;
-    touchRadius.x = MetroUtils::LogToPhys(contactRect.Width) / 2;
-    touchRadius.y = MetroUtils::LogToPhys(contactRect.Height) / 2;
+    touchRadius.x = WinUtils::LogToPhys(contactRect.Width) / 2;
+    touchRadius.y = WinUtils::LogToPhys(contactRect.Height) / 2;
 
     
     return touchPoint != aTouch->mRefPoint ||

@@ -73,12 +73,14 @@ class MetroUtils
 public:
   
   
-  
-  static int32_t LogToPhys(FLOAT aValue);
+  static double LogToPhysFactor();
+  static double PhysToLogFactor();
   static nsIntPoint LogToPhys(const Point& aPt);
   static nsIntRect LogToPhys(const Rect& aRect);
-  static FLOAT PhysToLog(int32_t aValue);
   static Point PhysToLog(const nsIntPoint& aPt);
+
+  
+  static double ScaleFactor();
 
   static nsresult FireObserver(const char* aMessage, const PRUnichar* aData = nullptr);
 

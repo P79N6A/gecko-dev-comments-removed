@@ -175,16 +175,12 @@ public:
     HRESULT CreateDevice(nsRefPtr<IDXGIAdapter1> &adapter1, int featureLevelIndex);
 #endif
 
-    HDC GetScreenDC() { return mScreenDC; }
-
     
 
 
 
 
-    double GetDPIScale() {
-        return GetDeviceCaps(mScreenDC, LOGPIXELSY) / 96.0;
-    }
+    double GetDPIScale();
 
     nsresult GetFontList(nsIAtom *aLangGroup,
                          const nsACString& aGenericFamily,
@@ -274,7 +270,6 @@ protected:
 
     int8_t mUseClearTypeForDownloadableFonts;
     int8_t mUseClearTypeAlways;
-    HDC mScreenDC;
 
 private:
     void Init();

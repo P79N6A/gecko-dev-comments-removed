@@ -37,6 +37,7 @@
 #include "gfxColor.h"
 #ifdef MOZ_METRO
 #include "winrt/MetroInput.h"
+#include "winrt/MetroUtils.h"
 #endif 
 
 #ifdef NS_ENABLE_TSF
@@ -183,6 +184,47 @@ WinUtils::Log(const char *fmt, ...)
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS, (buffer));
 #endif
   delete[] buffer;
+}
+
+
+double
+WinUtils::LogToPhysFactor()
+{
+  
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
+#ifdef MOZ_METRO
+    return MetroUtils::LogToPhysFactor();
+#else
+    return 1.0;
+#endif
+  } else {
+    HDC hdc = ::GetDC(nullptr);
+    double result = ::GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
+    ::ReleaseDC(nullptr, hdc);
+    return result;
+  }
+}
+
+
+double
+WinUtils::PhysToLogFactor()
+{
+  
+  return 1.0 / LogToPhysFactor();
+}
+
+
+double
+WinUtils::PhysToLog(int32_t aValue)
+{
+  return double(aValue) * PhysToLogFactor();
+}
+
+
+int32_t
+WinUtils::LogToPhys(double aValue)
+{
+  return int32_t(NS_round(aValue * LogToPhysFactor()));
 }
 
 

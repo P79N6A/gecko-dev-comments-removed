@@ -73,6 +73,15 @@ public:
 
 
 
+  static double LogToPhysFactor();
+  static double PhysToLogFactor();
+  static int32_t LogToPhys(double aValue);
+  static double PhysToLog(int32_t aValue);
+
+  
+
+
+
   static void Log(const char *fmt, ...);
   static void LogW(const wchar_t *fmt, ...);
 
