@@ -45,7 +45,7 @@ ICCompare_Int32::Compiler::generateStubCode()
     masm.movzxbl(R0.payloadReg(), R0.payloadReg());
 
     
-    masm.boxNonDouble(JSVAL_TYPE_BOOLEAN, R0.payloadReg(), R0);
+    masm.tagValue(JSVAL_TYPE_BOOLEAN, R0.payloadReg(), R0);
     masm.ret();
 
     
@@ -87,7 +87,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode()
     masm.j(Assembler::Overflow, &failure);
 
     
-    masm.boxNonDouble(JSVAL_TYPE_INT32, scratchReg, R0);
+    masm.tagValue(JSVAL_TYPE_INT32, scratchReg, R0);
     masm.ret();
 
     
