@@ -1076,33 +1076,6 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  gfx3DMatrix SnapTransformTranslation(const gfx3DMatrix& aTransform,
-                                       gfxMatrix* aResidualTransform);
-  
-
-
-
-
-
-
-
-
-
-
   gfx3DMatrix SnapTransform(const gfx3DMatrix& aTransform,
                             const gfxRect& aSnapRect,
                             gfxMatrix* aResidualTransform);
@@ -1182,10 +1155,12 @@ public:
 
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
   {
+    
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
     gfxMatrix residual;
-    mEffectiveTransform = SnapTransformTranslation(idealTransform,
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0),
         mAllowResidualTranslation ? &residual : nullptr);
+    
     
     
     NS_ASSERTION(!residual.HasNonTranslation(),
@@ -1414,8 +1389,9 @@ public:
 
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
   {
+    
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
-    mEffectiveTransform = SnapTransformTranslation(idealTransform, nullptr);
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
@@ -1526,7 +1502,7 @@ public:
     mEffectiveTransform =
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
                       nullptr)*
-        SnapTransformTranslation(aTransformToSurface, nullptr);
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 

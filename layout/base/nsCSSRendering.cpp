@@ -52,7 +52,6 @@
 #include "mozilla/Types.h"
 #include <ctime>
 #include <cstdlib> 
-#include "gfxUtils.h"
 #include <cmath> 
 
 using namespace mozilla;
@@ -2075,6 +2074,35 @@ FindTileStart(nscoord aDirtyCoord, nscoord aTilePos, nscoord aTileDim)
   return NSToCoordRound(multiples*aTileDim + aTilePos);
 }
 
+
+
+
+
+
+static gfxMatrix
+TransformRectToRect(const gfxRect& aFrom, const gfxPoint& aToTopLeft,
+                    const gfxPoint& aToTopRight, const gfxPoint& aToBottomRight)
+{
+  gfxMatrix m;
+  if (aToTopRight.y == aToTopLeft.y && aToTopRight.x == aToBottomRight.x) {
+    
+    m.xy = m.yx = 0.0;
+    m.xx = (aToBottomRight.x - aToTopLeft.x)/aFrom.width;
+    m.yy = (aToBottomRight.y - aToTopLeft.y)/aFrom.height;
+    m.x0 = aToTopLeft.x - m.xx*aFrom.x;
+    m.y0 = aToTopLeft.y - m.yy*aFrom.y;
+  } else {
+    NS_ASSERTION(aToTopRight.y == aToBottomRight.y && aToTopRight.x == aToTopLeft.x,
+                 "Destination rectangle not axis-aligned");
+    m.xx = m.yy = 0.0;
+    m.xy = (aToBottomRight.x - aToTopLeft.x)/aFrom.height;
+    m.yx = (aToBottomRight.y - aToTopLeft.y)/aFrom.width;
+    m.x0 = aToTopLeft.x - m.xy*aFrom.y;
+    m.y0 = aToTopLeft.y - m.yx*aFrom.x;
+  }
+  return m;
+}
+
 void
 nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
                               nsRenderingContext& aRenderingContext,
@@ -2412,7 +2440,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
         
         
         
-        gfxMatrix transform = gfxUtils::TransformRectToRect(fillRect,
+        gfxMatrix transform = TransformRectToRect(fillRect,
             snappedFillRectTopLeft, snappedFillRectTopRight,
             snappedFillRectBottomRight);
         ctx->SetMatrix(transform);
