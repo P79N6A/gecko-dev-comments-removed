@@ -776,7 +776,7 @@ toolbarbutton[sdk-button="true"][cui-areatype="toolbar"] > .toolbarbutton-icon {
 #forward-button > .toolbarbutton-icon {
   background-clip: padding-box !important;
   
-  clip-path: url(chrome://browser/content/browser.xul#windows-keyhole-forward-clip-path) !important;
+  clip-path: url(chrome://browser/content/browser.xul#keyhole-forward-clip-path) !important;
   margin-left: -7px !important;
   border-left-style: none !important;
   border-radius: 0 !important;
@@ -1079,7 +1079,7 @@ toolbarbutton[sdk-button="true"][cui-areatype="toolbar"] > .toolbarbutton-icon {
 }
 
 @conditionalForwardWithUrlbar@[forwarddisabled] > #urlbar-wrapper {
-  clip-path: url("chrome://browser/content/browser.xul#windows-urlbar-back-button-clip-path");
+  clip-path: url("chrome://browser/content/browser.xul#urlbar-back-button-clip-path");
 }
 
 @conditionalForwardWithUrlbar@[forwarddisabled] > #urlbar-wrapper > #urlbar {
