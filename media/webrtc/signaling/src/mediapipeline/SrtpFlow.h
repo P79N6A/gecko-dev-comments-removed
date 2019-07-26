@@ -52,7 +52,7 @@ class SrtpFlow {
 
 
  private:
-  SrtpFlow() : policy_(NULL), session_(NULL) {}
+  SrtpFlow() : session_(NULL) {}
 
   nsresult CheckInputs(bool protect, void *in, int in_len,
                        int max_len, int *out_len);
@@ -60,7 +60,6 @@ class SrtpFlow {
   static nsresult Init();
   static bool initialized;  
 
-  srtp_policy_t *policy_;
   srtp_t session_;
 };
 
