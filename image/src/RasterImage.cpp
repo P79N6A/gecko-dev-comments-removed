@@ -140,6 +140,195 @@ DiscardingEnabled()
   return enabled;
 }
 
+struct ScaleRequest
+{
+  ScaleRequest(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
+    : scale(aScale)
+    , dstLocked(false)
+    , done(false)
+    , stopped(false)
+  {
+    MOZ_ASSERT(!aSrcFrame->GetIsPaletted());
+    MOZ_ASSERT(aScale.width > 0 && aScale.height > 0);
+
+    weakImage = aImage->asWeakPtr();
+    srcRect = aSrcFrame->GetRect();
+    dstSize.width = NSToIntRoundUp(srcRect.width * scale.width);
+    dstSize.height = NSToIntRoundUp(srcRect.height * scale.height);
+  }
+
+  
+  bool GetSurfaces(imgFrame* srcFrame)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsRefPtr<RasterImage> image = weakImage.get();
+    if (!image) {
+      return false;
+    }
+
+    bool success = false;
+    if (!dstLocked) {
+      bool srcLocked = NS_SUCCEEDED(srcFrame->LockImageData());
+      dstLocked = NS_SUCCEEDED(dstFrame->LockImageData());
+
+      nsRefPtr<gfxASurface> dstASurf;
+      nsRefPtr<gfxASurface> srcASurf;
+      success = srcLocked && NS_SUCCEEDED(srcFrame->GetSurface(getter_AddRefs(srcASurf)));
+      success = success && dstLocked && NS_SUCCEEDED(dstFrame->GetSurface(getter_AddRefs(dstASurf)));
+
+      success = success && srcLocked && dstLocked && srcASurf && dstASurf;
+
+      if (success) {
+        srcSurface = srcASurf->GetAsImageSurface();
+        dstSurface = dstASurf->GetAsImageSurface();
+        srcData = srcSurface->Data();
+        dstData = dstSurface->Data();
+        srcStride = srcSurface->Stride();
+        dstStride = dstSurface->Stride();
+        srcFormat = mozilla::gfx::ImageFormatToSurfaceFormat(srcFrame->GetFormat());
+      }
+
+      
+      
+      
+      if (srcLocked) {
+        success = NS_SUCCEEDED(srcFrame->UnlockImageData()) && success;
+      }
+
+      success = success && srcSurface && dstSurface;
+    }
+
+    return success;
+  }
+
+  
+  bool ReleaseSurfaces()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsRefPtr<RasterImage> image = weakImage.get();
+    if (!image) {
+      return false;
+    }
+
+    bool success = false;
+    if (dstLocked) {
+      success = NS_SUCCEEDED(dstFrame->UnlockImageData());
+
+      dstLocked = false;
+      srcData = nullptr;
+      dstData = nullptr;
+      srcSurface = nullptr;
+      dstSurface = nullptr;
+    }
+    return success;
+  }
+
+  
+  WeakPtr<RasterImage> weakImage;
+  nsAutoPtr<imgFrame> dstFrame;
+  nsRefPtr<gfxImageSurface> srcSurface;
+  nsRefPtr<gfxImageSurface> dstSurface;
+
+  
+  gfxSize scale;
+  uint8_t* srcData;
+  uint8_t* dstData;
+  nsIntRect srcRect;
+  gfxIntSize dstSize;
+  uint32_t srcStride;
+  uint32_t dstStride;
+  mozilla::gfx::SurfaceFormat srcFormat;
+  bool dstLocked;
+  bool done;
+  
+  
+  
+  bool stopped;
+};
+
+class DrawRunner : public nsRunnable
+{
+public:
+  DrawRunner(ScaleRequest* request)
+   : mScaleRequest(request)
+  {}
+
+  NS_IMETHOD Run()
+  {
+    
+    mScaleRequest->ReleaseSurfaces();
+
+    nsRefPtr<RasterImage> image = mScaleRequest->weakImage.get();
+
+    if (image) {
+      RasterImage::ScaleStatus status;
+      if (mScaleRequest->done) {
+        status = RasterImage::SCALE_DONE;
+      } else {
+        status = RasterImage::SCALE_INVALID;
+      }
+
+      image->ScalingDone(mScaleRequest, status);
+    }
+
+    return NS_OK;
+  }
+
+private: 
+  nsAutoPtr<ScaleRequest> mScaleRequest;
+};
+
+class ScaleRunner : public nsRunnable
+{
+public:
+  ScaleRunner(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
+  {
+    nsAutoPtr<ScaleRequest> request(new ScaleRequest(aImage, aScale, aSrcFrame));
+
+    
+    
+    request->dstFrame = new imgFrame();
+    nsresult rv = request->dstFrame->Init(0, 0, request->dstSize.width, request->dstSize.height,
+                                          gfxASurface::ImageFormatARGB32);
+
+    if (NS_FAILED(rv) || !request->GetSurfaces(aSrcFrame)) {
+      return;
+    }
+
+    aImage->ScalingStart(request);
+
+    mScaleRequest = request;
+  }
+
+  NS_IMETHOD Run()
+  {
+    
+    ScaleRequest* request = mScaleRequest;
+
+    if (!request->stopped) {
+      request->done = mozilla::gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
+                                          request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
+                                          request->srcFormat);
+    } else {
+      request->done = false;
+    }
+
+    
+    
+    nsRefPtr<DrawRunner> runner = new DrawRunner(mScaleRequest.forget());
+    NS_DispatchToMainThread(runner, NS_DISPATCH_NORMAL);
+
+    return NS_OK;
+  }
+
+  bool IsOK() const { return !!mScaleRequest; }
+
+private:
+  nsAutoPtr<ScaleRequest> mScaleRequest;
+};
+
 namespace mozilla {
 namespace image {
 
@@ -2618,83 +2807,6 @@ RasterImage::SyncDecode()
   return mError ? NS_ERROR_FAILURE : NS_OK;
 }
 
-nsresult
-RasterImage::ScaleRunner::Run()
-{
-  
-  ScaleRequest* request = mScaleRequest;
-
-  if (!request->stopped) {
-    request->done = mozilla::gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
-                                        request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
-                                        request->srcFormat);
-  } else {
-    request->done = false;
-  }
-
-  
-  
-  DrawRunner* runner = new DrawRunner(mScaleRequest.forget());
-  NS_DispatchToMainThread(runner, NS_DISPATCH_NORMAL);
-
-  return NS_OK;
-}
-
-RasterImage::ScaleRunner::ScaleRunner(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
-{
-  nsAutoPtr<ScaleRequest> request(new ScaleRequest(aImage, aScale, aSrcFrame));
-
-  
-  
-  request->dstFrame = new imgFrame();
-  nsresult rv = request->dstFrame->Init(0, 0, request->dstSize.width, request->dstSize.height,
-                                        gfxASurface::ImageFormatARGB32);
-
-  if (NS_FAILED(rv) || !request->GetSurfaces(aSrcFrame)) {
-    return;
-  }
-
-  aImage->ScalingStart(request);
-
-  mScaleRequest = request;
-}
-
-RasterImage::DrawRunner::DrawRunner(ScaleRequest* request)
- : mScaleRequest(request)
-{}
-
-nsresult
-RasterImage::DrawRunner::Run()
-{
-  
-  mScaleRequest->ReleaseSurfaces();
-
-  nsRefPtr<RasterImage> image = mScaleRequest->weakImage.get();
-
-  
-  if (mScaleRequest->done && image) {
-    nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(image->mObserver));
-    if (observer) {
-      imgFrame *scaledFrame = mScaleRequest->dstFrame.get();
-      scaledFrame->ImageUpdated(scaledFrame->GetRect());
-      observer->FrameChanged(&mScaleRequest->srcRect);
-    }
-  }
-
-  if (image) {
-    ScaleStatus status;
-    if (mScaleRequest->done) {
-      status = SCALE_DONE;
-    } else {
-      status = SCALE_INVALID;
-    }
-
-    image->ScalingDone(mScaleRequest, status);
-  }
-
-  return NS_OK;
-}
-
 static inline bool
 IsDownscale(const gfxSize& scale)
 {
@@ -2741,6 +2853,14 @@ RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
 
   if (status == SCALE_DONE) {
     MOZ_ASSERT(request->done);
+
+    nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(mObserver));
+    if (observer) {
+      imgFrame *scaledFrame = request->dstFrame.get();
+      scaledFrame->ImageUpdated(scaledFrame->GetRect());
+      observer->FrameChanged(&request->srcRect);
+    }
+
     mScaleResult.status = SCALE_DONE;
     mScaleResult.frame = request->dstFrame;
     mScaleResult.scale = request->scale;
