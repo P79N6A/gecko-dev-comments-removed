@@ -20,6 +20,8 @@ class nsWindow;
 namespace mozilla {
 namespace widget {
 
+struct MSGResult;
+
 
 
 
@@ -48,11 +50,9 @@ public:
 
 
 
-
-
   static bool ProcessMessage(nsWindow* aWindow, UINT aMessage,
                              WPARAM& aWParam, LPARAM& aLParam,
-                             LRESULT* aRetValue, bool& aEatMessage);
+                             MSGResult& aResult);
 
   
 
