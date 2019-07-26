@@ -45,11 +45,22 @@ self.onmessage = function(e) {
     var ret = libhardware_legacy.command(data.request, cbuf, len.address());
     var reply = "";
     if (!ret) {
+      
+      
+      
+      
+      
       var reply_len = len.value;
-      var str = cbuf.readString();
-      if (str[reply_len-1] == "\n")
-        --reply_len;
-      reply = str.substr(0, reply_len);
+      if (reply_len !== 0) {
+        if (cbuf[reply_len - 1] === 10)
+          cbuf[--reply_len] = 0;
+        else if (reply_len !== 4096)
+          cbuf[reply_len] = 0;
+
+        reply = cbuf.readString();
+      }
+
+      
     }
     postMessage({ id: id, status: ret, reply: reply });
     break;
