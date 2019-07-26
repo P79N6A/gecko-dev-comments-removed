@@ -168,7 +168,7 @@ class Type
         return isObject() && !!(data & 1);
     }
 
-    inline RawObject singleObject() const;
+    inline JSObject *singleObject() const;
 
     
 
@@ -196,7 +196,7 @@ class Type
         return Type(type);
     }
 
-    static inline Type ObjectType(RawObject obj);
+    static inline Type ObjectType(JSObject *obj);
     static inline Type ObjectType(TypeObject *obj);
     static inline Type ObjectType(TypeObjectKey *obj);
 };
@@ -497,7 +497,7 @@ class TypeSet
 
     inline unsigned getObjectCount() const;
     inline TypeObjectKey *getObject(unsigned i) const;
-    inline RawObject getSingleObject(unsigned i) const;
+    inline JSObject *getSingleObject(unsigned i) const;
     inline TypeObject *getTypeObject(unsigned i) const;
 
     void setOwnProperty(bool configurable) {
@@ -628,7 +628,7 @@ class StackTypeSet : public TypeSet
     bool isDOMClass();
 
     
-    RawObject getSingleton();
+    JSObject *getSingleton();
 
     
     bool propertyNeedsBarrier(JSContext *cx, jsid id);
@@ -716,7 +716,7 @@ class HeapTypeSet : public TypeSet
     bool knownSubset(JSContext *cx, TypeSet *other);
 
     
-    RawObject getSingleton(JSContext *cx);
+    JSObject *getSingleton(JSContext *cx);
 
     
 
@@ -959,7 +959,7 @@ struct TypeObject : gc::Cell
 
 
     static const size_t LAZY_SINGLETON = 1;
-    bool lazy() const { return singleton == (RawObject) LAZY_SINGLETON; }
+    bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
 
     
     TypeObjectFlags flags;

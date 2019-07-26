@@ -2281,7 +2281,7 @@ class FunctionCompiler
 
 
 
-static void AsmJSModuleObject_finalize(FreeOp *fop, RawObject obj);
+static void AsmJSModuleObject_finalize(FreeOp *fop, JSObject *obj);
 static void AsmJSModuleObject_trace(JSTracer *trc, JSObject *obj);
 
 static const unsigned ASM_CODE_RESERVED_SLOT = 0;
@@ -2334,7 +2334,7 @@ js::SetAsmJSModuleObject(JSFunction *moduleFun, JSObject *moduleObj)
 }
 
 static void
-AsmJSModuleObject_finalize(FreeOp *fop, RawObject obj)
+AsmJSModuleObject_finalize(FreeOp *fop, JSObject *obj)
 {
     fop->delete_(&AsmJSModuleObjectToModule(obj));
 }

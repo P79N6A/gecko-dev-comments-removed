@@ -590,7 +590,7 @@ js::Execute(JSContext *cx, HandleScript script, JSObject &scopeChainArg, Value *
 
     
 #ifdef DEBUG
-    RawObject s = scopeChain;
+    JSObject *s = scopeChain;
     do {
         assertSameCompartment(cx, s);
         JS_ASSERT_IF(!s->enclosingScope(), s->isGlobal());

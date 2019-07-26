@@ -191,7 +191,7 @@ VectorMatchPairs::allocOrExpandArray(size_t pairCount)
 
 
 static void
-regexp_trace(JSTracer *trc, RawObject obj)
+regexp_trace(JSTracer *trc, JSObject *obj)
 {
      
 

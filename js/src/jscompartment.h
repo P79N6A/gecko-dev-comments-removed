@@ -242,7 +242,7 @@ struct JSCompartment
 
 
 
-    js::RawObject                gcIncomingGrayPointers;
+    JSObject                     *gcIncomingGrayPointers;
 
     
     JSObject                     *gcLiveArrayBuffers;

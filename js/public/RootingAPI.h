@@ -317,12 +317,6 @@ namespace js {
 
 
 
-typedef JSObject *                  RawObject;
-
-
-
-
-
 
 
 template <typename T>
@@ -820,7 +814,5 @@ class CompilerRootNode
 };
 
 }  
-
-ForwardDeclareJS(Object);
 
 #endif  
