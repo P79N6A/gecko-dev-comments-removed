@@ -4306,3 +4306,6 @@ pref("urlclassifier.download_allow_table", "");
 
 
 pref("snav.enabled", false);
+
+
+pref("dom.wakelock.enabled", false);
