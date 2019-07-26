@@ -381,7 +381,6 @@ MacroAssembler::getNewObject(JSContext *cx, const Register &result,
     int thingSize = (int)gc::Arena::thingSize(allocKind);
 
     JS_ASSERT(cx->typeInferenceEnabled());
-    JS_ASSERT(!templateObject->hasDynamicSlots());
     JS_ASSERT(!templateObject->hasDynamicElements());
 
 #ifdef JS_GC_ZEAL
@@ -440,7 +439,8 @@ MacroAssembler::getNewObject(JSContext *cx, const Register &result,
     } else {
         
         
-        for (unsigned i = 0; i < templateObject->slotSpan(); i++) {
+        size_t nslots = JS_MIN(templateObject->numFixedSlots(), templateObject->slotSpan());
+        for (unsigned i = 0; i < nslots; i++) {
             storeValue(templateObject->getFixedSlot(i),
                        Address(result, JSObject::getFixedSlotOffset(i)));
         }
