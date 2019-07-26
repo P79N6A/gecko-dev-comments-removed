@@ -169,10 +169,6 @@ public:
 
   static cairo_surface_t *GetDummySurface();
 
-  static TemporaryRef<SourceSurface>
-      CreateSourceSurfaceForCairoSurface(cairo_surface_t* aSurface,
-                                         SurfaceFormat aFormat);
-
 private: 
   
   bool InitAlreadyReferenced(cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat* aFormat = nullptr);
