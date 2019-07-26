@@ -81,32 +81,6 @@ function run_test() {
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 2); run_next_test(); });
 
-
-  
-
-  
-  add_test(function() { clearOCSPCache(); gFetchCount = 0; run_next_test(); });
-
-  
-  
-  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
-                      clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
-
-  
-  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
-                      clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
-
-  
-  
-  add_connection_test("ocsp-stapling-revoked.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
-                      clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
-
-  
-
   add_test(function() { ocspResponder.stop(run_next_test); run_next_test(); });
 
   run_next_test();
