@@ -280,6 +280,7 @@ class IonBuilder : public MIRGenerator
     MDefinition *walkScopeChain(unsigned hops);
 
     MInstruction *addBoundsCheck(MDefinition *index, MDefinition *length);
+    MInstruction *addShapeGuard(MDefinition *obj, const Shape *shape, BailoutKind bailoutKind);
 
     JSObject *getNewArrayTemplateObject(uint32 count);
 
@@ -472,6 +473,10 @@ class IonBuilder : public MIRGenerator
     
     
     bool failedBoundsCheck_;
+
+    
+    
+    bool failedShapeGuard_;
 
     
     

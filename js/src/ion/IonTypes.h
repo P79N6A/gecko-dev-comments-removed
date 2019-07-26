@@ -53,7 +53,7 @@ enum BailoutKind
     Bailout_BoundsCheck,
 
     
-    Bailout_Invalidate,
+    Bailout_ShapeGuard,
 
     
     Bailout_CachedShapeGuard
