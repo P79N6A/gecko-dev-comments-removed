@@ -1912,8 +1912,8 @@ nsWindow::SetDrawsInTitlebar(bool aState)
   }
 
   if (aState) {
-     
-    nsIntMargin margins(-1, 0, -1, -1);
+    
+    nsIntMargin margins(0, -1, -1, -1);
     SetNonClientMargins(margins);
   }
   else {
@@ -5509,14 +5509,14 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
 
   
   
-  nsIntMargin nonClientSize(std::max(mHorResizeMargin - mNonClientOffset.left,
-                                   kResizableBorderMinSize),
-                            std::max(mCaptionHeight - mNonClientOffset.top,
-                                   kResizableBorderMinSize),
+  nsIntMargin nonClientSize(std::max(mCaptionHeight - mNonClientOffset.top,
+                                     kResizableBorderMinSize),
                             std::max(mHorResizeMargin - mNonClientOffset.right,
-                                   kResizableBorderMinSize),
+                                     kResizableBorderMinSize),
                             std::max(mVertResizeMargin - mNonClientOffset.bottom,
-                                   kResizableBorderMinSize));
+                                     kResizableBorderMinSize),
+                            std::max(mHorResizeMargin - mNonClientOffset.left,
+                                     kResizableBorderMinSize));
 
   bool allowContentOverride = mSizeMode == nsSizeMode_Maximized ||
                               (mx >= winRect.left + nonClientSize.left &&
@@ -5529,10 +5529,10 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
   
   
   
-  nsIntMargin borderSize(std::max(nonClientSize.left, mHorResizeMargin),
-                         std::max(nonClientSize.top, mVertResizeMargin),
-                         std::max(nonClientSize.right, mHorResizeMargin),
-                         std::max(nonClientSize.bottom, mVertResizeMargin));
+  nsIntMargin borderSize(std::max(nonClientSize.top,    mVertResizeMargin),
+                         std::max(nonClientSize.right,  mHorResizeMargin),
+                         std::max(nonClientSize.bottom, mVertResizeMargin),
+                         std::max(nonClientSize.left,   mHorResizeMargin));
 
   bool top    = false;
   bool bottom = false;

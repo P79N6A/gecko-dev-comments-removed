@@ -2167,7 +2167,7 @@ nsNativeThemeWin::GetWidgetOverflow(nsDeviceContext* aContext,
     {
       int32_t p2a = aContext->AppUnitsPerDevPixel();
       
-      nsMargin m(0, p2a, p2a, p2a);
+      nsMargin m(p2a, p2a, p2a, 0);
       aOverflowRect->Inflate (m);
       return true;
     }

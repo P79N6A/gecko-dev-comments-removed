@@ -304,10 +304,10 @@ public:
 
     
     
-    mTempRect.Inflate(Margin(blurRadius + std::max<Float>(state.shadowOffset.x, 0),
-                             blurRadius + std::max<Float>(state.shadowOffset.y, 0),
+    mTempRect.Inflate(Margin(blurRadius + std::max<Float>(state.shadowOffset.y, 0),
                              blurRadius + std::max<Float>(-state.shadowOffset.x, 0),
-                             blurRadius + std::max<Float>(-state.shadowOffset.y, 0)));
+                             blurRadius + std::max<Float>(-state.shadowOffset.y, 0),
+                             blurRadius + std::max<Float>(state.shadowOffset.x, 0)));
 
     if (aBounds) {
       
