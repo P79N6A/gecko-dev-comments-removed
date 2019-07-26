@@ -52,7 +52,7 @@ public interface TelemetryContract {
 
         
         
-        public static final String ACTION = "launch.1";
+        public static final String LAUNCH = "launch.1";
     }
 
     
