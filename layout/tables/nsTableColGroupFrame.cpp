@@ -465,11 +465,20 @@ nsTableColGroupFrame::GetType() const
 }
   
 void 
-nsTableColGroupFrame::InvalidateFrame()
+nsTableColGroupFrame::InvalidateFrame(uint32_t aDisplayItemKey)
 {
-  nsIFrame::InvalidateFrame();
-  nsTableFrame *tableFrame = nsTableFrame::GetTableFrame(this);
-  tableFrame->InvalidateFrame();
+  nsIFrame::InvalidateFrame(aDisplayItemKey);
+  GetParent()->InvalidateFrameWithRect(GetVisualOverflowRect() + GetPosition(), aDisplayItemKey);
+}
+
+void 
+nsTableColGroupFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
+{
+  nsIFrame::InvalidateFrameWithRect(aRect, aDisplayItemKey);
+  
+  
+  
+  GetParent()->InvalidateFrameWithRect(aRect + GetPosition(), aDisplayItemKey);
 }
 
 #ifdef DEBUG

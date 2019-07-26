@@ -464,6 +464,23 @@ public:
   bool HasCellSpanningPctCol() const;
   void SetHasCellSpanningPctCol(bool aValue);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  static void InvalidateTableFrame(nsIFrame* aFrame,
+                                   const nsRect& aOrigRect,
+                                   const nsRect& aOrigVisualOverflow,
+                                   bool aIsFirstReflow);
+
   virtual bool UpdateOverflow();
 
 protected:
