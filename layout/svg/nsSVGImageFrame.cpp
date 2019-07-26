@@ -386,6 +386,7 @@ nsSVGImageFrame::PaintSVG(nsRenderingContext *aContext,
       
       nsLayoutUtils::DrawSingleImage(
         aContext,
+        PresContext(),
         mImageContainer,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),
         destRect,
@@ -395,6 +396,7 @@ nsSVGImageFrame::PaintSVG(nsRenderingContext *aContext,
     } else { 
       nsLayoutUtils::DrawSingleUnscaledImage(
         aContext,
+        PresContext(),
         mImageContainer,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),
         nsPoint(0, 0),

@@ -4999,6 +4999,7 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
 
 static nsresult
 DrawImageInternal(nsRenderingContext*    aRenderingContext,
+                  nsPresContext*         aPresContext,
                   imgIContainer*         aImage,
                   GraphicsFilter         aGraphicsFilter,
                   const nsRect&          aDest,
@@ -5012,7 +5013,8 @@ DrawImageInternal(nsRenderingContext*    aRenderingContext,
   if (aDest.Contains(aFill)) {
     aImageFlags |= imgIContainer::FLAG_CLAMP;
   }
-  int32_t appUnitsPerDevPixel = aRenderingContext->AppUnitsPerDevPixel();
+  int32_t appUnitsPerDevPixel =
+   aPresContext->AppUnitsPerDevPixel();
   gfxContext* ctx = aRenderingContext->ThebesContext();
 
   SnappedImageDrawingParameters drawingParams =
@@ -5035,6 +5037,7 @@ DrawImageInternal(nsRenderingContext*    aRenderingContext,
 
  void
 nsLayoutUtils::DrawPixelSnapped(nsRenderingContext* aRenderingContext,
+                                nsPresContext*       aPresContext,
                                 gfxDrawable*         aDrawable,
                                 GraphicsFilter       aFilter,
                                 const nsRect&        aDest,
@@ -5042,7 +5045,8 @@ nsLayoutUtils::DrawPixelSnapped(nsRenderingContext* aRenderingContext,
                                 const nsPoint&       aAnchor,
                                 const nsRect&        aDirty)
 {
-  int32_t appUnitsPerDevPixel = aRenderingContext->AppUnitsPerDevPixel();
+  int32_t appUnitsPerDevPixel =
+    aPresContext->AppUnitsPerDevPixel();
   gfxContext* ctx = aRenderingContext->ThebesContext();
   gfxIntSize drawableSize = aDrawable->Size();
   nsIntSize imageSize(drawableSize.width, drawableSize.height);
@@ -5076,6 +5080,7 @@ nsLayoutUtils::DrawPixelSnapped(nsRenderingContext* aRenderingContext,
 
  nsresult
 nsLayoutUtils::DrawSingleUnscaledImage(nsRenderingContext* aRenderingContext,
+                                       nsPresContext*       aPresContext,
                                        imgIContainer*       aImage,
                                        GraphicsFilter       aGraphicsFilter,
                                        const nsPoint&       aDest,
@@ -5105,13 +5110,15 @@ nsLayoutUtils::DrawSingleUnscaledImage(nsRenderingContext* aRenderingContext,
   
   
   fill.IntersectRect(fill, dest);
-  return DrawImageInternal(aRenderingContext, aImage, aGraphicsFilter,
+  return DrawImageInternal(aRenderingContext, aPresContext,
+                           aImage, aGraphicsFilter,
                            dest, fill, aDest, aDirty ? *aDirty : dest,
                            imageSize, nullptr, aImageFlags);
 }
 
  nsresult
 nsLayoutUtils::DrawSingleImage(nsRenderingContext*    aRenderingContext,
+                               nsPresContext*         aPresContext,
                                imgIContainer*         aImage,
                                GraphicsFilter         aGraphicsFilter,
                                const nsRect&          aDest,
@@ -5125,7 +5132,8 @@ nsLayoutUtils::DrawSingleImage(nsRenderingContext*    aRenderingContext,
     
     
     
-    nscoord appUnitsPerDevPx = aRenderingContext->AppUnitsPerDevPixel();
+    nscoord appUnitsPerDevPx =
+      aPresContext->AppUnitsPerDevPixel();
     imageSize.width = NSAppUnitsToIntPixels(aDest.width, appUnitsPerDevPx);
     imageSize.height = NSAppUnitsToIntPixels(aDest.height, appUnitsPerDevPx);
   } else {
@@ -5151,7 +5159,8 @@ nsLayoutUtils::DrawSingleImage(nsRenderingContext*    aRenderingContext,
   
   nsRect fill;
   fill.IntersectRect(aDest, dest);
-  return DrawImageInternal(aRenderingContext, aImage, aGraphicsFilter, dest, fill,
+  return DrawImageInternal(aRenderingContext, aPresContext, aImage,
+                           aGraphicsFilter, dest, fill,
                            fill.TopLeft(), aDirty, imageSize, aSVGContext, aImageFlags);
 }
 
@@ -5178,6 +5187,7 @@ nsLayoutUtils::ComputeSizeForDrawing(imgIContainer *aImage,
 
  nsresult
 nsLayoutUtils::DrawBackgroundImage(nsRenderingContext* aRenderingContext,
+                                   nsPresContext*      aPresContext,
                                    imgIContainer*      aImage,
                                    const nsIntSize&    aImageSize,
                                    GraphicsFilter      aGraphicsFilter,
@@ -5194,13 +5204,15 @@ nsLayoutUtils::DrawBackgroundImage(nsRenderingContext* aRenderingContext,
     aGraphicsFilter = GraphicsFilter::FILTER_NEAREST;
   }
 
-  return DrawImageInternal(aRenderingContext, aImage, aGraphicsFilter,
+  return DrawImageInternal(aRenderingContext, aPresContext, aImage,
+                           aGraphicsFilter,
                            aDest, aFill, aAnchor, aDirty,
                            aImageSize, nullptr, aImageFlags);
 }
 
  nsresult
 nsLayoutUtils::DrawImage(nsRenderingContext* aRenderingContext,
+                         nsPresContext*       aPresContext,
                          imgIContainer*       aImage,
                          GraphicsFilter       aGraphicsFilter,
                          const nsRect&        aDest,
@@ -5243,7 +5255,8 @@ nsLayoutUtils::DrawImage(nsRenderingContext* aRenderingContext,
     imageSize.height = nsPresContext::AppUnitsToIntCSSPixels(aFill.height);
   }
 
-  return DrawImageInternal(aRenderingContext, aImage, aGraphicsFilter,
+  return DrawImageInternal(aRenderingContext, aPresContext, aImage,
+                           aGraphicsFilter,
                            aDest, aFill, aAnchor, aDirty,
                            imageSize, nullptr, aImageFlags);
 }

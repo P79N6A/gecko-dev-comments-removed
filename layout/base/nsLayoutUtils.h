@@ -1445,6 +1445,7 @@ public:
 
 
   static nsresult DrawBackgroundImage(nsRenderingContext* aRenderingContext,
+                                      nsPresContext*      aPresContext,
                                       imgIContainer*      aImage,
                                       const nsIntSize&    aImageSize,
                                       GraphicsFilter      aGraphicsFilter,
@@ -1470,6 +1471,7 @@ public:
 
 
   static nsresult DrawImage(nsRenderingContext* aRenderingContext,
+                            nsPresContext*       aPresContext,
                             imgIContainer*       aImage,
                             GraphicsFilter       aGraphicsFilter,
                             const nsRect&        aDest,
@@ -1500,6 +1502,7 @@ public:
 
 
   static void DrawPixelSnapped(nsRenderingContext* aRenderingContext,
+                               nsPresContext*       aPresContext,
                                gfxDrawable*         aDrawable,
                                GraphicsFilter       aFilter,
                                const nsRect&        aDest,
@@ -1524,6 +1527,7 @@ public:
 
 
   static nsresult DrawSingleUnscaledImage(nsRenderingContext* aRenderingContext,
+                                          nsPresContext*       aPresContext,
                                           imgIContainer*       aImage,
                                           GraphicsFilter       aGraphicsFilter,
                                           const nsPoint&       aDest,
@@ -1552,6 +1556,7 @@ public:
 
 
   static nsresult DrawSingleImage(nsRenderingContext*    aRenderingContext,
+                                  nsPresContext*         aPresContext,
                                   imgIContainer*         aImage,
                                   GraphicsFilter         aGraphicsFilter,
                                   const nsRect&          aDest,
