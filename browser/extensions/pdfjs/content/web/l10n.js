@@ -95,19 +95,14 @@
     get: translateString,
 
     
-    get language() {
-      return {
-        
-        get code() { return gLanguage; },
+    getLanguage: function() { return gLanguage; },
 
-        
-        get direction() {
-          
-          
-          var rtlList = ['ar', 'he', 'fa', 'ps', 'ur'];
-          return (rtlList.indexOf(gLanguage) >= 0) ? 'rtl' : 'ltr';
-        }
-      };
+    
+    getDirection: function() {
+      
+      
+      var rtlList = ['ar', 'he', 'fa', 'ps', 'ur'];
+      return (rtlList.indexOf(gLanguage) >= 0) ? 'rtl' : 'ltr';
     }
   };
 })(this);
