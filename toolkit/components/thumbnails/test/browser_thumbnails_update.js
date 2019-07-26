@@ -43,7 +43,7 @@ function getThumbnailModifiedTime(url) {
 
 function simpleCaptureTest() {
   let numNotifications = 0;
-  const URL = "data:text/html;charset=utf-8,<body%20bgcolor=ff0000></body>";
+  const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?simple";
 
   function observe(subject, topic, data) {
     is(topic, "page-thumbnail:create", "got expected topic");
