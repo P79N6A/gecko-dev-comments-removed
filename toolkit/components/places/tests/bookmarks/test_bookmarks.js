@@ -76,6 +76,10 @@ let bmStartIndex = 0;
 
 
 function run_test() {
+  run_next_test();
+}
+
+add_task(function test_bookmarks() {
   bs.addObserver(bookmarksObserver, false);
 
   
@@ -612,7 +616,7 @@ function run_test() {
   
   let uri1 = uri("http://foo.tld/a");
   bs.insertBookmark(testRoot, uri1, bs.DEFAULT_INDEX, "");
-  hs.addVisit(uri1, Date.now() * 1000, null, hs.TRANSITION_TYPED, false, 0);
+  yield promiseAddVisits(uri1);
 
   
   let title15 = Array(TITLE_LENGTH_MAX + 5).join("X");
@@ -632,7 +636,7 @@ function run_test() {
   do_check_eq(bookmarksObserver._itemChangedValue, title15expected);
 
   testSimpleFolderResult();
-}
+});
 
 function testSimpleFolderResult() {
   
