@@ -1809,6 +1809,13 @@ pref("layout.css.DOMPoint.enabled", true);
 pref("layout.css.DOMQuad.enabled", true);
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.getBoxQuads.enabled", false);
+#else
+pref("layout.css.getBoxQuads.enabled", true);
+#endif
+
+
 pref("layout.css.text-align-true-value.enabled", false);
 
 
