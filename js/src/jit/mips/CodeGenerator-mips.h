@@ -117,6 +117,8 @@ class CodeGeneratorMIPS : public CodeGeneratorShared
     template <typename T>
     void branchToBlock(Register lhs, T rhs, MBasicBlock *mir, Assembler::Condition cond)
     {
+        mir = skipTrivialBlocks(mir);
+
         Label *label = mir->lir()->label();
         if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
             
