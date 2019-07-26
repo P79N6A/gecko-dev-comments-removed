@@ -147,7 +147,7 @@ var gPrivacyPane = {
   getTrackingPrefs: function PPP_getTrackingPrefs()
   {
     
-    let dntValue = Services.prefs.getBoolPref("privacy.donottrackheader.value"),
+    let dntValue = Services.prefs.getIntPref("privacy.donottrackheader.value"),
         dntEnabled = Services.prefs.getBoolPref("privacy.donottrackheader.enabled");
 
     
