@@ -119,6 +119,19 @@ tabbrowser {
               max-width 230ms ease-out;
 }
 
+.tab-background {
+  
+
+  visibility: visible;
+  
+
+  transition: visibility 0ms 25ms;
+}
+
+.tab-background[selected]:not([fadein]):not([pinned]) {
+  visibility: hidden;
+}
+
 .tab-throbber:not([fadein]):not([pinned]),
 .tab-label:not([fadein]):not([pinned]),
 .tab-icon-image:not([fadein]):not([pinned]),
