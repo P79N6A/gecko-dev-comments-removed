@@ -12,6 +12,7 @@
 #include "nsIPluginHost.h"
 #include "nsIURL.h"
 #include "nsWeakReference.h"
+#include "nsIObserver.h"
 
 namespace mozilla {
 namespace dom {
@@ -24,6 +25,8 @@ class nsIDocShell;
 
 
 class nsPluginArray : public nsIDOMPluginArray
+                    , public nsIObserver
+                    , public nsSupportsWeakReference
 {
 public:
   nsPluginArray(mozilla::dom::Navigator* navigator, nsIDocShell *aDocShell);
@@ -33,6 +36,14 @@ public:
 
   
   NS_DECL_NSIDOMPLUGINARRAY
+  
+  NS_DECL_NSIOBSERVER
+
+  
+  
+  
+  
+  void Init();
 
   nsresult GetPluginHost(nsIPluginHost** aPluginHost);
 
@@ -53,7 +64,7 @@ public:
     }
 #endif
 
-    return static_cast<nsPluginArray*>(aSupports);
+    return static_cast<nsPluginArray*>(static_cast<nsIDOMPluginArray*>(aSupports));
   }
 
 private:
