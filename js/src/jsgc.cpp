@@ -1704,10 +1704,15 @@ ArenaLists::refillFreeList(ThreadSafeContext *cx, AllocKind thingKind)
 
 
 
+
+
+            mozilla::Maybe<AutoLockWorkerThreadState> lock;
             JSRuntime *rt = zone->runtimeFromAnyThread();
-            AutoLockWorkerThreadState lock(*rt->workerThreadState);
-            while (rt->isHeapBusy())
-                rt->workerThreadState->wait(WorkerThreadState::PRODUCER);
+            if (rt->exclusiveThreadsPresent()) {
+                lock.construct<WorkerThreadState &>(*rt->workerThreadState);
+                while (rt->isHeapBusy())
+                    rt->workerThreadState->wait(WorkerThreadState::PRODUCER);
+            }
 
             void *thing = cx->allocator()->arenas.allocateFromArenaInline(zone, thingKind);
             if (thing)
