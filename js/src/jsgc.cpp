@@ -5478,9 +5478,11 @@ PurgeJITCaches(JSCompartment *c)
         }
 
 #ifdef JS_ION
-        
+
+         
         if (script->hasIonScript())
             script->ion->purgeCaches();
+
 #endif
     }
 #endif

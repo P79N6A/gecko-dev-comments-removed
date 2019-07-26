@@ -178,6 +178,7 @@ enum MethodStatus
 
 
 
+
 class IonContext
 {
   public:
@@ -202,6 +203,7 @@ bool InitializeIon();
 
 
 IonContext *GetIonContext();
+
 bool SetIonContext(IonContext *ctx);
 
 MethodStatus CanEnterAtBranch(JSContext *cx, JSScript *script,

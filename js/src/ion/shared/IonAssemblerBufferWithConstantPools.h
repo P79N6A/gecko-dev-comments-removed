@@ -935,7 +935,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             }
             
         }
-        Asm::retargetNearBranch(i, offset);
+        Asm::retargetNearBranch(i, offset, false);
     }
 
     
