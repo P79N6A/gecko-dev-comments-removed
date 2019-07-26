@@ -6,13 +6,10 @@
 
 
 import os
-import cStringIO
 import WebIDL
 import cPickle
-from Configuration import *
+from Configuration import Configuration
 from Codegen import GlobalGenRoots, replaceFileIfChanged
-
-import Codegen
 
 def generate_file(config, name, action):
 

@@ -4,11 +4,8 @@
 
 import os
 import cPickle
-import WebIDL
-from Configuration import *
+from Configuration import Configuration
 from Codegen import CGExampleRoot, replaceFileIfChanged
-
-import Codegen
 
 def generate_interface_example(config, interfaceName):
     """
