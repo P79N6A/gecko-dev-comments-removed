@@ -852,15 +852,12 @@ class TokenStream
     void updateFlagsForEOL();
 
     Token               tokens[ntokens];
-    js::SkipRoot        tokensRoot;     
     unsigned            cursor;         
     unsigned            lookahead;      
     unsigned            lineno;         
     unsigned            flags;          
     const jschar        *linebase;      
     const jschar        *prevLinebase;  
-    js::SkipRoot        linebaseRoot;
-    js::SkipRoot        prevLinebaseRoot;
     TokenBuf            userbuf;        
     const char          *filename;      
     jschar              *sourceMap;     
@@ -876,6 +873,13 @@ class TokenStream
     JSPrincipals        *const originPrincipals;
     StrictModeGetter    *strictModeGetter; 
     Position            lastFunctionKeyword; 
+
+    
+
+
+
+
+    SkipRoot            tokenSkip;
 };
 
 struct KeywordInfo {
