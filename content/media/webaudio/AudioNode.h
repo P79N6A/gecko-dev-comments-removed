@@ -68,6 +68,20 @@ private:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class AudioNode : public nsDOMEventTargetHelper,
                   public EnableWebAudioCheck
 {

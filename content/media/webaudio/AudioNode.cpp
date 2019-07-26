@@ -269,16 +269,41 @@ AudioNode::Disconnect(uint32_t aOutput, ErrorResult& aRv)
     return;
   }
 
+  
+  
+  
+  
+  
+  class RunnableRelease : public nsRunnable {
+  public:
+    explicit RunnableRelease(already_AddRefed<AudioNode> aNode)
+      : mNode(aNode) {}
+
+    NS_IMETHODIMP Run() MOZ_OVERRIDE
+    {
+      mNode = nullptr;
+      return NS_OK;
+    }
+  private:
+    nsRefPtr<AudioNode> mNode;
+  };
+
   for (int32_t i = mOutputNodes.Length() - 1; i >= 0; --i) {
     AudioNode* dest = mOutputNodes[i];
     for (int32_t j = dest->mInputNodes.Length() - 1; j >= 0; --j) {
       InputNode& input = dest->mInputNodes[j];
       if (input.mInputNode == this && input.mOutputPort == aOutput) {
+        
+        
+        
         dest->mInputNodes.RemoveElementAt(j);
         
         
         
+        nsRefPtr<nsIRunnable> runnable =
+          new RunnableRelease(mOutputNodes[i].forget());
         mOutputNodes.RemoveElementAt(i);
+        mStream->RunAfterPendingUpdates(runnable.forget());
         break;
       }
     }
