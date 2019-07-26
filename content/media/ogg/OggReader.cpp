@@ -892,7 +892,6 @@ bool OggReader::ReadOggPage(ogg_page* aPage)
       return false;
     }
 
-    mDecoder->NotifyBytesConsumed(bytesRead);
     
     
     ret = ogg_sync_wrote(&mOggState, bytesRead);

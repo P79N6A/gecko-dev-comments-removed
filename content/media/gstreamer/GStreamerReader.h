@@ -63,7 +63,6 @@ public:
 private:
 
   void ReadAndPushData(guint aLength);
-  void NotifyBytesConsumed();
   int64_t QueryDuration();
 
   
@@ -160,10 +159,6 @@ private:
 
 
   bool mReachedEos;
-  
-  gint64 mByteOffset;
-  
-  gint64 mLastReportedByteOffset;
   int fpsNum;
   int fpsDen;
 };

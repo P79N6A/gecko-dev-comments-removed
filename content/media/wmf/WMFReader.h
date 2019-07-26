@@ -76,11 +76,6 @@ private:
   
   bool InitializeDXVA();  
 
-  
-  
-  
-  void NotifyBytesConsumed();
-
   RefPtr<IMFSourceReader> mSourceReader;
   RefPtr<WMFByteStream> mByteStream;
   RefPtr<WMFSourceReaderCallback> mSourceReaderCallback;

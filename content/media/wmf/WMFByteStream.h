@@ -112,10 +112,6 @@ public:
   void ProcessReadRequest(IMFAsyncResult* aResult,
                           ReadRequest* aRequestState);
 
-  
-  
-  uint32_t GetAndResetBytesConsumedCount();
-
 private:
 
   
@@ -151,11 +147,6 @@ private:
   
   
   RefPtr<IMFAttributes> mAttributes;
-
-  
-  
-  
-  uint32_t mBytesConsumed;
 
   
   

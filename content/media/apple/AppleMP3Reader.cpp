@@ -90,7 +90,6 @@ static void _AudioSampleCallback(void *aThis,
 
 
 
-
 nsresult
 AppleMP3Reader::ReadAndNotify(uint32_t *aNumBytes, char *aData)
 {
@@ -111,8 +110,6 @@ AppleMP3Reader::ReadAndNotify(uint32_t *aNumBytes, char *aData)
       return NS_ERROR_FAILURE;
     }
   } while(totalBytes < *aNumBytes && numBytes);
-
-  mDecoder->NotifyBytesConsumed(totalBytes);
 
   
   if (mMP3FrameParser.IsMP3()) {

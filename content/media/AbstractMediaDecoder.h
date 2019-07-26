@@ -55,7 +55,7 @@ public:
 
   
   
-  virtual void NotifyBytesConsumed(int64_t aBytes) = 0;
+  virtual void NotifyBytesConsumed(int64_t aBytes, int64_t aOffset) = 0;
 
   
   
