@@ -77,6 +77,8 @@ class MutableHandleBase {};
 
 namespace JS {
 
+class AutoAssertNoGC;
+
 template <typename T> class MutableHandle;
 
 JS_FRIEND_API(void) EnterAssertNoGCScope();
@@ -413,8 +415,8 @@ class Return
 
 
 
-    operator const T &() const {
-        JS_ASSERT(InNoGCScope());
+
+    const T &get(AutoAssertNoGC &) const {
         return ptr_;
     }
 
@@ -477,6 +479,7 @@ class Return
 
 
     bool operator==(const T &other) { return ptr_ == other; }
+    bool operator!=(const T &other) { return ptr_ != other; }
     bool operator==(const Return<T> &other) { return ptr_ == other.ptr_; }
     bool operator==(const JS::Handle<T> &other) { return ptr_ == other.get(); }
     inline bool operator==(const Rooted<T> &other);

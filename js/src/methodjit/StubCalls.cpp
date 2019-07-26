@@ -837,7 +837,7 @@ stubs::RecompileForInline(VMFrame &f)
 {
     AutoAssertNoGC nogc;
     ExpandInlineFrames(f.cx->compartment);
-    Recompiler::clearStackReferences(f.cx->runtime->defaultFreeOp(), f.script());
+    Recompiler::clearStackReferences(f.cx->runtime->defaultFreeOp(), f.script().get(nogc));
     f.jit()->destroyChunk(f.cx->runtime->defaultFreeOp(), f.chunkIndex(),  false);
 }
 
@@ -1305,7 +1305,7 @@ stubs::LookupSwitch(VMFrame &f, jsbytecode *pc)
 {
     AutoAssertNoGC nogc;
     jsbytecode *jpc = pc;
-    JSScript *script = f.fp()->script();
+    JSScript *script = f.fp()->script().get(nogc);
 
     
     Value lval = f.regs.sp[-1];
@@ -1631,7 +1631,7 @@ stubs::AssertArgumentTypes(VMFrame &f)
     AutoAssertNoGC nogc;
     StackFrame *fp = f.fp();
     JSFunction *fun = fp->fun();
-    RawScript script = fun->script();
+    RawScript script = fun->script().get(nogc);
 
     
 
@@ -1676,7 +1676,7 @@ stubs::InvariantFailure(VMFrame &f, void *rval)
     *frameAddr = repatchCode;
 
     
-    RawScript script = f.fp()->script();
+    RawScript script = f.fp()->script().get(nogc);
     JS_ASSERT(!script->failedBoundsCheck);
     script->failedBoundsCheck = true;
 

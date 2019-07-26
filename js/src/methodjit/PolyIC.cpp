@@ -1080,7 +1080,7 @@ class GetPropCompiler : public PICStubCompiler
         }
 
         RegisterID t0 = tempRegs.takeAnyReg().reg();
-        masm.bumpStubCount(f.script(), f.pc(), t0);
+        masm.bumpStubCount(f.script().get(nogc), f.pc(), t0);
 
         
 
@@ -1194,7 +1194,7 @@ class GetPropCompiler : public PICStubCompiler
         }
 
         RegisterID t0 = tempRegs.takeAnyReg().reg();
-        masm.bumpStubCount(f.script(), f.pc(), t0);
+        masm.bumpStubCount(f.script().get(nogc), f.pc(), t0);
 
         
 
