@@ -168,10 +168,17 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
             if (mSelected != null) {
                 JSONArray selected = new JSONArray();
                 for (int i = 0; i < mSelected.length; i++) {
-                    selected.put(mSelected[i]);
+                    if (mSelected[i]) {
+                        selected.put(i);
+                    }
                 }
-                result.put("button", selected);
+                result.put("list", selected);
             } else {
+                
+                JSONArray selected = new JSONArray();
+                selected.put(which);
+                result.put("list", selected);
+                
                 result.put("button", which);
             }
         } catch(JSONException ex) { }
@@ -212,12 +219,12 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         JSONObject ret = new JSONObject();
         try {
             ListView list = mDialog.getListView();
+            addButtonResult(ret, which);
+            addInputValues(ret);
+
             if (list != null || mSelected != null) {
                 addListResult(ret, which);
-            } else {
-                addButtonResult(ret, which);
             }
-            addInputValues(ret);
         } catch(Exception ex) {
             Log.i(LOGTAG, "Error building return: " + ex);
         }
