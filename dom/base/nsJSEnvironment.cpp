@@ -217,6 +217,12 @@ static nsIScriptSecurityManager *sSecurityManager;
 
 static bool sGCOnMemoryPressure;
 
+
+
+
+static int32_t sExpensiveCollectorPokes = 0;
+static const int32_t kPokesBetweenExpensiveCollectorTriggers = 5;
+
 static PRTime
 GetCollectionTimeDelta()
 {
@@ -2319,6 +2325,64 @@ nsJSContext::LoadEnd()
 }
 
 
+static bool
+ReadyToTriggerExpensiveCollectorTimer()
+{
+  bool ready = kPokesBetweenExpensiveCollectorTriggers < ++sExpensiveCollectorPokes;
+  if (ready) {
+    sExpensiveCollectorPokes = 0;
+  }
+  return ready;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void
+nsJSContext::RunNextCollectorTimer()
+{
+  if (sShuttingDown) {
+    return;
+  }
+
+  if (sGCTimer) {
+    if (ReadyToTriggerExpensiveCollectorTimer()) {
+      GCTimerFired(nullptr, reinterpret_cast<void *>(JS::gcreason::DOM_WINDOW_UTILS));
+    }
+    return;
+  }
+
+  if (sInterSliceGCTimer) {
+    InterSliceGCTimerFired(nullptr, nullptr);
+    return;
+  }
+
+  
+  
+  MOZ_ASSERT(!sCCLockedOut, "Don't check the CC timers if the CC is locked out.");
+
+  if (sCCTimer) {
+    if (ReadyToTriggerExpensiveCollectorTimer()) {
+      CCTimerFired(nullptr, nullptr);
+    }
+    return;
+  }
+
+  if (sICCTimer) {
+    ICCTimerFired(nullptr, nullptr);
+    return;
+  }
+}
+
+
 void
 nsJSContext::PokeGC(JS::gcreason::Reason aReason, int aDelay)
 {
@@ -2448,7 +2512,6 @@ void
 nsJSContext::KillCCTimer()
 {
   sCCLockedOutTime = 0;
-
   if (sCCTimer) {
     sCCTimer->Cancel();
     NS_RELEASE(sCCTimer);
@@ -2649,6 +2712,7 @@ mozilla::dom::StartupJSEnvironment()
   sContextCount = 0;
   sSecurityManager = nullptr;
   gCCStats.Clear();
+  sExpensiveCollectorPokes = 0;
 }
 
 static void
