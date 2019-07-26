@@ -50,15 +50,15 @@ USING_BLUETOOTH_NAMESPACE
 static nsString sAdapterBdAddress;
 static nsString sAdapterBdName;
 static InfallibleTArray<nsString> sAdapterBondedAddressArray;
-static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sBondingRunnableArray;
-static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sUnbondingRunnableArray;
 
 
 static const bt_interface_t* sBtInterface;
 static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
+static nsTArray<int> sRequestedDeviceCountArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sSetPropertyRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sGetDeviceRunnableArray;
-static nsTArray<int> sRequestedDeviceCountArray;
+static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sBondingRunnableArray;
+static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sUnbondingRunnableArray;
 
 
 
@@ -619,26 +619,75 @@ SspRequestCallback(bt_bdaddr_t* aRemoteBdAddress, bt_bdname_t* aRemoteBdName,
   }
 }
 
+class BondStateChangedCallbackTask : public nsRunnable
+{
+  nsString mRemoteDeviceBdAddress;
+  bool mBonded;
+public:
+  BondStateChangedCallbackTask(const nsAString& aRemoteDeviceBdAddress,
+                               bool aBonded)
+  : mRemoteDeviceBdAddress(aRemoteDeviceBdAddress)
+  , mBonded(aBonded)
+  { }
+
+  NS_IMETHOD
+  Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (mBonded && !sBondingRunnableArray.IsEmpty()) {
+      DispatchBluetoothReply(sBondingRunnableArray[0],
+                             BluetoothValue(true), EmptyString());
+
+      sBondingRunnableArray.RemoveElementAt(0);
+    } else if (!mBonded && !sUnbondingRunnableArray.IsEmpty()) {
+      DispatchBluetoothReply(sUnbondingRunnableArray[0],
+                             BluetoothValue(true), EmptyString());
+
+      sUnbondingRunnableArray.RemoveElementAt(0);
+    }
+
+    
+    InfallibleTArray<BluetoothNamedValue> propertiesArray;
+    BT_APPEND_NAMED_VALUE(propertiesArray, "address", mRemoteDeviceBdAddress);
+    BT_APPEND_NAMED_VALUE(propertiesArray, "status", mBonded);
+
+    BluetoothSignal signal(NS_LITERAL_STRING(PAIRED_STATUS_CHANGED_ID),
+                           NS_LITERAL_STRING(KEY_ADAPTER),
+                           BluetoothValue(propertiesArray));
+    NS_DispatchToMainThread(new DistributeBluetoothSignalTask(signal));
+
+    return NS_OK;
+  }
+};
+
 static void
 BondStateChangedCallback(bt_status_t aStatus, bt_bdaddr_t* aRemoteBdAddress,
                          bt_bond_state_t aState)
 {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  nsAutoString remoteAddress;
-  BdAddressTypeToString(aRemoteBdAddress, remoteAddress);
+  if (aState == BT_BOND_STATE_BONDING) {
+    
+    return;
+  }
 
-  
-  NS_ENSURE_TRUE_VOID(aState != BT_BOND_STATE_BONDING);
-  NS_ENSURE_FALSE_VOID(aState == BT_BOND_STATE_BONDED &&
-                       sAdapterBondedAddressArray.Contains(remoteAddress));
+  nsAutoString remoteBdAddress;
+  BdAddressTypeToString(aRemoteBdAddress, remoteBdAddress);
+
+  if (aState == BT_BOND_STATE_BONDED &&
+      sAdapterBondedAddressArray.Contains(remoteBdAddress)) {
+    
+    return;
+  }
+
   bool bonded;
   if (aState == BT_BOND_STATE_NONE) {
     bonded = false;
-    sAdapterBondedAddressArray.RemoveElement(remoteAddress);
+    sAdapterBondedAddressArray.RemoveElement(remoteBdAddress);
   } else if (aState == BT_BOND_STATE_BONDED) {
     bonded = true;
-    sAdapterBondedAddressArray.AppendElement(remoteAddress);
+    sAdapterBondedAddressArray.AppendElement(remoteBdAddress);
   }
 
   
@@ -653,26 +702,8 @@ BondStateChangedCallback(bt_status_t aStatus, bt_bdaddr_t* aRemoteBdAddress,
   NS_DispatchToMainThread(new DistributeBluetoothSignalTask(signal));
 
   
-  InfallibleTArray<BluetoothNamedValue> propertiesArray;
-  BT_APPEND_NAMED_VALUE(propertiesArray, "address", remoteAddress);
-  BT_APPEND_NAMED_VALUE(propertiesArray, "status", bonded);
-
-  BluetoothSignal newSignal(NS_LITERAL_STRING(PAIRED_STATUS_CHANGED_ID),
-                            NS_LITERAL_STRING(KEY_ADAPTER),
-                            BluetoothValue(propertiesArray));
-  NS_DispatchToMainThread(new DistributeBluetoothSignalTask(newSignal));
-
-  if (bonded && !sBondingRunnableArray.IsEmpty()) {
-    DispatchBluetoothReply(sBondingRunnableArray[0],
-                           BluetoothValue(true), EmptyString());
-
-    sBondingRunnableArray.RemoveElementAt(0);
-  } else if (!bonded && !sUnbondingRunnableArray.IsEmpty()) {
-    DispatchBluetoothReply(sUnbondingRunnableArray[0],
-                           BluetoothValue(true), EmptyString());
-
-    sUnbondingRunnableArray.RemoveElementAt(0);
-  }
+  NS_DispatchToMainThread(
+    new BondStateChangedCallbackTask(remoteBdAddress, bonded));
 }
 
 static void
