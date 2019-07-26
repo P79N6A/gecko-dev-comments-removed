@@ -210,6 +210,13 @@
 #define WTF_CPU_BIG_ENDIAN 1
 #endif
 
+#if defined(__aarch64__)
+#define WTF_CPU_AARCH64 1
+#if defined(__AARCH64EB__)
+#define WTF_CPU_BIG_ENDIAN 1
+#endif
+#endif
+
 
 #if   defined(__i386__) \
     || defined(i386)     \
