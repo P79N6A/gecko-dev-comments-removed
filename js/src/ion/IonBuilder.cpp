@@ -7394,7 +7394,7 @@ IonBuilder::jsop_in_dense()
     current->add(initLength);
 
     
-    MInArray *ins = MInArray::New(elements, id, initLength, needsHoleCheck);
+    MInArray *ins = MInArray::New(elements, id, initLength, obj, needsHoleCheck);
 
     current->add(ins);
     current->push(ins);
