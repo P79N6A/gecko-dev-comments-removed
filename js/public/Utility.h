@@ -62,7 +62,7 @@ extern JS_PUBLIC_API(void) JS_Abort(void);
 #if defined JS_USE_CUSTOM_ALLOCATOR
 # include "jscustomallocator.h"
 #else
-# ifdef JS_DEBUG
+# if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
 
 
 

@@ -27,7 +27,7 @@ using namespace js;
 using mozilla::CeilingLog2Size;
 using mozilla::PodArrayZero;
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
 
 JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations = UINT32_MAX;
 JS_PUBLIC_DATA(uint32_t) OOM_counter = 0;
