@@ -284,7 +284,7 @@ nsSHistory::CalcMaxTotalViewers()
   
   uint64_t bytes = PR_GetPhysicalMemorySize();
 
-  if (LL_IS_ZERO(bytes))
+  if (bytes == 0)
     return 0;
 
   

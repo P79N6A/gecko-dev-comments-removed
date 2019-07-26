@@ -418,7 +418,7 @@ nsCRLManager::ComputeNextAutoUpdateTime(nsICRLInfo *info,
     LL_SUB(diff, now, lastUpdate);             
     LL_DIV(cycleCnt, diff, microsecInDayCnt);   
     LL_MOD(temp, diff, microsecInDayCnt);
-    if(!(LL_IS_ZERO(temp))) {
+    if(temp != 0) {
       LL_ADD(cycleCnt,cycleCnt,1);            
     }
     LL_MUL(temp,cycleCnt,microsecInDayCnt);    

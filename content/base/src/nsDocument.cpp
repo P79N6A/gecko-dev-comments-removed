@@ -6881,7 +6881,7 @@ nsDocument::RetrieveRelevantHeaders(nsIChannel *aChannel)
     }
   }
 
-  if (LL_IS_ZERO(modDate)) {
+  if (modDate == 0) {
     
     
     
