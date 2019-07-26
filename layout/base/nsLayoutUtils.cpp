@@ -1529,23 +1529,24 @@ nsLayoutUtils::IsFixedPosFrameInDisplayPort(const nsIFrame* aFrame, nsRect* aDis
   return ViewportHasDisplayPort(aFrame->PresContext(), aDisplayPort);
 }
 
-nsIFrame*
-nsLayoutUtils::GetAnimatedGeometryRootFor(nsIFrame* aFrame,
-                                          const nsIFrame* aStopAtAncestor)
+static nsIFrame*
+GetAnimatedGeometryRootForFrame(nsIFrame* aFrame,
+                                const nsIFrame* aStopAtAncestor)
 {
   nsIFrame* f = aFrame;
   nsIFrame* stickyFrame = nullptr;
   while (f != aStopAtAncestor) {
-    if (IsPopup(f))
+    if (nsLayoutUtils::IsPopup(f))
       break;
     if (ActiveLayerTracker::IsOffsetOrMarginStyleAnimated(f))
       break;
-    if (!f->GetParent() && ViewportHasDisplayPort(f->PresContext())) {
+    if (!f->GetParent() &&
+        nsLayoutUtils::ViewportHasDisplayPort(f->PresContext())) {
       
       
       break;
     }
-    nsIFrame* parent = GetCrossDocParentFrame(f);
+    nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(f);
     if (!parent)
       break;
     nsIAtom* parentType = parent->GetType();
@@ -1576,7 +1577,7 @@ nsLayoutUtils::GetAnimatedGeometryRootFor(nsIFrame* aFrame,
       }
     }
     
-    if (IsFixedPosFrameInDisplayPort(f)) {
+    if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f)) {
       return f;
     }
     f = parent;
@@ -1593,7 +1594,7 @@ nsLayoutUtils::GetAnimatedGeometryRootFor(nsDisplayItem* aItem,
     nsDisplayScrollLayer* scrollLayerItem =
       static_cast<nsDisplayScrollLayer*>(aItem);
     nsIFrame* scrolledFrame = scrollLayerItem->GetScrolledFrame();
-    return nsLayoutUtils::GetAnimatedGeometryRootFor(scrolledFrame,
+    return GetAnimatedGeometryRootForFrame(scrolledFrame,
         aBuilder->FindReferenceFrameFor(scrolledFrame));
   }
   if (aItem->ShouldFixToViewport(aBuilder)) {
@@ -1604,10 +1605,10 @@ nsLayoutUtils::GetAnimatedGeometryRootFor(nsDisplayItem* aItem,
     nsIFrame* viewportFrame =
       nsLayoutUtils::GetClosestFrameOfType(f, nsGkAtoms::viewportFrame);
     NS_ASSERTION(viewportFrame, "no viewport???");
-    return nsLayoutUtils::GetAnimatedGeometryRootFor(viewportFrame,
+    return GetAnimatedGeometryRootForFrame(viewportFrame,
         aBuilder->FindReferenceFrameFor(viewportFrame));
   }
-  return nsLayoutUtils::GetAnimatedGeometryRootFor(f, aItem->ReferenceFrame());
+  return GetAnimatedGeometryRootForFrame(f, aItem->ReferenceFrame());
 }
 
 

@@ -3098,18 +3098,23 @@ void nsDisplayWrapList::Paint(nsDisplayListBuilder* aBuilder,
   NS_ERROR("nsDisplayWrapList should have been flattened away for painting");
 }
 
+
+
+
+
+
 static LayerState
-RequiredLayerStateForChildrenInternal(nsDisplayListBuilder* aBuilder,
-                                      LayerManager* aManager,
-                                      const ContainerLayerParameters& aParameters,
-                                      const nsDisplayList& aList,
-                                      nsIFrame* aAnimatedGeometryRoot)
+RequiredLayerStateForChildren(nsDisplayListBuilder* aBuilder,
+                              LayerManager* aManager,
+                              const ContainerLayerParameters& aParameters,
+                              const nsDisplayList& aList,
+                              nsIFrame* aExpectedAnimatedGeometryRootForChildren)
 {
   LayerState result = LAYER_INACTIVE;
   for (nsDisplayItem* i = aList.GetBottom(); i; i = i->GetAbove()) {
-    nsIFrame* f = i->Frame();
     if (result == LAYER_INACTIVE &&
-        nsLayoutUtils::GetAnimatedGeometryRootFor(f) != aAnimatedGeometryRoot) {
+        nsLayoutUtils::GetAnimatedGeometryRootFor(i, aBuilder) !=
+          aExpectedAnimatedGeometryRootForChildren) {
       result = LAYER_ACTIVE;
     }
 
@@ -3125,8 +3130,8 @@ RequiredLayerStateForChildrenInternal(nsDisplayListBuilder* aBuilder,
       nsDisplayList* list = i->GetSameCoordinateSystemChildren();
       if (list) {
         LayerState childState =
-          RequiredLayerStateForChildrenInternal(aBuilder, aManager, aParameters, *list,
-              aAnimatedGeometryRoot);
+          RequiredLayerStateForChildren(aBuilder, aManager, aParameters, *list,
+              aExpectedAnimatedGeometryRootForChildren);
         if (childState > result) {
           result = childState;
         }
@@ -3134,18 +3139,6 @@ RequiredLayerStateForChildrenInternal(nsDisplayListBuilder* aBuilder,
     }
   }
   return result;
-}
-
-LayerState
-nsDisplayWrapList::RequiredLayerStateForChildren(nsDisplayListBuilder* aBuilder,
-                                                 LayerManager* aManager,
-                                                 const ContainerLayerParameters& aParameters,
-                                                 const nsDisplayList& aList,
-                                                 nsIFrame* aItemFrame)
-{
-  return RequiredLayerStateForChildrenInternal(
-      aBuilder, aManager, aParameters, aList,
-      nsLayoutUtils::GetAnimatedGeometryRootFor(aItemFrame));
 }
 
 nsRect nsDisplayWrapList::GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder)
@@ -3324,7 +3317,8 @@ nsDisplayOpacity::GetLayerState(nsDisplayListBuilder* aBuilder,
   if (NeedsActiveLayer())
     return LAYER_ACTIVE;
 
-  return RequiredLayerStateForChildren(aBuilder, aManager, aParameters, mList, mFrame);
+  return RequiredLayerStateForChildren(aBuilder, aManager, aParameters, mList,
+    nsLayoutUtils::GetAnimatedGeometryRootFor(this, aBuilder));
 }
 
 bool
@@ -4793,11 +4787,12 @@ nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
     return LAYER_ACTIVE;
   }
 
-  return mStoredList.RequiredLayerStateForChildren(aBuilder,
-                                                   aManager,
-                                                   aParameters,
-                                                   *mStoredList.GetChildren(),
-                                                   mFrame);
+  
+  
+  
+  
+  return RequiredLayerStateForChildren(aBuilder, aManager, aParameters,
+    *mStoredList.GetChildren(), Frame());
 }
 
 bool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
