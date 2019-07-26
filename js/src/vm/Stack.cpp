@@ -810,11 +810,58 @@ StackSpace::tryBumpLimit(JSContext *cx, Value *from, unsigned nvals, Value **lim
 }
 
 size_t
-StackSpace::sizeOfCommitted()
+StackSpace::sizeOf()
 {
-#ifdef XP_WIN
+#if defined(XP_UNIX)
+    
+
+
+
+
+
+
+
+
+
+    const int pageSize = getpagesize();
+    size_t numBytes = (trustedEnd_ - base_) * sizeof(Value);
+    size_t numPages = (numBytes + pageSize - 1) / pageSize;
+
+    
+    
+#if defined(XP_MACOSX)
+    typedef char MincoreArgType;
+#else
+    typedef unsigned char MincoreArgType;
+#endif
+
+    MincoreArgType *vec = (MincoreArgType *) js_malloc(numPages);
+    int result = mincore(base_, numBytes, vec);
+    if (result) {
+        js_free(vec);
+        
+
+
+
+        return (trustedEnd_ - base_) * sizeof(Value);
+    }
+
+    size_t residentBytes = 0;
+    for (size_t i = 0; i < numPages; i++) {
+        
+        if (vec[i] & 0x1)
+            residentBytes += pageSize;
+    }
+    js_free(vec);
+    return residentBytes;
+
+#elif defined(XP_WIN)
     return (commitEnd_ - base_) * sizeof(Value);
 #else
+    
+
+
+
     return (trustedEnd_ - base_) * sizeof(Value);
 #endif
 }
