@@ -1239,6 +1239,10 @@ RadioInterfaceLayer.prototype = {
             this._activeCall.callIndex == call.callIndex) {
           
           this._activeCall = null;
+        }
+
+        if (!this._activeCall) {
+          
           gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
           debug("No active call, put audio system into PHONE_STATE_NORMAL: "
                 + gAudioManager.phoneState);
