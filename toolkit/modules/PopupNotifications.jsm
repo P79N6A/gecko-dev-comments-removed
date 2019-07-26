@@ -12,6 +12,7 @@ const NOTIFICATION_EVENT_DISMISSED = "dismissed";
 const NOTIFICATION_EVENT_REMOVED = "removed";
 const NOTIFICATION_EVENT_SHOWING = "showing";
 const NOTIFICATION_EVENT_SHOWN = "shown";
+const NOTIFICATION_EVENT_SWAPPING = "swapping";
 
 const ICON_SELECTOR = ".notification-anchor-icon";
 const ICON_ATTRIBUTE_SHOWING = "showing";
@@ -173,6 +174,20 @@ PopupNotifications.prototype = {
   },
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -747,13 +762,60 @@ PopupNotifications.prototype = {
     this._update(notifications, anchor);
   },
 
-  _fireCallback: function PopupNotifications_fireCallback(n, event) {
+  _swapBrowserNotifications: function PopupNotifications_swapBrowserNoficications(ourBrowser, otherBrowser) {
+    
+    
+
+    let ourNotifications = this._getNotificationsForBrowser(ourBrowser);
+    let other = otherBrowser.ownerDocument.defaultView.PopupNotifications;
+    if (!other) {
+      if (ourNotifications.length > 0)
+        Cu.reportError("unable to swap notifications: otherBrowser doesn't support notifications");
+      return;
+    }
+    let otherNotifications = other._getNotificationsForBrowser(otherBrowser);
+    if (ourNotifications.length < 1 && otherNotifications.length < 1) {
+      
+      return;
+    }
+
+    otherNotifications = otherNotifications.filter(n => {
+      if (this._fireCallback(n, NOTIFICATION_EVENT_SWAPPING, ourBrowser)) {
+        n.browser = ourBrowser;
+        n.owner = this;
+        return true;
+      }
+      other._fireCallback(n, NOTIFICATION_EVENT_REMOVED);
+      return false;
+    });
+
+    ourNotifications = ourNotifications.filter(n => {
+      if (this._fireCallback(n, NOTIFICATION_EVENT_SWAPPING, otherBrowser)) {
+        n.browser = otherBrowser;
+        n.owner = other;
+        return true;
+      }
+      this._fireCallback(n, NOTIFICATION_EVENT_REMOVED);
+      return false;
+    });
+
+    this._setNotificationsForBrowser(otherBrowser, ourNotifications);
+    other._setNotificationsForBrowser(ourBrowser, otherNotifications);
+
+    if (otherNotifications.length > 0)
+      this._update(otherNotifications, otherNotifications[0].anchorElement);
+    if (ourNotifications.length > 0)
+      other._update(ourNotifications, ourNotifications[0].anchorElement);
+  },
+
+  _fireCallback: function PopupNotifications_fireCallback(n, event, ...args) {
     try {
       if (n.options.eventCallback)
-        n.options.eventCallback.call(n, event);
+        return n.options.eventCallback.call(n, event, ...args);
     } catch (error) {
       Cu.reportError(error);
     }
+    return undefined;
   },
 
   _onPopupHidden: function PopupNotifications_onPopupHidden(event) {
