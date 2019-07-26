@@ -1383,6 +1383,12 @@ nsDocShell::LoadURI(nsIURI * aURI,
                     
                     
                     loadType = LOAD_BYPASS_HISTORY;
+                } else if ((parentLoadType == LOAD_RELOAD_BYPASS_CACHE) ||
+                           (parentLoadType == LOAD_RELOAD_BYPASS_PROXY) ||
+                           (parentLoadType == LOAD_RELOAD_BYPASS_PROXY_AND_CACHE)) {
+                    
+                    
+                    loadType = parentLoadType;
                 }
             } else {
                 
