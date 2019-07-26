@@ -109,7 +109,6 @@ function nsUnknownContentTypeDialog() {
   
   this.mLauncher = null;
   this.mContext  = null;
-  this.mSourcePath = null;
   this.chosenApp = null;
   this.givenDefaultApp = false;
   this.updateSelf = true;
@@ -370,7 +369,10 @@ nsUnknownContentTypeDialog.prototype = {
     var suggestedFileName = this.mLauncher.suggestedFileName;
 
     
-    var url   = this.mLauncher.source;
+    var url = this.mLauncher.source;
+    if (url instanceof Components.interfaces.nsINestedURI)
+      url = url.innermostURI;
+
     var fname = "";
     var iconPath = "goat";
     this.mSourcePath = url.prePath;
@@ -516,26 +518,15 @@ nsUnknownContentTypeDialog.prototype = {
 
     
     
-    var pathString = this.mSourcePath;
-    try
-    {
-      var fileURL = url.QueryInterface(Components.interfaces.nsIFileURL);
-      if (fileURL)
-      {
-        var fileObject = fileURL.file;
-        if (fileObject)
-        {
-          var parentObject = fileObject.parent;
-          if (parentObject)
-          {
-            pathString = parentObject.path;
-          }
-        }
-      }
-    } catch(ex) {}
+    var pathString;
+    if (url instanceof Components.interfaces.nsIFileURL) {
+      try {
+        
+        pathString = url.file.parent.path;
+      } catch (ex) {}
+    }
 
-    if (pathString == this.mSourcePath)
-    {
+    if (!pathString) {
       
       var tmpurl = url.clone(); 
       try {
