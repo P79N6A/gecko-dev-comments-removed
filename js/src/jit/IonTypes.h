@@ -91,6 +91,7 @@ enum MIRType
     MIRType_String,
     MIRType_Object,
     MIRType_MagicOptimizedArguments, 
+    MIRType_MagicOptimizedOut,       
     MIRType_MagicHole,               
     MIRType_MagicIsConstructing,     
     MIRType_Value,
@@ -164,6 +165,7 @@ ValueTypeFromMIRType(MIRType type)
     case MIRType_String:
       return JSVAL_TYPE_STRING;
     case MIRType_MagicOptimizedArguments:
+    case MIRType_MagicOptimizedOut:
     case MIRType_MagicHole:
     case MIRType_MagicIsConstructing:
       return JSVAL_TYPE_MAGIC;
@@ -201,6 +203,8 @@ StringFromMIRType(MIRType type)
       return "Object";
     case MIRType_MagicOptimizedArguments:
       return "MagicOptimizedArguments";
+    case MIRType_MagicOptimizedOut:
+      return "MagicOptimizedOut";
     case MIRType_MagicHole:
       return "MagicHole";
     case MIRType_MagicIsConstructing:

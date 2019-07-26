@@ -300,6 +300,13 @@ inline Type GetValueType(const Value &val);
 
 
 
+inline Type GetMaybeOptimizedOutValueType(const Value &val);
+
+
+
+
+
+
 
 
 

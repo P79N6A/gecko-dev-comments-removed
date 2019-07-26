@@ -145,7 +145,7 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
                 
                 
                 
-                MConstant *constant = MConstant::New(graph.alloc(), UndefinedValue());
+                MConstant *constant = MConstant::New(graph.alloc(), MagicValue(JS_OPTIMIZED_OUT));
                 block->insertBefore(*(block->begin()), constant);
                 uses = mrp->replaceOperand(uses, constant);
             }
@@ -444,6 +444,8 @@ GuessPhiType(MPhi *phi, bool *hasInputsWithEmptyTypes)
 {
 #ifdef DEBUG
     
+    
+    
     MIRType magicType = MIRType_None;
     for (size_t i = 0; i < phi->numOperands(); i++) {
         MDefinition *in = phi->getOperand(i);
@@ -733,6 +735,9 @@ TypeAnalyzer::replaceRedundantPhi(MPhi *phi)
       case MIRType_MagicOptimizedArguments:
         v = MagicValue(JS_OPTIMIZED_ARGUMENTS);
         break;
+      case MIRType_MagicOptimizedOut:
+        v = MagicValue(JS_OPTIMIZED_OUT);
+        break;
       default:
         MOZ_ASSUME_UNREACHABLE("unexpected type");
     }
@@ -755,7 +760,8 @@ TypeAnalyzer::insertConversions()
         for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd();) {
             if (phi->type() == MIRType_Undefined ||
                 phi->type() == MIRType_Null ||
-                phi->type() == MIRType_MagicOptimizedArguments)
+                phi->type() == MIRType_MagicOptimizedArguments ||
+                phi->type() == MIRType_MagicOptimizedOut)
             {
                 replaceRedundantPhi(*phi);
                 phi = block->discardPhiAt(phi);

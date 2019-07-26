@@ -588,7 +588,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             if (fun && fun->isHeavyweight())
                 flags |= BaselineFrame::HAS_CALL_OBJ;
         } else {
-            JS_ASSERT(v.isUndefined());
+            JS_ASSERT(v.isUndefined() || v.isMagic(JS_OPTIMIZED_OUT));
 
             
             if (fun) {
@@ -617,7 +617,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         
         if (script->argumentsHasVarBinding()) {
             v = iter.read();
-            JS_ASSERT(v.isObject() || v.isUndefined());
+            JS_ASSERT(v.isObject() || v.isUndefined() || v.isMagic(JS_OPTIMIZED_OUT));
             if (v.isObject())
                 argsObj = &v.toObject().as<ArgumentsObject>();
         }
