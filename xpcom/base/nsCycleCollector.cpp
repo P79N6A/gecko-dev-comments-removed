@@ -2948,21 +2948,6 @@ nsCycleCollector::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
 
 
 
-static nsCycleCollector* const kSentinelCollector = (nsCycleCollector*)1;
-
-inline bool
-CollectorIsShutDown(nsCycleCollector* aCollector)
-{
-    return aCollector == kSentinelCollector;
-}
-
-inline bool
-HaveCollector(nsCycleCollector* aCollector)
-{
-    return aCollector && !CollectorIsShutDown(aCollector);
-}
-
-
 
 
 
@@ -2981,45 +2966,15 @@ nsCycleCollector_forgetJSRuntime()
 {
     nsCycleCollector *collector = sCollector.get();
 
-    if (CollectorIsShutDown(collector)) {
+    if (collector == (nsCycleCollector*)1) {
+        
+        
         return;
     }
 
     if (collector)
         collector->ForgetJSRuntime();
 }
-
-void
-cyclecollector::AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer)
-{
-    nsCycleCollector *collector = sCollector.get();
-
-    MOZ_ASSERT(HaveCollector(collector));
-
-    collector->JSRuntime()->AddJSHolder(aHolder, aTracer);
-}
-
-void
-cyclecollector::RemoveJSHolder(void* aHolder)
-{
-    nsCycleCollector *collector = sCollector.get();
-
-    MOZ_ASSERT(HaveCollector(collector));
-
-    collector->JSRuntime()->RemoveJSHolder(aHolder);
-}
-
-#ifdef DEBUG
-bool
-cyclecollector::TestJSHolder(void* aHolder)
-{
-    nsCycleCollector *collector = sCollector.get();
-
-    MOZ_ASSERT(HaveCollector(collector));
-
-    return collector->JSRuntime()->TestJSHolder(aHolder);
-}
-#endif
 
 nsPurpleBufferEntry*
 NS_CycleCollectorSuspect2(void *n, nsCycleCollectionParticipant *cp)
@@ -3030,7 +2985,9 @@ NS_CycleCollectorSuspect2(void *n, nsCycleCollectionParticipant *cp)
         MOZ_CRASH();
     }
 
-    if (CollectorIsShutDown(collector)) {
+    if (collector == (nsCycleCollector*)1) {
+        
+        
         return nullptr;
     }
 
@@ -3042,7 +2999,9 @@ nsCycleCollector_suspectedCount()
 {
     nsCycleCollector *collector = sCollector.get();
 
-    if (CollectorIsShutDown(collector)) {
+    if (collector == (nsCycleCollector*)1) {
+        
+        
         return 0;
     }
 
@@ -3158,6 +3117,6 @@ nsCycleCollector_shutdown()
         delete collector;
         
         
-        sCollector.set(kSentinelCollector);
+        sCollector.set(reinterpret_cast<nsCycleCollector*>(1));
     }
 }
