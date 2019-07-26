@@ -219,16 +219,11 @@ public class DynamicPanel extends HomeFragment {
         public Cursor loadCursor() {
             final ContentResolver cr = getContext().getContentResolver();
 
-            
-            final Uri fakeItemsUri = HomeItems.CONTENT_FAKE_URI.buildUpon().
-                appendQueryParameter(BrowserContract.PARAM_PROFILE, "default").build();
-
             final String selection = HomeItems.DATASET_ID + " = ?";
             final String[] selectionArgs = new String[] { mDatasetId };
 
-            Log.i(LOGTAG, "Loading fake data for list provider: " + mDatasetId);
-
-            return cr.query(fakeItemsUri, null, selection, selectionArgs, null);
+            
+            return cr.query(HomeItems.CONTENT_URI, null, selection, selectionArgs, null);
         }
     }
 
