@@ -142,6 +142,8 @@ nsListControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
   mEventListener->SetFrame(nullptr);
 
+  mContent->RemoveSystemEventListener(NS_LITERAL_STRING("keydown"),
+                                      mEventListener, false);
   mContent->RemoveSystemEventListener(NS_LITERAL_STRING("keypress"),
                                       mEventListener, false);
   mContent->RemoveSystemEventListener(NS_LITERAL_STRING("mousedown"),
@@ -996,6 +998,8 @@ nsListControlFrame::Init(nsIContent*     aContent,
   
   mEventListener = new nsListEventListener(this);
 
+  mContent->AddSystemEventListener(NS_LITERAL_STRING("keydown"),
+                                   mEventListener, false, false);
   mContent->AddSystemEventListener(NS_LITERAL_STRING("keypress"),
                                    mEventListener, false, false);
   mContent->AddSystemEventListener(NS_LITERAL_STRING("mousedown"),
@@ -2216,41 +2220,30 @@ nsListControlFrame::DropDownToggleKey(nsIDOMEvent* aKeyEvent)
 }
 
 nsresult
-nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
+nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
 {
-  NS_ASSERTION(aKeyEvent, "keyEvent is null.");
+  MOZ_ASSERT(aKeyEvent, "aKeyEvent is null.");
 
   nsEventStates eventStates = mContent->AsElement()->State();
-  if (eventStates.HasState(NS_EVENT_STATE_DISABLED))
+  if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
     return NS_OK;
+  }
 
   
-  nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
-  NS_ENSURE_TRUE(keyEvent, NS_ERROR_FAILURE);
+  
 
-  uint32_t keycode = 0;
-  uint32_t charcode = 0;
-  keyEvent->GetKeyCode(&keycode);
-  keyEvent->GetCharCode(&charcode);
+  const nsKeyEvent* keyEvent =
+    static_cast<nsKeyEvent*>(aKeyEvent->GetInternalNSEvent());
+  MOZ_ASSERT(keyEvent, "DOM event must have internal event");
+  MOZ_ASSERT(keyEvent->eventStructType == NS_KEY_EVENT,
+             "The keydown event's internal event struct must be nsKeyEvent");
 
-  bool isAlt = false;
-
-  keyEvent->GetAltKey(&isAlt);
-  if (isAlt) {
-    if (keycode == nsIDOMKeyEvent::DOM_VK_UP || keycode == nsIDOMKeyEvent::DOM_VK_DOWN) {
+  if (keyEvent->IsAlt()) {
+    if (keyEvent->keyCode == NS_VK_UP || keyEvent->keyCode == NS_VK_DOWN) {
       DropDownToggleKey(aKeyEvent);
     }
     return NS_OK;
   }
-
-  
-  bool isControl = false;
-  bool isShift   = false;
-  keyEvent->GetCtrlKey(&isControl);
-  if (!isControl) {
-    keyEvent->GetMetaKey(&isControl);
-  }
-  keyEvent->GetShiftKey(&isShift);
 
   
   nsCOMPtr<nsIDOMHTMLOptionsCollection> options = GetOptions(mContent);
@@ -2260,243 +2253,283 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
   options->GetLength(&numOptions);
 
   
-  bool didIncrementalSearch = false;
-  
-  
-  
   int32_t newIndex = kNothingSelected;
 
-  
-  
-  
-  
-  
-  
-  if (isControl && (keycode == nsIDOMKeyEvent::DOM_VK_UP ||
-                    keycode == nsIDOMKeyEvent::DOM_VK_LEFT ||
-                    keycode == nsIDOMKeyEvent::DOM_VK_DOWN ||
-                    keycode == nsIDOMKeyEvent::DOM_VK_RIGHT)) {
+  bool isControlOrMeta = (keyEvent->IsControl() || keyEvent->IsMeta());
+  if (isControlOrMeta && (keyEvent->keyCode == NS_VK_UP ||
+                          keyEvent->keyCode == NS_VK_LEFT ||
+                          keyEvent->keyCode == NS_VK_DOWN ||
+                          keyEvent->keyCode == NS_VK_RIGHT)) {
     
-    isControl = mControlSelectMode = GetMultiple();
-  } else if (charcode != ' ') {
+    isControlOrMeta = mControlSelectMode = GetMultiple();
+  } else if (keyEvent->keyCode != NS_VK_SPACE) {
     mControlSelectMode = false;
   }
-  switch (keycode) {
 
-    case nsIDOMKeyEvent::DOM_VK_UP:
-    case nsIDOMKeyEvent::DOM_VK_LEFT: {
+  switch (keyEvent->keyCode) {
+    case NS_VK_UP:
+    case NS_VK_LEFT:
       AdjustIndexForDisabledOpt(mEndSelectionIndex, newIndex,
-                                (int32_t)numOptions,
+                                static_cast<int32_t>(numOptions),
                                 -1, -1);
-      } break;
-    
-    case nsIDOMKeyEvent::DOM_VK_DOWN:
-    case nsIDOMKeyEvent::DOM_VK_RIGHT: {
+      break;
+    case NS_VK_DOWN:
+    case NS_VK_RIGHT:
       AdjustIndexForDisabledOpt(mEndSelectionIndex, newIndex,
-                                (int32_t)numOptions,
+                                static_cast<int32_t>(numOptions),
                                 1, 1);
-      } break;
-
-    case nsIDOMKeyEvent::DOM_VK_RETURN: {
-      if (mComboboxFrame != nullptr) {
+      break;
+    case NS_VK_RETURN:
+      if (mComboboxFrame) {
         if (mComboboxFrame->IsDroppedDown()) {
           nsWeakFrame weakFrame(this);
           ComboboxFinish(mEndSelectionIndex);
-          if (!weakFrame.IsAlive())
+          if (!weakFrame.IsAlive()) {
             return NS_OK;
+          }
         }
         FireOnChange();
         return NS_OK;
-      } else {
-        newIndex = mEndSelectionIndex;
       }
-      } break;
-
-    case nsIDOMKeyEvent::DOM_VK_ESCAPE: {
+      newIndex = mEndSelectionIndex;
+      break;
+    case NS_VK_ESCAPE: {
       nsWeakFrame weakFrame(this);
       AboutToRollup();
       if (!weakFrame.IsAlive()) {
         aKeyEvent->PreventDefault(); 
         return NS_OK;
       }
-    } break;
-
-    case nsIDOMKeyEvent::DOM_VK_PAGE_UP: {
+      break;
+    }
+    case NS_VK_PAGE_UP: {
+      int32_t itemsPerPage =
+        std::max(1, static_cast<int32_t>(mNumDisplayRows - 1));
       AdjustIndexForDisabledOpt(mEndSelectionIndex, newIndex,
-                                (int32_t)numOptions,
-                                -std::max(1, int32_t(mNumDisplayRows-1)), -1);
-      } break;
-
-    case nsIDOMKeyEvent::DOM_VK_PAGE_DOWN: {
+                                static_cast<int32_t>(numOptions),
+                                -itemsPerPage, -1);
+      break;
+    }
+    case NS_VK_PAGE_DOWN: {
+      int32_t itemsPerPage =
+        std::max(1, static_cast<int32_t>(mNumDisplayRows - 1));
       AdjustIndexForDisabledOpt(mEndSelectionIndex, newIndex,
-                                (int32_t)numOptions,
-                                std::max(1, int32_t(mNumDisplayRows-1)), 1);
-      } break;
-
-    case nsIDOMKeyEvent::DOM_VK_HOME: {
+                                static_cast<int32_t>(numOptions),
+                                itemsPerPage, 1);
+      break;
+    }
+    case NS_VK_HOME:
       AdjustIndexForDisabledOpt(0, newIndex,
-                                (int32_t)numOptions,
+                                static_cast<int32_t>(numOptions),
                                 0, 1);
-      } break;
-
-    case nsIDOMKeyEvent::DOM_VK_END: {
-      AdjustIndexForDisabledOpt(numOptions-1, newIndex,
-                                (int32_t)numOptions,
+      break;
+    case NS_VK_END:
+      AdjustIndexForDisabledOpt(static_cast<int32_t>(numOptions) - 1, newIndex,
+                                static_cast<int32_t>(numOptions),
                                 0, -1);
-      } break;
+      break;
 
 #if defined(XP_WIN) || defined(XP_OS2)
-    case nsIDOMKeyEvent::DOM_VK_F4: {
+    case NS_VK_F4:
       DropDownToggleKey(aKeyEvent);
       return NS_OK;
-    } break;
 #endif
 
-    case nsIDOMKeyEvent::DOM_VK_TAB: {
+    default: 
       return NS_OK;
+  }
+
+  aKeyEvent->PreventDefault();
+
+  
+  GetIncrementalString().Truncate();
+
+  
+  
+  PostHandleKeyEvent(newIndex, 0, keyEvent->IsShift(), isControlOrMeta);
+  return NS_OK;
+}
+
+nsresult
+nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
+{
+  MOZ_ASSERT(aKeyEvent, "aKeyEvent is null.");
+
+  nsEventStates eventStates = mContent->AsElement()->State();
+  if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
+    return NS_OK;
+  }
+
+  const nsKeyEvent* keyEvent =
+    static_cast<nsKeyEvent*>(aKeyEvent->GetInternalNSEvent());
+  MOZ_ASSERT(keyEvent, "DOM event must have internal event");
+  MOZ_ASSERT(keyEvent->eventStructType == NS_KEY_EVENT,
+             "The keydown event's internal event struct must be nsKeyEvent");
+
+  
+  
+
+  
+  if (keyEvent->mFlags.mDefaultPrevented) {
+    return NS_OK;
+  }
+
+  if (keyEvent->IsAlt()) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  if (keyEvent->charCode != ' ') {
+    mControlSelectMode = false;
+  }
+
+  bool isControlOrMeta = (keyEvent->IsControl() || keyEvent->IsMeta());
+  if (isControlOrMeta && keyEvent->charCode != ' ') {
+    return NS_OK;
+  }
+
+  
+  
+  if (!keyEvent->charCode) {
+    
+    
+    
+    
+    if (keyEvent->keyCode == NS_VK_BACK && !GetIncrementalString().IsEmpty()) {
+      GetIncrementalString().Truncate(GetIncrementalString().Length() - 1);
+      aKeyEvent->PreventDefault();
     }
-
-    default: { 
-               
-
-      
-      
-      
-      
-      bool defaultPrevented;
-      aKeyEvent->GetDefaultPrevented(&defaultPrevented);
-      if (defaultPrevented) {
-        return NS_OK;
-      }
-
-      if (isControl && charcode != ' ') {
-        return NS_OK;
-      }
-
-      didIncrementalSearch = true;
-      if (charcode == 0) {
-        
-        if (keycode == NS_VK_BACK && !GetIncrementalString().IsEmpty()) {
-          GetIncrementalString().Truncate(GetIncrementalString().Length() - 1);
-          aKeyEvent->PreventDefault();
-        }
-        return NS_OK;
-      }
-      
-      DOMTimeStamp keyTime;
-      aKeyEvent->GetTimeStamp(&keyTime);
-
-      
-      
-      
-      
-      
-      if (keyTime - gLastKeyTime > INCREMENTAL_SEARCH_KEYPRESS_TIME) {
-        
-        
-        if (charcode == ' ') {
-          newIndex = mEndSelectionIndex;
-          break;
-        }
-        GetIncrementalString().Truncate();
-      }
-      gLastKeyTime = keyTime;
-
-      
-      PRUnichar uniChar = ToLowerCase(static_cast<PRUnichar>(charcode));
-      GetIncrementalString().Append(uniChar);
-
-      
-      nsAutoString incrementalString(GetIncrementalString());
-      uint32_t charIndex = 1, stringLength = incrementalString.Length();
-      while (charIndex < stringLength && incrementalString[charIndex] == incrementalString[charIndex - 1]) {
-        charIndex++;
-      }
-      if (charIndex == stringLength) {
-        incrementalString.Truncate(1);
-        stringLength = 1;
-      }
-
-      
-      
-      
-      
-      
-      
-      int32_t startIndex = GetSelectedIndex();
-      if (startIndex == kNothingSelected) {
-        startIndex = 0;
-      } else if (stringLength == 1) {
-        startIndex++;
-      }
-
-      for (uint32_t i = 0; i < numOptions; ++i) {
-        uint32_t index = (i + startIndex) % numOptions;
-        nsCOMPtr<nsIDOMHTMLOptionElement> optionElement = GetOption(options, index);
-        if (!optionElement) {
-          continue;
-        }
-
-        nsAutoString text;
-        if (NS_FAILED(optionElement->GetText(text)) ||
-            !StringBeginsWith(nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespaceOrNBSP>(text, false),
-                              incrementalString,
-                              nsCaseInsensitiveStringComparator())) {
-          continue;
-        }
-
-        if (!PerformSelection(index, isShift, isControl)) {
-          break;
-        }
-
-        
-        
-        if (!UpdateSelection()) {
-          return NS_OK;
-        }
-        break;
-      }
-
-    } break;
-  } 
+    return NS_OK;
+  }
 
   
   aKeyEvent->PreventDefault();
 
   
-  if (!didIncrementalSearch) {
+
+  
+  
+  
+  
+  
+  if (keyEvent->time - gLastKeyTime > INCREMENTAL_SEARCH_KEYPRESS_TIME) {
+    
+    
+    if (keyEvent->charCode == ' ') {
+      
+      
+      PostHandleKeyEvent(mEndSelectionIndex, keyEvent->charCode,
+                         keyEvent->IsShift(), isControlOrMeta);
+
+      return NS_OK;
+    }
+
     GetIncrementalString().Truncate();
   }
 
-  
-  
-  if (newIndex != kNothingSelected) {
-    
-    
-    bool wasChanged = false;
-    if (isControl && !isShift && charcode != ' ') {
-      mStartSelectionIndex = newIndex;
-      mEndSelectionIndex = newIndex;
-      InvalidateFocus();
-      ScrollToIndex(newIndex);
+  gLastKeyTime = keyEvent->time;
 
-#ifdef ACCESSIBILITY
-      FireMenuItemActiveEvent();
-#endif
-    } else if (mControlSelectMode && charcode == ' ') {
-      wasChanged = SingleSelection(newIndex, true);
-    } else {
-      wasChanged = PerformSelection(newIndex, isShift, isControl);
+  
+  PRUnichar uniChar = ToLowerCase(static_cast<PRUnichar>(keyEvent->charCode));
+  GetIncrementalString().Append(uniChar);
+
+  
+  
+  nsAutoString incrementalString(GetIncrementalString());
+  uint32_t charIndex = 1, stringLength = incrementalString.Length();
+  while (charIndex < stringLength &&
+         incrementalString[charIndex] == incrementalString[charIndex - 1]) {
+    charIndex++;
+  }
+  if (charIndex == stringLength) {
+    incrementalString.Truncate(1);
+    stringLength = 1;
+  }
+
+  
+  
+  
+  
+  
+  
+  int32_t startIndex = GetSelectedIndex();
+  if (startIndex == kNothingSelected) {
+    startIndex = 0;
+  } else if (stringLength == 1) {
+    startIndex++;
+  }
+
+  
+  nsCOMPtr<nsIDOMHTMLOptionsCollection> options = GetOptions(mContent);
+  NS_ENSURE_TRUE(options, NS_ERROR_FAILURE);
+
+  uint32_t numOptions = 0;
+  options->GetLength(&numOptions);
+
+  for (uint32_t i = 0; i < numOptions; ++i) {
+    uint32_t index = (i + startIndex) % numOptions;
+    nsCOMPtr<nsIDOMHTMLOptionElement> optionElement = GetOption(options, index);
+    if (!optionElement) {
+      continue;
     }
-    if (wasChanged) {
-       
-      if (!UpdateSelection()) {
-        return NS_OK;
-      }
+
+    nsAutoString text;
+    if (NS_FAILED(optionElement->GetText(text)) ||
+        !StringBeginsWith(
+           nsContentUtils::TrimWhitespace<
+             nsContentUtils::IsHTMLWhitespaceOrNBSP>(text, false),
+           incrementalString, nsCaseInsensitiveStringComparator())) {
+      continue;
     }
+
+    if (!PerformSelection(index, keyEvent->IsShift(), isControlOrMeta)) {
+      break;
+    }
+
+    
+    
+    if (!UpdateSelection()) {
+      return NS_OK;
+    }
+    break;
   }
 
   return NS_OK;
+}
+
+void
+nsListControlFrame::PostHandleKeyEvent(int32_t aNewIndex,
+                                       uint32_t aCharCode,
+                                       bool aIsShift,
+                                       bool aIsControlOrMeta)
+{
+  if (aNewIndex == kNothingSelected) {
+    return;
+  }
+
+  
+  
+  bool wasChanged = false;
+  if (aIsControlOrMeta && !aIsShift && aCharCode != ' ') {
+    mStartSelectionIndex = aNewIndex;
+    mEndSelectionIndex = aNewIndex;
+    InvalidateFocus();
+    ScrollToIndex(aNewIndex);
+
+#ifdef ACCESSIBILITY
+    FireMenuItemActiveEvent();
+#endif
+  } else if (mControlSelectMode && aCharCode == ' ') {
+    wasChanged = SingleSelection(aNewIndex, true);
+  } else {
+    wasChanged = PerformSelection(aNewIndex, aIsShift, aIsControlOrMeta);
+  }
+  if (wasChanged) {
+    
+    UpdateSelection();
+  }
 }
 
 
@@ -2514,6 +2547,8 @@ nsListEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   nsAutoString eventType;
   aEvent->GetType(eventType);
+  if (eventType.EqualsLiteral("keydown"))
+    return mFrame->nsListControlFrame::KeyDown(aEvent);
   if (eventType.EqualsLiteral("keypress"))
     return mFrame->nsListControlFrame::KeyPress(aEvent);
   if (eventType.EqualsLiteral("mousedown"))
