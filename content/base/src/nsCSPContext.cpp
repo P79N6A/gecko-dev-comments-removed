@@ -639,6 +639,8 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
     csp_report.AppendASCII(reportBlockedURI.get());
   }
   else {
+    
+    
     NS_WARNING("No blocked URI (null aBlockedContentSource) for CSP violation report.");
   }
   csp_report.AppendASCII("\", ");
@@ -1036,6 +1038,13 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
   
   
   for (uint32_t i = 0; i < mPolicies.Length(); i++) {
+
+    
+    
+    if (mPolicies[i]->getReportOnlyFlag()) {
+      continue;
+    }
+
     for (uint32_t a = 0; a < ancestorsArray.Length(); a++) {
       
       
@@ -1052,7 +1061,11 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
                                  EmptyString(), 
                                  violatedDirective)) {
         
-        this->AsyncReportViolation(ancestorsArray[a],
+        
+        
+        bool okToSendAncestor = NS_SecurityCompareURIs(ancestorsArray[a], mSelfURI, true);
+
+        this->AsyncReportViolation((okToSendAncestor ? ancestorsArray[a] : nullptr),
                                    mSelfURI,
                                    violatedDirective,
                                    i,             
@@ -1060,9 +1073,7 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
                                    EmptyString(), 
                                    EmptyString(), 
                                    0);            
-        if (!mPolicies[i]->getReportOnlyFlag()) {
-          *outPermitsAncestry = false;
-        }
+        *outPermitsAncestry = false;
       }
     }
   }

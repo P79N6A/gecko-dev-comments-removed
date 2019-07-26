@@ -638,7 +638,7 @@ ContentSecurityPolicy.prototype = {
         break;
     }
     var violationMessage = null;
-    if (blockedUri["asciiSpec"]) {
+    if (blockedUri && blockedUri["asciiSpec"]) {
       let localizeString = policy._reportOnlyMode ? "CSPROViolationWithURI" : "CSPViolationWithURI";
       violationMessage = CSPLocalizer.getFormatStr(localizeString, [violatedDirective, blockedUri.asciiSpec]);
     } else {
@@ -666,6 +666,10 @@ ContentSecurityPolicy.prototype = {
     
     var permitted = true;
     for (let i = 0; i < this._policies.length; i++) {
+      
+      if (this._policies[i]._reportOnlyMode) {
+        continue;
+      }
       if (!this._permitsAncestryInternal(docShell, this._policies[i], i)) {
         permitted = false;
       }
@@ -715,7 +719,20 @@ ContentSecurityPolicy.prototype = {
         let directive = policy._directives[cspContext];
         let violatedPolicy = 'frame-ancestors ' + directive.toString();
 
-        this._asyncReportViolation(ancestors[i], null, violatedPolicy,
+        
+        
+        let ssm = Services.scriptSecurityManager;
+        let blockedURI = null;
+        try {
+          if (Services.scriptSecurityManager
+                      .checkSameOriginURI(ancestors[i], this._requestOrigin, false)) {
+            blockedURI = ancestors[i];
+          }
+        } catch (ex) {
+          
+        }
+
+        this._asyncReportViolation(blockedURI, null, violatedPolicy,
                                    policyIndex);
 
         
