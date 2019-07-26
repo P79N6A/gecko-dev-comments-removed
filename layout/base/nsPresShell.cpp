@@ -4371,10 +4371,7 @@ PresShell::RenderDocument(const nsRect& aRect, uint32_t aFlags,
   
   
   
-  
-  
-  bool needsGroup = NS_GET_A(aBackgroundColor) < 0xff ||
-    oldOperator != gfxContext::OPERATOR_OVER;
+  bool needsGroup = oldOperator != gfxContext::OPERATOR_OVER;
 
   if (needsGroup) {
     aThebesContext->PushGroup(NS_GET_A(aBackgroundColor) == 0xff ?
