@@ -1773,11 +1773,16 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   margin-bottom: -2px;
 }
 
-#alltabs-button > .toolbarbutton-menu-dropmarker {
+#alltabs-button > .toolbarbutton-icon {
+  list-style-image: url("chrome://browser/skin/tabbrowser/alltabs.png");
+  margin: 2px 0 1px;
+}
+
+#alltabs-button[type="menu"] > .toolbarbutton-menu-dropmarker {
   margin-bottom: -2px;
 }
 
-#alltabs-button > .toolbarbutton-icon {
+#alltabs-button[type="menu"] > .toolbarbutton-icon {
   display: none;
 }
 
@@ -1833,7 +1838,18 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
 
 
 
-.ctrlTab-preview {
+.KUI-panel-closebutton {
+  list-style-image: url(KUI-close.png);
+}
+
+.KUI-panel-closebutton > .toolbarbutton-icon {
+  margin: 0;
+}
+
+
+
+.ctrlTab-preview,
+.allTabs-preview {
   -moz-appearance: toolbarbutton;
 }
 
@@ -1842,16 +1858,21 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
 }
 
 .ctrlTab-preview:focus .tabPreview-canvas,
-.ctrlTab-preview:hover .tabPreview-canvas {
+.ctrlTab-preview:hover .tabPreview-canvas,
+.allTabs-preview:focus .tabPreview-canvas,
+.allTabs-preview:hover .tabPreview-canvas {
   box-shadow: none;
 }
 
-.ctrlTab-favicon[src] {
+.ctrlTab-favicon[src],
+.allTabs-favicon[src] {
   background-color: white;
   width: 20px;
   height: 20px;
   padding: 2px;
 }
+
+
 
 #ctrlTab-panel {
   padding: 10px;
@@ -1866,6 +1887,25 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
   color: ButtonText;
   padding: 0 3px;
   margin-top: 10px;
+}
+
+
+
+#allTabs-panel {
+  padding-bottom: 10px;
+}
+
+#allTabs-meta {
+  padding: 5px;
+}
+
+#allTabs-filter {
+  -moz-margin-start: 36px;
+  -moz-margin-end: 0;
+}
+
+.allTabs-preview-label {
+  transform: translate(0, 2px);
 }
 
 
@@ -2128,6 +2168,10 @@ html|*#gcli-output-frame {
   padding: 0;
   border-width: 0;
   background-color: transparent;
+}
+
+.gcli-panel {
+  padding: 0;
 }
 
 #gcli-output,
