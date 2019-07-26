@@ -21,6 +21,7 @@
 
 class nsPresContext;
 class nsIFrame;
+class ElementPropertyTransition;
 
 
 namespace mozilla {
@@ -228,6 +229,15 @@ struct ElementAnimation
     : mIsRunningOnCompositor(false)
     , mLastNotification(LAST_NOTIFICATION_NONE)
   {
+  }
+
+  
+  
+  
+  virtual ~ElementAnimation() { }
+  virtual ElementPropertyTransition* AsTransition() { return nullptr; }
+  virtual const ElementPropertyTransition* AsTransition() const {
+    return nullptr;
   }
 
   nsString mName; 

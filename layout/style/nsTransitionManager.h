@@ -25,6 +25,9 @@ struct ElementDependentRuleProcessorData;
 
 struct ElementPropertyTransition : public mozilla::ElementAnimation
 {
+  virtual ElementPropertyTransition* AsTransition() { return this; }
+  virtual const ElementPropertyTransition* AsTransition() const { return this; }
+
   
   
   
