@@ -189,8 +189,7 @@ public:
 
 
 
-
-  void SetCrossProcessCompositorParent(PCompositorParent* aCrossProcessCompositorParent);
+  void ShareFrameMetricsAcrossProcesses();
 
   
   
@@ -638,7 +637,6 @@ private:
 
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
-  PCompositorParent* mCrossProcessCompositorParent;
   TaskThrottler mPaintThrottler;
 
   
@@ -651,6 +649,12 @@ private:
   
   already_AddRefed<GeckoContentController> GetGeckoContentController();
   already_AddRefed<GestureEventListener> GetGestureEventListener();
+
+  
+  bool mSharingFrameMetricsAcrossProcesses;
+  
+
+  PCompositorParent* GetSharedFrameMetricsCompositor();
 
 protected:
   
