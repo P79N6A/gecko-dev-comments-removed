@@ -424,9 +424,10 @@ protected:
 
 protected:
   template<class Allocator>
-  bool SwapArrayElements(nsTArray_base<Allocator>& other,
-                           size_type elemSize,
-                           size_t elemAlign);
+  typename Alloc::ResultTypeProxy
+  SwapArrayElements(nsTArray_base<Allocator>& other,
+                    size_type elemSize,
+                    size_t elemAlign);
 
   
   class IsAutoArrayRestorer {
@@ -1157,8 +1158,10 @@ public:
   
   
   template<class Allocator>
-  bool SwapElements(nsTArray_Impl<E, Allocator>& other) {
-    return this->SwapArrayElements(other, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+  typename Alloc::ResultType
+  SwapElements(nsTArray_Impl<E, Allocator>& other) {
+    return Alloc::Result(this->SwapArrayElements(other, sizeof(elem_type),
+                                                 MOZ_ALIGNOF(elem_type)));
   }
 
   
