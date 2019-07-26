@@ -158,6 +158,16 @@ public:
                            int64_t aTimecode,
                            nsIntRect aPicture);
 
+  static VideoData* CreateFromImage(VideoInfo& aInfo,
+                                    ImageContainer* aContainer,
+                                    int64_t aOffset,
+                                    int64_t aTime,
+                                    int64_t aEndTime,
+                                    const nsRefPtr<Image>& aImage,
+                                    bool aKeyframe,
+                                    int64_t aTimecode,
+                                    nsIntRect aPicture);
+
   
   
   
