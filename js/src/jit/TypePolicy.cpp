@@ -221,6 +221,51 @@ ComparePolicy::adjustInputs(MInstruction *def)
 }
 
 bool
+TypeBarrierPolicy::adjustInputs(MInstruction *def)
+{
+    MTypeBarrier *ins = def->toTypeBarrier();
+    MIRType inputType = ins->getOperand(0)->type();
+    MIRType outputType = ins->type();
+
+    
+    if (inputType == outputType)
+        return true;
+
+    
+    if (outputType == MIRType_Value) {
+        
+        
+        JS_ASSERT(inputType != MIRType_Value);
+        ins->replaceOperand(0, boxAt(ins, ins->getOperand(0)));
+        return true;
+    }
+
+    
+    if (inputType == MIRType_Value) {
+        JS_ASSERT(outputType != MIRType_Value);
+
+        
+        if (IsNullOrUndefined(outputType) || outputType == MIRType_Magic) {
+            ins->setResultType(MIRType_Value);
+            return true;
+        }
+
+        MUnbox *unbox = MUnbox::New(ins->getOperand(0), outputType,
+                                    MUnbox::TypeBarrier, ins->bailoutKind());
+        ins->block()->insertBefore(ins, unbox);
+        ins->replaceOperand(0, unbox);
+        return true;
+    }
+
+    
+    
+    JS_ASSERT(ins->alwaysBails());
+    ins->setResultType(inputType);
+
+    return true;
+}
+
+bool
 TestPolicy::adjustInputs(MInstruction *ins)
 {
     MDefinition *op = ins->getOperand(0);
