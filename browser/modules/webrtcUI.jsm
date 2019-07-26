@@ -65,18 +65,18 @@ function getBrowserForWindow(aContentWindow) {
 }
 
 function handleRequest(aSubject, aTopic, aData) {
-  let {windowID: windowID, callID: callID} = JSON.parse(aData);
-
-  let params = aSubject.QueryInterface(Ci.nsIMediaStreamOptions);
+  let constraints = aSubject.getConstraints();
 
   Services.wm.getMostRecentWindow(null).navigator.mozGetUserMediaDevices(
+    constraints,
     function (devices) {
-      prompt(windowID, callID, params.audio, params.video || params.picture, devices);
+      prompt(aSubject.windowID, aSubject.callID, constraints.audio,
+             constraints.video || constraints.picture, devices);
     },
     function (error) {
       
       
-      denyRequest(callID, error);
+      denyRequest(aSubject.callID, error);
     }
   );
 }

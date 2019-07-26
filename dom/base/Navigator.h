@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef mozilla_dom_Navigator_h
 #define mozilla_dom_Navigator_h
@@ -22,7 +22,6 @@ class nsPIDOMWindow;
 class nsIDOMMozConnection;
 class nsIDOMMozMobileMessageManager;
 class nsIDOMNavigatorSystemMessages;
-class nsIMediaStreamOptions;
 class nsDOMCameraManager;
 class nsDOMDeviceStorage;
 
@@ -30,17 +29,19 @@ namespace mozilla {
 namespace dom {
 class Geolocation;
 class systemMessageCallback;
+class MediaStreamConstraints;
+class MediaStreamConstraintsInternal;
 }
 }
 
 #ifdef MOZ_B2G_RIL
 class nsIDOMMozMobileConnection;
 class nsIDOMMozIccManager;
-#endif // MOZ_B2G_RIL
+#endif 
 
-//*****************************************************************************
-// Navigator: Script "navigator" object
-//*****************************************************************************
+
+
+
 
 void NS_GetNavigatorAppName(nsAString& aAppName);
 
@@ -49,7 +50,7 @@ namespace dom {
 
 namespace battery {
 class BatteryManager;
-} // namespace battery
+} 
 
 #ifdef MOZ_B2G_FM
 class FMRadio;
@@ -60,12 +61,12 @@ class MobileMessageManager;
 class MozIdleObserver;
 #ifdef MOZ_GAMEPAD
 class Gamepad;
-#endif // MOZ_GAMEPAD
+#endif 
 #ifdef MOZ_MEDIA_NAVIGATOR
-class MozDOMGetUserMediaSuccessCallback;
-class MozDOMGetUserMediaErrorCallback;
+class NavigatorUserMediaSuccessCallback;
+class NavigatorUserMediaErrorCallback;
 class MozGetUserMediaDevicesSuccessCallback;
-#endif // MOZ_MEDIA_NAVIGATOR
+#endif 
 
 namespace icc {
 #ifdef MOZ_B2G_RIL
@@ -78,13 +79,13 @@ class Connection;
 #ifdef MOZ_B2G_RIL
 class MobileConnection;
 #endif
-} // namespace Connection;
+} 
 
 #ifdef MOZ_B2G_BT
 namespace bluetooth {
 class BluetoothManager;
-} // namespace bluetooth
-#endif // MOZ_B2G_BT
+} 
+#endif 
 
 #ifdef MOZ_B2G_RIL
 class CellBroadcast;
@@ -96,13 +97,13 @@ class PowerManager;
 
 namespace time {
 class TimeManager;
-} // namespace time
+} 
 
 namespace system {
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
 class AudioChannelManager;
 #endif
-} // namespace system
+} 
 
 class Navigator : public nsIDOMNavigator
                 , public nsIMozNavigatorNetwork
@@ -132,20 +133,20 @@ public:
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  /**
-   * For use during document.write where our inner window changes.
-   */
+  
+
+
   void SetWindow(nsPIDOMWindow *aInnerWindow);
 
-  /**
-   * Called when the inner window navigates to a new page.
-   */
+  
+
+
   void OnNavigation();
 
-  // Helper to initialize mMessagesManager.
+  
   nsresult EnsureMessagesManager();
 
-  // WebIDL API
+  
   void GetAppName(nsString& aAppName)
   {
     NS_GetNavigatorAppName(aAppName);
@@ -162,8 +163,8 @@ public:
   {
     aRv = GetUserAgent(aUserAgent);
   }
-  // The XPCOM GetProduct is OK
-  // The XPCOM GetLanguage is OK
+  
+  
   bool OnLine();
   void RegisterProtocolHandler(const nsAString& aScheme, const nsAString& aURL,
                                const nsAString& aTitle, ErrorResult& aRv);
@@ -171,7 +172,7 @@ public:
                               const nsAString& aTitle, ErrorResult& aRv);
   nsMimeTypeArray* GetMimeTypes(ErrorResult& aRv);
   nsPluginArray* GetPlugins(ErrorResult& aRv);
-  // The XPCOM GetDoNotTrack is ok
+  
   Geolocation* GetGeolocation(ErrorResult& aRv);
   battery::BatteryManager* GetBattery(ErrorResult& aRv);
   void Vibrate(uint32_t aDuration, ErrorResult& aRv);
@@ -184,9 +185,9 @@ public:
   {
     aRv = GetOscpu(aOscpu);
   }
-  // The XPCOM GetVendor is OK
-  // The XPCOM GetVendorSub is OK
-  // The XPCOM GetProductSub is OK
+  
+  
+  
   bool CookieEnabled();
   void GetBuildID(nsString& aBuildID, ErrorResult& aRv)
   {
@@ -223,78 +224,80 @@ public:
   CellBroadcast* GetMozCellBroadcast(ErrorResult& aRv);
   Voicemail* GetMozVoicemail(ErrorResult& aRv);
   nsIDOMMozIccManager* GetMozIccManager(ErrorResult& aRv);
-#endif // MOZ_B2G_RIL
+#endif 
 #ifdef MOZ_GAMEPAD
   void GetGamepads(nsTArray<nsRefPtr<Gamepad> >& aGamepads, ErrorResult& aRv);
-#endif // MOZ_GAMEPAD
+#endif 
 #ifdef MOZ_B2G_FM
   FMRadio* GetMozFMRadio(ErrorResult& aRv);
 #endif
 #ifdef MOZ_B2G_BT
   bluetooth::BluetoothManager* GetMozBluetooth(ErrorResult& aRv);
-#endif // MOZ_B2G_BT
+#endif 
 #ifdef MOZ_TIME_MANAGER
   time::TimeManager* GetMozTime(ErrorResult& aRv);
-#endif // MOZ_TIME_MANAGER
+#endif 
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
   system::AudioChannelManager* GetMozAudioChannelManager(ErrorResult& aRv);
-#endif // MOZ_AUDIO_CHANNEL_MANAGER
+#endif 
 #ifdef MOZ_MEDIA_NAVIGATOR
-  void MozGetUserMedia(nsIMediaStreamOptions* aParams,
-                       MozDOMGetUserMediaSuccessCallback* aOnSuccess,
-                       MozDOMGetUserMediaErrorCallback* aOnError,
+  void MozGetUserMedia(JSContext* aCx,
+                       const MediaStreamConstraints& aConstraints,
+                       NavigatorUserMediaSuccessCallback& aOnSuccess,
+                       NavigatorUserMediaErrorCallback& aOnError,
                        ErrorResult& aRv);
-  void MozGetUserMediaDevices(MozGetUserMediaDevicesSuccessCallback* aOnSuccess,
-                              MozDOMGetUserMediaErrorCallback* aOnError,
+  void MozGetUserMediaDevices(const MediaStreamConstraintsInternal& aConstraints,
+                              MozGetUserMediaDevicesSuccessCallback& aOnSuccess,
+                              NavigatorUserMediaErrorCallback& aOnError,
                               ErrorResult& aRv);
-#endif // MOZ_MEDIA_NAVIGATOR
+#endif 
   bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
                     JS::Handle<jsid> aId, JS::MutableHandle<JS::Value> aValue);
   void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
                            ErrorResult& aRv);
 
-  // WebIDL helper methods
-  static bool HasBatterySupport(JSContext* /* unused*/, JSObject* /*unused */);
-  static bool HasPowerSupport(JSContext* /* unused */, JSObject* aGlobal);
-  static bool HasPhoneNumberSupport(JSContext* /* unused */, JSObject* aGlobal);
-  static bool HasIdleSupport(JSContext* /* unused */, JSObject* aGlobal);
-  static bool HasWakeLockSupport(JSContext* /* unused*/, JSObject* /*unused */);
-  static bool HasDesktopNotificationSupport(JSContext* /* unused*/,
-                                            JSObject* /*unused */)
+  
+  static bool HasBatterySupport(JSContext* , JSObject* );
+  static bool HasPowerSupport(JSContext* , JSObject* aGlobal);
+  static bool HasPhoneNumberSupport(JSContext* , JSObject* aGlobal);
+  static bool HasIdleSupport(JSContext* , JSObject* aGlobal);
+  static bool HasWakeLockSupport(JSContext* , JSObject* );
+  static bool HasDesktopNotificationSupport(JSContext* ,
+                                            JSObject* )
   {
     return HasDesktopNotificationSupport();
   }
-  static bool HasMobileMessageSupport(JSContext* /* unused */,
+  static bool HasMobileMessageSupport(JSContext* ,
                                       JSObject* aGlobal);
-  static bool HasCameraSupport(JSContext* /* unused */,
+  static bool HasCameraSupport(JSContext* ,
                                JSObject* aGlobal);
 #ifdef MOZ_B2G_RIL
-  static bool HasTelephonySupport(JSContext* /* unused */,
+  static bool HasTelephonySupport(JSContext* ,
                                   JSObject* aGlobal);
-  static bool HasMobileConnectionSupport(JSContext* /* unused */,
+  static bool HasMobileConnectionSupport(JSContext* ,
                                          JSObject* aGlobal);
-  static bool HasCellBroadcastSupport(JSContext* /* unused */,
+  static bool HasCellBroadcastSupport(JSContext* ,
                                       JSObject* aGlobal);
-  static bool HasVoicemailSupport(JSContext* /* unused */,
+  static bool HasVoicemailSupport(JSContext* ,
                                   JSObject* aGlobal);
-  static bool HasIccManagerSupport(JSContext* /* unused */,
+  static bool HasIccManagerSupport(JSContext* ,
                                    JSObject* aGlobal);
-#endif // MOZ_B2G_RIL
+#endif 
 #ifdef MOZ_B2G_BT
-  static bool HasBluetoothSupport(JSContext* /* unused */, JSObject* aGlobal);
-#endif // MOZ_B2G_BT
+  static bool HasBluetoothSupport(JSContext* , JSObject* aGlobal);
+#endif 
 #ifdef MOZ_B2G_FM
-  static bool HasFMRadioSupport(JSContext* /* unused */, JSObject* aGlobal);
-#endif // MOZ_B2G_FM
+  static bool HasFMRadioSupport(JSContext* , JSObject* aGlobal);
+#endif 
 #ifdef MOZ_TIME_MANAGER
-  static bool HasTimeSupport(JSContext* /* unused */, JSObject* aGlobal);
-#endif // MOZ_TIME_MANAGER
+  static bool HasTimeSupport(JSContext* , JSObject* aGlobal);
+#endif 
 #ifdef MOZ_MEDIA_NAVIGATOR
-  static bool HasUserMediaSupport(JSContext* /* unused */,
-                                  JSObject* /* unused */);
-#endif // MOZ_MEDIA_NAVIGATOR
+  static bool HasUserMediaSupport(JSContext* ,
+                                  JSObject* );
+#endif 
 
-  static bool HasPushNotificationsSupport(JSContext* /* unused */,
+  static bool HasPushNotificationsSupport(JSContext* ,
                                           JSObject* aGlobal);
 
   nsPIDOMWindow* GetParentObject() const
@@ -308,8 +311,8 @@ public:
 private:
   bool CheckPermission(const char* type);
   static bool CheckPermission(nsPIDOMWindow* aWindow, const char* aType);
-  // GetWindowFromGlobal returns the inner window for this global, if
-  // any, else null.
+  
+  
   static already_AddRefed<nsPIDOMWindow> GetWindowFromGlobal(JSObject* aGlobal);
 
   nsRefPtr<nsMimeTypeArray> mMimeTypes;
@@ -345,11 +348,11 @@ private:
   nsCOMPtr<nsPIDOMWindow> mWindow;
 };
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 nsresult NS_GetNavigatorUserAgent(nsAString& aUserAgent);
 nsresult NS_GetNavigatorPlatform(nsAString& aPlatform);
 nsresult NS_GetNavigatorAppVersion(nsAString& aAppVersion);
 
-#endif // mozilla_dom_Navigator_h
+#endif 
