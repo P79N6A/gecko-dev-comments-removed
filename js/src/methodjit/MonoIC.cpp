@@ -437,7 +437,7 @@ mjit::NativeStubEpilogue(VMFrame &f, Assembler &masm, NativeStubLinker::FinalJum
 
 
 
-        types::TypeSet *types = f.script()->analysis()->bytecodeTypes(f.pc());
+        types::TypeSet *types = types::TypeScript::BytecodeTypes(f.script(), f.pc());
         if (!masm.generateTypeCheck(f.cx, resultAddress, types, &mismatches))
             THROWV(false);
     }
