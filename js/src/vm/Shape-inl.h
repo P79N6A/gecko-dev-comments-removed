@@ -338,8 +338,8 @@ Shape::set(JSContext* cx, HandleObject obj, HandleObject receiver, bool strict, 
 
 
 
-    if (obj->isWith()) {
-        RootedObject nobj(cx, &obj->asWith().object());
+    if (obj->is<WithObject>()) {
+        RootedObject nobj(cx, &obj->as<WithObject>().object());
         return CallJSPropertyOpSetter(cx, self->setterOp(), nobj, id, strict, vp);
     }
 
