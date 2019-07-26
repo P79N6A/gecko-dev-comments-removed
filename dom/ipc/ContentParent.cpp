@@ -121,10 +121,6 @@ using namespace mozilla::system;
 #include "BluetoothService.h"
 #endif
 
-#ifdef MOZ_NUWA_PROCESS
-#include "ipc/Nuwa.h"
-#endif
-
 #include "JavaScriptParent.h"
 
 #ifdef MOZ_B2G_FM
@@ -139,8 +135,6 @@ using namespace mozilla::system;
 
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 static const char* sClipboardTextFlavors[] = { kUnicodeMime };
-
-#define NUWA_FORK_WAIT_DURATION_MS 2000 // 2 seconds.
 
 using base::ChildPrivileges;
 using base::KillProcess;
@@ -276,29 +270,13 @@ static uint64_t gContentChildID = 1;
 
 
 
-static StaticRefPtr<ContentParent> sNuwaProcess;
-
-static bool sNuwaReady = false;
-
-
-static StaticAutoPtr<nsAutoTArray<nsRefPtr<ContentParent>, 4> > sSpareProcesses;
-static StaticAutoPtr<nsTArray<CancelableTask*> > sNuwaForkWaitTasks;
-
-
-
-
 #define MAGIC_PREALLOCATED_APP_MANIFEST_URL NS_LITERAL_STRING("{{template}}")
 
-void
+ already_AddRefed<ContentParent>
 ContentParent::RunNuwaProcess()
 {
     MOZ_ASSERT(NS_IsMainThread());
-
-    if (sNuwaProcess) {
-        NS_RUNTIMEABORT("sNuwaProcess is created twice.");
-    }
-
-    sNuwaProcess =
+    nsRefPtr<ContentParent> nuwaProcess =
         new ContentParent( nullptr,
                            false,
                            true,
@@ -307,108 +285,9 @@ ContentParent::RunNuwaProcess()
                           base::PRIVILEGES_INHERIT,
                           PROCESS_PRIORITY_BACKGROUND,
                            true);
-    sNuwaProcess->Init();
+    nuwaProcess->Init();
+    return nuwaProcess.forget();
 }
-
-#ifdef MOZ_NUWA_PROCESS
-
-static CancelableTask* sPreallocateAppProcessTask;
-
-
-
-static int sPreallocateDelayMs = 1000;
-
-static void
-DelayedNuwaFork()
-{
-    MOZ_ASSERT(NS_IsMainThread());
-
-    sPreallocateAppProcessTask = nullptr;
-
-    if (!sNuwaReady) {
-        if (!sNuwaProcess) {
-            ContentParent::RunNuwaProcess();
-        }
-        
-    } else if (sSpareProcesses->IsEmpty()) {
-        sNuwaProcess->SendNuwaFork();
-    }
-}
-
-static void
-ScheduleDelayedNuwaFork()
-{
-    MOZ_ASSERT(NS_IsMainThread());
-
-    if (sPreallocateAppProcessTask) {
-        
-        return;
-    }
-
-    sPreallocateAppProcessTask = NewRunnableFunction(DelayedNuwaFork);
-    MessageLoop::current()->
-        PostDelayedTask(FROM_HERE,
-                        sPreallocateAppProcessTask,
-                        sPreallocateDelayMs);
-}
-
-
-
-
-static already_AddRefed<ContentParent>
-GetSpareProcess()
-{
-    MOZ_ASSERT(NS_IsMainThread());
-
-    if (sSpareProcesses->IsEmpty()) {
-        return nullptr;
-    }
-
-    nsRefPtr<ContentParent> process = sSpareProcesses->LastElement();
-    sSpareProcesses->RemoveElementAt(sSpareProcesses->Length() - 1);
-
-    if (sSpareProcesses->IsEmpty() && sNuwaReady) {
-        NS_ASSERTION(sNuwaProcess != nullptr,
-                     "Nuwa process is not present!");
-        ScheduleDelayedNuwaFork();
-    }
-
-    return process.forget();
-}
-
-
-
-
-static void
-PublishSpareProcess(ContentParent* aContent)
-{
-    MOZ_ASSERT(NS_IsMainThread());
-
-    if (!sNuwaForkWaitTasks->IsEmpty()) {
-        sNuwaForkWaitTasks->ElementAt(0)->Cancel();
-        sNuwaForkWaitTasks->RemoveElementAt(0);
-    }
-
-    sSpareProcesses->AppendElement(aContent);
-}
-
-static void
-MaybeForgetSpare(ContentParent* aContent)
-{
-    MOZ_ASSERT(NS_IsMainThread());
-
-    if (sSpareProcesses->RemoveElement(aContent)) {
-        return;
-    }
-
-    if (aContent == sNuwaProcess) {
-        sNuwaProcess = nullptr;
-        sNuwaReady = false;
-        ScheduleDelayedNuwaFork();
-    }
-}
-
-#endif
 
 
 
@@ -433,11 +312,7 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
                                                ChildPrivileges aPrivs,
                                                ProcessPriority aInitialPriority)
 {
-#ifdef MOZ_NUWA_PROCESS
-    nsRefPtr<ContentParent> process = GetSpareProcess();
-#else
     nsRefPtr<ContentParent> process = PreallocatedProcessManager::Take();
-#endif
     if (!process) {
         return nullptr;
     }
@@ -464,17 +339,8 @@ ContentParent::StartUp()
 
     sCanLaunchSubprocesses = true;
 
-    sSpareProcesses = new nsAutoTArray<nsRefPtr<ContentParent>, 4>();
-    ClearOnShutdown(&sSpareProcesses);
-
-    sNuwaForkWaitTasks = new nsTArray<CancelableTask*>();
-    ClearOnShutdown(&sNuwaForkWaitTasks);
-#ifdef MOZ_NUWA_PROCESS
-    ScheduleDelayedNuwaFork();
-#else
     
     PreallocatedProcessManager::AllocateAfterDelay();
-#endif
 }
 
  void
@@ -1028,24 +894,12 @@ ContentParent::MarkAsDead()
 }
 
 void
-ContentParent::OnNuwaForkTimeout()
-{
-    if (!sNuwaForkWaitTasks->IsEmpty()) {
-        sNuwaForkWaitTasks->RemoveElementAt(0);
-    }
-
-    
-    
-    MOZ_ASSERT(false, "Can't fork from the nuwa process.");
-}
-
-void
 ContentParent::OnChannelError()
 {
     nsRefPtr<ContentParent> content(this);
     PContentParent::OnChannelError();
 #ifdef MOZ_NUWA_PROCESS
-    MaybeForgetSpare(this);
+    PreallocatedProcessManager::MaybeForgetSpare(this);
 #endif
 }
 
@@ -1801,19 +1655,12 @@ ContentParent::RecvGetShowPasswordSetting(bool* showPassword)
 bool
 ContentParent::RecvFirstIdle()
 {
-#ifdef MOZ_NUWA_PROCESS
-    if (sSpareProcesses->IsEmpty() && sNuwaReady) {
-        ScheduleDelayedNuwaFork();
-    }
-    return true;
-#else
     
     
     
     
     PreallocatedProcessManager::AllocateAfterDelay();
     return true;
-#endif
 }
 
 bool
@@ -1898,33 +1745,15 @@ ContentParent::RecvBroadcastVolume(const nsString& aVolumeName)
 }
 
 bool
-ContentParent::SendNuwaFork()
-{
-    if (this != sNuwaProcess) {
-        return false;
-    }
-
-    CancelableTask* nuwaForkTimeoutTask = NewRunnableMethod(
-        this, &ContentParent::OnNuwaForkTimeout);
-    sNuwaForkWaitTasks->AppendElement(nuwaForkTimeoutTask);
-
-    MessageLoop::current()->
-        PostDelayedTask(FROM_HERE,
-                        nuwaForkTimeoutTask,
-                        NUWA_FORK_WAIT_DURATION_MS);
-
-    return PContentParent::SendNuwaFork();
-}
-
-bool
 ContentParent::RecvNuwaReady()
 {
-    NS_ASSERTION(!sNuwaReady, "Multiple Nuwa processes created!");
-    ProcessPriorityManager::SetProcessPriority(sNuwaProcess,
-                                               hal::PROCESS_PRIORITY_FOREGROUND);
-    sNuwaReady = true;
-    SendNuwaFork();
+#ifdef MOZ_NUWA_PROCESS
+    PreallocatedProcessManager::OnNuwaReady();
     return true;
+#else
+    NS_ERROR("ContentParent::RecvNuwaReady() not implemented!");
+    return false;
+#endif
 }
 
 bool
@@ -1939,7 +1768,7 @@ ContentParent::RecvAddNewProcess(const uint32_t& aPid,
                                 aFds,
                                 base::PRIVILEGES_DEFAULT);
     content->Init();
-    PublishSpareProcess(content);
+    PreallocatedProcessManager::PublishSpareProcess(content);
     return true;
 #else
     NS_ERROR("ContentParent::RecvAddNewProcess() not implemented!");

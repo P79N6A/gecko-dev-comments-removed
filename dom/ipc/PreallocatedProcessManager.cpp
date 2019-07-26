@@ -9,6 +9,19 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/ContentParent.h"
 #include "nsIPropertyBag2.h"
+#include "ProcessPriorityManager.h"
+#include "nsServiceManagerUtils.h"
+#include "nsCxPusher.h"
+
+#ifdef MOZ_NUWA_PROCESS
+#include "ipc/Nuwa.h"
+#endif
+
+
+
+
+#define DEFAULT_ALLOCATE_DELAY 1000
+#define NUWA_FORK_WAIT_DURATION_MS 2000 // 2 seconds.
 
 using namespace mozilla;
 using namespace mozilla::hal;
@@ -34,6 +47,31 @@ public:
   void AllocateOnIdle();
   void AllocateNow();
   already_AddRefed<ContentParent> Take();
+
+#ifdef MOZ_NUWA_PROCESS
+public:
+  void ScheduleDelayedNuwaFork();
+  void DelayedNuwaFork();
+  void PublishSpareProcess(ContentParent* aContent);
+  void MaybeForgetSpare(ContentParent* aContent);
+  void OnNuwaReady();
+  already_AddRefed<ContentParent> GetSpareProcess();
+
+private:
+  void OnNuwaForkTimeout();
+  void NuwaFork();
+
+  
+  CancelableTask* mPreallocateAppProcessTask;
+
+  
+  
+  nsAutoTArray<nsRefPtr<ContentParent>, 4> mSpareProcesses;
+  nsTArray<CancelableTask*> mNuwaForkWaitTasks;
+
+  
+  bool mIsNuwaReady;
+#endif
 
 private:
   static mozilla::StaticRefPtr<PreallocatedProcessManagerImpl> sSingleton;
@@ -72,6 +110,10 @@ NS_IMPL_ISUPPORTS1(PreallocatedProcessManagerImpl, nsIObserver)
 
 PreallocatedProcessManagerImpl::PreallocatedProcessManagerImpl()
   : mEnabled(false)
+#ifdef MOZ_NUWA_PROCESS
+  , mPreallocateAppProcessTask(nullptr)
+  , mIsNuwaReady(false)
+#endif
 {}
 
 void
@@ -127,7 +169,11 @@ PreallocatedProcessManagerImpl::Enable()
   }
 
   mEnabled = true;
+#ifdef MOZ_NUWA_PROCESS
+  ScheduleDelayedNuwaFork();
+#else
   AllocateAfterDelay();
+#endif
 }
 
 void
@@ -140,7 +186,8 @@ PreallocatedProcessManagerImpl::AllocateAfterDelay()
   MessageLoop::current()->PostDelayedTask(
     FROM_HERE,
     NewRunnableMethod(this, &PreallocatedProcessManagerImpl::AllocateOnIdle),
-    Preferences::GetUint("dom.ipc.processPrelaunch.delayMs", 1000));
+    Preferences::GetUint("dom.ipc.processPrelaunch.delayMs",
+                         DEFAULT_ALLOCATE_DELAY));
 }
 
 void
@@ -165,6 +212,135 @@ PreallocatedProcessManagerImpl::AllocateNow()
   mPreallocatedAppProcess = ContentParent::PreallocateAppProcess();
 }
 
+#ifdef MOZ_NUWA_PROCESS
+
+void
+PreallocatedProcessManagerImpl::ScheduleDelayedNuwaFork()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mPreallocateAppProcessTask) {
+    
+    return;
+  }
+
+  mPreallocateAppProcessTask = NewRunnableMethod(
+    this, &PreallocatedProcessManagerImpl::DelayedNuwaFork);
+  MessageLoop::current()->PostDelayedTask(
+    FROM_HERE, mPreallocateAppProcessTask,
+    Preferences::GetUint("dom.ipc.processPrelaunch.delayMs",
+                         DEFAULT_ALLOCATE_DELAY));
+}
+
+void
+PreallocatedProcessManagerImpl::DelayedNuwaFork()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  mPreallocateAppProcessTask = nullptr;
+
+  if (!mIsNuwaReady) {
+    if (!mPreallocatedAppProcess) {
+      mPreallocatedAppProcess = ContentParent::RunNuwaProcess();
+    }
+    
+  } else if (mSpareProcesses.IsEmpty()) {
+    NuwaFork();
+  }
+}
+
+
+
+
+already_AddRefed<ContentParent>
+PreallocatedProcessManagerImpl::GetSpareProcess()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mSpareProcesses.IsEmpty()) {
+    return nullptr;
+  }
+
+  nsRefPtr<ContentParent> process = mSpareProcesses.LastElement();
+  mSpareProcesses.RemoveElementAt(mSpareProcesses.Length() - 1);
+
+  if (mSpareProcesses.IsEmpty() && mIsNuwaReady) {
+    NS_ASSERTION(mPreallocatedAppProcess != nullptr,
+                 "Nuwa process is not present!");
+    ScheduleDelayedNuwaFork();
+  }
+
+  return process.forget();
+}
+
+
+
+
+void
+PreallocatedProcessManagerImpl::PublishSpareProcess(ContentParent* aContent)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!mNuwaForkWaitTasks.IsEmpty()) {
+    mNuwaForkWaitTasks.ElementAt(0)->Cancel();
+    mNuwaForkWaitTasks.RemoveElementAt(0);
+  }
+
+  mSpareProcesses.AppendElement(aContent);
+}
+
+void
+PreallocatedProcessManagerImpl::MaybeForgetSpare(ContentParent* aContent)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mSpareProcesses.RemoveElement(aContent)) {
+    return;
+  }
+
+  if (aContent == mPreallocatedAppProcess) {
+    mPreallocatedAppProcess = nullptr;
+    mIsNuwaReady = false;
+    ScheduleDelayedNuwaFork();
+  }
+}
+
+void
+PreallocatedProcessManagerImpl::OnNuwaReady()
+{
+  NS_ASSERTION(!mIsNuwaReady, "Multiple Nuwa processes created!");
+  ProcessPriorityManager::SetProcessPriority(mPreallocatedAppProcess,
+                                             hal::PROCESS_PRIORITY_FOREGROUND);
+  mIsNuwaReady = true;
+  NuwaFork();
+}
+
+void
+PreallocatedProcessManagerImpl::OnNuwaForkTimeout()
+{
+  if (!mNuwaForkWaitTasks.IsEmpty()) {
+    mNuwaForkWaitTasks.RemoveElementAt(0);
+  }
+
+  
+  
+  MOZ_ASSERT(false, "Can't fork from the nuwa process.");
+}
+
+void
+PreallocatedProcessManagerImpl::NuwaFork()
+{
+  CancelableTask* nuwaForkTimeoutTask = NewRunnableMethod(
+    this, &PreallocatedProcessManagerImpl::OnNuwaForkTimeout);
+  mNuwaForkWaitTasks.AppendElement(nuwaForkTimeoutTask);
+
+  MessageLoop::current()->PostDelayedTask(FROM_HERE,
+                                          nuwaForkTimeoutTask,
+                                          NUWA_FORK_WAIT_DURATION_MS);
+  mPreallocatedAppProcess->SendNuwaFork();
+}
+#endif
+
 void
 PreallocatedProcessManagerImpl::Disable()
 {
@@ -174,8 +350,24 @@ PreallocatedProcessManagerImpl::Disable()
 
   mEnabled = false;
 
+#ifdef MOZ_NUWA_PROCESS
+  
+  if (mPreallocateAppProcessTask) {
+    mPreallocateAppProcessTask->Cancel();
+    mPreallocateAppProcessTask = nullptr;
+  }
+#endif
+
   if (mPreallocatedAppProcess) {
-    mPreallocatedAppProcess->ShutDown();
+#ifdef MOZ_NUWA_PROCESS
+    while (mSpareProcesses.Length() > 0){
+      nsRefPtr<ContentParent> process = mSpareProcesses[0];
+      process->Close();
+      mSpareProcesses.RemoveElementAt(0);
+    }
+    mIsNuwaReady = false;
+#endif
+    mPreallocatedAppProcess->Close();
     mPreallocatedAppProcess = nullptr;
   }
 }
@@ -199,6 +391,11 @@ PreallocatedProcessManagerImpl::ObserveProcessShutdown(nsISupports* aSubject)
   }
 }
 
+inline PreallocatedProcessManagerImpl* GetPPMImpl()
+{
+  return PreallocatedProcessManagerImpl::Singleton();
+}
+
 } 
 
 namespace mozilla {
@@ -206,25 +403,53 @@ namespace mozilla {
  void
 PreallocatedProcessManager::AllocateAfterDelay()
 {
-  PreallocatedProcessManagerImpl::Singleton()->AllocateAfterDelay();
+#ifdef MOZ_NUWA_PROCESS
+  GetPPMImpl()->ScheduleDelayedNuwaFork();
+#else
+  GetPPMImpl()->AllocateAfterDelay();
+#endif
 }
 
  void
 PreallocatedProcessManager::AllocateOnIdle()
 {
-  PreallocatedProcessManagerImpl::Singleton()->AllocateOnIdle();
+  GetPPMImpl()->AllocateOnIdle();
 }
 
  void
 PreallocatedProcessManager::AllocateNow()
 {
-  PreallocatedProcessManagerImpl::Singleton()->AllocateNow();
+  GetPPMImpl()->AllocateNow();
 }
 
  already_AddRefed<ContentParent>
 PreallocatedProcessManager::Take()
 {
-  return PreallocatedProcessManagerImpl::Singleton()->Take();
+#ifdef MOZ_NUWA_PROCESS
+  return GetPPMImpl()->GetSpareProcess();
+#else
+  return GetPPMImpl()->Take();
+#endif
 }
+
+#ifdef MOZ_NUWA_PROCESS
+ void
+PreallocatedProcessManager::PublishSpareProcess(ContentParent* aContent)
+{
+  GetPPMImpl()->PublishSpareProcess(aContent);
+}
+
+ void
+PreallocatedProcessManager::MaybeForgetSpare(ContentParent* aContent)
+{
+  GetPPMImpl()->MaybeForgetSpare(aContent);
+}
+
+ void
+PreallocatedProcessManager::OnNuwaReady()
+{
+  GetPPMImpl()->OnNuwaReady();
+}
+#endif
 
 } 
