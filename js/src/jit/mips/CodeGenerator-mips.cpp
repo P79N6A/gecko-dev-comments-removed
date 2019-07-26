@@ -52,6 +52,7 @@ CodeGeneratorMIPS::generateAsmJSPrologue(Label *stackOverflowLabel)
 {
     JS_ASSERT(gen->compilingAsmJS());
 
+    
     masm.push(ra);
 
     

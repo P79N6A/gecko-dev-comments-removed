@@ -110,8 +110,14 @@ static const uint32_t StackAlignment = 4;
 #endif
 static const bool StackKeptAligned = false;
 static const uint32_t CodeAlignment = 8;
-static const uint32_t NativeFrameSize = sizeof(void*);
-static const uint32_t AlignmentAtAsmJSPrologue = sizeof(void*);
+
+
+
+
+
+
+static const uint32_t AsmJSSizeOfRetAddr = sizeof(void*);
+
 struct ImmTag : public Imm32
 {
     ImmTag(JSValueTag mask)
