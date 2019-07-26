@@ -128,9 +128,9 @@ static bool
 ForceCOWBehavior(JSObject *obj)
 {
     JSProtoKey key = IdentifyStandardInstanceOrPrototype(obj);
-    if (key == JSProto_Object || key == JSProto_Array) {
+    if (key == JSProto_Object || key == JSProto_Array || key == JSProto_Function) {
         MOZ_ASSERT(GetXrayType(obj) == XrayForJSObject,
-                   "We should use XrayWrappers for standard ES Object and Array "
+                   "We should use XrayWrappers for standard ES Object, Array, and Function "
                    "instances modulo this hack");
         return true;
     }
@@ -360,13 +360,6 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     if (!wantXrays || xrayType == NotXray) {
         if (!securityWrapper)
             return &CrossCompartmentWrapper::singleton;
-        
-        
-        
-        
-        
-        else if (originIsXBLScope)
-            return &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
         return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
     }
 
@@ -390,7 +383,15 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
                                  CrossOriginAccessiblePropertiesOnly>::singleton;
     
     
+    
+    
+    
+    
+    
+    
     MOZ_ASSERT(xrayType == XrayForJSObject);
+    if (originIsXBLScope)
+        return &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
     return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
 }
 
