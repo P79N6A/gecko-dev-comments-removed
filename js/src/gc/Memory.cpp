@@ -60,11 +60,12 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
 
 
 
-        p = VirtualAlloc(nullptr, size * 2, MEM_RESERVE, PAGE_READWRITE);
+        size_t reserveSize = size + alignment - rt->gcSystemPageSize;
+        p = VirtualAlloc(nullptr, reserveSize, MEM_RESERVE, PAGE_READWRITE);
         if (!p)
             return nullptr;
         void *chunkStart = (void *)AlignBytes(uintptr_t(p), alignment);
-        UnmapPages(rt, p, size * 2);
+        UnmapPages(rt, p, reserveSize);
         p = VirtualAlloc(chunkStart, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
         
