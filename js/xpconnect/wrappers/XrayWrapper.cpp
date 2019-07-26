@@ -175,6 +175,8 @@ private:
 class XPCWrappedNativeXrayTraits : public XrayTraits
 {
 public:
+    static const XrayType Type = XrayForWrappedNative;
+
     static bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
                                       JSPropertyDescriptor *desc, unsigned flags);
     virtual bool resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper, JSObject *wrapper,
@@ -217,6 +219,8 @@ public:
 class DOMXrayTraits : public XrayTraits
 {
 public:
+    static const XrayType Type = XrayForDOMObject;
+
     static bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
                                       JSPropertyDescriptor *desc, unsigned flags);
     virtual bool resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper, JSObject *wrapper,
@@ -1457,6 +1461,29 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
     if (desc->obj) {
         desc->obj = wrapper;
         return true;
+    }
+
+    
+    
+    
+    
+    
+    
+    nsGlobalWindow *win;
+    if (Traits::Type == XrayForWrappedNative && JSID_IS_STRING(id) &&
+        (win = static_cast<nsGlobalWindow*>(As<nsIDOMWindow>(wrapper))))
+    {
+        nsCOMPtr<nsIDOMWindow> childDOMWin = win->GetChildWindow(id);
+        if (childDOMWin) {
+            nsGlobalWindow *cwin = static_cast<nsGlobalWindow*>(childDOMWin.get());
+            JSObject *childObj = cwin->FastGetGlobalJSObject();
+            if (MOZ_UNLIKELY(!childObj))
+                return xpc::Throw(cx, NS_ERROR_FAILURE);
+            mozilla::dom::FillPropertyDescriptor(desc, wrapper,
+                                                 ObjectValue(*childObj),
+                                                  true);
+            return JS_WrapPropertyDescriptor(cx, desc);
+        }
     }
 
     if (!JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
