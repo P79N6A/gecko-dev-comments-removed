@@ -139,10 +139,11 @@ struct AsmJSParallelTask
     uint32_t funcNum;       
     ion::MIRGenerator *mir; 
     ion::LIRGraph *lir;     
+    unsigned compileTime;
 
     AsmJSParallelTask(size_t defaultChunkSize)
       : lifo(defaultChunkSize),
-        funcNum(0), mir(NULL), lir(NULL)
+        funcNum(0), mir(NULL), lir(NULL), compileTime(0)
     { }
 
     void init(uint32_t newFuncNum, ion::MIRGenerator *newMir) {
