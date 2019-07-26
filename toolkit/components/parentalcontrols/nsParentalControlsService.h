@@ -3,38 +3,40 @@
 
 
 
-#ifndef nsParentalControlsServiceWin_h__
-#define nsParentalControlsServiceWin_h__
+#ifndef nsParentalControlsService_h__
+#define nsParentalControlsService_h__
 
 #include "nsIParentalControlsService.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsIURI.h"
 
+#if defined(XP_WIN)
 
 #if (WINVER < 0x0600)
 # undef WINVER
 # define WINVER 0x0600
 #endif
-
 #include <wpcapi.h>
 #include <wpcevent.h>
+#endif
 
-class nsParentalControlsServiceWin : public nsIParentalControlsService
+class nsParentalControlsService : public nsIParentalControlsService
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPARENTALCONTROLSSERVICE
 
-  nsParentalControlsServiceWin();
-  virtual ~nsParentalControlsServiceWin();
+  nsParentalControlsService();
+  virtual ~nsParentalControlsService();
 
 private:
   bool mEnabled;
+#if defined(XP_WIN)
   REGHANDLE mProvider;
   IWindowsParentalControls * mPC;
-
   void LogFileDownload(bool blocked, nsIURI *aSource, nsIFile *aTarget);
+#endif
 };
 
 #endif 
