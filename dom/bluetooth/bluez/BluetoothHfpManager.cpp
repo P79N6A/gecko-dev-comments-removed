@@ -832,7 +832,7 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     mCurrentVgm = vgm;
 #ifdef MOZ_B2G_RIL
   } else if (msg.Find("AT+CHLD=?") != -1) {
-    SendLine("+CHLD: (0,1,2)");
+    SendLine("+CHLD: (0,1,2,3)");
   } else if (msg.Find("AT+CHLD=") != -1) {
     ParseAtCommand(msg, 8, atCommandValues);
 
@@ -855,12 +855,13 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
 
 
 
+
     char chld = atCommandValues[0][0];
     bool valid = true;
     if (atCommandValues[0].Length() > 1) {
       BT_WARNING("No index should be included in command [AT+CHLD]");
       valid = false;
-    } else if (chld == '3' || chld == '4') {
+    } else if (chld == '4') {
       BT_WARNING("The value of command [AT+CHLD] is not supported");
       valid = false;
     } else if (chld == '0') {
@@ -872,6 +873,8 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
       NotifyDialer(NS_LITERAL_STRING("CHLD=1"));
     } else if (chld == '2') {
       NotifyDialer(NS_LITERAL_STRING("CHLD=2"));
+    } else if (chld == '3') {
+      NotifyDialer(NS_LITERAL_STRING("CHLD=3"));
     } else {
       BT_WARNING("Wrong value of command [AT+CHLD]");
       valid = false;
