@@ -340,10 +340,19 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
             nsCOMPtr<nsISearchSubmission> submission;
             
             
-            defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(keyword),
-                                         EmptyString(),
-                                         NS_LITERAL_STRING("keyword"),
-                                         getter_AddRefs(submission));
+            NS_NAMED_LITERAL_STRING(mozKeywordSearch, "application/x-moz-keywordsearch");
+            bool supportsResponseType = false;
+            defaultEngine->SupportsResponseType(mozKeywordSearch, &supportsResponseType);
+            if (supportsResponseType)
+              defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(keyword),
+                                           mozKeywordSearch,
+                                           NS_LITERAL_STRING("keyword"),
+                                           getter_AddRefs(submission));
+            else
+              defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(keyword),
+                                           EmptyString(),
+                                           NS_LITERAL_STRING("keyword"),
+                                           getter_AddRefs(submission));
             if (submission) {
                 
                 
