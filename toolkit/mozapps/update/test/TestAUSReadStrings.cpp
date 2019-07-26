@@ -78,16 +78,6 @@ void fail(const char* msg, ...)
   ++gFailCount;
 }
 
-
-
-
-
-
-void passed(const char* test)
-{
-  printf("TEST-PASS | %s\n", test);
-}
-
 int NS_main(int argc, NS_tchar **argv)
 {
   printf("Running TestAUSReadStrings tests\n");
