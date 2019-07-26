@@ -1292,7 +1292,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 21;
+    const UI_VERSION = 22;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1572,6 +1572,12 @@ BrowserGlue.prototype = {
       if (this._getPersist(button, classResource)) {
         this._setPersist(button, classResource);
       }
+    }
+
+    if (currentUIVersion < 22) {
+      
+      Services.prefs.clearUserPref("browser.syncPromoViewsLeft");
+      Services.prefs.clearUserPref("browser.syncPromoViewsLeftMap");
     }
 
     if (this._dirty)
