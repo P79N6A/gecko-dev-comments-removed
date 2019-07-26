@@ -961,10 +961,7 @@ RadioInterfaceLayer.prototype = {
     voiceInfo.connected = newInfo.connected;
     voiceInfo.roaming = newInfo.roaming;
     voiceInfo.emergencyCallsOnly = newInfo.emergencyCallsOnly;
-    
-    
-    
-    voiceInfo.type = "gsm";
+    voiceInfo.type = newInfo.type;
 
     
     
