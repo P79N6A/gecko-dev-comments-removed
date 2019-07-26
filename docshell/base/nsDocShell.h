@@ -643,6 +643,9 @@ protected:
     nsIChannel* GetCurrentDocChannel();
 
     bool ShouldBlockLoadingForBackButton();
+
+    
+    already_AddRefed<nsDocShell> GetParentDocshell();
 protected:
     
     virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader);
