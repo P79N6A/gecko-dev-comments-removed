@@ -34,31 +34,31 @@ import android.util.Log;
 
 
 
-public abstract class GeckoProvider extends ContentProvider {
-    private String mLogTag = "GeckoPasswordsProvider";
-    private String mDBName = "";
-    private int mDBVersion = 0;
+public abstract class PerProfileContentProvider extends ContentProvider {
     private HashMap<String, SQLiteBridge> mDatabasePerProfile;
     protected Context mContext = null;
+    private final String mLogTag;
+
+    protected PerProfileContentProvider(String logTag) {
+        mLogTag = logTag;
+    }
 
     @Override
     public void shutdown() {
-        if (mDatabasePerProfile == null)
-          return;
-
-        Collection<SQLiteBridge> bridges = mDatabasePerProfile.values();
-        Iterator<SQLiteBridge> it = bridges.iterator();
-
-        while (it.hasNext()) {
-            SQLiteBridge bridge = it.next();
-            if (bridge != null) {
-                try {
-                    bridge.close();
-                } catch (Exception ex) { }
-            }
+        if (mDatabasePerProfile == null) {
+            return;
         }
 
-        mDatabasePerProfile = null;
+        synchronized (this) {
+            for (SQLiteBridge bridge : mDatabasePerProfile.values()){
+                if (bridge != null) {
+                    try {
+                        bridge.close();
+                    } catch (Exception ex) { }
+                }
+            }
+            mDatabasePerProfile = null;
+        }
     }
 
     @Override
@@ -66,29 +66,6 @@ public abstract class GeckoProvider extends ContentProvider {
         shutdown();
     }
 
-    protected void setLogTag(String aLogTag) {
-        mLogTag = aLogTag;
-    }
-
-    protected String getLogTag() {
-        return mLogTag;
-    }
-
-    protected void setDBName(String aDBName) {
-        mDBName = aDBName;
-    }
-
-    protected String getDBName() {
-        return mDBName;
-    }
-
-    protected void setDBVersion(int aVersion) {
-        mDBVersion = aVersion;
-    }
-
-    protected int getDBVersion() {
-        return mDBVersion;
-    }
 
     private SQLiteBridge getDB(Context context, final String databasePath) {
         SQLiteBridge bridge = null;
@@ -100,11 +77,12 @@ public abstract class GeckoProvider extends ContentProvider {
             GeckoLoader.loadNSSLibs(context, resourcePath);
             bridge = SQLiteBridge.openDatabase(databasePath, null, 0);
             int version = bridge.getVersion();
-            dbNeedsSetup = version != mDBVersion;
+            dbNeedsSetup = version != getDBVersion();
         } catch (SQLiteBridgeException ex) {
             
-            if (bridge != null)
+            if (bridge != null) {
                 bridge.close();
+            }
 
             
             
@@ -126,11 +104,36 @@ public abstract class GeckoProvider extends ContentProvider {
             bridge = null;
             initGecko();
         }
-        if (bridge != null)
-            mDatabasePerProfile.put(databasePath, bridge);
-
         return bridge;
     }
+    
+    
+
+
+
+
+
+
+
+
+    private String getDatabasePathForProfile(String profile, String dbName) {
+        
+        File profileDir = GeckoProfile.get(mContext, profile).getDir();
+        if (profileDir == null) {
+            return null;
+        }
+
+        String databasePath = new File(profileDir, dbName).getAbsolutePath();
+        return databasePath;
+    }
+
+    
+
+
+
+
+
+
 
     private SQLiteBridge getDatabaseForProfile(String profile) {
         if (TextUtils.isEmpty(profile)) {
@@ -138,40 +141,72 @@ public abstract class GeckoProvider extends ContentProvider {
             Log.d(mLogTag, "No profile provided, using '" + profile + "'");
         }
 
+        final String dbName = getDBName();
+        String mapKey = profile + "/" + dbName;
+
         SQLiteBridge db = null;
         synchronized (this) {
-          String dbPath = getDatabasePathForProfile(profile);
-          db = mDatabasePerProfile.get(dbPath);
-          if (db == null) {
-              db = getDB(mContext, dbPath);
-          }
-        }
-
-        return db;
-    }
-
-    private SQLiteBridge getDatabaseForPath(String profilePath) {
-        SQLiteBridge db = null;
-        synchronized (this) {
-            db = mDatabasePerProfile.get(profilePath);
-            if (db == null) {
-                File profileDir = new File(profilePath, mDBName);
-                db = getDB(mContext, profileDir.getPath());
+            db = mDatabasePerProfile.get(mapKey);
+            if (db != null) {
+                return db;
+            }
+            final String dbPath = getDatabasePathForProfile(profile, dbName);
+            if (dbPath == null) {   
+                Log.e(mLogTag, "Failed to get a valid db path for profile '" + profile + "'' dbName '" + dbName + "'");
+                return null;
+            }
+            db = getDB(mContext, dbPath);
+            if (db != null) {
+                mDatabasePerProfile.put(mapKey, db);
             }
         }
-
         return db;
     }
 
-    private String getDatabasePathForProfile(String profile) {
-        File profileDir = GeckoProfile.get(mContext, profile).getDir();
-        if (profileDir == null) {
-            return null;
-        }
+    
 
-        String databasePath = new File(profileDir, mDBName).getAbsolutePath();
-        return databasePath;
+
+
+
+
+
+
+    private SQLiteBridge getDatabaseForProfilePath(String profilePath) {
+        File profileDir = new File(profilePath, getDBName());
+        final String dbPath = profileDir.getPath();
+        return getDatabaseForDBPath(dbPath);
     }
+
+    
+
+
+
+
+
+
+
+    private SQLiteBridge getDatabaseForDBPath(String dbPath) {
+        SQLiteBridge db = null;
+        synchronized (this) {
+            db = mDatabasePerProfile.get(dbPath);
+            if (db != null) {
+                return db;
+            }
+            db = getDB(mContext, dbPath);
+            if (db != null) {
+                mDatabasePerProfile.put(dbPath, db);
+            }
+        }
+        return db;
+    }
+
+    
+
+
+
+
+
+
 
     private SQLiteBridge getDatabase(Uri uri) {
         String profile = null;
@@ -181,8 +216,9 @@ public abstract class GeckoProvider extends ContentProvider {
         profilePath = uri.getQueryParameter(BrowserContract.PARAM_PROFILE_PATH);
 
         
-        if (profilePath != null)
-          return getDatabaseForPath(profilePath);
+        if (profilePath != null) {
+            return getDatabaseForProfilePath(profilePath);
+        }
         return getDatabaseForProfile(profile);
     }
 
@@ -204,8 +240,9 @@ public abstract class GeckoProvider extends ContentProvider {
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         int deleted = 0;
         final SQLiteBridge db = getDatabase(uri);
-        if (db == null)
+        if (db == null) {
             return deleted;
+        }
 
         try {
             deleted = db.delete(getTable(uri), selection, selectionArgs);
@@ -225,8 +262,9 @@ public abstract class GeckoProvider extends ContentProvider {
         
         
         
-        if (db == null)
+        if (db == null) {
             return null;
+        }
 
         setupDefaults(uri, values);
 
@@ -262,8 +300,9 @@ public abstract class GeckoProvider extends ContentProvider {
         
         
         
-        if (db == null)
+        if (db == null) {
             return 0;
+        }
 
         long id = -1;
         int rowsAdded = 0;
@@ -287,8 +326,9 @@ public abstract class GeckoProvider extends ContentProvider {
             db.endTransaction();
         }
 
-        if (rowsAdded > 0)
+        if (rowsAdded > 0) {
             mContext.getContentResolver().notifyChange(uri, null);
+        }
 
         return rowsAdded;
     }
@@ -302,8 +342,9 @@ public abstract class GeckoProvider extends ContentProvider {
         
         
         
-        if (db == null)
+        if (db == null) {
             return updated;
+        }
 
         onPreUpdate(values, uri, db);
 
@@ -326,8 +367,9 @@ public abstract class GeckoProvider extends ContentProvider {
         
         
         
-        if (db == null)
+        if (db == null) {
             return cursor;
+        }
 
         sortOrder = getSortOrder(uri, sortOrder);
 
@@ -342,17 +384,21 @@ public abstract class GeckoProvider extends ContentProvider {
         return cursor;
     }
 
-    public abstract String getTable(Uri uri);
+    protected abstract String getDBName();
 
-    public abstract String getSortOrder(Uri uri, String aRequested);
+    protected abstract int getDBVersion();
 
-    public abstract void setupDefaults(Uri uri, ContentValues values);
+    protected abstract String getTable(Uri uri);
 
-    public abstract void initGecko();
+    protected abstract String getSortOrder(Uri uri, String aRequested);
 
-    public abstract void onPreInsert(ContentValues values, Uri uri, SQLiteBridge db);
+    protected abstract void setupDefaults(Uri uri, ContentValues values);
 
-    public abstract void onPreUpdate(ContentValues values, Uri uri, SQLiteBridge db);
+    protected abstract void initGecko();
 
-    public abstract void onPostQuery(Cursor cursor, Uri uri, SQLiteBridge db);
+    protected abstract void onPreInsert(ContentValues values, Uri uri, SQLiteBridge db);
+
+    protected abstract void onPreUpdate(ContentValues values, Uri uri, SQLiteBridge db);
+
+    protected abstract void onPostQuery(Cursor cursor, Uri uri, SQLiteBridge db);
 }
