@@ -125,6 +125,7 @@ const TOOLKIT_ID                      = "toolkit@mozilla.org";
 
 
 #expand const DB_SCHEMA                       = __MOZ_EXTENSIONS_DB_SCHEMA__;
+const NOTIFICATION_TOOLBOXPROCESS_LOADED      = "ToolboxProcessLoaded";
 
 
 const PROP_METADATA      = ["id", "version", "type", "internalName", "updateURL",
@@ -1630,6 +1631,8 @@ this.XPIProvider = {
   _enabledExperiments: null,
   
   _addonFileMap: new Map(),
+  
+  _toolboxProcessLoaded: false,
 
   
 
@@ -1867,13 +1870,16 @@ this.XPIProvider = {
       Services.prefs.addObserver(PREF_EM_MIN_COMPAT_APP_VERSION, this, false);
       Services.prefs.addObserver(PREF_EM_MIN_COMPAT_PLATFORM_VERSION, this, false);
       Services.obs.addObserver(this, NOTIFICATION_FLUSH_PERMISSIONS, false);
-
-      try {
+      if (Cu.isModuleLoaded("resource:///modules/devtools/ToolboxProcess.jsm")) {
+        
+        
+        this._toolboxProcessLoaded = true;
         BrowserToolboxProcess.on("connectionchange",
                                  this.onDebugConnectionChange.bind(this));
       }
-      catch (e) {
+      else {
         
+        Services.obs.addObserver(this, NOTIFICATION_TOOLBOXPROCESS_LOADED, false);
       }
 
       let flushCaches = this.checkForChanges(aAppChanged, aOldAppVersion,
@@ -3917,6 +3923,12 @@ this.XPIProvider = {
       }
       return;
     }
+    else if (aTopic == NOTIFICATION_TOOLBOXPROCESS_LOADED) {
+      Services.obs.removeObserver(this, NOTIFICATION_TOOLBOXPROCESS_LOADED, false);
+      this._toolboxProcessLoaded = true;
+      BrowserToolboxProcess.on("connectionchange",
+                               this.onDebugConnectionChange.bind(this));
+    }
 
     if (aTopic == "nsPref:changed") {
       switch (aData) {
@@ -4170,11 +4182,11 @@ this.XPIProvider = {
       logger.warn("Error loading bootstrap.js for " + aId, e);
     }
 
-    try {
+    
+    
+    
+    if (this._toolboxProcessLoaded) {
       BrowserToolboxProcess.setAddonOptions(aId, { global: this.bootstrapScopes[aId] });
-    }
-    catch (e) {
-      
     }
   },
 
@@ -4191,11 +4203,10 @@ this.XPIProvider = {
     this.persistBootstrappedAddons();
     this.addAddonsToCrashReporter();
 
-    try {
+    
+    
+    if (this._toolboxProcessLoaded) {
       BrowserToolboxProcess.setAddonOptions(aId, { global: null });
-    }
-    catch (e) {
-      
     }
   },
 
