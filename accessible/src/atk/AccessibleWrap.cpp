@@ -954,6 +954,11 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
     Accessible* accessible = aEvent->GetAccessible();
     NS_ENSURE_TRUE(accessible, NS_ERROR_FAILURE);
 
+    
+    
+    if (accessible->IsDefunct())
+        return NS_OK;
+
     uint32_t type = aEvent->GetEventType();
 
     AtkObject* atkObj = AccessibleWrap::GetAtkObject(accessible);

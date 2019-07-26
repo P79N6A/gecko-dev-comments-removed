@@ -151,6 +151,10 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   if (!mDocument)
     return;
 
+  if (mObservingState == eRefreshProcessing ||
+      mObservingState == eRefreshProcessingForUpdate)
+    return;
+
   
   
   mObservingState = eRefreshProcessingForUpdate;
@@ -266,17 +270,19 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
 
   
   
-  mObservingState = eRefreshObserving;
+  
+  mObservingState = eRefreshProcessing;
 
   ProcessEventQueue();
+  mObservingState = eRefreshObserving;
   if (!mDocument)
     return;
 
   
   
-  if (mContentInsertions.Length() == 0 && mNotifications.Length() == 0 &&
-      mEvents.Length() == 0 && mTextHash.Count() == 0 &&
-      mHangingChildDocuments.Length() == 0 &&
+  if (mContentInsertions.IsEmpty() && mNotifications.IsEmpty() &&
+      mEvents.IsEmpty() && mTextHash.Count() == 0 &&
+      mHangingChildDocuments.IsEmpty() &&
       mDocument->HasLoadState(DocAccessible::eCompletelyLoaded) &&
       mPresShell->RemoveRefreshObserver(this, Flush_Display)) {
     mObservingState = eNotObservingRefresh;
