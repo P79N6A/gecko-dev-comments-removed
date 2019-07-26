@@ -50,7 +50,6 @@
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsWebShellWindow.h" 
 #include "nsDOMEvent.h"
 #include "nsGlobalWindow.h"
@@ -60,8 +59,10 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/BarProps.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 using namespace mozilla;
+using dom::AutoSystemCaller;
 
 #define SIZEMODE_NORMAL     NS_LITERAL_STRING("normal")
 #define SIZEMODE_MAXIMIZED  NS_LITERAL_STRING("maximized")
@@ -358,8 +359,7 @@ NS_IMETHODIMP nsXULWindow::ShowModal()
   EnableParent(false);
 
   {
-    nsCxPusher pusher;
-    pusher.PushNull();
+    AutoSystemCaller asc;
     nsIThread *thread = NS_GetCurrentThread();
     while (mContinueModalLoop) {
       if (!NS_ProcessNextEvent(thread))
@@ -1769,14 +1769,14 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
   
   
   
-  nsCxPusher pusher;
-  pusher.PushNull();
   nsCOMPtr<nsIXULWindow> newWindow;
-  appShell->CreateTopLevelWindow(this, uri,
-                                 aChromeFlags, 615, 480,
-                                 getter_AddRefs(newWindow));
-  NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
-  pusher.Pop();
+  {
+    AutoSystemCaller asc;
+    appShell->CreateTopLevelWindow(this, uri,
+                                   aChromeFlags, 615, 480,
+                                   getter_AddRefs(newWindow));
+    NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
+  }
 
   
   nsXULWindow *xulWin = static_cast<nsXULWindow*>
@@ -1785,10 +1785,8 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
 
   xulWin->LockUntilChromeLoad();
 
-  
   {
-    nsCxPusher pusher;
-    pusher.PushNull();
+    AutoSystemCaller asc;
     nsIThread *thread = NS_GetCurrentThread();
     while (xulWin->IsLocked()) {
       if (!NS_ProcessNextEvent(thread))

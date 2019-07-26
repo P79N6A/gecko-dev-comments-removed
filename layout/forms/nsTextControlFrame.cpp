@@ -42,9 +42,9 @@
 #include "nsAttrValueInlines.h"
 #include "mozilla/Selection.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsTextNode.h"
 #include "nsStyleSet.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 #define DEFAULT_COLUMN_WIDTH 20
 
@@ -274,8 +274,7 @@ nsTextControlFrame::EnsureEditorInitialized()
 
     
     
-    nsCxPusher pusher;
-    pusher.PushNull();
+    mozilla::dom::AutoSystemCaller asc;
 
     
     class EnsureSetFocus {

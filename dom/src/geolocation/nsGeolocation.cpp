@@ -15,7 +15,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsContentUtils.h"
 #include "nsContentPermissionHelper.h"
-#include "nsCxPusher.h"
 #include "nsIDocument.h"
 #include "nsIObserverService.h"
 #include "nsPIDOMWindow.h"
@@ -26,6 +25,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "PCOMContentPermissionRequestChild.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 class nsIPrincipal;
 
@@ -296,8 +296,7 @@ void
 PositionError::NotifyCallback(const GeoPositionErrorCallback& aCallback)
 {
   
-  nsCxPusher pusher;
-  pusher.PushNull();
+  AutoSystemCaller asc;
 
   nsAutoMicroTask mt;
   if (aCallback.HasWebIDLCallback()) {
@@ -531,8 +530,7 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
   }
 
   
-  nsCxPusher pusher;
-  pusher.PushNull();
+  AutoSystemCaller asc;
   nsAutoMicroTask mt;
   if (mCallback.HasWebIDLCallback()) {
     ErrorResult err;
