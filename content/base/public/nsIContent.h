@@ -7,7 +7,7 @@
 
 #include "mozilla/Attributes.h"
 #include "nsCaseTreatment.h" 
-#include "nsIDocument.h"
+#include "nsINode.h"
 
 
 class nsAString;
@@ -243,10 +243,7 @@ public:
 
 
 
-  inline bool IsInHTMLDocument() const
-  {
-    return OwnerDoc()->IsHTML();
-  }
+  inline bool IsInHTMLDocument() const;
 
   
 

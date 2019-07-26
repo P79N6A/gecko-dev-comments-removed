@@ -51,6 +51,7 @@ class nsMenuBarFrame;
 class nsMenuParent;
 class nsIDOMKeyEvent;
 class nsIDocShellTreeItem;
+class nsPIDOMWindow;
 
 
 

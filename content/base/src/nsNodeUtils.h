@@ -9,6 +9,7 @@
 #include "nsIContent.h"          
 #include "nsIMutationObserver.h" 
 #include "js/TypeDecls.h"
+#include "nsCOMArray.h"
 
 struct CharacterDataChangeInfo;
 class nsIVariant;
