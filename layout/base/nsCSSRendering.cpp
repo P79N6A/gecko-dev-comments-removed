@@ -91,81 +91,6 @@ using namespace mozilla;
 
 
 
-
-
-
-
-class ImageRenderer {
-public:
-  enum {
-    FLAG_SYNC_DECODE_IMAGES = 0x01
-  };
-  ImageRenderer(nsIFrame* aForFrame, const nsStyleImage* aImage, PRUint32 aFlags);
-  ~ImageRenderer();
-  
-
-
-
-
-  bool PrepareImage();
-  
-
-
-
-
-  nsSize ComputeSize(const nsStyleBackground::Size& aLayerSize,
-                     const nsSize& aBgPositioningArea);
-  
-
-
-
-  void Draw(nsPresContext*       aPresContext,
-            nsRenderingContext& aRenderingContext,
-            const nsRect&        aDest,
-            const nsRect&        aFill,
-            const nsPoint&       aAnchor,
-            const nsRect&        aDirty);
-
-private:
-  
-
-
-
-
-
-  void ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
-                                 nscoord& aUnscaledWidth, bool& aHaveWidth,
-                                 nscoord& aUnscaledHeight, bool& aHaveHeight,
-                                 nsSize& aRatio);
-
-  
-
-
-
-
-  nsSize
-  ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
-                   const nsSize& aBgPositioningArea,
-                   nscoord aUnscaledWidth, bool aHaveWidth,
-                   nscoord aUnscaledHeight, bool aHaveHeight,
-                   const nsSize& aIntrinsicRatio);
-
-  nsIFrame*                 mForFrame;
-  const nsStyleImage*       mImage;
-  nsStyleImageType          mType;
-  nsCOMPtr<imgIContainer>   mImageContainer;
-  nsRefPtr<nsStyleGradient> mGradientData;
-  nsIFrame*                 mPaintServerFrame;
-  nsLayoutUtils::SurfaceFromElementResult mImageElementSurface;
-  bool                      mIsReady;
-  nsSize                    mSize; 
-  PRUint32                  mFlags;
-};
-
-
-
-
-
 struct InlineBackgroundData
 {
   InlineBackgroundData()
@@ -1692,12 +1617,12 @@ DrawBackgroundColor(BackgroundClipState& aClipState, gfxContext *aCtx,
   aCtx->Restore();
 }
 
-static nscolor
-DetermineBackgroundColorInternal(nsPresContext* aPresContext,
-                                 nsStyleContext* aStyleContext,
-                                 nsIFrame* aFrame,
-                                 bool& aDrawBackgroundImage,
-                                 bool& aDrawBackgroundColor)
+nscolor
+nsCSSRendering::DetermineBackgroundColor(nsPresContext* aPresContext,
+                                         nsStyleContext* aStyleContext,
+                                         nsIFrame* aFrame,
+                                         bool& aDrawBackgroundImage,
+                                         bool& aDrawBackgroundColor)
 {
   aDrawBackgroundImage = true;
   aDrawBackgroundColor = true;
@@ -1726,21 +1651,17 @@ DetermineBackgroundColorInternal(nsPresContext* aPresContext,
       bgColor = NS_RGBA(0,0,0,0);
   }
 
-  return bgColor;
-}
+  const nsStyleBackground *bg = aStyleContext->GetStyleBackground();
 
-nscolor
-nsCSSRendering::DetermineBackgroundColor(nsPresContext* aPresContext,
-                                         nsStyleContext* aStyleContext,
-                                         nsIFrame* aFrame)
-{
-  bool drawBackgroundImage;
-  bool drawBackgroundColor;
-  return DetermineBackgroundColorInternal(aPresContext,
-                                          aStyleContext,
-                                          aFrame,
-                                          drawBackgroundImage,
-                                          drawBackgroundColor);
+  
+  if (aDrawBackgroundColor &&
+      bg->BottomLayer().mRepeat.mXRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
+      bg->BottomLayer().mRepeat.mYRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
+      bg->BottomLayer().mImage.IsOpaque()) {
+    aDrawBackgroundColor = false;
+  }
+
+  return bgColor;
 }
 
 static gfxFloat
@@ -2226,51 +2147,6 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   }
 }
 
-
-
-
-
-
-struct BackgroundLayerState {
-  
-
-
-  BackgroundLayerState(nsIFrame* aForFrame, const nsStyleImage* aImage, PRUint32 aFlags)
-    : mImageRenderer(aForFrame, aImage, aFlags) {}
-
-  
-
-
-  ImageRenderer mImageRenderer;
-  
-
-
-
-
-  nsRect mDestArea;
-  
-
-
-
-
-  nsRect mFillArea;
-  
-
-
-
-
-  nsPoint mAnchor;
-};
-
-static BackgroundLayerState
-PrepareBackgroundLayer(nsPresContext* aPresContext,
-                       nsIFrame* aForFrame,
-                       PRUint32 aFlags,
-                       const nsRect& aBorderArea,
-                       const nsRect& aBGClipRect,
-                       const nsStyleBackground& aBackground,
-                       const nsStyleBackground::Layer& aLayer);
-
 void
 nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
                                       nsRenderingContext& aRenderingContext,
@@ -2318,11 +2194,11 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   bool drawBackgroundImage;
   bool drawBackgroundColor;
 
-  nscolor bgColor = DetermineBackgroundColorInternal(aPresContext,
-                                                     aBackgroundSC,
-                                                     aForFrame,
-                                                     drawBackgroundImage,
-                                                     drawBackgroundColor);
+  nscolor bgColor = DetermineBackgroundColor(aPresContext,
+                                             aBackgroundSC,
+                                             aForFrame,
+                                             drawBackgroundImage,
+                                             drawBackgroundColor);
 
   
   
@@ -2414,13 +2290,6 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   aPresContext->SetupBackgroundImageLoaders(aForFrame, bg);
 
   
-  if (drawBackgroundColor &&
-      bg->BottomLayer().mRepeat.mXRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
-      bg->BottomLayer().mRepeat.mYRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
-      bg->BottomLayer().mImage.IsOpaque())
-    drawBackgroundColor = false;
-
-  
   
   if (drawBackgroundColor && !isCanvasFrame) {
     DrawBackgroundColor(clipState, ctx, haveRoundedCorners, appUnitsPerPixel);
@@ -2452,7 +2321,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
         }
       }
       if (!clipState.mDirtyRectGfx.IsEmpty()) {
-        BackgroundLayerState state = PrepareBackgroundLayer(aPresContext, aForFrame,
+        nsBackgroundLayerState state = PrepareBackgroundLayer(aPresContext, aForFrame,
             aFlags, aBorderArea, clipState.mBGClipArea, *bg, layer);
         if (!state.mFillArea.IsEmpty()) {
           state.mImageRenderer.Draw(aPresContext, aRenderingContext,
@@ -2476,14 +2345,14 @@ IsTransformed(nsIFrame* aForFrame, nsIFrame* aTopFrame)
   return false;
 }
 
-static BackgroundLayerState
-PrepareBackgroundLayer(nsPresContext* aPresContext,
-                       nsIFrame* aForFrame,
-                       PRUint32 aFlags,
-                       const nsRect& aBorderArea,
-                       const nsRect& aBGClipRect,
-                       const nsStyleBackground& aBackground,
-                       const nsStyleBackground::Layer& aLayer)
+nsBackgroundLayerState
+nsCSSRendering::PrepareBackgroundLayer(nsPresContext* aPresContext,
+                                       nsIFrame* aForFrame,
+                                       PRUint32 aFlags,
+                                       const nsRect& aBorderArea,
+                                       const nsRect& aBGClipRect,
+                                       const nsStyleBackground& aBackground,
+                                       const nsStyleBackground::Layer& aLayer)
 {
   
 
@@ -2542,10 +2411,10 @@ PrepareBackgroundLayer(nsPresContext* aPresContext,
 
   PRUint32 irFlags = 0;
   if (aFlags & nsCSSRendering::PAINTBG_SYNC_DECODE_IMAGES) {
-    irFlags |= ImageRenderer::FLAG_SYNC_DECODE_IMAGES;
+    irFlags |= nsImageRenderer::FLAG_SYNC_DECODE_IMAGES;
   }
 
-  BackgroundLayerState state(aForFrame, &aLayer.mImage, irFlags);
+  nsBackgroundLayerState state(aForFrame, &aLayer.mImage, irFlags);
   if (!state.mImageRenderer.PrepareImage()) {
     
     return state;
@@ -2695,7 +2564,7 @@ nsCSSRendering::GetBackgroundLayerRect(nsPresContext* aPresContext,
                                        const nsStyleBackground& aBackground,
                                        const nsStyleBackground::Layer& aLayer)
 {
-  BackgroundLayerState state =
+  nsBackgroundLayerState state =
       PrepareBackgroundLayer(aPresContext, aForFrame, 0, aBorderArea,
                              aBorderArea, aBackground, aLayer);
   return state.mFillArea;
@@ -3790,9 +3659,9 @@ nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
 
 
 
-ImageRenderer::ImageRenderer(nsIFrame* aForFrame,
-                             const nsStyleImage* aImage,
-                             PRUint32 aFlags)
+nsImageRenderer::nsImageRenderer(nsIFrame* aForFrame,
+                                 const nsStyleImage* aImage,
+                                 PRUint32 aFlags)
   : mForFrame(aForFrame)
   , mImage(aImage)
   , mType(aImage->GetType())
@@ -3805,12 +3674,12 @@ ImageRenderer::ImageRenderer(nsIFrame* aForFrame,
 {
 }
 
-ImageRenderer::~ImageRenderer()
+nsImageRenderer::~nsImageRenderer()
 {
 }
 
 bool
-ImageRenderer::PrepareImage()
+nsImageRenderer::PrepareImage()
 {
   if (mImage->IsEmpty() || !mImage->IsComplete()) {
     
@@ -3930,10 +3799,10 @@ ComputeContainCoverSizeFromRatio(const nsSize& aBgPositioningArea,
 }
 
 void
-ImageRenderer::ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
-                                         nscoord& aUnscaledWidth, bool& aHaveWidth,
-                                         nscoord& aUnscaledHeight, bool& aHaveHeight,
-                                         nsSize& aRatio)
+nsImageRenderer::ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
+                                           nscoord& aUnscaledWidth, bool& aHaveWidth,
+                                           nscoord& aUnscaledHeight, bool& aHaveHeight,
+                                           nsSize& aRatio)
 {
   NS_ASSERTION(mIsReady, "Ensure PrepareImage() has returned true "
                          "before calling me");
@@ -4003,11 +3872,11 @@ ImageRenderer::ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
 }
 
 nsSize
-ImageRenderer::ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
-                                const nsSize& aBgPositioningArea,
-                                nscoord aUnscaledWidth, bool aHaveWidth,
-                                nscoord aUnscaledHeight, bool aHaveHeight,
-                                const nsSize& aIntrinsicRatio)
+nsImageRenderer::ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
+                                  const nsSize& aBgPositioningArea,
+                                  nscoord aUnscaledWidth, bool aHaveWidth,
+                                  nscoord aUnscaledHeight, bool aHaveHeight,
+                                  const nsSize& aIntrinsicRatio)
 {
   NS_ABORT_IF_FALSE(aIntrinsicRatio.width >= 0,
                     "image ratio with nonsense width");
@@ -4171,8 +4040,8 @@ ImageRenderer::ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
 
 
 nsSize
-ImageRenderer::ComputeSize(const nsStyleBackground::Size& aLayerSize,
-                           const nsSize& aBgPositioningArea)
+nsImageRenderer::ComputeSize(const nsStyleBackground::Size& aLayerSize,
+                             const nsSize& aBgPositioningArea)
 {
   bool haveWidth, haveHeight;
   nsSize ratio;
@@ -4191,12 +4060,12 @@ ImageRenderer::ComputeSize(const nsStyleBackground::Size& aLayerSize,
 }
 
 void
-ImageRenderer::Draw(nsPresContext*       aPresContext,
-                         nsRenderingContext& aRenderingContext,
-                         const nsRect&        aDest,
-                         const nsRect&        aFill,
-                         const nsPoint&       aAnchor,
-                         const nsRect&        aDirty)
+nsImageRenderer::Draw(nsPresContext*       aPresContext,
+                      nsRenderingContext& aRenderingContext,
+                      const nsRect&        aDest,
+                      const nsRect&        aFill,
+                      const nsPoint&       aAnchor,
+                      const nsRect&        aDirty)
 {
   if (!mIsReady) {
     NS_NOTREACHED("Ensure PrepareImage() has returned true before calling me");
@@ -4246,6 +4115,31 @@ ImageRenderer::Draw(nsPresContext*       aPresContext,
     default:
       break;
   }
+}
+
+bool
+nsImageRenderer::IsRasterImage()
+{
+  if (mType != eStyleImageType_Image)
+    return false;
+  nsCOMPtr<imgIContainer> img;
+  nsresult rv = mImage->GetImageData()->GetImage(getter_AddRefs(img));
+  if (NS_FAILED(rv) || !img)
+    return false;
+  return img->GetType() == imgIContainer::TYPE_RASTER;
+}
+
+already_AddRefed<mozilla::layers::ImageContainer>
+nsImageRenderer::GetContainer()
+{
+  nsCOMPtr<imgIContainer> img;
+  nsresult rv = mImage->GetImageData()->GetImage(getter_AddRefs(img));
+  if (NS_FAILED(rv) || !img)
+    return nsnull;
+  nsRefPtr<ImageContainer> container;
+  rv = img->GetImageContainer(getter_AddRefs(container));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+  return container.forget();
 }
 
 #define MAX_BLUR_RADIUS 300

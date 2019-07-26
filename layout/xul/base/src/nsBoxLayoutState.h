@@ -82,10 +82,12 @@ public:
   
   nsRenderingContext* GetRenderingContext() const { return mRenderingContext; }
 
-  void PushStackMemory() { PresShell()->PushStackMemory(); ++mReflowDepth; }
-  void PopStackMemory()  { PresShell()->PopStackMemory(); --mReflowDepth; }
-  void* AllocateStackMemory(size_t aSize)
-  { return PresShell()->AllocateStackMemory(aSize); }
+  struct AutoReflowDepth {
+    AutoReflowDepth(nsBoxLayoutState& aState)
+      : mState(aState) { ++mState.mReflowDepth; }
+    ~AutoReflowDepth() { --mState.mReflowDepth; }
+    nsBoxLayoutState& mState;
+  };
 
   
   

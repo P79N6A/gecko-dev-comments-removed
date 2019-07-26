@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "RootAccessible.h"
 
 #include "mozilla/Util.h"
@@ -11,36 +43,46 @@
 #include "nsIDOMDocument.h"
 
 #include "Accessible-inl.h"
-#include "DocAccessible-inl.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
-#include "nsEventShell.h"
 #include "Relation.h"
 #include "Role.h"
 #include "States.h"
-#ifdef MOZ_XUL
-#include "XULTreeAccessible.h"
-#endif
 
 #include "mozilla/dom/Element.h"
-
+#include "nsHTMLSelectAccessible.h"
 #include "nsIAccessibleRelation.h"
+#include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsIDocShellTreeNode.h"
 #include "nsIDocShellTreeOwner.h"
+#include "nsIDOMElement.h"
+#include "nsIDOMEventListener.h"
 #include "nsIDOMEventTarget.h"
+#include "nsIDOMHTMLAnchorElement.h"
+#include "nsIDOMHTMLImageElement.h"
+#include "nsIDOMHTMLInputElement.h"
+#include "nsIDOMHTMLSelectElement.h"
 #include "nsIDOMDataContainerEvent.h"
+#include "nsIDOMNSEvent.h"
 #include "nsIDOMXULMultSelectCntrlEl.h"
+#include "nsIDOMXULPopupElement.h"
 #include "nsIDocument.h"
 #include "nsEventListenerManager.h"
+#include "nsIFrame.h"
+#include "nsIHTMLDocument.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsISelectionPrivate.h"
 #include "nsIServiceManager.h"
 #include "nsPIDOMWindow.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsReadableUtils.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsFocusManager.h"
 
 #ifdef MOZ_XUL
+#include "nsXULTreeAccessible.h"
 #include "nsIXULDocument.h"
 #include "nsIXULWindow.h"
 #endif
@@ -51,7 +93,7 @@ using namespace mozilla::a11y;
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(RootAccessible, DocAccessible, nsIAccessibleDocument)
+NS_IMPL_ISUPPORTS_INHERITED1(RootAccessible, nsDocAccessible, nsIAccessibleDocument)
 
 
 
@@ -59,7 +101,7 @@ NS_IMPL_ISUPPORTS_INHERITED1(RootAccessible, DocAccessible, nsIAccessibleDocumen
 RootAccessible::
   RootAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
                  nsIPresShell* aPresShell) :
-  DocAccessibleWrap(aDocument, aRootContent, aPresShell)
+  nsDocAccessibleWrap(aDocument, aRootContent, aPresShell)
 {
   mFlags |= eRootAccessible;
 }
@@ -77,7 +119,7 @@ RootAccessible::Name(nsString& aName)
   aName.Truncate();
 
   if (mRoleMapEntry) {
-    Accessible::Name(aName);
+    nsAccessible::Name(aName);
     if (!aName.IsEmpty())
       return eNameOK;
   }
@@ -92,17 +134,24 @@ role
 RootAccessible::NativeRole()
 {
   
-  dom::Element* rootElm = mDocument->GetRootElement();
-  if (rootElm && (rootElm->Tag() == nsGkAtoms::dialog ||
-                  rootElm->Tag() == nsGkAtoms::wizard))
-    return roles::DIALOG;
+  dom::Element *root = mDocument->GetRootElement();
+  if (root) {
+    nsCOMPtr<nsIDOMElement> rootElement(do_QueryInterface(root));
+    if (rootElement) {
+      nsAutoString name;
+      rootElement->GetLocalName(name);
+      if (name.EqualsLiteral("dialog") || name.EqualsLiteral("wizard")) {
+        return roles::DIALOG; 
+      }
+    }
+  }
 
-  return DocAccessibleWrap::NativeRole();
+  return nsDocAccessibleWrap::NativeRole();
 }
 
 
 #ifdef MOZ_XUL
-uint32_t
+PRUint32
 RootAccessible::GetChromeFlags()
 {
   
@@ -118,37 +167,42 @@ RootAccessible::GetChromeFlags()
   if (!xulWin) {
     return 0;
   }
-  uint32_t chromeFlags;
+  PRUint32 chromeFlags;
   xulWin->GetChromeFlags(&chromeFlags);
   return chromeFlags;
 }
 #endif
 
-uint64_t
+PRUint64
 RootAccessible::NativeState()
 {
-  uint64_t state = DocAccessibleWrap::NativeState();
-  if (state & states::DEFUNCT)
-    return state;
+  PRUint64 states = nsDocAccessibleWrap::NativeState();
 
 #ifdef MOZ_XUL
-  uint32_t chromeFlags = GetChromeFlags();
+  PRUint32 chromeFlags = GetChromeFlags();
   if (chromeFlags & nsIWebBrowserChrome::CHROME_WINDOW_RESIZE)
-    state |= states::SIZEABLE;
+    states |= states::SIZEABLE;
     
     
     
   if (chromeFlags & nsIWebBrowserChrome::CHROME_TITLEBAR)
-    state |= states::MOVEABLE;
+    states |= states::MOVEABLE;
   if (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL)
-    state |= states::MODAL;
+    states |= states::MODAL;
 #endif
 
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm && fm->GetActiveWindow() == mDocument->GetWindow())
-    state |= states::ACTIVE;
+  if (fm) {
+    nsCOMPtr<nsIDOMWindow> rootWindow;
+    GetWindow(getter_AddRefs(rootWindow));
 
-  return state;
+    nsCOMPtr<nsIDOMWindow> activeWindow;
+    fm->GetActiveWindow(getter_AddRefs(activeWindow));
+    if (activeWindow == rootWindow)
+      states |= states::ACTIVE;
+  }
+
+  return states;
 }
 
 const char* const docEvents[] = {
@@ -203,7 +257,7 @@ RootAccessible::AddEventListeners()
     mCaretAccessible = new nsCaretAccessible(this);
   }
 
-  return DocAccessible::AddEventListeners();
+  return nsDocAccessible::AddEventListeners();
 }
 
 nsresult
@@ -221,11 +275,11 @@ RootAccessible::RemoveEventListeners()
 
   
   
-  DocAccessible::RemoveEventListeners();
+  nsDocAccessible::RemoveEventListeners();
 
   if (mCaretAccessible) {
     mCaretAccessible->Shutdown();
-    mCaretAccessible = nullptr;
+    mCaretAccessible = nsnull;
   }
 
   return NS_OK;
@@ -241,7 +295,7 @@ RootAccessible::GetCaretAccessible()
 }
 
 void
-RootAccessible::DocumentActivated(DocAccessible* aDocument)
+RootAccessible::DocumentActivated(nsDocAccessible* aDocument)
 {
 }
 
@@ -251,26 +305,35 @@ RootAccessible::DocumentActivated(DocAccessible* aDocument)
 NS_IMETHODIMP
 RootAccessible::HandleEvent(nsIDOMEvent* aDOMEvent)
 {
-  MOZ_ASSERT(aDOMEvent);
+  nsCOMPtr<nsIDOMNSEvent> DOMNSEvent(do_QueryInterface(aDOMEvent));
   nsCOMPtr<nsIDOMEventTarget> DOMEventTarget;
-  aDOMEvent->GetOriginalTarget(getter_AddRefs(DOMEventTarget));
+  DOMNSEvent->GetOriginalTarget(getter_AddRefs(DOMEventTarget));
   nsCOMPtr<nsINode> origTargetNode(do_QueryInterface(DOMEventTarget));
   if (!origTargetNode)
     return NS_OK;
 
-  DocAccessible* document =
+  nsDocAccessible* document =
     GetAccService()->GetDocAccessible(origTargetNode->OwnerDoc());
 
   if (document) {
-#ifdef DEBUG
-    if (logging::IsEnabled(logging::eDOMEvents)) {
+#ifdef DEBUG_NOTIFICATIONS
+    if (origTargetNode->IsElement()) {
+      nsIContent* elm = origTargetNode->AsElement();
+
+      nsAutoString tag;
+      elm->Tag()->ToString(tag);
+
+      nsIAtom* atomid = elm->GetID();
+      nsCAutoString id;
+      if (atomid)
+        atomid->ToUTF8String(id);
+
       nsAutoString eventType;
       aDOMEvent->GetType(eventType);
 
-      logging::MsgBegin("DOMEvents", "event '%s' handled",
-                        NS_ConvertUTF16toUTF8(eventType).get());
-      logging::Node("target", origTargetNode);
-      logging::MsgEnd();
+      printf("\nPend DOM event processing for %s@id='%s', type: %s\n\n",
+             NS_ConvertUTF16toUTF8(tag).get(), id.get(),
+             NS_ConvertUTF16toUTF8(eventType).get());
     }
 #endif
 
@@ -288,9 +351,9 @@ RootAccessible::HandleEvent(nsIDOMEvent* aDOMEvent)
 void
 RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
 {
-  MOZ_ASSERT(aDOMEvent);
+  nsCOMPtr<nsIDOMNSEvent> DOMNSEvent(do_QueryInterface(aDOMEvent));
   nsCOMPtr<nsIDOMEventTarget> DOMEventTarget;
-  aDOMEvent->GetOriginalTarget(getter_AddRefs(DOMEventTarget));
+  DOMNSEvent->GetOriginalTarget(getter_AddRefs(DOMEventTarget));
   nsCOMPtr<nsINode> origTargetNode(do_QueryInterface(DOMEventTarget));
 
   nsAutoString eventType;
@@ -301,11 +364,11 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
     return;
   }
 
-  DocAccessible* targetDocument = GetAccService()->
+  nsDocAccessible* targetDocument = GetAccService()->
     GetDocAccessible(origTargetNode->OwnerDoc());
   NS_ASSERTION(targetDocument, "No document while accessible is in document?!");
 
-  Accessible* accessible = 
+  nsAccessible* accessible = 
     targetDocument->GetAccessibleOrContainer(origTargetNode);
   if (!accessible)
     return;
@@ -313,7 +376,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
   nsINode* targetNode = accessible->GetNode();
 
 #ifdef MOZ_XUL
-  XULTreeAccessible* treeAcc = accessible->AsXULTree();
+  nsXULTreeAccessible* treeAcc = accessible->AsXULTree();
   if (treeAcc) {
     if (eventType.EqualsLiteral("TreeRowCountChanged")) {
       HandleTreeRowCountChangedEvent(aDOMEvent, treeAcc);
@@ -328,7 +391,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
 #endif
 
   if (eventType.EqualsLiteral("RadioStateChange")) {
-    uint64_t state = accessible->State();
+    PRUint64 state = accessible->State();
 
     
     
@@ -349,7 +412,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
   }
 
   if (eventType.EqualsLiteral("CheckboxStateChange")) {
-    uint64_t state = accessible->State();
+    PRUint64 state = accessible->State();
 
     bool isEnabled = !!(state & states::CHECKED);
 
@@ -360,7 +423,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
     return;
   }
 
-  Accessible* treeItemAcc = nullptr;
+  nsAccessible* treeItemAcc = nsnull;
 #ifdef MOZ_XUL
   
   if (treeAcc) {
@@ -370,7 +433,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
   }
 
   if (treeItemAcc && eventType.EqualsLiteral("OpenStateChange")) {
-    uint64_t state = accessible->State();
+    PRUint64 state = accessible->State();
     bool isEnabled = (state & states::EXPANDED) != 0;
 
     nsRefPtr<AccEvent> accEvent =
@@ -428,10 +491,10 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
     
     
     
-    Accessible* widget =
+    nsAccessible* widget =
       accessible->IsWidget() ? accessible : accessible->ContainerWidget();
     if (widget && widget->IsAutoCompletePopup()) {
-      FocusMgr()->ActiveItemChanged(nullptr);
+      FocusMgr()->ActiveItemChanged(nsnull);
       A11YDEBUG_FOCUS_ACTIVEITEMCHANGE_CAUSE("DOMMenuItemInactive", accessible)
     }
   }
@@ -445,7 +508,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
     
     
     
-    Accessible* activeItem = accessible->CurrentItem();
+    nsAccessible* activeItem = accessible->CurrentItem();
     if (activeItem) {
       FocusMgr()->ActiveItemChanged(activeItem);
       A11YDEBUG_FOCUS_ACTIVEITEMCHANGE_CAUSE("DOMMenuBarActive", accessible)
@@ -455,7 +518,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
     nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENU_END,
                             accessible, eFromUserInput);
 
-    FocusMgr()->ActiveItemChanged(nullptr);
+    FocusMgr()->ActiveItemChanged(nsnull);
     A11YDEBUG_FOCUS_ACTIVEITEMCHANGE_CAUSE("DOMMenuBarInactive", accessible)
   }
   else if (eventType.EqualsLiteral("ValueChange")) {
@@ -482,15 +545,15 @@ RootAccessible::Shutdown()
   if (!PresShell())
     return;  
 
-  DocAccessibleWrap::Shutdown();
+  nsDocAccessibleWrap::Shutdown();
 }
 
 
 Relation
-RootAccessible::RelationByType(uint32_t aType)
+RootAccessible::RelationByType(PRUint32 aType)
 {
   if (!mDocument || aType != nsIAccessibleRelation::RELATION_EMBEDS)
-    return DocAccessibleWrap::RelationByType(aType);
+    return nsDocAccessibleWrap::RelationByType(aType);
 
   nsIDOMWindow* rootWindow = mDocument->GetWindow();
   if (rootWindow) {
@@ -502,7 +565,7 @@ RootAccessible::RelationByType(uint32_t aType)
       nsCOMPtr<nsIDocument> contentDocumentNode =
         do_QueryInterface(contentDOMDocument);
       if (contentDocumentNode) {
-        DocAccessible* contentDocument =
+        nsDocAccessible* contentDocument =
           GetAccService()->GetDocAccessible(contentDocumentNode);
         if (contentDocument)
           return Relation(contentDocument);
@@ -517,7 +580,7 @@ RootAccessible::RelationByType(uint32_t aType)
 
 
 void
-RootAccessible::HandlePopupShownEvent(Accessible* aAccessible)
+RootAccessible::HandlePopupShownEvent(nsAccessible* aAccessible)
 {
   roles::Role role = aAccessible->Role();
 
@@ -539,7 +602,7 @@ RootAccessible::HandlePopupShownEvent(Accessible* aAccessible)
 
   if (role == roles::COMBOBOX_LIST) {
     
-    Accessible* combobox = aAccessible->Parent();
+    nsAccessible* combobox = aAccessible->Parent();
     if (!combobox)
       return;
 
@@ -560,19 +623,19 @@ RootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
   
   
   
-  DocAccessible* document = nsAccUtils::GetDocAccessibleFor(aPopupNode);
+  nsDocAccessible* document = nsAccUtils::GetDocAccessibleFor(aPopupNode);
   if (!document)
     return;
 
-  Accessible* popup = document->GetAccessible(aPopupNode);
+  nsAccessible* popup = document->GetAccessible(aPopupNode);
   if (!popup) {
-    Accessible* popupContainer = document->GetContainerAccessible(aPopupNode);
+    nsAccessible* popupContainer = document->GetContainerAccessible(aPopupNode);
     if (!popupContainer)
       return;
 
-    uint32_t childCount = popupContainer->ChildCount();
-    for (uint32_t idx = 0; idx < childCount; idx++) {
-      Accessible* child = popupContainer->GetChildAt(idx);
+    PRInt32 childCount = popupContainer->GetChildCount();
+    for (PRInt32 idx = 0; idx < childCount; idx++) {
+      nsAccessible* child = popupContainer->GetChildAt(idx);
       if (child->IsAutoCompletePopup()) {
         popup = child;
         break;
@@ -591,14 +654,14 @@ RootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
   
   
 
-  static const uint32_t kNotifyOfFocus = 1;
-  static const uint32_t kNotifyOfState = 2;
-  uint32_t notifyOf = 0;
+  static const PRUint32 kNotifyOfFocus = 1;
+  static const PRUint32 kNotifyOfState = 2;
+  PRUint32 notifyOf = 0;
 
   
   
   
-  Accessible* widget = nullptr;
+  nsAccessible* widget = nsnull;
   if (popup->IsCombobox()) {
     widget = popup;
   } else {
@@ -626,7 +689,7 @@ RootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
 
   } else if (widget->IsMenuButton()) {
     
-    Accessible* compositeWidget = widget->ContainerWidget();
+    nsAccessible* compositeWidget = widget->ContainerWidget();
     if (compositeWidget && compositeWidget->IsAutoComplete()) {
       widget = compositeWidget;
       notifyOf = kNotifyOfState;
@@ -646,7 +709,7 @@ RootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
 
   
   if (notifyOf & kNotifyOfFocus) {
-    FocusMgr()->ActiveItemChanged(nullptr);
+    FocusMgr()->ActiveItemChanged(nsnull);
     A11YDEBUG_FOCUS_ACTIVEITEMCHANGE_CAUSE("popuphiding", popup)
   }
 
@@ -661,7 +724,7 @@ RootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
 #ifdef MOZ_XUL
 void
 RootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
-                                               XULTreeAccessible* aAccessible)
+                                               nsXULTreeAccessible* aAccessible)
 {
   nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
   if (!dataEvent)
@@ -679,7 +742,7 @@ RootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
   if (!countVariant)
     return;
 
-  int32_t index, count;
+  PRInt32 index, count;
   indexVariant->GetAsInt32(&index);
   countVariant->GetAsInt32(&count);
 
@@ -688,13 +751,13 @@ RootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
 
 void
 RootAccessible::HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
-                                           XULTreeAccessible* aAccessible)
+                                           nsXULTreeAccessible* aAccessible)
 {
   nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
   if (!dataEvent)
     return;
 
-  int32_t startRow = 0, endRow = -1, startCol = 0, endCol = -1;
+  PRInt32 startRow = 0, endRow = -1, startCol = 0, endCol = -1;
 
   nsCOMPtr<nsIVariant> startRowVariant;
   dataEvent->GetData(NS_LITERAL_STRING("startrow"),

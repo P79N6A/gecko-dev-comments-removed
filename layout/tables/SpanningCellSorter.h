@@ -42,6 +42,7 @@
 
 #include "pldhash.h"
 #include "nsDebug.h"
+#include "StackArena.h"
 
 class nsIPresShell;
 
@@ -51,7 +52,7 @@ class nsIPresShell;
 
 
 
-class SpanningCellSorter {
+class NS_STACK_CLASS SpanningCellSorter {
 public:
     SpanningCellSorter(nsIPresShell *aPresShell);
     ~SpanningCellSorter();

@@ -211,6 +211,14 @@ abstract public class GeckoApp
     public ArrayList<PackageInfo> mPackageInfoCache = new ArrayList<PackageInfo>();
 
     String[] getPluginDirectories() {
+
+        
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            File tegraDriverPath = new File("/system/lib/hw/gralloc.tegra.so");
+            if (tegraDriverPath.exists())
+                return new String[0];
+        }
+
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB &&
             Build.VERSION.SDK_INT < 14  )

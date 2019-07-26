@@ -811,7 +811,7 @@ BrowserGlue.prototype = {
     try {
       
       
-      notifier.showAlertNotification("post-update-notification", title, text,
+      notifier.showAlertNotification(null, title, text,
                                      true, url, clickCallback);
     }
     catch (e) {

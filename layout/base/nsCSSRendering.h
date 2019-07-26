@@ -44,11 +44,128 @@
 #include "gfxBlur.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
+#include "nsLayoutUtils.h"
 
 struct nsPoint;
 class nsStyleContext;
 class nsPresContext;
 class nsRenderingContext;
+
+
+
+
+
+
+
+
+
+class nsImageRenderer {
+public:
+  typedef mozilla::layers::ImageContainer ImageContainer;
+
+  enum {
+    FLAG_SYNC_DECODE_IMAGES = 0x01
+  };
+  nsImageRenderer(nsIFrame* aForFrame, const nsStyleImage* aImage, PRUint32 aFlags);
+  ~nsImageRenderer();
+  
+
+
+
+
+  bool PrepareImage();
+  
+
+
+
+
+  nsSize ComputeSize(const nsStyleBackground::Size& aLayerSize,
+                     const nsSize& aBgPositioningArea);
+  
+
+
+
+  void Draw(nsPresContext*       aPresContext,
+            nsRenderingContext& aRenderingContext,
+            const nsRect&        aDest,
+            const nsRect&        aFill,
+            const nsPoint&       aAnchor,
+            const nsRect&        aDirty);
+
+
+  bool IsRasterImage();
+  already_AddRefed<ImageContainer> GetContainer();
+private:
+  
+
+
+
+
+
+  void ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
+                                 nscoord& aUnscaledWidth, bool& aHaveWidth,
+                                 nscoord& aUnscaledHeight, bool& aHaveHeight,
+                                 nsSize& aRatio);
+
+  
+
+
+
+
+  nsSize
+  ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
+                   const nsSize& aBgPositioningArea,
+                   nscoord aUnscaledWidth, bool aHaveWidth,
+                   nscoord aUnscaledHeight, bool aHaveHeight,
+                   const nsSize& aIntrinsicRatio);
+
+  nsIFrame*                 mForFrame;
+  const nsStyleImage*       mImage;
+  nsStyleImageType          mType;
+  nsCOMPtr<imgIContainer>   mImageContainer;
+  nsRefPtr<nsStyleGradient> mGradientData;
+  nsIFrame*                 mPaintServerFrame;
+  nsLayoutUtils::SurfaceFromElementResult mImageElementSurface;
+  bool                      mIsReady;
+  nsSize                    mSize; 
+  PRUint32                  mFlags;
+};
+
+
+
+
+
+
+struct nsBackgroundLayerState {
+  
+
+
+  nsBackgroundLayerState(nsIFrame* aForFrame, const nsStyleImage* aImage, PRUint32 aFlags)
+    : mImageRenderer(aForFrame, aImage, aFlags) {}
+
+  
+
+
+  nsImageRenderer mImageRenderer;
+  
+
+
+
+
+  nsRect mDestArea;
+  
+
+
+
+
+  nsRect mFillArea;
+  
+
+
+
+
+  nsPoint mAnchor;
+};
 
 struct nsCSSRendering {
   
@@ -211,7 +328,18 @@ struct nsCSSRendering {
   static nscolor
   DetermineBackgroundColor(nsPresContext* aPresContext,
                            nsStyleContext* aStyleContext,
-                           nsIFrame* aFrame);
+                           nsIFrame* aFrame,
+                           bool& aDrawBackgroundImage,
+                           bool& aDrawBackgroundColor);
+
+  static nsBackgroundLayerState
+  PrepareBackgroundLayer(nsPresContext* aPresContext,
+                         nsIFrame* aForFrame,
+                         PRUint32 aFlags,
+                         const nsRect& aBorderArea,
+                         const nsRect& aBGClipRect,
+                         const nsStyleBackground& aBackground,
+                         const nsStyleBackground::Layer& aLayer);
 
   
 

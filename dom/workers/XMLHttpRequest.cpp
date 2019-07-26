@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "XMLHttpRequest.h"
 
@@ -31,74 +31,71 @@
 
 USING_WORKERS_NAMESPACE
 
-namespace XMLHttpRequestResponseTypeValues = 
-  mozilla::dom::bindings::prototypes::XMLHttpRequestResponseType;
-
 using mozilla::dom::workers::exceptions::ThrowDOMExceptionForNSResult;
 
-
+// XXX Need to figure this out...
 #define UNCATCHABLE_EXCEPTION NS_ERROR_OUT_OF_MEMORY
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ *  XMLHttpRequest in workers
+ *
+ *  XHR in workers is implemented by proxying calls/events/etc between the
+ *  worker thread and an nsXMLHttpRequest on the main thread.  The glue
+ *  object here is the Proxy, which lives on both threads.  All other objects
+ *  live on either the main thread (the nsXMLHttpRequest) or the worker thread
+ *  (the worker and XHR private objects).
+ *
+ *  The main thread XHR is always operated in async mode, even for sync XHR
+ *  in workers.  Calls made on the worker thread are proxied to the main thread
+ *  synchronously (meaning the worker thread is blocked until the call
+ *  returns).  Each proxied call spins up a sync queue, which captures any
+ *  synchronously dispatched events and ensures that they run synchronously
+ *  on the worker as well.  Asynchronously dispatched events are posted to the
+ *  worker thread to run asynchronously.  Some of the XHR state is mirrored on
+ *  the worker thread to avoid needing a cross-thread call on every property
+ *  access.
+ *
+ *  The XHR private is stored in the private slot of the XHR JSObject on the
+ *  worker thread.  It is destroyed when that JSObject is GCd.  The private
+ *  roots its JSObject while network activity is in progress.  It also
+ *  adds itself as a feature to the worker to give itself a chance to clean up
+ *  if the worker goes away during an XHR call.  It is important that the
+ *  rooting and feature registration (collectively called pinning) happens at
+ *  the proper times.  If we pin for too long we can cause memory leaks or even
+ *  shutdown hangs.  If we don't pin for long enough we introduce a GC hazard.
+ *
+ *  The XHR is pinned from the time Send is called to roughly the time loadend
+ *  is received.  There are some complications involved with Abort and XHR
+ *  reuse.  We maintain a counter on the main thread of how many times Send was
+ *  called on this XHR, and we decrement the counter every time we receive a
+ *  loadend event.  When the counter reaches zero we dispatch a runnable to the
+ *  worker thread to unpin the XHR.  We only decrement the counter if the 
+ *  dispatch was successful, because the worker may no longer be accepting
+ *  regular runnables.  In the event that we reach Proxy::Teardown and there
+ *  the outstanding Send count is still non-zero, we dispatch a control
+ *  runnable which is guaranteed to run.
+ *
+ *  NB: Some of this could probably be simplified now that we have the
+ *  inner/outer channel ids.
+ */
 
 BEGIN_WORKERS_NAMESPACE
 
 class Proxy : public nsIDOMEventListener
 {
 public:
-  
+  // Read on multiple threads.
   WorkerPrivate* mWorkerPrivate;
   XMLHttpRequest* mXMLHttpRequestPrivate;
 
-  
+  // Only touched on the main thread.
   nsRefPtr<nsXMLHttpRequest> mXHR;
   nsCOMPtr<nsIXMLHttpRequestUpload> mXHRUpload;
   PRUint32 mInnerEventStreamId;
   PRUint32 mInnerChannelId;
   PRUint32 mOutstandingSendCount;
 
-  
+  // Only touched on the worker thread.
   PRUint32 mOuterEventStreamId;
   PRUint32 mOuterChannelId;
   PRUint64 mLastLoaded;
@@ -111,7 +108,7 @@ public:
   bool mSeenLoadStart;
   bool mSeenUploadLoadStart;
 
-  
+  // Only touched on the main thread.
   PRUint32 mSyncQueueKey;
   PRUint32 mSyncEventResponseSyncQueueKey;
   bool mUploadEventListenersAttached;
@@ -215,10 +212,11 @@ END_WORKERS_NAMESPACE
 namespace {
 
 inline void
-ConvertResponseTypeToString(XMLHttpRequestResponseType aType, nsString& aString)
+ConvertResponseTypeToString(XMLHttpRequestResponseType aType,
+                            nsString& aString)
 {
   using namespace
-    mozilla::dom::bindings::prototypes::XMLHttpRequestResponseType;
+    mozilla::dom::XMLHttpRequestResponseTypeValues;
 
   size_t index = static_cast<size_t>(aType);
   MOZ_ASSERT(index < ArrayLength(strings), "Codegen gave us a bad value!");
@@ -230,7 +228,7 @@ inline XMLHttpRequestResponseType
 ConvertStringToResponseType(const nsAString& aString)
 {
   using namespace
-    mozilla::dom::bindings::prototypes::XMLHttpRequestResponseType;
+    mozilla::dom::XMLHttpRequestResponseTypeValues;
 
   for (size_t index = 0; index < ArrayLength(strings) - 1; index++) {
     if (aString.EqualsASCII(strings[index].value, strings[index].length)) {
@@ -239,7 +237,7 @@ ConvertStringToResponseType(const nsAString& aString)
   }
 
   MOZ_NOT_REACHED("Don't know anything about this response type!");
-  return XMLHttpRequestResponseTypeValues::_empty;
+  return _empty;
 }
 
 enum
@@ -263,7 +261,7 @@ JS_STATIC_ASSERT(STRING_LAST_XHR >= STRING_LAST_EVENTTARGET);
 JS_STATIC_ASSERT(STRING_LAST_XHR == STRING_COUNT - 1);
 
 const char* const sEventStrings[] = {
-  
+  // nsIXMLHttpRequestEventTarget event types, supported by both XHR and Upload.
   "abort",
   "error",
   "load",
@@ -271,7 +269,7 @@ const char* const sEventStrings[] = {
   "progress",
   "timeout",
 
-  
+  // nsIXMLHttpRequest event types, supported only by XHR.
   "readystatechange",
   "loadend",
 };
@@ -418,7 +416,7 @@ class LoadStartDetectionRunnable : public nsIRunnable,
     WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
     {
       if (mChannelId != mProxy->mOuterChannelId) {
-        
+        // Threads raced, this event is now obsolete.
         return true;
       }
 
@@ -583,7 +581,7 @@ public:
           mResponse = response;
         }
         else {
-          
+          // Anything subject to GC must be cloned.
           JSStructuredCloneCallbacks* callbacks =
             aWorkerPrivate->IsChromeWorker() ?
             ChromeWorkerStructuredCloneCallbacks(true) :
@@ -615,12 +613,12 @@ public:
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   {
     if (mEventStreamId != mProxy->mOuterEventStreamId) {
-      
+      // Threads raced, this event is now obsolete.
       return true;
     }
 
     if (!mProxy->mXMLHttpRequestPrivate) {
-      
+      // Object was finalized, bail.
       return true;
     }
 
@@ -643,19 +641,19 @@ public:
     else if (mType.EqualsASCII(sEventStrings[STRING_abort])) {
       if ((mUploadEvent && !mProxy->mSeenUploadLoadStart) ||
           (!mUploadEvent && !mProxy->mSeenLoadStart)) {
-        
+        // We've already dispatched premature abort events.
         return true;
       }
     }
     else if (mType.EqualsASCII(sEventStrings[STRING_readystatechange])) {
       if (mReadyState == 4 && !mUploadEvent && !mProxy->mSeenLoadStart) {
-        
+        // We've already dispatched premature abort events.
         return true;
       }
     }
 
     if (mProgressEvent) {
-      
+      // Cache these for premature abort events.
       if (mUploadEvent) {
         mProxy->mLastUploadLengthComputable = mLengthComputable;
         mProxy->mLastUploadLoaded = mLoaded;
@@ -747,8 +745,8 @@ public:
       JS_ReportPendingException(aCx);
     }
 
-    
-    
+    // After firing the event set mResponse to JSVAL_NULL for chunked response
+    // types.
     if (StringBeginsWith(mResponseType, NS_LITERAL_STRING("moz-chunked-"))) {
       xhr->NullResponseText();
     }
@@ -1267,7 +1265,7 @@ private:
   XMLHttpRequest* mXMLHttpRequestPrivate;
 };
 
-} 
+} // anonymous namespace
 
 void
 Proxy::Teardown()
@@ -1277,8 +1275,8 @@ Proxy::Teardown()
   if (mXHR) {
     Reset();
 
-    
-    
+    // NB: We are intentionally dropping events coming from xhr.abort on the
+    // floor.
     AddRemoveEventListeners(false, false);
     mXHR->Abort();
 
@@ -1447,7 +1445,7 @@ XMLHttpRequest::_Finalize(JSFreeOp* aFop)
   XMLHttpRequestEventTarget::_Finalize(aFop);
 }
 
-
+// static
 XMLHttpRequest*
 XMLHttpRequest::_Constructor(JSContext* aCx, JSObject* aGlobal, nsresult& aRv)
 {
@@ -1468,13 +1466,13 @@ XMLHttpRequest::_Constructor(JSContext* aCx, JSObject* aGlobal, nsresult& aRv)
 void
 XMLHttpRequest::ReleaseProxy(ReleaseType aType)
 {
-  
-  
+  // Can't assert that we're on the worker thread here because mWorkerPrivate
+  // may be gone.
 
   if (mProxy) {
     if (aType == XHRIsGoingAway) {
-      
-      
+      // We're in a GC finalizer, so we can't do a sync call here (and we don't
+      // need to).
       nsRefPtr<AsyncTeardownRunnable> runnable =
         new AsyncTeardownRunnable(mProxy);
       mProxy = nsnull;
@@ -1483,14 +1481,14 @@ XMLHttpRequest::ReleaseProxy(ReleaseType aType)
         NS_ERROR("Failed to dispatch teardown runnable!");
       }
     } else {
-      
-      
+      // This isn't necessary if the worker is going away or the XHR is going
+      // away.
       if (aType == Default) {
-        
+        // Don't let any more events run.
         mProxy->mOuterEventStreamId++;
       }
 
-      
+      // We need to make a sync call here.
       nsRefPtr<SyncTeardownRunnable> runnable =
         new SyncTeardownRunnable(mWorkerPrivate, mProxy);
       mProxy = nsnull;
@@ -1675,7 +1673,7 @@ XMLHttpRequest::SendInternal(const nsAString& aStringBody,
 
   autoUnpin.Clear();
 
-  
+  // The event loop was spun above, make sure we aren't canceled already.
   if (mCanceled) {
     return;
   }
@@ -1777,8 +1775,8 @@ XMLHttpRequest::SetTimeout(uint32_t aTimeout, nsresult& aRv)
   mTimeout = aTimeout;
 
   if (!mProxy) {
-    
-    
+    // Open may not have been called yet, in which case we'll handle the
+    // timeout in OpenRunnable.
     return;
   }
 
@@ -1803,8 +1801,8 @@ XMLHttpRequest::SetWithCredentials(bool aWithCredentials, nsresult& aRv)
   mWithCredentials = aWithCredentials;
 
   if (!mProxy) {
-    
-    
+    // Open may not have been called yet, in which case we'll handle the
+    // credentials in OpenRunnable.
     return;
   }
 
@@ -1829,8 +1827,8 @@ XMLHttpRequest::SetMultipart(bool aMultipart, nsresult& aRv)
   mMultipart = aMultipart;
 
   if (!mProxy) {
-    
-    
+    // Open may not have been called yet, in which case we'll handle the
+    // multipart in OpenRunnable.
     return;
   }
 
@@ -1856,8 +1854,8 @@ XMLHttpRequest::SetMozBackgroundRequest(bool aBackgroundRequest,
   mBackgroundRequest = aBackgroundRequest;
 
   if (!mProxy) {
-    
-    
+    // Open may not have been called yet, in which case we'll handle the
+    // background request in OpenRunnable.
     return;
   }
 
@@ -1910,7 +1908,7 @@ XMLHttpRequest::Send(nsresult& aRv)
     return;
   }
 
-  
+  // Nothing to clone.
   JSAutoStructuredCloneBuffer buffer;
   nsTArray<nsCOMPtr<nsISupports> > clonedObjects;
 
@@ -1932,7 +1930,7 @@ XMLHttpRequest::Send(const nsAString& aBody, nsresult& aRv)
     return;
   }
 
-  
+  // Nothing to clone.
   JSAutoStructuredCloneBuffer buffer;
   nsTArray<nsCOMPtr<nsISupports> > clonedObjects;
 
@@ -2086,11 +2084,11 @@ XMLHttpRequest::OverrideMimeType(const nsAString& aMimeType, nsresult& aRv)
     return;
   }
 
-  
-  
-  
-  
-  
+  // We're supposed to throw if the state is not OPENED or HEADERS_RECEIVED. We
+  // can detect OPENED really easily but we can't detect HEADERS_RECEIVED in a
+  // non-racy way until the XHR state machine actually runs on this thread
+  // (bug 671047). For now we're going to let this work only if the Send()
+  // method has not been called.
   if (!mProxy || SendInProgress()) {
     aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
     return;
@@ -2120,8 +2118,8 @@ XMLHttpRequest::SetResponseType(XMLHttpRequestResponseType aResponseType,
     return;
   }
 
-  
-  
+  // "document" is fine for the main thread but not for a worker. Short-circuit
+  // that here.
   if (aResponseType == XMLHttpRequestResponseTypeValues::document) {
     return;
   }

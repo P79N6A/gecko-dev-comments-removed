@@ -72,6 +72,7 @@
 #include "nsGUIEvent.h"
 #include "nsInterfaceHashtable.h"
 #include "nsEventStates.h"
+#include "nsPresArena.h"
 
 class nsIContent;
 class nsIDocument;
@@ -146,9 +147,10 @@ typedef struct CapturingContentInfo {
   nsIContent* mContent;
 } CapturingContentInfo;
 
-#define NS_IPRESSHELL_IID    \
-        { 0x4dc4db09, 0x03d4, 0x4427, \
-          { 0xbe, 0xfb, 0xc9, 0x29, 0xac, 0x5c, 0x62, 0xab } }
+
+#define NS_IPRESSHELL_IID \
+  { 0xa0d9bae4, 0x2257, 0x4b0b, \
+    { 0xb0, 0x8a, 0x3d, 0x95, 0x12, 0x24, 0x19, 0xe2 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -219,38 +221,35 @@ public:
   bool IsDestroying() { return mIsDestroying; }
 
   
-  
-  
-  
-  
-  virtual void* AllocateFrame(nsQueryFrame::FrameIID aCode, size_t aSize) = 0;
-  virtual void  FreeFrame(nsQueryFrame::FrameIID aCode, void* aChunk) = 0;
+
+
+
+
+
+
+  virtual void* AllocateFrame(nsQueryFrame::FrameIID aID, size_t aSize) = 0;
+  virtual void  FreeFrame(nsQueryFrame::FrameIID aID, void* aChunk) = 0;
 
   
+
+
+
+
+
+  virtual void* AllocateByObjectID(nsPresArena::ObjectID aID, size_t aSize) = 0;
+  virtual void  FreeByObjectID(nsPresArena::ObjectID aID, void* aPtr) = 0;
+
   
-  
-  
+
+
+
+
+
+
+
+
   virtual void* AllocateMisc(size_t aSize) = 0;
   virtual void  FreeMisc(size_t aSize, void* aChunk) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual void PushStackMemory() = 0;
-  virtual void PopStackMemory() = 0;
-  virtual void* AllocateStackMemory(size_t aSize) = 0;
 
   nsIDocument* GetDocument() const { return mDocument; }
 

@@ -58,9 +58,9 @@
 #include "jspubtd.h"
 #include "jsprvtd.h"
 #include "jslock.h"
-#include "jscell.h"
 
 #include "gc/Barrier.h"
+#include "gc/Heap.h"
 
 #include "vm/ObjectImpl.h"
 #include "vm/String.h"
@@ -233,6 +233,7 @@ extern Class ArrayBufferClass;
 extern Class BlockClass;
 extern Class BooleanClass;
 extern Class CallableObjectClass;
+extern Class DataViewClass;
 extern Class DateClass;
 extern Class ErrorClass;
 extern Class ElementIteratorClass;
@@ -261,6 +262,7 @@ class ArrayBufferObject;
 class BlockObject;
 class BooleanObject;
 class ClonedBlockObject;
+class DataViewObject;
 class DeclEnvObject;
 class ElementIteratorObject;
 class GlobalObject;
@@ -398,7 +400,7 @@ struct JSObject : public js::ObjectImpl
 
     inline uint32_t propertyCount() const;
 
-    inline bool hasPropertyTable() const;
+    inline bool hasShapeTable() const;
 
     inline size_t computedSizeOfThisSlotsElements() const;
 
@@ -917,6 +919,7 @@ struct JSObject : public js::ObjectImpl
     
     inline bool isArguments() const;
     inline bool isArrayBuffer() const;
+    inline bool isDataView() const;
     inline bool isDate() const;
     inline bool isElementIterator() const;
     inline bool isError() const;
@@ -969,6 +972,7 @@ struct JSObject : public js::ObjectImpl
     inline js::BooleanObject &asBoolean();
     inline js::CallObject &asCall();
     inline js::ClonedBlockObject &asClonedBlock();
+    inline js::DataViewObject &asDataView();
     inline js::DeclEnvObject &asDeclEnv();
     inline js::GlobalObject &asGlobal();
     inline js::NestedScopeObject &asNestedScope();
@@ -1080,83 +1084,6 @@ IsStandardClassResolved(JSObject *obj, js::Class *clasp);
 
 void
 MarkStandardClassInitializedNoProto(JSObject *obj, js::Class *clasp);
-
-
-
-
-
-
-class NewObjectCache
-{
-    struct Entry
-    {
-        
-        Class *clasp;
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-        gc::Cell *key;
-
-        
-        gc::AllocKind kind;
-
-        
-        uint32_t nbytes;
-
-        
-
-
-
-        JSObject_Slots16 templateObject;
-    };
-
-    Entry entries[41];
-
-    void staticAsserts() {
-        JS_STATIC_ASSERT(gc::FINALIZE_OBJECT_LAST == gc::FINALIZE_OBJECT16_BACKGROUND);
-    }
-
-  public:
-
-    typedef int EntryIndex;
-
-    void reset() { PodZero(this); }
-
-    
-
-
-
-    inline bool lookupProto(Class *clasp, JSObject *proto, gc::AllocKind kind, EntryIndex *pentry);
-    inline bool lookupGlobal(Class *clasp, js::GlobalObject *global, gc::AllocKind kind, EntryIndex *pentry);
-    inline bool lookupType(Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, EntryIndex *pentry);
-
-    
-    inline JSObject *newObjectFromHit(JSContext *cx, EntryIndex entry);
-
-    
-    inline void fillProto(EntryIndex entry, Class *clasp, JSObject *proto, gc::AllocKind kind, JSObject *obj);
-    inline void fillGlobal(EntryIndex entry, Class *clasp, js::GlobalObject *global, gc::AllocKind kind, JSObject *obj);
-    inline void fillType(EntryIndex entry, Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, JSObject *obj);
-
-    
-    void invalidateEntriesForShape(JSContext *cx, Shape *shape, JSObject *proto);
-
-  private:
-    inline bool lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, EntryIndex *pentry);
-    inline void fill(EntryIndex entry, Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj);
-    static inline void copyCachedToObject(JSObject *dst, JSObject *src);
-};
 
 } 
 
@@ -1505,6 +1432,9 @@ InformalValueTypeName(const Value &v);
 
 inline void
 DestroyIdArray(FreeOp *fop, JSIdArray *ida);
+
+extern bool
+GetFirstArgumentAsObject(JSContext *cx, unsigned argc, Value *vp, const char *method, JSObject **objp);
 
 
 extern bool

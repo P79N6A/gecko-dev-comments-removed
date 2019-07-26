@@ -3282,6 +3282,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   processor.mPt.x -= anchorX * totalWidth;
 
   
+  processor.mFontgrp->UpdateFontList(); 
   NS_ASSERTION(processor.mFontgrp->FontListLength()>0, "font group contains no fonts");
   const gfxFont::Metrics& fontMetrics = processor.mFontgrp->GetFontAt(0)->GetMetrics();
 

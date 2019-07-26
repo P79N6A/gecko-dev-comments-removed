@@ -637,16 +637,6 @@ public:
                             NS_MIN(double(PR_INT32_MAX), aVal)));
   }
 
-  
-
-
-
-
-
-
-
-  static bool RootSVGElementHasViewbox(const nsIContent *aRootSVGElem);
-
   static void GetFallbackOrPaintColor(gfxContext *aContext,
                                       nsStyleContext *aStyleContext,
                                       nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,

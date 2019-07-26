@@ -289,7 +289,7 @@ nsSVGOuterSVGFrame::GetIntrinsicRatio()
     return ratio;
   }
 
-  if (content->mViewBox.IsValid()) {
+  if (content->HasViewBox()) {
     const nsSVGViewBoxRect viewbox = content->mViewBox.GetAnimValue();
     float viewBoxWidth = viewbox.width;
     float viewBoxHeight = viewbox.height;
@@ -313,54 +313,68 @@ nsSVGOuterSVGFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 nsSize aMargin, nsSize aBorder, nsSize aPadding,
                                 PRUint32 aFlags)
 {
-  nsSVGSVGElement* content = static_cast<nsSVGSVGElement*>(mContent);
+  if (IsRootOfImage() || IsRootOfReplacedElementSubDoc()) {
+    
+    
+    
+    
+    
+    return aCBSize;
+  }
 
+  nsSize cbSize = aCBSize;
   IntrinsicSize intrinsicSize = GetIntrinsicSize();
 
   if (!mContent->GetParent()) {
-    if (IsRootOfImage() || IsRootOfReplacedElementSubDoc()) {
-      
-      
-      
-      return aCBSize;
-    } else {
-      
-      
-      
-      
-      nsSVGLength2 &width =
-        content->mLengthAttributes[nsSVGSVGElement::WIDTH];
-      if (width.IsPercentage()) {
-        NS_ABORT_IF_FALSE(intrinsicSize.width.GetUnit() == eStyleUnit_None,
-                          "GetIntrinsicSize should have reported no "
-                          "intrinsic width");
-        float val = width.GetAnimValInSpecifiedUnits() / 100.0f;
-        if (val < 0.0f) val = 0.0f;
-        intrinsicSize.width.SetCoordValue(val * aCBSize.width);
-      }
+    
+    
 
-      nsSVGLength2 &height =
-        content->mLengthAttributes[nsSVGSVGElement::HEIGHT];
-      NS_ASSERTION(aCBSize.height != NS_AUTOHEIGHT,
-                   "root should not have auto-height containing block");
-      if (height.IsPercentage()) {
-        NS_ABORT_IF_FALSE(intrinsicSize.height.GetUnit() == eStyleUnit_None,
-                          "GetIntrinsicSize should have reported no "
-                          "intrinsic height");
-        float val = height.GetAnimValInSpecifiedUnits() / 100.0f;
-        if (val < 0.0f) val = 0.0f;
-        intrinsicSize.height.SetCoordValue(val * aCBSize.height);
-      }
-      NS_ABORT_IF_FALSE(intrinsicSize.height.GetUnit() == eStyleUnit_Coord &&
-                        intrinsicSize.width.GetUnit() == eStyleUnit_Coord,
-                        "We should have just handled the only situation where"
-                        "we lack an intrinsic height or width.");
+    NS_ASSERTION(aCBSize.width  != NS_AUTOHEIGHT &&
+                 aCBSize.height != NS_AUTOHEIGHT,
+                 "root should not have auto-width/height containing block");
+    cbSize.width  *= PresContext()->GetFullZoom();
+    cbSize.height *= PresContext()->GetFullZoom();
+
+    
+    
+    
+    
+    
+
+    nsSVGSVGElement* content = static_cast<nsSVGSVGElement*>(mContent);
+
+    nsSVGLength2 &width =
+      content->mLengthAttributes[nsSVGSVGElement::WIDTH];
+    if (width.IsPercentage()) {
+      NS_ABORT_IF_FALSE(intrinsicSize.width.GetUnit() == eStyleUnit_None,
+                        "GetIntrinsicSize should have reported no "
+                        "intrinsic width");
+      float val = width.GetAnimValInSpecifiedUnits() / 100.0f;
+      if (val < 0.0f) val = 0.0f;
+      intrinsicSize.width.SetCoordValue(val * cbSize.width);
     }
+
+    nsSVGLength2 &height =
+      content->mLengthAttributes[nsSVGSVGElement::HEIGHT];
+    NS_ASSERTION(aCBSize.height != NS_AUTOHEIGHT,
+                 "root should not have auto-height containing block");
+    if (height.IsPercentage()) {
+      NS_ABORT_IF_FALSE(intrinsicSize.height.GetUnit() == eStyleUnit_None,
+                        "GetIntrinsicSize should have reported no "
+                        "intrinsic height");
+      float val = height.GetAnimValInSpecifiedUnits() / 100.0f;
+      if (val < 0.0f) val = 0.0f;
+      intrinsicSize.height.SetCoordValue(val * cbSize.height);
+    }
+    NS_ABORT_IF_FALSE(intrinsicSize.height.GetUnit() == eStyleUnit_Coord &&
+                      intrinsicSize.width.GetUnit() == eStyleUnit_Coord,
+                      "We should have just handled the only situation where"
+                      "we lack an intrinsic height or width.");
   }
 
   return nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
                             aRenderingContext, this,
-                            intrinsicSize, GetIntrinsicRatio(), aCBSize,
+                            intrinsicSize, GetIntrinsicRatio(), cbSize,
                             aMargin, aBorder, aPadding);
 }
 
@@ -401,12 +415,18 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   nsSVGSVGElement *svgElem = static_cast<nsSVGSVGElement*>(mContent);
 
-  if (newViewportSize != svgElem->GetViewportSize() ||
-      mFullZoom != PresContext()->GetFullZoom()) {
+  PRUint32 changeBits = 0;
+  if (newViewportSize != svgElem->GetViewportSize()) {
+    changeBits |= COORD_CONTEXT_CHANGED;
     svgElem->SetViewportSize(newViewportSize);
-    mViewportInitialized = true;
+  }
+  if (mFullZoom != PresContext()->GetFullZoom()) {
+    changeBits |= TRANSFORM_CHANGED;
     mFullZoom = PresContext()->GetFullZoom();
-    NotifyViewportChange();
+  }
+  mViewportInitialized = true;
+  if (changeBits) {
+    NotifyViewportOrTransformChanged(changeBits);
   }
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
@@ -691,30 +711,41 @@ nsSVGOuterSVGFrame::GetType() const
 
 
 void
-nsSVGOuterSVGFrame::NotifyViewportChange()
+nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(PRUint32 aFlags)
 {
+  NS_ABORT_IF_FALSE(aFlags &&
+                    !(aFlags & ~(COORD_CONTEXT_CHANGED | TRANSFORM_CHANGED)),
+                    "Unexpected aFlags value");
+
   
   if (!mViewportInitialized) {
     return;
   }
 
-  PRUint32 flags = COORD_CONTEXT_CHANGED;
+  nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
 
-  
-#if 1
-  {
-#else
-
-  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox)) {
-#endif
-
-    mCanvasTM = nsnull;
-
-    flags |= TRANSFORM_CHANGED;
+  if (aFlags & COORD_CONTEXT_CHANGED) {
+    if (content->HasViewBox() || content->ShouldSynthesizeViewBox()) {
+      
+      
+      
+      aFlags = TRANSFORM_CHANGED;
+    }
+    else if (mCanvasTM && mCanvasTM->IsSingular()) {
+      
+      
+      
+      
+      aFlags |= TRANSFORM_CHANGED;
+    }
   }
 
-  
-  nsSVGUtils::NotifyChildrenOfSVGChange(this, flags);
+  if (aFlags & TRANSFORM_CHANGED) {
+    
+    mCanvasTM = nsnull;
+  }
+
+  nsSVGUtils::NotifyChildrenOfSVGChange(this, aFlags);
 }
 
 

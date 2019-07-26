@@ -47,6 +47,8 @@
 #define VK_OEM_PLUS             0xBB   // '+' any country
 #define VK_OEM_MINUS            0xBD   // '-' any country
 
+class nsWindow;
+
 namespace mozilla {
 namespace widget {
 
@@ -131,6 +133,39 @@ public:
                        PRUint8* aFinalShiftState) const;
 };
 
+class NativeKey {
+public:
+  NativeKey() :
+    mDOMKeyCode(0), mVirtualKeyCode(0), mOriginalVirtualKeyCode(0),
+    mScanCode(0), mIsExtended(false)
+  {
+  }
+
+  NativeKey(HKL aKeyboardLayout,
+            nsWindow* aWindow,
+            const MSG& aKeyOrCharMessage);
+
+  PRUint32 GetDOMKeyCode() const { return mDOMKeyCode; }
+
+  
+  PRUint32 GetKeyLocation() const;
+  WORD GetScanCode() const { return mScanCode; }
+  PRUint8 GetVirtualKeyCode() const { return mVirtualKeyCode; }
+  PRUint8 GetOriginalVirtualKeyCode() const { return mOriginalVirtualKeyCode; }
+
+private:
+  PRUint32 mDOMKeyCode;
+  
+  PRUint8 mVirtualKeyCode;
+  
+  
+  
+  PRUint8 mOriginalVirtualKeyCode;
+  WORD    mScanCode;
+  bool    mIsExtended;
+
+  UINT GetScanCodeWithExtendedFlag() const;
+};
 
 class KeyboardLayout
 {

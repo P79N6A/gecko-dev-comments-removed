@@ -1,42 +1,42 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
+ */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at:
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Code.
+ *
+ * The Initial Developer of the Original Code is
+ *   The Mozilla Foundation
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Chris Jones <jones.chris.g@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <vector>
 
@@ -62,8 +62,8 @@ using mozilla::layout::RenderFrameParent;
 namespace mozilla {
 namespace layers {
 
-
-
+//--------------------------------------------------
+// Convenience accessors
 static ShadowLayerParent*
 cast(const PLayerParent* in)
 { 
@@ -122,8 +122,8 @@ ShadowChild(const OpRemoveChild& op)
   return cast(op.childLayerParent());
 }
 
-
-
+//--------------------------------------------------
+// ShadowLayersParent
 ShadowLayersParent::ShadowLayersParent(ShadowLayerManager* aManager,
                                        ShadowLayersManager* aLayersManager)
   : mLayerManager(aManager), mShadowLayersManager(aLayersManager), mDestroyed(false)
@@ -170,7 +170,7 @@ ShadowLayersParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
     const Edit& edit = cset[i];
 
     switch (edit.type()) {
-      
+      // Create* ops
     case Edit::TOpCreateThebesLayer: {
       MOZ_LAYERS_LOG(("[ParentSide] CreateThebesLayer"));
 
@@ -212,7 +212,7 @@ ShadowLayersParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
       break;
     }
 
-      
+      // Attributes
     case Edit::TOpSetLayerAttributes: {
       MOZ_LAYERS_LOG(("[ParentSide] SetLayerAttributes"));
 
@@ -229,6 +229,11 @@ ShadowLayersParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
       static bool fixedPositionLayersEnabled = getenv("MOZ_ENABLE_FIXED_POSITION_LAYERS") != 0;
       if (fixedPositionLayersEnabled) {
         layer->SetIsFixedPosition(common.isFixedPosition());
+      }
+      if (PLayerParent* maskLayer = common.maskLayerParent()) {
+        layer->SetMaskLayer(cast(maskLayer)->AsLayer());
+      } else {
+        layer->SetMaskLayer(NULL);
       }
 
       typedef SpecificLayerAttributes Specific;
@@ -283,7 +288,7 @@ ShadowLayersParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
       break;
     }
 
-      
+      // Tree ops
     case Edit::TOpSetRoot: {
       MOZ_LAYERS_LOG(("[ParentSide] SetRoot"));
 
@@ -408,9 +413,9 @@ ShadowLayersParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
     reply->AppendElements(&replyv.front(), replyv.size());
   }
 
-  
-  
-  
+  // Ensure that any pending operations involving back and front
+  // buffers have completed, so that neither process stomps on the
+  // other's buffer contents.
   ShadowLayerManager::PlatformSyncBeforeReplyUpdate();
 
   mShadowLayersManager->ShadowLayersUpdated(isFirstPaint);
@@ -450,5 +455,5 @@ ShadowLayersParent::DestroySharedSurface(SurfaceDescriptor* aSurface)
   layer_manager()->DestroySharedSurface(aSurface, this);
 }
 
-} 
-} 
+} // namespace layers
+} // namespace mozilla

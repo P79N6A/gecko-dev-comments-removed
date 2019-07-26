@@ -290,7 +290,7 @@ nsEscapeHTML2(const PRUnichar *aSourceBuffer, PRInt32 aSourceBufferLen)
 {
   
   if (aSourceBufferLen < 0) {
-    aSourceBufferLen = nsCRT::strlen(aSourceBuffer); 
+    aSourceBufferLen = nsCRT::strlen(aSourceBuffer);
   }
 
   

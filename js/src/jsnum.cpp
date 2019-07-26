@@ -1229,10 +1229,22 @@ JS_PUBLIC_API(bool)
 ToNumberSlow(JSContext *cx, Value v, double *out)
 {
 #ifdef DEBUG
+    
+
+
+
+
+
+
+
+
+
+#ifndef _MSC_VER
     {
         SkipRoot skip(cx, &v);
         MaybeCheckStackRoots(cx);
     }
+#endif
 #endif
 
     JS_ASSERT(!v.isNumber());

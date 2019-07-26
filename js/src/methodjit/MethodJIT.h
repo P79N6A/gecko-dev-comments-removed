@@ -467,29 +467,20 @@ JaegerStatusToSuccess(JaegerStatus status)
 }
 
 
-
-
-
-
-
-class JaegerCompartment {
-    JSC::ExecutableAllocator *execAlloc_;    
+class JaegerRuntime
+{
     Trampolines              trampolines;    
     VMFrame                  *activeFrame_;  
     JaegerStatus             lastUnfinished_;
                                              
 
-    void Finish();
+    void finish();
 
   public:
-    bool Initialize(JSContext *cx);
+    bool init(JSContext *cx);
 
-    JaegerCompartment();
-    ~JaegerCompartment() { Finish(); }
-
-    JSC::ExecutableAllocator *execAlloc() {
-        return execAlloc_;
-    }
+    JaegerRuntime();
+    ~JaegerRuntime() { finish(); }
 
     VMFrame *activeFrame() {
         return activeFrame_;

@@ -655,7 +655,7 @@ nsCSSValue::BufferFromString(const nsString& aValue)
     return buffer;
   }
 
-  PRUnichar length = aValue.Length();
+  nsString::size_type length = aValue.Length();
 
   
   

@@ -58,67 +58,12 @@
 
 namespace js {
 
-typedef HashMap<JSFunction *,
-                JSString *,
-                DefaultHasher<JSFunction *>,
-                SystemAllocPolicy> ToSourceCache;
-
-namespace mjit {
-class JaegerCompartment;
-}
-
 
 extern Class dummy_class;
-
 namespace ion {
     class IonCompartment;
 }
 
-} 
-
-#ifndef JS_EVAL_CACHE_SHIFT
-# define JS_EVAL_CACHE_SHIFT        6
-#endif
-
-
-#define JS_EVAL_CACHE_SIZE          JS_BIT(JS_EVAL_CACHE_SHIFT)
-
-namespace js {
-
-class NativeIterCache {
-    static const size_t SIZE = size_t(1) << 8;
-    
-    
-    JSObject            *data[SIZE];
-
-    static size_t getIndex(uint32_t key) {
-        return size_t(key) % SIZE;
-    }
-
-  public:
-    
-    JSObject            *last;
-
-    NativeIterCache()
-      : last(NULL) {
-        PodArrayZero(data);
-    }
-
-    void purge() {
-        PodArrayZero(data);
-        last = NULL;
-    }
-
-    JSObject *get(uint32_t key) const {
-        return data[getIndex(key)];
-    }
-
-    void set(uint32_t key, JSObject *iterobj) {
-        data[getIndex(key)] = iterobj;
-    }
-};
-
-class MathCache;
 
 
 
@@ -146,25 +91,6 @@ class DtoaCache {
     }
 
 };
-
-struct ScriptFilenameEntry
-{
-    bool marked;
-    char filename[1];
-};
-
-struct ScriptFilenameHasher
-{
-    typedef const char *Lookup;
-    static HashNumber hash(const char *l) { return JS_HashString(l); }
-    static bool match(const ScriptFilenameEntry *e, const char *l) {
-        return strcmp(e->filename, l) == 0;
-    }
-};
-
-typedef HashSet<ScriptFilenameEntry *,
-                ScriptFilenameHasher,
-                SystemAllocPolicy> ScriptFilenameTable;
 
 
 JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
@@ -274,38 +200,9 @@ struct JSCompartment
     
     js::types::TypeCompartment   types;
 
-  public:
-    
-    JSScript                     *evalCache[JS_EVAL_CACHE_SIZE];
-
     void                         *data;
     bool                         active;  
     js::WrapperMap               crossCompartmentWrappers;
-
-#ifdef JS_METHODJIT
-  private:
-    
-    js::mjit::JaegerCompartment  *jaegerCompartment_;
-    
-
-
-
-
-
-  public:
-    bool hasJaegerCompartment() {
-        return !!jaegerCompartment_;
-    }
-
-    js::mjit::JaegerCompartment *jaegerCompartment() const {
-        JS_ASSERT(jaegerCompartment_);
-        return jaegerCompartment_;
-    }
-
-    bool ensureJaegerCompartmentExists(JSContext *cx);
-
-    size_t sizeOfMjitCode() const;
-#endif
 
     js::RegExpCompartment        regExps;
 
@@ -338,9 +235,6 @@ struct JSCompartment
     js::types::TypeObject *getLazyType(JSContext *cx, JSObject *proto);
 
     
-    js::NewObjectCache           newObjectCache;
-
-    
 
 
 
@@ -362,13 +256,6 @@ struct JSCompartment
     unsigned                     debugModeBits;  
 
   public:
-    js::NativeIterCache          nativeIterCache;
-
-    typedef js::Maybe<js::ToSourceCache> LazyToSourceCache;
-    LazyToSourceCache            toSourceCache;
-
-    js::ScriptFilenameTable      scriptFilenameTable;
-
     JSCompartment(JSRuntime *rt);
     ~JSCompartment();
 
@@ -420,10 +307,6 @@ struct JSCompartment
     js::DtoaCache dtoaCache;
 
   private:
-    js::MathCache                *mathCache;
-
-    js::MathCache *allocMathCache(JSContext *cx);
-
     
 
 
@@ -434,10 +317,6 @@ struct JSCompartment
     JSCompartment *thisForCtor() { return this; }
 
   public:
-    js::MathCache *getMathCache(JSContext *cx) {
-        return mathCache ? mathCache : allocMathCache(cx);
-    }
-
     
 
 
@@ -489,14 +368,6 @@ struct JSCompartment
 };
 
 #define JS_PROPERTY_TREE(cx)    ((cx)->compartment->propertyTree)
-
-namespace js {
-static inline MathCache *
-GetMathCache(JSContext *cx)
-{
-    return cx->compartment->getMathCache(cx);
-}
-}
 
 inline void
 JSContext::setCompartment(JSCompartment *compartment)

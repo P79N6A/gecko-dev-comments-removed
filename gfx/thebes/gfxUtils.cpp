@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Corporation code.
+ *
+ * The Initial Developer of the Original Code is Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "gfxUtils.h"
 #include "gfxContext.h"
@@ -67,15 +67,15 @@ static const PRUint8 UnpremultiplyValue(PRUint8 a, PRUint8 v) {
 static void
 CalculateTables()
 {
-    
-    
-    
-    
-    
+    // It's important that the array be indexed first by alpha and then by rgb
+    // value.  When we unpremultiply a pixel, we're guaranteed to do three
+    // lookups with the same alpha; indexing by alpha first makes it likely that
+    // those three lookups will be close to one another in memory, thus
+    // increasing the chance of a cache hit.
 
-    
+    // Unpremultiply table
 
-    
+    // a == 0 case
     for (PRUint32 c = 0; c <= 255; c++) {
         sUnpremultiplyTable[c] = c;
     }
@@ -86,7 +86,7 @@ CalculateTables()
         }
     }
 
-    
+    // Premultiply table
 
     for (int a = 0; a <= 255; a++) {
         for (int c = 0; c <= 255; c++) {
@@ -113,7 +113,7 @@ gfxUtils::PremultiplyImageSurface(gfxImageSurface *aSourceSurface,
     NS_ASSERTION(aSourceSurface->Stride() == aSourceSurface->Width() * 4,
                  "Source surface stride isn't tightly packed");
 
-    
+    // Only premultiply ARGB32
     if (aSourceSurface->Format() != gfxASurface::ImageFormatARGB32) {
         if (aDestSurface != aSourceSurface) {
             memcpy(aDestSurface->Data(), aSourceSurface->Data(),
@@ -170,7 +170,7 @@ gfxUtils::UnpremultiplyImageSurface(gfxImageSurface *aSourceSurface,
     NS_ASSERTION(aSourceSurface->Stride() == aSourceSurface->Width() * 4,
                  "Source surface stride isn't tightly packed");
 
-    
+    // Only premultiply ARGB32
     if (aSourceSurface->Format() != gfxASurface::ImageFormatARGB32) {
         if (aDestSurface != aSourceSurface) {
             memcpy(aDestSurface->Data(), aSourceSurface->Data(),
@@ -262,18 +262,18 @@ IsSafeImageTransformComponent(gfxFloat aValue)
   return aValue >= -32768 && aValue <= 32767;
 }
 
-
-
-
-
-
+/**
+ * This returns the fastest operator to use for solid surfaces which have no
+ * alpha channel or their alpha channel is uniformly opaque.
+ * This differs per render mode.
+ */
 static gfxContext::GraphicsOperator
 OptimalFillOperator()
 {
 #ifdef XP_WIN
     if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
         gfxWindowsPlatform::RENDER_DIRECT2D) {
-        
+        // D2D -really- hates operator source.
         return gfxContext::OPERATOR_OVER;
     } else {
 #endif
@@ -283,8 +283,8 @@ OptimalFillOperator()
 #endif
 }
 
-
-
+// EXTEND_PAD won't help us here; we have to create a temporary surface to hold
+// the subimage of pixels we're allowed to sample.
 static already_AddRefed<gfxDrawable>
 CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
                                  gfxContext* aContext,
@@ -295,25 +295,25 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
 {
     SAMPLE_LABEL("gfxUtils", "CreateSamplingRestricedDrawable");
     gfxRect userSpaceClipExtents = aContext->GetClipExtents();
-    
-    
-    
-    
-    
+    // This isn't optimal --- if aContext has a rotation then GetClipExtents
+    // will have to do a bounding-box computation, and TransformBounds might
+    // too, so we could get a better result if we computed image space clip
+    // extents in one go --- but it doesn't really matter and this is easier
+    // to understand.
     gfxRect imageSpaceClipExtents =
         aUserSpaceToImageSpace.TransformBounds(userSpaceClipExtents);
-    
-    
+    // Inflate by one pixel because bilinear filtering will sample at most
+    // one pixel beyond the computed image pixel coordinate.
     imageSpaceClipExtents.Inflate(1.0);
 
     gfxRect needed = imageSpaceClipExtents.Intersect(aSourceRect);
     needed = needed.Intersect(aSubimage);
     needed.RoundOut();
 
-    
-    
-    
-    
+    // if 'needed' is empty, nothing will be drawn since aFill
+    // must be entirely outside the clip region, so it doesn't
+    // matter what we do here, but we should avoid trying to
+    // create a zero-size surface.
     if (needed.IsEmpty())
         return nsnull;
 
@@ -337,8 +337,8 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
     return drawable.forget();
 }
 
-
-
+// working around cairo/pixman bug (bug 364968)
+// Our device-space-to-image-space transform may not be acceptable to pixman.
 struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
 {
     AutoCairoPixmanBugWorkaround(gfxContext*      aContext,
@@ -347,7 +347,7 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
                                  const gfxASurface* aSurface)
      : mContext(aContext), mSucceeded(true), mPushedGroup(false)
     {
-        
+        // Quartz's limits for matrix are much larger than pixman
         if (!aSurface || aSurface->GetType() == gfxASurface::SurfaceTypeQuartz)
             return;
 
@@ -364,14 +364,14 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
             IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.y0))
             return;
 
-        
-        
+        // We'll push a group, which will hopefully reduce our transform's
+        // translation so it's in bounds.
         gfxMatrix currentMatrix = mContext->CurrentMatrix();
         mContext->Save();
 
-        
-        
-        
+        // Clip the rounded-out-to-device-pixels bounds of the
+        // transformed fill area. This is the area for the group we
+        // want to push.
         mContext->IdentityMatrix();
         gfxRect bounds = currentMatrix.TransformBounds(aFill);
         bounds.RoundOut();
@@ -414,7 +414,74 @@ DeviceToImageTransform(gfxContext* aContext,
     return gfxMatrix(deviceToUser).Multiply(aUserSpaceToImageSpace);
 }
 
- void
+/* These heuristics are based on Source/WebCore/platform/graphics/skia/ImageSkia.cpp:computeResamplingMode() */
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
+                                                         int aImgWidth, int aImgHeight,
+                                                         float aSourceWidth, float aSourceHeight)
+{
+    // Images smaller than this in either direction are considered "small" and
+    // are not resampled ever (see below).
+    const int kSmallImageSizeThreshold = 8;
+
+    // The amount an image can be stretched in a single direction before we
+    // say that it is being stretched so much that it must be a line or
+    // background that doesn't need resampling.
+    const float kLargeStretch = 3.0f;
+
+    if (aImgWidth <= kSmallImageSizeThreshold
+        || aImgHeight <= kSmallImageSizeThreshold) {
+        // Never resample small images. These are often used for borders and
+        // rules (think 1x1 images used to make lines).
+        return gfxPattern::FILTER_NEAREST;
+    }
+
+    if (aImgHeight * kLargeStretch <= aSourceHeight || aImgWidth * kLargeStretch <= aSourceWidth) {
+        // Large image tiling detected.
+
+        // Don't resample if it is being tiled a lot in only one direction.
+        // This is trying to catch cases where somebody has created a border
+        // (which might be large) and then is stretching it to fill some part
+        // of the page.
+        if (fabs(aSourceWidth - aImgWidth)/aImgWidth < 0.5 || fabs(aSourceHeight - aImgHeight)/aImgHeight < 0.5)
+            return gfxPattern::FILTER_NEAREST;
+
+        // The image is growing a lot and in more than one direction. Resampling
+        // is slow and doesn't give us very much when growing a lot.
+        return aFilter;
+    }
+
+    /* Some notes on other heuristics:
+       The Skia backend also uses nearest for backgrounds that are stretched by
+       a large amount. I'm not sure this is common enough for us to worry about
+       now. It also uses nearest for backgrounds/avoids high quality for images
+       that are very slightly scaled.  I'm also not sure that very slightly
+       scaled backgrounds are common enough us to worry about.
+
+       We don't currently have much support for doing high quality interpolation.
+       The only place this currently happens is on Quartz and we don't have as
+       much control over it as would be needed. Webkit avoids using high quality
+       resampling during load. It also avoids high quality if the transformation
+       is not just a scale and translation
+
+       WebKit bug #40045 added code to avoid resampling different parts
+       of an image with different methods by using a resampling hint size.
+       It currently looks unused in WebKit but it's something to watch out for.
+    */
+
+    return aFilter;
+}
+#else
+static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
+                                                          int aImgWidth, int aImgHeight,
+                                                          int aSourceWidth, int aSourceHeight)
+{
+    // Just pass the filter through unchanged
+    return aFilter;
+}
+#endif
+
+/* static */ void
 gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            gfxDrawable*     aDrawable,
                            const gfxMatrix& aUserSpaceToImageSpace,
@@ -423,7 +490,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            const gfxRect&   aImageRect,
                            const gfxRect&   aFill,
                            const gfxImageSurface::gfxImageFormat aFormat,
-                           const gfxPattern::GraphicsFilter& aFilter,
+                           gfxPattern::GraphicsFilter aFilter,
                            PRUint32         aImageFlags)
 {
     SAMPLE_LABEL("gfxUtils", "DrawPixelSnapped");
@@ -441,11 +508,13 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
 
     nsRefPtr<gfxDrawable> drawable = aDrawable;
 
-    
-    
-    
-    
-    
+    aFilter = ReduceResamplingFilter(aFilter, aImageRect.Width(), aImageRect.Height(), aSourceRect.Width(), aSourceRect.Height());
+
+    // OK now, the hard part left is to account for the subimage sampling
+    // restriction. If all the transforms involved are just integer
+    // translations, then we assume no resampling will occur so there's
+    // nothing to do.
+    // XXX if only we had source-clipping in cairo!
     if (aContext->CurrentMatrix().HasNonIntegerTranslation() ||
         aUserSpaceToImageSpace.HasNonIntegerTranslation()) {
         if (doTile || !aSubimage.Contains(aImageRect)) {
@@ -457,9 +526,9 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                 drawable.swap(restrictedDrawable);
             }
         }
-        
-        
-        
+        // We no longer need to tile: Either we never needed to, or we already
+        // filled a surface with the tiled pattern; this surface can now be
+        // drawn without tiling.
         doTile = false;
     }
 
@@ -474,7 +543,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
     aContext->SetOperator(op);
 }
 
- int
+/* static */ int
 gfxUtils::ImageFormatToDepth(gfxASurface::gfxImageFormat aFormat)
 {
     switch (aFormat) {
@@ -510,37 +579,37 @@ ClipToRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion,
   aContext->Clip();
 }
 
- void
+/*static*/ void
 gfxUtils::ClipToRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
   ClipToRegionInternal(aContext, aRegion, false);
 }
 
- void
+/*static*/ void
 gfxUtils::ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
 {
   ClipToRegionInternal(aContext, aRegion, true);
 }
 
- gfxFloat
+/*static*/ gfxFloat
 gfxUtils::ClampToScaleFactor(gfxFloat aVal)
 {
-  
-  
-  
+  // Arbitary scale factor limitation. We can increase this
+  // for better scaling performance at the cost of worse
+  // quality.
   static const gfxFloat kScaleResolution = 2;
 
-  
-  
+  // Negative scaling is just a flip and irrelevant to
+  // our resolution calculation.
   if (aVal < 0.0) {
     aVal = -aVal;
   }
 
   gfxFloat power = log(aVal)/log(kScaleResolution);
 
-  
-  
-  
+  // If power is within 1e-6 of an integer, round to nearest to
+  // prevent floating point errors, otherwise round up to the
+  // next integer value.
   if (fabs(power - NS_round(power)) < 1e-6) {
     power = NS_round(power);
   } else {
@@ -553,13 +622,13 @@ gfxUtils::ClampToScaleFactor(gfxFloat aVal)
 }
 
 
- void
+/*static*/ void
 gfxUtils::PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
   PathFromRegionInternal(aContext, aRegion, false);
 }
 
- void
+/*static*/ void
 gfxUtils::PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
 {
   PathFromRegionInternal(aContext, aRegion, true);
@@ -585,8 +654,8 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrImage::Data& aData,
                       aData.mCbCrSize.width,
                       aData.mCbCrSize.height);
 
-  
-  
+  // 'prescale' is true if the scaling is to be done as part of the
+  // YCbCr to RGB conversion rather than on the RGB data when rendered.
   bool prescale = aSuggestedSize.width > 0 && aSuggestedSize.height > 0 &&
                     aSuggestedSize != aData.mPicSize;
 
@@ -609,17 +678,17 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrImage::Data& aData,
       prescale = false;
     }
 #else
-    
+    // yuv2rgb16 function not available
     aSuggestedFormat = gfxASurface::ImageFormatRGB24;
 #endif
   }
   else if (aSuggestedFormat != gfxASurface::ImageFormatRGB24) {
-    
+    // No other formats are currently supported.
     aSuggestedFormat = gfxASurface::ImageFormatRGB24;
   }
   if (aSuggestedFormat == gfxASurface::ImageFormatRGB24) {
-    
-
+    /* ScaleYCbCrToRGB32 does not support a picture offset, nor 4:4:4 data.
+       See bugs 639415 and 640073. */
     if (aData.mPicX != 0 || aData.mPicY != 0 || yuvtype == gfx::YV24)
       prescale = false;
   }
@@ -641,7 +710,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrImage::Data& aData,
                       aData.mCbCrSize.width,
                       aData.mCbCrSize.height);
 
-  
+  // Convert from YCbCr to RGB now, scaling the image if needed.
   if (aDestSize != aData.mPicSize) {
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (aDestFormat == gfxASurface::ImageFormatRGB16_565) {
@@ -676,7 +745,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrImage::Data& aData,
                              yuvtype,
                              gfx::ROTATE_0,
                              gfx::FILTER_BILINEAR);
-  } else { 
+  } else { // no prescale
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (aDestFormat == gfxASurface::ImageFormatRGB16_565) {
       gfx::ConvertYCbCrToRGB565(aData.mYChannel,
@@ -691,7 +760,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrImage::Data& aData,
                                 aData.mCbCrStride,
                                 aStride,
                                 yuvtype);
-    } else 
+    } else // aDestFormat != gfxASurface::ImageFormatRGB16_565
 #endif
       gfx::ConvertYCbCrToRGB32(aData.mYChannel,
                                aData.mCbChannel,
@@ -709,7 +778,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrImage::Data& aData,
 }
 
 #ifdef MOZ_DUMP_PAINTING
- void
+/* static */ void
 gfxUtils::WriteAsPNG(DrawTarget* aDT, const char* aFile)
 {
   aDT->Flush();
@@ -721,7 +790,7 @@ gfxUtils::WriteAsPNG(DrawTarget* aDT, const char* aFile)
   }
 }
 
- void
+/* static */ void
 gfxUtils::DumpAsDataURL(DrawTarget* aDT)
 {
   aDT->Flush();
@@ -733,7 +802,7 @@ gfxUtils::DumpAsDataURL(DrawTarget* aDT)
   }
 }
 
- void
+/* static */ void
 gfxUtils::CopyAsDataURL(DrawTarget* aDT)
 {
   aDT->Flush();

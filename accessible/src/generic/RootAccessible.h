@@ -3,11 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_a11y_RootAccessible_h__
 #define mozilla_a11y_RootAccessible_h__
 
 #include "nsCaretAccessible.h"
-#include "DocAccessibleWrap.h"
+#include "nsDocAccessibleWrap.h"
 
 
 #include "nsHashtable.h"
@@ -15,10 +47,13 @@
 #include "nsIDocument.h"
 #include "nsIDOMEventListener.h"
 
+class nsXULTreeAccessible;
+class Relation;
+
 namespace mozilla {
 namespace a11y {
 
-class RootAccessible : public DocAccessibleWrap,
+class RootAccessible : public nsDocAccessibleWrap,
                        public nsIDOMEventListener
 {
   NS_DECL_ISUPPORTS_INHERITED
@@ -36,9 +71,9 @@ public:
 
   
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual Relation RelationByType(uint32_t aType);
+  virtual Relation RelationByType(PRUint32 aType);
   virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 
   
   nsCaretAccessible* GetCaretAccessible();
@@ -46,7 +81,7 @@ public:
   
 
 
-  virtual void DocumentActivated(DocAccessible* aDocument);
+  virtual void DocumentActivated(nsDocAccessible* aDocument);
 
 protected:
 
@@ -64,7 +99,7 @@ protected:
   
 
 
-  void HandlePopupShownEvent(Accessible* aAccessible);
+  void HandlePopupShownEvent(nsAccessible* aAccessible);
 
   
 
@@ -73,11 +108,11 @@ protected:
 
 #ifdef MOZ_XUL
     void HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
-                                        XULTreeAccessible* aAccessible);
+                                        nsXULTreeAccessible* aAccessible);
     void HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
-                                    XULTreeAccessible* aAccessible);
+                                    nsXULTreeAccessible* aAccessible);
 
-    uint32_t GetChromeFlags();
+    PRUint32 GetChromeFlags();
 #endif
 
     nsRefPtr<nsCaretAccessible> mCaretAccessible;
@@ -87,10 +122,10 @@ protected:
 } 
 
 inline mozilla::a11y::RootAccessible*
-Accessible::AsRoot()
+nsAccessible::AsRoot()
 {
   return mFlags & eRootAccessible ?
-    static_cast<mozilla::a11y::RootAccessible*>(this) : nullptr;
+    static_cast<mozilla::a11y::RootAccessible*>(this) : nsnull;
 }
 
 #endif

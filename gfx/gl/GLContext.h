@@ -1,43 +1,43 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ *   Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com>
+ *   Mark Steele <mwsteele@gmail.com>
+ *   Bas Schouten <bschouten@mozilla.com>
+ *   Jeff Gilbert <jgilbert@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef GLCONTEXT_H_
 #define GLCONTEXT_H_
@@ -100,81 +100,81 @@ enum ShaderProgramType {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * A TextureImage encapsulates a surface that can be drawn to by a
+ * Thebes gfxContext and (hopefully efficiently!) synchronized to a
+ * texture in the server.  TextureImages are associated with one and
+ * only one GLContext.
+ *
+ * Implementation note: TextureImages attempt to unify two categories
+ * of backends
+ *
+ *  (1) proxy to server-side object that can be bound to a texture;
+ *      e.g. Pixmap on X11.
+ *
+ *  (2) efficient manager of texture memory; e.g. by having clients draw
+ *      into a scratch buffer which is then uploaded with
+ *      glTexSubImage2D().
+ */
 class TextureImage
 {
     NS_INLINE_DECL_REFCOUNTING(TextureImage)
 public:
     enum TextureState
     {
-      Created, 
-      Allocated,  
-      Valid  
+      Created, // Texture created, but has not had glTexImage called to initialize it.
+      Allocated,  // Texture memory exists, but contents are invalid.
+      Valid  // Texture fully ready to use.
     };
 
     typedef gfxASurface::gfxContentType ContentType;
 
     virtual ~TextureImage() {}
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Returns a gfxASurface for updating |aRegion| of the client's
+     * image if successul, NULL if not.  |aRegion|'s bounds must fit
+     * within Size(); its coordinate space (if any) is ignored.  If
+     * the update begins successfully, the returned gfxASurface is
+     * owned by this.  Otherwise, NULL is returned.
+     *
+     * |aRegion| is an inout param: the returned region is what the
+     * client must repaint.  Category (1) regions above can
+     * efficiently handle repaints to "scattered" regions, while (2)
+     * can only efficiently handle repaints to rects.
+     *
+     * Painting the returned surface outside of |aRegion| results 
+     * in undefined behavior.
+     *
+     * BeginUpdate() calls cannot be "nested", and each successful
+     * BeginUpdate() must be followed by exactly one EndUpdate() (see
+     * below).  Failure to do so can leave this in a possibly
+     * inconsistent state.  Unsuccessful BeginUpdate()s must not be
+     * followed by EndUpdate().
+     */
     virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion) = 0;
-    
-
-
-
-
-
-
+    /**
+     * Retrieves the region that will require updating, given a
+     * region that needs to be updated. This can be used for
+     * making decisions about updating before calling BeginUpdate().
+     *
+     * |aRegion| is an inout param.
+     */
     virtual void GetUpdateRegion(nsIntRegion& aForRegion) {
     };
-    
-
-
-
-
-
-
+    /**
+     * Finish the active update and synchronize with the server, if
+     * necessary.
+     *
+     * BeginUpdate() must have been called exactly once before
+     * EndUpdate().
+     */
     virtual void EndUpdate() = 0;
 
-    
-
-
-
+    /**
+     * The Image may contain several textures for different regions (tiles).
+     * These functions iterate over each sub texture image tile.
+     */
     virtual void BeginTileIteration() {
     };
 
@@ -182,14 +182,14 @@ public:
         return false;
     };
 
-    
-    
-    
+    // Function prototype for a tile iteration callback. Returning false will
+    // cause iteration to be interrupted (i.e. the corresponding NextTile call
+    // will return false).
     typedef bool (* TileIterationCallback)(TextureImage* aImage,
                                            int aTileNumber,
                                            void* aCallbackData);
 
-    
+    // Sets a callback to be called every time NextTile is called.
     virtual void SetIterationCallback(TileIterationCallback aCallback,
                                       void* aCallbackData) {
     };
@@ -204,14 +204,14 @@ public:
         return 1;
     };
 
-    
-
-
-
-
-
-
-
+    /**
+     * Set this TextureImage's size, and ensure a texture has been
+     * allocated.  Must not be called between BeginUpdate and EndUpdate.
+     * After a resize, the contents are undefined.
+     *
+     * If this isn't implemented by a subclass, it will just perform
+     * a dummy BeginUpdate/EndUpdate pair.
+     */
     virtual void Resize(const nsIntSize& aSize) {
         mSize = aSize;
         nsIntRegion r(nsIntRect(0, 0, aSize.width, aSize.height));
@@ -219,17 +219,17 @@ public:
         EndUpdate();
     }
 
-    
-
-
-
+    /**
+     * Mark this texture as having valid contents. Call this after modifying
+     * the texture contents externally.
+     */
     virtual void MarkValid() {}
 
-    
-
-
-
-
+    /**
+     * aSurf - the source surface to update from
+     * aRegion - the region in this image to update
+     * aFrom - offset in the source to update from
+     */
     virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0)) = 0;
 
     virtual void BindTexture(GLenum aTextureUnit) = 0;
@@ -275,22 +275,22 @@ public:
         }
     };
 
-    
-
-
-
-
+    /**
+     * Returns the shader program type that should be used to render
+     * this texture. Only valid after a matching BeginUpdate/EndUpdate
+     * pair have been called.
+     */
     virtual ShaderProgramType GetShaderProgramType()
     {
          return mShaderType;
     }
 
-    
+    /** Can be called safely at any time. */
 
-    
-
-
-
+    /**
+     * If this TextureImage has a permanent gfxASurface backing,
+     * return it.  Otherwise return NULL.
+     */
     virtual already_AddRefed<gfxASurface> GetBackingSurface()
     { return NULL; }
 
@@ -301,21 +301,21 @@ public:
 
     void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
 
-    
-
-
-
+    /**
+     * Applies this TextureImage's filter, assuming that its texture is
+     * the currently bound texture.
+     */
     virtual void ApplyFilter() = 0;
 
 protected:
     friend class GLContext;
 
-    
-
-
-
-
-
+    /**
+     * After the ctor, the TextureImage is invalid.  Implementations
+     * must allocate resources successfully before returning the new
+     * TextureImage from GLContext::CreateTextureImage().  That is,
+     * clients must not be given partially-constructed TextureImages.
+     */
     TextureImage(const nsIntSize& aSize,
                  GLenum aWrapMode, ContentType aContentType,
                  bool aIsRGB = false)
@@ -332,15 +332,15 @@ protected:
     gfxPattern::GraphicsFilter mFilter;
 };
 
-
-
-
-
-
-
-
-
-
+/**
+ * BasicTextureImage is the baseline TextureImage implementation ---
+ * it updates its texture by allocating a scratch buffer for the
+ * client to draw into, then using glTexSubImage2D() to upload the new
+ * pixels.  Platforms must provide the code to create a new surface
+ * into which the updated pixels will be drawn, and the code to
+ * convert the update surface's pixels into an image on which we can
+ * glTexSubImage2D().
+ */
 class BasicTextureImage
     : public TextureImage
 {
@@ -367,18 +367,18 @@ public:
     virtual void EndUpdate();
     virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
     virtual GLuint GetTextureID() { return mTexture; };
-    
+    // Returns a surface to draw into
     virtual already_AddRefed<gfxASurface>
       GetSurfaceForUpdate(const gfxIntSize& aSize, ImageFormat aFmt);
 
     virtual void MarkValid() { mTextureState = Valid; }
 
-    
-    
-    
+    // Call when drawing into the update surface is complete.
+    // Returns true if textures should be upload with a relative 
+    // offset - See UploadSurfaceToTexture.
     virtual bool FinishedSurfaceUpdate();
 
-    
+    // Call after surface data has been uploaded to a texture.
     virtual void FinishedSurfaceUpload();
 
     virtual bool InUpdate() const { return !!mUpdateSurface; }
@@ -394,14 +394,14 @@ protected:
     nsRefPtr<gfxASurface> mUpdateSurface;
     nsIntRegion mUpdateRegion;
 
-    
+    // The offset into the update surface at which the update rect is located.
     nsIntPoint mUpdateOffset;
 };
 
-
-
-
-
+/**
+ * A container class that complements many sub TextureImages into a big TextureImage.
+ * Aims to behave just like the real thing.
+ */
 
 class TiledTextureImage
     : public TextureImage
@@ -439,9 +439,9 @@ protected:
     unsigned int mRows, mColumns;
     GLContext* mGL;
     bool mUseNearestFilter;
-    
+    // A temporary surface to faciliate cross-tile updates.
     nsRefPtr<gfxASurface> mUpdateSurface;
-    
+    // The region of update requested
     nsIntRegion mUpdateRegion;
     TextureState mTextureState;
 };
@@ -621,12 +621,12 @@ public:
         mUserData.Put(aKey, aValue);
     }
 
-    
-    
+    // Mark this context as destroyed.  This will NULL out all
+    // the GL function pointers!
     void THEBES_API MarkDestroyed();
 
     bool IsDestroyed() {
-        
+        // MarkDestroyed will mark all these as null.
         return mSymbols.fUseProgram == nsnull;
     }
 
@@ -643,17 +643,17 @@ public:
     bool IsGlobalSharedContext() { return mIsGlobalSharedContext; }
     void SetIsGlobalSharedContext(bool aIsOne) { mIsGlobalSharedContext = aIsOne; }
 
-    
-
-
-
+    /**
+     * Returns true if the thread on which this context was created is the currently
+     * executing thread.
+     */
     bool IsOwningThreadCurrent() { return NS_GetCurrentThread() == mOwningThread; }
 
     void DispatchToOwningThread(nsIRunnable *event) {
-        
-        
-        
-        
+        // Before dispatching, we need to ensure we're not in the middle of
+        // shutting down. Dispatching runnables in the middle of shutdown
+        // (that is, when the main thread is no longer get-able) can cause them
+        // to leak. See Bug 741319, and Bug 744115.
         nsCOMPtr<nsIThread> mainThread;
         if (NS_SUCCEEDED(NS_GetMainThread(getter_AddRefs(mainThread)))) {
             mOwningThread->Dispatch(event, NS_DISPATCH_NORMAL);
@@ -663,44 +663,44 @@ public:
     const ContextFormat& CreationFormat() { return mCreationFormat; }
     const ContextFormat& ActualFormat() { return mActualFormat; }
 
-    
-
-
+    /**
+     * If this GL context has a D3D texture share handle, returns non-null.
+     */
     virtual void *GetD3DShareHandle() { return nsnull; }
 
-    
-
-
+    /**
+     * If this context is double-buffered, returns TRUE.
+     */
     virtual bool IsDoubleBuffered() { return false; }
 
-    
-
-
-
-
+    /**
+     * If this context is the GLES2 API, returns TRUE.
+     * This means that various GLES2 restrictions might be in effect (modulo
+     * extensions).
+     */
     bool IsGLES2() const {
         return mIsGLES2;
     }
     
-    
-
-
+    /**
+     * Returns true if either this is the GLES2 API, or had the GL_ARB_ES2_compatibility extension
+     */
     bool HasES2Compatibility() {
         return mIsGLES2 || IsExtensionSupported(ARB_ES2_compatibility);
     }
 
-    
-
-
-
+    /**
+     * Returns true if the context is using ANGLE. This should only be overridden for an ANGLE
+     * implementation.
+     */
     virtual bool IsANGLE() {
         return false;
     }
 
-    
-
-
-
+    /**
+     * The derived class is expected to provide information on whether or not it
+     * supports robustness.
+     */
     virtual bool SupportsRobustness() = 0;
 
     enum {
@@ -733,47 +733,47 @@ public:
     bool WantsSmallTiles();
     virtual bool HasLockSurface() { return false; }
 
-    
-
-
-
-
+    /**
+     * If this context wraps a double-buffered target, swap the back
+     * and front buffers.  It should be assumed that after a swap, the
+     * contents of the new back buffer are undefined.
+     */
     virtual bool SwapBuffers() { return false; }
 
-    
-
-
+    /**
+     * Defines a two-dimensional texture image for context target surface
+     */
     virtual bool BindTexImage() { return false; }
-    
-
-
+    /*
+     * Releases a color buffer that is being used as a texture
+     */
     virtual bool ReleaseTexImage() { return false; }
 
-    
-
-
+    /**
+     * Applies aFilter to the texture currently bound to GL_TEXTURE_2D.
+     */
     void ApplyFilterToBoundTexture(gfxPattern::GraphicsFilter aFilter);
 
 
-    
+    /*
+     * Offscreen support API
+     */
 
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Bind aOffscreen's color buffer as a texture to the TEXTURE_2D
+     * target.  Returns TRUE on success, otherwise FALSE.  If
+     * aOffscreen is not an offscreen context, returns FALSE.  If
+     * BindOffscreenNeedsTexture() returns TRUE, then you should have
+     * a 2D texture name bound whose image will be replaced by the
+     * contents of the offscreen context.  If it returns FALSE,
+     * the current 2D texture binding will be replaced.
+     *
+     * After a successul call to BindTex2DOffscreen, UnbindTex2DOffscreen
+     * *must* be called once rendering is complete.
+     *
+     * The same texture unit must be active for Bind/Unbind of a given
+     * context.
+     */
     virtual bool BindOffscreenNeedsTexture(GLContext *aOffscreen) {
         return aOffscreen->mOffscreenTexture == 0;
     }
@@ -812,7 +812,7 @@ public:
         mFlushGuaranteesResolve = aFlushGuaranteesResolve;
     }
     
-    
+    // Before reads from offscreen texture
     void GuaranteeResolve() {
         if (mFlushGuaranteesResolve) {
             BlitDirtyFBOs();
@@ -822,48 +822,48 @@ public:
         }
     }
 
-    
-
-
-
-
-
-
-
+    /*
+     * Resize the current offscreen buffer.  Returns true on success.
+     * If it returns false, the context should be treated as unusable
+     * and should be recreated.  After the resize, the viewport is not
+     * changed; glViewport should be called as appropriate.
+     *
+     * Only valid if IsOffscreen() returns true.
+     */
     virtual bool ResizeOffscreen(const gfxIntSize& aNewSize) {
         if (mOffscreenDrawFBO || mOffscreenReadFBO)
             return ResizeOffscreenFBOs(aNewSize, mOffscreenReadFBO != 0);
         return false;
     }
 
-    
-
-
-
-
+    /*
+     * Return size of this offscreen context.
+     *
+     * Only valid if IsOffscreen() returns true.
+     */
     gfxIntSize OffscreenSize() {
         return mOffscreenSize;
     }
 
-    
-
-
-
-
-
+    /*
+     * In some cases, we have to allocate a bigger offscreen buffer
+     * than what's requested.  This is the bigger size.
+     *
+     * Only valid if IsOffscreen() returns true.
+     */
     gfxIntSize OffscreenActualSize() {
         return mOffscreenActualSize;
     }
 
-    
-
-
-
-
-
-
+    /*
+     * If this context is FBO-backed, return the FBO or the color
+     * buffer texture.  If the context is not FBO-backed, 0 is
+     * returned (which is also a valid FBO binding).
+     *
+     * Only valid if IsOffscreen() returns true.
+     */
     GLuint GetOffscreenFBO() {
-        
+        // 0 is interpreted as (off)screen, whether for read or draw operations
         return 0;
     }
 
@@ -946,7 +946,7 @@ public:
     }
 
 #ifdef DEBUG
-    
+    // See comment near BindInternalDrawFBO()
     bool mInInternalBindingMode_DrawFBO;
     bool mInInternalBindingMode_ReadFBO;
 #endif
@@ -954,10 +954,10 @@ public:
     GLuint GetUserBoundDrawFBO() {
 #ifdef DEBUG
         GLint ret = 0;
-        
-        
-        
-        
+        // Don't need a branch here, because:
+        // LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT == LOCAL_GL_FRAMEBUFFER_BINDING == 0x8CA6
+        // We use raw_ here because this is debug code and we need to see what
+        // the driver thinks.
         raw_fGetIntegerv(LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT, &ret);
 
         bool abort = false;
@@ -978,15 +978,15 @@ public:
             NS_ABORT();
 #endif
 
-        
+        // We only ever expose the user's bound FBOs
         return mUserBoundDrawFBO;
     }
 
     GLuint GetUserBoundReadFBO() {
 #ifdef DEBUG
         GLint ret = 0;
-        
-        
+        // We use raw_ here because this is debug code and we need to see what
+        // the driver thinks.
         if (SupportsOffscreenSplit())
             raw_fGetIntegerv(LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT, &ret);
         else
@@ -1010,7 +1010,7 @@ public:
             NS_ABORT();
 #endif
 
-        
+        // We only ever expose the user's bound FBOs
         return mUserBoundReadFBO;
     }
 
@@ -1034,11 +1034,11 @@ public:
 #endif
     }
 
-    
-    
-    
-    
-    
+    // BindInternalDraw/ReadFBO() switch us over into 'internal binding mode'
+    //   for the corresponding Draw or Read binding.
+    // To exit internal binding mode, use BindUserDraw/ReadFBO().
+    // While in internal binding mode for Draw/Read, the corresponding
+    //   GetBoundUserDraw/ReadFBO() is undefined, and will trigger ABORT in DEBUG builds.
     void BindInternalDrawFBO(GLuint name) {
 #ifdef DEBUG
       mInInternalBindingMode_DrawFBO = true;
@@ -1094,7 +1094,7 @@ private:
             case LOCAL_GL_LOW_FLOAT:
             case LOCAL_GL_MEDIUM_FLOAT:
             case LOCAL_GL_HIGH_FLOAT:
-                
+                // Assume IEEE 754 precision
                 range[0] = 127;
                 range[1] = 127;
                 *precision = 0;
@@ -1102,8 +1102,8 @@ private:
             case LOCAL_GL_LOW_INT:
             case LOCAL_GL_MEDIUM_INT:
             case LOCAL_GL_HIGH_INT:
-                
-                
+                // Some (most) hardware only supports single-precision floating-point numbers,
+                // which can accurately represent integers up to +/-16777216
                 range[0] = 24;
                 range[1] = 24;
                 *precision = 0;
@@ -1111,8 +1111,8 @@ private:
         }
     }
 
-    
-    
+    // Do whatever setup is necessary to draw to our offscreen FBO, if it's
+    // bound.
     void BeforeGLDrawCall() {
         if (mInternalBoundDrawFBO != mOffscreenDrawFBO)
             return;
@@ -1123,13 +1123,13 @@ private:
         mOffscreenFBOsDirty = true;
     }
 
-    
-    
+    // Do whatever tear-down is necessary after drawing to our offscreen FBO,
+    // if it's bound.
     void AfterGLDrawCall() {
     }
 
-    
-    
+    // Do whatever setup is necessary to read from our offscreen FBO, if it's
+    // bound.
     void BeforeGLReadCall() {
         if (mInternalBoundReadFBO != mOffscreenReadFBO)
             return;
@@ -1137,7 +1137,7 @@ private:
         if (mOffscreenDrawFBO == mOffscreenReadFBO)
             return;
 
-        
+        // If we're not dirty, there's no need to blit
         if (!mOffscreenFBOsDirty)
             return;
 
@@ -1145,14 +1145,14 @@ private:
         if (scissor)
             fDisable(LOCAL_GL_SCISSOR_TEST);
 
-        
+        // Store current bindings for restoring later
         GLuint prevDraw = GetUserBoundDrawFBO();
         GLuint prevRead = GetUserBoundReadFBO();
 
         NS_ABORT_IF_FALSE(SupportsOffscreenSplit(), "Doesn't support offscreen split?");
 
-        
-        
+        // Manually setting internal bindings, entering internal mode
+        // Flip read/draw for blitting
         BindInternalDrawFBO(mOffscreenReadFBO);
         BindInternalReadFBO(mOffscreenDrawFBO);
 
@@ -1163,7 +1163,7 @@ private:
                              LOCAL_GL_COLOR_BUFFER_BIT,
                              LOCAL_GL_NEAREST);
 
-        
+        // Reset to emulated user binding, exiting internal mode
         BindUserDrawFBO(prevDraw);
         BindUserReadFBO(prevRead);
 
@@ -1173,13 +1173,13 @@ private:
         mOffscreenFBOsDirty = false;
     }
 
-    
-    
+    // Do whatever tear-down is necessary after reading from our offscreen FBO,
+    // if it's bound.
     void AfterGLReadCall() {
     }
 
 public:
-    
+    // Draw call hooks:
     void fClear(GLbitfield mask) {
         BeforeGLDrawCall();
         raw_fClear(mask);
@@ -1198,7 +1198,7 @@ public:
         AfterGLDrawCall();
     }
 
-    
+    // Read call hooks:
     void fReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels) {
         BeforeGLReadCall();
         raw_fReadPixels(x, y, width, height, format, type, pixels);
@@ -1223,7 +1223,7 @@ public:
         GLuint draw = SwapUserDrawFBO(0);
 
         BeforeGLDrawCall();
-        
+        // no-op; just pretend we did something
         AfterGLDrawCall();
 
         BindUserDrawFBO(draw);
@@ -1233,7 +1233,7 @@ public:
         GLuint read = SwapUserReadFBO(0);
 
         BeforeGLReadCall();
-        
+        // no-op; we just want to make sure the Read FBO is updated if it needs to be
         AfterGLReadCall();
 
         BindUserReadFBO(read);
@@ -1245,7 +1245,7 @@ public:
         AfterGLReadCall();
     }
 
-    
+    // Draw/Read
     void fBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter) {
         BeforeGLDrawCall();
         BeforeGLReadCall();
@@ -1269,32 +1269,32 @@ public:
 
     virtual bool RenewSurface() { return false; }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
+    /**`
+     * Return a valid, allocated TextureImage of |aSize| with
+     * |aContentType|.  The TextureImage's texture is configured to
+     * use |aWrapMode| (usually GL_CLAMP_TO_EDGE or GL_REPEAT) and by
+     * default, GL_LINEAR filtering.  Specify
+     * |aUseNearestFilter=true| for GL_NEAREST filtering.  Return
+     * NULL if creating the TextureImage fails.
+     *
+     * The returned TextureImage may only be used with this GLContext.
+     * Attempting to use the returned TextureImage after this
+     * GLContext is destroyed will result in undefined (and likely
+     * crashy) behavior.
+     */
     virtual already_AddRefed<TextureImage>
     CreateTextureImage(const nsIntSize& aSize,
                        TextureImage::ContentType aContentType,
                        GLenum aWrapMode,
                        bool aUseNearestFilter=false);
 
-    
-
-
-
-
-
-
+    /**
+     * In EGL we want to use Tiled Texture Images, which we return
+     * from CreateTextureImage above.
+     * Inside TiledTextureImage we need to create actual images and to
+     * prevent infinite recursion we need to differentiate the two
+     * functions.
+     **/
     virtual already_AddRefed<TextureImage>
     TileGenFunc(const nsIntSize& aSize,
                 TextureImage::ContentType aContentType,
@@ -1303,17 +1303,17 @@ public:
         return nsnull;
     };
 
-    
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Read the image data contained in aTexture, and return it as an ImageSurface.
+     * If GL_RGBA is given as the format, a ImageFormatARGB32 surface is returned.
+     * Not implemented yet:
+     * If GL_RGB is given as the format, a ImageFormatRGB24 surface is returned.
+     * If GL_LUMINANCE is given as the format, a ImageFormatA8 surface is returned.
+     *
+     * THIS IS EXPENSIVE.  It is ridiculously expensive.  Only do this
+     * if you absolutely positively must, and never in any performance
+     * critical path.
+     */
     already_AddRefed<gfxImageSurface> ReadTextureImage(GLuint aTexture,
                                                        const gfxIntSize& aSize,
                                                        GLenum aTextureFormat,
@@ -1321,75 +1321,80 @@ public:
 
     already_AddRefed<gfxImageSurface> GetTexImage(GLuint aTexture, bool aYInvert, ShaderProgramType aShader);
 
-    
-
-
-
+    /**
+     * Call ReadPixels into an existing gfxImageSurface for the given bounds.
+     * The image surface must be using image format RGBA32 or RGB24.
+     */
     void THEBES_API ReadPixelsIntoImageSurface(GLint aX, GLint aY,
                                     GLsizei aWidth, GLsizei aHeight,
                                     gfxImageSurface *aDest);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Copy a rectangle from one TextureImage into another.  The
+     * source and destination are given in integer coordinates, and
+     * will be converted to texture coordinates.
+     *
+     * For the source texture, the wrap modes DO apply -- it's valid
+     * to use REPEAT or PAD and expect appropriate behaviour if the source
+     * rectangle extends beyond its bounds.
+     *
+     * For the destination texture, the wrap modes DO NOT apply -- the
+     * destination will be clipped by the bounds of the texture.
+     *
+     * Note: calling this function will cause the following OpenGL state
+     * to be changed:
+     *
+     *   - current program
+     *   - framebuffer binding
+     *   - viewport
+     *   - blend state (will be enabled at end)
+     *   - scissor state (will be enabled at end)
+     *   - vertex attrib 0 and 1 (pointer and enable state [enable state will be disabled at exit])
+     *   - array buffer binding (will be 0)
+     *   - active texture (will be 0)
+     *   - texture 0 binding
+     */
     void BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
                           TextureImage *aDst, const nsIntRect& aDstRect);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Creates a RGB/RGBA texture (or uses one provided) and uploads the surface
+     * contents to it within aSrcRect.
+     *
+     * aSrcRect.x/y will be uploaded to 0/0 in the texture, and the size
+     * of the texture with be aSrcRect.width/height.
+     *
+     * If an existing texture is passed through aTexture, it is assumed it
+     * has already been initialised with glTexImage2D (or this function),
+     * and that its size is equal to or greater than aSrcRect + aDstPoint.
+     * You can alternatively set the overwrite flag to true and have a new
+     * texture memory block allocated.
+     *
+     * The aDstPoint parameter is ignored if no texture was provided
+     * or aOverwrite is true.
+     *
+     * \param aSurface Surface to upload. 
+     * \param aDstRegion Region of texture to upload to.
+     * \param aTexture Texture to use, or 0 to have one created for you.
+     * \param aOverwrite Over an existing texture with a new one.
+     * \param aSrcPoint Offset into aSrc where the region's bound's 
+     *  TopLeft() sits.
+     * \param aPixelBuffer Pass true to upload texture data with an
+     *  offset from the base data (generally for pixel buffer objects), 
+     *  otherwise textures are upload with an absolute pointer to the data.
+     * \param aTextureUnit, the texture unit used temporarily to upload the
+     *  surface. This testure may be overridden, clients should not rely on
+     *  the contents of this texture after this call or even on this
+     *  texture unit being active.
+     * \return Shader program needed to render this texture.
+     */
     ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface, 
                                              const nsIntRegion& aDstRegion,
                                              GLuint& aTexture,
                                              bool aOverwrite = false,
                                              const nsIntPoint& aSrcPoint = nsIntPoint(0, 0),
-                                             bool aPixelBuffer = false);
+                                             bool aPixelBuffer = false,
+                                             GLenum aTextureUnit = LOCAL_GL_TEXTURE0);
 
     
     void TexImage2D(GLenum target, GLint level, GLint internalformat, 
@@ -1403,10 +1408,10 @@ public:
                        GLint pixelsize, GLenum format, 
                        GLenum type, const GLvoid* pixels);
 
-    
-
-
-
+    /**
+     * Uses the Khronos GL_EXT_unpack_subimage extension, working around
+     * quirks in the Tegra implementation of this extension.
+     */
     void TexSubImage2DWithUnpackSubimageGLES(GLenum target, GLint level,
                                              GLint xoffset, GLint yoffset,
                                              GLsizei width, GLsizei height,
@@ -1421,23 +1426,23 @@ public:
                                             GLenum format, GLenum type,
                                             const GLvoid* pixels);
 
-    
-
+    /** Helper for DecomposeIntoNoRepeatTriangles
+     */
     struct RectTriangles {
         RectTriangles() { }
 
-        
-        
-        
+        // Always pass texture coordinates upright. If you want to flip the
+        // texture coordinates emitted to the tex_coords array, set flip_y to
+        // true.
         void addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1,
                      GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1,
                      bool flip_y = false);
 
-        
-
-
-
-
+        /**
+         * these return a float pointer to the start of each array respectively.
+         * Use it for glVertexAttribPointer calls.
+         * We can return NULL if we choose to use Vertex Buffer Objects here.
+         */
         float* vertexPointer() {
             return &vertexCoords[0].x;
         };
@@ -1453,37 +1458,37 @@ public:
         typedef struct { GLfloat x,y; } vert_coord;
         typedef struct { GLfloat u,v; } tex_coord;
     private:
-        
+        // default is 4 rectangles, each made up of 2 triangles (3 coord vertices each)
         nsAutoTArray<vert_coord, 6> vertexCoords;
         nsAutoTArray<tex_coord, 6>  texCoords;
     };
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Decompose drawing the possibly-wrapped aTexCoordRect rectangle
+     * of a texture of aTexSize into one or more rectangles (represented
+     * as 2 triangles) and associated tex coordinates, such that
+     * we don't have to use the REPEAT wrap mode. If aFlipY is true, the
+     * texture coordinates will be specified vertically flipped.
+     *
+     * The resulting triangle vertex coordinates will be in the space of
+     * (0.0, 0.0) to (1.0, 1.0) -- transform the coordinates appropriately
+     * if you need a different space.
+     *
+     * The resulting vertex coordinates should be drawn using GL_TRIANGLES,
+     * and rects.numRects * 3 * 6
+     */
     static void DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
                                                const nsIntSize& aTexSize,
                                                RectTriangles& aRects,
                                                bool aFlipY = false);
 
-    
-
-
-
-
-
-
+    /**
+     * Known GL extensions that can be queried by
+     * IsExtensionSupported.  The results of this are cached, and as
+     * such it's safe to use this even in performance critical code.
+     * If you add to this array, remember to add to the string names
+     * in GLContext.cpp.
+     */
     enum GLExtensions {
         EXT_framebuffer_object,
         ARB_framebuffer_object,
@@ -1526,7 +1531,7 @@ public:
         mAvailableExtensions[aKnownExtension] = 0;
     }
 
-    
+    // Shared code for GL extensions and GLX extensions.
     static bool ListHasExtension(const GLubyte *extensions,
                                  const char *extension);
 
@@ -1534,10 +1539,10 @@ public:
     GLint GetMaxTextureImageSize() { return mMaxTextureImageSize; }
     void SetFlipped(bool aFlipped) { mFlipped = aFlipped; }
 
-    
-    
-    
-    
+    // this should just be a std::bitset, but that ended up breaking
+    // MacOS X builds; see bug 584919.  We can replace this with one
+    // later on.  This is handy to use in WebGL contexts as well,
+    // so making it public.
     template<size_t setlen>
     struct ExtensionBitset {
         ExtensionBitset() {
@@ -1553,11 +1558,11 @@ public:
         bool values[setlen];
     };
 
-    
-
-
-
-
+    /**
+     * Context reset constants.
+     * These are used to determine who is guilty when a context reset
+     * happens.
+     */
     enum ContextResetARB {
         CONTEXT_NO_ERROR = 0,
         CONTEXT_GUILTY_CONTEXT_RESET_ARB = 0x8253,
@@ -1602,17 +1607,17 @@ protected:
     ContextFormat mCreationFormat;
     nsRefPtr<GLContext> mSharedContext;
 
-    
+    // The thread on which this context was created.
     nsCOMPtr<nsIThread> mOwningThread;
 
     GLContextSymbols mSymbols;
 
 #ifdef DEBUG
-    
-    
-    
-    
-    
+    // GLDebugMode will check that we don't send call
+    // to a GLContext that isn't current on the current
+    // thread.
+    // Store the current context when binding to thread local
+    // storage to support DebugMode on an arbitrary thread.
     static PRUintn sCurrentGLContextTLS;
 #endif
 
@@ -1624,14 +1629,14 @@ protected:
     GLuint mOffscreenTexture;
     bool mFlipped;
 
-    
+    // lazy-initialized things
     GLuint mBlitProgram, mBlitFramebuffer;
     void UseBlitProgram();
     void SetBlitFramebufferForDestTexture(GLuint aTexture);
 
-    
-    
-    
+    // Helper to create/resize an offscreen FBO,
+    // for offscreen implementations that use FBOs.
+    // Note that it does -not- clear the resized buffers.
     bool ResizeOffscreenFBOs(const ContextFormat& aCF, const gfxIntSize& aSize, const bool aNeedsReadBuffer);
     bool ResizeOffscreenFBOs(const gfxIntSize& aSize, const bool aNeedsReadBuffer) {
         if (!IsOffscreenSizeAllowed(aSize))
@@ -1640,7 +1645,7 @@ protected:
         ContextFormat format(mCreationFormat);
 
         if (format.samples) {
-            
+            // AA path
             if (ResizeOffscreenFBOs(format, aSize, aNeedsReadBuffer))
                 return true;
 
@@ -1697,9 +1702,9 @@ protected:
 
     ExtensionBitset<Extensions_Max> mAvailableExtensions;
 
-    
-    
-    
+    // Clear to transparent black, with 0 depth and stencil,
+    // while preserving current ClearColor etc. values.
+    // Useful for resizing offscreen buffers.
 public:
     void ClearSafely();
 
@@ -1749,10 +1754,10 @@ protected:
 #ifdef XP_MACOSX
         if (mWorkAroundDriverBugs &&
             mVendor == VendorIntel) {
-            
-            
-            
-            
+            // see bug 737182 for 2D textures, bug 684822 for cube map textures.
+            // some drivers handle incorrectly some large texture sizes that are below the
+            // max texture size that they report. So we check ourselves against our own values
+            // (mMax[CubeMap]TextureSize).
             GLsizei maxSize = target == LOCAL_GL_TEXTURE_CUBE_MAP ||
                                 (target >= LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X &&
                                 target <= LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z)
@@ -1766,15 +1771,15 @@ protected:
 
 public:
  
-    
-
-
+    /** \returns the first GL error, and guarantees that all GL error flags are cleared,
+      * i.e. that a subsequent GetError call will return NO_ERROR
+      */
     GLenum GetAndClearError() {
-        
+        // the first error is what we want to return
         GLenum error = fGetError();
         
         if (error) {
-            
+            // clear all pending errors
             while(fGetError()) {}
         }
         
@@ -1817,9 +1822,9 @@ public:
 
     void AfterGLCall(const char* glFunction) {
         if (DebugMode()) {
-            
-            
-            
+            // calling fFinish() immediately after every GL call makes sure that if this GL command crashes,
+            // the stack trace will actually point to it. Otherwise, OpenGL being an asynchronous API, stack traces
+            // tend to be meaningless
             mSymbols.fFinish();
             mGLError = mSymbols.fGetError();
             if (DebugMode() & DebugTrace)
@@ -1874,11 +1879,11 @@ public:
 
 #endif
 
-    
+    /*** In GL debug mode, we completely override glGetError ***/
 
     GLenum fGetError() {
 #ifdef DEBUG
-        
+        // debug mode ends up eating the error in AFTER_GL_CALL
         if (DebugMode()) {
             GLenum err = mGLError;
             mGLError = LOCAL_GL_NO_ERROR;
@@ -1890,7 +1895,7 @@ public:
     }
 
 
-    
+    /*** Scissor functions ***/
 
 protected:
 
@@ -1899,11 +1904,11 @@ protected:
         return mFlipped ? ViewportRect().height - (height + y) : y;
     }
 
-    
+    // only does the glScissor call, no ScissorRect business
     void raw_fScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
         BEFORE_GL_CALL;
-        
-        
+        // GL's coordinate system is flipped compared to ours (in the Y axis),
+        // so we may need to flip our rectangle.
         mSymbols.fScissor(x, 
                           FixYValue(y, height),
                           width, 
@@ -1913,7 +1918,7 @@ protected:
 
 public:
 
-    
+    // but let GL-using code use that instead, updating the ScissorRect
     void fScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
         ScissorRect().SetRect(x, y, width, height);
         raw_fScissor(x, y, width, height);
@@ -1947,17 +1952,17 @@ public:
         }
     }
 
-    
+    /*** Viewport functions ***/
 
 protected:
 
-    
+    // only does the glViewport call, no ViewportRect business
     void raw_fViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
         BEFORE_GL_CALL;
-        
-        
-        
-        
+        // XXX: Flipping should really happen using the destination height, but
+        // we use viewport instead and assume viewport size matches the
+        // destination. If we ever try use partial viewports for layers we need
+        // to fix this, and remove the assertion.
         NS_ASSERTION(!mFlipped || (x == 0 && y == 0), "TODO: Need to flip the viewport rect"); 
         mSymbols.fViewport(x, y, width, height);
         AFTER_GL_CALL;
@@ -1998,7 +2003,7 @@ public:
         }
     }
 
-    
+    /*** other GL functions ***/
 
     void fActiveTexture(GLenum texture) {
         BEFORE_GL_CALL;
@@ -2064,7 +2069,7 @@ public:
         BEFORE_GL_CALL;
         mSymbols.fBufferData(target, size, data, usage);
 
-        
+        // bug 744888
         if (WorkAroundDriverBugs() &&
             !data &&
             Vendor() == VendorNVIDIA)
@@ -2220,9 +2225,9 @@ public:
     void fGetIntegerv(GLenum pname, GLint *params) {
         switch (pname)
         {
-            
-            
-            
+            // LOCAL_GL_FRAMEBUFFER_BINDING is equal to
+            // LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT, so we don't need two
+            // cases.
             case LOCAL_GL_FRAMEBUFFER_BINDING:
                 *params = GetUserBoundDrawFBO();
                 break;
@@ -2479,8 +2484,8 @@ public:
         if (IsTextureSizeSafeToPassToDriver(target, width, height)) {
           mSymbols.fTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
         } else {
-          
-          
+          // pass wrong values to cause the GL to generate GL_INVALID_VALUE.
+          // See bug 737182 and the comment in IsTextureSizeSafeToPassToDriver.
           mSymbols.fTexImage2D(target, -1, internalformat, -1, -1, -1, format, type, nsnull);
         }
         AFTER_GL_CALL;
@@ -2686,8 +2691,8 @@ public:
                                    width, height, border);
 
         } else {
-          
-          
+          // pass wrong values to cause the GL to generate GL_INVALID_VALUE.
+          // See bug 737182 and the comment in IsTextureSizeSafeToPassToDriver.
           mSymbols.fCopyTexImage2D(target, -1, internalformat, 
                                    x, FixYValue(y, height),
                                    -1, -1, -1);
@@ -2721,7 +2726,7 @@ public:
         if (mIsGLES2) {
             mSymbols.fGetShaderPrecisionFormat(shadertype, precisiontype, range, precision);
         } else {
-            
+            // Fall back to automatic values because almost all desktop hardware supports the OpenGL standard precisions.
             GetShaderPrecisionFormatNonES2(shadertype, precisiontype, range, precision);
         }
         AFTER_GL_CALL;
@@ -2939,7 +2944,7 @@ public:
      void GLAPIENTRY fDeleteFramebuffers(GLsizei n, GLuint *names) {
          BEFORE_GL_CALL;
          if (n == 1 && *names == 0) {
-            
+            /* Deleting framebuffer 0 causes hangs on the DROID. See bug 623228 */
          } else {
             mSymbols.fDeleteFramebuffers(n, names);
          }
@@ -3036,7 +3041,7 @@ public:
         GLuint name;
         bool originDeleted;
 
-        
+        // for sorting
         bool operator<(const NamedResource& aOther) const {
             if (intptr_t(origin) < intptr_t(aOther.origin))
                 return true;
@@ -3069,15 +3074,15 @@ DoesStringMatch(const char* aString, const char *aWantedString)
 
     const char *occurrence = strstr(aString, aWantedString);
 
-    
+    // aWanted not found
     if (!occurrence)
         return false;
 
-    
+    // aWantedString preceded by alpha character
     if (occurrence != aString && isalpha(*(occurrence-1)))
         return false;
 
-    
+    // aWantedVendor followed by alpha character
     const char *afterOccurrence = occurrence + strlen(aWantedString);
     if (isalpha(*afterOccurrence))
         return false;
@@ -3085,7 +3090,7 @@ DoesStringMatch(const char* aString, const char *aWantedString)
     return true;
 }
 
-} 
-} 
+} /* namespace gl */
+} /* namespace mozilla */
 
-#endif 
+#endif /* GLCONTEXT_H_ */

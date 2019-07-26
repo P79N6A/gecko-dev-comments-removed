@@ -1711,8 +1711,12 @@ GK_ATOM(onMozTouchMove, "onMozTouchMove")
 GK_ATOM(onMozTouchUp, "onMozTouchUp")
 
 
-GK_ATOM(ondeviceorientation, "ondeviceorientation")
 GK_ATOM(ondevicemotion, "ondevicemotion")
+GK_ATOM(ondeviceorientation, "ondeviceorientation")
+GK_ATOM(ondeviceproximity, "ondeviceproximity")
+
+
+GK_ATOM(ondevicelight, "ondevicelight")
 
 
 
@@ -1911,6 +1915,7 @@ GK_ATOM(az, "az")
 GK_ATOM(ba, "ba")
 GK_ATOM(crh, "crh")
 GK_ATOM(nl, "nl")
+GK_ATOM(el, "el")
 
 
 GK_ATOM(TypingTxnName, "Typing")

@@ -115,21 +115,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-  
-
-
-
-  static PRUint32 strlen(const char* s) {                                       
-    return PRUint32(::strlen(s));                                               
-  }                                                                             
-
   
   static PRInt32 strcmp(const char* s1, const char* s2) {
     return PRInt32(PL_strcmp(s1, s2));

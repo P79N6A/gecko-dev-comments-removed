@@ -67,7 +67,7 @@ using namespace js;
 using namespace js::gc;
 
 bool
-PropertyTable::init(JSRuntime *rt, Shape *lastProp)
+ShapeTable::init(JSRuntime *rt, Shape *lastProp)
 {
     
 
@@ -154,7 +154,7 @@ Shape::hashify(JSContext *cx)
         return false;
 
     JSRuntime *rt = cx->runtime;
-    PropertyTable *table = rt->new_<PropertyTable>(self->entryCount());
+    ShapeTable *table = rt->new_<ShapeTable>(self->entryCount());
     if (!table)
         return false;
 
@@ -175,7 +175,7 @@ Shape::hashify(JSContext *cx)
 #define HASH2(hash0,log2,shift) ((((hash0) << (log2)) >> (shift)) | 1)
 
 Shape **
-PropertyTable::search(jsid id, bool adding)
+ShapeTable::search(jsid id, bool adding)
 {
     JSHashNumber hash0, hash1, hash2;
     int sizeLog2;
@@ -253,7 +253,7 @@ PropertyTable::search(jsid id, bool adding)
 }
 
 bool
-PropertyTable::change(int log2Delta, JSContext *cx)
+ShapeTable::change(int log2Delta, JSContext *cx)
 {
     JS_ASSERT(entries);
 
@@ -291,7 +291,7 @@ PropertyTable::change(int log2Delta, JSContext *cx)
 }
 
 bool
-PropertyTable::grow(JSContext *cx)
+ShapeTable::grow(JSContext *cx)
 {
     JS_ASSERT(needsToGrow());
 
@@ -544,7 +544,7 @@ JSObject::addPropertyInternal(JSContext *cx, jsid id,
 
     RootGetterSetter gsRoot(cx, attrs, &getter, &setter);
 
-    PropertyTable *table = NULL;
+    ShapeTable *table = NULL;
     if (!inDictionaryMode()) {
         bool stableSlot =
             (slot == SHAPE_INVALID_SLOT) ||
@@ -899,7 +899,7 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
 
     if (self->inDictionaryMode()) {
-        PropertyTable &table = self->lastProperty()->table();
+        ShapeTable &table = self->lastProperty()->table();
 
         if (SHAPE_HAD_COLLISION(*spp)) {
             *spp = SHAPE_REMOVED;
@@ -933,7 +933,7 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
         
         uint32_t size = table.capacity();
-        if (size > PropertyTable::MIN_SIZE && table.entryCount <= size >> 2)
+        if (size > ShapeTable::MIN_SIZE && table.entryCount <= size >> 2)
             (void) table.change(-1, cx);
     } else {
         
@@ -1012,7 +1012,7 @@ JSObject::replaceWithNewEquivalentShape(JSContext *cx, Shape *oldShape, Shape *n
         new (newShape) Shape(oldShape->base()->unowned(), 0);
     }
 
-    PropertyTable &table = self->lastProperty()->table();
+    ShapeTable &table = self->lastProperty()->table();
     Shape **spp = oldShape->isEmptyShape()
                   ? NULL
                   : table.search(oldShape->propidRef(), false);
@@ -1397,7 +1397,7 @@ EmptyShape::insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto)
 
 
 
-    cx->compartment->newObjectCache.invalidateEntriesForShape(cx, shape, proto);
+    cx->runtime->newObjectCache.invalidateEntriesForShape(cx, shape, proto);
 }
 
 void

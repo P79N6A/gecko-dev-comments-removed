@@ -134,7 +134,7 @@ nsSVGInnerSVGFrame::NotifySVGChanged(PRUint32 aFlags)
     if (!(aFlags & TRANSFORM_CHANGED) &&
         (svg->mLengthAttributes[nsSVGSVGElement::X].IsPercentage() ||
          svg->mLengthAttributes[nsSVGSVGElement::Y].IsPercentage() ||
-         (svg->mViewBox.IsValid() &&
+         (svg->HasViewBox() &&
           (svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() ||
            svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage())))) {
     
@@ -175,7 +175,7 @@ nsSVGInnerSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
         aAttribute == nsGkAtoms::height) {
 
       nsSVGSVGElement* svg = static_cast<nsSVGSVGElement*>(mContent);
-      if (svg->mViewBox.IsValid()) {
+      if (svg->HasViewBox()) {
 
         
         mCanvasTM = nsnull;
@@ -236,9 +236,14 @@ nsSVGInnerSVGFrame::GetFrameForPoint(const nsPoint &aPoint)
 
 
 void
-nsSVGInnerSVGFrame::NotifyViewportChange()
+nsSVGInnerSVGFrame::NotifyViewportOrTransformChanged(PRUint32 aFlags)
 {
-  NS_ERROR("Inner SVG frames should not get Viewport changes.");
+  
+  
+  
+  
+  
+  NS_ERROR("Not called for nsSVGInnerSVGFrame");
 }
 
 

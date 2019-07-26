@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 sw=2 et tw=80: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsXBLDocumentInfo.h"
 #include "nsHashtable.h"
@@ -59,29 +59,29 @@
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
 #include "nsCCUncollectableMarker.h"
-#include "mozilla/dom/bindings/Utils.h"
+#include "mozilla/dom/BindingUtils.h"
 
 using namespace mozilla::scache;
 using namespace mozilla;
 
-using mozilla::dom::bindings::DestroyProtoOrIfaceCache;
+using mozilla::dom::DestroyProtoOrIfaceCache;
 
 static const char kXBLCachePrefix[] = "xblcache";
 
 static NS_DEFINE_CID(kDOMScriptObjectFactoryCID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
 
-
-
+// An XBLDocumentInfo object has a special context associated with it which we can use to pre-compile 
+// properties and methods of XBL bindings against.
 class nsXBLDocGlobalObject : public nsIScriptGlobalObject,
                              public nsIScriptObjectPrincipal
 {
 public:
   nsXBLDocGlobalObject(nsIScriptGlobalObjectOwner *aGlobalObjectOwner);
 
-  
+  // nsISupports interface
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   
-  
+  // nsIScriptGlobalObject methods
   virtual nsresult EnsureScriptEnvironment();
   virtual nsresult SetScriptContext(nsIScriptContext *aContext);
 
@@ -90,7 +90,7 @@ public:
   virtual void OnFinalize(JSObject* aObject);
   virtual void SetScriptsEnabled(bool aEnabled, bool aFireTimeouts);
 
-  
+  // nsIScriptObjectPrincipal methods
   virtual nsIPrincipal* GetPrincipal();
 
   static JSBool doCheckAccess(JSContext *cx, JSObject *obj, jsid id,
@@ -112,7 +112,7 @@ protected:
   nsCOMPtr<nsIScriptContext> mScriptContext;
   JSObject *mJSObject;
 
-  nsIScriptGlobalObjectOwner* mGlobalObjectOwner; 
+  nsIScriptGlobalObjectOwner* mGlobalObjectOwner; // weak reference
   static JSClass gSharedGlobalClass;
 };
 
@@ -125,8 +125,8 @@ nsXBLDocGlobalObject::doCheckAccess(JSContext *cx, JSObject *obj, jsid id, PRUin
     return JS_FALSE;
   }
 
-  
-  
+  // Make sure to actually operate on our object, and not some object further
+  // down on the proto chain.
   while (JS_GetClass(obj) != &nsXBLDocGlobalObject::gSharedGlobalClass) {
     obj = ::JS_GetPrototype(obj);
     if (!obj) {
@@ -181,7 +181,7 @@ nsXBLDocGlobalObject_finalize(JSFreeOp *fop, JSObject *obj)
   if (sgo)
     sgo->OnFinalize(obj);
 
-  
+  // The addref was part of JSObject construction
   NS_RELEASE(nativeThis);
 
   DestroyProtoOrIfaceCache(obj);
@@ -206,14 +206,14 @@ JSClass nsXBLDocGlobalObject::gSharedGlobalClass = {
     TraceXPCGlobal
 };
 
-
-
-
-
+//----------------------------------------------------------------------
+//
+// nsXBLDocGlobalObject
+//
 
 nsXBLDocGlobalObject::nsXBLDocGlobalObject(nsIScriptGlobalObjectOwner *aGlobalObjectOwner)
     : mJSObject(nsnull),
-      mGlobalObjectOwner(aGlobalObjectOwner) 
+      mGlobalObjectOwner(aGlobalObjectOwner) // weak reference
 {
 }
 
@@ -238,8 +238,8 @@ XBL_ProtoErrorReporter(JSContext *cx,
                        const char *message,
                        JSErrorReport *report)
 {
-  
-  
+  // Make an nsIScriptError and populate it with information from
+  // this error.
   nsCOMPtr<nsIScriptError>
     errorObject(do_CreateInstance("@mozilla.org/scripterror;1"));
   nsCOMPtr<nsIConsoleService>
@@ -259,10 +259,10 @@ XBL_ProtoErrorReporter(JSContext *cx,
   }
 }
 
-
-
-
-
+//----------------------------------------------------------------------
+//
+// nsIScriptGlobalObject methods
+//
 
 void
 nsXBLDocGlobalObject::SetContext(nsIScriptContext *aScriptContext)
@@ -272,15 +272,15 @@ nsXBLDocGlobalObject::SetContext(nsIScriptContext *aScriptContext)
     return;
   }
   aScriptContext->WillInitializeContext();
-  
-  
-  
+  // NOTE: We init this context with a NULL global, so we automatically
+  // hook up to the existing nsIScriptGlobalObject global setup by
+  // nsGlobalWindow.
   DebugOnly<nsresult> rv;
   rv = aScriptContext->InitContext();
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Script Language's InitContext failed");
   aScriptContext->SetGCOnDestruction(false);
   aScriptContext->DidInitializeContext();
-  
+  // and we set up our global manually
   mScriptContext = aScriptContext;
 }
 
@@ -301,7 +301,7 @@ nsresult
 nsXBLDocGlobalObject::EnsureScriptEnvironment()
 {
   if (mScriptContext)
-    return NS_OK; 
+    return NS_OK; // already initialized for this lang
   nsCOMPtr<nsIDOMScriptObjectFactory> factory = do_GetService(kDOMScriptObjectFactoryCID);
   NS_ENSURE_TRUE(factory, NS_OK);
 
@@ -316,9 +316,9 @@ nsXBLDocGlobalObject::EnsureScriptEnvironment()
   JSContext *cx = mScriptContext->GetNativeContext();
   JSAutoRequest ar(cx);
 
-  
-  
-  
+  // nsJSEnvironment set the error reporter to NS_ScriptErrorReporter so
+  // we must apparently override that with our own (although it isn't clear 
+  // why - see bug 339647)
   JS_SetErrorReporter(cx, XBL_ProtoErrorReporter);
 
   nsIPrincipal *principal = GetPrincipal();
@@ -330,8 +330,8 @@ nsXBLDocGlobalObject::EnsureScriptEnvironment()
 
   ::JS_SetGlobalObject(cx, mJSObject);
 
-  
-  
+  // Add an owning reference from JS back to us. This'll be
+  // released when the JSObject is finalized.
   ::JS_SetPrivate(mJSObject, this);
   NS_ADDREF(this);
   return NS_OK;
@@ -340,11 +340,11 @@ nsXBLDocGlobalObject::EnsureScriptEnvironment()
 nsIScriptContext *
 nsXBLDocGlobalObject::GetContext()
 {
-  
-  
+  // This whole fragile mess is predicated on the fact that
+  // GetContext() will be called before GetScriptObject() is.
   if (! mScriptContext) {
     nsresult rv = EnsureScriptEnvironment();
-    
+    // JS is builtin so we make noise if it fails to initialize.
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to setup JS!?");
     NS_ENSURE_SUCCESS(rv, nsnull);
     NS_ASSERTION(mScriptContext, "Failed to find a script context!?");
@@ -369,8 +369,8 @@ nsXBLDocGlobalObject::UnmarkScriptContext()
 JSObject *
 nsXBLDocGlobalObject::GetGlobalJSObject()
 {
-  
-  
+  // The prototype document has its own special secret script object
+  // that can be used to compile scripts and event handlers.
 
   if (!mScriptContext)
     return nsnull;
@@ -394,20 +394,20 @@ nsXBLDocGlobalObject::OnFinalize(JSObject* aObject)
 void
 nsXBLDocGlobalObject::SetScriptsEnabled(bool aEnabled, bool aFireTimeouts)
 {
-    
+    // We don't care...
 }
 
-
-
-
-
+//----------------------------------------------------------------------
+//
+// nsIScriptObjectPrincipal methods
+//
 
 nsIPrincipal*
 nsXBLDocGlobalObject::GetPrincipal()
 {
   if (!mGlobalObjectOwner) {
-    
-    
+    // XXXbz this should really save the principal when
+    // ClearGlobalObjectOwner() happens.
     return nsnull;
   }
 
@@ -429,7 +429,7 @@ static bool IsChromeURI(nsIURI* aURI)
   return false;
 }
 
-
+/* Implementation file */
 
 static bool
 TraverseProtos(nsHashKey *aKey, void *aData, void* aClosure)
@@ -494,11 +494,9 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsXBLDocumentInfo)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 static void
-UnmarkXBLJSObject(PRUint32 aLangID, void* aP, const char* aName, void* aClosure)
+UnmarkXBLJSObject(void* aP, const char* aName, void* aClosure)
 {
-  if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
-    xpc_UnmarkGrayObject(static_cast<JSObject*>(aP));
-  }
+  xpc_UnmarkGrayObject(static_cast<JSObject*>(aP));
 }
 
 static bool
@@ -515,7 +513,7 @@ nsXBLDocumentInfo::MarkInCCGeneration(PRUint32 aGeneration)
   if (mDocument) {
     mDocument->MarkUncollectableForCCGeneration(aGeneration);
   }
-  
+  // Unmark any JS we hold
   if (mBindingTable) {
     mBindingTable->Enumerate(UnmarkProtos, nsnull);
   }
@@ -542,7 +540,7 @@ nsXBLDocumentInfo::nsXBLDocumentInfo(nsIDocument* aDocument)
 {
   nsIURI* uri = aDocument->GetDocumentURI();
   if (IsChromeURI(uri)) {
-    
+    // Cache whether or not this chrome XBL can execute scripts.
     nsCOMPtr<nsIXULChromeRegistry> reg =
       mozilla::services::GetXULChromeRegistryService();
     if (reg) {
@@ -556,11 +554,11 @@ nsXBLDocumentInfo::nsXBLDocumentInfo(nsIDocument* aDocument)
 
 nsXBLDocumentInfo::~nsXBLDocumentInfo()
 {
-  
+  /* destructor code */
   if (mGlobalObject) {
-    
+    // remove circular reference
     mGlobalObject->SetScriptContext(nsnull);
-    mGlobalObject->ClearGlobalObjectOwner(); 
+    mGlobalObject->ClearGlobalObjectOwner(); // just in case
   }
   if (mBindingTable) {
     NS_DROP_JS_OBJECTS(this, nsXBLDocumentInfo);
@@ -575,7 +573,7 @@ nsXBLDocumentInfo::GetPrototypeBinding(const nsACString& aRef)
     return NULL;
 
   if (aRef.IsEmpty()) {
-    
+    // Return our first binding
     return mFirstBinding;
   }
 
@@ -613,15 +611,15 @@ void
 nsXBLDocumentInfo::RemovePrototypeBinding(const nsACString& aRef)
 {
   if (mBindingTable) {
-    
+    // Use a flat string to avoid making a copy.
     const nsPromiseFlatCString& flat = PromiseFlatCString(aRef);
     nsCStringKey key(flat);
     mBindingTable->Remove(&key);
   }
 }
 
-
-
+// Callback to enumerate over the bindings from this document and write them
+// out to the cache.
 bool
 WriteBinding(nsHashKey *aKey, void *aData, void* aClosure)
 {
@@ -631,7 +629,7 @@ WriteBinding(nsHashKey *aKey, void *aData, void* aClosure)
   return kHashEnumerateNext;
 }
 
-
+// static
 nsresult
 nsXBLDocumentInfo::ReadPrototypeBindings(nsIURI* aURI, nsXBLDocumentInfo** aDocInfo)
 {
@@ -647,7 +645,7 @@ nsXBLDocumentInfo::ReadPrototypeBindings(nsIURI* aURI, nsXBLDocumentInfo** aDocI
   nsAutoArrayPtr<char> buf;
   PRUint32 len;
   rv = startupCache->GetBuffer(spec.get(), getter_Transfers(buf), &len);
-  
+  // GetBuffer will fail if the binding is not in the cache.
   if (NS_FAILED(rv))
     return rv;
 
@@ -656,15 +654,15 @@ nsXBLDocumentInfo::ReadPrototypeBindings(nsIURI* aURI, nsXBLDocumentInfo** aDocI
   NS_ENSURE_SUCCESS(rv, rv);
   buf.forget();
 
-  
-  
-  
+  // The file compatibility.ini stores the build id. This is checked in
+  // nsAppRunner.cpp and will delete the cache if a different build is
+  // present. However, we check that the version matches here to be safe. 
   PRUint32 version;
   rv = stream->Read32(&version);
   NS_ENSURE_SUCCESS(rv, rv);
   if (version != XBLBinding_Serialize_Version) {
-    
-    
+    // The version that exists is different than expected, likely created with a
+    // different build, so invalidate the cache.
     startupCache->InvalidateCache();
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -703,7 +701,7 @@ nsXBLDocumentInfo::ReadPrototypeBindings(nsIURI* aURI, nsXBLDocumentInfo** aDocI
 nsresult
 nsXBLDocumentInfo::WritePrototypeBindings()
 {
-  
+  // Only write out bindings with the system principal
   if (!nsContentUtils::IsSystemPrincipal(mDocument->NodePrincipal()))
     return NS_OK;
 
@@ -727,7 +725,7 @@ nsXBLDocumentInfo::WritePrototypeBindings()
   if (mBindingTable)
     mBindingTable->Enumerate(WriteBinding, stream);
 
-  
+  // write a end marker at the end
   rv = stream->Write8(XBLBinding_Serialize_NoMoreBindings);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -762,10 +760,10 @@ nsXBLDocumentInfo::FlushSkinStylesheets()
     mBindingTable->Enumerate(FlushScopedSkinSheets);
 }
 
-
-
-
-
+//----------------------------------------------------------------------
+//
+// nsIScriptGlobalObjectOwner methods
+//
 
 nsIScriptGlobalObject*
 nsXBLDocumentInfo::GetScriptGlobalObject()

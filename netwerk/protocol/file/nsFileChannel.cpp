@@ -273,6 +273,36 @@ nsFileUploadContentStream::OnCopyComplete()
 
 
 
+nsFileChannel::nsFileChannel(nsIURI *uri) 
+{
+  
+  
+  
+  nsCOMPtr<nsIFile> file;
+  nsCOMPtr <nsIURI> targetURI;
+  nsCAutoString fileTarget;
+  nsCOMPtr<nsILocalFile> resolvedFile;
+  bool symLink;
+  nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(uri);
+  if (fileURL && 
+      NS_SUCCEEDED(fileURL->GetFile(getter_AddRefs(file))) &&
+      NS_SUCCEEDED(file->IsSymlink(&symLink)) && 
+      symLink &&
+      NS_SUCCEEDED(file->GetNativeTarget(fileTarget)) &&
+      NS_SUCCEEDED(NS_NewNativeLocalFile(fileTarget, PR_TRUE, 
+                                         getter_AddRefs(resolvedFile))) &&
+      NS_SUCCEEDED(NS_NewFileURI(getter_AddRefs(targetURI), 
+                   resolvedFile, nsnull))) {
+    SetURI(targetURI);
+    SetOriginalURI(uri);
+    nsLoadFlags loadFlags = 0;
+    GetLoadFlags(&loadFlags);
+    SetLoadFlags(loadFlags | nsIChannel::LOAD_REPLACE);
+  } else {
+    SetURI(uri);
+  }
+}
+
 nsresult
 nsFileChannel::MakeFileInputStream(nsIFile *file,
                                    nsCOMPtr<nsIInputStream> &stream,

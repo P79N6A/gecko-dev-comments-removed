@@ -40,7 +40,7 @@
 
 
 #include "ion/IonMacroAssembler.h"
-#include "jsgcmark.h"
+#include "gc/Marking.h"
 
 using namespace js;
 using namespace js::ion;

@@ -466,131 +466,6 @@ protected:
 #define NS_MAX_REFLOW_TIME    1000000
 static PRInt32 gMaxRCProcessingTime = -1;
 
-StackArena::StackArena()
-{
-  mMarkLength = 0;
-  mMarks = nsnull;
-
-  
-  mBlocks = new StackBlock();
-  mCurBlock = mBlocks;
-
-  mStackTop = 0;
-  mPos = 0;
-}
-
-StackArena::~StackArena()
-{
-  
-  delete[] mMarks;
-  while(mBlocks)
-  {
-    StackBlock* toDelete = mBlocks;
-    mBlocks = mBlocks->mNext;
-    delete toDelete;
-  }
-} 
-
-void
-StackArena::Push()
-{
-  
-  
-  
-  if (mStackTop >= mMarkLength)
-  {
-    PRUint32 newLength = mStackTop + STACK_ARENA_MARK_INCREMENT;
-    StackMark* newMarks = new StackMark[newLength];
-    if (newMarks) {
-      if (mMarkLength)
-        memcpy(newMarks, mMarks, sizeof(StackMark)*mMarkLength);
-      
-      
-      for (; mMarkLength < mStackTop; ++mMarkLength) {
-        NS_NOTREACHED("should only hit this on out-of-memory");
-        newMarks[mMarkLength].mBlock = mCurBlock;
-        newMarks[mMarkLength].mPos = mPos;
-      }
-      delete [] mMarks;
-      mMarks = newMarks;
-      mMarkLength = newLength;
-    }
-  }
-
-  
-  NS_ASSERTION(mStackTop < mMarkLength, "out of memory");
-  if (mStackTop < mMarkLength) {
-    mMarks[mStackTop].mBlock = mCurBlock;
-    mMarks[mStackTop].mPos = mPos;
-  }
-
-  mStackTop++;
-}
-
-void*
-StackArena::Allocate(size_t aSize)
-{
-  NS_ASSERTION(mStackTop > 0, "Allocate called without Push");
-
-  
-  
-  aSize = NS_ROUNDUP<size_t>(aSize, 8);
-
-  
-  if (mPos + aSize >= STACK_ARENA_BLOCK_INCREMENT)
-  {
-    NS_ASSERTION(aSize <= STACK_ARENA_BLOCK_INCREMENT,
-                 "Requested memory is greater that our block size!!");
-    if (mCurBlock->mNext == nsnull)
-      mCurBlock->mNext = new StackBlock();
-
-    mCurBlock =  mCurBlock->mNext;
-    mPos = 0;
-  }
-
-  
-  void *result = mCurBlock->mBlock + mPos;
-  mPos += aSize;
-
-  return result;
-}
-
-void
-StackArena::Pop()
-{
-  
-  NS_ASSERTION(mStackTop > 0, "unmatched pop");
-  mStackTop--;
-
-  if (mStackTop >= mMarkLength) {
-    
-    
-    NS_NOTREACHED("out of memory");
-    if (mStackTop == 0) {
-      
-      mCurBlock = mBlocks;
-      mPos = 0;
-    }
-    return;
-  }
-
-#ifdef DEBUG
-  
-  
-  {
-    StackBlock *block = mMarks[mStackTop].mBlock, *block_end = mCurBlock;
-    size_t pos = mMarks[mStackTop].mPos;
-    for (; block != block_end; block = block->mNext, pos = 0) {
-      memset(block->mBlock + pos, 0xdd, sizeof(block->mBlock) - pos);
-    }
-    memset(block->mBlock + pos, 0xdd, mPos - pos);
-  }
-#endif
-
-  mCurBlock = mMarks[mStackTop].mBlock;
-  mPos      = mMarks[mStackTop].mPos;
-}
-
 struct nsCallbackEventRequest
 {
   nsIReflowCallback* callback;
@@ -900,8 +775,6 @@ PresShell::Init(nsIDocument* aDocument,
     NS_WARNING("PresShell double init'ed");
     return NS_ERROR_ALREADY_INITIALIZED;
   }
-  result = mStackArena.Init();
-  NS_ENSURE_SUCCESS(result, result);
 
   if (!mFramesToDirty.Init()) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1197,47 +1070,52 @@ PresShell::Destroy()
   mHaveShutDown = true;
 }
 
-                  
- void
-PresShell::PushStackMemory()
-{
-  mStackArena.Push();
-}
-
- void
-PresShell::PopStackMemory()
-{
-  mStackArena.Pop();
-}
-
- void*
-PresShell::AllocateStackMemory(size_t aSize)
-{
-  return mStackArena.Allocate(aSize);
-}
-
 void
-PresShell::FreeFrame(nsQueryFrame::FrameIID aCode, void* aPtr)
+PresShell::FreeFrame(nsQueryFrame::FrameIID aID, void* aPtr)
 {
 #ifdef DEBUG
   mPresArenaAllocCount--;
 #endif
   if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
-    mFrameArena.FreeByCode(aCode, aPtr);
+    mFrameArena.FreeByFrameID(aID, aPtr);
 }
 
 void*
-PresShell::AllocateFrame(nsQueryFrame::FrameIID aCode, size_t aSize)
+PresShell::AllocateFrame(nsQueryFrame::FrameIID aID, size_t aSize)
 {
 #ifdef DEBUG
   mPresArenaAllocCount++;
 #endif
-  void* result = mFrameArena.AllocateByCode(aCode, aSize);
+  void* result = mFrameArena.AllocateByFrameID(aID, aSize);
 
   if (result) {
     memset(result, 0, aSize);
   }
   return result;
+}
+
+void*
+PresShell::AllocateByObjectID(nsPresArena::ObjectID aID, size_t aSize)
+{
+#ifdef DEBUG
+  mPresArenaAllocCount++;
+#endif
+  void* result = mFrameArena.AllocateByObjectID(aID, aSize);
+
+  if (result) {
+    memset(result, 0, aSize);
+  }
+  return result;
+}
+
+void
+PresShell::FreeByObjectID(nsPresArena::ObjectID aID, void* aPtr)
+{
+#ifdef DEBUG
+  mPresArenaAllocCount--;
+#endif
+  if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
+    mFrameArena.FreeByObjectID(aID, aPtr);
 }
 
 void
@@ -5036,9 +4914,14 @@ void PresShell::UpdateCanvasBackground()
     
     
     
+    bool drawBackgroundImage;
+    bool drawBackgroundColor;
+
     mCanvasBackgroundColor =
       nsCSSRendering::DetermineBackgroundColor(mPresContext, bgStyle,
-                                               rootStyleFrame);
+                                               rootStyleFrame,
+                                               drawBackgroundImage,
+                                               drawBackgroundColor);
     if (GetPresContext()->IsRootContentDocument() &&
         !IsTransparentContainerElement(mPresContext)) {
       mCanvasBackgroundColor =
@@ -9155,7 +9038,6 @@ PresShell::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                size_t *aTextRunsSize) const
 {
   *aArenasSize = aMallocSizeOf(this);
-  *aArenasSize += mStackArena.SizeOfExcludingThis(aMallocSizeOf);
   *aArenasSize += mFrameArena.SizeOfExcludingThis(aMallocSizeOf);
 
   *aStyleSetsSize = StyleSet()->SizeOfIncludingThis(aMallocSizeOf);

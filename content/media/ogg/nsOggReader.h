@@ -72,7 +72,8 @@ public:
                                   PRInt64 aTimeThreshold);
 
   virtual bool HasAudio() {
-    return mVorbisState != 0 && mVorbisState->mActive;
+    return (mVorbisState != 0 && mVorbisState->mActive) ||
+           (mOpusState != 0 && mOpusState->mActive);
   }
 
   virtual bool HasVideo() {
@@ -218,6 +219,10 @@ private:
 
   
   
+  nsresult DecodeOpus(ogg_packet* aPacket);
+
+  
+  
   
   
   
@@ -252,6 +257,14 @@ private:
 
   
   nsVorbisState* mVorbisState;
+
+  
+  nsOpusState *mOpusState;
+
+  
+  
+  
+  bool mOpusEnabled;
 
   
   nsSkeletonState* mSkeletonState;

@@ -1313,11 +1313,23 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
 NS_IMETHODIMP
 nsTypedSelection::ToString(PRUnichar **aReturn)
 {
+  if (!aReturn) {
+    return NS_ERROR_NULL_POINTER;
+  }
+  
+  
+  nsCOMPtr<nsIPresShell> shell;
+  nsresult rv = GetPresShell(getter_AddRefs(shell));
+  if (NS_FAILED(rv) || !shell) {
+    *aReturn = ToNewUnicode(EmptyString());
+    return NS_OK;
+  }
+  shell->FlushPendingNotifications(Flush_Style);
+
   return ToStringWithFormat("text/plain",
                             nsIDocumentEncoder::SkipInvisibleContent,
                             0, aReturn);
 }
-
 
 NS_IMETHODIMP
 nsTypedSelection::ToStringWithFormat(const char * aFormatType, PRUint32 aFlags, 
@@ -1797,12 +1809,6 @@ nsFrameSelection::TakeFocus(nsIContent *aNewFocus,
   mStartSelectedCell = nsnull;
   mEndSelectedCell = nsnull;
   mAppendStartSelectedCell = nsnull;
-
-  
-  if (!aNewFocus->GetParent())
-    return NS_ERROR_FAILURE;
-  
-
   mHint = aHint;
   
   PRInt8 index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);

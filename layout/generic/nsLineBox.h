@@ -236,7 +236,7 @@ class nsLineLink {
 
 
 
-class nsLineBox : public nsLineLink {
+class nsLineBox MOZ_FINAL : public nsLineLink {
 private:
   nsLineBox(nsIFrame* aFrame, PRInt32 aCount, bool aIsBlock);
   ~nsLineBox();

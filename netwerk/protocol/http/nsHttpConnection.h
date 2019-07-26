@@ -167,6 +167,10 @@ public:
     bool UsingSpdy() { return mUsingSpdy; }
 
     
+    
+    bool ReportedNPN() { return mReportedSpdy; }
+
+    
     void  ReadTimeoutTick(PRIntervalTime now);
 
     nsAHttpTransaction::Classifier Classification() { return mClassification; }

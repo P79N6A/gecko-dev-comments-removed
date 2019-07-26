@@ -51,81 +51,6 @@
 using namespace js;
 using namespace js::frontend;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
-CleanFunctionList(ParseNodeAllocator *allocator, FunctionBox **funboxHead)
-{
-    FunctionBox **link = funboxHead;
-    while (FunctionBox *box = *link) {
-        if (!box->node) {
-            
-
-
-
-            *link = box->siblings;
-        } else if (!box->node->pn_funbox) {
-            
-
-
-
-            *link = box->siblings;
-            allocator->freeNode(box->node);
-        } else {
-            
-
-            
-            {
-                ParseNode **methodLink = &box->methods;
-                while (ParseNode *method = *methodLink) {
-                    
-                    JS_ASSERT(method->isArity(PN_FUNC));
-                    if (!method->pn_funbox) {
-                        
-                        *methodLink = method->pn_link;
-                    } else {
-                        
-                        methodLink = &method->pn_link;
-                    }
-                }
-            }
-
-            
-            CleanFunctionList(allocator, &box->kids);
-
-            
-            link = &box->siblings;
-        }
-    }
-}
-
 static void
 FlagHeavyweights(Definition *dn, FunctionBox *funbox, uint32_t *tcflags)
 {
@@ -153,7 +78,12 @@ SetFunctionKinds(FunctionBox *funbox, uint32_t *tcflags, bool isDirectEval)
 {
     for (; funbox; funbox = funbox->siblings) {
         ParseNode *fn = funbox->node;
+        if (!fn)
+            continue;
+
         ParseNode *pn = fn->pn_body;
+        if (!pn)
+            continue;
 
         if (funbox->kids)
             SetFunctionKinds(funbox->kids, tcflags, isDirectEval);
@@ -261,7 +191,6 @@ MarkExtensibleScopeDescendants(JSContext *context, FunctionBox *funbox, bool has
 bool
 frontend::AnalyzeFunctions(TreeContext *tc)
 {
-    CleanFunctionList(&tc->parser->allocator, &tc->functionList);
     if (!tc->functionList)
         return true;
     if (!MarkExtensibleScopeDescendants(tc->parser->context, tc->functionList, false))

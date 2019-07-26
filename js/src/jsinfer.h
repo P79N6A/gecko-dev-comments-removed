@@ -43,12 +43,12 @@
 #define jsinfer_h___
 
 #include "jsalloc.h"
-#include "jscell.h"
 #include "jsfriendapi.h"
 #include "jsprvtd.h"
 
 #include "ds/LifoAlloc.h"
 #include "gc/Barrier.h"
+#include "gc/Heap.h"
 #include "js/HashTable.h"
 
 namespace JS {
@@ -940,8 +940,8 @@ struct TypeCallsite
     bool isNew;
 
     
-    TypeSet **argumentTypes;
     unsigned argumentCount;
+    TypeSet **argumentTypes;
 
     
     TypeSet *thisTypes;
@@ -1168,16 +1168,35 @@ struct RecompileInfo
 struct TypeCompartment
 {
     
-    bool inferenceEnabled;
 
     
-    unsigned scriptCount;
+
+
+
+    struct PendingWork
+    {
+        TypeConstraint *constraint;
+        TypeSet *source;
+        Type type;
+    };
+    PendingWork *pendingArray;
+    unsigned pendingCount;
+    unsigned pendingCapacity;
+
+    
+    bool resolving;
+
+    
+    bool inferenceEnabled;
 
     
 
 
 
     bool pendingNukeTypes;
+
+    
+    unsigned scriptCount;
 
     
     Vector<RecompileInfo> *pendingRecompiles;
@@ -1207,25 +1226,6 @@ struct TypeCompartment
 
     void fixArrayType(JSContext *cx, JSObject *obj);
     void fixObjectType(JSContext *cx, JSObject *obj);
-
-    
-
-    
-
-
-
-    struct PendingWork
-    {
-        TypeConstraint *constraint;
-        TypeSet *source;
-        Type type;
-    };
-    PendingWork *pendingArray;
-    unsigned pendingCount;
-    unsigned pendingCapacity;
-
-    
-    bool resolving;
 
     
 

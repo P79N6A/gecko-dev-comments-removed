@@ -84,88 +84,6 @@ struct nsCallbackEventRequest;
 class ReflowCountMgr;
 #endif
 
-#define STACK_ARENA_MARK_INCREMENT 50
-
-#define STACK_ARENA_BLOCK_INCREMENT 4044
-
-
-
-
-struct StackBlock {
-   
-   
-   
-   char mBlock[STACK_ARENA_BLOCK_INCREMENT];
-
-   
-   
-   
-   StackBlock* mNext;
-
-   StackBlock() : mNext(nsnull) { }
-   ~StackBlock() { }
-};
-
-
-
-
-struct StackMark {
-   
-   StackBlock* mBlock;
-   
-   
-   size_t mPos;
-};
-
-
-
-
-
-
-class StackArena {
-public:
-  StackArena();
-  ~StackArena();
-
-  nsresult Init() { return mBlocks ? NS_OK : NS_ERROR_OUT_OF_MEMORY; }
-
-  
-  void* Allocate(size_t aSize);
-  void Push();
-  void Pop();
-
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-    size_t n = 0;
-    StackBlock *block = mBlocks;
-    while (block) {
-      n += aMallocSizeOf(block);
-      block = block->mNext;
-    }
-    n += aMallocSizeOf(mMarks);
-    return n;
-  }
-
-private:
-  
-  size_t mPos;
-
-  
-  
-  StackBlock* mBlocks;
-
-  
-  StackBlock* mCurBlock;
-
-  
-  StackMark* mMarks;
-
-  
-  PRUint32 mStackTop;
-
-  
-  PRUint32 mMarkLength;
-};
-
 class nsPresShellEventCB;
 class nsAutoCauseReflowNotifier;
 
@@ -190,18 +108,18 @@ public:
                                    nsCompatibility aCompatMode);
   virtual NS_HIDDEN_(void) Destroy();
 
-  virtual NS_HIDDEN_(void*) AllocateFrame(nsQueryFrame::FrameIID aCode,
+  virtual NS_HIDDEN_(void*) AllocateFrame(nsQueryFrame::FrameIID aID,
                                           size_t aSize);
-  virtual NS_HIDDEN_(void)  FreeFrame(nsQueryFrame::FrameIID aCode,
+  virtual NS_HIDDEN_(void)  FreeFrame(nsQueryFrame::FrameIID aID,
                                       void* aChunk);
+
+  virtual NS_HIDDEN_(void*) AllocateByObjectID(nsPresArena::ObjectID aID,
+                                               size_t aSize);
+  virtual NS_HIDDEN_(void)  FreeByObjectID(nsPresArena::ObjectID aID,
+                                           void* aPtr);
 
   virtual NS_HIDDEN_(void*) AllocateMisc(size_t aSize);
   virtual NS_HIDDEN_(void)  FreeMisc(size_t aSize, void* aChunk);
-
-  
-  virtual NS_HIDDEN_(void) PushStackMemory();
-  virtual NS_HIDDEN_(void) PopStackMemory();
-  virtual NS_HIDDEN_(void*) AllocateStackMemory(size_t aSize);
 
   virtual NS_HIDDEN_(nsresult) SetPreferenceStyleRules(bool aForceReflow);
 
@@ -653,7 +571,6 @@ protected:
   nsRefPtr<nsCaret>             mCaret;
   nsRefPtr<nsCaret>             mOriginalCaret;
   nsPresArena                   mFrameArena;
-  StackArena                    mStackArena;
   nsCOMPtr<nsIDragService>      mDragService;
   
 #ifdef DEBUG

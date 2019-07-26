@@ -383,7 +383,16 @@ public:
 
     
     
-    void ApplyTo(gfxContext* aContext, nsPresContext* aPresContext);
+    
+    void ApplyTo(gfxContext* aContext, nsPresContext* aPresContext,
+                 PRUint32 aBegin = 0, PRUint32 aEnd = PR_UINT32_MAX);
+
+    void ApplyRectTo(gfxContext* aContext, PRInt32 A2D) const;
+    
+    
+    
+    void ApplyRoundedRectsTo(gfxContext* aContext, PRInt32 A2DPRInt32,
+                             PRUint32 aBegin, PRUint32 aEnd) const;
 
     
     
@@ -509,11 +518,12 @@ protected:
 
 
 
+public:
   class ThebesLayerItemsEntry : public nsPtrHashKey<ThebesLayer> {
   public:
     ThebesLayerItemsEntry(const ThebesLayer *key) :
         nsPtrHashKey<ThebesLayer>(key), mContainerLayerFrame(nsnull),
-        mHasExplicitLastPaintOffset(false) {}
+        mHasExplicitLastPaintOffset(false), mCommonClipCount(-1) {}
     ThebesLayerItemsEntry(const ThebesLayerItemsEntry &toCopy) :
       nsPtrHashKey<ThebesLayer>(toCopy.mKey), mItems(toCopy.mItems)
     {
@@ -526,10 +536,25 @@ protected:
     
     nsIntPoint mLastPaintOffset;
     bool mHasExplicitLastPaintOffset;
+    
+
+
+
+    PRUint32 mCommonClipCount;
 
     enum { ALLOW_MEMMOVE = true };
   };
 
+  
+
+
+
+  ThebesLayerItemsEntry* GetThebesLayerItemsEntry(ThebesLayer* aLayer)
+  {
+    return mThebesLayerItems.GetEntry(aLayer);
+  }
+
+protected:
   void RemoveThebesItemsForLayerSubtree(Layer* aLayer);
 
   static PLDHashOperator UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,

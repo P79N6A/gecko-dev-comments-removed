@@ -614,8 +614,6 @@ struct ParseNode {
     ParseNode           *pn_next;       
     ParseNode           *pn_link;       
 
-
-
     union {
         struct {                        
             ParseNode   *head;          
@@ -1547,11 +1545,6 @@ struct FunctionBox : public ObjectBox
     FunctionBox         *siblings;
     FunctionBox         *kids;
     FunctionBox         *parent;
-    ParseNode           *methods;               
-
-
-
-
     Bindings            bindings;               
     uint32_t            queued:1,
                         inLoop:1,               

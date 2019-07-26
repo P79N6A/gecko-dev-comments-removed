@@ -97,8 +97,10 @@ struct JSSharpObjectMap {
 namespace js {
 
 namespace mjit {
-class JaegerCompartment;
+class JaegerRuntime;
 }
+
+class MathCache;
 
 namespace ion {
 class IonActivation;
@@ -193,6 +195,144 @@ struct ConservativeGCData
     }
 };
 
+class ToSourceCache
+{
+    typedef HashMap<JSFunction *,
+                    JSString *,
+                    DefaultHasher<JSFunction *>,
+                    SystemAllocPolicy> Map;
+    Map *map_;
+  public:
+    ToSourceCache() : map_(NULL) {}
+    JSString *lookup(JSFunction *fun);
+    void put(JSFunction *fun, JSString *);
+    void purge();
+};
+
+class EvalCache
+{
+    static const unsigned SHIFT = 6;
+    static const unsigned LENGTH = 1 << SHIFT;
+    JSScript *table_[LENGTH];
+
+  public:
+    EvalCache() { PodArrayZero(table_); }
+    JSScript **bucket(JSLinearString *str);
+    void purge();
+};
+
+class NativeIterCache
+{
+    static const size_t SIZE = size_t(1) << 8;
+
+    
+    JSObject            *data[SIZE];
+
+    static size_t getIndex(uint32_t key) {
+        return size_t(key) % SIZE;
+    }
+
+  public:
+    
+    JSObject            *last;
+
+    NativeIterCache()
+      : last(NULL) {
+        PodArrayZero(data);
+    }
+
+    void purge() {
+        last = NULL;
+        PodArrayZero(data);
+    }
+
+    JSObject *get(uint32_t key) const {
+        return data[getIndex(key)];
+    }
+
+    void set(uint32_t key, JSObject *iterobj) {
+        data[getIndex(key)] = iterobj;
+    }
+};
+
+
+
+
+
+
+class NewObjectCache
+{
+    
+    static const unsigned MAX_OBJ_SIZE = 4 * sizeof(void*) + 16 * sizeof(Value);
+    static inline void staticAsserts();
+
+    struct Entry
+    {
+        
+        Class *clasp;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        gc::Cell *key;
+
+        
+        gc::AllocKind kind;
+
+        
+        uint32_t nbytes;
+
+        
+
+
+
+        char templateObject[MAX_OBJ_SIZE];
+    };
+
+    Entry entries[41];  
+
+  public:
+
+    typedef int EntryIndex;
+
+    NewObjectCache() { PodZero(this); }
+    void purge() { PodZero(this); }
+
+    
+
+
+
+    inline bool lookupProto(Class *clasp, JSObject *proto, gc::AllocKind kind, EntryIndex *pentry);
+    inline bool lookupGlobal(Class *clasp, js::GlobalObject *global, gc::AllocKind kind, EntryIndex *pentry);
+    inline bool lookupType(Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, EntryIndex *pentry);
+
+    
+    inline JSObject *newObjectFromHit(JSContext *cx, EntryIndex entry);
+
+    
+    inline void fillProto(EntryIndex entry, Class *clasp, JSObject *proto, gc::AllocKind kind, JSObject *obj);
+    inline void fillGlobal(EntryIndex entry, Class *clasp, js::GlobalObject *global, gc::AllocKind kind, JSObject *obj);
+    inline void fillType(EntryIndex entry, Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, JSObject *obj);
+
+    
+    void invalidateEntriesForShape(JSContext *cx, Shape *shape, JSObject *proto);
+
+  private:
+    inline bool lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, EntryIndex *pentry);
+    inline void fill(EntryIndex entry, Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj);
+    static inline void copyCachedToObject(JSObject *dst, JSObject *src);
+};
+
 
 
 
@@ -278,17 +418,37 @@ struct JSRuntime : js::RuntimeFriendFields
 
     JSC::ExecutableAllocator *execAlloc_;
     WTF::BumpPointerAllocator *bumpAlloc_;
+#ifdef JS_METHODJIT
+    js::mjit::JaegerRuntime *jaegerRuntime_;
+#endif
 
     JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
     WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
+    js::mjit::JaegerRuntime *createJaegerRuntime(JSContext *cx);
 
   public:
-    JSC::ExecutableAllocator *getExecutableAllocator(JSContext *cx) {
+    JSC::ExecutableAllocator *getExecAlloc(JSContext *cx) {
         return execAlloc_ ? execAlloc_ : createExecutableAllocator(cx);
+    }
+    JSC::ExecutableAllocator &execAlloc() {
+        JS_ASSERT(execAlloc_);
+        return *execAlloc_;
     }
     WTF::BumpPointerAllocator *getBumpPointerAllocator(JSContext *cx) {
         return bumpAlloc_ ? bumpAlloc_ : createBumpPointerAllocator(cx);
     }
+#ifdef JS_METHODJIT
+    js::mjit::JaegerRuntime *getJaegerRuntime(JSContext *cx) {
+        return jaegerRuntime_ ? jaegerRuntime_ : createJaegerRuntime(cx);
+    }
+    bool hasJaegerRuntime() const {
+        return jaegerRuntime_;
+    }
+    js::mjit::JaegerRuntime &jaegerRuntime() {
+        JS_ASSERT(hasJaegerRuntime());
+        return *jaegerRuntime_;
+    }
+#endif
 
     
     uintptr_t           nativeStackBase;
@@ -438,12 +598,6 @@ struct JSRuntime : js::RuntimeFriendFields
     };
     js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
 #endif
-
-
-
-
-
-
 
     bool                gcPoke;
     bool                gcRunning;
@@ -599,14 +753,20 @@ struct JSRuntime : js::RuntimeFriendFields
 
     bool                waiveGCQuota;
 
-    
-
-
+  private:
+    js::MathCache *mathCache_;
+    js::MathCache *createMathCache(JSContext *cx);
+  public:
+    js::MathCache *getMathCache(JSContext *cx) {
+        return mathCache_ ? mathCache_ : createMathCache(cx);
+    }
 
     js::GSNCache        gsnCache;
-
-    
     js::PropertyCache   propertyCache;
+    js::NewObjectCache  newObjectCache;
+    js::NativeIterCache nativeIterCache;
+    js::ToSourceCache   toSourceCache;
+    js::EvalCache       evalCache;
 
     
     DtoaState           *dtoaState;
@@ -631,6 +791,8 @@ struct JSRuntime : js::RuntimeFriendFields
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;
     js::PreserveWrapperCallback preserveWrapperCallback;
+
+    js::ScriptFilenameTable scriptFilenameTable;
 
 #ifdef DEBUG
     size_t              noGCOrAllocationCheck;
@@ -782,7 +944,8 @@ struct JSRuntime : js::RuntimeFriendFields
     }
 
     void sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
-                             size_t *regexpCode, size_t *stackCommitted, size_t *gcMarker);
+                             size_t *mjitCode, size_t *regexpCode, size_t *unusedCodeMemory,
+                             size_t *stackCommitted, size_t *gcMarker);
 };
 
 
@@ -1095,7 +1258,7 @@ struct JSContext : js::ContextFriendFields
 #ifdef JS_METHODJIT
     bool                 methodJitEnabled;
 
-    inline js::mjit::JaegerCompartment *jaegerCompartment();
+    js::mjit::JaegerRuntime &jaegerRuntime() { return runtime->jaegerRuntime(); }
 #endif
 
     bool                 inferenceEnabled;

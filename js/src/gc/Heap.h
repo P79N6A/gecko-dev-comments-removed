@@ -66,7 +66,8 @@ enum AllocKind {
     FINALIZE_SHORT_STRING,
     FINALIZE_STRING,
     FINALIZE_EXTERNAL_STRING,
-    FINALIZE_LAST = FINALIZE_EXTERNAL_STRING
+    FINALIZE_IONCODE,
+    FINALIZE_LAST = FINALIZE_IONCODE
 };
 
 static const unsigned FINALIZE_LIMIT = FINALIZE_LAST + 1;
@@ -108,8 +109,7 @@ struct Cell
 
 
 
-#if (defined(SOLARIS) || defined(__FreeBSD__)) && \
-    (defined(__sparc) || defined(__sparcv9) || defined(__ia64))
+#if defined(SOLARIS) && (defined(__sparc) || defined(__sparcv9))
 const size_t PageShift = 13;
 #else
 const size_t PageShift = 12;
@@ -425,18 +425,9 @@ struct ArenaHeader
 
 
 
-
-
-
     size_t       allocKind          : 8;
 
     
-
-
-
-
-
-
 
 
 
@@ -457,7 +448,7 @@ struct ArenaHeader
     size_t       hasDelayedMarking  : 1;
     size_t       allocatedDuringIncremental : 1;
     size_t       markOverflow : 1;
-    size_t       auxNextLink : JS_BITS_PER_WORD - 8 - 1 - 1 - 1;
+    size_t       nextDelayedMarking : JS_BITS_PER_WORD - 8 - 1 - 1 - 1;
 
     static void staticAsserts() {
         
@@ -497,7 +488,7 @@ struct ArenaHeader
         markOverflow = 0;
         allocatedDuringIncremental = 0;
         hasDelayedMarking = 0;
-        auxNextLink = 0;
+        nextDelayedMarking = 0;
     }
 
     inline uintptr_t arenaAddress() const;
@@ -529,11 +520,6 @@ struct ArenaHeader
 
     inline ArenaHeader *getNextDelayedMarking() const;
     inline void setNextDelayedMarking(ArenaHeader *aheader);
-    inline void unsetDelayedMarking();
-
-    inline ArenaHeader *getNextAllocDuringSweep() const;
-    inline void setNextAllocDuringSweep(ArenaHeader *aheader);
-    inline void unsetAllocDuringSweep();
 };
 
 struct Arena
@@ -715,7 +701,8 @@ struct ChunkBitmap
         PodArrayZero(bitmap);
     }
 
-    uintptr_t *arenaBits(ArenaHeader *aheader) {
+#ifdef DEBUG
+    bool noBitsSet(ArenaHeader *aheader) {
         
 
 
@@ -725,8 +712,13 @@ struct ChunkBitmap
 
         uintptr_t *word, unused;
         getMarkWordAndMask(reinterpret_cast<Cell *>(aheader->address()), BLACK, &word, &unused);
-        return word;
+        for (size_t i = 0; i != ArenaBitmapWords; i++) {
+            if (word[i])
+                return false;
+        }
+        return true;
     }
+#endif
 };
 
 JS_STATIC_ASSERT(ArenaBitmapBytes * ArenasPerChunk == sizeof(ChunkBitmap));
@@ -897,48 +889,15 @@ ArenaHeader::setFirstFreeSpan(const FreeSpan *span)
 inline ArenaHeader *
 ArenaHeader::getNextDelayedMarking() const
 {
-    JS_ASSERT(hasDelayedMarking);
-    return &reinterpret_cast<Arena *>(auxNextLink << ArenaShift)->aheader;
+    return &reinterpret_cast<Arena *>(nextDelayedMarking << ArenaShift)->aheader;
 }
 
 inline void
 ArenaHeader::setNextDelayedMarking(ArenaHeader *aheader)
 {
     JS_ASSERT(!(uintptr_t(aheader) & ArenaMask));
-    JS_ASSERT(!auxNextLink && !hasDelayedMarking);
     hasDelayedMarking = 1;
-    auxNextLink = aheader->arenaAddress() >> ArenaShift;
-}
-
-inline void
-ArenaHeader::unsetDelayedMarking()
-{
-    JS_ASSERT(hasDelayedMarking);
-    hasDelayedMarking = 0;
-    auxNextLink = 0;
-}
-
-inline ArenaHeader *
-ArenaHeader::getNextAllocDuringSweep() const
-{
-    JS_ASSERT(allocatedDuringIncremental);
-    return &reinterpret_cast<Arena *>(auxNextLink << ArenaShift)->aheader;
-}
-
-inline void
-ArenaHeader::setNextAllocDuringSweep(ArenaHeader *aheader)
-{
-    JS_ASSERT(!auxNextLink && !allocatedDuringIncremental);
-    allocatedDuringIncremental = 1;
-    auxNextLink = aheader->arenaAddress() >> ArenaShift;
-}
-
-inline void
-ArenaHeader::unsetAllocDuringSweep()
-{
-    JS_ASSERT(allocatedDuringIncremental);
-    allocatedDuringIncremental = 0;
-    auxNextLink = 0;
+    nextDelayedMarking = aheader->arenaAddress() >> ArenaShift;
 }
 
 JS_ALWAYS_INLINE void

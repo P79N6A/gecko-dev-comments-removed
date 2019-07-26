@@ -1717,6 +1717,26 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   
+  let enabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
+  if (enabled) {
+    document.getElementById("menu_remoteDebugger").hidden = false;
+    document.getElementById("Tools:RemoteDebugger").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+    document.getElementById("appmenu_remoteDebugger").hidden = false;
+#endif
+  }
+
+  
+  let enabled = gPrefService.getBoolPref("devtools.chrome.enabled");
+  if (enabled) {
+    document.getElementById("menu_chromeDebugger").hidden = false;
+    document.getElementById("Tools:ChromeDebugger").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+    document.getElementById("appmenu_chromeDebugger").hidden = false;
+#endif
+  }
+
+  
   
   let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
   if (consoleEnabled) {
@@ -4436,7 +4456,7 @@ XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {
   
   
 #ifdef XP_MACOSX
-  return /^11\./.test(Services.sysinfo.getProperty("version")) &&
+  return parseFloat(Services.sysinfo.getProperty("version")) >= 11 &&
          document.documentElement.getAttribute("fullscreenbutton") == "true";
 #else
   return false;

@@ -1,42 +1,42 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
+ */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at:
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Code.
+ *
+ * The Initial Developer of the Original Code is
+ *   The Mozilla Foundation
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Chris Jones <jones.chris.g@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <set>
 #include <vector>
@@ -117,7 +117,7 @@ public:
 private:
   bool mOpen;
 
-  
+  // disabled
   Transaction(const Transaction&);
   Transaction& operator=(const Transaction&);
 };
@@ -291,10 +291,10 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies)
 
   MOZ_LAYERS_LOG(("[LayersForwarder] building transaction..."));
 
-  
-  
-  
-  
+  // We purposely add attribute-change ops to the final changeset
+  // before we add paint ops.  This allows layers to record the
+  // attribute changes before new pixels arrive, which can be useful
+  // for setting up back/front buffers.
   RenderTraceScope rendertrace2("Foward Transaction", "000092");
   for (ShadowableLayerSet::const_iterator it = mTxn->mMutants.begin();
        it != mTxn->mMutants.end(); ++it) {
@@ -312,6 +312,12 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies)
     common.clipRect() = (common.useClipRect() ?
                          *mutant->GetClipRect() : nsIntRect());
     common.isFixedPosition() = mutant->GetIsFixedPosition();
+    if (Layer* maskLayer = mutant->GetMaskLayer()) {
+      common.maskLayerChild() = Shadow(maskLayer->AsShadowableLayer());
+    } else {
+      common.maskLayerChild() = NULL;
+    }
+    common.maskLayerParent() = NULL;
     attrs.specific() = null_t();
     mutant->FillSpecificAttributes(attrs.specific());
 
@@ -326,8 +332,8 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies)
   if (!mTxn->mCset.empty()) {
     cset.AppendElements(&mTxn->mCset.front(), mTxn->mCset.size());
   }
-  
-  
+  // Paints after non-paint ops, including attribute changes.  See
+  // above.
   if (!mTxn->mPaints.empty()) {
     cset.AppendElements(&mTxn->mPaints.front(), mTxn->mPaints.size());
   }
@@ -371,11 +377,11 @@ static SharedMemory::SharedMemoryType
 OptimalShmemType()
 {
 #if defined(MOZ_PLATFORM_MAEMO) && defined(MOZ_HAVE_SHAREDMEMORYSYSV)
-  
-  
-  
-  
-  
+  // Use SysV memory because maemo5 on the N900 only allots 64MB to
+  // /dev/shm, even though it has 1GB(!!) of system memory.  Sys V shm
+  // is allocated from a different pool.  We don't want an arbitrary
+  // cap that's much much lower than available memory on the memory we
+  // use for layers.
   return SharedMemory::TYPE_SYSV;
 #else
   return SharedMemory::TYPE_BASIC;
@@ -468,7 +474,7 @@ ShadowLayerForwarder::AllocBuffer(const gfxIntSize& aSize,
   return true;
 }
 
- already_AddRefed<gfxASurface>
+/*static*/ already_AddRefed<gfxASurface>
 ShadowLayerForwarder::OpenDescriptor(const SurfaceDescriptor& aSurface)
 {
   nsRefPtr<gfxASurface> surf = PlatformOpenDescriptor(aSurface);
@@ -487,7 +493,7 @@ ShadowLayerForwarder::OpenDescriptor(const SurfaceDescriptor& aSurface)
   }
 }
 
-
+// Destroy the Shmem SurfaceDescriptor |aSurface|.
 template<class ShmemDeallocator>
 static void
 DestroySharedShmemSurface(SurfaceDescriptor* aSurface,
@@ -564,7 +570,7 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize&,
   return false;
 }
 
- already_AddRefed<gfxASurface>
+/*static*/ already_AddRefed<gfxASurface>
 ShadowLayerForwarder::PlatformOpenDescriptor(const SurfaceDescriptor&)
 {
   return nsnull;
@@ -576,7 +582,7 @@ ShadowLayerForwarder::PlatformDestroySharedSurface(SurfaceDescriptor*)
   return false;
 }
 
- void
+/*static*/ void
 ShadowLayerForwarder::PlatformSyncBeforeUpdate()
 {
 }
@@ -587,12 +593,12 @@ ShadowLayerManager::PlatformDestroySharedSurface(SurfaceDescriptor*)
   return false;
 }
 
- void
+/*static*/ void
 ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
 {
 }
 
-#endif  
+#endif  // !defined(MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS)
 
 bool
 IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface)
@@ -600,5 +606,5 @@ IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface)
   return SurfaceDescriptor::T__None != aSurface.type();
 }
 
-} 
-} 
+} // namespace layers
+} // namespace mozilla

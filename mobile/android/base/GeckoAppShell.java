@@ -152,8 +152,11 @@ public class GeckoAppShell
     private static Sensor gGyroscopeSensor = null;
     private static Sensor gOrientationSensor = null;
     private static Sensor gProximitySensor = null;
+    private static Sensor gLightSensor = null;
 
     private static boolean mLocationHighAccuracy = false;
+
+    private static Handler sGeckoHandler;
 
     
 
@@ -262,6 +265,10 @@ public class GeckoAppShell
     
     public static Handler getMainHandler() {
         return GeckoApp.mAppContext.mMainHandler;
+    }
+
+    public static Handler getGeckoHandler() {
+        return sGeckoHandler;
     }
 
     public static Handler getHandler() {
@@ -458,6 +465,9 @@ public class GeckoAppShell
     }
 
     public static void runGecko(String apkPath, String args, String url, String type, boolean restoreSession) {
+        Looper.prepare();
+        sGeckoHandler = new Handler();
+        
         
         GeckoAppShell.nativeInit();
 
@@ -681,7 +691,15 @@ public class GeckoAppShell
             if(gProximitySensor == null)
                 gProximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
             if (gProximitySensor != null)
-                sm.registerListener(GeckoApp.mAppContext, gProximitySensor, sDefaultSensorHint);
+                sm.registerListener(GeckoApp.mAppContext, gProximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+            break;
+
+        case GeckoHalDefines.SENSOR_LIGHT:
+            Log.i(LOGTAG, "Enabling SENSOR_LIGHT");
+            if(gLightSensor == null)
+                gLightSensor = sm.getDefaultSensor(Sensor.TYPE_LIGHT);
+            if (gLightSensor != null)
+                sm.registerListener(GeckoApp.mAppContext, gLightSensor, SensorManager.SENSOR_DELAY_NORMAL);
             break;
 
         case GeckoHalDefines.SENSOR_LINEAR_ACCELERATION:
@@ -725,6 +743,12 @@ public class GeckoAppShell
             Log.i(LOGTAG, "Disabling SENSOR_PROXIMITY");
             if (gProximitySensor != null)
                 sm.unregisterListener(GeckoApp.mAppContext, gProximitySensor);
+            break;
+
+        case GeckoHalDefines.SENSOR_LIGHT:
+            Log.i(LOGTAG, "Disabling SENSOR_LIGHT");
+            if (gLightSensor != null)
+                sm.unregisterListener(GeckoApp.mAppContext, gLightSensor);
             break;
 
         case GeckoHalDefines.SENSOR_LINEAR_ACCELERATION:
@@ -2120,6 +2144,28 @@ public class GeckoAppShell
         GeckoScreenOrientationListener.getInstance().unlockScreenOrientation();
     }
 
+    public static void pumpMessageLoop() {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        sGeckoHandler.post(new Runnable() {
+            public void run() {
+                throw new RuntimeException();
+            }
+        });
+        
+        try {
+            Looper.loop();
+        } catch(Exception ex) {}
+    }
+
     static class AsyncResultHandler extends GeckoApp.FilePickerResultHandler {
         private long mId;
         AsyncResultHandler(long id) {
@@ -2199,6 +2245,9 @@ public class GeckoAppShell
     }
 
     public static void screenshotWholePage(Tab tab) {
+        if (GeckoApp.mAppContext.isApplicationInBackground())
+            return;
+
         if (sMaxTextureSize == 0) {
             int[] maxTextureSize = new int[1];
             GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, maxTextureSize, 0);
