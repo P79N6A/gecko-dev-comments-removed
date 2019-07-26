@@ -382,7 +382,7 @@ public:
   bool mHidden;
 
   
-  int32_t mTransitionType;
+  uint32_t mTransitionType;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResultNode, NS_NAVHISTORYRESULTNODE_IID)
