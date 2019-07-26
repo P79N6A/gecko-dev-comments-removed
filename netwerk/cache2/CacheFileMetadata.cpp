@@ -245,14 +245,31 @@ CacheFileMetadata::WriteMetadata(uint32_t aOffset,
   *reinterpret_cast<uint32_t *>(p) = PR_htonl(aOffset);
   p += sizeof(uint32_t);
 
-  mListener = aListener;
-  rv = CacheFileIOManager::Write(mHandle, aOffset, mWriteBuf, p - mWriteBuf,
-                                 true, this);
+  char * writeBuffer;
+  if (aListener) {
+    mListener = aListener;
+    writeBuffer = mWriteBuf;
+  } else {
+    
+    
+    
+    
+    
+    
+    writeBuffer = static_cast<char *>(moz_xmalloc(p - mWriteBuf));
+    memcpy(mWriteBuf, writeBuffer, p - mWriteBuf);
+  }
+
+  rv = CacheFileIOManager::Write(mHandle, aOffset, writeBuffer, p - mWriteBuf,
+                                 true, aListener ? this : nullptr);
   if (NS_FAILED(rv)) {
     LOG(("CacheFileMetadata::WriteMetadata() - CacheFileIOManager::Write() "
          "failed synchronously. [this=%p, rv=0x%08x]", this, rv));
 
     mListener = nullptr;
+    if (writeBuffer != mWriteBuf) {
+      free(writeBuffer);
+    }
     free(mWriteBuf);
     mWriteBuf = nullptr;
     NS_ENSURE_SUCCESS(rv, rv);
