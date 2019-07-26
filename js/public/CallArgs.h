@@ -92,7 +92,7 @@ namespace JS {
 
 
 
-class CallReceiver
+class MOZ_STACK_CLASS CallReceiver
 {
   protected:
 #ifdef DEBUG
@@ -233,7 +233,7 @@ CallReceiverFromVp(Value *vp)
 
 
 
-class CallArgs : public CallReceiver
+class MOZ_STACK_CLASS CallArgs : public CallReceiver
 {
   protected:
     unsigned argc_;

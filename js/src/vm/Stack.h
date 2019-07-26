@@ -170,7 +170,7 @@ namespace ion {
 
 
 
-class CallArgsList : public JS::CallArgs
+class MOZ_STACK_CLASS CallArgsList : public JS::CallArgs
 {
     friend class StackSegment;
     CallArgsList *prev_;
