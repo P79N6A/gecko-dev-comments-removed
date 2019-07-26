@@ -1188,6 +1188,38 @@ let RIL = {
 
 
 
+  getICCPhase: function getICCPhase() {
+    function callback() {
+      let length = Buf.readUint32();
+
+      let phase = GsmPDUHelper.readHexOctet();
+      
+      
+      if (phase >= ICC_PHASE_2_PROFILE_DOWNLOAD_REQUIRED) {
+        this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
+      }
+
+      Buf.readStringDelimiter(length);
+    }
+
+    this.iccIO({
+      command:   ICC_COMMAND_GET_RESPONSE,
+      fileId:    ICC_EF_PHASE,
+      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_GSM,
+      p1:        0, 
+      p2:        0, 
+      p3:        GET_RESPONSE_EF_SIZE_BYTES,
+      data:      null,
+      pin2:      null,
+      type:      EF_TYPE_TRANSPARENT,
+      callback:  callback,
+    });
+  },
+
+  
+
+
+
 
 
   getIMSI: function getIMSI(aid) {
@@ -2588,6 +2620,21 @@ let RIL = {
 
 
 
+  sendStkTerminalProfile: function sendStkTerminalProfile(profile) {
+    Buf.newParcel(REQUEST_STK_SET_PROFILE);
+    Buf.writeUint32(profile.length * 2);
+    for (let i = 0; i < profile.length; i++) {
+      GsmPDUHelper.writeHexOctet(profile[i]);
+    }
+    Buf.writeUint32(0);
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
 
 
 
@@ -2981,6 +3028,13 @@ let RIL = {
     this.requestNetworkInfo();
     this.getSignalStrength();
     if (newCardState == GECKO_CARDSTATE_READY) {
+      
+      
+      if (this.appType == CARD_APPTYPE_SIM) {
+        this.getICCPhase();
+      } else {
+        this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
+      }
       this.fetchICCRecords();
       this.reportStkServiceIsRunning();
     }
