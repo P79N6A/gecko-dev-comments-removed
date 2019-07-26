@@ -145,8 +145,11 @@ public class LastTabsPage extends HomeFragment {
 
         
         mCursorLoaderCallbacks = new CursorLoaderCallbacks();
+        loadIfVisible();
+    }
 
-        
+    @Override
+    protected void load() {
         getLoaderManager().initLoader(LAST_TABS_LOADER_ID, null, mCursorLoaderCallbacks);
     }
 

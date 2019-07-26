@@ -108,8 +108,11 @@ public class ReadingListPage extends HomeFragment {
 
         
         mCursorLoaderCallbacks = new CursorLoaderCallbacks();
+        loadIfVisible();
+    }
 
-        
+    @Override
+    protected void load() {
         getLoaderManager().initLoader(READING_LIST_LOADER_ID, null, mCursorLoaderCallbacks);
     }
 

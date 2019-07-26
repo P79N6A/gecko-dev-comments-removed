@@ -142,8 +142,11 @@ public class VisitedPage extends HomeFragment {
 
         
         mCursorLoaderCallbacks = new CursorLoaderCallbacks();
+        loadIfVisible();
+    }
 
-        
+    @Override
+    protected void load() {
         getLoaderManager().initLoader(FRECENCY_LOADER_ID, null, mCursorLoaderCallbacks);
     }
 

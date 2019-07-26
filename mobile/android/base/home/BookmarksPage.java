@@ -152,11 +152,7 @@ public class BookmarksPage extends HomeFragment {
         
         mLoaderCallbacks = new CursorLoaderCallbacks();
         mThumbnailsLoaderCallbacks = new ThumbnailsLoaderCallbacks();
-
-        
-        final LoaderManager manager = getLoaderManager();
-        manager.initLoader(BOOKMARKS_LIST_LOADER_ID, null, mLoaderCallbacks);
-        manager.initLoader(TOP_BOOKMARKS_LOADER_ID, null, mLoaderCallbacks);
+        loadIfVisible();
     }
 
     @Override
@@ -289,6 +285,13 @@ public class BookmarksPage extends HomeFragment {
         }
 
         return false;
+    }
+
+    @Override
+    protected void load() {
+        final LoaderManager manager = getLoaderManager();
+        manager.initLoader(BOOKMARKS_LIST_LOADER_ID, null, mLoaderCallbacks);
+        manager.initLoader(TOP_BOOKMARKS_LOADER_ID, null, mLoaderCallbacks);
     }
 
     

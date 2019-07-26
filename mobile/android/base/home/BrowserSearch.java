@@ -246,9 +246,7 @@ public class BrowserSearch extends HomeFragment
 
         
         mCursorLoaderCallbacks = new CursorLoaderCallbacks();
-
-        
-        getLoaderManager().initLoader(SEARCH_LOADER_ID, null, mCursorLoaderCallbacks);
+        loadIfVisible();
     }
 
     @Override
@@ -261,6 +259,11 @@ public class BrowserSearch extends HomeFragment
                 }
             });
         }
+    }
+
+    @Override
+    protected void load() {
+        getLoaderManager().initLoader(SEARCH_LOADER_ID, null, mCursorLoaderCallbacks);
     }
 
     private void handleAutocomplete(String searchTerm, Cursor c) {

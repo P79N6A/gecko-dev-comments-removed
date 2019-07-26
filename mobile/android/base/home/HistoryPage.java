@@ -150,8 +150,11 @@ public class HistoryPage extends HomeFragment {
 
         
         mCursorLoaderCallbacks = new CursorLoaderCallbacks();
+        loadIfVisible();
+    }
 
-        
+    @Override
+    protected void load() {
         getLoaderManager().initLoader(HISTORY_LOADER_ID, null, mCursorLoaderCallbacks);
     }
 
