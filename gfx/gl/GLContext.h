@@ -1033,7 +1033,6 @@ public:
                                  const char *extension);
 
     GLint GetMaxTextureImageSize() { return mMaxTextureImageSize; }
-    GLint GetMaxTextureSize() { MOZ_ASSERT(mMaxTextureSize>0); return mMaxTextureSize; }
     void SetFlipped(bool aFlipped) { mFlipped = aFlipped; }
 
     
