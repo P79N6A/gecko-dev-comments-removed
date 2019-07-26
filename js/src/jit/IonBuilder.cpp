@@ -197,21 +197,18 @@ GetJumpOffset(jsbytecode *pc)
 }
 
 IonBuilder::CFGState
-IonBuilder::CFGState::If(jsbytecode *join, MTest *test)
+IonBuilder::CFGState::If(jsbytecode *join, MBasicBlock *ifFalse)
 {
     CFGState state;
     state.state = IF_TRUE;
     state.stopAt = join;
-    state.branch.ifFalse = test->ifFalse();
-    state.branch.test = test;
+    state.branch.ifFalse = ifFalse;
     return state;
 }
 
 IonBuilder::CFGState
-IonBuilder::CFGState::IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MTest *test)
+IonBuilder::CFGState::IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MBasicBlock *ifFalse)
 {
-    MBasicBlock *ifFalse = test->ifFalse();
-
     CFGState state;
     
     
@@ -224,7 +221,6 @@ IonBuilder::CFGState::IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MTest *t
     state.stopAt = trueEnd;
     state.branch.falseEnd = falseEnd;
     state.branch.ifFalse = ifFalse;
-    state.branch.test = test;
     return state;
 }
 
@@ -235,7 +231,6 @@ IonBuilder::CFGState::AndOr(jsbytecode *join, MBasicBlock *joinStart)
     state.state = AND_OR;
     state.stopAt = join;
     state.branch.ifFalse = joinStart;
-    state.branch.test = nullptr;
     return state;
 }
 
@@ -1942,10 +1937,6 @@ IonBuilder::processIfElseTrueEnd(CFGState &state)
     pc = state.branch.ifFalse->pc();
     setCurrentAndSpecializePhis(state.branch.ifFalse);
     graph().moveBlockToEnd(current);
-
-    if (state.branch.test)
-        filterTypesAtTest(state.branch.test);
-
     return ControlStatus_Jumped;
 }
 
@@ -3057,59 +3048,6 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
 }
 
 bool
-IonBuilder::filterTypesAtTest(MTest *test)
-{
-    JS_ASSERT(test->ifTrue() == current || test->ifFalse() == current);
-
-    bool trueBranch = test->ifTrue() == current;
-
-    MDefinition *subject = nullptr;
-    bool removeUndefined;
-    bool removeNull;
-
-    test->filtersUndefinedOrNull(trueBranch, &subject, &removeUndefined, &removeNull);
-
-    
-    if (!subject)
-        return true;
-
-    
-    if (!subject->resultTypeSet())
-        return true;
-
-    
-    if ((removeUndefined && subject->resultTypeSet()->hasType(types::Type::UndefinedType())) ||
-        (removeNull && subject->resultTypeSet()->hasType(types::Type::NullType())))
-    {
-        return true;
-    }
-
-    
-    
-    
-    MDefinition *replace = nullptr;
-    for (uint32_t i = 0; i < current->stackDepth(); i++) {
-        if (current->getSlot(i) != subject)
-            continue;
-
-        
-        if (!replace) {
-            types::TemporaryTypeSet *type =
-                subject->resultTypeSet()->filter(alloc_->lifoAlloc(), removeUndefined,
-                                                                      removeNull);
-            if (!type)
-                return false;
-
-            replace = ensureDefiniteTypeSet(subject, type);
-        }
-
-        current->setSlot(i, replace);
-    }
-
-   return true;
-}
-
-bool
 IonBuilder::jsop_label()
 {
     JS_ASSERT(JSOp(*pc) == JSOP_LABEL);
@@ -3527,7 +3465,7 @@ IonBuilder::jsop_ifeq(JSOp op)
     
     switch (SN_TYPE(sn)) {
       case SRC_IF:
-        if (!cfgStack_.append(CFGState::If(falseStart, test)))
+        if (!cfgStack_.append(CFGState::If(falseStart, ifFalse)))
             return false;
         break;
 
@@ -3546,7 +3484,7 @@ IonBuilder::jsop_ifeq(JSOp op)
         JS_ASSERT(falseEnd > trueEnd);
         JS_ASSERT(falseEnd >= falseStart);
 
-        if (!cfgStack_.append(CFGState::IfElse(trueEnd, falseEnd, test)))
+        if (!cfgStack_.append(CFGState::IfElse(trueEnd, falseEnd, ifFalse)))
             return false;
         break;
       }
@@ -3558,9 +3496,6 @@ IonBuilder::jsop_ifeq(JSOp op)
     
     
     setCurrentAndSpecializePhis(ifTrue);
-
-    
-    filterTypesAtTest(test);
 
     return true;
 }
@@ -6368,26 +6303,6 @@ IonBuilder::ensureDefiniteType(MDefinition *def, JSValueType definiteType)
 
     current->add(replace);
     return replace;
-}
-
-MDefinition *
-IonBuilder::ensureDefiniteTypeSet(MDefinition *def, types::TemporaryTypeSet *types)
-{
-    
-    
-
-    
-    
-    MDefinition *replace = ensureDefiniteType(def, types->getKnownTypeTag());
-    if (replace != def) {
-        replace->setResultTypeSet(types);
-        return replace;
-    }
-
-    
-    MFilterTypeSet *filter = MFilterTypeSet::New(alloc(), def, types);
-    current->add(filter);
-    return filter;
 }
 
 static size_t
