@@ -1,0 +1,59 @@
+
+
+
+
+#options-panel-container {
+  overflow: auto;
+}
+
+#options-panel {
+  overflow-y: auto;
+  display: block;
+}
+
+.options-vertical-pane {
+  display: inline;
+  float: left;
+}
+
+.options-vertical-pane > label {
+  display: block;
+}
+
+.options-vertical-pane {
+  margin: 5px;
+  width: calc(50% - 30px);
+  min-width: 400px;
+  -moz-padding-start: 5px;
+}
+
+.options-vertical-pane > label {
+  padding: 2px 0;
+  font-size: 1.4rem;
+}
+
+.options-groupbox {
+  -moz-margin-start: 15px;
+  padding: 2px;
+}
+
+.options-groupbox > * {
+  padding: 2px;
+}
+
+.options-citation-label {
+  font-size: 1rem !important;
+  
+  font-style: italic;
+  padding: 4px 0 0; 
+}
+
+.options-citation-label + label {
+  padding: 3px 0 0 !important; 
+  font-style: italic;
+}
+
+.hidden-labels-box:not(.visible) > label,
+.hidden-labels-box.visible ~ .hidden-labels-box > label:last-child {
+  display: none;
+}
