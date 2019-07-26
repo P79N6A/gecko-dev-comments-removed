@@ -49,6 +49,7 @@ function mapSuffixes(aPermName, aSuffixes)
 
 
 
+
 const PermissionsTable = { "resource-lock": {
                              app: ALLOW_ACTION,
                              privileged: ALLOW_ACTION,
@@ -87,24 +88,31 @@ const PermissionsTable = { "resource-lock": {
                            },
                            "device-storage:apps": {
                              app: DENY_ACTION,
-                             privileged: ALLOW_ACTION,
-                             certified: ALLOW_ACTION
+                             privileged: PROMPT_ACTION,
+                             certified: ALLOW_ACTION,
+                             access: ["read", "write", "create"]
                            },
                            "device-storage:pictures": {
                              app: DENY_ACTION,
-                             privileged: ALLOW_ACTION,
+                             privileged: PROMPT_ACTION,
                              certified: ALLOW_ACTION,
                              access: ["read", "write", "create"]
                            },
                            "device-storage:videos": {
                              app: DENY_ACTION,
-                             privileged: ALLOW_ACTION,
+                             privileged: PROMPT_ACTION,
                              certified: ALLOW_ACTION,
                              access: ["read", "write", "create"]
                            },
                            "device-storage:music": {
                              app: DENY_ACTION,
-                             privileged: ALLOW_ACTION,
+                             privileged: PROMPT_ACTION,
+                             certified: ALLOW_ACTION,
+                             access: ["read", "write", "create"]
+                           },
+                           "device-storage:sdcard": {
+                             app: DENY_ACTION,
+                             privileged: PROMPT_ACTION,
                              certified: ALLOW_ACTION,
                              access: ["read", "write", "create"]
                            },
