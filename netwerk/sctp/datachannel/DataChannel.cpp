@@ -192,7 +192,8 @@ DataChannelConnection::Destroy()
                                      &DataChannelConnection::disconnect_all),
                   NS_DISPATCH_NORMAL);
     
-    mTransportFlow = nullptr;
+    
+    
   }
 }
 
