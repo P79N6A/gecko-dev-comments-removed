@@ -1310,7 +1310,7 @@ abstract public class GeckoApp
         GeckoAppShell.registerGlobalExceptionHandler();
 
         
-        if ("default".equals(GeckoAppInfo.getUpdateChannel())) {
+        if ("default".equals(AppConstants.MOZ_UPDATE_CHANNEL)) {
             enableStrictMode();
         }
 
