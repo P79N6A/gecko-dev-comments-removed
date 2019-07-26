@@ -14,6 +14,59 @@
 namespace mozilla {
 namespace dom {
 
+static bool
+ShouldExposeChildWindow(nsString& aNameBeingResolved, nsIDOMWindow *aChild)
+{
+  
+  nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(aChild);
+  NS_ENSURE_TRUE(sop, false);
+  if (nsContentUtils::GetSubjectPrincipal()->Equals(sop->GetPrincipal())) {
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(aChild);
+  NS_ENSURE_TRUE(piWin, false);
+  return piWin->GetFrameElementInternal()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
+                                                       aNameBeingResolved, eCaseMatters);
+}
+
 bool
 WindowNamedPropertiesHandler::getOwnPropertyDescriptor(JSContext* aCx,
                                                        JS::Handle<JSObject*> aProxy,
@@ -40,7 +93,7 @@ WindowNamedPropertiesHandler::getOwnPropertyDescriptor(JSContext* aCx,
   nsGlobalWindow* win = static_cast<nsGlobalWindow*>(piWin.get());
   if (win->GetLength() > 0) {
     nsCOMPtr<nsIDOMWindow> childWin = win->GetChildWindow(str);
-    if (childWin) {
+    if (childWin && ShouldExposeChildWindow(str, childWin)) {
       
       
       
