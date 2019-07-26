@@ -801,6 +801,7 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame
     if (isLoopEntry) {
         IonScript *ion = script->ionScript();
         JS_ASSERT(cx->runtime()->spsProfiler.enabled() == ion->hasSPSInstrumentation());
+        JS_ASSERT(ion->osrPc() == pc);
 
         
         
