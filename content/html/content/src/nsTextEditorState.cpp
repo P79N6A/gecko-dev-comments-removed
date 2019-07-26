@@ -1899,19 +1899,6 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
           selPriv->EndBatchChanges();
       }
     }
-
-    
-    if (!weakFrame.IsAlive()) {
-      return;
-    }
-    nsIScrollableFrame* scrollableFrame = do_QueryFrame(mBoundFrame->GetFirstPrincipalChild());
-    if (scrollableFrame)
-    {
-      
-      
-      scrollableFrame->ScrollTo(nsPoint(0, 0), nsIScrollableFrame::INSTANT);
-    }
-
   } else {
     if (!mValue) {
       mValue = new nsCString;
