@@ -2108,7 +2108,13 @@ gfxPlatform::GetPrefLayersAccelerationForceEnabled()
 bool gfxPlatform::OffMainThreadCompositionRequired()
 {
   InitLayersAccelerationPrefs();
+#if defined(MOZ_WIDGET_GTK) && defined(NIGHTLY_BUILD)
+  
+  return sPrefBrowserTabsRemote ||
+         sPrefLayersAccelerationForceEnabled;
+#else
   return sPrefBrowserTabsRemote;
+#endif
 }
 
 bool
