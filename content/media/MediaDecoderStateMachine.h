@@ -241,7 +241,7 @@ public:
   }
 
   
-  bool HaveNextFrameData() const;
+  bool HaveNextFrameData();
 
   
   bool IsBuffering() const {
@@ -397,6 +397,9 @@ protected:
   };
   WakeDecoderRunnable* GetWakeDecoderRunnable();
 
+  MediaQueue<AudioData>& AudioQueue() { return mReader->AudioQueue(); }
+  MediaQueue<VideoData>& VideoQueue() { return mReader->VideoQueue(); }
+
   
   
   bool NeedToDecodeAudio();
@@ -413,24 +416,24 @@ protected:
 
   
   
-  bool HasLowDecodedData(int64_t aAudioUsecs) const;
+  bool HasLowDecodedData(int64_t aAudioUsecs);
 
   
   
-  bool HasLowUndecodedData() const;
+  bool HasLowUndecodedData();
 
   
-  bool HasLowUndecodedData(double aUsecs) const;
-
-  
-  
-  
-  
-  int64_t AudioDecodedUsecs() const;
+  bool HasLowUndecodedData(double aUsecs);
 
   
   
-  bool HasFutureAudio() const;
+  
+  
+  int64_t AudioDecodedUsecs();
+
+  
+  
+  bool HasFutureAudio();
 
   
   bool JustExitedQuickBuffering();
