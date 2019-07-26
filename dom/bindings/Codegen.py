@@ -1882,7 +1882,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     treatNullAs="Default",
                                     treatUndefinedAs="Default",
                                     isEnforceRange=False,
-                                    isClamp=False):
+                                    isClamp=False,
+                                    isNullOrUndefined=False):
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -3582,6 +3583,37 @@ class CGMethodCall(CGThing):
             def distinguishingType(signature):
                 return signature[1][distinguishingIndex].type
 
+            def tryCall(signature, indent, isDefinitelyObject=False,
+                        isNullOrUndefined=False):
+                assert not isDefinitelyObject or not isNullOrUndefined
+                assert isDefinitelyObject or isNullOrUndefined
+                if isDefinitelyObject:
+                    failureCode = "break;"
+                else:
+                    failureCode = None
+                type = distinguishingType(signature)
+                
+                
+                
+                testCode = instantiateJSToNativeConversionTemplate(
+                    getJSToNativeConversionTemplate(type, descriptor,
+                                                    failureCode=failureCode,
+                                                    isDefinitelyObject=isDefinitelyObject,
+                                                    isNullOrUndefined=isNullOrUndefined),
+                    {
+                        "declName" : "arg%d" % distinguishingIndex,
+                        "holderName" : ("arg%d" % distinguishingIndex) + "_holder",
+                        "val" : distinguishingArg
+                        })
+                caseBody.append(CGIndenter(testCode, indent));
+                
+                
+                
+                
+                caseBody.append(CGIndenter(
+                        getPerSignatureCall(signature, distinguishingIndex + 1),
+                        indent))
+
             
             
             
@@ -3594,13 +3626,19 @@ class CGMethodCall(CGThing):
             
             
             
-            pickFirstSignature(
-                "%s.isNullOrUndefined()" % distinguishingArg,
-                lambda s: ((distinguishingType(s).nullable() and not
-                            distinguishingType(s).isString() and not
-                            distinguishingType(s).isEnum() and not
-                            distinguishingType(s).isPrimitive()) or
-                           distinguishingType(s).isDictionary()))
+            nullOrUndefSigs = [s for s in possibleSignatures
+                               if ((distinguishingType(s).nullable() and not
+                                    distinguishingType(s).isString() and not
+                                    distinguishingType(s).isEnum() and not
+                                   distinguishingType(s).isPrimitive()) or
+                                   distinguishingType(s).isDictionary())]
+            
+            assert len(nullOrUndefSigs) < 2
+            if len(nullOrUndefSigs) > 0:
+                caseBody.append(CGGeneric("if (%s.isNullOrUndefined()) {" %
+                                          distinguishingArg))
+                tryCall(nullOrUndefSigs[0], 2, isNullOrUndefined=True)
+                caseBody.append(CGGeneric("}"))
 
             
             
@@ -3653,32 +3691,12 @@ class CGMethodCall(CGThing):
                 
                 
                 caseBody.append(CGGeneric("if (%s.isObject()) {" %
-                                          (distinguishingArg)))
+                                          distinguishingArg))
                 for sig in objectSigs:
                     caseBody.append(CGIndenter(CGGeneric("do {")));
-                    type = distinguishingType(sig)
-
                     
                     
-                    
-                    testCode = instantiateJSToNativeConversionTemplate(
-                        getJSToNativeConversionTemplate(type, descriptor,
-                                                        failureCode="break;",
-                                                        isDefinitelyObject=True),
-                        {
-                            "declName" : "arg%d" % distinguishingIndex,
-                            "holderName" : ("arg%d" % distinguishingIndex) + "_holder",
-                            "val" : distinguishingArg
-                            })
-
-                    
-                    caseBody.append(CGIndenter(testCode, 4));
-                    
-                    
-                    
-                    
-                    caseBody.append(CGIndenter(
-                            getPerSignatureCall(sig, distinguishingIndex + 1), 4))
+                    tryCall(sig, 4, isDefinitelyObject=True)
                     caseBody.append(CGIndenter(CGGeneric("} while (0);")))
 
                 caseBody.append(CGGeneric("}"))
