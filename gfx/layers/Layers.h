@@ -910,6 +910,32 @@ public:
   }
 
   
+
+
+
+
+
+
+
+
+  void SetStickyPositionData(FrameMetrics::ViewID aScrollId, LayerRect aOuter,
+                             LayerRect aInner)
+  {
+    if (!mStickyPositionData ||
+        !mStickyPositionData->mOuter.IsEqualEdges(aOuter) ||
+        !mStickyPositionData->mInner.IsEqualEdges(aInner)) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) StickyPositionData", this));
+      if (!mStickyPositionData) {
+        mStickyPositionData = new StickyPositionData;
+      }
+      mStickyPositionData->mScrollId = aScrollId;
+      mStickyPositionData->mOuter = aOuter;
+      mStickyPositionData->mInner = aInner;
+      Mutated();
+    }
+  }
+
+  
   float GetOpacity() { return mOpacity; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
@@ -926,8 +952,12 @@ public:
   float GetPostXScale() const { return mPostXScale; }
   float GetPostYScale() const { return mPostYScale; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
+  bool GetIsStickyPosition() { return mStickyPositionData; }
   LayerPoint GetFixedPositionAnchor() { return mAnchor; }
   const LayerMargin& GetFixedPositionMargins() { return mMargins; }
+  FrameMetrics::ViewID GetStickyScrollContainerId() { return mStickyPositionData->mScrollId; }
+  const LayerRect& GetStickyScrollRangeOuter() { return mStickyPositionData->mOuter; }
+  const LayerRect& GetStickyScrollRangeInner() { return mStickyPositionData->mInner; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
 
   
@@ -1283,6 +1313,12 @@ protected:
   bool mIsFixedPosition;
   LayerPoint mAnchor;
   LayerMargin mMargins;
+  struct StickyPositionData {
+    FrameMetrics::ViewID mScrollId;
+    LayerRect mOuter;
+    LayerRect mInner;
+  };
+  nsAutoPtr<StickyPositionData> mStickyPositionData;
   DebugOnly<uint32_t> mDebugColorIndex;
   
   
