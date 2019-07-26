@@ -252,6 +252,9 @@ CreateVoidVariant()
 
 
 
+
+
+
 class DialogValueHolder : public nsISupports
 {
 public:
@@ -1334,7 +1337,8 @@ public:
                                               bool aForceReuseInnerWindow);
 
 protected:
-  nsCOMPtr<nsIVariant> mReturnValue;
+  
+  nsRefPtr<DialogValueHolder> mReturnValue;
 };
 
 
