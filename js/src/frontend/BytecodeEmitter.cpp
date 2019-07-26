@@ -2918,107 +2918,14 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
     return true;
 }
 
-static ptrdiff_t
-OpToDeclType(JSOp op)
-{
-    switch (op) {
-      case JSOP_NOP:
-        return SRC_DECL_LET;
-      case JSOP_DEFCONST:
-        return SRC_DECL_CONST;
-      case JSOP_DEFVAR:
-        return SRC_DECL_VAR;
-      default:
-        return SRC_DECL_NONE;
-    }
-}
-
-
-
-
-
-
-
-
-class LetNotes
-{
-    struct Pair {
-        ptrdiff_t dup;
-        unsigned index;
-        Pair(ptrdiff_t dup, unsigned index) : dup(dup), index(index) {}
-    };
-    Vector<Pair> notes;
-    bool groupAssign;
-    DebugOnly<bool> updateCalled;
-
-  public:
-    LetNotes(JSContext *cx) : notes(cx), groupAssign(false), updateCalled(false) {}
-
-    ~LetNotes() {
-        JS_ASSERT_IF(!notes.allocPolicy().context()->isExceptionPending(), updateCalled);
-    }
-
-    void setGroupAssign() {
-        JS_ASSERT(notes.empty());
-        groupAssign = true;
-    }
-
-    bool isGroupAssign() const {
-        return groupAssign;
-    }
-
-    bool append(JSContext *cx, BytecodeEmitter *bce, ptrdiff_t dup, unsigned index) {
-        JS_ASSERT(!groupAssign);
-        JS_ASSERT(SN_TYPE(bce->notes() + index) == SRC_DESTRUCTLET);
-        if (!notes.append(Pair(dup, index)))
-            return false;
-
-        
-
-
-
-        if (!SetSrcNoteOffset(cx, bce, index, 0, SN_MAX_OFFSET))
-            return false;
-        JS_ASSERT(bce->notes()[index + 1] & SN_3BYTE_OFFSET_FLAG);
-        return true;
-    }
-
-    
-    bool update(JSContext *cx, BytecodeEmitter *bce, ptrdiff_t offset) {
-        JS_ASSERT(!updateCalled);
-        for (size_t i = 0; i < notes.length(); ++i) {
-            JS_ASSERT(offset > notes[i].dup);
-            JS_ASSERT(*bce->code(notes[i].dup) == JSOP_DUP);
-            JS_ASSERT(bce->notes()[notes[i].index + 1] & SN_3BYTE_OFFSET_FLAG);
-            if (!SetSrcNoteOffset(cx, bce, notes[i].index, 0, offset - notes[i].dup))
-                return false;
-        }
-        updateCalled = true;
-        return true;
-    }
-};
-
 static bool
-EmitDestructuringOps(JSContext *cx, BytecodeEmitter *bce, ptrdiff_t declType, ParseNode *pn,
-                     LetNotes *letNotes = NULL)
+EmitDestructuringOps(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool isLet = false)
 {
     
 
 
 
-
-
-    if (letNotes) {
-        ptrdiff_t index = NewSrcNote2(cx, bce, SRC_DESTRUCTLET, 0);
-        if (index < 0 || !letNotes->append(cx, bce, bce->offset(), (unsigned)index))
-            return false;
-    }
-
-    
-
-
-
-    VarEmitOption emitOption = letNotes ? PushInitialValues : InitializeVars;
+    VarEmitOption emitOption = isLet ? PushInitialValues : InitializeVars;
     return EmitDestructuringOpsHelper(cx, bce, pn, emitOption);
 }
 
@@ -3110,8 +3017,7 @@ MaybeEmitGroupAssignment(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp, Par
 
 
 static bool
-MaybeEmitLetGroupDecl(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
-                      LetNotes *letNotes, JSOp *pop)
+MaybeEmitLetGroupDecl(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp *pop)
 {
     JS_ASSERT(pn->isKind(PNK_ASSIGN));
     JS_ASSERT(pn->isOp(JSOP_NOP));
@@ -3134,7 +3040,6 @@ MaybeEmitLetGroupDecl(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
                 return false;
         }
 
-        letNotes->setGroupAssign();
         *pop = JSOP_NOP;
     }
     return true;
@@ -3144,10 +3049,10 @@ MaybeEmitLetGroupDecl(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
 
 static bool
 EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption emitOption,
-              LetNotes *letNotes = NULL)
+              bool isLet = false)
 {
     JS_ASSERT(pn->isArity(PN_LIST));
-    JS_ASSERT(!!letNotes == (emitOption == PushInitialValues));
+    JS_ASSERT(isLet == (emitOption == PushInitialValues));
 
     ptrdiff_t off = -1, noteIndex = -1;
     ParseNode *next;
@@ -3211,8 +3116,8 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
 
 
                 JS_ASSERT(noteIndex < 0 && !pn2->pn_next);
-                if (letNotes) {
-                    if (!MaybeEmitLetGroupDecl(cx, bce, pn2, letNotes, &op))
+                if (isLet) {
+                    if (!MaybeEmitLetGroupDecl(cx, bce, pn2, &op))
                         return false;
                 } else {
                     if (!MaybeEmitGroupAssignment(cx, bce, pn->getOp(), pn2, GroupIsDecl, &op))
@@ -3229,19 +3134,14 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
                 if (!EmitTree(cx, bce, pn2->pn_right))
                     return false;
 
-                
-                ptrdiff_t declType = pn2 == pn->pn_head
-                                     ? OpToDeclType(pn->getOp())
-                                     : SRC_DECL_NONE;
-
-                if (!EmitDestructuringOps(cx, bce, declType, pn3, letNotes))
+                if (!EmitDestructuringOps(cx, bce, pn3, isLet))
                     return false;
             }
             ptrdiff_t stackDepthAfter = bce->stackDepth;
 
             
             JS_ASSERT(stackDepthBefore <= stackDepthAfter);
-            if (letNotes && stackDepthBefore == stackDepthAfter) {
+            if (isLet && stackDepthBefore == stackDepthAfter) {
                 if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
                     return false;
             }
@@ -3298,7 +3198,7 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
             if (!EmitTree(cx, bce, pn3))
                 return false;
             bce->emittingForInit = oldEmittingForInit;
-        } else if (letNotes) {
+        } else if (isLet) {
             
             if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
                 return false;
@@ -3520,7 +3420,7 @@ EmitAssignment(JSContext *cx, BytecodeEmitter *bce, ParseNode *lhs, JSOp op, Par
 #if JS_HAS_DESTRUCTURING
       case PNK_ARRAY:
       case PNK_OBJECT:
-        if (!EmitDestructuringOps(cx, bce, SRC_DECL_NONE, lhs))
+        if (!EmitDestructuringOps(cx, bce, lhs))
             return false;
         break;
 #endif
@@ -3699,7 +3599,7 @@ EmitCatch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 #if JS_HAS_DESTRUCTURING
       case PNK_ARRAY:
       case PNK_OBJECT:
-        if (!EmitDestructuringOps(cx, bce, SRC_DECL_NONE, pn2))
+        if (!EmitDestructuringOps(cx, bce, pn2))
             return false;
         if (Emit1(cx, bce, JSOP_POP) < 0)
             return false;
@@ -4107,11 +4007,6 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
-
-
-
-
 MOZ_NEVER_INLINE static bool
 EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 {
@@ -4124,8 +4019,7 @@ EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 
     int letHeadDepth = bce->stackDepth;
 
-    LetNotes letNotes(cx);
-    if (!EmitVariables(cx, bce, varList, PushInitialValues, &letNotes))
+    if (!EmitVariables(cx, bce, varList, PushInitialValues, true))
         return false;
 
     
@@ -4141,9 +4035,6 @@ EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 
     StmtInfoBCE stmtInfo(cx);
     PushBlockScopeBCE(bce, &stmtInfo, *blockObj, bce->offset());
-
-    if (!letNotes.update(cx, bce, bce->offset()))
-        return false;
 
     ptrdiff_t bodyBegin = bce->offset();
     if (!EmitEnterBlock(cx, bce, letBody, JSOP_ENTERLET0))

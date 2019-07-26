@@ -274,8 +274,6 @@ enum SrcNoteType {
     SRC_PCDELTA     = 7,        
 
 
-    SRC_DESTRUCTLET = 7,        
-
     SRC_ASSIGNOP    = 8,        
     SRC_COND        = 9,        
     SRC_HIDDEN      = 11,       
@@ -290,17 +288,6 @@ enum SrcNoteType {
     SRC_SETLINE     = 23,       
     SRC_XDELTA      = 24        
 };
-
-
-
-
-
-
-
-#define SRC_DECL_VAR            0
-#define SRC_DECL_CONST          1
-#define SRC_DECL_LET            2
-#define SRC_DECL_NONE           3
 
 #define SN_TYPE_BITS            5
 #define SN_DELTA_BITS           3
