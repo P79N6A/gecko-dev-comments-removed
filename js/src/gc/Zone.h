@@ -8,6 +8,7 @@
 #define gc_Zone_h
 
 #include "mozilla/Atomics.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
 
 #include "jscntxt.h"
@@ -147,6 +148,7 @@ struct Zone : public JS::shadow::Zone,
     bool                         gcScheduled;
     GCState                      gcState;
     bool                         gcPreserveCode;
+    mozilla::DebugOnly<unsigned> gcLastZoneGroupIndex;
 
   public:
     bool isCollecting() const {
@@ -227,6 +229,16 @@ struct Zone : public JS::shadow::Zone,
     bool isGCFinished() {
         return gcState == Finished;
     }
+
+#ifdef DEBUG
+    
+
+
+
+    unsigned lastZoneGroupIndex() {
+        return gcLastZoneGroupIndex;
+    }
+#endif
 
     
     mozilla::Atomic<size_t, mozilla::ReleaseAcquire> gcBytes;
