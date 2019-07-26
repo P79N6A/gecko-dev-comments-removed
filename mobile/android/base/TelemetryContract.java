@@ -65,6 +65,10 @@ public interface TelemetryContract {
         SHARE("share.1"),
 
         
+        
+        UNDO("undo.1"),
+
+        
         UNPIN("unpin.1"),
 
         
@@ -136,6 +140,10 @@ public interface TelemetryContract {
 
         
         SUGGESTION("suggestion"),
+
+        
+        
+        TOAST("toast"),
 
         
         _TEST1("_test_method_1"),
