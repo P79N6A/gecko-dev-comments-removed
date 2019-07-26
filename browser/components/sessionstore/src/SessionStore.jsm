@@ -728,7 +728,7 @@ let SessionStoreInternal = {
           
           
           
-          this._deferredInitialState = aInitialState;
+          this._deferredInitialState = gSessionStartup.state;
 
           
           Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
@@ -1345,6 +1345,9 @@ let SessionStoreInternal = {
 
     
     delete state.lastSessionState;
+
+    
+    delete state.deferredInitialState;
 
     return this._toJSONString(state);
   },
@@ -2072,6 +2075,13 @@ let SessionStoreInternal = {
     
     if (this._lastSessionState) {
       state.lastSessionState = this._lastSessionState;
+    }
+
+    
+    
+    
+    if (this._deferredInitialState) {
+      state.deferredInitialState = this._deferredInitialState;
     }
 
     return state;
@@ -3524,6 +3534,14 @@ let SessionStoreInternal = {
 
 
   _prepDataForDeferredRestore: function ssi_prepDataForDeferredRestore(state) {
+    
+    
+    
+    
+    
+    
+    state = JSON.parse(JSON.stringify(state));
+
     let defaultState = { windows: [], selectedWindow: 1 };
 
     state.selectedWindow = state.selectedWindow || 1;

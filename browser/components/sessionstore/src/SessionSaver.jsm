@@ -202,20 +202,18 @@ let SessionSaverInternal = {
       }
     }
 
-#ifndef XP_MACOSX
-    
-    
-    if (state.windows.length == 0) {
-      stopWatchCancel("COLLECT_DATA_MS", "COLLECT_DATA_LONGEST_OP_MS");
-      return;
-    }
-#endif
-
     
     for (let i = state._closedWindows.length - 1; i >= 0; i--) {
       if (state._closedWindows[i].isPrivate) {
         state._closedWindows.splice(i, 1);
       }
+    }
+
+    
+    
+    if (state.deferredInitialState) {
+      state.windows = state.deferredInitialState.windows || [];
+      delete state.deferredInitialState;
     }
 
 #ifndef XP_MACOSX
