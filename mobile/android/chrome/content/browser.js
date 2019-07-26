@@ -3208,6 +3208,11 @@ Tab.prototype = {
         });
 
         
+        
+        if (Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory).isLowMemoryPlatform())
+          return;
+
+        
         Reader.parseDocumentFromTab(this.id, function (article) {
           
           
