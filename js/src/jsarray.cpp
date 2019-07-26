@@ -3046,10 +3046,8 @@ js_Array(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-    static const uint32_t ArrayEagerAllocationMaxLength = 2048;
-
     RootedObject obj(cx);
-    obj = (length <= ArrayEagerAllocationMaxLength)
+    obj = (length <= ArrayObject::EagerAllocationMaxLength)
           ? NewDenseAllocatedArray(cx, length)
           : NewDenseUnallocatedArray(cx, length);
     if (!obj)
