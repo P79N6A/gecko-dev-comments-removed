@@ -2449,7 +2449,18 @@ public:
     virtual EGLContext GetEGLContext() { return nullptr; }
     virtual GLLibraryEGL* GetLibraryEGL() { return nullptr; }
 
-    virtual void MakeCurrent_EGLSurface(void* surf) {
+    
+
+
+
+
+
+
+
+
+
+
+    virtual void SetEGLSurfaceOverride(void* surf) {
         MOZ_CRASH("Must be called against a GLContextEGL.");
     }
 
