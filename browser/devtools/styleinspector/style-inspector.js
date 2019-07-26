@@ -49,10 +49,11 @@ function RuleViewTool(aInspector, aWindow, aIFrame)
 
     
     
-    if (!sheet || !rule.href || sheet.isSystem) {
+    if (!sheet || sheet.isSystem) {
       let contentDoc = this.inspector.selection.document;
       let viewSourceUtils = this.inspector.viewSourceUtils;
-      viewSourceUtils.viewSource(rule.href, null, contentDoc, rule.line || 0);
+      let href = rule.nodeHref || rule.href;
+      viewSourceUtils.viewSource(href, null, contentDoc, rule.line || 0);
       return;
     }
 
