@@ -13,12 +13,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 const backgroundPageThumbsContent = {
 
   init: function () {
-    
-    
-    let dwu = content.
-                QueryInterface(Ci.nsIInterfaceRequestor).
-                getInterface(Ci.nsIDOMWindowUtils);
-    dwu.preventFurtherDialogs();
+    Services.obs.addObserver(this, "document-element-inserted", true);
 
     
     
@@ -41,6 +36,19 @@ const backgroundPageThumbsContent = {
       QueryInterface(Ci.nsIInterfaceRequestor).
       getInterface(Ci.nsIWebProgress).
       addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_WINDOW);
+  },
+
+  observe: function (subj, topic, data) {
+    
+    
+    
+    
+    if (subj == content.document) {
+      content.
+        QueryInterface(Ci.nsIInterfaceRequestor).
+        getInterface(Ci.nsIDOMWindowUtils).
+        preventFurtherDialogs();
+    }
   },
 
   get _webNav() {
@@ -102,6 +110,7 @@ const backgroundPageThumbsContent = {
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIWebProgressListener,
     Ci.nsISupportsWeakReference,
+    Ci.nsIObserver,
   ]),
 };
 
