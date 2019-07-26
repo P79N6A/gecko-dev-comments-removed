@@ -70,7 +70,8 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  return BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+  BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+  return NS_OK;
 }
 
 NS_IMETHODIMP

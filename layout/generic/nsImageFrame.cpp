@@ -1378,8 +1378,7 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  DisplayBorderBackgroundOutline(aBuilder, aLists);
   
   
   
@@ -1417,14 +1416,12 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     if (!imageOK || !haveSize) {
       
       
-      rv = replacedContent.AppendNewToTop(new (aBuilder)
-          nsDisplayAltFeedback(aBuilder, this));
-      NS_ENSURE_SUCCESS(rv, rv);
+      replacedContent.AppendNewToTop(new (aBuilder)
+        nsDisplayAltFeedback(aBuilder, this));
     }
     else {
-      rv = replacedContent.AppendNewToTop(new (aBuilder)
-          nsDisplayImage(aBuilder, this, imgCon));
-      NS_ENSURE_SUCCESS(rv, rv);
+      replacedContent.AppendNewToTop(new (aBuilder)
+        nsDisplayImage(aBuilder, this, imgCon));
 
       
       if (mDisplayingIcon) {
@@ -1435,19 +1432,17 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         
 #ifdef DEBUG
       if (GetShowFrameBorders() && GetImageMap()) {
-        rv = aLists.Outlines()->AppendNewToTop(new (aBuilder)
-            nsDisplayGeneric(aBuilder, this, PaintDebugImageMap, "DebugImageMap",
-                             nsDisplayItem::TYPE_DEBUG_IMAGE_MAP));
-        NS_ENSURE_SUCCESS(rv, rv);
+        aLists.Outlines()->AppendNewToTop(new (aBuilder)
+          nsDisplayGeneric(aBuilder, this, PaintDebugImageMap, "DebugImageMap",
+                           nsDisplayItem::TYPE_DEBUG_IMAGE_MAP));
       }
 #endif
     }
   }
 
   if (ShouldDisplaySelection()) {
-    rv = DisplaySelectionOverlay(aBuilder, &replacedContent,
-                                 nsISelectionDisplay::DISPLAY_IMAGES);
-    NS_ENSURE_SUCCESS(rv, rv);
+    DisplaySelectionOverlay(aBuilder, &replacedContent,
+                            nsISelectionDisplay::DISPLAY_IMAGES);
   }
 
   WrapReplacedContentForBorderRadius(aBuilder, &replacedContent, aLists);

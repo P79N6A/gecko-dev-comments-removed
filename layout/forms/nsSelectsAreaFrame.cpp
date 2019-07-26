@@ -154,15 +154,14 @@ nsSelectsAreaFrame::BuildDisplayListInternal(nsDisplayListBuilder*   aBuilder,
                                              const nsRect&           aDirtyRect,
                                              const nsDisplayListSet& aLists)
 {
-  nsresult rv = nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
 
   nsListControlFrame* listFrame = GetEnclosingListFrame(this);
   if (listFrame && listFrame->IsFocused()) {
     
     
     
-    return aLists.Outlines()->AppendNewToTop(new (aBuilder)
+    aLists.Outlines()->AppendNewToTop(new (aBuilder)
       nsDisplayListFocus(aBuilder, this));
   }
   
