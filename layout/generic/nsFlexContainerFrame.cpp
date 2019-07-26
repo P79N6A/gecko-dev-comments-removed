@@ -2837,7 +2837,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
 
 
-class AutoFlexLineListClearer MOZ_STACK_CLASS {
+class MOZ_STACK_CLASS AutoFlexLineListClearer
+{
 public:
   AutoFlexLineListClearer(LinkedList<FlexLine>& aLines
                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
