@@ -114,28 +114,6 @@ class Mutex {
 
 
 
-class ScopedLock {
- public:
-  explicit ScopedLock(Mutex* mutex): mutex_(mutex) {
-    ASSERT(mutex_ != NULL);
-    mutex_->Lock();
-  }
-  ~ScopedLock() {
-    mutex_->Unlock();
-  }
-
- private:
-  Mutex* mutex_;
-  DISALLOW_COPY_AND_ASSIGN(ScopedLock);
-};
-
-
-
-
-
-
-
-
 
 
 class OS {
@@ -146,10 +124,6 @@ class OS {
 
   
   static void SleepMicro(const int microseconds);
-
-  
-  
-  static Mutex* CreateMutex();
 
   
   
