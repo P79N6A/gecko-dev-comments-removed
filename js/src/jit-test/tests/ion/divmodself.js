@@ -50,6 +50,18 @@ for (var a = 0; a < 2; ++a) {
 }
 
 
+function bug945860(x) {
+    return (x % x);
+}
+for (var i = 0; i < 2; i++) {
+    try {
+        (function() {
+            assertEq(bug945860(1), 0);
+        })()
+    } catch (e) {}
+}
+
+
 
 function sdiv_truncate(y) {
   return (y / y)|0;
