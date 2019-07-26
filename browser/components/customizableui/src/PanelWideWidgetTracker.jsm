@@ -24,7 +24,7 @@ let gWideWidgets = new Set();
 let gSeenWidgets = new Set();
 
 
-const kWidePanelItemClass = "panel-combined-item";
+const kWidePanelItemClass = "panel-wide-item";
 
 
 
