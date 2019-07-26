@@ -53,6 +53,7 @@ class nsIDOMRange;
 class nsIDocument;
 class nsIDocumentStateListener;
 class nsIEditActionListener;
+class nsIEditorObserver;
 class nsIInlineSpellChecker;
 class nsINode;
 class nsIPresShell;
@@ -853,7 +854,7 @@ protected:
 
   
   nsCOMArray<nsIEditActionListener> mActionListeners;  
-  EditActionListener* mEditActionListener;  
+  nsCOMArray<nsIEditorObserver> mEditorObservers;  
   nsCOMArray<nsIDocumentStateListener> mDocStateListeners;
 
   nsSelectionState  mSavedSel;           
