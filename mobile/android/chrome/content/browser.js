@@ -4498,7 +4498,7 @@ Tab.prototype = {
           
           
 
-          if (contentDocument.mozSyntheticDocument) {
+          if (!this.restoredSessionZoom() && contentDocument.mozSyntheticDocument) {
             
             
             
