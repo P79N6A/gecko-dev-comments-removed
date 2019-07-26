@@ -838,12 +838,14 @@ DataChannelConnection::SendControlMessage(void *msg, uint32_t len, uint16_t stre
 
 int32_t
 DataChannelConnection::SendOpenRequestMessage(const nsACString& label,
+                                              const nsACString& protocol,
                                               uint16_t stream, bool unordered,
                                               uint16_t prPolicy, uint32_t prValue)
 {
-  int len = label.Length(); 
+  int label_len = label.Length(); 
+  int proto_len = protocol.Length(); 
   struct rtcweb_datachannel_open_request *req =
-    (struct rtcweb_datachannel_open_request*) moz_xmalloc(sizeof(*req)+len);
+    (struct rtcweb_datachannel_open_request*) moz_xmalloc(sizeof(*req)+label_len+proto_len+1);
    
 
   memset(req, 0, sizeof(struct rtcweb_datachannel_open_request));
@@ -869,9 +871,13 @@ DataChannelConnection::SendOpenRequestMessage(const nsACString& label,
   }
   req->reliability_params = htons((uint16_t)prValue); 
   req->priority = htons(0); 
+  req->label_length = label_len;
+  req->protocol_length = proto_len;
   strcpy(&req->label[0], PromiseFlatCString(label).get());
+  strcpy(&req->label[req->label_length+1], PromiseFlatCString(protocol).get());
 
-  int32_t result = SendControlMessage(req, sizeof(*req)+len, stream);
+  
+  int32_t result = SendControlMessage(req, sizeof(*req)+label_len+proto_len+1, stream);
 
   moz_free(req);
   return result;
@@ -907,7 +913,8 @@ DataChannelConnection::SendDeferredMessages()
 
     
     if (channel->mFlags & DATA_CHANNEL_FLAGS_SEND_REQ) {
-      if (SendOpenRequestMessage(channel->mLabel, channel->mStream,
+      if (SendOpenRequestMessage(channel->mLabel, channel->mProtocol,
+                                 channel->mStream,
                                  channel->mFlags & DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED,
                                  channel->mPrPolicy, channel->mPrValue)) {
         channel->mFlags &= ~DATA_CHANNEL_FLAGS_SEND_REQ;
@@ -996,15 +1003,10 @@ DataChannelConnection::HandleOpenRequestMessage(const struct rtcweb_datachannel_
   uint16_t prPolicy;
   uint32_t flags;
   nsCString label(nsDependentCString(req->label));
+  nsCString protocol(nsDependentCString(&req->label[req->label_length+1]));
 
   mLock.AssertCurrentThreadOwns();
 
-  if ((channel = FindChannelByStream(stream))) {
-    LOG(("ERROR: HandleOpenRequestMessage: channel for stream %u is in state %d instead of CLOSED.",
-         stream, channel->mState));
-    
-    return;
-  }
   switch (req->channel_type) {
     case DATA_CHANNEL_RELIABLE:
       prPolicy = SCTP_PR_SCTP_NONE;
@@ -1021,10 +1023,32 @@ DataChannelConnection::HandleOpenRequestMessage(const struct rtcweb_datachannel_
   }
   prValue = ntohs(req->reliability_params);
   flags = ntohs(req->flags) & DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED;
+
+  if ((channel = FindChannelByStream(stream))) {
+    if (!(channel->mFlags & DATA_CHANNEL_FLAGS_EXTERNAL_NEGOTIATED)) {
+      LOG(("ERROR: HandleOpenRequestMessage: channel for stream %u is in state %d instead of CLOSED.",
+           stream, channel->mState));
+     
+    } else {
+      LOG(("Open for externally negotiated channel %u", stream));
+      
+      if (prPolicy != channel->mPrPolicy ||
+          prValue != channel->mPrValue ||
+          flags != (channel->mFlags & DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED))
+      {
+        LOG(("WARNING: external negotiation mismatch with OpenRequest:"
+             "channel %u, policy %u/%u, value %u/%u, flags %x/%x",
+             stream, prPolicy, channel->mPrPolicy,
+             prValue, channel->mPrValue, flags, channel->mFlags));
+      }
+    }
+    return;
+  }
   channel = new DataChannel(this,
                             stream,
                             DataChannel::CONNECTING,
                             label,
+                            protocol,
                             prPolicy, prValue,
                             flags,
                             nullptr, nullptr);
@@ -1032,8 +1056,8 @@ DataChannelConnection::HandleOpenRequestMessage(const struct rtcweb_datachannel_
 
   channel->mState = DataChannel::WAITING_TO_OPEN;
 
-  LOG(("%s: sending ON_CHANNEL_CREATED for %s: %u", __FUNCTION__,
-       channel->mLabel.get(), stream));
+  LOG(("%s: sending ON_CHANNEL_CREATED for %s/%s: %u", __FUNCTION__,
+       channel->mLabel.get(), channel->mProtocol.get(), stream));
   NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
                             DataChannelOnMessageAvailable::ON_CHANNEL_CREATED,
                             this, channel));
@@ -1691,15 +1715,20 @@ DataChannelConnection::ReceiveCallback(struct socket* sock, void *data, size_t d
 }
 
 already_AddRefed<DataChannel>
-DataChannelConnection::Open(const nsACString& label, Type type, bool inOrder,
+DataChannelConnection::Open(const nsACString& label, const nsACString& protocol,
+                            Type type, bool inOrder,
                             uint32_t prValue, DataChannelListener *aListener,
-                            nsISupports *aContext)
+                            nsISupports *aContext, bool aExternalNegotiated,
+                            uint16_t aStream)
 {
+  
   uint16_t prPolicy = SCTP_PR_SCTP_NONE;
   uint32_t flags;
 
-  LOG(("DC Open: label %s, type %u, inorder %d, prValue %u, listener %p, context %p",
-       PromiseFlatCString(label).get(), type, inOrder, prValue, aListener, aContext));
+  LOG(("DC Open: label %s/%s, type %u, inorder %d, prValue %u, listener %p, context %p, external: %s, stream %u",
+       PromiseFlatCString(label).get(), PromiseFlatCString(protocol).get(),
+       type, inOrder, prValue, aListener, aContext,
+       aExternalNegotiated ? "true" : "false", aStream));
   switch (type) {
     case DATA_CHANNEL_RELIABLE:
       prPolicy = SCTP_PR_SCTP_NONE;
@@ -1715,13 +1744,24 @@ DataChannelConnection::Open(const nsACString& label, Type type, bool inOrder,
     return nullptr;
   }
 
+  if (aStream != INVALID_STREAM && mStreams[aStream]) {
+    LOG(("ERROR: external negotiation of already-open channel %u", aStream));
+    
+    
+    return nullptr;
+  }
+
   flags = !inOrder ? DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED : 0;
   nsRefPtr<DataChannel> channel(new DataChannel(this,
-                                                INVALID_STREAM,
+                                                aStream,
                                                 DataChannel::CONNECTING,
-                                                label, type, prValue,
+                                                label, protocol,
+                                                type, prValue,
                                                 flags,
                                                 aListener, aContext));
+  if (aExternalNegotiated) {
+    channel->mFlags |= DATA_CHANNEL_FLAGS_EXTERNAL_NEGOTIATED;
+  }
 
   MutexAutoLock lock(mLock); 
   return OpenFinish(channel.forget());
@@ -1731,38 +1771,42 @@ DataChannelConnection::Open(const nsACString& label, Type type, bool inOrder,
 already_AddRefed<DataChannel>
 DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
 {
-  uint16_t stream = FindFreeStream(); 
   nsRefPtr<DataChannel> channel(aChannel);
-
-  mLock.AssertCurrentThreadOwns();
-
-  LOG(("Finishing open: channel %p, stream = %u", channel.get(), stream));
+  uint16_t stream = channel->mStream;
 
   if (stream == INVALID_STREAM) {
-    if (!RequestMoreStreams()) {
-      channel->mState = CLOSED;
-      if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
+    stream = FindFreeStream(); 
+
+    mLock.AssertCurrentThreadOwns();
+
+    LOG(("Finishing open: channel %p, stream = %u", channel.get(), stream));
+
+    if (stream == INVALID_STREAM) {
+      if (!RequestMoreStreams()) {
+        channel->mState = CLOSED;
+        if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
+          
+          NS_ERROR("Failed to request more streams");
+          NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                    DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                                    channel));
+          return channel.forget();
+        }
         
-        NS_ERROR("Failed to request more streams");
-        NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
-                                  DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
-                                  channel));
-        return channel.forget();
+        
+        
+        return nullptr;
       }
+      LOG(("Queuing channel %p to finish open", channel.get()));
       
-      
-      
-      return nullptr;
+      channel->mFlags |= DATA_CHANNEL_FLAGS_FINISH_OPEN;
+      channel->AddRef(); 
+      mPending.Push(channel);
+      return channel.forget();
     }
-    LOG(("Queuing channel %p to finish open", channel.get()));
-    
-    channel->mFlags |= DATA_CHANNEL_FLAGS_FINISH_OPEN;
-    channel->AddRef(); 
-    mPending.Push(channel);
-    return channel.forget();
+    channel->mStream = stream;
   }
   mStreams[stream] = channel;
-  channel->mStream = stream;
 
 #ifdef TEST_QUEUED_DATA
   
@@ -1771,38 +1815,45 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
   SendMsgInternal(channel, "Help me!", 8, DATA_CHANNEL_PPID_DOMSTRING);
 #endif
 
-  if (!SendOpenRequestMessage(channel->mLabel, stream,
-                              !!(channel->mFlags & DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED),
-                              channel->mPrPolicy, channel->mPrValue)) {
-    LOG(("SendOpenRequest failed, errno = %d", errno));
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      channel->mFlags |= DATA_CHANNEL_FLAGS_SEND_REQ;
-      StartDefer();
-    } else {
-      if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
+  if (!(channel->mFlags & DATA_CHANNEL_FLAGS_EXTERNAL_NEGOTIATED)) {
+    if (!SendOpenRequestMessage(channel->mLabel, channel->mProtocol,
+                                stream,
+                                !!(channel->mFlags & DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED),
+                                channel->mPrPolicy, channel->mPrValue)) {
+      LOG(("SendOpenRequest failed, errno = %d", errno));
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        channel->mFlags |= DATA_CHANNEL_FLAGS_SEND_REQ;
+        StartDefer();
+
+        return channel.forget();
+      } else {
+        if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
+          
+          NS_ERROR("Failed to send open request");
+          NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                    DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                                    channel));
+        }
         
-        NS_ERROR("Failed to send open request");
-        NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
-                                  DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
-                                  channel));
+        
+        mStreams[stream] = nullptr;
+        channel->mStream = INVALID_STREAM;
+        
+        channel->mState = CLOSED;
+        return nullptr;
       }
       
-      
-      mStreams[stream] = nullptr;
-      channel->mStream = INVALID_STREAM;
-      
-      channel->mState = CLOSED;
-      return nullptr;
     }
-  } else {
-    channel->mState = OPEN;
-    channel->mReady = true;
-    
-    LOG(("%s: sending ON_CHANNEL_OPEN for %p", __FUNCTION__, channel.get()));
-    NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
-                              DataChannelOnMessageAvailable::ON_CHANNEL_OPEN, this,
-                              channel));
   }
+  
+  channel->mState = OPEN;
+  channel->mReady = true;
+  
+  LOG(("%s: sending ON_CHANNEL_OPEN for %p", __FUNCTION__, channel.get()));
+  NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                            DataChannelOnMessageAvailable::ON_CHANNEL_OPEN, this,
+                            channel));
+
   return channel.forget();
 }
 
