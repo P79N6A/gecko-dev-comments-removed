@@ -134,8 +134,14 @@ const JSClass xpc::SafeJSContextGlobalClass = {
 JSContext*
 XPCJSContextStack::GetSafeJSContext()
 {
-    if (mSafeJSContext)
-        return mSafeJSContext;
+    MOZ_ASSERT(mSafeJSContext);
+    return mSafeJSContext;
+}
+
+JSContext*
+XPCJSContextStack::InitSafeJSContext()
+{
+    MOZ_ASSERT(!mSafeJSContext);
 
     
     
