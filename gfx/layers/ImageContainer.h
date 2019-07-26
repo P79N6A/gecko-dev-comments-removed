@@ -693,6 +693,20 @@ public:
 
 
 
+
+
+  virtual void SetDataNoCopy(const Data &aData);
+
+  
+
+
+  virtual uint8_t* AllocateAndGetNewBuffer(uint32_t aSize);
+
+  
+
+
+
+
   virtual void SetDelayedConversion(bool aDelayed) { }
 
   

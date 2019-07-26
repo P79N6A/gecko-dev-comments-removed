@@ -138,8 +138,33 @@ public:
   
   
   
+  
+  
   static VideoData* Create(VideoInfo& aInfo,
                            ImageContainer* aContainer,
+                           Image* aImage,
+                           int64_t aOffset,
+                           int64_t aTime,
+                           int64_t aEndTime,
+                           const YCbCrBuffer &aBuffer,
+                           bool aKeyframe,
+                           int64_t aTimecode,
+                           nsIntRect aPicture);
+
+  
+  static VideoData* Create(VideoInfo& aInfo,
+                           ImageContainer* aContainer,
+                           int64_t aOffset,
+                           int64_t aTime,
+                           int64_t aEndTime,
+                           const YCbCrBuffer &aBuffer,
+                           bool aKeyframe,
+                           int64_t aTimecode,
+                           nsIntRect aPicture);
+
+  
+  static VideoData* Create(VideoInfo& aInfo,
+                           Image* aImage,
                            int64_t aOffset,
                            int64_t aTime,
                            int64_t aEndTime,
@@ -153,7 +178,7 @@ public:
                            int64_t aOffset,
                            int64_t aTime,
                            int64_t aEndTime,
-                           layers::GraphicBufferLocked *aBuffer,
+                           layers::GraphicBufferLocked* aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
                            nsIntRect aPicture);
