@@ -1341,6 +1341,10 @@ pref("security.csp.enable", true);
 pref("security.csp.debug", false);
 
 
+pref("security.mixed_content.block_active_content", false);
+pref("security.mixed_content.block_display_content", false);
+
+
 
 
 pref("ui.key.accelKey", 17);
