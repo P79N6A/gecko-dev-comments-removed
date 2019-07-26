@@ -953,11 +953,6 @@ nsIFrame::GetUsedPadding() const
 int
 nsIFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
 {
-  if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
-                     NS_STYLE_BOX_DECORATION_BREAK_CLONE)) {
-    return 0;
-  }
-
   
   
   WritingMode writingMode = GetWritingMode();
@@ -1282,8 +1277,7 @@ nsIFrame::OutsetBorderRadii(nscoord aRadii[8], const nsMargin &aOffsets)
 }
 
  bool
-nsIFrame::GetBorderRadii(const nsSize& aFrameSize, const nsSize& aBorderArea,
-                         int aSkipSides, nscoord aRadii[8]) const
+nsIFrame::GetBorderRadii(nscoord aRadii[8]) const
 {
   if (IsThemed()) {
     
@@ -1298,16 +1292,9 @@ nsIFrame::GetBorderRadii(const nsSize& aFrameSize, const nsSize& aBorderArea,
     }
     return false;
   }
-  return ComputeBorderRadii(StyleBorder()->mBorderRadius,
-                            aFrameSize, aBorderArea,
-                            aSkipSides, aRadii);
-}
-
-bool
-nsIFrame::GetBorderRadii(nscoord aRadii[8]) const
-{
-  nsSize sz = GetSize();
-  return GetBorderRadii(sz, sz, GetSkipSides(), aRadii);
+  nsSize size = GetSize();
+  return ComputeBorderRadii(StyleBorder()->mBorderRadius, size, size,
+                            GetSkipSides(), aRadii);
 }
 
 bool

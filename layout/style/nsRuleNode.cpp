@@ -6240,6 +6240,14 @@ nsRuleNode::ComputeBackgroundData(void* aStartStruct,
                     bg->mClipCount, maxItemCount, rebuild, canStoreInRuleTree);
 
   
+  SetDiscrete(*aRuleData->ValueForBackgroundInlinePolicy(),
+              bg->mBackgroundInlinePolicy,
+              canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
+              parentBG->mBackgroundInlinePolicy,
+              NS_STYLE_BG_INLINE_POLICY_CONTINUOUS, 0, 0, 0, 0);
+
+  
   SetBackgroundList(aContext, *aRuleData->ValueForBackgroundBlendMode(),
                     bg->mLayers,
                     parentBG->mLayers, &nsStyleBackground::Layer::mBlendMode,
@@ -6436,13 +6444,6 @@ nsRuleNode::ComputeBorderData(void* aStartStruct,
                               const bool aCanStoreInRuleTree)
 {
   COMPUTE_START_RESET(Border, (mPresContext), border, parentBorder)
-
-  
-  SetDiscrete(*aRuleData->ValueForBoxDecorationBreak(),
-              border->mBoxDecorationBreak, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
-              parentBorder->mBoxDecorationBreak,
-              NS_STYLE_BOX_DECORATION_BREAK_SLICE, 0, 0, 0, 0);
 
   
   const nsCSSValue* boxShadowValue = aRuleData->ValueForBoxShadow();

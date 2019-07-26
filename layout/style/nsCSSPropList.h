@@ -274,6 +274,10 @@
 
 
 
+
+
+
+
 CSS_PROP_DISPLAY(
     -moz-appearance,
     appearance,
@@ -531,6 +535,18 @@ CSS_PROP_BACKGROUND(
     "",
     VARIANT_IMAGE, 
     nullptr,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_BACKGROUND(
+    -moz-background-inline-policy,
+    _moz_background_inline_policy,
+    CSS_PROP_DOMPROP_PREFIXED(BackgroundInlinePolicy),
+    CSS_PROPERTY_PARSE_VALUE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER_AND_FIRST_LINE |
+        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER,
+    "",
+    VARIANT_HK,
+    kBackgroundInlinePolicyKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 CSS_PROP_BACKGROUND(
@@ -1349,16 +1365,6 @@ CSS_PROP_POSITION(
     nullptr,
     offsetof(nsStylePosition, mOffset),
     eStyleAnimType_Sides_Bottom)
-CSS_PROP_BORDER(
-    box-decoration-break,
-    box_decoration_break,
-    BoxDecorationBreak,
-    CSS_PROPERTY_PARSE_VALUE,
-    "layout.css.box-decoration-break.enabled",
-    VARIANT_HK,
-    kBoxDecorationBreakKTable,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
 CSS_PROP_BORDER(
     box-shadow,
     box_shadow,
