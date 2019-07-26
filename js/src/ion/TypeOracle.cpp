@@ -573,6 +573,9 @@ TypeInferenceOracle::canEnterInlinedFunction(JSFunction *target)
     if (script->analysis()->usesScopeChain())
         return false;
 
+    if (target->getType(cx)->unknownProperties())
+        return false;
+
     
     TypeSet::WatchObjectStateChange(cx, target->getType(cx));
     return true;
