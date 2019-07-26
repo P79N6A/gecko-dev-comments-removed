@@ -966,16 +966,16 @@ CrashDirectoryService.prototype = Object.freeze({
     return Task.spawn(function iterateDirectory() {
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+      try {
+        yield OS.File.stat(path);
+      } catch (ex if ex instanceof OS.File.Error) {
+        if (ex.becauseNoSuchFile) {
+          throw new Task.Result({});
+        }
+
+        throw ex;
+      }
+
       let iterator = new OS.File.DirectoryIterator(path);
 
       try {
