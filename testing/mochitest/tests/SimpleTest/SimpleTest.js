@@ -279,6 +279,25 @@ SimpleTest.todo = function(condition, name, diag) {
     SimpleTest._tests.push(test);
 };
 
+
+
+
+
+
+
+
+
+SimpleTest.getTestFileURL = function(path) {
+  var lastSlashIdx = path.lastIndexOf("/") + 1;
+  var filename = path.substr(lastSlashIdx);
+  var location = window.location;
+  
+  var remotePath = location.pathname.replace(/\/[^\/]+?$/,"");
+  var url = location.origin +
+            remotePath + "/" + path;
+  return url;
+};
+
 SimpleTest._getCurrentTestURL = function() {
     return parentRunner && parentRunner.currentTestURL ||
            typeof gTestPath == "string" && gTestPath ||
