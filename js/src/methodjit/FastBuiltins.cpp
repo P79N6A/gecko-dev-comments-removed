@@ -953,24 +953,6 @@ mjit::Compiler::inlineNativeFunction(uint32_t argc, bool callingNew)
     }
 
     if (argc == 0) {
-        if ((native == js::array_pop || native == js::array_shift) && thisType == JSVAL_TYPE_OBJECT) {
-            
-
-
-
-
-
-
-
-            if (thisTypes->getKnownClass() == &ArrayClass &&
-                !thisTypes->hasObjectFlags(cx, types::OBJECT_FLAG_SPARSE_INDEXES |
-                                           types::OBJECT_FLAG_LENGTH_OVERFLOW |
-                                           types::OBJECT_FLAG_ITERATED) &&
-                !types::ArrayPrototypeHasIndexedProperty(cx, outerScript)) {
-                bool packed = !thisTypes->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED);
-                return compileArrayPopShift(thisValue, packed, native == js::array_pop);
-            }
-        }
     } else if (argc == 1) {
         FrameEntry *arg = frame.peek(-1);
         types::StackTypeSet *argTypes = frame.extra(arg).types;

@@ -866,6 +866,26 @@ class ArrayBufferObject;
 
 
 
+extern bool
+ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs, HandleValue value,
+               bool setterIsStrict);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -924,7 +944,11 @@ class ObjectElements
   public:
     enum Flags {
         CONVERT_DOUBLE_ELEMENTS = 0x1,
-        ASMJS_ARRAY_BUFFER = 0x2
+        ASMJS_ARRAY_BUFFER = 0x2,
+
+        
+        
+        NONWRITABLE_ARRAY_LENGTH = 0x4
     };
 
   private:
@@ -932,6 +956,10 @@ class ObjectElements
     friend class ObjectImpl;
     friend class ArrayBufferObject;
     friend class Nursery;
+
+    friend bool
+    ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs, HandleValue value,
+                   bool setterIsStrict);
 
     
     uint32_t flags;
@@ -973,6 +1001,12 @@ class ObjectElements
     }
     void setIsAsmJSArrayBuffer() {
         flags |= ASMJS_ARRAY_BUFFER;
+    }
+    bool hasNonwritableArrayLength() const {
+        return flags & NONWRITABLE_ARRAY_LENGTH;
+    }
+    void setNonwritableArrayLength() {
+        flags |= NONWRITABLE_ARRAY_LENGTH;
     }
 
   public:
@@ -1082,6 +1116,10 @@ class ObjectImpl : public gc::Cell
 
     HeapSlot *slots;     
     HeapSlot *elements;  
+
+    friend bool
+    ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs, HandleValue value,
+                   bool setterIsStrict);
 
   private:
     static void staticAsserts() {
@@ -1412,7 +1450,7 @@ class ObjectImpl : public gc::Cell
 
 
 
-        return elements != emptyObjectElements && elements != fixedElements();
+        return !hasEmptyElements() && elements != fixedElements();
     }
 
     inline bool hasFixedElements() const {

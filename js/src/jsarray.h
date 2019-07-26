@@ -4,15 +4,15 @@
 
 
 
+
+
 #ifndef jsarray_h___
 #define jsarray_h___
 
-
-
+#include "jsatom.h"
 #include "jscntxt.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
-#include "jsatom.h"
 #include "jsobj.h"
 
 namespace js {
@@ -70,6 +70,15 @@ NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t e
 extern JSObject *
 NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, RawObject proto = NULL,
                     NewObjectKind newKind = GenericObject);
+
+
+
+
+
+
+extern bool
+WouldDefinePastNonwritableLength(JSContext *cx, HandleObject obj, uint32_t index, bool strict,
+                                 bool *definesPast);
 
 
 extern RawShape

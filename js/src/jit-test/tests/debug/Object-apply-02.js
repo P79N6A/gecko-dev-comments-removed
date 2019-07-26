@@ -39,8 +39,14 @@ function test(usingApply) {
         assertEq(cv.return, 4);
 
         
-        cv = usingApply ? push.apply("hello", ["world"]) : push.call("hello", "world");
-        assertEq(cv.return, 6);
+        
+        
+        cv = usingApply
+             ? push.apply("hello", ["world"])
+             : push.call("hello", "world");
+        assertEq("throw" in cv, true);
+        var ex = cv.throw;
+        assertEq(frame.evalWithBindings("ex instanceof TypeError", { ex: ex }).return, true);
     };
     g.eval("var a = []; f(Array.prototype.push, a);");
     assertEq(g.a.length, 4);

@@ -4162,6 +4162,15 @@ CodeGenerator::emitArrayPopShift(LInstruction *lir, const MArrayPopShift *mir, R
                                      ool->entry());
     }
 
+    
+    
+    
+    
+    Address elementFlags(elementsTemp, ObjectElements::offsetOfFlags());
+    Imm32 bit(ObjectElements::NONWRITABLE_ARRAY_LENGTH);
+    masm.branchTest32(Assembler::NonZero, elementFlags, bit, ool->entry());
+
+    
     masm.store32(lengthTemp, Address(elementsTemp, ObjectElements::offsetOfLength()));
     masm.store32(lengthTemp, Address(elementsTemp, ObjectElements::offsetOfInitializedLength()));
 

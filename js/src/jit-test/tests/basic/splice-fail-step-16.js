@@ -1,8 +1,5 @@
 
 
-
-
-
 var arr = [1, 2, 3, 4, 5, 6];
 
 Object.defineProperty(arr, "length", {writable: false});
@@ -15,7 +12,7 @@ try
 catch (e)
 {
   assertEq(e instanceof TypeError, true,
-           "should have thrown a TypeError, instead threw " + e);
+           "should have thrown a TypeError, instead threw " + e + ", arr is " + arr);
 }
 
 
@@ -25,5 +22,4 @@ assertEq(arr[2], 3);
 assertEq(arr[3], 9);
 assertEq(arr[4], 9);
 assertEq(arr[5], 9);
-assertEq(arr[6], 9);
 assertEq(arr.length, 6);
