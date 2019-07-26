@@ -4,6 +4,7 @@
 
 
 #include "nsIndexedToHTML.h"
+#include "mozilla/dom/EncodingUtils.h"
 #include "nsNetUtil.h"
 #include "netCore.h"
 #include "nsStringStream.h"
@@ -851,30 +852,20 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
     nsXPIDLCString loc;
     aIndex->GetLocation(getter_Copies(loc));
 
-    if (!mTextToSubURI) {
-        mTextToSubURI = do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
-        if (NS_FAILED(rv)) return rv;
-    }
-
     nsXPIDLCString encoding;
     rv = mParser->GetEncoding(getter_Copies(encoding));
     if (NS_FAILED(rv)) return rv;
 
-    nsXPIDLString unEscapeSpec;
-    rv = mTextToSubURI->UnEscapeAndConvert(encoding, loc,
-                                           getter_Copies(unEscapeSpec));
-    if (NS_FAILED(rv)) return rv;
+    
+    loc.SetLength(nsUnescapeCount(loc.BeginWriting()));
 
     
-    nsAutoCString escapeBuf;
-
-    NS_ConvertUTF16toUTF8 utf8UnEscapeSpec(unEscapeSpec);
+    nsAutoCString locEscaped;
 
     
     
-    if ((type == nsIDirIndex::TYPE_DIRECTORY) &&
-        (utf8UnEscapeSpec.Last() != '/')) {
-        utf8UnEscapeSpec.Append('/');
+    if ((type == nsIDirIndex::TYPE_DIRECTORY) && (loc.Last() != '/')) {
+        loc.Append('/');
     }
 
     
@@ -883,7 +874,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
     
     
     if (mExpectAbsLoc &&
-        NS_SUCCEEDED(net_ExtractURLScheme(utf8UnEscapeSpec, nullptr, nullptr, nullptr))) {
+        NS_SUCCEEDED(net_ExtractURLScheme(loc, nullptr, nullptr, nullptr))) {
         
         escFlags = esc_Forced | esc_OnlyASCII | esc_AlwaysCopy | esc_Minimal;
     }
@@ -894,12 +885,37 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
         
         escFlags = esc_Forced | esc_OnlyASCII | esc_AlwaysCopy | esc_FileBaseName | esc_Colon | esc_Directory;
     }
-    NS_EscapeURL(utf8UnEscapeSpec.get(), utf8UnEscapeSpec.Length(), escFlags, escapeBuf);
+    NS_EscapeURL(loc.get(), loc.Length(), escFlags, locEscaped);
     
     
     
-    escapeBuf.ReplaceSubstring(";", "%3b");
-    NS_ConvertUTF8toUTF16 utf16URI(escapeBuf);
+    locEscaped.ReplaceSubstring(";", "%3b");
+    nsAutoString utf16URI;
+    if (encoding.EqualsLiteral("UTF-8")) {
+        
+        nsCOMPtr<nsIUnicodeDecoder> decoder =
+            mozilla::dom::EncodingUtils::DecoderForEncoding("UTF-8");
+        decoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Signal);
+
+        int32_t len = locEscaped.Length();
+        int32_t outlen = 0;
+        rv = decoder->GetMaxLength(locEscaped.get(), len, &outlen);
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
+        nsAutoArrayPtr<PRUnichar> outbuf(new PRUnichar[outlen]);
+        rv = decoder->Convert(locEscaped.get(), &len, outbuf, &outlen);
+        
+        if (rv == NS_OK) {
+            utf16URI.Append(outbuf, outlen);
+        }
+    }
+    if (utf16URI.IsEmpty()) {
+        
+        nsAutoCString outstr;
+        NS_EscapeURL(locEscaped, esc_AlwaysCopy | esc_OnlyNonASCII, outstr);
+        CopyASCIItoUTF16(outstr, utf16URI);
+    }
     nsString htmlEscapedURL;
     htmlEscapedURL.Adopt(nsEscapeHTML2(utf16URI.get(), utf16URI.Length()));
     pushBuffer.Append(htmlEscapedURL);
@@ -908,12 +924,12 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
 
     if (type == nsIDirIndex::TYPE_FILE || type == nsIDirIndex::TYPE_UNKNOWN) {
         pushBuffer.AppendLiteral("<img src=\"moz-icon://");
-        int32_t lastDot = escapeBuf.RFindChar('.');
+        int32_t lastDot = locEscaped.RFindChar('.');
         if (lastDot != kNotFound) {
-            escapeBuf.Cut(0, lastDot);
-            NS_ConvertUTF8toUTF16 utf16EscapeBuf(escapeBuf);
+            locEscaped.Cut(0, lastDot);
+            NS_ConvertUTF8toUTF16 utf16LocEscaped(locEscaped);
             nsString htmlFileExt;
-            htmlFileExt.Adopt(nsEscapeHTML2(utf16EscapeBuf.get(), utf16EscapeBuf.Length()));
+            htmlFileExt.Adopt(nsEscapeHTML2(utf16LocEscaped.get(), utf16LocEscaped.Length()));
             pushBuffer.Append(htmlFileExt);
         } else {
             pushBuffer.AppendLiteral("unknown");
