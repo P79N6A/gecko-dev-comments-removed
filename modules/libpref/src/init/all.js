@@ -707,7 +707,13 @@ pref("dom.min_background_timeout_value", 1000);
 pref("dom.experimental_bindings", true);
 
 
+pref("dom.xbl_scopes", false);
+
+
 pref("dom.experimental_forms", false);
+
+
+pref("dom.experimental_forms_range", false);
 
 
 pref("dom.workers.mem.gc_allocation_threshold_mb", 30);
@@ -1780,7 +1786,7 @@ pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #ifdef XP_WIN
 
 
-pref("dom.ipc.plugins.hangUITimeoutSecs", 5);
+pref("dom.ipc.plugins.hangUITimeoutSecs", 11);
 
 pref("dom.ipc.plugins.hangUIMinDisplaySecs", 10);
 #endif

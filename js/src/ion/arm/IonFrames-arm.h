@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifndef jsion_ionframes_arm_h__
 #define jsion_ionframes_arm_h__
@@ -14,8 +14,8 @@ namespace js {
 namespace ion {
 
 class IonFramePrefix;
-// Layout of the frame prefix. This assumes the stack architecture grows down.
-// If this is ever not the case, we'll have to refactor.
+
+
 class IonCommonFrameLayout
 {
     uint8_t *returnAddress_;
@@ -48,7 +48,7 @@ class IonCommonFrameLayout
     }
 };
 
-// this is the layout of the frame that is used when we enter Ion code from EABI code
+
 class IonEntryFrameLayout : public IonCommonFrameLayout
 {
   public:
@@ -83,7 +83,7 @@ class IonJSFrameLayout : public IonEntryFrameLayout
     }
     static size_t offsetOfActualArgs() {
         IonJSFrameLayout *base = NULL;
-        // +1 to skip |this|.
+        
         return reinterpret_cast<size_t>(&base->argv()[1]);
     }
     static size_t offsetOfActualArg(size_t arg) {
@@ -100,8 +100,8 @@ class IonJSFrameLayout : public IonEntryFrameLayout
         return numActualArgs_;
     }
 
-    // Computes a reference to a slot, where a slot is a distance from the base
-    // frame pointer (as would be used for LStackSlot).
+    
+    
     uintptr_t *slotRef(uint32_t slot) {
         return (uintptr_t *)((uint8_t *)this - (slot * STACK_SLOT_SIZE));
     }
@@ -119,18 +119,18 @@ class IonRectifierFrameLayout : public IonJSFrameLayout
     }
 };
 
-class IonBailedRectifierFrameLayout : public IonJSFrameLayout
+class IonUnwoundRectifierFrameLayout : public IonJSFrameLayout
 {
   public:
     static inline size_t Size() {
-        // On X86, there is a +sizeof(uintptr_t) to account for an extra callee token.
-        // This is not needee here because sizeof(IonExitFrame) == sizeof(IonRectifierFrame)
-        // due to extra padding.
-        return sizeof(IonBailedRectifierFrameLayout);
+        
+        
+        
+        return sizeof(IonUnwoundRectifierFrameLayout);
     }
 };
 
-// GC related data used to keep alive data surrounding the Exit frame.
+
 class IonExitFooterFrame
 {
     const VMFunction *function_;
@@ -150,7 +150,7 @@ class IonExitFooterFrame
         return function_;
     }
 
-    // This should only be called for function()->outParam == Type_Handle
+    
     Value *outVp() {
         return reinterpret_cast<Value *>(reinterpret_cast<char *>(this) - sizeof(Value));
     }
@@ -181,7 +181,7 @@ class IonOOLNativeGetterExitFrameLayout;
 class IonOOLPropertyOpExitFrameLayout;
 class IonDOMExitFrameLayout;
 
-// this is the frame layout when we are exiting ion code, and about to enter EABI code
+
 class IonExitFrameLayout : public IonCommonFrameLayout
 {
     inline uint8_t *top() {
@@ -201,9 +201,9 @@ class IonExitFrameLayout : public IonCommonFrameLayout
         return reinterpret_cast<IonExitFooterFrame *>(sp - IonExitFooterFrame::Size());
     }
 
-    // argBase targets the point which precedes the exit frame. Arguments of VM
-    // each wrapper are pushed before the exit frame.  This correspond exactly
-    // to the value of the argBase register of the generateVMWrapper function.
+    
+    
+    
     inline uint8_t *argBase() {
         JS_ASSERT(footer()->ionCode() != NULL);
         return top();
@@ -230,7 +230,7 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     }
 
     inline IonNativeExitFrameLayout *nativeExit() {
-        // see CodeGenerator::visitCallNative
+        
         JS_ASSERT(isNativeExit());
         return reinterpret_cast<IonNativeExitFrameLayout *>(footer());
     }
@@ -248,16 +248,16 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     }
 };
 
-// Cannot inherit implementa<tion since we need to extend the top of
-// IonExitFrameLayout.
+
+
 class IonNativeExitFrameLayout
 {
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
     uintptr_t argc_;
 
-    // We need to split the Value into 2 fields of 32 bits, otherwise the C++
-    // compiler may add some padding between the fields.
+    
+    
     uint32_t loCalleeResult_;
     uint32_t hiCalleeResult_;
 
@@ -282,16 +282,16 @@ class IonOOLNativeGetterExitFrameLayout
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
 
-    // We need to split the Value into 2 fields of 32 bits, otherwise the C++
-    // compiler may add some padding between the fields.
+    
+    
     uint32_t loCalleeResult_;
     uint32_t hiCalleeResult_;
 
-    // The frame includes the object argument.
+    
     uint32_t loThis_;
     uint32_t hiThis_;
 
-    // pointer to root the stub's IonCode
+    
     IonCode *stubCode_;
 
   public:
@@ -322,18 +322,18 @@ class IonOOLPropertyOpExitFrameLayout
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
 
-    // Object for JSHandleObject
+    
     JSObject *obj_;
 
-    // id for JSHandleId
+    
     jsid id_;
 
-    // space for JSMutableHandleValue result
-    // use two uint32_t so compiler doesn't align.
+    
+    
     uint32_t vp0_;
     uint32_t vp1_;
 
-    // pointer to root the stub's IonCode
+    
     IonCode *stubCode_;
 
   public:
@@ -365,8 +365,8 @@ class IonDOMExitFrameLayout
     IonExitFrameLayout exit_;
     JSObject *thisObj;
 
-    // We need to split the Value in 2 field of 32 bits, otherwise the C++
-    // compiler may add some padding between the fields.
+    
+    
     uint32_t loCalleeResult_;
     uint32_t hiCalleeResult_;
 
@@ -396,8 +396,8 @@ class IonDOMMethodExitFrameLayout
 {
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
-    // This must be the last thing pushed, so as to stay common with
-    // IonDOMExitFrameLayout.
+    
+    
     JSObject *thisObj_;
     uintptr_t argc_;
 
@@ -424,7 +424,7 @@ class IonDOMMethodExitFrameLayout
     }
 };
 
-// An invalidation bailout stack is at the stack pointer for the callee frame.
+
 class InvalidationBailoutStack
 {
     double      fpregs_[FloatRegisters::Total];
@@ -451,7 +451,7 @@ class InvalidationBailoutStack
     void checkInvariants() const;
 };
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
-#endif // jsion_ionframes_arm_h
+#endif 
