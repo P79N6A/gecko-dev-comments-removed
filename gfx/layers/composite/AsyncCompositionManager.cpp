@@ -541,9 +541,28 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
   return appliedTransform;
 }
 
+static bool
+LayerHasNonContainerDescendants(ContainerLayer* aContainer)
+{
+  for (Layer* child = aContainer->GetFirstChild();
+       child; child = child->GetNextSibling()) {
+    ContainerLayer* container = child->AsContainerLayer();
+    if (!container || LayerHasNonContainerDescendants(container)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void
 AsyncCompositionManager::ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer)
 {
+  
+  
+  
+  
+  
   
   
   
@@ -564,6 +583,9 @@ AsyncCompositionManager::ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer)
     const FrameMetrics& metrics = scrollTarget->AsContainerLayer()->GetFrameMetrics();
     if (metrics.mScrollId != aLayer->GetScrollbarTargetContainerId()) {
       continue;
+    }
+    if (!LayerHasNonContainerDescendants(scrollTarget->AsContainerLayer())) {
+      return;
     }
 
     gfx3DMatrix asyncTransform = gfx3DMatrix(apzc->GetCurrentAsyncTransform());
