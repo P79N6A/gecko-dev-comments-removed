@@ -170,6 +170,8 @@ public:
 
     static void Shutdown();
 
+    static void ShutdownLayersIPC();
+
     
 
 
@@ -433,15 +435,8 @@ public:
 
     static bool OffMainThreadCompositingEnabled();
 
-    
-
-
-
-    static bool GetPrefLayersOffMainThreadCompositionEnabled();
     static bool CanUseDirect3D9();
     static bool CanUseDirect3D11();
-
-    static bool OffMainThreadCompositionRequired();
 
     
 
@@ -549,6 +544,10 @@ public:
 
     virtual bool IsInGonkEmulator() const { return false; }
 
+    static bool UsesOffMainThreadCompositing() {
+      return GetPlatform()->mUsesOffMainThreadCompositing;
+    }
+
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
@@ -618,6 +617,13 @@ protected:
     
     int32_t mWordCacheMaxEntries;
 
+    
+    bool mUsesOffMainThreadCompositing;
+
+    
+    
+    bool mAlreadyShutDownLayersIPC;
+
 private:
     
 
@@ -632,7 +638,7 @@ private:
 
     virtual void GetPlatformCMSOutputProfile(void *&mem, size_t &size);
 
-    virtual bool SupportsOffMainThreadCompositing() { return true; }
+    bool ComputeUsesOffMainThreadCompositing();
 
     nsRefPtr<gfxASurface> mScreenReferenceSurface;
     mozilla::RefPtr<mozilla::gfx::DrawTarget> mScreenReferenceDrawTarget;

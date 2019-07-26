@@ -1380,8 +1380,8 @@ gfxWindowsPlatform::GetD3D9DeviceManager()
   
   
   if (!mDeviceManager &&
-      (CompositorParent::IsInCompositorThread() ||
-       !CompositorParent::CompositorLoop())) {
+      (!gfxPlatform::UsesOffMainThreadCompositing() ||
+       CompositorParent::IsInCompositorThread())) {
     mDeviceManager = new DeviceManagerD3D9();
     if (!mDeviceManager->Init()) {
       NS_WARNING("Could not initialise device manager");

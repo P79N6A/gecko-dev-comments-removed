@@ -737,7 +737,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
     }
   }
 
-  if (CompositorParent::CompositorLoop()) {
+  if (gfxPlatform::UsesOffMainThreadCompositing()) {
     
     
     *aId = mLayersId = CompositorParent::AllocateLayerTreeId();

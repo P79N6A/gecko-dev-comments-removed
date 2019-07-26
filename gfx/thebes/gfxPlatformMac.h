@@ -72,8 +72,6 @@ public:
 private:
     virtual void GetPlatformCMSOutputProfile(void* &mem, size_t &size);
 
-    virtual bool SupportsOffMainThreadCompositing();
-
     
     static uint32_t ReadAntiAliasingThreshold();
 

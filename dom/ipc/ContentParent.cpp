@@ -1710,8 +1710,7 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
         
         
         
-        bool useOffMainThreadCompositing = !!CompositorParent::CompositorLoop();
-        if (useOffMainThreadCompositing) {
+        if (gfxPlatform::UsesOffMainThreadCompositing()) {
             DebugOnly<bool> opened = PCompositor::Open(this);
             MOZ_ASSERT(opened);
 

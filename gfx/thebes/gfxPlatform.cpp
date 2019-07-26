@@ -277,6 +277,9 @@ gfxPlatform::gfxPlatform()
     uint32_t contentMask = BackendTypeBit(BackendType::CAIRO);
     InitBackendPrefs(canvasMask, BackendType::CAIRO,
                      contentMask, BackendType::CAIRO);
+
+    mUsesOffMainThreadCompositing = ComputeUsesOffMainThreadCompositing();
+    mAlreadyShutDownLayersIPC = false;
 }
 
 gfxPlatform*
@@ -364,17 +367,12 @@ gfxPlatform::Init()
     mozilla::gl::GLContext::StaticInit();
 #endif
 
-    bool useOffMainThreadCompositing = OffMainThreadCompositionRequired() ||
-                                       GetPrefLayersOffMainThreadCompositionEnabled();
-
-    if (!OffMainThreadCompositionRequired()) {
-      useOffMainThreadCompositing &= GetPlatform()->SupportsOffMainThreadCompositing();
-    }
-
-    if (useOffMainThreadCompositing && (XRE_GetProcessType() == GeckoProcessType_Default)) {
-        CompositorParent::StartUp();
+    if (UsesOffMainThreadCompositing() &&
+        XRE_GetProcessType() == GeckoProcessType_Default)
+    {
+        mozilla::layers::CompositorParent::StartUp();
         if (gfxPrefs::AsyncVideoEnabled()) {
-            ImageBridgeChild::StartUp();
+            mozilla::layers::ImageBridgeChild::StartUp();
         }
 #ifdef MOZ_WIDGET_GONK
         SharedBufferManagerChild::StartUp();
@@ -444,6 +442,9 @@ gfxPlatform::Init()
 void
 gfxPlatform::Shutdown()
 {
+    MOZ_ASSERT(gPlatform, "gfxPlatform already down!");
+    MOZ_ASSERT(gPlatform->mAlreadyShutDownLayersIPC, "ShutdownLayersIPC should have been called before this point!");
+
     
     
     gfxFontCache::Shutdown();
@@ -506,6 +507,25 @@ gfxPlatform::Shutdown()
     gPlatform = nullptr;
 }
 
+ void
+gfxPlatform::ShutdownLayersIPC()
+{
+    MOZ_ASSERT(!gPlatform->mAlreadyShutDownLayersIPC);
+    if (UsesOffMainThreadCompositing() &&
+        XRE_GetProcessType() == GeckoProcessType_Default)
+    {
+        
+        
+        layers::ImageBridgeChild::ShutDown();
+#ifdef MOZ_WIDGET_GONK
+        layers::SharedBufferManagerChild::ShutDown();
+#endif
+
+        layers::CompositorParent::ShutDown();
+    }
+    gPlatform->mAlreadyShutDownLayersIPC = true;
+}
+
 gfxPlatform::~gfxPlatform()
 {
     mScreenReferenceSurface = nullptr;
@@ -532,7 +552,6 @@ gfxPlatform::~gfxPlatform()
 
 bool
 gfxPlatform::PreferMemoryOverShmem() const {
-  MOZ_ASSERT(!CompositorParent::IsInCompositorThread());
   return mLayersPreferMemoryOverShmem;
 }
 
@@ -1542,9 +1561,7 @@ gfxPlatform::GetBackendPref(const char* aBackendPrefName, uint32_t &aBackendBitm
 bool
 gfxPlatform::OffMainThreadCompositingEnabled()
 {
-  return XRE_GetProcessType() == GeckoProcessType_Default ?
-    CompositorParent::CompositorLoop() != nullptr :
-    CompositorChild::ChildProcessHasCompositor();
+  return UsesOffMainThreadCompositing();
 }
 
 eCMSMode
@@ -2009,27 +2026,6 @@ InitLayersAccelerationPrefs()
 }
 
 bool
-gfxPlatform::GetPrefLayersOffMainThreadCompositionEnabled()
-{
-  InitLayersAccelerationPrefs();
-  return gfxPrefs::LayersOffMainThreadCompositionEnabled() ||
-         gfxPrefs::LayersOffMainThreadCompositionForceEnabled() ||
-         gfxPrefs::LayersOffMainThreadCompositionTestingEnabled();
-}
-
-bool gfxPlatform::OffMainThreadCompositionRequired()
-{
-  InitLayersAccelerationPrefs();
-#if defined(MOZ_WIDGET_GTK) && defined(NIGHTLY_BUILD)
-  
-  return sPrefBrowserTabsRemoteAutostart ||
-         gfxPrefs::LayersAccelerationForceEnabled();
-#else
-  return sPrefBrowserTabsRemoteAutostart;
-#endif
-}
-
-bool
 gfxPlatform::CanUseDirect3D9()
 {
   
@@ -2074,4 +2070,26 @@ gfxPlatform::GetScaledFontForFontWithCairoSkia(DrawTarget* aTarget, gfxFont* aFo
     }
 
     return nullptr;
+}
+
+bool
+gfxPlatform::ComputeUsesOffMainThreadCompositing()
+{
+  InitLayersAccelerationPrefs();
+  bool result =
+    sPrefBrowserTabsRemoteAutostart ||
+    gfxPrefs::LayersOffMainThreadCompositionEnabled() ||
+    gfxPrefs::LayersOffMainThreadCompositionForceEnabled() ||
+    gfxPrefs::LayersOffMainThreadCompositionTestingEnabled();
+#if defined(MOZ_WIDGET_GTK) && defined(NIGHTLY_BUILD)
+  
+  result |=
+    gfxPrefs::LayersAccelerationForceEnabled() ||
+    PR_GetEnv("MOZ_USE_OMTC") ||
+    PR_GetEnv("MOZ_OMTC_ENABLED"); 
+                                   
+                                   
+                                   
+#endif
+  return result;
 }
