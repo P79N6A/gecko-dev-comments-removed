@@ -595,3 +595,7 @@ pref("memory.free_dirty_pages", true);
 
 pref("wap.UAProf.url", "");
 pref("wap.UAProf.tagname", "x-wap-profile");
+
+
+
+pref("webgl.lose-context-on-heap-minimize", false);
