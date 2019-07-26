@@ -1513,8 +1513,7 @@ nsBaseWidget::GetRootAccessible()
   
   
   nsPresContext* presContext = presShell->GetPresContext();
-  nsCOMPtr<nsISupports> container = presContext->GetContainer();
-  NS_ENSURE_TRUE(container, nullptr);
+  NS_ENSURE_TRUE(presContext->GetContainerWeak(), nullptr);
 
   
   

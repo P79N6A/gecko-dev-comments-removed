@@ -2214,8 +2214,7 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
 
   
   
-  nsCOMPtr<nsISupports> supps(do_QueryInterface(aPO->mDocShell));
-  aPO->mPresContext->SetContainer(supps);
+  aPO->mPresContext->SetContainer(aPO->mDocShell);
 
   aPO->mPresShell->BeginObservingDocument();
 
