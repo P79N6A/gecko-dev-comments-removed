@@ -169,6 +169,16 @@ double profiler_time()
   return mozilla_sampler_time();
 }
 
+static inline
+bool profiler_in_privacy_mode()
+{
+  PseudoStack *stack = tlsPseudoStack.get();
+  if (!stack) {
+    return false;
+  }
+  return stack->mPrivacyMode;
+}
+
 
 
 
@@ -241,7 +251,7 @@ class MOZ_STACK_CLASS SamplerStackFramePrintfRAII {
 public:
   
   SamplerStackFramePrintfRAII(const char *aDefault, uint32_t line, const char *aFormat, ...) {
-    if (profiler_is_active()) {
+    if (profiler_is_active() && !profiler_in_privacy_mode()) {
       va_list args;
       va_start(args, aFormat);
       char buff[SAMPLER_MAX_STRING];
@@ -321,6 +331,11 @@ inline void mozilla_sampler_add_marker(const char *aMarker)
   
   
   if (!profiler_is_active()) {
+    return;
+  }
+
+  
+  if (profiler_in_privacy_mode()) {
     return;
   }
 
