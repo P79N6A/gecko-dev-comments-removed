@@ -49,8 +49,10 @@ public:
 
 
 
+
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   nsIDOMBlob* aBlob) = 0;
+                                   nsIDOMBlob* aBlob,
+                                   const nsString& aFilename) = 0;
   
   
 
@@ -159,7 +161,8 @@ public:
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   nsIDOMBlob* aBlob);
+                                   nsIDOMBlob* aBlob,
+                                   const nsString& aFilename);
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
                                         nsIInputStream** aPostDataStream);
 

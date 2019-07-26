@@ -4056,7 +4056,7 @@ nsHTMLInputElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
                                        "Submit", defaultValue);
     value = defaultValue;
   }
-      
+
   
   
   
@@ -4066,13 +4066,13 @@ nsHTMLInputElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
     const nsCOMArray<nsIDOMFile>& files = GetFiles();
 
     for (int32_t i = 0; i < files.Count(); ++i) {
-      aFormSubmission->AddNameFilePair(name, files[i]);
+      aFormSubmission->AddNameFilePair(name, files[i], NullString());
     }
 
     if (files.Count() == 0) {
       
       
-      aFormSubmission->AddNameFilePair(name, nullptr);
+      aFormSubmission->AddNameFilePair(name, nullptr, NullString());
 
     }
 
