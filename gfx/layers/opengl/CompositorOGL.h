@@ -31,7 +31,6 @@
 #include "nsXULAppAPI.h"                
 #include "nscore.h"                     
 #include "VBOArena.h"                   
-#include <map>
 
 class gfx3DMatrix;
 class nsIWidget;
@@ -55,45 +54,13 @@ struct Effect;
 struct EffectChain;
 struct FPSState;
 
-class ShaderConfigOGL
-{
-public:
-  ShaderConfigOGL() :
-    mFeatures(0) {}
-
-  void SetRenderColor(bool aEnabled);
-  void SetTextureTarget(GLenum aTarget);
-  void SetRBSwap(bool aEnabled);
-  void SetNoAlpha(bool aEnabled);
-  void SetOpacity(bool aEnabled);
-  void SetYCbCr(bool aEnabled);
-  void SetComponentAlpha(bool aEnabled);
-  void SetColorMatrix(bool aEnabled);
-  void SetBlur(bool aEnabled);
-  void SetMask(bool aEnabled);
-
-  bool operator< (const ShaderConfigOGL& other) const {
-    return mFeatures < other.mFeatures;
-  }
-
-public:
-  void SetFeature(int aBitmask, bool aState) {
-    if (aState)
-      mFeatures |= aBitmask;
-    else
-      mFeatures &= (~aBitmask);
-  }
-
-  int mFeatures;
-};
-
 class CompositorOGL : public Compositor
 {
   typedef mozilla::gl::GLContext GLContext;
+  typedef ShaderProgramType ProgramType;
   
   friend class GLManagerCompositor;
 
-  std::map<ShaderConfigOGL, ShaderProgramOGL*> mPrograms;
 public:
   CompositorOGL(nsIWidget *aWidget, int aSurfaceWidth = -1, int aSurfaceHeight = -1,
                 bool aUseExternalSurfaceSize = false);
@@ -183,6 +150,10 @@ public:
   }
 
   GLContext* gl() const { return mGLContext; }
+  ShaderProgramType GetFBOLayerProgramType() const {
+    return mFBOTextureTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB ?
+           RGBARectLayerProgramType : RGBALayerProgramType;
+  }
   gfx::SurfaceFormat GetFBOFormat() const {
     return gfx::FORMAT_R8G8B8A8;
   }
@@ -197,10 +168,6 @@ public:
 
 
   GLuint GetTemporaryTexture(GLenum aUnit);
-
-  const gfx3DMatrix& GetProjMatrix() const {
-    return mProjMatrix;
-  }
 private:
   
 
@@ -211,7 +178,6 @@ private:
   nsIWidget *mWidget;
   nsIntSize mWidgetSize;
   nsRefPtr<GLContext> mGLContext;
-  gfx3DMatrix mProjMatrix;
 
   
   nsIntSize mSurfaceSize;
@@ -225,6 +191,19 @@ private:
   };
 
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
+
+  
+  struct ShaderProgramVariations {
+    nsAutoTArray<nsAutoPtr<ShaderProgramOGL>, NumMaskTypes> mVariations;
+    ShaderProgramVariations() {
+      MOZ_COUNT_CTOR(ShaderProgramVariations);
+      mVariations.SetLength(NumMaskTypes);
+    }
+    ~ShaderProgramVariations() {
+      MOZ_COUNT_DTOR(ShaderProgramVariations);
+    }
+  };
+  nsTArray<ShaderProgramVariations> mPrograms;
 
   
   GLenum mFBOTextureTarget;
@@ -269,9 +248,24 @@ private:
                           gfx::Rect *aRenderBoundsOut = nullptr) MOZ_OVERRIDE;
 
   ShaderProgramType GetProgramTypeForEffect(Effect* aEffect) const;
-  ShaderConfigOGL GetShaderConfigFor(GLenum aTarget, gfx::SurfaceFormat aFormat) const;
-  ShaderConfigOGL GetShaderConfigFor(Effect *aEffect, MaskType aMask = MaskNone) const;
-  ShaderProgramOGL* GetShaderProgramFor(const ShaderConfigOGL &aConfig);
+
+  
+
+
+  void SetLayerProgramProjectionMatrix(const gfx3DMatrix& aMatrix);
+
+  
+
+
+
+  void AddPrograms(ShaderProgramType aType);
+
+  ShaderProgramOGL* GetProgram(ShaderProgramType aType,
+                               MaskType aMask = MaskNone) {
+    MOZ_ASSERT(ProgramProfileOGL::ProgramExists(aType, aMask),
+               "Invalid program type.");
+    return mPrograms[aType].mVariations[aMask];
+  }
 
   
 
@@ -313,8 +307,6 @@ private:
 
 
   double AddFrameAndGetFps(const TimeStamp& timestamp);
-  void DrawFPS();
-  GLuint mFPSTexture;
 
   bool mDestroyed;
 

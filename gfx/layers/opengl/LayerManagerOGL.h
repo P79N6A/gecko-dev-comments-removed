@@ -334,8 +334,6 @@ public:
 
   float ComputeRenderIntegrity();
 
-  gfx3DMatrix mProjMatrix;
-
 private:
   
   nsIWidget *mWidget;
@@ -412,6 +410,11 @@ private:
 
 
   void CopyToTarget(gfxContext *aTarget);
+
+  
+
+
+  void SetLayerProgramProjectionMatrix(const gfx3DMatrix& aMatrix);
 
   
 
