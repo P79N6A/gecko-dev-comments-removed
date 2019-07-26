@@ -279,10 +279,6 @@ public:
 
     void UnlockBitmap(jobject bitmap);
 
-    void PostToJavaThread(JNIEnv *aEnv, nsIRunnable* aRunnable, bool aMainThread = false);
-
-    void ExecuteNextRunnable(JNIEnv *aEnv);
-
     
     enum {
         WINDOW_FORMAT_RGBA_8888          = 1,
@@ -394,8 +390,6 @@ protected:
     bool mHasNativeWindowFallback;
 
     int mAPIVersion;
-
-    nsCOMArray<nsIRunnable> mRunnableQueue;
 
     
     jmethodID jNotifyIME;
