@@ -259,9 +259,6 @@ PRMJ_Now()
 int64_t
 PRMJ_Now()
 {
-    double lowresTime, highresTimerValue;
-    FILETIME ft;
-    LARGE_INTEGER now;
     bool calibrated = false;
     bool needsCalibration = false;
     int64_t returnedTime;
@@ -295,33 +292,31 @@ PRMJ_Now()
 
 
         
+        FILETIME ft;
         GetSystemTimeAsFileTime(&ft);
-        lowresTime = FileTimeToUnixMicroseconds(ft);
+        double lowresTime = FileTimeToUnixMicroseconds(ft);
 
         if (calibration.freq > 0.0) {
-            double highresTime, diff;
-
-            DWORD timeAdjustment, timeIncrement;
-            BOOL timeAdjustmentDisabled;
-
             
-            double skewThreshold = 15625.25;
-            
+            LARGE_INTEGER now;
             QueryPerformanceCounter(&now);
-            highresTimerValue = double(now.QuadPart);
+            double highresTimerValue = double(now.QuadPart);
 
             MUTEX_LOCK(&calibration.data_lock);
-            highresTime = calibration.offset + PRMJ_USEC_PER_SEC*
+            double highresTime = calibration.offset + PRMJ_USEC_PER_SEC *
                  (highresTimerValue-calibration.timer_offset)/calibration.freq;
             cachedOffset = calibration.offset;
 
             
-
+            
             calibration.last = js::Max(calibration.last, int64_t(highresTime));
             returnedTime = calibration.last;
             MUTEX_UNLOCK(&calibration.data_lock);
 
             
+            double skewThreshold;
+            DWORD timeAdjustment, timeIncrement;
+            BOOL timeAdjustmentDisabled;
             if (GetSystemTimeAdjustment(&timeAdjustment,
                                         &timeIncrement,
                                         &timeAdjustmentDisabled)) {
@@ -332,41 +327,42 @@ PRMJ_Now()
                     
                     skewThreshold = timeIncrement/10.0;
                 }
+            } else {
+                
+                skewThreshold = 15625.25;
             }
 
             
-            diff = lowresTime - highresTime;
+            double diff = lowresTime - highresTime;
 
             
-
-
-
-
+            
+            
+            
+            
             if (mozilla::Abs(diff) > 2 * skewThreshold) {
-                
-
                 if (calibrated) {
                     
-
-
-
-
-
-
-
-
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                     returnedTime = int64_t(lowresTime);
                     needsCalibration = false;
                 } else {
                     
-
-
-
-
-
-
-
-
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                     needsCalibration = true;
                 }
             } else {
