@@ -205,7 +205,7 @@ function test_options_pass_through() {
   
   let randomMixedParams = {
     loggedInUser: "juanita@mozilla.com",
-    pie: 42,
+    forceAuthentication: true,
     someThing: {
       name: "Pertelote",
       legs: 4,
