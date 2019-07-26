@@ -132,6 +132,9 @@ user_pref("dom.gamepad.enabled", true);
 user_pref("dom.gamepad.non_standard_events.enabled", true);
 
 
+user_pref("media.webaudio.enabled", true);
+
+
 user_pref("media.webaudio.legacy.AudioBufferSourceNode", true);
 user_pref("media.webaudio.legacy.AudioContext", true);
 user_pref("media.webaudio.legacy.AudioParam", true);
