@@ -136,10 +136,6 @@ public:
   ReentrantMonitor& GetReentrantMonitor();
 
   
-  
-  nsDecoderStateMachine::State GetDecodeState();
-
-  
   ImageContainer* GetImageContainer();
 
   

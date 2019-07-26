@@ -242,6 +242,10 @@ public:
 
   
   
+  virtual bool IsShutdown() = 0;
+
+  
+  
   virtual int64_t GetDuration() = 0;
 
   
@@ -698,10 +702,6 @@ public:
 
   
   nsDecoderStateMachine* GetStateMachine() { return mDecoderStateMachine; }
-
-  
-  
-  nsDecoderStateMachine::State GetDecodeState() { return mDecoderStateMachine->GetState(); }
 
   
   virtual void ReleaseStateMachine() { mDecoderStateMachine = nullptr; }
