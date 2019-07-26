@@ -369,6 +369,9 @@ pref("toolkit.identity.enabled", false);
 pref("toolkit.identity.debug", false);
 
 
+pref("devtools.errorconsole.deprecation_warnings", true);
+
+
 pref("devtools.debugger.log", false);
 
 pref("devtools.debugger.remote-enabled", false);
