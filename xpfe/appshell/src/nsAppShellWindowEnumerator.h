@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsAppShellWindowEnumerator_h
+#define nsAppShellWindowEnumerator_h
+
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
@@ -158,3 +161,5 @@ public:
 protected:
   virtual nsWindowInfo *FindNext();
 };
+
+#endif
