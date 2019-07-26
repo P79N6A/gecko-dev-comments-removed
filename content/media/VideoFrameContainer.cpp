@@ -77,6 +77,10 @@ void VideoFrameContainer::ClearCurrentFrame()
   mImageContainer->UnlockCurrentImage();
 
   mImageContainer->SetCurrentImage(nullptr);
+
+  
+  
+  mNeedInvalidation = true;
 }
 
 ImageContainer* VideoFrameContainer::GetImageContainer() {
@@ -97,7 +101,10 @@ void VideoFrameContainer::Invalidate()
   if (!mNeedInvalidation) {
     return;
   }
-  if (mImageContainer && mImageContainer->IsAsync()) {
+
+  if (mImageContainer &&
+      mImageContainer->IsAsync() &&
+      mImageContainer->HasCurrentImage()) {
     mNeedInvalidation = false;
   }
 
