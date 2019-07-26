@@ -85,6 +85,11 @@
 }
 
 
+.theme-light .side-menu-widget-item:not(.selected) .checkbox-check {
+  filter: url(filters.svg#invert);
+}
+
+
 
 .editor-label {
   padding: 1px 12px;
