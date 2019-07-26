@@ -741,6 +741,10 @@ public:
 #endif
 
 protected:
+  
+
+
+  void DoRemoveFrame(ChildListID aListID, nsIFrame* aOldFrame);
 #ifdef DEBUG
   void DumpRowGroup(nsIFrame* aChildFrame);
 #endif
