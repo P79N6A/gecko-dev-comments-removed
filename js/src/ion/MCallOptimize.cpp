@@ -1318,7 +1318,7 @@ IonBuilder::inlineNewDenseArrayForParallelExecution(CallInfo &callInfo)
 
     callInfo.unwrapArgs();
 
-    MParNewDenseArray *newObject = new MParNewDenseArray(graph().parSlice(),
+    MNewDenseArrayPar *newObject = new MNewDenseArrayPar(graph().forkJoinSlice(),
                                                          callInfo.getArg(0),
                                                          templateObject);
     current->add(newObject);
@@ -1521,7 +1521,7 @@ IonBuilder::inlineDump(CallInfo &callInfo)
 
     callInfo.unwrapArgs();
     JS_ASSERT(1 == callInfo.argc());
-    MParDump *dump = new MParDump(callInfo.getArg(0));
+    MDumpPar *dump = new MDumpPar(callInfo.getArg(0));
     current->add(dump);
 
     MConstant *udef = MConstant::New(UndefinedValue());

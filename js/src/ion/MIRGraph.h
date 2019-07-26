@@ -76,9 +76,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     static MBasicBlock *NewPendingLoopHeader(MIRGraph &graph, CompileInfo &info,
                                              MBasicBlock *pred, jsbytecode *entryPc);
     static MBasicBlock *NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred);
-    static MBasicBlock *NewParBailout(MIRGraph &graph, CompileInfo &info,
-                                      MBasicBlock *pred, jsbytecode *entryPc,
-                                      MResumePoint *resumePoint);
+    static MBasicBlock *NewAbortPar(MIRGraph &graph, CompileInfo &info,
+                                    MBasicBlock *pred, jsbytecode *entryPc,
+                                    MResumePoint *resumePoint);
 
     bool dominates(MBasicBlock *other);
 
@@ -680,9 +680,7 @@ class MIRGraph
     
     
     
-    
-    
-    MDefinition *parSlice();
+    MDefinition *forkJoinSlice();
 
     void dump(FILE *fp);
 };

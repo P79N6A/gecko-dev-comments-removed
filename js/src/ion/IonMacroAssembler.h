@@ -612,27 +612,17 @@ class MacroAssembler : public MacroAssemblerSpecific
     void newGCString(const Register &result, Label *fail);
     void newGCShortString(const Register &result, Label *fail);
 
-    void parNewGCThing(const Register &result,
-                       const Register &threadContextReg,
-                       const Register &tempReg1,
-                       const Register &tempReg2,
-                       gc::AllocKind allocKind,
-                       Label *fail);
-    void parNewGCThing(const Register &result,
-                       const Register &threadContextReg,
-                       const Register &tempReg1,
-                       const Register &tempReg2,
-                       JSObject *templateObject,
-                       Label *fail);
-    void parNewGCString(const Register &result,
-                        const Register &threadContextReg,
-                        const Register &tempReg1,
-                        const Register &tempReg2,
+    void newGCThingPar(const Register &result, const Register &slice,
+                       const Register &tempReg1, const Register &tempReg2,
+                       gc::AllocKind allocKind, Label *fail);
+    void newGCThingPar(const Register &result, const Register &slice,
+                       const Register &tempReg1, const Register &tempReg2,
+                       JSObject *templateObject, Label *fail);
+    void newGCStringPar(const Register &result, const Register &slice,
+                        const Register &tempReg1, const Register &tempReg2,
                         Label *fail);
-    void parNewGCShortString(const Register &result,
-                             const Register &threadContextReg,
-                             const Register &tempReg1,
-                             const Register &tempReg2,
+    void newGCShortStringPar(const Register &result, const Register &slice,
+                             const Register &tempReg1, const Register &tempReg2,
                              Label *fail);
     void initGCThing(const Register &obj, JSObject *templateObject);
 
@@ -643,8 +633,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    void parCheckInterruptFlags(const Register &tempReg,
-                                Label *fail);
+    void checkInterruptFlagsPar(const Register &tempReg, Label *fail);
 
     
     

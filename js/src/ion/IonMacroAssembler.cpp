@@ -542,15 +542,10 @@ MacroAssembler::newGCShortString(const Register &result, Label *fail)
 }
 
 void
-MacroAssembler::parNewGCThing(const Register &result,
-                              const Register &threadContextReg,
-                              const Register &tempReg1,
-                              const Register &tempReg2,
-                              gc::AllocKind allocKind,
-                              Label *fail)
+MacroAssembler::newGCThingPar(const Register &result, const Register &slice,
+                              const Register &tempReg1, const Register &tempReg2,
+                              gc::AllocKind allocKind, Label *fail)
 {
-    
-    
     
     
     
@@ -563,7 +558,7 @@ MacroAssembler::parNewGCThing(const Register &result,
 
     
     
-    loadPtr(Address(threadContextReg, ThreadSafeContext::offsetOfAllocator()),
+    loadPtr(Address(slice, ThreadSafeContext::offsetOfAllocator()),
             tempReg1);
 
     
@@ -595,38 +590,31 @@ MacroAssembler::parNewGCThing(const Register &result,
 }
 
 void
-MacroAssembler::parNewGCThing(const Register &result,
-                              const Register &threadContextReg,
-                              const Register &tempReg1,
-                              const Register &tempReg2,
-                              JSObject *templateObject,
-                              Label *fail)
+MacroAssembler::newGCThingPar(const Register &result, const Register &slice,
+                              const Register &tempReg1, const Register &tempReg2,
+                              JSObject *templateObject, Label *fail)
 {
     gc::AllocKind allocKind = templateObject->tenuredGetAllocKind();
     JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
     JS_ASSERT(!templateObject->hasDynamicElements());
 
-    parNewGCThing(result, threadContextReg, tempReg1, tempReg2, allocKind, fail);
+    newGCThingPar(result, slice, tempReg1, tempReg2, allocKind, fail);
 }
 
 void
-MacroAssembler::parNewGCString(const Register &result,
-                               const Register &threadContextReg,
-                               const Register &tempReg1,
-                               const Register &tempReg2,
+MacroAssembler::newGCStringPar(const Register &result, const Register &slice,
+                               const Register &tempReg1, const Register &tempReg2,
                                Label *fail)
 {
-    parNewGCThing(result, threadContextReg, tempReg1, tempReg2, js::gc::FINALIZE_STRING, fail);
+    newGCThingPar(result, slice, tempReg1, tempReg2, js::gc::FINALIZE_STRING, fail);
 }
 
 void
-MacroAssembler::parNewGCShortString(const Register &result,
-                                    const Register &threadContextReg,
-                                    const Register &tempReg1,
-                                    const Register &tempReg2,
+MacroAssembler::newGCShortStringPar(const Register &result, const Register &slice,
+                                    const Register &tempReg1, const Register &tempReg2,
                                     Label *fail)
 {
-    parNewGCThing(result, threadContextReg, tempReg1, tempReg2, js::gc::FINALIZE_SHORT_STRING, fail);
+    newGCThingPar(result, slice, tempReg1, tempReg2, js::gc::FINALIZE_SHORT_STRING, fail);
 }
 
 void
@@ -715,8 +703,8 @@ MacroAssembler::compareStrings(JSOp op, Register left, Register right, Register 
 }
 
 void
-MacroAssembler::parCheckInterruptFlags(const Register &tempReg,
-                                       Label *fail)
+MacroAssembler::checkInterruptFlagsPar(const Register &tempReg,
+                                            Label *fail)
 {
     JSCompartment *compartment = GetIonContext()->compartment;
 
@@ -1030,7 +1018,7 @@ MacroAssembler::loadForkJoinSlice(Register slice, Register scratch)
     
     
     setupUnalignedABICall(0, scratch);
-    callWithABI(JS_FUNC_TO_DATA_PTR(void *, ParForkJoinSlice));
+    callWithABI(JS_FUNC_TO_DATA_PTR(void *, ForkJoinSlicePar));
     if (ReturnReg != slice)
         movePtr(ReturnReg, slice);
 }

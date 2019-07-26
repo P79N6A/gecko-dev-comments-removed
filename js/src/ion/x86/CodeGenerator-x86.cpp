@@ -663,7 +663,7 @@ DispatchIonCache::initializeAddCacheState(LInstruction *ins, AddCacheState *addS
 }
 
 void
-ParallelGetPropertyIC::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
+GetPropertyParIC::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
 {
     
     
@@ -675,7 +675,7 @@ ParallelGetPropertyIC::initializeAddCacheState(LInstruction *ins, AddCacheState 
 }
 
 void
-ParallelGetElementIC::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
+GetElementParIC::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
 {
     
     

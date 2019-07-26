@@ -123,9 +123,8 @@ MIRGraph::unmarkBlocks()
 }
 
 MDefinition *
-MIRGraph::parSlice()
+MIRGraph::forkJoinSlice()
 {
-    
     
     
     
@@ -142,16 +141,16 @@ MIRGraph::parSlice()
 
     MInstruction *start = NULL;
     for (MInstructionIterator ins(entry->begin()); ins != entry->end(); ins++) {
-        if (ins->isParSlice())
+        if (ins->isForkJoinSlice())
             return *ins;
         else if (ins->isStart())
             start = *ins;
     }
     JS_ASSERT(start);
 
-    MParSlice *parSlice = new MParSlice();
-    entry->insertAfter(start, parSlice);
-    return parSlice;
+    MForkJoinSlice *slice = new MForkJoinSlice();
+    entry->insertAfter(start, slice);
+    return slice;
 }
 
 MBasicBlock *
@@ -215,9 +214,9 @@ MBasicBlock::NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred)
 }
 
 MBasicBlock *
-MBasicBlock::NewParBailout(MIRGraph &graph, CompileInfo &info,
-                           MBasicBlock *pred, jsbytecode *entryPc,
-                           MResumePoint *resumePoint)
+MBasicBlock::NewAbortPar(MIRGraph &graph, CompileInfo &info,
+                         MBasicBlock *pred, jsbytecode *entryPc,
+                         MResumePoint *resumePoint)
 {
     MBasicBlock *block = new MBasicBlock(graph, info, entryPc, NORMAL);
 
@@ -230,7 +229,7 @@ MBasicBlock::NewParBailout(MIRGraph &graph, CompileInfo &info,
     if (!block->addPredecessorWithoutPhis(pred))
         return NULL;
 
-    block->end(new MParBailout());
+    block->end(new MAbortPar());
     return block;
 }
 
