@@ -1012,6 +1012,14 @@ public:
 
 
 
+  virtual nsRect VisualBorderRectRelativeToSelf() const {
+    return nsRect(0, 0, mRect.width, mRect.height);
+  }
+
+  
+
+
+
 
 
 
