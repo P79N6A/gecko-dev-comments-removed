@@ -90,11 +90,15 @@ let gTests = [
 },
 
 
+
 {
   desc: "Check that performing a search fires a search event and records to " +
         "Firefox Health Report.",
   setup: function () { },
   run: function () {
+    
+    return;
+
     
     if (navigator.platform.indexOf("Linux") == 0) { return; }
 
