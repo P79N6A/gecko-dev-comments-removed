@@ -861,6 +861,15 @@ pref("dom.mozDownloads.enabled", true);
 pref("dom.downloads.max_retention_days", 7);
 
 
+
+
+
+
+
+
+pref("security.exthelperapp.disable_background_handling", true);
+
+
 pref("osfile.reset_worker_delay", 5000);
 
 
