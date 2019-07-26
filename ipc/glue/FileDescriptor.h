@@ -50,29 +50,17 @@ public:
 
   FileDescriptor();
 
-  FileDescriptor(const FileDescriptor& aOther)
-  {
-    *this = aOther;
-  }
-
-  FileDescriptor(PlatformHandleType aHandle);
+  FileDescriptor(PlatformHandleType aHandle)
+  : mHandle(aHandle)
+  { }
 
   FileDescriptor(const IPDLPrivate&, const PickleType& aPickle)
 #ifdef XP_WIN
-  : mHandle(aPickle), mMustCloseHandle(false)
+  : mHandle(aPickle)
 #else
-  : mHandle(aPickle.fd), mMustCloseHandle(false)
+  : mHandle(aPickle.fd)
 #endif
   { }
-
-  ~FileDescriptor();
-
-  FileDescriptor&
-  operator=(const FileDescriptor& aOther)
-  {
-    DuplicateInCurrentProcess(aOther.mHandle);
-    return *this;
-  }
 
   
   
@@ -98,11 +86,7 @@ public:
   }
 
 private:
-  void
-  DuplicateInCurrentProcess(PlatformHandleType aHandle);
-
   PlatformHandleType mHandle;
-  bool mMustCloseHandle;
 };
 
 } 
