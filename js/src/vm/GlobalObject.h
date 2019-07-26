@@ -105,7 +105,8 @@ class GlobalObject : public JSObject
     static const unsigned DATE_TIME_FORMAT_PROTO  = NUMBER_FORMAT_PROTO + 1;
     static const unsigned REGEXP_STATICS          = DATE_TIME_FORMAT_PROTO + 1;
     static const unsigned WARNED_WATCH_DEPRECATED = REGEXP_STATICS + 1;
-    static const unsigned RUNTIME_CODEGEN_ENABLED = WARNED_WATCH_DEPRECATED + 1;
+    static const unsigned WARNED_PROTO_SETTING_SLOW = WARNED_WATCH_DEPRECATED + 1;
+    static const unsigned RUNTIME_CODEGEN_ENABLED = WARNED_PROTO_SETTING_SLOW + 1;
     static const unsigned DEBUGGERS               = RUNTIME_CODEGEN_ENABLED + 1;
     static const unsigned INTRINSICS              = DEBUGGERS + 1;
     static const unsigned FLOAT32X4_TYPE_OBJECT   = INTRINSICS + 1;
@@ -150,6 +151,13 @@ class GlobalObject : public JSObject
         JS_ASSERT(getSlotRef(INTRINSICS).isUndefined());
         setSlot(INTRINSICS, ObjectValue(*obj));
     }
+
+    
+    
+    
+    
+    static bool
+    warnOnceAbout(JSContext *cx, HandleObject obj, uint32_t slot, unsigned errorNumber);
 
   public:
     Value getConstructor(JSProtoKey key) const {
@@ -605,7 +613,20 @@ class GlobalObject : public JSObject
 
     
     
-    static bool warnOnceAboutWatch(JSContext *cx, HandleObject obj);
+    static bool warnOnceAboutWatch(JSContext *cx, HandleObject obj) {
+        
+        
+        
+        return true;
+    }
+
+    
+    
+    static bool warnOnceAboutPrototypeMutation(JSContext *cx, HandleObject protoSetter) {
+        
+        
+        return true;
+    }
 
     static bool getOrCreateEval(JSContext *cx, Handle<GlobalObject*> global,
                                 MutableHandleObject eval);
