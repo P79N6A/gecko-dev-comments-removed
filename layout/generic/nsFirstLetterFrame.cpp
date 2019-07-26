@@ -18,7 +18,8 @@
 #include "nsPlaceholderFrame.h"
 #include "nsCSSFrameConstructor.h"
 
-using namespace::mozilla;
+using namespace mozilla;
+using namespace mozilla::layout;
 
 nsIFrame*
 NS_NewFirstLetterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -345,12 +346,11 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
 void
 nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
 {
-  nsAutoPtr<nsFrameList> overflowFrames;
-
   
   nsFirstLetterFrame* prevInFlow = (nsFirstLetterFrame*)GetPrevInFlow();
-  if (nullptr != prevInFlow) {
-    overflowFrames = prevInFlow->StealOverflowFrames();
+  if (prevInFlow) {
+    AutoFrameListPtr overflowFrames(aPresContext,
+                                    prevInFlow->StealOverflowFrames());
     if (overflowFrames) {
       NS_ASSERTION(mFrames.IsEmpty(), "bad overflow list");
 
@@ -363,7 +363,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
   }
 
   
-  overflowFrames = StealOverflowFrames();
+  AutoFrameListPtr overflowFrames(aPresContext, StealOverflowFrames());
   if (overflowFrames) {
     NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
     mFrames.AppendFrames(nullptr, *overflowFrames);

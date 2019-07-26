@@ -12,7 +12,6 @@
 #include "nsSplittableFrame.h"
 #include "nsFrameList.h"
 #include "nsLayoutUtils.h"
-#include "nsAutoPtr.h"
 
 
 
@@ -512,6 +511,7 @@ protected:
 
 
   void SafelyDestroyFrameListProp(nsIFrame* aDestructRoot,
+                                  nsIPresShell* aPresShell,
                                   mozilla::FramePropertyTable* aPropTable,
                                   const FramePropertyDescriptor* aProp);
 
@@ -684,7 +684,7 @@ nsContainerFrame::DestroyOverflowList(nsPresContext* aPresContext)
 {
   nsFrameList* list = RemovePropTableFrames(aPresContext, OverflowProperty());
   MOZ_ASSERT(list && list->IsEmpty());
-  delete list;
+  list->Delete(aPresContext->PresShell());
 }
 
 #endif 

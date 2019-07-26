@@ -45,6 +45,7 @@ public:
     nsLineBox_id = nsQueryFrame::NON_FRAME_MARKER,
     nsRuleNode_id,
     nsStyleContext_id,
+    nsFrameList_id,
 
     
     

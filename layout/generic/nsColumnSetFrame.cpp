@@ -21,6 +21,7 @@
 #include <algorithm>
 
 using namespace mozilla;
+using namespace mozilla::layout;
 
 class nsColumnSetFrame : public nsContainerFrame {
 public:
@@ -865,11 +866,12 @@ nsColumnSetFrame::DrainOverflowColumns()
 {
   
   
+  nsPresContext* presContext = PresContext();
   nsColumnSetFrame* prev = static_cast<nsColumnSetFrame*>(GetPrevInFlow());
   if (prev) {
-    nsAutoPtr<nsFrameList> overflows(prev->StealOverflowFrames());
+    AutoFrameListPtr overflows(presContext, prev->StealOverflowFrames());
     if (overflows) {
-      nsContainerFrame::ReparentFrameViewList(PresContext(), *overflows,
+      nsContainerFrame::ReparentFrameViewList(presContext, *overflows,
                                               prev, this);
 
       mFrames.InsertFrames(this, nullptr, *overflows);
@@ -878,7 +880,7 @@ nsColumnSetFrame::DrainOverflowColumns()
   
   
   
-  nsAutoPtr<nsFrameList> overflows(StealOverflowFrames());
+  AutoFrameListPtr overflows(presContext, StealOverflowFrames());
   if (overflows) {
     
     
