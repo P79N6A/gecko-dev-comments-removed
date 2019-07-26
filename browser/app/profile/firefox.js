@@ -624,6 +624,9 @@ pref("network.protocol-handler.expose.news", false);
 pref("network.protocol-handler.expose.snews", false);
 pref("network.protocol-handler.expose.nntp", false);
 
+
+pref("network.warnOnAboutNetworking", true);
+
 pref("accessibility.typeaheadfind", false);
 pref("accessibility.typeaheadfind.timeout", 5000);
 pref("accessibility.typeaheadfind.linksonly", false);
@@ -1283,11 +1286,6 @@ pref("security.mixed_content.block_active_content", true);
 
 
 pref("plain_text.wrap_long_lines", true);
-
-#ifndef RELEASE_BUILD
-
-pref("media.webaudio.enabled", true);
-#endif
 
 
 

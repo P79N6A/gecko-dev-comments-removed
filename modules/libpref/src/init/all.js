@@ -226,7 +226,7 @@ pref("media.webspeech.recognition.enable", false);
 #endif
 
 
-pref("media.webaudio.enabled", false);
+pref("media.webaudio.enabled", true);
 
 
 pref("media.autoplay.enabled", true);
@@ -912,9 +912,6 @@ pref("network.protocol-handler.external.moz-icon", false);
 
 
 pref("network.protocol-handler.expose-all", true);
-
-
-pref("network.warnOnAboutNetworking", true);
 
 
 
