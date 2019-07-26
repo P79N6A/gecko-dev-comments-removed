@@ -23,8 +23,6 @@
 
 
 
-
-
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -38,7 +36,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "SafeBrowsing",
 var setCookiePath = "/setcookie";
 var checkCookiePath = "/checkcookie";
 var safebrowsingUpdatePath = "/safebrowsingUpdate";
-var safebrowsingRekeyPath = "/safebrowsingRekey";
 var httpserver;
 
 function inChildProcess() {
@@ -70,14 +67,6 @@ function safebrowsingUpdateHandler(metadata, response) {
   response.bodyOutputStream.write("Ok", "Ok".length);
 }
 
-function safebrowsingRekeyHandler(metadata, response) {
-  var cookieName = "sb-rekey-cookie";
-  response.setStatusLine(metadata.httpVersion, 200, "Ok");
-  response.setHeader("Set-Cookie", cookieName + "=1; Path=/", false);
-  response.setHeader("Content-Type", "text/plain");
-  response.bodyOutputStream.write("Ok", "Ok".length);
-}
-
 function setupChannel(path, loadContext) {
   var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
   var channel = ios.newChannel(URL + path, "", null);
@@ -99,7 +88,6 @@ function run_test() {
   httpserver.registerPathHandler(setCookiePath, cookieSetHandler);
   httpserver.registerPathHandler(checkCookiePath, cookieCheckHandler);
   httpserver.registerPathHandler(safebrowsingUpdatePath, safebrowsingUpdateHandler);
-  httpserver.registerPathHandler(safebrowsingRekeyPath, safebrowsingRekeyHandler);
 
   httpserver.start(-1);
   run_next_test();
@@ -127,35 +115,7 @@ add_test(function test_safebrowsing_update() {
   }
 
   streamUpdater.downloadUpdates("test-phish-simple,test-malware-simple", "",
-    "", onSuccess, onUpdateError, onDownloadError);
-});
-
-
-
-add_test(function test_safebrowsing_rekey() {
-
-  Services.obs.addObserver(rekeyObserver, "http-on-examine-response", false);
-
-  function rekeyObserver(subject, topic, state) {
-    let channel = subject.QueryInterface(Ci.nsIHttpChannel);
-    if (channel.URI.spec != URL + safebrowsingRekeyPath) {
-      return;
-    }
-    try {
-      let cookies = channel.getResponseHeader("set-cookie");
-      do_check_eq(cookies, "sb-rekey-cookie=1; Path=/");
-    } catch (e) {
-      do_throw("ERROR: should have gotten a cookie!");
-    }
-    Services.obs.removeObserver(rekeyObserver, "http-on-examine-response");
-    run_next_test();
-  }
-
-  var jslib = Cc["@mozilla.org/url-classifier/jslib;1"]
-                .getService().wrappedJSObject;
-  var cm = new jslib.PROT_UrlCryptoKeyManager();
-  cm.setKeyUrl(URL + safebrowsingRekeyPath);
-  cm.reKey();
+    onSuccess, onUpdateError, onDownloadError);
 });
 
 add_test(function test_non_safebrowsing_cookie() {
@@ -206,9 +166,7 @@ add_test(function test_safebrowsing_cookie() {
     
     
     
-    
     var expectedCookies = "sb-update-cookie=1; ";
-    expectedCookies += "sb-rekey-cookie=1; ";
     expectedCookies += cookieName + "=1";
     request.QueryInterface(Ci.nsIHttpChannel);
     var cookiesSeen = request.getResponseHeader("saw-cookies");
