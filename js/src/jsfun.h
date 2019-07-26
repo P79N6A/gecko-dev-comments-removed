@@ -46,13 +46,14 @@ class JSFunction : public JSObject
         SELF_HOSTED_CTOR = 0x0200,  
 
         HAS_REST         = 0x0400,  
-        
+        ASMJS            = 0x0800,  
         INTERPRETED_LAZY = 0x1000,  
         ARROW            = 0x2000,  
 
         
         NATIVE_FUN = 0,
-        NATIVE_LAMBDA_FUN = NATIVE_FUN | LAMBDA,
+        ASMJS_CTOR = ASMJS | NATIVE_CTOR,
+        ASMJS_LAMBDA_CTOR = ASMJS | NATIVE_CTOR | LAMBDA,
         INTERPRETED_LAMBDA = INTERPRETED | LAMBDA,
         INTERPRETED_LAMBDA_ARROW = INTERPRETED | LAMBDA | ARROW
     };
@@ -118,6 +119,7 @@ class JSFunction : public JSObject
 
     
     bool isNativeConstructor()      const { return flags() & NATIVE_CTOR; }
+    bool isAsmJSNative()            const { return flags() & ASMJS; }
 
     
     bool isFunctionPrototype()      const { return flags() & IS_FUN_PROTO; }
@@ -147,7 +149,7 @@ class JSFunction : public JSObject
 
     
     bool isBuiltin() const {
-        return isNative() || isSelfHostedBuiltin();
+        return (isNative() && !isAsmJSNative()) || isSelfHostedBuiltin();
     }
     bool isInterpretedConstructor() const {
         
