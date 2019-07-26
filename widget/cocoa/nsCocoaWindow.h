@@ -47,7 +47,7 @@ typedef NSInteger NSWindowAnimationBehavior;
 #endif
 
 typedef struct _nsCocoaWindowList {
-  _nsCocoaWindowList() : prev(nullptr), window(nullptr) {}
+  _nsCocoaWindowList() : prev(NULL), window(NULL) {}
   struct _nsCocoaWindowList *prev;
   nsCocoaWindow *window; 
 } nsCocoaWindowList;
@@ -76,8 +76,6 @@ typedef struct _nsCocoaWindowList {
   float mDPI;
 
   NSTrackingArea* mTrackingArea;
-
-  BOOL mBeingShown;
 }
 
 - (void)importState:(NSDictionary*)aState;
@@ -97,12 +95,6 @@ typedef struct _nsCocoaWindowList {
 - (void)updateTrackingArea;
 - (NSView*)trackingAreaView;
 
-- (BOOL)isVisibleOrBeingShown;
-
-- (ChildView*)mainChildView;
-
-- (NSArray*)titlebarControls;
-
 @end
 
 @interface NSWindow (Undocumented)
@@ -120,10 +112,6 @@ typedef struct _nsCocoaWindowList {
 
 - (void)setBottomCornerRounded:(BOOL)rounded;
 - (BOOL)bottomCornerRounded;
-
-
-- (NSRect)contentRectForFrameRect:(NSRect)windowFrame styleMask:(NSUInteger)windowStyle;
-- (NSRect)frameRectForContentRect:(NSRect)windowContentRect styleMask:(NSUInteger)windowStyle;
 
 @end
 
@@ -189,19 +177,20 @@ typedef struct _nsCocoaWindowList {
 @interface ToolbarWindow : BaseWindow
 {
   TitlebarAndBackgroundColor *mColor;
-  CGFloat mUnifiedToolbarHeight;
+  float mUnifiedToolbarHeight;
   NSColor *mBackgroundColor;
   NSView *mTitlebarView; 
 }
 
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
-- (void)setUnifiedToolbarHeight:(CGFloat)aHeight;
-- (CGFloat)unifiedToolbarHeight;
-- (CGFloat)titlebarHeight;
+- (void)setUnifiedToolbarHeight:(float)aHeight;
+- (float)unifiedToolbarHeight;
+- (float)titlebarHeight;
 - (NSRect)titlebarRect;
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect sync:(BOOL)aSync;
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect;
 - (void)setDrawsContentsIntoWindowFrame:(BOOL)aState;
+- (ChildView*)mainChildView;
 @end
 
 class nsCocoaWindow : public nsBaseWidget, public nsPIWidgetCocoa
@@ -261,18 +250,16 @@ public:
     CGFloat                 BackingScaleFactor();
     void                    BackingScaleFactorChanged();
     virtual double          GetDefaultScaleInternal();
-    virtual int32_t         RoundsWidgetCoordinatesTo() MOZ_OVERRIDE;
 
     NS_IMETHOD              SetTitle(const nsAString& aTitle);
 
     NS_IMETHOD Invalidate(const nsIntRect &aRect);
     virtual nsresult ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
-    virtual LayerManager* GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,
+    virtual LayerManager* GetLayerManager(PLayersChild* aShadowManager = nullptr,
                                           LayersBackend aBackendHint = mozilla::layers::LAYERS_NONE,
                                           LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
                                           bool* aAllowRetaining = nullptr);
-    NS_IMETHOD DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
-                             nsEventStatus& aStatus);
+    NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus) ;
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, bool aDoCapture);
     NS_IMETHOD GetAttention(int32_t aCycleCount);
     virtual bool HasPendingInputEvent();
@@ -282,6 +269,7 @@ public:
     virtual void SetShowsToolbarButton(bool aShow);
     virtual void SetShowsFullScreenButton(bool aShow);
     virtual void SetWindowAnimationType(WindowAnimationType aType);
+    NS_IMETHOD SetNonClientMargins(nsIntMargin &margins);
     NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, bool aActive);
     virtual void SetDrawsInTitlebar(bool aState);
     virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
@@ -301,10 +289,11 @@ public:
     void SetMenuBar(nsMenuBarX* aMenuBar);
     nsMenuBarX *GetMenuBar();
 
-    NS_IMETHOD NotifyIME(NotificationToIME aNotification) MOZ_OVERRIDE;
-    NS_IMETHOD_(void) SetInputContext(
-                        const InputContext& aContext,
-                        const InputContextAction& aAction) MOZ_OVERRIDE;
+    NS_IMETHOD_(void) SetInputContext(const InputContext& aContext,
+                                      const InputContextAction& aAction)
+    {
+      mInputContext = aContext;
+    }
     NS_IMETHOD_(InputContext) GetInputContext()
     {
       NSView* view = mWindow ? [mWindow contentView] : nil;
@@ -319,6 +308,8 @@ public:
       }
       return mInputContext;
     }
+    NS_IMETHOD BeginSecureKeyboardInput();
+    NS_IMETHOD EndSecureKeyboardInput();
 
     void SetPopupWindowLevel();
 
