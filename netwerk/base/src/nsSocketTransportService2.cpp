@@ -531,6 +531,7 @@ nsSocketTransportService::GetOffline(bool *offline)
 NS_IMETHODIMP
 nsSocketTransportService::SetOffline(bool offline)
 {
+    MutexAutoLock lock(mLock);
     if (!mOffline && offline) {
         
         mGoingOffline = true;
