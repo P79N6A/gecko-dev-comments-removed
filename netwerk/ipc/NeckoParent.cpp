@@ -383,7 +383,7 @@ NeckoParent::AllocPUDPSocketParent(const nsCString& aHost,
                                    const uint16_t& aPort,
                                    const nsCString& aFilter)
 {
-  UDPSocketParent* p;
+  UDPSocketParent* p = nullptr;
 
   
   nsAutoCString contractId(NS_NETWORK_UDP_SOCKET_FILTER_HANDLER_PREFIX);
