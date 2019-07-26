@@ -159,10 +159,5 @@ if (!SpecialPowers.isMainProcess()) {
   todo(false, "We should make this work on content process");
   SimpleTest.finish();
 } else {
-  
-  SpecialPowers.pushPrefEnv({
-    "set": [
-      ["network.disable.ipc.security", true],
-    ]
-  }, startTest);
+  startTest();
 }
