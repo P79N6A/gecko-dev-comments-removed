@@ -1255,8 +1255,7 @@ struct TypeCompartment
 
 
 
-    TypeObject *newTypeObject(JSContext *cx, JSScript *script,
-                              JSProtoKey kind, HandleObject proto,
+    TypeObject *newTypeObject(JSContext *cx, JSProtoKey kind, HandleObject proto,
                               bool unknown = false, bool isDOM = false);
 
     
