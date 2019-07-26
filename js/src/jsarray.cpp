@@ -677,7 +677,7 @@ js::WouldDefinePastNonwritableLength(JSContext *cx, HandleObject obj, uint32_t i
     }
 
     *definesPast = true;
-    if (!strict && !cx->hasStrictOption())
+    if (!strict && !cx->hasExtraWarningsOption())
         return true;
 
     
