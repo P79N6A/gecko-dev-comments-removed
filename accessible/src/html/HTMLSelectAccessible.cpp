@@ -125,16 +125,7 @@ HTMLSelectListAccessible::CacheChildren()
   
   
   
-  CacheOptSiblings(mContent);
-}
-
-
-
-
-void
-HTMLSelectListAccessible::CacheOptSiblings(nsIContent* aParentContent)
-{
-  for (nsIContent* childContent = aParentContent->GetFirstChild(); childContent;
+  for (nsIContent* childContent = mContent->GetFirstChild(); childContent;
        childContent = childContent->GetNextSibling()) {
     if (!childContent->IsHTML()) {
       continue;
@@ -149,10 +140,6 @@ HTMLSelectListAccessible::CacheOptSiblings(nsIContent* aParentContent)
         GetAccService()->GetOrCreateAccessible(childContent, this);
       if (accessible)
         AppendChild(accessible);
-
-      
-      if (tag == nsGkAtoms::optgroup)
-        CacheOptSiblings(childContent);
     }
   }
 }
@@ -174,7 +161,7 @@ HTMLSelectOptionAccessible::
 role
 HTMLSelectOptionAccessible::NativeRole()
 {
-  if (mParent && mParent->Role() == roles::COMBOBOX_LIST)
+  if (GetCombobox())
     return roles::COMBOBOX_OPTION;
 
   return roles::OPTION;
@@ -333,23 +320,21 @@ HTMLSelectOptionAccessible::SetSelected(bool aSelect)
 Accessible*
 HTMLSelectOptionAccessible::ContainerWidget() const
 {
-  return mParent && mParent->IsListControl() ? mParent : nullptr;
+  Accessible* parent = Parent();
+  if (parent && parent->IsHTMLOptGroup())
+    parent = parent->Parent();
+
+  return parent && parent->IsListControl() ? parent : nullptr;
 }
 
 
 
 
-
-HTMLSelectOptGroupAccessible::
-  HTMLSelectOptGroupAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  HTMLSelectOptionAccessible(aContent, aDoc)
-{
-}
 
 role
 HTMLSelectOptGroupAccessible::NativeRole()
 {
-  return roles::HEADING;
+  return roles::GROUPING;
 }
 
 uint64_t
@@ -375,20 +360,6 @@ HTMLSelectOptGroupAccessible::ActionCount()
 {
   return 0;
 }
-
-
-
-
-void
-HTMLSelectOptGroupAccessible::CacheChildren()
-{
-  
-  
-  
-  
-  
-}
-
 
 
 

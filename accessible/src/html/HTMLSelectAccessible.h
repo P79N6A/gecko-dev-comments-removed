@@ -57,13 +57,6 @@ protected:
 
   
   virtual void CacheChildren();
-
-  
-
-  
-
-
-  void CacheOptSiblings(nsIContent* aParentContent);
 };
 
 
@@ -107,8 +100,12 @@ private:
 
   Accessible* GetSelect() const
   {
-    if (mParent && mParent->IsListControl()) {
-      Accessible* combobox = mParent->Parent();
+    Accessible* parent = mParent;
+    if (parent && parent->IsHTMLOptGroup())
+      parent = parent->Parent();
+
+    if (parent && parent->IsListControl()) {
+      Accessible* combobox = parent->Parent();
       return combobox && combobox->IsCombobox() ? combobox : mParent.get();
     }
 
@@ -120,8 +117,12 @@ private:
 
   Accessible* GetCombobox() const
   {
-    if (mParent && mParent->IsListControl()) {
-      Accessible* combobox = mParent->Parent();
+    Accessible* parent = mParent;
+    if (parent && parent->IsHTMLOptGroup())
+      parent = parent->Parent();
+
+    if (parent && parent->IsListControl()) {
+      Accessible* combobox = parent->Parent();
       return combobox && combobox->IsCombobox() ? combobox : nullptr;
     }
 
@@ -136,7 +137,9 @@ class HTMLSelectOptGroupAccessible : public HTMLSelectOptionAccessible
 {
 public:
 
-  HTMLSelectOptGroupAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLSelectOptGroupAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+    HTMLSelectOptionAccessible(aContent, aDoc)
+    { mType = eHTMLOptGroupType; }
   virtual ~HTMLSelectOptGroupAccessible() {}
 
   
@@ -149,10 +152,6 @@ public:
 
   
   virtual uint8_t ActionCount();
-
-protected:
-  
-  virtual void CacheChildren();
 };
 
 
