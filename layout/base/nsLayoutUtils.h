@@ -1013,6 +1013,7 @@ public:
   
 
 
+
   static nsIFrame*
   GetNextContinuationOrIBSplitSibling(nsIFrame *aFrame);
 

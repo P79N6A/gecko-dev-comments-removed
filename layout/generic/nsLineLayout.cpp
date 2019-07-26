@@ -1072,6 +1072,7 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
   
   
   
+  
   if (pfd->mFrame->GetPrevContinuation() ||
       pfd->mFrame->FrameIsNonFirstInIBSplit()) {
     

@@ -708,9 +708,11 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
           nsIFrame* hintFrame = GetFrameForChildrenOnlyTransformHint(frame);
           nsIFrame* childFrame = hintFrame->GetFirstPrincipalChild();
           NS_ASSERTION(!nsLayoutUtils::GetNextContinuationOrIBSplitSibling(frame),
-                       "SVG frames should not have continuations or special siblings");
+                       "SVG frames should not have continuations "
+                       "or ib-split siblings");
           NS_ASSERTION(!nsLayoutUtils::GetNextContinuationOrIBSplitSibling(hintFrame),
-                       "SVG frames should not have continuations or special siblings");
+                       "SVG frames should not have continuations "
+                       "or ib-split siblings");
           for ( ; childFrame; childFrame = childFrame->GetNextSibling()) {
             NS_ABORT_IF_FALSE(childFrame->IsFrameOfType(nsIFrame::eSVG),
                               "Not expecting non-SVG children");
@@ -721,7 +723,8 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
               mOverflowChangedTracker.AddFrame(childFrame);
             }
             NS_ASSERTION(!nsLayoutUtils::GetNextContinuationOrIBSplitSibling(childFrame),
-                         "SVG frames should not have continuations or special siblings");
+                         "SVG frames should not have continuations "
+                         "or ib-split siblings");
             NS_ASSERTION(childFrame->GetParent() == hintFrame,
                          "SVG child frame not expected to have different parent");
           }
@@ -1772,6 +1775,8 @@ ElementForStyleContext(nsIContent* aParentContent,
 static nsIFrame*
 GetPrevContinuationWithPossiblySameStyle(nsIFrame* aFrame)
 {
+  
+  
   
   
   

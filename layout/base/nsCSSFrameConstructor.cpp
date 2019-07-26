@@ -462,10 +462,10 @@ SetFrameIsIBSplit(nsIFrame* aFrame, nsIFrame* aIBSplitSibling)
 
   
   NS_ASSERTION(!aFrame->GetPrevContinuation(),
-               "assigning special sibling to other than first continuation!");
+               "assigning ib-split sibling to other than first continuation!");
   NS_ASSERTION(!aFrame->GetNextContinuation() ||
                IsFramePartOfIBSplit(aFrame->GetNextContinuation()),
-               "should have no non-special continuations here");
+               "should have no non-ib-split continuations here");
 
   
   aFrame->AddStateBits(NS_FRAME_PART_OF_IBSPLIT);
@@ -473,7 +473,7 @@ SetFrameIsIBSplit(nsIFrame* aFrame, nsIFrame* aIBSplitSibling)
   if (aIBSplitSibling) {
     NS_ASSERTION(!aIBSplitSibling->GetPrevContinuation(),
                  "assigning something other than the first continuation as the "
-                 "special sibling");
+                 "ib-split sibling");
 
     
     
@@ -510,7 +510,8 @@ GetIBContainingBlockFor(nsIFrame* aFrame)
   } while (1);
  
   
-  NS_ASSERTION(parentFrame, "no normal ancestor found for special frame in GetIBContainingBlockFor");
+  NS_ASSERTION(parentFrame, "no normal ancestor found for ib-split frame "
+                            "in GetIBContainingBlockFor");
   NS_ASSERTION(parentFrame != aFrame, "parentFrame is actually the child frame - bogus reslt");
 
   return parentFrame;
@@ -5811,7 +5812,7 @@ nsCSSFrameConstructor::AppendFramesToParent(nsFrameConstructorState&       aStat
   NS_PRECONDITION(!IsFramePartOfIBSplit(aParentFrame) ||
                   !GetIBSplitSibling(aParentFrame) ||
                   !GetIBSplitSibling(aParentFrame)->GetFirstPrincipalChild(),
-                  "aParentFrame has a special sibling with kids?");
+                  "aParentFrame has a ib-split sibling with kids?");
   NS_PRECONDITION(!aPrevSibling || aPrevSibling->GetParent() == aParentFrame,
                   "Parent and prevsibling don't match");
 
@@ -6645,7 +6646,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     if (gNoisyContentUpdates) {
       printf("nsCSSFrameConstructor::ContentAppended: parentFrame=");
       nsFrame::ListTag(stdout, parentFrame);
-      printf(" is special\n");
+      printf(" is ib-split\n");
     }
 #endif
 
@@ -7310,7 +7311,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     nsIFrame* frame2 = prevSibling->GetParent();
     NS_ASSERTION(!IsFramePartOfIBSplit(frame1) &&
                  !IsFramePartOfIBSplit(frame2),
-                 "Neither should be special");
+                 "Neither should be ib-split");
     NS_ASSERTION((frame1->GetType() == nsGkAtoms::tableFrame &&
                   frame2->GetType() == nsGkAtoms::tableOuterFrame) ||
                  (frame1->GetType() == nsGkAtoms::tableOuterFrame &&
@@ -8430,7 +8431,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
       printf("nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval: "
              "frame=");
       nsFrame::ListTag(stdout, aFrame);
-      printf(" is special\n");
+      printf(" is ib-split\n");
     }
 #endif
 
@@ -8591,7 +8592,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
     printf("nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval: "
            "frame=");
     nsFrame::ListTag(stdout, parent);
-    printf(" is special\n");
+    printf(" is ib-split\n");
   }
 #endif
 
@@ -10701,7 +10702,7 @@ IsSafeToAppendToIBSplitInline(nsIFrame* aParentFrame, nsIFrame* aNextSibling)
                   "Must have an inline parent here");
   do {
     NS_ASSERTION(IsFramePartOfIBSplit(aParentFrame),
-                 "How is this not special?");
+                 "How is this not part of an ib-split?");
     if (aNextSibling || aParentFrame->GetNextContinuation() ||
         GetIBSplitSibling(aParentFrame)) {
       return false;
@@ -10996,6 +10997,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     }
 
     
+    
     if (!IsFramePartOfIBSplit(aFrame)) {
       return false;
     }
@@ -11032,8 +11034,8 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
          aContainingBlock->StyleContext()->GetPseudo()) {
     aContainingBlock = aContainingBlock->GetParent();
     NS_ASSERTION(aContainingBlock,
-                 "Must have non-inline, non-special, non-pseudo frame as root "
-                 "(or child of root, for a table root)!");
+                 "Must have non-inline, non-ib-split, non-pseudo frame as "
+                 "root (or child of root, for a table root)!");
   }
 
   
