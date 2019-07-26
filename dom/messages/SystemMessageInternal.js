@@ -49,8 +49,8 @@ function debug(aMsg) {
 
 
 let defaultMessageConfigurator = {
-  get safeToSendBeforeRunningApp() {
-    return true;
+  get mustShowRunningApp() {
+    return false;
   }
 };
 
@@ -208,10 +208,7 @@ SystemMessageInternal.prototype = {
       
       this._queueMessage(page, aMessage, messageID);
 
-      if (result === MSG_SENT_FAILURE_APP_NOT_RUNNING) {
-        
-        this._openAppPage(page, aMessage, aExtra);
-      }
+      this._openAppPage(page, aMessage, aExtra, result);
     }
   },
 
@@ -253,10 +250,7 @@ SystemMessageInternal.prototype = {
         
         this._queueMessage(aPage, aMessage, messageID);
 
-        if (result === MSG_SENT_FAILURE_APP_NOT_RUNNING) {
-          
-          this._openAppPage(aPage, aMessage, aExtra);
-        }
+        this._openAppPage(aPage, aMessage, aExtra, result);
       }
     }, this);
   },
@@ -530,13 +524,28 @@ SystemMessageInternal.prototype = {
     }
   },
 
-  _openAppPage: function _openAppPage(aPage, aMessage, aExtra) {
+  _openAppPage: function _openAppPage(aPage, aMessage, aExtra, aMsgSentStatus) {
+    
+    let showApp = this._getMessageConfigurator(aPage.type).mustShowRunningApp;
+
+    
+    
+    if ((aMsgSentStatus === MSG_SENT_SUCCESS) && !showApp) {
+      return;
+    }
+
+    
+    
+    let onlyShowApp = (aMsgSentStatus === MSG_SENT_SUCCESS) && showApp;
+
     
     let page = { uri: aPage.uri,
                  manifest: aPage.manifest,
                  type: aPage.type,
                  extra: aExtra,
-                 target: aMessage.target };
+                 target: aMessage.target,
+                 onlyShowApp: onlyShowApp,
+                 showApp: showApp };
     debug("Asking to open " + JSON.stringify(page));
     Services.obs.notifyObservers(this, "system-messages-open-app", JSON.stringify(page));
   },
@@ -580,40 +589,34 @@ SystemMessageInternal.prototype = {
                                            manifest: aManifestURI,
                                            uri: aPageURI });
 
-    
-    
-    
-    if (this._getMessageConfigurator(aType).safeToSendBeforeRunningApp) {
-
-      let targets = this._listeners[aManifestURI];
-      if (targets) {
-        for (let index = 0; index < targets.length; ++index) {
-          let target = targets[index];
-          
-          
-          
-          if (target.winCounts[aPageURI] === undefined) {
-            continue;
-          }
-
-          appPageIsRunning = true;
-          
-          
-          
-          
-          this._acquireCpuWakeLock(pageKey);
-
-          
-          
-          
-          let manager = target.target;
-          manager.sendAsyncMessage("SystemMessageManager:Message",
-                                   { type: aType,
-                                     msg: aMessage,
-                                     manifest: aManifestURI,
-                                     uri: aPageURI,
-                                     msgID: aMessageID });
+    let targets = this._listeners[aManifestURI];
+    if (targets) {
+      for (let index = 0; index < targets.length; ++index) {
+        let target = targets[index];
+        
+        
+        
+        if (target.winCounts[aPageURI] === undefined) {
+          continue;
         }
+
+        appPageIsRunning = true;
+        
+        
+        
+        
+        this._acquireCpuWakeLock(pageKey);
+
+        
+        
+        
+        let manager = target.target;
+        manager.sendAsyncMessage("SystemMessageManager:Message",
+                                 { type: aType,
+                                   msg: aMessage,
+                                   manifest: aManifestURI,
+                                   uri: aPageURI,
+                                   msgID: aMessageID });
       }
     }
 
