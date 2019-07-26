@@ -835,8 +835,12 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     int32_t timeSinceLastIDR = (now - mLastIDRTime).ToMilliseconds();
 
     
+
     
-    if ((mBitRateKbps < (mBitRateAtLastIDR * 8)/10) ||
+    
+    
+    if ((timeSinceLastIDR > 3000) ||
+        (mBitRateKbps < (mBitRateAtLastIDR * 8)/10) ||
         (timeSinceLastIDR < 300 && mBitRateKbps < (mBitRateAtLastIDR * 9)/10) ||
         (timeSinceLastIDR < 1000 && mBitRateKbps < (mBitRateAtLastIDR * 97)/100) ||
         (timeSinceLastIDR >= 1000 && mBitRateKbps < mBitRateAtLastIDR) ||
