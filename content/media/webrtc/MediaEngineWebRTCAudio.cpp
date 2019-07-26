@@ -85,7 +85,7 @@ MediaEngineWebRTCAudioSource::Config(bool aEchoOn, uint32_t aEcho,
       mEchoCancel = (webrtc::EcModes) aEcho;
     mVoEProcessing->SetEcStatus(mEchoOn, aEcho);
 #else
-    (void) aEcho; (void) aEchoOn; 
+    (void) aEcho; (void) aEchoOn; (void) mEchoCancel; 
 #endif
 
     if (update_agc &&
