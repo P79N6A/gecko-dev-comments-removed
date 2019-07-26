@@ -180,8 +180,6 @@ struct PLDHashTable {
     const PLDHashTableOps *ops;         
     void                *data;          
     int16_t             hashShift;      
-    uint8_t             maxAlphaFrac;   
-    uint8_t             minAlphaFrac;   
     uint32_t            entrySize;      
     uint32_t            entryCount;     
     uint32_t            removedCount;   
@@ -401,52 +399,6 @@ PL_DHashTableDestroy(PLDHashTable *table);
 NS_COM_GLUE bool
 PL_DHashTableInit(PLDHashTable *table, const PLDHashTableOps *ops, void *data,
                   uint32_t entrySize, uint32_t capacity);
-
-
-
-
-
-
-
-
-
-NS_COM_GLUE void
-PL_DHashTableSetAlphaBounds(PLDHashTable *table,
-                            float maxAlpha,
-                            float minAlpha);
-
-
-
-
-
-
-#define PL_DHASH_MIN_ALPHA(table, k)                                          \
-    ((float)((table)->entrySize / sizeof(void *) - 1)                         \
-     / ((table)->entrySize / sizeof(void *) + (k)))
-
-
-
-
-
-
-
-
-
-
-
-#define PL_DHASH_DEFAULT_MAX_ALPHA 0.75
-#define PL_DHASH_DEFAULT_MIN_ALPHA 0.25
-
-#define PL_DHASH_CAP(entryCount, maxAlpha)                                    \
-    ((uint32_t)((double)(entryCount) / (maxAlpha)))
-
-#define PL_DHASH_CAPACITY(entryCount, maxAlpha)                               \
-    (PL_DHASH_CAP(entryCount, maxAlpha) +                                     \
-     (((PL_DHASH_CAP(entryCount, maxAlpha) * (uint8_t)(0x100 * (maxAlpha)))     \
-       >> 8) < (entryCount)))
-
-#define PL_DHASH_DEFAULT_CAPACITY(entryCount)                                 \
-    PL_DHASH_CAPACITY(entryCount, PL_DHASH_DEFAULT_MAX_ALPHA)
 
 
 
