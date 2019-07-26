@@ -23,10 +23,10 @@ SandboxBroker::SandboxBroker()
         sBrokerService = nullptr;
       }
     }
-
-    
-    mPolicy = sBrokerService->CreatePolicy();
   }
+
+  
+  mPolicy = sBrokerService->CreatePolicy();
 }
 
 bool
