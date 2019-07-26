@@ -8,7 +8,9 @@
 #include "prtypes.h"
 #include "prefapi.h"
 
-PR_BEGIN_EXTERN_C
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 
@@ -97,5 +99,7 @@ void PREF_FinalizeParseState(PrefParseState *ps);
 
 bool PREF_ParseBuf(PrefParseState *ps, const char *buf, int bufLen);
 
-PR_END_EXTERN_C
-#endif 
+#ifdef __cplusplus
+}
+#endif
+#endif

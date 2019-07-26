@@ -11,7 +11,9 @@
 
 #include <limits.h>
 
-PR_BEGIN_EXTERN_C
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 
@@ -39,6 +41,8 @@ typedef struct OS2prdata {
         bool cancel;		     
 } OS2PrData;
 
-PR_END_EXTERN_C
+#ifdef __cplusplus
+}
+#endif
 
-#endif 
+#endif

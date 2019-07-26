@@ -14,7 +14,9 @@
 #include <mozilla/StandardInteger.h>
 #include "prtypes.h"
 
-PR_BEGIN_EXTERN_C
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 
@@ -103,6 +105,8 @@ XPCOM_API(nsresult)
 NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
                             char *aBuffer, uint32_t aBufferSize);
 
-PR_END_EXTERN_C
+#ifdef __cplusplus
+}
+#endif
 
-#endif 
+#endif

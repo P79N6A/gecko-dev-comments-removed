@@ -11,7 +11,9 @@
 
 #include <stdlib.h>
 
-PR_BEGIN_EXTERN_C
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 typedef struct stack_buffer_info {
@@ -54,6 +56,8 @@ void dhw_orig_free(void*);
 
 #endif 
 
-PR_END_EXTERN_C
+#ifdef __cplusplus
+}
+#endif
 
-#endif 
+#endif

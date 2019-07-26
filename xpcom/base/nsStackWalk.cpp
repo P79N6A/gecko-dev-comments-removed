@@ -198,7 +198,7 @@ StackWalkInitCriticalAddress()
 
 
 
-PR_BEGIN_EXTERN_C
+extern "C" {
 
 extern HANDLE hStackWalkMutex; 
 
@@ -229,7 +229,7 @@ void WalkStackMain64(struct WalkStackData* data);
 DWORD gStackWalkThread;
 CRITICAL_SECTION gDbgHelpCS;
 
-PR_END_EXTERN_C
+}
 
 
 

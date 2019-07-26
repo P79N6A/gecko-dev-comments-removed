@@ -14,7 +14,9 @@
 #include "xpt_arena.h"
 #include "mozilla/StandardInteger.h"
 
-PR_BEGIN_EXTERN_C
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 
@@ -511,6 +513,8 @@ extern XPT_PUBLIC_API(XPTAnnotation *)
 XPT_NewAnnotation(XPTArena *arena, uint8_t flags, XPTString *creator, 
                   XPTString *private_data);
 
-PR_END_EXTERN_C
+#ifdef __cplusplus
+}
+#endif
 
-#endif 
+#endif
