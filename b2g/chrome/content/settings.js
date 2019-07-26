@@ -4,7 +4,7 @@
 
 
 
-"use strict";
+"use strict;"
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -21,64 +21,46 @@ XPCOMUtils.defineLazyGetter(this, "libcutils", function () {
 });
 #endif
 
+
+
 var SettingsListener = {
-  
-  _timer: null,
+  _callbacks: {},
 
-  
-  _lock: null,
-
-  
-
-
-
-
-  getSettingsLock: function sl_getSettingsLock() {
-    
-    clearTimeout(this._timer);
-    this._timer = setTimeout((function() {
-      this._lock = null;
-    }).bind(this), 0);
-
-    
-    if (this._lock) {
-      return this._lock;
+  init: function sl_init() {
+    if ('mozSettings' in navigator && navigator.mozSettings) {
+      navigator.mozSettings.onsettingchange = this.onchange.bind(this);
     }
+  },
 
-    
-    let settings = window.navigator.mozSettings;
-
-    return (this._lock = settings.createLock());
+  onchange: function sl_onchange(evt) {
+    var callback = this._callbacks[evt.settingName];
+    if (callback) {
+      callback(evt.settingValue);
+    }
   },
 
   observe: function sl_observe(name, defaultValue, callback) {
-    let settings = window.navigator.mozSettings;
-
-    let req;
-    try {
-      req = this.getSettingsLock().get(name);
-    } catch (e) {
-      
-      
-      
-      
-      
-      console.warn('Stale lock in settings.js.',
-                   'See https://bugzilla.mozilla.org/show_bug.cgi?id=793239');
-      this._lock = null;
-      req = this.getSettingsLock().get(name);
+    var settings = window.navigator.mozSettings;
+    if (!settings) {
+      window.setTimeout(function() { callback(defaultValue); });
+      return;
     }
 
+    if (!callback || typeof callback !== 'function') {
+      throw new Error('Callback is not a function');
+    }
+
+    var req = settings.createLock().get(name);
     req.addEventListener('success', (function onsuccess() {
       callback(typeof(req.result[name]) != 'undefined' ?
         req.result[name] : defaultValue);
     }));
 
-    settings.addObserver(name, function settingChanged(evt) {
-      callback(evt.settingValue);
-    });
+    this._callbacks[name] = callback;
   }
 };
+
+SettingsListener.init();
 
 
 
