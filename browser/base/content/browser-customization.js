@@ -20,6 +20,11 @@ let CustomizationHandler = {
     }
   },
 
+  isCustomizing: function() {
+    return document.documentElement.hasAttribute("customizing") ||
+           document.documentElement.hasAttribute("customize-exiting");
+  },
+
   _customizationStarting: function() {
     
     let menubar = document.getElementById("main-menubar");
