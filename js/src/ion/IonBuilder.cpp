@@ -6517,9 +6517,7 @@ IonBuilder::jsop_getelem()
     bool cacheable = obj->mightBeType(MIRType_Object) && !obj->mightBeType(MIRType_String) &&
         (index->mightBeType(MIRType_Int32) || index->mightBeType(MIRType_String));
 
-    bool nonNativeGetElement =
-        script()->analysis()->getCode(pc).nonNativeGetElement ||
-        inspector->hasSeenNonNativeGetElement(pc);
+    bool nonNativeGetElement = inspector->hasSeenNonNativeGetElement(pc);
 
     
     

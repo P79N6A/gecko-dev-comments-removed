@@ -1264,16 +1264,9 @@ SetObjectElementOperation(JSContext *cx, Handle<JSObject*> obj, HandleId id, con
         int32_t i = JSID_TO_INT(id);
         if ((uint32_t)i >= length) {
             
-            
-            
-            
-            if (script || cx->currentlyRunningInInterpreter()) {
-                JS_ASSERT(!!script == !!pc);
-                if (!script)
-                    types::TypeScript::GetPcScript(cx, script.address(), &pc);
-
-                if (script->hasAnalysis())
-                    script->analysis()->getCode(pc).arrayWriteHole = true;
+            if (script && script->hasAnalysis()) {
+                JS_ASSERT(pc);
+                script->analysis()->getCode(pc).arrayWriteHole = true;
             }
         }
     }
