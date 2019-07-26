@@ -805,6 +805,20 @@ MPhi::computeRange()
 }
 
 void
+MBeta::computeRange()
+{
+    bool emptyRange = false;
+
+    Range *range = Range::intersect(val_->range(), comparison_, &emptyRange);
+    if (emptyRange) {
+        IonSpew(IonSpew_Range, "Marking block for inst %d unexitable", id());
+        block()->setEarlyAbort();
+    } else {
+        setRange(range);
+    }
+}
+
+void
 MConstant::computeRange()
 {
     if (type() == MIRType_Int32) {
@@ -1918,6 +1932,22 @@ RangeAnalysis::truncate()
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
+        for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++)
+            iter->collectRangeInfo();
+    }
+
+    
+    
+    
     for (size_t i = 0; i < bitops.length(); i++) {
         MBinaryBitwiseInstruction *ins = bitops[i];
         MDefinition *folded = ins->foldUnnecessaryBitop();
@@ -1926,4 +1956,20 @@ RangeAnalysis::truncate()
     }
 
     return true;
+}
+
+
+
+
+
+void
+MInArray::collectRangeInfo()
+{
+    needsNegativeIntCheck_ = !index()->range() || index()->range()->lower() < 0;
+}
+
+void
+MMod::collectRangeInfo()
+{
+    canBeNegativeDividend_ = !lhs()->range() || lhs()->range()->lower() < 0;
 }
