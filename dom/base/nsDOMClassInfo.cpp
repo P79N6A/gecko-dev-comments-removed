@@ -2089,9 +2089,6 @@ SetParentToWindow(nsGlobalWindow *win, JSObject **parent)
   if (MOZ_UNLIKELY(!*parent)) {
     
     
-    
-    
-    NS_ASSERTION(win->IsClosedOrClosing(), "win should be closed or closing");
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
