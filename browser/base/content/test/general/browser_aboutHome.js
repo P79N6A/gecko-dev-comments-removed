@@ -464,6 +464,7 @@ function promiseSetupSnippetsMap(aTab, aSetupFn)
     
     
     cw.ensureSnippetsMapThen(function (aSnippetsMap) {
+      aSnippetsMap = Cu.waiveXrays(aSnippetsMap);
       info("Got snippets map: " +
            "{ last-update: " + aSnippetsMap.get("snippets-last-update") +
            ", cached-version: " + aSnippetsMap.get("snippets-cached-version") +

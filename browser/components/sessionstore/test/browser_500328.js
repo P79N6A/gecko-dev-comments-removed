@@ -36,7 +36,13 @@ function checkState(tab) {
     }
     else if (popStateCount == 1) {
       popStateCount++;
-      is(aEvent.state.obj3.toString(), '/^a$/', "second popstate object.");
+      
+      
+      
+      
+      
+      
+      is(Cu.waiveXrays(aEvent.state).obj3.toString(), '/^a$/', "second popstate object.");
 
       
       
