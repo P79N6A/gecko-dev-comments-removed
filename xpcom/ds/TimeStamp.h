@@ -8,6 +8,7 @@
 #define mozilla_TimeStamp_h
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 
 #include "prinrval.h"
 #include "nsDebug.h"
@@ -44,7 +45,7 @@ class TimeDuration
 {
 public:
   
-  TimeDuration() : mValue(0) {}
+  MOZ_CONSTEXPR TimeDuration() : mValue(0) {}
   
   
   struct _SomethingVeryRandomHere;
