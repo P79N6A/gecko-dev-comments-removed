@@ -43,6 +43,15 @@
 
 
 
+#expressions {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+
+
+
+
 #variables {
   overflow-x: hidden;
   overflow-y: auto;

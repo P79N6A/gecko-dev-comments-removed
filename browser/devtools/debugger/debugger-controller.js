@@ -35,6 +35,9 @@ Cu.import("resource:///modules/source-editor.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this,
+  "Reflect", "resource://gre/modules/reflect.jsm");
+
 
 
 
@@ -1002,17 +1005,37 @@ StackFrames.prototype = {
   syncWatchExpressions: function SF_syncWatchExpressions() {
     let list = DebuggerView.WatchExpressions.getExpressions();
 
-    if (list.length) {
+    
+    
+    
+    
+    let sanitizedExpressions = list.map(function(str) {
+      
+      try {
+        Reflect.parse(str);
+        return str; 
+      } catch (e) {
+        return "\"" + e.name + ": " + e.message + "\""; 
+      }
+    });
+
+    if (sanitizedExpressions.length) {
       this.syncedWatchExpressions =
-        this.currentWatchExpressions = "[" + list.map(function(str)
-          
-          
-          "(function(arguments) {" +
-            
-            "try { return eval(\"" + str.replace(/"/g, "\\$&") + "\"); }" +
-            "catch(e) { return e.name + ': ' + e.message; }" +
-          "})(arguments)"
-        ).join(",") + "]";
+        this.currentWatchExpressions =
+          "[" +
+            sanitizedExpressions.map(function(str)
+              "eval(\"" +
+                "try {" +
+                  
+                  
+                  
+                  str.replace(/"/g, "\\$&") + "\" + " + "'\\n'" + " + \"" +
+                "} catch (e) {" +
+                  "e.name + ': ' + e.message;" + 
+                "}" +
+              "\")"
+            ).join(",") +
+          "]";
     } else {
       this.syncedWatchExpressions =
         this.currentWatchExpressions = null;
