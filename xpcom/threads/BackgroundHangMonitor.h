@@ -17,7 +17,9 @@ namespace Telemetry {
 class ThreadHangStats;
 };
 
-#ifndef RELEASE_BUILD
+
+
+#if !defined(RELEASE_BUILD) && !defined(DEBUG)
 
 #define MOZ_ENABLE_BACKGROUND_HANG_MONITOR
 #endif
