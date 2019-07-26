@@ -828,11 +828,10 @@ StackSpace::sizeOf()
     size_t numPages = (numBytes + pageSize - 1) / pageSize;
 
     
-    
-#if defined(XP_MACOSX)
-    typedef char MincoreArgType;
-#else
+#ifdef __linux__
     typedef unsigned char MincoreArgType;
+#else
+    typedef char MincoreArgType;
 #endif
 
     MincoreArgType *vec = (MincoreArgType *) js_malloc(numPages);
