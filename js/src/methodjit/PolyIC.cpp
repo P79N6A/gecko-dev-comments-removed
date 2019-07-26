@@ -1512,6 +1512,13 @@ class GetPropCompiler : public PICStubCompiler
             MarkNotIdempotent(script, f.pc());
         }
 
+        
+        
+        if (!getprop.holder) {
+            RawScript script = f.script().unsafeGet();
+            MarkNotIdempotent(script, f.pc());
+        }
+
         if (hadGC())
             return Lookup_Uncacheable;
 
