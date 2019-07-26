@@ -291,7 +291,9 @@ PeerConnection.prototype = {
 
 
   _queueOrRun: function(obj) {
-    this._checkClosed();
+    if (this._closed) {
+	return;
+    }
     if (!this._pending) {
       if (obj.type !== undefined) {
         this._pendingType = obj.type;
@@ -354,16 +356,6 @@ PeerConnection.prototype = {
     return true;
   },
 
-  
-  
-  
-  
-  _checkClosed: function() {
-    if (this._closed) {
-      throw new Error ("Peer connection is closed");
-    }
-  },
-
   createOffer: function(onSuccess, onError, constraints) {
     if (!constraints) {
       constraints = {};
@@ -416,9 +408,6 @@ PeerConnection.prototype = {
   },
 
   setLocalDescription: function(desc, onSuccess, onError) {
-    
-    
-    
     this._onSetLocalDescriptionSuccess = onSuccess;
     this._onSetLocalDescriptionFailure = onError;
 
@@ -446,9 +435,6 @@ PeerConnection.prototype = {
   },
 
   setRemoteDescription: function(desc, onSuccess, onError) {
-    
-    
-    
     this._onSetRemoteDescriptionSuccess = onSuccess;
     this._onSetRemoteDescriptionFailure = onError;
 
@@ -522,17 +508,14 @@ PeerConnection.prototype = {
   },
 
   get localStreams() {
-    this._checkClosed();
     return this._pc.localStreams;
   },
 
   get remoteStreams() {
-    this._checkClosed();
     return this._pc.remoteStreams;
   },
 
   get localDescription() {
-    this._checkClosed();
     let sdp = this._pc.localDescription;
     if (sdp.length == 0) {
       return null;
@@ -544,7 +527,6 @@ PeerConnection.prototype = {
   },
 
   get remoteDescription() {
-    this._checkClosed();
     let sdp = this._pc.remoteDescription;
     if (sdp.length == 0) {
       return null;
@@ -556,7 +538,6 @@ PeerConnection.prototype = {
   },
 
   createDataChannel: function(label, dict) {
-    this._checkClosed();
     if (dict &&
         dict.maxRetransmitTime != undefined &&
         dict.maxRetransmitNum != undefined) {
@@ -573,8 +554,6 @@ PeerConnection.prototype = {
       type = Ci.IPeerConnection.kDataChannelReliable;
     }
 
-    
-    
     
     let channel = this._pc.createDataChannel(
       label, type, dict.outOfOrderAllowed, dict.maxRetransmitTime,
