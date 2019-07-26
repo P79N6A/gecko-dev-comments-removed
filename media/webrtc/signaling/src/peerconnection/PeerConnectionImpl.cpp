@@ -404,6 +404,7 @@ PeerConnectionImpl::CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo
 
 
 
+
 nsresult
 PeerConnectionImpl::ConvertRTCConfiguration(const JS::Value& aSrc,
                                             IceConfiguration *aDst,
@@ -449,6 +450,13 @@ PeerConnectionImpl::ConvertRTCConfiguration(const JS::Value& aSrc,
       nsAutoCString path;
       rv = url->GetPath(path);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      int32_t questionmark = path.FindChar('?');
+      if (questionmark >= 0) {
+        path.SetLength(questionmark);
+      }
+
       rv = net_GetAuthURLParser()->ParseAuthority(path.get(), path.Length(),
                                                   nullptr,  nullptr,
                                                   nullptr,  nullptr,
