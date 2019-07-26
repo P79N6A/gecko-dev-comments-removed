@@ -203,12 +203,6 @@ private:
   TemporaryRef<ID3D10Texture2D> CreateGradientTexture(const GradientStopsD2D *aStops);
   TemporaryRef<ID3D10Texture2D> CreateTextureForAnalysis(IDWriteGlyphRunAnalysis *aAnalysis, const IntRect &aBounds);
 
-  
-  
-  
-  TemporaryRef<ID2D1Bitmap> CreatePartialBitmapForSurface(DataSourceSurface *aSurface, Matrix &aMatrix,
-                                                          ExtendMode aExtendMode);
-
   void SetupEffectForRadialGradient(const RadialGradientPattern *aPattern);
   void SetupStateForRendering();
 
