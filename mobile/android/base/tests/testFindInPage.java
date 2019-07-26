@@ -15,27 +15,24 @@ public class testFindInPage extends PixelTest {
         String url = getAbsoluteUrl("/robocop/robocop_text_page.html");
         loadAndPaint(url);
 
-        
         height = mDriver.getGeckoHeight()/8;
-        width = mDriver.getGeckoWidth()/8;
-
-        
-
-
-
-
-
-
-
-
-
-
-
+        width = mDriver.getGeckoWidth()/2;
 
         
         Actions.RepeatedEventExpecter paintExpecter = mActions.expectPaint();
-        findText("Robocop", 3);
+        findText("Robocoop", 3); 
         PaintedSurface painted = waitForPaint(paintExpecter);
+        paintExpecter.unregisterListener();
+        try {
+            mAsserter.ispixel(painted.getPixelAt(width,height), 255, 0, 0, "Pixel at " + String.valueOf(width) + "," + String.valueOf(height));
+        } finally {
+            painted.close();
+        }
+
+        
+        paintExpecter = mActions.expectPaint();
+        findText("Robocop", 3);
+        painted = waitForPaint(paintExpecter);
         paintExpecter.unregisterListener();
         try {
             mAsserter.isnotpixel(painted.getPixelAt(width,height), 255, 0, 0, "Pixel at " + String.valueOf(width) + "," + String.valueOf(height));
