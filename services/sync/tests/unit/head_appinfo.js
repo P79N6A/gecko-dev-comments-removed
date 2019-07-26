@@ -3,9 +3,17 @@
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
+Cu.import("resource://gre/modules/Services.jsm");
+
 let gSyncProfile;
 
 gSyncProfile = do_get_profile();
+
+
+let fhs = Cc["@mozilla.org/satchel/form-history-startup;1"]
+            .getService(Ci.nsIObserver);
+fhs.observe(null, "profile-after-change", null);
+
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
