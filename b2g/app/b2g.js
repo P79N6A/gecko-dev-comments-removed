@@ -751,6 +751,12 @@ pref("disk_space_watcher.enabled", true);
 pref("dom.promise.enabled", false);
 
 
+#ifdef MOZ_WIDGET_GONK
+
+pref("dom.inter-app-communication-api.enabled", true);
+#endif
+
+
 
 
 pref("b2g.adb.timeout-hours", 12);

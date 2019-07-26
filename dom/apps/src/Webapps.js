@@ -460,6 +460,14 @@ WebappsApplication.prototype = {
     return request;
   },
 
+  connect: function(aKeyword, aRules) {
+    
+  },
+
+  getConnections: function() {
+    
+  },
+
   uninit: function() {
     this._onprogress = null;
     cpmm.sendAsyncMessage("Webapps:UnregisterForMessages",
