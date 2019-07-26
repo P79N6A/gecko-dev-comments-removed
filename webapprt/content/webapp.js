@@ -58,6 +58,10 @@ function onLoad() {
   
   
   gAppBrowser.addEventListener("click", onContentClick, false, true);
+
+  if (WebappRT.config.app.manifest.fullscreen) {
+    enterFullScreen();
+  }
 }
 window.addEventListener("load", onLoad, false);
 
@@ -65,6 +69,33 @@ function onUnload() {
   gAppBrowser.removeProgressListener(progressListener);
 }
 window.addEventListener("unload", onUnload, false);
+
+
+
+function enterFullScreen() {
+  
+  
+  
+  gAppBrowser.mozRequestFullScreen();
+
+  
+  
+  gAppBrowser.addEventListener("load", function onLoad() {
+    gAppBrowser.removeEventListener("load", onLoad, true);
+    gAppBrowser.contentDocument.
+      documentElement.wrappedJSObject.mozRequestFullScreen();
+  }, true);
+}
+
+#ifndef XP_MACOSX
+document.addEventListener('mozfullscreenchange', function() {
+  if (document.mozFullScreenElement) {
+    document.getElementById("main-menubar").style.display = "none";
+  } else {
+    document.getElementById("main-menubar").style.display = "";
+  }
+}, false);
+#endif
 
 
 
