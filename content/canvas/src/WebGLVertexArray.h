@@ -16,6 +16,8 @@
 
 namespace mozilla {
 
+class WebGLVertexArrayFake;
+
 class WebGLVertexArray
     : public nsWrapperCache
     , public WebGLRefCountedObject<WebGLVertexArray>
@@ -88,6 +90,7 @@ protected:
     
     
 
+    friend class WebGLVertexArrayFake;
     friend class WebGLContext;
 };
 
