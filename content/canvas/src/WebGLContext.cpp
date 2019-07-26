@@ -4,6 +4,7 @@
 
 
 #include "WebGLContext.h"
+#include "WebGLObjectModel.h"
 #include "WebGLExtensions.h"
 #include "WebGLContextUtils.h"
 

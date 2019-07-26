@@ -6,6 +6,10 @@
 #ifndef WEBGLCONTEXT_H_
 #define WEBGLCONTEXT_H_
 
+#include "WebGLElementArrayCache.h"
+#include "WebGLObjectModel.h"
+#include "WebGLBuffer.h"
+
 #include <stdarg.h>
 #include <vector>
 
@@ -42,8 +46,6 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingUtils.h"
 
-#include "WebGLElementArrayCache.h"
-
 
 
 
@@ -62,30 +64,16 @@
 #define MINVALUE_GL_MAX_RENDERBUFFER_SIZE             1024  // Different from the spec, which sets it to 1 on page 164
 #define MINVALUE_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS  8     // Page 164
 
-
-typedef uint32_t WebGLenum;
-typedef uint32_t WebGLbitfield;
-typedef int32_t WebGLint;
-typedef int32_t WebGLsizei;
-typedef int64_t WebGLsizeiptr;
-typedef int64_t WebGLintptr;
-typedef uint32_t WebGLuint;
-typedef float WebGLfloat;
-typedef float WebGLclampf;
-typedef bool WebGLboolean;
-
 class nsIPropertyBag;
 
 namespace mozilla {
 
 class WebGLTexture;
-class WebGLBuffer;
 class WebGLProgram;
 class WebGLShader;
 class WebGLFramebuffer;
-class WebGLRenderbuffer;
 class WebGLUniformLocation;
-class WebGLContext;
+class WebGLRenderbuffer;
 struct WebGLVertexAttribData;
 class WebGLMemoryPressureObserver;
 class WebGLRectangleObject;
@@ -162,246 +150,6 @@ inline bool is_pot_assuming_nonnegative(WebGLsizei x)
 {
     return x && (x & (x-1)) == 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename Derived>
-class WebGLRefCountedObject
-{
-public:
-    enum DeletionStatus { Default, DeleteRequested, Deleted };
-
-    WebGLRefCountedObject()
-      : mDeletionStatus(Default)
-    { }
-
-    ~WebGLRefCountedObject() {
-        NS_ABORT_IF_FALSE(mWebGLRefCnt == 0, "destroying WebGL object still referenced by other WebGL objects");
-        NS_ABORT_IF_FALSE(mDeletionStatus == Deleted, "Derived class destructor must call DeleteOnce()");
-    }
-
-    
-    void WebGLAddRef() {
-        ++mWebGLRefCnt;
-    }
-
-    
-    void WebGLRelease() {
-        NS_ABORT_IF_FALSE(mWebGLRefCnt > 0, "releasing WebGL object with WebGL refcnt already zero");
-        --mWebGLRefCnt;
-        MaybeDelete();
-    }
-
-    
-    void RequestDelete() {
-        if (mDeletionStatus == Default)
-            mDeletionStatus = DeleteRequested;
-        MaybeDelete();
-    }
-
-    bool IsDeleted() const {
-        return mDeletionStatus == Deleted;
-    }
-
-    bool IsDeleteRequested() const {
-        return mDeletionStatus != Default;
-    }
-
-    void DeleteOnce() {
-        if (mDeletionStatus != Deleted) {
-            static_cast<Derived*>(this)->Delete();
-            mDeletionStatus = Deleted;
-        }
-    }
-
-private:
-    void MaybeDelete() {
-        if (mWebGLRefCnt == 0 &&
-            mDeletionStatus == DeleteRequested)
-        {
-            DeleteOnce();
-        }
-    }
-
-protected:
-    nsAutoRefCnt mWebGLRefCnt;
-    DeletionStatus mDeletionStatus;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename T>
-class WebGLRefPtr
-{
-public:
-    WebGLRefPtr()
-        : mRawPtr(0)
-    { }
-
-    WebGLRefPtr(const WebGLRefPtr<T>& aSmartPtr)
-        : mRawPtr(aSmartPtr.mRawPtr)
-    {
-        AddRefOnPtr(mRawPtr);
-    }
-
-    WebGLRefPtr(T *aRawPtr)
-        : mRawPtr(aRawPtr)
-    {
-        AddRefOnPtr(mRawPtr);
-    }
-
-    ~WebGLRefPtr() {
-        ReleasePtr(mRawPtr);
-    }
-
-    WebGLRefPtr<T>&
-    operator=(const WebGLRefPtr<T>& rhs)
-    {
-        assign_with_AddRef(rhs.mRawPtr);
-        return *this;
-    }
-
-    WebGLRefPtr<T>&
-    operator=(T* rhs)
-    {
-        assign_with_AddRef(rhs);
-        return *this;
-    }
-
-    T* get() const {
-        return static_cast<T*>(mRawPtr);
-    }
-
-    operator T*() const {
-        return get();
-    }
-
-    T* operator->() const {
-        NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL WebGLRefPtr with operator->()!");
-        return get();
-    }
-
-    T& operator*() const {
-        NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL WebGLRefPtr with operator*()!");
-        return *get();
-    }
-
-private:
-
-    static void AddRefOnPtr(T* rawPtr) {
-        if (rawPtr) {
-            rawPtr->WebGLAddRef();
-            rawPtr->AddRef();
-        }
-    }
-
-    static void ReleasePtr(T* rawPtr) {
-        if (rawPtr) {
-            rawPtr->WebGLRelease(); 
-            rawPtr->Release();
-        }
-    }
-
-    void assign_with_AddRef(T* rawPtr) {
-        AddRefOnPtr(rawPtr);
-        assign_assuming_AddRef(rawPtr);
-    }
-
-    void assign_assuming_AddRef(T* newPtr) {
-        T* oldPtr = mRawPtr;
-        mRawPtr = newPtr;
-        ReleasePtr(oldPtr);
-    }
-
-protected:
-    T *mRawPtr;
-};
 
 
 
@@ -1463,29 +1211,6 @@ ToSupports(WebGLContext* context)
   return static_cast<nsICanvasRenderingContextInternal*>(context);
 }
 
-
-
-
-class WebGLContextBoundObject
-{
-public:
-    WebGLContextBoundObject(WebGLContext *context) {
-        mContext = context;
-        mContextGeneration = context->Generation();
-    }
-
-    bool IsCompatibleWithContext(WebGLContext *other) {
-        return mContext == other &&
-            mContextGeneration == other->Generation();
-    }
-
-    WebGLContext *Context() const { return mContext; }
-
-protected:
-    WebGLContext *mContext;
-    uint32_t mContextGeneration;
-};
-
 struct WebGLVertexAttribData {
     
     WebGLVertexAttribData()
@@ -1531,90 +1256,6 @@ struct WebGLVertexAttribData {
     }
 };
 
-class WebGLBuffer MOZ_FINAL
-    : public nsISupports
-    , public WebGLRefCountedObject<WebGLBuffer>
-    , public LinkedListElement<WebGLBuffer>
-    , public WebGLContextBoundObject
-    , public nsWrapperCache
-{
-public:
-    WebGLBuffer(WebGLContext *context)
-        : WebGLContextBoundObject(context)
-        , mHasEverBeenBound(false)
-        , mByteLength(0)
-        , mTarget(LOCAL_GL_NONE)
-    {
-        SetIsDOMBinding();
-        mContext->MakeContextCurrent();
-        mContext->gl->fGenBuffers(1, &mGLName);
-        mContext->mBuffers.insertBack(this);
-    }
-
-    ~WebGLBuffer() {
-        DeleteOnce();
-    }
-
-    void Delete() {
-        mContext->MakeContextCurrent();
-        mContext->gl->fDeleteBuffers(1, &mGLName);
-        mByteLength = 0;
-        mCache = nullptr;
-        LinkedListElement<WebGLBuffer>::removeFrom(mContext->mBuffers);
-    }
-
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-        size_t sizeOfCache = mCache ? mCache->SizeOfIncludingThis(aMallocSizeOf) : 0;
-        return aMallocSizeOf(this) + sizeOfCache;
-    }
-
-    bool HasEverBeenBound() { return mHasEverBeenBound; }
-    void SetHasEverBeenBound(bool x) { mHasEverBeenBound = x; }
-    GLuint GLName() const { return mGLName; }
-    GLuint ByteLength() const { return mByteLength; }
-    GLenum Target() const { return mTarget; }
-
-    void SetByteLength(GLuint byteLength) { mByteLength = byteLength; }
-
-    void SetTarget(GLenum target) {
-        mTarget = target;
-        if (!mCache && mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER)
-            mCache = new WebGLElementArrayCache;
-     }
-
-    bool ElementArrayCacheBufferData(const void* ptr, size_t buffer_size_in_bytes) {
-        if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER)
-            return mCache->BufferData(ptr, buffer_size_in_bytes);
-        return true;
-    }
-
-    void ElementArrayCacheBufferSubData(size_t pos, const void* ptr, size_t update_size_in_bytes) {
-        if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER)
-            mCache->BufferSubData(pos, ptr, update_size_in_bytes);
-    }
-
-    bool Validate(WebGLenum type, uint32_t max_allowed, size_t first, size_t count) {
-        return mCache->Validate(type, max_allowed, first, count);
-    }
-
-    WebGLContext *GetParentObject() const {
-        return Context();
-    }
-
-    virtual JSObject* WrapObject(JSContext *cx, JSObject *scope, bool *triedToWrap);
-
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(WebGLBuffer)
-
-protected:
-
-    WebGLuint mGLName;
-    bool mHasEverBeenBound;
-    GLuint mByteLength;
-    GLenum mTarget;
-
-    nsAutoPtr<WebGLElementArrayCache> mCache;
-};
 
 
 
@@ -3465,24 +3106,6 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
 {
   CycleCollectionNoteEdgeName(aCallback, aName, aFlags);
   aCallback.NoteXPCOMChild(aField.buf);
-}
-
-template <typename T>
-inline void
-ImplCycleCollectionUnlink(mozilla::WebGLRefPtr<T>& aField)
-{
-  aField = nullptr;
-}
-
-template <typename T>
-inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            mozilla::WebGLRefPtr<T>& aField,
-                            const char* aName,
-                            uint32_t aFlags = 0)
-{
-  CycleCollectionNoteEdgeName(aCallback, aName, aFlags);
-  aCallback.NoteXPCOMChild(aField);
 }
 
 #endif

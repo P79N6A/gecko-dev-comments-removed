@@ -3,10 +3,56 @@
 
 
 
+#include "WebGLBuffer.h"
 #include "WebGLContext.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 
 using namespace mozilla;
+
+WebGLBuffer::WebGLBuffer(WebGLContext *context)
+    : WebGLContextBoundObject(context)
+    , mHasEverBeenBound(false)
+    , mByteLength(0)
+    , mTarget(LOCAL_GL_NONE)
+{
+    SetIsDOMBinding();
+    mContext->MakeContextCurrent();
+    mContext->gl->fGenBuffers(1, &mGLName);
+    mContext->mBuffers.insertBack(this);
+}
+
+WebGLBuffer::~WebGLBuffer() {
+    DeleteOnce();
+}
+
+void
+WebGLBuffer::Delete() {
+    mContext->MakeContextCurrent();
+    mContext->gl->fDeleteBuffers(1, &mGLName);
+    mByteLength = 0;
+    mCache = nullptr;
+    LinkedListElement<WebGLBuffer>::remove(); 
+}
+
+void
+WebGLBuffer::SetTarget(GLenum target) {
+    mTarget = target;
+    if (!mCache && mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER)
+        mCache = new WebGLElementArrayCache;
+}
+
+bool
+WebGLBuffer::ElementArrayCacheBufferData(const void* ptr, size_t buffer_size_in_bytes) {
+    if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER)
+        return mCache->BufferData(ptr, buffer_size_in_bytes);
+    return true;
+}
+
+void
+WebGLBuffer::ElementArrayCacheBufferSubData(size_t pos, const void* ptr, size_t update_size_in_bytes) {
+    if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER)
+        mCache->BufferSubData(pos, ptr, update_size_in_bytes);
+}
 
 JSObject*
 WebGLBuffer::WrapObject(JSContext *cx, JSObject *scope, bool *triedToWrap) {
