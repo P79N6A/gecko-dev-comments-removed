@@ -30,6 +30,9 @@ const EVENTS = {
   SOURCE_ERROR_SHOWN: "Debugger:EditorSourceErrorShown",
 
   
+  EDITOR_LOCATION_SET: "Debugger:EditorLocationSet",
+
+  
   
   FETCHED_SCOPES: "Debugger:FetchedScopes",
   FETCHED_VARIABLES: "Debugger:FetchedVariables",
@@ -1300,7 +1303,7 @@ SourceScripts.prototype = {
     deferred.promise.pretty = wantPretty;
     this._cache.set(aSource.url, deferred.promise);
 
-    const afterToggle = ({ error, message, source: text }) => {
+    const afterToggle = ({ error, message, source: text, contentType }) => {
       if (error) {
         
         
@@ -1308,7 +1311,7 @@ SourceScripts.prototype = {
         deferred.reject([aSource, message || error]);
         return;
       }
-      deferred.resolve([aSource, text]);
+      deferred.resolve([aSource, text, contentType]);
     };
 
     if (wantPretty) {
@@ -1360,14 +1363,15 @@ SourceScripts.prototype = {
     }
 
     
-    this.activeThread.source(aSource).source(({ error, message, source: text }) => {
+    this.activeThread.source(aSource)
+        .source(({ error, message, source: text, contentType }) => {
       if (aOnTimeout) {
         window.clearTimeout(fetchTimeout);
       }
       if (error) {
         deferred.reject([aSource, message || error]);
       } else {
-        deferred.resolve([aSource, text]);
+        deferred.resolve([aSource, text, contentType]);
       }
     });
 
@@ -1406,13 +1410,13 @@ SourceScripts.prototype = {
     }
 
     
-    function onFetch([aSource, aText]) {
+    function onFetch([aSource, aText, aContentType]) {
       
       if (!pending.has(aSource.url)) {
         return;
       }
       pending.delete(aSource.url);
-      fetched.push([aSource.url, aText]);
+      fetched.push([aSource.url, aText, aContentType]);
       maybeFinish();
     }
 

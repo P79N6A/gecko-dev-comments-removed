@@ -2460,7 +2460,14 @@ SourceActor.prototype = {
     
     
     
-    return fetch(this._url, { loadFromCache: !this._sourceMap });
+    let sourceFetched = fetch(this._url, { loadFromCache: !this._sourceMap });
+
+    
+    sourceFetched.then(({ contentType }) => {
+      this._contentType = contentType;
+    });
+
+    return sourceFetched;
   },
 
   
