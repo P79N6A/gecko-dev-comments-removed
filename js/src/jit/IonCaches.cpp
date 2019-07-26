@@ -911,9 +911,11 @@ EmitGetterCall(JSContext *cx, MacroAssembler &masm,
         masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
         
-        masm.loadValue(
-            Address(StackPointer, IonOOLNativeExitFrameLayout::offsetOfResult()),
-            JSReturnOperand);
+        Address outparam(StackPointer, IonOOLNativeExitFrameLayout::offsetOfResult());
+        masm.loadTypedOrValue(outparam, output);
+
+        
+        masm.adjustStack(IonOOLNativeExitFrameLayout::Size(0));
     } else {
         Register argObjReg       = argUintNReg;
         Register argIdReg        = regSet.takeGeneral();
@@ -958,23 +960,13 @@ EmitGetterCall(JSContext *cx, MacroAssembler &masm,
         masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
         
-        masm.loadValue(
-            Address(StackPointer, IonOOLPropertyOpExitFrameLayout::offsetOfResult()),
-            JSReturnOperand);
+        Address outparam(StackPointer, IonOOLPropertyOpExitFrameLayout::offsetOfResult());
+        masm.loadTypedOrValue(outparam, output);
+
+        
+        masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
     }
 
-    
-    
-    masm.storeCallResultValue(output);
-
-    
-    
-
-    
-    if (callNative)
-        masm.adjustStack(IonOOLNativeExitFrameLayout::Size(0));
-    else
-        masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
     JS_ASSERT(masm.framePushed() == initialStack);
 
     
@@ -1353,14 +1345,8 @@ EmitCallProxyGet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
     
-    masm.loadValue(
-        Address(StackPointer, IonOOLProxyExitFrameLayout::offsetOfResult()),
-        JSReturnOperand);
-
-    masm.storeCallResultValue(output);
-
-    
-    
+    Address outparam(StackPointer, IonOOLProxyExitFrameLayout::offsetOfResult());
+    masm.loadTypedOrValue(outparam, output);
 
     
     masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
@@ -2140,9 +2126,6 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
     
-    
-
-    
     masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
     JS_ASSERT(masm.framePushed() == initialStack);
 
@@ -2353,6 +2336,12 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         masm.passABIArg(argUintNReg);
         masm.passABIArg(argVpReg);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->native()));
+
+        
+        masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+        
+        masm.adjustStack(IonOOLNativeExitFrameLayout::Size(1));
     } else {
         Register argObjReg       = regSet.takeGeneral();
         Register argIdReg        = regSet.takeGeneral();
@@ -2398,19 +2387,14 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         masm.passABIArg(argStrictReg);
         masm.passABIArg(argVpReg);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target));
+
+        
+        masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+        
+        masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
     }
 
-    
-    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
-
-    
-    
-
-    
-    if (callNative)
-        masm.adjustStack(IonOOLNativeExitFrameLayout::Size(1));
-    else
-        masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
     JS_ASSERT(masm.framePushed() == initialStack);
 
     
