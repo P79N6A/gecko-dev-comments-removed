@@ -361,6 +361,15 @@ class ScriptSource
 {
     friend class SourceCompressionTask;
 
+    
+    
+    
+    
+    
+    
+    
+    
+
     union {
         
         
@@ -451,7 +460,7 @@ class ScriptSource
     bool ready() const { return ready_; }
     void setSourceRetrievable() { sourceRetrievable_ = true; }
     bool sourceRetrievable() const { return sourceRetrievable_; }
-    bool hasSourceData() const { return !!data.source || !ready(); }
+    bool hasSourceData() const { return !ready() || !!data.source; }
     uint32_t length() const {
         JS_ASSERT(hasSourceData());
         return length_;
