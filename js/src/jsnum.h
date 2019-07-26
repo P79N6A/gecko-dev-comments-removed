@@ -114,6 +114,15 @@ const double DOUBLE_INTEGRAL_PRECISION_LIMIT = uint64_t(1) << 53;
 
 
 
+extern double
+ParseDecimalNumber(const JS::TwoByteChars chars);
+
+
+
+
+
+
+
 
 
 

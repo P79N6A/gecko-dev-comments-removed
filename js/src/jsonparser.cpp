@@ -222,8 +222,18 @@ JSONParser::readNumber()
 
     
     if (current == end || (*current != '.' && *current != 'e' && *current != 'E')) {
-        const jschar *dummy;
+        TwoByteChars chars(digitStart.get(), current - digitStart);
+        if (chars.length() < strlen("9007199254740992")) {
+            
+            
+            
+            
+            double d = ParseDecimalNumber(chars);
+            return numberToken(negative ? -d : d);
+        }
+
         double d;
+        const jschar *dummy;
         if (!GetPrefixInteger(cx, digitStart.get(), current.get(), 10, &dummy, &d))
             return token(OOM);
         JS_ASSERT(current == dummy);
