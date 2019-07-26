@@ -22,34 +22,34 @@ nsGridRowLayout::nsGridRowLayout():nsSprocketLayout()
 }
 
 void
-nsGridRowLayout::ChildrenInserted(nsIBox* aBox, nsBoxLayoutState& aState,
-                                  nsIBox* aPrevBox,
+nsGridRowLayout::ChildrenInserted(nsIFrame* aBox, nsBoxLayoutState& aState,
+                                  nsIFrame* aPrevBox,
                                   const nsFrameList::Slice& aNewChildren)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 void
-nsGridRowLayout::ChildrenAppended(nsIBox* aBox, nsBoxLayoutState& aState,
+nsGridRowLayout::ChildrenAppended(nsIFrame* aBox, nsBoxLayoutState& aState,
                                   const nsFrameList::Slice& aNewChildren)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 void
-nsGridRowLayout::ChildrenRemoved(nsIBox* aBox, nsBoxLayoutState& aState, nsIBox* aChildList)
+nsGridRowLayout::ChildrenRemoved(nsIFrame* aBox, nsBoxLayoutState& aState, nsIFrame* aChildList)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 void
-nsGridRowLayout::ChildrenSet(nsIBox* aBox, nsBoxLayoutState& aState, nsIBox* aChildList)
+nsGridRowLayout::ChildrenSet(nsIFrame* aBox, nsBoxLayoutState& aState, nsIFrame* aChildList)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 nsIGridPart*
-nsGridRowLayout::GetParentGridPart(nsIBox* aBox, nsIBox** aParentBox)
+nsGridRowLayout::GetParentGridPart(nsIFrame* aBox, nsIFrame** aParentBox)
 {
   
   
@@ -76,12 +76,12 @@ nsGridRowLayout::GetParentGridPart(nsIBox* aBox, nsIBox** aParentBox)
 
 
 nsGrid*
-nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aRequestor)
+nsGridRowLayout::GetGrid(nsIFrame* aBox, PRInt32* aIndex, nsGridRowLayout* aRequestor)
 {
 
    if (aRequestor == nullptr)
    {
-      nsIBox* parentBox; 
+      nsIFrame* parentBox; 
       nsIGridPart* parent = GetParentGridPart(aBox, &parentBox);
       if (parent)
          return parent->GetGrid(parentBox, aIndex, this);
@@ -89,12 +89,12 @@ nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aReques
    }
 
    PRInt32 index = -1;
-   nsIBox* child = aBox->GetChildBox();
+   nsIFrame* child = aBox->GetChildBox();
    PRInt32 count = 0;
    while(child)
    {
      
-     nsIBox* childBox = nsGrid::GetScrolledBox(child);
+     nsIFrame* childBox = nsGrid::GetScrolledBox(child);
 
      nsBoxLayout* layout = childBox->GetLayoutManager();
      nsIGridPart* gridRow = nsGrid::GetPartFromBox(childBox);
@@ -121,7 +121,7 @@ nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aReques
 
    (*aIndex) += index;
 
-   nsIBox* parentBox; 
+   nsIFrame* parentBox; 
    nsIGridPart* parent = GetParentGridPart(aBox, &parentBox);
    if (parent)
      return parent->GetGrid(parentBox, aIndex, this);
@@ -130,11 +130,11 @@ nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aReques
 }
 
 nsMargin
-nsGridRowLayout::GetTotalMargin(nsIBox* aBox, bool aIsHorizontal)
+nsGridRowLayout::GetTotalMargin(nsIFrame* aBox, bool aIsHorizontal)
 {
   
   nsMargin margin(0,0,0,0);
-  nsIBox* parent = nullptr;
+  nsIFrame* parent = nullptr;
   nsIGridPart* part = GetParentGridPart(aBox, &parent);
   if (part && parent) {
     
@@ -143,10 +143,10 @@ nsGridRowLayout::GetTotalMargin(nsIBox* aBox, bool aIsHorizontal)
     aBox = nsGrid::GetScrollBox(aBox);
 
     
-    nsIBox* next = aBox->GetNextBox();
+    nsIFrame* next = aBox->GetNextBox();
 
     
-    nsIBox* child = parent->GetChildBox();
+    nsIFrame* child = parent->GetChildBox();
 
     margin = part->GetTotalMargin(parent, aIsHorizontal);
 

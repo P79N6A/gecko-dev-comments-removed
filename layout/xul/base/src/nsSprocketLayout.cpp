@@ -52,25 +52,25 @@ nsSprocketLayout::nsSprocketLayout()
 }
 
 bool 
-nsSprocketLayout::IsHorizontal(nsIBox* aBox)
+nsSprocketLayout::IsHorizontal(nsIFrame* aBox)
 {
    return (aBox->GetStateBits() & NS_STATE_IS_HORIZONTAL) != 0;
 }
 
 void
-nsSprocketLayout::GetFrameState(nsIBox* aBox, nsFrameState& aState)
+nsSprocketLayout::GetFrameState(nsIFrame* aBox, nsFrameState& aState)
 {
    aState = aBox->GetStateBits();
 }
 
 static PRUint8
-GetFrameDirection(nsIBox* aBox)
+GetFrameDirection(nsIFrame* aBox)
 {
    return aBox->GetStyleVisibility()->mDirection;
 }
 
 static void
-HandleBoxPack(nsIBox* aBox, const nsFrameState& aFrameState, nscoord& aX, nscoord& aY, 
+HandleBoxPack(nsIFrame* aBox, const nsFrameState& aFrameState, nscoord& aX, nscoord& aY, 
               const nsRect& aOriginalRect, const nsRect& aClientRect)
 {
   
@@ -112,8 +112,8 @@ HandleBoxPack(nsIBox* aBox, const nsFrameState& aFrameState, nscoord& aX, nscoor
   }
 
   
-  nsIBox::Halignment halign = aBox->GetHAlign();
-  nsIBox::Valignment valign = aBox->GetVAlign();
+  nsIFrame::Halignment halign = aBox->GetHAlign();
+  nsIFrame::Valignment valign = aBox->GetVAlign();
 
   
   
@@ -166,12 +166,12 @@ HandleBoxPack(nsIBox* aBox, const nsFrameState& aFrameState, nscoord& aX, nscoor
 }
 
 NS_IMETHODIMP
-nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
+nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
   
   
   if (aBox->IsCollapsed()) {
-    nsIBox* child = aBox->GetChildBox();
+    nsIFrame* child = aBox->GetChildBox();
     while(child) 
     {
       nsBoxFrame::LayoutChildAt(aState, child, nsRect(0,0,0,0));  
@@ -301,7 +301,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
     nsComputedBoxSize* childComputedBoxSize = computedBoxSizes;
     nsBoxSize* childBoxSize                 = boxSizes;
 
-    nsIBox* child = aBox->GetChildBox();
+    nsIFrame* child = aBox->GetChildBox();
 
     PRInt32 count = 0;
     while (child || (childBoxSize && childBoxSize->bogus))
@@ -617,7 +617,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
   
   
   if (x != origX || y != origY) {
-    nsIBox* child = aBox->GetChildBox();
+    nsIFrame* child = aBox->GetChildBox();
 
     
     while (child) 
@@ -645,7 +645,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
 }
 
 void
-nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBoxSize*& aBoxSizes, nscoord& aMinSize, nscoord& aMaxSize, PRInt32& aFlexes)
+nsSprocketLayout::PopulateBoxSizes(nsIFrame* aBox, nsBoxLayoutState& aState, nsBoxSize*& aBoxSizes, nscoord& aMinSize, nscoord& aMaxSize, PRInt32& aFlexes)
 {
   
   nscoord biggestPrefWidth = 0;
@@ -678,7 +678,7 @@ nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBox
   
 
   
-  nsIBox* child = aBox->GetChildBox();
+  nsIFrame* child = aBox->GetChildBox();
 
   aFlexes = 0;
   nsBoxSize* currentBox = nullptr;
@@ -889,7 +889,7 @@ nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBox
 }
 
 void
-nsSprocketLayout::ComputeChildsNextPosition(nsIBox* aBox, 
+nsSprocketLayout::ComputeChildsNextPosition(nsIFrame* aBox, 
                                       const nscoord& aCurX, 
                                       const nscoord& aCurY, 
                                       nscoord& aNextX, 
@@ -918,7 +918,7 @@ nsSprocketLayout::ComputeChildsNextPosition(nsIBox* aBox,
 }
 
 void
-nsSprocketLayout::AlignChildren(nsIBox* aBox,
+nsSprocketLayout::AlignChildren(nsIFrame* aBox,
                                 nsBoxLayoutState& aState,
                                 bool* aNeedsRedraw)
 {
@@ -932,8 +932,8 @@ nsSprocketLayout::AlignChildren(nsIBox* aBox,
                   "Only AlignChildren() with non-stretch alignment");
 
   
-  nsIBox::Halignment halign;
-  nsIBox::Valignment valign;
+  nsIFrame::Halignment halign;
+  nsIFrame::Valignment valign;
   nscoord maxAscent;
   bool isLTR;
 
@@ -947,7 +947,7 @@ nsSprocketLayout::AlignChildren(nsIBox* aBox,
     halign = aBox->GetHAlign();
   }
 
-  nsIBox* child = aBox->GetChildBox();
+  nsIFrame* child = aBox->GetChildBox();
   while (child) {
 
     nsMargin margin;
@@ -1014,9 +1014,9 @@ nsSprocketLayout::AlignChildren(nsIBox* aBox,
 }
 
 void
-nsSprocketLayout::ChildResized(nsIBox* aBox,
+nsSprocketLayout::ChildResized(nsIFrame* aBox,
                          nsBoxLayoutState& aState, 
-                         nsIBox* aChild,
+                         nsIFrame* aChild,
                          nsBoxSize* aChildBoxSize,
                          nsComputedBoxSize* aChildComputedSize,
                          nsBoxSize* aBoxSizes, 
@@ -1154,7 +1154,7 @@ nsSprocketLayout::InvalidateComputedSizes(nsComputedBoxSize* aComputedBoxSizes)
 }
 
 void
-nsSprocketLayout::ComputeChildSizes(nsIBox* aBox,
+nsSprocketLayout::ComputeChildSizes(nsIFrame* aBox,
                            nsBoxLayoutState& aState, 
                            nscoord& aGivenSize, 
                            nsBoxSize* aBoxSizes, 
@@ -1307,7 +1307,7 @@ nsSprocketLayout::ComputeChildSizes(nsIBox* aBox,
 
 
 nsSize
-nsSprocketLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState)
+nsSprocketLayout::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
    nsSize vpref (0, 0); 
    bool isHorizontal = IsHorizontal(aBox);
@@ -1317,7 +1317,7 @@ nsSprocketLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState)
    
    
 
-   nsIBox* child = aBox->GetChildBox();
+   nsIFrame* child = aBox->GetChildBox();
    nsFrameState frameState = 0;
    GetFrameState(aBox, frameState);
    bool isEqual = !!(frameState & NS_STATE_EQUAL_SIZE);
@@ -1363,7 +1363,7 @@ nsSprocketLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState)
 }
 
 nsSize
-nsSprocketLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState)
+nsSprocketLayout::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
    nsSize minSize (0, 0);
    bool isHorizontal = IsHorizontal(aBox);
@@ -1374,7 +1374,7 @@ nsSprocketLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState)
    
    
 
-   nsIBox* child = aBox->GetChildBox();
+   nsIFrame* child = aBox->GetChildBox();
    nsFrameState frameState = 0;
    GetFrameState(aBox, frameState);
    bool isEqual = !!(frameState & NS_STATE_EQUAL_SIZE);
@@ -1432,7 +1432,7 @@ nsSprocketLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState)
 }
 
 nsSize
-nsSprocketLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState)
+nsSprocketLayout::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
 
   bool isHorizontal = IsHorizontal(aBox);
@@ -1443,7 +1443,7 @@ nsSprocketLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState)
    
    
 
-   nsIBox* child = aBox->GetChildBox();
+   nsIFrame* child = aBox->GetChildBox();
    nsFrameState frameState = 0;
    GetFrameState(aBox, frameState);
    bool isEqual = !!(frameState & NS_STATE_EQUAL_SIZE);
@@ -1499,7 +1499,7 @@ nsSprocketLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState)
 
 
 nscoord
-nsSprocketLayout::GetAscent(nsIBox* aBox, nsBoxLayoutState& aState)
+nsSprocketLayout::GetAscent(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
    nscoord vAscent = 0;
 
@@ -1508,7 +1508,7 @@ nsSprocketLayout::GetAscent(nsIBox* aBox, nsBoxLayoutState& aState)
    
    
    
-   nsIBox* child = aBox->GetChildBox();
+   nsIFrame* child = aBox->GetChildBox();
    
    while (child) 
    {  

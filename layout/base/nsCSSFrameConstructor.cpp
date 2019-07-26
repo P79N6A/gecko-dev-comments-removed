@@ -379,6 +379,17 @@ IsInlineFrame(const nsIFrame* aFrame)
 
 
 
+static bool
+IsFrameForSVG(const nsIFrame* aFrame)
+{
+  return aFrame->IsFrameOfType(nsIFrame::eSVG) ||
+         aFrame->IsSVGText();
+}
+
+
+
+
+
 
 
 static bool
@@ -5233,7 +5244,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
     
     if (aNameSpaceID != kNameSpaceID_SVG &&
         aParentFrame &&
-        aParentFrame->IsFrameOfType(nsIFrame::eSVG) &&
+        IsFrameForSVG(aParentFrame) &&
         !aParentFrame->IsFrameOfType(nsIFrame::eSVGForeignObject)
         ) {
       SetAsUndisplayedContent(aItems, element, styleContext,
@@ -5499,11 +5510,13 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     
+    
     if (AtLineBoundary(aIter) &&
         !styleContext->GetStyleText()->NewlineIsSignificant() &&
         aIter.List()->ParentHasNoXBLChildren() &&
         !(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT) &&
         (item.mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) &&
+        !(item.mFCData->mBits & FCDATA_IS_SVG_TEXT) &&
         item.IsWhitespace(aState))
       return NS_OK;
 

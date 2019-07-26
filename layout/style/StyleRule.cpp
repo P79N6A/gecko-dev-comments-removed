@@ -980,12 +980,12 @@ public:
 
   
   
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
+  
+  NS_DECL_ISUPPORTS_INHERITED
 
   virtual nsINode *GetParentObject()
   {
-    return nullptr;
+    return mRule ? mRule->GetDocument() : nullptr;
   }
 
   friend class css::DOMCSSStyleRule;
@@ -1013,7 +1013,8 @@ public:
   DOMCSSStyleRule(StyleRule *aRule);
   virtual ~DOMCSSStyleRule();
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMCSSStyleRule)
   NS_DECL_NSIDOMCSSRULE
   NS_DECL_NSIDOMCSSSTYLERULE
 
@@ -1057,6 +1058,17 @@ inline css::DOMCSSStyleRule* DOMCSSDeclarationImpl::DomRule()
 
 NS_IMPL_ADDREF_USING_AGGREGATOR(DOMCSSDeclarationImpl, DomRule())
 NS_IMPL_RELEASE_USING_AGGREGATOR(DOMCSSDeclarationImpl, DomRule())
+
+NS_INTERFACE_MAP_BEGIN(DOMCSSDeclarationImpl)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  
+  
+  if (aIID.Equals(NS_GET_IID(nsCycleCollectionISupports)) ||
+      aIID.Equals(NS_GET_IID(nsXPCOMCycleCollectionParticipant))) {
+    return DomRule()->QueryInterface(aIID, aInstancePtr);
+  }
+  else
+NS_IMPL_QUERY_TAIL_INHERITING(nsDOMCSSDeclaration)
 
 void
 DOMCSSDeclarationImpl::DropReference(void)
@@ -1146,7 +1158,7 @@ DOMCSSStyleRule::~DOMCSSStyleRule()
 {
 }
 
-NS_INTERFACE_MAP_BEGIN(DOMCSSStyleRule)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMCSSStyleRule)
   NS_INTERFACE_MAP_ENTRY(nsICSSStyleRuleDOMWrapper)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCSSStyleRule)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCSSRule)
@@ -1154,8 +1166,31 @@ NS_INTERFACE_MAP_BEGIN(DOMCSSStyleRule)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CSSStyleRule)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_ADDREF(DOMCSSStyleRule)
-NS_IMPL_RELEASE(DOMCSSStyleRule)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMCSSStyleRule)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMCSSStyleRule)
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(DOMCSSStyleRule)
+
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(DOMCSSStyleRule)
+  
+  
+  
+  nsContentUtils::TraceWrapper(tmp->DOMDeclaration(), aCallback, aClosure);
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMCSSStyleRule)
+  
+  
+  
+  nsContentUtils::ReleaseWrapper(s, tmp->DOMDeclaration());
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(DOMCSSStyleRule)
+  
+  
+  
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMETHODIMP
 DOMCSSStyleRule::GetType(PRUint16* aType)

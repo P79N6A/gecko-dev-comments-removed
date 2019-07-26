@@ -157,11 +157,14 @@ protected:
 
 
 class nsCSSFontFaceRule;
-class nsCSSFontFaceStyleDecl : public nsIDOMCSSStyleDeclaration
+class nsCSSFontFaceStyleDecl : public nsICSSDeclaration
 {
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMCSSSTYLEDECLARATION
+  NS_DECL_NSICSSDECLARATION
+
+  virtual nsINode *GetParentObject();
 
   nsresult GetPropertyValue(nsCSSFontDesc aFontDescID,
                             nsAString & aResult) const;
@@ -193,7 +196,9 @@ public:
     
     : mozilla::css::Rule(aCopy), mDecl(aCopy.mDecl) {}
 
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsCSSFontFaceRule,
+                                                         mozilla::css::Rule)
 
   
 #ifdef DEBUG
@@ -301,18 +306,13 @@ public:
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv);
   virtual nsIDocument* DocToUpdate();
 
-  NS_IMETHOD_(nsrefcnt) AddRef();
-  NS_IMETHOD_(nsrefcnt) Release();
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsCSSKeyframeStyleDeclaration,
+                                                         nsICSSDeclaration)
 
-  virtual nsINode *GetParentObject()
-  {
-    return nullptr;
-  }
+  virtual nsINode* GetParentObject();
 
 protected:
-  nsAutoRefCnt mRefCnt;
-  NS_DECL_OWNINGTHREAD
-
   
   
   nsCSSKeyframeRule *mRule;

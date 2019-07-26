@@ -43,7 +43,7 @@ public:
   virtual bool GetInitialVAlignment(Valignment& aValign)  { aValign = vAlign_Top; return true; } 
   virtual bool GetInitialAutoStretch(bool& aStretch)    { aStretch = true; return true; } 
 
-  nsIBox* GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect);
+  nsIFrame* GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect);
 };
 
 
@@ -133,7 +133,7 @@ nsGroupBoxFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
   nsPresContext* presContext = PresContext();
 
   nsRect groupRect;
-  nsIBox* groupBox = GetCaptionBox(presContext, groupRect);
+  nsIFrame* groupBox = GetCaptionBox(presContext, groupRect);
 
   if (groupBox) {        
     
@@ -207,11 +207,11 @@ nsGroupBoxFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
   }
 }
 
-nsIBox*
+nsIFrame*
 nsGroupBoxFrame::GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect)
 {
     
-    nsIBox* box = GetChildBox();
+    nsIFrame* box = GetChildBox();
 
     
     if (!box)
@@ -225,7 +225,7 @@ nsGroupBoxFrame::GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect
       return nullptr;
 
     
-    nsIBox* child = box->GetChildBox();
+    nsIFrame* child = box->GetChildBox();
 
     if (child) {
        

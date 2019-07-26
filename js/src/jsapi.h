@@ -2755,6 +2755,20 @@ JS_DoubleToUint32(double d);
 extern JS_PUBLIC_API(JSBool)
 JS_ValueToECMAInt32(JSContext *cx, jsval v, int32_t *ip);
 
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_ValueToInt64(JSContext *cx, jsval v, int64_t *ip);
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_ValueToUint64(JSContext *cx, jsval v, uint64_t *ip);
+
 #ifdef __cplusplus
 namespace js {
 
@@ -2768,6 +2782,14 @@ ToInt32Slow(JSContext *cx, const JS::Value &v, int32_t *out);
 
 extern JS_PUBLIC_API(bool)
 ToUint32Slow(JSContext *cx, const JS::Value &v, uint32_t *out);
+
+
+extern JS_PUBLIC_API(bool)
+ToInt64Slow(JSContext *cx, const JS::Value &v, int64_t *out);
+
+
+extern JS_PUBLIC_API(bool)
+ToUint64Slow(JSContext *cx, const JS::Value &v, uint64_t *out);
 } 
 
 namespace JS {
@@ -2819,6 +2841,42 @@ ToUint32(JSContext *cx, const js::Value &v, uint32_t *out)
     }
     return js::ToUint32Slow(cx, v, out);
 }
+
+JS_ALWAYS_INLINE bool
+ToInt64(JSContext *cx, const js::Value &v, int64_t *out)
+{
+    AssertArgumentsAreSane(cx, v);
+    {
+        JS::SkipRoot skip(cx, &v);
+        MaybeCheckStackRoots(cx);
+    }
+
+    if (v.isInt32()) {
+        *out = int64_t(v.toInt32());
+        return true;
+    }
+
+    return js::ToInt64Slow(cx, v, out);
+}
+
+JS_ALWAYS_INLINE bool
+ToUint64(JSContext *cx, const js::Value &v, uint64_t *out)
+{
+    AssertArgumentsAreSane(cx, v);
+    {
+        SkipRoot skip(cx, &v);
+        MaybeCheckStackRoots(cx);
+    }
+
+    if (v.isInt32()) {
+        
+        *out = uint64_t(int64_t(v.toInt32()));
+        return true;
+    }
+
+    return js::ToUint64Slow(cx, v, out);
+}
+
 
 } 
 #endif 

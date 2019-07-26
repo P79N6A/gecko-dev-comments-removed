@@ -304,6 +304,10 @@ public:
                                       float* aRelativeSize,
                                       PRUint8* aStyle);
 
+  
+  
+  bool GetSelectionShadow(nsCSSShadowArray** aShadow);
+
   nsPresContext* PresContext() const { return mPresContext; }
 
   enum {
@@ -337,13 +341,15 @@ protected:
   nsTextFrame*   mFrame;
   nsPresContext* mPresContext;
   bool           mInitCommonColors;
-  bool           mInitSelectionColors;
+  bool           mInitSelectionColorsAndShadow;
 
   
 
   PRInt16      mSelectionStatus; 
   nscolor      mSelectionTextColor;
   nscolor      mSelectionBGColor;
+  nsRefPtr<nsCSSShadowArray> mSelectionShadow;
+  bool                       mHasSelectionShadow;
 
   
 
@@ -365,7 +371,7 @@ protected:
 
   
   void InitCommonColors();
-  bool InitSelectionColors();
+  bool InitSelectionColorsAndShadow();
 
   nsSelectionStyle* GetSelectionStyle(PRInt32 aIndex);
   void InitSelectionStyle(PRInt32 aIndex);
@@ -2398,6 +2404,10 @@ BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun, float aInflation)
   }
 }
 
+NS_QUERYFRAME_HEAD(nsTextFrame)
+  NS_QUERYFRAME_ENTRY(nsTextFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsTextFrameBase)
+
 gfxSkipCharsIterator
 nsTextFrame::EnsureTextRun(TextRunType aWhichTextRun,
                            gfxContext* aReferenceContext,
@@ -3390,7 +3400,8 @@ nsTextPaintStyle::nsTextPaintStyle(nsTextFrame* aFrame)
   : mFrame(aFrame),
     mPresContext(aFrame->PresContext()),
     mInitCommonColors(false),
-    mInitSelectionColors(false)
+    mInitSelectionColorsAndShadow(false),
+    mHasSelectionShadow(false)
 {
   for (PRUint32 i = 0; i < ArrayLength(mSelectionStyle); i++)
     mSelectionStyle[i].mInit = false;
@@ -3434,7 +3445,7 @@ nsTextPaintStyle::GetSelectionColors(nscolor* aForeColor,
   NS_ASSERTION(aForeColor, "aForeColor is null");
   NS_ASSERTION(aBackColor, "aBackColor is null");
 
-  if (!InitSelectionColors())
+  if (!InitSelectionColorsAndShadow())
     return false;
 
   *aForeColor = mSelectionTextColor;
@@ -3566,9 +3577,9 @@ FindElementAncestorForMozSelection(nsIContent* aContent)
 }
 
 bool
-nsTextPaintStyle::InitSelectionColors()
+nsTextPaintStyle::InitSelectionColorsAndShadow()
 {
-  if (mInitSelectionColors)
+  if (mInitSelectionColorsAndShadow)
     return true;
 
   PRInt16 selectionFlags;
@@ -3581,7 +3592,7 @@ nsTextPaintStyle::InitSelectionColors()
     return false;
   }
 
-  mInitSelectionColors = true;
+  mInitSelectionColorsAndShadow = true;
 
   nsIFrame* nonGeneratedAncestor = nsLayoutUtils::GetNonGeneratedAncestor(mFrame);
   Element* selectionElement =
@@ -3599,6 +3610,13 @@ nsTextPaintStyle::InitSelectionColors()
       mSelectionBGColor =
         sc->GetVisitedDependentColor(eCSSProperty_background_color);
       mSelectionTextColor = sc->GetVisitedDependentColor(eCSSProperty_color);
+      mHasSelectionShadow =
+        nsRuleNode::HasAuthorSpecifiedRules(sc,
+                                            NS_AUTHOR_SPECIFIED_TEXT_SHADOW,
+                                            true);
+      if (mHasSelectionShadow) {
+        mSelectionShadow = sc->GetStyleText()->mTextShadow;
+      }
       return true;
     }
   }
@@ -3757,6 +3775,21 @@ nsTextPaintStyle::GetSelectionUnderline(nsPresContext* aPresContext,
   return style != NS_STYLE_TEXT_DECORATION_STYLE_NONE &&
          color != NS_TRANSPARENT &&
          size > 0.0f;
+}
+
+bool
+nsTextPaintStyle::GetSelectionShadow(nsCSSShadowArray** aShadow)
+{
+  if (!InitSelectionColorsAndShadow()) {
+    return false;
+  }
+
+  if (mHasSelectionShadow) {
+    *aShadow = mSelectionShadow;
+    return true;
+  }
+
+  return false;
 }
 
 inline nscolor Get40PercentColor(nscolor aForeColor, nscolor aBackColor)
@@ -4643,11 +4676,37 @@ nsTextFrame::UnionAdditionalOverflow(nsPresContext* aPresContext,
   if (IsFloatingFirstLetterChild()) {
     
     
-    nsFontMetrics* fm = aProvider.GetFontMetrics();
-    nscoord fontAscent = fm->MaxAscent();
-    nscoord fontHeight = fm->MaxHeight();
-    nsRect fontRect(0, mAscent - fontAscent, GetSize().width, fontHeight);
-    aVisualOverflowRect->UnionRect(*aVisualOverflowRect, fontRect);
+    nsIFrame* firstLetterFrame = aBlockReflowState.frame;
+    PRUint8 decorationStyle = firstLetterFrame->GetStyleContext()->
+                                GetStyleTextReset()->GetDecorationStyle();
+    if (decorationStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
+      nsFontMetrics* fontMetrics = aProvider.GetFontMetrics();
+      nscoord underlineOffset, underlineSize;
+      fontMetrics->GetUnderline(underlineOffset, underlineSize);
+      nscoord maxAscent = fontMetrics->MaxAscent();
+
+      gfxFloat appUnitsPerDevUnit = aPresContext->AppUnitsPerDevPixel();
+      gfxFloat gfxWidth = aVisualOverflowRect->width / appUnitsPerDevUnit;
+      gfxFloat gfxAscent = gfxFloat(mAscent) / appUnitsPerDevUnit;
+      gfxFloat gfxMaxAscent = maxAscent / appUnitsPerDevUnit;
+      gfxFloat gfxUnderlineSize = underlineSize / appUnitsPerDevUnit;
+      gfxFloat gfxUnderlineOffset = underlineOffset / appUnitsPerDevUnit;
+      nsRect underlineRect =
+        nsCSSRendering::GetTextDecorationRect(aPresContext,
+          gfxSize(gfxWidth, gfxUnderlineSize), gfxAscent, gfxUnderlineOffset,
+          NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE, decorationStyle);
+      nsRect overlineRect =
+        nsCSSRendering::GetTextDecorationRect(aPresContext,
+          gfxSize(gfxWidth, gfxUnderlineSize), gfxAscent, gfxMaxAscent,
+          NS_STYLE_TEXT_DECORATION_LINE_OVERLINE, decorationStyle);
+
+      aVisualOverflowRect->UnionRect(*aVisualOverflowRect, underlineRect);
+      aVisualOverflowRect->UnionRect(*aVisualOverflowRect, overlineRect);
+
+      
+      
+      
+    }
   }
   if (aIncludeTextDecorations) {
     
@@ -4940,6 +4999,24 @@ static bool GetSelectionTextColors(SelectionType aType,
 
 
 
+static bool GetSelectionTextShadow(SelectionType aType,
+                                   nsTextPaintStyle& aTextPaintStyle,
+                                   nsCSSShadowArray** aShadow)
+{
+  switch (aType) {
+    case nsISelectionController::SELECTION_NORMAL:
+      return aTextPaintStyle.GetSelectionShadow(aShadow);
+    default:
+      return false;
+  }
+}
+
+
+
+
+
+
+
 
 class SelectionIterator {
 public:
@@ -5218,7 +5295,12 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
     gfxPoint textBaselinePt(aFramePt.x + xOffset, aTextBaselinePt.y);
 
     
-    if (textStyle->mTextShadow) {
+    
+    nsCSSShadowArray *shadow = textStyle->mTextShadow;
+    GetSelectionTextShadow(type, aTextPaintStyle, &shadow);
+
+    
+    if (shadow) {
       gfxTextRun::Metrics shadowMetrics =
         mTextRun->MeasureText(offset, length, gfxFont::LOOSE_INK_EXTENTS,
                               nullptr, &aProvider);
@@ -5226,9 +5308,9 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
         AddHyphenToMetrics(this, mTextRun, &shadowMetrics,
                            gfxFont::LOOSE_INK_EXTENTS, aCtx);
       }
-      for (PRUint32 i = textStyle->mTextShadow->Length(); i > 0; --i) {
+      for (PRUint32 i = shadow->Length(); i > 0; --i) {
         PaintOneShadow(offset, length,
-                       textStyle->mTextShadow->ShadowAt(i - 1), &aProvider,
+                       shadow->ShadowAt(i - 1), &aProvider,
                        dirtyRect, aFramePt, textBaselinePt, aCtx,
                        foreground, aClipEdges, 
                        xOffset - (mTextRun->IsRightToLeft() ?

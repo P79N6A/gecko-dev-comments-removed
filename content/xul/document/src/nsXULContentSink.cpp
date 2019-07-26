@@ -865,29 +865,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
               NS_ENSURE_SUCCESS(rv, rv);
           }
 
-          
-          
-          
-          
-          
-          static const char *jsTypes[] = {
-              "application/x-javascript",
-              "text/javascript",
-              "text/ecmascript",
-              "application/javascript",
-              "application/ecmascript",
-              nullptr
-          };
-
-          bool isJavaScript = false;
-          for (PRInt32 i = 0; jsTypes[i]; i++) {
-              if (mimeType.LowerCaseEqualsASCII(jsTypes[i])) {
-                  isJavaScript = true;
-                  break;
-              }
-          }
-
-          if (isJavaScript) {
+          if (nsContentUtils::IsJavascriptMIMEType(mimeType)) {
               langID = nsIProgrammingLanguage::JAVASCRIPT;
               version = JSVERSION_LATEST;
           } else {
@@ -898,20 +876,11 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
             
             nsAutoString versionName;
             rv = parser.GetParameter("version", versionName);
-            if (NS_FAILED(rv)) {
-              if (rv != NS_ERROR_INVALID_ARG)
-                return rv;
-              
-            } else {
-              nsCOMPtr<nsIScriptRuntime> runtime;
-              rv = NS_GetJSRuntime(getter_AddRefs(runtime));
-              if (NS_FAILED(rv))
-                return rv;
-              rv = runtime->ParseVersion(versionName, &version);
-              if (NS_FAILED(rv)) {
-                NS_WARNING("This script language version is not supported - ignored");
-                langID = nsIProgrammingLanguage::UNKNOWN;
-              }
+
+            if (NS_SUCCEEDED(rv)) {
+              version = nsContentUtils::ParseJavascriptVersion(versionName);
+            } else if (rv != NS_ERROR_INVALID_ARG) {
+              return rv;
             }
           }
           

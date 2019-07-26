@@ -587,6 +587,20 @@ JS_ValueToECMAUint32(JSContext *cx, jsval v, uint32_t *ip)
 }
 
 JS_PUBLIC_API(JSBool)
+JS_ValueToInt64(JSContext *cx, jsval v, int64_t *ip)
+{
+    RootedValue value(cx, v);
+    return JS::ToInt64(cx, value, ip);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ValueToUint64(JSContext *cx, jsval v, uint64_t *ip)
+{
+    RootedValue value(cx, v);
+    return JS::ToUint64(cx, value, ip);
+}
+
+JS_PUBLIC_API(JSBool)
 JS_ValueToInt32(JSContext *cx, jsval v, int32_t *ip)
 {
     AssertHeapIsIdle(cx);
@@ -1684,7 +1698,6 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
 
 
 
-
 JS_FRIEND_API(JSObject *)
 js_TransplantObjectWithWrapper(JSContext *cx,
                                JSObject *origobjArg,
@@ -1743,8 +1756,21 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     
     {
         AutoCompartment ac(cx, origobj);
+        if (!ac.enter())
+            return NULL;
+
+        
+        
+        
+        
+        
+        RootedObject reflectorGuts(cx, NewDeadProxyObject(cx, JS_GetGlobalForObject(cx, origobj)));
+        if (!reflectorGuts || !origobj->swap(cx, reflectorGuts))
+            return NULL;
+
+        
         RootedObject wrapperGuts(cx, targetobj);
-        if (!ac.enter() || !JS_WrapObject(cx, wrapperGuts.address()))
+        if (!JS_WrapObject(cx, wrapperGuts.address()))
             return NULL;
         if (!origwrapper->swap(cx, wrapperGuts))
             return NULL;

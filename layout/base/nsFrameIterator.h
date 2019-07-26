@@ -5,7 +5,7 @@
 #ifndef NSFRAMEITERATOR_H
 #define NSFRAMEITERATOR_H
 
-#include "mozilla/StandardInteger.h"
+#include "prtypes.h"
 
 class nsPresContext;
 class nsIFrame;
@@ -16,11 +16,18 @@ enum nsIteratorType {
   ePostOrder
 };
 
+enum FrameIteratorFlags {
+  FLAG_NONE = 0,
+  FLAG_LOCK_SCROLL = 1 << 1,
+  FLAG_FOLLOW_OUT_OF_FLOW = 1 << 2,
+  FLAG_VISUAL = 1 << 3
+};
+
 class nsFrameIterator
 {
 public:
   nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
-                  nsIteratorType aType, uint32_t aFlags);
+                  nsIteratorType aType, PRUint32 aFlags);
 
   ~nsFrameIterator() {}
 
@@ -31,13 +38,6 @@ public:
 
   void Last();
   void Prev();
-
-  enum FrameIteratorFlags {
-    FLAG_NONE = 0,
-    FLAG_LOCK_SCROLL = 1 << 1,
-    FLAG_FOLLOW_OUT_OF_FLOW = 1 << 2,
-    FLAG_VISUAL = 1 << 3
-  };
 protected:
   void      setCurrent(nsIFrame *aFrame){mCurrent = aFrame;}
   nsIFrame *getCurrent(){return mCurrent;}
@@ -45,8 +45,8 @@ protected:
   nsIFrame *getStart(){return mStart;}
   nsIFrame *getLast(){return mLast;}
   void      setLast(nsIFrame *aFrame){mLast = aFrame;}
-  int8_t    getOffEdge(){return mOffEdge;}
-  void      setOffEdge(int8_t aOffEdge){mOffEdge = aOffEdge;}
+  PRInt8    getOffEdge(){return mOffEdge;}
+  void      setOffEdge(PRInt8 aOffEdge){mOffEdge = aOffEdge;}
   void      SetLockInScrollView(bool aLockScroll){mLockScroll = aLockScroll;}
 
   
@@ -97,7 +97,7 @@ protected:
   nsIFrame *mStart;
   nsIFrame *mCurrent;
   nsIFrame *mLast; 
-  int8_t    mOffEdge; 
+  PRInt8    mOffEdge; 
   nsIteratorType mType;
   bool mLockScroll;
   bool mFollowOOFs;

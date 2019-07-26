@@ -2830,25 +2830,23 @@ nsGlobalWindow::GetPrincipal()
 
 
 
+void
+nsPIDOMWindow::MaybeCreateDoc()
+{
+  MOZ_ASSERT(!mDoc);
+  if (nsIDocShell* docShell = GetDocShell()) {
+    
+    
+    
+    nsCOMPtr<nsIDocument> document = do_GetInterface(docShell);
+  }
+}
+
 NS_IMETHODIMP
 nsGlobalWindow::GetDocument(nsIDOMDocument** aDocument)
 {
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  nsIDocShell *docShell;
-  if (!mDocument && (docShell = GetDocShell()))
-    nsCOMPtr<nsIDOMDocument> domdoc(do_GetInterface(docShell));
-
-  NS_IF_ADDREF(*aDocument = mDocument);
-
+  nsCOMPtr<nsIDOMDocument> document = do_QueryInterface(GetDoc());
+  document.forget(aDocument);
   return NS_OK;
 }
 

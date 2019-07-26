@@ -13,12 +13,12 @@
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "nsPresContext.h"
-#include "nsIFrame.h" 
 
 #define NS_DEFAULT_VERTICAL_SCROLL_DISTANCE 3
 
 class nsBoxLayoutState;
 class nsIScrollPositionListener;
+class nsIFrame;
 
 
 
@@ -179,7 +179,7 @@ public:
 
 
 
-  virtual nsIBox* GetScrollbarBox(bool aVertical) = 0;
+  virtual nsIFrame* GetScrollbarBox(bool aVertical) = 0;
 
   
 

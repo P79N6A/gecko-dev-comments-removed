@@ -480,7 +480,7 @@ nsXMLHttpRequest::~nsXMLHttpRequest()
 }
 
 void
-nsXMLHttpRequest::RootResultArrayBuffer()
+nsXMLHttpRequest::RootJSResultObjects()
 {
   nsContentUtils::PreserveWrapper(
     static_cast<nsIDOMEventTarget*>(
@@ -977,6 +977,8 @@ nsXMLHttpRequest::CreateResponseParsedJSON(JSContext* aCx)
   if (!aCx) {
     return NS_ERROR_FAILURE;
   }
+  RootJSResultObjects();
+
   
   if (!JS_ParseJSON(aCx,
                     static_cast<const jschar*>(mResponseText.get()),
@@ -1198,7 +1200,7 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx, ErrorResult& aRv)
     }
 
     if (!mResultArrayBuffer) {
-      RootResultArrayBuffer();
+      RootJSResultObjects();
       aRv = nsContentUtils::CreateArrayBuffer(aCx, mResponseBody,
                                               &mResultArrayBuffer);
       if (aRv.Failed()) {
@@ -3173,15 +3175,21 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
 }
 
 
+
 NS_IMETHODIMP
 nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
                                    const nsACString& value)
 {
-  nsresult rv;
+  
+  if (!(mState & XML_HTTP_REQUEST_OPENED)) {
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+  NS_ASSERTION(mChannel, "mChannel must be valid if we're OPENED.");
 
   
-  if (!IsValidHTTPToken(header)) {
-    return NS_ERROR_FAILURE;
+  
+  if (!IsValidHTTPToken(header)) { 
+    return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
   
@@ -3189,7 +3197,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
   if (mCORSPreflightChannel) {
     bool pending;
-    rv = mCORSPreflightChannel->IsPending(&pending);
+    nsresult rv = mCORSPreflightChannel->IsPending(&pending);
     NS_ENSURE_SUCCESS(rv, rv);
     
     if (pending) {
@@ -3197,13 +3205,10 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     }
   }
 
-  if (!(mState & XML_HTTP_REQUEST_OPENED))
-    return NS_ERROR_IN_PROGRESS;
-
   if (!mChannel)             
     return NS_ERROR_FAILURE; 
 
-  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
   if (!httpChannel) {
     return NS_OK;
   }
@@ -3212,8 +3217,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
 
   bool privileged;
-  rv = IsCapabilityEnabled("UniversalXPConnect", &privileged);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(IsCapabilityEnabled("UniversalXPConnect", &privileged)))
     return NS_ERROR_FAILURE;
 
   if (!privileged) {
@@ -3262,7 +3266,10 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   }
 
   
-  rv = httpChannel->SetRequestHeader(header, value, false);
+  nsresult rv = httpChannel->SetRequestHeader(header, value, false);
+  if (rv == NS_ERROR_INVALID_ARG) {
+    return NS_ERROR_DOM_SYNTAX_ERR;
+  }
   if (NS_SUCCEEDED(rv)) {
     
     RequestHeader reqHeader = {
@@ -3270,7 +3277,6 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     };
     mModifiedRequestHeaders.AppendElement(reqHeader);
   }
-
   return rv;
 }
 
@@ -4009,7 +4015,6 @@ DOMCI_DATA(XMLHttpProgressEvent, nsXMLHttpProgressEvent)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXMLHttpProgressEvent)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMProgressEvent)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIDOMEvent, nsIDOMProgressEvent)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMNSEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMProgressEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMLSProgressEvent)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(XMLHttpProgressEvent)

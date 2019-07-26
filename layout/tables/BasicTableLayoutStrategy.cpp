@@ -80,6 +80,10 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
              nsIFrame *aFrame, bool aIsCell)
 {
     nscoord minCoord, prefCoord;
+    const nsStylePosition *stylePos = aFrame->GetStylePosition();
+    bool isQuirks = aFrame->PresContext()->CompatibilityMode() ==
+                    eCompatibility_NavQuirks;
+    nscoord boxSizingToBorderEdge = 0;
     if (aIsCell) {
         
         
@@ -87,6 +91,43 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
 
         minCoord = aFrame->GetMinWidth(aRenderingContext);
         prefCoord = aFrame->GetPrefWidth(aRenderingContext);
+        
+        
+        
+        
+        
+        
+
+        
+        nsIFrame::IntrinsicWidthOffsetData offsets = aFrame->IntrinsicWidthOffsets(aRenderingContext);
+
+        
+        
+        
+        
+        
+        
+        
+        if (isQuirks) {
+            boxSizingToBorderEdge = offsets.hPadding + offsets.hBorder;
+        }
+        else {
+            switch (stylePos->mBoxSizing) {
+                case NS_STYLE_BOX_SIZING_CONTENT:
+                    boxSizingToBorderEdge = offsets.hPadding + offsets.hBorder;
+                    break;
+                case NS_STYLE_BOX_SIZING_PADDING:
+                    minCoord += offsets.hPadding;
+                    prefCoord += offsets.hPadding;
+                    boxSizingToBorderEdge = offsets.hBorder;
+                    break;
+                default:
+                    
+                    minCoord += offsets.hPadding + offsets.hBorder;
+                    prefCoord += offsets.hPadding + offsets.hBorder;
+                    break;
+            }
+        }
     } else {
         minCoord = 0;
         prefCoord = 0;
@@ -94,7 +135,6 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     float prefPercent = 0.0f;
     bool hasSpecifiedWidth = false;
 
-    const nsStylePosition *stylePos = aFrame->GetStylePosition();
     const nsStyleCoord &width = stylePos->mWidth;
     nsStyleUnit unit = width.GetUnit();
     
@@ -102,6 +142,10 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     
     if (unit == eStyleUnit_Coord) {
         hasSpecifiedWidth = true;
+        
+        
+        
+        
         nscoord w = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
                                                      aFrame, 0, 0, 0, width);
         
@@ -109,9 +153,7 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
         
         
         
-        if (aIsCell && w > minCoord &&
-            aFrame->PresContext()->CompatibilityMode() ==
-              eCompatibility_NavQuirks &&
+        if (aIsCell && w > minCoord && isQuirks &&
             aFrame->GetContent()->HasAttr(kNameSpaceID_None,
                                           nsGkAtoms::nowrap)) {
             minCoord = w;
@@ -193,37 +235,8 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
 
     
     if (aIsCell) {
-        nsIFrame::IntrinsicWidthOffsetData offsets =
-            aFrame->IntrinsicWidthOffsets(aRenderingContext);
-        
-
-        
-        
-        
-        
-        
-        
-        
-        nscoord add = 0;
-        if (aFrame->PresContext()->CompatibilityMode() == eCompatibility_NavQuirks) {
-          add = offsets.hPadding + offsets.hBorder;
-        }
-        else
-        {
-          switch (stylePos->mBoxSizing) {
-            case NS_STYLE_BOX_SIZING_CONTENT:
-              add = offsets.hPadding + offsets.hBorder;
-              break;
-            case NS_STYLE_BOX_SIZING_PADDING:
-              add = offsets.hBorder;
-              break;
-            default:
-              
-              break;
-          }
-        }
-        minCoord += add;
-        prefCoord = NSCoordSaturatingAdd(prefCoord, add);
+        minCoord += boxSizingToBorderEdge;
+        prefCoord = NSCoordSaturatingAdd(prefCoord, boxSizingToBorderEdge);
     }
 
     return CellWidthInfo(minCoord, prefCoord, prefPercent, hasSpecifiedWidth);

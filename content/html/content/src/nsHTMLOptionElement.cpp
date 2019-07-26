@@ -20,7 +20,6 @@
 
 #include "nsIFormControlFrame.h"
 #include "nsIDocument.h"
-#include "nsIFrame.h"
 #include "nsIDOMHTMLSelectElement.h"
 #include "nsNodeInfoManager.h"
 #include "nsCOMPtr.h"

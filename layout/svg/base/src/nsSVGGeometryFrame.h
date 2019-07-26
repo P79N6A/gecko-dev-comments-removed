@@ -85,9 +85,6 @@ public:
   bool SetupCairoStroke(gfxContext *aContext);
 
 protected:
-  nsSVGPaintServerFrame *GetPaintServer(const nsStyleSVGPaint *aPaint,
-                                        const FramePropertyDescriptor *aProperty);
-
   
 
 

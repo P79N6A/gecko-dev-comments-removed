@@ -14,7 +14,7 @@
 #include "nsITransferable.h"
 
 class nsIDOMNode;
-class nsIDOMWindow;
+class nsPIDOMWindow;
 class nsIDOMDragEvent;
 class nsISelection;
 class nsITransferable;
@@ -49,7 +49,7 @@ public:
 
 
 
-  static nsresult GetDragData(nsIDOMWindow* aWindow,
+  static nsresult GetDragData(nsPIDOMWindow* aWindow,
                               nsIContent* aTarget,
                               nsIContent* aSelectionTargetNode,
                               bool aIsAltKeyPressed,

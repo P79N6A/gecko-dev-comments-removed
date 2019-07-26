@@ -41,16 +41,15 @@ public:
 
 
 
-  NS_IMETHOD SetCurrentRadioButton(const nsAString& aName,
-                                   nsIDOMHTMLInputElement* aRadio) = 0;
+  virtual void SetCurrentRadioButton(const nsAString& aName, 
+                                     nsIDOMHTMLInputElement* aRadio) = 0;
 
   
 
 
 
 
-  NS_IMETHOD GetCurrentRadioButton(const nsAString& aName,
-                                   nsIDOMHTMLInputElement** aRadio) = 0;
+  virtual nsIDOMHTMLInputElement* GetCurrentRadioButton(const nsAString& aName) = 0;
 
   
 
@@ -73,8 +72,7 @@ public:
 
 
 
-  NS_IMETHOD AddToRadioGroup(const nsAString& aName,
-                             nsIFormControl* aRadio) = 0;
+  virtual void AddToRadioGroup(const nsAString& aName, nsIFormControl* aRadio) = 0;
 
   
 
@@ -85,8 +83,7 @@ public:
 
 
 
-  NS_IMETHOD RemoveFromRadioGroup(const nsAString& aName,
-                                  nsIFormControl* aRadio) = 0;
+  virtual void RemoveFromRadioGroup(const nsAString& aName, nsIFormControl* aRadio) = 0;
 
   virtual PRUint32 GetRequiredRadioCount(const nsAString& aName) const = 0;
   virtual void RadioRequiredChanged(const nsAString& aName,

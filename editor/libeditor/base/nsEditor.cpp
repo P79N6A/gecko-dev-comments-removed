@@ -62,7 +62,6 @@
 #include "nsIDOMHTMLElement.h"          
 #include "nsIDOMKeyEvent.h"             
 #include "nsIDOMMouseEvent.h"           
-#include "nsIDOMNSEvent.h"              
 #include "nsIDOMNamedNodeMap.h"         
 #include "nsIDOMNode.h"                 
 #include "nsIDOMNodeList.h"             
@@ -5334,8 +5333,7 @@ bool
 nsEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
 {
   
-  nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aEvent);
-  NS_ENSURE_TRUE(NSEvent, false);
+  NS_ENSURE_TRUE(aEvent, false);
 
   
   
@@ -5348,7 +5346,7 @@ nsEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
   }
 
   bool isTrusted;
-  nsresult rv = NSEvent->GetIsTrusted(&isTrusted);
+  nsresult rv = aEvent->GetIsTrusted(&isTrusted);
   NS_ENSURE_SUCCESS(rv, false);
   if (isTrusted) {
     return true;
@@ -5390,7 +5388,7 @@ nsEditor::SetSuppressDispatchingInputEvent(bool aSuppress)
 }
 
 nsEditor::HandlingTrustedAction::HandlingTrustedAction(nsEditor* aSelf,
-                                                       nsIDOMNSEvent* aEvent)
+                                                       nsIDOMEvent* aEvent)
 {
   MOZ_ASSERT(aEvent);
 

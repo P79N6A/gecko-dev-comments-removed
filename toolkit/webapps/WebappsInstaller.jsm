@@ -46,12 +46,6 @@ let WebappsInstaller = {
       return null;
     }
 
-    let data = {
-      "installDir": shell.installDir.path,
-      "app": aData.app
-    };
-    Services.obs.notifyObservers(null, "webapp-installed", JSON.stringify(data));
-
     return shell;
   }
 }
@@ -113,6 +107,10 @@ function NativeApp(aData) {
                 : firstLine.substr(0, 253) + "...";
   }
   this.shortDescription = sanitize(shortDesc);
+
+  this.appcacheDefined = (app.manifest.appcache_path != undefined);
+
+  this.manifest = app.manifest;
 
   
   
@@ -291,6 +289,9 @@ WinNativeApp.prototype = {
 
 
   _createAppProfile: function() {
+    if (!this.appcacheDefined)
+      return;
+
     let profSvc = Cc["@mozilla.org/toolkit/profile-service;1"]
                     .getService(Ci.nsIToolkitProfileService);
 
@@ -537,6 +538,9 @@ MacNativeApp.prototype = {
   },
 
   _createAppProfile: function() {
+    if (!this.appcacheDefined)
+      return;
+
     let profSvc = Cc["@mozilla.org/toolkit/profile-service;1"]
                     .getService(Ci.nsIToolkitProfileService);
 
@@ -678,7 +682,7 @@ LinuxNativeApp.prototype = {
     this.installDir.append("." + this.uniqueName);
 
     this.iconFile = this.installDir.clone();
-    this.iconFile.append("icon.png");
+    this.iconFile.append(this.uniqueName + ".png");
 
     this.webapprt = this.installDir.clone();
     this.webapprt.append("webapprt-stub");
@@ -750,6 +754,9 @@ LinuxNativeApp.prototype = {
   },
 
   _createAppProfile: function() {
+    if (!this.appcacheDefined)
+      return;
+
     let profSvc = Cc["@mozilla.org/toolkit/profile-service;1"]
                     .getService(Ci.nsIToolkitProfileService);
 
@@ -759,41 +766,6 @@ LinuxNativeApp.prototype = {
     } catch (ex if ex.result == Cr.NS_ERROR_ALREADY_INITIALIZED) {}
   },
 
-  
-
-
-
-
-
-
-  _translateCategories: function() {
-    let translations = {
-      "books-reference": "Education;Literature",
-      "business": "Finance",
-      "education": "Education",
-      "entertainment-sports": "Amusement;Sports",
-      "games": "Game",
-      "health-fitness": "MedicalSoftware",
-      "lifestyle": "Amusement",
-      "music": "Audio;Music",
-      "news-weather": "News",
-      "photos-media": "AudioVideo",
-      "productivity": "Office",
-      "shopping": "Amusement",
-      "social": "Chat",
-      "travel": "Amusement",
-      "utilities": "Utility"
-    };
-
-    
-    let categories = "";
-    for (let category of this.app.categories) {
-      categories += translations[category] + ";";
-    }
-
-    return categories;
-  },
-
   _createConfigFiles: function() {
     
     writeToFile(this.configJson, JSON.stringify(this.webappJson), function() {});
@@ -801,13 +773,10 @@ LinuxNativeApp.prototype = {
     let factory = Cc["@mozilla.org/xpcom/ini-processor-factory;1"]
                     .getService(Ci.nsIINIParserFactory);
 
-    let webappsBundle = Services.strings.createBundle("chrome://global/locale/webapps.properties");
-
     
     let writer = factory.createINIParser(this.webappINI).QueryInterface(Ci.nsIINIParserWriter);
     writer.setString("Webapp", "Name", this.appName);
     writer.setString("Webapp", "Profile", this.uniqueName);
-    writer.setString("Webapp", "UninstallMsg", webappsBundle.formatStringFromName("uninstall.notification", [this.appName], 1));
     writer.setString("WebappRT", "InstallDir", this.runtimeFolder.path);
     writer.writeFile();
 
@@ -821,15 +790,6 @@ LinuxNativeApp.prototype = {
     writer.setString("Desktop Entry", "Icon", this.iconFile.path);
     writer.setString("Desktop Entry", "Type", "Application");
     writer.setString("Desktop Entry", "Terminal", "false");
-
-    let categories = this._translateCategories();
-    if (categories)
-      writer.setString("Desktop Entry", "Categories", categories);
-
-    writer.setString("Desktop Entry", "Actions", "Uninstall;");
-    writer.setString("Desktop Action Uninstall", "Name", webappsBundle.GetStringFromName("uninstall.label"));
-    writer.setString("Desktop Action Uninstall", "Exec", this.webapprt.path + " -remove");
-
     writer.writeFile();
   },
 

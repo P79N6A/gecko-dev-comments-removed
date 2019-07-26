@@ -9,14 +9,14 @@
 #include "nsPlaceholderFrame.h"
 
 nsFrameIterator::nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
-                                 nsIteratorType aType, uint32_t aFlags)
+                                 nsIteratorType aType, PRUint32 aFlags)
   : mPresContext(aPresContext)
   , mOffEdge(0)
   , mType(aType)
 {
-  mFollowOOFs = (aFlags & FLAG_FOLLOW_OUT_OF_FLOW) != 0;
-  mLockScroll = (aFlags & FLAG_LOCK_SCROLL) != 0;
-  mVisual = (aFlags & FLAG_VISUAL) != 0;
+  mFollowOOFs = (aFlags & FrameIteratorFlags::FLAG_FOLLOW_OUT_OF_FLOW) != 0;
+  mLockScroll = (aFlags & FrameIteratorFlags::FLAG_LOCK_SCROLL) != 0;
+  mVisual = (aFlags & FrameIteratorFlags::FLAG_VISUAL) != 0;
   if (mFollowOOFs && aStart)
     aStart = nsPlaceholderFrame::GetRealFrameFor(aStart);
   setStart(aStart);
