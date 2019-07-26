@@ -18,12 +18,7 @@ var FullScreen = {
 
     
     
-    let fullscreenCommand = document.getElementById("View:FullScreen");
-    if (enterFS) {
-      fullscreenCommand.setAttribute("checked", enterFS);
-    } else {
-      fullscreenCommand.removeAttribute("checked");
-    }
+    document.getElementById("View:FullScreen").setAttribute("checked", enterFS);
 
 #ifdef XP_MACOSX
     
@@ -114,9 +109,7 @@ var FullScreen = {
     
     
     
-    if (!event.target.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                 .getInterface(Ci.nsIWebNavigation)
-                                 .QueryInterface(Ci.nsIDocShell).isActive) {
+    if (event.target.defaultView.top != gBrowser.contentWindow) {
       document.mozCancelFullScreen();
       return;
     }
