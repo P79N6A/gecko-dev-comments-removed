@@ -67,6 +67,12 @@ struct ArgumentsData
 
 
 
+static const unsigned ARGS_LENGTH_MAX = 500 * 1000;
+
+
+
+
+
 
 
 
@@ -116,7 +122,9 @@ class ArgumentsObject : public JSObject
     static ArgumentsObject *create(JSContext *cx, HandleScript script, HandleFunction callee,
                                    unsigned numActuals, CopyArgs &copy);
 
-    inline ArgumentsData *data() const;
+    ArgumentsData *data() const {
+        return reinterpret_cast<ArgumentsData *>(getFixedSlot(DATA_SLOT).toPrivate());
+    }
 
   public:
     static const uint32_t RESERVED_SLOTS = 3;
@@ -142,32 +150,27 @@ class ArgumentsObject : public JSObject
 
 
 
-    inline uint32_t initialLength() const;
+    uint32_t initialLength() const {
+        uint32_t argc = uint32_t(getFixedSlot(INITIAL_LENGTH_SLOT).toInt32()) >> PACKED_BITS_COUNT;
+        JS_ASSERT(argc <= ARGS_LENGTH_MAX);
+        return argc;
+    }
 
     
-    JSScript *containingScript() const;
+    JSScript *containingScript() const {
+        return data()->script;
+    }
 
     
-    inline bool hasOverriddenLength() const;
-    inline void markLengthOverridden();
+    bool hasOverriddenLength() const {
+        const Value &v = getFixedSlot(INITIAL_LENGTH_SLOT);
+        return v.toInt32() & LENGTH_OVERRIDDEN_BIT;
+    }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    inline bool isElementDeleted(uint32_t i) const;
-    inline bool isAnyElementDeleted() const;
-    inline void markElementDeleted(uint32_t i);
+    void markLengthOverridden() {
+        uint32_t v = getFixedSlot(INITIAL_LENGTH_SLOT).toInt32() | LENGTH_OVERRIDDEN_BIT;
+        setFixedSlot(INITIAL_LENGTH_SLOT, Int32Value(v));
+    }
 
     
 
@@ -183,11 +186,53 @@ class ArgumentsObject : public JSObject
 
 
 
+    bool isElementDeleted(uint32_t i) const {
+        JS_ASSERT(i < data()->numArgs);
+        if (i >= initialLength())
+            return false;
+        return IsBitArrayElementSet(data()->deletedBits, initialLength(), i);
+    }
 
-    inline const Value &element(uint32_t i) const;
+    bool isAnyElementDeleted() const {
+        return IsAnyBitArrayElementSet(data()->deletedBits, initialLength());
+    }
+
+    void markElementDeleted(uint32_t i) {
+        SetBitArrayElement(data()->deletedBits, initialLength(), i);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    const Value &element(uint32_t i) const;
+
     inline void setElement(JSContext *cx, uint32_t i, const Value &v);
-    inline const Value &arg(unsigned i) const;
-    inline void setArg(unsigned i, const Value &v);
+
+    const Value &arg(unsigned i) const {
+        JS_ASSERT(i < data()->numArgs);
+        const Value &v = data()->args[i];
+        JS_ASSERT(!v.isMagic(JS_FORWARD_TO_CALL_OBJECT));
+        return v;
+    }
+
+    void setArg(unsigned i, const Value &v) {
+        JS_ASSERT(i < data()->numArgs);
+        HeapValue &lhs = data()->args[i];
+        JS_ASSERT(!lhs.isMagic(JS_FORWARD_TO_CALL_OBJECT));
+        lhs = v;
+    }
 
     
 
@@ -198,14 +243,22 @@ class ArgumentsObject : public JSObject
 
 
 
-    inline bool maybeGetElement(uint32_t i, MutableHandleValue vp);
+    bool maybeGetElement(uint32_t i, MutableHandleValue vp) {
+        if (i >= initialLength() || isElementDeleted(i))
+            return false;
+        vp.set(element(i));
+        return true;
+    }
+
     inline bool maybeGetElements(uint32_t start, uint32_t count, js::Value *vp);
 
     
 
 
 
-    inline size_t sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf) const;
+    size_t sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf) const {
+        return mallocSizeOf(data());
+    }
 
     static void finalize(FreeOp *fop, JSObject *obj);
     static void trace(JSTracer *trc, JSObject *obj);
@@ -234,10 +287,14 @@ class NormalArgumentsObject : public ArgumentsObject
 
 
 
-    inline const js::Value &callee() const;
+    const js::Value &callee() const {
+        return data()->callee;
+    }
 
     
-    inline void clearCallee();
+    void clearCallee() {
+        data()->callee.set(zone(), MagicValue(JS_OVERWRITTEN_CALLEE));
+    }
 };
 
 class StrictArgumentsObject : public ArgumentsObject
