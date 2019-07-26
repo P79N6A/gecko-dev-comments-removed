@@ -102,14 +102,6 @@ RegExpObjectBuilder::build(HandleAtom source, RegExpFlag flags)
     return reobj_->init(cx, source, flags) ? reobj_.get() : nullptr;
 }
 
-static inline void
-MaybeTraceRegExpShared(JSContext *cx, RegExpShared *shared)
-{
-    Zone *zone = cx->zone();
-    if (zone->needsBarrier())
-        shared->trace(zone->barrierTracer());
-}
-
 RegExpObject *
 RegExpObjectBuilder::clone(Handle<RegExpObject *> other)
 {
@@ -137,10 +129,6 @@ RegExpObjectBuilder::clone(Handle<RegExpObject *> other)
     RegExpGuard g(cx);
     if (!other->getShared(cx->asJSContext(), &g))
         return nullptr;
-
-    
-    
-    MaybeTraceRegExpShared(cx->asJSContext(), g.re());
 
     Rooted<JSAtom *> source(cx, other->getSource());
     return build(source, *g);
@@ -227,6 +215,29 @@ VectorMatchPairs::allocOrExpandArray(size_t pairCount)
 }
 
 
+
+static inline void
+MaybeTraceRegExpShared(JSContext *cx, RegExpShared *shared)
+{
+    Zone *zone = cx->zone();
+    if (zone->needsBarrier())
+        shared->trace(zone->barrierTracer());
+}
+
+bool
+RegExpObject::getShared(JSContext *cx, RegExpGuard *g)
+{
+    if (RegExpShared *shared = maybeShared()) {
+        
+        
+        MaybeTraceRegExpShared(cx, shared);
+
+        g->init(*shared);
+        return true;
+    }
+
+    return createShared(cx, g);
+}
 
  void
 RegExpObject::trace(JSTracer *trc, JSObject *obj)
