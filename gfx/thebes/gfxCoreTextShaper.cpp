@@ -489,8 +489,6 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedText *aShapedText,
     return NS_OK;
 }
 
-#undef SMALL_GLYPH_RUN
-
 
 
 
