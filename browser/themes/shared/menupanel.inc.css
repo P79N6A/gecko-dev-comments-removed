@@ -2,7 +2,7 @@
 
 :-moz-any(@primaryToolbarButtons@)[customizableui-areatype="menu-panel"],
 toolbarpaletteitem[place="palette"] > :-moz-any(@primaryToolbarButtons@) {
-  list-style-image: url(chrome:
+  list-style-image: url(chrome://browser/skin/menuPanel.png);
 }
 
 #reload-button[customizableui-areatype="menu-panel"],
@@ -116,7 +116,7 @@ toolbarpaletteitem[place="palette"] > #preferences-button {
 #zoom-controls[customizableui-areatype="menu-panel"] > toolbarbutton,
 toolbarpaletteitem[place="palette"] > #edit-controls > toolbarbutton,
 toolbarpaletteitem[place="palette"] > #zoom-controls > toolbarbutton {
-  list-style-image: url(chrome:
+  list-style-image: url(chrome://browser/skin/menuPanel-small.png);
 }
 
 #edit-controls[customizableui-areatype="menu-panel"] > #cut-button,

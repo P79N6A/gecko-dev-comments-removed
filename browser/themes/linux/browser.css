@@ -735,7 +735,7 @@ toolbar > .customization-target > toolbarpaletteitem > #history-panelmenu {
 
 
 
-%include ../shared/menupanel.inc
+%include ../shared/menupanel.inc.css
 
 
 #window-controls {

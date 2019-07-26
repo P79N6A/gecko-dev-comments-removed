@@ -3,7 +3,7 @@
 }
 
 :-moz-any(@primaryToolbarButtons@):-moz-lwtheme-brighttext {
-  list-style-image: url(chrome:
+  list-style-image: url(chrome://browser/skin/Toolbar-inverted.png);
 }
 
 #back-button {
@@ -130,13 +130,13 @@
 
 #nav-bar-overflow-button {
   
-  list-style-image: url(chrome:
+  list-style-image: url(chrome://browser/skin/Toolbar.png) !important;
   -moz-image-region: rect(0, 612px, 18px, 594px);
 }
 
 #nav-bar-overflow-button:-moz-lwtheme-brighttext {
   
-  list-style-image: url(chrome:
+  list-style-image: url(chrome://browser/skin/Toolbar-inverted.png) !important;
 }
 
 
