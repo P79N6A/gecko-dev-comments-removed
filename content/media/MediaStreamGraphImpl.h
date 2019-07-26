@@ -371,6 +371,7 @@ public:
   void SetStreamOrderDirty()
   {
     mStreamOrderDirty = true;
+    mUserWarnedAboutCycles = false;
   }
 
   
@@ -566,6 +567,11 @@ public:
 
 
   bool mStreamOrderDirty;
+  
+
+
+
+  bool mUserWarnedAboutCycles;
 };
 
 }
