@@ -218,7 +218,9 @@ function debug_chrome(aURL, aOnClosing, aOnDebugging) {
     gBrowser.selectedTab = gTab;
     let debuggee = tab.linkedBrowser.contentWindow.wrappedJSObject;
 
+    info("Opening Browser Debugger");
     DebuggerUI.toggleChromeDebugger(aOnClosing, function dbgRan(process) {
+      info("Browser Debugger has started");
 
       
       aOnDebugging(tab, debuggee, process);
