@@ -10872,19 +10872,29 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
     
     
     
+    
+    
+    nsCOMPtr<nsISHistory> rootSH;
+    GetRootSessionHistory(getter_AddRefs(rootSH));
+    NS_ENSURE_TRUE(rootSH, NS_ERROR_UNEXPECTED);
+
+    nsCOMPtr<nsISHistoryInternal> internalSH =
+        do_QueryInterface(rootSH);
+    NS_ENSURE_TRUE(internalSH, NS_ERROR_UNEXPECTED);
+
     if (!aReplace) {
-        nsCOMPtr<nsISHistory> rootSH;
-        GetRootSessionHistory(getter_AddRefs(rootSH));
-        NS_ENSURE_TRUE(rootSH, NS_ERROR_UNEXPECTED);
-
-        nsCOMPtr<nsISHistoryInternal> internalSH =
-            do_QueryInterface(rootSH);
-        NS_ENSURE_TRUE(internalSH, NS_ERROR_UNEXPECTED);
-
         int32_t curIndex = -1;
         rv = rootSH->GetIndex(&curIndex);
         if (NS_SUCCEEDED(rv) && curIndex > -1) {
             internalSH->EvictOutOfRangeContentViewers(curIndex);
+        }
+    } else {
+        nsCOMPtr<nsISHEntry> rootSHEntry = GetRootSHEntry(newSHEntry);
+
+        int32_t index = -1;
+        rv = rootSH->GetIndexOfEntry(rootSHEntry, &index);
+        if (NS_SUCCEEDED(rv) && index > -1) {
+            internalSH->ReplaceEntry(index, rootSHEntry);
         }
     }
 

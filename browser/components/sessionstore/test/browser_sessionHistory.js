@@ -220,15 +220,15 @@ add_task(function test_pushstate_replacestate() {
   is(entries[1].url, "http://example.com/test-entry/", "url is correct");
 
   
-  
-  
-  
+  browser.messageManager.
+    sendAsyncMessage("ss-test:historyReplaceState", {url: 'test-entry2/'});
+  yield promiseContentMessage(browser, "ss-test:historyReplaceState");
 
   
-  
-  
-  
-  
+  SyncHandlers.get(browser).flush();
+  let {entries} = JSON.parse(ss.getTabState(tab));
+  is(entries.length, 2, "there is still two shistory entries");
+  is(entries[1].url, "http://example.com/test-entry/test-entry2/", "url is correct");
 
   
   gBrowser.removeTab(tab);
