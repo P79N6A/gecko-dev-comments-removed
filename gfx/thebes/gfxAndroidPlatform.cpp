@@ -260,13 +260,13 @@ gfxAndroidPlatform::FontHintingEnabled()
     
     
     return false;
-#endif
+#endif 
 
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
     
     
     return false;
-#endif 
+#endif
 
     
     
@@ -288,7 +288,7 @@ gfxAndroidPlatform::RequiresLinearZoom()
     return true;
 #endif
 
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
     
     
     
