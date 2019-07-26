@@ -15,6 +15,7 @@
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
 #include "nsTraceRefcnt.h"              
+#include "gfxPlatform.h"                
 
 namespace mozilla {
 namespace layers {

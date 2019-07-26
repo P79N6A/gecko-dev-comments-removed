@@ -5,6 +5,7 @@
 
 
 #include "GLBlitTextureImageHelper.h"
+#include "DecomposeIntoNoRepeatTriangles.h"
 #include "GLContext.h"
 #include "nsRect.h"
 #include "gfx2DGlue.h"
