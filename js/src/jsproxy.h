@@ -167,6 +167,12 @@ class JS_FRIEND_API(BaseProxyHandler)
     virtual bool getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandleObject protop);
 
     
+    
+    virtual bool watch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+                       JS::HandleObject callable);
+    virtual bool unwatch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id);
+
+    
     virtual JSObject *weakmapKeyDelegate(JSObject *proxy);
 };
 
@@ -274,6 +280,10 @@ class Proxy
     static bool regexp_toShared(JSContext *cx, HandleObject proxy, RegExpGuard *g);
     static bool defaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp);
     static bool getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandleObject protop);
+
+    static bool watch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+                      JS::HandleObject callable);
+    static bool unwatch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id);
 
     
     static bool callProp(JSContext *cx, HandleObject proxy, HandleObject reveiver, HandleId id,
