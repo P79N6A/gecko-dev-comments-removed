@@ -37,10 +37,8 @@
 #include "nsThreadUtils.h"
 #include "nsXPCOM.h"
 #include "nsXPCOMPrivate.h"
-#include "xpcpublic.h"
 
 #include "AsyncConnectionHelper.h"
-#include "CheckQuotaHelper.h"
 #include "IDBDatabase.h"
 #include "IDBEvents.h"
 #include "IDBFactory.h"
@@ -346,9 +344,7 @@ GetASCIIOriginFromPrincipal(nsIPrincipal* aPrincipal,
 } 
 
 IndexedDatabaseManager::IndexedDatabaseManager()
-: mCurrentWindowIndex(BAD_TLS_INDEX),
-  mQuotaHelperMutex("IndexedDatabaseManager.mQuotaHelperMutex"),
-  mFileMutex("IndexedDatabaseManager.mFileMutex")
+: mFileMutex("IndexedDatabaseManager.mFileMutex")
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(!gInstance, "More than one instance!");
@@ -382,18 +378,7 @@ IndexedDatabaseManager::GetOrCreate()
     instance = new IndexedDatabaseManager();
 
     instance->mLiveDatabases.Init();
-    instance->mQuotaHelperHash.Init();
     instance->mFileManagers.Init();
-
-    
-    NS_ASSERTION(instance->mCurrentWindowIndex == BAD_TLS_INDEX, "Huh?");
-
-    if (PR_NewThreadPrivateIndex(&instance->mCurrentWindowIndex, nullptr) !=
-        PR_SUCCESS) {
-      NS_ERROR("PR_NewThreadPrivateIndex failed, IndexedDB disabled");
-      instance->mCurrentWindowIndex = BAD_TLS_INDEX;
-      return nullptr;
-    }
 
     nsresult rv;
 
@@ -421,13 +406,13 @@ IndexedDatabaseManager::GetOrCreate()
                            LazyIdleThread::ManualShutdown);
 
       
-      NS_ENSURE_TRUE(QuotaManager::GetOrCreate(), nullptr);
-
-      
       
       instance->mShutdownTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
       NS_ENSURE_TRUE(instance->mShutdownTimer, nullptr);
     }
+
+    
+    NS_ENSURE_TRUE(QuotaManager::GetOrCreate(), nullptr);
 
     nsCOMPtr<nsIObserverService> obs = GetObserverService();
     NS_ENSURE_TRUE(obs, nullptr);
@@ -912,25 +897,6 @@ IndexedDatabaseManager::OnDatabaseClosed(IDBDatabase* aDatabase)
   }
 }
 
-void
-IndexedDatabaseManager::SetCurrentWindowInternal(nsPIDOMWindow* aWindow)
-{
-  if (aWindow) {
-#ifdef DEBUG
-    NS_ASSERTION(!PR_GetThreadPrivate(mCurrentWindowIndex),
-                 "Somebody forgot to clear the current window!");
-#endif
-    PR_SetThreadPrivate(mCurrentWindowIndex, aWindow);
-  }
-  else {
-    
-    
-    
-    
-    PR_SetThreadPrivate(mCurrentWindowIndex, nullptr);
-  }
-}
-
 
 uint32_t
 IndexedDatabaseManager::GetIndexedDBQuotaMB()
@@ -1113,71 +1079,6 @@ IndexedDatabaseManager::UninitializeOriginsByPattern(
     if (PatternMatchesOrigin(aPattern, mInitializedOrigins[i])) {
       mInitializedOrigins.RemoveElementAt(i);
     }
-  }
-}
-
-bool
-IndexedDatabaseManager::QuotaIsLiftedInternal()
-{
-  nsPIDOMWindow* window = nullptr;
-  nsRefPtr<CheckQuotaHelper> helper = nullptr;
-  bool createdHelper = false;
-
-  window =
-    static_cast<nsPIDOMWindow*>(PR_GetThreadPrivate(mCurrentWindowIndex));
-
-  
-  
-  NS_ASSERTION(window, "Why don't we have a Window here?");
-
-  
-  MutexAutoLock autoLock(mQuotaHelperMutex);
-
-  mQuotaHelperHash.Get(window, getter_AddRefs(helper));
-
-  if (!helper) {
-    helper = new CheckQuotaHelper(window, mQuotaHelperMutex);
-    createdHelper = true;
-
-    mQuotaHelperHash.Put(window, helper);
-
-    
-    {
-      MutexAutoUnlock autoUnlock(mQuotaHelperMutex);
-
-      nsresult rv = NS_DispatchToMainThread(helper);
-      NS_ENSURE_SUCCESS(rv, false);
-    }
-
-    
-    
-    
-  }
-
-  bool result = helper->PromptAndReturnQuotaIsDisabled();
-
-  
-  
-  if (createdHelper) {
-    mQuotaHelperHash.Remove(window);
-  }
-
-  return result;
-}
-
-void
-IndexedDatabaseManager::CancelPromptsForWindowInternal(nsPIDOMWindow* aWindow)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-
-  nsRefPtr<CheckQuotaHelper> helper;
-
-  MutexAutoLock autoLock(mQuotaHelperMutex);
-
-  mQuotaHelperHash.Get(aWindow, getter_AddRefs(helper));
-
-  if (helper) {
-    helper->Cancel();
   }
 }
 

@@ -39,7 +39,6 @@ class TabContext;
 BEGIN_INDEXEDDB_NAMESPACE
 
 class AsyncConnectionHelper;
-class CheckQuotaHelper;
 class FileManager;
 class IDBDatabase;
 
@@ -115,17 +114,6 @@ public:
   
   bool HasOpenTransactions(nsPIDOMWindow* aWindow);
 
-  
-  
-  static inline void
-  SetCurrentWindow(nsPIDOMWindow* aWindow)
-  {
-    IndexedDatabaseManager* mgr = Get();
-    NS_ASSERTION(mgr, "Must have a manager here!");
-
-    return mgr->SetCurrentWindowInternal(aWindow);
-  }
-
   static uint32_t
   GetIndexedDBQuotaMB();
 
@@ -134,26 +122,6 @@ public:
                                      nsIFile** aDirectory);
 
   void UninitializeOriginsByPattern(const nsACString& aPattern);
-
-  
-  
-  static inline bool
-  QuotaIsLifted()
-  {
-    IndexedDatabaseManager* mgr = Get();
-    NS_ASSERTION(mgr, "Must have a manager here!");
-
-    return mgr->QuotaIsLiftedInternal();
-  }
-
-  static inline void
-  CancelPromptsForWindow(nsPIDOMWindow* aWindow)
-  {
-    IndexedDatabaseManager* mgr = Get();
-    NS_ASSERTION(mgr, "Must have a manager here!");
-
-    mgr->CancelPromptsForWindowInternal(aWindow);
-  }
 
   static nsresult
   GetASCIIOriginFromWindow(nsPIDOMWindow* aWindow, nsCString& aASCIIOrigin);
@@ -223,10 +191,6 @@ private:
                                   nsIRunnable* aRunnable,
                                   WaitingOnDatabasesCallback aCallback,
                                   void* aClosure);
-
-  void SetCurrentWindowInternal(nsPIDOMWindow* aWindow);
-  bool QuotaIsLiftedInternal();
-  void CancelPromptsForWindowInternal(nsPIDOMWindow* aWindow);
 
   
   bool RegisterDatabase(IDBDatabase* aDatabase);
@@ -475,15 +439,6 @@ private:
   nsClassHashtable<nsCStringHashKey, nsTArray<IDBDatabase*> > mLiveDatabases;
 
   
-  unsigned mCurrentWindowIndex;
-
-  
-  mozilla::Mutex mQuotaHelperMutex;
-
-  
-  nsRefPtrHashtable<nsPtrHashKey<nsPIDOMWindow>, CheckQuotaHelper> mQuotaHelperHash;
-
-  
   
   nsClassHashtable<nsCStringHashKey,
                    nsTArray<nsRefPtr<FileManager> > > mFileManagers;
@@ -513,20 +468,6 @@ private:
   nsString mDatabaseBasePath;
 
   static bool sIsMainProcess;
-};
-
-class AutoEnterWindow
-{
-public:
-  AutoEnterWindow(nsPIDOMWindow* aWindow)
-  {
-    IndexedDatabaseManager::SetCurrentWindow(aWindow);
-  }
-
-  ~AutoEnterWindow()
-  {
-    IndexedDatabaseManager::SetCurrentWindow(nullptr);
-  }
 };
 
 END_INDEXEDDB_NAMESPACE

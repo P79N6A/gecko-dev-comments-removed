@@ -4,12 +4,10 @@
 
 
 
-#ifndef mozilla_dom_indexeddb_checkquotahelper_h__
-#define mozilla_dom_indexeddb_checkquotahelper_h__
+#ifndef mozilla_dom_quota_checkquotahelper_h__
+#define mozilla_dom_quota_checkquotahelper_h__
 
-
-#include "IndexedDatabase.h"
-#include "IDBDatabase.h"
+#include "QuotaCommon.h"
 
 #include "nsIInterfaceRequestor.h"
 #include "nsIObserver.h"
@@ -20,7 +18,7 @@
 
 class nsPIDOMWindow;
 
-BEGIN_INDEXEDDB_NAMESPACE
+BEGIN_QUOTA_NAMESPACE
 
 class CheckQuotaHelper MOZ_FINAL : public nsIRunnable,
                                    public nsIInterfaceRequestor,
@@ -49,6 +47,6 @@ private:
   bool mHasPrompted;
 };
 
-END_INDEXEDDB_NAMESPACE
+END_QUOTA_NAMESPACE
 
 #endif 
