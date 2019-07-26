@@ -167,10 +167,7 @@ ComputeShadowTreeTransform(nsIFrame* aContainerFrame,
   nscoord auPerDevPixel = aContainerFrame->PresContext()->AppUnitsPerDevPixel();
   nsIntPoint scrollOffset =
     aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel);
-  
-  gfx::Point metricsScrollOffset = aMetrics->GetScrollOffsetInLayerPixels();
-  nsIntPoint roundedMetricsScrollOffset =
-    nsIntPoint(NS_lround(metricsScrollOffset.x), NS_lround(metricsScrollOffset.y));
+  LayerIntPoint metricsScrollOffset = RoundedToInt(aMetrics->GetScrollOffsetInLayerPixels());
 
   if (aRootFrameLoader->AsyncScrollEnabled() && !aMetrics->mDisplayPort.IsEmpty()) {
     
@@ -178,8 +175,8 @@ ComputeShadowTreeTransform(nsIFrame* aContainerFrame,
     
     
     nsIntPoint scrollCompensation(
-      (scrollOffset.x / aTempScaleX - roundedMetricsScrollOffset.x),
-      (scrollOffset.y / aTempScaleY - roundedMetricsScrollOffset.y));
+      (scrollOffset.x / aTempScaleX - metricsScrollOffset.x),
+      (scrollOffset.y / aTempScaleY - metricsScrollOffset.y));
 
     return ViewTransform(-scrollCompensation, aConfig.mXScale, aConfig.mYScale);
   } else {
@@ -371,7 +368,7 @@ BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
   if (metrics.IsScrollable()) {
     nscoord auPerDevPixel = aFrameLoader->GetPrimaryFrameOfOwningContent()
                                         ->PresContext()->AppUnitsPerDevPixel();
-    nscoord auPerCSSPixel = auPerDevPixel * metrics.mDevPixelsPerCSSPixel;
+    nscoord auPerCSSPixel = auPerDevPixel * metrics.mDevPixelsPerCSSPixel.scale;
     nsContentView* view = FindViewForId(oldContentViews, scrollId);
     if (view) {
       
