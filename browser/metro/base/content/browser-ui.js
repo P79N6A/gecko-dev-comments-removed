@@ -19,6 +19,10 @@ const TOOLBARSTATE_LOADED   = 2;
 const kStartOverlayURI = "about:start";
 
 
+const debugServerStateChanged = "devtools.debugger.remote-enabled";
+const debugServerPortChanged = "devtools.debugger.remote-port";
+
+
 
 
 
@@ -75,6 +79,14 @@ var BrowserUI = {
 
   lastKnownGoodURL: "", 
   init: function() {
+
+    
+    if (Services.prefs.getBoolPref(debugServerStateChanged)) {
+      this.runDebugServer();
+    }
+    Services.prefs.addObserver(debugServerStateChanged, this, false);
+    Services.prefs.addObserver(debugServerPortChanged, this, false);
+
     
     messageManager.addMessageListener("DOMTitleChanged", this);
     messageManager.addMessageListener("DOMWillOpenModalDialog", this);
@@ -181,8 +193,38 @@ var BrowserUI = {
     SettingsCharm.uninit();
     messageManager.removeMessageListener("Content:StateChange", this);
     PageThumbs.uninit();
+    this.stopDebugServer();
   },
 
+  
+
+
+  runDebugServer: function runDebugServer(aPort) {
+    let port = aPort || Services.prefs.getIntPref(debugServerPortChanged);
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+      DebuggerServer.addActors('chrome://browser/content/dbg-metro-actors.js');
+    }
+    DebuggerServer.openListener(port);
+  },
+
+  stopDebugServer: function stopDebugServer() {
+    if (DebuggerServer.initialized) {
+      DebuggerServer.destroy();
+    }
+  },
+
+  
+  
+  
+  
+  changeDebugPort:function changeDebugPort(aPort) {
+    if (DebuggerServer.initialized) {
+      this.stopDebugServer();
+      this.runDebugServer(aPort);
+    }
+  },
 
   
 
@@ -596,6 +638,16 @@ var BrowserUI = {
             break;
           case "browser.urlbar.trimURLs":
             this._mayTrimURLs = Services.prefs.getBoolPref(aData);
+            break;
+          case debugServerStateChanged:
+            if (Services.prefs.getBoolPref(aData)) {
+              this.runDebugServer();
+            } else {
+              this.stopDebugServer();
+            }
+            break;
+          case debugServerPortChanged:
+            this.changeDebugPort(Services.prefs.getIntPref(aData));
             break;
         }
         break;
@@ -1361,12 +1413,6 @@ var StartUI = {
         section.init();
     });
 
-    if (!DebuggerServer.initialized) {
-      DebuggerServer.init();
-      DebuggerServer.addBrowserActors();
-      DebuggerServer.addActors('chrome://browser/content/dbg-metro-actors.js');
-    }
-    DebuggerServer.openListener(6000);
   },
 
   uninit: function() {
