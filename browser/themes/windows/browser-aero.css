@@ -175,8 +175,8 @@
   
 
   #main-window[sizemode=normal] #nav-bar[tabsontop=true],
-  #main-window[sizemode=normal] #nav-bar[tabsontop=true][collapsed=true]:not([customizing]) + toolbar,
-  #main-window[sizemode=normal] #nav-bar[tabsontop=true][collapsed=true]:not([customizing]) + #customToolbars + #PersonalToolbar {
+  #main-window[sizemode=normal] #nav-bar[tabsontop=true][collapsed=true] + toolbar,
+  #main-window[sizemode=normal] #nav-bar[tabsontop=true][collapsed=true] + #customToolbars + #PersonalToolbar {
     border-top: 1px solid @toolbarShadowColor@;
     border-top-left-radius: 2.5px;
     border-top-right-radius: 2.5px;
