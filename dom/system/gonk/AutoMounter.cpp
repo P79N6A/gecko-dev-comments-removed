@@ -316,11 +316,37 @@ AutoMounterResponseCallback::ResponseReceived(const VolumeCommand* aCommand)
   }
 }
 
+class AutoBool {
+public:
+    explicit AutoBool(bool &aBool) : mBool(aBool) {
+      mBool = true;
+    }
+
+    ~AutoBool() {
+      mBool = false;
+    }
+
+private:
+    bool &mBool;
+};
+
 
 
 void
 AutoMounter::UpdateState()
 {
+  static bool inUpdateState = false;
+  if (inUpdateState) {
+    
+    
+    
+    
+    
+    
+    return;
+  }
+  AutoBool inUpdateStateDetector(inUpdateState);
+
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   
@@ -379,6 +405,7 @@ AutoMounter::UpdateState()
       umsAvail, umsEnabled, mMode, usbCablePluggedIn, tryToShare);
 
   bool filesOpen = false;
+  static unsigned filesOpenDelayCount = 0;
   VolumeArray::index_type volIndex;
   VolumeArray::size_type  numVolumes = VolumeManager::NumVolumes();
   for (volIndex = 0; volIndex < numVolumes; volIndex++) {
@@ -415,6 +442,12 @@ AutoMounter::UpdateState()
 
           
           
+          
+          
+          vol->SetIsSharing(true);
+
+          
+          
           OpenFileFinder::Info fileInfo;
           OpenFileFinder fileFinder(vol->MountPoint());
           if (fileFinder.First(&fileInfo)) {
@@ -436,10 +469,21 @@ AutoMounter::UpdateState()
             
             
             
+            
+            
+            
+            
+            
+            
+
+            int delay = 1000;
+            if (filesOpenDelayCount > 10) {
+              delay = 5000;
+            }
             MessageLoopForIO::current()->
               PostDelayedTask(FROM_HERE,
                               NewRunnableMethod(this, &AutoMounter::UpdateState),
-                              5000);
+                              delay);
             filesOpen = true;
             break;
           }
@@ -447,7 +491,6 @@ AutoMounter::UpdateState()
           
           
           LOG("UpdateState: Unmounting %s", vol->NameStr());
-          vol->SetIsSharing(true);
           vol->StartUnmount(mResponseCallback);
           return; 
         }
@@ -488,8 +531,10 @@ AutoMounter::UpdateState()
 
   int32_t status = AUTOMOUNTER_STATUS_DISABLED;
   if (filesOpen) {
+    filesOpenDelayCount++;
     status = AUTOMOUNTER_STATUS_FILES_OPEN;
   } else if (enabled) {
+    filesOpenDelayCount = 0;
     status = AUTOMOUNTER_STATUS_ENABLED;
   }
   SetAutoMounterStatus(status);
