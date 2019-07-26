@@ -217,7 +217,6 @@ let gPage = {
       }
     }
 
-    DirectoryLinksProvider.reportShownCount(directoryCount);
     
     
     for (let type of Object.keys(directoryCount)) {

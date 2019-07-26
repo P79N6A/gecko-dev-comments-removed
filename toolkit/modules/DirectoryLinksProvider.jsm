@@ -14,7 +14,6 @@ const XMLHttpRequest =
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
@@ -33,7 +32,7 @@ const PREF_MATCH_OS_LOCALE = "intl.locale.matchOS";
 const PREF_SELECTED_LOCALE = "general.useragent.locale";
 
 
-const PREF_DIRECTORY_SOURCE = "browser.newtabpage.directory.source";
+const PREF_DIRECTORY_SOURCE = "browser.newtabpage.directorySource";
 
 
 const DIRECTORY_FRECENCY = 1000;
@@ -53,13 +52,7 @@ let DirectoryLinksProvider = {
 
   __linksURL: null,
 
-  _observers: new Set(),
-
-  
-  _downloadDeferred: null,
-
-  
-  _downloadIntervalMS: 86400000,
+  _observers: [],
 
   get _observedPrefs() Object.freeze({
     linksURL: PREF_DIRECTORY_SOURCE,
@@ -118,9 +111,8 @@ let DirectoryLinksProvider = {
       if (aData == this._observedPrefs["linksURL"]) {
         delete this.__linksURL;
       }
+      this._callObservers("onManyLinksChanged");
     }
-    
-    this._fetchAndCacheLinksIfNecessary(true);
   },
 
   _addPrefsObserver: function DirectoryLinksProvider_addObserver() {
@@ -180,9 +172,11 @@ let DirectoryLinksProvider = {
       if (this.status && this.status != 200) {
         json = "{}";
       }
-      OS.File.writeAtomic(self._directoryFilePath, json, {tmpPath: self._directoryFilePath + ".tmp"})
+      let directoryLinksFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, DIRECTORY_LINKS_FILE);
+      OS.File.writeAtomic(directoryLinksFilePath, json, {tmpPath: directoryLinksFilePath + ".tmp"})
         .then(() => {
           deferred.resolve();
+          self._callObservers("onManyLinksChanged");
         },
         () => {
           deferred.reject("Error writing uri data in profD.");
@@ -207,64 +201,6 @@ let DirectoryLinksProvider = {
 
 
 
-  _fetchAndCacheLinksIfNecessary: function DirectoryLinksProvider_fetchAndCacheLinksIfNecessary(forceDownload=false) {
-    if (this._downloadDeferred) {
-      
-      return this._downloadDeferred.promise;
-    }
-
-    if (forceDownload || this._needsDownload) {
-      this._downloadDeferred = Promise.defer();
-      this._fetchAndCacheLinks(this._linksURL).then(() => {
-        
-        this._lastDownloadMS = Date.now();
-        this._downloadDeferred.resolve();
-        this._downloadDeferred = null;
-        this._callObservers("onManyLinksChanged")
-      },
-      error => {
-        this._downloadDeferred.resolve();
-        this._downloadDeferred = null;
-        this._callObservers("onDownloadFail");
-      });
-      return this._downloadDeferred.promise;
-    }
-
-    
-    return Promise.resolve();
-  },
-
-  
-
-
-  get _needsDownload () {
-    
-    if ((Date.now() - this._lastDownloadMS) > this._downloadIntervalMS) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-  reportShownCount: function DirectoryLinksProvider_reportShownCount(directoryCount) {
-    if (directoryCount.sponsored > 0
-        || directoryCount.affiliate > 0
-        || directoryCount.organic > 0) {
-      return this._fetchAndCacheLinksIfNecessary();
-    }
-    return Promise.resolve();
-  },
-
-  
-
-
-
   getLinks: function DirectoryLinksProvider_getLinks(aCallback) {
     this._fetchLinks(rawLinks => {
       
@@ -278,19 +214,6 @@ let DirectoryLinksProvider = {
 
   init: function DirectoryLinksProvider_init() {
     this._addPrefsObserver();
-    
-    this._directoryFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, DIRECTORY_LINKS_FILE);
-    this._lastDownloadMS = 0;
-    return Task.spawn(function() {
-      
-      let doesFileExists = yield OS.File.exists(this._directoryFilePath);
-      if (doesFileExists) {
-        let fileInfo = yield OS.File.stat(this._directoryFilePath);
-        this._lastDownloadMS = Date.parse(fileInfo.lastModificationDate);
-      }
-      
-      yield this._fetchAndCacheLinksIfNecessary();
-    }.bind(this));
   },
 
   
@@ -303,11 +226,7 @@ let DirectoryLinksProvider = {
   },
 
   addObserver: function DirectoryLinksProvider_addObserver(aObserver) {
-    this._observers.add(aObserver);
-  },
-
-  removeObserver: function DirectoryLinksProvider_removeObserver(aObserver) {
-    this._observers.delete(aObserver);
+    this._observers.push(aObserver);
   },
 
   _callObservers: function DirectoryLinksProvider__callObservers(aMethodName, aArg) {
@@ -323,6 +242,8 @@ let DirectoryLinksProvider = {
   },
 
   _removeObservers: function() {
-    this._observers.clear();
+    while (this._observers.length) {
+      this._observers.pop();
+    }
   }
 };
