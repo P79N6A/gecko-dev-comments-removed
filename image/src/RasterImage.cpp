@@ -67,6 +67,10 @@ static bool gHQDownscaling = false;
 
 static uint32_t gHQDownscalingMinFactor = 1000;
 
+
+
+static int32_t sMaxDecodeCount = 0;
+
 static void
 InitPrefCaches()
 {
@@ -2573,6 +2577,16 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
     Telemetry::GetHistogramById(Telemetry::IMAGE_DECODE_COUNT)->Subtract(mDecodeCount);
     mDecodeCount++;
     Telemetry::GetHistogramById(Telemetry::IMAGE_DECODE_COUNT)->Add(mDecodeCount);
+
+    if (mDecodeCount > sMaxDecodeCount) {
+      
+      
+      if (sMaxDecodeCount > 0) {
+        Telemetry::GetHistogramById(Telemetry::IMAGE_MAX_DECODE_COUNT)->Subtract(sMaxDecodeCount);
+      }
+      sMaxDecodeCount = mDecodeCount;
+      Telemetry::GetHistogramById(Telemetry::IMAGE_MAX_DECODE_COUNT)->Add(sMaxDecodeCount);
+    }
   }
 
   return NS_OK;
