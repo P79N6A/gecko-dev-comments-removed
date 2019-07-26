@@ -473,10 +473,6 @@ LayoutHelpers.prototype = {
 
     
     let style = node.ownerDocument.defaultView.getComputedStyle(node);
-    if (!style) {
-      return null;
-    }
-
     let camel = s => s.substring(0, 1).toUpperCase() + s.substring(1);
     let distances = {border:{}, padding:{}, margin: {}};
 
