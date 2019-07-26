@@ -490,16 +490,13 @@ PlanarYCbCrImage::CopyData(const Data& aData)
   mData = aData;
 
   
-  size_t size = mData.mCbCrStride * mData.mCbCrSize.height * 2 +
+  mBufferSize = mData.mCbCrStride * mData.mCbCrSize.height * 2 +
                 mData.mYStride * mData.mYSize.height;
 
   
-  mBuffer = AllocateBuffer(size);
+  mBuffer = AllocateBuffer(mBufferSize);
   if (!mBuffer)
     return;
-
-  
-  mBufferSize = size;
 
   mData.mYChannel = mBuffer;
   mData.mCbChannel = mData.mYChannel + mData.mYStride * mData.mYSize.height;
@@ -540,11 +537,10 @@ uint8_t*
 PlanarYCbCrImage::AllocateAndGetNewBuffer(uint32_t aSize)
 {
   
-  mBuffer = AllocateBuffer(aSize);
-  if (mBuffer) {
-    
-    mBufferSize = aSize;
-  }
+  mBufferSize = aSize;
+
+  
+  mBuffer = AllocateBuffer(mBufferSize); 
   return mBuffer;
 }
 
