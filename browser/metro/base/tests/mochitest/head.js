@@ -756,6 +756,24 @@ function runTests() {
   });
 }
 
+
+
+function spyOnMethod(aObj, aMethod) {
+  let origFunc = aObj[aMethod];
+  let spy = function() {
+    spy.calledWith = Array.slice(arguments);
+    spy.callCount++;
+    return (spy.returnValue = origFunc.apply(aObj, arguments));
+  };
+  spy.callCount = 0;
+  spy.restore = function() {
+    return (aObj[aMethod] = origFunc);
+  };
+  return (aObj[aMethod] = spy);
+}
+
+
+
 function stubMethod(aObj, aMethod) {
   let origFunc = aObj[aMethod];
   let func = function() {
