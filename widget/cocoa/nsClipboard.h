@@ -38,13 +38,8 @@ protected:
   NS_IMETHOD GetNativeClipboardData(nsITransferable * aTransferable, int32_t aWhichClipboard);
   
 private:
-  
-  
-  int mChangeCountGeneral;
-  
-  
-  int mChangeCountFind;
-
+  int32_t mCachedClipboard;
+  int32_t mChangeCount; 
 };
 
 #endif 
