@@ -57,7 +57,8 @@ function retrieveTranslationCounts() {
       return [0, 0];
     }
 
-    return [day.get("pageTranslatedCount"), day.get("charactersTranslatedCount")];
+    
+    return [day.get("pageTranslatedCount") || 0, day.get("charactersTranslatedCount") || 0];
   });
 }
 
