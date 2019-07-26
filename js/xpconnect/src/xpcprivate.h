@@ -476,18 +476,8 @@ public:
     
 public:
     
-    static nsXPConnect*  XPConnect()
-    {
-        
-        
-        
-        if (!MOZ_LIKELY(NS_IsMainThread() || NS_IsCycleCollectorThread()))
-            MOZ_CRASH();
-
-        return gSelf;
-    }
-
-    static nsXPConnect*  FastGetXPConnect() { return gSelf ? gSelf : XPConnect(); }
+    static nsXPConnect*  GetXPConnect();
+    static nsXPConnect*  FastGetXPConnect() { return gSelf ? gSelf : GetXPConnect(); }
     static XPCJSRuntime* GetRuntimeInstance();
     XPCJSRuntime* GetRuntime() {return mRuntime;}
 
@@ -516,7 +506,7 @@ public:
     static nsXPConnect* GetSingleton();
 
     
-    static void InitStatics();
+    static void InitStatics() { gSelf = nullptr; gOnceAliveNowDead = false; }
     
     static void ReleaseXPConnectSingleton();
 
@@ -654,7 +644,7 @@ class XPCJSRuntime
 {
 public:
     static XPCJSRuntime* newXPCJSRuntime(nsXPConnect* aXPConnect);
-    static XPCJSRuntime* Get() { return nsXPConnect::XPConnect()->GetRuntime(); }
+    static XPCJSRuntime* Get() { return nsXPConnect::GetXPConnect()->GetRuntime(); }
 
     JSRuntime*     GetJSRuntime() const {return mJSRuntime;}
     nsXPConnect*   GetXPConnect() const {return mXPConnect;}
