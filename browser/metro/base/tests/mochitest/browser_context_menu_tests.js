@@ -50,6 +50,8 @@ gTests.push({
     let span = win.document.getElementById("text1");
     win.getSelection().selectAllChildren(span);
 
+    yield waitForMs(0);
+
     
     let promise = waitForEvent(document, "popupshown");
     sendContextMenuClickToElement(win, span, 85, 10);
@@ -283,6 +285,7 @@ gTests.push({
     
 
     emptyClipboard();
+    ContextUI.dismiss();
 
     input = win.document.getElementById("text3-input");
     input.value = "";
