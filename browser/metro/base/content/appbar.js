@@ -177,6 +177,11 @@ var Appbar = {
   },
 
   showContextualActions: function(aVerbs) {
+    if (aVerbs.length)
+      this.appbar.setAttribute("contextual", "true");
+    else
+      this.appbar.removeAttribute("contextual");
+
     let doc = document;
     
     let buttonsMap = new Map();
