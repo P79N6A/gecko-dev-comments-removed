@@ -1529,6 +1529,7 @@ struct JSJitInfo {
 
 
 
+    
     uint16_t isInSlot : 1;     
 
     uint16_t isTypedMethod : 1; 
@@ -1541,8 +1542,6 @@ struct JSJitInfo {
 
 
 
-    
-    
 
 private:
     static void staticAsserts()
