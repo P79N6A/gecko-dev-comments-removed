@@ -677,20 +677,6 @@ function onLoad() {
   
   setupListeners();
 
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-  
-
-
-
-
-
-
-  if (getPref(PREF_TELEMETRY_ENABLED, false) &&
-      getPref(PREF_TELEMETRY_REJECTED, false)) {
-    Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, false);
-  }
-#endif
-
   
   SlowSQL.render();
 
