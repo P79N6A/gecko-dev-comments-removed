@@ -28,6 +28,9 @@
 #include "mozilla/dom/SVGAnimatedLength.h"
 #include "nsMimeTypes.h"
 
+
+#undef GetCurrentTime
+
 using namespace mozilla::dom;
 
 namespace mozilla {

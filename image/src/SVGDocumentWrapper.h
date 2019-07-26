@@ -26,6 +26,8 @@ struct nsIntSize;
 #define OBSERVER_SVC_CID "@mozilla.org/observer-service;1"
 
 
+#undef GetCurrentTime
+
 namespace mozilla {
 namespace dom {
 class SVGSVGElement;

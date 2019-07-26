@@ -26,6 +26,9 @@
 #include "nsIDOMEventListener.h"
 #include "SurfaceCache.h"
 
+
+#undef GetCurrentTime
+
 namespace mozilla {
 
 using namespace dom;

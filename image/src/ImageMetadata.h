@@ -4,6 +4,9 @@
 
 
 
+#ifndef ImageMetadata_h___
+#define ImageMetadata_h___
+
 #include <stdint.h>
 #include "mozilla/Maybe.h"
 #include "nsSize.h"
@@ -72,3 +75,5 @@ private:
 
 } 
 } 
+
+#endif 
