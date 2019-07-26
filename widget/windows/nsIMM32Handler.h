@@ -61,6 +61,32 @@ public:
     return (::ImmGetOpenStatus(mIMC) != FALSE);
   }
 
+  bool AssociateDefaultContext()
+  {
+    
+    if (mIMC) {
+      return false;
+    }
+    if (!::ImmAssociateContextEx(mWnd, NULL, IACE_DEFAULT)) {
+      return false;
+    }
+    mIMC = ::ImmGetContext(mWnd);
+    return (mIMC != NULL);
+  }
+
+  bool Disassociate()
+  {
+    if (!mIMC) {
+      return false;
+    }
+    if (!::ImmAssociateContextEx(mWnd, NULL, 0)) {
+      return false;
+    }
+    ::ImmReleaseContext(mWnd, mIMC);
+    mIMC = NULL;
+    return true;
+  }
+
 protected:
   nsIMEContext()
   {

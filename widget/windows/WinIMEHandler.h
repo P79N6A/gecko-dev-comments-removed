@@ -76,6 +76,11 @@ public:
   
 
 
+  static void OnDestroyWindow(nsWindow* aWindow);
+
+  
+
+
 
 
   static bool IsDoingKakuteiUndo(HWND aWnd);
