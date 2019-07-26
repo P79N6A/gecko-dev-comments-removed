@@ -1713,6 +1713,12 @@ let CustomizableUIInternal = {
       
       let [window,] = [...gBuildWindows][0];
       let [, node] = this.getWidgetNode(aWidgetId, window);
+      
+      
+      
+      if (!node) {
+        return true;
+      }
       return node.getAttribute("removable") == "true";
     }
 
