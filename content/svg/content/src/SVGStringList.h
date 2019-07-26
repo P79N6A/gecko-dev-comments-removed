@@ -136,7 +136,7 @@ protected:
   
 
 
-  FallibleTArray<nsString> mStrings;
+  nsTArray<nsString> mStrings;
   bool mIsSet;
   bool mIsCommaSeparated;
 };

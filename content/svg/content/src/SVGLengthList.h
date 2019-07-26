@@ -160,7 +160,7 @@ protected:
 
 
 
-  FallibleTArray<SVGLength> mLengths;
+  nsTArray<SVGLength> mLengths;
 };
 
 
