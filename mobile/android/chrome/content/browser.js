@@ -4310,6 +4310,7 @@ var BrowserEventHandler = {
 
             
             if (!element.disabled &&
+                !InputWidgetHelper.hasInputWidget(element) &&
                 ((element instanceof HTMLInputElement && element.mozIsTextField(false)) ||
                 (element instanceof HTMLTextAreaElement)))
               SelectionHandler.attachCaret(element);
