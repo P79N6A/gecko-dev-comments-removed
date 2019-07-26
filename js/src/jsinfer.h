@@ -1116,7 +1116,7 @@ UseNewTypeForClone(JSFunction *fun);
 
 
 bool
-ArrayPrototypeHasIndexedProperty(CompilerConstraintList *constraints, HandleScript script);
+ArrayPrototypeHasIndexedProperty(CompilerConstraintList *constraints, JSScript *script);
 
 
 bool
