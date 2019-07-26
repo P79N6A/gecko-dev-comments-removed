@@ -1,6 +1,6 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
-   - file, You can obtain one at http:
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <vbox id="customization-container" flex="1" style="background: #DBEAF9;">
   <hbox flex="1">
@@ -22,7 +22,7 @@
         <vbox>
           <vbox id="customization-panelWrapper">
             <html:style html:type="text/html" scoped="scoped">
-              @import url(chrome:
+              @import url(chrome://global/skin/popup.css);
             </html:style>
             <box class="panel-arrowbox">
               <box flex="1"/>

@@ -20,9 +20,8 @@ browser.jar:
   skin/classic/browser/actionicon-tab.png
   skin/classic/browser/appmenu.png
 * skin/classic/browser/browser.css
-* skin/classic/browser/browser-lightweightTheme.css
   skin/classic/browser/click-to-play-warning-stripes.png
-  skin/classic/browser/customization/customization-mode-background.jpg (customization/customization-mode-background.jpg)
+  skin/classic/browser/customizableui/customization-mode-background.jpg (customizableui/customization-mode-background.jpg)
 * skin/classic/browser/engineManager.css
   skin/classic/browser/Geolocation-16.png
   skin/classic/browser/Geolocation-64.png
@@ -42,7 +41,6 @@ browser.jar:
 * skin/classic/browser/pageInfo.css
   skin/classic/browser/pageInfo.png
   skin/classic/browser/page-livemarks.png
-* skin/classic/browser/panelUIOverlay.css
   skin/classic/browser/pointerLock-16.png
   skin/classic/browser/pointerLock-64.png
   skin/classic/browser/Privacy-16.png
@@ -59,6 +57,7 @@ browser.jar:
   skin/classic/browser/webRTC-shareDevice-16.png
   skin/classic/browser/webRTC-shareDevice-64.png
   skin/classic/browser/webRTC-sharingDevice-16.png
+* skin/classic/browser/customizableui/panelUIOverlay.css (customizableui/panelUIOverlay.css)
   skin/classic/browser/downloads/buttons.png          (downloads/buttons.png)
   skin/classic/browser/downloads/download-glow.png    (downloads/download-glow.png)
   skin/classic/browser/downloads/download-glow-small.png (downloads/download-glow-small.png)
@@ -84,13 +83,14 @@ browser.jar:
   skin/classic/browser/places/calendar.png            (places/calendar.png)
 * skin/classic/browser/places/editBookmarkOverlay.css (places/editBookmarkOverlay.css)
   skin/classic/browser/places/livemark-item.png       (places/livemark-item.png)
-  skin/classic/browser/places/star-icons.png          (places/star-icons.png)
+  skin/classic/browser/places/pageStarred.png         (places/pageStarred.png)
   skin/classic/browser/places/starred48.png           (places/starred48.png)
   skin/classic/browser/places/unstarred48.png         (places/unstarred48.png)
   skin/classic/browser/places/places.css              (places/places.css)
   skin/classic/browser/places/organizer.css           (places/organizer.css)
   skin/classic/browser/places/organizer.xml           (places/organizer.xml)
   skin/classic/browser/places/query.png               (places/query.png)
+  skin/classic/browser/places/starPage.png            (places/starPage.png)
   skin/classic/browser/places/tag.png                 (places/tag.png)
   skin/classic/browser/places/toolbarDropMarker.png   (places/toolbarDropMarker.png)
   skin/classic/browser/places/unsortedBookmarks.png   (places/unsortedBookmarks.png)
@@ -119,7 +119,6 @@ browser.jar:
   skin/classic/browser/tabbrowser/tab-stroke-end.png        (tabbrowser/tab-stroke-end.png)
   skin/classic/browser/tabbrowser/tab-stroke-start.png      (tabbrowser/tab-stroke-start.png)
   skin/classic/browser/tabbrowser/tabDragIndicator.png      (tabbrowser/tabDragIndicator.png)
-  skin/classic/browser/tabbrowser/tab-separator.png         (tabbrowser/tab-separator.png)
   skin/classic/browser/tabview/edit-light.png         (tabview/edit-light.png)
   skin/classic/browser/tabview/search.png             (tabview/search.png)
   skin/classic/browser/tabview/stack-expander.png     (tabview/stack-expander.png)

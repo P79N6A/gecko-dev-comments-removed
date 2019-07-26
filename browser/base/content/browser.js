@@ -18,7 +18,6 @@ var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gContextMenu = null; 
-var gMultiProcessBrowser = false;
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -747,8 +746,6 @@ var gBrowserInit = {
     if ("arguments" in window && window.arguments[0])
       var uriToLoad = window.arguments[0];
 
-    gMultiProcessBrowser = gPrefService.getBoolPref("browser.tabs.remote");
-
     var mustLoadSidebar = false;
 
     Cc["@mozilla.org/eventlistenerservice;1"]
@@ -770,7 +767,6 @@ var gBrowserInit = {
     window.addEventListener("AppCommand", HandleAppCommandEvent, true);
 
     messageManager.loadFrameScript("chrome://browser/content/content.js", true);
-    messageManager.loadFrameScript("chrome://browser/content/content-sessionStore.js", true);
 
     
     
@@ -811,15 +807,18 @@ var gBrowserInit = {
 
     
     try {
-      if (!gMultiProcessBrowser)
-        gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
+      gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
     } catch(ex) {
       Cu.reportError("Places database may be locked: " + ex);
     }
 
+#ifdef MOZ_E10S_COMPAT
+    
+#else
     
     gBrowser.addProgressListener(window.XULBrowserWindow);
     gBrowser.addTabsProgressListener(window.TabsProgressListener);
+#endif
 
     
     gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
@@ -950,6 +949,7 @@ var gBrowserInit = {
     
     CombinedStopReload.init();
     TabsOnTop.init();
+    BookmarksMenuButton.init();
     gPrivateBrowsingUI.init();
     TabsInTitlebar.init();
     retrieveToolbarIconsizesFromTheme();
@@ -981,7 +981,7 @@ var gBrowserInit = {
     gBrowser.addEventListener("pageshow", function(event) {
       
       if (content && event.target == content.document)
-        setTimeout(pageShowEventHandlers, 0, event.persisted);
+        setTimeout(pageShowEventHandlers, 0, event);
     }, true);
 
     if (uriToLoad && uriToLoad != "about:blank") {
@@ -1040,7 +1040,6 @@ var gBrowserInit = {
     gFormSubmitObserver.init();
     PanelUI.init();
     SocialUI.init();
-    LightweightThemeListener.init();
     AddonManager.addAddonListener(AddonsMgrListener);
     WebrtcIndicator.init();
 
@@ -1092,12 +1091,13 @@ var gBrowserInit = {
     
     FullZoom.init();
 
+#ifdef MOZ_E10S_COMPAT
     
-    if (!gMultiProcessBrowser) {
-      let NP = {};
-      Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
-      NP.trackBrowserWindow(window);
-    }
+#else
+    let NP = {};
+    Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
+    NP.trackBrowserWindow(window);
+#endif
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
@@ -1141,11 +1141,12 @@ var gBrowserInit = {
     gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
     gBrowser.mPanelContainer.addEventListener("ResetBrowserThemePreview", LightWeightThemeWebInstaller, false, true);
 
+#ifdef MOZ_E10S_COMPAT
     
-    if (!gMultiProcessBrowser) {
-      if (Win7Features)
-        Win7Features.onOpenWindow();
-    }
+#else
+    if (Win7Features)
+      Win7Features.onOpenWindow();
+#endif
 
    
     window.addEventListener("fullscreen", onFullScreen, true);
@@ -1327,7 +1328,7 @@ var gBrowserInit = {
     } catch (ex) {
     }
 
-    BookmarksMenuButton.uninit();
+    PlacesStarButton.uninit();
 
     TabsOnTop.uninit();
 
@@ -1375,7 +1376,6 @@ var gBrowserInit = {
       IndexedDBPromptHelper.uninit();
       AddonManager.removeAddonListener(AddonsMgrListener);
       SocialUI.uninit();
-      LightweightThemeListener.uninit();
       gCustomizeMode.uninit();
       PanelUI.uninit();
     }
@@ -2146,9 +2146,8 @@ function URLBarSetURI(aURI) {
 
     
     
-    
     if (gInitialPages.indexOf(uri.spec) != -1)
-      value = !gMultiProcessBrowser && content.opener ? uri.spec : "";
+      value = content.opener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
 
@@ -2248,8 +2247,6 @@ function UpdatePageProxyState()
 
 function SetPageProxyState(aState)
 {
-  BookmarksMenuButton.onPageProxyStateChanged(aState);
-
   if (!gURLBar)
     return;
 
@@ -3506,6 +3503,7 @@ var XULBrowserWindow = {
   isBusy: false,
   
   
+  
   inContentWhitelist: ["about:addons", "about:downloads", "about:permissions",
                        "about:sync-progress", "about:preferences"],
 
@@ -3539,15 +3537,15 @@ var XULBrowserWindow = {
   init: function () {
     this.throbberElement = document.getElementById("navigator-throbber");
 
+#ifdef MOZ_E10S_COMPAT
     
-    if (gMultiProcessBrowser)
-      return;
-
+#else
     
     
     var securityUI = gBrowser.securityUI;
     this._hostChanged = true;
     this.onSecurityChange(null, null, securityUI.state);
+#endif
   },
 
   destroy: function () {
@@ -3560,6 +3558,10 @@ var XULBrowserWindow = {
   },
 
   setJSStatus: function () {
+    
+  },
+
+  setJSDefaultStatus: function () {
     
   },
 
@@ -3664,7 +3666,7 @@ var XULBrowserWindow = {
     if (aStateFlags & nsIWebProgressListener.STATE_START &&
         aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
 
-      if (aRequest && aWebProgress.isTopLevel) {
+      if (aRequest && aWebProgress.DOMWindow == content) {
         
         gBrowser.selectedBrowser.feeds = null;
 
@@ -3698,7 +3700,7 @@ var XULBrowserWindow = {
           location = aRequest.URI;
 
           
-          if (location.scheme == "keyword" && aWebProgress.isTopLevel)
+          if (location.scheme == "keyword" && aWebProgress.DOMWindow == content)
             gBrowser.userTypedValue = null;
 
           if (location.spec != "about:blank") {
@@ -3714,7 +3716,7 @@ var XULBrowserWindow = {
         this.setDefaultStatus(msg);
 
         
-        if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
+        if (content.document && mimeTypeIsTextBased(content.document.contentType))
           this.isImage.removeAttribute('disabled');
         else
           this.isImage.setAttribute('disabled', 'true');
@@ -3748,7 +3750,7 @@ var XULBrowserWindow = {
     let tooltipNode = pageTooltip.triggerNode;
     if (tooltipNode) {
       
-      if (aWebProgress.isTopLevel) {
+      if (aWebProgress.DOMWindow == content) {
         pageTooltip.hidePopup();
       }
       else {
@@ -3764,7 +3766,7 @@ var XULBrowserWindow = {
     }
 
     
-    if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
+    if (content.document && mimeTypeIsTextBased(content.document.contentType))
       this.isImage.removeAttribute('disabled');
     else
       this.isImage.setAttribute('disabled', 'true');
@@ -3779,8 +3781,8 @@ var XULBrowserWindow = {
     
 
     var browser = gBrowser.selectedBrowser;
-    if (aWebProgress.isTopLevel) {
-      if ((location == "about:blank" && (gMultiProcessBrowser || !content.opener)) ||
+    if (aWebProgress.DOMWindow == content) {
+      if ((location == "about:blank" && !content.opener) ||
           location == "") {  
                              
         this.reloadCommand.setAttribute("disabled", "true");
@@ -3792,7 +3794,7 @@ var XULBrowserWindow = {
         URLBarSetURI(aLocationURI);
 
         
-        BookmarksMenuButton.updateStarState();
+        PlacesStarButton.updateState();
         SocialShareButton.updateShareState();
       }
 
@@ -3834,7 +3836,7 @@ var XULBrowserWindow = {
       }
 
       
-      if (!gMultiProcessBrowser && aLocationURI &&
+      if (aLocationURI &&
           (aLocationURI.schemeIs("about") || aLocationURI.schemeIs("chrome"))) {
         
         
@@ -3946,9 +3948,6 @@ var XULBrowserWindow = {
       if (gURLBar)
         gURLBar.removeAttribute("level");
     }
-
-    if (gMultiProcessBrowser)
-      return;
 
     
     
@@ -4151,7 +4150,7 @@ var TabsProgressListener = {
 #endif
 
     
-    if (aWebProgress.isTopLevel) {
+    if (aWebProgress.DOMWindow == aWebProgress.DOMWindow.top) {
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
         if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
           TelemetryStopwatch.start("FX_PAGE_LOAD_MS", aBrowser);
@@ -4170,9 +4169,8 @@ var TabsProgressListener = {
     
     
 
-    let doc = gMultiProcessBrowser ? null : aWebProgress.DOMWindow.document;
-    if (!gMultiProcessBrowser &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+    let doc = aWebProgress.DOMWindow.document;
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         Components.isSuccessCode(aStatus) &&
         doc.documentURI.startsWith("about:") &&
         !doc.documentURI.toLowerCase().startsWith("about:blank") &&
@@ -4209,7 +4207,7 @@ var TabsProgressListener = {
     gBrowser.getNotificationBox(aBrowser).removeTransientNotifications();
 
     
-    if (aWebProgress.isTopLevel) {
+    if (aBrowser.contentWindow == aWebProgress.DOMWindow) {
       
       aBrowser._clickToPlayPluginsActivated = new Map();
       aBrowser._clickToPlayAllPluginsActivated = false;
@@ -4410,7 +4408,7 @@ function setToolbarVisibility(toolbar, isVisible) {
   document.persist(toolbar.id, hidingAttribute);
 
   PlacesToolbarHelper.init();
-  BookmarksMenuButton.onToolbarVisibilityChange();
+  BookmarksMenuButton.updatePosition();
   gBrowser.updateWindowResizers();
 
 #ifdef MENUBAR_CAN_AUTOHIDE
@@ -4583,7 +4581,7 @@ var TabsInTitlebar = {
     
     titlebarContent.style.marginBottom = "";
     titlebar.style.marginBottom = "";
-    menubar.style.paddingBottom = "";
+    menubar.style.marginBottom = "";
 
     if (allowed) {
       
@@ -4598,10 +4596,7 @@ var TabsInTitlebar = {
 #endif
       let captionButtonsBox = $("titlebar-buttonbox");
       this._sizePlaceholder("caption-buttons", rect(captionButtonsBox).width);
-#ifdef XP_MACOSX
-      let fullscreenButton  = $("titlebar-fullscreen-button");
-      this._sizePlaceholder("fullscreen-button", rect(fullscreenButton).width);
-#endif
+
       let titlebarContentHeight = rect(titlebarContent).height;
       let menuHeight = this._outerHeight(menubar);
 
@@ -4609,7 +4604,7 @@ var TabsInTitlebar = {
       
       if (menuHeight && titlebarContentHeight > menuHeight) {
         let menuTitlebarDelta = titlebarContentHeight - menuHeight;
-        menubar.style.paddingBottom = menuTitlebarDelta + "px";
+        menubar.style.marginBottom = menuTitlebarDelta + "px";
         menuHeight += menuTitlebarDelta;
       }
 
@@ -5651,11 +5646,11 @@ var OfflineApps = {
       return;
     }
 
-    let browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);
-    let browser = this._getBrowserForContentWindow(browserWindow,
+    var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);
+    var browser = this._getBrowserForContentWindow(browserWindow,
                                                    aContentWindow);
 
-    let currentURI = aContentWindow.document.documentURIObject;
+    var currentURI = aContentWindow.document.documentURIObject;
 
     
     if (Services.perms.testExactPermission(currentURI, "offline-app") != Services.perms.UNKNOWN_ACTION)
@@ -5670,40 +5665,44 @@ var OfflineApps = {
       
     }
 
-    let host = currentURI.asciiHost;
-    let notificationID = "offline-app-requested-" + host;
-    let notification = PopupNotifications.getNotification(notificationID, browser);
+    var host = currentURI.asciiHost;
+    var notificationBox = gBrowser.getNotificationBox(browser);
+    var notificationID = "offline-app-requested-" + host;
+    var notification = notificationBox.getNotificationWithValue(notificationID);
 
     if (notification) {
-      notification.options.documents.push(aContentWindow.document);
+      notification.documents.push(aContentWindow.document);
     } else {
-      let mainAction = {
+      var buttons = [{
         label: gNavigatorBundle.getString("offlineApps.allow"),
         accessKey: gNavigatorBundle.getString("offlineApps.allowAccessKey"),
         callback: function() {
-          for (let document of notification.options.documents) {
+          for (let document of notification.documents) {
             OfflineApps.allowSite(document);
           }
         }
-      };
-      let secondaryActions = [{
+      },{
         label: gNavigatorBundle.getString("offlineApps.never"),
         accessKey: gNavigatorBundle.getString("offlineApps.neverAccessKey"),
         callback: function() {
-          for (let document of notification.options.documents) {
+          for (let document of notification.documents) {
             OfflineApps.disallowSite(document);
           }
         }
+      },{
+        label: gNavigatorBundle.getString("offlineApps.notNow"),
+        accessKey: gNavigatorBundle.getString("offlineApps.notNowAccessKey"),
+        callback: function() {  }
       }];
-      let message = gNavigatorBundle.getFormattedString("offlineApps.available",
+
+      const priority = notificationBox.PRIORITY_INFO_LOW;
+      var message = gNavigatorBundle.getFormattedString("offlineApps.available",
                                                         [ host ]);
-      let anchorID = "indexedDB-notification-icon";
-      let options= {
-        documents : [ aContentWindow.document ]
-      };
-      notification = PopupNotifications.show(browser, notificationID, message,
-                                             anchorID, mainAction,
-                                             secondaryActions, options);
+      notification =
+        notificationBox.appendNotification(message, notificationID,
+                                           "chrome://browser/skin/Info.png",
+                                           priority, buttons);
+      notification.documents = [ aContentWindow.document ];
     }
   },
 
@@ -6154,12 +6153,7 @@ function AddKeywordForSearchField() {
 }
 
 function SwitchDocumentDirection(aWindow) {
-  
-  if (aWindow.document.dir == "ltr" || aWindow.document.dir == "") {
-    aWindow.document.dir = "rtl";
-  } else if (aWindow.document.dir == "rtl") {
-    aWindow.document.dir = "ltr";
-  }
+  aWindow.document.dir = (aWindow.document.dir == "ltr" ? "rtl" : "ltr");
   for (var run = 0; run < aWindow.frames.length; run++)
     SwitchDocumentDirection(aWindow.frames[run]);
 }
@@ -6233,8 +6227,7 @@ function isTabEmpty(aTab) {
   if (!isBlankPageURL(browser.currentURI.spec))
     return false;
 
-  
-  if (!gMultiProcessBrowser && browser.contentWindow.opener)
+  if (browser.contentWindow.opener)
     return false;
 
   if (browser.sessionHistory && browser.sessionHistory.count >= 2)
@@ -6775,9 +6768,7 @@ let gPrivateBrowsingUI = {
       }
     }
 
-    if (gURLBar &&
-        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
-      
+    if (gURLBar) {
       
       gURLBar.setAttribute("autocompletesearchparam", "");
     }
@@ -6802,9 +6793,8 @@ function switchToTabHavingURI(aURI, aOpenNew) {
   function switchIfURIInWindow(aWindow) {
     
     
-    if ((PrivateBrowsingUtils.isWindowPrivate(window) ||
-        PrivateBrowsingUtils.isWindowPrivate(aWindow)) &&
-        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
+    if (PrivateBrowsingUtils.isWindowPrivate(window) ||
+        PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       return false;
     }
 
