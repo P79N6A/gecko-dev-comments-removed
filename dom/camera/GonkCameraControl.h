@@ -24,6 +24,7 @@
 #include "DOMCameraControl.h"
 #include "CameraControlImpl.h"
 #include "CameraCommon.h"
+#include "GonkRecorder.h"
 
 namespace mozilla {
 
@@ -47,6 +48,9 @@ public:
   void SetParameter(uint32_t aKey, const nsTArray<dom::CameraRegion>& aRegions);
   nsresult PushParameters();
 
+  nsresult SetupRecording(int aFd);
+  nsresult SetupVideoMode();
+
   void AutoFocusComplete(bool aSuccess);
   void TakePictureComplete(uint8_t* aData, uint32_t aLength);
 
@@ -56,12 +60,14 @@ protected:
   nsresult GetPreviewStreamImpl(GetPreviewStreamTask* aGetPreviewStream);
   nsresult StartPreviewImpl(StartPreviewTask* aStartPreview);
   nsresult StopPreviewImpl(StopPreviewTask* aStopPreview);
+  nsresult StopPreviewInternal(bool aForced = false);
   nsresult AutoFocusImpl(AutoFocusTask* aAutoFocus);
   nsresult TakePictureImpl(TakePictureTask* aTakePicture);
   nsresult StartRecordingImpl(StartRecordingTask* aStartRecording);
   nsresult StopRecordingImpl(StopRecordingTask* aStopRecording);
   nsresult PushParametersImpl();
   nsresult PullParametersImpl();
+  nsresult GetPreviewStreamVideoModeImpl(GetPreviewStreamVideoModeTask* aGetPreviewStreamVideoMode);
 
   void SetPreviewSize(uint32_t aWidth, uint32_t aHeight);
 
@@ -83,6 +89,27 @@ protected:
 
   uint32_t                  mFps;
   uint32_t                  mDiscardedFrameCount;
+
+  android::MediaProfiles*   mMediaProfiles;
+  android::GonkRecorder*    mRecorder;
+
+  PRUint32                  mVideoRotation;
+  PRUint32                  mVideoWidth;
+  PRUint32                  mVideoHeight;
+  nsString                  mVideoFile;
+
+  
+  int mDuration;        
+  int mVideoFileFormat; 
+  int mVideoCodec;      
+  int mVideoBitRate;    
+  int mVideoFrameRate;  
+  int mVideoFrameWidth; 
+  int mVideoFrameHeight;
+  int mAudioCodec;      
+  int mAudioBitRate;    
+  int mAudioSampleRate; 
+  int mAudioChannels;   
 
 private:
   nsGonkCameraControl(const nsGonkCameraControl&) MOZ_DELETE;
