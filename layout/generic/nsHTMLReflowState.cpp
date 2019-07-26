@@ -831,6 +831,17 @@ nsHTMLReflowState::ComputeRelativeOffsets(uint8_t aCBDirection,
     
     aComputedOffsets.bottom = -aComputedOffsets.top;
   }
+
+  
+  FrameProperties props = aFrame->Properties();
+  nsMargin* offsets = static_cast<nsMargin*>
+    (props.Get(nsIFrame::ComputedOffsetProperty()));
+  if (offsets) {
+    *offsets = aComputedOffsets;
+  } else {
+    props.Set(nsIFrame::ComputedOffsetProperty(),
+              new nsMargin(aComputedOffsets));
+  }
 }
 
  void
