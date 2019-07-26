@@ -331,21 +331,11 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
 
   
   if (display->IsRelativelyPositionedStyle()) {
-    switch (display->mDisplay) {
-      case NS_STYLE_DISPLAY_TABLE_CAPTION:
-      case NS_STYLE_DISPLAY_TABLE_CELL:
-      case NS_STYLE_DISPLAY_TABLE_ROW:
-      case NS_STYLE_DISPLAY_TABLE_ROW_GROUP:
-      case NS_STYLE_DISPLAY_TABLE_HEADER_GROUP:
-      case NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP:
-      case NS_STYLE_DISPLAY_TABLE_COLUMN:
-      case NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP:
-        
-        
-        
-        return true;
-      default:
-        break;
+    if (display->IsInnerTableStyle()) {
+      
+      
+      
+      return true;
     }
 
 
