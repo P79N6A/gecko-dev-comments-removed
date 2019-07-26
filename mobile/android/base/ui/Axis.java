@@ -344,7 +344,8 @@ abstract class Axis {
         
         
         
-        if (getOverScrollMode() == View.OVER_SCROLL_NEVER) {
+        
+        if (getOverScrollMode() == View.OVER_SCROLL_NEVER && !mSubscroller.scrolling()) {
             if (mDisplacement + getOrigin() < getPageStart()) {
                 mDisplacement = getPageStart() - getOrigin();
                 stopFling();
