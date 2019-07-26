@@ -739,9 +739,9 @@ File.openUnique = function openUnique(path, options) {
 
 
 
-File.stat = function stat(path) {
+File.stat = function stat(path, options) {
   return Scheduler.post(
-    "stat", [Type.path.toMsg(path)],
+    "stat", [Type.path.toMsg(path), options],
     path).then(File.Info.fromMsg);
 };
 
@@ -847,6 +847,24 @@ File.move = function move(sourcePath, destPath, options) {
   return Scheduler.post("move", [Type.path.toMsg(sourcePath),
     Type.path.toMsg(destPath), options], [sourcePath, destPath]);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+if (!SharedAll.Constants.Win) {
+  File.unixSymLink = function unixSymLink(sourcePath, destPath) {
+    return Scheduler.post("unixSymLink", [Type.path.toMsg(sourcePath),
+      Type.path.toMsg(destPath)], [sourcePath, destPath]);
+  };
+}
 
 
 
