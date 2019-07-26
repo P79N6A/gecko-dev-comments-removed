@@ -1150,6 +1150,57 @@ BaselineCompiler::emitCompare()
 }
 
 bool
+BaselineCompiler::emit_JSOP_STRICTEQ()
+{
+    return emitCompare();
+}
+
+bool
+BaselineCompiler::emit_JSOP_STRICTNE()
+{
+    return emitCompare();
+}
+
+bool
+BaselineCompiler::emit_JSOP_CONDSWITCH()
+{
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_CASE()
+{
+    frame.popRegsAndSync(2);
+    frame.push(R0);
+    frame.syncStack(0);
+
+    
+    ICCompare_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
+        return false;
+
+    Register payload = masm.extractInt32(R0, R0.scratchReg());
+
+    jsbytecode *target = pc + GET_JUMP_OFFSET(pc);
+    masm.branch32(Assembler::NotEqual, payload, Imm32(0), labelOf(target));
+
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_DEFAULT()
+{
+    frame.pop();
+    return emit_JSOP_GOTO();
+}
+
+bool
+BaselineCompiler::emit_JSOP_LINENO()
+{
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_NEWARRAY()
 {
     frame.syncStack(0);
