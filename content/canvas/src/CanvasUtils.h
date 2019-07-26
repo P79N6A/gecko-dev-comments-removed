@@ -49,18 +49,6 @@ void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
 
 bool CoerceDouble(jsval v, double* d);
 
-
-
-bool JSValToMatrix(JSContext* cx, const jsval& val,
-                   gfxMatrix* matrix, nsresult* rv);
-bool JSValToMatrix(JSContext* cx, const jsval& val,
-                   gfx::Matrix* matrix, nsresult* rv);
-
-nsresult MatrixToJSVal(const gfxMatrix& matrix,
-                       JSContext* cx, jsval* val);
-nsresult MatrixToJSVal(const gfx::Matrix& matrix,
-                       JSContext* cx, jsval* val);
-
     
 #define VALIDATE(_f)  if (!NS_finite(_f)) return false
 
