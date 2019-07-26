@@ -1613,7 +1613,7 @@ class LTruncateDToInt32 : public LInstructionHelper<1, 1, 1>
 
 
 
-class LIntToString : public LCallInstructionHelper<1, 1, 0>
+class LIntToString : public LInstructionHelper<1, 1, 0>
 {
   public:
     LIR_HEADER(IntToString);
