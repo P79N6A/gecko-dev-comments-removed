@@ -43,8 +43,7 @@ var ConsoleObserver = {
         
         gBrowser.removeTab(tab, {animate: false});
         
-        window.QueryInterface(Ci.nsIInterfaceRequestor)
-              .getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
+        SpecialPowers.DOMWindowUtils.garbageCollect();
         
         
         executeSoon(function () {
