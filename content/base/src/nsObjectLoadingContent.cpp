@@ -3098,7 +3098,7 @@ nsObjectLoadingContent::TeardownProtoChain()
 
   
   
-  JSContext *cx = nsContentUtils::GetSafeJSContext();
+  AutoSafeJSContext cx;
   JS::Rooted<JSObject*> obj(cx, thisContent->GetWrapper());
   NS_ENSURE_TRUE(obj, );
 
