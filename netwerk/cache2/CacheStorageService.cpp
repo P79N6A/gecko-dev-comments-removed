@@ -290,7 +290,7 @@ private:
       static_cast<WalkMemoryCacheRunnable*>(aClosure);
 
     
-    if (aEntry->IsUsingDiskLocked())
+    if (aEntry->IsUsingDisk())
       return PL_DHASH_NEXT;
 
     walker->mSize += aEntry->GetMetadataMemoryConsumption();
@@ -1293,15 +1293,21 @@ CacheStorageService::AddStorageEntry(nsCSubstring const& aContextKey,
     if (!sGlobalEntryTables->Get(aContextKey, &entries)) {
       entries = new CacheEntryTable(CacheEntryTable::ALL_ENTRIES);
       sGlobalEntryTables->Put(aContextKey, entries);
-      LOG(("  new storage entries table for context %s", aContextKey.BeginReading()));
+      LOG(("  new storage entries table for context '%s'", aContextKey.BeginReading()));
     }
 
     bool entryExists = entries->Get(entryKey, getter_AddRefs(entry));
 
-    
-    if (entryExists && entry->IsFileDoomed() && !aReplace) {
-      LOG(("  file already doomed, replacing the entry"));
-      aReplace = true;
+    if (entryExists && !aReplace) {
+      
+      
+      if (MOZ_UNLIKELY(entry->IsFileDoomed())) {
+        LOG(("  file already doomed, replacing the entry"));
+        aReplace = true;
+      } else if (MOZ_UNLIKELY(!aWriteToDisk) && MOZ_LIKELY(entry->IsUsingDisk())) {
+        LOG(("  entry is persistnet but we want mem-only, replacing it"));
+        aReplace = true;
+      }
     }
 
     
@@ -1316,10 +1322,6 @@ CacheStorageService::AddStorageEntry(nsCSubstring const& aContextKey,
 
       entry = nullptr;
       entryExists = false;
-    }
-
-    if (entryExists && entry->SetUsingDisk(aWriteToDisk)) {
-      RecordMemoryOnlyEntry(entry, !aWriteToDisk, true );
     }
 
     
@@ -1472,17 +1474,17 @@ CacheStorageService::DoomStorageEntry(CacheStorage const* aStorage,
     CacheEntryTable* entries;
     if (sGlobalEntryTables->Get(contextKey, &entries)) {
       if (entries->Get(entryKey, getter_AddRefs(entry))) {
-        if (aStorage->WriteToDisk() || !entry->IsUsingDiskLocked()) {
+        if (aStorage->WriteToDisk() || !entry->IsUsingDisk()) {
           
           
           LOG(("  purging entry %p for %s [storage use disk=%d, entry use disk=%d]",
-            entry.get(), entryKey.get(), aStorage->WriteToDisk(), entry->IsUsingDiskLocked()));
+            entry.get(), entryKey.get(), aStorage->WriteToDisk(), entry->IsUsingDisk()));
           entries->Remove(entryKey);
         }
         else {
           
           LOG(("  leaving entry %p for %s [storage use disk=%d, entry use disk=%d]",
-            entry.get(), entryKey.get(), aStorage->WriteToDisk(), entry->IsUsingDiskLocked()));
+            entry.get(), entryKey.get(), aStorage->WriteToDisk(), entry->IsUsingDisk()));
           entry = nullptr;
         }
       }
@@ -1791,7 +1793,7 @@ size_t CollectEntryMemory(nsACString const & aKey,
   
   
   
-  if (aTable->Type() == CacheEntryTable::MEMORY_ONLY || aEntry->IsUsingDiskLocked())
+  if (aTable->Type() == CacheEntryTable::MEMORY_ONLY || aEntry->IsUsingDisk())
     n += aEntry->SizeOfIncludingThis(mallocSizeOf);
 
   return n;

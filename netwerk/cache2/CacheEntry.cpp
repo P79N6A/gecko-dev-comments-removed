@@ -312,14 +312,30 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
   nsAutoCString fileKey;
   rv = HashingKeyWithStorage(fileKey);
 
-  if (!aTruncate && NS_SUCCEEDED(rv)) {
+  
+  
+  
+  
+  
+  
+  if ((!aTruncate || !mUseDisk) && NS_SUCCEEDED(rv)) {
     
     
     CacheIndex::EntryStatus status;
-    if (NS_SUCCEEDED(CacheIndex::HasEntry(fileKey, &status)) &&
-        status == CacheIndex::DOES_NOT_EXIST) {
-      LOG(("  entry doesn't exist according information from the index, truncating"));
-      aTruncate = true;
+    if (NS_SUCCEEDED(CacheIndex::HasEntry(fileKey, &status))) {
+      switch (status) {
+      case CacheIndex::DOES_NOT_EXIST:
+        LOG(("  entry doesn't exist according information from the index, truncating"));
+        aTruncate = true;
+        break;
+      case CacheIndex::EXISTS:
+      case CacheIndex::DO_NOT_KNOW:
+        if (!mUseDisk) {
+          LOG(("  entry open as memory-only, but there is (status=%d) a file, dooming it", status));
+          CacheFileIOManager::DoomFileByKey(fileKey, nullptr);
+        }
+        break;
+      }
     }
   }
 
@@ -838,30 +854,6 @@ void CacheEntry::OnOutputClosed()
 
   mozilla::MutexAutoLock lock(mLock);
   InvokeCallbacks();
-}
-
-bool CacheEntry::IsUsingDiskLocked() const
-{
-  CacheStorageService::Self()->Lock().AssertCurrentThreadOwns();
-
-  return IsUsingDisk();
-}
-
-bool CacheEntry::SetUsingDisk(bool aUsingDisk)
-{
-  
-  
-
-  if (mState >= READY) {
-    
-    return false;
-  }
-
-  CacheStorageService::Self()->Lock().AssertCurrentThreadOwns();
-
-  bool changed = mUseDisk != aUsingDisk;
-  mUseDisk = aUsingDisk;
-  return changed;
 }
 
 bool CacheEntry::IsReferenced() const

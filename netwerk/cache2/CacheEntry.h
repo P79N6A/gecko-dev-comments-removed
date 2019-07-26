@@ -68,8 +68,6 @@ public:
   nsCString const &GetEnhanceID() const { return mEnhanceID; }
   nsIURI* GetURI() const { return mURI; }
   
-  bool IsUsingDiskLocked() const;
-  
   bool IsUsingDisk() const { return mUseDisk; }
   bool SetUsingDisk(bool aUsingDisk);
   bool IsReferenced() const;
@@ -265,9 +263,7 @@ private:
   nsCString mStorageID;
 
   
-  
-  
-  bool mUseDisk;
+  bool const mUseDisk;
 
   
   
