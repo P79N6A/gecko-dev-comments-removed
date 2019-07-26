@@ -38,8 +38,22 @@ ComputeUTCTime(time_t t, struct tm *ptm)
 #endif
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static int32_t
-LocalUTCDifferenceSeconds()
+UTCToLocalStandardOffsetSeconds()
 {
     using js::SecondsPerDay;
     using js::SecondsPerHour;
@@ -97,23 +111,23 @@ LocalUTCDifferenceSeconds()
     int local_secs = local.tm_hour * SecondsPerHour + local.tm_min * SecondsPerMinute;
 
     
-    
-
     if (utc.tm_mday == local.tm_mday)
-        return utc_secs - local_secs;
+        return local_secs - utc_secs;
 
+    
     
     if (utc_secs > local_secs)
-        return utc_secs - (SecondsPerDay + local_secs);
+        return (SecondsPerDay + local_secs) - utc_secs;
 
     
-    return (utc_secs + SecondsPerDay) - local_secs;
+    
+    return local_secs - (utc_secs + SecondsPerDay);
 }
 
 void
 js::DateTimeInfo::updateTimeZoneAdjustment()
 {
-    double newTZA = -(LocalUTCDifferenceSeconds() * msPerSecond);
+    double newTZA = UTCToLocalStandardOffsetSeconds() * msPerSecond;
     if (newTZA == localTZA_)
         return;
 
@@ -154,10 +168,8 @@ js::DateTimeInfo::computeDSTOffsetMilliseconds(int64_t localTimeSeconds)
 
 #if defined(XP_WIN)
     
-
-
-
-
+    
+    
     _tzset();
 #endif
 
@@ -165,11 +177,10 @@ js::DateTimeInfo::computeDSTOffsetMilliseconds(int64_t localTimeSeconds)
     if (!ComputeLocalTime(static_cast<time_t>(localTimeSeconds), &tm))
         return 0;
 
-    int32_t base = LocalUTCDifferenceSeconds();
+    int32_t utcToLocalOffsetSeconds = UTCToLocalStandardOffsetSeconds();
 
-    int32_t dayoff = int32_t((localTimeSeconds - base) % (SecondsPerHour * 24));
-    int32_t tmoff = tm.tm_sec + (tm.tm_min * SecondsPerMinute) +
-        (tm.tm_hour * SecondsPerHour);
+    int32_t dayoff = int32_t((localTimeSeconds + utcToLocalOffsetSeconds) % SecondsPerDay);
+    int32_t tmoff = tm.tm_sec + (tm.tm_min * SecondsPerMinute) + (tm.tm_hour * SecondsPerHour);
 
     int32_t diff = tmoff - dayoff;
 
