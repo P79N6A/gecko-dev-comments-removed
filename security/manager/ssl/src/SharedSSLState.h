@@ -11,8 +11,6 @@
 #include "nsNSSIOLayer.h"
 
 class nsClientAuthRememberService;
-class nsIRecentBadCertsService;
-class nsICertOverrideService;
 class nsIObserver;
 
 namespace mozilla {
@@ -22,6 +20,7 @@ class SharedSSLState {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SharedSSLState)
   SharedSSLState();
+  ~SharedSSLState();
 
   static void GlobalInit();
   static void GlobalCleanup();
@@ -34,8 +33,15 @@ public:
     return mIOLayerHelpers;
   }
 
+  
   void ResetStoredData();
   void NotePrivateBrowsingStatus();
+
+  
+  bool SocketCreated();
+  void NoteSocketCreated();
+  static void NoteCertOverrideServiceInstantiated();
+  static void NoteCertDBServiceInstantiated();
 
 private:
   void Cleanup();
@@ -43,6 +49,12 @@ private:
   nsCOMPtr<nsIObserver> mObserver;
   RefPtr<nsClientAuthRememberService> mClientAuthRemember;
   nsSSLIOLayerHelpers mIOLayerHelpers;
+
+  
+  
+  
+  Mutex mMutex;
+  bool mSocketCreated;
 };
 
 SharedSSLState* PublicSSLState();
