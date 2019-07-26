@@ -142,8 +142,8 @@ window.addEventListener('ContentStart', function() {
 
   
   if (scale !== 1) {
-    browser.style.MozTransformOrigin = 'top left';
-    browser.style.MozTransform = 'scale(' + scale + ',' + scale + ')';
+    browser.style.transformOrigin = 'top left';
+    browser.style.transform = 'scale(' + scale + ',' + scale + ')';
   }
 
   
