@@ -2512,7 +2512,7 @@ ContentParent::RecvShowFilePicker(const int16_t& mode,
     filePicker->GetFile(getter_AddRefs(file));
 
     
-    if (file) {                                 
+    if (file) {
         nsAutoString filePath;
         file->GetPath(filePath);
         files->AppendElement(filePath);
@@ -2526,6 +2526,9 @@ ContentParent::RecvGetRandomValues(const uint32_t& length,
                                    InfallibleTArray<uint8_t>* randomValues)
 {
     uint8_t* buf = Crypto::GetRandomValues(length);
+    if (!buf) {
+        return true;
+    }
 
     randomValues->SetCapacity(length);
     randomValues->SetLength(length);
