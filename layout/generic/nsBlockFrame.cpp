@@ -2514,7 +2514,7 @@ nsBlockFrame::PullFrame(nsBlockReflowState& aState,
 {
   
   if (end_lines() != aLine.next()) {
-    return PullFrameFrom(aState, aLine, this, aLine.next());
+    return PullFrameFrom(aLine, this, aLine.next());
   }
 
   NS_ASSERTION(!GetOverflowLines(),
@@ -2527,8 +2527,7 @@ nsBlockFrame::PullFrame(nsBlockReflowState& aState,
       nextInFlow->DrainSelfOverflowList();
     }
     if (!nextInFlow->mLines.empty()) {
-      return PullFrameFrom(aState, aLine, nextInFlow,
-                           nextInFlow->mLines.begin());
+      return PullFrameFrom(aLine, nextInFlow, nextInFlow->mLines.begin());
     }
     nextInFlow = static_cast<nsBlockFrame*>(nextInFlow->GetNextInFlow());
     aState.mNextInFlow = nextInFlow;
@@ -2538,8 +2537,7 @@ nsBlockFrame::PullFrame(nsBlockReflowState& aState,
 }
 
 nsIFrame*
-nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
-                            nsLineBox*           aLine,
+nsBlockFrame::PullFrameFrom(nsLineBox*           aLine,
                             nsBlockFrame*        aFromContainer,
                             nsLineList::iterator aFromLine)
 {
@@ -2562,10 +2560,9 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
   nsIFrame* newFirstChild = frame->GetNextSibling();
 
   if (aFromContainer != this) {
-    NS_ASSERTION(aState.mPrevChild == aLine->LastChild(),
-      "mPrevChild should be the LastChild of the line we are adding to");
     
     
+    MOZ_ASSERT(aLine == mLines.back());
     MOZ_ASSERT(aFromLine == aFromContainer->mLines.begin(),
                "should only pull from first line");
     aFromContainer->mFrames.RemoveFrame(frame);
@@ -2573,14 +2570,15 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
     
     
     ReparentFrame(frame, aFromContainer, this);
-    mFrames.InsertFrame(nullptr, aState.mPrevChild, frame);
+    mFrames.AppendFrame(nullptr, frame);
 
     
     
     ReparentFloats(frame, aFromContainer, true);
+  } else {
+    MOZ_ASSERT(aLine == aFromLine.prev());
   }
-  
-  
+
   aLine->NoteFrameAdded(frame);
   fromLine->NoteFrameRemoved(frame);
 
