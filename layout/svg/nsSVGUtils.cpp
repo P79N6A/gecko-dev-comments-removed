@@ -679,10 +679,14 @@ nsSVGUtils::HitTestClip(nsIFrame *aFrame, const nsPoint &aPoint)
 
   bool isOK = true;
   nsSVGClipPathFrame *clipPathFrame = props.GetClipPathFrame(&isOK);
-  if (!clipPathFrame || !isOK) {
+  if (!isOK) {
     
     
     return false;
+  }
+  if (!clipPathFrame) {
+    
+    return true;
   }
 
   return clipPathFrame->ClipHitTest(aFrame, GetCanvasTM(aFrame,
