@@ -2328,6 +2328,28 @@ let RIL = {
       this.sendDOMMessage(options);
     }).bind(this);
 
+    function _isValidPINPUKRequest() {
+      
+      
+      if (!mmi.procedure || mmi.procedure != MMI_PROCEDURE_REGISTRATION ) {
+        _sendMMIError("WRONG_MMI_PROCEDURE");
+        return;
+      }
+
+      if (!mmi.sia || !mmi.sia.length || !mmi.sib || !mmi.sib.length ||
+          !mmi.sic || !mmi.sic.length) {
+        _sendMMIError("MISSING_SUPPLEMENTARY_INFORMATION");
+        return;
+      }
+
+      if (mmi.sib != mmi.sic) {
+        _sendMMIError("NEW_PIN_MISMATCH");
+        return;
+      }
+
+      return true;
+    }
+
     if (mmi == null) {
       if (this._ussdSession) {
         options.ussd = mmiString;
@@ -2360,11 +2382,66 @@ let RIL = {
 
       
       case MMI_SC_PIN:
+        
+        
+        
+        
+        if (!_isValidPINPUKRequest()) {
+          return;
+        }
+
+        options.rilRequestType = "sendMMI";
+        options.pin = mmi.sia;
+        options.newPin = mmi.sib;
+        this.changeICCPIN(options);
+        return;
+
+      
       case MMI_SC_PIN2:
+        
+        
+        
+        
+        if (!_isValidPINPUKRequest()) {
+          return;
+        }
+
+        options.rilRequestType = "sendMMI";
+        options.pin = mmi.sia;
+        options.newPin = mmi.sib;
+        this.changeICCPIN2(options);
+        return;
+
+      
       case MMI_SC_PUK:
+        
+        
+        
+        
+        if (!_isValidPINPUKRequest()) {
+          return;
+        }
+
+        options.rilRequestType = "sendMMI";
+        options.puk = mmi.sia;
+        options.newPin = mmi.sib;
+        this.enterICCPUK(options);
+        return;
+
+      
       case MMI_SC_PUK2:
         
-        _sendMMIError("SIM_FUNCTION_NOT_SUPPORTED_VIA_MMI");
+        
+        
+        
+        if (!_isValidPINPUKRequest()) {
+          return;
+        }
+
+        options.rilRequestType = "sendMMI";
+        options.puk = mmi.sia;
+        options.newPin = mmi.sib;
+        this.enterICCPUK2(options);
         return;
 
       
