@@ -14,6 +14,29 @@
 using namespace js;
 using namespace js::jit;
 
+LDefinition
+LIRGeneratorX86::tempForDispatchCache(MIRType outputType)
+{
+    
+    
+    
+    
+    
+    if (gen->info().executionMode() != ParallelExecution)
+        return LDefinition::BogusTemp();
+
+    
+    if (outputType == MIRType_None)
+        return temp();
+
+    
+    if (outputType == MIRType_Double)
+        return temp();
+
+    
+    return LDefinition::BogusTemp();
+}
+
 bool
 LIRGeneratorX86::useBox(LInstruction *lir, size_t n, MDefinition *mir,
                         LUse::Policy policy, bool useAtStart)
@@ -274,31 +297,4 @@ bool
 LIRGeneratorX86::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins)
 {
     return define(new LAsmJSLoadFuncPtr(useRegisterAtStart(ins->index())), ins);
-}
-
-LGetPropertyCacheT *
-LIRGeneratorX86::newLGetPropertyCacheT(MGetPropertyCache *ins)
-{
-    
-    
-    
-    LDefinition scratch;
-    if (ins->type() == MIRType_Double)
-        scratch = temp();
-    else
-        scratch = LDefinition::BogusTemp();
-    return new LGetPropertyCacheT(useRegister(ins->object()), scratch);
-}
-
-LGetElementCacheT *
-LIRGeneratorX86::newLGetElementCacheT(MGetElementCache *ins)
-{
-    LDefinition scratch;
-    if (ins->type() == MIRType_Double)
-        scratch = temp();
-    else
-        scratch = LDefinition::BogusTemp();
-    return new LGetElementCacheT(useRegister(ins->object()),
-                                 useRegister(ins->index()),
-                                 scratch);
 }
