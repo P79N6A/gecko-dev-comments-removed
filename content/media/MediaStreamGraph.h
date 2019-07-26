@@ -463,10 +463,7 @@ protected:
   bool mIsOnOrderingStack;
   
   
-  
   bool mIsConsumed;
-  
-  bool mKnowIsConsumed;
   
   
   

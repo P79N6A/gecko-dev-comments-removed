@@ -226,7 +226,7 @@ public:
   
 
 
-  static void DetermineWhetherStreamIsConsumed(MediaStream* aStream);
+  static void MarkConsumed(MediaStream* aStream);
   
 
 
@@ -883,23 +883,20 @@ MediaStreamGraphImpl::WillUnderrun(MediaStream* aStream, GraphTime aTime,
 }
 
 void
-MediaStreamGraphImpl::DetermineWhetherStreamIsConsumed(MediaStream* aStream)
+MediaStreamGraphImpl::MarkConsumed(MediaStream* aStream)
 {
-  if (aStream->mKnowIsConsumed)
-    return;
-  aStream->mKnowIsConsumed = true;
-  if (!aStream->mAudioOutputs.IsEmpty() ||
-      !aStream->mVideoOutputs.IsEmpty()) {
-    aStream->mIsConsumed = true;
+  if (aStream->mIsConsumed) {
     return;
   }
-  for (uint32_t i = 0; i < aStream->mConsumers.Length(); ++i) {
-    MediaStream* dest = aStream->mConsumers[i]->mDest;
-    DetermineWhetherStreamIsConsumed(dest);
-    if (dest->mIsConsumed) {
-      aStream->mIsConsumed = true;
-      return;
-    }
+  aStream->mIsConsumed = true;
+
+  ProcessedMediaStream* ps = aStream->AsProcessedStream();
+  if (!ps) {
+    return;
+  }
+  
+  for (uint32_t i = 0; i < ps->mInputs.Length(); ++i) {
+    MarkConsumed(ps->mInputs[i]->mSource);
   }
 }
 
@@ -917,7 +914,6 @@ MediaStreamGraphImpl::UpdateStreamOrderForStream(nsTArray<MediaStream*>* aStack,
     }
     return;
   }
-  DetermineWhetherStreamIsConsumed(stream);
   ProcessedMediaStream* ps = stream->AsProcessedStream();
   if (ps) {
     aStack->AppendElement(stream);
@@ -945,7 +941,6 @@ MediaStreamGraphImpl::UpdateStreamOrder()
   for (uint32_t i = 0; i < oldStreams.Length(); ++i) {
     MediaStream* stream = oldStreams[i];
     stream->mHasBeenOrdered = false;
-    stream->mKnowIsConsumed = false;
     stream->mIsConsumed = false;
     stream->mIsOnOrderingStack = false;
     stream->mInBlockingSet = false;
@@ -957,8 +952,12 @@ MediaStreamGraphImpl::UpdateStreamOrder()
 
   nsAutoTArray<MediaStream*,10> stack;
   for (uint32_t i = 0; i < oldStreams.Length(); ++i) {
-    if (!oldStreams[i]->mHasBeenOrdered) {
-      UpdateStreamOrderForStream(&stack, oldStreams[i].forget());
+    nsRefPtr<MediaStream>& s = oldStreams[i];
+    if (!s->mAudioOutputs.IsEmpty() || !s->mVideoOutputs.IsEmpty()) {
+      MarkConsumed(s);
+    }
+    if (!s->mHasBeenOrdered) {
+      UpdateStreamOrderForStream(&stack, s.forget());
     }
   }
 }
