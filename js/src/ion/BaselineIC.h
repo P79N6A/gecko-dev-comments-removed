@@ -679,8 +679,8 @@ class ICFallbackStub : public ICStub
         return false;
     }
 
-    void unlinkStub(ICStub *prev, ICStub *stub);
-    void unlinkStubsWithKind(ICStub::Kind kind);
+    void unlinkStub(Zone *zone, ICStub *prev, ICStub *stub);
+    void unlinkStubsWithKind(JSContext *cx, ICStub::Kind kind);
 };
 
 
@@ -1084,7 +1084,7 @@ class ICTypeMonitor_Fallback : public ICStub
     
     bool addMonitorStubForValue(JSContext *cx, HandleScript script, HandleValue val);
 
-    void resetMonitorStubChain();
+    void resetMonitorStubChain(Zone *zone);
 
     
     class Compiler : public ICStubCompiler {

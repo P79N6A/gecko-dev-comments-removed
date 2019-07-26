@@ -548,7 +548,7 @@ BaselineScript::toggleDebugTraps(UnrootedScript script, jsbytecode *pc)
 }
 
 void
-BaselineScript::purgeOptimizedStubs()
+BaselineScript::purgeOptimizedStubs(Zone *zone)
 {
     IonSpew(IonSpew_BaselineIC, "Purging optimized stubs");
 
@@ -568,7 +568,7 @@ BaselineScript::purgeOptimizedStubs()
 
             while (stub->next()) {
                 if (!stub->allocatedInFallbackSpace()) {
-                    lastStub->toFallbackStub()->unlinkStub(prev, stub);
+                    lastStub->toFallbackStub()->unlinkStub(zone, prev, stub);
                     stub = stub->next();
                     continue;
                 }
@@ -582,10 +582,10 @@ BaselineScript::purgeOptimizedStubs()
                 
                 ICTypeMonitor_Fallback *lastMonStub =
                     lastStub->toMonitoredFallbackStub()->fallbackMonitorStub();
-                lastMonStub->resetMonitorStubChain();
+                lastMonStub->resetMonitorStubChain(zone);
             }
         } else if (lastStub->isTypeMonitor_Fallback()) {
-            lastStub->toTypeMonitor_Fallback()->resetMonitorStubChain();
+            lastStub->toTypeMonitor_Fallback()->resetMonitorStubChain(zone);
         } else {
             JS_ASSERT(lastStub->isTableSwitch());
         }
@@ -618,7 +618,7 @@ ion::FinishDiscardBaselineScript(FreeOp *fop, UnrootedScript script)
     if (script->baseline->active()) {
         
         
-        script->baseline->purgeOptimizedStubs();
+        script->baseline->purgeOptimizedStubs(script->zone());
 
         
         
