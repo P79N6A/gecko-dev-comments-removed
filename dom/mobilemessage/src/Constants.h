@@ -12,6 +12,7 @@ namespace mobilemessage {
 
 
 extern const char* kSmsReceivedObserverTopic;
+extern const char* kSmsRetrievingObserverTopic;
 extern const char* kSmsSendingObserverTopic;
 extern const char* kSmsSentObserverTopic;
 extern const char* kSmsFailedObserverTopic;

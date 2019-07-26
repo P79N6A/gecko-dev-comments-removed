@@ -28,6 +28,7 @@ const kSmsSendingObserverTopic           = "sms-sending";
 const kSmsSentObserverTopic              = "sms-sent";
 const kSmsFailedObserverTopic            = "sms-failed";
 const kSmsReceivedObserverTopic          = "sms-received";
+const kSmsRetrievingObserverTopic        = "sms-retrieving";
 
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
 const kXpcomShutdownObserverTopic        = "xpcom-shutdown";
@@ -1045,12 +1046,14 @@ MmsService.prototype = {
 
 
 
-  retrieveMessage: function retrieveMessage(contentLocation, callback) {
-    
-    
 
-    let transaction = new RetrieveTransaction(contentLocation);
-    transaction.run(callback);
+
+  retrieveMessage: function retrieveMessage(aContentLocation, aCallback, aDomMessage) {
+    
+    Services.obs.notifyObservers(aDomMessage, kSmsRetrievingObserverTopic, null);
+
+    let transaction = new RetrieveTransaction(aContentLocation);
+    transaction.run(aCallback);
   },
 
   
@@ -1275,7 +1278,8 @@ MmsService.prototype = {
         .saveReceivedMessage(savableMessage,
                              this.saveReceivedMessageCallback.bind(this,
                                                                    retrievalMode,
-                                                                   savableMessage));
+                                                                   savableMessage),
+                             domMessage);
     }).bind(this));
   },
 
