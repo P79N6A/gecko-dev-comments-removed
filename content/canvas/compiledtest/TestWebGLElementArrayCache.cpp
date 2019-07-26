@@ -128,7 +128,12 @@ int main(int argc, char *argv[])
   WebGLElementArrayCache b;
 
   for (int maxBufferSize = 1; maxBufferSize <= 4096; maxBufferSize *= 2) {
-    int repeat = std::min(maxBufferSize, 20);
+    
+    
+    
+    
+    
+    int repeat = std::min(maxBufferSize, 64);
     for (int i = 0; i < repeat; i++) {
       size_t size = RandomInteger<size_t>(1, maxBufferSize);
       MakeRandomVector(v, size);
