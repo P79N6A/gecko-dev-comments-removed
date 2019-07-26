@@ -17,6 +17,7 @@
 
 #include "prlog.h"
 #include <stdio.h>
+#include <cstdlib> 
 
 #include <intrin.h>
 
