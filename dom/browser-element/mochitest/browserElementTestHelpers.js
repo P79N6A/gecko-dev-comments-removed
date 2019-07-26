@@ -65,14 +65,6 @@ const browserElementTestHelpers = {
     return this._setBoolPref("dom.ipc.browser_frames.oop_by_default", value);
   },
 
-  getIPCSecurityDisabledPref: function() {
-    return this._getBoolPref("network.disable.ipc.security");
-  },
-
-  setIPCSecurityDisabledPref: function(value) {
-    return this._setBoolPref("network.disable.ipc.security", value);
-  },
-
   getPageThumbsEnabledPref: function() {
     return this._getBoolPref('browser.pageThumbs.enabled');
   },
@@ -102,7 +94,6 @@ const browserElementTestHelpers = {
     this.setOOPDisabledPref(this.origOOPDisabledPref);
     this.setOOPByDefaultPref(this.origOOPByDefaultPref);
     this.setPageThumbsEnabledPref(this.origPageThumbsEnabledPref);
-    this.setIPCSecurityDisabledPref(this.origIPCSecurityPref);
     this.removeAllTempPermissions();
   },
 
@@ -110,7 +101,6 @@ const browserElementTestHelpers = {
   'origOOPDisabledPref': null,
   'origOOPByDefaultPref': null,
   'origPageThumbsEnabledPref': null,
-  'origIPCSecurityPref': null,
   'tempPermissions': [],
 
   
@@ -132,7 +122,6 @@ browserElementTestHelpers.origEnabledPref = browserElementTestHelpers.getEnabled
 browserElementTestHelpers.origOOPDisabledPref = browserElementTestHelpers.getOOPDisabledPref();
 browserElementTestHelpers.origOOPByDefaultPref = browserElementTestHelpers.getOOPByDefaultPref();
 browserElementTestHelpers.origPageThumbsEnabledPref = browserElementTestHelpers.getPageThumbsEnabledPref();
-browserElementTestHelpers.origIPCSecurityPref = browserElementTestHelpers.getIPCSecurityDisabledPref();
 
 
 browserElementTestHelpers.setPageThumbsEnabledPref(false);
@@ -143,10 +132,6 @@ browserElementTestHelpers.setPageThumbsEnabledPref(false);
 var oop = location.pathname.indexOf('_inproc_') == -1;
 browserElementTestHelpers.setOOPByDefaultPref(oop);
 browserElementTestHelpers.setOOPDisabledPref(false);
-
-
-
-browserElementTestHelpers.setIPCSecurityDisabledPref(true);
 
 addEventListener('unload', function() {
   browserElementTestHelpers.restoreOriginalPrefs();

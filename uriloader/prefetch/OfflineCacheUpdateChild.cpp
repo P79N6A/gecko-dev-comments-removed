@@ -435,6 +435,7 @@ OfflineCacheUpdateChild::Schedule()
     
     
     child->SendPOfflineCacheUpdateConstructor(this, manifestURI, documentURI,
+                                              mInBrowser, mAppID,
                                               stickDocument);
 
     mIPCActivated = true;

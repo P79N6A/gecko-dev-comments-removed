@@ -37,26 +37,15 @@ let (ios = Components.classes["@mozilla.org/network/io-service;1"]
 }
 
 
-let runningInParent = true;
 try {
-  runningInParent = Components.classes["@mozilla.org/xre/runtime;1"].
-                    getService(Components.interfaces.nsIXULRuntime).processType
-                    == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
-} 
-catch (e) { }
-
-try {
-  if (runningInParent) {
-    let prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefBranch);
-
-    
-    
-    prefs.setBoolPref("network.disable.ipc.security", true);
-
-    
-    if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
-      prefs.setCharPref("network.dns.ipv4OnlyDomains", "localhost");
+  if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
+    let processType = Components.classes["@mozilla.org/xre/runtime;1"].
+      getService(Components.interfaces.nsIXULRuntime).processType;
+    if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+      let (prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                   .getService(Components.interfaces.nsIPrefBranch)) {
+        prefs.setCharPref("network.dns.ipv4OnlyDomains", "localhost");
+      }
     }
   }
 }
@@ -68,7 +57,9 @@ catch (e) { }
 
 
 try { 
-  if (runningInParent &&
+  let processType = Components.classes["@mozilla.org/xre/runtime;1"].
+    getService(Components.interfaces.nsIXULRuntime).processType;
+  if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT &&
       "@mozilla.org/toolkit/crash-reporter;1" in Components.classes) {
     
     
@@ -809,7 +800,11 @@ function do_get_profile() {
 function do_load_child_test_harness()
 {
   
-  if (!runningInParent) {
+  var runtime = Components.classes["@mozilla.org/xre/app-info;1"]
+                  .getService(Components.interfaces.nsIXULRuntime);
+  if (runtime.processType != 
+            Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) 
+  {
     do_throw("run_test_in_child cannot be called from child!");
   }
 
