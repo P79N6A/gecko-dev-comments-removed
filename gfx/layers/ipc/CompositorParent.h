@@ -133,12 +133,6 @@ public:
 
 
 
-  void ScheduleRotationOnCompositorThread(const TargetConfig& aTargetConfig, bool aIsFirstPaint);
-
-  
-
-
-
   uint64_t RootLayerTreeId();
 
   
