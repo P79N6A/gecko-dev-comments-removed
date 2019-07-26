@@ -212,7 +212,7 @@ abstract class Axis {
 
 
 
-    private boolean scrollable() {
+    boolean scrollable() {
         
         
         if (mSubscroller.scrolling()) {
