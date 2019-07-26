@@ -534,6 +534,9 @@ pref("ui.click_hold_context_menus.delay", 750);
 pref("device.storage.enabled", true);
 
 
+pref("dom.webapps.useCurrentProfile", true);
+
+
 pref("dom.sysmsg.enabled", true);
 pref("media.plugins.enabled", false);
 pref("media.omx.enabled", true);

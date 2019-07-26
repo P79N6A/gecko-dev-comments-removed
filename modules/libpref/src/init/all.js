@@ -782,6 +782,9 @@ pref("dom.forms.color", false);
 pref("dom.sysmsg.enabled", false);
 
 
+pref("dom.webapps.useCurrentProfile", false);
+
+
 #ifndef XP_WIN
 pref("content.sink.pending_event_mode", 0);
 #endif

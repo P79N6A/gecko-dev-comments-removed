@@ -32,12 +32,12 @@ function debug(aMsg) {
   
 }
 
-let cachedSysMsgPref = null;
+function supportUseCurrentProfile() {
+  return Services.prefs.getBoolPref("dom.webapps.useCurrentProfile");
+}
+
 function supportSystemMessages() {
-  if (cachedSysMsgPref === null) {
-    cachedSysMsgPref = Services.prefs.getBoolPref("dom.sysmsg.enabled");
-  }
-  return cachedSysMsgPref;
+  return Services.prefs.getBoolPref("dom.sysmsg.enabled");
 }
 
 
@@ -266,18 +266,18 @@ this.DOMApplicationRegistry = {
     
     
     
-#ifdef MOZ_B2G
-    this._readManifests([{ id: aId }], (function(aResult) {
-      let data = aResult[0];
-      PermissionsInstaller.installPermissions({
-        manifest: data.manifest,
-        manifestURL: this.webapps[aId].manifestURL,
-        origin: this.webapps[aId].origin
-      }, true, function() {
-        debug("Error installing permissions for " + aId);
-      });
-    }).bind(this));
-#endif
+    if (supportUseCurrentProfile()) {
+      this._readManifests([{ id: aId }], (function(aResult) {
+        let data = aResult[0];
+        PermissionsInstaller.installPermissions({
+          manifest: data.manifest,
+          manifestURL: this.webapps[aId].manifestURL,
+          origin: this.webapps[aId].origin
+        }, true, function() {
+          debug("Error installing permissions for " + aId);
+        });
+      }).bind(this));
+    }
   },
 
   updateOfflineCacheForApp: function updateOfflineCacheForApp(aId) {
@@ -1252,13 +1252,14 @@ this.DOMApplicationRegistry = {
         this._saveApps((function() {
           
           this.updateAppHandlers(aOldManifest, aData, app);
-#ifdef MOZ_B2G
-          PermissionsInstaller.installPermissions(
-            { manifest: aData,
-              origin: app.origin,
-              manifestURL: app.manifestURL },
-            true);
-#endif
+          if (supportUseCurrentProfile()) {
+            PermissionsInstaller.installPermissions(
+              { manifest: aData,
+                origin: app.origin,
+                manifestURL: app.manifestURL },
+              true);
+          }
+
           this.broadcastMessage("Webapps:PackageEvent",
                                 { type: "applied",
                                   manifestURL: app.manifestURL,
@@ -1479,14 +1480,15 @@ this.DOMApplicationRegistry = {
         this._writeFile(manFile, JSON.stringify(aNewManifest), function() { });
         manifest = new ManifestHelper(aNewManifest, app.origin);
 
-#ifdef MOZ_B2G
-        
-        PermissionsInstaller.installPermissions({
-          manifest: app.manifest,
-          origin: app.origin,
-          manifestURL: aData.manifestURL
-        }, true);
-#endif
+        if (supportUseCurrentProfile()) {
+          
+          PermissionsInstaller.installPermissions({
+            manifest: app.manifest,
+            origin: app.origin,
+            manifestURL: aData.manifestURL
+          }, true);
+        }
+
         app.name = manifest.name;
         app.csp = manifest.csp || "";
         app.updateTime = Date.now();
@@ -2030,14 +2032,14 @@ this.DOMApplicationRegistry = {
     
     
     if (!aData.isPackage) {
-#ifdef MOZ_B2G
-      PermissionsInstaller.installPermissions({ origin: appObject.origin,
-                                                manifestURL: appObject.manifestURL,
-                                                manifest: jsonManifest },
-                                              isReinstall, (function() {
-        this.uninstall(aData, aData.mm);
-      }).bind(this));
-#endif
+      if (supportUseCurrentProfile()) {
+        PermissionsInstaller.installPermissions({ origin: appObject.origin,
+                                                  manifestURL: appObject.manifestURL,
+                                                  manifest: jsonManifest },
+                                                isReinstall, (function() {
+          this.uninstall(aData, aData.mm);
+        }).bind(this));
+      }
     }
 
     ["installState", "downloadAvailable",
@@ -2095,13 +2097,13 @@ this.DOMApplicationRegistry = {
         app.downloadAvailable = false;
         this._saveApps((function() {
           this.updateAppHandlers(null, aManifest, appObject);
-#ifdef MOZ_B2G
-          
-          PermissionsInstaller.installPermissions({ manifest: aManifest,
-                                                    origin: appObject.origin,
-                                                    manifestURL: appObject.manifestURL },
-                                                  true);
-#endif
+          if (supportUseCurrentProfile()) {
+            
+            PermissionsInstaller.installPermissions({ manifest: aManifest,
+                                                      origin: appObject.origin,
+                                                      manifestURL: appObject.manifestURL },
+                                                    true);
+          }
           debug("About to fire Webapps:PackageEvent 'installed'");
           this.broadcastMessage("Webapps:PackageEvent",
                                 { type: "installed",
