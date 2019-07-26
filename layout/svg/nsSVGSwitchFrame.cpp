@@ -4,7 +4,6 @@
 
 
 
-#include "gfxMatrix.h"
 #include "gfxRect.h"
 #include "nsSVGEffects.h"
 #include "nsSVGGFrame.h"

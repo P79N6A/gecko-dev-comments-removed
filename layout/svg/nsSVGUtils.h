@@ -462,7 +462,7 @@ public:
 
 
   static bool
-  HitTestRect(const gfxMatrix &aMatrix,
+  HitTestRect(const mozilla::gfx::Matrix &aMatrix,
               float aRX, float aRY, float aRWidth, float aRHeight,
               float aX, float aY);
 
