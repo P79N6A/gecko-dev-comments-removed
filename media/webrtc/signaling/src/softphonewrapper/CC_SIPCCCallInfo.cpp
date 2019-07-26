@@ -2,6 +2,8 @@
 
 
 
+#include "CSFLogStream.h"
+
 #include "CC_Common.h"
 
 #include "CC_SIPCCCallInfo.h"
@@ -12,8 +14,6 @@ extern "C"
 #include "ccapi_call.h"
 #include "ccapi_call_info.h"
 }
-
-#include "CSFLogStream.h"
 
 static const char* logTag = "CC_SIPCCCallInfo";
 

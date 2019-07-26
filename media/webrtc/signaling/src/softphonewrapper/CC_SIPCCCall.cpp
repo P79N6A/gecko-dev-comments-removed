@@ -2,6 +2,8 @@
 
 
 
+#include "CSFLogStream.h"
+
 #include "CC_Common.h"
 
 #include "CC_SIPCCCall.h"
@@ -21,7 +23,6 @@ extern "C"
 using namespace std;
 using namespace CSF;
 
-#include "CSFLogStream.h"
 static const char* logTag = "CC_SIPCCCall";
 
 CSF_IMPLEMENT_WRAP(CC_SIPCCCall, cc_call_handle_t);

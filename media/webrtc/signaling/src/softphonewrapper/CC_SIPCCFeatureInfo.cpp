@@ -2,6 +2,8 @@
 
 
 
+#include "CSFLog.h"
+
 #include "CC_Common.h"
 
 #include "CC_SIPCCFeatureInfo.h"
@@ -15,8 +17,6 @@ extern "C"
 
 using namespace std;
 using namespace CSF;
-
-#include "CSFLog.h"
 
 CSF_IMPLEMENT_WRAP(CC_SIPCCFeatureInfo, cc_featureinfo_ref_t);
 

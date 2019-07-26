@@ -2,6 +2,8 @@
 
 
 
+#include "CSFLog.h"
+
 #include "CC_Common.h"
 
 #include "CC_SIPCCDeviceInfo.h"
@@ -21,8 +23,6 @@ extern "C"
 
 using namespace std;
 using namespace CSF;
-
-#include "CSFLog.h"
 
 #define MAX_SUPPORTED_NUM_CALLS        100
 #define MAX_SUPPORTED_NUM_LINES        100

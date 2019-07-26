@@ -2,8 +2,8 @@
 
 
 
-#include "CSFAudioControlWrapper.h"
 #include "CSFLogStream.h"
+#include "CSFAudioControlWrapper.h"
 
 static const char* logTag = "VcmSipccBinding";
 

@@ -2,6 +2,7 @@
 
 
 
+#include "CSFLog.h"
 #include "base/basictypes.h"
 #include "MediaStreamList.h"
 #ifdef MOZILLA_INTERNAL_API

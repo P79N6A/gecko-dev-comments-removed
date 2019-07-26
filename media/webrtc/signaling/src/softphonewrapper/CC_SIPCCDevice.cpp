@@ -2,6 +2,8 @@
 
 
 
+#include "CSFLogStream.h"
+
 #include "CC_Common.h"
 
 #include "CC_SIPCCDevice.h"
@@ -20,8 +22,6 @@ extern "C"
 
 using namespace std;
 using namespace CSF;
-
-#include "CSFLogStream.h"
 
 CSF_IMPLEMENT_WRAP(CC_SIPCCDevice, cc_device_handle_t);
 

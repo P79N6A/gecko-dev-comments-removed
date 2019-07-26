@@ -2,10 +2,12 @@
 
 
 
+#include "CSFLog.h"
+#include "nspr.h"
+
 #include "VideoConduit.h"
 #include "AudioConduit.h"
 #include "video_engine/include/vie_errors.h"
-#include "CSFLog.h"
 
 namespace mozilla {
 

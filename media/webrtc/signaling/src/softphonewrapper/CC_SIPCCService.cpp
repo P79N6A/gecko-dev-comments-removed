@@ -6,6 +6,8 @@
 #include <windows.h> 
 #endif
 
+#include "CSFLogStream.h"
+
 #include "CC_CallTypes.h"
 #include "CC_SIPCCService.h"
 #include "NullDeleter.h"
@@ -32,7 +34,6 @@ extern "C" {
 
 #include "csf_common.h"
 
-#include "CSFLogStream.h"
 static const char* logTag = "CC_SIPCCService";
 
 using namespace std;

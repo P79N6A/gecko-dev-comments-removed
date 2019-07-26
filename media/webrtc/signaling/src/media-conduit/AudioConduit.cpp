@@ -2,6 +2,9 @@
 
 
 
+#include "CSFLog.h"
+#include "nspr.h"
+
 #include "AudioConduit.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Services.h"
@@ -10,7 +13,6 @@
 #include "nsIPrefBranch.h"
 #include "nsThreadUtils.h"
 
-#include "CSFLog.h"
 #include "voice_engine/include/voe_errors.h"
 
 

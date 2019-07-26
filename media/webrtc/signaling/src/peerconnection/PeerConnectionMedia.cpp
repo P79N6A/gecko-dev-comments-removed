@@ -3,10 +3,11 @@
 
 #include <string>
 
-#include "nspr.h"
-#include "cc_constants.h"
 #include "CSFLog.h"
 #include "CSFLogStream.h"
+
+#include "nspr.h"
+#include "cc_constants.h"
 
 #include "nricectx.h"
 #include "nricemediastream.h"

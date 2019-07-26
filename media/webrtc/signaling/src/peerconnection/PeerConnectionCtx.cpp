@@ -2,6 +2,7 @@
 
 
 
+#include "CSFLog.h"
 
 #include "CallControlManager.h"
 #include "CC_Device.h"
@@ -11,7 +12,6 @@
 #include "CC_SIPCCCallInfo.h"
 #include "ccapi_device_info.h"
 #include "CC_SIPCCDeviceInfo.h"
-#include "CSFLog.h"
 #include "vcm.h"
 #include "VcmSIPCCBinding.h"
 #include "PeerConnectionImpl.h"

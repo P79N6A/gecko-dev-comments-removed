@@ -2,6 +2,8 @@
 
 
 
+#include "CSFLog.h"
+
 #include "CC_Common.h"
 
 #include "CC_SIPCCLine.h"
@@ -16,8 +18,6 @@ extern "C"
 
 using namespace std;
 using namespace CSF;
-
-#include "CSFLog.h"
 
 CSF_IMPLEMENT_WRAP(CC_SIPCCLine, cc_lineid_t);
 

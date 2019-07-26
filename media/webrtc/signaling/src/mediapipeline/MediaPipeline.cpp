@@ -4,6 +4,8 @@
 
 
 
+#include "CSFLog.h"
+
 #include "MediaPipeline.h"
 
 #include <math.h>
@@ -38,7 +40,7 @@ using namespace mozilla;
 
 #define MP_LOG_INFO PR_LOG_WARN
 #else
-#define MP_LOG_INFO PR_LOG_INFO
+#define MP_LOG_INFO PR_LOG_DEBUG
 #endif
 
 
