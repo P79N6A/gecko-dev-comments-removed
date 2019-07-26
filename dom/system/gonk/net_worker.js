@@ -216,6 +216,40 @@ self.onmessage = function onmessage(event) {
 
 
 
+function setDhcpServer(config) {
+  function onSuccess() {
+    postMessage({ id: config.id, success: true });
+    return true;
+  }
+
+  function onError() {
+    postMessage({ id: config.id, success: false });
+  }
+
+  let startDhcpServerChain = [setInterfaceUp,
+                              startTethering,
+                              onSuccess];
+
+  let stopDhcpServerChain = [stopTethering,
+                             onSuccess];
+
+  if (config.enabled) {
+    let params = { wifiStartIp: config.startIp,
+                   wifiEndIp: config.endIp,
+                   ip: config.serverIp,
+                   prefix: config.maskLength,
+                   ifname: config.ifname,
+                   link: "up" };
+
+    chain(params, startDhcpServerChain, onError);
+  } else {
+    chain({}, stopDhcpServerChain, onError);
+  }
+}
+
+
+
+
 function setDNS(options) {
   let ifprops = getIFProperties(options.ifname);
   let dns1_str = options.dns1_str || ifprops.dns1_str;
@@ -455,8 +489,14 @@ function startTethering(params, callback) {
   if (params.resultReason.indexOf("started") !== -1) {
     command = DUMMY_COMMAND;
   } else {
-    command = "tether start " + params.wifiStartIp + " " + params.wifiEndIp +
-              " " + params.usbStartIp + " " + params.usbEndIp;
+    command = "tether start " + params.wifiStartIp + " " + params.wifiEndIp;
+
+    
+    
+    
+    if (params.usbStartIp && params.usbEndIp) {
+      command += " " + params.usbStartIp + " " + params.usbEndIp;
+    }
   }
   return doCommand(command, callback);
 }

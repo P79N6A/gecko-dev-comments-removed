@@ -576,10 +576,6 @@ NetworkManager.prototype = {
   },
 
   resetRoutingTable: function resetRoutingTable(network) {
-    if (!network.ip || !network.netmask) {
-      debug("Either ip or netmask is null. Cannot reset routing table.");
-      return;
-    }
     let options = {
       cmd: "removeNetworkRoute",
       ifname: network.name,
@@ -914,6 +910,25 @@ NetworkManager.prototype = {
     if (callback) {
       callback.wifiTetheringEnabledChange(msg);
     }
+  },
+
+  
+  setDhcpServer: function setDhcpServer(enabled, config, callback) {
+    if (null === config) {
+      config = {};
+    }
+
+    config.cmd = "setDhcpServer";
+    config.isAsync = true;
+    config.enabled = enabled;
+
+    this.controlMessage(config, function setDhcpServerResult(response) {
+      if (!response.success) {
+        callback.dhcpServerResult('Set DHCP server error');
+        return;
+      }
+      callback.dhcpServerResult(null);
+    });
   },
 
   
