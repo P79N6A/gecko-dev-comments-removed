@@ -23,6 +23,7 @@
 #include "AudioNodeStream.h"
 #include <algorithm>
 #include "DOMMediaStream.h"
+#include "GeckoProfiler.h"
 
 using namespace mozilla::layers;
 using namespace mozilla::dom;
@@ -1201,6 +1202,7 @@ MediaStreamGraphImpl::RunThread()
   if (!mRealtime) {
     mNonRealtimeIsRunning = false;
   }
+  profiler_unregister_thread();
 }
 
 void
@@ -1245,6 +1247,23 @@ MediaStreamGraphImpl::ForceShutDown()
 }
 
 namespace {
+
+class MediaStreamGraphInitThreadRunnable : public nsRunnable {
+public:
+  explicit MediaStreamGraphInitThreadRunnable(MediaStreamGraphImpl* aGraph)
+    : mGraph(aGraph)
+  {
+  }
+  NS_IMETHOD Run()
+  {
+    char aLocal;
+    profiler_register_thread("MediaStreamGraph", &aLocal);
+    mGraph->RunThread();
+    return NS_OK;
+  }
+private:
+  MediaStreamGraphImpl* mGraph;
+};
 
 class MediaStreamGraphThreadRunnable : public nsRunnable {
 public:
@@ -1385,7 +1404,7 @@ MediaStreamGraphImpl::RunInStableState()
       
       
       
-      nsCOMPtr<nsIRunnable> event = new MediaStreamGraphThreadRunnable(this);
+      nsCOMPtr<nsIRunnable> event = new MediaStreamGraphInitThreadRunnable(this);
       NS_NewNamedThread("MediaStreamGrph", getter_AddRefs(mThread), event);
     }
 
