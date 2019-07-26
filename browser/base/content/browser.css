@@ -786,7 +786,11 @@ chatbar {
 
 
 
-#downloads-button[indicator] > image.toolbarbutton-icon {
+
+
+
+#downloads-button[indicator]:not([cui-areatype="menu-panel"]) > image.toolbarbutton-icon,
+#downloads-button[indicator][cui-areatype="menu-panel"] > #downloads-indicator-anchor {
   display: none;
 }
 
