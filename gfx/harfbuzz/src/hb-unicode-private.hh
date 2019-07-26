@@ -147,19 +147,45 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
 
 
 
+
+
+
+
+
+
+
   inline hb_bool_t
-  is_zero_width (hb_codepoint_t ch)
+  is_default_ignorable (hb_codepoint_t ch)
   {
-    return ((ch & ~0x007F) == 0x2000 && (hb_in_ranges<hb_codepoint_t> (ch,
-								       0x200B, 0x200F,
-								       0x202A, 0x202E,
-								       0x2060, 0x2064) ||
-					 (ch == 0x2028))) ||
-	    unlikely (ch == 0x0009 ||
-		      ch == 0x00AD ||
-		      ch == 0x034F ||
-		      ch == 0x180E ||
-		      ch == 0xFEFF);
+    hb_codepoint_t plane = ch >> 16;
+    if (likely (plane == 0))
+    {
+      
+      hb_codepoint_t page = ch >> 8;
+      switch (page) {
+	case 0x00: return unlikely (ch == 0x00AD);
+	case 0x03: return unlikely (ch == 0x034F);
+	case 0x11: return hb_in_range<hb_codepoint_t> (ch, 0x115F, 0x1160);
+	case 0x17: return hb_in_range<hb_codepoint_t> (ch, 0x17B4, 0x17B5);
+	case 0x18: return hb_in_range<hb_codepoint_t> (ch, 0x180B, 0x180E);
+	case 0x20: return hb_in_ranges<hb_codepoint_t> (ch, 0x200B, 0x200F,
+							    0x202A, 0x202E,
+							    0x2060, 0x206F);
+	case 0x31: return unlikely (ch == 0x3164);
+	case 0xFE: return hb_in_range<hb_codepoint_t> (ch, 0xFE00, 0xFE0F) || ch == 0xFEFF;
+	case 0xFF: return hb_in_range<hb_codepoint_t> (ch, 0xFFF0, 0xFFF8) || ch == 0xFFA0;
+	default: return false;
+      }
+    }
+    else
+    {
+      
+      switch (plane) {
+	case 0x01: return hb_in_range<hb_codepoint_t> (ch, 0x0001D173, 0x0001D17A);
+	case 0x0E: return hb_in_range<hb_codepoint_t> (ch, 0x000E0000, 0x000E0FFF);
+	default: return false;
+      }
+    }
   }
 
 

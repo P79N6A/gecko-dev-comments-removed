@@ -138,10 +138,10 @@ recategorize_combining_class (hb_codepoint_t u,
     
 
     case HB_MODIFIED_COMBINING_CLASS_CCC118: 
-      return HB_UNICODE_COMBINING_CLASS_BELOW_RIGHT;
+      return HB_UNICODE_COMBINING_CLASS_BELOW;
 
     case HB_MODIFIED_COMBINING_CLASS_CCC122: 
-      return HB_UNICODE_COMBINING_CLASS_ABOVE_RIGHT;
+      return HB_UNICODE_COMBINING_CLASS_ABOVE;
 
 
     
@@ -311,7 +311,7 @@ position_around_base (const hb_ot_shape_plan_t *plan,
   hb_glyph_extents_t component_extents = base_extents;
   unsigned int last_lig_component = (unsigned int) -1;
   unsigned int last_combining_class = 255;
-  hb_glyph_extents_t cluster_extents;
+  hb_glyph_extents_t cluster_extents = base_extents; 
   for (unsigned int i = base + 1; i < end; i++)
     if (_hb_glyph_info_get_modified_combining_class (&buffer->info[i]))
     {

@@ -50,6 +50,27 @@ HB_BEGIN_DECLS
 hb_bool_t
 hb_ot_layout_has_glyph_classes (hb_face_t *face);
 
+typedef enum {
+  HB_OT_LAYOUT_GLYPH_CLASS_UNCLASSIFIED	= 0x0001,
+  HB_OT_LAYOUT_GLYPH_CLASS_BASE_GLYPH	= 0x0002,
+  HB_OT_LAYOUT_GLYPH_CLASS_LIGATURE	= 0x0004,
+  HB_OT_LAYOUT_GLYPH_CLASS_MARK		= 0x0008,
+  HB_OT_LAYOUT_GLYPH_CLASS_COMPONENT	= 0x0010
+} hb_ot_layout_glyph_class_t;
+
+#ifdef HB_NOT_IMPLEMENTED
+hb_ot_layout_glyph_class_t
+Xhb_ot_layout_get_glyph_class (hb_face_t      *face,
+			      hb_codepoint_t  glyph);
+#endif
+
+#ifdef HB_NOT_IMPLEMENTED
+Xhb_ot_layout_get_glyphs_in_class (hb_face_t                  *face,
+				  hb_ot_layout_glyph_class_t  klass,
+				  hb_set_t                   *glyphs );
+#endif
+
+
 
 
 unsigned int
@@ -154,12 +175,64 @@ hb_ot_layout_language_find_feature (hb_face_t    *face,
 				    unsigned int *feature_index);
 
 unsigned int
-hb_ot_layout_feature_get_lookup_indexes (hb_face_t    *face,
+hb_ot_layout_feature_get_lookups (hb_face_t    *face,
+				  hb_tag_t      table_tag,
+				  unsigned int  feature_index,
+				  unsigned int  start_offset,
+				  unsigned int *lookup_count ,
+				  unsigned int *lookup_indexes );
+
+#ifdef HB_NOT_IMPLEMENTED
+void
+Xhb_ot_layout_collect_lookups (hb_face_t      *face,
+			      hb_tag_t        table_tag,
+			      const hb_tag_t *scripts,
+			      const hb_tag_t *languages,
+			      const hb_tag_t *features,
+			      hb_set_t       *lookup_indexes );
+#endif
+
+void
+hb_ot_shape_plan_collect_lookups (hb_shape_plan_t *shape_plan,
+				  hb_tag_t         table_tag,
+				  hb_set_t        *lookup_indexes );
+
+#ifdef HB_NOT_IMPLEMENTED
+void
+Xhb_ot_layout_lookup_collect_glyphs (hb_face_t    *face,
+				    hb_tag_t      table_tag,
+				    unsigned int  lookup_index,
+				    hb_set_t     *glyphs_before, 
+				    hb_set_t     *glyphs_input,  
+				    hb_set_t     *glyphs_after,  
+				    hb_set_t     *glyphs_output  );
+#endif
+
+#ifdef HB_NOT_IMPLEMENTED
+typedef struct
+{
+  const hb_codepoint_t *before,
+  unsigned int          before_length,
+  const hb_codepoint_t *input,
+  unsigned int          input_length,
+  const hb_codepoint_t *after,
+  unsigned int          after_length,
+} hb_ot_layout_glyph_sequence_t;
+
+typedef hb_bool_t
+(*hb_ot_layout_glyph_sequence_func_t) (hb_font_t    *font,
+				       hb_tag_t      table_tag,
+				       unsigned int  lookup_index,
+				       const hb_ot_layout_glyph_sequence_t *sequence,
+				       void         *user_data);
+
+void
+Xhb_ot_layout_lookup_enumerate_sequences (hb_face_t    *face,
 					 hb_tag_t      table_tag,
-					 unsigned int  feature_index,
-					 unsigned int  start_offset,
-					 unsigned int *lookup_count ,
-					 unsigned int *lookup_indexes );
+					 unsigned int  lookup_index,
+					 hb_ot_layout_glyph_sequence_func_t callback,
+					 void         *user_data);
+#endif
 
 
 
@@ -170,16 +243,30 @@ hb_bool_t
 hb_ot_layout_has_substitution (hb_face_t *face);
 
 hb_bool_t
-hb_ot_layout_would_substitute_lookup (hb_face_t            *face,
+hb_ot_layout_lookup_would_substitute (hb_face_t            *face,
 				      unsigned int          lookup_index,
 				      const hb_codepoint_t *glyphs,
 				      unsigned int          glyphs_length,
 				      hb_bool_t             zero_context);
 
 void
-hb_ot_layout_substitute_closure_lookup (hb_face_t    *face,
+hb_ot_layout_lookup_substitute_closure (hb_face_t    *face,
 				        unsigned int  lookup_index,
-				        hb_set_t     *glyphs);
+				        hb_set_t     *glyphs
+					);
+
+#ifdef HB_NOT_IMPLEMENTED
+
+hb_bool_t
+Xhb_ot_layout_lookup_substitute (hb_font_t            *font,
+				unsigned int          lookup_index,
+				const hb_ot_layout_glyph_sequence_t *sequence,
+				unsigned int          out_size,
+				hb_codepoint_t       *glyphs_out,   
+				unsigned int         *clusters_out, 
+				unsigned int         *out_length    );
+#endif
+
 
 
 
@@ -188,7 +275,16 @@ hb_ot_layout_substitute_closure_lookup (hb_face_t    *face,
 hb_bool_t
 hb_ot_layout_has_positioning (hb_face_t *face);
 
+#ifdef HB_NOT_IMPLEMENTED
+
+hb_bool_t
+Xhb_ot_layout_lookup_position (hb_font_t            *font,
+			      unsigned int          lookup_index,
+			      const hb_ot_layout_glyph_sequence_t *sequence,
+			      hb_glyph_position_t  *positions );
+#endif
+
 
 HB_END_DECLS
 
-#endif 
+#endif

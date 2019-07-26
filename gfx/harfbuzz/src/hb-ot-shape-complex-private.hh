@@ -57,9 +57,11 @@ struct hb_ot_complex_shaper_t
 
 
 
+
   void (*collect_features) (hb_ot_shape_planner_t *plan);
 
   
+
 
 
 
@@ -79,10 +81,12 @@ struct hb_ot_complex_shaper_t
 
 
 
+
   void (*data_destroy) (void *data);
 
 
   
+
 
 
 
@@ -94,10 +98,30 @@ struct hb_ot_complex_shaper_t
   
 
 
+
   hb_ot_shape_normalization_mode_t
-  (*normalization_preference) (const hb_ot_shape_plan_t *plan);
+  (*normalization_preference) (const hb_segment_properties_t *props);
 
   
+
+
+
+  bool (*decompose) (const hb_ot_shape_normalize_context_t *c,
+		     hb_codepoint_t  ab,
+		     hb_codepoint_t *a,
+		     hb_codepoint_t *b);
+
+  
+
+
+
+  bool (*compose) (const hb_ot_shape_normalize_context_t *c,
+		   hb_codepoint_t  a,
+		   hb_codepoint_t  b,
+		   hb_codepoint_t *ab);
+
+  
+
 
 
 
@@ -107,6 +131,7 @@ struct hb_ot_complex_shaper_t
 		       hb_font_t                *font);
 
   bool zero_width_attached_marks;
+  bool fallback_position;
 };
 
 #define HB_COMPLEX_SHAPER_IMPLEMENT(name) extern HB_INTERNAL const hb_ot_complex_shaper_t _hb_ot_complex_shaper_##name;
@@ -115,9 +140,9 @@ HB_COMPLEX_SHAPERS_IMPLEMENT_SHAPERS
 
 
 static inline const hb_ot_complex_shaper_t *
-hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
+hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
 {
-  switch ((hb_tag_t) props->script)
+  switch ((hb_tag_t) planner->props.script)
   {
     default:
       return &_hb_ot_complex_shaper_default;
@@ -130,11 +155,18 @@ hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
 
     
     case HB_SCRIPT_NKO:
+    case HB_SCRIPT_PHAGS_PA:
 
     
     case HB_SCRIPT_MANDAIC:
 
-      return &_hb_ot_complex_shaper_arabic;
+      
+
+      if (planner->map.chosen_script[0] != HB_OT_TAG_DEFAULT_SCRIPT ||
+	  planner->props.script == HB_SCRIPT_ARABIC)
+	return &_hb_ot_complex_shaper_arabic;
+      else
+	return &_hb_ot_complex_shaper_default;
 
 
     
@@ -171,9 +203,6 @@ hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
     case HB_SCRIPT_SAURASHTRA:
 
     
-    case HB_SCRIPT_MEETEI_MAYEK:
-
-    
     case HB_SCRIPT_BATAK:
     case HB_SCRIPT_BRAHMI:
 
@@ -197,22 +226,14 @@ hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
     case HB_SCRIPT_TAI_LE:
 
     
+    case HB_SCRIPT_KHAROSHTHI:
     case HB_SCRIPT_SYLOTI_NAGRI:
-
-    
-    case HB_SCRIPT_PHAGS_PA:
 
     
     case HB_SCRIPT_KAYAH_LI:
 
     
     case HB_SCRIPT_TAI_VIET:
-
-
-    
-
-    
-    case HB_SCRIPT_MYANMAR:
 
 
 #endif
@@ -229,12 +250,10 @@ hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
     case HB_SCRIPT_TELUGU:
 
     
-    case HB_SCRIPT_KHMER:
     case HB_SCRIPT_SINHALA:
 
     
     case HB_SCRIPT_BUGINESE:
-    case HB_SCRIPT_KHAROSHTHI:
     case HB_SCRIPT_NEW_TAI_LUE:
 
     
@@ -249,14 +268,40 @@ hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
     
     case HB_SCRIPT_JAVANESE:
     case HB_SCRIPT_KAITHI:
+    case HB_SCRIPT_MEETEI_MAYEK:
     case HB_SCRIPT_TAI_THAM:
+
 
     
     case HB_SCRIPT_CHAKMA:
     case HB_SCRIPT_SHARADA:
     case HB_SCRIPT_TAKRI:
 
-      return &_hb_ot_complex_shaper_indic;
+      
+      if (planner->map.found_script[0])
+	return &_hb_ot_complex_shaper_indic;
+      else
+	return &_hb_ot_complex_shaper_default;
+
+    case HB_SCRIPT_KHMER:
+      
+      if (!planner->map.found_script[0] ||
+	  hb_ot_layout_language_find_feature (planner->face, HB_OT_TAG_GSUB,
+					      planner->map.script_index[0],
+					      planner->map.language_index[0],
+					      HB_TAG ('l','i','g','a'), NULL))
+	return &_hb_ot_complex_shaper_default;
+      else
+	return &_hb_ot_complex_shaper_indic;
+
+
+    case HB_SCRIPT_MYANMAR:
+      
+
+      if (planner->map.chosen_script[0] == HB_TAG ('m','y','m','2'))
+	return &_hb_ot_complex_shaper_indic;
+      else
+	return &_hb_ot_complex_shaper_default;
   }
 }
 
