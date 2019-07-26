@@ -45,6 +45,7 @@
 #include "nsTextNode.h"
 #include "nsStyleSet.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/MathAlgorithms.h"
 
 #define DEFAULT_COLUMN_WIDTH 20
 
@@ -170,10 +171,9 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
   
   
   
-  
-  if (charWidth != charMaxAdvance) {
-    nscoord internalPadding = std::max(0, charMaxAdvance -
-                                        nsPresContext::CSSPixelsToAppUnits(4));
+  if (std::abs(charWidth - charMaxAdvance) > nsPresContext::CSSPixelsToAppUnits(1)) {
+    nscoord internalPadding =
+      std::max(0, charMaxAdvance - nsPresContext::CSSPixelsToAppUnits(4));
     nscoord t = nsPresContext::CSSPixelsToAppUnits(1); 
    
     nscoord rest = internalPadding % t; 
