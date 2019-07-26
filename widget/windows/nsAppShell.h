@@ -9,7 +9,6 @@
 #include "nsBaseAppShell.h"
 #include <windows.h>
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Mutex.h"
 
 
 
@@ -23,8 +22,7 @@ class nsAppShell : public nsBaseAppShell
 public:
   nsAppShell() :
     mEventWnd(NULL),
-    mNativeCallbackPending(false),
-    mLastNativeEventScheduledMutex("nsAppShell::mLastNativeEventScheduledMutex")
+    mNativeCallbackPending(false)
   {}
   typedef mozilla::TimeStamp TimeStamp;
 
@@ -45,8 +43,6 @@ protected:
 protected:
   HWND mEventWnd;
   bool mNativeCallbackPending;
-
-  Mutex mLastNativeEventScheduledMutex;
   TimeStamp mLastNativeEventScheduled;
 };
 
