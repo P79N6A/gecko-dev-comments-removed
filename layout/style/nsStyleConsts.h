@@ -660,10 +660,6 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 
 
 
-#define NS_STYLE_TEXT_BLINK_NONE                0
-#define NS_STYLE_TEXT_BLINK_BLINK               1
-
-
 #define NS_STYLE_TEXT_DECORATION_LINE_NONE         0
 #define NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE    NS_FONT_DECORATION_UNDERLINE
 #define NS_STYLE_TEXT_DECORATION_LINE_OVERLINE     NS_FONT_DECORATION_OVERLINE

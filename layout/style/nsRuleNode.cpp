@@ -4013,11 +4013,6 @@ nsRuleNode::ComputeTextResetData(void* aStartStruct,
   }
 
   
-  SetDiscrete(*aRuleData->ValueForTextBlink(), text->mTextBlink,
-              canStoreInRuleTree, SETDSC_ENUMERATED, parentText->mTextBlink,
-              NS_STYLE_TEXT_BLINK_NONE, 0, 0, 0, 0);
-
-  
   const nsCSSValue* decorationLineValue =
     aRuleData->ValueForTextDecorationLine();
   if (eCSSUnit_Enumerated == decorationLineValue->GetUnit()) {

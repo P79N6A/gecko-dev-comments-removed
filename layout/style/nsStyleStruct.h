@@ -1281,7 +1281,6 @@ struct nsStyleTextReset {
   nsStyleCoord  mVerticalAlign;         
   nsStyleTextOverflow mTextOverflow;    
 
-  uint8_t mTextBlink;                   
   uint8_t mTextDecorationLine;          
   uint8_t mUnicodeBidi;                 
 protected:
