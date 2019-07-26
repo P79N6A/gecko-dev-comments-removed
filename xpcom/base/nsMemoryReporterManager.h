@@ -150,6 +150,12 @@ public:
   
   static int64_t ResidentFast();
 
+#if defined(XP_LINUX)
+  
+  
+  static int64_t ResidentUnique();
+#endif
+
   
   struct SizeOfTabFns
   {

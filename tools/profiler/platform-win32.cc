@@ -179,6 +179,9 @@ class SamplerThread : public Thread {
       sample->rssMemory = 0;
     }
 
+    
+    sample->ussMemory = 0;
+
     static const DWORD kSuspendFailed = static_cast<DWORD>(-1);
     if (SuspendThread(profiled_thread) == kSuspendFailed)
       return;
