@@ -3835,11 +3835,7 @@ PluginInstanceChild::RecvUpdateBackground(const SurfaceDescriptor& aBackground,
 
     
     
-    
-    if (!ShowPluginFrame()) {
-        NS_WARNING("Couldn't immediately repaint plugin instance");
-        AsyncShowPluginFrame();
-    }
+    AsyncShowPluginFrame();
 
     return true;
 }
