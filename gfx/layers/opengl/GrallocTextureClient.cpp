@@ -174,6 +174,9 @@ bool
 GrallocTextureClientOGL::Lock(OpenMode aMode)
 {
   MOZ_ASSERT(IsValid());
+  if (!IsValid() || !IsAllocated()) {
+    return false;
+  }
   
   
   
