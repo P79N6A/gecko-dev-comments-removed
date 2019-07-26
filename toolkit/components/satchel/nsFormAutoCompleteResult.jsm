@@ -18,7 +18,7 @@ this.FormAutoCompleteResult =
                                  labels,
                                  comments,
                                  prevResult) {
-  this._searchString = searchString;
+  this.searchString = searchString;
   this._searchResult = searchResult;
   this._defaultIndex = defaultIndex;
   this._errorDescription = errorDescription;
@@ -37,7 +37,7 @@ this.FormAutoCompleteResult =
 FormAutoCompleteResult.prototype = {
 
   
-  _searchString: "",
+  searchString: "",
 
   
   _searchResult: 0,
@@ -58,13 +58,6 @@ FormAutoCompleteResult.prototype = {
 
   get wrappedJSObject() {
     return this;
-  },
-
-  
-
-
-  get searchString() {
-    return this._searchString;
   },
 
   
