@@ -77,7 +77,7 @@ function FrameWorker(url, name) {
     if (!doc.defaultView || doc.defaultView != self.frame.contentWindow) {
       return;
     }
-    Services.obs.removeObserver(injectController, "document-element-inserted", false);
+    Services.obs.removeObserver(injectController, "document-element-inserted");
     try {
       self.createSandbox();
     } catch (e) {
@@ -103,8 +103,11 @@ FrameWorker.prototype = {
                      'location'];
     workerAPI.forEach(function(fn) {
       try {
+        sandbox[fn] = workerWindow[fn];
         
-        sandbox[fn] = XPCNativeWrapper.unwrap(workerWindow)[fn];
+        
+        if (fn == "XMLHttpRequest")
+          sandbox[fn] = XPCNativeWrapper.unwrap(workerWindow)[fn];
       }
       catch(e) {
         Cu.reportError("FrameWorker: failed to import API "+fn+"\n"+e+"\n");
@@ -153,7 +156,13 @@ FrameWorker.prototype = {
       workerWindow.addEventListener(t, l, c)
     };
 
+    
     this.sandbox = sandbox;
+
+    Services.obs.addObserver(function cleanupSandbox () {
+      Services.obs.removeObserver(cleanupSandbox, "xpcom-shutdown");
+      Cu.nukeSandbox(sandbox);
+    }, "xpcom-shutdown", false);
 
     let worker = this;
 
@@ -226,6 +235,8 @@ FrameWorker.prototype = {
       
       this.frame.parentNode.removeChild(this.frame);
     }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+
+    Cu.nukeSandbox(this.sandbox);
   }
 };
 
