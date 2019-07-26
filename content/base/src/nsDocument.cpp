@@ -7453,11 +7453,15 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
 nsViewportInfo
 nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
 {
+  
+  
+  
+
   switch (mViewportType) {
   case DisplayWidthHeight:
     return nsViewportInfo(aDisplaySize);
   case DisplayWidthHeightNoZoom:
-    return nsViewportInfo(aDisplaySize,  false);
+    return nsViewportInfo(aDisplaySize,  false,  false);
   case Unknown:
   {
     nsAutoString viewport;
@@ -7477,7 +7481,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
           {
             
             mViewportType = DisplayWidthHeight;
-            return nsViewportInfo(aDisplaySize);
+            return nsViewportInfo(aDisplaySize, true, false);
           }
         }
       }
@@ -7486,7 +7490,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
       GetHeaderData(nsGkAtoms::handheldFriendly, handheldFriendly);
       if (handheldFriendly.EqualsLiteral("true")) {
         mViewportType = DisplayWidthHeight;
-        return nsViewportInfo(aDisplaySize);
+        return nsViewportInfo(aDisplaySize, true, false);
       }
 
       
@@ -7509,7 +7513,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
                                           "ImplicitMetaViewportTagFallback");
         }
         mViewportType = DisplayWidthHeightNoZoom;
-        return nsViewportInfo(aDisplaySize,  false);
+        return nsViewportInfo(aDisplaySize, false, false);
       }
     }
 
@@ -7583,6 +7587,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
         (userScalable.EqualsLiteral("false"))) {
       mAllowZoom = false;
     }
+    mAllowDoubleTapZoom = mAllowZoom;
 
     mScaleStrEmpty = scaleStr.IsEmpty();
     mWidthStrEmpty = widthStr.IsEmpty();
@@ -7649,7 +7654,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
     }
 
     return nsViewportInfo(scaleFloat, scaleMinFloat, scaleMaxFloat, size,
-                          mAutoSize, mAllowZoom);
+                          mAutoSize, mAllowZoom, mAllowDoubleTapZoom);
   }
 }
 
