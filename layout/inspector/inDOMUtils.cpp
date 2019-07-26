@@ -370,6 +370,15 @@ inDOMUtils::SelectorMatchesElement(nsIDOMElement* aElement,
   
   nsAutoPtr<nsCSSSelectorList> sel(tail->Clone(false));
 
+  
+  
+  
+  
+  if (sel->mSelectors->IsPseudoElement()) {
+    *aMatches = false;
+    return NS_OK;
+  }
+
   element->OwnerDoc()->FlushPendingLinkUpdates();
   
   TreeMatchContext matchingContext(false,
