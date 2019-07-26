@@ -370,6 +370,16 @@ public:
 
   
   
+  float GetFlexFactor(bool aIsUsingFlexGrow)
+  {
+    if (IsFrozen()) {
+      return 0.0f;
+    }
+    return aIsUsingFlexGrow ? mFlexGrow : mFlexShrink;
+  }
+
+  
+  
   
   
   
@@ -1642,6 +1652,9 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
   const bool isUsingFlexGrow =
     (mTotalOuterHypotheticalMainSize < aFlexContainerMainSize);
 
+  nscoord origAvailableFreeSpace;
+  bool isOrigAvailFreeSpaceInitialized = false;
+
   
   
   
@@ -1671,6 +1684,12 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
         (availableFreeSpace < 0 && !isUsingFlexGrow)) {
 
       
+      if (!isOrigAvailFreeSpaceInitialized) {
+        origAvailableFreeSpace = availableFreeSpace;
+        isOrigAvailFreeSpaceInitialized = true;
+      }
+
+      
       
       
       
@@ -1685,19 +1704,23 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
       
       
       float weightSum = 0.0f;
+      float flexFactorSum = 0.0f;
       float largestWeight = 0.0f;
       uint32_t numItemsWithLargestWeight = 0;
       for (FlexItem* item = mItems.getFirst(); item; item = item->getNext()) {
         float curWeight = item->GetWeight(isUsingFlexGrow);
+        float curFlexFactor = item->GetFlexFactor(isUsingFlexGrow);
         MOZ_ASSERT(curWeight >= 0.0f, "weights are non-negative");
+        MOZ_ASSERT(curFlexFactor >= 0.0f, "flex factors are non-negative");
 
         weightSum += curWeight;
+        flexFactorSum += curFlexFactor;
+
         if (NS_finite(weightSum)) {
           if (curWeight == 0.0f) {
             item->SetShareOfWeightSoFar(0.0f);
           } else {
-            item->SetShareOfWeightSoFar(curWeight /
-                                        weightSum);
+            item->SetShareOfWeightSoFar(curWeight / weightSum);
           }
         } 
           
@@ -1713,7 +1736,37 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
         }
       }
 
-      if (weightSum != 0.0f) { 
+      if (weightSum != 0.0f) {
+        MOZ_ASSERT(flexFactorSum != 0.0f,
+                   "flex factor sum can't be 0, if a weighted sum "
+                   "of its components (weightSum) is nonzero");
+        if (flexFactorSum < 1.0f) {
+          
+          
+          
+          
+          nscoord totalDesiredPortionOfOrigFreeSpace =
+            NSToCoordRound(origAvailableFreeSpace * flexFactorSum);
+
+          
+          
+          
+          
+          MOZ_ASSERT(totalDesiredPortionOfOrigFreeSpace == 0 ||
+                     ((totalDesiredPortionOfOrigFreeSpace > 0) ==
+                      (availableFreeSpace > 0)),
+                     "When we reduce available free space for flex factors < 1,"
+                     "we shouldn't change the sign of the free space...");
+
+          if (availableFreeSpace > 0) {
+            availableFreeSpace = std::min(availableFreeSpace,
+                                          totalDesiredPortionOfOrigFreeSpace);
+          } else {
+            availableFreeSpace = std::max(availableFreeSpace,
+                                          totalDesiredPortionOfOrigFreeSpace);
+          }
+        }
+
         PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
                (" Distributing available space:"));
         
