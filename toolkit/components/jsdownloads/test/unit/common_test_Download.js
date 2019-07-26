@@ -1628,6 +1628,25 @@ add_task(function test_contentType() {
 
 
 
+add_task(function test_toSerializable_startTime()
+{
+  let download1 = yield promiseStartDownload(httpUrl("source.txt"));
+  yield promiseDownloadStopped(download1);
+
+  let serializable = download1.toSerializable();
+  let reserialized = JSON.parse(JSON.stringify(serializable));
+
+  let download2 = yield Downloads.createDownload(reserialized);
+
+  do_check_eq(download1.startTime.constructor.name, "Date");
+  do_check_eq(download2.startTime.constructor.name, "Date");
+  do_check_eq(download1.startTime.toJSON(), download2.startTime.toJSON());
+});
+
+
+
+
+
 
 add_task(function test_platform_integration()
 {
