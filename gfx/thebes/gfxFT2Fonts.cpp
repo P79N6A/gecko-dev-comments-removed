@@ -36,7 +36,6 @@
 #include "prinit.h"
 
 #include "mozilla/Preferences.h"
-#include "mozilla/gfx/2D.h"
 
 
 
@@ -660,21 +659,3 @@ gfxFT2Font::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
     aSizes->mFontInstances += aMallocSizeOf(this);
     SizeOfExcludingThis(aMallocSizeOf, aSizes);
 }
-
-#ifdef USE_SKIA
-mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
-gfxFT2Font::GetGlyphRenderingOptions()
-{
-  mozilla::gfx::FontHinting hinting;
-
-  if (gfxPlatform::GetPlatform()->FontHintingEnabled()) {
-    hinting = mozilla::gfx::FONT_HINTING_NORMAL;
-  } else {
-    hinting = mozilla::gfx::FONT_HINTING_NONE;
-  }
-
-  
-  return mozilla::gfx::Factory::CreateCairoGlyphRenderingOptions(hinting, false);
-}
-#endif
-
