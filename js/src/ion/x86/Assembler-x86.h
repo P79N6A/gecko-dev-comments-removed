@@ -12,6 +12,7 @@
 #include "assembler/assembler/X86Assembler.h"
 #include "ion/CompactBuffer.h"
 #include "ion/IonCode.h"
+#include "mozilla/Util.h"
 
 #include "jsscriptinlines.h"
 
@@ -54,6 +55,11 @@ static const Register CallTempReg2 = ebx;
 static const Register CallTempReg3 = ecx;
 static const Register CallTempReg4 = esi;
 static const Register CallTempReg5 = edx;
+
+
+static const Register CallTempNonArgRegs[] = { edi, eax, ebx, ecx, esi, edx };
+static const uint32_t NumCallTempNonArgRegs =
+    mozilla::ArrayLength(CallTempNonArgRegs);
 
 static const Register OsrFrameReg = edx;
 static const Register PreBarrierReg = edx;
@@ -391,6 +397,20 @@ class Assembler : public AssemblerX86Shared
         label->setPrev(masm.size());
     }
 };
+
+
+
+
+
+
+static inline bool
+GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
+{
+    if (usedIntArgs >= NumCallTempNonArgRegs)
+        return false;
+    *out = CallTempNonArgRegs[usedIntArgs];
+    return true;
+}
 
 } 
 } 
