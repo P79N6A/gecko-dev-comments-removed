@@ -138,6 +138,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     MDefinition *pop();
+    void popn(uint32_t n);
 
     
     
