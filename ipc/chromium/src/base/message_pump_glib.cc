@@ -21,7 +21,7 @@ const char kWorkScheduled = '\0';
 
 
 
-int GetTimeIntervalMilliseconds(base::Time from) {
+int GetTimeIntervalMilliseconds(const base::TimeTicks& from) {
   if (from.is_null())
     return -1;
 
@@ -29,7 +29,7 @@ int GetTimeIntervalMilliseconds(base::Time from) {
   
   
   int delay = static_cast<int>(
-      ceil((from - base::Time::Now()).InMillisecondsF()));
+      ceil((from - base::TimeTicks::Now()).InMillisecondsF()));
 
   
   return delay < 0 ? 0 : delay;
@@ -309,7 +309,7 @@ void MessagePumpForUI::ScheduleWork() {
   }
 }
 
-void MessagePumpForUI::ScheduleDelayedWork(const Time& delayed_work_time) {
+void MessagePumpForUI::ScheduleDelayedWork(const TimeTicks& delayed_work_time) {
   
   
   delayed_work_time_ = delayed_work_time;

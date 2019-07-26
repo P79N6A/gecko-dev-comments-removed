@@ -9,7 +9,7 @@
 
 namespace base {
 
-class Time;
+class TimeTicks;
 
 class MessagePump : public RefCountedThreadSafe<MessagePump> {
  public:
@@ -32,7 +32,7 @@ class MessagePump : public RefCountedThreadSafe<MessagePump> {
     
     
     
-    virtual bool DoDelayedWork(Time* next_delayed_work_time) = 0;
+    virtual bool DoDelayedWork(TimeTicks* next_delayed_work_time) = 0;
 
     
     
@@ -122,7 +122,7 @@ class MessagePump : public RefCountedThreadSafe<MessagePump> {
   
   
   
-  virtual void ScheduleDelayedWork(const Time& delayed_work_time) = 0;
+  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time) = 0;
 };
 
 }  

@@ -41,13 +41,13 @@ void MessagePumpDefault::Run(Delegate* delegate) {
     if (delayed_work_time_.is_null()) {
       event_.Wait();
     } else {
-      TimeDelta delay = delayed_work_time_ - Time::Now();
+      TimeDelta delay = delayed_work_time_ - TimeTicks::Now();
       if (delay > TimeDelta()) {
         event_.TimedWait(delay);
       } else {
         
         
-        delayed_work_time_ = Time();
+        delayed_work_time_ = TimeTicks();
       }
     }
     
@@ -67,7 +67,8 @@ void MessagePumpDefault::ScheduleWork() {
   event_.Signal();
 }
 
-void MessagePumpDefault::ScheduleDelayedWork(const Time& delayed_work_time) {
+void MessagePumpDefault::ScheduleDelayedWork(
+    const TimeTicks& delayed_work_time) {
   
   
   

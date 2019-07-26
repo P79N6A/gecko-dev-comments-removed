@@ -114,7 +114,7 @@ void MessagePumpForUI::ScheduleWork() {
   mozilla::NotifyEvent();
 }
 
-void MessagePumpForUI::ScheduleDelayedWork(const Time& delayed_work_time) {
+void MessagePumpForUI::ScheduleDelayedWork(const TimeTicks& delayed_work_time) {
   
   
   delayed_work_time_ = delayed_work_time;

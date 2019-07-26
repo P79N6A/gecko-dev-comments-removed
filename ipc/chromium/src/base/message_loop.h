@@ -292,10 +292,10 @@ public:
 
   
   struct PendingTask {
-    Task* task;                   
-    base::Time delayed_run_time;  
-    int sequence_num;             
-    bool nestable;                
+    Task* task;                        
+    base::TimeTicks delayed_run_time;  
+    int sequence_num;                  
+    bool nestable;                     
 
     PendingTask(Task* task, bool nestable)
         : task(task), sequence_num(0), nestable(nestable) {
@@ -370,7 +370,7 @@ public:
 
   
   virtual bool DoWork();
-  virtual bool DoDelayedWork(base::Time* next_delayed_work_time);
+  virtual bool DoDelayedWork(base::TimeTicks* next_delayed_work_time);
   virtual bool DoIdleWork();
 
   Type type_;

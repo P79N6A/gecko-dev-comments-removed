@@ -70,7 +70,8 @@ int MessagePumpWin::GetCurrentDelay() const {
   
   
   
-  double timeout = ceil((delayed_work_time_ - Time::Now()).InMillisecondsF());
+  double timeout =
+      ceil((delayed_work_time_ - TimeTicks::Now()).InMillisecondsF());
 
   
   int delay = static_cast<int>(timeout);
@@ -104,7 +105,7 @@ void MessagePumpForUI::ScheduleWork() {
   PostMessage(message_hwnd_, WM_NULL, 0, 0);
 }
 
-void MessagePumpForUI::ScheduleDelayedWork(const Time& delayed_work_time) {
+void MessagePumpForUI::ScheduleDelayedWork(const TimeTicks& delayed_work_time) {
   
   
   
@@ -431,7 +432,7 @@ void MessagePumpForIO::ScheduleWork() {
   DCHECK(ret);
 }
 
-void MessagePumpForIO::ScheduleDelayedWork(const Time& delayed_work_time) {
+void MessagePumpForIO::ScheduleDelayedWork(const TimeTicks& delayed_work_time) {
   
   
   

@@ -20,7 +20,7 @@ class MessagePumpDefault : public MessagePump {
   virtual void Run(Delegate* delegate);
   virtual void Quit();
   virtual void ScheduleWork();
-  virtual void ScheduleDelayedWork(const Time& delayed_work_time);
+  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time);
 
  protected:
   
@@ -30,7 +30,7 @@ class MessagePumpDefault : public MessagePump {
   WaitableEvent event_;
 
   
-  Time delayed_work_time_;
+  TimeTicks delayed_work_time_;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(MessagePumpDefault);

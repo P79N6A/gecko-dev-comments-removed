@@ -29,7 +29,7 @@ class MessagePumpQt : public QObject {
   ~MessagePumpQt();
 
   virtual bool event (QEvent *e);
-  void scheduleDelayedIfNeeded(const Time& delayed_work_time);
+  void scheduleDelayedIfNeeded(const TimeTicks& delayed_work_time);
 
  public Q_SLOTS:
   void dispatchDelayed();
@@ -50,7 +50,7 @@ class MessagePumpForUI : public MessagePump {
   virtual void Run(Delegate* delegate);
   virtual void Quit();
   virtual void ScheduleWork();
-  virtual void ScheduleDelayedWork(const Time& delayed_work_time);
+  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time);
 
   
   
@@ -73,7 +73,7 @@ class MessagePumpForUI : public MessagePump {
   RunState* state_;
 
   
-  Time delayed_work_time_;
+  TimeTicks delayed_work_time_;
 
   
   

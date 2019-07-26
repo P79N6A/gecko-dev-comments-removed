@@ -137,7 +137,7 @@ class MessagePumpLibevent : public MessagePump {
   virtual void Run(Delegate* delegate);
   virtual void Quit();
   virtual void ScheduleWork();
-  virtual void ScheduleDelayedWork(const Time& delayed_work_time);
+  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time);
 
  private:
 
@@ -151,7 +151,7 @@ class MessagePumpLibevent : public MessagePump {
   bool in_run_;
 
   
-  Time delayed_work_time_;
+  TimeTicks delayed_work_time_;
 
   
   
