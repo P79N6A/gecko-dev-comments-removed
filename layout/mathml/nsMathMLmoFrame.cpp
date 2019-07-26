@@ -85,16 +85,13 @@ nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                   const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists)
 {
-  nsresult rv = NS_OK;
   bool useMathMLChar = UseMathMLChar();
 
   if (!useMathMLChar) {
     
-    rv = nsMathMLTokenFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsMathMLTokenFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
   } else {
-    rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
-    NS_ENSURE_SUCCESS(rv, rv);
+    DisplayBorderBackgroundOutline(aBuilder, aLists);
     
     
     bool isSelected = false;
@@ -106,15 +103,14 @@ nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       selectedRect.Inflate(nsPresContext::CSSPixelsToAppUnits(1));
       isSelected = true;
     }
-    rv = mMathMLChar.Display(aBuilder, this, aLists, 0, isSelected ? &selectedRect : nullptr);
-    NS_ENSURE_SUCCESS(rv, rv);
+    mMathMLChar.Display(aBuilder, this, aLists, 0, isSelected ? &selectedRect : nullptr);
   
 #if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
     
-    rv = DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
+    DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
 #endif
   }
-  return rv;
+  return NS_OK;
 }
 
 

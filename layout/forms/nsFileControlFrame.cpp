@@ -584,9 +584,8 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 {
   
   if (GetStyleBorder()->mBoxShadow) {
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-        nsDisplayBoxShadowOuter(aBuilder, this));
-    NS_ENSURE_SUCCESS(rv, rv);
+    aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+      nsDisplayBoxShadowOuter(aBuilder, this));
   }
 
   
@@ -594,9 +593,7 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   nsDisplayListCollection tempList;
-  nsresult rv = nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, tempList);
-  if (NS_FAILED(rv))
-    return rv;
+  nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, tempList);
 
   tempList.BorderBackground()->DeleteAll();
 
@@ -604,21 +601,19 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsRect clipRect(aBuilder->ToReferenceFrame(this), GetSize());
   clipRect.width = GetVisualOverflowRect().XMost();
   nscoord radii[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  rv = OverflowClip(aBuilder, tempList, aLists, clipRect, radii);
-  NS_ENSURE_SUCCESS(rv, rv);
+  OverflowClip(aBuilder, tempList, aLists, clipRect, radii);
 
   
   
   
   nsEventStates eventStates = mContent->AsElement()->State();
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED) && IsVisibleForPainting(aBuilder)) {
-    rv = aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayEventReceiver(aBuilder, this));
-    if (NS_FAILED(rv))
-      return rv;
+    aLists.Content()->AppendNewToTop(
+      new (aBuilder) nsDisplayEventReceiver(aBuilder, this));
   }
 
-  return DisplaySelectionOverlay(aBuilder, aLists.Content());
+  DisplaySelectionOverlay(aBuilder, aLists.Content());
+  return NS_OK;
 }
 
 #ifdef ACCESSIBILITY

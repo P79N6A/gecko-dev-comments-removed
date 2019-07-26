@@ -1995,8 +1995,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                         const nsRect&           aDirtyRect,
                                         const nsDisplayListSet& aLists)
 {
-  nsresult rv = mOuter->DisplayBorderBackgroundOutline(aBuilder, aLists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mOuter->DisplayBorderBackgroundOutline(aBuilder, aLists);
 
   if (aBuilder->IsPaintingToWindow()) {
     mScrollPosAtLastPaint = GetScrollPosition();
@@ -2016,8 +2015,9 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
-    return mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame,
-                                            aDirtyRect, aLists);
+    mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame,
+                                     aDirtyRect, aLists);
+    return NS_OK;
   }
 
   
@@ -2062,8 +2062,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   nsDisplayListCollection set;
-  rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
 
   
   
@@ -2101,9 +2100,8 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  rv = mOuter->OverflowClip(aBuilder, set, aLists, clip, radii,
-                            true, mIsRoot);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mOuter->OverflowClip(aBuilder, set, aLists, clip, radii,
+                       true, mIsRoot);
 
   if (ShouldBuildLayer()) {
     

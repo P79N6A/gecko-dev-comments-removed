@@ -571,11 +571,11 @@ nsTableRowFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       item = new (aBuilder) nsDisplayTableRowBackground(aBuilder, this);
-      nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
-      NS_ENSURE_SUCCESS(rv, rv);
+      aLists.BorderBackground()->AppendNewToTop(item);
     }
   }
-  return nsTableFrame::DisplayGenericTablePart(aBuilder, this, aDirtyRect, aLists, item);
+  nsTableFrame::DisplayGenericTablePart(aBuilder, this, aDirtyRect, aLists, item);
+  return NS_OK;
 }
 
 int

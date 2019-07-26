@@ -297,17 +297,17 @@ nsTableOuterFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   
-  if (mCaptionFrames.IsEmpty())
-    return BuildDisplayListForInnerTable(aBuilder, aDirtyRect, aLists);
-    
+  if (mCaptionFrames.IsEmpty()) {
+    BuildDisplayListForInnerTable(aBuilder, aDirtyRect, aLists);
+    return NS_OK;
+  }
+
   nsDisplayListCollection set;
-  nsresult rv = BuildDisplayListForInnerTable(aBuilder, aDirtyRect, set);
-  NS_ENSURE_SUCCESS(rv, rv);
+  BuildDisplayListForInnerTable(aBuilder, aDirtyRect, set);
   
   nsDisplayListSet captionSet(set, set.BlockBorderBackgrounds());
-  rv = BuildDisplayListForChild(aBuilder, mCaptionFrames.FirstChild(),
-                                aDirtyRect, captionSet);
-  NS_ENSURE_SUCCESS(rv, rv);
+  BuildDisplayListForChild(aBuilder, mCaptionFrames.FirstChild(),
+                           aDirtyRect, captionSet);
   
   
   
@@ -326,8 +326,7 @@ nsTableOuterFrame::BuildDisplayListForInnerTable(nsDisplayListBuilder*   aBuilde
   nsIFrame* kid = mFrames.FirstChild();
   
   while (kid) {
-    nsresult rv = BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
-    NS_ENSURE_SUCCESS(rv, rv);
+    BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
     kid = kid->GetNextSibling();
   }
   return NS_OK;

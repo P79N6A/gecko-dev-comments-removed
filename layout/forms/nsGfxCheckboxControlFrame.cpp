@@ -101,9 +101,7 @@ nsGfxCheckboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                             const nsRect&           aDirtyRect,
                                             const nsDisplayListSet& aLists)
 {
-  nsresult rv = nsFormControlFrame::BuildDisplayList(aBuilder, aDirtyRect,
-                                                     aLists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsFormControlFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
   
   
   if ((!IsChecked() && !IsIndeterminate()) || !IsVisibleForPainting(aBuilder))
@@ -112,12 +110,13 @@ nsGfxCheckboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (IsThemed())
     return NS_OK; 
 
-  return aLists.Content()->AppendNewToTop(new (aBuilder)
+  aLists.Content()->AppendNewToTop(new (aBuilder)
     nsDisplayGeneric(aBuilder, this,
                      IsIndeterminate()
                      ? PaintIndeterminateMark : PaintCheckMark,
                      "CheckedCheckbox",
                      nsDisplayItem::TYPE_CHECKED_CHECKBOX));
+  return NS_OK;
 }
 
 
