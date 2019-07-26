@@ -62,7 +62,7 @@ ContentPermission.prototype = {
     }
 
     
-    let {name} = WebappRT.config.app.manifest;
+    let {name} = WebappRT.localeManifest;
     let requestingWindow = request.window.top;
     let chromeWin = this._getChromeWindow(requestingWindow);
     let bundle = Services.strings.createBundle("chrome://webapprt/locale/webapp.properties");
