@@ -113,8 +113,8 @@ public:
 
 
 
-  static nsresult CreateViewForFrame(nsIFrame* aFrame,
-                                     bool aForce);
+  static void CreateViewForFrame(nsIFrame* aFrame,
+                                 bool aForce);
 
   
   static void PositionFrameView(nsIFrame* aKidFrame);

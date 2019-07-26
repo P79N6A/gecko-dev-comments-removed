@@ -138,8 +138,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   
   
   if (!HasView()) {
-    rv = nsContainerFrame::CreateViewForFrame(this, true);
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsContainerFrame::CreateViewForFrame(this, true);
   }
   EnsureInnerView();
 
