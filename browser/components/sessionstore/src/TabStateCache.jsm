@@ -99,6 +99,18 @@ this.TabStateCache = Object.freeze({
   
 
 
+
+
+
+
+
+  onSwapDocShells: function(browser, otherBrowser) {
+    TabStateCacheInternal.onSwapDocShells(browser, otherBrowser);
+  },
+
+  
+
+
   get hits() {
     return TabStateCacheTelemetry.hits;
   },
@@ -211,6 +223,37 @@ let TabStateCacheInternal = {
       delete data[aField];
     }
     TabStateCacheTelemetry.recordAccess(!!data);
+  },
+
+  
+
+
+
+
+
+
+
+  onSwapDocShells: function(browser, otherBrowser) {
+    
+    
+    if (!this._data.has(browser)) {
+      [browser, otherBrowser] = [otherBrowser, browser];
+      if (!this._data.has(browser)) {
+        return;
+      }
+    }
+
+    
+    
+    let data = this._data.get(browser);
+    if (this._data.has(otherBrowser)) {
+      let otherData = this._data.get(otherBrowser);
+      this._data.set(browser, otherData);
+      this._data.set(otherBrowser, data);
+    } else {
+      this._data.set(otherBrowser, data);
+      this._data.delete(browser);
+    }
   },
 
   _normalizeToBrowser: function(aKey) {
