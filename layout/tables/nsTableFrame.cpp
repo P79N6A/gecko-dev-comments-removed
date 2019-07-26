@@ -2956,7 +2956,14 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
           mFrames.InsertFrame(nullptr, kidFrame, kidNextInFlow);
           
           rowGroups.InsertElementAt(childX + 1,
-                      static_cast <nsTableRowGroupFrame*>(kidNextInFlow));
+                      static_cast<nsTableRowGroupFrame*>(kidNextInFlow));
+        } else if (kidNextInFlow == kidFrame->GetNextSibling()) {
+          
+          
+          MOZ_ASSERT(!rowGroups.Contains(kidNextInFlow),
+                     "OrderRowGroups must not put our NIF in 'rowGroups'");
+          rowGroups.InsertElementAt(childX + 1,
+                      static_cast<nsTableRowGroupFrame*>(kidNextInFlow));
         }
 
         
