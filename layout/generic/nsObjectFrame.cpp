@@ -1546,11 +1546,6 @@ nsObjectFrame::UpdateImageLayer(const gfxRect& aRect)
 #ifdef XP_MACOSX
   if (!mInstanceOwner->UseAsyncRendering()) {
     mInstanceOwner->DoCocoaEventDrawRect(aRect, nullptr);
-    
-    
-    
-    
-    mInstanceOwner->GetImageContainer();
   }
 #endif
 }
