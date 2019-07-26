@@ -326,8 +326,11 @@ var gPluginHandler = {
       overlay.addEventListener("click", function(aEvent) {
         
         if (!(aEvent.originalTarget instanceof HTMLAnchorElement) &&
-            aEvent.button == 0 && aEvent.isTrusted)
+            aEvent.button == 0 && aEvent.isTrusted) {
           gPluginHandler.activateSinglePlugin(aEvent.target.ownerDocument.defaultView.top, aPlugin);
+          aEvent.stopPropagation();
+          aEvent.preventDefault();
+        }
       }, true);
     }
 
