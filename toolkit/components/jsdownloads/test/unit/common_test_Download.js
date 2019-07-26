@@ -1103,3 +1103,151 @@ add_task(function test_blocked_parental_controls()
   cleanup();
 });
 
+
+
+
+add_task(function test_showContainingDirectory() {
+  DownloadIntegration._deferTestShowDir = Promise.defer();
+
+  let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
+
+  let download = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt") },
+    target: ""
+  });
+
+  try {
+    yield download.showContainingDirectory();
+    do_throw("Should have failed because of an invalid path.");
+  } catch (ex if ex instanceof Components.Exception) {
+    
+    
+    let validResult = ex.result == Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH ||
+                      ex.result == Cr.NS_ERROR_FAILURE;
+    do_check_true(validResult);
+  }
+
+  download = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt") },
+    target: targetPath
+  });
+
+
+  DownloadIntegration._deferTestShowDir = Promise.defer();
+  download.showContainingDirectory();
+  let result = yield DownloadIntegration._deferTestShowDir.promise;
+  do_check_eq(result, "success");
+});
+
+
+
+
+add_task(function test_launch() {
+  let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
+
+  let download = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt") },
+    target: { path: targetPath }
+  });
+
+  
+  
+  try {
+    yield download.launch();
+    do_throw("Can't launch download file as it has not completed yet");
+  } catch (ex) {
+    do_check_eq(ex.message, "launch can only be called if the download succeeded")
+  }
+
+  
+  DownloadIntegration._deferTestOpenFile = Promise.defer();
+  yield download.start();
+  download.launch();
+  let result = yield DownloadIntegration._deferTestOpenFile.promise;
+  do_check_eq(result, "default-handler");
+
+
+  
+  
+  download = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt") },
+    target: { path: targetPath },
+    launcherPath: " "
+  });
+
+  DownloadIntegration._deferTestOpenFile = Promise.defer();
+  yield download.start();
+  try {
+    download.launch();
+    result = yield DownloadIntegration._deferTestOpenFile.promise;
+    do_throw("Can't launch file with invalid custom launcher")
+  } catch (ex if ex instanceof Components.Exception) {
+    
+    
+    let validResult = ex.result == Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH ||
+                      ex.result == Cr.NS_ERROR_FAILURE;
+    do_check_true(validResult);
+  }
+
+  
+  
+  download = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt") },
+    target: { path: targetPath },
+    launcherPath: getTempFile("app-launcher").path
+  });
+
+  DownloadIntegration._deferTestOpenFile = Promise.defer();
+  yield download.start();
+  download.launch();
+  result = yield DownloadIntegration._deferTestOpenFile.promise;
+  do_check_eq(result, "chosen-app");
+
+});
+
+
+
+
+
+add_task(function test_launchWhenSucceeded() {
+  let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
+
+  let download = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt") },
+    target: { path: targetPath },
+    launchWhenSucceeded: true,
+  });
+
+  
+  
+  DownloadIntegration._deferTestOpenFile = Promise.defer();
+  download.start();
+  let result = yield DownloadIntegration._deferTestOpenFile.promise;
+  do_check_eq(result, "default-handler");
+
+
+  
+  
+  download = yield Downloads.createDownload({
+    source: { url: httpUrl("source.txt") },
+    target: { path: targetPath },
+    launchWhenSucceeded: true,
+    launcherPath: getTempFile("app-launcher").path
+  });
+
+  DownloadIntegration._deferTestOpenFile = Promise.defer();
+  yield download.start();
+  result = yield DownloadIntegration._deferTestOpenFile.promise;
+  do_check_eq(result, "chosen-app");
+});
+
+
+
+
+add_task(function test_contentType() {
+  let download = yield promiseStartDownload(httpUrl("source.txt"));
+
+  yield promiseDownloadStopped(download);
+  do_check_eq("text/plain", download.contentType);
+});
+

@@ -39,9 +39,18 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
-XPCOMUtils.defineLazyServiceGetter(this, "env",
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "gEnvironment",
                                    "@mozilla.org/process/environment;1",
                                    "nsIEnvironment");
+XPCOMUtils.defineLazyServiceGetter(this, "gMIMEService",
+                                   "@mozilla.org/mime;1",
+                                   "nsIMIMEService");
+XPCOMUtils.defineLazyServiceGetter(this, "gExternalProtocolService",
+                                   "@mozilla.org/uriloader/external-protocol-service;1",
+                                   "nsIExternalProtocolService");
+
 XPCOMUtils.defineLazyGetter(this, "gParentalControlsService", function() {
   if ("@mozilla.org/parental-controls-service;1" in Cc) {
     return Cc["@mozilla.org/parental-controls-service;1"]
@@ -68,6 +77,9 @@ this.DownloadIntegration = {
   dontLoad: false,
   dontCheckParentalControls: false,
   shouldBlockInTest: false,
+  dontOpenFileAndFolder: false,
+  _deferTestOpenFile: null,
+  _deferTestShowDir: null,
 
   
 
@@ -145,7 +157,7 @@ this.DownloadIntegration = {
 #elifdef ANDROID
       
       
-      let directoryPath = env.get("DOWNLOADS_DIRECTORY");
+      let directoryPath = gEnvironment.get("DOWNLOADS_DIRECTORY");
       if (!directoryPath) {
         throw new Components.Exception("DOWNLOADS_DIRECTORY is not set.",
                                        Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH);
@@ -269,6 +281,165 @@ this.DownloadIntegration = {
   _isImmersiveProcess: function() {
     
     return false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  launchDownload: function (aDownload) {
+    let deferred = Task.spawn(function DI_launchDownload_task() {
+      let file = new FileUtils.File(aDownload.target.path);
+
+      
+      
+      
+      let fileExtension = null, mimeInfo = null;
+      let match = file.leafName.match(/\.([^.]+)$/);
+      if (match) {
+        fileExtension = match[1];
+      }
+
+      try {
+        
+        
+        
+        mimeInfo = gMIMEService.getFromTypeAndExtension(aDownload.contentType,
+                                                        fileExtension);
+      } catch (e) { }
+
+      if (aDownload.launcherPath) {
+        if (!mimeInfo) {
+          
+          
+          
+          throw new Error(
+            "Unable to create nsIMIMEInfo to launch a custom application");
+        }
+
+        
+        mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
+
+        let localHandlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"]
+                                .createInstance(Ci.nsILocalHandlerApp);
+        localHandlerApp.executable = new FileUtils.File(aDownload.launcherPath);
+
+        if (this.dontOpenFileAndFolder) {
+          throw new Task.Result("chosen-app");
+        }
+
+        mimeInfo.launchWithFile(file);
+        return;
+      }
+
+      
+      
+      if (this.dontOpenFileAndFolder) {
+        throw new Task.Result("default-handler");
+      }
+
+      
+      
+      if (mimeInfo) {
+        mimeInfo.preferredAction = Ci.nsIMIMEInfo.useSystemDefault;
+
+        try {
+          mimeInfo.launchWithFile(file);
+          return;
+        } catch (ex) { }
+      }
+
+      
+      
+      try {
+        file.launch();
+        return;
+      } catch (ex) { }
+
+      
+      
+      gExternalProtocolService.loadUrl(NetUtil.newURI(file));
+      yield undefined;
+    }.bind(this));
+
+    if (this.dontOpenFileAndFolder) {
+      deferred.then((value) => { this._deferTestOpenFile.resolve(value); },
+                    (error) => { this._deferTestOpenFile.reject(error); });
+    }
+
+    return deferred;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  showContainingDirectory: function (aFilePath) {
+    let deferred = Task.spawn(function DI_showContainingDirectory_task() {
+      let file = new FileUtils.File(aFilePath);
+
+      if (this.dontOpenFileAndFolder) {
+        return;
+      }
+
+      try {
+        
+        file.reveal();
+        return;
+      } catch (ex) { }
+
+      
+      
+      let parent = file.parent;
+      if (!parent) {
+        throw new Error(
+          "Unexpected reference to a top-level directory instead of a file");
+      }
+
+      try {
+        
+        parent.launch();
+        return;
+      } catch (ex) { }
+
+      
+      
+      gExternalProtocolService.loadUrl(NetUtil.newURI(parent));
+      yield undefined;
+    }.bind(this));
+
+    if (this.dontOpenFileAndFolder) {
+      deferred.then((value) => { this._deferTestShowDir.resolve("success"); },
+                    (error) => { this._deferTestShowDir.reject(error); });
+    }
+
+    return deferred;
   },
 
   

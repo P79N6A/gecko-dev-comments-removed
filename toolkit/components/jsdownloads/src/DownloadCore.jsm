@@ -191,6 +191,23 @@ Download.prototype = {
   
 
 
+
+  launchWhenSucceeded: false,
+
+  
+
+
+  contentType: null,
+
+  
+
+
+
+  launcherPath: null,
+
+  
+
+
   _notifyChange: function D_notifyChange() {
     try {
       if (this.onchange) {
@@ -276,6 +293,27 @@ Download.prototype = {
 
     
     
+    
+    function DS_setDownloadProperties(aOptions) {
+      if (this._currentAttempt && this._currentAttempt != currentAttempt) {
+        return;
+      }
+
+      let changeMade = false;
+
+      if ("contentType" in aOptions &&
+          this.contentType != aOptions.contentType) {
+        this.contentType = aOptions.contentType;
+        changeMade = true;
+      }
+
+      if (changeMade) {
+        this._notifyChange();
+      }
+    }
+
+    
+    
     deferAttempt.resolve(Task.spawn(function task_D_start() {
       
       if (this._promiseCanceled) {
@@ -292,7 +330,8 @@ Download.prototype = {
 
       try {
         
-        yield this.saver.execute(DS_setProgressBytes.bind(this));
+        yield this.saver.execute(DS_setProgressBytes.bind(this),
+                                 DS_setDownloadProperties.bind(this));
 
         
         this.progress = 100;
@@ -322,6 +361,10 @@ Download.prototype = {
           this._notifyChange();
           if (this.succeeded) {
             this._deferSucceeded.resolve();
+
+            if (this.launchWhenSucceeded) {
+              this.launch().then(null, Cu.reportError);
+            }
           }
         }
       }
@@ -330,6 +373,47 @@ Download.prototype = {
     
     this._notifyChange();
     return this._currentAttempt;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  launch: function() {
+    if (!this.succeeded) {
+      return Promise.reject(
+        new Error("launch can only be called if the download succeeded")
+      );
+    }
+
+    return DownloadIntegration.launchDownload(this);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  showContainingDirectory: function D_showContainingDirectory() {
+    return DownloadIntegration.showContainingDirectory(this.target.path);
   },
 
   
@@ -455,6 +539,18 @@ Download.prototype = {
       serializable.saver = saver;
     }
 
+    if (this.launcherPath) {
+      serializable.launcherPath = this.launcherPath;
+    }
+
+    if (this.launchWhenSucceeded) {
+      serializable.launchWhenSucceeded = true;
+    }
+
+    if (this.contentType) {
+      serializable.contentType = this.contentType;
+    }
+
     return serializable;
   },
 };
@@ -497,6 +593,19 @@ Download.fromSerializable = function (aSerializable) {
     download.saver = DownloadSaver.fromSerializable("copy");
   }
   download.saver.download = download;
+
+  if ("launchWhenSucceeded" in aSerializable) {
+    download.launchWhenSucceeded = !!aSerializable.launchWhenSucceeded;
+  }
+
+  if ("contentType" in aSerializable) {
+    download.contentType = aSerializable.contentType;
+  }
+
+  if ("launcherPath" in aSerializable) {
+    download.launcherPath = aSerializable.launcherPath;
+  }
+
   return download;
 };
 
@@ -738,7 +847,13 @@ DownloadSaver.prototype = {
 
 
 
-  execute: function DS_execute(aSetProgressBytesFn)
+
+
+
+
+
+
+  execute: function DS_execute(aSetProgressBytesFn, aSetPropertiesFn)
   {
     throw new Error("Not implemented.");
   },
@@ -808,7 +923,7 @@ DownloadCopySaver.prototype = {
   
 
 
-  execute: function DCS_execute(aSetProgressBytesFn)
+  execute: function DCS_execute(aSetProgressBytesFn, aSetPropertiesFn)
   {
     let deferred = Promise.defer();
     let download = this.download;
@@ -873,6 +988,7 @@ DownloadCopySaver.prototype = {
           if (aRequest instanceof Ci.nsIChannel &&
               aRequest.contentLength >= 0) {
             aSetProgressBytesFn(0, aRequest.contentLength);
+            aSetPropertiesFn({ contentType: aRequest.contentType });
           }
         },
         onStopRequest: function DCSE_onStopRequest(aRequest, aContext,
