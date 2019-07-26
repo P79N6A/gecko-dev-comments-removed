@@ -300,8 +300,12 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
     }
   }
 
-  RenderLayerBuffer(mLowPrecisionTiledBuffer, aEffectChain, aOpacity, aFilter,
-                    aClipRect, aLayerProperties->mVisibleRegion, aTransform);
+  
+  
+  
+  
+  RenderLayerBuffer(mLowPrecisionTiledBuffer, aEffectChain, aOpacity * gfxPrefs::LowPrecisionOpacity(),
+                    aFilter, aClipRect, aLayerProperties->mVisibleRegion, aTransform);
   RenderLayerBuffer(mTiledBuffer, aEffectChain, aOpacity, aFilter,
                     aClipRect, aLayerProperties->mVisibleRegion, aTransform);
 

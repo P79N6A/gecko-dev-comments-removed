@@ -560,6 +560,7 @@ pref("layers.async-video.enabled", true);
 pref("layers.progressive-paint", true);
 pref("layers.low-precision-buffer", true);
 pref("layers.low-precision-resolution", "0.25");
+pref("layers.low-precision-opacity", "1.0");
 
 
 
