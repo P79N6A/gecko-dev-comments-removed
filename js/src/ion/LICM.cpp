@@ -306,7 +306,7 @@ Loop::isLoopInvariant(MInstruction *ins)
 
     
     
-    for (size_t i = 0; i < ins->numOperands(); i ++) {
+    for (size_t i = 0, e = ins->numOperands(); i < e; i++) {
         if (isInLoop(ins->getOperand(i)) &&
             !ins->getOperand(i)->isLoopInvariant()) {
 
