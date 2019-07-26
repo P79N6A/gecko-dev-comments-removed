@@ -757,7 +757,6 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 
     JSRuntime *rt = gen->cx->runtime;
 
-    
     const LAllocation *limit = lir->limitTemp();
     Register limitReg = ToRegister(limit);
 
@@ -806,6 +805,11 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     typedef bool (*pf)(JSContext *);
     static const VMFunction ReportOverRecursedInfo =
         FunctionInfo<pf>(ReportOverRecursed);
+
+    
+    
+    
+    saveLive(ool->lir());
 
     if (!callVM(ReportOverRecursedInfo, ool->lir()))
         return false;
