@@ -443,6 +443,10 @@ abstract public class BrowserApp extends GeckoApp
             GeckoProfile.maybeCleanupGuestProfile(this);
         }
 
+        
+        
+        
+        ((GeckoApplication) getApplication()).prepareLightweightTheme();
         super.onCreate(savedInstanceState);
 
         mViewFlipper = (ViewFlipper) findViewById(R.id.browser_actionbar);

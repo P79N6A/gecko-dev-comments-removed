@@ -75,7 +75,8 @@ public class GeckoView extends LayerView
 
             Clipboard.init(context);
             HardwareUtils.init(context);
-            GeckoNetworkManager.getInstance().init(context);
+
+            
 
             GeckoLoader.loadMozGlue();
             BrowserDB.setEnableContentProviders(false);
