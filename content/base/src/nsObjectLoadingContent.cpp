@@ -557,6 +557,19 @@ IsPluginEnabledForType(const nsCString& aMIMEType)
 
 
 
+void
+nsObjectLoadingContent::QueueCheckPluginStopEvent()
+{
+  nsCOMPtr<nsIRunnable> event = new CheckPluginStopEvent(this);
+  mPendingCheckPluginStopEvent = event;
+
+  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+  if (appShell) {
+    appShell->RunInStableState(event);
+  }
+}
+
+
 
 bool
 nsObjectLoadingContent::MakePluginListener()
@@ -659,13 +672,7 @@ nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
     
     
     
-    nsCOMPtr<nsIRunnable> event = new CheckPluginStopEvent(this);
-    mPendingCheckPluginStopEvent = event;
-
-    nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-    if (appShell) {
-      appShell->RunInStableState(event);
-    }
+    QueueCheckPluginStopEvent();
   } else if (mType != eType_Image) {
     
     
@@ -820,16 +827,11 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
 void
 nsObjectLoadingContent::NotifyOwnerDocumentActivityChanged()
 {
-  if (!mInstanceOwner) {
-    return;
-  }
 
-  nsCOMPtr<nsIContent> thisContent =
-    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  nsIDocument* ownerDoc = thisContent->OwnerDoc();
-  if (!ownerDoc->IsActive()) {
-    StopPluginInstance();
-  }
+  
+  
+  if (mInstanceOwner)
+    QueueCheckPluginStopEvent();
 }
 
 
@@ -995,15 +997,7 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
     
     if (mInstanceOwner) {
       mInstanceOwner->SetFrame(nullptr);
-
-      nsCOMPtr<nsIRunnable> event = new CheckPluginStopEvent(this);
-      mPendingCheckPluginStopEvent = event;
-      nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-      if (appShell) {
-        appShell->RunInStableState(event);
-      } else {
-        NS_NOTREACHED("No app shell?");
-      }
+      QueueCheckPluginStopEvent();
     }
     return NS_OK;
   }

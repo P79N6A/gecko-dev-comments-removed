@@ -344,6 +344,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     ParameterUpdateFlags UpdateObjectParameters();
 
+    
+
+
+    void QueueCheckPluginStopEvent();
+
     void NotifyContentObjectWrapper();
 
     
