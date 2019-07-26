@@ -1518,6 +1518,9 @@ pref("security.csp.speccompliant", true);
 pref("security.mixed_content.block_active_content", true);
 
 
+pref("security.cert_pinning.enforcement_level", 1);
+
+
 pref("plain_text.wrap_long_lines", true);
 
 
