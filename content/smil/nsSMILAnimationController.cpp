@@ -744,6 +744,15 @@ nsSMILAnimationController::AddAnimationToCompositorTable(
   }
 }
 
+static inline bool
+IsTransformAttribute(int32_t aNamespaceID, nsIAtom *aAttributeName)
+{
+  return aNamespaceID == kNameSpaceID_None &&
+         (aAttributeName == nsGkAtoms::transform ||
+          aAttributeName == nsGkAtoms::patternTransform ||
+          aAttributeName == nsGkAtoms::gradientTransform);
+}
+
 
 
 
@@ -765,6 +774,12 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   if (!aAnimElem->GetTargetAttributeName(&attributeNamespaceID,
                                          getter_AddRefs(attributeName)))
     
+    return false;
+
+  
+  
+  if (IsTransformAttribute(attributeNamespaceID, attributeName) !=
+      aAnimElem->AsElement().IsSVG(nsGkAtoms::animateTransform))
     return false;
 
   
