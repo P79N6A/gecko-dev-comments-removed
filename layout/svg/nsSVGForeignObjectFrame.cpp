@@ -27,7 +27,7 @@ using namespace mozilla::dom;
 
 
 
-nsIFrame*
+nsContainerFrame*
 NS_NewSVGForeignObjectFrame(nsIPresShell   *aPresShell,
                             nsStyleContext *aContext)
 {

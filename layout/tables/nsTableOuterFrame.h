@@ -17,9 +17,10 @@ class nsTableCaptionFrame : public nsBlockFrame
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
+  friend nsTableCaptionFrame* NS_NewTableCaptionFrame(nsIPresShell* aPresShell,
+                                                      nsStyleContext*  aContext);
   
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
-  friend nsIFrame* NS_NewTableCaptionFrame(nsIPresShell* aPresShell, nsStyleContext*  aContext);
 
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
@@ -64,7 +65,8 @@ public:
 
 
 
-  friend nsIFrame* NS_NewTableOuterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsTableOuterFrame* NS_NewTableOuterFrame(nsIPresShell* aPresShell,
+                                                  nsStyleContext* aContext);
   
   
 

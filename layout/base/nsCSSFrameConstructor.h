@@ -210,7 +210,7 @@ public:
   nsIFrame* EnsureFrameForTextNode(nsGenericDOMDataNode* aContent);
 
   
-  nsresult GenerateChildFrames(nsIFrame* aFrame);
+  nsresult GenerateChildFrames(nsContainerFrame* aFrame);
 
   
   
@@ -225,10 +225,10 @@ public:
   void WillDestroyFrameTree();
 
   
-  nsIFrame* CreateContinuingFrame(nsPresContext* aPresContext,
-                                  nsIFrame*       aFrame,
-                                  nsIFrame*       aParentFrame,
-                                  bool            aIsFluid = true);
+  nsIFrame* CreateContinuingFrame(nsPresContext*    aPresContext,
+                                  nsIFrame*         aFrame,
+                                  nsContainerFrame* aParentFrame,
+                                  bool              aIsFluid = true);
 
   
   nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
@@ -238,41 +238,41 @@ public:
                                       nsIContent* aChildContent,
                                       bool*       aMultiple = nullptr);
 
-  nsresult CreateListBoxContent(nsPresContext* aPresContext,
-                                nsIFrame*       aParentFrame,
-                                nsIFrame*       aPrevFrame,
-                                nsIContent*     aChild,
-                                nsIFrame**      aResult,
-                                bool            aIsAppend,
-                                bool            aIsScrollbar,
+  nsresult CreateListBoxContent(nsPresContext*    aPresContext,
+                                nsContainerFrame* aParentFrame,
+                                nsIFrame*         aPrevFrame,
+                                nsIContent*       aChild,
+                                nsIFrame**        aResult,
+                                bool              aIsAppend,
+                                bool              aIsScrollbar,
                                 nsILayoutHistoryState* aFrameState);
 
   
   
   
-  nsIFrame* GetRootElementFrame() { return mRootElementFrame; }
+  nsContainerFrame* GetRootElementFrame() { return mRootElementFrame; }
   
   
   nsIFrame* GetRootElementStyleFrame() { return mRootElementStyleFrame; }
   nsIFrame* GetPageSequenceFrame() { return mPageSequenceFrame; }
 
   
-  nsIFrame* GetDocElementContainingBlock()
+  nsContainerFrame* GetDocElementContainingBlock()
     { return mDocElementContainingBlock; }
 
 private:
   struct FrameConstructionItem;
   class FrameConstructionItemList;
 
-  nsIFrame* ConstructPageFrame(nsIPresShell*  aPresShell,
-                               nsPresContext* aPresContext,
-                               nsIFrame*      aParentFrame,
-                               nsIFrame*      aPrevPageFrame,
-                               nsIFrame*&     aCanvasFrame);
+  nsContainerFrame* ConstructPageFrame(nsIPresShell*      aPresShell,
+                                       nsPresContext*     aPresContext,
+                                       nsContainerFrame*  aParentFrame,
+                                       nsIFrame*          aPrevPageFrame,
+                                       nsContainerFrame*& aCanvasFrame);
 
   void InitAndRestoreFrame (const nsFrameConstructorState& aState,
                             nsIContent*                    aContent,
-                            nsIFrame*                      aParentFrame,
+                            nsContainerFrame*              aParentFrame,
                             nsIFrame*                      aNewFrame,
                             bool                           aAllowCounters = true);
 
@@ -295,7 +295,7 @@ private:
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
                                  bool                     aSuppressWhiteSpaceOptimizations,
-                                 nsIFrame*                aParentFrame,
+                                 nsContainerFrame*        aParentFrame,
                                  FrameConstructionItemList& aItems);
 
   
@@ -356,7 +356,7 @@ private:
 
   
   void CreateGeneratedContentItem(nsFrameConstructorState&   aState,
-                                  nsIFrame*                  aFrame,
+                                  nsContainerFrame*          aFrame,
                                   nsIContent*                aContent,
                                   nsStyleContext*            aStyleContext,
                                   nsCSSPseudoElements::Type  aPseudoElement,
@@ -368,7 +368,7 @@ private:
   
   
   nsresult AppendFramesToParent(nsFrameConstructorState&       aState,
-                                nsIFrame*                      aParentFrame,
+                                nsContainerFrame*              aParentFrame,
                                 nsFrameItems&                  aFrameList,
                                 nsIFrame*                      aPrevSibling,
                                 bool                           aIsRecursiveCall = false);
@@ -380,7 +380,7 @@ private:
 
   nsIFrame* ConstructTable(nsFrameConstructorState& aState,
                            FrameConstructionItem&   aItem,
-                           nsIFrame*                aParentFrame,
+                           nsContainerFrame*        aParentFrame,
                            const nsStyleDisplay*    aDisplay,
                            nsFrameItems&            aFrameItems);
 
@@ -389,7 +389,7 @@ private:
 
   nsIFrame* ConstructTableRowOrRowGroup(nsFrameConstructorState& aState,
                                         FrameConstructionItem&   aItem,
-                                        nsIFrame*                aParentFrame,
+                                        nsContainerFrame*        aParentFrame,
                                         const nsStyleDisplay*    aStyleDisplay,
                                         nsFrameItems&            aFrameItems);
 
@@ -398,7 +398,7 @@ private:
 
   nsIFrame* ConstructTableCol(nsFrameConstructorState& aState,
                               FrameConstructionItem&   aItem,
-                              nsIFrame*                aParentFrame,
+                              nsContainerFrame*        aParentFrame,
                               const nsStyleDisplay*    aStyleDisplay,
                               nsFrameItems&            aFrameItems);
 
@@ -407,7 +407,7 @@ private:
 
   nsIFrame* ConstructTableCell(nsFrameConstructorState& aState,
                                FrameConstructionItem&   aItem,
-                               nsIFrame*                aParentFrame,
+                               nsContainerFrame*        aParentFrame,
                                const nsStyleDisplay*    aStyleDisplay,
                                nsFrameItems&            aFrameItems);
 
@@ -448,6 +448,7 @@ private:
 
 
   typedef nsIFrame* (* FrameCreationFunc)(nsIPresShell*, nsStyleContext*);
+  typedef nsContainerFrame* (* ContainerFrameCreationFunc)(nsIPresShell*, nsStyleContext*);
 
   
 
@@ -482,7 +483,7 @@ private:
   typedef nsIFrame*
     (nsCSSFrameConstructor::* FrameFullConstructor)(nsFrameConstructorState& aState,
                                                     FrameConstructionItem& aItem,
-                                                    nsIFrame* aParentFrame,
+                                                    nsContainerFrame* aParentFrame,
                                                     const nsStyleDisplay* aStyleDisplay,
                                                     nsFrameItems& aFrameItems);
 
@@ -1053,27 +1054,27 @@ private:
   
   
   
-  void AdjustParentFrame(nsIFrame* &                  aParentFrame,
+  void AdjustParentFrame(nsContainerFrame**           aParentFrame,
                          const FrameConstructionData* aFCData,
                          nsStyleContext*              aStyleContext);
 
   
 
 protected:
-  static nsIFrame* CreatePlaceholderFrameFor(nsIPresShell*    aPresShell,
-                                             nsIContent*      aContent,
-                                             nsIFrame*        aFrame,
-                                             nsStyleContext*  aStyleContext,
-                                             nsIFrame*        aParentFrame,
-                                             nsIFrame*        aPrevInFlow,
-                                             nsFrameState     aTypeBit);
+  static nsIFrame* CreatePlaceholderFrameFor(nsIPresShell*     aPresShell,
+                                             nsIContent*       aContent,
+                                             nsIFrame*         aFrame,
+                                             nsStyleContext*   aStyleContext,
+                                             nsContainerFrame* aParentFrame,
+                                             nsIFrame*         aPrevInFlow,
+                                             nsFrameState      aTypeBit);
 
 private:
   
   
   nsIFrame* ConstructSelectFrame(nsFrameConstructorState& aState,
                                  FrameConstructionItem&   aItem,
-                                 nsIFrame*                aParentFrame,
+                                 nsContainerFrame*        aParentFrame,
                                  const nsStyleDisplay*    aStyleDisplay,
                                  nsFrameItems&            aFrameItems);
 
@@ -1081,7 +1082,7 @@ private:
   
   nsIFrame* ConstructFieldSetFrame(nsFrameConstructorState& aState,
                                    FrameConstructionItem&   aItem,
-                                   nsIFrame*                aParentFrame,
+                                   nsContainerFrame*        aParentFrame,
                                    const nsStyleDisplay*    aStyleDisplay,
                                    nsFrameItems&            aFrameItems);
 
@@ -1092,14 +1093,14 @@ private:
   void ConstructTextFrame(const FrameConstructionData* aData,
                           nsFrameConstructorState& aState,
                           nsIContent*              aContent,
-                          nsIFrame*                aParentFrame,
+                          nsContainerFrame*        aParentFrame,
                           nsStyleContext*          aStyleContext,
                           nsFrameItems&            aFrameItems);
 
   
   
   void AddTextItemIfNeeded(nsFrameConstructorState& aState,
-                           nsIFrame* aParentFrame,
+                           nsContainerFrame* aParentFrame,
                            nsIContent* aPossibleTextContent,
                            FrameConstructionItemList& aItems);
 
@@ -1146,7 +1147,7 @@ private:
 
   void ConstructFrameFromItemInternal(FrameConstructionItem& aItem,
                                       nsFrameConstructorState& aState,
-                                      nsIFrame* aParentFrame,
+                                      nsContainerFrame* aParentFrame,
                                       nsFrameItems& aFrameItems);
 
   
@@ -1168,7 +1169,7 @@ private:
   
   void AddFrameConstructionItemsInternal(nsFrameConstructorState& aState,
                                          nsIContent*              aContent,
-                                         nsIFrame*                aParentFrame,
+                                         nsContainerFrame*        aParentFrame,
                                          nsIAtom*                 aTag,
                                          int32_t                  aNameSpaceID,
                                          bool                     aSuppressWhiteSpaceOptimizations,
@@ -1183,18 +1184,18 @@ private:
 
   void ConstructFramesFromItemList(nsFrameConstructorState& aState,
                                    FrameConstructionItemList& aItems,
-                                   nsIFrame* aParentFrame,
+                                   nsContainerFrame* aParentFrame,
                                    nsFrameItems& aFrameItems);
   void ConstructFramesFromItem(nsFrameConstructorState& aState,
                                FCItemIterator& aItem,
-                               nsIFrame* aParentFrame,
+                               nsContainerFrame* aParentFrame,
                                nsFrameItems& aFrameItems);
   static bool AtLineBoundary(FCItemIterator& aIter);
 
   nsresult CreateAnonymousFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aParent,
-                                 nsIFrame*                aParentFrame,
-                                 PendingBinding  *        aPendingBinding,
+                                 nsContainerFrame*        aParentFrame,
+                                 PendingBinding*          aPendingBinding,
                                  nsFrameItems&            aChildItems);
 
   nsresult GetAnonymousContent(nsIContent* aParent,
@@ -1209,7 +1210,7 @@ private:
 
   void FlushAccumulatedBlock(nsFrameConstructorState& aState,
                              nsIContent* aContent,
-                             nsIFrame* aParentFrame,
+                             nsContainerFrame* aParentFrame,
                              nsFrameItems& aBlockItems,
                              nsFrameItems& aNewItems);
 
@@ -1262,14 +1263,14 @@ private:
 
 
 
-  nsIFrame* ConstructFrameWithAnonymousChild(
+  nsContainerFrame* ConstructFrameWithAnonymousChild(
                                   nsFrameConstructorState& aState,
                                   FrameConstructionItem&   aItem,
-                                  nsIFrame*                aParentFrame,
+                                  nsContainerFrame*        aParentFrame,
                                   const nsStyleDisplay*    aDisplay,
                                   nsFrameItems&            aFrameItems,
-                                  FrameCreationFunc        aConstructor,
-                                  FrameCreationFunc        aInnerConstructor,
+                                  ContainerFrameCreationFunc aConstructor,
+                                  ContainerFrameCreationFunc aInnerConstructor,
                                   nsICSSAnonBoxPseudo*     aInnerPseudo,
                                   bool                     aCandidateRootFrame);
 
@@ -1278,7 +1279,7 @@ private:
 
   nsIFrame* ConstructOuterSVG(nsFrameConstructorState& aState,
                               FrameConstructionItem&   aItem,
-                              nsIFrame*                aParentFrame,
+                              nsContainerFrame*        aParentFrame,
                               const nsStyleDisplay*    aDisplay,
                               nsFrameItems&            aFrameItems);
 
@@ -1287,7 +1288,7 @@ private:
 
   nsIFrame* ConstructMarker(nsFrameConstructorState& aState,
                             FrameConstructionItem&   aItem,
-                            nsIFrame*                aParentFrame,
+                            nsContainerFrame*        aParentFrame,
                             const nsStyleDisplay*    aDisplay,
                             nsFrameItems&            aFrameItems);
 
@@ -1310,7 +1311,7 @@ private:
 
   nsIFrame* ConstructScrollableBlock(nsFrameConstructorState& aState,
                                      FrameConstructionItem&   aItem,
-                                     nsIFrame*                aParentFrame,
+                                     nsContainerFrame*        aParentFrame,
                                      const nsStyleDisplay*    aDisplay,
                                      nsFrameItems&            aFrameItems);
 
@@ -1319,7 +1320,7 @@ private:
 
   nsIFrame* ConstructNonScrollableBlock(nsFrameConstructorState& aState,
                                         FrameConstructionItem&   aItem,
-                                        nsIFrame*                aParentFrame,
+                                        nsContainerFrame*        aParentFrame,
                                         const nsStyleDisplay*    aDisplay,
                                         nsFrameItems&            aFrameItems);
 
@@ -1330,7 +1331,7 @@ private:
 
   void AddFCItemsForAnonymousContent(
             nsFrameConstructorState& aState,
-            nsIFrame* aFrame,
+            nsContainerFrame* aFrame,
             nsTArray<nsIAnonymousContentCreator::ContentInfo>& aAnonymousItems,
             FrameConstructionItemList& aItemsToConstruct,
             uint32_t aExtraFlags = 0);
@@ -1369,7 +1370,7 @@ private:
   void ProcessChildren(nsFrameConstructorState& aState,
                        nsIContent*              aContent,
                        nsStyleContext*          aStyleContext,
-                       nsIFrame*                aFrame,
+                       nsContainerFrame*        aParentFrame,
                        const bool               aCanHaveGeneratedContent,
                        nsFrameItems&            aFrameItems,
                        const bool               aAllowBlockStyles,
@@ -1389,8 +1390,9 @@ public:
     ABS_POS,
     FIXED_POS
   };
-  nsIFrame* GetAbsoluteContainingBlock(nsIFrame* aFrame, ContainingBlockType aType);
-  nsIFrame* GetFloatContainingBlock(nsIFrame* aFrame);
+  nsContainerFrame* GetAbsoluteContainingBlock(nsIFrame* aFrame,
+                                               ContainingBlockType aType);
+  nsContainerFrame* GetFloatContainingBlock(nsIFrame* aFrame);
 
 private:
   nsIContent* PropagateScrollToViewport();
@@ -1404,23 +1406,23 @@ private:
                    nsIContent*              aContent,
                    nsStyleContext*          aContentStyle,
                    nsIFrame*                aScrolledFrame,
-                   nsIFrame*                aParentFrame,
-                   nsIFrame*&               aNewFrame);
+                   nsContainerFrame*        aParentFrame,
+                   nsContainerFrame*&       aNewFrame);
 
   
   already_AddRefed<nsStyleContext>
   BeginBuildingScrollFrame(nsFrameConstructorState& aState,
                            nsIContent*              aContent,
                            nsStyleContext*          aContentStyle,
-                           nsIFrame*                aParentFrame,
+                           nsContainerFrame*        aParentFrame,
                            nsIAtom*                 aScrolledPseudo,
                            bool                     aIsRoot,
-                           nsIFrame*&               aNewFrame);
+                           nsContainerFrame*&       aNewFrame);
 
   
   
   void
-  FinishBuildingScrollFrame(nsIFrame* aScrollFrame,
+  FinishBuildingScrollFrame(nsContainerFrame* aScrollFrame,
                             nsIFrame* aScrolledFrame);
 
   
@@ -1428,10 +1430,10 @@ private:
   
   nsresult
   InitializeSelectFrame(nsFrameConstructorState& aState,
-                        nsIFrame*                scrollFrame,
-                        nsIFrame*                scrolledFrame,
+                        nsContainerFrame*        aScrollFrame,
+                        nsContainerFrame*        aScrolledFrame,
                         nsIContent*              aContent,
-                        nsIFrame*                aParentFrame,
+                        nsContainerFrame*        aParentFrame,
                         nsStyleContext*          aStyleContext,
                         bool                     aBuildCombobox,
                         PendingBinding*          aPendingBinding,
@@ -1455,19 +1457,19 @@ private:
   bool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                                nsresult* aResult);
 
-  nsIFrame* CreateContinuingOuterTableFrame(nsIPresShell*    aPresShell,
-                                            nsPresContext*  aPresContext,
-                                            nsIFrame*        aFrame,
-                                            nsIFrame*        aParentFrame,
-                                            nsIContent*      aContent,
-                                            nsStyleContext*  aStyleContext);
+  nsIFrame* CreateContinuingOuterTableFrame(nsIPresShell*     aPresShell,
+                                            nsPresContext*    aPresContext,
+                                            nsIFrame*         aFrame,
+                                            nsContainerFrame* aParentFrame,
+                                            nsIContent*       aContent,
+                                            nsStyleContext*   aStyleContext);
 
-  nsIFrame* CreateContinuingTableFrame(nsIPresShell*    aPresShell,
-                                       nsPresContext*  aPresContext,
-                                       nsIFrame*        aFrame,
-                                       nsIFrame*        aParentFrame,
-                                       nsIContent*      aContent,
-                                       nsStyleContext*  aStyleContext);
+  nsIFrame* CreateContinuingTableFrame(nsIPresShell*     aPresShell,
+                                       nsPresContext*    aPresContext,
+                                       nsIFrame*         aFrame,
+                                       nsContainerFrame* aParentFrame,
+                                       nsIContent*       aContent,
+                                       nsStyleContext*   aStyleContext);
 
   
 
@@ -1515,17 +1517,17 @@ private:
   void ConstructBlock(nsFrameConstructorState& aState,
                       const nsStyleDisplay*    aDisplay,
                       nsIContent*              aContent,
-                      nsIFrame*                aParentFrame,
-                      nsIFrame*                aContentParentFrame,
+                      nsContainerFrame*        aParentFrame,
+                      nsContainerFrame*        aContentParentFrame,
                       nsStyleContext*          aStyleContext,
-                      nsIFrame**               aNewFrame,
+                      nsContainerFrame**       aNewFrame,
                       nsFrameItems&            aFrameItems,
                       nsIFrame*                aPositionedFrameForAbsPosContainer,
                       PendingBinding*          aPendingBinding);
 
   nsIFrame* ConstructInline(nsFrameConstructorState& aState,
                             FrameConstructionItem&   aItem,
-                            nsIFrame*                aParentFrame,
+                            nsContainerFrame*        aParentFrame,
                             const nsStyleDisplay*    aDisplay,
                             nsFrameItems&            aFrameItems);
 
@@ -1548,7 +1550,7 @@ private:
 
 
   void CreateIBSiblings(nsFrameConstructorState& aState,
-                        nsIFrame* aInitialInline,
+                        nsContainerFrame* aInitialInline,
                         bool aIsPositioned,
                         nsFrameItems& aChildItems,
                         nsFrameItems& aSiblings);
@@ -1586,23 +1588,22 @@ private:
   
 
   void CreateFloatingLetterFrame(nsFrameConstructorState& aState,
-                                 nsIFrame*                aBlockFrame,
+                                 nsContainerFrame*        aBlockFrame,
                                  nsIContent*              aTextContent,
                                  nsIFrame*                aTextFrame,
-                                 nsIContent*              aBlockContent,
-                                 nsIFrame*                aParentFrame,
+                                 nsContainerFrame*        aParentFrame,
                                  nsStyleContext*          aStyleContext,
                                  nsFrameItems&            aResult);
 
-  void CreateLetterFrame(nsIFrame*                aBlockFrame,
-                         nsIFrame*                aBlockContinuation,
+  void CreateLetterFrame(nsContainerFrame*        aBlockFrame,
+                         nsContainerFrame*        aBlockContinuation,
                          nsIContent*              aTextContent,
-                         nsIFrame*                aParentFrame,
+                         nsContainerFrame*        aParentFrame,
                          nsFrameItems&            aResult);
 
-  void WrapFramesInFirstLetterFrame(nsIContent*   aBlockContent,
-                                    nsIFrame*     aBlockFrame,
-                                    nsFrameItems& aBlockFrames);
+  void WrapFramesInFirstLetterFrame(nsIContent*       aBlockContent,
+                                    nsContainerFrame* aBlockFrame,
+                                    nsFrameItems&     aBlockFrames);
 
   
 
@@ -1626,29 +1627,29 @@ private:
 
 
 
-  void WrapFramesInFirstLetterFrame(nsIFrame*     aBlockFrame,
-                                    nsIFrame*     aBlockContinuation,
-                                    nsIFrame*     aParentFrame,
-                                    nsIFrame*     aParentFrameList,
-                                    nsIFrame**    aModifiedParent,
-                                    nsIFrame**    aTextFrame,
-                                    nsIFrame**    aPrevFrame,
-                                    nsFrameItems& aLetterFrames,
-                                    bool*       aStopLooking);
+  void WrapFramesInFirstLetterFrame(nsContainerFrame*  aBlockFrame,
+                                    nsContainerFrame*  aBlockContinuation,
+                                    nsContainerFrame*  aParentFrame,
+                                    nsIFrame*          aParentFrameList,
+                                    nsContainerFrame** aModifiedParent,
+                                    nsIFrame**         aTextFrame,
+                                    nsIFrame**         aPrevFrame,
+                                    nsFrameItems&      aLetterFrames,
+                                    bool*              aStopLooking);
 
-  void RecoverLetterFrames(nsIFrame* aBlockFrame);
-
-  
-  nsresult RemoveLetterFrames(nsPresContext*  aPresContext,
-                              nsIPresShell*    aPresShell,
-                              nsIFrame*        aBlockFrame);
+  void RecoverLetterFrames(nsContainerFrame* aBlockFrame);
 
   
-  nsresult RemoveFirstLetterFrames(nsPresContext*  aPresContext,
-                                   nsIPresShell*    aPresShell,
-                                   nsIFrame*        aFrame,
-                                   nsIFrame*        aBlockFrame,
-                                   bool*          aStopLooking);
+  nsresult RemoveLetterFrames(nsPresContext*    aPresContext,
+                              nsIPresShell*     aPresShell,
+                              nsContainerFrame* aBlockFrame);
+
+  
+  nsresult RemoveFirstLetterFrames(nsPresContext*    aPresContext,
+                                   nsIPresShell*     aPresShell,
+                                   nsContainerFrame* aFrame,
+                                   nsContainerFrame* aBlockFrame,
+                                   bool*             aStopLooking);
 
   
   nsresult RemoveFloatingFirstLetterFrames(nsPresContext*  aPresContext,
@@ -1674,7 +1675,7 @@ private:
   
   void WrapFramesInFirstLineFrame(nsFrameConstructorState& aState,
                                   nsIContent*              aBlockContent,
-                                  nsIFrame*                aBlockFrame,
+                                  nsContainerFrame*        aBlockFrame,
                                   nsFirstLineFrame*        aLineFrame,
                                   nsFrameItems&            aFrameItems);
 
@@ -1682,7 +1683,7 @@ private:
   
   void AppendFirstLineFrames(nsFrameConstructorState& aState,
                              nsIContent*              aContent,
-                             nsIFrame*                aBlockFrame,
+                             nsContainerFrame*        aBlockFrame,
                              nsFrameItems&            aFrameItems);
 
   nsresult InsertFirstLineFrames(nsFrameConstructorState& aState,
@@ -1781,15 +1782,15 @@ private:
   
 
   
-  nsIFrame*           mRootElementFrame;
+  nsContainerFrame*   mRootElementFrame;
   
   nsIFrame*           mRootElementStyleFrame;
   
   
-  nsIFrame*           mFixedContainingBlock;
+  nsContainerFrame*   mFixedContainingBlock;
   
   
-  nsIFrame*           mDocElementContainingBlock;
+  nsContainerFrame*   mDocElementContainingBlock;
   nsIFrame*           mGfxScrollFrame;
   nsIFrame*           mPageSequenceFrame;
   nsQuoteList         mQuoteList;

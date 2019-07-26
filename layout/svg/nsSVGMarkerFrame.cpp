@@ -17,7 +17,7 @@
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
-nsIFrame*
+nsContainerFrame*
 NS_NewSVGMarkerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsSVGMarkerFrame(aContext);
@@ -244,7 +244,7 @@ nsSVGMarkerFrame::AutoMarkerReferencer::~AutoMarkerReferencer()
 
 
 
-nsIFrame*
+nsContainerFrame*
 NS_NewSVGMarkerAnonChildFrame(nsIPresShell* aPresShell,
                               nsStyleContext* aContext)
 {

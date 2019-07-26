@@ -122,7 +122,8 @@ public:
 
 
 
-  friend nsIFrame* NS_NewTableFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsTableFrame* NS_NewTableFrame(nsIPresShell* aPresShell,
+                                        nsStyleContext* aContext);
 
   
 

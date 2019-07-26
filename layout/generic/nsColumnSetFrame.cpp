@@ -20,7 +20,7 @@ using namespace mozilla::layout;
 
 
 
-nsIFrame*
+nsContainerFrame*
 NS_NewColumnSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aStateFlags)
 {
   nsColumnSetFrame* it = new (aPresShell) nsColumnSetFrame(aContext);

@@ -16,8 +16,8 @@ namespace mozilla {
 template <class T> class LinkedList;
 }
 
-nsIFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
-                                   nsStyleContext* aContext);
+nsContainerFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
+                                           nsStyleContext* aContext);
 
 typedef nsContainerFrame nsFlexContainerFrameSuper;
 
@@ -28,8 +28,8 @@ public:
   NS_DECL_QUERYFRAME
 
   
-  friend nsIFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
-                                            nsStyleContext* aContext);
+  friend nsContainerFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
+                                                    nsStyleContext* aContext);
 
   
   class FlexItem;

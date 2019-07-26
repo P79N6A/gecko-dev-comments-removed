@@ -100,7 +100,7 @@ NS_IMPL_ISUPPORTS(nsComboButtonListener,
 
 nsComboboxControlFrame* nsComboboxControlFrame::sFocused = nullptr;
 
-nsIFrame*
+nsContainerFrame*
 NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aStateFlags)
 {
   nsComboboxControlFrame* it = new (aPresShell) nsComboboxControlFrame(aContext);

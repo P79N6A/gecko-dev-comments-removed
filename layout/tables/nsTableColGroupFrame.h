@@ -37,7 +37,8 @@ public:
 
 
 
-  friend nsIFrame* NS_NewTableColGroupFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsTableColGroupFrame* NS_NewTableColGroupFrame(nsIPresShell* aPresShell,
+                                                        nsStyleContext* aContext);
 
   
 
