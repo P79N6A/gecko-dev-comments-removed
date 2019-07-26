@@ -2440,6 +2440,9 @@ add_test(function test_fetch_icc_recodes() {
   run_next_test();
 });
 
+
+
+
 add_test(function test_read_mwis() {
   let worker = newUint8Worker();
   let helper = worker.GsmPDUHelper;
@@ -2505,6 +2508,9 @@ add_test(function test_read_mwis() {
 
   run_next_test();
 });
+
+
+
 
 add_test(function test_update_mwis() {
   let worker = newUint8Worker();
@@ -2607,6 +2613,113 @@ add_test(function test_update_mwis() {
   
   delete ril.iccInfoPrivate.mwis;
   do_test(false, 0);
+
+  run_next_test();
+});
+
+
+
+
+
+
+
+add_test(function test_read_new_sms_on_sim() {
+  
+  
+  function newSmsOnSimWorkerHelper() {
+    let _postedMessage;
+    let _worker = newWorker({
+      postRILMessage: function fakePostRILMessage(data) {
+      },
+      postMessage: function fakePostMessage(message) {
+        _postedMessage = message;
+      }
+    });
+
+    _worker.debug = do_print;
+
+    return {
+      get postedMessage() {
+        return _postedMessage;
+      },
+      get worker() {
+        return _worker;
+      },
+      fakeWokerBuffer: function fakeWokerBuffer() {
+        let index = 0; 
+        let buf = [];
+        _worker.Buf.writeUint8 = function (value) {
+          buf.push(value);
+        };
+        _worker.Buf.readUint8 = function () {
+          return buf[index++];
+        };
+        _worker.Buf.seekIncoming = function (offset) {
+          index += offset;
+        };
+        _worker.Buf.getReadAvailable = function () {
+          return buf.length - index;
+        };
+      }
+    };
+  }
+
+  let workerHelper = newSmsOnSimWorkerHelper();
+  let worker = workerHelper.worker;
+
+  worker.ICCIOHelper.loadLinearFixedEF = function fakeLoadLinearFixedEF(options) {
+      
+      let SimSmsPduHex = "0306911032547698040A9189674523010000208062917314080CC8F71D14969741F977FD07"
+                       
+                       
+                       
+                       + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                       + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                       + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                       + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+
+      workerHelper.fakeWokerBuffer();
+
+      worker.Buf.writeString(SimSmsPduHex);
+
+      options.recordSize = 176; 
+      if (options.callback) {
+        options.callback(options);
+      }
+  };
+
+  function newSmsOnSimParcel() {
+    let data = new Uint8Array(4 + 4); 
+    let offset = 0;
+
+    function writeInt(value) {
+      data[offset++] = value & 0xFF;
+      data[offset++] = (value >>  8) & 0xFF;
+      data[offset++] = (value >> 16) & 0xFF;
+      data[offset++] = (value >> 24) & 0xFF;
+    }
+
+    writeInt(1); 
+    writeInt(1); 
+
+    return newIncomingParcel(-1,
+                             RESPONSE_TYPE_UNSOLICITED,
+                             UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM,
+                             data);
+  }
+
+  function do_test() {
+    worker.onRILMessage(newSmsOnSimParcel());
+
+    let postedMessage = workerHelper.postedMessage;
+
+    do_check_eq("sms-received", postedMessage.rilMessageType);
+    do_check_eq("+0123456789", postedMessage.SMSC);
+    do_check_eq("+9876543210", postedMessage.sender);
+    do_check_eq("How are you?", postedMessage.fullBody);
+  }
+
+  do_test();
 
   run_next_test();
 });
