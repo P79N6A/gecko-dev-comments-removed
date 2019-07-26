@@ -986,6 +986,23 @@ GetPropertyIndex(Properties* prop, const char* propertyName,
 }
 
 bool
+HasAudioService(uint32_t aCodValue)
+{
+  return ((aCodValue & 0x200000) == 0x200000);
+}
+
+bool
+ContainsIcon(const InfallibleTArray<BluetoothNamedValue>& aProperties)
+{
+  for (uint8_t i = 0; i < aProperties.Length(); i++) {
+    if (aProperties[i].name().EqualsLiteral("Icon")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool
 GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
             int aPropertyTypeLen, int* aPropIndex,
             InfallibleTArray<BluetoothNamedValue>& aProperties)
@@ -1375,6 +1392,26 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
         v.get_ArrayOfBluetoothNamedValue()
           .AppendElement(BluetoothNamedValue(NS_LITERAL_STRING("Path"),
                                              path));
+        const InfallibleTArray<BluetoothNamedValue>& properties =
+          v.get_ArrayOfBluetoothNamedValue();
+        if (!ContainsIcon(properties)) {
+          for (uint8_t i = 0; i < properties.Length(); i++) {
+            
+            
+            
+            
+            
+            if (properties[i].name().EqualsLiteral("Class")) {
+              if (HasAudioService(properties[i].value().get_uint32_t())) {
+                v.get_ArrayOfBluetoothNamedValue()
+                  .AppendElement(
+                    BluetoothNamedValue(NS_LITERAL_STRING("Icon"),
+                                        NS_LITERAL_STRING("audio-card")));
+              }
+              break;
+            }
+          }
+        }
       }
     } else {
       errorStr.AssignLiteral("DBus device found message structure not as expected!");
