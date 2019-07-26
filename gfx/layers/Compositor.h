@@ -311,15 +311,6 @@ public:
   
 
 
-
-  virtual void DrawLines(const std::vector<gfx::Point>& aLines, const gfx::Rect& aClipRect,
-                         const gfx::Color& aColor,
-                         gfx::Float aOpacity, const gfx::Matrix4x4 &aTransform)
-  {  }
-
-  
-
-
   virtual void ClearRect(const gfx::Rect& aRect) { }
 
   
