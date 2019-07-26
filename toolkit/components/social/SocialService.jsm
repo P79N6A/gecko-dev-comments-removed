@@ -9,6 +9,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/AddonManager.jsm");
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
 const URI_EXTENSION_STRINGS  = "chrome://mozapps/locale/extensions/extensions.properties";
 const ADDON_TYPE_SERVICE     = "service";
@@ -19,6 +20,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "getFrameWorkerHandle", "resource://gre/
 XPCOMUtils.defineLazyModuleGetter(this, "WorkerAPI", "resource://gre/modules/WorkerAPI.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MozSocialAPI", "resource://gre/modules/MozSocialAPI.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask", "resource://gre/modules/DeferredTask.jsm");
+
+XPCOMUtils.defineLazyServiceGetter(this, "etld",
+                                   "@mozilla.org/network/effective-tld-service;1",
+                                   "nsIEffectiveTLDService");
 
 
 
@@ -76,6 +81,59 @@ let SocialServiceInternal = {
     }
     let originUri = Services.io.newURI(origin, null, null);
     return originUri.hostPort.replace('.','-');
+  },
+  orderedProviders: function(aCallback) {
+    if (SocialServiceInternal.providerArray.length < 2) {
+      schedule(function () {
+        aCallback(SocialServiceInternal.providerArray);
+      });
+      return;
+    }
+    
+    
+    
+    
+    let hosts = [];
+    let providers = {};
+
+    for (p of SocialServiceInternal.providerArray) {
+      p.frecency = 0;
+      providers[p.domain] = p;
+      hosts.push(p.domain);
+    };
+
+    
+    let stmt = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                                 .DBConnection.createAsyncStatement(
+      "SELECT host, frecency FROM moz_hosts WHERE host IN (" +
+      [ '"' + host + '"' for each (host in hosts) ].join(",") + ") "
+    );
+
+    try {
+      stmt.executeAsync({
+        handleResult: function(aResultSet) {
+          let row;
+          while ((row = aResultSet.getNextRow())) {
+            let rh = row.getResultByName("host");
+            let frecency = row.getResultByName("frecency");
+            providers[rh].frecency = parseInt(frecency) || 0;
+          }
+        },
+        handleError: function(aError) {
+          Cu.reportError(aError.message + " (Result = " + aError.result + ")");
+        },
+        handleCompletion: function(aReason) {
+          
+          
+          
+          let providerList = SocialServiceInternal.providerArray;
+          
+          aCallback(providerList.sort(function(a, b) b.frecency - a.frecency));
+        }
+      });
+    } finally {
+      stmt.finalize();
+    }
   }
 };
 
@@ -325,9 +383,8 @@ this.SocialService = {
     SocialServiceInternal.providers[provider.origin] = provider;
     ActiveProviders.add(provider.origin);
 
-    schedule(function () {
-      this._notifyProviderListeners("provider-added",
-                                    SocialServiceInternal.providerArray);
+    this.getOrderedProviderList(function (providers) {
+      this._notifyProviderListeners("provider-added", providers);
       if (onDone)
         onDone(provider);
     }.bind(this));
@@ -360,9 +417,8 @@ this.SocialService = {
       AddonManagerPrivate.notifyAddonChanged(addon.id, ADDON_TYPE_SERVICE, false);
     }
 
-    schedule(function () {
-      this._notifyProviderListeners("provider-removed",
-                                    SocialServiceInternal.providerArray);
+    this.getOrderedProviderList(function (providers) {
+      this._notifyProviderListeners("provider-removed", providers);
       if (onDone)
         onDone();
     }.bind(this));
@@ -377,10 +433,15 @@ this.SocialService = {
   },
 
   
-  getProviderList: function getProviderList(onDone) {
+  getProviderList: function(onDone) {
     schedule(function () {
       onDone(SocialServiceInternal.providerArray);
     });
+  },
+
+  
+  getOrderedProviderList: function(onDone) {
+    SocialServiceInternal.orderedProviders(onDone);
   },
 
   getOriginActivationType: function(origin) {
@@ -612,6 +673,12 @@ function SocialProvider(input) {
   this.principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(originUri);
   this.ambientNotificationIcons = {};
   this.errorState = null;
+  this.frecency = 0;
+  try {
+    this.domain = etld.getBaseDomainFromHost(originUri.host);
+  } catch(e) {
+    this.domain = originUri.host;
+  }
 }
 
 SocialProvider.prototype = {
