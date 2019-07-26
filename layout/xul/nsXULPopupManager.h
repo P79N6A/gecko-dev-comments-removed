@@ -640,9 +640,7 @@ protected:
                          nsIContent* aNextPopup,
                          nsIContent* aLastPopup,
                          nsPopupType aPopupType,
-                         bool aDeselectMenu,
-                         bool aIsRollup);
-  void HidePopupFrame(nsIContent* aPopup, bool aDeselectMenu);
+                         bool aDeselectMenu);
 
   
 
