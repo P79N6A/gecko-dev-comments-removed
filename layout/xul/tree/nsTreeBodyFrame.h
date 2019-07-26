@@ -543,7 +543,7 @@ protected:
 
   nsRevocableEventPtr<ScrollEvent> mScrollEvent;
 
-  nsCOMPtr<ScrollbarActivity> mScrollbarActivity;
+  nsRefPtr<ScrollbarActivity> mScrollbarActivity;
 
   
   nsCOMPtr<nsITreeBoxObject> mTreeBoxObject;
