@@ -36,21 +36,21 @@ def MergeProfiles(files):
             minStartTime = min(minStartTime, fileData['profileJSON']['meta']['startTime'])
             meta['startTime'] = minStartTime
 
-        thread = fileData['profileJSON']['threads'][0]
-        thread['name'] = pname + " (" + pid + ")"
-        threads.append(thread)
+        for thread in fileData['profileJSON']['threads']:
+            thread['name'] = thread['name'] + " (" + pname + ":" + pid + ")"
+            threads.append(thread)
 
-        
-        
-        
-        pidStr = "%05d" % (int(pid))
+            
+            
+            
+            pidStr = "%05d" % (int(pid))
 
-        thread['startTime'] = fileData['profileJSON']['meta']['startTime']
-        samples = thread['samples']
-        for sample in thread['samples']:
-            for frame in sample['frames']:
-                if "location" in frame and frame['location'][0:2] == '0x':
-                    frame['location'] = pidStr + frame['location']
+            thread['startTime'] = fileData['profileJSON']['meta']['startTime']
+            samples = thread['samples']
+            for sample in thread['samples']:
+                for frame in sample['frames']:
+                    if "location" in frame and frame['location'][0:2] == '0x':
+                        frame['location'] = pidStr + frame['location']
 
         filesyms = fileData['symbolicationTable']
         for sym in filesyms.keys():
