@@ -77,7 +77,7 @@ TextEncoder::Encode(JSContext* aCx,
 
   
   
-  if (!aOptions.stream) {
+  if (!aOptions.mStream) {
     int32_t finishLen = maxLen - dstLen;
     rv = mEncoder->Finish(buf + dstLen, &finishLen);
     if (NS_SUCCEEDED(rv)) {
