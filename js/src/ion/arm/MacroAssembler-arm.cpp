@@ -1105,6 +1105,9 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
         JS_ASSERT(mode != PostIndex);
         
         
+        
+        
+        
         if (off < 0) {
             Operand2 sub_off = Imm8(-(off-bottom)); 
             if (!sub_off.invalid) {
@@ -1112,7 +1115,8 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
                 return as_dtr(ls, size, Offset, rt, DTRAddr(ScratchRegister, DtrOffImm(bottom)), cc);
             }
             sub_off = Imm8(-(off+neg_bottom));
-            if (!sub_off.invalid) {
+            if (!sub_off.invalid && bottom != 0) {
+                JS_ASSERT(neg_bottom < 0x1000);  
                 as_sub(ScratchRegister, rn, sub_off, NoSetCond, cc); 
                 return as_dtr(ls, size, Offset, rt, DTRAddr(ScratchRegister, DtrOffImm(-neg_bottom)), cc);
             }
@@ -1123,7 +1127,8 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
                 return as_dtr(ls, size, Offset, rt, DTRAddr(ScratchRegister, DtrOffImm(bottom)), cc);
             }
             sub_off = Imm8(off+neg_bottom);
-            if (!sub_off.invalid) {
+            if (!sub_off.invalid && bottom != 0) {
+                JS_ASSERT(neg_bottom < 0x1000);  
                 as_add(ScratchRegister, rn, sub_off, NoSetCond,  cc); 
                 return as_dtr(ls, size, Offset, rt, DTRAddr(ScratchRegister, DtrOffImm(-neg_bottom)), cc);
             }
@@ -1141,6 +1146,9 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
         int neg_bottom = 0x100 - bottom;
         
         
+        
+        
+        
         if (off < 0) {
             Operand2 sub_off = Imm8(-(off-bottom)); 
             if (!sub_off.invalid) {
@@ -1150,7 +1158,8 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
                                  cc);
             }
             sub_off = Imm8(-(off+neg_bottom));
-            if (!sub_off.invalid) {
+            if (!sub_off.invalid && bottom != 0) {
+                JS_ASSERT(neg_bottom < 0x100);  
                 as_sub(ScratchRegister, rn, sub_off, NoSetCond, cc); 
                 return as_extdtr(ls, size, IsSigned, Offset, rt,
                                  EDtrAddr(ScratchRegister, EDtrOffImm(-neg_bottom)),
@@ -1165,7 +1174,8 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
                                  cc);
             }
             sub_off = Imm8(off+neg_bottom);
-            if (!sub_off.invalid) {
+            if (!sub_off.invalid && bottom != 0) {
+                JS_ASSERT(neg_bottom < 0x100);  
                 as_add(ScratchRegister, rn, sub_off, NoSetCond,  cc); 
                 return as_extdtr(ls, size, IsSigned, Offset, rt,
                                  EDtrAddr(ScratchRegister, EDtrOffImm(-neg_bottom)),
@@ -1433,6 +1443,9 @@ MacroAssemblerARM::ma_vdtr(LoadStore ls, const Operand &addr, VFPRegister rt, Co
     int neg_bottom = (0x100 << 2) - bottom;
     
     
+    
+    
+    
     if (off < 0) {
         Operand2 sub_off = Imm8(-(off-bottom)); 
         if (!sub_off.invalid) {
@@ -1440,7 +1453,8 @@ MacroAssemblerARM::ma_vdtr(LoadStore ls, const Operand &addr, VFPRegister rt, Co
             return as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(bottom)), cc);
         }
         sub_off = Imm8(-(off+neg_bottom));
-        if (!sub_off.invalid) {
+        if (!sub_off.invalid && bottom != 0) {
+            JS_ASSERT(neg_bottom < 0x400);  
             as_sub(ScratchRegister, base, sub_off, NoSetCond, cc); 
             return as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(-neg_bottom)), cc);
         }
@@ -1451,7 +1465,8 @@ MacroAssemblerARM::ma_vdtr(LoadStore ls, const Operand &addr, VFPRegister rt, Co
             return as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(bottom)), cc);
         }
         sub_off = Imm8(off+neg_bottom);
-        if (!sub_off.invalid) {
+        if (!sub_off.invalid && bottom != 0) {
+            JS_ASSERT(neg_bottom < 0x400);  
             as_add(ScratchRegister, base, sub_off, NoSetCond,  cc); 
             return as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(-neg_bottom)), cc);
         }
