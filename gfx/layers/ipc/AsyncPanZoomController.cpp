@@ -1169,6 +1169,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
   mLastContentPaintMetrics = aLayerMetrics;
 
+  bool isDefault = mFrameMetrics.IsDefault();
   mFrameMetrics.mMayHaveTouchListeners = aLayerMetrics.mMayHaveTouchListeners;
 
   
@@ -1207,7 +1208,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     needContentRepaint |= (previousResolution != newResolution);
   }
 
-  if (aIsFirstPaint || mFrameMetrics.IsDefault()) {
+  if (aIsFirstPaint || isDefault) {
     mPaintThrottler.ClearHistory();
     mPaintThrottler.SetMaxDurations(gNumPaintDurationSamples);
 
@@ -1217,7 +1218,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     
     
     
-    needContentRepaint |= (mFrameMetrics.IsDefault() && !aLayerMetrics.IsDefault());
+    needContentRepaint |= (isDefault && !aLayerMetrics.IsDefault());
 
     mFrameMetrics = aLayerMetrics;
     mState = NOTHING;
