@@ -511,19 +511,8 @@ private:
 
   nsCOMPtr<nsIThread> mThread;
   
-  
-  
-  
-  class WeakConcretePtr
-  {
-  public:
-    WeakConcretePtr() : mObserver(nullptr) {}
-    void Set(PeerConnectionObserver *aObserver);
-    PeerConnectionObserver *MayGet();
-  private:
-    PeerConnectionObserver *mObserver;
-    nsWeakPtr mWeakPtr;
-  } mPCObserver;
+  nsWeakPtr mPCObserver;
+
   nsCOMPtr<nsPIDOMWindow> mWindow;
 
   
