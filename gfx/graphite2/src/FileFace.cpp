@@ -35,9 +35,9 @@
 
 
 
-using namespace graphite2;
-
 #ifndef GRAPHITE2_NFILEFACE
+
+using namespace graphite2;
 
 FileFace::FileFace(const char *filename)
 : _file(fopen(filename, "rb")),
