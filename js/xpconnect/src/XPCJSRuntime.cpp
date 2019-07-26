@@ -30,7 +30,6 @@
 #include "nsCxPusher.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsCycleCollectionNoteRootCallback.h"
-#include "nsCycleCollectorUtils.h"
 #include "nsScriptLoader.h"
 #include "jsfriendapi.h"
 #include "js/MemoryMetrics.h"
@@ -511,8 +510,8 @@ XPCJSRuntime::SuspectWrappedNative(XPCWrappedNative *wrapper,
     if (!wrapper->IsValid() || wrapper->IsWrapperExpired())
         return;
 
-    MOZ_ASSERT(NS_IsMainThread() || NS_IsCycleCollectorThread(),
-               "Suspecting wrapped natives from non-CC thread");
+    MOZ_ASSERT(NS_IsMainThread(),
+               "Suspecting wrapped natives from non-main thread");
 
     
     
@@ -669,12 +668,12 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
     switch (status) {
         case JSFINALIZE_GROUP_START:
         {
-            MOZ_ASSERT(!self->mDoingFinalization, "bad state");
+            NS_ASSERTION(!self->mDoingFinalization, "bad state");
 
             
             { 
                 XPCAutoLock lock(self->GetMapLock());
-                MOZ_ASSERT(!self->mThreadRunningGC, "bad state");
+                NS_ASSERTION(!self->mThreadRunningGC, "bad state");
                 self->mThreadRunningGC = PR_GetCurrentThread();
             }
 
@@ -699,7 +698,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
         }
         case JSFINALIZE_GROUP_END:
         {
-            MOZ_ASSERT(self->mDoingFinalization, "bad state");
+            NS_ASSERTION(self->mDoingFinalization, "bad state");
             self->mDoingFinalization = false;
 
             
@@ -713,7 +712,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
             
             { 
                 XPCAutoLock lock(self->GetMapLock());
-                MOZ_ASSERT(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
+                NS_ASSERTION(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
                 self->mThreadRunningGC = nullptr;
                 xpc_NotifyAll(self->GetMapLock());
             }
@@ -725,7 +724,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
             
             { 
                 XPCAutoLock lock(self->GetMapLock());
-                MOZ_ASSERT(!self->mThreadRunningGC, "bad state");
+                NS_ASSERTION(!self->mThreadRunningGC, "bad state");
                 self->mThreadRunningGC = PR_GetCurrentThread();
             }
 
@@ -886,7 +885,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
             
             { 
                 XPCAutoLock lock(self->GetMapLock());
-                MOZ_ASSERT(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
+                NS_ASSERTION(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
                 self->mThreadRunningGC = nullptr;
                 xpc_NotifyAll(self->GetMapLock());
             }
@@ -1352,7 +1351,7 @@ DEBUG_WrapperChecker(PLDHashTable *table, PLDHashEntryHdr *hdr,
                      uint32_t number, void *arg)
 {
     XPCWrappedNative* wrapper = (XPCWrappedNative*)((PLDHashEntryStub*)hdr)->key;
-    MOZ_ASSERT(!wrapper->IsValid(), "found a 'valid' wrapper!");
+    NS_ASSERTION(!wrapper->IsValid(), "found a 'valid' wrapper!");
     ++ *((int*)arg);
     return PL_DHASH_NEXT;
 }
@@ -1513,7 +1512,7 @@ XPCJSRuntime::~XPCJSRuntime()
 
 #ifdef DEBUG
     for (uint32_t i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
-        MOZ_ASSERT(!mScratchStrings[i].mInUse, "Uh, string wrapper still in use!");
+        NS_ASSERTION(!mScratchStrings[i].mInUse, "Uh, string wrapper still in use!");
     }
 #endif
 }
@@ -2026,7 +2025,7 @@ ReportCompartmentStats(const JS::CompartmentStats &cStats,
     
     size_t asmJSHeap    = cStats.objectsExtra.elementsAsmJSHeap;
     size_t asmJSNonHeap = cStats.objectsExtra.elementsAsmJSNonHeap;
-    MOZ_ASSERT(asmJSHeap == 0 || asmJSNonHeap == 0);
+    JS_ASSERT(asmJSHeap == 0 || asmJSNonHeap == 0);
     if (asmJSHeap > 0) {
         REPORT_BYTES(cJSPathPrefix + NS_LITERAL_CSTRING("objects/malloc-heap/elements/asm.js"),
                      KIND_HEAP, asmJSHeap,
@@ -2805,7 +2804,7 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, uint32
     rv = scriptStream->Read(reinterpret_cast<char *>(ptr), end - ptr, &bytesRead);
     if (NS_FAILED(rv))
       return rv;
-    MOZ_ASSERT(bytesRead > 0, "stream promised more bytes before EOF");
+    NS_ASSERTION(bytesRead > 0, "stream promised more bytes before EOF");
     ptr += bytesRead;
   }
 
@@ -3177,14 +3176,14 @@ XPCJSRuntime::DebugDump(int16_t depth)
 void
 XPCRootSetElem::AddToRootSet(XPCLock *lock, XPCRootSetElem **listHead)
 {
-    MOZ_ASSERT(!mSelfp, "Must be not linked");
+    NS_ASSERTION(!mSelfp, "Must be not linked");
 
     XPCAutoLock autoLock(lock);
 
     mSelfp = listHead;
     mNext = *listHead;
     if (mNext) {
-        MOZ_ASSERT(mNext->mSelfp == listHead, "Must be list start");
+        NS_ASSERTION(mNext->mSelfp == listHead, "Must be list start");
         mNext->mSelfp = &mNext;
     }
     *listHead = this;
@@ -3196,11 +3195,11 @@ XPCRootSetElem::RemoveFromRootSet(XPCLock *lock)
     nsXPConnect *xpc = nsXPConnect::XPConnect();
     JS::PokeGC(xpc->GetRuntime()->Runtime());
 
-    MOZ_ASSERT(mSelfp, "Must be linked");
+    NS_ASSERTION(mSelfp, "Must be linked");
 
     XPCAutoLock autoLock(lock);
 
-    MOZ_ASSERT(*mSelfp == this, "Link invariant");
+    NS_ASSERTION(*mSelfp == this, "Link invariant");
     *mSelfp = mNext;
     if (mNext)
         mNext->mSelfp = mSelfp;
@@ -3213,14 +3212,14 @@ XPCRootSetElem::RemoveFromRootSet(XPCLock *lock)
 void
 XPCJSRuntime::AddGCCallback(xpcGCCallback cb)
 {
-    MOZ_ASSERT(cb, "null callback");
+    NS_ASSERTION(cb, "null callback");
     extraGCCallbacks.AppendElement(cb);
 }
 
 void
 XPCJSRuntime::RemoveGCCallback(xpcGCCallback cb)
 {
-    MOZ_ASSERT(cb, "null callback");
+    NS_ASSERTION(cb, "null callback");
     bool found = extraGCCallbacks.RemoveElement(cb);
     if (!found) {
         NS_ERROR("Removing a callback which was never added.");
@@ -3230,14 +3229,14 @@ XPCJSRuntime::RemoveGCCallback(xpcGCCallback cb)
 void
 XPCJSRuntime::AddContextCallback(xpcContextCallback cb)
 {
-    MOZ_ASSERT(cb, "null callback");
+    NS_ASSERTION(cb, "null callback");
     extraContextCallbacks.AppendElement(cb);
 }
 
 void
 XPCJSRuntime::RemoveContextCallback(xpcContextCallback cb)
 {
-    MOZ_ASSERT(cb, "null callback");
+    NS_ASSERTION(cb, "null callback");
     bool found = extraContextCallbacks.RemoveElement(cb);
     if (!found) {
         NS_ERROR("Removing a callback which was never added.");

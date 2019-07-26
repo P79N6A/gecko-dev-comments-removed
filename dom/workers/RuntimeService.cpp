@@ -844,7 +844,6 @@ public:
     
     
     
-    nsCycleCollector_shutdownThreads();
     nsCycleCollector_shutdown();
     JS_DestroyContext(mLastJSContext);
     mLastJSContext = nullptr;
@@ -890,7 +889,7 @@ public:
     workerPrivate->AssertIsOnWorkerThread();
 
     {
-      nsCycleCollector_startup(CCSingleThread);
+      nsCycleCollector_startup();
 
       WorkerJSRuntime runtime(workerPrivate);
       JSRuntime* rt = runtime.Runtime();

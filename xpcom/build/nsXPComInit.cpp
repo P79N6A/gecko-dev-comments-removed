@@ -517,8 +517,7 @@ NS_InitXPCOM2(nsIServiceManager* *result,
     }
 
     
-    rv = nsCycleCollector_startup(CCSingleThread);
-    if (NS_FAILED(rv)) return rv;
+    nsCycleCollector_startup();
 
     
     
@@ -664,8 +663,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
                                 nullptr);
 
         gXPCOMThreadsShutDown = true;
-        nsCycleCollector_shutdownThreads();
-
         NS_ProcessPendingEvents(thread);
 
         
