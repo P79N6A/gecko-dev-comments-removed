@@ -236,9 +236,13 @@ public:
 
     void Set(JSScript* aObject);
 
-    JSScript *GetScriptObject()
+    
+    
+    
+    
+    JS::Handle<JSScript*> GetScriptObject()
     {
-        return mScriptObject;
+        return JS::Handle<JSScript*>::fromMarkedLocation(&mScriptObject);
     }
 
     void TraceScriptObject(JSTracer* aTrc)

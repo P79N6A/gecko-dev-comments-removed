@@ -403,7 +403,8 @@ protected:
 
 
 
-    nsresult ExecuteScript(nsIScriptContext *aContext, JSScript* aScriptObject);
+    nsresult ExecuteScript(nsIScriptContext *aContext,
+                           JS::Handle<JSScript*> aScriptObject);
 
     
 
