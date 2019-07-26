@@ -220,7 +220,6 @@ extern Class WeakMapClass;
 
 class ArrayBufferObject;
 class BooleanObject;
-class ClonedBlockObject;
 class DebugScopeObject;
 class GlobalObject;
 class MapObject;
@@ -229,7 +228,6 @@ class NormalArgumentsObject;
 class NumberObject;
 class ScopeObject;
 class SetObject;
-class StaticBlockObject;
 class StrictArgumentsObject;
 class StringObject;
 
@@ -972,10 +970,6 @@ class JSObject : public js::ObjectImpl
     inline bool isWeakMap()          const { return hasClass(&js::WeakMapClass); }
 
     
-    inline bool isClonedBlock() const;
-    inline bool isStaticBlock() const;
-
-    
     inline bool isBoolean() const { return hasClass(&js::BooleanClass); }
     inline bool isNumber()  const { return hasClass(&js::NumberClass); }
     inline bool isString()  const { return hasClass(&js::StringClass); }
@@ -987,14 +981,12 @@ class JSObject : public js::ObjectImpl
     inline bool isCrossCompartmentWrapper() const;
 
     inline js::BooleanObject &asBoolean();
-    inline js::ClonedBlockObject &asClonedBlock();
     inline js::DebugScopeObject &asDebugScope();
     inline js::GlobalObject &asGlobal();
     inline js::MapObject &asMap();
     inline js::NumberObject &asNumber();
     inline js::ScopeObject &asScope();
     inline js::SetObject &asSet();
-    inline js::StaticBlockObject &asStaticBlock();
     inline js::StringObject &asString();
 
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_OBJECT; }
