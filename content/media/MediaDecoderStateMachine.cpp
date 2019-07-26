@@ -2448,6 +2448,15 @@ bool MediaDecoderStateMachine::JustExitedQuickBuffering()
 void MediaDecoderStateMachine::StartBuffering()
 {
   AssertCurrentThreadInMonitor();
+  
+  if (mState != DECODER_STATE_DECODING) {
+    
+    
+    
+    
+    
+    return;
+  }
 
   if (IsPlaying()) {
     StopPlayback();
