@@ -380,6 +380,12 @@ let SessionStorageListener = {
 let PrivacyListener = {
   init: function() {
     docShell.addWeakPrivacyTransitionObserver(this);
+
+    
+    
+    if (docShell.QueryInterface(Ci.nsILoadContext).usePrivateBrowsing) {
+      MessageQueue.push("isPrivate", () => true);
+    }
   },
 
   

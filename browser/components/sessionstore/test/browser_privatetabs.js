@@ -64,6 +64,28 @@ add_task(function() {
   }
 });
 
+add_task(function () {
+  const FRAME_SCRIPT = "data:," +
+    "docShell.QueryInterface%28Ci.nsILoadContext%29.usePrivateBrowsing%3Dtrue";
+
+  
+  let win = yield promiseNewWindowLoaded();
+  win.messageManager.loadFrameScript(FRAME_SCRIPT, true);
+
+  
+  let tab = win.gBrowser.addTab("about:mozilla");
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
+  SyncHandlers.get(browser).flush();
+
+  
+  let state = JSON.parse(ss.getTabState(tab));
+  ok(state.isPrivate, "tab considered private");
+
+  
+  yield promiseWindowClosed(win);
+});
+
 function setUsePrivateBrowsing(browser, val) {
   return sendMessage(browser, "ss-test:setUsePrivateBrowsing", val);
 }
