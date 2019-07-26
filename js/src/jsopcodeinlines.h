@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsopcodeinlines_h__
-#define jsopcodeinlines_h__
+#ifndef jsopcodeinlines_h
+#define jsopcodeinlines_h
 
 #include "jsautooplen.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jscntxtinlines_h___
-#define jscntxtinlines_h___
+#ifndef jscntxtinlines_h
+#define jscntxtinlines_h
 
 #include "jscntxt.h"
 

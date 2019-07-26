@@ -4,8 +4,8 @@
 
 
 
-#ifndef jscrashformat_h___
-#define jscrashformat_h___
+#ifndef jscrashformat_h
+#define jscrashformat_h
 
 #include <string.h>
 
@@ -74,4 +74,4 @@ enum {
 } 
 } 
 
-#endif
+#endif 

@@ -6,8 +6,8 @@
 
 
 
-#ifndef jsprototypes_h___
-#define jsprototypes_h___
+#ifndef jsprototypes_h
+#define jsprototypes_h
 
 #include "jsversion.h"
 

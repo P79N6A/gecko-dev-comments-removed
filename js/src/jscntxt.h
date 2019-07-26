@@ -6,8 +6,8 @@
 
 
 
-#ifndef jscntxt_h___
-#define jscntxt_h___
+#ifndef jscntxt_h
+#define jscntxt_h
 
 #include "mozilla/LinkedList.h"
 #include "mozilla/PodOperations.h"

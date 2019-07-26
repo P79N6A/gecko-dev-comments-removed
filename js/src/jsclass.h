@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsclass_h__
-#define jsclass_h__
+#ifndef jsclass_h
+#define jsclass_h
 
 
 

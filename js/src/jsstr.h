@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsstr_h___
-#define jsstr_h___
+#ifndef jsstr_h
+#define jsstr_h
 
 #include "mozilla/PodOperations.h"
 

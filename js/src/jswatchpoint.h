@@ -4,8 +4,8 @@
 
 
 
-#ifndef jswatchpoint_h___
-#define jswatchpoint_h___
+#ifndef jswatchpoint_h
+#define jswatchpoint_h
 
 #include "jsalloc.h"
 #include "jsprvtd.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsweakcache_h___
-#define jsweakcache_h___
+#ifndef jsweakcache_h
+#define jsweakcache_h
 
 #include "jsapi.h"
 #include "jscntxt.h"

@@ -10,8 +10,8 @@
 
 
 
-#ifndef jsworkers_h___
-#define jsworkers_h___
+#ifndef jsworkers_h
+#define jsworkers_h
 
 #include "mozilla/GuardObjects.h"
 #include "mozilla/PodOperations.h"

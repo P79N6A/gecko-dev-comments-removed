@@ -4,8 +4,8 @@
 
 
 
-#ifndef _SHARKCTL_H
-#define _SHARKCTL_H
+#ifndef devtools_sharkctl_h
+#define devtools_sharkctl_h
 
 #ifdef __APPLE__
 
@@ -19,6 +19,6 @@ void Stop();
 
 }
 
-#endif
+#endif 
 
-#endif
+#endif 

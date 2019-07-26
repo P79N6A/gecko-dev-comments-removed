@@ -18,8 +18,8 @@
 
 
 
-#ifndef jstypes_h___
-#define jstypes_h___
+#ifndef jstypes_h
+#define jstypes_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Util.h"

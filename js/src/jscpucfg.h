@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_cpucfg___
-#define js_cpucfg___
+#ifndef jscpucfg_h
+#define jscpucfg_h
 
 #define JS_HAVE_LONG_LONG
 

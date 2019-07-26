@@ -4,8 +4,8 @@
 
 
 
-#ifndef jscompartment_inlines_h___
-#define jscompartment_inlines_h___
+#ifndef jscompartmentinlines_h
+#define jscompartmentinlines_h
 
 #include "jscompartment.h"
 

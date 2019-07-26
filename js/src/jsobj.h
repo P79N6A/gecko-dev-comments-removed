@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsobj_h___
-#define jsobj_h___
+#ifndef jsobj_h
+#define jsobj_h
 
 
 

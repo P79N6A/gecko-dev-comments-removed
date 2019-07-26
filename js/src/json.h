@@ -4,8 +4,8 @@
 
 
 
-#ifndef json_h___
-#define json_h___
+#ifndef json_h
+#define json_h
 
 #include "js/CharacterEncoding.h"
 #include "js/RootingAPI.h"

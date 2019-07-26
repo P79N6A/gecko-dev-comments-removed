@@ -29,8 +29,8 @@
 #include "gc/Barrier-inl.h"
 #include "vm/Stack-inl.h"
 
-#ifndef jsinferinlines_h___
-#define jsinferinlines_h___
+#ifndef jsinferinlines_h
+#define jsinferinlines_h
 
 inline bool
 js::TaggedProto::isObject() const

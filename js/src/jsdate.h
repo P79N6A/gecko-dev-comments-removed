@@ -8,8 +8,8 @@
 
 
 
-#ifndef jsdate_h___
-#define jsdate_h___
+#ifndef jsdate_h
+#define jsdate_h
 
 #include "jsapi.h"
 #include "jstypes.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsscriptinlines_h___
-#define jsscriptinlines_h___
+#ifndef jsscriptinlines_h
+#define jsscriptinlines_h
 
 #include "jsautooplen.h"
 #include "jscntxt.h"

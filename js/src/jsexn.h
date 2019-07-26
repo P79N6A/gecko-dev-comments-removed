@@ -8,8 +8,8 @@
 
 
 
-#ifndef jsexn_h___
-#define jsexn_h___
+#ifndef jsexn_h
+#define jsexn_h
 
 #include "jsapi.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsfuninlines_h___
-#define jsfuninlines_h___
+#ifndef jsfuninlines_h
+#define jsfuninlines_h
 
 #include "jsfun.h"
 #include "jsscript.h"

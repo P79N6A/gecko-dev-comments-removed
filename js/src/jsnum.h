@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsnum_h___
-#define jsnum_h___
+#ifndef jsnum_h
+#define jsnum_h
 
 #include "mozilla/FloatingPoint.h"
 

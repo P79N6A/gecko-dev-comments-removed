@@ -5,6 +5,9 @@
 
 
 
+#ifndef gdb_gdb_tests_h
+#define gdb_gdb_tests_h
+
 
 
 
@@ -68,3 +71,4 @@ void FRAGMENT_CLASS_NAME(category, subname)::run(JSContext *cx, const char **&ar
 #define FRAGMENT_STRING_NAME(category, subname) (#category "." #subname)
 #define FRAGMENT_CLASS_NAME(category, subname) Fragment_ ## category ## _ ## subname
 
+#endif 

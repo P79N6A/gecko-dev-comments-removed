@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsoptparse_h__
-#define jsoptparse_h__
+#ifndef shell_jsoptparse_h
+#define shell_jsoptparse_h
 
 #include <stdio.h>
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsalloc_h_
-#define jsalloc_h_
+#ifndef jsalloc_h
+#define jsalloc_h
 
 #include "js/Utility.h"
 

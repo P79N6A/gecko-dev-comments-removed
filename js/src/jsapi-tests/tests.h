@@ -4,6 +4,9 @@
 
 
 
+#ifndef jsapi_tests_tests_h
+#define jsapi_tests_tests_h
+
 #include "mozilla/Util.h"
 
 #include "jsapi.h"
@@ -396,3 +399,5 @@ class TempFile {
         name = NULL;
     }
 };
+
+#endif 

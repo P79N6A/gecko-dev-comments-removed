@@ -4,8 +4,8 @@
 
 
 
-#if !defined(TraceLogging_h__)
-#define TraceLogging_h__
+#ifndef TraceLogging_h
+#define TraceLogging_h
 
 #include "jsscript.h"
 
@@ -114,4 +114,3 @@ class AutoTraceLog {
 }  
 
 #endif
-

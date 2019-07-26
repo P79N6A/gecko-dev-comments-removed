@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsstrinlines_h___
-#define jsstrinlines_h___
+#ifndef jsstrinlines_h
+#define jsstrinlines_h
 
 #include "mozilla/Attributes.h"
 

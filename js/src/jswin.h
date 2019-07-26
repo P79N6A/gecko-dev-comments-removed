@@ -4,6 +4,9 @@
 
 
 
+#ifndef jswin_h
+#define jswin_h
+
 
 
 
@@ -18,3 +21,5 @@
 # undef THIS
 # undef PASSTHROUGH
 #endif
+
+#endif 

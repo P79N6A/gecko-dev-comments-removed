@@ -4,8 +4,8 @@
 
 
 
-#ifndef jspriorityqueue_h_
-#define jspriorityqueue_h_
+#ifndef ds_PriorityQueue_h
+#define ds_PriorityQueue_h
 
 #include "js/Vector.h"
 

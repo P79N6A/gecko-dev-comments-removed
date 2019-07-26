@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsnativestack_h__
-#define jsnativestack_h__
+#ifndef jsnativestack_h
+#define jsnativestack_h
 
 #include "js/Utility.h"
 

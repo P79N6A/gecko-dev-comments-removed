@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsclone_h___
-#define jsclone_h___
+#ifndef jsclone_h
+#define jsclone_h
 
 #include "jsapi.h"
 #include "jscntxt.h"

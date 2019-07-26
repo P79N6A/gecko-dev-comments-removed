@@ -6,8 +6,8 @@
 
 
 
-#ifndef jsinfer_h___
-#define jsinfer_h___
+#ifndef jsinfer_h
+#define jsinfer_h
 
 #include "jsalloc.h"
 #include "jsfriendapi.h"

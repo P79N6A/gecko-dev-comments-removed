@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsdhash_h___
-#define jsdhash_h___
+#ifndef jsdhash_h
+#define jsdhash_h
 
 
 

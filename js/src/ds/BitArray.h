@@ -4,8 +4,8 @@
 
 
 
-#ifndef BitArray_h__
-#define BitArray_h__
+#ifndef ds_BitArray_h
+#define ds_BitArray_h
 
 #include "jstypes.h" 
 
@@ -61,4 +61,4 @@ class BitArray {
 
 } 
 
-#endif
+#endif 

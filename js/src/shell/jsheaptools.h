@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsheaptools_h___
-#define jsheaptools_h___
+#ifndef shell_jsheaptools_h
+#define shell_jsheaptools_h
 
 #include "jsapi.h"
 

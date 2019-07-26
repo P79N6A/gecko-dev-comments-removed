@@ -4,8 +4,8 @@
 
 
 
-#ifndef prmjtime_h___
-#define prmjtime_h___
+#ifndef prmjtime_h
+#define prmjtime_h
 
 #include <time.h>
 
@@ -46,4 +46,3 @@ extern size_t
 PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *tm);
 
 #endif 
-

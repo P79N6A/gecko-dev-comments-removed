@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsdtoa_h___
-#define jsdtoa_h___
+#ifndef jsdtoa_h
+#define jsdtoa_h
 
 
 

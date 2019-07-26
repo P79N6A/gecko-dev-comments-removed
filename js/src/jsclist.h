@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsclist_h___
-#define jsclist_h___
+#ifndef jsclist_h
+#define jsclist_h
 
 #include "jstypes.h"
 

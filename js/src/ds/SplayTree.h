@@ -4,8 +4,8 @@
 
 
 
-#ifndef jssplaytree_h_
-#define jssplaytree_h_
+#ifndef ds_SplayTree_h
+#define ds_SplayTree_h
 
 #include "LifoAlloc.h"
 

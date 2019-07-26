@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsopcode_h___
-#define jsopcode_h___
+#ifndef jsopcode_h
+#define jsopcode_h
 
 
 

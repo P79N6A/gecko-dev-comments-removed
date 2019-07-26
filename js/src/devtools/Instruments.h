@@ -2,8 +2,8 @@
 
 
 
-#ifndef Instruments_h__
-#define Instruments_h__
+#ifndef devtools_Instruments_h
+#define devtools_Instruments_h
 
 #ifdef __APPLE__
 

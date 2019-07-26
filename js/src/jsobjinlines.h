@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsobjinlines_h___
-#define jsobjinlines_h___
+#ifndef jsobjinlines_h
+#define jsobjinlines_h
 
 #include "jsobj.h"
 

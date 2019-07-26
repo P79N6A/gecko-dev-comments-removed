@@ -4,8 +4,8 @@
 
 
 
-#ifndef LifoAlloc_h__
-#define LifoAlloc_h__
+#ifndef ds_LifoAlloc_h
+#define ds_LifoAlloc_h
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryChecking.h"

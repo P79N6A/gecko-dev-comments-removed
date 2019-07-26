@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsversion_h___
-#define jsversion_h___
+#ifndef jsversion_h
+#define jsversion_h
 
 
 

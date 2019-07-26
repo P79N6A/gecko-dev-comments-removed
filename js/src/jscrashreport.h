@@ -4,8 +4,8 @@
 
 
 
-#ifndef jscrashreport_h___
-#define jscrashreport_h___
+#ifndef jscrashreport_h
+#define jscrashreport_h
 
 #include "mozilla/GuardObjects.h"
 #include "mozilla/StandardInteger.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsdbgapi_h___
-#define jsdbgapi_h___
+#ifndef jsdbgapi_h
+#define jsdbgapi_h
 
 
 

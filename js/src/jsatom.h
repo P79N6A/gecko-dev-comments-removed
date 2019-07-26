@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsatom_h___
-#define jsatom_h___
+#ifndef jsatom_h
+#define jsatom_h
 
 #include "mozilla/HashFunctions.h"
 

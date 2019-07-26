@@ -4,8 +4,8 @@
 
 
 
-#ifndef InlineMap_h__
-#define InlineMap_h__
+#ifndef ds_InlineMap_h
+#define ds_InlineMap_h
 
 #include "js/HashTable.h"
 
@@ -373,4 +373,4 @@ class InlineMap
 
 } 
 
-#endif
+#endif 

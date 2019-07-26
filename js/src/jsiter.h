@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsiter_h___
-#define jsiter_h___
+#ifndef jsiter_h
+#define jsiter_h
 
 
 

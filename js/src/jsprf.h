@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsprf_h___
-#define jsprf_h___
+#ifndef jsprf_h
+#define jsprf_h
 
 
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef _LIBMATH_H
-#define _LIBMATH_H
+#ifndef jslibmath_h
+#define jslibmath_h
 
 #include "mozilla/FloatingPoint.h"
 
@@ -73,4 +73,3 @@ NumberMod(double a, double b) {
 }
 
 #endif 
-

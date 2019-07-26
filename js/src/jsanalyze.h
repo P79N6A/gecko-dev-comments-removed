@@ -6,8 +6,8 @@
 
 
 
-#ifndef jsanalyze_h___
-#define jsanalyze_h___
+#ifndef jsanalyze_h
+#define jsanalyze_h
 
 #include "mozilla/PodOperations.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsproxy_h___
-#define jsproxy_h___
+#ifndef jsproxy_h
+#define jsproxy_h
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -428,4 +428,4 @@ class JS_FRIEND_API(AutoWaivePolicy) {
 extern JS_FRIEND_API(JSObject *)
 js_InitProxyClass(JSContext *cx, JSHandleObject obj);
 
-#endif
+#endif 

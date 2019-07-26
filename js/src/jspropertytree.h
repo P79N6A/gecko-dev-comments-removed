@@ -4,8 +4,8 @@
 
 
 
-#ifndef jspropertytree_h___
-#define jspropertytree_h___
+#ifndef jspropertytree_h
+#define jspropertytree_h
 
 #include "jsalloc.h"
 

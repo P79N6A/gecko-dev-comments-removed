@@ -4,8 +4,8 @@
 
 
 
-#ifndef jspubtd_h___
-#define jspubtd_h___
+#ifndef jspubtd_h
+#define jspubtd_h
 
 
 

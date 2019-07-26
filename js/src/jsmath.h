@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsmath_h___
-#define jsmath_h___
+#ifndef jsmath_h
+#define jsmath_h
 
 #include "jsapi.h"
 

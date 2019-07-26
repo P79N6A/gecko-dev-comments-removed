@@ -4,8 +4,8 @@
 
 
 
-#ifndef jslock_h__
-#define jslock_h__
+#ifndef jslock_h
+#define jslock_h
 
 #include "jsapi.h"
 

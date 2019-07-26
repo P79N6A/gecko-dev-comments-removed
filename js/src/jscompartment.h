@@ -4,8 +4,8 @@
 
 
 
-#ifndef jscompartment_h___
-#define jscompartment_h___
+#ifndef jscompartment_h
+#define jscompartment_h
 
 #include "mozilla/Util.h"
 
@@ -559,4 +559,3 @@ class AutoWrapperRooter : private AutoGCRooter {
 } 
 
 #endif
-

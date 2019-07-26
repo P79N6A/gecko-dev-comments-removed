@@ -6,8 +6,8 @@
 
 
 
-#ifndef jsarray_h___
-#define jsarray_h___
+#ifndef jsarray_h
+#define jsarray_h
 
 #include "jspubtd.h"
 #include "jsobj.h"

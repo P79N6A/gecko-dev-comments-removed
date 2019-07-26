@@ -6,8 +6,8 @@
 
 
 
-#ifndef jsgc_h___
-#define jsgc_h___
+#ifndef jsgc_h
+#define jsgc_h
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Util.h"

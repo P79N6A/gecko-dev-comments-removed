@@ -3,8 +3,8 @@
 
 
 
-#ifndef jsperf_h___
-#define jsperf_h___
+#ifndef perf_jsperf_h
+#define perf_jsperf_h
 
 #include "jsapi.h"
 

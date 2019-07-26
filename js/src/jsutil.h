@@ -8,8 +8,8 @@
 
 
 
-#ifndef jsutil_h___
-#define jsutil_h___
+#ifndef jsutil_h
+#define jsutil_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Compiler.h"

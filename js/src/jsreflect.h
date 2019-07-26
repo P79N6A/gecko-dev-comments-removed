@@ -7,8 +7,8 @@
 
 
 
-#ifndef jsreflect_h___
-#define jsreflect_h___
+#ifndef jsreflect_h
+#define jsreflect_h
 
 #include <stdlib.h>
 #include "jspubtd.h"

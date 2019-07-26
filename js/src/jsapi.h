@@ -6,8 +6,8 @@
 
 
 
-#ifndef jsapi_h___
-#define jsapi_h___
+#ifndef jsapi_h
+#define jsapi_h
 
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/RangedPtr.h"

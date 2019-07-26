@@ -4,8 +4,8 @@
 
 
 
-#ifndef Sort_h__
-#define Sort_h__
+#ifndef ds_Sort_h
+#define ds_Sort_h
 
 #include "jstypes.h"
 
@@ -134,4 +134,4 @@ MergeSort(T *array, size_t nelems, T *scratch, Comparator c)
 
 } 
 
-#endif
+#endif 

@@ -41,8 +41,8 @@
 
 
 
-#ifndef __VPROF__
-#define __VPROF__
+#ifndef devtools_vprof_vprof_h
+#define devtools_vprof_vprof_h
 
 
 

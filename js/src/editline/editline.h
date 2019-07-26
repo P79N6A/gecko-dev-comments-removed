@@ -3,6 +3,9 @@
 
 
 
+#ifndef editline_editline_h
+#define editline_editline_h
+
 
 
 
@@ -99,3 +102,4 @@ extern int	strlen();
 extern int	strncmp();
 #endif	
 
+#endif 

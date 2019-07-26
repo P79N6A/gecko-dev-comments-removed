@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsonparser_h___
-#define jsonparser_h___
+#ifndef jsonparser_h
+#define jsonparser_h
 
 #include "mozilla/Attributes.h"
 

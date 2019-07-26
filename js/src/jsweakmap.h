@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsweakmap_h___
-#define jsweakmap_h___
+#ifndef jsweakmap_h
+#define jsweakmap_h
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -244,4 +244,4 @@ protected:
 extern JSObject *
 js_InitWeakMapClass(JSContext *cx, js::HandleObject obj);
 
-#endif
+#endif 

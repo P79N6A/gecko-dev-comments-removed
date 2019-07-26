@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsfriendapi_h___
-#define jsfriendapi_h___
+#ifndef jsfriendapi_h
+#define jsfriendapi_h
 
 #include "jsclass.h"
 #include "jspubtd.h"

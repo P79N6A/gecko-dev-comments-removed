@@ -3,6 +3,9 @@
 
 
 
+#ifndef editline_unix_h
+#define editline_unix_h
+
 
 
 
@@ -46,3 +49,4 @@ typedef struct direct	DIRENTRY;
 #define S_ISDIR(m)		(((m) & S_IFMT) == S_IFDIR)
 #endif	
 
+#endif 

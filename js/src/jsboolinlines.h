@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsboolinlines_h___
-#define jsboolinlines_h___
+#ifndef jsboolinlines_h
+#define jsboolinlines_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Likely.h"

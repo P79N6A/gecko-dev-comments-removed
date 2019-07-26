@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsanalyzeinlines_h___
-#define jsanalyzeinlines_h___
+#ifndef jsanalyzeinlines_h
+#define jsanalyzeinlines_h
 
 #include "jsanalyze.h"
 

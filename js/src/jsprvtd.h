@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsprvtd_h___
-#define jsprvtd_h___
+#ifndef jsprvtd_h
+#define jsprvtd_h
 
 
 

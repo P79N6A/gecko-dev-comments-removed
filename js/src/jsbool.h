@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsbool_h___
-#define jsbool_h___
+#ifndef jsbool_h
+#define jsbool_h
 
 
 

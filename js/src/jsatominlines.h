@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsatominlines_h___
-#define jsatominlines_h___
+#ifndef jsatominlines_h
+#define jsatominlines_h
 
 #include "mozilla/PodOperations.h"
 #include "mozilla/RangedPtr.h"
