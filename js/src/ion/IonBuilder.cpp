@@ -125,6 +125,33 @@ IonBuilder::CFGState::AndOr(jsbytecode *join, MBasicBlock *joinStart)
     return state;
 }
 
+IonBuilder::CFGState
+IonBuilder::CFGState::TableSwitch(jsbytecode *exitpc, MTableSwitch *ins)
+{
+    CFGState state;
+    state.state = TABLE_SWITCH;
+    state.stopAt = exitpc;
+    state.tableswitch.exitpc = exitpc;
+    state.tableswitch.breaks = NULL;
+    state.tableswitch.ins = ins;
+    state.tableswitch.currentBlock = 0;
+    return state;
+}
+
+IonBuilder::CFGState
+IonBuilder::CFGState::LookupSwitch(jsbytecode *exitpc)
+{
+    CFGState state;
+    state.state = LOOKUP_SWITCH;
+    state.stopAt = exitpc;
+    state.lookupswitch.exitpc = exitpc;
+    state.lookupswitch.breaks = NULL;
+    state.lookupswitch.bodies =
+        (FixedList<MBasicBlock *> *)GetIonContext()->temp->allocate(sizeof(FixedList<MBasicBlock *>));
+    state.lookupswitch.currentBlock = 0;
+    return state;
+}
+
 JSFunction *
 IonBuilder::getSingleCallTarget(uint32 argc, jsbytecode *pc)
 {
@@ -577,6 +604,9 @@ IonBuilder::snoopControlFlow(JSOp op)
       case JSOP_TABLESWITCH:
         return tableSwitch(op, info().getNote(cx, pc));
 
+      case JSOP_LOOKUPSWITCH:
+        return lookupSwitch(op, info().getNote(cx, pc));
+
       case JSOP_IFNE:
         
         
@@ -951,6 +981,9 @@ IonBuilder::processCfgEntry(CFGState &state)
 
       case CFGState::TABLE_SWITCH:
         return processNextTableSwitchCase(state);
+
+      case CFGState::LOOKUP_SWITCH:
+        return processNextLookupSwitchCase(state);
 
       case CFGState::AND_OR:
         return processAndOrEnd(state);
@@ -1402,6 +1435,77 @@ IonBuilder::processTableSwitchEnd(CFGState &state)
 }
 
 IonBuilder::ControlStatus
+IonBuilder::processNextLookupSwitchCase(CFGState &state)
+{
+    JS_ASSERT(state.state == CFGState::LOOKUP_SWITCH);
+
+    size_t curBlock = state.lookupswitch.currentBlock;
+    IonSpew(IonSpew_MIR, "processNextLookupSwitchCase curBlock=%d", curBlock);
+    
+    state.lookupswitch.currentBlock = ++curBlock;
+
+    
+    if (curBlock >= state.lookupswitch.bodies->length())
+        return processLookupSwitchEnd(state);
+
+    
+    MBasicBlock *successor = (*state.lookupswitch.bodies)[curBlock];
+
+    
+    
+    
+    if (current) {
+        current->end(MGoto::New(successor));
+        successor->addPredecessor(current);
+    }
+
+    
+    
+    if (curBlock + 1 < state.lookupswitch.bodies->length())
+        state.stopAt = (*state.lookupswitch.bodies)[curBlock + 1]->pc();
+    else
+        state.stopAt = state.lookupswitch.exitpc;
+
+    current = successor;
+    pc = current->pc();
+    return ControlStatus_Jumped;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::processLookupSwitchEnd(CFGState &state)
+{
+    
+    
+    
+    if (!state.lookupswitch.breaks && !current)
+        return ControlStatus_Ended;
+
+    
+    
+    
+    MBasicBlock *successor = NULL;
+    if (state.lookupswitch.breaks)
+        successor = createBreakCatchBlock(state.lookupswitch.breaks, state.lookupswitch.exitpc);
+    else
+        successor = newBlock(current, state.lookupswitch.exitpc);
+
+    if (!successor)
+        return ControlStatus_Ended;
+
+    
+    
+    if (current) {
+        current->end(MGoto::New(successor));
+        if (state.lookupswitch.breaks)
+            successor->addPredecessor(current);
+    }
+
+    pc = state.lookupswitch.exitpc;
+    current = successor;
+    return ControlStatus_Joined;
+}
+
+IonBuilder::ControlStatus
 IonBuilder::processAndOrEnd(CFGState &state)
 {
     
@@ -1520,7 +1624,12 @@ IonBuilder::processSwitchBreak(JSOp op, jssrcnote *sn)
     JS_ASSERT(found);
     CFGState &state = *found;
 
+    JS_ASSERT(state.state == CFGState::TABLE_SWITCH || state.state == CFGState::LOOKUP_SWITCH);
+
+    if (state.state == CFGState::TABLE_SWITCH)
     state.tableswitch.breaks = new DeferredEdge(current, state.tableswitch.breaks);
+    else
+        state.lookupswitch.breaks = new DeferredEdge(current, state.lookupswitch.breaks);
 
     current = NULL;
     pc += js_CodeSpec[op].length;
@@ -1903,27 +2012,219 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
         return ControlStatus_Error;
 
     
-    CFGState state;
-    state.state = CFGState::TABLE_SWITCH;
-    state.tableswitch.exitpc = exitpc;
-    state.tableswitch.breaks = NULL;
-    state.tableswitch.ins = tableswitch;
-    state.tableswitch.currentBlock = 0;
+    CFGState state = CFGState::TableSwitch(exitpc, tableswitch);
 
     
     current->end(tableswitch);
 
     
     
-    if (tableswitch->numBlocks() == 1)
-        state.stopAt = exitpc;
-    else
+    if (tableswitch->numBlocks() > 1)
         state.stopAt = tableswitch->getBlock(1)->pc();
     current = tableswitch->getBlock(0);
 
     if (!cfgStack_.append(state))
         return ControlStatus_Error;
 
+    pc = current->pc();
+    return ControlStatus_Jumped;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::lookupSwitch(JSOp op, jssrcnote *sn)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    JS_ASSERT(op == JSOP_LOOKUPSWITCH);
+
+    
+    MDefinition *ins = current->pop();
+
+    
+    jsbytecode *exitpc = pc + js_GetSrcNoteOffset(sn, 0);
+    jsbytecode *defaultpc = pc + GET_JUMP_OFFSET(pc);
+
+    JS_ASSERT(defaultpc > pc && defaultpc <= exitpc);
+
+    
+    
+    jsbytecode *pc2 = pc;
+    pc2 += JUMP_OFFSET_LEN;
+    unsigned int ncases = GET_UINT16(pc2);
+    pc2 += UINT16_LEN;
+    JS_ASSERT(ncases >= 1);
+
+    
+    Vector<MBasicBlock*, 0, IonAllocPolicy> bodyBlocks;
+
+    MBasicBlock *defaultBody = NULL;
+    unsigned int defaultIdx = UINT_MAX;
+    bool defaultShared = false;
+
+    MBasicBlock *prevCond = NULL;
+    MCompare *prevCmpIns = NULL;
+    MBasicBlock *prevBody = NULL;
+    bool prevShared = false;
+    jsbytecode *prevpc = NULL;
+    for (unsigned int i = 0; i < ncases; i++) {
+        Value rval = script->getConst(GET_UINT32_INDEX(pc2));
+        pc2 += UINT32_INDEX_LEN;
+        jsbytecode *casepc = pc + GET_JUMP_OFFSET(pc2);
+        pc2 += JUMP_OFFSET_LEN;
+        JS_ASSERT(casepc > pc && casepc <= exitpc);
+        JS_ASSERT_IF(i > 0, prevpc <= casepc);
+
+        
+        MBasicBlock *cond = newBlock(((i == 0) ? current : prevCond), casepc);
+        if (!cond)
+            return ControlStatus_Error;
+
+        MConstant *rvalIns = MConstant::New(rval);
+        cond->add(rvalIns);
+
+        MCompare *cmpIns = MCompare::New(ins, rvalIns, JSOP_STRICTEQ);
+        cond->add(cmpIns);
+        if (cmpIns->isEffectful() && !resumeAfter(cmpIns))
+            return ControlStatus_Error;
+
+        
+        MBasicBlock *body;
+        if (prevpc == casepc) {
+            body = prevBody;
+        } else {
+            body = newBlock(cond, casepc);
+            if (!body)
+                return ControlStatus_Error;
+            bodyBlocks.append(body);
+        }
+
+        
+        if (defaultpc <= casepc && defaultIdx == UINT_MAX) {
+            defaultIdx = bodyBlocks.length() - 1;
+            if (defaultpc == casepc) {
+                defaultBody = body;
+                defaultShared = true;
+            }
+        }
+
+        
+        
+        if (i == 0) {
+            
+            current->end(MGoto::New(cond));
+        } else {
+            
+            prevCond->end(MTest::New(prevCmpIns, prevBody, cond));
+
+            
+            
+            
+            if (prevShared)
+                prevBody->addPredecessor(prevCond);
+        }
+
+        
+        prevCond = cond;
+        prevCmpIns = cmpIns;
+        prevBody = body;
+        prevShared = (prevpc == casepc);
+        prevpc = casepc;
+    }
+
+    
+    if (!defaultBody) {
+        JS_ASSERT(!defaultShared);
+        defaultBody = newBlock(prevCond, defaultpc);
+        if (!defaultBody)
+            return ControlStatus_Error;
+
+        if (defaultIdx >= bodyBlocks.length())
+            bodyBlocks.append(defaultBody);
+        else
+            bodyBlocks.insert(&bodyBlocks[defaultIdx], defaultBody);
+    }
+
+    
+    if (defaultBody == prevBody) {
+        
+        
+        prevCond->end(MGoto::New(defaultBody));
+    } else {
+        
+        
+        prevCond->end(MTest::New(prevCmpIns, prevBody, defaultBody));
+
+        
+        
+        
+        
+        if (defaultShared)
+            defaultBody->addPredecessor(prevCond);
+    }
+
+    
+    
+    if (prevShared)
+        prevBody->addPredecessor(prevCond);
+
+    
+    CFGState state = CFGState::LookupSwitch(exitpc);
+    if (!state.lookupswitch.bodies->init(bodyBlocks.length()))
+        return ControlStatus_Error;
+
+    
+    
+    for (size_t i = 0; i < bodyBlocks.length(); i++) {
+        graph_.moveBlockToEnd(bodyBlocks[i]);
+        (*state.lookupswitch.bodies)[i] = bodyBlocks[i];
+    }
+
+    
+    ControlFlowInfo switchinfo(cfgStack_.length(), exitpc);
+    if (!switches_.append(switchinfo))
+        return ControlStatus_Error;
+
+    
+    if (state.lookupswitch.bodies->length() > 1)
+        state.stopAt = (*state.lookupswitch.bodies)[1]->pc();
+    if (!cfgStack_.append(state))
+        return ControlStatus_Error;
+
+    current = (*state.lookupswitch.bodies)[0];
     pc = current->pc();
     return ControlStatus_Jumped;
 }

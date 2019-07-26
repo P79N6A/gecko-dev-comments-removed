@@ -102,6 +102,7 @@ class IonBuilder : public MIRGenerator
             FOR_LOOP_BODY,      
             FOR_LOOP_UPDATE,    
             TABLE_SWITCH,       
+            LOOKUP_SWITCH,      
             AND_OR              
         };
 
@@ -152,6 +153,19 @@ class IonBuilder : public MIRGenerator
                 uint32 currentBlock;
 
             } tableswitch;
+            struct {
+                
+                jsbytecode *exitpc;
+
+                
+                DeferredEdge *breaks;
+
+                
+                FixedList<MBasicBlock *> *bodies;
+
+                
+                uint32 currentBlock;
+            } lookupswitch;
         };
 
         inline bool isLoop() const {
@@ -172,6 +186,8 @@ class IonBuilder : public MIRGenerator
         static CFGState If(jsbytecode *join, MBasicBlock *ifFalse);
         static CFGState IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MBasicBlock *ifFalse);
         static CFGState AndOr(jsbytecode *join, MBasicBlock *joinStart);
+        static CFGState TableSwitch(jsbytecode *exitpc, MTableSwitch *ins);
+        static CFGState LookupSwitch(jsbytecode *exitpc);
     };
 
     static int CmpSuccessors(const void *a, const void *b);
@@ -216,6 +232,8 @@ class IonBuilder : public MIRGenerator
     ControlStatus processForUpdateEnd(CFGState &state);
     ControlStatus processNextTableSwitchCase(CFGState &state);
     ControlStatus processTableSwitchEnd(CFGState &state);
+    ControlStatus processNextLookupSwitchCase(CFGState &state);
+    ControlStatus processLookupSwitchEnd(CFGState &state);
     ControlStatus processAndOrEnd(CFGState &state);
     ControlStatus processSwitchBreak(JSOp op, jssrcnote *sn);
     ControlStatus processReturn(JSOp op);
@@ -258,6 +276,7 @@ class IonBuilder : public MIRGenerator
     ControlStatus whileOrForInLoop(JSOp op, jssrcnote *sn);
     ControlStatus doWhileLoop(JSOp op, jssrcnote *sn);
     ControlStatus tableSwitch(JSOp op, jssrcnote *sn);
+    ControlStatus lookupSwitch(JSOp op, jssrcnote *sn);
 
     
     
