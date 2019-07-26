@@ -7980,7 +7980,7 @@ def getUnionAccessorSignatureType(type, descriptorProvider):
         typeName = CGGeneric(type.name)
         if type.nullable():
             typeName = CGTemplatedType("Nullable", typeName)
-        return CGWrapper(typeName, post="&")
+        return CGWrapper(typeName, post=" const &")
 
     if type.isDOMString():
         return CGGeneric("const nsAString&")
@@ -8055,11 +8055,7 @@ def getUnionTypeTemplateVars(unionType, type, descriptorProvider,
     ctorNeedsCx = conversionInfo.declArgs == "cx"
     ctorArgs = "cx" if ctorNeedsCx else ""
 
-    
-    
     structType = conversionInfo.declType.define()
-    if structType.startswith("const "):
-        structType = structType[6:]
     externalType = getUnionAccessorSignatureType(type, descriptorProvider).define()
 
     if type.isObject():
@@ -8254,11 +8250,21 @@ class CGUnionStruct(CGThing):
             body = fill(
                 """
                 MOZ_ASSERT(Is${name}(), "Wrong type!");
-                return const_cast<${structType}&>(mValue.m${name}.Value());
+                return mValue.m${name}.Value();
                 """,
                 **vars)
+            
+            getterReturnType = "%s&" % vars["structType"]
+            methods.append(ClassMethod("GetAs" + vars["name"],
+                                       getterReturnType,
+                                       [],
+                                       bodyInHeader=True,
+                                       body=body))
+            
+            
+            
             if self.ownsMembers:
-                getterReturnType = "%s&" % vars["structType"]
+                getterReturnType = "%s const &" % vars["structType"]
             else:
                 getterReturnType = vars["externalType"]
             methods.append(ClassMethod("GetAs" + vars["name"],
