@@ -560,12 +560,10 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
             Tab tab = Tabs.getInstance().getSelectedTab();
 
             RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
-            RectF pageRect = RectUtils.scaleAndRound(cssPageRect, zoom);
-
             final ImmutableViewportMetrics newMetrics = currentMetrics
                 .setViewportOrigin(offsetX, offsetY)
                 .setZoomFactor(zoom)
-                .setPageRect(pageRect, cssPageRect)
+                .setPageRect(RectUtils.scale(cssPageRect, zoom), cssPageRect)
                 .setIsRTL(tab.getIsRTL());
             
             
@@ -612,10 +610,9 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
     public void setPageRect(float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (getLock()) {
-            float ourZoom = getViewportMetrics().zoomFactor;
             RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
-            RectF pageRect = RectUtils.scaleAndRound(cssPageRect, ourZoom);
-            setPageRect(pageRect, cssPageRect);
+            float ourZoom = getViewportMetrics().zoomFactor;
+            setPageRect(RectUtils.scale(cssPageRect, ourZoom), cssPageRect);
             
             
             
