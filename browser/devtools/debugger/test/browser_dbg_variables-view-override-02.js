@@ -15,12 +15,12 @@ function test() {
     let variables = win.DebuggerView.Variables;
 
     
-    executeSoon(() => debuggee.test());
-    yield waitForSourceAndCaretAndScopes(panel, ".html", 23);
-
-    
     let committed = promise.defer();
     variables.oncommit = committed.resolve;
+
+    
+    executeSoon(() => debuggee.test());
+    yield waitForSourceAndCaretAndScopes(panel, ".html", 23);
     yield committed.promise;
 
     let firstScope = variables.getScopeAtIndex(0);
