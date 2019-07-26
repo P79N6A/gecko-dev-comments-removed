@@ -541,6 +541,9 @@ def main(args=sys.argv[1:]):
     auto.setServerInfo(options.webServer, options.httpPort, options.sslPort)
 
     
+    os.system("ln -s %s %s" % (os.path.join('..', 'jsreftest'), os.path.join(SCRIPT_DIRECTORY, 'jsreftest')))
+
+    
     manifest = args[0]
     if os.path.exists(os.path.join(SCRIPT_DIRECTORY, args[0])):
         manifest = "http://%s:%s/%s" % (options.remoteWebServer, options.httpPort, args[0])
