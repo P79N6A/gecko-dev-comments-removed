@@ -288,9 +288,17 @@ EventLoopStack.prototype = {
 
 
   get lastPausedUrl() {
-    return this.size > 0
-      ? this._inspector.lastNestRequestor.url
-      : null;
+    let url = null;
+    if (this.size > 0) {
+      try {
+        url = this._inspector.lastNestRequestor.url
+      } catch (e) {
+        
+        
+        dumpn(e);
+      }
+    }
+    return url;
   },
 
   
@@ -936,7 +944,7 @@ ThreadActor.prototype = {
     
     
     
-    if (this._nestedEventLoops.size
+    if (this._nestedEventLoops.size && this._nestedEventLoops.lastPausedUrl
         && this._nestedEventLoops.lastPausedUrl !== this._hooks.url) {
       return {
         error: "wrongOrder",
