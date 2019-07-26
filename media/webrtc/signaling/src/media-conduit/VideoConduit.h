@@ -12,6 +12,8 @@
 #include "MediaEngineWrapper.h"
 
 
+#undef FF
+
 #include "webrtc/common_types.h"
 #ifdef FF
 #undef FF // Avoid name collision between scoped_ptr.h and nsCRTGlue.h.

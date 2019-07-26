@@ -43,7 +43,6 @@ class CpuOveruseObserver {
   virtual ~CpuOveruseObserver() {}
 };
 
-
 class WEBRTC_DLLEXPORT VideoEngine {
  public:
   
@@ -138,6 +137,10 @@ class WEBRTC_DLLEXPORT ViEBase {
                                  int* capture_queue_delay_ms_per_s) {
     return -1;
   }
+
+  
+  
+  virtual void SetLoadManager(CPULoadStateCallbackInvoker* load_manager) = 0;
 
   
   

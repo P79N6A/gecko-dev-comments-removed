@@ -15,7 +15,7 @@
 #include <Windows.h>
 #include <WinSock.h>
 #include <MMSystem.h>
-#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
+#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_BSD) || (defined WEBRTC_MAC))
 #include <sys/time.h>
 #include <time.h>
 #endif
@@ -209,7 +209,7 @@ class WindowsRealTimeClock : public RealTimeClock {
   WindowsHelpTimer* _helpTimer;
 };
 
-#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
+#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_BSD) || (defined WEBRTC_MAC))
 class UnixRealTimeClock : public RealTimeClock {
  public:
   UnixRealTimeClock() {}
@@ -233,14 +233,28 @@ class UnixRealTimeClock : public RealTimeClock {
 
 
 
-static WindowsHelpTimer global_help_timer = {0, 0, {{ 0, 0}, 0}, 0};
+
+
+
+
+
+
+
+
+
+
+static WindowsHelpTimer *SyncGlobalHelpTimer() {
+  static WindowsHelpTimer global_help_timer = {0, 0, {{ 0, 0}, 0}, 0};
+  Synchronize(&global_help_timer);
+  return &global_help_timer;
+}
 #endif
 
 Clock* Clock::GetRealTimeClock() {
 #if defined(_WIN32)
-  static WindowsRealTimeClock clock(&global_help_timer);
+  static WindowsRealTimeClock clock(SyncGlobalHelpTimer());
   return &clock;
-#elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
+#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_BSD) || (defined WEBRTC_MAC))
   static UnixRealTimeClock clock;
   return &clock;
 #else

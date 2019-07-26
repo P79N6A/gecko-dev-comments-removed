@@ -228,6 +228,27 @@ bool RTCPReceiver::GetAndResetXrRrRtt(uint16_t* rtt_ms) {
   return true;
 }
 
+int32_t RTCPReceiver::GetReportBlockInfo(uint32_t remoteSSRC,
+                                         uint32_t* NTPHigh,
+                                         uint32_t* NTPLow,
+                                         uint32_t* PacketsReceived,
+                                         uint64_t* OctetsReceived) const
+{
+  CriticalSectionScoped lock(_criticalSectionRTCPReceiver);
+
+  RTCPReportBlockInformation* reportBlock =
+      GetReportBlockInformation(remoteSSRC);
+
+  if (reportBlock == NULL) {
+    return -1;
+  }
+  *NTPHigh = reportBlock->lastReceivedRRNTPsecs;
+  *NTPLow = reportBlock->lastReceivedRRNTPfrac;
+  *PacketsReceived = reportBlock->remotePacketsReceived;
+  *OctetsReceived = reportBlock->remoteOctetsReceived;
+  return 0;
+}
+
 int32_t
 RTCPReceiver::NTP(uint32_t *ReceivedNTPsecs,
                   uint32_t *ReceivedNTPfrac,
@@ -505,8 +526,11 @@ void RTCPReceiver::HandleReportBlock(
   
   
   _criticalSectionRTCPReceiver->Leave();
-  uint32_t sendTimeMS =
-      _rtpRtcp.SendTimeOfSendReport(rtcpPacket.ReportBlockItem.LastSR);
+  uint32_t sendTimeMS = 0;
+  uint32_t sentPackets = 0;
+  uint64_t sentOctets = 0;
+  _rtpRtcp.GetSendReportMetadata(rtcpPacket.ReportBlockItem.LastSR,
+                                 &sendTimeMS, &sentPackets, &sentOctets);
   _criticalSectionRTCPReceiver->Enter();
 
   RTCPReportBlockInformation* reportBlock =
@@ -524,6 +548,12 @@ void RTCPReceiver::HandleReportBlock(
   reportBlock->remoteReceiveBlock.fractionLost = rb.FractionLost;
   reportBlock->remoteReceiveBlock.cumulativeLost =
       rb.CumulativeNumOfPacketsLost;
+  if (sentPackets > rb.CumulativeNumOfPacketsLost) {
+    uint32_t packetsReceived = sentPackets - rb.CumulativeNumOfPacketsLost;
+    reportBlock->remotePacketsReceived = packetsReceived;
+    reportBlock->remoteOctetsReceived = (sentOctets / sentPackets) *
+                                        packetsReceived;
+  }
   if (rb.ExtendedHighestSequenceNumber >
       reportBlock->remoteReceiveBlock.extendedHighSeqNum) {
     
@@ -544,14 +574,15 @@ void RTCPReceiver::HandleReportBlock(
       rtcpPacket.ReportBlockItem.DelayLastSR;
 
   
-  uint32_t lastReceivedRRNTPsecs = 0;
-  uint32_t lastReceivedRRNTPfrac = 0;
+  reportBlock->lastReceivedRRNTPsecs = 0;
+  reportBlock->lastReceivedRRNTPfrac = 0;
 
-  _clock->CurrentNtp(lastReceivedRRNTPsecs, lastReceivedRRNTPfrac);
+  _clock->CurrentNtp(reportBlock->lastReceivedRRNTPsecs,
+                     reportBlock->lastReceivedRRNTPfrac);
 
   
-  uint32_t receiveTimeMS = Clock::NtpToMs(lastReceivedRRNTPsecs,
-                                          lastReceivedRRNTPfrac);
+  uint32_t receiveTimeMS = Clock::NtpToMs(reportBlock->lastReceivedRRNTPsecs,
+                                          reportBlock->lastReceivedRRNTPfrac);
 
   
   uint32_t d = (delaySinceLastSendReport & 0x0000ffff) * 1000;

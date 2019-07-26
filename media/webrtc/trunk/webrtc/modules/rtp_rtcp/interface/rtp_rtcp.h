@@ -446,6 +446,17 @@ class RtpRtcp : public Module {
 
 
 
+    virtual int32_t GetReportBlockInfo(const uint32_t remote_ssrc,
+                                       uint32_t* ntp_high,
+                                       uint32_t* ntp_low,
+                                       uint32_t* packets_received,
+                                       uint64_t* octets_received) const = 0;
+    
+
+
+
+
+
     virtual int32_t SendRTCP(
         uint32_t rtcpPacketType = kRtcpReport) = 0;
 

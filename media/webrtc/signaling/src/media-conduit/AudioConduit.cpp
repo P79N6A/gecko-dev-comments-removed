@@ -751,7 +751,8 @@ WebrtcAudioConduit::ReceivedRTPPacket(const void *data, int len)
     }
 #endif
 
-    if(mPtrVoENetwork->ReceivedRTPPacket(mChannel,data,len) == -1)
+    
+    if(mPtrVoENetwork->ReceivedRTPPacket(mChannel, data, len) == -1)
     {
       int error = mPtrVoEBase->LastError();
       CSFLogError(logTag, "%s RTP Processing Error %d", __FUNCTION__, error);

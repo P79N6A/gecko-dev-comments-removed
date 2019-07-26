@@ -67,6 +67,10 @@ public:
 
     
     
+    virtual int SetCurrentSyncOffset(int channel, int offset_ms) = 0;
+
+    
+    
     
     
     
@@ -74,9 +78,11 @@ public:
 
     
     
+    
     virtual int GetDelayEstimate(int channel,
                                  int* jitter_buffer_delay_ms,
-                                 int* playout_buffer_delay_ms) = 0;
+                                 int* playout_buffer_delay_ms,
+                                 int* avsync_offset_ms) = 0;
 
     
     

@@ -96,6 +96,15 @@ public:
         const int16_t speechData10ms[], int lengthSamples,
         int samplingFreqHz, int current_delay_ms) = 0;
 
+
+    
+    
+    
+    
+    virtual int ExternalPlayoutData(
+        int16_t speechData10ms[], int samplingFreqHz, int num_channels,
+        int current_delay_ms, int& lengthSamples) = 0;
+
     
     
     

@@ -106,6 +106,8 @@
 
 
 
+
+
 #if !defined NETEQ_DEFINES_H
 #define NETEQ_DEFINES_H
 
@@ -305,6 +307,9 @@
     #define NETEQ_CELT_CODEC
 
     
+    #define NETEQ_48KHZ_WIDEBAND
+
+
     #define NETEQ_OPUS_CODEC
     #define NETEQ_ISAC_FB_CODEC
 #endif 
