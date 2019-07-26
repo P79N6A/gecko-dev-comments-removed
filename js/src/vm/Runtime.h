@@ -1732,10 +1732,14 @@ struct JSRuntime : public JS::shadow::Runtime,
 #endif
 
     
-
-
-
     JS::LargeAllocationFailureCallback largeAllocationFailureCallback;
+    
+    JS::OutOfMemoryCallback oomCallback;
+
+    
+
+
+
 
     static const unsigned LARGE_ALLOCATION = 25 * 1024 * 1024;
 
