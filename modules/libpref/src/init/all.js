@@ -352,10 +352,14 @@ pref("gfx.font_rendering.graphite.enabled", true);
 
 #ifdef XP_WIN
 
-pref("gfx.font_rendering.harfbuzz.scripts", 7);
+
+
+pref("gfx.font_rendering.harfbuzz.scripts", 247);
 #else
 
-pref("gfx.font_rendering.harfbuzz.scripts", -1);
+
+
+pref("gfx.font_rendering.harfbuzz.scripts", 255);
 #endif
 
 #ifdef XP_WIN
@@ -370,13 +374,10 @@ pref("gfx.font_rendering.opentype_svg.enabled", true);
 
 pref("gfx.canvas.azure.backends", "direct2d,skia,cairo");
 pref("gfx.content.azure.backends", "direct2d,cairo");
-pref("gfx.content.azure.enabled", true);
 #else
-pref("gfx.content.azure.enabled", false);
 #ifdef XP_MACOSX
 pref("gfx.content.azure.backends", "cg");
 pref("gfx.canvas.azure.backends", "cg");
-pref("gfx.content.azure.enabled", true);
 
 pref("gfx.canvas.azure.accelerated", false);
 #else
@@ -386,13 +387,11 @@ pref("gfx.content.azure.backends", "cairo");
 #endif
 
 #ifdef MOZ_WIDGET_GTK2
-pref("gfx.content.azure.enabled", true);
 pref("gfx.content.azure.backends", "cairo");
 #endif
 #ifdef ANDROID
 pref("gfx.textures.poweroftwo.force-enabled", false);
 pref("gfx.content.azure.backends", "cairo");
-pref("gfx.content.azure.enabled", true);
 #endif
 
 pref("gfx.work-around-driver-bugs", true);
