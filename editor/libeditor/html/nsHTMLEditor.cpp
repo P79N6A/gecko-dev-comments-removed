@@ -970,7 +970,7 @@ nsHTMLEditor::IsVisBreak(nsINode* aNode)
   nsCOMPtr<nsINode> selNode = GetNodeLocation(aNode, &selOffset);
   
   selOffset++;
-  nsWSRunObject wsObj(this, selNode, selOffset);
+  nsWSRunObject wsObj(this, selNode->AsDOMNode(), selOffset);
   nsCOMPtr<nsIDOMNode> visNode;
   int32_t visOffset = 0;
   WSType visType;

@@ -491,13 +491,13 @@ nsHTMLEditRules::AfterEditInner(EditAction action,
       
       
       NS_ENSURE_STATE(mHTMLEditor);
-      nsWSRunObject(mHTMLEditor, mRangeItem->startNode,
+      nsWSRunObject(mHTMLEditor, GetAsDOMNode(mRangeItem->startNode),
                     mRangeItem->startOffset).AdjustWhitespace();
       
       if (mRangeItem->startNode != mRangeItem->endNode ||
           mRangeItem->startOffset != mRangeItem->endOffset) {
         NS_ENSURE_STATE(mHTMLEditor);
-        nsWSRunObject(mHTMLEditor, mRangeItem->endNode,
+        nsWSRunObject(mHTMLEditor, GetAsDOMNode(mRangeItem->endNode),
                       mRangeItem->endOffset).AdjustWhitespace();
       }
     }
@@ -2901,9 +2901,7 @@ nsHTMLEditRules::JoinBlocks(nsIDOMNode *aLeftNode,
     
     
     NS_ENSURE_STATE(mHTMLEditor);
-    nsCOMPtr<Element> leftBlock(do_QueryInterface(aLeftBlock));
-    nsCOMPtr<Element> rightBlock(do_QueryInterface(aRightBlock));
-    res = nsWSRunObject::PrepareToJoinBlocks(mHTMLEditor, leftBlock, rightBlock);
+    res = nsWSRunObject::PrepareToJoinBlocks(mHTMLEditor, aLeftBlock, aRightBlock);
     NS_ENSURE_SUCCESS(res, res);
     
     nsCOMPtr<nsIDOMNode> brNode;
