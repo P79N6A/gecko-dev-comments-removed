@@ -13,7 +13,7 @@ namespace dom {
 class HTMLElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLElement();
 
   NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML) MOZ_OVERRIDE;
@@ -26,7 +26,7 @@ protected:
                              JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 };
 
-HTMLElement::HTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLElement::HTMLElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }
@@ -68,7 +68,7 @@ HTMLElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
 
 
 nsGenericHTMLElement*
-NS_NewHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+NS_NewHTMLElement(already_AddRefed<nsINodeInfo>&& aNodeInfo,
                   mozilla::dom::FromParser aFromParser)
 {
   return new mozilla::dom::HTMLElement(aNodeInfo);

@@ -53,7 +53,7 @@ NS_IMPL_ISUPPORTS_INHERITED6(SVGImageElement, SVGImageElementBase,
 
 
 
-SVGImageElement::SVGImageElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGImageElement::SVGImageElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGImageElementBase(aNodeInfo)
 {
   

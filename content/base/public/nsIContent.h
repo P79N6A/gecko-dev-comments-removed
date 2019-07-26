@@ -53,11 +53,10 @@ public:
   
   
 
-  nsIContent(already_AddRefed<nsINodeInfo> aNodeInfo)
+  nsIContent(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsINode(aNodeInfo)
   {
-    NS_ASSERTION(mNodeInfo,
-                 "No nsINodeInfo passed to nsIContent, PREPARE TO CRASH!!!");
+    MOZ_ASSERT(mNodeInfo);
     SetNodeIsContent();
   }
 #endif 

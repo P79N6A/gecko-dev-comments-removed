@@ -11,7 +11,7 @@ using namespace mozilla::dom;
 
 
 nsresult
-NS_NewMathMLElement(Element** aResult, already_AddRefed<nsINodeInfo> aNodeInfo)
+NS_NewMathMLElement(Element** aResult, already_AddRefed<nsINodeInfo>&& aNodeInfo)
 {
   nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
   ni->SetIDAttributeAtom(nsGkAtoms::id);

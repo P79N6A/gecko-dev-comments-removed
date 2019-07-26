@@ -144,7 +144,7 @@ protected:
                      nsIEventTarget* aSyncLoopTarget);
 
   WorkerSyncRunnable(WorkerPrivate* aWorkerPrivate,
-                     already_AddRefed<nsIEventTarget> aSyncLoopTarget);
+                     already_AddRefed<nsIEventTarget>&& aSyncLoopTarget);
 
   virtual ~WorkerSyncRunnable();
 
@@ -168,8 +168,8 @@ protected:
   }
 
   MainThreadWorkerSyncRunnable(WorkerPrivate* aWorkerPrivate,
-                               already_AddRefed<nsIEventTarget> aSyncLoopTarget)
-  : WorkerSyncRunnable(aWorkerPrivate, aSyncLoopTarget)
+                               already_AddRefed<nsIEventTarget>&& aSyncLoopTarget)
+  : WorkerSyncRunnable(aWorkerPrivate, Move(aSyncLoopTarget))
   {
     AssertIsOnMainThread();
   }
@@ -200,7 +200,7 @@ class StopSyncLoopRunnable : public WorkerSyncRunnable
 public:
   
   StopSyncLoopRunnable(WorkerPrivate* aWorkerPrivate,
-                       already_AddRefed<nsIEventTarget> aSyncLoopTarget,
+                       already_AddRefed<nsIEventTarget>&& aSyncLoopTarget,
                        bool aResult);
 
   
@@ -233,9 +233,9 @@ public:
   
   MainThreadStopSyncLoopRunnable(
                                WorkerPrivate* aWorkerPrivate,
-                               already_AddRefed<nsIEventTarget> aSyncLoopTarget,
+                               already_AddRefed<nsIEventTarget>&& aSyncLoopTarget,
                                bool aResult)
-  : StopSyncLoopRunnable(aWorkerPrivate, aSyncLoopTarget, aResult)
+  : StopSyncLoopRunnable(aWorkerPrivate, Move(aSyncLoopTarget), aResult)
   {
     AssertIsOnMainThread();
   }

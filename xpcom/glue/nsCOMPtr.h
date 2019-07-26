@@ -23,6 +23,7 @@
 #include "mozilla/TypeTraits.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/NullPtr.h"
+#include "mozilla/Move.h"
 
   
 #ifndef nsDebug_h___
@@ -162,7 +163,10 @@ struct already_AddRefed
       
     }
 
-    already_AddRefed(const already_AddRefed<T>& aOther)
+    
+    already_AddRefed(const already_AddRefed<T>& aOther) MOZ_DELETE;
+
+    already_AddRefed(already_AddRefed<T>&& aOther)
       : mRawPtr(aOther.take())
     {
       
@@ -177,13 +181,13 @@ struct already_AddRefed
     
     
     friend void operator<<(const mozilla::unused_t& unused,
-                                         const already_AddRefed<T>& rhs)
+                           const already_AddRefed<T>& rhs)
     {
       auto mutableAlreadyAddRefed = const_cast<already_AddRefed<T>*>(&rhs);
       unused << mutableAlreadyAddRefed->take();
     }
 
-    T* take()
+    MOZ_WARN_UNUSED_RESULT T* take()
     {
       T* rawPtr = mRawPtr;
       mRawPtr = nullptr;
@@ -245,7 +249,7 @@ struct already_AddRefed
 
 template <class T>
 inline
-const already_AddRefed<T>
+already_AddRefed<T>
 dont_AddRef( T* aRawPtr )
   {
     return already_AddRefed<T>(aRawPtr);
@@ -253,10 +257,10 @@ dont_AddRef( T* aRawPtr )
 
 template <class T>
 inline
-const already_AddRefed<T>
-dont_AddRef( const already_AddRefed<T> aAlreadyAddRefedPtr )
+already_AddRefed<T>&&
+dont_AddRef( already_AddRefed<T>&& aAlreadyAddRefedPtr )
   {
-    return aAlreadyAddRefedPtr;
+    return mozilla::Move(aAlreadyAddRefedPtr);
   }
 
 
@@ -586,7 +590,15 @@ class nsCOMPtr MOZ_FINAL
           NSCAP_ASSERT_NO_QUERY_NEEDED();
         }
 
-      nsCOMPtr( const already_AddRefed<T>& aSmartPtr )
+      nsCOMPtr( already_AddRefed<T>& aSmartPtr )
+            : NSCAP_CTOR_BASE(aSmartPtr.take())
+          
+        {
+          NSCAP_LOG_ASSIGNMENT(this, mRawPtr);
+          NSCAP_ASSERT_NO_QUERY_NEEDED();
+        }
+
+      nsCOMPtr( already_AddRefed<T>&& aSmartPtr )
             : NSCAP_CTOR_BASE(aSmartPtr.take())
           
         {
@@ -595,7 +607,19 @@ class nsCOMPtr MOZ_FINAL
         }
 
       template<typename U>
-      nsCOMPtr( const already_AddRefed<U>& aSmartPtr )
+      nsCOMPtr( already_AddRefed<U>& aSmartPtr )
+            : NSCAP_CTOR_BASE(static_cast<T*>(aSmartPtr.take()))
+          
+        {
+          
+          static_assert(mozilla::IsBaseOf<T, U>::value,
+                        "U is not a subclass of T");
+          NSCAP_LOG_ASSIGNMENT(this, static_cast<T*>(mRawPtr));
+          NSCAP_ASSERT_NO_QUERY_NEEDED();
+        }
+
+      template<typename U>
+      nsCOMPtr( already_AddRefed<U>&& aSmartPtr )
             : NSCAP_CTOR_BASE(static_cast<T*>(aSmartPtr.take()))
           
         {
@@ -686,7 +710,20 @@ class nsCOMPtr MOZ_FINAL
 
       template<typename U>
       nsCOMPtr<T>&
-      operator=( const already_AddRefed<U>& rhs )
+      operator=( already_AddRefed<U>& rhs )
+          
+        {
+          
+          static_assert(mozilla::IsBaseOf<T, U>::value,
+                        "U is not a subclass of T");
+          assign_assuming_AddRef(static_cast<T*>(rhs.take()));
+          NSCAP_ASSERT_NO_QUERY_NEEDED();
+          return *this;
+        }
+
+      template<typename U>
+      nsCOMPtr<T>&
+      operator=( already_AddRefed<U>&& rhs )
           
         {
           
@@ -927,7 +964,14 @@ class nsCOMPtr<nsISupports>
           NSCAP_LOG_ASSIGNMENT(this, aRawPtr);
         }
 
-      nsCOMPtr( const already_AddRefed<nsISupports>& aSmartPtr )
+      nsCOMPtr( already_AddRefed<nsISupports>& aSmartPtr )
+            : nsCOMPtr_base(aSmartPtr.take())
+          
+        {
+          NSCAP_LOG_ASSIGNMENT(this, mRawPtr);
+        }
+
+      nsCOMPtr( already_AddRefed<nsISupports>&& aSmartPtr )
             : nsCOMPtr_base(aSmartPtr.take())
           
         {
@@ -1011,7 +1055,15 @@ class nsCOMPtr<nsISupports>
         }
 
       nsCOMPtr<nsISupports>&
-      operator=( const already_AddRefed<nsISupports>& rhs )
+      operator=( already_AddRefed<nsISupports>& rhs )
+          
+        {
+          assign_assuming_AddRef(rhs.take());
+          return *this;
+        }
+
+      nsCOMPtr<nsISupports>&
+      operator=( already_AddRefed<nsISupports>&& rhs )
           
         {
           assign_assuming_AddRef(rhs.take());

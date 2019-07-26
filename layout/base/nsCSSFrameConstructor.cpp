@@ -2448,10 +2448,11 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     
     
     static const FrameConstructionData rootSVGData = FCDATA_DECL(0, nullptr);
-    nsRefPtr<nsStyleContext> extraRef(styleContext);
+    already_AddRefed<nsStyleContext> extraRef =
+      nsRefPtr<nsStyleContext>(styleContext).forget();
     FrameConstructionItem item(&rootSVGData, aDocElement,
                                aDocElement->Tag(), kNameSpaceID_SVG,
-                               nullptr, extraRef.forget(), true, nullptr);
+                               nullptr, extraRef, true, nullptr);
 
     nsFrameItems frameItems;
     contentFrame = ConstructOuterSVG(state, item, mDocElementContainingBlock,
@@ -2481,10 +2482,11 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     
     
     static const FrameConstructionData rootTableData = FCDATA_DECL(0, nullptr);
-    nsRefPtr<nsStyleContext> extraRef(styleContext);
+    already_AddRefed<nsStyleContext> extraRef =
+      nsRefPtr<nsStyleContext>(styleContext).forget();
     FrameConstructionItem item(&rootTableData, aDocElement,
                                aDocElement->Tag(), kNameSpaceID_None,
-                               nullptr, extraRef.forget(), true, nullptr);
+                               nullptr, extraRef, true, nullptr);
 
     nsFrameItems frameItems;
     
@@ -5079,12 +5081,11 @@ nsCSSFrameConstructor::AddPageBreakItem(nsIContent* aContent,
                                         nsStyleContext* aMainStyleContext,
                                         FrameConstructionItemList& aItems)
 {
-  nsRefPtr<nsStyleContext> pseudoStyle;
   
   
   
   
-  pseudoStyle =
+  nsRefPtr<nsStyleContext> pseudoStyle =
     mPresShell->StyleSet()->
       ResolveAnonymousBoxStyle(nsCSSAnonBoxes::pageBreak,
                                aMainStyleContext->GetParent());
@@ -5098,8 +5099,8 @@ nsCSSFrameConstructor::AddPageBreakItem(nsIContent* aContent,
   
   
   aItems.AppendItem(&sPageBreakData, aContent, nsCSSAnonBoxes::pageBreak,
-                    kNameSpaceID_None, nullptr, pseudoStyle.forget(), true,
-                    nullptr);
+                    kNameSpaceID_None, nullptr, pseudoStyle.forget(),
+                    true, nullptr);
 }
 
 void
@@ -8950,7 +8951,7 @@ nsCSSFrameConstructor::CreateNeededAnonFlexItems(
     nsIAtom* pseudoType = nsCSSAnonBoxes::anonymousFlexItem;
     nsStyleContext* parentStyle = aParentFrame->StyleContext();
     nsIContent* parentContent = aParentFrame->GetContent();
-    nsRefPtr<nsStyleContext> wrapperStyle =
+    already_AddRefed<nsStyleContext> wrapperStyle =
       mPresShell->StyleSet()->ResolveAnonymousBoxStyle(pseudoType, parentStyle);
 
     static const FrameConstructionData sBlockFormattingContextFCData =
@@ -8966,7 +8967,7 @@ nsCSSFrameConstructor::CreateNeededAnonFlexItems(
                                 iter.item().mNameSpaceID,
                                 
                                 nullptr,
-                                wrapperStyle.forget(),
+                                wrapperStyle,
                                 true, nullptr);
 
     newItem->mIsAllInline = newItem->mHasInlineEnds =
@@ -9158,7 +9159,7 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
       pseudoType = nsCSSAnonBoxes::inlineTable;
     }
 
-    nsRefPtr<nsStyleContext> wrapperStyle =
+    already_AddRefed<nsStyleContext> wrapperStyle =
       mPresShell->StyleSet()->ResolveAnonymousBoxStyle(pseudoType, parentStyle);
     FrameConstructionItem* newItem =
       new FrameConstructionItem(&pseudoData.mFCData,
@@ -9172,7 +9173,7 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
                                 iter.item().mNameSpaceID,
                                 
                                 nullptr,
-                                wrapperStyle.forget(),
+                                wrapperStyle,
                                 true, nullptr);
 
     

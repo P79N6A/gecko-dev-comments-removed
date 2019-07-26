@@ -20,7 +20,7 @@ SVGAnimateTransformElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScop
 
 
 
-SVGAnimateTransformElement::SVGAnimateTransformElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGAnimateTransformElement::SVGAnimateTransformElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGAnimationElement(aNodeInfo)
 {
 }

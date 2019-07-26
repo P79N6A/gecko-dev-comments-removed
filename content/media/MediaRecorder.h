@@ -37,6 +37,7 @@ namespace dom {
 class MediaRecorder : public nsDOMEventTargetHelper
 {
   class Session;
+  friend class CreateAndDispatchBlobEventRunnable;
 
 public:
   MediaRecorder(DOMMediaStream&, nsPIDOMWindow* aOwnerWindow);
@@ -85,7 +86,7 @@ public:
 protected:
   MediaRecorder& operator = (const MediaRecorder& x) MOZ_DELETE;
   
-  nsresult CreateAndDispatchBlobEvent(const already_AddRefed<nsIDOMBlob> &aBlob);
+  nsresult CreateAndDispatchBlobEvent(already_AddRefed<nsIDOMBlob>&& aBlob);
   
   void DispatchSimpleEvent(const nsAString & aStr);
   

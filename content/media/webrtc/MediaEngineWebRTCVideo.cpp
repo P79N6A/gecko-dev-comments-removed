@@ -155,11 +155,8 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   
   if (delta > 0) {
     
-    if (image) {
-      segment.AppendFrame(image.forget(), delta, IntSize(mWidth, mHeight));
-    } else {
-      segment.AppendFrame(nullptr, delta, IntSize(0, 0));
-    }
+    IntSize size(image ? mWidth : 0, image ? mHeight : 0);
+    segment.AppendFrame(image.forget(), delta, size);
     
     
     if (aSource->AppendToTrack(aID, &(segment))) {

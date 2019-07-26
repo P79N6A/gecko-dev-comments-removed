@@ -156,12 +156,8 @@ NotifyPull(MediaStreamGraph*, SourceMediaStream* aSource, mozilla::TrackID aID, 
   TrackTicks delta = target - aLastEndTime;
   if (delta > 0) {
     
-    if (image) {
-      gfx::IntSize size = image->GetSize();
-      segment.AppendFrame(image.forget(), delta, size);
-    } else {
-      segment.AppendFrame(nullptr, delta, IntSize(0, 0));
-    }
+    gfx::IntSize size = image ? image->GetSize() : IntSize(0, 0);
+    segment.AppendFrame(image.forget().downcast<layers::Image>(), delta, size);
     
     
     if (aSource->AppendToTrack(aID, &(segment))) {
