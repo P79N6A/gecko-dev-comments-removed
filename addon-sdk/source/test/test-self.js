@@ -10,9 +10,6 @@ const self = require("sdk/self");
 const { AddonManager } = Cu.import("resource://gre/modules/AddonManager.jsm", {});
 
 exports.testSelf = function(assert) {
-  var source = self.data.load("test-content-symbiont.js");
-  assert.ok(source.match(/test-content-symbiont/), "self.data.load() works");
-
   
   
   

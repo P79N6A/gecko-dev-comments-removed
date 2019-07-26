@@ -190,9 +190,6 @@ class Contents(unittest.TestCase):
             names = zf.namelist()
             
             
-            self.assertIn("resources/addon-sdk/lib/sdk/loader/cuddlefish.js", names)
-            
-            
             
             
             testfiles = [fn for fn in names if "seven/tests" in fn]

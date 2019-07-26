@@ -21,6 +21,7 @@ const OVERFLOW_MENU_CLASS = "addon-content-menu-overflow-menu";
 const OVERFLOW_POPUP_CLASS = "addon-content-menu-overflow-popup";
 
 const TEST_DOC_URL = module.uri.replace(/\.js$/, ".html");
+const data = require("./fixtures");
 
 
 
@@ -894,7 +895,7 @@ exports.testContentScriptFile = function (assert, done) {
   
   let item = new loader.cm.Item({
     label: "item",
-    contentScriptFile: require("sdk/self").data.url("test-context-menu.js")
+    contentScriptFile: data.url("test-context-menu.js")
   });
 
   test.showMenu(null, function (popup) {
@@ -2669,7 +2670,7 @@ exports.testItemImage = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
 
-  let imageURL = require("sdk/self").data.url("moz_favicon.ico");
+  let imageURL = data.url("moz_favicon.ico");
   let item = new loader.cm.Item({ label: "item", image: imageURL });
   let menu = new loader.cm.Menu({ label: "menu", image: imageURL, items: [
     loader.cm.Item({ label: "subitem" })
@@ -2680,7 +2681,7 @@ exports.testItemImage = function (assert, done) {
   test.showMenu(null, function (popup) {
     test.checkMenu([item, menu], [], []);
 
-    let imageURL2 = require("sdk/self").data.url("dummy.ico");
+    let imageURL2 = data.url("dummy.ico");
     item.image = imageURL2;
     menu.image = imageURL2;
     assert.equal(item.image, imageURL2, "Should have set the image correctly");
@@ -2701,7 +2702,7 @@ exports.testItemImage = function (assert, done) {
 exports.testItemImageValidURL = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
- 
+
   assert.throws(function(){
       new loader.cm.Item({
         label: "item 1",
@@ -2725,8 +2726,8 @@ exports.testItemImageValidURL = function (assert, done) {
       })
     }, /Image URL validation failed/
   );
-   
-  let imageURL = require("sdk/self").data.url("moz_favicon.ico");
+
+  let imageURL = data.url("moz_favicon.ico");
   let item4 = new loader.cm.Item({ label: "item 4", image: imageURL });
   let item5 = new loader.cm.Item({ label: "item 5", image: null });
   let item6 = new loader.cm.Item({ label: "item 6", image: undefined });

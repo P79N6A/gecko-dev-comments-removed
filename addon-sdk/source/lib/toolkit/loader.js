@@ -38,6 +38,7 @@ const { loadSubScript } = Cc['@mozilla.org/moz/jssubscript-loader;1'].
                      getService(Ci.mozIJSSubScriptLoader);
 const { notifyObservers } = Cc['@mozilla.org/observer-service;1'].
                         getService(Ci.nsIObserverService);
+const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 
 
 const bind = Function.call.bind(Function.bind);
@@ -156,6 +157,18 @@ var serializeStack = iced(function serializeStack(frames) {
   }, "");
 })
 exports.serializeStack = serializeStack
+
+function readURI(uri) {
+  let stream = NetUtil.newChannel(uri, 'UTF-8', null).open();
+  let count = stream.available();
+  let data = NetUtil.readInputStreamToString(stream, count, {
+    charset: 'UTF-8'
+  });
+
+  stream.close();
+
+  return data;
+}
 
 
 
@@ -313,7 +326,11 @@ exports.load = load;
 
 function isRelative(id) { return id[0] === '.'; }
 
-function normalize(uri) { return uri.substr(-3) === '.js' ? uri : uri + '.js'; }
+function normalize(uri) {
+  return isJSURI(uri) ? uri :
+         isJSONURI(uri) ? uri :
+         uri + '.js';
+}
 
 
 
@@ -371,9 +388,31 @@ const Require = iced(function Require(loader, requirer) {
     if (uri in modules) {
       module = modules[uri];
     }
+    else if (isJSONURI(uri)) {
+      let data;
+
+      
+      
+      
+      
+      try {
+        data = JSON.parse(readURI(uri));
+        module = modules[uri] = Module(requirement, uri);
+        module.exports = data;
+        freeze(module);
+      }
+      catch (err) {
+        
+        
+        if (err && /JSON\.parse/.test(err.message))
+          throw err;
+        uri = uri + '.js';
+      }
+    }
     
     
-    else {
+    
+    if (!(uri in modules)) {
       module = modules[uri] = Module(requirement, uri);
       freeze(load(loader, module));
     }
@@ -503,6 +542,9 @@ const Loader = iced(function Loader(options) {
   }));
 });
 exports.Loader = Loader;
+
+let isJSONURI = uri => uri.substr(-5) === '.json';
+let isJSURI = uri => uri.substr(-3) === '.js';
 
 });
 

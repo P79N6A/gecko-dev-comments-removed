@@ -15,7 +15,8 @@ const unload = require('../system/unload');
 const { getDocShell } = require("../frame/utils");
 const { ignoreWindow } = require('../private-browsing/utils');
 
-const assetsURI = require('../self').data.url();
+
+const assetsURI = require('../self').data.url().replace(/data\/$/, "");
 
 
 

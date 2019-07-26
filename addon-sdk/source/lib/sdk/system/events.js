@@ -33,8 +33,20 @@ const Subject = Class({
 });
 
 function emit(type, event) {
-  let subject = 'subject' in event ? Subject(event.subject) : null;
-  let data = 'data' in event ? event.data : null;
+  
+  
+  
+  
+  
+  let subject = event && typeof event === 'object' && 'subject' in event ?
+    Subject(event.subject) :
+    null;
+  let data = event && typeof event === 'object' ?
+    
+    ('data' in event ? event.data : null) :
+    
+    
+    event;
   notifyObservers(subject, type, data);
 }
 exports.emit = emit;

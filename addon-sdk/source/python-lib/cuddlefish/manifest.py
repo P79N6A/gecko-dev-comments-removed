@@ -606,9 +606,13 @@ class ManifestBuilder:
         filename = os.sep.join(name.split("/"))
         
         
-        if not filename.endswith(".js"):
+        if not filename.endswith(".js") and not filename.endswith(".json"):
           filename += ".js"
-        basename = filename[:-3]
+
+        if filename.endswith(".js"):
+          basename = filename[:-3]
+        if filename.endswith(".json"):
+          basename = filename[:-5]
 
         pkg = self.pkg_cfg.packages[pkgname]
         if isinstance(sections, basestring):

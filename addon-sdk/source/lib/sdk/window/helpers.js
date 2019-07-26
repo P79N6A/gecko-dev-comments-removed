@@ -5,9 +5,9 @@
 
 const { defer } = require('../core/promise');
 const events = require('../system/events');
-const { setImmediate } = require('../timers');
 const { open: openWindow, onFocus, getToplevelWindow,
-        isInteractive } = require('./utils');
+        isInteractive, getOuterId } = require('./utils');
+const { Ci } = require("chrome");
 
 function open(uri, options) {
   return promise(openWindow.apply(null, arguments), 'load');
@@ -15,19 +15,14 @@ function open(uri, options) {
 exports.open = open;
 
 function close(window) {
-  
-  
-  
-  
-  
-  
-  
   let deferred = defer();
   let toplevelWindow = getToplevelWindow(window);
-  events.on("domwindowclosed", function onclose({subject}) {
-    if (subject == toplevelWindow) {
-      events.off("domwindowclosed", onclose);
-      setImmediate(function() deferred.resolve(window));
+  let outerId = getOuterId(toplevelWindow);
+  events.on("outer-window-destroyed", function onclose({subject}) {
+    let id = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
+    if (id == outerId) {
+      events.off("outer-window-destroyed", onclose);
+      deferred.resolve();
     }
   }, true);
   window.close();

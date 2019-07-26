@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
 module.metadata = {
@@ -22,8 +22,9 @@ const { getMostRecentBrowserWindow } = require('sdk/window/utils');
 const { getWindow } = require('sdk/panel/window');
 const { pb } = require('./private-browsing/helper');
 const { URL } = require('sdk/url');
+const fixtures = require('./fixtures')
 
-const SVG_URL = self.data.url('mofo_logo.SVG');
+const SVG_URL = fixtures.url('mofo_logo.SVG');
 const Isolate = fn => '(' + fn + ')()';
 
 function ignorePassingDOMNodeWarning(type, message) {
@@ -139,10 +140,10 @@ exports["test Document Reload"] = function(assert, done) {
     "</script>";
   let messageCount = 0;
   let panel = Panel({
-    
+    // using URL here is intentional, see bug 859009
     contentURL: URL("data:text/html;charset=utf-8," + encodeURIComponent(content)),
     contentScript: "self.postMessage(window.location.href);" +
-                   
+                   // initiate change to url2
                    "self.port.once('move', function() document.defaultView.postMessage('move', '*'));",
     onMessage: function (message) {
       messageCount++;
@@ -164,72 +165,72 @@ exports["test Document Reload"] = function(assert, done) {
   assert.pass('Panel was created');
 };
 
+// Test disabled because of bug 910230
+/*
+exports["test Parent Resize Hack"] = function(assert, done) {
+  const { Panel } = require('sdk/panel');
 
+  let browserWindow = getMostRecentBrowserWindow();
 
+  let previousWidth = browserWindow.outerWidth;
+  let previousHeight = browserWindow.outerHeight;
 
+  let content = "<script>" +
+                "function contentResize() {" +
+                "  resizeTo(200,200);" +
+                "  resizeBy(200,200);" +
+                "  window.postMessage('resize-attempt', '*');" +
+                "}" +
+                "</script>" +
+                "Try to resize browser window";
 
+  let panel = Panel({
+    contentURL: "data:text/html;charset=utf-8," + encodeURIComponent(content),
+    contentScriptWhen: "ready",
+    contentScript: Isolate(() => {
+        self.on('message', message => {
+          if (message === 'resize') unsafeWindow.contentResize();
+        });
 
+        window.addEventListener('message', ({ data }) => self.postMessage(data));
+      }),
+    onMessage: function (message) {
+      if (message !== "resize-attempt") return;
 
+      assert.equal(browserWindow, getMostRecentBrowserWindow(),
+        "The browser window is still the same");
+      assert.equal(previousWidth, browserWindow.outerWidth,
+        "Size doesn't change by calling resizeTo/By/...");
+      assert.equal(previousHeight, browserWindow.outerHeight,
+        "Size doesn't change by calling resizeTo/By/...");
 
+      try {
+        panel.destroy();
+      }
+      catch (e) {
+        assert.fail(e);
+        throw e;
+      }
 
+      done();
+    },
+    onShow: () => panel.postMessage('resize')
+  });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  panel.show();
+}
+*/
 
 exports["test Resize Panel"] = function(assert, done) {
   const { Panel } = require('sdk/panel');
 
-  
-  
-  
-  
-  
-  
-  
+  // These tests fail on Linux if the browser window in which the panel
+  // is displayed is not active.  And depending on what other tests have run
+  // before this one, it might not be (the untitled window in which the test
+  // runner executes is often active).  So we make sure the browser window
+  // is focused by focusing it before running the tests.  Then, to be the best
+  // possible test citizen, we refocus whatever window was focused before we
+  // started running these tests.
 
   let activeWindow = Cc["@mozilla.org/embedcomp/window-watcher;1"].
                       getService(Ci.nsIWindowWatcher).
@@ -392,10 +393,10 @@ exports["test Panel Focus True"] = function(assert, done) {
                       getService(Ci.nsIWindowMediator).
                       getMostRecentWindow("navigator:browser");
 
-  
+  // Make sure there is a focused element
   browserWindow.document.documentElement.focus();
 
-  
+  // Get the current focused element
   let focusedElement = FM.focusedElement;
 
   let panel = Panel({
@@ -420,10 +421,10 @@ exports["test Panel Focus False"] = function(assert, done) {
                       getService(Ci.nsIWindowMediator).
                       getMostRecentWindow("navigator:browser");
 
-  
+  // Make sure there is a focused element
   browserWindow.document.documentElement.focus();
 
-  
+  // Get the current focused element
   let focusedElement = FM.focusedElement;
 
   let panel = Panel({
@@ -448,10 +449,10 @@ exports["test Panel Focus Not Set"] = function(assert, done) {
                       getService(Ci.nsIWindowMediator).
                       getMostRecentWindow("navigator:browser");
 
-  
+  // Make sure there is a focused element
   browserWindow.document.documentElement.focus();
 
-  
+  // Get the current focused element
   let focusedElement = FM.focusedElement;
 
   let panel = Panel({
@@ -484,7 +485,7 @@ exports["test Panel Text Color"] = function(assert, done) {
   });
 };
 
-
+// Bug 866333
 exports["test watch event name"] = function(assert, done) {
   const { Panel } = require('sdk/panel');
 
@@ -502,7 +503,7 @@ exports["test watch event name"] = function(assert, done) {
   });
 }
 
-
+// Bug 696552: Ensure panel.contentURL modification support
 exports["test Change Content URL"] = function(assert, done) {
   const { Panel } = require('sdk/panel');
 
@@ -831,8 +832,8 @@ exports['test Only One Panel Open Concurrently'] = function (assert, done) {
   let panelB = Panel({
     contentURL: 'about:buildconfig',
     onShow: function () {
-      
-      
+      // When loading two panels simulataneously, only the second
+      // should be shown, never showing the first
       assert.equal(panelA.isShowing, false, 'First panel is hidden');
       assert.equal(panelB.isShowing, true, 'Second panel is showing');
       panelC.show();
@@ -903,9 +904,9 @@ exports['test passing DOM node as first argument'] = function (assert, done) {
   panel.show(widgetNode);
 };
 
-
-
-
+// This test is checking that `onpupshowing` events emitted by panel's children
+// are not considered.
+// See Bug 886329
 exports['test nested popups'] = function (assert, done) {
   let loader = Loader(module);
   let { Panel } = loader.require('sdk/panel');
