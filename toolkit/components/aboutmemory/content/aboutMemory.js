@@ -1342,6 +1342,11 @@ function appendProcessAboutMemoryElements(aP, aProcess, aTrees, aDegenerates,
     let t = aTrees[treeName];
     if (t) {
       fillInTree(t);
+      
+      
+      
+      
+      
       hasKnownHeapAllocated =
         aDegenerates &&
         addHeapUnclassifiedNode(t, aDegenerates["heap-allocated"], aHeapTotal);

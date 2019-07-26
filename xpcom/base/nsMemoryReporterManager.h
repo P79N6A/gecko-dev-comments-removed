@@ -23,8 +23,19 @@ public:
   
   
   struct AmountFns {
+    mozilla::InfallibleAmountFn mJSMainRuntimeGCHeap;
+    mozilla::InfallibleAmountFn mJSMainRuntimeTemporaryPeak;
     mozilla::InfallibleAmountFn mJSMainRuntimeCompartmentsSystem;
     mozilla::InfallibleAmountFn mJSMainRuntimeCompartmentsUser;
+
+    mozilla::InfallibleAmountFn mImagesContentUsedUncompressed;
+
+    mozilla::InfallibleAmountFn mStorageSQLite;
+
+    mozilla::InfallibleAmountFn mLowMemoryEventsVirtual;
+    mozilla::InfallibleAmountFn mLowMemoryEventsPhysical;
+
+    mozilla::InfallibleAmountFn mGhostWindows;
   };
   AmountFns mAmountFns;
 
