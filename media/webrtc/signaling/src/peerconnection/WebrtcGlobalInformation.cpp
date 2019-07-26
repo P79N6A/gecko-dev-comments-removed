@@ -252,6 +252,7 @@ WebrtcGlobalInformation::DebugLevel(const GlobalObject& aGlobal)
 void
 WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal, bool aEnable)
 {
+  StartWebRtcLog(sLastSetLevel); 
   webrtc::Trace::set_aec_debug(aEnable);
   sLastAECDebug = aEnable;
 }
