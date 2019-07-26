@@ -2698,13 +2698,12 @@ protected:
     
     static unsigned sCurrentGLContextTLS;
 #endif
-
+    
     ScopedDeletePtr<GLBlitHelper> mBlitHelper;
     ScopedDeletePtr<GLBlitTextureImageHelper> mBlitTextureImageHelper;
     ScopedDeletePtr<GLReadTexImageHelper> mReadTexImageHelper;
 
 public:
-
     GLBlitHelper* BlitHelper();
     GLBlitTextureImageHelper* BlitTextureImageHelper();
     GLReadTexImageHelper* ReadTexImageHelper();

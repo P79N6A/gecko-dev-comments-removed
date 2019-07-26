@@ -260,7 +260,12 @@ public:
     }
 
     
-    void SetConsumerGL(GLContext* consGL);
+
+    GLuint ConsTexture(GLContext* consGL);
+
+    GLenum ConsTextureTarget() const {
+        return ProdTextureTarget();
+    }
 };
 
 class SurfaceFactory_GLTexture
