@@ -4442,6 +4442,12 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 			"grayscale(1) url(#my-filter-1)",
 			"url(#my-filter-1) brightness(50%) contrast(0.9)",
 
+			
+			
+			
+			"url('feed:javascript:5')",
+			"blur(3px) url('feed:javascript:5') grayscale(50%)",
+
 			"blur(0)",
 			"blur(0px)",
 			"blur(0.5px)",
