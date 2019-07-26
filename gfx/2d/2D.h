@@ -998,6 +998,18 @@ public:
   virtual ~DrawEventRecorder() { }
 };
 
+struct Tile
+{
+  RefPtr<DrawTarget> mDrawTarget;
+  IntPoint mTileOrigin;
+};
+
+struct TileSet
+{
+  Tile* mTiles;
+  size_t mTileCount;
+};
+
 class GFX2D_API Factory
 {
 public:
@@ -1090,6 +1102,14 @@ public:
 #endif
   static TemporaryRef<DrawTarget>
     CreateDualDrawTarget(DrawTarget *targetA, DrawTarget *targetB);
+
+  
+
+
+
+
+
+  static TemporaryRef<DrawTarget> CreateTiledDrawTarget(const TileSet& aTileSet);
 
 #ifdef XP_MACOSX
   static TemporaryRef<DrawTarget> CreateDrawTargetForCairoCGContext(CGContextRef cg, const IntSize& aSize);

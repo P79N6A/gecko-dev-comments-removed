@@ -28,7 +28,8 @@ MOZ_BEGIN_ENUM_CLASS(SurfaceType, int8_t)
   SKIA, 
   DUAL_DT, 
   D2D1_1_IMAGE, 
-  RECORDING 
+  RECORDING, 
+  TILED 
 MOZ_END_ENUM_CLASS(SurfaceType)
 
 MOZ_BEGIN_ENUM_CLASS(SurfaceFormat, int8_t)
