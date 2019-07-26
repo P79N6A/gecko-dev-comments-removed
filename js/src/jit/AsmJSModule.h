@@ -740,9 +740,8 @@ class AsmJSModule
         exitIndexToGlobalDatum(exitIndex).exit = interpExitTrampoline(exit(exitIndex));
     }
 
-    
-    void sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
-                    size_t *asmJSModuleData);
+    void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
+                       size_t *asmJSModuleData);
 };
 
 
@@ -762,9 +761,9 @@ class AsmJSModuleObject : public JSObject
 
     AsmJSModule &module() const;
 
-    void sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
-                    size_t *asmJSModuleData) {
-        module().sizeOfMisc(mallocSizeOf, asmJSModuleCode, asmJSModuleData);
+    void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
+                       size_t *asmJSModuleData) {
+        module().addSizeOfMisc(mallocSizeOf, asmJSModuleCode, asmJSModuleData);
     }
 
     static const Class class_;
