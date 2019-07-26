@@ -240,6 +240,10 @@ class AudioDeviceAndroidOpenSLES: public AudioDeviceGeneric {
   
   AudioDeviceBuffer* voe_audio_buffer_;
   CriticalSectionWrapper& crit_sect_;
+  
+  
+  
+  CriticalSectionWrapper& callback_crit_sect_;
   int32_t id_;
 
   
