@@ -4114,27 +4114,39 @@ class MStringLength
 };
 
 
+class MFloor
+  : public MUnaryInstruction,
+    public DoublePolicy<0>
+{
+  public:
+    MFloor(MDefinition *num)
+      : MUnaryInstruction(num)
+    {
+        setResultType(MIRType_Int32);
+        setMovable();
+    }
+
+    INSTRUCTION_HEADER(Floor);
+
+    MDefinition *num() const {
+        return getOperand(0);
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+    TypePolicy *typePolicy() {
+        return this;
+    }
+};
+
+
 class MRound
   : public MUnaryInstruction,
     public DoublePolicy<0>
 {
   public:
-    enum RoundingMode {
-        
-        RoundingMode_Round,
-        
-        RoundingMode_Floor
-        
-    };
-
-  private:
-    RoundingMode mode_;
-
-  public:
-
-    MRound(MDefinition *num, RoundingMode mode)
-      : MUnaryInstruction(num),
-        mode_(mode)
+    MRound(MDefinition *num)
+      : MUnaryInstruction(num)
     {
         setResultType(MIRType_Int32);
         setMovable();
@@ -4144,9 +4156,6 @@ class MRound
 
     MDefinition *num() const {
         return getOperand(0);
-    }
-    RoundingMode mode() const {
-        return mode_;
     }
     AliasSet getAliasSet() const {
         return AliasSet::None();

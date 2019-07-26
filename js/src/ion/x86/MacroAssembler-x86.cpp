@@ -203,3 +203,25 @@ MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand &value, co
         j(NotEqual, label);
     }
 }
+
+Assembler::Condition
+MacroAssemblerX86::testNegativeZero(const FloatRegister &reg, const Register &scratch)
+{
+    
+    
+
+    Label nonZero;
+
+    
+    xorpd(ScratchFloatReg, ScratchFloatReg);
+    
+    branchDouble(DoubleNotEqual, reg, ScratchFloatReg, &nonZero);
+
+    
+    movmskpd(reg, scratch);
+    
+    cmpl(scratch, Imm32(1));
+
+    bind(&nonZero);
+    return Zero;
+}

@@ -2256,12 +2256,12 @@ class LStringLength : public LInstructionHelper<1, 1, 0>
 };
 
 
-class LRound : public LInstructionHelper<1, 1, 0>
+class LFloor : public LInstructionHelper<1, 1, 0>
 {
   public:
-    LIR_HEADER(Round);
+    LIR_HEADER(Floor);
 
-    LRound(const LAllocation &num) {
+    LFloor(const LAllocation &num) {
         setOperand(0, num);
     }
 
@@ -2270,6 +2270,31 @@ class LRound : public LInstructionHelper<1, 1, 0>
     }
     const LDefinition *output() {
         return getDef(0);
+    }
+    MRound *mir() const {
+        return mir_->toRound();
+    }
+};
+
+
+class LRound : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(Round);
+
+    LRound(const LAllocation &num, const LDefinition &temp) {
+        setOperand(0, num);
+        setTemp(0, temp);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
     }
     MRound *mir() const {
         return mir_->toRound();

@@ -927,56 +927,155 @@ CodeGeneratorX86Shared::visitMathD(LMathD *math)
 }
 
 bool
+CodeGeneratorX86Shared::visitFloor(LFloor *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister scratch = ScratchFloatReg;
+    Register output = ToRegister(lir->output());
+
+    if (AssemblerX86Shared::HasSSE41()) {
+        
+        Assembler::Condition bailCond = masm.testNegativeZero(input, output);
+        if (!bailoutIf(bailCond, lir->snapshot()))
+            return false;
+
+        
+        masm.roundsd(input, scratch, JSC::X86Assembler::RoundDown);
+
+        masm.cvttsd2si(scratch, output);
+        masm.cmp32(output, Imm32(INT_MIN));
+        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            return false;
+    } else {
+        Label negative, end;
+
+        
+        masm.xorpd(scratch, scratch);
+        masm.branchDouble(Assembler::DoubleLessThan, input, scratch, &negative);
+
+        
+        Assembler::Condition bailCond = masm.testNegativeZero(input, output);
+        if (!bailoutIf(bailCond, lir->snapshot()))
+            return false;
+
+        
+        masm.cvttsd2si(input, output);
+        masm.cmp32(output, Imm32(INT_MIN));
+        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            return false;
+
+        masm.jump(&end);
+
+        
+        
+        
+        masm.bind(&negative);
+        {
+            
+            
+            masm.cvttsd2si(input, output);
+            masm.cmp32(output, Imm32(INT_MIN));
+            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+                return false;
+        
+            
+            masm.cvtsi2sd(output, scratch);
+            masm.branchDouble(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
+
+            
+            
+            masm.subl(Imm32(1), output);
+            
+        }
+
+        masm.bind(&end);
+    }
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitRound(LRound *lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister pointFive = ToFloatRegister(lir->temp());
+    FloatRegister scratch = ScratchFloatReg;
     Register output = ToRegister(lir->output());
 
-    if (!lir->snapshot())
+    Label negative, end;
+
+    static const double PointFive = 0.5;
+    masm.loadStaticDouble(&PointFive, pointFive);
+
+    
+    masm.xorpd(scratch, scratch);
+    masm.branchDouble(Assembler::DoubleLessThan, input, scratch, &negative);
+
+    
+    Assembler::Condition bailCond = masm.testNegativeZero(input, output);
+    if (!bailoutIf(bailCond, lir->snapshot()))
         return false;
 
-    Label belowZero, end;
+    
+    masm.addsd(pointFive, input);
 
-    
-    
-    
-
-    
-    if (lir->mir()->mode() == MRound::RoundingMode_Round) {
-        
-        static const double ZeroFive = 0.5;
-        masm.loadStaticDouble(&ZeroFive, ScratchFloatReg);
-        masm.addsd(ScratchFloatReg, input);
-    }
-
-    
-    
-    
-
-    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
-    masm.ucomisd(input, ScratchFloatReg);
-    masm.j(Assembler::Below, &belowZero);
-
-    
     masm.cvttsd2si(input, output);
-    masm.cmp32(output, Imm32(0x80000000));
-    
+    masm.cmp32(output, Imm32(INT_MIN));
     if (!bailoutIf(Assembler::Equal, lir->snapshot()))
         return false;
+
     masm.jump(&end);
 
+
     
-    masm.bind(&belowZero);
-    masm.subsd(input, ScratchFloatReg);
-    masm.cvttsd2si(ScratchFloatReg, output);
-    masm.negl(output);
-    
-    
-    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
-        return false;
-    
-    if (!bailoutIf(Assembler::Equal, lir->snapshot()))
-        return false;
+    masm.bind(&negative);
+
+    if (AssemblerX86Shared::HasSSE41()) {
+        
+        masm.addsd(pointFive, input);
+        masm.roundsd(input, scratch, JSC::X86Assembler::RoundDown);
+
+        
+        masm.cvttsd2si(scratch, output);
+        masm.cmp32(output, Imm32(INT_MIN));
+        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            return false;
+
+        
+        
+        masm.testl(output, output);
+        if (!bailoutIf(Assembler::Zero, lir->snapshot()))
+            return false;
+
+    } else {
+        masm.addsd(pointFive, input);
+
+        
+        Label testZero;
+        {
+            
+            
+            masm.cvttsd2si(input, output);
+            masm.cmp32(output, Imm32(INT_MIN));
+            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+                return false;
+
+            
+            masm.cvtsi2sd(output, scratch);
+            masm.branchDouble(Assembler::DoubleEqualOrUnordered, input, scratch, &testZero);
+
+            
+            
+            masm.subl(Imm32(1), output);
+            
+
+            
+        }
+
+        masm.bind(&testZero);
+        if (!bailoutIf(Assembler::Zero, lir->snapshot()))
+            return false;
+    }
+
     masm.bind(&end);
     return true;
 }

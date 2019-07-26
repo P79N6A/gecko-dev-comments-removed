@@ -896,20 +896,22 @@ CodeGeneratorARM::visitMathD(LMathD *math)
 }
 
 bool
+CodeGeneratorARM::visitFloor(LFloor *lir)
+{
+    JS_NOT_REACHED("ARM floor() unimplemented.");
+    return false;
+}
+
+bool
 CodeGeneratorARM::visitRound(LRound *lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
     Register output = ToRegister(lir->output());
 
-    if (!lir->snapshot())
-        return false;
-
     Label belowZero, end, fail;
-    if (lir->mir()->mode() == MRound::RoundingMode_Round) {
-        
-        masm.ma_vimm(0.5, ScratchFloatReg);
-        masm.ma_vadd(ScratchFloatReg, input, input);
-    }
+    
+    masm.ma_vimm(0.5, ScratchFloatReg);
+    masm.ma_vadd(ScratchFloatReg, input, input);
 
     
     
