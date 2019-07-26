@@ -28,8 +28,8 @@
 #include <string.h>
 #include <errno.h>
 
-
 #include "platform.h"
+#include "UnwinderThread2.h"  
 
 
 
@@ -129,6 +129,16 @@ static void* ThreadEntry(void* arg) {
   
   
   
+
+  
+  extern bool sps_version2();
+  if (sps_version2()) {
+    
+    int aLocal;
+    uwt__register_thread_for_profiling( &aLocal );
+  }
+  
+
   thread->data()->thread_ = pthread_self();
   SetThreadName(thread->name());
   ASSERT(thread->data()->thread_ != kNoThread);
