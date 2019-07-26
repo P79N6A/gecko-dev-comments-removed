@@ -125,7 +125,9 @@ let FramerateFront = exports.FramerateFront = protocol.FrontClass(FramerateActor
 
 
 
-  plotFPS: function(ticks, interval = 100) {
+
+
+  plotFPS: function(ticks, interval = 100, clamp = 60) {
     let timeline = [];
     let totalTicks = ticks.length;
 
@@ -149,7 +151,7 @@ let FramerateFront = exports.FramerateFront = protocol.FrontClass(FramerateActor
         continue;
       }
 
-      let framerate = 1000 / (elapsedTime / frameCount);
+      let framerate = Math.min(1000 / (elapsedTime / frameCount), clamp);
       timeline.push({ delta: prevTime, value: framerate });
       timeline.push({ delta: currTime, value: framerate });
 
