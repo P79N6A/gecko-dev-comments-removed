@@ -1,43 +1,43 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=79:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   David Anderson <dvander@alliedmods.net>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsion_macro_assembler_h__
 #define jsion_macro_assembler_h__
@@ -107,8 +107,8 @@ class MacroAssembler : public MacroAssemblerSpecific
         return !enoughMemory_ || MacroAssemblerSpecific::oom();
     }
 
-    
-    
+    // Emits a test of a value against all types in a TypeSet. A scratch
+    // register is required.
     template <typename T>
     void guardTypeSet(const T &address, types::TypeSet *types, Register scratch,
                       Label *mismatched);
@@ -213,14 +213,14 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void storeCallResultValue(ValueOperand dest) {
 #if defined(JS_NUNBOX32)
-        
-        
-        
-        
-        
+        // reshuffle the return registers used for a call result to store into
+        // dest, using ReturnReg as a scratch register if necessary. This must
+        // only be called after returning from a call, at a point when the
+        // return register is not live. XXX would be better to allow wrappers
+        // to store the return value to different places.
         if (dest.typeReg() == JSReturnReg_Data) {
             if (dest.payloadReg() == JSReturnReg_Type) {
-                
+                // swap the two registers.
                 mov(JSReturnReg_Type, ReturnReg);
                 mov(JSReturnReg_Data, JSReturnReg_Type);
                 mov(ReturnReg, JSReturnReg_Data);
@@ -392,28 +392,30 @@ class MacroAssembler : public MacroAssemblerSpecific
         }
     }
 
-    
-    
+    // Inline version of js_TypedArray_uint8_clamp_double.
+    // This function clobbers the input register.
     void clampDoubleToUint8(FloatRegister input, Register output);
 
     void getNewObject(JSContext *cx, const Register &result, JSObject *templateObject, Label *fail);
 
-    
-    
-    
-    CodeOffsetLabel exitCodePatch;
+    // If the IonCode that created this assembler needs to transition into the VM,
+    // we want to store the IonCode on the stack in order to mark it during a GC.
+    // This is a reference to a patch location where the IonCode* will be written.
+  private:
+    CodeOffsetLabel exitCodePatch_;
+  public:
     void linkExitFrameAndCode() {
         linkExitFrame();
-        
-        exitCodePatch = PushWithPatch(ImmWord(-1));
+        // Push the ioncode for this bailout onto the stack
+        exitCodePatch_ = PushWithPatch(ImmWord(-1));
     }
     void link(IonCode *code) {
 
-        
-        
-        
-        if (exitCodePatch.offset() != 0) {
-            patchDataWithValueCheck(CodeLocationLabel(code, exitCodePatch),
+        // If this code can transition to C++ code and witness a GC, then we need to store
+        // the IonCode onto the stack in order to GC it correctly.  exitCodePatch should
+        // be unset if the code never needed to push its IonCode*.
+        if (exitCodePatch_.offset() != 0) {
+            patchDataWithValueCheck(CodeLocationLabel(code, exitCodePatch_),
                                     ImmWord(uintptr_t(code)),
                                     ImmWord(uintptr_t(-1)));
         }
@@ -421,8 +423,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 };
 
-} 
-} 
+} // namespace ion
+} // namespace js
 
-#endif 
+#endif // jsion_macro_assembler_h__
 
