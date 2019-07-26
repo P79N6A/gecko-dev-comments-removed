@@ -1171,18 +1171,22 @@ CK_RV NSC_DecryptUpdate(CK_SESSION_HANDLE hSession,
 		|| context->padDataLength == context->blockSize);
 
 
+    if (context->doPad) {
+	
+
+
+
+
+
+
+	if ((ulEncryptedPartLen == 0) ||
+	    (ulEncryptedPartLen % context->blockSize) != 0) {
+	    return CKR_ENCRYPTED_DATA_LEN_RANGE;
+	}
+    }
+
     if (!pPart) {
 	if (context->doPad) {
-	    
-
-
-
-
-
-	    if ((ulEncryptedPartLen == 0) ||
-		(ulEncryptedPartLen % context->blockSize) != 0) {
-		return CKR_ENCRYPTED_DATA_LEN_RANGE;
-	    }
 	    *pulPartLen = 
 		ulEncryptedPartLen + context->padDataLength - context->blockSize;
 	    return CKR_OK;

@@ -817,6 +817,10 @@ typedef struct SSL3HandshakeStateStr {
 
 
 
+    
+
+
+#define backupHash md5
     PK11Context *         md5;
     PK11Context *         sha;
 
@@ -855,6 +859,8 @@ const ssl3CipherSuiteDef *suite_def;
     
     PRBool                cacheSID;
 
+    PRBool                canFalseStart;   
+
     
 
 
@@ -881,8 +887,6 @@ const ssl3CipherSuiteDef *suite_def;
     PRUint32              rtTimeoutMs;     
 
     PRUint32              rtRetries;       
-    PRBool                canFalseStart;   
-
 } SSL3HandshakeState;
 
 
@@ -1378,6 +1382,19 @@ extern PRBool    ssl_SocketIsBlocking(sslSocket *ss);
 extern void      ssl3_SetAlwaysBlock(sslSocket *ss);
 
 extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
+
+extern void      ssl_FinishHandshake(sslSocket *ss);
+
+
+
+
+
+
+
+
+
+
+extern PRBool    ssl3_WaitingForStartOfServerSecondRound(sslSocket *ss);
 
 extern SECStatus
 ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,

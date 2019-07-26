@@ -207,6 +207,12 @@ cleanup:
 
 
 
+
+
+
+
+
+
 PKIX_Error *
 pkix_OcspChecker_CheckExternal(
         PKIX_PL_Cert *cert,
@@ -230,6 +236,8 @@ pkix_OcspChecker_CheckExternal(
         PKIX_PL_Date *validity = NULL;
         PKIX_RevocationStatus revStatus = PKIX_RevStatus_NoInfo;
         void *nbioContext = NULL;
+        enum { stageGET, stagePOST } currentStage;
+        PRBool retry = PR_FALSE;
 
         PKIX_ENTER(OCSPCHECKER, "pkix_OcspChecker_CheckExternal");
 
@@ -258,58 +266,136 @@ pkix_OcspChecker_CheckExternal(
             goto cleanup;
         }
 
-        
-        PKIX_CHECK(
-            pkix_pl_OcspResponse_Create(request, NULL,
-                                        checker->certVerifyFcn,
-                                        &nbioContext,
-                                        &response,
-                                        plContext),
-            PKIX_OCSPRESPONSECREATEFAILED);
-        if (nbioContext != 0) {
-            *pNBIOContext = nbioContext;
-            goto cleanup;
-        }
-        
-        PKIX_CHECK(
-            pkix_pl_OcspResponse_Decode(response, &passed,
-                                        &resultCode, plContext),
-            PKIX_OCSPRESPONSEDECODEFAILED);
-        if (passed == PKIX_FALSE) {
-            goto cleanup;
-        }
-        
-        PKIX_CHECK(
-            pkix_pl_OcspResponse_GetStatus(response, &passed,
-                                           &resultCode, plContext),
-            PKIX_OCSPRESPONSEGETSTATUSRETURNEDANERROR);
-        if (passed == PKIX_FALSE) {
-            goto cleanup;
-        }
-
-        PKIX_CHECK(
-            pkix_pl_OcspResponse_VerifySignature(response, cert,
-                                                 procParams, &passed, 
-                                                 &nbioContext, plContext),
-            PKIX_OCSPRESPONSEVERIFYSIGNATUREFAILED);
-       	if (nbioContext != 0) {
-               	*pNBIOContext = nbioContext;
-                goto cleanup;
-        }
-        if (passed == PKIX_FALSE) {
-                goto cleanup;
-        }
-
-        PKIX_CHECK(
-            pkix_pl_OcspResponse_GetStatusForCert(cid, response, date,
-                                                  &passed, &resultCode,
-                                                  plContext),
-            PKIX_OCSPRESPONSEGETSTATUSFORCERTFAILED);
-        if (passed == PKIX_FALSE) {
-            revStatus = pkix_OcspChecker_MapResultCodeToRevStatus(resultCode);
+        if (methodFlags & CERT_REV_M_FORCE_POST_METHOD_FOR_OCSP) {
+            
+            currentStage = stagePOST;
         } else {
-            revStatus = PKIX_RevStatus_Success;
+            
+            currentStage = stageGET;
         }
+
+        do {
+                const char *mechanism;
+                passed = PKIX_TRUE;
+
+                retry = PR_FALSE;
+                if (currentStage == stageGET) {
+                        mechanism = "GET";
+                } else if (currentStage == stagePOST) {
+                        mechanism = "POST";
+                } else {
+                        PORT_Assert(0); 
+                }
+
+                
+                PKIX_CHECK_NO_GOTO(
+                    pkix_pl_OcspResponse_Create(request, mechanism, NULL,
+                                                checker->certVerifyFcn,
+                                                &nbioContext,
+                                                &response,
+                                                plContext),
+                    PKIX_OCSPRESPONSECREATEFAILED);
+
+                if (pkixErrorResult) {
+                    passed = PKIX_FALSE;
+                }
+
+                if (passed && nbioContext != 0) {
+                        *pNBIOContext = nbioContext;
+                        goto cleanup;
+                }
+
+                if (passed){
+                        PKIX_CHECK_NO_GOTO(
+                            pkix_pl_OcspResponse_Decode(response, &passed,
+                                                        &resultCode, plContext),
+                            PKIX_OCSPRESPONSEDECODEFAILED);
+                        if (pkixErrorResult) {
+                            passed = PKIX_FALSE;
+                        }
+                }
+                
+                if (passed){
+                        PKIX_CHECK_NO_GOTO(
+                            pkix_pl_OcspResponse_GetStatus(response, &passed,
+                                                           &resultCode, plContext),
+                            PKIX_OCSPRESPONSEGETSTATUSRETURNEDANERROR);
+                        if (pkixErrorResult) {
+                            passed = PKIX_FALSE;
+                        }
+                }
+
+                if (passed){
+                        PKIX_CHECK_NO_GOTO(
+                            pkix_pl_OcspResponse_VerifySignature(response, cert,
+                                                                 procParams, &passed, 
+                                                                 &nbioContext, plContext),
+                            PKIX_OCSPRESPONSEVERIFYSIGNATUREFAILED);
+                        if (pkixErrorResult) {
+                            passed = PKIX_FALSE;
+                        } else {
+                                if (nbioContext != 0) {
+                                        *pNBIOContext = nbioContext;
+                                        goto cleanup;
+                                }
+                        }
+                }
+
+                if (!passed && currentStage == stagePOST) {
+                        
+
+
+
+
+
+
+
+                         
+                        if (cid && cid->certID) {
+                                
+                                PKIX_Error *err;
+                                err = PKIX_PL_OcspCertID_RememberOCSPProcessingFailure(
+                                        cid, plContext);
+                                if (err) {
+                                        PKIX_PL_Object_DecRef((PKIX_PL_Object*)err, plContext);
+                                }
+                        }
+                }
+
+                if (passed){
+                        PKIX_Boolean allowCachingOfFailures =
+                                (currentStage == stagePOST) ? PKIX_TRUE : PKIX_FALSE;
+                        
+                        PKIX_CHECK_NO_GOTO(
+                            pkix_pl_OcspResponse_GetStatusForCert(cid, response,
+                                                                  allowCachingOfFailures,
+                                                                  date,
+                                                                  &passed, &resultCode,
+                                                                  plContext),
+                            PKIX_OCSPRESPONSEGETSTATUSFORCERTFAILED);
+                        if (pkixErrorResult) {
+                            passed = PKIX_FALSE;
+                        } else if (passed == PKIX_FALSE) {
+                                revStatus = pkix_OcspChecker_MapResultCodeToRevStatus(resultCode);
+                        } else {
+                                revStatus = PKIX_RevStatus_Success;
+                        }
+                }
+
+                if (currentStage == stageGET && revStatus != PKIX_RevStatus_Success &&
+                                                revStatus != PKIX_RevStatus_Revoked) {
+                        
+                        PKIX_DECREF(response);
+                        retry = PR_TRUE;
+                        currentStage = stagePOST;
+                        revStatus = PKIX_RevStatus_NoInfo;
+                        if (pkixErrorResult) {
+                                PKIX_PL_Object_DecRef((PKIX_PL_Object*)pkixErrorResult,
+                                                      plContext);
+                                pkixErrorResult = NULL;
+                        }
+                }
+        } while (retry);
 
 cleanup:
         if (revStatus == PKIX_RevStatus_NoInfo && (uriFound || 
@@ -324,18 +410,6 @@ cleanup:
 
         *pReasonCode = crlEntryReasonUnspecified;
 
-        if (!passed && cid && cid->certID) {
-                
-
-
-
-                PKIX_Error *err;
-                err = PKIX_PL_OcspCertID_RememberOCSPProcessingFailure(
-                        cid, plContext);
-                if (err) {
-                        PKIX_PL_Object_DecRef((PKIX_PL_Object*)err, plContext);
-                }
-        }
         PKIX_DECREF(cid);
         PKIX_DECREF(request);
         PKIX_DECREF(response);

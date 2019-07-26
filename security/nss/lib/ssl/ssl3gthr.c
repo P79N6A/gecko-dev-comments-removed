@@ -275,11 +275,17 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 {
     SSL3Ciphertext cText;
     int            rv;
-    PRBool         canFalseStart = PR_FALSE;
+    PRBool         keepGoing = PR_TRUE;
 
     SSL_TRC(30, ("ssl3_GatherCompleteHandshake"));
 
+    
+
+
+
+    PORT_Assert( ss->opt.noLocks || ssl_Have1stHandshakeLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+
     do {
 	PRBool handleRecordNow = PR_FALSE;
 
@@ -364,22 +370,52 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
 	    cText.buf     = &ss->gs.inbuf;
 	    rv = ssl3_HandleRecord(ss, &cText, &ss->gs.buf);
+
+	    if (rv == (int) SECSuccess && ss->gs.buf.len > 0) {
+		
+
+
+
+		PORT_Assert(ss->firstHsDone);
+		PORT_Assert(cText.type == content_application_data);
+		break;
+	    }
 	}
 	if (rv < 0) {
 	    return ss->recvdCloseNotify ? 0 : rv;
 	}
 
-	
+	PORT_Assert(keepGoing);
+	ssl_GetSSL3HandshakeLock(ss);
+	if (ss->ssl3.hs.ws == idle_handshake) {
+	    
 
 
-	if (ss->opt.enableFalseStart) {
-	    ssl_GetSSL3HandshakeLock(ss);
-	    canFalseStart = ss->ssl3.hs.canFalseStart;
-	    ssl_ReleaseSSL3HandshakeLock(ss);
+
+
+
+	    PORT_Assert(ss->firstHsDone);
+	    PORT_Assert(!ss->ssl3.hs.canFalseStart);
+	    keepGoing = PR_FALSE;
+	} else if (ss->ssl3.hs.canFalseStart) {
+	    
+
+
+
+
+
+
+
+	    PORT_Assert(!ss->firstHsDone);
+
+	    if (ssl3_WaitingForStartOfServerSecondRound(ss)) {
+		keepGoing = PR_FALSE;
+	    } else {
+		ss->ssl3.hs.canFalseStart = PR_FALSE;
+	    }
 	}
-    } while (ss->ssl3.hs.ws != idle_handshake &&
-             !canFalseStart &&
-             ss->gs.buf.len == 0);
+	ssl_ReleaseSSL3HandshakeLock(ss);
+    } while (keepGoing);
 
     ss->gs.readOffset = 0;
     ss->gs.writeOffset = ss->gs.buf.len;
@@ -402,7 +438,10 @@ ssl3_GatherAppDataRecord(sslSocket *ss, int flags)
 {
     int            rv;
 
+    
+    PORT_Assert( ss->opt.noLocks || ssl_Have1stHandshakeLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+
     do {
 	rv = ssl3_GatherCompleteHandshake(ss, flags);
     } while (rv > 0 && ss->gs.buf.len == 0);

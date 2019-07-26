@@ -1218,6 +1218,7 @@ CERT_MatchUserCert(CERTCertDBHandle *handle,
 CERTCertList *
 CERT_NewCertList(void);
 
+
 void
 CERT_DestroyCertList(CERTCertList *certs);
 
@@ -1225,15 +1226,25 @@ CERT_DestroyCertList(CERTCertList *certs);
 void
 CERT_RemoveCertListNode(CERTCertListNode *node);
 
+
 SECStatus
 CERT_AddCertToListTail(CERTCertList *certs, CERTCertificate *cert);
+
 
 SECStatus
 CERT_AddCertToListHead(CERTCertList *certs, CERTCertificate *cert);
 
+
+
+
+
 SECStatus
 CERT_AddCertToListTailWithData(CERTCertList *certs, CERTCertificate *cert,
 							 void *appData);
+
+
+
+
 
 SECStatus
 CERT_AddCertToListHeadWithData(CERTCertList *certs, CERTCertificate *cert,
@@ -1502,6 +1513,12 @@ extern SECItem *
 CERT_GetSPKIDigest(PLArenaPool *arena, const CERTCertificate *cert,
                    SECOidTag digestAlg, SECItem *fill);
 
+
+
+
+extern SECItem *
+CERT_GetSubjectNameDigest(PLArenaPool *arena, const CERTCertificate *cert,
+                          SECOidTag digestAlg, SECItem *fill);
 
 SECStatus CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer,
                         const SECItem* dp, PRTime t, void* wincx);

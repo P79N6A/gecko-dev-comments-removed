@@ -110,31 +110,31 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
  { TLS_RSA_WITH_AES_256_CBC_SHA256,         SSL_ALLOWED, PR_TRUE,  PR_FALSE},
 
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,        SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, SSL_ALLOWED, PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_RC4_128_SHA,          SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,        SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_RC4_128_SHA,          SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif 
  { TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
- { TLS_DHE_DSS_WITH_RC4_128_SHA,            SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_DHE_RSA_WITH_AES_128_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
  { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,     SSL_ALLOWED, PR_TRUE,  PR_FALSE},
  { TLS_DHE_DSS_WITH_AES_128_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_DHE_DSS_WITH_RC4_128_SHA,            SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDH_RSA_WITH_RC4_128_SHA,           SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,       SSL_ALLOWED, PR_FALSE, PR_FALSE},
- { TLS_ECDH_ECDSA_WITH_RC4_128_SHA,         SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_RSA_WITH_RC4_128_SHA,           SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,     SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_ECDSA_WITH_RC4_128_SHA,         SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif 
  { TLS_RSA_WITH_SEED_CBC_SHA,               SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,       SSL_ALLOWED, PR_FALSE, PR_FALSE},
- { SSL_RSA_WITH_RC4_128_SHA,                SSL_ALLOWED, PR_TRUE,  PR_FALSE},
- { SSL_RSA_WITH_RC4_128_MD5,                SSL_ALLOWED, PR_TRUE,  PR_FALSE},
  { TLS_RSA_WITH_AES_128_CBC_SHA,            SSL_ALLOWED, PR_TRUE,  PR_FALSE},
  { TLS_RSA_WITH_AES_128_CBC_SHA256,         SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { SSL_RSA_WITH_RC4_128_SHA,                SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { SSL_RSA_WITH_RC4_128_MD5,                SSL_ALLOWED, PR_TRUE,  PR_FALSE},
 
 #ifdef NSS_ENABLE_ECC
  { TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
@@ -593,8 +593,9 @@ void SSL_AtomicIncrementLong(long * x)
 }
 
 static PRBool
-ssl3_CipherSuiteAllowedForVersion(ssl3CipherSuite cipherSuite,
-				  SSL3ProtocolVersion version)
+ssl3_CipherSuiteAllowedForVersionRange(
+    ssl3CipherSuite cipherSuite,
+    const SSLVersionRange *vrange)
 {
     switch (cipherSuite) {
     
@@ -611,7 +612,7 @@ ssl3_CipherSuiteAllowedForVersion(ssl3CipherSuite cipherSuite,
 
 
 
-	return version <= SSL_LIBRARY_VERSION_TLS_1_0;
+	return vrange->min <= SSL_LIBRARY_VERSION_TLS_1_0;
     case TLS_DHE_RSA_WITH_AES_256_CBC_SHA256:
     case TLS_RSA_WITH_AES_256_CBC_SHA256:
     case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:
@@ -623,7 +624,7 @@ ssl3_CipherSuiteAllowedForVersion(ssl3CipherSuite cipherSuite,
     case TLS_RSA_WITH_AES_128_CBC_SHA256:
     case TLS_RSA_WITH_AES_128_GCM_SHA256:
     case TLS_RSA_WITH_NULL_SHA256:
-	return version >= SSL_LIBRARY_VERSION_TLS_1_2;
+	return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_2;
     default:
 	return PR_TRUE;
     }
@@ -773,8 +774,10 @@ ssl3_config_match_init(sslSocket *ss)
 
 
 
+
 static PRBool
-config_match(ssl3CipherSuiteCfg *suite, int policy, PRBool enabled)
+config_match(ssl3CipherSuiteCfg *suite, int policy, PRBool enabled,
+	     const SSLVersionRange *vrange)
 {
     PORT_Assert(policy != SSL_NOT_ALLOWED && enabled != PR_FALSE);
     if (policy == SSL_NOT_ALLOWED || !enabled)
@@ -782,8 +785,11 @@ config_match(ssl3CipherSuiteCfg *suite, int policy, PRBool enabled)
     return (PRBool)(suite->enabled &&
                     suite->isPresent &&
 	            suite->policy != SSL_NOT_ALLOWED &&
-		    suite->policy <= policy);
+		    suite->policy <= policy &&
+		    ssl3_CipherSuiteAllowedForVersionRange(
+                        suite->cipher_suite, vrange));
 }
+
 
 
 
@@ -796,7 +802,7 @@ count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
 	return 0;
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
-	if (config_match(&ss->cipherSuites[i], policy, enabled))
+	if (config_match(&ss->cipherSuites[i], policy, enabled, &ss->vrange))
 	    count++;
     }
     if (count <= 0) {
@@ -1001,7 +1007,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert,
 	}
 	
 	if (isTLS || buf->len != SECKEY_SignatureLen(key)) {
-	    signature = DSAU_DecodeDerSig(buf);
+	    signature = DSAU_DecodeDerSigToLen(buf, SECKEY_SignatureLen(key));
 	    if (!signature) {
 	    	PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
 		return SECFailure;
@@ -2708,6 +2714,8 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
 
 
 
+
+
 PRInt32
 ssl3_SendRecord(   sslSocket *        ss,
                    DTLSEpoch          epoch, 
@@ -2724,7 +2732,7 @@ ssl3_SendRecord(   sslSocket *        ss,
     SSL_TRC(3, ("%d: SSL3[%d] SendRecord type: %s nIn=%d",
 		SSL_GETPID(), ss->fd, ssl3_DecodeContentType(type),
 		nIn));
-    PRINT_BUF(3, (ss, "Send record (plain text)", pIn, nIn));
+    PRINT_BUF(50, (ss, "Send record (plain text)", pIn, nIn));
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
@@ -3842,6 +3850,28 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
 		ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
 		return SECFailure;
 	    }
+
+	    
+
+
+
+
+
+
+
+
+	    if (!ss->sec.isServer) {
+		ss->ssl3.hs.backupHash = PK11_CreateDigestContext(SEC_OID_SHA1);
+		if (ss->ssl3.hs.backupHash == NULL) {
+		    ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+		    return SECFailure;
+		}
+
+		if (PK11_DigestBegin(ss->ssl3.hs.backupHash) != SECSuccess) {
+		    ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+		    return SECFailure;
+		}
+	    }
 	} else {
 	    
 
@@ -3951,6 +3981,13 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b,
 	if (rv != SECSuccess) {
 	    ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
 	    return rv;
+	}
+	if (ss->ssl3.hs.backupHash) {
+	    rv = PK11_DigestOp(ss->ssl3.hs.backupHash, b, l);
+	    if (rv != SECSuccess) {
+		ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+		return rv;
+	    }
 	}
     } else {
 	rv = PK11_DigestOp(ss->ssl3.hs.md5, b, l);
@@ -4700,6 +4737,31 @@ tls12_loser:
     return rv;
 }
 
+static SECStatus
+ssl3_ComputeBackupHandshakeHashes(sslSocket * ss,
+				  SSL3Hashes * hashes) 
+{
+    SECStatus rv = SECSuccess;
+
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( !ss->sec.isServer );
+    PORT_Assert( ss->ssl3.hs.hashType == handshake_hash_single );
+
+    rv = PK11_DigestFinal(ss->ssl3.hs.backupHash, hashes->u.raw, &hashes->len,
+			  sizeof(hashes->u.raw));
+    if (rv != SECSuccess) {
+	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+	rv = SECFailure;
+	goto loser;
+    }
+    hashes->hashAlg = SEC_OID_SHA1;
+
+loser:
+    PK11_DestroyContext(ss->ssl3.hs.backupHash, PR_TRUE);
+    ss->ssl3.hs.backupHash = NULL;
+    return rv;
+}
+
 
 
 
@@ -4965,7 +5027,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     
 
 
-    if (!ss->firstHsDone && ss->vrange.min == SSL_LIBRARY_VERSION_3_0) {
+    if (!ss->firstHsDone && !isTLS) {
 	
 
 
@@ -5089,7 +5151,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-	if (config_match(suite, ss->ssl3.policy, PR_TRUE)) {
+	if (config_match(suite, ss->ssl3.policy, PR_TRUE, &ss->vrange)) {
 	    actual_count++;
 	    if (actual_count > num_suites) {
 		
@@ -5150,7 +5212,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
 
     flags = 0;
-    if (!ss->firstHsDone && !requestingResume && !IS_DTLS(ss)) {
+    if (!ss->firstHsDone && !IS_DTLS(ss)) {
 	flags |= ssl_SEND_FLAG_CAP_RECORD_VERSION;
     }
     rv = ssl3_FlushHandshake(ss, flags);
@@ -5949,7 +6011,13 @@ ssl3_SendCertificateVerify(sslSocket *ss)
 		SSL_GETPID(), ss->fd));
 
     ssl_GetSpecReadLock(ss);
-    rv = ssl3_ComputeHandshakeHashes(ss, ss->ssl3.pwSpec, &hashes, 0);
+    if (ss->ssl3.hs.hashType == handshake_hash_single &&
+	ss->ssl3.hs.backupHash) {
+	rv = ssl3_ComputeBackupHandshakeHashes(ss, &hashes);
+	PORT_Assert(!ss->ssl3.hs.backupHash);
+    } else {
+	rv = ssl3_ComputeHandshakeHashes(ss, ss->ssl3.pwSpec, &hashes, 0);
+    }
     ssl_ReleaseSpecReadLock(ss);
     if (rv != SECSuccess) {
 	goto done;	
@@ -5992,11 +6060,6 @@ ssl3_SendCertificateVerify(sslSocket *ss)
 	if (rv != SECSuccess) {
 	    goto done;
 	}
-	
-
-
-
-
 	sigAndHash.hashAlg = hashes.hashAlg;
 
 	rv = ssl3_AppendSignatureAndHashAlgorithm(ss, &sigAndHash);
@@ -6124,14 +6187,18 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
 	if (temp == suite->cipher_suite) {
-	    if (!config_match(suite, ss->ssl3.policy, PR_TRUE)) {
+	    SSLVersionRange vrange = {ss->version, ss->version};
+	    if (!config_match(suite, ss->ssl3.policy, PR_TRUE, &vrange)) {
+		
+
+
+		if (!ssl3_CipherSuiteAllowedForVersionRange(temp, &vrange)) {
+		    desc    = handshake_failure;
+		    errCode = SSL_ERROR_CIPHER_DISALLOWED_FOR_VERSION;
+		    goto alert_loser;
+		}
+
 		break;	
-	    }
-	    if (!ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
-						   ss->version)) {
-		desc    = handshake_failure;
-		errCode = SSL_ERROR_CIPHER_DISALLOWED_FOR_VERSION;
-		goto alert_loser;
 	    }
 	
 	    suite_found = PR_TRUE;
@@ -6659,6 +6726,70 @@ no_memory:
 }
 
 
+
+
+
+
+static PRBool
+ssl3_ClientKeyPrefersSHA1(sslSocket *ss)
+{
+    SECKEYPublicKey *pubk;
+    PRBool preferSha1 = PR_FALSE;
+
+    
+
+
+
+
+
+    pubk = CERT_ExtractPublicKey(ss->ssl3.clientCertificate);
+    if (pubk == NULL) {
+	return PR_FALSE;
+    }
+    if (pubk->keyType == rsaKey || pubk->keyType == dsaKey) {
+	preferSha1 = SECKEY_PublicKeyStrength(pubk) <= 128;
+    }
+    SECKEY_DestroyPublicKey(pubk);
+    return preferSha1;
+}
+
+
+static void
+ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
+					   const SECItem *algorithms)
+{
+    PRBool needBackupHash = PR_FALSE;
+    unsigned int i;
+
+#ifndef NO_PKCS11_BYPASS
+    
+    if (ss->opt.bypassPKCS11) {
+	PORT_Assert(!ss->ssl3.hs.backupHash);
+	return;
+    }
+#endif
+    PORT_Assert(ss->ssl3.hs.backupHash);
+    
+
+
+
+    if (ssl3_ClientKeyPrefersSHA1(ss)) {
+	
+	for (i = 0; i < algorithms->len; i += 2) {
+	    if (algorithms->data[i] == tls_hash_sha1 &&
+		(algorithms->data[i+1] == tls_sig_rsa ||
+		 algorithms->data[i+1] == tls_sig_dsa)) {
+		needBackupHash = PR_TRUE;
+		break;
+	    }
+	}
+    }
+    if (!needBackupHash) {
+	PK11_DestroyContext(ss->ssl3.hs.backupHash, PR_TRUE);
+	ss->ssl3.hs.backupHash = NULL;
+    }
+}
+
 typedef struct dnameNode {
     struct dnameNode *next;
     SECItem           name;
@@ -6816,15 +6947,14 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 					ss->ssl3.clientCertificate,
 					certUsageSSLClient, PR_FALSE);
 	if (ss->ssl3.clientCertChain == NULL) {
-	    if (ss->ssl3.clientCertificate != NULL) {
-		CERT_DestroyCertificate(ss->ssl3.clientCertificate);
-		ss->ssl3.clientCertificate = NULL;
-	    }
-	    if (ss->ssl3.clientPrivateKey != NULL) {
-		SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
-		ss->ssl3.clientPrivateKey = NULL;
-	    }
+	    CERT_DestroyCertificate(ss->ssl3.clientCertificate);
+	    ss->ssl3.clientCertificate = NULL;
+	    SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
+	    ss->ssl3.clientPrivateKey = NULL;
 	    goto send_no_certificate;
+	}
+	if (ss->ssl3.hs.hashType == handshake_hash_single) {
+	    ssl3_DestroyBackupHandshakeHashIfNotNeeded(ss, &algorithms);
 	}
 	break;	
 
@@ -6862,49 +6992,70 @@ done:
 static SECStatus
 ssl3_CheckFalseStart(sslSocket *ss)
 {
-    SECStatus rv;
-    PRBool maybeFalseStart = PR_TRUE;
-
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( !ss->ssl3.hs.authCertificatePending );
-
-    
-
-
-
-
-    ssl_GetSpecReadLock(ss);
-    if (ss->ssl3.cwSpec->cipher_def->secret_key_size < 10) {
-	ss->ssl3.hs.canFalseStart = PR_FALSE;
-	maybeFalseStart = PR_FALSE;
-    }
-    ssl_ReleaseSpecReadLock(ss);
-    if (!maybeFalseStart) {
-	return SECSuccess;
-    }
+    PORT_Assert( !ss->ssl3.hs.canFalseStart );
 
     if (!ss->canFalseStartCallback) {
-	rv = SSL_DefaultCanFalseStart(ss->fd, &ss->ssl3.hs.canFalseStart);
-
-	if (rv == SECSuccess &&
-            ss->ssl3.hs.canFalseStart && ss->handshakeCallback) {
-	    
-
-
-
-	    (ss->handshakeCallback)(ss->fd, ss->handshakeCallbackData);
-	}
+	SSL_TRC(3, ("%d: SSL[%d]: no false start callback so no false start",
+		    SSL_GETPID(), ss->fd));
     } else {
-	rv = (ss->canFalseStartCallback)(ss->fd,
- 					 ss->canFalseStartCallbackData,
-					 &ss->ssl3.hs.canFalseStart);
+	PRBool maybeFalseStart;
+	SECStatus rv;
+
+	
+
+
+
+        ssl_GetSpecReadLock(ss);
+        maybeFalseStart = ss->ssl3.cwSpec->cipher_def->secret_key_size >= 10;
+        ssl_ReleaseSpecReadLock(ss);
+
+	if (!maybeFalseStart) {
+	    SSL_TRC(3, ("%d: SSL[%d]: no false start due to weak cipher",
+			SSL_GETPID(), ss->fd));
+	} else {
+	    rv = (ss->canFalseStartCallback)(ss->fd,
+					     ss->canFalseStartCallbackData,
+					     &ss->ssl3.hs.canFalseStart);
+	    if (rv == SECSuccess) {
+		SSL_TRC(3, ("%d: SSL[%d]: false start callback returned %s",
+			    SSL_GETPID(), ss->fd,
+			    ss->ssl3.hs.canFalseStart ? "TRUE" : "FALSE"));
+	    } else {
+		SSL_TRC(3, ("%d: SSL[%d]: false start callback failed (%s)",
+			    SSL_GETPID(), ss->fd,
+			    PR_ErrorToName(PR_GetError())));
+	    }
+	    return rv;
+	}
     }
 
-    if (rv != SECSuccess) {
-	ss->ssl3.hs.canFalseStart = PR_FALSE;
+    ss->ssl3.hs.canFalseStart = PR_FALSE;
+    return SECSuccess;
+}
+
+PRBool
+ssl3_WaitingForStartOfServerSecondRound(sslSocket *ss)
+{
+    PRBool result = PR_FALSE;
+
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+
+    switch (ss->ssl3.hs.ws) {
+    case wait_new_session_ticket:
+        result = PR_TRUE;
+        break;
+    case wait_change_cipher:
+        result = !ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn);
+        break;
+    case wait_finished:
+        break;
+    default:
+        PR_NOT_REACHED("ssl3_WaitingForStartOfServerSecondRound");
     }
 
-    return rv;
+    return result;
 }
 
 static SECStatus ssl3_SendClientSecondRound(sslSocket *ss);
@@ -6933,7 +7084,6 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 	return SECFailure;
     }
 
-    ss->enoughFirstHsDone = PR_TRUE;
     rv = ssl3_SendClientSecondRound(ss);
 
     return rv;
@@ -6955,6 +7105,14 @@ ssl3_SendClientSecondRound(sslSocket *ss)
     sendClientCert = !ss->ssl3.sendEmptyCert &&
 		     ss->ssl3.clientCertChain  != NULL &&
 		     ss->ssl3.clientPrivateKey != NULL;
+
+    if (!sendClientCert &&
+	ss->ssl3.hs.hashType == handshake_hash_single &&
+	ss->ssl3.hs.backupHash) {
+	
+	PK11_DestroyContext(ss->ssl3.hs.backupHash, PR_TRUE);
+	ss->ssl3.hs.backupHash = NULL;
+    }
 
     
 
@@ -6987,6 +7145,9 @@ ssl3_SendClientSecondRound(sslSocket *ss)
     }
     if (ss->ssl3.hs.authCertificatePending &&
 	(sendClientCert || ss->ssl3.sendEmptyCert || ss->firstHsDone)) {
+	SSL_TRC(3, ("%d: SSL3[%p]: deferring ssl3_SendClientSecondRound because"
+		    " certificate authentication is still pending.",
+		    SSL_GETPID(), ss->fd));
 	ss->ssl3.hs.restartTarget = ssl3_SendClientSecondRound;
 	return SECWouldBlock;
     }
@@ -7027,7 +7188,15 @@ ssl3_SendClientSecondRound(sslSocket *ss)
     
 
 
+
+
+
+    ss->enoughFirstHsDone = PR_TRUE;
+
     if (!ss->firstHsDone) {
+	
+
+
 	rv = ssl3_SendNextProto(ss);
 	if (rv != SECSuccess) {
 	    goto loser;	
@@ -7035,7 +7204,17 @@ ssl3_SendClientSecondRound(sslSocket *ss)
 
 	if (ss->opt.enableFalseStart) {
 	    if (!ss->ssl3.hs.authCertificatePending) {
+		
+
+
+
+
+
+
+
+		ssl_ReleaseXmitBufLock(ss);
 		rv = ssl3_CheckFalseStart(ss);
+		ssl_GetXmitBufLock(ss);
 		if (rv != SECSuccess) {
 		    goto loser;
 		}
@@ -7045,8 +7224,9 @@ ssl3_SendClientSecondRound(sslSocket *ss)
 
 
 
-
-		ss->ssl3.hs.restartTarget = ssl3_CheckFalseStart;
+		SSL_TRC(3, ("%d: SSL3[%p]: deferring false start check because"
+			    " certificate authentication is still pending.",
+			    SSL_GETPID(), ss->fd));
 	    }
 	}
     }
@@ -7062,6 +7242,8 @@ ssl3_SendClientSecondRound(sslSocket *ss)
 	ss->ssl3.hs.ws = wait_new_session_ticket;
     else
 	ss->ssl3.hs.ws = wait_change_cipher;
+
+    PORT_Assert(ssl3_WaitingForStartOfServerSecondRound(ss));
 
     return SECSuccess;
 
@@ -7550,6 +7732,9 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     if (sid) do {
 	ssl3CipherSuiteCfg *suite;
+#ifdef PARANOID
+	SSLVersionRange vrange = {ss->version, ss->version};
+#endif
 
 	
 	if (!compressionEnabled(ss, sid->u.ssl3.compression))
@@ -7578,7 +7763,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
 
 
-	if (!config_match(suite, ss->ssl3.policy, PR_TRUE))
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE, &vrange))
 	    break;
 #else
 	if (!suite->enabled)
@@ -7626,9 +7811,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
-	if (!config_match(suite, ss->ssl3.policy, PR_TRUE) ||
-	    !ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
-					       ss->version)) {
+	SSLVersionRange vrange = {ss->version, ss->version};
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE, &vrange)) {
 	    continue;
 	}
 	for (i = 0; i + 1 < suites.len; i += 2) {
@@ -8160,9 +8344,8 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 
     for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
-	if (!config_match(suite, ss->ssl3.policy, PR_TRUE) ||
-	    !ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
-					       ss->version)) {
+	SSLVersionRange vrange = {ss->version, ss->version};
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE, &vrange)) {
 	    continue;
 	}
 	for (i = 0; i+2 < suite_length; i += 3) {
@@ -9758,6 +9941,12 @@ ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error)
     } else if (ss->ssl3.hs.restartTarget != NULL) {
 	sslRestartTarget target = ss->ssl3.hs.restartTarget;
 	ss->ssl3.hs.restartTarget = NULL;
+
+	if (target == ssl3_FinishHandshake) {
+	    SSL_TRC(3,("%d: SSL3[%p]: certificate authentication lost the race"
+		       " with peer's finished message", SSL_GETPID(), ss->fd));
+	}
+
 	rv = target(ss);
 	
 
@@ -9767,7 +9956,29 @@ ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error)
 	    rv = SECSuccess;
 	}
     } else {
-	rv = SECSuccess;
+	SSL_TRC(3, ("%d: SSL3[%p]: certificate authentication won the race with"
+        	    " peer's finished message", SSL_GETPID(), ss->fd));
+
+	PORT_Assert(!ss->firstHsDone);
+	PORT_Assert(!ss->sec.isServer);
+	PORT_Assert(!ss->ssl3.hs.isResuming);
+	PORT_Assert(ss->ssl3.hs.ws == wait_new_session_ticket ||
+		    ss->ssl3.hs.ws == wait_change_cipher ||
+		    ss->ssl3.hs.ws == wait_finished);
+
+	
+
+
+
+	if (ss->opt.enableFalseStart &&
+	    !ss->firstHsDone &&
+	    !ss->sec.isServer &&
+	    !ss->ssl3.hs.isResuming &&
+	    ssl3_WaitingForStartOfServerSecondRound(ss)) {
+	    rv = ssl3_CheckFalseStart(ss);
+	} else {
+	    rv = SECSuccess;
+	}
     }
 
 done:
@@ -9855,6 +10066,7 @@ ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
     }
     return rv;
 }
+
 
 
 
@@ -10227,9 +10439,6 @@ xmit_loser:
         return rv;
     }
 
-    ss->gs.writeOffset = 0;
-    ss->gs.readOffset  = 0;
-
     if (ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa) {
 	effectiveExchKeyType = kt_rsa;
     } else {
@@ -10279,11 +10488,6 @@ xmit_loser:
 	ss->ssl3.hs.cacheSID = rv == SECSuccess;
     }
 
-    
-    if (ss->ssl3.hs.restartTarget == ssl3_CheckFalseStart) {
-	ss->ssl3.hs.restartTarget = NULL;
-    }
-
     if (ss->ssl3.hs.authCertificatePending) {
 	if (ss->ssl3.hs.restartTarget) {
 	    PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
@@ -10299,36 +10503,28 @@ xmit_loser:
     return rv;
 }
 
+
+
+
 SECStatus
 ssl3_FinishHandshake(sslSocket * ss)
 {
-    PRBool falseStarted;
-
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( ss->ssl3.hs.restartTarget == NULL );
 
     
     ss->handshake           = NULL;
-    ss->firstHsDone         = PR_TRUE;
-    ss->enoughFirstHsDone   = PR_TRUE;
 
     if (ss->ssl3.hs.cacheSID) {
 	(*ss->sec.cache)(ss->sec.ci.sid);
 	ss->ssl3.hs.cacheSID = PR_FALSE;
     }
 
-    ss->ssl3.hs.ws = idle_handshake;
-    falseStarted = ss->ssl3.hs.canFalseStart;
     ss->ssl3.hs.canFalseStart = PR_FALSE; 
+    ss->ssl3.hs.ws = idle_handshake;
 
-    
-
-
-    if (ss->handshakeCallback != NULL &&
-	!(falseStarted && !ss->canFalseStartCallback)) {
-	(ss->handshakeCallback)(ss->fd, ss->handshakeCallbackData);
-    }
+    ssl_FinishHandshake(ss);
 
     return SECSuccess;
 }
@@ -11293,7 +11489,6 @@ process_it:
 
     ssl_ReleaseSSL3HandshakeLock(ss);
     return rv;
-
 }
 
 
@@ -11604,7 +11799,7 @@ ssl3_ConstructV2CipherSpecsHack(sslSocket *ss, unsigned char *cs, int *size)
     
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-	if (config_match(suite, SSL_ALLOWED, PR_TRUE)) {
+	if (config_match(suite, SSL_ALLOWED, PR_TRUE, &ss->vrange)) {
 	    if (cs != NULL) {
 		*cs++ = 0x00;
 		*cs++ = (suite->cipher_suite >> 8) & 0xFF;

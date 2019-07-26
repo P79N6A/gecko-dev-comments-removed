@@ -267,6 +267,8 @@ ssl_DupSocket(sslSocket *os)
 	    ss->badCertArg            = os->badCertArg;
 	    ss->handshakeCallback     = os->handshakeCallback;
 	    ss->handshakeCallbackData = os->handshakeCallbackData;
+	    ss->canFalseStartCallback = os->canFalseStartCallback;
+	    ss->canFalseStartCallbackData = os->canFalseStartCallbackData;
 	    ss->pkcs11PinArg          = os->pkcs11PinArg;
     
 	    
@@ -2264,9 +2266,9 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
 
 		    if (!(ss->version >= SSL_LIBRARY_VERSION_3_0 &&
 			ss->ssl3.hs.canFalseStart)) {
-			new_flags ^=  PR_POLL_WRITE;   
+			new_flags ^= PR_POLL_WRITE; 
 		    }
-		    new_flags |=  PR_POLL_READ;	   
+		    new_flags |= PR_POLL_READ;      
 	    }
 	}
     } else if ((new_flags & PR_POLL_READ) && (SSL_DataPending(fd) > 0)) {

@@ -178,6 +178,15 @@ CERT_DisableOCSPDefaultResponder(CERTCertDBHandle *handle);
 
 
 
+extern SECStatus CERT_ForcePostMethodForOCSP(PRBool forcePost);
+
+
+
+
+
+
+
+
 
 
 

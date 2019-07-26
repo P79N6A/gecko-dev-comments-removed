@@ -93,7 +93,7 @@ SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
   *pYes = PR_FALSE;
 
   
-  if (sslsocket->opt.useSecurity && sslsocket->enoughFirstHsDone) {
+  if (sslsocket->opt.useSecurity) {
     if (sslsocket->ssl3.initialized) { 
       
 

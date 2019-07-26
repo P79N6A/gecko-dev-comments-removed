@@ -1109,6 +1109,11 @@ typedef enum {
 
 
 
+#define CERT_REV_M_FORCE_POST_METHOD_FOR_OCSP 64UL
+
+
+
+
 
 
 
