@@ -4,7 +4,6 @@
 
 
 
-#include "mozilla/RefPtr.h"
 #include "pk11pub.h"
 #include "ScopedNSSTypes.h"
 #include "secoidt.h"
@@ -13,7 +12,6 @@
 #include "nsIPipe.h"
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
-#include "nsXPCOMStrings.h"
 
 #include "BackgroundFileSaver.h"
 #include "mozilla/Telemetry.h"

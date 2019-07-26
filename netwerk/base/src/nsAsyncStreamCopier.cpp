@@ -2,11 +2,10 @@
 
 
 
-#include "nsIOService.h"
 #include "nsAsyncStreamCopier.h"
+#include "nsIOService.h"
 #include "nsIEventTarget.h"
 #include "nsStreamUtils.h"
-#include "nsNetSegmentUtils.h"
 #include "nsNetUtil.h"
 #include "prlog.h"
 

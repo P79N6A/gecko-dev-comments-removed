@@ -4,11 +4,9 @@
 
 
 #include "nsBaseChannel.h"
-#include "nsChannelProperties.h"
 #include "nsURLHelper.h"
 #include "nsNetUtil.h"
 #include "nsMimeTypes.h"
-#include "nsIOService.h"
 #include "nsIHttpEventSink.h"
 #include "nsIHttpChannel.h"
 #include "nsIChannelEventSink.h"

@@ -3,7 +3,6 @@
 
 
 
-#include "nsIServiceManager.h"
 #include "nsSocketTransport2.h"
 #include "nsUDPServerSocket.h"
 #include "nsProxyRelease.h"
@@ -19,7 +18,6 @@
 #include "nsStreamUtils.h"
 #include "nsIPipe.h"
 #include "prerror.h"
-#include "nsINSSErrorsService.h"
 #include "nsThreadUtils.h"
 
 using namespace mozilla::net;

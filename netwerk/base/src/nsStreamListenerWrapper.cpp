@@ -3,7 +3,9 @@
 
 
 #include "nsStreamListenerWrapper.h"
-#include "nsThreadUtils.h"
+#ifdef DEBUG
+#include "MainThreadUtils.h"
+#endif
 
 NS_IMPL_ISUPPORTS3(nsStreamListenerWrapper,
                    nsIStreamListener,

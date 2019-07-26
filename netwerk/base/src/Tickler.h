@@ -27,6 +27,15 @@
 
 
 
+#if defined(ANDROID) && !defined(MOZ_B2G)
+#define MOZ_USE_WIFI_TICKLER
+#endif
+
+#include "mozilla/Attributes.h"
+#include "nsISupports.h"
+#include <stdint.h>
+
+#ifdef MOZ_USE_WIFI_TICKLER
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
 #include "nsAutoPtr.h"
@@ -34,15 +43,13 @@
 #include "nsIThread.h"
 #include "nsITimer.h"
 #include "nsWeakReference.h"
+#include "prio.h"
 
 class nsIPrefBranch;
+#endif
 
 namespace mozilla {
 namespace net {
-
-#if defined(ANDROID) && !defined(MOZ_B2G)
-#define MOZ_USE_WIFI_TICKLER
-#endif
 
 #ifdef MOZ_USE_WIFI_TICKLER
 

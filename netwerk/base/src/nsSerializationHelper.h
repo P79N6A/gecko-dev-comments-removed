@@ -14,7 +14,6 @@
 #include "mozilla/Attributes.h"
 
 class nsISerializable;
-class nsISupports;
 
 
 

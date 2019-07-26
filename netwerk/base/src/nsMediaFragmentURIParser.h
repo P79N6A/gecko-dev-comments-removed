@@ -7,9 +7,10 @@
 #define nsMediaFragmentURIParser_h__
 
 #include "mozilla/Maybe.h"
-#include "nsIURI.h"
-#include "nsString.h"
+#include "nsStringFwd.h"
 #include "nsRect.h"
+
+class nsIURI;
 
 
 
