@@ -46,6 +46,10 @@ loop.shared.views = (function(OT) {
     
     videoStyles: { width: "100%", height: "auto" },
 
+    events: {
+      'click .btn.stop': 'hangup'
+    },
+
     
 
 
@@ -67,23 +71,83 @@ loop.shared.views = (function(OT) {
 
       this.listenTo(this.session, "sessionConnected", this._sessionConnected);
       this.listenTo(this.session, "streamCreated", this._streamCreated);
-      this.listenTo(this.session, "connectionDestroyed", this._sessionEnded);
+      this.listenTo(this.session, "connectionDestroyed",
+                                  this._connectionDestroyed);
+      this.listenTo(this.session, "sessionDisconnected",
+                                  this._sessionDisconnected);
+      this.listenTo(this.session, "networkDisconnected",
+                                  this._networkDisconnected);
     },
+
+    hangup: function(event) {
+      event.preventDefault();
+      this.session.disconnect();
+    },
+
+    
+
+
+
+
 
     _sessionConnected: function(event) {
       this.session.publish(this.publisher);
-      this._subscribeToStreams(event.streams);
     },
+
+    
+
+
+
+
 
     _streamCreated: function(event) {
       this._subscribeToStreams(event.streams);
     },
 
-    _sessionEnded: function(event) {
-      
-      alert("Your session has ended. Reason: " + event.reason);
+    
+
+
+
+
+
+    _sessionDisconnected: function(event) {
       this.model.trigger("session:ended");
+      this.session.unpublish(this.publisher);
     },
+
+    
+
+
+
+
+
+    _connectionDestroyed: function(event) {
+      this.model.trigger("session:peer-hungup", {
+        connectionId: event.connection.connectionId
+      });
+      this.session.unpublish(this.publisher);
+      this.session.disconnect();
+    },
+
+    
+
+
+
+
+
+    _networkDisconnected: function(event) {
+      this.model.trigger("session:network-disconnected");
+      this.session.unpublish(this.publisher);
+      this.session.disconnect();
+    },
+
+    
+
+
+
+
+
+
 
     _subscribeToStreams: function(streams) {
       streams.forEach(function(stream) {
@@ -161,6 +225,29 @@ loop.shared.views = (function(OT) {
     notify: function(notification) {
       this.collection.add(notification);
     },
+
+    
+
+
+
+
+    warn: function(message) {
+      this.notify({level: "warning", message: message});
+    },
+
+    
+
+
+
+
+    error: function(message) {
+      this.notify({level: "error", message: message});
+    },
+
+    
+
+
+
 
     render: function() {
       this.$el.html(this.collection.map(function(notification) {
