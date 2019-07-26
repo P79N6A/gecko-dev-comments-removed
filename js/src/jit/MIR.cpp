@@ -1769,6 +1769,7 @@ ObjectOrSimplePrimitive(MDefinition *op)
     
     return !op->mightBeType(MIRType_String)
         && !op->mightBeType(MIRType_Double)
+        && !op->mightBeType(MIRType_Float32)
         && !op->mightBeType(MIRType_Magic);
 }
 
