@@ -535,29 +535,24 @@ MaybeWrapValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
     return true;
   }
 
-  if (rval.isObject()) {
-    JSObject* obj = &rval.toObject();
-    if (js::GetObjectCompartment(obj) != js::GetContextCompartment(cx)) {
-      return JS_WrapValue(cx, rval.address());
-    }
-
-    
-    
-    if (GetSameCompartmentWrapperForDOMBinding(obj)) {
-      
-      rval.set(JS::ObjectValue(*obj));
-      return true;
-    }
-
-    if (!IS_SLIM_WRAPPER(obj)) {
-      
-      return JS_WrapValue(cx, rval.address());
-    }
-
-    
+  if (!rval.isObject()) {
+    return true;
   }
 
-  return true;
+  JSObject* obj = &rval.toObject();
+  if (js::GetObjectCompartment(obj) != js::GetContextCompartment(cx)) {
+    return JS_WrapValue(cx, rval.address());
+  }
+
+  
+  
+  if (GetSameCompartmentWrapperForDOMBinding(obj)) {
+    
+    rval.set(JS::ObjectValue(*obj));
+    return true;
+  }
+
+  return JS_WrapValue(cx, rval.address());
 }
 
 static inline void
@@ -642,7 +637,7 @@ WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T* value,
   }
 
   rval.set(JS::ObjectValue(*obj));
-  return (sameCompartment && IS_SLIM_WRAPPER(obj)) || JS_WrapValue(cx, rval.address());
+  return JS_WrapValue(cx, rval.address());
 }
 
 

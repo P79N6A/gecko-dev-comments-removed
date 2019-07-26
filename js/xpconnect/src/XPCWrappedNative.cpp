@@ -1320,7 +1320,7 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
     CallQueryInterface(aCOMObj, &cache);
     if (cache) {
         flat = cache->GetWrapper();
-        if (flat && !IS_SLIM_WRAPPER_OBJECT(flat)) {
+        if (flat) {
             wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(flat));
             NS_ASSERTION(wrapper->GetScope() == aOldScope,
                          "Incorrect scope passed");
@@ -1341,8 +1341,7 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
     
     
     
-    if (wrapper &&
-        wrapper->GetProto() &&
+    if (wrapper->GetProto() &&
         !wrapper->GetProto()->ClassIsMainThreadOnly()) {
         return NS_ERROR_FAILURE;
     }

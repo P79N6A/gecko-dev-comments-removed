@@ -472,7 +472,6 @@ nsJSIID::Enumerate(nsIXPConnectWrappedNative *wrapper,
 
 
 
-
 static JSObject *
 FindObjectForHasInstance(JSContext *cx, HandleObject objArg)
 {
