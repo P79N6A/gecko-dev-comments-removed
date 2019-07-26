@@ -52,161 +52,6 @@ const kStateActive = 0x00000001;
 
 
 
-const ElementTouchHelper = {
-  get radius() {
-    let prefs = Services.prefs;
-    delete this.radius;
-    return this.radius = { "top": prefs.getIntPref("ui.touch.radius.topmm"),
-                           "right": prefs.getIntPref("ui.touch.radius.rightmm"),
-                           "bottom": prefs.getIntPref("ui.touch.radius.bottommm"),
-                           "left": prefs.getIntPref("ui.touch.radius.leftmm")
-                         };
-  },
-
-  get weight() {
-    delete this.weight;
-    return this.weight = { "visited": Services.prefs.getIntPref("ui.touch.radius.visitedWeight")
-                         };
-  },
-
-  
-  getClosest: function getClosest(aWindowUtils, aX, aY) {
-    if (!this.dpiRatio)
-      this.dpiRatio = aWindowUtils.displayDPI / kReferenceDpi;
-
-    let dpiRatio = this.dpiRatio;
-
-    let target = aWindowUtils.elementFromPoint(aX, aY,
-                                               true,   
-                                               false); 
-
-    
-    if (this._isElementClickable(target))
-      return target;
-
-    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top * dpiRatio,
-                                                   this.radius.right * dpiRatio,
-                                                   this.radius.bottom * dpiRatio,
-                                                   this.radius.left * dpiRatio, true, false);
-
-    let threshold = Number.POSITIVE_INFINITY;
-    for (let i = 0; i < nodes.length; i++) {
-      let current = nodes[i];
-      if (!current.mozMatchesSelector || !this._isElementClickable(current))
-        continue;
-
-      let rect = current.getBoundingClientRect();
-      let distance = this._computeDistanceFromRect(aX, aY, rect);
-
-      
-      if (current && current.mozMatchesSelector("*:visited"))
-        distance *= (this.weight.visited / 100);
-
-      if (distance < threshold) {
-        target = current;
-        threshold = distance;
-      }
-    }
-
-    return target;
-  },
-
-  _isElementClickable: function _isElementClickable(aElement) {
-    const selector = "a,:link,:visited,[role=button],button,input,select,textarea,label";
-    for (let elem = aElement; elem; elem = elem.parentNode) {
-      if (this._hasMouseListener(elem))
-        return true;
-      if (elem.mozMatchesSelector && elem.mozMatchesSelector(selector))
-        return true;
-    }
-    return false;
-  },
-
-  _computeDistanceFromRect: function _computeDistanceFromRect(aX, aY, aRect) {
-    let x = 0, y = 0;
-    let xmost = aRect.left + aRect.width;
-    let ymost = aRect.top + aRect.height;
-
-    
-    
-    if (aRect.left < aX && aX < xmost)
-      x = Math.min(xmost - aX, aX - aRect.left);
-    else if (aX < aRect.left)
-      x = aRect.left - aX;
-    else if (aX > xmost)
-      x = aX - xmost;
-
-    
-    
-    if (aRect.top < aY && aY < ymost)
-      y = Math.min(ymost - aY, aY - aRect.top);
-    else if (aY < aRect.top)
-      y = aRect.top - aY;
-    if (aY > ymost)
-      y = aY - ymost;
-
-    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-  },
-
-  _els: Cc["@mozilla.org/eventlistenerservice;1"].getService(Ci.nsIEventListenerService),
-  _clickableEvents: ["mousedown", "mouseup", "click"],
-  _hasMouseListener: function _hasMouseListener(aElement) {
-    let els = this._els;
-    let listeners = els.getListenerInfoFor(aElement, {});
-    for (let i = 0; i < listeners.length; i++) {
-      if (this._clickableEvents.indexOf(listeners[i].type) != -1)
-        return true;
-    }
-    return false;
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function elementFromPoint(aX, aY) {
-  
-  
-  let cwu = Util.getWindowUtils(content);
-  let elem = ElementTouchHelper.getClosest(cwu, aX, aY);
-
-  
-  while (elem && (elem instanceof HTMLIFrameElement ||
-                  elem instanceof HTMLFrameElement)) {
-    
-    let rect = elem.getBoundingClientRect();
-    aX -= rect.left;
-    aY -= rect.top;
-    let windowUtils = elem.contentDocument
-                          .defaultView
-                          .QueryInterface(Ci.nsIInterfaceRequestor)
-                          .getInterface(Ci.nsIDOMWindowUtils);
-    elem = ElementTouchHelper.getClosest(windowUtils, aX, aY);
-  }
-  return { element: elem, frameX: aX, frameY: aY };
-}
-
-
-
-
-
-
-
 function getBoundingContentRect(aElement) {
   if (!aElement)
     return new Rect(0, 0, 0, 0);
@@ -349,8 +194,7 @@ let Content = {
         break;
 
       case "touchstart":
-        let touch = aEvent.changedTouches[0];
-        this._onTouchStart(touch.clientX, touch.clientY);
+        this._onTouchStart(aEvent);
         break;
     }
   },
@@ -403,10 +247,8 @@ let Content = {
 
 
 
-  _onTouchStart: function _onTouchStart(x, y) {
-    let { element } = elementFromPoint(x, y);
-    if (!element)
-      return;
+  _onTouchStart: function _onTouchStart(aEvent) {
+    let element = aEvent.target;
 
     
     let isDisabled = element instanceof HTMLOptionElement ?
@@ -419,11 +261,9 @@ let Content = {
   },
 
   _onClickCapture: function _onClickCapture(aEvent) {
-    ContextMenuHandler.reset();
+    let element = aEvent.target;
 
-    let { element: element } = elementFromPoint(aEvent.clientX, aEvent.clientY);
-    if (!element)
-      return;
+    ContextMenuHandler.reset();
 
     
     if (!this.lastClickElement || this.lastClickElement != element) {
