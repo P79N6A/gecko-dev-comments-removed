@@ -236,11 +236,6 @@ class Assembler : public AssemblerX86Shared
 
     
     
-    
-    static CodeOffsetJump findPatchableCall(IonCode *method, size_t returnOffset, IonCode **target);
-
-    
-    
     void finish();
 
     

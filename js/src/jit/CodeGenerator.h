@@ -433,15 +433,6 @@ class CodeGenerator : public CodeGeneratorSpecific
 #if defined(JS_ION_PERF)
     PerfSpewer perfSpewer_;
 #endif
-
-    
-    
-    
-    
-    
-    
-    
-    bool initUsedVMWrappers(JSContext *cx);
 };
 
 } 
