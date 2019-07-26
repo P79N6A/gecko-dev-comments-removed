@@ -1871,9 +1871,18 @@ function switchToFrame(msg) {
   }
   if (foundFrame == null) {
     if (typeof(msg.json.id) === 'number') {
-      foundFrame = frames[msg.json.id].frameElement;
-      curFrame = foundFrame;
-      foundFrame = elementManager.addToKnownElements(curFrame);
+      try {
+        foundFrame = frames[msg.json.id].frameElement;
+        curFrame = foundFrame;
+        foundFrame = elementManager.addToKnownElements(curFrame);
+      } catch (e) {
+        
+        
+        
+        let iframes = curFrame.document.getElementsByTagName("iframe");
+        curFrame = iframes[msg.json.id];
+        foundFrame = msg.json.id
+      }
     }
   }
   if (foundFrame == null) {
