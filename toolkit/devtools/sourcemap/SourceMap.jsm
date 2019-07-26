@@ -15,7 +15,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "SourceMapConsumer", "SourceMapGenerator", "SourceNode" ];
+var EXPORTED_SYMBOLS = [ "SourceMapConsumer", "SourceMapGenerator", "SourceNode" ];
 
 Components.utils.import('resource://gre/modules/devtools/Require.jsm');
 
@@ -24,7 +24,7 @@ Components.utils.import('resource://gre/modules/devtools/Require.jsm');
 
 
 
-define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'source-map/util', 'source-map/binary-search', 'source-map/array-set', 'source-map/base64-vlq'], function(require, exports, module) {
+define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'source-map/util', 'source-map/binary-search', 'source-map/array-set', 'source-map/base64-vlq'], function(require, exports, module) {
 
   var util = require('source-map/util');
   var binarySearch = require('source-map/binary-search');
@@ -79,6 +79,8 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
 
     this._names = ArraySet.fromArray(names);
     this._sources = ArraySet.fromArray(sources);
+    this._sourceRoot = sourceRoot;
+    this.file = file;
 
     
     
@@ -112,6 +114,17 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
 
 
   SourceMapConsumer.prototype._version = 3;
+
+  
+
+
+  Object.defineProperty(SourceMapConsumer.prototype, 'sources', {
+    get: function () {
+      return this._sources.toArray().map(function (s) {
+        return this._sourceRoot ? util.join(this._sourceRoot, s) : s;
+      }, this);
+    }
+  });
 
   
 
@@ -338,6 +351,46 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
       };
     };
 
+  SourceMapConsumer.GENERATED_ORDER = 1;
+  SourceMapConsumer.ORIGINAL_ORDER = 2;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  SourceMapConsumer.prototype.eachMapping =
+    function SourceMapConsumer_eachMapping(aCallback, aContext, aOrder) {
+      var context = aContext || null;
+      var order = aOrder || SourceMapConsumer.GENERATED_ORDER;
+
+      var mappings;
+      switch (order) {
+      case SourceMapConsumer.GENERATED_ORDER:
+        mappings = this._generatedMappings;
+        break;
+      case SourceMapConsumer.ORIGINAL_ORDER:
+        mappings = this._originalMappings;
+        break;
+      default:
+        throw new Error("Unknown order of iteration.");
+      }
+
+      mappings.forEach(aCallback, context);
+    };
+
   exports.SourceMapConsumer = SourceMapConsumer;
 
 });
@@ -347,7 +400,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
 
 
 
-define('source-map/util', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('source-map/util', ['require', 'exports', 'module' , ], function(require, exports, module) {
 
   
 
@@ -384,7 +437,7 @@ define('source-map/util', ['require', 'exports', 'module' ], function(require, e
 
 
 
-define('source-map/binary-search', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('source-map/binary-search', ['require', 'exports', 'module' , ], function(require, exports, module) {
 
   
 
@@ -462,7 +515,7 @@ define('source-map/binary-search', ['require', 'exports', 'module' ], function(r
 
 
 
-define('source-map/array-set', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('source-map/array-set', ['require', 'exports', 'module' , ], function(require, exports, module) {
 
   
 
@@ -491,6 +544,19 @@ define('source-map/array-set', ['require', 'exports', 'module' ], function(requi
 
 
 
+
+
+
+
+  ArraySet.prototype._toSetString = function ArraySet__toSetString (aStr) {
+    return "$" + aStr;
+  };
+
+  
+
+
+
+
   ArraySet.prototype.add = function ArraySet_add(aStr) {
     if (this.has(aStr)) {
       
@@ -498,7 +564,7 @@ define('source-map/array-set', ['require', 'exports', 'module' ], function(requi
     }
     var idx = this._array.length;
     this._array.push(aStr);
-    this._set[aStr] = idx;
+    this._set[this._toSetString(aStr)] = idx;
   };
 
   
@@ -507,7 +573,8 @@ define('source-map/array-set', ['require', 'exports', 'module' ], function(requi
 
 
   ArraySet.prototype.has = function ArraySet_has(aStr) {
-    return Object.prototype.hasOwnProperty.call(this._set, aStr);
+    return Object.prototype.hasOwnProperty.call(this._set,
+                                                this._toSetString(aStr));
   };
 
   
@@ -517,7 +584,7 @@ define('source-map/array-set', ['require', 'exports', 'module' ], function(requi
 
   ArraySet.prototype.indexOf = function ArraySet_indexOf(aStr) {
     if (this.has(aStr)) {
-      return this._set[aStr];
+      return this._set[this._toSetString(aStr)];
     }
     throw new Error('"' + aStr + '" is not in the set.');
   };
@@ -582,7 +649,7 @@ define('source-map/array-set', ['require', 'exports', 'module' ], function(requi
 
 
 
-define('source-map/base64-vlq', ['require', 'exports', 'module' , 'source-map/base64'], function(require, exports, module) {
+define('source-map/base64-vlq', ['require', 'exports', 'module' ,  'source-map/base64'], function(require, exports, module) {
 
   var base64 = require('source-map/base64');
 
@@ -693,7 +760,7 @@ define('source-map/base64-vlq', ['require', 'exports', 'module' , 'source-map/ba
 
 
 
-define('source-map/base64', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('source-map/base64', ['require', 'exports', 'module' , ], function(require, exports, module) {
 
   var charToIntMap = {};
   var intToCharMap = {};
@@ -732,7 +799,7 @@ define('source-map/base64', ['require', 'exports', 'module' ], function(require,
 
 
 
-define('source-map/source-map-generator', ['require', 'exports', 'module' , 'source-map/base64-vlq', 'source-map/util', 'source-map/array-set'], function(require, exports, module) {
+define('source-map/source-map-generator', ['require', 'exports', 'module' ,  'source-map/base64-vlq', 'source-map/util', 'source-map/array-set'], function(require, exports, module) {
 
   var base64VLQ = require('source-map/base64-vlq');
   var util = require('source-map/util');
@@ -899,8 +966,8 @@ define('source-map/source-map-generator', ['require', 'exports', 'module' , 'sou
   
 
 
-  SourceMapGenerator.prototype.toString =
-    function SourceMapGenerator_toString() {
+  SourceMapGenerator.prototype.toJSON =
+    function SourceMapGenerator_toJSON() {
       var map = {
         version: this._version,
         file: this._file,
@@ -911,7 +978,15 @@ define('source-map/source-map-generator', ['require', 'exports', 'module' , 'sou
       if (this._sourceRoot) {
         map.sourceRoot = this._sourceRoot;
       }
-      return JSON.stringify(map);
+      return map;
+    };
+
+  
+
+
+  SourceMapGenerator.prototype.toString =
+    function SourceMapGenerator_toString() {
+      return JSON.stringify(this);
     };
 
   exports.SourceMapGenerator = SourceMapGenerator;
@@ -923,7 +998,7 @@ define('source-map/source-map-generator', ['require', 'exports', 'module' , 'sou
 
 
 
-define('source-map/source-node', ['require', 'exports', 'module' , 'source-map/source-map-generator'], function(require, exports, module) {
+define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/source-map-generator'], function(require, exports, module) {
 
   var SourceMapGenerator = require('source-map/source-map-generator').SourceMapGenerator;
 

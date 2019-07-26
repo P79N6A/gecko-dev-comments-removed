@@ -15,7 +15,7 @@
 Components.utils.import('resource://gre/modules/devtools/Require.jsm');
 Components.utils.import('resource://gre/modules/devtools/SourceMap.jsm');
 
-this.EXPORTED_SYMBOLS = [ "define", "runSourceMapTests" ];
+let EXPORTED_SYMBOLS = [ "define", "runSourceMapTests" ];
 
 
 
@@ -78,7 +78,7 @@ define('test/source-map/assert', ['exports'], function (exports) {
 
 
 
-define('test/source-map/util', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('test/source-map/util', ['require', 'exports', 'module' , ], function(require, exports, module) {
 
   
   
