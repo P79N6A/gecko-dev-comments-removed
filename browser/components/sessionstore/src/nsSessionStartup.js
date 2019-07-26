@@ -82,8 +82,6 @@ SessionStartup.prototype = {
     if (pbs.lastChangedByCommandLine)
       return;
 #endif
-    
-    this._sessionType = null;
     _SessionFile.read().then(
       this._onSessionFileRead.bind(this)
     );
