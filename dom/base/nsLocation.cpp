@@ -35,6 +35,7 @@
 #include "nsJSUtils.h"
 #include "jsfriendapi.h"
 #include "nsContentUtils.h"
+#include "nsEventStateManager.h"
 
 static nsresult
 GetContextFromStack(nsIJSContextStack *aStack, JSContext **aContext)
@@ -521,8 +522,71 @@ nsLocation::SetHref(const nsAString& aHref)
   if (NS_FAILED(GetContextFromStack(stack, &cx)))
     return NS_ERROR_FAILURE;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  bool replace = false;
+  if (!nsEventStateManager::IsHandlingUserInput()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mDocShell));
+    nsCOMPtr<nsIDocument> document(do_GetInterface(docShell));
+    if (document) {
+      replace =
+        nsIDocument::READYSTATE_COMPLETE != document->GetReadyStateEnum();
+
+      
+      
+      
+      
+      
+      if (!replace) {
+        docShell->GetIsExecutingOnLoadHandler(&replace);
+      }
+    }
+  }
+
   if (cx) {
-    rv = SetHrefWithContext(cx, aHref, false);
+    rv = SetHrefWithContext(cx, aHref, replace);
   } else {
     rv = GetHref(oldHref);
 
@@ -532,7 +596,7 @@ nsLocation::SetHref(const nsAString& aHref)
       rv = NS_NewURI(getter_AddRefs(oldUri), oldHref);
 
       if (oldUri) {
-        rv = SetHrefWithBase(aHref, oldUri, false);
+        rv = SetHrefWithBase(aHref, oldUri, replace);
       }
     }
   }
@@ -563,8 +627,6 @@ nsLocation::SetHrefWithBase(const nsAString& aHref, nsIURI* aBase,
   nsresult result;
   nsCOMPtr<nsIURI> newUri;
 
-  nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mDocShell));
-
   nsAutoCString docCharset;
   if (NS_SUCCEEDED(GetDocumentCharacterSetForURI(aHref, docCharset)))
     result = NS_NewURI(getter_AddRefs(newUri), aHref, docCharset.get(), aBase);
@@ -572,41 +634,7 @@ nsLocation::SetHrefWithBase(const nsAString& aHref, nsIURI* aBase,
     result = NS_NewURI(getter_AddRefs(newUri), aHref, nullptr, aBase);
 
   if (newUri) {
-    
-
-
-
-
-
-
-
-
-
-    bool inScriptTag=false;
-    
-    nsCOMPtr<nsIJSContextStack> stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1", &result));
-
-    if (stack) {
-      JSContext *cx;
-
-      result = GetContextFromStack(stack, &cx);
-      if (cx) {
-        nsIScriptContext *scriptContext =
-          nsJSUtils::GetDynamicScriptContext(cx);
-
-        if (scriptContext) {
-          if (scriptContext->GetProcessingScriptTag()) {
-            
-            
-            
-            nsCOMPtr<nsIScriptGlobalObject> ourGlobal(do_GetInterface(docShell));
-            inScriptTag = (ourGlobal == scriptContext->GetGlobalObject());
-          }
-        }  
-      } 
-    }  
-
-    return SetURI(newUri, aReplace || inScriptTag);
+    return SetURI(newUri, aReplace);
   }
 
   return result;
