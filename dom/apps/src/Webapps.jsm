@@ -2693,7 +2693,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
 
       AppDownloadManager.remove(aNewApp.manifestURL);
 
-      return [id, newManifest];
+      return [oldApp.id, newManifest];
 
     }).bind(this)).then(
       aOnSuccess,
@@ -3150,7 +3150,8 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     aOldApp.appStatus = AppsUtils.getAppManifestStatus(newManifest);
 
     this._saveEtag(aIsUpdate, aOldApp, aRequestChannel, aHash, newManifest);
-    this._checkOrigin(aIsSigned, aOldApp, newManifest, aIsUpdate);
+    this._checkOrigin(aIsSigned || aIsLocalFileInstall, aOldApp, newManifest,
+                      aIsUpdate);
     this._getIds(aIsSigned, aZipReader, converter, aNewApp, aOldApp, aIsUpdate);
 
     return newManifest;
@@ -3231,7 +3232,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
 
       if (aIsUpdate) {
         
-        if (uri.prePath != app.origin) {
+        if (uri.prePath != aOldApp.origin) {
           throw "INVALID_ORIGIN_CHANGE";
         }
         
@@ -3239,24 +3240,25 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
         
       } else {
         debug("Setting origin to " + uri.prePath +
-              " for " + app.manifestURL);
+              " for " + aOldApp.manifestURL);
         let newId = uri.prePath.substring(6); 
         if (newId in this.webapps) {
           throw "DUPLICATE_ORIGIN";
         }
         aOldApp.origin = uri.prePath;
         
+        let oldId = aOldApp.id;
         aOldApp.id = newId;
         this.webapps[newId] = aOldApp;
-        delete this.webapps[aId];
+        delete this.webapps[oldId];
         
         [DIRECTORY_NAME, "TmpD"].forEach(function(aDir) {
           let parent = FileUtils.getDir(aDir, ["webapps"], true, true);
-          let dir = FileUtils.getDir(aDir, ["webapps", aId], true, true);
+          let dir = FileUtils.getDir(aDir, ["webapps", oldId], true, true);
           dir.moveTo(parent, newId);
         });
         
-        this.broadcastMessage("Webapps:RemoveApp", { id: aId });
+        this.broadcastMessage("Webapps:RemoveApp", { id: oldId });
         this.broadcastMessage("Webapps:AddApp", { id: newId,
                                                   app: aOldApp });
       }
