@@ -246,12 +246,18 @@ function migrateSettings() {
         defaultManifest = Services.prefs.getDefaultBranch(null)
                         .getComplexValue(prefname, Ci.nsISupportsString).data;
         defaultManifest = JSON.parse(defaultManifest);
+      } catch(e) {
+        
+      }
+      if (defaultManifest) {
         if (defaultManifest.shareURL && !manifest.shareURL) {
           manifest.shareURL = defaultManifest.shareURL;
           needsUpdate = true;
         }
-      } catch(e) {
-        
+        if (defaultManifest.version && (!manifest.version || defaultManifest.version > manifest.version)) {
+          manifest = defaultManifest;
+          needsUpdate = true;
+        }
       }
       if (needsUpdate) {
         
