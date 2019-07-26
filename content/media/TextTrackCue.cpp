@@ -99,7 +99,11 @@ TextTrackCue::StashDocument(nsISupports* aGlobal)
 already_AddRefed<DocumentFragment>
 TextTrackCue::GetCueAsHTML()
 {
-  MOZ_ASSERT(mDocument);
+  
+  
+  if (!mDocument) {
+    return nullptr;
+  }
 
   if (!sParserWrapper) {
     nsresult rv;
