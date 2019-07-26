@@ -242,11 +242,9 @@ let gTests = [
     promiseBrowserAttributes(gBrowser.selectedTab).then(function() {
       
       checkSearchUI(unusedEngines[0]);
-      searchbar.currentEngine = currEngine;
       deferred.resolve();
     });
 
-    
     
     registerCleanupFunction(function() {
       searchbar.currentEngine = currEngine;
@@ -282,23 +280,25 @@ let gTests = [
         Services.search.defaultEngine = currEngine;
       });
 
+      let needle = "Search for something awesome.";
 
       
-      let needle = "Search for something awesome.";
-      let document = gBrowser.selectedTab.linkedBrowser.contentDocument;
-      let searchText = document.getElementById("searchText");
+      promiseBrowserAttributes(gBrowser.selectedTab).then(function() {
+        let document = gBrowser.selectedTab.linkedBrowser.contentDocument;
+        let searchText = document.getElementById("searchText");
 
-      waitForLoad(function() {
-        let loadedText = gBrowser.contentDocument.body.textContent;
-        ok(loadedText, "search page loaded");
-        is(loadedText, "searchterms=" + escape(needle.replace(/\s/g, "+")),
-           "Search text should arrive correctly");
-        deferred.resolve();
+        waitForLoad(function() {
+          let loadedText = gBrowser.contentDocument.body.textContent;
+          ok(loadedText, "search page loaded");
+          is(loadedText, "searchterms=" + escape(needle.replace(/\s/g, "+")),
+             "Search text should arrive correctly");
+          deferred.resolve();
+        });
+
+        searchText.value = needle;
+        searchText.focus();
+        EventUtils.synthesizeKey("VK_RETURN", {});
       });
-
-      searchText.value = needle;
-      searchText.focus();
-      EventUtils.synthesizeKey("VK_RETURN", {});
     };
     Services.obs.addObserver(searchObserver, "browser-search-engine-modified", false);
     registerCleanupFunction(function () {
