@@ -181,7 +181,6 @@ var BrowserApp = {
     Services.obs.addObserver(this, "Passwords:Init", false);
     Services.obs.addObserver(this, "FormHistory:Init", false);
     Services.obs.addObserver(this, "ToggleProfiling", false);
-    Services.obs.addObserver(this, "Memory:Dump", false);
 
     Services.obs.addObserver(this, "sessionstore-state-purge-complete", false);
 
@@ -230,6 +229,7 @@ var BrowserApp = {
     Reader.init();
     UserAgent.init();
     ExternalApps.init();
+    MemoryObserver.init();
 #ifdef MOZ_TELEMETRY_REPORTING
     Telemetry.init();
 #endif
@@ -528,6 +528,7 @@ var BrowserApp = {
     Reader.uninit();
     UserAgent.uninit();
     ExternalApps.uninit();
+    MemoryObserver.uninit();
 #ifdef MOZ_TELEMETRY_REPORTING
     Telemetry.uninit();
 #endif
@@ -1147,8 +1148,6 @@ var BrowserApp = {
       } else {
         profiler.StartProfiler(100000, 25, ["stackwalk"], 1);
       }
-    } else if (aTopic == "Memory:Dump") {
-      this.dumpMemoryStats(aData);
     }
   },
 
@@ -1161,82 +1160,6 @@ var BrowserApp = {
   
   getBrowserTab: function(tabId) {
     return this.getTabForId(tabId);
-  },
-
-  dumpMemoryStats: function(aLabel) {
-    
-    
-    
-    var memMgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(Ci.nsIMemoryReporterManager);
-
-    var timestamp = new Date();
-    var memory = {};
-
-    
-    
-    
-    memory['manager_explicit'] = memMgr.explicit;
-    memory['manager_resident'] = memMgr.resident;
-
-    var knownHeap = 0;
-
-    function addReport(path, amount, kind, units) {
-      if (units !== undefined && units != Ci.nsIMemoryReporter.UNITS_BYTES)
-        
-        return;
-
-      if (memory[path])
-        memory[path] += amount;
-      else
-        memory[path] = amount;
-      if (kind !== undefined && kind == Ci.nsIMemoryReporter.KIND_HEAP
-          && path.indexOf('explicit/') == 0)
-        knownHeap += amount;
-    }
-
-    
-    var reporters = memMgr.enumerateReporters();
-    while (reporters.hasMoreElements()) {
-      var r = reporters.getNext();
-      r instanceof Ci.nsIMemoryReporter;
-      if (r.path.length) {
-        addReport(r.path, r.amount, r.kind, r.units);
-      }
-    }
-
-    
-    if (memMgr.enumerateMultiReporters) {
-      var multireporters = memMgr.enumerateMultiReporters();
-
-      while (multireporters.hasMoreElements()) {
-        var mr = multireporters.getNext();
-        mr instanceof Ci.nsIMemoryMultiReporter;
-        mr.collectReports(function (proc, path, kind, units, amount, description, closure) {
-          addReport(path, amount, kind, units);
-        }, null);
-      }
-    }
-
-    var heapAllocated = memory['heap-allocated'];
-    
-    if (!heapAllocated) heapAllocated = memory['heap-used'];
-    
-    
-    if (knownHeap && heapAllocated)
-      memory['explicit/heap-unclassified'] = memory['heap-allocated'] - knownHeap;
-
-    
-    
-    if (!memory['resident'])
-      memory['resident'] = memory['manager_resident']
-    if (!memory['explicit'])
-      memory['explicit'] = memory['manager_explicit']
-
-    var label = "[AboutMemoryDump|" + aLabel + "] ";
-    dump(label + timestamp);
-    for (var type in memory) {
-      dump(label + type + " = " + memory[type]);
-    }
   },
 };
 
@@ -7313,4 +7236,115 @@ var ExternalApps = {
     let uri = NativeWindow.contextmenus._getLink(aElement);
     HelperApps.openUriInApp(uri);
   }
-}
+};
+
+var MemoryObserver = {
+  init: function() {
+    Services.obs.addObserver(this, "memory-pressure", false);
+    Services.obs.addObserver(this, "Memory:Dump", false);
+  },
+
+  uninit: function() {
+    Services.obs.removeObserver(this, "memory-pressure");
+    Services.obs.removeObserver(this, "Memory:Dump");
+  },
+
+  observe: function mo_observe(aSubject, aTopic, aData) {
+    if (aTopic == "memory-pressure") {
+      if (aData != "heap-minimize") {
+        this.handleLowMemory();
+      }
+      
+      
+      
+      this.gc();
+    } else if (aTopic == "Memory:Dump") {
+      this.dumpMemoryStats(aData);
+    }
+  },
+
+  handleLowMemory: function() {
+    
+  },
+
+  gc: function() {
+    window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
+    Cu.forceGC();
+  },
+
+  dumpMemoryStats: function(aLabel) {
+    
+    
+    
+    let memMgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(Ci.nsIMemoryReporterManager);
+
+    let timestamp = new Date();
+    let memory = {};
+
+    
+    
+    
+    memory['manager_explicit'] = memMgr.explicit;
+    memory['manager_resident'] = memMgr.resident;
+
+    let knownHeap = 0;
+
+    function addReport(path, amount, kind, units) {
+      if (units !== undefined && units != Ci.nsIMemoryReporter.UNITS_BYTES)
+        
+        return;
+
+      if (memory[path])
+        memory[path] += amount;
+      else
+        memory[path] = amount;
+      if (kind !== undefined && kind == Ci.nsIMemoryReporter.KIND_HEAP
+          && path.indexOf('explicit/') == 0)
+        knownHeap += amount;
+    }
+
+    
+    let reporters = memMgr.enumerateReporters();
+    while (reporters.hasMoreElements()) {
+      let r = reporters.getNext();
+      r instanceof Ci.nsIMemoryReporter;
+      if (r.path.length) {
+        addReport(r.path, r.amount, r.kind, r.units);
+      }
+    }
+
+    
+    if (memMgr.enumerateMultiReporters) {
+      let multireporters = memMgr.enumerateMultiReporters();
+
+      while (multireporters.hasMoreElements()) {
+        let mr = multireporters.getNext();
+        mr instanceof Ci.nsIMemoryMultiReporter;
+        mr.collectReports(function (proc, path, kind, units, amount, description, closure) {
+          addReport(path, amount, kind, units);
+        }, null);
+      }
+    }
+
+    let heapAllocated = memory['heap-allocated'];
+    
+    if (!heapAllocated) heapAllocated = memory['heap-used'];
+    
+    
+    if (knownHeap && heapAllocated)
+      memory['explicit/heap-unclassified'] = memory['heap-allocated'] - knownHeap;
+
+    
+    
+    if (!memory['resident'])
+      memory['resident'] = memory['manager_resident']
+    if (!memory['explicit'])
+      memory['explicit'] = memory['manager_explicit']
+
+    let label = "[AboutMemoryDump|" + aLabel + "] ";
+    dump(label + timestamp);
+    for (let type in memory) {
+      dump(label + type + " = " + memory[type]);
+    }
+  },
+};
