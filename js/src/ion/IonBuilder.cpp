@@ -415,25 +415,10 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
         predecessor->end(MInlineFunctionGuard::New(NULL, NULL, current, NULL));
     } else {
         JS_ASSERT(polymorphism == Inline_PolymorphicFinal);
-        
-        JS_ASSERT(predecessor->lastIns() && predecessor->lastIns()->isInlineFunctionGuard());
-        MInlineFunctionGuard *guardIns = predecessor->lastIns()->toInlineFunctionGuard();
-        guardIns->setFallbackBlock(current);
+        predecessor->end(MGoto::New(current));
     }
     if (!current->addPredecessorWithoutPhis(predecessor))
         return false;
-
-#ifdef DEBUG
-    if(polymorphism == Inline_Monomorphic) {
-        
-        JS_ASSERT(predecessor->numSuccessors() == 1);
-    } else {
-        
-        JS_ASSERT(predecessor->numSuccessors() == 2);
-    }
-#endif
-
-    JS_ASSERT(current->numPredecessors() == 1);
 
     
     const size_t numActualArgs = argv.length() - 1;
@@ -2992,26 +2977,13 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     } else {
         
         MBasicBlock *entryBlock = top;
-
-        
-        
-        
-        
-        
-        MConstant *finalConstFun =
-            MConstant::New(ObjectValue(*(targets[targets.length()-1]->toFunction())));
-        entryBlock->add(finalConstFun);
-
         for (size_t i = 0; i < targets.length(); i++) {
             
             current = entryBlock;
 
-            if (i == targets.length() - 1) {
-                constFun = finalConstFun;
-            } else {
-                constFun = MConstant::New(ObjectValue(*(targets[i]->toFunction())));
-                entryBlock->add(constFun);
-            }
+            
+            constFun = MConstant::New(ObjectValue(*(targets[i]->toFunction())));
+            entryBlock->add(constFun);
 
             RootedFunction target(cx, targets[i]->toFunction());
             InlinePolymorphism poly = (i == targets.length() - 1) ?
@@ -3021,8 +2993,16 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
                 return false;
 
             JS_ASSERT(entryBlock->lastIns());
-            JS_ASSERT(entryBlock->lastIns()->isInlineFunctionGuard());
+            JS_ASSERT((i < targets.length() - 1) ?
+                            entryBlock->lastIns()->isInlineFunctionGuard()
+                          : entryBlock->lastIns()->isGoto());
 
+            
+            
+            
+            
+            
+            
             
             if (i < targets.length() - 1) {
                 MInlineFunctionGuard *guardIns =
@@ -3031,21 +3011,10 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
                 guardIns->setInput(funcDefn);
                 JS_ASSERT(guardIns->functionBlock() != NULL);
 
-                if (i < targets.length() - 2) {
-                    MBasicBlock *fallbackBlock = newBlock(entryBlock, pc);
-                    guardIns->setFallbackBlock(fallbackBlock);
-                    entryBlock = fallbackBlock;
-                }
+                MBasicBlock *fallbackBlock = newBlock(entryBlock, pc);
+                guardIns->setFallbackBlock(fallbackBlock);
+                entryBlock = fallbackBlock;
             }
-#ifdef DEBUG
-            if (i == targets.length() - 1) {
-                MInlineFunctionGuard *guardIns = entryBlock->lastIns()->toInlineFunctionGuard();
-                JS_ASSERT(guardIns->function() != NULL);
-                JS_ASSERT(guardIns->input() != NULL);
-                JS_ASSERT(guardIns->fallbackBlock() != NULL);
-                JS_ASSERT(guardIns->functionBlock() != NULL);
-            }
-#endif
         }
     }
 
