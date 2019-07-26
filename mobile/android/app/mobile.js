@@ -431,10 +431,6 @@ pref("plugins.click_to_play", true);
 
 
 
-pref("plugins.use_placeholder", 0);
-
-
-
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 pref("app.support.baseURL", "http://support.mozilla.org/1/mobile/%VERSION%/%OS%/%LOCALE%/");
 
