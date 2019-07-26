@@ -13,9 +13,12 @@ namespace {
 using namespace mozilla;
 
 
+PRCloseFN sCloseFn = nullptr;
 PRReadFN  sReadFn  = nullptr;
 PRWriteFN sWriteFn = nullptr;
 PRFsyncFN sFSyncFn = nullptr;
+PRFileInfoFN sFileInfoFn = nullptr;
+PRFileInfo64FN sFileInfo64Fn = nullptr;
 
 
 
@@ -49,6 +52,15 @@ private:
   bool mShouldObserve;
 };
 
+PRStatus PR_CALLBACK interposedClose(PRFileDesc* aFd)
+{
+  
+  NS_ASSERTION(sCloseFn, "NSPR IO Interposing: sCloseFn is NULL");
+
+  NSPRIOAutoObservation timer(IOInterposeObserver::OpClose);
+  return sCloseFn(aFd);
+}
+
 int32_t PR_CALLBACK interposedRead(PRFileDesc* aFd, void* aBuf, int32_t aAmt)
 {
   
@@ -77,6 +89,24 @@ PRStatus PR_CALLBACK interposedFSync(PRFileDesc* aFd)
   return sFSyncFn(aFd);
 }
 
+PRStatus PR_CALLBACK interposedFileInfo(PRFileDesc *aFd, PRFileInfo *aInfo)
+{
+  
+  NS_ASSERTION(sFileInfoFn, "NSPR IO Interposing: sFileInfoFn is NULL");
+
+  NSPRIOAutoObservation timer(IOInterposeObserver::OpStat);
+  return sFileInfoFn(aFd, aInfo);
+}
+
+PRStatus PR_CALLBACK interposedFileInfo64(PRFileDesc *aFd, PRFileInfo64 *aInfo)
+{
+  
+  NS_ASSERTION(sFileInfo64Fn, "NSPR IO Interposing: sFileInfo64Fn is NULL");
+
+  NSPRIOAutoObservation timer(IOInterposeObserver::OpStat);
+  return sFileInfo64Fn(aFd, aInfo);
+}
+
 } 
 
 namespace mozilla {
@@ -84,7 +114,8 @@ namespace mozilla {
 void InitNSPRIOInterposing()
 {
   
-  MOZ_ASSERT(!sReadFn && !sWriteFn && !sFSyncFn);
+  MOZ_ASSERT(!sCloseFn && !sReadFn && !sWriteFn && !sFSyncFn && !sFileInfoFn &&
+             !sFileInfo64Fn);
 
   
   
@@ -102,21 +133,28 @@ void InitNSPRIOInterposing()
   }
 
   
-  sReadFn   = methods->read;
-  sWriteFn  = methods->write;
-  sFSyncFn  = methods->fsync;
+  sCloseFn      = methods->close;
+  sReadFn       = methods->read;
+  sWriteFn      = methods->write;
+  sFSyncFn      = methods->fsync;
+  sFileInfoFn   = methods->fileInfo;
+  sFileInfo64Fn = methods->fileInfo64;
 
   
-  methods->read   = &interposedRead;
-  methods->write  = &interposedWrite;
-  methods->fsync  = &interposedFSync;
+  methods->close      = &interposedClose;
+  methods->read       = &interposedRead;
+  methods->write      = &interposedWrite;
+  methods->fsync      = &interposedFSync;
+  methods->fileInfo   = &interposedFileInfo;
+  methods->fileInfo64 = &interposedFileInfo64;
 }
 
 void ClearNSPRIOInterposing()
 {
   
   
-  MOZ_ASSERT(sReadFn && sWriteFn && sFSyncFn);
+  MOZ_ASSERT(sCloseFn && sReadFn && sWriteFn && sFSyncFn && sFileInfoFn &&
+             sFileInfo64Fn);
 
   
   PRIOMethods* methods = const_cast<PRIOMethods*>(PR_GetFileMethods());
@@ -130,14 +168,21 @@ void ClearNSPRIOInterposing()
   }
 
   
-  methods->read   = sReadFn;
-  methods->write  = sWriteFn;
-  methods->fsync  = sFSyncFn;
+  methods->close      = sCloseFn;
+  methods->read       = sReadFn;
+  methods->write      = sWriteFn;
+  methods->fsync      = sFSyncFn;
+  methods->fileInfo   = sFileInfoFn;
+  methods->fileInfo64 = sFileInfo64Fn;
 
   
-  sReadFn   = nullptr;
-  sWriteFn  = nullptr;
-  sFSyncFn  = nullptr;
+  sCloseFn      = nullptr;
+  sReadFn       = nullptr;
+  sWriteFn      = nullptr;
+  sFSyncFn      = nullptr;
+  sFileInfoFn   = nullptr;
+  sFileInfo64Fn = nullptr;
 }
 
 } 
+
