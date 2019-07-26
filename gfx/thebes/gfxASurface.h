@@ -50,7 +50,7 @@ public:
     
 
 
-    static already_AddRefed<gfxASurface> Wrap(cairo_surface_t *csurf);
+    static already_AddRefed<gfxASurface> Wrap(cairo_surface_t *csurf, const gfxIntSize& aSize = gfxIntSize(-1, -1));
 
     
     cairo_surface_t *CairoSurface() {
@@ -274,15 +274,14 @@ protected:
 
 class gfxUnknownSurface : public gfxASurface {
 public:
-    gfxUnknownSurface(cairo_surface_t *surf)
-        : mSize(-1, -1)
+    gfxUnknownSurface(cairo_surface_t *surf, const gfxIntSize& aSize)
+        : mSize(aSize)
     {
         Init(surf, true);
     }
 
     virtual ~gfxUnknownSurface() { }
     virtual const nsIntSize GetSize() const { return mSize; }
-    void SetSize(const nsIntSize& aSize) { mSize = aSize; }
 
 private:
     nsIntSize mSize;
