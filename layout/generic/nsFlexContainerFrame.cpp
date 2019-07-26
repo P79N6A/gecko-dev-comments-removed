@@ -346,7 +346,7 @@ public:
   nscoord GetBaselineOffsetFromOuterCrossEdge(AxisOrientationType aCrossAxis,
                                               AxisEdgeType aEdge) const;
 
-  float GetShareOfFlexWeightSoFar() const { return mShareOfFlexWeightSoFar; }
+  float GetShareOfWeightSoFar() const { return mShareOfWeightSoFar; }
 
   bool IsFrozen() const            { return mIsFrozen; }
 
@@ -373,7 +373,11 @@ public:
   
   
   
-  float GetFlexWeightToUse(bool aIsUsingFlexGrow)
+  
+  
+  
+  
+  float GetWeight(bool aIsUsingFlexGrow)
   {
     if (IsFrozen()) {
       return 0.0f;
@@ -466,12 +470,12 @@ public:
     mMainSize = aNewMainSize;
   }
 
-  void SetShareOfFlexWeightSoFar(float aNewShare)
+  void SetShareOfWeightSoFar(float aNewShare)
   {
     MOZ_ASSERT(!mIsFrozen || aNewShare == 0.0f,
                "shouldn't be giving this item any share of the weight "
                "after it's frozen");
-    mShareOfFlexWeightSoFar = aNewShare;
+    mShareOfWeightSoFar = aNewShare;
   }
 
   void Freeze() { mIsFrozen = true; }
@@ -574,7 +578,7 @@ protected:
   
   
   
-  float mShareOfFlexWeightSoFar;
+  float mShareOfWeightSoFar;
   bool mIsFrozen;
   bool mHadMinViolation;
   bool mHadMaxViolation;
@@ -1133,7 +1137,7 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
     mCrossSize(0),
     mCrossPosn(0),
     mAscent(0),
-    mShareOfFlexWeightSoFar(0.0f),
+    mShareOfWeightSoFar(0.0f),
     mIsFrozen(false),
     mHadMinViolation(false),
     mHadMaxViolation(false),
@@ -1205,7 +1209,7 @@ FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize)
     mCrossSize(aCrossSize),
     mCrossPosn(0),
     mAscent(0),
-    mShareOfFlexWeightSoFar(0.0f),
+    mShareOfWeightSoFar(0.0f),
     mIsFrozen(true),
     mHadMinViolation(false),
     mHadMaxViolation(false),
@@ -1680,20 +1684,20 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
       
       
       
-      float flexWeightSum = 0.0f;
-      float largestFlexWeight = 0.0f;
-      uint32_t numItemsWithLargestFlexWeight = 0;
+      float weightSum = 0.0f;
+      float largestWeight = 0.0f;
+      uint32_t numItemsWithLargestWeight = 0;
       for (FlexItem* item = mItems.getFirst(); item; item = item->getNext()) {
-        float curFlexWeight = item->GetFlexWeightToUse(isUsingFlexGrow);
-        MOZ_ASSERT(curFlexWeight >= 0.0f, "weights are non-negative");
+        float curWeight = item->GetWeight(isUsingFlexGrow);
+        MOZ_ASSERT(curWeight >= 0.0f, "weights are non-negative");
 
-        flexWeightSum += curFlexWeight;
-        if (NS_finite(flexWeightSum)) {
-          if (curFlexWeight == 0.0f) {
-            item->SetShareOfFlexWeightSoFar(0.0f);
+        weightSum += curWeight;
+        if (NS_finite(weightSum)) {
+          if (curWeight == 0.0f) {
+            item->SetShareOfWeightSoFar(0.0f);
           } else {
-            item->SetShareOfFlexWeightSoFar(curFlexWeight /
-                                            flexWeightSum);
+            item->SetShareOfWeightSoFar(curWeight /
+                                        weightSum);
           }
         } 
           
@@ -1701,15 +1705,15 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
           
 
         
-        if (curFlexWeight > largestFlexWeight) {
-          largestFlexWeight = curFlexWeight;
-          numItemsWithLargestFlexWeight = 1;
-        } else if (curFlexWeight == largestFlexWeight) {
-          numItemsWithLargestFlexWeight++;
+        if (curWeight > largestWeight) {
+          largestWeight = curWeight;
+          numItemsWithLargestWeight = 1;
+        } else if (curWeight == largestWeight) {
+          numItemsWithLargestWeight++;
         }
       }
 
-      if (flexWeightSum != 0.0f) { 
+      if (weightSum != 0.0f) { 
         PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
                (" Distributing available space:"));
         
@@ -1722,9 +1726,9 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
             
             
             nscoord sizeDelta = 0;
-            if (NS_finite(flexWeightSum)) {
+            if (NS_finite(weightSum)) {
               float myShareOfRemainingSpace =
-                item->GetShareOfFlexWeightSoFar();
+                item->GetShareOfWeightSoFar();
 
               MOZ_ASSERT(myShareOfRemainingSpace >= 0.0f &&
                          myShareOfRemainingSpace <= 1.0f,
@@ -1738,15 +1742,14 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
                 sizeDelta = NSToCoordRound(availableFreeSpace *
                                            myShareOfRemainingSpace);
               }
-            } else if (item->GetFlexWeightToUse(isUsingFlexGrow) ==
-                       largestFlexWeight) {
+            } else if (item->GetWeight(isUsingFlexGrow) == largestWeight) {
               
               
               
               sizeDelta =
                 NSToCoordRound(availableFreeSpace /
-                               float(numItemsWithLargestFlexWeight));
-              numItemsWithLargestFlexWeight--;
+                               float(numItemsWithLargestWeight));
+              numItemsWithLargestWeight--;
             }
 
             availableFreeSpace -= sizeDelta;
