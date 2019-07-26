@@ -2905,8 +2905,10 @@ RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
 {
 
 #ifdef MOZ_ENABLE_SKIA
+  
+  
   if (gHQDownscaling && aFilter == gfxPattern::FILTER_GOOD &&
-      !mAnim && mDecoded && IsDownscale(aScale)) {
+      !mAnim && mDecoded && !mMultipart && IsDownscale(aScale)) {
     gfxFloat factor = gHQDownscalingMinFactor / 1000.0;
     return (aScale.width < factor || aScale.height < factor);
   }
