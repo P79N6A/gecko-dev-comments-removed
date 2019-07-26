@@ -454,8 +454,10 @@ void nsSecureBrowserUIImpl::ResetStateTracking()
 }
 
 nsresult
-nsSecureBrowserUIImpl::EvaluateAndUpdateSecurityState(nsIRequest* aRequest, nsISupports *info,
-                                                      bool withNewLocation)
+nsSecureBrowserUIImpl::EvaluateAndUpdateSecurityState(nsIRequest* aRequest,
+                                                      nsISupports *info,
+                                                      bool withNewLocation,
+                                                      bool withNewSink)
 {
   
 
@@ -513,7 +515,8 @@ nsSecureBrowserUIImpl::EvaluateAndUpdateSecurityState(nsIRequest* aRequest, nsIS
     mRestoreSubrequests = false;
   }
 
-  return UpdateSecurityState(aRequest, withNewLocation, updateStatus);
+  return UpdateSecurityState(aRequest, withNewLocation,
+                             withNewSink || updateStatus);
 }
 
 void
@@ -1157,7 +1160,8 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
       
 
       if (sinkChanged || mOnLocationChangeSeen)
-        return EvaluateAndUpdateSecurityState(aRequest, securityInfo, false);
+        return EvaluateAndUpdateSecurityState(aRequest, securityInfo,
+                                              false, sinkChanged);
     }
     mOnLocationChangeSeen = false;
 
@@ -1445,7 +1449,7 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
   if (windowForProgress.get() == window.get()) {
     
     mOnLocationChangeSeen = true;
-    return EvaluateAndUpdateSecurityState(aRequest, securityInfo, true);
+    return EvaluateAndUpdateSecurityState(aRequest, securityInfo, true, false);
   }
 
   
