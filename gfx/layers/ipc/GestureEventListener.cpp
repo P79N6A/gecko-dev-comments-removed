@@ -73,10 +73,6 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
         }
       }
 
-      NS_WARN_IF_FALSE(!foundAlreadyExistingTouch, "Tried to add a touch that already exists");
-
-      
-      
       
       if (!foundAlreadyExistingTouch) {
         mTouches.AppendElement(event.mTouches[i]);
@@ -137,17 +133,16 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
   }
   case MultiTouchInput::MULTITOUCH_END:
   case MultiTouchInput::MULTITOUCH_LEAVE: {
-    bool foundAlreadyExistingTouch = false;
-    for (size_t i = 0; i < event.mTouches.Length() && !foundAlreadyExistingTouch; i++) {
+    for (size_t i = 0; i < event.mTouches.Length(); i++) {
+      bool foundAlreadyExistingTouch = false;
       for (size_t j = 0; j < mTouches.Length() && !foundAlreadyExistingTouch; j++) {
         if (event.mTouches[i].mIdentifier == mTouches[j].mIdentifier) {
           foundAlreadyExistingTouch = true;
           mTouches.RemoveElementAt(j);
         }
       }
+      NS_WARN_IF_FALSE(foundAlreadyExistingTouch, "Touch ended, but not in list");
     }
-
-    NS_WARN_IF_FALSE(foundAlreadyExistingTouch, "Touch ended, but not in list");
 
     if (mState == GESTURE_WAITING_DOUBLE_TAP) {
       CancelDoubleTapTimeoutTask();

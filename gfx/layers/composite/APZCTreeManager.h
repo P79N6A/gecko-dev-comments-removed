@@ -322,6 +322,8 @@ private:
 
   nsRefPtr<AsyncPanZoomController> mApzcForInputBlock;
   
+  uint32_t mTouchCount;
+  
 
 
 
