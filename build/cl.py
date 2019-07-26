@@ -76,8 +76,9 @@ def InvokeClWithDependencyGeneration(cmdline):
             
             
             
+            dep = normcase(dep)
             if ' ' not in dep:
-                rule.add_dependencies([normcase(dep)])
+                rule.add_dependencies([dep])
         else:
             
             
