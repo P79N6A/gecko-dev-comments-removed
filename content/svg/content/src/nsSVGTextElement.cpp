@@ -171,7 +171,7 @@ nsSVGTextElement::GetDy(nsIDOMSVGAnimatedLengthList * *aDy)
 
 
 NS_IMETHODIMP
-nsSVGTextElement::GetRotate(nsIDOMSVGAnimatedNumberList * *aRotate)
+nsSVGTextElement::GetRotate(nsISupports * *aRotate)
 {
   *aRotate = DOMSVGAnimatedNumberList::GetDOMWrapper(&mNumberListAttributes[ROTATE],
                                                      this, ROTATE).get();
