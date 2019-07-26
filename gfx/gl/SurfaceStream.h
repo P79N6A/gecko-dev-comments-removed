@@ -41,11 +41,10 @@ public:
         return (SurfaceStream*)handle;
     }
 
-    SurfaceStreamType Type() { return mType; }
+    const SurfaceStreamType mType;
 protected:
     
     
-    SurfaceStreamType mType;
     SharedSurface* mProducer;
     std::set<SharedSurface*> mSurfaces;
     std::stack<SharedSurface*> mScraps;
@@ -60,7 +59,7 @@ protected:
         , mMonitor("SurfaceStream monitor")
         , mIsAlive(true)
     {
-        MOZ_ASSERT(!prevStream || mType != prevStream->Type(),
+        MOZ_ASSERT(!prevStream || mType != prevStream->mType,
                    "We should not need to create a SurfaceStream from another "
                    "of the same type.");
     }
@@ -175,10 +174,18 @@ protected:
     
     virtual bool WaitForCompositor() { return false; }
 
+    
+    SurfaceStream_TripleBuffer(SurfaceStreamType type, SurfaceStream* prevStream);
+
 public:
     SurfaceStream_TripleBuffer(SurfaceStream* prevStream);
     virtual ~SurfaceStream_TripleBuffer();
 
+private:
+    
+    void Init(SurfaceStream* prevStream);
+
+public:
     
     virtual SharedSurface* SwapProducer(SurfaceFactory* factory,
                                         const gfxIntSize& size);
