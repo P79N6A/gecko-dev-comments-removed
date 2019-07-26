@@ -1850,7 +1850,6 @@ FrameActor.prototype = {
                  type: this.frame.type };
     if (this.frame.type === "call") {
       form.callee = this.threadActor.createValueGrip(this.frame.callee);
-      form.calleeName = getFunctionName(this.frame.callee);
     }
 
     let envActor = this.threadActor
@@ -2042,7 +2041,6 @@ EnvironmentActor.prototype = {
       if (aObject.callee) {
         form.type = "function";
         form.function = this.threadActor.createValueGrip(aObject.callee);
-        form.functionName = getFunctionName(aObject.callee);
       } else {
         form.type = "block";
       }
@@ -2194,30 +2192,6 @@ EnvironmentActor.prototype.requestTypes = {
   "assign": EnvironmentActor.prototype.onAssign,
   "bindings": EnvironmentActor.prototype.onBindings
 };
-
-
-
-
-
-
-
-function getFunctionName(aFunction) {
-  let name;
-  if (aFunction.name) {
-    name = aFunction.name;
-  } else {
-    
-    
-    let desc = aFunction.getOwnPropertyDescriptor("displayName");
-    if (desc && desc.value && typeof desc.value == "string") {
-      name = desc.value;
-    } else {
-      
-      name = aFunction.displayName;
-    }
-  }
-  return name;
-}
 
 
 
