@@ -103,7 +103,7 @@
 #define MOZ_EVENT_TRACER_DONE_THREASAFE(instance, name) \
   mozilla::eventtracer::Mark(mozilla::eventtracer::eDone | mozilla::eventtracer::eThreadConcurrent, instance, name)
 
-#else 
+#else
 
 
 
@@ -159,7 +159,7 @@ enum MarkType {
 
 
 
-void Mark(uint32_t aType, void * aItem, 
+void Mark(uint32_t aType, void * aItem,
           const char * aText, const char * aText2 = 0);
 
 
@@ -176,12 +176,12 @@ void Mark(uint32_t aType, void * aItem,
 class MOZ_STACK_CLASS AutoEventTracer
 {
 public:
-  AutoEventTracer(void * aInstance, 
-               uint32_t aTypeOn, 
-               uint32_t aTypeOff, 
-               const char * aName, 
-               const char * aName2 = 0 
-               MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  AutoEventTracer(void * aInstance,
+                  uint32_t aTypeOn, 
+                  uint32_t aTypeOff, 
+                  const char * aName,
+                  const char * aName2 = 0
+                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     : mInstance(aInstance)
     , mName(aName)
     , mName2(aName2)

@@ -7,14 +7,15 @@
 
 
 
+
 #include "nsConsoleMessage.h"
 #include "jsapi.h"
 
 NS_IMPL_ISUPPORTS(nsConsoleMessage, nsIConsoleMessage)
 
 nsConsoleMessage::nsConsoleMessage()
-    :  mTimeStamp(0),
-       mMessage()
+  : mTimeStamp(0),
+    mMessage()
 {
 }
 

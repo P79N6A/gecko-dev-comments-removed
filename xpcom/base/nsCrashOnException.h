@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsCrashOnException_h
 #define nsCrashOnException_h
 
@@ -14,7 +15,7 @@ namespace mozilla {
 
 
 XPCOM_API(LRESULT) CallWindowProcCrashProtected(WNDPROC wndProc, HWND hWnd, UINT msg,
-                                               WPARAM wParam, LPARAM lParam);
+                                                WPARAM wParam, LPARAM lParam);
 
 }
 

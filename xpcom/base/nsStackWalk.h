@@ -5,6 +5,7 @@
 
 
 
+
 #ifndef nsStackWalk_h_
 #define nsStackWalk_h_
 
@@ -65,26 +66,26 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
              void *aPlatformData);
 
 typedef struct {
-    
+  
 
 
 
 
-    char library[256];
-    ptrdiff_t loffset;
-    
+  char library[256];
+  ptrdiff_t loffset;
+  
 
 
 
 
-    char filename[256];
-    unsigned long lineno;
-    
+  char filename[256];
+  unsigned long lineno;
+  
 
 
 
-    char function[256];
-    ptrdiff_t foffset;
+  char function[256];
+  ptrdiff_t foffset;
 } nsCodeAddressDetails;
 
 

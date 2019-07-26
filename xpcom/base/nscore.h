@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nscore_h___
 #define nscore_h___
 
@@ -315,7 +316,7 @@ typedef MozRefCountType nsrefcnt;
 #define NS_STRINGIFY_HELPER(x_) #x_
 #define NS_STRINGIFY(x_) NS_STRINGIFY_HELPER(x_)
 
- 
+
 
 
 

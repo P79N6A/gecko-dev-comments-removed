@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsError_h__
 #define nsError_h__
 
@@ -199,9 +200,9 @@ static_assert(sizeof(nsresult) == sizeof(uint32_t),
 
 
 #define NS_ERROR_GENERATE(sev, module, code) \
-    (nsresult)(((uint32_t)(sev) << 31) | \
-               ((uint32_t)(module + NS_ERROR_MODULE_BASE_OFFSET) << 16) | \
-               ((uint32_t)(code)))
+  (nsresult)(((uint32_t)(sev) << 31) | \
+             ((uint32_t)(module + NS_ERROR_MODULE_BASE_OFFSET) << 16) | \
+             ((uint32_t)(code)))
 
 #define NS_ERROR_GENERATE_SUCCESS(module, code) \
   NS_ERROR_GENERATE(NS_ERROR_SEVERITY_SUCCESS, module, code)

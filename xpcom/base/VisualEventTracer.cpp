@@ -43,14 +43,14 @@ mozilla::TimeDuration * gMaxBacklogTime;
 
 class Record {
 public:
-  Record() 
+  Record()
     : mType(::mozilla::eventtracer::eNone)
     , mItem(nullptr)
     , mText(nullptr)
-    , mText2(nullptr) 
+    , mText2(nullptr)
   {
     MOZ_COUNT_CTOR(Record);
-  } 
+  }
 
   Record& operator=(const Record & aOther)
   {
@@ -62,10 +62,10 @@ public:
     return *this;
   }
 
-  ~Record() 
+  ~Record()
   {
     PL_strfree(mText2);
-    PL_strfree(mText); 
+    PL_strfree(mText);
     MOZ_COUNT_DTOR(Record);
   }
 
@@ -354,7 +354,7 @@ EventFilter::Build(const char * filterVar)
 
   
   count = sscanf(filterVar, "%63[^,]%n", eventName, &delta);
-  if (count == 0) 
+  if (count == 0)
     return nullptr;
 
   pos = delta;
@@ -471,7 +471,7 @@ void Mark(uint32_t aType, void * aItem, const char * aText, const char * aText2)
     return;
 
   RecordBatch * threadLogPrivate = static_cast<RecordBatch *>(
-      PR_GetThreadPrivate(gThreadPrivateIndex));
+    PR_GetThreadPrivate(gThreadPrivateIndex));
   if (!threadLogPrivate) {
     threadLogPrivate = RecordBatch::Register();
     if (!threadLogPrivate)
@@ -589,7 +589,7 @@ VisualEventTracerLog::WriteToProfilingFile()
   }
 
   PRFileDesc* fd = PR_Open(filename, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
-			   0644);
+                           0644);
   if (!fd) {
     return NS_ERROR_FILE_ACCESS_DENIED;
   }

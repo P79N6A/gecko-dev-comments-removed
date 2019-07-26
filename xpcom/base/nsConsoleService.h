@@ -7,6 +7,7 @@
 
 
 
+
 #ifndef __nsconsoleservice_h__
 #define __nsconsoleservice_h__
 
@@ -21,62 +22,62 @@
 class nsConsoleService MOZ_FINAL : public nsIConsoleService
 {
 public:
-    nsConsoleService();
-    nsresult Init();
+  nsConsoleService();
+  nsresult Init();
 
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSICONSOLESERVICE
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSICONSOLESERVICE
 
-    void SetIsDelivering() {
-        MOZ_ASSERT(NS_IsMainThread());
-        MOZ_ASSERT(!mDeliveringMessage);
-        mDeliveringMessage = true;
-    }
+  void SetIsDelivering() {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!mDeliveringMessage);
+    mDeliveringMessage = true;
+  }
 
-    void SetDoneDelivering() {
-        MOZ_ASSERT(NS_IsMainThread());
-        MOZ_ASSERT(mDeliveringMessage);
-        mDeliveringMessage = false;
-    }
+  void SetDoneDelivering() {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mDeliveringMessage);
+    mDeliveringMessage = false;
+  }
 
-    
-    
-    
+  
+  
+  
 
-    enum OutputMode {
-        SuppressLog,
-        OutputToLog
-    };
-    virtual nsresult LogMessageWithMode(nsIConsoleMessage *message, OutputMode outputMode);
+  enum OutputMode {
+    SuppressLog,
+    OutputToLog
+  };
+  virtual nsresult LogMessageWithMode(nsIConsoleMessage *message, OutputMode outputMode);
 
-    typedef nsInterfaceHashtable<nsISupportsHashKey, nsIConsoleListener> ListenerHash;
-    void EnumerateListeners(ListenerHash::EnumReadFunction aFunction, void* aClosure);
+  typedef nsInterfaceHashtable<nsISupportsHashKey, nsIConsoleListener> ListenerHash;
+  void EnumerateListeners(ListenerHash::EnumReadFunction aFunction, void* aClosure);
 
 private:
-    ~nsConsoleService();
+  ~nsConsoleService();
 
-    
-    nsIConsoleMessage **mMessages;
+  
+  nsIConsoleMessage **mMessages;
 
-    
-    uint32_t mBufferSize;
+  
+  uint32_t mBufferSize;
 
-    
-    uint32_t mCurrent;
+  
+  uint32_t mCurrent;
 
-    
-    bool mFull;
+  
+  bool mFull;
 
-    
-    
-    
-    bool mDeliveringMessage;
+  
+  
+  
+  bool mDeliveringMessage;
 
-    
-    ListenerHash mListeners;
+  
+  ListenerHash mListeners;
 
-    
-    mozilla::Mutex mLock;
+  
+  mozilla::Mutex mLock;
 };
 
 #endif 

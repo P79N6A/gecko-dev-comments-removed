@@ -49,7 +49,7 @@ using namespace mozilla;
 static Atomic<int> sDumpPipeWriteFd(-1);
 
 const char* const FifoWatcher::kPrefName =
-    "memory_info_dumper.watch_fifo.enabled";
+  "memory_info_dumper.watch_fifo.enabled";
 
 static void
 DumpSignalHandler(int aSignum)
@@ -73,8 +73,8 @@ void FdWatcher::Init()
   os->AddObserver(this, "xpcom-shutdown",  false);
 
   XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
-      NewRunnableMethod(this, &FdWatcher::StartWatching));
+    FROM_HERE,
+    NewRunnableMethod(this, &FdWatcher::StartWatching));
 }
 
 
@@ -337,9 +337,9 @@ int FifoWatcher::OpenFd()
   }
 
 #ifdef ANDROID
-    
-    
-    chmod(path.get(), 0666);
+  
+  
+  chmod(path.get(), 0666);
 #endif
 
   int fd;
@@ -478,15 +478,15 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
     return rv;
 
 #ifdef ANDROID
-    
-    
-    
-    nsAutoCString path;
-    rv = file->GetNativePath(path);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+  
+  
+  
+  nsAutoCString path;
+  rv = file->GetNativePath(path);
+  if (NS_WARN_IF(NS_FAILED(rv)))
+    return rv;
 
-    while (chmod(path.get(), 0666) == -1 && errno == EINTR) {}
+  while (chmod(path.get(), 0666) == -1 && errno == EINTR) {}
 #endif
 
   return NS_OK;

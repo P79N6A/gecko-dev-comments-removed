@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef _NSSYSTEMINFO_H_
 #define _NSSYSTEMINFO_H_
 
@@ -10,24 +11,24 @@
 
 class nsSystemInfo : public nsHashPropertyBag {
 public:
-    nsSystemInfo();
+  nsSystemInfo();
 
-    nsresult Init();
+  nsresult Init();
 
-    
-    
-    static uint32_t gUserUmask;
+  
+  
+  static uint32_t gUserUmask;
 
 protected:
-    void SetInt32Property(const nsAString &aPropertyName,
-                          const int32_t aValue);
-    void SetUint32Property(const nsAString &aPropertyName,
-                           const uint32_t aValue);
-    void SetUint64Property(const nsAString &aPropertyName,
-                           const uint64_t aValue);
+  void SetInt32Property(const nsAString &aPropertyName,
+                        const int32_t aValue);
+  void SetUint32Property(const nsAString &aPropertyName,
+                         const uint32_t aValue);
+  void SetUint64Property(const nsAString &aPropertyName,
+                         const uint64_t aValue);
 
 private:
-    ~nsSystemInfo();
+  ~nsSystemInfo();
 };
 
 #define NS_SYSTEMINFO_CONTRACTID "@mozilla.org/system-info;1"

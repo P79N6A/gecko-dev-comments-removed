@@ -37,62 +37,62 @@ namespace mozilla {
 template<class T>
 class StaticAutoPtr
 {
-  public:
-    
-    
-    
+public:
+  
+  
+  
 #ifdef DEBUG
-    StaticAutoPtr()
-    {
-      MOZ_ASSERT(!mRawPtr);
-    }
+  StaticAutoPtr()
+  {
+    MOZ_ASSERT(!mRawPtr);
+  }
 #endif
 
-    StaticAutoPtr<T>& operator=(T* rhs)
-    {
-      Assign(rhs);
-      return *this;
-    }
+  StaticAutoPtr<T>& operator=(T* rhs)
+  {
+    Assign(rhs);
+    return *this;
+  }
 
-    T* get() const
-    {
-      return mRawPtr;
-    }
+  T* get() const
+  {
+    return mRawPtr;
+  }
 
-    operator T*() const
-    {
-      return get();
-    }
+  operator T*() const
+  {
+    return get();
+  }
 
-    T* operator->() const
-    {
-      MOZ_ASSERT(mRawPtr);
-      return get();
-    }
+  T* operator->() const
+  {
+    MOZ_ASSERT(mRawPtr);
+    return get();
+  }
 
-    T& operator*() const
-    {
-      return *get();
-    }
+  T& operator*() const
+  {
+    return *get();
+  }
 
-  private:
-    
-    
-    
-    
+private:
+  
+  
+  
+  
 #ifdef DEBUG
-    StaticAutoPtr(StaticAutoPtr<T> &other);
+  StaticAutoPtr(StaticAutoPtr<T> &other);
 #endif
 
-    void Assign(T* newPtr)
-    {
-      MOZ_ASSERT(!newPtr || mRawPtr != newPtr);
-      T* oldPtr = mRawPtr;
-      mRawPtr = newPtr;
-      delete oldPtr;
-    }
+  void Assign(T* newPtr)
+  {
+    MOZ_ASSERT(!newPtr || mRawPtr != newPtr);
+    T* oldPtr = mRawPtr;
+    mRawPtr = newPtr;
+    delete oldPtr;
+  }
 
-    T* mRawPtr;
+  T* mRawPtr;
 };
 
 template<class T>

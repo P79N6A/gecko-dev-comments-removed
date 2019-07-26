@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef __nsconsolemessage_h__
 #define __nsconsolemessage_h__
 
@@ -13,17 +14,17 @@
 
 class nsConsoleMessage MOZ_FINAL : public nsIConsoleMessage {
 public:
-    nsConsoleMessage();
-    nsConsoleMessage(const char16_t *message);
+  nsConsoleMessage();
+  nsConsoleMessage(const char16_t *message);
 
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSICONSOLEMESSAGE
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSICONSOLEMESSAGE
 
 private:
-    ~nsConsoleMessage() {}
+  ~nsConsoleMessage() {}
 
-    int64_t mTimeStamp;
-    nsString mMessage;
+  int64_t mTimeStamp;
+  nsString mMessage;
 };
 
 #endif 

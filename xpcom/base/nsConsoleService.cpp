@@ -10,6 +10,7 @@
 
 
 
+
 #include "nsMemory.h"
 #include "nsCOMArray.h"
 #include "nsThreadUtils.h"
@@ -41,63 +42,63 @@ static bool sLoggingEnabled = true;
 static bool sLoggingBuffered = true;
 
 nsConsoleService::nsConsoleService()
-    : mMessages(nullptr)
-    , mCurrent(0)
-    , mFull(false)
-    , mDeliveringMessage(false)
-    , mLock("nsConsoleService.mLock")
+  : mMessages(nullptr)
+  , mCurrent(0)
+  , mFull(false)
+  , mDeliveringMessage(false)
+  , mLock("nsConsoleService.mLock")
 {
-    
-    
-    
-    mBufferSize = 250;
+  
+  
+  
+  mBufferSize = 250;
 }
 
 nsConsoleService::~nsConsoleService()
 {
-    uint32_t i = 0;
-    while (i < mBufferSize && mMessages[i] != nullptr) {
-        NS_RELEASE(mMessages[i]);
-        i++;
-    }
+  uint32_t i = 0;
+  while (i < mBufferSize && mMessages[i] != nullptr) {
+    NS_RELEASE(mMessages[i]);
+    i++;
+  }
 
-    if (mMessages)
-        nsMemory::Free(mMessages);
+  if (mMessages)
+    nsMemory::Free(mMessages);
 }
 
 class AddConsolePrefWatchers : public nsRunnable
 {
 public:
-    AddConsolePrefWatchers(nsConsoleService* aConsole) : mConsole(aConsole) {}
+  AddConsolePrefWatchers(nsConsoleService* aConsole) : mConsole(aConsole) {}
 
-    NS_IMETHOD Run()
-    {
-        Preferences::AddBoolVarCache(&sLoggingEnabled, "consoleservice.enabled", true);
-        Preferences::AddBoolVarCache(&sLoggingBuffered, "consoleservice.buffered", true);
-        if (!sLoggingBuffered) {
-            mConsole->Reset();
-        }
-        return NS_OK;
+  NS_IMETHOD Run()
+  {
+    Preferences::AddBoolVarCache(&sLoggingEnabled, "consoleservice.enabled", true);
+    Preferences::AddBoolVarCache(&sLoggingBuffered, "consoleservice.buffered", true);
+    if (!sLoggingBuffered) {
+      mConsole->Reset();
     }
+    return NS_OK;
+  }
 
 private:
-    nsRefPtr<nsConsoleService> mConsole;
+  nsRefPtr<nsConsoleService> mConsole;
 };
 
 nsresult
 nsConsoleService::Init()
 {
-    mMessages = (nsIConsoleMessage **)
-        nsMemory::Alloc(mBufferSize * sizeof(nsIConsoleMessage *));
-    if (!mMessages)
-        return NS_ERROR_OUT_OF_MEMORY;
+  mMessages = (nsIConsoleMessage **)
+    nsMemory::Alloc(mBufferSize * sizeof(nsIConsoleMessage *));
+  if (!mMessages)
+    return NS_ERROR_OUT_OF_MEMORY;
 
-    
-    memset(mMessages, 0, mBufferSize * sizeof(nsIConsoleMessage *));
+  
+  memset(mMessages, 0, mBufferSize * sizeof(nsIConsoleMessage *));
 
-    NS_DispatchToMainThread(new AddConsolePrefWatchers(this));
+  NS_DispatchToMainThread(new AddConsolePrefWatchers(this));
 
-    return NS_OK;
+  return NS_OK;
 }
 
 namespace {
@@ -105,16 +106,16 @@ namespace {
 class LogMessageRunnable : public nsRunnable
 {
 public:
-    LogMessageRunnable(nsIConsoleMessage* message, nsConsoleService* service)
-        : mMessage(message)
-        , mService(service)
-    { }
+  LogMessageRunnable(nsIConsoleMessage* message, nsConsoleService* service)
+    : mMessage(message)
+    , mService(service)
+  { }
 
-    NS_DECL_NSIRUNNABLE
+  NS_DECL_NSIRUNNABLE
 
 private:
-    nsCOMPtr<nsIConsoleMessage> mMessage;
-    nsRefPtr<nsConsoleService> mService;
+  nsCOMPtr<nsIConsoleMessage> mMessage;
+  nsRefPtr<nsConsoleService> mService;
 };
 
 typedef nsCOMArray<nsIConsoleListener> ListenerArrayType;
@@ -123,29 +124,29 @@ PLDHashOperator
 CollectCurrentListeners(nsISupports* aKey, nsIConsoleListener* aValue,
                         void* closure)
 {
-    ListenerArrayType* listeners = static_cast<ListenerArrayType*>(closure);
-    listeners->AppendObject(aValue);
-    return PL_DHASH_NEXT;
+  ListenerArrayType* listeners = static_cast<ListenerArrayType*>(closure);
+  listeners->AppendObject(aValue);
+  return PL_DHASH_NEXT;
 }
 
 NS_IMETHODIMP
 LogMessageRunnable::Run()
 {
-    MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
-    
-    
-    nsCOMArray<nsIConsoleListener> listeners;
-    mService->EnumerateListeners(CollectCurrentListeners, &listeners);
+  
+  
+  nsCOMArray<nsIConsoleListener> listeners;
+  mService->EnumerateListeners(CollectCurrentListeners, &listeners);
 
-    mService->SetIsDelivering();
+  mService->SetIsDelivering();
 
-    for (int32_t i = 0; i < listeners.Count(); ++i)
-        listeners[i]->Observe(mMessage);
+  for (int32_t i = 0; i < listeners.Count(); ++i)
+    listeners[i]->Observe(mMessage);
 
-    mService->SetDoneDelivering();
+  mService->SetDoneDelivering();
 
-    return NS_OK;
+  return NS_OK;
 }
 
 } 
@@ -154,220 +155,220 @@ LogMessageRunnable::Run()
 NS_IMETHODIMP
 nsConsoleService::LogMessage(nsIConsoleMessage *message)
 {
-    return LogMessageWithMode(message, OutputToLog);
+  return LogMessageWithMode(message, OutputToLog);
 }
 
 nsresult
 nsConsoleService::LogMessageWithMode(nsIConsoleMessage *message, nsConsoleService::OutputMode outputMode)
 {
-    if (message == nullptr)
-        return NS_ERROR_INVALID_ARG;
+  if (message == nullptr)
+    return NS_ERROR_INVALID_ARG;
 
-    if (!sLoggingEnabled) {
-        return NS_OK;
+  if (!sLoggingEnabled) {
+    return NS_OK;
+  }
+
+  if (NS_IsMainThread() && mDeliveringMessage) {
+    nsCString msg;
+    message->ToString(msg);
+    NS_WARNING(nsPrintfCString("Reentrancy error: some client attempted "
+      "to display a message to the console while in a console listener. "
+      "The following message was discarded: \"%s\"", msg.get()).get());
+    return NS_ERROR_FAILURE;
+  }
+
+  nsRefPtr<LogMessageRunnable> r;
+  nsIConsoleMessage *retiredMessage;
+
+  if (sLoggingBuffered) {
+    NS_ADDREF(message); 
+  }
+
+  
+
+
+
+  {
+    MutexAutoLock lock(mLock);
+
+#if defined(ANDROID)
+    if (outputMode == OutputToLog)
+    {
+      nsCString msg;
+      message->ToString(msg);
+      __android_log_print(ANDROID_LOG_ERROR, "GeckoConsole",
+                          "%s", msg.get());
     }
-
-    if (NS_IsMainThread() && mDeliveringMessage) {
-        nsCString msg;
-        message->ToString(msg);
-        NS_WARNING(nsPrintfCString("Reentrancy error: some client attempted "
-            "to display a message to the console while in a console listener. "
-            "The following message was discarded: \"%s\"", msg.get()).get());
-        return NS_ERROR_FAILURE;
+#endif
+#ifdef XP_WIN
+    if (IsDebuggerPresent()) {
+      nsString msg;
+      message->GetMessageMoz(getter_Copies(msg));
+      msg.AppendLiteral("\n");
+      OutputDebugStringW(msg.get());
     }
-
-    nsRefPtr<LogMessageRunnable> r;
-    nsIConsoleMessage *retiredMessage;
-
-    if (sLoggingBuffered) {
-        NS_ADDREF(message); 
-    }
+#endif
 
     
 
 
 
-    {
-        MutexAutoLock lock(mLock);
 
-#if defined(ANDROID)
-        if (outputMode == OutputToLog)
-        {
-            nsCString msg;
-            message->ToString(msg);
-            __android_log_print(ANDROID_LOG_ERROR, "GeckoConsole",
-                        "%s", msg.get());
-        }
-#endif
-#ifdef XP_WIN
-        if (IsDebuggerPresent()) {
-            nsString msg;
-            message->GetMessageMoz(getter_Copies(msg));
-            msg.AppendLiteral("\n");
-            OutputDebugStringW(msg.get());
-        }
-#endif
+    retiredMessage = mMessages[mCurrent];
 
-        
-
-
-
-
-        retiredMessage = mMessages[mCurrent];
-
-        if (sLoggingBuffered) {
-            mMessages[mCurrent++] = message;
-            if (mCurrent == mBufferSize) {
-                mCurrent = 0; 
-                mFull = true;
-            }
-        }
-
-        if (mListeners.Count() > 0) {
-            r = new LogMessageRunnable(message, this);
-        }
+    if (sLoggingBuffered) {
+      mMessages[mCurrent++] = message;
+      if (mCurrent == mBufferSize) {
+        mCurrent = 0; 
+        mFull = true;
+      }
     }
 
-    if (retiredMessage != nullptr)
-        NS_RELEASE(retiredMessage);
+    if (mListeners.Count() > 0) {
+      r = new LogMessageRunnable(message, this);
+    }
+  }
 
-    if (r)
-        NS_DispatchToMainThread(r);
+  if (retiredMessage != nullptr)
+    NS_RELEASE(retiredMessage);
 
-    return NS_OK;
+  if (r)
+    NS_DispatchToMainThread(r);
+
+  return NS_OK;
 }
 
 void
 nsConsoleService::EnumerateListeners(ListenerHash::EnumReadFunction aFunction,
                                      void* aClosure)
 {
-    MutexAutoLock lock(mLock);
-    mListeners.EnumerateRead(aFunction, aClosure);
+  MutexAutoLock lock(mLock);
+  mListeners.EnumerateRead(aFunction, aClosure);
 }
 
 NS_IMETHODIMP
 nsConsoleService::LogStringMessage(const char16_t *message)
 {
-    if (!sLoggingEnabled) {
-        return NS_OK;
-    }
+  if (!sLoggingEnabled) {
+    return NS_OK;
+  }
 
-    nsRefPtr<nsConsoleMessage> msg(new nsConsoleMessage(message));
-    return this->LogMessage(msg);
+  nsRefPtr<nsConsoleMessage> msg(new nsConsoleMessage(message));
+  return this->LogMessage(msg);
 }
 
 NS_IMETHODIMP
 nsConsoleService::GetMessageArray(uint32_t *count, nsIConsoleMessage ***messages)
 {
-    nsIConsoleMessage **messageArray;
+  nsIConsoleMessage **messageArray;
 
+  
+
+
+
+  MutexAutoLock lock(mLock);
+
+  if (mCurrent == 0 && !mFull) {
     
 
 
 
-    MutexAutoLock lock(mLock);
 
-    if (mCurrent == 0 && !mFull) {
-        
-
-
-
-
-        messageArray = (nsIConsoleMessage **)
-            nsMemory::Alloc(sizeof (nsIConsoleMessage *));
-        *messageArray = nullptr;
-        *messages = messageArray;
-        *count = 0;
-
-        return NS_OK;
-    }
-
-    uint32_t resultSize = mFull ? mBufferSize : mCurrent;
-    messageArray =
-        (nsIConsoleMessage **)nsMemory::Alloc((sizeof (nsIConsoleMessage *))
-                                              * resultSize);
-
-    if (messageArray == nullptr) {
-        *messages = nullptr;
-        *count = 0;
-        return NS_ERROR_FAILURE;
-    }
-
-    uint32_t i;
-    if (mFull) {
-        for (i = 0; i < mBufferSize; i++) {
-            
-            
-            messageArray[i] = mMessages[(mCurrent + i) % mBufferSize];
-            NS_ADDREF(messageArray[i]);
-        }
-    } else {
-        for (i = 0; i < mCurrent; i++) {
-            messageArray[i] = mMessages[i];
-            NS_ADDREF(messageArray[i]);
-        }
-    }
-    *count = resultSize;
+    messageArray = (nsIConsoleMessage **)
+      nsMemory::Alloc(sizeof (nsIConsoleMessage *));
+    *messageArray = nullptr;
     *messages = messageArray;
+    *count = 0;
 
     return NS_OK;
+  }
+
+  uint32_t resultSize = mFull ? mBufferSize : mCurrent;
+  messageArray =
+    (nsIConsoleMessage **)nsMemory::Alloc((sizeof (nsIConsoleMessage *))
+                                          * resultSize);
+
+  if (messageArray == nullptr) {
+    *messages = nullptr;
+    *count = 0;
+    return NS_ERROR_FAILURE;
+  }
+
+  uint32_t i;
+  if (mFull) {
+    for (i = 0; i < mBufferSize; i++) {
+      
+      
+      messageArray[i] = mMessages[(mCurrent + i) % mBufferSize];
+      NS_ADDREF(messageArray[i]);
+    }
+  } else {
+    for (i = 0; i < mCurrent; i++) {
+      messageArray[i] = mMessages[i];
+      NS_ADDREF(messageArray[i]);
+    }
+  }
+  *count = resultSize;
+  *messages = messageArray;
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsConsoleService::RegisterListener(nsIConsoleListener *listener)
 {
-    if (!NS_IsMainThread()) {
-        NS_ERROR("nsConsoleService::RegisterListener is main thread only.");
-        return NS_ERROR_NOT_SAME_THREAD;
-    }
+  if (!NS_IsMainThread()) {
+    NS_ERROR("nsConsoleService::RegisterListener is main thread only.");
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
 
-    nsCOMPtr<nsISupports> canonical = do_QueryInterface(listener);
+  nsCOMPtr<nsISupports> canonical = do_QueryInterface(listener);
 
-    MutexAutoLock lock(mLock);
-    if (mListeners.GetWeak(canonical)) {
-        
-        return NS_ERROR_FAILURE;
-    }
-    mListeners.Put(canonical, listener);
-    return NS_OK;
+  MutexAutoLock lock(mLock);
+  if (mListeners.GetWeak(canonical)) {
+    
+    return NS_ERROR_FAILURE;
+  }
+  mListeners.Put(canonical, listener);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsConsoleService::UnregisterListener(nsIConsoleListener *listener)
 {
-    if (!NS_IsMainThread()) {
-        NS_ERROR("nsConsoleService::UnregisterListener is main thread only.");
-        return NS_ERROR_NOT_SAME_THREAD;
-    }
+  if (!NS_IsMainThread()) {
+    NS_ERROR("nsConsoleService::UnregisterListener is main thread only.");
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
 
-    nsCOMPtr<nsISupports> canonical = do_QueryInterface(listener);
+  nsCOMPtr<nsISupports> canonical = do_QueryInterface(listener);
 
-    MutexAutoLock lock(mLock);
+  MutexAutoLock lock(mLock);
 
-    if (!mListeners.GetWeak(canonical)) {
-        
-        return NS_ERROR_FAILURE;
-    }
-    mListeners.Remove(canonical);
-    return NS_OK;
+  if (!mListeners.GetWeak(canonical)) {
+    
+    return NS_ERROR_FAILURE;
+  }
+  mListeners.Remove(canonical);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsConsoleService::Reset()
 {
-    
+  
 
 
-    MutexAutoLock lock(mLock);
+  MutexAutoLock lock(mLock);
 
-    mCurrent = 0;
-    mFull = false;
+  mCurrent = 0;
+  mFull = false;
 
-    
+  
 
 
-    for (uint32_t i = 0; i < mBufferSize && mMessages[i] != nullptr; i++)
-        NS_RELEASE(mMessages[i]);
+  for (uint32_t i = 0; i < mBufferSize && mMessages[i] != nullptr; i++)
+    NS_RELEASE(mMessages[i]);
 
-    return NS_OK;
+  return NS_OK;
 }

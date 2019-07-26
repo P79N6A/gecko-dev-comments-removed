@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsDebugImpl_h
 #define nsDebugImpl_h
 
@@ -11,20 +13,20 @@
 class nsDebugImpl : public nsIDebug2
 {
 public:
-    nsDebugImpl() {}
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIDEBUG
-    NS_DECL_NSIDEBUG2
+  nsDebugImpl() {}
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIDEBUG
+  NS_DECL_NSIDEBUG2
 
-    static nsresult Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
+  static nsresult Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
 
-    
-
-
+  
 
 
 
-    static void SetMultiprocessMode(const char *aDesc);
+
+
+  static void SetMultiprocessMode(const char *aDesc);
 };
 
 

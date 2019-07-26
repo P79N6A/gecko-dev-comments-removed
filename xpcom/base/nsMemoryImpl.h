@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsMemoryImpl_h__
 #define nsMemoryImpl_h__
 
@@ -18,29 +19,29 @@
 class nsMemoryImpl : public nsIMemory
 {
 public:
-    
-    NS_IMETHOD QueryInterface(REFNSIID aIID, void** aResult);
-    NS_IMETHOD_(MozExternalRefCountType) AddRef(void) { return 1; }
-    NS_IMETHOD_(MozExternalRefCountType) Release(void) { return 1; }
+  
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aResult);
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) { return 1; }
+  NS_IMETHOD_(MozExternalRefCountType) Release(void) { return 1; }
 
-    NS_DECL_NSIMEMORY
+  NS_DECL_NSIMEMORY
 
-    static nsresult Create(nsISupports* outer,
-                           const nsIID& aIID, void **aResult);
+  static nsresult Create(nsISupports* outer,
+                         const nsIID& aIID, void **aResult);
 
-    NS_HIDDEN_(nsresult) FlushMemory(const char16_t* aReason, bool aImmediate);
-    NS_HIDDEN_(nsresult) RunFlushers(const char16_t* aReason);
+  NS_HIDDEN_(nsresult) FlushMemory(const char16_t* aReason, bool aImmediate);
+  NS_HIDDEN_(nsresult) RunFlushers(const char16_t* aReason);
 
 protected:
-    struct FlushEvent : public nsIRunnable {
-        NS_DECL_ISUPPORTS_INHERITED
-        NS_DECL_NSIRUNNABLE
-        const char16_t* mReason;
-    };
+  struct FlushEvent : public nsIRunnable {
+    NS_DECL_ISUPPORTS_INHERITED
+    NS_DECL_NSIRUNNABLE
+    const char16_t* mReason;
+  };
 
-    static mozilla::Atomic<bool> sIsFlushing;
-    static FlushEvent sFlushEvent;
-    static PRIntervalTime sLastFlushTime;
+  static mozilla::Atomic<bool> sIsFlushing;
+  static FlushEvent sFlushEvent;
+  static PRIntervalTime sLastFlushTime;
 };
 
 #endif 

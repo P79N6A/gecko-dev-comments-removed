@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsErrorService_h__
 #define nsErrorService_h__
 
@@ -14,32 +15,32 @@
 class nsInt2StrHashtable
 {
 public:
-    nsInt2StrHashtable();
+  nsInt2StrHashtable();
 
-    nsresult  Put(uint32_t key, const char* aData);
-    char*     Get(uint32_t key);
-    nsresult  Remove(uint32_t key);
+  nsresult  Put(uint32_t key, const char* aData);
+  char*     Get(uint32_t key);
+  nsresult  Remove(uint32_t key);
 
 protected:
-    nsObjectHashtable mHashtable;
+  nsObjectHashtable mHashtable;
 };
 
 class nsErrorService MOZ_FINAL : public nsIErrorService
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIERRORSERVICE
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIERRORSERVICE
 
-    nsErrorService() {}
+  nsErrorService() {}
 
-    static nsresult
-    Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
+  static nsresult
+  Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
 
 private:
-    ~nsErrorService() {}
+  ~nsErrorService() {}
 
 protected:
-    nsInt2StrHashtable mErrorStringBundleURLMap;
+  nsInt2StrHashtable mErrorStringBundleURLMap;
 };
 
 #endif 

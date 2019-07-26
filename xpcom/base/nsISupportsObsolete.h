@@ -3,6 +3,8 @@
 
 
 
+
+
 #ifndef nsISupportsObsolete_h__
 #define nsISupportsObsolete_h__
 
@@ -29,7 +31,7 @@
 
 
 #define NS_FREE_XPCOM_ISUPPORTS_POINTER_ARRAY(size, array)                    \
-    NS_FREE_XPCOM_POINTER_ARRAY((size), (array), NS_IF_RELEASE)
+  NS_FREE_XPCOM_POINTER_ARRAY((size), (array), NS_IF_RELEASE)
 
 
 
@@ -41,16 +43,16 @@
 #define NS_METHOD_GETTER(_method, _type, _member) \
 _method(_type* aResult) \
 {\
-    if (!aResult) return NS_ERROR_NULL_POINTER; \
-    *aResult = _member; \
-    return NS_OK; \
+  if (!aResult) return NS_ERROR_NULL_POINTER; \
+  *aResult = _member; \
+  return NS_OK; \
 }
-    
+
 #define NS_METHOD_SETTER(_method, _type, _member) \
 _method(_type aResult) \
 { \
-    _member = aResult; \
-    return NS_OK; \
+  _member = aResult; \
+  return NS_OK; \
 }
 
 
@@ -60,21 +62,21 @@ _method(_type aResult) \
 #define NS_METHOD_GETTER_STR(_method,_member)   \
 _method(char* *aString)                         \
 {                                               \
-    if (!aString) return NS_ERROR_NULL_POINTER; \
-    if (!(*aString = PL_strdup(_member)))       \
-      return NS_ERROR_OUT_OF_MEMORY;            \
-    return NS_OK;                               \
+  if (!aString) return NS_ERROR_NULL_POINTER;   \
+  if (!(*aString = PL_strdup(_member)))         \
+    return NS_ERROR_OUT_OF_MEMORY;              \
+  return NS_OK;                                 \
 }
 
 #define NS_METHOD_SETTER_STR(_method, _member) \
 _method(const char *aString)                   \
 {                                              \
-    if (_member) PR_Free(_member);             \
-    if (!aString)                              \
-      _member = nullptr;                        \
-    else if (!(_member = PL_strdup(aString)))  \
-      return NS_ERROR_OUT_OF_MEMORY;           \
-    return NS_OK;                              \
+  if (_member) PR_Free(_member);               \
+  if (!aString)                                \
+    _member = nullptr;                         \
+  else if (!(_member = PL_strdup(aString)))    \
+    return NS_ERROR_OUT_OF_MEMORY;             \
+  return NS_OK;                                \
 }
 
 
@@ -115,7 +117,7 @@ _method(const char *aString)                   \
 
 
 
-   
+
 
 
 

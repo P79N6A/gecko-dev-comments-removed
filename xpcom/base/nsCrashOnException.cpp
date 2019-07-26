@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsCrashOnException.h"
 #include "nsCOMPtr.h"
 #include "nsServiceManagerUtils.h"
@@ -26,7 +27,7 @@ static int ReportException(EXCEPTION_POINTERS *aExceptionInfo)
 
 XPCOM_API(LRESULT)
 CallWindowProcCrashProtected(WNDPROC wndProc, HWND hWnd, UINT msg,
-                            WPARAM wParam, LPARAM lParam)
+                             WPARAM wParam, LPARAM lParam)
 {
   MOZ_SEH_TRY {
     return wndProc(hWnd, msg, wParam, lParam);

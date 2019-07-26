@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsAgg_h___
 #define nsAgg_h___
 
@@ -15,12 +16,12 @@
 
 
 #define NS_DECL_AGGREGATED                                                  \
-    NS_DECL_ISUPPORTS                                                       \
-    NS_DECL_AGGREGATED_HELPER
+  NS_DECL_ISUPPORTS                                                         \
+  NS_DECL_AGGREGATED_HELPER
 
 #define NS_DECL_CYCLE_COLLECTING_AGGREGATED                                 \
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS                                      \
-    NS_DECL_AGGREGATED_HELPER
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS                                        \
+  NS_DECL_AGGREGATED_HELPER
 
 #define NS_DECL_AGGREGATED_HELPER                                           \
 public:                                                                     \
@@ -230,10 +231,10 @@ _class::Internal::QueryInterface(const nsIID& aIID, void** aInstancePtr)    \
 class nsAggregatedCycleCollectionParticipant
 {
 public:
-    NS_DECLARE_STATIC_IID_ACCESSOR(NS_AGGREGATED_CYCLECOLLECTIONPARTICIPANT_IID)
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_AGGREGATED_CYCLECOLLECTIONPARTICIPANT_IID)
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsAggregatedCycleCollectionParticipant, 
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAggregatedCycleCollectionParticipant,
                               NS_AGGREGATED_CYCLECOLLECTIONPARTICIPANT_IID)
 
 

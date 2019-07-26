@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsSecurityConsoleMessage_h__
 #define nsSecurityConsoleMessage_h__
 #include "nsISecurityConsoleMessage.h"
@@ -9,18 +11,18 @@
 
 class nsSecurityConsoleMessage MOZ_FINAL : public nsISecurityConsoleMessage
 {
-  public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISECURITYCONSOLEMESSAGE
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISECURITYCONSOLEMESSAGE
 
-    nsSecurityConsoleMessage();
+  nsSecurityConsoleMessage();
 
-  private:
-    ~nsSecurityConsoleMessage();
+private:
+  ~nsSecurityConsoleMessage();
 
-  protected:
-    nsString mTag;
-    nsString mCategory;
+protected:
+  nsString mTag;
+  nsString mCategory;
 };
 
 #define NS_SECURITY_CONSOLE_MESSAGE_CID \

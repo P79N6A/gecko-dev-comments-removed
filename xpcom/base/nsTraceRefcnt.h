@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef nsTraceRefcnt_h___
 #define nsTraceRefcnt_h___
 
@@ -20,13 +21,13 @@ public:
   };
 
   static nsresult DumpStatistics(StatisticsType type = ALL_STATS,
-                                        FILE* out = 0);
+                                 FILE* out = 0);
 
   static void ResetStatistics(void);
 
   static void DemangleSymbol(const char * aSymbol,
-                                    char * aBuffer,
-                                    int aBufLen);
+                             char * aBuffer,
+                             int aBufLen);
 
   static void WalkTheStack(FILE* aStream);
   

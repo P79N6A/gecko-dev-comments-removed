@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsMacUtilsImpl.h"
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -19,9 +20,9 @@ nsresult nsMacUtilsImpl::GetArchString(nsAString& archString)
   archString.Truncate();
 
   bool foundPPC = false,
-         foundX86 = false,
-         foundPPC64 = false,
-         foundX86_64 = false;
+       foundX86 = false,
+       foundPPC64 = false,
+       foundX86_64 = false;
 
   CFBundleRef mainBundle = ::CFBundleGetMainBundle();
   if (!mainBundle) {
