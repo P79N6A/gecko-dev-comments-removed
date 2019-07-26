@@ -2135,27 +2135,6 @@ WindowStateHolder::~WindowStateHolder()
 
 NS_IMPL_ISUPPORTS1(WindowStateHolder, WindowStateHolder)
 
-nsresult
-nsGlobalWindow::CreateOuterObject(nsGlobalWindow* aNewInner)
-{
-  AutoPushJSContext cx(mContext->GetNativeContext());
-
-  JS::Rooted<JSObject*> global(cx, aNewInner->FastGetGlobalJSObject());
-  JS::Rooted<JSObject*> outer(cx, NewOuterWindowProxy(cx, global, IsChromeWindow()));
-  if (!outer) {
-    return NS_ERROR_FAILURE;
-  }
-
-  js::SetProxyExtra(outer, 0, js::PrivateValue(ToSupports(this)));
-
-  JSAutoCompartment ac(cx, outer);
-
-  
-  MOZ_ASSERT(IsOuterWindow());
-  mContext->SetWindowProxy(outer);
-  return NS_OK;
-}
-
 
 
 
@@ -2462,7 +2441,14 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     mInnerWindow = newInnerWindow;
 
     if (!mJSObject) {
-      CreateOuterObject(newInnerWindow);
+      JS::Rooted<JSObject*> global(cx, newInnerWindow->FastGetGlobalJSObject());
+      JS::Rooted<JSObject*> outer(cx, NewOuterWindowProxy(cx, global, thisChrome));
+      NS_ENSURE_TRUE(outer, NS_ERROR_FAILURE);
+
+      js::SetProxyExtra(outer, 0, js::PrivateValue(ToSupports(this)));
+
+      
+      mContext->SetWindowProxy(outer);
       mContext->DidInitializeContext();
 
       mJSObject = mContext->GetWindowProxy();
