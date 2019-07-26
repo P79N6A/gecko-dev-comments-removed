@@ -1927,6 +1927,9 @@ nsEventStateManager::FireContextClick()
         }
       }
 
+      nsIDocument* doc = mGestureDownContent->GetCurrentDoc();
+      nsAutoHandlingUserInputStatePusher userInpStatePusher(true, &event, doc);
+
       
       nsEventDispatcher::Dispatch(mGestureDownContent, mPresContext, &event,
                                   nullptr, &status);
