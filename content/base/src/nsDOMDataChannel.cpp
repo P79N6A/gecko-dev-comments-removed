@@ -22,6 +22,7 @@ extern PRLogModuleInfo* GetDataChannelLog();
 #include "nsIDOMFile.h"
 #include "nsIJSNativeInitializer.h"
 #include "nsIDOMDataChannel.h"
+#include "nsIDOMRTCPeerConnection.h"
 #include "nsIDOMMessageEvent.h"
 #include "nsDOMClassInfo.h"
 #include "nsDOMEventTargetHelper.h"
@@ -109,6 +110,11 @@ private:
 };
 
 DOMCI_DATA(DataChannel, nsDOMDataChannel)
+
+
+
+
+DOMCI_DATA(RTCPeerConnection, nsIDOMRTCPeerConnection)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMDataChannel,
                                                   nsDOMEventTargetHelper)
