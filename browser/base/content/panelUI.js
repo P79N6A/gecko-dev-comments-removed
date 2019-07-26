@@ -1,0 +1,243 @@
+
+
+
+
+XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
+                                  "resource:///modules/CustomizableUI.jsm");
+
+
+
+
+const PanelUI = {
+  
+  get kEvents() ["popupshowing", "popupshown", "popuphiding", "popuphidden"],
+  
+
+
+
+  get kElements() {
+    return {
+      clickCapturer: "PanelUI-clickCapturer",
+      container: "PanelUI-container",
+      contents: "PanelUI-contents",
+      mainView: "PanelUI-mainView",
+      mainViewSpring: "PanelUI-mainView-spring",
+      menuButton: "PanelUI-menu-button",
+      panel: "PanelUI-popup",
+      subViews: "PanelUI-subViews",
+      viewStack: "PanelUI-viewStack"
+    };
+  },
+
+  
+
+
+
+  get _showingSubView() {
+    return (this.viewStack.hasAttribute("view") &&
+            this.viewStack.getAttribute("view") == "subview");
+  },
+
+  
+
+
+
+
+
+
+  set _showingSubView(aVal) {
+    if (aVal) {
+      let oldHeight = this.mainView.clientHeight;
+      this.viewStack.setAttribute("view", "subview");
+      this.mainViewSpring.style.height = this.subViews.scrollHeight - oldHeight + "px";
+      this.container.style.height = this.subViews.scrollHeight + "px";
+    } else {
+      this.viewStack.setAttribute("view", "main");
+      let springHeight = this.mainViewSpring.getBoundingClientRect().height;
+      this.container.style.height = (this.mainView.scrollHeight - springHeight) + "px";
+      this.mainViewSpring.style.height = "";
+    }
+
+    return aVal;
+  },
+
+  init: function() {
+    for (let [k, v] of Iterator(this.kElements)) {
+      
+      let getKey = k;
+      let id = v;
+      this.__defineGetter__(getKey, function() {
+        delete this[getKey];
+        return this[getKey] = document.getElementById(id);
+      });
+    }
+
+    for (let event of this.kEvents) {
+      this.panel.addEventListener(event, this);
+    }
+
+    this.clickCapturer.addEventListener("click", this._onCapturerClick,
+                                        true);
+  },
+
+  uninit: function() {
+    for (let event of this.kEvents) {
+      this.panel.removeEventListener(event, this);
+    }
+
+    this.clickCapturer.removeEventListener("click", this._onCapturerClick,
+                                           true);
+  },
+
+  
+
+
+
+
+
+
+
+  replaceMainView: function(aMainView) {
+    this.viewStack.insertBefore(aMainView, this.viewStack.firstChild);
+  },
+
+  
+
+
+
+
+
+
+
+  toggle: function(aEvent) {
+    if (this.panel.state == "open") {
+      this.hide();
+    } else if (this.panel.state == "closed") {
+      let anchor = aEvent.target;
+      let iconAnchor =
+        document.getAnonymousElementByAttribute(anchor, "class",
+                                                "toolbarbutton-icon");
+      this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
+    }
+  },
+
+  
+
+
+  hide: function() {
+    this.panel.hidePopup();
+    this.showMainView();
+  },
+
+  handleEvent: function(aEvent) {
+    switch (aEvent.type) {
+      case "popupshowing":
+        CustomizableUI.registerMenuPanel(this.contents);
+        let cstyle = window.getComputedStyle(this.viewStack, null);
+        this.container.style.height = cstyle.getPropertyValue("height");
+        this.container.style.width = cstyle.getPropertyValue("width");
+        
+      case "popupshown":
+        
+      case "popuphiding":
+        
+      case "popuphidden": {
+        this._updatePanelButton(aEvent.target);
+        break;
+      }
+    }
+  },
+
+  
+
+
+
+  showMainView: function() {
+    
+    if (this._showingSubView) {
+      let viewNode = this.subViews.selectedPanel;
+      let evt = document.createEvent("CustomEvent");
+      evt.initCustomEvent("ViewHiding", true, true, viewNode);
+      viewNode.dispatchEvent(evt);
+    }
+
+    this._shiftMainView();
+    this._showingSubView = false;
+  },
+
+  
+
+
+
+
+  showSubView: function(aViewId, aAnchor) {
+    let viewNode = document.getElementById(aViewId);
+    if (!viewNode) {
+      Cu.reportError("Could not show panel subview with id: " + aViewId);
+      return;
+    }
+
+    if (!aAnchor) {
+      Cu.reportError("Expected an anchor when opening subview with id: " + aViewId);
+      return;
+    }
+
+    
+    
+    let evt = document.createEvent("CustomEvent");
+    evt.initCustomEvent("ViewShowing", true, true, viewNode);
+    viewNode.dispatchEvent(evt);
+
+    this.subViews.selectedPanel = viewNode;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this._shiftMainView(aAnchor);
+    this._showingSubView = true;
+  },
+
+  
+
+
+
+  _updatePanelButton: function() {
+    this.menuButton.open = this.panel.state == "open" ||
+                           this.panel.state == "showing";
+  },
+
+  
+
+
+
+
+
+  _shiftMainView: function(aAnchor) {
+    if (aAnchor) {
+      
+      
+      
+      let anchorRect = aAnchor.getBoundingClientRect();
+      let mainViewRect = this.mainView.getBoundingClientRect();
+      let leftEdge = anchorRect.left - mainViewRect.left;
+      let center = (anchorRect.width / 2);
+      let target = leftEdge + center;
+      this.mainView.style.transform = "translateX(-" + target + "px)";
+    } else {
+      this.mainView.style.transform = "";
+    }
+  },
+
+  _onCapturerClick: function(aEvent) {
+    PanelUI.showMainView();
+  },
+};
