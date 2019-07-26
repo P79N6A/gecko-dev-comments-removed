@@ -65,7 +65,11 @@ public:
   
   
   
-  virtual void FirstFrameLoaded() = 0;
+  virtual void FirstFrameLoaded(bool aResourceFullyLoaded) = 0;
+
+  
+  
+  virtual void ResourceLoaded() = 0;
 
   
   

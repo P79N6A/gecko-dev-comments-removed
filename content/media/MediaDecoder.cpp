@@ -372,6 +372,7 @@ MediaDecoder::MediaDecoder() :
   mIsDormant(false),
   mPlayState(PLAY_STATE_PAUSED),
   mNextState(PLAY_STATE_PAUSED),
+  mCalledResourceLoaded(false),
   mIgnoreProgressData(false),
   mInfiniteStream(false),
   mTriggerPlaybackEndedWhenSourceStreamFinishes(false),
@@ -742,13 +743,21 @@ void MediaDecoder::MetadataLoaded(int aChannels, int aRate, bool aHasAudio, bool
     mOwner->MetadataLoaded(aChannels, aRate, aHasAudio, aHasVideo, aTags);
   }
 
-  StartProgress();
+  if (!mCalledResourceLoaded) {
+    StartProgress();
+  } else if (mOwner) {
+    
+    
+    mOwner->DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
+  }
 
   
   
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  bool notifyResourceIsLoaded = !mCalledResourceLoaded &&
+                                IsDataCachedToEndOfResource();
   if (mOwner) {
-    mOwner->FirstFrameLoaded();
+    mOwner->FirstFrameLoaded(notifyResourceIsLoaded);
   }
 
   
@@ -767,9 +776,43 @@ void MediaDecoder::MetadataLoaded(int aChannels, int aRate, bool aHasAudio, bool
     }
   }
 
+  if (notifyResourceIsLoaded) {
+    ResourceLoaded();
+  }
+
   
   
   NotifySuspendedStatusChanged();
+}
+
+void MediaDecoder::ResourceLoaded()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  
+  
+  if (mShuttingDown)
+    return;
+
+  {
+    
+    
+    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+    if (mIgnoreProgressData || mCalledResourceLoaded || mPlayState == PLAY_STATE_LOADING)
+      return;
+
+    Progress(false);
+
+    mCalledResourceLoaded = true;
+    StopProgress();
+  }
+
+  
+  if (mOwner) {
+    mOwner->ResourceLoaded();
+  }
 }
 
 void MediaDecoder::NetworkError()
@@ -977,12 +1020,12 @@ void MediaDecoder::NotifyDownloadEnded(nsresult aStatus)
   }
 
   if (NS_SUCCEEDED(aStatus)) {
-    UpdateReadyStateForData();
-    
-    
-  } else if (aStatus != NS_BASE_STREAM_CLOSED) {
+    ResourceLoaded();
+  }
+  else if (aStatus != NS_BASE_STREAM_CLOSED) {
     NetworkError();
   }
+  UpdateReadyStateForData();
 }
 
 void MediaDecoder::NotifyPrincipalChanged()

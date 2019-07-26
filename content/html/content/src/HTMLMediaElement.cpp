@@ -2581,7 +2581,7 @@ public:
   {
     mHaveCurrentData = true;
     if (mElement) {
-      mElement->FirstFrameLoaded();
+      mElement->FirstFrameLoaded(false);
     }
     UpdateReadyStateForData();
     DoNotifyOutput();
@@ -2672,6 +2672,7 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
 
   AddRemoveSelfReference();
   
+  
 }
 
 void HTMLMediaElement::EndSrcMediaStreamPlayback()
@@ -2743,7 +2744,7 @@ void HTMLMediaElement::MetadataLoaded(int aChannels,
   }
 }
 
-void HTMLMediaElement::FirstFrameLoaded()
+void HTMLMediaElement::FirstFrameLoaded(bool aResourceFullyLoaded)
 {
   ChangeDelayLoadStatus(false);
   UpdateReadyStateForData(NEXT_FRAME_UNAVAILABLE);
@@ -2751,6 +2752,7 @@ void HTMLMediaElement::FirstFrameLoaded()
   NS_ASSERTION(!mSuspendedAfterFirstFrame, "Should not have already suspended");
 
   if (mDecoder && mAllowSuspendAfterFirstFrame && mPaused &&
+      !aResourceFullyLoaded &&
       !HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
       mPreloadAction == HTMLMediaElement::PRELOAD_METADATA) {
     mSuspendedAfterFirstFrame = true;
@@ -2770,6 +2772,26 @@ void HTMLMediaElement::FirstFrameLoaded()
     ChangeReadyState(HAVE_ENOUGH_DATA);
     return;
   }
+}
+
+void HTMLMediaElement::ResourceLoaded()
+{
+  NS_ASSERTION(!mSrcStream, "Don't call this for streams");
+
+  mBegun = false;
+  mNetworkState = NETWORK_IDLE;
+  AddRemoveSelfReference();
+  if (mReadyState >= HAVE_METADATA) {
+    
+    
+    
+    ChangeReadyState(mSrcStream ? HAVE_CURRENT_DATA
+                     : HAVE_ENOUGH_DATA);
+  }
+  
+  DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
+  
+  DispatchAsyncEvent(NS_LITERAL_STRING("suspend"));
 }
 
 void HTMLMediaElement::NetworkError()
@@ -2926,8 +2948,6 @@ void HTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
       mDownloadSuspendedByCache &&
       mDecoder &&
       !mDecoder->IsEnded()) {
-    
-    
     
     
     

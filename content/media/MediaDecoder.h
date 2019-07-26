@@ -289,6 +289,9 @@ public:
                         nsIStreamListener** aStreamListener);
 
   
+  virtual void ResourceLoaded();
+
+  
   virtual void NetworkError();
 
   
@@ -1016,6 +1019,11 @@ public:
   
   
   PlayState mNextState;
+
+  
+  
+  
+  bool mCalledResourceLoaded;
 
   
   

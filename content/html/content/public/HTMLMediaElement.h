@@ -154,7 +154,13 @@ public:
 
   
   
-  virtual void FirstFrameLoaded() MOZ_FINAL MOZ_OVERRIDE;
+  
+  
+  virtual void FirstFrameLoaded(bool aResourceFullyLoaded) MOZ_FINAL MOZ_OVERRIDE;
+
+  
+  
+  virtual void ResourceLoaded() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
