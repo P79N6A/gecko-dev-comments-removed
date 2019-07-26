@@ -23,6 +23,8 @@ const InputStreamPump = CC(
         "@mozilla.org/binaryinputstream;1", "nsIBinaryInputStream", "setInputStream"),
       StringInputStream = CC(
         '@mozilla.org/io/string-input-stream;1', 'nsIStringInputStream'),
+      ArrayBufferInputStream = CC(
+        '@mozilla.org/io/arraybuffer-input-stream;1', 'nsIArrayBufferInputStream'),
       MultiplexInputStream = CC(
         '@mozilla.org/io/multiplex-input-stream;1', 'nsIMultiplexInputStream');
 
@@ -89,13 +91,6 @@ function TCPSocket() {
   this._port = 0;
   this._ssl = false;
 
-  
-  
-  
-  
-  
-  
-  
   this.useWin = null;
 }
 
@@ -436,43 +431,35 @@ TCPSocket.prototype = {
     this._socketInputStream.close();
   },
 
-  send: function ts_send(data) {
+  send: function ts_send(data, byteOffset, byteLength) {
     if (this._readyState !== kOPEN) {
       throw new Error("Socket not open.");
     }
 
-    if (this._inChild) {
-      this._socketBridge.send(data);
-    }
-
-    let new_stream = new StringInputStream();
     if (this._binaryType === "arraybuffer") {
-      
-      
-      
-      
-      var dataLen = data.length;
-      var offset = 0;
-      var result = "";
-      while (dataLen) {
-        var fragmentLen = dataLen;
-        if (fragmentLen > 32768)
-          fragmentLen = 32768;
-        dataLen -= fragmentLen;
-
-        var fragment = data.subarray(offset, offset + fragmentLen);
-        offset += fragmentLen;
-        result += String.fromCharCode.apply(null, fragment);
-      }
-      data = result;
+      byteLength = byteLength || data.byteLength;
     }
-    var newBufferedAmount = this.bufferedAmount + data.length;
+
+    if (this._inChild) {
+      this._socketBridge.send(data, byteOffset, byteLength);
+    }
+
+    let length = this._binaryType === "arraybuffer" ? byteLength : data.length;
+
+    var newBufferedAmount = this.bufferedAmount + length;
     var bufferNotFull = newBufferedAmount < BUFFER_SIZE;
     if (this._inChild) {
       return bufferNotFull;
     }
 
-    new_stream.setData(data, data.length);
+    let new_stream;
+    if (this._binaryType === "arraybuffer") {
+      new_stream = new ArrayBufferInputStream();
+      new_stream.setData(data, byteOffset, byteLength);
+    } else {
+      new_stream = new StringInputStream();
+      new_stream.setData(data, length);
+    }
     this._multiplexStream.appendStream(new_stream);
 
     if (newBufferedAmount >= BUFFER_SIZE) {
@@ -576,10 +563,7 @@ TCPSocket.prototype = {
   
   onDataAvailable: function ts_onDataAvailable(request, context, inputStream, offset, count) {
     if (this._binaryType === "arraybuffer") {
-      let buffer = this._inputStreamBinary.readArrayBuffer(count);
-      let constructor = this.useWin ? this.useWin.Uint8Array : Uint8Array;
-      let ua = new constructor(buffer);
-      this.callListener("data", ua);
+      this.callListener("data", this._inputStreamBinary.readArrayBuffer(count));
     } else {
       this.callListener("data", this._inputStreamScriptable.read(count));
     }
