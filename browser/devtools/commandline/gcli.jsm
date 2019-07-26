@@ -1173,6 +1173,8 @@ Argument.prototype.merge = function(following) {
 
 
 
+
+
 Argument.prototype.beget = function(options) {
   var text = this.text;
   var prefix = this.prefix;
@@ -1182,10 +1184,13 @@ Argument.prototype.beget = function(options) {
     text = options.text;
 
     
-    var needsQuote = text.indexOf(' ') >= 0 || text.length == 0;
-    if (needsQuote && /['"]/.test(prefix)) {
-      prefix = prefix + '\'';
-      suffix = '\'' + suffix;
+    if (!options.dontQuote) {
+      var needsQuote = text.indexOf(' ') >= 0 || text.length == 0;
+      var hasQuote = /['"]$/.test(prefix);
+      if (needsQuote && !hasQuote) {
+        prefix = prefix + '\'';
+        suffix = '\'' + suffix;
+      }
     }
   }
 
@@ -1592,7 +1597,7 @@ NamedArgument.prototype.beget = function(options) {
 
   
   
-  var matches = /^([\s]*)([^\s]*)([\s]*)$/.exec(begotten.prefix);
+  var matches = /^([\s]*)([^\s]*)([\s]*['"]?)$/.exec(begotten.prefix);
 
   if (this.valueArg == null && begotten.text === '') {
     begotten.nameArg = new Argument(matches[2], matches[1], matches[3]);
@@ -5822,7 +5827,10 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
   }
   else {
     
-    var arg = assignment.arg.beget({ text: prediction.name });
+    var arg = assignment.arg.beget({
+      text: prediction.name,
+      dontQuote: (assignment === this.commandAssignment)
+    });
     this.setAssignment(assignment, arg, { argUpdate: true });
 
     if (!prediction.incomplete) {
@@ -9983,9 +9991,7 @@ Completer.prototype.resized = function(ev) {
 
 
 Completer.prototype.update = function(ev) {
-  if (ev && ev.choice != null) {
-    this.choice = ev.choice;
-  }
+  this.choice = (ev && ev.choice != null) ? ev.choice : 0;
 
   var data = this._getCompleterTemplateData();
   var template = this.template.cloneNode(true);
