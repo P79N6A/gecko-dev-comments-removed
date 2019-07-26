@@ -710,19 +710,22 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     ReplyToConnect();
     AfterOppConnected();
     mIsServer = true;
-  } else if (opCode == ObexRequestCode::Disconnect ||
-             opCode == ObexRequestCode::Abort) {
-    
+  } else if (opCode == ObexRequestCode::Abort) {
     
     
     ParseHeaders(&aMessage->mData[3],
                 receivedLength - 3,
                 &pktHeaders);
-    ReplyToDisconnect();
+    ReplyToDisconnectOrAbort();
+    DeleteReceivedFile();
+  } else if (opCode == ObexRequestCode::Disconnect) {
+    
+    
+    ParseHeaders(&aMessage->mData[3],
+                receivedLength - 3,
+                &pktHeaders);
+    ReplyToDisconnectOrAbort();
     AfterOppDisconnected();
-    if (opCode == ObexRequestCode::Abort) {
-      DeleteReceivedFile();
-    }
     FileTransferComplete();
   } else if (opCode == ObexRequestCode::Put ||
              opCode == ObexRequestCode::PutFinal) {
@@ -1143,10 +1146,11 @@ BluetoothOppManager::ReplyToConnect()
 }
 
 void
-BluetoothOppManager::ReplyToDisconnect()
+BluetoothOppManager::ReplyToDisconnectOrAbort()
 {
   if (!mConnected) return;
 
+  
   
   
   uint8_t req[255];
