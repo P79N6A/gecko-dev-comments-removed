@@ -43,6 +43,11 @@ public:
   static bool PrefEnabled();
   static bool EnabledForScope(JSContext* aCx, JSObject* );
 
+  void MaybeResolve(JSContext* aCx,
+                    const Optional<JS::Handle<JS::Value> >& aValue);
+  void MaybeReject(JSContext* aCx,
+                   const Optional<JS::Handle<JS::Value> >& aValue);
+
   
 
   nsPIDOMWindow* GetParentObject() const
@@ -114,12 +119,12 @@ private:
   
   void MaybeReportRejected();
 
-  void MaybeResolve(JSContext* aCx,
-                    const Optional<JS::Handle<JS::Value> >& aValue,
-                    PromiseTaskSync aSync = AsyncTask);
-  void MaybeReject(JSContext* aCx,
-                   const Optional<JS::Handle<JS::Value> >& aValue,
-                   PromiseTaskSync aSync = AsyncTask);
+  void MaybeResolveInternal(JSContext* aCx,
+                            const Optional<JS::Handle<JS::Value> >& aValue,
+                            PromiseTaskSync aSync = AsyncTask);
+  void MaybeRejectInternal(JSContext* aCx,
+                           const Optional<JS::Handle<JS::Value> >& aValue,
+                           PromiseTaskSync aSync = AsyncTask);
 
   void ResolveInternal(JSContext* aCx,
                        const Optional<JS::Handle<JS::Value> >& aValue,
