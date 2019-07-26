@@ -120,15 +120,15 @@ main(int argc, char* argv[])
         nsCOMPtr<nsIServiceManager> servMan;
         NS_InitXPCOM2(getter_AddRefs(servMan), nullptr, nullptr);
 
-        nsCOMPtr<nsIIOService> ioService(do_GetService(kIOServiceCID, &rv));
         
         
         nsCOMPtr<nsIInputStream> uploadStream;
         rv = NS_NewPostDataStream(getter_AddRefs(uploadStream),
                                   true,
-                                  nsDependentCString(fileName), 
-                                  0, ioService);
+                                  nsDependentCString(fileName)); 
         if (NS_FAILED(rv)) return -1;
+
+        nsCOMPtr<nsIIOService> ioService(do_GetService(kIOServiceCID, &rv));
 
         
         nsCOMPtr<nsIURI> uri;
