@@ -595,14 +595,8 @@ function isAddonDisabled(aAddon) {
   return aAddon.appDisabled || aAddon.softDisabled || aAddon.userDisabled;
 }
 
-Object.defineProperty(this, "gRDF", {
-  get: function gRDFGetter() {
-    delete this.gRDF;
-    return this.gRDF = Cc["@mozilla.org/rdf/rdf-service;1"].
-                       getService(Ci.nsIRDFService);
-  },
-  configurable: true
-});
+XPCOMUtils.defineLazyServiceGetter(this, "gRDF", "@mozilla.org/rdf/rdf-service;1",
+                                   Ci.nsIRDFService);
 
 function EM_R(aProperty) {
   return gRDF.GetResource(PREFIX_NS_EM + aProperty);
@@ -1765,7 +1759,7 @@ var XPIProvider = {
                                                      null);
     this.minCompatiblePlatformVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION,
                                                           null);
-    this.enabledAddons = [];
+    this.enabledAddons = "";
 
     Services.prefs.addObserver(PREF_EM_MIN_COMPAT_APP_VERSION, this, false);
     Services.prefs.addObserver(PREF_EM_MIN_COMPAT_PLATFORM_VERSION, this, false);
@@ -2904,6 +2898,7 @@ var XPIProvider = {
       let newDBAddon = null;
       try {
         
+        
         newDBAddon = XPIDatabase.addAddonMetadata(newAddon, aAddonState.descriptor);
       }
       catch (e) {
@@ -3005,9 +3000,8 @@ var XPIProvider = {
       let addonStates = aSt.addons;
 
       
-      let pos = knownLocations.indexOf(installLocation.name);
-      if (pos >= 0) {
-        knownLocations.splice(pos, 1);
+      if (knownLocations.has(installLocation.name)) {
+        knownLocations.delete(installLocation.name);
         let addons = XPIDatabase.getAddonsInLocation(installLocation.name);
         
         
@@ -3084,12 +3078,12 @@ var XPIProvider = {
     
     
     
-    knownLocations.forEach(function(aLocation) {
-      let addons = XPIDatabase.getAddonsInLocation(aLocation);
+    for (let location of knownLocations) {
+      let addons = XPIDatabase.getAddonsInLocation(location);
       addons.forEach(function(aOldAddon) {
         changed = removeMetadata(aOldAddon) || changed;
       }, this);
-    }, this);
+    }
 
     
     AddonManagerPrivate.recordSimpleMeasure("modifiedUnpacked", modifiedUnpacked);
@@ -5379,6 +5373,8 @@ AddonInstall.prototype = {
                                             reason, extraParams);
           }
           else {
+            
+            
             XPIProvider.unloadBootstrapScope(this.addon.id);
           }
         }

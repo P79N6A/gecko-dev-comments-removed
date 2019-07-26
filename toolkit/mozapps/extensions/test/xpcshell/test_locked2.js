@@ -144,10 +144,8 @@ function run_test() {
 
         
         shutdownManager();
-        var dbfile = gProfD.clone();
-        dbfile.append(EXTENSIONS_DB);
-        var savedPermissions = dbfile.permissions;
-        dbfile.permissions = 0;
+        var savedPermissions = gExtensionsJSON.permissions;
+        gExtensionsJSON.permissions = 0;
 
         startupManager(false);
 
@@ -199,11 +197,11 @@ function run_test() {
           do_check_eq(a6.pendingOperations, AddonManager.PENDING_NONE);
           do_check_true(isExtensionInAddonsList(profileDir, a6.id));
 
-          dbfile.permissions = savedPermissions;
-
           
           
-          restartManager();
+          shutdownManager();
+          gExtensionsJSON.permissions = savedPermissions;
+          startupManager();
 
           
           

@@ -256,10 +256,8 @@ function run_test_1() {
 
     
     shutdownManager();
-    var dbfile = gProfD.clone();
-    dbfile.append(EXTENSIONS_DB);
-    var savedPermissions = dbfile.permissions;
-    dbfile.permissions = 0;
+    var savedPermissions = gExtensionsJSON.permissions;
+    gExtensionsJSON.permissions = 0;
 
     startupManager(false);
 
@@ -425,11 +423,11 @@ function run_test_1() {
         do_check_eq(t2.pendingOperations, AddonManager.PENDING_NONE);
         do_check_true(isThemeInAddonsList(profileDir, t2.id));
 
-        dbfile.permissions = savedPermissions;
-
         
         
-        restartManager();
+        shutdownManager();
+        gExtensionsJSON.permissions = savedPermissions;
+        startupManager(false);
 
         
         check_startup_changes(AddonManager.STARTUP_CHANGE_INSTALLED, []);
