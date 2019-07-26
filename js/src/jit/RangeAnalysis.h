@@ -277,12 +277,17 @@ class Range : public TempObject {
     
     
     
-    static void refineInt32BoundsByExponent(uint16_t e, int32_t *l, int32_t *h) {
+    static void refineInt32BoundsByExponent(uint16_t e,
+                                            int32_t *l, bool *lb,
+                                            int32_t *h, bool *hb)
+    {
        if (e < MaxInt32Exponent) {
            
            int32_t limit = (uint32_t(1) << (e + 1)) - 1;
            *h = Min(*h, limit);
            *l = Max(*l, -limit);
+           *hb = true;
+           *lb = true;
        }
     }
 
