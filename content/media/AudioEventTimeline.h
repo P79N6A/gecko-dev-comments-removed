@@ -190,12 +190,6 @@ public:
     }
   }
 
-  float ComputedValue() const
-  {
-    
-    return 0;
-  }
-
   void SetValueAtTime(float aValue, double aStartTime, ErrorResult& aRv)
   {
     InsertEvent(AudioTimelineEvent(AudioTimelineEvent::SetValue, aStartTime, aValue), aRv);
