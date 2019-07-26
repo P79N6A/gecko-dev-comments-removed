@@ -183,7 +183,7 @@ class BaselineCompiler : public BaselineCompilerSpecific
     bool modifiesArguments_;
 
     Label *labelOf(jsbytecode *pc) {
-        return &labels_[pc - script->code];
+        return &labels_[script->pcToOffset(pc)];
     }
 
     
