@@ -4195,7 +4195,7 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
   }
 
   
-  let toolbarItem = aEvent.explicitOriginalTarget;
+  let toolbarItem = popup.triggerNode;
 
   if (toolbarItem && toolbarItem.localName == "toolbarpaletteitem") {
     toolbarItem = toolbarItem.firstChild;
