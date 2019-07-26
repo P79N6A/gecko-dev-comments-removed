@@ -66,33 +66,25 @@ inline JSObject& IncumbentJSGlobal()
 }
 
 class ScriptSettingsStack;
-struct ScriptSettingsStackEntry {
+class ScriptSettingsStackEntry {
+  friend class ScriptSettingsStack;
+
+public:
+  ScriptSettingsStackEntry(nsIGlobalObject *aGlobal, bool aCandidate);
+  ~ScriptSettingsStackEntry();
+
+  bool NoJSAPI() { return !mGlobalObject; }
+
+protected:
   nsCOMPtr<nsIGlobalObject> mGlobalObject;
   bool mIsCandidateEntryPoint;
 
-  ScriptSettingsStackEntry(nsIGlobalObject *aGlobal, bool aCandidate)
-    : mGlobalObject(aGlobal)
-    , mIsCandidateEntryPoint(aCandidate)
-  {
-    MOZ_ASSERT(mGlobalObject);
-    MOZ_ASSERT(mGlobalObject->GetGlobalJSObject(),
-               "Must have an actual JS global for the duration on the stack");
-    MOZ_ASSERT(JS_IsGlobalObject(mGlobalObject->GetGlobalJSObject()),
-               "No outer windows allowed");
-  }
-
-  ~ScriptSettingsStackEntry() {
-    
-    MOZ_ASSERT_IF(mGlobalObject, mGlobalObject->GetGlobalJSObject());
-  }
-
-  bool NoJSAPI() { return this == &NoJSAPISingleton; }
-  static ScriptSettingsStackEntry NoJSAPISingleton;
-
 private:
-  ScriptSettingsStackEntry() : mGlobalObject(nullptr)
-                             , mIsCandidateEntryPoint(true)
-  {}
+  
+  friend class AutoNoJSAPI;
+  ScriptSettingsStackEntry();
+
+  ScriptSettingsStackEntry *mOlder;
 };
 
 
@@ -172,7 +164,6 @@ public:
                   bool aIsMainThread = NS_IsMainThread(),
                   
                   JSContext* aCx = nullptr);
-  ~AutoEntryScript();
 
   void SetWebIDLCallerPrincipal(nsIPrincipal *aPrincipal) {
     mWebIDLCallerPrincipal = aPrincipal;
@@ -180,7 +171,6 @@ public:
 
 private:
   JSAutoCompartment mAc;
-  dom::ScriptSettingsStack& mStack;
   
   
   
@@ -198,9 +188,7 @@ private:
 class AutoIncumbentScript : protected ScriptSettingsStackEntry {
 public:
   AutoIncumbentScript(nsIGlobalObject* aGlobalObject);
-  ~AutoIncumbentScript();
 private:
-  dom::ScriptSettingsStack& mStack;
   JS::AutoHideScriptedCaller mCallerOverride;
 };
 
@@ -212,12 +200,10 @@ private:
 
 
 
-class AutoNoJSAPI {
+class AutoNoJSAPI : protected ScriptSettingsStackEntry {
 public:
   AutoNoJSAPI(bool aIsMainThread = NS_IsMainThread());
-  ~AutoNoJSAPI();
 private:
-  dom::ScriptSettingsStack& mStack;
   mozilla::Maybe<AutoCxPusher> mCxPusher;
 };
 

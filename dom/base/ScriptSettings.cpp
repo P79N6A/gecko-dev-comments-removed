@@ -20,65 +20,51 @@
 namespace mozilla {
 namespace dom {
 
-class ScriptSettingsStack;
-static mozilla::ThreadLocal<ScriptSettingsStack*> sScriptSettingsTLS;
-
-ScriptSettingsStackEntry ScriptSettingsStackEntry::NoJSAPISingleton;
+static mozilla::ThreadLocal<ScriptSettingsStackEntry*> sScriptSettingsTLS;
 
 class ScriptSettingsStack {
 public:
-  static ScriptSettingsStack& Ref() {
-    return *sScriptSettingsTLS.get();
+  static ScriptSettingsStackEntry* Top() {
+    return sScriptSettingsTLS.get();
   }
-  ScriptSettingsStack() {};
 
-  void Push(ScriptSettingsStackEntry* aSettings) {
+  static void Push(ScriptSettingsStackEntry *aEntry) {
+    MOZ_ASSERT(!aEntry->mOlder);
     
-    MOZ_ASSERT_IF(mStack.Length() == 0 || mStack.LastElement()->NoJSAPI(),
-                  aSettings->mIsCandidateEntryPoint);
-    mStack.AppendElement(aSettings);
+    
+    MOZ_ASSERT_IF(!Top() || Top()->NoJSAPI(), aEntry->mIsCandidateEntryPoint);
+
+    aEntry->mOlder = Top();
+    sScriptSettingsTLS.set(aEntry);
   }
 
-  void PushNoJSAPI() {
-    mStack.AppendElement(&ScriptSettingsStackEntry::NoJSAPISingleton);
+  static void Pop(ScriptSettingsStackEntry *aEntry) {
+    MOZ_ASSERT(aEntry == Top());
+    sScriptSettingsTLS.set(aEntry->mOlder);
   }
 
-  void Pop() {
-    MOZ_ASSERT(mStack.Length() > 0);
-    mStack.RemoveElementAt(mStack.Length() - 1);
-  }
-
-  ScriptSettingsStackEntry* Incumbent() {
-    if (!mStack.Length()) {
-      return nullptr;
-    }
-    return mStack.LastElement();
-  }
-
-  nsIGlobalObject* IncumbentGlobal() {
-    ScriptSettingsStackEntry *entry = Incumbent();
+  static nsIGlobalObject* IncumbentGlobal() {
+    ScriptSettingsStackEntry *entry = Top();
     return entry ? entry->mGlobalObject : nullptr;
   }
 
-  ScriptSettingsStackEntry* EntryPoint() {
-    if (!mStack.Length())
+  static ScriptSettingsStackEntry* EntryPoint() {
+    ScriptSettingsStackEntry *entry = Top();
+    if (!entry) {
       return nullptr;
-    for (int i = mStack.Length() - 1; i >= 0; --i) {
-      if (mStack[i]->mIsCandidateEntryPoint) {
-        return mStack[i];
-      }
+    }
+    while (entry) {
+      if (entry->mIsCandidateEntryPoint)
+        return entry;
+      entry = entry->mOlder;
     }
     MOZ_CRASH("Non-empty stack should always have an entry point");
   }
 
-  nsIGlobalObject* EntryGlobal() {
+  static nsIGlobalObject* EntryGlobal() {
     ScriptSettingsStackEntry *entry = EntryPoint();
     return entry ? entry->mGlobalObject : nullptr;
   }
-
-private:
-  
-  nsTArray<ScriptSettingsStackEntry*> mStack;
 };
 
 void
@@ -91,16 +77,44 @@ InitScriptSettings()
     }
   }
 
-  ScriptSettingsStack* ptr = new ScriptSettingsStack();
-  sScriptSettingsTLS.set(ptr);
+  sScriptSettingsTLS.set(nullptr);
 }
 
 void DestroyScriptSettings()
 {
-  ScriptSettingsStack* ptr = sScriptSettingsTLS.get();
-  MOZ_ASSERT(ptr);
-  sScriptSettingsTLS.set(nullptr);
-  delete ptr;
+  MOZ_ASSERT(sScriptSettingsTLS.get() == nullptr);
+}
+
+ScriptSettingsStackEntry::ScriptSettingsStackEntry(nsIGlobalObject *aGlobal,
+                                                   bool aCandidate)
+  : mGlobalObject(aGlobal)
+  , mIsCandidateEntryPoint(aCandidate)
+  , mOlder(nullptr)
+{
+  MOZ_ASSERT(mGlobalObject);
+  MOZ_ASSERT(mGlobalObject->GetGlobalJSObject(),
+             "Must have an actual JS global for the duration on the stack");
+  MOZ_ASSERT(JS_IsGlobalObject(mGlobalObject->GetGlobalJSObject()),
+             "No outer windows allowed");
+
+  ScriptSettingsStack::Push(this);
+}
+
+
+ScriptSettingsStackEntry::ScriptSettingsStackEntry()
+   : mGlobalObject(nullptr)
+   , mIsCandidateEntryPoint(true)
+   , mOlder(nullptr)
+{
+  ScriptSettingsStack::Push(this);
+}
+
+ScriptSettingsStackEntry::~ScriptSettingsStackEntry()
+{
+  
+  MOZ_ASSERT_IF(mGlobalObject, mGlobalObject->GetGlobalJSObject());
+
+  ScriptSettingsStack::Pop(this);
 }
 
 
@@ -115,7 +129,7 @@ BrokenGetEntryGlobal()
   
   JSContext *cx = nsContentUtils::GetCurrentJSContextForThread();
   if (!cx) {
-    MOZ_ASSERT(ScriptSettingsStack::Ref().EntryGlobal() == nullptr);
+    MOZ_ASSERT(ScriptSettingsStack::EntryGlobal() == nullptr);
     return nullptr;
   }
 
@@ -135,7 +149,7 @@ GetIncumbentGlobal()
   
   JSContext *cx = nsContentUtils::GetCurrentJSContextForThread();
   if (!cx) {
-    MOZ_ASSERT(ScriptSettingsStack::Ref().EntryGlobal() == nullptr);
+    MOZ_ASSERT(ScriptSettingsStack::EntryGlobal() == nullptr);
     return nullptr;
   }
 
@@ -149,14 +163,14 @@ GetIncumbentGlobal()
 
   
   
-  return ScriptSettingsStack::Ref().IncumbentGlobal();
+  return ScriptSettingsStack::IncumbentGlobal();
 }
 
 nsIPrincipal*
 GetWebIDLCallerPrincipal()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  ScriptSettingsStackEntry *entry = ScriptSettingsStack::Ref().EntryPoint();
+  ScriptSettingsStackEntry *entry = ScriptSettingsStack::EntryPoint();
 
   
   
@@ -248,37 +262,21 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
   : AutoJSAPI(aCx ? aCx : FindJSContext(aGlobalObject), aIsMainThread,  true)
   , ScriptSettingsStackEntry(aGlobalObject,  true)
   , mAc(cx(), aGlobalObject->GetGlobalJSObject())
-  , mStack(ScriptSettingsStack::Ref())
   , mWebIDLCallerPrincipal(nullptr)
 {
   MOZ_ASSERT(aGlobalObject);
   MOZ_ASSERT_IF(!aCx, aIsMainThread); 
   MOZ_ASSERT_IF(aCx && aIsMainThread, aCx == FindJSContext(aGlobalObject));
-  mStack.Push(this);
-}
-
-AutoEntryScript::~AutoEntryScript()
-{
-  MOZ_ASSERT(mStack.Incumbent() == this);
-  mStack.Pop();
 }
 
 AutoIncumbentScript::AutoIncumbentScript(nsIGlobalObject* aGlobalObject)
   : ScriptSettingsStackEntry(aGlobalObject,  false)
-  , mStack(ScriptSettingsStack::Ref())
   , mCallerOverride(nsContentUtils::GetCurrentJSContextForThread())
 {
-  mStack.Push(this);
-}
-
-AutoIncumbentScript::~AutoIncumbentScript()
-{
-  MOZ_ASSERT(mStack.Incumbent() == this);
-  mStack.Pop();
 }
 
 AutoNoJSAPI::AutoNoJSAPI(bool aIsMainThread)
-  : mStack(ScriptSettingsStack::Ref())
+  : ScriptSettingsStackEntry()
 {
   MOZ_ASSERT_IF(nsContentUtils::GetCurrentJSContextForThread(),
                 !JS_IsExceptionPending(nsContentUtils::GetCurrentJSContextForThread()));
@@ -286,12 +284,6 @@ AutoNoJSAPI::AutoNoJSAPI(bool aIsMainThread)
     mCxPusher.construct(static_cast<JSContext*>(nullptr),
                          true);
   }
-  mStack.PushNoJSAPI();
-}
-
-AutoNoJSAPI::~AutoNoJSAPI()
-{
-  mStack.Pop();
 }
 
 } 
