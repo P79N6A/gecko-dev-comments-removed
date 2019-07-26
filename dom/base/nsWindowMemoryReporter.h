@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsWindowMemoryReporter_h__
 #define nsWindowMemoryReporter_h__
 
@@ -34,6 +35,7 @@ public:
   size_t mDOMTextNodes;
   size_t mDOMCDATANodes;
   size_t mDOMCommentNodes;
+  size_t mDOMEventTargets;
   size_t mDOMOther;
   size_t mStyleSheets;
   size_t mLayoutPresShell;

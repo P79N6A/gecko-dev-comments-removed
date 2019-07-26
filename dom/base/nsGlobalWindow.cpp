@@ -23,6 +23,7 @@
 #include "nsError.h"
 #include "nsIIdleService.h"
 #include "nsIPowerManagerService.h"
+#include "nsISizeOfEventTarget.h"
 
 #ifdef XP_WIN
 #ifdef GetClassName
@@ -11063,6 +11064,17 @@ nsPIDOMWindow::HasPerformanceSupport()
   return Preferences::GetBool("dom.enable_performance", false);
 }
 
+static size_t
+SizeOfEventTargetObjectsEntryExcludingThisFun(
+  nsPtrHashKey<nsDOMEventTargetHelper> *aEntry,
+  nsMallocSizeOfFun aMallocSizeOf,
+  void *arg)
+{
+  nsISupports *supports = aEntry->GetKey();
+  nsCOMPtr<nsISizeOfEventTarget> iface = do_QueryInterface(supports);
+  return iface ? iface->SizeOfEventTargetIncludingThis(aMallocSizeOf) : 0;
+}
+
 void
 nsGlobalWindow::SizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
 {
@@ -11083,6 +11095,11 @@ nsGlobalWindow::SizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
   aWindowSizes->mDOMOther +=
     mNavigator ?
       mNavigator->SizeOfIncludingThis(aWindowSizes->mMallocSizeOf) : 0;
+
+  aWindowSizes->mDOMEventTargets +=
+    mEventTargetObjects.SizeOfExcludingThis(
+      SizeOfEventTargetObjectsEntryExcludingThisFun,
+      aWindowSizes->mMallocSizeOf);
 }
 
 

@@ -638,6 +638,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsXMLHttpRequest)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
+  NS_INTERFACE_MAP_ENTRY(nsISizeOfEventTarget)
 NS_INTERFACE_MAP_END_INHERITING(nsXHREventTarget)
 
 NS_IMPL_ADDREF_INHERITED(nsXMLHttpRequest, nsXHREventTarget)
@@ -650,6 +651,33 @@ nsXMLHttpRequest::DisconnectFromOwner()
 {
   nsXHREventTarget::DisconnectFromOwner();
   Abort();
+}
+
+size_t
+nsXMLHttpRequest::SizeOfEventTargetIncludingThis(
+  nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = aMallocSizeOf(this);
+  n += mResponseBody.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  n += mResponseText.SizeOfExcludingThisEvenIfShared(aMallocSizeOf);
+
+  return n;
+
+  
+  
+  
 }
 
 

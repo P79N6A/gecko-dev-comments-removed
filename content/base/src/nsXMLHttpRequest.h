@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXMLHttpRequest_h__
 #define nsXMLHttpRequest_h__
 
@@ -35,6 +36,7 @@
 #include "nsDOMBlobBuilder.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptObjectPrincipal.h"
+#include "nsISizeOfEventTarget.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -124,7 +126,8 @@ class nsXMLHttpRequest : public nsXHREventTarget,
                          public nsIInterfaceRequestor,
                          public nsSupportsWeakReference,
                          public nsIJSNativeInitializer,
-                         public nsITimerCallback
+                         public nsITimerCallback,
+                         public nsISizeOfEventTarget
 {
   friend class nsXHRParseEndListener;
   friend class nsXMLHttpRequestXPCOMifier;
@@ -228,6 +231,10 @@ public:
   
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
                        uint32_t argc, jsval* argv);
+
+  
+  virtual size_t
+    SizeOfEventTargetIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
   NS_FORWARD_NSIDOMEVENTTARGET(nsXHREventTarget::)
 
@@ -491,6 +498,7 @@ public:
   void RootJSResultObjects();
 
   virtual void DisconnectFromOwner();
+
 protected:
   friend class nsMultipartProxyListener;
 
@@ -573,7 +581,7 @@ protected:
   
   
   nsString mResponseText;
-  
+
   
   
   uint32_t mResponseBodyDecodedPos;
