@@ -884,7 +884,12 @@ CodeGenerator::visitNewArray(LNewArray *lir)
     size_t maxArraySlots =
         gc::GetGCKindSlots(gc::FINALIZE_OBJECT_LAST) - ObjectElements::VALUES_PER_HEADER;
 
-    if (!gen->cx->typeInferenceEnabled() || !typeObj || count > maxArraySlots)
+    
+    
+    
+    bool allocating = lir->mir()->isAllocating() && count > maxArraySlots;
+
+    if (!gen->cx->typeInferenceEnabled() || !typeObj || allocating)
         return visitNewArrayCallVM(lir);
 
     OutOfLineNewArray *ool = new OutOfLineNewArray(lir);
