@@ -7,8 +7,10 @@
 #include <algorithm>
 #include <stdarg.h>
 
+#include "prprf.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/Assertions.h"
 
 #include "BindingUtils.h"
 
@@ -1897,6 +1899,84 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
   }
 
   return window.forget();
+}
+
+bool
+NonVoidByteStringToJsval(JSContext *cx, const nsACString &str,
+                         JS::MutableHandle<JS::Value> rval)
+{
+    if (str.IsEmpty()) {
+        rval.set(JS_GetEmptyStringValue(cx));
+        return true;
+    }
+
+    
+    JSString* jsStr = JS_NewStringCopyN(cx, str.Data(), str.Length());
+
+    if (!jsStr)
+        return false;
+
+    rval.setString(jsStr);
+    return true;
+}
+
+bool
+ConvertJSValueToByteString(JSContext* cx, JS::Handle<JS::Value> v,
+                           JS::MutableHandle<JS::Value> pval, bool nullable,
+                           nsACString& result)
+{
+  JSString *s;
+  if (v.isString()) {
+    s = v.toString();
+  } else {
+
+    if (nullable && v.isNullOrUndefined()) {
+      result.SetIsVoid(true);
+      return true;
+    }
+
+    s = JS_ValueToString(cx, v);
+    if (!s) {
+      return false;
+    }
+    pval.set(JS::StringValue(s));  
+  }
+
+  size_t length;
+  const jschar *chars = JS_GetStringCharsZAndLength(cx, s, &length);
+  if (!chars) {
+    return false;
+  }
+
+  
+  
+  for (size_t i = 0; i < length; i++) {
+    if (chars[i] > 255) {
+      
+      
+      char index[21];
+      MOZ_STATIC_ASSERT(sizeof(size_t) <= 8, "index array too small");
+      PR_snprintf(index, sizeof(index), "%d", i);
+      
+      
+      
+      char badChar[6];
+      MOZ_STATIC_ASSERT(sizeof(jschar) <= 2, "badChar array too small");
+      PR_snprintf(badChar, sizeof(badChar), "%d", chars[i]);
+      ThrowErrorMessage(cx, MSG_INVALID_BYTESTRING, index, badChar);
+      return false;
+    }
+  }
+
+  if (length >= UINT32_MAX) {
+    return false;
+  }
+  result.SetCapacity(length+1);
+  JS_EncodeStringToBuffer(cx, s, result.BeginWriting(), length);
+  result.BeginWriting()[length] = '\0';
+  result.SetLength(length);
+
+  return true;
 }
 
 } 

@@ -1582,6 +1582,11 @@ ConvertJSValueToString(JSContext* cx, JS::Handle<JS::Value> v,
   return true;
 }
 
+bool
+ConvertJSValueToByteString(JSContext* cx, JS::Handle<JS::Value> v,
+                           JS::MutableHandle<JS::Value> pval, bool nullable,
+                           nsACString& result);
+
 
 
 template<class T>
@@ -2056,6 +2061,24 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
 bool
 RegisterForDeferredFinalization(DeferredFinalizeStartFunction start,
                                 DeferredFinalizeFunction run);
+
+
+
+
+
+
+
+bool NonVoidByteStringToJsval(JSContext *cx, const nsACString &str,
+                              JS::MutableHandle<JS::Value> rval);
+inline bool ByteStringToJsval(JSContext *cx, const nsACString &str,
+                              JS::MutableHandle<JS::Value> rval)
+{
+    if (str.IsVoid()) {
+        rval.setNull();
+        return true;
+    }
+    return NonVoidByteStringToJsval(cx, str, rval);
+}
 
 } 
 } 
