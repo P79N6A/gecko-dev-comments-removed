@@ -59,6 +59,7 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 #include "nsSandboxFlags.h"
+#include "mozilla/Preferences.h"
 
 #ifdef USEWEAKREFS
 #include "nsIWeakReference.h"
@@ -899,7 +900,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
   if (windowIsNew) {
     
+    
     bool isPrivateBrowsingWindow =
+      Preferences::GetBool("browser.privatebrowsing.autostart") ||
       !!(chromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW);
     
     

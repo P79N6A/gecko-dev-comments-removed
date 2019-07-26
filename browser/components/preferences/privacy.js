@@ -222,18 +222,22 @@ var gPrivacyPane = {
 
     observe: function PPP_observe(aSubject, aTopic, aData)
     {
-      let privateBrowsingService = Components.classes["@mozilla.org/privatebrowsing;1"].
-        getService(Components.interfaces.nsIPrivateBrowsingService);
-
       
       let prefValue = document.getElementById("browser.privatebrowsing.autostart").value;
       let keepCurrentSession = document.getElementById("browser.privatebrowsing.keep_current_session");
       keepCurrentSession.value = true;
+
+#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
+      let privateBrowsingService = Components.classes["@mozilla.org/privatebrowsing;1"].
+        getService(Components.interfaces.nsIPrivateBrowsingService);
+
       
       
       if (prefValue && privateBrowsingService.privateBrowsingEnabled)
         privateBrowsingService.privateBrowsingEnabled = false;
       privateBrowsingService.privateBrowsingEnabled = prefValue;
+#endif
+
       keepCurrentSession.reset();
     }
   },

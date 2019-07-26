@@ -355,17 +355,25 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
-  nsCOMPtr<nsIDOMWindow> domWin = do_GetInterface(aParent);
-  nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(domWin);
-  nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(webNav);
+  bool isPrivateBrowsingWindow =
+    Preferences::GetBool("browser.privatebrowsing.autostart");
+  if (!isPrivateBrowsingWindow) {
+    
+    
+    
+    nsCOMPtr<nsIDOMWindow> domWin = do_GetInterface(aParent);
+    nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(domWin);
+    nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(webNav);
+    if (parentContext) {
+      isPrivateBrowsingWindow = parentContext->UsePrivateBrowsing();
+    }
+  }
   nsCOMPtr<nsIDOMWindow> newDomWin =
       do_GetInterface(NS_ISUPPORTS_CAST(nsIBaseWindow*, window));
   nsCOMPtr<nsIWebNavigation> newWebNav = do_GetInterface(newDomWin);
   nsCOMPtr<nsILoadContext> thisContext = do_GetInterface(newWebNav);
-  if (parentContext && thisContext) {
-    thisContext->SetUsePrivateBrowsing(parentContext->UsePrivateBrowsing());
+  if (thisContext) {
+    thisContext->SetUsePrivateBrowsing(isPrivateBrowsingWindow);
   }
 
   window.swap(*aResult); 
