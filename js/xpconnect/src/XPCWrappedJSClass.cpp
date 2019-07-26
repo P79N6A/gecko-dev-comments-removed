@@ -247,7 +247,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                         
                         
                         
-                        rv = (nsresult)(uint32_t)(JSVAL_TO_DOUBLE(jsexception));
+                        rv = (nsresult)(uint32_t)(jsexception.toDouble());
                     else
                         rv = (nsresult)(JSVAL_TO_INT(jsexception));
 
