@@ -59,40 +59,12 @@ struct Rooter {
     ThingRootKind kind;
 };
 
-
-
-
-
-
-
-template <typename T>
-struct AutoMarkDefinedForValgrind {
-    static const unsigned int VALGRIND_RUNNING_AND_REQUEST_SUCCESSFUL = 1;
-
-    T *ptr_;
-    bool active;
-    uint8_t defined[sizeof(T)];
-    AutoMarkDefinedForValgrind(T *ptr)
-        : ptr_(ptr), active(true)
-    {
-        
-        active = (VALGRIND_GET_VBITS(ptr_, defined, sizeof(T)) ==
-                  VALGRIND_RUNNING_AND_REQUEST_SUCCESSFUL);
-        VALGRIND_MAKE_MEM_DEFINED(ptr_, sizeof(T));
-    }
-    ~AutoMarkDefinedForValgrind() {
-        if (active)
-            (void) VALGRIND_SET_VBITS(ptr_, defined, sizeof(T));
-    }
-};
-
 static void
 CheckStackRoot(JSRuntime *rt, uintptr_t *w, Rooter *begin, Rooter *end)
 {
     
 #ifdef MOZ_VALGRIND
     VALGRIND_MAKE_MEM_DEFINED(&w, sizeof(w));
-    AutoMarkDefinedForValgrind<uintptr_t> define(w);
 #endif
 
     void *thing = GetAddressableGCThing(rt, *w);
