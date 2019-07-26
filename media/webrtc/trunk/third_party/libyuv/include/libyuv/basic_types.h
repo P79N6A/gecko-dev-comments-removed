@@ -13,27 +13,13 @@
 
 #include <stddef.h>  
 
-#if !(defined(_MSC_VER) && (_MSC_VER < 1600))
+#if defined(__ANDROID__) || (defined(_MSC_VER) && (_MSC_VER < 1600))
+#include <sys/types.h>  
+#else
 #include <stdint.h>  
 #endif
 
-#include <stdint.h>
-typedef uint64_t uint64;
-typedef int64_t  int64;
-#if defined(_MSC_VER)
-
-typedef long int32;
-typedef unsigned long uint32;
-#else
-typedef uint32_t uint32;
-typedef int32_t  int32;
-#endif
-typedef uint16_t uint16;
-typedef int16_t  int16;
-typedef uint8_t  uint8;
-typedef int8_t   int8;
-#define INT_TYPES_DEFINED 1
-
+#ifndef GG_LONGLONG
 #ifndef INT_TYPES_DEFINED
 #define INT_TYPES_DEFINED
 #ifdef COMPILER_MSVC
@@ -47,7 +33,7 @@ typedef __int64 int64;
 #endif
 #define INT64_F "I64"
 #else  
-#ifdef __LP64__
+#if defined(__LP64__) && !defined(__OpenBSD__) && !defined(__APPLE__)
 typedef unsigned long uint64;  
 typedef long int64;  
 #ifndef INT64_C
@@ -76,6 +62,7 @@ typedef short int16;
 typedef unsigned char uint8;
 typedef signed char int8;
 #endif  
+#endif  
 
 
 #if defined(__x86_64__) || defined(_M_X64) || \
@@ -88,9 +75,14 @@ typedef signed char int8;
 #endif
 
 #ifndef ALIGNP
+#ifdef __cplusplus
 #define ALIGNP(p, t) \
     (reinterpret_cast<uint8*>(((reinterpret_cast<uintptr_t>(p) + \
     ((t) - 1)) & ~((t) - 1))))
+#else
+#define ALIGNP(p, t) \
+    ((uint8*)((((uintptr_t)(p) + ((t) - 1)) & ~((t) - 1))))  /* NOLINT */
+#endif
 #endif
 
 #if !defined(LIBYUV_API)
@@ -110,5 +102,17 @@ typedef signed char int8;
 #define LIBYUV_API
 #endif  
 #endif  
+
+#define LIBYUV_BOOL int
+#define LIBYUV_FALSE 0
+#define LIBYUV_TRUE 1
+
+
+#if defined(__x86_64__) || defined(_M_X64) || \
+  defined(__i386__) || defined(_M_IX86) || \
+  defined(__arm__) || defined(_M_ARM) || \
+  (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define LIBYUV_LITTLE_ENDIAN
+#endif
 
 #endif  

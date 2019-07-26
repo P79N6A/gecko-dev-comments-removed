@@ -76,6 +76,9 @@ int I400ToARGB(const uint8* src_y, int src_stride_y,
                int width, int height);
 
 
+#define YToARGB I400ToARGB_Reference
+
+
 LIBYUV_API
 int I400ToARGB_Reference(const uint8* src_y, int src_stride_y,
                          uint8* dst_argb, int dst_stride_argb,
@@ -119,12 +122,6 @@ LIBYUV_API
 int UYVYToARGB(const uint8* src_uyvy, int src_stride_uyvy,
                uint8* dst_argb, int dst_stride_argb,
                int width, int height);
-
-
-
-
-
-
 
 
 LIBYUV_API
@@ -216,8 +213,8 @@ int ConvertToARGB(const uint8* src_frame, size_t src_size,
                   uint8* dst_argb, int dst_stride_argb,
                   int crop_x, int crop_y,
                   int src_width, int src_height,
-                  int dst_width, int dst_height,
-                  RotationMode rotation,
+                  int crop_width, int crop_height,
+                  enum RotationMode rotation,
                   uint32 format);
 
 #ifdef __cplusplus

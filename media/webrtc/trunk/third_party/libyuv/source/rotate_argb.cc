@@ -22,13 +22,22 @@ extern "C" {
 
 
 
-#if !defined(YUV_DISABLE_ASM) && (defined(_M_IX86) || \
-  defined(__x86_64__) || defined(__i386__))
+#if !defined(LIBYUV_DISABLE_X86) && \
+    (defined(_M_IX86) || \
+    (defined(__x86_64__) && !defined(__native_client__)) || defined(__i386__))
 #define HAS_SCALEARGBROWDOWNEVEN_SSE2
 void ScaleARGBRowDownEven_SSE2(const uint8* src_ptr, int src_stride,
                                int src_stepx,
                                uint8* dst_ptr, int dst_width);
 #endif
+#if !defined(LIBYUV_DISABLE_NEON) && !defined(__native_client__) && \
+    (defined(__ARM_NEON__) || defined(LIBYUV_NEON))
+#define HAS_SCALEARGBROWDOWNEVEN_NEON
+void ScaleARGBRowDownEven_NEON(const uint8* src_ptr, int src_stride,
+                               int src_stepx,
+                               uint8* dst_ptr, int dst_width);
+#endif
+
 void ScaleARGBRowDownEven_C(const uint8* src_ptr, int,
                             int src_stepx,
                             uint8* dst_ptr, int dst_width);
@@ -36,18 +45,23 @@ void ScaleARGBRowDownEven_C(const uint8* src_ptr, int,
 static void ARGBTranspose(const uint8* src, int src_stride,
                           uint8* dst, int dst_stride,
                           int width, int height) {
+  int i;
+  int src_pixel_step = src_stride >> 2;
   void (*ScaleARGBRowDownEven)(const uint8* src_ptr, int src_stride,
       int src_step, uint8* dst_ptr, int dst_width) = ScaleARGBRowDownEven_C;
 #if defined(HAS_SCALEARGBROWDOWNEVEN_SSE2)
-  if (TestCpuFlag(kCpuHasSSE2) &&
-      IS_ALIGNED(height, 4) &&  
+  if (TestCpuFlag(kCpuHasSSE2) && IS_ALIGNED(height, 4) &&  
       IS_ALIGNED(dst, 16) && IS_ALIGNED(dst_stride, 16)) {
     ScaleARGBRowDownEven = ScaleARGBRowDownEven_SSE2;
   }
+#elif defined(HAS_SCALEARGBROWDOWNEVEN_NEON)
+  if (TestCpuFlag(kCpuHasNEON) && IS_ALIGNED(height, 4) &&  
+      IS_ALIGNED(src, 4)) {
+    ScaleARGBRowDownEven = ScaleARGBRowDownEven_NEON;
+  }
 #endif
 
-  int src_pixel_step = src_stride / 4;
-  for (int i = 0; i < width; ++i) {  
+  for (i = 0; i < width; ++i) {  
     ScaleARGBRowDownEven(src, 0, src_pixel_step, dst, height);
     dst += dst_stride;
     src += 4;
@@ -79,8 +93,15 @@ void ARGBRotate270(const uint8* src, int src_stride,
 void ARGBRotate180(const uint8* src, int src_stride,
                    uint8* dst, int dst_stride,
                    int width, int height) {
+  
+  align_buffer_64(row, width * 4);
+  const uint8* src_bot = src + src_stride * (height - 1);
+  uint8* dst_bot = dst + dst_stride * (height - 1);
+  int half_height = (height + 1) >> 1;
+  int y;
   void (*ARGBMirrorRow)(const uint8* src, uint8* dst, int width) =
       ARGBMirrorRow_C;
+  void (*CopyRow)(const uint8* src, uint8* dst, int width) = CopyRow_C;
 #if defined(HAS_ARGBMIRRORROW_SSSE3)
   if (TestCpuFlag(kCpuHasSSSE3) && IS_ALIGNED(width, 4) &&
       IS_ALIGNED(src, 16) && IS_ALIGNED(src_stride, 16) &&
@@ -88,9 +109,18 @@ void ARGBRotate180(const uint8* src, int src_stride,
     ARGBMirrorRow = ARGBMirrorRow_SSSE3;
   }
 #endif
-  void (*CopyRow)(const uint8* src, uint8* dst, int width) = CopyRow_C;
+#if defined(HAS_ARGBMIRRORROW_AVX2)
+  if (TestCpuFlag(kCpuHasAVX2) && IS_ALIGNED(width, 8)) {
+    ARGBMirrorRow = ARGBMirrorRow_AVX2;
+  }
+#endif
+#if defined(HAS_ARGBMIRRORROW_NEON)
+  if (TestCpuFlag(kCpuHasNEON) && IS_ALIGNED(width, 4)) {
+    ARGBMirrorRow = ARGBMirrorRow_NEON;
+  }
+#endif
 #if defined(HAS_COPYROW_NEON)
-  if (TestCpuFlag(kCpuHasNEON) && IS_ALIGNED(width * 4, 64)) {
+  if (TestCpuFlag(kCpuHasNEON) && IS_ALIGNED(width * 4, 32)) {
     CopyRow = CopyRow_NEON;
   }
 #endif
@@ -106,31 +136,35 @@ void ARGBRotate180(const uint8* src, int src_stride,
     CopyRow = CopyRow_SSE2;
   }
 #endif
-  if (width * 4 > kMaxStride) {
-    return;
+#if defined(HAS_COPYROW_ERMS)
+  if (TestCpuFlag(kCpuHasERMS)) {
+    CopyRow = CopyRow_ERMS;
   }
+#endif
+#if defined(HAS_COPYROW_MIPS)
+  if (TestCpuFlag(kCpuHasMIPS)) {
+    CopyRow = CopyRow_MIPS;
+  }
+#endif
+
   
-  SIMD_ALIGNED(uint8 row[kMaxStride]);
-  const uint8* src_bot = src + src_stride * (height - 1);
-  uint8* dst_bot = dst + dst_stride * (height - 1);
-  int half_height = (height + 1) >> 1;
-  
-  for (int y = 0; y < half_height; ++y) {
+  for (y = 0; y < half_height; ++y) {
     ARGBMirrorRow(src, row, width);  
-    src += src_stride;
     ARGBMirrorRow(src_bot, dst, width);  
-    dst += dst_stride;
     CopyRow(row, dst_bot, width * 4);  
+    src += src_stride;
+    dst += dst_stride;
     src_bot -= src_stride;
     dst_bot -= dst_stride;
   }
+  free_aligned_buffer_64(row);
 }
 
 LIBYUV_API
 int ARGBRotate(const uint8* src_argb, int src_stride_argb,
                uint8* dst_argb, int dst_stride_argb,
                int width, int height,
-               RotationMode mode) {
+               enum RotationMode mode) {
   if (!src_argb || width <= 0 || height == 0 || !dst_argb) {
     return -1;
   }
