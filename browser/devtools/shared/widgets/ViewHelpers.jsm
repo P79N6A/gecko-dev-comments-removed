@@ -1029,6 +1029,12 @@ this.WidgetMethods = {
 
 
 
+  allowFocusOnRightClick: false,
+
+  
+
+
+
 
   pageSize: 0,
 
@@ -1546,7 +1552,7 @@ this.WidgetMethods = {
 
 
   _onWidgetMousePress: function(aName, aEvent) {
-    if (aEvent.button != 0) {
+    if (aEvent.button != 0 && !this.allowFocusOnRightClick) {
       
       return;
     }
