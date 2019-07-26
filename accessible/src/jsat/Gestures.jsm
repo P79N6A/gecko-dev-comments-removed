@@ -210,6 +210,10 @@ this.GestureTracker = {
 
 
   handle: function GestureTracker_handle(aDetail, aTimeStamp) {
+    Logger.debug(() => {
+      return ['Pointer event', aDetail.type, 'at:', aTimeStamp,
+        JSON.stringify(aDetail.points)];
+    });
     this[this.current ? '_update' : '_init'](aDetail, aTimeStamp);
   },
 
