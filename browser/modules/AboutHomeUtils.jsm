@@ -15,7 +15,9 @@ const SNIPPETS_URL_PREF = "browser.aboutHomeSnippets.updateUrl";
 
 const STARTPAGE_VERSION = 4;
 
-this.AboutHomeUtils = new Object();
+this.AboutHomeUtils = {
+  get snippetsVersion() STARTPAGE_VERSION
+};
 
 
 
