@@ -91,6 +91,16 @@ public:
 
 
 
+    static gfxMatrix TransformRectToRect(const gfxRect& aFrom,
+                                         const gfxPoint& aToTopLeft,
+                                         const gfxPoint& aToTopRight,
+                                         const gfxPoint& aToBottomRight);
+
+    
+
+
+
+
     static bool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
 
     
