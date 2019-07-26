@@ -150,10 +150,9 @@ private:
 
 
 
-  void TransformFixedLayers(Layer* aLayer,
-                            const gfxPoint& aTranslation,
-                            const gfxSize& aScaleDiff,
-                            const gfx::Margin& aFixedLayerMargins);
+  void AlignFixedLayersForAnchorPoint(Layer* aLayer,
+                                      Layer* aTransformedSubtreeRoot,
+                                      const gfx3DMatrix& aPreviousTransformForRoot);
 
   
 

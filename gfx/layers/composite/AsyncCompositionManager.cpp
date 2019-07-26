@@ -109,77 +109,92 @@ AsyncCompositionManager::ComputeRotation()
   }
 }
 
-
-
-static void
-Translate2D(gfx3DMatrix& aTransform, const gfxPoint& aOffset)
+static bool
+GetBaseTransform2D(Layer* aLayer, gfxMatrix* aTransform)
 {
-  aTransform._41 += aOffset.x;
-  aTransform._42 += aOffset.y;
+  
+  return (aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation() ?
+          aLayer->GetLocalTransform() : aLayer->GetTransform()).Is2D(aTransform);
 }
 
 void
-AsyncCompositionManager::TransformFixedLayers(Layer* aLayer,
-                                              const gfxPoint& aTranslation,
-                                              const gfxSize& aScaleDiff,
-                                              const gfx::Margin& aFixedLayerMargins)
+AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
+                                                        Layer* aTransformedSubtreeRoot,
+                                                        const gfx3DMatrix& aPreviousTransformForRoot)
 {
-  if (aLayer->GetIsFixedPosition() &&
+  if (aLayer != aTransformedSubtreeRoot && aLayer->GetIsFixedPosition() &&
       !aLayer->GetParent()->GetIsFixedPosition()) {
     
     
     
-    const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
-    gfxPoint translation(aTranslation - (anchor - anchor / aScaleDiff));
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    const gfx::Margin& fixedMargins = aLayer->GetFixedPositionMargins();
-    if (fixedMargins.left >= 0) {
-      if (anchor.x > 0) {
-        translation.x -= aFixedLayerMargins.right - fixedMargins.right;
-      } else {
-        translation.x += aFixedLayerMargins.left - fixedMargins.left;
+    gfxMatrix ancestorTransform;
+    for (Layer* l = aLayer->GetParent(); l != aTransformedSubtreeRoot;
+         l = l->GetParent()) {
+      gfxMatrix l2D;
+      if (!GetBaseTransform2D(l, &l2D)) {
+        return;
       }
+      ancestorTransform.Multiply(l2D);
     }
 
-    if (fixedMargins.top >= 0) {
-      if (anchor.y > 0) {
-        translation.y -= aFixedLayerMargins.bottom - fixedMargins.bottom;
-      } else {
-        translation.y += aFixedLayerMargins.top - fixedMargins.top;
-      }
+    gfxMatrix oldRootTransform;
+    gfxMatrix newRootTransform;
+    if (!aPreviousTransformForRoot.Is2D(&oldRootTransform) ||
+        !aTransformedSubtreeRoot->GetLocalTransform().Is2D(&newRootTransform)) {
+      return;
     }
 
     
     
-    
-    LayerComposite* layerComposite = aLayer->AsLayerComposite();
-    gfx3DMatrix layerTransform;
-    if (layerComposite->GetShadowTransformSetByAnimation()) {
-      
-      layerTransform = aLayer->GetLocalTransform();
-    } else {
-      layerTransform = aLayer->GetTransform();
+    gfxMatrix oldCumulativeTransform = ancestorTransform * oldRootTransform;
+    gfxMatrix newCumulativeTransform = ancestorTransform * newRootTransform;
+    if (newCumulativeTransform.IsSingular()) {
+      return;
     }
-    Translate2D(layerTransform, translation);
+    gfxMatrix newCumulativeTransformInverse = newCumulativeTransform;
+    newCumulativeTransformInverse.Invert();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    gfxMatrix layerTransform;
+    if (!GetBaseTransform2D(aLayer, &layerTransform)) {
+      return;
+    }
+    gfxPoint locallyTransformedAnchor =
+      layerTransform.Transform(aLayer->GetFixedPositionAnchor());
+    gfxPoint oldAnchorPositionInNewSpace =
+      newCumulativeTransformInverse.Transform(
+        oldCumulativeTransform.Transform(locallyTransformedAnchor));
+    gfxPoint translation = oldAnchorPositionInNewSpace - locallyTransformedAnchor;
+
+    
+    layerTransform.x0 += translation.x;
+    layerTransform.y0 += translation.y;
+
+    
+    
+    
+    gfx3DMatrix layerTransform3D = gfx3DMatrix::From2D(layerTransform);
     if (ContainerLayer* c = aLayer->AsContainerLayer()) {
-      layerTransform.Scale(1.0f/c->GetPreXScale(),
-                           1.0f/c->GetPreYScale(),
-                           1);
-    }
-    layerTransform.ScalePost(1.0f/aLayer->GetPostXScale(),
-                             1.0f/aLayer->GetPostYScale(),
+      layerTransform3D.Scale(1.0f/c->GetPreXScale(),
+                             1.0f/c->GetPreYScale(),
                              1);
-    layerComposite->SetShadowTransform(layerTransform);
+    }
+    layerTransform3D.ScalePost(1.0f/aLayer->GetPostXScale(),
+                               1.0f/aLayer->GetPostYScale(),
+                               1);
+
+    LayerComposite* layerComposite = aLayer->AsLayerComposite();
+    layerComposite->SetShadowTransform(layerTransform3D);
     layerComposite->SetShadowTransformSetByAnimation(false);
 
     const nsIntRect* clipRect = aLayer->GetClipRect();
@@ -196,7 +211,7 @@ AsyncCompositionManager::TransformFixedLayers(Layer* aLayer,
 
   for (Layer* child = aLayer->GetFirstChild();
        child; child = child->GetNextSibling()) {
-    TransformFixedLayers(child, aTranslation, aScaleDiff, aFixedLayerMargins);
+    AlignFixedLayersForAnchorPoint(child, aTransformedSubtreeRoot, aPreviousTransformForRoot);
   }
 }
 
@@ -342,6 +357,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
 
   if (AsyncPanZoomController* controller = container->GetAsyncPanZoomController()) {
     LayerComposite* layerComposite = aLayer->AsLayerComposite();
+    gfx3DMatrix oldTransform = aLayer->GetTransform();
 
     ViewTransform treeTransform;
     ScreenPoint scrollOffset;
@@ -387,11 +403,20 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
     NS_ASSERTION(!layerComposite->GetShadowTransformSetByAnimation(),
                  "overwriting animated transform!");
 
-    TransformFixedLayers(
-      aLayer,
-      gfxPoint(-treeTransform.mTranslation.x, -treeTransform.mTranslation.y),
-      gfxSize(treeTransform.mScale.scale, treeTransform.mScale.scale),
-      fixedLayerMargins);
+    
+    
+#ifdef MOZ_WIDGET_ANDROID
+    
+    
+    
+    LayoutDeviceToLayerScale resolution(1.0 / rootTransform.GetXScale(),
+                                        1.0 / rootTransform.GetYScale());
+#else
+    LayoutDeviceToLayerScale resolution = metrics.mResolution;
+#endif
+    oldTransform.Scale(resolution.scale, resolution.scale, 1);
+
+    AlignFixedLayersForAnchorPoint(aLayer, aLayer, oldTransform);
 
     appliedTransform = true;
   }
@@ -409,6 +434,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
   
   
   const gfx3DMatrix& currentTransform = aLayer->GetTransform();
+  gfx3DMatrix oldTransform = currentTransform;
 
   gfx3DMatrix treeTransform;
 
@@ -473,33 +499,6 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
 
   
   
-  gfxPoint fixedOffset;
-  gfxSize scaleDiff;
-
-  LayerRect content = mContentRect * geckoZoom;
-  
-  
-  
-  if (mContentRect.width * userZoom.scale < metrics.mCompositionBounds.width) {
-    fixedOffset.x = -geckoScroll.x;
-    scaleDiff.width = std::min(1.0f, metrics.mCompositionBounds.width / content.width);
-  } else {
-    fixedOffset.x = clamped(userScroll.x / zoomAdjust.scale, content.x,
-        content.XMost() - metrics.mCompositionBounds.width / zoomAdjust.scale) - geckoScroll.x;
-    scaleDiff.width = zoomAdjust.scale;
-  }
-
-  if (mContentRect.height * userZoom.scale < metrics.mCompositionBounds.height) {
-    fixedOffset.y = -geckoScroll.y;
-    scaleDiff.height = std::min(1.0f, metrics.mCompositionBounds.height / content.height);
-  } else {
-    fixedOffset.y = clamped(userScroll.y / zoomAdjust.scale, content.y,
-        content.YMost() - metrics.mCompositionBounds.height / zoomAdjust.scale) - geckoScroll.y;
-    scaleDiff.height = zoomAdjust.scale;
-  }
-
-  
-  
   
   gfx3DMatrix computedTransform = treeTransform * currentTransform;
   computedTransform.Scale(1.0f/container->GetPreXScale(),
@@ -511,7 +510,14 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
   layerComposite->SetShadowTransform(computedTransform);
   NS_ASSERTION(!layerComposite->GetShadowTransformSetByAnimation(),
                "overwriting animated transform!");
-  TransformFixedLayers(aLayer, fixedOffset, scaleDiff, fixedLayerMargins);
+
+  
+  
+  oldTransform.Scale(aResolution.scale, aResolution.scale, 1);
+
+  
+  
+  AlignFixedLayersForAnchorPoint(aLayer, aLayer, oldTransform);
 }
 
 bool
