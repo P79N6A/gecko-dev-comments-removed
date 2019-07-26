@@ -2,10 +2,6 @@
 
 
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
-
 #include "ckdbm.h"
 
 #define PREFIX_METADATA "0000"

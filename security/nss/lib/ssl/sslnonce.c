@@ -5,7 +5,6 @@
 
 
 
-
 #include "cert.h"
 #include "pk11pub.h"
 #include "secitem.h"
@@ -184,10 +183,8 @@ ssl_DestroySID(sslSessionID *sid)
     if ( sid->peerCert ) {
 	CERT_DestroyCertificate(sid->peerCert);
     }
-    if (sid->peerCertStatus.len) {
+    if (sid->peerCertStatus.items) {
         SECITEM_FreeArray(&sid->peerCertStatus, PR_FALSE);
-        sid->peerCertStatus.items = NULL;
-        sid->peerCertStatus.len = 0;
     }
 
     if ( sid->localCert ) {

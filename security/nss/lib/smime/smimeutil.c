@@ -6,8 +6,6 @@
 
 
 
-
-
 #include "secmime.h"
 #include "secoid.h"
 #include "pk11func.h"

@@ -5,7 +5,6 @@
 
 
 
-
 #ifndef _SOFTOKNT_H_
 #define _SOFTOKNT_H_
 

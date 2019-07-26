@@ -2,10 +2,6 @@
 
 
 
-#ifdef DEBUG
-static const char BUILTINS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
-
 #include "nssckmdt.h"
 #include "nssckfw.h"
 

@@ -7,7 +7,6 @@
 
 
 
-
 #ifndef _H_BBSRAND_
 #define _H_BBSRAND_
 
