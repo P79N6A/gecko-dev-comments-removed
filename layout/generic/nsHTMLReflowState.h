@@ -480,15 +480,28 @@ public:
     }
     return std::max(aWidth, mComputedMinWidth);
   }
+
   
 
 
 
-  nscoord ApplyMinMaxHeight(nscoord aHeight) const {
+
+
+
+
+
+  nscoord ApplyMinMaxHeight(nscoord aHeight, nscoord aConsumed = 0) const {
+    aHeight += aConsumed;
+
     if (NS_UNCONSTRAINEDSIZE != mComputedMaxHeight) {
       aHeight = std::min(aHeight, mComputedMaxHeight);
     }
-    return std::max(aHeight, mComputedMinHeight);
+
+    if (NS_UNCONSTRAINEDSIZE != mComputedMinHeight) {
+      aHeight = std::max(aHeight, mComputedMinHeight);
+    }
+
+    return aHeight - aConsumed;
   }
 
   bool ShouldReflowAllKids() const {
