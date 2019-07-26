@@ -39,6 +39,8 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 const MIXED_CONTENT_LEARN_MORE = "https://developer.mozilla.org/en/Security/MixedContent";
 
+const INSECURE_PASSWORDS_LEARN_MORE = "https://developer.mozilla.org/en-US/docs/Security/InsecurePasswords";
+
 const HELP_URL = "https://developer.mozilla.org/docs/Tools/Web_Console/Helpers";
 
 const VARIABLES_VIEW_URL = "chrome://browser/content/devtools/widgets/VariablesView.xul";
@@ -1241,6 +1243,12 @@ WebConsoleFrame.prototype = {
                                       aScriptError.sourceName,
                                       aScriptError.lineNumber, null, null,
                                       aScriptError.timeStamp);
+
+    
+    let msgBody = node.querySelector(".webconsole-msg-body");
+    
+    this.addMoreInfoLink(msgBody, aScriptError);
+
     if (aScriptError.private) {
       node.setAttribute("private", true);
     }
@@ -1409,6 +1417,59 @@ WebConsoleFrame.prototype = {
       aEvent.preventDefault();
       aEvent.stopPropagation();
     }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+  addMoreInfoLink: function WCF_addMoreInfoLink(aNode, aScriptError)
+  {
+    
+    
+    if (aScriptError.category == "Insecure Password Field") {
+      this.addInsecurePasswordsWarningNode(aNode);
+    }
+  },
+
+  
+
+
+
+
+
+  addInsecurePasswordsWarningNode:
+  function WCF_addInsecurePasswordsWarningNode(aNode)
+  {
+    let moreInfoLabel =
+      "[" + l10n.getStr("webConsoleMoreInfoLabel") + "]";
+
+    
+    let linkNode = this.document.createElementNS(XUL_NS, "hbox");
+    linkNode.flex = 1;
+    linkNode.classList.add("webconsole-msg-body-piece");
+    linkNode.classList.add("webconsole-msg-link");
+    aNode.appendChild(linkNode);
+
+    
+    let warningNode = this.document.createElement("label");
+    warningNode.setAttribute("value", moreInfoLabel);
+    warningNode.setAttribute("title", moreInfoLabel);
+    warningNode.classList.add("hud-clickable");
+    warningNode.classList.add("webconsole-learn-more-link");
+
+    warningNode.addEventListener("click", function(aEvent) {
+      this.owner.openLink(INSECURE_PASSWORDS_LEARN_MORE);
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
+    }.bind(this));
+
+    linkNode.appendChild(warningNode);
   },
 
   
@@ -4472,6 +4533,7 @@ var Utils = {
       case "Mixed Content Blocker":
       case "CSP":
       case "Invalid HSTS Headers":
+      case "Insecure Password Field":
         return CATEGORY_SECURITY;
 
       default:
