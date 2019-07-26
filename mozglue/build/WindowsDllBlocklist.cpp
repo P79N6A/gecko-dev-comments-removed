@@ -144,6 +144,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "fs_ccf_ni_umh32.dll", MAKE_VERSION(1, 42, 101, 0), DllBlockInfo::BLOCK_XP_ONLY },
 
+  
+  { "libinject.dll", UNVERSIONED },
+
   { nullptr, 0 }
 };
 
