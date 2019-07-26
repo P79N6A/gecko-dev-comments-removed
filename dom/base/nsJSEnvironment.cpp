@@ -195,9 +195,6 @@ static bool sDidShutdown;
 static bool sShuttingDown;
 static int32_t sContextCount;
 
-static PRTime sMaxScriptRunTime;
-static PRTime sMaxChromeScriptRunTime;
-
 static nsIScriptSecurityManager *sSecurityManager;
 
 
@@ -679,81 +676,9 @@ DumpString(const nsAString &str)
 }
 #endif
 
-bool
-nsJSContext::DOMOperationCallback(JSContext *cx)
-{
-  
-  nsJSContext *ctx = static_cast<nsJSContext *>(::JS_GetContextPrivate(cx));
-
-  if (!ctx) {
-    
-    return true;
-  }
-
-  
-  
-  
-  
-  PRTime callbackTime = ctx->mOperationCallbackTime;
-  PRTime modalStateTime = ctx->mModalStateTime;
-
-  
-  ctx->mOperationCallbackTime = callbackTime;
-  ctx->mModalStateTime = modalStateTime;
-
-  PRTime now = PR_Now();
-
-  if (callbackTime == 0) {
-    
-    
-    ctx->mOperationCallbackTime = now;
-    return true;
-  }
-
-  if (ctx->mModalStateDepth) {
-    
-    return true;
-  }
-
-  PRTime duration = now - callbackTime;
-
-  
-  
-  JSObject* global = ::JS::CurrentGlobalOrNull(cx);
-  bool isTrackingChromeCodeTime =
-    global && xpc::AccessCheck::isChrome(js::GetObjectCompartment(global));
-  if (duration < (isTrackingChromeCodeTime ?
-                  sMaxChromeScriptRunTime : sMaxScriptRunTime)) {
-    return true;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> domWin = do_QueryInterface(ctx->GetGlobalObject());
-  NS_ENSURE_TRUE(domWin, false);
-  nsGlobalWindow::SlowScriptResponse response =
-    static_cast<nsGlobalWindow*>(domWin.get())->ShowSlowScriptDialog();
-
-  if (response == nsGlobalWindow::KillSlowScript) {
-    return false;
-  }
-  ctx->mOperationCallbackTime = PR_Now();
-  if (response == nsGlobalWindow::AlwaysContinueSlowScript) {
-    if (isTrackingChromeCodeTime) {
-      Preferences::SetInt("dom.max_chrome_script_run_time", 0);
-      sMaxChromeScriptRunTime = NS_UNLIMITED_SCRIPT_RUNTIME;
-    } else {
-      Preferences::SetInt("dom.max_script_run_time", 0);
-      sMaxScriptRunTime = NS_UNLIMITED_SCRIPT_RUNTIME;
-    }
-  }
-  return true;
-}
-
 void
 nsJSContext::EnterModalState()
 {
-  if (!mModalStateDepth) {
-    mModalStateTime =  mOperationCallbackTime ? PR_Now() : 0;
-  }
   ++mModalStateDepth;
 }
 
@@ -767,25 +692,6 @@ nsJSContext::LeaveModalState()
   }
 
   --mModalStateDepth;
-
-  
-  
-  if (mModalStateDepth || !mOperationCallbackTime) {
-    return;
-  }
-
-  
-  
-  
-  
-  
-  
-  if (mModalStateTime) {
-    mOperationCallbackTime += PR_Now() - mModalStateTime;
-  }
-  else {
-    mOperationCallbackTime = PR_Now();
-  }
 }
 
 #define JS_OPTIONS_DOT_STR "javascript.options."
@@ -960,12 +866,10 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime, bool aGCOnDestruction,
     Preferences::RegisterCallback(JSOptionChangedCallback,
                                   js_options_dot_str, this);
 
-    ::JS_SetOperationCallback(mContext, DOMOperationCallback);
+    ::JS_SetOperationCallback(mContext, xpc::OperationCallback);
   }
   mIsInitialized = false;
   mScriptsEnabled = true;
-  mOperationCallbackTime = 0;
-  mModalStateTime = 0;
   mModalStateDepth = 0;
   mProcessingScriptTag = false;
 }
@@ -2022,8 +1926,6 @@ nsJSContext::ScriptEvaluated(bool aTerminated)
   }
 
   if (aTerminated) {
-    mOperationCallbackTime = 0;
-    mModalStateTime = 0;
     mActive = true;
   }
 }
@@ -2846,31 +2748,6 @@ nsJSRuntime::Startup()
 }
 
 static int
-MaxScriptRunTimePrefChangedCallback(const char *aPrefName, void *aClosure)
-{
-  
-  
-  bool isChromePref =
-    strcmp(aPrefName, "dom.max_chrome_script_run_time") == 0;
-  int32_t time = Preferences::GetInt(aPrefName, isChromePref ? 20 : 10);
-
-  PRTime t;
-  if (time <= 0) {
-    t = NS_UNLIMITED_SCRIPT_RUNTIME;
-  } else {
-    t = time * PR_USEC_PER_SEC;
-  }
-
-  if (isChromePref) {
-    sMaxChromeScriptRunTime = t;
-  } else {
-    sMaxScriptRunTime = t;
-  }
-
-  return 0;
-}
-
-static int
 ReportAllJSExceptionsPrefChangedCallback(const char* aPrefName, void* aClosure)
 {
   bool reportAll = Preferences::GetBool(aPrefName, false);
@@ -3060,12 +2937,6 @@ nsJSRuntime::Init()
   SetDOMCallbacks(sRuntime, &DOMcallbacks);
 
   
-  Preferences::RegisterCallbackAndCall(MaxScriptRunTimePrefChangedCallback,
-                                       "dom.max_script_run_time");
-
-  Preferences::RegisterCallbackAndCall(MaxScriptRunTimePrefChangedCallback,
-                                       "dom.max_chrome_script_run_time");
-
   Preferences::RegisterCallbackAndCall(ReportAllJSExceptionsPrefChangedCallback,
                                        "dom.report_all_js_exceptions");
 
