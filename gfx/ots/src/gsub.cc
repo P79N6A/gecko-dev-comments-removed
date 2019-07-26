@@ -669,3 +669,5 @@ void ots_gsub_free(OpenTypeFile *file) {
 
 }  
 
+#undef TABLE_NAME
+#undef DROP_THIS_TABLE

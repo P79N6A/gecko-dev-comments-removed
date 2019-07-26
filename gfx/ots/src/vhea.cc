@@ -56,3 +56,4 @@ void ots_vhea_free(OpenTypeFile *file) {
 
 }  
 
+#undef TABLE_NAME

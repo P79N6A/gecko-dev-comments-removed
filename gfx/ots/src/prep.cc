@@ -50,3 +50,5 @@ void ots_prep_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

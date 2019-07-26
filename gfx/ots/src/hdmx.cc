@@ -138,3 +138,6 @@ void ots_hdmx_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME
+#undef DROP_THIS_TABLE

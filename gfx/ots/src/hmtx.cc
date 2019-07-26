@@ -47,3 +47,5 @@ void ots_hmtx_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

@@ -332,3 +332,5 @@ void ots_name_free(OpenTypeFile* file) {
 }
 
 }  
+
+#undef TABLE_NAME

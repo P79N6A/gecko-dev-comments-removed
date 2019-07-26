@@ -98,3 +98,5 @@ void ots_loca_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

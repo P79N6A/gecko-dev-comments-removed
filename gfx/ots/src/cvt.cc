@@ -56,3 +56,5 @@ void ots_cvt_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

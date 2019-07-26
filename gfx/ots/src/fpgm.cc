@@ -50,3 +50,5 @@ void ots_fpgm_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

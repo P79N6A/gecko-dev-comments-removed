@@ -180,3 +180,5 @@ void ots_post_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

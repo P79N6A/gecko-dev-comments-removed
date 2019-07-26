@@ -149,3 +149,5 @@ void ots_head_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

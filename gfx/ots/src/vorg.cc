@@ -101,3 +101,6 @@ void ots_vorg_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME
+#undef DROP_THIS_TABLE

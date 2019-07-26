@@ -307,3 +307,5 @@ void ots_glyf_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME

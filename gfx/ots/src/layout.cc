@@ -1510,3 +1510,4 @@ bool ParseExtensionSubtable(const OpenTypeFile *file,
 
 }  
 
+#undef TABLE_NAME

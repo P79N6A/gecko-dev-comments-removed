@@ -49,3 +49,5 @@ void ots_hhea_free(OpenTypeFile *file) {
 }
 
 }  
+
+#undef TABLE_NAME
