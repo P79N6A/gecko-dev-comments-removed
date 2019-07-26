@@ -8278,15 +8278,19 @@ nsGlobalWindow::ActivateOrDeactivate(bool aActivate)
     topLevelWidget = mainWidget;
   }
 
-  
-  nsCOMPtr<nsIDOMWindow> topLevelWindow;
-  if (topLevelWidget == mainWidget) {
-    topLevelWindow = static_cast<nsIDOMWindow*>(this);
-  } else {
+  nsCOMPtr<nsPIDOMWindow> piMainWindow(
+    do_QueryInterface(static_cast<nsIDOMWindow*>(this)));
+  piMainWindow->SetActive(aActivate);
+
+  if (mainWidget != topLevelWidget) {
     
     
     
     
+    
+
+    
+    nsCOMPtr<nsIDOMWindow> topLevelWindow;
 
     
     nsIWidgetListener* listener = topLevelWidget->GetWidgetListener();
@@ -8295,10 +8299,11 @@ nsGlobalWindow::ActivateOrDeactivate(bool aActivate)
       nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(window));
       topLevelWindow = do_GetInterface(req);
     }
-  }
-  if (topLevelWindow) {
-    nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(topLevelWindow));
-    piWin->SetActive(aActivate);
+
+    if (topLevelWindow) {
+      nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(topLevelWindow));
+      piWin->SetActive(aActivate);
+    }
   }
 }
 
