@@ -11,9 +11,8 @@ let sms = window.navigator.mozSms;
 let maxCharsPerSms = 160;
 let maxSegments = 10; 
 
-const REMOTE = "5551234567";
-const REMOTE_FMT = "+15551234567"; 
-const EMU_FMT = "+15555215554"; 
+const REMOTE = "5551234567"; 
+const EMULATOR = "15555215554"; 
 
 function verifyInitialState() {
   log("Verifying initial state.");
@@ -41,8 +40,8 @@ function simulateIncomingSms() {
     is(incomingSms.body, msgText, "msg body");
     is(incomingSms.delivery, "received", "delivery");
     is(incomingSms.read, false, "read");
-    is(incomingSms.receiver, EMU_FMT, "receiver");
-    is(incomingSms.sender, REMOTE_FMT, "sender");
+    is(incomingSms.receiver, EMULATOR, "receiver");
+    is(incomingSms.sender, REMOTE, "sender");
     ok(incomingSms.timestamp instanceof Date, "timestamp is instanceof date");
 
     verifySmsExists(incomingSms);

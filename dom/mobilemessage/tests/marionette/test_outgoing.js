@@ -7,7 +7,7 @@ SpecialPowers.setBoolPref("dom.sms.enabled", true);
 SpecialPowers.setBoolPref("dom.sms.strict7BitEncoding", false);
 SpecialPowers.addPermission("sms", true, document);
 
-const SENDER = "+15555215554"; 
+const SENDER = "15555215554"; 
 
 let sms = window.navigator.mozSms;
 const SHORT_BODY = "Hello SMS world!";

@@ -6,9 +6,8 @@ MARIONETTE_TIMEOUT = 10000;
 SpecialPowers.setBoolPref("dom.sms.enabled", true);
 SpecialPowers.addPermission("sms", true, document);
 
-const SENDER = "+15555215554"; 
-const DEST = "5551117777";
-const RECEIVER = "+15551117777"; 
+const SENDER = "15555215554"; 
+const RECEIVER = "5551117777"; 
 
 let sms = window.navigator.mozSms;
 let msgText = "Mozilla Firefox OS!";
@@ -45,7 +44,7 @@ function sendSms() {
     if (gotSmsOnsent && gotReqOnsuccess) { verifySmsExists(smsId); }
   };
 
-  let requestRet = sms.send(DEST, msgText);
+  let requestRet = sms.send(RECEIVER, msgText);
   ok(requestRet, "smsrequest obj returned");
 
   requestRet.onsuccess = function(event) {

@@ -6,16 +6,15 @@ MARIONETTE_TIMEOUT = 10000;
 SpecialPowers.setBoolPref("dom.sms.enabled", true);
 SpecialPowers.addPermission("sms", true, document);
 
-const REMOTE = "5555552368";
-const SENDER = "+15555552368"; 
-const RECEIVER = "+15555215554"; 
+const SENDER = "5555552368"; 
+const RECEIVER = "15555215554"; 
 
 let sms = window.navigator.mozSms;
 let body = "Hello SMS world!";
 let now = Date.now();
 
 let completed = false;
-runEmulatorCmd("sms send " + REMOTE + " " + body, function(result) {
+runEmulatorCmd("sms send " + SENDER + " " + body, function(result) {
   log("Sent fake SMS: " + result);
   is(result[0], "OK");
   completed = true;
