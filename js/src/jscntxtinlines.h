@@ -17,7 +17,7 @@
 
 #include "builtin/Object.h" 
 #include "frontend/ParseMaps.h"
-#include "ion/IonFrames.h" 
+#include "jit/IonFrames.h" 
 #include "vm/Interpreter.h"
 #include "vm/Probes.h"
 #include "vm/RegExpObject.h"

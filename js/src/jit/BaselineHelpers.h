@@ -1,0 +1,30 @@
+
+
+
+
+
+
+#ifndef jit_BaselineHelpers_h
+#define jit_BaselineHelpers_h
+
+#ifdef JS_ION
+
+#if defined(JS_CPU_X86)
+# include "jit/x86/BaselineHelpers-x86.h"
+#elif defined(JS_CPU_X64)
+# include "jit/x64/BaselineHelpers-x64.h"
+#elif defined(JS_CPU_ARM)
+# include "jit/arm/BaselineHelpers-arm.h"
+#else
+# error "Unknown architecture!"
+#endif
+
+namespace js {
+namespace ion {
+
+} 
+} 
+
+#endif 
+
+#endif 
