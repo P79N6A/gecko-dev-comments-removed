@@ -86,7 +86,7 @@ abstract public class BrowserApp extends GeckoApp
     private FindInPageBar mFindInPageBar;
 
     
-    private static final int FEEDBACK_LAUNCH_COUNT = 10;
+    private static final int FEEDBACK_LAUNCH_COUNT = 15;
 
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
