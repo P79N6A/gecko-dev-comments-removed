@@ -717,6 +717,15 @@ function DebuggerServerConnection(aPrefix, aTransport)
   this._extraPools = [];
 
   
+  
+  
+  
+  
+  
+  
+  this._actorResponses = new Map;
+
+  
 
 
 
@@ -942,19 +951,23 @@ DebuggerServerConnection.prototype = {
       return;
     }
 
-    resolve(ret)
-      .then(function (aResponse) {
-        if (!aResponse.from) {
-          aResponse.from = aPacket.to;
-        }
-        return aResponse;
-      })
-      .then(this.transport.send.bind(this.transport))
-      .then(null, (e) => {
-        return this._unknownError(
-          "error occurred while processing '" + aPacket.type,
-          e);
-      });
+    let pendingResponse = this._actorResponses.get(actor.actorID) || resolve(null);
+    let response = pendingResponse.then(() => {
+      return ret;
+    }).then(aResponse => {
+      if (!aResponse.from) {
+        aResponse.from = aPacket.to;
+      }
+      this.transport.send(aResponse);
+    }).then(null, (e) => {
+      let errorPacket = this._unknownError(
+        "error occurred while processing '" + aPacket.type,
+        e);
+      errorPacket.from = aPacket.to;
+      this.transport.send(errorPacket);
+    });
+
+    this._actorResponses.set(actor.actorID, response);
   },
 
   
