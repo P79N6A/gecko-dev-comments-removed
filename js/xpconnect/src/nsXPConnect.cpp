@@ -22,6 +22,7 @@
 #include "nsIURI.h"
 #include "nsJSEnvironment.h"
 #include "nsThreadUtils.h"
+#include "nsDOMJSUtils.h"
 
 #include "XrayWrapper.h"
 #include "WrapperFactory.h"
@@ -533,6 +534,36 @@ nsXPConnect::NotifyEnterMainThread()
 {
     NS_ABORT_IF_FALSE(NS_IsMainThread(), "Off main thread");
     JS_SetRuntimeThread(mRuntime->GetJSRuntime());
+}
+
+
+
+
+
+
+bool
+nsXPConnect::UsefulToMergeZones()
+{
+    JSContext *iter = nullptr;
+    JSContext *cx;
+    while ((cx = JS_ContextIterator(GetRuntime()->GetJSRuntime(), &iter))) {
+        
+        
+        
+        nsIScriptContext *scx = GetScriptContextFromJSContext(cx);
+        JS::RootedObject global(cx, scx ? scx->GetNativeGlobal() : nullptr);
+        if (!global || !js::GetObjectParent(global)) {
+            continue;
+        }
+        
+        global = JS_ObjectToInnerObject(cx, global);
+        MOZ_ASSERT(!js::GetObjectParent(global));
+        if (JS::GCThingIsMarkedGray(global) &&
+            !js::IsSystemCompartment(js::GetObjectCompartment(global))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 class nsXPConnectParticipant: public nsCycleCollectionParticipant

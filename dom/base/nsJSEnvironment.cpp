@@ -2544,72 +2544,6 @@ nsJSContext::ShrinkGCBuffersNow()
   JS::ShrinkGCBuffers(nsJSRuntime::sRuntime);
 }
 
-
-
-
-static bool
-AnyGrayCurrentContentInnerWindows()
-{
-  if (!nsJSRuntime::sRuntime) {
-    return false;
-  }
-  JSContext *iter = nullptr;
-  JSContext *cx;
-  while ((cx = JS_ContextIterator(nsJSRuntime::sRuntime, &iter))) {
-    
-    
-    
-    nsIScriptContext *scx = GetScriptContextFromJSContext(cx);
-    JS::RootedObject global(cx, scx ? scx->GetNativeGlobal() : nullptr);
-    if (!global || !js::GetObjectParent(global)) {
-      continue;
-    }
-    
-    global = JS_ObjectToInnerObject(cx, global);
-    MOZ_ASSERT(!js::GetObjectParent(global));
-    if (JS::GCThingIsMarkedGray(global) &&
-        !js::IsSystemCompartment(js::GetObjectCompartment(global))) {
-      return true;
-    }
-  }
-  return false;
-}
-
-static bool
-DoMergingCC(bool aForced)
-{
-  
-  
-  static const int32_t kMinConsecutiveUnmerged = 3;
-  static const int32_t kMaxConsecutiveMerged = 3;
-
-  static int32_t sUnmergedNeeded = 0;
-  static int32_t sMergedInARow = 0;
-
-  MOZ_ASSERT(0 <= sUnmergedNeeded && sUnmergedNeeded <= kMinConsecutiveUnmerged);
-  MOZ_ASSERT(0 <= sMergedInARow && sMergedInARow <= kMaxConsecutiveMerged);
-
-  if (sMergedInARow == kMaxConsecutiveMerged) {
-    MOZ_ASSERT(sUnmergedNeeded == 0);
-    sUnmergedNeeded = kMinConsecutiveUnmerged;
-  }
-
-  if (sUnmergedNeeded > 0) {
-    sUnmergedNeeded--;
-    sMergedInARow = 0;
-    return false;
-  }
-
-  if (!aForced && AnyGrayCurrentContentInnerWindows()) {
-    sMergedInARow++;
-    return true;
-  } else {
-    sMergedInARow = 0;
-    return false;
-  }
-
-}
-
 static void
 FinishAnyIncrementalGC()
 {
@@ -2652,7 +2586,7 @@ TimeBetween(PRTime start, PRTime end)
 void
 nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
                              int32_t aExtraForgetSkippableCalls,
-                             bool aForced)
+                             bool aManuallyTriggered)
 {
   if (!NS_IsMainThread()) {
     return;
@@ -2691,9 +2625,8 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
   uint32_t skippableDuration = TimeBetween(endGCTime, endSkippableTime);
 
   
-  bool mergingCC = DoMergingCC(aForced);
   nsCycleCollectorResults ccResults;
-  nsCycleCollector_collect(mergingCC, &ccResults, aListener);
+  nsCycleCollector_collect(aManuallyTriggered, &ccResults, aListener);
   sCCollectedWaitingForGC += ccResults.mFreedRefCounted + ccResults.mFreedGCed;
 
   
@@ -2728,7 +2661,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
   if (sPostGCEventsToConsole) {
     nsCString mergeMsg;
-    if (mergingCC) {
+    if (ccResults.mMergedZones) {
       mergeMsg.AssignLiteral(" merged");
     }
 

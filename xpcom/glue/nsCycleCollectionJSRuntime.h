@@ -34,6 +34,11 @@ struct nsCycleCollectionJSRuntime
   
 
 
+  virtual bool UsefulToMergeZones() = 0;
+
+  
+
+
   virtual bool NeedCollect() = 0;
 
   
