@@ -253,7 +253,11 @@ nsUrlClassifierStreamUpdater::UpdateUrlRequested(const nsACString &aUrl,
     
     
     
-    update->mUrl = NS_LITERAL_CSTRING("http://") + aUrl;
+    if (!StringBeginsWith(aUrl, NS_LITERAL_CSTRING("localhost"))) {
+      update->mUrl = NS_LITERAL_CSTRING("https://") + aUrl;
+    } else {
+      update->mUrl = NS_LITERAL_CSTRING("http://") + aUrl;
+    }
   }
   update->mTable = aTable;
 
