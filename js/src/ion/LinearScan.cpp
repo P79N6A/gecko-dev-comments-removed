@@ -580,6 +580,18 @@ LinearScanAllocator::buildLivenessInfo()
                         from = inputOf(*ins);
                     }
 
+                    if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
+                        
+                        
+                        
+                        
+                        
+                        LUse *inputUse = ins->getOperand(def->getReusedInput())->toUse();
+                        JS_ASSERT(inputUse->policy() == LUse::REGISTER);
+                        JS_ASSERT(inputUse->usedAtStart());
+                        *inputUse = LUse(inputUse->virtualRegister(), LUse::ANY,  true);
+                    }
+
                     LiveInterval *interval = vregs[def].getInterval(0);
                     interval->setFrom(from);
 
@@ -1076,14 +1088,6 @@ LinearScanAllocator::reifyAllocations()
                 def->setOutput(*interval->getAllocation());
 
                 spillFrom = interval->getAllocation();
-            }
-            if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
-                LAllocation *alloc = reg->ins()->getOperand(def->getReusedInput());
-                LAllocation *origAlloc = LAllocation::New(*alloc);
-
-                *alloc = *interval->getAllocation();
-                if (!moveInputAlloc(inputOf(reg->ins()), origAlloc, alloc))
-                    return false;
             }
 
             if (reg->mustSpillAtDefinition() && !reg->ins()->isPhi() &&

@@ -1471,8 +1471,10 @@ LIRGenerator::visitGuardClass(MGuardClass *ins)
 bool
 LIRGenerator::visitGuardObject(MGuardObject *ins)
 {
-    LGuardObject *lir = new LGuardObject(useAtStart(ins->input()));
-    return defineReuseInput(lir, ins, 0);
+    
+    
+    JS_ASSERT(ins->input()->type() == MIRType_Object);
+    return redefine(ins, ins->input());
 }
 
 bool
