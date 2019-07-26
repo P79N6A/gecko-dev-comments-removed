@@ -169,6 +169,34 @@ public:
                      bool aCloneAfterOriginal = true);
 
   
+  
+  void SetData(const nsAString& aData, mozilla::ErrorResult& rv)
+  {
+    rv = SetData(aData);
+  }
+  
+  void SubstringData(uint32_t aStart, uint32_t aCount, nsAString& aReturn,
+                     mozilla::ErrorResult& rv);
+  void AppendData(const nsAString& aData, mozilla::ErrorResult& rv)
+  {
+    rv = AppendData(aData);
+  }
+  void InsertData(uint32_t aOffset, const nsAString& aData,
+                  mozilla::ErrorResult& rv)
+  {
+    rv = InsertData(aOffset, aData);
+  }
+  void DeleteData(uint32_t aOffset, uint32_t aCount, mozilla::ErrorResult& rv)
+  {
+    rv = DeleteData(aOffset, aCount);
+  }
+  void ReplaceData(uint32_t aOffset, uint32_t aCount, const nsAString& aData,
+                   mozilla::ErrorResult& rv)
+  {
+    rv = ReplaceData(aOffset, aCount, aData);
+  }
+
+  
 
 #ifdef DEBUG
   void ToCString(nsAString& aBuf, int32_t aOffset, int32_t aLen) const;

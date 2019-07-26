@@ -481,6 +481,10 @@ class CGHeaders(CGWrapper):
         implementationIncludes = set(d.headerFile for d in descriptors)
 
         
+        hasInstanceIncludes = set(d.hasInstanceInterface + ".h" for d
+                                  in descriptors if d.hasInstanceInterface)
+
+        
         
         bindingHeaders = set()
         def addHeadersForType(t, descriptor=None, dictionary=None):
@@ -541,6 +545,7 @@ class CGHeaders(CGWrapper):
                            definePre=_includeString(sorted(set(defineIncludes) |
                                                            bindingIncludes |
                                                            bindingHeaders |
+                                                           hasInstanceIncludes |
                                                            implementationIncludes)))
     @staticmethod
     def getDeclarationFilename(decl):
