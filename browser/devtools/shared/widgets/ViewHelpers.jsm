@@ -211,6 +211,20 @@ ViewHelpers.L10N.prototype = {
 
 
 
+  getFormatStrWithNumbers: function(aName, ...aArgs) {
+    let newArgs = aArgs.map(x => (typeof x == 'number' ?
+                                  this.numberWithDecimals(x, 2) : x));
+    return this.stringBundle.formatStringFromName(aName, newArgs, newArgs.length);
+  },
+
+  
+
+
+
+
+
+
+
 
 
 
