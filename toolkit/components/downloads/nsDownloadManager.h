@@ -91,7 +91,9 @@ protected:
 
   nsresult RestoreActiveDownloads();
 
+  nsresult GetDownloadFromDB(const nsACString& aGUID, nsDownload **retVal);
   nsresult GetDownloadFromDB(uint32_t aID, nsDownload **retVal);
+  nsresult GetDownloadFromDB(mozIStorageStatement* stmt, nsDownload **retVal);
 
   
 
@@ -114,7 +116,8 @@ protected:
                           int64_t aEndTime,
                           const nsACString &aMimeType,
                           const nsACString &aPreferredApp,
-                          nsHandlerInfoAction aPreferredAction);
+                          nsHandlerInfoAction aPreferredAction,
+                          nsACString &aNewGUID);
 
   void NotifyListenersOnDownloadStateChange(int16_t aOldState,
                                             nsIDownload *aDownload);
@@ -131,6 +134,7 @@ protected:
                                     nsresult aStatus,
                                     nsIDownload *aDownload);
 
+  nsDownload *FindDownload(const nsACString& aGUID);
   nsDownload *FindDownload(uint32_t aID);
 
   
@@ -218,6 +222,11 @@ protected:
   void OnEnterPrivateBrowsingMode();
   void OnLeavePrivateBrowsingMode();
 
+  nsresult RetryDownload(const nsACString& aGUID);
+  nsresult RetryDownload(nsDownload* dl);
+
+  nsresult RemoveDownload(const nsACString& aGUID);
+
   
 #ifdef DOWNLOAD_SCANNER
 private:
@@ -299,18 +308,7 @@ protected:
 
 
 
-  nsresult Pause();
-
-  
-
-
-
-  nsresult Cancel();
-
-  
-
-
-  nsresult Resume();
+  nsresult CancelTransfer();
 
   
 
@@ -373,6 +371,7 @@ protected:
 private:
   nsString mDisplayName;
   nsCString mEntityID;
+  nsCString mGUID;
 
   nsCOMPtr<nsIURI> mSource;
   nsCOMPtr<nsIURI> mReferrer;

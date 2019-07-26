@@ -26,6 +26,8 @@ using namespace mozilla::storage;
 
 
 
+
+
 namespace {
 
   typedef nsACString::const_char_iterator const_char_iterator;
