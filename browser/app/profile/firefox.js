@@ -1365,6 +1365,8 @@ pref("security.csp.speccompliant", true);
 
 pref("security.mixed_content.block_active_content", true);
 
+pref("security.use_mozillapkix_verification", true);
+
 
 pref("plain_text.wrap_long_lines", true);
 
