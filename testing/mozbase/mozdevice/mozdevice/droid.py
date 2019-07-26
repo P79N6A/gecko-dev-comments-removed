@@ -109,13 +109,19 @@ class DroidADB(DeviceManagerADB, DroidMixin):
         
         
         
+        
+        
         m = re.search('mFocusedApp(.+)/', data)
+        if not m:
+            m = re.search('FocusedApplication(.+)/', data)
         if m:
             line = m.group(0)
             
             m = re.search('(\S+)/$', line)
             if m:
                 package = m.group(1)
+        if not package:
+            print "Warning: getTopActivity unable to find focused app"
         return package
 
 class DroidSUT(DeviceManagerSUT, DroidMixin):
