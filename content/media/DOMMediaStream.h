@@ -113,6 +113,11 @@ public:
   static already_AddRefed<DOMMediaStream>
   CreateTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents = 0);
 
+  void SetLogicalStreamStartTime(StreamTime aTime)
+  {
+    mLogicalStreamStartTime = aTime;
+  }
+
   
   
   MediaStreamTrack* CreateDOMTrack(TrackID aTrackID, MediaSegment::Type aType);
@@ -129,7 +134,6 @@ public:
   private:
     TrackTypeHints mExpectedTracks;
   };
-
   
   
   
@@ -149,6 +153,9 @@ protected:
 
   class StreamListener;
   friend class StreamListener;
+
+  
+  StreamTime mLogicalStreamStartTime;
 
   
   nsCOMPtr<nsIDOMWindow> mWindow;
