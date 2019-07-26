@@ -153,7 +153,7 @@ const SNIPPETS_OBJECTSTORE_NAME = "snippets";
 let gInitialized = false;
 let gObserver = new MutationObserver(function (mutations) {
   for (let mutation of mutations) {
-    if (mutation.attributeName == "searchEngineURL") {
+    if (mutation.attributeName == "searchEngineName") {
       setupSearchEngine();
       if (!gInitialized) {
         ensureSnippetsMapThen(loadSnippets);
@@ -295,52 +295,17 @@ function ensureSnippetsMapThen(aCallback)
 function onSearchSubmit(aEvent)
 {
   let searchTerms = document.getElementById("searchText").value;
-  let searchURL = document.documentElement.getAttribute("searchEngineURL");
+  let engineName = document.documentElement.getAttribute("searchEngineName");
 
-  if (searchURL && searchTerms.length > 0) {
+  if (engineName && searchTerms.length > 0) {
     
     
-    
-    let engineName = document.documentElement.getAttribute("searchEngineName");
-    let event = new CustomEvent("AboutHomeSearchEvent", {detail: engineName});
+    let eventData = JSON.stringify({
+      engineName: engineName,
+      searchTerms: searchTerms
+    });
+    let event = new CustomEvent("AboutHomeSearchEvent", {detail: eventData});
     document.dispatchEvent(event);
-
-    const SEARCH_TOKEN = "_searchTerms_";
-    let searchPostData = document.documentElement.getAttribute("searchEnginePostData");
-    if (searchPostData) {
-      
-      const POST_FORM_NAME = "searchFormPost";
-      let form = document.forms[POST_FORM_NAME];
-      if (form) {
-        form.parentNode.removeChild(form);
-      }
-
-      
-      form = document.body.appendChild(document.createElement("form"));
-      form.setAttribute("name", POST_FORM_NAME);
-      
-      form.setAttribute("action", searchURL.replace(SEARCH_TOKEN, searchTerms));
-      form.setAttribute("method", "post");
-
-      
-      searchPostData = searchPostData.split("&");
-      for (let postVar of searchPostData) {
-        let [name, value] = postVar.split("=");
-        if (value == SEARCH_TOKEN) {
-          value = searchTerms;
-        }
-        let input = document.createElement("input");
-        input.setAttribute("type", "hidden");
-        input.setAttribute("name", name);
-        input.setAttribute("value", value);
-        form.appendChild(input);
-      }
-      
-      form.submit();
-   } else {
-      searchURL = searchURL.replace(SEARCH_TOKEN, encodeURIComponent(searchTerms));
-      window.location.href = searchURL;
-    }
   }
 
   aEvent.preventDefault();
