@@ -261,16 +261,14 @@ private:
 class TextureHost : public RefCounted<TextureHost>
 {
 public:
-  TextureHost(uint64_t aID,
-              TextureFlags aFlags);
+  TextureHost(TextureFlags aFlags);
 
   virtual ~TextureHost();
 
   
 
 
-  static TemporaryRef<TextureHost> Create(uint64_t aID,
-                                          const SurfaceDescriptor& aDesc,
+  static TemporaryRef<TextureHost> Create(const SurfaceDescriptor& aDesc,
                                           ISurfaceAllocator* aDeallocator,
                                           TextureFlags aFlags);
 
@@ -340,27 +338,7 @@ public:
 
   virtual void ForgetSharedData() {}
 
-  
-
-
-
-
-
-
-
-  uint64_t GetID() const { return mID; }
-
   virtual gfx::IntSize GetSize() const = 0;
-
-  
-
-
-
-
-
-
-  TextureHost* GetNextSibling() const { return mNextTexture; }
-  void SetNextSibling(TextureHost* aNext) { mNextTexture = aNext; }
 
   
 
@@ -422,8 +400,6 @@ public:
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 
 protected:
-  uint64_t mID;
-  RefPtr<TextureHost> mNextTexture;
   TextureFlags mFlags;
   RefPtr<CompositableBackendSpecificData> mCompositableBackendData;
 };
@@ -444,8 +420,7 @@ protected:
 class BufferTextureHost : public TextureHost
 {
 public:
-  BufferTextureHost(uint64_t aID,
-                    gfx::SurfaceFormat aFormat,
+  BufferTextureHost(gfx::SurfaceFormat aFormat,
                     TextureFlags aFlags);
 
   ~BufferTextureHost();
@@ -500,8 +475,7 @@ protected:
 class ShmemTextureHost : public BufferTextureHost
 {
 public:
-  ShmemTextureHost(uint64_t aID,
-                   const mozilla::ipc::Shmem& aShmem,
+  ShmemTextureHost(const mozilla::ipc::Shmem& aShmem,
                    gfx::SurfaceFormat aFormat,
                    ISurfaceAllocator* aDeallocator,
                    TextureFlags aFlags);
@@ -532,8 +506,7 @@ protected:
 class MemoryTextureHost : public BufferTextureHost
 {
 public:
-  MemoryTextureHost(uint64_t aID,
-                    uint8_t* aBuffer,
+  MemoryTextureHost(uint8_t* aBuffer,
                     gfx::SurfaceFormat aFormat,
                     TextureFlags aFlags);
 
@@ -848,8 +821,7 @@ private:
 
 
 TemporaryRef<TextureHost>
-CreateBackendIndependentTextureHost(uint64_t aID,
-                                    const SurfaceDescriptor& aDesc,
+CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
                                     ISurfaceAllocator* aDeallocator,
                                     TextureFlags aFlags);
 
