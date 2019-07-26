@@ -354,9 +354,9 @@ abstract public class BrowserApp extends GeckoApp
                 
                 if (mLayerView != null && !mLayerView.hasFocus() && GamepadUtils.isPanningControl(event)) {
                     if (mAboutHome.getUserVisibleHint()) {
-                        mAboutHome.requestFocus();
-                    } else {
                         mLayerView.requestFocus();
+                    } else {
+                        mAboutHome.requestFocus();
                     }
                 }
                 return false;
