@@ -195,7 +195,7 @@ public:
   void SetStyle(nsStyleStructID aSID, void* aStruct);
 
   
-  #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_, ctor_args_)          \
+  #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_)                      \
     void SetStyle##name_ (nsStyle##name_ * aStruct) {                       \
       void *& slot =                                                        \
         mCachedInheritedData.mStyleStructs[eStyleStruct_##name_];           \
@@ -205,7 +205,7 @@ public:
                    "Going to leak styledata");                              \
       slot = aStruct;                                                       \
     }
-#define STYLE_STRUCT_RESET(name_, checkdata_cb_, ctor_args_)
+#define STYLE_STRUCT_RESET(name_, checkdata_cb_)
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT_RESET
   #undef STYLE_STRUCT_INHERITED
@@ -244,7 +244,7 @@ public:
 
 
 
-  #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)  \
+  #define STYLE_STRUCT(name_, checkdata_cb_)              \
     const nsStyle##name_ * Style##name_() {               \
       return DoGetStyle##name_(true);                     \
     }
@@ -258,7 +258,7 @@ public:
 
 
 
-  #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)  \
+  #define STYLE_STRUCT(name_, checkdata_cb_)              \
     const nsStyle##name_ * PeekStyle##name_() {           \
       return DoGetStyle##name_(false);                    \
     }
@@ -355,8 +355,8 @@ protected:
   inline const void* GetCachedStyleData(nsStyleStructID aSID);
 
   
-  #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_, ctor_args_)      \
-    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {     \
+  #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_)                  \
+    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {       \
       const nsStyle##name_ * cachedData =                               \
         static_cast<nsStyle##name_*>(                                   \
           mCachedInheritedData.mStyleStructs[eStyleStruct_##name_]);    \
@@ -365,12 +365,12 @@ protected:
       /* Have the rulenode deal */                                      \
       return mRuleNode->GetStyle##name_(this, aComputeData);            \
     }
-  #define STYLE_STRUCT_RESET(name_, checkdata_cb_, ctor_args_)          \
-    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {     \
+  #define STYLE_STRUCT_RESET(name_, checkdata_cb_)                      \
+    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {       \
       const nsStyle##name_ * cachedData = mCachedResetData              \
         ? static_cast<nsStyle##name_*>(                                 \
             mCachedResetData->mStyleStructs[eStyleStruct_##name_])      \
-        : nullptr;                                                       \
+        : nullptr;                                                      \
       if (cachedData) /* Have it cached already, yay */                 \
         return cachedData;                                              \
       /* Have the rulenode deal */                                      \
