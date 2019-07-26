@@ -483,24 +483,20 @@ struct GetNativePropertyStub
             JS_ASSERT_IF(expando, expando->isNative() && expando->getProto() == NULL);
 
             masm.loadValue(expandoAddr, tempVal);
-            if (expando && expando->nativeLookup(cx, propName)) {
-                
-                
 
-                
-                
-                
+            
+            
+            masm.branchTestUndefined(Assembler::Equal, tempVal, &listBaseOk);
 
+            if (expando && !expando->nativeContains(cx, propName)) {
+                
+                
                 masm.branchTestObject(Assembler::NotEqual, tempVal, &failListBaseCheck);
                 masm.extractObject(tempVal, tempVal.scratchReg());
                 masm.branchPtr(Assembler::Equal,
                                Address(tempVal.scratchReg(), JSObject::offsetOfShape()),
                                ImmGCPtr(expando->lastProperty()),
                                &listBaseOk);
-            } else {
-                
-                
-                masm.branchTestUndefined(Assembler::Equal, tempVal, &listBaseOk);
             }
 
             
