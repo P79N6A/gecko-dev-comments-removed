@@ -141,6 +141,10 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         Tabs.registerOnTabsChangedListener(this);
     }
 
+    void destroy() {
+        Tabs.unregisterOnTabsChangedListener(this);
+    }
+
     
     public boolean handleEvent(MotionEvent event) {
         
