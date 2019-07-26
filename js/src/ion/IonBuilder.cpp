@@ -216,8 +216,6 @@ IonBuilder::canEnterInlinedFunction(JSFunction *target)
     if (!targetType || targetType->unknownProperties())
         return false;
 
-    
-    types::HeapTypeSet::WatchObjectStateChange(cx, targetType);
     return true;
 }
 
@@ -3597,6 +3595,13 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
                                   targetScript->filename(), targetScript->lineno);
         return false;
     }
+
+    JS_ASSERT(!target->hasLazyType());
+    types::TypeObject *targetType = target->getType(cx);
+    JS_ASSERT(targetType && !targetType->unknownProperties());
+
+    
+    types::HeapTypeSet::WatchObjectStateChange(cx, targetType);
 
     return true;
 }
