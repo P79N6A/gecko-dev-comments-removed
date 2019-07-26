@@ -560,10 +560,6 @@ nsDocumentViewer::LoadStart(nsIDocument* aDocument)
 
   if (!mDocument) {
     mDocument = aDocument;
-  } else if (mDocument == aDocument) {
-    
-    
-    PrepareToStartLoad();
   }
 }
 
