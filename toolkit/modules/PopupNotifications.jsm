@@ -261,6 +261,13 @@ PopupNotifications.prototype = {
       
 
       
+      
+      
+      
+      if (browser == this.tabbrowser.selectedBrowser)
+        this.window.getAttention();
+
+      
       this._notify("backgroundShow");
     }
 
