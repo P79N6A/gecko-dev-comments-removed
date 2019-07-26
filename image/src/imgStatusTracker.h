@@ -23,11 +23,11 @@ class Image;
 
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsTObserverArray.h"
 #include "nsIRunnable.h"
 #include "nscore.h"
 #include "imgDecoderObserver.h"
+#include "nsISupportsImpl.h"
 
 enum {
   stateRequestStarted    = 1u << 0,
@@ -51,9 +51,11 @@ enum {
 
 
 
-class imgStatusTracker : public mozilla::RefCounted<imgStatusTracker>
+class imgStatusTracker
 {
 public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(imgStatusTracker)
+
   
   
   
@@ -193,7 +195,22 @@ public:
   inline imgDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
 
   imgStatusTracker* CloneForRecording();
-  void SyncAndSyncNotifyDifference(imgStatusTracker* other);
+
+  struct StatusDiff
+  {
+    uint32_t mDiffState;
+    bool mUnblockedOnload;
+    bool mFoundError;
+    nsIntRect mInvalidRect;
+  };
+
+  
+  
+  StatusDiff CalculateAndApplyDifference(imgStatusTracker* other);
+
+  
+  
+  void SyncNotifyDifference(StatusDiff diff);
 
   nsIntRect GetInvalidRect() const { return mInvalidRect; }
 
