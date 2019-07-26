@@ -394,8 +394,7 @@ IonBuilder::processIterators()
 
 bool
 IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoint,
-                        MDefinition *thisDefn, MDefinitionVector &argv,
-                        InlinePolymorphism polymorphism)
+                        MDefinition *thisDefn, MDefinitionVector &argv)
 {
     IonSpew(IonSpew_MIR, "Inlining script %s:%d (%p)",
             script->filename, script->lineno, (void *)script);
@@ -415,15 +414,8 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
 
     
     MBasicBlock *predecessor = callerBuilder->current;
-    if (polymorphism == Inline_Monomorphic) {
-        JS_ASSERT(predecessor == callerResumePoint->block());
-        predecessor->end(MGoto::New(current));
-    } else if (polymorphism == Inline_Polymorphic) {
-        predecessor->end(MInlineFunctionGuard::New(NULL, NULL, current, NULL));
-    } else {
-        JS_ASSERT(polymorphism == Inline_PolymorphicFinal);
-        predecessor->end(MGoto::New(current));
-    }
+    JS_ASSERT(predecessor == callerResumePoint->block());
+    predecessor->end(MGoto::New(current));
     if (!current->addPredecessorWithoutPhis(predecessor))
         return false;
 
@@ -2787,11 +2779,37 @@ class AutoAccumulateExits
 
 bool
 IonBuilder::jsop_call_inline(HandleFunction callee, uint32 argc, bool constructing,
-                             MConstant *constFun, MResumePoint *inlineResumePoint,
-                             MDefinitionVector &argv, MBasicBlock *bottom,
-                             Vector<MDefinition *, 8, IonAllocPolicy> &retvalDefns,
-                             InlinePolymorphism polymorphism)
+                             MConstant *constFun, MBasicBlock *bottom,
+                             Vector<MDefinition *, 8, IonAllocPolicy> &retvalDefns)
 {
+    
+    
+    MResumePoint *inlineResumePoint =
+        MResumePoint::New(current, pc, callerResumePoint_, MResumePoint::Outer);
+    if (!inlineResumePoint)
+        return false;
+
+    
+    JS_ASSERT(argc == GET_ARGC(inlineResumePoint->pc()));
+
+    
+    
+    
+    MDefinitionVector argv;
+    if (!argv.resizeUninitialized(argc + 1))
+        return false;
+    for (int32 i = argc; i >= 0; i--)
+        argv[i] = current->pop();
+
+    
+    
+    inlineResumePoint->replaceOperand(
+        inlineResumePoint->numOperands() - (argc + 2), constFun);
+
+    
+    (void) current->pop();
+    current->push(constFun);
+
     
     
     CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(
@@ -2819,7 +2837,7 @@ IonBuilder::jsop_call_inline(HandleFunction callee, uint32 argc, bool constructi
     }
 
     
-    if (!inlineBuilder.buildInline(this, inlineResumePoint, thisDefn, argv, polymorphism))
+    if (!inlineBuilder.buildInline(this, inlineResumePoint, thisDefn, argv))
         return false;
 
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
@@ -2923,43 +2941,16 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     MBasicBlock *top = current;
 
     
-    MConstant *constFun = NULL;
-    if (targets.length() == 1) {
-        JSFunction *singleTarget = targets[0]->toFunction();
-        constFun = MConstant::New(ObjectValue(*singleTarget));
-        current->add(constFun);
-    }
-
     
-    
-    MResumePoint *inlineResumePoint =
-        MResumePoint::New(top, pc, callerResumePoint_, MResumePoint::Outer);
-    if (!inlineResumePoint)
-        return false;
-
-    
-    JS_ASSERT(argc == GET_ARGC(inlineResumePoint->pc()));
-
-    
-    
-    
-    MDefinitionVector argv;
-    if (!discardCallArgs(argc, argv, top))
-        return false;
-
-    
-    
-    MDefinition *funcDefn = NULL;
-    if (targets.length() == 1) {
-        JS_ASSERT(constFun != NULL);
-        inlineResumePoint->replaceOperand(
-            inlineResumePoint->numOperands() - (argc + 2), constFun);
-        current->pop();
-        current->push(constFun);
-        funcDefn = constFun;
-    } else {
-        funcDefn = current->pop();
-        current->push(funcDefn);
+    for (int32 i = argc; i >= 0; i--) {
+        
+        int argSlotDepth = -((int) i + 1);
+        MPassArg *passArg = top->peek(argSlotDepth)->toPassArg();
+        MBasicBlock *block = passArg->block();
+        MDefinition *wrapped = passArg->getArgument();
+        passArg->replaceAllUsesWith(wrapped);
+        top->rewriteAtDepth(argSlotDepth, wrapped);
+        block->discard(passArg);
     }
 
     
@@ -2972,59 +2963,62 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
 
     
     if (targets.length() == 1) {
+        JSFunction *func = targets[0]->toFunction();
+        MConstant *constFun = MConstant::New(ObjectValue(*func));
+        current->add(constFun);
+
         
-        RootedFunction target(cx, targets[0]->toFunction());
-        if(!jsop_call_inline(target, argc, constructing, constFun, inlineResumePoint,
-                             argv, bottom, retvalDefns, Inline_Monomorphic))
+        RootedFunction target(cx, func);
+        if(!jsop_call_inline(target, argc, constructing, constFun, bottom, retvalDefns))
             return false;
     } else {
         
-        MBasicBlock *entryBlock = top;
+
+        
+        MDefinition *funcDefn = top->peek(-((int) argc + 2));
+        MPolyInlineDispatch *disp = MPolyInlineDispatch::New(funcDefn);
         for (size_t i = 0; i < targets.length(); i++) {
             
-            current = entryBlock;
-
             
-            constFun = MConstant::New(ObjectValue(*(targets[i]->toFunction())));
-            entryBlock->add(constFun);
+            JSFunction *func = targets[i]->toFunction();
+            RootedFunction target(cx, func);
+            MConstant *constFun = MConstant::New(ObjectValue(*func));
 
-            RootedFunction target(cx, targets[i]->toFunction());
-            InlinePolymorphism poly = (i == targets.length() - 1) ?
-                                        Inline_PolymorphicFinal : Inline_Polymorphic;
-            if (!jsop_call_inline(target, argc, constructing, constFun,
-                                  inlineResumePoint, argv, bottom, retvalDefns, poly))
+            MBasicBlock *entryBlock = newBlock(top, pc);
+            if (!entryBlock)
                 return false;
 
-            JS_ASSERT(entryBlock->lastIns());
-            JS_ASSERT((i < targets.length() - 1) ?
-                            entryBlock->lastIns()->isInlineFunctionGuard()
-                          : entryBlock->lastIns()->isGoto());
+            
+            entryBlock->add(constFun);
+            disp->addCallee(constFun, entryBlock);
+        }
+        top->end(disp);
 
+        for (size_t i = 0; i < disp->numCallees(); i++) {
             
+            MConstant *constFun = disp->getFunctionConstant(i);
+            RootedFunction target(cx, constFun->value().toObject().toFunction());
+            MBasicBlock *block = disp->getSuccessor(i);
+            graph_.moveBlockToEnd(block);
+            current = block;
             
-            
-            
-            
-            
-            
-            if (i < targets.length() - 1) {
-                MInlineFunctionGuard *guardIns =
-                    entryBlock->lastIns()->toInlineFunctionGuard();
-                guardIns->setFunction(target);
-                guardIns->setInput(funcDefn);
-                JS_ASSERT(guardIns->functionBlock() != NULL);
-
-                MBasicBlock *fallbackBlock = newBlock(entryBlock, pc);
-                guardIns->setFallbackBlock(fallbackBlock);
-                entryBlock = fallbackBlock;
-            }
+            if (!jsop_call_inline(target, argc, constructing, constFun, bottom, retvalDefns))
+                return false;
         }
     }
 
     graph_.moveBlockToEnd(bottom);
 
-    if (!bottom->inheritNonPredecessor(top))
+    if (!bottom->inheritNonPredecessor(top, true))
         return false;
+
+    
+    
+    
+    if (targets.length() > 1) {
+        for (uint32_t i = 0; i < argc + 1; i++)
+            (void) bottom->pop();
+    }
 
     
     (void) bottom->pop();
