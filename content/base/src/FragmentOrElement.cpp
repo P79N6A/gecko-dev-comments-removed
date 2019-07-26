@@ -888,11 +888,15 @@ nsIContent::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   
   if (isAnonForEvents) {
+#ifdef DEBUG
     
     
-    NS_ASSERTION(aVisitor.mEvent->eventStructType != NS_MUTATION_EVENT ||
+    nsCOMPtr<nsIContent> t = do_QueryInterface(aVisitor.mEvent->originalTarget);
+    NS_ASSERTION(!t || !t->ChromeOnlyAccess() ||
+                 aVisitor.mEvent->eventStructType != NS_MUTATION_EVENT ||
                  aVisitor.mDOMEvent,
                  "Mutation event dispatched in native anonymous content!?!");
+#endif
     aVisitor.mEventTargetAtParent = parent;
   } else if (parent && aVisitor.mOriginalTargetIsInAnon) {
     nsCOMPtr<nsIContent> content(do_QueryInterface(aVisitor.mEvent->target));
