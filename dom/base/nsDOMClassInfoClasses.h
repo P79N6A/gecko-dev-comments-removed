@@ -115,8 +115,6 @@ DOMCI_CLASS(File)
 
 DOMCI_CLASS(ModalContentWindow)
 
-DOMCI_CLASS(DeviceStorage)
-
 
 DOMCI_CLASS(GeoPositionCoords)
 
