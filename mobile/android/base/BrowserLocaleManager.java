@@ -177,7 +177,7 @@ public class BrowserLocaleManager implements LocaleManager {
 
         
         
-        res.updateConfiguration(config, res.getDisplayMetrics());
+        res.updateConfiguration(config, null);
     }
 
     @Override
@@ -254,7 +254,7 @@ public class BrowserLocaleManager implements LocaleManager {
         
         
         config.locale = locale;
-        res.updateConfiguration(config, res.getDisplayMetrics());
+        res.updateConfiguration(config, null);
     }
 
     private SharedPreferences getSharedPreferences(Context context) {
