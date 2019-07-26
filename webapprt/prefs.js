@@ -36,7 +36,6 @@ pref("full-screen-api.enabled", true);
 
 
 pref("dom.indexedDB.enabled", true);
-pref("indexedDB.feature.enabled", true);
 pref("dom.indexedDB.warningQuota", 50);
 
 
