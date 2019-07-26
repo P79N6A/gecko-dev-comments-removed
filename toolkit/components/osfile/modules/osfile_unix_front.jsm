@@ -224,6 +224,9 @@
 
 
 
+
+
+
      File.open = function Unix_open(path, mode, options = {}) {
        let omode = options.unixMode !== undefined ?
                      options.unixMode : DEFAULT_UNIX_MODE;
@@ -251,12 +254,11 @@
            flags |= Const.O_CREAT | Const.O_EXCL;
          } else if (mode.read && !mode.write) {
            
-         } else  {
-           if (mode.existing) {
-             flags |= Const.O_APPEND;
-           } else {
-             flags |= Const.O_APPEND | Const.O_CREAT;
-           }
+         } else if (!mode.existing) {
+           flags |= Const.O_CREAT;
+         }
+         if (mode.append) {
+           flags |= Const.O_APPEND;
          }
        }
        return error_or_file(UnixFile.open(path, flags, omode));
@@ -548,10 +550,12 @@
          let result;
          try {
            source = File.open(sourcePath);
+           
+           
            if (options.noOverwrite) {
-             dest = File.open(destPath, {create:true});
+             dest = File.open(destPath, {create:true, append:false});
            } else {
-             dest = File.open(destPath, {trunc:true});
+             dest = File.open(destPath, {trunc:true, append:false});
            }
            if (options.unixUserland) {
              result = pump_userland(source, dest, options);
