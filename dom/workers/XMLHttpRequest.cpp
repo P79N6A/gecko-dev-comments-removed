@@ -1459,7 +1459,7 @@ XMLHttpRequest::_finalize(JSFreeOp* aFop)
 
 
 XMLHttpRequest*
-XMLHttpRequest::Constructor(const WorkerGlobalObject& aGlobal,
+XMLHttpRequest::Constructor(const GlobalObject& aGlobal,
                             const MozXMLHttpRequestParametersWorkers& aParams,
                             ErrorResult& aRv)
 {
