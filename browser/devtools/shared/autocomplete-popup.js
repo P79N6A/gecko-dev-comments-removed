@@ -3,20 +3,13 @@
 
 
 
-const Cu = Components.utils;
-const Ci = Components.interfaces;
+"use strict";
 
-
+const {Cc, Ci, Cu} = require("chrome");
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-XPCOMUtils.defineLazyGetter(this, "gDevTools", function() {
-  return Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
-});
-
-this.EXPORTED_SYMBOLS = ["AutocompletePopup"];
+loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
+loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
 
 
 
@@ -38,7 +31,6 @@ this.EXPORTED_SYMBOLS = ["AutocompletePopup"];
 
 
 
-this.AutocompletePopup =
 function AutocompletePopup(aDocument, aOptions = {})
 {
   this._document = aDocument;
@@ -117,6 +109,7 @@ function AutocompletePopup(aDocument, aOptions = {})
     this._list.addEventListener("keypress", this.onKeypress, false);
   }
 }
+exports.AutocompletePopup = AutocompletePopup;
 
 AutocompletePopup.prototype = {
   _document: null,

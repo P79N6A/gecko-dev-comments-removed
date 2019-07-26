@@ -6,45 +6,24 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+const {Cc, Ci, Cu} = require("chrome");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Services",
-                                  "resource://gre/modules/Services.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIStorage",
-                                  "resource://gre/modules/ConsoleAPIStorage.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "NetworkHelper",
-                                  "resource://gre/modules/devtools/NetworkHelper.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-
-XPCOMUtils.defineLazyServiceGetter(this, "gActivityDistributor",
-                                   "@mozilla.org/network/http-activity-distributor;1",
-                                   "nsIHttpActivityDistributor");
+loader.lazyGetter(this, "NetworkHelper", () => require("devtools/toolkit/webconsole/network-helper"));
+loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
+loader.lazyImporter(this, "ConsoleAPIStorage", "resource://gre/modules/ConsoleAPIStorage.jsm");
+loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
+loader.lazyImporter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
+loader.lazyServiceGetter(this, "gActivityDistributor",
+                         "@mozilla.org/network/http-activity-distributor;1",
+                         "nsIHttpActivityDistributor");
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
-                                  "resource:///modules/devtools/gDevTools.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "devtools",
-                                  "resource://gre/modules/devtools/Loader.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
-                                  "resource:///modules/devtools/VariablesView.jsm");
-
-this.EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider", "JSTermHelpers",
-                         "ConsoleServiceListener", "ConsoleAPIListener",
-                         "NetworkResponseListener", "NetworkMonitor",
-                         "ConsoleProgressListener"];
+loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
+loader.lazyImporter(this, "devtools", "resource://gre/modules/devtools/Loader.jsm");
+loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm");
 
 
 
@@ -57,7 +36,7 @@ const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
 
 const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
-this.WebConsoleUtils = {
+let WebConsoleUtils = {
   
 
 
@@ -511,6 +490,7 @@ this.WebConsoleUtils = {
     return aGrip && typeof(aGrip) == "object" && aGrip.actor;
   },
 };
+exports.Utils = WebConsoleUtils;
 
 
 
@@ -601,7 +581,7 @@ WebConsoleUtils.l10n.prototype = {
 
 
 
-this.JSPropertyProvider = (function _JSPP(WCU) {
+(function _JSPP(WCU) {
 const STATE_NORMAL = 0;
 const STATE_QUOTE = 2;
 const STATE_DQUOTE = 3;
@@ -906,7 +886,7 @@ function getMatchedProps(aObj, aOptions = {matchProp: ""})
 }
 
 
-return JSPropertyProvider;
+exports.JSPropertyProvider = JSPropertyProvider;
 })(WebConsoleUtils);
 
 
@@ -926,11 +906,12 @@ return JSPropertyProvider;
 
 
 
-this.ConsoleServiceListener = function ConsoleServiceListener(aWindow, aListener)
+function ConsoleServiceListener(aWindow, aListener)
 {
   this.window = aWindow;
   this.listener = aListener;
 }
+exports.ConsoleServiceListener = ConsoleServiceListener;
 
 ConsoleServiceListener.prototype =
 {
@@ -1096,11 +1077,12 @@ ConsoleServiceListener.prototype =
 
 
 
-this.ConsoleAPIListener = function ConsoleAPIListener(aWindow, aOwner)
+function ConsoleAPIListener(aWindow, aOwner)
 {
   this.window = aWindow;
   this.owner = aOwner;
 }
+exports.ConsoleAPIListener = ConsoleAPIListener;
 
 ConsoleAPIListener.prototype =
 {
@@ -1214,7 +1196,7 @@ ConsoleAPIListener.prototype =
 
 
 
-this.JSTermHelpers = function JSTermHelpers(aOwner)
+function JSTermHelpers(aOwner)
 {
   
 
@@ -1433,10 +1415,10 @@ this.JSTermHelpers = function JSTermHelpers(aOwner)
     aOwner.helperResult = { rawOutput: true };
     return String(aString);
   };
-};
+}
+exports.JSTermHelpers = JSTermHelpers;
 
-
-(function(_global, WCU) {
+(function(WCU) {
 
 
 
@@ -2346,9 +2328,9 @@ NetworkMonitor.prototype = {
   },
 };
 
-_global.NetworkMonitor = NetworkMonitor;
-_global.NetworkResponseListener = NetworkResponseListener;
-})(this, WebConsoleUtils);
+exports.NetworkMonitor = NetworkMonitor;
+exports.NetworkResponseListener = NetworkResponseListener;
+})(WebConsoleUtils);
 
 
 
@@ -2364,12 +2346,12 @@ _global.NetworkResponseListener = NetworkResponseListener;
 
 
 
-this.ConsoleProgressListener =
- function ConsoleProgressListener(aWindow, aOwner)
+function ConsoleProgressListener(aWindow, aOwner)
 {
   this.window = aWindow;
   this.owner = aOwner;
 }
+exports.ConsoleProgressListener = ConsoleProgressListener;
 
 ConsoleProgressListener.prototype = {
   
