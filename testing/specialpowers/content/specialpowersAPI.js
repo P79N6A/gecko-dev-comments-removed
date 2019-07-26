@@ -494,6 +494,56 @@ SpecialPowersAPI.prototype = {
     return MockPermissionPrompt
   },
 
+  loadChromeScript: function (url) {
+    
+    let uuidGenerator = Cc["@mozilla.org/uuid-generator;1"]
+                          .getService(Ci.nsIUUIDGenerator);
+    let id = uuidGenerator.generateUUID().toString();
+
+    
+    this._sendSyncMessage("SPLoadChromeScript",
+                          { url: url, id: id });
+
+    
+    
+    let listeners = [];
+    let chromeScript = {
+      addMessageListener: (name, listener) => {
+        listeners.push({ name: name, listener: listener });
+      },
+
+      removeMessageListener: (name, listener) => {
+        listeners = listeners.filter(
+          o => (o.name != name || o.listener != listener)
+        );
+      },
+
+      sendAsyncMessage: (name, message) => {
+        this._sendSyncMessage("SPChromeScriptMessage",
+                              { id: id, name: name, message: message });
+      },
+
+      destroy: () => {
+        listeners = [];
+        this._removeMessageListener("SPChromeScriptMessage", chromeScript);
+      },
+
+      receiveMessage: (aMessage) => {
+        let messageId = aMessage.json.id;
+        let name = aMessage.json.name;
+        let message = aMessage.json.message;
+        
+        if (messageId != id)
+          return;
+
+        listeners.filter(o => (o.name == name))
+                 .forEach(o => o.listener(this.wrap(message)));
+      }
+    };
+    this._addMessageListener("SPChromeScriptMessage", chromeScript);
+    return this.wrap(chromeScript);
+  },
+
   get Services() {
     return wrapPrivileged(Services);
   },
