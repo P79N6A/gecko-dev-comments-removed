@@ -623,7 +623,11 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 
     if ((hint & nsChangeHint_AddOrRemoveTransform) && frame &&
         !(hint & nsChangeHint_ReconstructFrame)) {
-      if (NeedToReframeForAddingOrRemovingTransform(frame)) {
+      if (NeedToReframeForAddingOrRemovingTransform(frame) ||
+          frame->GetType() == nsGkAtoms::fieldSetFrame ||
+          frame->GetContentInsertionFrame() != frame) {
+        
+        
         NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
       } else {
         for (nsIFrame *cont = frame; cont;
