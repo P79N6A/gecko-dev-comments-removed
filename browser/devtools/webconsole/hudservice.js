@@ -503,6 +503,43 @@ WebConsole.prototype = {
     });
   },
 
+
+  
+
+
+
+
+
+
+  viewSourceInScratchpad: function WC_viewSourceInScratchpad(aSourceURL)
+  {
+    
+    let wins = Services.wm.getEnumerator("devtools:scratchpad");
+
+    while (wins.hasMoreElements()) {
+      let win = wins.getNext();
+
+      if (!win.closed && win.Scratchpad.uniqueName === aSourceURL) {
+        win.focus();
+        return;
+      }
+    }
+
+    
+    for (let [, toolbox] of gDevTools) {
+      let scratchpadPanel = toolbox.getPanel("scratchpad");
+      if (scratchpadPanel) {
+        let { scratchpad } = scratchpadPanel;
+        if (scratchpad.uniqueName === aSourceURL) {
+          toolbox.selectTool("scratchpad");
+          toolbox.raise();
+          scratchpad.editor.focus();
+          return;
+        }
+      }
+    }
+  },
+
   
 
 

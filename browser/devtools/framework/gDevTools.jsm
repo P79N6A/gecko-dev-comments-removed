@@ -310,6 +310,15 @@ DevTools.prototype = {
     
     
   },
+
+  
+
+
+  '@@iterator': function*() {
+    for (let toolbox of this._toolboxes) {
+      yield toolbox;
+    }
+  }
 };
 
 
