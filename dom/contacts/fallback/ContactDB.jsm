@@ -482,7 +482,11 @@ ContactDB.prototype = {
                   matchSearch[parsedNumber.nationalNumber] = 1;
                   matchSearch[parsedNumber.internationalNumber] = 1;
                   matchSearch[PhoneNumberUtils.normalize(parsedNumber.nationalFormat)] = 1;
-                  matchSearch[PhoneNumberUtils.normalize(parsedNumber.internationalFormat)] = 1
+                  matchSearch[PhoneNumberUtils.normalize(parsedNumber.internationalFormat)] = 1;
+
+                  if (this.substringMatching && normalized.length > this.substringMatching) {
+                    matchSearch[normalized.slice(-this.substringMatching)] = 1;
+                  }
                 }
 
                 
@@ -877,6 +881,11 @@ ContactDB.prototype = {
         let index = store.index("telMatch");
         let normalized = PhoneNumberUtils.normalize(options.filterValue,
                                                      true);
+
+        
+        if (this.substringMatching && normalized.length > this.substringMatching) {
+          normalized = normalized.slice(-this.substringMatching);
+        }
         request = index.mozGetAll(normalized, limit);
       } else {
         
@@ -931,7 +940,12 @@ ContactDB.prototype = {
     }.bind(this);
   },
 
+  
+  enableSubstringMatching: function enableSubstringMatching(aDigits) {
+    this.substringMatching = aDigits;
+  },
+
   init: function init(aGlobal) {
-      this.initDBHelper(DB_NAME, DB_VERSION, [STORE_NAME, SAVED_GETALL_STORE_NAME, REVISION_STORE], aGlobal);
+    this.initDBHelper(DB_NAME, DB_VERSION, [STORE_NAME, SAVED_GETALL_STORE_NAME, REVISION_STORE], aGlobal);
   }
 };
