@@ -22,7 +22,7 @@ var md5s = ['f1b708bba17f1ce948dc979f4d7092bc',
 
 function checkIsSpdy(request) {
   try {
-    if (request.getResponseHeader("X-Firefox-Spdy") == "3") {
+    if (request.getResponseHeader("X-Firefox-Spdy") == "2") {
       if (request.getResponseHeader("X-Connection-Spdy") == "yes") {
         return true;
       }
@@ -346,7 +346,7 @@ function resetPrefs() {
 function run_test() {
   
   do_get_profile();
-  var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+  prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
   var oldPref = prefs.getIntPref("network.http.speculative-parallel-limit");
   prefs.setIntPref("network.http.speculative-parallel-limit", 0);
 
@@ -363,7 +363,9 @@ function run_test() {
   spdy3pref = prefs.getBoolPref("network.http.spdy.enabled.v3");
   prefs.setBoolPref("network.http.spdy.enabled", true);
   prefs.setBoolPref("network.http.spdy.enabled.v2", true);
-  prefs.setBoolPref("network.http.spdy.enabled.v3", true);
+  prefs.setBoolPref("network.http.spdy.enabled.v3", false);
+  
+  do_register_cleanup(resetPrefs);
 
   
   run_next_test();
