@@ -6063,7 +6063,8 @@ IonBuilder::insertRecompileCheck()
     
     OptimizationLevel nextLevel = js_IonOptimizations.nextLevel(curLevel);
     const OptimizationInfo *info = js_IonOptimizations.get(nextLevel);
-    current->add(MRecompileCheck::New(alloc(), topBuilder->script(), info->usesBeforeCompile()));
+    uint32_t useCount = info->usesBeforeCompile(topBuilder->script());
+    current->add(MRecompileCheck::New(alloc(), topBuilder->script(), useCount));
 }
 
 JSObject *
