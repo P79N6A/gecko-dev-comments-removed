@@ -147,6 +147,10 @@ public:
   };
 
 private:
+  int64_t BlockIndexToOffset(int32_t aBlockIndex) {
+    return static_cast<int64_t>(aBlockIndex) * BLOCK_SIZE;
+  }
+
   
   
   
@@ -157,7 +161,7 @@ private:
   
   nsresult Seek(int64_t aOffset);
   
-  nsresult ReadFromFile(int32_t aOffset,
+  nsresult ReadFromFile(int64_t aOffset,
                         uint8_t* aDest,
                         int32_t aBytesToRead,
                         int32_t& aBytesRead);
