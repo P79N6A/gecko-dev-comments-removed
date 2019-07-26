@@ -37,6 +37,7 @@ extern "C" {
 
 
 
+
 enum FourCC {
   
   FOURCC_I420 = FOURCC('I', '4', '2', '0'),
@@ -53,9 +54,10 @@ enum FourCC {
   FOURCC_Q420 = FOURCC('Q', '4', '2', '0'),
   FOURCC_V210 = FOURCC('V', '2', '1', '0'),
   FOURCC_24BG = FOURCC('2', '4', 'B', 'G'),
-  FOURCC_ABGR = FOURCC('A', 'B', 'G', 'R'),
-  FOURCC_BGRA = FOURCC('B', 'G', 'R', 'A'),
   FOURCC_ARGB = FOURCC('A', 'R', 'G', 'B'),
+  FOURCC_BGRA = FOURCC('B', 'G', 'R', 'A'),
+  FOURCC_ABGR = FOURCC('A', 'B', 'G', 'R'),
+  FOURCC_RGBA = FOURCC('R', 'G', 'B', 'A'),
   FOURCC_RGBP = FOURCC('R', 'G', 'B', 'P'),  
   FOURCC_RGBO = FOURCC('R', 'G', 'B', 'O'),  
   FOURCC_R444 = FOURCC('R', '4', '4', '4'),  
@@ -107,9 +109,10 @@ enum FourCCBpp {
   FOURCC_BPP_Q420 = 12,
   FOURCC_BPP_V210 = 22,  
   FOURCC_BPP_24BG = 24,
-  FOURCC_BPP_ABGR = 32,
-  FOURCC_BPP_BGRA = 32,
   FOURCC_BPP_ARGB = 32,
+  FOURCC_BPP_BGRA = 32,
+  FOURCC_BPP_ABGR = 32,
+  FOURCC_BPP_RGBA = 32,
   FOURCC_BPP_RGBP = 16,
   FOURCC_BPP_RGBO = 16,
   FOURCC_BPP_R444 = 16,
@@ -146,7 +149,7 @@ enum FourCCBpp {
 };
 
 
-uint32 CanonicalFourCC(uint32 fourcc);
+LIBYUV_API uint32 CanonicalFourCC(uint32 fourcc);
 
 #ifdef __cplusplus
 }  

@@ -38,10 +38,20 @@ generator_default_variables = {
   'RULE_INPUT_PATH': '$(RULE_SOURCES)',
   'RULE_INPUT_EXT': '$(suffix $<)',
   'RULE_INPUT_NAME': '$(notdir $<)',
+  'CONFIGURATION_NAME': 'NOT_USED_ON_ANDROID',
 }
 
 
 generator_supports_multiple_toolsets = True
+
+
+
+generator_additional_non_configuration_keys = [
+    
+    'android_unmangled_name',
+]
+generator_additional_path_sections = []
+generator_extra_sources_for_rules = []
 
 
 SHARED_FOOTER = """\
@@ -576,6 +586,10 @@ class AndroidMkWriter(object):
     distinguish gyp-generated module names.
     """
 
+    if int(spec.get('android_unmangled_name', 0)):
+      assert self.type != 'shared_library' or self.target.startswith('lib')
+      return self.target
+
     if self.type == 'shared_library':
       
       
@@ -838,10 +852,11 @@ class AndroidMkWriter(object):
     
     
     
-    self.WriteLn('# Alias gyp target name.')
-    self.WriteLn('.PHONY: %s' % self.target)
-    self.WriteLn('%s: %s' % (self.target, self.android_module))
-    self.WriteLn('')
+    if self.target != self.android_module:
+      self.WriteLn('# Alias gyp target name.')
+      self.WriteLn('.PHONY: %s' % self.target)
+      self.WriteLn('%s: %s' % (self.target, self.android_module))
+      self.WriteLn('')
 
     
     

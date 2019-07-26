@@ -16,8 +16,7 @@
 
 class ChromeClassTester : public clang::ASTConsumer {
  public:
-  explicit ChromeClassTester(clang::CompilerInstance& instance,
-                             bool check_cc_directory);
+  explicit ChromeClassTester(clang::CompilerInstance& instance);
   virtual ~ChromeClassTester();
 
   
@@ -80,9 +79,6 @@ class ChromeClassTester : public clang::ASTConsumer {
 
   
   std::vector<clang::TagDecl*> pending_class_decls_;
-
-  
-  bool check_cc_directory_;
 };
 
 #endif  

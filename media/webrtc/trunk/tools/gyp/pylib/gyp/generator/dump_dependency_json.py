@@ -3,8 +3,10 @@
 
 
 import collections
+import os
 import gyp
 import gyp.common
+import gyp.msvs_emulation
 import json
 import sys
 
@@ -31,6 +33,30 @@ def CalculateVariables(default_variables, params):
   for key, val in generator_flags.items():
     default_variables.setdefault(key, val)
   default_variables.setdefault('OS', gyp.common.GetFlavor(params))
+
+  flavor = gyp.common.GetFlavor(params)
+  if flavor =='win':
+    
+    
+    import gyp.generator.msvs as msvs_generator
+    generator_additional_non_configuration_keys = getattr(msvs_generator,
+        'generator_additional_non_configuration_keys', [])
+    generator_additional_path_sections = getattr(msvs_generator,
+        'generator_additional_path_sections', [])
+
+    
+    msvs_version = gyp.msvs_emulation.GetVSVersion(generator_flags)
+    default_variables['MSVS_VERSION'] = msvs_version.ShortName()
+
+    
+    
+    
+    
+    if ('64' in os.environ.get('PROCESSOR_ARCHITECTURE', '') or
+        '64' in os.environ.get('PROCESSOR_ARCHITEW6432', '')):
+      default_variables['MSVS_OS_BITS'] = 64
+    else:
+      default_variables['MSVS_OS_BITS'] = 32
 
 
 def CalculateGeneratorInputInfo(params):

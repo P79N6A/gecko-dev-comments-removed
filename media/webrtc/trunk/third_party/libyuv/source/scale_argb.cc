@@ -16,7 +16,7 @@
 
 #include "libyuv/cpu_id.h"
 #include "libyuv/planar_functions.h"  
-#include "source/row.h"
+#include "libyuv/row.h"
 
 #ifdef __cplusplus
 namespace libyuv {
@@ -37,7 +37,8 @@ extern "C" {
 
 
 __declspec(naked) __declspec(align(16))
-static void ScaleARGBRowDown2_SSE2(const uint8* src_ptr, ptrdiff_t ,
+static void ScaleARGBRowDown2_SSE2(const uint8* src_ptr,
+                                   ptrdiff_t ,
                                    uint8* dst_ptr, int dst_width) {
   __asm {
     mov        eax, [esp + 4]        
@@ -63,7 +64,8 @@ static void ScaleARGBRowDown2_SSE2(const uint8* src_ptr, ptrdiff_t ,
 
 
 __declspec(naked) __declspec(align(16))
-static void ScaleARGBRowDown2Int_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
+static void ScaleARGBRowDown2Int_SSE2(const uint8* src_ptr,
+                                      ptrdiff_t src_stride,
                                       uint8* dst_ptr, int dst_width) {
   __asm {
     push       esi
@@ -137,7 +139,8 @@ void ScaleARGBRowDownEven_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 __declspec(naked) __declspec(align(16))
-static void ScaleARGBRowDownEvenInt_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
+static void ScaleARGBRowDownEvenInt_SSE2(const uint8* src_ptr,
+                                         ptrdiff_t src_stride,
                                          int src_stepx,
                                          uint8* dst_ptr, int dst_width) {
   __asm {
@@ -788,13 +791,11 @@ void ScaleARGBFilterRows_C(uint8* dst_ptr, const uint8* src_ptr,
 
 
 
-static void ScaleARGBDown2(int src_width, int src_height,
+static void ScaleARGBDown2(int , int ,
                            int dst_width, int dst_height,
                            int src_stride, int dst_stride,
                            const uint8* src_ptr, uint8* dst_ptr,
                            FilterMode filtering) {
-  assert(IS_ALIGNED(src_width, 2));
-  assert(IS_ALIGNED(src_height, 2));
   void (*ScaleARGBRowDown2)(const uint8* src_ptr, ptrdiff_t src_stride,
                             uint8* dst_ptr, int dst_width) =
       filtering ? ScaleARGBRowDown2Int_C : ScaleARGBRowDown2_C;
@@ -1006,6 +1007,7 @@ static void ScaleARGB(const uint8* src, int src_stride,
 }
 
 
+LIBYUV_API
 int ARGBScale(const uint8* src_argb, int src_stride_argb,
              int src_width, int src_height,
              uint8* dst_argb, int dst_stride_argb,

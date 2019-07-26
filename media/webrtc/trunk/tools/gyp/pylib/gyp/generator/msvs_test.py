@@ -3,7 +3,6 @@
 
 
 
-
 """ Unit tests for the msvs.py file. """
 
 import gyp.generator.msvs as msvs
@@ -25,6 +24,9 @@ class TestSequenceFunctions(unittest.TestCase):
       [])
     self.assertEqual(
       msvs._GetLibraries({'other':'foo', 'libraries': ['a.lib']}),
+      ['a.lib'])
+    self.assertEqual(
+      msvs._GetLibraries({'libraries': ['-la']}),
       ['a.lib'])
     self.assertEqual(
       msvs._GetLibraries({'libraries': ['a.lib', 'b.lib', 'c.lib', '-lb.lib',

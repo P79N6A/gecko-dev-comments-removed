@@ -32,6 +32,12 @@ if sys.platform == 'darwin':
   test.built_file_must_exist('action-copy-bare.txt', chdir=CHDIR)
 
   
+  test.built_file_must_exist('rule-copy-brace.txt', chdir=CHDIR)
+  test.built_file_must_exist('rule-copy-paren.txt', chdir=CHDIR)
+  
+  
+
+  
   info_plist = test.built_file_path(INFO_PLIST_PATH, chdir=CHDIR)
   test.must_exist(info_plist)
 

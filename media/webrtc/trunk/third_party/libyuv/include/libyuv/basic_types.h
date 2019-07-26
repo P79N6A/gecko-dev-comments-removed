@@ -83,8 +83,32 @@ typedef signed char int8;
 #define CPU_X86 1
 #endif
 
+#if defined(__arm__) || defined(_M_ARM)
+#define CPU_ARM 1
+#endif
+
+#ifndef ALIGNP
 #define ALIGNP(p, t) \
-  (reinterpret_cast<uint8*>(((reinterpret_cast<uintptr_t>(p) + \
-  ((t)-1)) & ~((t)-1))))
+    (reinterpret_cast<uint8*>(((reinterpret_cast<uintptr_t>(p) + \
+    ((t) - 1)) & ~((t) - 1))))
+#endif
+
+#if !defined(LIBYUV_API)
+#if defined(_WIN32) || defined(__CYGWIN__)
+#if defined(LIBYUV_BUILDING_SHARED_LIBRARY)
+#define LIBYUV_API __declspec(dllexport)
+#elif defined(LIBYUV_USING_SHARED_LIBRARY)
+#define LIBYUV_API __declspec(dllimport)
+#else
+#define LIBYUV_API
+#endif  
+#elif defined(__GNUC__) && (__GNUC__ >= 4) && !defined(__APPLE__) && \
+    (defined(LIBYUV_BUILDING_SHARED_LIBRARY) || \
+    defined(LIBYUV_USING_SHARED_LIBRARY))
+#define LIBYUV_API __attribute__ ((visibility ("default")))
+#else
+#define LIBYUV_API
+#endif  
+#endif  
 
 #endif  

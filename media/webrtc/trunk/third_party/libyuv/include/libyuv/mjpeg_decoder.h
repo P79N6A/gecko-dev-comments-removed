@@ -13,6 +13,8 @@
 
 #include "libyuv/basic_types.h"
 
+
+
 struct jpeg_common_struct;
 struct jpeg_decompress_struct;
 struct jpeg_source_mgr;

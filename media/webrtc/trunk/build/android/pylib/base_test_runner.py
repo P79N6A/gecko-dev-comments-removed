@@ -10,6 +10,7 @@ import tempfile
 import time
 
 import android_commands
+import constants
 from chrome_test_server_spawner import SpawningServer
 import constants
 from flag_changer import FlagChanger
@@ -21,7 +22,7 @@ from valgrind_tools import CreateTool
 
 
 
-NET_TEST_SERVER_PORT_INFO_FILE = '/data/local/tmp/net-test-server-ports'
+NET_TEST_SERVER_PORT_INFO_FILE = 'net-test-server-ports'
 
 
 class BaseTestRunner(object):
@@ -41,11 +42,6 @@ class BaseTestRunner(object):
     self.device = device
     self.adb = android_commands.AndroidCommands(device=device)
     self.tool = CreateTool(tool, self.adb)
-    
-    
-    
-    
-    self.adb.SynchronizeDateTime()
     self._http_server = None
     self._forwarder = None
     self._forwarder_device_port = 8000
@@ -65,7 +61,8 @@ class BaseTestRunner(object):
 
   def _PushTestServerPortInfoToDevice(self):
     """Pushes the latest port information to device."""
-    self.adb.SetFileContents(NET_TEST_SERVER_PORT_INFO_FILE,
+    self.adb.SetFileContents(self.adb.GetExternalStorage() + '/' +
+                             NET_TEST_SERVER_PORT_INFO_FILE,
                              '%d:%d' % (self.test_server_spawner_port,
                                         self.test_server_port))
 
@@ -113,29 +110,6 @@ class BaseTestRunner(object):
           os.path.join(constants.CHROME_DIR, p),
           os.path.join(dest_dir, p))
 
-  def LinkSdCardPathsToTempDir(self, paths):
-    """Link |paths| which are under sdcard to /data/local/tmp.
-
-    For example, the test data '/sdcard/my_data' will be linked to
-    '/data/local/tmp/my_data'.
-
-    Args:
-      paths: A list of files and directories relative to /sdcard.
-    """
-    links = set()
-    for path in paths:
-      link_name = os.path.dirname(path)
-      assert link_name, 'Linked paths must be in a subdir of /sdcard/.'
-      link_name = link_name.split('/')[0]
-      if link_name not in links:
-        mapped_device_path = '/data/local/tmp/' + link_name
-        
-        
-        self.adb.RunShellCommand('rm -r %s' %  mapped_device_path)
-        self.adb.RunShellCommand(
-            'ln -s /sdcard/%s %s' % (link_name, mapped_device_path))
-        links.add(link_name)
-
   def LaunchTestHttpServer(self, document_root, port=None,
                            extra_config_contents=None):
     """Launches an HTTP server to serve HTTP tests.
@@ -153,6 +127,7 @@ class BaseTestRunner(object):
     else:
       logging.critical('Failed to start http server')
     self.StartForwarderForHttpServer()
+    return (self._forwarder_device_port, self._http_server.port)
 
   def StartForwarder(self, port_pairs):
     """Starts TCP traffic forwarding for the given |port_pairs|.
@@ -160,10 +135,6 @@ class BaseTestRunner(object):
     Args:
       host_port_pairs: A list of (device_port, local_port) tuples to forward.
     """
-    
-    
-    
-    self.adb.KillAll('forwarder')
     if self._forwarder:
       self._forwarder.Close()
     self._forwarder = Forwarder(
@@ -194,7 +165,7 @@ class BaseTestRunner(object):
     if self._forwarder or self._spawner_forwarder:
       
       
-      self.adb.KillAll('forwarder')
+      self.adb.KillAll('device_forwarder')
       if self._forwarder:
         self._forwarder.Close()
       if self._spawner_forwarder:
@@ -215,7 +186,9 @@ class BaseTestRunner(object):
       
       self.test_server_spawner_port = ports.AllocateTestServerPort()
       self._spawning_server = SpawningServer(self.test_server_spawner_port,
-                                             self.test_server_port)
+                                             self.adb,
+                                             self.tool,
+                                             self.build_type)
       self._spawning_server.Start()
       server_ready, error_msg = ports.IsHttpServerConnectable(
           '127.0.0.1', self.test_server_spawner_port, path='/ping',

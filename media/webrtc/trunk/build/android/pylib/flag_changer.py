@@ -2,12 +2,13 @@
 
 
 
+import constants
 import traceback
 import warnings
 
 
 
-CHROME_COMMAND_FILE = '/data/local/tmp/chrome-command-line'
+CHROME_COMMAND_FILE = constants.TEST_EXECUTABLE_DIR + '/chrome-command-line'
 
 class FlagChanger(object):
   """Changes the flags Chrome runs with.

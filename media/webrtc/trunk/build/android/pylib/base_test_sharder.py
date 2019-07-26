@@ -16,8 +16,11 @@ def _ShardedTestRunnable(test):
     logging.getLogger().handlers[0].setFormatter(logging.Formatter(log_format))
   else:
     logging.basicConfig(format=log_format)
-  return test.Run()
-
+  
+  try:
+    return test.Run()
+  except SystemExit:
+    return TestResults()
 
 def SetTestsContainer(tests_container):
   """Sets tests container.
@@ -89,7 +92,10 @@ class BaseTestSharder(object):
       pool = multiprocessing.Pool(len(self.attached_devices),
                                   SetTestsContainer,
                                   [BaseTestSharder.tests_container])
-      results_lists = pool.map(_ShardedTestRunnable, test_runners)
+      
+      
+      async_results = pool.map_async(_ShardedTestRunnable, test_runners)
+      results_lists = async_results.get(999999)
       test_results = TestResults.FromTestResults(results_lists)
       if retry == self.retries - 1:
         all_passed = final_results.ok + test_results.ok

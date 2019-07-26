@@ -176,7 +176,7 @@ class Emulator(object):
         '--name', avd_name,
         '--abi', self.abi,
         '--target', 'android-16',
-        '-c', '64M',
+        '-c', '128M',
         '--force',
     ]
     avd_process = subprocess.Popen(args=avd_command,
@@ -221,6 +221,8 @@ class Emulator(object):
         
         
         '-partition-size', '512',
+        
+        '-gpu', 'on',
         
         '-avd', self.avd,
         '-port', str(port)]
