@@ -8,6 +8,7 @@
 #define js_RootingAPI_h
 
 #include "mozilla/GuardObjects.h"
+#include "mozilla/LinkedList.h"
 #include "mozilla/NullPtr.h"
 #include "mozilla/TypeTraits.h"
 
@@ -143,6 +144,7 @@ struct Cell;
 namespace JS {
 
 template <typename T> class Rooted;
+template <typename T> class PersistentRooted;
 
 
 JS_FRIEND_API(bool) isGCEnabled();
@@ -440,6 +442,11 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
     Handle(const Rooted<S> &root,
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
+    template <typename S>
+    inline
+    Handle(const PersistentRooted<S> &root,
+           typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
+
     
     template <typename S>
     inline
@@ -484,6 +491,7 @@ class MOZ_STACK_CLASS MutableHandle : public js::MutableHandleBase<T>
 {
   public:
     inline MutableHandle(Rooted<T> *root);
+    inline MutableHandle(PersistentRooted<T> *root);
     MutableHandle(int) MOZ_DELETE;
 #ifdef MOZ_HAVE_CXX11_NULLPTR
     MutableHandle(decltype(nullptr)) MOZ_DELETE;
@@ -797,13 +805,6 @@ template <>
 class Rooted<JSStableString *>;
 #endif
 
-typedef Rooted<JSObject*>                   RootedObject;
-typedef Rooted<JSFunction*>                 RootedFunction;
-typedef Rooted<JSScript*>                   RootedScript;
-typedef Rooted<JSString*>                   RootedString;
-typedef Rooted<jsid>                        RootedId;
-typedef Rooted<JS::Value>                   RootedValue;
-
 } 
 
 namespace js {
@@ -1026,6 +1027,14 @@ Handle<T>::Handle(const Rooted<S> &root,
 
 template <typename T> template <typename S>
 inline
+Handle<T>::Handle(const PersistentRooted<S> &root,
+                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
+{
+    ptr = reinterpret_cast<const T *>(root.address());
+}
+
+template <typename T> template <typename S>
+inline
 Handle<T>::Handle(MutableHandle<S> &root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
 {
@@ -1040,6 +1049,123 @@ MutableHandle<T>::MutableHandle(Rooted<T> *root)
                   "MutableHandle must be binary compatible with T*.");
     ptr = root->address();
 }
+
+template <typename T>
+inline
+MutableHandle<T>::MutableHandle(PersistentRooted<T> *root)
+{
+    static_assert(sizeof(MutableHandle<T>) == sizeof(T *),
+                  "MutableHandle must be binary compatible with T*.");
+    ptr = root->address();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+class PersistentRooted : public mozilla::LinkedListElement<PersistentRooted<T> > {
+    typedef mozilla::LinkedList<PersistentRooted> List;
+    typedef mozilla::LinkedListElement<PersistentRooted> Element;
+
+    void registerWithRuntime(JSRuntime *rt) {
+        JS::shadow::Runtime *srt = JS::shadow::Runtime::asShadowRuntime(rt);
+        srt->getPersistentRootedList<T>().insertBack(this);
+    }
+
+  public:
+    PersistentRooted(JSContext *cx) : ptr(js::GCMethods<T>::initial())
+    {
+        registerWithRuntime(js::GetRuntime(cx));
+    }
+
+    PersistentRooted(JSContext *cx, T initial) : ptr(initial)
+    {
+        registerWithRuntime(js::GetRuntime(cx));
+    }
+
+    PersistentRooted(JSRuntime *rt) : ptr(js::GCMethods<T>::initial())
+    {
+        registerWithRuntime(rt);
+    }
+
+    PersistentRooted(JSRuntime *rt, T initial) : ptr(initial)
+    {
+        registerWithRuntime(rt);
+    }
+
+    PersistentRooted(PersistentRooted &rhs) : ptr(rhs.ptr)
+    {
+        
+
+
+
+
+        rhs.setNext(this);
+    }
+
+    
+
+
+
+    operator const T&() const { return ptr; }
+    T operator->() const { return ptr; }
+    T *address() { return &ptr; }
+    const T *address() const { return &ptr; }
+    T &get() { return ptr; }
+    const T &get() const { return ptr; }
+
+    T &operator=(T value) {
+        JS_ASSERT(!js::GCMethods<T>::poisoned(value));
+        ptr = value;
+        return ptr;
+    }
+
+    T &operator=(const PersistentRooted &value) {
+        ptr = value;
+        return ptr;
+    }
+
+    void set(T value) {
+        JS_ASSERT(!js::GCMethods<T>::poisoned(value));
+        ptr = value;
+    }
+
+    bool operator!=(const T &other) const { return ptr != other; }
+    bool operator==(const T &other) const { return ptr == other; }
+
+  private:
+    T ptr;
+};
 
 } 
 
