@@ -26,6 +26,9 @@ public interface TelemetryContract {
         public static final String CANCEL = "cancel.1";
 
         
+        public static final String EDIT = "edit.1";
+
+        
         
         public static final String LAUNCH = "launch.1";
 
@@ -38,6 +41,9 @@ public interface TelemetryContract {
 
         
         public static final String PANEL_SET_DEFAULT = "setdefault.1";
+
+        
+        public static final String PIN = "pin.1";
 
         
         public static final String POLICY_NOTIFICATION_SUCCESS = "policynotification.success.1:";
@@ -53,13 +59,7 @@ public interface TelemetryContract {
         public static final String SHARE = "share.1";
 
         
-        public static final String TOP_SITES_EDIT = "edit.1";
-
-        
-        public static final String TOP_SITES_PIN = "pin.1";
-
-        
-        public static final String TOP_SITES_UNPIN = "unpin.1";
+        public static final String UNPIN = "unpin.1";
 
         
         
