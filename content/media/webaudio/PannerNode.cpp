@@ -237,6 +237,7 @@ PannerNodeEngine::EqualPowerPanningFunction(const AudioChunk& aInput,
       mConeInnerAngle == 360 &&
       mConeOuterAngle == 360) {
     *aOutput = aInput;
+    return;
   }
 
   
