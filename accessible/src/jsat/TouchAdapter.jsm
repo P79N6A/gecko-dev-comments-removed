@@ -40,7 +40,7 @@ this.TouchAdapter = {
   TAP_MAX_RADIUS: 0.2,
 
   
-  HOVER_ID: 'hover',
+  MOUSE_ID: 'mouse',
 
   start: function TouchAdapter_start() {
     Logger.info('TouchAdapter.start');
@@ -62,16 +62,10 @@ this.TouchAdapter = {
       target = this.glass;
     }
 
-    target.addEventListener('mousemove', this, true, true);
-    target.addEventListener('mouseenter', this, true, true);
-    target.addEventListener('mouseleave', this, true, true);
+    for each (let eventType in this.eventsOfInterest) {
+      target.addEventListener(eventType, this, true, true);
+    }
 
-    target.addEventListener('touchend', this, true, true);
-    target.addEventListener('touchmove', this, true, true);
-    target.addEventListener('touchstart', this, true, true);
-
-    if (Utils.OS != 'Android')
-      Mouse2Touch.start();
   },
 
   stop: function TouchAdapter_stop() {
@@ -84,19 +78,34 @@ this.TouchAdapter = {
       this.glass.parentNode.removeChild(this.glass);
     }
 
-    target.removeEventListener('mousemove', this, true, true);
-    target.removeEventListener('mouseenter', this, true, true);
-    target.removeEventListener('mouseleave', this, true, true);
+    for each (let eventType in this.eventsOfInterest) {
+      target.removeEventListener(eventType, this, true, true);
+    }
+  },
 
-    target.removeEventListener('touchend', this, true, true);
-    target.removeEventListener('touchmove', this, true, true);
-    target.removeEventListener('touchstart', this, true, true);
+  get eventsOfInterest() {
+    delete this.eventsOfInterest;
 
-    if (Utils.OS != 'Android')
-      Mouse2Touch.stop();
+    if ('ontouchstart' in Utils.win) {
+      this.eventsOfInterest = ['touchstart', 'touchmove', 'touchend'];
+      if (Utils.MozBuildApp == 'mobile/android') {
+        this.eventsOfInterest.push.apply(
+          this.eventsOfInterest, ['mouseenter', 'mousemove', 'mouseleave']);
+      }
+    } else {
+      this.eventsOfInterest = ['mousedown', 'mousemove', 'mouseup'];
+    }
+
+    return this.eventsOfInterest;
   },
 
   handleEvent: function TouchAdapter_handleEvent(aEvent) {
+    
+    if (Utils.MozBuildApp == 'browser' &&
+        aEvent.view.top instanceof Ci.nsIDOMChromeWindow) {
+      return;
+    }
+
     if (this._delayedEvent) {
       Utils.win.clearTimeout(this._delayedEvent);
       delete this._delayedEvent;
@@ -108,13 +117,14 @@ this.TouchAdapter = {
     
     let timeStamp = (Utils.OS == 'Android') ? aEvent.timeStamp : Date.now();
     switch (aEvent.type) {
+      case 'mousedown':
       case 'mouseenter':
       case 'touchstart':
         for (var i = 0; i < changedTouches.length; i++) {
           let touch = changedTouches[i];
           let touchPoint = new TouchPoint(touch, timeStamp, this._dpi);
           let identifier = (touch.identifier == undefined) ?
-            this.HOVER_ID : touch.identifier;
+            this.MOUSE_ID : touch.identifier;
           this._touchPoints[identifier] = touchPoint;
           this._lastExploreTime = timeStamp + this.SWIPE_MAX_DURATION;
         }
@@ -128,7 +138,7 @@ this.TouchAdapter = {
         for (var i = 0; i < changedTouches.length; i++) {
           let touch = changedTouches[i];
           let identifier = (touch.identifier == undefined) ?
-            this.HOVER_ID : touch.identifier;
+            this.MOUSE_ID : touch.identifier;
           let touchPoint = this._touchPoints[identifier];
           if (touchPoint)
             touchPoint.update(touch, timeStamp);
@@ -138,12 +148,13 @@ this.TouchAdapter = {
           this._lastExploreTime = timeStamp;
         }
         break;
+      case 'mouseup':
       case 'mouseleave':
       case 'touchend':
         for (var i = 0; i < changedTouches.length; i++) {
           let touch = changedTouches[i];
           let identifier = (touch.identifier == undefined) ?
-            this.HOVER_ID : touch.identifier;
+            this.MOUSE_ID : touch.identifier;
           let touchPoint = this._touchPoints[identifier];
           if (touchPoint) {
             touchPoint.update(touch, timeStamp);
@@ -155,6 +166,7 @@ this.TouchAdapter = {
     }
 
     aEvent.preventDefault();
+    aEvent.stopImmediatePropagation();
   },
 
   cleanupTouches: function cleanupTouches() {
@@ -239,13 +251,13 @@ this.TouchAdapter = {
     
     if (Utils.MozBuildApp == 'mobile/android' &&
         Utils.AndroidSdkVersion >= 14 &&
-        aDetails.touches[0] != this.HOVER_ID) {
+        aDetails.touches[0] != this.MOUSE_ID) {
       if (aDetails.touches.length == 1) {
         if (aDetails.type == 'tap') {
           emitDelay = 50;
           aDetails.type = 'doubletap';
         } else {
-          aDetails.touches.push(this.HOVER_ID);
+          aDetails.touches.push(this.MOUSE_ID);
         }
       }
     }
@@ -368,68 +380,5 @@ TouchPoint.prototype = {
 
   get directDistanceTraveled() {
     return this.getDistanceToCoord(this.startX, this.startY);
-  }
-};
-
-var Mouse2Touch = {
-  _MouseToTouchMap: {
-    mousedown: 'touchstart',
-    mouseup: 'touchend',
-    mousemove: 'touchmove'
-  },
-
-  start: function Mouse2Touch_start() {
-    Utils.win.addEventListener('mousedown', this, true, true);
-    Utils.win.addEventListener('mouseup', this, true, true);
-    Utils.win.addEventListener('mousemove', this, true, true);
-  },
-
-  stop: function Mouse2Touch_stop() {
-    Utils.win.removeEventListener('mousedown', this, true, true);
-    Utils.win.removeEventListener('mouseup', this, true, true);
-    Utils.win.removeEventListener('mousemove', this, true, true);
-  },
-
-  handleEvent: function Mouse2Touch_handleEvent(aEvent) {
-    if (aEvent.buttons == 0)
-      return;
-
-    let name = this._MouseToTouchMap[aEvent.type];
-    let evt = Utils.win.document.createEvent("touchevent");
-    let points = [Utils.win.document.createTouch(
-                    Utils.win, aEvent.target, 0,
-                    aEvent.pageX, aEvent.pageY, aEvent.screenX, aEvent.screenY,
-                    aEvent.clientX, aEvent.clientY, 1, 1, 0, 0)];
-
-    
-    if (aEvent.ctrlKey)
-      points.push(Utils.win.document.createTouch(
-                    Utils.win, aEvent.target, 1,
-                    aEvent.pageX + 5, aEvent.pageY + 5,
-                    aEvent.screenX + 5, aEvent.screenY + 5,
-                    aEvent.clientX + 5, aEvent.clientY + 5,
-                    1, 1, 0, 0));
-
-    
-    if (aEvent.altKey)
-      points.push(Utils.win.document.createTouch(
-                    Utils.win, aEvent.target, 2,
-                    aEvent.pageX - 5, aEvent.pageY - 5,
-                    aEvent.screenX - 5, aEvent.screenY - 5,
-                    aEvent.clientX - 5, aEvent.clientY - 5,
-                    1, 1, 0, 0));
-
-    let touches = Utils.win.document.createTouchList(points);
-    if (name == "touchend") {
-      let empty = Utils.win.document.createTouchList();
-      evt.initTouchEvent(name, true, true, Utils.win, 0,
-                         false, false, false, false, empty, empty, touches);
-    } else {
-      evt.initTouchEvent(name, true, true, Utils.win, 0,
-                         false, false, false, false, touches, touches, touches);
-    }
-    aEvent.target.dispatchEvent(evt);
-    aEvent.preventDefault();
-    aEvent.stopImmediatePropagation();
   }
 };

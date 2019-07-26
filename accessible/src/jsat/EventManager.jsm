@@ -105,6 +105,13 @@ this.EventManager = {
       Logger.debug('A11yEvent', Logger.eventToString(aEvent),
                    Logger.accessibleToString(aEvent.accessible));
 
+    
+    if (Utils.MozBuildApp == 'browser' &&
+        aEvent.eventType != Ci.nsIAccessibleEvent.EVENT_VIRTUALCURSOR_CHANGED &&
+        aEvent.accessibleDocument != Utils.CurrentContentDoc) {
+      return;
+    }
+
     switch (aEvent.eventType) {
       case Ci.nsIAccessibleEvent.EVENT_VIRTUALCURSOR_CHANGED:
       {
