@@ -720,8 +720,11 @@ class Mochitest(MochitestUtilsMixin):
         if os.path.exists(crashinject) and subprocess.Popen([crashinject, str(processPID)]).wait() == 0:
           return
       else:
-        
-        os.kill(processPID, signal.SIGABRT)
+        try:
+          os.kill(processPID, signal.SIGABRT)
+        except OSError:
+          
+          log.info("Can't trigger Breakpad, process no longer exists")
         return
     log.info("Can't trigger Breakpad, just killing process")
     killPid(processPID)
