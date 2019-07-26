@@ -5,6 +5,10 @@
 
 let runAppObj;
 window.addEventListener('load', function() {
+  if (!window.arguments) {
+    return;
+  }
+
   
   let args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
   let appname;

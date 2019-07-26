@@ -57,12 +57,19 @@ window.addEventListener('ContentStart', function() {
   };
 
   
-  let args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
-  let screenarg;
+  let args;
+  try {
+    
+    args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
+  } catch(e) {}
+
+  let screenarg = null;
 
   
   try {
-    screenarg = args.handleFlagWithParam('screen', false);
+    if (args) {
+      screenarg = args.handleFlagWithParam('screen', false);
+    }
 
     
     if (screenarg === null)

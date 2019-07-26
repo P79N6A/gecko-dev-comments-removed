@@ -52,6 +52,10 @@ function checkDebuggerPort() {
   
   
 
+  if (!window.arguments) {
+    return;
+  }
+
   
   let args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
 
