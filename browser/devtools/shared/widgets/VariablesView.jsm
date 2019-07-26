@@ -2928,11 +2928,13 @@ Property.prototype = Heritage.extend(Variable.prototype, {
 
 
 
-VariablesView.prototype["@@iterator"] =
-Scope.prototype["@@iterator"] =
-Variable.prototype["@@iterator"] =
-Property.prototype["@@iterator"] = function*() {
-  yield* this._store;
+VariablesView.prototype.__iterator__ =
+Scope.prototype.__iterator__ =
+Variable.prototype.__iterator__ =
+Property.prototype.__iterator__ = function() {
+  for (let item of this._store) {
+    yield item;
+  }
 };
 
 
