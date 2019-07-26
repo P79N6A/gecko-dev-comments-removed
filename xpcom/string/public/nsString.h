@@ -21,9 +21,6 @@
 #include "nsReadableUtils.h"
 #endif
 
-
-#include "prtypes.h"
-
 #include NEW_H
 
   

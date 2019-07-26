@@ -11,6 +11,11 @@
   
 #endif
 
+#ifndef prtypes_h___
+#include "prtypes.h"
+  
+#endif
+
 #ifndef nsDebug_h___
 #include "nsDebug.h"
   
