@@ -1207,7 +1207,7 @@ pref("social.manifest.facebook", "{\"origin\":\"https://www.facebook.com\",\"nam
 
 
 
-pref("social.whitelist", "");
+pref("social.whitelist", "https://mozsocial.cliqz.com,https://now.msn.com,https://mixi.jp");
 
 
 pref("social.directories", "https://addons.mozilla.org");
