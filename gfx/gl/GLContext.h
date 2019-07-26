@@ -2385,6 +2385,9 @@ public:
 #endif
 
     bool MakeCurrent(bool aForce = false) {
+        if (IsDestroyed()) {
+            return false;
+        }
 #ifdef DEBUG
     PR_SetThreadPrivate(sCurrentGLContextTLS, this);
 
@@ -2515,7 +2518,7 @@ public:
 #endif
 
     virtual already_AddRefed<TextureImage>
-    CreateDirectTextureImage(::android::GraphicBuffer* aBuffer, GLenum aWrapMode)
+    CreateDirectTextureImage(android::GraphicBuffer* aBuffer, GLenum aWrapMode)
     { return nullptr; }
 
     
