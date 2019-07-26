@@ -1137,7 +1137,7 @@ NormalizePropertyDescriptor(JSContext *cx, MutableHandleValue vp, bool complete 
         return false;
     if (complete)
         desc->complete();
-    JS_ASSERT(!vp.isPrimitive()); 
+    JS_ASSERT(vp.isObject()); 
     RootedObject attributes(cx, &vp.toObject());
 
     
