@@ -29,8 +29,12 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         
         
         
+        self.remoteBinDir = "/data/local/xpcb"
         
-        self.remoteBinDir = self.remoteJoin(self.remoteTestRoot, "b")
+        
+        
+        
+        
         self.remoteTmpDir = self.remoteJoin(self.remoteTestRoot, "tmp")
         self.remoteScriptsDir = self.remoteTestRoot
         self.remoteComponentsDir = self.remoteJoin(self.remoteTestRoot, "c")
@@ -83,6 +87,10 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         return local
 
     def setupUtilities(self):
+        if (not self.device.dirExists(self.remoteBinDir)):
+          
+          self.device.shellCheckOutput(["mkdir", self.remoteBinDir]);
+
         remotePrefDir = self.remoteJoin(self.remoteBinDir, "defaults/pref")
         if (self.device.dirExists(self.remoteTmpDir)):
           self.device.removeDir(self.remoteTmpDir)
