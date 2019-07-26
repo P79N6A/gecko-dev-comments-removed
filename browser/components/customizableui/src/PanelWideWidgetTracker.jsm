@@ -74,7 +74,25 @@ let PanelWideWidgetTracker = {
   },
   shouldMoveForward: function(aWidgetId, aPosition) {
     let currentWidgetAtPosition = gPanelPlacements[aPosition + 1];
-    return gWideWidgets.has(currentWidgetAtPosition) && !gWideWidgets.has(aWidgetId);
+    let rv = gWideWidgets.has(currentWidgetAtPosition) && !gWideWidgets.has(aWidgetId);
+    
+    
+    if (rv) {
+      let furtherWidgets = gPanelPlacements.slice(aPosition + 2);
+      let realWidgets = 0;
+      if (furtherWidgets.length >= 2) {
+        while (furtherWidgets.length && realWidgets < 2) {
+          let w = furtherWidgets.shift();
+          if (!gWideWidgets.has(w) && this.checkWidgetStatus(w)) {
+            realWidgets++;
+          }
+        }
+      }
+      if (realWidgets < 2) {
+        rv = false;
+      }
+    }
+    return rv;
   },
   adjustWidgets: function(aWidgetId, aMoveForwards) {
     if (this.adjusting) {
@@ -107,26 +125,12 @@ let PanelWideWidgetTracker = {
       if (gWideWidgets.has(thisWidgetId)) {
         continue;
       }
-      let widgetWrapper = CustomizableUI.getWidget(gPanelPlacements[placementIndex]);
-      
-      if (!widgetWrapper) {
+      let widgetStatus = this.checkWidgetStatus(thisWidgetId);
+      if (!widgetStatus) {
         continue;
       }
-      
-      if (widgetWrapper.provider == CustomizableUI.PROVIDER_XUL &&
-          widgetWrapper.instances.length == 0) {
-        continue;
-      }
-
-      
-      if (widgetWrapper.provider == CustomizableUI.PROVIDER_API &&
-          widgetWrapper.showInPrivateBrowsing === false) {
-        if (!fixedPos) {
-          fixedPos = placementIndex;
-        } else {
-          fixedPos = Math.min(fixedPos, placementIndex);
-        }
-        
+      if (widgetStatus == "public-only") {
+        fixedPos = !fixedPos ? placementIndex : Math.min(fixedPos, placementIndex);
         prevSiblingCount = 0;
       } else {
         prevSiblingCount++;
@@ -144,6 +148,33 @@ let PanelWideWidgetTracker = {
       CustomizableUI.moveWidgetWithinArea(aWidgetId, desiredPos);
     }
   },
+
+  
+
+
+
+
+
+  checkWidgetStatus: function(aWidgetId) {
+    let widgetWrapper = CustomizableUI.getWidget(aWidgetId);
+    
+    if (!widgetWrapper) {
+      return false;
+    }
+    
+    if (widgetWrapper.provider == CustomizableUI.PROVIDER_XUL &&
+        widgetWrapper.instances.length == 0) {
+      return false;
+    }
+
+    
+    if (widgetWrapper.provider == CustomizableUI.PROVIDER_API &&
+        widgetWrapper.showInPrivateBrowsing === false) {
+      return "public-only";
+    }
+    return "real";
+  },
+
   init: function() {
     
     gPanelPlacements = CustomizableUI.getWidgetIdsInArea(gPanel);
