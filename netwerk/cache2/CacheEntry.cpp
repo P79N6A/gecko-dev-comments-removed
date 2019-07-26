@@ -76,7 +76,7 @@ CacheEntryHandle::~CacheEntryHandle()
 
 CacheEntry::Callback::Callback(CacheEntry* aEntry,
                                nsICacheEntryOpenCallback *aCallback,
-                               bool aReadOnly, bool aCheckOnAnyThread, bool aForceAsync)
+                               bool aReadOnly, bool aCheckOnAnyThread)
 : mEntry(aEntry)
 , mCallback(aCallback)
 , mTargetThread(do_GetCurrentThread())
@@ -84,7 +84,6 @@ CacheEntry::Callback::Callback(CacheEntry* aEntry,
 , mCheckOnAnyThread(aCheckOnAnyThread)
 , mRecheckAfterWrite(false)
 , mNotWanted(false)
-, mForceAsync(aForceAsync)
 {
   MOZ_COUNT_CTOR(CacheEntry::Callback);
 
@@ -102,7 +101,6 @@ CacheEntry::Callback::Callback(CacheEntry::Callback const &aThat)
 , mCheckOnAnyThread(aThat.mCheckOnAnyThread)
 , mRecheckAfterWrite(aThat.mRecheckAfterWrite)
 , mNotWanted(aThat.mNotWanted)
-, mForceAsync(aThat.mForceAsync)
 {
   MOZ_COUNT_CTOR(CacheEntry::Callback);
 
@@ -133,19 +131,8 @@ void CacheEntry::Callback::ExchangeEntry(CacheEntry* aEntry)
   mEntry = aEntry;
 }
 
-nsresult CacheEntry::Callback::OnCheckThread(bool *aOnCheckThread)
+nsresult CacheEntry::Callback::OnCheckThread(bool *aOnCheckThread) const
 {
-  if (mForceAsync) {
-    
-    
-    
-    
-    
-    mForceAsync = false;
-    *aOnCheckThread = false;
-    return NS_OK;
-  }
-
   if (!mCheckOnAnyThread) {
     
     return mTargetThread->IsOnCurrentThread(aOnCheckThread);
@@ -183,7 +170,6 @@ CacheEntry::CacheEntry(const nsACString& aStorageID,
 , mIsDoomed(false)
 , mSecurityInfoLoaded(false)
 , mPreventCallbacks(false)
-, mDispatchingCallbacks(false)
 , mHasData(false)
 , mState(NOTLOADED)
 , mRegistration(NEVERREGISTERED)
@@ -282,12 +268,11 @@ void CacheEntry::AsyncOpen(nsICacheEntryOpenCallback* aCallback, uint32_t aFlags
   bool truncate = aFlags & nsICacheStorage::OPEN_TRUNCATE;
   bool priority = aFlags & nsICacheStorage::OPEN_PRIORITY;
   bool multithread = aFlags & nsICacheStorage::CHECK_MULTITHREADED;
-  bool async = aFlags & nsICacheStorage::FORCE_ASYNC_CALLBACK;
 
   MOZ_ASSERT(!readonly || !truncate, "Bad flags combination");
   MOZ_ASSERT(!(truncate && mState > LOADING), "Must not call truncate on already loaded entry");
 
-  Callback callback(this, aCallback, readonly, multithread, async);
+  Callback callback(this, aCallback, readonly, multithread);
 
   mozilla::MutexAutoLock lock(mLock);
 
@@ -524,14 +509,9 @@ void CacheEntry::RememberCallback(Callback & aCallback, bool aBypassIfBusy)
   mCallbacks.AppendElement(aCallback);
 }
 
-void CacheEntry::InvokeDispatchedCallbacks()
+void CacheEntry::InvokeCallbacksLock()
 {
-  LOG(("CacheEntry::InvokeDispatchedCallbacks [this=%p]", this));
-
   mozilla::MutexAutoLock lock(mLock);
-
-  MOZ_ASSERT(mDispatchingCallbacks);
-  mDispatchingCallbacks = false;
   InvokeCallbacks();
 }
 
@@ -559,11 +539,6 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly)
       return false;
     }
 
-    if (mDispatchingCallbacks) {
-      LOG(("  waiting for re-redispatch!"));
-      return false;
-    }
-
     if (!mIsDoomed && (mState == WRITING || mState == REVALIDATING)) {
       LOG(("  entry is being written/revalidated"));
       return false;
@@ -581,17 +556,10 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly)
     if (NS_SUCCEEDED(rv) && !onCheckThread) {
       
       nsRefPtr<nsRunnableMethod<CacheEntry> > event =
-        NS_NewRunnableMethod(this, &CacheEntry::InvokeDispatchedCallbacks);
+        NS_NewRunnableMethod(this, &CacheEntry::InvokeCallbacksLock);
 
       rv = mCallbacks[i].mTargetThread->Dispatch(event, nsIEventTarget::DISPATCH_NORMAL);
       if (NS_SUCCEEDED(rv)) {
-        
-        
-        
-        
-        
-        
-        mDispatchingCallbacks = true;
         LOG(("  re-dispatching to target thread"));
         return false;
       }
@@ -620,11 +588,6 @@ bool CacheEntry::InvokeCallback(Callback & aCallback)
     this, StateString(mState), aCallback.mCallback.get()));
 
   mLock.AssertCurrentThreadOwns();
-
-  if (mDispatchingCallbacks) {
-    LOG(("  waiting for callbacks re-dispatch"));
-    return false;
-  }
 
   
   if (!mIsDoomed) {
