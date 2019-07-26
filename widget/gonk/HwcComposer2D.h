@@ -34,7 +34,7 @@ class Layer;
 
 
 typedef std::vector<hwc_rect_t> RectVector;
-#if ANDROID_VERSION >= 18
+#if ANDROID_VERSION >= 17
 typedef hwc_composer_device_1_t HwcDevice;
 typedef hwc_display_contents_1_t HwcList;
 typedef hwc_layer_1_t HwcLayer;
