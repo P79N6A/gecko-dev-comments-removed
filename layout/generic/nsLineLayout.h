@@ -79,10 +79,10 @@ public:
 
   
   
-  void ReflowFrame(nsIFrame* aFrame,
-                   nsReflowStatus& aReflowStatus,
-                   nsHTMLReflowMetrics* aMetrics,
-                   bool& aPushedFrame);
+  nsresult ReflowFrame(nsIFrame* aFrame,
+                       nsReflowStatus& aReflowStatus,
+                       nsHTMLReflowMetrics* aMetrics,
+                       bool& aPushedFrame);
 
   void AddBulletFrame(nsIFrame* aFrame, const nsHTMLReflowMetrics& aMetrics);
 

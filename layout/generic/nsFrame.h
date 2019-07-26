@@ -295,7 +295,7 @@ public:
   nscoord ShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                            nscoord aWidthInCB);
 
-  virtual void WillReflow(nsPresContext* aPresContext) MOZ_OVERRIDE;
+  virtual nsresult  WillReflow(nsPresContext* aPresContext) MOZ_OVERRIDE;
   
 
 
@@ -318,13 +318,13 @@ public:
 
 
 
-  virtual void Reflow(nsPresContext*           aPresContext,
-                      nsHTMLReflowMetrics&     aDesiredSize,
-                      const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
-  virtual void DidReflow(nsPresContext*           aPresContext,
-                         const nsHTMLReflowState* aReflowState,
-                         nsDidReflowStatus        aStatus) MOZ_OVERRIDE;
+  virtual nsresult  Reflow(nsPresContext*           aPresContext,
+                           nsHTMLReflowMetrics&     aDesiredSize,
+                           const nsHTMLReflowState& aReflowState,
+                           nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+  virtual nsresult  DidReflow(nsPresContext*           aPresContext,
+                              const nsHTMLReflowState* aReflowState,
+                              nsDidReflowStatus        aStatus) MOZ_OVERRIDE;
 
   
 
@@ -636,15 +636,15 @@ protected:
   void FireDOMEvent(const nsAString& aDOMEventName, nsIContent *aContent = nullptr);
 
 private:
-  void BoxReflow(nsBoxLayoutState& aState,
-                 nsPresContext*    aPresContext,
-                 nsHTMLReflowMetrics&     aDesiredSize,
-                 nsRenderingContext* aRenderingContext,
-                 nscoord aX,
-                 nscoord aY,
-                 nscoord aWidth,
-                 nscoord aHeight,
-                 bool aMoveFrame = true);
+  nsresult BoxReflow(nsBoxLayoutState& aState,
+                     nsPresContext*    aPresContext,
+                     nsHTMLReflowMetrics&     aDesiredSize,
+                     nsRenderingContext* aRenderingContext,
+                     nscoord aX,
+                     nscoord aY,
+                     nscoord aWidth,
+                     nscoord aHeight,
+                     bool aMoveFrame = true);
 
   NS_IMETHODIMP RefreshSizeCache(nsBoxLayoutState& aState);
 

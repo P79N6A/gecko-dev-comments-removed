@@ -242,7 +242,7 @@ private:
                       RestyleTracker& aRestyleTracker,
                       bool            aRestyleDescendants);
 
-  void StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
+  nsresult StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
 
   
   

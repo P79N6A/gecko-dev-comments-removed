@@ -1820,7 +1820,7 @@ public:
 
 
 
-  virtual void WillReflow(nsPresContext* aPresContext) = 0;
+  virtual nsresult  WillReflow(nsPresContext* aPresContext) = 0;
 
   
 
@@ -1865,10 +1865,10 @@ public:
 
 
 
-  virtual void Reflow(nsPresContext*           aPresContext,
-                      nsHTMLReflowMetrics&     aReflowMetrics,
-                      const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) = 0;
+  virtual nsresult Reflow(nsPresContext*          aPresContext,
+                          nsHTMLReflowMetrics&     aReflowMetrics,
+                          const nsHTMLReflowState& aReflowState,
+                          nsReflowStatus&          aStatus) = 0;
 
   
 
@@ -1885,9 +1885,9 @@ public:
 
 
 
-  virtual void DidReflow(nsPresContext*           aPresContext,
-                         const nsHTMLReflowState* aReflowState,
-                         nsDidReflowStatus        aStatus) = 0;
+  virtual nsresult  DidReflow(nsPresContext*           aPresContext,
+                              const nsHTMLReflowState*  aReflowState,
+                              nsDidReflowStatus         aStatus) = 0;
 
   
 

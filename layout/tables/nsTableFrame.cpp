@@ -1764,8 +1764,7 @@ nsTableFrame::RequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState)
 
 
 
-void
-nsTableFrame::Reflow(nsPresContext*           aPresContext,
+nsresult nsTableFrame::Reflow(nsPresContext*           aPresContext,
                                nsHTMLReflowMetrics&     aDesiredSize,
                                const nsHTMLReflowState& aReflowState,
                                nsReflowStatus&          aStatus)
@@ -1777,8 +1776,9 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
   aStatus = NS_FRAME_COMPLETE;
   if (!GetPrevInFlow() && !mTableLayoutStrategy) {
     NS_ASSERTION(false, "strategy should have been created in Init");
-    return;
+    return NS_ERROR_NULL_POINTER;
   }
+  nsresult rv = NS_OK;
 
   
   if (!GetPrevInFlow() && IsBorderCollapse() && NeedToCalcBCBorders()) {
@@ -1918,6 +1918,7 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
 
   FinishAndStoreOverflow(&aDesiredSize);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+  return rv;
 }
 
 void
@@ -1996,13 +1997,14 @@ nsTableFrame::UpdateOverflow()
   return FinishAndStoreOverflow(overflowAreas, GetSize());
 }
 
-void
+nsresult
 nsTableFrame::ReflowTable(nsHTMLReflowMetrics&     aDesiredSize,
                           const nsHTMLReflowState& aReflowState,
                           nscoord                  aAvailHeight,
                           nsIFrame*&               aLastChildReflowed,
                           nsReflowStatus&          aStatus)
 {
+  nsresult rv = NS_OK;
   aLastChildReflowed = nullptr;
 
   if (!GetPrevInFlow()) {
@@ -2018,6 +2020,7 @@ nsTableFrame::ReflowTable(nsHTMLReflowMetrics&     aDesiredSize,
                  aDesiredSize.mOverflowAreas);
 
   ReflowColGroups(aReflowState.rendContext);
+  return rv;
 }
 
 nsIFrame*
@@ -2829,8 +2832,9 @@ nsTableFrame::SetupHeaderFooterChild(const nsTableReflowState& aReflowState,
   nsHTMLReflowMetrics desiredSize(aReflowState.reflowState);
   desiredSize.Width() = desiredSize.Height() = 0;
   nsReflowStatus status;
-  ReflowChild(aFrame, presContext, desiredSize, kidReflowState,
-              aReflowState.x, aReflowState.y, 0, status);
+  nsresult rv = ReflowChild(aFrame, presContext, desiredSize, kidReflowState,
+                            aReflowState.x, aReflowState.y, 0, status);
+  NS_ENSURE_SUCCESS(rv, rv);
   
 
   aFrame->SetRepeatable(IsRepeatable(desiredSize.Height(), pageHeight));
@@ -2868,7 +2872,7 @@ nsTableFrame::PlaceRepeatedFooter(nsTableReflowState& aReflowState,
                     
 
 
-void
+nsresult
 nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
                              nsReflowStatus&     aStatus,
                              nsIFrame*&          aLastChildReflowed,
@@ -2878,6 +2882,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
   aLastChildReflowed = nullptr;
 
   nsIFrame* prevKidFrame = nullptr;
+  nsresult  rv = NS_OK;
   nscoord   cellSpacingY = GetCellSpacingY();
 
   nsPresContext* presContext = PresContext();
@@ -2912,14 +2917,14 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
   if (isPaginated) {
     if (thead && !GetPrevInFlow()) {
       nscoord desiredHeight;
-      nsresult rv = SetupHeaderFooterChild(aReflowState, thead, &desiredHeight);
+      rv = SetupHeaderFooterChild(aReflowState, thead, &desiredHeight);
       if (NS_FAILED(rv))
-        return;
+        return rv;
     }
     if (tfoot) {
-      nsresult rv = SetupHeaderFooterChild(aReflowState, tfoot, &footerHeight);
+      rv = SetupHeaderFooterChild(aReflowState, tfoot, &footerHeight);
       if (NS_FAILED(rv))
-        return;
+        return rv;
     }
   }
    
@@ -2991,8 +2996,8 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       if (kidFrame->GetNextInFlow())
         reorder = true;
 
-      ReflowChild(kidFrame, presContext, desiredSize, kidReflowState,
-                  aReflowState.x, aReflowState.y, 0, aStatus);
+      rv = ReflowChild(kidFrame, presContext, desiredSize, kidReflowState,
+                       aReflowState.x, aReflowState.y, 0, aStatus);
 
       if (reorder) {
         
@@ -3148,6 +3153,8 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
   
   mBits.mResizedColumns = false;
   ClearGeometryDirty();
+
+  return rv;
 }
 
 void

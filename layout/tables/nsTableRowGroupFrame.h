@@ -100,10 +100,10 @@ public:
 
 
 
-  virtual void Reflow(nsPresContext*           aPresContext,
-                      nsHTMLReflowMetrics&     aDesiredSize,
-                      const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+  virtual nsresult Reflow(nsPresContext*           aPresContext,
+                          nsHTMLReflowMetrics&     aDesiredSize,
+                          const nsHTMLReflowState& aReflowState,
+                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
 
   virtual bool UpdateOverflow() MOZ_OVERRIDE;
 
@@ -359,11 +359,13 @@ protected:
 
 
 
-  void ReflowChildren(nsPresContext*         aPresContext,
-                      nsHTMLReflowMetrics&   aDesiredSize,
-                      nsRowGroupReflowState& aReflowState,
-                      nsReflowStatus&        aStatus,
-                      bool*                aPageBreakBeforeEnd = nullptr);
+
+
+  nsresult ReflowChildren(nsPresContext*         aPresContext,
+                          nsHTMLReflowMetrics&   aDesiredSize,
+                          nsRowGroupReflowState& aReflowState,
+                          nsReflowStatus&        aStatus,
+                          bool*                aPageBreakBeforeEnd = nullptr);
 
   nsresult SplitRowGroup(nsPresContext*           aPresContext,
                          nsHTMLReflowMetrics&     aDesiredSize,

@@ -190,15 +190,15 @@ public:
 
 
 
-  void ReflowChild(nsIFrame*                      aKidFrame,
-                   nsPresContext*                 aPresContext,
-                   nsHTMLReflowMetrics&           aDesiredSize,
-                   const nsHTMLReflowState&       aReflowState,
-                   nscoord                        aX,
-                   nscoord                        aY,
-                   uint32_t                       aFlags,
-                   nsReflowStatus&                aStatus,
-                   nsOverflowContinuationTracker* aTracker = nullptr);
+  nsresult ReflowChild(nsIFrame*                      aKidFrame,
+                       nsPresContext*                 aPresContext,
+                       nsHTMLReflowMetrics&           aDesiredSize,
+                       const nsHTMLReflowState&       aReflowState,
+                       nscoord                        aX,
+                       nscoord                        aY,
+                       uint32_t                       aFlags,
+                       nsReflowStatus&                aStatus,
+                       nsOverflowContinuationTracker* aTracker = nullptr);
 
   
 
@@ -217,13 +217,13 @@ public:
 
 
 
-  static void FinishReflowChild(nsIFrame*                  aKidFrame,
-                                nsPresContext*             aPresContext,
-                                const nsHTMLReflowMetrics& aDesiredSize,
-                                const nsHTMLReflowState*   aReflowState,
-                                nscoord                    aX,
-                                nscoord                    aY,
-                                uint32_t                   aFlags);
+  static nsresult FinishReflowChild(nsIFrame*                  aKidFrame,
+                                    nsPresContext*             aPresContext,
+                                    const nsHTMLReflowMetrics& aDesiredSize,
+                                    const nsHTMLReflowState*   aReflowState,
+                                    nscoord                    aX,
+                                    nscoord                    aY,
+                                    uint32_t                   aFlags);
 
   
   static void PositionChildViews(nsIFrame* aFrame);
@@ -291,11 +291,11 @@ public:
 
 
 
-  void ReflowOverflowContainerChildren(nsPresContext*           aPresContext,
-                                       const nsHTMLReflowState& aReflowState,
-                                       nsOverflowAreas&         aOverflowRects,
-                                       uint32_t                 aFlags,
-                                       nsReflowStatus&          aStatus);
+  nsresult ReflowOverflowContainerChildren(nsPresContext*           aPresContext,
+                                           const nsHTMLReflowState& aReflowState,
+                                           nsOverflowAreas&         aOverflowRects,
+                                           uint32_t                 aFlags,
+                                           nsReflowStatus&          aStatus);
 
   
 

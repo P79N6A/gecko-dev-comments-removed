@@ -145,12 +145,13 @@ GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
     *aSqrOffset = dxSqr;
 }
 
-void
+nsresult
 nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
+  nsresult rv = NS_OK;
   nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
   nsReflowStatus childStatus;
 
@@ -176,9 +177,14 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
                                          | NS_REFLOW_CALC_BOUNDING_METRICS);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
-    ReflowChild(childFrame, aPresContext,
+    rv = ReflowChild(childFrame, aPresContext,
                      childDesiredSize, childReflowState, childStatus);
     
+    if (NS_FAILED(rv)) {
+      
+      DidReflowChildren(mFrames.FirstChild(), childFrame);
+      return rv;
+    }
     if (0 == count) {
       
       baseFrame = childFrame;
@@ -197,12 +203,12 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   if (2 != count) {
     
     ReportChildCountError();
-    ReflowError(renderingContext, aDesiredSize);
+    rv = ReflowError(renderingContext, aDesiredSize);
     aStatus = NS_FRAME_COMPLETE;
     NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
     
     DidReflowChildren(mFrames.FirstChild(), childFrame);
-    return;
+    return rv;
   }
 
   
@@ -345,6 +351,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
 
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+  return NS_OK;
 }
 
  void

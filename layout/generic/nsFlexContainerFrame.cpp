@@ -1116,17 +1116,19 @@ nsFlexContainerFrame::
   nsHTMLReflowMetrics childDesiredSize(childRSForMeasuringHeight);
   nsReflowStatus childReflowStatus;
   const uint32_t flags = NS_FRAME_NO_MOVE_FRAME;
-  ReflowChild(aFlexItem.Frame(), aPresContext,
-              childDesiredSize, childRSForMeasuringHeight,
-              0, 0, flags, childReflowStatus);
+  nsresult rv = ReflowChild(aFlexItem.Frame(), aPresContext,
+                            childDesiredSize, childRSForMeasuringHeight,
+                            0, 0, flags, childReflowStatus);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   MOZ_ASSERT(NS_FRAME_IS_COMPLETE(childReflowStatus),
              "We gave flex item unconstrained available height, so it "
              "should be complete");
 
-  FinishReflowChild(aFlexItem.Frame(), aPresContext,
-                    childDesiredSize, &childRSForMeasuringHeight,
-                    0, 0, flags);
+  rv = FinishReflowChild(aFlexItem.Frame(), aPresContext,
+                         childDesiredSize, &childRSForMeasuringHeight,
+                         0, 0, flags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -2905,10 +2907,11 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
   nsHTMLReflowMetrics childDesiredSize(aChildReflowState);
   nsReflowStatus childReflowStatus;
   const uint32_t flags = NS_FRAME_NO_MOVE_FRAME;
-  ReflowChild(aItem.Frame(), aPresContext,
-              childDesiredSize, aChildReflowState,
-              0, 0, flags, childReflowStatus);
+  nsresult rv = ReflowChild(aItem.Frame(), aPresContext,
+                            childDesiredSize, aChildReflowState,
+                            0, 0, flags, childReflowStatus);
   aItem.SetHadMeasuringReflow();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -2919,8 +2922,9 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
 
   
   
-  FinishReflowChild(aItem.Frame(), aPresContext,
-                    childDesiredSize, &aChildReflowState, 0, 0, flags);
+  rv = FinishReflowChild(aItem.Frame(), aPresContext,
+                         childDesiredSize, &aChildReflowState, 0, 0, flags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -2984,7 +2988,7 @@ FlexLine::PositionItemsInCrossAxis(nscoord aLineStartPosition,
   }
 }
 
-void
+nsresult
 nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
                              nsHTMLReflowMetrics&     aDesiredSize,
                              const nsHTMLReflowState& aReflowState,
@@ -2996,7 +3000,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
          ("Reflow() for nsFlexContainerFrame %p\n", this));
 
   if (IsFrameTreeTooDeep(aReflowState, aDesiredSize, aStatus)) {
-    return;
+    return NS_OK;
   }
 
   
@@ -3059,10 +3063,12 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   if (NS_SUCCEEDED(rv) && !struts.IsEmpty()) {
     
-    DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
-                 contentBoxMainSize, availableHeightForContent,
-                 struts, axisTracker);
+    rv = DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
+                      contentBoxMainSize, availableHeightForContent,
+                      struts, axisTracker);
   }
+
+  return rv;
 }
 
 
@@ -3312,10 +3318,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
       nsHTMLReflowMetrics childDesiredSize(childReflowState);
       nsReflowStatus childReflowStatus;
-      ReflowChild(item->Frame(), aPresContext,
-                  childDesiredSize, childReflowState,
-                  physicalPosn.x, physicalPosn.y,
-                  0, childReflowStatus);
+      nsresult rv = ReflowChild(item->Frame(), aPresContext,
+                                childDesiredSize, childReflowState,
+                                physicalPosn.x, physicalPosn.y,
+                                0, childReflowStatus);
+      NS_ENSURE_SUCCESS(rv, rv);
 
       
       
@@ -3327,9 +3334,10 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
       childReflowState.ApplyRelativePositioning(&physicalPosn);
 
-      FinishReflowChild(item->Frame(), aPresContext,
-                        childDesiredSize, &childReflowState,
-                        physicalPosn.x, physicalPosn.y, 0);
+      rv = FinishReflowChild(item->Frame(), aPresContext,
+                             childDesiredSize, &childReflowState,
+                             physicalPosn.x, physicalPosn.y, 0);
+      NS_ENSURE_SUCCESS(rv, rv);
 
       
       
