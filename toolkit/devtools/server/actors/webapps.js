@@ -9,6 +9,8 @@ let Cc = Components.classes;
 let Ci = Components.interfaces;
 let CC = Components.Constructor;
 
+Cu.import("resource://gre/modules/osfile.jsm");
+
 let promise;
 
 function debug(aMsg) {
@@ -18,6 +20,89 @@ function debug(aMsg) {
 
 
 }
+
+function PackageUploadActor(aPath, aFile) {
+  this._path = aPath;
+  this._file = aFile;
+  this.size = 0;
+}
+
+PackageUploadActor.prototype = {
+  actorPrefix: "packageUploadActor",
+
+  
+
+
+
+
+  getFilePath: function () {
+    return this._path;
+  },
+
+  
+
+
+
+  chunk: function (aRequest) {
+    let chunk = aRequest.chunk;
+    if (!chunk || chunk.length <= 0) {
+      return {error: "parameterError",
+              message: "Missing or invalid chunk argument"};
+    }
+    
+    
+    let data = new Uint8Array(chunk.length);
+    for (let i = 0, l = chunk.length; i < l ; i++) {
+      data[i] = chunk.charCodeAt(i);
+    }
+    return this._file.write(data)
+               .then((written) => {
+                 this.size += written;
+                 return {
+                   written: written,
+                   size: this.size
+                 };
+               });
+  },
+
+  
+
+
+
+
+
+  done: function (aRequest) {
+    return this._file.close();
+  },
+
+  
+
+
+
+  remove: function (aRequest) {
+    this._cleanupFile();
+
+    return {};
+  },
+
+  _cleanupFile: function () {
+    try {
+      this._file.close();
+    } catch(e) {}
+    try {
+      OS.File.remove(this._path);
+    } catch(e) {}
+  }
+};
+
+
+
+
+PackageUploadActor.prototype.requestTypes = {
+  "chunk": PackageUploadActor.prototype.chunk,
+  "done": PackageUploadActor.prototype.done,
+  "remove": PackageUploadActor.prototype.remove
+};
 
 
 
@@ -37,10 +122,27 @@ function WebappsActor(aConnection) {
   
   
   this._appActorsMap = new Map();
+
+  this.conn = aConnection;
+  this._uploads = [];
+  this._actorPool = new ActorPool(this.conn);
+  this.conn.addActorPool(this._actorPool);
 }
 
 WebappsActor.prototype = {
   actorPrefix: "webapps",
+
+  disconnect: function () {
+    
+    for (let upload of this._uploads) {
+      upload.remove();
+    }
+    this._uploads = null;
+
+    this.conn.removeActorPool(this._actorPool);
+    this._actorPool = null;
+    this.conn = null;
+  },
 
   _registerApp: function wa_actorRegisterApp(aApp, aId, aDir) {
     debug("registerApp");
@@ -110,64 +212,126 @@ WebappsActor.prototype = {
     return type;
   },
 
-  installHostedApp: function wa_actorInstallHosted(aDir, aId, aReceipts) {
+  uploadPackage: function () {
+    debug("uploadPackage\n");
+    let tmpDir = FileUtils.getDir("TmpD", ["file-upload"], true, false);
+    if (!tmpDir.exists() || !tmpDir.isDirectory()) {
+      return {error: "fileAccessError",
+              message: "Unable to create temporary folder"};
+    }
+    let tmpFile = tmpDir;
+    tmpFile.append("package.zip");
+    tmpFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0666", 8));
+    if (!tmpFile.exists() || !tmpDir.isFile()) {
+      return {error: "fileAccessError",
+              message: "Unable to create temporary file"};
+    }
+
+    return OS.File.open(tmpFile.path, { write: true, truncate: true })
+             .then((file) => {
+                let actor = new PackageUploadActor(tmpFile.path, file);
+                this._actorPool.addActor(actor);
+                this._uploads.push(actor);
+                return { actor: actor.actorID };
+             });
+  },
+
+  installHostedApp: function wa_actorInstallHosted(aDir, aId, aReceipts,
+                                                   aManifest, aMetadata) {
     debug("installHostedApp");
     let self = this;
 
+    function readManifest() {
+      if (aManifest) {
+        return promise.resolve(aManifest);
+      } else {
+        let deferred = promise.defer();
+        let manFile = aDir.clone();
+        manFile.append("manifest.webapp");
+        DOMApplicationRegistry._loadJSONAsync(manFile, function(aManifest) {
+          if (!aManifest) {
+            deferred.reject("Error parsing manifest.webapp.");
+          } else {
+            deferred.resolve(aManifest);
+          }
+        });
+        return deferred.promise;
+      }
+    }
+    function checkSideloading(aManifest) {
+      let appType = self._getAppType(aManifest.type);
+
+      
+      if (!DOMApplicationRegistry.allowSideloadingCertified &&
+          appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+        throw new Error("Installing certified apps is not allowed.");
+      }
+      return appType;
+    }
+    function writeManifest(aAppType) {
+      
+      
+      let installDir = DOMApplicationRegistry._getAppDir(aId);
+      if (aManifest) {
+        let deferred = promise.defer();
+        let manFile = installDir.clone();
+        manFile.append("manifest.webapp");
+        DOMApplicationRegistry._writeFile(manFile, JSON.stringify(aManifest), function () {
+          deferred.resolve(aAppType);
+        });
+        return deferred.promise;
+      } else {
+        let manFile = aDir.clone();
+        manFile.append("manifest.webapp");
+        manFile.moveTo(installDir, "manifest.webapp");
+      }
+      return null;
+    }
+    function readMetadata(aAppType) {
+      if (aMetadata) {
+        return { metadata: aMetadata, appType: aAppType };
+      }
+      
+      let deferred = promise.defer();
+      let metaFile = aDir.clone();
+      metaFile.append("metadata.json");
+      DOMApplicationRegistry._loadJSONAsync(metaFile, function(aMetadata) {
+        if (!aMetadata) {
+          deferred.reject("Error parsing metadata.json.");
+          return;
+        }
+        if (!aMetadata.origin) {
+          deferred.reject("Missing 'origin' property in metadata.json");
+          return;
+        }
+        deferred.resolve({ metadata: aMetadata, appType: aAppType });
+      });
+      return deferred.promise;
+    }
     let runnable = {
       run: function run() {
         try {
-          
-          let manFile = aDir.clone();
-          manFile.append("manifest.webapp");
-          DOMApplicationRegistry._loadJSONAsync(manFile, function(aManifest) {
-            if (!aManifest) {
-              self._sendError("Error Parsing manifest.webapp", aId);
-              return;
-            }
-
-            let appType = self._getAppType(aManifest.type);
-
-            
-            if (!DOMApplicationRegistry.allowSideloadingCertified &&
-                appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
-              self._sendError("Installing certified apps is not allowed.", aId);
-              return;
-            }
-
-            
-            let installDir = DOMApplicationRegistry._getAppDir(aId);
-            manFile.moveTo(installDir, "manifest.webapp");
-
-            
-            let metaFile = aDir.clone();
-            metaFile.append("metadata.json");
-            DOMApplicationRegistry._loadJSONAsync(metaFile, function(aMetadata) {
-              if (!aMetadata) {
-                self._sendError("Error Parsing metadata.json", aId);
-                return;
-              }
-
-              if (!aMetadata.origin) {
-                self._sendError("Missing 'origin' property in metadata.json", aId);
-                return;
-              }
-
-              let origin = aMetadata.origin;
-              let manifestURL = aMetadata.manifestURL ||
+          readManifest().
+            then(checkSideloading).
+            then(writeManifest).
+            then(readMetadata).
+            then(function ({ metadata, appType }) {
+              let origin = metadata.origin;
+              let manifestURL = metadata.manifestURL ||
                                 origin + "/manifest.webapp";
               
               let app = {
                 origin: origin,
-                installOrigin: aMetadata.installOrigin || origin,
+                installOrigin: metadata.installOrigin || origin,
                 manifestURL: manifestURL,
                 appStatus: appType,
                 receipts: aReceipts,
               };
 
               self._registerApp(app, aId, aDir);
+            }, function (error) {
+              self._sendError(error, aId);
             });
-          });
         } catch(e) {
           
           self._sendError(e.toString(), aId);
@@ -266,9 +430,27 @@ WebappsActor.prototype = {
     let appDir = FileUtils.getDir("TmpD", ["b2g", appId], false, false);
 
     if (!appDir || !appDir.exists()) {
-      return { error: "badParameterType",
-               message: "missing directory " + appDir.path
-             }
+      if (aRequest.upload) {
+        
+        appDir = FileUtils.getDir("TmpD", ["b2g", appId], true, false);
+        let actor = this.conn.getActor(aRequest.upload);
+        if (!actor) {
+          return { error: "badParameter",
+                   message: "Unable to find upload actor '" + aRequest.upload
+                            + "'" };
+        }
+        let appFile = FileUtils.File(actor.getFilePath());
+        if (!appFile.exists()) {
+          return { error: "badParameter",
+                   message: "The uploaded file doesn't exist on device" };
+        }
+        appFile.moveTo(appDir, "application.zip");
+      }
+      else if (!aRequest.manifest && !aRequest.metadata) {
+        return { error: "badParameterType",
+                 message: "missing directory " + appDir.path
+               }
+      }
     }
 
     let testFile = appDir.clone();
@@ -277,6 +459,7 @@ WebappsActor.prototype = {
     let receipts = (aRequest.receipts && Array.isArray(aRequest.receipts))
                     ? aRequest.receipts
                     : [];
+    let manifest, metadata;
 
     if (testFile.exists()) {
       this.installPackagedApp(appDir, appId, receipts);
@@ -290,14 +473,20 @@ WebappsActor.prototype = {
         });
 
       if (missing) {
-        try {
-          appDir.remove(true);
-        } catch(e) {}
-        return { error: "badParameterType",
-                 message: "hosted app file is missing" }
+        if (aRequest.manifest && aRequest.metadata &&
+            aRequest.metadata.origin) {
+          manifest = aRequest.manifest;
+          metadata = aRequest.metadata;
+        } else {
+          try {
+            appDir.remove(true);
+          } catch(e) {}
+            return { error: "badParameterType",
+                     message: "hosted app file and manifest/metadata fields are missing" };
+        }
       }
 
-      this.installHostedApp(appDir, appId, receipts);
+      this.installHostedApp(appDir, appId, receipts, manifest, metadata);
     }
 
     return { appId: appId, path: appDir.path }
@@ -373,8 +562,8 @@ WebappsActor.prototype = {
       
       
       
-      let XMLHttpRequest = CC("@mozilla.org/xmlextras/xmlhttprequest;1");
-      let req = new XMLHttpRequest();
+      let req = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+                  .createInstance(Ci.nsIXMLHttpRequest);
       req.open("GET", iconURL, false);
       req.responseType = "blob";
 
@@ -389,8 +578,8 @@ WebappsActor.prototype = {
       }
 
       
-      let FileReader = CC("@mozilla.org/files/filereader;1");
-      let reader = new FileReader()
+      let reader = Cc["@mozilla.org/files/filereader;1"]
+                     .createInstance(Ci.nsIDOMFileReader);
       reader.onload = function () {
         deferred.resolve({
           url: reader.result
@@ -636,6 +825,7 @@ WebappsActor.prototype.requestTypes = {
 
 if (Services.prefs.getBoolPref("devtools.debugger.enable-content-actors")) {
   let requestTypes = WebappsActor.prototype.requestTypes;
+  requestTypes.uploadPackage = WebappsActor.prototype.uploadPackage;
   requestTypes.getAll = WebappsActor.prototype.getAll;
   requestTypes.launch = WebappsActor.prototype.launch;
   requestTypes.close  = WebappsActor.prototype.close;
