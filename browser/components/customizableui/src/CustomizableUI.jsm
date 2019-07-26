@@ -297,6 +297,10 @@ let CustomizableUIInternal = {
 
     let areaIsKnown = gAreas.has(aName);
     let props = areaIsKnown ? gAreas.get(aName) : new Map();
+    if (areaIsKnown && aProperties["type"] &&
+        props.get("type") != aProperties["type"]) {
+      throw new Error("An area cannot change types");
+    }
     for (let key in aProperties) {
       
       
@@ -311,7 +315,9 @@ let CustomizableUIInternal = {
       props.set("type", CustomizableUI.TYPE_TOOLBAR);
     }
     if (props.get("type") == CustomizableUI.TYPE_TOOLBAR) {
-      if (!aInternalCaller && props.has("defaultCollapsed")) {
+      
+      
+      if (!aInternalCaller && aProperties["defaultCollapsed"]) {
         throw new Error("defaultCollapsed is only allowed for default toolbars.")
       }
       if (!props.has("defaultCollapsed")) {
