@@ -1,4 +1,4 @@
- 
+
 
 
 
@@ -816,10 +816,12 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
 #endif
         char buf[BUFSIZ];
         int32_t bytesRead;
+
         
-        
-        nsresult saved_write_error = NS_OK;    
+        nsresult saved_write_error = NS_OK;
         nsresult saved_read_error = NS_OK;
+        nsresult saved_read_close_error = NS_OK;
+        nsresult saved_write_close_error = NS_OK;
 
         
         
@@ -850,6 +852,10 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
 
         
         
+        
+
+        
+        
         if ( (bytesRead < 0) && (saved_write_error == NS_OK)) {
             saved_read_error = NSRESULT_FOR_ERRNO();
         }
@@ -864,10 +870,24 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
         
         
         
+        
+        
 
         
-        PR_Close(newFD);
-        PR_Close(oldFD);
+        if (PR_Close(newFD) < 0) {
+            saved_write_close_error = NSRESULT_FOR_ERRNO();
+#if DEBUG
+            
+            fprintf(stderr, "ERROR: PR_Close(newFD) returned error. errno = %d\n", errno);
+#endif
+        }
+
+        if (PR_Close(oldFD) < 0) {
+            saved_read_close_error = NSRESULT_FOR_ERRNO();
+#if DEBUG
+            fprintf(stderr, "ERROR: PR_Close(oldFD) returned error. errno = %d\n", errno);
+#endif
+        }
 
         
         
@@ -881,6 +901,11 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
                 MOZ_ASSERT(0);
 #endif
         }
+
+        if (saved_write_close_error != NS_OK)
+            return saved_write_close_error;
+        if (saved_read_close_error != NS_OK)
+            return saved_read_close_error;
     }
     return rv;
 }
