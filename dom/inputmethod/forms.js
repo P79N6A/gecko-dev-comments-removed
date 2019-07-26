@@ -25,6 +25,12 @@ XPCOMUtils.defineLazyGetter(this, "domWindowUtils", function () {
 
 const RESIZE_SCROLL_DELAY = 20;
 
+
+
+
+
+const MAX_BLOCKED_COUNT = 20;
+
 let HTMLDocument = Ci.nsIDOMHTMLDocument;
 let HTMLHtmlElement = Ci.nsIDOMHTMLHtmlElement;
 let HTMLBodyElement = Ci.nsIDOMHTMLBodyElement;
@@ -570,7 +576,17 @@ let FormAssistant = {
 
         let start = json.selectionStart;
         let end =  json.selectionEnd;
-        setSelectionRange(target, start, end);
+
+        if (!setSelectionRange(target, start, end)) {
+          if (json.requestId) {
+            sendAsyncMessage("Forms:SetSelectionRange:Result:Error", {
+              requestId: json.requestId,
+              error: "failed"
+            });
+          }
+          break;
+        }
+
         this.updateSelection();
 
         if (json.requestId) {
@@ -586,12 +602,20 @@ let FormAssistant = {
         CompositionManager.endComposition('');
 
         let selectionRange = getSelectionRange(target);
-        replaceSurroundingText(target,
-                               json.text,
-                               selectionRange[0],
-                               selectionRange[1],
-                               json.offset,
-                               json.length);
+        if (!replaceSurroundingText(target,
+                                    json.text,
+                                    selectionRange[0],
+                                    selectionRange[1],
+                                    json.offset,
+                                    json.length)) {
+          if (json.requestId) {
+            sendAsyncMessage("Forms:ReplaceSurroundingText:Result:Error", {
+              requestId: json.requestId,
+              error: "failed"
+            });
+          }
+          break;
+        }
 
         if (json.requestId) {
           sendAsyncMessage("Forms:ReplaceSurroundingText:Result:OK", {
@@ -911,6 +935,7 @@ function getDocumentEncoder(element) {
                 .createInstance(Ci.nsIDocumentEncoder);
   let flags = Ci.nsIDocumentEncoder.SkipInvisibleContent |
               Ci.nsIDocumentEncoder.OutputRaw |
+              Ci.nsIDocumentEncoder.OutputDropInvisibleBreak |
               
               Ci.nsIDocumentEncoder.OutputDontRemoveLineEndingSpaces |
               Ci.nsIDocumentEncoder.OutputLFLineBreak |
@@ -978,7 +1003,7 @@ function setSelectionRange(element, start, end) {
   if (!isTextField && !isContentEditable(element)) {
     
     
-    return;
+    return false;
   }
 
   let text = isTextField ? element.value : getContentEditableText(element);
@@ -996,6 +1021,7 @@ function setSelectionRange(element, start, end) {
   if (isTextField) {
     
     element.setSelectionRange(start, end, "forward");
+    return true;
   } else {
     
     let win = element.ownerDocument.defaultView;
@@ -1007,8 +1033,22 @@ function setSelectionRange(element, start, end) {
       sel.modify("move", "forward", "character");
     }
 
-    while (getContentEditableSelectionStart(element, sel) < start) {
+    
+    
+    let oldStart = getContentEditableSelectionStart(element, sel);
+    let counter = 0;
+    while (oldStart < start) {
       sel.modify("move", "forward", "character");
+      let newStart = getContentEditableSelectionStart(element, sel);
+      if (oldStart == newStart) {
+        counter++;
+        if (counter > MAX_BLOCKED_COUNT) {
+          return false;
+        }
+      } else {
+        counter = 0;
+        oldStart = newStart;
+      }
     }
 
     
@@ -1016,10 +1056,25 @@ function setSelectionRange(element, start, end) {
       sel.modify("extend", "forward", "character");
     }
 
+    
+    
+    counter = 0;
     let selectionLength = end - start;
-    while (getContentEditableSelectionLength(element, sel) < selectionLength) {
+    let oldSelectionLength = getContentEditableSelectionLength(element, sel);
+    while (oldSelectionLength  < selectionLength) {
       sel.modify("extend", "forward", "character");
+      let newSelectionLength = getContentEditableSelectionLength(element, sel);
+      if (oldSelectionLength == newSelectionLength ) {
+        counter++;
+        if (counter > MAX_BLOCKED_COUNT) {
+          return false;
+        }
+      } else {
+        counter = 0;
+        oldSelectionLength = newSelectionLength;
+      }
     }
+    return true;
   }
 }
 
@@ -1068,7 +1123,7 @@ function replaceSurroundingText(element, text, selectionStart, selectionEnd,
                                 offset, length) {
   let editor = FormAssistant.editor;
   if (!editor) {
-    return;
+    return false;
   }
 
   
@@ -1083,7 +1138,9 @@ function replaceSurroundingText(element, text, selectionStart, selectionEnd,
 
   if (selectionStart != start || selectionEnd != end) {
     
-    setSelectionRange(element, start, end);
+    if (!setSelectionRange(element, start, end)) {
+      return false;
+    }
   }
 
   if (start != end) {
@@ -1098,6 +1155,7 @@ function replaceSurroundingText(element, text, selectionStart, selectionEnd,
     
     editor.insertText(text);
   }
+  return true;
 }
 
 let CompositionManager =  {
