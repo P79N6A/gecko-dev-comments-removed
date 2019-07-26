@@ -129,7 +129,7 @@
 #include "nsINIParser.h"
 #include "mozilla/Omnijar.h"
 #include "mozilla/StartupTimeline.h"
-#include "mozilla/mozPoisonWrite.h"
+#include "mozilla/LateWriteChecks.h"
 
 #include <stdlib.h>
 
@@ -3961,10 +3961,10 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   
   if (rv == NS_SUCCESS_RESTART_APP) {
     appInitiatedRestart = true;
-  } else {
+
     
     
-    mozilla::EnableWritePoisoning();
+    gShutdownChecks = SCM_NOTHING;
   }
 
   if (!mShuttingDown) {
@@ -4144,8 +4144,8 @@ void SetWindowsEnvironment(WindowsEnvironmentType aEnvID);
 #endif 
 
 void
-XRE_DisableWritePoisoning(void) {
-  mozilla::DisableWritePoisoning();
+XRE_StopLateWriteChecks(void) {
+  mozilla::StopLateWriteChecks();
 }
 
 int
