@@ -61,7 +61,9 @@
     #define F_BSIZE f_bsize
 #endif
 
-#if defined(HAVE_STAT64) && defined(HAVE_LSTAT64)
+
+
+#if defined(HAVE_STAT64) && defined(HAVE_LSTAT64) && !defined(XP_MACOSX)
     #if defined (AIX)
         #if defined STAT
             #undef STAT
