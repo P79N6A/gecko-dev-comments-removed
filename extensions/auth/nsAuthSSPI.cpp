@@ -101,7 +101,7 @@ MakeSN(const char *principal, nsCString &result)
     
     
     
-    PRInt32 index = buf.FindChar('@');
+    int32_t index = buf.FindChar('@');
     if (index == kNotFound)
         return NS_ERROR_UNEXPECTED;
     

@@ -32,7 +32,7 @@ const DWORD BUTTON_DOWN_MASK = 0x80;
 
 
 
-const PRUint32 kDevicesChangedStableDelay = 200;
+const uint32_t kDevicesChangedStableDelay = 200;
 
 typedef struct {
   float x,y;
