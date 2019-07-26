@@ -3,15 +3,10 @@
 
 
 
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/TabMessageUtils.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMEvent.h"
-
-#ifdef CreateEvent
-#undef CreateEvent
-#endif
-
-#include "nsEventDispatcher.h"
 
 namespace mozilla {
 namespace dom {
@@ -25,7 +20,8 @@ ReadRemoteEvent(const IPC::Message* aMsg, void** aIter,
   NS_ENSURE_TRUE(ReadParam(aMsg, aIter, &type), false);
 
   nsCOMPtr<nsIDOMEvent> event;
-  nsEventDispatcher::CreateEvent(nullptr, nullptr, nullptr, type, getter_AddRefs(event));
+  EventDispatcher::CreateEvent(nullptr, nullptr, nullptr, type,
+                               getter_AddRefs(event));
   aResult->mEvent = do_QueryInterface(event);
   NS_ENSURE_TRUE(aResult->mEvent, false);
 

@@ -4,8 +4,8 @@
 
 
 #ifdef MOZILLA_INTERNAL_API
-#ifndef nsEventDispatcher_h___
-#define nsEventDispatcher_h___
+#ifndef mozilla_EventDispatcher_h_
+#define mozilla_EventDispatcher_h_
 
 #include "mozilla/EventForwards.h"
 #include "nsCOMPtr.h"
@@ -218,13 +218,11 @@ public:
   virtual void HandleEvent(EventChainPostVisitor& aVisitor) = 0;
 };
 
-} 
 
 
 
 
-
-class nsEventDispatcher
+class EventDispatcher
 {
 public:
   
@@ -245,11 +243,11 @@ public:
 
   static nsresult Dispatch(nsISupports* aTarget,
                            nsPresContext* aPresContext,
-                           mozilla::WidgetEvent* aEvent,
+                           WidgetEvent* aEvent,
                            nsIDOMEvent* aDOMEvent = nullptr,
                            nsEventStatus* aEventStatus = nullptr,
-                           mozilla::EventDispatchingCallback* aCallback = nullptr,
-                           nsCOMArray<mozilla::dom::EventTarget>* aTargets = nullptr);
+                           EventDispatchingCallback* aCallback = nullptr,
+                           nsCOMArray<dom::EventTarget>* aTargets = nullptr);
 
   
 
@@ -260,7 +258,7 @@ public:
 
 
   static nsresult DispatchDOMEvent(nsISupports* aTarget,
-                                   mozilla::WidgetEvent* aEvent,
+                                   WidgetEvent* aEvent,
                                    nsIDOMEvent* aDOMEvent,
                                    nsPresContext* aPresContext,
                                    nsEventStatus* aEventStatus);
@@ -268,13 +266,15 @@ public:
   
 
 
-  static nsresult CreateEvent(mozilla::dom::EventTarget* aOwner,
+  static nsresult CreateEvent(dom::EventTarget* aOwner,
                               nsPresContext* aPresContext,
-                              mozilla::WidgetEvent* aEvent,
+                              WidgetEvent* aEvent,
                               const nsAString& aEventType,
                               nsIDOMEvent** aDOMEvent);
 
 };
 
-#endif
+} 
+
+#endif 
 #endif

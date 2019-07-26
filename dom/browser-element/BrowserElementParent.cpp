@@ -13,8 +13,8 @@
 #endif
 
 #include "BrowserElementParent.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
-#include "nsEventDispatcher.h"
 #include "nsIDOMCustomEvent.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsVariant.h"
@@ -84,9 +84,9 @@ DispatchCustomDOMEvent(Element* aFrameElement, const nsAString& aEventName,
   }
 
   nsCOMPtr<nsIDOMEvent> domEvent;
-  nsEventDispatcher::CreateEvent(aFrameElement, presContext, nullptr,
-                                 NS_LITERAL_STRING("customevent"),
-                                 getter_AddRefs(domEvent));
+  EventDispatcher::CreateEvent(aFrameElement, presContext, nullptr,
+                               NS_LITERAL_STRING("customevent"),
+                               getter_AddRefs(domEvent));
   NS_ENSURE_TRUE(domEvent, false);
 
   nsCOMPtr<nsIDOMCustomEvent> customEvent = do_QueryInterface(domEvent);
@@ -105,8 +105,9 @@ DispatchCustomDOMEvent(Element* aFrameElement, const nsAString& aEventName,
   customEvent->SetTrusted(true);
   
   *aStatus = nsEventStatus_eConsumeNoDefault;
-  nsresult rv = nsEventDispatcher::DispatchDOMEvent(aFrameElement, nullptr,
-                                                    domEvent, presContext, aStatus);
+  nsresult rv =
+    EventDispatcher::DispatchDOMEvent(aFrameElement, nullptr,
+                                      domEvent, presContext, aStatus);
   return NS_SUCCEEDED(rv);
 }
 

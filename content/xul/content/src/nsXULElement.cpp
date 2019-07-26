@@ -99,7 +99,7 @@
 #include "nsIFrame.h"
 #include "nsNodeInfoManager.h"
 #include "nsXBLBinding.h"
-#include "nsEventDispatcher.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozAutoDocUpdate.h"
 #include "nsIDOMXULCommandEvent.h"
 #include "nsCCUncollectableMarker.h"
@@ -1619,18 +1619,18 @@ nsXULElement::ClickWithInputSource(uint16_t aInputSource)
 
             
             nsEventStatus status = nsEventStatus_eIgnore;
-            nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                        context, &eventDown,  nullptr, &status);
+            EventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                      context, &eventDown,  nullptr, &status);
 
             
             status = nsEventStatus_eIgnore;  
-            nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                        context, &eventUp, nullptr, &status);
+            EventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                      context, &eventUp, nullptr, &status);
 
             
             status = nsEventStatus_eIgnore;  
-            nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                        context, &eventClick, nullptr, &status);
+            EventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                      context, &eventClick, nullptr, &status);
         }
     }
 

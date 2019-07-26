@@ -120,7 +120,7 @@
 
 #include "nsDateTimeFormatCID.h"
 #include "nsIDateTimeFormat.h"
-#include "nsEventDispatcher.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "nsDOMCID.h"
 
@@ -4870,8 +4870,8 @@ nsDocument::DispatchContentLoadedEvents()
             nsRefPtr<nsPresContext> context = shell->GetPresContext();
 
             if (context) {
-              nsEventDispatcher::Dispatch(parent, context, innerEvent, event,
-                                          &status);
+              EventDispatcher::Dispatch(parent, context, innerEvent, event,
+                                        &status);
             }
           }
         }
@@ -7675,10 +7675,9 @@ nsIDocument::CreateEvent(const nsAString& aEventType, ErrorResult& rv) const
 
   
   nsCOMPtr<nsIDOMEvent> ev;
-  rv =
-    nsEventDispatcher::CreateEvent(const_cast<nsIDocument*>(this),
-                                   presContext, nullptr, aEventType,
-                                   getter_AddRefs(ev));
+  rv = EventDispatcher::CreateEvent(const_cast<nsIDocument*>(this),
+                                    presContext, nullptr, aEventType,
+                                    getter_AddRefs(ev));
   return ev ? dont_AddRef(ev.forget().take()->InternalDOMEvent()) : nullptr;
 }
 
@@ -8669,8 +8668,8 @@ nsDocument::DispatchPageTransition(EventTarget* aDispatchTarget,
                                                                  aPersisted))) {
       event->SetTrusted(true);
       event->SetTarget(this);
-      nsEventDispatcher::DispatchDOMEvent(aDispatchTarget, nullptr, event,
-                                          nullptr, nullptr);
+      EventDispatcher::DispatchDOMEvent(aDispatchTarget, nullptr, event,
+                                        nullptr, nullptr);
     }
   }
 }

@@ -7,6 +7,7 @@
 #undef CreateEvent
 
 #include "mozilla/BasicEvents.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
 #ifdef MOZ_B2G
 #include "mozilla/Hal.h"
@@ -24,7 +25,6 @@
 #include "nsContentUtils.h"
 #include "nsDOMCID.h"
 #include "nsError.h"
-#include "nsEventDispatcher.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
 #include "nsIContentSecurityPolicy.h"
@@ -1019,8 +1019,8 @@ EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
           
           nsCOMPtr<EventTarget> et =
             do_QueryInterface(aEvent->originalTarget);
-          nsEventDispatcher::CreateEvent(et, aPresContext,
-                                         aEvent, EmptyString(), aDOMEvent);
+          EventDispatcher::CreateEvent(et, aPresContext,
+                                       aEvent, EmptyString(), aDOMEvent);
         }
         if (*aDOMEvent) {
           if (!aEvent->currentTarget) {
