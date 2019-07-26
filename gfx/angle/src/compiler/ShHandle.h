@@ -89,6 +89,9 @@ protected:
     
     virtual void translate(TIntermNode* root) = 0;
     
+    
+    bool enforcePackingRestrictions();
+    
     bool enforceTimingRestrictions(TIntermNode* root, bool outputGraph);
     
     bool enforceVertexShaderTimingRestrictions(TIntermNode* root);
@@ -103,6 +106,8 @@ protected:
 private:
     ShShaderType shaderType;
     ShShaderSpec shaderSpec;
+
+    int maxUniformVectors;
 
     
     

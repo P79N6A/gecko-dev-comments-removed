@@ -13,6 +13,9 @@
 
 
 struct TVariableInfo {
+    TVariableInfo(ShDataType type, int size);
+    TVariableInfo();
+
     TPersistString name;
     TPersistString mappedName;
     ShDataType type;

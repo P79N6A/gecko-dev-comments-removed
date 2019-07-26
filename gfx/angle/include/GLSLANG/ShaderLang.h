@@ -142,7 +142,10 @@ typedef enum {
   
   
   
-  SH_DEPENDENCY_GRAPH = 0x0400
+  SH_DEPENDENCY_GRAPH = 0x0400,
+
+  
+  SH_ENFORCE_PACKING_RESTRICTIONS = 0x0800,
 } ShCompileOptions;
 
 
