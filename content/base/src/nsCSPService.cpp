@@ -80,6 +80,32 @@ CSPService::ShouldLoad(uint32_t aContentType,
 
     
     
+    bool schemeMatch = false;
+    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("about", &schemeMatch), NS_OK);
+    if (schemeMatch)
+        return NS_OK;
+    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("chrome", &schemeMatch), NS_OK);
+    if (schemeMatch)
+        return NS_OK;
+    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("resource", &schemeMatch), NS_OK);
+    if (schemeMatch)
+        return NS_OK;
+    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("javascript", &schemeMatch), NS_OK);
+    if (schemeMatch)
+        return NS_OK;
+
+
+    
+    
+    
+    if (aContentType == nsIContentPolicy::TYPE_CSP_REPORT ||
+        aContentType == nsIContentPolicy::TYPE_REFRESH ||
+        aContentType == nsIContentPolicy::TYPE_DOCUMENT) {
+        return NS_OK;
+    }
+
+    
+    
     nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
     nsCOMPtr<nsIPrincipal> principal;
     nsCOMPtr<nsIContentSecurityPolicy> csp;

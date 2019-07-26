@@ -42,6 +42,8 @@ function ContentSecurityPolicy() {
   this._referrer = "";
   this._docRequest = null;
   CSPdebug("CSP POLICY INITED TO 'default-src *'");
+
+  this._cache = { };
 }
 
 
@@ -224,6 +226,7 @@ ContentSecurityPolicy.prototype = {
     
     this._policy = intersect;
     this._isInitialized = true;
+    this._cache = {};
   },
 
   
@@ -422,16 +425,17 @@ ContentSecurityPolicy.prototype = {
                           aContext,
                           aMimeTypeGuess,
                           aOriginalUri) {
-
-    
-    if (aContentLocation.scheme === 'chrome' ||
-        aContentLocation.scheme === 'resource') {
-      return Ci.nsIContentPolicy.ACCEPT;
+    let key = aContentLocation.spec + "!" + aContentType;
+    if (this._cache[key]) {
+      return this._cache[key];
     }
 
+#ifndef MOZ_B2G
     
     CSPdebug("shouldLoad location = " + aContentLocation.asciiSpec);
     CSPdebug("shouldLoad content type = " + aContentType);
+#endif
+    
     var cspContext = ContentSecurityPolicy._MAPPINGS[aContentType];
 
     
@@ -461,7 +465,9 @@ ContentSecurityPolicy.prototype = {
       }
     }
 
-    return (this._reportOnlyMode ? Ci.nsIContentPolicy.ACCEPT : res);
+    let ret = this._cache[key] =
+      (this._reportOnlyMode ? Ci.nsIContentPolicy.ACCEPT : res);
+    return ret;
   },
 
   shouldProcess:
