@@ -200,10 +200,10 @@ protected:
   
   
   
-  void PostFrameStop(RasterImage::FrameAlpha aFrameAlpha = RasterImage::kFrameHasAlpha,
-                     RasterImage::FrameDisposalMethod aDisposalMethod = RasterImage::kDisposeKeep,
+  void PostFrameStop(FrameBlender::FrameAlpha aFrameAlpha = FrameBlender::kFrameHasAlpha,
+                     FrameBlender::FrameDisposalMethod aDisposalMethod = FrameBlender::kDisposeKeep,
                      int32_t aTimeout = 0,
-                     RasterImage::FrameBlendMethod aBlendMethod = RasterImage::kBlendOver);
+                     FrameBlender::FrameBlendMethod aBlendMethod = FrameBlender::kBlendOver);
 
   
   

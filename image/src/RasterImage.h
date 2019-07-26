@@ -18,6 +18,7 @@
 #define mozilla_imagelib_RasterImage_h_
 
 #include "Image.h"
+#include "FrameBlender.h"
 #include "nsCOMPtr.h"
 #include "imgIContainer.h"
 #include "nsIProperties.h"
@@ -173,7 +174,7 @@ public:
   uint32_t GetCurrentFrameIndex();
 
   
-  uint32_t GetNumFrames();
+  uint32_t GetNumFrames() const;
 
   virtual size_t HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const;
   virtual size_t HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const;
@@ -274,34 +275,6 @@ public:
     return mRequestedResolution;
   }
 
-  
-  
-  enum FrameBlendMethod {
-    
-    
-    kBlendSource =  0,
-
-    
-    
-    kBlendOver
-  };
-
-  enum FrameDisposalMethod {
-    kDisposeClearAll         = -1, 
-                                   
-    kDisposeNotSpecified,   
-    kDisposeKeep,           
-    kDisposeClear,          
-    kDisposeRestorePrevious 
-  };
-
-  
-  
-  enum FrameAlpha {
-    kFrameHasAlpha,
-    kFrameOpaque
-  };
-
  nsCString GetURIString() {
     nsCString spec;
     if (GetURI()) {
@@ -359,30 +332,9 @@ private:
     
     TimeStamp                  currentAnimationFrameTime;
 
-    
-    int32_t                    lastCompositedFrameIndex;
-    
-
-
-
-
-
-
-
-    nsAutoPtr<imgFrame>        compositingFrame;
-    
-
-
-
-
-
-    nsAutoPtr<imgFrame>        compositingPrevFrame;
-
     Anim() :
-      firstFrameRefreshArea(),
-      currentAnimationFrameIndex(0),
-      lastCompositedFrameIndex(-1) {}
-    ~Anim() {}
+      currentAnimationFrameIndex(0)
+    {}
   };
 
   
@@ -591,6 +543,7 @@ private:
   nsresult CopyFrame(uint32_t aWhichFrame,
                      uint32_t aFlags,
                      gfxImageSurface **_retval);
+
   
 
 
@@ -661,58 +614,6 @@ private:
     }
   }
 
-  
-
-
-
-
-
-
-  nsresult DoComposite(nsIntRect* aDirtyRect,
-                       imgFrame* aPrevFrame,
-                       imgFrame* aNextFrame,
-                       int32_t aNextFrameIndex);
-
-  
-
-
-
-
-
-
-  static void ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect);
-  static void ClearFrame(imgFrame* aFrame);
-
-  
-  static void ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const nsIntRect &aRectToClear);
-  static void ClearFrame(imgFrame* aFrame, const nsIntRect& aRectToClear);
-
-  
-  static bool CopyFrameImage(uint8_t *aDataSrc, const nsIntRect& aRectSrc,
-                             uint8_t *aDataDest, const nsIntRect& aRectDest);
-  static bool CopyFrameImage(imgFrame* aSrc, imgFrame* aDst);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult DrawFrameTo(uint8_t *aSrcData, const nsIntRect& aSrcRect,
-                              uint32_t aSrcPaletteLength, bool aSrcHasAlpha,
-                              uint8_t *aDstPixels, const nsIntRect& aDstRect,
-                              FrameBlendMethod aBlendMethod);
-  static nsresult DrawFrameTo(imgFrame* aSrc, imgFrame* aDst, const nsIntRect& aSrcRect);
-
   nsresult InternalAddFrameHelper(uint32_t framenum, imgFrame *frame,
                                   uint8_t **imageData, uint32_t *imageLength,
                                   uint32_t **paletteData, uint32_t *paletteLength,
@@ -759,10 +660,7 @@ private:
   uint32_t                   mFrameDecodeFlags;
 
   
-  
-  
-  
-  nsTArray<imgFrame*>        mFrames;
+  FrameBlender              mFrameBlender;
 
   
   imgFrame*                  mMultipartDecodedFrame;
