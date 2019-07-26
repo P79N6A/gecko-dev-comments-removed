@@ -1,3 +1,8 @@
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+  "resource://gre/modules/commonjs/promise/core.js");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
+
 function whenDelayedStartupFinished(aWindow, aCallback) {
   Services.obs.addObserver(function observer(aSubject, aTopic) {
     if (aWindow == aSubject) {
@@ -130,6 +135,61 @@ function whenNewWindowLoaded(aOptions, aCallback) {
     win.removeEventListener("load", onLoad, false);
     aCallback(win);
   }, false);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForAsyncUpdates(aCallback, aScope, aArguments) {
+  let scope = aScope || this;
+  let args = aArguments || [];
+  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                              .DBConnection;
+  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
+  begin.executeAsync();
+  begin.finalize();
+
+  let commit = db.createAsyncStatement("COMMIT");
+  commit.executeAsync({
+    handleResult: function() {},
+    handleError: function() {},
+    handleCompletion: function(aReason) {
+      aCallback.apply(scope, args);
+    }
+  });
+  commit.finalize();
+}
+
+
+
+
+
+
+
+
+
+
+function promiseIsURIVisited(aURI, aExpectedValue) {
+  let deferred = Promise.defer();
+  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
+    deferred.resolve(aIsVisited);
+  });
+
+  return deferred.promise;
 }
 
 function addVisits(aPlaceInfo, aCallback) {
