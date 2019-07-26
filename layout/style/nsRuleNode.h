@@ -260,14 +260,14 @@ public:
   };
 
 private:
-  nsPresContext* mPresContext; 
+  nsPresContext* const mPresContext; 
 
-  nsRuleNode* mParent; 
-                       
-                       
-                       
-                       
-  nsIStyleRule* mRule; 
+  nsRuleNode* const mParent; 
+                             
+                             
+                             
+                             
+  nsIStyleRule* const mRule; 
 
   nsRuleNode* mNextSibling; 
                             
@@ -669,7 +669,7 @@ public:
   
   nsIStyleRule* GetRule() const { return mRule; }
   
-  nsPresContext* GetPresContext() const { return mPresContext; }
+  nsPresContext* PresContext() const { return mPresContext; }
 
   const void* GetStyleData(nsStyleStructID aSID,
                            nsStyleContext* aContext,

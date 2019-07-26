@@ -162,7 +162,7 @@ nsStyleSet::BeginReconstruct()
 
   
   nsRuleNode* newTree =
-    nsRuleNode::CreateRootNode(mRuleTree->GetPresContext());
+    nsRuleNode::CreateRootNode(mRuleTree->PresContext());
   if (!newTree)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1638,8 +1638,7 @@ SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElement, bool isPseudo)
     
     
     nsRestyleHint hint = isPseudo ? eRestyle_Subtree : eRestyle_Self;
-    aRuleNode->GetPresContext()->PresShell()->RestyleForAnimation(aElement,
-                                                                  hint);
+    aRuleNode->PresContext()->PresShell()->RestyleForAnimation(aElement, hint);
   }
   return ruleNode;
 }
