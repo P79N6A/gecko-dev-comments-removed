@@ -42,7 +42,6 @@
 struct rtcweb_datachannel_open_request {
   uint8_t  msg_type; 
   uint8_t  channel_type;  
-  uint16_t flags;
   uint16_t reliability_params;
   int16_t  priority;
   uint16_t label_length;
@@ -55,14 +54,13 @@ struct rtcweb_datachannel_open_request {
 #define DATA_CHANNEL_OPEN_REQUEST             3
 
 
-#define DATA_CHANNEL_RELIABLE                 0
-#define DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT  1
-#define DATA_CHANNEL_PARTIAL_RELIABLE_TIMED   2
+#define DATA_CHANNEL_RELIABLE                 0x00
+#define DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT  0x01
+#define DATA_CHANNEL_PARTIAL_RELIABLE_TIMED   0x02
 
-
-#define DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED 0x0001
-
-
+#define DATA_CHANNEL_RELIABLE_UNORDERED                0x80
+#define DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT_UNORDERED 0x81
+#define DATA_CHANNEL_PARTIAL_RELIABLE_TIMED_UNORDERED  0x82
 
 #define ERR_DATA_CHANNEL_ALREADY_OPEN   1
 #define ERR_DATA_CHANNEL_NONE_AVAILABLE 2
