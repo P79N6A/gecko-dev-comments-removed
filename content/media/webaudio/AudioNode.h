@@ -81,11 +81,6 @@ public:
       return ConvertibleToBool(mDestination && mInput != InvalidIndex);
     }
 
-    
-    AudioNode* get() const {
-      return mDestination;
-    }
-
     nsRefPtr<AudioNode> mDestination;
     
     
@@ -109,11 +104,6 @@ public:
       return ConvertibleToBool(mSource && mOutput != InvalidIndex);
     }
 
-    
-    AudioNode* get() const {
-      return mSource;
-    }
-
     nsRefPtr<AudioNode> mSource;
     
     
@@ -130,4 +120,3 @@ private:
 }
 
 #endif
-
