@@ -169,7 +169,7 @@ TypeInferenceOracle::getOsrTypes(jsbytecode *osrPc, Vector<MIRType> &slotTypes)
 
     
     
-    while (pc < osrPc) {
+    for (;;) {
         Bytecode *opinfo = analysis->maybeCode(pc);
         if (opinfo) {
             if (opinfo->jumpTarget) {
@@ -189,6 +189,9 @@ TypeInferenceOracle::getOsrTypes(jsbytecode *osrPc, Vector<MIRType> &slotTypes)
                     slotTypeSets[slot] = analysis->pushedTypes(pc, 0);
             }
         }
+
+        if (pc == osrPc)
+            break;
 
         pc += GetBytecodeLength(pc);
     }
