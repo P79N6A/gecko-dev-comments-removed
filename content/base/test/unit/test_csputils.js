@@ -916,6 +916,66 @@ test(
 
     });
 
+test(function test_equals_does_case_insensitive_comparison() {
+      
+      
+      
+      
+
+      
+      var upperCaseHost = "http://FOO.COM";
+      var lowerCaseHost = "http://foo.com";
+      src1 = CSPSource.fromString(lowerCaseHost);
+      src2 = CSPSource.fromString(lowerCaseHost);
+      do_check_true(src1.equals(src2))
+      src3 = CSPSource.fromString(upperCaseHost);
+      do_check_true(src1.equals(src3))
+
+      
+      var upperCaseScheme = "HTTP";
+      var lowerCaseScheme = "http";
+      src1 = CSPHost.fromString(lowerCaseScheme);
+      src2 = CSPHost.fromString(lowerCaseScheme);
+      do_check_true(src1.equals(src2));
+      src3 = CSPHost.fromString(upperCaseScheme);
+      do_check_true(src1.equals(src3));
+
+      
+      var upperCaseKeywords = "'SELF'";
+      var lowerCaseKeywords = "'self'";
+      src1 = CSPSourceList.fromString(lowerCaseKeywords);
+      src2 = CSPSourceList.fromString(lowerCaseKeywords);
+      do_check_true(src1.equals(src2))
+      src3 = CSPSourceList.fromString(upperCaseKeywords);
+      do_check_true(src1.equals(src3))
+
+  });
+
+test(function test_csp_permits_case_insensitive() {
+      var cspr;
+      var SD = CSPRep.SRC_DIRECTIVES_NEW;
+
+      
+      var selfHost = "http://self.com";
+      var testPolicy1 = "DEFAULT-src 'self';";
+      cspr = CSPRep.fromString(testPolicy1, URI(selfHost));
+      do_check_true(cspr.permits(URI("http://self.com"), SD.DEFAULT_SRC));
+
+      
+      var testPolicy2 = "default-src 'self' http://FOO.COM";
+      cspr = CSPRep.fromString(testPolicy2, URI(selfHost));
+      do_check_true(cspr.permits(URI("http://foo.com"), SD.DEFAULT_SRC));
+
+      
+      var testPolicy3 = "default-src 'self' HTTP://foo.com";
+      cspr = CSPRep.fromString(testPolicy3, URI(selfHost));
+      do_check_true(cspr.permits(URI("http://foo.com"), SD.DEFAULT_SRC));
+
+      
+      var testPolicy4 = "default-src 'NONE'";
+      cspr = CSPRep.fromString(testPolicy4, URI(selfHost));
+      do_check_false(cspr.permits(URI("http://foo.com"), SD.DEFAULT_SRC));
+  });
 
 
 
