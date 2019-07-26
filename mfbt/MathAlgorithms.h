@@ -49,6 +49,73 @@ EuclidLCM(IntegerType a, IntegerType b)
 
 namespace detail {
 
+template<typename T>
+struct AllowDeprecatedAbsFixed : FalseType {};
+
+template<> struct AllowDeprecatedAbsFixed<int8_t> : TrueType {};
+template<> struct AllowDeprecatedAbsFixed<int16_t> : TrueType {};
+template<> struct AllowDeprecatedAbsFixed<int32_t> : TrueType {};
+template<> struct AllowDeprecatedAbsFixed<int64_t> : TrueType {};
+
+template<typename T>
+struct AllowDeprecatedAbs : AllowDeprecatedAbsFixed<T> {};
+
+template<> struct AllowDeprecatedAbs<char> : IntegralConstant<bool, char(-1) < char(0)> {};
+template<> struct AllowDeprecatedAbs<signed char> : TrueType {};
+template<> struct AllowDeprecatedAbs<short> : TrueType {};
+template<> struct AllowDeprecatedAbs<int> : TrueType {};
+template<> struct AllowDeprecatedAbs<long> : TrueType {};
+template<> struct AllowDeprecatedAbs<long long> : TrueType {};
+template<> struct AllowDeprecatedAbs<float> : TrueType {};
+template<> struct AllowDeprecatedAbs<double> : TrueType {};
+template<> struct AllowDeprecatedAbs<long double> : TrueType {};
+
+} 
+
+
+
+template<typename T>
+inline typename mozilla::EnableIf<detail::AllowDeprecatedAbs<T>::value, T>::Type
+DeprecatedAbs(const T t)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  MOZ_ASSERT(t >= 0 ||
+             -(t + 1) != T((1ULL << (CHAR_BIT * sizeof(T) - 1)) - 1),
+             "You can't negate the smallest possible negative integer!");
+  return t >= 0 ? t : -t;
+}
+
+template<>
+inline float
+DeprecatedAbs<float>(const float f)
+{
+  return fabsf(f);
+}
+
+template<>
+inline double
+DeprecatedAbs<double>(const double d)
+{
+  return fabs(d);
+}
+
+template<>
+inline long double
+DeprecatedAbs<long double>(const long double d)
+{
+  return fabsl(d);
+}
+
+namespace detail {
+
 
 
 
