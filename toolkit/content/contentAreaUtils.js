@@ -286,6 +286,8 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     file = aChosenData.file;
     sourceURI = aChosenData.uri;
     saveAsType = kSaveAsType_Complete;
+
+    continueSave();
   } else {
     var charset = null;
     if (aDocument)
@@ -309,38 +311,42 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     
     let relatedURI = aReferrer || sourceURI;
 
-    if (!getTargetFile(fpParams, aSkipPrompt, relatedURI))
-      
-      
-      return;
+    getTargetFile(fpParams, function(aDialogCancelled) {
+      if (aDialogCancelled)
+        return;
 
-    saveAsType = fpParams.saveAsType;
-    file = fpParams.file;
+      saveAsType = fpParams.saveAsType;
+      file = fpParams.file;
+
+      continueSave();
+    }, aSkipPrompt, relatedURI);
   }
 
-  
-  
-  
-  var useSaveDocument = aDocument &&
-                        (((saveMode & SAVEMODE_COMPLETE_DOM) && (saveAsType == kSaveAsType_Complete)) ||
-                         ((saveMode & SAVEMODE_COMPLETE_TEXT) && (saveAsType == kSaveAsType_Text)));
-  
-  
-  
-  var persistArgs = {
-    sourceURI         : sourceURI,
-    sourceReferrer    : aReferrer,
-    sourceDocument    : useSaveDocument ? aDocument : null,
-    targetContentType : (saveAsType == kSaveAsType_Text) ? "text/plain" : null,
-    targetFile        : file,
-    sourceCacheKey    : aCacheKey,
-    sourcePostData    : aDocument ? getPostData(aDocument) : null,
-    bypassCache       : aShouldBypassCache,
-    initiatingWindow  : aInitiatingDocument.defaultView
-  };
+  function continueSave() {
+    
+    
+    
+    var useSaveDocument = aDocument &&
+                          (((saveMode & SAVEMODE_COMPLETE_DOM) && (saveAsType == kSaveAsType_Complete)) ||
+                           ((saveMode & SAVEMODE_COMPLETE_TEXT) && (saveAsType == kSaveAsType_Text)));
+    
+    
+    
+    var persistArgs = {
+      sourceURI         : sourceURI,
+      sourceReferrer    : aReferrer,
+      sourceDocument    : useSaveDocument ? aDocument : null,
+      targetContentType : (saveAsType == kSaveAsType_Text) ? "text/plain" : null,
+      targetFile        : file,
+      sourceCacheKey    : aCacheKey,
+      sourcePostData    : aDocument ? getPostData(aDocument) : null,
+      bypassCache       : aShouldBypassCache,
+      initiatingWindow  : aInitiatingDocument.defaultView
+    };
 
-  
-  internalPersist(persistArgs);
+    
+    internalPersist(persistArgs);
+  }
 }
 
 
@@ -535,7 +541,9 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
 
 
 
-function getTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
+
+
+function getTargetFile(aFpP, aCallback,  aSkipPrompt,  aRelatedURI)
 {
   if (!getTargetFile.DownloadLastDir)
     Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", getTargetFile);
@@ -557,66 +565,74 @@ function getTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
     dir.append(getNormalizedLeafName(aFpP.fileInfo.fileName,
                                      aFpP.fileInfo.fileExt));
     aFpP.file = uniqueFile(dir);
-    return true;
+    aCallback(false);
+    return;
   }
 
   
   
-  if (!useDownloadDir) try {
+  if (useDownloadDir) {
     
-    
-    
-    
-    var lastDir = gDownloadLastDir.getFile(aRelatedURI);
-    if (lastDir.exists()) {
-      dir = lastDir;
-      dirExists = true;
-    }
-  } catch(e) {}
-
-  if (!dirExists) {
-    
-    dir = Services.dirsvc.get("Desk", nsIFile);
+    Services.tm.mainThread.dispatch(function() {
+      displayPicker();
+    }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+  } else {
+    gDownloadLastDir.getFileAsync(aRelatedURI, function getFileAsyncCB(aFile) {
+      if (aFile && aFile.exists()) {
+        dir = aFile;
+        dirExists = true;
+      }
+      displayPicker();
+    });
   }
 
-  var fp = makeFilePicker();
-  var titleKey = aFpP.fpTitleKey || "SaveLinkTitle";
-  fp.init(window, ContentAreaUtils.stringBundle.GetStringFromName(titleKey),
-          Components.interfaces.nsIFilePicker.modeSave);
-
-  fp.displayDirectory = dir;
-  fp.defaultExtension = aFpP.fileInfo.fileExt;
-  fp.defaultString = getNormalizedLeafName(aFpP.fileInfo.fileName,
-                                           aFpP.fileInfo.fileExt);
-  appendFiltersForContentType(fp, aFpP.contentType, aFpP.fileInfo.fileExt,
-                              aFpP.saveMode);
-
-  
-  
-  if (aFpP.saveMode != SAVEMODE_FILEONLY) {
-    try {
-      fp.filterIndex = prefs.getIntPref("save_converter_index");
+  function displayPicker() {
+    if (!dirExists) {
+      
+      dir = Services.dirsvc.get("Desk", nsIFile);
     }
-    catch (e) {
+
+    var fp = makeFilePicker();
+    var titleKey = aFpP.fpTitleKey || "SaveLinkTitle";
+    fp.init(window, ContentAreaUtils.stringBundle.GetStringFromName(titleKey),
+            Components.interfaces.nsIFilePicker.modeSave);
+
+    fp.displayDirectory = dir;
+    fp.defaultExtension = aFpP.fileInfo.fileExt;
+    fp.defaultString = getNormalizedLeafName(aFpP.fileInfo.fileName,
+                                             aFpP.fileInfo.fileExt);
+    appendFiltersForContentType(fp, aFpP.contentType, aFpP.fileInfo.fileExt,
+                                aFpP.saveMode);
+
+    
+    
+    if (aFpP.saveMode != SAVEMODE_FILEONLY) {
+      try {
+        fp.filterIndex = prefs.getIntPref("save_converter_index");
+      }
+      catch (e) {
+      }
     }
+
+    if (fp.show() == Components.interfaces.nsIFilePicker.returnCancel || !fp.file) {
+      aCallback(true);
+      return;
+    }
+
+    if (aFpP.saveMode != SAVEMODE_FILEONLY)
+      prefs.setIntPref("save_converter_index", fp.filterIndex);
+
+    
+    var directory = fp.file.parent.QueryInterface(nsIFile);
+    gDownloadLastDir.setFile(aRelatedURI, directory);
+
+    fp.file.leafName = validateFileName(fp.file.leafName);
+
+    aFpP.saveAsType = fp.filterIndex;
+    aFpP.file = fp.file;
+    aFpP.fileURL = fp.fileURL;
+    aCallback(false);
   }
-
-  if (fp.show() == Components.interfaces.nsIFilePicker.returnCancel || !fp.file)
-    return false;
-
-  if (aFpP.saveMode != SAVEMODE_FILEONLY)
-    prefs.setIntPref("save_converter_index", fp.filterIndex);
-
-  
-  var directory = fp.file.parent.QueryInterface(nsIFile);
-  gDownloadLastDir.setFile(aRelatedURI, directory);
-
-  fp.file.leafName = validateFileName(fp.file.leafName);
-
-  aFpP.saveAsType = fp.filterIndex;
-  aFpP.file = fp.file;
-  aFpP.fileURL = fp.fileURL;
-  return true;
 }
 
 
