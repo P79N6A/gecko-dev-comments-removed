@@ -354,6 +354,15 @@ nsIMEStateManager::OnFocusInEditor(nsPresContext* aPresContext,
     return;
   }
 
+  
+  
+  if (sTextStateObserver) {
+    if (sTextStateObserver->IsManaging(aPresContext, aContent)) {
+      return;
+    }
+    DestroyTextStateManager();
+  }
+
   CreateTextStateManager();
 }
 
@@ -372,21 +381,33 @@ nsIMEStateManager::UpdateIMEState(const IMEState &aNewIMEState,
   }
 
   
-  InputContext context = widget->GetInputContext();
-  if (context.mIMEState.mEnabled == aNewIMEState.mEnabled) {
-    return;
+  
+  
+  bool createTextStateManager =
+    (!sTextStateObserver ||
+     !sTextStateObserver->IsManaging(sPresContext, aContent));
+
+  bool updateIMEState =
+    (widget->GetInputContext().mIMEState.mEnabled != aNewIMEState.mEnabled);
+
+  if (updateIMEState) {
+    
+    NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, widget);
   }
 
-  
-  NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, widget);
+  if (createTextStateManager) {
+    DestroyTextStateManager();
+  }
 
-  DestroyTextStateManager();
+  if (updateIMEState) {
+    InputContextAction action(InputContextAction::CAUSE_UNKNOWN,
+                              InputContextAction::FOCUS_NOT_CHANGED);
+    SetIMEState(aNewIMEState, aContent, widget, action);
+  }
 
-  InputContextAction action(InputContextAction::CAUSE_UNKNOWN,
-                            InputContextAction::FOCUS_NOT_CHANGED);
-  SetIMEState(aNewIMEState, aContent, widget, action);
-
-  CreateTextStateManager();
+  if (createTextStateManager) {
+    CreateTextStateManager();
+  }
 }
 
 IMEState
