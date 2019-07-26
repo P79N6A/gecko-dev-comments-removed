@@ -1046,7 +1046,7 @@ var gBrowserInit = {
     FullZoom.init();
     PanelUI.init();
     SocialUI.init();
-    AddonManager.addAddonListener(AddonsMgrListener);
+    LightweightThemeListener.init();
     WebrtcIndicator.init();
 
     
@@ -3447,10 +3447,6 @@ var XULBrowserWindow = {
   },
 
   init: function () {
-    
-    if (gMultiProcessBrowser)
-      return;
-
     
     
     var securityUI = gBrowser.securityUI;
