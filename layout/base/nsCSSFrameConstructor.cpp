@@ -929,10 +929,9 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShe
     
     mFrameState(aHistoryState),
     mAdditionalStateBits(0),
-    
-    
-	
-    mFixedPosIsAbsPos(aFixedContainingBlock == aAbsoluteContainingBlock),
+    mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
+                      aAbsoluteContainingBlock->GetStyleDisplay()->
+                        HasTransform(aAbsoluteContainingBlock)),
     mHavePendingPopupgroup(false),
     mCreatingExtraFrames(false),
     mTreeMatchContext(true, nsRuleWalker::eRelevantLinkUnvisited,
@@ -963,10 +962,9 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
     mFloatedItems(aFloatContainingBlock),
     
     mAdditionalStateBits(0),
-    
-    
-	
-    mFixedPosIsAbsPos(aFixedContainingBlock == aAbsoluteContainingBlock),
+    mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
+                      aAbsoluteContainingBlock->GetStyleDisplay()->
+                        HasTransform(aAbsoluteContainingBlock)),
     mHavePendingPopupgroup(false),
     mCreatingExtraFrames(false),
     mTreeMatchContext(true, nsRuleWalker::eRelevantLinkUnvisited,
@@ -5590,8 +5588,7 @@ nsCSSFrameConstructor::GetFrameFor(nsIContent* aContent)
 }
 
 nsIFrame*
-nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
-                                                  ContainingBlockType aType)
+nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
 {
   NS_PRECONDITION(nullptr != mRootElementFrame, "no root element frame");
 
@@ -5611,10 +5608,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
     
     
     
-    
-    
-    if (!frame->IsPositioned() ||
-        (aType == FIXED_POS && !frame->GetStyleDisplay()->HasTransform(frame))) {
+    if (!frame->IsPositioned()) {
       continue;
     }
     nsIFrame* absPosCBCandidate = nullptr;
@@ -5632,7 +5626,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
 
     
     if (absPosCBCandidate->GetType() == nsGkAtoms::tableFrame) {
-      continue;
+      return absPosCBCandidate->GetParent();
     }
     
     return absPosCBCandidate;
@@ -5641,10 +5635,22 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
   
   
   
-  if (aType == FIXED_POS) {
-    return mFixedContainingBlock;
-  }
   return mHasRootAbsPosContainingBlock ? mDocElementContainingBlock : nullptr;
+}
+
+nsIFrame*
+nsCSSFrameConstructor::GetFixedContainingBlock(nsIFrame* aFrame)
+{
+  NS_PRECONDITION(nullptr != mRootElementFrame, "no root element frame");
+
+  
+  for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
+    if (frame->GetStyleDisplay()->HasTransform(frame)) {
+      return frame;
+    }
+  }
+
+  return mFixedContainingBlock;
 }
 
 nsIFrame*
@@ -6641,9 +6647,8 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                                         &parentAfterFrame);
   
   
-  nsFrameConstructorState state(mPresShell,
-                                GetAbsoluteContainingBlock(parentFrame, FIXED_POS),
-                                GetAbsoluteContainingBlock(parentFrame, ABS_POS),
+  nsFrameConstructorState state(mPresShell, GetFixedContainingBlock(parentFrame),
+                                GetAbsoluteContainingBlock(parentFrame),
                                 GetFloatContainingBlock(parentFrame));
   state.mTreeMatchContext.InitAncestors(aContainer->AsElement());
 
@@ -7077,9 +7082,8 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     return rv;
   }
 
-  nsFrameConstructorState state(mPresShell,
-                                GetAbsoluteContainingBlock(parentFrame, FIXED_POS),
-                                GetAbsoluteContainingBlock(parentFrame, ABS_POS),
+  nsFrameConstructorState state(mPresShell, GetFixedContainingBlock(parentFrame),
+                                GetAbsoluteContainingBlock(parentFrame),
                                 GetFloatContainingBlock(parentFrame),
                                 aFrameState);
   state.mTreeMatchContext.InitAncestors(aContainer ?
@@ -8692,9 +8696,8 @@ nsCSSFrameConstructor::CreateContinuingTableFrame(nsIPresShell* aPresShell,
       
       nsTableRowGroupFrame*   headerFooterFrame;
       nsFrameItems            childItems;
-      nsFrameConstructorState state(mPresShell,
-                                    GetAbsoluteContainingBlock(newFrame, FIXED_POS),
-                                    GetAbsoluteContainingBlock(newFrame, ABS_POS),
+      nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
+                                    GetAbsoluteContainingBlock(newFrame),
                                     nullptr);
       state.mCreatingExtraFrames = true;
 
@@ -10565,9 +10568,8 @@ nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
 
     NS_ASSERTION(aBlockContinuation == GetFloatContainingBlock(aParentFrame),
                  "Containing block is confused");
-    nsFrameConstructorState state(mPresShell,
-                                  GetAbsoluteContainingBlock(aParentFrame, FIXED_POS),
-                                  GetAbsoluteContainingBlock(aParentFrame, ABS_POS),
+    nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
+                                  GetAbsoluteContainingBlock(aParentFrame),
                                   aBlockContinuation);
 
     
@@ -10954,8 +10956,8 @@ nsCSSFrameConstructor::CreateListBoxContent(nsPresContext* aPresContext,
   
   if (nullptr != aParentFrame) {
     nsFrameItems            frameItems;
-    nsFrameConstructorState state(mPresShell, GetAbsoluteContainingBlock(aParentFrame, FIXED_POS),
-                                  GetAbsoluteContainingBlock(aParentFrame, ABS_POS),
+    nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
+                                  GetAbsoluteContainingBlock(aParentFrame),
                                   GetFloatContainingBlock(aParentFrame), 
                                   mTempFrameTreeState);
 
