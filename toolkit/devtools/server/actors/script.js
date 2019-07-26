@@ -2447,36 +2447,36 @@ SourceActor.prototype = {
 
 
 
+
+
   _invertSourceMap: function SA__invertSourceMap({ code, map }) {
-    const smc = new SourceMapConsumer(map.toJSON());
-    const invertedMap = new SourceMapGenerator({
-      file: this._url
-    });
+    
+    
+    
 
-    smc.eachMapping(m => {
-      if (!m.originalLine || !m.originalColumn) {
-        return;
-      }
-      const invertedMapping = {
-        source: m.source,
-        name: m.name,
-        original: {
-          line: m.generatedLine,
-          column: m.generatedColumn
-        },
-        generated: {
-          line: m.originalLine,
-          column: m.originalColumn
-        }
-      };
-      invertedMap.addMapping(invertedMapping);
-    });
+    map.setSourceContent(this._url, code);
+    const consumer = new SourceMapConsumer.fromSourceMap(map);
+    const getOrigPos = consumer.originalPositionFor.bind(consumer);
+    const getGenPos = consumer.generatedPositionFor.bind(consumer);
 
-    invertedMap.setSourceContent(this._url, code);
+    consumer.originalPositionFor = ({ line, column }) => {
+      const location = getGenPos({
+        line: line,
+        column: column,
+        source: this._url
+      });
+      location.source = this._url;
+      return location;
+    };
+
+    consumer.generatedPositionFor = ({ line, column }) => getOrigPos({
+      line: line,
+      column: column
+    });
 
     return {
       code: code,
-      map: new SourceMapConsumer(invertedMap.toJSON())
+      map: consumer
     };
   },
 
@@ -2491,7 +2491,7 @@ SourceActor.prototype = {
       
       this._sourceMap = SourceMapGenerator.fromSourceMap(this._sourceMap);
       this._sourceMap.applySourceMap(map, this._url);
-      this._sourceMap = new SourceMapConsumer(this._sourceMap.toJSON());
+      this._sourceMap = SourceMapConsumer.fromSourceMap(this._sourceMap);
       this._threadActor.sources.saveSourceMap(this._sourceMap,
                                               this._generatedSource);
     } else {
