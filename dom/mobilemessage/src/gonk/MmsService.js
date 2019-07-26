@@ -35,8 +35,6 @@ const kSmsReceivedObserverTopic          = "sms-received";
 const kSmsRetrievingObserverTopic        = "sms-retrieving";
 const kSmsDeliverySuccessObserverTopic   = "sms-delivery-success";
 const kSmsDeliveryErrorObserverTopic     = "sms-delivery-error";
-const kSmsReadSuccessObserverTopic       = "sms-read-success";
-const kSmsReadErrorObserverTopic         = "sms-read-error";
 
 const NS_XPCOM_SHUTDOWN_OBSERVER_ID      = "xpcom-shutdown";
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
@@ -1798,6 +1796,11 @@ MmsService.prototype = {
 
 
   handleDeliveryIndication: function handleDeliveryIndication(aMsg) {
+    if (DEBUG) {
+      debug("handleDeliveryIndication: got delivery report" +
+            JSON.stringify(aMsg));
+    }
+
     let headers = aMsg.headers;
     let envelopeId = headers["message-id"];
     let address = headers.to.address;
@@ -1851,57 +1854,6 @@ MmsService.prototype = {
       } else {
         if (DEBUG) debug("Needn't fire event for this MMS status. Returning.");
         return;
-      }
-
-      
-      Services.obs.notifyObservers(aDomMessage, topic, null);
-    }).bind(this));
-  },
-
-  
-
-
-
-
-
-  handleReadOriginateIndication:
-    function handleReadOriginateIndication(aIndication) {
-
-    let headers = aIndication.headers;
-    let envelopeId = headers["message-id"];
-    let address = headers.from.address;
-    let mmsReadStatus = headers["x-mms-read-status"];
-    if (DEBUG) {
-      debug("Start updating the read status for envelopeId: " + envelopeId +
-            ", address: " + address + ", mmsReadStatus: " + mmsReadStatus);
-    }
-
-    
-    
-    
-    let readStatus = mmsReadStatus == MMS.MMS_PDU_READ_STATUS_READ
-                   ? MMS.DOM_READ_STATUS_SUCCESS
-                   : MMS.DOM_READ_STATUS_ERROR;
-    if (DEBUG) debug("Updating the read status to: " + readStatus);
-
-    gMobileMessageDatabaseService
-      .setMessageReadStatusByEnvelopeId(envelopeId, address, readStatus,
-                                        (function(aRv, aDomMessage) {
-      if (!Components.isSuccessCode(aRv)) {
-        
-        Services.obs.notifyObservers(aDomMessage, kSmsReadSuccessObserverTopic, null);
-        return;
-      }
-
-      if (DEBUG) debug("Marking the read status is done.");
-      let topic;
-      if (mmsReadStatus == MMS.MMS_PDU_READ_STATUS_READ) {
-        topic = kSmsReadSuccessObserverTopic;
-
-        
-        this.broadcastMmsSystemMessage(topic, aDomMessage);
-      } else {
-        topic = kSmsReadErrorObserverTopic;
       }
 
       
@@ -2409,9 +2361,6 @@ MmsService.prototype = {
         break;
       case MMS.MMS_PDU_TYPE_DELIVERY_IND:
         this.handleDeliveryIndication(msg);
-        break;
-      case MMS.MMS_PDU_TYPE_READ_ORIG_IND:
-        this.handleReadOriginateIndication(msg);
         break;
       default:
         if (DEBUG) debug("Unsupported X-MMS-Message-Type: " + msg.type);
