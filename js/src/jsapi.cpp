@@ -4954,7 +4954,7 @@ JS_BufferIsCompilableUnit(JSContext *cx, JSObject *objArg, const char *utf8, siz
                                                   options, chars, length,
                                                    true, NULL, NULL);
         older = JS_SetErrorReporter(cx, NULL);
-        if (!parser.parse(obj) && parser.tokenStream.isUnexpectedEOF()) {
+        if (!parser.parse(obj) && parser.isUnexpectedEOF()) {
             
 
 

@@ -421,8 +421,6 @@ class MOZ_STACK_CLASS TokenStream
 
     
     bool isEOF() const { return flags.isEOF; }
-    void setUnexpectedEOF() { flags.isUnexpectedEOF = true; }
-    bool isUnexpectedEOF() const { return flags.isUnexpectedEOF; }
     bool sawOctalEscape() const { return flags.sawOctalEscape; }
     bool hadError() const { return flags.hadError; }
 
@@ -456,14 +454,13 @@ class MOZ_STACK_CLASS TokenStream
     struct Flags
     {
         bool isEOF:1;           
-        bool isUnexpectedEOF:1; 
         bool sawEOL:1;          
         bool isDirtyLine:1;     
         bool sawOctalEscape:1;  
         bool hadError:1;        
 
         Flags()
-          : isEOF(), isUnexpectedEOF(), sawEOL(), isDirtyLine(), sawOctalEscape(), hadError()
+          : isEOF(), sawEOL(), isDirtyLine(), sawOctalEscape(), hadError()
         {}
     };
 
