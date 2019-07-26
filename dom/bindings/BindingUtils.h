@@ -1901,7 +1901,7 @@ bool
 XrayResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                        JS::Handle<JSObject*> obj,
                        JS::Handle<jsid> id,
-                       JSPropertyDescriptor* desc, unsigned flags);
+                       JS::MutableHandle<JSPropertyDescriptor> desc, unsigned flags);
 
 
 
@@ -1924,9 +1924,9 @@ XrayResolveNativeProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
 
 
 bool
-XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper, 
+XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                    JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                   JSPropertyDescriptor* desc, bool* defined);
+                   JS::MutableHandle<JSPropertyDescriptor> desc, bool* defined);
 
 
 

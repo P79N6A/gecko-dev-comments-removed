@@ -30,10 +30,10 @@ AllowedByBase(JSContext *cx, HandleObject wrapper, HandleId id,
 }
 
 static bool
-PropIsFromStandardPrototype(JSContext *cx, JSPropertyDescriptor *desc)
+PropIsFromStandardPrototype(JSContext *cx, JS::MutableHandle<js::PropertyDescriptor> desc)
 {
-    MOZ_ASSERT(desc->obj);
-    RootedObject unwrapped(cx, js::UncheckedUnwrap(desc->obj));
+    MOZ_ASSERT(desc.object());
+    RootedObject unwrapped(cx, js::UncheckedUnwrap(desc.object()));
     JSAutoCompartment ac(cx, unwrapped);
     return JS_IdentifyClassPrototype(cx, unwrapped) != JSProto_Null;
 }
@@ -51,24 +51,24 @@ PropIsFromStandardPrototype(JSContext *cx, HandleObject wrapper,
     Rooted<JSPropertyDescriptor> desc(cx);
     ChromeObjectWrapper *handler = &ChromeObjectWrapper::singleton;
     if (!handler->ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id,
-                                                                 desc.address(), 0) ||
+                                                                 &desc, 0) ||
         !desc.object())
     {
         return false;
     }
-    return PropIsFromStandardPrototype(cx, desc.address());
+    return PropIsFromStandardPrototype(cx, &desc);
 }
 
 bool
 ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
                                            HandleObject wrapper,
                                            HandleId id,
-                                           js::PropertyDescriptor *desc,
+                                           JS::MutableHandle<js::PropertyDescriptor> desc,
                                            unsigned flags)
 {
     assertEnteredPolicy(cx, wrapper, id);
     
-    desc->obj = NULL;
+    desc.object().set(NULL);
     if (AllowedByBase(cx, wrapper, id, Wrapper::GET) &&
         !ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id,
                                                         desc, flags)) {
@@ -78,19 +78,19 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
     
     
     
-    if (desc->obj && PropIsFromStandardPrototype(cx, desc))
-        desc->obj = NULL;
+    if (desc.object() && PropIsFromStandardPrototype(cx, desc))
+        desc.object().set(NULL);
 
     
     RootedObject wrapperProto(cx);
     if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
       return false;
-    if (desc->obj || !wrapperProto)
+    if (desc.object() || !wrapperProto)
         return true;
 
     
     MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
-    return JS_GetPropertyDescriptorById(cx, wrapperProto, id, 0, desc);
+    return JS_GetPropertyDescriptorById(cx, wrapperProto, id, 0, desc.address());
 }
 
 bool
@@ -128,7 +128,6 @@ ChromeObjectWrapper::get(JSContext *cx, HandleObject wrapper,
 {
     assertEnteredPolicy(cx, wrapper, id);
     vp.setUndefined();
-    JSPropertyDescriptor desc;
     
     
     
