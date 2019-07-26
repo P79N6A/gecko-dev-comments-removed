@@ -591,6 +591,23 @@ CodeGeneratorShared::shouldVerifyOsiPointRegs(LSafepoint *safepoint)
 
     return true;
 }
+
+void
+CodeGeneratorShared::resetOsiPointRegs(LSafepoint *safepoint)
+{
+    if (!shouldVerifyOsiPointRegs(safepoint))
+        return;
+
+    
+    
+    GeneralRegisterSet allRegs(GeneralRegisterSet::All());
+    Register scratch = allRegs.takeAny();
+    masm.push(scratch);
+    masm.loadJitActivation(scratch);
+    Address checkRegs(scratch, JitActivation::offsetOfCheckRegs());
+    masm.store32(Imm32(0), checkRegs);
+    masm.pop(scratch);
+}
 #endif
 
 

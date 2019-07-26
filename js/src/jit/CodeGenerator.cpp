@@ -881,6 +881,14 @@ class OutOfLineInterruptCheckImplicit : public OutOfLineCodeBase<CodeGenerator>
 bool
 CodeGenerator::visitOutOfLineInterruptCheckImplicit(OutOfLineInterruptCheckImplicit *ool)
 {
+#ifdef CHECK_OSIPOINT_REGISTERS
+    
+    
+    
+    
+    resetOsiPointRegs(ool->lir->safepoint());
+#endif
+
     LInstructionIterator iter = ool->block->begin();
     for (; iter != ool->block->end(); iter++) {
         if (iter->isLabel()) {
@@ -2766,17 +2774,8 @@ CodeGenerator::generateBody()
             }
 
 #ifdef CHECK_OSIPOINT_REGISTERS
-            if (iter->safepoint() && shouldVerifyOsiPointRegs(iter->safepoint())) {
-                
-                
-                GeneralRegisterSet allRegs(GeneralRegisterSet::All());
-                Register scratch = allRegs.takeAny();
-                masm.push(scratch);
-                masm.loadJitActivation(scratch);
-                Address checkRegs(scratch, JitActivation::offsetOfCheckRegs());
-                masm.store32(Imm32(0), checkRegs);
-                masm.pop(scratch);
-            }
+            if (iter->safepoint())
+                resetOsiPointRegs(iter->safepoint());
 #endif
 
             if (!callTraceLIR(i, *iter))
