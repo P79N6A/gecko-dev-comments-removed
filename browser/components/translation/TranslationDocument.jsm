@@ -120,16 +120,22 @@ this.TranslationDocument.prototype = {
 
 
 
+
+
+
+
   generateTextForItem: function(item) {
+    if (item.original) {
+      return regenerateTextFromOriginalHelper(item);
+    }
+
     if (item.isSimpleRoot) {
       let text = item.nodeRef.firstChild.nodeValue.trim();
       item.original = [text];
       return text;
     }
 
-    let localName = item.isRoot ? "div" : "b";
-    let str = '<' + localName + ' id="n' + item.id + '">';
-
+    let str = "";
     item.original = [];
 
     for (let child of item.nodeRef.childNodes) {
@@ -157,8 +163,7 @@ this.TranslationDocument.prototype = {
       }
     }
 
-    str += '</' + localName + '>';
-    return str;
+    return generateTranslationHtmlForItem(item, str);
   },
 
   
@@ -315,6 +320,58 @@ TranslationItem.prototype = {
     swapTextForItem(this, target);
   }
 };
+
+
+
+
+
+
+
+
+
+function generateTranslationHtmlForItem(item, content) {
+  let localName = item.isRoot ? "div" : "b";
+  return '<' + localName + ' id="n' + item.id + '">' +
+         content +
+         "</" + localName + ">";
+}
+
+ 
+
+
+
+
+
+
+
+
+function regenerateTextFromOriginalHelper(item) {
+  if (item.isSimpleRoot) {
+    return item.original[0];
+  }
+
+  let str = "";
+
+  let wasLastItemText = false;
+  for (let child of item.original) {
+    if (child instanceof TranslationItem) {
+      str += regenerateTextFromOriginalHelper(child);
+      wasLastItemText = false;
+    } else {
+      
+      
+      
+      
+      if (wasLastItemText) {
+        str += "<br/>";
+      }
+      str += child;
+      wasLastItemText = true;
+    }
+  }
+
+  return generateTranslationHtmlForItem(item, str);
+}
 
 
 
