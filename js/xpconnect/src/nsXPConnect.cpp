@@ -939,41 +939,6 @@ nsXPConnect::GetWrappedNativePrototype(JSContext * aJSContext,
 
 
 NS_IMETHODIMP
-nsXPConnect::ReleaseJSContext(JSContext * aJSContext, bool noGC)
-{
-    NS_ASSERTION(aJSContext, "bad param");
-    XPCCallContext* ccx = nullptr;
-    for (XPCCallContext* cur = GetRuntime()->GetCallContext();
-         cur;
-         cur = cur->GetPrevCallContext()) {
-        if (cur->GetJSContext() == aJSContext) {
-            ccx = cur;
-            
-        }
-    }
-
-    if (ccx) {
-#ifdef DEBUG_xpc_hacker
-        printf("!xpc - deferring destruction of JSContext @ %p\n",
-               (void *)aJSContext);
-#endif
-        ccx->SetDestroyJSContextInDestructor();
-        return NS_OK;
-    }
-    
-
-    NS_ASSERTION(!XPCJSRuntime::Get()->GetJSContextStack()->HasJSContext(aJSContext),
-                 "JSContext still in threadjscontextstack!");
-
-    if (noGC)
-        JS_DestroyContextNoGC(aJSContext);
-    else
-        JS_DestroyContext(aJSContext);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsXPConnect::DebugDump(int16_t depth)
 {
 #ifdef DEBUG
