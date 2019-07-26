@@ -4,7 +4,8 @@
 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/ForgetAboutSite.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ForgetAboutSite",
+                                  "resource://gre/modules/ForgetAboutSite.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 
