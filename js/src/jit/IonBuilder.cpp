@@ -3032,7 +3032,7 @@ IonBuilder::filterTypesAtTest(MTest *test)
         return true;
 
     
-    if (!subject->resultTypeSet())
+    if (!subject->resultTypeSet() || subject->resultTypeSet()->unknown())
         return true;
 
     
