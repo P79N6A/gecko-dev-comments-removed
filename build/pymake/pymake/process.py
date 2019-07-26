@@ -415,6 +415,10 @@ class PythonJob(Job):
         finally:
             os.environ.clear()
             os.environ.update(oldenv)
+            
+            
+            sys.stdout.flush()
+            sys.stderr.flush()
         return 0
 
 def job_runner(job):
