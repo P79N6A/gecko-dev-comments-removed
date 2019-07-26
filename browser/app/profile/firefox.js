@@ -1340,4 +1340,9 @@ pref("browser.uiCustomization.debug", false);
 pref("identity.fxaccounts.remote.uri", "https://accounts.dev.lcip.org/?service=sync");
 
 
+
+
+pref("identity.fxaccounts.settings.uri", "https://accounts.dev.lcip.org/settings");
+
+
 pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
