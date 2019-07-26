@@ -58,6 +58,8 @@ public:
   
   DisplayItemClip(const DisplayItemClip& aOther, nsDisplayItem* aClipItem);
 
+  void IntersectWith(const DisplayItemClip& aOther);
+
   
   
   
@@ -129,8 +131,8 @@ public:
     return !(*this == aOther);
   }
 
-  bool HasClip() { return mHaveClipRect; }
-  const nsRect& GetClipRect()
+  bool HasClip() const { return mHaveClipRect; }
+  const nsRect& GetClipRect() const
   {
     NS_ASSERTION(HasClip(), "No clip rect!");
     return mClipRect;
