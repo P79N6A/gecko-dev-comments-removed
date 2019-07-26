@@ -26,6 +26,7 @@ import android.view.MotionEvent;
 import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.MarginLayoutParams;
 import android.view.Window;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.AlphaAnimation;
@@ -39,6 +40,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
@@ -53,8 +55,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     private static final String LOGTAG = "GeckoToolbar";
     private LinearLayout mLayout;
     private View mAwesomeBar;
+    private LayoutParams mAwesomeBarParams;
+    private View mAwesomeBarEntry;
+    private int mAwesomeBarEntryRightMargin;
     private GeckoFrameLayout mAwesomeBarRightEdge;
     private BrowserToolbarBackground mAddressBarBg;
+    private BrowserToolbarBackground.CurveTowards mAddressBarBgCurveTowards;
+    private int mAddressBarBgRightMargin;
     private GeckoTextView mTitle;
     private int mTitlePadding;
     private boolean mSiteSecurityVisible;
@@ -121,18 +128,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         mShowSiteSecurity = false;
         mShowReader = false;
 
-        
-        
-        
         mAddressBarBg = (BrowserToolbarBackground) mLayout.findViewById(R.id.address_bar_bg);
-
-        
-        
-        
-        
-        
-        
         mAwesomeBarRightEdge = (GeckoFrameLayout) mLayout.findViewById(R.id.awesome_bar_right_edge);
+        mAwesomeBarEntry = mLayout.findViewById(R.id.awesome_bar_entry);
 
         
         
@@ -432,8 +430,206 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         return mInflater.inflate(R.layout.tabs_counter, null);
     }
 
+    public void fromAwesomeBarSearch() {
+        if (mActivity.hasTabsSideBar() || Build.VERSION.SDK_INT < 11) {
+            return;
+        }
+
+        
+        
+        
+        AnimatorProxy proxy = AnimatorProxy.create(mFavicon);
+        proxy.setAlpha(1);
+        proxy = AnimatorProxy.create(mSiteSecurity);
+        proxy.setAlpha(1);
+        proxy = AnimatorProxy.create(mTitle);
+        proxy.setAlpha(1);
+        proxy = AnimatorProxy.create(mForward);
+        proxy.setAlpha(1);
+        proxy = AnimatorProxy.create(mBack);
+        proxy.setAlpha(1);
+
+        final PropertyAnimator contentAnimator = new PropertyAnimator(250);
+
+        
+        contentAnimator.attach(mAwesomeBarRightEdge,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+        contentAnimator.attach(mTabs,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+        contentAnimator.attach(mTabsCount,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+        contentAnimator.attach(mMenu,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+        contentAnimator.attach(mActionItemBar,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+
+        contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
+            @Override
+            public void onPropertyAnimationStart() {
+                mTabs.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onPropertyAnimationEnd() {
+                
+                mAwesomeBar.setSelected(false);
+
+                
+                MarginLayoutParams entryParams = (MarginLayoutParams) mAwesomeBarEntry.getLayoutParams();
+                entryParams.rightMargin = mAwesomeBarEntryRightMargin;
+                mAwesomeBarEntry.requestLayout();
+
+                
+                MarginLayoutParams barParams = (MarginLayoutParams) mAddressBarBg.getLayoutParams();
+                barParams.rightMargin = mAddressBarBgRightMargin;
+                mAddressBarBg.setCurveTowards(mAddressBarBgCurveTowards);
+                mAddressBarBg.requestLayout();
+
+                
+                
+                if (mActionItemBar.getVisibility() == View.VISIBLE)
+                    ((View) mAwesomeBar.getParent()).setLayoutParams(mAwesomeBarParams);
+
+                
+                mAwesomeBarRightEdge.setVisibility(View.INVISIBLE);
+
+                PropertyAnimator buttonsAnimator = new PropertyAnimator(150);
+
+                
+                
+                buttonsAnimator.attach(mReader,
+                                       PropertyAnimator.Property.ALPHA,
+                                       1);
+                buttonsAnimator.attach(mStop,
+                                       PropertyAnimator.Property.ALPHA,
+                                       1);
+
+                buttonsAnimator.start();
+            }
+        });
+
+        mHandler.postDelayed(new Runnable() {
+            public void run() {
+                contentAnimator.start();
+            }
+        }, 500);
+    }
+
     private void onAwesomeBarSearch() {
-        mActivity.onSearchRequested();
+        
+        if (mActivity.hasTabsSideBar() || Build.VERSION.SDK_INT < 11) {
+            mActivity.onSearchRequested();
+            return;
+        }
+
+        final PropertyAnimator contentAnimator = new PropertyAnimator(250);
+
+        
+        mAwesomeBar.setSelected(true);
+
+        
+        
+        
+        MarginLayoutParams entryParams = (MarginLayoutParams) mAwesomeBarEntry.getLayoutParams();
+        mAwesomeBarEntryRightMargin = entryParams.rightMargin;
+        entryParams.rightMargin = 0;
+        mAwesomeBarEntry.requestLayout();
+
+        
+        
+        MarginLayoutParams barParams = (MarginLayoutParams) mAddressBarBg.getLayoutParams();
+        mAddressBarBgRightMargin = barParams.rightMargin;
+        barParams.rightMargin = 0;
+        mAddressBarBgCurveTowards = mAddressBarBg.getCurveTowards();
+        mAddressBarBg.setCurveTowards(BrowserToolbarBackground.CurveTowards.NONE);
+        mAddressBarBg.requestLayout();
+
+        
+        
+        int translation = mAwesomeBarEntryRightMargin;
+
+        if (mActionItemBar.getVisibility() == View.VISIBLE) {
+            
+            
+            MarginLayoutParams itemBarParams = (MarginLayoutParams) mActionItemBar.getLayoutParams();
+            translation = itemBarParams.rightMargin + mActionItemBar.getWidth() - entryParams.leftMargin;
+
+            
+            View awesomeBarParent = (View) mAwesomeBar.getParent();
+            mAwesomeBarParams = (LayoutParams) awesomeBarParent.getLayoutParams();
+            awesomeBarParent.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                              ViewGroup.LayoutParams.MATCH_PARENT));
+
+            
+            MarginLayoutParams rightEdgeParams = (MarginLayoutParams) mAwesomeBarRightEdge.getLayoutParams();
+            rightEdgeParams.rightMargin = itemBarParams.rightMargin + mActionItemBar.getWidth() - 100;
+            mAwesomeBarRightEdge.requestLayout();
+
+            contentAnimator.attach(mFavicon,
+                                   PropertyAnimator.Property.ALPHA,
+                                   0);
+            contentAnimator.attach(mSiteSecurity,
+                                   PropertyAnimator.Property.ALPHA,
+                                   0);
+            contentAnimator.attach(mTitle,
+                                   PropertyAnimator.Property.ALPHA,
+                                   0);
+        }
+
+        
+        mAwesomeBarRightEdge.setVisibility(View.VISIBLE);
+
+        
+        contentAnimator.attach(mForward,
+                               PropertyAnimator.Property.ALPHA,
+                               0);
+        contentAnimator.attach(mBack,
+                               PropertyAnimator.Property.ALPHA,
+                               0);
+        contentAnimator.attach(mReader,
+                               PropertyAnimator.Property.ALPHA,
+                               0);
+        contentAnimator.attach(mStop,
+                               PropertyAnimator.Property.ALPHA,
+                               0);
+
+        
+        contentAnimator.attach(mAwesomeBarRightEdge,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               translation);
+        contentAnimator.attach(mTabs,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               translation);
+        contentAnimator.attach(mTabsCount,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               translation);
+        contentAnimator.attach(mMenu,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               translation);
+        contentAnimator.attach(mActionItemBar,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               translation);
+
+        contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
+            @Override
+            public void onPropertyAnimationStart() {
+            }
+
+            @Override
+            public void onPropertyAnimationEnd() {
+                mTabs.setVisibility(View.INVISIBLE);
+
+                
+                mActivity.onSearchRequested();
+            }
+        });
+
+        contentAnimator.start();
     }
 
     private void addTab() {
