@@ -179,16 +179,17 @@ nsInlineFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists)
 {
-  BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
+  nsresult rv = BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
   
   if (!mFrames.FirstChild()) {
-    DisplaySelectionOverlay(aBuilder, aLists.Content());
+    rv = DisplaySelectionOverlay(aBuilder, aLists.Content());
   }
-  return NS_OK;
+  return rv;
 }
 
 

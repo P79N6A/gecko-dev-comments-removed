@@ -171,8 +171,7 @@ nsDeckFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
   
   
   nsDisplayListSet set(aLists, aLists.BlockBorderBackgrounds());
-  BuildDisplayListForChild(aBuilder, box, aDirtyRect, set);
-  return NS_OK;
+  return BuildDisplayListForChild(aBuilder, box, aDirtyRect, set);
 }
 
 NS_IMETHODIMP

@@ -116,14 +116,14 @@ nsLeafBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  DisplayBorderBackgroundOutline(aBuilder, aLists);
+  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!aBuilder->IsForEventDelivery() || !IsVisibleForPainting(aBuilder))
     return NS_OK;
 
-  aLists.Content()->AppendNewToTop(new (aBuilder)
-    nsDisplayEventReceiver(aBuilder, this));
-  return NS_OK;
+  return aLists.Content()->AppendNewToTop(new (aBuilder)
+      nsDisplayEventReceiver(aBuilder, this));
 }
 
  nscoord

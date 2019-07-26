@@ -365,15 +365,15 @@ nsSplitterFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                   const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists)
 {
-  nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  nsresult rv = nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  NS_ENSURE_SUCCESS(rv, rv);
   
   
   if (mInner->mDragging)
   {
     
-    aLists.Outlines()->AppendNewToTop(new (aBuilder)
-      nsDisplayEventReceiver(aBuilder, this));
-    return NS_OK;
+    return aLists.Outlines()->AppendNewToTop(new (aBuilder)
+        nsDisplayEventReceiver(aBuilder, this));
   }
 
   return NS_OK;

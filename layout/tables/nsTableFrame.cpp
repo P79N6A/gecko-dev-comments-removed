@@ -1117,7 +1117,8 @@ nsTableFrame::GenericTraversal(nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
   
   nsIFrame* kid = aFrame->GetFirstPrincipalChild();
   while (kid) {
-    aFrame->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+    nsresult rv = aFrame->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+    NS_ENSURE_SUCCESS(rv, rv);
     kid = kid->GetNextSibling();
   }
   return NS_OK;
@@ -1154,26 +1155,30 @@ nsTableFrame::DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
     
     bool hasBoxShadow = aFrame->GetStyleBorder()->mBoxShadow != nullptr;
     if (hasBoxShadow) {
-      lists->BorderBackground()->AppendNewToTop(
-        new (aBuilder) nsDisplayBoxShadowOuter(aBuilder, aFrame));
+      nsresult rv = lists->BorderBackground()->AppendNewToTop(
+          new (aBuilder) nsDisplayBoxShadowOuter(aBuilder, aFrame));
+      NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
     
     
     if (aBuilder->IsForEventDelivery()) {
-      nsDisplayBackgroundImage::AppendBackgroundItemsToTop(aBuilder, aFrame,
-                                                           lists->BorderBackground());
+      nsresult rv = nsDisplayBackgroundImage::AppendBackgroundItemsToTop(aBuilder, aFrame,
+                                                                    lists->BorderBackground());
+      NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
     if (hasBoxShadow) {
-      lists->BorderBackground()->AppendNewToTop(
-        new (aBuilder) nsDisplayBoxShadowInner(aBuilder, aFrame));
+      nsresult rv = lists->BorderBackground()->AppendNewToTop(
+          new (aBuilder) nsDisplayBoxShadowInner(aBuilder, aFrame));
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 
-  aTraversal(aBuilder, aFrame, aDirtyRect, *lists);
+  nsresult rv = aTraversal(aBuilder, aFrame, aDirtyRect, *lists);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (sortEventBackgrounds) {
     
@@ -1183,8 +1188,7 @@ nsTableFrame::DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
     separatedCollection.MoveTo(aLists);
   }
 
-  aFrame->DisplayOutline(aBuilder, aLists);
-  return NS_OK;
+  return aFrame->DisplayOutline(aBuilder, aLists);
 }
 
 #ifdef DEBUG
@@ -1239,7 +1243,8 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       if (deflate == nsMargin(0, 0, 0, 0)) {
         nsDisplayBackgroundImage* bg;
-        DisplayBackgroundUnconditional(aBuilder, aLists, false, &bg);
+        nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, false, &bg);
+        NS_ENSURE_SUCCESS(rv, rv);
       }
     }
     
@@ -1252,12 +1257,11 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         AnyTablePartHasBorderOrBackground(this, GetNextSibling()) ||
         AnyTablePartHasBorderOrBackground(mColGroups.FirstChild(), nullptr)) {
       item = new (aBuilder) nsDisplayTableBorderBackground(aBuilder, this);
-      aLists.BorderBackground()->AppendNewToTop(item);
+      nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
-  DisplayGenericTablePart(aBuilder, this, aDirtyRect, aLists, item);
-
-  return NS_OK;
+  return DisplayGenericTablePart(aBuilder, this, aDirtyRect, aLists, item);
 }
 
 nsMargin
