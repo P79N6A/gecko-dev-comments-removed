@@ -44,6 +44,10 @@ public:
     mFrames.RemoveElement(aFrame);
   }
 
+  nsIScrollableFrame* ScrollFrame() const {
+    return mScrollFrame;
+  }
+
   
   static void ComputeStickyOffsets(nsIFrame* aFrame);
 
@@ -52,6 +56,12 @@ public:
 
 
   nsPoint ComputePosition(nsIFrame* aFrame) const;
+
+  
+
+
+
+  void GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter, nsRect* aInner) const;
 
   
 
