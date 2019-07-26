@@ -108,6 +108,7 @@ static status_t parseAudioObjectType(
 static status_t parseGASpecificConfig(
         ABitReader *bits,
         unsigned audioObjectType, unsigned channelConfiguration) {
+    bits->getBits(1);
     unsigned dependsOnCoreCoder = bits->getBits(1);
     if (dependsOnCoreCoder) {
         bits->getBits(1);
