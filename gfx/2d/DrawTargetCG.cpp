@@ -2,6 +2,7 @@
 
 
 
+#include "BorrowedContext.h"
 #include "DrawTargetCG.h"
 #include "SourceSurfaceCG.h"
 #include "Rect.h"

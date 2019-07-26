@@ -8,7 +8,7 @@
 #include "gfxQuartzNativeDrawing.h"
 #include "gfxQuartzSurface.h"
 #include "cairo-quartz.h"
-#include "mozilla/gfx/2D.h"
+
 
 enum {
     kPrivateCGCompositeSourceOver = 2
