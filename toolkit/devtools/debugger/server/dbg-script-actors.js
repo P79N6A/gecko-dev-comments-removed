@@ -20,13 +20,24 @@
 
 
 
+
+
+
 function ThreadActor(aHooks)
 {
   this._state = "detached";
   this._frameActors = [];
   this._environmentActors = [];
-  this._hooks = aHooks ? aHooks : {};
+  this._hooks = {};
+  if (aHooks) {
+    this._hooks = aHooks;
+    if (aHooks.browser) {
+      this.global = aHooks.browser.contentWindow.wrappedJSObject;
+    }
+  }
   this._scripts = {};
+  this.findGlobals = this.globalManager.findGlobals.bind(this);
+  this.onNewGlobal = this.globalManager.onNewGlobal.bind(this);
 }
 
 
@@ -39,6 +50,9 @@ ThreadActor.prototype = {
   actorPrefix: "context",
 
   get state() { return this._state; },
+  get attached() this.state == "attached" ||
+                 this.state == "running" ||
+                 this.state == "paused",
 
   get _breakpointStore() { return ThreadActor._breakpointStore; },
 
@@ -52,19 +66,12 @@ ThreadActor.prototype = {
 
   clearDebuggees: function TA_clearDebuggees() {
     if (this.dbg) {
-      let debuggees = this.dbg.getDebuggees();
-      for (let debuggee of debuggees) {
-        this.dbg.removeDebuggee(debuggee);
+      for (let d of this.dbg.getDebuggees()) {
+        this.dbg.removeDebuggee(d);
       }
     }
     this.conn.removeActorPool(this._threadLifetimePool || undefined);
     this._threadLifetimePool = null;
-    
-    
-    
-    for (let url in this._scripts) {
-      delete this._scripts[url];
-    }
     this._scripts = {};
   },
 
@@ -72,24 +79,25 @@ ThreadActor.prototype = {
 
 
   addDebuggee: function TA_addDebuggee(aGlobal) {
-    
-    
-    
-    
-
-    if (!this.dbg) {
-      this.dbg = new Debugger();
-      this.dbg.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
-      this.dbg.onDebuggerStatement = this.onDebuggerStatement.bind(this);
-      this.dbg.onNewScript = this.onNewScript.bind(this);
+    try {
+      this.dbg.addDebuggee(aGlobal);
+    } catch (e) {
       
-      this.dbg.enabled = this._state != "detached";
+      dumpn("Ignoring request to add the debugger's compartment as a debuggee");
     }
+  },
 
-    this.dbg.addDebuggee(aGlobal);
-    for (let s of this.dbg.findScripts()) {
-      this._addScript(s);
-    }
+  
+
+
+  _initDebugger: function TA__initDebugger() {
+    this.dbg = new Debugger();
+    this.dbg.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
+    this.dbg.onDebuggerStatement = this.onDebuggerStatement.bind(this);
+    this.dbg.onNewScript = this.onNewScript.bind(this);
+    this.dbg.onNewGlobalObject = this.globalManager.onNewGlobal.bind(this);
+    
+    this.dbg.enabled = this._state != "detached";
   },
 
   
@@ -101,6 +109,53 @@ ThreadActor.prototype = {
     } catch(ex) {
       
       
+    }
+  },
+
+  
+
+
+  _addDebuggees: function TA__addDebuggees(aWindow) {
+    this.addDebuggee(aWindow);
+    let frames = aWindow.frames;
+    if (frames) {
+      for (let i = 0; i < frames.length; i++) {
+        this._addDebuggees(frames[i]);
+      }
+    }
+  },
+
+  
+
+
+
+  globalManager: {
+    findGlobals: function TA_findGlobals() {
+      this._addDebuggees(this.global);
+    },
+
+    
+
+
+
+
+
+
+    onNewGlobal: function TA_onNewGlobal(aGlobal) {
+      
+      
+      if (aGlobal.hostAnnotations &&
+          aGlobal.hostAnnotations.type == "document" &&
+          aGlobal.hostAnnotations.element === this.global) {
+        this.addDebuggee(aGlobal);
+      }
+      
+      this.conn.send({
+        from: this.actorID,
+        type: "newGlobal",
+        
+        hostAnnotations: aGlobal.hostAnnotations
+      });
     }
   },
 
@@ -139,9 +194,12 @@ ThreadActor.prototype = {
 
     this._state = "attached";
 
+    if (!this.dbg) {
+      this._initDebugger();
+    }
+    this.findGlobals();
     this.dbg.enabled = true;
     try {
-      
       
       let packet = this._paused();
       if (!packet) {
@@ -461,7 +519,7 @@ ThreadActor.prototype = {
     }
     if (!bpActor) {
       bpActor = new BreakpointActor(this, location);
-      this._hooks.addToBreakpointPool(bpActor);
+      this._hooks.addToParentPool(bpActor);
       if (scriptBreakpoints[location.line]) {
         scriptBreakpoints[location.line].actor = bpActor;
       }
@@ -1051,7 +1109,7 @@ ThreadActor.prototype = {
 
 
 
-  _addScript: function TA__addScript(aScript) {
+  _allowScript: function TA__allowScript(aScript) {
     
     if (!aScript.url)
       return false;
@@ -1061,6 +1119,20 @@ ThreadActor.prototype = {
     }
     
     if (aScript.url.indexOf("about:") == 0) {
+      return false;
+    }
+    return true;
+  },
+
+  
+
+
+
+
+
+
+  _addScript: function TA__addScript(aScript) {
+    if (!this._allowScript(aScript)) {
       return false;
     }
     
@@ -1172,26 +1244,6 @@ PauseScopedActor.prototype = {
     }
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-function update(aTarget, aNewAttrs) {
-  for (let key in aNewAttrs) {
-    let desc = Object.getOwnPropertyDescriptor(aNewAttrs, key);
-
-    if (desc) {
-      Object.defineProperty(aTarget, key, desc);
-    }
-  }
-}
 
 
 
@@ -1815,7 +1867,7 @@ BreakpointActor.prototype = {
     let scriptBreakpoints = this.threadActor._breakpointStore[this.location.url];
     delete scriptBreakpoints[this.location.line];
     
-    this.threadActor._hooks.removeFromBreakpointPool(this);
+    this.threadActor._hooks.removeFromParentPool(this);
     for (let script of this.scripts) {
       script.clearBreakpoint(this);
     }
@@ -2066,4 +2118,90 @@ function getFunctionName(aFunction) {
     }
   }
   return name;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function ChromeDebuggerActor(aHooks)
+{
+  ThreadActor.call(this, aHooks);
+}
+
+ChromeDebuggerActor.prototype = Object.create(ThreadActor.prototype);
+
+update(ChromeDebuggerActor.prototype, {
+  constructor: ChromeDebuggerActor,
+
+  
+  actorPrefix: "chromeDebugger",
+
+  
+
+
+
+  _allowScript: function(aScript) !!aScript.url,
+
+   
+
+
+
+
+
+  globalManager: {
+    findGlobals: function CDA_findGlobals() {
+      
+      for (let g of this.dbg.findAllGlobals()) {
+        this.addDebuggee(g);
+      }
+    },
+
+    
+
+
+
+
+
+
+    onNewGlobal: function CDA_onNewGlobal(aGlobal) {
+      this.addDebuggee(aGlobal);
+      
+      this.conn.send({
+        from: this.actorID,
+        type: "newGlobal",
+        
+        hostAnnotations: aGlobal.hostAnnotations
+      });
+    }
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+function update(aTarget, aNewAttrs) {
+  for (let key in aNewAttrs) {
+    let desc = Object.getOwnPropertyDescriptor(aNewAttrs, key);
+
+    if (desc) {
+      Object.defineProperty(aTarget, key, desc);
+    }
+  }
 }

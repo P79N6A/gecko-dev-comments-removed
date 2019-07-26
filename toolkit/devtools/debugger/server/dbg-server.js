@@ -86,7 +86,7 @@ var DebuggerServer = {
 
 
 
-  _defaultAllowConnection: function DH__defaultAllowConnection() {
+  _defaultAllowConnection: function DS__defaultAllowConnection() {
     let title = L10N.getStr("remoteIncomingPromptTitle");
     let msg = L10N.getStr("remoteIncomingPromptMessage");
     let disableButton = L10N.getStr("remoteIncomingPromptDisable");
@@ -114,7 +114,7 @@ var DebuggerServer = {
 
 
 
-  init: function DH_init(aAllowConnectionCallback) {
+  init: function DS_init(aAllowConnectionCallback) {
     if (this.initialized) {
       return;
     }
@@ -135,7 +135,7 @@ var DebuggerServer = {
 
 
 
-  initTransport: function DH_initTransport(aAllowConnectionCallback) {
+  initTransport: function DS_initTransport(aAllowConnectionCallback) {
     if (this._transportInitialized) {
       return;
     }
@@ -157,7 +157,7 @@ var DebuggerServer = {
 
 
 
-  destroy: function DH_destroy() {
+  destroy: function DS_destroy() {
     if (Object.keys(this._connections).length == 0) {
       this.closeListener();
       delete this.globalActorFactories;
@@ -176,14 +176,14 @@ var DebuggerServer = {
 
 
 
-  addActors: function DH_addActors(aURL) {
+  addActors: function DS_addActors(aURL) {
     loadSubScript.call(this, aURL);
   },
 
   
 
 
-  addBrowserActors: function DH_addBrowserActors() {
+  addBrowserActors: function DS_addBrowserActors() {
     this.addActors("chrome://global/content/devtools/dbg-browser-actors.js");
     this.addActors("chrome://global/content/devtools/dbg-webconsole-actors.js");
     this.addTabActor(this.WebConsoleActor, "consoleActor");
@@ -198,7 +198,7 @@ var DebuggerServer = {
 
 
 
-  openListener: function DH_openListener(aPort) {
+  openListener: function DS_openListener(aPort) {
     if (!Services.prefs.getBoolPref("devtools.debugger.remote-enabled")) {
       return false;
     }
@@ -235,7 +235,7 @@ var DebuggerServer = {
 
 
 
-  closeListener: function DH_closeListener(aForce) {
+  closeListener: function DS_closeListener(aForce) {
     if (!this._listener || this._socketConnections == 0) {
       return false;
     }
@@ -259,7 +259,7 @@ var DebuggerServer = {
 
 
 
-  connectPipe: function DH_connectPipe() {
+  connectPipe: function DS_connectPipe() {
     this._checkInit();
 
     let serverTransport = new LocalDebuggerTransport;
@@ -273,7 +273,7 @@ var DebuggerServer = {
 
   
 
-  onSocketAccepted: function DH_onSocketAccepted(aSocket, aTransport) {
+  onSocketAccepted: function DS_onSocketAccepted(aSocket, aTransport) {
     if (!this._allowConnection()) {
       return;
     }
@@ -289,12 +289,12 @@ var DebuggerServer = {
     }
   },
 
-  onStopListening: function DH_onStopListening() { },
+  onStopListening: function DS_onStopListening() { },
 
   
 
 
-  _checkInit: function DH_checkInit() {
+  _checkInit: function DS_checkInit() {
     if (!this._transportInitialized) {
       throw "DebuggerServer has not been initialized.";
     }
@@ -308,7 +308,7 @@ var DebuggerServer = {
 
 
 
-  _onConnection: function DH_onConnection(aTransport) {
+  _onConnection: function DS_onConnection(aTransport) {
     let connID = "conn" + this._nextConnID++ + '.';
     let conn = new DebuggerServerConnection(connID, aTransport);
     this._connections[connID] = conn;
@@ -323,10 +323,94 @@ var DebuggerServer = {
   
 
 
-  _connectionClosed: function DH_connectionClosed(aConnection) {
+  _connectionClosed: function DS_connectionClosed(aConnection) {
     delete this._connections[aConnection.prefix];
+  },
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  addTabActor: function DS_addTabActor(aFunction, aName) {
+    let name = aName ? aName : aFunction.prototype.actorPrefix;
+    if (["title", "url", "actor"].indexOf(name) != -1) {
+      throw Error(name + " is not allowed");
+    }
+    if (DebuggerServer.tabActorFactories.hasOwnProperty(name)) {
+      throw Error(name + " already exists");
+    }
+    DebuggerServer.tabActorFactories[name] = aFunction;
+  },
+
+  
+
+
+
+
+
+
+  removeTabActor: function DS_removeTabActor(aFunction) {
+    for (let name in DebuggerServer.tabActorFactories) {
+      let handler = DebuggerServer.tabActorFactories[name];
+      if (handler.name == aFunction.name) {
+        delete DebuggerServer.tabActorFactories[name];
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addGlobalActor: function DS_addGlobalActor(aFunction, aName) {
+    let name = aName ? aName : aFunction.prototype.actorPrefix;
+    if (["from", "tabs", "selected"].indexOf(name) != -1) {
+      throw Error(name + " is not allowed");
+    }
+    if (DebuggerServer.globalActorFactories.hasOwnProperty(name)) {
+      throw Error(name + " already exists");
+    }
+    DebuggerServer.globalActorFactories[name] = aFunction;
+  },
+
+  
+
+
+
+
+
+
+  removeGlobalActor: function DS_removeGlobalActor(aFunction) {
+    for (let name in DebuggerServer.globalActorFactories) {
+      let handler = DebuggerServer.globalActorFactories[name];
+      if (handler.name == aFunction.name) {
+        delete DebuggerServer.globalActorFactories[name];
+      }
+    }
   }
 };
+
 
 
 

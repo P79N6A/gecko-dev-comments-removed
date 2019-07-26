@@ -56,7 +56,8 @@ ToolbarView.prototype = {
     this._stepOutButton.setAttribute("tooltiptext", this._stepOutTooltip);
 
     this.toggleCloseButton(!window._isRemoteDebugger && !window._isChromeDebugger);
-    this.toggleChromeGlobalsContainer(window._isChromeDebugger);
+    
+    
   },
 
   
@@ -584,11 +585,12 @@ FilterView.prototype = {
     this._lineOperatorLabel.setAttribute("value",
       L10N.getFormatStr("searchPanelLine", [this._lineSearchKey]));
 
-    if (window._isChromeDebugger) {
-      this.target = DebuggerView.ChromeGlobals;
-    } else {
-      this.target = DebuggerView.Sources;
-    }
+    
+    
+    
+    
+    this.target = DebuggerView.Sources;
+    
   },
 
   

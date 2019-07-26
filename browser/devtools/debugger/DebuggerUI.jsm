@@ -20,23 +20,23 @@ XPCOMUtils.defineLazyModuleGetter(this,
   "DebuggerServer", "resource://gre/modules/devtools/dbg-server.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this,
-  "Services", "resource://gre/modules/Services.jsm");
+  "Services", "resource:///modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this,
-  "FileUtils", "resource://gre/modules/FileUtils.jsm");
+  "FileUtils", "resource:///modules/FileUtils.jsm");
 
-this.EXPORTED_SYMBOLS = ["DebuggerUI"];
-
-
+let EXPORTED_SYMBOLS = ["DebuggerUI"];
 
 
 
 
 
-this.DebuggerUI = function DebuggerUI(aWindow) {
+
+
+function DebuggerUI(aWindow) {
   this.chromeWindow = aWindow;
   this.listenToTabs();
-};
+}
 
 DebuggerUI.prototype = {
   
@@ -261,8 +261,7 @@ DebuggerPane.prototype = {
 
   _initServer: function DP__initServer() {
     if (!DebuggerServer.initialized) {
-      
-      DebuggerServer.init(function() true);
+      DebuggerServer.init();
       DebuggerServer.addBrowserActors();
     }
   },

@@ -79,10 +79,18 @@ BrowserRootActor.prototype = {
   onListTabs: function BRA_onListTabs() {
     
     
-    
 
     let actorPool = new ActorPool(this.conn);
     let tabActorList = [];
+
+    
+    let actor = this._chromeDebugger;
+    if (!actor) {
+      actor = new ChromeDebuggerActor(this);
+      actor.parentID = this.actorID;
+      this._chromeDebugger = actor;
+      actorPool.addActor(actor);
+    }
 
     
     let e = windowMediator.getEnumerator("navigator:browser");
@@ -92,11 +100,11 @@ BrowserRootActor.prototype = {
       let win = e.getNext();
 
       
-      
       this.watchWindow(win);
 
       
       let selectedBrowser = win.getBrowser().selectedBrowser;
+
       let browsers = win.getBrowser().browsers;
       for each (let browser in browsers) {
         if (browser == selectedBrowser && win == top) {
@@ -117,7 +125,6 @@ BrowserRootActor.prototype = {
 
     
     
-    
     if (this._tabActorPool) {
       this.conn.removeActorPool(this._tabActorPool);
     }
@@ -127,7 +134,8 @@ BrowserRootActor.prototype = {
     let response = {
       "from": "root",
       "selected": selected,
-      "tabs": [actor.grip() for (actor of tabActorList)]
+      "tabs": [actor.grip() for (actor of tabActorList)],
+      "chromeDebugger": this._chromeDebugger.actorID
     };
     this._appendExtraActors(response);
     return response;
@@ -205,6 +213,57 @@ BrowserRootActor.prototype = {
   },
 
   
+
+  
+
+
+
+
+
+
+
+  addToParentPool: function BRA_addToParentPool(aActor) {
+    this.conn.addActor(aActor);
+  },
+
+  
+
+
+
+
+
+  removeFromParentPool: function BRA_removeFromParentPool(aActor) {
+    this.conn.removeActor(aActor);
+  },
+
+  
+
+
+  preNest: function BRA_preNest() {
+    let top = windowMediator.getMostRecentWindow("navigator:browser");
+    let browser = top.gBrowser.selectedBrowser;
+    let windowUtils = browser.contentWindow
+                             .QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+    windowUtils.suppressEventHandling(true);
+    windowUtils.suspendTimeouts();
+  },
+
+  
+
+
+  postNest: function BRA_postNest(aNestData) {
+    let top = windowMediator.getMostRecentWindow("navigator:browser");
+    let browser = top.gBrowser.selectedBrowser;
+    let windowUtils = browser.contentWindow
+                             .QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+    windowUtils.resumeTimeouts();
+    windowUtils.suppressEventHandling(false);
+  },
+
+  
+
   onWindowTitleChange: function BRA_onWindowTitleChange(aWindow, aTitle) { },
   onOpenWindow: function BRA_onOpenWindow(aWindow) { },
   onCloseWindow: function BRA_onCloseWindow(aWindow) {
@@ -273,7 +332,8 @@ BrowserTabActor.prototype = {
 
 
 
-  addToBreakpointPool: function BTA_addToBreakpointPool(aActor) {
+
+  addToParentPool: function BTA_addToParentPool(aActor) {
     this.conn.addActor(aActor);
   },
 
@@ -283,7 +343,7 @@ BrowserTabActor.prototype = {
 
 
 
-  removeFromBreakpointPool: function BTA_removeFromBreakpointPool(aActor) {
+  removeFromParentPool: function BTA_removeFromParentPool(aActor) {
     this.conn.removeActor(aActor);
   },
 
@@ -392,19 +452,7 @@ BrowserTabActor.prototype = {
     this.conn.addActorPool(this._contextPool);
 
     this.threadActor = new ThreadActor(this);
-    this._addDebuggees(this.browser.contentWindow.wrappedJSObject);
     this._contextPool.addActor(this.threadActor);
-  },
-
-  
-
-
-  _addDebuggees: function BTA__addDebuggees(aWindow) {
-    this.threadActor.addDebuggee(aWindow);
-    let frames = aWindow.frames;
-    for (let i = 0; i < frames.length; i++) {
-      this._addDebuggees(frames[i]);
-    }
   },
 
   
@@ -517,7 +565,9 @@ BrowserTabActor.prototype = {
       }
       if (this._attached) {
         this.threadActor.clearDebuggees();
-        this.threadActor.dbg.enabled = true;
+        if (this.threadActor.dbg) {
+          this.threadActor.dbg.enabled = true;
+        }
         if (this._progressListener) {
           delete this._progressListener._needsTabNavigated;
         }
@@ -527,7 +577,10 @@ BrowserTabActor.prototype = {
     }
 
     if (this._attached) {
-      this._addDebuggees(evt.target.defaultView.wrappedJSObject);
+      this.threadActor.global = evt.target.defaultView.wrappedJSObject;
+      if (this.threadActor.attached) {
+        this.threadActor.findGlobals();
+      }
     }
   }
 };
@@ -599,107 +652,10 @@ DebuggerProgressListener.prototype = {
 
 
   destroy: function DPL_destroy() {
-    this._tabActor._tabbrowser.removeProgressListener(this);
+    if (this._tabActor._tabbrowser.removeProgressListener) {
+      this._tabActor._tabbrowser.removeProgressListener(this);
+    }
     this._tabActor._progressListener = null;
     this._tabActor = null;
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-DebuggerServer.addTabRequest = function DS_addTabRequest(aName, aFunction) {
-  BrowserTabActor.prototype.requestTypes[aName] = function(aRequest) {
-    if (!this.attached) {
-      return { error: "wrongState" };
-    }
-    return aFunction(this, aRequest);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-DebuggerServer.addTabActor = function DS_addTabActor(aFunction, aName) {
-  let name = aName ? aName : aFunction.prototype.actorPrefix;
-  if (["title", "url", "actor"].indexOf(name) != -1) {
-    throw Error(name + " is not allowed");
-  }
-  if (DebuggerServer.tabActorFactories.hasOwnProperty(name)) {
-    throw Error(name + " already exists");
-  }
-  DebuggerServer.tabActorFactories[name] = aFunction;
-};
-
-
-
-
-
-
-
-
-DebuggerServer.removeTabActor = function DS_removeTabActor(aFunction) {
-  for (let name in DebuggerServer.tabActorFactories) {
-    let handler = DebuggerServer.tabActorFactories[name];
-    if (handler.name == aFunction.name) {
-      delete DebuggerServer.tabActorFactories[name];
-    }
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-DebuggerServer.addGlobalActor = function DS_addGlobalActor(aFunction, aName) {
-  let name = aName ? aName : aFunction.prototype.actorPrefix;
-  if (["from", "tabs", "selected"].indexOf(name) != -1) {
-    throw Error(name + " is not allowed");
-  }
-  if (DebuggerServer.globalActorFactories.hasOwnProperty(name)) {
-    throw Error(name + " already exists");
-  }
-  DebuggerServer.globalActorFactories[name] = aFunction;
-};
-
-
-
-
-
-
-
-
-DebuggerServer.removeGlobalActor = function DS_removeGlobalActor(aFunction) {
-  for (let name in DebuggerServer.globalActorFactories) {
-    let handler = DebuggerServer.globalActorFactories[name];
-    if (handler.name == aFunction.name) {
-      delete DebuggerServer.globalActorFactories[name];
-    }
   }
 };
