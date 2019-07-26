@@ -592,6 +592,17 @@ nsWindow::Create(nsIWidget *aParent,
   SubclassWindow(TRUE);
 
   
+  nsIMEContext IMEContext(mWnd);
+  mInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
+  MOZ_ASSERT(mInputContext.mNativeIMEContext ||
+             !nsIMM32Handler::IsIMEAvailable());
+  
+  
+  if (!mInputContext.mNativeIMEContext) {
+    mInputContext.mNativeIMEContext = this;
+  }
+
+  
   
   
   
@@ -7288,11 +7299,22 @@ nsWindow::SetInputContext(const InputContext& aContext,
   if (nsIMM32Handler::IsComposing()) {
     ResetInputState();
   }
+  void* nativeIMEContext = mInputContext.mNativeIMEContext;
   mInputContext = aContext;
+  mInputContext.mNativeIMEContext = nullptr;
   bool enable = (mInputContext.mIMEState.mEnabled == IMEState::ENABLED ||
                  mInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
 
   AssociateDefaultIMC(enable);
+
+  if (enable) {
+    nsIMEContext IMEContext(mWnd);
+    mInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
+  }
+  
+  if (!mInputContext.mNativeIMEContext) {
+    mInputContext.mNativeIMEContext = nativeIMEContext;
+  }
 
   if (enable &&
       mInputContext.mIMEState.mOpen != IMEState::DONT_CHANGE_OPEN_STATE) {
