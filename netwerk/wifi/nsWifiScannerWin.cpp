@@ -47,13 +47,13 @@ nsWifiMonitor::DoScan()
 
       
       DWORD negotiated_version;
-      HANDLE wlan_handle = NULL;
+      HANDLE wlan_handle = nullptr;
       
       
       
       static const int kXpWlanClientVersion = 1;
       if ((*WlanOpenHandle)(kXpWlanClientVersion,
-                            NULL,
+                            nullptr,
                             &negotiated_version,
                             &wlan_handle) != ERROR_SUCCESS) {
         return NS_ERROR_NOT_AVAILABLE;
@@ -64,10 +64,10 @@ nsWifiMonitor::DoScan()
         return NS_ERROR_FAILURE;
 
       
-      WLAN_INTERFACE_INFO_LIST *interface_list = NULL;
-      if ((*WlanEnumInterfaces)(wlan_handle, NULL, &interface_list) != ERROR_SUCCESS) {
+      WLAN_INTERFACE_INFO_LIST *interface_list = nullptr;
+      if ((*WlanEnumInterfaces)(wlan_handle, nullptr, &interface_list) != ERROR_SUCCESS) {
         
-        (*WlanCloseHandle)(wlan_handle, NULL);
+        (*WlanCloseHandle)(wlan_handle, nullptr);
         return NS_ERROR_FAILURE;
       }
 
@@ -77,10 +77,10 @@ nsWifiMonitor::DoScan()
         WLAN_BSS_LIST *bss_list;
         HRESULT rv = (*WlanGetNetworkBssList)(wlan_handle,
                                               &interface_list->InterfaceInfo[i].InterfaceGuid,
-                                              NULL,   
+                                              nullptr,  
                                               DOT11_BSS_TYPE_UNUSED,
-                                              false,  
-                                              NULL,   
+                                              false,    
+                                              nullptr,  
                                               &bss_list);
         if (rv != ERROR_SUCCESS) {
           continue;
@@ -108,7 +108,7 @@ nsWifiMonitor::DoScan()
       (*WlanFreeMemory)(interface_list);
 
       
-      (*WlanCloseHandle)(wlan_handle, NULL);
+      (*WlanCloseHandle)(wlan_handle, nullptr);
 
 
       bool accessPointsChanged = !AccessPointsEqual(accessPoints, lastAccessPoints);

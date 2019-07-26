@@ -1205,7 +1205,7 @@ nsHttpChannel::ProcessSTSHeader()
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = sss->ProcessHeader(nsISiteSecurityService::HEADER_HSTS, mURI,
-                            stsHeader.get(), flags, NULL, NULL);
+                            stsHeader.get(), flags, nullptr, nullptr);
     if (NS_FAILED(rv)) {
         AddSecurityMessage(NS_LITERAL_STRING("InvalidSTSHeaders"),
                 NS_LITERAL_STRING("Invalid HSTS Headers"));

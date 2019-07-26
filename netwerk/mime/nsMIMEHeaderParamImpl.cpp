@@ -207,7 +207,7 @@ char *combineContinuations(nsTArray<Continuation>& aArray)
 {
   
   if (aArray.Length() == 0)
-    return NULL;
+    return nullptr;
 
   
   uint32_t length = 0;
@@ -239,7 +239,7 @@ char *combineContinuations(nsTArray<Continuation>& aArray)
     
     if (*result == '\0') {
       nsMemory::Free(result);
-      result = NULL;
+      result = nullptr;
     }
   } else {
     
@@ -435,9 +435,9 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
   
   
   
-  char *caseAResult = NULL;
-  char *caseBResult = NULL;
-  char *caseCDResult = NULL;
+  char *caseAResult = nullptr;
+  char *caseBResult = nullptr;
+  char *caseCDResult = nullptr;
 
   
   nsTArray<Continuation> segments;
@@ -455,9 +455,9 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
     
 
     const char *nameStart = str;
-    const char *nameEnd = NULL;
+    const char *nameEnd = nullptr;
     const char *valueStart = str;
-    const char *valueEnd = NULL;
+    const char *valueEnd = nullptr;
     bool isQuotedString = false;
 
     NS_ASSERTION(!nsCRT::IsAsciiSpace(*str), "should be after whitespace.");
@@ -568,11 +568,11 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
           NS_WARNING("Mandatory two single quotes are missing in header parameter\n");
         }
 
-        const char *charsetStart = NULL;
+        const char *charsetStart = nullptr;
         int32_t charsetLength = 0;
-        const char *langStart = NULL;
+        const char *langStart = nullptr;
         int32_t langLength = 0;
-        const char *rawValStart = NULL;
+        const char *rawValStart = nullptr;
         int32_t rawValLength = 0;
 
         if (sQuote2 && sQuote1) {
@@ -677,31 +677,31 @@ increment_str:
     
     
     if (!IsValidOctetSequenceForCharset(charsetB, caseBResult))
-      caseBResult = NULL;
+      caseBResult = nullptr;
   }
 
   if (caseCDResult && !charsetCD.IsEmpty()) {
     
     
     if (!IsValidOctetSequenceForCharset(charsetCD, caseCDResult))
-      caseCDResult = NULL;
+      caseCDResult = nullptr;
   }
 
   if (caseBResult) {
     
     *aResult = caseBResult;
-    caseBResult = NULL;
+    caseBResult = nullptr;
     charset.Assign(charsetB);
   }
   else if (caseCDResult) {
     
     *aResult = caseCDResult;
-    caseCDResult = NULL;
+    caseCDResult = nullptr;
     charset.Assign(charsetCD);
   }
   else if (caseAResult) {
     *aResult = caseAResult;
-    caseAResult = NULL;
+    caseAResult = nullptr;
   }
 
   
