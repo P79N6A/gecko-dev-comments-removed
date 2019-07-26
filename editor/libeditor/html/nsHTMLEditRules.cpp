@@ -1275,8 +1275,7 @@ nsHTMLEditRules::WillInsert(nsISelection *aSelection, bool *aCancel)
     NS_ENSURE_STATE(mHTMLEditor);
     block2 = mHTMLEditor->GetBlockNodeParent(priorNode);
   
-    if (block1 == block2)
-    {
+    if (block1 && block1 == block2) {
       
       
       
@@ -2392,8 +2391,7 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
       }
         
       
-      if (leftParent == rightParent) 
-      {
+      if (leftParent && leftParent == rightParent) {
         NS_ENSURE_STATE(mHTMLEditor);
         res = mHTMLEditor->DeleteSelectionImpl(aAction, aStripWrappers);
       }
@@ -2692,6 +2690,7 @@ nsHTMLEditRules::JoinBlocks(nsIDOMNode *aLeftNode,
     nsCOMPtr<nsIDOMNode> realRight = mHTMLEditor->GetBlockNodeParent(aRightBlock);
     aRightBlock = realRight;
   }
+  NS_ENSURE_STATE(aLeftBlock && aRightBlock);
 
   
   if (aLeftBlock == aRightBlock) {
@@ -5089,18 +5088,20 @@ nsHTMLEditRules::CheckForEmptyBlock(nsIDOMNode *aStartNode,
   else
     block = mHTMLEditor->GetBlockNodeParent(aStartNode);
   bool bIsEmptyNode;
-  if (block != aBodyNode)  
-  {
+  if (block && block != aBodyNode) {
+    
     NS_ENSURE_STATE(mHTMLEditor);
     res = mHTMLEditor->IsEmptyNode(block, &bIsEmptyNode, true, false);
     NS_ENSURE_SUCCESS(res, res);
-    while (bIsEmptyNode && !nsHTMLEditUtils::IsTableElement(block) && (block != aBodyNode))
-    {
+    while (block && bIsEmptyNode && !nsHTMLEditUtils::IsTableElement(block) &&
+           block != aBodyNode) {
       emptyBlock = block;
       block = mHTMLEditor->GetBlockNodeParent(emptyBlock);
       NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->IsEmptyNode(block, &bIsEmptyNode, true, false);
-      NS_ENSURE_SUCCESS(res, res);
+      if (block) {
+        res = mHTMLEditor->IsEmptyNode(block, &bIsEmptyNode, true, false);
+        NS_ENSURE_SUCCESS(res, res);
+      }
     }
   }
 
@@ -5284,6 +5285,7 @@ nsHTMLEditRules::ExpandSelectionForDeletion(nsISelection *aSelection)
   NS_ENSURE_SUCCESS(res, res);
   if (!IsBlockNode(selCommon))
     selCommon = nsHTMLEditor::GetBlockNodeParent(selCommon);
+  NS_ENSURE_STATE(selCommon);
 
   
   bool stillLooking = true;
@@ -5395,7 +5397,10 @@ nsHTMLEditRules::ExpandSelectionForDeletion(nsISelection *aSelection)
     
     
     nsCOMPtr<nsIContent> brContentBlock = do_QueryInterface(brBlock);
-    res = nsRange::CompareNodeToRange(brContentBlock, range, &nodeBefore, &nodeAfter);
+    if (brContentBlock) {
+      res = nsRange::CompareNodeToRange(brContentBlock, range, &nodeBefore,
+                                        &nodeAfter);
+    }
     
     
     if (nodeBefore || nodeAfter)
@@ -7200,8 +7205,7 @@ nsHTMLEditRules::RemoveBlockStyle(nsCOMArray<nsIDOMNode>& arrayOfNodes)
       }
       NS_ENSURE_STATE(mHTMLEditor);
       curBlock = mHTMLEditor->GetBlockNodeParent(curNode);
-      if (nsHTMLEditUtils::IsFormatNode(curBlock))
-      {
+      if (curBlock && nsHTMLEditUtils::IsFormatNode(curBlock)) {
         firstNode = curNode;  
         lastNode = curNode;
       }
@@ -7932,8 +7936,7 @@ nsHTMLEditRules::AdjustSelection(nsISelection *aSelection, nsIEditor::EDirection
     }
     NS_ENSURE_STATE(mHTMLEditor);
     nearBlock = mHTMLEditor->GetBlockNodeParent(nearNode);
-    if (block == nearBlock)
-    {
+    if (block && block == nearBlock) {
       if (nearNode && nsTextEditUtils::IsBreak(nearNode) )
       {   
         NS_ENSURE_STATE(mHTMLEditor);

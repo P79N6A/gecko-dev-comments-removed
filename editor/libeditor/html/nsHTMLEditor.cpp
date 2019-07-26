@@ -74,6 +74,7 @@
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/HTMLBodyElement.h"
 #include "nsTextFragment.h"
+#include "nsContentList.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -629,18 +630,14 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
         return NS_OK;
       }
 
-      nsCOMPtr<nsISelection> selection;
-      nsresult rv = GetSelection(getter_AddRefs(selection));
-      NS_ENSURE_SUCCESS(rv, rv);
-      int32_t offset;
-      nsCOMPtr<nsIDOMNode> node, blockParent;
-      rv = GetStartNodeAndOffset(selection, getter_AddRefs(node), &offset);
-      NS_ENSURE_SUCCESS(rv, rv);
-      NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
+      nsRefPtr<Selection> selection = GetSelection();
+      NS_ENSURE_TRUE(selection && selection->RangeCount(), NS_ERROR_FAILURE);
 
-      bool isBlock = false;
-      NodeIsBlock(node, &isBlock);
-      if (isBlock) {
+      nsCOMPtr<nsINode> node = selection->GetRangeAt(0)->GetStartParent();
+      MOZ_ASSERT(node);
+
+      nsCOMPtr<nsINode> blockParent;
+      if (IsBlockNode(node)) {
         blockParent = node;
       } else {
         blockParent = GetBlockNodeParent(node);
@@ -651,15 +648,16 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
       }
 
       bool handled = false;
+      nsresult rv;
       if (nsHTMLEditUtils::IsTableElement(blockParent)) {
         rv = TabInTable(nativeKeyEvent->IsShift(), &handled);
         if (handled) {
           ScrollSelectionIntoView(false);
         }
       } else if (nsHTMLEditUtils::IsListItem(blockParent)) {
-        rv = Indent(nativeKeyEvent->IsShift() ?
-                      NS_LITERAL_STRING("outdent") :
-                      NS_LITERAL_STRING("indent"));
+        rv = Indent(nativeKeyEvent->IsShift()
+                    ? NS_LITERAL_STRING("outdent")
+                    : NS_LITERAL_STRING("indent"));
         handled = true;
       }
       NS_ENSURE_SUCCESS(rv, rv);
@@ -829,31 +827,39 @@ nsHTMLEditor::SetDocumentTitle(const nsAString &aTitle)
 
 
 
+already_AddRefed<Element>
+nsHTMLEditor::GetBlockNodeParent(nsINode* aNode)
+{
+  MOZ_ASSERT(aNode);
+
+  nsCOMPtr<nsINode> p = aNode->GetParentNode();
+
+  while (p) {
+    if (p->IsElement() && NodeIsBlockStatic(p->AsElement())) {
+      return p.forget().downcast<Element>();
+    }
+    p = p->GetParentNode();
+  }
+
+  return nullptr;
+}
+
 already_AddRefed<nsIDOMNode>
 nsHTMLEditor::GetBlockNodeParent(nsIDOMNode *aNode)
 {
-  if (!aNode)
-  {
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+
+  if (!node) {
     NS_NOTREACHED("null node passed to GetBlockNodeParent()");
     return nullptr;
   }
 
-  nsCOMPtr<nsIDOMNode> p;
-  if (NS_FAILED(aNode->GetParentNode(getter_AddRefs(p))))  
+  nsCOMPtr<nsINode> parent = GetBlockNodeParent(node);
+  if (!parent) {
     return nullptr;
-
-  nsCOMPtr<nsIDOMNode> tmp;
-  while (p)
-  {
-    bool isBlock;
-    if (NS_FAILED(NodeIsBlockStatic(p, &isBlock)) || isBlock)
-      break;
-    if (NS_FAILED(p->GetParentNode(getter_AddRefs(tmp))) || !tmp) 
-      break;
-
-    p = tmp;
   }
-  return p.forget();
+  nsCOMPtr<nsIDOMNode> ret = dont_AddRef(parent.forget().take()->AsDOMNode());
+  return ret.forget();
 }
 
 static const char16_t nbsp = 160;
@@ -928,42 +934,59 @@ nsHTMLEditor::IsPrevCharInNodeWhitespace(nsIContent* aContent,
 
 
 
-bool nsHTMLEditor::IsVisBreak(nsIDOMNode *aNode)
+bool
+nsHTMLEditor::IsVisBreak(nsINode* aNode)
 {
-  NS_ENSURE_TRUE(aNode, false);
-  if (!nsTextEditUtils::IsBreak(aNode)) 
+  MOZ_ASSERT(aNode);
+  if (!nsTextEditUtils::IsBreak(aNode)) {
     return false;
+  }
   
-  nsCOMPtr<nsIDOMNode> priorNode, nextNode;
-  GetPriorHTMLNode(aNode, address_of(priorNode), true); 
-  GetNextHTMLNode(aNode, address_of(nextNode), true); 
-  
-  if (priorNode && nsTextEditUtils::IsBreak(priorNode))
+  nsCOMPtr<nsINode> priorNode = GetPriorHTMLNode(aNode, true);
+  if (priorNode && nsTextEditUtils::IsBreak(priorNode)) {
     return true;
-  if (nextNode && nsTextEditUtils::IsBreak(nextNode))
+  }
+  nsCOMPtr<nsINode> nextNode = GetNextHTMLNode(aNode, true);
+  if (nextNode && nsTextEditUtils::IsBreak(nextNode)) {
     return true;
+  }
   
   
-  NS_ENSURE_TRUE(nextNode, false);  
-  if (IsBlockNode(nextNode))
-    return false; 
+  if (!nextNode) {
+    
+    return false;
+  }
+  if (IsBlockNode(nextNode)) {
+    
+    return false;
+  }
     
   
   
-  nsCOMPtr<nsIDOMNode> selNode, tmp;
   int32_t selOffset;
-  selNode = GetNodeLocation(aNode, &selOffset);
-  selOffset++; 
-  nsWSRunObject wsObj(this, selNode, selOffset);
+  nsCOMPtr<nsINode> selNode = GetNodeLocation(aNode, &selOffset);
+  
+  selOffset++;
+  nsWSRunObject wsObj(this, selNode->AsDOMNode(), selOffset);
   nsCOMPtr<nsIDOMNode> visNode;
-  int32_t visOffset=0;
+  int32_t visOffset = 0;
   WSType visType;
-  wsObj.NextVisibleNode(selNode, selOffset, address_of(visNode), &visOffset, &visType);
+  wsObj.NextVisibleNode(selNode->AsDOMNode(), selOffset, address_of(visNode),
+                        &visOffset, &visType);
   if (visType & WSType::block) {
     return false;
   }
   
   return true;
+}
+
+
+bool
+nsHTMLEditor::IsVisBreak(nsIDOMNode* aNode)
+{
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(node, false);
+  return IsVisBreak(node);
 }
 
 NS_IMETHODIMP
@@ -996,32 +1019,16 @@ bool nsHTMLEditor::IsModifiable()
 NS_IMETHODIMP
 nsHTMLEditor::UpdateBaseURL()
 {
-  nsCOMPtr<nsIDOMDocument> domDoc = GetDOMDocument();
-  NS_ENSURE_TRUE(domDoc, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIDocument> doc = GetDocument();
+  NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
   
-  nsCOMPtr<nsIDOMNodeList> nodeList;
-  nsresult rv = domDoc->GetElementsByTagName(NS_LITERAL_STRING("base"), getter_AddRefs(nodeList));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsRefPtr<nsContentList> nodeList =
+    doc->GetElementsByTagName(NS_LITERAL_STRING("base"));
 
-  nsCOMPtr<nsIDOMNode> baseNode;
-  if (nodeList)
-  {
-    uint32_t count;
-    nodeList->GetLength(&count);
-    if (count >= 1)
-    {
-      rv = nodeList->Item(0, getter_AddRefs(baseNode));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
   
   
-  if (!baseNode)
-  {
-    nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-
+  if (!nodeList || !nodeList->Item(0)) {
     return doc->SetBaseURI(doc->GetDocumentURI());
   }
   return NS_OK;
@@ -4705,8 +4712,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
         nsCOMPtr<nsIDOMNode> blockParent;
         blockParent = GetBlockNodeParent(startNode);
         
-        if (cachedBlockParent != blockParent)
-        {
+        if (blockParent && cachedBlockParent != blockParent) {
           cachedBlockParent = blockParent;
           nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
           int32_t count;
@@ -4734,8 +4740,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
         if (!isBlock) {
           blockParent = GetBlockNodeParent(selectedNode);
         }
-        if (cachedBlockParent != blockParent)
-        {
+        if (blockParent && cachedBlockParent != blockParent) {
           cachedBlockParent = blockParent;
           nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
           int32_t count;
@@ -4792,8 +4797,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
         {
           nsCOMPtr<nsIDOMNode> blockParent;
           blockParent = GetBlockNodeParent(startNode);
-          if (cachedBlockParent != blockParent)
-          {
+          if (blockParent && cachedBlockParent != blockParent) {
             cachedBlockParent = blockParent;
             nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
             int32_t count;
@@ -4817,8 +4821,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
             
             blockParent = GetBlockNodeParent(node);
           }
-          if (cachedBlockParent != blockParent)
-          {
+          if (blockParent && cachedBlockParent != blockParent) {
             cachedBlockParent = blockParent;
             nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
             int32_t count;
@@ -4836,8 +4839,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
         {
           nsCOMPtr<nsIDOMNode> blockParent;
           blockParent = GetBlockNodeParent(endNode);
-          if (cachedBlockParent != blockParent)
-          {
+          if (blockParent && cachedBlockParent != blockParent) {
             cachedBlockParent = blockParent;
             nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
             int32_t count;

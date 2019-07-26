@@ -568,10 +568,9 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
           curNode->GetFirstChild(getter_AddRefs(child));
         }
 
-      }
-      
-      else if (nsHTMLEditUtils::IsPre(parentBlock) && nsHTMLEditUtils::IsPre(curNode))
-      {
+      } else if (parentBlock && nsHTMLEditUtils::IsPre(parentBlock) &&
+                 nsHTMLEditUtils::IsPre(curNode)) {
+        
         nsCOMPtr<nsIDOMNode> child, tmp;
         curNode->GetFirstChild(getter_AddRefs(child));
         while (child)
