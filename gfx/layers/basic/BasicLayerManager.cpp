@@ -1341,8 +1341,8 @@ already_AddRefed<ThebesLayer>
 BasicShadowLayerManager::CreateThebesLayer()
 {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
-  if (HasShadowManager() && GetParentBackendType() == LAYERS_OPENGL &&
-      ThebesLayer::UseTiledThebes()) {
+#ifdef FORCE_BASICTILEDTHEBESLAYER
+  if (HasShadowManager() && GetParentBackendType() == LAYERS_OPENGL) {
     
     
     
@@ -1351,6 +1351,7 @@ BasicShadowLayerManager::CreateThebesLayer()
     MAYBE_CREATE_SHADOW(Thebes);
     return layer.forget();
   } else
+#endif
   {
     nsRefPtr<BasicShadowableThebesLayer> layer =
       new BasicShadowableThebesLayer(this);
