@@ -1033,7 +1033,7 @@ function handleFallbackToCompleteUpdate(update, postStaging) {
   if (update.selectedPatch && oldType == "partial" && update.patchCount == 2) {
     
     
-    LOG("handleFallbackToCompleteUpdate - install of partial patch " +
+    LOG("UpdateService:_postUpdateProcessing - install of partial patch " +
         "failed, downloading complete patch");
     var status = Cc["@mozilla.org/updates/update-service;1"].
                  getService(Ci.nsIApplicationUpdateService).
@@ -1628,15 +1628,8 @@ UpdateService.prototype = {
     }
 #endif
 
-    if (!update) {
-      if (status != STATE_SUCCEEDED) {
-        LOG("UpdateService:_postUpdateProcessing - previous patch failed " +
-            "and no patch available");
-        cleanupActiveUpdate();
-        return;
-      }
+    if (!update)
       update = new Update(null);
-    }
 
     var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
                    createInstance(Ci.nsIUpdatePrompt);
@@ -2497,21 +2490,13 @@ UpdateManager.prototype = {
   get activeUpdate() {
     if (this._activeUpdate &&
         this._activeUpdate.channel != UpdateChannel.get()) {
-      LOG("UpdateManager:get activeUpdate - channel has changed, " +
-          "reloading default preferences to workaround bug 802022");
       
       
-      let prefSvc = Services.prefs.QueryInterface(Ci.nsIObserver);
-      prefSvc.observe(null, "reload-default-prefs", null);
-      if (this._activeUpdate.channel != UpdateChannel.get()) {
-        
-        
-        this._activeUpdate = null;
-        this.saveUpdates();
+      this._activeUpdate = null;
+      this.saveUpdates();
 
-        
-        cleanUpUpdatesDir();
-      }
+      
+      cleanUpUpdatesDir();
     }
     return this._activeUpdate;
   },
@@ -2988,9 +2973,13 @@ Downloader.prototype = {
   
 
 
-  cancel: function Downloader_cancel() {
-    if (this._request && this._request instanceof Ci.nsIRequest)
-      this._request.cancel(Cr.NS_BINDING_ABORTED);
+  cancel: function Downloader_cancel(cancelError) {
+    if (cancelError === undefined) {
+      cancelError = Cr.NS_BINDING_ABORTED;
+    }
+    if (this._request && this._request instanceof Ci.nsIRequest) {
+      this._request.cancel(cancelError);
+    }
   },
 
   
@@ -3271,6 +3260,26 @@ Downloader.prototype = {
                                              maxProgress) {
     LOG("Downloader:onProgress - progress: " + progress + "/" + maxProgress);
 
+    if (progress > this._patch.size) {
+      LOG("Downloader:onProgress - progress: " + progress +
+          " is higher than patch size: " + this._patch.size);
+      
+      
+      
+      this.cancel(Cr.NS_ERROR_UNEXPECTED);
+      return;
+    }
+
+    if (maxProgress != this._patch.size) {
+      LOG("Downloader:onProgress - maxProgress: " + maxProgress +
+          " is not equal to expectd patch size: " + this._patch.size);
+      
+      
+      
+      this.cancel(Cr.NS_ERROR_UNEXPECTED);
+      return;
+    }
+
     var listeners = this._listeners.concat();
     var listenerCount = listeners.length;
     for (var i = 0; i < listenerCount; ++i) {
@@ -3343,8 +3352,7 @@ Downloader.prototype = {
         LOG("Downloader:onStopRequest - download verification failed");
         state = STATE_DOWNLOAD_FAILED;
 
-        
-        status = Cr.NS_ERROR_UNEXPECTED;
+        status = Cr.NS_ERROR_CORRUPTED_CONTENT;
 
         
         const vfCode = "verification_failed";
