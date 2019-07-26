@@ -22,13 +22,6 @@ SVGPolygonElement::WrapNode(JSContext *aCx, JSObject *aScope)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGPolygonElement, SVGPolygonElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGPolygonElement::SVGPolygonElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGPolygonElementBase(aNodeInfo)
 {

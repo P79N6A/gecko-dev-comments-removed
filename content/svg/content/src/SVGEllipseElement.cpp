@@ -29,13 +29,6 @@ nsSVGElement::LengthInfo SVGEllipseElement::sLengthInfo[4] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGEllipseElement, SVGEllipseElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGEllipseElement::SVGEllipseElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGEllipseElementBase(aNodeInfo)
 {

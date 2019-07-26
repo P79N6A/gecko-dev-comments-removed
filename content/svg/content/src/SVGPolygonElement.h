@@ -26,10 +26,6 @@ protected:
 
 public:
   
-
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
   virtual void GetMarkPoints(nsTArray<nsSVGMark> *aMarks);
   virtual void ConstructPath(gfxContext *aCtx);
 

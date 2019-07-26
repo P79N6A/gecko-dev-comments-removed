@@ -52,13 +52,6 @@ nsSVGElement::StringInfo SVGPatternElement::sStringInfo[1] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGPatternElement, SVGPatternElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGPatternElement::SVGPatternElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGPatternElementBase(aNodeInfo)
 {

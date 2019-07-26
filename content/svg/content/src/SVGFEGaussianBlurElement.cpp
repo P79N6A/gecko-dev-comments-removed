@@ -33,17 +33,6 @@ nsSVGElement::StringInfo SVGFEGaussianBlurElement::sStringInfo[2] =
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGFEGaussianBlurElement,SVGFEGaussianBlurElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGFEGaussianBlurElement,SVGFEGaussianBlurElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGFEGaussianBlurElement)
-  NS_NODE_INTERFACE_TABLE3(SVGFEGaussianBlurElement, nsIDOMNode,
-                           nsIDOMElement, nsIDOMSVGElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGFEGaussianBlurElementBase)
-
-
-
-
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEGaussianBlurElement)
 
 

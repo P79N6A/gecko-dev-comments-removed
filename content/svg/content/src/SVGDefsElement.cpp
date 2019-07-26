@@ -20,13 +20,6 @@ SVGDefsElement::WrapNode(JSContext* aCx, JSObject* aScope)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGDefsElement, SVGGraphicsElement,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGDefsElement::SVGDefsElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGGraphicsElement(aNodeInfo)
 {

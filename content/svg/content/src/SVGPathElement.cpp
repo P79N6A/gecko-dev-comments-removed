@@ -32,13 +32,6 @@ nsSVGElement::NumberInfo SVGPathElement::sNumberInfo =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGPathElement, SVGPathElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGPathElement::SVGPathElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGPathElementBase(aNodeInfo)
 {

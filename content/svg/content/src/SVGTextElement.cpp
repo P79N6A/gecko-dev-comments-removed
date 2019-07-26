@@ -20,13 +20,6 @@ SVGTextElement::WrapNode(JSContext *aCx, JSObject *aScope)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGTextElement, SVGTextElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGTextElement::SVGTextElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGTextElementBase(aNodeInfo)
 {

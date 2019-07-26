@@ -31,13 +31,6 @@ nsSVGElement::EnumInfo SVGClipPathElement::sEnumInfo[1] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGClipPathElement, SVGClipPathElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGClipPathElement::SVGClipPathElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGClipPathElementBase(aNodeInfo)
 {

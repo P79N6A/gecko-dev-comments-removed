@@ -31,13 +31,6 @@ nsSVGElement::LengthInfo SVGForeignObjectElement::sLengthInfo[4] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGForeignObjectElement, SVGGraphicsElement,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGForeignObjectElement::SVGForeignObjectElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGGraphicsElement(aNodeInfo)
 {

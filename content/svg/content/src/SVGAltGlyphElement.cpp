@@ -27,13 +27,6 @@ nsSVGElement::StringInfo SVGAltGlyphElement::sStringInfo[1] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGAltGlyphElement, SVGAltGlyphElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGAltGlyphElement::SVGAltGlyphElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGAltGlyphElementBase(aNodeInfo)
 {

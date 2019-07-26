@@ -46,13 +46,6 @@ nsSVGElement::EnumInfo SVGMaskElement::sEnumInfo[2] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGMaskElement, SVGMaskElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGMaskElement::SVGMaskElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGMaskElementBase(aNodeInfo)
 {

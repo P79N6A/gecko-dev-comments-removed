@@ -29,13 +29,6 @@ nsSVGElement::LengthInfo SVGCircleElement::sLengthInfo[3] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGCircleElement, SVGCircleElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGCircleElement::SVGCircleElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGCircleElementBase(aNodeInfo)
 {

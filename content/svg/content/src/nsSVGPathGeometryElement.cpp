@@ -8,15 +8,6 @@
 
 
 
-NS_IMPL_ADDREF_INHERITED(nsSVGPathGeometryElement, nsSVGPathGeometryElementBase)
-NS_IMPL_RELEASE_INHERITED(nsSVGPathGeometryElement, nsSVGPathGeometryElementBase)
-
-NS_INTERFACE_MAP_BEGIN(nsSVGPathGeometryElement)
-NS_INTERFACE_MAP_END_INHERITING(nsSVGPathGeometryElementBase)
-
-
-
-
 nsSVGPathGeometryElement::nsSVGPathGeometryElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsSVGPathGeometryElementBase(aNodeInfo)
 {

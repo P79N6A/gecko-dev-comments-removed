@@ -27,10 +27,6 @@ protected:
 
 public:
   
-
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;

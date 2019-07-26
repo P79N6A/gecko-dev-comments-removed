@@ -36,10 +36,6 @@ protected:
 
 public:
   
-
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
 
   

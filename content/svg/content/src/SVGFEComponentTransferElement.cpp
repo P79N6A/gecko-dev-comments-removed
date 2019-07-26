@@ -28,17 +28,6 @@ nsSVGElement::StringInfo SVGFEComponentTransferElement::sStringInfo[2] =
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGFEComponentTransferElement,SVGFEComponentTransferElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGFEComponentTransferElement,SVGFEComponentTransferElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGFEComponentTransferElement)
-  NS_NODE_INTERFACE_TABLE3(SVGFEComponentTransferElement, nsIDOMNode,
-                           nsIDOMElement, nsIDOMSVGElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGFEComponentTransferElementBase)
-
-
-
-
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEComponentTransferElement)
 
 already_AddRefed<nsIDOMSVGAnimatedString>

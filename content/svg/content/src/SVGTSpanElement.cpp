@@ -22,13 +22,6 @@ SVGTSpanElement::WrapNode(JSContext *aCx, JSObject *aScope)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGTSpanElement, SVGTSpanElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGTSpanElement::SVGTSpanElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGTSpanElementBase(aNodeInfo)
 {

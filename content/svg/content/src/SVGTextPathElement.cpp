@@ -61,13 +61,6 @@ nsSVGElement::StringInfo SVGTextPathElement::sStringInfo[1] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGTextPathElement, SVGTextPathElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGTextPathElement::SVGTextPathElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGTextPathElementBase(aNodeInfo)
 {

@@ -27,9 +27,6 @@ protected:
 
 public:
   
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
   virtual bool HasValidDimensions() const;
 
   

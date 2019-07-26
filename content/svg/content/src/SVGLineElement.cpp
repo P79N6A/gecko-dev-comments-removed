@@ -29,13 +29,6 @@ nsSVGElement::LengthInfo SVGLineElement::sLengthInfo[4] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGLineElement, SVGLineElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGLineElement::SVGLineElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGLineElementBase(aNodeInfo)
 {

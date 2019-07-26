@@ -35,13 +35,6 @@ nsSVGElement::LengthInfo SVGRectElement::sLengthInfo[6] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGRectElement, SVGRectElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGRectElement::SVGRectElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGRectElementBase(aNodeInfo)
 {

@@ -40,13 +40,6 @@ nsSVGElement::EnumInfo SVGViewElement::sEnumInfo[1] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGViewElement, SVGViewElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGViewElement::SVGViewElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGViewElementBase(aNodeInfo)
 {

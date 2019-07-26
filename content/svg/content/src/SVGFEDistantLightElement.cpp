@@ -26,16 +26,6 @@ nsSVGElement::NumberInfo SVGFEDistantLightElement::sNumberInfo[2] =
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGFEDistantLightElement,SVGFEDistantLightElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGFEDistantLightElement,SVGFEDistantLightElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGFEDistantLightElement)
-  NS_NODE_INTERFACE_TABLE3(SVGFEDistantLightElement, nsIDOMNode,
-                           nsIDOMElement, nsIDOMSVGElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGFEDistantLightElementBase)
-
-
-
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEDistantLightElement)
 

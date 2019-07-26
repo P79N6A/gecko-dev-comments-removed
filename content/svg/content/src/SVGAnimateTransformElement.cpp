@@ -20,13 +20,6 @@ SVGAnimateTransformElement::WrapNode(JSContext *aCx, JSObject *aScope)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGAnimateTransformElement, SVGAnimationElement,
-                             nsIDOMNode,
-                             nsIDOMElement, nsIDOMSVGElement)
-
-
-
-
 SVGAnimateTransformElement::SVGAnimateTransformElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGAnimationElement(aNodeInfo)
 {

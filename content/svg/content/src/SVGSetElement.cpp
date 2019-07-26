@@ -20,13 +20,6 @@ SVGSetElement::WrapNode(JSContext *aCx, JSObject *aScope)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGSetElement, SVGAnimationElement,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGSetElement::SVGSetElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGAnimationElement(aNodeInfo)
 {

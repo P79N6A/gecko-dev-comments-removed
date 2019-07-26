@@ -23,13 +23,6 @@ nsSVGElement::NumberInfo SVGStopElement::sNumberInfo =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(SVGStopElement, SVGStopElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
-
-
-
-
 SVGStopElement::SVGStopElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGStopElementBase(aNodeInfo)
 {

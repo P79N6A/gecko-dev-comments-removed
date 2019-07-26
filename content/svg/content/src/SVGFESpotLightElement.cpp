@@ -32,17 +32,6 @@ nsSVGElement::NumberInfo SVGFESpotLightElement::sNumberInfo[8] =
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGFESpotLightElement,SVGFESpotLightElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGFESpotLightElement,SVGFESpotLightElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGFESpotLightElement)
-  NS_NODE_INTERFACE_TABLE3(SVGFESpotLightElement, nsIDOMNode,
-                           nsIDOMElement, nsIDOMSVGElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGFESpotLightElementBase)
-
-
-
-
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFESpotLightElement)
 
 
