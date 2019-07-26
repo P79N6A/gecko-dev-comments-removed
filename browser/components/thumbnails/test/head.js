@@ -4,14 +4,12 @@
 let tmp = {};
 Cu.import("resource:///modules/PageThumbs.jsm", tmp);
 let PageThumbs = tmp.PageThumbs;
-let PageThumbsCache = tmp.PageThumbsCache;
+let PageThumbsStorage = tmp.PageThumbsStorage;
 
 registerCleanupFunction(function () {
   while (gBrowser.tabs.length > 1)
     gBrowser.removeTab(gBrowser.tabs[1]);
 });
-
-let cachedXULDocument;
 
 
 
@@ -29,9 +27,12 @@ let TestRunner = {
 
   run: function () {
     waitForExplicitFinish();
-
     this._iter = runTests();
-    this.next();
+
+    if (this._iter)
+      this.next();
+    else
+      finish();
   },
 
   
@@ -57,9 +58,10 @@ function next() {
 
 
 
-function addTab(aURI) {
+
+function addTab(aURI, aCallback) {
   let tab = gBrowser.selectedTab = gBrowser.addTab(aURI);
-  whenLoaded(tab.linkedBrowser);
+  whenLoaded(tab.linkedBrowser, aCallback);
 }
 
 
@@ -94,34 +96,11 @@ function whenLoaded(aElement, aCallback) {
 
 
 function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
-  let window = gBrowser.selectedTab.linkedBrowser.contentWindow;
-
-  let key = Date.now();
-  let data = PageThumbs.capture(window);
+  let browser = gBrowser.selectedBrowser;
 
   
-  PageThumbs.store(key, data, function () {
-    let width = 100, height = 100;
-    let thumb = PageThumbs.getThumbnailURL(key, width, height);
-
-    getXULDocument(function (aDocument) {
-      let htmlns = "http://www.w3.org/1999/xhtml";
-      let img = aDocument.createElementNS(htmlns, "img");
-      img.setAttribute("src", thumb);
-
-      whenLoaded(img, function () {
-        let canvas = aDocument.createElementNS(htmlns, "canvas");
-        canvas.setAttribute("width", width);
-        canvas.setAttribute("height", height);
-
-        
-        let ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
-
-        next();
-      });
-    });
+  PageThumbs.captureAndStore(browser, function () {
+    checkThumbnailColor(browser.currentURI.spec, aRed, aGreen, aBlue, aMessage);
   });
 }
 
@@ -130,25 +109,29 @@ function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
 
 
 
-function getXULDocument(aCallback) {
-  let hiddenWindow = Services.appShell.hiddenDOMWindow;
-  let doc = cachedXULDocument || hiddenWindow.document;
 
-  if (doc instanceof XULDocument) {
-    aCallback(cachedXULDocument = doc);
-    return;
-  }
 
-  let iframe = doc.createElement("iframe");
-  iframe.setAttribute("src", "chrome://global/content/mozilla.xhtml");
 
-  iframe.addEventListener("DOMContentLoaded", function onLoad() {
-    iframe.removeEventListener("DOMContentLoaded", onLoad, false);
-    aCallback(cachedXULDocument = iframe.contentDocument);
-  }, false);
+function checkThumbnailColor(aURL, aRed, aGreen, aBlue, aMessage) {
+  let width = 100, height = 100;
+  let thumb = PageThumbs.getThumbnailURL(aURL, width, height);
 
-  doc.body.appendChild(iframe);
-  registerCleanupFunction(function () { doc.body.removeChild(iframe); });
+  let htmlns = "http://www.w3.org/1999/xhtml";
+  let img = document.createElementNS(htmlns, "img");
+  img.setAttribute("src", thumb);
+
+  whenLoaded(img, function () {
+    let canvas = document.createElementNS(htmlns, "canvas");
+    canvas.setAttribute("width", width);
+    canvas.setAttribute("height", height);
+
+    
+    let ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, width, height);
+    checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
+
+    next();
+  });
 }
 
 
@@ -162,4 +145,13 @@ function getXULDocument(aCallback) {
 function checkCanvasColor(aContext, aRed, aGreen, aBlue, aMessage) {
   let [r, g, b] = aContext.getImageData(0, 0, 1, 1).data;
   ok(r == aRed && g == aGreen && b == aBlue, aMessage);
+}
+
+
+
+
+
+function thumbnailExists(aURL) {
+  let file = PageThumbsStorage.getFileForURL(aURL);
+  return file.exists() && file.fileSize;
 }
