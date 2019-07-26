@@ -198,10 +198,9 @@ static const char * const TypeChars[] =
     "i",            
     "o",            
     "f",            
-    "d",            
 #ifdef JS_NUNBOX32
     "t",            
-    "p"             
+    "d"             
 #elif JS_PUNBOX64
     "x"             
 #endif
@@ -364,18 +363,18 @@ LInstruction::initSafepoint(TempAllocator &alloc)
 }
 
 bool
-LMoveGroup::add(LAllocation *from, LAllocation *to, LDefinition::Type type)
+LMoveGroup::add(LAllocation *from, LAllocation *to)
 {
 #ifdef DEBUG
     JS_ASSERT(*from != *to);
     for (size_t i = 0; i < moves_.length(); i++)
         JS_ASSERT(*to != *moves_[i].to());
 #endif
-    return moves_.append(LMove(from, to, type));
+    return moves_.append(LMove(from, to));
 }
 
 bool
-LMoveGroup::addAfter(LAllocation *from, LAllocation *to, LDefinition::Type type)
+LMoveGroup::addAfter(LAllocation *from, LAllocation *to)
 {
     
     
@@ -393,12 +392,12 @@ LMoveGroup::addAfter(LAllocation *from, LAllocation *to, LDefinition::Type type)
 
     for (size_t i = 0; i < moves_.length(); i++) {
         if (*to == *moves_[i].to()) {
-            moves_[i] = LMove(from, to, type);
+            moves_[i] = LMove(from, to);
             return true;
         }
     }
 
-    return add(from, to, type);
+    return add(from, to);
 }
 
 void

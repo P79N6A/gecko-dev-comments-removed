@@ -363,6 +363,10 @@ class LStackSlot : public LAllocation
       : LAllocation(isDouble ? DOUBLE_SLOT : STACK_SLOT, slot)
     { }
 
+    bool isDouble() const {
+        return kind() == DOUBLE_SLOT;
+    }
+
     uint32_t slot() const {
         return data();
     }
@@ -442,7 +446,6 @@ class LDefinition
         GENERAL,    
         OBJECT,     
         SLOTS,      
-        FLOAT32,    
         DOUBLE,     
 #ifdef JS_NUNBOX32
         
@@ -537,9 +540,8 @@ class LDefinition
           case MIRType_Object:
             return LDefinition::OBJECT;
           case MIRType_Double:
-            return LDefinition::DOUBLE;
           case MIRType_Float32:
-            return LDefinition::FLOAT32;
+            return LDefinition::DOUBLE;
 #if defined(JS_PUNBOX64)
           case MIRType_Value:
             return LDefinition::BOX;

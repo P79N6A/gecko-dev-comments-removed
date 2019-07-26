@@ -104,8 +104,7 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     
     inline LDefinition temp(LDefinition::Type type = LDefinition::GENERAL,
                             LDefinition::Policy policy = LDefinition::DEFAULT);
-    inline LDefinition tempFloat32();
-    inline LDefinition tempDouble();
+    inline LDefinition tempFloat();
     inline LDefinition tempCopy(MDefinition *input, uint32_t reusedInput);
 
     

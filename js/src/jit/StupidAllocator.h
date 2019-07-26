@@ -23,9 +23,6 @@ class StupidAllocator : public RegisterAllocator
         AnyRegister reg;
 
         
-        LDefinition::Type type;
-
-        
         uint32_t vreg;
 
         
@@ -75,7 +72,7 @@ class StupidAllocator : public RegisterAllocator
 
     void syncRegister(LInstruction *ins, RegisterIndex index);
     void evictRegister(LInstruction *ins, RegisterIndex index);
-    void loadRegister(LInstruction *ins, uint32_t vreg, RegisterIndex index, LDefinition::Type type);
+    void loadRegister(LInstruction *ins, uint32_t vreg, RegisterIndex index);
 
     RegisterIndex findExistingRegister(uint32_t vreg);
 
