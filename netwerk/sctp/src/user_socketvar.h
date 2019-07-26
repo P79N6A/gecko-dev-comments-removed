@@ -37,6 +37,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+#if defined(ANDROID)
+
+
+#include <linux/coda.h>
+#endif
 
  	
 
