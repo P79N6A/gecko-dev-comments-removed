@@ -192,9 +192,12 @@ protected:
                     MSGResult& aResult);
   bool OnIMECharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                          MSGResult& aResult);
-  bool OnChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  bool OnCharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  bool OnInputLangChange(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  bool OnChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
+              MSGResult& aResult);
+  bool OnCharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
+                      MSGResult& aResult);
+  void OnInputLangChange(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
+                         MSGResult& aResult);
 
   
   

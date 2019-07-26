@@ -246,8 +246,7 @@ nsIMM32Handler::ProcessInputLangChangeMessage(nsWindow* aWindow,
   aResult.mConsumed = false;
   
   if (gIMM32Handler) {
-    aResult.mConsumed =
-      gIMM32Handler->OnInputLangChange(aWindow, wParam, lParam);
+    gIMM32Handler->OnInputLangChange(aWindow, wParam, lParam, aResult);
   }
   InitKeyboardLayout(reinterpret_cast<HKL>(lParam));
   
@@ -316,11 +315,7 @@ nsIMM32Handler::ProcessMessage(nsWindow* aWindow, UINT msg,
       if (!gIMM32Handler) {
         return false;
       }
-      aResult.mConsumed = gIMM32Handler->OnChar(aWindow, wParam, lParam);
-      
-      
-      
-      return aResult.mConsumed;
+      return gIMM32Handler->OnChar(aWindow, wParam, lParam, aResult);
     default:
       return false;
   };
@@ -359,9 +354,7 @@ nsIMM32Handler::ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
       if (!gIMM32Handler) {
         return false;
       }
-      aResult.mConsumed =
-        gIMM32Handler->OnCharOnPlugin(aWindow, wParam, lParam);
-      return false;  
+      return gIMM32Handler->OnCharOnPlugin(aWindow, wParam, lParam, aResult);
     case WM_IME_COMPOSITIONFULL:
     case WM_IME_CONTROL:
     case WM_IME_KEYDOWN:
@@ -379,10 +372,11 @@ nsIMM32Handler::ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
 
 
 
-bool
+void
 nsIMM32Handler::OnInputLangChange(nsWindow* aWindow,
                                   WPARAM wParam,
-                                  LPARAM lParam)
+                                  LPARAM lParam,
+                                  MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnInputLangChange, hWnd=%08x, wParam=%08x, lParam=%08x\n",
@@ -395,7 +389,7 @@ nsIMM32Handler::OnInputLangChange(nsWindow* aWindow,
     HandleEndComposition(aWindow);
   }
 
-  return false;
+  aResult.mConsumed = false;
 }
 
 bool
@@ -718,10 +712,15 @@ nsIMM32Handler::OnIMESetContext(nsWindow* aWindow,
 bool
 nsIMM32Handler::OnChar(nsWindow* aWindow,
                        WPARAM wParam,
-                       LPARAM lParam)
+                       LPARAM lParam,
+                       MSGResult& aResult)
 {
+  
+  
+  
+  aResult.mConsumed = false;
   if (IsIMECharRecordsEmpty()) {
-    return false;
+    return aResult.mConsumed;
   }
   WPARAM recWParam;
   LPARAM recLParam;
@@ -736,12 +735,13 @@ nsIMM32Handler::OnChar(nsWindow* aWindow,
   
   if (recWParam != wParam || recLParam != lParam) {
     ResetIMECharRecords();
-    return false;
+    return aResult.mConsumed;
   }
   
   
   
-  return true;
+  aResult.mConsumed = true;
+  return aResult.mConsumed;
 }
 
 
@@ -877,8 +877,11 @@ nsIMM32Handler::OnIMESetContextOnPlugin(nsWindow* aWindow,
 bool
 nsIMM32Handler::OnCharOnPlugin(nsWindow* aWindow,
                                WPARAM wParam,
-                               LPARAM lParam)
+                               LPARAM lParam,
+                               MSGResult& aResult)
 {
+  
+  aResult.mConsumed = false;
   if (IsIMECharRecordsEmpty()) {
     return false;
   }
