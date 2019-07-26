@@ -300,7 +300,7 @@ nsSVGInnerSVGFrame::HasChildrenOnlyTransform(gfx::Matrix *aTransform) const
   if (content->HasViewBoxOrSyntheticViewBox()) {
     
     if (aTransform) {
-      *aTransform = gfx::ToMatrix(content->GetViewBoxTransform());
+      *aTransform = content->GetViewBoxTransform();
     }
     return true;
   }
