@@ -575,6 +575,118 @@ add_task(function test_discard_cached() {
   yield c.close();
 });
 
+add_task(function test_programmatic_binding() {
+  let c = yield getDummyDatabase("programmatic_binding");
+
+  let bindings = [
+    {id: 1,    path: "foobar"},
+    {id: null, path: "baznoo"},
+    {id: 5,    path: "toofoo"},
+  ];
+
+  let sql = "INSERT INTO dirs VALUES (:id, :path)";
+  let result = yield c.execute(sql, bindings);
+  do_check_eq(result.length, 0);
+
+  let rows = yield c.executeCached("SELECT * from dirs");
+  do_check_eq(rows.length, 3);
+  yield c.close();
+});
+
+add_task(function test_programmatic_binding_transaction() {
+  let c = yield getDummyDatabase("programmatic_binding_transaction");
+
+  let bindings = [
+    {id: 1,    path: "foobar"},
+    {id: null, path: "baznoo"},
+    {id: 5,    path: "toofoo"},
+  ];
+
+  let sql = "INSERT INTO dirs VALUES (:id, :path)";
+  yield c.executeTransaction(function transaction() {
+    let result = yield c.execute(sql, bindings);
+    do_check_eq(result.length, 0);
+
+    let rows = yield c.executeCached("SELECT * from dirs");
+    do_check_eq(rows.length, 3);
+  });
+
+  
+  let rows = yield c.executeCached("SELECT * from dirs");
+  do_check_eq(rows.length, 3);
+  yield c.close();
+});
+
+add_task(function test_programmatic_binding_transaction_partial_rollback() {
+  let c = yield getDummyDatabase("programmatic_binding_transaction_partial_rollback");
+
+  let bindings = [
+    {id: 2, path: "foobar"},
+    {id: 3, path: "toofoo"},
+  ];
+
+  let sql = "INSERT INTO dirs VALUES (:id, :path)";
+
+  
+  yield c.execute(sql, {id: 1, path: "works"});
+
+  let secondSucceeded = false;
+  try {
+    yield c.executeTransaction(function transaction() {
+      
+      let result = yield c.execute(sql, bindings[0]);
+
+      
+      
+      let result = yield c.execute(sql, bindings);
+      secondSucceeded = true;
+    });
+  } catch (ex) {
+    print("Caught expected exception: " + ex);
+  }
+
+  
+  do_check_false(secondSucceeded);
+
+  
+  
+  let rows = yield c.executeCached("SELECT * from dirs");
+  do_check_eq(rows.length, 1);
+  do_check_eq(rows[0].getResultByName("path"), "works");
+  yield c.close();
+});
+
+
+
+
+
+add_task(function test_programmatic_binding_implicit_transaction() {
+  let c = yield getDummyDatabase("programmatic_binding_implicit_transaction");
+
+  let bindings = [
+    {id: 2, path: "foobar"},
+    {id: 1, path: "toofoo"},
+  ];
+
+  let sql = "INSERT INTO dirs VALUES (:id, :path)";
+  let secondSucceeded = false;
+  yield c.execute(sql, {id: 1, path: "works"});
+  try {
+    let result = yield c.execute(sql, bindings);
+    secondSucceeded = true;
+  } catch (ex) {
+    print("Caught expected exception: " + ex);
+  }
+
+  do_check_false(secondSucceeded);
+
+  
+  let rows = yield c.executeCached("SELECT * from dirs");
+  do_check_eq(rows.length, 1);
+  do_check_eq(rows[0].getResultByName("path"), "works");
+  yield c.close();
+});
+
 
 
 
