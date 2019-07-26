@@ -47,11 +47,6 @@ struct MSGResult;
 
 
 
-#define WM_USER_TSF_TEXTCHANGE  (WM_USER + 0x100)
-
-
-
-
 
 class nsTextStore MOZ_FINAL : public ITextStoreACP,
                               public ITfContextOwnerCompositionSink,
@@ -246,7 +241,6 @@ protected:
                                          TS_TEXTCHANGE* aTextChange);
   void     CommitCompositionInternal(bool);
   nsresult OnTextChangeInternal(uint32_t, uint32_t, uint32_t);
-  void     OnTextChangeMsg();
   nsresult OnSelectionChangeInternal(void);
   HRESULT  GetDisplayAttribute(ITfProperty* aProperty,
                                ITfRange* aRange,
@@ -289,8 +283,6 @@ protected:
   DWORD                        mLock;
   
   DWORD                        mLockQueued;
-  
-  TS_TEXTCHANGE                mTextChange;
 
   class Composition MOZ_FINAL
   {
