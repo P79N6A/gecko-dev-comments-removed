@@ -149,11 +149,6 @@ public:
   
   
   
-  void SyncNotifyDecodeState();
-
-  
-  
-  
   void EmulateRequestFinished(imgRequestProxy* proxy, nsresult aStatus);
 
   
@@ -253,6 +248,10 @@ public:
 
   
   mozilla::image::ImageStatusDiff Difference(imgStatusTracker* aOther) const;
+
+  
+  
+  mozilla::image::ImageStatusDiff DecodeStateAsDifference() const;
 
   
   void ApplyDifference(const mozilla::image::ImageStatusDiff& aDiff);

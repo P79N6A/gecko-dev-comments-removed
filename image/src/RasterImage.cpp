@@ -2967,6 +2967,8 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
   if (request) {
     diff = image->mStatusTracker->Difference(request->mStatusTracker);
     image->mStatusTracker->ApplyDifference(diff);
+  } else {
+    diff = image->mStatusTracker->DecodeStateAsDifference();
   }
 
   {
@@ -2974,13 +2976,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     MutexAutoUnlock unlock(mDecodingMutex);
 
     
-    
-    
-    if (request) {
-      image->mStatusTracker->SyncNotifyDifference(diff);
-    } else {
-      image->mStatusTracker->SyncNotifyDecodeState();
-    }
+    image->mStatusTracker->SyncNotifyDifference(diff);
 
     
     if (NS_SUCCEEDED(rv) && aIntent != eShutdownIntent_Error && done &&
