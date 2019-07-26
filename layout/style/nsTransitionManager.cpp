@@ -62,13 +62,13 @@ ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
   } else if (duration == 0.0) {
     
     
-    if (aRefreshTime >= mStartTime) {
+    if (aRefreshTime >= mStartTime + mDelay) {
       timePortion = 1.0;
     } else {
       timePortion = 0.0;
     }
   } else {
-    timePortion = (aRefreshTime - mStartTime).ToSeconds() / duration;
+    timePortion = (aRefreshTime - (mStartTime + mDelay)).ToSeconds() / duration;
     if (timePortion < 0.0)
       timePortion = 0.0; 
     if (timePortion > 1.0)
@@ -123,8 +123,8 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
 bool
 ElementPropertyTransition::IsRunningAt(TimeStamp aTime) const {
   return !IsRemovedSentinel() &&
-         mStartTime <= aTime &&
-         aTime < mStartTime + mDuration;
+         mStartTime + mDelay <= aTime &&
+         aTime < mStartTime + mDelay + mDuration;
 }
 
 bool
@@ -655,7 +655,8 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   }
 
   pt.mProperty = aProperty;
-  pt.mStartTime = mostRecentRefresh + TimeDuration::FromMilliseconds(delay);
+  pt.mStartTime = mostRecentRefresh;
+  pt.mDelay = TimeDuration::FromMilliseconds(delay);
   pt.mDuration = TimeDuration::FromMilliseconds(duration);
   pt.mTimingFunction.Init(tf);
   if (!aElementTransitions) {
@@ -917,7 +918,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
           if (aFlags == Can_Throttle) {
             et->mPropertyTransitions.RemoveElementAt(i);
           }
-        } else if (pt.mStartTime + pt.mDuration <= now) {
+        } else if (pt.mStartTime + pt.mDelay + pt.mDuration <= now) {
           nsCSSProperty prop = pt.mProperty;
           if (nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_REPORT_OTHER_NAME))
           {
@@ -944,7 +945,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
           pt.SetRemovedSentinel();
           et->UpdateAnimationGeneration(mPresContext);
           transitionStartedOrEnded = true;
-        } else if (pt.mStartTime <= now && canThrottleTick &&
+        } else if (pt.mStartTime + pt.mDelay <= now && canThrottleTick &&
                    !pt.mIsRunningOnCompositor) {
           
           

@@ -31,7 +31,8 @@ struct ElementPropertyTransition
 
   nsCSSProperty mProperty;
   nsStyleAnimation::Value mStartValue, mEndValue;
-  mozilla::TimeStamp mStartTime; 
+  mozilla::TimeStamp mStartTime;
+  mozilla::TimeDuration mDelay;
 
   
   mozilla::TimeDuration mDuration;
