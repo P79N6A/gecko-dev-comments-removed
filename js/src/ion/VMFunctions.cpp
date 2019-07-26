@@ -98,6 +98,15 @@ ReportOverRecursed(JSContext *cx)
     if (cx->runtime->interrupt)
         return InterruptCheck(cx);
 
+    
+    
+    
+    
+    if (!cx->runtime->ionStackLimit) {
+        cx->runtime->resetIonStackLimit();
+        return true;
+    }
+
     js_ReportOverRecursed(cx);
 
     

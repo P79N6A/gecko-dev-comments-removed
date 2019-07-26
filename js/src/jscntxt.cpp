@@ -140,7 +140,7 @@ JSRuntime::triggerOperationCallback()
 
 
 
-    ionStackLimit = reinterpret_cast<uintptr_t>(ionActivation);
+    ionStackLimit = NULL;
 }
 
 void
@@ -1011,7 +1011,7 @@ js_InvokeOperationCallback(JSContext *cx)
     JS_ATOMIC_SET(&rt->interrupt, 0);
 
     
-    cx->runtime->ionStackLimit = cx->runtime->nativeStackLimit;
+    cx->runtime->resetIonStackLimit();
 
     if (rt->gcIsNeeded)
         GCSlice(rt, GC_NORMAL, rt->gcTriggerReason);
