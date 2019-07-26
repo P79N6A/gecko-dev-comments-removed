@@ -312,6 +312,16 @@ typedef uint64_t nsFrameState;
 #define NS_FRAME_IS_SVG_TEXT                        NS_FRAME_STATE_BIT(47)
 
 
+#define NS_FRAME_NEEDS_PAINT                        NS_FRAME_STATE_BIT(48)
+
+
+
+#define NS_FRAME_DESCENDANT_NEEDS_PAINT             NS_FRAME_STATE_BIT(49)
+
+
+#define NS_FRAME_IN_POPUP                           NS_FRAME_STATE_BIT(50)
+
+
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
 #define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 
@@ -1076,6 +1086,13 @@ public:
   virtual const nsFrameList& GetChildList(ChildListID aListID) const = 0;
   const nsFrameList& PrincipalChildList() { return GetChildList(kPrincipalList); }
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const = 0;
+
+  
+
+
+
+  void GetCrossDocChildLists(nsTArray<ChildList>* aLists);
+
   
   nsIFrame* GetFirstChild(ChildListID aListID) const {
     return GetChildList(aListID).FirstChild();
@@ -1398,6 +1415,16 @@ public:
 
   void AddStateBits(nsFrameState aBits) { mState |= aBits; }
   void RemoveStateBits(nsFrameState aBits) { mState &= ~aBits; }
+
+  
+
+
+  bool HasAllStateBits(nsFrameState aBits) { return (mState & aBits) == aBits; }
+  
+  
+
+
+  bool HasAnyStateBits(nsFrameState aBits) { return mState & aBits; }
 
   
 
@@ -2268,13 +2295,6 @@ public:
 
   void InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2);
 
-  
-
-
-
-
-
-  void InvalidateFrameSubtree();
 
   
 
@@ -2282,6 +2302,73 @@ public:
 
 
   void InvalidateOverflowRect();
+
+  
+
+
+
+
+
+
+
+
+  enum {
+    INVALIDATE_DONT_SCHEDULE_PAINT
+  };
+  virtual void InvalidateFrame(uint32_t aFlags = 0);
+  
+  
+
+
+
+
+
+
+  void InvalidateFrameSubtree(uint32_t aFlags = 0);
+  
+  
+
+
+
+  bool IsInvalid();
+ 
+  
+
+
+
+  bool HasInvalidFrameInSubtree()
+  {
+    return HasAnyStateBits(NS_FRAME_NEEDS_PAINT | NS_FRAME_DESCENDANT_NEEDS_PAINT);
+  }
+
+  
+
+
+
+  void ClearInvalidationStateBits();
+
+  
+
+
+
+
+
+
+
+  void SchedulePaint();
+
+  
+
+
+
+
+
+
+
+
+
+
+  Layer* InvalidateLayer(const nsRect& aDamageRect, uint32_t aDisplayItemKey);
 
   
 

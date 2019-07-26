@@ -4001,6 +4001,8 @@ nsLayoutUtils::IsPopup(nsIFrame* aFrame)
  nsIFrame*
 nsLayoutUtils::GetDisplayRootFrame(nsIFrame* aFrame)
 {
+  
+  
   nsIFrame* f = aFrame;
   for (;;) {
     if (IsPopup(f))
