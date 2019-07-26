@@ -93,11 +93,6 @@ ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
                  const ErrNum aErrorNumber,
                  const char* aInterfaceName);
 
-bool
-ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
-                 const ErrNum aErrorNumber,
-                 prototypes::ID aProtoId);
-
 inline bool
 ThrowMethodFailedWithDetails(JSContext* cx, ErrorResult& rv,
                              const char* ifaceName,
@@ -207,10 +202,9 @@ IsDOMObject(JSObject* obj)
 
 
 
-template <class T, typename U>
+template <prototypes::ID PrototypeID, class T, typename U>
 MOZ_ALWAYS_INLINE nsresult
-UnwrapObject(JSObject* obj, U& value, prototypes::ID protoID,
-             uint32_t protoDepth)
+UnwrapObject(JSObject* obj, U& value)
 {
   
   const DOMClass* domClass = GetDOMClass(obj);
@@ -236,21 +230,14 @@ UnwrapObject(JSObject* obj, U& value, prototypes::ID protoID,
   
 
 
-  if (domClass->mInterfaceChain[protoDepth] == protoID) {
+  if (domClass->mInterfaceChain[PrototypeTraits<PrototypeID>::Depth] ==
+      PrototypeID) {
     value = UnwrapDOMObject<T>(obj);
     return NS_OK;
   }
 
   
   return NS_ERROR_XPC_BAD_CONVERT_JS;
-}
-
-template <prototypes::ID PrototypeID, class T, typename U>
-MOZ_ALWAYS_INLINE nsresult
-UnwrapObject(JSObject* obj, U& value)
-{
-  return UnwrapObject<T>(obj, value, PrototypeID,
-                         PrototypeTraits<PrototypeID>::Depth);
 }
 
 inline bool
@@ -2362,15 +2349,6 @@ CreateGlobal(JSContext* aCx, T* aObject, nsWrapperCache* aCache,
 
   return global;
 }
-
-bool
-GenericBindingGetter(JSContext* cx, unsigned argc, JS::Value* vp);
-
-bool
-GenericBindingSetter(JSContext* cx, unsigned argc, JS::Value* vp);
-
-bool
-GenericBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp);
 
 } 
 } 
