@@ -158,6 +158,19 @@ uint32_t GfxInfo::OperatingSystemVersion() const
   return 0;
 }
 
+nsresult
+GfxInfo::GetFeatureStatusImpl(int32_t , 
+                              int32_t *aStatus, 
+                              nsAString & ,
+                              const nsTArray<GfxDriverInfo>& , 
+                              OperatingSystem*  )
+{
+  NS_ENSURE_ARG_POINTER(aStatus);
+  *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
+
+  return NS_OK;
+}
+
 #ifdef DEBUG
 
 
