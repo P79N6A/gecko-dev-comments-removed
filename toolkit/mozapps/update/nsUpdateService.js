@@ -1223,75 +1223,60 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
   
   try {
     var updateDir = getUpdatesDir();
-  }
-  catch (e) {
+  } catch (e) {
     return;
   }
 
-  var e = updateDir.directoryEntries;
-  while (e.hasMoreElements()) {
-    var f = e.getNext().QueryInterface(Ci.nsIFile);
-    
-    if (f.leafName == FILE_UPDATE_LOG) {
-      var dir;
+  
+  let file = updateDir.clone();
+  file.append(FILE_UPDATE_LOG);
+  if (file.exists()) {
+    let dir;
+    if (aBackgroundUpdate && getUpdateDirNoCreate([]).equals(getAppBaseDir())) {
+      dir = getUpdatesDirInApplyToDir();
+    } else {
+      dir = updateDir.parent;
+    }
+    let logFile = dir.clone();
+    logFile.append(FILE_LAST_LOG);
+    if (logFile.exists()) {
       try {
-        
-        
-        
-        
-        
-        if (aBackgroundUpdate && getUpdateDirNoCreate([]).equals(getAppBaseDir())) {
-          dir = getUpdatesDirInApplyToDir();
-        } else {
-          dir = f.parent.parent;
-        }
-        var logFile = dir.clone();
-        logFile.append(FILE_LAST_LOG);
-        if (logFile.exists()) {
-          try {
-            logFile.moveTo(dir, FILE_BACKUP_LOG);
-          }
-          catch (e) {
-            LOG("cleanUpUpdatesDir - failed to rename file " + logFile.path +
-                " to " + FILE_BACKUP_LOG);
-          }
-        }
-        f.moveTo(dir, FILE_LAST_LOG);
-        if (aBackgroundUpdate) {
-          
-          
-          break;
-        } else {
-          continue;
-        }
+        logFile.moveTo(dir, FILE_BACKUP_LOG);
+      } catch (e) {
+        LOG("cleanUpUpdatesDir - failed to rename file " + logFile.path +
+            " to " + FILE_BACKUP_LOG);
       }
-      catch (e) {
-        LOG("cleanUpUpdatesDir - failed to move file " + f.path + " to " +
-            dir.path + " and rename it to " + FILE_LAST_LOG);
-      }
-    } else if (aBackgroundUpdate) {
-      
-      
-      
-      continue;
     }
+
+    try {
+      file.moveTo(dir, FILE_LAST_LOG);
+    } catch (e) {
+      LOG("cleanUpUpdatesDir - failed to rename file " + file.path +
+          " to " + FILE_LAST_LOG);
+    }
+  }
+
+  if (!aBackgroundUpdate) {
+    let e = updateDir.directoryEntries;
+    while (e.hasMoreElements()) {
+      let f = e.getNext().QueryInterface(Ci.nsIFile);
 #ifdef MOZ_WIDGET_GONK
-    if (f.leafName == FILE_UPDATE_LINK) {
-      let linkedFile = getFileFromUpdateLink(updateDir);
-      if (linkedFile && linkedFile.exists()) {
-        linkedFile.remove(false);
+      if (f.leafName == FILE_UPDATE_LINK) {
+        let linkedFile = getFileFromUpdateLink(updateDir);
+        if (linkedFile && linkedFile.exists()) {
+          linkedFile.remove(false);
+        }
       }
-    }
 #endif
 
-    
-    
-    
-    try {
-      f.remove(true);
-    }
-    catch (e) {
-      LOG("cleanUpUpdatesDir - failed to remove file " + f.path);
+      
+      
+      
+      try {
+        f.remove(true);
+      } catch (e) {
+        LOG("cleanUpUpdatesDir - failed to remove file " + f.path);
+      }
     }
   }
   releaseSDCardMountLock();

@@ -204,7 +204,8 @@ function run_test() {
   helperBin.copyTo(fileInUseDir, TEST_DIRS[4].subDirFiles[0]);
 
   
-  let args = [getApplyDirPath() + "a/b/", "input", "output", "-s", "20"];
+  let args = [getApplyDirPath() + "a/b/", "input", "output", "-s",
+              HELPER_SLEEP_TIMEOUT];
   let fileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
                          createInstance(AUS_Ci.nsIProcess);
   fileInUseProcess.init(fileInUseBin);

@@ -123,11 +123,14 @@ const TEST_CHECK_TIMEOUT = 100;
 const MAX_TIMEOUT_RUNS = 2000;
 
 
+const HELPER_SLEEP_TIMEOUT = 180;
+
+
 
 const APP_TIMER_TIMEOUT = 120000;
 
 #ifdef XP_WIN
-const PIPE_TO_NULL = "1> nul 2>&1";
+const PIPE_TO_NULL = ">nul";
 #else
 const PIPE_TO_NULL = "> /dev/null 2>&1";
 #endif
@@ -361,12 +364,6 @@ var gPassed;
 
 #include ../shared.js
 
-#ifdef MOZ_MAINTENANCE_SERVICE
-const STATE_APPLIED_PLATFORM = STATE_APPLIED_SVC;
-#else
-const STATE_APPLIED_PLATFORM = STATE_APPLIED;
-#endif
-
 
 
 if (MOZ_APP_NAME == "xulrunner") {
@@ -439,19 +436,20 @@ function setupTestCommon() {
   
   adjustGeneralPaths();
 
-  removeUpdateDirsAndFiles();
-
   
   
   
-  let updatesDir = getMockUpdRootD();
-  if (updatesDir.exists())  {
-    logTestInfo("attempting to remove directory. Path: " + updatesDir.path);
-    try {
-      removeDirRecursive(updatesDir);
-    } catch (e) {
-      logTestInfo("non-fatal error removing directory. Path: " +
-                  updatesDir.path + ", Exception: " + e);
+  
+  if (IS_WIN) {
+    let updatesDir = getMockUpdRootD();
+    if (updatesDir.exists())  {
+      logTestInfo("attempting to remove directory. Path: " + updatesDir.path);
+      try {
+        removeDirRecursive(updatesDir);
+      } catch (e) {
+        logTestInfo("non-fatal error removing directory. Path: " +
+                    updatesDir.path + ", Exception: " + e);
+      }
     }
   }
 
@@ -523,8 +521,6 @@ function cleanupTestCommon() {
     } catch (e) {
     }
   }
-
-  removeUpdateDirsAndFiles();
 
   
   
@@ -1540,8 +1536,7 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
     "-no-remote",
     "-process-updates",
     "-dump-args",
-    appArgsLogPath,
-    PIPE_TO_NULL
+    appArgsLogPath
   ];
 
   if (gSwitchApp) {
@@ -2595,7 +2590,7 @@ function getProcessArgs(aExtraArgs) {
     args = [launchScript.path];
   } else {
     args = ["/D", "/Q", "/C", appBinPath, "-no-remote", "-process-updates"].
-           concat(aExtraArgs).concat(["1> nul 2>&1"]);
+           concat(aExtraArgs).concat([PIPE_TO_NULL]);
   }
   return args;
 }
