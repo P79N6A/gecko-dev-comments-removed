@@ -1031,7 +1031,7 @@
 
 
 
-     File.removeDir = function(path, options) {
+     File.removeDir = function(path, options = {}) {
        
        let attributes = WinFile.GetFileAttributes(path);
        if (attributes == Const.INVALID_FILE_ATTRIBUTES) {

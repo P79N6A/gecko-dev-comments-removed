@@ -1026,7 +1026,7 @@
 
 
 
-     File.removeDir = function(path, options) {
+     File.removeDir = function(path, options = {}) {
        let isSymLink;
        try {
          let info = File.stat(path, {unixNoFollowingLinks: true});
