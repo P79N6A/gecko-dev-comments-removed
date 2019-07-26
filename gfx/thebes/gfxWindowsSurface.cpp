@@ -125,7 +125,7 @@ gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
     }
 
     cairo_surface_t *surface;
-    if (GetContentType() == GFX_CONTENT_COLOR_ALPHA) {
+    if (!mForPrinting && GetContentType() == GFX_CONTENT_COLOR_ALPHA) {
         
         
         
