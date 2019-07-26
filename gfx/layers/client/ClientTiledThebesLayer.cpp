@@ -88,10 +88,6 @@ GetTransformToAncestorsParentLayer(Layer* aStart, Layer* aAncestor)
 void
 ClientTiledThebesLayer::BeginPaint()
 {
-  if (ClientManager()->IsRepeatTransaction()) {
-    return;
-  }
-
   mPaintData.mLowPrecisionPaintCount = 0;
   mPaintData.mPaintFinished = false;
   mPaintData.mCompositionBounds.SetEmpty();
@@ -242,38 +238,34 @@ ClientTiledThebesLayer::RenderLayer()
     return;
   }
 
-  
-  if (GetMaskLayer() && !ClientManager()->IsRepeatTransaction()) {
-    ToClientLayer(GetMaskLayer())->RenderLayer();
-  }
-
-  
-  if (UseFastPath()) {
-    mValidRegion = mVisibleRegion;
-
-    NS_ASSERTION(!ClientManager()->IsRepeatTransaction(), "Didn't paint our mask layer");
-
-    mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion,
-                                             callback, data);
-
-    ClientManager()->Hold(this);
-    mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
-
-    return;
-  }
-
-  
-  BeginPaint();
-  if (mPaintData.mPaintFinished) {
-    return;
-  }
-
-  TILING_PRLOG_OBJ(("TILING 0x%p: Valid region %s\n", this, tmpstr.get()), mValidRegion);
-  TILING_PRLOG_OBJ(("TILING 0x%p: Visible region %s\n", this, tmpstr.get()), mVisibleRegion);
-
-  
-  
   if (!ClientManager()->IsRepeatTransaction()) {
+    
+    if (GetMaskLayer()) {
+      ToClientLayer(GetMaskLayer())->RenderLayer();
+    }
+
+    
+    if (UseFastPath()) {
+      TILING_PRLOG(("TILING 0x%p: Taking fast-path\n"));
+      mValidRegion = mVisibleRegion;
+      mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
+      ClientManager()->Hold(this);
+      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
+      return;
+    }
+
+    
+    
+    BeginPaint();
+    if (mPaintData.mPaintFinished) {
+      return;
+    }
+
+    TILING_PRLOG_OBJ(("TILING 0x%p: Valid region %s\n", this, tmpstr.get()), mValidRegion);
+    TILING_PRLOG_OBJ(("TILING 0x%p: Visible region %s\n", this, tmpstr.get()), mVisibleRegion);
+
+    
+    
     mValidRegion.And(mValidRegion, mVisibleRegion);
     if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
       
