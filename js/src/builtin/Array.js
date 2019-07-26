@@ -490,6 +490,69 @@ function ArrayFindIndex(predicate) {
 }
 
 
+function ArrayCopyWithin(target, start, end = undefined) {
+    
+    var O = ToObject(this);
+
+    
+    var len = ToInteger(O.length);
+
+    
+    var relativeTarget = ToInteger(target);
+
+    var to = relativeTarget < 0 ? std_Math_max(len + relativeTarget, 0)
+                                : std_Math_min(relativeTarget, len);
+
+    
+    var relativeStart = ToInteger(start);
+
+    var from = relativeStart < 0 ? std_Math_max(len + relativeStart, 0)
+                                 : std_Math_min(relativeStart, len);
+
+    
+    var relativeEnd = end === undefined ? len
+                                        : ToInteger(end);
+
+    var final = relativeEnd < 0 ? std_Math_max(len + relativeEnd, 0)
+                                : std_Math_min(relativeEnd, len);
+
+    
+    var count = std_Math_min(final - from, len - to);
+
+    
+    if (from < to && to < (from + count)) {
+        from = from + count - 1;
+        to = to + count - 1;
+        
+        while (count > 0) {
+            if (from in O)
+                O[to] = O[from];
+            else
+                delete O[to];
+
+            from--;
+            to--;
+            count--;
+        }
+    } else {
+        
+        while (count > 0) {
+            if (from in O)
+                O[to] = O[from];
+            else
+                delete O[to];
+
+            from++;
+            to++;
+            count--;
+        }
+    }
+
+    
+    return O;
+}
+
+
 function ArrayFill(value, start = 0, end = undefined) {
     
     var O = ToObject(this);
