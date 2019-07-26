@@ -202,12 +202,6 @@ public:
 
 
 
-  void SetPageRect(const CSSRect& aCSSPageRect);
-
-  
-
-
-
 
   void SetDPI(int aDPI);
 

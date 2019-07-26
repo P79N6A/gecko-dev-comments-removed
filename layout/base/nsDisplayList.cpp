@@ -652,22 +652,12 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     contentBounds.width += scrollableFrame->GetScrollPortRect().width;
     contentBounds.height += scrollableFrame->GetScrollPortRect().height;
     metrics.mScrollableRect = CSSRect::FromAppUnits(contentBounds);
-    nsIntRect contentRect = contentBounds.ScaleToNearestPixels(
-      aContainerParameters.mXScale, aContainerParameters.mYScale, auPerDevPixel);
-    
-    metrics.mContentRect = LayerIntRect::FromUnknownRect(mozilla::gfx::IntRect(
-      contentRect.x, contentRect.y, contentRect.width, contentRect.height));
     nsPoint scrollPosition = scrollableFrame->GetScrollPosition();
     metrics.mScrollOffset = CSSPoint::FromAppUnits(scrollPosition);
   }
   else {
     nsRect contentBounds = aForFrame->GetRect();
     metrics.mScrollableRect = CSSRect::FromAppUnits(contentBounds);
-    nsIntRect contentRect = contentBounds.ScaleToNearestPixels(
-      aContainerParameters.mXScale, aContainerParameters.mYScale, auPerDevPixel);
-    
-    metrics.mContentRect = LayerIntRect::FromUnknownRect(mozilla::gfx::IntRect(
-      contentRect.x, contentRect.y, contentRect.width, contentRect.height));
   }
 
   metrics.mScrollId = aScrollId;

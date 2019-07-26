@@ -32,7 +32,6 @@ public:
 
   FrameMetrics()
     : mCompositionBounds(0, 0, 0, 0)
-    , mContentRect(0, 0, 0, 0)
     , mDisplayPort(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
     , mViewport(0, 0, 0, 0)
@@ -51,7 +50,6 @@ public:
   bool operator==(const FrameMetrics& aOther) const
   {
     return mCompositionBounds.IsEqualEdges(aOther.mCompositionBounds) &&
-           mContentRect.IsEqualEdges(aOther.mContentRect) &&
            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
            mCriticalDisplayPort.IsEqualEdges(aOther.mCriticalDisplayPort) &&
            mViewport.IsEqualEdges(aOther.mViewport) &&
@@ -121,17 +119,6 @@ public:
   
   
   LayerIntRect mCompositionBounds;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  LayerIntRect mContentRect;
 
   
   

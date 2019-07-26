@@ -832,29 +832,12 @@ void AsyncPanZoomController::ScrollBy(const gfx::Point& aOffset) {
   mFrameMetrics = metrics;
 }
 
-void AsyncPanZoomController::SetPageRect(const CSSRect& aCSSPageRect) {
-  FrameMetrics metrics = mFrameMetrics;
-  gfxFloat resolution = CalculateResolution(mFrameMetrics).width;
-
-  
-  
-  
-  metrics.mContentRect = LayerRect::FromCSSRectRoundOut(aCSSPageRect, resolution, resolution);
-  metrics.mScrollableRect = aCSSPageRect;
-
-  mFrameMetrics = metrics;
-}
-
 void AsyncPanZoomController::ScaleWithFocus(float aZoom,
                                             const nsIntPoint& aFocus) {
   float zoomFactor = aZoom / mFrameMetrics.mZoom.width;
   gfxFloat resolution = CalculateResolution(mFrameMetrics).width;
 
   SetZoomAndResolution(aZoom);
-
-  
-  
-  SetPageRect(mFrameMetrics.mScrollableRect);
 
   
   
@@ -1272,12 +1255,9 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
 
     mFrameMetrics = aViewportFrame;
 
-    SetPageRect(mFrameMetrics.mScrollableRect);
-
     mState = NOTHING;
   } else if (!mFrameMetrics.mScrollableRect.IsEqualEdges(aViewportFrame.mScrollableRect)) {
     mFrameMetrics.mScrollableRect = aViewportFrame.mScrollableRect;
-    SetPageRect(mFrameMetrics.mScrollableRect);
   }
 
   if (needContentRepaint) {

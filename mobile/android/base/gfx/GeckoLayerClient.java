@@ -553,18 +553,17 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
 
     public void setFirstPaintViewport(float offsetX, float offsetY, float zoom,
-            float pageLeft, float pageTop, float pageRight, float pageBottom,
             float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (getLock()) {
             ImmutableViewportMetrics currentMetrics = getViewportMetrics();
 
             Tab tab = Tabs.getInstance().getSelectedTab();
 
+            RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
             final ImmutableViewportMetrics newMetrics = currentMetrics
                 .setViewportOrigin(offsetX, offsetY)
                 .setZoomFactor(zoom)
-                .setPageRect(new RectF(pageLeft, pageTop, pageRight, pageBottom),
-                             new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom))
+                .setPageRect(RectUtils.scale(cssPageRect, zoom), cssPageRect)
                 .setIsRTL(tab.getIsRTL());
             
             
@@ -690,9 +689,8 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
                 boolean isFirstPaint)
     {
         if (isFirstPaint) {
-            RectF pageRect = RectUtils.scale(new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom), zoom);
-            setFirstPaintViewport(offsetX, offsetY, zoom, pageRect.left, pageRect.top, pageRect.right,
-                    pageRect.bottom, cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
+            setFirstPaintViewport(offsetX, offsetY, zoom,
+                                  cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
         }
 
         return syncViewportInfo(x, y, width, height, resolution, layersUpdated);
