@@ -97,7 +97,7 @@ MetroApp::Run()
 
 
 void
-MetroApp::ShutdownXPCOM()
+MetroApp::Shutdown()
 {
   LogThread();
 
@@ -107,7 +107,7 @@ MetroApp::ShutdownXPCOM()
   }
 
   if (sFrameworkView) {
-    sFrameworkView->ShutdownXPCOM();
+    sFrameworkView->Shutdown();
   }
 
   MetroApp::sGeckoShuttingDown = true;

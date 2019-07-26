@@ -262,7 +262,7 @@ MetroAppShell::Run(void)
 
       
       
-      sMetroApp->ShutdownXPCOM();
+      sMetroApp->Shutdown();
 
       
       if (restartingInDesktop) {

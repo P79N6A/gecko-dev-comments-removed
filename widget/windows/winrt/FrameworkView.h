@@ -82,7 +82,6 @@ public:
 
   
   int GetPreviousExecutionState();
-  void ShutdownXPCOM();
   float GetDPI() { return mDPI; }
   ICoreWindow* GetCoreWindow() { return mWindow.Get(); }
   void SetWidget(MetroWidget* aWidget);
@@ -100,6 +99,7 @@ public:
 
   
   void SetupContracts();
+  void Shutdown();
 
   
   void AddSetting(ISettingsPaneCommandsRequestedEventArgs* aArgs, uint32_t aId,
@@ -113,8 +113,6 @@ protected:
 
   HRESULT OnWindowSizeChanged(ICoreWindow* aSender,
                               IWindowSizeChangedEventArgs* aArgs);
-  HRESULT OnWindowClosed(ICoreWindow* aSender,
-                         ICoreWindowEventArgs* aArgs);
   HRESULT OnWindowActivated(ICoreWindow* aSender,
                             IWindowActivatedEventArgs* aArgs);
   HRESULT OnLogicalDpiChanged(IInspectable* aSender);

@@ -44,8 +44,8 @@ public:
 
   void Run();
   void CoreExit();
+  void Shutdown();
 
-  void ShutdownXPCOM();
   
   static bool sGeckoShuttingDown;
 
