@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5StringParser_h_
-#define nsHtml5StringParser_h_
+#ifndef nsHtml5StringParser_h
+#define nsHtml5StringParser_h
 
 #include "nsHtml5AtomTable.h"
 #include "nsParserBase.h"

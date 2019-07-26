@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5Speculation_h__
-#define nsHtml5Speculation_h__
+#ifndef nsHtml5Speculation_h
+#define nsHtml5Speculation_h
 
 #include "nsHtml5OwningUTF16Buffer.h"
 #include "nsAHtml5TreeBuilderState.h"

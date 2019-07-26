@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsParserUtils_h_
-#define nsParserUtils_h_
+#ifndef nsParserUtils_h
+#define nsParserUtils_h
 
 #include "nsIScriptableUnescapeHTML.h"
 #include "nsIParserUtils.h"

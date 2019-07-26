@@ -20,8 +20,8 @@
 
 
 
-#ifndef nsHtml5ArrayCopy_h__
-#define nsHtml5ArrayCopy_h__
+#ifndef nsHtml5ArrayCopy_h
+#define nsHtml5ArrayCopy_h
 
 #include "prtypes.h"
 

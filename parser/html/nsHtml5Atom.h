@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5Atom_h_
-#define nsHtml5Atom_h_
+#ifndef nsHtml5Atom_h
+#define nsHtml5Atom_h
 
 #include "nsIAtom.h"
 #include "mozilla/Attributes.h"

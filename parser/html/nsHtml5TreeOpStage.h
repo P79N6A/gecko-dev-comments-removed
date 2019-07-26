@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5TreeOpStage_h___
-#define nsHtml5TreeOpStage_h___
+#ifndef nsHtml5TreeOpStage_h
+#define nsHtml5TreeOpStage_h
 
 #include "mozilla/Mutex.h"
 #include "nsHtml5TreeOperation.h"

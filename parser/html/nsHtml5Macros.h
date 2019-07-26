@@ -20,8 +20,8 @@
 
 
 
-#ifndef nsHtml5Macros_h_
-#define nsHtml5Macros_h_
+#ifndef nsHtml5Macros_h
+#define nsHtml5Macros_h
 
 #define NS_HTML5_CONTINUE(target) \
   goto target

@@ -1,8 +1,8 @@
 
 
 
-#ifndef nsHtml5Highlighter_h_
-#define nsHtml5Highlighter_h_
+#ifndef nsHtml5Highlighter_h
+#define nsHtml5Highlighter_h
 
 #include "prtypes.h"
 #include "nsCOMPtr.h"

@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5PendingNotification_h__
-#define nsHtml5PendingNotification_h__
+#ifndef nsHtml5PendingNotification_h
+#define nsHtml5PendingNotification_h
 
 #include "nsNodeUtils.h"
 

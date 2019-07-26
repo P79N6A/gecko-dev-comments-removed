@@ -25,8 +25,8 @@
 
 
 
-#ifndef nsHtml5Portability_h__
-#define nsHtml5Portability_h__
+#ifndef nsHtml5Portability_h
+#define nsHtml5Portability_h
 
 #include "nsIAtom.h"
 #include "nsHtml5AtomTable.h"

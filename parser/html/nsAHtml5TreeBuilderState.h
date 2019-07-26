@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsAHtml5TreeBuilderState_h___
-#define nsAHtml5TreeBuilderState_h___
+#ifndef nsAHtml5TreeBuilderState_h
+#define nsAHtml5TreeBuilderState_h
 
 
 

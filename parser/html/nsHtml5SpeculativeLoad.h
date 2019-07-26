@@ -2,8 +2,8 @@
 
 
  
-#ifndef nsHtml5SpeculativeLoad_h_
-#define nsHtml5SpeculativeLoad_h_
+#ifndef nsHtml5SpeculativeLoad_h
+#define nsHtml5SpeculativeLoad_h
 
 #include "nsString.h"
 

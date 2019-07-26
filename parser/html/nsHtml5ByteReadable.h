@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5ByteReadable_h__
-#define nsHtml5ByteReadable_h__
+#ifndef nsHtml5ByteReadable_h
+#define nsHtml5ByteReadable_h
 
 
 

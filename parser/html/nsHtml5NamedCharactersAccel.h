@@ -6,8 +6,8 @@
 
 
 
-#ifndef nsHtml5NamedCharactersAccel_h_
-#define nsHtml5NamedCharactersAccel_h_
+#ifndef nsHtml5NamedCharactersAccel_h
+#define nsHtml5NamedCharactersAccel_h
 
 #include "prtypes.h"
 #include "jArray.h"

@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsHtml5RefPtr_h___
-#define nsHtml5RefPtr_h___
+#ifndef nsHtml5RefPtr_h
+#define nsHtml5RefPtr_h
 
 #include "nsIThread.h"
 

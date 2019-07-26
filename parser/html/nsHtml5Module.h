@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5Module_h__
-#define nsHtml5Module_h__
+#ifndef nsHtml5Module_h
+#define nsHtml5Module_h
 
 #include "nsIParser.h"
 #include "nsIThread.h"

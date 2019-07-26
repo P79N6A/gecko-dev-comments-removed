@@ -2,8 +2,8 @@
 
 
  
-#ifndef nsHtml5DocumentMode_h__
-#define nsHtml5DocumentMode_h__
+#ifndef nsHtml5DocumentMode_h
+#define nsHtml5DocumentMode_h
 
 enum nsHtml5DocumentMode {
     STANDARDS_MODE,

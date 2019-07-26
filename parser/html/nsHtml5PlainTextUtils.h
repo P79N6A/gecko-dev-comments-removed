@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5PlainTextUtils_h_
-#define nsHtml5PlainTextUtils_h_
+#ifndef nsHtml5PlainTextUtils_h
+#define nsHtml5PlainTextUtils_h
 
 #include "nsHtml5HtmlAttributes.h"
 

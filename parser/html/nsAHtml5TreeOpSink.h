@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsAHtml5TreeOpSink_h___
-#define nsAHtml5TreeOpSink_h___
+#ifndef nsAHtml5TreeOpSink_h
+#define nsAHtml5TreeOpSink_h
 
 
 

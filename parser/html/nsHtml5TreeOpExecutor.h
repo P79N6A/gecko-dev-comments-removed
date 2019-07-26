@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5TreeOpExecutor_h__
-#define nsHtml5TreeOpExecutor_h__
+#ifndef nsHtml5TreeOpExecutor_h
+#define nsHtml5TreeOpExecutor_h
 
 #include "nsIAtom.h"
 #include "nsINameSpaceManager.h"

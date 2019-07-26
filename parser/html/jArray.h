@@ -20,8 +20,8 @@
 
 
 
-#ifndef jArray_h_
-#define jArray_h_
+#ifndef jArray_h
+#define jArray_h
 
 #include "mozilla/NullPtr.h"
 #include "nsDebug.h"

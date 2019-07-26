@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5ReleasableAttributeName_h__
-#define nsHtml5ReleasableAttributeName_h__
+#ifndef nsHtml5ReleasableAttributeName_h
+#define nsHtml5ReleasableAttributeName_h
 
 #include "nsHtml5AttributeName.h"
 #include "mozilla/Attributes.h"

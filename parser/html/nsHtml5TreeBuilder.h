@@ -28,8 +28,8 @@
 
 
 
-#ifndef nsHtml5TreeBuilder_h__
-#define nsHtml5TreeBuilder_h__
+#ifndef nsHtml5TreeBuilder_h
+#define nsHtml5TreeBuilder_h
 
 #include "nsIAtom.h"
 #include "nsHtml5AtomTable.h"

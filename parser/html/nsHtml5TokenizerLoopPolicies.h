@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5TokenizerLoopPolicies_h_
-#define nsHtml5TokenizerLoopPolicies_h_
+#ifndef nsHtml5TokenizerLoopPolicies_h
+#define nsHtml5TokenizerLoopPolicies_h
 
 
 

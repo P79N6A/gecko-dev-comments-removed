@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5SVGLoadDispatcher_h_
-#define nsHtml5SVGLoadDispatcher_h_
+#ifndef nsHtml5SVGLoadDispatcher_h
+#define nsHtml5SVGLoadDispatcher_h
 
 #include "nsThreadUtils.h"
 #include "nsIContent.h"

@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5DependentUTF16Buffer_h_
-#define nsHtml5DependentUTF16Buffer_h_
+#ifndef nsHtml5DependentUTF16Buffer_h
+#define nsHtml5DependentUTF16Buffer_h
 
 #include "nscore.h"
 #include "nsHtml5OwningUTF16Buffer.h"

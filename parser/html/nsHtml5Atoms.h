@@ -9,8 +9,8 @@
 
 
 
-#ifndef nsHtml5Atoms_h___
-#define nsHtml5Atoms_h___
+#ifndef nsHtml5Atoms_h
+#define nsHtml5Atoms_h
 
 #include "nsIAtom.h"
 

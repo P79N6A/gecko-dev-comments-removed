@@ -20,8 +20,8 @@
 
 
 
-#ifndef nsHtml5NamedCharacters_h_
-#define nsHtml5NamedCharacters_h_
+#ifndef nsHtml5NamedCharacters_h
+#define nsHtml5NamedCharacters_h
 
 #include "prtypes.h"
 #include "jArray.h"

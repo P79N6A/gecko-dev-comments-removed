@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHtml5ViewSourceUtils_h_
-#define nsHtml5ViewSourceUtils_h_
+#ifndef nsHtml5ViewSourceUtils_h
+#define nsHtml5ViewSourceUtils_h
 
 #include "nsHtml5HtmlAttributes.h"
 

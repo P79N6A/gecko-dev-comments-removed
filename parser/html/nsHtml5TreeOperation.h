@@ -2,8 +2,8 @@
 
 
  
-#ifndef nsHtml5TreeOperation_h__
-#define nsHtml5TreeOperation_h__
+#ifndef nsHtml5TreeOperation_h
+#define nsHtml5TreeOperation_h
 
 #include "nsHtml5DocumentMode.h"
 #include "nsHtml5HtmlAttributes.h"
