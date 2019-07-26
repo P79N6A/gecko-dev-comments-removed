@@ -8,6 +8,7 @@
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/TouchBinding.h"
 #include "mozilla/dom/TouchEvent.h"
+#include "nsGlobalWindow.h"
 #include "nsContentUtils.h"
 #include "nsIContent.h"
 
@@ -137,6 +138,23 @@ JSObject*
 Touch::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 {
   return TouchBinding::Wrap(aCx, aScope, this);
+}
+
+
+
+
+EventTarget*
+Touch::GetParentObject()
+{
+  if (!mTarget) {
+    return nullptr;
+  }
+  nsCOMPtr<nsPIDOMWindow> outer = do_QueryInterface(mTarget->GetOwnerGlobal());
+  if (!outer) {
+    return nullptr;
+  }
+  MOZ_ASSERT(outer->IsOuterWindow());
+  return static_cast<nsGlobalWindow*>(outer->GetCurrentInnerWindow());
 }
 
 } 
