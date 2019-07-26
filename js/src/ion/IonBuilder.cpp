@@ -203,7 +203,8 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
     RootedScript inlineScript(cx, target->nonLazyScript());
     ExecutionMode executionMode = info().executionMode();
     if (!CanIonCompile(inlineScript, executionMode)) {
-        IonSpew(IonSpew_Inlining, "Cannot inline due to disable Ion compilation");
+        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to disable Ion compilation",
+                                  inlineScript->filename(), inlineScript->lineno);
         return false;
     }
 
@@ -212,7 +213,8 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
         ion::IsBaselineEnabled(cx) &&
         !inlineScript->hasBaselineScript())
     {
-        IonSpew(IonSpew_Inlining, "Cannot inline target with no baseline jitcode");
+        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline target with no baseline jitcode",
+                                  inlineScript->filename(), inlineScript->lineno);
         return false;
     }
 
@@ -220,7 +222,8 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
     IonBuilder *builder = callerBuilder_;
     while (builder) {
         if (builder->script() == inlineScript) {
-            IonSpew(IonSpew_Inlining, "Not inlining recursive call");
+            IonSpew(IonSpew_Inlining, "%s:%d Not inlining recursive call",
+                                       inlineScript->filename(), inlineScript->lineno);
             return false;
         }
         builder = builder->callerBuilder_;
@@ -229,12 +232,15 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
     RootedScript callerScript(cx, script());
 
     if (!oracle->canEnterInlinedFunction(target)) {
-        IonSpew(IonSpew_Inlining, "Cannot inline due to oracle veto %d", script()->lineno);
+        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to oracle veto %d",
+                                  inlineScript->filename(), inlineScript->lineno,
+                                  script()->lineno);
         return false;
     }
 
     if (!oracle->callReturnTypeSetMatches(callerScript, pc, target)) {
-        IonSpew(IonSpew_Inlining, "Cannot inline due to return typeset mismatch");
+        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to return typeset mismatch",
+                                  inlineScript->filename(), inlineScript->lineno);
         return false;
     }
 
@@ -243,7 +249,8 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
         
         
         if (!oracle->callArgsTypeSetIntersects(NULL, callInfo.argvType(), target)) {
-            IonSpew(IonSpew_Inlining, "Cannot inline due to arguments typeset mismatch");
+            IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to arguments typeset mismatch",
+                                      inlineScript->filename(), inlineScript->lineno);
             return false;
         }
     } else if (JSOp(*pc) == JSOP_FUNAPPLY) {
@@ -252,18 +259,25 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
         
         
         if (!oracle->callArgsTypeSetMatches(callInfo.thisType(), callInfo.argvType(), target)) {
-            IonSpew(IonSpew_Inlining, "Cannot inline due to arguments typeset mismatch");
+            IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to arguments typeset mismatch",
+                                       inlineScript->filename(), inlineScript->lineno);
             return false;
         }
     } else {
         
         if (!oracle->callArgsTypeSetIntersects(callInfo.thisType(), callInfo.argvType(), target)) {
-            IonSpew(IonSpew_Inlining, "Cannot inline due to arguments typeset mismatch");
+            IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to arguments typeset mismatch",
+                                      inlineScript->filename(), inlineScript->lineno);
             return false;
         }
     }
 
-    IonSpew(IonSpew_Inlining, "Inlining good to go!");
+    if (inlineScript->hasIonScript() && inlineScript->ionScript()->bailoutExpected()) {
+        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to known bailing script",
+                                  inlineScript->filename(), inlineScript->lineno);
+        return false;
+    }
+
     return true;
 }
 
@@ -3046,6 +3060,12 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
 
     
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
+    if (exits.length() == 0) {
+        
+        calleeScript->analysis()->setIonUninlineable();
+        abortReason_ = AbortReason_Inlining;
+        return false;
+    }
     MDefinition *retvalDefn = patchInlinedReturns(thisCall, exits, returnBlock);
     if (!retvalDefn)
         return false;
@@ -3226,24 +3246,17 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 
     
 
-    
-    if (IsSmallFunction(targetScript)) {
-        if (inliningDepth_ >= js_IonOptions.smallFunctionMaxInlineDepth) {
-            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding allowed inline depth",
-                                      targetScript->filename(), targetScript->lineno);
-            return false;
-        }
-    } else {
-        if (inliningDepth_ >= js_IonOptions.maxInlineDepth) {
-            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding allowed inline depth",
-                                      targetScript->filename(), targetScript->lineno);
-            return false;
-        }
-     }
+    IonBuilder *baseBuilder = this;
+    while (baseBuilder->callerBuilder_)
+        baseBuilder = baseBuilder->callerBuilder_;
 
     
-    if (targetScript->length == 1)
-        return true;
+    if (script()->length > js_IonOptions.inlineMaxTotalBytecodeLength &&
+        !IsSmallFunction(targetScript)) {
+        IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: caller excessively large.",
+                                  targetScript->filename(), targetScript->lineno);
+        return false;
+    }
 
     
     
@@ -3266,6 +3279,36 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
         IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee is not hot.",
                                   targetScript->filename(), targetScript->lineno);
         return false;
+    }
+
+    
+    uint32_t scriptMaxInlineDepth = targetScript->maxInlineDepth();
+    uint32_t globalMaxInlineDepth = js_IonOptions.maxInlineDepth;
+    if (IsSmallFunction(targetScript))
+        globalMaxInlineDepth = js_IonOptions.smallFunctionMaxInlineDepth;
+
+    
+    if (inliningDepth_ >= globalMaxInlineDepth) {
+        IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding global inline depth",
+                targetScript->filename(), targetScript->lineno);
+        baseBuilder->script()->disableInlineDepthCheck();
+        return false;
+    }
+
+    
+    if (inliningDepth_ >= scriptMaxInlineDepth)
+    {
+        IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding script inline depth.",
+                targetScript->filename(), targetScript->lineno);
+        return false;
+    }
+
+    
+    
+    if (!baseBuilder->script()->isInlineDepthCheckDisabled()) {
+        uint32_t updatedInlineDepth = globalMaxInlineDepth - inliningDepth_ - 1;
+        if (updatedInlineDepth < baseBuilder->script()->maxInlineDepth())
+            baseBuilder->script()->setMaxInlineDepth(updatedInlineDepth);
     }
 
     return true;
