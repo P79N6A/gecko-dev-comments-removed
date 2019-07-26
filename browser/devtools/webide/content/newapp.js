@@ -20,6 +20,11 @@ const {AppManager} = require("devtools/app-manager");
 
 let gTemplateList = null;
 
+
+console.log = console.log.bind(console);
+console.warn = console.warn.bind(console);
+console.error = console.error.bind(console);
+
 window.addEventListener("load", function onLoad() {
   window.removeEventListener("load", onLoad);
   let projectNameNode = document.querySelector("#project-name");
