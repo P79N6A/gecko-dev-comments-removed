@@ -237,6 +237,7 @@ function RTCPeerConnection() {
   this._pendingType = null;
   this._localType = null;
   this._remoteType = null;
+  this._trickleIce = false;
 
   
 
@@ -265,6 +266,7 @@ RTCPeerConnection.prototype = {
   init: function(win) { this._win = win; },
 
   __init: function(rtcConfig) {
+    this._trickleIce = Services.prefs.getBoolPref("media.peerconnection.trickle_ice");
     if (!rtcConfig.iceServers ||
         !Services.prefs.getBoolPref("media.peerconnection.use_document_iceservers")) {
       rtcConfig = {iceServers:
@@ -296,11 +298,11 @@ RTCPeerConnection.prototype = {
     
     _globalPCList.addPC(this);
 
-    
     this._queueOrRun({
       func: this._getPC().initialize,
       args: [this._observer, this._win, rtcConfig, Services.tm.currentThread],
-      wait: true
+      
+      wait: !this._trickleIce
     });
   },
 
@@ -966,13 +968,11 @@ PeerConnectionObserver.prototype = {
     this._dompc._pendingType = null;
     this.callCB(this._dompc._onSetLocalDescriptionSuccess);
 
-    
-    
-    
-    
-    
-    
-    this.foundIceCandidate(null);
+    if (this._iceGatheringState == "complete") {
+        
+        
+        this.foundIceCandidate(null);
+    }
 
     this._dompc._executeNext();
   },
@@ -1010,6 +1010,16 @@ PeerConnectionObserver.prototype = {
     this._dompc._executeNext();
   },
 
+  onIceCandidate: function(level, mid, candidate) {
+    this.foundIceCandidate(new this._dompc._win.mozRTCIceCandidate(
+        {
+            candidate: candidate,
+            sdpMid: mid,
+            sdpMLineIndex: level
+        }
+    ));
+  },
+
   handleIceStateChanges: function(iceState) {
     var histogram = Services.telemetry.getHistogramById("WEBRTC_ICE_SUCCESS_RATE");
     switch (iceState) {
@@ -1017,8 +1027,18 @@ PeerConnectionObserver.prototype = {
         this._dompc.changeIceConnectionState("new");
         this.callCB(this._dompc.ongatheringchange, "complete");
         this.callCB(this._onicechange, "starting");
-        
-        this._dompc._executeNext();
+
+        if (!this._dompc._trickleIce) {
+          
+          
+          this._dompc._executeNext();
+        }
+        else if (this.localDescription) {
+          
+          
+          
+          this.foundIceCandidate(null);
+        }
         break;
       case Ci.IPeerConnection.kIceChecking:
         this._dompc.changeIceConnectionState("checking");
@@ -1081,9 +1101,13 @@ PeerConnectionObserver.prototype = {
                                                              { stream: stream }));
   },
 
-  foundIceCandidate: function(c) {
+  foundIceCandidate: function(cand, mid, line) {
     this.dispatchEvent(new this._dompc._win.RTCPeerConnectionIceEvent("icecandidate",
-                                                                      { candidate: c }));
+                                                                      {
+                                                                          candidate: cand,
+                                                                          sdpMid: mid,
+                                                                          sdpMLineIndex: line
+                                                                      }));
   },
 
   notifyDataChannel: function(channel) {
