@@ -92,7 +92,7 @@ NS_IMPL_QUERY_INTERFACE1(StartTransactionRunnable, nsIRunnable)
 
 already_AddRefed<IDBTransaction>
 IDBTransaction::CreateInternal(IDBDatabase* aDatabase,
-                               nsTArray<nsString>& aObjectStoreNames,
+                               const Sequence<nsString>& aObjectStoreNames,
                                Mode aMode,
                                bool aDispatchDelayed,
                                bool aIsVersionChangeTransactionChild)
