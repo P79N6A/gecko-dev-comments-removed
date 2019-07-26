@@ -82,7 +82,7 @@ class Nursery
 
 
 
-    void *allocate(size_t size);
+    JSObject *allocateObject(JSContext *cx, size_t size, size_t numDynamic);
 
     
     HeapSlot *allocateSlots(JSContext *cx, JSObject *obj, uint32_t nslots);
@@ -183,7 +183,7 @@ class Nursery
     HugeSlotsSet hugeSlots;
 
     
-    static const size_t MaxNurserySlots = 100;
+    static const size_t MaxNurserySlots = 128;
 
     
     static const size_t NurseryChunkUsableSize = gc::ChunkSize - sizeof(gc::ChunkTrailer);
@@ -252,6 +252,9 @@ class Nursery
     void *allocateFromTenured(JS::Zone *zone, gc::AllocKind thingKind);
 
     struct TenureCountCache;
+
+    
+    void *allocate(size_t size);
 
     
 

@@ -1522,6 +1522,9 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     }
 
     
+    void setInitialSlots(HeapSlot *newSlots) { slots = newSlots; }
+
+    
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
     HeapPtrShape *addressOfShape() { return &shape_; }
 
