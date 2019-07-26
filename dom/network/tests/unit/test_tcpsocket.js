@@ -80,6 +80,11 @@ function get_platform() {
   return xulRuntime.OS;
 }
 
+function is_content() {
+  return this._inChild = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime)
+                            .processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
+}
+
 
 
 
@@ -501,6 +506,62 @@ function bufferTwice() {
 }
 
 
+
+
+
+
+
+
+function childbuffered() {
+  let yays = makeJointSuccess(['ondrain', 'serverdata',
+                               'clientclose', 'serverclose']);
+  sock.ondrain = function() {
+    yays.ondrain();
+    sock.close();
+  };
+
+  server.ondata = makeExpectData(
+    'ondata', DATA_ARRAY, false, yays.serverdata);
+
+  let internalSocket = sock.QueryInterface(Ci.nsITCPSocketInternal);
+  internalSocket.updateBufferedAmount(65535, 
+                                      0);
+  if (sock.send(DATA_ARRAY_BUFFER)) {
+    do_throw("expected sock.send to return false.");
+  }
+
+  sock.onclose = yays.clientclose;
+  server.onclose = yays.serverclose;
+}
+
+
+
+
+
+
+
+
+
+function childnotbuffered() {
+  let yays = makeJointSuccess(['serverdata', 'clientclose', 'serverclose']);
+  server.ondata = makeExpectData('ondata', BIG_ARRAY, false, yays.serverdata);
+  if (sock.send(BIG_ARRAY_BUFFER)) {
+    do_throw("sock.send(BIG_TYPED_ARRAY) did not return false to indicate buffering");
+  }
+  let internalSocket = sock.QueryInterface(Ci.nsITCPSocketInternal);
+  internalSocket.updateBufferedAmount(0, 
+                                      1);
+
+  
+  sock.ondrain = makeFailureCase('drain');
+  sock.onclose = yays.clientclose;
+  server.onclose = yays.serverclose;
+  do_timeout(1000, function() {
+    sock.close();
+  });
+};
+
+
 add_test(connectSock);
 add_test(sendData);
 add_test(sendBig);
@@ -530,6 +591,14 @@ add_test(drainTwice);
 
 add_test(connectSock);
 add_test(bufferTwice);
+
+if (is_content()) {
+  add_test(connectSock);
+  add_test(childnotbuffered);
+
+  add_test(connectSock);
+  add_test(childbuffered);
+}
 
 
 add_test(cleanup);
