@@ -16,6 +16,12 @@
 #include "prlog.h"
 #include "prenv.h"
 #include "nsVersionComparator.h"
+#include "nsXREDirProvider.h"
+#include "SpecialSystemDirectory.h"
+#include "nsDirectoryServiceDefs.h"
+#include "nsThreadUtils.h"
+#include "nsIXULAppInfo.h"
+#include "mozilla/Preferences.h"
 
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
@@ -27,6 +33,7 @@
 # include <direct.h>
 # include <process.h>
 # include <windows.h>
+# include <shlwapi.h>
 # define getcwd(path, size) _getcwd(path, size)
 # define getpid() GetCurrentProcessId()
 #elif defined(XP_OS2)
@@ -154,24 +161,73 @@ GetStatusFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
   return GetFile(dir, NS_LITERAL_CSTRING("update.status"), result);
 }
 
+
+
+
+
+
+
+
+
+template <size_t Size>
 static bool
-IsPending(nsILocalFile *statusFile)
+GetStatusFileContents(nsILocalFile *statusFile, char (&buf)[Size])
 {
+  
+  PR_STATIC_ASSERT(Size > 16);
+
   PRFileDesc *fd = nsnull;
   nsresult rv = statusFile->OpenNSPRFileDesc(PR_RDONLY, 0660, &fd);
   if (NS_FAILED(rv))
     return false;
 
-  char buf[32];
-  const PRInt32 n = PR_Read(fd, buf, sizeof(buf));
+  const PRInt32 n = PR_Read(fd, buf, Size);
   PR_Close(fd);
 
-  if (n < 0)
-    return false;
-  
-  const char kPending[] = "pending";
-  bool isPending = (strncmp(buf, kPending, sizeof(kPending) - 1) == 0);
-  return isPending;
+  return (n >= 0);
+}
+
+typedef enum {
+  eNoUpdateAction,
+  ePendingUpdate,
+  ePendingService,
+  eAppliedUpdate,
+  eAppliedService
+} UpdateStatus;
+
+
+
+
+
+
+
+
+
+static UpdateStatus
+GetUpdateStatus(nsIFile* dir, nsCOMPtr<nsILocalFile> &statusFile)
+{
+  if (GetStatusFile(dir, statusFile)) {
+    char buf[32];
+    if (GetStatusFileContents(statusFile, buf)) {
+      const char kPending[] = "pending";
+      const char kPendingService[] = "pending-service";
+      const char kApplied[] = "applied";
+      const char kAppliedService[] = "applied-service";
+      if (!strncmp(buf, kPendingService, sizeof(kPendingService) - 1)) {
+        return ePendingService;
+      }
+      if (!strncmp(buf, kPending, sizeof(kPending) - 1)) {
+        return ePendingUpdate;
+      }
+      if (!strncmp(buf, kAppliedService, sizeof(kAppliedService) - 1)) {
+        return eAppliedService;
+      }
+      if (!strncmp(buf, kApplied, sizeof(kApplied) - 1)) {
+        return eAppliedUpdate;
+      }
+    }
+  }
+  return eNoUpdateAction;
 }
 
 static bool
@@ -226,7 +282,7 @@ CopyFileIntoUpdateDir(nsIFile *parentDir, const char *leafName, nsIFile *updateD
   rv = file->AppendNative(leaf);
   if (NS_FAILED(rv))
     return false;
-  file->Remove(false);
+  file->Remove(true);
 
   
   rv = parentDir->Clone(getter_AddRefs(file));
@@ -277,9 +333,230 @@ CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
   return NS_SUCCEEDED(rv); 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+static void
+SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
+                   nsIFile *appDir, int appArgc, char **appArgv)
+{
+  nsresult rv;
+
+  
+  
+  
+
+  nsCOMPtr<nsILocalFile> tmpDir;
+  GetSpecialSystemDirectory(OS_TemporaryDirectory,
+                            getter_AddRefs(tmpDir));
+  if (!tmpDir) {
+    LOG(("failed getting a temp dir\n"));
+    return;
+  }
+
+  
+  
+  
+  
+  tmpDir->Append(NS_LITERAL_STRING("MozUpdater"));
+  tmpDir->CreateUnique(nsIFile::DIRECTORY_TYPE, 0755);
+
+  nsCOMPtr<nsIFile> updater;
+  if (!CopyUpdaterIntoUpdateDir(greDir, appDir, tmpDir, updater)) {
+    LOG(("failed copying updater\n"));
+    return;
+  }
+
+  
+  
+  nsCOMPtr<nsILocalFile> appFile;
+
+#if defined(XP_MACOSX)
+  
+  
+  GetXULRunnerStubPath(appArgv[0], getter_AddRefs(appFile));
+#else
+  XRE_GetBinaryPath(appArgv[0], getter_AddRefs(appFile));
+#endif
+
+  if (!appFile)
+    return;
+
+#ifdef XP_WIN
+  nsAutoString appFilePathW;
+  rv = appFile->GetPath(appFilePathW);
+  if (NS_FAILED(rv))
+    return;
+  NS_ConvertUTF16toUTF8 appFilePath(appFilePathW);
+
+  nsAutoString updaterPathW;
+  rv = updater->GetPath(updaterPathW);
+  if (NS_FAILED(rv))
+    return;
+
+  NS_ConvertUTF16toUTF8 updaterPath(updaterPathW);
+
+#else
+  nsCAutoString appFilePath;
+  rv = appFile->GetNativePath(appFilePath);
+  if (NS_FAILED(rv))
+    return;
+
+  nsCAutoString updaterPath;
+  rv = updater->GetNativePath(updaterPath);
+  if (NS_FAILED(rv))
+    return;
+
+#endif
+
+  
+  
+  
+  
+  nsCOMPtr<nsILocalFile> updatedDir;
+#if defined(XP_MACOSX)
+  nsCAutoString applyToDir;
+  {
+    nsCOMPtr<nsIFile> parentDir1, parentDir2;
+    rv = appDir->GetParent(getter_AddRefs(parentDir1));
+    if (NS_FAILED(rv))
+      return;
+    rv = parentDir1->GetParent(getter_AddRefs(parentDir2));
+    if (NS_FAILED(rv))
+      return;
+    if (!GetFile(parentDir2, NS_LITERAL_CSTRING("Updated.app"), updatedDir))
+      return;
+    rv = updatedDir->GetNativePath(applyToDir);
+  }
+#else
+  if (!GetFile(appDir, NS_LITERAL_CSTRING("updated"), updatedDir))
+    return;
+#if defined(XP_WIN)
+  nsAutoString applyToDirW;
+  rv = updatedDir->GetPath(applyToDirW);
+
+  NS_ConvertUTF16toUTF8 applyToDir(applyToDirW);
+#else
+  nsCAutoString applyToDir;
+  rv = updatedDir->GetNativePath(applyToDir);
+#endif
+#endif
+  if (NS_FAILED(rv))
+    return;
+
+  
+  bool updatedDirExists = false;
+  updatedDir->Exists(&updatedDirExists);
+  if (!updatedDirExists) {
+    return;
+  }
+
+#if defined(XP_WIN)
+  nsAutoString updateDirPathW;
+  rv = updateDir->GetPath(updateDirPathW);
+
+  NS_ConvertUTF16toUTF8 updateDirPath(updateDirPathW);
+#else
+  nsCAutoString updateDirPath;
+  rv = updateDir->GetNativePath(updateDirPath);
+#endif
+
+  if (NS_FAILED(rv))
+    return;
+
+  
+  char workingDirPath[MAXPATHLEN];
+  rv = GetCurrentWorkingDir(workingDirPath, sizeof(workingDirPath));
+  if (NS_FAILED(rv))
+    return;
+
+  
+  
+#if defined(USE_EXECV)
+  nsCAutoString pid("0");
+#else
+  nsCAutoString pid;
+  pid.AppendInt((PRInt32) getpid());
+#endif
+
+  
+  
+  pid.AppendASCII("/replace");
+
+  int argc = appArgc + 5;
+  char **argv = new char*[argc + 1];
+  if (!argv)
+    return;
+  argv[0] = (char*) updaterPath.get();
+  argv[1] = (char*) updateDirPath.get();
+  argv[2] = (char*) applyToDir.get();
+  argv[3] = (char*) pid.get();
+  if (appArgc) {
+    argv[4] = workingDirPath;
+    argv[5] = (char*) appFilePath.get();
+    for (int i = 1; i < appArgc; ++i)
+      argv[5 + i] = appArgv[i];
+    argc = 5 + appArgc;
+    argv[argc] = NULL;
+  } else {
+    argc = 4;
+    argv[4] = NULL;
+  }
+
+  if (gSafeMode) {
+    PR_SetEnv("MOZ_SAFE_MODE_RESTART=1");
+  }
+
+  LOG(("spawning updater process for replacing [%s]\n", updaterPath.get()));
+
+#if defined(USE_EXECV)
+  execv(updaterPath.get(), argv);
+#elif defined(XP_WIN)
+  
+  if (!WinLaunchChild(updaterPathW.get(), argc, argv)) {
+    return;
+  }
+  _exit(0);
+#elif defined(XP_MACOSX)
+  CommandLineServiceMac::SetupMacCommandLine(argc, argv, true);
+  
+  
+  
+  LaunchChildMac(argc, argv);
+  exit(0);
+#else
+  PR_CreateProcessDetached(updaterPath.get(), argv, NULL, NULL);
+  exit(0);
+#endif
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static void
 ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
-            nsIFile *appDir, int appArgc, char **appArgv)
+            nsIFile *appDir, int appArgc, char **appArgv, bool restart,
+            ProcessType *outpid)
 {
   nsresult rv;
 
@@ -339,6 +616,8 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
   
   
   
+  
+  nsCOMPtr<nsILocalFile> updatedDir;
 #if defined(XP_MACOSX)
   nsCAutoString applyToDir;
   {
@@ -349,16 +628,33 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
     rv = parentDir1->GetParent(getter_AddRefs(parentDir2));
     if (NS_FAILED(rv))
       return;
-    rv = parentDir2->GetNativePath(applyToDir);
+    if (restart) {
+      
+      
+      rv = parentDir2->GetNativePath(applyToDir);
+    } else {
+      if (!GetFile(parentDir2, NS_LITERAL_CSTRING("Updated.app"), updatedDir))
+        return;
+      rv = updatedDir->GetNativePath(applyToDir);
+    }
   }
-#elif defined(XP_WIN)
+#else
+  if (restart) {
+    
+    
+    updatedDir = do_QueryInterface(appDir);
+  } else if (!GetFile(appDir, NS_LITERAL_CSTRING("updated"), updatedDir)) {
+    return;
+  }
+#if defined(XP_WIN)
   nsAutoString applyToDirW;
-  rv = appDir->GetPath(applyToDirW);
+  rv = updatedDir->GetPath(applyToDirW);
 
   NS_ConvertUTF16toUTF8 applyToDir(applyToDirW);
 #else
   nsCAutoString applyToDir;
-  rv = appDir->GetNativePath(applyToDir);
+  rv = updatedDir->GetNativePath(applyToDir);
+#endif
 #endif
   if (NS_FAILED(rv))
     return;
@@ -390,12 +686,18 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
 
   
   
-#if defined(USE_EXECV)
-  NS_NAMED_LITERAL_CSTRING(pid, "0");
-#else
   nsCAutoString pid;
-  pid.AppendInt((PRInt32) getpid());
+  if (!restart) {
+    
+    
+    pid.AssignASCII("-1");
+  } else {
+#if defined(USE_EXECV)
+    pid.AssignASCII("0");
+#else
+    pid.AppendInt((PRInt32) getpid());
 #endif
+  }
 
   int argc = appArgc + 5;
   char **argv = new char*[argc + 1];
@@ -405,7 +707,7 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
   argv[1] = (char*) updateDirPath.get();
   argv[2] = (char*) applyToDir.get();
   argv[3] = (char*) pid.get();
-  if (appArgc) {
+  if (restart && appArgc) {
     argv[4] = workingDirPath;
     argv[5] = (char*) appFilePath.get();
     for (int i = 1; i < appArgc; ++i)
@@ -424,32 +726,60 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
   LOG(("spawning updater process [%s]\n", updaterPath.get()));
 
 #if defined(USE_EXECV)
-  execv(updaterPath.get(), argv);
-#elif defined(XP_WIN)
-
   
-  if (!WinLaunchChild(updaterPathW.get(), argc, argv)) {
+  if (restart) {
+    execv(updaterPath.get(), argv);
+  } else {
+    *outpid = PR_CreateProcess(updaterPath.get(), argv, NULL, NULL);
+  }
+#elif defined(XP_WIN)
+  
+  if (!WinLaunchChild(updaterPathW.get(), argc, argv, NULL, outpid)) {
     return;
   }
 
-  
-  _exit(0);
+  if (restart) {
+    
+    _exit(0);
+  }
 #elif defined(XP_MACOSX)
   CommandLineServiceMac::SetupMacCommandLine(argc, argv, true);
   
   
   
-  LaunchChildMac(argc, argv);
-  exit(0);
+  LaunchChildMac(argc, argv, 0, outpid);
+  if (restart) {
+    exit(0);
+  }
 #else
-  PR_CreateProcessDetached(updaterPath.get(), argv, NULL, NULL);
-  exit(0);
+  *outpid = PR_CreateProcess(updaterPath.get(), argv, NULL, NULL);
+  if (restart) {
+    exit(0);
+  }
+#endif
+}
+
+
+
+
+static void
+WaitForProcess(ProcessType pt)
+{
+#if defined(XP_WIN)
+  WaitForSingleObject(pt, INFINITE);
+  CloseHandle(pt);
+#elif defined(XP_MACOSX)
+  waitpid(pt, 0, 0);
+#else
+  PRInt32 exitCode;
+  PR_WaitProcess(pt, &exitCode);
 #endif
 }
 
 nsresult
 ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
-               int argc, char **argv, const char *appVersion)
+               int argc, char **argv, const char *appVersion,
+               bool restart, ProcessType *pid)
 {
   nsresult rv;
 
@@ -466,6 +796,7 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
   if (NS_FAILED(rv))
     return rv;
  
+  ProcessType dummyPID; 
   const char *processingUpdates = PR_GetEnv("MOZ_PROCESS_UPDATES");
   if (processingUpdates && *processingUpdates) {
     
@@ -488,14 +819,21 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
       if (NS_FAILED(rv)) {
         return rv;
       }
-      NS_RELEASE(appDir);
       NS_ADDREF(appDir = overrideDir);
+    }
+    
+    const char *backgroundUpdate = PR_GetEnv("MOZ_UPDATE_BACKGROUND");
+    if (backgroundUpdate && *backgroundUpdate) {
+      restart = false;
+      pid = &dummyPID;
     }
   }
 
   nsCOMPtr<nsILocalFile> statusFile;
-  if (GetStatusFile(updatesDir, statusFile) && 
-      IsPending(statusFile)) {
+  UpdateStatus status = GetUpdateStatus(updatesDir, statusFile);
+  switch (status) {
+  case ePendingUpdate:
+  case ePendingService: {
     nsCOMPtr<nsILocalFile> versionFile;
     
     
@@ -504,10 +842,180 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
         IsOlderVersion(versionFile, appVersion)) {
       updatesDir->Remove(true);
     } else {
-      ApplyUpdate(greDir, updatesDir, statusFile, appDir, 
-                  argc, argv);
+      ApplyUpdate(greDir, updatesDir, statusFile,
+                  appDir, argc, argv, restart, pid);
     }
+    break;
+  }
+  case eAppliedUpdate:
+  case eAppliedService:
+    
+    
+    SwitchToUpdatedApp(greDir, updatesDir, statusFile,
+                       appDir, argc, argv);
+    break;
+  case eNoUpdateAction:
+    
+    
+    break;
   }
 
   return NS_OK;
 }
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsUpdateProcessor, nsIUpdateProcessor)
+
+nsUpdateProcessor::nsUpdateProcessor()
+  : mUpdaterPID(0)
+{
+}
+
+NS_IMETHODIMP
+nsUpdateProcessor::ProcessUpdate(nsIUpdate* aUpdate)
+{
+  nsCOMPtr<nsIFile> greDir, appDir, updRoot;
+  nsCAutoString appVersion;
+  int argc;
+  char **argv;
+
+  NS_ENSURE_ARG_POINTER(aUpdate);
+
+  nsXREDirProvider* dirProvider = nsXREDirProvider::GetSingleton();
+  if (dirProvider) { 
+    
+    bool persistent;
+    nsresult rv = dirProvider->GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
+                                       getter_AddRefs(updRoot));
+    
+    if (NS_FAILED(rv))
+      updRoot = dirProvider->GetAppDir();
+
+    greDir = dirProvider->GetGREDir();
+    appDir = dirProvider->GetAppDir();
+    appVersion = gAppData->version;
+    argc = gRestartArgc;
+    argv = gRestartArgv;
+  } else {
+    
+    
+    
+    
+    nsCOMPtr<nsIProperties> ds =
+      do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID);
+    if (!ds) {
+      NS_ABORT(); 
+    }
+
+    nsresult rv = ds->Get(NS_GRE_DIR, NS_GET_IID(nsIFile),
+                          getter_AddRefs(greDir));
+    NS_ASSERTION(NS_SUCCEEDED(rv), "Can't get the GRE dir");
+    appDir = greDir;
+
+    rv = ds->Get(XRE_UPDATE_ROOT_DIR, NS_GET_IID(nsIFile),
+                 getter_AddRefs(updRoot));
+    if (NS_FAILED(rv))
+      updRoot = appDir;
+
+    nsCOMPtr<nsIXULAppInfo> appInfo =
+      do_GetService("@mozilla.org/xre/app-info;1");
+    if (appInfo) {
+      rv = appInfo->GetVersion(appVersion);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else {
+      appVersion = MOZ_APP_VERSION;
+    }
+
+    
+    
+    
+    argc = 1;
+    nsCAutoString binPath;
+    nsCOMPtr<nsIFile> binary;
+    rv = ds->Get(XRE_EXECUTABLE_FILE, NS_GET_IID(nsIFile),
+                 getter_AddRefs(binary));
+    NS_ASSERTION(NS_SUCCEEDED(rv), "Can't get the binary path");
+    binary->GetNativePath(binPath);
+    char* binPathCString = const_cast<char*> (nsPromiseFlatCString(binPath).get());
+    argv = &binPathCString;
+  }
+
+  
+  
+  mInfo.mGREDir = greDir;
+  mInfo.mAppDir = appDir;
+  mInfo.mUpdateRoot = updRoot;
+  mInfo.mArgc = argc;
+  mInfo.mArgv = new char*[argc];
+  for (int i = 0; i < argc; ++i) {
+    const size_t length = strlen(argv[i]);
+    mInfo.mArgv[i] = new char[length + 1];
+    strcpy(mInfo.mArgv[i], argv[i]);
+  }
+  mInfo.mAppVersion = appVersion;
+
+  mUpdate = aUpdate;
+
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "not main thread");
+  return NS_NewThread(getter_AddRefs(mProcessWatcher),
+                      NS_NewRunnableMethod(this, &nsUpdateProcessor::StartBackgroundUpdate));
+}
+
+void
+nsUpdateProcessor::StartBackgroundUpdate()
+{
+  NS_ABORT_IF_FALSE(!NS_IsMainThread(), "main thread");
+
+  nsresult rv = ProcessUpdates(mInfo.mGREDir,
+                               mInfo.mAppDir,
+                               mInfo.mUpdateRoot,
+                               mInfo.mArgc,
+                               mInfo.mArgv,
+                               PromiseFlatCString(mInfo.mAppVersion).get(),
+                               false,
+                               &mUpdaterPID);
+  NS_ENSURE_SUCCESS(rv, );
+
+  if (mUpdaterPID) {
+    
+    rv = NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, &nsUpdateProcessor::WaitForProcess));
+    NS_ENSURE_SUCCESS(rv, );
+  } else {
+    
+    
+    
+    rv = NS_DispatchToMainThread(NS_NewRunnableMethod(this, &nsUpdateProcessor::ShutdownWatcherThread));
+    NS_ENSURE_SUCCESS(rv, );
+  }
+}
+
+void
+nsUpdateProcessor::ShutdownWatcherThread()
+{
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "not main thread");
+  mProcessWatcher->Shutdown();
+  mProcessWatcher = nsnull;
+  mUpdate = nsnull;
+}
+
+void
+nsUpdateProcessor::WaitForProcess()
+{
+  NS_ABORT_IF_FALSE(!NS_IsMainThread(), "main thread");
+  ::WaitForProcess(mUpdaterPID);
+  NS_DispatchToMainThread(NS_NewRunnableMethod(this, &nsUpdateProcessor::UpdateDone));
+}
+
+void
+nsUpdateProcessor::UpdateDone()
+{
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "not main thread");
+
+  nsCOMPtr<nsIUpdateManager> um =
+    do_GetService("@mozilla.org/updates/update-manager;1");
+  if (um) {
+    um->RefreshUpdateStatus(mUpdate);
+  }
+
+  ShutdownWatcherThread();
+}
+

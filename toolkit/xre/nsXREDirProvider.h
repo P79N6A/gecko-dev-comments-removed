@@ -34,6 +34,8 @@ public:
                       nsIDirectoryServiceProvider* aAppProvider = nsnull);
   ~nsXREDirProvider();
 
+  static nsXREDirProvider* GetSingleton();
+
   
   
   

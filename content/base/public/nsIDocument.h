@@ -92,9 +92,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x8e51e6d9, 0x914d, 0x46ba, \
-  { 0xb3, 0x11, 0x2f, 0x27, 0x3d, 0xe6, 0x0d, 0x19 } }
-
+{ 0x88d887da, 0xd228, 0x41c2, \
+  { 0xb8, 0x0a, 0x42, 0xec, 0xf0, 0xcb, 0xce, 0x37 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -743,6 +742,14 @@ public:
 
 
   virtual bool IsFullScreenDoc() = 0;
+
+  
+
+
+
+
+
+  virtual void SetApprovedForFullscreen(bool aIsApproved) = 0;
 
   
 

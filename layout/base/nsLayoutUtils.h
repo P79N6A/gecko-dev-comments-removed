@@ -1495,14 +1495,7 @@ public:
 
 
 
-
-
-
-
-
-  enum WidthDetermination { eNotInReflow, eInReflow };
-  static float FontSizeInflationFor(const nsIFrame *aFrame,
-                                    WidthDetermination aWidthDetermination);
+  static float FontSizeInflationFor(const nsIFrame *aFrame);
 
   
 
@@ -1517,9 +1510,7 @@ public:
 
 
 
-  static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame,
-                                         WidthDetermination
-                                           aWidthDetermination);
+  static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame);
 
   
 
@@ -1660,29 +1651,33 @@ namespace mozilla {
 
 
 
-    class AutoMaybeNullInflationContainer {
+    class AutoMaybeDisableFontInflation {
     public:
-      AutoMaybeNullInflationContainer(nsIFrame *aFrame)
+      AutoMaybeDisableFontInflation(nsIFrame *aFrame)
       {
+        
+        
+        
+        
         if (nsLayoutUtils::IsContainerForFontSizeInflation(aFrame)) {
           mPresContext = aFrame->PresContext();
-          mOldValue = mPresContext->mCurrentInflationContainer;
-          mPresContext->mCurrentInflationContainer = nsnull;
+          mOldValue = mPresContext->mInflationDisabledForShrinkWrap;
+          mPresContext->mInflationDisabledForShrinkWrap = true;
         } else {
           
           mPresContext = nsnull;
         }
       }
 
-      ~AutoMaybeNullInflationContainer()
+      ~AutoMaybeDisableFontInflation()
       {
         if (mPresContext) {
-          mPresContext->mCurrentInflationContainer = mOldValue;
+          mPresContext->mInflationDisabledForShrinkWrap = mOldValue;
         }
       }
     private:
       nsPresContext *mPresContext;
-      nsIFrame *mOldValue;
+      bool mOldValue;
     };
 
   }

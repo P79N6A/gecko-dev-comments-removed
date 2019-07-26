@@ -379,7 +379,7 @@ nsFieldSetFrame::ComputeSize(nsRenderingContext *aRenderingContext,
 
   
   
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   nscoord minWidth = GetMinWidth(aRenderingContext);
   if (minWidth > result.width)

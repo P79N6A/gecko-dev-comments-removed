@@ -338,12 +338,6 @@ public:
     PRUint16 mIsColumnBalancing:1;   
   } mFlags;
 
-private:
-
-  mozilla::AutoRestore<nsIFrame*> mRestoreCurrentInflationContainer;
-  mozilla::AutoRestore<nscoord> mRestoreCurrentInflationContainerWidth;
-
-public:
   
   
   

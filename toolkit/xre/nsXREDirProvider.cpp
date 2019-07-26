@@ -86,6 +86,12 @@ nsXREDirProvider::~nsXREDirProvider()
   gDirServiceProvider = nsnull;
 }
 
+nsXREDirProvider*
+nsXREDirProvider::GetSingleton()
+{
+  return gDirServiceProvider;
+}
+
 nsresult
 nsXREDirProvider::Initialize(nsIFile *aXULAppDir,
                              nsILocalFile *aGREDir,
@@ -939,14 +945,22 @@ nsXREDirProvider::GetUpdateRootDir(nsIFile* *aResult)
   if (longPath.Length() < programFilesLen)
     return NS_ERROR_FAILURE;
 
-  if (_wcsnicmp(programFiles.get(), longPath.get(), programFilesLen) != 0)
-    return NS_ERROR_FAILURE;
+  nsAutoString programName;
+  if (_wcsnicmp(programFiles.get(), longPath.get(), programFilesLen) == 0) {
+    programName = Substring(longPath, programFilesLen);
+  } else {
+    
+    
+    
+    
+    programName.AssignASCII(MOZ_APP_NAME);
+  }
 
   nsCOMPtr<nsILocalFile> updRoot;
   rv = GetUserLocalDataDirectory(getter_AddRefs(updRoot));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = updRoot->AppendRelativePath(Substring(longPath, programFilesLen));
+  rv = updRoot->AppendRelativePath(programName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ADDREF(*aResult = updRoot);

@@ -83,7 +83,7 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     if (aIsCell) {
         
         
-        AutoMaybeNullInflationContainer an(aFrame);
+        AutoMaybeDisableFontInflation an(aFrame);
 
         minCoord = aFrame->GetMinWidth(aRenderingContext);
         prefCoord = aFrame->GetPrefWidth(aRenderingContext);

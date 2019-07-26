@@ -61,7 +61,6 @@ pref("extensions.hotfix.certs.1.sha1Fingerprint", "F1:DB:F9:6A:7B:B8:04:FA:48:3C
 
 
 
-
 pref("extensions.autoDisableScopes", 15);
 
 
@@ -145,6 +144,10 @@ pref("app.update.mode", 1);
 
 
 pref("app.update.silent", false);
+
+
+
+pref("app.update.stage.enabled", true);
 
 
 pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
@@ -1027,7 +1030,7 @@ pref("devtools.layoutview.enabled", false);
 pref("devtools.layoutview.open", false);
 
 
-pref("devtools.debugger.enabled", false);
+pref("devtools.debugger.enabled", true);
 pref("devtools.debugger.remote-enabled", false);
 pref("devtools.debugger.remote-host", "localhost");
 pref("devtools.debugger.remote-port", 6000);

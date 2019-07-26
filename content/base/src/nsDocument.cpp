@@ -7391,7 +7391,7 @@ nsDocument::OnPageHide(bool aPersisted,
     
     
     
-    ClearFullScreenStack();
+    CleanupFullscreenState();
 
     
     nsIDocument::ExitFullScreen(false);
@@ -8581,7 +8581,7 @@ nsIDocument::ExitFullScreen(bool aRunAsync)
 static bool
 ResetFullScreen(nsIDocument* aDocument, void* aData) {
   if (aDocument->IsFullScreenDoc()) {
-    static_cast<nsDocument*>(aDocument)->ClearFullScreenStack();
+    static_cast<nsDocument*>(aDocument)->CleanupFullscreenState();
     NS_ASSERTION(!aDocument->IsFullScreenDoc(), "Should reset full-screen");
     nsTArray<nsIDocument*>* changed = reinterpret_cast<nsTArray<nsIDocument*>*>(aData);
     changed->AppendElement(aDocument);
@@ -8659,7 +8659,7 @@ nsDocument::RestorePreviousFullScreenState()
   nsIDocument* doc = fullScreenDoc;
   while (doc != this) {
     NS_ASSERTION(doc->IsFullScreenDoc(), "Should be full-screen doc");
-    static_cast<nsDocument*>(doc)->ClearFullScreenStack();
+    static_cast<nsDocument*>(doc)->CleanupFullscreenState();
     UnlockPointer();
     DispatchFullScreenChange(doc);
     doc = doc->GetParentDocument();
@@ -8675,6 +8675,7 @@ nsDocument::RestorePreviousFullScreenState()
       
       
       
+      static_cast<nsDocument*>(doc)->CleanupFullscreenState();
       doc = doc->GetParentDocument();
     } else {
       
@@ -8684,7 +8685,9 @@ nsDocument::RestorePreviousFullScreenState()
         
         
         
-        if (!nsContentUtils::IsSitePermAllow(doc->NodePrincipal(), "fullscreen")) {
+        if (!nsContentUtils::HaveEqualPrincipals(fullScreenDoc, doc) ||
+            (!nsContentUtils::IsSitePermAllow(doc->NodePrincipal(), "fullscreen") &&
+             !static_cast<nsDocument*>(doc)->mIsApprovedForFullscreen)) {
           nsRefPtr<nsAsyncDOMEvent> e =
             new nsAsyncDOMEvent(doc,
                                 NS_LITERAL_STRING("MozEnteredDomFullscreen"),
@@ -8768,21 +8771,46 @@ LogFullScreenDenied(bool aLogFailure, const char* aMessage, nsIDocument* aDoc)
                                   aMessage);
 }
 
-void
-nsDocument::ClearFullScreenStack()
+nsresult
+nsDocument::AddFullscreenApprovedObserver()
 {
-  if (mFullScreenStack.IsEmpty()) {
-    return;
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
+
+  nsresult res = os->AddObserver(this, "fullscreen-approved", true);
+  NS_ENSURE_SUCCESS(res, res);
+
+  return NS_OK;
+}
+
+nsresult
+nsDocument::RemoveFullscreenApprovedObserver()
+{
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
+
+  nsresult res = os->RemoveObserver(this, "fullscreen-approved");
+  NS_ENSURE_SUCCESS(res, res);
+
+  return NS_OK;
+}
+
+void
+nsDocument::CleanupFullscreenState()
+{
+  if (!mFullScreenStack.IsEmpty()) {
+    
+    
+    
+    Element* top = FullScreenStackTop();
+    NS_ASSERTION(top, "Should have a top when full-screen stack isn't empty");
+    if (top) {
+      nsEventStateManager::SetFullScreenState(top, false);
+    }
+    mFullScreenStack.Clear();
   }
-  
-  
-  
-  Element* top = FullScreenStackTop();
-  NS_ASSERTION(top, "Should have a top when full-screen stack isn't empty");
-  if (top) {
-    nsEventStateManager::SetFullScreenState(top, false);
-  }
-  mFullScreenStack.Clear();
+  SetApprovedForFullscreen(false);
+  RemoveFullscreenApprovedObserver();
 }
 
 bool
@@ -8950,6 +8978,8 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
     }
   }
 
+  AddFullscreenApprovedObserver();
+
   
   
   
@@ -9011,12 +9041,30 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
     DispatchFullScreenChange(changed[changed.Length() - i - 1]);
   }
 
-  nsRefPtr<nsAsyncDOMEvent> e =
-    new nsAsyncDOMEvent(this,
-                        NS_LITERAL_STRING("MozEnteredDomFullscreen"),
-                        true,
-                        true);
-  e->PostDOMEvent();
+  
+  
+  
+  if (!mIsApprovedForFullscreen) {
+    mIsApprovedForFullscreen =
+      nsContentUtils::IsSitePermAllow(NodePrincipal(), "fullscreen");
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIDocument> previousFullscreenDoc(do_QueryReferent(sFullScreenDoc));
+  
+  
+  
+  if (!mIsApprovedForFullscreen ||
+      !nsContentUtils::HaveEqualPrincipals(previousFullscreenDoc, this)) {
+    nsRefPtr<nsAsyncDOMEvent> e =
+      new nsAsyncDOMEvent(this,
+                          NS_LITERAL_STRING("MozEnteredDomFullscreen"),
+                          true,
+                          true);
+    e->PostDOMEvent();
+  }
 
   
   sFullScreenDoc = do_GetWeakReference(static_cast<nsIDocument*>(this));
@@ -9246,19 +9294,6 @@ nsDocument::ClearPendingPointerLockRequest(bool aDispatchErrorEvents)
     return;
   }
   nsCOMPtr<nsIDocument> doc(do_QueryReferent(sPendingPointerLockDoc));
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (!os) {
-    NS_WARNING("Lost observer service in ClearPendingPointerLockRequest()!");
-    return;
-  }
-
-  nsCOMPtr<nsIObserver> obs(do_QueryInterface(doc));
-  if (!os) {
-    NS_WARNING("Document must implement nsIObserver");
-    return;
-  }
-  os->RemoveObserver(obs, "perm-changed");
-
   if (aDispatchErrorEvents) {
     DispatchPointerLockError(doc);
   }
@@ -9285,15 +9320,6 @@ nsDocument::SetPendingPointerLockRequest(Element* aElement)
 
   NS_ENSURE_TRUE(aElement != nsnull, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  NS_ENSURE_TRUE(os != nsnull, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsIObserver> obs(do_QueryInterface(aElement->OwnerDoc()));
-  NS_ENSURE_TRUE(obs != nsnull, NS_ERROR_FAILURE);
-
-  nsresult res = os->AddObserver(obs, "perm-changed", true);
-  NS_ENSURE_SUCCESS(res, res);
-
   sPendingPointerLockDoc = do_GetWeakReference(aElement->OwnerDoc());
   sPendingPointerLockElement = do_GetWeakReference(aElement);
 
@@ -9304,17 +9330,30 @@ nsDocument::SetPendingPointerLockRequest(Element* aElement)
   return NS_OK;
 }
 
+void
+nsDocument::SetApprovedForFullscreen(bool aIsApproved)
+{
+  mIsApprovedForFullscreen = aIsApproved;
+}
+
 nsresult
 nsDocument::Observe(nsISupports *aSubject,
                     const char *aTopic,
                     const PRUnichar *aData)
 {
-  if (strcmp("perm-changed", aTopic) == 0) {
+  if (strcmp("fullscreen-approved", aTopic) == 0) {
+    nsCOMPtr<nsIDocument> subject(do_QueryInterface(aSubject));
+    if (subject != this) {
+      return NS_OK;
+    }
+    SetApprovedForFullscreen(true);
     nsCOMPtr<nsIDocument> doc(do_QueryReferent(sPendingPointerLockDoc));
-    if (nsContentUtils::IsSitePermAllow(doc->NodePrincipal(), "fullscreen")) {
+    if (this == doc) {
+      
+      
       nsCOMPtr<Element> element(do_QueryReferent(sPendingPointerLockElement));
       nsDocument::ClearPendingPointerLockRequest(false);
-      nsAsyncPointerLockRequest::Request(element, doc);
+      nsAsyncPointerLockRequest::Request(element, this);
     }
   }
   return NS_OK;
@@ -9337,8 +9376,8 @@ nsDocument::RequestPointerLock(Element* aElement)
     DispatchPointerLockError(this);
     return;
   }
-    
-  if (!nsContentUtils::IsSitePermAllow(NodePrincipal(), "fullscreen")) {
+
+  if (!mIsApprovedForFullscreen) {
     
     
     if (NS_FAILED(SetPendingPointerLockRequest(aElement))) {

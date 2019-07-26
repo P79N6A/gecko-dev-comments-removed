@@ -1480,7 +1480,7 @@ nsTableFrame::ComputeSize(nsRenderingContext *aRenderingContext,
 
   
   
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   
   nscoord minWidth = GetMinWidth(aRenderingContext);
@@ -1496,7 +1496,7 @@ nsTableFrame::TableShrinkWidthToFit(nsRenderingContext *aRenderingContext,
 {
   
   
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
   nscoord minWidth = GetMinWidth(aRenderingContext);

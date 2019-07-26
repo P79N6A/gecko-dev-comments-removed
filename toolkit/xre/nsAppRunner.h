@@ -32,16 +32,6 @@
 
 #define NS_LOCALSTORE_UNSAFE_FILE "LStoreS"
 
-
-
-
-
-
-
-
-
-#define XRE_UPDATE_ROOT_DIR "UpdRootD"
-
 class nsACString;
 struct nsStaticModuleInfo;
 
@@ -64,6 +54,8 @@ extern bool gSafeMode;
 
 extern int    gArgc;
 extern char **gArgv;
+extern int    gRestartArgc;
+extern char **gRestartArgv;
 extern bool gLogConsoleErrors;
 
 
@@ -106,7 +98,12 @@ WriteConsoleLog();
 #ifdef XP_WIN
 BOOL
 WinLaunchChild(const PRUnichar *exePath, int argc, 
-               char **argv, HANDLE userToken = NULL);
+               char **argv, HANDLE userToken = NULL,
+               HANDLE *hProcess = nsnull);
+BOOL
+WriteStatusPending(LPCWSTR updateDirPath);
+BOOL
+WriteStatusApplied(LPCWSTR updateDirPath);
 #endif
 
 #define NS_NATIVEAPPSUPPORT_CONTRACTID "@mozilla.org/toolkit/native-app-support;1"

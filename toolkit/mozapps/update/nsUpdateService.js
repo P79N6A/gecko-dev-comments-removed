@@ -4,6 +4,9 @@
 
 
 
+
+#filter substitution
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
@@ -39,6 +42,7 @@ const PREF_APP_UPDATE_POSTUPDATE          = "app.update.postupdate";
 const PREF_APP_UPDATE_PROMPTWAITTIME      = "app.update.promptWaitTime";
 const PREF_APP_UPDATE_SHOW_INSTALLED_UI   = "app.update.showInstalledUI";
 const PREF_APP_UPDATE_SILENT              = "app.update.silent";
+const PREF_APP_UPDATE_BACKGROUND          = "app.update.stage.enabled";
 const PREF_APP_UPDATE_URL                 = "app.update.url";
 const PREF_APP_UPDATE_URL_DETAILS         = "app.update.url.details";
 const PREF_APP_UPDATE_URL_OVERRIDE        = "app.update.url.override";
@@ -74,6 +78,11 @@ const KEY_UPDROOT         = "UpdRootD";
 #endif
 
 const DIR_UPDATES         = "updates";
+#ifdef XP_MACOSX
+const UPDATED_DIR         = "Updated.app";
+#else
+const UPDATED_DIR         = "updated";
+#endif
 const FILE_UPDATE_STATUS  = "update.status";
 const FILE_UPDATE_VERSION = "update.version";
 #ifdef MOZ_WIDGET_ANDROID
@@ -94,6 +103,8 @@ const STATE_DOWNLOADING     = "downloading";
 const STATE_PENDING         = "pending";
 const STATE_PENDING_SVC     = "pending-service";
 const STATE_APPLYING        = "applying";
+const STATE_APPLIED         = "applied";
+const STATE_APPLIED_SVC     = "applied-service";
 const STATE_SUCCEEDED       = "succeeded";
 const STATE_DOWNLOAD_FAILED = "download-failed";
 const STATE_FAILED          = "failed";
@@ -113,6 +124,7 @@ const SERVICE_STILL_APPLYING_ON_SUCCESS    = 29;
 const SERVICE_STILL_APPLYING_ON_FAILURE    = 30;
 const SERVICE_UPDATER_NOT_FIXED_DRIVE      = 31;
 const SERVICE_COULD_NOT_LOCK_UPDATER       = 32;
+const SERVICE_INSTALLDIR_ERROR             = 33;
 
 const CERT_ATTR_CHECK_FAILED_NO_UPDATE  = 100;
 const CERT_ATTR_CHECK_FAILED_HAS_UPDATE = 101;
@@ -369,7 +381,6 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
 
 
 
-
     if (!userCanElevate) {
       
       var appDirTestFile = FileUtils.getFile(KEY_APPDIR, [FILE_PERMS_TEST]);
@@ -537,6 +548,31 @@ function getUpdatesDir() {
   return getUpdateDirCreate([DIR_UPDATES, "0"]);
 }
 
+#ifndef USE_UPDROOT
+
+
+
+
+
+
+function getUpdatesDirInApplyToDir() {
+  var dir = FileUtils.getDir(KEY_APPDIR, []);
+#ifdef XP_MACOSX
+  dir = dir.parent.parent; 
+#endif
+  dir.append(UPDATED_DIR);
+#ifdef XP_MACOSX
+  dir.append("Contents");
+  dir.append("MacOS");
+#endif
+  dir.append(DIR_UPDATES);
+  if (!dir.exists()) {
+    dir.create(Ci.nsILocalFile.DIRECTORY_TYPE, 0755);
+  }
+  return dir;
+}
+#endif
+
 
 
 
@@ -608,7 +644,12 @@ function writeVersionFile(dir, version) {
 
 
 
-function cleanUpUpdatesDir() {
+
+
+
+
+
+function cleanUpUpdatesDir(aBackgroundUpdate) {
   
   try {
     var updateDir = getUpdatesDir();
@@ -622,8 +663,28 @@ function cleanUpUpdatesDir() {
     var f = e.getNext().QueryInterface(Ci.nsIFile);
     
     if (f.leafName == FILE_UPDATE_LOG) {
+      var dir;
       try {
-        var dir = f.parent.parent;
+#ifdef USE_UPDROOT
+        
+        
+        
+        
+        
+        
+        dir = f.parent.parent;
+#else
+        
+        
+        
+        
+        
+        if (aBackgroundUpdate) {
+          dir = getUpdatesDirInApplyToDir();
+        } else {
+          dir = f.parent.parent;
+        }
+#endif
         var logFile = dir.clone();
         logFile.append(FILE_LAST_LOG);
         if (logFile.exists()) {
@@ -642,6 +703,13 @@ function cleanUpUpdatesDir() {
         LOG("cleanUpUpdatesDir - failed to move file " + f.path + " to " +
             dir.path + " and rename it to " + FILE_LAST_LOG);
       }
+    } else if (f.leafName == FILE_UPDATE_STATUS && aBackgroundUpdate) {
+      
+      
+      
+      
+      
+      continue;
     }
     
     
@@ -1329,6 +1397,34 @@ UpdateService.prototype = {
       return;
     }
 
+    if (status == STATE_APPLYING) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (update &&
+          (update.state == STATE_PENDING || update.state == STATE_PENDING_SVC)) {
+        LOG("UpdateService:_postUpdateProcessing - patch found in applying " +
+            "state for the first time");
+        update.state = STATE_APPLYING;
+        um.saveUpdates();
+      } else { 
+        LOG("UpdateService:_postUpdateProcessing - patch found in applying " +
+            "state for the second time");
+        cleanupActiveUpdate();
+      }
+      return;
+    }
+
     if (!update)
       update = new Update(null);
 
@@ -1380,7 +1476,8 @@ UpdateService.prototype = {
             update.errorCode == SERVICE_STILL_APPLYING_ON_SUCCESS ||
             update.errorCode == SERVICE_STILL_APPLYING_ON_FAILURE ||
             update.errorCode == SERVICE_UPDATER_NOT_FIXED_DRIVE ||
-            update.errorCode == SERVICE_COULD_NOT_LOCK_UPDATER) {
+            update.errorCode == SERVICE_COULD_NOT_LOCK_UPDATER ||
+            update.errorCode == SERVICE_INSTALLDIR_ERROR) {
 
           var failCount = getPref("getIntPref", 
                                   PREF_APP_UPDATE_SERVICE_ERRORS, 0);
@@ -1916,6 +2013,26 @@ UpdateService.prototype = {
     return this._downloader.downloadUpdate(update);
   },
 
+  applyUpdateInBackground: function AUS_applyUpdateInBackground(update) {
+    
+    if (!getPref("getBoolPref", PREF_APP_UPDATE_BACKGROUND, false)) {
+      return;
+    }
+
+    LOG("UpdateService:applyUpdateInBackground called with the following update: " +
+        update.name);
+
+    
+    try {
+      Cc["@mozilla.org/updates/update-processor;1"].
+        createInstance(Ci.nsIUpdateProcessor).
+        processUpdate(update);
+    } catch (e) {
+      
+      
+    }
+  },
+
   
 
 
@@ -2188,6 +2305,7 @@ UpdateManager.prototype = {
       for (let i = updates.length - 1; i >= 0; --i) {
         let state = updates[i].state;
         if (state == STATE_NONE || state == STATE_DOWNLOADING ||
+            state == STATE_APPLIED || state == STATE_APPLIED_SVC ||
             state == STATE_PENDING || state == STATE_PENDING_SVC) {
           updates.splice(i, 1);
         }
@@ -2195,6 +2313,39 @@ UpdateManager.prototype = {
 
       this._writeUpdatesToXMLFile(updates.slice(0, 10),
                                   getUpdateFile([FILE_UPDATES_DB]));
+    }
+  },
+
+  refreshUpdateStatus: function UM_refreshUpdateStatus(update) {
+    var status = readStatusFile(getUpdatesDir());
+    var ary = status.split(":");
+    update.state = ary[0];
+    if (update.state == STATE_FAILED && ary[1]) {
+      update.errorCode = parseInt(ary[1]);
+    }
+    if (update.state == STATE_APPLIED && shouldUseService()) {
+      writeStatusFile(getUpdatesDir(), update.state = STATE_APPLIED_SVC);
+    }
+    var um = Cc["@mozilla.org/updates/update-manager;1"].
+             getService(Ci.nsIUpdateManager);
+    um.saveUpdates();
+
+    
+    cleanUpUpdatesDir(true);
+
+    
+    
+    Services.obs.notifyObservers(null, "update-staged", update.state);
+
+    
+    
+    if (update.state == STATE_APPLIED) {
+      
+      
+      
+      var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+                     createInstance(Ci.nsIUpdatePrompt);
+      prompter.showUpdateDownloaded(update, true);
     }
   },
 
@@ -2517,8 +2668,12 @@ Downloader.prototype = {
 
 
   get patchIsStaged() {
-    var readState = readStatusFile(getUpdatesDir()); 
-    return readState == STATE_PENDING || readState == STATE_PENDING_SVC;
+    var readState = readStatusFile(getUpdatesDir());
+    
+    
+    
+    return readState == STATE_PENDING || readState == STATE_PENDING_SVC ||
+           readState == STATE_APPLIED || readState == STATE_APPLIED_SVC;
   },
 
   
@@ -2831,6 +2986,8 @@ Downloader.prototype = {
       LOG("Downloader:onStopRequest - original URI spec: " + request.URI.spec +
           ", final URI spec: " + request.finalURI.spec + ", status: " + status);
 
+    
+    
     var state = this._patch.state;
     var shouldShowPrompt = false;
     var deleteActiveUpdate = false;
@@ -2842,7 +2999,7 @@ Downloader.prototype = {
         
         
         if (this.background)
-          shouldShowPrompt = true;
+          shouldShowPrompt = !getPref("getBoolPref", PREF_APP_UPDATE_BACKGROUND, false);
 
         
         writeStatusFile(getUpdatesDir(), state);
@@ -2960,6 +3117,14 @@ Downloader.prototype = {
                      createInstance(Ci.nsIUpdatePrompt);
       prompter.showUpdateDownloaded(this._update, true);
     }
+
+    if (state == STATE_PENDING || state == STATE_PENDING_SVC) {
+      
+      Cc["@mozilla.org/updates/update-service;1"].
+        getService(Ci.nsIApplicationUpdateService).
+        applyUpdateInBackground(this._update);
+    }
+
     
     this._update = null;
   },

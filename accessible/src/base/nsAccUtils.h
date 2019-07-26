@@ -295,7 +295,7 @@ public:
 
 
 
-  static bool MustPrune(nsIAccessible *aAccessible);
+  static bool MustPrune(nsAccessible* aAccessible);
 
   
 

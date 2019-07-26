@@ -1129,8 +1129,14 @@ nsDisplayBackground::TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder)
                                            *bg,
                                            layer);
 
+  nsImageRenderer* imageRenderer = &state.mImageRenderer;
   
-  if (!state.mImageRenderer.IsRasterImage())
+  if (imageRenderer->IsRasterImage())
+    return false;
+
+  nsRefPtr<ImageContainer> imageContainer = imageRenderer->GetContainer();
+  
+  if (!imageContainer)
     return false;
 
   
@@ -1145,7 +1151,7 @@ nsDisplayBackground::TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder)
 
   PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   mDestRect = nsLayoutUtils::RectToGfxRect(state.mDestArea, appUnitsPerDevPixel);
-  mImageContainer = state.mImageRenderer.GetContainer();
+  mImageContainer = imageContainer;
 
   
   return true;

@@ -172,6 +172,7 @@ struct JSCompartment
 
     size_t                       gcBytes;
     size_t                       gcTriggerBytes;
+    size_t                       gcMaxMallocBytes;
 
     bool                         hold;
     bool                         isSystemCompartment;
@@ -243,8 +244,7 @@ struct JSCompartment
 
 
 
-    size_t                       gcMallocBytes;
-    size_t                       gcMaxMallocBytes;
+    ptrdiff_t                    gcMallocBytes;
 
     enum { DebugFromC = 1, DebugFromJS = 2 };
 
@@ -281,17 +281,15 @@ struct JSCompartment
     void resetGCMallocBytes();
     void setGCMaxMallocBytes(size_t value);
     void updateMallocCounter(size_t nbytes) {
-        size_t oldCount = gcMallocBytes;
-        size_t newCount = oldCount - nbytes;
+        ptrdiff_t oldCount = gcMallocBytes;
+        ptrdiff_t newCount = oldCount - ptrdiff_t(nbytes);
         gcMallocBytes = newCount;
-        
-        
-        if (JS_UNLIKELY(oldCount <= gcMaxMallocBytes && newCount > gcMaxMallocBytes))
+        if (JS_UNLIKELY(newCount <= 0 && oldCount > 0))
             onTooMuchMalloc();
     }
 
     bool isTooMuchMalloc() const {
-        return gcMallocBytes > gcMaxMallocBytes;
+        return gcMallocBytes <= 0;
      }
 
     void onTooMuchMalloc();
