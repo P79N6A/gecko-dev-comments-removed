@@ -34,6 +34,15 @@ let gPage = {
   
 
 
+
+  get allowBackgroundCaptures() {
+    return document.documentElement.getAttribute("allow-background-captures") ==
+           "true";
+  },
+
+  
+
+
   observe: function Page_observe(aSubject, aTopic, aData) {
     if (aTopic == "nsPref:changed") {
       let enabled = gAllPages.enabled;
@@ -73,6 +82,20 @@ let gPage = {
       return;
 
     this._initialized = true;
+
+    this._mutationObserver = new MutationObserver(() => {
+      if (this.allowBackgroundCaptures) {
+        for (let site of gGrid.sites) {
+          if (site) {
+            site.captureIfMissing();
+          }
+        }
+      }
+    });
+    this._mutationObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["allow-background-captures"],
+    });
 
     gLinks.populateCache(function () {
       
@@ -123,6 +146,7 @@ let gPage = {
   handleEvent: function Page_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "unload":
+        this._mutationObserver.disconnect();
         gAllPages.unregister(this);
         break;
       case "click":

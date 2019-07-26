@@ -133,9 +133,18 @@ Site.prototype = {
       this._updateAttributes(true);
     
     
-    BackgroundPageThumbs.captureIfMissing(this.url);
+    this.captureIfMissing();
     
     this.refreshThumbnail();
+  },
+
+  
+
+
+
+  captureIfMissing: function Site_captureIfMissing() {
+    if (gPage.allowBackgroundCaptures)
+      BackgroundPageThumbs.captureIfMissing(this.url);
   },
 
   
