@@ -560,36 +560,45 @@ public class TopSitesPage extends HomeFragment {
             final TopSitesGridItemView view = (TopSitesGridItemView) bindView;
 
             
-            
-            final boolean updated = view.updateState(title, url, pinned);
-
-            
             if (TextUtils.isEmpty(url)) {
-                view.displayThumbnail(R.drawable.top_site_add);
-            } else {
-                
-                Bitmap thumbnail = (mThumbnails != null ? mThumbnails.get(url) : null);
-                if (thumbnail != null) {
-                    view.displayThumbnail(thumbnail);
-                    return;
-                }
-
-                
-                
-                
-                if (!updated) {
-                    Log.d(LOGTAG, "bindView called twice for same values; short-circuiting.");
-                    return;
-                }
-
-                
-                LoadIDAwareFaviconLoadedListener listener = new LoadIDAwareFaviconLoadedListener(view);
-                final int loadId = Favicons.getSizedFaviconForPageFromLocal(url, listener);
-
-                
-                listener.setLoadId(loadId);
-                view.setLoadId(loadId);
+                view.blankOut();
+                return;
             }
+
+            
+            Bitmap thumbnail = (mThumbnails != null ? mThumbnails.get(url) : null);
+
+            
+            
+            final boolean updated = view.updateState(title, url, pinned, thumbnail);
+
+            
+            if (thumbnail != null) {
+                return;
+            }
+
+            
+            
+            
+            if (!updated) {
+                Log.d(LOGTAG, "bindView called twice for same values; short-circuiting.");
+                return;
+            }
+
+            
+            LoadIDAwareFaviconLoadedListener listener = new LoadIDAwareFaviconLoadedListener(view);
+            final int loadId = Favicons.getSizedFaviconForPageFromLocal(url, listener);
+            if (loadId == Favicons.LOADED) {
+                
+                return;
+            }
+
+            
+            view.displayThumbnail(R.drawable.favicon);
+
+            
+            listener.setLoadId(loadId);
+            view.setLoadId(loadId);
         }
 
         @Override

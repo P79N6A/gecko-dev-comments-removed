@@ -37,9 +37,10 @@ public class Favicons {
     
     public static final int PAGE_URL_MAPPINGS_TO_STORE = 128;
 
-    public static final int NOT_LOADING = 0;
-    public static final int FLAG_PERSIST = 1;
-    public static final int FLAG_SCALE = 2;
+    public static final int NOT_LOADING  = 0;
+    public static final int LOADED       = 1;
+    public static final int FLAG_PERSIST = 2;
+    public static final int FLAG_SCALE   = 4;
 
     protected static Context sContext;
 
@@ -68,20 +69,35 @@ public class Favicons {
     }
 
     private static FaviconCache sFaviconsCache;
-    static void dispatchResult(final String pageUrl, final String faviconURL, final Bitmap image,
+
+    
+
+
+
+
+    static int dispatchResult(final String pageUrl, final String faviconURL, final Bitmap image,
             final OnFaviconLoadedListener listener) {
+        if (listener == null) {
+            return NOT_LOADING;
+        }
+
+        if (ThreadUtils.isOnUiThread()) {
+            listener.onFaviconLoaded(pageUrl, faviconURL, image);
+            return LOADED;
+        }
+
         
         ThreadUtils.postToUiThread(new Runnable() {
             @Override
             public void run() {
-                if (listener != null) {
-                    listener.onFaviconLoaded(pageUrl, faviconURL, image);
-                }
+                listener.onFaviconLoaded(pageUrl, faviconURL, image);
             }
         });
+        return NOT_LOADING;
     }
 
     
+
 
 
 
@@ -104,20 +120,17 @@ public class Favicons {
 
         
         if (cacheURL == null) {
-            dispatchResult(pageURL, null, sDefaultFavicon, listener);
-            return NOT_LOADING;
+            return dispatchResult(pageURL, null, sDefaultFavicon, listener);
         }
 
         Bitmap cachedIcon = getSizedFaviconFromCache(cacheURL, targetSize);
         if (cachedIcon != null) {
-            dispatchResult(pageURL, cacheURL, cachedIcon, listener);
-            return NOT_LOADING;
+            return dispatchResult(pageURL, cacheURL, cachedIcon, listener);
         }
 
         
         if (sFaviconsCache.isFailedFavicon(cacheURL)) {
-            dispatchResult(pageURL, cacheURL, sDefaultFavicon, listener);
-            return NOT_LOADING;
+            return dispatchResult(pageURL, cacheURL, sDefaultFavicon, listener);
         }
 
         
@@ -159,16 +172,14 @@ public class Favicons {
         if (targetURL != null) {
             
             if (sFaviconsCache.isFailedFavicon(targetURL)) {
-                dispatchResult(pageURL, targetURL, null, callback);
-                return NOT_LOADING;
+                return dispatchResult(pageURL, targetURL, null, callback);
             }
 
             
             Bitmap result = getSizedFaviconFromCache(targetURL, targetSize);
             if (result != null) {
                 
-                dispatchResult(pageURL, targetURL, result, callback);
-                return NOT_LOADING;
+                return dispatchResult(pageURL, targetURL, result, callback);
             }
         }
 
