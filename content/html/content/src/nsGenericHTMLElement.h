@@ -645,7 +645,10 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) GetBoolAttr(nsIAtom* aAttr, bool* aValue) const;
+  NS_HIDDEN_(bool) GetBoolAttr(nsIAtom* aAttr) const
+  {
+    return HasAttr(kNameSpaceID_None, aAttr);
+  }
 
   
 
@@ -666,8 +669,7 @@ protected:
 
 
 
-
-  NS_HIDDEN_(nsresult) GetIntAttr(nsIAtom* aAttr, int32_t aDefault, int32_t* aValue);
+  NS_HIDDEN_(int32_t) GetIntAttr(nsIAtom* aAttr, int32_t aDefault) const;
 
   
 
@@ -1017,7 +1019,8 @@ PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
   NS_IMETHODIMP                                                       \
   _class::Get##_method(bool* aValue)                                \
   {                                                                   \
-    return GetBoolAttr(nsGkAtoms::_atom, aValue);                   \
+    *aValue = GetBoolAttr(nsGkAtoms::_atom);                          \
+    return NS_OK;                                                     \
   }                                                                   \
   NS_IMETHODIMP                                                       \
   _class::Set##_method(bool aValue)                                 \
@@ -1037,12 +1040,13 @@ PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
   NS_IMETHODIMP                                                           \
   _class::Get##_method(int32_t* aValue)                                   \
   {                                                                       \
-    return GetIntAttr(nsGkAtoms::_atom, _default, aValue);              \
+    *aValue = GetIntAttr(nsGkAtoms::_atom, _default);                     \
+    return NS_OK;                                                         \
   }                                                                       \
   NS_IMETHODIMP                                                           \
   _class::Set##_method(int32_t aValue)                                    \
   {                                                                       \
-    return SetIntAttr(nsGkAtoms::_atom, aValue);                        \
+    return SetIntAttr(nsGkAtoms::_atom, aValue);                          \
   }
 
 
@@ -1155,7 +1159,8 @@ PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
   NS_IMETHODIMP                                                           \
   _class::Get##_method(int32_t* aValue)                                   \
   {                                                                       \
-    return GetIntAttr(nsGkAtoms::_atom, _default, aValue);                \
+    *aValue = GetIntAttr(nsGkAtoms::_atom, _default);                     \
+    return NS_OK;                                                         \
   }                                                                       \
   NS_IMETHODIMP                                                           \
   _class::Set##_method(int32_t aValue)                                    \
