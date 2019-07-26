@@ -1662,6 +1662,13 @@ pref("layout.css.prefixes.transitions", true);
 pref("layout.css.prefixes.animations", true);
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.scope-pseudo.enabled", false);
+#else
+pref("layout.css.scope-pseudo.enabled", true);
+#endif
+
+
 
 
 
