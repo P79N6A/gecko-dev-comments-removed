@@ -1621,7 +1621,7 @@ MAdd::fallible() const
 {
     
     
-    if (truncateKind() >= IndirectTruncate)
+    if (isTruncated())
         return false;
     if (range() && range()->hasInt32Bounds())
         return false;
@@ -1632,7 +1632,7 @@ bool
 MSub::fallible() const
 {
     
-    if (truncateKind() >= IndirectTruncate)
+    if (isTruncated())
         return false;
     if (range() && range()->hasInt32Bounds())
         return false;
