@@ -100,7 +100,13 @@ BrowserCLH.prototype = {
           width: width,
           height: height
         };
-        browserWin = openWindow(null, "chrome://browser/content/browser.xul", "_blank", "chrome,dialog=no,all", args);
+
+        
+        let flags = "chrome,dialog=no";
+        if (!pinned)
+          flags += ",all";
+
+        browserWin = openWindow(null, "chrome://browser/content/browser.xul", "_blank", flags, args);
       }
 
       aCmdLine.preventDefault = true;
