@@ -129,13 +129,13 @@ class MediaRecorder::Session: public nsIObserver
     {
       MOZ_ASSERT(NS_GetCurrentThread() == mSession->mReadThread);
 
-      mSession->Extract();
       LOG(PR_LOG_DEBUG, ("Session.ExtractRunnable shutdown = %d", mSession->mEncoder->IsShutdown()));
       if (!mSession->mEncoder->IsShutdown()) {
+        mSession->Extract(false);
         NS_DispatchToCurrentThread(new ExtractRunnable(mSession));
       } else {
         
-        NS_DispatchToMainThread(new PushBlobRunnable(mSession));
+        mSession->Extract(true);
         
         NS_DispatchToMainThread(new DestroyRunnable(already_AddRefed<Session>(mSession)));
       }
@@ -302,12 +302,12 @@ private:
 
   
   
-  void Extract()
+  
+  
+  void Extract(bool aForceFlush)
   {
     MOZ_ASSERT(NS_GetCurrentThread() == mReadThread);
     LOG(PR_LOG_DEBUG, ("Session.Extract %p", this));
-    
-    const bool pushBlob = (mTimeSlice > 0) ? true : false;
 
     
     nsTArray<nsTArray<uint8_t> > encodedBuf;
@@ -318,11 +318,16 @@ private:
       mEncodedBufferCache->AppendBuffer(encodedBuf[i]);
     }
 
-    if (pushBlob) {
-      if ((TimeStamp::Now() - mLastBlobTimeStamp).ToMilliseconds() > mTimeSlice) {
-        NS_DispatchToMainThread(new PushBlobRunnable(this));
-        mLastBlobTimeStamp = TimeStamp::Now();
-      }
+    
+    
+    bool pushBlob = false;
+    if ((mTimeSlice > 0) &&
+        ((TimeStamp::Now()-mLastBlobTimeStamp).ToMilliseconds() > mTimeSlice)) {
+      pushBlob = true;
+    }
+    if (pushBlob || aForceFlush) {
+      NS_DispatchToMainThread(new PushBlobRunnable(this));
+      mLastBlobTimeStamp = TimeStamp::Now();
     }
   }
 
