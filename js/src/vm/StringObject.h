@@ -24,7 +24,8 @@ class StringObject : public JSObject
 
 
 
-    static inline StringObject *create(JSContext *cx, HandleString str);
+    static inline StringObject *create(JSContext *cx, HandleString str,
+                                       NewObjectKind newKind = GenericObject);
 
     JSString *unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toString();

@@ -4194,10 +4194,12 @@ IonBuilder::createDeclEnvObject(MDefinition *callee, MDefinition *scope)
 {
     
     
+    
+    
 
     RootedScript script(cx, script_);
     RootedFunction fun(cx, info().fun());
-    RootedObject templateObj(cx, DeclEnvObject::createTemplateObject(cx, fun));
+    RootedObject templateObj(cx, DeclEnvObject::createTemplateObject(cx, fun, gc::TenuredHeap));
     if (!templateObj)
         return NULL;
 
@@ -4228,9 +4230,11 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
 {
     
     
+    
+    
 
     RootedScript scriptRoot(cx, script());
-    RootedObject templateObj(cx, CallObject::createTemplateObject(cx, scriptRoot));
+    RootedObject templateObj(cx, CallObject::createTemplateObject(cx, scriptRoot, gc::TenuredHeap));
     if (!templateObj)
         return NULL;
 
