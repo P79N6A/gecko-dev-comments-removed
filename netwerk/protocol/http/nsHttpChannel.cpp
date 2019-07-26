@@ -527,7 +527,10 @@ nsHttpChannel::SpeculativeConnect()
 
     
     
-    if (mApplicationCache || gIOService->IsOffline())
+    
+    
+    if (mApplicationCache || gIOService->IsOffline() || 
+        mUpgradeProtocolCallback || !(mCaps & NS_HTTP_ALLOW_KEEPALIVE))
         return;
 
     
