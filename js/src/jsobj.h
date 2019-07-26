@@ -499,6 +499,9 @@ class JSObject : public js::ObjectImpl
 
 
 
+    bool isIteratedSingleton() const {
+        return lastProperty()->hasObjectFlag(js::BaseShape::ITERATED_SINGLETON);
+    }
     bool setIteratedSingleton(js::ExclusiveContext *cx) {
         return setFlag(cx, js::BaseShape::ITERATED_SINGLETON);
     }
@@ -507,6 +510,9 @@ class JSObject : public js::ObjectImpl
 
 
 
+    bool isNewTypeUnknown() const {
+        return lastProperty()->hasObjectFlag(js::BaseShape::NEW_TYPE_UNKNOWN);
+    }
     static bool setNewTypeUnknown(JSContext *cx, const js::Class *clasp, JS::HandleObject obj);
 
     

@@ -562,6 +562,9 @@ class BaseShape : public gc::BarrieredCell<BaseShape>
 
 
 
+
+
+
         DELEGATE            =    0x8,
         NOT_EXTENSIBLE      =   0x10,
         INDEXED             =   0x20,
