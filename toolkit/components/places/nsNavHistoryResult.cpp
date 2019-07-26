@@ -1846,11 +1846,9 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
 nsNavHistoryQueryResultNode::~nsNavHistoryQueryResultNode() {
   
   
-  if (mResult && mResult->mAllBookmarksObservers.IndexOf(this) !=
-                   mResult->mAllBookmarksObservers.NoIndex)
+  if (mResult && mResult->mAllBookmarksObservers.Contains(this))
     mResult->RemoveAllBookmarksObserver(this);
-  if (mResult && mResult->mHistoryObservers.IndexOf(this) !=
-                   mResult->mHistoryObservers.NoIndex)
+  if (mResult && mResult->mHistoryObservers.Contains(this))
     mResult->RemoveHistoryObserver(this);
 }
 
