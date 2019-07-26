@@ -3744,7 +3744,7 @@ ExclusiveContext::getNewType(const Class *clasp, TaggedProto proto_, JSFunction 
 
     TypeObjectSet::AddPtr p = newTypeObjects.lookupForAdd(TypeObjectSet::Lookup(clasp, proto_));
     SkipRoot skipHash(this, &p); 
-    uint64_t originalGcNumber = generationalGcNumber();
+    uint64_t originalGcNumber = zone()->gcNumber();
     if (p) {
         TypeObject *type = *p;
         JS_ASSERT(type->clasp == clasp);
@@ -3786,11 +3786,10 @@ ExclusiveContext::getNewType(const Class *clasp, TaggedProto proto_, JSFunction 
 
 
 
-    TypeObjectSet::Lookup lookup(clasp, proto);
-    bool gcHappened = hasGenerationalGcHappened(originalGcNumber);
+    bool gcHappened = zone()->gcNumber() != originalGcNumber;
     bool added =
-        gcHappened ? newTypeObjects.putNew(lookup, type.get())
-                   : newTypeObjects.relookupOrAdd(p, lookup, type.get());
+        gcHappened ? newTypeObjects.putNew(TypeObjectSet::Lookup(clasp, proto), type.get())
+                   : newTypeObjects.relookupOrAdd(p, TypeObjectSet::Lookup(clasp, proto), type.get());
     if (!added)
         return nullptr;
 
