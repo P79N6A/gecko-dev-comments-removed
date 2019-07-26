@@ -335,9 +335,19 @@ public:
       return 0.0f;
     }
 
-    return aIsUsingFlexGrow ?
-      mFlexGrow :
-      mFlexShrink * mFlexBaseSize;
+    if (aIsUsingFlexGrow) {
+      return mFlexGrow;
+    }
+
+    
+    if (mFlexBaseSize == 0) {
+      
+      
+      
+      
+      return 0.0f;
+    }
+    return mFlexShrink * mFlexBaseSize;
   }
 
   
