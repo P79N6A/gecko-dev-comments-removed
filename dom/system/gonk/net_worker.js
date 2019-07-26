@@ -55,6 +55,8 @@ const INTERFACE_DELIMIT = "\0";
 
 importScripts("systemlibs.js");
 
+const SDK_VERSION = libcutils.property_get("ro.build.version.sdk", "0");
+
 function netdResponseType(code) {
   return Math.floor(code/100)*100;
 }
@@ -309,23 +311,49 @@ let gReason = [];
 
 
 
-function onNetdMessage(data) {
-  let result = "";
-  let reason = "";
 
+
+
+
+function split(start, data, delimiter) {
   
-  let i = 0;
+  if (start < 0 || data.length <= 0) {
+    return null;
+  }
+
+  let result = "";
+  let i = start;
   while (i < data.length) {
     let octet = data[i];
     i += 1;
-    if (octet == 32) {
-      break;
+    if (octet === delimiter) {
+      return {token: result, index: i};
     }
     result += String.fromCharCode(octet);
   }
+  return null;
+}
 
-  let code = parseInt(result);
 
+
+
+function onNetdMessage(data) {
+  let result = split(0, data, 32);
+  if (!result) {
+    nextNetdCommand();
+    return;
+  }
+  let code = parseInt(result.token);
+
+  
+  
+  
+  if (!isBroadcastMessage(code) && SDK_VERSION >= 16) {
+    result = split(result.index, data, 32);
+  }
+
+  let i = result.index;
+  let reason = "";
   for (; i < data.length; i++) {
     let octet = data[i];
     reason += String.fromCharCode(octet);
@@ -383,7 +411,10 @@ function nextNetdCommand() {
   [gCurrentCommand, gCurrentCallback] = gCommandQueue.shift();
   debug("Sending '" + gCurrentCommand + "' command to netd.");
   gPending = true;
-  return postNetdCommand(gCurrentCommand);
+
+  
+  let command = (SDK_VERSION >= 16) ? "0 " + gCurrentCommand : gCurrentCommand;
+  return postNetdCommand(command);
 }
 
 function setInterfaceUp(params, callback) {
