@@ -30,6 +30,7 @@ try {
 }
 
 const kMessages =["SystemMessageManager:GetPendingMessages",
+                  "SystemMessageManager:HasPendingMessages",
                   "SystemMessageManager:Register",
                   "SystemMessageManager:Message:Return:OK",
                   "SystemMessageManager:AskReadyToRegister",
@@ -209,7 +210,7 @@ SystemMessageInternal.prototype = {
           return page !== null;
         }, this);
         if (!page) {
-          return null;
+          return;
         }
 
         
@@ -222,7 +223,33 @@ SystemMessageInternal.prototype = {
         
         page.pendingMessages.length = 0;
 
-        return pendingMessages;
+        
+        aMessage.target.sendAsyncMessage("SystemMessageManager:GetPendingMessages:Return",
+                                         { type: msg.type,
+                                           manifest: msg.manifest,
+                                           uri: msg.uri,
+                                           msgQueue: pendingMessages });
+        break;
+      }
+      case "SystemMessageManager:HasPendingMessages":
+      {
+        debug("received SystemMessageManager:HasPendingMessages " + msg.type +
+          " for " + msg.uri + " @ " + msg.manifest);
+
+        
+        
+        let page = null;
+        this._pages.some(function(aPage) {
+          if (this._isPageMatched(aPage, msg.type, msg.uri, msg.manifest)) {
+            page = aPage;
+          }
+          return page !== null;
+        }, this);
+        if (!page) {
+          return false;
+        }
+
+        return page.pendingMessages.length != 0;
         break;
       }
       case "SystemMessageManager:Message:Return:OK":
