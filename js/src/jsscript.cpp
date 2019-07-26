@@ -174,7 +174,7 @@ Bindings::clone(JSContext *cx, InternalBindingsHandle self,
 }
 
  Bindings
-RootMethods<Bindings>::initial()
+GCMethods<Bindings>::initial()
 {
     return Bindings();
 }
