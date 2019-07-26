@@ -1646,6 +1646,12 @@ void do_breakpad_unwind_Buffer(PCandSP** pairs,
 
   std::vector<const google_breakpad::CodeModule*>* modules_without_symbols
     = new std::vector<const google_breakpad::CodeModule*>();
+
+  
+  
+  
+  sw->set_max_frames(256);
+
   bool b = sw->Walk(stack, modules_without_symbols);
   (void)b;
   delete modules_without_symbols;

@@ -88,7 +88,10 @@ class Stackwalker {
      const CodeModules* modules,
      StackFrameSymbolizer* resolver_helper);
 
-  static void set_max_frames(uint32_t max_frames) { max_frames_ = max_frames; }
+  static void set_max_frames(uint32_t max_frames) {
+    max_frames_ = max_frames;
+    max_frames_set_ = true;
+  }
   static uint32_t max_frames() { return max_frames_; }
 
  protected:
@@ -196,6 +199,11 @@ class Stackwalker {
   
   
   static uint32_t max_frames_;
+
+  
+  
+  
+  static bool max_frames_set_;
 };
 
 }  
