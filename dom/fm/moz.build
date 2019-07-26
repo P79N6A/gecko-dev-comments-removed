@@ -4,13 +4,30 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-MODULE = 'accessibility'
+XPIDL_SOURCES += [
+    'nsIDOMFMRadio.idl',
+    'nsIFMRadio.idl',
+]
+
+XPIDL_MODULE = 'dom_fm'
+
+MODULE = 'dom'
 
 CPP_SOURCES += [
-    'uiaRawElmProvider.cpp',
+    'FMRadio.cpp',
+    'nsFMRadioSettings.cpp',
+]
+
+EXTRA_JS_MODULES += [
+    'DOMFMRadioParent.jsm',
+]
+
+EXTRA_COMPONENTS += [
+    'DOMFMRadio.manifest',
+    'DOMFMRadioChild.js',
 ]
 
 LIBXUL_LIBRARY = True
 
-LIBRARY_NAME = 'accessibility_toolkit_uia_s'
+LIBRARY_NAME = 'domfm_s'
 
