@@ -20,6 +20,7 @@ class ImageBridgeChild;
 class ShadowableLayer;
 class CompositableForwarder;
 class CompositableChild;
+class SurfaceDescriptor;
 
 
 
