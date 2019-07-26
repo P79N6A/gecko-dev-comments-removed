@@ -35,6 +35,13 @@
 #include "nsIPromptService.h"
 #include "nsIMemoryReporter.h"
 
+#ifdef MOZ_STORAGE_MEMORY
+#  include "mozmemory.h"
+#  ifdef MOZ_DMD
+#    include "DMD.h"
+#  endif
+#endif
+
 
 
 
@@ -349,7 +356,6 @@ Service::shutdown()
 sqlite3_vfs *ConstructTelemetryVFS();
 
 #ifdef MOZ_STORAGE_MEMORY
-#  include "mozmemory.h"
 
 namespace {
 
@@ -372,8 +378,6 @@ namespace {
 
 
 #ifdef MOZ_DMD
-
-#include "DMD.h"
 
 
 
