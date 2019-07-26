@@ -107,7 +107,7 @@ var CastingApps = {
     
     
     let video = aEvent.target;
-    if (!video instanceof HTMLVideoElement) {
+    if (!(video instanceof HTMLVideoElement)) {
       return;
     }
 
@@ -126,7 +126,7 @@ var CastingApps = {
   handleVideoBindingCast: function handleVideoBindingCast(aTab, aEvent) {
     
     let video = aEvent.target;
-    if (!video instanceof HTMLVideoElement) {
+    if (!(video instanceof HTMLVideoElement)) {
       return;
     }
 
@@ -172,7 +172,7 @@ var CastingApps = {
   },
 
   _getVideo: function(aElement) {
-    if (!aElement instanceof HTMLVideoElement) {
+    if (!(aElement instanceof HTMLVideoElement)) {
       return null;
     }
 
