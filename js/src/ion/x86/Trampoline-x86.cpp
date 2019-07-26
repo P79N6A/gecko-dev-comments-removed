@@ -298,7 +298,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
     
     
     masm.movl(Operand(eax, offsetof(JSFunction, u.i.script_)), eax);
-    masm.loadBaselineOrIonCode(eax, NULL);
+    masm.loadBaselineOrIonCode(eax, ebx, NULL);
     masm.movl(Operand(eax, IonCode::offsetOfCode()), eax);
     masm.call(eax);
     uint32_t returnOffset = masm.currentOffset();
