@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "HTMLTableAccessible.h"
 
 #include "Accessible-inl.h"

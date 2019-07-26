@@ -13,6 +13,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 

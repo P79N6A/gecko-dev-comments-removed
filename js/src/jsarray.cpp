@@ -64,8 +64,10 @@
 
 
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/RangedPtr.h"
+#include "mozilla/Util.h"
 
 #include <limits.h>
 #include <stdlib.h>

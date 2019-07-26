@@ -3,10 +3,11 @@
 
 
 
-
-#include <string.h>
-#include <stdio.h>
 #include <algorithm>
+#include <stdio.h>
+#include <string.h>
+
+#include "mozilla/DebugOnly.h"
 
 #include "prlink.h"
 #include "prenv.h"
@@ -21,7 +22,6 @@
 #include "gfxUtils.h"
 
 #include "mozilla/Preferences.h"
-#include "mozilla/Util.h" 
 
 #include "GLTextureImage.h"
 

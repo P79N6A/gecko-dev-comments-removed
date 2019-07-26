@@ -3,9 +3,10 @@
 
 
 
-#include "nsSVGElement.h"
-
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Util.h"
+
+#include "nsSVGElement.h"
 
 #include "nsSVGSVGElement.h"
 #include "nsIDocument.h"

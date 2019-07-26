@@ -8,6 +8,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsGenericDOMDataNode.h"
 #include "mozilla/dom/Element.h"
 #include "nsIDocument.h"

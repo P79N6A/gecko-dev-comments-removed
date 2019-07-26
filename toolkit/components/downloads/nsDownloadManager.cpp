@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/DebugOnly.h"
 
 #include "mozIStorageService.h"
 #include "nsIAlertsService.h"

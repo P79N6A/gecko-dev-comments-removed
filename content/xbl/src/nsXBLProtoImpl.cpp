@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsXBLProtoImpl.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
@@ -15,7 +17,6 @@
 #include "nsIDOMNode.h"
 #include "nsXBLPrototypeBinding.h"
 #include "nsXBLProtoImplProperty.h"
-#include "mozilla/Util.h"
 
 using namespace mozilla;
 

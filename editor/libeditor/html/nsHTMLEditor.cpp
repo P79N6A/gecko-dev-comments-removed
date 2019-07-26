@@ -2,6 +2,9 @@
 
 
 
+
+#include "mozilla/DebugOnly.h"
+
 #include "nsCRT.h"
 
 #include "nsUnicharUtils.h"

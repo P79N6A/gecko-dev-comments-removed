@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "jscntxt.h"
 #include "jsdate.h"
 #include "jscompartment.h"

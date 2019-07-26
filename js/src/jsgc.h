@@ -4,14 +4,14 @@
 
 
 
+
+
 #ifndef jsgc_h___
 #define jsgc_h___
 
-
-
-
 #include <setjmp.h>
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Util.h"
 
 #include "jsalloc.h"

@@ -9,6 +9,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsNavHistory.h"
 #include "nsNavBookmarks.h"
 #include "nsEscape.h"
@@ -16,7 +18,6 @@
 #include "nsNetUtil.h"
 #include "nsTArray.h"
 #include "prprf.h"
-#include "mozilla/Util.h"
 
 using namespace mozilla;
 

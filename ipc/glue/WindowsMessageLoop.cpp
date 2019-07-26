@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "WindowsMessageLoop.h"
 #include "RPCChannel.h"
 

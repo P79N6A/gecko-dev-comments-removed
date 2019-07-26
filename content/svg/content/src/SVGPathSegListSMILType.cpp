@@ -3,12 +3,15 @@
 
 
 
+#include <math.h>
+
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Util.h"
+
 #include "SVGPathSegListSMILType.h"
 #include "nsSMILValue.h"
 #include "SVGPathSegUtils.h"
 #include "SVGPathData.h"
-#include "mozilla/Util.h"
-#include <math.h>
 
 
 

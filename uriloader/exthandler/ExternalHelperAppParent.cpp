@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "ExternalHelperAppParent.h"
 #include "nsIContent.h"
 #include "nsCExternalHandlerService.h"
@@ -14,7 +16,6 @@
 #include "mozilla/ipc/URIUtils.h"
 
 #include "mozilla/unused.h"
-#include "mozilla/Util.h" 
 
 using namespace mozilla::ipc;
 

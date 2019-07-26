@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "mozilla/layers/PGrallocBufferChild.h"
 #include "mozilla/layers/PGrallocBufferParent.h"
 #include "mozilla/layers/PLayersChild.h"

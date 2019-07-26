@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "jsscope.h"
 
 #include "CodeGenerator.h"

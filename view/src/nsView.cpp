@@ -3,6 +3,10 @@
 
 
 
+#include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Likely.h"
+
 #include "nsView.h"
 #include "nsIWidget.h"
 #include "nsWidgetsCID.h"
@@ -12,9 +16,6 @@
 #include "nsIComponentManager.h"
 #include "nsGfxCIID.h"
 #include "nsIInterfaceRequestor.h"
-#include "mozilla/Attributes.h"
-#include "mozilla/Likely.h"
-#include "mozilla/Util.h"
 #include "nsXULPopupManager.h"
 #include "nsIWidgetListener.h"
 

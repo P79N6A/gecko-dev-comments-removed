@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsXBLDocumentInfo.h"
 #include "nsHashtable.h"
 #include "nsIDocument.h"
@@ -29,7 +31,6 @@
 #include "mozilla/scache/StartupCacheUtils.h"
 #include "nsCCUncollectableMarker.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/Util.h"
 
 using namespace mozilla::scache;
 using namespace mozilla;

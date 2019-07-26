@@ -2,6 +2,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "fcntl.h"
 #include "errno.h"
 

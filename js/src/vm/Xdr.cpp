@@ -4,7 +4,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/DebugOnly.h"
 
 #include "jsversion.h"
 

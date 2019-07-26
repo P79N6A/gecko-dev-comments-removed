@@ -3,11 +3,12 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsUnicharStreamLoader.h"
 #include "nsIInputStream.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIServiceManager.h"
-#include "mozilla/Util.h" 
 
 #define SNIFFING_BUFFER_SIZE 512 // specified in draft-abarth-mime-sniff-06
 

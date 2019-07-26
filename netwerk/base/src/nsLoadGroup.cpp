@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsLoadGroup.h"
 #include "nsISupportsArray.h"
 #include "nsEnumeratorUtils.h"
@@ -18,7 +20,6 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/Util.h"
 
 using namespace mozilla;
 

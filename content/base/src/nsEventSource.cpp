@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Util.h"
 
 #include "nsEventSource.h"

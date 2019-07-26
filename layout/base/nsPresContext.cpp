@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "base/basictypes.h"
 
 #include "nsCOMPtr.h"

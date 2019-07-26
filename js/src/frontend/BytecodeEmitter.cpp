@@ -9,6 +9,7 @@
 
 
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 
 #ifdef HAVE_MEMORY_H

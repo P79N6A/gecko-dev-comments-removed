@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "jsnum.h"
 #include "jsscript.h"
 

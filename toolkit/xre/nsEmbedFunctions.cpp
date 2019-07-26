@@ -2,6 +2,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #if defined(MOZ_WIDGET_QT)
 #include "nsQAppInstance.h"
 #endif
@@ -71,8 +73,6 @@
 
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/ipc/XPCShellEnvironment.h"
-
-#include "mozilla/Util.h" 
 
 #include "sampler.h"
 

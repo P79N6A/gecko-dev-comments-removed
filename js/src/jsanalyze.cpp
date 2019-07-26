@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "jsanalyze.h"
 #include "jsautooplen.h"
 #include "jscompartment.h"
@@ -12,9 +14,10 @@
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 
-using mozilla::DebugOnly;
 using namespace js;
 using namespace js::analyze;
+
+using mozilla::DebugOnly;
 
 
 

@@ -4,8 +4,11 @@
 
 
 
-#include "nsCache.h"
 #include <limits.h>
+
+#include "mozilla/DebugOnly.h"
+
+#include "nsCache.h"
 
 
 #if defined(XP_UNIX)
@@ -46,7 +49,6 @@
 
 #include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/Util.h"
 
 static const char DISK_CACHE_DEVICE_ID[] = { "disk" };
 using namespace mozilla;

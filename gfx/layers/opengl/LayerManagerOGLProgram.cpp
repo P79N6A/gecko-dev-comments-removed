@@ -2,6 +2,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "LayerManagerOGLProgram.h"
 
 #include "LayerManagerOGLShaders.h"

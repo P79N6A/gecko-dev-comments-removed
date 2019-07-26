@@ -4,6 +4,9 @@
 
 
 
+
+#include "mozilla/DebugOnly.h"
+
 #include "jsbool.h"
 #include "jslibmath.h"
 #include "jsmath.h"

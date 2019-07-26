@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "IonAnalysis.h"
 #include "IonBuilder.h"
 #include "Lowering.h"

@@ -7,9 +7,9 @@
 
 
 
-
 #include <stdlib.h>
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Util.h"
 
 #include "jspubtd.h"
@@ -34,8 +34,8 @@
 using namespace js;
 using namespace js::frontend;
 
-using mozilla::DebugOnly;
 using mozilla::ArrayLength;
+using mozilla::DebugOnly;
 
 char const *js::aopNames[] = {
     "=",    

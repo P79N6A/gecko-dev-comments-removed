@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "CodeGenerator.h"
 #include "IonLinker.h"
 #include "IonSpewer.h"

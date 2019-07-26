@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"          
+
 #include <stdio.h>                      
 #include <string.h>                     
 
@@ -25,7 +27,6 @@
 #include "mozilla/Preferences.h"        
 #include "mozilla/Selection.h"          
 #include "mozilla/Services.h"           
-#include "mozilla/Util.h"               
 #include "mozilla/dom/Element.h"        
 #include "mozilla/mozalloc.h"           
 #include "nsAString.h"                  

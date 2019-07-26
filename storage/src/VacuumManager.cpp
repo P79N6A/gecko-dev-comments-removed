@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "VacuumManager.h"
 
 #include "mozilla/Services.h"

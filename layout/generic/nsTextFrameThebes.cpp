@@ -5,7 +5,12 @@
 
 
 
-#include "mozilla/Util.h"
+#include <cmath> 
+#include <cstdlib> 
+
+#include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Likely.h"
 
 #include "nsCOMPtr.h"
 #include "nsHTMLParts.h"
@@ -70,13 +75,8 @@
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 
-#include "mozilla/Attributes.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/Likely.h"
 #include "mozilla/LookAndFeel.h"
-#include "mozilla/Util.h" 
-#include <cstdlib> 
-#include <cmath> 
 
 #include "sampler.h"
 

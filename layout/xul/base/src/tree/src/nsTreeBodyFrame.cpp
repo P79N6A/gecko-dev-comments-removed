@@ -3,6 +3,12 @@
 
 
 
+#include <cmath> 
+#include <cstdlib> 
+
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Likely.h"
+
 #include "nsCOMPtr.h"
 #include "nsISupportsArray.h"
 #include "nsPresContext.h"
@@ -57,11 +63,6 @@
 #include "nsTreeBoxObject.h"
 #include "nsRenderingContext.h"
 #include "nsIScriptableRegion.h"
-
-#include "mozilla/Likely.h"
-#include "mozilla/Util.h"
-#include <cstdlib> 
-#include <cmath> 
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"

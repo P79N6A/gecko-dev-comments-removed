@@ -9,11 +9,13 @@
 
 
 
-#include <limits.h> 
-
+#include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "mozilla/DebugOnly.h"
+
 #ifdef ANDROID
 # include <android/log.h>
 # include <fstream>

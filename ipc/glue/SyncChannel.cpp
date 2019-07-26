@@ -5,8 +5,9 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "mozilla/ipc/SyncChannel.h"
-#include "mozilla/Util.h"
 
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"

@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nscore.h"
 #include "nsRequestObserverProxy.h"
 #include "nsIRequest.h"
@@ -11,7 +13,6 @@
 #include "nsAutoPtr.h"
 #include "nsString.h"
 #include "prlog.h"
-#include "mozilla/Util.h"
 
 using namespace mozilla;
 

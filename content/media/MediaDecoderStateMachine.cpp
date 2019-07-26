@@ -3,6 +3,10 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+#include "mozilla/StandardInteger.h"
+#include "mozilla/Util.h"
+
 #include "MediaDecoderStateMachine.h"
 #include <limits>
 #include "AudioStream.h"
@@ -19,8 +23,6 @@
 
 #include "prenv.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/StandardInteger.h"
-#include "mozilla/Util.h"
 
 namespace mozilla {
 

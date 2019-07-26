@@ -2,6 +2,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "OpenDatabaseHelper.h"
 
 #include "nsIFile.h"

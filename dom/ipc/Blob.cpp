@@ -4,6 +4,9 @@
 
 
 
+#include "mozilla/Assertions.h"
+#include "mozilla/DebugOnly.h"
+
 #include "base/basictypes.h"
 
 #include "Blob.h"
@@ -14,10 +17,8 @@
 #include "nsIRemoteBlob.h"
 #include "nsISeekableStream.h"
 
-#include "mozilla/Assertions.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/unused.h"
-#include "mozilla/Util.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "nsDOMFile.h"
 #include "nsThreadUtils.h"

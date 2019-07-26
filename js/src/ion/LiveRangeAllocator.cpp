@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "LiveRangeAllocator.h"
 
 #include "BacktrackingAllocator.h"

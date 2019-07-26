@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsSMILTimedElement.h"
 #include "nsAttrValueInlines.h"
 #include "nsSMILAnimationFunction.h"
@@ -23,7 +25,6 @@
 #include "prtime.h"
 #include "nsString.h"
 #include "mozilla/AutoRestore.h"
-#include "mozilla/Util.h"
 #include "nsCharSeparatedTokenizer.h"
 
 using namespace mozilla;

@@ -9,6 +9,7 @@
 
 
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 
 #include <stdio.h>

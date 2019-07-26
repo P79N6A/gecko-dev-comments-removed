@@ -6,6 +6,9 @@
 
 
 #include <limits.h>
+
+#include "mozilla/DebugOnly.h"
+
 #include "BitSet.h"
 #include "LinearScan.h"
 #include "IonBuilder.h"

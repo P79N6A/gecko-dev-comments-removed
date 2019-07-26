@@ -3,6 +3,9 @@
 
 
 
+#include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
+
 #include "nsCOMPtr.h"
 #include "nsError.h"
 #include "nsDOMStorage.h"
@@ -20,7 +23,6 @@
 #include "mozIStorageValueArray.h"
 #include "mozIStorageFunction.h"
 #include "nsNetUtil.h"
-#include "mozilla/Attributes.h"
 #include "mozilla/Telemetry.h"
 
 #include "sampler.h"

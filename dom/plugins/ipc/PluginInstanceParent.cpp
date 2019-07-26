@@ -4,6 +4,9 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+#include "mozilla/StandardInteger.h" 
+
 #include "PluginInstanceParent.h"
 #include "BrowserStreamParent.h"
 #include "PluginBackgroundDestroyer.h"
@@ -17,7 +20,6 @@
 #include "gfxPlatform.h"
 #include "gfxSharedImageSurface.h"
 #include "nsNPAPIPluginInstance.h"
-#include "mozilla/StandardInteger.h" 
 #ifdef MOZ_X11
 #include "gfxXlibSurface.h"
 #endif

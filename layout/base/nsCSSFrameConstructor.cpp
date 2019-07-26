@@ -9,7 +9,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
 #include "mozilla/LinkedList.h"
 

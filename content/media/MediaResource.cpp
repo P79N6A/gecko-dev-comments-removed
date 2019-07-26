@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "MediaResource.h"
 
 #include "mozilla/Mutex.h"
@@ -26,7 +28,6 @@
 #include "nsICachingChannel.h"
 #include "nsURILoader.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-#include "mozilla/Util.h" 
 #include "nsContentUtils.h"
 #include "nsHostObjectProtocolHandler.h"
 

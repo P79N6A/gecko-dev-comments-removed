@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "BasicLayersImpl.h"
 #include "mozilla/layers/PLayers.h"
 

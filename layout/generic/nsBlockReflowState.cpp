@@ -6,6 +6,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsBlockReflowContext.h"
 #include "nsBlockReflowState.h"
 #include "nsBlockFrame.h"
@@ -18,8 +20,6 @@
 #include "FrameLayerBuilder.h"
 
 #include "nsINameSpaceManager.h"
-
-#include "mozilla/Util.h" 
 
 #ifdef DEBUG
 #include "nsBlockDebugFlags.h"

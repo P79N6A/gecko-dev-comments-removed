@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsHtml5StreamParser.h"
 #include "nsICharsetConverterManager.h"
 #include "nsServiceManagerUtils.h"

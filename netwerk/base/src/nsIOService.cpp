@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "nsIOService.h"
 #include "nsIProtocolHandler.h"
 #include "nsIFileProtocolHandler.h"
@@ -42,7 +44,6 @@
 #include "nsIProxiedChannel.h"
 #include "nsIProtocolProxyCallback.h"
 #include "nsICancelable.h"
-#include "mozilla/Util.h"
 
 #if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
 #include "nsNativeConnectionHelper.h"

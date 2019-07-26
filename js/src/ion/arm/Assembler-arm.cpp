@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "Assembler-arm.h"
 #include "MacroAssembler-arm.h"
 #include "gc/Marking.h"

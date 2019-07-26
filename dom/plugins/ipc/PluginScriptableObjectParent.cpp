@@ -4,12 +4,13 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "PluginScriptableObjectParent.h"
 #include "PluginScriptableObjectUtils.h"
 
 #include "nsNPAPIPlugin.h"
 #include "mozilla/unused.h"
-#include "mozilla/Util.h"
 
 using namespace mozilla::plugins;
 using namespace mozilla::plugins::parent;

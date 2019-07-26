@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "IPCMessageUtils.h"
 
 #include "nsSimpleURI.h"
@@ -18,7 +20,6 @@
 #include "nsEscape.h"
 #include "nsError.h"
 #include "nsIProgrammingLanguage.h"
-#include "mozilla/Util.h" 
 #include "nsIIPCSerializableURI.h"
 #include "mozilla/ipc/URIUtils.h"
 

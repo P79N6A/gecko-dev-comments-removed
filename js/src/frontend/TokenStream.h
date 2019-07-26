@@ -10,6 +10,9 @@
 
 
 
+
+#include "mozilla/DebugOnly.h"
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdarg.h>

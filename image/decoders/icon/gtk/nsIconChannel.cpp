@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "mozilla/DebugOnly.h"
+
 #ifdef MOZ_ENABLE_GNOMEUI
 
 extern "C" {
@@ -30,8 +32,6 @@ extern "C" {
 #include "nsNetUtil.h"
 #include "nsIURL.h"
 #include "prlink.h"
-
-#include "mozilla/Util.h" 
 
 #include "nsIconChannel.h"
 

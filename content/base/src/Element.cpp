@@ -10,7 +10,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/DebugOnly.h"
 
 #include "mozilla/dom/Element.h"
 

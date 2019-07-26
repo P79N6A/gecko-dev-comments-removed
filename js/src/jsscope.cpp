@@ -7,9 +7,11 @@
 
 
 
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "mozilla/DebugOnly.h"
+
 #include "jstypes.h"
 #include "jsclist.h"
 #include "jsutil.h"

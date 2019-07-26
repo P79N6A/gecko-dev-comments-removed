@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/DebugOnly.h"
+
 #include "StorageChild.h"
 #include "StorageParent.h"
 #include "mozilla/dom/ContentChild.h"

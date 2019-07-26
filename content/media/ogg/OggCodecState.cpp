@@ -3,16 +3,18 @@
 
 
 
+
+#include <string.h>
+
+#include "mozilla/DebugOnly.h"
+#include "mozilla/StandardInteger.h"
+
 #include "nsDebug.h"
 #include "OggCodecState.h"
 #include "OggDecoder.h"
-#include <string.h>
 #include "nsTraceRefcnt.h"
 #include "VideoUtils.h"
 #include "MediaDecoderReader.h"
-
-#include "mozilla/StandardInteger.h"
-#include "mozilla/Util.h" 
 
 namespace mozilla {
 

@@ -3,6 +3,9 @@
 
 
 
+
+#include "mozilla/DebugOnly.h"
+
 #include "nsError.h"
 #include "MediaDecoderStateMachine.h"
 #include "MediaDecoder.h"
