@@ -30,12 +30,14 @@ js::obj_construct(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     RootedObject obj(cx, nullptr);
-    if (args.length() > 0 && !args[0].isNullOrUndefined()) {
-        obj = ToObject(cx, args[0]);
-        if (!obj)
-            return false;
-    } else {
+    if (args.length() > 0) {
         
+        if (!js_ValueToObjectOrNull(cx, args[0], &obj))
+            return false;
+    }
+    if (!obj) {
+        
+        JS_ASSERT(!args.length() || args[0].isNullOrUndefined());
         if (!NewObjectScriptedCall(cx, &obj))
             return false;
     }

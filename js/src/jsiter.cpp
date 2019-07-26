@@ -978,7 +978,13 @@ js::ValueToIterator(JSContext *cx, unsigned flags, MutableHandleValue vp)
 
 
 
-        if (!(flags & JSITER_ENUMERATE) || !vp.isNullOrUndefined()) {
+
+
+        if (flags & JSITER_ENUMERATE) {
+            if (!js_ValueToObjectOrNull(cx, vp, &obj))
+                return false;
+            
+        } else {
             obj = ToObject(cx, vp);
             if (!obj)
                 return false;
