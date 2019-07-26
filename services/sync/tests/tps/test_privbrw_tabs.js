@@ -62,7 +62,6 @@ var tabs3 = [
 
 
 
-
 Phase('phase1', [
   [Tabs.add, tabs1],
   [Sync]
@@ -77,7 +76,7 @@ Phase('phase2', [
 
 Phase('phase3', [
   [Sync],
-  [SetPrivateBrowsing, true],
+  [Windows.add, { private: true }],
   [Tabs.add, tabs3],
   [Sync]
 ]);
@@ -86,4 +85,3 @@ Phase('phase4', [
   [Sync],
   [Tabs.verifyNot, tabs3]
 ]);
-
