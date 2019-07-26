@@ -469,10 +469,6 @@ pref("app.update.channel", "@MOZ_UPDATE_CHANNEL@");
 
 pref("app.update.interval", 86400); 
 
-
-pref("app.update.timerFirstInterval", 3600000); 
-pref("app.update.timerMinimumDelay", 3600); 
-
 pref("app.update.download.backgroundInterval", 0);
 
 

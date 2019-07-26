@@ -151,6 +151,7 @@ const WRITE_ERROR_SHARING_VIOLATION_NOPID           = 48;
 const CERT_ATTR_CHECK_FAILED_NO_UPDATE  = 100;
 const CERT_ATTR_CHECK_FAILED_HAS_UPDATE = 101;
 const BACKGROUNDCHECK_MULTIPLE_FAILURES = 110;
+const NETWORK_ERROR_OFFLINE             = 111;
 
 const DOWNLOAD_CHUNK_SIZE           = 300000; 
 const DOWNLOAD_BACKGROUND_INTERVAL  = 600;    
@@ -1499,6 +1500,11 @@ UpdateService.prototype = {
   
 
 
+  _registeredOnlineObserver: false,
+
+  
+
+
 
 
 
@@ -1510,6 +1516,9 @@ UpdateService.prototype = {
     case "post-update-processing":
       
       this._postUpdateProcessing();
+      break;
+    case "network:offline-status-changed":
+      this._offlineStatusChanged(data);
       break;
     case "xpcom-shutdown":
       Services.obs.removeObserver(this, "xpcom-shutdown");
@@ -1793,61 +1802,90 @@ UpdateService.prototype = {
 
 
 
+  _registerOnlineObserver: function AUS__registerOnlineObserver() {
+    if (this._registeredOnlineObserver) {
+      LOG("UpdateService:_registerOnlineObserver - observer already registered");
+      return;
+    }
+
+    LOG("UpdateService:_registerOnlineObserver - waiting for the network to " +
+        "be online, then forcing another check");
+
+    Services.obs.addObserver(this, "network:offline-status-changed", false);
+    this._registeredOnlineObserver = true;
+  },
+
+  
+
+
+  _offlineStatusChanged: function AUS__offlineStatusChanged(status) {
+    if (status !== "online") {
+      return;
+    }
+
+    Services.obs.removeObserver(this, "network:offline-status-changed");
+    this._registeredOnlineObserver = false;
+
+    LOG("UpdateService:_offlineStatusChanged - network is online, forcing " +
+        "another background check");
+
+    
+    this.notify(null);
+  },
+
+  
+  onProgress: function AUS_onProgress(request, position, totalSize) {
+  },
+
+  onCheckComplete: function AUS_onCheckComplete(request, updates, updateCount) {
+    this._selectAndInstallUpdate(updates);
+  },
+
+  onError: function AUS_onError(request, update) {
+    LOG("UpdateService:onError - error during background update: " +
+        update.statusText);
+
+    var maxErrors;
+    var errCount;
+    if (update.errorCode == NETWORK_ERROR_OFFLINE) {
+      
+      this._registerOnlineObserver();
+      return;
+    }
+    else if (update.errorCode == CERT_ATTR_CHECK_FAILED_NO_UPDATE ||
+             update.errorCode == CERT_ATTR_CHECK_FAILED_HAS_UPDATE) {
+      errCount = getPref("getIntPref", PREF_APP_UPDATE_CERT_ERRORS, 0);
+      errCount++;
+      Services.prefs.setIntPref(PREF_APP_UPDATE_CERT_ERRORS, errCount);
+      maxErrors = getPref("getIntPref", PREF_APP_UPDATE_CERT_MAXERRORS, 5);
+    }
+    else {
+      update.errorCode = BACKGROUNDCHECK_MULTIPLE_FAILURES;
+      errCount = getPref("getIntPref", PREF_APP_UPDATE_BACKGROUNDERRORS, 0);
+      errCount++;
+      Services.prefs.setIntPref(PREF_APP_UPDATE_BACKGROUNDERRORS, errCount);
+      maxErrors = getPref("getIntPref", PREF_APP_UPDATE_BACKGROUNDMAXERRORS,
+                          10);
+    }
+
+    if (errCount >= maxErrors) {
+      var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+                     createInstance(Ci.nsIUpdatePrompt);
+      prompter.showUpdateError(update);
+    }
+  },
+
+  
+
+
+
 
   notify: function AUS_notify(timer) {
     
     if (this.isDownloading || this._downloader && this._downloader.patchIsStaged)
       return;
 
-    var self = this;
-    var listener = {
-      
-
-
-      onProgress: function AUS_notify_onProgress(request, position, totalSize) {
-      },
-
-      
-
-
-      onCheckComplete: function AUS_notify_onCheckComplete(request, updates,
-                                                           updateCount) {
-        self._selectAndInstallUpdate(updates);
-      },
-
-      
-
-
-      onError: function AUS_notify_onError(request, update) {
-        LOG("UpdateService:notify:listener - error during background update: " +
-            update.statusText);
-
-        var maxErrors;
-        var errCount;
-        if (update.errorCode == CERT_ATTR_CHECK_FAILED_NO_UPDATE ||
-            update.errorCode == CERT_ATTR_CHECK_FAILED_HAS_UPDATE) {
-          errCount = getPref("getIntPref", PREF_APP_UPDATE_CERT_ERRORS, 0);
-          errCount++;
-          Services.prefs.setIntPref(PREF_APP_UPDATE_CERT_ERRORS, errCount);
-          maxErrors = getPref("getIntPref", PREF_APP_UPDATE_CERT_MAXERRORS, 5);
-        }
-        else {
-          update.errorCode = BACKGROUNDCHECK_MULTIPLE_FAILURES;
-          errCount = getPref("getIntPref", PREF_APP_UPDATE_BACKGROUNDERRORS, 0);
-          errCount++;
-          Services.prefs.setIntPref(PREF_APP_UPDATE_BACKGROUNDERRORS, errCount);
-          maxErrors = getPref("getIntPref", PREF_APP_UPDATE_BACKGROUNDMAXERRORS,
-                              10);
-        }
-
-        if (errCount >= maxErrors) {
-          var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
-                         createInstance(Ci.nsIUpdatePrompt);
-          prompter.showUpdateError(update);
-        }
-      }
-    };
-    this.backgroundChecker.checkForUpdates(listener, false);
+    this.backgroundChecker.checkForUpdates(this, false);
   },
 
   
@@ -2307,6 +2345,7 @@ UpdateService.prototype = {
 
   _xpcom_factory: UpdateServiceFactory,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIApplicationUpdateService,
+                                         Ci.nsIUpdateCheckListener,
                                          Ci.nsIAddonUpdateCheckListener,
                                          Ci.nsITimerCallback,
                                          Ci.nsIObserver])
@@ -2843,6 +2882,11 @@ Checker.prototype = {
     
     var update = new Update(null);
     update.statusText = getStatusTextFromCode(status, 200);
+    if (status == Cr.NS_ERROR_OFFLINE) {
+      
+      update.errorCode = NETWORK_ERROR_OFFLINE;
+    }
+
     this._callback.onError(request, update);
 
     this._request = null;
