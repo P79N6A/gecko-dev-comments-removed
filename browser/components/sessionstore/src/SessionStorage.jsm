@@ -7,13 +7,12 @@
 this.EXPORTED_SYMBOLS = ["SessionStorage"];
 
 const Cu = Components.utils;
-const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
-  "resource:///modules/sessionstore/PrivacyLevel.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
+  "resource:///modules/sessionstore/SessionStore.jsm");
 
 this.SessionStorage = {
   
@@ -52,17 +51,16 @@ let DomStorage = {
   read: function DomStorage_read(aDocShell, aFullData) {
     let data = {};
     let isPinned = aDocShell.isAppTab;
-    let webNavigation = aDocShell.QueryInterface(Ci.nsIWebNavigation);
-    let shistory = webNavigation.sessionHistory;
+    let shistory = aDocShell.sessionHistory;
 
-    for (let i = 0; shistory && i < shistory.count; i++) {
+    for (let i = 0; i < shistory.count; i++) {
       let principal = History.getPrincipalForEntry(shistory, i, aDocShell);
       if (!principal)
         continue;
 
       
-      let isHttps = principal.URI && principal.URI.schemeIs("https");
-      if (aFullData || PrivacyLevel.canSave({isHttps: isHttps, isPinned: isPinned})) {
+      let isHTTPS = principal.URI && principal.URI.schemeIs("https");
+      if (aFullData || SessionStore.checkPrivacyLevel(isHTTPS, isPinned)) {
         let origin = principal.jarPrefix + principal.origin;
 
         
@@ -92,8 +90,8 @@ let DomStorage = {
       let storageManager = aDocShell.QueryInterface(Components.interfaces.nsIDOMStorageManager);
 
       
-      
-      
+			
+			
       let storage = storageManager.createStorage(principal, "", aDocShell.usePrivateBrowsing);
 
       for (let [key, value] in Iterator(data)) {

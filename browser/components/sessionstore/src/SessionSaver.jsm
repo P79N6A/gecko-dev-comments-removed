@@ -151,7 +151,7 @@ let SessionSaverInternal = {
     delay = Math.max(this._lastSaveTime + gInterval - Date.now(), delay, 0);
 
     
-    this._timeoutID = setTimeout(() => this._saveStateAsync(), delay);
+    this._timeoutID = setTimeout(() => this._saveState(), delay);
   },
 
   
@@ -186,6 +186,7 @@ let SessionSaverInternal = {
 
 
   _saveState: function (forceUpdateAllWindows = false) {
+    
     
     this.cancel();
 
@@ -243,33 +244,6 @@ let SessionSaverInternal = {
 
     stopWatchFinish("COLLECT_DATA_MS", "COLLECT_DATA_LONGEST_OP_MS");
     this._writeState(state);
-  },
-
-  
-
-
-
-
-  _saveStateAsync: function () {
-    
-    this._timeoutID = null;
-
-    
-    if (!Services.prefs.getBoolPref("browser.sessionstore.async")) {
-      this._saveState();
-      return;
-    }
-
-    
-    
-    this.updateLastSaveTime();
-
-    
-    
-    
-    
-    
-    SessionStore.fillTabCachesAsynchronously().then(() => this._saveState());
   },
 
   

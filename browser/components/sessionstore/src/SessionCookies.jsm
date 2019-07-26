@@ -12,8 +12,8 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
-XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
-  "resource:///modules/sessionstore/PrivacyLevel.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
+  "resource:///modules/sessionstore/SessionStore.jsm");
 
 
 const MAX_EXPIRY = Math.pow(2, 62);
@@ -68,7 +68,7 @@ let SessionCookiesInternal = {
           
           
           
-          if (PrivacyLevel.canSave({isHttps: cookie.secure, isPinned: isPinned})) {
+          if (SessionStore.checkPrivacyLevel(cookie.secure, isPinned)) {
             cookies.push(cookie);
           }
         }
@@ -209,7 +209,7 @@ let SessionCookiesInternal = {
     
     if (/https?/.test(scheme) && !hosts[host] &&
         (!checkPrivacy ||
-         PrivacyLevel.canSave({isHttps: scheme == "https", isPinned: isPinned}))) {
+         SessionStore.checkPrivacyLevel(scheme == "https", isPinned))) {
       
       
       hosts[host] = isPinned;
