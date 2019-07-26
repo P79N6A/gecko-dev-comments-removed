@@ -4957,6 +4957,63 @@ nsEditor::InitializeSelection(nsIDOMEventTarget* aFocusEventTarget)
   return NS_OK;
 }
 
+void
+nsEditor::FinalizeSelection()
+{
+  nsCOMPtr<nsISelectionController> selCon;
+  nsresult rv = GetSelectionController(getter_AddRefs(selCon));
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsCOMPtr<nsISelection> selection;
+  rv = selCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
+                            getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsCOMPtr<nsISelectionPrivate> selectionPrivate = do_QueryInterface(selection);
+  NS_ENSURE_TRUE_VOID(selectionPrivate);
+
+  selectionPrivate->SetAncestorLimiter(nullptr);
+
+  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+  NS_ENSURE_TRUE_VOID(presShell);
+
+  nsRefPtr<nsCaret> caret = presShell->GetCaret();
+  if (caret) {
+    caret->SetIgnoreUserModify(true);
+  }
+
+  selCon->SetCaretEnabled(false);
+
+  if (!HasIndependentSelection()) {
+    
+    
+    
+    
+    nsCOMPtr<nsIDocument> doc = GetDocument();
+    ErrorResult ret;
+    if (!doc || !doc->HasFocus(ret)) {
+      
+      selCon->SetDisplaySelection(nsISelectionController::SELECTION_DISABLED);
+    } else {
+      
+      
+      
+      selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
+    }
+  } else if (IsFormWidget() || IsPasswordEditor() ||
+             IsReadonly() || IsDisabled() || IsInputFiltered()) {
+    
+    
+    selCon->SetDisplaySelection(nsISelectionController::SELECTION_HIDDEN);
+  } else {
+    
+    
+    selCon->SetDisplaySelection(nsISelectionController::SELECTION_DISABLED);
+  }
+
+  selCon->RepaintSelection(nsISelectionController::SELECTION_NORMAL);
+}
+
 dom::Element *
 nsEditor::GetRoot()
 {

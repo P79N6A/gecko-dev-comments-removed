@@ -740,6 +740,11 @@ public:
            IsInteractionAllowed();
   }
 
+  bool HasIndependentSelection() const
+  {
+    return !!mSelConWeak;
+  }
+
   
   virtual already_AddRefed<nsIContent> GetInputEventTargetContent() = 0;
 
@@ -772,6 +777,9 @@ public:
   
   
   nsresult InitializeSelection(nsIDOMEventTarget* aFocusEventTarget);
+
+  
+  void FinalizeSelection();
 
   
   
