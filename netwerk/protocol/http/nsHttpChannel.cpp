@@ -2556,10 +2556,11 @@ nsHttpChannel::OpenCacheEntry(bool usingSSL)
     }
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (mLoadAsBlocking || mLoadUnblocked ||
-        (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)) {
+    
+    
+    
+    if (mLoadAsBlocking || (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI))
         cacheEntryOpenFlags |= nsICacheStorage::OPEN_PRIORITY;
-    }
 
     
     
