@@ -219,14 +219,6 @@ NS_GFX_(bool) NS_ColorNameToRGB(const nsAString& aColorName, nscolor* aResult)
 
 
 
-NS_GFX_(const char * const *) NS_AllColorNames(size_t *aSizeArray)
-{
-  *aSizeArray = ArrayLength(kColorNames);
-  return kColorNames;
-}
-
-
-
 
 #define MOZ_BLEND(target, bg, fg, fgalpha)       \
   FAST_DIVIDE_BY_255(target, (bg)*(255-fgalpha) + (fg)*(fgalpha))

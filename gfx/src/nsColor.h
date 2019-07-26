@@ -68,10 +68,6 @@ NS_GFX_(bool) NS_ColorNameToRGB(const nsAString& aBuf, nscolor* aResult);
 
 
 
-NS_GFX_(const char * const *) NS_AllColorNames(size_t *aSizeArray);
-
-
-
 NS_GFX_(nscolor) NS_HSL2RGB(float h, float s, float l);
 
 
