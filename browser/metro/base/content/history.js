@@ -4,66 +4,207 @@
 
 'use strict';
 
-
-function HistoryView(aSet) {
+function HistoryView(aSet, aLimit, aFilterUnpinned) {
   this._set = aSet;
   this._set.controller = this;
   this._inBatch = false;
 
-  let history = Cc["@mozilla.org/browser/nav-history-service;1"].
-                getService(Ci.nsINavHistoryService);
-  history.addObserver(this, false);
+  this._limit = aLimit;
+  this._filterUnpinned = aFilterUnpinned;
+  this._historyService = PlacesUtils.history;
+  this._navHistoryService = gHistSvc;
+
+  this._pinHelper = new ItemPinHelper("metro.history.unpinned");
+  this._historyService.addObserver(this, false);
+  window.addEventListener('MozAppbarDismissing', this, false);
+  window.addEventListener('HistoryNeedsRefresh', this, false);
 }
 
 HistoryView.prototype = {
-  _set:null,
+  _set: null,
+  _toRemove: null,
 
   handleItemClick: function tabview_handleItemClick(aItem) {
     let url = aItem.getAttribute("value");
     BrowserUI.goToURI(url);
   },
 
-  populateGrid: function populateGrid() {
-    let query = gHistSvc.getNewQuery();
-    let options = gHistSvc.getNewQueryOptions();
+  populateGrid: function populateGrid(aRefresh) {
+    let query = this._navHistoryService.getNewQuery();
+    let options = this._navHistoryService.getNewQueryOptions();
     options.excludeQueries = true;
     options.queryType = options.QUERY_TYPE_HISTORY;
-    options.maxResults = StartUI.maxResultsPerSection;
     options.resultType = options.RESULTS_AS_URI;
     options.sortingMode = options.SORT_BY_DATE_DESCENDING;
 
-    let result = gHistSvc.executeQuery(query, options);
+    let limit = this._limit || Infinity;
+    let result = this._navHistoryService.executeQuery(query, options);
     let rootNode = result.root;
     rootNode.containerOpen = true;
     let childCount = rootNode.childCount;
 
-    for (let i = 0; i < childCount; i++) {
+    for (let i = 0, addedCount = 0; i < childCount && addedCount < limit; i++) {
       let node = rootNode.getChild(i);
       let uri = node.uri;
       let title = node.title || uri;
 
-      this.addItemToSet(uri, title, node.icon);
+      
+      if (this._toRemove && this._toRemove.indexOf(uri) !== -1)
+        continue;
+
+      let items = this._set.getItemsByUrl(uri);
+
+      
+      if (this._filterUnpinned && !this._pinHelper.isPinned(uri)) {
+        if (items.length > 0)
+          this.removeHistory(uri);
+
+        continue;
+      }
+
+      if (!aRefresh || items.length === 0) {
+        
+        this.addItemToSet(uri, title, node.icon, addedCount);
+      } else if (aRefresh && items.length > 0) {
+        
+        for (let item of items) {
+          this._setContextActions(item);
+        }
+      }
+
+      addedCount++;
+    }
+
+    
+    
+    if (aRefresh) {
+      while (this._set.itemCount > limit)
+        this._set.removeItemAt(this._set.itemCount - 1);
     }
 
     rootNode.containerOpen = false;
   },
 
   destruct: function destruct() {
+    this._historyService.removeObserver(this);
+    window.removeEventListener('MozAppbarDismissing', this, false);
+    window.removeEventListener('HistoryNeedsRefresh', this, false);
+  },
+
+  addItemToSet: function addItemToSet(aURI, aTitle, aIcon, aPos) {
+    let item = this._set.insertItemAt(aPos || 0, aTitle, aURI, this._inBatch);
+    item.setAttribute("iconURI", aIcon);
+    this._setContextActions(item);
+  },
+
+  _setContextActions: function bv__setContextActions(aItem) {
+    let uri = aItem.getAttribute("value");
+    aItem.setAttribute("data-contextactions", "delete," + (this._pinHelper.isPinned(uri) ? "unpin" : "pin"));
+    if (aItem.refresh) aItem.refresh();
+  },
+
+  _sendNeedsRefresh: function bv__sendNeedsRefresh(){
+    
+    let event = document.createEvent("Events");
+    event.initEvent("HistoryNeedsRefresh", true, false);
+    window.dispatchEvent(event);
+  },
+
+  removeHistory: function (aUri) {
+    let items = this._set.getItemsByUrl(aUri);
+    for (let item of items)
+      this._set.removeItem(item, this._inBatch);
+  },
+
+  doActionOnSelectedTiles: function bv_doActionOnSelectedTiles(aActionName, aEvent) {
+    let tileGroup = this._set;
+    let selectedTiles = tileGroup.selectedItems;
+
+    switch (aActionName){
+      case "delete":
+        Array.forEach(selectedTiles, function(aNode) {
+          if (!this._toRemove) {
+            this._toRemove = [];
+          }
+
+          let uri = aNode.getAttribute("value");
+
+          this._toRemove.push(uri);
+          this.removeHistory(uri);
+        }, this);
+
+        
+        aEvent.preventDefault();
+
+        
+        setTimeout(function(){
+          
+          let event = document.createEvent("Events");
+          
+          event.actions = ["restore"];
+          event.initEvent("MozContextActionsChange", true, false);
+          tileGroup.dispatchEvent(event);
+        }, 0);
+        break;
+
+      case "restore":
+        
+        this._toRemove = null;
+        break;
+
+      case "unpin":
+        Array.forEach(selectedTiles, function(aNode) {
+          let uri = aNode.getAttribute("value");
+
+          if (this._filterUnpinned)
+            this.removeHistory(uri);
+
+          this._pinHelper.setUnpinned(uri);
+        }, this);
+        break;
+
+      case "pin":
+        Array.forEach(selectedTiles, function(aNode) {
+          let uri = aNode.getAttribute("value");
+
+          this._pinHelper.setPinned(uri);
+        }, this);
+        break;
+
+      default:
+        return;
+    }
+
+    
+    this._sendNeedsRefresh();
+  },
+
+  handleEvent: function bv_handleEvent(aEvent) {
+    switch (aEvent.type){
+      case "MozAppbarDismissing":
+        
+        if (this._toRemove) {
+          for (let uri of this._toRemove) {
+            this._historyService.removePage(NetUtil.newURI(uri));
+          }
+
+          
+          let event = document.createEvent("Events");
+          event.initEvent("MozContextActionsChange", true, false);
+          this._set.dispatchEvent(event);
+
+          this._toRemove = null;
+          this._set.clearSelection();
+        }
+        break;
+
+      case "HistoryNeedsRefresh":
+        this.populateGrid(true);
+        break;
+    }
   },
 
   
-
-  addItemToSet: function addItemToSet(uri, title, icon) {
-    let item = this._set.appendItem(title, uri, this._inBatch);
-    item.setAttribute("iconURI", icon);
-  },
-
-  
-  
-  refreshAndRepopulate: function() {
-    this._set.clearAll();
-    this.populateGrid();
-  },
 
   onBeginUpdateBatch: function() {
     
@@ -72,13 +213,13 @@ HistoryView.prototype = {
 
   onEndUpdateBatch: function() {
     this._inBatch = false;
-    this.refreshAndRepopulate();
+    this.populateGrid(true);
   },
 
   onVisit: function(aURI, aVisitID, aTime, aSessionID,
                     aReferringID, aTransitionType) {
     if (!this._inBatch) {
-      this.refreshAndRepopulate();
+      this.populateGrid(true);
     }
   },
 
@@ -90,9 +231,7 @@ HistoryView.prototype = {
   },
 
   onDeleteURI: function(aURI) {
-    for (let item of this._set.getItemsByUrl(aURI.spec)) {
-      this._set.removeItem(item, this._inBatch);
-    }
+    this.removeHistory(aURI.spec);
   },
 
   onClearHistory: function() {
@@ -113,7 +252,7 @@ HistoryView.prototype = {
 
   onDeleteVisits: function (aURI, aVisitTime, aGUID, aReason, aTransitionType) {
     if ((aReason ==  Ci.nsINavHistoryObserver.REASON_DELETED) && !this._inBatch) {
-      this.refreshAndRepopulate();
+      this.populateGrid(true);
     }
   },
 
@@ -135,7 +274,7 @@ let HistoryStartView = {
   },
 
   init: function init() {
-    this._view = new HistoryView(this._grid);
+    this._view = new HistoryView(this._grid, StartUI.maxResultsPerSection, true);
     this._view.populateGrid();
   },
 
@@ -150,12 +289,12 @@ let HistoryPanelView = {
   get visible() { return PanelUI.isPaneVisible("history-container"); },
 
   show: function show() {
+    this._view.populateGrid(true);
     this._grid.arrangeItems();
   },
 
   init: function init() {
-    this._view = new HistoryView(this._grid);
-    this._view.populateGrid();
+    this._view = new HistoryView(this._grid, StartUI.maxResultsPerSection, false);
   },
 
   uninit: function uninit() {
