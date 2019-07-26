@@ -10,8 +10,6 @@
 #include "gfxSharedImageSurface.h"
 #include "gfxImageSurface.h"
 #include "gfxUtils.h"
-#include "gfxPlatform.h"
-#include "nsXULAppAPI.h"
 #include "RenderTrace.h"
 #include "sampler.h"
 
@@ -22,8 +20,6 @@
 #include "BasicLayersImpl.h"
 #include "BasicThebesLayer.h"
 #include "BasicContainerLayer.h"
-#include "mozilla/Preferences.h"
-#include "nsIWidget.h"
 
 using namespace mozilla::gfx;
 
@@ -75,11 +71,7 @@ BasicLayerManager::PushGroupForLayer(gfxContext* aContext, Layer* aLayer,
   } else {
     *aNeedsClipToVisibleRegion = false;
     result = aContext;
-    if (aLayer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA) {
-      aContext->PushGroupAndCopyBackground(gfxASurface::CONTENT_COLOR_ALPHA);
-    } else {
-      aContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-    }
+    aContext->PushGroupAndCopyBackground(gfxASurface::CONTENT_COLOR_ALPHA);
   }
   return result.forget();
 }
@@ -100,111 +92,6 @@ ToInsideIntRect(const gfxRect& aRect)
   return nsIntRect(r.X(), r.Y(), r.Width(), r.Height());
 }
 
-
-
-
-
-
-class PaintContext {
-public:
-  PaintContext(gfxContext* aTarget, Layer* aLayer,
-               LayerManager::DrawThebesLayerCallback aCallback,
-               void* aCallbackData, ReadbackProcessor* aReadback)
-   : mTarget(aTarget)
-   , mTargetMatrixSR(aTarget)
-   , mLayer(aLayer)
-   , mCallback(aCallback)
-   , mCallbackData(aCallbackData)
-   , mReadback(aReadback)
-   , mPushedOpaqueRect(false)
-  {}
-
-  ~PaintContext()
-  {
-    
-    if (mPushedOpaqueRect)
-    {
-      ClearOpaqueRect();
-    }
-  }
-
-  
-  
-  
-  bool Apply2DTransform()
-  {
-    const gfx3DMatrix& effectiveTransform = mLayer->GetEffectiveTransform();
-
-    
-    bool is2D = effectiveTransform.CanDraw2D(&mTransform);
-    mTarget->SetMatrix(mTransform);
-
-    return is2D;
-  }
-
-  
-  void AnnotateOpaqueRect()
-  {
-    const nsIntRegion& visibleRegion = mLayer->GetEffectiveVisibleRegion();
-    const nsIntRect& bounds = visibleRegion.GetBounds();
-    nsRefPtr<gfxASurface> currentSurface = mTarget->CurrentSurface();
-
-    if (mTarget->IsCairo()) {
-      const gfxRect& targetOpaqueRect = currentSurface->GetOpaqueRect();
-
-      
-      
-      if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
-          (mLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
-          !mTransform.HasNonAxisAlignedTransform()) {
-        currentSurface->SetOpaqueRect(
-            mTarget->UserToDevice(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height)));
-        mPushedOpaqueRect = true;
-      }
-    } else {
-      DrawTarget *dt = mTarget->GetDrawTarget();
-      const IntRect& targetOpaqueRect = dt->GetOpaqueRect();
-
-      
-      
-      if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
-          (mLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
-          !mTransform.HasNonAxisAlignedTransform()) {
-
-        gfx::Rect opaqueRect = dt->GetTransform().TransformBounds(
-          gfx::Rect(bounds.x, bounds.y, bounds.width, bounds.height));
-        opaqueRect.RoundIn();
-        IntRect intOpaqueRect;
-        if (opaqueRect.ToIntRect(&intOpaqueRect)) {
-          mTarget->GetDrawTarget()->SetOpaqueRect(intOpaqueRect);
-          mPushedOpaqueRect = true;
-        }
-      }
-    }
-  }
-
-  
-  
-  
-  void ClearOpaqueRect() {
-    if (mTarget->IsCairo()) {
-      nsRefPtr<gfxASurface> currentSurface = mTarget->CurrentSurface();
-      currentSurface->SetOpaqueRect(gfxRect());
-    } else {
-      mTarget->GetDrawTarget()->SetOpaqueRect(IntRect());
-    }
-  }
-
-  gfxContext* mTarget;
-  gfxContextMatrixAutoSaveRestore mTargetMatrixSR;
-  Layer* mLayer;
-  LayerManager::DrawThebesLayerCallback mCallback;
-  void* mCallbackData;
-  ReadbackProcessor* mReadback;
-  gfxMatrix mTransform;
-  bool mPushedOpaqueRect;
-};
-
 BasicLayerManager::BasicLayerManager(nsIWidget* aWidget) :
 #ifdef DEBUG
   mPhase(PHASE_NONE),
@@ -222,7 +109,7 @@ BasicLayerManager::BasicLayerManager() :
 #ifdef DEBUG
   mPhase(PHASE_NONE),
 #endif
-  mWidget(nullptr)
+  mWidget(nsnull)
   , mDoubleBuffering(BUFFER_NONE), mUsingDefaultTarget(false)
   , mCachedSurfaceInUse(false)
   , mTransactionIncomplete(false)
@@ -236,29 +123,24 @@ BasicLayerManager::~BasicLayerManager()
 
   ClearCachedResources();
 
-  mRoot = nullptr;
+  mRoot = nsnull;
 
   MOZ_COUNT_DTOR(BasicLayerManager);
 }
 
 void
-BasicLayerManager::SetDefaultTarget(gfxContext* aContext)
+BasicLayerManager::SetDefaultTarget(gfxContext* aContext,
+                                    BufferMode aDoubleBuffering)
 {
   NS_ASSERTION(!InTransaction(),
                "Must set default target outside transaction");
   mDefaultTarget = aContext;
-}
-
-void
-BasicLayerManager::SetDefaultTargetConfiguration(BufferMode aDoubleBuffering, ScreenRotation aRotation)
-{
   mDoubleBuffering = aDoubleBuffering;
 }
 
 void
 BasicLayerManager::BeginTransaction()
 {
-  mInTransaction = true;
   mUsingDefaultTarget = true;
   BeginTransactionWithTarget(mDefaultTarget);
 }
@@ -311,8 +193,6 @@ BasicLayerManager::PopGroupToSourceWithCachedSurface(gfxContext *aTarget, gfxCon
 void
 BasicLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
 {
-  mInTransaction = true;
-
 #ifdef MOZ_LAYERS_HAVE_LOG
   MOZ_LAYERS_LOG(("[----- BeginTransaction"));
   Log();
@@ -357,10 +237,10 @@ static void
 MarkLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
                  const nsIntRect& aDirtyRect,
                  nsIntRegion& aOpaqueRegion,
-                 uint32_t aFlags)
+                 PRUint32 aFlags)
 {
   nsIntRect newClipRect(aClipRect);
-  uint32_t newFlags = aFlags;
+  PRUint32 newFlags = aFlags;
 
   
   
@@ -459,7 +339,7 @@ ApplyDoubleBuffering(Layer* aLayer, const nsIntRect& aVisibleRect)
         if (aLayer->GetParent()->GetEffectiveTransform().CanDraw2D(&tr)) {
           NS_ASSERTION(!tr.HasNonIntegerTranslation(),
                        "Parent can only have an integer translation");
-          cr += nsIntPoint(int32_t(tr.x0), int32_t(tr.y0));
+          cr += nsIntPoint(PRInt32(tr.x0), PRInt32(tr.y0));
         } else {
           NS_ERROR("Parent can only have an integer translation");
         }
@@ -499,20 +379,7 @@ BasicLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
                                   void* aCallbackData,
                                   EndTransactionFlags aFlags)
 {
-  mInTransaction = false;
-
   EndTransactionInternal(aCallback, aCallbackData, aFlags);
-}
-
-void
-BasicLayerManager::AbortTransaction()
-{
-  NS_ASSERTION(InConstruction(), "Should be in construction phase");
-#ifdef DEBUG
-  mPhase = PHASE_NONE;
-#endif
-  mUsingDefaultTarget = false;
-  mInTransaction = false;
 }
 
 bool
@@ -535,12 +402,6 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
   RenderTraceLayers(aLayer, "FF00");
 
   mTransactionIncomplete = false;
-
-  if (aFlags & END_NO_COMPOSITE) {
-    
-    nsRefPtr<gfxASurface> surf = gfxPlatform::GetPlatform()->CreateOffscreenSurface(gfxIntSize(1, 1), gfxASurface::CONTENT_COLOR);
-    mTarget = new gfxContext(surf);
-  }
 
   if (mTarget && mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
     nsIntRect clipRect;
@@ -571,24 +432,11 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
       }
     }
 
-    if (aFlags & END_NO_COMPOSITE) {
-      if (IsRetained()) {
-        
-        
-        mTarget->Clip(gfxRect(0, 0, 0, 0));
-        PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nullptr);
-      }
-      
-    } else {
-      PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nullptr);
-      if (mWidget) {
-        FlashWidgetUpdateArea(mTarget);
-      }
-    }
+    PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nsnull);
 
     if (!mTransactionIncomplete) {
       
-      mTarget = nullptr;
+      mTarget = nsnull;
     }
   }
 
@@ -617,37 +465,14 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
   return !mTransactionIncomplete;
 }
 
-void
-BasicLayerManager::FlashWidgetUpdateArea(gfxContext *aContext)
-{
-  static bool sWidgetFlashingEnabled;
-  static bool sWidgetFlashingPrefCached = false;
-
-  if (!sWidgetFlashingPrefCached) {
-    sWidgetFlashingPrefCached = true;
-    mozilla::Preferences::AddBoolVarCache(&sWidgetFlashingEnabled,
-                                          "nglayout.debug.widget_update_flashing");
-  }
-
-  if (sWidgetFlashingEnabled) {
-    float r = float(rand()) / RAND_MAX;
-    float g = float(rand()) / RAND_MAX;
-    float b = float(rand()) / RAND_MAX;
-    aContext->SetColor(gfxRGBA(r, g, b, 0.2));
-    aContext->Paint();
-  }
-}
-
 bool
-BasicLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
+BasicLayerManager::EndEmptyTransaction()
 {
-  mInTransaction = false;
-
   if (!mRoot) {
     return false;
   }
 
-  return EndTransactionInternal(nullptr, nullptr, aFlags);
+  return EndTransactionInternal(nsnull, nsnull);
 }
 
 void
@@ -713,7 +538,7 @@ PixmanTransform(const gfxImageSurface *aDest,
 
   pixman_image_composite32(PIXMAN_OP_SRC,
                            src,
-                           nullptr,
+                           nsnull,
                            dest,
                            aDestOffset.x,
                            aDestOffset.y,
@@ -766,7 +591,8 @@ Transform3D(gfxASurface* aSource, gfxContext* aDest,
 
   
   nsRefPtr<gfxASurface> dest = aDest->CurrentSurface();
-  nsRefPtr<gfxImageSurface> destImage;
+  nsRefPtr<gfxImageSurface> destImage = dest->GetAsImageSurface();
+  destImage = nsnull;
   gfxPoint offset;
   bool blitComplete;
   if (!destImage || aDontBlit || !aDest->ClipContainsRect(destRect)) {
@@ -786,7 +612,7 @@ Transform3D(gfxASurface* aSource, gfxContext* aDest,
   PixmanTransform(destImage, sourceImage, translation * aTransform, offset);
 
   if (blitComplete) {
-    return nullptr;
+    return nsnull;
   }
 
   
@@ -795,71 +621,7 @@ Transform3D(gfxASurface* aSource, gfxContext* aDest,
   return destImage.forget(); 
 }
 
-void
-BasicLayerManager::PaintSelfOrChildren(PaintContext& aPaintContext,
-                                       gfxContext* aGroupTarget)
-{
-  BasicImplData* data = ToData(aPaintContext.mLayer);
 
-  if (aPaintContext.mLayer->GetFirstChild() &&
-      aPaintContext.mLayer->GetMaskLayer() &&
-      HasShadowManager()) {
-    
-    static_cast<BasicImplData*>(aPaintContext.mLayer->GetMaskLayer()->ImplData())
-      ->Paint(nullptr, nullptr);
-  }
-
-  
-  Layer* child = aPaintContext.mLayer->GetFirstChild();
-  if (!child) {
-    if (aPaintContext.mLayer->AsThebesLayer()) {
-      data->PaintThebes(aGroupTarget, aPaintContext.mLayer->GetMaskLayer(),
-          aPaintContext.mCallback, aPaintContext.mCallbackData,
-          aPaintContext.mReadback);
-    } else {
-      data->Paint(aGroupTarget, aPaintContext.mLayer->GetMaskLayer());
-    }
-  } else {
-    ReadbackProcessor readback;
-    ContainerLayer* container =
-        static_cast<ContainerLayer*>(aPaintContext.mLayer);
-    if (IsRetained()) {
-      readback.BuildUpdates(container);
-    }
-    nsAutoTArray<Layer*, 12> children;
-    container->SortChildrenBy3DZOrder(children);
-    for (uint32_t i = 0; i < children.Length(); i++) {
-      PaintLayer(aGroupTarget, children.ElementAt(i), aPaintContext.mCallback,
-          aPaintContext.mCallbackData, &readback);
-      if (mTransactionIncomplete)
-        break;
-    }
-  }
-}
-
-void
-BasicLayerManager::FlushGroup(PaintContext& aPaintContext, bool aNeedsClipToVisibleRegion)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (!mTransactionIncomplete) {
-    if (aNeedsClipToVisibleRegion) {
-      gfxUtils::ClipToRegion(aPaintContext.mTarget,
-                             aPaintContext.mLayer->GetEffectiveVisibleRegion());
-    }
-    BasicContainerLayer* container = static_cast<BasicContainerLayer*>(aPaintContext.mLayer);
-    AutoSetOperator setOperator(aPaintContext.mTarget, container->GetOperator());
-    PaintWithMask(aPaintContext.mTarget, aPaintContext.mLayer->GetEffectiveOpacity(),
-                  HasShadowManager() ? nullptr : aPaintContext.mLayer->GetMaskLayer());
-  }
-}
 
 void
 BasicLayerManager::PaintLayer(gfxContext* aTarget,
@@ -868,11 +630,10 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
                               void* aCallbackData,
                               ReadbackProcessor* aReadback)
 {
-  PaintContext paintContext(aTarget, aLayer, aCallback, aCallbackData, aReadback);
-
   RenderTraceScope trace("BasicLayerManager::PaintLayer", "707070");
 
   const nsIntRect* clipRect = aLayer->GetEffectiveClipRect();
+  const gfx3DMatrix& effectiveTransform = aLayer->GetEffectiveTransform();
   
   
   BasicContainerLayer* container = static_cast<BasicContainerLayer*>(aLayer);
@@ -888,10 +649,12 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
                container->UseIntermediateSurface(),
                "ContainerLayer with mask layer should force UseIntermediateSurface");
 
-  gfxContextAutoSaveRestore contextSR;
+  
+  
   bool needsSaveRestore = needsGroup || clipRect || needsClipToVisibleRegion;
+  gfxMatrix savedMatrix;
   if (needsSaveRestore) {
-    contextSR.SetContext(aTarget);
+    aTarget->Save();
 
     if (clipRect) {
       aTarget->NewPath();
@@ -899,9 +662,17 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       aTarget->Clip();
     }
   }
+  savedMatrix = aTarget->CurrentMatrix();
 
-  bool is2D = paintContext.Apply2DTransform();
+  gfxMatrix transform;
+  
+  bool is2D = effectiveTransform.CanDraw2D(&transform);
   NS_ABORT_IF_FALSE(is2D || needsGroup || !aLayer->GetFirstChild(), "Must PushGroup for 3d transforms!");
+  if (is2D) {
+    aTarget->SetMatrix(transform);
+  } else {
+    aTarget->SetMatrix(gfxMatrix());
+  }
 
   const nsIntRegion& visibleRegion = aLayer->GetEffectiveVisibleRegion();
   
@@ -910,68 +681,182 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
     
     needsClipToVisibleRegion = false;
   }
+
+  bool pushedTargetOpaqueRect = false;
+  nsRefPtr<gfxASurface> currentSurface = aTarget->CurrentSurface();
+  DrawTarget *dt = aTarget->GetDrawTarget();
+  const nsIntRect& bounds = visibleRegion.GetBounds();
   
   if (is2D) {
-    paintContext.AnnotateOpaqueRect();
-  }
+    if (aTarget->IsCairo()) {
+      const gfxRect& targetOpaqueRect = currentSurface->GetOpaqueRect();
 
-  bool clipIsEmpty = !aTarget || aTarget->GetClipExtents().IsEmpty();
-  if (clipIsEmpty) {
-    PaintSelfOrChildren(paintContext, aTarget);
-    return;
-  }
-
-  if (is2D) {
-    if (needsGroup) {
-      nsRefPtr<gfxContext> groupTarget = PushGroupForLayer(aTarget, aLayer, aLayer->GetEffectiveVisibleRegion(),
-                                      &needsClipToVisibleRegion);
-      PaintSelfOrChildren(paintContext, groupTarget);
-      PopGroupToSourceWithCachedSurface(aTarget, groupTarget);
-      FlushGroup(paintContext, needsClipToVisibleRegion);
+      
+      
+      if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
+          (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+          !transform.HasNonAxisAlignedTransform()) {
+        currentSurface->SetOpaqueRect(
+            aTarget->UserToDevice(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height)));
+        pushedTargetOpaqueRect = true;
+      }
     } else {
-      PaintSelfOrChildren(paintContext, aTarget);
+      const IntRect& targetOpaqueRect = dt->GetOpaqueRect();
+
+      
+      
+      if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
+          (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+          !transform.HasNonAxisAlignedTransform()) {
+
+        Rect opaqueRect = dt->GetTransform().TransformBounds(
+          Rect(bounds.x, bounds.y, bounds.width, bounds.height));
+        opaqueRect.RoundIn();
+        IntRect intOpaqueRect;
+        if (opaqueRect.ToIntRect(&intOpaqueRect)) {
+          aTarget->GetDrawTarget()->SetOpaqueRect(intOpaqueRect);
+          pushedTargetOpaqueRect = true;
+        }
+      }
     }
-  } else {
-    const nsIntRect& bounds = visibleRegion.GetBounds();
-    nsRefPtr<gfxASurface> untransformedSurface =
-      gfxPlatform::GetPlatform()->CreateOffscreenSurface(gfxIntSize(bounds.width, bounds.height),
+  }
+
+  nsRefPtr<gfxContext> groupTarget;
+  nsRefPtr<gfxASurface> untransformedSurface;
+  bool clipIsEmpty = !aTarget || aTarget->GetClipExtents().IsEmpty();
+  if (!is2D && !clipIsEmpty) {
+    untransformedSurface = 
+      gfxPlatform::GetPlatform()->CreateOffscreenSurface(gfxIntSize(bounds.width, bounds.height), 
                                                          gfxASurface::CONTENT_COLOR_ALPHA);
     if (!untransformedSurface) {
+      if (pushedTargetOpaqueRect) {
+        if (aTarget->IsCairo()) {
+          currentSurface->SetOpaqueRect(gfxRect(0, 0, 0, 0));
+        } else {
+          dt->SetOpaqueRect(IntRect());
+        }
+      }
+      NS_ASSERTION(needsSaveRestore, "Should always need to restore with 3d transforms!");
+      aTarget->Restore();
       return;
     }
     untransformedSurface->SetDeviceOffset(gfxPoint(-bounds.x, -bounds.y));
-    nsRefPtr<gfxContext> groupTarget = new gfxContext(untransformedSurface);
+    groupTarget = new gfxContext(untransformedSurface);
+  } else if (needsGroup && !clipIsEmpty) {
+    groupTarget = PushGroupForLayer(aTarget, aLayer, aLayer->GetEffectiveVisibleRegion(),
+                                    &needsClipToVisibleRegion);
+  } else {
+    groupTarget = aTarget;
+  }
 
-    PaintSelfOrChildren(paintContext, groupTarget);
-
+  if (aLayer->GetFirstChild() &&
+      aLayer->GetMaskLayer() &&
+      HasShadowManager()) {
     
-    
-    NS_ABORT_IF_FALSE(untransformedSurface,
-                      "We should always allocate an untransformed surface with 3d transforms!");
-    gfxPoint offset;
-    bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete ||
-                      aLayer->GetEffectiveOpacity() != 1.0f;
-#ifdef DEBUG
-    if (aLayer->GetDebugColorIndex() != 0) {
-      gfxRGBA  color((aLayer->GetDebugColorIndex() & 1) ? 1.0 : 0.0,
-                     (aLayer->GetDebugColorIndex() & 2) ? 1.0 : 0.0,
-                     (aLayer->GetDebugColorIndex() & 4) ? 1.0 : 0.0,
-                     1.0);
+    static_cast<BasicImplData*>(aLayer->GetMaskLayer()->ImplData())
+      ->Paint(nsnull, nsnull);
+  }
 
-      nsRefPtr<gfxContext> temp = new gfxContext(untransformedSurface);
-      temp->SetColor(color);
-      temp->Paint();
-    }
+  
+  Layer* child = aLayer->GetFirstChild();
+  if (!child) {
+#ifdef MOZ_LAYERS_HAVE_LOG
+    MOZ_LAYERS_LOG(("%s (0x%p) is covered: %i\n", __FUNCTION__,
+                   (void*)aLayer, data->IsHidden()));
 #endif
-    const gfx3DMatrix& effectiveTransform = aLayer->GetEffectiveTransform();
-    nsRefPtr<gfxASurface> result =
-      Transform3D(untransformedSurface, aTarget, bounds,
-                  effectiveTransform, offset, dontBlit);
-
-    if (result) {
-      aTarget->SetSource(result, offset);
-      FlushGroup(paintContext, needsClipToVisibleRegion);
+    if (aLayer->AsThebesLayer()) {
+      data->PaintThebes(groupTarget,
+                        aLayer->GetMaskLayer(),
+                        aCallback, aCallbackData,
+                        aReadback);
+    } else {
+      data->Paint(groupTarget, aLayer->GetMaskLayer());
     }
+  } else {
+    ReadbackProcessor readback;
+    ContainerLayer* container = static_cast<ContainerLayer*>(aLayer);
+    if (IsRetained()) {
+      readback.BuildUpdates(container);
+    }
+  
+    nsAutoTArray<Layer*, 12> children;
+    container->SortChildrenBy3DZOrder(children);
+
+    for (PRUint32 i = 0; i < children.Length(); i++) {
+      PaintLayer(groupTarget, children.ElementAt(i), aCallback, aCallbackData, &readback);
+      if (mTransactionIncomplete)
+        break;
+    }
+  }
+
+  if (needsGroup) {
+    bool blitComplete = false;
+    if (is2D) {
+      PopGroupToSourceWithCachedSurface(aTarget, groupTarget);
+    } else {
+      
+      
+      if (!clipIsEmpty) {
+        NS_ABORT_IF_FALSE(untransformedSurface, 
+                          "We should always allocate an untransformed surface with 3d transforms!");
+        gfxPoint offset;
+        bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete ||
+                          aLayer->GetEffectiveOpacity() != 1.0f;
+#ifdef DEBUG
+        if (aLayer->GetDebugColorIndex() != 0) {
+          gfxRGBA  color((aLayer->GetDebugColorIndex() & 1) ? 1.0 : 0.0,
+                         (aLayer->GetDebugColorIndex() & 2) ? 1.0 : 0.0,
+                         (aLayer->GetDebugColorIndex() & 4) ? 1.0 : 0.0,
+                         1.0);
+
+          nsRefPtr<gfxContext> temp = new gfxContext(untransformedSurface);
+          temp->SetColor(color);
+          temp->Paint();
+        }
+#endif
+
+        nsRefPtr<gfxASurface> result =
+          Transform3D(untransformedSurface, aTarget, bounds,
+                      effectiveTransform, offset, dontBlit);
+
+        blitComplete = !result;
+        if (result) {
+          aTarget->SetSource(result, offset);
+        }
+      }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!mTransactionIncomplete && !blitComplete) {
+      if (needsClipToVisibleRegion) {
+        gfxUtils::ClipToRegion(aTarget, aLayer->GetEffectiveVisibleRegion());
+      }
+      AutoSetOperator setOperator(aTarget, container->GetOperator());
+      gfxMatrix temp = aTarget->CurrentMatrix();
+      PaintWithMask(aTarget, aLayer->GetEffectiveOpacity(),
+                    HasShadowManager() ? nsnull : aLayer->GetMaskLayer());
+    }
+  }
+
+  if (pushedTargetOpaqueRect) {
+    if (aTarget->IsCairo()) {
+      currentSurface->SetOpaqueRect(gfxRect(0, 0, 0, 0));
+    } else {
+      dt->SetOpaqueRect(IntRect());
+    }
+  }
+
+  if (needsSaveRestore) {
+    aTarget->Restore();
+  } else {
+    aTarget->SetMatrix(savedMatrix);
   }
 }
 
@@ -1003,8 +888,7 @@ BasicLayerManager::CreateReadbackLayer()
 }
 
 BasicShadowLayerManager::BasicShadowLayerManager(nsIWidget* aWidget) :
-  BasicLayerManager(aWidget), mTargetRotation(ROTATION_0),
-  mRepeatTransaction(false)
+  BasicLayerManager(aWidget)
 {
   MOZ_COUNT_CTOR(BasicShadowLayerManager);
 }
@@ -1014,7 +898,7 @@ BasicShadowLayerManager::~BasicShadowLayerManager()
   MOZ_COUNT_DTOR(BasicShadowLayerManager);
 }
 
-int32_t
+PRInt32
 BasicShadowLayerManager::GetMaxTextureSize() const
 {
   if (HasShadowManager()) {
@@ -1022,16 +906,6 @@ BasicShadowLayerManager::GetMaxTextureSize() const
   }
 
   return PR_INT32_MAX;
-}
-
-void
-BasicShadowLayerManager::SetDefaultTargetConfiguration(BufferMode aDoubleBuffering, ScreenRotation aRotation)
-{
-  BasicLayerManager::SetDefaultTargetConfiguration(aDoubleBuffering, aRotation);
-  mTargetRotation = aRotation;
-  if (mWidget) {
-    mTargetBounds = mWidget->GetNaturalBounds();
-  }
 }
 
 void
@@ -1073,12 +947,11 @@ BasicShadowLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   
   if (HasShadowManager()) {
-    ShadowLayerForwarder::BeginTransaction(mTargetBounds, mTargetRotation);
+    ShadowLayerForwarder::BeginTransaction();
 
     
     
-    if (aTarget && (aTarget != mDefaultTarget) &&
-        XRE_GetProcessType() == GeckoProcessType_Default) {
+    if (aTarget && (aTarget != mDefaultTarget)) {
       mShadowTarget = aTarget;
 
       
@@ -1107,14 +980,14 @@ BasicShadowLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
   } else if (mShadowTarget) {
     
     ShadowLayerForwarder::ShadowDrawToTarget(mShadowTarget);
-    mShadowTarget = nullptr;
+    mShadowTarget = nsnull;
   }
 }
 
 bool
-BasicShadowLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
+BasicShadowLayerManager::EndEmptyTransaction()
 {
-  if (!BasicLayerManager::EndEmptyTransaction(aFlags)) {
+  if (!BasicLayerManager::EndEmptyTransaction()) {
     
     
     
@@ -1175,12 +1048,13 @@ BasicShadowLayerManager::ForwardTransaction()
           layer->SetBackBuffer(newBack.get_SurfaceDescriptor());
         } else if (newBack.type() == SharedImage::TYUVImage) {
           const YUVImage& yuv = newBack.get_YUVImage();
-          layer->SetBackBufferYUVImage(yuv.Ydata(), yuv.Udata(), yuv.Vdata());
+          nsRefPtr<gfxSharedImageSurface> YSurf = gfxSharedImageSurface::Open(yuv.Ydata());
+          nsRefPtr<gfxSharedImageSurface> USurf = gfxSharedImageSurface::Open(yuv.Udata());
+          nsRefPtr<gfxSharedImageSurface> VSurf = gfxSharedImageSurface::Open(yuv.Vdata());
+          layer->SetBackBufferYUVImage(YSurf, USurf, VSurf);
         } else {
           layer->SetBackBuffer(SurfaceDescriptor());
-          layer->SetBackBufferYUVImage(SurfaceDescriptor(),
-                                       SurfaceDescriptor(),
-                                       SurfaceDescriptor());
+          layer->SetBackBufferYUVImage(nsnull, nsnull, nsnull);
         }
 
         break;
@@ -1235,7 +1109,7 @@ BasicShadowLayerManager::CreateThebesLayer()
 {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
 #ifdef FORCE_BASICTILEDTHEBESLAYER
-  if (HasShadowManager() && GetParentBackendType() == LAYERS_OPENGL) {
+  if (HasShadowManager() && GetParentBackendType() == LayerManager::LAYERS_OPENGL) {
     
     
     

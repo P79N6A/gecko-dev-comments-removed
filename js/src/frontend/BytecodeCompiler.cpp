@@ -22,12 +22,12 @@ using namespace js;
 using namespace js::frontend;
 
 bool
-MarkInnerAndOuterFunctions(JSContext *cx, JSScript* script_)
+MarkInnerAndOuterFunctions(JSContext *cx, JSScript* script)
 {
-    Rooted<JSScript*> script(cx, script_);
+    AssertRootingUnnecessary safe(cx);
 
     Vector<JSScript *, 16> worklist(cx);
-    if (!worklist.append(script.reference()))
+    if (!worklist.append(script))
         return false;
 
     while (worklist.length()) {
@@ -66,14 +66,16 @@ MarkInnerAndOuterFunctions(JSContext *cx, JSScript* script_)
 }
 
 JSScript *
-frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
+frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *callerFrame,
                         JSPrincipals *principals, JSPrincipals *originPrincipals,
                         bool compileAndGo, bool noScriptRval, bool needScriptGlobal,
                         const jschar *chars, size_t length,
                         const char *filename, unsigned lineno, JSVersion version,
-                        JSString *source ,
+                        JSString *source_ ,
                         unsigned staticLevel )
 {
+    RootedString source(cx, source_);
+
     class ProbesManager
     {
         const char* filename;
@@ -101,20 +103,26 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
     SharedContext sc(cx, scopeChain,  NULL,  NULL);
 
-    TreeContext tc(&parser, &sc, staticLevel);
+    TreeContext tc(&parser, &sc, staticLevel,  0);
     if (!tc.init())
         return NULL;
 
     bool savedCallerFun = compileAndGo && callerFrame && callerFrame->isFunctionFrame();
     GlobalObject *globalObject = needScriptGlobal ? GetCurrentGlobal(cx) : NULL;
-    Rooted<JSScript*> script(cx);
-    script = JSScript::Create(cx, savedCallerFun, principals, originPrincipals, compileAndGo,
-                              noScriptRval, globalObject, version, staticLevel);
+    Rooted<JSScript*> script(cx, JSScript::Create(cx,
+                                                  savedCallerFun,
+                                                  principals,
+                                                  originPrincipals,
+                                                  compileAndGo,
+                                                  noScriptRval,
+                                                  globalObject,
+                                                  version,
+                                                  staticLevel));
     if (!script)
         return NULL;
 
     
-    JSObject *globalScope = scopeChain && scopeChain == &scopeChain->global() ? scopeChain : NULL;
+    JSObject *globalScope = scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : NULL;
     JS_ASSERT_IF(globalScope, globalScope->isNative());
     JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
 
@@ -153,13 +161,6 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
             bce.objectList.length++;
         }
     }
-
-    
-
-
-
-    if (!GenerateBlockId(&sc, sc.bodyid))
-        return NULL;
 
     ParseNode *pn;
 #if JS_HAS_XML_SUPPORT
@@ -240,6 +241,8 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     if (!script->fullyInitFromEmitter(cx, &bce))
         return NULL;
 
+    bce.tellDebuggerAboutCompiledScript(cx);
+
     if (!MarkInnerAndOuterFunctions(cx, script))
         return NULL;
 
@@ -249,7 +252,7 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 bool
-frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
+frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun,
                               JSPrincipals *principals, JSPrincipals *originPrincipals,
                               Bindings *bindings, const jschar *chars, size_t length,
                               const char *filename, unsigned lineno, JSVersion version)
@@ -261,17 +264,24 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
 
     JS_ASSERT(fun);
     SharedContext funsc(cx,  NULL, fun,  NULL);
+    funsc.bindings.transfer(bindings);
+    fun->setArgCount(funsc.bindings.numArgs());
 
     unsigned staticLevel = 0;
-    TreeContext funtc(&parser, &funsc, staticLevel);
+    TreeContext funtc(&parser, &funsc, staticLevel,  0);
     if (!funtc.init())
         return false;
 
     GlobalObject *globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;
-    Rooted<JSScript*> script(cx);
-    script = JSScript::Create(cx,  false, principals, originPrincipals,
-                               false,  false,
-                              globalObject, version, staticLevel);
+    Rooted<JSScript*> script(cx, JSScript::Create(cx,
+                                                   false,
+                                                  principals,
+                                                  originPrincipals,
+                                                   false,
+                                                   false,
+                                                  globalObject,
+                                                  version,
+                                                  staticLevel));
     if (!script)
         return false;
 
@@ -279,11 +289,6 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
     BytecodeEmitter funbce( NULL, &parser, &funsc, script, nullCallerFrame,
                             false, lineno);
     if (!funbce.init())
-        return false;
-
-    funsc.bindings.transfer(bindings);
-    fun->setArgCount(funsc.bindings.numArgs());
-    if (!GenerateBlockId(&funsc, funsc.bodyid))
         return false;
 
     

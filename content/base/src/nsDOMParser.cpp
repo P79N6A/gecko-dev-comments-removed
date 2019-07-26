@@ -69,9 +69,6 @@ nsDOMParser::ParseFromString(const PRUnichar *str,
     rv = SetUpDocument(DocumentFlavorHTML, getter_AddRefs(domDocument));
     NS_ENSURE_SUCCESS(rv, rv);
     nsCOMPtr<nsIDocument> document = do_QueryInterface(domDocument);
-    nsDependentString sourceBuffer(str);
-    rv = nsContentUtils::ParseDocumentHTML(sourceBuffer, document, false);
-    NS_ENSURE_SUCCESS(rv, rv);
 
     
     
@@ -84,6 +81,10 @@ nsDOMParser::ParseFromString(const PRUnichar *str,
     document->SetBaseURI(mBaseURI);
     
     document->SetPrincipal(mPrincipal);
+
+    nsDependentString sourceBuffer(str);
+    rv = nsContentUtils::ParseDocumentHTML(sourceBuffer, document, false);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     domDocument.forget(aResult);
     return rv;

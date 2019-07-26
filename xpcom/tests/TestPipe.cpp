@@ -7,6 +7,7 @@
 
 #include "nsIPipe.h"
 #include "nsIMemory.h"
+#include "mozilla/Attributes.h"
 
 
 nsresult TP_NewPipe2(nsIAsyncInputStream** input,
@@ -41,7 +42,7 @@ nsresult TP_NewPipe2(nsIAsyncInputStream** input,
 
 
 
-class BackwardsAllocator : public nsIMemory
+class BackwardsAllocator MOZ_FINAL : public nsIMemory
 {
   public:
     BackwardsAllocator()

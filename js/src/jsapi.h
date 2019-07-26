@@ -1166,6 +1166,8 @@ class AutoVectorRooter : protected AutoGCRooter
     T &operator[](size_t i) { return vector[i]; }
     const T &operator[](size_t i) const { return vector[i]; }
 
+    JS::Handle<T> handleAt(size_t i) const { return JS::Handle<T>::fromMarkedLocation(&vector[i]); }
+
     const T *begin() const { return vector.begin(); }
     T *begin() { return vector.begin(); }
 
@@ -1230,6 +1232,96 @@ class AutoScriptVector : public AutoVectorRooter<JSScript *>
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
+
+class CallReceiver
+{
+  protected:
+#ifdef DEBUG
+    mutable bool usedRval_;
+    void setUsedRval() const { usedRval_ = true; }
+    void clearUsedRval() const { usedRval_ = false; }
+#else
+    void setUsedRval() const {}
+    void clearUsedRval() const {}
+#endif
+    Value *argv_;
+  public:
+    friend CallReceiver CallReceiverFromVp(Value *);
+    friend CallReceiver CallReceiverFromArgv(Value *);
+    Value *base() const { return argv_ - 2; }
+    JSObject &callee() const { JS_ASSERT(!usedRval_); return argv_[-2].toObject(); }
+    Value &calleev() const { JS_ASSERT(!usedRval_); return argv_[-2]; }
+    Value &thisv() const { return argv_[-1]; }
+
+    Value &rval() const {
+        setUsedRval();
+        return argv_[-2];
+    }
+
+    Value *spAfterCall() const {
+        setUsedRval();
+        return argv_ - 1;
+    }
+
+    void setCallee(Value calleev) {
+        clearUsedRval();
+        this->calleev() = calleev;
+    }
+};
+
+JS_ALWAYS_INLINE CallReceiver
+CallReceiverFromArgv(Value *argv)
+{
+    CallReceiver receiver;
+    receiver.clearUsedRval();
+    receiver.argv_ = argv;
+    return receiver;
+}
+
+JS_ALWAYS_INLINE CallReceiver
+CallReceiverFromVp(Value *vp)
+{
+    return CallReceiverFromArgv(vp + 2);
+}
+
+
+
+class CallArgs : public CallReceiver
+{
+  protected:
+    unsigned argc_;
+  public:
+    friend CallArgs CallArgsFromVp(unsigned, Value *);
+    friend CallArgs CallArgsFromArgv(unsigned, Value *);
+    friend CallArgs CallArgsFromSp(unsigned, Value *);
+    Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
+    Value *array() const { return argv_; }
+    unsigned length() const { return argc_; }
+    Value *end() const { return argv_ + argc_; }
+    bool hasDefined(unsigned i) const { return i < argc_ && !argv_[i].isUndefined(); }
+};
+
+JS_ALWAYS_INLINE CallArgs
+CallArgsFromArgv(unsigned argc, Value *argv)
+{
+    CallArgs args;
+    args.clearUsedRval();
+    args.argv_ = argv;
+    args.argc_ = argc;
+    return args;
+}
+
+JS_ALWAYS_INLINE CallArgs
+CallArgsFromVp(unsigned argc, Value *vp)
+{
+    return CallArgsFromArgv(argc, vp + 2);
+}
+
+JS_ALWAYS_INLINE CallArgs
+CallArgsFromSp(unsigned argc, Value *sp)
+{
+    return CallArgsFromArgv(argc, sp - argc);
+}
 
 }  
 
@@ -1298,6 +1390,7 @@ JS_STATIC_ASSERT(sizeof(jsval_layout) == sizeof(jsval));
 
 typedef JS::Handle<JSObject*> JSHandleObject;
 typedef JS::Handle<jsid> JSHandleId;
+typedef JS::MutableHandle<JSObject*> JSMutableHandleObject;
 
 #else
 
@@ -1307,10 +1400,14 @@ typedef JS::Handle<jsid> JSHandleId;
 
 
 typedef struct { JSObject **_; } JSHandleObject;
+typedef struct { JSObject **_; } JSMutableHandleObject;
 typedef struct { jsid *_; } JSHandleId;
 
 JSBool JS_CreateHandleObject(JSContext *cx, JSObject *obj, JSHandleObject *phandle);
 void JS_DestroyHandleObject(JSContext *cx, JSHandleObject handle);
+
+JSBool JS_CreateMutableHandleObject(JSContext *cx, JSObject *obj, JSMutableHandleObject *phandle);
+void JS_DestroyMutableHandleObject(JSContext *cx, JSMutableHandleObject handle);
 
 JSBool JS_CreateHandleId(JSContext *cx, jsid id, JSHandleId *phandle);
 void JS_DestroyHandleId(JSContext *cx, JSHandleId handle);
@@ -1411,10 +1508,9 @@ typedef JSBool
 
 
 
-
 typedef JSBool
 (* JSNewResolveOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
-                   JSObject **objp);
+                   JSMutableHandleObject objp);
 
 
 
@@ -1664,16 +1760,6 @@ typedef JSPrincipals *
 
 typedef JSBool
 (* JSCSPEvalChecker)(JSContext *cx);
-
-
-
-
-
-typedef JSBool
-(* JSPushContextPrincipalOp)(JSContext *cx, JSPrincipals *principals);
-
-typedef JSBool
-(* JSPopContextPrincipalOp)(JSContext *cx);
 
 
 
@@ -2970,6 +3056,13 @@ JS_GetObjectPrototype(JSContext *cx, JSObject *forObj);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
 
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_GetGlobalForCompartmentOrNull(JSContext *cx, JSCompartment *c);
+
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx);
 
@@ -3810,7 +3903,6 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 #define JSRESOLVE_QUALIFIED     0x01    /* resolve a qualified property id */
 #define JSRESOLVE_ASSIGNING     0x02    /* resolve on the left of assignment */
 #define JSRESOLVE_DETECTING     0x04    /* 'if (o.p)...' or '(o.p) ?...:...' */
-#define JSRESOLVE_DECLARING     0x08    /* var, const, or function prolog op */
 
 
 
@@ -4346,8 +4438,6 @@ struct JSSecurityCallbacks {
     JSSubsumePrincipalsOp      subsumePrincipals;
     JSObjectPrincipalsFinder   findObjectPrincipals;
     JSCSPEvalChecker           contentSecurityPolicyAllows;
-    JSPushContextPrincipalOp   pushContextPrincipal;
-    JSPopContextPrincipalOp    popContextPrincipal;
 };
 
 extern JS_PUBLIC_API(void)

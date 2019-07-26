@@ -1351,6 +1351,18 @@ private:
                        nsStyleContext* aStyleContext);
 
 
+  
+
+
+
+
+  nsresult ConstructOuterSVG(nsFrameConstructorState& aState,
+                             FrameConstructionItem&   aItem,
+                             nsIFrame*                aParentFrame,
+                             const nsStyleDisplay*    aDisplay,
+                             nsFrameItems&            aFrameItems,
+                             nsIFrame**               aNewFrame);
+
   static const FrameConstructionData* FindSVGData(Element* aElement,
                                                   nsIAtom* aTag,
                                                   PRInt32 aNameSpaceID,

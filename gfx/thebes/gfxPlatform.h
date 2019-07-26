@@ -369,6 +369,9 @@ public:
     }
 
     
+    static bool UseProgressiveTilePainting();
+
+    
     static bool UseAzureContentDrawing();
     
     

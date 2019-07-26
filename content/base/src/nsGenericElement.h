@@ -774,7 +774,7 @@ protected:
 
 
 
-  nsresult CopyInnerTo(nsGenericElement* aDest) const;
+  nsresult CopyInnerTo(nsGenericElement* aDest);
 
   
 
@@ -1000,7 +1000,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
   }                                                                         \
                                                                             \
   nsCOMPtr<nsINode> kungFuDeathGrip = it;                                   \
-  nsresult rv = CopyInnerTo(it);                                            \
+  nsresult rv = const_cast<_elementName*>(this)->CopyInnerTo(it);           \
   if (NS_SUCCEEDED(rv)) {                                                   \
     kungFuDeathGrip.swap(*aResult);                                         \
   }                                                                         \
@@ -1021,7 +1021,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
                                                                             \
   nsCOMPtr<nsINode> kungFuDeathGrip = it;                                   \
   nsresult rv = it->Init();                                                 \
-  rv |= CopyInnerTo(it);                                                    \
+  rv |= const_cast<_elementName*>(this)->CopyInnerTo(it);                   \
   if (NS_SUCCEEDED(rv)) {                                                   \
     kungFuDeathGrip.swap(*aResult);                                         \
   }                                                                         \

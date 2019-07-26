@@ -1029,6 +1029,12 @@ var NativeWindow = {
 
 
 
+
+
+
+
+
+
     show: function(aMessage, aValue, aButtons, aTabID, aOptions) {
       aButtons.forEach((function(aButton) {
         this._callbacks[this._callbacksId] = { cb: aButton.callback, prompt: this._promptId };
@@ -1384,6 +1390,7 @@ var SelectionHandler = {
   
   cache: null,
   _active: false,
+  _viewOffset: null,
 
   
   get _view() {
@@ -1420,24 +1427,49 @@ var SelectionHandler = {
   },
 
   
-  HANDLE_WIDTH: 35,
-  HANDLE_HEIGHT: 64,
+  HANDLE_WIDTH: 45,
+  HANDLE_HEIGHT: 66,
   HANDLE_PADDING: 20,
-  HANDLE_VERTICAL_OFFSET: 10,
+  HANDLE_HORIZONTAL_OFFSET: 5,
 
   init: function sh_init() {
     Services.obs.addObserver(this, "Gesture:SingleTap", false);
+    Services.obs.addObserver(this, "Window:Resize", false);
+    Services.obs.addObserver(this, "after-viewport-change", false);
   },
 
   uninit: function sh_uninit() {
     Services.obs.removeObserver(this, "Gesture:SingleTap", false);
+    Services.obs.removeObserver(this, "Window:Resize", false);
+    Services.obs.removeObserver(this, "after-viewport-change", false);
   },
 
   observe: function sh_observe(aSubject, aTopic, aData) {
-    let data = JSON.parse(aData);
+    if (!this._active)
+      return;
 
-    if (this._active)
-      this.endSelection(data.x, data.y);
+    switch (aTopic) {
+      case "Gesture:SingleTap": {
+        let data = JSON.parse(aData);
+        this.endSelection(data.x, data.y);
+        break;
+      }
+      case "Window:Resize": {
+        
+        
+        this.endSelection();
+        break;
+      }
+      case "after-viewport-change": {
+        let zoom = BrowserApp.selectedTab.getViewport().zoom;
+        if (zoom != this._viewOffset.zoom) {
+          this._viewOffset.zoom = zoom;
+          this.updateCacheForSelection();
+          this.positionHandles();
+        }
+        break;
+      }
+    }
   },
 
   notifySelectionChanged: function sh_notifySelectionChanged(aDoc, aSel, aReason) {
@@ -1462,6 +1494,11 @@ var SelectionHandler = {
     
     this._view = aElement.ownerDocument.defaultView;
     this._isRTL = (this._view.getComputedStyle(aElement, "").direction == "rtl");
+
+    let computedStyle = this._view.getComputedStyle(this._view.document.documentElement);
+    this._viewOffset = { top: parseInt(computedStyle.getPropertyValue("margin-top").replace("px", "")),
+                         left: parseInt(computedStyle.getPropertyValue("margin-left").replace("px", "")),
+                         zoom: BrowserApp.selectedTab.getViewport().zoom };
 
     
     
@@ -1577,11 +1614,11 @@ var SelectionHandler = {
 
     
     if (aIsStartHandle) {
-      this._start.style.left = aX + this._view.scrollX + "px";
-      this._start.style.top = aY + this._view.scrollY + "px";
+      this._start.style.left = aX + this._view.scrollX - this._viewOffset.left + "px";
+      this._start.style.top = aY + this._view.scrollY - this._viewOffset.top + "px";
     } else {
-      this._end.style.left = aX + this._view.scrollX + "px";
-      this._end.style.top = aY + this._view.scrollY + "px";
+      this._end.style.left = aX + this._view.scrollX - this._viewOffset.left + "px";
+      this._end.style.top = aY + this._view.scrollY - this._viewOffset.top + "px";
     }
 
     let cwu = this._view.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
@@ -1696,6 +1733,7 @@ var SelectionHandler = {
 
     this._isRTL = false;
     this._view = null;
+    this._viewOffset = null;
     this.cache = null;
 
     return selectedText;
@@ -1714,8 +1752,11 @@ var SelectionHandler = {
       win = win.parent;
     }
 
-    return (aX - offset.x > this.cache.rect.left && aX - offset.x < this.cache.rect.right) &&
-           (aY - offset.y > this.cache.rect.top && aY - offset.y < this.cache.rect.bottom);
+    let radius = ElementTouchHelper.getTouchRadius();
+    return (aX - offset.x > this.cache.rect.left - radius.left &&
+            aX - offset.x < this.cache.rect.right + radius.right &&
+            aY - offset.y > this.cache.rect.top - radius.top &&
+            aY - offset.y < this.cache.rect.bottom + radius.bottom);
   },
 
   
@@ -1744,11 +1785,21 @@ var SelectionHandler = {
   
   
   positionHandles: function sh_positionHandles() {
-    this._start.style.left = (this.cache.start.x + this._view.scrollX - this.HANDLE_WIDTH - this.HANDLE_PADDING) + "px";
-    this._start.style.top = (this.cache.start.y + this._view.scrollY - this.HANDLE_VERTICAL_OFFSET) + "px";
+    let height = this.HANDLE_HEIGHT / this._viewOffset.zoom;
+    this._start.style.height = height + "px";
+    this._end.style.height = height + "px";
 
-    this._end.style.left = (this.cache.end.x + this._view.scrollX - this.HANDLE_PADDING) + "px";
-    this._end.style.top = (this.cache.end.y + this._view.scrollY - this.HANDLE_VERTICAL_OFFSET) + "px";
+    let width = this.HANDLE_WIDTH/ this._viewOffset.zoom;
+    this._start.style.width = width + "px";
+    this._end.style.width = width + "px";
+
+    this._start.style.left = (this.cache.start.x + this._view.scrollX - this._viewOffset.left -
+                              this.HANDLE_PADDING - this.HANDLE_HORIZONTAL_OFFSET - width) + "px";
+    this._start.style.top = (this.cache.start.y + this._view.scrollY - this._viewOffset.top) + "px";
+
+    this._end.style.left = (this.cache.end.x + this._view.scrollX - this._viewOffset.left -
+                            this.HANDLE_PADDING + this.HANDLE_HORIZONTAL_OFFSET) + "px";
+    this._end.style.top = (this.cache.end.y + this._view.scrollY - this._viewOffset.top) + "px";
   },
 
   showHandles: function sh_showHandles() {
@@ -1900,31 +1951,17 @@ var UserAgent = {
         if (tab == null)
           break;
 
-        let apps = HelperApps.getAppsForUri(channel.URI);
-        if (apps.length > 0) {
-          let message = apps.length == 1 ? Strings.browser.formatStringFromName("helperapps.openWithApp", [apps[0].name], 1) :
-                                           Strings.browser.GetStringFromName("helperapps.openWithList");
-          let buttons = [{
-              label: Strings.browser.GetStringFromName("helperapps.open"),
-              callback: function() {
-                aSubject.QueryInterface(Ci.nsIRequest).cancel(Components.results.NS_ERROR_ABORT);
-                HelperApps.openUriInApp(channel.URI);
-              }
-            },
-            {
-              label: Strings.browser.GetStringFromName("helperapps.cancel"),
-              callback: function() { }
-          }];
-          
-          
-          let options = { persistence: 2 };
-          let name = "helperapps-" + (apps.length > 1 ? "list" : apps[0].name);
-          NativeWindow.doorhanger.show(message, name, buttons, self.id, options);
+        if (channel.URI.host.indexOf("youtube") != -1) {
+          let ua = Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).userAgent;
+#expand let version = "__MOZ_APP_VERSION__";
+          ua += " Fennec/" + version;
+          channel.setRequestHeader("User-Agent", ua, false);
         }
 
         
         if (tab.desktopMode && (channel.loadFlags & Ci.nsIChannel.LOAD_DOCUMENT_URI))
           channel.setRequestHeader("User-Agent", this.DESKTOP_UA, false);
+
         break;
       }
     }
@@ -2041,7 +2078,6 @@ function Tab(aURL, aParams) {
   this.browser = null;
   this.id = 0;
   this.showProgress = true;
-  this.create(aURL, aParams);
   this._zoom = 1.0;
   this._drawZoom = 1.0;
   this.userScrollPos = { x: 0, y: 0 };
@@ -2051,6 +2087,8 @@ function Tab(aURL, aParams) {
   this.clickToPlayPluginsActivated = false;
   this.desktopMode = false;
   this.originalURI = null;
+
+  this.create(aURL, aParams);
 }
 
 Tab.prototype = {
@@ -2080,6 +2118,7 @@ Tab.prototype = {
     } catch (e) {}
 
     this.id = ++gTabIDFactory;
+    this.desktopMode = ("desktopMode" in aParams) ? aParams.desktopMode : false;
 
     let message = {
       gecko: {
@@ -2090,7 +2129,8 @@ Tab.prototype = {
         external: ("external" in aParams) ? aParams.external : false,
         selected: ("selected" in aParams) ? aParams.selected : true,
         title: aParams.title || aURL,
-        delayLoad: aParams.delayLoad || false
+        delayLoad: aParams.delayLoad || false,
+        desktopMode: this.desktopMode
       }
     };
     sendMessageToJava(message);
@@ -2428,6 +2468,8 @@ Tab.prototype = {
 
     if (aViewport.displayPort)
       this.setDisplayPort(aViewport.displayPort);
+
+    Services.obs.notifyObservers(null, "after-viewport-change", "");
   },
 
   setResolution: function(aZoom, aForce) {
@@ -3576,6 +3618,19 @@ const ElementTouchHelper = {
     return elem;
   },
 
+  
+  getTouchRadius: function getTouchRadius() {
+    let dpiRatio = ViewportHandler.displayDPI / kReferenceDpi;
+    let zoom = BrowserApp.selectedTab._zoom;
+    return {
+      top: this.radius.top * dpiRatio / zoom,
+      right: this.radius.right * dpiRatio / zoom,
+      bottom: this.radius.bottom * dpiRatio / zoom,
+      left: this.radius.left * dpiRatio / zoom
+    };
+  },
+
+  
   get radius() {
     let prefs = Services.prefs;
     delete this.radius;
@@ -3593,11 +3648,6 @@ const ElementTouchHelper = {
 
   
   getClosest: function getClosest(aWindowUtils, aX, aY) {
-    if (!this.dpiRatio)
-      this.dpiRatio = aWindowUtils.displayDPI / kReferenceDpi;
-
-    let dpiRatio = this.dpiRatio;
-
     let target = aWindowUtils.elementFromPoint(aX, aY,
                                                true,   
                                                false); 
@@ -3610,11 +3660,8 @@ const ElementTouchHelper = {
       return target;
 
     target = null;
-    let zoom = BrowserApp.selectedTab._zoom;
-    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top * dpiRatio / zoom,
-                                                   this.radius.right * dpiRatio / zoom,
-                                                   this.radius.bottom * dpiRatio / zoom,
-                                                   this.radius.left * dpiRatio / zoom, true, false);
+    let radius = this.getTouchRadius();
+    let nodes = aWindowUtils.nodesFromRect(aX, aY, radius.top, radius.right, radius.bottom, radius.left, true, false);
 
     let threshold = Number.POSITIVE_INFINITY;
     for (let i = 0; i < nodes.length; i++) {
@@ -6436,7 +6483,7 @@ let Reader = {
       return;
     }
 
-    let request = window.mozIndexedDB.open("about:reader", this.DB_VERSION);
+    let request = window.indexedDB.open("about:reader", this.DB_VERSION);
 
     request.onerror = function(event) {
       this.log("Error connecting to the cache DB");

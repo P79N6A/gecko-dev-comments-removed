@@ -130,11 +130,9 @@ public:
   
 
 
-
-
   static void
   PaintFramesWithEffects(nsRenderingContext* aCtx,
-                         nsIFrame* aEffectsFrame, const nsRect& aDirtyRect,
+                         nsIFrame* aFrame, const nsRect& aDirtyRect,
                          nsDisplayListBuilder* aBuilder,
                          nsDisplayList* aInnerList);
 

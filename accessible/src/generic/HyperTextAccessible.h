@@ -16,6 +16,15 @@
 #include "nsFrameSelection.h"
 #include "nsISelectionController.h"
 
+namespace mozilla {
+namespace a11y {
+struct DOMPoint {
+  nsINode* node;
+  PRInt32 idx;
+};
+}
+}
+
 enum EGetTextType { eGetBefore=-1, eGetAt=0, eGetAfter=1 };
 
 
@@ -137,26 +146,9 @@ public:
 
 
 
-  nsresult HypertextOffsetToDOMPoint(PRInt32 aHTOffset,
-                                     nsIDOMNode **aNode,
-                                     PRInt32 *aOffset);
-
-  
-
-
-
-
-
-
-
-
-
   nsresult HypertextOffsetsToDOMRange(PRInt32 aStartHTOffset,
                                       PRInt32 aEndHTOffset,
-                                      nsIDOMNode **aStartNode,
-                                      PRInt32 *aStartOffset,
-                                      nsIDOMNode **aEndNode,
-                                      PRInt32 *aEndOffset);
+                                      nsRange* aRange);
 
   
 
@@ -355,7 +347,7 @@ protected:
   
   nsresult GetDOMPointByFrameOffset(nsIFrame* aFrame, PRInt32 aOffset,
                                     Accessible* aAccessible,
-                                    nsIDOMNode** aNode, PRInt32* aNodeOffset);
+                                    mozilla::a11y::DOMPoint* aPoint);
 
   
   

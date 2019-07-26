@@ -30,6 +30,7 @@
 #include "js/HashTable.h"
 #include "js/Vector.h"
 #include "vm/Stack.h"
+#include "vm/SPSProfiler.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -583,7 +584,16 @@ struct JSRuntime : js::RuntimeFriendFields
 #endif
 
     bool                gcPoke;
-    bool                gcRunning;
+
+    enum HeapState {
+        Idle,       
+        Tracing,    
+        Collecting  
+    };
+
+    HeapState           heapState;
+
+    bool isHeapBusy() { return heapState != Idle; }
 
     
 
@@ -685,6 +695,9 @@ struct JSRuntime : js::RuntimeFriendFields
 
     
     bool                debugMode;
+
+    
+    js::SPSProfiler     spsProfiler;
 
     
     bool                profilingScripts;
@@ -1117,6 +1130,10 @@ struct JSContext : js::ContextFriendFields
 
     
     bool                generatingError;
+
+#ifdef DEBUG
+    bool                rootingUnnecessary;
+#endif
 
     
     JSCompartment       *compartment;
@@ -1804,13 +1821,13 @@ MakeRangeGCSafe(jsid *vec, size_t len)
 }
 
 static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(const Shape **beg, const Shape **end)
+MakeRangeGCSafe(Shape **beg, Shape **end)
 {
     PodZero(beg, end - beg);
 }
 
 static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(const Shape **vec, size_t len)
+MakeRangeGCSafe(Shape **vec, size_t len)
 {
     PodZero(vec, len);
 }
@@ -1854,12 +1871,12 @@ class AutoObjectVector : public AutoVectorRooter<JSObject *>
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class AutoShapeVector : public AutoVectorRooter<const Shape *>
+class AutoShapeVector : public AutoVectorRooter<Shape *>
 {
   public:
     explicit AutoShapeVector(JSContext *cx
                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoVectorRooter<const Shape *>(cx, SHAPEVECTOR)
+        : AutoVectorRooter<Shape *>(cx, SHAPEVECTOR)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }

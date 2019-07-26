@@ -35,13 +35,6 @@ DirectWrapper WaiveXrayWrapperWrapper(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
 
 
 
-
-NoWaiverWrapper NoWaiverWrapper::singleton(0);
-
-
-
-
-
 CrossOriginWrapper CrossOriginWrapper::singleton(0);
 
 static JSObject *
@@ -341,7 +334,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
                     usingXray = true;
                     wrapper = &Xray::singleton;
                 } else {
-                    wrapper = &NoWaiverWrapper::singleton;
+                    wrapper = &CrossCompartmentWrapper::singleton;
                 }
             }
         }

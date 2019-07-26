@@ -527,7 +527,7 @@ let SyncServerCallback = {
 
 function SyncServer(callback) {
   this.callback = callback || {__proto__: SyncServerCallback};
-  this.server   = new nsHttpServer();
+  this.server   = new HttpServer();
   this.started  = false;
   this.users    = {};
   this._log     = Log4Moz.repository.getLogger(SYNC_HTTP_LOGGER);

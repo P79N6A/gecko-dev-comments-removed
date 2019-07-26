@@ -687,11 +687,6 @@ IDBCursor::Update(const jsval& aValue,
 
   if (mObjectStore->HasValidKeyPath()) {
     
-    if (JSVAL_IS_PRIMITIVE(aValue)) {
-      return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
-    }
-
-    
     const KeyPath& keyPath = mObjectStore->GetKeyPath();
     Key key;
 
@@ -745,11 +740,11 @@ IDBCursor::Delete(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-IDBCursor::Advance(PRInt32 aCount)
+IDBCursor::Advance(PRInt64 aCount)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  if (aCount < 1) {
+  if (aCount < 1 || aCount > PR_UINT32_MAX) {
     return NS_ERROR_TYPE_ERR;
   }
 

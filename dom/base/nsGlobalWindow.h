@@ -64,6 +64,7 @@
 #include "nsIInlineEventHandlers.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsIDOMApplicationRegistry.h"
+#include "nsIIdleObserver.h"
 
 
 #include "jsapi.h"
@@ -78,6 +79,12 @@
 
 
 #define MAX_DIALOG_COUNT 10
+
+
+#define MAX_IDLE_FUZZ_TIME_MS 90000
+
+
+#define MIN_IDLE_NOTIFICATION_TIME_S 1
 
 class nsIDOMBarProp;
 class nsIDocument;
@@ -101,6 +108,7 @@ class nsDOMEventTargetHelper;
 class nsDOMOfflineResourceList;
 class nsDOMMozURLProperty;
 class nsDOMWindowUtils;
+class nsIIdleService;
 
 #ifdef MOZ_DISABLE_DOMCRYPTO
 class nsIDOMCrypto;
@@ -193,6 +201,35 @@ struct nsTimeout : PRCList
 private:
   
   nsAutoRefCnt mRefCnt;
+};
+
+struct IdleObserverHolder
+{
+  nsCOMPtr<nsIIdleObserver> mIdleObserver;
+  PRUint32 mTimeInS;
+
+  IdleObserverHolder()
+    : mTimeInS(0)
+  {
+    MOZ_COUNT_CTOR(IdleObserverHolder);
+  }
+
+  IdleObserverHolder(const IdleObserverHolder& aOtherIdleObserver)
+    : mIdleObserver(aOtherIdleObserver.mIdleObserver), mTimeInS(aOtherIdleObserver.mTimeInS)
+  {
+    MOZ_COUNT_CTOR(IdleObserverHolder);
+  }
+
+  bool operator==(const IdleObserverHolder& aOtherIdleObserver) const {
+    return
+      mIdleObserver == aOtherIdleObserver.mIdleObserver &&
+      mTimeInS == aOtherIdleObserver.mTimeInS;
+  }
+
+  ~IdleObserverHolder()
+  {
+    MOZ_COUNT_DTOR(IdleObserverHolder);
+  }
 };
 
 
@@ -546,7 +583,39 @@ public:
   void AddEventTargetObject(nsDOMEventTargetHelper* aObject);
   void RemoveEventTargetObject(nsDOMEventTargetHelper* aObject);
 
+  void NotifyIdleObserver(nsIIdleObserver* aIdleObserver,
+                          PRUint32 aIdleObserverTimeInS,
+                          bool aCallOnidle);
+  nsresult NotifyIdleObserversOfIdleActiveEvent();
+  bool ContainsIdleObserver(nsIIdleObserver* aIdleObserver, PRUint32 timeInS);
+  void HandleIdleObserverCallback();
+
 protected:
+  
+  nsTObserverArray<IdleObserverHolder> mIdleObservers;
+
+  
+  nsCOMPtr<nsITimer> mIdleTimer;
+
+  
+  PRUint32 mIdleFuzzFactor;
+
+  
+  
+  PRInt32 mIdleCallbackIndex;
+
+  
+  
+  bool mCurrentlyIdle;
+
+  
+  
+  bool mAddActiveEventFuzzTime;
+
+  nsCOMPtr <nsIIdleService> mIdleService;
+
+  static bool sIdleObserversAPIFuzzTimeDisabled;
+
   friend class HashchangeCallback;
   friend class nsBarProp;
 
@@ -696,6 +765,16 @@ protected:
                            const nsAString &aPopupWindowName,
                            const nsAString &aPopupWindowFeatures);
   void FireOfflineStatusEvent();
+
+  nsresult ScheduleNextIdleObserverCallback();
+  PRUint32 GetFuzzTimeMS();
+  nsresult ScheduleActiveTimerCallback();
+  PRUint32 FindInsertionIndex(IdleObserverHolder* aIdleObserver);
+  virtual nsresult RegisterIdleObserver(nsIIdleObserver* aIdleObserverPtr);
+  nsresult FindIndexOfElementToRemove(nsIIdleObserver* aIdleObserver,
+                                      PRInt32* aRemoveElementIndex);
+  virtual nsresult UnregisterIdleObserver(nsIIdleObserver* aIdleObserverPtr);
+
   nsresult FireHashchange(const nsAString &aOldURL, const nsAString &aNewURL);
 
   void FlushPendingNotifications(mozFlushType aType);
@@ -721,7 +800,7 @@ protected:
   nsresult GetScrollXY(PRInt32* aScrollX, PRInt32* aScrollY,
                        bool aDoFlush);
   nsresult GetScrollMaxXY(PRInt32* aScrollMaxX, PRInt32* aScrollMaxY);
-  
+
   nsresult GetOuterSize(nsIntSize* aSizeCSSPixels);
   nsresult SetOuterSize(PRInt32 aLengthCSSPixels, bool aIsWidth);
   nsRect GetInnerScreenRect();
@@ -798,7 +877,7 @@ protected:
 
   static void NotifyDOMWindowFrozen(nsGlobalWindow* aWindow);
   static void NotifyDOMWindowThawed(nsGlobalWindow* aWindow);
-  
+
   void ClearStatus();
 
   virtual void UpdateParentTarget();
@@ -814,6 +893,7 @@ protected:
 
   void SetIsApp(bool aValue);
   nsresult SetApp(const nsAString& aManifestURL);
+  nsresult GetApp(mozIDOMApplication** aApplication);
 
   
   nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
@@ -832,7 +912,7 @@ protected:
   
   
   bool                          mIsFrozen : 1;
-  
+
   
   
   bool                          mFullScreen : 1;
@@ -850,6 +930,8 @@ protected:
 
   
   bool                          mFireOfflineStatusChangeEventOnThaw : 1;
+  bool                          mNotifyIdleObserversIdleOnThaw : 1;
+  bool                          mNotifyIdleObserversActiveOnThaw : 1;
 
   
   

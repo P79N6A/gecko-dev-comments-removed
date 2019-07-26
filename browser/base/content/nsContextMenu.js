@@ -148,8 +148,9 @@ nsContextMenu.prototype = {
                        this.onTextInput);
     this.showItem("context-back", shouldShow);
     this.showItem("context-forward", shouldShow);
-    this.showItem("context-reload", shouldShow);
-    this.showItem("context-stop", shouldShow);
+    var shouldShowReload = XULBrowserWindow.stopCommand.getAttribute("disabled") == "true";
+    this.showItem("context-reload", shouldShow && shouldShowReload);
+    this.showItem("context-stop", shouldShow && !shouldShowReload);
     this.showItem("context-sep-stop", shouldShow);
 
     
@@ -171,11 +172,9 @@ nsContextMenu.prototype = {
                        this.isContentSelected || this.onImage ||
                        this.onCanvas || this.onVideo || this.onAudio);
     this.showItem("context-savepage", shouldShow);
-    this.showItem("context-sendpage", shouldShow);
 
     
     this.showItem("context-savelink", this.onSaveableLink || this.onPlainTextLink);
-    this.showItem("context-sendlink", this.onSaveableLink || this.onPlainTextLink);
 
     
     this.showItem("context-saveimage", this.onLoadedImage || this.onCanvas);
@@ -1050,11 +1049,6 @@ nsContextMenu.prototype = {
     this.saveHelper(this.linkURL, linkText, null, true, doc);
   },
 
-  sendLink: function() {
-    
-    MailIntegration.sendMessage( this.linkURL, "" );
-  },
-
   
   saveImage : function() {
     if (this.onCanvas || this.onImage)
@@ -1401,10 +1395,6 @@ nsContextMenu.prototype = {
 
   savePageAs: function CM_savePageAs() {
     saveDocument(this.browser.contentDocument);
-  },
-
-  sendPage: function CM_sendPage() {
-    MailIntegration.sendLinkForWindow(this.browser.contentWindow);  
   },
 
   printFrame: function CM_printFrame() {

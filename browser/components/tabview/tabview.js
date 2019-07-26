@@ -29,11 +29,8 @@ XPCOMUtils.defineLazyGetter(this, "gPrefBranch", function() {
   return Services.prefs.getBranch("browser.panorama.");
 });
 
-XPCOMUtils.defineLazyServiceGetter(this, "gPrivateBrowsing",
-  "@mozilla.org/privatebrowsing;1", "nsIPrivateBrowsingService");
-
 XPCOMUtils.defineLazyModuleGetter(this, "gPageThumbnails",
-  "resource:///modules/PageThumbs.jsm", "PageThumbs");
+  "resource:
 
 var gWindow = window.parent;
 var gBrowser = gWindow.gBrowser;

@@ -1029,21 +1029,4 @@ nsString::AssignWithConversion( const nsACString& aData )
     CopyASCIItoUTF16(aData, *this);
   }
 
-
-  
-
-
-
-void
-nsCString::AppendWithConversion( const nsAString& aData )
-  {
-    LossyAppendUTF16toASCII(aData, *this);
-  }
-
-void
-nsString::AppendWithConversion( const nsACString& aData )
-  {
-    AppendASCIItoUTF16(aData, *this);
-  }
-
 #endif 

@@ -1400,7 +1400,7 @@ var gBrowserInit = {
 
       
       if (gPrefService.getBoolPref("devtools.toolbar.visible")) {
-        DeveloperToolbar.show();
+        DeveloperToolbar.show(false);
       }
     }
 
@@ -1477,7 +1477,9 @@ var gBrowserInit = {
 #ifdef MENUBAR_CAN_AUTOHIDE
       document.getElementById("appmenu_styleeditor").hidden = false;
 #endif
-      document.getElementById("developer-toolbar-styleeditor").hidden = false;
+      
+      
+      
     }
 
 #ifdef MENUBAR_CAN_AUTOHIDE
@@ -2610,13 +2612,16 @@ function BrowserOnClick(event) {
         if (previousNotification)
           notificationBox.removeNotification(previousNotification);
 
-        notificationBox.appendNotification(
+        let notification = notificationBox.appendNotification(
           title,
           value,
           "chrome://global/skin/icons/blacklist_favicon.png",
           notificationBox.PRIORITY_CRITICAL_HIGH,
           buttons
         );
+        
+        
+        notification.persistence = -1;
       }
     }
     else if (/^about:home$/i.test(ownerDoc.documentURI)) {
@@ -5261,10 +5266,9 @@ function middleMousePaste(event) {
     Cu.reportError(ex);
   }
 
-  
-  let where = whereToOpenLink(event, true);
-  openUILinkIn(url, where,
-               { disallowInheritPrincipal: !mayInheritPrincipal.value });
+  openUILink(url, event,
+             { ignoreButton: true,
+               disallowInheritPrincipal: !mayInheritPrincipal.value });
 
   event.stopPropagation();
 }
@@ -6914,6 +6918,7 @@ let gPrivateBrowsingUI = {
   _searchBarValue: null,
   _findBarValue: null,
   _inited: false,
+  _initCallbacks: [],
 
   init: function PBUI_init() {
     Services.obs.addObserver(this, "private-browsing", false);
@@ -6926,6 +6931,9 @@ let gPrivateBrowsingUI = {
       this.onEnterPrivateBrowsing(true);
 
     this._inited = true;
+
+    this._initCallbacks.forEach(function (callback) callback.apply());
+    this._initCallbacks = [];
   },
 
   uninit: function PBUI_unint() {
@@ -6934,6 +6942,17 @@ let gPrivateBrowsingUI = {
 
     Services.obs.removeObserver(this, "private-browsing");
     Services.obs.removeObserver(this, "private-browsing-transition-complete");
+  },
+
+  get initialized() {
+    return this._inited;
+  },
+
+  addInitializationCallback: function PBUI_addInitializationCallback(aCallback) {
+    if (this._inited)
+      return;
+
+    this._initCallbacks.push(aCallback);
   },
 
   get _disableUIOnToggle() {
@@ -7138,13 +7157,15 @@ let gPrivateBrowsingUI = {
       !this.privateBrowsingEnabled;
   },
 
+  get autoStarted() {
+    return this._privateBrowsingService.autoStarted;
+  },
+
   get privateBrowsingEnabled() {
     return this._privateBrowsingService.privateBrowsingEnabled;
   },
 
   
-
-
 
 
   get privateWindow() {

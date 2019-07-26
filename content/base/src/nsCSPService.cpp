@@ -9,7 +9,6 @@
 #include "nsIURI.h"
 #include "nsIPrincipal.h"
 #include "nsIObserver.h"
-#include "nsIDocument.h"
 #include "nsIContent.h"
 #include "nsCSPService.h"
 #include "nsIContentSecurityPolicy.h"
@@ -58,6 +57,7 @@ CSPService::ShouldLoad(PRUint32 aContentType,
                        nsISupports *aRequestContext,
                        const nsACString &aMimeTypeGuess,
                        nsISupports *aExtra,
+                       nsIPrincipal *aRequestPrincipal,
                        PRInt16 *aDecision)
 {
     if (!aContentLocation)
@@ -96,12 +96,13 @@ CSPService::ShouldLoad(PRUint32 aContentType,
                      NS_ConvertUTF16toUTF8(policy).get()));
 #endif
             
+            
             csp->ShouldLoad(aContentType,
                             aContentLocation,
                             aRequestOrigin,
                             aRequestContext,
                             aMimeTypeGuess,
-                            aExtra,
+                            nsnull,
                             aDecision);
         }
     }
@@ -124,6 +125,7 @@ CSPService::ShouldProcess(PRUint32         aContentType,
                           nsISupports      *aRequestContext,
                           const nsACString &aMimeTypeGuess,
                           nsISupports      *aExtra,
+                          nsIPrincipal     *aRequestPrincipal,
                           PRInt16          *aDecision)
 {
     if (!aContentLocation)
@@ -219,13 +221,15 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
   
   nsCOMPtr<nsIURI> newUri;
   newChannel->GetURI(getter_AddRefs(newUri));
+  nsCOMPtr<nsIURI> originalUri;
+  oldChannel->GetOriginalURI(getter_AddRefs(originalUri));
   PRInt16 aDecision = nsIContentPolicy::ACCEPT;
   csp->ShouldLoad(loadType,        
                   newUri,          
                   nsnull,          
                   nsnull,          
                   EmptyCString(),  
-                  nsnull,          
+                  originalUri,     
                   &aDecision);
 
 #ifdef PR_LOGGING

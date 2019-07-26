@@ -19,7 +19,7 @@
 #include "mozilla/Selection.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIPrivateTextRange.h"
-#include "nsITransactionManager.h"
+#include "nsTransactionManager.h"
 #include "nsIComponentManager.h"
 #include "nsCOMArray.h"
 #include "nsIEditActionListener.h"
@@ -41,7 +41,7 @@ class nsIPresShell;
 class ChangeAttributeTxn;
 class CreateElementTxn;
 class InsertElementTxn;
-class DeleteElementTxn;
+class DeleteNodeTxn;
 class InsertTextTxn;
 class DeleteTextTxn;
 class SplitElementTxn;
@@ -176,6 +176,7 @@ public:
                                            nsIDOMNode ** aNewNode);
 
   
+  nsresult DeleteNode(nsINode* aNode);
   nsresult ReplaceContainer(nsINode* inNode,
                             mozilla::dom::Element** outNode,
                             const nsAString& aNodeType,
@@ -217,7 +218,7 @@ public:
   virtual nsresult BeginIMEComposition();
   virtual nsresult UpdateIMEComposition(const nsAString &aCompositionString,
                                         nsIPrivateTextRangeList *aTextRange)=0;
-  nsresult EndIMEComposition();
+  void EndIMEComposition();
 
   void SwitchTextDirectionTo(PRUint32 aDirection);
 
@@ -253,8 +254,7 @@ protected:
 
   
 
-  NS_IMETHOD CreateTxnForDeleteElement(nsIDOMNode * aElement,
-                                       DeleteElementTxn ** aTxn);
+  nsresult CreateTxnForDeleteNode(nsINode* aNode, DeleteNodeTxn** aTxn);
 
 
   nsresult CreateTxnForDeleteSelection(EDirection aAction,
@@ -325,11 +325,11 @@ protected:
 
 
   
-  NS_IMETHOD DoAfterDoTransaction(nsITransaction *aTxn);
+  void DoAfterDoTransaction(nsITransaction *aTxn);
   
-  NS_IMETHOD DoAfterUndoTransaction();
+  void DoAfterUndoTransaction();
   
-  NS_IMETHOD DoAfterRedoTransaction();
+  void DoAfterRedoTransaction();
 
   typedef enum {
     eDocumentCreated,
@@ -356,8 +356,9 @@ protected:
   NS_IMETHOD ScrollSelectionIntoView(bool aScrollToAnchor);
 
   
-  virtual bool IsBlockNode(nsIDOMNode *aNode);
-  virtual bool IsBlockNode(nsINode *aNode);
+  bool IsBlockNode(nsIDOMNode* aNode);
+  
+  virtual bool IsBlockNode(nsINode* aNode);
   
   
   nsIContent* FindNextLeafNode(nsINode  *aCurrentNode,
@@ -438,17 +439,15 @@ public:
 
 
 
-  static nsresult GetChildOffset(nsIDOMNode *aChild, 
-                                 nsIDOMNode *aParent, 
-                                 PRInt32    &aOffset);
+  static PRInt32 GetChildOffset(nsIDOMNode *aChild,
+                                nsIDOMNode *aParent);
 
   
 
 
 
-  static nsresult GetNodeLocation(nsIDOMNode *aChild, 
-                                 nsCOMPtr<nsIDOMNode> *aParent, 
-                                 PRInt32    *aOffset);
+  static already_AddRefed<nsIDOMNode> GetNodeLocation(nsIDOMNode* aChild,
+                                                      PRInt32* outOffset);
 
   
 
@@ -589,7 +588,6 @@ public:
   bool NodesSameType(nsIDOMNode *aNode1, nsIDOMNode *aNode2);
   virtual bool AreNodesSameType(nsIContent* aNode1, nsIContent* aNode2);
 
-  static bool IsTextOrElementNode(nsIDOMNode *aNode);
   static bool IsTextNode(nsIDOMNode *aNode);
   static bool IsTextNode(nsINode *aNode);
   
@@ -822,7 +820,7 @@ protected:
 
   nsCOMPtr<nsIInlineSpellChecker> mInlineSpellChecker;
 
-  nsCOMPtr<nsITransactionManager> mTxnMgr;
+  nsRefPtr<nsTransactionManager> mTxnMgr;
   nsCOMPtr<mozilla::dom::Element> mRootElement; 
   nsCOMPtr<nsIPrivateTextRangeList> mIMETextRangeList; 
   nsCOMPtr<nsIDOMCharacterData>     mIMETextNode;      

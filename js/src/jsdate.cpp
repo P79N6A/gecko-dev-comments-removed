@@ -1,25 +1,25 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=78:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * JS date methods.
- */
+
+
+
+
+
+
+
+
+
 
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Util.h"
 
-/*
- * "For example, OS/360 devotes 26 bytes of the permanently
- *  resident date-turnover routine to the proper handling of
- *  December 31 on leap years (when it is Day 366).  That
- *  might have been left to the operator."
- *
- * Frederick Brooks, 'The Second-System Effect'.
- */
+
+
+
+
+
+
+
+
 
 #include <ctype.h>
 #include <locale.h>
@@ -55,155 +55,137 @@ using namespace mozilla;
 using namespace js;
 using namespace js::types;
 
-/*
- * The JS 'Date' object is patterned after the Java 'Date' object.
- * Here is an script:
- *
- *    today = new Date();
- *
- *    print(today.toLocaleString());
- *
- *    weekDay = today.getDay();
- *
- *
- * These Java (and ECMA-262) methods are supported:
- *
- *     UTC
- *     getDate (getUTCDate)
- *     getDay (getUTCDay)
- *     getHours (getUTCHours)
- *     getMinutes (getUTCMinutes)
- *     getMonth (getUTCMonth)
- *     getSeconds (getUTCSeconds)
- *     getMilliseconds (getUTCMilliseconds)
- *     getTime
- *     getTimezoneOffset
- *     getYear
- *     getFullYear (getUTCFullYear)
- *     parse
- *     setDate (setUTCDate)
- *     setHours (setUTCHours)
- *     setMinutes (setUTCMinutes)
- *     setMonth (setUTCMonth)
- *     setSeconds (setUTCSeconds)
- *     setMilliseconds (setUTCMilliseconds)
- *     setTime
- *     setYear (setFullYear, setUTCFullYear)
- *     toGMTString (toUTCString)
- *     toLocaleString
- *     toString
- *
- *
- * These Java methods are not supported
- *
- *     setDay
- *     before
- *     after
- *     equals
- *     hashCode
- */
 
-/*
- * 11/97 - jsdate.c has been rewritten to conform to the ECMA-262 language
- * definition and reduce dependence on NSPR.  NSPR is used to get the current
- * time in milliseconds, the time zone offset, and the daylight savings time
- * offset for a given time.  NSPR is also used for Date.toLocaleString(), for
- * locale-specific formatting, and to get a string representing the timezone.
- * (Which turns out to be platform-dependent.)
- *
- * To do:
- * (I did some performance tests by timing how long it took to run what
- *  I had of the js ECMA conformance tests.)
- *
- * - look at saving results across multiple calls to supporting
- * functions; the toString functions compute some of the same values
- * multiple times.  Although - I took a quick stab at this, and I lost
- * rather than gained.  (Fractionally.)  Hard to tell what compilers/processors
- * are doing these days.
- *
- * - look at tweaking function return types to return double instead
- * of int; this seems to make things run slightly faster sometimes.
- * (though it could be architecture-dependent.)  It'd be good to see
- * how this does on win32.  (Tried it on irix.)  Types could use a
- * general going-over.
- */
 
-/*
- * Supporting functions - ECMA 15.9.1.*
- */
 
-#define HoursPerDay     24.0
-#define MinutesPerDay   (HoursPerDay * MinutesPerHour)
-#define MinutesPerHour  60.0
-#define SecondsPerDay   (MinutesPerDay * SecondsPerMinute)
-#define SecondsPerHour  (MinutesPerHour * SecondsPerMinute)
-#define SecondsPerMinute 60.0
 
-#if defined(XP_WIN) || defined(XP_OS2)
-/* Work around msvc double optimization bug by making these runtime values; if
- * they're available at compile time, msvc optimizes division by them by
- * computing the reciprocal and multiplying instead of dividing - this loses
- * when the reciprocal isn't representable in a double.
- */
-static double msPerSecond = 1000.0;
-static double msPerDay = SecondsPerDay * 1000.0;
-static double msPerHour = SecondsPerHour * 1000.0;
-static double msPerMinute = SecondsPerMinute * 1000.0;
-#else
-#define msPerDay        (SecondsPerDay * msPerSecond)
-#define msPerHour       (SecondsPerHour * msPerSecond)
-#define msPerMinute     (SecondsPerMinute * msPerSecond)
-#define msPerSecond     1000.0
-#endif
 
-#define Day(t)          floor((t) / msPerDay)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const double msPerDay = 86400000;
+
+inline double
+Day(double t)
+{
+    return floor(t / msPerDay);
+}
 
 static double
 TimeWithinDay(double t)
 {
-    double result;
-    result = fmod(t, msPerDay);
+    double result = fmod(t, msPerDay);
     if (result < 0)
         result += msPerDay;
     return result;
 }
 
-static inline bool
+
+inline bool
 IsLeapYear(int year)
 {
     return year % 4 == 0 && (year % 100 || (year % 400 == 0));
 }
 
-static inline int
+inline int
 DaysInYear(int year)
 {
     return IsLeapYear(year) ? 366 : 365;
 }
 
-static inline int
-DaysInFebruary(int year)
+inline int
+DayFromYear(int y)
 {
-    return IsLeapYear(year) ? 29 : 28;
+    
+    return 365 * (y - 1970) +
+           floor((y - 1969) / 4.0) -
+           floor((y - 1901) / 100.0) +
+           floor((y - 1601) / 400.0);
 }
 
-/* math here has to be f.p, because we need
- *  floor((1968 - 1969) / 4) == -1
- */
-#define DayFromYear(y)  (365 * ((y)-1970) + floor(((y)-1969)/4.0)            \
-                         - floor(((y)-1901)/100.0) + floor(((y)-1601)/400.0))
-#define TimeFromYear(y) (DayFromYear(y) * msPerDay)
+inline double
+TimeFromYear(int y)
+{
+    return DayFromYear(y) * msPerDay;
+}
 
 static int
 YearFromTime(double t)
 {
-    int y = (int) floor(t /(msPerDay*365.2425)) + 1970;
-    double t2 = (double) TimeFromYear(y);
+    int y = (int) floor(t / (msPerDay * 365.2425)) + 1970;
+    double t2 = TimeFromYear(y);
 
-    /*
-     * Adjust the year if the approximation was wrong.  Since the year was
-     * computed using the average number of ms per year, it will usually
-     * be wrong for dates within several hours of a year transition.
-     */
+    
+
+
+
+
     if (t2 > t) {
         y--;
     } else {
@@ -213,34 +195,27 @@ YearFromTime(double t)
     return y;
 }
 
-#define DayWithinYear(t, year) ((int) (Day(t) - DayFromYear(year)))
-
-/*
- * The following array contains the day of year for the first day of
- * each month, where index 0 is January, and day 0 is January 1.
- */
-static double firstDayOfMonth[2][13] = {
-    {0.0, 31.0, 59.0, 90.0, 120.0, 151.0, 181.0, 212.0, 243.0, 273.0, 304.0, 334.0, 365.0},
-    {0.0, 31.0, 60.0, 91.0, 121.0, 152.0, 182.0, 213.0, 244.0, 274.0, 305.0, 335.0, 366.0}
-};
-
-#define DayFromMonth(m, leap) firstDayOfMonth[leap][(int)m]
-
-static int
-DaysInMonth(int year, int month)
+inline int
+DaysInFebruary(int year)
 {
-    JSBool leap = IsLeapYear(year);
-    int result = int(DayFromMonth(month, leap) - DayFromMonth(month-1, leap));
-    return result;
+    return IsLeapYear(year) ? 29 : 28;
+}
+
+
+inline int
+DayWithinYear(double t, int year)
+{
+    JS_ASSERT(YearFromTime(t) == year);
+    return int(Day(t) - DayFromYear(year));
 }
 
 static int
 MonthFromTime(double t)
 {
-    int d, step;
     int year = YearFromTime(t);
-    d = DayWithinYear(t, year);
+    int d = DayWithinYear(t, year);
 
+    int step;
     if (d < (step = 31))
         return 0;
     if (d < (step += DaysInFebruary(year)))
@@ -266,16 +241,17 @@ MonthFromTime(double t)
     return 11;
 }
 
+
 static int
 DateFromTime(double t)
 {
-    int d, step, next;
     int year = YearFromTime(t);
-    d = DayWithinYear(t, year);
+    int d = DayWithinYear(t, year);
 
+    int next;
     if (d <= (next = 30))
         return d + 1;
-    step = next;
+    int step = next;
     if (d <= (next += DaysInFebruary(year)))
         return d - step;
     step = next;
@@ -309,26 +285,76 @@ DateFromTime(double t)
     return d - step;
 }
 
+
 static int
 WeekDay(double t)
 {
-    int result;
-    result = (int) Day(t) + 4;
-    result = result % 7;
+    int result = (int(Day(t)) + 4) % 7;
     if (result < 0)
         result += 7;
-    return (int) result;
+    return result;
 }
 
-#define MakeTime(hour, min, sec, ms) \
-((((hour) * MinutesPerHour + (min)) * SecondsPerMinute + (sec)) * msPerSecond + (ms))
+
+static double LocalTZA; 
+
+
+
+
+
+
+
+
+static int
+EquivalentYearForDST(int year)
+{
+    
+
+
+
+
+
+
+
+
+    static const int yearStartingWith[2][7] = {
+        {1978, 1973, 1974, 1975, 1981, 1971, 1977},
+        {1984, 1996, 1980, 1992, 1976, 1988, 1972}
+    };
+
+    int day = int(DayFromYear(year) + 4) % 7;
+    if (day < 0)
+        day += 7;
+
+    return yearStartingWith[IsLeapYear(year)][day];
+}
+
+inline int
+DayFromMonth(int month, bool isLeapYear)
+{
+    
+
+
+
+    static const int firstDayOfMonth[2][13] = {
+        {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
+        {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}
+    };
+
+    JS_ASSERT(0 <= month && month <= 12);
+    return firstDayOfMonth[isLeapYear][month];
+}
+
 
 static double
 MakeDay(double year, double month, double date)
 {
-    JSBool leap;
-    double yearday;
-    double monthday;
+    if (!MOZ_DOUBLE_IS_FINITE(year) || !MOZ_DOUBLE_IS_FINITE(month) || !MOZ_DOUBLE_IS_FINITE(date))
+        return js_NaN;
+
+    JS_ASSERT(ToInteger(year) == year);
+    JS_ASSERT(ToInteger(month) == month);
+    JS_ASSERT(ToInteger(date) == date);
 
     year += floor(month / 12);
 
@@ -336,64 +362,37 @@ MakeDay(double year, double month, double date)
     if (month < 0)
         month += 12;
 
-    leap = IsLeapYear((int) year);
+    bool leap = IsLeapYear((int) year);
 
-    yearday = floor(TimeFromYear(year) / msPerDay);
-    monthday = DayFromMonth(month, leap);
+    double yearday = floor(TimeFromYear(year) / msPerDay);
+    double monthday = DayFromMonth(month, leap);
 
     return yearday + monthday + date - 1;
 }
 
-#define MakeDate(day, time) ((day) * msPerDay + (time))
 
-/*
- * Years and leap years on which Jan 1 is a Sunday, Monday, etc.
- *
- * yearStartingWith[0][i] is an example non-leap year where
- * Jan 1 appears on Sunday (i == 0), Monday (i == 1), etc.
- *
- * yearStartingWith[1][i] is an example leap year where
- * Jan 1 appears on Sunday (i == 0), Monday (i == 1), etc.
- */
-static int yearStartingWith[2][7] = {
-    {1978, 1973, 1974, 1975, 1981, 1971, 1977},
-    {1984, 1996, 1980, 1992, 1976, 1988, 1972}
-};
-
-/*
- * Find a year for which any given date will fall on the same weekday.
- *
- * This function should be used with caution when used other than
- * for determining DST; it hasn't been proven not to produce an
- * incorrect year for times near year boundaries.
- */
-static int
-EquivalentYearForDST(int year)
+inline double
+MakeDate(double day, double time)
 {
-    int day;
+    
+    if (!MOZ_DOUBLE_IS_FINITE(day) || !MOZ_DOUBLE_IS_FINITE(time))
+        return js_NaN;
 
-    day = (int) DayFromYear(year) + 4;
-    day = day % 7;
-    if (day < 0)
-        day += 7;
-
-    return yearStartingWith[IsLeapYear(year)][day];
+    
+    return day * msPerDay + time;
 }
 
-/* LocalTZA gets set by js_InitDateClass() */
-static double LocalTZA;
 
 static double
 DaylightSavingTA(double t, JSContext *cx)
 {
-    /* abort if NaN */
-    if (MOZ_DOUBLE_IS_NaN(t))
-        return t;
+    if (!MOZ_DOUBLE_IS_FINITE(t))
+        return js_NaN;
 
-    /*
-     * If earlier than 1970 or after 2038, potentially beyond the ken of
-     * many OSes, map it to an equivalent year before asking.
-     */
+    
+
+
+
     if (t < 0.0 || t > 2145916800000.0) {
         int year = EquivalentYearForDST(YearFromTime(t));
         double day = MakeDay(year, MonthFromTime(t), DateFromTime(t));
@@ -413,6 +412,7 @@ AdjustTime(double date, JSContext *cx)
     return t;
 }
 
+
 static double
 LocalTime(double t, JSContext *cx)
 {
@@ -425,12 +425,20 @@ UTC(double t, JSContext *cx)
     return t - AdjustTime(t - LocalTZA, cx);
 }
 
+
+const double HoursPerDay = 24.0;
+const double MinutesPerHour = 60;
+const double SecondsPerMinute = 60;
+const double msPerSecond = 1000;
+const double msPerMinute = msPerSecond * SecondsPerMinute;
+const double msPerHour = msPerMinute * MinutesPerHour;
+
 static int
 HourFromTime(double t)
 {
     int result = (int) fmod(floor(t/msPerHour), HoursPerDay);
     if (result < 0)
-        result += (int)HoursPerDay;
+        result += int(HoursPerDay);
     return result;
 }
 
@@ -439,7 +447,7 @@ MinFromTime(double t)
 {
     int result = (int) fmod(floor(t / msPerMinute), MinutesPerHour);
     if (result < 0)
-        result += (int)MinutesPerHour;
+        result += int(MinutesPerHour);
     return result;
 }
 
@@ -448,7 +456,7 @@ SecFromTime(double t)
 {
     int result = (int) fmod(floor(t / msPerSecond), SecondsPerMinute);
     if (result < 0)
-        result += (int)SecondsPerMinute;
+        result += int(SecondsPerMinute);
     return result;
 }
 
@@ -457,13 +465,54 @@ msFromTime(double t)
 {
     int result = (int) fmod(t, msPerSecond);
     if (result < 0)
-        result += (int)msPerSecond;
+        result += int(msPerSecond);
     return result;
 }
 
-/**
- * end of ECMA 'support' functions
- */
+
+static double
+MakeTime(double hour, double min, double sec, double ms)
+{
+    
+    if (!MOZ_DOUBLE_IS_FINITE(hour) ||
+        !MOZ_DOUBLE_IS_FINITE(min) ||
+        !MOZ_DOUBLE_IS_FINITE(sec) ||
+        !MOZ_DOUBLE_IS_FINITE(ms))
+    {
+        return js_NaN;
+    }
+
+    
+    double h = ToInteger(hour);
+
+    
+    double m = ToInteger(min);
+
+    
+    double s = ToInteger(sec);
+
+    
+    double milli = ToInteger(ms);
+
+    
+    return h * msPerHour + m * msPerMinute + s * msPerSecond + milli;
+}
+
+
+const double SecondsPerDay = SecondsPerMinute * MinutesPerHour * HoursPerDay;
+
+
+static int
+DaysInMonth(int year, int month)
+{
+    bool leap = IsLeapYear(year);
+    int result = int(DayFromMonth(month, leap) - DayFromMonth(month - 1, leap));
+    return result;
+}
+
+
+
+
 
 static JSBool
 date_convert(JSContext *cx, HandleObject obj, JSType hint, Value *vp)
@@ -474,24 +523,24 @@ date_convert(JSContext *cx, HandleObject obj, JSType hint, Value *vp)
     return DefaultValue(cx, obj, (hint == JSTYPE_VOID) ? JSTYPE_STRING : hint, vp);
 }
 
-/*
- * Other Support routines and definitions
- */
+
+
+
 
 Class js::DateClass = {
     js_Date_str,
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::DATE_CLASS_RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
-    JS_PropertyStub,         /* addProperty */
-    JS_PropertyStub,         /* delProperty */
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
     date_convert
 };
 
-/* for use by date_parse */
+
 
 static const char* wtb[] = {
     "am", "pm",
@@ -504,26 +553,26 @@ static const char* wtb[] = {
     "cst", "cdt",
     "mst", "mdt",
     "pst", "pdt"
-    /* time zone table needs to be expanded */
+    
 };
 
 static int ttb[] = {
-    -1, -2, 0, 0, 0, 0, 0, 0, 0,       /* AM/PM */
+    -1, -2, 0, 0, 0, 0, 0, 0, 0,       
     2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
-    10000 + 0, 10000 + 0, 10000 + 0,   /* GMT/UT/UTC */
-    10000 + 5 * 60, 10000 + 4 * 60,    /* EST/EDT */
-    10000 + 6 * 60, 10000 + 5 * 60,    /* CST/CDT */
-    10000 + 7 * 60, 10000 + 6 * 60,    /* MST/MDT */
-    10000 + 8 * 60, 10000 + 7 * 60     /* PST/PDT */
+    10000 + 0, 10000 + 0, 10000 + 0,   
+    10000 + 5 * 60, 10000 + 4 * 60,    
+    10000 + 6 * 60, 10000 + 5 * 60,    
+    10000 + 7 * 60, 10000 + 6 * 60,    
+    10000 + 8 * 60, 10000 + 7 * 60     
 };
 
-/* helper for date_parse */
+
 static JSBool
 date_regionMatches(const char* s1, int s1off, const jschar* s2, int s2off,
                    int count, int ignoreCase)
 {
     JSBool result = JS_FALSE;
-    /* return true if matches, otherwise, false */
+    
 
     while (count > 0 && s1[s1off] && s2[s2off]) {
         if (ignoreCase) {
@@ -546,7 +595,7 @@ date_regionMatches(const char* s1, int s1off, const jschar* s2, int s2off,
     return result;
 }
 
-/* find UTC time from given date... no 1900 correction! */
+
 static double
 date_msecFromDate(double year, double mon, double mday, double hour,
                   double min, double sec, double msec)
@@ -561,7 +610,7 @@ date_msecFromDate(double year, double mon, double mday, double hour,
     return result;
 }
 
-/* compute the time in msec (unclipped) from the given args */
+
 #define MAXARGS        7
 
 static JSBool
@@ -576,7 +625,7 @@ date_msecFromArgs(JSContext *cx, CallArgs args, double *rval)
             double d;
             if (!ToNumber(cx, args[loop], &d))
                 return JS_FALSE;
-            /* return NaN if any arg is not finite */
+            
             if (!MOZ_DOUBLE_IS_FINITE(d)) {
                 *rval = js_NaN;
                 return JS_TRUE;
@@ -584,14 +633,14 @@ date_msecFromArgs(JSContext *cx, CallArgs args, double *rval)
             array[loop] = ToInteger(d);
         } else {
             if (loop == 2) {
-                array[loop] = 1; /* Default the date argument to 1. */
+                array[loop] = 1; 
             } else {
                 array[loop] = 0;
             }
         }
     }
 
-    /* adjust 2-digit years into the 20th century */
+    
     if (array[0] >= 0 && array[0] <= 99)
         array[0] += 1900;
 
@@ -601,9 +650,9 @@ date_msecFromArgs(JSContext *cx, CallArgs args, double *rval)
     return JS_TRUE;
 }
 
-/*
- * See ECMA 15.9.4.[3-10];
- */
+
+
+
 static JSBool
 date_UTC(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -619,13 +668,13 @@ date_UTC(JSContext *cx, unsigned argc, Value *vp)
     return JS_TRUE;
 }
 
-/*
- * Read and convert decimal digits from s[*i] into *result
- * while *i < limit.
- *
- * Succeed if any digits are converted. Advance *i only
- * as digits are consumed.
- */
+
+
+
+
+
+
+
 static JSBool
 digits(size_t *result, const jschar *s, size_t *i, size_t limit)
 {
@@ -640,14 +689,14 @@ digits(size_t *result, const jschar *s, size_t *i, size_t limit)
     return (*i != init);
 }
 
-/*
- * Read and convert decimal digits to the right of a decimal point,
- * representing a fractional integer, from s[*i] into *result
- * while *i < limit.
- *
- * Succeed if any digits are converted. Advance *i only
- * as digits are consumed.
- */
+
+
+
+
+
+
+
+
 static JSBool
 fractional(double *result, const jschar *s, size_t *i, size_t limit)
 {
@@ -663,13 +712,13 @@ fractional(double *result, const jschar *s, size_t *i, size_t limit)
     return (*i != init);
 }
 
-/*
- * Read and convert exactly n decimal digits from s[*i]
- * to s[min(*i+n,limit)] into *result.
- *
- * Succeed if exactly n digits are converted. Advance *i only
- * on success.
- */
+
+
+
+
+
+
+
 static JSBool
 ndigits(size_t n, size_t *result, const jschar *s, size_t* i, size_t limit)
 {
@@ -682,61 +731,61 @@ ndigits(size_t n, size_t *result, const jschar *s, size_t* i, size_t limit)
     return JS_FALSE;
 }
 
-/*
- * Parse a string in one of the date-time formats given by the W3C
- * "NOTE-datetime" specification. These formats make up a restricted
- * profile of the ISO 8601 format. Quoted here:
- *
- *   The formats are as follows. Exactly the components shown here
- *   must be present, with exactly this punctuation. Note that the "T"
- *   appears literally in the string, to indicate the beginning of the
- *   time element, as specified in ISO 8601.
- *
- *   Any combination of the date formats with the time formats is
- *   allowed, and also either the date or the time can be missing.
- *
- *   The specification is silent on the meaning when fields are
- *   ommitted so the interpretations are a guess, but hopefully a
- *   reasonable one. We default the month to January, the day to the
- *   1st, and hours minutes and seconds all to 0. If the date is
- *   missing entirely then we assume 1970-01-01 so that the time can
- *   be aded to a date later. If the time is missing then we assume
- *   00:00 UTC.  If the time is present but the time zone field is
- *   missing then we use local time.
- *
- * Date part:
- *
- *  Year:
- *     YYYY (eg 1997)
- *
- *  Year and month:
- *     YYYY-MM (eg 1997-07)
- *
- *  Complete date:
- *     YYYY-MM-DD (eg 1997-07-16)
- *
- * Time part:
- *
- *  Hours and minutes:
- *     Thh:mmTZD (eg T19:20+01:00)
- *
- *  Hours, minutes and seconds:
- *     Thh:mm:ssTZD (eg T19:20:30+01:00)
- *
- *  Hours, minutes, seconds and a decimal fraction of a second:
- *     Thh:mm:ss.sTZD (eg T19:20:30.45+01:00)
- *
- * where:
- *
- *   YYYY = four-digit year or six digit year as +YYYYYY or -YYYYYY
- *   MM   = two-digit month (01=January, etc.)
- *   DD   = two-digit day of month (01 through 31)
- *   hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
- *   mm   = two digits of minute (00 through 59)
- *   ss   = two digits of second (00 through 59)
- *   s    = one or more digits representing a decimal fraction of a second
- *   TZD  = time zone designator (Z or +hh:mm or -hh:mm or missing for local)
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 static JSBool
 date_parseISOString(JSLinearString *str, double *result, JSContext *cx)
@@ -820,10 +869,10 @@ date_parseISOString(JSLinearString *str, double *result, JSContext *cx)
             tzMul = -1;
         ++i;
         NEED_NDIGITS(2, tzHour);
-        /*
-         * Non-standard extension to the ISO date format (permitted by ES5):
-         * allow "-0700" as a time zone offset, not just "-07:00".
-         */
+        
+
+
+
         if (PEEK(':'))
           ++i;
         NEED_NDIGITS(2, tzMin);
@@ -832,7 +881,7 @@ date_parseISOString(JSLinearString *str, double *result, JSContext *cx)
     }
 
  done:
-    if (year > 275943 // ceil(1e8/365) + 1970
+    if (year > 275943 
         || (month == 0 || month > 12)
         || (day == 0 || day > size_t(DaysInMonth(year,month)))
         || hour > 24
@@ -846,7 +895,7 @@ date_parseISOString(JSLinearString *str, double *result, JSContext *cx)
     if (i != limit)
         goto syntax;
 
-    month -= 1; /* convert month to 0-based */
+    month -= 1; 
 
     msec = date_msecFromDate(dateMul * (double)year, month, day,
                              hour, min, sec,
@@ -867,7 +916,7 @@ date_parseISOString(JSLinearString *str, double *result, JSContext *cx)
     return JS_TRUE;
 
  syntax:
-    /* syntax error */
+    
     *result = 0;
     return JS_FALSE;
 
@@ -915,7 +964,7 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
             }
             continue;
         }
-        if (c == '(') { /* comments) */
+        if (c == '(') { 
             int depth = 1;
             while (i < limit) {
                 c = s[i];
@@ -934,24 +983,24 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
                 i++;
             }
 
-            /* allow TZA before the year, so
-             * 'Wed Nov 05 21:49:11 GMT-0800 1997'
-             * works */
+            
 
-            /* uses of seenplusminus allow : in TZA, so Java
-             * no-timezone style of GMT+4:30 works
-             */
 
-            if ((prevc == '+' || prevc == '-')/*  && year>=0 */) {
-                /* make ':' case below change tzoffset */
+
+            
+
+
+
+            if ((prevc == '+' || prevc == '-')) {
+                
                 seenplusminus = JS_TRUE;
 
-                /* offset */
+                
                 if (n < 24)
-                    n = n * 60; /* EG. "GMT-3" */
+                    n = n * 60; 
                 else
-                    n = n % 100 + n / 100 * 60; /* eg "GMT-0430" */
-                if (prevc == '+')       /* plus means east of GMT */
+                    n = n % 100 + n / 100 * 60; 
+                if (prevc == '+')       
                     n = -n;
                 if (tzoffset != 0 && tzoffset != -1)
                     goto syntax;
@@ -963,35 +1012,35 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
                     goto syntax;
             } else if (c == ':') {
                 if (hour < 0)
-                    hour = /*byte*/ n;
+                    hour =  n;
                 else if (min < 0)
-                    min = /*byte*/ n;
+                    min =  n;
                 else
                     goto syntax;
             } else if (c == '/') {
-                /* until it is determined that mon is the actual
-                   month, keep it as 1-based rather than 0-based */
+                
+
                 if (mon < 0)
-                    mon = /*byte*/ n;
+                    mon =  n;
                 else if (mday < 0)
-                    mday = /*byte*/ n;
+                    mday =  n;
                 else
                     goto syntax;
             } else if (i < limit && c != ',' && c > ' ' && c != '-' && c != '(') {
                 goto syntax;
-            } else if (seenplusminus && n < 60) {  /* handle GMT-3:30 */
+            } else if (seenplusminus && n < 60) {  
                 if (tzoffset < 0)
                     tzoffset -= n;
                 else
                     tzoffset += n;
             } else if (hour >= 0 && min < 0) {
-                min = /*byte*/ n;
+                min =  n;
             } else if (prevc == ':' && min >= 0 && sec < 0) {
-                sec = /*byte*/ n;
+                sec =  n;
             } else if (mon < 0) {
-                mon = /*byte*/n;
+                mon = n;
             } else if (mon >= 0 && mday < 0) {
-                mday = /*byte*/ n;
+                mday =  n;
             } else if (mon >= 0 && mday >= 0 && year < 0) {
                 year = n;
             } else {
@@ -1016,28 +1065,28 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
                     int action = ttb[k];
                     if (action != 0) {
                         if (action < 0) {
-                            /*
-                             * AM/PM. Count 12:30 AM as 00:30, 12:30 PM as
-                             * 12:30, instead of blindly adding 12 if PM.
-                             */
+                            
+
+
+
                             JS_ASSERT(action == -1 || action == -2);
                             if (hour > 12 || hour < 0) {
                                 goto syntax;
                             } else {
-                                if (action == -1 && hour == 12) { /* am */
+                                if (action == -1 && hour == 12) { 
                                     hour = 0;
-                                } else if (action == -2 && hour != 12) { /* pm */
+                                } else if (action == -2 && hour != 12) { 
                                     hour += 12;
                                 }
                             }
-                        } else if (action <= 13) { /* month! */
-                            /* Adjust mon to be 1-based until the final values
-                               for mon, mday and year are adjusted below */
+                        } else if (action <= 13) { 
+                            
+
                             if (seenmonthname) {
                                 goto syntax;
                             }
                             seenmonthname = JS_TRUE;
-                            temp = /*byte*/ (action - 2) + 1;
+                            temp =  (action - 2) + 1;
 
                             if (mon < 0) {
                                 mon = temp;
@@ -1063,32 +1112,32 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
     }
     if (year < 0 || mon < 0 || mday < 0)
         goto syntax;
-    /*
-      Case 1. The input string contains an English month name.
-              The form of the string can be month f l, or f month l, or
-              f l month which each evaluate to the same date.
-              If f and l are both greater than or equal to 70, or
-              both less than 70, the date is invalid.
-              The year is taken to be the greater of the values f, l.
-              If the year is greater than or equal to 70 and less than 100,
-              it is considered to be the number of years after 1900.
-      Case 2. The input string is of the form "f/m/l" where f, m and l are
-              integers, e.g. 7/16/45.
-              Adjust the mon, mday and year values to achieve 100% MSIE
-              compatibility.
-              a. If 0 <= f < 70, f/m/l is interpreted as month/day/year.
-                 i.  If year < 100, it is the number of years after 1900
-                 ii. If year >= 100, it is the number of years after 0.
-              b. If 70 <= f < 100
-                 i.  If m < 70, f/m/l is interpreted as
-                     year/month/day where year is the number of years after
-                     1900.
-                 ii. If m >= 70, the date is invalid.
-              c. If f >= 100
-                 i.  If m < 70, f/m/l is interpreted as
-                     year/month/day where year is the number of years after 0.
-                 ii. If m >= 70, the date is invalid.
-    */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if (seenmonthname) {
         if ((mday >= 70 && year >= 70) || (mday < 70 && year < 70)) {
             goto syntax;
@@ -1101,11 +1150,11 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
         if (year >= 70 && year < 100) {
             year += 1900;
         }
-    } else if (mon < 70) { /* (a) month/day/year */
+    } else if (mon < 70) { 
         if (year < 100) {
             year += 1900;
         }
-    } else if (mon < 100) { /* (b) year/month/day */
+    } else if (mon < 100) { 
         if (mday < 70) {
             temp = year;
             year = mon + 1900;
@@ -1114,7 +1163,7 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
         } else {
             goto syntax;
         }
-    } else { /* (c) year/month/day */
+    } else { 
         if (mday < 70) {
             temp = year;
             year = mon;
@@ -1124,7 +1173,7 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
             goto syntax;
         }
     }
-    mon -= 1; /* convert month to 0-based */
+    mon -= 1; 
     if (sec < 0)
         sec = 0;
     if (min < 0)
@@ -1134,7 +1183,7 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
 
     msec = date_msecFromDate(year, mon, mday, hour, min, sec, 0);
 
-    if (tzoffset == -1) { /* no time zone specified, have to use local */
+    if (tzoffset == -1) { 
         msec = UTC(msec, cx);
     } else {
         msec += tzoffset * msPerMinute;
@@ -1144,7 +1193,7 @@ date_parseString(JSLinearString *str, double *result, JSContext *cx)
     return JS_TRUE;
 
 syntax:
-    /* syntax error */
+    
     *result = 0;
     return JS_FALSE;
 }
@@ -1190,9 +1239,9 @@ date_now(JSContext *cx, unsigned argc, Value *vp)
     return JS_TRUE;
 }
 
-/*
- * Set UTC time to a given time and invalidate cached local time.
- */
+
+
+
 static JSBool
 SetUTCTime(JSContext *cx, JSObject *obj, double t, Value *vp = NULL)
 {
@@ -1217,11 +1266,11 @@ SetDateToNaN(JSContext *cx, JSObject *obj, Value *vp = NULL)
     SetUTCTime(cx, obj, NaN, vp);
 }
 
-/*
- * Cache the local time, year, month, and so forth of the object.
- * If UTC time is not finite (e.g., NaN), the local time
- * slots will be set to the UTC time without conversion.
- */
+
+
+
+
+
 static bool
 FillLocalTimes(JSContext *cx, JSObject *obj)
 {
@@ -1245,7 +1294,7 @@ FillLocalTimes(JSContext *cx, JSObject *obj)
     int year = (int) floor(localTime /(msPerDay*365.2425)) + 1970;
     double yearStartTime = (double) TimeFromYear(year);
 
-    /* Adjust the year in case the approximation was wrong, as in YearFromTime. */
+    
     int yearDays;
     if (yearStartTime > localTime) {
         year--;
@@ -1353,13 +1402,13 @@ FillLocalTimes(JSContext *cx, JSObject *obj)
     return true;
 }
 
-/* Cache the local times in obj, if necessary. */
+
 static inline bool
 GetAndCacheLocalTime(JSContext *cx, JSObject *obj)
 {
     JS_ASSERT(obj->isDate());
 
-    /* If the local time is undefined, we need to fill in the cached values. */
+    
     if (obj->getSlot(JSObject::JSSLOT_DATE_LOCAL_TIME).isUndefined()) {
         if (!FillLocalTimes(cx, obj))
             return false;
@@ -1377,9 +1426,9 @@ GetAndCacheLocalTime(JSContext *cx, JSObject *obj, double *time)
     return true;
 }
 
-/*
- * See ECMA 15.9.5.4 thru 15.9.5.23
- */
+
+
+
 static JSBool
 date_getTime(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -1411,7 +1460,7 @@ date_getYear(JSContext *cx, unsigned argc, Value *vp)
 
     Value yearVal = thisObj->getSlot(JSObject::JSSLOT_DATE_LOCAL_YEAR);
     if (yearVal.isInt32()) {
-        /* Follow ECMA-262 to the letter, contrary to IE JScript. */
+        
         int year = yearVal.toInt32() - 1900;
         args.rval().setInt32(year);
     } else {
@@ -1643,7 +1692,7 @@ date_getUTCMinutes(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-/* Date.getSeconds is mapped to getUTCSeconds */
+
 
 static JSBool
 date_getUTCSeconds(JSContext *cx, unsigned argc, Value *vp)
@@ -1663,7 +1712,7 @@ date_getUTCSeconds(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-/* Date.getMilliseconds is mapped to getUTCMilliseconds */
+
 
 static JSBool
 date_getUTCMilliseconds(JSContext *cx, unsigned argc, Value *vp)
@@ -1701,11 +1750,11 @@ date_getTimezoneOffset(JSContext *cx, unsigned argc, Value *vp)
     if (!GetAndCacheLocalTime(cx, thisObj, &localtime))
         return false;
 
-    /*
-     * Return the time zone offset in minutes for the current locale that is
-     * appropriate for this time. This value would be a constant except for
-     * daylight savings time.
-     */
+    
+
+
+
+
     double result = (utctime - localtime) / msPerMinute;
     args.rval().setNumber(result);
     return true;
@@ -1734,269 +1783,578 @@ date_setTime(JSContext *cx, unsigned argc, Value *vp)
     return SetUTCTime(cx, thisObj, TimeClip(result), &args.rval());
 }
 
-static JSBool
-date_makeTime(JSContext *cx, Native native, unsigned maxargs, JSBool local, unsigned argc, Value *vp)
+static bool
+GetMsecsOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, double *millis)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    RootedObject thisObj(cx);
-    if (!NonGenericMethodGuard(cx, args, native, &DateClass, thisObj.address()))
-        return false;
-    if (!thisObj)
-        return true;
-
-    double result = thisObj->getDateUTCTime().toNumber();
-
-    /*
-     * Satisfy the ECMA rule that if a function is called with
-     * fewer arguments than the specified formal arguments, the
-     * remaining arguments are set to undefined.  Seems like all
-     * the Date.setWhatever functions in ECMA are only varargs
-     * beyond the first argument; this should be set to undefined
-     * if it's not given.  This means that "d = new Date();
-     * d.setMilliseconds()" returns NaN.  Blech.
-     */
-    if (args.length() == 0) {
-        SetDateToNaN(cx, thisObj, &args.rval());
+    if (args.length() <= i) {
+        *millis = msFromTime(t);
         return true;
     }
-
-    unsigned numNums = Min(args.length(), maxargs);
-    JS_ASSERT(numNums <= 4);
-    double nums[4];
-    bool argIsNotFinite = false;
-    for (unsigned i = 0; i < numNums; i++) {
-        if (!ToNumber(cx, args[i], &nums[i]))
-            return false;
-        if (!MOZ_DOUBLE_IS_FINITE(nums[i])) {
-            argIsNotFinite = true;
-        } else {
-            nums[i] = ToInteger(nums[i]);
-        }
-    }
-
-    /*
-     * Return NaN if the date is already NaN, but don't short-circuit argument
-     * evaluation.
-     */
-    if (!MOZ_DOUBLE_IS_FINITE(result)) {
-        args.rval().setNumber(result);
-        return true;
-    }
-
-    /* set Date to NaN, after argument evaluation. */
-    if (argIsNotFinite) {
-        SetDateToNaN(cx, thisObj, &args.rval());
-        return true;
-    }
-
-    double lorutime;  /* Local or UTC version of *date */
-    if (local)
-        lorutime = LocalTime(result, cx);
-    else
-        lorutime = result;
-
-    double *argp = nums;
-    double *stop = argp + numNums;
-    double hour;
-    if (maxargs >= 4 && argp < stop)
-        hour = *argp++;
-    else
-        hour = HourFromTime(lorutime);
-
-    double min;
-    if (maxargs >= 3 && argp < stop)
-        min = *argp++;
-    else
-        min = MinFromTime(lorutime);
-
-    double sec;
-    if (maxargs >= 2 && argp < stop)
-        sec = *argp++;
-    else
-        sec = SecFromTime(lorutime);
-
-    double msec;
-    if (maxargs >= 1 && argp < stop)
-        msec = *argp;
-    else
-        msec = msFromTime(lorutime);
-
-    double msec_time = MakeTime(hour, min, sec, msec);
-    result = MakeDate(Day(lorutime), msec_time);
-
-    if (local)
-        result = UTC(result, cx);
-
-    return SetUTCTime(cx, thisObj, TimeClip(result), &args.rval());
+    return ToNumber(cx, args[i], millis);
 }
+
+static bool
+GetSecsOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, double *sec)
+{
+    if (args.length() <= i) {
+        *sec = SecFromTime(t);
+        return true;
+    }
+    return ToNumber(cx, args[i], sec);
+}
+
+static bool
+GetMinsOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, double *mins)
+{
+    if (args.length() <= i) {
+        *mins = MinFromTime(t);
+        return true;
+    }
+    return ToNumber(cx, args[i], mins);
+}
+
 
 static JSBool
 date_setMilliseconds(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeTime(cx, date_setMilliseconds, 1, JS_TRUE, argc, vp);
-}
-
-static JSBool
-date_setUTCMilliseconds(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_makeTime(cx, date_setUTCMilliseconds, 1, JS_FALSE, argc, vp);
-}
-
-static JSBool
-date_setSeconds(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_makeTime(cx, date_setSeconds, 2, JS_TRUE, argc, vp);
-}
-
-static JSBool
-date_setUTCSeconds(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_makeTime(cx, date_setUTCSeconds, 2, JS_FALSE, argc, vp);
-}
-
-static JSBool
-date_setMinutes(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_makeTime(cx, date_setMinutes, 3, JS_TRUE, argc, vp);
-}
-
-static JSBool
-date_setUTCMinutes(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_makeTime(cx, date_setUTCMinutes, 3, JS_FALSE, argc, vp);
-}
-
-static JSBool
-date_setHours(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_makeTime(cx, date_setHours, 4, JS_TRUE, argc, vp);
-}
-
-static JSBool
-date_setUTCHours(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_makeTime(cx, date_setUTCHours, 4, JS_FALSE, argc, vp);
-}
-
-static JSBool
-date_makeDate(JSContext *cx, Native native, unsigned maxargs, JSBool local, unsigned argc, Value *vp)
-{
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    RootedObject thisObj(cx);
-    if (!NonGenericMethodGuard(cx, args, native, &DateClass, thisObj.address()))
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setMilliseconds, &DateClass, thisObj.address()))
         return false;
     if (!thisObj)
         return true;
 
-    double result = thisObj->getDateUTCTime().toNumber();
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
 
-    /* See complaint about ECMA in date_makeTime. */
-    if (args.length() == 0) {
-        SetDateToNaN(cx, thisObj, &args.rval());
-        return true;
-    }
+    
+    double milli;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &milli))
+        return false;
+    double time = MakeTime(HourFromTime(t), MinFromTime(t), SecFromTime(t), milli);
 
-    unsigned numNums = Min(args.length(), maxargs);
-    JS_ASSERT(1 <= numNums && numNums <= 3);
-    double nums[3];
-    bool argIsNotFinite = false;
-    for (unsigned i = 0; i < numNums; i++) {
-        if (!ToNumber(cx, args[i], &nums[i]))
-            return JS_FALSE;
-        if (!MOZ_DOUBLE_IS_FINITE(nums[i])) {
-            argIsNotFinite = true;
-        } else {
-            nums[i] = ToInteger(nums[i]);
-        }
-    }
+    
+    double u = TimeClip(UTC(MakeDate(Day(t), time), cx));
 
-    /* If we found a non-finite argument, set the date to NaN and return. */
-    if (argIsNotFinite) {
-        SetDateToNaN(cx, thisObj, &args.rval());
-        return true;
-    }
-
-    /*
-     * Return NaN if date is NaN and we're not setting the year.  If we are,
-     * use 0 as the time.
-     */
-    double lorutime; /* local or UTC version of *date */
-    if (!MOZ_DOUBLE_IS_FINITE(result)) {
-        if (maxargs < 3) {
-            args.rval().setDouble(result);
-            return true;
-        }
-        lorutime = +0.;
-    } else {
-        lorutime = local ? LocalTime(result, cx) : result;
-    }
-
-    double *argp = nums;
-    double *stop = argp + numNums;
-    double year;
-    if (maxargs >= 3 && argp < stop)
-        year = *argp++;
-    else
-        year = YearFromTime(lorutime);
-
-    double month;
-    if (maxargs >= 2 && argp < stop)
-        month = *argp++;
-    else
-        month = MonthFromTime(lorutime);
-
-    double day;
-    if (maxargs >= 1 && argp < stop)
-        day = *argp++;
-    else
-        day = DateFromTime(lorutime);
-
-    day = MakeDay(year, month, day); /* day within year */
-    result = MakeDate(day, TimeWithinDay(lorutime));
-
-    if (local)
-        result = UTC(result, cx);
-
-    return SetUTCTime(cx, thisObj, TimeClip(result), &args.rval());
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
 }
+
+
+static JSBool
+date_setUTCMilliseconds(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCMilliseconds, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double milli;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &milli))
+        return false;
+    double time = MakeTime(HourFromTime(t), MinFromTime(t), SecFromTime(t), milli);
+
+    
+    double v = TimeClip(MakeDate(Day(t), time));
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
+}
+
+
+static JSBool
+date_setSeconds(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setSeconds, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
+
+    
+    double s;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &s))
+        return false;
+
+    
+    double milli;
+    if (!GetMsecsOrDefault(cx, args, 1, t, &milli))
+        return false;
+
+    
+    double date = MakeDate(Day(t), MakeTime(HourFromTime(t), MinFromTime(t), s, milli));
+
+    
+    double u = TimeClip(UTC(date, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
+}
+
+
+static JSBool
+date_setUTCSeconds(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCSeconds, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double s;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &s))
+        return false;
+
+    
+    double milli;
+    if (!GetMsecsOrDefault(cx, args, 1, t, &milli))
+        return false;
+
+    
+    double date = MakeDate(Day(t), MakeTime(HourFromTime(t), MinFromTime(t), s, milli));
+
+    
+    double v = TimeClip(date);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
+}
+
+
+static JSBool
+date_setMinutes(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setMinutes, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
+
+    
+    double m;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &m))
+        return false;
+
+    
+    double s;
+    if (!GetSecsOrDefault(cx, args, 1, t, &s))
+        return false;
+
+    
+    double milli;
+    if (!GetMsecsOrDefault(cx, args, 2, t, &milli))
+        return false;
+
+    
+    double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
+
+    
+    double u = TimeClip(UTC(date, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
+}
+
+
+static JSBool
+date_setUTCMinutes(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCMinutes, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double m;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &m))
+        return false;
+
+    
+    double s;
+    if (!GetSecsOrDefault(cx, args, 1, t, &s))
+        return false;
+
+    
+    double milli;
+    if (!GetMsecsOrDefault(cx, args, 2, t, &milli))
+        return false;
+
+    
+    double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
+
+    
+    double v = TimeClip(date);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
+}
+
+
+static JSBool
+date_setHours(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setHours, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
+
+    
+    double h;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &h))
+        return false;
+
+    
+    double m;
+    if (!GetMinsOrDefault(cx, args, 1, t, &m))
+        return false;
+
+    
+    double s;
+    if (!GetSecsOrDefault(cx, args, 2, t, &s))
+        return false;
+
+    
+    double milli;
+    if (!GetMsecsOrDefault(cx, args, 3, t, &milli))
+        return false;
+
+    
+    double date = MakeDate(Day(t), MakeTime(h, m, s, milli));
+
+    
+    double u = TimeClip(UTC(date, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
+}
+
+
+static JSBool
+date_setUTCHours(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCHours, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double h;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &h))
+        return false;
+
+    
+    double m;
+    if (!GetMinsOrDefault(cx, args, 1, t, &m))
+        return false;
+
+    
+    double s;
+    if (!GetSecsOrDefault(cx, args, 2, t, &s))
+        return false;
+
+    
+    double milli;
+    if (!GetMsecsOrDefault(cx, args, 3, t, &milli))
+        return false;
+
+    
+    double newDate = MakeDate(Day(t), MakeTime(h, m, s, milli));
+
+    
+    double v = TimeClip(newDate);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
+}
+
 
 static JSBool
 date_setDate(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setDate, 1, JS_TRUE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setDate, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
+
+    
+    double dt;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), MonthFromTime(t), dt), TimeWithinDay(t));
+
+    
+    double u = TimeClip(UTC(newDate, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
 }
+
 
 static JSBool
 date_setUTCDate(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setUTCDate, 1, JS_FALSE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCDate, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double dt;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), MonthFromTime(t), dt), TimeWithinDay(t));
+
+    
+    double v = TimeClip(newDate);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
 }
+
+static bool
+GetDateOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, double *date)
+{
+    if (args.length() <= i) {
+        *date = DateFromTime(t);
+        return true;
+    }
+    return ToNumber(cx, args[i], date);
+}
+
+static bool
+GetMonthOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, double *month)
+{
+    if (args.length() <= i) {
+        *month = MonthFromTime(t);
+        return true;
+    }
+    return ToNumber(cx, args[i], month);
+}
+
 
 static JSBool
 date_setMonth(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setMonth, 2, JS_TRUE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setMonth, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
+
+    
+    double m;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 1, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), m, dt), TimeWithinDay(t));
+
+    
+    double u = TimeClip(UTC(newDate, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
 }
+
 
 static JSBool
 date_setUTCMonth(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setUTCMonth, 2, JS_FALSE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCMonth, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double m;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 1, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), m, dt), TimeWithinDay(t));
+
+    
+    double v = TimeClip(newDate);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
 }
+
+static double
+ThisLocalTimeOrZero(Handle<JSObject*> date, JSContext *cx)
+{
+    double t = date->getDateUTCTime().toNumber();
+    if (MOZ_DOUBLE_IS_NaN(t))
+        return +0;
+    return LocalTime(t, cx);
+}
+
+static double
+ThisUTCTimeOrZero(Handle<JSObject*> date)
+{
+    double t = date->getDateUTCTime().toNumber();
+    return MOZ_DOUBLE_IS_NaN(t) ? +0 : t;
+}
+
 
 static JSBool
 date_setFullYear(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setFullYear, 3, JS_TRUE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setFullYear, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = ThisLocalTimeOrZero(thisObj, cx);
+
+    
+    double y;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &y))
+        return false;
+
+    
+    double m;
+    if (!GetMonthOrDefault(cx, args, 1, t, &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 2, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(t));
+
+    
+    double u = TimeClip(UTC(newDate, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
 }
+
 
 static JSBool
 date_setUTCFullYear(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setUTCFullYear, 3, JS_FALSE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setFullYear, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = ThisUTCTimeOrZero(thisObj);
+
+    
+    double y;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &y))
+        return false;
+
+    
+    double m;
+    if (!GetMonthOrDefault(cx, args, 1, t, &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 2, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(t));
+
+    
+    double v = TimeClip(newDate);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
 }
+
 
 static JSBool
 date_setYear(JSContext *cx, unsigned argc, Value *vp)
@@ -2009,34 +2367,36 @@ date_setYear(JSContext *cx, unsigned argc, Value *vp)
     if (!thisObj)
         return true;
 
-    if (args.length() == 0) {
-        /* Call this only after verifying that obj.[[Class]] = "Date". */
-        SetDateToNaN(cx, thisObj, &args.rval());
-        return true;
-    }
+    
+    double t = ThisLocalTimeOrZero(thisObj, cx);
 
-    double result = thisObj->getDateUTCTime().toNumber();
-
-    double year;
-    if (!ToNumber(cx, args[0], &year))
+    
+    double y;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &y))
         return false;
-    if (!MOZ_DOUBLE_IS_FINITE(year)) {
+
+    
+    if (MOZ_DOUBLE_IS_NaN(y)) {
         SetDateToNaN(cx, thisObj, &args.rval());
         return true;
     }
-    year = ToInteger(year);
-    if (year >= 0 && year <= 99)
-        year += 1900;
 
-    double t = MOZ_DOUBLE_IS_FINITE(result) ? LocalTime(result, cx) : +0.0;
-    double day = MakeDay(year, MonthFromTime(t), DateFromTime(t));
-    result = MakeDate(day, TimeWithinDay(t));
-    result = UTC(result, cx);
+    
+    double yint = ToInteger(y);
+    if (0 <= yint && yint <= 99)
+        yint += 1900;
 
-    return SetUTCTime(cx, thisObj, TimeClip(result), &args.rval());
+    
+    double day = MakeDay(yint, MonthFromTime(t), DateFromTime(t));
+
+    
+    double u = UTC(MakeDate(day, TimeWithinDay(t)), cx);
+
+    
+    return SetUTCTime(cx, thisObj, TimeClip(u), &args.rval());
 }
 
-/* constants for toString, toUTCString */
+
 static char js_NaN_date_str[] = "Invalid Date";
 static const char* days[] =
 {
@@ -2048,8 +2408,8 @@ static const char* months[] =
 };
 
 
-// Avoid dependence on PRMJ_FormatTimeUSEnglish, because it
-// requires a PRMJTime... which only has 16-bit years.  Sub-ECMA.
+
+
 static void
 print_gmt_string(char* buf, size_t size, double utctime)
 {
@@ -2076,12 +2436,14 @@ print_iso_string(char* buf, size_t size, double utctime)
                 msFromTime(utctime));
 }
 
+
 static JSBool
-date_utc_format(JSContext *cx, Native native, CallArgs args,
-                void (*printFunc)(char*, size_t, double))
+date_toGMTString(JSContext *cx, unsigned argc, Value *vp)
 {
-    JSObject *thisObj;
-    if (!NonGenericMethodGuard(cx, args, native, &DateClass, &thisObj))
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_toGMTString, &DateClass, thisObj.address()))
         return false;
     if (!thisObj)
         return true;
@@ -2089,16 +2451,10 @@ date_utc_format(JSContext *cx, Native native, CallArgs args,
     double utctime = thisObj->getDateUTCTime().toNumber();
 
     char buf[100];
-    if (!MOZ_DOUBLE_IS_FINITE(utctime)) {
-        if (printFunc == print_iso_string) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INVALID_DATE);
-            return false;
-        }
-
+    if (!MOZ_DOUBLE_IS_FINITE(utctime))
         JS_snprintf(buf, sizeof buf, js_NaN_date_str);
-    } else {
-        (*printFunc)(buf, sizeof buf, utctime);
-    }
+    else
+        print_gmt_string(buf, sizeof buf, utctime);
 
     JSString *str = JS_NewStringCopyZ(cx, buf);
     if (!str)
@@ -2107,51 +2463,69 @@ date_utc_format(JSContext *cx, Native native, CallArgs args,
     return true;
 }
 
-static JSBool
-date_toGMTString(JSContext *cx, unsigned argc, Value *vp)
-{
-    return date_utc_format(cx, date_toGMTString, CallArgsFromVp(argc, vp), print_gmt_string);
-}
 
 static JSBool
 date_toISOString(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_utc_format(cx, date_toISOString, CallArgsFromVp(argc, vp), print_iso_string);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_toISOString, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    double utctime = thisObj->getDateUTCTime().toNumber();
+
+    if (!MOZ_DOUBLE_IS_FINITE(utctime)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INVALID_DATE);
+        return false;
+    }
+
+    char buf[100];
+    print_iso_string(buf, sizeof buf, utctime);
+
+    JSString *str = JS_NewStringCopyZ(cx, buf);
+    if (!str)
+        return false;
+    args.rval().setString(str);
+    return true;
+
 }
 
-/* ES5 15.9.5.44. */
+
 static JSBool
 date_toJSON(JSContext *cx, unsigned argc, Value *vp)
 {
-    /* Step 1. */
+    
     JSObject *obj = ToObject(cx, &vp[1]);
     if (!obj)
         return false;
 
-    /* Step 2. */
+    
     Value tv = ObjectValue(*obj);
     if (!ToPrimitive(cx, JSTYPE_NUMBER, &tv))
         return false;
 
-    /* Step 3. */
+    
     if (tv.isDouble() && !MOZ_DOUBLE_IS_FINITE(tv.toDouble())) {
         vp->setNull();
         return true;
     }
 
-    /* Step 4. */
+    
     Value &toISO = vp[0];
     if (!obj->getProperty(cx, cx->runtime->atomState.toISOStringAtom, &toISO))
         return false;
 
-    /* Step 5. */
+    
     if (!js_IsCallable(toISO)) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage, NULL,
                                      JSMSG_BAD_TOISOSTRING_PROP);
         return false;
     }
 
-    /* Step 6. */
+    
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, 0, &args))
         return false;
@@ -2165,8 +2539,8 @@ date_toJSON(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-/* for Date.toLocaleString; interface to PRMJTime date struct.
- */
+
+
 static void
 new_explode(double timeval, PRMJTime *split, JSContext *cx)
 {
@@ -2182,8 +2556,8 @@ new_explode(double timeval, PRMJTime *split, JSContext *cx)
     split->tm_year = year;
     split->tm_yday = int16_t(DayWithinYear(timeval, year));
 
-    /* not sure how this affects things, but it doesn't seem
-       to matter. */
+    
+
     split->tm_isdst = (DaylightSavingTA(timeval, cx) != 0);
 }
 
@@ -2191,7 +2565,7 @@ typedef enum formatspec {
     FORMATSPEC_FULL, FORMATSPEC_DATE, FORMATSPEC_TIME
 } formatspec;
 
-/* helper function */
+
 static JSBool
 date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
 {
@@ -2207,33 +2581,33 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
     } else {
         double local = LocalTime(date, cx);
 
-        /* offset from GMT in minutes.  The offset includes daylight savings,
-           if it applies. */
+        
+
         int minutes = (int) floor(AdjustTime(date, cx) / msPerMinute);
 
-        /* map 510 minutes to 0830 hours */
+        
         int offset = (minutes / 60) * 100 + minutes % 60;
 
-        /* print as "Wed Nov 05 19:38:03 GMT-0800 (PST) 1997" The TZA is
-         * printed as 'GMT-0800' rather than as 'PST' to avoid
-         * operating-system dependence on strftime (which
-         * PRMJ_FormatTimeUSEnglish calls, for %Z only.)  win32 prints
-         * PST as 'Pacific Standard Time.'  This way we always know
-         * what we're getting, and can parse it if we produce it.
-         * The OS TZA string is included as a comment.
-         */
+        
 
-        /* get a timezone string from the OS to include as a
-           comment. */
+
+
+
+
+
+
+
+        
+
         new_explode(date, &split, cx);
         if (PRMJ_FormatTime(tzbuf, sizeof tzbuf, "(%Z)", &split) != 0) {
 
-            /* Decide whether to use the resulting timezone string.
-             *
-             * Reject it if it contains any non-ASCII, non-alphanumeric
-             * characters.  It's then likely in some other character
-             * encoding, and we probably won't display it correctly.
-             */
+            
+
+
+
+
+
             usetz = JS_TRUE;
             tzlen = strlen(tzbuf);
             if (tzlen > 100) {
@@ -2249,7 +2623,7 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
                 }
             }
 
-            /* Also reject it if it's not parenthesized or if it's '()'. */
+            
             if (tzbuf[0] != '(' || tzbuf[1] == ')')
                 usetz = JS_FALSE;
         } else
@@ -2257,11 +2631,11 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
 
         switch (format) {
           case FORMATSPEC_FULL:
-            /*
-             * Avoid dependence on PRMJ_FormatTimeUSEnglish, because it
-             * requires a PRMJTime... which only has 16-bit years.  Sub-ECMA.
-             */
-            /* Tue Oct 31 2000 09:41:40 GMT-0800 (PST) */
+            
+
+
+
+            
             JS_snprintf(buf, sizeof buf,
                         "%s %s %.2d %.4d %.2d:%.2d:%.2d GMT%+.4d%s%s",
                         days[WeekDay(local)],
@@ -2276,7 +2650,7 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
                         usetz ? tzbuf : "");
             break;
           case FORMATSPEC_DATE:
-            /* Tue Oct 31 2000 */
+            
             JS_snprintf(buf, sizeof buf,
                         "%s %s %.2d %.4d",
                         days[WeekDay(local)],
@@ -2285,7 +2659,7 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
                         YearFromTime(local));
             break;
           case FORMATSPEC_TIME:
-            /* 09:41:40 GMT-0800 (PST) */
+            
             JS_snprintf(buf, sizeof buf,
                         "%.2d:%.2d:%.2d GMT%+.4d%s%s",
                         HourFromTime(local),
@@ -2319,20 +2693,20 @@ ToLocaleHelper(JSContext *cx, CallReceiver call, JSObject *obj, const char *form
         PRMJTime split;
         new_explode(local, &split, cx);
 
-        /* let PRMJTime format it.       */
+        
         result_len = PRMJ_FormatTime(buf, sizeof buf, format, &split);
 
-        /* If it failed, default to toString. */
+        
         if (result_len == 0)
             return date_format(cx, utctime, FORMATSPEC_FULL, call);
 
-        /* Hacked check against undesired 2-digit year 00/00/00 form. */
+        
         if (strcmp(format, "%x") == 0 && result_len >= 6 &&
-            /* Format %x means use OS settings, which may have 2-digit yr, so
-               hack end of 3/11/22 or 11.03.22 or 11Mar22 to use 4-digit yr...*/
+            
+
             !isdigit(buf[result_len - 3]) &&
             isdigit(buf[result_len - 2]) && isdigit(buf[result_len - 1]) &&
-            /* ...but not if starts with 4-digit year, like 2022/3/11. */
+            
             !(isdigit(buf[0]) && isdigit(buf[1]) &&
               isdigit(buf[2]) && isdigit(buf[3]))) {
             JS_snprintf(buf + (result_len - 2), (sizeof buf) - (result_len - 2),
@@ -2351,81 +2725,92 @@ ToLocaleHelper(JSContext *cx, CallReceiver call, JSObject *obj, const char *form
     return true;
 }
 
-/*
- * NB: Because of NonGenericMethodGuard, the calling native return immediately
- * after calling date_toLocaleHelper, even if it returns 'true'.
- */
-static JSBool
-date_toLocaleHelper(JSContext *cx, unsigned argc, Value *vp, Native native, const char *format)
+static bool
+ToLocaleStringHelper(JSContext *cx, CallReceiver call, Handle<JSObject*> thisObj)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
+    
 
-    JSObject *thisObj;
-    if (!NonGenericMethodGuard(cx, args, native, &DateClass, &thisObj))
-        return false;
-    if (!thisObj)
-        return true;
 
-    return ToLocaleHelper(cx, args, thisObj, format);
-}
 
-static JSBool
-date_toLocaleStringHelper(JSContext *cx, Native native, unsigned argc, Value *vp)
-{
-    /*
-     * Use '%#c' for windows, because '%c' is backward-compatible and non-y2k
-     * with msvc; '%#c' requests that a full year be used in the result string.
-     */
-    return date_toLocaleHelper(cx, argc, vp, native,
+    return ToLocaleHelper(cx, call, thisObj,
 #if defined(_WIN32) && !defined(__MWERKS__)
-                                   "%#c"
+                          "%#c"
 #else
-                                   "%c"
+                          "%c"
 #endif
-                               );
+                         );
 }
+
 
 static JSBool
 date_toLocaleString(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_toLocaleStringHelper(cx, date_toLocaleString, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleString, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    return ToLocaleStringHelper(cx, args, thisObj);
 }
+
 
 static JSBool
 date_toLocaleDateString(JSContext *cx, unsigned argc, Value *vp)
 {
-    /*
-     * Use '%#x' for windows, because '%x' is backward-compatible and non-y2k
-     * with msvc; '%#x' requests that a full year be used in the result string.
-     */
-    return date_toLocaleHelper(cx, argc, vp, date_toLocaleDateString,
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    JSObject *thisObj;
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleDateString, &DateClass, &thisObj))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+
+
+
+    static const char format[] =
 #if defined(_WIN32) && !defined(__MWERKS__)
                                    "%#x"
 #else
                                    "%x"
 #endif
-                               );
+                                   ;
+
+    return ToLocaleHelper(cx, args, thisObj, format);
 }
+
 
 static JSBool
 date_toLocaleTimeString(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_toLocaleHelper(cx, argc, vp, date_toLocaleTimeString, "%X");
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    JSObject *thisObj;
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleTimeString, &DateClass, &thisObj))
+        return false;
+    if (!thisObj)
+        return true;
+
+    return ToLocaleHelper(cx, args, thisObj, "%X");
 }
 
 static JSBool
 date_toLocaleFormat(JSContext *cx, unsigned argc, Value *vp)
 {
-    if (argc == 0)
-        return date_toLocaleStringHelper(cx, date_toLocaleFormat, argc, vp);
-
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    JSObject *thisObj;
-    if (!NonGenericMethodGuard(cx, args, date_toLocaleFormat, &DateClass, &thisObj))
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleFormat, &DateClass, thisObj.address()))
         return false;
     if (!thisObj)
         return true;
+
+    if (argc == 0)
+        return ToLocaleStringHelper(cx, args, thisObj);
 
     JSString *fmt = ToString(cx, args[0]);
     if (!fmt)
@@ -2520,13 +2905,13 @@ date_valueOf(JSContext *cx, unsigned argc, Value *vp)
     if (!thisObj)
         return true;
 
-    /* If called directly with no arguments, convert to a time number. */
+    
     if (argc == 0) {
         args.rval() = thisObj->getDateUTCTime();
         return true;
     }
 
-    /* Convert to number only if the hint was given, otherwise favor string. */
+    
     JSString *str = ToString(cx, args[0]);
     if (!str)
         return false;
@@ -2606,24 +2991,24 @@ js_Date(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    /* Date called as function. */
+    
     if (!IsConstructing(args))
         return date_format(cx, NowAsMillis(), FORMATSPEC_FULL, args);
 
-    /* Date called as constructor. */
+    
     double d;
     if (args.length() == 0) {
-        /* ES5 15.9.3.3. */
+        
         d = NowAsMillis();
     } else if (args.length() == 1) {
-        /* ES5 15.9.3.2. */
+        
 
-        /* Step 1. */
+        
         if (!ToPrimitive(cx, &args[0]))
             return false;
 
         if (args[0].isString()) {
-            /* Step 2. */
+            
             JSString *str = ToString(cx, args[0]);
             if (!str)
                 return false;
@@ -2637,7 +3022,7 @@ js_Date(JSContext *cx, unsigned argc, Value *vp)
             else
                 d = TimeClip(d);
         } else {
-            /* Step 3. */
+            
             if (!ToNumber(cx, args[0], &d))
                 return false;
             d = TimeClip(d);
@@ -2667,7 +3052,7 @@ js_InitDateClass(JSContext *cx, JSObject *obj)
 {
     JS_ASSERT(obj->isNative());
 
-    /* Set the static LocalTZA. */
+    
     LocalTZA = -(PRMJ_LocalGMTDifference() * msPerSecond);
 
     Rooted<GlobalObject*> global(cx, &obj->asGlobal());
@@ -2677,8 +3062,7 @@ js_InitDateClass(JSContext *cx, JSObject *obj)
         return NULL;
     SetDateToNaN(cx, dateProto);
 
-    RootedFunction ctor(cx);
-    ctor = global->createConstructor(cx, js_Date, CLASS_NAME(cx, Date), MAXARGS);
+    RootedFunction ctor(cx, global->createConstructor(cx, js_Date, CLASS_NAME(cx, Date), MAXARGS));
     if (!ctor)
         return NULL;
 
@@ -2688,11 +3072,11 @@ js_InitDateClass(JSContext *cx, JSObject *obj)
     if (!DefinePropertiesAndBrand(cx, ctor, NULL, date_static_methods))
         return NULL;
 
-    /*
-     * Define all Date.prototype.* functions, then brand for trace-jitted code.
-     * Date.prototype.toGMTString has the same initial value as
-     * Date.prototype.toUTCString.
-     */
+    
+
+
+
+
     if (!JS_DefineFunctions(cx, dateProto, date_methods))
         return NULL;
     Value toUTCStringFun;
@@ -2746,7 +3130,7 @@ js_DateGetYear(JSContext *cx, JSObject* obj)
 {
     double localtime;
 
-    /* Preserve legacy API behavior of returning 0 for invalid dates. */
+    
     if (!GetAndCacheLocalTime(cx, obj, &localtime) || MOZ_DOUBLE_IS_NaN(localtime))
         return 0;
 
@@ -2824,7 +3208,7 @@ js_IntervalNow()
     return uint32_t(PR_IntervalToMilliseconds(PR_IntervalNow()));
 }
 
-#else /* !JS_THREADSAFE */
+#else 
 
 JS_FRIEND_API(uint32_t)
 js_IntervalNow()

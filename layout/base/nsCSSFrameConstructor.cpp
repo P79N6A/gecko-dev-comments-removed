@@ -139,6 +139,8 @@ NS_NewHTMLVideoFrame (nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
+NS_NewSVGOuterSVGAnonChildFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsIFrame*
 NS_NewSVGInnerSVGFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGPathGeometryFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
@@ -2407,25 +2409,30 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
 #endif
   if (aDocElement->IsSVG()) {
     if (aDocElement->Tag() == nsGkAtoms::svg) {
-      contentFrame = NS_NewSVGOuterSVGFrame(mPresShell, styleContext);
-      if (NS_UNLIKELY(!contentFrame)) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-      InitAndRestoreFrame(state, aDocElement,
-                          state.GetGeometricParent(display,
-                                                   mDocElementContainingBlock),
-                          nsnull, contentFrame);
+      
+      
 
       
       
+      
+      
+      
+      static const FrameConstructionData rootSVGData = FCDATA_DECL(0, nsnull);
+      nsRefPtr<nsStyleContext> extraRef(styleContext);
+      FrameConstructionItem item(&rootSVGData, aDocElement,
+                                 aDocElement->Tag(), kNameSpaceID_SVG,
+                                 nsnull, extraRef.forget(), true);
+
       nsFrameItems frameItems;
-      rv = state.AddChild(contentFrame, frameItems, aDocElement,
-                          styleContext, mDocElementContainingBlock);
-      if (NS_FAILED(rv) || frameItems.IsEmpty()) {
+      rv = ConstructOuterSVG(state, item, mDocElementContainingBlock,
+                             styleContext->GetStyleDisplay(),
+                             frameItems, &contentFrame);
+      if (NS_FAILED(rv))
         return rv;
-      }
+      if (!contentFrame || frameItems.IsEmpty())
+        return NS_ERROR_FAILURE;
       *aNewFrame = frameItems.FirstChild();
-      processChildren = true;
+      NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
     } else {
       return NS_ERROR_FAILURE;
     }
@@ -2498,8 +2505,9 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     
     nsFrameItems childItems;
 
-    NS_ASSERTION(!nsLayoutUtils::GetAsBlock(contentFrame),
-                 "Only XUL and SVG frames should reach here");
+    NS_ASSERTION(!nsLayoutUtils::GetAsBlock(contentFrame) &&
+                 !contentFrame->IsFrameOfType(nsIFrame::eSVG),
+                 "Only XUL frames should reach here");
     
     ProcessChildren(state, aDocElement, styleContext, contentFrame, true,
                     childItems, false, nsnull);
@@ -2909,7 +2917,6 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
                                             nsIFrame**               aNewFrame)
 {
   nsresult rv = NS_OK;
-  const PRInt32 kNoSizeSpecified = -1;
 
   nsIContent* const content = aItem.mContent;
   nsStyleContext* const styleContext = aItem.mStyleContext;
@@ -2922,7 +2929,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
     bool multipleSelect = false;
     sel->GetMultiple(&multipleSelect);
      
-    if (((1 == size || 0 == size) || (kNoSizeSpecified  == size)) && (false == multipleSelect)) {
+    if ((1 == size || 0 == size) && !multipleSelect) {
         
         
         
@@ -3444,6 +3451,8 @@ nsCSSFrameConstructor::FindInputData(Element* aElement,
     SIMPLE_INT_CREATE(NS_FORM_INPUT_TEL, NS_NewTextControlFrame),
     SIMPLE_INT_CREATE(NS_FORM_INPUT_URL, NS_NewTextControlFrame),
     SIMPLE_INT_CREATE(NS_FORM_INPUT_PASSWORD, NS_NewTextControlFrame),
+    
+    SIMPLE_INT_CREATE(NS_FORM_INPUT_NUMBER, NS_NewTextControlFrame),
     { NS_FORM_INPUT_SUBMIT,
       FCDATA_WITH_WRAPPING_BLOCK(0, NS_NewGfxButtonControlFrame,
                                  nsCSSAnonBoxes::buttonContent) },
@@ -4703,6 +4712,82 @@ nsCSSFrameConstructor::FindMathMLData(Element* aElement,
 
 
 
+
+nsresult
+nsCSSFrameConstructor::ConstructOuterSVG(nsFrameConstructorState& aState,
+                                         FrameConstructionItem&   aItem,
+                                         nsIFrame*                aParentFrame,
+                                         const nsStyleDisplay*    aDisplay,
+                                         nsFrameItems&            aFrameItems,
+                                         nsIFrame**               aNewFrame)
+{
+  nsIContent* const content = aItem.mContent;
+  nsStyleContext* const styleContext = aItem.mStyleContext;
+
+  nsresult rv = NS_OK;
+
+  
+  nsIFrame* newFrame = NS_NewSVGOuterSVGFrame(mPresShell, styleContext);
+
+  nsIFrame* geometricParent =
+    aState.GetGeometricParent(styleContext->GetStyleDisplay(),
+                              aParentFrame);
+
+  InitAndRestoreFrame(aState, content, geometricParent, nsnull, newFrame);
+
+  
+  nsRefPtr<nsStyleContext> scForAnon;
+  scForAnon = mPresShell->StyleSet()->
+    ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozSVGOuterSVGAnonChild,
+                             styleContext);
+
+  
+  nsIFrame* innerFrame = NS_NewSVGOuterSVGAnonChildFrame(mPresShell, scForAnon);
+
+  if (!innerFrame) {
+    newFrame->Destroy();
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  InitAndRestoreFrame(aState, content, newFrame, nsnull, innerFrame);
+
+  
+  SetInitialSingleChild(newFrame, innerFrame);
+
+  rv = aState.AddChild(newFrame, aFrameItems, content, styleContext,
+                       aParentFrame);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  if (!mRootElementFrame) {
+    
+    
+    mRootElementFrame = newFrame;
+  }
+
+  nsFrameItems childItems;
+
+  
+  if (aItem.mFCData->mBits & FCDATA_USE_CHILD_ITEMS) {
+    rv = ConstructFramesFromItemList(aState, aItem.mChildItems,
+                                     innerFrame, childItems);
+  } else {
+    rv = ProcessChildren(aState, content, styleContext, innerFrame,
+                         true, childItems, false, aItem.mPendingBinding);
+  }
+  
+  if (NS_FAILED(rv)) return rv;
+
+  
+  innerFrame->SetInitialChildList(kPrincipalList, childItems);
+
+  *aNewFrame = newFrame;
+  return rv;
+}
+
+
+
 #define SIMPLE_SVG_FCDATA(_func)                                        \
   FCDATA_DECL(FCDATA_DISALLOW_OUT_OF_FLOW |                             \
               FCDATA_SKIP_ABSPOS_PUSH |                                 \
@@ -4788,8 +4873,7 @@ nsCSSFrameConstructor::FindSVGData(Element* aElement,
     
     
     static const FrameConstructionData sOuterSVGData =
-      FCDATA_DECL(FCDATA_SKIP_ABSPOS_PUSH | FCDATA_DISALLOW_GENERATED_CONTENT,
-                  NS_NewSVGOuterSVGFrame);
+      FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructOuterSVG);
     return &sOuterSVGData;
   }
   
@@ -8264,6 +8348,7 @@ nsCSSFrameConstructor::BeginUpdate() {
     rootPresContext->IncrementDOMGeneration();
   }
 
+  ++sGlobalGenerationNumber;
   ++mUpdateCount;
 }
 

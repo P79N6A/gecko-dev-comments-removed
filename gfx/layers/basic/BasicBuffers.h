@@ -37,7 +37,7 @@ public:
               Layer* aMaskLayer);
 
   virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType aType, const nsIntSize& aSize, uint32_t aFlags);
+  CreateBuffer(ContentType aType, const nsIntSize& aSize, PRUint32 aFlags);
 
   
 
@@ -45,12 +45,10 @@ public:
   void SetBackingBuffer(gfxASurface* aBuffer,
                         const nsIntRect& aRect, const nsIntPoint& aRotation)
   {
-#ifdef DEBUG
     gfxIntSize prevSize = gfxIntSize(BufferRect().width, BufferRect().height);
     gfxIntSize newSize = aBuffer->GetSize();
     NS_ABORT_IF_FALSE(newSize == prevSize,
                       "Swapped-in buffer size doesn't match old buffer's!");
-#endif
     nsRefPtr<gfxASurface> oldBuffer;
     oldBuffer = SetBuffer(aBuffer, aRect, aRotation);
   }
@@ -59,27 +57,6 @@ public:
     gfxASurface* aBuffer,
     gfxASurface* aSource, const nsIntRect& aRect, const nsIntPoint& aRotation,
     const nsIntRegion& aUpdateRegion);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  void MapBuffer(gfxASurface* aBuffer)
-  {
-    SetBuffer(aBuffer);
-  }
-  void UnmapBuffer()
-  {
-    SetBuffer(nullptr);
-  }
 
 private:
   BasicThebesLayerBuffer(gfxASurface* aBuffer,
@@ -110,33 +87,26 @@ public:
     MOZ_COUNT_DTOR(ShadowThebesLayerBuffer);
   }
 
-  
-
-
-
-
-
-
-
-
-
-  void Swap(const nsIntRect& aNewRect, const nsIntPoint& aNewRotation,
+  void Swap(gfxASurface* aNewBuffer,
+            const nsIntRect& aNewRect, const nsIntPoint& aNewRotation,
+            gfxASurface** aOldBuffer,
             nsIntRect* aOldRect, nsIntPoint* aOldRotation)
   {
     *aOldRect = BufferRect();
     *aOldRotation = BufferRotation();
 
     nsRefPtr<gfxASurface> oldBuffer;
-    oldBuffer = SetBuffer(nullptr, aNewRect, aNewRotation);
-    MOZ_ASSERT(!oldBuffer);
+    oldBuffer = SetBuffer(aNewBuffer,
+                          aNewRect, aNewRotation);
+    oldBuffer.forget(aOldBuffer);
   }
 
 protected:
   virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType, const nsIntSize&, uint32_t)
+  CreateBuffer(ContentType, const nsIntSize&, PRUint32)
   {
     NS_RUNTIMEABORT("ShadowThebesLayer can't paint content");
-    return nullptr;
+    return nsnull;
   }
 };
 

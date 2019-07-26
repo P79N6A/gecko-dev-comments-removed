@@ -4,15 +4,12 @@
 
 
 #include "DeleteNodeTxn.h"
-#include "nsDebug.h"
-#include "nsEditor.h"
-#include "nsError.h"
 #include "nsSelectionState.h" 
-#include "nsAString.h"
+#include "nsEditor.h"
 
 
 DeleteNodeTxn::DeleteNodeTxn()
-  : EditTxn(), mNode(), mParent(), mRefNode(), mRangeUpdater(nullptr)
+  : EditTxn(), mNode(), mParent(), mRefNode(), mRangeUpdater(nsnull)
 {
 }
 

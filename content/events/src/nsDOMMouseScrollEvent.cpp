@@ -4,9 +4,7 @@
 
 
 #include "nsDOMMouseScrollEvent.h"
-#include "nsGUIEvent.h"
-#include "nsIContent.h"
-#include "nsContentUtils.h"
+#include "nsDOMClassInfoID.h"
 
 nsDOMMouseScrollEvent::nsDOMMouseScrollEvent(nsPresContext* aPresContext,
                                              nsInputEvent* aEvent)

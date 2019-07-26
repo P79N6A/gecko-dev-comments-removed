@@ -4,12 +4,8 @@
 
 
 #include "nsSVGRect.h"
-#include "prdtoa.h"
 #include "nsTextFormatter.h"
-#include "nsCRT.h"
-#include "nsIDOMSVGLength.h"
 #include "nsContentUtils.h"
-#include "nsDOMError.h"
 
 
 

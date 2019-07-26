@@ -55,7 +55,7 @@
 #include "ChangeAttributeTxn.h"
 #include "CreateElementTxn.h"
 #include "InsertElementTxn.h"
-#include "DeleteElementTxn.h"
+#include "DeleteNodeTxn.h"
 #include "InsertTextTxn.h"
 #include "DeleteTextTxn.h"
 #include "DeleteRangeTxn.h"
@@ -71,7 +71,6 @@
 #include "nsISelectionDisplay.h"
 #include "nsIInlineSpellChecker.h"
 #include "nsINameSpaceManager.h"
-#include "nsIHTMLDocument.h"
 #include "nsIParserService.h"
 
 #include "nsITransferable.h"
@@ -166,7 +165,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsEditor)
  }
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mRootElement)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mInlineSpellChecker)
- NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTxnMgr)
+ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mTxnMgr, nsITransactionManager)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mIMETextRangeList)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mIMETextNode)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mActionListeners)
@@ -614,49 +613,41 @@ nsEditor::GetSelection()
   return frameSel->GetSelection(nsISelectionController::SELECTION_NORMAL);
 }
 
-NS_IMETHODIMP 
-nsEditor::DoTransaction(nsITransaction *aTxn)
+NS_IMETHODIMP
+nsEditor::DoTransaction(nsITransaction* aTxn)
 {
-#ifdef NS_DEBUG_EDITOR
-  if (gNoisy) { printf("Editor::DoTransaction ----------\n"); }
-#endif
+  if (mPlaceHolderBatch && !mPlaceHolderTxn) {
+    
+    
 
-  nsresult result = NS_OK;
-  
-  if (mPlaceHolderBatch && !mPlaceHolderTxn)
-  {
-    
-    
-    
     
     nsRefPtr<EditTxn> editTxn = new PlaceholderTxn();
-    if (!editTxn) { return NS_ERROR_OUT_OF_MEMORY; }
 
     
+    
     nsCOMPtr<nsIAbsorbingTransaction> plcTxn;
-    editTxn->QueryInterface(NS_GET_IID(nsIAbsorbingTransaction), getter_AddRefs(plcTxn));
+    editTxn->QueryInterface(NS_GET_IID(nsIAbsorbingTransaction),
+                            getter_AddRefs(plcTxn));
     
     
 
     
     mPlaceHolderTxn = do_GetWeakReference(plcTxn);
     plcTxn->Init(mPlaceHolderName, mSelState, this);
-    mSelState = nsnull;  
+    
+    mSelState = nsnull;
 
     
+    
     nsCOMPtr<nsITransaction> theTxn = do_QueryInterface(plcTxn);
-    DoTransaction(theTxn);  
+    
+    DoTransaction(theTxn);
 
-    if (mTxnMgr)
-    {
-      nsCOMPtr<nsITransaction> topTxn;
-      result = mTxnMgr->PeekUndoStack(getter_AddRefs(topTxn));
-      NS_ENSURE_SUCCESS(result, result);
-      if (topTxn)
-      {
+    if (mTxnMgr) {
+      nsCOMPtr<nsITransaction> topTxn = mTxnMgr->PeekUndoStack();
+      if (topTxn) {
         plcTxn = do_QueryInterface(topTxn);
-        if (plcTxn)
-        {
+        if (plcTxn) {
           
           
           
@@ -667,8 +658,7 @@ nsEditor::DoTransaction(nsITransaction *aTxn)
     }
   }
 
-  if (aTxn)
-  {  
+  if (aTxn) {
     
     
     
@@ -689,56 +679,42 @@ nsEditor::DoTransaction(nsITransaction *aTxn)
     
 
     
-    nsCOMPtr<nsISelection>selection;
-    result = GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(result, result);
+    nsRefPtr<Selection> selection = GetSelection();
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-    nsCOMPtr<nsISelectionPrivate>selPrivate(do_QueryInterface(selection));
 
-    selPrivate->StartBatchChanges();
+    selection->StartBatchChanges();
 
+    nsresult res;
     if (mTxnMgr) {
-      result = mTxnMgr->DoTransaction(aTxn);
+      res = mTxnMgr->DoTransaction(aTxn);
+    } else {
+      res = aTxn->DoTransaction();
     }
-    else {
-      result = aTxn->DoTransaction();
-    }
-    if (NS_SUCCEEDED(result)) {
-      result = DoAfterDoTransaction(aTxn);
+    if (NS_SUCCEEDED(res)) {
+      DoAfterDoTransaction(aTxn);
     }
 
-    selPrivate->EndBatchChanges(); 
+    
+    selection->EndBatchChanges();
+
+    NS_ENSURE_SUCCESS(res, res);
   }
- 
-  NS_ENSURE_SUCCESS(result, result);
 
-  return result;
+  return NS_OK;
 }
 
 
 NS_IMETHODIMP
 nsEditor::EnableUndo(bool aEnable)
 {
-  nsresult result=NS_OK;
-
-  if (true==aEnable)
-  {
-    if (!mTxnMgr)
-    {
-      mTxnMgr = do_CreateInstance(NS_TRANSACTIONMANAGER_CONTRACTID, &result);
-      if (NS_FAILED(result) || !mTxnMgr) {
-        return NS_ERROR_NOT_AVAILABLE;
-      }
+  if (aEnable) {
+    if (!mTxnMgr) {
+      mTxnMgr = new nsTransactionManager();
     }
-    mTxnMgr->SetMaxTransactionCount(-1);
-  }
-  else
-  { 
-    if (mTxnMgr)
-    {
-      mTxnMgr->Clear();
-      mTxnMgr->SetMaxTransactionCount(0);
-    }
+  } else if (mTxnMgr) {
+    
+    mTxnMgr->Clear();
+    mTxnMgr->SetMaxTransactionCount(0);
   }
 
   return NS_OK;
@@ -775,7 +751,8 @@ nsEditor::SetTransactionManager(nsITransactionManager *aTxnManager)
 {
   NS_ENSURE_TRUE(aTxnManager, NS_ERROR_FAILURE);
 
-  mTxnMgr = aTxnManager;
+  
+  mTxnMgr = static_cast<nsTransactionManager*>(aTxnManager);
   return NS_OK;
 }
 
@@ -802,8 +779,7 @@ nsEditor::Undo(PRUint32 aCount)
     nsresult rv = mTxnMgr->UndoTransaction();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = DoAfterUndoTransaction();
-    NS_ENSURE_SUCCESS(rv, rv);
+    DoAfterUndoTransaction();
   }
 
   return NS_OK;
@@ -846,8 +822,7 @@ nsEditor::Redo(PRUint32 aCount)
     nsresult rv = mTxnMgr->RedoTransaction();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = DoAfterRedoTransaction();
-    NS_ENSURE_SUCCESS(rv, rv);
+    DoAfterRedoTransaction();
   }
 
   return NS_OK;
@@ -1464,16 +1439,15 @@ nsEditor::JoinNodes(nsIDOMNode * aLeftNode,
                     nsIDOMNode * aRightNode,
                     nsIDOMNode * aParent)
 {
-  PRInt32 i, offset;
+  PRInt32 i;
   nsAutoRules beginRulesSniffing(this, kOpJoinNode, nsIEditor::ePrevious);
 
   
   
-  nsresult result = GetChildOffset(aRightNode, aParent, offset);
-  NS_ENSURE_SUCCESS(result, result);
+  PRInt32 offset = GetChildOffset(aRightNode, aParent);
   
   PRUint32 oldLeftNodeLen;
-  result = GetLengthOfDOMNode(aLeftNode, oldLeftNodeLen);
+  nsresult result = GetLengthOfDOMNode(aLeftNode, oldLeftNodeLen);
   NS_ENSURE_SUCCESS(result, result);
 
   for (i = 0; i < mActionListeners.Count(); i++)
@@ -1494,29 +1468,36 @@ nsEditor::JoinNodes(nsIDOMNode * aLeftNode,
 }
 
 
-NS_IMETHODIMP nsEditor::DeleteNode(nsIDOMNode * aElement)
+NS_IMETHODIMP
+nsEditor::DeleteNode(nsIDOMNode* aNode)
 {
-  PRInt32 i, offset;
-  nsCOMPtr<nsIDOMNode> parent;
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_STATE(node);
+  return DeleteNode(node);
+}
+
+nsresult
+nsEditor::DeleteNode(nsINode* aNode)
+{
   nsAutoRules beginRulesSniffing(this, kOpCreateNode, nsIEditor::ePrevious);
 
   
-  nsresult result = GetNodeLocation(aElement, address_of(parent), &offset);
-  NS_ENSURE_SUCCESS(result, result);
-
-  for (i = 0; i < mActionListeners.Count(); i++)
-    mActionListeners[i]->WillDeleteNode(aElement);
-
-  nsRefPtr<DeleteElementTxn> txn;
-  result = CreateTxnForDeleteElement(aElement, getter_AddRefs(txn));
-  if (NS_SUCCEEDED(result))  {
-    result = DoTransaction(txn);  
+  for (PRInt32 i = 0; i < mActionListeners.Count(); i++) {
+    mActionListeners[i]->WillDeleteNode(aNode->AsDOMNode());
   }
 
-  for (i = 0; i < mActionListeners.Count(); i++)
-    mActionListeners[i]->DidDeleteNode(aElement, result);
+  nsRefPtr<DeleteNodeTxn> txn;
+  nsresult res = CreateTxnForDeleteNode(aNode, getter_AddRefs(txn));
+  if (NS_SUCCEEDED(res))  {
+    res = DoTransaction(txn);
+  }
 
-  return result;
+  for (PRInt32 i = 0; i < mActionListeners.Count(); i++) {
+    mActionListeners[i]->DidDeleteNode(aNode->AsDOMNode(), res);
+  }
+
+  NS_ENSURE_SUCCESS(res, res);
+  return NS_OK;
 }
 
 
@@ -1622,7 +1603,7 @@ nsEditor::RemoveContainer(nsINode* aNode)
 {
   NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
 
-  nsINode* parent = aNode->GetNodeParent();
+  nsCOMPtr<nsINode> parent = aNode->GetNodeParent();
   NS_ENSURE_STATE(parent);
 
   PRInt32 offset = parent->IndexOf(aNode);
@@ -1635,7 +1616,7 @@ nsEditor::RemoveContainer(nsINode* aNode)
   nsAutoRemoveContainerSelNotify selNotify(mRangeUpdater, aNode, parent, offset, nodeOrigLen);
                                    
   while (aNode->HasChildren()) {
-    nsIContent* child = aNode->GetLastChild();
+    nsCOMPtr<nsIContent> child = aNode->GetLastChild();
     nsresult rv = DeleteNode(child->AsDOMNode());
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1736,10 +1717,10 @@ nsresult
 nsEditor::MoveNode(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aOffset)
 {
   NS_ENSURE_TRUE(aNode && aParent, NS_ERROR_NULL_POINTER);
+  nsresult res;
 
-  nsCOMPtr<nsIDOMNode> oldParent;
   PRInt32 oldOffset;
-  nsresult res = GetNodeLocation(aNode, address_of(oldParent), &oldOffset);
+  nsCOMPtr<nsIDOMNode> oldParent = GetNodeLocation(aNode, &oldOffset);
   
   if (aOffset == -1)
   {
@@ -2013,22 +1994,18 @@ nsEditor::BeginIMEComposition()
   return NS_OK;
 }
 
-nsresult
+void
 nsEditor::EndIMEComposition()
 {
-  NS_ENSURE_TRUE(mInIMEMode, NS_OK); 
-
-  nsresult rv = NS_OK;
+  NS_ENSURE_TRUE(mInIMEMode, ); 
 
   
   
   if (mTxnMgr) {
-    nsCOMPtr<nsITransaction> txn;
-    rv = mTxnMgr->PeekUndoStack(getter_AddRefs(txn));
-    NS_ASSERTION(NS_SUCCEEDED(rv), "PeekUndoStack() failed");
+    nsCOMPtr<nsITransaction> txn = mTxnMgr->PeekUndoStack();
     nsCOMPtr<nsIAbsorbingTransaction> plcTxn = do_QueryInterface(txn);
     if (plcTxn) {
-      rv = plcTxn->Commit();
+      DebugOnly<nsresult> rv = plcTxn->Commit();
       NS_ASSERTION(NS_SUCCEEDED(rv),
                    "nsIAbsorbingTransaction::Commit() failed");
     }
@@ -2043,8 +2020,6 @@ nsEditor::EndIMEComposition()
 
   
   NotifyEditorObservers();
-
-  return rv;
 }
 
 
@@ -2956,11 +2931,8 @@ nsEditor::JoinNodesImpl(nsIDOMNode * aNodeToKeep,
     PRUint32 firstNodeLength;
     result = GetLengthOfDOMNode(leftNode, firstNodeLength);
     NS_ENSURE_SUCCESS(result, result);
-    nsCOMPtr<nsIDOMNode> parent;
-    result = GetNodeLocation(aNodeToJoin, address_of(parent), &joinOffset);
-    NS_ENSURE_SUCCESS(result, result);
-    result = GetNodeLocation(aNodeToKeep, address_of(parent), &keepOffset);
-    NS_ENSURE_SUCCESS(result, result);
+    nsCOMPtr<nsIDOMNode> parent = GetNodeLocation(aNodeToJoin, &joinOffset);
+    parent = GetNodeLocation(aNodeToKeep, &keepOffset);
     
     
     
@@ -3133,34 +3105,36 @@ nsEditor::JoinNodesImpl(nsIDOMNode * aNodeToKeep,
 }
 
 
-nsresult 
-nsEditor::GetChildOffset(nsIDOMNode *aChild, nsIDOMNode *aParent, PRInt32 &aOffset)
+PRInt32
+nsEditor::GetChildOffset(nsIDOMNode* aChild, nsIDOMNode* aParent)
 {
-  NS_ASSERTION((aChild && aParent), "bad args");
+  MOZ_ASSERT(aChild && aParent);
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aParent);
-  nsCOMPtr<nsIContent> cChild = do_QueryInterface(aChild);
-  NS_ENSURE_TRUE(cChild && content, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsINode> parent = do_QueryInterface(aParent);
+  nsCOMPtr<nsINode> child = do_QueryInterface(aChild);
+  MOZ_ASSERT(parent && child);
 
-  aOffset = content->IndexOf(cChild);
-
-  return NS_OK;
+  PRInt32 idx = parent->IndexOf(child);
+  MOZ_ASSERT(idx != -1);
+  return idx;
 }
 
-nsresult 
-nsEditor::GetNodeLocation(nsIDOMNode *inChild, nsCOMPtr<nsIDOMNode> *outParent, PRInt32 *outOffset)
+
+already_AddRefed<nsIDOMNode>
+nsEditor::GetNodeLocation(nsIDOMNode* aChild, PRInt32* outOffset)
 {
-  NS_ASSERTION((inChild && outParent && outOffset), "bad args");
-  nsresult result = NS_ERROR_NULL_POINTER;
-  if (inChild && outParent && outOffset)
-  {
-    result = inChild->GetParentNode(getter_AddRefs(*outParent));
-    if ((NS_SUCCEEDED(result)) && (*outParent))
-    {
-      result = GetChildOffset(inChild, *outParent, *outOffset);
-    }
+  MOZ_ASSERT(aChild && outOffset);
+  *outOffset = -1;
+
+  nsCOMPtr<nsIDOMNode> parent;
+
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    aChild->GetParentNode(getter_AddRefs(parent))));
+  if (parent) {
+    *outOffset = GetChildOffset(aChild, parent);
   }
-  return result;
+
+  return parent.forget();
 }
 
 
@@ -3535,18 +3509,15 @@ nsEditor::GetLeftmostChild(nsIDOMNode *aCurrentNode,
   return resultNode.forget();
 }
 
-bool 
-nsEditor::IsBlockNode(nsIDOMNode *aNode)
+bool
+nsEditor::IsBlockNode(nsIDOMNode* aNode)
 {
-  
-  
-  
-  
-  return false;
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  return IsBlockNode(node);
 }
 
-bool 
-nsEditor::IsBlockNode(nsINode *aNode)
+bool
+nsEditor::IsBlockNode(nsINode* aNode)
 {
   
   
@@ -3908,24 +3879,6 @@ nsEditor::AreNodesSameType(nsIContent* aNode1, nsIContent* aNode2)
   MOZ_ASSERT(aNode2);
   return aNode1->Tag() == aNode2->Tag();
 }
-
-
-
-
-bool
-nsEditor::IsTextOrElementNode(nsIDOMNode *aNode)
-{
-  if (!aNode)
-  {
-    NS_NOTREACHED("null node passed to IsTextOrElementNode()");
-    return false;
-  }
-  
-  PRUint16 nodeType;
-  aNode->GetNodeType(&nodeType);
-  return ((nodeType == nsIDOMNode::ELEMENT_NODE) || (nodeType == nsIDOMNode::TEXT_NODE));
-}
-
 
 
 
@@ -4448,12 +4401,14 @@ nsEditor::DeleteSelectionAndPrepareToCreateNode()
   nsresult res;
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+  MOZ_ASSERT(selection->GetAnchorFocusRange());
 
-  if (!selection->Collapsed()) {
+  if (!selection->GetAnchorFocusRange()->Collapsed()) {
     res = DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
     NS_ENSURE_SUCCESS(res, res);
 
-    MOZ_ASSERT(selection->Collapsed(),
+    MOZ_ASSERT(selection->GetAnchorFocusRange() &&
+               selection->GetAnchorFocusRange()->Collapsed(),
                "Selection not collapsed after delete");
   }
 
@@ -4495,14 +4450,12 @@ nsEditor::DeleteSelectionAndPrepareToCreateNode()
 
 
 
-NS_IMETHODIMP 
+void
 nsEditor::DoAfterDoTransaction(nsITransaction *aTxn)
 {
-  nsresult rv = NS_OK;
-  
-  bool    isTransientTransaction;
-  rv = aTxn->GetIsTransient(&isTransientTransaction);
-  NS_ENSURE_SUCCESS(rv, rv);
+  bool isTransientTransaction;
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    aTxn->GetIsTransient(&isTransientTransaction)));
   
   if (!isTransientTransaction)
   {
@@ -4515,27 +4468,27 @@ nsEditor::DoAfterDoTransaction(nsITransaction *aTxn)
     if (modCount < 0)
       modCount = -modCount;
         
-    rv = IncrementModificationCount(1);    
+    
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+      IncrementModificationCount(1)));
   }
-  
-  return rv;
 }
 
 
-NS_IMETHODIMP 
+void
 nsEditor::DoAfterUndoTransaction()
 {
-  nsresult rv = NS_OK;
-
-  rv = IncrementModificationCount(-1);    
-
-  return rv;
+  
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    IncrementModificationCount(-1)));
 }
 
-NS_IMETHODIMP 
+void
 nsEditor::DoAfterRedoTransaction()
 {
-  return IncrementModificationCount(1);    
+  
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    IncrementModificationCount(1)));
 }
 
 NS_IMETHODIMP 
@@ -4614,20 +4567,18 @@ NS_IMETHODIMP nsEditor::CreateTxnForInsertElement(nsIDOMNode * aNode,
   return rv;
 }
 
-NS_IMETHODIMP nsEditor::CreateTxnForDeleteElement(nsIDOMNode * aElement,
-                                             DeleteElementTxn ** aTxn)
+nsresult
+nsEditor::CreateTxnForDeleteNode(nsINode* aNode, DeleteNodeTxn** aTxn)
 {
-  NS_ENSURE_TRUE(aElement, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
 
-  nsRefPtr<DeleteElementTxn> txn = new DeleteElementTxn();
+  nsRefPtr<DeleteNodeTxn> txn = new DeleteNodeTxn();
 
-  nsresult rv = txn->Init(this, aElement, &mRangeUpdater);
-  if (NS_SUCCEEDED(rv))
-  {
-    txn.forget(aTxn);
-  }
+  nsresult res = txn->Init(this, aNode, &mRangeUpdater);
+  NS_ENSURE_SUCCESS(res, res);
 
-  return rv;
+  txn.forget(aTxn);
+  return NS_OK;
 }
 
 NS_IMETHODIMP 
@@ -4819,9 +4770,8 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
       aTxn->AppendChild(txn);
     } else {
       
-      nsRefPtr<DeleteElementTxn> txn;
-      res = CreateTxnForDeleteElement(priorNode->AsDOMNode(),
-                                      getter_AddRefs(txn));
+      nsRefPtr<DeleteNodeTxn> txn;
+      res = CreateTxnForDeleteNode(priorNode, getter_AddRefs(txn));
       NS_ENSURE_SUCCESS(res, res);
 
       aTxn->AppendChild(txn);
@@ -4856,9 +4806,8 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
       aTxn->AppendChild(txn);
     } else {
       
-      nsRefPtr<DeleteElementTxn> txn;
-      res = CreateTxnForDeleteElement(nextNode->AsDOMNode(),
-                                      getter_AddRefs(txn));
+      nsRefPtr<DeleteNodeTxn> txn;
+      res = CreateTxnForDeleteNode(nextNode, getter_AddRefs(txn));
       NS_ENSURE_SUCCESS(res, res);
       aTxn->AppendChild(txn);
     }
@@ -4919,9 +4868,8 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
       *aOffset = delTextTxn->GetOffset();
       *aLength = delTextTxn->GetNumCharsToDelete();
     } else {
-      nsRefPtr<DeleteElementTxn> delElementTxn;
-      res = CreateTxnForDeleteElement(selectedNode->AsDOMNode(),
-                                      getter_AddRefs(delElementTxn));
+      nsRefPtr<DeleteNodeTxn> delElementTxn;
+      res = CreateTxnForDeleteNode(selectedNode, getter_AddRefs(delElementTxn));
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_TRUE(delElementTxn, NS_ERROR_NULL_POINTER);
 
@@ -4957,9 +4905,7 @@ nsEditor::AppendNodeToSelectionAsRange(nsIDOMNode *aNode)
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(parentNode, NS_ERROR_NULL_POINTER);
   
-  PRInt32 offset;
-  res = GetChildOffset(aNode, parentNode, offset);
-  NS_ENSURE_SUCCESS(res, res);
+  PRInt32 offset = GetChildOffset(aNode, parentNode);
   
   nsCOMPtr<nsIDOMRange> range;
   res = CreateRange(parentNode, offset, parentNode, offset+1, getter_AddRefs(range));

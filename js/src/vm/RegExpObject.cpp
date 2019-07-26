@@ -78,7 +78,7 @@ RegExpObjectBuilder::build(HandleAtom source, RegExpFlag flags)
     if (!getOrCreate())
         return NULL;
 
-    return reobj_->init(cx, source, flags) ? reobj_.raw() : NULL;
+    return reobj_->init(cx, source, flags) ? reobj_.get() : NULL;
 }
 
 RegExpObject *
@@ -245,7 +245,7 @@ regexp_trace(JSTracer *trc, JSObject *obj)
 
 
 
-    if (trc->runtime->gcRunning && IS_GC_MARKING_TRACER(trc))
+    if (trc->runtime->isHeapBusy() && IS_GC_MARKING_TRACER(trc))
         obj->setPrivate(NULL);
 }
 

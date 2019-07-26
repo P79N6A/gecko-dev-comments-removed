@@ -47,10 +47,10 @@ BasicThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
 
   
   
-  AutoMaskData mask;
-  if (GetMaskData(aMaskLayer, &mask)) {
-    DrawBufferWithRotation(aTarget, aOpacity,
-                           mask.GetSurface(), &mask.GetTransform());
+  gfxMatrix maskTransform;
+  if (nsRefPtr<gfxASurface> maskSurface =
+        GetMaskSurfaceAndTransform(aMaskLayer, &maskTransform)) {
+    DrawBufferWithRotation(aTarget, aOpacity, maskSurface, &maskTransform);
   } else {
     DrawBufferWithRotation(aTarget, aOpacity);
   }
@@ -59,7 +59,7 @@ BasicThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
 
 already_AddRefed<gfxASurface>
 BasicThebesLayerBuffer::CreateBuffer(ContentType aType, 
-                                     const nsIntSize& aSize, uint32_t aFlags)
+                                     const nsIntSize& aSize, PRUint32 aFlags)
 {
   return mLayer->CreateBuffer(aType, aSize);
 }

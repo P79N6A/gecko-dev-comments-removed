@@ -242,11 +242,17 @@ public:
 
   virtual void SetIsFirstPaint() MOZ_OVERRIDE;
 
+  void SetRepeatTransaction() { mRepeatTransaction = true; }
+
 private:
   
 
 
   void ForwardTransaction();
+
+  
+  
+  bool mRepeatTransaction;
 
   LayerRefArray mKeepAlive;
 };

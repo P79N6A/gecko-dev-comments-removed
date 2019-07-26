@@ -895,6 +895,10 @@ ShouldA11yBeEnabled()
 
   sChecked = true;
 
+  EPlatformDisabledState disabledState = PlatformDisabledState();
+  if (disabledState == ePlatformIsDisabled)
+    return sShouldEnable = false;
+
   
   const char* envValue = PR_GetEnv(sAccEnv);
   if (envValue)

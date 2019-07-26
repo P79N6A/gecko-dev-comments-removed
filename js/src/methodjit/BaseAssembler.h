@@ -160,7 +160,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         loadPtr(Address(obj, JSObject::offsetOfShape()), shape);
     }
 
-    Jump guardShape(RegisterID objReg, const Shape *shape) {
+    Jump guardShape(RegisterID objReg, Shape *shape) {
         return branchPtr(NotEqual, Address(objReg, JSObject::offsetOfShape()), ImmPtr(shape));
     }
 
@@ -560,7 +560,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         
         
         ensureSpace(20);
-        int initFlushCount = flushCount();
+        DebugOnly<int> initFlushCount = flushCount();
 #endif
         
         
@@ -899,7 +899,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
     }
 
     void loadObjProp(JSObject *obj, RegisterID objReg,
-                     const js::Shape *shape,
+                     js::Shape *shape,
                      RegisterID typeReg, RegisterID dataReg)
     {
         if (obj->isFixedSlot(shape->slot()))

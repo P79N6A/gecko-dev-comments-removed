@@ -596,7 +596,6 @@ nsHTMLReflowState::InitFrameType(nsIAtom* aFrameType)
   
   
   
-
   
   
 
@@ -1644,6 +1643,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
 }
 
 
+
 void
 nsHTMLReflowState::ComputeContainingBlockRectangle(nsPresContext*          aPresContext,
                                                    const nsHTMLReflowState* aContainingBlockRS,
@@ -1672,7 +1672,7 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(nsPresContext*          aPres
       nsMargin computedBorder = aContainingBlockRS->mComputedBorderPadding -
         aContainingBlockRS->mComputedPadding;
       aContainingBlockWidth = aContainingBlockRS->frame->GetRect().width -
-        computedBorder.LeftRight();;
+        computedBorder.LeftRight();
       NS_ASSERTION(aContainingBlockWidth >= 0,
                    "Negative containing block width!");
       aContainingBlockHeight = aContainingBlockRS->frame->GetRect().height -

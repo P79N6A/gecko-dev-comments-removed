@@ -95,7 +95,7 @@ public:
   bool mInUse;
 
   
-  virtual gfxMatrix GetCanvasTM();
+  virtual gfxMatrix GetCanvasTM(PRUint32 aFor);
 };
 
 #endif

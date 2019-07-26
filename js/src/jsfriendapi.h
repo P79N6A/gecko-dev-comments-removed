@@ -524,6 +524,31 @@ GetPCCountScriptSummary(JSContext *cx, size_t script);
 JS_FRIEND_API(JSString *)
 GetPCCountScriptContents(JSContext *cx, size_t script);
 
+
+
+
+
+
+
+struct ProfileEntry {
+    
+
+
+
+
+
+
+
+
+
+    const char * volatile string;
+    void * volatile sp;
+};
+
+JS_FRIEND_API(void)
+SetRuntimeProfilingStack(JSRuntime *rt, ProfileEntry *stack, uint32_t *size,
+                         uint32_t max);
+
 #ifdef JS_THREADSAFE
 JS_FRIEND_API(void *)
 GetOwnerThread(const JSContext *cx);
@@ -632,6 +657,9 @@ PrepareCompartmentForGC(JSCompartment *comp);
 extern JS_FRIEND_API(void)
 PrepareForFullGC(JSRuntime *rt);
 
+extern JS_FRIEND_API(void)
+PrepareForIncrementalGC(JSRuntime *rt);
+
 extern JS_FRIEND_API(bool)
 IsGCScheduled(JSRuntime *rt);
 
@@ -655,7 +683,7 @@ extern JS_FRIEND_API(void)
 IncrementalGC(JSRuntime *rt, gcreason::Reason reason);
 
 extern JS_FRIEND_API(void)
-SetGCSliceTimeBudget(JSContext *cx, int64_t millis);
+FinishIncrementalGC(JSRuntime *rt, gcreason::Reason reason);
 
 enum GCProgress {
     

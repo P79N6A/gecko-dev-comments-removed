@@ -97,7 +97,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  nsresult MouseDown(nsIDOMEvent* aMouseEvent);
+  nsresult StartDrag(nsIDOMEvent* aEvent);
 
   static PRInt32 GetCurrentPosition(nsIContent* content);
   static PRInt32 GetMinPosition(nsIContent* content);
@@ -138,6 +138,16 @@ private:
                                   bool aIsSmooth, bool aImmediateRedraw);
   nsresult CurrentPositionChanged(nsPresContext* aPresContext,
                                   bool aImmediateRedraw);
+
+  
+  
+  bool GetEventPoint(nsGUIEvent *aEvent, nsPoint &aPoint);
+
+  
+  
+  
+  bool GetTouchPoint(nsTouchEvent *aEvent, nsIntPoint &aPoint);
+
   void DragThumb(bool aGrabMouseEvents);
   void AddListener();
   void RemoveListener();

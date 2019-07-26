@@ -51,9 +51,9 @@ ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc);
 
 
 
-enum FrameVarType { FrameVar_Local, FrameVar_Arg };
-extern FrameVarType
-ScopeCoordinateToFrameVar(JSScript *script, jsbytecode *pc, unsigned *index);
+enum FrameIndexType { FrameIndex_Local, FrameIndex_Arg };
+extern FrameIndexType
+ScopeCoordinateToFrameIndex(JSScript *script, jsbytecode *pc, unsigned *index);
 
 
 
@@ -102,9 +102,6 @@ class ScopeObject : public JSObject
 
   public:
     
-    static const uint32_t CALL_BLOCK_RESERVED_SLOTS = 2;
-
-    
 
 
 
@@ -142,7 +139,7 @@ class CallObject : public ScopeObject
     create(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots,
            HandleObject enclosing);
 
-    static const uint32_t RESERVED_SLOTS = CALL_BLOCK_RESERVED_SLOTS;
+    static const uint32_t RESERVED_SLOTS = 2;
 
     static CallObject *createForFunction(JSContext *cx, StackFrame *fp);
     static CallObject *createForStrictEval(JSContext *cx, StackFrame *fp);
@@ -154,9 +151,7 @@ class CallObject : public ScopeObject
 
 
 
-    inline JSObject *getCallee() const;
-    inline JSFunction *getCalleeFunction() const;
-    inline void setCallee(JSObject *callee);
+    inline JSFunction &callee() const;
 
     
     inline const Value &arg(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
@@ -230,7 +225,7 @@ class WithObject : public NestedScopeObject
 class BlockObject : public NestedScopeObject
 {
   public:
-    static const unsigned RESERVED_SLOTS = CALL_BLOCK_RESERVED_SLOTS;
+    static const unsigned RESERVED_SLOTS = 2;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
 
     
@@ -241,7 +236,8 @@ class BlockObject : public NestedScopeObject
 
 
 
-    unsigned slotToFrameLocal(JSScript *script, unsigned i);
+    unsigned slotToLocalIndex(const Bindings &bindings, unsigned slot);
+    unsigned localIndexToSlot(const Bindings &bindings, uint32_t i);
 
   protected:
     
@@ -280,7 +276,7 @@ class StaticBlockObject : public BlockObject
 
     bool needsClone();
 
-    const Shape *addVar(JSContext *cx, jsid id, int index, bool *redeclared);
+    Shape *addVar(JSContext *cx, jsid id, int index, bool *redeclared);
 };
 
 class ClonedBlockObject : public BlockObject

@@ -27,7 +27,9 @@ BasicThebesLayer::CreateBuffer(Buffer::ContentType aType, const nsIntSize& aSize
       referenceSurface = defaultTarget->CurrentSurface();
     } else {
       nsIWidget* widget = BasicManager()->GetRetainerWidget();
-      if (!widget || !(referenceSurface = widget->GetThebesSurface())) {
+      if (widget) {
+        referenceSurface = widget->GetThebesSurface();
+      } else {
         referenceSurface = BasicManager()->GetTarget()->CurrentSurface();
       }
     }
@@ -58,7 +60,7 @@ SetAntialiasingFlags(Layer* aLayer, gfxContext* aTarget)
     }
 
     const nsIntRect& bounds = aLayer->GetVisibleRegion().GetBounds();
-    gfx::Rect transformedBounds = dt->GetTransform().TransformBounds(gfx::Rect(Float(bounds.x), Float(bounds.y),
+    Rect transformedBounds = dt->GetTransform().TransformBounds(Rect(Float(bounds.x), Float(bounds.y),
                                                                      Float(bounds.width), Float(bounds.height)));
     transformedBounds.RoundOut();
     IntRect intTransformedBounds;
@@ -104,7 +106,10 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
                           gfxASurface::CONTENT_COLOR_ALPHA;
   float opacity = GetEffectiveOpacity();
   
-  if (!BasicManager()->IsRetained()) {
+  if (!BasicManager()->IsRetained() ||
+      (!canUseOpaqueSurface &&
+       (mContentFlags & CONTENT_COMPONENT_ALPHA) &&
+       !MustRetainContent())) {
     NS_ASSERTION(readbackUpdates.IsEmpty(), "Can't do readback for non-retained layer");
 
     mValidRegion.SetEmpty();
@@ -155,7 +160,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
   }
 
   {
-    uint32_t flags = 0;
+    PRUint32 flags = 0;
 #ifndef MOZ_GFX_OPTIMIZE_MOBILE
     gfxMatrix transform;
     if (!GetEffectiveTransform().CanDraw2D(&transform) ||
@@ -208,7 +213,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
     mBuffer.DrawTo(this, aContext, opacity, aMaskLayer);
   }
 
-  for (uint32_t i = 0; i < readbackUpdates.Length(); ++i) {
+  for (PRUint32 i = 0; i < readbackUpdates.Length(); ++i) {
     ReadbackProcessor::Update& update = readbackUpdates[i];
     nsIntPoint offset = update.mLayer->GetBackgroundLayerOffset();
     nsRefPtr<gfxContext> ctx =
@@ -223,58 +228,6 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct NS_STACK_CLASS AutoBufferTracker {
-  AutoBufferTracker(BasicShadowableThebesLayer* aLayer)
-    : mLayer(aLayer)
-  {
-    MOZ_ASSERT(!mLayer->mBufferTracker);
-
-    mLayer->mBufferTracker = this;
-    if (IsSurfaceDescriptorValid(mLayer->mBackBuffer)) {
-      mInitialBuffer.construct(OPEN_READ_WRITE, mLayer->mBackBuffer);
-      mLayer->mBuffer.MapBuffer(mInitialBuffer.ref().Get());
-    }
-  }
-
-  ~AutoBufferTracker() {
-    mLayer->mBufferTracker = nullptr;
-    mLayer->mBuffer.UnmapBuffer();
-    
-    
-  }
-
-  gfxASurface*
-  CreatedBuffer(const SurfaceDescriptor& aDescriptor) {
-    Maybe<AutoOpenSurface>* surface = mNewBuffers.AppendElement();
-    surface->construct(OPEN_READ_WRITE, aDescriptor);
-    return surface->ref().Get();
-  }
-
-  Maybe<AutoOpenSurface> mInitialBuffer;
-  nsAutoTArray<Maybe<AutoOpenSurface>, 2> mNewBuffers;
-  BasicShadowableThebesLayer* mLayer;
-
-private:
-  AutoBufferTracker(const AutoBufferTracker&) MOZ_DELETE;
-  AutoBufferTracker& operator=(const AutoBufferTracker&) MOZ_DELETE;
-};
-
 void
 BasicShadowableThebesLayer::PaintThebes(gfxContext* aContext,
                                         Layer* aMaskLayer,
@@ -287,12 +240,10 @@ BasicShadowableThebesLayer::PaintThebes(gfxContext* aContext,
     return;
   }
 
-  AutoBufferTracker tracker(this);
-
-  BasicThebesLayer::PaintThebes(aContext, nullptr, aCallback, aCallbackData, aReadback);
+  BasicThebesLayer::PaintThebes(aContext, nsnull, aCallback, aCallbackData, aReadback);
   if (aMaskLayer) {
     static_cast<BasicImplData*>(aMaskLayer->ImplData())
-      ->Paint(aContext, nullptr);
+      ->Paint(aContext, nsnull);
   }
 }
 
@@ -329,21 +280,17 @@ BasicShadowableThebesLayer::SyncFrontBufferToBackBuffer()
     return;
   }
 
-  gfxASurface* backBuffer = mBuffer.GetBuffer();
+  nsRefPtr<gfxASurface> backBuffer;
   if (!IsSurfaceDescriptorValid(mBackBuffer)) {
-    MOZ_ASSERT(!backBuffer);
-    MOZ_ASSERT(mROFrontBuffer.type() == OptionalThebesBuffer::TThebesBuffer);
+    NS_ABORT_IF_FALSE(mROFrontBuffer.type() == OptionalThebesBuffer::TThebesBuffer,
+                      "should have a front RO buffer by now");
     const ThebesBuffer roFront = mROFrontBuffer.get_ThebesBuffer();
-    AutoOpenSurface roFrontBuffer(OPEN_READ_ONLY, roFront.buffer());
-    AllocBackBuffer(roFrontBuffer.ContentType(), roFrontBuffer.Size());
+    nsRefPtr<gfxASurface> roFrontBuffer = BasicManager()->OpenDescriptor(roFront.buffer());
+    backBuffer = CreateBuffer(roFrontBuffer->GetContentType(), roFrontBuffer->GetSize());
+  } else {
+    backBuffer = BasicManager()->OpenDescriptor(mBackBuffer);
   }
   mFrontAndBackBufferDiffer = false;
-
-  Maybe<AutoOpenSurface> autoBackBuffer;
-  if (!backBuffer) {
-    autoBackBuffer.construct(OPEN_READ_WRITE, mBackBuffer);
-    backBuffer = autoBackBuffer.ref().Get();
-  }
 
   if (OptionalThebesBuffer::Tnull_t == mROFrontBuffer.type()) {
     
@@ -363,10 +310,10 @@ BasicShadowableThebesLayer::SyncFrontBufferToBackBuffer()
                   mFrontUpdatedRegion.GetBounds().height));
 
   const ThebesBuffer roFront = mROFrontBuffer.get_ThebesBuffer();
-  AutoOpenSurface autoROFront(OPEN_READ_ONLY, roFront.buffer());
+  nsRefPtr<gfxASurface> roFrontBuffer = BasicManager()->OpenDescriptor(roFront.buffer());
   mBuffer.SetBackingBufferAndUpdateFrom(
     backBuffer,
-    autoROFront.Get(), roFront.rect(), roFront.rotation(),
+    roFrontBuffer, roFront.rect(), roFront.rotation(),
     mFrontUpdatedRegion);
   mIsNewBuffer = false;
   
@@ -417,23 +364,6 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
                                       mBackBuffer);
 }
 
-void
-BasicShadowableThebesLayer::AllocBackBuffer(Buffer::ContentType aType,
-                                            const nsIntSize& aSize)
-{
-  
-  if (!BasicManager()->AllocBuffer(gfxIntSize(aSize.width, aSize.height),
-                                   aType,
-                                   &mBackBuffer)) {
-    enum { buflen = 256 };
-    char buf[buflen];
-    PR_snprintf(buf, buflen,
-                "creating ThebesLayer 'back buffer' failed! width=%d, height=%d, type=%x",
-                aSize.width, aSize.height, int(aType));
-    NS_RUNTIMEABORT(buf);
-  }
-}
-
 already_AddRefed<gfxASurface>
 BasicShadowableThebesLayer::CreateBuffer(Buffer::ContentType aType,
                                          const nsIntSize& aSize)
@@ -452,15 +382,24 @@ BasicShadowableThebesLayer::CreateBuffer(Buffer::ContentType aType,
     mBackBuffer = SurfaceDescriptor();
   }
 
-  AllocBackBuffer(aType, aSize);
+  
+  if (!BasicManager()->AllocBuffer(gfxIntSize(aSize.width, aSize.height),
+                                   aType,
+                                   &mBackBuffer)) {
+      enum { buflen = 256 };
+      char buf[buflen];
+      PR_snprintf(buf, buflen,
+                  "creating ThebesLayer 'back buffer' failed! width=%d, height=%d, type=%x",
+                  aSize.width, aSize.height, int(aType));
+      NS_RUNTIMEABORT(buf);
+  }
 
   NS_ABORT_IF_FALSE(!mIsNewBuffer,
                     "Bad! Did we create a buffer twice without painting?");
 
   mIsNewBuffer = true;
 
-  nsRefPtr<gfxASurface> buffer = mBufferTracker->CreatedBuffer(mBackBuffer);
-  return buffer.forget();
+  return BasicManager()->OpenDescriptor(mBackBuffer);
 }
 
 void
@@ -544,10 +483,12 @@ BasicShadowThebesLayer::Swap(const ThebesBuffer& aNewFront,
                              OptionalThebesBuffer* aReadOnlyFront,
                              nsIntRegion* aFrontUpdatedRegion)
 {
+  nsRefPtr<gfxASurface> newFrontBuffer =
+    BasicManager()->OpenDescriptor(aNewFront.buffer());
+
   if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
-    AutoOpenSurface autoNewFrontBuffer(OPEN_READ_ONLY, aNewFront.buffer());
-    AutoOpenSurface autoCurrentFront(OPEN_READ_ONLY, mFrontBufferDescriptor);
-    if (autoCurrentFront.Size() != autoNewFrontBuffer.Size()) {
+    nsRefPtr<gfxASurface> currentFront = BasicManager()->OpenDescriptor(mFrontBufferDescriptor);
+    if (currentFront->GetSize() != newFrontBuffer->GetSize()) {
       
       DestroyFrontBuffer();
     }
@@ -563,11 +504,12 @@ BasicShadowThebesLayer::Swap(const ThebesBuffer& aNewFront,
   
   aNewBackValidRegion->Sub(mOldValidRegion, aUpdatedRegion);
 
+  nsRefPtr<gfxASurface> unused;
   nsIntRect backRect;
   nsIntPoint backRotation;
   mFrontBuffer.Swap(
-    aNewFront.rect(), aNewFront.rotation(),
-    &backRect, &backRotation);
+    newFrontBuffer, aNewFront.rect(), aNewFront.rotation(),
+    getter_AddRefs(unused), &backRect, &backRotation);
 
   if (aNewBack->type() != OptionalThebesBuffer::Tnull_t) {
     aNewBack->get_ThebesBuffer().rect() = backRect;
@@ -592,16 +534,11 @@ BasicShadowThebesLayer::PaintThebes(gfxContext* aContext,
   NS_ASSERTION(BasicManager()->IsRetained(),
                "ShadowThebesLayer makes no sense without retained mode");
 
-  if (!IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
+  if (!mFrontBuffer.GetBuffer()) {
     return;
   }
 
-  AutoOpenSurface autoFrontBuffer(OPEN_READ_ONLY, mFrontBufferDescriptor);
-  mFrontBuffer.MapBuffer(autoFrontBuffer.Get());
-
   mFrontBuffer.DrawTo(this, aContext, GetEffectiveOpacity(), aMaskLayer);
-
-  mFrontBuffer.UnmapBuffer();
 }
 
 already_AddRefed<ThebesLayer>

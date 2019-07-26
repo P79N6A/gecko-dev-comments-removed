@@ -3,7 +3,6 @@
 
 
 #include "nsContentBlocker.h"
-#include "nsIDocument.h"
 #include "nsIContent.h"
 #include "nsIURI.h"
 #include "nsIServiceManager.h"
@@ -128,6 +127,7 @@ nsContentBlocker::ShouldLoad(PRUint32          aContentType,
                              nsISupports      *aRequestingContext,
                              const nsACString &aMimeGuess,
                              nsISupports      *aExtra,
+                             nsIPrincipal     *aRequestPrincipal,
                              PRInt16          *aDecision)
 {
   *aDecision = nsIContentPolicy::ACCEPT;
@@ -189,12 +189,13 @@ nsContentBlocker::ShouldLoad(PRUint32          aContentType,
   }
 
   NS_ASSERTION(aContentType != nsIContentPolicy::TYPE_OBJECT,
-	       "Shouldn't happen.  Infinite loops are bad!");
+               "Shouldn't happen.  Infinite loops are bad!");
 
   
   
   return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
-		    aRequestingContext, aMimeGuess, aExtra, aDecision);
+                    aRequestingContext, aMimeGuess, aExtra, aRequestPrincipal,
+                    aDecision);
 }
 
 NS_IMETHODIMP
@@ -204,6 +205,7 @@ nsContentBlocker::ShouldProcess(PRUint32          aContentType,
                                 nsISupports      *aRequestingContext,
                                 const nsACString &aMimeGuess,
                                 nsISupports      *aExtra,
+                                nsIPrincipal     *aRequestPrincipal,
                                 PRInt16          *aDecision)
 {
   
@@ -224,7 +226,8 @@ nsContentBlocker::ShouldProcess(PRUint32          aContentType,
   
   
   return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
-                    aRequestingContext, aMimeGuess, aExtra, aDecision);
+                    aRequestingContext, aMimeGuess, aExtra, aRequestPrincipal,
+                    aDecision);
 }
 
 nsresult

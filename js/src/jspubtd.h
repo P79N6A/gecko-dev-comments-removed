@@ -115,7 +115,11 @@ typedef enum JSProtoKey {
 
 typedef enum JSAccessMode {
     JSACC_PROTO  = 0,           
-    JSACC_PARENT = 1,           
+
+                                
+
+
+
 
                                 
 
@@ -233,6 +237,7 @@ enum ThingRootKind
     THING_ROOT_ID,
     THING_ROOT_PROPERTY_ID,
     THING_ROOT_VALUE,
+    THING_ROOT_TYPE,
     THING_ROOT_LIMIT
 };
 

@@ -231,12 +231,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
-
-    static bool IsFileCodebaseAllowable(nsIURI* aBaseURI, nsIURI* aOriginURI);
-
-    
-
-
     static bool CanHandleURI(nsIURI* aURI);
 
     
@@ -279,6 +273,14 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
     nsresult TypeForClassID(const nsAString& aClassID, nsACString& aType);
+
+    
+
+
+
+
+    void GetObjectBaseURI(nsIContent* thisContent, nsIURI** aURI);
+
 
     
 

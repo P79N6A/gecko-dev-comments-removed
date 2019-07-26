@@ -388,7 +388,7 @@ nsXULElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 
     
 
-    nsresult rv = CopyInnerTo(element);
+    nsresult rv = const_cast<nsXULElement*>(this)->CopyInnerTo(element);
     if (NS_SUCCEEDED(rv)) {
         NS_ADDREF(*aResult = element);
     }

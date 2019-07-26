@@ -426,12 +426,12 @@ ParseNode::newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, Parse
 
 
 NameNode *
-NameNode::create(ParseNodeKind kind, JSAtom *atom, Parser *parser, SharedContext *sc)
+NameNode::create(ParseNodeKind kind, JSAtom *atom, Parser *parser, TreeContext *tc)
 {
     ParseNode *pn = ParseNode::create(kind, PN_NAME, parser);
     if (pn) {
         pn->pn_atom = atom;
-        ((NameNode *)pn)->initCommon(sc);
+        ((NameNode *)pn)->initCommon(tc);
     }
     return (NameNode *)pn;
 }

@@ -9,7 +9,6 @@
 #include "RuntimeService.h"
 
 #include "nsIDOMChromeWindow.h"
-#include "nsIDocument.h"
 #include "nsIEffectiveTLDService.h"
 #include "nsIObserverService.h"
 #include "nsIPlatformCharset.h"
@@ -35,6 +34,8 @@
 #include "Events.h"
 #include "Worker.h"
 #include "WorkerPrivate.h"
+
+#include "OSFileConstants.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -372,13 +373,13 @@ BEGIN_WORKERS_NAMESPACE
 
 JSBool
 ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsigned aFlags,
-                     JSObject** aObjp)
+                     JSMutableHandleObject aObjp)
 {
   AssertIsOnMainThread();
 
   
-  if (aFlags & (JSRESOLVE_ASSIGNING | JSRESOLVE_DECLARING)) {
-    *aObjp = nsnull;
+  if (aFlags & JSRESOLVE_ASSIGNING) {
+    aObjp.set(nsnull);
     return true;
   }
 
@@ -422,7 +423,7 @@ ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsign
   if (shouldResolve) {
     
     if (!isChrome && !Preferences::GetBool(PREF_WORKERS_ENABLED)) {
-      *aObjp = nsnull;
+      aObjp.set(nsnull);
       return true;
     }
 
@@ -444,12 +445,12 @@ ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsign
       return false;
     }
 
-    *aObjp = aObj;
+    aObjp.set(aObj);
     return true;
   }
 
   
-  *aObjp = nsnull;
+  aObjp.set(nsnull);
   return true;
 }
 
@@ -934,6 +935,11 @@ RuntimeService::Init()
                                      mSystemCharset);
   }
 
+  rv = InitOSFileConstants();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   return NS_OK;
 }
 
@@ -1048,6 +1054,8 @@ RuntimeService::Cleanup()
       mObserved = NS_FAILED(rv);
     }
   }
+
+  CleanupOSFileConstants();
 }
 
 

@@ -16,7 +16,6 @@
 #include "nsINameSpaceManager.h"
 #include "nsIScriptContext.h"
 #include "nsIDocument.h"
-#include "nsIDOMDocument.h"
 #include "nsIJSEventListener.h"
 #include "nsIController.h"
 #include "nsIControllers.h"
@@ -279,6 +278,12 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
   } else {
     scriptTarget = aTarget;
   }
+
+  
+  
+  
+  nsCxPusher pusher;
+  NS_ENSURE_STATE(pusher.Push(aTarget));
 
   rv = EnsureEventHandler(boundGlobal, boundContext, onEventAtom, handler);
   NS_ENSURE_SUCCESS(rv, rv);

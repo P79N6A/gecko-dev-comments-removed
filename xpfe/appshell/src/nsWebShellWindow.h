@@ -10,10 +10,6 @@
 #include "nsEvent.h"
 #include "nsIWebProgressListener.h"
 #include "nsITimer.h"
-
-
-#include "nsIDOMDocument.h"
-
 #include "nsCOMPtr.h"
 #include "nsXULWindow.h"
 

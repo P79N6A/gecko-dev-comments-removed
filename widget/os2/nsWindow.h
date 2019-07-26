@@ -55,7 +55,7 @@
 #define INCL_NLS
 #define INCL_GPI
 #include <os2.h>
-
+#include <os2im.h>
 
 
 
@@ -230,6 +230,10 @@ protected:
   bool                  CheckDragStatus(PRUint32 aAction, HPS* aHps);
   bool                  ReleaseIfDragHPS(HPS aHps);
   bool                  OnTranslateAccelerator(PQMSG pQmsg);
+  bool                  OnQueryConvertPos(MPARAM mp1, MRESULT& mresult);
+  bool                  ImeResultString(HIMI himi);
+  bool                  ImeConversionString(HIMI himi);
+  bool                  OnImeRequest(MPARAM mp1, MPARAM mp2);
   bool                  DispatchKeyEvent(MPARAM mp1, MPARAM mp2);
   void                  InitEvent(nsGUIEvent& event, nsIntPoint* pt = 0);
   bool                  DispatchWindowEvent(nsGUIEvent* event);
@@ -266,6 +270,7 @@ protected:
   HPOINTER      mCssCursorHPtr;     
   nsCOMPtr<imgIContainer> mCssCursorImg;
   nsRefPtr<gfxOS2Surface> mThebesSurface;
+  bool          mIsComposing;
 #ifdef DEBUG_FOCUS
   int           mWindowIdentifier;  
 #endif

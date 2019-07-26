@@ -15,8 +15,6 @@
 struct JSContext;
 struct JSCompartment;
 
-extern void js_DumpStackFrame(JSContext *, js::StackFrame *);
-
 namespace js {
 
 class StackFrame;
@@ -63,9 +61,6 @@ namespace ion {
     class SnapshotIterator;
 }
 
-namespace detail {
-    struct OOMCheck;
-}
 
 
 
@@ -168,106 +163,13 @@ namespace detail {
 
 
 
-class CallReceiver
-{
-  protected:
-#ifdef DEBUG
-    mutable bool usedRval_;
-    void setUsedRval() const { usedRval_ = true; }
-    void clearUsedRval() const { usedRval_ = false; }
-#else
-    void setUsedRval() const {}
-    void clearUsedRval() const {}
-#endif
-    Value *argv_;
-  public:
-    friend CallReceiver CallReceiverFromVp(Value *);
-    friend CallReceiver CallReceiverFromArgv(Value *);
-    Value *base() const { return argv_ - 2; }
-    JSObject &callee() const { JS_ASSERT(!usedRval_); return argv_[-2].toObject(); }
-    Value &calleev() const { JS_ASSERT(!usedRval_); return argv_[-2]; }
-    Value &thisv() const { return argv_[-1]; }
-
-    Value &rval() const {
-        setUsedRval();
-        return argv_[-2];
-    }
-
-    Value *spAfterCall() const {
-        setUsedRval();
-        return argv_ - 1;
-    }
-
-    void setCallee(Value calleev) {
-        clearUsedRval();
-        this->calleev() = calleev;
-    }
-};
-
-JS_ALWAYS_INLINE CallReceiver
-CallReceiverFromArgv(Value *argv)
-{
-    CallReceiver receiver;
-    receiver.clearUsedRval();
-    receiver.argv_ = argv;
-    return receiver;
-}
-
-JS_ALWAYS_INLINE CallReceiver
-CallReceiverFromVp(Value *vp)
-{
-    return CallReceiverFromArgv(vp + 2);
-}
-
-
-
-class CallArgs : public CallReceiver
-{
-  protected:
-    unsigned argc_;
-  public:
-    friend CallArgs CallArgsFromVp(unsigned, Value *);
-    friend CallArgs CallArgsFromArgv(unsigned, Value *);
-    friend CallArgs CallArgsFromSp(unsigned, Value *);
-    Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
-    Value *array() const { return argv_; }
-    unsigned length() const { return argc_; }
-    Value *end() const { return argv_ + argc_; }
-    bool hasDefined(unsigned i) const { return i < argc_ && !argv_[i].isUndefined(); }
-};
-
-JS_ALWAYS_INLINE CallArgs
-CallArgsFromArgv(unsigned argc, Value *argv)
-{
-    CallArgs args;
-    args.clearUsedRval();
-    args.argv_ = argv;
-    args.argc_ = argc;
-    return args;
-}
-
-JS_ALWAYS_INLINE CallArgs
-CallArgsFromVp(unsigned argc, Value *vp)
-{
-    return CallArgsFromArgv(argc, vp + 2);
-}
-
-JS_ALWAYS_INLINE CallArgs
-CallArgsFromSp(unsigned argc, Value *sp)
-{
-    return CallArgsFromArgv(argc, sp - argc);
-}
-
-
-
-
-
-
-
-
-
-
-class CallArgsList : public CallArgs
+
+
+
+
+
+
+class CallArgsList : public JS::CallArgs
 {
     friend class StackSegment;
     CallArgsList *prev_;
@@ -367,7 +269,10 @@ class StackFrame
         PREV_UP_TO_DATE    =   0x400000,   
 
         
-        RUNNING_IN_ION       = 0x800000   
+        HAS_PUSHED_SPS_FRAME = 0x800000,   
+
+        
+        RUNNING_IN_ION       = 0x1000000    
     };
 
   private:
@@ -423,8 +328,6 @@ class StackFrame
     friend class CallObject;
     friend class ClonedBlockObject;
     friend class ArgumentsObject;
-    friend void ::js_DumpStackFrame(JSContext *, StackFrame *);
-    friend void ::js_ReportIsNotFunction(JSContext *, const js::Value *, unsigned);
 #ifdef JS_METHODJIT
     friend class mjit::CallCompiler;
     friend class mjit::GetPropCompiler;
@@ -917,6 +820,14 @@ class StackFrame
         flags_ |= HAS_HOOK_DATA;
     }
 
+    bool hasPushedSPSFrame() {
+        return !!(flags_ & HAS_PUSHED_SPS_FRAME);
+    }
+
+    void setPushedSPSFrame() {
+        flags_ |= HAS_PUSHED_SPS_FRAME;
+    }
+
     
 
     bool hasReturnValue() const {
@@ -1180,12 +1091,6 @@ class StackFrame
 };
 
 static const size_t VALUES_PER_STACK_FRAME = sizeof(StackFrame) / sizeof(Value);
-
-static inline unsigned
-ToReportFlags(InitialFrameFlags initial)
-{
-    return unsigned(initial & StackFrame::CONSTRUCTING);
-}
 
 static inline StackFrame::Flags
 ToFrameFlags(InitialFrameFlags initial)
@@ -1631,6 +1536,14 @@ class ContextStack
 
 
 
+
+
+    ptrdiff_t spIndexOf(const Value *vp);
+
+    
+
+
+
     inline FrameRegs *maybeRegs() const { return seg_ ? seg_->maybeRegs() : NULL; }
     inline StackFrame *maybefp() const { return seg_ ? seg_->maybefp() : NULL; }
 
@@ -1714,7 +1627,6 @@ class ContextStack
 
     
     inline JSScript *currentScript(jsbytecode **pc = NULL) const;
-    inline JSScript *currentScriptWithDiagnostics(jsbytecode **pc = NULL) const;
 
     
     inline HandleObject currentScriptedScopeChain() const;
@@ -1834,7 +1746,7 @@ class StackIter
   private:
     SavedOption  savedOption_;
 
-    enum State { DONE, SCRIPTED, NATIVE, IMPLICIT_NATIVE, ION };
+    enum State { DONE, SCRIPTED, NATIVE, ION };
 
     State        state_;
 
@@ -1842,7 +1754,6 @@ class StackIter
     CallArgsList *calls_;
 
     StackSegment *seg_;
-    Value        *sp_;
     jsbytecode   *pc_;
     JSScript     *script_;
     CallArgs     args_;
@@ -1885,17 +1796,13 @@ class StackIter
         JS_ASSERT(!done());
         return state_ == ION;
     }
-    bool isImplicitNativeCall() const {
-        JS_ASSERT(!done());
-        return state_ == IMPLICIT_NATIVE;
-    }
     bool isNativeCall() const {
         JS_ASSERT(!done());
 #ifdef JS_ION
         if (state_ == ION)
             return ionFrames_.isNative();
 #endif
-        return state_ == NATIVE || state_ == IMPLICIT_NATIVE;
+        return state_ == NATIVE;
     }
 
     bool isFunctionFrame() const;
@@ -1905,7 +1812,6 @@ class StackIter
 
     
     StackFrame *fp() const { JS_ASSERT(isScript()); return fp_; }
-    Value      *sp() const { JS_ASSERT(isScript()); return sp_; }
     jsbytecode *pc() const { JS_ASSERT(isScript()); return pc_; }
     JSScript   *script() const { JS_ASSERT(isScript()); return script_; }
     JSFunction *callee() const;

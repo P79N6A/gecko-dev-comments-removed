@@ -124,17 +124,8 @@ js::IsCrossCompartmentWrapper(const JSObject *wrapper)
            !!(Wrapper::wrapperHandler(wrapper)->flags() & Wrapper::CROSS_COMPARTMENT);
 }
 
-AbstractWrapper::AbstractWrapper(unsigned flags) :
-    IndirectProxyHandler(&sWrapperFamily),
-    Wrapper(flags)
-{
-}
-
-DirectWrapper::DirectWrapper(unsigned flags) : AbstractWrapper(flags)
-{
-}
-
-DirectWrapper::~DirectWrapper()
+IndirectWrapper::IndirectWrapper(unsigned flags) : Wrapper(flags),
+    IndirectProxyHandler(&sWrapperFamily)
 {
 }
 
@@ -152,7 +143,8 @@ DirectWrapper::~DirectWrapper()
 #define GET(action) CHECKED(action, GET)
 
 bool
-AbstractWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
+IndirectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                       jsid id, bool set,
                                        PropertyDescriptor *desc)
 {
     desc->obj = NULL; 
@@ -161,7 +153,8 @@ AbstractWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id
 }
 
 bool
-AbstractWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
+IndirectWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                          jsid id, bool set,
                                           PropertyDescriptor *desc)
 {
     desc->obj = NULL; 
@@ -169,13 +162,15 @@ AbstractWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid
 }
 
 bool
-AbstractWrapper::defineProperty(JSContext *cx, JSObject *wrapper, jsid id, PropertyDescriptor *desc)
+IndirectWrapper::defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
+                                PropertyDescriptor *desc)
 {
     SET(IndirectProxyHandler::defineProperty(cx, wrapper, id, desc));
 }
 
 bool
-AbstractWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
+IndirectWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
+                                     AutoIdVector &props)
 {
     
     jsid id = JSID_VOID;
@@ -183,61 +178,105 @@ AbstractWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVec
 }
 
 bool
-AbstractWrapper::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
+IndirectWrapper::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     *bp = true; 
     SET(IndirectProxyHandler::delete_(cx, wrapper, id, bp));
 }
 
 bool
-AbstractWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
+IndirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 {
     
     static jsid id = JSID_VOID;
     GET(IndirectProxyHandler::enumerate(cx, wrapper, props));
 }
 
-static bool
-Cond(JSBool b, bool *bp)
+DirectWrapper::DirectWrapper(unsigned flags) : Wrapper(flags),
+        DirectProxyHandler(&sWrapperFamily)
 {
-    *bp = !!b;
-    return true;
+}
+
+DirectWrapper::~DirectWrapper()
+{
+}
+
+bool
+DirectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                     jsid id, bool set,
+                                     PropertyDescriptor *desc)
+{
+    desc->obj = NULL; 
+    CHECKED(DirectProxyHandler::getPropertyDescriptor(cx, wrapper, id, set, desc),
+            set ? SET : GET);
+}
+
+bool
+DirectWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                        jsid id, bool set,
+                                        PropertyDescriptor *desc)
+{
+    desc->obj = NULL; 
+    CHECKED(DirectProxyHandler::getOwnPropertyDescriptor(cx, wrapper, id, set, desc), GET);
+}
+
+bool
+DirectWrapper::defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
+                              PropertyDescriptor *desc)
+{
+    SET(DirectProxyHandler::defineProperty(cx, wrapper, id, desc));
+}
+
+bool
+DirectWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
+                                   AutoIdVector &props)
+{
+    
+    jsid id = JSID_VOID;
+    GET(DirectProxyHandler::getOwnPropertyNames(cx, wrapper, props));
+}
+
+bool
+DirectWrapper::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
+{
+    *bp = true; 
+    SET(DirectProxyHandler::delete_(cx, wrapper, id, bp));
+}
+
+bool
+DirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
+{
+    
+    static jsid id = JSID_VOID;
+    GET(DirectProxyHandler::enumerate(cx, wrapper, props));
 }
 
 bool
 DirectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     *bp = false; 
-    JSBool found;
-    GET(JS_HasPropertyById(cx, wrappedObject(wrapper), id, &found) &&
-        Cond(found, bp));
+    GET(DirectProxyHandler::has(cx, wrapper, id, bp));
 }
 
 bool
 DirectWrapper::hasOwn(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     *bp = false; 
-    PropertyDescriptor desc;
-    JSObject *wobj = wrappedObject(wrapper);
-    GET(JS_GetPropertyDescriptorById(cx, wobj, id, JSRESOLVE_QUALIFIED, &desc) &&
-        Cond(desc.obj == wobj, bp));
+    GET(DirectProxyHandler::hasOwn(cx, wrapper, id, bp));
 }
 
 bool
-DirectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver_, jsid id_, Value *vp)
+DirectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id, Value *vp)
 {
     vp->setUndefined(); 
-    Rooted<JSObject*> receiver(cx, receiver_);
-    Rooted<jsid> id(cx, id_);
-    GET(wrappedObject(wrapper)->getGeneric(cx, receiver, id, vp));
+    GET(DirectProxyHandler::get(cx, wrapper, receiver, id, vp));
 }
 
 bool
-DirectWrapper::set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id_, bool strict,
-               Value *vp)
+DirectWrapper::set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id, bool strict,
+                   Value *vp)
 {
-    Rooted<jsid> id(cx, id_);
-    SET(wrappedObject(wrapper)->setGeneric(cx, id, vp, strict));
+    SET(DirectProxyHandler::set(cx, wrapper, receiver, id, strict, vp));
 }
 
 bool
@@ -245,7 +284,7 @@ DirectWrapper::keys(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 {
     
     const jsid id = JSID_VOID;
-    GET(GetPropertyNames(cx, wrappedObject(wrapper), JSITER_OWNONLY, &props));
+    GET(DirectProxyHandler::keys(cx, wrapper, props));
 }
 
 bool
@@ -253,8 +292,7 @@ DirectWrapper::iterate(JSContext *cx, JSObject *wrapper, unsigned flags, Value *
 {
     vp->setUndefined(); 
     const jsid id = JSID_VOID;
-    Rooted<JSObject*> wrapped(cx, wrappedObject(wrapper));
-    GET(GetIterator(cx, wrapped, flags, vp));
+    GET(DirectProxyHandler::iterate(cx, wrapper, flags, vp));
 }
 
 bool
@@ -313,8 +351,7 @@ DirectWrapper::fun_toString(JSContext *cx, JSObject *wrapper, unsigned indent)
             
             if (wrapper->isCallable())
                 return JS_NewStringCopyZ(cx, "function () {\n    [native code]\n}");
-            js::Value v = ObjectValue(*wrapper);
-            js_ReportIsNotFunction(cx, &v, 0);
+            ReportIsNotFunction(cx, ObjectValue(*wrapper));
             return NULL;
         }
         return NULL;
@@ -687,15 +724,9 @@ CrossCompartmentWrapper::construct(JSContext *cx, JSObject *wrapper_, unsigned a
     return cx->compartment->wrap(cx, rval);
 }
 
-extern JSBool
-js_generic_native_method_dispatcher(JSContext *cx, unsigned argc, Value *vp);
-
 bool
 CrossCompartmentWrapper::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native native, CallArgs srcArgs)
 {
-    JS_ASSERT_IF(!srcArgs.calleev().isUndefined(),
-                 srcArgs.callee().toFunction()->native() == native ||
-                 srcArgs.callee().toFunction()->native() == js_generic_native_method_dispatcher);
     JS_ASSERT(srcArgs.thisv().isMagic(JS_IS_CONSTRUCTING) || &srcArgs.thisv().toObject() == wrapper);
     JS_ASSERT(!UnwrapObject(wrapper)->isCrossCompartmentWrapper());
 
@@ -1081,4 +1112,114 @@ js::NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
     }
 
     return JS_TRUE;
+}
+
+
+
+
+bool
+js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
+{
+    JS_ASSERT(IsCrossCompartmentWrapper(wobj));
+    JSObject *origTarget = Wrapper::wrappedObject(wobj);
+    JS_ASSERT(origTarget);
+    Value origv = ObjectValue(*origTarget);
+    JSCompartment *wcompartment = wobj->compartment();
+    WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
+
+    
+    
+    JS_ASSERT(pmap.lookup(origv));
+    pmap.remove(origv);
+    NukeCrossCompartmentWrapper(wobj);
+
+    
+    
+    AutoCompartment ac(cx, wobj);
+    JSObject *tobj = newTarget;
+    if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
+        return false;
+
+    
+    
+    
+    
+    JS_ASSERT(tobj != wobj);
+    if (!wobj->swap(cx, tobj))
+        return false;
+    pmap.put(ObjectValue(*newTarget), ObjectValue(*wobj));
+
+    return true;
+}
+
+
+
+bool
+js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTarget,
+                              JSObject *newTarget)
+{
+    Value origv = ObjectValue(*oldTarget);
+
+    AutoValueVector toTransplant(cx);
+    if (!toTransplant.reserve(cx->runtime->compartments.length()))
+        return false;
+
+    for (CompartmentsIter c(cx->runtime); !c.done(); c.next()) {
+        WrapperMap &pmap = c->crossCompartmentWrappers;
+        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
+            
+            toTransplant.infallibleAppend(wp->value);
+        }
+    }
+
+    for (Value *begin = toTransplant.begin(), *end = toTransplant.end();
+         begin != end; ++begin)
+    {
+        if (!RemapWrapper(cx, &begin->toObject(), newTarget))
+            return false;
+    }
+
+    return true;
+}
+
+JS_FRIEND_API(bool)
+js::RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
+                      const CompartmentFilter &targetFilter)
+{
+    AutoValueVector toRecompute(cx);
+
+    for (CompartmentsIter c(cx->runtime); !c.done(); c.next()) {
+        
+        if (!sourceFilter.match(c))
+            continue;
+
+        
+        WrapperMap &pmap = c->crossCompartmentWrappers;
+        for (WrapperMap::Enum e(pmap); !e.empty(); e.popFront()) {
+            
+            const CrossCompartmentKey &k = e.front().key;
+            if (k.kind != CrossCompartmentKey::ObjectWrapper)
+                continue;
+
+            
+            Value wrapper = e.front().value.get();
+            if (!targetFilter.match(k.wrapped->compartment()))
+                continue;
+
+            
+            if (!toRecompute.append(wrapper))
+                return false;
+        }
+    }
+
+    
+    for (Value *begin = toRecompute.begin(), *end = toRecompute.end(); begin != end; ++begin)
+    {
+        JSObject *wrapper = &begin->toObject();
+        JSObject *wrapped = Wrapper::wrappedObject(wrapper);
+        if (!RemapWrapper(cx, wrapper, wrapped))
+            return false;
+    }
+
+    return true;
 }

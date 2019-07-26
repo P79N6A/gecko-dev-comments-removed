@@ -56,7 +56,7 @@ static const size_t USES_BEFORE_INLINING = 10240;
 mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
                          unsigned chunkIndex, bool isConstructing)
   : BaseCompiler(cx),
-    outerScript(outerScript),
+    outerScript(cx, outerScript),
     chunkIndex(chunkIndex),
     isConstructing(isConstructing),
     outerChunk(outerJIT()->chunkDescriptor(chunkIndex)),
@@ -130,7 +130,7 @@ mjit::Compiler::compile()
 }
 
 CompileStatus
-mjit::Compiler::checkAnalysis(JSScript *script)
+mjit::Compiler::checkAnalysis(HandleScript script)
 {
     if (script->hasClearedGlobal()) {
         JaegerSpew(JSpew_Abort, "script has a cleared global\n");
@@ -159,7 +159,7 @@ mjit::Compiler::checkAnalysis(JSScript *script)
 }
 
 CompileStatus
-mjit::Compiler::addInlineFrame(JSScript *script, uint32_t depth,
+mjit::Compiler::addInlineFrame(HandleScript script, uint32_t depth,
                                uint32_t parent, jsbytecode *parentpc)
 {
     JS_ASSERT(inlining());
@@ -271,7 +271,7 @@ mjit::Compiler::scanInlineCalls(uint32_t index, uint32_t depth)
                 okay = false;
                 break;
             }
-            JSScript *script = fun->script();
+            RootedScript script(cx, fun->script());
 
             
 
@@ -280,6 +280,12 @@ mjit::Compiler::scanInlineCalls(uint32_t index, uint32_t depth)
 
 
             if (!script->hasAnalysis() || !script->analysis()->ranInference()) {
+                okay = false;
+                break;
+            }
+
+            
+            if (script->hasScriptCounts != outerScript->hasScriptCounts) {
                 okay = false;
                 break;
             }
@@ -359,7 +365,7 @@ mjit::Compiler::scanInlineCalls(uint32_t index, uint32_t depth)
                 continue;
 
             JSFunction *fun = obj->toFunction();
-            JSScript *script = fun->script();
+            RootedScript script(cx, fun->script());
 
             CompileStatus status = addInlineFrame(script, nextDepth, index, pc);
             if (status != Compile_Okay)
@@ -1140,7 +1146,7 @@ mjit::Compiler::generatePrologue()
 
 
 
-        if (script->argumentsHasLocalBinding()) {
+        if (script->argumentsHasVarBinding()) {
             Jump hasArgs = masm.branchTest32(Assembler::NonZero, FrameFlagsAddress(),
                                              Imm32(StackFrame::UNDERFLOW_ARGS |
                                                    StackFrame::OVERFLOW_ARGS));
@@ -1208,17 +1214,11 @@ mjit::Compiler::generatePrologue()
         }
     }
 
-    if (debugMode()) {
-        prepareStubCall(Uses(0));
-        INLINE_STUBCALL(stubs::ScriptDebugPrologue, REJOIN_RESUME);
-    } else if (Probes::callTrackingActive(cx)) {
-        prepareStubCall(Uses(0));
-        INLINE_STUBCALL(stubs::ScriptProbeOnlyPrologue, REJOIN_RESUME);
-    }
+    CompileStatus status = methodEntryHelper();
+    if (status == Compile_Okay)
+        recompileCheckHelper();
 
-    recompileCheckHelper();
-
-    return Compile_Okay;
+    return status;
 }
 
 void
@@ -3777,7 +3777,7 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
     
     JS_ASSERT_IF(fe, fe == frame.peek(-1));
 
-    if (debugMode() || Probes::callTrackingActive(cx)) {
+    if (debugMode()) {
         
         if (fe) {
             frame.storeTo(fe, Address(JSFrameReg, StackFrame::offsetOfReturnValue()), true);
@@ -3798,6 +3798,9 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
     }
 
     if (a != outer) {
+        JS_ASSERT(!debugMode());
+        profilingPopHelper();
+
         
 
 
@@ -3837,8 +3840,12 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
     if (debugMode()) {
         prepareStubCall(Uses(0));
         INLINE_STUBCALL(stubs::Epilogue, REJOIN_NONE);
-    } else if (script->function() && script->nesting()) {
-        masm.sub32(Imm32(1), AbsoluteAddress(&script->nesting()->activeFrames));
+    } else {
+        profilingPopHelper();
+
+        if (script->function() && script->nesting()) {
+            masm.sub32(Imm32(1), AbsoluteAddress(&script->nesting()->activeFrames));
+        }
     }
 
     emitReturnValue(&masm, fe);
@@ -3945,6 +3952,78 @@ mjit::Compiler::recompileCheckHelper()
 
     OOL_STUBCALL(stubs::RecompileForInline, REJOIN_RESUME);
     stubcc.rejoin(Changes(0));
+}
+
+CompileStatus
+mjit::Compiler::methodEntryHelper()
+{
+    if (debugMode()) {
+        prepareStubCall(Uses(0));
+        INLINE_STUBCALL(stubs::ScriptDebugPrologue, REJOIN_RESUME);
+    } else if (Probes::callTrackingActive(cx)) {
+        prepareStubCall(Uses(0));
+        INLINE_STUBCALL(stubs::ScriptProbeOnlyPrologue, REJOIN_RESUME);
+    } else {
+        return profilingPushHelper();
+    }
+    return Compile_Okay;
+}
+
+CompileStatus
+mjit::Compiler::profilingPushHelper()
+{
+    SPSProfiler *p = &cx->runtime->spsProfiler;
+    if (!p->enabled())
+        return Compile_Okay;
+    
+    const char *str = p->profileString(cx, script, script->function());
+    if (str == NULL)
+        return Compile_Error;
+
+    
+    RegisterID size = frame.allocReg();
+    RegisterID base = frame.allocReg();
+    masm.load32(p->size(), size);
+    Jump j = masm.branch32(Assembler::GreaterThanOrEqual, size,
+                           Imm32(p->maxSize()));
+
+    
+    masm.move(ImmPtr(p->stack()), base);
+    JS_STATIC_ASSERT(sizeof(ProfileEntry) == 2 * sizeof(void*));
+    masm.lshift32(Imm32(sizeof(void*) == 4 ? 3 : 4), size);
+    masm.addPtr(size, base);
+
+    masm.storePtr(ImmPtr(str), Address(base, offsetof(ProfileEntry, string)));
+    masm.storePtr(ImmPtr(NULL), Address(base, offsetof(ProfileEntry, sp)));
+
+    frame.freeReg(base);
+    frame.freeReg(size);
+
+    
+    j.linkTo(masm.label(), &masm);
+    masm.add32(Imm32(1), AbsoluteAddress(p->size()));
+
+    
+    RegisterID reg = frame.allocReg();
+    masm.load32(FrameFlagsAddress(), reg);
+    masm.or32(Imm32(StackFrame::HAS_PUSHED_SPS_FRAME), reg);
+    masm.store32(reg, FrameFlagsAddress());
+    frame.freeReg(reg);
+
+    return Compile_Okay;
+}
+
+void
+mjit::Compiler::profilingPopHelper()
+{
+    if (Probes::callTrackingActive(cx) ||
+        cx->runtime->spsProfiler.slowAssertionsEnabled())
+    {
+        prepareStubCall(Uses(0));
+        INLINE_STUBCALL(stubs::ScriptProbeOnlyEpilogue, REJOIN_RESUME);
+    } else if (cx->runtime->spsProfiler.enabled()) {
+        masm.sub32(Imm32(1), AbsoluteAddress(cx->runtime->spsProfiler.size()));
+    }
 }
 
 void
@@ -4469,7 +4548,7 @@ mjit::Compiler::inlineScriptedFunction(uint32_t argc, bool callingNew)
     for (unsigned i = 0; i < inlineCallees.length(); i++) {
         if (entrySnapshot)
             frame.restoreFromSnapshot(entrySnapshot);
-
+        
         JSScript *script = inlineCallees[i];
         CompileStatus status;
 
@@ -4510,7 +4589,10 @@ mjit::Compiler::inlineScriptedFunction(uint32_t argc, bool callingNew)
 
         markUndefinedLocals();
 
-        status = generateMethod();
+        status = methodEntryHelper();
+        if (status == Compile_Okay)
+            status = generateMethod();
+
         if (status != Compile_Okay) {
             popActiveFrame();
             if (status == Compile_Abort) {
@@ -5124,14 +5206,13 @@ mjit::Compiler::testSingletonProperty(HandleObject obj, HandleId id)
         nobj = nobj->getProto();
     }
 
-    JSObject *holder;
-    JSProperty *prop = NULL;
-    if (!obj->lookupGeneric(cx, id, &holder, &prop))
+    RootedObject holder(cx);
+    RootedShape shape(cx);
+    if (!obj->lookupGeneric(cx, id, &holder, &shape))
         return false;
-    if (!prop)
+    if (!shape)
         return false;
 
-    Shape *shape = (Shape *) prop;
     if (shape->hasDefaultGetter()) {
         if (!shape->hasSlot())
             return false;
@@ -5199,7 +5280,7 @@ mjit::Compiler::testSingletonPropertyTypes(FrameEntry *top, HandleId id, bool *t
     }
 
     RootedObject proto(cx);
-    if (!js_GetClassPrototype(cx, globalObj, key, proto.address(), NULL))
+    if (!js_GetClassPrototype(cx, globalObj, key, &proto, NULL))
         return false;
 
     return testSingletonProperty(proto, id);
@@ -5219,7 +5300,7 @@ mjit::Compiler::jsop_getprop_dispatch(PropertyName *name)
         return false;
 
     RootedId id(cx, NameToId(name));
-    if (id.reference() != types::MakeTypeId(cx, id))
+    if (id.get() != types::MakeTypeId(cx, id))
         return false;
 
     types::TypeSet *pushedTypes = pushedTypeSet(0);
@@ -5900,8 +5981,6 @@ mjit::Compiler::jsop_aliasedVar(ScopeCoordinate sc, bool get, bool poppedAfter)
     for (unsigned i = 0; i < sc.hops; i++)
         masm.loadPayload(Address(reg, ScopeObject::offsetOfEnclosingScope()), reg);
 
-    unsigned slot = ScopeObject::CALL_BLOCK_RESERVED_SLOTS + sc.slot;
-
     
 
 
@@ -5916,11 +5995,11 @@ mjit::Compiler::jsop_aliasedVar(ScopeCoordinate sc, bool get, bool poppedAfter)
 
 
         uint32_t nfixed = gc::GetGCKindSlots(BlockObject::FINALIZE_KIND);
-        if (nfixed <= slot) {
+        if (nfixed <= sc.slot) {
             masm.loadPtr(Address(reg, JSObject::offsetOfSlots()), reg);
-            addr = Address(reg, (slot - nfixed) * sizeof(Value));
+            addr = Address(reg, (sc.slot - nfixed) * sizeof(Value));
         } else {
-            addr = Address(reg, JSObject::getFixedSlotOffset(slot));
+            addr = Address(reg, JSObject::getFixedSlotOffset(sc.slot));
         }
     } else {
         
@@ -5928,17 +6007,17 @@ mjit::Compiler::jsop_aliasedVar(ScopeCoordinate sc, bool get, bool poppedAfter)
 
 
 
-        if (script->bindings.lastShape()->numFixedSlots() <= slot) {
+        if (script->bindings.lastShape()->numFixedSlots() <= sc.slot) {
             masm.loadPtr(Address(reg, JSObject::offsetOfSlots()), reg);
-            addr = Address(reg, sc.slot * sizeof(Value));
+            addr = Address(reg, (sc.slot - CallObject::RESERVED_SLOTS) * sizeof(Value));
         } else {
-            addr = Address(reg, JSObject::getFixedSlotOffset(slot));
+            addr = Address(reg, JSObject::getFixedSlotOffset(sc.slot));
         }
     }
 
     if (get) {
         unsigned index;
-        FrameEntry *fe = ScopeCoordinateToFrameVar(script, PC, &index) == FrameVar_Local
+        FrameEntry *fe = ScopeCoordinateToFrameIndex(script, PC, &index) == FrameIndex_Local
                          ? frame.getLocal(index)
                          : frame.getArg(index);
         JSValueType type = fe->isTypeKnown() ? fe->getKnownType() : JSVAL_TYPE_UNKNOWN;
@@ -6341,7 +6420,7 @@ mjit::Compiler::jsop_getgname(uint32_t index)
 
 
 
-        const js::Shape *shape = globalObj->nativeLookup(cx, NameToId(name));
+        js::Shape *shape = globalObj->nativeLookup(cx, NameToId(name));
         if (shape && shape->hasDefaultGetter() && shape->hasSlot()) {
             HeapSlot *value = &globalObj->getSlotRef(shape->slot());
             if (!value->isUndefined() &&
@@ -6464,7 +6543,7 @@ mjit::Compiler::jsop_setgname(PropertyName *name, bool popGuaranteed)
         types::TypeSet *types = globalObj->getType(cx)->getProperty(cx, id, false);
         if (!types)
             return false;
-        const js::Shape *shape = globalObj->nativeLookup(cx, NameToId(name));
+        js::Shape *shape = globalObj->nativeLookup(cx, NameToId(name));
         if (shape && shape->hasDefaultSetter() &&
             shape->writable() && shape->hasSlot() &&
             !types->isOwnProperty(cx, globalObj->getType(cx), true)) {
@@ -7016,6 +7095,28 @@ mjit::Compiler::finishLoop(jsbytecode *head)
             if (a->varTypes[slot].getTypeTag(cx) == JSVAL_TYPE_DOUBLE) {
                 FrameEntry *fe = frame.getSlotEntry(slot);
                 stubcc.masm.ensureInMemoryDouble(frame.addressOf(fe));
+            }
+        }
+
+        
+
+
+
+        const SlotValue *newv = analysis->newValues(head);
+        if (newv) {
+            while (newv->slot) {
+                if (newv->value.kind() == SSAValue::PHI &&
+                    newv->value.phiOffset() == uint32_t(head - script->code) &&
+                    analysis->trackSlot(newv->slot))
+                {
+                    JS_ASSERT(newv->slot < TotalSlots(script));
+                    types::TypeSet *targetTypes = analysis->getValueTypes(newv->value);
+                    if (targetTypes->getKnownTypeTag(cx) == JSVAL_TYPE_DOUBLE) {
+                        FrameEntry *fe = frame.getSlotEntry(newv->slot);
+                        stubcc.masm.ensureInMemoryDouble(frame.addressOf(fe));
+                    }
+                }
+                newv++;
             }
         }
 

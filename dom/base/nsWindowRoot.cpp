@@ -1,13 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsWindowRoot.h"
 #include "nsPIDOMWindow.h"
-#include "nsIDOMDocument.h"
-#include "nsIDocument.h"
 #include "nsEventListenerManager.h"
 #include "nsPresContext.h"
 #include "nsLayoutCID.h"
@@ -155,8 +153,8 @@ nsresult
 nsWindowRoot::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = true;
-  aVisitor.mForceContentDispatch = true; //FIXME! Bug 329119
-  // To keep mWindow alive
+  aVisitor.mForceContentDispatch = true; 
+  
   aVisitor.mItemData = static_cast<nsISupports *>(mWindow);
   aVisitor.mParentTarget = mParent;
   return NS_OK;
@@ -179,9 +177,9 @@ nsWindowRoot::GetControllers(nsIControllers** aResult)
 {
   *aResult = nsnull;
 
-  // XXX: we should fix this so there's a generic interface that
-  // describes controllers, so this code would have no special
-  // knowledge of what object might have controllers.
+  
+  
+  
 
   nsCOMPtr<nsPIDOMWindow> focusedWindow;
   nsIContent* focusedContent =
@@ -250,7 +248,7 @@ nsWindowRoot::GetControllerForCommand(const char * aCommand,
       }
     }
 
-    // XXXndeakin P3 is this casting safe?
+    
     nsGlobalWindow *win = static_cast<nsGlobalWindow*>(focusedWindow.get());
     focusedWindow = win->GetPrivateParent();
   }
@@ -270,7 +268,7 @@ nsWindowRoot::SetPopupNode(nsIDOMNode* aNode)
   mPopupNode = aNode;
 }
 
-///////////////////////////////////////////////////////////////////////////////////
+
 
 nsresult
 NS_NewWindowRoot(nsPIDOMWindow* aWindow, nsIDOMEventTarget** aResult)

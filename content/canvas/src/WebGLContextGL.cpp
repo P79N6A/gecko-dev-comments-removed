@@ -4954,12 +4954,16 @@ WebGLContext::CompileShader(WebGLShader *shader)
             compileOptions |= SH_OBJECT_CODE
                             | SH_MAP_LONG_VARIABLE_NAMES;
 #ifdef XP_MACOSX
-            
-            if (gl->WorkAroundDriverBugs() &&
-                !nsCocoaFeatures::OnLionOrLater() &&
-                gl->Vendor() == gl::GLContext::VendorATI)
-            {
-                compileOptions |= SH_EMULATE_BUILT_IN_FUNCTIONS;
+            if (gl->WorkAroundDriverBugs()) {
+                
+                if (gl->Vendor() == gl::GLContext::VendorATI) {
+                    compileOptions |= SH_EMULATE_BUILT_IN_FUNCTIONS;
+                }
+
+                
+                if (gl->Vendor() == gl::GLContext::VendorIntel) {
+                    compileOptions |= SH_EMULATE_BUILT_IN_FUNCTIONS;
+                }
             }
 #endif
         }

@@ -470,7 +470,7 @@ public:
 
 
 
-  static gfxMatrix GetCanvasTM(nsIFrame* aFrame);
+  static gfxMatrix GetCanvasTM(nsIFrame* aFrame, PRUint32 aFor);
 
   
 
@@ -481,7 +481,7 @@ public:
 
 
 
-  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame);
+  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame, PRUint32 aFor);
 
   
 

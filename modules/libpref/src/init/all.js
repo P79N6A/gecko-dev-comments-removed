@@ -325,6 +325,9 @@ pref("toolkit.telemetry.infoURL", "http://www.mozilla.com/legal/privacy/firefox.
 pref("toolkit.telemetry.debugSlowSql", false);
 
 
+pref("toolkit.identity.debug", false);
+
+
 pref("devtools.debugger.log", false);
 
 pref("devtools.debugger.remote-enabled", false);
@@ -645,6 +648,9 @@ pref("dom.new_bindings", true);
 pref("dom.experimental_bindings", true);
 
 
+pref("dom.experimental_forms", false);
+
+
 #ifndef XP_WIN
 pref("content.sink.pending_event_mode", 0);
 #endif
@@ -918,6 +924,10 @@ pref("network.websocket.max-connections", 200);
 
 
 pref("network.websocket.allowInsecureFromHTTPS", false);
+
+
+
+pref("network.websocket.delay-failed-reconnects", true);
 
 
 
@@ -1618,6 +1628,8 @@ pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
 pref("dom.ipc.plugins.java.enabled", false);
+
+pref("dom.ipc.plugins.flash.subprocess.crashreporter.enabled", true);
 
 #ifndef ANDROID
 #ifndef XP_MACOSX
@@ -3542,6 +3554,9 @@ pref("full-screen-api.exit-on-deactivate", true);
 pref("full-screen-api.pointer-lock.enabled", true);
 
 
+pref("dom.idle-observers-api.enabled", true);
+
+
 
 pref("dom.event.handling-user-input-time-limit", 1000);
  
@@ -3562,6 +3577,9 @@ pref("dom.sms.whitelist", "");
 
 pref("dom.mozContacts.enabled", false);
 pref("dom.mozContacts.whitelist", "");
+
+
+pref("dom.mozAlarms.enabled", false);
 
 
 pref("dom.mozSettings.enabled", false);

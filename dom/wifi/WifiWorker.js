@@ -32,7 +32,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gNetworkManager",
 
 
 var WifiManager = (function() {
-  function getSdkVersion() {
+  function getSdkVersionAndDevice() {
     Cu.import("resource://gre/modules/ctypes.jsm");
     try {
       let cutils = ctypes.open("libcutils.so");
@@ -49,7 +49,8 @@ var WifiManager = (function() {
         c_property_get(key, cbuf, defaultValue);
         return cbuf.readString();
       }
-      return parseInt(property_get("ro.build.version.sdk"));
+      return { sdkVersion: parseInt(property_get("ro.build.version.sdk")),
+               device: property_get("ro.product.device") };
     } catch(e) {
       
       
@@ -58,7 +59,7 @@ var WifiManager = (function() {
     }
   }
 
-  let sdkVersion = getSdkVersion();
+  let { sdkVersion, device } = getSdkVersionAndDevice();
 
   var controlWorker = new ChromeWorker(WIFIWORKER_WORKER);
   var eventWorker = new ChromeWorker(WIFIWORKER_WORKER);
@@ -582,13 +583,13 @@ var WifiManager = (function() {
         retryTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
       retryTimer.initWithCallback(function(timer) {
-          connectToSupplicant(connectCallback);
-        }, 5000, Ci.nsITimer.TYPE_ONE_SHOT);
+        connectToSupplicant(connectCallback);
+      }, 5000, Ci.nsITimer.TYPE_ONE_SHOT);
       return;
     }
 
     retryTimer = null;
-    notify("supplicantlost");
+    notify("supplicantfailed");
   }
 
   manager.connectionDropped = function(callback) {
@@ -719,8 +720,10 @@ var WifiManager = (function() {
 
       
       
-      if (fields.state === "ASSOCIATING" || fields.state == "ASSOCIATED")
+      
+      if (fields.BSSID !== "00:00:00:00:00:00")
         manager.connectionInfo.bssid = fields.BSSID;
+
       notifyStateChange(fields);
       return true;
     }
@@ -734,8 +737,11 @@ var WifiManager = (function() {
       
       
       
-      if (eventData.indexOf("connection closed") !== -1)
+      
+      if (eventData.indexOf("connection closed") !== -1) {
+        notify("supplicantlost");
         return false;
+      }
 
       
       
@@ -828,6 +834,8 @@ var WifiManager = (function() {
           
           debug("Successfully connected!");
 
+          manager.supplicantStarted = true;
+
           
           
           
@@ -850,14 +858,14 @@ var WifiManager = (function() {
 
   
   manager.state = "UNINITIALIZED";
+  manager.enabled = false;
+  manager.supplicantStarted = false;
   manager.connectionInfo = { ssid: null, bssid: null, id: -1 };
-  manager.enabled = true;
 
   
   manager.setWifiEnabled = function(enable, callback) {
-    if ((enable && manager.state !== "UNINITIALIZED") ||
-        (!enable && manager.state === "UNINITIALIZED")) {
-      callback(0);
+    if (enable === manager.enabled) {
+      callback("no change");
       return;
     }
 
@@ -892,15 +900,34 @@ var WifiManager = (function() {
               callback(status);
               return;
             }
-            startSupplicant(function (status) {
-              if (status < 0) {
-                callback(status);
-                return;
-              }
-              enableInterface(ifname, function (ok) {
-                callback(ok ? 0 : -1);
+
+            let timer;
+            function doStartSupplicant() {
+              timer = null;
+              startSupplicant(function (status) {
+                if (status < 0) {
+                  unloadDriver(function() {
+                    callback(status);
+                  });
+                  return;
+                }
+
+                manager.supplicantStarted = true;
+                enableInterface(ifname, function (ok) {
+                  callback(ok ? 0 : -1);
+                });
               });
-            });
+            }
+
+            
+            
+            
+            if (device === "otoro") {
+              timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+              timer.init(doStartSupplicant, 2000, Ci.nsITimer.TYPE_ONE_SHOT);
+            } else {
+              doStartSupplicant();
+            }
           });
         });
       });
@@ -1109,7 +1136,26 @@ function ScanResult(ssid, bssid, flags, signal) {
   this.capabilities = getKeyManagement(flags);
   this.signalStrength = signal;
   this.relSignalStrength = calculateSignal(Number(signal));
+
+  this.__exposedProps__ = ScanResult.api;
 }
+
+
+
+ScanResult.api = {
+  ssid: "r",
+  bssid: "r",
+  capabilities: "r",
+  signalStrength: "r",
+  relSignalStrength: "r",
+  connected: "r",
+
+  keyManagement: "rw",
+  psk: "rw",
+  identity: "rw",
+  password: "rw",
+  wep: "rw"
+};
 
 function quote(s) {
   return '"' + s + '"';
@@ -1200,6 +1246,9 @@ function WifiWorker() {
   this._reconnectOnDisconnect = false;
 
   
+  this._stateRequests = [];
+
+  
   
   netToDOM = function(net) {
     var pub = { ssid: dequote(net.ssid) };
@@ -1266,6 +1315,7 @@ function WifiWorker() {
 
   WifiManager.onsupplicantconnection = function() {
     debug("Connected to supplicant");
+    WifiManager.enabled = true;
     WifiManager.getMacAddress(function (mac) {
       debug("Got mac: " + mac);
     });
@@ -1276,9 +1326,30 @@ function WifiWorker() {
         return;
       self.waitForScan(function firstScan() {});
     });
+
+    
+    if (self._stateRequests.length > 0)
+      self._notifyAfterStateChange(true, true);
+
+    
+    self._fireEvent("wifiUp", {});
   }
   WifiManager.onsupplicantlost = function() {
+    WifiManager.enabled = WifiManager.supplicantStarted = false;
     debug("Supplicant died!");
+
+    
+    if (self._stateRequests.length > 0)
+      self._notifyAfterStateChange(true, false);
+
+    
+    self._fireEvent("wifiDown", {});
+  }
+  WifiManager.onsupplicantfailed = function() {
+    WifiManager.enabled = WifiManager.supplicantStarted = false;
+    debug("Couldn't connect to supplicant");
+    if (self._stateRequests.length > 0)
+      self._notifyAfterStateChange(false, false);
   }
 
   WifiManager.onstatechange = function() {
@@ -1451,11 +1522,11 @@ function WifiWorker() {
   }
 
   WifiManager.setWifiEnabled(true, function (ok) {
-      if (ok === 0)
-        WifiManager.start();
-      else
-        debug("Couldn't start Wifi");
-    });
+    if (ok === 0)
+      WifiManager.start();
+    else
+      debug("Couldn't start Wifi");
+  });
 
   debug("Wifi starting");
 }
@@ -1690,7 +1761,7 @@ WifiWorker.prototype = {
         let net = this.currentNetwork ? netToDOM(this.currentNetwork) : null;
         return { network: net,
                  connectionInfo: this._lastConnectionInfo,
-                 enabled: WifiManager.state !== "UNINITIALIZED",
+                 enabled: WifiManager.enabled,
                  status: translateState(WifiManager.state) };
       }
     }
@@ -1709,13 +1780,66 @@ WifiWorker.prototype = {
     WifiManager.scan(true, function() {});
   },
 
+  _notifyAfterStateChange: function(success, newState) {
+    
+    let state = this._stateRequests[0].enabled;
+
+    
+    
+    if (!success || state === newState) {
+      do {
+        let req = this._stateRequests.shift();
+        this._sendMessage("WifiManager:setEnabled:Return",
+                          success, state, req.rid, req.mid);
+
+        
+      } while (success &&
+               this._stateRequests.length &&
+               this._stateRequests[0].enabled === state);
+    }
+
+    
+    if (this._stateRequests.length > 0) {
+      let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      let self = this;
+      timer.initWithCallback(function(timer) {
+        WifiManager.setWifiEnabled(self._stateRequests[0].enabled,
+                                   self._setWifiEnabledCallback.bind(this));
+        timer = null;
+      }, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+  },
+
+  _setWifiEnabledCallback: function(status) {
+    if (status === "no change") {
+      this._notifyAfterStateChange(true, this._stateRequests[0].enabled);
+      return;
+    }
+
+    if (status) {
+      
+      
+      this._notifyAfterStateChange(false, this._stateRequests[0].enabled);
+      return;
+    }
+
+    
+    
+    
+    if (WifiManager.supplicantStarted)
+      WifiManager.start();
+  },
+
   setWifiEnabled: function(enable, rid, mid) {
-    WifiManager.setWifiEnabled(enable, (function (status) {
-      if (enable && status === 0)
-        WifiManager.start();
-      this._sendMessage("WifiManager:setEnabled:Return",
-                        (status === 0), enable, rid, mid);
-    }).bind(this));
+    
+    
+    
+    
+    
+    
+    this._stateRequests.push({ enabled: enable, rid: rid, mid: mid });
+    if (this._stateRequests.length === 1)
+      WifiManager.setWifiEnabled(enable, this._setWifiEnabledCallback.bind(this));
   },
 
   associate: function(network, rid, mid) {

@@ -26,18 +26,6 @@
 
 namespace js {
 
-
-
-
-
-
-
-
-
-#define CATCHNOTE(stmt)  ((stmt).update)
-#define GOSUBS(stmt)     ((stmt).breaks)
-#define GUARDJUMP(stmt)  ((stmt).continues)
-
 struct TryNode {
     JSTryNote       note;
     TryNode       *prev;
@@ -63,8 +51,12 @@ class GCConstList {
     void finish(ConstArray *array);
 };
 
+class StmtInfoBCE;
+
 struct BytecodeEmitter
 {
+    typedef StmtInfoBCE StmtInfo;
+
     SharedContext   *const sc;      
 
     BytecodeEmitter *const parent;  
@@ -85,6 +77,11 @@ struct BytecodeEmitter
     Parser          *const parser;  
 
     StackFrame      *const callerFrame; 
+
+    StmtInfoBCE     *topStmt;       
+    StmtInfoBCE     *topScopeStmt;  
+    Rooted<StaticBlockObject *> blockChain;
+                                    
 
     OwnedAtomIndexMapPtr atomIndices; 
     unsigned        firstLine;      
@@ -156,18 +153,11 @@ struct BytecodeEmitter
         return true;
     }
 
-    bool checkSingletonContext() {
-        if (!script->compileAndGo || sc->inFunction())
-            return false;
-        for (StmtInfo *stmt = sc->topStmt; stmt; stmt = stmt->down) {
-            if (STMT_IS_LOOP(stmt))
-                return false;
-        }
-        hasSingletons = true;
-        return true;
-    }
+    bool checkSingletonContext();
 
     bool needsImplicitThis();
+
+    void tellDebuggerAboutCompiledScript(JSContext *cx);
 
     TokenStream *tokenStream() { return &parser->tokenStream; }
 
@@ -225,8 +215,6 @@ EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
 
 
 
-JSBool
-PopStatementBCE(JSContext *cx, BytecodeEmitter *bce);
 
 
 
@@ -234,25 +222,19 @@ PopStatementBCE(JSContext *cx, BytecodeEmitter *bce);
 
 
 
-
-
-
-
-
-
-JSBool
+bool
 DefineCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, ParseNode *pn);
 
 
 
 
-JSBool
+bool
 EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn);
 
 
 
 
-JSBool
+bool
 EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *body);
 
 } 
@@ -422,7 +404,7 @@ NewSrcNote3(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t off
 jssrcnote *
 AddToSrcNoteDelta(JSContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t delta);
 
-JSBool
+bool
 FinishTakingSrcNotes(JSContext *cx, BytecodeEmitter *bce, jssrcnote *notes);
 
 void

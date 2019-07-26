@@ -49,6 +49,7 @@ nsHttpConnection::nsHttpConnection()
     , mTotalBytesWritten(0)
     , mKeepAlive(true) 
     , mKeepAliveMask(true)
+    , mDontReuse(false)
     , mSupportsPipelining(false) 
     , mIsReused(false)
     , mCompletedProxyConnect(false)
@@ -516,6 +517,7 @@ nsHttpConnection::DontReuse()
 {
     mKeepAliveMask = false;
     mKeepAlive = false;
+    mDontReuse = true;
     mIdleTimeout = 0;
     if (mSpdySession)
         mSpdySession->DontReuse();
@@ -532,12 +534,15 @@ nsHttpConnection::SupportsPipelining()
              this, mTransaction->PipelineDepth(), mRemainingConnectionUses));
         return false;
     }
-    return mSupportsPipelining && IsKeepAlive();
+    return mSupportsPipelining && IsKeepAlive() && !mDontReuse;
 }
 
 bool
 nsHttpConnection::CanReuse()
 {
+    if (mDontReuse)
+        return false;
+
     if ((mTransaction ? mTransaction->PipelineDepth() : 0) >=
         mRemainingConnectionUses) {
         return false;
@@ -962,24 +967,23 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
 
     PRUint32 pipelineDepth = mTransaction->PipelineDepth();
 
-    if (delta >= gHttpHandler->GetPipelineRescheduleTimeout()) {
+    if (delta >= gHttpHandler->GetPipelineRescheduleTimeout() &&
+        pipelineDepth > 1) {
 
         
         
         LOG(("cancelling pipeline due to a %ums stall - depth %d\n",
              PR_IntervalToMilliseconds(delta), pipelineDepth));
 
-        if (pipelineDepth > 1) {
-            nsHttpPipeline *pipeline = mTransaction->QueryPipeline();
-            NS_ABORT_IF_FALSE(pipeline, "pipelinedepth > 1 without pipeline");
-            
-            
-            
-            if (pipeline) {
-                pipeline->CancelPipeline(NS_ERROR_NET_TIMEOUT);
-                LOG(("Rescheduling the head of line blocked members of a pipeline "
-                     "because reschedule-timeout idle interval exceeded"));
-            }
+        nsHttpPipeline *pipeline = mTransaction->QueryPipeline();
+        NS_ABORT_IF_FALSE(pipeline, "pipelinedepth > 1 without pipeline");
+        
+        
+        
+        if (pipeline) {
+            pipeline->CancelPipeline(NS_ERROR_NET_TIMEOUT);
+            LOG(("Rescheduling the head of line blocked members of a pipeline "
+                 "because reschedule-timeout idle interval exceeded"));
         }
     }
 

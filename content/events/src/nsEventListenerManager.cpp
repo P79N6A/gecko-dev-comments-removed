@@ -213,14 +213,20 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
   ls->mListener = aListener;
   ls->mEventType = aType;
   ls->mTypeAtom = aTypeAtom;
-  ls->mWrappedJS = false;
   ls->mFlags = aFlags;
   ls->mHandlerIsString = false;
 
-  nsCOMPtr<nsIXPConnectWrappedJS> wjs = do_QueryInterface(aListener);
-  if (wjs) {
-    ls->mWrappedJS = true;
+  
+  nsCOMPtr<nsIXPConnectWrappedJS> wjs;
+  if (aFlags & NS_PRIV_EVENT_FLAG_SCRIPT) {
+    ls->mListenerType = eJSEventListener;
+  } else if ((wjs = do_QueryInterface(aListener))) {
+    ls->mListenerType = eWrappedJSListener;
+  } else {
+    ls->mListenerType = eNativeListener;
   }
+
+
   if (aFlags & NS_EVENT_FLAG_SYSTEM_EVENT) {
     mMayHaveSystemGroupListeners = true;
   }
@@ -276,7 +282,9 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
               aTypeAtom == nsGkAtoms::ontouchcancel)) {
     mMayHaveTouchEventListener = true;
     nsPIDOMWindow* window = GetInnerWindowForTarget();
-    if (window)
+    
+    
+    if (window && !(aFlags & NS_EVENT_FLAG_SYSTEM_EVENT))
       window->SetHasTouchEventListeners();
   } else if (aTypeAtom == nsGkAtoms::onmouseenter ||
              aTypeAtom == nsGkAtoms::onmouseleave) {
@@ -458,7 +466,8 @@ nsEventListenerManager::FindJSEventListener(PRUint32 aEventType,
   for (PRUint32 i = 0; i < count; ++i) {
     ls = &mListeners.ElementAt(i);
     if (EVENT_TYPE_EQUALS(ls, aEventType, aTypeAtom) &&
-        ls->mFlags & NS_PRIV_EVENT_FLAG_SCRIPT) {
+        (ls->mListenerType == eJSEventListener))
+    {
       return ls;
     }
   }
@@ -796,7 +805,7 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
 
   
   
-  if ((aListenerStruct->mFlags & NS_PRIV_EVENT_FLAG_SCRIPT) &&
+  if ((aListenerStruct->mListenerType == eJSEventListener) &&
       aListenerStruct->mHandlerIsString) {
     nsIJSEventListener *jslistener = aListenerStruct->GetJSListener();
     result = CompileEventHandlerInternal(aListenerStruct,
@@ -863,13 +872,28 @@ nsEventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
               break;
             }
           }
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          if (ls->mListenerType == eNativeListener) {
+            aPusher->Pop();
+          } else if (!aPusher->RePush(aCurrentTarget)) {
+            continue;
+          }
+
           nsRefPtr<nsIDOMEventListener> kungFuDeathGrip = ls->mListener;
-          if (aPusher->RePush(aCurrentTarget)) {
-            if (NS_FAILED(HandleEventSubType(ls, ls->mListener, *aDOMEvent,
-                                             aCurrentTarget, aFlags,
-                                             aPusher))) {
-              aEvent->flags |= NS_EVENT_FLAG_EXCEPTION_THROWN;
-            }
+          if (NS_FAILED(HandleEventSubType(ls, ls->mListener, *aDOMEvent,
+                                           aCurrentTarget, aFlags,
+                                           aPusher))) {
+            aEvent->flags |= NS_EVENT_FLAG_EXCEPTION_THROWN;
           }
         }
       }
@@ -992,7 +1016,7 @@ nsEventListenerManager::GetListenerInfo(nsCOMArray<nsIEventListenerInfo>* aList)
     bool allowsUntrusted = !!(ls.mFlags & NS_PRIV_EVENT_UNTRUSTED_PERMITTED);
     
     
-    if ((ls.mFlags & NS_PRIV_EVENT_FLAG_SCRIPT) && ls.mHandlerIsString) {
+    if ((ls.mListenerType == eJSEventListener) && ls.mHandlerIsString) {
       CompileEventHandlerInternal(const_cast<nsListenerStruct*>(&ls),
                                   true, nsnull);
     }
@@ -1107,7 +1131,7 @@ nsEventListenerManager::UnmarkGrayJSListeners()
     if (jsl) {
       xpc_UnmarkGrayObject(jsl->GetHandler());
       xpc_UnmarkGrayObject(jsl->GetEventScope());
-    } else if (ls.mWrappedJS) {
+    } else if (ls.mListenerType == eWrappedJSListener) {
       xpc_TryUnmarkWrappedGrayObject(ls.mListener);
     }
   }

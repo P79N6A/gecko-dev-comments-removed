@@ -4,14 +4,10 @@
 
 
 #include "nsIDOMHTMLAreaElement.h"
-#include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
 #include "nsILink.h"
 #include "nsGkAtoms.h"
-#include "nsStyleConsts.h"
 #include "nsIURL.h"
-#include "nsNetUtil.h"
-#include "nsReadableUtils.h"
 #include "nsIDocument.h"
 
 #include "Link.h"

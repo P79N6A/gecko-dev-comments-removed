@@ -65,6 +65,18 @@ public:
   virtual void UpdateBounds()=0;
 
   
+
+
+
+
+
+  enum RequestingCanvasTMFor {
+    FOR_PAINTING = 1,
+    FOR_HIT_TESTING,
+    FOR_OUTERSVG_TM
+  };
+
+  
   
   
   

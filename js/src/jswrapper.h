@@ -18,6 +18,26 @@ namespace js {
 class DummyFrameGuard;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class JS_FRIEND_API(Wrapper)
 {
     unsigned mFlags;
@@ -107,11 +127,13 @@ class JS_FRIEND_API(Wrapper)
 
 
 
-class JS_FRIEND_API(AbstractWrapper) : public Wrapper,
+
+
+class JS_FRIEND_API(IndirectWrapper) : public Wrapper,
                                        public IndirectProxyHandler
 {
   public:
-    explicit AbstractWrapper(unsigned flags);
+    explicit IndirectWrapper(unsigned flags);
 
     virtual BaseProxyHandler* toBaseProxyHandler() {
         return this;
@@ -142,12 +164,37 @@ class JS_FRIEND_API(AbstractWrapper) : public Wrapper,
 
 
 
-class JS_FRIEND_API(DirectWrapper) : public AbstractWrapper
+
+class JS_FRIEND_API(DirectWrapper) : public Wrapper, public DirectProxyHandler
 {
   public:
     explicit DirectWrapper(unsigned flags);
 
     virtual ~DirectWrapper();
+
+    virtual BaseProxyHandler* toBaseProxyHandler() {
+        return this;
+    }
+
+    virtual Wrapper *toWrapper() {
+        return this;
+    }
+
+    
+    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                       jsid id, bool set,
+                                       PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                          jsid id, bool set,
+                                          PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
+                                PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
+                                     AutoIdVector &props) MOZ_OVERRIDE;
+    virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id,
+                         bool *bp) MOZ_OVERRIDE;
+    virtual bool enumerate(JSContext *cx, JSObject *wrapper,
+                           AutoIdVector &props) MOZ_OVERRIDE;
 
     
     virtual bool has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp) MOZ_OVERRIDE;
@@ -286,6 +333,50 @@ IsCrossCompartmentWrapper(const JSObject *obj);
 
 void
 NukeCrossCompartmentWrapper(JSObject *wrapper);
+
+bool
+RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget);
+
+bool
+RemapAllWrappersForObject(JSContext *cx, JSObject *oldTarget,
+                          JSObject *newTarget);
+
+
+
+
+
+
+struct CompartmentFilter {
+    virtual bool match(JSCompartment *c) const = 0;
+};
+
+struct AllCompartments : public CompartmentFilter {
+    virtual bool match(JSCompartment *c) const { return true; }
+};
+
+struct ContentCompartmentsOnly : public CompartmentFilter {
+    virtual bool match(JSCompartment *c) const {
+        return !IsSystemCompartment(c);
+    }
+};
+
+struct SingleCompartment : public CompartmentFilter {
+    JSCompartment *ours;
+    SingleCompartment(JSCompartment *c) : ours(c) {}
+    virtual bool match(JSCompartment *c) const { return c == ours; }
+};
+
+struct CompartmentsWithPrincipals : public CompartmentFilter {
+    JSPrincipals *principals;
+    CompartmentsWithPrincipals(JSPrincipals *p) : principals(p) {}
+    virtual bool match(JSCompartment *c) const {
+        return JS_GetCompartmentPrincipals(c) == principals;
+    }
+};
+
+JS_FRIEND_API(bool)
+RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
+                  const CompartmentFilter &targetFilter);
 
 } 
 

@@ -27,6 +27,7 @@
 #include "nsIImageLoadingContent.h"
 #include "nsCSSRendering.h"
 #include "nsContentUtils.h"
+#include "mozilla/layers/ShadowLayers.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -349,8 +350,7 @@ public:
                                    LayerManager* aManager,
                                    const FrameLayerBuilder::ContainerParameters& aParameters)
   {
-    if (aManager->GetBackendType() != LayerManager::LAYERS_BASIC) {
-      
+    if (aManager->IsCompositingCheap()) {
       
       
       

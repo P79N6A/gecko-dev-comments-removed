@@ -1023,7 +1023,7 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 pref("devtools.errorconsole.enabled", false);
 
 
-pref("devtools.toolbar.enabled", false);
+pref("devtools.toolbar.enabled", true);
 pref("devtools.toolbar.visible", false);
 pref("devtools.gcli.allowSet", false);
 pref("devtools.commands.dir", "");
@@ -1074,6 +1074,11 @@ pref("devtools.ruleview.enabled", true);
 pref("devtools.scratchpad.enabled", true);
 
 
+
+
+pref("devtools.scratchpad.recentFilesMax", 10);
+
+
 pref("devtools.styleeditor.enabled", true);
 pref("devtools.styleeditor.transitions", true);
 
@@ -1098,7 +1103,7 @@ pref("devtools.hud.height", 0);
 
 
 
-pref("devtools.webconsole.position", "above");
+pref("devtools.webconsole.position", "below");
 
 
 pref("devtools.webconsole.filter.network", true);
@@ -1177,3 +1182,6 @@ pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
 
 pref("image.mem.max_decoded_image_kb", 256000);
+
+
+pref("social.manifest.motown", "{\"origin\":\"https://motown-dev.mozillalabs.com\",\"name\":\"MoTown\",\"workerURL\":\"https://motown-dev.mozillalabs.com/social/worker.js\"}");

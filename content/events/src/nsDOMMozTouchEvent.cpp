@@ -3,9 +3,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMMozTouchEvent.h"
-#include "nsGUIEvent.h"
-#include "nsContentUtils.h"
 
 nsDOMMozTouchEvent::nsDOMMozTouchEvent(nsPresContext* aPresContext, nsMozTouchEvent* aEvent)
   : nsDOMMouseEvent(aPresContext, aEvent ? aEvent : new nsMozTouchEvent(false, 0, nsnull, 0))

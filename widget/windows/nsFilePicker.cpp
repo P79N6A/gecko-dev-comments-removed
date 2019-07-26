@@ -564,14 +564,26 @@ nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
   return result;
 }
 
+
+
+
+
+
+
+
+
+
 bool
-nsFilePicker::ShowFolderPicker(const nsString& aInitialDir)
+nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
 {
   nsRefPtr<IFileOpenDialog> dialog;
   if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC,
                               IID_IFileOpenDialog,
-                              getter_AddRefs(dialog))))
+                              getter_AddRefs(dialog)))) {
+    aWasInitError = true;
     return false;
+  }
+  aWasInitError = false;
 
   
   dialog->Advise(this, &mFDECookie);
@@ -840,21 +852,35 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   return true;
 }
 
+
+
+
+
+
+
+
+
+
 bool
-nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
+nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
 {
   nsRefPtr<IFileDialog> dialog;
   if (mMode != modeSave) {
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC,
                                 IID_IFileOpenDialog,
-                                getter_AddRefs(dialog))))
+                                getter_AddRefs(dialog)))) {
+      aWasInitError = true;
       return false;
+    }
   } else {
     if (FAILED(CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC,
                                 IID_IFileSaveDialog,
-                                getter_AddRefs(dialog))))
+                                getter_AddRefs(dialog)))) {
+      aWasInitError = true;
       return false;
+    }
   }
+  aWasInitError = false;
 
   
   dialog->Advise(this, &mFDECookie);
@@ -1017,18 +1043,23 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
   mUnicodeFile.Truncate();
   mFiles.Clear();
 
-  bool result = false;
-   if (mMode == modeGetFolder) {
+  
+  
+  
+  
+  
+  bool result = false, wasInitError = true;
+  if (mMode == modeGetFolder) {
     if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION)
-      result = ShowFolderPicker(initialDir);
-    else
+      result = ShowFolderPicker(initialDir, wasInitError);
+    if (!result && wasInitError)
       result = ShowXPFolderPicker(initialDir);
-   } else {
+  } else {
     if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION)
-      result = ShowFilePicker(initialDir);
-    else
+      result = ShowFilePicker(initialDir, wasInitError);
+    if (!result && wasInitError)
       result = ShowXPFilePicker(initialDir);
-   }
+  }
 
   
   if (!result)

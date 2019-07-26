@@ -167,18 +167,11 @@ XULTabsAccessible::GetNameInternal(nsAString& aName)
 
 
 
-XULTabpanelsAccessible::
-  XULTabpanelsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
-{
-}
-
 role
-XULTabpanelsAccessible::NativeRole()
+XULDeckAccessible::NativeRole()
 {
   return roles::PANE;
 }
-
 
 
 

@@ -4,9 +4,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMProgressEvent.h"
-#include "nsContentUtils.h"
-
 
 DOMCI_DATA(ProgressEvent, nsDOMProgressEvent)
 

@@ -210,13 +210,6 @@ class NormalArgumentsObject : public ArgumentsObject
 
     
     inline void clearCallee();
-
-    
-
-
-
-
-    static bool optimizedGetElem(JSContext *cx, StackFrame *fp, const Value &elem, Value *vp);
 };
 
 class StrictArgumentsObject : public ArgumentsObject

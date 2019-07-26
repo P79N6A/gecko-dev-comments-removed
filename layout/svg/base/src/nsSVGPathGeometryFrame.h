@@ -70,7 +70,7 @@ public:
 #endif
 
   
-  gfxMatrix GetCanvasTM();
+  gfxMatrix GetCanvasTM(PRUint32 aFor);
 
 protected:
   

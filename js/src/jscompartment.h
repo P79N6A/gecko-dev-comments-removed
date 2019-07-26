@@ -83,9 +83,9 @@ struct CrossCompartmentKey
         debugger(NULL),
         wrapped((js::gc::Cell *)wrapped.toGCThing()) {}
     CrossCompartmentKey(const RootedValue &wrapped)
-      : kind(wrapped.raw().isString() ? StringWrapper : ObjectWrapper),
+      : kind(wrapped.get().isString() ? StringWrapper : ObjectWrapper),
         debugger(NULL),
-        wrapped((js::gc::Cell *)wrapped.raw().toGCThing()) {}
+        wrapped((js::gc::Cell *)wrapped.get().toGCThing()) {}
     CrossCompartmentKey(Kind kind, JSObject *dbg, js::gc::Cell *wrapped)
       : kind(kind), debugger(dbg), wrapped(wrapped) {}
 };
@@ -125,12 +125,23 @@ struct JSCompartment
   private:
     js::GlobalObject             *global_;
   public:
-    js::GlobalObject &global() const {
-        JS_ASSERT(global_->compartment() == this);
-        return *global_;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    js::GlobalObject *maybeGlobal() const {
+        JS_ASSERT_IF(global_, global_->compartment() == this);
+        return global_;
     }
 
     void initGlobal(js::GlobalObject &global) {
+        JS_ASSERT(global.compartment() == this);
         JS_ASSERT(!global_);
         global_ = &global;
     }
@@ -170,7 +181,7 @@ struct JSCompartment
   public:
     bool isCollecting() const {
         
-        if (rt->gcRunning) {
+        if (rt->isHeapBusy()) {
             return gcState == GCRunning;
         } else {
             JS_ASSERT(gcState != GCRunning);
@@ -191,7 +202,7 @@ struct JSCompartment
     }
 
     void setCollecting(bool collecting) {
-        JS_ASSERT(rt->gcRunning);
+        JS_ASSERT(rt->isHeapBusy());
         if (collecting)
             gcState = GCRunning;
         else
@@ -199,13 +210,13 @@ struct JSCompartment
     }
 
     void scheduleGC() {
-        JS_ASSERT(!rt->gcRunning);
+        JS_ASSERT(!rt->isHeapBusy());
         JS_ASSERT(gcState != GCRunning);
         gcState = GCScheduled;
     }
 
     void unscheduleGC() {
-        JS_ASSERT(!rt->gcRunning);
+        JS_ASSERT(!rt->isHeapBusy());
         JS_ASSERT(gcState != GCRunning);
         gcState = NoGCScheduled;
     }
@@ -436,7 +447,7 @@ class js::AutoDebugModeGC
     }
 
     void scheduleGC(JSCompartment *compartment) {
-        JS_ASSERT(!rt->gcRunning);
+        JS_ASSERT(!rt->isHeapBusy());
         PrepareCompartmentForGC(compartment);
         needGC = true;
     }

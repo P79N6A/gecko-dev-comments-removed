@@ -3,10 +3,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMSimpleGestureEvent.h"
-#include "nsGUIEvent.h"
-#include "nsContentUtils.h"
-
 
 nsDOMSimpleGestureEvent::nsDOMSimpleGestureEvent(nsPresContext* aPresContext, nsSimpleGestureEvent* aEvent)
   : nsDOMMouseEvent(aPresContext, aEvent ? aEvent : new nsSimpleGestureEvent(false, 0, nsnull, 0, 0.0))

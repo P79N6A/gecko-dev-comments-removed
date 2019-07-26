@@ -111,12 +111,6 @@ public:
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
                                                        bool *aExists) = 0;
 
-  
-
-
-
-  bool InPrivateBrowsing() const { return mInPrivateBrowsing; }
-
 protected:
   
 
@@ -175,6 +169,11 @@ protected:
   
 
 
+  static nsresult DeleteTemporaryFileHelper(nsIFile* aTemporaryFile,
+                                            nsCOMArray<nsIFile> &aFileList);
+  
+
+
 
   void ExpungeTemporaryFiles();
   
@@ -192,10 +191,6 @@ protected:
 
 
   nsCOMArray<nsIFile> mTemporaryPrivateFilesList;
-  
-
-
-  bool mInPrivateBrowsing;
 };
 
 

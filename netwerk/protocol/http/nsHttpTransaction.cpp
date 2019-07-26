@@ -902,6 +902,7 @@ nsHttpTransaction::Restart()
     
     
     mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
+    SetPipelinePosition(0);
 
     return gHttpHandler->InitiateTransaction(this, mPriority);
 }

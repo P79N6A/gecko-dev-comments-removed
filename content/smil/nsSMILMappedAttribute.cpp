@@ -6,11 +6,9 @@
 
 #include "nsSMILMappedAttribute.h"
 #include "nsAttrValue.h"
-#include "nsPropertyTable.h"
 #include "nsContentErrors.h" 
 #include "nsSMILValue.h"
 #include "nsSMILCSSValueType.h"
-#include "nsIContent.h"
 #include "nsIDocument.h"
 #include "nsIPresShell.h"
 #include "nsCSSProps.h"

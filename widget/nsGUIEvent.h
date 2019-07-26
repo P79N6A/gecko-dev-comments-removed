@@ -218,6 +218,10 @@ class nsHashKey;
 
 #define NS_BEFORERESIZE_EVENT            (NS_WINDOW_START + 66)
 
+
+#define NS_MOZ_USER_IDLE                 (NS_WINDOW_START + 67)
+#define NS_MOZ_USER_ACTIVE               (NS_WINDOW_START + 68)
+
 #define NS_MOUSE_MESSAGE_START          300
 #define NS_MOUSE_MOVE                   (NS_MOUSE_MESSAGE_START)
 #define NS_MOUSE_BUTTON_UP              (NS_MOUSE_MESSAGE_START + 1)
@@ -832,9 +836,10 @@ public:
     return ((modifiers & mozilla::widget::MODIFIER_META) != 0);
   }
   
-  bool IsWin() const
+  
+  bool IsOS() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_WIN) != 0);
+    return ((modifiers & mozilla::widget::MODIFIER_OS) != 0);
   }
   
   
@@ -856,7 +861,7 @@ public:
   
   bool IsScrollLocked() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_SCROLL) != 0);
+    return ((modifiers & mozilla::widget::MODIFIER_SCROLLLOCK) != 0);
   }
 
   

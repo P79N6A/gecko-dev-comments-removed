@@ -21,6 +21,8 @@
 #include "nsPoint.h"
 #include "nsTArray.h"
 
+class nsRange;
+
 
 
 
@@ -132,12 +134,7 @@ public:
 
 
 
-
-
-
-  static nsresult ScrollSubstringTo(nsIFrame *aFrame,
-                                    nsIDOMNode *aStartNode, PRInt32 aStartIndex,
-                                    nsIDOMNode *aEndNode, PRInt32 aEndIndex,
+  static nsresult ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
                                     PRUint32 aScrollType);
 
   
@@ -148,12 +145,7 @@ public:
 
 
 
-
-
-
-  static nsresult ScrollSubstringTo(nsIFrame *aFrame,
-                                    nsIDOMNode *aStartNode, PRInt32 aStartIndex,
-                                    nsIDOMNode *aEndNode, PRInt32 aEndIndex,
+  static nsresult ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
                                     nsIPresShell::ScrollAxis aVertical,
                                     nsIPresShell::ScrollAxis aHorizontal);
 

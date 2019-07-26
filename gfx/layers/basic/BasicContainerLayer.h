@@ -73,96 +73,12 @@ ContainerRemoveChild(Layer* aChild, Container* aContainer)
     aContainer->mLastChild = prev;
   }
 
-  aChild->SetNextSibling(nullptr);
-  aChild->SetPrevSibling(nullptr);
-  aChild->SetParent(nullptr);
+  aChild->SetNextSibling(nsnull);
+  aChild->SetPrevSibling(nsnull);
+  aChild->SetParent(nsnull);
 
   aContainer->DidRemoveChild(aChild);
   NS_RELEASE(aChild);
-}
-
-template<class Container> void
-ContainerRepositionChild(Layer* aChild, Layer* aAfter, Container* aContainer)
-{
-  NS_ASSERTION(aChild->Manager() == aContainer->Manager(),
-               "Child has wrong manager");
-  NS_ASSERTION(aChild->GetParent() == aContainer,
-               "aChild not our child");
-  NS_ASSERTION(!aAfter ||
-               (aAfter->Manager() == aContainer->Manager() &&
-                aAfter->GetParent() == aContainer),
-               "aAfter is not our child");
-
-  Layer* prev = aChild->GetPrevSibling();
-  Layer* next = aChild->GetNextSibling();
-  if (prev == aAfter) {
-    
-    return;
-  }
-  if (prev) {
-    prev->SetNextSibling(next);
-  }
-  if (next) {
-    next->SetPrevSibling(prev);
-  }
-  if (!aAfter) {
-    aChild->SetPrevSibling(nullptr);
-    aChild->SetNextSibling(aContainer->mFirstChild);
-    if (aContainer->mFirstChild) {
-      aContainer->mFirstChild->SetPrevSibling(aChild);
-    }
-    aContainer->mFirstChild = aChild;
-    return;
-  }
-
-  Layer* afterNext = aAfter->GetNextSibling();
-  if (afterNext) {
-    afterNext->SetPrevSibling(aChild);
-  } else {
-    aContainer->mLastChild = aChild;
-  }
-  aAfter->SetNextSibling(aChild);
-  aChild->SetPrevSibling(aAfter);
-  aChild->SetNextSibling(afterNext);
-}
-
-template<class Container>
-static void
-ContainerComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface,
-                                    Container* aContainer)
-{
-  
-  
-  
-  gfxMatrix residual;
-  gfx3DMatrix idealTransform = aContainer->GetLocalTransform()*aTransformToSurface;
-  idealTransform.ProjectTo2D();
-
-  if (!idealTransform.CanDraw2D()) {
-    aContainer->mEffectiveTransform = idealTransform;
-    aContainer->ComputeEffectiveTransformsForChildren(gfx3DMatrix());
-    aContainer->ComputeEffectiveTransformForMaskLayer(gfx3DMatrix());
-    aContainer->mUseIntermediateSurface = true;
-    return;
-  }
-
-  aContainer->mEffectiveTransform =
-    aContainer->SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), &residual);
-  
-  
-  aContainer->ComputeEffectiveTransformsForChildren(idealTransform);
-
-  aContainer->ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
-
-  
-
-
-
-
-
-  aContainer->mUseIntermediateSurface =
-    aContainer->GetMaskLayer() || (aContainer->GetEffectiveOpacity() != 1.0 &&
-                                   aContainer->HasMultipleChildren());
 }
 
 class BasicContainerLayer : public ContainerLayer, public BasicImplData {
@@ -170,11 +86,6 @@ class BasicContainerLayer : public ContainerLayer, public BasicImplData {
   friend void ContainerInsertAfter(Layer* aChild, Layer* aAfter, Container* aContainer);
   template<class Container>
   friend void ContainerRemoveChild(Layer* aChild, Container* aContainer);
-  template<class Container>
-  friend void ContainerRepositionChild(Layer* aChild, Layer* aAfter, Container* aContainer);
-  template<class Container>
-  friend void ContainerComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface,
-                                                  Container* aContainer);
 
 public:
   BasicContainerLayer(BasicLayerManager* aManager) :
@@ -205,16 +116,38 @@ public:
     ContainerRemoveChild(aChild, this);
   }
 
-  virtual void RepositionChild(Layer* aChild, Layer* aAfter)
-  {
-    NS_ASSERTION(BasicManager()->InConstruction(),
-                 "Can only set properties in construction phase");
-    ContainerRepositionChild(aChild, aAfter, this);
-  }
-
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
   {
-    ContainerComputeEffectiveTransforms(aTransformToSurface, this);
+    
+    
+    
+    gfxMatrix residual;
+    gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
+    idealTransform.ProjectTo2D();
+
+    if (!idealTransform.CanDraw2D()) {
+      mEffectiveTransform = idealTransform;
+      ComputeEffectiveTransformsForChildren(gfx3DMatrix());
+      ComputeEffectiveTransformForMaskLayer(gfx3DMatrix());
+      mUseIntermediateSurface = true;
+      return;
+    }
+
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), &residual);
+    
+    
+    ComputeEffectiveTransformsForChildren(idealTransform);
+
+    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
+
+    
+
+
+
+
+
+    mUseIntermediateSurface = GetMaskLayer() ||
+                              (GetEffectiveOpacity() != 1.0 && HasMultipleChildren());
   }
 
   

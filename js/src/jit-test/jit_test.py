@@ -54,6 +54,7 @@ class Test:
         self.slow = False      
         self.allow_oom = False 
         self.valgrind = False  
+        self.tz_pacific = False 
         self.expect_error = '' 
         self.expect_status = 0 
 
@@ -63,6 +64,7 @@ class Test:
         t.slow = self.slow
         t.allow_oom = self.allow_oom
         t.valgrind = self.valgrind
+        t.tz_pacific = self.tz_pacific
         t.expect_error = self.expect_error
         t.expect_status = self.expect_status
         return t
@@ -101,12 +103,16 @@ class Test:
                         test.allow_oom = True
                     elif name == 'valgrind':
                         test.valgrind = options.valgrind
+                    elif name == 'tz-pacific':
+                        test.tz_pacific = True
                     elif name == 'mjitalways':
                         test.jitflags.append('-a')
                     elif name == 'debug':
                         test.jitflags.append('-d')
                     elif name == 'mjit':
                         test.jitflags.append('-m')
+                    elif name == 'dump-bytecode':
+                        test.jitflags.append('-D')
                     else:
                         print('warning: unrecognized |jit-test| attribute %s'%part)
 
@@ -222,7 +228,12 @@ def run_test(test, lib_dir, shell_args):
         run = run_cmd_avoid_stdio
     else:
         run = run_cmd
-    out, err, code, timed_out = run(cmd, os.environ, OPTIONS.timeout)
+
+    env = os.environ.copy()
+    if test.tz_pacific:
+        env['TZ'] = 'PST8PDT'
+
+    out, err, code, timed_out = run(cmd, env, OPTIONS.timeout)
 
     if OPTIONS.show_output:
         sys.stdout.write(out)

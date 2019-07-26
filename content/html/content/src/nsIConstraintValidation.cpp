@@ -72,9 +72,13 @@ nsIConstraintValidation::GetValidationMessage(nsAString& aValidationMessage)
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_TYPE_MISMATCH);
     } else if (GetValidityState(VALIDITY_STATE_PATTERN_MISMATCH)) {
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_PATTERN_MISMATCH);
+    } else if (GetValidityState(VALIDITY_STATE_RANGE_OVERFLOW)) {
+      GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_OVERFLOW);
+    } else if (GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW)) {
+      GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_UNDERFLOW);
+    } else if (GetValidityState(VALIDITY_STATE_STEP_MISMATCH)) {
+      GetValidationMessage(aValidationMessage, VALIDITY_STATE_STEP_MISMATCH);
     } else {
-      
-      
       
       return NS_ERROR_UNEXPECTED;
     }

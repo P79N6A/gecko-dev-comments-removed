@@ -16,6 +16,7 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIXPConnect.h"
 #include "jsapi.h"
+#include "jsfriendapi.h"
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsMathUtils.h"
@@ -123,7 +124,7 @@ nsHTMLCanvasElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-nsHTMLCanvasElement::CopyInnerTo(nsGenericElement* aDest) const
+nsHTMLCanvasElement::CopyInnerTo(nsGenericElement* aDest)
 {
   nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -679,6 +680,19 @@ nsHTMLCanvasElement::InvalidateCanvasContent(const gfxRect* damageRect)
   if (layer) {
     static_cast<CanvasLayer*>(layer)->Updated();
   }
+
+  
+
+
+
+
+  nsIScriptGlobalObject *scope = OwnerDoc()->GetScriptGlobalObject();
+  if (scope) {
+    JSObject *obj = scope->GetGlobalJSObject();
+    if (obj) {
+      js::NotifyAnimationActivity(obj);
+    }
+  }
 }
 
 void
@@ -765,12 +779,8 @@ nsresult
 NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 {
   Telemetry::Accumulate(Telemetry::CANVAS_2D_USED, 1);
-  if (Preferences::GetBool("gfx.canvas.azure.enabled", false)) {
-    nsresult rv = NS_NewCanvasRenderingContext2DAzure(aResult);
-    
-    if (NS_SUCCEEDED(rv)) {
-      return rv;
-    }
+  if (AzureCanvasEnabled()) {
+    return NS_NewCanvasRenderingContext2DAzure(aResult);
   }
 
   return NS_NewCanvasRenderingContext2DThebes(aResult);

@@ -127,11 +127,14 @@ public:
   PRUint8 mSize;   
                    
   bool mRepeating;
-  bool mToCorner;
+  bool mLegacySyntax;
 
   nsStyleCoord mBgPosX; 
   nsStyleCoord mBgPosY; 
   nsStyleCoord mAngle;  
+
+  nsStyleCoord mRadiusX; 
+  nsStyleCoord mRadiusY; 
 
   
   nsTArray<nsStyleGradientStop> mStops;
@@ -1092,7 +1095,19 @@ struct nsStylePosition {
   nsStyleCoord  mHeight;                
   nsStyleCoord  mMinHeight;             
   nsStyleCoord  mMaxHeight;             
+#ifdef MOZ_FLEXBOX
+  nsStyleCoord  mFlexBasis;             
+#endif 
   PRUint8       mBoxSizing;             
+#ifdef MOZ_FLEXBOX
+  PRUint8       mAlignItems;            
+  PRUint8       mAlignSelf;             
+  PRUint8       mFlexDirection;         
+  PRUint8       mJustifyContent;        
+  PRInt32       mOrder;                 
+  float         mFlexGrow;              
+  float         mFlexShrink;            
+#endif 
   nsStyleCoord  mZIndex;                
 
   bool WidthDependsOnContainer() const

@@ -16,6 +16,36 @@ namespace js {
 class Wrapper;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class JS_FRIEND_API(BaseProxyHandler) {
     void *mFamily;
   public:
@@ -24,7 +54,7 @@ class JS_FRIEND_API(BaseProxyHandler) {
 
     inline void *family() {
         return mFamily;
-    };
+    }
 
     virtual bool isOuterWindow() {
         return false;
@@ -45,24 +75,29 @@ class JS_FRIEND_API(BaseProxyHandler) {
     }
 
     
-    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id, bool set,
-                                       PropertyDescriptor *desc) = 0;
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id, bool set,
+    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
+                                       bool set, PropertyDescriptor *desc) = 0;
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
+                                          jsid id, bool set,
                                           PropertyDescriptor *desc) = 0;
     virtual bool defineProperty(JSContext *cx, JSObject *proxy, jsid id,
                                 PropertyDescriptor *desc) = 0;
-    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *proxy, AutoIdVector &props) = 0;
+    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *proxy,
+                                     AutoIdVector &props) = 0;
     virtual bool delete_(JSContext *cx, JSObject *proxy, jsid id, bool *bp) = 0;
-    virtual bool enumerate(JSContext *cx, JSObject *proxy, AutoIdVector &props) = 0;
+    virtual bool enumerate(JSContext *cx, JSObject *proxy,
+                           AutoIdVector &props) = 0;
 
     
     virtual bool has(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
     virtual bool hasOwn(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
-    virtual bool get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, Value *vp);
-    virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, bool strict,
-                     Value *vp);
+    virtual bool get(JSContext *cx, JSObject *proxy, JSObject *receiver,
+                     jsid id, Value *vp);
+    virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver,
+                     jsid id, bool strict, Value *vp);
     virtual bool keys(JSContext *cx, JSObject *proxy, AutoIdVector &props);
-    virtual bool iterate(JSContext *cx, JSObject *proxy, unsigned flags, Value *vp);
+    virtual bool iterate(JSContext *cx, JSObject *proxy, unsigned flags,
+                         Value *vp);
 
     
     virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc, Value *vp);
@@ -80,6 +115,15 @@ class JS_FRIEND_API(BaseProxyHandler) {
     virtual bool getElementIfPresent(JSContext *cx, JSObject *obj, JSObject *receiver,
                                      uint32_t index, Value *vp, bool *present);
 };
+
+
+
+
+
+
+
+
+
 
 class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
   public:
@@ -100,8 +144,6 @@ class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
                          bool *bp) MOZ_OVERRIDE;
     virtual bool enumerate(JSContext *cx, JSObject *proxy,
                            AutoIdVector &props) MOZ_OVERRIDE;
-
-    
 
     
     virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc,
@@ -125,6 +167,14 @@ class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
     virtual bool iteratorNext(JSContext *cx, JSObject *proxy,
                               Value *vp) MOZ_OVERRIDE;
 };
+
+
+
+
+
+
+
+
 
 class JS_PUBLIC_API(DirectProxyHandler) : public IndirectProxyHandler {
 public:

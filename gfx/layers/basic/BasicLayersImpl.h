@@ -6,11 +6,9 @@
 #ifndef GFX_BASICLAYERSIMPL_H
 #define GFX_BASICLAYERSIMPL_H
 
-#include "ipc/AutoOpenSurface.h"
 #include "ipc/ShadowLayerChild.h"
 #include "BasicLayers.h"
 #include "BasicImplData.h"
-#include "ReadbackLayer.h"
 #include "ReadbackProcessor.h"
 
 namespace mozilla {
@@ -70,52 +68,8 @@ protected:
 
 
 
-
-
-
-
-class NS_STACK_CLASS AutoMaskData {
-public:
-  AutoMaskData() { }
-  ~AutoMaskData() { }
-
-  
-
-
-
-
-
-
-  void Construct(const gfxMatrix& aTransform,
-                 gfxASurface* aSurface);
-
-  void Construct(const gfxMatrix& aTransform,
-                 const SurfaceDescriptor& aSurface);
-
-  
-  gfxASurface* GetSurface();
-  const gfxMatrix& GetTransform();
-
-private:
-  bool IsConstructed();
-
-  gfxMatrix mTransform;
-  nsRefPtr<gfxASurface> mSurface;
-  Maybe<AutoOpenSurface> mSurfaceOpener;
-
-  AutoMaskData(const AutoMaskData&) MOZ_DELETE;
-  AutoMaskData& operator=(const AutoMaskData&) MOZ_DELETE;
-};
-
-
-
-
-
-
-
-
-bool
-GetMaskData(Layer* aMaskLayer, AutoMaskData* aMaskData);
+already_AddRefed<gfxASurface>
+GetMaskSurfaceAndTransform(Layer* aMaskLayer, gfxMatrix* aMaskTransform);
 
 
 void

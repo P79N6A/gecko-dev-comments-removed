@@ -644,6 +644,17 @@ public:
     void CheckForSimpleFamily();
 
     
+    bool HasItalicFace() const {
+        size_t count = mAvailableFonts.Length();
+        for (size_t i = 0; i < count; ++i) {
+            if (mAvailableFonts[i] && mAvailableFonts[i]->IsItalic()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    
     virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                      FontListSizes*    aSizes) const;
     virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,

@@ -476,6 +476,11 @@ protected:
   bool ParseCalcTerm(nsCSSValue& aValue, PRInt32& aVariantMask);
   bool RequireWhitespace();
 
+#ifdef MOZ_FLEXBOX
+  
+  bool ParseFlex();
+#endif
+
   
   bool ParseRect(nsCSSProperty aPropID);
   bool ParseColumns();
@@ -567,8 +572,14 @@ protected:
   bool ParseImageRect(nsCSSValue& aImage);
   bool ParseElement(nsCSSValue& aValue);
   bool ParseColorStop(nsCSSValueGradient* aGradient);
-  bool ParseGradient(nsCSSValue& aValue, bool aIsRadial,
-                       bool aIsRepeating);
+  bool ParseLinearGradient(nsCSSValue& aValue, bool aIsRepeating,
+                           bool aIsLegacy);
+  bool ParseRadialGradient(nsCSSValue& aValue, bool aIsRepeating,
+                           bool aIsLegacy);
+  bool IsLegacyGradientLine(const nsCSSTokenType& aType,
+                            const nsString& aId);
+  bool ParseGradientColorStops(nsCSSValueGradient* aGradient,
+                               nsCSSValue& aValue);
 
   void SetParsingCompoundProperty(bool aBool) {
     mParsingCompoundProperty = aBool;
@@ -1487,7 +1498,8 @@ CSSParserImpl::ParseAtRule(RuleAppendFunc aAppendFunc,
     parseFunc = &CSSParserImpl::ParsePageRule;
     newSection = eCSSSection_General;
 
-  } else if (mToken.mIdent.LowerCaseEqualsLiteral("-moz-keyframes")) {
+  } else if (mToken.mIdent.LowerCaseEqualsLiteral("-moz-keyframes") ||
+             mToken.mIdent.LowerCaseEqualsLiteral("keyframes")) {
     parseFunc = &CSSParserImpl::ParseKeyframesRule;
     newSection = eCSSSection_General;
 
@@ -1830,6 +1842,8 @@ CSSParserImpl::ParseMediaQueryExpression(nsMediaQuery* aQuery)
       NS_ASSERTION(!mToken.mIdent.IsEmpty(), "unit lied");
       if (mToken.mIdent.LowerCaseEqualsLiteral("dpi")) {
         expr->mValue.SetFloatValue(mToken.mNumber, eCSSUnit_Inch);
+      } else if (mToken.mIdent.LowerCaseEqualsLiteral("dppx")) {
+        expr->mValue.SetFloatValue(mToken.mNumber, eCSSUnit_Pixel);
       } else if (mToken.mIdent.LowerCaseEqualsLiteral("dpcm")) {
         expr->mValue.SetFloatValue(mToken.mNumber, eCSSUnit_Centimeter);
       } else {
@@ -4504,17 +4518,24 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
   if ((aVariantMask & VARIANT_GRADIENT) != 0 &&
       eCSSToken_Function == tk->mType) {
     
-    if (tk->mIdent.LowerCaseEqualsLiteral("-moz-linear-gradient"))
-      return ParseGradient(aValue, false, false);
+    nsDependentString tmp(tk->mIdent, 0);
+    bool isLegacy = false;
+    if (StringBeginsWith(tmp, NS_LITERAL_STRING("-moz-"))) {
+      tmp.Rebind(tmp, 5);
+      isLegacy = true;
+    }
+    bool isRepeating = false;
+    if (StringBeginsWith(tmp, NS_LITERAL_STRING("repeating-"))) {
+      tmp.Rebind(tmp, 10);
+      isRepeating = true;
+    }
 
-    if (tk->mIdent.LowerCaseEqualsLiteral("-moz-radial-gradient"))
-      return ParseGradient(aValue, true, false);
-
-    if (tk->mIdent.LowerCaseEqualsLiteral("-moz-repeating-linear-gradient"))
-      return ParseGradient(aValue, false, true);
-
-    if (tk->mIdent.LowerCaseEqualsLiteral("-moz-repeating-radial-gradient"))
-      return ParseGradient(aValue, true, true);
+    if (tmp.LowerCaseEqualsLiteral("linear-gradient")) {
+      return ParseLinearGradient(aValue, isRepeating, isLegacy);
+    }
+    if (tmp.LowerCaseEqualsLiteral("radial-gradient")) {
+      return ParseRadialGradient(aValue, isRepeating, isLegacy);
+    }
   }
   if ((aVariantMask & VARIANT_IMAGE_RECT) != 0 &&
       eCSSToken_Function == tk->mType &&
@@ -4831,6 +4852,116 @@ CSSParserImpl::ParseElement(nsCSSValue& aValue)
   return false;
 }
 
+#ifdef MOZ_FLEXBOX
+
+bool
+CSSParserImpl::ParseFlex()
+{
+  
+  nsCSSValue tmpVal;
+  if (ParseVariant(tmpVal, VARIANT_INHERIT, nsnull)) {
+    AppendValue(eCSSProperty_flex_grow, tmpVal);
+    AppendValue(eCSSProperty_flex_shrink, tmpVal);
+    AppendValue(eCSSProperty_flex_basis, tmpVal);
+    return true;
+  }
+
+  
+  if (ParseVariant(tmpVal, VARIANT_NONE, nsnull)) {
+    AppendValue(eCSSProperty_flex_grow, nsCSSValue(0.0f, eCSSUnit_Number));
+    AppendValue(eCSSProperty_flex_shrink, nsCSSValue(0.0f, eCSSUnit_Number));
+    AppendValue(eCSSProperty_flex_basis, nsCSSValue(eCSSUnit_Auto));
+    return true;
+  }
+
+  
+  
+
+  
+  
+  
+  
+  nsCSSValue flexGrow(1.0f, eCSSUnit_Number);
+  nsCSSValue flexShrink(1.0f, eCSSUnit_Number);
+  nsCSSValue flexBasis(0.0f, eCSSUnit_Percent);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  PRUint32 variantMask = VARIANT_NUMBER |
+    (nsCSSProps::ParserVariant(eCSSProperty_flex_basis) & ~(VARIANT_INHERIT));
+
+  if (!ParseNonNegativeVariant(tmpVal, variantMask, nsCSSProps::kWidthKTable)) {
+    
+    return false;
+  }
+
+  
+  bool wasFirstComponentFlexBasis = (tmpVal.GetUnit() != eCSSUnit_Number);
+  (wasFirstComponentFlexBasis ? flexBasis : flexGrow) = tmpVal;
+
+  
+  bool doneParsing = false;
+  if (wasFirstComponentFlexBasis) {
+    if (ParseNonNegativeVariant(tmpVal, VARIANT_NUMBER, nsnull)) {
+      flexGrow = tmpVal;
+    } else {
+      
+      
+      doneParsing = true;
+    }
+  }
+
+  if (!doneParsing) {
+    
+    
+    if (ParseNonNegativeVariant(tmpVal, VARIANT_NUMBER, nsnull)) {
+      flexShrink = tmpVal;
+    }
+ 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!wasFirstComponentFlexBasis &&
+        ParseNonNegativeVariant(tmpVal, variantMask,
+                                nsCSSProps::kWidthKTable)) {
+      if (tmpVal.GetUnit() == eCSSUnit_Number) {
+        
+        
+        return false;
+      }
+      flexBasis = tmpVal;
+    }
+  }
+
+  AppendValue(eCSSProperty_flex_grow,   flexGrow);
+  AppendValue(eCSSProperty_flex_shrink, flexShrink);
+  AppendValue(eCSSProperty_flex_basis,  flexBasis);
+
+  return true;
+}
+#endif
+
 
 bool
 CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
@@ -4864,41 +4995,254 @@ CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
 
 
 
+
+
+
+
 bool
-CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
-                             bool aIsRepeating)
+CSSParserImpl::ParseLinearGradient(nsCSSValue& aValue, bool aIsRepeating,
+                                   bool aIsLegacy)
 {
   nsRefPtr<nsCSSValueGradient> cssGradient
-    = new nsCSSValueGradient(aIsRadial, aIsRepeating);
-
-  
-  
-  
-  
-  
-  
-  
+    = new nsCSSValueGradient(false, aIsRepeating);
 
   if (!GetToken(true)) {
     return false;
   }
 
-  bool toCorner = false;
   if (mToken.mType == eCSSToken_Ident &&
       mToken.mIdent.LowerCaseEqualsLiteral("to")) {
-    toCorner = true;
-    if (!GetToken(true)) {
+
+    
+    if (!ParseBoxPositionValues(cssGradient->mBgPos, false, false)) {
+      SkipUntil(')');
       return false;
     }
+
+    
+    const nsCSSValue& xValue = cssGradient->mBgPos.mXValue;
+    const nsCSSValue& yValue = cssGradient->mBgPos.mYValue;
+    if (xValue.GetUnit() != eCSSUnit_Enumerated ||
+        !(xValue.GetIntValue() & (NS_STYLE_BG_POSITION_LEFT |
+                                  NS_STYLE_BG_POSITION_CENTER |
+                                  NS_STYLE_BG_POSITION_RIGHT)) ||
+        yValue.GetUnit() != eCSSUnit_Enumerated ||
+        !(yValue.GetIntValue() & (NS_STYLE_BG_POSITION_TOP |
+                                  NS_STYLE_BG_POSITION_CENTER |
+                                  NS_STYLE_BG_POSITION_BOTTOM))) {
+      SkipUntil(')');
+      return false;
+    }
+
+    if (!ExpectSymbol(',', true)) {
+      SkipUntil(')');
+      return false;
+    }
+
+    return ParseGradientColorStops(cssGradient, aValue);
+  }
+
+  if (!aIsLegacy) {
+    UngetToken();
+
+    
+    if (ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull) &&
+        !ExpectSymbol(',', true)) {
+      SkipUntil(')');
+      return false;
+    }
+
+    return ParseGradientColorStops(cssGradient, aValue);
   }
 
   nsCSSTokenType ty = mToken.mType;
   nsString id = mToken.mIdent;
-  cssGradient->mIsToCorner = toCorner;
   UngetToken();
 
+  
+  bool haveGradientLine = IsLegacyGradientLine(ty, id);
+  if (haveGradientLine) {
+    cssGradient->mIsLegacySyntax = true;
+    bool haveAngle =
+      ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull);
+
+    
+    if (!haveAngle || !ExpectSymbol(',', true)) {
+      if (!ParseBoxPositionValues(cssGradient->mBgPos, false)) {
+        SkipUntil(')');
+        return false;
+      }
+
+      if (!ExpectSymbol(',', true) &&
+          
+          
+          (haveAngle ||
+           !ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull) ||
+           
+           !ExpectSymbol(',', true))) {
+        SkipUntil(')');
+        return false;
+      }
+    }
+  }
+
+  return ParseGradientColorStops(cssGradient, aValue);
+}
+
+bool
+CSSParserImpl::ParseRadialGradient(nsCSSValue& aValue, bool aIsRepeating,
+                                   bool aIsLegacy)
+{
+  nsRefPtr<nsCSSValueGradient> cssGradient
+    = new nsCSSValueGradient(true, aIsRepeating);
+
+  
+  bool haveShape =
+    ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
+                 nsCSSProps::kRadialGradientShapeKTable);
+
+  bool haveSize = ParseVariant(cssGradient->GetRadialSize(), VARIANT_KEYWORD,
+                               aIsLegacy ?
+                               nsCSSProps::kRadialGradientLegacySizeKTable :
+                               nsCSSProps::kRadialGradientSizeKTable);
+  if (haveSize) {
+    if (!haveShape) {
+      
+      haveShape = ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
+                               nsCSSProps::kRadialGradientShapeKTable);
+    }
+  } else if (!aIsLegacy) {
+    
+    haveSize =
+      ParseNonNegativeVariant(cssGradient->GetRadiusX(), VARIANT_LP, nsnull);
+    if (haveSize) {
+      
+      bool haveYSize =
+        ParseNonNegativeVariant(cssGradient->GetRadiusY(), VARIANT_LP, nsnull);
+      if (!haveShape) {
+        nsCSSValue shapeValue;
+        haveShape = ParseVariant(shapeValue, VARIANT_KEYWORD,
+                                 nsCSSProps::kRadialGradientShapeKTable);
+      }
+      PRInt32 shape =
+        cssGradient->GetRadialShape().GetUnit() == eCSSUnit_Enumerated ?
+        cssGradient->GetRadialShape().GetIntValue() : -1;
+      if (haveYSize
+            ? shape == NS_STYLE_GRADIENT_SHAPE_CIRCULAR
+            : cssGradient->GetRadiusX().GetUnit() == eCSSUnit_Percent ||
+              shape == NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL) {
+        SkipUntil(')');
+        return false;
+      }
+      cssGradient->mIsExplicitSize = true;
+    }
+  }
+
+  if ((haveShape || haveSize) && ExpectSymbol(',', true)) {
+    
+    return ParseGradientColorStops(cssGradient, aValue);
+  }
+
+  if (!GetToken(true)) {
+    return false;
+  }
+
+  if (!aIsLegacy) {
+    if (mToken.mType == eCSSToken_Ident &&
+        mToken.mIdent.LowerCaseEqualsLiteral("at")) {
+      
+      if (!ParseBoxPositionValues(cssGradient->mBgPos, false) ||
+          !ExpectSymbol(',', true)) {
+        SkipUntil(')');
+        return false;
+      }
+
+      return ParseGradientColorStops(cssGradient, aValue);
+    }
+
+    
+    UngetToken();
+    return ParseGradientColorStops(cssGradient, aValue);
+  }
+  MOZ_ASSERT(!cssGradient->mIsExplicitSize);
+
+  nsCSSTokenType ty = mToken.mType;
+  nsString id = mToken.mIdent;
+  UngetToken();
+
+  
   bool haveGradientLine = false;
-  switch (ty) {
+  
+  
+  if (!haveShape && !haveSize) {
+      haveGradientLine = IsLegacyGradientLine(ty, id);
+  }
+  if (haveGradientLine) {
+    bool haveAngle =
+      ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull);
+
+    
+    if (!haveAngle || !ExpectSymbol(',', true)) {
+      if (!ParseBoxPositionValues(cssGradient->mBgPos, false)) {
+        SkipUntil(')');
+        return false;
+      }
+
+      if (!ExpectSymbol(',', true) &&
+          
+          
+          (haveAngle ||
+           !ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull) ||
+           
+           !ExpectSymbol(',', true))) {
+        SkipUntil(')');
+        return false;
+      }
+    }
+
+    if (cssGradient->mAngle.GetUnit() != eCSSUnit_None) {
+      cssGradient->mIsLegacySyntax = true;
+    }
+  }
+
+  
+  if (!haveShape && !haveSize) {
+    haveShape =
+      ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
+                   nsCSSProps::kRadialGradientShapeKTable);
+    haveSize =
+      ParseVariant(cssGradient->GetRadialSize(), VARIANT_KEYWORD,
+                   nsCSSProps::kRadialGradientLegacySizeKTable);
+
+    
+    if (!haveShape) {
+      haveShape =
+        ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
+                     nsCSSProps::kRadialGradientShapeKTable);
+    }
+  }
+
+  if ((haveShape || haveSize) && !ExpectSymbol(',', true)) {
+    SkipUntil(')');
+    return false;
+  }
+
+  return ParseGradientColorStops(cssGradient, aValue);
+}
+
+bool
+CSSParserImpl::IsLegacyGradientLine(const nsCSSTokenType& aType,
+                                    const nsString& aId)
+{
+  
+  
+  
+  
+  
+  
+
+  bool haveGradientLine = false;
+  switch (aType) {
   case eCSSToken_Percentage:
   case eCSSToken_Number:
   case eCSSToken_Dimension:
@@ -4906,7 +5250,7 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
     break;
 
   case eCSSToken_Function:
-    if (id.LowerCaseEqualsLiteral("-moz-calc")) {
+    if (aId.LowerCaseEqualsLiteral("-moz-calc")) {
       haveGradientLine = true;
       break;
     }
@@ -4918,7 +5262,7 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
 
   case eCSSToken_Ident: {
     
-    nsCSSKeyword kw = nsCSSKeywords::LookupKeyword(id);
+    nsCSSKeyword kw = nsCSSKeywords::LookupKeyword(aId);
     PRInt32 junk;
     if (kw != eCSSKeyword_UNKNOWN &&
         nsCSSProps::FindKeyword(kw, nsCSSProps::kBackgroundPositionKTable,
@@ -4930,99 +5274,27 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
 
   default:
     
-    SkipUntil(')');
-    return false;
+    break;
   }
 
-  if (haveGradientLine) {
-    if (toCorner) {
-      
-      if (ty != eCSSToken_Ident) {
-        SkipUntil(')');
-        return false;
-      }
+  return haveGradientLine;
+}
 
-      
-      if (!ParseBoxPositionValues(cssGradient->mBgPos, false, false)) {
-        SkipUntil(')');
-        return false;
-      }
-
-      const nsCSSValue& xValue = cssGradient->mBgPos.mXValue;
-      const nsCSSValue& yValue = cssGradient->mBgPos.mYValue;
-      if (xValue.GetUnit() != eCSSUnit_Enumerated ||
-          !(xValue.GetIntValue() & (NS_STYLE_BG_POSITION_LEFT |
-                                    NS_STYLE_BG_POSITION_CENTER |
-                                    NS_STYLE_BG_POSITION_RIGHT)) ||
-          yValue.GetUnit() != eCSSUnit_Enumerated ||
-          !(yValue.GetIntValue() & (NS_STYLE_BG_POSITION_TOP |
-                                    NS_STYLE_BG_POSITION_CENTER |
-                                    NS_STYLE_BG_POSITION_BOTTOM))) {
-        SkipUntil(')');
-        return false;
-      }
-
-      if (!ExpectSymbol(',', true)) {
-        SkipUntil(')');
-        return false;
-      }
-    } else {
-      bool haveAngle =
-        ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull);
-
-      
-      if (!haveAngle || !ExpectSymbol(',', true)) {
-        if (!ParseBoxPositionValues(cssGradient->mBgPos, false)) {
-          SkipUntil(')');
-          return false;
-        }
-
-        if (!ExpectSymbol(',', true) &&
-            
-            
-            (haveAngle ||
-             !ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull) ||
-             
-             !ExpectSymbol(',', true))) {
-          SkipUntil(')');
-          return false;
-        }
-      }
-    }
-  }
-
+bool
+CSSParserImpl::ParseGradientColorStops(nsCSSValueGradient* aGradient,
+                                       nsCSSValue& aValue)
+{
   
-  if (aIsRadial) {
-    bool haveShape =
-      ParseVariant(cssGradient->mRadialShape, VARIANT_KEYWORD,
-                   nsCSSProps::kRadialGradientShapeKTable);
-    bool haveSize =
-      ParseVariant(cssGradient->mRadialSize, VARIANT_KEYWORD,
-                   nsCSSProps::kRadialGradientSizeKTable);
-
-    
-    if (!haveShape) {
-      haveShape =
-        ParseVariant(cssGradient->mRadialShape, VARIANT_KEYWORD,
-                     nsCSSProps::kRadialGradientShapeKTable);
-    }
-    if ((haveShape || haveSize) && !ExpectSymbol(',', true)) {
-      SkipUntil(')');
-      return false;
-    }
-  }
-
-  
-  if (!ParseColorStop(cssGradient) ||
+  if (!ParseColorStop(aGradient) ||
       !ExpectSymbol(',', true) ||
-      !ParseColorStop(cssGradient)) {
+      !ParseColorStop(aGradient)) {
     SkipUntil(')');
     return false;
   }
 
   
   while (ExpectSymbol(',', true)) {
-    if (!ParseColorStop(cssGradient)) {
+    if (!ParseColorStop(aGradient)) {
       SkipUntil(')');
       return false;
     }
@@ -5033,7 +5305,7 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
     return false;
   }
 
-  aValue.SetGradientValue(cssGradient);
+  aValue.SetGradientValue(aGradient);
   return true;
 }
 
@@ -5488,6 +5760,10 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseCounterData(aPropID);
   case eCSSProperty_cursor:
     return ParseCursor();
+#ifdef MOZ_FLEXBOX
+  case eCSSProperty_flex:
+    return ParseFlex();
+#endif 
   case eCSSProperty_font:
     return ParseFont();
   case eCSSProperty_image_region:
@@ -5951,7 +6227,11 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
       }
     } else if (tt == eCSSToken_URL ||
                (tt == eCSSToken_Function &&
-                (mToken.mIdent.LowerCaseEqualsLiteral("-moz-linear-gradient") ||
+                (mToken.mIdent.LowerCaseEqualsLiteral("linear-gradient") ||
+                 mToken.mIdent.LowerCaseEqualsLiteral("radial-gradient") ||
+                 mToken.mIdent.LowerCaseEqualsLiteral("repeating-linear-gradient") ||
+                 mToken.mIdent.LowerCaseEqualsLiteral("repeating-radial-gradient") ||
+                 mToken.mIdent.LowerCaseEqualsLiteral("-moz-linear-gradient") ||
                  mToken.mIdent.LowerCaseEqualsLiteral("-moz-radial-gradient") ||
                  mToken.mIdent.LowerCaseEqualsLiteral("-moz-repeating-linear-gradient") ||
                  mToken.mIdent.LowerCaseEqualsLiteral("-moz-repeating-radial-gradient") ||

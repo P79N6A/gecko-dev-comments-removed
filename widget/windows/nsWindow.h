@@ -41,6 +41,8 @@
 
 #include "nsIDOMMouseEvent.h"
 
+#include "nsIIdleServiceInternal.h"
+
 
 
 
@@ -479,6 +481,8 @@ protected:
   WindowHook            mWindowHook;
   DWORD                 mAssumeWheelIsZoomUntil;
   PRUint32              mPickerDisplayCount;
+  HICON                 mIconSmall;
+  HICON                 mIconBig;
   static bool           sDropShadowEnabled;
   static PRUint32       sInstanceCount;
   static TriStateBool   sCanQuit;
@@ -514,7 +518,7 @@ protected:
   
   PRInt32               mCaptionHeight;
 
-  nsCOMPtr<nsIdleService> mIdleService;
+  nsCOMPtr<nsIIdleServiceInternal> mIdleService;
 
   
   

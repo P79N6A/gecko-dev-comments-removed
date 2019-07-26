@@ -252,11 +252,14 @@ StackFrame::prologue(JSContext *cx, bool newType)
             pushOnScopeChain(*callobj);
             flags_ |= HAS_CALL_OBJ;
         }
+        Probes::enterScript(cx, script(), NULL, this);
         return true;
     }
 
-    if (isGlobalFrame())
+    if (isGlobalFrame()) {
+        Probes::enterScript(cx, script(), NULL, this);
         return true;
+    }
 
     JS_ASSERT(isNonEvalFunctionFrame());
 
@@ -276,7 +279,7 @@ StackFrame::prologue(JSContext *cx, bool newType)
         functionThis() = ObjectValue(*obj);
     }
 
-    Probes::enterJSFun(cx, fun(), script());
+    Probes::enterScript(cx, script(), script()->function(), this);
     return true;
 }
 
@@ -286,6 +289,8 @@ StackFrame::epilogue(JSContext *cx)
     JS_ASSERT(!isDummyFrame());
     JS_ASSERT(!isYielding());
     JS_ASSERT(!hasBlockChain());
+
+    Probes::exitScript(cx, script(), script()->function(), this);
 
     if (isEvalFrame()) {
         if (isStrictEvalFrame()) {
@@ -310,17 +315,14 @@ StackFrame::epilogue(JSContext *cx)
 
     JS_ASSERT(isNonEvalFunctionFrame());
     if (fun()->isHeavyweight()) {
-        JS_ASSERT_IF(hasCallObj(),
-                     scopeChain()->asCall().getCalleeFunction()->script() == script());
+        JS_ASSERT_IF(hasCallObj(), scopeChain()->asCall().callee().script() == script());
     } else {
         JS_ASSERT(!scopeChain()->isCall() || scopeChain()->asCall().isForEval() ||
-                  scopeChain()->asCall().getCalleeFunction()->script() != script());
+                  scopeChain()->asCall().callee().script() != script());
     }
 
     if (cx->compartment->debugMode())
         cx->runtime->debugScopes->onPopCall(this, cx);
-
-    Probes::exitJSFun(cx, fun(), script());
 
     if (script()->nesting() && (flags_ & HAS_NESTING))
         types::NestingEpilogue(this);
@@ -808,6 +810,20 @@ ContextStack::~ContextStack()
     JS_ASSERT(!seg_);
 }
 
+ptrdiff_t
+ContextStack::spIndexOf(const Value *vp)
+{
+    if (!hasfp() || !fp()->isScriptFrame())
+        return JSDVG_SEARCH_STACK;
+
+    Value *base = fp()->base();
+    Value *sp = regs().sp;
+    if (vp < base || vp >= sp)
+        return JSDVG_SEARCH_STACK;
+
+    return vp - sp;
+}
+
 bool
 ContextStack::onTop() const
 {
@@ -1206,7 +1222,6 @@ ContextStack::restoreFrameChain()
 void
 StackIter::poisonRegs()
 {
-    sp_ = (Value *)0xbad;
     pc_ = (jsbytecode *)0xbad;
     script_ = (JSScript *)0xbad;
 }
@@ -1222,36 +1237,6 @@ StackIter::popFrame()
         InlinedSite *inline_;
         pc_ = oldfp->prevpc(&inline_);
         JS_ASSERT(!inline_);
-
-        
-
-
-
-
-
-
-        if (oldfp->isGeneratorFrame()) {
-            
-            sp_ = oldfp->generatorArgsSnapshotBegin();
-        } else if (oldfp->isNonEvalFunctionFrame()) {
-            
-
-
-
-
-
-
-
-            sp_ = oldfp->actuals() + oldfp->numActualArgs();
-        } else if (oldfp->isFramePushedByExecute()) {
-            
-            sp_ = (Value *)oldfp - 2;
-        } else {
-            
-            JS_ASSERT(oldfp->isDummyFrame());
-            sp_ = (Value *)oldfp;
-        }
-
         script_ = fp_->maybeScript();
     } else {
         poisonRegs();
@@ -1261,22 +1246,17 @@ StackIter::popFrame()
 void
 StackIter::popCall()
 {
-    CallArgsList *oldCall = calls_;
+    DebugOnly<CallArgsList*> oldCall = calls_;
     JS_ASSERT(seg_->contains(oldCall));
     calls_ = calls_->prev();
-    if (seg_->contains(fp_)) {
-        
-        sp_ = oldCall->base();
-    } else {
+    if (!seg_->contains(fp_))
         poisonRegs();
-    }
 }
 
 void
 StackIter::settleOnNewSegment()
 {
     if (FrameRegs *regs = seg_->maybeRegs()) {
-        sp_ = regs->sp;
         pc_ = regs->pc;
         if (fp_)
             script_ = fp_->maybeScript();
@@ -1293,19 +1273,6 @@ StackIter::startOnSegment(StackSegment *seg)
     calls_ = seg_->maybeCalls();
     settleOnNewSegment();
 }
-
-static void JS_NEVER_INLINE
-CrashIfInvalidSlot(StackFrame *fp, Value *vp)
-{
-    Value *slots = (Value *)(fp + 1);
-    if (vp < slots || vp >= slots + fp->script()->nslots) {
-        MOZ_ASSERT(false, "About to dereference invalid slot");
-        *(volatile int *)0xbad = 0;  
-        MOZ_CRASH();
-    }
-}
-
-
 
 
 
@@ -1401,58 +1368,8 @@ StackIter::settleOnNewState()
             }
 #endif 
 
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            JSOp op = JSOp(*pc_);
-            if (op == JSOP_CALL || op == JSOP_FUNCALL) {
-                unsigned argc = GET_ARGC(pc_);
-                DebugOnly<unsigned> spoff = sp_ - fp_->base();
-                JS_ASSERT_IF(maybecx_ && maybecx_->stackIterAssertionEnabled,
-                             spoff == js_ReconstructStackDepth(maybecx_, fp_->script(), pc_));
-                Value *vp = sp_ - (2 + argc);
-
-                CrashIfInvalidSlot(fp_, vp);
-                if (IsNativeFunction(*vp)) {
-                    state_ = IMPLICIT_NATIVE;
-                    args_ = CallArgsFromVp(argc, vp);
-                    return;
-                }
-            }
-
             state_ = SCRIPTED;
             script_ = fp_->script();
-
-            
-
-
-
-
-            if (op == JSOP_GETPROP || op == JSOP_CALLPROP)
-                JS_ASSERT(sp_ >= fp_->base() && sp_ <= fp_->slots() + script_->nslots + 2);
-            else if (op != JSOP_FUNAPPLY)
-                JS_ASSERT(sp_ >= fp_->base() && sp_ <= fp_->slots() + script_->nslots);
-            JS_ASSERT(pc_ >= script_->code && pc_ < script_->code + script_->length);
             return;
         }
 
@@ -1559,9 +1476,6 @@ StackIter::operator++()
         popCall();
         settleOnNewState();
         break;
-      case IMPLICIT_NATIVE:
-        state_ = SCRIPTED;
-        break;
       case ION:
 #ifdef JS_ION      
         popIonFrame();
@@ -1598,7 +1512,6 @@ StackIter::isFunctionFrame() const
         break;
 #endif
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return false;
     }
     JS_NOT_REACHED("Unexpected state");
@@ -1615,7 +1528,6 @@ StackIter::isEvalFrame() const
         return fp()->isEvalFrame();
       case ION:
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return false;
     }
     JS_NOT_REACHED("Unexpected state");
@@ -1633,7 +1545,6 @@ StackIter::isNonEvalFunctionFrame() const
         return fp()->isNonEvalFunctionFrame();
       case ION:
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return !isEvalFrame() && isFunctionFrame();
     }
     JS_NOT_REACHED("Unexpected state");
@@ -1656,7 +1567,6 @@ StackIter::isConstructing() const
 #endif        
       case SCRIPTED:
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return fp()->isConstructing();
     }
     return false;
@@ -1681,7 +1591,6 @@ StackIter::callee() const
         break;
 #endif        
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return nativeArgs().callee().toFunction();
     }
     JS_NOT_REACHED("Unexpected state");
@@ -1704,7 +1613,6 @@ StackIter::calleev() const
         break;
 #endif
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return nativeArgs().calleev();
     }
     JS_NOT_REACHED("Unexpected state");
@@ -1727,7 +1635,6 @@ StackIter::numActualArgs() const
         break;
 #endif
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return nativeArgs().length();
     }
     JS_NOT_REACHED("Unexpected state");
@@ -1748,7 +1655,6 @@ StackIter::thisv() const
 #endif        
       case SCRIPTED:
       case NATIVE:
-      case IMPLICIT_NATIVE:
         return fp()->thisValue();
     }
     JS_NOT_REACHED("Unexpected state");

@@ -71,7 +71,10 @@ protected:
 
     void Initialize(); 
 
-    void FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize);
+    
+    
+    
+    void FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize, bool aUseGDIFakeItalic);
 
     
     

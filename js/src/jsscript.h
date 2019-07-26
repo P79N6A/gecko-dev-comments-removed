@@ -110,12 +110,10 @@ class Bindings
 
 
 
-    bool slotIsArg(uint16_t i) const { return i < nargs; }
-    bool slotIsLocal(uint16_t i) const { return i >= nargs; }
-    uint16_t argToSlot(uint16_t i) { JS_ASSERT(i < nargs); return i; }
-    uint16_t localToSlot(uint16_t i) { return i + nargs; }
-    uint16_t slotToArg(uint16_t i) { JS_ASSERT(slotIsArg(i)); return i; }
-    uint16_t slotToLocal(uint16_t i) { JS_ASSERT(slotIsLocal(i)); return i - nargs; }
+
+
+    inline uint16_t formalIndexToSlot(uint16_t i);
+    inline uint16_t varIndexToSlot(uint16_t i);
 
     
     inline bool ensureShape(JSContext *cx);
@@ -192,6 +190,9 @@ class Bindings
     }
 
     
+    inline unsigned argumentsVarIndex(JSContext *cx) const;
+
+    
 
 
 
@@ -211,7 +212,7 @@ class Bindings
 
 
 
-    const js::Shape *lastVariable() const;
+    js::Shape *lastVariable() const;
 
     void trace(JSTracer *trc);
 
@@ -236,9 +237,6 @@ class Bindings
 };
 
 } 
-
-#define JS_OBJECT_ARRAY_SIZE(length)                                          \
-    (offsetof(ObjectArray, vector) + sizeof(JSObject *) * (length))
 
 #ifdef JS_METHODJIT
 namespace JSC {
@@ -460,10 +458,6 @@ struct JSScript : public js::gc::Cell
 
 
 
-#if JS_BITS_PER_WORD == 32
-    uint32_t        pad32;
-#endif
-
 #ifdef DEBUG
     
     
@@ -486,9 +480,6 @@ struct JSScript : public js::gc::Cell
 
     uint16_t        nslots;     
     uint16_t        staticLevel;
-
-  private:
-    uint16_t        argsLocal_; 
 
     
 
@@ -552,7 +543,7 @@ struct JSScript : public js::gc::Cell
 
   private:
     
-    bool            argsHasLocalBinding_:1;
+    bool            argsHasVarBinding_:1;
     bool            needsArgsAnalysis_:1;
     bool            needsArgsObj_:1;
 
@@ -580,10 +571,9 @@ struct JSScript : public js::gc::Cell
     void setVersion(JSVersion v) { version = v; }
 
     
-    bool argumentsHasLocalBinding() const { return argsHasLocalBinding_; }
+    bool argumentsHasVarBinding() const { return argsHasVarBinding_; }
     jsbytecode *argumentsBytecode() const { JS_ASSERT(code[0] == JSOP_ARGUMENTS); return code; }
-    unsigned argumentsLocal() const { JS_ASSERT(argsHasLocalBinding_); return argsLocal_; }
-    void setArgumentsHasLocalBinding(uint16_t local);
+    void setArgumentsHasVarBinding();
 
     
 
@@ -598,7 +588,7 @@ struct JSScript : public js::gc::Cell
     bool analyzedArgsUsage() const { return !needsArgsAnalysis_; }
     bool needsArgsObj() const { JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_; }
     void setNeedsArgsObj(bool needsArgsObj);
-    static bool applySpeculationFailed(JSContext *cx, JSScript *script);
+    static bool argumentsOptimizationFailed(JSContext *cx, JSScript *script);
 
     
 
@@ -664,16 +654,10 @@ struct JSScript : public js::gc::Cell
     inline void clearAnalysis();
     inline js::analyze::ScriptAnalysis *analysis();
 
-    
-
-
-
-    bool typeSetFunction(JSContext *cx, JSFunction *fun, bool singleton = false);
-
     inline bool hasGlobal() const;
     inline bool hasClearedGlobal() const;
 
-    inline js::GlobalObject *global() const;
+    inline js::GlobalObject * global() const;
     inline js::types::TypeScriptNesting *nesting() const;
 
     inline void clearNesting();
@@ -827,14 +811,29 @@ struct JSScript : public js::gc::Cell
         return atoms[index];
     }
 
+    js::HeapPtrAtom &getAtom(jsbytecode *pc) const {
+        JS_ASSERT(pc >= code && pc + sizeof(uint32_t) < code + length);
+        return getAtom(GET_UINT32_INDEX(pc));
+    }
+
     js::PropertyName *getName(size_t index) {
         return getAtom(index)->asPropertyName();
+    }
+
+    js::PropertyName *getName(jsbytecode *pc) const {
+        JS_ASSERT(pc >= code && pc + sizeof(uint32_t) < code + length);
+        return getAtom(GET_UINT32_INDEX(pc))->asPropertyName();
     }
 
     JSObject *getObject(size_t index) {
         js::ObjectArray *arr = objects();
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
+    }
+
+    JSObject *getObject(jsbytecode *pc) {
+        JS_ASSERT(pc >= code && pc + sizeof(uint32_t) < code + length);
+        return getObject(GET_UINT32_INDEX(pc));
     }
 
     JSVersion getVersion() const {

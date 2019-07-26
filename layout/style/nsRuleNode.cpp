@@ -832,33 +832,47 @@ static void SetGradient(const nsCSSValue& aValue, nsPresContext* aPresContext,
   NS_ABORT_IF_FALSE(aValue.GetUnit() == eCSSUnit_Gradient,
                     "The given data is not a gradient");
 
-  nsCSSValueGradient* gradient = aValue.GetGradientValue();
+  const nsCSSValueGradient* gradient = aValue.GetGradientValue();
 
-  if (gradient->mIsRadial) {
-    if (gradient->mRadialShape.GetUnit() == eCSSUnit_Enumerated) {
-      aResult.mShape = gradient->mRadialShape.GetIntValue();
+  if (gradient->mIsExplicitSize) {
+    SetCoord(gradient->GetRadiusX(), aResult.mRadiusX, nsStyleCoord(),
+             SETCOORD_LP | SETCOORD_STORE_CALC,
+             aContext, aPresContext, aCanStoreInRuleTree);
+    if (gradient->GetRadiusY().GetUnit() != eCSSUnit_None) {
+      SetCoord(gradient->GetRadiusY(), aResult.mRadiusY, nsStyleCoord(),
+               SETCOORD_LP | SETCOORD_STORE_CALC,
+               aContext, aPresContext, aCanStoreInRuleTree);
+      aResult.mShape = NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL;
     } else {
-      NS_ASSERTION(gradient->mRadialShape.GetUnit() == eCSSUnit_None,
+      aResult.mRadiusY = aResult.mRadiusX;
+      aResult.mShape = NS_STYLE_GRADIENT_SHAPE_CIRCULAR;
+    }
+    aResult.mSize = NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE;
+  } else if (gradient->mIsRadial) {
+    if (gradient->GetRadialShape().GetUnit() == eCSSUnit_Enumerated) {
+      aResult.mShape = gradient->GetRadialShape().GetIntValue();
+    } else {
+      NS_ASSERTION(gradient->GetRadialShape().GetUnit() == eCSSUnit_None,
                    "bad unit for radial shape");
       aResult.mShape = NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL;
     }
-    if (gradient->mRadialSize.GetUnit() == eCSSUnit_Enumerated) {
-      aResult.mSize = gradient->mRadialSize.GetIntValue();
+    if (gradient->GetRadialSize().GetUnit() == eCSSUnit_Enumerated) {
+      aResult.mSize = gradient->GetRadialSize().GetIntValue();
     } else {
-      NS_ASSERTION(gradient->mRadialSize.GetUnit() == eCSSUnit_None,
+      NS_ASSERTION(gradient->GetRadialSize().GetUnit() == eCSSUnit_None,
                    "bad unit for radial shape");
       aResult.mSize = NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER;
     }
   } else {
-    NS_ASSERTION(gradient->mRadialShape.GetUnit() == eCSSUnit_None,
+    NS_ASSERTION(gradient->GetRadialShape().GetUnit() == eCSSUnit_None,
                  "bad unit for linear shape");
-    NS_ASSERTION(gradient->mRadialSize.GetUnit() == eCSSUnit_None,
+    NS_ASSERTION(gradient->GetRadialSize().GetUnit() == eCSSUnit_None,
                  "bad unit for linear size");
     aResult.mShape = NS_STYLE_GRADIENT_SHAPE_LINEAR;
     aResult.mSize = NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER;
-
-    aResult.mToCorner = gradient->mIsToCorner;
   }
+
+  aResult.mLegacySyntax = gradient->mIsLegacySyntax;
 
   
   SetGradientCoord(gradient->mBgPos.mXValue, aPresContext, aContext,
@@ -890,7 +904,7 @@ static void SetGradient(const nsCSSValue& aValue, nsPresContext* aPresContext,
   
   for (PRUint32 i = 0; i < gradient->mStops.Length(); i++) {
     nsStyleGradientStop stop;
-    nsCSSValueGradientStop &valueStop = gradient->mStops[i];
+    const nsCSSValueGradientStop &valueStop = gradient->mStops[i];
 
     if (!SetCoord(valueStop.mLocation, stop.mLocation,
                   nsStyleCoord(), SETCOORD_LPO,
@@ -6423,6 +6437,102 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               pos->mBoxSizing, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentPos->mBoxSizing,
               NS_STYLE_BOX_SIZING_CONTENT, 0, 0, 0, 0);
+
+#ifdef MOZ_FLEXBOX
+  
+  SetDiscrete(*aRuleData->ValueForAlignItems(),
+              pos->mAlignItems, canStoreInRuleTree,
+              SETDSC_ENUMERATED, parentPos->mAlignItems,
+              NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE, 0, 0, 0, 0);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aRuleData->ValueForAlignSelf()->GetUnit() == eCSSUnit_Inherit) {
+    
+    
+    
+    PRUint8 inheritedAlignSelf = parentPos->mAlignSelf;
+    if (inheritedAlignSelf == NS_STYLE_ALIGN_SELF_AUTO) {
+      if (parentPos == pos) {
+        
+        
+        
+        inheritedAlignSelf = NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE;
+      } else {
+        
+        
+        NS_ABORT_IF_FALSE(aContext->GetParent(),
+                          "we've got a distinct parent style-struct already, "
+                          "so we should have a parent style-context");
+        nsStyleContext* grandparentContext = aContext->GetParent()->GetParent();
+        if (!grandparentContext) {
+          
+          
+          inheritedAlignSelf = NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE;
+        } else {
+          
+          
+          const nsStylePosition* grandparentPos =
+            grandparentContext->GetStylePosition();
+          inheritedAlignSelf = grandparentPos->mAlignItems;
+        }
+      }
+    }
+
+    pos->mAlignSelf = inheritedAlignSelf;
+    canStoreInRuleTree = false;
+  } else {
+    SetDiscrete(*aRuleData->ValueForAlignSelf(),
+                pos->mAlignSelf, canStoreInRuleTree,
+                SETDSC_ENUMERATED,
+                parentPos->mAlignSelf, 
+                NS_STYLE_ALIGN_SELF_AUTO, 
+                0, 0, 0, 0);
+  }
+
+  
+  
+  SetCoord(*aRuleData->ValueForFlexBasis(), pos->mFlexBasis, parentPos->mFlexBasis,
+           SETCOORD_LPAEH | SETCOORD_INITIAL_AUTO | SETCOORD_STORE_CALC,
+           aContext, mPresContext, canStoreInRuleTree);
+
+  
+  SetDiscrete(*aRuleData->ValueForFlexDirection(),
+              pos->mFlexDirection, canStoreInRuleTree,
+              SETDSC_ENUMERATED, parentPos->mFlexDirection,
+              NS_STYLE_FLEX_DIRECTION_ROW, 0, 0, 0, 0);
+
+  
+  SetFactor(*aRuleData->ValueForFlexGrow(),
+            pos->mFlexGrow, canStoreInRuleTree,
+            parentPos->mFlexGrow, 0.0f);
+
+  
+  SetFactor(*aRuleData->ValueForFlexShrink(),
+            pos->mFlexShrink, canStoreInRuleTree,
+            parentPos->mFlexShrink, 1.0f);
+
+  
+  SetDiscrete(*aRuleData->ValueForOrder(),
+              pos->mOrder, canStoreInRuleTree,
+              SETDSC_INTEGER, parentPos->mOrder,
+              NS_STYLE_ORDER_INITIAL, 0, 0, 0, 0);
+
+  
+  SetDiscrete(*aRuleData->ValueForJustifyContent(),
+              pos->mJustifyContent, canStoreInRuleTree,
+              SETDSC_ENUMERATED, parentPos->mJustifyContent,
+              NS_STYLE_JUSTIFY_CONTENT_FLEX_START, 0, 0, 0, 0);
+#endif 
 
   
   const nsCSSValue* zIndexValue = aRuleData->ValueForZIndex();

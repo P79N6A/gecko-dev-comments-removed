@@ -13,6 +13,7 @@
 #include "nsISVGGlyphFragmentNode.h"
 #include "nsSVGGlyphFrame.h"
 #include "nsSVGGraphicElement.h"
+#include "nsSVGIntegrationUtils.h"
 #include "nsSVGPathElement.h"
 #include "nsSVGTextPathFrame.h"
 #include "nsSVGUtils.h"
@@ -232,12 +233,18 @@ nsSVGTextFrame::UpdateBounds()
 
   
   
+  
+  
+  
+  bool invalidate = (mState & NS_FRAME_IS_DIRTY) &&
+    !(GetParent()->GetStateBits() &
+       (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY));
+
+  
+  
   nsSVGTextFrameBase::UpdateBounds();
 
-  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    
-    
-    
+  if (invalidate) {
     
     nsSVGUtils::InvalidateBounds(this, true);
   }
@@ -256,15 +263,23 @@ nsSVGTextFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 
 
 gfxMatrix
-nsSVGTextFrame::GetCanvasTM()
+nsSVGTextFrame::GetCanvasTM(PRUint32 aFor)
 {
+  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+    if ((aFor == FOR_PAINTING && NS_SVGDisplayListPaintingEnabled()) ||
+        (aFor == FOR_HIT_TESTING && NS_SVGDisplayListHitTestingEnabled())) {
+      return nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(this);
+    }
+  }
+
   if (!mCanvasTM) {
     NS_ASSERTION(mParent, "null parent");
 
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
     nsSVGGraphicElement *content = static_cast<nsSVGGraphicElement*>(mContent);
 
-    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM());
+    gfxMatrix tm =
+      content->PrependLocalTransformsTo(parent->GetCanvasTM(aFor));
 
     mCanvasTM = new gfxMatrix(tm);
   }

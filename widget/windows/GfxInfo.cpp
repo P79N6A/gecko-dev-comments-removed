@@ -694,9 +694,9 @@ GfxInfo::AddCrashReportAnnotations()
   if (vendorID == GfxDriverInfo::GetDeviceVendor(VendorAll)) {
     
     note.Append(", ");
-    note.AppendWithConversion(mDeviceID);
+    LossyAppendUTF16toASCII(mDeviceID, note);
     note.Append(", ");
-    note.AppendWithConversion(mDeviceKeyDebug);
+    LossyAppendUTF16toASCII(mDeviceKeyDebug, note);
     LossyAppendUTF16toASCII(mDeviceKeyDebug, note);
   }
   note.Append("\n");

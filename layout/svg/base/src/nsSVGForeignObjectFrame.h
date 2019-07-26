@@ -83,16 +83,13 @@ public:
                                       PRUint32 aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return true; }
 
-  gfxMatrix GetCanvasTM();
+  gfxMatrix GetCanvasTM(PRUint32 aFor);
 
 protected:
   
   void DoReflow();
   void RequestReflow(nsIPresShell::IntrinsicDirty aType);
 
-  
-  
-  gfxMatrix GetCanvasTMForChildren();
   void InvalidateDirtyRect(const nsRect& aRect, PRUint32 aFlags,
                            bool aDuringReflowSVG);
   void FlushDirtyRegion(PRUint32 aFlags, bool aDuringReflowSVG);

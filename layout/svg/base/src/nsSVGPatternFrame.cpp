@@ -125,7 +125,7 @@ nsSVGPatternFrame::GetType() const
 
 
 gfxMatrix
-nsSVGPatternFrame::GetCanvasTM()
+nsSVGPatternFrame::GetCanvasTM(PRUint32 aFor)
 {
   if (mCTM) {
     return *mCTM;
@@ -134,7 +134,7 @@ nsSVGPatternFrame::GetCanvasTM()
   
   if (mSource) {
     
-    return mSource->GetCanvasTM();
+    return mSource->GetCanvasTM(aFor);
   }
 
   
@@ -637,7 +637,7 @@ nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
   }
 
   
-  *aCTM = nsSVGUtils::GetCanvasTM(aTarget);
+  *aCTM = nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_PAINTING);
 
   
   
