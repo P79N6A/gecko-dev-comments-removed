@@ -549,7 +549,9 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
 
   int immersiveArgc = 0;
 #if defined(XP_WIN) && defined(MOZ_METRO)
-  if (IsWindowsMetroUpdateRequest(appArgc, appArgv)) {
+  
+  
+  if (IsWindowsMetroUpdateRequest(appArgc, appArgv) || IsRunningInWindowsMetro()) {
     immersiveArgc = 1;
   }
 #endif
@@ -833,7 +835,9 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
 
   int immersiveArgc = 0;
 #if defined(XP_WIN) && defined(MOZ_METRO)
-  if (IsWindowsMetroUpdateRequest(appArgc, appArgv)) {
+  
+  
+  if (IsWindowsMetroUpdateRequest(appArgc, appArgv) || IsRunningInWindowsMetro()) {
     immersiveArgc = 1;
   }
 #endif
