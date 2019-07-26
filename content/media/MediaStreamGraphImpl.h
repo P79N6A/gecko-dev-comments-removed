@@ -120,7 +120,7 @@ public:
 
 
 
-  explicit MediaStreamGraphImpl(bool aRealtime);
+  explicit MediaStreamGraphImpl(bool aRealtime, TrackRate aSampleRate);
 
   
 
@@ -392,6 +392,8 @@ public:
 
   void ResumeAllAudioOutputs();
 
+  TrackRate AudioSampleRate() { return mSampleRate; }
+
   
 
   
@@ -531,6 +533,13 @@ public:
 
 
   GraphTime mEndTime;
+
+  
+
+
+
+
+  TrackRate mSampleRate;
   
 
 

@@ -14,7 +14,8 @@ namespace mozilla {
 typedef void(*MixerFunc)(AudioDataValue* aMixedBuffer,
                          AudioSampleFormat aFormat,
                          uint32_t aChannels,
-                         uint32_t aFrames);
+                         uint32_t aFrames,
+                         uint32_t aSampleRate);
 
 
 
@@ -34,7 +35,8 @@ public:
   AudioMixer(MixerFunc aCallback)
     : mCallback(aCallback),
       mFrames(0),
-      mChannels(0)
+      mChannels(0),
+      mSampleRate(0)
   { }
 
   
@@ -43,21 +45,27 @@ public:
     mCallback(mMixedAudio.Elements(),
               AudioSampleTypeToFormat<AudioDataValue>::Format,
               mChannels,
-              mFrames);
+              mFrames,
+              mSampleRate);
     PodZero(mMixedAudio.Elements(), mMixedAudio.Length());
-    mChannels = mFrames = 0;
+    mSampleRate = mChannels = mFrames = 0;
   }
 
   
-  void Mix(AudioDataValue* aSamples, uint32_t aChannels, uint32_t aFrames) {
+  void Mix(AudioDataValue* aSamples,
+           uint32_t aChannels,
+           uint32_t aFrames,
+           uint32_t aSampleRate) {
     if (!mFrames && !mChannels) {
       mFrames = aFrames;
       mChannels = aChannels;
+      mSampleRate = aSampleRate;
       EnsureCapacityAndSilence();
     }
 
     MOZ_ASSERT(aFrames == mFrames);
     MOZ_ASSERT(aChannels == mChannels);
+    MOZ_ASSERT(aSampleRate == mSampleRate);
 
     for (uint32_t i = 0; i < aFrames * aChannels; i++) {
       mMixedAudio[i] += aSamples[i];
@@ -77,6 +85,8 @@ private:
   uint32_t mFrames;
   
   uint32_t mChannels;
+  
+  uint32_t mSampleRate;
   
   nsTArray<AudioDataValue> mMixedAudio;
 };

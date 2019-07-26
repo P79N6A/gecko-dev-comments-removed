@@ -791,6 +791,7 @@ public:
     
     TrackRate mInputRate;
     
+    
     TrackRate mOutputRate;
     
     
@@ -1079,9 +1080,6 @@ protected:
 };
 
 
-inline TrackRate IdealAudioRate() { return AudioStream::PreferredSampleRate(); }
-
-
 
 
 
@@ -1095,7 +1093,7 @@ public:
 
   
   static MediaStreamGraph* GetInstance();
-  static MediaStreamGraph* CreateNonRealtimeInstance();
+  static MediaStreamGraph* CreateNonRealtimeInstance(TrackRate aSampleRate);
   
   static void DestroyNonRealtimeInstance(MediaStreamGraph* aGraph);
 
