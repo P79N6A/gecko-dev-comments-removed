@@ -99,7 +99,7 @@ public:
     
     
     
-    return GetFirstPrincipalChild()->IsTransformed();
+    return GetFirstPrincipalChild()->IsSVGTransformed();
   }
 
   
