@@ -685,11 +685,6 @@ DOMStorageCache::LoadWait()
 
 
 
-NS_IMPL_ADDREF(DOMStorageUsageBridge)
-NS_IMPL_RELEASE(DOMStorageUsageBridge)
-
-
-
 DOMStorageUsage::DOMStorageUsage(const nsACString& aScope)
   : mScope(aScope)
 {
