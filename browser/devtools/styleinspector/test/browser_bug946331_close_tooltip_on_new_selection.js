@@ -2,80 +2,48 @@
 
 
 
-let contentDoc;
-let inspector;
-let ruleView;
-let computedView;
+"use strict";
 
-const PAGE_CONTENT = '<div class="one">el 1</div><div class="two">el 2</div>';
 
-function test() {
-  waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function(evt) {
-    gBrowser.selectedBrowser.removeEventListener(evt.type, arguments.callee, true);
-    contentDoc = content.document;
-    waitForFocus(createDocument, content);
-  }, true);
+let test = asyncTest(function*() {
+  yield addTab("data:text/html,<div class='one'>el 1</div><div class='two'>el 2</div>");
 
-  content.location = "data:text/html,rule/computed views tooltip hiding test";
-}
+  let {toolbox, inspector, view} = yield openRuleView();
+  yield selectNode(".one", inspector);
 
-function createDocument() {
-  contentDoc.body.innerHTML = PAGE_CONTENT;
-
-  openView("ruleview", (aInspector, aRuleView) => {
-    inspector = aInspector;
-    ruleView = aRuleView;
-    openView("computedview", (_, aComputedView) => {
-      computedView = aComputedView;
-      startTests();
-    });
-  });
-}
-
-function startTests() {
-  inspector.selection.setNode(contentDoc.querySelector(".one"));
-  inspector.once("inspector-updated", testRuleView);
-}
-
-function endTests() {
-  contentDoc = inspector = ruleView = computedView = null;
-  gBrowser.removeCurrentTab();
-  finish();
-}
-
-function testRuleView() {
   info("Testing rule view tooltip closes on new selection");
+  yield testRuleView(view, inspector);
 
-  
+  info("Testing computed view tooltip closes on new selection");
+  let {view} = yield openComputedView();
+  yield testComputedView(view, inspector);
+});
+
+function* testRuleView(ruleView, inspector) {
+  info("Showing the tooltip");
   let tooltip = ruleView.previewTooltip;
+  let onShown = tooltip.once("shown");
   tooltip.show();
-  tooltip.once("shown", () => {
-    
-    tooltip.once("hidden", () => {
-      ok(true, "Rule view tooltip closed after a new node got selected");
-      inspector.once("inspector-updated", testComputedView);
-    });
-    inspector.selection.setNode(contentDoc.querySelector(".two"));
-  });
+  yield onShown;
+
+  info("Selecting a new node");
+  let onHidden = tooltip.once("hidden");
+  yield selectNode(".two", inspector);
+
+  ok(true, "Rule view tooltip closed after a new node got selected");
 }
 
-function testComputedView() {
-  info("Testing computed view tooltip closes on new selection");
-
-  inspector.sidebar.select("computedview");
-
-  
+function* testComputedView(computedView, inspector) {
+  info("Showing the tooltip");
   let tooltip = computedView.tooltip;
+  let onShown = tooltip.once("shown");
   tooltip.show();
-  tooltip.once("shown", () => {
-    
-    tooltip.once("hidden", () => {
-      ok(true, "Computed view tooltip closed after a new node got selected");
-      inspector.once("inspector-updated", endTests);
-    });
-    inspector.selection.setNode(contentDoc.querySelector(".one"));
-  });
+  yield onShown;
+
+  info("Selecting a new node");
+  let onHidden = tooltip.once("hidden");
+  yield selectNode(".one", inspector);
+
+  ok(true, "Computed view tooltip closed after a new node got selected");
 }

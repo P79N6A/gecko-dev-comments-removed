@@ -2,64 +2,48 @@
 
 
 
+"use strict";
 
 
 
-let doc;
-let inspector;
-let stylePanel;
 
-function selectNode(aInspector, aRuleView)
-{
-  inspector = aInspector;
-  let node = content.document.getElementsByTagName("h1")[0];
-  inspector.selection.setNode(node);
-  inspector.once("inspector-updated", testFocus);
-}
+let test = asyncTest(function*() {
+  yield addTab("data:text/html,<h1>Some header text</h1>");
+  let {toolbox, inspector, view} = yield openRuleView();
 
-function testFocus()
-{
-  let win = inspector.sidebar.getWindowForTab("ruleview");
-  let brace = win.document.querySelectorAll(".ruleview-ruleclose")[0];
+  info("Selecting the test node");
+  yield selectNode("h1", inspector);
 
-  waitForEditorFocus(brace.parentNode, function onNewElement(aEditor) {
-    aEditor.input.value = "color";
-    waitForEditorFocus(brace.parentNode, function onEditingValue(aEditor) {
-      
-      ok(true, "We got focus.");
-      aEditor.input.value = "green";
+  info("Getting the ruleclose brace element");
+  let brace = view.doc.querySelector(".ruleview-ruleclose");
 
-      
-      
-      waitForEditorFocus(brace.parentNode, function onNewEditor(aEditor) {
-        aEditor.input.blur();
-        finishUp();
-      });
-      EventUtils.sendKey("return");
-    });
-    EventUtils.sendKey("return");
-  });
-
+  info("Clicking on the brace element to focus the new property field");
+  let onFocus = once(brace.parentNode, "focus", true);
   brace.click();
-}
+  yield onFocus;
 
-function finishUp()
-{
-  doc = inspector = stylePanel = null;
-  gBrowser.removeCurrentTab();
-  finish();
-}
+  info("Entering a property name");
+  let editor = getCurrentInplaceEditor(view);
+  editor.input.value = "color";
 
-function test()
-{
-  waitForExplicitFinish();
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function(evt) {
-    gBrowser.selectedBrowser.removeEventListener(evt.type, arguments.callee, true);
-    doc = content.document;
-    doc.title = "Rule View Test";
-    waitForFocus(() => openRuleView(selectNode), content);
-  }, true);
+  info("Typing ENTER to focus the next field: property value");
+  let onFocus = once(brace.parentNode, "focus", true);
+  EventUtils.sendKey("return");
+  yield onFocus;
+  ok(true, "The value field was focused");
 
-  content.location = "data:text/html,<h1>Some header text</h1>";
+  info("Entering a property value");
+  let editor = getCurrentInplaceEditor(view);
+  editor.input.value = "green";
+
+  info("Typing ENTER again should focus a new property name");
+  let onFocus = once(brace.parentNode, "focus", true);
+  EventUtils.sendKey("return");
+  yield onFocus;
+  ok(true, "The new property name field was focused");
+  getCurrentInplaceEditor(view).input.blur();
+});
+
+function getCurrentInplaceEditor(view) {
+  return inplaceEditor(view.doc.activeElement);
 }
