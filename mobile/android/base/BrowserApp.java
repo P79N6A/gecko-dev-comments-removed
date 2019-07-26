@@ -1634,6 +1634,13 @@ abstract public class BrowserApp extends GeckoApp
         }).execute();
     }
 
+    @Override
+    protected NotificationClient makeNotificationClient() {
+        
+        
+        return new ServiceNotificationClient(getApplicationContext());
+    }
+
     private void resetFeedbackLaunchCount() {
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override

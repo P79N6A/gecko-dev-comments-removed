@@ -1457,6 +1457,8 @@ abstract public class GeckoApp
                 editor.commit();
             }
         });
+
+        GeckoAppShell.setNotificationClient(makeNotificationClient());
     }
 
     protected void initializeChrome(String uri, boolean isExternalURL) {
@@ -2635,5 +2637,11 @@ abstract public class GeckoApp
             }
         }
         return false;
+    }
+
+    protected NotificationClient makeNotificationClient() {
+        
+        
+        return new AppNotificationClient(getApplicationContext());
     }
 }

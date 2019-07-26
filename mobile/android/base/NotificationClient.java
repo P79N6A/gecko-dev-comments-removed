@@ -9,31 +9,20 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 
 import android.app.PendingIntent;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
 
 
 
-public class NotificationServiceClient {
-    private static final String LOGTAG = "GeckoNotificationServiceClient";
+public abstract class NotificationClient {
+    private static final String LOGTAG = "GeckoNotificationClient";
 
-    private volatile NotificationService mService;
-    private final ServiceConnection mConnection = new NotificationServiceConnection();
-    private boolean mBound;
-    private final Context mContext;
+    private volatile NotificationHandler mHandler;
+    private boolean mReady;
     private final LinkedList<Runnable> mTaskQueue = new LinkedList<Runnable>();
     private final ConcurrentHashMap<Integer, UpdateRunnable> mUpdatesMap =
             new ConcurrentHashMap<Integer, UpdateRunnable>();
-
-    public NotificationServiceClient(Context context) {
-        mContext = context;
-    }
 
     
 
@@ -75,7 +64,7 @@ public class NotificationServiceClient {
                 alertText = mAlertText;
             }
 
-            mService.update(mNotificationID, progress, progressMax, alertText);
+            mHandler.update(mNotificationID, progress, progressMax, alertText);
         }
     };
 
@@ -89,12 +78,12 @@ public class NotificationServiceClient {
         mTaskQueue.add(new Runnable() {
             @Override
             public void run() {
-                mService.add(notificationID, aImageUrl, aAlertTitle, aAlertText, contentIntent);
+                mHandler.add(notificationID, aImageUrl, aAlertTitle, aAlertText, contentIntent);
             }
         });
         notify();
 
-        if (!mBound) {
+        if (!mReady) {
             bind();
         }
     }
@@ -120,7 +109,7 @@ public class NotificationServiceClient {
         }
 
         synchronized (this) {
-            if (mBound) {
+            if (mReady) {
                 mTaskQueue.add(runnable);
                 notify();
             }
@@ -133,14 +122,14 @@ public class NotificationServiceClient {
 
 
     public synchronized void remove(final int notificationID) {
-        if (!mBound) {
+        if (!mReady) {
             return;
         }
 
         mTaskQueue.add(new Runnable() {
             @Override
             public void run() {
-                mService.remove(notificationID);
+                mHandler.remove(notificationID);
                 mUpdatesMap.remove(notificationID);
             }
         });
@@ -153,44 +142,25 @@ public class NotificationServiceClient {
 
 
     public boolean isProgressStyle(int notificationID) {
-        final NotificationService service = mService;
-        return service != null && service.isProgressStyle(notificationID);
+        final NotificationHandler handler = mHandler;
+        return handler != null && handler.isProgressStyle(notificationID);
     }
 
-    private void bind() {
-        mBound = true;
-        final Intent intent = new Intent(mContext, NotificationService.class);
-        mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    protected void bind() {
+        mReady = true;
     }
 
-    private void unbind() {
-        if (mBound) {
-            mBound = false;
-            mContext.unbindService(mConnection);
-            mUpdatesMap.clear();
-        }
+    protected void unbind() {
+        mReady = false;
+        mUpdatesMap.clear();
     }
 
-    class NotificationServiceConnection implements ServiceConnection, Runnable {
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            final NotificationService.NotificationBinder binder =
-                    (NotificationService.NotificationBinder) service;
-            mService = binder.getService();
+    protected void connectHandler(NotificationHandler handler) {
+        mHandler = handler;
+        new Thread(new NotificationRunnable()).start();
+    }
 
-            new Thread(this).start();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            
-            
-            
-            
-            
-            Log.e(LOGTAG, "Notification service disconnected", new Exception());
-        }
-
+    private class NotificationRunnable implements Runnable {
         @Override
         public void run() {
             Runnable r;
@@ -198,20 +168,14 @@ public class NotificationServiceClient {
                 while (true) {
                     
                     
-                    synchronized (NotificationServiceClient.this) {
+                    synchronized (NotificationClient.this) {
                         r = mTaskQueue.poll();
                         while (r == null) {
-                            if (mService.isDone()) {
-                                
-                                
-                                
-                                
-                                
-                                
+                            if (mHandler.isDone()) {
                                 unbind();
                                 return;
                             }
-                            NotificationServiceClient.this.wait();
+                            NotificationClient.this.wait();
                             r = mTaskQueue.poll();
                         }
                     }
