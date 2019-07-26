@@ -26,6 +26,7 @@
 #include "nsRect.h"                     
 #include "nsSize.h"                     
 #include "nsString.h"                   
+#include "TextRenderer.h"
 #include "GeckoProfiler.h"
 
 namespace mozilla {
