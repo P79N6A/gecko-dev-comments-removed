@@ -13,6 +13,7 @@
 #include "Layers.h"                     
 #include "gfxPoint.h"                   
 #include "gfxPoint3D.h"                 
+#include "mozilla/StyleAnimationValue.h" 
 #include "mozilla/WidgetUtils.h"        
 #include "mozilla/gfx/BaseRect.h"       
 #include "mozilla/gfx/Point.h"          
@@ -30,7 +31,6 @@
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
-#include "nsStyleAnimation.h"           
 #include "nsTArray.h"                   
 #include "nsTArrayForwardDeclare.h"     
 #if defined(MOZ_WIDGET_ANDROID)

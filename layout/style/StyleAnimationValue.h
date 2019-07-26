@@ -5,8 +5,8 @@
 
 
 
-#ifndef nsStyleAnimation_h_
-#define nsStyleAnimation_h_
+#ifndef mozilla_StyleAnimationValue_h_
+#define mozilla_StyleAnimationValue_h_
 
 #include "nsStringFwd.h"
 #include "nsStringBuffer.h"
