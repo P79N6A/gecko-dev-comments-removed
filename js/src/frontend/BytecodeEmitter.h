@@ -78,12 +78,12 @@ struct BytecodeEmitter
         BytecodeVector code;        
         SrcNotesVector notes;       
         ptrdiff_t   lastNoteOffset; 
-        uint32_t    currentLine;    
-        uint32_t    lastColumn;     
+        unsigned    currentLine;    
+        unsigned    lastColumn;     
 
 
-        EmitSection(JSContext *cx, uint32_t lineNum)
-          : code(cx), notes(cx), lastNoteOffset(0), currentLine(lineNum), lastColumn(0)
+        EmitSection(JSContext *cx, unsigned lineno)
+          : code(cx), notes(cx), lastNoteOffset(0), currentLine(lineno), lastColumn(0)
         {}
     };
     EmitSection prolog, main, *current;
@@ -141,7 +141,7 @@ struct BytecodeEmitter
 
     BytecodeEmitter(BytecodeEmitter *parent, Parser<FullParseHandler> *parser, SharedContext *sc,
                     HandleScript script, HandleScript evalCaller, bool hasGlobalScope,
-                    uint32_t lineNum, bool selfHostingMode = false);
+                    unsigned lineno, bool selfHostingMode = false);
     bool init();
 
     bool isAliasedName(ParseNode *pn);
