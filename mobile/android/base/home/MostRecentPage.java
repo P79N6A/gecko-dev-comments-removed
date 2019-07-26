@@ -168,7 +168,7 @@ public class MostRecentPage extends HomeFragment {
         }
         if (mEmptyView == null) {
             
-            ViewStub emptyViewStub = (ViewStub) getActivity().findViewById(R.id.home_empty_view_stub);
+            ViewStub emptyViewStub = (ViewStub) getView().findViewById(R.id.home_empty_view_stub);
             mEmptyView = emptyViewStub.inflate();
 
             final ImageView emptyIcon = (ImageView) mEmptyView.findViewById(R.id.home_empty_image);
