@@ -3947,7 +3947,9 @@ Tab.prototype = {
         
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
-          BrowserApp.displayedDocumentChanged();
+          if (BrowserApp.selectedTab == this) {
+            BrowserApp.displayedDocumentChanged();
+          }
           this.contentDocumentIsDisplayed = true;
 
           
