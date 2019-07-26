@@ -14,9 +14,21 @@ import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
 
+
+
+
+
+
+
+
+
+
+
 public class GLController {
     private static final int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
     private static final String LOGTAG = "GeckoGLController";
+
+    private static GLController sInstance;
 
     private LayerView mView;
     private boolean mSurfaceValid;
@@ -41,19 +53,15 @@ public class GLController {
         EGL10.EGL_NONE
     };
 
-    GLController(LayerView view) {
-        mView = view;
-        mSurfaceValid = false;
+    private GLController() {
     }
 
-    
-    void resumeCompositorIfValid() {
-        synchronized (this) {
-            if (!mSurfaceValid) {
-                return;
-            }
+    static GLController getInstance(LayerView view) {
+        if (sInstance == null) {
+            sInstance = new GLController();
         }
-        resumeCompositor(mWidth, mHeight);
+        sInstance.mView = view;
+        return sInstance;
     }
 
     
