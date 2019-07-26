@@ -77,6 +77,9 @@ const TAB_EVENTS = [
   "TabUnpinned"
 ];
 
+
+const MS_PER_DAY = 1000.0 * 60.0 * 60.0 * 24.0;
+
 #ifndef XP_WIN
 #define BROKEN_WM_Z_ORDER
 #endif
@@ -465,9 +468,7 @@ let SessionStoreInternal = {
           }
 
           
-          this._sessionStartTime = state.session &&
-                                   state.session.startTime ||
-                                   this._sessionStartTime;
+          this._updateSessionStartTime(state);
 
           
           delete state.windows[0].hidden;
@@ -1801,9 +1802,9 @@ let SessionStoreInternal = {
     
     this._recentCrashes = lastSessionState.session &&
                           lastSessionState.session.recentCrashes || 0;
-    this._sessionStartTime = lastSessionState.session &&
-                             lastSessionState.session.startTime ||
-                             this._sessionStartTime;
+
+    
+    this._updateSessionStartTime(lastSessionState);
 
     this._lastSessionState = null;
   },
@@ -3634,6 +3635,28 @@ let SessionStoreInternal = {
   },
 
   
+
+  
+
+
+
+
+
+
+  _updateSessionStartTime: function ssi_updateSessionStartTime(state) {
+    
+    if (state.session && state.session.startTime) {
+      this._sessionStartTime = state.session.startTime;
+
+      
+      let sessionLength = (Date.now() - this._sessionStartTime) / MS_PER_DAY;
+
+      if (sessionLength > 0) {
+        
+        Services.telemetry.getHistogramById("FX_SESSION_RESTORE_SESSION_LENGTH").add(sessionLength);
+      }
+    }
+  },
 
   
 
