@@ -19,6 +19,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/dom/TextTrackManager.h"
+#include "MediaDecoder.h"
 
 
 
@@ -392,6 +393,8 @@ public:
   double CurrentTime() const;
 
   void SetCurrentTime(double aCurrentTime, ErrorResult& aRv);
+
+  void FastSeek(double aTime, ErrorResult& aRv);
 
   double Duration() const;
 
@@ -861,6 +864,12 @@ protected:
   
   nsresult UpdateChannelMuteState(mozilla::dom::AudioChannelState aCanPlay);
 
+  
+  
+  
+  
+  void Seek(double aTime, SeekTarget::Type aSeekType, ErrorResult& aRv);
+  
   
   virtual void UpdateAudioChannelPlayingState();
 

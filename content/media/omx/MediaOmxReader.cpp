@@ -350,9 +350,23 @@ nsresult MediaOmxReader::Seek(int64_t aTarget, int64_t aStartTime, int64_t aEndT
     container->GetImageContainer()->ClearAllImagesExceptFront();
   }
 
-  mAudioSeekTimeUs = mVideoSeekTimeUs = aTarget;
+  if (mHasAudio && mHasVideo) {
+    
+    
+    
+    
+    
+    
+    
+    
+    mVideoSeekTimeUs = aTarget;
+    const VideoData* v = DecodeToFirstVideoData();
+    mAudioSeekTimeUs = v ? v->mTime : aTarget;
+  } else {
+    mAudioSeekTimeUs = mVideoSeekTimeUs = aTarget;
+  }
 
-  return DecodeToTarget(aTarget);
+  return NS_OK;
 }
 
 static uint64_t BytesToTime(int64_t offset, uint64_t length, uint64_t durationUs) {
