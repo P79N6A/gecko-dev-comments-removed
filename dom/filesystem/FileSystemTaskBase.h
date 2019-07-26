@@ -126,6 +126,14 @@ public:
   void
   SetError(const nsresult& aErrorCode);
 
+  already_AddRefed<FileSystemBase>
+  GetFileSystem();
+
+  
+
+
+  virtual void
+  GetPermissionAccessType(nsCString& aAccess) const = 0;
 
   NS_DECL_NSIRUNNABLE
 protected:

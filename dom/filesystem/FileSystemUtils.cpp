@@ -49,6 +49,24 @@ FileSystemUtils::NormalizedPathToLocalPath(const nsAString& aNorm,
 
 
 bool
+FileSystemUtils::IsDescendantPath(const nsAString& aPath,
+                                  const nsAString& aDescendantPath)
+{
+  
+  nsAutoString prefix;
+  prefix = aPath + NS_LITERAL_STRING(FILESYSTEM_DOM_PATH_SEPARATOR);
+
+  
+  if (aDescendantPath.Length() < prefix.Length() ||
+      !StringBeginsWith(aDescendantPath, prefix)) {
+    return false;
+  }
+
+  return true;
+}
+
+
+bool
 FileSystemUtils::IsParentProcess()
 {
   return XRE_GetProcessType() == GeckoProcessType_Default;

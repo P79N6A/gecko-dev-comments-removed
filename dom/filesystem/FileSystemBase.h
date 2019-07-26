@@ -56,11 +56,34 @@ public:
 
   virtual const nsAString&
   GetRootName() const = 0;
+
+  virtual bool
+  IsSafeFile(nsIFile* aFile) const;
+
+  
+
+
+  const nsCString&
+  GetPermission() const
+  {
+    return mPermission;
+  }
+
+  bool
+  IsTesting() const
+  {
+    return mIsTesting;
+  }
 protected:
   virtual ~FileSystemBase();
 
   
   nsString mString;
+
+  
+  nsCString mPermission;
+
+  bool mIsTesting;
 };
 
 } 

@@ -34,6 +34,13 @@ public:
   static void
   NormalizedPathToLocalPath(const nsAString& aNorm, nsAString& aLocal);
 
+  
+
+
+
+  static bool
+  IsDescendantPath(const nsAString& aPath, const nsAString& aDescendantPath);
+
   static bool
   IsParentProcess();
 
