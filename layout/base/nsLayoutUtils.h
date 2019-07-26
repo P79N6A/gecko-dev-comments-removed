@@ -1587,8 +1587,6 @@ public:
   
 
 
-  static bool AreOpacityAnimationsEnabled();
-  static bool AreTransformAnimationsEnabled();
   static bool AreAsyncAnimationsEnabled();
 
   
