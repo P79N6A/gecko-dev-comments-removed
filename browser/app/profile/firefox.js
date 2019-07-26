@@ -1123,6 +1123,7 @@ pref("devtools.gcli.eagerHelper", 2);
 
 pref("devtools.webconsole.filter.network", true);
 pref("devtools.webconsole.filter.networkinfo", true);
+pref("devtools.webconsole.filter.netwarn", true);
 pref("devtools.webconsole.filter.csserror", true);
 pref("devtools.webconsole.filter.cssparser", true);
 pref("devtools.webconsole.filter.exception", true);
@@ -1138,6 +1139,7 @@ pref("devtools.webconsole.filter.secwarn", true);
 
 pref("devtools.browserconsole.filter.network", true);
 pref("devtools.browserconsole.filter.networkinfo", true);
+pref("devtools.browserconsole.filter.netwarn", true);
 pref("devtools.browserconsole.filter.csserror", true);
 pref("devtools.browserconsole.filter.cssparser", true);
 pref("devtools.browserconsole.filter.exception", true);
