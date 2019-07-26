@@ -1545,6 +1545,12 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
 
   
   
+  if (mAnimation) {
+    mAnimation->ExecuteDeferredTasks();
+  }
+
+  
+  
   if (mAsyncScrollTimeoutTask) {
     mAsyncScrollTimeoutTask->Cancel();
     mAsyncScrollTimeoutTask = nullptr;
