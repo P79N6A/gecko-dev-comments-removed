@@ -429,9 +429,6 @@ public class GeckoAppShell
         GeckoAppShell.putenv("EXTERNAL_STORAGE=" + f.getPath());
 
         
-        GeckoAppShell.putenv("MOZ_ENABLE_FIXED_POSITION_LAYERS=1");
-
-        
         f = context.getCacheDir();
         GeckoAppShell.putenv("CACHE_DIRECTORY=" + f.getPath());
 
