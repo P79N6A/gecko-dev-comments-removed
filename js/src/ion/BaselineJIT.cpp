@@ -89,14 +89,34 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode, bool osr)
     
     int maxArgc = 0;
     Value *maxArgv = NULL;
-    unsigned numActualArgs = 0;
+    int numActualArgs = 0;
     RootedValue thisv(cx);
 
     void *calleeToken;
     if (fp->isNonEvalFunctionFrame()) {
+        
+        
+        maxArgc = CountArgSlots(fp->script(), fp->fun()) - StartArgSlot(fp->script(), fp->fun());
+        maxArgv = fp->formals() - 1;            
+
+        
+        
+        
         numActualArgs = fp->numActualArgs();
-        maxArgc = Max(numActualArgs, fp->numFormalArgs()) + 1; 
-        maxArgv = fp->argv() - 1; 
+
+        
+        
+        if (fp->hasOverflowArgs()) {
+            int formalArgc = maxArgc;
+            Value *formalArgv = maxArgv;
+            maxArgc = numActualArgs + 1; 
+            maxArgv = fp->actuals() - 1; 
+
+            
+            
+            
+            memcpy(maxArgv, formalArgv, formalArgc * sizeof(Value));
+        }
         calleeToken = CalleeToToken(&fp->callee());
     } else {
         
