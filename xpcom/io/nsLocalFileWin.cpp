@@ -15,7 +15,6 @@
 
 #include "nsISimpleEnumerator.h"
 #include "nsIComponentManager.h"
-#include "prtypes.h"
 #include "prio.h"
 #include "private/pprio.h"  
 #include "prprf.h"
