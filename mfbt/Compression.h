@@ -101,7 +101,7 @@ public:
 
 
 
-  static MFBT_API size_t maxCompressedSize(size_t inputSize)
+  static inline size_t maxCompressedSize(size_t inputSize)
   {
       size_t max = ((inputSize) + ((inputSize)/255) + 16);
       MOZ_ASSERT(max > inputSize);
