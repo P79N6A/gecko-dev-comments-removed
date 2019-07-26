@@ -939,6 +939,10 @@ public:
 
 
   int64_t GetCurrentGraphUpdateIndex() { return mGraphUpdatesSent; }
+  
+
+
+  void StartNonRealtimeProcessing(uint32_t aTicksToProcess);
 
   
 

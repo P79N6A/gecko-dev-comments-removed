@@ -483,6 +483,10 @@ public:
   
 
 
+  uint32_t mNonRealtimeTicksToProcess;
+  
+
+
   bool mNeedAnotherIteration;
   
 
@@ -493,6 +497,13 @@ public:
 
 
   bool mPostedRunInStableStateEvent;
+  
+
+
+
+
+
+  bool mNonRealtimeIsRunning;
 
   
 
@@ -519,6 +530,11 @@ public:
 
 
   bool mRealtime;
+  
+
+
+
+  bool mNonRealtimeProcessing;
 };
 
 }
