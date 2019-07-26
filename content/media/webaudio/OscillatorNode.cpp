@@ -386,9 +386,7 @@ public:
                                                      tableInterpolationFactor);
       
       mPhase += periodicWaveSize * mFinalFrequency * rate;
-      if (mPhase >= periodicWaveSize) {
-        mPhase -= periodicWaveSize;
-      }
+      mPhase = fmod(mPhase, periodicWaveSize);
       
       uint32_t j1 = floor(mPhase);
       uint32_t j2 = j1 + 1;
