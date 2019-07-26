@@ -165,6 +165,11 @@ BuildForwardInner(TrustDomain& trustDomain,
 }
 
 
+
+
+
+
+
 static Result
 BuildForward(TrustDomain& trustDomain,
              BackCert& subject,
@@ -186,14 +191,23 @@ BuildForward(TrustDomain& trustDomain,
   Result rv;
 
   TrustDomain::TrustLevel trustLevel;
-
+  bool expiredEndEntity = false;
   rv = CheckIssuerIndependentProperties(trustDomain, subject, time,
                                         endEntityOrCA,
                                         requiredKeyUsagesIfPresent,
                                         requiredEKUIfPresent, subCACount,
                                         &trustLevel);
   if (rv != Success) {
-    return rv;
+    
+    
+    
+    
+    expiredEndEntity = endEntityOrCA == MustBeEndEntity &&
+                       trustLevel != TrustDomain::TrustAnchor &&
+                       PR_GetError() == SEC_ERROR_EXPIRED_CERTIFICATE;
+    if (!expiredEndEntity) {
+      return rv;
+    }
   }
 
   if (trustLevel == TrustDomain::TrustAnchor) {
@@ -219,6 +233,8 @@ BuildForward(TrustDomain& trustDomain,
     return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER);
   }
 
+  PRErrorCode errorToReturn = 0;
+
   for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
        !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
     rv = BuildForwardInner(trustDomain, subject, time, endEntityOrCA,
@@ -226,6 +242,14 @@ BuildForward(TrustDomain& trustDomain,
                            n->cert, stapledOCSPResponse, subCACount,
                            results);
     if (rv == Success) {
+      if (expiredEndEntity) {
+        
+        
+        
+        PR_SetError(SEC_ERROR_EXPIRED_CERTIFICATE, 0);
+        return RecoverableError;
+      }
+
       SECStatus srv = trustDomain.CheckRevocation(endEntityOrCA,
                                                   subject.GetNSSCert(),
                                                   n->cert, time,
@@ -240,9 +264,31 @@ BuildForward(TrustDomain& trustDomain,
     if (rv != RecoverableError) {
       return rv;
     }
+
+    PRErrorCode currentError = PR_GetError();
+    switch (currentError) {
+      case 0:
+        PR_NOT_REACHED("Error code not set!");
+        PR_SetError(PR_INVALID_STATE_ERROR, 0);
+        return FatalError;
+      case SEC_ERROR_UNTRUSTED_CERT:
+        currentError = SEC_ERROR_UNTRUSTED_ISSUER;
+        break;
+      default:
+        break;
+    }
+    if (errorToReturn == 0) {
+      errorToReturn = currentError;
+    } else if (errorToReturn != currentError) {
+      errorToReturn = SEC_ERROR_UNKNOWN_ISSUER;
+    }
   }
 
-  return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER);
+  if (errorToReturn == 0) {
+    errorToReturn = SEC_ERROR_UNKNOWN_ISSUER;
+  }
+
+  return Fail(RecoverableError, errorToReturn);
 }
 
 SECStatus
