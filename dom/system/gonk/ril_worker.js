@@ -8923,13 +8923,13 @@ let ICCRecordHelper = {
       let length = Buf.readUint32();
       
       let len = length / 2;
-      RIL.iccInfo.sst = GsmPDUHelper.readHexOctetArray(len);
+      let sst = GsmPDUHelper.readHexOctetArray(len);
       Buf.readStringDelimiter(length);
-
+      RIL.iccInfoPrivate.sst = sst;
       if (DEBUG) {
         let str = "";
-        for (let i = 0; i < RIL.iccInfo.sst.length; i++) {
-          str += RIL.iccInfo.sst[i] + ", ";
+        for (let i = 0; i < sst.length; i++) {
+          str += sst[i] + ", ";
         }
         debug("SST: " + str);
       }
@@ -9694,7 +9694,7 @@ let ICCUtilsHelper = {
 
 
   isICCServiceAvailable: function isICCServiceAvailable(geckoService) {
-    let serviceTable = RIL.iccInfo.sst;
+    let serviceTable = RIL.iccInfoPrivate.sst;
     let index, bitmask;
     if (RIL.appType == CARD_APPTYPE_SIM) {
       
