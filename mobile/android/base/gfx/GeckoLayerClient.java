@@ -67,9 +67,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     private boolean mLastProgressiveUpdateWasLowPrecision;
     private boolean mProgressiveUpdateWasInDanger;
 
-    
-    private volatile boolean mCompositorCreated;
-
     private boolean mForceRedraw;
 
     
@@ -107,7 +104,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         mProgressiveUpdateDisplayPort = new DisplayPortMetrics();
         mLastProgressiveUpdateWasLowPrecision = false;
         mProgressiveUpdateWasInDanger = false;
-        mCompositorCreated = false;
 
         mForceRedraw = true;
         DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
@@ -597,40 +593,11 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
     
     @Override
-    public void compositionPauseRequested() {
-        
-        
-        
-        
-        
-        
-        
-        
-        if (mCompositorCreated) {
-            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorPauseEvent());
-        }
-    }
-
-    
-    @Override
-    public void compositionResumeRequested(int width, int height) {
-        
-        
-        
-        
-        if (mCompositorCreated) {
-            GeckoAppShell.scheduleResumeComposition(width, height);
-            GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorResumeEvent());
-        }
-    }
-
-    
-    @Override
     public void sizeChanged(int width, int height) {
         
         
         
-        compositionResumeRequested(mWindowSize.width, mWindowSize.height);
+        mView.getGLController().resumeCompositor(mWindowSize.width, mWindowSize.height);
     }
 
     
@@ -641,13 +608,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         
         
         
-        compositionResumeRequested(width, height);
-    }
-
-    
-    @Override
-    public void compositorCreated() {
-        mCompositorCreated = true;
+        mView.getGLController().resumeCompositor(width, height);
     }
 
     

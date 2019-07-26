@@ -5,6 +5,9 @@
 
 package org.mozilla.gecko.gfx;
 
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
+
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
@@ -18,6 +21,10 @@ public class GLController {
     private LayerView mView;
     private boolean mSurfaceValid;
     private int mWidth, mHeight;
+
+    
+
+    private volatile boolean mCompositorCreated;
 
     private EGL10 mEGL;
     private EGLDisplay mEGLDisplay;
@@ -46,7 +53,7 @@ public class GLController {
                 return;
             }
         }
-        mView.getListener().compositionResumeRequested(mWidth, mHeight);
+        resumeCompositor(mWidth, mHeight);
     }
 
     
@@ -65,6 +72,18 @@ public class GLController {
     synchronized void surfaceDestroyed() {
         mSurfaceValid = false;
         notifyAll();
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (mCompositorCreated) {
+            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorPauseEvent());
+        }
     }
 
     synchronized void surfaceChanged(int newWidth, int newHeight) {
@@ -72,6 +91,10 @@ public class GLController {
         mHeight = newHeight;
         mSurfaceValid = true;
         notifyAll();
+    }
+
+    void compositorCreated() {
+        mCompositorCreated = true;
     }
 
     public boolean hasValidSurface() {
@@ -147,6 +170,19 @@ public class GLController {
         return "Error " + mEGL.eglGetError();
     }
 
+    void resumeCompositor(int width, int height) {
+        
+        
+        
+        
+        
+        
+        if (mCompositorCreated) {
+            GeckoAppShell.scheduleResumeComposition(width, height);
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorResumeEvent());
+        }
+    }
+
     public static class GLControllerException extends RuntimeException {
         public static final long serialVersionUID = 1L;
 
@@ -155,4 +191,3 @@ public class GLController {
         }
     }
 }
-
