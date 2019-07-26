@@ -3399,12 +3399,20 @@ for (uint32_t i = 0; i < length; ++i) {
             
             
             declType = CGGeneric("nsString")
+            if isMember == "Variadic":
+                
+                
+                assignString = "${declName}.Rebind(str.Data(), str.Length())"
+            else:
+                assignString = "${declName} = str"
             return JSToNativeConversionInfo(
                 "{\n"
                 "  FakeDependentString str;\n"
                 "%s\n"
-                "  ${declName} = str;\n"
-                "}\n" % CGIndenter(CGGeneric(getConversionCode("str"))).define(),
+                "  %s;\n"
+                "}\n" % (
+                    CGIndenter(CGGeneric(getConversionCode("str"))).define(),
+                    assignString),
                 declType=declType, dealWithOptional=isOptional)
 
         if isOptional:
