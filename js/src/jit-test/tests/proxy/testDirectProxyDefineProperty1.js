@@ -1,6 +1,6 @@
 
 var target = {};
-Object.defineProperty(new Proxy(target, {}), 'foo', {
+Object.defineProperty(Proxy(target, {}), 'foo', {
     value: 'bar',
     writable: true,
     enumerable: false,

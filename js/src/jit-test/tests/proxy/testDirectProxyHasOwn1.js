@@ -1,5 +1,5 @@
 
-var proxy = new Proxy(Object.create(Object.create(null, {
+var proxy = Proxy(Object.create(Object.create(null, {
     'foo': {
         configurable: true
     }

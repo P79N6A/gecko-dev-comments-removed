@@ -1,8 +1,8 @@
 
-assertEq(new Proxy({
+assertEq(Proxy({
     foo: 'bar'
 }, {}).foo, 'bar');
 
-assertEq(new Proxy({
+assertEq(Proxy({
     foo: 'bar'
 }, {})['foo'], 'bar');
