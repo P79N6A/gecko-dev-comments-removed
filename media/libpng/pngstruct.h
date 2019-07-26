@@ -373,7 +373,13 @@ struct png_struct_def
 
    png_bytep big_prev_row;
 
+
    void (*read_filter[PNG_FILTER_VALUE_LAST-1])(png_row_infop row_info,
       png_bytep row, png_const_bytep prev_row);
+
+   
+#ifdef PNG_SET_OPTION_SUPPORTED
+   png_byte options;           
+#endif
 };
 #endif 

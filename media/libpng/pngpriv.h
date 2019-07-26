@@ -39,6 +39,7 @@
 
 #define _POSIX_SOURCE 1 /* Just the POSIX 1003.1 and C89 APIs */
 
+#ifndef PNG_VERSION_INFO_ONLY
 
 
 
@@ -46,6 +47,7 @@
 
 
 #include <stddef.h>
+#endif 
 
 #define PNGLIB_BUILD
 
@@ -125,8 +127,6 @@
 #endif
 
 #include "png.h"
-#include "pnginfo.h"
-#include "pngstruct.h"
 
 
 #ifndef PNG_DLL_EXPORT
@@ -172,14 +172,6 @@
 #     define PNG_USER_CHUNK_MALLOC_MAX 0
 #  endif
 #endif
-
-
-
-
-typedef PNG_CONST png_uint_16p FAR * png_const_uint_16pp;
-
-
-
 
 
 
@@ -246,7 +238,7 @@ typedef PNG_CONST png_uint_16p FAR * png_const_uint_16pp;
    
 
 
-#  if defined __GNUC__ || defined _MSC_VER || defined __WATCOMC__
+#  if defined(__GNUC__) || defined(_MSC_VER) || defined(__WATCOMC__)
 #     define PNG_RESTRICT restrict
 #  else
 #     define PNG_RESTRICT
@@ -308,6 +300,7 @@ typedef PNG_CONST png_uint_16p FAR * png_const_uint_16pp;
 #  define PNGFAPI
 #endif
 
+#ifndef PNG_VERSION_INFO_ONLY
 
 
 
@@ -352,6 +345,7 @@ typedef PNG_CONST png_uint_16p FAR * png_const_uint_16pp;
     defined(_WIN32) || defined(__WIN32__)
 #  include <windows.h>  
 #endif
+#endif 
 
 
 
@@ -621,8 +615,10 @@ typedef PNG_CONST png_uint_16p FAR * png_const_uint_16pp;
 #define png_fixed(png_ptr, fp, s) ((fp) <= 21474 && (fp) >= -21474 ?\
     ((png_fixed_point)(100000 * (fp))) : (png_fixed_error(png_ptr, s),0))
 #else
+#ifndef PNG_VERSION_INFO_ONLY
 PNG_EXTERN png_fixed_point png_fixed PNGARG((png_structp png_ptr, double fp,
    png_const_charp text));
+#endif 
 #endif
 #endif
 
@@ -706,6 +702,18 @@ PNG_EXTERN png_fixed_point png_fixed PNGARG((png_structp png_ptr, double fp,
 #define PNG_GAMMA_MAC_INVERSE 65909
 #define PNG_GAMMA_sRGB_INVERSE 45455
 
+
+
+
+#ifndef PNG_VERSION_INFO_ONLY
+
+#include "pngstruct.h"
+#include "pnginfo.h"
+
+
+
+
+typedef const png_uint_16p * png_const_uint_16pp;
 
 
 #ifdef __cplusplus
@@ -1682,7 +1690,7 @@ PNG_EXTERN png_fixed_point png_muldiv_warn PNGARG((png_structp png_ptr,
     png_fixed_point a, png_int_32 multiplied_by, png_int_32 divided_by));
 #endif
 
-#if (defined PNG_READ_GAMMA_SUPPORTED) || (defined PNG_cHRM_SUPPORTED)
+#if defined(PNG_READ_GAMMA_SUPPORTED) || defined(PNG_cHRM_SUPPORTED)
 
 
 
@@ -1790,4 +1798,5 @@ PNG_EXTERN void PNG_FILTER_OPTIMIZATIONS(png_structp png_ptr, unsigned int bpp);
 }
 #endif
 
+#endif
 #endif

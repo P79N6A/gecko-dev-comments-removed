@@ -379,6 +379,9 @@
 
 
 
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -392,9 +395,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.5.14"
+#define PNG_LIBPNG_VER_STRING "1.5.15"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.5.14 - January 24, 2013\n"
+     " libpng version 1.5.15 - March 28, 2013\n"
 
 #define PNG_LIBPNG_VER_SONUM   15
 #define PNG_LIBPNG_VER_DLLNUM  15
@@ -402,7 +405,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   5
-#define PNG_LIBPNG_VER_RELEASE 14
+#define PNG_LIBPNG_VER_RELEASE 15
 
 
 
@@ -433,7 +436,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10514 /* 1.5.14 */
+#define PNG_LIBPNG_VER 10515 /* 1.5.15 */
 
 #ifndef MOZPNGCONF_H
 #   include "mozpngconf.h"
@@ -460,7 +463,7 @@
 
 
 #  include "pngconf.h"
-#endif
+#endif 
 
 
 
@@ -546,21 +549,10 @@ extern "C" {
 
 
 
-#ifdef PNG_APNG_SUPPORTED
-
-#define PNG_DISPOSE_OP_NONE        0x00
-#define PNG_DISPOSE_OP_BACKGROUND  0x01
-#define PNG_DISPOSE_OP_PREVIOUS    0x02
-
-
-#define PNG_BLEND_OP_SOURCE        0x00
-#define PNG_BLEND_OP_OVER          0x01
-#endif 
 
 
 
-
-typedef char* png_libpng_version_1_5_14;
+typedef char* png_libpng_version_1_5_15;
 
 
 
@@ -2663,80 +2655,135 @@ PNG_EXPORT(207, void, png_save_uint_16, (png_bytep buf, unsigned int i));
       : (png_int_32)png_get_uint_32(buf)))
 #endif
 
-#if defined(PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED) || \
-    defined(PNG_WRITE_CHECK_FOR_INVALID_INDEX_SUPPORTED)
+#ifdef PNG_CHECK_FOR_INVALID_INDEX_SUPPORTED
 PNG_EXPORT(234, void, png_set_check_for_invalid_index, (png_structp png_ptr,
     int allowed));
-#endif
+#  ifdef PNG_GET_PALETTE_MAX_SUPPORTED
+PNG_EXPORT(235, int, png_get_palette_max, (png_const_structp png_ptr,
+    png_const_infop info_ptr));
+#  endif
+#endif 
 
 #ifdef PNG_APNG_SUPPORTED
-PNG_EXPORT(235, png_uint_32, png_get_acTL, (png_structp png_ptr,
+
+#define PNG_DISPOSE_OP_NONE        0x00
+#define PNG_DISPOSE_OP_BACKGROUND  0x01
+#define PNG_DISPOSE_OP_PREVIOUS    0x02
+
+
+#define PNG_BLEND_OP_SOURCE        0x00
+#define PNG_BLEND_OP_OVER          0x01
+#endif 
+
+#ifdef PNG_APNG_SUPPORTED
+PNG_EXPORT(237, png_uint_32, png_get_acTL, (png_structp png_ptr,
    png_infop info_ptr, png_uint_32 *num_frames, png_uint_32 *num_plays));
 
-PNG_EXPORT(236, png_uint_32, png_set_acTL, (png_structp png_ptr,
+PNG_EXPORT(238, png_uint_32, png_set_acTL, (png_structp png_ptr,
    png_infop info_ptr, png_uint_32 num_frames, png_uint_32 num_plays));
 
-PNG_EXPORT(237, png_uint_32, png_get_num_frames, (png_structp png_ptr,
+PNG_EXPORT(239, png_uint_32, png_get_num_frames, (png_structp png_ptr,
    png_infop info_ptr));
 
-PNG_EXPORT(238, png_uint_32, png_get_num_plays, (png_structp png_ptr,
+PNG_EXPORT(240, png_uint_32, png_get_num_plays, (png_structp png_ptr,
    png_infop info_ptr));
 
-PNG_EXPORT(239, png_uint_32, png_get_next_frame_fcTL,
+PNG_EXPORT(241, png_uint_32, png_get_next_frame_fcTL,
    (png_structp png_ptr, png_infop info_ptr, png_uint_32 *width,
    png_uint_32 *height, png_uint_32 *x_offset, png_uint_32 *y_offset,
    png_uint_16 *delay_num, png_uint_16 *delay_den, png_byte *dispose_op,
    png_byte *blend_op));
 
-PNG_EXPORT(240, png_uint_32, png_set_next_frame_fcTL,
+PNG_EXPORT(242, png_uint_32, png_set_next_frame_fcTL,
    (png_structp png_ptr, png_infop info_ptr, png_uint_32 width,
    png_uint_32 height, png_uint_32 x_offset, png_uint_32 y_offset,
    png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op,
    png_byte blend_op));
 
-PNG_EXPORT(241, png_uint_32, png_get_next_frame_width,
+PNG_EXPORT(243, png_uint_32, png_get_next_frame_width,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(242, png_uint_32, png_get_next_frame_height,
+PNG_EXPORT(244, png_uint_32, png_get_next_frame_height,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(243, png_uint_32, png_get_next_frame_x_offset,
+PNG_EXPORT(245, png_uint_32, png_get_next_frame_x_offset,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(244, png_uint_32, png_get_next_frame_y_offset,
+PNG_EXPORT(246, png_uint_32, png_get_next_frame_y_offset,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(245, png_uint_16, png_get_next_frame_delay_num,
+PNG_EXPORT(247, png_uint_16, png_get_next_frame_delay_num,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(246, png_uint_16, png_get_next_frame_delay_den,
+PNG_EXPORT(248, png_uint_16, png_get_next_frame_delay_den,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(247, png_byte, png_get_next_frame_dispose_op,
+PNG_EXPORT(249, png_byte, png_get_next_frame_dispose_op,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(248, png_byte, png_get_next_frame_blend_op,
+PNG_EXPORT(250, png_byte, png_get_next_frame_blend_op,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(249, png_byte, png_get_first_frame_is_hidden,
+PNG_EXPORT(251, png_byte, png_get_first_frame_is_hidden,
    (png_structp png_ptr, png_infop info_ptr));
-PNG_EXPORT(250, png_uint_32, png_set_first_frame_is_hidden,
+PNG_EXPORT(252, png_uint_32, png_set_first_frame_is_hidden,
    (png_structp png_ptr, png_infop info_ptr, png_byte is_hidden));
 
 #ifdef PNG_READ_APNG_SUPPORTED
-PNG_EXPORT(251, void, png_read_frame_head, (png_structp png_ptr,
+PNG_EXPORT(253, void, png_read_frame_head, (png_structp png_ptr,
    png_infop info_ptr));
 #ifdef PNG_PROGRESSIVE_READ_SUPPORTED
-PNG_EXPORT(252, void, png_set_progressive_frame_fn, (png_structp png_ptr,
+PNG_EXPORT(254, void, png_set_progressive_frame_fn, (png_structp png_ptr,
    png_progressive_frame_ptr frame_info_fn,
    png_progressive_frame_ptr frame_end_fn));
 #endif 
 #endif 
 
 #ifdef PNG_WRITE_APNG_SUPPORTED
-PNG_EXPORT(253, void, png_write_frame_head, (png_structp png_ptr,
+PNG_EXPORT(255, void, png_write_frame_head, (png_structp png_ptr,
    png_infop info_ptr, png_bytepp row_pointers,
    png_uint_32 width, png_uint_32 height,
    png_uint_32 x_offset, png_uint_32 y_offset,
    png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op,
    png_byte blend_op));
 
-PNG_EXPORT(254, void, png_write_frame_tail, (png_structp png_ptr,
+PNG_EXPORT(256, void, png_write_frame_tail, (png_structp png_ptr,
    png_infop info_ptr));
 #endif 
 #endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef PNG_SET_OPTION_SUPPORTED
+#ifdef PNG_ARM_NEON_API_SUPPORTED
+#  define PNG_ARM_NEON   0 /* HARDWARE: ARM Neon SIMD instructions supported */
+#endif
+#define PNG_OPTION_NEXT  2 /* Next option - numbers must be even */
+
+
+#define PNG_OPTION_UNSET   0 /* Unset - defaults to off */
+#define PNG_OPTION_INVALID 1 /* Option number out of range */
+#define PNG_OPTION_OFF     2
+#define PNG_OPTION_ON      3
+
+PNG_EXPORT(236, int, png_set_option, (png_structp png_ptr, int option,
+   int onoff));
+#endif
+
+
+
+
 
 
 
@@ -2747,11 +2794,11 @@ PNG_EXPORT(254, void, png_write_frame_tail, (png_structp png_ptr,
 
 
 #ifdef PNG_EXPORT_LAST_ORDINAL
-#ifdef PNG_APNG_SUPPORTED
-  PNG_EXPORT_LAST_ORDINAL(254);
-#else
-  PNG_EXPORT_LAST_ORDINAL(234);
-#endif 
+#  ifdef PNG_APNG_SUPPORTED
+  PNG_EXPORT_LAST_ORDINAL(256);
+#  else
+  PNG_EXPORT_LAST_ORDINAL(236);
+#  endif 
 #endif
 
 #ifdef __cplusplus

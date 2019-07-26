@@ -1127,6 +1127,19 @@ png_get_io_chunk_name (png_structp png_ptr)
 }
 #endif 
 
+#ifdef PNG_CHECK_FOR_INVALID_INDEX_SUPPORTED
+#  ifdef PNG_GET_PALETTE_MAX_SUPPORTED
+int PNGAPI
+png_get_palette_max(png_const_structp png_ptr, png_const_infop info_ptr)
+{
+   if (png_ptr != NULL && info_ptr != NULL)
+      return png_ptr->num_palette_max;
+
+   return (-1);
+}
+#  endif
+#endif
+
 #ifdef PNG_APNG_SUPPORTED
 png_uint_32 PNGAPI
 png_get_acTL(png_structp png_ptr, png_infop info_ptr,

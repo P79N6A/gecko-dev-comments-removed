@@ -314,6 +314,7 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
       png_benign_error(png_ptr, "Wrote palette index exceeding num_palette");
 #endif
 
+    
 #ifdef PNG_WRITE_APNG_SUPPORTED
    if (png_ptr->num_frames_written != png_ptr->num_frames_to_write)
       png_error(png_ptr, "Not enough frames written");
@@ -465,7 +466,9 @@ png_create_write_struct,(png_const_charp user_png_ver, png_voidp error_ptr,
 }
 
 
+#ifdef PNG_WRITE_WEIGHTED_FILTER_SUPPORTED
 static void png_reset_filter_heuristics(png_structp png_ptr); 
+#endif
 
 PNG_FUNCTION(png_structp,PNGAPI
 png_create_write_struct_2,(png_const_charp user_png_ver, png_voidp error_ptr,

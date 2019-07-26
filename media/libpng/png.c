@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_5_14 Your_png_h_is_not_version_1_5_14;
+typedef png_libpng_version_1_5_15 Your_png_h_is_not_version_1_5_15;
 
 
 
