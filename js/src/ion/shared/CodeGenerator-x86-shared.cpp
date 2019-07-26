@@ -997,14 +997,15 @@ bool
 CodeGeneratorX86Shared::visitRound(LRound *lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
-    FloatRegister pointFive = ToFloatRegister(lir->temp());
+    FloatRegister temp = ToFloatRegister(lir->temp());
     FloatRegister scratch = ScratchFloatReg;
     Register output = ToRegister(lir->output());
 
     Label negative, end;
 
+    
     static const double PointFive = 0.5;
-    masm.loadStaticDouble(&PointFive, pointFive);
+    masm.loadStaticDouble(&PointFive, temp);
 
     
     masm.xorpd(scratch, scratch);
@@ -1016,9 +1017,11 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
         return false;
 
     
-    masm.addsd(pointFive, input);
+    
+    
+    masm.addsd(input, temp);
 
-    masm.cvttsd2si(input, output);
+    masm.cvttsd2si(temp, output);
     masm.cmp32(output, Imm32(INT_MIN));
     if (!bailoutIf(Assembler::Equal, lir->snapshot()))
         return false;
@@ -1031,8 +1034,9 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 
     if (AssemblerX86Shared::HasSSE41()) {
         
-        masm.addsd(pointFive, input);
-        masm.roundsd(input, scratch, JSC::X86Assembler::RoundDown);
+        
+        masm.addsd(input, temp);
+        masm.roundsd(temp, scratch, JSC::X86Assembler::RoundDown);
 
         
         masm.cvttsd2si(scratch, output);
@@ -1047,21 +1051,21 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
             return false;
 
     } else {
-        masm.addsd(pointFive, input);
+        masm.addsd(input, temp);
 
         
         Label testZero;
         {
             
             
-            masm.cvttsd2si(input, output);
+            masm.cvttsd2si(temp, output);
             masm.cmp32(output, Imm32(INT_MIN));
             if (!bailoutIf(Assembler::Equal, lir->snapshot()))
                 return false;
 
             
             masm.cvtsi2sd(output, scratch);
-            masm.branchDouble(Assembler::DoubleEqualOrUnordered, input, scratch, &testZero);
+            masm.branchDouble(Assembler::DoubleEqualOrUnordered, temp, scratch, &testZero);
 
             
             
