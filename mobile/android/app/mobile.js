@@ -60,7 +60,6 @@ pref("image.cache.size", 1048576);
 pref("browser.offline-apps.notify", true);
 pref("browser.cache.offline.enable", true);
 pref("browser.cache.offline.capacity", 5120); 
-pref("offline-apps.quota.max", 2048); 
 pref("offline-apps.quota.warn", 1024); 
 
 

@@ -64,10 +64,6 @@ pref("browser.cache.offline.capacity",         512000);
 
 
 
-pref("offline-apps.quota.max",        204800);
-
-
-
 pref("offline-apps.quota.warn",        51200);
 
 
