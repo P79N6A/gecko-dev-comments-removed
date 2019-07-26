@@ -95,11 +95,8 @@ function add_tests_in_mode(useInsanity, certDB, otherTestCA) {
                 true);
   add_ocsp_test("ocsp-stapling-unknown.example.com",
                 getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT), true);
-  
   add_ocsp_test("ocsp-stapling-good-other.example.com",
-                getXPCOMStatusFromNSS(
-                  useInsanity ? SEC_ERROR_BAD_DER
-                              : SEC_ERROR_OCSP_UNKNOWN_CERT), true);
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT), true);
   
   
   

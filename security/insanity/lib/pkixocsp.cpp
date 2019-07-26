@@ -603,6 +603,11 @@ SingleResponse(der::Input& input, Context& context)
   }
 
   if (!match) {
+    
+    
+    
+    
+    input.SkipToEnd();
     return der::Success;
   }
 
@@ -745,6 +750,10 @@ CertID(der::Input& input, const Context& context,  bool& match)
   const CERTCertificate& issuerCert = context.issuerCert;
 
   if (!SECITEM_ItemsAreEqual(&serialNumber, &cert.serialNumber)) {
+    
+    
+    
+    input.SkipToEnd();
     return der::Success;
   }
 
@@ -752,6 +761,8 @@ CertID(der::Input& input, const Context& context,  bool& match)
 
   SECOidTag hashAlg = SECOID_GetAlgorithmTag(&hashAlgorithm);
   if (hashAlg != SEC_OID_SHA1) {
+    
+    input.SkipToEnd();
     return der::Success;
   }
 
@@ -768,6 +779,8 @@ CertID(der::Input& input, const Context& context,  bool& match)
     return der::Failure;
   }
   if (memcmp(hashBuf, issuerNameHash.data, issuerNameHash.len)) {
+    
+    input.SkipToEnd();
     return der::Success;
   }
 
