@@ -51,7 +51,7 @@ const WebRtc_UWord32 PLAY_MAX_TEMP_BUF_SIZE_PER_10ms =
 const WebRtc_UWord16 N_PLAY_QUEUE_BUFFERS = 8;
 
 
-const WebRtc_UWord16 N_REC_QUEUE_BUFFERS = 8;
+const WebRtc_UWord16 N_REC_QUEUE_BUFFERS = 16;
 
 
 
