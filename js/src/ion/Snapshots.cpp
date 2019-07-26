@@ -136,10 +136,10 @@ SnapshotReader::readFrameHeader()
 
 #ifdef DEBUG
     union {
-        JSScript *script;
-        uint8_t bytes[sizeof(JSScript *)];
+        RawScript script;
+        uint8_t bytes[sizeof(RawScript)];
     } u;
-    for (size_t i = 0; i < sizeof(JSScript *); i++)
+    for (size_t i = 0; i < sizeof(RawScript); i++)
         u.bytes[i] = reader_.readByte();
     script_ = u.script;
 #endif
@@ -307,7 +307,7 @@ SnapshotWriter::startSnapshot(uint32_t frameCount, BailoutKind kind, bool resume
 }
 
 void
-SnapshotWriter::startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack)
+SnapshotWriter::startFrame(JSFunction *fun, UnrootedScript script, jsbytecode *pc, uint32_t exprStack)
 {
     JS_ASSERT(CountArgSlots(fun) < SNAPSHOT_MAX_NARGS);
     JS_ASSERT(exprStack < SNAPSHOT_MAX_STACK);
@@ -322,11 +322,11 @@ SnapshotWriter::startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, ui
 
 #ifdef DEBUG
     union {
-        JSScript *script;
-        uint8_t bytes[sizeof(JSScript *)];
+        RawScript script;
+        uint8_t bytes[sizeof(RawScript)];
     } u;
     u.script = script;
-    for (size_t i = 0; i < sizeof(JSScript *); i++)
+    for (size_t i = 0; i < sizeof(RawScript); i++)
         writer_.writeByte(u.bytes[i]);
 #endif
 

@@ -282,12 +282,12 @@ class StackFrame
   private:
     mutable uint32_t    flags_;         
     union {                             
-        JSScript        *script;        
+        RawScript       script;         
         JSFunction      *fun;           
     } exec;
     union {                             
         unsigned        nactual;        
-        JSScript        *evalScript;    
+        RawScript       evalScript;     
     } u;
     mutable JSObject    *scopeChain_;   
     StackFrame          *prev_;         
@@ -345,13 +345,13 @@ class StackFrame
 
     
     void initCallFrame(JSContext *cx, JSFunction &callee,
-                       JSScript *script, uint32_t nactual, StackFrame::Flags flags);
+                       UnrootedScript script, uint32_t nactual, StackFrame::Flags flags);
 
     
     void initFixupFrame(StackFrame *prev, StackFrame::Flags flags, void *ncode, unsigned nactual);
 
     
-    void initExecuteFrame(JSScript *script, StackFrame *prev, FrameRegs *regs,
+    void initExecuteFrame(UnrootedScript script, StackFrame *prev, FrameRegs *regs,
                           const Value &thisv, JSObject &scopeChain, ExecuteType type);
 
   public:
@@ -1192,7 +1192,7 @@ class FrameRegs
     }
 
     
-    void prepareToRun(StackFrame &fp, JSScript *script) {
+    void prepareToRun(StackFrame &fp, UnrootedScript script) {
         pc = script->code;
         sp = fp.slots() + script->nfixed;
         fp_ = &fp;
@@ -1489,7 +1489,7 @@ class ContextStack
 
     inline StackFrame *
     getCallFrame(JSContext *cx, MaybeReportError report, const CallArgs &args,
-                 JSFunction *fun, JSScript *script, StackFrame::Flags *pflags) const;
+                 JSFunction *fun, HandleScript script, StackFrame::Flags *pflags) const;
 
     
     void popSegment();
@@ -1590,11 +1590,11 @@ class ContextStack
 
 
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         JSFunction &callee, JSScript *script,
+                         JSFunction &callee, HandleScript script,
                          InitialFrameFlags initial,
                          MaybeReportError report = REPORT_ERROR);
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         JSFunction &callee, JSScript *script,
+                         JSFunction &callee, HandleScript script,
                          InitialFrameFlags initial, Value **stackLimit);
     void popInlineFrame(FrameRegs &regs);
 
@@ -1611,8 +1611,8 @@ class ContextStack
         DONT_ALLOW_CROSS_COMPARTMENT = false,
         ALLOW_CROSS_COMPARTMENT = true
     };
-    inline JSScript *currentScript(jsbytecode **pc = NULL,
-                                   MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
+    inline UnrootedScript currentScript(jsbytecode **pc = NULL,
+                                        MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
 
     
     inline HandleObject currentScriptedScopeChain() const;
@@ -1623,7 +1623,7 @@ class ContextStack
 
 
     StackFrame *getFixupFrame(JSContext *cx, MaybeReportError report,
-                              const CallArgs &args, JSFunction *fun, JSScript *script,
+                              const CallArgs &args, JSFunction *fun, HandleScript script,
                               void *ncode, InitialFrameFlags initial, Value **stackLimit);
 
     bool saveFrameChain();

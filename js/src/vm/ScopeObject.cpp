@@ -158,7 +158,7 @@ CallObject::create(JSContext *cx, HandleShape shape, HandleTypeObject type, Heap
 
 
 CallObject *
-CallObject::createTemplateObject(JSContext *cx, JSScript *script)
+CallObject::createTemplateObject(JSContext *cx, HandleScript script)
 {
     RootedShape shape(cx, script->bindings.callObjShape());
 

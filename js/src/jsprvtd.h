@@ -278,7 +278,7 @@ typedef JSBool
 typedef void
 (* JSNewScriptHook)(JSContext  *cx,
                     const char *filename,  
-                    unsigned      lineno,     
+                    unsigned   lineno,     
                     JSScript   *script,
                     JSFunction *fun,
                     void       *callerdata);
@@ -286,8 +286,8 @@ typedef void
 
 typedef void
 (* JSDestroyScriptHook)(JSFreeOp *fop,
-                        JSRawScript script,
-                        void      *callerdata);
+                        JSScript *script,
+                        void     *callerdata);
 
 typedef void
 (* JSSourceHandler)(const char *filename, unsigned lineno, const jschar *str,

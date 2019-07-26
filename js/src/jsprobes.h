@@ -92,16 +92,16 @@ bool callTrackingActive(JSContext *);
 bool wantNativeAddressInfo(JSContext *);
 
 
-bool enterScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
+bool enterScript(JSContext *, UnrootedScript , JSFunction *, StackFrame *);
 
 
-bool exitScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
+bool exitScript(JSContext *, UnrootedScript , JSFunction *, StackFrame *);
 
 
-bool startExecution(JSScript *script);
+bool startExecution(UnrootedScript script);
 
 
-bool stopExecution(JSScript *script);
+bool stopExecution(UnrootedScript script);
 
 
 bool resizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
@@ -223,7 +223,7 @@ discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, mjit::JITChunk *chunk, void*
 
 bool
 registerICCode(JSContext *cx,
-               mjit::JITChunk *chunk, JSScript *script, jsbytecode* pc,
+               mjit::JITChunk *chunk, UnrootedScript script, jsbytecode* pc,
                void *start, size_t size);
 #endif 
 
@@ -240,8 +240,8 @@ discardExecutableRegion(void *start, size_t size);
 
 
 
-void DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
-void DTraceExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
+void DTraceEnterJSFun(JSContext *cx, JSFunction *fun, UnrootedScript script);
+void DTraceExitJSFun(JSContext *cx, JSFunction *fun, UnrootedScript script);
 
 
 
@@ -252,8 +252,8 @@ bool ETWCreateRuntime(JSRuntime *rt);
 bool ETWDestroyRuntime(JSRuntime *rt);
 bool ETWShutdown();
 bool ETWCallTrackingActive();
-bool ETWEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter);
-bool ETWExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter);
+bool ETWEnterJSFun(JSContext *cx, JSFunction *fun, UnrootedScript script, int counter);
+bool ETWExitJSFun(JSContext *cx, JSFunction *fun, UnrootedScript script, int counter);
 bool ETWCreateObject(JSContext *cx, JSObject *obj);
 bool ETWFinalizeObject(JSObject *obj);
 bool ETWResizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
@@ -274,8 +274,8 @@ bool ETWGCEndSweepPhase();
 bool ETWCustomMark(JSString *string);
 bool ETWCustomMark(const char *string);
 bool ETWCustomMark(int marker);
-bool ETWStartExecution(JSScript *script);
-bool ETWStopExecution(JSContext *cx, JSScript *script);
+bool ETWStartExecution(UnrootedScript script);
+bool ETWStopExecution(JSContext *cx, UnrootedScript script);
 bool ETWResizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
 #endif
 
@@ -312,7 +312,7 @@ Probes::wantNativeAddressInfo(JSContext *cx)
 }
 
 inline bool
-Probes::enterScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
+Probes::enterScript(JSContext *cx, UnrootedScript script, JSFunction *maybeFun,
                     StackFrame *fp)
 {
     bool ok = true;
@@ -339,7 +339,7 @@ Probes::enterScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
 }
 
 inline bool
-Probes::exitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
+Probes::exitScript(JSContext *cx, UnrootedScript script, JSFunction *maybeFun,
                    StackFrame *fp)
 {
     bool ok = true;
@@ -681,7 +681,7 @@ Probes::CustomMark(int marker)
 }
 
 inline bool
-Probes::startExecution(JSScript *script)
+Probes::startExecution(UnrootedScript script)
 {
     bool ok = true;
 
@@ -699,7 +699,7 @@ Probes::startExecution(JSScript *script)
 }
 
 inline bool
-Probes::stopExecution(JSScript *script)
+Probes::stopExecution(UnrootedScript script)
 {
     bool ok = true;
 

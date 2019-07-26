@@ -406,7 +406,7 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
     RootedScript functionProtoScript(cx, functionProto->nonLazyScript());
-    js_CallNewScriptHook(cx, functionProtoScript, functionProto);
+    CallNewScriptHook(cx, functionProtoScript, functionProto);
     return functionProto;
 }
 
