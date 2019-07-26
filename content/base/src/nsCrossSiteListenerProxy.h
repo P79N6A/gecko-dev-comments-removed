@@ -66,7 +66,11 @@ private:
   nsresult CheckRequestApproved(nsIRequest* aRequest);
 
   nsCOMPtr<nsIStreamListener> mOuterListener;
+  
   nsCOMPtr<nsIPrincipal> mRequestingPrincipal;
+  
+  
+  nsCOMPtr<nsIPrincipal> mOriginHeaderPrincipal;
   nsCOMPtr<nsIInterfaceRequestor> mOuterNotificationCallbacks;
   bool mWithCredentials;
   bool mRequestApproved;
