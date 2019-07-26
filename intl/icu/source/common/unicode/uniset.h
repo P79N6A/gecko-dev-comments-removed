@@ -22,6 +22,9 @@
 
 U_NAMESPACE_BEGIN
 
+
+void UnicodeSet_initInclusion(int32_t src, UErrorCode &status); 
+
 class BMPSet;
 class ParsePosition;
 class RBBIRuleScanner;
@@ -1586,6 +1589,7 @@ private:
                               UnicodeString& rebuiltPat,
                               UErrorCode& ec);
 
+    friend void UnicodeSet_initInclusion(int32_t src, UErrorCode &status);
     static const UnicodeSet* getInclusions(int32_t src, UErrorCode &status);
 
     

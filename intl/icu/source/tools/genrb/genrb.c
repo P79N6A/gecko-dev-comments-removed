@@ -280,7 +280,7 @@ main(int argc,
         }
     }
 
-    initParser(options[NO_COLLATION_RULES].doesOccur);
+    initParser();
 
     
     if(options[LANGUAGE].doesOccur) {
@@ -557,7 +557,8 @@ processFile(
         printf("autodetected encoding %s\n", cp);
     }
     
-    data = parse(ucbuf, inputDir, outputDir, !omitBinaryCollation, status);
+    data = parse(ucbuf, inputDir, outputDir,
+                 !omitBinaryCollation, options[NO_COLLATION_RULES].doesOccur, status);
 
     if (data == NULL || U_FAILURE(*status)) {
         fprintf(stderr, "couldn't parse the file %s. Error:%s\n", filename,u_errorName(*status));

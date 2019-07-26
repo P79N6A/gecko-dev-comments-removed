@@ -123,25 +123,31 @@ ubrk_openRules(  const UChar        *rules,
 U_CAPI UBreakIterator * U_EXPORT2
 ubrk_safeClone(
           const UBreakIterator *bi,
-          void *stackBuffer,
+          void * ,
           int32_t *pBufferSize,
           UErrorCode *status)
 {
     if (status == NULL || U_FAILURE(*status)){
-        return 0;
+        return NULL;
     }
-    if (!pBufferSize || !bi){
+    if (bi == NULL) {
        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
+        return NULL;
     }
-    
-    
-    
-    if (*status==U_SAFECLONE_ALLOCATED_WARNING) {
-        *status = U_ZERO_ERROR;
+    if (pBufferSize != NULL) {
+        int32_t inputSize = *pBufferSize;
+        *pBufferSize = 1;
+        if (inputSize == 0) {
+            return NULL;  
+        }
     }
-    return (UBreakIterator *)(((BreakIterator*)bi)->
-        createBufferClone(stackBuffer, *pBufferSize, *status));
+    BreakIterator *newBI = ((BreakIterator *)bi)->clone();
+    if (newBI == NULL) {
+        *status = U_MEMORY_ALLOCATION_ERROR;
+    } else {
+        *status = U_SAFECLONE_ALLOCATED_WARNING;
+    }
+    return (UBreakIterator *)newBI;
 }
 
 
@@ -149,15 +155,7 @@ ubrk_safeClone(
 U_CAPI void U_EXPORT2
 ubrk_close(UBreakIterator *bi)
 {
-    BreakIterator *ubi = (BreakIterator*) bi;
-    if (ubi) {
-        if (ubi->isBufferClone()) {
-            ubi->~BreakIterator();
-            *(uint32_t *)ubi = 0xdeadbeef;
-        } else {
-            delete ubi;
-        }
-    }
+    delete (BreakIterator *)bi;
 }
 
 U_CAPI void U_EXPORT2

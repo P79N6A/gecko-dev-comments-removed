@@ -39,6 +39,7 @@
 
 #include "unicode/utypes.h"
 #include "unicode/ustring.h"
+#include "uassert.h"
 #include "ustr_imp.h"
 
 #ifdef U_DEBUG_TZ
@@ -109,14 +110,15 @@ static const UChar         UNKNOWN_ZONE_ID[] = {0x45, 0x74, 0x63, 0x2F, 0x55, 0x
 static const int32_t       GMT_ID_LENGTH = 3;
 static const int32_t       UNKNOWN_ZONE_ID_LENGTH = 11;
 
-static UMutex LOCK = U_MUTEX_INITIALIZER;
-static UMutex TZSET_LOCK = U_MUTEX_INITIALIZER;
 static icu::TimeZone* DEFAULT_ZONE = NULL;
+static icu::UInitOnce gDefaultZoneInitOnce = U_INITONCE_INITIALIZER;
+
 static icu::TimeZone* _GMT = NULL;
 static icu::TimeZone* _UNKNOWN_ZONE = NULL;
+static icu::UInitOnce gStaticZonesInitOnce = U_INITONCE_INITIALIZER;
 
 static char TZDATA_VERSION[16];
-static UBool TZDataVersionInitialized = FALSE;
+static icu::UInitOnce gTZDataVersionInitOnce = U_INITONCE_INITIALIZER;
 
 static int32_t* MAP_SYSTEM_ZONES = NULL;
 static int32_t* MAP_CANONICAL_SYSTEM_ZONES = NULL;
@@ -126,32 +128,41 @@ static int32_t LEN_SYSTEM_ZONES = 0;
 static int32_t LEN_CANONICAL_SYSTEM_ZONES = 0;
 static int32_t LEN_CANONICAL_SYSTEM_LOCATION_ZONES = 0;
 
+static icu::UInitOnce gSystemZonesInitOnce = U_INITONCE_INITIALIZER;
+static icu::UInitOnce gCanonicalZonesInitOnce = U_INITONCE_INITIALIZER;
+static icu::UInitOnce gCanonicalLocationZonesInitOnce = U_INITONCE_INITIALIZER;
+
 U_CDECL_BEGIN
 static UBool U_CALLCONV timeZone_cleanup(void)
 {
+    U_NAMESPACE_USE
     delete DEFAULT_ZONE;
     DEFAULT_ZONE = NULL;
+    gDefaultZoneInitOnce.reset();
 
     delete _GMT;
     _GMT = NULL;
-
     delete _UNKNOWN_ZONE;
     _UNKNOWN_ZONE = NULL;
+    gStaticZonesInitOnce.reset();
 
     uprv_memset(TZDATA_VERSION, 0, sizeof(TZDATA_VERSION));
-    TZDataVersionInitialized = FALSE;
+    gTZDataVersionInitOnce.reset();
 
     LEN_SYSTEM_ZONES = 0;
     uprv_free(MAP_SYSTEM_ZONES);
     MAP_SYSTEM_ZONES = 0;
+    gSystemZonesInitOnce.reset();
 
     LEN_CANONICAL_SYSTEM_ZONES = 0;
     uprv_free(MAP_CANONICAL_SYSTEM_ZONES);
     MAP_CANONICAL_SYSTEM_ZONES = 0;
+    gCanonicalZonesInitOnce.reset();
 
     LEN_CANONICAL_SYSTEM_LOCATION_ZONES = 0;
     uprv_free(MAP_CANONICAL_SYSTEM_LOCATION_ZONES);
     MAP_CANONICAL_SYSTEM_LOCATION_ZONES = 0;
+    gCanonicalLocationZonesInitOnce.reset();
 
     return TRUE;
 }
@@ -287,31 +298,12 @@ static UResourceBundle* openOlsonResource(const UnicodeString& id,
 
 namespace {
 
-void
-ensureStaticTimeZones() {
-    UBool needsInit;
-    UMTX_CHECK(&LOCK, (_GMT == NULL), needsInit);   
-
+void U_CALLCONV initStaticTimeZones() {
     
     
-    if (needsInit) {
-        SimpleTimeZone *tmpUnknown =
-            new SimpleTimeZone(0, UnicodeString(TRUE, UNKNOWN_ZONE_ID, UNKNOWN_ZONE_ID_LENGTH));
-        SimpleTimeZone *tmpGMT = new SimpleTimeZone(0, UnicodeString(TRUE, GMT_ID, GMT_ID_LENGTH));
-        umtx_lock(&LOCK);
-        if (_UNKNOWN_ZONE == 0) {
-            _UNKNOWN_ZONE = tmpUnknown;
-            tmpUnknown = NULL;
-        }
-        if (_GMT == 0) {
-            _GMT = tmpGMT;
-            tmpGMT = NULL;
-        }
-        umtx_unlock(&LOCK);
-        ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
-        delete tmpUnknown;
-        delete tmpGMT;
-    }
+    ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
+    _UNKNOWN_ZONE = new SimpleTimeZone(0, UnicodeString(TRUE, UNKNOWN_ZONE_ID, UNKNOWN_ZONE_ID_LENGTH));
+    _GMT = new SimpleTimeZone(0, UnicodeString(TRUE, GMT_ID, GMT_ID_LENGTH));
 }
 
 }  
@@ -319,14 +311,14 @@ ensureStaticTimeZones() {
 const TimeZone& U_EXPORT2
 TimeZone::getUnknown()
 {
-    ensureStaticTimeZones();
+    umtx_initOnce(gStaticZonesInitOnce, &initStaticTimeZones);
     return *_UNKNOWN_ZONE;
 }
 
 const TimeZone* U_EXPORT2
 TimeZone::getGMT(void)
 {
-    ensureStaticTimeZones();
+    umtx_initOnce(gStaticZonesInitOnce, &initStaticTimeZones);
     return _GMT;
 }
 
@@ -381,43 +373,9 @@ TimeZone::operator==(const TimeZone& that) const
 
 
 
-TimeZone* U_EXPORT2
-TimeZone::createTimeZone(const UnicodeString& ID)
-{
-    
-
-
-
-
-
-
-
-    TimeZone* result = createSystemTimeZone(ID);
-
-    if (result == 0) {
-        U_DEBUG_TZ_MSG(("failed to load system time zone with id - falling to custom"));
-        result = createCustomTimeZone(ID);
-    }
-    if (result == 0) {
-        U_DEBUG_TZ_MSG(("failed to load time zone with id - falling to Etc/Unknown(GMT)"));
-        result = getUnknown().clone();
-    }
-    return result;
-}
-
-
-
-
-
-
+namespace {
 TimeZone*
-TimeZone::createSystemTimeZone(const UnicodeString& id) {
-    UErrorCode ec = U_ZERO_ERROR;
-    return createSystemTimeZone(id, ec);
-}
-
-TimeZone*
-TimeZone::createSystemTimeZone(const UnicodeString& id, UErrorCode& ec) {
+createSystemTimeZone(const UnicodeString& id, UErrorCode& ec) {
     if (U_FAILURE(ec)) {
         return NULL;
     }
@@ -448,14 +406,55 @@ TimeZone::createSystemTimeZone(const UnicodeString& id, UErrorCode& ec) {
 
 
 
+TimeZone*
+createSystemTimeZone(const UnicodeString& id) {
+    UErrorCode ec = U_ZERO_ERROR;
+    return createSystemTimeZone(id, ec);
+}
 
+}
 
-
-
-
-void
-TimeZone::initDefault()
+TimeZone* U_EXPORT2
+TimeZone::createTimeZone(const UnicodeString& ID)
 {
+    
+
+
+
+
+
+
+
+    TimeZone* result = createSystemTimeZone(ID);
+
+    if (result == 0) {
+        U_DEBUG_TZ_MSG(("failed to load system time zone with id - falling to custom"));
+        result = createCustomTimeZone(ID);
+    }
+    if (result == 0) {
+        U_DEBUG_TZ_MSG(("failed to load time zone with id - falling to Etc/Unknown(GMT)"));
+        result = getUnknown().clone();
+    }
+    return result;
+}
+
+
+
+
+
+
+
+
+static void U_CALLCONV initDefault()
+{
+    ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
+
+    
+    
+    if (DEFAULT_ZONE != NULL) {
+        return;
+    }
+    
     
     
     int32_t rawOffset = 0;
@@ -463,38 +462,27 @@ TimeZone::initDefault()
 
     
     
-    {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        Mutex lock(&TZSET_LOCK);
 
-        ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
-        uprv_tzset(); 
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-        
-        
-        
-        
-        hostID = uprv_tzname(0);
+    uprv_tzset(); 
 
-        
-        rawOffset = uprv_timezone() * -U_MILLIS_PER_SECOND;
-    }
+    
+    
+    
+    
+    hostID = uprv_tzname(0);
 
-    UBool initialized;
-    UMTX_CHECK(&LOCK, (DEFAULT_ZONE != NULL), initialized);
-    if (initialized) {
-        
-        return;
-    }
+    
+    rawOffset = uprv_timezone() * -U_MILLIS_PER_SECOND;
 
     TimeZone* default_zone = NULL;
 
@@ -527,7 +515,7 @@ TimeZone::initDefault()
 
     
     if (default_zone == NULL) {
-        const TimeZone* temptz = getGMT();
+        const TimeZone* temptz = TimeZone::getGMT();
         
         if (temptz == NULL) {
             return;
@@ -536,15 +524,11 @@ TimeZone::initDefault()
     }
 
     
-    umtx_lock(&LOCK);
-    if (DEFAULT_ZONE == NULL) {
-        DEFAULT_ZONE = default_zone;
-        default_zone = NULL;
-        ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
-    }
-    umtx_unlock(&LOCK);
+    
+    
+    U_ASSERT(DEFAULT_ZONE == NULL);
 
-    delete default_zone;
+    DEFAULT_ZONE = default_zone;
 }
 
 
@@ -552,14 +536,7 @@ TimeZone::initDefault()
 TimeZone* U_EXPORT2
 TimeZone::createDefault()
 {
-    
-    UBool needsInit;
-    UMTX_CHECK(&LOCK, (DEFAULT_ZONE == NULL), needsInit);
-    if (needsInit) {
-        initDefault();
-    }
-
-    Mutex lock(&LOCK); 
+    umtx_initOnce(gDefaultZoneInitOnce, initDefault);
     return (DEFAULT_ZONE != NULL) ? DEFAULT_ZONE->clone() : NULL;
 }
 
@@ -570,13 +547,8 @@ TimeZone::adoptDefault(TimeZone* zone)
 {
     if (zone != NULL)
     {
-        TimeZone* old = NULL;
-
-        umtx_lock(&LOCK);
-        old = DEFAULT_ZONE;
+        TimeZone *old = DEFAULT_ZONE;
         DEFAULT_ZONE = zone;
-        umtx_unlock(&LOCK);
-
         delete old;
         ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
     }
@@ -589,6 +561,84 @@ TimeZone::setDefault(const TimeZone& zone)
     adoptDefault(zone.clone());
 }
 
+
+
+
+static void U_CALLCONV initMap(USystemTimeZoneType type, UErrorCode& ec) {
+    ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
+
+    UResourceBundle *res = ures_openDirect(0, kZONEINFO, &ec);
+    res = ures_getByKey(res, kNAMES, res, &ec); 
+    if (U_SUCCESS(ec)) {
+        int32_t size = ures_getSize(res);
+        int32_t *m = (int32_t *)uprv_malloc(size * sizeof(int32_t));
+        if (m == NULL) {
+            ec = U_MEMORY_ALLOCATION_ERROR;
+        } else {
+            int32_t numEntries = 0;
+            for (int32_t i = 0; i < size; i++) {
+                UnicodeString id = ures_getUnicodeStringByIndex(res, i, &ec);
+                if (U_FAILURE(ec)) {
+                    break;
+                }
+                if (0 == id.compare(UNKNOWN_ZONE_ID, UNKNOWN_ZONE_ID_LENGTH)) {
+                    
+                    continue;
+                }
+                if (type == UCAL_ZONE_TYPE_CANONICAL || type == UCAL_ZONE_TYPE_CANONICAL_LOCATION) {
+                    UnicodeString canonicalID;
+                    ZoneMeta::getCanonicalCLDRID(id, canonicalID, ec);
+                    if (U_FAILURE(ec)) {
+                        break;
+                    }
+                    if (canonicalID != id) {
+                        
+                        continue;
+                    }
+                }
+                if (type == UCAL_ZONE_TYPE_CANONICAL_LOCATION) {
+                    const UChar *region = TimeZone::getRegion(id, ec);
+                    if (U_FAILURE(ec)) {
+                        break;
+                    }
+                    if (u_strcmp(region, WORLD) == 0) {
+                       
+                        continue;
+                    }
+                }
+                m[numEntries++] = i;
+            }
+            if (U_SUCCESS(ec)) {
+                int32_t *tmp = m;
+                m = (int32_t *)uprv_realloc(tmp, numEntries * sizeof(int32_t));
+                if (m == NULL) {
+                    
+                    
+                    m = tmp;
+                }
+
+                switch(type) {
+                case UCAL_ZONE_TYPE_ANY:
+                    U_ASSERT(MAP_SYSTEM_ZONES == NULL);
+                    MAP_SYSTEM_ZONES = m;
+                    LEN_SYSTEM_ZONES = numEntries;
+                    break;
+                case UCAL_ZONE_TYPE_CANONICAL:
+                    U_ASSERT(MAP_CANONICAL_SYSTEM_ZONES == NULL);
+                    MAP_CANONICAL_SYSTEM_ZONES = m;
+                    LEN_CANONICAL_SYSTEM_ZONES = numEntries;
+                    break;
+                case UCAL_ZONE_TYPE_CANONICAL_LOCATION:
+                    U_ASSERT(MAP_CANONICAL_SYSTEM_LOCATION_ZONES == NULL);
+                    MAP_CANONICAL_SYSTEM_LOCATION_ZONES = m;
+                    LEN_CANONICAL_SYSTEM_LOCATION_ZONES = numEntries;
+                    break;
+                }
+            }
+        }
+    }
+    ures_close(res);
+}
 
 
 
@@ -688,127 +738,27 @@ private:
         int32_t* m = NULL;
         switch (type) {
         case UCAL_ZONE_TYPE_ANY:
+            umtx_initOnce(gSystemZonesInitOnce, &initMap, type, ec);
             m = MAP_SYSTEM_ZONES;
             len = LEN_SYSTEM_ZONES;
             break;
         case UCAL_ZONE_TYPE_CANONICAL:
+            umtx_initOnce(gCanonicalZonesInitOnce, &initMap, type, ec);
             m = MAP_CANONICAL_SYSTEM_ZONES;
             len = LEN_CANONICAL_SYSTEM_ZONES;
             break;
         case UCAL_ZONE_TYPE_CANONICAL_LOCATION:
+            umtx_initOnce(gCanonicalLocationZonesInitOnce, &initMap, type, ec);
             m = MAP_CANONICAL_SYSTEM_LOCATION_ZONES;
             len = LEN_CANONICAL_SYSTEM_LOCATION_ZONES;
             break;
-        }
-        UBool needsInit = FALSE;
-        UMTX_CHECK(&LOCK, (len == 0), needsInit);
-        if (needsInit) {
-            m = initMap(type, len, ec);
+        default:
+            ec = U_ILLEGAL_ARGUMENT_ERROR;
+            m = NULL;
+            len = 0;
+            break;
         }
         return m;
-    }
-
-    static int32_t* initMap(USystemTimeZoneType type, int32_t& len, UErrorCode& ec) {
-        len = 0;
-        if (U_FAILURE(ec)) {
-            return NULL;
-        }
-
-        int32_t *result = NULL;
-
-        UResourceBundle *res = ures_openDirect(0, kZONEINFO, &ec);
-        res = ures_getByKey(res, kNAMES, res, &ec); 
-        if (U_SUCCESS(ec)) {
-            int32_t size = ures_getSize(res);
-            int32_t *m = (int32_t *)uprv_malloc(size * sizeof(int32_t));
-            if (m == NULL) {
-                ec = U_MEMORY_ALLOCATION_ERROR;
-            } else {
-                int32_t numEntries = 0;
-                for (int32_t i = 0; i < size; i++) {
-                    UnicodeString id = ures_getUnicodeStringByIndex(res, i, &ec);
-                    if (U_FAILURE(ec)) {
-                        break;
-                    }
-                    if (0 == id.compare(UNKNOWN_ZONE_ID, UNKNOWN_ZONE_ID_LENGTH)) {
-                        
-                        continue;
-                    }
-                    if (type == UCAL_ZONE_TYPE_CANONICAL || type == UCAL_ZONE_TYPE_CANONICAL_LOCATION) {
-                        UnicodeString canonicalID;
-                        ZoneMeta::getCanonicalCLDRID(id, canonicalID, ec);
-                        if (U_FAILURE(ec)) {
-                            break;
-                        }
-                        if (canonicalID != id) {
-                            
-                            continue;
-                        }
-                    }
-                    if (type == UCAL_ZONE_TYPE_CANONICAL_LOCATION) {
-                        const UChar *region = TimeZone::getRegion(id, ec);
-                        if (U_FAILURE(ec)) {
-                            break;
-                        }
-                        if (u_strcmp(region, WORLD) == 0) {
-                           
-                            continue;
-                        }
-                    }
-                    m[numEntries++] = i;
-                }
-                if (U_SUCCESS(ec)) {
-                    int32_t *tmp = m;
-                    m = (int32_t *)uprv_realloc(tmp, numEntries * sizeof(int32_t));
-                    if (m == NULL) {
-                        
-                        
-                        m = tmp;
-                    }
-
-                    umtx_lock(&LOCK);
-                    {
-                        switch(type) {
-                        case UCAL_ZONE_TYPE_ANY:
-                            if (MAP_SYSTEM_ZONES == NULL) {
-                                MAP_SYSTEM_ZONES = m;
-                                LEN_SYSTEM_ZONES = numEntries;
-                                m = NULL;
-                                ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
-                            }
-                            result = MAP_SYSTEM_ZONES;
-                            len = LEN_SYSTEM_ZONES;
-                            break;
-                        case UCAL_ZONE_TYPE_CANONICAL:
-                            if (MAP_CANONICAL_SYSTEM_ZONES == NULL) {
-                                MAP_CANONICAL_SYSTEM_ZONES = m;
-                                LEN_CANONICAL_SYSTEM_ZONES = numEntries;
-                                m = NULL;
-                                ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
-                            }
-                            result = MAP_CANONICAL_SYSTEM_ZONES;
-                            len = LEN_CANONICAL_SYSTEM_ZONES;
-                            break;
-                        case UCAL_ZONE_TYPE_CANONICAL_LOCATION:
-                            if (MAP_CANONICAL_SYSTEM_LOCATION_ZONES == NULL) {
-                                MAP_CANONICAL_SYSTEM_LOCATION_ZONES = m;
-                                LEN_CANONICAL_SYSTEM_LOCATION_ZONES = numEntries;
-                                m = NULL;
-                                ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
-                            }
-                            result = MAP_CANONICAL_SYSTEM_LOCATION_ZONES;
-                            len = LEN_CANONICAL_SYSTEM_LOCATION_ZONES;
-                            break;
-                        }
-                    }
-                    umtx_unlock(&LOCK);
-                }
-                uprv_free(m);
-            }
-        }
-
-        ures_close(res);
-        return result;
     }
 
 public:
@@ -866,7 +816,7 @@ public:
                 if (rawOffset != NULL) {
                     
                     
-                    TimeZone *z = TimeZone::createSystemTimeZone(id, ec);
+                    TimeZone *z = createSystemTimeZone(id, ec);
                     if (U_FAILURE(ec)) {
                         break;
                     }
@@ -1252,7 +1202,11 @@ TimeZone::getDisplayName(UBool daylight, EDisplayType style, const Locale& local
         
         if ((daylight && timeType == UTZFMT_TIME_TYPE_STANDARD) || (!daylight && timeType == UTZFMT_TIME_TYPE_DAYLIGHT)) {
             offset = daylight ? getRawOffset() + getDSTSavings() : getRawOffset();
-            tzfmt->formatOffsetLocalizedGMT(offset, result, status);
+            if (style == SHORT_GENERIC) {
+                tzfmt->formatOffsetShortLocalizedGMT(offset, result, status);
+            } else {
+                tzfmt->formatOffsetLocalizedGMT(offset, result, status);
+            }
         }
     } else if (style == LONG_GMT || style == SHORT_GMT) {
         LocalPointer<TimeZoneFormat> tzfmt(TimeZoneFormat::createInstance(locale, status));
@@ -1266,7 +1220,7 @@ TimeZone::getDisplayName(UBool daylight, EDisplayType style, const Locale& local
             tzfmt->formatOffsetLocalizedGMT(offset, result, status);
             break;
         case SHORT_GMT:
-            tzfmt->formatOffsetRFC822(offset, result, status);
+            tzfmt->formatOffsetISO8601Basic(offset, FALSE, FALSE, FALSE, result, status);
             break;
         default:
             U_ASSERT(FALSE);
@@ -1297,7 +1251,11 @@ TimeZone::getDisplayName(UBool daylight, EDisplayType style, const Locale& local
             
             LocalPointer<TimeZoneFormat> tzfmt(TimeZoneFormat::createInstance(locale, status));
             offset = daylight && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
-            tzfmt->formatOffsetLocalizedGMT(offset, result, status);
+            if (style == LONG) {
+                tzfmt->formatOffsetLocalizedGMT(offset, result, status);
+            } else {
+                tzfmt->formatOffsetShortLocalizedGMT(offset, result, status);
+            }
         }
     }
     if (U_FAILURE(status)) {
@@ -1508,37 +1466,27 @@ TimeZone::hasSameRules(const TimeZone& other) const
             useDaylightTime() == other.useDaylightTime());
 }
 
+static void U_CALLCONV initTZDataVersion(UErrorCode &status) {
+    ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
+    int32_t len = 0;
+    UResourceBundle *bundle = ures_openDirect(NULL, kZONEINFO, &status);
+    const UChar *tzver = ures_getStringByKey(bundle, kTZVERSION, &len, &status);
+
+    if (U_SUCCESS(status)) {
+        if (len >= (int32_t)sizeof(TZDATA_VERSION)) {
+            
+            len = sizeof(TZDATA_VERSION) - 1;
+        }
+        u_UCharsToChars(tzver, TZDATA_VERSION, len);
+    }
+    ures_close(bundle);
+
+}
+
 const char*
 TimeZone::getTZDataVersion(UErrorCode& status)
 {
-    
-    UBool needsInit;
-    UMTX_CHECK(&LOCK, !TZDataVersionInitialized, needsInit);
-    if (needsInit) {
-        int32_t len = 0;
-        UResourceBundle *bundle = ures_openDirect(NULL, kZONEINFO, &status);
-        const UChar *tzver = ures_getStringByKey(bundle, kTZVERSION,
-            &len, &status);
-
-        if (U_SUCCESS(status)) {
-            if (len >= (int32_t)sizeof(TZDATA_VERSION)) {
-                
-                len = sizeof(TZDATA_VERSION) - 1;
-            }
-            umtx_lock(&LOCK);
-            if (!TZDataVersionInitialized) {
-                u_UCharsToChars(tzver, TZDATA_VERSION, len);
-                TZDataVersionInitialized = TRUE;
-            }
-            umtx_unlock(&LOCK);
-            ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
-        }
-
-        ures_close(bundle);
-    }
-    if (U_FAILURE(status)) {
-        return NULL;
-    }
+    umtx_initOnce(gTZDataVersionInitOnce, &initTZDataVersion, status);
     return (const char*)TZDATA_VERSION;
 }
 
@@ -1574,6 +1522,145 @@ TimeZone::getCanonicalID(const UnicodeString& id, UnicodeString& canonicalID, UB
     }
     return canonicalID;
 }
+
+#ifndef U_HIDE_DRAFT_API
+UnicodeString&
+TimeZone::getWindowsID(const UnicodeString& id, UnicodeString& winid, UErrorCode& status) {
+    winid.remove();
+    if (U_FAILURE(status)) {
+        return winid;
+    }
+
+    
+    UnicodeString canonicalID;
+    UBool isSystemID = FALSE;
+
+    getCanonicalID(id, canonicalID, isSystemID, status);
+    if (U_FAILURE(status) || !isSystemID) {
+        
+        return winid;
+    }
+
+    UResourceBundle *mapTimezones = ures_openDirect(NULL, "windowsZones", &status);
+    ures_getByKey(mapTimezones, "mapTimezones", mapTimezones, &status);
+
+    if (U_FAILURE(status)) {
+        return winid;
+    }
+
+    UResourceBundle *winzone = NULL;
+    UBool found = FALSE;
+    while (ures_hasNext(mapTimezones) && !found) {
+        winzone = ures_getNextResource(mapTimezones, winzone, &status);
+        if (U_FAILURE(status)) {
+            break;
+        }
+        if (ures_getType(winzone) != URES_TABLE) {
+            continue;
+        }
+        UResourceBundle *regionalData = NULL;
+        while (ures_hasNext(winzone) && !found) {
+            regionalData = ures_getNextResource(winzone, regionalData, &status);
+            if (U_FAILURE(status)) {
+                break;
+            }
+            if (ures_getType(regionalData) != URES_STRING) {
+                continue;
+            }
+            int32_t len;
+            const UChar *tzids = ures_getString(regionalData, &len, &status);
+            if (U_FAILURE(status)) {
+                break;
+            }
+
+            const UChar *start = tzids;
+            UBool hasNext = TRUE;
+            while (hasNext) {
+                const UChar *end = u_strchr(start, (UChar)0x20);
+                if (end == NULL) {
+                    end = tzids + len;
+                    hasNext = FALSE;
+                }
+                if (canonicalID.compare(start, end - start) == 0) {
+                    winid = UnicodeString(ures_getKey(winzone), -1 , US_INV);
+                    found = TRUE;
+                    break;
+                }
+                start = end + 1;
+            }
+        }
+        ures_close(regionalData);
+    }
+    ures_close(winzone);
+    ures_close(mapTimezones);
+
+    return winid;
+}
+
+#define MAX_WINDOWS_ID_SIZE 128
+
+UnicodeString&
+TimeZone::getIDForWindowsID(const UnicodeString& winid, const char* region, UnicodeString& id, UErrorCode& status) {
+    id.remove();
+    if (U_FAILURE(status)) {
+        return id;
+    }
+
+    UResourceBundle *zones = ures_openDirect(NULL, "windowsZones", &status);
+    ures_getByKey(zones, "mapTimezones", zones, &status);
+    if (U_FAILURE(status)) {
+        ures_close(zones);
+        return id;
+    }
+
+    UErrorCode tmperr = U_ZERO_ERROR;
+    char winidKey[MAX_WINDOWS_ID_SIZE];
+    int32_t winKeyLen = winid.extract(0, winid.length(), winidKey, sizeof(winidKey) - 1, US_INV);
+
+    if (winKeyLen == 0 || winKeyLen >= (int32_t)sizeof(winidKey)) {
+        ures_close(zones);
+        return id;
+    }
+    winidKey[winKeyLen] = 0;
+
+    ures_getByKey(zones, winidKey, zones, &tmperr); 
+                                                    
+    if (U_FAILURE(tmperr)) {
+        ures_close(zones);
+        return id;
+    }
+
+    const UChar *tzid = NULL;
+    int32_t len = 0;
+    UBool gotID = FALSE;
+    if (region) {
+        const UChar *tzids = ures_getStringByKey(zones, region, &len, &tmperr); 
+                                                                                
+        if (U_SUCCESS(tmperr)) {
+            
+            const UChar *end = u_strchr(tzids, (UChar)0x20);
+            if (end == NULL) {
+                id.setTo(tzids, -1);
+            } else {
+                id.setTo(tzids, end - tzids);
+            }
+            gotID = TRUE;
+        }
+    }
+
+    if (!gotID) {
+        tzid = ures_getStringByKey(zones, "001", &len, &status);    
+                                                                
+        if (U_SUCCESS(status)) {
+            id.setTo(tzid, len);
+        }
+    }
+
+    ures_close(zones);
+    return id;
+}
+#endif 
+
 
 U_NAMESPACE_END
 

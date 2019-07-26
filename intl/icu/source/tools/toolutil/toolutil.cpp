@@ -18,6 +18,13 @@
 
 
 
+#if U_PLATFORM == U_PF_MINGW
+
+#ifdef __STRICT_ANSI__
+#undef __STRICT_ANSI__
+#endif
+#endif
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include "unicode/utypes.h"
@@ -33,6 +40,9 @@
 #   define NOSERVICE
 #   define NOIME
 #   define NOMCX
+#   if U_PLATFORM == U_PF_MINGW
+#     define __NO_MINGW_LFS
+#   endif
 #   include <windows.h>
 #   include <direct.h>
 #else
@@ -190,6 +200,18 @@ uprv_mkdir(const char *pathname, UErrorCode *status) {
 #endif
     }
 }
+
+#if !UCONFIG_NO_FILE_IO
+U_CAPI UBool U_EXPORT2
+uprv_fileExists(const char *file) {
+  struct stat stat_buf;
+  if (stat(file, &stat_buf) == 0) {
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+#endif
 
 
 

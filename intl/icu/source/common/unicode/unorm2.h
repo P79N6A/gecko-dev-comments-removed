@@ -118,7 +118,6 @@ typedef struct UNormalizer2 UNormalizer2;
 
 #if !UCONFIG_NO_NORMALIZATION
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -130,7 +129,7 @@ typedef struct UNormalizer2 UNormalizer2;
 
 
 
-U_DRAFT const UNormalizer2 * U_EXPORT2
+U_STABLE const UNormalizer2 * U_EXPORT2
 unorm2_getNFCInstance(UErrorCode *pErrorCode);
 
 
@@ -144,7 +143,7 @@ unorm2_getNFCInstance(UErrorCode *pErrorCode);
 
 
 
-U_DRAFT const UNormalizer2 * U_EXPORT2
+U_STABLE const UNormalizer2 * U_EXPORT2
 unorm2_getNFDInstance(UErrorCode *pErrorCode);
 
 
@@ -158,7 +157,7 @@ unorm2_getNFDInstance(UErrorCode *pErrorCode);
 
 
 
-U_DRAFT const UNormalizer2 * U_EXPORT2
+U_STABLE const UNormalizer2 * U_EXPORT2
 unorm2_getNFKCInstance(UErrorCode *pErrorCode);
 
 
@@ -172,7 +171,7 @@ unorm2_getNFKCInstance(UErrorCode *pErrorCode);
 
 
 
-U_DRAFT const UNormalizer2 * U_EXPORT2
+U_STABLE const UNormalizer2 * U_EXPORT2
 unorm2_getNFKDInstance(UErrorCode *pErrorCode);
 
 
@@ -186,9 +185,8 @@ unorm2_getNFKDInstance(UErrorCode *pErrorCode);
 
 
 
-U_DRAFT const UNormalizer2 * U_EXPORT2
+U_STABLE const UNormalizer2 * U_EXPORT2
 unorm2_getNFKCCasefoldInstance(UErrorCode *pErrorCode);
-#endif  
 
 
 
@@ -355,7 +353,6 @@ unorm2_getDecomposition(const UNormalizer2 *norm2,
                         UChar32 c, UChar *decomposition, int32_t capacity,
                         UErrorCode *pErrorCode);
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -385,7 +382,7 @@ unorm2_getDecomposition(const UNormalizer2 *norm2,
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 unorm2_getRawDecomposition(const UNormalizer2 *norm2,
                            UChar32 c, UChar *decomposition, int32_t capacity,
                            UErrorCode *pErrorCode);
@@ -405,7 +402,7 @@ unorm2_getRawDecomposition(const UNormalizer2 *norm2,
 
 
 
-U_DRAFT UChar32 U_EXPORT2
+U_STABLE UChar32 U_EXPORT2
 unorm2_composePair(const UNormalizer2 *norm2, UChar32 a, UChar32 b);
 
 
@@ -417,9 +414,8 @@ unorm2_composePair(const UNormalizer2 *norm2, UChar32 a, UChar32 b);
 
 
 
-U_DRAFT uint8_t U_EXPORT2
+U_STABLE uint8_t U_EXPORT2
 unorm2_getCombiningClass(const UNormalizer2 *norm2, UChar32 c);
-#endif  
 
 
 

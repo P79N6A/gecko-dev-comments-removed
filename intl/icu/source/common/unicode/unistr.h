@@ -58,7 +58,6 @@ u_strlen(const UChar *s);
 
 
 
-
 #ifndef U_STRING_CASE_MAPPER_DEFINED
 #define U_STRING_CASE_MAPPER_DEFINED
 
@@ -337,6 +336,7 @@ public:
   inline int8_t compare(const UnicodeString& text) const;
 
   
+
 
 
 
@@ -2843,7 +2843,7 @@ public:
 
 
 
-  inline const UChar *getTerminatedBuffer();
+  const UChar *getTerminatedBuffer();
 
   
   
@@ -2852,7 +2852,7 @@ public:
   
 
 
-  UnicodeString();
+  inline UnicodeString();
 
   
 
@@ -3606,6 +3606,16 @@ UnicodeString::getArrayStart() const
 
 
 
+
+inline
+UnicodeString::UnicodeString()
+  : fShortLength(0),
+    fFlags(kShortString)
+{}
+
+
+
+
 inline int32_t
 UnicodeString::length() const
 { return fShortLength>=0 ? fShortLength : fUnion.fFields.fLength; }
@@ -4269,48 +4279,6 @@ UnicodeString::setArray(UChar *array, int32_t len, int32_t capacity) {
   fUnion.fFields.fCapacity = capacity;
 }
 
-inline const UChar *
-UnicodeString::getTerminatedBuffer() {
-  if(!isWritable()) {
-    return 0;
-  } else {
-    UChar *array = getArrayStart();
-    int32_t len = length();
-    if(len < getCapacity() && ((fFlags&kRefCounted) == 0 || refCount() == 1)) {
-      
-
-
-
-
-
-      if(!(fFlags&kBufferIsReadonly)) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-        array[len] = 0;
-      }
-      return array;
-    } else if(cloneArrayIfNeeded(len+1)) {
-      array = getArrayStart();
-      array[len] = 0;
-      return array;
-    } else {
-      return 0;
-    }
-  }
-}
-
 inline UnicodeString&
 UnicodeString::operator= (UChar ch)
 { return doReplace(0, length(), &ch, 0, 1); }
@@ -4443,9 +4411,7 @@ inline UnicodeString&
 UnicodeString::remove()
 {
   
-  
-  
-  if(fFlags & (kIsBogus|kBufferIsReadonly)) {
+  if(isBogus()) {
     setToEmpty();
   } else {
     fShortLength = 0;
@@ -4484,9 +4450,6 @@ UnicodeString::truncate(int32_t targetLength)
     return FALSE;
   } else if((uint32_t)targetLength < (uint32_t)length()) {
     setLength(targetLength);
-    if(fFlags&kBufferIsReadonly) {
-      fUnion.fFields.fCapacity = targetLength;  
-    }
     return TRUE;
   } else {
     return FALSE;

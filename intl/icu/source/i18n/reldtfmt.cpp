@@ -18,6 +18,7 @@
 
 #include "gregoimp.h" 
 #include "cmemory.h"
+#include "uresimp.h"
 
 U_NAMESPACE_BEGIN
 
@@ -162,7 +163,7 @@ UnicodeString& RelativeDateFormat::format(  Calendar& cal,
         UnicodeString datePattern;
         if (relativeDayString.length() > 0) {
             
-            relativeDayString.findAndReplace(UNICODE_STRING("'", 1), UNICODE_STRING("''", 2) ); 
+            relativeDayString.findAndReplace(UNICODE_STRING("'", 1), UNICODE_STRING("''", 2)); 
             relativeDayString.insert(0, APOSTROPHE); 
             relativeDayString.append(APOSTROPHE); 
             datePattern.setTo(relativeDayString);
@@ -423,17 +424,22 @@ void RelativeDateFormat::loadDates(UErrorCode &status) {
         }
     }
 
-    UResourceBundle *strings = calData.getByKey3("fields", "day", "relative", status);
+    UResourceBundle *rb = ures_open(NULL, fLocale.getBaseName(), &status);
+    UResourceBundle *sb = ures_getByKeyWithFallback(rb, "fields", NULL, &status);
+    rb = ures_getByKeyWithFallback(sb, "day", rb, &status);
+    sb = ures_getByKeyWithFallback(rb, "relative", sb, &status);
+    ures_close(rb);
     
     fDayMin=-1;
     fDayMax=1;
 
     if(U_FAILURE(status)) {
         fDatesLen=0;
+        ures_close(sb);
         return;
     }
 
-    fDatesLen = ures_getSize(strings);
+    fDatesLen = ures_getSize(sb);
     fDates = (URelativeString*) uprv_malloc(sizeof(fDates[0])*fDatesLen);
 
     
@@ -441,8 +447,8 @@ void RelativeDateFormat::loadDates(UErrorCode &status) {
 
     UResourceBundle *subString = NULL;
     
-    while(ures_hasNext(strings) && U_SUCCESS(status)) {  
-        subString = ures_getNextResource(strings, subString, &status);
+    while(ures_hasNext(sb) && U_SUCCESS(status)) {  
+        subString = ures_getNextResource(sb, subString, &status);
         
         if(U_FAILURE(status) || (subString==NULL)) break;
         
@@ -474,6 +480,7 @@ void RelativeDateFormat::loadDates(UErrorCode &status) {
         n++;
     }
     ures_close(subString);
+    ures_close(sb);
     
     
 }

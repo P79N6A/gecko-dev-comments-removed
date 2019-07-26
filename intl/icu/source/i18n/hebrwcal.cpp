@@ -669,86 +669,50 @@ HebrewCalendar::inDaylightTime(UErrorCode& status) const
 }
 
 
-const UDate     HebrewCalendar::fgSystemDefaultCentury        = DBL_MIN;
-const int32_t   HebrewCalendar::fgSystemDefaultCenturyYear    = -1;
 
-UDate           HebrewCalendar::fgSystemDefaultCenturyStart       = DBL_MIN;
-int32_t         HebrewCalendar::fgSystemDefaultCenturyStartYear   = -1;
 
+
+
+static UDate           gSystemDefaultCenturyStart       = DBL_MIN;
+static int32_t         gSystemDefaultCenturyStartYear   = -1;
+static icu::UInitOnce  gSystemDefaultCenturyInit        = U_INITONCE_INITIALIZER;
 
 UBool HebrewCalendar::haveDefaultCentury() const
 {
     return TRUE;
 }
 
-UDate HebrewCalendar::defaultCenturyStart() const
-{
-    return internalGetDefaultCenturyStart();
-}
-
-int32_t HebrewCalendar::defaultCenturyStartYear() const
-{
-    return internalGetDefaultCenturyStartYear();
-}
-
-UDate
-HebrewCalendar::internalGetDefaultCenturyStart() const
-{
-    
-    UBool needsUpdate;
-    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
-
-    if (needsUpdate) {
-        initializeSystemDefaultCentury();
-    }
-
-    
-    
-
-    return fgSystemDefaultCenturyStart;
-}
-
-int32_t
-HebrewCalendar::internalGetDefaultCenturyStartYear() const
-{
-    
-    UBool needsUpdate;
-    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
-
-    if (needsUpdate) {
-        initializeSystemDefaultCentury();
-    }
-
-    
-    
-
-    return fgSystemDefaultCenturyStartYear;
-}
-
-void
-HebrewCalendar::initializeSystemDefaultCentury()
+static void U_CALLCONV initializeSystemDefaultCentury()
 {
     
     
     
     UErrorCode status = U_ZERO_ERROR;
     HebrewCalendar calendar(Locale("@calendar=hebrew"),status);
-    if (U_SUCCESS(status))
-    {
+    if (U_SUCCESS(status)) {
         calendar.setTime(Calendar::getNow(), status);
         calendar.add(UCAL_YEAR, -80, status);
-        UDate    newStart =  calendar.getTime(status);
-        int32_t  newYear  =  calendar.get(UCAL_YEAR, status);
-        umtx_lock(NULL);
-        if (fgSystemDefaultCenturyStart == fgSystemDefaultCentury) {
-            fgSystemDefaultCenturyStartYear = newYear;
-            fgSystemDefaultCenturyStart = newStart;
-        }
-        umtx_unlock(NULL);
+
+        gSystemDefaultCenturyStart = calendar.getTime(status);
+        gSystemDefaultCenturyStartYear = calendar.get(UCAL_YEAR, status);
     }
     
     
 }
+
+
+UDate HebrewCalendar::defaultCenturyStart() const {
+    
+    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
+    return gSystemDefaultCenturyStart;
+}
+
+int32_t HebrewCalendar::defaultCenturyStartYear() const {
+    
+    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
+    return gSystemDefaultCenturyStartYear;
+}
+
 
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(HebrewCalendar)
 

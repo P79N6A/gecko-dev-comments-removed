@@ -140,10 +140,6 @@ public:
                                    int32_t desiredCapacityHint,
                                    UChar *scratch, int32_t scratchCapacity,
                                    int32_t *resultCapacity);
-
-private:
-    
-    virtual UClassID getDynamicClassID() const;
 };
 
 

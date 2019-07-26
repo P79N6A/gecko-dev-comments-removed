@@ -61,7 +61,7 @@ public:
     static LocaleDisplayNames* U_EXPORT2 createInstance(const Locale& locale,
                             UDialectHandling dialectHandling);
 
-#ifndef U_HIDE_INTERNAL_API
+#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -193,10 +193,6 @@ public:
 
     virtual UnicodeString& keyValueDisplayName(const char* key, const char* value,
                            UnicodeString& result) const = 0;
-
-private:
-    
-    virtual UClassID getDynamicClassID() const;
 };
 
 inline LocaleDisplayNames* LocaleDisplayNames::createInstance(const Locale& locale) {

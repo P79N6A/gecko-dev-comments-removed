@@ -256,6 +256,8 @@ ubrk_openRules(const UChar     *rules,
 
 
 
+
+
 U_STABLE UBreakIterator * U_EXPORT2
 ubrk_safeClone(
           const UBreakIterator *bi,
@@ -263,11 +265,15 @@ ubrk_safeClone(
           int32_t *pBufferSize,
           UErrorCode *status);
 
+#ifndef U_HIDE_DEPRECATED_API
 
 
 
 
-#define U_BRK_SAFECLONE_BUFFERSIZE 528
+
+#define U_BRK_SAFECLONE_BUFFERSIZE 1
+
+#endif 
 
 
 
@@ -310,6 +316,12 @@ ubrk_setText(UBreakIterator* bi,
              const UChar*    text,
              int32_t         textLength,
              UErrorCode*     status);
+
+
+
+
+
+
 
 
 
@@ -494,7 +506,6 @@ ubrk_getRuleStatusVec(UBreakIterator *bi, int32_t *fillInVec, int32_t capacity, 
 U_STABLE const char* U_EXPORT2
 ubrk_getLocaleByType(const UBreakIterator *bi, ULocDataLocaleType type, UErrorCode* status);
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -520,11 +531,10 @@ ubrk_getLocaleByType(const UBreakIterator *bi, ULocDataLocaleType type, UErrorCo
 
 
 
-U_DRAFT void U_EXPORT2
+U_STABLE void U_EXPORT2
 ubrk_refreshUText(UBreakIterator *bi,
                        UText          *text,
                        UErrorCode     *status);
-#endif  
 
 #endif 
 

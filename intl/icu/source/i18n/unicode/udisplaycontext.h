@@ -18,7 +18,13 @@
 
 
 
+
+
+
+
+
 enum UDisplayContextType {
+#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -32,6 +38,7 @@ enum UDisplayContextType {
 
 
     UDISPCTX_TYPE_CAPITALIZATION = 1
+#endif 
 };
 
 
@@ -45,6 +52,7 @@ typedef enum UDisplayContextType UDisplayContextType;
 
 
 enum UDisplayContext {
+#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -104,6 +112,7 @@ enum UDisplayContext {
 
 
     UDISPCTX_CAPITALIZATION_FOR_STANDALONE = (UDISPCTX_TYPE_CAPITALIZATION<<8) + 4
+#endif 
 };
 
 

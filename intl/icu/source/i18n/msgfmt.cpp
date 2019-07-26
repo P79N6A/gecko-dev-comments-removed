@@ -39,6 +39,7 @@
 #include "patternprops.h"
 #include "messageimpl.h"
 #include "msgfmt_impl.h"
+#include "plurrule_impl.h"
 #include "uassert.h"
 #include "uelement.h"
 #include "uhash.h"
@@ -163,7 +164,6 @@ U_NAMESPACE_BEGIN
 
 
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(MessageFormat)
-UOBJECT_DEFINE_NO_RTTI_IMPLEMENTATION(MessageFormat::DummyFormat)
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(FormatNameEnumeration)
 
 
@@ -204,6 +204,16 @@ public:
             append(s);
         }
     }
+    void formatAndAppend(const Format* formatter, const Formattable& arg,
+                         const UnicodeString &argString, UErrorCode& ec) {
+        if (!argString.isEmpty()) {
+            if (U_SUCCESS(ec)) {
+                append(argString);
+            }
+        } else {
+            formatAndAppend(formatter, arg, ec);
+        }
+    }
     int32_t length() {
         return len;
     }
@@ -230,8 +240,8 @@ MessageFormat::MessageFormat(const UnicodeString& pattern,
   defaultDateFormat(NULL),
   cachedFormatters(NULL),
   customFormatArgStarts(NULL),
-  pluralProvider(&fLocale, UPLURAL_TYPE_CARDINAL),
-  ordinalProvider(&fLocale, UPLURAL_TYPE_ORDINAL)
+  pluralProvider(*this, UPLURAL_TYPE_CARDINAL),
+  ordinalProvider(*this, UPLURAL_TYPE_ORDINAL)
 {
     setLocaleIDs(fLocale.getName(), fLocale.getName());
     applyPattern(pattern, success);
@@ -252,8 +262,8 @@ MessageFormat::MessageFormat(const UnicodeString& pattern,
   defaultDateFormat(NULL),
   cachedFormatters(NULL),
   customFormatArgStarts(NULL),
-  pluralProvider(&fLocale, UPLURAL_TYPE_CARDINAL),
-  ordinalProvider(&fLocale, UPLURAL_TYPE_ORDINAL)
+  pluralProvider(*this, UPLURAL_TYPE_CARDINAL),
+  ordinalProvider(*this, UPLURAL_TYPE_ORDINAL)
 {
     setLocaleIDs(fLocale.getName(), fLocale.getName());
     applyPattern(pattern, success);
@@ -275,8 +285,8 @@ MessageFormat::MessageFormat(const UnicodeString& pattern,
   defaultDateFormat(NULL),
   cachedFormatters(NULL),
   customFormatArgStarts(NULL),
-  pluralProvider(&fLocale, UPLURAL_TYPE_CARDINAL),
-  ordinalProvider(&fLocale, UPLURAL_TYPE_ORDINAL)
+  pluralProvider(*this, UPLURAL_TYPE_CARDINAL),
+  ordinalProvider(*this, UPLURAL_TYPE_ORDINAL)
 {
     setLocaleIDs(fLocale.getName(), fLocale.getName());
     applyPattern(pattern, parseError, success);
@@ -297,8 +307,8 @@ MessageFormat::MessageFormat(const MessageFormat& that)
   defaultDateFormat(NULL),
   cachedFormatters(NULL),
   customFormatArgStarts(NULL),
-  pluralProvider(&fLocale, UPLURAL_TYPE_CARDINAL),
-  ordinalProvider(&fLocale, UPLURAL_TYPE_ORDINAL)
+  pluralProvider(*this, UPLURAL_TYPE_CARDINAL),
+  ordinalProvider(*this, UPLURAL_TYPE_ORDINAL)
 {
     
     UErrorCode ec = U_ZERO_ERROR;
@@ -441,8 +451,8 @@ MessageFormat::setLocale(const Locale& theLocale)
         defaultDateFormat = NULL;
         fLocale = theLocale;
         setLocaleIDs(fLocale.getName(), fLocale.getName());
-        pluralProvider.reset(&fLocale);
-        ordinalProvider.reset(&fLocale);
+        pluralProvider.reset();
+        ordinalProvider.reset();
     }
 }
 
@@ -538,6 +548,7 @@ void MessageFormat::setArgStartFormat(int32_t argStart,
                                       UErrorCode& status) {
     if (U_FAILURE(status)) {
         delete formatter;
+        return;
     }
     if (cachedFormatters == NULL) {
         cachedFormatters=uhash_open(uhash_hashLong, uhash_compareLong,
@@ -831,12 +842,7 @@ MessageFormat::getFormats(int32_t& cnt) const
 
 UnicodeString MessageFormat::getArgName(int32_t partIndex) {
     const MessagePattern::Part& part = msgPattern.getPart(partIndex);
-    if (part.getType() == UMSGPAT_PART_TYPE_ARG_NAME) {
-        return msgPattern.getSubstring(part);
-    } else {
-        UnicodeString temp;
-        return itos(part.getValue(), temp);
-    }
+    return msgPattern.getSubstring(part);
 }
 
 StringEnumeration*
@@ -945,13 +951,55 @@ MessageFormat::format(const Formattable* arguments,
 
     UnicodeStringAppendable usapp(appendTo);
     AppendableWrapper app(usapp);
-    format(0, 0.0, arguments, argumentNames, cnt, app, pos, status);
+    format(0, NULL, arguments, argumentNames, cnt, app, pos, status);
     return appendTo;
 }
 
+namespace {
 
 
-void MessageFormat::format(int32_t msgStart, double pluralNumber,
+
+
+
+class PluralSelectorContext {
+public:
+    PluralSelectorContext(int32_t start, const UnicodeString &name,
+                          const Formattable &num, double off, UErrorCode &errorCode)
+            : startIndex(start), argName(name), offset(off),
+              numberArgIndex(-1), formatter(NULL), forReplaceNumber(FALSE) {
+        
+        
+        
+        if(off == 0) {
+            number = num;
+        } else {
+            number = num.getDouble(errorCode) - off;
+        }
+    }
+
+    
+    int32_t startIndex;
+    const UnicodeString &argName;
+    
+    Formattable number;
+    double offset;
+    
+    
+    int32_t numberArgIndex;
+    const Format *formatter;
+    
+    UnicodeString numberString;
+    
+    UBool forReplaceNumber;
+};
+
+}  
+
+
+
+
+
+void MessageFormat::format(int32_t msgStart, const void *plNumber,
                            const Formattable* arguments,
                            const UnicodeString *argumentNames,
                            int32_t cnt,
@@ -974,8 +1022,16 @@ void MessageFormat::format(int32_t msgStart, double pluralNumber,
         }
         prevIndex = part->getLimit();
         if (type == UMSGPAT_PART_TYPE_REPLACE_NUMBER) {
-            const NumberFormat* nf = getDefaultNumberFormat(success);
-            appendTo.formatAndAppend(nf, Formattable(pluralNumber), success);
+            const PluralSelectorContext &pluralNumber =
+                *static_cast<const PluralSelectorContext *>(plNumber);
+            if(pluralNumber.forReplaceNumber) {
+                
+                appendTo.formatAndAppend(pluralNumber.formatter,
+                        pluralNumber.number, pluralNumber.numberString, success);
+            } else {
+                const NumberFormat* nf = getDefaultNumberFormat(success);
+                appendTo.formatAndAppend(nf, pluralNumber.number, success);
+            }
             continue;
         }
         if (type != UMSGPAT_PART_TYPE_ARG_START) {
@@ -985,38 +1041,43 @@ void MessageFormat::format(int32_t msgStart, double pluralNumber,
         UMessagePatternArgType argType = part->getArgType();
         part = &msgPattern.getPart(++i);
         const Formattable* arg;
-        UnicodeString noArg;
+        UBool noArg = FALSE;
+        UnicodeString argName = msgPattern.getSubstring(*part);
         if (argumentNames == NULL) {
             int32_t argNumber = part->getValue();  
             if (0 <= argNumber && argNumber < cnt) {
                 arg = arguments + argNumber;
             } else {
                 arg = NULL;
-                noArg.append(LEFT_CURLY_BRACE);
-                itos(argNumber, noArg);
-                noArg.append(RIGHT_CURLY_BRACE);
+                noArg = TRUE;
             }
         } else {
-            UnicodeString key;
-            if (part->getType() == UMSGPAT_PART_TYPE_ARG_NAME) {
-                key = msgPattern.getSubstring(*part);
-            } else  {
-                itos(part->getValue(), key);
-            }
-            arg = getArgFromListByName(arguments, argumentNames, cnt, key);
+            arg = getArgFromListByName(arguments, argumentNames, cnt, argName);
             if (arg == NULL) {
-                noArg.append(LEFT_CURLY_BRACE);
-                noArg.append(key);
-                noArg.append(RIGHT_CURLY_BRACE);
+                noArg = TRUE;
             }
         }
         ++i;
         int32_t prevDestLength = appendTo.length();
         const Format* formatter = NULL;
-        if (!noArg.isEmpty()) {
-            appendTo.append(noArg);
+        if (noArg) {
+            appendTo.append(
+                UnicodeString(LEFT_CURLY_BRACE).append(argName).append(RIGHT_CURLY_BRACE));
         } else if (arg == NULL) {
             appendTo.append(NULL_STRING, 4);
+        } else if(plNumber!=NULL &&
+                static_cast<const PluralSelectorContext *>(plNumber)->numberArgIndex==(i-2)) {
+            const PluralSelectorContext &pluralNumber =
+                *static_cast<const PluralSelectorContext *>(plNumber);
+            if(pluralNumber.offset == 0) {
+                
+                appendTo.formatAndAppend(pluralNumber.formatter, pluralNumber.number,
+                                         pluralNumber.numberString, success);
+            } else {
+                
+                
+                appendTo.formatAndAppend(pluralNumber.formatter, *arg, success);
+            }
         } else if ((formatter = getCachedFormatter(i -2))) {
             
             if (dynamic_cast<const ChoiceFormat*>(formatter) ||
@@ -1031,7 +1092,7 @@ void MessageFormat::format(int32_t msgStart, double pluralNumber,
                     (subMsgString.indexOf(SINGLE_QUOTE) >= 0 && !MessageImpl::jdkAposMode(msgPattern))
                 ) {
                     MessageFormat subMsgFormat(subMsgString, fLocale, success);
-                    subMsgFormat.format(0, 0, arguments, argumentNames, cnt, appendTo, ignore, success);
+                    subMsgFormat.format(0, NULL, arguments, argumentNames, cnt, appendTo, ignore, success);
                 } else {
                     appendTo.append(subMsgString);
                 }
@@ -1060,26 +1121,26 @@ void MessageFormat::format(int32_t msgStart, double pluralNumber,
             
             const double number = arg->getDouble(success);
             int32_t subMsgStart = ChoiceFormat::findSubMessage(msgPattern, i, number);
-            formatComplexSubMessage(subMsgStart, 0, arguments, argumentNames,
+            formatComplexSubMessage(subMsgStart, NULL, arguments, argumentNames,
                                     cnt, appendTo, success);
         } else if (UMSGPAT_ARG_TYPE_HAS_PLURAL_STYLE(argType)) {
             if (!arg->isNumeric()) {
                 success = U_ILLEGAL_ARGUMENT_ERROR;
                 return;
             }
-            const PluralFormat::PluralSelector &selector =
+            const PluralSelectorProvider &selector =
                 argType == UMSGPAT_ARG_TYPE_PLURAL ? pluralProvider : ordinalProvider;
             
             
-            double number = arg->getDouble(success);
-            int32_t subMsgStart = PluralFormat::findSubMessage(msgPattern, i, selector, number,
-                                                               success);
             double offset = msgPattern.getPluralOffset(i);
-            formatComplexSubMessage(subMsgStart, number-offset, arguments, argumentNames,
+            PluralSelectorContext context(i, argName, *arg, offset, success);
+            int32_t subMsgStart = PluralFormat::findSubMessage(
+                    msgPattern, i, selector, &context, arg->getDouble(success), success);
+            formatComplexSubMessage(subMsgStart, &context, arguments, argumentNames,
                                     cnt, appendTo, success);
         } else if (argType == UMSGPAT_ARG_TYPE_SELECT) {
             int32_t subMsgStart = SelectFormat::findSubMessage(msgPattern, i, arg->getString(success), success);
-            formatComplexSubMessage(subMsgStart, 0, arguments, argumentNames,
+            formatComplexSubMessage(subMsgStart, NULL, arguments, argumentNames,
                                     cnt, appendTo, success);
         } else {
             
@@ -1094,7 +1155,7 @@ void MessageFormat::format(int32_t msgStart, double pluralNumber,
 
 
 void MessageFormat::formatComplexSubMessage(int32_t msgStart,
-                                            double pluralNumber,
+                                            const void *plNumber,
                                             const Formattable* arguments,
                                             const UnicodeString *argumentNames,
                                             int32_t cnt,
@@ -1105,7 +1166,7 @@ void MessageFormat::formatComplexSubMessage(int32_t msgStart,
     }
 
     if (!MessageImpl::jdkAposMode(msgPattern)) {
-        format(msgStart, pluralNumber, arguments, argumentNames, cnt, appendTo, NULL, success);
+        format(msgStart, plNumber, arguments, argumentNames, cnt, appendTo, NULL, success);
         return;
     }
 
@@ -1127,8 +1188,15 @@ void MessageFormat::formatComplexSubMessage(int32_t msgStart,
         } else if (type == UMSGPAT_PART_TYPE_REPLACE_NUMBER || type == UMSGPAT_PART_TYPE_SKIP_SYNTAX) {
             sb.append(msgString, prevIndex, index - prevIndex);
             if (type == UMSGPAT_PART_TYPE_REPLACE_NUMBER) {
-                const NumberFormat* nf = getDefaultNumberFormat(success);
-                sb.append(nf->format(pluralNumber, sb, success));
+                const PluralSelectorContext &pluralNumber =
+                    *static_cast<const PluralSelectorContext *>(plNumber);
+                if(pluralNumber.forReplaceNumber) {
+                    
+                    sb.append(pluralNumber.numberString);
+                } else {
+                    const NumberFormat* nf = getDefaultNumberFormat(success);
+                    sb.append(nf->format(pluralNumber.number, sb, success));
+                }
             }
             prevIndex = part.getLimit();
         } else if (type == UMSGPAT_PART_TYPE_ARG_START) {
@@ -1144,7 +1212,7 @@ void MessageFormat::formatComplexSubMessage(int32_t msgStart,
         UnicodeString emptyPattern;  
         MessageFormat subMsgFormat(emptyPattern, fLocale, success);
         subMsgFormat.applyPattern(sb, UMSGPAT_APOS_DOUBLE_REQUIRED, NULL, success);
-        subMsgFormat.format(0, 0, arguments, argumentNames, cnt, appendTo, NULL, success);
+        subMsgFormat.format(0, NULL, arguments, argumentNames, cnt, appendTo, NULL, success);
     } else {
         appendTo.append(sb);
     }
@@ -1182,6 +1250,59 @@ FieldPosition* MessageFormat::updateMetaData(AppendableWrapper& , int32_t ,
 
 
 
+}
+
+int32_t
+MessageFormat::findOtherSubMessage(int32_t partIndex) const {
+    int32_t count=msgPattern.countParts();
+    const MessagePattern::Part *part = &msgPattern.getPart(partIndex);
+    if(MessagePattern::Part::hasNumericValue(part->getType())) {
+        ++partIndex;
+    }
+    
+    
+    UnicodeString other(FALSE, OTHER_STRING, 5);
+    do {
+        part=&msgPattern.getPart(partIndex++);
+        UMessagePatternPartType type=part->getType();
+        if(type==UMSGPAT_PART_TYPE_ARG_LIMIT) {
+            break;
+        }
+        U_ASSERT(type==UMSGPAT_PART_TYPE_ARG_SELECTOR);
+        
+        if(msgPattern.partSubstringMatches(*part, other)) {
+            return partIndex;
+        }
+        if(MessagePattern::Part::hasNumericValue(msgPattern.getPartType(partIndex))) {
+            ++partIndex;  
+        }
+        partIndex=msgPattern.getLimitPartIndex(partIndex);
+    } while(++partIndex<count);
+    return 0;
+}
+
+int32_t
+MessageFormat::findFirstPluralNumberArg(int32_t msgStart, const UnicodeString &argName) const {
+    for(int32_t i=msgStart+1;; ++i) {
+        const MessagePattern::Part &part=msgPattern.getPart(i);
+        UMessagePatternPartType type=part.getType();
+        if(type==UMSGPAT_PART_TYPE_MSG_LIMIT) {
+            return 0;
+        }
+        if(type==UMSGPAT_PART_TYPE_REPLACE_NUMBER) {
+            return -1;
+        }
+        if(type==UMSGPAT_PART_TYPE_ARG_START) {
+            UMessagePatternArgType argType=part.getArgType();
+            if(!argName.isEmpty() && (argType==UMSGPAT_ARG_TYPE_NONE || argType==UMSGPAT_ARG_TYPE_SIMPLE)) {
+                
+                if(msgPattern.partSubstringMatches(msgPattern.getPart(i+1), argName)) {
+                    return i;
+                }
+            }
+            i=msgPattern.getLimitPartIndex(i);
+        }
+    }
 }
 
 void MessageFormat::copyObjects(const MessageFormat& that, UErrorCode& ec) {
@@ -1797,32 +1918,55 @@ FormatNameEnumeration::~FormatNameEnumeration() {
     delete fFormatNames;
 }
 
-
-MessageFormat::PluralSelectorProvider::PluralSelectorProvider(const Locale* loc, UPluralType t)
-        : locale(loc), rules(NULL), type(t) {
+MessageFormat::PluralSelectorProvider::PluralSelectorProvider(const MessageFormat &mf, UPluralType t)
+        : msgFormat(mf), rules(NULL), type(t) {
 }
 
 MessageFormat::PluralSelectorProvider::~PluralSelectorProvider() {
-    
     delete rules;
 }
 
-UnicodeString MessageFormat::PluralSelectorProvider::select(double number, UErrorCode& ec) const {
+UnicodeString MessageFormat::PluralSelectorProvider::select(void *ctx, double number,
+                                                            UErrorCode& ec) const {
     if (U_FAILURE(ec)) {
         return UnicodeString(FALSE, OTHER_STRING, 5);
     }
     MessageFormat::PluralSelectorProvider* t = const_cast<MessageFormat::PluralSelectorProvider*>(this);
     if(rules == NULL) {
-        t->rules = PluralRules::forLocale(*locale, type, ec);
+        t->rules = PluralRules::forLocale(msgFormat.fLocale, type, ec);
         if (U_FAILURE(ec)) {
             return UnicodeString(FALSE, OTHER_STRING, 5);
         }
     }
-    return rules->select(number);
+    
+    
+    
+    
+    
+    
+    PluralSelectorContext &context = *static_cast<PluralSelectorContext *>(ctx);
+    int32_t otherIndex = msgFormat.findOtherSubMessage(context.startIndex);
+    context.numberArgIndex = msgFormat.findFirstPluralNumberArg(otherIndex, context.argName);
+    if(context.numberArgIndex > 0 && msgFormat.cachedFormatters != NULL) {
+        context.formatter =
+            (const Format*)uhash_iget(msgFormat.cachedFormatters, context.numberArgIndex);
+    }
+    if(context.formatter == NULL) {
+        context.formatter = msgFormat.getDefaultNumberFormat(ec);
+        context.forReplaceNumber = TRUE;
+    }
+    U_ASSERT(context.number.getDouble(ec) == number);  
+    context.formatter->format(context.number, context.numberString, ec);
+    const DecimalFormat *decFmt = dynamic_cast<const DecimalFormat *>(context.formatter);
+    if(decFmt != NULL) {
+        FixedDecimal dec = decFmt->getFixedDecimal(context.number, ec);
+        return rules->select(dec);
+    } else {
+        return rules->select(number);
+    }
 }
 
-void MessageFormat::PluralSelectorProvider::reset(const Locale* loc) {
-    locale = loc;
+void MessageFormat::PluralSelectorProvider::reset() {
     delete rules;
     rules = NULL;
 }

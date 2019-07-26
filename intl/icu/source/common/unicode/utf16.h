@@ -192,12 +192,15 @@
 
 
 
+
+
+
 #define U16_GET(s, start, i, length, c) { \
     (c)=(s)[i]; \
     if(U16_IS_SURROGATE(c)) { \
         uint16_t __c2; \
         if(U16_IS_SURROGATE_LEAD(c)) { \
-            if((i)+1<(length) && U16_IS_TRAIL(__c2=(s)[(i)+1])) { \
+            if((i)+1!=(length) && U16_IS_TRAIL(__c2=(s)[(i)+1])) { \
                 (c)=U16_GET_SUPPLEMENTARY((c), __c2); \
             } \
         } else { \
@@ -256,11 +259,13 @@
 
 
 
+
+
 #define U16_NEXT(s, i, length, c) { \
     (c)=(s)[(i)++]; \
     if(U16_IS_LEAD(c)) { \
         uint16_t __c2; \
-        if((i)<(length) && U16_IS_TRAIL(__c2=(s)[(i)])) { \
+        if((i)!=(length) && U16_IS_TRAIL(__c2=(s)[(i)])) { \
             ++(i); \
             (c)=U16_GET_SUPPLEMENTARY((c), __c2); \
         } \
@@ -344,8 +349,10 @@
 
 
 
+
+
 #define U16_FWD_1(s, i, length) { \
-    if(U16_IS_LEAD((s)[(i)++]) && (i)<(length) && U16_IS_TRAIL((s)[i])) { \
+    if(U16_IS_LEAD((s)[(i)++]) && (i)!=(length) && U16_IS_TRAIL((s)[i])) { \
         ++(i); \
     } \
 }
@@ -383,9 +390,11 @@
 
 
 
+
+
 #define U16_FWD_N(s, i, length, n) { \
     int32_t __N=(n); \
-    while(__N>0 && (i)<(length)) { \
+    while(__N>0 && ((i)<(length) || ((length)<0 && (s)[i]!=0))) { \
         U16_FWD_1(s, i, length); \
         --__N; \
     } \
@@ -603,8 +612,10 @@
 
 
 
+
+
 #define U16_SET_CP_LIMIT(s, start, i, length) { \
-    if((start)<(i) && (i)<(length) && U16_IS_LEAD((s)[(i)-1]) && U16_IS_TRAIL((s)[i])) { \
+    if((start)<(i) && ((i)<(length) || (length)<0) && U16_IS_LEAD((s)[(i)-1]) && U16_IS_TRAIL((s)[i])) { \
         ++(i); \
     } \
 }

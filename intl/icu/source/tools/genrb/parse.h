@@ -24,11 +24,11 @@
 
 U_CDECL_BEGIN
 
-void initParser(UBool omitCollationRules);
+void initParser();
 
 
 struct SRBRoot* parse(UCHARBUF *buf, const char* inputDir, const char* outputDir,
-                      UBool omitBinaryCollation, UErrorCode *status);
+                      UBool makeBinaryCollation, UBool omitCollationRules, UErrorCode *status);
 
 U_CDECL_END
 

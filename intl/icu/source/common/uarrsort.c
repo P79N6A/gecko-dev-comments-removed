@@ -21,7 +21,14 @@
 #include "uarrsort.h"
 
 enum {
-    MIN_QSORT=9, 
+    
+
+
+
+
+
+
+    MIN_QSORT=9,
     STACK_ITEM_SIZE=200
 };
 
@@ -53,27 +60,68 @@ uprv_uint32Comparator(const void *context, const void *left, const void *right) 
 
 
 
-static void
-doInsertionSort(char *array, int32_t start, int32_t limit, int32_t itemSize,
-                UComparator *cmp, const void *context, void *pv) {
-    int32_t i, j;
+U_CAPI int32_t U_EXPORT2
+uprv_stableBinarySearch(char *array, int32_t limit, void *item, int32_t itemSize,
+                        UComparator *cmp, const void *context) {
+    int32_t start=0;
+    UBool found=FALSE;
 
-    for(j=start+1; j<limit; ++j) {
-        
-        uprv_memcpy(pv, array+j*itemSize, itemSize);
-
-        for(i=j; i>start; --i) {
-            if( cmp(context, pv, array+(i-1)*itemSize)>=0) {
-                break;
-            }
-
+    
+    while((limit-start)>=MIN_QSORT) {
+        int32_t i=(start+limit)/2;
+        int32_t diff=cmp(context, item, array+i*itemSize);
+        if(diff==0) {
             
-            uprv_memcpy(array+i*itemSize, array+(i-1)*itemSize, itemSize);
+
+
+
+
+
+
+
+
+
+
+            found=TRUE;
+            start=i+1;
+        } else if(diff<0) {
+            limit=i;
+        } else {
+            start=i;
         }
+    }
 
-        if(i!=j) {
-            
-            uprv_memcpy(array+i*itemSize, pv, itemSize);
+    
+    while(start<limit) {
+        int32_t diff=cmp(context, item, array+start*itemSize);
+        if(diff==0) {
+            found=TRUE;
+        } else if(diff<0) {
+            break;
+        }
+        ++start;
+    }
+    return found ? (start-1) : ~start;
+}
+
+static void
+doInsertionSort(char *array, int32_t length, int32_t itemSize,
+                UComparator *cmp, const void *context, void *pv) {
+    int32_t j;
+
+    for(j=1; j<length; ++j) {
+        char *item=array+j*itemSize;
+        int32_t insertionPoint=uprv_stableBinarySearch(array, j, item, itemSize, cmp, context);
+        if(insertionPoint<0) {
+            insertionPoint=~insertionPoint;
+        } else {
+            ++insertionPoint;  
+        }
+        if(insertionPoint<j) {
+            char *dest=array+insertionPoint*itemSize;
+            uprv_memcpy(pv, item, itemSize);  
+            uprv_memmove(dest+itemSize, dest, (j-insertionPoint)*itemSize);
+            uprv_memcpy(dest, pv, itemSize);  
         }
     }
 }
@@ -95,7 +143,7 @@ insertionSort(char *array, int32_t length, int32_t itemSize,
         }
     }
 
-    doInsertionSort(array, 0, length, itemSize, cmp, context, pv);
+    doInsertionSort(array, length, itemSize, cmp, context, pv);
 
     if(pv!=v) {
         uprv_free(pv);
@@ -125,7 +173,7 @@ subQuickSort(char *array, int32_t start, int32_t limit, int32_t itemSize,
     
     do {
         if((start+MIN_QSORT)>=limit) {
-            doInsertionSort(array, start, limit, itemSize, cmp, context, px);
+            doInsertionSort(array+start*itemSize, limit-start, itemSize, cmp, context, px);
             break;
         }
 
@@ -229,7 +277,6 @@ uprv_sortArray(void *array, int32_t length, int32_t itemSize,
         return;
     } else if(length<MIN_QSORT || sortStable) {
         insertionSort((char *)array, length, itemSize, cmp, context, pErrorCode);
-        
     } else {
         quickSort((char *)array, length, itemSize, cmp, context, pErrorCode);
     }

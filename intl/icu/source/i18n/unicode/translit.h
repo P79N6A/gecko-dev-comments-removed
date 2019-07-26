@@ -1320,7 +1320,7 @@ inline Transliterator::Token Transliterator::pointerToken(void* p) {
     t.pointer = p;
     return t;
 }
-#endif
+#endif  
 
 U_NAMESPACE_END
 

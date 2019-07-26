@@ -108,6 +108,16 @@ getCurrentYear(void);
 U_CAPI void U_EXPORT2
 uprv_mkdir(const char *pathname, UErrorCode *status);
 
+#if !UCONFIG_NO_FILE_IO
+
+
+
+
+
+U_CAPI UBool U_EXPORT2
+uprv_fileExists(const char *file);
+#endif
+
 
 
 

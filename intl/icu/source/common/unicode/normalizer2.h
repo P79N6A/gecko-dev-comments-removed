@@ -83,7 +83,6 @@ public:
 
     ~Normalizer2();
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -153,7 +152,6 @@ public:
 
     static const Normalizer2 *
     getNFKCCasefoldInstance(UErrorCode &errorCode);
-#endif  
 
     
 
@@ -429,10 +427,6 @@ public:
 
 
     virtual UBool isInert(UChar32 c) const = 0;
-
-private:
-    
-    virtual UClassID getDynamicClassID() const;
 };
 
 

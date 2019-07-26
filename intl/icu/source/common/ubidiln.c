@@ -105,12 +105,12 @@ setTrailingWSStart(UBiDi *pBiDi) {
 
 
 
-    if(NO_CONTEXT_RTL(dirProps[start-1])==B) {
+    if(dirProps[start-1]==B) {
         pBiDi->trailingWSStart=start;   
         return;
     }
     
-    while(start>0 && DIRPROP_FLAG_NC(dirProps[start-1])&MASK_WS) {
+    while(start>0 && DIRPROP_FLAG(PURE_DIRPROP(dirProps[start-1]))&MASK_WS) {
         --start;
     }
 

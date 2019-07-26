@@ -254,10 +254,6 @@ public:
     virtual void
     nameToUnicodeUTF8(const StringPiece &name, ByteSink &dest,
                       IDNAInfo &info, UErrorCode &errorCode) const;
-
-private:
-    
-    virtual UClassID getDynamicClassID() const;
 };
 
 class UTS46;

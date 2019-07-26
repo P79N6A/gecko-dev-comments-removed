@@ -23,10 +23,15 @@
 #include "ucln_in.h"
 #include "uenumimp.h"
 #include "uhash.h"
+#include "hash.h"
 #include "uresimp.h"
 #include "ulist.h"
 #include "ureslocs.h"
 
+
+#ifdef UCURR_DEBUG_EQUIV
+#include "stdio.h"
+#endif
 
 #ifdef UCURR_DEBUG
 #include "stdio.h"
@@ -45,13 +50,21 @@ typedef struct IsoCodeEntry {
 
 
 
-static const int32_t LAST_RESORT_DATA[] = { 2, 0 };
+static const int32_t LAST_RESORT_DATA[] = { 2, 0, 2, 0 };
 
 
 static const int32_t POW10[] = { 1, 10, 100, 1000, 10000, 100000,
                                  1000000, 10000000, 100000000, 1000000000 };
 
 static const int32_t MAX_POW10 = (sizeof(POW10)/sizeof(POW10[0])) - 1;
+
+
+static const char *EQUIV_CURRENCY_SYMBOLS[][2] = {
+    {"\\u00a5", "\\uffe5"},
+    {"$", "\\ufe69"},
+    {"$", "\\uff04"},
+    {"\\u20a8", "\\u20b9"},
+    {"\\u00a3", "\\u20a4"}};
 
 #define ISO_CURRENCY_CODE_LENGTH 3
 
@@ -99,10 +112,129 @@ static const UChar CHOICE_FORMAT_MARK = 0x003D;
 static const UChar EUR_STR[] = {0x0045,0x0055,0x0052,0};
 
 
-static UHashtable* gIsoCodes = NULL;
-static UBool gIsoCodesInitialized = FALSE;
+static const UHashtable* gIsoCodes = NULL;
+static icu::UInitOnce gIsoCodesInitOnce = U_INITONCE_INITIALIZER;
 
-static UMutex gIsoCodesLock = U_MUTEX_INITIALIZER;
+
+static const icu::Hashtable* gCurrSymbolsEquiv = NULL;
+static icu::UInitOnce gCurrSymbolsEquivInitOnce = U_INITONCE_INITIALIZER;
+
+
+
+class EquivIterator : icu::UMemory {
+public:
+    
+    
+    inline EquivIterator(const icu::Hashtable& hash, const icu::UnicodeString& s)
+        : _hash(hash) { 
+        _start = _current = &s;
+    }
+    inline ~EquivIterator() { }
+
+    
+    
+    const icu::UnicodeString *next();
+private:
+    const icu::Hashtable& _hash;
+    const icu::UnicodeString* _start;
+    const icu::UnicodeString* _current;
+};
+
+const icu::UnicodeString *
+EquivIterator::next() {
+    const icu::UnicodeString* _next = (const icu::UnicodeString*) _hash.get(*_current);
+    if (_next == NULL) {
+        U_ASSERT(_current == _start);
+        return NULL;
+    }
+    if (*_next == *_start) {
+        return NULL;
+    }
+    _current = _next;
+    return _next;
+}
+
+
+
+static void makeEquivalent(
+    const icu::UnicodeString &lhs,
+    const icu::UnicodeString &rhs,
+    icu::Hashtable* hash, UErrorCode &status) {
+    if (U_FAILURE(status)) {
+        return;
+    }
+    if (lhs == rhs) {
+        
+        return;
+    }
+    EquivIterator leftIter(*hash, lhs);
+    EquivIterator rightIter(*hash, rhs);
+    const icu::UnicodeString *firstLeft = leftIter.next();
+    const icu::UnicodeString *firstRight = rightIter.next();
+    const icu::UnicodeString *nextLeft = firstLeft;
+    const icu::UnicodeString *nextRight = firstRight;
+    while (nextLeft != NULL && nextRight != NULL) {
+        if (*nextLeft == rhs || *nextRight == lhs) {
+            
+            return;
+        }
+        nextLeft = leftIter.next();
+        nextRight = rightIter.next();
+    }
+    
+    icu::UnicodeString *newFirstLeft;
+    icu::UnicodeString *newFirstRight;
+    if (firstRight == NULL && firstLeft == NULL) {
+        
+        
+        newFirstLeft = new icu::UnicodeString(rhs);
+        newFirstRight = new icu::UnicodeString(lhs);
+    } else if (firstRight == NULL) {
+        
+        
+        newFirstLeft = new icu::UnicodeString(rhs);
+        newFirstRight = new icu::UnicodeString(*firstLeft);
+    } else if (firstLeft == NULL) {
+        
+        
+        newFirstLeft = new icu::UnicodeString(*firstRight);
+        newFirstRight = new icu::UnicodeString(lhs);
+    } else {
+        
+        
+        newFirstLeft = new icu::UnicodeString(*firstRight);
+        newFirstRight = new icu::UnicodeString(*firstLeft);
+    }
+    if (newFirstLeft == NULL || newFirstRight == NULL) {
+        delete newFirstLeft;
+        delete newFirstRight;
+        status = U_MEMORY_ALLOCATION_ERROR;
+        return;
+    }
+    hash->put(lhs, (void *) newFirstLeft, status);
+    hash->put(rhs, (void *) newFirstRight, status);
+}
+
+
+
+
+static int32_t countEquivalent(const icu::Hashtable &hash, const icu::UnicodeString &s) {
+    int32_t result = 0;
+    EquivIterator iter(hash, s);
+    while (iter.next() != NULL) {
+        ++result;
+    }
+#ifdef UCURR_DEBUG_EQUIV
+ {
+   char tmp[200];
+   s.extract(0,s.length(),tmp, "UTF-8");
+   printf("CountEquivalent('%s') = %d\n", tmp, result);
+ }
+#endif
+    return result;
+}
+
+static const icu::Hashtable* getCurrSymbolsEquiv();
 
 
 
@@ -114,11 +246,22 @@ static UBool U_CALLCONV
 isoCodes_cleanup(void)
 {
     if (gIsoCodes != NULL) {
-        uhash_close(gIsoCodes);
+        uhash_close(const_cast<UHashtable *>(gIsoCodes));
         gIsoCodes = NULL;
     }
-    gIsoCodesInitialized = FALSE;
+    gIsoCodesInitOnce.reset();
+    return TRUE;
+}
 
+
+
+
+static UBool U_CALLCONV 
+currSymbolsEquiv_cleanup(void)
+{
+    delete const_cast<icu::Hashtable *>(gCurrSymbolsEquiv);
+    gCurrSymbolsEquiv = NULL;
+    gCurrSymbolsEquivInitOnce.reset();
     return TRUE;
 }
 
@@ -134,6 +277,15 @@ deleteIsoCodeEntry(void *obj) {
 
 
 
+static void U_CALLCONV
+deleteUnicode(void *obj) {
+    icu::UnicodeString *entry = (icu::UnicodeString*)obj;
+    delete entry;
+}
+
+
+
+
 
 static inline char*
 myUCharsToChars(char* resultOfLen4, const UChar* currency) {
@@ -141,6 +293,8 @@ myUCharsToChars(char* resultOfLen4, const UChar* currency) {
     resultOfLen4[ISO_CURRENCY_CODE_LENGTH] = 0;
     return resultOfLen4;
 }
+
+
 
 
 
@@ -187,7 +341,7 @@ _findMetaData(const UChar* currency, UErrorCode& ec) {
 
     int32_t len;
     const int32_t *data = ures_getIntVector(rb, &len, &ec);
-    if (U_FAILURE(ec) || len != 2) {
+    if (U_FAILURE(ec) || len != 4) {
         
         if (U_SUCCESS(ec)) {
             ec = U_INVALID_FORMAT_ERROR;
@@ -379,6 +533,7 @@ static UBool U_CALLCONV currency_cleanup(void) {
 
     currency_cache_cleanup();
     isoCodes_cleanup();
+    currSymbolsEquiv_cleanup();
 
     return TRUE;
 }
@@ -745,6 +900,7 @@ getCurrencyNameCount(const char* loc, int32_t* total_currency_name_count, int32_
     const UChar* s = NULL;
     char locale[ULOC_FULLNAME_CAPACITY];
     uprv_strcpy(locale, loc);
+    const icu::Hashtable *currencySymbolsEquiv = getCurrSymbolsEquiv();
     for (;;) {
         UErrorCode ec2 = U_ZERO_ERROR;
         
@@ -770,6 +926,9 @@ getCurrencyNameCount(const char* loc, int32_t* total_currency_name_count, int32_
                 *total_currency_symbol_count += fmt_count;
             } else {
                 ++(*total_currency_symbol_count);  
+                if (currencySymbolsEquiv != NULL) {
+                    *total_currency_symbol_count += countEquivalent(*currencySymbolsEquiv, UnicodeString(TRUE, s, len));
+                }
             }
 
             ++(*total_currency_symbol_count); 
@@ -826,6 +985,7 @@ collectCurrencyNames(const char* locale,
                      int32_t* total_currency_symbol_count, 
                      UErrorCode& ec) {
     U_NAMESPACE_USE
+    const icu::Hashtable *currencySymbolsEquiv = getCurrSymbolsEquiv();
     
     UErrorCode ec2 = U_ZERO_ERROR;
 
@@ -905,6 +1065,17 @@ collectCurrencyNames(const char* locale,
                 (*currencySymbols)[*total_currency_symbol_count].currencyName = (UChar*)s;
                 (*currencySymbols)[*total_currency_symbol_count].flag = 0;
                 (*currencySymbols)[(*total_currency_symbol_count)++].currencyNameLen = len;
+                
+                if (currencySymbolsEquiv != NULL) {
+                    EquivIterator iter(*currencySymbolsEquiv, UnicodeString(TRUE, s, len));
+                    const UnicodeString *symbol;
+                    while ((symbol = iter.next()) != NULL) {
+                        (*currencySymbols)[*total_currency_symbol_count].IsoCode = iso;
+                        (*currencySymbols)[*total_currency_symbol_count].currencyName = (UChar*) symbol->getBuffer();
+                        (*currencySymbols)[*total_currency_symbol_count].flag = 0;
+                        (*currencySymbols)[(*total_currency_symbol_count)++].currencyNameLen = symbol->length();
+                    }
+                }
             }
 
             
@@ -982,22 +1153,20 @@ collectCurrencyNames(const char* locale,
     for (int32_t index = 0; index < *total_currency_name_count; ++index) {
         printf("index: %d\n", index);
         printf("iso: %s\n", (*currencyNames)[index].IsoCode);
-        printf("currencyName:");
-        for (int32_t i = 0; i < (*currencyNames)[index].currencyNameLen; ++i) {
-            printf("%c", (unsigned char)(*currencyNames)[index].currencyName[i]);
-        }
-        printf("\n");
+        char curNameBuf[1024];
+        memset(curNameBuf, 0, 1024);
+        u_austrncpy(curNameBuf, (*currencyNames)[index].currencyName, (*currencyNames)[index].currencyNameLen);
+        printf("currencyName: %s\n", curNameBuf);
         printf("len: %d\n", (*currencyNames)[index].currencyNameLen);
     }
     printf("currency symbol count: %d\n", *total_currency_symbol_count);
     for (int32_t index = 0; index < *total_currency_symbol_count; ++index) {
         printf("index: %d\n", index);
         printf("iso: %s\n", (*currencySymbols)[index].IsoCode);
-        printf("currencySymbol:");
-        for (int32_t i = 0; i < (*currencySymbols)[index].currencyNameLen; ++i) {
-            printf("%c", (unsigned char)(*currencySymbols)[index].currencyName[i]);
-        }
-        printf("\n");
+        char curNameBuf[1024];
+        memset(curNameBuf, 0, 1024);
+        u_austrncpy(curNameBuf, (*currencySymbols)[index].currencyName, (*currencySymbols)[index].currencyNameLen);
+        printf("currencySymbol: %s\n", curNameBuf);
         printf("len: %d\n", (*currencySymbols)[index].currencyNameLen);
     }
 #endif
@@ -1227,6 +1396,8 @@ static CurrencyNameCacheEntry* currCache[CURRENCY_NAME_CACHE_NUM] = {NULL};
 
 static int8_t currentCacheEntryIndex = 0;
 
+static UMutex gCurrencyCacheMutex = U_MUTEX_INITIALIZER;
+
 
 static void
 deleteCurrencyNames(CurrencyNameStruct* currencyNames, int32_t count) {
@@ -1280,7 +1451,7 @@ uprv_parseCurrency(const char* locale,
     CurrencyNameStruct* currencySymbols = NULL;
     CurrencyNameCacheEntry* cacheEntry = NULL;
 
-    umtx_lock(NULL);
+    umtx_lock(&gCurrencyCacheMutex);
     
     
     int8_t  found = -1;
@@ -1299,13 +1470,13 @@ uprv_parseCurrency(const char* locale,
         total_currency_symbol_count = cacheEntry->totalCurrencySymbolCount;
         ++(cacheEntry->refCount);
     }
-    umtx_unlock(NULL);
+    umtx_unlock(&gCurrencyCacheMutex);
     if (found == -1) {
         collectCurrencyNames(locale, &currencyNames, &total_currency_name_count, &currencySymbols, &total_currency_symbol_count, ec);
         if (U_FAILURE(ec)) {
             return;
         }
-        umtx_lock(NULL);
+        umtx_lock(&gCurrencyCacheMutex);
         
         int8_t  found = -1;
         for (int8_t i = 0; i < CURRENCY_NAME_CACHE_NUM; ++i) {
@@ -1350,7 +1521,7 @@ uprv_parseCurrency(const char* locale,
             total_currency_symbol_count = cacheEntry->totalCurrencySymbolCount;
             ++(cacheEntry->refCount);
         }
-        umtx_unlock(NULL);
+        umtx_unlock(&gCurrencyCacheMutex);
     }
 
     int32_t start = pos.getIndex();
@@ -1383,6 +1554,9 @@ uprv_parseCurrency(const char* locale,
 
 #ifdef UCURR_DEBUG
     printf("search in symbols, maxInSymbol = %d, matchIndexInSymbol = %d\n", maxInSymbol, matchIndexInSymbol);
+    if(matchIndexInSymbol != -1) {
+      printf("== ISO=%s\n", currencySymbols[matchIndexInSymbol].IsoCode);
+    }
 #endif
 
     if (max >= maxInSymbol && matchIndex != -1) {
@@ -1394,12 +1568,12 @@ uprv_parseCurrency(const char* locale,
     } 
 
     
-    umtx_lock(NULL);
+    umtx_lock(&gCurrencyCacheMutex);
     --(cacheEntry->refCount);
     if (cacheEntry->refCount == 0) {  
         deleteCacheEntry(cacheEntry);
     }
-    umtx_unlock(NULL);
+    umtx_unlock(&gCurrencyCacheMutex);
 }
 
 
@@ -1712,6 +1886,7 @@ static const struct CurrencyList {
     {"SOS", UCURR_COMMON|UCURR_NON_DEPRECATED},
     {"SRD", UCURR_COMMON|UCURR_NON_DEPRECATED},
     {"SRG", UCURR_COMMON|UCURR_DEPRECATED},
+    {"SSP", UCURR_COMMON|UCURR_NON_DEPRECATED},
     {"STD", UCURR_COMMON|UCURR_NON_DEPRECATED},
     {"SUR", UCURR_COMMON|UCURR_DEPRECATED},
     {"SVC", UCURR_COMMON|UCURR_NON_DEPRECATED},
@@ -1764,7 +1939,9 @@ static const struct CurrencyList {
     {"XPF", UCURR_COMMON|UCURR_NON_DEPRECATED},
     {"XPT", UCURR_UNCOMMON|UCURR_NON_DEPRECATED},
     {"XRE", UCURR_UNCOMMON|UCURR_NON_DEPRECATED},
+    {"XSU", UCURR_UNCOMMON|UCURR_NON_DEPRECATED},
     {"XTS", UCURR_UNCOMMON|UCURR_NON_DEPRECATED},
+    {"XUA", UCURR_UNCOMMON|UCURR_NON_DEPRECATED},
     {"XXX", UCURR_UNCOMMON|UCURR_NON_DEPRECATED},
     {"YDD", UCURR_COMMON|UCURR_DEPRECATED},
     {"YER", UCURR_COMMON|UCURR_NON_DEPRECATED},
@@ -1774,10 +1951,11 @@ static const struct CurrencyList {
     {"YUR", UCURR_COMMON|UCURR_DEPRECATED},
     {"ZAL", UCURR_UNCOMMON|UCURR_NON_DEPRECATED},
     {"ZAR", UCURR_COMMON|UCURR_NON_DEPRECATED},
-    {"ZMK", UCURR_COMMON|UCURR_NON_DEPRECATED},
+    {"ZMK", UCURR_COMMON|UCURR_DEPRECATED},
+    {"ZMW", UCURR_COMMON|UCURR_NON_DEPRECATED},
     {"ZRN", UCURR_COMMON|UCURR_DEPRECATED},
     {"ZRZ", UCURR_COMMON|UCURR_DEPRECATED},
-    {"ZWL", UCURR_COMMON|UCURR_NON_DEPRECATED},
+    {"ZWL", UCURR_COMMON|UCURR_DEPRECATED},
     {"ZWR", UCURR_COMMON|UCURR_DEPRECATED},
     {"ZWD", UCURR_COMMON|UCURR_DEPRECATED},
     { NULL, 0 } 
@@ -1838,7 +2016,7 @@ ucurr_closeCurrencyList(UEnumeration *enumerator) {
 }
 
 static void U_CALLCONV
-ucurr_createCurrencyList(UErrorCode* status){
+ucurr_createCurrencyList(UHashtable *isoCodes, UErrorCode* status){
     UErrorCode localStatus = U_ZERO_ERROR;
 
     
@@ -1904,7 +2082,7 @@ ucurr_createCurrencyList(UErrorCode* status){
                     entry->to = toDate;
 
                     localStatus = U_ZERO_ERROR;
-                    uhash_put(gIsoCodes, (UChar *)isoCode, entry, &localStatus);
+                    uhash_put(isoCodes, (UChar *)isoCode, entry, &localStatus);
                 }
             } else {
                 *status = localStatus;
@@ -1929,36 +2107,70 @@ static const UEnumeration gEnumCurrencyList = {
 };
 U_CDECL_END
 
+
+static void U_CALLCONV initIsoCodes(UErrorCode &status) {
+    U_ASSERT(gIsoCodes == NULL);
+    ucln_i18n_registerCleanup(UCLN_I18N_CURRENCY, currency_cleanup);
+
+    UHashtable *isoCodes = uhash_open(uhash_hashUChars, uhash_compareUChars, NULL, &status);
+    if (U_FAILURE(status)) {
+        return;
+    }
+    uhash_setValueDeleter(isoCodes, deleteIsoCodeEntry);
+
+    ucurr_createCurrencyList(isoCodes, &status);
+    if (U_FAILURE(status)) {
+        uhash_close(isoCodes);
+        return;
+    }
+    gIsoCodes = isoCodes;  
+                           
+}
+
+static void populateCurrSymbolsEquiv(icu::Hashtable *hash, UErrorCode &status) {
+    if (U_FAILURE(status)) {
+        return;
+    }
+    int32_t length = sizeof(EQUIV_CURRENCY_SYMBOLS) / sizeof(EQUIV_CURRENCY_SYMBOLS[0]);
+    for (int32_t i = 0; i < length; ++i) {
+        icu::UnicodeString lhs(EQUIV_CURRENCY_SYMBOLS[i][0], -1, US_INV);
+        icu::UnicodeString rhs(EQUIV_CURRENCY_SYMBOLS[i][1], -1, US_INV);
+        makeEquivalent(lhs.unescape(), rhs.unescape(), hash, status);
+        if (U_FAILURE(status)) {
+            return;
+        }
+    }
+}
+
+static void U_CALLCONV initCurrSymbolsEquiv() {
+    U_ASSERT(gCurrSymbolsEquiv == NULL);
+    UErrorCode status = U_ZERO_ERROR;
+    ucln_i18n_registerCleanup(UCLN_I18N_CURRENCY, currency_cleanup);
+    icu::Hashtable *temp = new icu::Hashtable(status);
+    if (temp == NULL) {
+        return;
+    }
+    if (U_FAILURE(status)) {
+        delete temp;
+        return;
+    }
+    temp->setValueDeleter(deleteUnicode);
+    populateCurrSymbolsEquiv(temp, status);
+    if (U_FAILURE(status)) {
+        delete temp;
+        return;
+    }
+    gCurrSymbolsEquiv = temp;
+}
+
 U_CAPI UBool U_EXPORT2
 ucurr_isAvailable(const UChar* isoCode, UDate from, UDate to, UErrorCode* eErrorCode) {
-    UErrorCode status = U_ZERO_ERROR;
-    UBool initialized;
-    UMTX_CHECK(&gIsoCodesLock, gIsoCodesInitialized, initialized);
-
-    if (!initialized) {
-        umtx_lock(&gIsoCodesLock);
-        gIsoCodes = uhash_open(uhash_hashUChars, uhash_compareUChars, NULL, &status);
-        if (U_FAILURE(status)) {
-            umtx_unlock(&gIsoCodesLock);
-            return FALSE;
-        }
-        uhash_setValueDeleter(gIsoCodes, deleteIsoCodeEntry);
-
-        ucln_i18n_registerCleanup(UCLN_I18N_CURRENCY, currency_cleanup);
-        ucurr_createCurrencyList(&status);
-        if (U_FAILURE(status)) {
-            umtx_unlock(&gIsoCodesLock);
-            return FALSE;
-        }
-
-        gIsoCodesInitialized = TRUE;
-        umtx_unlock(&gIsoCodesLock);
+    umtx_initOnce(gIsoCodesInitOnce, &initIsoCodes, *eErrorCode);
+    if (U_FAILURE(*eErrorCode)) {
+        return FALSE;
     }
 
-    umtx_lock(&gIsoCodesLock);
     IsoCodeEntry* result = (IsoCodeEntry *) uhash_get(gIsoCodes, isoCode);
-    umtx_unlock(&gIsoCodesLock);
-
     if (result == NULL) {
         return FALSE;
     } else if (from > to) {
@@ -1967,8 +2179,12 @@ ucurr_isAvailable(const UChar* isoCode, UDate from, UDate to, UErrorCode* eError
     } else if  ((from > result->to) || (to < result->from)) {
         return FALSE;
     }
-
     return TRUE;
+}
+
+static const icu::Hashtable* getCurrSymbolsEquiv() {
+    umtx_initOnce(gCurrSymbolsEquivInitOnce, &initCurrSymbolsEquiv);
+    return gCurrSymbolsEquiv;
 }
 
 U_CAPI UEnumeration * U_EXPORT2

@@ -137,6 +137,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 typedef void* UDateFormat;
 
 
@@ -187,6 +197,7 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_YEAR                       "y"
+#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -197,6 +208,7 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_ABBR_QUARTER               "QQQ"
+#endif  
 
 
 
@@ -260,6 +272,7 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_YEAR_NUM_MONTH_DAY         "yMd"
+#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -270,6 +283,7 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_ABBR_WEEKDAY               "E"
+#endif  
 
 
 
@@ -332,6 +346,7 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_HOUR                       "j"
+#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -342,6 +357,7 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_MINUTE                     "m"
+#endif  
 
 
 
@@ -354,11 +370,13 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_HOUR24_MINUTE              "Hm"
+#ifndef U_HIDE_DRAFT_API
 
 
 
 
 #define UDAT_SECOND                     "s"
+#endif  
 
 
 
@@ -382,6 +400,7 @@ typedef enum UDateFormatStyle {
 
 
 
+#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -430,9 +449,11 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_ABBR_UTC_TZ "ZZZZ"
+#endif  
 
 
 
+#ifndef U_HIDE_DEPRECATED_API 
 
 
 
@@ -464,6 +485,7 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_HOUR_TZ                    "jz"
+#endif  
 
 
 
@@ -713,7 +735,33 @@ typedef enum UDateFormatField {
 
     UDAT_YEAR_NAME_FIELD = 30,
 
-   
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+    UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD = 31,
+
+    
+
+
+
+
+
+    UDAT_TIMEZONE_ISO_FIELD = 32,
+
+    
+
+
+
+
+
+    UDAT_TIMEZONE_ISO_LOCAL_FIELD = 33,
+#endif  
+
+    
 
 
 
@@ -721,7 +769,7 @@ typedef enum UDateFormatField {
 
 
 
-    UDAT_FIELD_COUNT = 31
+    UDAT_FIELD_COUNT = 34
 
 } UDateFormatField;
 
@@ -785,6 +833,61 @@ udat_open(UDateFormatStyle  timeStyle,
 
 U_STABLE void U_EXPORT2 
 udat_close(UDateFormat* format);
+
+
+
+
+
+
+typedef enum UDateFormatBooleanAttribute {
+    
+
+
+
+    UDAT_PARSE_ALLOW_WHITESPACE,
+    
+
+
+
+
+    UDAT_PARSE_ALLOW_NUMERIC,
+    
+
+
+
+    UDAT_BOOLEAN_ATTRIBUTE_COUNT
+} UDateFormatBooleanAttribute;
+
+#ifndef U_HIDE_INTERNAL_API
+
+
+
+
+
+
+
+
+
+
+U_INTERNAL UBool U_EXPORT2
+udat_getBooleanAttribute(const UDateFormat* fmt, UDateFormatBooleanAttribute attr, UErrorCode* status);
+
+
+
+
+
+
+
+
+
+
+
+U_INTERNAL void U_EXPORT2
+udat_setBooleanAttribute(UDateFormat *fmt, UDateFormatBooleanAttribute attr, UBool, UErrorCode* status);
+
+#endif  
+
+
 
 #if U_SHOW_CPLUSPLUS_API
 
@@ -1080,6 +1183,9 @@ typedef enum UDateFormatSymbolType {
     
     UDAT_WEEKDAYS,
     
+
+
+
     UDAT_SHORT_WEEKDAYS,
     
     UDAT_AM_PMS,
@@ -1097,7 +1203,12 @@ typedef enum UDateFormatSymbolType {
     UDAT_STANDALONE_NARROW_MONTHS,
     
     UDAT_STANDALONE_WEEKDAYS,
+    
+
+
+
     UDAT_STANDALONE_SHORT_WEEKDAYS,
+    
     UDAT_STANDALONE_NARROW_WEEKDAYS,
     
     UDAT_QUARTERS,
@@ -1105,8 +1216,22 @@ typedef enum UDateFormatSymbolType {
     UDAT_SHORT_QUARTERS,
     
     UDAT_STANDALONE_QUARTERS,
-    UDAT_STANDALONE_SHORT_QUARTERS
+    UDAT_STANDALONE_SHORT_QUARTERS,
+#ifndef U_HIDE_DRAFT_API
+    
 
+
+
+
+
+
+    UDAT_SHORTER_WEEKDAYS,
+    
+
+
+
+    UDAT_STANDALONE_SHORTER_WEEKDAYS
+#endif  
 } UDateFormatSymbolType;
 
 struct UDateFormatSymbols;
@@ -1193,7 +1318,7 @@ udat_getLocaleByType(const UDateFormat *fmt,
                      ULocDataLocaleType type,
                      UErrorCode* status); 
 
-#ifndef U_HIDE_INTERNAL_API
+#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -1202,7 +1327,7 @@ udat_getLocaleByType(const UDateFormat *fmt,
 
 
 
-U_INTERNAL void U_EXPORT2
+U_DRAFT void U_EXPORT2
 udat_setContext(UDateFormat* fmt, UDisplayContext value, UErrorCode* status);
 
 
@@ -1214,7 +1339,7 @@ udat_setContext(UDateFormat* fmt, UDisplayContext value, UErrorCode* status);
 
 
 
-U_INTERNAL UDisplayContext U_EXPORT2
+U_DRAFT UDisplayContext U_EXPORT2
 udat_getContext(UDateFormat* fmt, UDisplayContextType type, UErrorCode* status);
 
 #endif  
@@ -1273,7 +1398,6 @@ udat_applyPatternRelative(UDateFormat *format,
                           const UChar *timePattern,
                           int32_t     timePatternLength,
                           UErrorCode  *status);
-#endif  
 
 
 
@@ -1301,6 +1425,7 @@ udat_registerOpener(UDateFormatOpener opener, UErrorCode *status);
 
 U_INTERNAL UDateFormatOpener U_EXPORT2
 udat_unregisterOpener(UDateFormatOpener opener, UErrorCode *status);
+#endif  
 
 
 #endif 

@@ -318,6 +318,10 @@ static int32_t getBiDiClass(const IntProperty &, UChar32 c, UProperty ) {
     return (int32_t)u_charDirection(c);
 }
 
+static int32_t getBiDiPairedBracketType(const IntProperty &, UChar32 c, UProperty ) {
+    return (int32_t)ubidi_getPairedBracketType(GET_BIDI_PROPS(), c);
+}
+
 static int32_t biDiGetMaxValue(const IntProperty &, UProperty which) {
     return ubidi_getMaxValue(GET_BIDI_PROPS(), which);
 }
@@ -448,7 +452,8 @@ static const IntProperty intProps[UCHAR_INT_LIMIT-UCHAR_INT_START]={
     { UPROPS_SRC_NFC,   0, 0xff,                            getTrailCombiningClass, getMaxValueFromShift },
     { 2,                UPROPS_GCB_MASK, UPROPS_GCB_SHIFT,  defaultGetValue, defaultGetMaxValue },
     { 2,                UPROPS_SB_MASK, UPROPS_SB_SHIFT,    defaultGetValue, defaultGetMaxValue },
-    { 2,                UPROPS_WB_MASK, UPROPS_WB_SHIFT,    defaultGetValue, defaultGetMaxValue }
+    { 2,                UPROPS_WB_MASK, UPROPS_WB_SHIFT,    defaultGetValue, defaultGetMaxValue },
+    { UPROPS_SRC_BIDI,  0, 0,                               getBiDiPairedBracketType, biDiGetMaxValue },
 };
 
 U_CAPI int32_t U_EXPORT2

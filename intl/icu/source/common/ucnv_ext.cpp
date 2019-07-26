@@ -447,6 +447,15 @@ ucnv_extContinueMatchToU(UConverter *cnv,
 
 
 
+static inline UBool
+extFromUUseMapping(UBool useFallback, uint32_t value, UChar32 firstCP) {
+    return
+        ((value&UCNV_EXT_FROM_U_STATUS_MASK)!=0 ||
+            FROM_U_USE_FALLBACK(useFallback, firstCP)) &&
+        (value&UCNV_EXT_FROM_U_RESERVED_MASK)==0;
+}
+
+
 
 
 static inline int32_t
@@ -580,11 +589,7 @@ ucnv_extMatchFromU(const int32_t *cx,
             
             length=*fromUSectionUChars++;
             value=*fromUSectionValues++;
-            if( value!=0 &&
-                (UCNV_EXT_FROM_U_IS_ROUNDTRIP(value) ||
-                 FROM_U_USE_FALLBACK(useFallback, firstCP)) &&
-                (value&UCNV_EXT_FROM_U_RESERVED_MASK)==0
-            ) {
+            if(value!=0 && extFromUUseMapping(useFallback, value, firstCP)) {
                 
                 matchValue=value;
                 matchLength=2+i+j;
@@ -621,10 +626,7 @@ ucnv_extMatchFromU(const int32_t *cx,
                     
                     idx=(int32_t)UCNV_EXT_FROM_U_GET_PARTIAL_INDEX(value);
                 } else {
-                    if( (UCNV_EXT_FROM_U_IS_ROUNDTRIP(value) ||
-                         FROM_U_USE_FALLBACK(useFallback, firstCP)) &&
-                        (value&UCNV_EXT_FROM_U_RESERVED_MASK)==0
-                    ) {
+                    if(extFromUUseMapping(useFallback, value, firstCP)) {
                         
                         matchValue=value;
                         matchLength=2+i+j;
@@ -641,10 +643,7 @@ ucnv_extMatchFromU(const int32_t *cx,
             return 0;
         }
     } else  {
-        if( (UCNV_EXT_FROM_U_IS_ROUNDTRIP(value) ||
-             FROM_U_USE_FALLBACK(useFallback, firstCP)) &&
-            (value&UCNV_EXT_FROM_U_RESERVED_MASK)==0
-        ) {
+        if(extFromUUseMapping(useFallback, value, firstCP)) {
             
             matchValue=value;
             matchLength=2;
@@ -944,13 +943,38 @@ ucnv_extContinueMatchFromU(UConverter *cnv,
     }
 }
 
+static UBool
+extSetUseMapping(UConverterUnicodeSet which, int32_t minLength, uint32_t value) {
+    if(which==UCNV_ROUNDTRIP_SET) {
+        
+        
+        
+        
+        
+        
+        
+        if(((value&(UCNV_EXT_FROM_U_ROUNDTRIP_FLAG|UCNV_EXT_FROM_U_RESERVED_MASK))!=
+                UCNV_EXT_FROM_U_ROUNDTRIP_FLAG)) {
+            return FALSE;
+        }
+    } else  {
+        
+        if((value&UCNV_EXT_FROM_U_RESERVED_MASK)!=0) {
+            return FALSE;
+        }
+    }
+    
+    
+    return UCNV_EXT_FROM_U_GET_LENGTH(value)>=minLength;
+}
+
 static void
 ucnv_extGetUnicodeSetString(const UConverterSharedData *sharedData,
                             const int32_t *cx,
                             const USetAdder *sa,
-                            UBool useFallback,
+                            UConverterUnicodeSet which,
                             int32_t minLength,
-                            UChar32 c,
+                            UChar32 firstCP,
                             UChar s[UCNV_EXT_MAX_UCHARS], int32_t length,
                             int32_t sectionIndex,
                             UErrorCode *pErrorCode) {
@@ -967,13 +991,10 @@ ucnv_extGetUnicodeSetString(const UConverterSharedData *sharedData,
     count=*fromUSectionUChars++;
     value=*fromUSectionValues++;
 
-    if( value!=0 &&
-        (UCNV_EXT_FROM_U_IS_ROUNDTRIP(value) || useFallback) &&
-        UCNV_EXT_FROM_U_GET_LENGTH(value)>=minLength
-    ) {
-        if(c>=0) {
+    if(extSetUseMapping(which, minLength, value)) {
+        if(length==U16_LENGTH(firstCP)) {
             
-            sa->add(sa->set, c);
+            sa->add(sa->set, firstCP);
         } else {
             
             sa->addString(sa->set, s, length);
@@ -989,16 +1010,11 @@ ucnv_extGetUnicodeSetString(const UConverterSharedData *sharedData,
             
         } else if(UCNV_EXT_FROM_U_IS_PARTIAL(value)) {
             ucnv_extGetUnicodeSetString(
-                sharedData, cx, sa, useFallback, minLength,
-                U_SENTINEL, s, length+1,
+                sharedData, cx, sa, which, minLength,
+                firstCP, s, length+1,
                 (int32_t)UCNV_EXT_FROM_U_GET_PARTIAL_INDEX(value),
                 pErrorCode);
-        } else if((useFallback ?
-                      (value&UCNV_EXT_FROM_U_RESERVED_MASK)==0 :
-                      ((value&(UCNV_EXT_FROM_U_ROUNDTRIP_FLAG|UCNV_EXT_FROM_U_RESERVED_MASK))==
-                          UCNV_EXT_FROM_U_ROUNDTRIP_FLAG)) &&
-                  UCNV_EXT_FROM_U_GET_LENGTH(value)>=minLength
-        ) {
+        } else if(extSetUseMapping(which, minLength, value)) {
             sa->addString(sa->set, s, length+1);
         }
     }
@@ -1016,7 +1032,6 @@ ucnv_extGetUnicodeSet(const UConverterSharedData *sharedData,
 
     uint32_t value;
     int32_t st1, stage1Length, st2, st3, minLength;
-    UBool useFallback;
 
     UChar s[UCNV_EXT_MAX_UCHARS];
     UChar32 c;
@@ -1032,8 +1047,6 @@ ucnv_extGetUnicodeSet(const UConverterSharedData *sharedData,
     stage3b=UCNV_EXT_ARRAY(cx, UCNV_EXT_FROM_U_STAGE_3B_INDEX, uint32_t);
 
     stage1Length=cx[UCNV_EXT_FROM_U_STAGE_1_LENGTH];
-
-    useFallback=(UBool)(which==UCNV_ROUNDTRIP_AND_FALLBACK_SET);
 
     
     c=0; 
@@ -1062,30 +1075,20 @@ ucnv_extGetUnicodeSet(const UConverterSharedData *sharedData,
                     
                     ps3=stage3+st3;
 
-                    
-
-
-
-
-
                     do {
                         value=stage3b[*ps3++];
                         if(value==0) {
                             
                         } else if(UCNV_EXT_FROM_U_IS_PARTIAL(value)) {
+                            
                             length=0;
                             U16_APPEND_UNSAFE(s, length, c);
                             ucnv_extGetUnicodeSetString(
-                                sharedData, cx, sa, useFallback, minLength,
+                                sharedData, cx, sa, which, minLength,
                                 c, s, length,
                                 (int32_t)UCNV_EXT_FROM_U_GET_PARTIAL_INDEX(value),
                                 pErrorCode);
-                        } else if((useFallback ?
-                                      (value&UCNV_EXT_FROM_U_RESERVED_MASK)==0 :
-                                      ((value&(UCNV_EXT_FROM_U_ROUNDTRIP_FLAG|UCNV_EXT_FROM_U_RESERVED_MASK))==
-                                          UCNV_EXT_FROM_U_ROUNDTRIP_FLAG)) &&
-                                  UCNV_EXT_FROM_U_GET_LENGTH(value)>=minLength
-                        ) {
+                        } else if(extSetUseMapping(which, minLength, value)) {
                             switch(filter) {
                             case UCNV_SET_FILTER_2022_CN:
                                 if(!(UCNV_EXT_FROM_U_GET_LENGTH(value)==3 && UCNV_EXT_FROM_U_GET_DATA(value)<=0x82ffff)) {

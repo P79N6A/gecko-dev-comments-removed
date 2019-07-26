@@ -21,6 +21,7 @@
 #include <float.h>
 #include "gregoimp.h" 
 #include "astro.h" 
+#include "unicode/simpletz.h"
 #include "uhash.h"
 #include "ucln_in.h"
 
@@ -52,6 +53,8 @@ static UMutex astroLock = U_MUTEX_INITIALIZER;
 static icu::CalendarAstronomer *gChineseCalendarAstro = NULL;
 static icu::CalendarCache *gChineseCalendarWinterSolsticeCache = NULL;
 static icu::CalendarCache *gChineseCalendarNewYearCache = NULL;
+static icu::TimeZone *gChineseCalendarZoneAstroCalc = NULL;
+static icu::UInitOnce gChineseCalendarZoneAstroCalcInitOnce = U_INITONCE_INITIALIZER;
 
 
 
@@ -66,7 +69,7 @@ static const int32_t CHINESE_EPOCH_YEAR = -2636;
 
 
 
-static const double CHINA_OFFSET = 8 * kOneHour;
+static const int32_t CHINA_OFFSET = 8 * kOneHour;
 
 
 
@@ -90,6 +93,11 @@ static UBool calendar_chinese_cleanup(void) {
         delete gChineseCalendarNewYearCache;
         gChineseCalendarNewYearCache = NULL;
     }
+    if (gChineseCalendarZoneAstroCalc) {
+        delete gChineseCalendarZoneAstroCalc;
+        gChineseCalendarZoneAstroCalc = NULL;
+    }
+    gChineseCalendarZoneAstroCalcInitOnce.reset();
     return TRUE;
 }
 U_CDECL_END
@@ -110,14 +118,28 @@ Calendar* ChineseCalendar::clone() const {
 }
 
 ChineseCalendar::ChineseCalendar(const Locale& aLocale, UErrorCode& success)
-:   Calendar(TimeZone::createDefault(), aLocale, success)
+:   Calendar(TimeZone::createDefault(), aLocale, success),
+    isLeapYear(FALSE),
+    fEpochYear(CHINESE_EPOCH_YEAR),
+    fZoneAstroCalc(getChineseCalZoneAstroCalc())
 {
-    isLeapYear = FALSE;
+    setTimeInMillis(getNow(), success); 
+}
+
+ChineseCalendar::ChineseCalendar(const Locale& aLocale, int32_t epochYear,
+                                const TimeZone* zoneAstroCalc, UErrorCode &success)
+:   Calendar(TimeZone::createDefault(), aLocale, success),
+    isLeapYear(FALSE),
+    fEpochYear(epochYear),
+    fZoneAstroCalc(zoneAstroCalc)
+{
     setTimeInMillis(getNow(), success); 
 }
 
 ChineseCalendar::ChineseCalendar(const ChineseCalendar& other) : Calendar(other) {
     isLeapYear = other.isLeapYear;
+    fEpochYear = other.fEpochYear;
+    fZoneAstroCalc = other.fZoneAstroCalc;
 }
 
 ChineseCalendar::~ChineseCalendar()
@@ -126,6 +148,16 @@ ChineseCalendar::~ChineseCalendar()
 
 const char *ChineseCalendar::getType() const { 
     return "chinese";
+}
+
+static void U_CALLCONV initChineseCalZoneAstroCalc() {
+    gChineseCalendarZoneAstroCalc = new SimpleTimeZone(CHINA_OFFSET, UNICODE_STRING_SIMPLE("CHINA_ZONE") );
+    ucln_i18n_registerCleanup(UCLN_I18N_CHINESE_CALENDAR, calendar_chinese_cleanup);
+}
+
+const TimeZone* ChineseCalendar::getChineseCalZoneAstroCalc(void) const {
+    umtx_initOnce(gChineseCalendarZoneAstroCalcInitOnce, &initChineseCalZoneAstroCalc);
+    return gChineseCalendarZoneAstroCalc;
 }
 
 
@@ -187,7 +219,8 @@ int32_t ChineseCalendar::handleGetExtendedYear() {
         year = internalGet(UCAL_EXTENDED_YEAR, 1); 
     } else {
         int32_t cycle = internalGet(UCAL_ERA, 1) - 1; 
-        year = cycle * 60 + internalGet(UCAL_YEAR, 1);
+        
+        year = cycle * 60 + internalGet(UCAL_YEAR, 1) - (fEpochYear - CHINESE_EPOCH_YEAR);
     }
     return year;
 }
@@ -294,7 +327,7 @@ int32_t ChineseCalendar::handleComputeMonthStart(int32_t eyear, int32_t month, U
         month = (int32_t)m;
     }
 
-    int32_t gyear = eyear + CHINESE_EPOCH_YEAR - 1; 
+    int32_t gyear = eyear + fEpochYear - 1; 
     int32_t theNewYear = newYear(gyear);
     int32_t newMoon = newMoonNear(theNewYear + month * 29, TRUE);
     
@@ -435,8 +468,24 @@ void ChineseCalendar::roll(EDateFields field, int32_t amount, UErrorCode& status
 
 
 
-double ChineseCalendar::daysToMillis(double days) {
-    return (days * kOneDay) - CHINA_OFFSET;
+
+
+
+
+
+
+
+double ChineseCalendar::daysToMillis(double days) const {
+    double millis = days * (double)kOneDay;
+    if (fZoneAstroCalc != NULL) {
+        int32_t rawOffset, dstOffset;
+        UErrorCode status = U_ZERO_ERROR;
+        fZoneAstroCalc->getOffset(millis, FALSE, rawOffset, dstOffset, status);
+        if (U_SUCCESS(status)) {
+        	return millis - (double)(rawOffset + dstOffset);
+        }
+    }
+    return millis - (double)CHINA_OFFSET;
 }
 
 
@@ -444,8 +493,16 @@ double ChineseCalendar::daysToMillis(double days) {
 
 
 
-double ChineseCalendar::millisToDays(double millis) {
-    return ClockMath::floorDivide(millis + CHINA_OFFSET, kOneDay);
+double ChineseCalendar::millisToDays(double millis) const {
+    if (fZoneAstroCalc != NULL) {
+        int32_t rawOffset, dstOffset;
+        UErrorCode status = U_ZERO_ERROR;
+        fZoneAstroCalc->getOffset(millis, FALSE, rawOffset, dstOffset, status);
+        if (U_SUCCESS(status)) {
+        	return ClockMath::floorDivide(millis + (double)(rawOffset + dstOffset), kOneDay);
+        }
+    }
+    return ClockMath::floorDivide(millis + (double)CHINA_OFFSET, kOneDay);
 }
 
 
@@ -650,18 +707,22 @@ void ChineseCalendar::computeChineseFields(int32_t days, int32_t gyear, int32_t 
 
     if (setAllFields) {
 
-        int32_t year = gyear - CHINESE_EPOCH_YEAR;
+        
+        
+        int32_t extended_year = gyear - fEpochYear;
+        int cycle_year = gyear - CHINESE_EPOCH_YEAR;
         if (month < 11 ||
             gmonth >= UCAL_JULY) {
-            year++;
+            extended_year++;
+            cycle_year++;
         }
         int32_t dayOfMonth = days - thisMoon + 1;
 
-        internalSet(UCAL_EXTENDED_YEAR, year);
+        internalSet(UCAL_EXTENDED_YEAR, extended_year);
 
         
         int32_t yearOfCycle;
-        int32_t cycle = ClockMath::floorDivide(year - 1, 60, yearOfCycle);
+        int32_t cycle = ClockMath::floorDivide(cycle_year - 1, 60, yearOfCycle);
         internalSet(UCAL_ERA, cycle + 1);
         internalSet(UCAL_YEAR, yearOfCycle + 1);
 
@@ -774,11 +835,10 @@ ChineseCalendar::inDaylightTime(UErrorCode& status) const
 }
 
 
-const UDate     ChineseCalendar::fgSystemDefaultCentury        = DBL_MIN;
-const int32_t   ChineseCalendar::fgSystemDefaultCenturyYear    = -1;
 
-UDate           ChineseCalendar::fgSystemDefaultCenturyStart       = DBL_MIN;
-int32_t         ChineseCalendar::fgSystemDefaultCenturyStartYear   = -1;
+static UDate     gSystemDefaultCenturyStart       = DBL_MIN;
+static int32_t   gSystemDefaultCenturyStartYear   = -1;
+static icu::UInitOnce gSystemDefaultCenturyInitOnce = U_INITONCE_INITIALIZER;
 
 
 UBool ChineseCalendar::haveDefaultCentury() const
@@ -796,64 +856,37 @@ int32_t ChineseCalendar::defaultCenturyStartYear() const
     return internalGetDefaultCenturyStartYear();
 }
 
-UDate
-ChineseCalendar::internalGetDefaultCenturyStart() const
-{
-    
-    UBool needsUpdate;
-    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
-
-    if (needsUpdate) {
-        initializeSystemDefaultCentury();
-    }
-
-    
-    
-
-    return fgSystemDefaultCenturyStart;
-}
-
-int32_t
-ChineseCalendar::internalGetDefaultCenturyStartYear() const
-{
-    
-    UBool needsUpdate;
-    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
-
-    if (needsUpdate) {
-        initializeSystemDefaultCentury();
-    }
-
-    
-    
-
-    return    fgSystemDefaultCenturyStartYear;
-}
-
-void
-ChineseCalendar::initializeSystemDefaultCentury()
+static void U_CALLCONV initializeSystemDefaultCentury()
 {
     
     
     
     UErrorCode status = U_ZERO_ERROR;
     ChineseCalendar calendar(Locale("@calendar=chinese"),status);
-    if (U_SUCCESS(status))
-    {
+    if (U_SUCCESS(status)) {
         calendar.setTime(Calendar::getNow(), status);
         calendar.add(UCAL_YEAR, -80, status);
-        UDate    newStart =  calendar.getTime(status);
-        int32_t  newYear  =  calendar.get(UCAL_YEAR, status);
-        umtx_lock(NULL);
-        if (fgSystemDefaultCenturyStart == fgSystemDefaultCentury)
-        {
-            fgSystemDefaultCenturyStartYear = newYear;
-            fgSystemDefaultCenturyStart = newStart;
-        }
-        umtx_unlock(NULL);
+        gSystemDefaultCenturyStart     = calendar.getTime(status);
+        gSystemDefaultCenturyStartYear = calendar.get(UCAL_YEAR, status);
     }
     
     
+}
+
+UDate
+ChineseCalendar::internalGetDefaultCenturyStart() const
+{
+    
+    umtx_initOnce(gSystemDefaultCenturyInitOnce, &initializeSystemDefaultCentury);
+    return gSystemDefaultCenturyStart;
+}
+
+int32_t
+ChineseCalendar::internalGetDefaultCenturyStartYear() const
+{
+    
+    umtx_initOnce(gSystemDefaultCenturyInitOnce, &initializeSystemDefaultCentury);
+    return    gSystemDefaultCenturyStartYear;
 }
 
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(ChineseCalendar)

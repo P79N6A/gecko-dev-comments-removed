@@ -4,6 +4,13 @@
 
 
 
+#if U_PLATFORM == U_PF_MINGW
+
+#ifdef __STRICT_ANSI__
+#undef __STRICT_ANSI__
+#endif
+#endif
+
 #include "filetools.h"
 #include "filestrm.h"
 #include "cstring.h"

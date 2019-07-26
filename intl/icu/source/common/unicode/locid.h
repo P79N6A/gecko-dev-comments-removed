@@ -44,6 +44,9 @@
 U_NAMESPACE_BEGIN
 
 
+void U_CALLCONV locale_available_init(); 
+
+
 
 
 
@@ -450,7 +453,6 @@ public:
 
     int32_t getKeywordValue(const char* keywordName, char *buffer, int32_t bufferCapacity, UErrorCode &status) const;
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -462,8 +464,10 @@ public:
 
 
 
+
+
+
     void setKeywordValue(const char* keywordName, const char* keywordValue, UErrorCode &status);
-#endif  
 
     
 
@@ -740,6 +744,11 @@ private:
 
 
     friend Locale *locale_set_default_internal(const char *, UErrorCode& status);
+
+    
+
+
+    friend void locale_available_init();
 };
 
 inline UBool

@@ -484,7 +484,6 @@ private:
     UResourceBundle *fResource;
     void constructForLocale(const UnicodeString& path, const Locale& locale, UErrorCode& error);
     Locale *fLocale;
-
 };
 
 U_NAMESPACE_END

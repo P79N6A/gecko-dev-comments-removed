@@ -45,8 +45,12 @@ typedef enum ULocaleDataExemplarSetType  {
     ULOCDATA_ES_AUXILIARY=1,
     
     ULOCDATA_ES_INDEX=2,
+#ifndef U_HIDE_DRAFT_API
     
-    ULOCDATA_ES_COUNT=3
+    ULOCDATA_ES_PUNCTUATION=3,
+#endif 
+    
+    ULOCDATA_ES_COUNT=4
 } ULocaleDataExemplarSetType;
 
 

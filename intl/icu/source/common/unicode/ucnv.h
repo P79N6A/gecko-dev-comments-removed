@@ -534,11 +534,15 @@ ucnv_openPackage(const char *packageName, const char *converterName, UErrorCode 
 
 
 
+
+
 U_STABLE UConverter * U_EXPORT2 
 ucnv_safeClone(const UConverter *cnv, 
                void             *stackBuffer,
                int32_t          *pBufferSize, 
                UErrorCode       *status);
+
+#ifndef U_HIDE_DEPRECATED_API
 
 
 
@@ -547,6 +551,8 @@ ucnv_safeClone(const UConverter *cnv,
 
 
 #define U_CNV_SAFECLONE_BUFFERSIZE  1024
+
+#endif 
 
 
 

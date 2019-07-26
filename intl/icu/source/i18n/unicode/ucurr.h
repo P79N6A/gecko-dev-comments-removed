@@ -343,7 +343,6 @@ ucurr_getKeywordValuesForLocale(const char* key,
                                 UBool commonlyUsed,
                                 UErrorCode* status);
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -353,9 +352,8 @@ ucurr_getKeywordValuesForLocale(const char* key,
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 ucurr_getNumericCode(const UChar* currency);
-#endif  
 
 #endif 
 

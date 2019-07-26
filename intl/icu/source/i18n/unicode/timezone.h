@@ -133,7 +133,6 @@ public:
 
     virtual ~TimeZone();
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -147,7 +146,6 @@ public:
 
 
     static const TimeZone& U_EXPORT2 getUnknown();
-#endif  
 
     
 
@@ -298,10 +296,16 @@ public:
 
 
 
+
+
+
+
     static void U_EXPORT2 adoptDefault(TimeZone* zone);
 
 #ifndef U_HIDE_SYSTEM_API
     
+
+
 
 
 
@@ -353,6 +357,63 @@ public:
 
     static UnicodeString& U_EXPORT2 getCanonicalID(const UnicodeString& id,
         UnicodeString& canonicalID, UBool& isSystemID, UErrorCode& status);
+
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static UnicodeString& U_EXPORT2 getWindowsID(const UnicodeString& id,
+        UnicodeString& winid, UErrorCode& status);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static UnicodeString& U_EXPORT2 getIDForWindowsID(const UnicodeString& winid, const char* region,
+        UnicodeString& id, UErrorCode& status);
+
+#endif 
 
     
 
@@ -808,6 +869,8 @@ private:
 
     static const UChar* getRegion(const UnicodeString& id);
 
+  public:
+#ifndef U_HIDE_INTERNAL_API
     
 
 
@@ -815,8 +878,11 @@ private:
 
 
 
-    static const UChar* getRegion(const UnicodeString& id, UErrorCode& status);
 
+    static const UChar* getRegion(const UnicodeString& id, UErrorCode& status);
+#endif  
+
+  private:
     
 
 
@@ -854,24 +920,6 @@ private:
 
     static UnicodeString& formatCustomID(int32_t hour, int32_t min, int32_t sec,
         UBool negative, UnicodeString& id);
-
-    
-
-
-
-
-    static void             initDefault(void);
-
-    
-    
-
-
-
-
-
-
-    static TimeZone*        createSystemTimeZone(const UnicodeString& name);
-    static TimeZone*        createSystemTimeZone(const UnicodeString& name, UErrorCode& ec);
 
     UnicodeString           fID;    
 

@@ -34,8 +34,8 @@ BasicTimeZone::~BasicTimeZone() {
 }
 
 UBool
-BasicTimeZone::hasEquivalentTransitions( BasicTimeZone& tz, UDate start, UDate end,
-                                        UBool ignoreDstAmount, UErrorCode& status)  {
+BasicTimeZone::hasEquivalentTransitions(const BasicTimeZone& tz, UDate start, UDate end,
+                                        UBool ignoreDstAmount, UErrorCode& status) const {
     if (U_FAILURE(status)) {
         return FALSE;
     }
@@ -128,7 +128,7 @@ BasicTimeZone::hasEquivalentTransitions( BasicTimeZone& tz, UDate start, UDate e
 
 void
 BasicTimeZone::getSimpleRulesNear(UDate date, InitialTimeZoneRule*& initial,
-        AnnualTimeZoneRule*& std, AnnualTimeZoneRule*& dst, UErrorCode& status)  {
+        AnnualTimeZoneRule*& std, AnnualTimeZoneRule*& dst, UErrorCode& status) const {
     initial = NULL;
     std = NULL;
     dst = NULL;
@@ -285,7 +285,7 @@ BasicTimeZone::getSimpleRulesNear(UDate date, InitialTimeZoneRule*& initial,
 
 void
 BasicTimeZone::getTimeZoneRulesAfter(UDate start, InitialTimeZoneRule*& initial,
-                                     UVector*& transitionRules, UErrorCode& status)  {
+                                     UVector*& transitionRules, UErrorCode& status) const {
     if (U_FAILURE(status)) {
         return;
     }
@@ -546,7 +546,7 @@ error:
 
 void
 BasicTimeZone::getOffsetFromLocal(UDate , int32_t , int32_t ,
-                            int32_t& , int32_t& , UErrorCode& status)  {
+                            int32_t& , int32_t& , UErrorCode& status) const {
     if (U_FAILURE(status)) {
         return;
     }

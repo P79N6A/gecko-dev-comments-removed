@@ -327,7 +327,7 @@ checkBaseExtUnicode(UCMStates *baseStates, UCMTable *base, UCMTable *ext,
                 return result;
             }
 
-            if(0<=mb->f && mb->f<=2) {
+            if((0<=mb->f && mb->f<=2) || mb->f==4) {
                 break;
             }
 
@@ -339,7 +339,7 @@ checkBaseExtUnicode(UCMStates *baseStates, UCMTable *base, UCMTable *ext,
                 return result;
             }
 
-            if(0<=me->f && me->f<=2) {
+            if((0<=me->f && me->f<=2) || me->f==4) {
                 break;
             }
 
@@ -857,8 +857,8 @@ ucm_parseMappingLine(UCMapping *m,
             break;
         } else if(*s=='|') {
             f=(int8_t)(s[1]-'0');
-            if((uint8_t)f>3) {
-                fprintf(stderr, "ucm error: fallback indicator must be |0..|3 - \"%s\"\n", line);
+            if((uint8_t)f>4) {
+                fprintf(stderr, "ucm error: fallback indicator must be |0..|4 - \"%s\"\n", line);
                 return FALSE;
             }
             break;
@@ -1070,7 +1070,8 @@ ucm_mappingType(UCMStates *baseStates,
 
 
 
-    if( m->uLen==1 && count==1 &&
+
+    if( m->uLen==1 && count==1 && m->f<=3 &&
         (baseStates->maxCharLength==1 ||
             !((m->f==2 && m->bLen==1) ||
               (m->f==1 && bytes[0]==0) ||
@@ -1146,7 +1147,7 @@ ucm_readTable(UCMFile *ucm, FileStream* convFile,
     char line[500];
     char *end;
     UBool isOK;
-    
+
     if(U_FAILURE(*pErrorCode)) {
         return;
     }

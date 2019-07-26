@@ -420,67 +420,8 @@ public:
                                   UnicodeString& appendTo,
                                   FieldPosition& pos,
                                   UErrorCode& success) const;
-    
 
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual UnicodeString& format(const Formattable& obj,
-                                  UnicodeString& appendTo,
-                                  FieldPosition& pos,
-                                  UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-
-
-
-
-    UnicodeString& format(const Formattable& obj,
-                          UnicodeString& appendTo,
-                          UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-
-
-
-
-    UnicodeString& format(  double number,
-                            UnicodeString& appendTo) const;
-
-    
-
-
-
-
-
-
-
-
-
-
-    UnicodeString& format(  int32_t number,
-                            UnicodeString& appendTo) const;
+   using NumberFormat::parse;
 
    
 
@@ -499,22 +440,6 @@ public:
     virtual void parse(const UnicodeString& text,
                        Formattable& result,
                        ParsePosition& parsePosition) const;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    virtual void parse(const UnicodeString& text,
-                       Formattable& result,
-                       UErrorCode& status) const;
 
     
 
@@ -659,26 +584,7 @@ private:
     
 };
 
-inline UnicodeString&
-ChoiceFormat::format(const Formattable& obj,
-                     UnicodeString& appendTo,
-                     UErrorCode& status) const {
-    
-    
-    return NumberFormat::format(obj, appendTo, status);
-}
 
-inline UnicodeString&
-ChoiceFormat::format(double number,
-                     UnicodeString& appendTo) const {
-    return NumberFormat::format(number, appendTo);
-}
-
-inline UnicodeString&
-ChoiceFormat::format(int32_t number,
-                     UnicodeString& appendTo) const {
-    return NumberFormat::format(number, appendTo);
-}
 U_NAMESPACE_END
 
 #endif  
