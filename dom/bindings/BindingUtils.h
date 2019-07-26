@@ -1684,6 +1684,18 @@ NativeToString(JSContext* cx, JSObject* wrapper, JSObject* obj, const char* pre,
 nsresult
 ReparentWrapper(JSContext* aCx, JSObject* aObj);
 
+
+
+
+
+
+JSBool
+InterfaceHasInstance(JSContext* cx, JSHandleObject obj, JSObject* instance,
+                     JSBool* bp);
+JSBool
+InterfaceHasInstance(JSContext* cx, JSHandleObject obj, JSMutableHandleValue vp,
+                     JSBool* bp);
+
 } 
 } 
 
