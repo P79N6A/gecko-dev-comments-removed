@@ -359,15 +359,23 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     if (!securityWrapper) {
         if (xrayType == XrayForWrappedNative)
             return &PermissiveXrayXPCWN::singleton;
-        return &PermissiveXrayDOM::singleton;
+        else if (xrayType == XrayForDOMObject)
+            return &PermissiveXrayDOM::singleton;
+        MOZ_ASSERT(xrayType == XrayForJSObject);
+        return &PermissiveXrayJS::singleton;
     }
 
     
     if (xrayType == XrayForWrappedNative)
         return &FilteringWrapper<SecurityXrayXPCWN,
                                  CrossOriginAccessiblePropertiesOnly>::singleton;
-    return &FilteringWrapper<SecurityXrayDOM,
-                             CrossOriginAccessiblePropertiesOnly>::singleton;
+    else if (xrayType == XrayForDOMObject)
+        return &FilteringWrapper<SecurityXrayDOM,
+                                 CrossOriginAccessiblePropertiesOnly>::singleton;
+    
+    
+    MOZ_ASSERT(xrayType == XrayForJSObject);
+    return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
 }
 
 JSObject *
