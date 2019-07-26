@@ -299,12 +299,42 @@ struct JSCompartment
             return true;
         }
 
-        
         MOZ_ASSERT(vp.isObject());
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+        JS::RootedObject cacheResult(cx);
+#endif
+        JS::RootedValue v(cx, vp);
+        if (js::WrapperMap::Ptr p = crossCompartmentWrappers.lookup(v)) {
+#ifdef DEBUG
+            cacheResult = &p->value.get().toObject();
+#else
+            vp.set(p->value);
+            return true;
+#endif
+        }
+
         JS::RootedObject obj(cx, &vp.toObject());
         if (!wrap(cx, &obj, existing))
             return false;
         vp.setObject(*obj);
+        JS_ASSERT_IF(cacheResult, obj == cacheResult);
         return true;
     }
 
