@@ -294,7 +294,7 @@ RootActor.prototype = {
 
 
 
-    return JSON.parse(JSON.stringify(aRequest));
+    return Cu.cloneInto(aRequest, {});
   },
 
   onProtocolDescription: dumpProtocolSpec,

@@ -429,7 +429,7 @@ let ParserHelpers = {
           parentType == "FunctionExpression") {
         
         
-        let loc = JSON.parse(JSON.stringify(parentLocation));
+        let loc = Cu.cloneInto(parentLocation, {});
         loc.end.line = loc.start.line;
         loc.end.column = loc.start.column + aNode.name.length;
         return loc;
@@ -437,7 +437,7 @@ let ParserHelpers = {
       if (parentType == "MemberExpression") {
         
         
-        let loc = JSON.parse(JSON.stringify(parentLocation));
+        let loc = Cu.cloneInto(parentLocation, {});
         loc.start.line = loc.end.line;
         loc.start.column = loc.end.column - aNode.name.length;
         return loc;
@@ -445,7 +445,7 @@ let ParserHelpers = {
       if (parentType == "LabeledStatement") {
         
         
-        let loc = JSON.parse(JSON.stringify(parentLocation));
+        let loc = Cu.cloneInto(parentLocation, {});
         loc.end.line = loc.start.line;
         loc.end.column = loc.start.column + aNode.name.length;
         return loc;
@@ -453,7 +453,7 @@ let ParserHelpers = {
       if (parentType == "ContinueStatement") {
         
         
-        let loc = JSON.parse(JSON.stringify(parentLocation));
+        let loc = Cu.cloneInto(parentLocation, {});
         loc.start.line = loc.end.line;
         loc.start.column = loc.end.column - aNode.name.length;
         return loc;
@@ -463,7 +463,7 @@ let ParserHelpers = {
         
         
         
-        let loc = JSON.parse(JSON.stringify(nodeLocation));
+        let loc = Cu.cloneInto(nodeLocation, {});
         loc.end.line = loc.start.line;
         loc.end.column = loc.start.column + aNode.name.length;
         return loc;

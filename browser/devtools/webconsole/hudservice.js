@@ -191,7 +191,7 @@ HUD_SERVICE.prototype =
       client.connect(() =>
         client.listTabs((aResponse) => {
           
-          let globals = JSON.parse(JSON.stringify(aResponse));
+          let globals = Cu.cloneInto(aResponse, {});
           delete globals.tabs;
           delete globals.selected;
           
