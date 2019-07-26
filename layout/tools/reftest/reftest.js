@@ -544,6 +544,11 @@ function BuildConditionSandbox(aURL) {
         sandbox.http[prop] = hh[prop];
         sandbox.http.__exposedProps__[prop] = "r";
     }
+
+    
+    var osxmatch = /Mac OS X (\d+.\d+)$/.exec(hh.oscpu);
+    sandbox.OSX = osxmatch ? parseFloat(osxmatch[1]) : 0;
+
     
     
     sandbox.haveTestPlugin = false;

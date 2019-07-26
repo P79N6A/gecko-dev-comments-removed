@@ -532,7 +532,7 @@ nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
 JSBool
 nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JSHandleObject obj,
                                            JSHandleId id, JSAccessMode mode,
-                                           jsval *vp)
+                                           JSMutableHandleValue vp)
 {
     
     nsScriptSecurityManager *ssm =
@@ -550,7 +550,7 @@ nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JSHandleObject obj,
     
     
     
-    JSObject* target = JSVAL_IS_PRIMITIVE(*vp) ? obj : JSVAL_TO_OBJECT(*vp);
+    JSObject* target = JSVAL_IS_PRIMITIVE(vp) ? obj : JSVAL_TO_OBJECT(vp);
 
     
     

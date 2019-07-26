@@ -191,8 +191,12 @@ nsresult nsClipboard::SetupNativeDataObject(nsITransferable * aTransferable, IDa
                 strcmp(flavorStr, kNativeImageMime) == 0  ) {
         
         FORMATETC imageFE;
+        
         SET_FORMATETC(imageFE, CF_DIBV5, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL)
-        dObj->AddDataFlavor(flavorStr, &imageFE);      
+        dObj->AddDataFlavor(flavorStr, &imageFE);
+        
+        SET_FORMATETC(imageFE, CF_DIB, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL)
+        dObj->AddDataFlavor(flavorStr, &imageFE);
       }
       else if ( strcmp(flavorStr, kFilePromiseMime) == 0 ) {
          

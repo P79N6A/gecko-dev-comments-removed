@@ -11,8 +11,6 @@
 #include "xpcprivate.h"
 #include "qsObjectHelper.h"
 
-#include "jsatom.h"
-
 
 
 class XPCCallContext;

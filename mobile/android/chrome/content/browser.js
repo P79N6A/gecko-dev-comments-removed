@@ -1387,9 +1387,9 @@ var NativeWindow = {
 
     _sendToContent: function(aX, aY) {
       
-      let rootElement = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow, aX, aY);
+      let rootElement = ElementTouchHelper.elementFromPoint(aX, aY);
       if (!rootElement)
-        rootElement = ElementTouchHelper.anyElementFromPoint(BrowserApp.selectedBrowser.contentWindow, aX, aY)
+        rootElement = ElementTouchHelper.anyElementFromPoint(aX, aY)
 
       this.menuitems = {};
       let menuitemsSet = false;
@@ -1842,7 +1842,7 @@ var SelectionHandler = {
 
     
     if (pointInSelection && selectedText.length) {
-      let element = ElementTouchHelper.anyElementFromPoint(BrowserApp.selectedBrowser.contentWindow, aX, aY);
+      let element = ElementTouchHelper.anyElementFromPoint(aX, aY);
       
       if (element.ownerDocument.defaultView == this._view) {
         let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
@@ -3422,8 +3422,7 @@ var BrowserEventHandler = {
     }
 
     if (!ElementTouchHelper.isElementClickable(closest, null, false))
-      closest = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow,
-                                                    aEvent.changedTouches[0].screenX,
+      closest = ElementTouchHelper.elementFromPoint(aEvent.changedTouches[0].screenX,
                                                     aEvent.changedTouches[0].screenY);
     if (!closest)
       closest = aEvent.target;
@@ -3503,7 +3502,7 @@ var BrowserEventHandler = {
 
           if (isClickable) {
             [data.x, data.y] = this._moveClickPoint(element, data.x, data.y);
-            element = ElementTouchHelper.anyElementFromPoint(element.ownerDocument.defaultView.top, data.x, data.y);
+            element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
             isClickable = ElementTouchHelper.isElementClickable(element);
           }
 
@@ -3561,10 +3560,8 @@ var BrowserEventHandler = {
   onDoubleTap: function(aData) {
     let data = JSON.parse(aData);
 
-    let win = BrowserApp.selectedBrowser.contentWindow;
-    
     let zoom = BrowserApp.selectedTab._zoom;
-    let element = ElementTouchHelper.anyElementFromPoint(win, data.x, data.y);
+    let element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
     if (!element) {
       this._zoomOut();
       return;
@@ -3782,8 +3779,13 @@ var BrowserEventHandler = {
 const kReferenceDpi = 240; 
 
 const ElementTouchHelper = {
-  anyElementFromPoint: function(aWindow, aX, aY) {
-    let cwu = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+  
+
+
+
+  anyElementFromPoint: function(aX, aY, aWindow) {
+    let win = (aWindow ? aWindow : BrowserApp.selectedBrowser.contentWindow);
+    let cwu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
     let elem = cwu.elementFromPoint(aX, aY, false, true);
 
     while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
@@ -3797,10 +3799,16 @@ const ElementTouchHelper = {
     return elem;
   },
 
-  elementFromPoint: function(aWindow, aX, aY) {
+  
+
+
+
+
+  elementFromPoint: function(aX, aY, aWindow) {
     
     
-    let cwu = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    let win = (aWindow ? aWindow : BrowserApp.selectedBrowser.contentWindow);
+    let cwu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
     let elem = this.getClosest(cwu, aX, aY);
 
     

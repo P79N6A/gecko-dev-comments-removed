@@ -390,9 +390,6 @@ gfxPlatform::Shutdown()
     
     mozilla::gl::GLContextProvider::Shutdown();
 
-    
-    mozilla::gl::GLContextProviderOSMesa::Shutdown();
-
 #if defined(XP_WIN)
     
     

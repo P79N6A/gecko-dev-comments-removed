@@ -28,8 +28,9 @@
 
 
 
-nsImageToClipboard :: nsImageToClipboard ( imgIContainer* inImage )
-  : mImage(inImage)
+nsImageToClipboard::nsImageToClipboard(imgIContainer* aInImage, bool aWantDIBV5)
+  : mImage(aInImage)
+  , mWantDIBV5(aWantDIBV5)
 {
   
 }
@@ -125,7 +126,11 @@ nsImageToClipboard::CreateFromImage ( imgIContainer* inImage, HANDLE* outBitmap 
     
     uint32_t format;
     nsAutoString options;
-    options.AppendASCII("version=5;bpp=");
+    if (mWantDIBV5) {
+      options.AppendASCII("version=5;bpp=");
+    } else {
+      options.AppendASCII("version=3;bpp=");
+    }
     switch (frame->Format()) {
     case gfxASurface::ImageFormatARGB32:
         format = imgIEncoder::INPUT_FORMAT_HOSTARGB;

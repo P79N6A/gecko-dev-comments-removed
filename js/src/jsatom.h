@@ -8,12 +8,13 @@
 #define jsatom_h___
 
 #include <stddef.h>
-#include "jsversion.h"
 #include "jsalloc.h"
 #include "jsapi.h"
+#include "jsfriendapi.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jslock.h"
+#include "jsversion.h"
 
 #include "gc/Barrier.h"
 #include "js/HashTable.h"
@@ -24,93 +25,14 @@ struct JSIdArray {
     js::HeapId vector[1];    
 };
 
-
-
-static JS_ALWAYS_INLINE jsid
-JSID_FROM_BITS(size_t bits)
-{
-    jsid id;
-    JSID_BITS(id) = bits;
-    return id;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static JS_ALWAYS_INLINE jsid
-NON_INTEGER_ATOM_TO_JSID(JSAtom *atom)
-{
-    JS_ASSERT(((size_t)atom & 0x7) == 0);
-    jsid id = JSID_FROM_BITS((size_t)atom);
-    JS_ASSERT(id == INTERNED_STRING_TO_JSID(NULL, (JSString*)atom));
-    return id;
-}
-
-
-static JS_ALWAYS_INLINE JSBool
-JSID_IS_ATOM(jsid id)
-{
-    return JSID_IS_STRING(id);
-}
-
-static JS_ALWAYS_INLINE JSBool
-JSID_IS_ATOM(jsid id, JSAtom *atom)
-{
-    return id == JSID_FROM_BITS((size_t)atom);
-}
-
-static JS_ALWAYS_INLINE JSAtom *
-JSID_TO_ATOM(jsid id)
-{
-    return (JSAtom *)JSID_TO_STRING(id);
-}
-
-JS_STATIC_ASSERT(sizeof(js::HashNumber) == 4);
-JS_STATIC_ASSERT(sizeof(jsid) == JS_BYTES_PER_WORD);
-
 namespace js {
+
+JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
 
 static JS_ALWAYS_INLINE js::HashNumber
 HashId(jsid id)
 {
     return HashGeneric(JSID_BITS(id));
-}
-
-static JS_ALWAYS_INLINE Value
-IdToValue(jsid id)
-{
-    if (JSID_IS_STRING(id))
-        return StringValue(JSID_TO_STRING(id));
-    if (JS_LIKELY(JSID_IS_INT(id)))
-        return Int32Value(JSID_TO_INT(id));
-    if (JS_LIKELY(JSID_IS_OBJECT(id)))
-        return ObjectValue(*JSID_TO_OBJECT(id));
-    JS_ASSERT(JSID_IS_DEFAULT_XML_NAMESPACE(id) || JSID_IS_VOID(id));
-    return UndefinedValue();
-}
-
-static JS_ALWAYS_INLINE jsval
-IdToJsval(jsid id)
-{
-    return IdToValue(id);
 }
 
 template<>
@@ -125,7 +47,7 @@ struct DefaultHasher<jsid>
     }
 };
 
-}
+} 
 
 
 

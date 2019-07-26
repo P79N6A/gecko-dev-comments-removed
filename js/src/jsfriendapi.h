@@ -151,7 +151,8 @@ extern JS_FRIEND_API(JSBool)
 JS_WrapAutoIdVector(JSContext *cx, JS::AutoIdVector &props);
 
 extern JS_FRIEND_API(JSBool)
-JS_EnumerateState(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op, js::Value *statep, jsid *idp);
+JS_EnumerateState(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op,
+                  js::MutableHandleValue statep, js::MutableHandleId idp);
 
 struct JSFunctionSpecWithHelp {
     const char      *name;
@@ -1391,6 +1392,97 @@ SET_JITINFO(JSFunction * func, const JSJitInfo *info)
     JS_ASSERT(!(fun->flags & 0x4000));
     fun->jitinfo = info;
 }
+#endif 
+
+
+
+
+
+
+static JS_ALWAYS_INLINE jsid
+JSID_FROM_BITS(size_t bits)
+{
+    jsid id;
+    JSID_BITS(id) = bits;
+    return id;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE jsid
+NON_INTEGER_ATOM_TO_JSID(JSAtom *atom)
+{
+    JS_ASSERT(((size_t)atom & 0x7) == 0);
+    jsid id = JSID_FROM_BITS((size_t)atom);
+    JS_ASSERT(id == INTERNED_STRING_TO_JSID(NULL, (JSString*)atom));
+    return id;
+}
+
+
+static JS_ALWAYS_INLINE JSBool
+JSID_IS_ATOM(jsid id)
+{
+    return JSID_IS_STRING(id);
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSID_IS_ATOM(jsid id, JSAtom *atom)
+{
+    return id == JSID_FROM_BITS((size_t)atom);
+}
+
+static JS_ALWAYS_INLINE JSAtom *
+JSID_TO_ATOM(jsid id)
+{
+    return (JSAtom *)JSID_TO_STRING(id);
+}
+
+JS_STATIC_ASSERT(sizeof(jsid) == JS_BYTES_PER_WORD);
+
+#ifdef __cplusplus
+
+namespace js {
+
+static JS_ALWAYS_INLINE Value
+IdToValue(jsid id)
+{
+    if (JSID_IS_STRING(id))
+        return StringValue(JSID_TO_STRING(id));
+    if (JS_LIKELY(JSID_IS_INT(id)))
+        return Int32Value(JSID_TO_INT(id));
+    if (JS_LIKELY(JSID_IS_OBJECT(id)))
+        return ObjectValue(*JSID_TO_OBJECT(id));
+    JS_ASSERT(JSID_IS_DEFAULT_XML_NAMESPACE(id) || JSID_IS_VOID(id));
+    return UndefinedValue();
+}
+
+static JS_ALWAYS_INLINE jsval
+IdToJsval(jsid id)
+{
+    return IdToValue(id);
+}
+
+} 
+
 #endif 
 
 #endif 

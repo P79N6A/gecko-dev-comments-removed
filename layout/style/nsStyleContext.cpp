@@ -365,8 +365,13 @@ nsStyleContext::ApplyStyleFixups(nsPresContext* aPresContext)
 }
 
 nsChangeHint
-nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
+nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
+                                    nsChangeHint aParentHintsNotHandledForDescendants)
 {
+  NS_ABORT_IF_FALSE(NS_IsHintSubset(aParentHintsNotHandledForDescendants,
+                                    nsChangeHint_Hints_NotHandledForDescendants),
+                    "caller is passing inherited hints, but shouldn't be");
+
   nsChangeHint hint = NS_STYLE_HINT_NONE;
   NS_ENSURE_TRUE(aOther, hint);
   
@@ -383,27 +388,30 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
   bool compare = mRuleNode != aOther->mRuleNode;
 
 #define DO_STRUCT_DIFFERENCE(struct_)                                         \
   PR_BEGIN_MACRO                                                              \
-    NS_ASSERTION(NS_IsHintSubset(nsStyle##struct_::MaxDifference(), maxHint), \
-                 "Struct placed in the wrong maxHint section");               \
     const nsStyle##struct_* this##struct_ = PeekStyle##struct_();             \
     if (this##struct_) {                                                      \
       const nsStyle##struct_* other##struct_ = aOther->GetStyle##struct_();   \
-      if ((compare || nsStyle##struct_::ForceCompare()) &&                    \
-          !NS_IsHintSubset(maxHint, hint) &&                                  \
+      nsChangeHint maxDifference = nsStyle##struct_::MaxDifference();         \
+      if ((compare ||                                                         \
+           (maxDifference & aParentHintsNotHandledForDescendants)) &&         \
+          !NS_IsHintSubset(maxDifference, hint) &&                            \
           this##struct_ != other##struct_) {                                  \
         NS_ASSERTION(NS_IsHintSubset(                                         \
              this##struct_->CalcDifference(*other##struct_),                  \
              nsStyle##struct_::MaxDifference()),                              \
              "CalcDifference() returned bigger hint than MaxDifference()");   \
-        NS_ASSERTION(nsStyle##struct_::ForceCompare() ||                      \
-             NS_IsHintSubset(nsStyle##struct_::MaxDifference(),               \
-                             nsChangeHint(~nsChangeHint_NonInherited_Hints)), \
-             "Structs that can return non-inherited hints must return true "  \
-             "from ForceCompare");                                            \
         NS_UpdateHint(hint, this##struct_->CalcDifference(*other##struct_));  \
       }                                                                       \
     }                                                                         \
@@ -413,13 +421,8 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   
   
-  nsChangeHint maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
-      nsChangeHint_UpdateTransformLayer | nsChangeHint_UpdateOpacityLayer |
-      nsChangeHint_UpdateOverflow | nsChangeHint_AddOrRemoveTransform);
+  
   DO_STRUCT_DIFFERENCE(Display);
-
-  maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
-      nsChangeHint_UpdateCursor);
   DO_STRUCT_DIFFERENCE(XUL);
   DO_STRUCT_DIFFERENCE(Column);
   DO_STRUCT_DIFFERENCE(Content);
@@ -431,38 +434,16 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(UIReset);
   DO_STRUCT_DIFFERENCE(Text);
   DO_STRUCT_DIFFERENCE(List);
-  
-  
   DO_STRUCT_DIFFERENCE(Quotes);
-
-  maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_UpdateEffects);
   DO_STRUCT_DIFFERENCE(SVGReset);
   DO_STRUCT_DIFFERENCE(SVG);
-
-  maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW |
-      nsChangeHint_UpdateOverflow | nsChangeHint_RecomputePosition);
   DO_STRUCT_DIFFERENCE(Position);
-
-  
-  
-  maxHint = NS_STYLE_HINT_REFLOW;
-      
-  
-  
-  
   DO_STRUCT_DIFFERENCE(Font);
   DO_STRUCT_DIFFERENCE(Margin);
   DO_STRUCT_DIFFERENCE(Padding);
   DO_STRUCT_DIFFERENCE(Border);
   DO_STRUCT_DIFFERENCE(TextReset);
-
-  
-  
-  maxHint = nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_UpdateEffects);
   DO_STRUCT_DIFFERENCE(Background);
-
-  
-  maxHint = NS_STYLE_HINT_VISUAL;
   DO_STRUCT_DIFFERENCE(Color);
 
 #undef DO_STRUCT_DIFFERENCE

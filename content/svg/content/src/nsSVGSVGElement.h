@@ -187,9 +187,9 @@ public:
 
 
 
-  bool HasViewBox() const {
-    return mViewBox.IsExplicitlySet();
-  }
+
+
+  bool HasViewBox() const;
 
   
 
@@ -233,6 +233,12 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
+  
+  
+  bool IsOverriddenBy(const nsAString &aViewID) const {
+    return mCurrentViewID && mCurrentViewID->Equals(aViewID);
+  }
+
   svgFloatSize GetViewportSize() const {
     return svgFloatSize(mViewportWidth, mViewportHeight);
   }
@@ -256,6 +262,8 @@ private:
   virtual void UnbindFromTree(bool aDeep, bool aNullParent);
 
   
+
+  nsSVGViewElement* GetCurrentViewElement() const;
 
   
   
@@ -343,7 +351,7 @@ private:
   nsSVGViewBox                   mViewBox;
   SVGAnimatedPreserveAspectRatio mPreserveAspectRatio;
 
-  nsSVGSVGElement               *mCoordCtx;
+  nsAutoPtr<nsString>            mCurrentViewID;
 
   
   

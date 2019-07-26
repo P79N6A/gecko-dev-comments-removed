@@ -66,12 +66,6 @@ struct nsCSSValueList;
 
 
 
-
-
-
-
-
-
 struct nsStyleFont {
   nsStyleFont(const nsFont& aFont, nsPresContext *aPresContext);
   nsStyleFont(const nsStyleFont& aStyleFont);
@@ -84,10 +78,9 @@ public:
   }
 
   nsChangeHint CalcDifference(const nsStyleFont& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_REFLOW;
+  }
   static nsChangeHint CalcFontDifference(const nsFont& aFont1, const nsFont& aFont2);
 
   static nscoord ZoomText(nsPresContext* aPresContext, nscoord aSize);
@@ -290,10 +283,9 @@ struct nsStyleColor {
   }
 
   nsChangeHint CalcDifference(const nsStyleColor& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_VISUAL;
+  }
 
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW {
     return aContext->AllocateFromShell(sz);
@@ -319,10 +311,9 @@ struct nsStyleBackground {
   void Destroy(nsPresContext* aContext);
 
   nsChangeHint CalcDifference(const nsStyleBackground& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    return NS_CombineHint(nsChangeHint_UpdateEffects, NS_STYLE_HINT_VISUAL);
+  }
 
   struct Position;
   friend struct Position;
@@ -540,10 +531,11 @@ struct nsStyleMargin {
 
   void RecalcData();
   nsChangeHint CalcDifference(const nsStyleMargin& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
+                           NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                          nsChangeHint_NeedDirtyReflow));
+  }
 
   nsStyleSides  mMargin;          
 
@@ -575,10 +567,10 @@ struct nsStylePadding {
 
   void RecalcData();
   nsChangeHint CalcDifference(const nsStylePadding& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
+                           nsChangeHint_ClearDescendantIntrinsics);
+  }
 
   nsStyleSides  mPadding;         
 
@@ -740,13 +732,10 @@ struct nsStyleBorder {
   void Destroy(nsPresContext* aContext);
 
   nsChangeHint CalcDifference(const nsStyleBorder& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  
-  
-  
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    return NS_CombineHint(NS_STYLE_HINT_REFLOW,
+                          nsChangeHint_BorderStyleNoneChange);
+  }
 
   void EnsureBorderColors() {
     if (!mBorderColors) {
@@ -769,7 +758,7 @@ struct nsStyleBorder {
   
   
   
-  bool HasVisibleStyle(mozilla::css::Side aSide)
+  bool HasVisibleStyle(mozilla::css::Side aSide) const
   {
     return IsVisibleBorderStyle(GetBorderStyle(aSide));
   }
@@ -965,10 +954,10 @@ struct nsStyleOutline {
 
   void RecalcData(nsPresContext* aContext);
   nsChangeHint CalcDifference(const nsStyleOutline& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_CombineHint(nsChangeHint_AllReflowHints,
+                          nsChangeHint_RepaintFrame);
+  }
 
   nsStyleCorners  mOutlineRadius; 
 
@@ -1051,10 +1040,9 @@ struct nsStyleList {
   }
 
   nsChangeHint CalcDifference(const nsStyleList& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   imgIRequest* GetListStyleImage() const { return mListStyleImage; }
   void SetListStyleImage(imgIRequest* aReq)
@@ -1089,10 +1077,11 @@ struct nsStylePosition {
   }
 
   nsChangeHint CalcDifference(const nsStylePosition& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    return NS_CombineHint(NS_STYLE_HINT_REFLOW,
+                          nsChangeHint(nsChangeHint_RecomputePosition |
+                                       nsChangeHint_UpdateOverflow));
+  }
 
   nsStyleSides  mOffset;                
   nsStyleCoord  mWidth;                 
@@ -1272,10 +1261,9 @@ struct nsStyleTextReset {
   }
 
   nsChangeHint CalcDifference(const nsStyleTextReset& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_REFLOW;
+  }
 
   nsStyleCoord  mVerticalAlign;         
   nsStyleTextOverflow mTextOverflow;    
@@ -1303,10 +1291,9 @@ struct nsStyleText {
   }
 
   nsChangeHint CalcDifference(const nsStyleText& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   uint8_t mTextAlign;                   
   uint8_t mTextAlignLast;               
@@ -1379,10 +1366,9 @@ struct nsStyleVisibility {
   }
 
   nsChangeHint CalcDifference(const nsStyleVisibility& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   uint8_t mDirection;                  
   uint8_t   mVisible;                  
@@ -1578,10 +1564,14 @@ struct nsStyleDisplay {
   }
 
   nsChangeHint CalcDifference(const nsStyleDisplay& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    
+    return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
+                        nsChangeHint_UpdateOpacityLayer |
+                        nsChangeHint_UpdateTransformLayer |
+                        nsChangeHint_UpdateOverflow |
+                        nsChangeHint_AddOrRemoveTransform);
+  }
 
   
   
@@ -1735,10 +1725,9 @@ struct nsStyleTable {
   }
 
   nsChangeHint CalcDifference(const nsStyleTable& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   uint8_t       mLayoutStrategy;
   uint8_t       mFrame;         
@@ -1761,10 +1750,9 @@ struct nsStyleTableBorder {
   }
 
   nsChangeHint CalcDifference(const nsStyleTableBorder& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   nscoord       mBorderSpacingX;
   nscoord       mBorderSpacingY;
@@ -1851,10 +1839,9 @@ struct nsStyleQuotes {
   void CopyFrom(const nsStyleQuotes& aSource);
 
   nsChangeHint CalcDifference(const nsStyleQuotes& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   uint32_t  QuotesCount(void) const { return mQuotesCount; } 
 
@@ -1919,10 +1906,9 @@ struct nsStyleContent {
   void Destroy(nsPresContext* aContext);
 
   nsChangeHint CalcDifference(const nsStyleContent& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   uint32_t  ContentCount(void) const  { return mContentCount; } 
 
@@ -2024,10 +2010,9 @@ struct nsStyleUIReset {
   }
 
   nsChangeHint CalcDifference(const nsStyleUIReset& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   uint8_t   mUserSelect;      
   uint8_t   mForceBrokenImageIcon; 
@@ -2078,10 +2063,9 @@ struct nsStyleUserInterface {
   }
 
   nsChangeHint CalcDifference(const nsStyleUserInterface& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return nsChangeHint(nsChangeHint_UpdateCursor | NS_STYLE_HINT_FRAMECHANGE);
+  }
 
   uint8_t   mUserInput;       
   uint8_t   mUserModify;      
@@ -2114,10 +2098,9 @@ struct nsStyleXUL {
   }
 
   nsChangeHint CalcDifference(const nsStyleXUL& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   float         mBoxFlex;               
   uint32_t      mBoxOrdinal;            
@@ -2142,10 +2125,9 @@ struct nsStyleColumn {
   }
 
   nsChangeHint CalcDifference(const nsStyleColumn& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return false; }
+  static nsChangeHint MaxDifference() {
+    return NS_STYLE_HINT_FRAMECHANGE;
+  }
 
   uint32_t     mColumnCount; 
   nsStyleCoord mColumnWidth; 
@@ -2220,10 +2202,11 @@ struct nsStyleSVG {
   }
 
   nsChangeHint CalcDifference(const nsStyleSVG& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    return NS_CombineHint(NS_CombineHint(nsChangeHint_UpdateEffects,
+                                         nsChangeHint_AllReflowHints),
+                                         nsChangeHint_RepaintFrame);
+  }
 
   nsStyleSVGPaint  mFill;             
   nsStyleSVGPaint  mStroke;           
@@ -2276,10 +2259,11 @@ struct nsStyleSVGReset {
   }
 
   nsChangeHint CalcDifference(const nsStyleSVGReset& aOther) const;
-#ifdef DEBUG
-  static nsChangeHint MaxDifference();
-#endif
-  static bool ForceCompare() { return true; }
+  static nsChangeHint MaxDifference() {
+    return NS_CombineHint(NS_CombineHint(nsChangeHint_UpdateEffects,
+                                         nsChangeHint_AllReflowHints),
+                                         nsChangeHint_RepaintFrame);
+  }
 
   nsCOMPtr<nsIURI> mClipPath;         
   nsCOMPtr<nsIURI> mFilter;           
