@@ -293,7 +293,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         pusher.Push(cx);
         rv = xpc->EvalInSandboxObject(NS_ConvertUTF8toUTF16(script),
                                        nullptr, cx,
-                                      sandboxObj, true, v.address());
+                                      sandboxObj, true, &v);
 
         
         

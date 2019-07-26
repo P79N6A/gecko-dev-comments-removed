@@ -327,7 +327,7 @@ HTMLCanvasElement::ParseAttribute(int32_t aNamespaceID,
 
 
 NS_IMETHODIMP
-HTMLCanvasElement::ToDataURL(const nsAString& aType, const JS::Value& aParams,
+HTMLCanvasElement::ToDataURL(const nsAString& aType, JS::Handle<JS::Value> aParams,
                              JSContext* aCx, nsAString& aDataURL)
 {
   
