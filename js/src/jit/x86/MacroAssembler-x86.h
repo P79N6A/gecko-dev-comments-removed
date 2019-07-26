@@ -988,15 +988,8 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
 
     
     void convertUInt32ToFloat32(const Register &src, const FloatRegister &dest) {
-        
-        subl(Imm32(0x80000000), src);
-
-        
-        convertInt32ToFloat32(src, dest);
-
-        
-        
-        addConstantFloat32(2147483648.f, dest);
+        convertUInt32ToDouble(src, dest);
+        convertDoubleToFloat32(dest, dest);
     }
 
     void inc64(AbsoluteAddress dest) {
