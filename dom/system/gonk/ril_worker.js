@@ -12792,8 +12792,16 @@ SimRecordHelperObject.prototype = {
       let ICCUtilsHelper = this.context.ICCUtilsHelper;
       let RIL = this.context.RIL;
       
+      let mncLength = 0;
+      if (ad && ad[3]) {
+        mncLength = ad[3] & 0x0f;
+        if (mncLength != 0x02 && mncLength != 0x03) {
+           mncLength = 0;
+        }
+      }
+      
       let mccMnc = ICCUtilsHelper.parseMccMncFromImsi(RIL.iccInfoPrivate.imsi,
-                                                      ad && ad[3]);
+                                                      mncLength);
       if (mccMnc) {
         RIL.iccInfo.mcc = mccMnc.mcc;
         RIL.iccInfo.mnc = mccMnc.mnc;
@@ -14123,6 +14131,7 @@ ICCUtilsHelperObject.prototype = {
   },
 
   
+
 
 
 
