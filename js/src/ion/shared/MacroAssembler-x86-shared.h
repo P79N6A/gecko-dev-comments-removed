@@ -386,22 +386,27 @@ class MacroAssemblerX86Shared : public Assembler
         bind(&done);
     }
 
-    bool maybeInlineDouble(double d, const FloatRegister &dest) {
-        uint64_t u = mozilla::BitwiseCast<uint64_t>(d);
-
+    bool maybeInlineDouble(uint64_t u, const FloatRegister &dest) {
         
+        
+        
+        
+
         if (u == 0) {
             xorpd(dest, dest);
             return true;
         }
 
-        
-        
-        
-        
-        
-        
-        
+        int tz = js_bitscan_ctz64(u);
+        int lz = js_bitscan_clz64(u);
+        if (u == (~uint64_t(0) << (lz + tz) >> lz)) {
+            pcmpeqw(dest, dest);
+            if (tz != 0)
+                psllq(Imm32(lz + tz), dest);
+            if (lz != 0)
+                psrlq(Imm32(lz), dest);
+            return true;
+        }
 
         return false;
     }

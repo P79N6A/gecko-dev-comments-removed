@@ -28,7 +28,8 @@ using namespace js::ion;
 
 
 CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
-  : CodeGeneratorShared(gen, graph, masm)
+  : CodeGeneratorShared(gen, graph, masm),
+    deoptLabel_(NULL)
 {
 }
 
@@ -45,13 +46,17 @@ CodeGeneratorARM::generatePrologue()
         masm.checkStackAlignment();
     }
 
+    
+    
+    returnLabel_ = new HeapLabel();
+
     return true;
 }
 
 bool
 CodeGeneratorARM::generateEpilogue()
 {
-    masm.bind(&returnLabel_); 
+    masm.bind(returnLabel_); 
     if (gen->compilingAsmJS()) {
         
         masm.freeStack(frameDepth_);
@@ -147,9 +152,9 @@ CodeGeneratorARM::generateOutOfLineCode()
     if (!CodeGeneratorShared::generateOutOfLineCode())
         return false;
 
-    if (deoptLabel_.used()) {
+    if (deoptLabel_) {
         
-        masm.bind(&deoptLabel_);
+        masm.bind(deoptLabel_);
 
         
         masm.ma_mov(Imm32(frameSize()), lr);
@@ -259,10 +264,12 @@ CodeGeneratorARM::bailout(LSnapshot *snapshot)
 bool
 CodeGeneratorARM::visitOutOfLineBailout(OutOfLineBailout *ool)
 {
+    if (!deoptLabel_)
+        deoptLabel_ = new HeapLabel();
     masm.ma_mov(Imm32(ool->snapshot()->snapshotOffset()), ScratchRegister);
     masm.ma_push(ScratchRegister);
     masm.ma_push(ScratchRegister);
-    masm.ma_b(&deoptLabel_);
+    masm.ma_b(deoptLabel_);
     return true;
 }
 

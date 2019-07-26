@@ -30,8 +30,8 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
 
   protected:
     
-    NonAssertingLabel returnLabel_;
-    NonAssertingLabel deoptLabel_;
+    HeapLabel *returnLabel_;
+    HeapLabel *deoptLabel_;
 
     inline Operand ToOperand(const LAllocation &a) {
         if (a.isGeneralReg())

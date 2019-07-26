@@ -24,8 +24,8 @@ class CodeGeneratorARM : public CodeGeneratorShared
 
   protected:
     
-    NonAssertingLabel returnLabel_;
-    NonAssertingLabel deoptLabel_;
+    HeapLabel *returnLabel_;
+    HeapLabel *deoptLabel_;
     
     
     
