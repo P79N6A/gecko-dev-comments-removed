@@ -680,6 +680,7 @@ public:
 
   void StartNumberControlSpinnerSpin();
   void StopNumberControlSpinnerSpin();
+  void StepNumberControlForUserEvent(int32_t aDirection);
 
   
 
