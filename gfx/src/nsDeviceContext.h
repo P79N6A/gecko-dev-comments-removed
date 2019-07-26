@@ -99,7 +99,7 @@ public:
 
 
 
-    static int32_t AppUnitsPerCSSInch() { return 96 * AppUnitsPerCSSPixel(); }
+    static int32_t AppUnitsPerCSSInch() { return mozilla::AppUnitsPerCSSInch(); }
 
     
 
