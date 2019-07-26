@@ -225,6 +225,20 @@ public:
 
   nsresult Init();
 
+  static imgLoader* Create()
+  {
+      
+      
+      
+      
+      
+      imgILoader *loader;
+      CallCreateInstance("@mozilla.org/image/loader;1", &loader);
+      
+      
+      return static_cast<imgLoader*>(loader);
+  }
+
   static nsresult GetMimeTypeFromContent(const char* aContents, uint32_t aLength, nsACString& aContentType);
   
   static NS_EXPORT_(bool) SupportImageWithMimeType(const char* aMimeType);

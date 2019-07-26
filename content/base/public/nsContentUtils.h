@@ -66,7 +66,7 @@ class nsIURI;
 class imgIContainer;
 class imgINotificationObserver;
 class imgIRequest;
-class imgILoader;
+class imgLoader;
 class imgICache;
 class nsIImageLoadingContent;
 class nsIDOMHTMLFormElement;
@@ -648,8 +648,8 @@ public:
 
 
 
-  static imgILoader* GetImgLoaderForDocument(nsIDocument* aDoc);
-  static imgILoader* GetImgLoaderForChannel(nsIChannel* aChannel);
+  static imgLoader* GetImgLoaderForDocument(nsIDocument* aDoc);
+  static imgLoader* GetImgLoaderForChannel(nsIChannel* aChannel);
 
   
 
@@ -2219,8 +2219,8 @@ private:
   static void InitImgLoader();
 
   
-  static imgILoader* sImgLoader;
-  static imgILoader* sPrivateImgLoader;
+  static imgLoader* sImgLoader;
+  static imgLoader* sPrivateImgLoader;
   static imgICache* sImgCache;
   static imgICache* sPrivateImgCache;
 
