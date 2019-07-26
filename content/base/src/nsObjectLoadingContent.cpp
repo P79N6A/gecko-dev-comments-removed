@@ -1298,6 +1298,14 @@ nsObjectLoadingContent::UpdateObjectParameters()
 
   
   
+  if (GetTypeOfContent(newMime) != eType_Plugin && newURI &&
+      (caps & eAllowPluginSkipChannel) &&
+      IsPluginEnabledByExtension(newURI, newMime)) {
+    LOG(("OBJLC [%p]: Using extension as type hint (%s)", this, newMime.get()));
+  }
+
+  
+  
   
   
 
