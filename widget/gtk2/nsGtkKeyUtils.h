@@ -139,6 +139,7 @@ protected:
 
 
     void Init();
+    void InitXKBExtension();
     void InitBySystemSettings();
 
     
@@ -197,6 +198,11 @@ protected:
 
 
     GdkKeymap* mGdkKeymap;
+
+    
+
+
+    int mXKBBaseEventCode;
 
     
 
