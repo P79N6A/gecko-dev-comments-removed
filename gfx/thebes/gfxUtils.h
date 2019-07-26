@@ -177,6 +177,24 @@ public:
     static bool sDumpPainting;
     static bool sDumpPaintingToFile;
     static FILE* sDumpPaintFile;
+
+    
+
+
+
+    static void WriteAsPNG(mozilla::RefPtr<mozilla::gfx::SourceSurface> aSourceSurface, const char* aFile);
+
+    
+
+
+
+    static void DumpAsDataURL(mozilla::RefPtr<mozilla::gfx::SourceSurface> aSourceSurface);
+
+    
+
+
+
+    static void CopyAsDataURL(mozilla::RefPtr<mozilla::gfx::SourceSurface> aSourceSurface);
 #endif
 };
 
