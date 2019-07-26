@@ -840,6 +840,14 @@ LoginManagerStorage_mozStorage.prototype = {
     
 
 
+    get isLoggedIn() {
+        return this._crypto.isLoggedIn;
+    },
+
+
+    
+
+
 
 
     _sendNotification : function (changeType, data) {

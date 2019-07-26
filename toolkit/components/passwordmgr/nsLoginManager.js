@@ -502,6 +502,14 @@ LoginManager.prototype = {
     
 
 
+    get isLoggedIn() {
+        return this._storage.isLoggedIn;
+    },
+
+
+    
+
+
 
 
     getLoginSavingEnabled : function (host) {
