@@ -2307,12 +2307,7 @@ nsCycleCollector::ForgetSkippable(bool aRemoveChildlessNodes,
 
     
     
-    
-    
-    
-    if (mIncrementalPhase != IdlePhase) {
-        return;
-    }
+    MOZ_ASSERT(mIncrementalPhase == IdlePhase);
 
     if (mJSRuntime) {
         mJSRuntime->PrepareForForgetSkippable();
