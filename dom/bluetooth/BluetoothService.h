@@ -90,18 +90,6 @@ public:
   
 
 
-  void
-  RegisterManager(BluetoothManager* aManager);
-
-  
-
-
-  void
-  UnregisterManager(BluetoothManager* aManager);
-
-  
-
-
 
   void
   Notify(const BluetoothSignal& aParam);
@@ -381,9 +369,6 @@ protected:
   BluetoothSignalObserverTable;
 
   BluetoothSignalObserverTable mBluetoothSignalObserverTable;
-
-  typedef nsTObserverArray<BluetoothManager*> BluetoothManagerList;
-  BluetoothManagerList mLiveManagers;
 
   bool mEnabled;
 };
