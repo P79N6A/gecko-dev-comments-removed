@@ -623,11 +623,16 @@ nsresult nsIDNService::stringPrepAndACE(const nsAString& in, nsACString& out,
       else
         rv = encodeToACE(strPrep, out);
     }
-  }
-
-  if (out.Length() > kMaxDNSNodeLen) {
-    NS_WARNING("IDN node too large");
-    return NS_ERROR_FAILURE;
+    
+    
+    
+    
+    
+    
+    if (out.Length() > kMaxDNSNodeLen) {
+      NS_WARNING("IDN node too large");
+      return NS_ERROR_FAILURE;
+    }
   }
 
   return rv;
