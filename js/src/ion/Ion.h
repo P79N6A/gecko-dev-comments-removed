@@ -272,6 +272,7 @@ bool InitializeIon();
 
 
 IonContext *GetIonContext();
+IonContext *MaybeGetIonContext();
 
 bool SetIonContext(IonContext *ctx);
 
