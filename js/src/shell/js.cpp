@@ -1541,7 +1541,7 @@ TrapHandler(JSContext *cx, JSScript *, jsbytecode *pc, jsval *rval,
 
     
     JSStackFrame *caller = Jsvalify(iter.interpFrame());
-    RawScript script = iter.script().unsafeGet();
+    RootedScript script(cx, iter.script());
 
     size_t length;
     const jschar *chars = JS_GetStringCharsAndLength(cx, str, &length);

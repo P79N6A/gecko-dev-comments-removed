@@ -119,6 +119,19 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
 
 template <typename T> class Rooted;
@@ -310,6 +323,10 @@ typedef MutableHandle<JSString*>   MutableHandleString;
 typedef MutableHandle<jsid>        MutableHandleId;
 typedef MutableHandle<Value>       MutableHandleValue;
 
+} 
+
+namespace js {
+
 
 
 
@@ -320,10 +337,6 @@ typedef JSScript *                  RawScript;
 typedef JSString *                  RawString;
 typedef jsid                        RawId;
 typedef Value                       RawValue;
-
-} 
-
-namespace js {
 
 
 
@@ -383,172 +396,11 @@ class InternalHandle<T*>
     {}
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <typename T>
-class Return
-{
-    typedef void (Return<T>::* ConvertibleToBool)();
-    void nonNull() {}
-
-  public:
-    template <typename S>
-    inline Return(const Unrooted<S> &unrooted,
-                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
-
-    template <typename S>
-    Return(const S &ptr,
-           typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
-      : ptr_(ptr)
-    {
-        EnterAssertNoGCScope();
-    }
-
-    Return(NullPtr) : ptr_(NULL) {
-        EnterAssertNoGCScope();
-    }
-
-    Return(const Return &ret) : ptr_(ret.ptr_) {
-        EnterAssertNoGCScope();
-    }
-
-    ~Return() {
-        LeaveAssertNoGCScope();
-    }
-
-#ifndef DEBUG
-    
-
-
-
-
-
-
-
-    operator const T &() { return ptr_; }
-#endif 
-
-    
-
-
-
-
-
-
-
-
-
-    const T &get(AutoAssertNoGC &) const {
-        return ptr_;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    const T &operator->() const {
-        return ptr_;
-    }
-
-    
-
-
-
-
-    const T &unsafeGet() const {
-        return ptr_;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    operator ConvertibleToBool() const { return ptr_ ? &Return<T>::nonNull : 0; }
-    bool operator==(const T &other) { return ptr_ == other; }
-    bool operator!=(const T &other) { return ptr_ != other; }
-    bool operator==(const Return<T> &other) { return ptr_ == other.ptr_; }
-    bool operator==(const JS::Handle<T> &other) { return ptr_ == other.get(); }
-    inline bool operator==(const Rooted<T> &other);
-
-  private:
-    const T ptr_;
-};
-
-
-
-
-
 #ifdef DEBUG
+
+
+
+
 template <typename T>
 class Unrooted
 {
@@ -565,35 +417,13 @@ class Unrooted
 
 
     template <typename S>
-    inline Unrooted(Rooted<S> &root,
-               typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
+    inline Unrooted(const Rooted<S> &root,
+                    typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
     template <typename S>
-    Unrooted(JS::Handle<S> &root,
-               typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
+    Unrooted(const JS::Handle<S> &root,
+             typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
       : ptr_(root.get())
-    {
-        JS_ASSERT(ptr_ != UninitializedTag());
-        EnterAssertNoGCScope();
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    template <typename S>
-    Unrooted(const Return<S> &ret,
-        typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
-      : ptr_(ret.unsafeGet())
     {
         JS_ASSERT(ptr_ != UninitializedTag());
         EnterAssertNoGCScope();
@@ -625,6 +455,10 @@ class Unrooted
         EnterAssertNoGCScope();
     }
 
+    Unrooted(const JS::NullPtr &) : ptr_(NULL) {
+        EnterAssertNoGCScope();
+    }
+
     ~Unrooted() {
         if (ptr_ != UninitializedTag())
             LeaveAssertNoGCScope();
@@ -634,16 +468,6 @@ class Unrooted
         if (ptr_ != UninitializedTag())
             LeaveAssertNoGCScope();
         ptr_ = UninitializedTag();
-    }
-
-    
-    template <typename S>
-    Unrooted &operator=(const Return<S> &other) {
-        JS_ASSERT(other.unsafeGet() != UninitializedTag());
-        if (ptr_ == UninitializedTag())
-            EnterAssertNoGCScope();
-        ptr_ = other.unsafeGet();
-        return *this;
     }
 
     
@@ -682,10 +506,18 @@ class Unrooted
 
 
 
-# define ForwardDeclare(type) \
-    class type; \
-    typedef Unrooted<type*> Unrooted##type; \
+# define ForwardDeclare(type)                                                 \
+    class type;                                                               \
+    typedef Unrooted<type*> Unrooted##type;                                   \
     typedef type * Raw##type
+
+# define ForwardDeclareJS(type)                                               \
+    struct JS##type;                                                          \
+    namespace js {                                                            \
+        typedef Unrooted<JS##type*> Unrooted##type;                           \
+        typedef JS##type * Raw##type;                                         \
+    }                                                                         \
+    struct JS##type
 
 template <typename T>
 T DropUnrooted(Unrooted<T> &unrooted)
@@ -709,15 +541,18 @@ inline RawId DropUnrooted(RawId &id) { return id; }
 #else 
 
 
-# define ForwardDeclare(type) \
-    class type; \
-    typedef type * Unrooted##type; \
+# define ForwardDeclare(type)                                                 \
+    class type;                                                               \
+    typedef type * Unrooted##type;                                            \
     typedef type * Raw##type
 
-
-
-
-
+# define ForwardDeclareJS(type)                                               \
+    struct JS##type;                                                          \
+    namespace js {                                                            \
+        typedef JS##type * Unrooted##type;                                    \
+        typedef JS##type * Raw##type;                                         \
+    }                                                                         \
+    struct JS##type
 
 template <typename T>
 class Unrooted
@@ -732,16 +567,6 @@ template <typename T>
 T DropUnrooted(T &unrooted) { return unrooted; }
 
 #endif 
-
-template <typename T> template <typename S>
-inline
-Return<T>::Return(const Unrooted<S> &unrooted,
-                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
-    
-  : ptr_(static_cast<S>(unrooted))
-{
-    EnterAssertNoGCScope();
-}
 
 
 
@@ -856,33 +681,15 @@ class Rooted : public RootedBase<T>
     }
 
     template <typename S>
-    Rooted(JSContext *cx, const Return<S> &initial
-           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : ptr(initial.unsafeGet())
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        init(cx);
-    }
-
-    template <typename S>
     Rooted(JSContext *cx, const Unrooted<S> &initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : ptr(initial.ptr_)
+      : ptr(static_cast<S>(initial))
 #if defined(JSGC_ROOT_ANALYSIS)
       , scanned(false)
 #endif
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
         init(cx);
-    }
-
-    template <typename S>
-    Rooted(js::PerThreadData *pt, const Return<S> &initial
-           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : ptr(initial.ptr_)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        init(pt);
     }
 
     ~Rooted() {
@@ -911,12 +718,6 @@ class Rooted : public RootedBase<T>
 
     T &operator=(const Rooted &value) {
         ptr = value;
-        return ptr;
-    }
-
-    template <typename S>
-    T &operator=(const Return<S> &value) {
-        ptr = value.unsafeGet();
         return ptr;
     }
 
@@ -953,18 +754,11 @@ template <>
 class Rooted<JSStableString *>;
 #endif
 
-template <typename T>
-bool
-Return<T>::operator==(const Rooted<T> &other)
-{
-    return ptr_ == other.get();
-}
-
 #ifdef DEBUG
 template <typename T> template <typename S>
 inline
-Unrooted<T>::Unrooted(Rooted<S> &root,
-            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
+Unrooted<T>::Unrooted(const Rooted<S> &root,
+                      typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
   : ptr_(root.get())
 {
     JS_ASSERT(ptr_ != UninitializedTag());
