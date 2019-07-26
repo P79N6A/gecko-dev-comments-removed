@@ -138,6 +138,13 @@ const OTHER_MOUSEUP_MONITORED_ITEMS = [
 
 
 
+const MOUSEDOWN_MONITORED_ITEMS = [
+  "PanelUI-menu-button",
+];
+
+
+
+
 
 
 const WINDOW_DURATION_MAP = new WeakMap();
@@ -261,6 +268,13 @@ this.BrowserUITelemetry = {
       }
     }
 
+    for (let itemID of MOUSEDOWN_MONITORED_ITEMS) {
+      let item = document.getElementById(itemID);
+      if (item) {
+        item.addEventListener("mousedown", this);
+      }
+    }
+
     WINDOW_DURATION_MAP.set(aWindow, {});
   },
 
@@ -281,6 +295,13 @@ this.BrowserUITelemetry = {
         item.removeEventListener("mouseup", this);
       }
     }
+
+    for (let itemID of MOUSEDOWN_MONITORED_ITEMS) {
+      let item = document.getElementById(itemID);
+      if (item) {
+        item.removeEventListener("mousedown", this);
+      }
+    }
   },
 
   handleEvent: function(aEvent) {
@@ -290,6 +311,9 @@ this.BrowserUITelemetry = {
         break;
       case "mouseup":
         this._handleMouseUp(aEvent);
+        break;
+      case "mousedown":
+        this._handleMouseDown(aEvent);
         break;
     }
   },
@@ -309,6 +333,16 @@ this.BrowserUITelemetry = {
         break;
       default:
         this._checkForBuiltinItem(aEvent);
+    }
+  },
+
+  _handleMouseDown: function(aEvent) {
+    if (aEvent.currentTarget.id == "PanelUI-menu-button") {
+      
+      
+      
+      
+      this._countMouseUpEvent("click-menu-button", "button", aEvent.button);
     }
   },
 
