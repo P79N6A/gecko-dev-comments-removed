@@ -360,40 +360,77 @@ WebappsActor.prototype = {
       run: function run() {
         try {
           
-          let installDir = DOMApplicationRegistry._getAppDir(aId);
-
-          
-          
           let zipFile = aDir.clone();
           zipFile.append("application.zip");
           let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
                             .createInstance(Ci.nsIZipReader);
           zipReader.open(zipFile);
+
+          
+          let istream = zipReader.getInputStream("manifest.webapp");
+          let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                            .createInstance(Ci.nsIScriptableUnicodeConverter);
+          converter.charset = "UTF-8";
+          let jsonString = converter.ConvertToUnicode(
+            NetUtil.readInputStreamToString(istream, istream.available())
+          );
+
+          let manifest;
+          try {
+            manifest = JSON.parse(jsonString);
+          } catch(e) {
+            self._sendError(deferred, "Error Parsing manifest.webapp: " + e, aId);
+          }
+
+          let appType = self._getAppType(manifest.type);
+
+          
+          if (!DOMApplicationRegistry.allowSideloadingCertified &&
+              appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+            self._sendError(deferred, "Installing certified apps is not allowed.", aId);
+            return;
+          }
+
+          
+          
+          let id = aId;
+          if (appType >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED &&
+              manifest.origin !== undefined) {
+            let uri;
+            try {
+              uri = Services.io.newURI(manifest.origin, null, null);
+            } catch(e) {
+              self._sendError(deferred, "Invalid origin in webapp's manifest", aId);
+            }
+
+            if (uri.scheme != "app") {
+              self._sendError(deferred, "Invalid origin in webapp's manifest", aId);
+            }
+            id = uri.prePath.substring(6);
+          }
+
+          
+          
+          
+          let installDir = DOMApplicationRegistry._getAppDir(id);
           let manFile = installDir.clone();
           manFile.append("manifest.webapp");
           zipReader.extract("manifest.webapp", manFile);
           zipReader.close();
           zipFile.moveTo(installDir, "application.zip");
 
-          DOMApplicationRegistry._loadJSONAsync(manFile, function(aManifest) {
-            if (!aManifest) {
-              self._sendError(deferred, "Error Parsing manifest.webapp", aId);
-            }
+          let origin = "app://" + id;
 
-            let appType = self._getAppType(aManifest.type);
-            let origin = "app://" + aId;
+          
+          let app = {
+            origin: origin,
+            installOrigin: origin,
+            manifestURL: origin + "/manifest.webapp",
+            appStatus: appType,
+            receipts: aReceipts,
+          }
 
-            
-            let app = {
-              origin: origin,
-              installOrigin: origin,
-              manifestURL: origin + "/manifest.webapp",
-              appStatus: appType,
-              receipts: aReceipts,
-            }
-
-            self._registerApp(deferred, app, id, aDir);
-          });
+          self._registerApp(deferred, app, id, aDir);
         } catch(e) {
           
           self._sendError(deferred, e.toString(), aId);
@@ -416,13 +453,12 @@ WebappsActor.prototype = {
     debug("install");
 
     let appId = aRequest.appId;
+    let reg = DOMApplicationRegistry;
     if (!appId) {
-      return { error: "missingParameter",
-               message: "missing parameter appId" }
+      appId = reg.makeAppId();
     }
 
     
-    let reg = DOMApplicationRegistry;
     if (appId in reg.webapps && reg.webapps[appId].removable === false) {
       return { error: "badParameterType",
                message: "The application " + appId + " can't be overriden."
