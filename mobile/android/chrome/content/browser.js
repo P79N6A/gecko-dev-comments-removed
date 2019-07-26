@@ -5754,11 +5754,33 @@ var IndexedDB = {
       responseTopic = this._quotaResponse;
     }
 
+    const firstTimeoutDuration = 300000; 
+
+    let timeoutId;
+
     let notificationID = responseTopic + host;
     let observer = requestor.getInterface(Ci.nsIObserver);
 
+    
+    
+    
+    let notification;
+
+    function timeoutNotification() {
+      
+      NativeWindow.doorhanger.hide(notificationID, tab.id);
+
+      
+      
+      clearTimeout(timeoutId);
+
+      
+      observer.observe(null, responseTopic, Ci.nsIPermissionManager.UNKNOWN_ACTION);
+    }
+
     if (topic == this._quotaCancel) {
       NativeWindow.doorhanger.hide(notificationID, tab.id);
+      timeoutNotification();
       observer.observe(null, responseTopic, Ci.nsIPermissionManager.UNKNOWN_ACTION);
       return;
     }
@@ -5766,23 +5788,31 @@ var IndexedDB = {
     let buttons = [{
       label: strings.GetStringFromName("offlineApps.allow"),
       callback: function() {
+        clearTimeout(timeoutId);
         observer.observe(null, responseTopic, Ci.nsIPermissionManager.ALLOW_ACTION);
       }
     },
     {
       label: strings.GetStringFromName("offlineApps.never"),
       callback: function() {
+        clearTimeout(timeoutId);
         observer.observe(null, responseTopic, Ci.nsIPermissionManager.DENY_ACTION);
       }
     },
     {
       label: strings.GetStringFromName("offlineApps.notNow"),
       callback: function() {
+        clearTimeout(timeoutId);
         observer.observe(null, responseTopic, Ci.nsIPermissionManager.UNKNOWN_ACTION);
       }
     }];
 
     NativeWindow.doorhanger.show(message, notificationID, buttons, tab.id);
+
+    
+    
+    
+    timeoutId = setTimeout(timeoutNotification, firstTimeoutDuration);
   }
 };
 
