@@ -827,6 +827,13 @@ ion::GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
 
     
     IonFrameIterator it(rt->mainThread.ionTop);
+
+    
+    
+    
+    if (it.prevType() == IonFrame_BaselineStub)
+        ++it;
+
     uint8_t *retAddr = it.returnAddress();
     uint32_t hash = PcScriptCache::Hash(retAddr);
     JS_ASSERT(retAddr != NULL);
@@ -851,8 +858,6 @@ ion::GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
         *scriptRes = ifi.script();
         pc = ifi.pc();
     } else {
-        if (it.isBaselineStub())
-            ++it;
         JS_ASSERT(it.isBaselineJS());
         it.baselineScriptAndPc(scriptRes, &pc);
     }

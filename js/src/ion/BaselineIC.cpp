@@ -2578,7 +2578,7 @@ DoCallFallback(JSContext *cx, ICCall_Fallback *stub, uint32_t argc, Value *vp, M
             return false;
     }
 
-    types::TypeScript::Monitor(cx, res);
+    types::TypeScript::Monitor(cx, script, pc, res);
 
     
     ICTypeMonitor_Fallback *typeMonFbStub = stub->fallbackMonitorStub();
