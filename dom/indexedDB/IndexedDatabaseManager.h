@@ -28,6 +28,7 @@ class nsIAtom;
 class nsIFile;
 class nsITimer;
 class nsPIDOMWindow;
+class nsEventChainPostVisitor;
 
 BEGIN_INDEXEDDB_NAMESPACE
 
@@ -56,11 +57,11 @@ public:
 
   
   
-  nsresult WaitForOpenAllowed(const nsACString& aOrigin,
+  nsresult WaitForOpenAllowed(const OriginOrPatternString& aOriginOrPattern,
                               nsIAtom* aId,
                               nsIRunnable* aRunnable);
 
-  void AllowNextSynchronizedOp(const nsACString& aOrigin,
+  void AllowNextSynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
                                nsIAtom* aId);
 
   nsIThread* IOThread()
@@ -87,7 +88,7 @@ public:
                                   void* aClosure)
   {
     NS_ASSERTION(aDatabase, "Need a DB here!");
-    return AcquireExclusiveAccess(aOrigin, aDatabase, aHelper, nsnull,
+    return AcquireExclusiveAccess(aOrigin, aDatabase, aHelper, nullptr,
                                   aCallback, aClosure);
   }
 
@@ -96,7 +97,7 @@ public:
                                   WaitingOnDatabasesCallback aCallback,
                                   void* aClosure)
   {
-    return AcquireExclusiveAccess(aOrigin, nsnull, nsnull, aRunnable, aCallback,
+    return AcquireExclusiveAccess(aOrigin, nullptr, nullptr, aRunnable, aCallback,
                                   aClosure);
   }
 
@@ -119,10 +120,11 @@ public:
     return mgr->SetCurrentWindowInternal(aWindow);
   }
 
-  static PRUint32
+  static uint32_t
   GetIndexedDBQuotaMB();
 
   nsresult EnsureOriginIsInitialized(const nsACString& aOrigin,
+                                     FactoryPrivilege aPrivilege,
                                      nsIFile** aDirectory);
 
   
@@ -159,20 +161,21 @@ public:
 #endif
 
   already_AddRefed<FileManager>
-  GetOrCreateFileManager(const nsACString& aOrigin,
-                         const nsAString& aDatabaseName);
-
-  already_AddRefed<FileManager>
   GetFileManager(const nsACString& aOrigin,
                  const nsAString& aDatabaseName);
 
-  void InvalidateFileManagersForOrigin(const nsACString& aOrigin);
+  void
+  AddFileManager(const nsACString& aOrigin,
+                 const nsAString& aDatabaseName,
+                 FileManager* aFileManager);
+
+  void InvalidateFileManagersForPattern(const nsACString& aPattern);
 
   void InvalidateFileManager(const nsACString& aOrigin,
                              const nsAString& aDatabaseName);
 
   nsresult AsyncDeleteFile(FileManager* aFileManager,
-                           PRInt64 aFileId);
+                           int64_t aFileId);
 
   const nsString&
   GetBaseDirectory() const
@@ -195,6 +198,19 @@ public:
   static already_AddRefed<nsIAtom>
   GetDatabaseId(const nsACString& aOrigin,
                 const nsAString& aName);
+
+  static nsresult
+  FireWindowOnError(nsPIDOMWindow* aOwner,
+                    nsEventChainPostVisitor& aVisitor);
+
+  static bool
+  OriginMatchesApp(const nsACString& aOrigin,
+                   uint32_t aAppId);
+
+  static bool
+  OriginMatchesApp(const nsACString& aOrigin,
+                   uint32_t aAppId,
+                   bool aInMozBrowser);
 
 private:
   IndexedDatabaseManager();
@@ -219,6 +235,8 @@ private:
 
   
   void OnDatabaseClosed(IDBDatabase* aDatabase);
+
+  nsresult ClearDatabasesForApp(uint32_t aAppId, bool aBrowserOnly);
 
   
   
@@ -248,8 +266,8 @@ private:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
 
-    OriginClearRunnable(const nsACString& aOrigin)
-    : mOrigin(aOrigin),
+    OriginClearRunnable(const OriginOrPatternString& aOriginOrPattern)
+    : mOriginOrPattern(aOriginOrPattern),
       mCallbackState(Pending)
     { }
 
@@ -274,8 +292,10 @@ private:
                                    nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
                                    void* aClosure);
 
+    void DeleteFiles(IndexedDatabaseManager* aManager);
+
   private:
-    nsCString mOrigin;
+    OriginOrPatternString mOriginOrPattern;
     CallbackState mCallbackState;
   };
 
@@ -306,12 +326,15 @@ private:
       
       Shortcut
     };
+
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
 
-    AsyncUsageRunnable(nsIURI* aURI,
-                       const nsACString& aOrigin,
+    AsyncUsageRunnable(uint32_t aAppId,
+                       bool aInMozBrowserOnly,
+                       const OriginOrPatternString& aOrigin,
+                       nsIURI* aURI,
                        nsIIndexedDatabaseUsageCallback* aCallback);
 
     
@@ -341,16 +364,17 @@ private:
     inline nsresult RunInternal();
 
     nsresult GetUsageForDirectory(nsIFile* aDirectory,
-                                  PRUint64* aUsage);
+                                  uint64_t* aUsage);
 
     nsCOMPtr<nsIURI> mURI;
-    nsCString mOrigin;
-
     nsCOMPtr<nsIIndexedDatabaseUsageCallback> mCallback;
-    PRUint64 mUsage;
-    PRUint64 mFileUsage;
-    PRInt32 mCanceled;
+    uint64_t mUsage;
+    uint64_t mFileUsage;
+    uint32_t mAppId;
+    int32_t mCanceled;
+    OriginOrPatternString mOrigin;
     CallbackState mCallbackState;
+    bool mInMozBrowserOnly;
   };
 
   
@@ -361,21 +385,22 @@ private:
   
   struct SynchronizedOp
   {
-    SynchronizedOp(const nsACString& aOrigin, nsIAtom* aId);
+    SynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
+                   nsIAtom* aId);
     ~SynchronizedOp();
 
     
-    bool MustWaitFor(const SynchronizedOp& aRhs) const;
+    bool MustWaitFor(const SynchronizedOp& aOp);
 
     void DelayRunnable(nsIRunnable* aRunnable);
     void DispatchDelayedRunnables();
 
-    const nsCString mOrigin;
+    const OriginOrPatternString mOriginOrPattern;
     nsCOMPtr<nsIAtom> mId;
     nsRefPtr<AsyncConnectionHelper> mHelper;
     nsCOMPtr<nsIRunnable> mRunnable;
     nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
-    nsTArray<nsRefPtr<IDBDatabase> > mDatabases;
+    nsTArray<IDBDatabase*> mDatabases;
   };
 
   
@@ -384,7 +409,7 @@ private:
   {
   public:
     WaitForTransactionsToFinishRunnable(SynchronizedOp* aOp,
-                                        PRUint32 aCountdown)
+                                        uint32_t aCountdown)
     : mOp(aOp), mCountdown(aCountdown)
     {
       NS_ASSERTION(mOp, "Why don't we have a runnable?");
@@ -400,7 +425,7 @@ private:
   private:
     
     SynchronizedOp* mOp;
-    PRUint32 mCountdown;
+    uint32_t mCountdown;
   };
 
   class WaitForLockedFilesToFinishRunnable MOZ_FINAL : public nsIRunnable
@@ -427,40 +452,29 @@ private:
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
-    AsyncDeleteFileRunnable(const nsAString& aFilePath)
-    : mFilePath(aFilePath)
-    { }
+    AsyncDeleteFileRunnable(FileManager* aFileManager, int64_t aFileId);
 
   private:
-    nsString mFilePath;
+    nsRefPtr<FileManager> mFileManager;
+    int64_t mFileId;
   };
 
   static nsresult RunSynchronizedOp(IDBDatabase* aDatabase,
                                     SynchronizedOp* aOp);
 
-  SynchronizedOp* FindSynchronizedOp(const nsACString& aOrigin,
-                                     nsIAtom* aId)
-  {
-    for (PRUint32 index = 0; index < mSynchronizedOps.Length(); index++) {
-      const nsAutoPtr<SynchronizedOp>& currentOp = mSynchronizedOps[index];
-      if (currentOp->mOrigin == aOrigin &&
-          (!currentOp->mId || currentOp->mId == aId)) {
-        return currentOp;
-      }
-    }
-    return nsnull;
-  }
+  SynchronizedOp* FindSynchronizedOp(const nsACString& aPattern,
+                                     nsIAtom* aId);
 
-  bool IsClearOriginPending(const nsACString& aOrigin)
+  bool IsClearOriginPending(const nsACString& aPattern)
   {
-    return !!FindSynchronizedOp(aOrigin, nsnull);
+    return !!FindSynchronizedOp(aPattern, nullptr);
   }
 
   
   nsClassHashtable<nsCStringHashKey, nsTArray<IDBDatabase*> > mLiveDatabases;
 
   
-  PRUintn mCurrentWindowIndex;
+  unsigned mCurrentWindowIndex;
 
   
   mozilla::Mutex mQuotaHelperMutex;
@@ -468,7 +482,6 @@ private:
   
   nsRefPtrHashtable<nsPtrHashKey<nsPIDOMWindow>, CheckQuotaHelper> mQuotaHelperHash;
 
-  
   
   
   nsClassHashtable<nsCStringHashKey,
@@ -493,6 +506,10 @@ private:
 
   
   
+  nsTArray<nsCString> mInitializedOrigins;
+
+  
+  
   
   mozilla::Mutex mFileMutex;
 
@@ -511,7 +528,7 @@ public:
 
   ~AutoEnterWindow()
   {
-    IndexedDatabaseManager::SetCurrentWindow(nsnull);
+    IndexedDatabaseManager::SetCurrentWindow(nullptr);
   }
 };
 

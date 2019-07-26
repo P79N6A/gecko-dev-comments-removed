@@ -74,12 +74,12 @@ public:
     return mDatabaseInfo;
   }
 
-  const nsString& Name()
+  const nsString& Name() const
   {
     return mName;
   }
 
-  const nsString& FilePath()
+  const nsString& FilePath() const
   {
     return mFilePath;
   }
@@ -95,7 +95,7 @@ public:
     return doc.forget();
   }
 
-  nsCString& Origin()
+  const nsCString& Origin() const
   {
     return mASCIIOrigin;
   }
@@ -104,19 +104,23 @@ public:
 
   
   
-  bool IsInvalidated();
+  
+  bool IsInvalidated() const
+  {
+    return mInvalidated;
+  }
 
   void DisconnectFromActor();
 
   
   
   
-  bool IsDisconnectedFromActor();
+  bool IsDisconnectedFromActor() const;
 
   void CloseInternal(bool aIsDead);
 
   
-  bool IsClosed();
+  bool IsClosed() const;
 
   void EnterSetVersionTransaction();
   void ExitSetVersionTransaction();
