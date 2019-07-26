@@ -3269,10 +3269,14 @@ EffectlesslyLookupProperty(JSContext *cx, HandleObject obj, HandlePropertyName n
         *domProxyHasGeneration = (*shadowsResult == DoesntShadowUnique);
 
         checkObj = GetDOMProxyProto(obj);
-    }
-
-    if (!isDOMProxy && !obj->isNative())
+    } else if (obj->is<TypedArrayObject>() && obj->getProto()) {
+        
+        
+        
+        checkObj = obj->getProto();
+    } else if (!obj->isNative()) {
         return true;
+    }
 
     if (checkObj->hasIdempotentProtoChain()) {
         if (!JSObject::lookupProperty(cx, checkObj, name, holder, shape))
@@ -3289,7 +3293,7 @@ static bool
 IsCacheableProtoChain(JSObject *obj, JSObject *holder, bool isDOMProxy=false)
 {
     JS_ASSERT_IF(isDOMProxy, IsCacheableDOMProxy(obj));
-    JS_ASSERT_IF(!isDOMProxy, obj->isNative());
+    JS_ASSERT_IF(!isDOMProxy, obj->isNative() || obj->is<TypedArrayObject>());
 
     
     
@@ -5974,7 +5978,7 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         return false;
     }
 
-    if (!isDOMProxy && !obj->isNative())
+    if (!isDOMProxy && !obj->isNative() && !obj->is<TypedArrayObject>())
         return true;
 
     bool isCallProp = (JSOp(*pc) == JSOP_CALLPROP);
