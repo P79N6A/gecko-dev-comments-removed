@@ -806,17 +806,18 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
   MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
 }
 
-already_AddRefed<gfxPath>
-SVGPathData::ToPath(const gfxMatrix& aMatrix) const
+TemporaryRef<Path>
+SVGPathData::ToPathForLengthOrPositionMeasuring() const
 {
-  nsRefPtr<gfxContext> tmpCtx =
-    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  
+  
+  
+  
+  
+  
+  
 
-  tmpCtx->SetMatrix(aMatrix);
-  ConstructPath(tmpCtx);
-  tmpCtx->IdentityMatrix();
-
-  return tmpCtx->CopyPath();
+  return BuildPath(FILL_WINDING, NS_STYLE_STROKE_LINECAP_BUTT, 0);
 }
 
 static double

@@ -159,8 +159,12 @@ public:
 
   bool GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aArray) const;
 
-  already_AddRefed<gfxPath>
-  ToPath(const gfxMatrix& aMatrix) const;
+  
+
+
+
+
+  TemporaryRef<Path> ToPathForLengthOrPositionMeasuring() const;
 
   void ConstructPath(gfxContext *aCtx) const;
   TemporaryRef<Path> BuildPath(FillRule aFillRule,
