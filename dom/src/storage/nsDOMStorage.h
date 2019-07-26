@@ -1,0 +1,486 @@
+
+
+
+
+
+#ifndef nsDOMStorage_h___
+#define nsDOMStorage_h___
+
+#include "nscore.h"
+#include "nsAutoPtr.h"
+#include "nsIDOMStorageObsolete.h"
+#include "nsIDOMStorage.h"
+#include "nsIDOMStorageItem.h"
+#include "nsIPermissionManager.h"
+#include "nsIPrivacyTransitionObserver.h"
+#include "nsInterfaceHashtable.h"
+#include "nsVoidArray.h"
+#include "nsTArray.h"
+#include "nsPIDOMStorage.h"
+#include "nsIDOMToString.h"
+#include "nsDOMEvent.h"
+#include "nsIDOMStorageEvent.h"
+#include "nsIDOMStorageManager.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsIObserver.h"
+#include "nsITimer.h"
+#include "nsWeakReference.h"
+#include "nsIInterfaceRequestor.h"
+#include "mozilla/Attributes.h"
+
+#include "nsDOMStorageDBWrapper.h"
+
+class nsDOMStorage;
+class nsIDOMStorage;
+class nsDOMStorageItem;
+class nsDOMStoragePersistentDB;
+
+namespace mozilla {
+namespace dom {
+class StorageParent;
+}
+}
+using mozilla::dom::StorageParent;
+
+class DOMStorageImpl;
+
+class nsDOMStorageEntry : public nsPtrHashKey<const void>
+{
+public:
+  nsDOMStorageEntry(KeyTypePointer aStr);
+  nsDOMStorageEntry(const nsDOMStorageEntry& aToCopy);
+  ~nsDOMStorageEntry();
+
+  
+  DOMStorageImpl* mStorage;
+};
+
+class nsSessionStorageEntry : public nsStringHashKey
+{
+public:
+  nsSessionStorageEntry(KeyTypePointer aStr);
+  nsSessionStorageEntry(const nsSessionStorageEntry& aToCopy);
+  ~nsSessionStorageEntry();
+
+  nsRefPtr<nsDOMStorageItem> mItem;
+};
+
+class nsDOMStorageManager MOZ_FINAL : public nsIDOMStorageManager
+                                    , public nsIObserver
+                                    , public nsSupportsWeakReference
+{
+public:
+  
+  NS_DECL_ISUPPORTS
+
+  
+  NS_DECL_NSIDOMSTORAGEMANAGER
+
+  
+  NS_DECL_NSIOBSERVER
+
+  nsDOMStorageManager();
+
+  void AddToStoragesHash(DOMStorageImpl* aStorage);
+  void RemoveFromStoragesHash(DOMStorageImpl* aStorage);
+
+  nsresult ClearAllStorages();
+
+  static nsresult Initialize();
+  static nsDOMStorageManager* GetInstance();
+  static void Shutdown();
+  static void ShutdownDB();
+
+  
+
+
+  bool UnflushedDataExists();
+
+  static nsDOMStorageManager* gStorageManager;
+
+protected:
+
+  nsTHashtable<nsDOMStorageEntry> mStorages;
+};
+
+class DOMStorageBase : public nsIPrivacyTransitionObserver
+{
+public:
+  DOMStorageBase();
+  DOMStorageBase(DOMStorageBase&);
+
+  virtual void InitAsSessionStorage(nsIPrincipal* aPrincipal, bool aPrivate);
+  virtual void InitAsLocalStorage(nsIPrincipal* aPrincipal, bool aPrivate);
+
+  virtual nsTArray<nsString>* GetKeys(bool aCallerSecure) = 0;
+  virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength) = 0;
+  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey) = 0;
+  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsAString& aKey,
+                                      nsresult* rv) = 0;
+  virtual nsresult SetValue(bool aCallerSecure, const nsAString& aKey,
+                            const nsAString& aData, nsAString& aOldValue) = 0;
+  virtual nsresult RemoveValue(bool aCallerSecure, const nsAString& aKey,
+                               nsAString& aOldValue) = 0;
+  virtual nsresult Clear(bool aCallerSecure, int32_t* aOldCount) = 0;
+
+  
+  bool CanUseStorage();
+
+  
+  
+  
+  
+  
+  
+  bool UseDB() {
+    return mUseDB;
+  }
+
+  bool IsPrivate() {
+    return mInPrivateBrowsing;
+  }
+
+  
+  virtual nsresult
+  GetDBValue(const nsAString& aKey,
+             nsAString& aValue,
+             bool* aSecure) = 0;
+
+  
+  
+  
+  virtual nsresult
+  SetDBValue(const nsAString& aKey,
+             const nsAString& aValue,
+             bool aSecure) = 0;
+
+  
+  virtual nsresult
+  SetSecure(const nsAString& aKey, bool aSecure) = 0;
+
+  virtual nsresult
+  CloneFrom(bool aCallerSecure, DOMStorageBase* aThat) = 0;
+
+  
+  
+  
+  nsCString& GetScopeDBKey() {return mScopeDBKey;}
+
+  
+  nsCString& GetQuotaDBKey()
+  {
+    return mQuotaDBKey;
+  }
+
+  virtual bool CacheStoragePermissions() = 0;
+
+protected:
+  friend class nsDOMStorageManager;
+  friend class nsDOMStorage;
+
+  nsPIDOMStorage::nsDOMStorageType mStorageType;
+  
+  
+  bool mUseDB;
+
+  
+  
+  
+  
+  
+  bool mSessionOnly;
+
+  
+  
+  nsCString mScopeDBKey;
+  nsCString mQuotaDBKey;
+
+  bool mInPrivateBrowsing;
+};
+
+class DOMStorageImpl MOZ_FINAL : public DOMStorageBase
+                               , public nsSupportsWeakReference
+{
+public:
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(DOMStorageImpl, nsIPrivacyTransitionObserver)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_NSIPRIVACYTRANSITIONOBSERVER
+
+  DOMStorageImpl(nsDOMStorage*);
+  DOMStorageImpl(nsDOMStorage*, DOMStorageImpl&);
+  ~DOMStorageImpl();
+
+  bool SessionOnly() {
+    return mSessionOnly;
+  }
+
+  virtual nsTArray<nsString>* GetKeys(bool aCallerSecure);
+  virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength);
+  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey);
+  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsAString& aKey,
+                                      nsresult* rv);
+  virtual nsresult SetValue(bool aCallerSecure, const nsAString& aKey,
+                            const nsAString& aData, nsAString& aOldValue);
+  virtual nsresult RemoveValue(bool aCallerSecure, const nsAString& aKey,
+                               nsAString& aOldValue);
+  virtual nsresult Clear(bool aCallerSecure, int32_t* aOldCount);
+
+  
+  nsresult CacheKeysFromDB();
+
+  uint64_t CachedVersion() { return mItemsCachedVersion; }
+  void SetCachedVersion(uint64_t version) { mItemsCachedVersion = version; }
+  
+  
+  
+  nsresult
+  GetCachedValue(const nsAString& aKey,
+                 nsAString& aValue,
+                 bool* aSecure);
+
+  
+  virtual nsresult
+  GetDBValue(const nsAString& aKey,
+             nsAString& aValue,
+             bool* aSecure);
+
+  
+  
+  
+  virtual nsresult
+  SetDBValue(const nsAString& aKey,
+             const nsAString& aValue,
+             bool aSecure);
+
+  
+  virtual nsresult
+  SetSecure(const nsAString& aKey, bool aSecure);
+
+  
+  void ClearAll();
+
+  virtual nsresult
+  CloneFrom(bool aCallerSecure, DOMStorageBase* aThat);
+
+  virtual bool CacheStoragePermissions();
+
+private:
+  static nsDOMStorageDBWrapper* gStorageDB;
+  friend class nsDOMStorageManager;
+  friend class nsDOMStoragePersistentDB;
+  friend class StorageParent;
+
+  void Init(nsDOMStorage*);
+
+  
+  
+  void InitFromChild(bool aUseDB, bool aSessionOnly,
+                     bool aPrivate,
+                     const nsACString& aScopeDBKey,
+                     const nsACString& aQuotaDBKey,
+                     uint32_t aStorageType);
+  void SetSessionOnly(bool aSessionOnly);
+
+  static nsresult InitDB();
+
+  
+  
+  uint64_t mItemsCachedVersion;
+
+  
+  nsTHashtable<nsSessionStorageEntry> mItems;
+
+  
+  nsDOMStorage* mOwner;
+};
+
+class nsDOMStorage2;
+
+class nsDOMStorage : public nsIDOMStorageObsolete,
+                     public nsPIDOMStorage,
+                     public nsIInterfaceRequestor
+{
+public:
+  nsDOMStorage();
+  nsDOMStorage(nsDOMStorage& aThat);
+  virtual ~nsDOMStorage();
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage, nsIDOMStorageObsolete)
+
+  NS_DECL_NSIDOMSTORAGEOBSOLETE
+  NS_DECL_NSIINTERFACEREQUESTOR
+
+  
+  nsresult GetItem(const nsAString& key, nsAString& aData);
+  nsresult Clear();
+
+  
+  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
+                                        bool aPrivate);
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
+                                      bool aPrivate);
+  virtual already_AddRefed<nsIDOMStorage> Clone();
+  virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
+  virtual bool IsForkOf(nsIDOMStorage* aThat);
+  virtual nsTArray<nsString> *GetKeys();
+  virtual nsIPrincipal* Principal();
+  virtual bool CanAccess(nsIPrincipal *aPrincipal);
+  virtual nsDOMStorageType StorageType();
+  virtual bool IsPrivate() {
+    return mStorageImpl && mStorageImpl->IsPrivate();
+  }
+
+  
+  
+  static bool
+  CanUseStorage(DOMStorageBase* aStorage = nullptr);
+
+  
+  
+  bool
+  CacheStoragePermissions();
+
+  nsIDOMStorageItem* GetNamedItem(const nsAString& aKey, nsresult* aResult);
+
+  nsresult SetSecure(const nsAString& aKey, bool aSecure)
+  {
+    return mStorageImpl->SetSecure(aKey, aSecure);
+  }
+
+  nsresult CloneFrom(nsDOMStorage* aThat);
+
+ protected:
+  friend class nsDOMStorage2;
+  friend class nsDOMStoragePersistentDB;
+
+  nsRefPtr<DOMStorageBase> mStorageImpl;
+
+  bool CanAccessSystem(nsIPrincipal *aPrincipal);
+
+  
+  nsString mDocumentURI;
+
+  
+  
+  
+  
+  nsDOMStorageType mStorageType;
+
+  friend class nsIDOMStorage2;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsDOMStorage2* mEventBroadcaster;
+};
+
+class nsDOMStorage2 MOZ_FINAL : public nsIDOMStorage,
+                                public nsPIDOMStorage,
+                                public nsIInterfaceRequestor
+{
+public:
+  
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage2, nsIDOMStorage)
+
+  nsDOMStorage2(nsDOMStorage2& aThat);
+  nsDOMStorage2();
+
+  NS_DECL_NSIDOMSTORAGE
+  NS_DECL_NSIINTERFACEREQUESTOR
+
+  
+  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
+                                        bool aPrivate);
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
+                                      bool aPrivate);
+  virtual already_AddRefed<nsIDOMStorage> Clone();
+  virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
+  virtual bool IsForkOf(nsIDOMStorage* aThat);
+  virtual nsTArray<nsString> *GetKeys();
+  virtual nsIPrincipal* Principal();
+  virtual bool CanAccess(nsIPrincipal *aPrincipal);
+  virtual nsDOMStorageType StorageType();
+  virtual bool IsPrivate();
+
+  void BroadcastChangeNotification(const nsSubstring &aKey,
+                                   const nsSubstring &aOldValue,
+                                   const nsSubstring &aNewValue);
+  void InitAsSessionStorageFork(nsIPrincipal *aPrincipal,
+                                const nsSubstring &aDocumentURI,
+                                nsDOMStorage* aStorage);
+
+private:
+  
+  
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+
+  
+  
+  nsString mDocumentURI;
+  nsRefPtr<nsDOMStorage> mStorage;
+};
+
+class nsDOMStorageItem : public nsIDOMStorageItem,
+                         public nsIDOMToString
+{
+public:
+  nsDOMStorageItem(DOMStorageBase* aStorage,
+                   const nsAString& aKey,
+                   const nsAString& aValue,
+                   bool aSecure);
+  virtual ~nsDOMStorageItem();
+
+  
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorageItem, nsIDOMStorageItem)
+
+  
+  NS_DECL_NSIDOMSTORAGEITEM
+
+  
+  NS_DECL_NSIDOMTOSTRING
+
+  bool IsSecure()
+  {
+    return mSecure;
+  }
+
+  void SetSecureInternal(bool aSecure)
+  {
+    mSecure = aSecure;
+  }
+
+  const nsAString& GetValueInternal()
+  {
+    return mValue;
+  }
+
+  const void SetValueInternal(const nsAString& aValue)
+  {
+    mValue = aValue;
+  }
+
+  void ClearValue()
+  {
+    mValue.Truncate();
+  }
+
+protected:
+
+  
+  bool mSecure;
+
+  
+  nsString mKey;
+
+  
+  nsString mValue;
+
+  
+  
+  nsRefPtr<DOMStorageBase> mStorage;
+};
+
+nsresult
+NS_NewDOMStorage2(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+
+#endif 

@@ -150,7 +150,9 @@ DOMCI_CLASS(XPathNSResolver)
 DOMCI_CLASS(XPathResult)
 
 
+DOMCI_CLASS(StorageObsolete)
 DOMCI_CLASS(Storage)
+DOMCI_CLASS(StorageItem)
 
 DOMCI_CLASS(XULCommandEvent)
 DOMCI_CLASS(CommandEvent)
