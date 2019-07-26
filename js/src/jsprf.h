@@ -60,20 +60,8 @@ extern JS_PUBLIC_API(char*) JS_sprintf_append(char *last, const char *fmt, ...);
 
 
 
-
-
-
-
-typedef int (*JSStuffFunc)(void *arg, const char *s, uint32_t slen);
-
-extern JS_PUBLIC_API(uint32_t) JS_sxprintf(JSStuffFunc f, void *arg, const char *fmt, ...);
-
-
-
-
 extern JS_PUBLIC_API(uint32_t) JS_vsnprintf(char *out, uint32_t outlen, const char *fmt, va_list ap);
 extern JS_PUBLIC_API(char*) JS_vsmprintf(const char *fmt, va_list ap);
 extern JS_PUBLIC_API(char*) JS_vsprintf_append(char *last, const char *fmt, va_list ap);
-extern JS_PUBLIC_API(uint32_t) JS_vsxprintf(JSStuffFunc f, void *arg, const char *fmt, va_list ap);
 
 #endif 

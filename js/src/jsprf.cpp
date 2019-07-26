@@ -28,29 +28,20 @@ using namespace js;
 
 
 #ifdef HAVE_VA_COPY
-#define VARARGS_ASSIGN(foo, bar)        VA_COPY(foo,bar)
+#define VARARGS_ASSIGN(foo, bar)        VA_COPY(foo, bar)
 #elif defined(HAVE_VA_LIST_AS_ARRAY)
 #define VARARGS_ASSIGN(foo, bar)        foo[0] = bar[0]
 #else
 #define VARARGS_ASSIGN(foo, bar)        (foo) = (bar)
 #endif
 
-
-
-
-
-
-
-
-
-typedef struct SprintfStateStr SprintfState;
-
-struct SprintfStateStr {
-    int (*stuff)(SprintfState *ss, const char *sp, uint32_t len);
+struct SprintfState
+{
+    int (*stuff)(SprintfState *ss, const char *sp, size_t len);
 
     char *base;
     char *cur;
-    uint32_t maxlen;
+    size_t maxlen;
 
     int (*func)(void *arg, const char *sp, uint32_t len);
     void *arg;
@@ -59,12 +50,13 @@ struct SprintfStateStr {
 
 
 
-struct NumArgState{
-    int     type;               
-    va_list ap;                 
+struct NumArgState
+{
+    int type;       
+    va_list ap;     
 };
 
-#define NAS_DEFAULT_NUM 20  /* default number of NumberedArgumentState array */
+const size_t NAS_DEFAULT_NUM = 20;  
 
 
 #define TYPE_INT16      0
@@ -87,40 +79,64 @@ struct NumArgState{
 #define FLAG_ZEROS      0x8
 #define FLAG_NEG        0x10
 
+inline int
+generic_write(SprintfState *ss, const char *src, size_t srclen)
+{
+    return (*ss->stuff)(ss, src, srclen);
+}
+
+inline int
+generic_write(SprintfState *ss, const jschar *src, size_t srclen)
+{
+    const size_t CHUNK_SIZE = 64;
+    char chunk[CHUNK_SIZE];
+
+    int rv = 0;
+    size_t j = 0;
+    size_t i = 0;
+    while (i < srclen) {
+        
+        chunk[j++] = char(src[i++]);
+
+        if (j == CHUNK_SIZE || i == srclen) {
+            rv = (*ss->stuff)(ss, chunk, j);
+            if (rv != 0)
+                return rv;
+            j = 0;
+        }
+    }
+    return 0;
+}
 
 
-
-static int fill2(SprintfState *ss, const char *src, int srclen, int width,
-                int flags)
+template <typename Char>
+static int
+fill2(SprintfState *ss, const Char *src, int srclen, int width, int flags)
 {
     char space = ' ';
     int rv;
 
     width -= srclen;
-    if ((width > 0) && ((flags & FLAG_LEFT) == 0)) {    
-        if (flags & FLAG_ZEROS) {
+    if (width > 0 && (flags & FLAG_LEFT) == 0) {    
+        if (flags & FLAG_ZEROS)
             space = '0';
-        }
         while (--width >= 0) {
             rv = (*ss->stuff)(ss, &space, 1);
-            if (rv < 0) {
+            if (rv < 0)
                 return rv;
-            }
         }
     }
 
     
-    rv = (*ss->stuff)(ss, src, uint32_t(srclen));
-    if (rv < 0) {
+    rv = generic_write(ss, src, srclen);
+    if (rv < 0)
         return rv;
-    }
 
-    if ((width > 0) && ((flags & FLAG_LEFT) != 0)) {    
+    if (width > 0 && (flags & FLAG_LEFT) != 0) {    
         while (--width >= 0) {
             rv = (*ss->stuff)(ss, &space, 1);
-            if (rv < 0) {
+            if (rv < 0)
                 return rv;
-            }
         }
     }
     return 0;
@@ -129,8 +145,8 @@ static int fill2(SprintfState *ss, const char *src, int srclen, int width,
 
 
 
-static int fill_n(SprintfState *ss, const char *src, int srclen, int width,
-                  int prec, int type, int flags)
+static int
+fill_n(SprintfState *ss, const char *src, int srclen, int width, int prec, int type, int flags)
 {
     int zerowidth = 0;
     int precwidth = 0;
@@ -218,8 +234,6 @@ static int fill_n(SprintfState *ss, const char *src, int srclen, int width,
 }
 
 
-
-
 static int cvt_l(SprintfState *ss, long num, int width, int prec, int radix,
                  int type, int flags, const char *hexp)
 {
@@ -233,10 +247,8 @@ static int cvt_l(SprintfState *ss, long num, int width, int prec, int radix,
     }
 
     
-
-
-
-
+    
+    
     cvt = cvtbuf + sizeof(cvtbuf);
     digits = 0;
     while (num) {
@@ -251,28 +263,21 @@ static int cvt_l(SprintfState *ss, long num, int width, int prec, int radix,
     }
 
     
-
-
-
+    
     return fill_n(ss, cvt, digits, width, prec, type, flags);
 }
-
-
 
 
 static int cvt_ll(SprintfState *ss, int64_t num, int width, int prec, int radix,
                   int type, int flags, const char *hexp)
 {
     
-    if (prec == 0 && num == 0) {
+    if (prec == 0 && num == 0)
         return 0;
-    }
 
     
-
-
-
-
+    
+    
     int64_t rad = int64_t(radix);
     char cvtbuf[100];
     char *cvt = cvtbuf + sizeof(cvtbuf);
@@ -291,9 +296,7 @@ static int cvt_ll(SprintfState *ss, int64_t num, int width, int prec, int radix,
     }
 
     
-
-
-
+    
     return fill_n(ss, cvt, digits, width, prec, type, flags);
 }
 
@@ -330,62 +333,40 @@ static int cvt_f(SprintfState *ss, double d, const char *fmt0, const char *fmt1)
     sprintf(fout, fin, d);
 
     
-
-
-
-
+    
+    
     JS_ASSERT(strlen(fout) < sizeof(fout));
 
     return (*ss->stuff)(ss, fout, strlen(fout));
 }
 
+static inline const char *generic_null_str(const char *) { return "(null)"; }
+static inline const jschar *generic_null_str(const jschar *) { return MOZ_UTF16("(null)"); }
+
+static inline size_t generic_strlen(const char *s) { return strlen(s); }
+static inline size_t generic_strlen(const jschar *s) { return js_strlen(s); }
 
 
 
 
 
-static int cvt_s(SprintfState *ss, const char *s, int width, int prec,
-                 int flags)
+
+template <typename Char>
+static int
+cvt_s(SprintfState *ss, const Char *s, int width, int prec, int flags)
 {
-    int slen;
-
     if (prec == 0)
         return 0;
+    if (!s)
+        s = generic_null_str(s);
 
     
-    slen = s ? strlen(s) : 6;
-    if (prec > 0) {
-        if (prec < slen) {
-            slen = prec;
-        }
-    }
+    int slen = int(generic_strlen(s));
+    if (0 < prec && prec < slen)
+        slen = prec;
 
     
-    return fill2(ss, s ? s : "(null)", slen, width, flags);
-}
-
-static int
-cvt_ws(SprintfState *ss, const jschar *ws, int width, int prec, int flags)
-{
-    int result;
-    
-
-
-
-    if (ws) {
-        size_t wslen = js_strlen(ws);
-        char *latin1 = js_pod_malloc<char>(wslen + 1);
-        if (!latin1)
-            return -1; 
-        for (size_t i = 0; i < wslen; ++i)
-            latin1[i] = (char)ws[i];
-        latin1[wslen] = '\0';
-        result = cvt_s(ss, latin1, width, prec, flags);
-        js_free(latin1);
-    } else {
-        result = cvt_s(ss, nullptr, width, prec, flags);
-    }
-    return result;
+    return fill2(ss, s, slen, width, flags);
 }
 
 
@@ -394,39 +375,37 @@ cvt_ws(SprintfState *ss, const jschar *ws, int width, int prec, int flags)
 
 
 
-
-static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, struct NumArgState* nasArray )
+static NumArgState *
+BuildArgArray(const char *fmt, va_list ap, int *rv, NumArgState *nasArray)
 {
-    int number = 0, cn = 0, i;
+    size_t number = 0, cn = 0, i;
     const char *p;
     char c;
-    struct NumArgState *nas;
+    NumArgState *nas;
 
 
     
-
-
-
+    
 
     p = fmt;
     *rv = 0;
     i = 0;
-    while( ( c = *p++ ) != 0 ){
-        if( c != '%' )
+    while ((c = *p++) != 0) {
+        if (c != '%')
             continue;
-        if( ( c = *p++ ) == '%' )       
+        if ((c = *p++) == '%')          
             continue;
 
-        while( c != 0 ){
-            if( c > '9' || c < '0' ){
-                if( c == '$' ){         
-                    if( i > 0 ){
+        while (c != 0) {
+            if (c > '9' || c < '0') {
+                if (c == '$') {         
+                    if (i > 0) {
                         *rv = -1;
                         return nullptr;
                     }
                     number++;
                 } else {                
-                    if( number > 0 ){
+                    if (number > 0) {
                         *rv = -1;
                         return nullptr;
                     }
@@ -439,14 +418,12 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
         }
     }
 
-    if( number == 0 ){
+    if (number == 0)
         return nullptr;
-    }
 
-
-    if( number > NAS_DEFAULT_NUM ){
-        nas = (struct NumArgState*)js_malloc( number * sizeof( struct NumArgState ) );
-        if( !nas ){
+    if (number > NAS_DEFAULT_NUM) {
+        nas = (NumArgState *) js_malloc(number * sizeof(NumArgState));
+        if (!nas) {
             *rv = -1;
             return nullptr;
         }
@@ -454,36 +431,35 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
         nas = nasArray;
     }
 
-    for( i = 0; i < number; i++ ){
+    for (i = 0; i < number; i++)
         nas[i].type = TYPE_UNKNOWN;
-    }
 
 
     
-
-
-
+    
 
     p = fmt;
-    while( ( c = *p++ ) != 0 ){
-        if( c != '%' )  continue;
-            c = *p++;
-        if( c == '%' )  continue;
+    while ((c = *p++) != 0) {
+        if (c != '%')
+            continue;
+        c = *p++;
+        if (c == '%')
+            continue;
 
         cn = 0;
-        while( c && c != '$' ){     
+        while (c && c != '$') {     
             cn = cn*10 + c - '0';
             c = *p++;
         }
 
-        if( !c || cn < 1 || cn > number ){
+        if (!c || cn < 1 || cn > number) {
             *rv = -1;
             break;
         }
 
         
         cn--;
-        if( nas[cn].type != TYPE_UNKNOWN )
+        if (nas[cn].type != TYPE_UNKNOWN)
             continue;
 
         c = *p++;
@@ -545,19 +521,19 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
         case 'e':
         case 'f':
         case 'g':
-            nas[ cn ].type = TYPE_DOUBLE;
+            nas[cn].type = TYPE_DOUBLE;
             break;
 
         case 'p':
             
             if (sizeof(void *) == sizeof(int32_t)) {
-                nas[ cn ].type = TYPE_UINT32;
+                nas[cn].type = TYPE_UINT32;
             } else if (sizeof(void *) == sizeof(int64_t)) {
-                nas[ cn ].type = TYPE_UINT64;
+                nas[cn].type = TYPE_UINT64;
             } else if (sizeof(void *) == sizeof(int)) {
-                nas[ cn ].type = TYPE_UINTN;
+                nas[cn].type = TYPE_UINTN;
             } else {
-                nas[ cn ].type = TYPE_UNKNOWN;
+                nas[cn].type = TYPE_UNKNOWN;
             }
             break;
 
@@ -567,25 +543,25 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
         case 'G':
             
             JS_ASSERT(0);
-            nas[ cn ].type = TYPE_UNKNOWN;
+            nas[cn].type = TYPE_UNKNOWN;
             break;
 
         case 's':
-            nas[ cn ].type = (nas[ cn ].type == TYPE_UINT16) ? TYPE_WSTRING : TYPE_STRING;
+            nas[cn].type = (nas[cn].type == TYPE_UINT16) ? TYPE_WSTRING : TYPE_STRING;
             break;
 
         case 'n':
-            nas[ cn ].type = TYPE_INTSTR;
+            nas[cn].type = TYPE_INTSTR;
             break;
 
         default:
             JS_ASSERT(0);
-            nas[ cn ].type = TYPE_UNKNOWN;
+            nas[cn].type = TYPE_UNKNOWN;
             break;
         }
 
         
-        if( nas[ cn ].type == TYPE_UNKNOWN ){
+        if (nas[cn].type == TYPE_UNKNOWN) {
             *rv = -1;
             break;
         }
@@ -593,50 +569,40 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
 
 
     
+    
 
-
-
-
-    if( *rv < 0 ){
-        if( nas != nasArray )
-            js_free( nas );
+    if (*rv < 0) {
+        if (nas != nasArray)
+            js_free(nas);
         return nullptr;
     }
 
     cn = 0;
-    while( cn < number ){
-        if( nas[cn].type == TYPE_UNKNOWN ){
+    while (cn < number) {
+        if (nas[cn].type == TYPE_UNKNOWN) {
             cn++;
             continue;
         }
 
         VARARGS_ASSIGN(nas[cn].ap, ap);
 
-        switch( nas[cn].type ){
+        switch (nas[cn].type) {
         case TYPE_INT16:
         case TYPE_UINT16:
         case TYPE_INTN:
-        case TYPE_UINTN:                (void)va_arg( ap, int );             break;
-
-        case TYPE_INT32:                (void)va_arg( ap, int32_t );            break;
-
-        case TYPE_UINT32:       (void)va_arg( ap, uint32_t );   break;
-
-        case TYPE_INT64:        (void)va_arg( ap, int64_t );            break;
-
-        case TYPE_UINT64:       (void)va_arg( ap, uint64_t );           break;
-
-        case TYPE_STRING:       (void)va_arg( ap, char* );              break;
-
-        case TYPE_WSTRING:      (void)va_arg( ap, jschar* );            break;
-
-        case TYPE_INTSTR:       (void)va_arg( ap, int* );            break;
-
-        case TYPE_DOUBLE:       (void)va_arg( ap, double );             break;
+        case TYPE_UINTN:        (void) va_arg(ap, int);         break;
+        case TYPE_INT32:        (void) va_arg(ap, int32_t);     break;
+        case TYPE_UINT32:       (void) va_arg(ap, uint32_t);    break;
+        case TYPE_INT64:        (void) va_arg(ap, int64_t);     break;
+        case TYPE_UINT64:       (void) va_arg(ap, uint64_t);    break;
+        case TYPE_STRING:       (void) va_arg(ap, char*);       break;
+        case TYPE_WSTRING:      (void) va_arg(ap, jschar*);     break;
+        case TYPE_INTSTR:       (void) va_arg(ap, int*);        break;
+        case TYPE_DOUBLE:       (void) va_arg(ap, double);      break;
 
         default:
-            if( nas != nasArray )
-                js_free( nas );
+            if (nas != nasArray)
+                js_free(nas);
             *rv = -1;
             return nullptr;
         }
@@ -651,7 +617,8 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
 
 
 
-static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
+static int
+dosprintf(SprintfState *ss, const char *fmt, va_list ap)
 {
     char c;
     int flags, width, prec, radix, type;
@@ -671,18 +638,16 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
     static const char HEX[] = "0123456789ABCDEF";
     const char *hexp;
     int rv, i;
-    struct NumArgState *nas = nullptr;
-    struct NumArgState nasArray[ NAS_DEFAULT_NUM ];
+    NumArgState *nas = nullptr;
+    NumArgState nasArray[NAS_DEFAULT_NUM];
     char pattern[20];
     const char *dolPt = nullptr;  
 
     
+    
 
-
-
-
-    nas = BuildArgArray( fmt, ap, &rv, nasArray );
-    if( rv < 0 ){
+    nas = BuildArgArray(fmt, ap, &rv, nasArray);
+    if (rv < 0) {
         
         JS_ASSERT(0);
         return rv;
@@ -699,9 +664,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
         fmt0 = fmt - 1;
 
         
-
-
-
+        
         flags = 0;
         c = *fmt++;
         if (c == '%') {
@@ -713,17 +676,17 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
             continue;
         }
 
-        if( nas != nullptr ){
+        if (nas != nullptr) {
             
             i = 0;
-            while( c && c != '$' ){         
-                i = ( i * 10 ) + ( c - '0' );
+            while (c && c != '$') {         
+                i = (i * 10) + (c - '0');
                 c = *fmt++;
             }
 
-            if( nas[i-1].type == TYPE_UNKNOWN ){
-                if( nas && ( nas != nasArray ) )
-                    js_free( nas );
+            if (nas[i-1].type == TYPE_UNKNOWN) {
+                if (nas && nas != nasArray)
+                    js_free(nas);
                 return -1;
             }
 
@@ -733,12 +696,10 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
         }
 
         
-
-
-
-
-
-
+        
+        
+        
+        
         while ((c == '-') || (c == '+') || (c == ' ') || (c == '0')) {
             if (c == '-') flags |= FLAG_LEFT;
             if (c == '+') flags |= FLAG_SIGNED;
@@ -885,12 +846,12 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
           case 'f':
           case 'g':
             u.d = va_arg(ap, double);
-            if( nas != nullptr ){
+            if (nas != nullptr) {
                 i = fmt - dolPt;
-                if( i < (int)sizeof( pattern ) ){
+                if (i < int(sizeof(pattern))) {
                     pattern[0] = '%';
-                    js_memcpy( &pattern[1], dolPt, (size_t)i );
-                    rv = cvt_f(ss, u.d, pattern, &pattern[i+1] );
+                    js_memcpy(&pattern[1], dolPt, size_t(i));
+                    rv = cvt_f(ss, u.d, pattern, &pattern[i + 1]);
                 }
             } else
                 rv = cvt_f(ss, u.d, fmt0, fmt);
@@ -956,7 +917,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
           case 's':
             if(type == TYPE_INT16) {
                 u.ws = va_arg(ap, const jschar*);
-                rv = cvt_ws(ss, u.ws, width, prec, flags);
+                rv = cvt_s(ss, u.ws, width, prec, flags);
             } else {
                 u.s = va_arg(ap, const char*);
                 rv = cvt_s(ss, u.s, width, prec, flags);
@@ -992,68 +953,30 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
     
     rv = (*ss->stuff)(ss, "\0", 1);
 
-    if( nas && ( nas != nasArray ) ){
-        js_free( nas );
-    }
+    if (nas && nas != nasArray)
+        js_free(nas);
 
     return rv;
 }
 
 
 
-static int FuncStuff(SprintfState *ss, const char *sp, uint32_t len)
-{
-    int rv;
-
-    rv = (*ss->func)(ss->arg, sp, len);
-    if (rv < 0) {
-        return rv;
-    }
-    ss->maxlen += len;
-    return 0;
-}
-
-JS_PUBLIC_API(uint32_t) JS_sxprintf(JSStuffFunc func, void *arg,
-                                    const char *fmt, ...)
-{
-    va_list ap;
-    int rv;
-
-    va_start(ap, fmt);
-    rv = JS_vsxprintf(func, arg, fmt, ap);
-    va_end(ap);
-    return rv;
-}
-
-JS_PUBLIC_API(uint32_t) JS_vsxprintf(JSStuffFunc func, void *arg,
-                                     const char *fmt, va_list ap)
-{
-    SprintfState ss;
-    int rv;
-
-    ss.stuff = FuncStuff;
-    ss.func = func;
-    ss.arg = arg;
-    ss.maxlen = 0;
-    rv = dosprintf(&ss, fmt, ap);
-    return (rv < 0) ? UINT32_MAX : ss.maxlen;
-}
 
 
 
 
-
-static int GrowStuff(SprintfState *ss, const char *sp, uint32_t len)
+static int
+GrowStuff(SprintfState *ss, const char *sp, size_t len)
 {
     ptrdiff_t off;
     char *newbase;
-    uint32_t newlen;
+    size_t newlen;
 
     off = ss->cur - ss->base;
     if (off + len >= ss->maxlen) {
         
         newlen = ss->maxlen + ((len > 32) ? len : 32);
-        newbase = (char*) js_realloc(ss->base, newlen);
+        newbase = static_cast<char *>(js_realloc(ss->base, newlen));
         if (!newbase) {
             
             return -1;
@@ -1068,14 +991,15 @@ static int GrowStuff(SprintfState *ss, const char *sp, uint32_t len)
         --len;
         *ss->cur++ = *sp++;
     }
-    JS_ASSERT(uint32_t(ss->cur - ss->base) <= ss->maxlen);
+    MOZ_ASSERT(size_t(ss->cur - ss->base) <= ss->maxlen);
     return 0;
 }
 
 
 
 
-JS_PUBLIC_API(char *) JS_smprintf(const char *fmt, ...)
+JS_PUBLIC_API(char *)
+JS_smprintf(const char *fmt, ...)
 {
     va_list ap;
     char *rv;
@@ -1089,12 +1013,14 @@ JS_PUBLIC_API(char *) JS_smprintf(const char *fmt, ...)
 
 
 
-JS_PUBLIC_API(void) JS_smprintf_free(char *mem)
+JS_PUBLIC_API(void)
+JS_smprintf_free(char *mem)
 {
-        js_free(mem);
+    js_free(mem);
 }
 
-JS_PUBLIC_API(char *) JS_vsmprintf(const char *fmt, va_list ap)
+JS_PUBLIC_API(char *)
+JS_vsmprintf(const char *fmt, va_list ap)
 {
     SprintfState ss;
     int rv;
@@ -1114,13 +1040,13 @@ JS_PUBLIC_API(char *) JS_vsmprintf(const char *fmt, va_list ap)
 
 
 
-static int LimitStuff(SprintfState *ss, const char *sp, uint32_t len)
+static int
+LimitStuff(SprintfState *ss, const char *sp, size_t len)
 {
-    uint32_t limit = ss->maxlen - (ss->cur - ss->base);
+    size_t limit = ss->maxlen - (ss->cur - ss->base);
 
-    if (len > limit) {
+    if (len > limit)
         len = limit;
-    }
     while (len) {
         --len;
         *ss->cur++ = *sp++;
@@ -1132,15 +1058,15 @@ static int LimitStuff(SprintfState *ss, const char *sp, uint32_t len)
 
 
 
-JS_PUBLIC_API(uint32_t) JS_snprintf(char *out, uint32_t outlen, const char *fmt, ...)
+JS_PUBLIC_API(uint32_t)
+JS_snprintf(char *out, uint32_t outlen, const char *fmt, ...)
 {
     va_list ap;
     int rv;
 
     JS_ASSERT(int32_t(outlen) > 0);
-    if (int32_t(outlen) <= 0) {
+    if (int32_t(outlen) <= 0)
         return 0;
-    }
 
     va_start(ap, fmt);
     rv = JS_vsnprintf(out, outlen, fmt, ap);
@@ -1148,8 +1074,8 @@ JS_PUBLIC_API(uint32_t) JS_snprintf(char *out, uint32_t outlen, const char *fmt,
     return rv;
 }
 
-JS_PUBLIC_API(uint32_t) JS_vsnprintf(char *out, uint32_t outlen,const char *fmt,
-                                     va_list ap)
+JS_PUBLIC_API(uint32_t)
+JS_vsnprintf(char *out, uint32_t outlen, const char *fmt, va_list ap)
 {
     SprintfState ss;
     uint32_t n;
@@ -1166,14 +1092,15 @@ JS_PUBLIC_API(uint32_t) JS_vsnprintf(char *out, uint32_t outlen,const char *fmt,
     (void) dosprintf(&ss, fmt, ap);
 
     
-    if( (ss.cur != ss.base) && (ss.cur[-1] != '\0') )
+    if (ss.cur != ss.base && ss.cur[-1] != '\0')
         ss.cur[-1] = '\0';
 
     n = ss.cur - ss.base;
     return n ? n - 1 : n;
 }
 
-JS_PUBLIC_API(char *) JS_sprintf_append(char *last, const char *fmt, ...)
+JS_PUBLIC_API(char *)
+JS_sprintf_append(char *last, const char *fmt, ...)
 {
     va_list ap;
     char *rv;
@@ -1184,14 +1111,15 @@ JS_PUBLIC_API(char *) JS_sprintf_append(char *last, const char *fmt, ...)
     return rv;
 }
 
-JS_PUBLIC_API(char *) JS_vsprintf_append(char *last, const char *fmt, va_list ap)
+JS_PUBLIC_API(char *)
+JS_vsprintf_append(char *last, const char *fmt, va_list ap)
 {
     SprintfState ss;
     int rv;
 
     ss.stuff = GrowStuff;
     if (last) {
-        int lastlen = strlen(last);
+        size_t lastlen = strlen(last);
         ss.base = last;
         ss.cur = last + lastlen;
         ss.maxlen = lastlen;
