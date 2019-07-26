@@ -78,6 +78,10 @@ struct Sizes
 MOZ_EXPORT void
 SizeOf(Sizes* aSizes);
 
+
+MOZ_EXPORT bool
+IsEnabled();
+
 } 
 } 
 
