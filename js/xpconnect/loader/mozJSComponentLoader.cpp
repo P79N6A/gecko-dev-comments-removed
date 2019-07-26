@@ -448,6 +448,12 @@ mozJSComponentLoader::ReallyInit()
     mReuseLoaderGlobal = Preferences::GetBool("jsloader.reuseGlobal");
 
     
+    
+#ifdef MOZ_B2G
+    mReuseLoaderGlobal = true;
+#endif
+
+    
 
 
 
