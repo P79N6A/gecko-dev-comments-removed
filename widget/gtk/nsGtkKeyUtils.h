@@ -44,6 +44,12 @@ public:
     
 
 
+    static CodeNameIndex ComputeDOMCodeNameIndex(
+                           const GdkEventKey* aGdkKeyEvent);
+
+    
+
+
     enum Modifier {
         NOT_MODIFIER       = 0x0000,
         CAPS_LOCK          = 0x0001,
