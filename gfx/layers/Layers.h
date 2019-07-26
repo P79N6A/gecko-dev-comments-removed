@@ -684,7 +684,13 @@ public:
 
 
 
-    CONTENT_MAY_CHANGE_TRANSFORM = 0x08
+    CONTENT_MAY_CHANGE_TRANSFORM = 0x08,
+
+    
+
+
+
+    CONTENT_DISABLE_SUBPIXEL_AA = 0x10
   };
   
 
