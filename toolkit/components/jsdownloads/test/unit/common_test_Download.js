@@ -75,6 +75,31 @@ function promiseDownloadMidway(aDownload) {
 
 
 
+function promiseDownloadStopped(aDownload) {
+  if (!aDownload.stopped) {
+    
+    
+    return aDownload.start();
+  }
+
+  if (aDownload.succeeded) {
+    return Promise.resolve();
+  }
+
+  
+  return Promise.reject(aDownload.error || new Error("Download canceled."));
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
