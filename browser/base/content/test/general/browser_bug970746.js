@@ -4,7 +4,7 @@ function test() {
   waitForExplicitFinish();
 
   gBrowser.selectedTab = gBrowser.addTab();
-  
+
   gBrowser.selectedBrowser.addEventListener("load", function() {
     gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
 
@@ -92,6 +92,20 @@ function test() {
       id: "mixedContent",
       isSelected: false,
       shouldBeShown: false,
+    });
+
+    testElement({
+      id: "partialLink",
+      isSelected: true,
+      shouldBeShown: true,
+      expectedLabelContents: "link selection",
+    });
+
+    testElement({
+      id: "partialLink",
+      isSelected: false,
+      shouldBeShown: true,
+      expectedLabelContents: "A partial link " + ellipsis,
     });
 
     

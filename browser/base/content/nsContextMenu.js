@@ -1668,7 +1668,7 @@ nsContextMenu.prototype = {
   
   formatSearchContextItem: function() {
     var menuItem = document.getElementById("context-searchselect");
-    var selectedText = this.onLink ? this.linkText() : this.textSelected;
+    var selectedText = this.isTextSelected ? this.textSelected : this.linkText();
 
     
     menuItem.searchTerms = selectedText;
