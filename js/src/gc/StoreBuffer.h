@@ -137,6 +137,12 @@ class StoreBuffer
         T *pos;       
         T *top;       
 
+        
+
+
+
+        T *highwater;
+
         MonoTypeBuffer(StoreBuffer *owner)
           : owner(owner), base(NULL), pos(NULL), top(NULL)
         {}
@@ -149,6 +155,7 @@ class StoreBuffer
 
         bool isEmpty() const { return pos == base; }
         bool isFull() const { JS_ASSERT(pos <= top); return pos == top; }
+        bool isAboutToOverflow() const { return pos >= highwater; }
 
         
         template <typename NurseryType>
@@ -161,7 +168,28 @@ class StoreBuffer
         virtual void compact();
 
         
-        void put(const T &v);
+        void put(const T &v) {
+            
+            if (!pos)
+                return;
+
+            
+
+
+
+
+            *pos++ = v;
+            if (isAboutToOverflow()) {
+                owner->setAboutToOverflow();
+                if (isFull()) {
+                    compact();
+                    if (isFull()) {
+                        owner->setOverflowed();
+                        clear();
+                    }
+                }
+            }
+        }
 
         
         void mark(JSTracer *trc);
@@ -188,7 +216,9 @@ class StoreBuffer
         virtual void compact();
 
         
-        void unput(const T &v);
+        void unput(const T &v) {
+            MonoTypeBuffer<T>::put(v.tagged());
+        }
     };
 
     class GenericBuffer
@@ -345,6 +375,7 @@ class StoreBuffer
 
     void *buffer;
 
+    bool aboutToOverflow;
     bool overflowed;
     bool enabled;
 
@@ -373,13 +404,15 @@ class StoreBuffer
                                     GenericBufferSize;
 
     
+    void setAboutToOverflow();
     void setOverflowed();
 
   public:
     explicit StoreBuffer(JSRuntime *rt)
       : bufferVal(this), bufferCell(this), bufferSlot(this),
         bufferRelocVal(this), bufferRelocCell(this), bufferGeneric(this),
-        runtime(rt), buffer(NULL), overflowed(false), enabled(false)
+        runtime(rt), buffer(NULL), aboutToOverflow(false), overflowed(false),
+        enabled(false)
     {}
 
     bool enable();
@@ -389,6 +422,7 @@ class StoreBuffer
     bool clear();
 
     
+    bool isAboutToOverflow() const { return aboutToOverflow; }
     bool hasOverflowed() const { return overflowed; }
 
     
