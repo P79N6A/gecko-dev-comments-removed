@@ -16,6 +16,8 @@ using namespace mozilla;
 using namespace xpc;
 using namespace JS;
 
+#define IS_TEAROFF_CLASS(clazz) ((clazz) == &XPC_WN_Tearoff_JSClass)
+
 XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                JSContext* cx       ,
                                HandleObject obj    ,
@@ -37,42 +39,9 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mName(cx)
 {
     MOZ_ASSERT(cx);
-    Init(callerLanguage, callerLanguage == NATIVE_CALLER, obj, funobj, name,
-         argc, argv, rval);
-}
+    bool callBeginRequest = callerLanguage == NATIVE_CALLER;
 
-#define IS_TEAROFF_CLASS(clazz) ((clazz) == &XPC_WN_Tearoff_JSClass)
-
-
-JSContext *
-XPCCallContext::GetDefaultJSContext()
-{
-    
-    
-    
-    
-    
-    
-    
-
-    XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-    JSContext *topJSContext = stack->Peek();
-
-    return topJSContext ? topJSContext : stack->GetSafeJSContext();
-}
-
-void
-XPCCallContext::Init(XPCContext::LangType callerLanguage,
-                     JSBool callBeginRequest,
-                     HandleObject obj,
-                     HandleObject funobj,
-                     HandleId name,
-                     unsigned argc,
-                     jsval *argv,
-                     jsval *rval)
-{
     NS_ASSERTION(mJSContext, "No JSContext supplied to XPCCallContext");
-
     if (!mXPC)
         return;
 
@@ -158,6 +127,24 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
         SetArgsAndResultPtr(argc, argv, rval);
 
     CHECK_STATE(HAVE_OBJECT);
+}
+
+
+JSContext *
+XPCCallContext::GetDefaultJSContext()
+{
+    
+    
+    
+    
+    
+    
+    
+
+    XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
+    JSContext *topJSContext = stack->Peek();
+
+    return topJSContext ? topJSContext : stack->GetSafeJSContext();
 }
 
 void
