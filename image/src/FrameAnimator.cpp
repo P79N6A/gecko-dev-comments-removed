@@ -4,6 +4,7 @@
 
 
 #include "FrameAnimator.h"
+#include "FrameBlender.h"
 
 #include "imgIContainer.h"
 

@@ -5,10 +5,11 @@
 
 
 #include "Decoder.h"
-#include "nsIServiceManager.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 #include "GeckoProfiler.h"
+#include "nsServiceManagerUtils.h"
+#include "nsComponentManagerUtils.h"
 
 namespace mozilla {
 namespace image {

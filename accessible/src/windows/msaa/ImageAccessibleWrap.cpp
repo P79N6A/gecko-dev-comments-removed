@@ -6,6 +6,7 @@
 
 
 #include "ImageAccessibleWrap.h"
+#include "nsIURI.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
