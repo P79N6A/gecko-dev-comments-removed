@@ -554,7 +554,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   if (aBuilder->IsForImageVisibility()) {
     
-    presShell->RebuildImageVisibility(childItems);
+    presShell->RebuildImageVisibilityDisplayList(childItems);
     childItems.DeleteAll();
   } else {
     aLists.Content()->AppendToTop(&childItems);
