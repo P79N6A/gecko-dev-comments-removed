@@ -262,7 +262,7 @@ PluginModuleParent::TimeoutChanged(const char* aPref, void* aModule)
 }
 
 void
-PluginModuleParent::CleanupFromTimeout()
+PluginModuleParent::CleanupFromTimeout(const bool aFromHangUI)
 {
     if (mShutdown) {
       return;
@@ -273,11 +273,22 @@ PluginModuleParent::CleanupFromTimeout()
         MessageLoop::current()->PostDelayedTask(
             FROM_HERE,
             mTaskFactory.NewRunnableMethod(
-                &PluginModuleParent::CleanupFromTimeout), 10);
+                &PluginModuleParent::CleanupFromTimeout, aFromHangUI), 10);
         return;
     }
 
-    Close();
+    
+
+
+
+
+
+
+    if (aFromHangUI) {
+        GetIPCChannel()->CloseWithError();
+    } else {
+        Close();
+    }
 }
 
 #ifdef XP_WIN
@@ -465,17 +476,19 @@ PluginModuleParent::TerminateChildProcess(MessageLoop* aMsgLoop)
 
     
     
-    if (aMsgLoop == MessageLoop::current()) {
-        aMsgLoop->PostTask(
-            FROM_HERE,
-            mTaskFactory.NewRunnableMethod(
-                &PluginModuleParent::CleanupFromTimeout));
-    } else {
+    bool isFromHangUI = aMsgLoop != MessageLoop::current();
+    if (isFromHangUI) {
         
         
         aMsgLoop->PostTask(FROM_HERE,
                            NewRunnableMethod(this,
-                               &PluginModuleParent::CleanupFromTimeout));
+                               &PluginModuleParent::CleanupFromTimeout,
+                               isFromHangUI));
+    } else {
+        aMsgLoop->PostTask(
+            FROM_HERE,
+            mTaskFactory.NewRunnableMethod(
+                &PluginModuleParent::CleanupFromTimeout, isFromHangUI));
     }
 
     if (!KillProcess(OtherProcess(), 1, false))
