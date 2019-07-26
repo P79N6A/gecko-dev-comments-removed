@@ -397,7 +397,7 @@ WebGLContext::SetDimensions(int32_t width, int32_t height)
         PresentScreenBuffer();
 
         
-        gl->ResizeOffscreen(gfxIntSize(width, height)); 
+        gl->ResizeOffscreen(gfx::IntSize(width, height)); 
         
 
         
