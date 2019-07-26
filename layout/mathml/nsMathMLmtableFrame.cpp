@@ -547,10 +547,9 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
   NS_ASSERTION(aDesiredSize.Width() >= 0, "illegal width for mtable");
 
   
-  
   int32_t rowIndex = 0;
   eAlign tableAlign = eAlign_axis;
-  GetAttribute(mContent, nullptr, nsGkAtoms::align, value);
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::align, value);
   if (!value.IsEmpty()) {
     ParseAlignAttribute(value, tableAlign, rowIndex);
   }

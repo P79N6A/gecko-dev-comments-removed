@@ -165,8 +165,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
     }    
 
     
-    if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accentunder_,
-                     value)) {
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accentunder_, value)) {
       if (value.EqualsLiteral("true")) {
         mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER;
       } else if (value.EqualsLiteral("false")) {
@@ -187,8 +186,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
     }
 
     
-    if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accent_,
-                     value)) {
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accent_, value)) {
       if (value.EqualsLiteral("true")) {
         mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTOVER;
       } else if (value.EqualsLiteral("false")) {
@@ -490,8 +488,7 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     right
   } alignPosition = center;
 
-  if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::align,
-                   valueAlign)) {
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::align, valueAlign)) {
     if (valueAlign.EqualsLiteral("left")) {
       alignPosition = left;
     } else if (valueAlign.EqualsLiteral("right")) {

@@ -156,41 +156,6 @@ nsMathMLFrame::GetPresentationDataFrom(nsIFrame*           aFrame,
                    "bad MathML markup - could not find the top <math> element");
 }
 
-
- bool
-nsMathMLFrame::GetAttribute(nsIContent* aContent,
-                            nsIFrame*   aMathMLmstyleFrame,
-                            nsIAtom*    aAttributeAtom,
-                            nsString&   aValue)
-{
-  
-  if (aContent && aContent->GetAttr(kNameSpaceID_None, aAttributeAtom,
-                                    aValue)) {
-    return true;
-  }
-
-  
-  if (!aMathMLmstyleFrame) {
-    return false;
-  }
-
-  nsIFrame* mstyleParent = aMathMLmstyleFrame->GetParent();
-
-  nsPresentationData mstyleParentData;
-  mstyleParentData.mstyle = nullptr;
-
-  if (mstyleParent) {
-    nsIMathMLFrame* mathMLFrame = do_QueryFrame(mstyleParent);
-    if (mathMLFrame) {
-      mathMLFrame->GetPresentationData(mstyleParentData);
-    }
-  }
-
-  
-  return GetAttribute(aMathMLmstyleFrame->GetContent(),
-                      mstyleParentData.mstyle, aAttributeAtom, aValue);
-}
-
  void
 nsMathMLFrame::GetRuleThickness(nsRenderingContext& aRenderingContext,
                                 nsFontMetrics*      aFontMetrics,

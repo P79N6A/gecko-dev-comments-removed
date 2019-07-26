@@ -138,16 +138,6 @@ public:
   
   
   
-  static bool
-  GetAttribute(nsIContent* aContent,
-               nsIFrame*   aMathMLmstyleFrame,          
-               nsIAtom*    aAttributeAtom,
-               nsString&   aValue);
-
-  
-  
-  
-  
   static void ParseNumericValue(const nsString&   aString,
                                 nscoord*          aLengthValue,
                                 uint32_t          aFlags,
