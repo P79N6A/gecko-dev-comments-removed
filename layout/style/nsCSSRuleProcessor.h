@@ -43,7 +43,11 @@ class nsCSSRuleProcessor: public nsIStyleRuleProcessor {
 public:
   typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
 
-  nsCSSRuleProcessor(const sheet_array_type& aSheets, uint8_t aSheetType);
+  
+  
+  nsCSSRuleProcessor(const sheet_array_type& aSheets,
+                     uint8_t aSheetType,
+                     mozilla::dom::Element* aScopeElement);
   virtual ~nsCSSRuleProcessor();
 
   NS_DECL_ISUPPORTS
@@ -124,6 +128,13 @@ public:
   bool AppendPageRules(nsPresContext* aPresContext,
                        nsTArray<nsCSSPageRule*>& aArray);
 
+  
+
+
+
+
+  mozilla::dom::Element* GetScopeElement() const { return mScopeElement; }
+
 #ifdef DEBUG
   void AssertQuirksChangeOK() {
     NS_ASSERTION(!mRuleCascades, "can't toggle quirks style sheet without "
@@ -163,7 +174,11 @@ private:
 
   
   nsPresContext *mLastPresContext;
+
   
+  
+  nsRefPtr<mozilla::dom::Element> mScopeElement;
+
   
   uint8_t mSheetType;  
 

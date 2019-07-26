@@ -374,7 +374,12 @@ class nsStyleSet
   
   nsCOMArray<nsIStyleSheet> mSheets[eSheetTypeCount];
 
+  
+  
   nsCOMPtr<nsIStyleRuleProcessor> mRuleProcessors[eSheetTypeCount];
+
+  
+  nsTArray<nsCOMPtr<nsIStyleRuleProcessor> > mScopedDocSheetRuleProcessors;
 
   
   nsCOMPtr<nsIStyleSheet> mQuirkStyleSheet;
