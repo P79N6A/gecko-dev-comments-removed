@@ -851,14 +851,13 @@ static bool test_fallible()
   
   
   
-  
-  const unsigned numArrays = 9;
+  const unsigned numArrays = 36;
   FallibleTArray<char> arrays[numArrays];
   for (uint32_t i = 0; i < numArrays; i++) {
-    bool success = arrays[i].SetCapacity(512 * 1024 * 1024);
+    bool success = arrays[i].SetCapacity(128 * 1024 * 1024);
     if (!success) {
       
-      if (i < 2) {
+      if (i < 8) {
         printf("test_fallible: Got OOM on iteration %d.  Too early!\n", i);
         return false;
       }
