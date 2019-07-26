@@ -3,42 +3,13 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.gfx;
 
-import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.mozglue.DirectBufferAllocator;
+
 import android.graphics.Color;
+import android.util.Log;
+
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
@@ -54,6 +25,8 @@ public class CheckerboardImage extends CairoImage {
     
     private static final float TINT_OPACITY = 0.4f;
 
+    private static String LOGTAG = "GeckoCheckerboardImage";
+
     private ByteBuffer mBuffer;
     private int mMainColor;
     private boolean mShowChecks;
@@ -61,7 +34,7 @@ public class CheckerboardImage extends CairoImage {
     
     public CheckerboardImage() {
         int bpp = CairoUtils.bitsPerPixelForCairoFormat(FORMAT);
-        mBuffer = GeckoAppShell.allocateDirectBuffer(SIZE * SIZE * bpp / 8);
+        mBuffer = DirectBufferAllocator.allocate(SIZE * SIZE * bpp / 8);
         update(true, Color.WHITE);
     }
 
@@ -144,11 +117,20 @@ public class CheckerboardImage extends CairoImage {
     @Override
     protected void finalize() throws Throwable {
         try {
-            if (mBuffer != null) {
-                GeckoAppShell.freeDirectBuffer(mBuffer);
-            }
+            DirectBufferAllocator.free(mBuffer);
+            mBuffer = null;
         } finally {
             super.finalize();
+        }
+    }
+
+    @Override
+    public void destroy() {
+        try {
+            DirectBufferAllocator.free(mBuffer);
+            mBuffer = null;
+        } catch (Exception ex) {
+            Log.e(LOGTAG, "error clearing buffer: ", ex);
         }
     }
 
