@@ -951,6 +951,13 @@ public:
   void SetAnimations(const AnimationArray& aAnimations);
 
   
+  
+  
+  
+  Animation* AddAnimationForNextTransaction();
+  void ClearAnimationsForNextTransaction();
+
+  
 
 
 
@@ -1410,6 +1417,8 @@ protected:
   float mPostYScale;
   gfx::Matrix4x4 mEffectiveTransform;
   AnimationArray mAnimations;
+  
+  nsAutoPtr<AnimationArray> mPendingAnimations;
   InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
   gfx::CompositionOp mMixBlendMode;
