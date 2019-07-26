@@ -6553,8 +6553,51 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbyteco
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     LOCAL_ASSERT(script->code <= target && target < script->code + script->length);
+
+    
+
+
+
     unsigned hpcdepth = unsigned(-1);
+
+    
+
+
+
     unsigned cpcdepth = unsigned(-1);
 
     jsbytecode *pc;
@@ -6566,20 +6609,110 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbyteco
         const JSCodeSpec *cs = &js_CodeSpec[op];
         jssrcnote *sn = js_GetSrcNote(cx, script, pc);
 
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         bool exitPath =
             op == JSOP_GOTO ||
             op == JSOP_RETRVAL ||
             op == JSOP_THROW;
 
-        bool isHiddenGoto = false;
+        bool isConditionalCatchExit = false;
 
         if (sn && SN_TYPE(sn) == SRC_HIDDEN) {
-            isHiddenGoto = op == JSOP_GOTO;
+            
+            isConditionalCatchExit = op == JSOP_GOTO;
             if (hpcdepth == unsigned(-1))
                 hpcdepth = pcdepth;
         } else if (!exitPath) {
             hpcdepth = unsigned(-1);
         }
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         if (op == JSOP_LEAVEBLOCK && sn && SN_TYPE(sn) == SRC_CATCH) {
             LOCAL_ASSERT(cpcdepth == unsigned(-1));
@@ -6587,12 +6720,32 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbyteco
         } else if (sn && SN_TYPE(sn) == SRC_HIDDEN &&
                    (op == JSOP_THROW || op == JSOP_THROWING))
         {
+            
+
+
+
+
+
             LOCAL_ASSERT(cpcdepth != unsigned(-1));
             pcdepth = cpcdepth + 1;
             cpcdepth = unsigned(-1);
         } else if (!(op == JSOP_GOTO && sn && SN_TYPE(sn) == SRC_HIDDEN) &&
                    !(op == JSOP_GOSUB && cpcdepth != unsigned(-1)))
         {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
             if (cpcdepth != unsigned(-1))
                 LOCAL_ASSERT((op == JSOP_NOP && sn && SN_TYPE(sn) == SRC_ENDBRACE) ||
                              op == JSOP_FINALLY);
@@ -6610,13 +6763,29 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbyteco
 
         
 
+        
+
+
+
+
+
         if (exitPath && hpcdepth != unsigned(-1)) {
             pcdepth = hpcdepth;
-            if (!isHiddenGoto)
+
+            
+            if (!isConditionalCatchExit)
                 hpcdepth = unsigned(-1);
         }
 
         
+
+
+
+
+
+
+
+
 
 
 
