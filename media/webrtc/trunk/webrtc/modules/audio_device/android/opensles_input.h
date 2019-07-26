@@ -101,7 +101,7 @@ class OpenSlesInput {
 
   
   int32_t StereoRecordingIsAvailable(bool& available);  
-  int32_t SetStereoRecording(bool enable) { return -1; }
+  int32_t SetStereoRecording(bool enable);
   int32_t StereoRecording(bool& enabled) const;  
 
   

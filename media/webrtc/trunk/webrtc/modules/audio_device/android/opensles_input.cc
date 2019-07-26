@@ -256,6 +256,14 @@ int32_t OpenSlesInput::StereoRecordingIsAvailable(bool& available) {
   return 0;
 }
 
+int32_t OpenSlesInput::SetStereoRecording(bool enable) {  
+  if (enable) {
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
 int32_t OpenSlesInput::StereoRecording(bool& enabled) const {  
   enabled = false;
   return 0;
