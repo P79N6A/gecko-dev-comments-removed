@@ -37,10 +37,19 @@ this.EXPORTED_SYMBOLS = ["NetworkPanel"];
 
 
 
-this.NetworkPanel = function NetworkPanel(aParent, aHttpActivity)
+
+
+
+
+this.NetworkPanel =
+function NetworkPanel(aParent, aHttpActivity, aWebConsoleFrame)
 {
   let doc = aParent.ownerDocument;
   this.httpActivity = aHttpActivity;
+  this.webconsole = aWebConsoleFrame;
+  this._longStringClick = this._longStringClick.bind(this);
+  this._responseBodyFetch = this._responseBodyFetch.bind(this);
+  this._requestBodyFetch = this._requestBodyFetch.bind(this);
 
   
   this.panel = createElement(doc, "panel", {
@@ -67,6 +76,7 @@ this.NetworkPanel = function NetworkPanel(aParent, aHttpActivity)
     self.panel = null;
     self.iframe = null;
     self.httpActivity = null;
+    self.webconsole = null;
 
     if (self.linkNode) {
       self.linkNode._panelOpen = false;
@@ -217,28 +227,8 @@ NetworkPanel.prototype =
 
   get _isResponseBodyTextData()
   {
-    let contentType = this.contentType;
-
-    if (!contentType)
-      return false;
-
-    if (contentType.indexOf("text/") == 0) {
-      return true;
-    }
-
-    switch (NetworkHelper.mimeCategoryMap[contentType]) {
-      case "txt":
-      case "js":
-      case "json":
-      case "css":
-      case "html":
-      case "svg":
-      case "xml":
-        return true;
-
-      default:
-        return false;
-    }
+    return this.contentType ?
+           NetworkHelper.isTextMimeType(this.contentType) : false;
   },
 
   
@@ -262,6 +252,9 @@ NetworkPanel.prototype =
   get _isRequestBodyFormData()
   {
     let requestBody = this.httpActivity.request.postData.text;
+    if (typeof requestBody == "object" && requestBody.type == "longString") {
+      requestBody = requestBody.initial;
+    }
     return this._fromDataRegExp.test(requestBody);
   },
 
@@ -272,10 +265,14 @@ NetworkPanel.prototype =
 
 
 
-  _appendTextNode: function NP_appendTextNode(aId, aValue)
+
+
+  _appendTextNode: function NP__appendTextNode(aId, aValue)
   {
     let textNode = this.document.createTextNode(aValue);
-    this.document.getElementById(aId).appendChild(textNode);
+    let elem = this.document.getElementById(aId);
+    elem.appendChild(textNode);
+    return elem;
   },
 
   
@@ -302,9 +299,15 @@ NetworkPanel.prototype =
 
     aList.forEach(function(aItem) {
       let name = aItem.name;
-      let value = aItem.value;
-      if (aIgnoreCookie && name == "Cookie") {
+      if (aIgnoreCookie && (name == "Cookie" || name == "Set-Cookie")) {
         return;
+      }
+
+      let value = aItem.value;
+      let longString = null;
+      if (typeof value == "object" && value.type == "longString") {
+        value = value.initial;
+        longString = true;
       }
 
       
@@ -327,10 +330,20 @@ NetworkPanel.prototype =
       let td = doc.createElement("td");
       td.setAttribute("class", "property-value");
       td.appendChild(textNode);
+
+      if (longString) {
+        let a = doc.createElement("a");
+        a.href = "#";
+        a.className = "longStringEllipsis";
+        a.addEventListener("mousedown", this._longStringClick.bind(this, aItem));
+        a.textContent = l10n.getStr("longStringEllipsis");
+        td.appendChild(a);
+      }
+
       row.appendChild(td);
 
       parent.appendChild(row);
-    });
+    }.bind(this));
   },
 
   
@@ -339,9 +352,44 @@ NetworkPanel.prototype =
 
 
 
-  _displayNode: function NP_displayNode(aId)
+
+
+
+
+  _longStringClick: function NP__longStringClick(aHeader, aEvent)
   {
-    this.document.getElementById(aId).style.display = "block";
+    aEvent.preventDefault();
+
+    let longString = this.webconsole.webConsoleClient.longString(aHeader.value);
+
+    longString.substring(longString.initial.length, longString.length,
+      function NP__onLongStringSubstring(aResponse)
+      {
+        if (aResponse.error) {
+          Cu.reportError("NP__onLongStringSubstring error: " + aResponse.error);
+          return;
+        }
+
+        aHeader.value = aHeader.value.initial + aResponse.substring;
+
+        let textNode = aEvent.target.previousSibling;
+        textNode.textContent += aResponse.substring;
+        textNode.parentNode.removeChild(aEvent.target);
+      });
+  },
+
+  
+
+
+
+
+
+
+
+  _displayNode: function NP__displayNode(aId)
+  {
+    let elem = this.document.getElementById(aId);
+    elem.style.display = "block";
   },
 
   
@@ -453,7 +501,12 @@ NetworkPanel.prototype =
       this._format("durationMS", [deltaDuration]));
 
     this._displayNode("responseContainer");
-    this._appendList("responseHeadersContent", response.headers);
+    this._appendList("responseHeadersContent", response.headers, true);
+
+    if (response.cookies.length > 0) {
+      this._displayNode("responseCookie");
+      this._appendList("responseCookieContent", response.cookies);
+    }
   },
 
   
@@ -469,6 +522,7 @@ NetworkPanel.prototype =
     let self = this;
     let timing = this.httpActivity.timings;
     let request = this.httpActivity.request;
+    let response = this.httpActivity.response;
     let cached = "";
 
     if (this._isResponseCached) {
@@ -477,7 +531,15 @@ NetworkPanel.prototype =
 
     let imageNode = this.document.getElementById("responseImage" +
                                                  cached + "Node");
-    imageNode.setAttribute("src", request.url);
+
+    let text = response.content.text;
+    if (typeof text == "object" && text.type == "longString") {
+      this._showResponseBodyFetchLink();
+    }
+    else {
+      imageNode.setAttribute("src",
+        "data:" + this.contentType + ";base64," + text);
+    }
 
     
     function setImageInfo() {
@@ -520,8 +582,68 @@ NetworkPanel.prototype =
       this._format("durationMS", [timing.receive]));
 
     this._displayNode("responseBody" + cached);
-    this._appendTextNode("responseBody" + cached + "Content",
-                         response.content.text);
+
+    let text = response.content.text;
+    if (typeof text == "object") {
+      text = text.initial;
+      this._showResponseBodyFetchLink();
+    }
+
+    this._appendTextNode("responseBody" + cached + "Content", text);
+  },
+
+  
+
+
+
+  _showResponseBodyFetchLink: function NP__showResponseBodyFetchLink()
+  {
+    let content = this.httpActivity.response.content;
+
+    let elem = this._appendTextNode("responseBodyFetchLink",
+      this._format("fetchRemainingResponseContentLink",
+                   [content.text.length - content.text.initial.length]));
+
+    elem.style.display = "block";
+    elem.addEventListener("mousedown", this._responseBodyFetch);
+  },
+
+  
+
+
+
+
+
+
+  _responseBodyFetch: function NP__responseBodyFetch(aEvent)
+  {
+    aEvent.target.style.display = "none";
+    aEvent.target.removeEventListener("mousedown", this._responseBodyFetch);
+
+    let content = this.httpActivity.response.content;
+    let longString = this.webconsole.webConsoleClient.longString(content.text);
+    longString.substring(longString.initial.length, longString.length,
+      function NP__onLongStringSubstring(aResponse)
+      {
+        if (aResponse.error) {
+          Cu.reportError("NP__onLongStringSubstring error: " + aResponse.error);
+          return;
+        }
+
+        content.text = content.text.initial + aResponse.substring;
+        let cached =  this._isResponseCached ? "Cached" : "";
+
+        if (this._responseIsImage) {
+          let imageNode = this.document.getElementById("responseImage" +
+                                                       cached + "Node");
+          imageNode.src =
+            "data:" + this.contentType + ";base64," + content.text;
+        }
+        else {
+          this._appendTextNode("responseBody" + cached + "Content",
+                               aResponse.substring);
+        }
+      }.bind(this));
   },
 
   
@@ -584,13 +706,7 @@ NetworkPanel.prototype =
       case this._DISPLAYED_REQUEST_HEADER:
         
         if (!this.httpActivity.discardRequestBody && request.postData.text) {
-          
-          if (this._isRequestBodyFormData) {
-            this._displayRequestForm();
-          }
-          else {
-            this._displayRequestBody();
-          }
+          this._updateRequestBody();
           this._state = this._DISPLAYED_REQUEST_BODY;
         }
         
@@ -632,8 +748,62 @@ NetworkPanel.prototype =
     if (this._onUpdate) {
       this._onUpdate();
     }
-  }
-}
+  },
+
+  
+
+
+
+
+  _updateRequestBody: function NP__updateRequestBody()
+  {
+    let postData = this.httpActivity.request.postData;
+    if (typeof postData.text == "object" && postData.text.type == "longString") {
+      let elem = this._appendTextNode("requestBodyFetchLink",
+        this._format("fetchRemainingRequestContentLink",
+                     [postData.text.length - postData.text.initial.length]));
+
+      elem.style.display = "block";
+      elem.addEventListener("mousedown", this._requestBodyFetch);
+      return;
+    }
+
+    
+    if (this._isRequestBodyFormData) {
+      this._displayRequestForm();
+    }
+    else {
+      this._displayRequestBody();
+    }
+  },
+
+  
+
+
+
+
+
+
+  _requestBodyFetch: function NP__requestBodyFetch(aEvent)
+  {
+    aEvent.target.style.display = "none";
+    aEvent.target.removeEventListener("mousedown", this._responseBodyFetch);
+
+    let postData = this.httpActivity.request.postData;
+    let longString = this.webconsole.webConsoleClient.longString(postData.text);
+    longString.substring(longString.initial.length, longString.length,
+      function NP__onLongStringSubstring(aResponse)
+      {
+        if (aResponse.error) {
+          Cu.reportError("NP__onLongStringSubstring error: " + aResponse.error);
+          return;
+        }
+
+        postData.text = postData.text.initial + aResponse.substring;
+        this._updateRequestBody();
+      }.bind(this));
+  },
+};
 
 
 

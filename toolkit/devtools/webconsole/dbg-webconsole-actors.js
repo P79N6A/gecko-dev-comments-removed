@@ -67,11 +67,8 @@ function WebConsoleActor(aConnection, aParentActor)
     this._isGlobalActor = true;
   }
 
-  this._objectActorsPool = new ActorPool(this.conn);
-  this.conn.addActorPool(this._objectActorsPool);
-
-  this._networkEventActorsPool = new ActorPool(this.conn);
-  this.conn.addActorPool(this._networkEventActorsPool);
+  this._actorPool = new ActorPool(this.conn);
+  this.conn.addActorPool(this._actorPool);
 
   this._prefs = {};
 }
@@ -91,17 +88,7 @@ WebConsoleActor.prototype =
 
 
 
-
-
-  _objectActorsPool: null,
-
-  
-
-
-
-
-
-  _networkEventActorsPool: null,
+  _actorPool: null,
 
   
 
@@ -212,10 +199,8 @@ WebConsoleActor.prototype =
       this.consoleProgressListener.destroy();
       this.consoleProgressListener = null;
     }
-    this.conn.removeActorPool(this._objectActorsPool);
-    this.conn.removeActorPool(this._networkEventActorsPool);
-    this._objectActorsPool = null;
-    this._networkEventActorsPool = null;
+    this.conn.removeActorPool(this.actorPool);
+    this._actorPool = null;
     this._sandboxLocation = this.sandbox = null;
     this.conn = this._window = null;
   },
@@ -243,11 +228,15 @@ WebConsoleActor.prototype =
 
   createObjectActor: function WCA_createObjectActor(aObject)
   {
+    if (typeof aObject == "string") {
+      return this.createStringGrip(aObject);
+    }
+
     
     
     let obj = WebConsoleUtils.unwrap(aObject);
     let actor = new WebConsoleObjectActor(obj, this);
-    this._objectActorsPool.addActor(actor);
+    this._actorPool.addActor(actor);
     return actor.grip();
   },
 
@@ -257,9 +246,18 @@ WebConsoleActor.prototype =
 
 
 
-  getObjectActorByID: function WCA_getObjectActorByID(aActorID)
+
+
+
+
+  createStringGrip: function WCA_createStringGrip(aString)
   {
-    return this._objectActorsPool.get(aActorID);
+    if (aString.length >= DebuggerServer.LONG_STRING_LENGTH) {
+      let actor = new LongStringActor(aString, this);
+      this._actorPool.addActor(actor);
+      return actor.grip();
+    }
+    return aString;
   },
 
   
@@ -268,9 +266,9 @@ WebConsoleActor.prototype =
 
 
 
-  releaseObject: function WCA_releaseObject(aActor)
+  getActorByID: function WCA_getActorByID(aActorID)
   {
-    this._objectActorsPool.removeActor(aActor.actorID);
+    return this._actorPool.get(aActorID);
   },
 
   
@@ -279,9 +277,9 @@ WebConsoleActor.prototype =
 
 
 
-  releaseNetworkEvent: function WCA_releaseNetworkEvent(aActor)
+  releaseActor: function WCA_releaseActor(aActor)
   {
-    this._networkEventActorsPool.removeActor(aActor.actorID);
+    this._actorPool.removeActor(aActor.actorID);
   },
 
   
@@ -707,7 +705,7 @@ WebConsoleActor.prototype =
   onNetworkEvent: function WCA_onNetworkEvent(aEvent)
   {
     let actor = new NetworkEventActor(aEvent, this);
-    this._networkEventActorsPool.addActor(actor);
+    this._actorPool.addActor(actor);
 
     let packet = {
       from: this.actorID,
@@ -808,7 +806,7 @@ WebConsoleActor.prototype =
           result.objectProperties = [];
           let first = result.arguments[0];
           if (typeof first == "object" && first && first.inspectable) {
-            let actor = this.getObjectActorByID(first.actor);
+            let actor = this.getActorByID(first.actor);
             result.objectProperties = actor.onInspectProperties().properties;
           }
         }
@@ -869,6 +867,7 @@ WebConsoleObjectActor.prototype =
   {
     let grip = WebConsoleUtils.getObjectGrip(this.obj);
     grip.actor = this.actorID;
+    grip.displayString = this.parent.createStringGrip(grip.displayString);
     return grip;
   },
 
@@ -877,7 +876,7 @@ WebConsoleObjectActor.prototype =
 
   release: function WCOA_release()
   {
-    this.parent.releaseObject(this);
+    this.parent.releaseActor(this);
     this.parent = this.obj = null;
   },
 
@@ -890,7 +889,6 @@ WebConsoleObjectActor.prototype =
 
   onInspectProperties: function WCOA_onInspectProperties()
   {
-    
     let createObjectActor = this.parent.createObjectActor.bind(this.parent);
     let props = WebConsoleUtils.inspectObject(this.obj, createObjectActor);
     return {
@@ -949,6 +947,7 @@ function NetworkEventActor(aNetworkEvent, aWebConsoleActor)
   };
 
   this._timings = {};
+  this._longStringActors = new Set();
 
   this._discardRequestBody = aNetworkEvent.discardRequestBody;
   this._discardResponseBody = aNetworkEvent.discardResponseBody;
@@ -959,6 +958,7 @@ NetworkEventActor.prototype =
   _request: null,
   _response: null,
   _timings: null,
+  _longStringActors: null,
 
   actorPrefix: "netEvent",
 
@@ -980,7 +980,14 @@ NetworkEventActor.prototype =
 
   release: function NEA_release()
   {
-    this.parent.releaseNetworkEvent(this);
+    for (let grip of this._longStringActors) {
+      let actor = this.parent.getActorByID(grip.actor);
+      if (actor) {
+        this.parent.releaseActor(actor);
+      }
+    }
+    this._longStringActors = new Set();
+    this.parent.releaseActor(this);
   },
 
   
@@ -1108,6 +1115,7 @@ NetworkEventActor.prototype =
   addRequestHeaders: function NEA_addRequestHeaders(aHeaders)
   {
     this._request.headers = aHeaders;
+    this._prepareHeaders(aHeaders);
 
     let packet = {
       from: this.actorID,
@@ -1129,6 +1137,7 @@ NetworkEventActor.prototype =
   addRequestCookies: function NEA_addRequestCookies(aCookies)
   {
     this._request.cookies = aCookies;
+    this._prepareHeaders(aCookies);
 
     let packet = {
       from: this.actorID,
@@ -1149,6 +1158,10 @@ NetworkEventActor.prototype =
   addRequestPostData: function NEA_addRequestPostData(aPostData)
   {
     this._request.postData = aPostData;
+    aPostData.text = this.parent.createStringGrip(aPostData.text);
+    if (typeof aPostData.text == "object") {
+      this._longStringActors.add(aPostData.text);
+    }
 
     let packet = {
       from: this.actorID,
@@ -1194,6 +1207,7 @@ NetworkEventActor.prototype =
   addResponseHeaders: function NEA_addResponseHeaders(aHeaders)
   {
     this._response.headers = aHeaders;
+    this._prepareHeaders(aHeaders);
 
     let packet = {
       from: this.actorID,
@@ -1215,6 +1229,7 @@ NetworkEventActor.prototype =
   addResponseCookies: function NEA_addResponseCookies(aCookies)
   {
     this._response.cookies = aCookies;
+    this._prepareHeaders(aCookies);
 
     let packet = {
       from: this.actorID,
@@ -1238,6 +1253,10 @@ NetworkEventActor.prototype =
   function NEA_addResponseContent(aContent, aDiscardedResponseBody)
   {
     this._response.content = aContent;
+    aContent.text = this.parent.createStringGrip(aContent.text);
+    if (typeof aContent.text == "object") {
+      this._longStringActors.add(aContent.text);
+    }
 
     let packet = {
       from: this.actorID,
@@ -1272,6 +1291,23 @@ NetworkEventActor.prototype =
     };
 
     this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+
+  _prepareHeaders: function NEA__prepareHeaders(aHeaders)
+  {
+    for (let header of aHeaders) {
+      header.value = this.parent.createStringGrip(header.value);
+      if (typeof header.value == "object") {
+        this._longStringActors.add(header.value);
+      }
+    }
   },
 };
 

@@ -1073,6 +1073,14 @@ WebConsoleFrame.prototype = {
           clipboardArray.push(WebConsoleUtils.objectActorGripToString(aValue));
           if (aValue && typeof aValue == "object" && aValue.actor) {
             objectActors.push(aValue.actor);
+            let displayStringIsLong = typeof aValue.displayString == "object" &&
+                                      aValue.displayString.type == "longString";
+            if (aValue.type == "longString" || displayStringIsLong) {
+              clipboardArray.push(l10n.getStr("longStringEllipsis"));
+            }
+            if (displayStringIsLong) {
+              objectActors.push(aValue.displayString.actor);
+            }
           }
         }, this);
         clipboardText = clipboardArray.join(" ");
@@ -1711,7 +1719,7 @@ WebConsoleFrame.prototype = {
       aNode._panelOpen = true;
     }.bind(this);
 
-    let netPanel = new NetworkPanel(this.popupset, aHttpActivity);
+    let netPanel = new NetworkPanel(this.popupset, aHttpActivity, this);
     netPanel.linkNode = aNode;
 
     if (!actor) {
@@ -2360,6 +2368,28 @@ WebConsoleFrame.prototype = {
 
       if (aItem && typeof aItem != "object" || !aItem.inspectable) {
         aContainer.appendChild(this.document.createTextNode(text));
+
+        let longString = null;
+        if (aItem.type == "longString") {
+          longString = aItem;
+        }
+        else if (!aItem.inspectable &&
+                 typeof aItem.displayString == "object" &&
+                 aItem.displayString.type == "longString") {
+          longString = aItem.displayString;
+        }
+
+        if (longString) {
+          let ellipsis = this.document.createElement("description");
+          ellipsis.classList.add("hud-clickable");
+          ellipsis.classList.add("longStringEllipsis");
+          ellipsis.textContent = l10n.getStr("longStringEllipsis");
+
+          this._addMessageLinkCallback(ellipsis,
+            this._longStringClick.bind(this, aMessage, longString, null));
+
+          aContainer.appendChild(ellipsis);
+        }
         return;
       }
 
@@ -2374,6 +2404,53 @@ WebConsoleFrame.prototype = {
 
       aContainer.appendChild(elem);
     }, this);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _longStringClick:
+  function WCF__longStringClick(aMessage, aActor, aFormatter, aEllipsis, aEvent)
+  {
+    aEvent.preventDefault();
+
+    if (!aFormatter) {
+      aFormatter = function(s) s;
+    }
+
+    let longString = this.webConsoleClient.longString(aActor);
+    longString.substring(longString.initial.length, longString.length,
+      function WCF__onSubstring(aResponse) {
+        if (aResponse.error) {
+          Cu.reportError("WCF__longStringClick substring failure: " +
+                         aResponse.error);
+          return;
+        }
+
+        let node = aEllipsis.previousSibling;
+        node.textContent = aFormatter(longString.initial + aResponse.substring);
+        aEllipsis.parentNode.removeChild(aEllipsis);
+
+        if (aMessage.category == CATEGORY_WEBDEV ||
+            aMessage.category == CATEGORY_OUTPUT) {
+          aMessage.clipboardText = aMessage.textContent;
+        }
+      });
   },
 
   
@@ -2405,7 +2482,6 @@ WebConsoleFrame.prototype = {
 
     if (aSourceLine) {
       text += ":" + aSourceLine;
-      locationNode.sourceLine = aSourceLine;
     }
 
     locationNode.setAttribute("value", text);
@@ -2832,6 +2908,41 @@ JSTerm.prototype = {
 
     if (result && typeof result == "object" && result.actor) {
       node._objectActors = [result.actor];
+      if (typeof result.displayString == "object" &&
+          result.displayString.type == "longString") {
+        node._objectActors.push(result.displayString.actor);
+      }
+
+      
+      
+      let longString = null;
+      let formatter = null;
+      if (result.type == "longString") {
+        longString = result;
+        if (!helperHasRawOutput) {
+          formatter = WebConsoleUtils.formatResultString.bind(WebConsoleUtils);
+        }
+      }
+      else if (!inspectable && !errorMessage &&
+               typeof result.displayString == "object" &&
+               result.displayString.type == "longString") {
+        longString = result.displayString;
+      }
+
+      if (longString) {
+        let body = node.querySelector(".webconsole-msg-body");
+        let ellipsis = this.hud.document.createElement("description");
+        ellipsis.classList.add("hud-clickable");
+        ellipsis.classList.add("longStringEllipsis");
+        ellipsis.textContent = l10n.getStr("longStringEllipsis");
+
+        this.hud._addMessageLinkCallback(ellipsis,
+          this.hud._longStringClick.bind(this.hud, node, longString, formatter));
+
+        body.appendChild(ellipsis);
+
+        node.clipboardText += " " + ellipsis.textContent;
+      }
     }
   },
 
@@ -2849,7 +2960,8 @@ JSTerm.prototype = {
     
     aExecuteString = aExecuteString || this.inputNode.value;
     if (!aExecuteString) {
-      this.writeOutput("no value to execute", CATEGORY_OUTPUT, SEVERITY_LOG);
+      this.writeOutput(l10n.getStr("executeEmptyInput"), CATEGORY_OUTPUT,
+                       SEVERITY_LOG);
       return;
     }
 
@@ -3481,48 +3593,6 @@ JSTerm.prototype = {
     
     let prefix = aSuffix ? this.inputNode.value.replace(/[\S]/g, " ") : "";
     this.completeNode.value = prefix + aSuffix;
-  },
-
-  
-
-
-
-
-
-
-  clearObjectCache: function JST_clearObjectCache(aCacheId)
-  {
-    if (this.hud) {
-      this.hud.owner.sendMessageToContent("JSTerm:ClearObjectCache",
-                                          { cacheId: aCacheId });
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  remoteObjectProvider:
-  function JST_remoteObjectProvider(aCacheId, aObjectId, aResultCacheId,
-                                    aCallback) {
-    let message = {
-      cacheId: aCacheId,
-      objectId: aObjectId,
-      resultCacheId: aResultCacheId,
-    };
-
-    this.hud.owner.sendMessageToContent("JSTerm:GetEvalObject", message, aCallback);
   },
 
   

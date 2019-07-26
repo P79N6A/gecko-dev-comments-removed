@@ -1718,12 +1718,26 @@ LongStringActor.prototype = {
       "from": this.actorID,
       "substring": this.string.substring(aRequest.start, aRequest.end)
     };
-  }
+  },
 
+  
+
+
+  onRelease: function LSA_onRelease() {
+    
+    
+    
+    if (this.registeredPool.longStringActors) {
+      delete this.registeredPool.longStringActors[this.actorID];
+    }
+    this.registeredPool.removeActor(this);
+    return {};
+  },
 };
 
 LongStringActor.prototype.requestTypes = {
-  "substring": LongStringActor.prototype.onSubstring
+  "substring": LongStringActor.prototype.onSubstring,
+  "release": LongStringActor.prototype.onRelease
 };
 
 
