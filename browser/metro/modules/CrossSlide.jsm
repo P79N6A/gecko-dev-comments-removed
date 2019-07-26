@@ -40,7 +40,7 @@ let CrossSlidingStateNames = [
 
 function isSelectable(aElement) {
   
-  return aElement.nodeName == 'richgriditem';
+  return aElement.nodeName == 'richgriditem' && aElement.hasAttribute("value");
 }
 function withinCone(aLen, aHeight) {
   
