@@ -564,6 +564,23 @@ DebuggerClient.prototype = {
 
 
 
+  reconfigureTab: function(aOptions, aOnResponse) {
+    let packet = {
+      to: this.activeTab._actor,
+      type: "reconfigure",
+      options: aOptions
+    };
+    this.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
+
+
 
   release: DebuggerClient.requester({
     to: args(0),
