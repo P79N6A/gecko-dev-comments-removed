@@ -6240,14 +6240,6 @@ nsRuleNode::ComputeBackgroundData(void* aStartStruct,
                     bg->mClipCount, maxItemCount, rebuild, canStoreInRuleTree);
 
   
-  SetDiscrete(*aRuleData->ValueForBackgroundInlinePolicy(),
-              bg->mBackgroundInlinePolicy,
-              canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
-              parentBG->mBackgroundInlinePolicy,
-              NS_STYLE_BG_INLINE_POLICY_CONTINUOUS, 0, 0, 0, 0);
-
-  
   SetBackgroundList(aContext, *aRuleData->ValueForBackgroundBlendMode(),
                     bg->mLayers,
                     parentBG->mLayers, &nsStyleBackground::Layer::mBlendMode,

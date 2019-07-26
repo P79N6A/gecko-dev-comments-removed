@@ -540,11 +540,6 @@ struct nsStyleBackground {
   nscolor mBackgroundColor;       
 
   
-  
-  
-  uint8_t mBackgroundInlinePolicy; 
-
-  
   bool IsTransparent() const;
 
   
