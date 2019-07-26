@@ -76,6 +76,8 @@ class WindowsDllNopSpacePatcher
   byteptr_t mPatchedFns[maxPatchedFns];
   int mPatchedFnsLen;
 
+  static const uint16_t opTrampolineShortJump = 0xf9eb;
+
 public:
   WindowsDllNopSpacePatcher()
     : mModule(0)
@@ -88,6 +90,11 @@ public:
 
     for (int i = 0; i < mPatchedFnsLen; i++) {
       byteptr_t fn = mPatchedFns[i];
+
+      
+      if (*((uint16_t*)fn) != opTrampolineShortJump) {
+        continue;
+      }
 
       
       DWORD op;
@@ -190,7 +197,7 @@ public:
     *origFunc = fn + 2;
 
     
-    *((uint16_t*)(fn)) = 0xf9eb; 
+    *((uint16_t*)(fn)) = opTrampolineShortJump; 
 
     
     FlushInstructionCache(GetCurrentProcess(),
@@ -230,6 +237,25 @@ public:
 #error "Unknown processor type"
 #endif
       byteptr_t origBytes = *((byteptr_t *)p);
+
+      
+      if (!origBytes) {
+        continue;
+      }
+
+      
+#if defined(_M_IX86)
+      if (*origBytes != opTrampolineRelativeJump) {
+        continue;
+      }
+#elif defined(_M_X64)
+      if (*((uint16_t*)origBytes) != opTrampolineRegLoad) {
+        continue;
+      }
+#else
+#error "Unknown processor type"
+#endif
+
       
       DWORD op;
       if (!VirtualProtectEx(GetCurrentProcess(), origBytes, nBytes, PAGE_EXECUTE_READWRITE, &op)) {
@@ -318,6 +344,9 @@ public:
 protected:
   const static int kPageSize = 4096;
   const static int kHookSize = 128;
+
+  const static uint8_t opTrampolineRelativeJump = 0xe9;
+  const static uint16_t opTrampolineRegLoad = 0xbb49;
 
   HMODULE mModule;
   byteptr_t mHookPage;
@@ -561,15 +590,14 @@ protected:
       
       *((intptr_t*)(tramp+pJmp32+1)) += origBytes - tramp;
     } else {
-      tramp[nBytes] = 0xE9; 
+      tramp[nBytes] = opTrampolineRelativeJump; 
       *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
     }
 #elif defined(_M_X64)
     
     if (pJmp32 >= 0) {
       
-      tramp[pJmp32]   = 0x49;
-      tramp[pJmp32+1] = 0xbb;
+      *((uint16_t*)(tramp+pJmp32)) = opTrampolineRegLoad;
       *((intptr_t*)(tramp+pJmp32+2)) = (intptr_t)directJmpAddr;
 
       
@@ -578,8 +606,7 @@ protected:
       tramp[pJmp32+12] = 0xe3;
     } else {
       
-      tramp[nBytes] = 0x49;
-      tramp[nBytes+1] = 0xbb;
+      *((uint16_t*)(tramp+nBytes)) = opTrampolineRegLoad;
       *((intptr_t*)(tramp+nBytes+2)) = (intptr_t)trampDest;
 
       
@@ -601,13 +628,11 @@ protected:
 
 #if defined(_M_IX86)
     
-    origBytes[0] = 0xE9; 
+    origBytes[0] = opTrampolineRelativeJump; 
     *((intptr_t*)(origBytes+1)) = dest - (intptr_t)(origBytes+5); 
 #elif defined(_M_X64)
     
-    origBytes[0] = 0x49;
-    origBytes[1] = 0xbb;
-
+    *((uint16_t*)(origBytes)) = opTrampolineRegLoad;
     *((intptr_t*)(origBytes+2)) = dest;
 
     
