@@ -13,6 +13,7 @@
 #include "gfxMatrix.h"
 #include "nsContentUtils.h" 
 #include "SVGContentUtils.h"
+#include "SVGAngle.h"
 
 using namespace mozilla;
 
@@ -40,7 +41,7 @@ nsSVGElement::EnumInfo nsSVGMarkerElement::sEnumInfo[1] =
 
 nsSVGElement::AngleInfo nsSVGMarkerElement::sAngleInfo[1] =
 {
-  { &nsGkAtoms::orient, 0, nsIDOMSVGAngle::SVG_ANGLETYPE_UNSPECIFIED }
+  { &nsGkAtoms::orient, 0, SVG_ANGLETYPE_UNSPECIFIED }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(Marker)
@@ -170,7 +171,7 @@ NS_IMETHODIMP nsSVGMarkerElement::GetOrientType(nsIDOMSVGAnimatedEnumeration * *
 }
 
 
-NS_IMETHODIMP nsSVGMarkerElement::GetOrientAngle(nsIDOMSVGAnimatedAngle * *aOrientAngle)
+NS_IMETHODIMP nsSVGMarkerElement::GetOrientAngle(nsISupports * *aOrientAngle)
 {
   return mAngleAttributes[ORIENT].ToDOMAnimatedAngle(aOrientAngle, this);
 }
@@ -184,14 +185,13 @@ NS_IMETHODIMP nsSVGMarkerElement::SetOrientToAuto()
 }
 
 
-NS_IMETHODIMP nsSVGMarkerElement::SetOrientToAngle(nsIDOMSVGAngle *angle)
+NS_IMETHODIMP nsSVGMarkerElement::SetOrientToAngle(nsISupports *aAngle)
 {
+  nsCOMPtr<dom::SVGAngle> angle = do_QueryInterface(aAngle);
   if (!angle)
     return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;
 
-  float f;
-  nsresult rv = angle->GetValue(&f);
-  NS_ENSURE_SUCCESS(rv, rv);
+  float f = angle->Value();
   NS_ENSURE_FINITE(f, NS_ERROR_DOM_SVG_WRONG_TYPE_ERR);
   mAngleAttributes[ORIENT].SetBaseValue(f, this, true);
 
