@@ -1397,10 +1397,17 @@ var BrowserApp = {
         if (!shouldShowProgress(url))
           params.showProgress = false;
 
-        if (data.newTab)
+        if (data.newTab) {
           this.addTab(url, params);
-        else
+        } else {
+          if (data.tabId) {
+            
+            let specificBrowser = this.getTabForId(data.tabId).browser;
+            if (specificBrowser)
+              browser = specificBrowser;
+          }
           this.loadURI(url, browser, params);
+        }
         break;
       }
 

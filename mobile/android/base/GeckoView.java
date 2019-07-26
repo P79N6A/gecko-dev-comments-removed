@@ -29,6 +29,10 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class GeckoView extends LayerView
     implements GeckoEventListener, ContextGetter {
 
@@ -90,13 +94,67 @@ public class GeckoView extends LayerView
         }
     }
 
-    public void loadUrl(String uri) {
-        Tabs.getInstance().loadUrl(uri);
+    
+
+
+
+    public Browser addBrowser(String url) {
+        Tab tab = Tabs.getInstance().loadUrl(url, Tabs.LOADURL_NEW_TAB);
+        if (tab != null) {
+            return new Browser(tab.getId());
+        }
+        return null;
     }
 
-    public void loadUrlInNewTab(String uri) {
-        Tabs.getInstance().loadUrl(uri, Tabs.LOADURL_NEW_TAB);
-     }
+    
+
+
+
+    public void removeBrowser(Browser browser) {
+        Tab tab = Tabs.getInstance().getTab(browser.getId());
+        if (tab != null) {
+            Tabs.getInstance().closeTab(tab);
+        }
+    }
+
+    
+
+
+
+    public void setCurrentBrowser(Browser browser) {
+        Tab tab = Tabs.getInstance().getTab(browser.getId());
+        if (tab != null) {
+            Tabs.getInstance().selectTab(tab.getId());
+        }
+    }
+
+    
+
+
+
+    public Browser getCurrentBrowser() {
+        Tab tab = Tabs.getInstance().getSelectedTab();
+        if (tab != null) {
+            return new Browser(tab.getId());
+        }
+        return null;
+    }
+
+    
+
+
+
+    public List<Browser> getBrowsers() {
+        ArrayList<Browser> browsers = new ArrayList<Browser>();
+        Iterable<Tab> tabs = Tabs.getInstance().getTabsInOrder();
+        for (Tab tab : tabs) {
+            browsers.add(new Browser(tab.getId()));
+        }
+        return Collections.unmodifiableList(browsers);
+    }
+
+    
+
 
     public void handleMessage(String event, JSONObject message) {
         if (event.equals("Gecko:Ready")) {
@@ -118,5 +176,111 @@ public class GeckoView extends LayerView
 
     public static GeckoAppShell.GeckoInterface getGeckoInterface() {
         return GeckoAppShell.getGeckoInterface();
+    }
+
+    
+
+
+
+    public class Browser {
+        private final int mId;
+        private Browser(int Id) {
+            mId = Id;
+        }
+
+        
+
+
+
+
+        private int getId() {
+            return mId;
+        }
+
+        
+
+
+
+        public void loadUrl(String url) {
+            JSONObject args = new JSONObject();
+            try {
+                args.put("url", url);
+                args.put("parentId", -1);
+                args.put("newTab", false);
+                args.put("tabID", mId);
+            } catch (Exception e) {
+                Log.w(LOGTAG, "Error building JSON arguments for loadUrl.", e);
+            }
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Load", args.toString()));
+        }
+
+        
+
+
+
+        public void reload() {
+            Tab tab = Tabs.getInstance().getTab(mId);
+            if (tab != null) {
+                tab.doReload();
+            }
+        }
+
+        
+
+
+        public void stop() {
+            Tab tab = Tabs.getInstance().getTab(mId);
+            if (tab != null) {
+                tab.doStop();
+            }
+        }
+
+        
+
+
+
+
+
+        public boolean canGoBack() {
+            Tab tab = Tabs.getInstance().getTab(mId);
+            if (tab != null) {
+                return tab.canDoBack();
+            }
+            return false;
+        }
+
+        
+
+
+        public void goBack() {
+            Tab tab = Tabs.getInstance().getTab(mId);
+            if (tab != null) {
+                tab.doBack();
+            }
+        }
+
+        
+
+
+
+
+
+        public boolean canGoForward() {
+            Tab tab = Tabs.getInstance().getTab(mId);
+            if (tab != null) {
+                return tab.canDoForward();
+            }
+            return false;
+        }
+
+        
+
+
+        public void goForward() {
+            Tab tab = Tabs.getInstance().getTab(mId);
+            if (tab != null) {
+                tab.doForward();
+            }
+        }
     }
 }
