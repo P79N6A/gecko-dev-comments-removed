@@ -108,7 +108,7 @@ private:
     Release();
   }
 
-  CompositableForwarder* mForwarder;
+  RefPtr<CompositableForwarder> mForwarder;
   TextureClientData* mTextureData;
   TextureClient* mTextureClient;
   bool mIPCOpen;
@@ -305,9 +305,8 @@ TextureClient::Finalize()
 
   if (actor) {
     
-    if (actor->GetForwarder()) {
-      actor->GetForwarder()->RemoveTexture(this);
-    }
+    actor->GetForwarder()->RemoveTexture(this);
+
     
     actor->mTextureClient = nullptr;
   }
