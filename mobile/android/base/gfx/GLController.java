@@ -87,15 +87,6 @@ public class GLController {
         }
 
         mEGLConfig = chooseConfig();
-
-        
-        
-        mView.post(new Runnable() {
-            @Override
-            public void run() {
-                mView.setViewportSize(mWidth, mHeight);
-            }
-        });
     }
 
     private EGLConfig chooseConfig() {
