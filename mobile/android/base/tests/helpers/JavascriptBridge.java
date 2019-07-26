@@ -22,6 +22,38 @@ import org.mozilla.gecko.tests.UITestContext;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class JavascriptBridge {
 
     private static enum MessageStatus {
