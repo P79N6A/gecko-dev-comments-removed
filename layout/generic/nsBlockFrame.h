@@ -384,6 +384,11 @@ protected:
     }
     aLine->Destroy(PresContext()->PresShell());
   }
+  
+
+
+  void RemoveFrameFromLine(nsIFrame* aChild, nsLineList::iterator aLine,
+                           nsFrameList& aFrameList, nsLineList& aLineList);
 
   void TryAllLines(nsLineList::iterator* aIterator,
                    nsLineList::iterator* aStartIterator,
