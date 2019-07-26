@@ -40,7 +40,7 @@ function toolRegistered(event, toolId)
 {
   is(toolId, "test-tool", "tool-registered event handler sent tool id");
 
-  ok(gDevTools.getToolDefinitions().has(toolId), "tool added to map");
+  ok(gDevTools.getToolDefinitionMap().has(toolId), "tool added to map");
 
   
   let doc = toolbox.frame.contentDocument;
@@ -81,7 +81,7 @@ function toolUnregistered(event, toolId)
 {
   is(toolId, "test-tool", "tool-unregistered event handler sent tool id");
 
-  ok(!gDevTools.getToolDefinitions().has(toolId), "tool removed from map");
+  ok(!gDevTools.getToolDefinitionMap().has(toolId), "tool removed from map");
 
   
   let doc = toolbox.frame.contentDocument;

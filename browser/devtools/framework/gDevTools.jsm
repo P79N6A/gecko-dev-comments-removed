@@ -104,7 +104,7 @@ DevTools.prototype = {
 
 
 
-  getToolDefinitions: function DT_getToolDefinitions() {
+  getToolDefinitionMap: function DT_getToolDefinitionMap() {
     let tools = new Map();
 
     for (let [key, value] of this._tools) {
@@ -121,6 +121,31 @@ DevTools.prototype = {
       }
     }
     return tools;
+  },
+
+  
+
+
+
+
+
+
+
+  getToolDefinitionArray: function DT_getToolDefinitionArray() {
+    const MAX_ORDINAL = 99;
+
+    let definitions = [];
+    for (let [id, definition] of this.getToolDefinitionMap()) {
+      definitions.push(definition);
+    }
+
+    definitions.sort(function(d1, d2) {
+      let o1 = (typeof d1.ordinal == "number") ? d1.ordinal : MAX_ORDINAL;
+      let o2 = (typeof d2.ordinal == "number") ? d2.ordinal : MAX_ORDINAL;
+      return o1 - o2;
+    });
+
+    return definitions;
   },
 
   
@@ -323,8 +348,43 @@ let gDevToolsBrowser = {
 
 
   _addToolToWindows: function DT_addToolToWindows(toolDefinition) {
+    
+    
+    let allDefs = gDevTools.getToolDefinitionArray();
+    let prevDef;
+    for (let def of allDefs) {
+      if (def === toolDefinition) {
+        break;
+      }
+      prevDef = def;
+    }
+
     for (let win of gDevToolsBrowser._trackedBrowserWindows) {
-      gDevToolsBrowser._addToolToMenu(toolDefinition, win.document);
+      let doc = win.document;
+      let elements = gDevToolsBrowser._createToolMenuElements(toolDefinition, doc);
+
+      doc.getElementById("mainCommandSet").appendChild(elements.cmd);
+
+      if (elements.key) {
+        doc.getElementById("mainKeyset").appendChild(elements.key);
+      }
+
+      doc.getElementById("mainBroadcasterSet").appendChild(elements.bc);
+
+      let amp = doc.getElementById("appmenu_webDeveloper_popup");
+      if (amp) {
+        let ref = (prevDef != null) ?
+            doc.getElementById("appmenuitem_" + prevDef.id).nextSibling :
+            doc.getElementById("appmenu_devtools_separator");
+
+        amp.insertBefore(elements.appmenuitem, ref);
+      }
+
+      let mp = doc.getElementById("menuWebDeveloperPopup");
+      let ref = (prevDef != null) ?
+          doc.getElementById("menuitem_" + prevDef.id).nextSibling :
+          doc.getElementById("menu_devtools_separator");
+      mp.insertBefore(elements.menuitem, ref);
     }
   },
 
@@ -341,22 +401,20 @@ let gDevToolsBrowser = {
     let fragAppMenuItems = doc.createDocumentFragment();
     let fragMenuItems = doc.createDocumentFragment();
 
-    for (let [key, toolDefinition] of gDevTools._tools) {
-      let frags = gDevToolsBrowser._addToolToMenu(toolDefinition, doc, true);
+    for (let toolDefinition of gDevTools.getToolDefinitionArray()) {
+      let elements = gDevToolsBrowser._createToolMenuElements(toolDefinition, doc);
 
-      if (!frags) {
+      if (!elements) {
         return;
       }
 
-      let [cmd, key, bc, appmenuitem, menuitem] = frags;
-
-      fragCommands.appendChild(cmd);
-      if (key) {
-        fragKeys.appendChild(key);
+      fragCommands.appendChild(elements.cmd);
+      if (elements.key) {
+        fragKeys.appendChild(elements.key);
       }
-      fragBroadcasters.appendChild(bc);
-      fragAppMenuItems.appendChild(appmenuitem);
-      fragMenuItems.appendChild(menuitem);
+      fragBroadcasters.appendChild(elements.bc);
+      fragAppMenuItems.appendChild(elements.appmenuitem);
+      fragMenuItems.appendChild(elements.menuitem);
     }
 
     let mcs = doc.getElementById("mainCommandSet");
@@ -387,10 +445,7 @@ let gDevToolsBrowser = {
 
 
 
-
-
-
-  _addToolToMenu: function DT_addToolToMenu(toolDefinition, doc, noAppend) {
+  _createToolMenuElements: function DT_createToolMenuElements(toolDefinition, doc) {
     let id = toolDefinition.id;
 
     
@@ -439,30 +494,13 @@ let gDevToolsBrowser = {
       menuitem.setAttribute("accesskey", toolDefinition.accesskey);
     }
 
-    if (noAppend) {
-      return [cmd, key, bc, appmenuitem, menuitem];
-    } else {
-      let mcs = doc.getElementById("mainCommandSet");
-      mcs.appendChild(cmd);
-
-      if (key) {
-        let mks = doc.getElementById("mainKeyset");
-        mks.appendChild(key);
-      }
-
-      let mbs = doc.getElementById("mainBroadcasterSet");
-      mbs.appendChild(bc);
-
-      let amp = doc.getElementById("appmenu_webDeveloper_popup");
-      if (amp) {
-        let amps = doc.getElementById("appmenu_devtools_separator");
-        amp.insertBefore(appmenuitem, amps);
-      }
-
-      let mp = doc.getElementById("menuWebDeveloperPopup");
-      let mps = doc.getElementById("menu_devtools_separator");
-      mp.insertBefore(menuitem, mps);
-    }
+    return {
+      cmd: cmd,
+      key: key,
+      bc: bc,
+      appmenuitem: appmenuitem,
+      menuitem: menuitem
+    };
   },
 
   
