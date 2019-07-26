@@ -736,7 +736,7 @@ Element::RemoveFromIdTable(nsIAtom* aId)
     }
   } else {
     nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
+    if (doc && (!IsInAnonymousSubtree() || doc->IsXUL())) {
       
       
       
