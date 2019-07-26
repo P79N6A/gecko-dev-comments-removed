@@ -60,8 +60,9 @@ ThrowErrorMessage(JSContext* aCx, const ErrNum aErrorNumber, ...)
 }
 
 bool
-ThrowInvalidMethodThis(JSContext* aCx, const JS::CallArgs& aArgs,
-                       const char* aInterfaceName)
+ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
+                 const ErrNum aErrorNumber,
+                 const char* aInterfaceName)
 {
   NS_ConvertASCIItoUTF16 ifaceName(aInterfaceName);
   
@@ -73,30 +74,8 @@ ThrowInvalidMethodThis(JSContext* aCx, const JS::CallArgs& aArgs,
   JS::Rooted<JSString*> funcName(aCx, JS_GetFunctionDisplayId(func));
   MOZ_ASSERT(funcName);
   JS_ReportErrorNumberUC(aCx, GetErrorMessage, nullptr,
-                         static_cast<const unsigned>(MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE),
+                         static_cast<const unsigned>(aErrorNumber),
                          JS_GetStringCharsZ(aCx, funcName),
-                         ifaceName.get());
-  return false;
-}
-
-bool
-ThrowInvalidGetterThis(JSContext* aCx, const char* aInterfaceName)
-{
-  
-  NS_ConvertASCIItoUTF16 ifaceName(aInterfaceName);
-  JS_ReportErrorNumberUC(aCx, GetErrorMessage, nullptr,
-                         static_cast<const unsigned>(MSG_GETTER_THIS_DOES_NOT_IMPLEMENT_INTERFACE),
-                         ifaceName.get());
-  return false;
-}
-
-bool
-ThrowInvalidSetterThis(JSContext* aCx, const char* aInterfaceName)
-{
-  
-  NS_ConvertASCIItoUTF16 ifaceName(aInterfaceName);
-  JS_ReportErrorNumberUC(aCx, GetErrorMessage, nullptr,
-                         static_cast<const unsigned>(MSG_SETTER_THIS_DOES_NOT_IMPLEMENT_INTERFACE),
                          ifaceName.get());
   return false;
 }
