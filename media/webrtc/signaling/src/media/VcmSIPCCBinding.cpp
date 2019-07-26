@@ -43,6 +43,7 @@
 
 #ifdef MOZ_WEBRTC_OMX
 #include "OMXVideoCodec.h"
+#include "OMXCodecWrapper.h"
 #endif
 
 extern "C" {
@@ -88,6 +89,7 @@ using namespace CSF;
 VcmSIPCCBinding * VcmSIPCCBinding::gSelf = nullptr;
 int VcmSIPCCBinding::gAudioCodecMask = 0;
 int VcmSIPCCBinding::gVideoCodecMask = 0;
+int VcmSIPCCBinding::gVideoCodecGmpMask = 0;
 nsIThread *VcmSIPCCBinding::gMainThread = nullptr;
 nsIEventTarget *VcmSIPCCBinding::gSTSThread = nullptr;
 nsCOMPtr<nsIPrefBranch> VcmSIPCCBinding::gBranch = nullptr;
@@ -224,6 +226,12 @@ void VcmSIPCCBinding::setVideoCodecs(int codecMask)
   VcmSIPCCBinding::gVideoCodecMask = codecMask;
 }
 
+void VcmSIPCCBinding::addVideoCodecsGmp(int codecMask)
+{
+  CSFLogDebug(logTag, "ADDING VIDEO: %d", codecMask);
+  VcmSIPCCBinding::gVideoCodecGmpMask |= codecMask;
+}
+
 int VcmSIPCCBinding::getAudioCodecs()
 {
   return VcmSIPCCBinding::gAudioCodecMask;
@@ -232,6 +240,35 @@ int VcmSIPCCBinding::getAudioCodecs()
 int VcmSIPCCBinding::getVideoCodecs()
 {
   return VcmSIPCCBinding::gVideoCodecMask;
+}
+
+int VcmSIPCCBinding::getVideoCodecsGmp()
+{
+  return VcmSIPCCBinding::gVideoCodecGmpMask;
+}
+
+int VcmSIPCCBinding::getVideoCodecsHw()
+{
+  
+  
+
+  
+  
+  
+#ifdef MOZ_WEBRTC_OMX
+  android::sp<android::OMXCodecReservation> encode = new android::OMXCodecReservation(true);
+  android::sp<android::OMXCodecReservation> decode = new android::OMXCodecReservation(false);
+
+  
+  
+  
+  if (encode->ReserveOMXCodec() && decode->ReserveOMXCodec()) {
+    CSFLogDebug( logTag, "%s: H264 hardware codec available", __FUNCTION__);
+    return VCM_CODEC_RESOURCE_H264;
+  }
+#endif
+
+  return 0;
 }
 
 void VcmSIPCCBinding::setMainThread(nsIThread *thread)
@@ -2725,12 +2762,29 @@ int vcmGetVideoCodecList(int request_type)
     CSFLogDebug( logTag, "%s(codec_mask = %X)", fname, codecMask);
 
     
-        return VCM_CODEC_RESOURCE_H264;
+    return VCM_CODEC_RESOURCE_H264;
 #else
-  int codecMask = VcmSIPCCBinding::getVideoCodecs();
-  CSFLogDebug(logTag, "GetVideoCodecList returning %X", codecMask);
+  
+  
+  
+  
+  
+  
 
-  return codecMask;
+    int codecMask;
+    switch (request_type) {
+      case VCM_DSP_FULLDUPLEX_HW:
+        codecMask = VcmSIPCCBinding::getVideoCodecsHw();
+        break;
+      case VCM_DSP_FULLDUPLEX_GMP:
+        codecMask = VcmSIPCCBinding::getVideoCodecsGmp();
+        break;
+      default: 
+        codecMask = VcmSIPCCBinding::getVideoCodecs();
+        break;
+    }
+    CSFLogDebug(logTag, "GetVideoCodecList returning %X", codecMask);
+    return codecMask;
 #endif
 }
 
