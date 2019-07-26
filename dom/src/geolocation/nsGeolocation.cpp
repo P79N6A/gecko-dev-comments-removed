@@ -789,12 +789,104 @@ nsGeolocationService::Observe(nsISupports* aSubject,
 NS_IMETHODIMP
 nsGeolocationService::Update(nsIDOMGeoPosition *aSomewhere)
 {
+  
+  
+
+  if (!IsBetterPosition(aSomewhere))
+    return NS_OK;
+
   SetCachedPosition(aSomewhere);
 
   for (uint32_t i = 0; i< mGeolocators.Length(); i++) {
     mGeolocators[i]->Update(aSomewhere);
   }
   return NS_OK;
+}
+
+PRBool
+nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
+{
+  if (!aSomewhere) {
+    return false;
+  }
+  
+  if (mProviders.Count() == 1 || !mLastPosition) {
+    return true;
+  }
+
+  nsCOMPtr<nsIDOMGeoPositionCoords> coords;
+  mLastPosition->GetCoords(getter_AddRefs(coords));
+  if (!coords) {
+    return false;
+  }
+
+  double oldAccuracy;
+  nsresult rv = coords->GetAccuracy(&oldAccuracy);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  double oldLat, oldLon;
+  rv = coords->GetLongitude(&oldLon);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  rv = coords->GetLatitude(&oldLat);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  aSomewhere->GetCoords(getter_AddRefs(coords));
+  if (!coords) {
+    return false;
+  }
+
+  double newAccuracy;
+  rv = coords->GetAccuracy(&newAccuracy);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  double newLat, newLon;
+  rv = coords->GetLongitude(&newLon);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  rv = coords->GetLatitude(&newLat);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  
+  
+  double radsInDeg = M_PI / 180.0;
+
+  newLat *= radsInDeg;
+  newLon *= radsInDeg;
+  oldLat *= radsInDeg;
+  oldLon *= radsInDeg;
+
+  
+  
+  double radius = 6378137;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  double delta = acos( (sin(newLat) * sin(oldLat)) +
+                       (cos(newLat) * cos(oldLat) * cos(oldLon - newLon)) ) * radius; 
+
+  
+  
+  
+  double max_accuracy = NS_MAX(oldAccuracy, newAccuracy);
+  if (delta > max_accuracy)
+    return true;
+
+  
+  if (oldAccuracy >= newAccuracy)
+    return true;
+
+  return false;
 }
 
 void
