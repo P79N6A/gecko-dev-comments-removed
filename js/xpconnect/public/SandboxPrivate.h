@@ -7,11 +7,13 @@
 
 #include "nsIGlobalObject.h"
 #include "nsIPrincipal.h"
+#include "nsWeakReference.h"
 
 
 
 
-class SandboxPrivate : public nsIGlobalObject
+class SandboxPrivate : public nsIGlobalObject,
+                       public nsSupportsWeakReference
 {
 public:
     SandboxPrivate(nsIPrincipal *principal, JSObject *global)
