@@ -169,8 +169,9 @@ NS_IMPL_ISUPPORTS3(VectorImage,
 
 
 
-VectorImage::VectorImage(imgStatusTracker* aStatusTracker) :
-  Image(aStatusTracker), 
+VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
+                         nsIURI* aURI ) :
+  Image(aStatusTracker, aURI), 
   mRestrictedRegion(0, 0, 0, 0),
   mIsInitialized(false),
   mIsFullyLoaded(false),
@@ -190,7 +191,6 @@ VectorImage::~VectorImage()
 nsresult
 VectorImage::Init(imgIDecoderObserver* aObserver,
                   const char* aMimeType,
-                  const char* aURIString,
                   uint32_t aFlags)
 {
   

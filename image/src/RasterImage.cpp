@@ -352,8 +352,9 @@ NS_IMPL_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,
 #endif
 
 
-RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
-  Image(aStatusTracker), 
+RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
+                         nsIURI* aURI ) :
+  Image(aStatusTracker, aURI), 
   mSize(0,0),
   mFrameDecodeFlags(DECODE_FLAGS_DEFAULT),
   mAnim(nullptr),
@@ -441,7 +442,6 @@ RasterImage::Initialize()
 nsresult
 RasterImage::Init(imgIDecoderObserver *aObserver,
                   const char* aMimeType,
-                  const char* aURIString,
                   uint32_t aFlags)
 {
   
@@ -464,7 +464,6 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
   
   mObserver = do_GetWeakReference(aObserver);
   mSourceDataMimeType.Assign(aMimeType);
-  mURIString.Assign(aURIString);
   mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
   mDecodeOnDraw = !!(aFlags & INIT_FLAG_DECODE_ON_DRAW);
   mMultipart = !!(aFlags & INIT_FLAG_MULTIPART);
@@ -688,7 +687,7 @@ RasterImage::ExtractFrame(uint32_t aWhichFrame,
   
   
   
-  img->Init(nullptr, "", "", INIT_FLAG_NONE);
+  img->Init(nullptr, "", INIT_FLAG_NONE);
   img->SetSize(aRegion.width, aRegion.height);
   img->mDecoded = true; 
   img->mHasBeenDecoded = true;

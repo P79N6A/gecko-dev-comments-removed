@@ -71,7 +71,7 @@ NS_IMPL_ISUPPORTS5(imgRequest,
 
 imgRequest::imgRequest(imgLoader* aLoader)
  : mLoader(aLoader)
- , mStatusTracker(new imgStatusTracker(nullptr, this))
+ , mStatusTracker(new imgStatusTracker(nullptr))
  , mValidator(nullptr)
  , mInnerWindowId(0)
  , mCORSMode(imgIRequest::CORS_NONE)
@@ -84,9 +84,6 @@ imgRequest::imgRequest(imgLoader* aLoader)
 
 imgRequest::~imgRequest()
 {
-  
-  GetStatusTracker().ClearRequest();
-
   if (mURI) {
     nsAutoCString spec;
     mURI->GetSpec(spec);
@@ -530,8 +527,10 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 
   
   nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
-  if (mpchan)
-      mIsMultiPartChannel = true;
+  if (mpchan) {
+    mIsMultiPartChannel = true;
+    GetStatusTracker().SetIsMultipart();
+  }
 
   
   NS_ABORT_IF_FALSE(mIsMultiPartChannel || !mImage,
@@ -736,7 +735,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       if (mResniffMimeType) {
         NS_ABORT_IF_FALSE(mIsMultiPartChannel, "Resniffing a non-multipart image");
 
-        imgStatusTracker* freshTracker = new imgStatusTracker(nullptr, this);
+        imgStatusTracker* freshTracker = new imgStatusTracker(nullptr);
         freshTracker->AdoptConsumers(&GetStatusTracker());
         mStatusTracker = freshTracker;
 
@@ -767,8 +766,11 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
 
       
       
-      mImage = ImageFactory::CreateImage(aRequest, mStatusTracker.forget(), mContentType,
+      mImage = ImageFactory::CreateImage(aRequest, mStatusTracker, mContentType,
                                          mURI, mIsMultiPartChannel, mInnerWindowId);
+
+      
+      mStatusTracker = nullptr;
 
       
       

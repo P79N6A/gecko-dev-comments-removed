@@ -148,17 +148,19 @@ imgRequestProxy::~imgRequestProxy()
   }
 }
 
-nsresult imgRequestProxy::Init(imgStatusTracker* aStatusTracker,
+nsresult imgRequestProxy::Init(imgRequest* aOwner,
+                               imgStatusTracker* aStatusTracker,
                                nsILoadGroup* aLoadGroup,
-                               nsIURI* aURI, imgINotificationObserver* aObserver)
+                               nsIURI* aURI,
+                               imgINotificationObserver* aObserver)
 {
   NS_PRECONDITION(!GetOwner() && !mListener, "imgRequestProxy is already initialized");
 
-  LOG_SCOPE_WITH_PARAM(GetImgLog(), "imgRequestProxy::Init", "request", aStatusTracker->GetRequest());
+  LOG_SCOPE_WITH_PARAM(GetImgLog(), "imgRequestProxy::Init", "request", aOwner);
 
   NS_ABORT_IF_FALSE(mAnimationConsumers == 0, "Cannot have animation before Init");
 
-  mBehaviour->SetOwner(aStatusTracker->GetRequest());
+  mBehaviour->SetOwner(aOwner);
   mListener = aObserver;
   
   
@@ -584,7 +586,8 @@ nsresult imgRequestProxy::PerformClone(imgINotificationObserver* aObserver,
   
   
   clone->SetLoadFlags(mLoadFlags);
-  nsresult rv = clone->Init(&GetStatusTracker(), mLoadGroup, mURI, aObserver);
+  nsresult rv = clone->Init(mBehaviour->GetOwner(), &GetStatusTracker(),
+                            mLoadGroup, mURI, aObserver);
   if (NS_FAILED(rv))
     return rv;
 
@@ -679,6 +682,20 @@ NS_IMETHODIMP imgRequestProxy::GetHasTransferredData(bool* hasData)
 
 
 
+void imgRequestProxy::OnStartDecode()
+{
+  
+  
+  if (GetOwner()) {
+    
+    
+    
+    
+    
+    GetOwner()->ResetCacheEntry();
+  }
+}
+
 void imgRequestProxy::OnStartContainer()
 {
   LOG_FUNC(GetImgLog(), "imgRequestProxy::OnStartContainer");
@@ -723,9 +740,15 @@ void imgRequestProxy::OnStopDecode()
     mListener->Notify(this, imgINotificationObserver::DECODE_COMPLETE, nullptr);
   }
 
-  
-  if (GetOwner() && GetOwner()->GetMultipart())
-    mSentStartContainer = false;
+  if (GetOwner()) {
+    
+    
+    GetOwner()->UpdateCacheEntrySize();
+
+    
+    if (GetOwner()->GetMultipart())
+      mSentStartContainer = false;
+  }
 }
 
 void imgRequestProxy::OnDiscard()
@@ -736,6 +759,10 @@ void imgRequestProxy::OnDiscard()
     
     nsCOMPtr<imgINotificationObserver> kungFuDeathGrip(mListener);
     mListener->Notify(this, imgINotificationObserver::DISCARD, nullptr);
+  }
+  if (GetOwner()) {
+    
+    GetOwner()->UpdateCacheEntrySize();
   }
 }
 
@@ -886,7 +913,7 @@ imgRequestProxy::GetStaticRequest(imgRequestProxy** aReturn)
   nsCOMPtr<nsIPrincipal> currentPrincipal;
   GetImagePrincipal(getter_AddRefs(currentPrincipal));
   nsRefPtr<imgRequestProxy> req = new imgRequestProxyStatic(frame, currentPrincipal);
-  req->Init(&frame->GetStatusTracker(), nullptr, mURI, nullptr);
+  req->Init(nullptr, &frame->GetStatusTracker(), nullptr, mURI, nullptr);
 
   NS_ADDREF(*aReturn = req);
 
@@ -902,7 +929,7 @@ void imgRequestProxy::NotifyListener()
 
   if (GetOwner()) {
     
-    GetStatusTracker().Notify(GetOwner(), this);
+    GetStatusTracker().Notify(this);
   } else {
     
     
