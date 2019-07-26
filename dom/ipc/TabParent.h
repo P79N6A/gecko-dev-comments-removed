@@ -66,6 +66,30 @@ public:
     mozIApplication* GetApp() { return mApp; }
     bool IsBrowserElement() { return mIsBrowserElement; }
 
+    
+
+
+
+
+
+
+
+
+
+
+    static TabParent* GetEventCapturer();
+    
+
+
+
+
+
+
+
+
+
+    bool TryCapture(const nsGUIEvent& aEvent);
+
     void Destroy();
 
     virtual bool RecvMoveFocus(const bool& aForward);
@@ -245,6 +269,9 @@ protected:
     nsAutoString mIMECompositionText;
     uint32_t mIMECompositionStart;
     uint32_t mIMESeqno;
+
+    
+    int32_t mEventCaptureDepth;
 
     float mDPI;
     bool mActive;

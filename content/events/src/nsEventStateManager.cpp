@@ -1576,6 +1576,42 @@ nsEventStateManager::IsRemoteTarget(nsIContent* target) {
   return false;
 }
 
+ void
+nsEventStateManager::MapEventCoordinatesForChildProcess(nsFrameLoader* aFrameLoader,
+                                                        nsEvent* aEvent)
+{
+  
+  
+  nsIFrame* targetFrame = aFrameLoader->GetPrimaryFrameOfOwningContent();
+  if (!targetFrame) {
+    return;
+  }
+  nsPresContext* presContext = targetFrame->PresContext();
+
+  if (aEvent->eventStructType != NS_TOUCH_EVENT) {
+    nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent,
+                                                              targetFrame);
+    aEvent->refPoint = pt.ToNearestPixels(presContext->AppUnitsPerDevPixel());
+  } else {
+    aEvent->refPoint = nsIntPoint();
+    
+    nsPoint offset =
+      nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, targetFrame);
+    nsIntPoint intOffset =
+      offset.ToNearestPixels(presContext->AppUnitsPerDevPixel());
+    nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+    
+    
+    const nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
+    for (uint32_t i = 0; i < touches.Length(); ++i) {
+      nsIDOMTouch* touch = touches[i];
+      if (touch) {
+        touch->mRefPoint += intOffset;
+      }
+    }
+  }
+}
+
 bool
 CrossProcessSafeEvent(const nsEvent& aEvent)
 {
@@ -1689,32 +1725,7 @@ nsEventStateManager::HandleCrossProcessEvent(nsEvent *aEvent,
       continue;
     }
 
-    
-    
-    if (aEvent->eventStructType != NS_TOUCH_EVENT) {
-      nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent,
-                                                                aTargetFrame);
-      aEvent->refPoint =
-        pt.ToNearestPixels(mPresContext->AppUnitsPerDevPixel());
-    } else {
-      nsIFrame* targetFrame = frameLoader->GetPrimaryFrameOfOwningContent();
-      aEvent->refPoint = nsIntPoint();
-      
-      nsPoint offset =
-        nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, targetFrame);
-      nsIntPoint intOffset =
-        offset.ToNearestPixels(mPresContext->AppUnitsPerDevPixel());
-      nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
-      
-      
-      const nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
-      for (uint32_t i = 0; i < touches.Length(); ++i) {
-        nsIDOMTouch* touch = touches[i];
-        if (touch) {
-          touch->mRefPoint += intOffset;
-        }
-      }
-    }
+    MapEventCoordinatesForChildProcess(frameLoader, aEvent);
 
     dispatched |= DispatchCrossProcessEvent(aEvent, frameLoader, aStatus);
   }

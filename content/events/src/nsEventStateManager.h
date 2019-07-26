@@ -204,6 +204,9 @@ public:
 
   static bool IsRemoteTarget(nsIContent* aTarget);
 
+  static void MapEventCoordinatesForChildProcess(nsFrameLoader* aFrameLoader,
+                                                 nsEvent* aEvent);
+
   
   
   
