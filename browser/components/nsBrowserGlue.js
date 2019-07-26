@@ -157,9 +157,6 @@ BrowserGlue.prototype = {
   
   observe: function BG_observe(subject, topic, data) {
     switch (topic) {
-      case "xpcom-shutdown":
-        this._dispose();
-        break;
       case "prefservice:after-app-defaults":
         this._onAppDefaults();
         break;
@@ -239,7 +236,7 @@ BrowserGlue.prototype = {
           this._isPlacesShutdownObserver = false;
         }
         
-        this._onProfileShutdown();
+        this._onPlacesShutdown();
         break;
       case "idle":
         if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
@@ -290,13 +287,15 @@ BrowserGlue.prototype = {
           }
         }
         break;
+      case "profile-before-change":
+        this._onProfileShutdown();
+        break;
     }
   }, 
 
   
   _init: function BG__init() {
     let os = Services.obs;
-    os.addObserver(this, "xpcom-shutdown", false);
     os.addObserver(this, "prefservice:after-app-defaults", false);
     os.addObserver(this, "final-ui-startup", false);
     os.addObserver(this, "browser-delayed-startup-finished", false);
@@ -322,12 +321,12 @@ BrowserGlue.prototype = {
     this._isPlacesShutdownObserver = true;
     os.addObserver(this, "defaultURIFixup-using-keyword-pref", false);
     os.addObserver(this, "handle-xul-text-link", false);
+    os.addObserver(this, "profile-before-change", false);
   },
 
   
   _dispose: function BG__dispose() {
     let os = Services.obs;
-    os.removeObserver(this, "xpcom-shutdown");
     os.removeObserver(this, "prefservice:after-app-defaults");
     os.removeObserver(this, "final-ui-startup");
     os.removeObserver(this, "sessionstore-windows-restored");
@@ -353,10 +352,7 @@ BrowserGlue.prototype = {
       os.removeObserver(this, "places-shutdown");
     os.removeObserver(this, "defaultURIFixup-using-keyword-pref");
     os.removeObserver(this, "handle-xul-text-link");
-    UserAgentOverrides.uninit();
-    webappsUI.uninit();
-    SignInToWebsiteUX.uninit();
-    webrtcUI.uninit();
+    os.removeObserver(this, "profile-before-change");
   },
 
   _onAppDefaults: function BG__onAppDefaults() {
@@ -425,11 +421,17 @@ BrowserGlue.prototype = {
   },
 
   
+
+
+
+
   _onProfileShutdown: function BG__onProfileShutdown() {
-    this._shutdownPlaces();
-    this._sanitizer.onShutdown();
-    PageThumbs.uninit();
     BrowserNewTabPreloader.uninit();
+    UserAgentOverrides.uninit();
+    webappsUI.uninit();
+    SignInToWebsiteUX.uninit();
+    webrtcUI.uninit();
+    this._dispose();
   },
 
   
@@ -1030,13 +1032,15 @@ BrowserGlue.prototype = {
 
 
 
+  _onPlacesShutdown: function BG__onPlacesShutdown() {
+    this._sanitizer.onShutdown();
+    PageThumbs.uninit();
 
-
-  _shutdownPlaces: function BG__shutdownPlaces() {
     if (this._isIdleObserver) {
       this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
       this._isIdleObserver = false;
     }
+
     this._backupBookmarks();
 
     
