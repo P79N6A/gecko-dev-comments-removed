@@ -15,8 +15,7 @@ const TELEMETRY_HISTOGRAM_ID_PREFIX = "FX_THUMBNAILS_BG_";
 
 const TEL_CAPTURE_DONE_OK = 0;
 const TEL_CAPTURE_DONE_TIMEOUT = 1;
-const TEL_CAPTURE_DONE_PB_BEFORE_START = 2;
-const TEL_CAPTURE_DONE_PB_AFTER_START = 3;
+
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const HTML_NS = "http://www.w3.org/1999/xhtml";
@@ -25,7 +24,6 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/PageThumbs.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 const BackgroundPageThumbs = {
 
@@ -88,32 +86,20 @@ const BackgroundPageThumbs = {
 
     this._startedParentWinInit = true;
 
-    PrivateBrowsingUtils.whenHiddenPrivateWindowReady(function (parentWin) {
-      parentWin.addEventListener("unload", function (event) {
-        if (event.target == parentWin.document)
-          this._destroy();
-      }.bind(this), true);
-
-      if (canHostBrowser(parentWin)) {
-        this._parentWin = parentWin;
-        this._processCaptureQueue();
-        return;
-      }
-
-      
-      
-      
-      let iframe = parentWin.document.createElementNS(HTML_NS, "iframe");
-      iframe.setAttribute("src", "chrome://global/content/mozilla.xhtml");
-      let onLoad = function onLoadFn() {
-        iframe.removeEventListener("load", onLoad, true);
-        this._parentWin = iframe.contentWindow;
-        this._processCaptureQueue();
-      }.bind(this);
-      iframe.addEventListener("load", onLoad, true);
-      parentWin.document.documentElement.appendChild(iframe);
-      this._hostIframe = iframe;
-    }.bind(this));
+    
+    
+    
+    let hostWindow = Services.appShell.hiddenDOMWindow;
+    let iframe = hostWindow.document.createElementNS(HTML_NS, "iframe");
+    iframe.setAttribute("src", "chrome://global/content/mozilla.xhtml");
+    let onLoad = function onLoadFn() {
+      iframe.removeEventListener("load", onLoad, true);
+      this._parentWin = iframe.contentWindow;
+      this._processCaptureQueue();
+    }.bind(this);
+    iframe.addEventListener("load", onLoad, true);
+    hostWindow.document.documentElement.appendChild(iframe);
+    this._hostIframe = iframe;
 
     return false;
   },
@@ -144,7 +130,6 @@ const BackgroundPageThumbs = {
     let browser = this._parentWin.document.createElementNS(XUL_NS, "browser");
     browser.setAttribute("type", "content");
     browser.setAttribute("remote", "true");
-    browser.setAttribute("privatebrowsing", "true");
 
     
     
@@ -251,20 +236,6 @@ Capture.prototype = {
     tel("CAPTURE_QUEUE_TIME_MS", this.startDate - this.creationDate);
 
     
-    
-    
-    
-    
-    
-    Services.ww.registerNotification(this);
-    if (isPrivateBrowsingActive()) {
-      tel("CAPTURE_DONE_REASON", TEL_CAPTURE_DONE_PB_BEFORE_START);
-      
-      schedule(() => this._done(null));
-      return;
-    }
-
-    
     let timeout = typeof(this.options.timeout) == "number" ?
                   this.options.timeout :
                   DEFAULT_CAPTURE_TIMEOUT;
@@ -317,13 +288,6 @@ Capture.prototype = {
     this._done(null);
   },
 
-  
-  observe: function (subj, topic, data) {
-    if (topic == "domwindowopened" &&
-        PrivateBrowsingUtils.isWindowPrivate(subj))
-      this._privateWinOpenedDuringCapture = true;
-  },
-
   _done: function (data) {
     
     
@@ -350,50 +314,17 @@ Capture.prototype = {
       }
     }.bind(this);
 
-    if (!data || this._privateWinOpenedDuringCapture) {
-      if (this._privateWinOpenedDuringCapture)
-        tel("CAPTURE_DONE_REASON", TEL_CAPTURE_DONE_PB_AFTER_START);
+    if (!data) {
       callOnDones();
       return;
     }
+
     PageThumbs._store(this.url, data.finalURL, data.imageData, data.wasErrorResponse)
               .then(callOnDones);
   },
 };
 
 Capture.nextID = 0;
-
-
-
-
-
-
-
-function canHostBrowser(win) {
-  
-  
-  
-  
-  
-  
-  let principal = win.document.nodePrincipal;
-  if (!Services.scriptSecurityManager.isSystemPrincipal(principal))
-    return false;
-  let permResult = Services.perms.testPermissionFromPrincipal(principal,
-                                                              "allowXULXBL");
-  return permResult == Ci.nsIPermissionManager.ALLOW_ACTION;
-}
-
-
-
-
-function isPrivateBrowsingActive() {
-  let wins = Services.ww.getWindowEnumerator();
-  while (wins.hasMoreElements())
-    if (PrivateBrowsingUtils.isWindowPrivate(wins.getNext()))
-      return true;
-  return false;
-}
 
 
 
