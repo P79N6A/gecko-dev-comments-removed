@@ -126,34 +126,6 @@ Wrapper::~Wrapper()
 {
 }
 
-
-
-
-
-
-
-
-
-
-
-bool
-Wrapper::defaultValue(JSContext *cx, HandleObject wrapper, JSType hint, MutableHandleValue vp)
-{
-    if (!wrapperHandler(wrapper)->isSafeToUnwrap())
-        return DefaultValue(cx, wrapper, hint, vp);
-
-    
-
-
-
-
-
-
-
-    AutoCompartment call(cx, wrappedObject(wrapper));
-    return DirectProxyHandler::defaultValue(cx, wrapper, hint, vp);
-}
-
 Wrapper Wrapper::singleton((unsigned)0);
 Wrapper Wrapper::singletonWithPrototype((unsigned)0, true);
 
@@ -608,9 +580,10 @@ bool
 CrossCompartmentWrapper::defaultValue(JSContext *cx, HandleObject wrapper, JSType hint,
                                       MutableHandleValue vp)
 {
-    if (!Wrapper::defaultValue(cx, wrapper, hint, vp))
-        return false;
-    return cx->compartment->wrap(cx, vp);
+    PIERCE(cx, wrapper,
+           NOTHING,
+           Wrapper::defaultValue(cx, wrapper, hint, vp),
+           cx->compartment->wrap(cx, vp));
 }
 
 bool
@@ -682,6 +655,17 @@ SecurityWrapper<Base>::nativeCall(JSContext *cx, IsAcceptableThis test, NativeIm
 {
     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_UNWRAP_DENIED);
     return false;
+}
+
+
+
+
+template <class Base>
+bool
+SecurityWrapper<Base>::defaultValue(JSContext *cx, HandleObject wrapper,
+                                    JSType hint, MutableHandleValue vp)
+{
+    return DefaultValue(cx, wrapper, hint, vp);
 }
 
 template <class Base>
