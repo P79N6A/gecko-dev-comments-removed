@@ -19,6 +19,76 @@ class nsStyleContext;
 class nsPresContext;
 class nsRenderingContext;
 
+namespace mozilla {
+
+
+
+
+
+struct CSSSizeOrRatio
+{
+  CSSSizeOrRatio()
+    : mRatio(0, 0)
+    , mHasWidth(false)
+    , mHasHeight(false) {}
+
+  bool CanComputeConcreteSize() const
+  {
+    return mHasWidth + mHasHeight + HasRatio() >= 2;
+  }
+  bool IsConcrete() const { return mHasWidth && mHasHeight; }
+  bool HasRatio() const { return mRatio.width > 0 && mRatio.height > 0; }
+  bool IsEmpty() const
+  {
+    return (mHasWidth && mWidth <= 0) ||
+           (mHasHeight && mHeight <= 0) ||
+           mRatio.width <= 0 || mRatio.height <= 0; 
+  }
+
+  
+  
+  nsSize ComputeConcreteSize() const;
+
+  void SetWidth(nscoord aWidth)
+  {
+    mWidth = aWidth;
+    mHasWidth = true;
+    if (mHasHeight) {
+      mRatio = nsSize(mWidth, mHeight);
+    }
+  }
+  void SetHeight(nscoord aHeight)
+  {
+    mHeight = aHeight;
+    mHasHeight = true;
+    if (mHasWidth) {
+      mRatio = nsSize(mWidth, mHeight);
+    }
+  }
+  void SetSize(const nsSize& aSize)
+  {
+    mWidth = aSize.width;
+    mHeight = aSize.height;
+    mHasWidth = true;
+    mHasHeight = true;
+    mRatio = aSize;    
+  }
+  void SetRatio(const nsSize& aRatio)
+  {
+    MOZ_ASSERT(!mHasWidth || !mHasHeight,
+               "Probably shouldn't be setting a ratio if we have a concrete size");
+    mRatio = aRatio;
+  }
+
+  nsSize mRatio;
+  nscoord mWidth;
+  nscoord mHeight;
+  bool mHasWidth;
+  bool mHasHeight;
+};
+
+}
+
 
 
 
@@ -36,6 +106,12 @@ public:
     FLAG_SYNC_DECODE_IMAGES = 0x01,
     FLAG_PAINTING_TO_WINDOW = 0x02
   };
+  enum FitType
+  {
+    CONTAIN,
+    COVER
+  };
+
   nsImageRenderer(nsIFrame* aForFrame, const nsStyleImage* aImage, uint32_t aFlags);
   ~nsImageRenderer();
   
@@ -44,13 +120,46 @@ public:
 
 
   bool PrepareImage();
+
   
 
 
 
 
-  nsSize ComputeSize(const nsStyleBackground::Size& aLayerSize,
-                     const nsSize& aBgPositioningArea);
+   
+  
+
+
+
+
+  mozilla::CSSSizeOrRatio ComputeIntrinsicSize();
+
+  
+
+
+
+
+
+  static nsSize ComputeConstrainedSize(const nsSize& aConstrainingSize,
+                                       const nsSize& aIntrinsicRatio,
+                                       FitType aFitType);
+  
+
+
+
+
+  static nsSize ComputeConcreteSize(const mozilla::CSSSizeOrRatio& aSpecifiedSize,
+                                    const mozilla::CSSSizeOrRatio& aIntrinsicSize,
+                                    const nsSize& aDefaultSize);
+
+  
+
+
+
+
+  void SetPreferredSize(const mozilla::CSSSizeOrRatio& aIntrinsicSize,
+                        const nsSize& aDefaultSize);
+
   
 
 
@@ -67,29 +176,6 @@ public:
   already_AddRefed<ImageContainer> GetContainer(LayerManager* aManager);
 
 private:
-  
-
-
-
-
-
-  void ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
-                                 nscoord& aUnscaledWidth, bool& aHaveWidth,
-                                 nscoord& aUnscaledHeight, bool& aHaveHeight,
-                                 nsSize& aRatio);
-
-  
-
-
-
-
-  nsSize
-  ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
-                   const nsSize& aBgPositioningArea,
-                   nscoord aUnscaledWidth, bool aHaveWidth,
-                   nscoord aUnscaledHeight, bool aHaveHeight,
-                   const nsSize& aIntrinsicRatio);
-
   nsIFrame*                 mForFrame;
   const nsStyleImage*       mImage;
   nsStyleImageType          mType;

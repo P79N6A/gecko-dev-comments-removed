@@ -62,6 +62,7 @@
 using namespace mozilla;
 using namespace mozilla::css;
 using mozilla::image::ImageOps;
+using mozilla::CSSSizeOrRatio;
 
 static int gFrameTreeLockCount = 0;
 
@@ -2882,6 +2883,43 @@ nsCSSRendering::ComputeBackgroundPositioningArea(nsPresContext* aPresContext,
   return bgPositioningArea;
 }
 
+
+
+
+
+static nsSize
+ComputeDrawnSizeForBackground(const CSSSizeOrRatio& aIntrinsicSize,
+                              const nsSize& aBgPositioningArea,
+                              const nsStyleBackground::Size& aLayerSize)
+{
+  
+  if (aLayerSize.mWidthType == nsStyleBackground::Size::eContain ||
+      aLayerSize.mWidthType == nsStyleBackground::Size::eCover) {
+    nsImageRenderer::FitType fitType =
+      aLayerSize.mWidthType == nsStyleBackground::Size::eCover
+        ? nsImageRenderer::COVER
+        : nsImageRenderer::CONTAIN;
+    return nsImageRenderer::ComputeConstrainedSize(aBgPositioningArea,
+                                                   aIntrinsicSize.mRatio,
+                                                   fitType);
+  }
+
+  
+  CSSSizeOrRatio specifiedSize;
+  if (aLayerSize.mWidthType == nsStyleBackground::Size::eLengthPercentage) {
+    specifiedSize.SetWidth(
+      aLayerSize.ResolveWidthLengthPercentage(aBgPositioningArea));
+  }
+  if (aLayerSize.mHeightType == nsStyleBackground::Size::eLengthPercentage) {
+    specifiedSize.SetHeight(
+      aLayerSize.ResolveHeightLengthPercentage(aBgPositioningArea));
+  }
+
+  return nsImageRenderer::ComputeConcreteSize(specifiedSize,
+                                              aIntrinsicSize,
+                                              aBgPositioningArea);
+}
+
 nsBackgroundLayerState
 nsCSSRendering::PrepareBackgroundLayer(nsPresContext* aPresContext,
                                        nsIFrame* aForFrame,
@@ -2994,9 +3032,15 @@ nsCSSRendering::PrepareBackgroundLayer(nsPresContext* aPresContext,
   
   
   
-  nsSize imageSize = state.mImageRenderer.ComputeSize(aLayer.mSize, bgPositioningArea.Size());
+  CSSSizeOrRatio intrinsicSize = state.mImageRenderer.ComputeIntrinsicSize();
+  nsSize imageSize = ComputeDrawnSizeForBackground(intrinsicSize,
+                                                   bgPositioningArea.Size(),
+                                                   aLayer.mSize);
   if (imageSize.width <= 0 || imageSize.height <= 0)
     return state;
+
+  state.mImageRenderer.SetPreferredSize(intrinsicSize,
+                                        bgPositioningArea.Size());
 
   
   
@@ -4363,57 +4407,49 @@ nsImageRenderer::PrepareImage()
   return mIsReady;
 }
 
-enum FitType { CONTAIN, COVER };
-
-static nsSize
-ComputeContainCoverSizeFromRatio(const nsSize& aBgPositioningArea,
-                                 const nsSize& aRatio, FitType fitType)
+nsSize
+CSSSizeOrRatio::ComputeConcreteSize() const
 {
-  NS_ABORT_IF_FALSE(aRatio.width > 0, "width division by zero");
-  NS_ABORT_IF_FALSE(aRatio.height > 0, "height division by zero");
-
-  float scaleX = double(aBgPositioningArea.width) / aRatio.width;
-  float scaleY = double(aBgPositioningArea.height) / aRatio.height;
-  nsSize size;
-  if ((fitType == CONTAIN) == (scaleX < scaleY)) {
-    size.width = aBgPositioningArea.width;
-    size.height = NSCoordSaturatingNonnegativeMultiply(aRatio.height, scaleX);
-  } else {
-    size.width = NSCoordSaturatingNonnegativeMultiply(aRatio.width, scaleY);
-    size.height = aBgPositioningArea.height;
+  NS_ASSERTION(CanComputeConcreteSize(), "Cannot compute");
+  if (mHasWidth && mHasHeight) {
+    return nsSize(mWidth, mHeight);
   }
-  return size;
+  if (mHasWidth) {
+    nscoord height = NSCoordSaturatingNonnegativeMultiply(
+      mWidth,
+      double(mRatio.height) / mRatio.width);
+    return nsSize(mWidth, height);
+  } 
+
+  MOZ_ASSERT(mHasHeight);
+  nscoord width = NSCoordSaturatingNonnegativeMultiply(
+    mHeight,
+    double(mRatio.width) / mRatio.height);      
+  return nsSize(width, mHeight);
 }
 
-void
-nsImageRenderer::ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
-                                           nscoord& aUnscaledWidth, bool& aHaveWidth,
-                                           nscoord& aUnscaledHeight, bool& aHaveHeight,
-                                           nsSize& aRatio)
+CSSSizeOrRatio
+nsImageRenderer::ComputeIntrinsicSize()
 {
   NS_ASSERTION(mIsReady, "Ensure PrepareImage() has returned true "
                          "before calling me");
 
+  CSSSizeOrRatio result;
   switch (mType) {
     case eStyleImageType_Image:
     {
+      bool haveWidth, haveHeight;
       nsIntSize imageIntSize;
       nsLayoutUtils::ComputeSizeForDrawing(mImageContainer, imageIntSize,
-                                           aRatio, aHaveWidth, aHaveHeight);
-      if (aHaveWidth) {
-        aUnscaledWidth = nsPresContext::CSSPixelsToAppUnits(imageIntSize.width);
+                                           result.mRatio, haveWidth, haveHeight);
+      if (haveWidth) {
+        result.SetWidth(nsPresContext::CSSPixelsToAppUnits(imageIntSize.width));
       }
-      if (aHaveHeight) {
-        aUnscaledHeight = nsPresContext::CSSPixelsToAppUnits(imageIntSize.height);
+      if (haveHeight) {
+        result.SetHeight(nsPresContext::CSSPixelsToAppUnits(imageIntSize.height));
       }
-      return;
+      break;
     }
-    case eStyleImageType_Gradient:
-      
-      
-      aHaveWidth = aHaveHeight = false;
-      aRatio = nsSize(0, 0);
-      return;
     case eStyleImageType_Element:
     {
       
@@ -4422,186 +4458,122 @@ nsImageRenderer::ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
       
       
       
-      aHaveWidth = aHaveHeight = true;
-      nsSize size;
       if (mPaintServerFrame) {
-        if (mPaintServerFrame->IsFrameOfType(nsIFrame::eSVG)) {
-          size = aBgPositioningArea;
-        } else {
+        
+        if (!mPaintServerFrame->IsFrameOfType(nsIFrame::eSVG)) {
           
           
           
           int32_t appUnitsPerDevPixel =
             mForFrame->PresContext()->AppUnitsPerDevPixel();
-          size =
+          result.SetSize(
             nsSVGIntegrationUtils::GetContinuationUnionSize(mPaintServerFrame).
               ToNearestPixels(appUnitsPerDevPixel).
-              ToAppUnits(appUnitsPerDevPixel);
+              ToAppUnits(appUnitsPerDevPixel));
         }
       } else {
         NS_ASSERTION(mImageElementSurface.mSurface, "Surface should be ready.");
         gfxIntSize surfaceSize = mImageElementSurface.mSize;
-        size.width = nsPresContext::CSSPixelsToAppUnits(surfaceSize.width);
-        size.height = nsPresContext::CSSPixelsToAppUnits(surfaceSize.height);
+        result.SetSize(
+          nsSize(nsPresContext::CSSPixelsToAppUnits(surfaceSize.width),
+                 nsPresContext::CSSPixelsToAppUnits(surfaceSize.height)));
       }
-      aRatio = size;
-      aUnscaledWidth = size.width;
-      aUnscaledHeight = size.height;
-      return;
+      break;
     }
+    case eStyleImageType_Gradient:
+      
+      
     case eStyleImageType_Null:
     default:
-      aHaveWidth = aHaveHeight = true;
-      aUnscaledWidth = aUnscaledHeight = 0;
-      aRatio = nsSize(0, 0);
-      return;
+      break;
   }
+
+  return result;
 }
 
-nsSize
-nsImageRenderer::ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
-                                  const nsSize& aBgPositioningArea,
-                                  nscoord aUnscaledWidth, bool aHaveWidth,
-                                  nscoord aUnscaledHeight, bool aHaveHeight,
-                                  const nsSize& aIntrinsicRatio)
+ nsSize
+nsImageRenderer::ComputeConcreteSize(const CSSSizeOrRatio& aSpecifiedSize,
+                                     const CSSSizeOrRatio& aIntrinsicSize,
+                                     const nsSize& aDefaultSize)
 {
-  NS_ABORT_IF_FALSE(aIntrinsicRatio.width >= 0,
-                    "image ratio with nonsense width");
-  NS_ABORT_IF_FALSE(aIntrinsicRatio.height >= 0,
-                    "image ratio with nonsense height");
-
   
-  if ((aHaveWidth && aUnscaledWidth <= 0) ||
-      (aHaveHeight && aUnscaledHeight <= 0)) {
-    return nsSize(0, 0);
+  if (aSpecifiedSize.IsConcrete()) {
+    return aSpecifiedSize.ComputeConcreteSize();
   }
 
-  
-  
-  bool haveRatio = aIntrinsicRatio != nsSize(0, 0);
-  if (haveRatio &&
-      (aIntrinsicRatio.width == 0 || aIntrinsicRatio.height == 0)) {
-    return nsSize(0, 0);
-  }
+  MOZ_ASSERT(!aSpecifiedSize.mHasWidth || !aSpecifiedSize.mHasHeight);
 
-  
-  if (aLayerSize.mWidthType == nsStyleBackground::Size::eLengthPercentage &&
-      aLayerSize.mHeightType == nsStyleBackground::Size::eLengthPercentage) {
-    return nsSize(aLayerSize.ResolveWidthLengthPercentage(aBgPositioningArea),
-                  aLayerSize.ResolveHeightLengthPercentage(aBgPositioningArea));
-  }
-
-  
-  if (aLayerSize.mWidthType == nsStyleBackground::Size::eContain ||
-      aLayerSize.mWidthType == nsStyleBackground::Size::eCover) {
-    FitType fitType = aLayerSize.mWidthType == nsStyleBackground::Size::eCover
-                    ? COVER
-                    : CONTAIN;
-    if (!haveRatio) {
-      
-      
-      
-      return aBgPositioningArea;
+  if (!aSpecifiedSize.mHasWidth && !aSpecifiedSize.mHasHeight) {
+    
+    if (aIntrinsicSize.CanComputeConcreteSize()) {
+      return aIntrinsicSize.ComputeConcreteSize();
     }
 
-    return ComputeContainCoverSizeFromRatio(aBgPositioningArea, aIntrinsicRatio,
-                                            fitType);
-  }
-
-  
-  if (aLayerSize.mWidthType == nsStyleBackground::Size::eAuto &&
-      aLayerSize.mHeightType == nsStyleBackground::Size::eAuto) {
-    
-    if (aHaveWidth && aHaveHeight)
-      return nsSize(aUnscaledWidth, aUnscaledHeight);
-
-    
-    if (!aHaveWidth && !aHaveHeight) {
-      if (!haveRatio) {
-        
-        return aBgPositioningArea;
-      }
-
-      
-      return ComputeContainCoverSizeFromRatio(aBgPositioningArea,
-                                              aIntrinsicRatio, CONTAIN);
+    if (aIntrinsicSize.mHasWidth) {
+      return nsSize(aIntrinsicSize.mWidth, aDefaultSize.height);
     }
-
-    NS_ABORT_IF_FALSE(aHaveWidth != aHaveHeight, "logic error");
-
-    if (haveRatio) {
-      
-      nsSize size;
-      if (aHaveWidth) {
-        size.width = aUnscaledWidth;
-        size.height =
-          NSCoordSaturatingNonnegativeMultiply(size.width,
-                                               double(aIntrinsicRatio.height) /
-                                               aIntrinsicRatio.width);
-      } else {
-        size.height = aUnscaledHeight;
-        size.width =
-          NSCoordSaturatingNonnegativeMultiply(size.height,
-                                               double(aIntrinsicRatio.width) /
-                                               aIntrinsicRatio.height);
-      }
-
-      return size;
+    if (aIntrinsicSize.mHasHeight) {
+      return nsSize(aDefaultSize.width, aIntrinsicSize.mHeight);
     }
 
     
-    
-    return aHaveWidth ? nsSize(aUnscaledWidth, aBgPositioningArea.height)
-                      : nsSize(aBgPositioningArea.width, aUnscaledHeight);
+    return ComputeConstrainedSize(aDefaultSize,
+                                  aIntrinsicSize.mRatio,
+                                  CONTAIN);
   }
 
-  
-  
-  NS_ABORT_IF_FALSE((aLayerSize.mWidthType == nsStyleBackground::Size::eAuto) !=
-                    (aLayerSize.mHeightType == nsStyleBackground::Size::eAuto),
-                    "logic error");
+  MOZ_ASSERT(aSpecifiedSize.mHasWidth || aSpecifiedSize.mHasHeight);
 
-  bool isAutoWidth = aLayerSize.mWidthType == nsStyleBackground::Size::eAuto;
-
-  if (haveRatio) {
-    
-    NS_ABORT_IF_FALSE(aIntrinsicRatio.width > 0,
-                      "ratio width out of sync with width?");
-    NS_ABORT_IF_FALSE(aIntrinsicRatio.height > 0,
-                      "ratio height out of sync with width?");
-    nsSize size;
-    if (isAutoWidth) {
-      size.height = aLayerSize.ResolveHeightLengthPercentage(aBgPositioningArea);
-      size.width =
-        NSCoordSaturatingNonnegativeMultiply(size.height,
-                                             double(aIntrinsicRatio.width) /
-                                             aIntrinsicRatio.height);
+  
+  if (aSpecifiedSize.mHasWidth) {
+    nscoord height;
+    if (aIntrinsicSize.HasRatio()) {
+      height = NSCoordSaturatingNonnegativeMultiply(
+        aSpecifiedSize.mWidth,
+        double(aIntrinsicSize.mRatio.height) / aIntrinsicSize.mRatio.width);
+    } else if (aIntrinsicSize.mHasHeight) {
+      height = aIntrinsicSize.mHeight;
     } else {
-      size.width = aLayerSize.ResolveWidthLengthPercentage(aBgPositioningArea);
-      size.height =
-        NSCoordSaturatingNonnegativeMultiply(size.width,
-                                             double(aIntrinsicRatio.height) /
-                                             aIntrinsicRatio.width);
+      height = aDefaultSize.height;
     }
-
-    return size;
+    return nsSize(aSpecifiedSize.mWidth, height);
   }
 
-  NS_ABORT_IF_FALSE(!(aHaveWidth && aHaveHeight),
-                    "if we have width and height, we must have had a ratio");
-
-  
-  
-  
-  nsSize size;
-  if (isAutoWidth) {
-    size.width = aHaveWidth ? aUnscaledWidth : aBgPositioningArea.width;
-    size.height = aLayerSize.ResolveHeightLengthPercentage(aBgPositioningArea);
+  MOZ_ASSERT(aSpecifiedSize.mHasHeight);
+  nscoord width;
+  if (aIntrinsicSize.HasRatio()) {
+    width = NSCoordSaturatingNonnegativeMultiply(
+      aSpecifiedSize.mHeight,
+      double(aIntrinsicSize.mRatio.width) / aIntrinsicSize.mRatio.height);
+  } else if (aIntrinsicSize.mHasWidth) {
+    width = aIntrinsicSize.mWidth;
   } else {
-    size.width = aLayerSize.ResolveWidthLengthPercentage(aBgPositioningArea);
-    size.height = aHaveHeight ? aUnscaledHeight : aBgPositioningArea.height;
+    width = aDefaultSize.width;
+  }
+  return nsSize(width, aSpecifiedSize.mHeight);
+}
+
+ nsSize
+nsImageRenderer::ComputeConstrainedSize(const nsSize& aConstrainingSize,
+                                        const nsSize& aIntrinsicRatio,
+                                        FitType aFitType)
+{
+  if (aIntrinsicRatio.width <= 0 && aIntrinsicRatio.height <= 0) {
+    return aConstrainingSize;
   }
 
+  float scaleX = double(aConstrainingSize.width) / aIntrinsicRatio.width;
+  float scaleY = double(aConstrainingSize.height) / aIntrinsicRatio.height;
+  nsSize size;
+  if ((aFitType == CONTAIN) == (scaleX < scaleY)) {
+    size.width = aConstrainingSize.width;
+    size.height = NSCoordSaturatingNonnegativeMultiply(
+                    aIntrinsicRatio.height, scaleX);
+  } else {
+    size.width = NSCoordSaturatingNonnegativeMultiply(
+                   aIntrinsicRatio.width, scaleY);
+    size.height = aConstrainingSize.height;
+  }
   return size;
 }
 
@@ -4624,26 +4596,16 @@ nsImageRenderer::ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
 
 
 
-
-
-nsSize
-nsImageRenderer::ComputeSize(const nsStyleBackground::Size& aLayerSize,
-                             const nsSize& aBgPositioningArea)
+void
+nsImageRenderer::SetPreferredSize(const CSSSizeOrRatio& aIntrinsicSize,
+                                  const nsSize& aDefaultSize)
 {
-  bool haveWidth, haveHeight;
-  nsSize ratio;
-  nscoord unscaledWidth, unscaledHeight;
-  ComputeUnscaledDimensions(aBgPositioningArea,
-                            unscaledWidth, haveWidth,
-                            unscaledHeight, haveHeight,
-                            ratio);
-  nsSize drawnSize = ComputeDrawnSize(aLayerSize, aBgPositioningArea,
-                                      unscaledWidth, haveWidth,
-                                      unscaledHeight, haveHeight,
-                                      ratio);
-  mSize.width = haveWidth ? unscaledWidth : drawnSize.width;
-  mSize.height = haveHeight ? unscaledHeight : drawnSize.height;
-  return drawnSize;
+  mSize.width = aIntrinsicSize.mHasWidth
+                  ? aIntrinsicSize.mWidth
+                  : aDefaultSize.width;
+  mSize.height = aIntrinsicSize.mHasHeight
+                  ? aIntrinsicSize.mHeight
+                  : aDefaultSize.height;
 }
 
 void
