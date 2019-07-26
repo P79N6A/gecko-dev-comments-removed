@@ -34,26 +34,6 @@ function ThreadActor(aHooks, aGlobal)
   this.global = aGlobal;
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this._scripts = {};
-
-  
   
   
   
@@ -99,7 +79,6 @@ ThreadActor.prototype = {
     }
     this.conn.removeActorPool(this._threadLifetimePool || undefined);
     this._threadLifetimePool = null;
-    this._scripts = {};
     this._sources = {};
   },
 
@@ -490,7 +469,7 @@ ThreadActor.prototype = {
 
     let location = aRequest.location;
     let line = location.line;
-    if (!this._scripts[location.url] || line < 0) {
+    if (this.dbg.findScripts({ url: location.url }).length == 0 || line < 0) {
       return { error: "noScript" };
     }
 
@@ -611,35 +590,6 @@ ThreadActor.prototype = {
       error: "noCodeAtLineColumn",
       actor: actor.actorID
     };
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _getContainers: function TA__getContainers(aScript, aLine) {
-    let children = aScript.getChildScripts();
-    if (children.length > 0) {
-      for (let i = 0; i < children.length; i++) {
-        let child = children[i];
-        
-        if (child.startLine <= aLine &&
-            child.startLine + child.lineCount > aLine) {
-          for (let j of this._getContainers(child, aLine)) {
-            yield j;
-          }
-        }
-      }
-    }
-    
-    yield aScript;
   },
 
   
@@ -1187,13 +1137,6 @@ ThreadActor.prototype = {
     
     
     this._addSource(aScript.url);
-
-    
-    
-    if (!this._scripts[aScript.url]) {
-      this._scripts[aScript.url] = [];
-    }
-    this._scripts[aScript.url][aScript.startLine] = aScript;
 
     
     let existing = this._breakpointStore[aScript.url];
