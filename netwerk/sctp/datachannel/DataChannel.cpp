@@ -351,7 +351,7 @@ DataChannelConnection::ConnectDTLS(TransportFlow *aFlow, uint16_t localport, uin
   NS_ENSURE_TRUE(aFlow, false);
 
   mTransportFlow = aFlow;
-  mTransportFlow->SignalPacketReceived.connect(this, &DataChannelConnection::PacketReceived);
+  mTransportFlow->SignalPacketReceived.connect(this, &DataChannelConnection::SctpDtlsInput);
   mLocalPort = localport;
   mRemotePort = remoteport;
 
@@ -409,8 +409,8 @@ DataChannelConnection::DTLSConnectThread(void *data)
 }
 
 void
-DataChannelConnection::PacketReceived(TransportFlow *flow,
-                                      const unsigned char *data, size_t len)
+DataChannelConnection::SctpDtlsInput(TransportFlow *flow,
+                                     const unsigned char *data, size_t len)
 {
   
 
@@ -419,10 +419,13 @@ DataChannelConnection::PacketReceived(TransportFlow *flow,
 }
 
 int
-DataChannelConnection::SendPacket(const unsigned char *data, size_t len)
+DataChannelConnection::SendPacket(const unsigned char *data, size_t len, bool release)
 {
   
-  return mTransportFlow->SendPacket(data, len) < 0 ? 1 : 0;
+  int res = mTransportFlow->SendPacket(data, len) < 0 ? 1 : 0;
+  if (release)
+    delete data;
+  return res;
 }
 
 
@@ -433,17 +436,25 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
   DataChannelConnection *peer = static_cast<DataChannelConnection *>(addr);
   int res;
 
-  if (peer->IsSTSThread()) {
-    res = peer->SendPacket(static_cast<unsigned char *>(buffer), length);
+  
+  
+  
+  
+  
+  if (0 ) {
+    res = peer->SendPacket(static_cast<unsigned char *>(buffer), length, false);
   } else {
+    unsigned char *data = new unsigned char[length];
+    memcpy(data, buffer, length);
     res = -1;
     
     
     
     
-    peer->mSTS->Dispatch(WrapRunnableRet(
-      peer, &DataChannelConnection::SendPacket, static_cast<unsigned char *>(buffer), length, &res
-    ), NS_DISPATCH_SYNC);
+    peer->mSTS->Dispatch(WrapRunnable(
+      peer, &DataChannelConnection::SendPacket, data, length, true
+    ), NS_DISPATCH_NORMAL);
+    res = 0; 
   }
   return res;
 }
