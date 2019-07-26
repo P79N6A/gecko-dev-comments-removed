@@ -35,7 +35,7 @@ function httpRequest(aUrl, aOptions) {
               .createInstance(Ci.nsIXMLHttpRequest);
   xhr.mozBackgroundRequest = true; 
   let hasPostData = "postData" in aOptions;
-  xhr.open("aMethod" in aOptions ? aMethod :
+  xhr.open("method" in aOptions ? aOptions.method :
            (hasPostData ? "POST" : "GET"), aUrl);
   xhr.channel.loadFlags = Ci.nsIChannel.LOAD_ANONYMOUS | 
                           Ci.nsIChannel.LOAD_BYPASS_CACHE |
