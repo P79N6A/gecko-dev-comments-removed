@@ -1851,9 +1851,12 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
     case DRAW_NORMAL:
     case DRAW_VARIANT:
       
-      mGlyphs[0]->Draw(thebesContext, gfxPoint(0.0, mUnscaledAscent),
-                       DrawMode::GLYPH_FILL, 0, mGlyphs[0]->GetLength(),
-                       nullptr, nullptr, nullptr);
+      
+      if (mGlyphs[0]) {
+        mGlyphs[0]->Draw(thebesContext, gfxPoint(0.0, mUnscaledAscent),
+                         DrawMode::GLYPH_FILL, 0, mGlyphs[0]->GetLength(),
+                         nullptr, nullptr, nullptr);
+      }
       break;
     case DRAW_PARTS: {
       
