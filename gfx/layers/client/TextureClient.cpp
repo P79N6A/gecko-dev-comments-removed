@@ -619,7 +619,7 @@ MemoryTextureClient::~MemoryTextureClient()
     
     
     GfxMemoryImageReporter::WillFree(mBuffer);
-    delete mBuffer;
+    delete [] mBuffer;
   }
 }
 
