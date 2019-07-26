@@ -6,6 +6,7 @@
 
 
 
+
 var BUGNUMBER = 622167;
 var summary = 'Handle infinite recursion';
 print(BUGNUMBER + ": " + summary);
