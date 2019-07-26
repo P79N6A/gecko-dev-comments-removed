@@ -200,14 +200,6 @@ public:
 
   static JSContext* GetContextFromDocument(nsIDocument *aDocument);
 
-  
-
-
-
-  static nsresult ReparentContentWrappersInScope(JSContext *cx,
-                                                 nsIScriptGlobalObject *aOldScope,
-                                                 nsIScriptGlobalObject *aNewScope);
-
   static bool     IsCallerChrome();
 
   static bool     IsCallerTrustedForRead();
