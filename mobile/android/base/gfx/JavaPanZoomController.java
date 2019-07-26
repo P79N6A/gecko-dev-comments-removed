@@ -12,6 +12,7 @@ import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.ZoomConstraints;
 import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.FloatUtils;
+import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -510,34 +511,25 @@ class JavaPanZoomController
         return false;
     }
 
-    private float filterDeadZone(float value, InputDevice.MotionRange range) {
-        
-        
-        
-        if (Math.abs(value) < 1e-2) {
-            return 0;
-        }
-        return value;
+    private float filterDeadZone(MotionEvent event, int axis) {
+        return (GamepadUtils.isValueInDeadZone(event, axis) ? 0 : event.getAxisValue(axis));
     }
 
-    private float normalizeJoystickScroll(float value, InputDevice.MotionRange range) {
-        return filterDeadZone(value, range) * MAX_SCROLL;
+    private float normalizeJoystickScroll(MotionEvent event, int axis) {
+        return filterDeadZone(event, axis) * MAX_SCROLL;
     }
 
-    private float normalizeJoystickZoom(float value, InputDevice.MotionRange range) {
+    private float normalizeJoystickZoom(MotionEvent event, int axis) {
         
-        return filterDeadZone(value, range) * -MAX_ZOOM_DELTA;
+        return filterDeadZone(event, axis) * -MAX_ZOOM_DELTA;
     }
 
     
     
     private boolean handleJoystickNav(MotionEvent event) {
-        float velocityX = normalizeJoystickScroll(event.getAxisValue(MotionEvent.AXIS_X),
-                                                  event.getDevice().getMotionRange(MotionEvent.AXIS_X));
-        float velocityY = normalizeJoystickScroll(event.getAxisValue(MotionEvent.AXIS_Y),
-                                                  event.getDevice().getMotionRange(MotionEvent.AXIS_Y));
-        float zoomDelta = normalizeJoystickZoom(event.getAxisValue(MotionEvent.AXIS_RZ),
-                                                event.getDevice().getMotionRange(MotionEvent.AXIS_RZ));
+        float velocityX = normalizeJoystickScroll(event, MotionEvent.AXIS_X);
+        float velocityY = normalizeJoystickScroll(event, MotionEvent.AXIS_Y);
+        float zoomDelta = normalizeJoystickZoom(event, MotionEvent.AXIS_RZ);
 
         if (velocityX == 0 && velocityY == 0 && zoomDelta == 0) {
             if (mState == PanZoomState.AUTONAV) {
