@@ -544,7 +544,7 @@ protected:
   nsDataHashtable<nsStringHashKey, nsTreeImageCacheEntry> mImageCache;
 
   
-  nsCOMPtr<nsISupportsArray> mScratchArray;
+  AtomArray mScratchArray;
 
   
   
