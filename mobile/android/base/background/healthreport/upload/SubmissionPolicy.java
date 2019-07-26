@@ -123,9 +123,21 @@ public class SubmissionPolicy {
         .commit();
     }
 
+    
     if (localTime < firstRun + getMinimumTimeBeforeFirstSubmission()) {
       Logger.info(LOG_TAG, "Need to wait " + getMinimumTimeBeforeFirstSubmission() + " before first upload.");
       return false;
+    }
+
+    
+    
+    
+    
+    if (localTime >= getCurrentDayResetTime()) {
+      editor()
+        .setCurrentDayResetTime(localTime + getMinimumTimeBetweenUploads())
+        .setCurrentDayFailureCount(0)
+        .commit();
     }
 
     String id = HealthReportUtils.generateDocumentId();
@@ -170,6 +182,7 @@ public class SubmissionPolicy {
         .setNextSubmission(next)
         .setLastUploadSucceeded(localTime)
         .setCurrentDayFailureCount(0)
+        .clearCurrentDayResetTime() 
         .commit();
       if (Logger.LOG_PERSONAL_INFORMATION) {
         Logger.pii(LOG_TAG, "Successful upload with id " + id + " obsoleting "
@@ -193,6 +206,7 @@ public class SubmissionPolicy {
         .setNextSubmission(next)
         .setLastUploadFailed(localTime)
         .setCurrentDayFailureCount(0)
+        .clearCurrentDayResetTime() 
         .commit();
       Logger.warn(LOG_TAG, "Hard failure reported at " + localTime + ": " + reason + " Next upload at " + next + ".", e);
     }
@@ -320,6 +334,11 @@ public class SubmissionPolicy {
   }
 
   
+  public long getCurrentDayResetTime() {
+    return getSharedPreferences().getLong(HealthReportConstants.PREF_CURRENT_DAY_RESET_TIME, -1);
+  }
+
+  
 
 
 
@@ -353,6 +372,18 @@ public class SubmissionPolicy {
     
     public Editor setCurrentDayFailureCount(int failureCount) {
       editor.putInt(HealthReportConstants.PREF_CURRENT_DAY_FAILURE_COUNT, failureCount);
+      return this;
+    }
+
+    
+    public Editor setCurrentDayResetTime(long resetTime) {
+      editor.putLong(HealthReportConstants.PREF_CURRENT_DAY_RESET_TIME, resetTime);
+      return this;
+    }
+
+    
+    public Editor clearCurrentDayResetTime() {
+      editor.putLong(HealthReportConstants.PREF_CURRENT_DAY_RESET_TIME, -1);
       return this;
     }
 
