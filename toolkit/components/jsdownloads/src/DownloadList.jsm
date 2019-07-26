@@ -210,14 +210,23 @@ DownloadList.prototype = {
 
 
 
-  _removeWhere: function DL__removeWhere(aTestFn) {
+
+
+
+
+
+
+
+
+  removeFinished: function DL_removeFinished(aFilterFn) {
     Task.spawn(function() {
       let list = yield this.getAll();
       for (let download of list) {
         
         
-        if ((download.succeeded || download.canceled || download.error) &&
-            aTestFn(download)) {
+        
+        if (download.stopped && (!download.hasPartialData || download.error) &&
+            (!aFilterFn || aFilterFn(download))) {
           
           
           this.remove(download);
@@ -225,23 +234,10 @@ DownloadList.prototype = {
           
           
           
-          download.finalize(true);
+          download.finalize(true).then(null, Cu.reportError);
         }
       }
     }.bind(this)).then(null, Cu.reportError);
-  },
-
-  
-
-
-
-
-
-
-
-  removeByTimeframe: function DL_removeByTimeframe(aStartTime, aEndTime) {
-    this._removeWhere(download => download.startTime >= aStartTime &&
-                                  download.startTime <= aEndTime);
   },
 
   
@@ -253,12 +249,12 @@ DownloadList.prototype = {
   
 
   onDeleteURI: function DL_onDeleteURI(aURI, aGUID) {
-    this._removeWhere(download => aURI.equals(NetUtil.newURI(
-                                                      download.source.url)));
+    this.removeFinished(download => aURI.equals(NetUtil.newURI(
+                                                download.source.url)));
   },
 
   onClearHistory: function DL_onClearHistory() {
-    this._removeWhere(() => true);
+    this.removeFinished();
   },
 
   onTitleChanged: function () {},
