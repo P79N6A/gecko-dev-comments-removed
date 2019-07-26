@@ -362,6 +362,10 @@ this.BrowserUITelemetry = {
     let result = {};
 
     
+    
+    result.sizemode = document.documentElement.getAttribute("sizemode");
+
+    
     let bookmarksBar = document.getElementById("PersonalToolbar");
     result.bookmarksBarEnabled = bookmarksBar && !bookmarksBar.collapsed;
 
