@@ -130,7 +130,7 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
         
         
         
-        RawScript script = iter.script().get(nogc);
+        RawScript script = iter.script();
         if (!script->hasIonScript())
             ion::ForbidCompilation(cx, script);
 #endif
@@ -1123,7 +1123,7 @@ fun_isGenerator(JSContext *cx, unsigned argc, Value *vp)
 
     bool result = false;
     if (fun->isInterpreted()) {
-        RawScript script = fun->script().get(nogc);
+        RawScript script = fun->script();
         JS_ASSERT(script->length != 0);
         result = script->isGenerator;
     }

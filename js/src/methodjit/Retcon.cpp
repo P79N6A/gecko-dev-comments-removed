@@ -348,7 +348,7 @@ ClearAllFrames(JSCompartment *compartment)
         if (f->entryfp->compartment() != compartment)
             continue;
 
-        Recompiler::patchFrame(compartment, f, f->fp()->script().get(nogc));
+        Recompiler::patchFrame(compartment, f, f->fp()->script());
 
         
         
