@@ -279,44 +279,39 @@ nsUnknownContentTypeDialog.prototype = {
                             .getService(Components.interfaces.nsIDownloadManager);
     picker.displayDirectory = dnldMgr.userDownloadsDirectory;
 
-    
-    try {
-      var lastDir = gDownloadLastDir.getFile(aLauncher.source);
-      if (isUsableDirectory(lastDir))
+    gDownloadLastDir.getFileAsync(aLauncher.source, function LastDirCallback(lastDir) {
+      if (lastDir && isUsableDirectory(lastDir))
         picker.displayDirectory = lastDir;
-    }
-    catch (ex) {
-    }
 
-    if (picker.show() == nsIFilePicker.returnCancel) {
-      
-      aLauncher.saveDestinationAvailable(null);
-      return;
-    }
-
-    
-    
-    
-    result = picker.file;
-
-    if (result) {
-      try {
+      if (picker.show() == nsIFilePicker.returnCancel) {
         
-        
-        
-        if (result.exists())
-          result.remove(false);
+        aLauncher.saveDestinationAvailable(null);
+        return;
       }
-      catch (e) { }
-      var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
 
       
-      gDownloadLastDir.setFile(aLauncher.source, newDir);
+      
+      
+      result = picker.file;
 
-      result = this.validateLeafName(newDir, result.leafName, null);
-    }
-    aLauncher.saveDestinationAvailable(result);
-    return;
+      if (result) {
+        try {
+          
+          
+          
+          if (result.exists())
+            result.remove(false);
+        }
+        catch (e) { }
+        var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
+
+        
+        gDownloadLastDir.setFile(aLauncher.source, newDir);
+
+        result = this.validateLeafName(newDir, result.leafName, null);
+      }
+      aLauncher.saveDestinationAvailable(result);
+    }.bind(this));
   },
 
   
