@@ -171,13 +171,10 @@ var ContentAreaObserver = {
 
   updateAppBarPosition: function updateAppBarPosition(aForceDown) {
     
-    let navBar = document.getElementById("navbar");
-    let contextAppBar = document.getElementById("contextappbar");
-    let findBar = document.getElementById("content-navigator");
     let keyboardHeight = aForceDown ? 0 : MetroUtils.keyboardHeight;
-    navBar.style.bottom = keyboardHeight + "px";
-    contextAppBar.style.bottom = keyboardHeight + "px";
-    findBar.style.bottom = keyboardHeight + "px";
+    Elements.navbar.style.bottom = keyboardHeight + "px";
+    Elements.contextappbar.style.bottom = keyboardHeight + "px";
+    Elements.findbar.style.bottom = keyboardHeight + "px";
   },
 
   
