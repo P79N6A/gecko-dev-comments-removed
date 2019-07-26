@@ -279,6 +279,10 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
     return mIceStreams[i];
   }
 
+  size_t num_ice_media_streams() const {
+    return mIceStreams.size();
+  }
+
   
   nsresult AddStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream_id);
 

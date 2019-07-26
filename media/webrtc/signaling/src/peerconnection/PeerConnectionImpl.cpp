@@ -1993,57 +1993,32 @@ PeerConnectionImpl::BuildStatsQuery_m(
 
   
   
-  std::set<size_t> streamsGrabbed;
-  for (size_t p = 0; p < query->pipelines.Length(); ++p) {
-
-    size_t level = query->pipelines[p]->level();
-    MOZ_ASSERT(level);
-
-    
-    
-    if (streamsGrabbed.count(level)) {
-      continue;
+  std::set<size_t> levelsToGrab;
+  if (trackId) {
+    for (size_t p = 0; p < query->pipelines.Length(); ++p) {
+      size_t level = query->pipelines[p]->level();
+      MOZ_ASSERT(level);
+      levelsToGrab.insert(level);
     }
+  } else {
+    
+    
+    for (size_t s = 0; s < mMedia->num_ice_media_streams(); ++s) {
+      levelsToGrab.insert(s + 1); 
+    }
+  }
 
-    streamsGrabbed.insert(level);
+  for (auto s = levelsToGrab.begin(); s != levelsToGrab.end(); ++s) {
     
     
-    RefPtr<NrIceMediaStream> temp(mMedia->ice_media_stream(level - 1));
-    if (temp) {
+    RefPtr<NrIceMediaStream> temp(mMedia->ice_media_stream(*s - 1));
+    RefPtr<TransportFlow> flow(mMedia->GetTransportFlow(*s, false));
+    
+    if (temp && flow) {
       query->streams.AppendElement(temp);
-    } else {
-       CSFLogError(logTag, "Failed to get NrIceMediaStream for level %zu "
-                           "in %s:  %s",
-                           static_cast<size_t>(level),
-                           __FUNCTION__,
-                           mHandle.c_str());
-       MOZ_CRASH();
     }
   }
 
-  
-  if (!aSelector && mDataConnection) {
-    std::vector<uint16_t> streamIds;
-    mDataConnection->GetStreamIds(&streamIds);
-
-    for (auto s = streamIds.begin(); s!= streamIds.end(); ++s) {
-      MOZ_ASSERT(*s);
-
-      if (streamsGrabbed.count(*s) || *s == INVALID_STREAM) {
-        continue;
-      }
-
-      streamsGrabbed.insert(*s);
-
-      RefPtr<NrIceMediaStream> temp(mMedia->ice_media_stream(*s - 1));
-
-      
-      RefPtr<TransportFlow> flow(mMedia->GetTransportFlow(*s, false));
-      if (temp && flow) {
-        query->streams.AppendElement(temp);
-      }
-    }
-  }
   return rv;
 }
 
