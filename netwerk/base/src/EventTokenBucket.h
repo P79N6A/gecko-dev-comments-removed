@@ -119,6 +119,24 @@ private:
   
   
   nsCOMPtr<nsITimer> mTimer;
+
+#ifdef XP_WIN
+  
+  
+  
+  
+  const static uint64_t kCostFineGrainThreshold =  50 * kUsecPerMsec;
+
+  void FineGrainTimers(); 
+  void NormalTimers(); 
+  void WantNormalTimers(); 
+  void FineGrainResetTimerNotify(); 
+
+  TimeStamp mLastFineGrainTimerUse;
+  bool mFineGrainTimerInUse;
+  bool mFineGrainResetTimerArmed;
+  nsCOMPtr<nsITimer> mFineGrainResetTimer;
+#endif
 };
 
 } 
