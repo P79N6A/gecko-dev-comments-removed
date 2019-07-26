@@ -87,7 +87,9 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
     JS::AutoSuppressGCAnalysis nogc;
     if (mIsMainThread) {
       
-      nsGlobalWindow* win = xpc::WindowGlobalOrNull(realCallback);
+      
+      nsGlobalWindow* win =
+        aIsJSImplementedWebIDL ? nullptr : xpc::WindowGlobalOrNull(realCallback);
       if (win) {
         
         
@@ -151,7 +153,9 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
     mRootedCallable.construct(cx, aCallback->Callback());
   }
 
-  if (mIsMainThread) {
+  
+  
+  if (mIsMainThread && !aIsJSImplementedWebIDL) {
     
     
     
