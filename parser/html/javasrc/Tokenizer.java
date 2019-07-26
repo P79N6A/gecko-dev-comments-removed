@@ -497,11 +497,11 @@ public class Tokenizer implements Locator {
 
     private boolean html4ModeCompatibleWithXhtml1Schemata;
 
-    private final boolean newAttributesEachTime;
-
     private int mappingLangToXmlLang;
 
     
+
+    private final boolean newAttributesEachTime;
 
     private boolean shouldSuspend;
 
@@ -554,8 +554,12 @@ public class Tokenizer implements Locator {
         this.doctypeName = null;
         this.publicIdentifier = null;
         this.systemIdentifier = null;
+        
         this.attributes = null;
-    
+        
+        
+        
+        
     }
 
     public void setInterner(Interner interner) {
@@ -1096,21 +1100,6 @@ public class Tokenizer implements Locator {
         errorHandler.warning(spe);
     }
 
-    
-
-
-    private void resetAttributes() {
-        
-        if (newAttributesEachTime) {
-            
-            attributes = null;
-            
-        } else {
-            attributes.clear(mappingLangToXmlLang);
-        }
-        
-    }
-
     private void strBufToElementNameString() {
         
         
@@ -1136,8 +1125,13 @@ public class Tokenizer implements Locator {
             
             tokenHandler.endTag(tagName);
             
-            Portability.delete(attributes);
+            
+            
+            
+            
         } else {
+            
+            
             
             
             
@@ -1146,7 +1140,11 @@ public class Tokenizer implements Locator {
         }
         tagName.release();
         tagName = null;
-        resetAttributes();
+        if (newAttributesEachTime) {
+            attributes = null;
+        } else {
+            attributes.clear(mappingLangToXmlLang);
+        }
         
 
 
@@ -6597,11 +6595,11 @@ public class Tokenizer implements Locator {
             attributeName = null;
         }
         tokenHandler.endTokenization();
+        
         if (attributes != null) {
-            attributes.clear(mappingLangToXmlLang);
-            Portability.delete(attributes);
             attributes = null;
         }
+        
     }
 
     public void requestSuspension() {
@@ -6680,16 +6678,12 @@ public class Tokenizer implements Locator {
             attributeName.release();
             attributeName = null;
         }
-        
         if (newAttributesEachTime) {
-            
             if (attributes != null) {
                 Portability.delete(attributes);
                 attributes = null;
             }
-            
         }
-        
     }
 
     public void loadState(Tokenizer other) throws SAXException {
@@ -7005,6 +6999,8 @@ public class Tokenizer implements Locator {
     
     void destructor() {
         
+        Portability.delete(attributes);
+        attributes = null;
     }
     
     
