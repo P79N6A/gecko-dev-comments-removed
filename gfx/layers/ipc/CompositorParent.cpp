@@ -945,7 +945,7 @@ CompositorParent::AllocPLayers(const LayersBackend& aBackendHint,
   
   
   nsIntRect rect;
-  mWidget->GetBounds(rect);
+  mWidget->GetClientBounds(rect);
   mWidgetSize.width = rect.width;
   mWidgetSize.height = rect.height;
 
