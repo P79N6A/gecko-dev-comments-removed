@@ -324,28 +324,7 @@ enum TokenStreamFlags
     TSF_KEYWORD_IS_NAME = 0x20, 
     TSF_DIRTYLINE = 0x40,       
     TSF_OCTAL_CHAR = 0x80,      
-    TSF_HAD_ERROR = 0x100,      
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    TSF_IN_HTML_COMMENT = 0x200
+    TSF_HAD_ERROR = 0x100       
 };
 
 struct CompileError {
