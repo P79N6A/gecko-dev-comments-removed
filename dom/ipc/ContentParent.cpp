@@ -1362,7 +1362,7 @@ ContentParent::RecvFirstIdle()
     
     
     
-    PreallocatedProcessManager::AllocateOnIdle();
+    PreallocatedProcessManager::AllocateAfterDelay();
     return true;
 }
 
