@@ -18,6 +18,9 @@ const backgroundPageThumbsContent = {
                 getInterface(Ci.nsIDOMWindowUtils);
     dwu.preventFurtherDialogs();
 
+    docShell.allowMedia = false;
+    docShell.allowPlugins = false;
+
     
     
     this._webNav.stop(Ci.nsIWebNavigation.STOP_NETWORK);
