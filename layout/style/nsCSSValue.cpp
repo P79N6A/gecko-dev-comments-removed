@@ -1708,6 +1708,13 @@ AppendGridTemplateToString(const nsCSSValueList* val,
     } else {
       
       val->mValue.AppendToString(aProperty, aResult, aSerialization);
+      if (!isSubgrid &&
+          val->mNext &&
+          val->mNext->mValue.GetUnit() == eCSSUnit_Null &&
+          !val->mNext->mNext) {
+        
+        break;
+      }
     }
 
     val = val->mNext;
