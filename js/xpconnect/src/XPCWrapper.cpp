@@ -86,22 +86,6 @@ AttachNewConstructorObject(XPCCallContext &ccx, JSObject *aGlobalObject)
 
 } 
 
-namespace xpc {
-
-JSObject *
-Unwrap(JSContext *cx, JSObject *wrapper, bool stopAtOuter)
-{
-  if (js::IsWrapper(wrapper)) {
-    if (xpc::AccessCheck::isScriptAccessOnly(cx, wrapper))
-      return nullptr;
-    return js::UnwrapObject(wrapper, stopAtOuter);
-  }
-
-  return nullptr;
-}
-
-} 
-
 namespace XPCWrapper {
 
 JSObject *

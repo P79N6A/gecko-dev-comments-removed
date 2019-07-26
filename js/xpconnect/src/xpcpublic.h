@@ -397,19 +397,6 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
 
 
 
-
-
-
-
-
-
-
-JSObject *
-Unwrap(JSContext *cx, JSObject *wrapper, bool stopAtOuter = true);
-
-
-
-
 bool
 Throw(JSContext *cx, nsresult rv);
 
