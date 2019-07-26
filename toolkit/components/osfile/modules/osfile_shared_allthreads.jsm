@@ -43,6 +43,7 @@ let EXPORTED_SYMBOLS = [
   "declareFFI",
   "declareLazy",
   "declareLazyFFI",
+  "normalizeToPointer",
   "projectValue",
   "isTypedArray",
   "defineLazyGetter",
@@ -1042,6 +1043,51 @@ let offsetBy =
 };
 exports.offsetBy = offsetBy;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function normalizeToPointer(candidate, bytes) {
+  if (!candidate) {
+    throw new TypeError("Expecting  a Typed Array or a C pointer");
+  }
+  let ptr;
+  if ("isNull" in candidate) {
+    if (candidate.isNull()) {
+      throw new TypeError("Expecting a non-null pointer");
+    }
+    ptr = Type.uint8_t.out_ptr.cast(candidate);
+    if (bytes == null) {
+      throw new TypeError("C pointer missing bytes indication.");
+    }
+  } else if (isTypedArray(candidate)) {
+    
+    ptr = Type.uint8_t.out_ptr.implementation(candidate.buffer);
+    if (bytes == null) {
+      bytes = candidate.byteLength;
+    } else if (candidate.byteLength < bytes) {
+      throw new TypeError("Buffer is too short. I need at least " +
+                         bytes +
+                         " bytes but I have only " +
+                         candidate.byteLength +
+                          "bytes");
+    }
+  } else {
+    throw new TypeError("Expecting  a Typed Array or a C pointer");
+  }
+  return {ptr: ptr, bytes: bytes};
+};
+exports.normalizeToPointer = normalizeToPointer;
 
 
 
