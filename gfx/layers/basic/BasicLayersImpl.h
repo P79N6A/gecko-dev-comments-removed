@@ -94,6 +94,21 @@ FillWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
 BasicImplData*
 ToData(Layer* aLayer);
 
+
+
+
+
+
+
+
+
+
+
+
+
+gfx::CompositionOp
+GetEffectiveOperator(Layer* aLayer);
+
 }
 }
 

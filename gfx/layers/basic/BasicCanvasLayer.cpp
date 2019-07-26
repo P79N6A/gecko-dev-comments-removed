@@ -5,6 +5,7 @@
 
 #include "BasicCanvasLayer.h"
 #include "basic/BasicLayers.h"          
+#include "basic/BasicLayersImpl.h"      
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -29,11 +30,10 @@ BasicCanvasLayer::Paint(DrawTarget* aTarget, SourceSurface* aMaskSurface)
   UpdateTarget();
   FireDidTransactionCallback();
 
-  CompositionOp mixBlendMode = GetEffectiveMixBlendMode();
   PaintWithOpacity(aTarget,
                    GetEffectiveOpacity(),
                    aMaskSurface,
-                   mixBlendMode != CompositionOp::OP_OVER ? mixBlendMode : GetOperator());
+                   GetEffectiveOperator(this));
 }
 
 void
