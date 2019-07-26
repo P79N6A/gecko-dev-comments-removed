@@ -18,6 +18,12 @@ const backgroundPageThumbsContent = {
                 getInterface(Ci.nsIDOMWindowUtils);
     dwu.preventFurtherDialogs();
 
+    
+    
+    this._webNav.QueryInterface(Ci.nsIDocumentLoader).
+      loadGroup.QueryInterface(Ci.nsISupportsPriority).
+      priority = Ci.nsISupportsPriority.PRIORITY_LOWEST;
+
     docShell.allowMedia = false;
     docShell.allowPlugins = false;
 
