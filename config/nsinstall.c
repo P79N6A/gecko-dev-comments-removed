@@ -285,12 +285,15 @@ main(int argc, char **argv)
 	  case 'd':
 	    dodir = 1;
 	    break;
+	  case 'l':
+	    dolink = 1;
+	    break;
 	  case 'L':
 	    linkprefix = optarg;
 	    lplen = strlen(linkprefix);
 	    dolink = 1;
 	    break;
-	  case 'R':
+     case 'R':
 	    dolink = dorelsymlink = 1;
 	    break;
 	  case 'm':
