@@ -725,6 +725,17 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       LOG_MSG(GetImgLog(), "imgRequest::OnDataAvailable", "Got content type from the channel");
     }
 
+#ifdef MOZ_WBMP
+#ifdef MOZ_WIDGET_GONK
+    
+    if (newType.EqualsLiteral(IMAGE_WBMP) &&
+        (!mLoadingPrincipal || mLoadingPrincipal->GetAppStatus() < nsIPrincipal::APP_STATUS_PRIVILEGED)) {
+      this->Cancel(NS_ERROR_FAILURE);
+      return NS_BINDING_ABORTED;
+    }
+#endif
+#endif
+
     
     
     
