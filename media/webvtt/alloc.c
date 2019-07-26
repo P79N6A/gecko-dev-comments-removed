@@ -37,7 +37,7 @@ struct {
 
 
 
-  webvtt_uint n_alloc; 
+  webvtt_uint n_alloc;
   webvtt_alloc_fn_ptr alloc;
   webvtt_free_fn_ptr free;
   void *alloc_data;
@@ -58,7 +58,8 @@ default_free( void *unused, void *ptr )
 }
 
 WEBVTT_EXPORT void
-webvtt_set_allocator( webvtt_alloc_fn_ptr alloc, webvtt_free_fn_ptr free, void *userdata )
+webvtt_set_allocator( webvtt_alloc_fn_ptr alloc, webvtt_free_fn_ptr free,
+                      void *userdata )
 {
   
 

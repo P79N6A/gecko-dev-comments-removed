@@ -32,22 +32,22 @@
 extern "C" {
 #endif
 
+
+
+
+
 # if !defined(_MSC_VER) || _MSC_VER >= 1600
-
-
-
-
 #   define WEBVTT_HAVE_STDINT 1
 #   include <stdint.h>
 # endif
 
-# if defined(_WIN32) || defined(__WIN32__) || defined(__TOS_WIN__) ||\
+# if defined(_WIN32) || defined(__WIN32__) || defined(__TOS_WIN__) || \
      defined(__WINDOWS__)
 #   define WEBVTT_OS_WIN32 1
 #   if defined(_WIN64)
 #     define WEBVTT_OS_WIN64 1
 #   endif
-# endif
+# endif 
 
 # if defined(_MSC_VER)
 #   define WEBVTT_CC_MSVC 1
@@ -79,6 +79,10 @@ extern "C" {
 #   define WEBVTT_CC_UNKNOWN 1
 # endif
 
+# ifndef WEBVTT_HAVE_STDINT
+#   define WEBVTT_HAVE_STDINT 0
+# endif
+
 # ifndef WEBVTT_CALLBACK
 #   define WEBVTT_CALLBACK
 # endif
@@ -97,7 +101,7 @@ extern "C" {
 #   define WEBVTT_INLINE __inline__
 # endif
 
-# ifdef WEBVTT_HAVE_STDINT
+# if WEBVTT_HAVE_STDINT
   typedef int8_t webvtt_int8;
   typedef int16_t webvtt_int16;
   typedef int32_t webvtt_int32;
@@ -137,7 +141,6 @@ extern "C" {
   typedef unsigned short webvtt_ushort;
   typedef unsigned long webvtt_ulong;
   typedef unsigned long long webvtt_ulonglong;
-  typedef webvtt_uint8 webvtt_byte;
   typedef webvtt_int webvtt_bool;
   typedef webvtt_uint32 webvtt_length;
   typedef webvtt_uint64 webvtt_timestamp;
@@ -145,8 +148,11 @@ extern "C" {
   
 
 
-  typedef void *(WEBVTT_CALLBACK *webvtt_alloc_fn_ptr)( void *userdata, webvtt_uint nbytes );
-  typedef void (WEBVTT_CALLBACK *webvtt_free_fn_ptr)( void *userdata, void *pmem );
+
+  typedef void *(WEBVTT_CALLBACK *webvtt_alloc_fn_ptr)( void *userdata,
+                                                        webvtt_uint nbytes );
+  typedef void (WEBVTT_CALLBACK *webvtt_free_fn_ptr)( void *userdata,
+                                                      void *pmem );
 
   
 
@@ -167,7 +173,9 @@ extern "C" {
   WEBVTT_EXPORT void *webvtt_alloc( webvtt_uint nb );
   WEBVTT_EXPORT void *webvtt_alloc0( webvtt_uint nb );
   WEBVTT_EXPORT void webvtt_free( void *data );
-  WEBVTT_EXPORT void webvtt_set_allocator( webvtt_alloc_fn_ptr alloc, webvtt_free_fn_ptr free, void *userdata );
+  WEBVTT_EXPORT void webvtt_set_allocator( webvtt_alloc_fn_ptr alloc,
+                                           webvtt_free_fn_ptr free,
+                                           void *userdata );
 
   enum
   webvtt_status_t {
@@ -185,7 +193,7 @@ extern "C" {
 
     
 
- 
+
     WEBVTT_SKIP_CUE = -11,
 
     
