@@ -24,6 +24,9 @@ var SelectionHandler = {
   _ignoreCompositionChanges: false, 
 
   
+  _prevTargetElementHasText: null,
+
+  
   get _contentWindow() {
     if (this._contentWindowRef)
       return this._contentWindowRef.get();
@@ -160,6 +163,8 @@ var SelectionHandler = {
 
           this._stopDraggingHandles();
           this._positionHandles();
+          
+          this._updateMenu();
 
         } else if (this._activeType == this.TYPE_CURSOR) {
           
@@ -354,8 +359,13 @@ var SelectionHandler = {
         return false;
     }
 
+    
     this._positionHandles(positions);
-    this._sendMessage("TextSelection:ShowHandles", [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END]);
+    sendMessageToJava({
+      type: "TextSelection:ShowHandles",
+      handles: [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END]
+    });
+    this._updateMenu();
     return true;
   },
 
@@ -433,7 +443,31 @@ var SelectionHandler = {
     return obj[name];
   },
 
-  _sendMessage: function(msgType, handles) {
+  addAction: function(action) {
+    if (!action.id)
+      action.id = uuidgen.generateUUID().toString()
+
+    if (this.actions[action.id])
+      throw "Action with id " + action.id + " already added";
+
+    
+    this.actions[action.id] = action;
+    this._updateMenu();
+    return action.id;
+  },
+
+  removeAction: function(id) {
+    
+    delete this.actions[id];
+    this._updateMenu();
+  },
+
+  _updateMenu: function() {
+    if (this._activeType == this.TYPE_NONE) {
+      return;
+    }
+
+    
     let actions = [];
     for (let type in this.actions) {
       let action = this.actions[type];
@@ -452,29 +486,9 @@ var SelectionHandler = {
     actions.sort((a, b) => b.order - a.order);
 
     sendMessageToJava({
-      type: msgType,
-      handles: handles,
-      actions: actions,
+      type: "TextSelection:Update",
+      actions: actions
     });
-  },
-
-  _updateMenu: function() {
-    this._sendMessage("TextSelection:Update");
-  },
-
-  addAction: function(action) {
-    if (!action.id)
-      action.id = uuidgen.generateUUID().toString()
-
-    if (this.actions[action.id])
-      throw "Action with id " + action.id + " already added";
-
-    this.actions[action.id] = action;
-    return action.id;
-  },
-
-  removeAction: function(id) {
-    delete this.actions[id];
   },
 
   
@@ -632,9 +646,14 @@ var SelectionHandler = {
     BrowserApp.deck.addEventListener("compositionend", this, false);
 
     this._activeType = this.TYPE_CURSOR;
-    this._positionHandles();
 
-    this._sendMessage("TextSelection:ShowHandles", [this.HANDLE_TYPE_MIDDLE]);
+    
+    this._positionHandles();
+    sendMessageToJava({
+      type: "TextSelection:ShowHandles",
+      handles: [this.HANDLE_TYPE_MIDDLE]
+    });
+    this._updateMenu();
   },
 
   
@@ -905,6 +924,7 @@ var SelectionHandler = {
 
   _deactivate: function sh_deactivate() {
     this._stopDraggingHandles();
+    
     sendMessageToJava({ type: "TextSelection:HideHandles" });
 
     this._removeObservers();
@@ -922,6 +942,7 @@ var SelectionHandler = {
     this._isRTL = false;
     this._cache = null;
     this._ignoreCompositionChanges = false;
+    this._prevTargetElementHasText = null;
 
     this._activeType = this.TYPE_NONE;
   },
@@ -1037,7 +1058,13 @@ var SelectionHandler = {
       positions: positions,
       rtl: this._isRTL
     });
-    this._updateMenu();
+
+    
+    let currTargetElementHasText = (this._targetElement.textLength > 0);
+    if (currTargetElementHasText != this._prevTargetElementHasText) {
+      this._prevTargetElementHasText = currTargetElementHasText;
+      this._updateMenu();
+    }
   },
 
   subdocumentScrolled: function sh_subdocumentScrolled(aElement) {
