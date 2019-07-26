@@ -40,26 +40,6 @@ function getIntPref(prefName, def) {
   }
 }
 
-function exposeAll(obj) {
-  
-  if (typeof obj !== "object" || !obj)
-    return;
-
-  
-  Object.keys(obj).forEach(function(key) {
-    exposeAll(obj[key]);
-  });
-
-  
-  if (obj instanceof Array)
-    return;
-  var exposed = {};
-  Object.keys(obj).forEach(function(key) {
-    exposed[key] = 'rw';
-  });
-  obj.__exposedProps__ = exposed;
-}
-
 function defineAndExpose(obj, name, value) {
   obj[name] = value;
   if (!('__exposedProps__' in obj))
@@ -499,7 +479,7 @@ BrowserElementParent.prototype = {
     
     
     if (detail !== undefined && detail !== null) {
-      exposeAll(detail);
+      detail = Cu.cloneInto(detail, this._window);
       return new this._window.CustomEvent('mozbrowser' + evtName,
                                           { bubbles: true,
                                             cancelable: cancelable,
