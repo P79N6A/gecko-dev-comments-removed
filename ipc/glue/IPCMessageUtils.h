@@ -155,6 +155,26 @@ public:
   }
 };
 
+template <typename E,
+          E AllBits>
+struct BitFlagsEnumValidator
+{
+  static bool IsLegalValue(E e)
+  {
+    return (e & AllBits) == e;
+  }
+};
+
+template <typename E,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
+struct BitFlagsTypedEnumValidator
+{
+  static bool IsLegalValue(E e)
+  {
+    return (e & AllBits) == e;
+  }
+};
+
 
 
 
@@ -190,6 +210,45 @@ template <typename E,
 struct ContiguousTypedEnumSerializer
   : EnumSerializer<E,
                    ContiguousTypedEnumValidator<E, MinLegal, HighBound>>
+{};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename E,
+          E AllBits>
+struct BitFlagsEnumSerializer
+  : EnumSerializer<E,
+                   BitFlagsEnumValidator<E, AllBits>>
+{};
+
+
+
+
+
+
+template <typename E,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
+struct BitFlagsTypedEnumSerializer
+  : EnumSerializer<E,
+                   BitFlagsTypedEnumValidator<E, AllBits>>
 {};
 
 template <>
