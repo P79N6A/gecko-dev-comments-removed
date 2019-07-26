@@ -1,6 +1,9 @@
-Cu.import("resource://services-sync/main.js");
-Cu.import("resource://services-sync/util.js");
+
+
+
 Cu.import("resource://services-sync/constants.js");
+Cu.import("resource://services-sync/service.js");
+Cu.import("resource://services-sync/util.js");
 
 function run_test() {
   try {
@@ -18,7 +21,7 @@ function run_test() {
     do_check_eq(logins.length, 0);
 
     _("Persist logins to the login service");
-    Weave.Service.persistLogin();
+    Service.persistLogin();
 
     _("The password has been persisted in the login service.");
     logins = Services.logins.findLogins({}, PWDMGR_HOST, null,
@@ -35,7 +38,7 @@ function run_test() {
     do_check_eq(logins[0].password, "abbbbbcccccdddddeeeeefffff");
 
   } finally {
-    Weave.Svc.Prefs.resetBranch("");
+    Svc.Prefs.resetBranch("");
     Services.logins.removeAllLogins();
   }
 }
