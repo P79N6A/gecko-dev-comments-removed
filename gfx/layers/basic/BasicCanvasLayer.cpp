@@ -9,9 +9,6 @@
 #include "gfxUtils.h"
 #include "gfxPlatform.h"
 #include "mozilla/Preferences.h"
-#include "SurfaceStream.h"
-#include "SharedSurfaceGL.h"
-#include "SharedSurfaceEGL.h"
 
 #include "BasicLayersImpl.h"
 #include "nsXULAppAPI.h"
@@ -59,10 +56,12 @@ protected:
   void UpdateSurface(gfxASurface* aDestSurface = nullptr, Layer* aMaskLayer = nullptr);
 
   nsRefPtr<gfxASurface> mSurface;
-  mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
   nsRefPtr<mozilla::gl::GLContext> mGLContext;
+  mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
+  
+  uint32_t mCanvasFramebuffer;
 
-  bool mIsGLAlphaPremult;
+  bool mGLBufferIsPremultiplied;
   bool mNeedsYFlip;
   bool mForceReadback;
 
@@ -99,16 +98,15 @@ BasicCanvasLayer::Initialize(const Data& aData)
 
   if (aData.mSurface) {
     mSurface = aData.mSurface;
-    NS_ASSERTION(!aData.mGLContext, "CanvasLayer can't have both surface and GLContext");
+    NS_ASSERTION(aData.mGLContext == nullptr,
+                 "CanvasLayer can't have both surface and GLContext");
     mNeedsYFlip = false;
   } else if (aData.mGLContext) {
+    NS_ASSERTION(aData.mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
     mGLContext = aData.mGLContext;
-    mIsGLAlphaPremult = aData.mIsGLAlphaPremult;
+    mGLBufferIsPremultiplied = aData.mGLBufferIsPremultiplied;
+    mCanvasFramebuffer = mGLContext->GetOffscreenFBO();
     mNeedsYFlip = true;
-    MOZ_ASSERT(mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
-
-    
-    
   } else if (aData.mDrawTarget) {
     mDrawTarget = aData.mDrawTarget;
     mSurface = gfxPlatform::GetPlatform()->CreateThebesSurfaceAliasForDrawTarget_hack(mDrawTarget);
@@ -148,84 +146,69 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
 
   if (mGLContext) {
     if (aDestSurface && aDestSurface->GetType() != gfxASurface::SurfaceTypeImage) {
-      MOZ_ASSERT(false, "Destination surface must be ImageSurface type.");
+      NS_ASSERTION(aDestSurface->GetType() == gfxASurface::SurfaceTypeImage,
+                   "Destination surface must be ImageSurface type");
       return;
     }
+
+    
+    mGLContext->MakeCurrent();
+
+    gfxIntSize readSize(mBounds.width, mBounds.height);
+    gfxImageFormat format = (GetContentFlags() & CONTENT_OPAQUE)
+                              ? gfxASurface::ImageFormatRGB24
+                              : gfxASurface::ImageFormatARGB32;
 
     nsRefPtr<gfxImageSurface> readSurf;
     nsRefPtr<gfxImageSurface> resultSurf;
 
-    SharedSurface* sharedSurf = mGLContext->RequestFrame();
-    if (!sharedSurf) {
-      NS_WARNING("Null frame received.");
-      return;
-    }
-
-    gfxIntSize readSize(sharedSurf->Size());
-    gfxImageFormat format = (GetContentFlags() & CONTENT_OPAQUE)
-                            ? gfxASurface::ImageFormatRGB24
-                            : gfxASurface::ImageFormatARGB32;
+    bool usingTempSurface = false;
 
     if (aDestSurface) {
       resultSurf = static_cast<gfxImageSurface*>(aDestSurface);
+
+      if (resultSurf->GetSize() != readSize ||
+          resultSurf->Stride() != resultSurf->Width() * 4)
+      {
+        readSurf = GetTempSurface(readSize, format);
+        usingTempSurface = true;
+      }
     } else {
       resultSurf = GetTempSurface(readSize, format);
+      usingTempSurface = true;
     }
-    MOZ_ASSERT(resultSurf);
-    if (resultSurf->CairoStatus() != 0) {
-      MOZ_ASSERT(false, "Bad resultSurf->CairoStatus().");
+
+    if (!usingTempSurface)
+      DiscardTempSurface();
+
+    if (!readSurf)
+      readSurf = resultSurf;
+
+    if (!resultSurf || resultSurf->CairoStatus() != 0)
       return;
-    }
 
-    MOZ_ASSERT(sharedSurf->APIType() == APITypeT::OpenGL);
-    SharedSurface_GL* surfGL = SharedSurface_GL::Cast(sharedSurf);
-
-    if (surfGL->Type() == SharedSurfaceType::Basic) {
-      SharedSurface_Basic* sharedSurf_Basic = SharedSurface_Basic::Cast(surfGL);
-      readSurf = sharedSurf_Basic->GetData();
-    } else {
-      if (resultSurf->Format() == format &&
-          resultSurf->GetSize() == readSize)
-      {
-        readSurf = resultSurf;
-      } else {
-        readSurf = GetTempSurface(readSize, format);
-      }
-
-      
-      mGLContext->Screen()->Readback(surfGL, readSurf);
-    }
     MOZ_ASSERT(readSurf);
+    MOZ_ASSERT(readSurf->Stride() == mBounds.width * 4, "gfxImageSurface stride isn't what we expect!");
 
-    bool needsPremult = surfGL->HasAlpha() && !mIsGLAlphaPremult;
-    if (needsPremult) {
-      gfxImageSurface* sizedReadSurf = nullptr;
-      if (readSurf->Format()  == resultSurf->Format() &&
-          readSurf->GetSize() == resultSurf->GetSize())
-      {
-        sizedReadSurf = readSurf;
-      } else {
-        readSurf->Flush();
-        nsRefPtr<gfxContext> ctx = new gfxContext(resultSurf);
-        ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-        ctx->SetSource(readSurf);
-        ctx->Paint();
+    
+    readSurf->Flush();
+    mGLContext->ReadScreenIntoImageSurface(readSurf);
+    readSurf->MarkDirty();
 
-        sizedReadSurf = resultSurf;
-      }
-      MOZ_ASSERT(sizedReadSurf);
+    
+    
+    
+    
+    if (!mGLBufferIsPremultiplied)
+      gfxUtils::PremultiplyImageSurface(readSurf);
 
-      readSurf->Flush();
+    if (readSurf != resultSurf) {
+      MOZ_ASSERT(resultSurf->Width() >= readSurf->Width());
+      MOZ_ASSERT(resultSurf->Height() >= readSurf->Height());
+
       resultSurf->Flush();
-      gfxUtils::PremultiplyImageSurface(readSurf, resultSurf);
+      resultSurf->CopyFrom(readSurf);
       resultSurf->MarkDirty();
-    } else if (resultSurf != readSurf) {
-      
-      readSurf->Flush();
-      nsRefPtr<gfxContext> ctx = new gfxContext(resultSurf);
-      ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-      ctx->SetSource(readSurf);
-      ctx->Paint();
     }
 
     
@@ -240,11 +223,8 @@ BasicCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
 {
   if (IsHidden())
     return;
-
-  FirePreTransactionCallback();
   UpdateSurface();
   FireDidTransactionCallback();
-
   PaintWithOpacity(aContext, GetEffectiveOpacity(), aMaskLayer);
 }
 
@@ -345,14 +325,28 @@ public:
 
   void DestroyBackBuffer()
   {
-    MOZ_ASSERT(mBackBuffer.type() != SurfaceDescriptor::TSharedTextureDescriptor);
-    if (IsSurfaceDescriptorValid(mBackBuffer)) {
+    if (mBackBuffer.type() == SurfaceDescriptor::TSharedTextureDescriptor) {
+      SharedTextureDescriptor handle = mBackBuffer.get_SharedTextureDescriptor();
+      if (mGLContext && handle.handle()) {
+        mGLContext->ReleaseSharedHandle(handle.shareType(), handle.handle());
+        mBackBuffer = SurfaceDescriptor();
+      }
+    } else if (IsSurfaceDescriptorValid(mBackBuffer)) {
       BasicManager()->ShadowLayerForwarder::DestroySharedSurface(&mBackBuffer);
       mBackBuffer = SurfaceDescriptor();
     }
   }
 
 private:
+  typedef mozilla::gl::SharedTextureHandle SharedTextureHandle;
+  typedef mozilla::gl::TextureImage TextureImage;
+  SharedTextureHandle GetSharedBackBufferHandle()
+  {
+    if (mBackBuffer.type() == SurfaceDescriptor::TSharedTextureDescriptor)
+      return mBackBuffer.get_SharedTextureDescriptor().handle();
+    return 0;
+  }
+
   BasicShadowLayerManager* BasicManager()
   {
     return static_cast<BasicShadowLayerManager*>(mManager);
@@ -369,36 +363,8 @@ BasicShadowableCanvasLayer::Initialize(const Data& aData)
   if (!HasShadow())
       return;
 
-  if (mGLContext) {
-    GLScreenBuffer* screen = mGLContext->Screen();
-    SurfaceStreamType streamType =
-        SurfaceStream::ChooseGLStreamType(SurfaceStream::OffMainThread,
-                                          screen->PreserveBuffer());
-    SurfaceFactory_GL* factory = nullptr;
-    if (!mForceReadback) {
-      if (BasicManager()->GetParentBackendType() == mozilla::layers::LAYERS_OPENGL) {
-        if (mGLContext->GetEGLContext()) {
-          bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
-
-          if (!isCrossProcess) {
-            
-            factory = SurfaceFactory_EGLImage::Create(mGLContext, screen->Caps());
-          } else {
-            
-            
-          }
-        } else {
-          
-          
-          factory = new SurfaceFactory_GLTexture(mGLContext, mGLContext, screen->Caps());
-        }
-      }
-    }
-
-    if (factory) {
-      screen->Morph(factory, streamType);
-    }
-  }
+  
+  
 
   if (IsSurfaceDescriptorValid(mBackBuffer)) {
     AutoOpenSurface backSurface(OPEN_READ_ONLY, mBackBuffer);
@@ -423,16 +389,23 @@ BasicShadowableCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
       !mForceReadback &&
       BasicManager()->GetParentBackendType() == mozilla::layers::LAYERS_OPENGL)
   {
-    bool isCrossProcess = XRE_GetProcessType() != GeckoProcessType_Default;
+    GLContext::SharedTextureShareType shareType;
     
-    
-    if (!isCrossProcess) {
-      FirePreTransactionCallback();
-      GLScreenBuffer* screen = mGLContext->Screen();
-      SurfaceStreamHandle handle = screen->Stream()->GetShareHandle();
+    if (XRE_GetProcessType() == GeckoProcessType_Default)
+      shareType = GLContext::SameProcess;
+    else
+      shareType = GLContext::CrossProcess;
 
-      mBackBuffer = SurfaceStreamDescriptor(handle, false);
-
+    SharedTextureHandle handle = GetSharedBackBufferHandle();
+    if (!handle) {
+      handle = mGLContext->CreateSharedHandle(shareType);
+      if (handle) {
+        mBackBuffer = SharedTextureDescriptor(shareType, handle, mBounds.Size(), false);
+      }
+    }
+    if (handle) {
+      mGLContext->MakeCurrent();
+      mGLContext->UpdateSharedHandle(shareType, handle);
       
       Painted();
       FireDidTransactionCallback();
@@ -466,7 +439,6 @@ BasicShadowableCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
     static_cast<BasicImplData*>(aMaskLayer->ImplData())
       ->Paint(aContext, nullptr);
   }
-  FirePreTransactionCallback();
   UpdateSurface(autoBackSurface.Get(), nullptr);
   FireDidTransactionCallback();
 
