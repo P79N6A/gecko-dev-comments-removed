@@ -440,7 +440,7 @@ GetGlobalForObjectCrossCompartment(JSObject *obj);
 
 
 JS_FRIEND_API(JSObject *)
-GetDefaultGlobalForContext(JSContext *cx);
+DefaultObjectForContextOrNull(JSContext *cx);
 
 JS_FRIEND_API(void)
 NotifyAnimationActivity(JSObject *obj);

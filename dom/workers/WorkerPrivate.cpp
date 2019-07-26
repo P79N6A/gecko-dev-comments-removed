@@ -1696,8 +1696,8 @@ WorkerRunnable::Run()
   
   
   if (mTarget == WorkerThread && ac.empty() &&
-      js::GetDefaultGlobalForContext(cx)) {
-    ac.construct(cx, js::GetDefaultGlobalForContext(cx));
+      js::DefaultObjectForContextOrNull(cx)) {
+    ac.construct(cx, js::DefaultObjectForContextOrNull(cx));
   }
   PostRun(cx, mWorkerPrivate, result);
   return result ? NS_OK : NS_ERROR_FAILURE;
@@ -2867,8 +2867,8 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
         
         
         
-        if (maybeAC.empty() && js::GetDefaultGlobalForContext(aCx)) {
-          maybeAC.construct(aCx, js::GetDefaultGlobalForContext(aCx));
+        if (maybeAC.empty() && js::DefaultObjectForContextOrNull(aCx)) {
+          maybeAC.construct(aCx, js::DefaultObjectForContextOrNull(aCx));
         }
 
         if (!normalGCTimerRunning &&
