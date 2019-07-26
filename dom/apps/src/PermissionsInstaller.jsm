@@ -165,7 +165,8 @@ this.PermissionsTable =  { "resource-lock": {
                              app: DENY_ACTION,
                              privileged: DENY_ACTION,
                              certified: ALLOW_ACTION,
-                             access: ["read", "write"]
+                             access: ["read", "write"],
+                             additional: ["indexedDB-chrome-settings"]
                            },
                            permissions: {
                              app: DENY_ACTION,
@@ -245,7 +246,12 @@ this.PermissionsTable =  { "resource-lock": {
                            "storage": {
                              app: DENY_ACTION,
                              privileged: DENY_ACTION,
-                             certified: ALLOW_ACTION
+                             certified: ALLOW_ACTION,
+                             substitute: [
+                               "indexedDB-unlimited",
+                               "offline-app",
+                               "pin-app"
+                             ]
                            },
                            "background-sensors": {
                              app: DENY_ACTION,
@@ -253,19 +259,6 @@ this.PermissionsTable =  { "resource-lock": {
                              certified: ALLOW_ACTION
                            },
                          };
-
-
-let AllPossiblePermissions = [];
-for (let permName in PermissionsTable) {
-  if (PermissionsTable[permName].access) {
-    AllPossiblePermissions =
-      AllPossiblePermissions.concat(mapSuffixes(permName,
-                                    PermissionsTable[permName].access));
-  }
-  else {
-    AllPossiblePermissions.push(permName);
-  }
-}
 
 
 
@@ -281,22 +274,29 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
     return [];
   }
 
+  const tableEntry = PermissionsTable[aPermName];
 
-
-
-
-
-
-
-
-
-
-  if (!PermissionsTable[aPermName].access || !aAccess) {
-    return [aPermName];
+  if (tableEntry.substitute && tableEntry.additional) {
+    Cu.reportError("PermissionsTable.jsm: expandPermissions: Can't handle both 'substitute' " +
+                   "and 'additional' entries for permission: " + aPermName);
+    return [];
   }
 
+
+
+
+
+
+
+
+
+
+
+  let expandedPerms = [];
+
+  if (tableEntry.access && aAccess) {
   let requestedSuffixes = [];
-  switch(aAccess) {
+    switch (aAccess) {
   case READONLY:
     requestedSuffixes.push("read");
     break;
@@ -313,16 +313,60 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
     return [];
   }
 
+    
+    
+    
+    if (true) {
+      expandedPerms.push(aPermName);
+      if (tableEntry.additional) {
+        for each (let additional in tableEntry.additional) {
+          expandedPerms.push(additional);
+        }
+      }
+    }
+
   let permArr = mapSuffixes(aPermName, requestedSuffixes);
 
-  let expandedPerms = [aPermName];
+    
+    if (tableEntry.additional) {
+      for each (let additional in tableEntry.additional) {
+        permArr = permArr.concat(mapSuffixes(additional, requestedSuffixes));
+      }
+    }
+
+    
   for (let idx in permArr) {
-    if (PermissionsTable[aPermName].access.indexOf(requestedSuffixes[idx]) != -1) {
+      let suffix = requestedSuffixes[idx % requestedSuffixes.length];
+      if (tableEntry.access.indexOf(suffix) != -1) {
       expandedPerms.push(permArr[idx]);
     }
   }
+  } else if (tableEntry.substitute) {
+    expandedPerms = expandedPerms.concat(tableEntry.substitute);
+  } else {
+    expandedPerms.push(aPermName);
+    
+    if (tableEntry.additional) {
+      expandedPerms = expandedPerms.concat(tableEntry.additional);
+    }
+  }
+
   return expandedPerms;
 };
+
+
+let AllPossiblePermissions = [];
+for (let permName in PermissionsTable) {
+  if (PermissionsTable[permName].access) {
+    for each (let access in PermissionsTable[permName].access) {
+      AllPossiblePermissions =
+        AllPossiblePermissions.concat(expandPermissions(permName, access));
+    }
+  } else {
+    AllPossiblePermissions =
+      AllPossiblePermissions.concat(expandPermissions(permName));
+  }
+}
 
 this.PermissionsInstaller = {
 
@@ -430,7 +474,6 @@ this.PermissionsInstaller = {
 
 
   _setPermission: function setPermission(aPerm, aValue, aApp) {
-    if (aPerm != "storage") {
       PermissionSettingsModule.addPermission({
         type: aPerm,
         origin: aApp.origin,
@@ -438,19 +481,5 @@ this.PermissionsInstaller = {
         value: aValue,
         browserFlag: false
       });
-      return;
     }
-
-    ["indexedDB-unlimited", "offline-app", "pin-app"].forEach(
-      function(aName) {
-        PermissionSettingsModule.addPermission({
-          type: aName,
-          origin: aApp.origin,
-          manifestURL: aApp.manifestURL,
-          value: aValue,
-          browserFlag: false
-        });
-      }
-    );
-  }
 };
