@@ -146,22 +146,6 @@ gfxFT2FontBase::GetSpaceGlyph()
     return mSpaceGlyph;
 }
 
-hb_blob_t *
-gfxFT2FontBase::GetFontTable(uint32_t aTag)
-{
-    hb_blob_t *blob;
-    if (mFontEntry->GetExistingFontTable(aTag, &blob))
-        return blob;
-
-    FallibleTArray<uint8_t> buffer;
-    bool haveTable = gfxFT2LockedFace(this).GetFontTable(aTag, buffer);
-
-    
-    
-    return mFontEntry->ShareFontTableAndGetBlob(aTag,
-                                                haveTable ? &buffer : nullptr);
-}
-
 uint32_t
 gfxFT2FontBase::GetGlyph(uint32_t unicode, uint32_t variation_selector)
 {

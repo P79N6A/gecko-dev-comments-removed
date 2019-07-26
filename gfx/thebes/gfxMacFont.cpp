@@ -189,13 +189,17 @@ gfxMacFont::InitMetrics()
     
     
     
-    const uint32_t kHeadTableTag = TRUETYPE_TAG('h','e','a','d');
-    AutoFallibleTArray<uint8_t,sizeof(HeadTable)> headData;
-    if (NS_SUCCEEDED(mFontEntry->GetFontTable(kHeadTableTag, headData)) &&
-        headData.Length() >= sizeof(HeadTable)) {
-        HeadTable *head = reinterpret_cast<HeadTable*>(headData.Elements());
-        upem = head->unitsPerEm;
-    } else {
+    CFDataRef headData =
+        ::CGFontCopyTableForTag(mCGFont, TRUETYPE_TAG('h','e','a','d'));
+    if (headData) {
+        if (size_t(::CFDataGetLength(headData)) >= sizeof(HeadTable)) {
+            const HeadTable *head =
+                reinterpret_cast<const HeadTable*>(::CFDataGetBytePtr(headData));
+            upem = head->unitsPerEm;
+        }
+        ::CFRelease(headData);
+    }
+    if (!upem) {
         upem = ::CGFontGetUnitsPerEm(mCGFont);
     }
 
@@ -346,35 +350,6 @@ gfxMacFont::GetCharWidth(CFDataRef aCmap, PRUnichar aUniChar,
     }
 
     return 0;
-}
-
- void
-gfxMacFont::DestroyBlobFunc(void* aUserData)
-{
-    ::CFRelease((CFDataRef)aUserData);
-}
-
-hb_blob_t *
-gfxMacFont::GetFontTable(uint32_t aTag)
-{
-    CFDataRef dataRef = ::CGFontCopyTableForTag(mCGFont, aTag);
-    if (dataRef) {
-        return hb_blob_create((const char*)::CFDataGetBytePtr(dataRef),
-                              ::CFDataGetLength(dataRef),
-                              HB_MEMORY_MODE_READONLY,
-                              (void*)dataRef, DestroyBlobFunc);
-    }
-
-    if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
-        
-        
-        hb_blob_t *blob;
-        if (mFontEntry->GetExistingFontTable(aTag, &blob)) {
-            return blob;
-        }
-    }
-
-    return nullptr;
 }
 
 
