@@ -917,7 +917,24 @@ const gfx::Rect AsyncPanZoomController::CalculatePendingDisplayPort(
   gfxFloat resolution = CalculateResolution(aFrameMetrics).width;
   nsIntRect compositionBounds = aFrameMetrics.mCompositionBounds;
   compositionBounds.ScaleInverseRoundIn(resolution);
-  const gfx::Rect& scrollableRect = aFrameMetrics.mScrollableRect;
+  gfx::Rect scrollableRect = aFrameMetrics.mScrollableRect;
+
+  
+  
+  
+  
+  
+  
+  if (scrollableRect.width < compositionBounds.width) {
+      scrollableRect.x = std::max(0.f,
+                                  scrollableRect.x - (compositionBounds.width - scrollableRect.width));
+      scrollableRect.width = compositionBounds.width;
+  }
+  if (scrollableRect.height < compositionBounds.height) {
+      scrollableRect.y = std::max(0.f,
+                                  scrollableRect.y - (compositionBounds.height - scrollableRect.height));
+      scrollableRect.height = compositionBounds.height;
+  }
 
   gfx::Point scrollOffset = aFrameMetrics.mScrollOffset;
 
@@ -966,7 +983,7 @@ const gfx::Rect AsyncPanZoomController::CalculatePendingDisplayPort(
 
   gfx::Rect shiftedDisplayPort = displayPort;
   shiftedDisplayPort.MoveBy(scrollOffset.x, scrollOffset.y);
-  displayPort = shiftedDisplayPort.Intersect(aFrameMetrics.mScrollableRect);
+  displayPort = shiftedDisplayPort.Intersect(scrollableRect);
   displayPort.MoveBy(-scrollOffset.x, -scrollOffset.y);
 
   return displayPort;
