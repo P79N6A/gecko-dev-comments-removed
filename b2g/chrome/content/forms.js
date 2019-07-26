@@ -892,6 +892,8 @@ function getDocumentEncoder(element) {
                 .createInstance(Ci.nsIDocumentEncoder);
   let flags = Ci.nsIDocumentEncoder.SkipInvisibleContent |
               Ci.nsIDocumentEncoder.OutputRaw |
+              
+              Ci.nsIDocumentEncoder.OutputDontRemoveLineEndingSpaces |
               Ci.nsIDocumentEncoder.OutputLFLineBreak |
               Ci.nsIDocumentEncoder.OutputNonTextContentAsPlaceholder;
   encoder.init(element.ownerDocument, "text/plain", flags);
