@@ -2060,7 +2060,7 @@ public abstract class GeckoApp
 
                 
                 if (prefs.getBoolean(GeckoApp.PREFS_CLEANUP_TEMP_FILES, true)) {
-                    File tempDir = GeckoLoader.getGREDir(this);
+                    File tempDir = GeckoLoader.getGREDir(GeckoApp.this);
                     FileUtils.delTree(tempDir, new FileUtils.NameAndAgeFilter(null, ONE_DAY_MS), false);
 
                     editor.putBoolean(GeckoApp.PREFS_CLEANUP_TEMP_FILES, false);
