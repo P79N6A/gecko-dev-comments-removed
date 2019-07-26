@@ -8205,6 +8205,10 @@ var Distribution = {
       } catch (e) {  }
     }
 
+    
+    if (prefs["lightweightThemes.isThemeSelected"])
+      Services.obs.notifyObservers(null, "lightweight-theme-apply", "");
+
     let localizedString = Cc["@mozilla.org/pref-localizedstring;1"].createInstance(Ci.nsIPrefLocalizedString);
     let localizeablePrefs = aData["LocalizablePreferences"];
     for (let key in localizeablePrefs) {
