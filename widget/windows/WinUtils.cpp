@@ -851,6 +851,14 @@ NS_IMETHODIMP AsyncEncodeAndWriteIcon::Run()
   rv = icoFile->InitWithPath(mIconPath);
 
   
+  nsCOMPtr<nsIFile> dirPath;
+  icoFile->GetParent(getter_AddRefs(dirPath));
+  rv = (dirPath->Create(nsIFile::DIRECTORY_TYPE, 0777));
+  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
+    return rv;
+  }
+
+  
   nsCOMPtr<nsIOutputStream> outputStream;
   rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), icoFile);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1090,12 +1098,6 @@ nsresult FaviconHelper::GetOutputIconPath(nsCOMPtr<nsIURI> aFaviconPageURI,
   else
     rv = aICOFile->AppendNative(nsDependentCString(kShortcutCacheDir));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = aICOFile->Create(nsIFile::DIRECTORY_TYPE, 0777);
-  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
-    return rv;
-  }
 
   
   inputURIHash.Append(".ico");
