@@ -10,9 +10,8 @@
 #ifndef nsIScrollFrame_h___
 #define nsIScrollFrame_h___
 
-#include "nsISupports.h"
 #include "nsCoord.h"
-#include "nsPresContext.h"
+#include "ScrollbarStyles.h"
 #include "mozilla/gfx/Point.h"
 #include "nsIScrollbarOwner.h"
 #include "Units.h"
@@ -23,6 +22,8 @@
 class nsBoxLayoutState;
 class nsIScrollPositionListener;
 class nsIFrame;
+class nsPresContext;
+class nsIContent;
 
 
 
@@ -41,13 +42,12 @@ public:
 
   virtual nsIFrame* GetScrolledFrame() const = 0;
 
-  typedef nsPresContext::ScrollbarStyles ScrollbarStyles;
   
 
 
 
 
-  virtual ScrollbarStyles GetScrollbarStyles() const = 0;
+  virtual mozilla::ScrollbarStyles GetScrollbarStyles() const = 0;
 
   enum { HORIZONTAL = 0x01, VERTICAL = 0x02 };
   
