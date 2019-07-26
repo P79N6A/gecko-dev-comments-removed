@@ -80,28 +80,8 @@ class ICameraControl
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ICameraControl)
 
-  
-  
-  
-  
-  
   static nsresult GetNumberOfCameras(int32_t& aDeviceCount);
-
-  
-  
-  
-  
-  
-  
-  
   static nsresult GetCameraName(uint32_t aDeviceNum, nsCString& aDeviceName);
-
-  
-  
-  
-  
-  
-  
   static nsresult GetListOfCameras(nsTArray<nsString>& aList);
 
   enum Mode {
@@ -143,7 +123,8 @@ public:
     nsString  mRecorderProfile;
   };
 
-  struct Point {
+  struct Point
+  {
     int32_t   x;
     int32_t   y;
   };
@@ -162,19 +143,14 @@ public:
 
   static already_AddRefed<ICameraControl> Create(uint32_t aCameraId);
 
+  virtual nsresult Start(const Configuration* aInitialConfig = nullptr) = 0;
+  virtual nsresult Stop() = 0;
+
+  virtual nsresult SetConfiguration(const Configuration& aConfig) = 0;
+
   virtual void AddListener(CameraControlListener* aListener) = 0;
   virtual void RemoveListener(CameraControlListener* aListener) = 0;
 
-  
-  
-  
-  
-  
-  
-  
-  virtual nsresult Start(const Configuration* aInitialConfig = nullptr) = 0;
-  virtual nsresult Stop() = 0;
-  virtual nsresult SetConfiguration(const Configuration& aConfig) = 0;
   virtual nsresult StartPreview() = 0;
   virtual nsresult StopPreview() = 0;
   virtual nsresult AutoFocus() = 0;
@@ -186,17 +162,6 @@ public:
   virtual nsresult StopFaceDetection() = 0;
   virtual nsresult ResumeContinuousFocus() = 0;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   virtual nsresult Set(uint32_t aKey, const nsAString& aValue) = 0;
   virtual nsresult Get(uint32_t aKey, nsAString& aValue) = 0;
   virtual nsresult Set(uint32_t aKey, double aValue) = 0;

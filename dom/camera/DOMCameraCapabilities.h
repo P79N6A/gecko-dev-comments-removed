@@ -41,13 +41,8 @@ public:
   static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
 
   CameraCapabilities(nsPIDOMWindow* aWindow);
+  ~CameraCapabilities();
 
-  
-  
-  
-  
-  
-  
   nsresult Populate(ICameraControl* aCameraControl);
 
   nsPIDOMWindow* GetParentObject() const { return mWindow; }
@@ -75,8 +70,6 @@ public:
   void GetIsoModes(nsTArray<nsString>& aRetVal) const;
 
 protected:
-  ~CameraCapabilities();
-
   nsresult TranslateToDictionary(ICameraControl* aCameraControl,
                                  uint32_t aKey, nsTArray<CameraSize>& aSizes);
 

@@ -37,9 +37,6 @@ public:
   
   
   
-  
-  
-  
   template<class T> nsresult
   Set(uint32_t aKey, const T& aValue)
   {
@@ -127,15 +124,11 @@ protected:
   
   
   
-  
-  
-  
-  
   template<typename T> nsresult
   SetImpl(uint32_t aKey, const T& aValue)
   {
     const char* key = Parameters::GetTextKey(aKey);
-    NS_ENSURE_TRUE(key, NS_ERROR_NOT_IMPLEMENTED);
+    NS_ENSURE_TRUE(key, NS_ERROR_NOT_AVAILABLE);
 
     mParams.set(key, aValue);
     return NS_OK;
@@ -145,7 +138,7 @@ protected:
   GetImpl(uint32_t aKey, T& aValue)
   {
     const char* key = Parameters::GetTextKey(aKey);
-    NS_ENSURE_TRUE(key, NS_ERROR_NOT_IMPLEMENTED);
+    NS_ENSURE_TRUE(key, NS_ERROR_NOT_AVAILABLE);
 
     mParams.get(key, aValue);
     return NS_OK;
@@ -165,15 +158,6 @@ protected:
     return NS_OK;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   
@@ -199,27 +183,10 @@ protected:
   nsresult GetTranslated(uint32_t aKey, nsTArray<nsString>& aValues);
   nsresult GetTranslated(uint32_t aKey, nsTArray<double>& aValues);
 
-  
-  
-  
-  
-  
-  
-  
   template<class T> nsresult GetListAsArray(uint32_t aKey, nsTArray<T>& aArray);
-
-  
-  
-  
-  
-  
-  
-  
   nsresult MapIsoToGonk(const nsAString& aIso, nsACString& aIsoOut);
   nsresult MapIsoFromGonk(const char* aIso, nsAString& aIsoOut);
 
-  
-  
   nsresult Initialize();
 };
 

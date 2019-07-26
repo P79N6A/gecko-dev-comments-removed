@@ -44,14 +44,6 @@ public:
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
   nsresult GetJsObject(JSContext* aCx, JSObject** aObject);
 
 protected:
@@ -81,6 +73,7 @@ public:
     UNKNOWN
   };
 
+public:
   Codec GetCodec() const    { return mCodec; }
   const char* GetCodecName() const
   {
@@ -92,14 +85,6 @@ public:
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
   nsresult GetJsObject(JSContext* aCx, JSObject** aObject);
 
 protected:
@@ -145,14 +130,6 @@ public:
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
   virtual nsresult GetJsObject(JSContext* aCx, JSObject** aObject) = 0;
 
 protected:
@@ -184,24 +161,14 @@ public:
   const RecorderVideoProfile* GetVideoProfile() const { return &mVideo; }
   const RecorderAudioProfile* GetAudioProfile() const { return &mAudio; }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsresult
-  GetJsObject(JSContext* aCx, JSObject** aObject)
+  nsresult GetJsObject(JSContext* aCx, JSObject** aObject)
   {
     NS_ENSURE_TRUE(aObject, NS_ERROR_INVALID_ARG);
 
     const char* format = GetFileFormatName();
     if (!format) {
       
-      return NS_ERROR_NOT_AVAILABLE;
+      return NS_ERROR_FAILURE;
     }
 
     JS::Rooted<JSObject*> o(aCx, JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
@@ -249,16 +216,6 @@ public:
   virtual already_AddRefed<RecorderProfile> Get(uint32_t aQualityIndex) const = 0;
 
   uint32_t GetMaxQualityIndex() const { return mMaxQualityIndex; }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
   nsresult GetJsObject(JSContext* aCx, JSObject** aObject) const;
 
 protected:
