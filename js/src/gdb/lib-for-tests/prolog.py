@@ -1,7 +1,11 @@
 import gdb
+import os
 import re
 import sys
 import traceback
+
+
+sys.path[0:0] = [testlibdir]
 
 
 
@@ -58,7 +62,9 @@ gdb.execute('set print pretty off')
 gdb.execute('set width 0')
 
 try:
-    execfile(sys.argv[0])
+    
+    
+    execfile(testscript)
 except AssertionError as err:
     sys.stderr.write('\nAssertion traceback:\n')
     (t, v, tb) = sys.exc_info()
