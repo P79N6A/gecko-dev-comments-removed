@@ -312,10 +312,6 @@ function editableTextTest(aID)
       invoker.eventSeq.push(checker);
     }
 
-    
-    if (!aRemoveTriple && !aInsertTriple)
-      invoker.noEventsOnAction = true;
-
     this.mEventQueue.mInvokers[this.mEventQueue.mIndex + 1] = invoker;
   }
 
