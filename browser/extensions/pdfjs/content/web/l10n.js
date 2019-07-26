@@ -12,55 +12,70 @@
   function getL10nData(key) {
     var response = FirefoxCom.requestSync('getStrings', key);
     var data = JSON.parse(response);
-    if (!data)
+    if (!data) {
       console.warn('[l10n] #' + key + ' missing for [' + gLanguage + ']');
+    }
     return data;
   }
 
   
   function substArguments(text, args) {
-    if (!args)
+    if (!args) {
       return text;
-
+    }
     return text.replace(/\{\{\s*(\w+)\s*\}\}/g, function(all, name) {
-      return name in args ? args[name] : '{{' + name + '}}';
+      return (name in args ? args[name] : '{{' + name + '}}');
     });
   }
 
   
   function translateString(key, args, fallback) {
-    var data = getL10nData(key);
-    if (!data && fallback)
-      data = {textContent: fallback};
-    if (!data)
+    var i = key.lastIndexOf('.');
+    var name, property;
+    if (i >= 0) {
+      name = key.substring(0, i);
+      property = key.substring(i + 1);
+    } else {
+      name = key;
+      property = 'textContent';
+    }
+    var data = getL10nData(name);
+    var value = (data && data[property]) || fallback;
+    if (!value) {
       return '{{' + key + '}}';
-    return substArguments(data.textContent, args);
+    }
+    return substArguments(value, args);
   }
 
   
   function translateElement(element) {
-    if (!element || !element.dataset)
+    if (!element || !element.dataset) {
       return;
+    }
 
     
     var key = element.dataset.l10nId;
     var data = getL10nData(key);
-    if (!data)
+    if (!data) {
       return;
-
-    
-    
-    var args;
-    if (element.dataset.l10nArgs) try {
-      args = JSON.parse(element.dataset.l10nArgs);
-    } catch (e) {
-      console.warn('[l10n] could not parse arguments for #' + key + '');
     }
 
     
     
-    for (var k in data)
+    var args;
+    if (element.dataset.l10nArgs) {
+      try {
+        args = JSON.parse(element.dataset.l10nArgs);
+      } catch (e) {
+        console.warn('[l10n] could not parse arguments for #' + key + '');
+      }
+    }
+
+    
+    
+    for (var k in data) {
       element[k] = substArguments(data[k], args);
+    }
   }
 
 
@@ -71,12 +86,14 @@
     
     var children = element.querySelectorAll('*[data-l10n-id]');
     var elementCount = children.length;
-    for (var i = 0; i < elementCount; i++)
+    for (var i = 0; i < elementCount; i++) {
       translateElement(children[i]);
+    }
 
     
-    if (element.dataset.l10nId)
+    if (element.dataset.l10nId) {
       translateElement(element);
+    }
   }
 
   window.addEventListener('DOMContentLoaded', function() {
@@ -97,14 +114,16 @@
     get: translateString,
 
     
-    getLanguage: function() { return gLanguage; },
+    getLanguage: function() {
+      return gLanguage;
+    },
 
     
     getDirection: function() {
       
       
       var rtlList = ['ar', 'he', 'fa', 'ps', 'ur'];
-      return (rtlList.indexOf(gLanguage) >= 0) ? 'rtl' : 'ltr';
+      return (rtlList.indexOf(gLanguage) >= 0 ? 'rtl' : 'ltr');
     },
 
     
