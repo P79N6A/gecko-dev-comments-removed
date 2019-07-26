@@ -84,6 +84,28 @@ StoreBuffer::WholeCellEdges::mark(JSTracer *trc)
 
 template <typename T>
 void
+StoreBuffer::MonoTypeBuffer<T>::handleOverflow(StoreBuffer *owner)
+{
+    if (!owner->isAboutToOverflow()) {
+        
+
+
+
+        compact(owner);
+        if (isAboutToOverflow())
+            owner->setAboutToOverflow();
+    } else {
+         
+
+
+
+        if (storage_->availableInCurrentChunk() < sizeof(T))
+            compact(owner);
+    }
+}
+
+template <typename T>
+void
 StoreBuffer::MonoTypeBuffer<T>::compactRemoveDuplicates(StoreBuffer *owner)
 {
     EdgeSet duplicates;
