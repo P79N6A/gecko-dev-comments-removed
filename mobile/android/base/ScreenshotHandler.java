@@ -83,8 +83,15 @@ public final class ScreenshotHandler implements Runnable {
     }
 
     private void cleanup() {
-        discardPendingScreenshots();
-        mBuffer = DirectBufferAllocator.free(mBuffer);
+        synchronized (mPendingScreenshots) {
+            if (mPendingScreenshots.isEmpty()) {
+                
+                mBuffer = DirectBufferAllocator.free(mBuffer);
+            } else {
+                discardPendingScreenshots();
+                mBuffer = null;
+            }
+        }
     }
 
     
@@ -294,7 +301,7 @@ public final class ScreenshotHandler implements Runnable {
     }
 
     
-    public static void notifyScreenShot(final ByteBuffer data, final int tabId,
+    synchronized public static void notifyScreenShot(final ByteBuffer data, final int tabId,
                                         final int left, final int top,
                                         final int right, final int bottom,
                                         final int bufferWidth, final int bufferHeight, final int token) {
@@ -305,6 +312,8 @@ public final class ScreenshotHandler implements Runnable {
                     {
                         ScreenshotHandler handler = getInstance();
                         if (handler == null) {
+                            
+                            DirectBufferAllocator.free(data);
                             break;
                         }
                         if (Tabs.getInstance().getSelectedTab().getId() == tabId) {
