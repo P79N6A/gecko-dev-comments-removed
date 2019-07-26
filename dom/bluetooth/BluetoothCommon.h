@@ -53,6 +53,7 @@ extern bool gBluetoothDebugFlag;
 
 
 #define BLUETOOTH_ADDRESS_LENGTH 17
+#define BLUETOOTH_ADDRESS_NONE   "00:00:00:00:00:00"
 
 BEGIN_BLUETOOTH_NAMESPACE
 
