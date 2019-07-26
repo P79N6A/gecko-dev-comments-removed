@@ -1097,6 +1097,20 @@ HyperTextAccessible::GetTextAtOffset(int32_t aOffset,
     case BOUNDARY_LINE_END: {
       
       
+      
+      if (offset == CharacterCount()) {
+        nsAutoString lastChar;
+        GetText(offset -1, -1, lastChar);
+        if (lastChar.EqualsLiteral("\n")) {
+          *aStartOffset = offset - 1;
+          *aEndOffset = offset;
+          aText = lastChar;
+          return NS_OK;
+        }
+      }
+
+      
+      
       *aEndOffset = FindLineBoundary(offset, eDirNext, eSelectEndLine);
       int32_t tmpOffset = FindLineBoundary(offset, eDirPrevious, eSelectLine);
       *aStartOffset = FindLineBoundary(tmpOffset, eDirNext, eSelectEndLine);
