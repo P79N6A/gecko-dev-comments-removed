@@ -44,14 +44,6 @@ XPCOMUtils.defineLazyGetter(this, "gInterval", function () {
 });
 
 
-function createSupportsString(data) {
-  let string = Cc["@mozilla.org/supports-string;1"]
-                 .createInstance(Ci.nsISupportsString);
-  string.data = data;
-  return string;
-}
-
-
 function notify(subject, topic) {
   Services.obs.notifyObservers(subject, topic, "");
 }
@@ -252,18 +244,12 @@ let SessionSaverInternal = {
 
 
   _writeState: function (state) {
+    
+    notify(null, "sessionstore-state-write");
+
     stopWatchStart("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS", "WRITE_STATE_LONGEST_OP_MS");
     let data = JSON.stringify(state);
     stopWatchFinish("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS");
-
-    
-    data = this._notifyObserversBeforeStateWrite(data);
-
-    
-    if (!data) {
-      stopWatchCancel("WRITE_STATE_LONGEST_OP_MS");
-      return Promise.resolve();
-    }
 
     
     
@@ -285,14 +271,4 @@ let SessionSaverInternal = {
 
     return promise;
   },
-
-  
-
-
-
-  _notifyObserversBeforeStateWrite: function (data) {
-    let stateString = createSupportsString(data);
-    notify(stateString, "sessionstore-state-write");
-    return stateString.data;
-  }
 };

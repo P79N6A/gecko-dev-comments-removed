@@ -75,15 +75,13 @@ function test() {
     
     
     
-    Services.obs.addObserver(function (aSubject, aTopic, aData) {
-      Services.obs.removeObserver(arguments.callee, aTopic);
-      info("sessionstore.js is being written");
-
+    waitForSaveState(function(writing) {
+      ok(writing, "sessionstore.js is being written");
       closedWindowCount = ss.getClosedWindowCount();
       is(closedWindowCount, 0, "Correctly set window count");
 
       executeSoon(aCallback);
-    }, "sessionstore-state-write", false);
+    });
 
     
     let profilePath = Services.dirsvc.get("ProfD", Ci.nsIFile);

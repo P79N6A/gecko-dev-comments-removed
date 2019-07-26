@@ -25,6 +25,7 @@ function testBug600545() {
   
   
   
+  
   let state = { windows: [
     {
       tabs: [

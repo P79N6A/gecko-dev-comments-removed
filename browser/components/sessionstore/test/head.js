@@ -249,15 +249,10 @@ function waitForTopic(aTopic, aTimeout, aCallback) {
 
 
 
-
-
-
-
-
 function waitForSaveState(aCallback) {
   let timeout = 100 +
     Services.prefs.getIntPref("browser.sessionstore.interval");
-  return waitForTopic("sessionstore-state-write", timeout, aCallback);
+  return waitForTopic("sessionstore-state-write-complete", timeout, aCallback);
 }
 function promiseSaveState() {
   let deferred = Promise.defer();
@@ -272,20 +267,28 @@ function promiseSaveState() {
 function forceSaveState() {
   let promise = promiseSaveState();
   const PREF = "browser.sessionstore.interval";
+  let original = Services.prefs.getIntPref(PREF);
   
   
   Services.prefs.setIntPref(PREF, 1000);
   Services.prefs.setIntPref(PREF, 0);
   return promise.then(
     function onSuccess(x) {
-      Services.prefs.clearUserPref(PREF);
+      Services.prefs.setIntPref(PREF, original);
       return x;
     },
     function onError(x) {
-      Services.prefs.clearUserPref(PREF);
+      Services.prefs.setIntPref(PREF, original);
       throw x;
     }
   );
+}
+
+function promiseSaveFileContents() {
+  let promise = forceSaveState();
+  return promise.then(function() {
+    return OS.File.read(OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js"), { encoding: "utf-8" });
+  });
 }
 
 function whenBrowserLoaded(aBrowser, aCallback = next, ignoreSubFrames = true) {
@@ -320,6 +323,11 @@ function whenWindowLoaded(aWindow, aCallback = next) {
       aCallback(aWindow);
     });
   }, false);
+}
+function promiseWindowLoaded(aWindow) {
+  let deferred = Promise.defer();
+  whenWindowLoaded(aWindow, deferred.resolve);
+  return deferred.promise;
 }
 
 function whenTabRestored(aTab, aCallback = next) {

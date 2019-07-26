@@ -25,42 +25,8 @@ let gSSData;
 let gSSBakData;
 
 
-function waitForSaveStateComplete(aSaveStateCallback) {
-  let topic = "sessionstore-state-write-complete";
 
-  function observer() {
-    Services.prefs.clearUserPref(PREF_SS_INTERVAL);
-    Services.obs.removeObserver(observer, topic);
-    executeSoon(function taskCallback() {
-      Task.spawn(aSaveStateCallback);
-    });
-  }
-
-  Services.obs.addObserver(observer, topic, false);
-}
-
-
-function nextTest(testFunc) {
-  waitForSaveStateComplete(testFunc);
-
-  
-  
-  Services.prefs.setIntPref(PREF_SS_INTERVAL, 0);
-}
-
-registerCleanupFunction(function() {
-  
-  Task.spawn(function cleanupTask() {
-    yield OS.File.remove(backupPath);
-  });
-});
-
-function test() {
-  waitForExplicitFinish();
-  nextTest(testAfterFirstWrite);
-}
-
-function testAfterFirstWrite() {
+add_task(function* testAfterFirstWrite() {
   
   
   
@@ -78,10 +44,10 @@ function testAfterFirstWrite() {
   
   yield OS.File.move(path, backupPath);
 
-  nextTest(testReadBackup);
-}
+  yield forceSaveState();
+});
 
-function testReadBackup() {
+add_task(function* testReadBackup() {
   
   let ssExists = yield OS.File.exists(path);
   let ssBackupExists = yield OS.File.exists(backupPath);
@@ -114,10 +80,10 @@ function testReadBackup() {
   is(ssDataRead, gSSBakData,
     "SessionFile.read read sessionstore.bak correctly.");
 
-  nextTest(testBackupUnchanged);
-}
+  yield forceSaveState();
+});
 
-function testBackupUnchanged() {
+add_task(function* testBackupUnchanged() {
   
 
   
@@ -125,6 +91,9 @@ function testBackupUnchanged() {
   let ssBakData = gDecoder.decode(array);
   
   is(ssBakData, gSSBakData, "sessionstore.bak is unchanged.");
+});
 
-  executeSoon(finish);
-}
+add_task(function* cleanup() {
+  
+  yield OS.File.remove(backupPath);
+});
