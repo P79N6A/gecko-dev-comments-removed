@@ -170,6 +170,18 @@ this.DOMIdentity = {
   
 
 
+  _mockIdentityService: null,
+  get IdentityService() {
+    if (this._mockIdentityService) {
+      log("Using a mocked identity service");
+      return this._mockIdentityService;
+    }
+    return IdentityService;
+  },
+
+  
+
+
   newContext: function(message, targetMM) {
     let context = new RPWatchContext(message, targetMM);
     this._serviceContexts.set(message.id, context);
@@ -199,7 +211,7 @@ this.DOMIdentity = {
       }
       log("WARNING: Firefox Accounts is not enabled; Defaulting to BrowserID");
     }
-    return IdentityService;
+    return this.IdentityService;
   },
 
   

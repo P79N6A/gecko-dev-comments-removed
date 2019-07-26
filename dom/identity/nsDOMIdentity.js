@@ -44,6 +44,8 @@ const ERRORS = {
     "Only privileged and certified apps may use Firefox Accounts",
   "ERROR_INVALID_ASSERTION_AUDIENCE":
     "Assertion audience may not differ from origin",
+  "ERROR_REQUEST_WHILE_NOT_HANDLING_USER_INPUT":
+    "The request() method may only be invoked when handling user input",
 };
 
 function nsDOMIdentity(aIdentityInternal) {
@@ -178,17 +180,6 @@ nsDOMIdentity.prototype = {
 
   request: function nsDOMIdentity_request(aOptions = {}) {
     this._log("request: " + JSON.stringify(aOptions));
-    let util = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils);
-
-    
-    
-    
-    
-    if (this.nativeEventsRequired && !util.isHandlingUserInput && !aOptions._internal) {
-      this._log("request: rejecting non-native event");
-      return;
-    }
 
     
     if (!this._rpWatcher) {
@@ -198,7 +189,31 @@ nsDOMIdentity.prototype = {
       throw new Error("navigator.id.request called too many times");
     }
 
+    let util = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+
     let message = this.DOMIdentityMessage(aOptions);
+
+    
+    
+    
+    
+    
+    
+
+    if (!aOptions._internal &&
+        this._appStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+
+      
+      
+      
+      let util = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+
+      if (!util.isHandlingUserInput && this.nativeEventsRequired) {
+        message.errors.push("ERROR_REQUEST_WHILE_NOT_HANDLING_USER_INPUT");
+      }
+    }
 
     
     if (message.errors.length) {
@@ -620,7 +635,8 @@ nsDOMIdentity.prototype = {
 
     
     
-    if (this._appStatus !== principal.APP_STATUS_PRIVILEGED &&
+    if (aOptions.wantIssuer == "firefox-accounts" &&
+        this._appStatus !== principal.APP_STATUS_PRIVILEGED &&
         this._appStatus !== principal.APP_STATUS_CERTIFIED) {
       message.errors.push("ERROR_NOT_AUTHORIZED_FOR_FIREFOX_ACCOUNTS");
     }
@@ -648,7 +664,7 @@ nsDOMIdentity.prototype = {
     
     message.audience = _audience;
 
-    this._log("Generated message: " + JSON.stringify(message));
+    this._log("DOMIdentityMessage: " + JSON.stringify(message));
 
     return message;
   },
