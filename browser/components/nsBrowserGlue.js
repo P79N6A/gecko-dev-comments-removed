@@ -168,7 +168,7 @@ BrowserGlue.prototype = {
         this._onAppDefaults();
         break;
       case "final-ui-startup":
-        this._onProfileStartup();
+        this._finalUIStartup();
         break;
       case "browser-delayed-startup-finished":
         this._onFirstWindowLoaded();
@@ -393,7 +393,8 @@ BrowserGlue.prototype = {
   },
 
   
-  _onProfileStartup: function BG__onProfileStartup() {
+  
+  _finalUIStartup: function BG__finalUIStartup() {
     this._sanitizer.onStartup();
     
     if (Services.appinfo.inSafeMode) {
