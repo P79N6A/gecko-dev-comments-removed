@@ -113,28 +113,13 @@ public:
     return false;
   }
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(APZStateChange, int8_t)
-    
-
-
-    TransformBegin,
-    
-
-
-    TransformEnd,
-    APZStateChangeSentinel
-  MOZ_END_NESTED_ENUM_CLASS(APZStateChange)
-
   
 
 
 
 
-
-
-  virtual void NotifyAPZStateChange(const ScrollableLayerGuid& aGuid,
-                                    APZStateChange aChange,
-                                    int aArg = 0) {}
+  virtual void NotifyTransformBegin(const ScrollableLayerGuid& aGuid) {}
+  virtual void NotifyTransformEnd(const ScrollableLayerGuid& aGuid) {}
 
   GeckoContentController() {}
 
@@ -142,8 +127,6 @@ protected:
   
   virtual ~GeckoContentController() {}
 };
-
-MOZ_FINISH_NESTED_ENUM_CLASS(GeckoContentController::APZStateChange)
 
 }
 }
