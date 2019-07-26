@@ -61,7 +61,7 @@ private:
 class DBusReplyHandler
 {
 public:
-  NS_INLINE_DECL_REFCOUNTING(DBusReplyHandler)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DBusReplyHandler)
 
   
 
