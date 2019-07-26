@@ -1086,6 +1086,8 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
         return arr->vector[index];
     }
 
+    JSObject *getBlockScope(jsbytecode *pc);
+
     
 
 
