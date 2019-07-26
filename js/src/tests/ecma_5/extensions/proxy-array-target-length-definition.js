@@ -18,12 +18,21 @@ print(BUGNUMBER + ": " + summary);
 var arr = [];
 var p = new Proxy(arr, {});
 
+function assertThrowsTypeError(f)
+{
+    try {
+        f();
+        assertEq(false, true, "Must have thrown");
+    } catch (e) {
+        assertEq(e instanceof TypeError, true, "Must have thrown TypeError");
+    }
+}
 
 
-Object.defineProperty(p, "length", { value: 17, configurable: true });
+assertThrowsTypeError(function () { Object.defineProperty(p, "length", { value: 17, configurable: true }); });
 
 
-Object.defineProperty(p, "length", { value: 42, enumerable: true });
+assertThrowsTypeError(function () { Object.defineProperty(p, "length", { value: 42, enumerable: true }); });
 
 
 var pd = Object.getOwnPropertyDescriptor(p, "length");
