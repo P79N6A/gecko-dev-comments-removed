@@ -58,6 +58,10 @@ void mozilla_sampler_lock();
 void mozilla_sampler_unlock();
 
 
+bool mozilla_sampler_register_thread(const char* name);
+void mozilla_sampler_unregister_thread();
+
+
 extern bool sps_version2();
 
 #endif
