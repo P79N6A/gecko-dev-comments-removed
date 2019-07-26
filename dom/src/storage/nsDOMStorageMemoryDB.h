@@ -139,7 +139,7 @@ protected:
   bool mPreloading;
 
   nsresult
-  GetUsageInternal(const nsACString& aQuotaDomainDBKey, int32_t *aUsage);
+  GetUsageInternal(const nsACString& aQuotaDBKey, int32_t *aUsage);
 };
 
 #endif

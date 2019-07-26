@@ -173,22 +173,22 @@ public:
 
 
 
-  static nsresult CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey);
+  static nsresult CreateScopeDBKey(nsIURI* aUri, nsACString& aKey);
 
   
 
 
 
-  static nsresult CreateDomainScopeDBKey(nsIURI* aUri, nsACString& aKey);
-  static nsresult CreateDomainScopeDBKey(const nsACString& aAsciiDomain, nsACString& aKey);
+  static nsresult CreateReversedDomain(nsIURI* aUri, nsACString& aKey);
+  static nsresult CreateReversedDomain(const nsACString& aAsciiDomain, nsACString& aKey);
 
   
 
 
 
 
-  static nsresult CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
-                                         nsACString& aKey);
+  static nsresult CreateQuotaDBKey(const nsACString& aAsciiDomain,
+                                   nsACString& aKey);
 
   static nsresult GetDomainFromScopeKey(const nsACString& aScope,
                                         nsACString& aDomain);
