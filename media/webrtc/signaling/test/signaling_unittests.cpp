@@ -2284,14 +2284,9 @@ TEST_F(SignalingTest, missingUfrag)
   a1_.CreateOffer(constraints, OFFER_AV, SHOULD_SENDRECV_AV);
   a1_.SetLocal(TestObserver::OFFER, offer, true);
   
-  
-  
-  
-  a2_.SetRemote(TestObserver::OFFER, offer, true);
-  a2_.CreateAnswer(constraints, offer, OFFER_AV | ANSWER_AV);
-  a2_.SetLocal(TestObserver::ANSWER, a2_.answer(),
-               true, sipcc::PeerConnectionImpl::kSignalingHaveRemoteOffer);
-  
+  a2_.SetRemote(TestObserver::OFFER, offer, true, 
+    sipcc::PeerConnectionImpl::kSignalingStable);
+  ASSERT_TRUE(a2_.pObserver->state == TestObserver::stateError);
 }
 
 } 
