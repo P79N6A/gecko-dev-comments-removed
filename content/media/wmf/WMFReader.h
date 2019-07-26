@@ -91,13 +91,6 @@ private:
   uint32_t mVideoHeight;
   uint32_t mVideoStride;
 
-  
-  
-  int64_t mAudioFrameOffset;
-  
-  
-  int64_t mAudioFrameSum;
-
   bool mHasAudio;
   bool mHasVideo;
   bool mCanSeek;
