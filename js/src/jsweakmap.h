@@ -50,7 +50,7 @@ class WeakMapBase {
             
             
             
-            JS_ASSERT(!tracer->eagerlyTraceWeakMaps);
+            JS_ASSERT(tracer->eagerlyTraceWeakMaps == DoNotTraceWeakMaps);
 
             
             
@@ -63,8 +63,12 @@ class WeakMapBase {
             
             
             
-            if (tracer->eagerlyTraceWeakMaps)
-                nonMarkingTrace(tracer);
+            if (tracer->eagerlyTraceWeakMaps == DoNotTraceWeakMaps)
+                return;
+
+            nonMarkingTraceValues(tracer);
+            if (tracer->eagerlyTraceWeakMaps == TraceWeakMapKeysValues)
+                nonMarkingTraceKeys(tracer);
         }
     }
 
@@ -100,7 +104,8 @@ class WeakMapBase {
   protected:
     
     
-    virtual void nonMarkingTrace(JSTracer *tracer) = 0;
+    virtual void nonMarkingTraceKeys(JSTracer *tracer) = 0;
+    virtual void nonMarkingTraceValues(JSTracer *tracer) = 0;
     virtual bool markIteratively(JSTracer *tracer) = 0;
     virtual void sweep() = 0;
     virtual void traceMappings(WeakMapTracer *tracer) = 0;
@@ -141,7 +146,16 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
         return true;
     }
 
-    void nonMarkingTrace(JSTracer *trc) {
+    void nonMarkingTraceKeys(JSTracer *trc) {
+        for (Enum e(*this); !e.empty(); e.popFront()) {
+            Key key(e.front().key);
+            gc::Mark(trc, &key, "WeakMap Key");
+            if (key != e.front().key)
+                e.rekeyFront(key, key);
+        }
+    }
+
+    void nonMarkingTraceValues(JSTracer *trc) {
         for (Range r = Base::all(); !r.empty(); r.popFront())
             gc::Mark(trc, &r.front().value, "WeakMap entry");
     }
@@ -190,6 +204,8 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
             Key k(e.front().key);
             if (gc::IsAboutToBeFinalized(&k))
                 e.removeFront();
+            else if (k != e.front().key)
+                e.rekeyFront(k, k);
         }
         
 
