@@ -220,13 +220,6 @@ let SessionHistoryListener = {
     
     
     
-    gFrameTree.addObserver(this);
-
-    
-    
-    
-    
-    
     docShell.QueryInterface(Ci.nsIWebNavigation).sessionHistory.
       addSHistoryListener(this);
 
@@ -247,14 +240,6 @@ let SessionHistoryListener = {
     if (docShell) {
       MessageQueue.push("history", () => SessionHistory.collect(docShell));
     }
-  },
-
-  onFrameTreeCollected: function () {
-    this.collect();
-  },
-
-  onFrameTreeReset: function () {
-    this.collect();
   },
 
   OnHistoryNewEntry: function (newURI) {
