@@ -252,6 +252,13 @@ public:
                              AsyncPanZoomController** aApzcOut,
                              LayerIntPoint* aRelativePointOut);
 
+  
+
+
+
+
+  void UpdateScrollOffset(CSSPoint aScrollOffset);
+
 protected:
   
 

@@ -1357,4 +1357,9 @@ class JavaPanZoomController
     public int getOverScrollMode() {
         return mX.getOverScrollMode();
     }
+
+    @Override
+    public void updateScrollOffset(float cssX, float cssY) {
+        
+    }
 }

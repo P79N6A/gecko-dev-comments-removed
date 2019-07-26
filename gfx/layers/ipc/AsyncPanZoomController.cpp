@@ -1157,6 +1157,10 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
   mLastContentPaintMetrics = aViewportFrame;
 
   mFrameMetrics.mMayHaveTouchListeners = aViewportFrame.mMayHaveTouchListeners;
+
+  
+  
+#ifndef MOZ_WIDGET_ANDROID
   if (!mPaintThrottler.IsOutstanding()) {
     
     
@@ -1176,6 +1180,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
       break;
     }
   }
+#endif
 
   mPaintThrottler.TaskComplete(GetFrameTime());
   bool needContentRepaint = false;
@@ -1471,6 +1476,12 @@ void AsyncPanZoomController::GetAPZCAtPoint(const ContainerLayer& aLayerTree,
   gfxPoint point(aPoint.x, aPoint.y);
 
   GetAPZCAtPointOnSubtree(aLayerTree, point, aApzcOut, aRelativePointOut);
+}
+
+void AsyncPanZoomController::UpdateScrollOffset(CSSPoint aScrollOffset)
+{
+  MonitorAutoLock monitor(mMonitor);
+  mFrameMetrics.mScrollOffset = aScrollOffset;
 }
 
 }
