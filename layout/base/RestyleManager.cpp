@@ -1998,6 +1998,7 @@ ElementRestyler::Restyle(nsIContent        *aParentContent,
   
   
   
+  
   NS_ASSERTION(mFrame->GetContent() || !aParentContent ||
                !aParentContent->GetParent(),
                "frame must have content (unless at the top of the tree)");
@@ -2026,13 +2027,13 @@ ElementRestyler::Restyle(nsIContent        *aParentContent,
 
     nsIAtom* const pseudoTag = oldContext->GetPseudo();
     const nsCSSPseudoElements::Type pseudoType = oldContext->GetPseudoType();
-    nsIContent* localContent = mFrame->GetContent();
     
     
     
     
     
-    nsIContent* content = localContent ? localContent : aParentContent;
+    nsIContent* content = mFrame->GetContent() ? mFrame->GetContent()
+                                               : aParentContent;
 
     if (content && content->IsElement()) {
       content->OwnerDoc()->FlushPendingLinkUpdates();
@@ -2169,7 +2170,7 @@ ElementRestyler::Restyle(nsIContent        *aParentContent,
       newContext = prevContinuationContext;
     }
     else if (pseudoTag == nsCSSAnonBoxes::mozNonElement) {
-      NS_ASSERTION(localContent,
+      NS_ASSERTION(mFrame->GetContent(),
                    "non pseudo-element frame without content node");
       newContext = styleSet->ResolveStyleForNonElement(parentContext);
     }
@@ -2223,7 +2224,7 @@ ElementRestyler::Restyle(nsIContent        *aParentContent,
         }
       }
       else {
-        NS_ASSERTION(localContent,
+        NS_ASSERTION(mFrame->GetContent(),
                      "non pseudo-element frame without content node");
         
         TreeMatchContext::AutoFlexItemStyleFixupSkipper
@@ -2333,8 +2334,8 @@ ElementRestyler::Restyle(nsIContent        *aParentContent,
                                      GetDocElementContainingBlock();
       undisplayedParent = nullptr;
     } else {
-      checkUndisplayed = !!localContent;
-      undisplayedParent = localContent;
+      checkUndisplayed = !!mFrame->GetContent();
+      undisplayedParent = mFrame->GetContent();
     }
     if (checkUndisplayed) {
       UndisplayedNode* undisplayed =
@@ -2416,7 +2417,7 @@ ElementRestyler::Restyle(nsIContent        *aParentContent,
           
           
           if (!nsLayoutUtils::GetBeforeFrame(mFrame) &&
-              nsLayoutUtils::HasPseudoStyle(localContent, newContext,
+              nsLayoutUtils::HasPseudoStyle(mFrame->GetContent(), newContext,
                                             nsCSSPseudoElements::ePseudo_before,
                                             mPresContext)) {
             
@@ -2447,7 +2448,7 @@ ElementRestyler::Restyle(nsIContent        *aParentContent,
         if (!nextContinuation) {
           
           
-          if (nsLayoutUtils::HasPseudoStyle(localContent, newContext,
+          if (nsLayoutUtils::HasPseudoStyle(mFrame->GetContent(), newContext,
                                             nsCSSPseudoElements::ePseudo_after,
                                             mPresContext) &&
               !nsLayoutUtils::GetAfterFrame(mFrame)) {
