@@ -57,8 +57,9 @@ public class LightweightTheme implements GeckoEventListener {
         mListeners = new ArrayList<OnChangeListener>();
 
         
-        GeckoAppShell.getEventDispatcher().registerEventListener("LightweightTheme:Update", this);
-        GeckoAppShell.getEventDispatcher().registerEventListener("LightweightTheme:Disable", this);
+        EventDispatcher.getInstance().registerGeckoThreadListener(this,
+            "LightweightTheme:Update",
+            "LightweightTheme:Disable");
     }
 
     public void addListener(final OnChangeListener listener) {

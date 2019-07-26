@@ -135,8 +135,6 @@ public class GeckoAppShell
     static private int sDensityDpi = 0;
     static private int sScreenDepth = 0;
 
-    private static final EventDispatcher sEventDispatcher = new EventDispatcher();
-
     
     private static final float[] DEFAULT_LAUNCHER_ICON_HSV = { 32.0f, 1.0f, 1.0f };
 
@@ -2285,34 +2283,6 @@ public class GeckoAppShell
     
 
 
-
-
-
-
-    @RobocopTarget
-    public static void registerEventListener(String event, GeckoEventListener listener) {
-        sEventDispatcher.registerEventListener(event, listener);
-    }
-
-    public static EventDispatcher getEventDispatcher() {
-        return sEventDispatcher;
-    }
-
-    
-
-
-
-
-
-
-    @RobocopTarget
-    public static void unregisterEventListener(String event, GeckoEventListener listener) {
-        sEventDispatcher.unregisterEventListener(event, listener);
-    }
-
-    
-
-
     @WrapElementForJNI
     public static void enableBatteryNotifications() {
         GeckoBatteryManager.enableNotifications();
@@ -2320,7 +2290,7 @@ public class GeckoAppShell
 
     @WrapElementForJNI(stubName = "HandleGeckoMessageWrapper")
     public static void handleGeckoMessage(final NativeJSContainer message) {
-        sEventDispatcher.dispatchEvent(message);
+        EventDispatcher.getInstance().dispatchEvent(message);
         message.dispose();
     }
 
