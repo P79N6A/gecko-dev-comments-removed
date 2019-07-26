@@ -12,10 +12,10 @@ const {CssLogic} = require("devtools/styleinspector/css-logic");
 const {InplaceEditor, editableField, editableItem} = require("devtools/shared/inplace-editor");
 const {ELEMENT_STYLE, PSEUDO_ELEMENTS} = require("devtools/server/actors/styles");
 const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
-const {Tooltip, SwatchColorPickerTooltip} = require("devtools/shared/widgets/Tooltip");
 const {OutputParser} = require("devtools/output-parser");
 const {PrefObserver, PREF_ORIG_SOURCES} = require("devtools/styleeditor/utils");
 const {parseSingleValue, parseDeclarations} = require("devtools/styleinspector/css-parsing-utils");
+const overlays = require("devtools/styleinspector/style-inspector-overlays");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -24,7 +24,6 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const PREF_UA_STYLES = "devtools.inspector.showUserAgentStyles";
 const PREF_DEFAULT_COLOR_UNIT = "devtools.defaultColorUnit";
-const TRANSFORM_HIGHLIGHTER_TYPE = "CssTransformHighlighter";
 
 
 
@@ -1100,23 +1099,14 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   };
   this.popup = new AutocompletePopup(aDoc.defaultView.parent.document, options);
 
-  
-  this.previewTooltip = new Tooltip(this.inspector.panelDoc);
-  this.previewTooltip.startTogglingOnHover(this.element,
-    this._onTooltipTargetHover.bind(this));
-
-  
-  
-  this.colorPicker = new SwatchColorPickerTooltip(this.inspector.panelDoc);
-
   this._buildContextMenu();
   this._showEmpty();
 
   
-  let hUtils = this.inspector.toolbox.highlighterUtils;
-  if (hUtils.hasCustomHighlighter(TRANSFORM_HIGHLIGHTER_TYPE)) {
-    this._initTransformHighlighter();
-  }
+  this.tooltips = new overlays.TooltipsOverlay(this);
+  this.tooltips.addToView();
+  this.highlighters = new overlays.HighlightersOverlay(this);
+  this.highlighters.addToView();
 }
 
 exports.CssRuleView = CssRuleView;
@@ -1169,137 +1159,6 @@ CssRuleView.prototype = {
 
 
 
-  getTransformHighlighter: function() {
-    if (this.transformHighlighterPromise) {
-      return this.transformHighlighterPromise;
-    }
-
-    let utils = this.inspector.toolbox.highlighterUtils;
-    this.transformHighlighterPromise =
-    utils.getHighlighterByType(TRANSFORM_HIGHLIGHTER_TYPE).then(highlighter => {
-      this.transformHighlighter = highlighter;
-      return this.transformHighlighter;
-    });
-
-    return this.transformHighlighterPromise;
-  },
-
-  _initTransformHighlighter: function() {
-    this.isTransformHighlighterShown = false;
-
-    this._onMouseMove = this._onMouseMove.bind(this);
-    this._onMouseLeave = this._onMouseLeave.bind(this);
-
-    this.element.addEventListener("mousemove", this._onMouseMove, false);
-    this.element.addEventListener("mouseleave", this._onMouseLeave, false);
-  },
-
-  _onMouseMove: function(event) {
-    if (event.target === this._lastHovered) {
-      return;
-    }
-
-    if (this.isTransformHighlighterShown) {
-      this.isTransformHighlighterShown = false;
-      this.getTransformHighlighter().then(highlighter => highlighter.hide());
-    }
-
-    this._lastHovered = event.target;
-    let prop = event.target.textProperty;
-    let isHighlightable = prop && prop.name === "transform" &&
-                          prop.enabled && !prop.overridden &&
-                          !prop.rule.pseudoElement;
-
-    if (isHighlightable) {
-      this.isTransformHighlighterShown = true;
-      let node = this.inspector.selection.nodeFront;
-      this.getTransformHighlighter().then(highlighter => highlighter.show(node));
-    }
-  },
-
-  _onMouseLeave: function(event) {
-    this._lastHovered = null;
-    if (this.isTransformHighlighterShown) {
-      this.isTransformHighlighterShown = false;
-      this.getTransformHighlighter().then(highlighter => highlighter.hide());
-    }
-  },
-
-  
-
-
-
-
-
-  _getHoverTooltipTypeForTarget: function(el) {
-    let prop = el.textProperty;
-
-    
-    let isUrl = el.classList.contains("theme-link") &&
-                el.parentNode.classList.contains("ruleview-propertyvalue");
-    if (this.inspector.hasUrlToImageDataResolver && isUrl) {
-      return "image";
-    }
-
-    
-    let propertyRoot = el.parentNode;
-    let propertyNameNode = propertyRoot.querySelector(".ruleview-propertyname");
-    if (!propertyNameNode) {
-      propertyRoot = propertyRoot.parentNode;
-      propertyNameNode = propertyRoot.querySelector(".ruleview-propertyname");
-    }
-    let propertyName;
-    if (propertyNameNode) {
-      propertyName = propertyNameNode.textContent;
-    }
-    if (propertyName === "font-family" && el.classList.contains("ruleview-propertyvalue")) {
-      return "font";
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _onTooltipTargetHover: function(target) {
-    let tooltipType = this._getHoverTooltipTypeForTarget(target);
-    if (!tooltipType) {
-      return false;
-    }
-
-    if (this.colorPicker.tooltip.isShown()) {
-      this.colorPicker.revert();
-      this.colorPicker.hide();
-    }
-
-    if (tooltipType === "image") {
-      let prop = target.parentNode.textProperty;
-      let dim = Services.prefs.getIntPref("devtools.inspector.imagePreviewTooltipSize");
-      let uri = CssLogic.getBackgroundImageUriFromProperty(prop.value, prop.rule.domRule.href);
-      return this.previewTooltip.setRelativeImageContent(uri, this.inspector.inspector, dim);
-    }
-    if (tooltipType === "font") {
-      let prop = target.textContent.toLowerCase();
-
-      if (prop !== "inherit" && prop !== "unset" && prop !== "initial") {
-        return this.previewTooltip.setFontFamilyContent(target.textContent,
-          this.inspector.selection.nodeFront);
-      }
-    }
-
-    return false;
-  },
-
-  
-
-
-
   _contextMenuUpdate: function() {
     let win = this.doc.defaultView;
 
@@ -1336,6 +1195,65 @@ CssRuleView.prototype = {
     let accessKey = label + ".accessKey";
     this.menuitemSources.setAttribute("accesskey",
                                       _strings.GetStringFromName(accessKey));
+  },
+
+  
+
+
+
+
+
+
+
+
+  getNodeInfo: function(node) {
+    let type, value;
+    let classes = node.classList;
+    let prop = getParentTextProperty(node);
+
+    if (classes.contains("ruleview-propertyname") && prop) {
+      type = overlays.VIEW_NODE_PROPERTY_TYPE;
+      value = {
+        property: node.textContent,
+        value: getPropertyNameAndValue(node).value,
+        enabled: prop.enabled,
+        overridden: prop.overridden,
+        pseudoElement: prop.rule.pseudoElement,
+        sheetHref: prop.rule.domRule.href
+      };
+    } else if (classes.contains("ruleview-propertyvalue") && prop) {
+      type = overlays.VIEW_NODE_VALUE_TYPE;
+      value = {
+        property: getPropertyNameAndValue(node).name,
+        value: node.textContent,
+        enabled: prop.enabled,
+        overridden: prop.overridden,
+        pseudoElement: prop.rule.pseudoElement,
+        sheetHref: prop.rule.domRule.href
+      };
+    } else if (classes.contains("theme-link") && prop) {
+      type = overlays.VIEW_NODE_IMAGE_URL_TYPE;
+      value = {
+        property: getPropertyNameAndValue(node).name,
+        value: node.parentNode.textContent,
+        url: node.textContent,
+        enabled: prop.enabled,
+        overridden: prop.overridden,
+        pseudoElement: prop.rule.pseudoElement,
+        sheetHref: prop.rule.domRule.href
+      };
+    } else if (classes.contains("ruleview-selector-unmatched") ||
+               classes.contains("ruleview-selector-matched")) {
+      type = overlays.VIEW_NODE_SELECTOR_TYPE;
+      value = node.textContent;
+    } else {
+      return null;
+    }
+
+    return {
+      type: type,
+      value: value
+    };
   },
 
   
@@ -1445,7 +1363,7 @@ CssRuleView.prototype = {
 
   get isEditing() {
     return this.element.querySelectorAll(".styleinspector-propertyeditor").length > 0
-      || this.colorPicker.tooltip.isShown();
+      || this.tooltips.colorPicker.tooltip.isShown();
   },
 
   _handlePrefChange: function(pref) {
@@ -1517,19 +1435,8 @@ CssRuleView.prototype = {
     
     this.doc.popupNode = null;
 
-    this.previewTooltip.stopTogglingOnHover(this.element);
-    this.previewTooltip.destroy();
-    this.colorPicker.destroy();
-
-    if (this.transformHighlighter) {
-      this.transformHighlighter.finalize();
-      this.transformHighlighter = null;
-
-      this.element.removeEventListener("mousemove", this._onMouseMove, false);
-      this.element.removeEventListener("mouseleave", this._onMouseLeave, false);
-
-      this._lastHovered = null;
-    }
+    this.tooltips.destroy();
+    this.highlighters.destroy();
 
     if (this.element.parentNode) {
       this.element.parentNode.removeChild(this.element);
@@ -1640,9 +1547,6 @@ CssRuleView.prototype = {
     this._clearRules();
     this._viewedElement = null;
     this._elementStyle = null;
-
-    this.previewTooltip.hide();
-    this.colorPicker.hide();
   },
 
   
@@ -2154,8 +2058,8 @@ TextPropertyEditor.prototype = {
 
   get editing() {
     return !!(this.nameSpan.inplaceEditor || this.valueSpan.inplaceEditor ||
-      this.ruleEditor.ruleView.colorPicker.tooltip.isShown() ||
-      this.ruleEditor.ruleView.colorPicker.eyedropperOpen) ||
+      this.ruleEditor.ruleView.tooltips.colorPicker.tooltip.isShown() ||
+      this.ruleEditor.ruleView.tooltips.colorPicker.eyedropperOpen) ||
       this.popup.isOpen;
   },
 
@@ -2210,6 +2114,7 @@ TextPropertyEditor.prototype = {
     
     
     this.valueSpan.textProperty = this.prop;
+    this.nameSpan.textProperty = this.prop;
 
     
     
@@ -2405,7 +2310,7 @@ TextPropertyEditor.prototype = {
         
         let originalValue = this.valueSpan.textContent;
         
-        this.ruleEditor.ruleView.colorPicker.addSwatch(span, {
+        this.ruleEditor.ruleView.tooltips.colorPicker.addSwatch(span, {
           onPreview: () => this._previewValue(this.valueSpan.textContent),
           onCommit: () => this._applyNewValue(this.valueSpan.textContent),
           onRevert: () => this._applyNewValue(originalValue)
@@ -2546,12 +2451,13 @@ TextPropertyEditor.prototype = {
   remove: function() {
     if (this._swatchSpans && this._swatchSpans.length) {
       for (let span of this._swatchSpans) {
-        this.ruleEditor.ruleView.colorPicker.removeSwatch(span);
+        this.ruleEditor.ruleView.tooltips.colorPicker.removeSwatch(span);
       }
     }
 
     this.element.parentNode.removeChild(this.element);
     this.ruleEditor.rule.editClosestTextProperty(this.prop);
+    this.nameSpan.textProperty = null;
     this.valueSpan.textProperty = null;
     this.prop.remove();
   },
@@ -2868,6 +2774,63 @@ function blurOnMultipleProperties(e) {
 
 function appendText(aParent, aText) {
   aParent.appendChild(aParent.ownerDocument.createTextNode(aText));
+}
+
+
+
+
+
+
+
+
+function getParentTextPropertyHolder(node) {
+  while (true) {
+    if (!node || !node.classList) {
+      return null;
+    }
+    if (node.classList.contains("ruleview-property")) {
+      return node;
+    }
+    node = node.parentNode;
+  }
+}
+
+
+
+
+
+
+function getParentTextProperty(node) {
+  let parent = getParentTextPropertyHolder(node);
+  if (!parent) {
+    return null;
+  }
+  return parent.querySelector(".ruleview-propertyvalue").textProperty;
+}
+
+
+
+
+
+
+
+
+
+function getPropertyNameAndValue(node) {
+  while (true) {
+    if (!node || !node.classList) {
+      return null;
+    }
+    
+    if (node.classList.contains("ruleview-computed") ||
+        node.classList.contains("ruleview-property")) {
+      return {
+        name: node.querySelector(".ruleview-propertyname").textContent,
+        value: node.querySelector(".ruleview-propertyvalue").textContent
+      };
+    }
+    node = node.parentNode;
+  }
 }
 
 XPCOMUtils.defineLazyGetter(this, "clipboardHelper", function() {

@@ -40,17 +40,18 @@ let test = asyncTest(function*() {
 function* testRuleView(ruleView, nodeFront) {
   info("Testing font-family tooltips in the rule view");
 
-  let panel = ruleView.previewTooltip.panel;
+  let tooltip = ruleView.tooltips.previewTooltip;
+  let panel = tooltip.panel;
 
   
-  ok(ruleView.previewTooltip, "Tooltip instance exists");
+  ok(tooltip, "Tooltip instance exists");
   ok(panel, "XUL panel exists");
 
   
   let {valueSpan} = getRuleViewProperty(ruleView, "#testElement", "font-family");
 
   
-  yield assertHoverTooltipOn(ruleView.previewTooltip, valueSpan);
+  yield assertHoverTooltipOn(tooltip, valueSpan);
 
   let images = panel.getElementsByTagName("image");
   is(images.length, 1, "Tooltip contains an image");
@@ -63,10 +64,11 @@ function* testRuleView(ruleView, nodeFront) {
 function* testComputedView(computedView, nodeFront) {
   info("Testing font-family tooltips in the computed view");
 
-  let panel = computedView.tooltip.panel;
+  let tooltip = computedView.tooltips.previewTooltip;
+  let panel = tooltip.panel;
   let {valueSpan} = getComputedViewProperty(computedView, "font-family");
 
-  yield assertHoverTooltipOn(computedView.tooltip, valueSpan);
+  yield assertHoverTooltipOn(tooltip, valueSpan);
 
   let images = panel.getElementsByTagName("image");
   is(images.length, 1, "Tooltip contains an image");
