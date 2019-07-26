@@ -16,7 +16,17 @@ namespace IPC {
 template <typename T> struct ParamTraits;
 }
 
+#ifdef XP_WIN
+
+
+#include "TimeStamp_windows.h"
+#endif
+
 namespace mozilla {
+
+#ifndef XP_WIN
+typedef uint64_t TimeStampValue;
+#endif
 
 class TimeStamp;
 
@@ -286,7 +296,7 @@ public:
 private:
   friend struct IPC::ParamTraits<mozilla::TimeStamp>;
 
-  TimeStamp(uint64_t aValue) : mValue(aValue) {}
+  TimeStamp(TimeStampValue aValue) : mValue(aValue) {}
 
   
 
@@ -301,7 +311,7 @@ private:
 
 
 
-  uint64_t mValue;
+  TimeStampValue mValue;
 };
 
 }

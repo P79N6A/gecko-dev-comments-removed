@@ -13,50 +13,12 @@
 
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/Services.h"
-#include "nsIObserver.h"
-#include "nsIObserverService.h"
-#include "nsThreadUtils.h"
-#include "nsAutoPtr.h"
-#include <pratom.h>
 #include <windows.h>
 
 #include "prlog.h"
 #include <stdio.h>
 
 #include <intrin.h>
-
-static bool
-HasStableTSC()
-{
-  union {
-    int regs[4];
-    struct {
-      int nIds;
-      char cpuString[12];
-    };
-  } cpuInfo;
-
-  __cpuid(cpuInfo.regs, 0);
-  
-  
-  
-  if (_strnicmp(cpuInfo.cpuString, "GenuntelineI", sizeof(cpuInfo.cpuString)))
-    return false;
-
-  int regs[4];
-
-  
-  __cpuid(regs, 0x80000000);
-  if (regs[0] < 0x80000007)
-    return false;
-
-  __cpuid(regs, 0x80000007);
-  
-  
-  return regs[3] & (1 << 8);
-}
-
 
 #if defined(PR_LOGGING)
 
@@ -88,7 +50,15 @@ static const double   kNsPerSecd  = 1000000000.0;
 static const LONGLONG kNsPerSec   = 1000000000;
 static const LONGLONG kNsPerMillisec = 1000000;
 
-static bool sHasStableTSC = false;
+
+
+
+
+
+
+
+
+static const uint32_t kQPCHardFailureDetectionInterval = 2000;
 
 
 
@@ -108,33 +78,11 @@ static bool sHasStableTSC = false;
 
 
 
-static const ULONGLONG kCalibrationInterval = 4000;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static const ULONGLONG kOverflowLimit = 100;
+static const ULONGLONG kOverflowLimit = 50;
 
 
 
 static const DWORD kDefaultTimeIncrement = 156001;
-
-
-static const DWORD kForbidRecalibrationTime = 2000;
 
 
 
@@ -154,7 +102,7 @@ static const DWORD kForbidRecalibrationTime = 2000;
 
 #define ms2mt(x) ((x) * sFrequencyPerSec)
 #define mt2ms(x) ((x) / sFrequencyPerSec)
-#define mt2ms_d(x) (double(x) / sFrequencyPerSec)
+#define mt2ms_f(x) (double(x) / sFrequencyPerSec)
 
 
 static LONGLONG sFrequencyPerSec = 0;
@@ -175,7 +123,18 @@ static LONGLONG sOverrunThreshold;
 
 
 
-static LONGLONG sWakeupAdjust = 0;
+static LONGLONG sQPCHardFailureDetectionInterval;
+
+
+static bool sHasStableTSC = false;
+
+
+
+
+
+
+
+static bool volatile sUseQPC = true;
 
 
 
@@ -188,77 +147,22 @@ static const DWORD kLockSpinCount = 4096;
 
 
 
-CRITICAL_SECTION sTimeStampLock;
+static CRITICAL_SECTION sTimeStampLock;
 
 
 
 
 
+static DWORD sLastGTCResult = 0;
 
 
 
-static LONGLONG sSkew = 0;
-
-
-
-
-
-static ULONGLONG sLastGTCResult = 0;
-
-
-
-
-
-static ULONGLONG sLastResult = 0;
-
-
-
-
-static ULONGLONG sLastCalibrated;
-
-
-
-
-static ULONGLONG sFallbackTime = 0;
-
-
-
-
-
-
-
-
-
-
-static union CalibrationFlags {
-  struct {
-    bool fallBackToGTC;
-    bool forceRecalibrate;
-  } flags;
-  uint32_t dwordValue;
-} sCalibrationFlags;
-
+static DWORD sLastGTCRollover = 0;
 
 namespace mozilla {
 
-
-static ULONGLONG
-CalibratedPerformanceCounter();
-
 typedef ULONGLONG (WINAPI* GetTickCount64_t)();
 static GetTickCount64_t sGetTickCount64 = nullptr;
-
-static inline ULONGLONG
-InterlockedRead64(volatile ULONGLONG* destination)
-{
-#ifdef _WIN64
-  
-  return *destination;
-#else
-  
-  return _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*> (destination), 0, 0);
-#endif
-}
 
 
 
@@ -282,89 +186,31 @@ private:
 
 
 
-
-
-
-
-class StandbyObserver MOZ_FINAL : public nsIObserver
+static ULONGLONG WINAPI
+MozGetTickCount64()
 {
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
+  DWORD GTC = ::GetTickCount();
 
-public:
-  StandbyObserver()
-  {
-    LOG(("TimeStamp: StandByObserver::StandByObserver()"));
-  }
-
-  ~StandbyObserver()
-  {
-    LOG(("TimeStamp: StandByObserver::~StandByObserver()"));
-  }
-
-  static inline void Ensure()
-  {
-    if (sInitialized)
-      return;
-
-    
-    
-    if (!NS_IsMainThread())
-      return;
-
-    nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-    if (!obs)
-      return; 
-
-    sInitialized = true;
-
-    nsRefPtr<StandbyObserver> observer = new StandbyObserver();
-    obs->AddObserver(observer, "wake_notification", false);
-
-    
-    
-  }
-
-private:
-  static bool sInitialized;
-};
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(StandbyObserver, nsIObserver)
-
-bool
-StandbyObserver::sInitialized = false;
-
-NS_IMETHODIMP
-StandbyObserver::Observe(nsISupports *subject,
-                         const char *topic,
-                         const PRUnichar *data)
-{
+  
   AutoCriticalSection lock(&sTimeStampLock);
 
-  CalibrationFlags value;
-  value.dwordValue = sCalibrationFlags.dwordValue;
-
-  if (value.flags.fallBackToGTC &&
-      ((sGetTickCount64() - sFallbackTime) > kForbidRecalibrationTime)) {
-    LOG(("Disallowing recalibration since the time from fallback is too long"));
-    return NS_OK;
-  }
-
   
   
-  value.flags.forceRecalibrate = value.flags.fallBackToGTC;
-  value.flags.fallBackToGTC = false;
-  sCalibrationFlags.dwordValue = value.dwordValue; 
+  if ((sLastGTCResult > GTC) && ((sLastGTCResult - GTC) > (1UL << 30)))
+    ++sLastGTCRollover;
 
-  LOG(("TimeStamp: system has woken up, reset GTC fallback"));
-
-  return NS_OK;
+  sLastGTCResult = GTC;
+  return ULONGLONG(sLastGTCRollover) << 32 | sLastGTCResult;
 }
 
 
-
-
-
+static inline ULONGLONG
+PerformanceCounter()
+{
+  LARGE_INTEGER pc;
+  ::QueryPerformanceCounter(&pc);
+  return pc.QuadPart * 1000ULL;
+}
 
 static void
 InitThresholds()
@@ -374,6 +220,8 @@ InitThresholds()
   GetSystemTimeAdjustment(&timeAdjustment,
                           &timeIncrement,
                           &timeAdjustmentDisabled);
+
+  LOG(("TimeStamp: timeIncrement=%d [100ns]", timeIncrement));
 
   if (!timeIncrement)
     timeIncrement = kDefaultTimeIncrement;
@@ -398,15 +246,19 @@ InitThresholds()
   LONGLONG ticksPerGetTickCountResolutionCeiling =
     (int64_t(timeIncrementCeil) * sFrequencyPerSec) / 10000LL;
 
-
+  
+  
   
   
   sUnderrunThreshold =
-    LONGLONG((-2) * ticksPerGetTickCountResolutionCeiling);
+    LONGLONG((-4) * ticksPerGetTickCountResolutionCeiling);
 
   
   sOverrunThreshold =
-    LONGLONG((+2) * ticksPerGetTickCountResolution);
+    LONGLONG((+4) * ticksPerGetTickCountResolution);
+
+  sQPCHardFailureDetectionInterval =
+    LONGLONG(kQPCHardFailureDetectionInterval) * sFrequencyPerSec;
 }
 
 static void
@@ -419,8 +271,8 @@ InitResolution()
   ULONGLONG minres = ~0ULL;
   int loops = 10;
   do {
-    ULONGLONG start = CalibratedPerformanceCounter();
-    ULONGLONG end = CalibratedPerformanceCounter();
+    ULONGLONG start = PerformanceCounter();
+    ULONGLONG end = PerformanceCounter();
 
     ULONGLONG candidate = (end - start);
     if (candidate < minres)
@@ -455,198 +307,111 @@ InitResolution()
 
 
 
-static ULONGLONG WINAPI
-GetTickCount64Fallback()
+TimeStampValue::TimeStampValue(_SomethingVeryRandomHere* nullValue)
+  : mGTC(0)
+  , mQPC(0)
+  , mHasQPC(false)
+  , mIsNull(true)
 {
-  ULONGLONG old, newValue;
-  do {
-    old = InterlockedRead64(&sLastGTCResult);
-    ULONGLONG oldTop = old & 0xffffffff00000000;
-    ULONG oldBottom = old & 0xffffffff;
-    ULONG newBottom = GetTickCount();
-    if (newBottom < oldBottom) {
-        
-        newValue = (oldTop + (1ULL<<32)) | newBottom;
-    } else {
-        newValue = oldTop | newBottom;
-    }
-  } while (old != _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*> (&sLastGTCResult),
-                                                newValue, old));
-
-  return newValue;
+  MOZ_ASSERT(!nullValue);
 }
 
-
-static inline ULONGLONG
-PerformanceCounter()
+TimeStampValue::TimeStampValue(ULONGLONG aGTC, ULONGLONG aQPC, bool aHasQPC)
+  : mGTC(aGTC)
+  , mQPC(aQPC)
+  , mHasQPC(aHasQPC)
+  , mIsNull(false)
 {
-  LARGE_INTEGER pc;
-  ::QueryPerformanceCounter(&pc);
-  return pc.QuadPart * 1000ULL;
 }
 
-
-static inline void
-RecordFlaw(ULONGLONG gtc)
+TimeStampValue&
+TimeStampValue::operator+=(const int64_t aOther)
 {
-  sCalibrationFlags.flags.fallBackToGTC = true;
-  sFallbackTime = gtc;
+  mGTC += aOther;
+  mQPC += aOther;
+  return *this;
+}
 
-  LOG(("TimeStamp: falling back to GTC at %llu :(", gtc));
-
-#if 0
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  InitResolution();
-#endif
+TimeStampValue&
+TimeStampValue::operator-=(const int64_t aOther)
+{
+  mGTC -= aOther;
+  mQPC -= aOther;
+  return *this;
 }
 
 
 
-
-
-
-
-
-
-static inline bool
-CheckCalibration(LONGLONG overflow, ULONGLONG qpc, ULONGLONG gtc)
+bool
+TimeStampValue::CheckQPC(int64_t aDuration, const TimeStampValue &aOther) const
 {
-  CalibrationFlags value;
-  value.dwordValue = sCalibrationFlags.dwordValue; 
-  if (value.flags.fallBackToGTC) {
-    
+  if (!mHasQPC || !aOther.mHasQPC) 
     return false;
-  }
 
-  ULONGLONG sinceLastCalibration = gtc - sLastCalibrated;
+  if (sHasStableTSC) 
+    return true;
 
-  if (overflow && !value.flags.forceRecalibrate) {
-    
-    
-    
-    ULONGLONG trend = LONGLONG(overflow *
-      (double(kCalibrationInterval) / sinceLastCalibration));
-
-    LOG(("TimeStamp: calibration after %llus with overflow %1.4fms"
-         ", adjusted trend per calibration interval is %1.4fms",
-         sinceLastCalibration / 1000,
-         mt2ms_d(overflow),
-         mt2ms_d(trend)));
-
-    if (trend > ms2mt(kOverflowLimit)) {
-      
-      
-      AutoCriticalSection lock(&sTimeStampLock);
-      RecordFlaw(gtc);
-      return false;
-    }
-  }
-
-  if (sinceLastCalibration > kCalibrationInterval || value.flags.forceRecalibrate) {
-    
-    AutoCriticalSection lock(&sTimeStampLock);
-
-    
-    
-    
-    
-    
-    if (value.flags.forceRecalibrate)
-      sWakeupAdjust += sSkew - (qpc - ms2mt(gtc));
-
-    sSkew = qpc - ms2mt(gtc);
-    sLastCalibrated = gtc;
-    LOG(("TimeStamp: new skew is %1.2fms, wakeup adjust is %1.2fms (force:%d)",
-      mt2ms_d(sSkew), mt2ms_d(sWakeupAdjust), value.flags.forceRecalibrate));
-
-    sCalibrationFlags.flags.forceRecalibrate = false;
-  }
-
-  return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-ULONGLONG
-AtomicStoreIfGreaterThan(ULONGLONG* destination, ULONGLONG newValue)
-{
-  ULONGLONG readValue;
-  do {
-    readValue = InterlockedRead64(destination);
-    if (readValue > newValue)
-      return readValue;
-  } while (readValue != _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*> (destination),
-                                                      newValue, readValue));
-
-  return newValue;
-}
-
-
-
-static ULONGLONG
-CalibratedPerformanceCounter()
-{
-  
-  
-  StandbyObserver::Ensure();
+  if (!sUseQPC) 
+    return false;
 
   
-  
-  
-
-  ULONGLONG qpc = PerformanceCounter() + sWakeupAdjust;
+  aDuration = std::abs(aDuration);
 
   
-  ULONGLONG gtc = sGetTickCount64();
 
-  LONGLONG diff = qpc - ms2mt(gtc) - sSkew;
-  LONGLONG overflow = 0;
+  LONGLONG skew1 = mGTC - mQPC;
+  LONGLONG skew2 = aOther.mGTC - aOther.mQPC;
 
-  if (diff < sUnderrunThreshold) {
+  LONGLONG diff = skew1 - skew2;
+  LONGLONG overflow;
+
+  if (diff < sUnderrunThreshold)
     overflow = sUnderrunThreshold - diff;
-  }
-  else if (diff > sOverrunThreshold) {
+  else if (diff > sOverrunThreshold)
     overflow = diff - sOverrunThreshold;
-  }
+  else
+    return true;
 
-  ULONGLONG result = qpc;
-  if (!CheckCalibration(overflow, qpc, gtc)) {
+  ULONGLONG trend;
+  if (aDuration)
+    trend = LONGLONG(overflow * (double(sQPCHardFailureDetectionInterval) / aDuration));
+  else
+    trend = overflow;
+
+  LOG(("TimeStamp: QPC check after %llums with overflow %1.4fms"
+       ", adjusted trend per interval is %1.4fms",
+       mt2ms(aDuration),
+       mt2ms_f(overflow),
+       mt2ms_f(trend)));
+
+  if (trend <= ms2mt(kOverflowLimit)) {
     
-    result = ms2mt(gtc) + sSkew;
+    return true;
   }
 
-#if 0
-  LOG(("TimeStamp: result = %1.2fms, diff = %1.4fms",
-      mt2ms_d(result), mt2ms_d(diff)));
-#endif
+  
+  LOG(("TimeStamp: QPC found highly jittering"));
 
-  return AtomicStoreIfGreaterThan(&sLastResult, result);
+  if (aDuration < sQPCHardFailureDetectionInterval) {
+    
+    
+    sUseQPC = false;
+    LOG(("TimeStamp: QPC disabled"));
+  }
+
+  return false;
+}
+
+uint64_t
+TimeStampValue::operator-(const TimeStampValue &aOther) const
+{
+  if (mIsNull && aOther.mIsNull)
+    return uint64_t(0);
+
+  if (CheckQPC(int64_t(mGTC - aOther.mGTC), aOther))
+    return mQPC - aOther.mQPC;
+
+  return mGTC - aOther.mGTC;
 }
 
 
@@ -663,8 +428,6 @@ TimeDuration::ToSeconds() const
 double
 TimeDuration::ToSecondsSigDigits() const
 {
-  AutoCriticalSection lock(&sTimeStampLock);
-
   
   LONGLONG resolution = sResolution;
   LONGLONG resolutionSigDigs = sResolutionSigDigs;
@@ -683,8 +446,6 @@ TimeDuration::FromMilliseconds(double aMilliseconds)
 TimeDuration
 TimeDuration::Resolution()
 {
-  AutoCriticalSection lock(&sTimeStampLock);
-
   return TimeDuration::FromTicks(int64_t(sResolution));
 }
 
@@ -700,6 +461,37 @@ struct TimeStampInitialization
 
 static TimeStampInitialization initOnce;
 
+static bool
+HasStableTSC()
+{
+  union {
+    int regs[4];
+    struct {
+      int nIds;
+      char cpuString[12];
+    };
+  } cpuInfo;
+
+  __cpuid(cpuInfo.regs, 0);
+  
+  
+  
+  if (_strnicmp(cpuInfo.cpuString, "GenuntelineI", sizeof(cpuInfo.cpuString)))
+    return false;
+
+  int regs[4];
+
+  
+  __cpuid(regs, 0x80000000);
+  if (regs[0] < 0x80000007)
+    return false;
+
+  __cpuid(regs, 0x80000007);
+  
+  
+  return regs[3] & (1 << 8);
+}
+
 nsresult
 TimeStamp::Startup()
 {
@@ -711,17 +503,18 @@ TimeStamp::Startup()
   if (!sGetTickCount64) {
     
     
-    sGetTickCount64 = GetTickCount64Fallback;
+    sGetTickCount64 = MozGetTickCount64;
   }
 
   InitializeCriticalSectionAndSpinCount(&sTimeStampLock, kLockSpinCount);
 
+  sHasStableTSC = HasStableTSC();
+  LOG(("TimeStamp: HasStableTSC=%d", sHasStableTSC));
+
   LARGE_INTEGER freq;
-  BOOL QPCAvailable = ::QueryPerformanceFrequency(&freq);
-  if (!QPCAvailable) {
+  sUseQPC = ::QueryPerformanceFrequency(&freq);
+  if (!sUseQPC) {
     
-    sFrequencyPerSec = 1;
-    sCalibrationFlags.flags.fallBackToGTC = true;
     InitResolution();
 
     LOG(("TimeStamp: using GetTickCount"));
@@ -729,17 +522,10 @@ TimeStamp::Startup()
   }
 
   sFrequencyPerSec = freq.QuadPart;
-
-  ULONGLONG qpc = PerformanceCounter();
-  sLastCalibrated = sGetTickCount64();
-  sSkew = qpc - ms2mt(sLastCalibrated);
+  LOG(("TimeStamp: QPC frequency=%llu", sFrequencyPerSec));
 
   InitThresholds();
   InitResolution();
-
-  sHasStableTSC = HasStableTSC();
-
-  LOG(("TimeStamp: initial skew is %1.2fms, sHasStableTSC=%d", mt2ms_d(sSkew), sHasStableTSC));
 
   return NS_OK;
 }
@@ -753,10 +539,13 @@ TimeStamp::Shutdown()
 TimeStamp
 TimeStamp::Now()
 {
-  if (sHasStableTSC) {
-    return TimeStamp(uint64_t(PerformanceCounter()));
-  }
-  return TimeStamp(uint64_t(CalibratedPerformanceCounter()));
+  
+  bool useQPC = sUseQPC;
+
+  
+  ULONGLONG QPC = useQPC ? PerformanceCounter() : uint64_t(0);
+  ULONGLONG GTC = ms2mt(sGetTickCount64());
+  return TimeStamp(TimeStampValue(GTC, QPC, useQPC));
 }
 
 } 
