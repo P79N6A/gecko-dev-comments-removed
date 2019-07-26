@@ -4651,7 +4651,7 @@ mjit::Compiler::inlineScriptedFunction(uint32_t argc, bool callingNew)
             JSScript *script_ = ssa.iterFrame(i).script;
 
             
-            if (script_->function()->isCloneAtCallsite())
+            if (script_->shouldCloneAtCallsite)
                 return Compile_InlineAbort;
 
             inlineCallees.append(script_);

@@ -44,13 +44,6 @@ class JSFunction : public JSObject
         INTERPRETED_LAZY = 0x1000,  
 
         
-
-
-
-
-        CALLSITE_CLONE   = 0x2000,
-
-        
         NATIVE_FUN = 0,
         INTERPRETED_LAMBDA = INTERPRETED | LAMBDA
     };
@@ -83,7 +76,6 @@ class JSFunction : public JSObject
   private:
     js::HeapPtrAtom  atom_;       
 
-    bool initializeLazyScript(JSContext *cx);
   public:
 
     
@@ -105,11 +97,6 @@ class JSFunction : public JSObject
     bool isSelfHostedConstructor()  const { return flags & SELF_HOSTED_CTOR; }
     bool hasRest()                  const { return flags & HAS_REST; }
     bool hasDefaults()              const { return flags & HAS_DEFAULTS; }
-
-    
-    bool isCloneAtCallsite()        const { return (flags & CALLSITE_CLONE) && !isExtended(); }
-    
-    bool isCallsiteClone()          const { return (flags & CALLSITE_CLONE) && isExtended(); }
 
     
     bool isBuiltin() const {
@@ -152,10 +139,6 @@ class JSFunction : public JSObject
         flags |= SELF_HOSTED_CTOR;
     }
 
-    void setIsCloneAtCallsite() {
-        flags |= CALLSITE_CLONE;
-    }
-
     void setIsFunctionPrototype() {
         JS_ASSERT(!isFunctionPrototype());
         flags |= IS_FUN_PROTO;
@@ -196,6 +179,8 @@ class JSFunction : public JSObject
 
     static inline size_t offsetOfEnvironment() { return offsetof(JSFunction, u.i.env_); }
     static inline size_t offsetOfAtom() { return offsetof(JSFunction, atom_); }
+
+    bool initializeLazyScript(JSContext *cx);
 
     js::UnrootedScript getOrCreateScript(JSContext *cx) {
         JS_ASSERT(isInterpreted());

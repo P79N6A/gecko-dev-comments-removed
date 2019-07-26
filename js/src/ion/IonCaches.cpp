@@ -2063,7 +2063,7 @@ CallsiteCloneIC::update(JSContext *cx, size_t cacheIndex, HandleObject callee)
     
     
     RootedFunction fun(cx, callee->toFunction());
-    if (!fun->isCloneAtCallsite())
+    if (!fun->nonLazyScript()->shouldCloneAtCallsite)
         return fun;
 
     IonScript *ion = GetTopIonJSScript(cx)->ionScript();

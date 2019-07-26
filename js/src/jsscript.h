@@ -382,7 +382,10 @@ class JSScript : public js::gc::Cell
     void         *mJITInfoPad;
 #endif
     js::HeapPtrFunction function_;
-    js::HeapPtrObject   enclosingScope_;
+
+    
+    
+    js::HeapPtrObject   enclosingScopeOrOriginalFunction_;
 
     
 
@@ -481,6 +484,14 @@ class JSScript : public js::gc::Cell
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            uninlineable:1;   
+
+    
+
+
+
+    bool            shouldCloneAtCallsite:1;
+
+    bool            isCallsiteClone:1; 
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            failedBoundsCheck:1; 
@@ -618,6 +629,17 @@ class JSScript : public js::gc::Cell
     JSFunction *function() const { return function_; }
     void setFunction(JSFunction *fun);
 
+    JSFunction *originalFunction() const {
+        if (!isCallsiteClone)
+            return NULL;
+        return enclosingScopeOrOriginalFunction_->toFunction();
+    }
+    void setOriginalFunctionObject(JSObject *fun) {
+        JS_ASSERT(isCallsiteClone);
+        JS_ASSERT(fun->isFunction());
+        enclosingScopeOrOriginalFunction_ = fun;
+    }
+
     JSFlatString *sourceData(JSContext *cx);
 
     static bool loadSource(JSContext *cx, js::HandleScript scr, bool *worked);
@@ -664,8 +686,9 @@ class JSScript : public js::gc::Cell
 
     
     JSObject *enclosingStaticScope() const {
-        JS_ASSERT(enclosingScriptsCompiledSuccessfully());
-        return enclosingScope_;
+        if (isCallsiteClone)
+            return NULL;
+        return enclosingScopeOrOriginalFunction_;
     }
 
     

@@ -1705,7 +1705,7 @@ JSScript::Create(JSContext *cx, HandleObject enclosingScope, bool savedCallerFun
     PodZero(script.get());
     new (&script->bindings) Bindings;
 
-    script->enclosingScope_ = enclosingScope;
+    script->enclosingScopeOrOriginalFunction_ = enclosingScope;
     script->savedCallerFun = savedCallerFun;
 
     
@@ -1998,13 +1998,13 @@ JSScript::enclosingScriptsCompiledSuccessfully() const
 
 
 
-    RawObject enclosing = enclosingScope_;
+    RawObject enclosing = enclosingStaticScope();
     while (enclosing) {
         if (enclosing->isFunction()) {
             RawFunction fun = enclosing->toFunction();
             if (!fun->hasScript())
                 return false;
-            enclosing = fun->nonLazyScript()->enclosingScope_;
+            enclosing = fun->nonLazyScript()->enclosingStaticScope();
         } else {
             enclosing = enclosing->asStaticBlock().enclosingStaticScope();
         }
@@ -2428,6 +2428,10 @@ js::CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, 
     dst->isGeneratorExp = src->isGeneratorExp;
 
     
+    dst->shouldCloneAtCallsite = src->shouldCloneAtCallsite;
+    dst->isCallsiteClone = src->isCallsiteClone;
+
+    
 
 
 
@@ -2746,8 +2750,8 @@ JSScript::markChildren(JSTracer *trc)
     if (function())
         MarkObject(trc, &function_, "function");
 
-    if (enclosingScope_)
-        MarkObject(trc, &enclosingScope_, "enclosing");
+    if (enclosingScopeOrOriginalFunction_)
+        MarkObject(trc, &enclosingScopeOrOriginalFunction_, "enclosing");
 
     if (IS_GC_MARKING_TRACER(trc)) {
         if (filename)

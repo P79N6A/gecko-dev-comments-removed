@@ -88,13 +88,6 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
 
 
 
-    if (fun->isCallsiteClone())
-        fun = fun->getExtendedSlot(0).toObject().toFunction();
-
-    
-
-
-
 
 
     if (fun->isInterpreted()) {
@@ -102,6 +95,13 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
             return false;
         fun->nonLazyScript()->uninlineable = true;
         MarkTypeObjectFlags(cx, fun, OBJECT_FLAG_UNINLINEABLE);
+
+        
+        if (fun->nonLazyScript()->isCallsiteClone) {
+            RootedFunction original(cx, fun->nonLazyScript()->originalFunction());
+            original->nonLazyScript()->uninlineable = true;
+            MarkTypeObjectFlags(cx, original, OBJECT_FLAG_UNINLINEABLE);
+        }
     }
 
     
@@ -175,7 +175,13 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
             return true;
         }
 
-        vp.set(iter.calleev());
+        
+        JSObject &maybeClone = iter.calleev().toObject();
+        if (maybeClone.isFunction() && maybeClone.toFunction()->nonLazyScript()->isCallsiteClone)
+            vp.setObject(*maybeClone.toFunction()->nonLazyScript()->originalFunction());
+        else
+            vp.set(iter.calleev());
+
         if (!cx->compartment->wrap(cx, vp))
             return false;
 

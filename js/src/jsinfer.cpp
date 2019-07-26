@@ -9,6 +9,7 @@
 #include "jsapi.h"
 #include "jsautooplen.h"
 #include "jsbool.h"
+#include "jscntxt.h"
 #include "jsdate.h"
 #include "jsexn.h"
 #include "jsfriendapi.h"
@@ -1413,15 +1414,28 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, Type type)
 
 
 
-    if (callee->isCloneAtCallsite()) {
+    if (callee->nonLazyScript()->shouldCloneAtCallsite) {
         RootedFunction clone(cx, CloneCallee(cx, callee, script, pc));
         if (!clone)
             return;
         if (!newCallee(cx, clone, script))
             return;
-    }
+        if (!newCallee(cx, callee, script))
+            return;
 
-    newCallee(cx, callee, script);
+        
+
+
+
+
+        for (unsigned i = 0; i < callsite->argumentCount && i < callee->nargs; i++) {
+            StackTypeSet *cloneTypes = TypeScript::ArgTypes(clone->nonLazyScript(), i);
+            StackTypeSet *originalTypes = TypeScript::ArgTypes(callee->nonLazyScript(), i);
+            cloneTypes->addSubset(cx, originalTypes);
+        }
+    } else {
+        newCallee(cx, callee, script);
+    }
 }
 
 bool
@@ -1513,7 +1527,7 @@ TypeConstraintPropagateThis::newType(JSContext *cx, TypeSet *source, Type type)
 
 
 
-    if (callee->isCloneAtCallsite()) {
+    if (callee->nonLazyScript()->shouldCloneAtCallsite) {
         RootedFunction clone(cx, CloneCallee(cx, callee, script, callpc));
         if (!clone)
             return;
