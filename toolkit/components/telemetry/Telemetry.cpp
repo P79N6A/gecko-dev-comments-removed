@@ -2095,6 +2095,7 @@ RecordShutdownStartTimeStamp() {
   
   static bool recorded = false;
   
+  (void)recorded; 
   recorded = true;
 #endif
 
