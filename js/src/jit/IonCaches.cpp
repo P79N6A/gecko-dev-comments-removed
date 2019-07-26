@@ -844,7 +844,6 @@ EmitGetterCall(JSContext *cx, MacroAssembler &masm,
                void *returnAddr)
 {
     JS_ASSERT(output.hasValue());
-    
     MacroAssembler::AfterICSaveLive aic = masm.icSaveLive(liveRegs);
 
     
@@ -864,9 +863,6 @@ EmitGetterCall(JSContext *cx, MacroAssembler &masm,
     
     bool callNative = IsCacheableGetPropCallNative(obj, holder, shape);
     JS_ASSERT_IF(!callNative, IsCacheableGetPropCallPropertyOp(obj, holder, shape));
-
-    
-    DebugOnly<uint32_t> initialStack = masm.framePushed();
 
     if (callNative) {
         JS_ASSERT(shape->hasGetterValue() && shape->getterValue().isObject() &&
@@ -967,11 +963,7 @@ EmitGetterCall(JSContext *cx, MacroAssembler &masm,
         masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
     }
 
-    JS_ASSERT(masm.framePushed() == initialStack);
-
-    
-    masm.PopRegsInMask(liveRegs);
-
+    masm.icRestoreLive(liveRegs, aic);
     return true;
 }
 
@@ -1287,7 +1279,6 @@ EmitCallProxyGet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
                  TypedOrValueRegister output, jsbytecode *pc, void *returnAddr)
 {
     JS_ASSERT(output.hasValue());
-    
     MacroAssembler::AfterICSaveLive aic = masm.icSaveLive(liveRegs);
 
     
@@ -1304,7 +1295,6 @@ EmitCallProxyGet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
 
     Register scratch         = regSet.takeGeneral();
 
-    DebugOnly<uint32_t> initialStack = masm.framePushed();
     void *getFunction = JSOp(*pc) == JSOP_CALLPROP                      ?
                             JS_FUNC_TO_DATA_PTR(void *, Proxy::callProp) :
                             JS_FUNC_TO_DATA_PTR(void *, Proxy::get);
@@ -1350,11 +1340,8 @@ EmitCallProxyGet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
 
     
     masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
-    JS_ASSERT(masm.framePushed() == initialStack);
 
-    
-    masm.PopRegsInMask(liveRegs);
-
+    masm.icRestoreLive(liveRegs, aic);
     return true;
 }
 
@@ -2069,7 +2056,6 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
                  HandleId propId, RegisterSet liveRegs, Register object,
                  ConstantOrRegister value, void *returnAddr, bool strict)
 {
-    
     MacroAssembler::AfterICSaveLive aic = masm.icSaveLive(liveRegs);
 
     
@@ -2086,8 +2072,6 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     Register argStrictReg    = regSet.takeGeneral();
 
     Register scratch         = regSet.takeGeneral();
-
-    DebugOnly<uint32_t> initialStack = masm.framePushed();
 
     
     attacher.pushStubCodePointer(masm);
@@ -2127,11 +2111,8 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
 
     
     masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
-    JS_ASSERT(masm.framePushed() == initialStack);
 
-    
-    masm.PopRegsInMask(liveRegs);
-
+    masm.icRestoreLive(liveRegs, aic);
     return true;
 }
 
@@ -2272,7 +2253,6 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
 
     
 
-    
     MacroAssembler::AfterICSaveLive aic = masm.icSaveLive(liveRegs);
 
     
@@ -2293,9 +2273,6 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
 
     bool callNative = IsCacheableSetPropCallNative(obj, holder, shape);
     JS_ASSERT_IF(!callNative, IsCacheableSetPropCallPropertyOp(obj, holder, shape));
-
-    
-    DebugOnly<uint32_t> initialStack = masm.framePushed();
 
     if (callNative) {
         JS_ASSERT(shape->hasSetterValue() && shape->setterObject() &&
@@ -2395,11 +2372,7 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
     }
 
-    JS_ASSERT(masm.framePushed() == initialStack);
-
-    
-    masm.PopRegsInMask(liveRegs);
-
+    masm.icRestoreLive(liveRegs, aic);
     return true;
 }
 
