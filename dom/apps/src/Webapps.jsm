@@ -138,14 +138,14 @@ this.DOMApplicationRegistry = {
   },
 
   
-  registerAppsHandlers: function registerAppsHandlers() {
+  registerAppsHandlers: function registerAppsHandlers(aRunUpdate) {
     this.notifyAppsRegistryStart();
     let ids = [];
     for (let id in this.webapps) {
       ids.push({ id: id });
     }
 #ifdef MOZ_SYS_MSG
-    this._processManifestForIds(ids);
+    this._processManifestForIds(ids, aRunUpdate);
 #else
     
     
@@ -291,7 +291,7 @@ this.DOMApplicationRegistry = {
           this.updateOfflineCacheForApp(id);
         }
       }
-      this.registerAppsHandlers();
+      this.registerAppsHandlers(runUpdate);
     }).bind(this);
 
     this.loadCurrentRegistry((function() {
@@ -351,7 +351,7 @@ this.DOMApplicationRegistry = {
 
   
   
-  _createActivitiesToRegister: function(aManifest, aApp, aEntryPoint) {
+  _createActivitiesToRegister: function(aManifest, aApp, aEntryPoint, aRunUpdate) {
     let activitiesToRegister = [];
     let root = aManifest;
     if (aEntryPoint && aManifest.entry_points[aEntryPoint]) {
@@ -369,14 +369,16 @@ this.DOMApplicationRegistry = {
         description.href = manifest.launch_path;
       }
       description.href = manifest.resolveFromOrigin(description.href);
-      activitiesToRegister.push({ "manifest": aApp.manifestURL,
-                                  "name": activity,
-                                  "title": manifest.name,
-                                  "icon": manifest.iconURLForSize(128),
-                                  "description": description });
 
-      let launchPath =
-        Services.io.newURI(manifest.resolveFromOrigin(description.href), null, null);
+      if (aRunUpdate) {
+        activitiesToRegister.push({ "manifest": aApp.manifestURL,
+                                    "name": activity,
+                                    "title": manifest.name,
+                                    "icon": manifest.iconURLForSize(128),
+                                    "description": description });
+      }
+
+      let launchPath = Services.io.newURI(description.href, null, null);
       let manifestURL = Services.io.newURI(aApp.manifestURL, null, null);
       msgmgr.registerPage("activity", launchPath, manifestURL);
     }
@@ -385,14 +387,14 @@ this.DOMApplicationRegistry = {
 
   
   
-  _registerActivitiesForApps: function(aAppsToRegister) {
+  _registerActivitiesForApps: function(aAppsToRegister, aRunUpdate) {
     
     let activitiesToRegister = [];
     aAppsToRegister.forEach(function (aApp) {
       let manifest = aApp.manifest;
       let app = aApp.app;
       activitiesToRegister.push.apply(activitiesToRegister,
-        this._createActivitiesToRegister(manifest, app, null));
+        this._createActivitiesToRegister(manifest, app, null, aRunUpdate));
 
       if (!manifest.entry_points) {
         return;
@@ -400,9 +402,14 @@ this.DOMApplicationRegistry = {
 
       for (let entryPoint in manifest.entry_points) {
         activitiesToRegister.push.apply(activitiesToRegister,
-          this._createActivitiesToRegister(manifest, app, entryPoint));
+          this._createActivitiesToRegister(manifest, app, entryPoint, aRunUpdate));
       }
     }, this);
+
+    if (!aRunUpdate || activitiesToRegister.length == 0) {
+      this.notifyAppsRegistryReady();
+      return;
+    }
 
     
     cpmm.sendAsyncMessage("Activities:Register", activitiesToRegister);
@@ -410,8 +417,8 @@ this.DOMApplicationRegistry = {
 
   
   
-  _registerActivities: function(aManifest, aApp) {
-    this._registerActivitiesForApps([{ manifest: aManifest, app: aApp }]);
+  _registerActivities: function(aManifest, aApp, aRunUpdate) {
+    this._registerActivitiesForApps([{ manifest: aManifest, app: aApp }], aRunUpdate);
   },
 
   
@@ -466,7 +473,7 @@ this.DOMApplicationRegistry = {
     this._unregisterActivitiesForApps([{ manifest: aManifest, app: aApp }]);
   },
 
-  _processManifestForIds: function(aIds) {
+  _processManifestForIds: function(aIds, aRunUpdate) {
     this._readManifests(aIds, (function registerManifests(aResults) {
       let appsToRegister = [];
       aResults.forEach(function registerManifest(aResult) {
@@ -477,7 +484,7 @@ this.DOMApplicationRegistry = {
         this._registerSystemMessages(manifest, app);
         appsToRegister.push({ manifest: manifest, app: app });
       }, this);
-      this._registerActivitiesForApps(appsToRegister);
+      this._registerActivitiesForApps(appsToRegister, aRunUpdate);
     }).bind(this));
   },
 #endif
@@ -822,6 +829,11 @@ this.DOMApplicationRegistry = {
     let id = this._appIdForManifestURL(app.manifestURL);
 
     
+    if (id in this._manifestCache) {
+      delete this._manifestCache[id];
+    }
+
+    
     let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
     let manFile = tmpDir.clone();
     manFile.append("manifest.webapp");
@@ -915,13 +927,17 @@ this.DOMApplicationRegistry = {
       debug("updateHostedApp");
       let id = this._appId(app.origin);
 
+      if (id in this._manifestCache) {
+        delete this._manifestCache[id];
+      }
+
       
       this.notifyAppsRegistryStart();
 #ifdef MOZ_SYS_MSG
       this._readManifests([{ id: id }], (function unregisterManifest(aResult) {
         this._unregisterActivities(aResult[0].manifest, app);
         this._registerSystemMessages(aManifest, app);
-        this._registerActivities(aManifest, app);
+        this._registerActivities(aManifest, app, true);
       }).bind(this));
 #else
       
@@ -1142,7 +1158,7 @@ this.DOMApplicationRegistry = {
       this.notifyAppsRegistryStart();
 #ifdef MOZ_SYS_MSG
       this._registerSystemMessages(app.manifest, app);
-      this._registerActivities(app.manifest, app);
+      this._registerActivities(app.manifest, app, true);
 #else
       
       this.notifyAppsRegistryReady();
@@ -1229,6 +1245,9 @@ this.DOMApplicationRegistry = {
   
 
 
+
+  _manifestCache: {},
+
   _readManifests: function(aData, aFinalCallback, aIndex) {
     if (!aData.length) {
       aFinalCallback(aData);
@@ -1237,6 +1256,16 @@ this.DOMApplicationRegistry = {
 
     let index = aIndex || 0;
     let id = aData[index].id;
+
+    
+    if (id in this._manifestCache) {
+      aData[index].manifest = this._manifestCache[id];
+      if (index == aData.length - 1)
+        aFinalCallback(aData);
+      else
+        this._readManifests(aData, aFinalCallback, index + 1);
+      return;
+    }
 
     
     let baseDir = (this.webapps[id].removable ? DIRECTORY_NAME : "coreAppsDir");
@@ -1249,7 +1278,7 @@ this.DOMApplicationRegistry = {
     }
 
     this._loadJSONAsync(file, (function(aJSON) {
-      aData[index].manifest = aJSON;
+      aData[index].manifest = this._manifestCache[id] = aJSON;
       if (index == aData.length - 1)
         aFinalCallback(aData);
       else
@@ -1405,6 +1434,11 @@ this.DOMApplicationRegistry = {
 
       if (!this.webapps[id].removable)
         return;
+
+      
+      if (id in this._manifestCache) {
+        delete this._manifestCache[id];
+      }
 
       
       this._clearPrivateData(app.localId, false);
@@ -1621,6 +1655,11 @@ this.DOMApplicationRegistry = {
         if (!this.webapps[record.id] || !this.webapps[record.id].removable)
           continue;
 
+        
+        if (record.id in this._manifestCache) {
+          delete this._manifestCache[record.id];
+        }
+
         let origin = this.webapps[record.id].origin;
         delete this.webapps[record.id];
         let dir = this._getAppDir(record.id);
@@ -1667,6 +1706,10 @@ this.DOMApplicationRegistry = {
       } catch (e) {
       }
     }
+
+    
+    this._manifestCache = { };
+
     this._saveApps(aCallback);
   },
 
