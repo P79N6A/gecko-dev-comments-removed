@@ -1,46 +1,46 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: t; c-basic-offset: 4 -*- */
-/* vim: set shiftwidth=4 tabstop=4 autoindent cindent noexpandtab: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// True longhand properties.
+
+
+
+
+
+
 const CSS_TYPE_LONGHAND = 0;
 
-// True shorthand properties.
+
 const CSS_TYPE_TRUE_SHORTHAND = 1;
 
-// Properties that we handle as shorthands but were longhands either in
-// the current spec or earlier versions of the spec.
+
+
 const CSS_TYPE_SHORTHAND_AND_LONGHAND = 2;
 
-// Each property has the following fields:
-//	 domProp: The name of the relevant member of nsIDOM[NS]CSS2Properties
-//	 inherited: Whether the property is inherited by default (stated as
-//	   yes or no in the property header in all CSS specs)
-//	 type: see above
-//	 alias_for: optional, indicates that the property is an alias for
-//	   some other property that is the preferred serialization.  (Type
-//	   must not be CSS_TYPE_LONGHAND.)
-//	 get_computed: if present, the property's computed value shows up on
-//	   another property, and this is a function used to get it
-//	 initial_values: Values whose computed value should be the same as the
-//	   computed value for the property's initial value.
-//	 other_values: Values whose computed value should be different from the
-//	   computed value for the property's initial value.
-//	 XXX Should have a third field for values whose computed value may or
-//	   may not be the same as for the property's initial value.
-//	 invalid_values: Things that are not values for the property and
-//	   should be rejected.
-//	 quirks_values: Values that should be accepted in quirks mode only,
-//	   mapped to the values they are equivalent to.
 
-// Helper functions used to construct gCSSProperties.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function initial_font_family_is_sans_serif()
 {
-	// The initial value of 'font-family' might be 'serif' or
-	// 'sans-serif'.
+	
+	
 	var div = document.createElement("div");
 	div.setAttribute("style", "font: initial");
 	return getComputedStyle(div, "").fontFamily == "sans-serif";
@@ -95,8 +95,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "1" ],
 		other_values: [ "infinite", "0", "0.5", "7.75", "-0.0", "1, 2, 3", "infinite, 2", "1, infinite" ],
-		// negatives forbidden per
-		// http://lists.w3.org/Archives/Public/www-style/2011Mar/0355.html
+		
+		
 		invalid_values: [ "none", "-1", "-0.5", "-1, infinite", "infinite, -3" ]
 	},
 	"animation-name": {
@@ -178,7 +178,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
 		get_computed: logical_box_prop_get_computed,
-		/* XXX hidden is sometimes the same as initial */
+		
 		initial_values: [ "none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge" ],
 		invalid_values: []
@@ -293,8 +293,8 @@ var gCSSProperties = {
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		subproperties: [ "border-bottom-left-radius", "border-bottom-right-radius", "border-top-left-radius", "border-top-right-radius" ],
 		initial_values: [ "0", "0px", "0%", "0px 0 0 0px", "calc(-2px)", "calc(-1%)", "calc(0px) calc(0pt) calc(0%) calc(0em)" ],
-		other_values: [ "3%", "1px", "2em", "3em 2px", "2pt 3% 4em", "2px 2px 2px 2px", // circular
-						"3% / 2%", "1px / 4px", "2em / 1em", "3em 2px / 2px 3em", "2pt 3% 4em / 4pt 1% 5em", "2px 2px 2px 2px / 4px 4px 4px 4px", "1pt / 2pt 3pt", "4pt 5pt / 3pt", // elliptical
+		other_values: [ "3%", "1px", "2em", "3em 2px", "2pt 3% 4em", "2px 2px 2px 2px", 
+						"3% / 2%", "1px / 4px", "2em / 1em", "3em 2px / 2px 3em", "2pt 3% 4em / 4pt 1% 5em", "2px 2px 2px 2px / 4px 4px 4px 4px", "1pt / 2pt 3pt", "4pt 5pt / 3pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -314,8 +314,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -333,8 +333,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -352,8 +352,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -371,8 +371,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -415,7 +415,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
 		get_computed: logical_box_prop_get_computed,
-		/* XXX hidden is sometimes the same as initial */
+		
 		initial_values: [ "none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge" ],
 		invalid_values: []
@@ -519,7 +519,7 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "auto" ],
 		other_values: [ "1", "17" ],
-		// negative and zero invalid per editor's draft
+		
 		invalid_values: [ "-1", "0", "3px" ]
 	},
         "-moz-column-fill": {
@@ -571,7 +571,7 @@ var gCSSProperties = {
 			"calc(5em + 3px - 5em)",
 		],
 		other_values: [ "thin", "15px",
-			/* valid -moz-calc() values */
+			
 			"-moz-calc(-2px)",
 			"-moz-calc(2px)",
 			"-moz-calc(3em)",
@@ -612,7 +612,7 @@ var gCSSProperties = {
 			"-moz-calc(50px/2)",
 			"-moz-calc(50px/(2 - 1))",
 			"-moz-calc(-3px)",
-			/* numeric reduction cases */
+			
 			"-moz-calc(5 * 3 * 2em)",
 			"-moz-calc(2em * 5 * 3)",
 			"-moz-calc((5 * 3) * 2em)",
@@ -656,15 +656,15 @@ var gCSSProperties = {
 			"-moz-calc(2em / (4 / 3))",
 			"-moz-calc(4 * (2em / 3))",
 
-			// Valid cases with unitless zero (which is never
-			// a length).
+			
+			
 			"-moz-calc(0 * 2em)",
 			"-moz-calc(2em * 0)",
 			"-moz-calc(3em + 0 * 2em)",
 			"-moz-calc(3em + 2em * 0)",
 			"-moz-calc((0 + 2) * 2em)",
 			"-moz-calc((2 + 0) * 2em)",
-			// And test zero lengths while we're here.
+			
 			"-moz-calc(2 * 0px)",
 			"-moz-calc(0 * 0px)",
 			"-moz-calc(2 * 0em)",
@@ -672,7 +672,7 @@ var gCSSProperties = {
 			"-moz-calc(0px * 0)",
 			"-moz-calc(0px * 2)",
 
-			/* valid calc() values */
+			
 			"calc(-2px)",
 			"calc(2px)",
 			"calc(3em)",
@@ -713,7 +713,7 @@ var gCSSProperties = {
 			"calc(50px/2)",
 			"calc(50px/(2 - 1))",
 			"calc(-3px)",
-			/* numeric reduction cases */
+			
 			"calc(5 * 3 * 2em)",
 			"calc(2em * 5 * 3)",
 			"calc((5 * 3) * 2em)",
@@ -757,15 +757,15 @@ var gCSSProperties = {
 			"calc(2em / (4 / 3))",
 			"calc(4 * (2em / 3))",
 
-			// Valid cases with unitless zero (which is never
-			// a length).
+			
+			
 			"calc(0 * 2em)",
 			"calc(2em * 0)",
 			"calc(3em + 0 * 2em)",
 			"calc(3em + 2em * 0)",
 			"calc((0 + 2) * 2em)",
 			"calc((2 + 0) * 2em)",
-			// And test zero lengths while we're here.
+			
 			"calc(2 * 0px)",
 			"calc(0 * 0px)",
 			"calc(2 * 0em)",
@@ -775,14 +775,14 @@ var gCSSProperties = {
 
 		],
 		invalid_values: [ "20", "-1px", "red", "50%",
-			/* invalid -moz-calc() values */
+			
 			"-moz-calc(2em+ 2px)",
 			"-moz-calc(2em +2px)",
 			"-moz-calc(2em+2px)",
 			"-moz-calc(2em- 2px)",
 			"-moz-calc(2em -2px)",
 			"-moz-calc(2em-2px)",
-			/* invalid calc() values */
+			
 			"calc(2em+ 2px)",
 			"calc(2em +2px)",
 			"calc(2em+2px)",
@@ -812,8 +812,8 @@ var gCSSProperties = {
 			"calc(4 * (3 / 2em))",
 			"calc(4 / (3 * 2em))",
 
-			// Tests for handling of unitless zero, which cannot
-			// be a length inside calc().
+			
+			
 			"calc(0)",
 			"calc(0 + 2em)",
 			"calc(2em + 0)",
@@ -888,8 +888,8 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
 		get_computed: logical_box_prop_get_computed,
-		/* no subproperties */
-		/* auto may or may not be initial */
+		
+		
 		initial_values: [ "0", "0px", "0%", "0em", "0ex", "calc(0pt)", "calc(0% + 0px)" ],
 		other_values: [ "1px", "3em",
 			"calc(2px)",
@@ -906,8 +906,8 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
 		get_computed: logical_box_prop_get_computed,
-		/* no subproperties */
-		/* auto may or may not be initial */
+		
+		
 		initial_values: [ "0", "0px", "0%", "0em", "0ex", "calc(0pt)", "calc(0% + 0px)" ],
 		other_values: [ "1px", "3em",
 			"calc(2px)",
@@ -926,8 +926,8 @@ var gCSSProperties = {
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		subproperties: [ "-moz-outline-radius-bottomleft", "-moz-outline-radius-bottomright", "-moz-outline-radius-topleft", "-moz-outline-radius-topright" ],
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)", "calc(0px) calc(0pt) calc(0%) calc(0em)" ],
-		other_values: [ "3%", "1px", "2em", "3em 2px", "2pt 3% 4em", "2px 2px 2px 2px", // circular
-						"3% / 2%", "1px / 4px", "2em / 1em", "3em 2px / 2px 3em", "2pt 3% 4em / 4pt 1% 5em", "2px 2px 2px 2px / 4px 4px 4px 4px", "1pt / 2pt 3pt", "4pt 5pt / 3pt", // elliptical
+		other_values: [ "3%", "1px", "2em", "3em 2px", "2pt 3% 4em", "2px 2px 2px 2px", 
+						"3% / 2%", "1px / 4px", "2em / 1em", "3em 2px / 2px 3em", "2pt 3% 4em / 4pt 1% 5em", "2px 2px 2px 2px / 4px 4px 4px 4px", "1pt / 2pt 3pt", "4pt 5pt / 3pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -947,8 +947,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)", "calc(0px)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -966,8 +966,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)", "calc(0px)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -985,8 +985,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)", "calc(0px)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -1004,8 +1004,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "width": "200px", "height": "100px", "display": "inline-block"},
 		initial_values: [ "0", "0px", "0%", "calc(-2px)", "calc(-1%)", "calc(0px)" ],
-		other_values: [ "3%", "1px", "2em", // circular
-						"3% 2%", "1px 4px", "2em 2pt", // elliptical
+		other_values: [ "3%", "1px", "2em", 
+						"3% 2%", "1px 4px", "2em 2pt", 
 			"calc(2px)",
 			"calc(50%)",
 			"calc(3*25px)",
@@ -1022,7 +1022,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
 		get_computed: logical_box_prop_get_computed,
-		/* no subproperties */
+		
 		initial_values: [ "0", "0px", "0%", "0em", "0ex", "calc(0pt)", "calc(0% + 0px)", "calc(-3px)", "calc(-1%)" ],
 		other_values: [ "1px", "3em",
 			"calc(2px)",
@@ -1038,7 +1038,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
 		get_computed: logical_box_prop_get_computed,
-		/* no subproperties */
+		
 		initial_values: [ "0", "0px", "0%", "0em", "0ex", "calc(0pt)", "calc(0% + 0px)", "calc(-3px)", "calc(-1%)" ],
 		other_values: [ "1px", "3em",
 			"calc(2px)",
@@ -1102,7 +1102,7 @@ var gCSSProperties = {
 			"translatex(50%)", "translatey(50%)", "translate(50%)",
 			"translate(3%, 5px)", "translate(5px, 3%)",
 			"matrix(1, 2, 3, 4, 5, 6)",
-			/* valid calc() values */
+			
 			"translatex(calc(5px + 10%))",
 			"translatey(calc(0.25 * 5px + 10% / 3))",
 			"translate(calc(5px - 10% * 3))",
@@ -1129,7 +1129,7 @@ var gCSSProperties = {
 			"matrix(0, 1, 2, 3%, 4%, 5%)", "matrix(1, 2, 3, 4, 5px, 6%)",
 			"matrix(1, 2, 3, 4, 5%, 6px)", "matrix(1, 2, 3, 4, 5%, 6%)",
 			"matrix(1, 2, 3, 4, 5px, 6em)",
-			/* invalid calc() values */
+			
 			"translatey(-moz-min(5px,10%))",
 			"translatex(-moz-max(5px,10%))",
 			"translate(10px, calc(min(5px,10%)))",
@@ -1149,7 +1149,7 @@ var gCSSProperties = {
 		domProp: "transformOrigin",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* no subproperties */
+		
 		prerequisites: { "width": "10px", "height": "10px", "display": "block"},
 		initial_values: [ "50% 50%", "center", "center center" ],
 		other_values: [ "25% 25%", "6px 5px", "20% 3em", "0 0", "0in 1in",
@@ -1179,7 +1179,7 @@ var gCSSProperties = {
 		domProp: "perspectiveOrigin",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* no subproperties */
+		
 		prerequisites: { "width": "10px", "height": "10px", "display": "block"},
 		initial_values: [ "50% 50%", "center", "center center" ],
 		other_values: [ "25% 25%", "6px 5px", "20% 3em", "0 0", "0in 1in",
@@ -1275,7 +1275,7 @@ var gCSSProperties = {
 			"transparent none", "top left none", "left top none", "none left top", "none top left", "none 0% 0%", "left top / auto none", "left top / auto auto none",
 			"transparent none repeat scroll top left", "left top repeat none scroll transparent", "transparent none repeat scroll top left / auto", "left top / auto repeat none scroll transparent", "none repeat scroll 0% 0% / auto auto transparent" ],
 		other_values: [
-				/* without multiple backgrounds */
+				
 			"green",
 			"none green repeat scroll left top",
 			"url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==)",
@@ -1309,7 +1309,7 @@ var gCSSProperties = {
 			"-moz-repeating-radial-gradient(10% bottom, #ffffff, black) scroll no-repeat",
 			"-moz-repeating-linear-gradient(10px 10px -45deg, red, blue) repeat",
 			"-moz-element(#test) lime",
-				/* multiple backgrounds */
+				
 				"url(404.png), url(404.png)",
 				"url(404.png), url(404.png) transparent",
 				"url(404.png), url(404.png) red",
@@ -1318,7 +1318,7 @@ var gCSSProperties = {
 				"fixed repeat-y top left url(404.png), repeat-x green",
 				"url(404.png), -moz-linear-gradient(20px 20px -45deg, blue, green), -moz-element(#a) black",
 				"top left / contain, bottom right / cover",
-				/* test cases with clip+origin in the shorthand */
+				
 				"url(404.png) green padding-box",
 				"url(404.png) border-box transparent",
 				"content-box url(404.png) blue",
@@ -1327,17 +1327,17 @@ var gCSSProperties = {
 				"content-box border-box url(404.png) blue",
 		],
 		invalid_values: [
-			/* mixes with keywords have to be in correct order */
+			
 			"50% left", "top 50%",
-			/* no quirks mode colors */
+			
 			"-moz-radial-gradient(10% bottom, ffffff, black) scroll no-repeat",
-			/* no quirks mode lengths */
+			
 			"-moz-linear-gradient(10 10px -45deg, red, blue) repeat",
 			"-moz-linear-gradient(10px 10 -45deg, red, blue) repeat",
 			"linear-gradient(red -99, yellow, green, blue 120%)",
-			/* bug 258080: don't accept background-position separated */
+			
 			"left url(404.png) top", "top url(404.png) left",
-			/* not allowed to have color in non-bottom layer */
+			
 			"url(404.png) transparent, url(404.png)",
 			"url(404.png) red, url(404.png)",
 			"url(404.png) transparent, url(404.png) transparent",
@@ -1348,10 +1348,10 @@ var gCSSProperties = {
 			"url(404.png) rgba(0, 0, 0, 0), url(404.png) rgba(0, 0, 0, 0)",
 			"url(404.png) rgba(0, 0, 0, 0) rgb(255, 0, 0), url(404.png) rgba(0, 0, 0, 0) rgb(255, 0, 0)",
 			"url(404.png) rgb(255, 0, 0), url(404.png) rgb(255, 0, 0)",
-			/* bug 513395: old syntax for gradients */
+			
 			"-moz-radial-gradient(10% bottom, 30px, 20px 20px, 10px, from(#ffffff), to(black)) scroll no-repeat",
 			"-moz-linear-gradient(10px 10px, 20px 20px, from(red), to(blue)) repeat",
-			/* clip and origin separated in the shorthand */
+			
 			"url(404.png) padding-box green border-box",
 			"url(404.png) padding-box green padding-box",
 			"transparent padding-box url(404.png) border-box",
@@ -1367,10 +1367,10 @@ var gCSSProperties = {
 		invalid_values: []
 	},
 	"background-clip": {
-		/*
-		 * When we rename this to 'background-clip', we also
-		 * need to rename the values to match the spec.
-		 */
+		
+
+
+
 		domProp: "backgroundClip",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
@@ -1403,7 +1403,7 @@ var gCSSProperties = {
 		"-moz-element(  #a  )",
 		"-moz-element(#a-1)",
 		"-moz-element(#a\\:1)",
-		/* gradient torture test */
+		
 		"linear-gradient(red, blue)",
 		"linear-gradient(red, yellow, blue)",
 		"linear-gradient(red 1px, yellow 20%, blue 24em, green)",
@@ -1673,15 +1673,15 @@ var gCSSProperties = {
 			"-moz-element(#a a)",
 			"-moz-element(#a+a)",
 			"-moz-element(#a()",
-			/* no quirks mode colors */
+			
 			"linear-gradient(red, ff00ff)",
-			/* no quirks mode colors */
+			
 			"-moz-radial-gradient(10% bottom, ffffff, black) scroll no-repeat",
-			/* no quirks mode lengths */
+			
 			"-moz-linear-gradient(10 10px -45deg, red, blue) repeat",
 			"-moz-linear-gradient(10px 10 -45deg, red, blue) repeat",
 			"linear-gradient(red -99, yellow, green, blue 120%)",
-			/* Old syntax */
+			
 			"-moz-linear-gradient(10px 10px, 20px, 30px 30px, 40px, from(blue), to(red))",
 			"-moz-radial-gradient(20px 20px, 10px 10px, from(green), to(#ff00ff))",
 			"-moz-radial-gradient(10px 10px, 20%, 40px 40px, 10px, from(green), to(#ff00ff))",
@@ -1692,7 +1692,7 @@ var gCSSProperties = {
 			"-moz-radial-gradient(left top, center, 20px 20px, 10px, from(blue), to(red))",
 			"-moz-linear-gradient(left left, top top, from(blue))",
 			"-moz-linear-gradient(inherit, 10px 10px, from(blue))",
-			/* New syntax */
+			
 			"-moz-linear-gradient(10px 10px, 20px, 30px 30px, 40px, blue 0, red 100%)",
 			"-moz-radial-gradient(20px 20px, 10px 10px, from(green), to(#ff00ff))",
 			"-moz-radial-gradient(10px 10px, 20%, 40px 40px, 10px, from(green), to(#ff00ff))",
@@ -1818,7 +1818,7 @@ var gCSSProperties = {
 			"-moz-repeating-radial-gradient(ellipse at 45px closest-corner, red, blue)",
 			"-moz-repeating-radial-gradient(circle at 45px farthest-side, red, blue)",
 
-			/* Valid only when prefixed */
+			
 			"linear-gradient(top left, red, blue)",
 			"linear-gradient(0 0, red, blue)",
 			"linear-gradient(20% bottom, red, blue)",
@@ -1871,7 +1871,7 @@ var gCSSProperties = {
 			"radial-gradient(45px 399grad, ellipse closest-corner, red, blue)",
 			"radial-gradient(45px 399grad, farthest-side circle, red, blue)",
 
-			/* Valid only when unprefixed */
+			
 			"-moz-radial-gradient(at top left, red, blue)",
 			"-moz-radial-gradient(at 20% bottom, red, blue)",
 			"-moz-radial-gradient(at center 20%, red, blue)",
@@ -2018,7 +2018,7 @@ var gCSSProperties = {
 		domProp: "borderBottomStyle",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* XXX hidden is sometimes the same as initial */
+		
 		initial_values: [ "none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge" ],
 		invalid_values: []
@@ -2083,7 +2083,7 @@ var gCSSProperties = {
 		domProp: "borderLeftStyle",
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-		/* XXX hidden is sometimes the same as initial */
+		
 		initial_values: [ "none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge" ],
 		invalid_values: []
@@ -2130,7 +2130,7 @@ var gCSSProperties = {
 		domProp: "borderRightStyle",
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-		/* XXX hidden is sometimes the same as initial */
+		
 		initial_values: [ "none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge" ],
 		invalid_values: []
@@ -2167,7 +2167,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_TRUE_SHORTHAND,
 		subproperties: [ "border-top-style", "border-right-style", "border-bottom-style", "border-left-style" ],
-		/* XXX hidden is sometimes the same as initial */
+		
 		initial_values: [ "none", "none none", "none none none", "none none none none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge", "none solid", "none none solid", "none none none solid", "groove none none none", "none ridge none none", "none none double none", "none none none dotted" ],
 		invalid_values: []
@@ -2195,7 +2195,7 @@ var gCSSProperties = {
 		domProp: "borderTopStyle",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* XXX hidden is sometimes the same as initial */
+		
 		initial_values: [ "none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge" ],
 		invalid_values: []
@@ -2234,9 +2234,9 @@ var gCSSProperties = {
 		domProp: "bottom",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* FIXME: run tests with multiple prerequisites */
+		
 		prerequisites: { "position": "relative" },
-		/* XXX 0 may or may not be equal to auto */
+		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%",
 			"calc(2px)",
@@ -2256,8 +2256,8 @@ var gCSSProperties = {
 		initial_values: [ "none" ],
 		prerequisites: { "color": "blue" },
 		other_values: [ "2px 2px", "2px 2px 1px", "2px 2px 2px 2px", "blue 3px 2px", "2px 2px 1px 5px green", "2px 2px red", "green 2px 2px 1px", "green 2px 2px, blue 1px 3px 4px", "currentColor 3px 3px", "blue 2px 2px, currentColor 1px 2px, 1px 2px 3px 2px orange", "3px 0 0 0", "inset 2px 2px 3px 4px black", "2px -2px green inset, 4px 4px 3px blue, inset 2px 2px",
-			/* calc() values */
-			"2px 2px calc(-5px)", /* clamped */
+			
+			"2px 2px calc(-5px)", 
 			"calc(3em - 2px) 2px green",
 			"green calc(3em - 2px) 2px",
 			"2px calc(2px + 0.2em)",
@@ -2300,7 +2300,7 @@ var gCSSProperties = {
 		domProp: "color",
 		inherited: true,
 		type: CSS_TYPE_LONGHAND,
-		/* XXX should test currentColor, but may or may not be initial */
+		
 		initial_values: [ "black", "#000", "-moz-default-color" ],
 		other_values: [ "green", "#f3c", "#fed292", "rgba(45,300,12,2)", "transparent", "-moz-nativehyperlinktext", "rgba(255,128,0,0.5)" ],
 		invalid_values: [ "#f", "#ff", "#ffff", "#fffff", "#fffffff", "#ffffffff", "#fffffffff" ],
@@ -2310,7 +2310,7 @@ var gCSSProperties = {
 		domProp: "content",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* XXX needs to be on pseudo-elements */
+		
 		initial_values: [ "normal", "none" ],
 		other_values: [ '""', "''", '"hello"', "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==)", "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==')", 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==")', 'counter(foo)', 'counter(bar, upper-roman)', 'counters(foo, ".")', "counters(bar, '-', lower-greek)", "'-' counter(foo) '.'", "attr(title)", "open-quote", "close-quote", "no-open-quote", "no-close-quote", "close-quote attr(title) counters(foo, '.', upper-alpha)", "counter(foo, none)", "counters(bar, '.', none)", "attr(\\32)", "attr(\\2)", "attr(-\\2)", "attr(-\\32)", "counter(\\2)", "counters(\\32, '.')", "counter(-\\32, upper-roman)", "counters(-\\2, '-', lower-greek)", "counter(\\()", "counters(a\\+b, '.')", "counter(\\}, upper-alpha)", "-moz-alt-content" ],
 		invalid_values: [ 'counters(foo)', 'counter(foo, ".")', 'attr("title")', "attr('title')", "attr(2)", "attr(-2)", "counter(2)", "counters(-2, '.')", "-moz-alt-content 'foo'", "'foo' -moz-alt-content" ]
@@ -2352,7 +2352,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "inline" ],
-		/* XXX none will really mess with other properties */
+		
 		prerequisites: { "float": "none", "position": "static" },
 		other_values: [
 			"block",
@@ -2395,9 +2395,9 @@ var gCSSProperties = {
 		subproperties: [ "font-style", "font-variant", "font-weight", "font-size", "line-height", "font-family", "font-stretch", "font-size-adjust", "-moz-font-feature-settings", "-moz-font-language-override" ],
 		initial_values: [ (gInitialFontFamilyIsSansSerif ? "medium sans-serif" : "medium serif") ],
 		other_values: [ "large serif", "9px fantasy", "bold italic small-caps 24px/1.4 Times New Roman, serif",
-		  // system fonts
+		  
 		  "caption", "icon", "menu", "message-box", "small-caption", "status-bar",
-		  // Gecko-specific system fonts
+		  
 		  "-moz-window", "-moz-document", "-moz-desktop", "-moz-info", "-moz-dialog", "-moz-button", "-moz-pull-down-menu", "-moz-list", "-moz-field", "-moz-workspace",
 		],
 		invalid_values: [ "9 fantasy", "-2px fantasy" ]
@@ -2502,9 +2502,9 @@ var gCSSProperties = {
 		domProp: "height",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* FIXME: test zero, and test calc clamping */
+		
 		initial_values: [ " auto" ],
-		/* computed value tests for height test more with display:block */
+		
 		prerequisites: { "display": "block" },
 		other_values: [ "15px", "3em", "15%",
 			"calc(2px)",
@@ -2528,9 +2528,9 @@ var gCSSProperties = {
 		domProp: "left",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* FIXME: run tests with multiple prerequisites */
+		
 		prerequisites: { "position": "relative" },
-		/* XXX 0 may or may not be equal to auto */
+		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%",
 			"calc(2px)",
@@ -2559,14 +2559,14 @@ var gCSSProperties = {
 		domProp: "lineHeight",
 		inherited: true,
 		type: CSS_TYPE_LONGHAND,
-		/*
-		 * Inheritance tests require consistent font size, since
-		 * getComputedStyle (which uses the CSS2 computed value, or
-		 * CSS2.1 used value) doesn't match what the CSS2.1 computed
-		 * value is.  And they even require consistent font metrics for
-		 * computation of 'normal'.	 -moz-block-height requires height
-		 * on a block.
-		 */
+		
+
+
+
+
+
+
+
 		prerequisites: { "font-size": "19px", "font-size-adjust": "none", "font-family": "serif", "font-weight": "normal", "font-style": "normal", "height": "18px", "display": "block"},
 		initial_values: [ "normal" ],
 		other_values: [ "1.0", "1", "1em", "47px", "-moz-block-height" ],
@@ -2599,7 +2599,7 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "none" ],
 		other_values: [ 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==")',
-			// Add some tests for interesting url() values here to test serialization, etc.
+			
 			"url(\'data:text/plain,\"\')",
 			"url(\"data:text/plain,\'\")",
 			"url(\'data:text/plain,\\\'\')",
@@ -2640,7 +2640,7 @@ var gCSSProperties = {
 		domProp: "marginBottom",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* XXX testing auto has prerequisites */
+		
 		initial_values: [ "0", "0px", "0%", "calc(0pt)", "calc(0% + 0px)" ],
 		other_values: [ "1px", "2em", "5%",
 			"calc(2px)",
@@ -2657,8 +2657,8 @@ var gCSSProperties = {
 		domProp: "marginLeft",
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-		/* no subproperties */
-		/* XXX testing auto has prerequisites */
+		
+		
 		initial_values: [ "0", "0px", "0%", "calc(0pt)", "calc(0% + 0px)" ],
 		other_values: [ "1px", "2em", "5%", ".5px", "+32px", "+.789px", "-.328px", "+0.56px", "-0.974px", "237px", "-289px", "-056px", "1987.45px", "-84.32px",
 			"calc(2px)",
@@ -2675,8 +2675,8 @@ var gCSSProperties = {
 		domProp: "marginRight",
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-		/* no subproperties */
-		/* XXX testing auto has prerequisites */
+		
+		
 		initial_values: [ "0", "0px", "0%", "calc(0pt)", "calc(0% + 0px)" ],
 		other_values: [ "1px", "2em", "5%",
 			"calc(2px)",
@@ -2693,7 +2693,7 @@ var gCSSProperties = {
 		domProp: "marginTop",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* XXX testing auto has prerequisites */
+		
 		initial_values: [ "0", "0px", "0%", "calc(0pt)", "calc(0% + 0px)" ],
 		other_values: [ "1px", "2em", "5%",
 			"calc(2px)",
@@ -2715,7 +2715,7 @@ var gCSSProperties = {
 		invalid_values: []
 	},
 	"marks": {
-		/* XXX not a real property; applies only to page context */
+		
 		domProp: "marks",
 		inherited: false,
 		backend_only: true,
@@ -2809,7 +2809,7 @@ var gCSSProperties = {
 		inherited: true,
 		backend_only: true,
 		type: CSS_TYPE_LONGHAND,
-		// XXX requires display:block
+		
 		initial_values: [ "2" ],
 		other_values: [ "1", "7" ],
 		invalid_values: [ "0", "-1", "0px", "3px" ]
@@ -2821,8 +2821,8 @@ var gCSSProperties = {
 		subproperties: [ "outline-color", "outline-style", "outline-width" ],
 		initial_values: [
 			"none", "medium", "thin",
-			// XXX Should be invert, but currently currentcolor.
-			//"invert", "none medium invert"
+			
+			
 			"currentColor", "none medium currentcolor"
 		],
 		other_values: [ "solid", "medium solid", "green solid", "10px solid", "thick solid" ],
@@ -2833,7 +2833,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		prerequisites: { "color": "black" },
-		initial_values: [ "currentColor", "-moz-use-text-color" ], // XXX should be invert
+		initial_values: [ "currentColor", "-moz-use-text-color" ], 
 		other_values: [ "green", "rgba(255,128,0,0.5)", "transparent" ],
 		invalid_values: [ "#0", "#00", "#0000", "#00000", "#0000000", "#00000000", "#000000000", "000000", "cc00ff" ]
 	},
@@ -2849,7 +2849,7 @@ var gCSSProperties = {
 		domProp: "outlineStyle",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		// XXX Should 'hidden' be the same as initial?
+		
 		initial_values: [ "none" ],
 		other_values: [ "solid", "dashed", "dotted", "double", "outset", "inset", "groove", "ridge" ],
 		invalid_values: []
@@ -2929,7 +2929,7 @@ var gCSSProperties = {
 		domProp: "paddingLeft",
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-		/* no subproperties */
+		
 		initial_values: [ "0", "0px", "0%", "calc(0pt)", "calc(0% + 0px)", "calc(-3px)", "calc(-1%)" ],
 		other_values: [ "1px", "2em", "5%",
 			"calc(2px)",
@@ -2945,7 +2945,7 @@ var gCSSProperties = {
 		domProp: "paddingRight",
 		inherited: false,
 		type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-		/* no subproperties */
+		
 		initial_values: [ "0", "0px", "0%", "calc(0pt)", "calc(0% + 0px)", "calc(-3px)", "calc(-1%)" ],
 		other_values: [ "1px", "2em", "5%",
 			"calc(2px)",
@@ -3035,9 +3035,9 @@ var gCSSProperties = {
 		domProp: "right",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* FIXME: run tests with multiple prerequisites */
+		
 		prerequisites: { "position": "relative" },
-		/* XXX 0 may or may not be equal to auto */
+		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%",
 			"calc(2px)",
@@ -3051,7 +3051,7 @@ var gCSSProperties = {
 		quirks_values: { "5": "5px" },
 	},
 	"size": {
-		/* XXX not a real property; applies only to page context */
+		
 		domProp: "size",
 		inherited: false,
 		backend_only: true,
@@ -3059,7 +3059,7 @@ var gCSSProperties = {
 		initial_values: [ "auto" ],
 		other_values: [ "landscape", "portrait", "8.5in 11in", "14in 11in", "297mm 210mm", "21cm 29.7cm", "100mm" ],
 		invalid_values: [
-			// XXX spec unclear on 0s and negatives
+			
 			"100mm 100mm 100mm"
 		]
 	},
@@ -3075,7 +3075,7 @@ var gCSSProperties = {
 		domProp: "textAlign",
 		inherited: true,
 		type: CSS_TYPE_LONGHAND,
-		// don't know whether left and right are same as start
+		
 		initial_values: [ "start" ],
 		other_values: [ "center", "justify", "end" ],
 		invalid_values: []
@@ -3161,8 +3161,8 @@ var gCSSProperties = {
 		prerequisites: { "color": "blue" },
 		initial_values: [ "none" ],
 		other_values: [ "2px 2px", "2px 2px 1px", "2px 2px green", "2px 2px 1px green", "green 2px 2px", "green 2px 2px 1px", "green 2px 2px, blue 1px 3px 4px", "currentColor 3px 3px", "blue 2px 2px, currentColor 1px 2px",
-			/* calc() values */
-			"2px 2px calc(-5px)", /* clamped */
+			
+			"2px 2px calc(-5px)", 
 			"calc(3em - 2px) 2px green",
 			"green calc(3em - 2px) 2px",
 			"2px calc(2px + 0.2em)",
@@ -3189,9 +3189,9 @@ var gCSSProperties = {
 		domProp: "top",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* FIXME: run tests with multiple prerequisites */
+		
 		prerequisites: { "position": "relative" },
-		/* XXX 0 may or may not be equal to auto */
+		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%",
 			"calc(2px)",
@@ -3289,7 +3289,7 @@ var gCSSProperties = {
 		inherited: true,
 		backend_only: true,
 		type: CSS_TYPE_LONGHAND,
-		// XXX requires display:block
+		
 		initial_values: [ "2" ],
 		other_values: [ "1", "7" ],
 		invalid_values: [ "0", "-1", "0px", "3px" ]
@@ -3298,12 +3298,12 @@ var gCSSProperties = {
 		domProp: "width",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* computed value tests for width test more with display:block */
+		
 		prerequisites: { "display": "block" },
 		initial_values: [ " auto" ],
-		/* XXX these have prerequisites */
+		
 		other_values: [ "15px", "3em", "15%", "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
-			/* valid -moz-calc() values */
+			
 			"-moz-calc(-2px)",
 			"-moz-calc(2px)",
 			"-moz-calc(50%)",
@@ -3329,7 +3329,7 @@ var gCSSProperties = {
 			"-moz-calc(50%)",
 			"-moz-calc(50px/2)",
 			"-moz-calc(50px/(2 - 1))",
-			/* valid calc() values */
+			
 			"calc(-2px)",
 			"calc(2px)",
 			"calc(50%)",
@@ -3357,11 +3357,11 @@ var gCSSProperties = {
 			"calc(50px/(2 - 1))",
 		],
 		invalid_values: [ "none", "-2px",
-			/* invalid -moz-calc() values */
+			
 			"-moz-calc(50%+ 2px)",
 			"-moz-calc(50% +2px)",
 			"-moz-calc(50%+2px)",
-			/* invalid calc() values */
+			
 			"calc(50%+ 2px)",
 			"calc(50% +2px)",
 			"calc(50%+2px)",
@@ -3378,12 +3378,12 @@ var gCSSProperties = {
 			"-moz-max(5px,2em)",
 			"calc(max(5px,2em))",
 			"calc(50px/(2 - 2))",
-			/* If we ever support division by values, which is
-			 * complicated for the reasons described in
-			 * http://lists.w3.org/Archives/Public/www-style/2010Jan/0007.html
-			 * , we should support all 4 of these as described in
-			 * http://lists.w3.org/Archives/Public/www-style/2009Dec/0296.html
-			 */
+			
+
+
+
+
+
 			"calc((3em / 100%) * 3em)",
 			"calc(3em / 100% * 3em)",
 			"calc(3em * (3em / 100%))",
@@ -3434,7 +3434,7 @@ var gCSSProperties = {
 		domProp: "zIndex",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		/* XXX requires position */
+		
 		initial_values: [ "auto" ],
 		other_values: [ "0", "3", "-7000", "12000" ],
 		invalid_values: [ "3.0", "17.5" ]
@@ -3702,7 +3702,7 @@ var gCSSProperties = {
 		invalid_values: []
 	},
 
-	// Aliases
+	
 	"-moz-transform": {
 		domProp: "MozTransform",
 		inherited: false,
@@ -3725,13 +3725,13 @@ var gCSSProperties = {
 			"translatex(50%)", "translatey(50%)", "translate(50%)",
 			"translate(3%, 5px)", "translate(5px, 3%)",
 			"matrix(1, 2, 3, 4, 5, 6)",
-			/* valid calc() values */
+			
 			"translatex(calc(5px + 10%))",
 			"translatey(calc(0.25 * 5px + 10% / 3))",
 			"translate(calc(5px - 10% * 3))",
 			"translate(calc(5px - 3 * 10%), 50px)",
 			"translate(-50px, calc(5px - 10% * 3))",
-			/* valid only when prefixed */
+			
 			"matrix(1, 2, 3, 4, 5px, 6%)",
 			"matrix(1, 2, 3, 4, 5%, 6px)",
 			"matrix(1, 2, 3, 4, 5%, 6%)",
@@ -3746,7 +3746,7 @@ var gCSSProperties = {
 			"rotate3d(-3, 7, 0, 12rad)", "rotatex(15deg)", "rotatey(-12grad)",
 			"rotatez(72rad)", "rotatex(0.125turn)", "perspective(1000px)",
 			"matrix3d(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)",
-			/* valid only when prefixed */
+			
 			"matrix3d(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13px, 14em, 15px, 16)",
 			"matrix3d(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20%, 10%, 15, 16)",
 		],
@@ -3759,7 +3759,7 @@ var gCSSProperties = {
 			"skewx(red)", "matrix(1%, 0, 0, 0, 0px, 0px)",
 			"matrix(0, 1%, 2, 3, 4px,5px)", "matrix(0, 1, 2%, 3, 4px, 5px)",
 			"matrix(0, 1, 2, 3%, 4%, 5%)",
-			/* invalid calc() values */
+			
 			"translatey(-moz-min(5px,10%))",
 			"translatex(-moz-max(5px,10%))",
 			"translate(10px, calc(min(5px,10%)))",
@@ -4007,8 +4007,8 @@ var gCSSProperties = {
 		subproperties: [ "animation-iteration-count" ],
 		initial_values: [ "1" ],
 		other_values: [ "infinite", "0", "0.5", "7.75", "-0.0", "1, 2, 3", "infinite, 2", "1, infinite" ],
-		// negatives forbidden per
-		// http://lists.w3.org/Archives/Public/www-style/2011Mar/0355.html
+		
+		
 		invalid_values: [ "none", "-1", "-0.5", "-1, infinite", "infinite, -3" ]
 	},
 	"-moz-animation-name": {
@@ -4055,8 +4055,8 @@ function logical_box_prop_get_computed(cs, property)
 	return cs.getPropertyValue(property);
 }
 
-// Get the computed value for a property.  For shorthands, return the
-// computed values of all the subproperties, delimited by " ; ".
+
+
 function get_computed_value(cs, property)
 {
 	var info = gCSSProperties[property];
@@ -4075,8 +4075,8 @@ function get_computed_value(cs, property)
 	return cs.getPropertyValue(property);
 }
 
-// Automatically add pref-controlled CSS properties & keywords
-// to gCSSProperties, if the flexbox pref is enabled.
+
+
 if (SpecialPowers.getBoolPref("layout.css.flexbox.enabled")) {
 	var flexProperties = {
 	"align-items": {
@@ -4091,7 +4091,7 @@ if (SpecialPowers.getBoolPref("layout.css.flexbox.enabled")) {
 		domProp: "alignSelf",
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
-		// (Assuming defaults on the parent, 'auto' will compute to 'stretch'.)
+		
 		initial_values: [ "auto", "stretch" ],
 		other_values: [ "flex-start", "flex-end", "center", "baseline" ],
 		invalid_values: [ "space-between", "abc", "30px" ]
@@ -4141,13 +4141,13 @@ if (SpecialPowers.getBoolPref("layout.css.flexbox.enabled")) {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ " auto" ],
-        // NOTE: This is cribbed directly from the "width" chunk, since this
-        // property takes the exact same values as width (albeit with
-        // different semantics on 'auto').
-        // XXXdholbert (Maybe these should get separated out into
-        // a reusable array defined at the top of this file?)
+        
+        
+        
+        
+        
 		other_values: [ "15px", "3em", "15%", "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
-			// valid calc() values
+			
 			"calc(-2px)",
 			"calc(2px)",
 			"calc(50%)",
@@ -4175,7 +4175,7 @@ if (SpecialPowers.getBoolPref("layout.css.flexbox.enabled")) {
 			"calc(50px/(2 - 1))"
 		],
 		invalid_values: [ "none", "-2px",
-			// invalid calc() values
+			
 			"calc(50%+ 2px)",
 			"calc(50% +2px)",
 			"calc(50%+2px)",
@@ -4192,11 +4192,11 @@ if (SpecialPowers.getBoolPref("layout.css.flexbox.enabled")) {
 			"-moz-max(5px,2em)",
 			"calc(max(5px,2em))",
 			"calc(50px/(2 - 2))",
-			// If we ever support division by values, which is
-			// complicated for the reasons described in
-			// http://lists.w3.org/Archives/Public/www-style/2010Jan/0007.html
-			// , we should support all 4 of these as described in
-			// http://lists.w3.org/Archives/Public/www-style/2009Dec/0296.html
+			
+			
+			
+			
+			
 			"calc((3em / 100%) * 3em)",
 			"calc(3em / 100% * 3em)",
 			"calc(3em * (3em / 100%))",
@@ -4350,7 +4350,7 @@ if (SpecialPowers.getBoolPref("layout.css.font-features.enabled")) {
 			other_values: [ "none", "weight", "style" ],
 			invalid_values: [ "weight none", "style none", "none style", "weight 10px", "weight weight", "style style" ]
 		},
-		// aliases for prefixed properties
+		
 		"font-feature-settings": {
 			domProp: "fontFeatureSettings",
 			inherited: true,
@@ -4419,15 +4419,15 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "none" ],
 		other_values: [
-			// SVG reference filters
+			
 			"url(#my-filter)",
 			"url(#my-filter-1) url(#my-filter-2)",
 
-			// Filter functions
+			
 			"opacity(50%) saturate(1.0)",
 			"invert(50%) sepia(0.1) brightness(90%)",
 
-			// Mixed SVG reference filters and filter functions
+			
 			"grayscale(1) url(#my-filter-1)",
 			"url(#my-filter-1) brightness(50%) contrast(0.9)",
 
@@ -4437,7 +4437,7 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 			"blur(3px)",
 			"blur(100px)",
 			"blur(0.1em)",
-			"blur(calc(-1px))", // Parses and becomes blur(0px).
+			"blur(calc(-1px))", 
 			"blur(calc(0px))",
 			"blur(calc(5px))",
 			"blur(calc(2 * 5px))",
@@ -4457,24 +4457,6 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 			"contrast(2)",
 			"contrast(350%)",
 			"contrast(4.567)",
-
-			"drop-shadow(2px 2px)",
-			"drop-shadow(2px 2px 1px)",
-			"drop-shadow(2px 2px green))",
-			"drop-shadow(2px 2px 1px green)",
-			"drop-shadow(green 2px 2px)",
-			"drop-shadow(green 2px 2px 1px)",
-			"drop-shadow(currentColor 3px 3px)",
-			"drop-shadow(2px 2px calc(-5px))", /* clamped */
-			"drop-shadow(calc(3em - 2px) 2px green)",
-			"drop-shadow(green calc(3em - 2px) 2px)",
-			"drop-shadow(2px calc(2px + 0.2em))",
-			"drop-shadow(blue 2px calc(2px + 0.2em))",
-			"drop-shadow(2px calc(2px + 0.2em) blue)",
-			"drop-shadow(calc(-2px) calc(-2px))",
-			"drop-shadow(-2px -2px)",
-			"drop-shadow(calc(2px) calc(2px))",
-			"drop-shadow(calc(2px) calc(2px) calc(2px))",
 
 			"grayscale(0)",
 			"grayscale(50%)",
@@ -4527,24 +4509,24 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 			"sepia(4.567)",
 		],
 		invalid_values: [
-			// none
+			
 			"none none",
 			"url(#my-filter) none",
 			"none url(#my-filter)",
 			"blur(2px) none url(#my-filter)",
 
-			// Nested filters
+			
 			"grayscale(invert(1.0))",
 
-			// Comma delimited filters
+			
 			"url(#my-filter),",
 			"invert(50%), url(#my-filter), brightness(90%)",
 
-			// Test the following situations for each filter function:
-			// - Invalid number of arguments
-			// - Comma delimited arguments
-			// - Wrong argument type
-			// - Argument value out of range
+			
+			
+			
+			
+			
 			"blur()",
 			"blur(3px 5px)",
 			"blur(3px,)",
@@ -4552,7 +4534,7 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 			"blur(#my-filter)",
 			"blur(0.5)",
 			"blur(50%)",
-			"blur(calc(0))", // Unitless zero in calc is not a valid length.
+			"blur(calc(0))", 
 			"blur(calc(0.1))",
 			"blur(calc(10%))",
 			"blur(calc(20px - 5%))",
@@ -4573,22 +4555,6 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 			"contrast(#my-filter)",
 			"contrast(10px)",
 			"contrast(-1)",
-
-			"drop-shadow()",
-			"drop-shadow(3% 3%)",
-			"drop-shadow(2px 2px -5px)",
-			"drop-shadow(2px 2px 2px 2px)",
-			"drop-shadow(2px 2px, none)",
-			"drop-shadow(none, 2px 2px)",
-			"drop-shadow(inherit, 2px 2px)",
-			"drop-shadow(2px 2px, inherit)",
-			"drop-shadow(2 2px)",
-			"drop-shadow(2px 2)",
-			"drop-shadow(2px 2px 2)",
-			"drop-shadow(2px 2px 2px 2)",
-			"drop-shadow(calc(2px) calc(2px) calc(2px) calc(2px))",
-			"drop-shadow(green 2px 2px, blue 1px 3px 4px)",
-			"drop-shadow(blue 2px 2px, currentColor 1px 2px)",
 
 			"grayscale()",
 			"grayscale(0.5 0.5)",
