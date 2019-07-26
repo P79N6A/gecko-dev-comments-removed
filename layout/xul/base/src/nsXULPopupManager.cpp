@@ -317,6 +317,11 @@ nsXULPopupManager::PopupMoved(nsIFrame* aFrame, nsIntPoint aPnt)
     return;
 
   
+  nsPresContext* presContext = menuPopupFrame->PresContext();
+  aPnt.x = presContext->DevPixelsToIntCSSPixels(aPnt.x);
+  aPnt.y = presContext->DevPixelsToIntCSSPixels(aPnt.y);
+
+  
   
   nsIntPoint currentPnt = menuPopupFrame->ScreenPosition();
   nsIWidget* widget = menuPopupFrame->GetWidget();
@@ -346,13 +351,20 @@ nsXULPopupManager::PopupResized(nsIFrame* aFrame, nsIntSize aSize)
   nsPresContext* presContext = menuPopupFrame->PresContext();
 
   nsSize currentSize = menuPopupFrame->GetSize();
-  if (aSize.width != presContext->AppUnitsToDevPixels(currentSize.width) ||
-      aSize.height != presContext->AppUnitsToDevPixels(currentSize.height)) {
+
+  
+  
+  nsIntSize currCSS(nsPresContext::AppUnitsToIntCSSPixels(currentSize.width),
+                    nsPresContext::AppUnitsToIntCSSPixels(currentSize.height));
+  nsIntSize newCSS(presContext->DevPixelsToIntCSSPixels(aSize.width),
+                   presContext->DevPixelsToIntCSSPixels(aSize.height));
+
+  if (newCSS.width != currCSS.width || newCSS.height != currCSS.height) {
     
     nsIContent* popup = menuPopupFrame->GetContent();
     nsAutoString width, height;
-    width.AppendInt(aSize.width);
-    height.AppendInt(aSize.height);
+    width.AppendInt(newCSS.width);
+    height.AppendInt(newCSS.height);
     popup->SetAttr(kNameSpaceID_None, nsGkAtoms::width, width, false);
     popup->SetAttr(kNameSpaceID_None, nsGkAtoms::height, height, true);
   }

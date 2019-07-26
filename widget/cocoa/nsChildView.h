@@ -411,6 +411,16 @@ public:
   NS_IMETHOD              SetFocus(bool aRaise);
   NS_IMETHOD              GetBounds(nsIntRect &aRect);
 
+  
+  
+  
+  
+  
+  
+  CGFloat                 BackingScaleFactor();
+
+  virtual double          GetDefaultScale();
+
   NS_IMETHOD              Invalidate(const nsIntRect &aRect);
 
   virtual void*           GetNativeData(uint32_t aDataType);
@@ -516,6 +526,20 @@ public:
     return mTextInputHandler;
   }
 
+  
+  nsIntPoint        CocoaPointsToDevPixels(const NSPoint& aPt) {
+    return nsCocoaUtils::CocoaPointsToDevPixels(aPt, BackingScaleFactor());
+  }
+  nsIntRect         CocoaPointsToDevPixels(const NSRect& aRect) {
+    return nsCocoaUtils::CocoaPointsToDevPixels(aRect, BackingScaleFactor());
+  }
+  CGFloat           DevPixelsToCocoaPoints(int32_t aPixels) {
+    return nsCocoaUtils::DevPixelsToCocoaPoints(aPixels, BackingScaleFactor());
+  }
+  NSRect            DevPixelsToCocoaPoints(const nsIntRect& aRect) {
+    return nsCocoaUtils::DevPixelsToCocoaPoints(aRect, BackingScaleFactor());
+  }
+
 protected:
 
   void              ReportMoveEvent();
@@ -551,6 +575,12 @@ protected:
 
   nsRefPtr<gfxASurface> mTempThebesSurface;
   nsRefPtr<mozilla::gl::TextureImage> mResizerImage;
+
+  
+  
+  
+  
+  CGFloat               mBackingScaleFactor;
 
   bool                  mVisible;
   bool                  mDrawing;

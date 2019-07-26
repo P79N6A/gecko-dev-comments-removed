@@ -186,6 +186,14 @@ pref("media.autoplay.enabled", true);
 
 pref("media.video-queue.default-size", 10);
 
+#ifdef XP_MACOSX
+
+
+
+
+pref("gfx.hidpi.enabled", 1);
+#endif
+
 
 
 pref("gfx.color_management.mode", 2);
@@ -1588,9 +1596,7 @@ pref("layout.css.dpi", -1);
 
 
 
-
-
-pref("layout.css.devPixelsPerPx", "1.0");
+pref("layout.css.devPixelsPerPx", "-1.0");
 
 
 pref("layout.css.supports-rule.enabled", true);

@@ -14,6 +14,12 @@
 #include "nsEvent.h"
 #include "npapi.h"
 
+
+
+@interface NSObject (BackingScaleFactorCategory)
+- (CGFloat)backingScaleFactor;
+@end
+
 class nsIWidget;
 
 
@@ -73,13 +79,76 @@ private:
 class nsCocoaUtils
 {
   public:
+
   
   
-  static float MenuBarScreenHeight();
+  static CGFloat
+  GetBackingScaleFactor(id aObject)
+  {
+    if (HiDPIEnabled() &&
+        [aObject respondsToSelector:@selector(backingScaleFactor)]) {
+      return [aObject backingScaleFactor];
+    }
+    return 1.0;
+  }
+
+  
+  
+  static int32_t
+  CocoaPointsToDevPixels(CGFloat aPts, CGFloat aBackingScale)
+  {
+    return NSToIntRound(aPts * aBackingScale);
+  }
+
+  static nsIntPoint
+  CocoaPointsToDevPixels(const NSPoint& aPt, CGFloat aBackingScale)
+  {
+    return nsIntPoint(NSToIntRound(aPt.x * aBackingScale),
+                      NSToIntRound(aPt.y * aBackingScale));
+  }
+
+  static nsIntRect
+  CocoaPointsToDevPixels(const NSRect& aRect, CGFloat aBackingScale)
+  {
+    return nsIntRect(NSToIntRound(aRect.origin.x * aBackingScale),
+                     NSToIntRound(aRect.origin.y * aBackingScale),
+                     NSToIntRound(aRect.size.width * aBackingScale),
+                     NSToIntRound(aRect.size.height * aBackingScale));
+  }
+
+  static CGFloat
+  DevPixelsToCocoaPoints(int32_t aPixels, CGFloat aBackingScale)
+  {
+    return (CGFloat)aPixels / aBackingScale;
+  }
+
+  static NSPoint
+  DevPixelsToCocoaPoints(const nsIntPoint& aPt, CGFloat aBackingScale)
+  {
+    return NSMakePoint((CGFloat)aPt.x / aBackingScale,
+                       (CGFloat)aPt.y / aBackingScale);
+  }
+
+  static NSRect
+  DevPixelsToCocoaPoints(const nsIntRect& aRect, CGFloat aBackingScale)
+  {
+    return NSMakeRect((CGFloat)aRect.x / aBackingScale,
+                      (CGFloat)aRect.y / aBackingScale,
+                      (CGFloat)aRect.width / aBackingScale,
+                      (CGFloat)aRect.height / aBackingScale);
+  }
 
   
   
   static float FlippedScreenY(float y);
+
+  
+  
+  
+  
+  
+
+  
   
   
   
@@ -87,10 +156,17 @@ class nsCocoaUtils
   
   
   static NSRect GeckoRectToCocoaRect(const nsIntRect &geckoRect);
+
   
+  static NSRect GeckoRectToCocoaRectDevPix(const nsIntRect &aGeckoRect,
+                                           CGFloat aBackingScale);
+
   
   static nsIntRect CocoaRectToGeckoRect(const NSRect &cocoaRect);
-  
+
+  static nsIntRect CocoaRectToGeckoRectDevPix(const NSRect &aCocoaRect,
+                                              CGFloat aBackingScale);
+
   
   
   
@@ -159,8 +235,18 @@ class nsCocoaUtils
   
 
 
+
+
   static void GeckoRectToNSRect(const nsIntRect& aGeckoRect,
-                                       NSRect& aOutCocoaRect);
+                                NSRect& aOutCocoaRect);
+
+  
+
+
+
+
+  static void NSRectToGeckoRect(const NSRect& aCocoaRect,
+                                nsIntRect& aOutGeckoRect);
 
   
 
@@ -190,6 +276,12 @@ class nsCocoaUtils
 
 
   static NSUInteger GetCurrentModifiers();
+
+  
+
+
+
+  static bool HiDPIEnabled();
 };
 
 #endif 

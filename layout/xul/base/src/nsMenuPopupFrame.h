@@ -302,6 +302,7 @@ public:
   nsIContent* GetAnchor() const { return mAnchorContent; }
 
   
+  
   nsIntPoint ScreenPosition() const { return nsIntPoint(mScreenXPos, mScreenYPos); }
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
@@ -387,6 +388,7 @@ protected:
   
   nsSize mPrefSize;
 
+  
   
   
   int32_t mXPos;
