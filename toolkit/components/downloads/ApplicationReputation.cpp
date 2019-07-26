@@ -149,6 +149,10 @@ private:
                                  bool* aShouldBlock);
 
   
+  
+  nsresult GetStrippedSpec(nsIURI* aUri, nsACString& spec);
+
+  
   nsCString EscapeCertificateAttribute(const nsACString& aAttribute);
 
   
@@ -591,7 +595,7 @@ PendingLookup::AddRedirects(nsIArray* aRedirects)
     
     
     nsCString spec;
-    rv = uri->GetSpec(spec);
+    rv = GetStrippedSpec(uri, spec);
     NS_ENSURE_SUCCESS(rv, rv);
     mAnylistSpecs.AppendElement(spec);
     LOG(("ApplicationReputation: Appending redirect %s\n", spec.get()));
@@ -619,6 +623,34 @@ PendingLookup::StartLookup()
 }
 
 nsresult
+PendingLookup::GetStrippedSpec(nsIURI* aUri, nsACString& escaped)
+{
+  
+  
+  nsresult rv;
+  nsCOMPtr<nsIURL> url = do_QueryInterface(aUri, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = url->GetScheme(escaped);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString temp;
+  rv = url->GetHostPort(temp);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  escaped.Append("://");
+  escaped.Append(temp);
+
+  rv = url->GetFilePath(temp);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  escaped.Append(temp);
+
+  return NS_OK;
+}
+
+nsresult
 PendingLookup::DoLookupInternal()
 {
   
@@ -628,9 +660,11 @@ PendingLookup::DoLookupInternal()
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCString spec;
-  rv = uri->GetSpec(spec);
+  rv = GetStrippedSpec(uri, spec);
   NS_ENSURE_SUCCESS(rv, rv);
+
   mAnylistSpecs.AppendElement(spec);
+
   ClientDownloadRequest_Resource* resource = mRequest.add_resources();
   resource->set_url(spec.get());
   resource->set_type(ClientDownloadRequest::DOWNLOAD_URL);
@@ -639,7 +673,7 @@ PendingLookup::DoLookupInternal()
   rv = mQuery->GetReferrerURI(getter_AddRefs(referrer));
   if (referrer) {
     nsCString spec;
-    rv = referrer->GetSpec(spec);
+    rv = GetStrippedSpec(referrer, spec);
     NS_ENSURE_SUCCESS(rv, rv);
     mAnylistSpecs.AppendElement(spec);
     resource->set_referrer(spec.get());
@@ -774,7 +808,7 @@ PendingLookup::SendRemoteQueryInternal()
   rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCString spec;
-  rv = uri->GetSpec(spec);
+  rv = GetStrippedSpec(uri, spec);
   NS_ENSURE_SUCCESS(rv, rv);
   mRequest.set_url(spec.get());
 
