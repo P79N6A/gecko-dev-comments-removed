@@ -165,8 +165,6 @@ enum CompositableType
   BUFFER_IMAGE_SINGLE,    
   BUFFER_IMAGE_BUFFERED,  
   BUFFER_BRIDGE,          
-  BUFFER_CONTENT,         
-  BUFFER_CONTENT_DIRECT,  
   BUFFER_CONTENT_INC,     
                           
   

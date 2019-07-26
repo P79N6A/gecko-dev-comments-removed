@@ -136,6 +136,7 @@ protected:
   bool mPaintWillResample;
   bool mInitialised;
 };
+
 class DeprecatedContentHostBase : public ContentHost
 {
 public:
@@ -229,44 +230,6 @@ protected:
   nsIntRegion mValidRegionForNextBackBuffer;
 };
 
-class DeprecatedContentHostDoubleBuffered : public DeprecatedContentHostBase
-{
-public:
-  DeprecatedContentHostDoubleBuffered(const TextureInfo& aTextureInfo)
-    : DeprecatedContentHostBase(aTextureInfo)
-  {}
-
-  ~DeprecatedContentHostDoubleBuffered();
-
-  virtual CompositableType GetType() { return BUFFER_CONTENT_DIRECT; }
-
-  virtual bool UpdateThebes(const ThebesBufferData& aData,
-                            const nsIntRegion& aUpdated,
-                            const nsIntRegion& aOldValidRegionBack,
-                            nsIntRegion* aUpdatedRegionBack);
-
-  virtual void EnsureDeprecatedTextureHost(TextureIdentifier aTextureId,
-                                 const SurfaceDescriptor& aSurface,
-                                 ISurfaceAllocator* aAllocator,
-                                 const TextureInfo& aTextureInfo) MOZ_OVERRIDE;
-  virtual void DestroyTextures() MOZ_OVERRIDE;
-
-#ifdef MOZ_DUMP_PAINTING
-  virtual void Dump(FILE* aFile=nullptr,
-                    const char* aPrefix="",
-                    bool aDumpHtml=false) MOZ_OVERRIDE;
-#endif
-
-  virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
-protected:
-  nsIntRegion mValidRegionForNextBackBuffer;
-  
-  
-  
-  RefPtr<DeprecatedTextureHost> mBackHost;
-  RefPtr<DeprecatedTextureHost> mBackHostOnWhite;
-};
-
 
 
 
@@ -287,30 +250,6 @@ public:
                             nsIntRegion* aUpdatedRegionBack);
 };
 
-class DeprecatedContentHostSingleBuffered : public DeprecatedContentHostBase
-{
-public:
-  DeprecatedContentHostSingleBuffered(const TextureInfo& aTextureInfo)
-    : DeprecatedContentHostBase(aTextureInfo)
-  {}
-  virtual ~DeprecatedContentHostSingleBuffered();
-
-  virtual CompositableType GetType() { return BUFFER_CONTENT; }
-
-  virtual bool UpdateThebes(const ThebesBufferData& aData,
-                            const nsIntRegion& aUpdated,
-                            const nsIntRegion& aOldValidRegionBack,
-                            nsIntRegion* aUpdatedRegionBack);
-
-  virtual void EnsureDeprecatedTextureHost(TextureIdentifier aTextureId,
-                                 const SurfaceDescriptor& aSurface,
-                                 ISurfaceAllocator* aAllocator,
-                                 const TextureInfo& aTextureInfo) MOZ_OVERRIDE;
-  virtual void DestroyTextures() MOZ_OVERRIDE;
-
-  virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
-};
-
 
 
 
@@ -329,7 +268,7 @@ public:
     , mDeAllocator(nullptr)
   {}
 
-  virtual CompositableType GetType() { return BUFFER_CONTENT; }
+  virtual CompositableType GetType() { return BUFFER_CONTENT_INC; }
 
   virtual void EnsureDeprecatedTextureHostIncremental(ISurfaceAllocator* aAllocator,
                                             const TextureInfo& aTextureInfo,
