@@ -1513,17 +1513,14 @@ XPCWrappedNative::FindTearOff(XPCNativeInterface* aInterface,
         to = newChunk->mTearOffs;
     }
 
-    {
-        
-        AutoMarkingWrappedNativeTearOffPtr tearoff(cx, to);
-        rv = InitTearOff(to, aInterface, needJSObject);
-        
-        
-        
-        to->Unmark();
-        if (NS_FAILED(rv))
-            to = nullptr;
-    }
+    AutoMarkingWrappedNativeTearOffPtr tearoff(cx, to);
+    rv = InitTearOff(to, aInterface, needJSObject);
+    
+    
+    
+    to->Unmark();
+    if (NS_FAILED(rv))
+        to = nullptr;
 
     if (pError)
         *pError = rv;
