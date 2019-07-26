@@ -54,42 +54,18 @@ let FramerateActor = exports.FramerateActor = protocol.ActorClass({
   
 
 
-
-  stopRecording: method(function(resolution = 100) {
+  stopRecording: method(function() {
     if (!this._recording) {
-      return {};
+      return [];
     }
     this._recording = false;
 
-    let timeline = {};
+    
     let ticks = this._ticks;
-    let totalTicks = ticks.length;
-
-    
     this._ticks = null;
-
-    
-    
-    if (totalTicks == 0) {
-      timeline[resolution] = 0;
-      return timeline;
-    }
-
-    let pivotTick = 0;
-    let lastTick = ticks[totalTicks - 1];
-
-    for (let bucketTime = resolution; bucketTime < lastTick; bucketTime += resolution) {
-      let frameCount = 0;
-      while (ticks[pivotTick++] < bucketTime) frameCount++;
-
-      let framerate = 1000 / (resolution / frameCount);
-      timeline[bucketTime] = framerate;
-    }
-
-    return timeline;
+    return ticks;
   }, {
-    request: { resolution: Arg(0, "nullable:number") },
-    response: { timeline: RetVal("json") }
+    response: { timeline: RetVal("array:number") }
   }),
 
   
@@ -115,5 +91,52 @@ let FramerateFront = exports.FramerateFront = protocol.FrontClass(FramerateActor
   initialize: function(client, { framerateActor }) {
     protocol.Front.prototype.initialize.call(this, client, { actor: framerateActor });
     this.manage(this);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  plotFPS: function(ticks, interval = 100) {
+    let timeline = [];
+    let totalTicks = ticks.length;
+
+    
+    
+    if (totalTicks == 0) {
+      timeline.push({ delta: 0, value: 0 });
+      timeline.push({ delta: interval, value: 0 });
+      return timeline;
+    }
+
+    let frameCount = 0;
+    let prevTime = ticks[0];
+
+    for (let i = 1; i < totalTicks; i++) {
+      let currTime = ticks[i];
+      frameCount++;
+
+      let elapsedTime = currTime - prevTime;
+      if (elapsedTime < interval) {
+        continue;
+      }
+
+      let framerate = 1000 / (elapsedTime / frameCount);
+      timeline.push({ delta: prevTime, value: framerate });
+      timeline.push({ delta: currTime, value: framerate });
+
+      frameCount = 0;
+      prevTime = currTime;
+    }
+
+    return timeline;
   }
 });
