@@ -290,31 +290,6 @@ IsCacheableGetProp(JSObject *obj, JSObject *holder, const Shape *shape)
 }
 
 static bool
-IsIdempotentProtoChain(JSObject *obj)
-{
-    
-    
-    while (true) {
-        if (!obj->isNative())
-            return false;
-
-        if (obj->getClass()->resolve != JS_ResolveStub)
-            return false;
-
-        if (obj->getOps()->lookupProperty || obj->getOps()->lookupGeneric || obj->getOps()->lookupElement)
-            return false;
-
-        JSObject *proto = obj->getProto();
-        if (!proto)
-            return true;
-        obj = proto;
-    }
-
-    JS_NOT_REACHED("Should not get here");
-    return false;
-}
-
-static bool
 TryAttachNativeStub(JSContext *cx, IonCacheGetProperty &cache, JSObject *obj,
                     HandlePropertyName name, bool *isCacheableNative)
 {
@@ -326,7 +301,7 @@ TryAttachNativeStub(JSContext *cx, IonCacheGetProperty &cache, JSObject *obj,
     
     
     
-    if (cache.idempotent() && !IsIdempotentProtoChain(obj))
+    if (cache.idempotent() && !obj->hasIdempotentProtoChain())
         return true;
 
     JSObject *holder;

@@ -1386,6 +1386,12 @@ class GetPropCompiler : public PICStubCompiler
             MarkNotIdempotent(f.script(), f.pc());
             return status;
         }
+
+        
+        
+        if (!obj->hasIdempotentProtoChain())
+            MarkNotIdempotent(f.script(), f.pc());
+
         if (hadGC())
             return Lookup_Uncacheable;
 

@@ -276,9 +276,9 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, HandleObject obj)
     return proto;
 }
 
-static JSBool
-fun_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
-            JSObject **objp)
+JSBool
+js_fun_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
+               JSObject **objp)
 {
     if (!JSID_IS_ATOM(id))
         return true;
@@ -533,7 +533,7 @@ JS_FRIEND_DATA(Class) js::FunctionClass = {
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     fun_enumerate,
-    (JSResolveOp)fun_resolve,
+    (JSResolveOp)js_fun_resolve,
     JS_ConvertStub,
     NULL,                    
     NULL,                    
