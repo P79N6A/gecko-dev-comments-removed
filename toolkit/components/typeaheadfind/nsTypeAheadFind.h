@@ -3,6 +3,7 @@
 
 
 
+#include "nsCycleCollectionParticipant.h"
 #include "nsISelectionController.h"
 #include "nsIController.h"
 #include "nsIControllers.h"
@@ -31,9 +32,11 @@ public:
   nsTypeAheadFind();
   virtual ~nsTypeAheadFind();
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSITYPEAHEADFIND
   NS_DECL_NSIOBSERVER
+
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsTypeAheadFind, nsITypeAheadFind)
 
 protected:
   nsresult PrefsReset();
