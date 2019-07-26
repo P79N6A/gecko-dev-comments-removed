@@ -110,6 +110,107 @@ TEST(AsyncPanZoomController, SimpleTransform) {
   EXPECT_EQ(viewTransformOut, ViewTransform());
 }
 
+
+TEST(AsyncPanZoomController, ComplexTransform) {
+  TimeStamp testStartTime = TimeStamp::Now();
+  AsyncPanZoomController::SetFrameTime(testStartTime);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<AsyncPanZoomController> apzc = new AsyncPanZoomController(mcc);
+
+  const char* layerTreeSyntax = "c(c)";
+  
+  nsIntRegion layerVisibleRegion[] = {
+    nsIntRegion(nsIntRect(0, 0, 300, 300)),
+    nsIntRegion(nsIntRect(0, 0, 150, 300)),
+  };
+  gfx3DMatrix transforms[] = {
+    gfx3DMatrix(),
+    gfx3DMatrix(),
+  };
+  transforms[0].ScalePost(0.5f, 0.5f, 1.0f); 
+  transforms[1].ScalePost(2.0f, 1.0f, 1.0f); 
+
+  nsTArray<nsRefPtr<Layer> > layers;
+  nsRefPtr<LayerManager> lm;
+  nsRefPtr<Layer> root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, transforms, lm, layers);
+
+  FrameMetrics metrics;
+  metrics.mCompositionBounds = ScreenIntRect(0, 0, 24, 24);
+  metrics.mDisplayPort = CSSRect(-1, -1, 6, 6);
+  metrics.mViewport = CSSRect(0, 0, 4, 4);
+  metrics.mScrollOffset = CSSPoint(10, 10);
+  metrics.mScrollableRect = CSSRect(0, 0, 50, 50);
+  metrics.mResolution = LayoutDeviceToLayerScale(2);
+  metrics.mZoom = ScreenToScreenScale(1);
+  metrics.mDevPixelsPerCSSPixel = CSSToLayoutDeviceScale(3);
+  metrics.mScrollId = FrameMetrics::ROOT_SCROLL_ID;
+
+  FrameMetrics childMetrics = metrics;
+  childMetrics.mScrollId = FrameMetrics::START_SCROLL_ID;
+
+  layers[0]->AsContainerLayer()->SetFrameMetrics(metrics);
+  layers[1]->AsContainerLayer()->SetFrameMetrics(childMetrics);
+
+  ScreenPoint pointOut;
+  ViewTransform viewTransformOut;
+
+  
+  
+
+  
+  apzc->NotifyLayersUpdated(metrics, true);
+  apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
+  EXPECT_EQ(ViewTransform(LayerPoint(), LayoutDeviceToScreenScale(2)), viewTransformOut);
+  EXPECT_EQ(ScreenPoint(60, 60), pointOut);
+
+  apzc->NotifyLayersUpdated(childMetrics, true);
+  apzc->SampleContentTransformForFrame(testStartTime, layers[1]->AsContainerLayer(), &viewTransformOut, pointOut);
+  EXPECT_EQ(ViewTransform(LayerPoint(), LayoutDeviceToScreenScale(2)), viewTransformOut);
+  EXPECT_EQ(ScreenPoint(60, 60), pointOut);
+
+  
+  metrics.mScrollOffset += CSSPoint(5, 0);
+  apzc->NotifyLayersUpdated(metrics, true);
+  apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
+  EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(2)), viewTransformOut);
+  EXPECT_EQ(ScreenPoint(90, 60), pointOut);
+
+  childMetrics.mScrollOffset += CSSPoint(5, 0);
+  apzc->NotifyLayersUpdated(childMetrics, true);
+  apzc->SampleContentTransformForFrame(testStartTime, layers[1]->AsContainerLayer(), &viewTransformOut, pointOut);
+  EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(2)), viewTransformOut);
+  EXPECT_EQ(ScreenPoint(90, 60), pointOut);
+
+  
+  metrics.mZoom.scale *= 1.5f;
+  apzc->NotifyLayersUpdated(metrics, true);
+  apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
+  EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(3)), viewTransformOut);
+  EXPECT_EQ(ScreenPoint(135, 90), pointOut);
+
+  childMetrics.mZoom.scale *= 1.5f;
+  apzc->NotifyLayersUpdated(childMetrics, true);
+  apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
+  EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(3)), viewTransformOut);
+  EXPECT_EQ(ScreenPoint(135, 90), pointOut);
+}
+
 TEST(AsyncPanZoomController, Pan) {
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
