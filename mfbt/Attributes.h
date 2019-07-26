@@ -17,22 +17,6 @@
 
 
 
-#if defined(__cplusplus)
-#  define MOZ_INLINE            inline
-#elif defined(_MSC_VER)
-#  define MOZ_INLINE            __inline
-#elif defined(__GNUC__)
-#  define MOZ_INLINE            __inline__
-#else
-#  define MOZ_INLINE            inline
-#endif
-
-
-
-
-
-
-
 
 
 
@@ -40,15 +24,17 @@
 #if defined(_MSC_VER)
 #  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     __forceinline
 #elif defined(__GNUC__)
-#  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     __attribute__((always_inline)) MOZ_INLINE
+#  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     __attribute__((always_inline)) inline
 #else
-#  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     MOZ_INLINE
+#  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     inline
 #endif
 
-#if defined(DEBUG)
-#  define MOZ_ALWAYS_INLINE     MOZ_INLINE
-#else
+#if !defined(DEBUG)
 #  define MOZ_ALWAYS_INLINE     MOZ_ALWAYS_INLINE_EVEN_DEBUG
+#elif defined(_MSC_VER) && !defined(__cplusplus)
+#  define MOZ_ALWAYS_INLINE     __inline
+#else
+#  define MOZ_ALWAYS_INLINE     inline
 #endif
 
 
