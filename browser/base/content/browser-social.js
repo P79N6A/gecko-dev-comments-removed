@@ -621,6 +621,9 @@ var SocialToolbar = {
         notificationFrame.setAttribute("class", "social-panel-frame");
         notificationFrame.setAttribute("id", notificationFrameId);
         notificationFrame.setAttribute("mozbrowser", "true");
+        
+        
+        notificationFrame.style.width = PANEL_MIN_WIDTH + "px";
         notificationFrames.appendChild(notificationFrame);
       }
       notificationFrame.setAttribute("origin", provider.origin);
