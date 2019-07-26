@@ -256,8 +256,17 @@ private:
 
   nsRegion& Copy (const nsRect& aRect)
   {
-    pixman_box32_t box = RectToBox(aRect);
-    pixman_region32_reset(&mImpl, &box);
+    
+    
+    
+    
+    
+    if (aRect.IsEmpty()) {
+      pixman_region32_clear(&mImpl);
+    } else {
+      pixman_box32_t box = RectToBox(aRect);
+      pixman_region32_reset(&mImpl, &box);
+    }
     return *this;
   }
 
