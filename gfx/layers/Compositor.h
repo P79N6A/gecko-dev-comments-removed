@@ -307,6 +307,11 @@ public:
   
 
 
+  virtual void clearFBRect(const gfx::Rect* aRect) { }
+
+  
+
+
 
 
 

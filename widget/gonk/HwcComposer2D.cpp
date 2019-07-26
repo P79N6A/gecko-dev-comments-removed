@@ -507,6 +507,13 @@ HwcComposer2D::TryHwComposition()
                     
                     
                     mHwcLayerMap[k]->SetLayerComposited(true);
+                    if (k && (mList->hwLayers[k].hints & HWC_HINT_CLEAR_FB) &&
+                        (mList->hwLayers[k].blending == HWC_BLENDING_NONE)) {
+                        
+                        
+                        
+                        mHwcLayerMap[k]->SetClearFB(true);
+                    }
                     break;
                 default:
                     break;
