@@ -118,7 +118,7 @@ class NameResolver
 
             switch (cur->getKind()) {
               case PNK_NAME:     return cur;  
-              case PNK_FUNCTION: return NULL; 
+              case PNK_FUNCTION: return nullptr; 
 
               case PNK_RETURN:
                 
@@ -161,7 +161,7 @@ class NameResolver
             }
         }
 
-        return NULL;
+        return nullptr;
     }
 
     
@@ -170,26 +170,26 @@ class NameResolver
 
 
     JSAtom *resolveFun(ParseNode *pn, HandleAtom prefix) {
-        JS_ASSERT(pn != NULL && pn->isKind(PNK_FUNCTION));
+        JS_ASSERT(pn != nullptr && pn->isKind(PNK_FUNCTION));
         RootedFunction fun(cx, pn->pn_funbox->function());
 
         StringBuffer buf(cx);
         this->buf = &buf;
 
         
-        if (fun->displayAtom() != NULL) {
-            if (prefix == NULL)
+        if (fun->displayAtom() != nullptr) {
+            if (prefix == nullptr)
                 return fun->displayAtom();
             if (!buf.append(prefix) ||
                 !buf.append("/") ||
                 !buf.append(fun->displayAtom()))
-                return NULL;
+                return nullptr;
             return buf.finishAtom();
         }
 
         
-        if (prefix != NULL && (!buf.append(prefix) || !buf.append("/")))
-            return NULL;
+        if (prefix != nullptr && (!buf.append(prefix) || !buf.append("/")))
+            return nullptr;
 
         
         ParseNode *toName[MaxParents];
@@ -201,7 +201,7 @@ class NameResolver
             if (assignment->isAssignment())
                 assignment = assignment->pn_left;
             if (!nameExpression(assignment))
-                return NULL;
+                return nullptr;
         }
 
         
@@ -216,10 +216,10 @@ class NameResolver
                 ParseNode *left = node->pn_left;
                 if (left->isKind(PNK_NAME) || left->isKind(PNK_STRING)) {
                     if (!appendPropertyReference(left->pn_atom))
-                        return NULL;
+                        return nullptr;
                 } else if (left->isKind(PNK_NUMBER)) {
                     if (!appendNumericPropertyReference(left->pn_dval))
-                        return NULL;
+                        return nullptr;
                 }
             } else {
                 
@@ -227,7 +227,7 @@ class NameResolver
 
 
                 if (!buf.empty() && *(buf.end() - 1) != '<' && !buf.append("<"))
-                    return NULL;
+                    return nullptr;
             }
         }
 
@@ -237,13 +237,13 @@ class NameResolver
 
 
         if (!buf.empty() && *(buf.end() - 1) == '/' && !buf.append("<"))
-            return NULL;
+            return nullptr;
         if (buf.empty())
-            return NULL;
+            return nullptr;
 
         JSAtom *atom = buf.finishAtom();
         if (!atom)
-            return NULL;
+            return nullptr;
         fun->setGuessedAtom(atom);
         return atom;
     }
@@ -258,7 +258,7 @@ class NameResolver
     }
 
   public:
-    explicit NameResolver(JSContext *cx) : cx(cx), nparents(0), buf(NULL) {}
+    explicit NameResolver(JSContext *cx) : cx(cx), nparents(0), buf(nullptr) {}
 
     
 
@@ -267,7 +267,7 @@ class NameResolver
 
     void resolve(ParseNode *cur, HandleAtom prefixArg = NullPtr()) {
         RootedAtom prefix(cx, prefixArg);
-        if (cur == NULL)
+        if (cur == nullptr)
             return;
 
         if (cur->isKind(PNK_FUNCTION) && cur->isArity(PN_CODE)) {

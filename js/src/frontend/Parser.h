@@ -209,6 +209,7 @@ struct ParseContext : public GenericParseContext
 
     
     
+    
     ParseContext<ParseHandler> *oldpc;
 
   public:
@@ -246,8 +247,8 @@ struct ParseContext : public GenericParseContext
       : GenericParseContext(parent, sc),
         bodyid(0),           
         blockidGen(bodyid),  
-        topStmt(NULL),
-        topScopeStmt(NULL),
+        topStmt(nullptr),
+        topScopeStmt(nullptr),
         blockChain(prs->context),
         maybeFunction(maybeFunction),
         staticLevel(staticLevel),
@@ -259,7 +260,7 @@ struct ParseContext : public GenericParseContext
         parserPC(&prs->pc),
         oldpc(prs->pc),
         lexdeps(prs->context),
-        funcStmts(NULL),
+        funcStmts(nullptr),
         innerFunctions(prs->context),
         newDirectives(newDirectives),
         inDeclDestructuring(false)
@@ -410,7 +411,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
 
 
     JSFunction *newFunction(GenericParseContext *pc, HandleAtom atom, FunctionSyntaxKind kind,
-                            JSObject *proto = NULL);
+                            JSObject *proto = nullptr);
 
     void trace(JSTracer *trc);
 
@@ -510,8 +511,8 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     Node letStatement();
 #endif
     Node expressionStatement();
-    Node variables(ParseNodeKind kind, bool *psimple = NULL,
-                   StaticBlockObject *blockObj = NULL,
+    Node variables(ParseNodeKind kind, bool *psimple = nullptr,
+                   StaticBlockObject *blockObj = nullptr,
                    VarContext varContext = HoistVars);
     Node expr();
     Node assignExpr();
@@ -522,7 +523,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     Node unaryExpr();
     Node memberExpr(TokenKind tt, bool allowCallSyntax);
     Node primaryExpr(TokenKind tt);
-    Node parenExpr(bool *genexp = NULL);
+    Node parenExpr(bool *genexp = nullptr);
 
     
 
@@ -583,7 +584,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     bool checkStrictAssignment(Node lhs, AssignmentFlavor flavor);
     bool checkStrictBinding(PropertyName *name, Node pn);
     bool defineArg(Node funcpn, HandlePropertyName name,
-                   bool disallowDuplicateArgs = false, Node *duplicatedArg = NULL);
+                   bool disallowDuplicateArgs = false, Node *duplicatedArg = nullptr);
     Node pushLexicalScope(StmtInfoPC *stmt);
     Node pushLexicalScope(Handle<StaticBlockObject*> blockObj, StmtInfoPC *stmt);
     Node pushLetScope(Handle<StaticBlockObject*> blockObj, StmtInfoPC *stmt);

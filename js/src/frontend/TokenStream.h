@@ -311,7 +311,7 @@ struct CompileError {
     char *message;
     ErrorArgumentsType argumentsType;
     CompileError()
-      : message(NULL), argumentsType(ArgumentsAreUnicode)
+      : message(nullptr), argumentsType(ArgumentsAreUnicode)
     {
         mozilla::PodZero(&report);
     }
@@ -597,7 +597,7 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     bool hasSourceURL() const {
-        return sourceURL_ != NULL;
+        return sourceURL_ != nullptr;
     }
 
     jschar *sourceURL() {
@@ -605,7 +605,7 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     bool hasSourceMapURL() const {
-        return sourceMapURL_ != NULL;
+        return sourceMapURL_ != nullptr;
     }
 
     jschar *sourceMapURL() {
@@ -779,7 +779,7 @@ class MOZ_STACK_CLASS TokenStream
 #ifdef DEBUG
         
         void poison() {
-            ptr = NULL;
+            ptr = nullptr;
         }
 #endif
 
