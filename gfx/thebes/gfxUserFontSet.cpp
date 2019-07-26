@@ -339,7 +339,9 @@ OTSTableAction(uint32_t aTag, void *aUserData)
         aTag == TRUETYPE_TAG('G', 'l', 'o', 'c') ||
         aTag == TRUETYPE_TAG('G', 'l', 'a', 't') ||
         aTag == TRUETYPE_TAG('F', 'e', 'a', 't') ||
-        aTag == TRUETYPE_TAG('S', 'V', 'G', ' ')) {
+        aTag == TRUETYPE_TAG('S', 'V', 'G', ' ') ||
+        aTag == TRUETYPE_TAG('C', 'O', 'L', 'R') ||
+        aTag == TRUETYPE_TAG('C', 'P', 'A', 'L')) {
         return ots::TABLE_ACTION_PASSTHRU;
     }
     return ots::TABLE_ACTION_DEFAULT;
