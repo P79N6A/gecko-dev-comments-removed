@@ -393,6 +393,14 @@ public:
     return false;
   }
 
+  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const {
+    return 0;
+  }
+
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
+
 protected:
   virtual ~MediaResource() {};
 
@@ -404,6 +412,26 @@ class BaseMediaResource : public MediaResource {
 public:
   virtual nsIURI* URI() const { return mURI; }
   virtual void MoveLoadsToBackground();
+
+  virtual size_t SizeOfExcludingThis(
+                  MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    
+    
+    
+    
+    
+    size_t size = MediaResource::SizeOfExcludingThis(aMallocSizeOf);
+    size += mContentType.SizeOfIncludingThisIfUnshared(aMallocSizeOf);
+
+    return size;
+  }
+
+  virtual size_t SizeOfIncludingThis(
+                  MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
 
 protected:
   BaseMediaResource(MediaDecoder* aDecoder,
@@ -555,6 +583,24 @@ public:
   virtual bool    IsSuspendedByCache();
   virtual bool    IsSuspended();
   virtual bool    IsTransportSeekable() MOZ_OVERRIDE;
+
+  virtual size_t SizeOfExcludingThis(
+                      MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE {
+    
+    
+    
+    
+    
+    size_t size = BaseMediaResource::SizeOfExcludingThis(aMallocSizeOf);
+    size += mCacheStream.SizeOfExcludingThis(aMallocSizeOf);
+
+    return size;
+  }
+
+  virtual size_t SizeOfIncludingThis(
+                      MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
 
   class Listener MOZ_FINAL : public nsIStreamListener,
                              public nsIInterfaceRequestor,

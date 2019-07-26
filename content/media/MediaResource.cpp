@@ -1248,6 +1248,20 @@ public:
 
   nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges);
 
+  virtual size_t SizeOfExcludingThis(
+                        MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    
+    
+    return BaseMediaResource::SizeOfExcludingThis(aMallocSizeOf);
+  }
+
+  virtual size_t SizeOfIncludingThis(
+                        MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
+
 protected:
   
   

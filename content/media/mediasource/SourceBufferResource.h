@@ -52,6 +52,16 @@ private:
       mData.AppendElements(aData, aSize);
     }
     nsTArray<uint8_t> mData;
+
+    size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
+      
+      size_t size = aMallocSizeOf(this);
+
+      
+      size += mData.SizeOfExcludingThis(aMallocSizeOf);
+
+      return size;
+    }
   };
 
   class ResourceQueueDeallocator : public nsDequeFunctor {
@@ -175,6 +185,20 @@ private:
       }
       return evicted;
     }
+
+    size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const {
+      
+      size_t size = nsDeque::SizeOfExcludingThis(aMallocSizeOf);
+
+      
+      for (int32_t i = 0; i < nsDeque::GetSize(); ++i) {
+        const ResourceItem* item =
+            static_cast<const ResourceItem*>(nsDeque::ObjectAt(i));
+        size += item->SizeOfIncludingThis(aMallocSizeOf);
+      }
+
+      return size;
+    }
   };
 
 public:
@@ -226,6 +250,26 @@ public:
 
   virtual const nsCString& GetContentType() const MOZ_OVERRIDE { return mType; }
 
+  virtual size_t SizeOfExcludingThis(
+                      MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    ReentrantMonitorAutoEnter mon(mMonitor);
+
+    
+    
+    size_t size = MediaResource::SizeOfExcludingThis(aMallocSizeOf);
+    size += mType.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+    size += mInputBuffer.SizeOfExcludingThis(aMallocSizeOf);
+
+    return size;
+  }
+
+  virtual size_t SizeOfIncludingThis(
+                      MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
+
   
   void AppendData(const uint8_t* aData, uint32_t aLength);
   void Ended();
@@ -244,7 +288,7 @@ private:
   
   
   
-  ReentrantMonitor mMonitor;
+  mutable ReentrantMonitor mMonitor;
 
   
   ResourceQueue mInputBuffer;

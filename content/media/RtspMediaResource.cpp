@@ -69,6 +69,17 @@ public:
     MOZ_COUNT_DTOR(RtspTrackBuffer);
     mRingBuffer = nullptr;
   };
+
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
+    
+    size_t size = aMallocSizeOf(this);
+
+    
+    size += mRingBuffer.SizeOfExcludingThis(aMallocSizeOf);
+
+    return size;
+  }
+
   void Start() {
     MonitorAutoLock monitor(mMonitor);
     mIsStarted = true;
@@ -367,6 +378,23 @@ RtspMediaResource::~RtspMediaResource()
     
     mListener->Revoke();
   }
+}
+
+size_t
+RtspMediaResource::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t size = BaseMediaResource::SizeOfExcludingThis(aMallocSizeOf);
+  size += mTrackBuffer.SizeOfExcludingThis(aMallocSizeOf);
+
+  
+  for (size_t i = 0; i < mTrackBuffer.Length(); i++) {
+    size += mTrackBuffer[i]->SizeOfIncludingThis(aMallocSizeOf);
+  }
+
+  
+  
+
+  return size;
 }
 
 NS_IMPL_ISUPPORTS2(RtspMediaResource::Listener,
