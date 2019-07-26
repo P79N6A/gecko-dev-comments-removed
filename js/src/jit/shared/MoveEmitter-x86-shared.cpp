@@ -128,10 +128,17 @@ MoveEmitterX86::emit(const MoveResolver &moves)
         }
 
         
-        if (move.kind() == MoveOp::DOUBLE)
+        switch (move.kind()) {
+          case MoveOp::FLOAT32:
+          case MoveOp::DOUBLE:
             emitDoubleMove(from, to);
-        else
+            break;
+          case MoveOp::GENERAL:
             emitGeneralMove(from, to);
+            break;
+          default:
+            MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
+        }
     }
 }
 
@@ -212,15 +219,21 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Kind kind)
     
     
     
-    if (kind == MoveOp::DOUBLE) {
+    switch (kind) {
+      case MoveOp::FLOAT32:
+      case MoveOp::DOUBLE:
         if (to.isMemory()) {
             masm.loadDouble(toAddress(to), ScratchFloatReg);
             masm.storeDouble(ScratchFloatReg, cycleSlot());
         } else {
             masm.storeDouble(to.floatReg(), cycleSlot());
         }
-    } else {
+        break;
+      case MoveOp::GENERAL:
         masm.Push(toOperand(to));
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
     }
 }
 
@@ -233,19 +246,25 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Kind kind)
     
     
     
-    if (kind == MoveOp::DOUBLE) {
+    switch (kind) {
+      case MoveOp::FLOAT32:
+      case MoveOp::DOUBLE:
         if (to.isMemory()) {
             masm.loadDouble(cycleSlot(), ScratchFloatReg);
             masm.storeDouble(ScratchFloatReg, toAddress(to));
         } else {
             masm.loadDouble(cycleSlot(), to.floatReg());
         }
-    } else {
+        break;
+      case MoveOp::GENERAL:
         if (to.isMemory()) {
             masm.Pop(toPopOperand(to));
         } else {
             masm.Pop(to.reg());
         }
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
     }
 }
 
