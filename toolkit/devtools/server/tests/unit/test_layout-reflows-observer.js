@@ -5,13 +5,22 @@
 
 let {
   getLayoutChangesObserver,
-  releaseLayoutChangesObserver
+  releaseLayoutChangesObserver,
+  LayoutChangesObserver
 } = devtools.require("devtools/server/actors/layout");
+
+
+
+
+
+LayoutChangesObserver.prototype._setTimeout = cb => cb;
+LayoutChangesObserver.prototype._clearTimeout = function() {};
 
 
 
 function MockTabActor() {
   this.window = new MockWindow();
+  this.windows = [this.window];
 }
 
 function MockWindow() {}
@@ -22,7 +31,9 @@ MockWindow.prototype = {
       getInterface: function() {
         return {
           QueryInterface: function() {
-            self.docShell = new MockDocShell();
+            if (!self.docShell) {
+              self.docShell = new MockDocShell();
+            }
             return self.docShell;
           }
         };
@@ -91,7 +102,6 @@ function eventsAreBatched() {
   
   
   
-
   let tabActor = new MockTabActor();
   let observer = getLayoutChangesObserver(tabActor);
 

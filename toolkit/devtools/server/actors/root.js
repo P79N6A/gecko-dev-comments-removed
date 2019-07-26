@@ -144,15 +144,49 @@ RootActor.prototype = {
   
 
 
+  get windows() {
+    return this.docShells.map(docShell => {
+      return docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIDOMWindow);
+    });
+  },
+
+  
+
+
   get url() { return this.window ? this.window.document.location.href : null; },
 
   
 
 
-  get webProgress() {
+  get docShell() {
     return this.window
       .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIDocShell)
+      .getInterface(Ci.nsIDocShell);
+  },
+
+  
+
+
+  get docShells() {
+    let docShellsEnum = this.docShell.getDocShellEnumerator(
+      Ci.nsIDocShellTreeItem.typeAll,
+      Ci.nsIDocShell.ENUMERATE_FORWARDS
+    );
+
+    let docShells = [];
+    while (docShellsEnum.hasMoreElements()) {
+      docShells.push(docShellsEnum.getNext());
+    }
+
+    return docShells;
+  },
+
+  
+
+
+  get webProgress() {
+    return this.docShell
       .QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIWebProgress);
   },
