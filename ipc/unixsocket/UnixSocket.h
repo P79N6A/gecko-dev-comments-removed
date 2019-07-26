@@ -162,7 +162,10 @@ public:
 
 
 
-  bool ConnectSocket(UnixSocketConnector* aConnector, const char* aAddress);
+
+  bool ConnectSocket(UnixSocketConnector* aConnector,
+                     const char* aAddress,
+                     int aDelayMs = 0);
 
   
 
