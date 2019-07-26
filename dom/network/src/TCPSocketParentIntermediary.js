@@ -14,15 +14,9 @@ function TCPSocketParentIntermediary() {
 }
 
 TCPSocketParentIntermediary.prototype = {
-  open: function(aParentSide, aHost, aPort, aUseSSL, aBinaryType) {
+  _setCallbacks: function(aParentSide, socket) {
     aParentSide.initJS(this);
-
-    let baseSocket = Cc["@mozilla.org/tcp-socket;1"].createInstance(Ci.nsIDOMTCPSocket);
-    let socket = this._socket = baseSocket.open(aHost, aPort,
-                                                {useSSL: aUseSSL,
-                                                binaryType: aBinaryType});
-    if (!socket)
-      return null;
+    this._socket = socket;
 
     
     
@@ -34,8 +28,50 @@ TCPSocketParentIntermediary.prototype = {
         };
       }
     );
+ },
 
+  open: function(aParentSide, aHost, aPort, aUseSSL, aBinaryType) {
+    let baseSocket = Cc["@mozilla.org/tcp-socket;1"].createInstance(Ci.nsIDOMTCPSocket);
+    let socket = baseSocket.open(aHost, aPort, {useSSL: aUseSSL, binaryType: aBinaryType});
+    if (!socket)
+      return null;
+
+    
+    this._setCallbacks(aParentSide, socket);
     return socket;
+  },
+
+  listen: function(aTCPServerSocketParent, aLocalPort, aBacklog, aBinaryType) {
+    let baseSocket = Cc["@mozilla.org/tcp-socket;1"].createInstance(Ci.nsIDOMTCPSocket);
+    let serverSocket = baseSocket.listen(aLocalPort, { binaryType: aBinaryType }, aBacklog);
+    if (!serverSocket)
+      return null;
+
+    let localPort = serverSocket.localPort;
+
+    serverSocket["onconnect"] = function(socket) {
+      var socketParent = Cc["@mozilla.org/tcp-socket-parent;1"]
+                            .createInstance(Ci.nsITCPSocketParent);
+      var intermediary = new TCPSocketParentIntermediary();
+      
+      
+      
+      intermediary._setCallbacks(socketParent, socket);
+      
+      
+      
+      socketParent.setSocketAndIntermediary(socket, intermediary);
+      aTCPServerSocketParent.sendCallbackAccept(socketParent);
+    };
+
+    serverSocket["onerror"] = function(data) {
+        var error = data.data;
+
+        aTCPServerSocketParent.sendCallbackError(error.message, error.filename,
+                                                 error.lineNumber, error.columnNumber);
+    };
+
+    return serverSocket;
   },
 
   sendString: function(aData) {
