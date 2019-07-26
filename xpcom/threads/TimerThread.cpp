@@ -25,7 +25,9 @@ TimerThread::TimerThread() :
   mMonitor("TimerThread.mMonitor"),
   mShutdown(false),
   mWaiting(false),
-  mSleeping(false)
+  mSleeping(false),
+  mDelayLineCounter(0),
+  mMinTimerPeriod(0)
 {
 }
 
@@ -160,6 +162,60 @@ nsresult TimerThread::Shutdown()
 }
 
 
+
+
+void TimerThread::UpdateFilter(uint32_t aDelay, TimeStamp aTimeout,
+                               TimeStamp aNow)
+{
+  TimeDuration slack = aTimeout - aNow;
+  double smoothSlack = 0;
+  uint32_t i, filterLength;
+  static TimeDuration kFilterFeedbackMaxTicks =
+    TimeDuration::FromMilliseconds(FILTER_FEEDBACK_MAX);
+  static TimeDuration kFilterFeedbackMinTicks =
+    TimeDuration::FromMilliseconds(-FILTER_FEEDBACK_MAX);
+
+  if (slack > kFilterFeedbackMaxTicks)
+    slack = kFilterFeedbackMaxTicks;
+  else if (slack < kFilterFeedbackMinTicks)
+    slack = kFilterFeedbackMinTicks;
+
+  mDelayLine[mDelayLineCounter & DELAY_LINE_LENGTH_MASK] =
+    slack.ToMilliseconds();
+  if (++mDelayLineCounter < DELAY_LINE_LENGTH) {
+    
+    PR_ASSERT(mTimeoutAdjustment.ToSeconds() == 0);
+    filterLength = 0;
+  } else {
+    
+    if (mMinTimerPeriod == 0) {
+      mMinTimerPeriod = (aDelay != 0) ? aDelay : 1;
+    } else if (aDelay != 0 && aDelay < mMinTimerPeriod) {
+      mMinTimerPeriod = aDelay;
+    }
+
+    filterLength = (uint32_t) (FILTER_DURATION / mMinTimerPeriod);
+    if (filterLength > DELAY_LINE_LENGTH)
+      filterLength = DELAY_LINE_LENGTH;
+    else if (filterLength < 4)
+      filterLength = 4;
+
+    for (i = 1; i <= filterLength; i++)
+      smoothSlack += mDelayLine[(mDelayLineCounter-i) & DELAY_LINE_LENGTH_MASK];
+    smoothSlack /= filterLength;
+
+    
+    mTimeoutAdjustment = TimeDuration::FromMilliseconds(smoothSlack * 1.5);
+  }
+
+#ifdef DEBUG_TIMERS
+  PR_LOG(GetTimerLog(), PR_LOG_DEBUG,
+         ("UpdateFilter: smoothSlack = %g, filterLength = %u\n",
+          smoothSlack, filterLength));
+#endif
+}
+
+
 NS_IMETHODIMP TimerThread::Run()
 {
   PR_SetCurrentThreadName("Timer");
@@ -203,7 +259,7 @@ NS_IMETHODIMP TimerThread::Run()
       if (!mTimers.IsEmpty()) {
         timer = mTimers[0];
 
-        if (now >= timer->mTimeout) {
+        if (now >= timer->mTimeout + mTimeoutAdjustment) {
     next:
           
           
@@ -261,7 +317,7 @@ NS_IMETHODIMP TimerThread::Run()
       if (!mTimers.IsEmpty()) {
         timer = mTimers[0];
 
-        TimeStamp timeout = timer->mTimeout;
+        TimeStamp timeout = timer->mTimeout + mTimeoutAdjustment;
 
         
         
@@ -273,7 +329,7 @@ NS_IMETHODIMP TimerThread::Run()
         double microseconds = (timeout - now).ToMilliseconds()*1000;
         if (microseconds < halfMicrosecondsIntervalResolution)
           goto next; 
-        waitFor = PR_MicrosecondsToInterval(static_cast<PRUint32>(microseconds)); 
+        waitFor = PR_MicrosecondsToInterval(microseconds);
         if (waitFor == 0)
           waitFor = 1; 
       }
@@ -362,7 +418,7 @@ int32_t TimerThread::AddTimerInternal(nsTimerImpl *aTimer)
 
   TimeStamp now = TimeStamp::Now();
 
-  TimerAdditionComparator c(now, aTimer);
+  TimerAdditionComparator c(now, mTimeoutAdjustment, aTimer);
   nsTimerImpl** insertSlot = mTimers.InsertElementSorted(aTimer, c);
 
   if (!insertSlot)
@@ -405,6 +461,9 @@ void TimerThread::DoAfterSleep()
     timer->SetDelay(delay);
   }
 
+  
+  mTimeoutAdjustment = TimeDuration(0);
+  mDelayLineCounter = 0;
   mSleeping = false;
 }
 

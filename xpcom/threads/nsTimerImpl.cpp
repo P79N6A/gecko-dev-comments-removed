@@ -460,6 +460,8 @@ void nsTimerImpl::Fire()
     
     timeout -= TimeDuration::FromMilliseconds(mDelay);
   }
+  if (gThread)
+    gThread->UpdateFilter(mDelay, timeout, now);
 
   if (mCallbackType == CALLBACK_TYPE_INTERFACE)
     mTimerCallbackWhileFiring = mCallback.i;
