@@ -102,7 +102,10 @@ nsIMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
   if (sTextCompositions) {
     TextComposition* compositionInContent =
       sTextCompositions->GetCompositionInContent(aPresContext, aContent);
+
     if (compositionInContent) {
+      
+      TextComposition storedComposition = *compositionInContent;
       
       
       
@@ -114,7 +117,17 @@ nsIMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
           widget->ResetInputState();
         }
         
+        compositionInContent =
+          sTextCompositions->GetCompositionFor(
+                               storedComposition.GetPresContext(),
+                               storedComposition.GetEventTargetNode());
       }
+    }
+
+    
+    
+    if (compositionInContent) {
+      compositionInContent->SynthesizeCommit(true);
     }
   }
 

@@ -10,7 +10,9 @@
 #include "nsCOMPtr.h"
 #include "nsEvent.h"
 #include "nsINode.h"
+#include "nsString.h"
 #include "nsTArray.h"
+#include "nsThreadUtils.h"
 #include "mozilla/Attributes.h"
 
 class nsCompositionEvent;
@@ -44,10 +46,20 @@ public:
 
   nsPresContext* GetPresContext() const { return mPresContext; }
   nsINode* GetEventTargetNode() const { return mNode; }
+  
+  const nsString& GetLastData() const { return mLastData; }
 
   bool MatchesNativeContext(nsIWidget* aWidget) const;
   bool MatchesEventTarget(nsPresContext* aPresContext,
                           nsINode* aNode) const;
+
+  
+
+
+
+
+
+  void SynthesizeCommit(bool aDiscard);
 
 private:
   
@@ -62,6 +74,10 @@ private:
   void* mNativeContext;
 
   
+  
+  nsString mLastData;
+
+  
   TextComposition() {}
 
   
@@ -71,6 +87,45 @@ private:
   void DispatchEvent(nsGUIEvent* aEvent,
                      nsEventStatus* aStatus,
                      nsDispatchingCallback* aCallBack);
+
+  
+
+
+
+  class CompositionEventDispatcher : public nsRunnable
+  {
+  public:
+    CompositionEventDispatcher(nsPresContext* aPresContext,
+                               nsINode* aEventTarget,
+                               uint32_t aEventMessage,
+                               const nsAString& aData);
+    NS_IMETHOD Run();
+
+  private:
+    nsRefPtr<nsPresContext> mPresContext;
+    nsCOMPtr<nsINode> mEventTarget;
+    nsCOMPtr<nsIWidget> mWidget;
+    uint32_t mEventMessage;
+    nsString mData;
+
+    CompositionEventDispatcher() {};
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void DispatchCompsotionEventRunnable(uint32_t aEventMessage,
+                                       const nsAString& aData);
 };
 
 
