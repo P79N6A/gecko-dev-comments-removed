@@ -41,6 +41,9 @@ class Rule;
 class GroupRule;
 class ImportRule;
 }
+namespace dom {
+class CSSRuleList;
+}
 }
 
 
@@ -96,7 +99,6 @@ private:
 
 
 class CSSRuleListImpl;
-class nsICSSRuleList;
 
 
 
@@ -276,7 +278,7 @@ public:
   
   
   nsIDOMCSSRule* GetDOMOwnerRule() const;
-  nsICSSRuleList* GetCssRules(mozilla::ErrorResult& aRv);
+  mozilla::dom::CSSRuleList* GetCssRules(mozilla::ErrorResult& aRv);
   uint32_t InsertRule(const nsAString& aRule, uint32_t aIndex,
                       mozilla::ErrorResult& aRv) {
     uint32_t retval;

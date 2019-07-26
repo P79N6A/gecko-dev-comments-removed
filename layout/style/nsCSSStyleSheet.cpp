@@ -24,7 +24,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsIDOMCSSStyleSheet.h"
-#include "nsICSSRuleList.h"
+#include "mozilla/dom/CSSRuleList.h"
 #include "nsIDOMMediaList.h"
 #include "nsIDOMNode.h"
 #include "nsError.h"
@@ -51,7 +51,7 @@ using namespace mozilla::dom;
 
 
 
-class CSSRuleListImpl : public nsICSSRuleList
+class CSSRuleListImpl : public CSSRuleList
 {
 public:
   CSSRuleListImpl(nsCSSStyleSheet *aStyleSheet);
@@ -1769,7 +1769,7 @@ nsCSSStyleSheet::GetCssRules(nsIDOMCSSRuleList** aCssRules)
   return rv.ErrorCode();
 }
 
-nsICSSRuleList*
+CSSRuleList*
 nsCSSStyleSheet::GetCssRules(ErrorResult& aRv)
 {
   
