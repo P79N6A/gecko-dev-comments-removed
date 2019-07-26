@@ -3942,7 +3942,7 @@ xpc_EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sourc
 
         
         JS_SetPendingException(cx, exn);
-        return NS_OK;
+        return NS_ERROR_FAILURE;
     }
 
     
