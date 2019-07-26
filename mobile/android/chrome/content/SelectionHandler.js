@@ -17,6 +17,7 @@ var SelectionHandler = {
   _cache: null,
   _activeType: 0, 
   _ignoreSelectionChanges: false, 
+  _ignoreCompositionChanges: false, 
 
   
   get _contentWindow() {
@@ -109,6 +110,9 @@ var SelectionHandler = {
           this._moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
         } else if (this._activeType == this.TYPE_CURSOR) {
           
+          this._ignoreCompositionChanges = true;
+
+          
           this._sendMouseEvents(data.x, data.y);
 
           
@@ -133,6 +137,10 @@ var SelectionHandler = {
           }
           
           this._ignoreSelectionChanges = false;
+
+        } else if (this._activeType == this.TYPE_CURSOR) {
+          
+          this._ignoreCompositionChanges = false;
         }
         this._positionHandles();
         break;
@@ -158,7 +166,8 @@ var SelectionHandler = {
         break;
 
       case "compositionend":
-        if (this._activeType == this.TYPE_CURSOR) {
+        
+        if (this._activeType == this.TYPE_CURSOR && !this._ignoreCompositionChanges) {
           this._deactivate();
         }
         break;
@@ -530,6 +539,7 @@ var SelectionHandler = {
     this._isRTL = false;
     this._cache = null;
     this._ignoreSelectionChanges = false;
+    this._ignoreCompositionChanges = false;
   },
 
   _getViewOffset: function sh_getViewOffset() {
