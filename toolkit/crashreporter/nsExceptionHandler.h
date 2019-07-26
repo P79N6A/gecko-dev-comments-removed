@@ -40,6 +40,15 @@ nsresult UnsetExceptionHandler();
 
 
 
+
+
+
+
+
+
+
+void SetUserAppDataDirectory(nsIFile* aDir);
+void SetProfileDirectory(nsIFile* aDir);
 void UpdateCrashEventsDir();
 
 
