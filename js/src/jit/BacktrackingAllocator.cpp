@@ -1559,6 +1559,16 @@ BacktrackingAllocator::trySplitAfterLastRegisterUse(LiveInterval *interval, Live
 
     CodePosition lastRegisterFrom, lastRegisterTo, lastUse;
 
+    
+    
+    if (isRegisterDefinition(interval)) {
+        CodePosition spillStart = minimalDefEnd(insData[interval->start()].ins()).next();
+        if (!conflict || spillStart < conflict->start()) {
+            lastUse = lastRegisterFrom = interval->start();
+            lastRegisterTo = spillStart;
+        }
+    }
+
     for (UsePositionIterator iter(interval->usesBegin());
          iter != interval->usesEnd();
          iter++)
