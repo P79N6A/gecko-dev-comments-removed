@@ -245,10 +245,10 @@ WebGLContext::GetVertexAttrib(JSContext* cx, GLuint index, GLenum pname,
         {
             if (!ValidateAttribIndex(index, "getVertexAttrib"))
                 return JS::NullValue();
-            
+
             if (!mBoundVertexArray->mAttribBuffers[index].enabled)
                 return JS::Int32Value(4);
-            
+
             
         }
         case LOCAL_GL_VERTEX_ATTRIB_ARRAY_TYPE:
@@ -377,7 +377,7 @@ WebGLContext::VertexAttribPointer(GLuint index, GLint size, GLenum type,
     if (byteOffset & requiredAlignmentMask) {
         return ErrorInvalidOperation("vertexAttribPointer: byteOffset doesn't satisfy the alignment "
                                      "requirement of given type");
-        
+
     }
 
     InvalidateBufferFetching();
@@ -421,6 +421,30 @@ WebGLContext::VertexAttribDivisor(GLuint index, GLuint divisor)
     MakeContextCurrent();
 
     gl->fVertexAttribDivisor(index, divisor);
+}
+
+bool
+WebGLContext::DrawInstanced_check(const char* info)
+{
+    
+    if (!IsWebGL2() &&
+        IsExtensionEnabled(ANGLE_instanced_arrays) &&
+        !mBufferFetchingHasPerVertex)
+    {
+        
+
+
+
+
+
+
+
+
+        ErrorInvalidOperation("%s: at least one vertex attribute divisor should be 0", info);
+        return false;
+    }
+
+    return true;
 }
 
 bool WebGLContext::DrawArrays_check(GLint first, GLsizei count, GLsizei primcount, const char* info)
@@ -471,16 +495,6 @@ bool WebGLContext::DrawArrays_check(GLint first, GLsizei count, GLsizei primcoun
         return false;
     }
 
-    if (!mBufferFetchingHasPerVertex && !IsWebGL2()) {
-        
-
-
-
-
-        ErrorInvalidOperation("%s: at least one vertex attribute divisor should be 0", info);
-        return false;
-    }
-
     MakeContextCurrent();
 
     if (mBoundFramebuffer) {
@@ -526,6 +540,9 @@ WebGLContext::DrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsiz
         return;
 
     if (!DrawArrays_check(first, count, primcount, "drawArraysInstanced"))
+        return;
+
+    if (!DrawInstanced_check("drawArraysInstanced"))
         return;
 
     SetupContextLossTimer();
@@ -635,16 +652,6 @@ WebGLContext::DrawElements_check(GLsizei count, GLenum type, WebGLintptr byteOff
         return false;
     }
 
-    if (!mBufferFetchingHasPerVertex && !IsWebGL2()) {
-        
-
-
-
-
-        ErrorInvalidOperation("%s: at least one vertex attribute divisor should be 0", info);
-        return false;
-    }
-
     MakeContextCurrent();
 
     if (mBoundFramebuffer) {
@@ -694,6 +701,9 @@ WebGLContext::DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
     if (!DrawElements_check(count, type, byteOffset, primcount, "drawElementsInstanced"))
         return;
 
+    if (!DrawInstanced_check("drawElementsInstanced"))
+        return;
+
     SetupContextLossTimer();
     gl->fDrawElementsInstanced(mode, count, type, reinterpret_cast<GLvoid*>(byteOffset), primcount);
 
@@ -714,7 +724,7 @@ void WebGLContext::Draw_cleanup()
     if (gl->WorkAroundDriverBugs()) {
         if (gl->Renderer() == gl::GLContext::RendererTegra) {
             mDrawCallsSinceLastFlush++;
-            
+
             if (mDrawCallsSinceLastFlush >= MAX_DRAW_CALLS_SINCE_FLUSH) {
                 gl->fFlush();
                 mDrawCallsSinceLastFlush = 0;
