@@ -58,6 +58,39 @@ namespace js {
 
 typedef HashSet<JSObject *> ObjectSet;
 
+struct CallsiteCloneKey {
+    
+    JSFunction *original;
+
+    
+    JSScript *script;
+
+    
+    uint32_t offset;
+
+    CallsiteCloneKey() { PodZero(this); }
+
+    typedef CallsiteCloneKey Lookup;
+
+    static inline uint32_t hash(CallsiteCloneKey key) {
+        return uint32_t(size_t(key.script->code + key.offset) ^ size_t(key.original));
+    }
+
+    static inline bool match(const CallsiteCloneKey &a, const CallsiteCloneKey &b) {
+        return a.script == b.script && a.offset == b.offset && a.original == b.original;
+    }
+};
+
+typedef HashMap<CallsiteCloneKey,
+                ReadBarriered<JSFunction>,
+                CallsiteCloneKey,
+                SystemAllocPolicy> CallsiteCloneTable;
+
+RawFunction CloneFunctionAtCallsite(JSContext *cx, HandleFunction fun,
+                                    HandleScript script, jsbytecode *pc);
+
+typedef HashSet<JSObject *> ObjectSet;
+
 
 class AutoCycleDetector
 {
@@ -2182,17 +2215,6 @@ class AutoValueArray : public AutoGCRooter
 
     RawValue *start() { return start_; }
     unsigned length() const { return length_; }
-
-    MutableHandleValue handleAt(unsigned i)
-    {
-        JS_ASSERT(i < length_);
-        return MutableHandleValue::fromMarkedLocation(&start_[i]);
-    }
-    HandleValue handleAt(unsigned i) const
-    {
-        JS_ASSERT(i < length_);
-        return HandleValue::fromMarkedLocation(&start_[i]);
-    }
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };

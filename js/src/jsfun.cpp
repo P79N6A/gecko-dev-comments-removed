@@ -88,6 +88,13 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
 
 
 
+    if (fun->isCallsiteClone())
+        fun = fun->getExtendedSlot(0).toObject().toFunction();
+
+    
+
+
+
 
 
     if (fun->isInterpreted()) {
@@ -1514,29 +1521,8 @@ js_CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
 
 
 
-        if (clone->isInterpreted()) {
-            RootedScript script(cx, clone->nonLazyScript());
-            JS_ASSERT(script->compartment() == fun->compartment());
-            JS_ASSERT_IF(script->compartment() != cx->compartment,
-                         !script->enclosingStaticScope());
-
-            RootedObject scope(cx, script->enclosingStaticScope());
-
-            clone->mutableScript().init(NULL);
-
-            RootedScript cscript(cx, CloneScript(cx, scope, clone, script));
-            if (!cscript)
-                return NULL;
-
-            clone->setScript(cscript);
-            cscript->setFunction(clone);
-
-            GlobalObject *global = script->compileAndGo ? &script->global() : NULL;
-
-            script = clone->nonLazyScript();
-            CallNewScriptHook(cx, script, clone);
-            Debugger::onNewScript(cx, script, global);
-        }
+        if (clone->isInterpreted() && !CloneFunctionScript(cx, fun, clone))
+            return NULL;
     }
     return clone;
 }
