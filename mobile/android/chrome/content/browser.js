@@ -7117,7 +7117,7 @@ let Reader = {
   
   DB_VERSION: 1,
 
-  DEBUG: 1,
+  DEBUG: 0,
 
   
   
