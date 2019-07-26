@@ -311,7 +311,7 @@ struct JSObject : public js::ObjectImpl
 
 
 
-    static bool setSlotSpan(JSContext *cx, JS::HandleObject obj, uint32_t span);
+    bool setSlotSpan(JSContext *cx, uint32_t span);
 
     
     static const uint32_t NELEMENTS_LIMIT = JS_BIT(28);
