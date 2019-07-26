@@ -84,20 +84,21 @@ function makeChan(url) {
   return chan;
 }
 
-var urls = [
+var httpserv = null;
+var urls = null;
+
+function run_test() {
+  httpserv = new HttpServer();
+  httpserv.start(-1);
+
+  urls = [
   
   "data:" + unknownType + ", Some text",
   "data:" + unknownType + ", Text", 
                                     
   "data:text/plain, Some more text",
-  "http://localhost:4444"
+    "http://localhost:" + httpserv.identity.primaryPort
 ];
-
-var httpserv = null;
-
-function run_test() {
-  httpserv = new HttpServer();
-  httpserv.start(4444);
 
   Components.manager.nsIComponentRegistrar.registerFactory(snifferCID,
     "Unit test content sniffer", snifferContract, sniffer);
