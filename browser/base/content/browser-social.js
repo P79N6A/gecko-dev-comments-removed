@@ -513,6 +513,10 @@ let SocialShareButton = {
       shareButton.hidden = !Social.uiVisible || Social.provider.recommendInfo == null ||
                            !SocialUI.haveLoggedInUser() ||
                            !this.canSharePage(gBrowser.currentURI);
+    
+    
+    let cmd = document.getElementById("Social:SharePage");
+    cmd.setAttribute("disabled", shareButton.hidden ? "true" : "false");
   },
 
   onClick: function SSB_onClick(aEvent) {
