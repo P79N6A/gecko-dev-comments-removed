@@ -4,19 +4,6 @@
 
 
 
-#ifdef MOZ_WIDGET_QT
-#include <QWidget>
-#include <QKeyEvent>
-#if defined(MOZ_X11)
-#if defined(Q_WS_X11)
-#include <QX11Info>
-#else
-#include "gfxQtPlatform.h"
-#endif
-#endif
-#undef slots
-#endif
-
 #ifdef MOZ_X11
 #include <cairo-xlib.h>
 #include "gfxXlibSurface.h"
@@ -2150,46 +2137,6 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
             }
 #endif
 
-#ifdef MOZ_WIDGET_QT
-          const WidgetKeyboardEvent& keyEvent = *anEvent.AsKeyboardEvent();
-
-          memset( &event, 0, sizeof(event) );
-          event.time = anEvent.time;
-
-          QWidget* qWidget = static_cast<QWidget*>(widget->GetNativeData(NS_NATIVE_WINDOW));
-
-          if (qWidget)
-#if defined(Q_WS_X11)
-            event.root = qWidget->x11Info().appRootWindow();
-#else
-            event.root = RootWindowOfScreen(DefaultScreenOfDisplay(gfxQtPlatform::GetXDisplay(qWidget)));
-#endif
-
-          
-          const QKeyEvent* qtEvent = static_cast<const QKeyEvent*>(anEvent.pluginEvent);
-          if (qtEvent) {
-
-            if (qtEvent->nativeModifiers())
-              event.state = qtEvent->nativeModifiers();
-            else 
-              event.state = XInputEventState(keyEvent);
-
-            if (qtEvent->nativeScanCode())
-              event.keycode = qtEvent->nativeScanCode();
-            else 
-              event.keycode = XKeysymToKeycode( (widget ? static_cast<Display*>(widget->GetNativeData(NS_NATIVE_DISPLAY)) : nullptr), qtEvent->key());
-          }
-
-          switch (anEvent.message)
-            {
-            case NS_KEY_DOWN:
-              event.type = XKeyPress;
-              break;
-            case NS_KEY_UP:
-              event.type = KeyRelease;
-              break;
-           }
-#endif
           
           
           event.subwindow = None;
