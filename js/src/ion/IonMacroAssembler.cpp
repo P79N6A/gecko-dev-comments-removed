@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "jsinfer.h"
 #include "jsinferinlines.h"
@@ -28,7 +28,7 @@ MacroAssembler::guardTypeSet(const T &address, const types::TypeSet *types,
     Register tag = extractTag(address, scratch);
 
     if (types->hasType(types::Type::DoubleType())) {
-        // The double type also implies Int32.
+        
         JS_ASSERT(types->hasType(types::Type::Int32Type()));
         branchTestNumber(Equal, tag, &matched);
     } else if (types->hasType(types::Type::Int32Type())) {
@@ -152,7 +152,7 @@ MacroAssembler::loadFromTypedArray(int arrayType, const T &src, AnyRegister dest
         else
             loadDouble(src, dest.fpu());
 
-        // Make sure NaN gets canonicalized.
+        
         Label notNaN;
         branchDouble(DoubleOrdered, dest.fpu(), dest.fpu(), &notNaN);
         {
@@ -191,8 +191,8 @@ MacroAssembler::loadFromTypedArray(int arrayType, const T &src, const ValueOpera
         load32(src, dest.scratchReg());
         test32(dest.scratchReg(), dest.scratchReg());
         if (allowDouble) {
-            // If the value fits in an int32, store an int32 type tag.
-            // Else, convert the value to double and box it.
+            
+            
             Label done, isDouble;
             j(Assembler::Signed, &isDouble);
             {
@@ -206,7 +206,7 @@ MacroAssembler::loadFromTypedArray(int arrayType, const T &src, const ValueOpera
             }
             bind(&done);
         } else {
-            // Bailout if the value does not fit in an int32.
+            
             j(Assembler::Signed, fail);
             tagValue(JSVAL_TYPE_INT32, dest.scratchReg(), dest);
         }
@@ -227,7 +227,7 @@ template void MacroAssembler::loadFromTypedArray(int arrayType, const Address &s
 template void MacroAssembler::loadFromTypedArray(int arrayType, const BaseIndex &src, const ValueOperand &dest,
                                                  bool allowDouble, Label *fail);
 
-// Note: this function clobbers the input register.
+
 void
 MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 {
@@ -236,31 +236,31 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
     Label notSplit;
     ma_vimm(0.5, ScratchFloatReg);
     ma_vadd(input, ScratchFloatReg, ScratchFloatReg);
-    // Convert the double into an unsigned fixed point value with 24 bits of
-    // precision. The resulting number will look like 0xII.DDDDDD
+    
+    
     as_vcvtFixed(ScratchFloatReg, false, 24, true);
-    // Move the fixed point value into an integer register
+    
     as_vxfer(output, InvalidReg, ScratchFloatReg, FloatToCore);
-    // See if this value *might* have been an exact integer after adding 0.5
-    // This tests the 1/2 through 1/16,777,216th places, but 0.5 needs to be tested out to
-    // the 1/140,737,488,355,328th place.
+    
+    
+    
     ma_tst(output, Imm32(0x00ffffff));
-    // convert to a uint8 by shifting out all of the fraction bits
+    
     ma_lsr(Imm32(24), output, output);
-    // If any of the bottom 24 bits were non-zero, then we're good, since this number
-    // can't be exactly XX.0
+    
+    
     ma_b(&notSplit, NonZero);
     as_vxfer(ScratchRegister, InvalidReg, input, FloatToCore);
     ma_cmp(ScratchRegister, Imm32(0));
-    // If the lower 32 bits of the double were 0, then this was an exact number,
-    // and it should be even.
+    
+    
     ma_bic(Imm32(1), output, NoSetCond, Zero);
     bind(&notSplit);
 #else
 
     Label positive, done;
 
-    // <= 0 or NaN --> 0
+    
     zeroDouble(ScratchFloatReg);
     branchDouble(DoubleGreaterThan, input, ScratchFloatReg, &positive);
     {
@@ -270,7 +270,7 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 
     bind(&positive);
 
-    // Add 0.5 and truncate.
+    
     static const double DoubleHalf = 0.5;
     loadStaticDouble(&DoubleHalf, ScratchFloatReg);
     addDouble(ScratchFloatReg, input);
@@ -279,17 +279,17 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
     branchTruncateDouble(input, output, &outOfRange);
     branch32(Assembler::Above, output, Imm32(255), &outOfRange);
     {
-        // Check if we had a tie.
+        
         convertInt32ToDouble(output, ScratchFloatReg);
         branchDouble(DoubleNotEqual, input, ScratchFloatReg, &done);
 
-        // It was a tie. Mask out the ones bit to get an even value.
-        // See also js_TypedArray_uint8_clamp_double.
+        
+        
         and32(Imm32(~1), output);
         jump(&done);
     }
 
-    // > 255 --> 255
+    
     bind(&outOfRange);
     {
         move32(Imm32(255), output);
@@ -303,7 +303,7 @@ void
 MacroAssembler::newGCThing(const Register &result,
                            JSObject *templateObject, Label *fail)
 {
-    // Inlined equivalent of js::gc::NewGCThing() without failure case handling.
+    
 
     gc::AllocKind allocKind = templateObject->getAllocKind();
     JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
@@ -314,16 +314,16 @@ MacroAssembler::newGCThing(const Register &result,
     Zone *zone = GetIonContext()->compartment->zone();
 
 #ifdef JS_GC_ZEAL
-    // Don't execute the inline path if gcZeal is active.
+    
     movePtr(ImmWord(zone->rt), result);
     loadPtr(Address(result, offsetof(JSRuntime, gcZeal_)), result);
     branch32(Assembler::NotEqual, result, Imm32(0), fail);
 #endif
 
-    // Inline FreeSpan::allocate.
-    // There is always exactly one FreeSpan per allocKind per JSCompartment.
-    // If a FreeSpan is replaced, its members are updated in the freeLists table,
-    // which the code below always re-reads.
+    
+    
+    
+    
     gc::FreeSpan *list = const_cast<gc::FreeSpan *>
                          (zone->allocator.arenas.getFreeList(allocKind));
     loadPtr(AbsoluteAddress(&list->first), result);
@@ -337,7 +337,7 @@ MacroAssembler::newGCThing(const Register &result,
 void
 MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 {
-    // Fast initialization of an empty object returned by NewGCThing().
+    
 
     storePtr(ImmGCPtr(templateObject->lastProperty()), Address(obj, JSObject::offsetOfShape()));
     storePtr(ImmGCPtr(templateObject->type()), Address(obj, JSObject::offsetOfType()));
@@ -352,18 +352,20 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
         storePtr(obj, Address(obj, -elementsOffset + JSObject::offsetOfElements()));
         addPtr(Imm32(-elementsOffset), obj);
 
-        // Fill in the elements header.
+        
         store32(Imm32(templateObject->getDenseCapacity()),
                 Address(obj, elementsOffset + ObjectElements::offsetOfCapacity()));
         store32(Imm32(templateObject->getDenseInitializedLength()),
                 Address(obj, elementsOffset + ObjectElements::offsetOfInitializedLength()));
         store32(Imm32(templateObject->getArrayLength()),
                 Address(obj, elementsOffset + ObjectElements::offsetOfLength()));
+        store32(Imm32(templateObject->shouldConvertDoubleElements() ? 1 : 0),
+                Address(obj, elementsOffset + ObjectElements::offsetOfConvertDoubleElements()));
     } else {
         storePtr(ImmWord(emptyObjectElements), Address(obj, JSObject::offsetOfElements()));
 
-        // Fixed slots of non-array objects are required to be initialized.
-        // Use the values currently in the template object.
+        
+        
         size_t nslots = Min(templateObject->numFixedSlots(), templateObject->slotSpan());
         for (unsigned i = 0; i < nslots; i++) {
             storeValue(templateObject->getFixedSlot(i),
@@ -381,9 +383,9 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 void
 MacroAssembler::maybeRemoveOsrFrame(Register scratch)
 {
-    // Before we link an exit frame, check for an OSR frame, which is
-    // indicative of working inside an existing bailout. In this case, remove
-    // the OSR frame, so we don't explode the stack with repeated bailouts.
+    
+    
+    
     Label osrRemoved;
     loadPtr(Address(StackPointer, IonCommonFrameLayout::offsetOfDescriptor()), scratch);
     and32(Imm32(FRAMETYPE_MASK), scratch);
@@ -399,16 +401,16 @@ MacroAssembler::performOsr()
     if (FramePointer != InvalidReg && sps_ && sps_->enabled())
         regs.take(FramePointer);
 
-    // This register must be fixed as it's used in the Osr prologue.
+    
     regs.take(OsrFrameReg);
 
-    // Remove any existing OSR frame so we don't create one per bailout.
+    
     maybeRemoveOsrFrame(regs.getAny());
 
     const Register script = regs.takeAny();
     const Register calleeToken = regs.takeAny();
 
-    // Grab fp.exec
+    
     loadPtr(Address(OsrFrameReg, StackFrame::offsetOfExec()), script);
     mov(script, calleeToken);
 
@@ -419,14 +421,14 @@ MacroAssembler::performOsr()
                  &isFunction);
 
     {
-        // Not a function - just tag the calleeToken now.
+        
         orPtr(Imm32(CalleeToken_Script), calleeToken);
         jump(&performOsr);
     }
 
     bind(&isFunction);
     {
-        // Function - create the callee token, then get the script.
+        
         orPtr(Imm32(CalleeToken_Function), calleeToken);
         loadPtr(Address(script, JSFunction::offsetOfNativeOrScript()), script);
     }
@@ -439,14 +441,14 @@ MacroAssembler::performOsr()
     loadPtr(Address(script, offsetof(JSScript, ion)), ionScript);
     load32(Address(ionScript, IonScript::offsetOfOsrEntryOffset()), osrEntry);
 
-    // Get ionScript->method->code, and scoot to the osrEntry.
+    
     const Register code = ionScript;
     loadPtr(Address(ionScript, IonScript::offsetOfMethod()), code);
     loadPtr(Address(code, IonCode::offsetOfCode()), code);
     addPtr(osrEntry, code);
 
-    // To simplify stack handling, we create an intermediate OSR frame, that
-    // looks like a JS frame with no argv.
+    
+    
     enterOsr(calleeToken, code);
     ret();
 }
@@ -466,18 +468,18 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
     Label invalidate;
     Label baseline;
 
-    // The return value from Bailout is tagged as:
-    // - 0x0: done (thunk to interpreter)
-    // - 0x1: error (handle exception)
-    // - 0x2: reflow args
-    // - 0x3: reflow barrier
-    // - 0x4: monitor types
-    // - 0x5: recompile to inline calls
-    // - 0x6: bounds check failure
-    // - 0x7: force invalidation
-    // - 0x8: overrecursed
-    // - 0x9: cached shape guard failure
-    // - 0xa: bailout to baseline
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     branch32(LessThan, ReturnReg, Imm32(BAILOUT_RETURN_FATAL_ERROR), &interpret);
     branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_FATAL_ERROR), &exception);
@@ -490,7 +492,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
     branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_SHAPE_GUARD), &invalidate);
     branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_BASELINE), &baseline);
 
-    // Fall-through: cached shape guard failure.
+    
     {
         setupUnalignedABICall(0, scratch);
         callWithABI(JS_FUNC_TO_DATA_PTR(void *, CachedShapeGuardFailure));
@@ -499,7 +501,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         jump(&interpret);
     }
 
-    // Force invalidation.
+    
     bind(&invalidate);
     {
         setupUnalignedABICall(0, scratch);
@@ -509,7 +511,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         jump(&interpret);
     }
 
-    // Bounds-check failure.
+    
     bind(&boundscheck);
     {
         setupUnalignedABICall(0, scratch);
@@ -519,7 +521,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         jump(&interpret);
     }
 
-    // Recompile to inline calls.
+    
     bind(&recompile);
     {
         setupUnalignedABICall(0, scratch);
@@ -529,7 +531,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         jump(&interpret);
     }
 
-    // Reflow types.
+    
     bind(&reflow);
     {
         setupUnalignedABICall(1, scratch);
@@ -540,7 +542,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         jump(&interpret);
     }
 
-    // Throw an over-recursion error.
+    
     bind(&overrecursed);
     {
         loadJSContext(ReturnReg);
@@ -552,28 +554,28 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
 
     bind(&interpret);
     {
-        // Reserve space for Interpret() to store a Value.
+        
         subPtr(Imm32(sizeof(Value)), StackPointer);
         mov(StackPointer, ReturnReg);
 
-        // Call out to the interpreter.
+        
         setupUnalignedABICall(1, scratch);
         passABIArg(ReturnReg);
         callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
 
-        // Load the value the interpreter returned.
+        
         popValue(JSReturnOperand);
 
-        // Check for an exception.
+        
         JS_STATIC_ASSERT(!Interpret_Error);
         branchTest32(Zero, ReturnReg, ReturnReg, &exception);
 
-        // Remove the exitCode pointer from the stack.
+        
         leaveExitFrame();
 
         branch32(Equal, ReturnReg, Imm32(Interpret_OSR), &osr);
 
-        // Return to the caller.
+        
         ret();
     }
 
@@ -590,12 +592,12 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
 
     bind(&baseline);
     {
-        // Prepare a register set for use in this case.
+        
         GeneralRegisterSet regs(GeneralRegisterSet::All());
         JS_ASSERT(!regs.has(BaselineStackReg));
         regs.take(bailoutInfo);
 
-        // Reset SP to the point where clobbering starts.
+        
         loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, incomingStack)),
                 BaselineStackReg);
 
@@ -603,7 +605,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         Register copyEnd = regs.takeAny();
         Register temp = regs.takeAny();
 
-        // Copy data onto stack.
+        
         loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackTop)), copyCur);
         loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackBottom)), copyEnd);
         {
@@ -619,7 +621,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             bind(&endOfCopy);
         }
 
-        // If monitorStub is non-null, handle resumeAddr appropriately.
+        
         Label noMonitor;
         Label done;
         branchPtr(Assembler::Equal,
@@ -627,11 +629,11 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
                   ImmWord((void*) 0),
                   &noMonitor);
 
-        //
-        // Resuming into a monitoring stub chain.
-        //
+        
+        
+        
         {
-            // Save needed values onto stack temporarily.
+            
             pushValue(Address(bailoutInfo, offsetof(BaselineBailoutInfo, valueR0)));
             loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)), temp);
             push(temp);
@@ -640,12 +642,12 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, monitorStub)), temp);
             push(temp);
 
-            // Free allocated memory.
+            
             setupUnalignedABICall(1, temp);
             passABIArg(bailoutInfo);
             callWithABI(JS_FUNC_TO_DATA_PTR(void *, js_free));
 
-            // Restore values where they need to be and resume execution.
+            
             GeneralRegisterSet enterMonRegs(GeneralRegisterSet::All());
             enterMonRegs.take(R0);
             enterMonRegs.take(BaselineStubReg);
@@ -664,12 +666,12 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             jump(jitcodeReg);
         }
 
-        //
-        // Resuming into main jitcode.
-        //
+        
+        
+        
         bind(&noMonitor);
         {
-            // Save needed values onto stack temporarily.
+            
             pushValue(Address(bailoutInfo, offsetof(BaselineBailoutInfo, valueR0)));
             pushValue(Address(bailoutInfo, offsetof(BaselineBailoutInfo, valueR1)));
             loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)), temp);
@@ -677,12 +679,12 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)), temp);
             push(temp);
 
-            // Free allocated memory.
+            
             setupUnalignedABICall(1, temp);
             passABIArg(bailoutInfo);
             callWithABI(JS_FUNC_TO_DATA_PTR(void *, js_free));
 
-            // Restore values where they need to be and resume execution.
+            
             GeneralRegisterSet enterRegs(GeneralRegisterSet::All());
             enterRegs.take(R0);
             enterRegs.take(R1);
@@ -706,15 +708,15 @@ MacroAssembler::loadBaselineOrIonCode(Register script, Label *failure)
     branchPtr(Assembler::BelowOrEqual, scriptIon, ImmWord(ION_COMPILING_SCRIPT),
               &noIonScript);
     {
-        // Load IonScript method.
+        
         loadPtr(scriptIon, script);
         loadPtr(Address(script, IonScript::offsetOfMethod()), script);
         jump(&done);
     }
     bind(&noIonScript);
     {
-        // The script does not have an IonScript. If |failure| is NULL,
-        // assume the script has a baseline script.
+        
+        
         loadPtr(Address(script, offsetof(JSScript, baseline)), script);
         if (failure)
             branchPtr(Assembler::BelowOrEqual, script, ImmWord(BASELINE_DISABLED_SCRIPT), failure);

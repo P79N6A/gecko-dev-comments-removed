@@ -1274,6 +1274,9 @@ struct JSJitInfo {
     OpType type;
     bool isInfallible;      
     bool isConstant;        
+    bool isPure;            
+
+
     JSValueType returnType; 
 };
 
