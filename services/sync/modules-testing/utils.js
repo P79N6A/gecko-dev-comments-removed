@@ -10,16 +10,21 @@ this.EXPORTED_SYMBOLS = [
   "setBasicCredentials",
   "makeIdentityConfig",
   "configureFxAccountIdentity",
+  "configureIdentity",
   "SyncTestingInfrastructure",
   "waitForZeroTimer",
   "Promise", 
+  "add_identity_test",
 ];
 
 const {utils: Cu} = Components;
 
+Cu.import("resource://services-sync/status.js");
+Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-sync/browserid_identity.js");
 Cu.import("resource://testing-common/services-common/logging.js");
 Cu.import("resource://testing-common/services/sync/fakeservices.js");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
@@ -80,20 +85,29 @@ this.makeIdentityConfig = function(overrides) {
         key: "key",
         
       }
+    },
+    sync: {
+      
+      password: "whatever",
+      syncKey: "abcdeabcdeabcdeabcdeabcdea",
     }
-    
   };
+
   
   if (overrides) {
     if (overrides.username) {
       result.username = overrides.username;
     }
-    
+    if (overrides.sync) {
+      
+      result.sync = overrides.sync;
+    }
     if (overrides.fxaccount) {
       
       result.fxaccount = overrides.fxaccount;
     }
-    return result;
+  }
+  return result;
 }
 
 
@@ -126,6 +140,23 @@ this.configureFxAccountIdentity = function(authService,
   
   
   authService._account = config.fxaccount.user.email;
+}
+
+this.configureIdentity = function(identityOverrides) {
+  let config = makeIdentityConfig(identityOverrides);
+  let ns = {};
+  Cu.import("resource://services-sync/service.js", ns);
+
+  if (ns.Service.identity instanceof BrowserIDManager) {
+    
+    configureFxAccountIdentity(ns.Service.identity, config);
+    return ns.Service.identity.initWithLoggedInUser();
+  }
+  
+  setBasicCredentials(config.username, config.sync.password, config.sync.syncKey);
+  let deferred = Promise.defer();
+  deferred.resolve();
+  return deferred.promise;
 }
 
 this.SyncTestingInfrastructure = function (server, username, password, syncKey) {
@@ -165,3 +196,38 @@ this.encryptPayload = function encryptPayload(cleartext) {
   };
 }
 
+
+
+
+
+
+
+
+
+
+
+this.add_identity_test = function(test, testFunction) {
+  function note(what) {
+    let msg = "running test " + testFunction.name + " with " + what + " identity manager";
+    test._log("test_info",
+              {_message: "TEST-INFO | | " + msg + "\n"});
+  }
+  let ns = {};
+  Cu.import("resource://services-sync/service.js", ns);
+  
+  test.add_task(function() {
+    note("sync");
+    let oldIdentity = Status._authManager;
+    Status._authManager = ns.Service.identity = new IdentityManager();
+    yield testFunction();
+    Status._authManager = ns.Service.identity = oldIdentity;
+  });
+  
+  test.add_task(function() {
+    note("FxAccounts");
+    let oldIdentity = Status._authManager;
+    Status._authManager = ns.Service.identity = new BrowserIDManager();
+    yield testFunction();
+    Status._authManager = ns.Service.identity = oldIdentity;
+  });
+}
