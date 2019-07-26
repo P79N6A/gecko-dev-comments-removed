@@ -401,7 +401,6 @@ static nsresult NewImageChannel(nsIChannel **aResult,
                                 nsIPrincipal *aLoadingPrincipal)
 {
   nsresult rv;
-  nsCOMPtr<nsIChannel> newChannel;
   nsCOMPtr<nsIHttpChannel> newHttpChannel;
 
   nsCOMPtr<nsIInterfaceRequestor> callbacks;
@@ -462,6 +461,18 @@ static nsresult NewImageChannel(nsIChannel **aResult,
   bool setOwner = nsContentUtils::SetUpChannelOwner(aLoadingPrincipal,
                                                       *aResult, aURI, false);
   *aForcePrincipalCheckForCacheEntry = setOwner;
+
+  
+  
+  
+  
+
+  nsCOMPtr<nsILoadGroup> loadGroup = do_CreateInstance(NS_LOADGROUP_CONTRACTID);
+  nsCOMPtr<nsILoadGroupChild> childLoadGroup = do_QueryInterface(loadGroup);
+  if (childLoadGroup) {
+    childLoadGroup->SetParentLoadGroup(aLoadGroup);
+  }
+  (*aResult)->SetLoadGroup(loadGroup);
 
   return NS_OK;
 }
@@ -1679,18 +1690,9 @@ nsresult imgLoader::LoadImage(nsIURI *aURI,
     PR_LOG(GetImgLog(), PR_LOG_DEBUG,
            ("[this=%p] imgLoader::LoadImage -- Created new imgRequest [request=%p]\n", this, request.get()));
 
-    
-    
-    
-    
-    nsCOMPtr<nsILoadGroup> loadGroup =
-        do_CreateInstance(NS_LOADGROUP_CONTRACTID);
-    nsCOMPtr<nsILoadGroupChild> childLoadGroup = do_QueryInterface(loadGroup);
-    if (childLoadGroup)
-      childLoadGroup->SetParentLoadGroup(aLoadGroup);
-    newChannel->SetLoadGroup(loadGroup);
-
-    request->Init(aURI, aURI, loadGroup, newChannel, entry, aCX,
+    nsCOMPtr<nsILoadGroup> channelLoadGroup;
+    newChannel->GetLoadGroup(getter_AddRefs(channelLoadGroup));
+    request->Init(aURI, aURI, channelLoadGroup, newChannel, entry, aCX,
                   aLoadingPrincipal, corsmode);
 
     
