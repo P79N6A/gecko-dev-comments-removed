@@ -93,6 +93,8 @@ AsyncStatementParams::NewResolve(
   bool *_retval
 )
 {
+  JS::Rooted<JSObject*> scopeObj(aCtx, aScopeObj);
+
   NS_ENSURE_TRUE(mStatement, NS_ERROR_NOT_INITIALIZED);
   
   
@@ -103,7 +105,7 @@ AsyncStatementParams::NewResolve(
     uint32_t idx = JSID_TO_INT(aId);
     
     
-    ok = ::JS_DefineElement(aCtx, aScopeObj, idx, JSVAL_VOID, nullptr,
+    ok = ::JS_DefineElement(aCtx, scopeObj, idx, JSVAL_VOID, nullptr,
                             nullptr, 0);
     resolved = true;
   }
@@ -111,13 +113,13 @@ AsyncStatementParams::NewResolve(
     
     
     
-    ok = ::JS_DefinePropertyById(aCtx, aScopeObj, aId, JSVAL_VOID, nullptr,
+    ok = ::JS_DefinePropertyById(aCtx, scopeObj, aId, JSVAL_VOID, nullptr,
                                  nullptr, 0);
     resolved = true;
   }
 
   *_retval = ok;
-  *_objp = resolved && ok ? aScopeObj : nullptr;
+  *_objp = resolved && ok ? scopeObj.get() : nullptr;
   return NS_OK;
 }
 
