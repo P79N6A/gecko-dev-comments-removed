@@ -500,7 +500,7 @@ nsXMLHttpRequest::ResetResponse()
   mResponseText.Truncate();
   mResponseBlob = nullptr;
   mDOMFile = nullptr;
-  mBuilder = nullptr;
+  mBlobSet = nullptr;
   mResultArrayBuffer = nullptr;
   mResultJSON = JSVAL_VOID;
   mLoadTransferred = 0;
@@ -870,7 +870,7 @@ nsXMLHttpRequest::CreateResponseParsedJSON(JSContext* aCx)
   return NS_OK;
 }
 
-nsresult
+void
 nsXMLHttpRequest::CreatePartialBlob()
 {
   if (mDOMFile) {
@@ -880,12 +880,12 @@ nsXMLHttpRequest::CreatePartialBlob()
       mResponseBlob =
         mDOMFile->CreateSlice(0, mLoadTransferred, EmptyString());
     }
-    return NS_OK;
+    return;
   }
 
   
-  if (!mBuilder) {
-    return NS_OK;
+  if (!mBlobSet) {
+    return;
   }
 
   nsAutoCString contentType;
@@ -893,8 +893,7 @@ nsXMLHttpRequest::CreatePartialBlob()
     mChannel->GetContentType(contentType);
   }
 
-  return mBuilder->GetBlobInternal(NS_ConvertASCIItoUTF16(contentType),
-                                   false, getter_AddRefs(mResponseBlob));
+  mResponseBlob = mBlobSet->GetBlobInternal(contentType);
 }
 
 
@@ -1099,10 +1098,7 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx, ErrorResult& aRv)
       }
 
       if (!mResponseBlob) {
-        aRv = CreatePartialBlob();
-        if (aRv.Failed()) {
-          return JSVAL_NULL;
-        }
+        CreatePartialBlob();
       }
     }
 
@@ -1822,10 +1818,10 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
   if (xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB ||
       xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_MOZ_BLOB) {
     if (!xmlHttpRequest->mDOMFile) {
-      if (!xmlHttpRequest->mBuilder) {
-        xmlHttpRequest->mBuilder = new nsDOMBlobBuilder();
+      if (!xmlHttpRequest->mBlobSet) {
+        xmlHttpRequest->mBlobSet = new BlobSet();
       }
-      rv = xmlHttpRequest->mBuilder->AppendVoidPtr(fromRawSegment, count);
+      rv = xmlHttpRequest->mBlobSet->AppendVoidPtr(fromRawSegment, count);
     }
     
     if (xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_MOZ_BLOB) {
@@ -1919,7 +1915,7 @@ bool nsXMLHttpRequest::CreateDOMFile(nsIRequest *request)
 
     mDOMFile =
       new nsDOMFileFile(file, NS_ConvertASCIItoUTF16(contentType), cacheToken);
-    mBuilder = nullptr;
+    mBlobSet = nullptr;
     NS_ASSERTION(mResponseBody.IsEmpty(), "mResponseBody should be empty");
   }
   return fromFile;
@@ -2268,16 +2264,15 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     } else {
       
       
-      if (!mBuilder) {
-        mBuilder = new nsDOMBlobBuilder();
+      if (!mBlobSet) {
+        mBlobSet = new BlobSet();
       }
       
       
       nsAutoCString contentType;
       mChannel->GetContentType(contentType);
-      mBuilder->GetBlobInternal(NS_ConvertASCIItoUTF16(contentType),
-                                false, getter_AddRefs(mResponseBlob));
-      mBuilder = nullptr;
+      mResponseBlob = mBlobSet->GetBlobInternal(contentType);
+      mBlobSet = nullptr;
     }
     NS_ASSERTION(mResponseBody.IsEmpty(), "mResponseBody should be empty");
     NS_ASSERTION(mResponseText.IsEmpty(), "mResponseText should be empty");

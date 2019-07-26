@@ -71,6 +71,8 @@ class nsXHREventTarget : public nsDOMEventTargetHelper,
 public:
   typedef mozilla::dom::XMLHttpRequestResponseType
           XMLHttpRequestResponseType;
+  typedef mozilla::ErrorResult
+          ErrorResult;
 
   virtual ~nsXHREventTarget() {}
   NS_DECL_ISUPPORTS_INHERITED
@@ -505,7 +507,7 @@ protected:
                 uint32_t count,
                 uint32_t *writeCount);
   nsresult CreateResponseParsedJSON(JSContext* aCx);
-  nsresult CreatePartialBlob(void);
+  void CreatePartialBlob();
   bool CreateDOMFile(nsIRequest *request);
   
   
@@ -611,7 +613,7 @@ protected:
   nsRefPtr<nsDOMFile> mDOMFile;
   
   
-  nsRefPtr<nsDOMBlobBuilder> mBuilder;
+  nsAutoPtr<BlobSet> mBlobSet;
 
   nsString mOverrideMimeType;
 
