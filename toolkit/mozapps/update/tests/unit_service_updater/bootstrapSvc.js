@@ -4,27 +4,17 @@
 
 
 
-const TEST_FILES = [
-{
-  description      : "the dummy file to make sure that the update worked",
-  fileName         : "dummy",
-  relPathDir       : "/",
-  originalContents : null,
-  compareContents  : "",
-  originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : null
-}
-];
-
 function run_test() {
   if (!shouldRunServiceTest(true)) {
     return;
   }
 
   setupTestCommon();
-  setupUpdaterTest(FILE_COMPLETE_MAR);
+  
+  
+  gTestFiles = gTestFilesCommon;
+  gTestDirs = [];
+  setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
 
   setupAppFilesAsync();
 }

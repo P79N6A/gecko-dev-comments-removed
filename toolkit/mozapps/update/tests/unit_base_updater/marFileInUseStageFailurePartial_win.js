@@ -5,10 +5,12 @@
 
 
 function run_test() {
+  gStageUpdate = true;
   setupTestCommon();
   gTestFiles = gTestFilesPartialSuccess;
   gTestDirs = gTestDirsPartialSuccess;
-  setupUpdaterTest(FILE_PARTIAL_MAR, false, true);
+  setTestFilesAndDirsForFailure();
+  setupUpdaterTest(FILE_PARTIAL_MAR, true, false);
 
   
   let fileInUseBin = getApplyDirFile(gTestFiles[11].relPathDir +
@@ -24,7 +26,13 @@ function run_test() {
 }
 
 function doUpdate() {
-  runUpdate(0, STATE_SUCCEEDED);
+  runUpdate(0, STATE_APPLIED, null);
+
+  
+  gStageUpdate = false;
+  gSwitchApp = true;
+  gDisableReplaceFallback = true;
+  runUpdate(1, STATE_FAILED_WRITE_ERROR);
 }
 
 function checkUpdateApplied() {
@@ -32,7 +40,7 @@ function checkUpdateApplied() {
 }
 
 function checkUpdate() {
-  checkFilesAfterUpdateSuccess();
-  checkUpdateLogContains(ERR_BACKUP_DISCARD);
+  checkFilesAfterUpdateFailure(getApplyDirFile);
+  checkUpdateLogContains(ERR_RENAME_FILE);
   checkCallbackAppLog();
 }

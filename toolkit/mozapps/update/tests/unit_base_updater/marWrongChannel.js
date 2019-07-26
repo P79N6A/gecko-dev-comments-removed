@@ -5,17 +5,17 @@
 
 
 
-
-
-const TEST_FILES = [];
-
 function run_test() {
   if (!IS_MAR_CHECKS_ENABLED) {
     return;
   }
 
   setupTestCommon();
-  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR);
+  
+  
+  gTestFiles = gTestFilesCommon;
+  gTestDirs = [];
+  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR, false, false);
 
   
   
@@ -25,5 +25,6 @@ function run_test() {
 }
 
 function checkUpdateApplied() {
+  checkFilesAfterUpdateSuccess();
   doTestFinish();
 }

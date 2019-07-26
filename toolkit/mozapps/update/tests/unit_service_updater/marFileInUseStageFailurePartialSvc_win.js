@@ -9,22 +9,16 @@ function run_test() {
     return;
   }
 
+  gStageUpdate = true;
   setupTestCommon();
   gTestFiles = gTestFilesPartialSuccess;
   gTestDirs = gTestDirsPartialSuccess;
-  setupUpdaterTest(FILE_PARTIAL_MAR, false, true);
-
-  let fileInUseBin = getApplyDirFile(gTestDirs[2].relPathDir +
-                                     gTestDirs[2].files[0]);
-  
-  
-  fileInUseBin.remove(false);
-
-  let helperBin = getTestDirFile(FILE_HELPER_BIN);
-  let fileInUseDir = getApplyDirFile(gTestDirs[2].relPathDir);
-  helperBin.copyTo(fileInUseDir, gTestDirs[2].files[0]);
+  setTestFilesAndDirsForFailure();
+  setupUpdaterTest(FILE_PARTIAL_MAR, true, false);
 
   
+  let fileInUseBin = getApplyDirFile(gTestFiles[11].relPathDir +
+                                     gTestFiles[11].fileName);
   let args = [getApplyDirPath() + "a/b/", "input", "output", "-s",
               HELPER_SLEEP_TIMEOUT];
   let fileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
@@ -40,15 +34,23 @@ function setupAppFilesFinished() {
 }
 
 function doUpdate() {
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_SUCCEEDED);
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED);
 }
 
 function checkUpdateFinished() {
+  
+  gStageUpdate = false;
+  gSwitchApp = true;
+  gDisableReplaceFallback = true;
+  runUpdate(1, STATE_FAILED_WRITE_ERROR);
+}
+
+function checkUpdateApplied() {
   setupHelperFinish();
 }
 
 function checkUpdate() {
-  checkFilesAfterUpdateSuccess();
-  checkUpdateLogContains(ERR_BACKUP_DISCARD);
-  checkCallbackServiceLog();
+  checkFilesAfterUpdateFailure(getApplyDirFile);
+  checkUpdateLogContains(ERR_RENAME_FILE);
+  checkCallbackAppLog();
 }

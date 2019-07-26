@@ -5,10 +5,16 @@
 
 
 function run_test() {
+  if (!shouldRunServiceTest()) {
+    return;
+  }
+
+  gStageUpdate = true;
   setupTestCommon();
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
-  setupUpdaterTest(FILE_COMPLETE_MAR, false, true);
+  setTestFilesAndDirsForFailure();
+  setupUpdaterTest(FILE_COMPLETE_MAR, true, false);
 
   
   let fileInUseBin = getApplyDirFile(gTestFiles[13].relPathDir +
@@ -20,11 +26,23 @@ function run_test() {
   fileInUseProcess.init(fileInUseBin);
   fileInUseProcess.run(false, args, args.length);
 
+  setupAppFilesAsync();
+}
+
+function setupAppFilesFinished() {
   do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
 }
 
 function doUpdate() {
-  runUpdate(0, STATE_SUCCEEDED);
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED);
+}
+
+function checkUpdateFinished() {
+  
+  gStageUpdate = false;
+  gSwitchApp = true;
+  gDisableReplaceFallback = true;
+  runUpdate(1, STATE_FAILED_WRITE_ERROR);
 }
 
 function checkUpdateApplied() {
@@ -32,7 +50,7 @@ function checkUpdateApplied() {
 }
 
 function checkUpdate() {
-  checkFilesAfterUpdateSuccess();
-  checkUpdateLogContains(ERR_BACKUP_DISCARD);
+  checkFilesAfterUpdateFailure(getApplyDirFile);
+  checkUpdateLogContains(ERR_RENAME_FILE);
   checkCallbackAppLog();
 }

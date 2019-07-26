@@ -7,11 +7,6 @@
 
 
 
-
-
-
-
-
 function run_test() {
   if (MOZ_APP_NAME == "xulrunner") {
     logTestInfo("Unable to run this test on xulrunner");
@@ -19,6 +14,9 @@ function run_test() {
   }
 
   setupTestCommon();
+  gTestFiles = gTestFilesCompleteSuccess;
+  gTestDirs = gTestDirsCompleteSuccess;
+  setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
 
   if (IS_WIN) {
     Services.prefs.setBoolPref(PREF_APP_UPDATE_SERVICE_ENABLED, false);
@@ -34,13 +32,6 @@ function run_test() {
   writeVersionFile(getAppVersion());
   writeStatusFile(STATE_PENDING);
 
-  let updatesPatchDir = getUpdatesPatchDir();
-  let mar = getTestDirFile(FILE_SIMPLE_MAR);
-  mar.copyTo(updatesPatchDir, FILE_UPDATE_ARCHIVE);
-
-  let updateSettingsIni = getApplyDirFile(FILE_UPDATE_SETTINGS_INI, true);
-  writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
-
   reloadUpdateManagerData();
   do_check_true(!!gUpdateManager.activeUpdate);
 
@@ -48,6 +39,16 @@ function run_test() {
 }
 
 function setupAppFilesFinished() {
+  
+  
+  
+  if (IS_MACOSX) {
+    let now = Date.now();
+    let yesterday = now - (1000 * 60 * 60 * 24);
+    let applyToDir = getApplyDirFile();
+    applyToDir.lastModifiedTime = yesterday;
+  }
+
   stageUpdate();
 }
 
@@ -59,9 +60,9 @@ function checkUpdateApplied() {
   
   if (gUpdateManager.activeUpdate.state != STATE_APPLIED) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
-      do_throw("Exceeded MAX_TIMEOUT_RUNS while waiting for update to be " +
-               "applied, current state is: " +
-               gUpdateManager.activeUpdate.state);
+      do_throw("Exceeded MAX_TIMEOUT_RUNS while waiting for update to equal: " +
+               STATE_APPLIED +
+               ", current state: " + gUpdateManager.activeUpdate.state);
     } else {
       do_timeout(TEST_CHECK_TIMEOUT, checkUpdateApplied);
     }
@@ -73,8 +74,9 @@ function checkUpdateApplied() {
   if (state != STATE_APPLIED) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
       do_throw("Exceeded MAX_TIMEOUT_RUNS while waiting for the update " +
-               "status state to equal " + STATE_APPLIED + ", " +
-               "current status state: " + state);
+               "status state to equal: " +
+               STATE_APPLIED +
+               ", current status state: " + state);
     } else {
       do_timeout(TEST_CHECK_TIMEOUT, checkUpdateApplied);
     }
@@ -104,38 +106,16 @@ function checkUpdateApplied() {
     return;
   }
 
-  
-  
-  let contents = readFile(log);
-  logTestInfo("contents of " + log.path + ":\n" +
-              contents.replace(/\r\n/g, "\n"));
-
   let updatedDir = getUpdatedDir();
   logTestInfo("testing " + updatedDir.path + " should exist");
   do_check_true(updatedDir.exists());
 
-  let updateTestDir = getUpdateTestDir();
-  logTestInfo("testing " + updateTestDir.path + " shouldn't exist");
-  do_check_false(updateTestDir.exists());
-
-  updateTestDir = getUpdatedDir();
-  updateTestDir.append("update_test");
-  let file = updateTestDir.clone();
-  file.append("UpdateTestRemoveFile");
-  logTestInfo("testing " + file.path + " shouldn't exist");
-  do_check_false(file.exists());
-
-  file = updateTestDir.clone();
-  file.append("UpdateTestAddFile");
-  logTestInfo("testing " + file.path + " should exist");
-  do_check_true(file.exists());
-  do_check_eq(readFileBytes(file), "UpdateTestAddFile\n");
-
-  file = updateTestDir.clone();
-  file.append("removed-files");
-  logTestInfo("testing " + file.path + " should exist");
-  do_check_true(file.exists());
-  do_check_eq(readFileBytes(file), "update_test/UpdateTestRemoveFile\n");
+  
+  
+  if (IS_WIN) {
+    writeStatusFile(STATE_APPLIED);
+    do_check_eq(readStatusState(), STATE_APPLIED);
+  }
 
   log = getUpdatesDir();
   log.append("0");
@@ -194,6 +174,7 @@ function checkUpdateApplied() {
   }
 
   
+  
   do_timeout(TEST_CHECK_TIMEOUT, launchAppToApplyUpdate);
 }
 
@@ -208,8 +189,8 @@ function checkUpdateFinished() {
   if (state != STATE_SUCCEEDED) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
       do_throw("Exceeded MAX_TIMEOUT_RUNS while waiting for the update " +
-               "status state to equal " + STATE_SUCCEEDED + ", " +
-               "current status state: " + state);
+               "status state to equal: " + STATE_SUCCEEDED +
+               ", current status state: " + state);
     } else {
       do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
     }
@@ -221,47 +202,50 @@ function checkUpdateFinished() {
   let updatedDir = getUpdatedDir();
   if (updatedDir.exists()) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
-      do_throw("Exceeded while waiting for update dir to not exist");
+      do_throw("Exceeded while waiting for updated dir to not exist. Path: " +
+               updatedDir.path);
     } else {
       do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
     }
     return;
   }
 
-  let updater = getUpdatesPatchDir();
-  updater.append(FILE_UPDATER_BIN);
-  if (updater.exists()) {
-    if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
-      do_throw("Exceeded while waiting for updater binary to no longer be in " +
-               "use");
-    } else {
-      try {
-        updater.remove(false);
-      } catch (e) {
-        do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
-        return;
+  if (IS_WIN) {
+    
+    let updater = getUpdatesPatchDir();
+    updater.append(FILE_UPDATER_BIN);
+    if (updater.exists()) {
+      if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
+        do_throw("Exceeded while waiting for updater binary to no longer be " +
+                 "in use");
+      } else {
+        try {
+          updater.remove(false);
+        } catch (e) {
+          do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
+          return;
+        }
       }
     }
   }
 
-  let updateTestDir = getUpdateTestDir();
+  if (IS_MACOSX) {
+    logTestInfo("testing last modified time on the apply to directory has " +
+                "changed after a successful update (bug 600098)");
+    let now = Date.now();
+    let applyToDir = getApplyDirFile();
+    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
+    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+  }
 
-  let file = updateTestDir.clone();
-  file.append("UpdateTestRemoveFile");
-  logTestInfo("testing " + file.path + " shouldn't exist");
-  do_check_false(file.exists());
+  checkFilesAfterUpdateSuccess();
+  
+  if (!IS_UNIX) {
+    gSwitchApp = true;
+    checkUpdateLogContents();
+  }
 
-  file = updateTestDir.clone();
-  file.append("UpdateTestAddFile");
-  logTestInfo("testing " + file.path + " should exist");
-  do_check_true(file.exists());
-  do_check_eq(readFileBytes(file), "UpdateTestAddFile\n");
-
-  file = updateTestDir.clone();
-  file.append("removed-files");
-  logTestInfo("testing " + file.path + " should exist");
-  do_check_true(file.exists());
-  do_check_eq(readFileBytes(file), "update_test/UpdateTestRemoveFile\n");
+  checkCallbackAppLog();
 
   let log = getUpdatesDir();
   log.append("0");
