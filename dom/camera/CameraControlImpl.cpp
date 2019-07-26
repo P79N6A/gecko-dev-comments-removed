@@ -311,15 +311,8 @@ CameraControlImpl::OnRecorderStateChange(const nsString& aStateMsg, int32_t aSta
 nsresult
 CameraControlImpl::GetPreviewStream(CameraSize aSize, nsICameraPreviewStreamCallback* onSuccess, nsICameraErrorCallback* onError)
 {
-  
-
-
-
-
-  MOZ_ASSERT(NS_IsMainThread());
-
   nsCOMPtr<nsIRunnable> getPreviewStreamTask = new GetPreviewStreamTask(this, aSize, onSuccess, onError);
-  return NS_DispatchToCurrentThread(getPreviewStreamTask);
+  return mCameraThread->Dispatch(getPreviewStreamTask, NS_DISPATCH_NORMAL);
 }
 
 nsresult
@@ -387,6 +380,11 @@ CameraControlImpl::ReceiveFrame(void* aBuffer, ImageFormat aFormat, FrameBuilder
 NS_IMETHODIMP
 GetPreviewStreamResult::Run()
 {
+  
+
+
+
+
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mOnSuccessCb && nsDOMCameraManager::IsWindowStillActive(mWindowId)) {

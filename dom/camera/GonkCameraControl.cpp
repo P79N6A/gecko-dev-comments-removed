@@ -591,9 +591,11 @@ nsGonkCameraControl::SetParameter(uint32_t aKey, int aValue)
 nsresult
 nsGonkCameraControl::GetPreviewStreamImpl(GetPreviewStreamTask* aGetPreviewStream)
 {
-  SetPreviewSize(aGetPreviewStream->mSize.width, aGetPreviewStream->mSize.height);
+  
+  StopPreviewInternal(true );
 
-  DOM_CAMERA_LOGI("config preview: wated %d x %d, got %d x %d (%d fps, format %d)\n", aGetPreviewStream->mSize.width, aGetPreviewStream->mSize.height, mWidth, mHeight, mFps, mFormat);
+  SetPreviewSize(aGetPreviewStream->mSize.width, aGetPreviewStream->mSize.height);
+  DOM_CAMERA_LOGI("picture preview: wanted %d x %d, got %d x %d (%d fps, format %d)\n", aGetPreviewStream->mSize.width, aGetPreviewStream->mSize.height, mWidth, mHeight, mFps, mFormat);
 
   nsCOMPtr<GetPreviewStreamResult> getPreviewStreamResult = new GetPreviewStreamResult(this, mWidth, mHeight, mFps, aGetPreviewStream->mOnSuccessCb, mWindowId);
   return NS_DispatchToMainThread(getPreviewStreamResult);
@@ -608,9 +610,7 @@ nsGonkCameraControl::StartPreviewImpl(StartPreviewTask* aStartPreview)
 
 
   if (aStartPreview->mDOMPreview) {
-    if (mDOMPreview) {
-      mDOMPreview->Stopped(true);
-    }
+    StopPreviewInternal(true );
     mDOMPreview = aStartPreview->mDOMPreview;
   } else if (!mDOMPreview) {
     return NS_ERROR_INVALID_ARG;
@@ -631,7 +631,7 @@ nsGonkCameraControl::StartPreviewImpl(StartPreviewTask* aStartPreview)
 nsresult
 nsGonkCameraControl::StopPreviewInternal(bool aForced)
 {
-  DOM_CAMERA_LOGI("%s: stopping preview\n", __func__);
+  DOM_CAMERA_LOGI("%s: stopping preview (mDOMPreview=%p)\n", __func__, mDOMPreview);
 
   
   
