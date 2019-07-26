@@ -25,6 +25,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
@@ -40,9 +41,9 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
     private TextView mTextView;
     private List<PromptInput> mInputs;
 
-    private static int mInputPadding = -1;
-    private static int mSpinnerTextColor = -1;
-    private static int mSpinnerTextSize = -1;
+    private static int sInputPadding = -1;
+    private static int sSpinnerTextColor = -1;
+    private static int sSpinnerTextSize = -1;
 
     
     static private LayoutParams mLayoutParams;
@@ -67,14 +68,14 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
         mTabId = tabId;
         mValue = value;
 
-        if (mInputPadding == -1) {
-            mInputPadding = getResources().getDimensionPixelSize(R.dimen.doorhanger_padding_spinners);
+        if (sInputPadding == -1) {
+            sInputPadding = getResources().getDimensionPixelSize(R.dimen.doorhanger_padding_spinners);
         }
-        if (mSpinnerTextColor == -1) {
-            mSpinnerTextColor = getResources().getColor(R.color.text_color_primary_disable_only);
+        if (sSpinnerTextColor == -1) {
+            sSpinnerTextColor = getResources().getColor(R.color.text_color_primary_disable_only);
         }
-        if (mSpinnerTextSize == -1) {
-            mSpinnerTextSize = getResources().getDimensionPixelSize(R.dimen.doorhanger_spinner_textsize);
+        if (sSpinnerTextSize == -1) {
+            sSpinnerTextSize = getResources().getDimensionPixelSize(R.dimen.doorhanger_spinner_textsize);
         }
     }
  
@@ -247,41 +248,50 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
             styleSpinner(input, view);
         } else {
             
-            view.setPadding(0, mInputPadding,
-                            0, mInputPadding);
+            view.setPadding(0, sInputPadding,
+                            0, sInputPadding);
         }
     }
 
     private void styleSpinner(PromptInput input, View view) {
         PromptInput.MenulistInput spinInput = (PromptInput.MenulistInput) input;
+
         
-        
+
+
+
+
+
+
+
+
+
+
+
 
         
         
-        SpinnerAdapter a = spinInput.spinner.getAdapter();
-        View dropView = a.getView(0, null, spinInput.spinner);
-        int left = 0;
+        Spinner spinner = spinInput.spinner;
+        SpinnerAdapter adapter = spinner.getAdapter();
+        View dropView = adapter.getView(0, null, spinner);
+        int textPadding = 0;
         if (dropView != null) {
-            left = dropView.getPaddingLeft();
+            textPadding = dropView.getPaddingLeft();
         }
 
         
-        int p = getResources().getDimensionPixelSize(R.dimen.doorhanger_padding);
         Rect rect = new Rect();
-        spinInput.spinner.getBackground().getPadding(rect);
+        spinner.getBackground().getPadding(rect);
 
         
-        
-        
-        view.setPadding(p - rect.left - left, 0, rect.right, mInputPadding);
+        view.setPadding(sInputPadding - rect.left - textPadding, 0, rect.right, sInputPadding);
 
         if (spinInput.textView != null) {
-            spinInput.textView.setTextColor(mSpinnerTextColor);
-            spinInput.textView.setTextSize(mSpinnerTextSize);
+            spinInput.textView.setTextColor(sSpinnerTextColor);
+            spinInput.textView.setTextSize(sSpinnerTextSize);
 
             
-            spinInput.textView.setPadding(rect.left + left, 0, 0, 0);
+            spinInput.textView.setPadding(rect.left + textPadding, 0, 0, 0);
         }
     }
 
