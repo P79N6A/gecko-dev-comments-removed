@@ -323,7 +323,6 @@ public:
 
   virtual void AddInvalidateHiddenPresShellObserver(nsRefreshDriver *aDriver) MOZ_OVERRIDE;
 
-
   
   
   struct ScrollIntoViewData {
