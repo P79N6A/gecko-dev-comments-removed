@@ -1088,7 +1088,7 @@ nsHTMLInputElement::ConvertStringToNumber(nsAString& aValue,
         }
 
         uint32_t year, month, day;
-        if (!GetValueAsDate(aValue, year, month, day)) {
+        if (!GetValueAsDate(aValue, &year, &month, &day)) {
           return false;
         }
 
@@ -1293,7 +1293,7 @@ nsHTMLInputElement::GetValueAsDate(JSContext* aCtx, jsval* aDate)
   uint32_t year, month, day;
   nsAutoString value;
   GetValueInternal(value);
-  if (!GetValueAsDate(value, year, month, day)) {
+  if (!GetValueAsDate(value, &year, &month, &day)) {
     aDate->setNull();
     return NS_OK;
   }
@@ -3006,17 +3006,17 @@ nsHTMLInputElement::SanitizeValue(nsAString& aValue)
 }
 
 bool
-nsHTMLInputElement::IsValidDate(nsAString& aValue) const
+nsHTMLInputElement::IsValidDate(const nsAString& aValue) const
 {
   uint32_t year, month, day;
-  return GetValueAsDate(aValue, year, month, day);
+  return GetValueAsDate(aValue, &year, &month, &day);
 }
 
 bool
-nsHTMLInputElement::GetValueAsDate(nsAString& aValue,
-                                   uint32_t& aYear,
-                                   uint32_t& aMonth,
-                                   uint32_t& aDay) const
+nsHTMLInputElement::GetValueAsDate(const nsAString& aValue,
+                                   uint32_t* aYear,
+                                   uint32_t* aMonth,
+                                   uint32_t* aDay) const
 {
 
 
@@ -3027,91 +3027,38 @@ nsHTMLInputElement::GetValueAsDate(nsAString& aValue,
 
 
 
-  if (aValue.IsEmpty()) {
+  if (aValue.Length() < 10) {
     return false;
   }
 
-  int32_t fieldMaxSize = 0;
-  int32_t fieldMinSize = 4;
-  enum {
-    YEAR, MONTH, DAY, NONE
-  } field;
-  int32_t fieldSize = 0;
-  nsresult ec;
+  uint32_t endOfYearOffset = 0;
+  for (; NS_IsAsciiDigit(aValue[endOfYearOffset]); ++endOfYearOffset);
 
-  field = YEAR;
-  for (uint32_t offset = 0; offset < aValue.Length(); ++offset) {
-    
-    if (fieldMaxSize && fieldSize > fieldMaxSize) {
-      return false;
-    }
-
-    
-    if (aValue[offset] != '-' && !NS_IsAsciiDigit(aValue[offset])) {
-      return false;
-    }
-
-    
-    if (aValue[offset] != '-' && offset != aValue.Length()-1) {
-      fieldSize++;
-      continue;
-    }
-
-    
-    if (fieldSize < fieldMinSize) {
-      return false;
-    }
-
-    switch(field) {
-      case YEAR:
-        aYear = PromiseFlatString(StringHead(aValue, offset)).ToInteger(&ec);
-        NS_ENSURE_SUCCESS(ec, false);
-
-        if (aYear <= 0) {
-          return false;
-        }
-
-        
-        field = MONTH;
-        fieldMaxSize = 2;
-        fieldMinSize = 2;
-        break;
-      case MONTH:
-        aMonth = PromiseFlatString(Substring(aValue,
-                                            offset-fieldSize,
-                                            offset)).ToInteger(&ec);
-        NS_ENSURE_SUCCESS(ec, false);
-
-        if (aMonth < 1 || aMonth > 12) {
-          return false;
-        }
-
-        
-        
-        field = DAY;
-        fieldMinSize = 1;
-        fieldMaxSize = 1;
-        break;
-      case DAY:
-        aDay = PromiseFlatString(Substring(aValue,
-                                          offset-fieldSize,
-                                          offset + 1)).ToInteger(&ec);
-        NS_ENSURE_SUCCESS(ec, false);
-
-        if (aDay <  1 || aDay > NumberOfDaysInMonth(aMonth, aYear)) {
-          return false;
-        }
-
-        field = NONE;
-        break;
-      default:
-        return false;
-    }
-
-    fieldSize = 0;
+  
+  if (aValue[endOfYearOffset] != '-' || endOfYearOffset < 4) {
+    return false;
   }
 
-  return field == NONE;
+  
+  
+  if (aValue[endOfYearOffset + 3] != '-' ||
+      aValue.Length() != 10 + (endOfYearOffset - 4)) {
+    return false;
+  }
+
+  nsresult ec;
+  *aYear = PromiseFlatString(StringHead(aValue, endOfYearOffset)).ToInteger(&ec);
+  if (NS_FAILED(ec) || *aYear == 0) {
+    return false;
+  }
+
+  if (!DigitSubStringToNumber(aValue, endOfYearOffset + 1, 2, aMonth) ||
+      *aMonth < 1 || *aMonth > 12) {
+    return false;
+  }
+
+  return DigitSubStringToNumber(aValue, endOfYearOffset + 4, 2, aDay) &&
+         *aDay > 0 && *aDay <= NumberOfDaysInMonth(*aMonth, *aYear);
 }
 
 uint32_t
