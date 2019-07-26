@@ -97,12 +97,14 @@ public:
     mTargetIsBrowser(false),
     mRequestType(DEFAULT_LAUNCH),
     mRequestMet(false),
+    mRelaunchDesktopDelayedRequested(false),
     mVerb(L"open")
   {
   }
 
   bool RequestMet() { return mRequestMet; }
   long RefCount() { return mRef; }
+  void HeartBeat();
 
   
   IFACEMETHODIMP QueryInterface(REFIID aRefID, void **aInt)
@@ -415,6 +417,7 @@ private:
   bool mTargetIsBrowser;
   DWORD mKeyState;
   bool mRequestMet;
+  bool mRelaunchDesktopDelayedRequested;
 };
 
 
@@ -644,6 +647,18 @@ CExecuteCommandVerb::LaunchDesktopBrowser()
                                  mTargetIsDefaultBrowser, mTargetIsBrowser);
 }
 
+void
+CExecuteCommandVerb::HeartBeat()
+{
+  if (mRequestType == METRO_UPDATE &&
+      mRelaunchDesktopDelayedRequested &&
+      !IsMetroProcessRunning()) {
+    mRelaunchDesktopDelayedRequested = false;
+    LaunchDesktopBrowser();
+    mRequestMet = true;
+  }
+}
+
 static bool
 PrepareActivationManager(CComPtr<IApplicationActivationManager> &activateMgr)
 {
@@ -721,19 +736,23 @@ IFACEMETHODIMP CExecuteCommandVerb::Execute()
   }
 
   
+  
+  if (mRequestType == METRO_UPDATE) {
+    
+    
+    
+    
+    mParameters = kMetroUpdateCmdLine;
+    mRelaunchDesktopDelayedRequested = true;
+    return S_OK;
+  }
+
+  
   AutoSetRequestMet asrm(&mRequestMet);
 
   
   if (mRequestType == DESKTOP_RESTART ||
       (mRequestType == DEFAULT_LAUNCH && DefaultLaunchIsDesktop())) {
-    LaunchDesktopBrowser();
-    return S_OK;
-  }
-
-  
-  
-  if (mRequestType == METRO_UPDATE) {
-    mParameters = kMetroUpdateCmdLine;
     LaunchDesktopBrowser();
     return S_OK;
   }
@@ -858,6 +877,7 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, PWSTR pszCmdLine, int)
       long beatCount = 0;
       while (GetMessage(&msg, 0, 0, 0) > 0) {
         if (msg.message == WM_TIMER) {
+          pHandler->HeartBeat();
           if (++beatCount > REQUEST_WAIT_TIMEOUT ||
               (pHandler->RequestMet() && pHandler->RefCount() < 2)) {
             break;
