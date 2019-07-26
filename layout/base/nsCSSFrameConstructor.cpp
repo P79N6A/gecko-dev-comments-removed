@@ -8154,18 +8154,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         
         
         
-        if (frame->IsPositioned()) {
-          
-          
-          
-          frame->AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
-          frame->MarkAsAbsoluteContainingBlock();
-        } else {
-          
-          
-          
-          frame->MarkAsNotAbsoluteContainingBlock();
-        }
+        
+        frame->AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
       }
     }
     if (hint & nsChangeHint_ReconstructFrame) {

@@ -901,6 +901,10 @@ nsSplitterFrameInner::AdjustChildren(nsPresContext* aPresContext)
 
   AdjustChildren(aPresContext, mChildInfosBefore, mChildInfosBeforeCount, isHorizontal);
   AdjustChildren(aPresContext, mChildInfosAfter, mChildInfosAfterCount, isHorizontal);
+   
+   
+
+  aPresContext->PresShell()->FlushPendingNotifications(Flush_Display);
 }
 
 static nsIFrame* GetChildBoxForContent(nsIFrame* aParentBox, nsIContent* aContent)
