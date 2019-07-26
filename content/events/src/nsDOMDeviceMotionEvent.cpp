@@ -2,23 +2,18 @@
 
 
 
+
+
 #include "nsDOMDeviceMotionEvent.h"
 #include "nsDOMClassInfoID.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMDeviceMotionEvent, nsDOMEvent)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mAcceleration)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mAccelerationIncludingGravity)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mRotationRate)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMDeviceMotionEvent, nsDOMEvent)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAcceleration)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAccelerationIncludingGravity)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRotationRate)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_INHERITED_3(nsDOMDeviceMotionEvent, nsDOMEvent,
+                                     mAcceleration,
+                                     mAccelerationIncludingGravity,
+                                     mRotationRate)
 
 NS_IMPL_ADDREF_INHERITED(nsDOMDeviceMotionEvent, nsDOMEvent)
 NS_IMPL_RELEASE_INHERITED(nsDOMDeviceMotionEvent, nsDOMEvent)

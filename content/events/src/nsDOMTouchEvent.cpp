@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsDOMTouchEvent.h"
 #include "nsGUIEvent.h"
 #include "nsContentUtils.h"
@@ -94,17 +95,10 @@ nsDOMTouchEvent::~nsDOMTouchEvent()
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMTouchEvent, nsDOMUIEvent)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTouches)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTargetTouches)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mChangedTouches)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMTouchEvent, nsDOMUIEvent)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTouches)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTargetTouches)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mChangedTouches)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_INHERITED_3(nsDOMTouchEvent, nsDOMUIEvent,
+                                     mTouches,
+                                     mTargetTouches,
+                                     mChangedTouches)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDOMTouchEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMTouchEvent)
