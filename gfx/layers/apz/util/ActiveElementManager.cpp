@@ -43,7 +43,7 @@ ActiveElementManager::SetTargetElement(nsIDOMEventTarget* aTarget)
     
     CancelTask();
     ResetActive();
-    mTarget = nullptr;
+    ResetTouchBlockState();
     return;
   }
 
@@ -54,6 +54,14 @@ ActiveElementManager::SetTargetElement(nsIDOMEventTarget* aTarget)
 void
 ActiveElementManager::HandleTouchStart(bool aCanBePan)
 {
+  if (mCanBePanSet) {
+    
+    CancelTask();
+    ResetActive();
+    ResetTouchBlockState();
+    return;
+  }
+
   mCanBePan = aCanBePan;
   mCanBePanSet = true;
   TriggerElementActivation();
@@ -74,6 +82,7 @@ ActiveElementManager::TriggerElementActivation()
   if (!mCanBePan) {
     SetActive(mTarget);
   } else {
+    MOZ_ASSERT(mSetActiveTask == nullptr);
     mSetActiveTask = NewRunnableMethod(
         this, &ActiveElementManager::SetActiveTask, mTarget);
     MessageLoop::current()->PostDelayedTask(
@@ -101,8 +110,7 @@ ActiveElementManager::HandleTouchEnd(bool aWasClick)
     SetActive(mTarget);
   }
 
-  
-  mTarget = nullptr;
+  ResetTouchBlockState();
 }
 
 void
@@ -128,6 +136,13 @@ ActiveElementManager::ResetActive()
       }
     }
   }
+}
+
+void
+ActiveElementManager::ResetTouchBlockState()
+{
+  mTarget = nullptr;
+  mCanBePanSet = false;
 }
 
 void
