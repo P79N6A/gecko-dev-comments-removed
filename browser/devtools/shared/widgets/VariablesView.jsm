@@ -267,7 +267,16 @@ VariablesView.prototype = {
 
 
 
-  preventDisableOnChage: false,
+
+
+
+  new: null,
+
+  
+
+
+
+  preventDisableOnChange: false,
 
   
 
@@ -825,6 +834,10 @@ VariablesView.prototype = {
           item._onDelete(e);
         }
         return;
+
+      case e.DOM_VK_INSERT:
+        item._onAddProperty(e);
+        return;
     }
   },
 
@@ -916,7 +929,17 @@ VariablesView.prototype = {
 
 
 
+  get actionsFirst() {
+    return this._actionsFirst;
+  },
+
+  
+
+
+
+
   set actionsFirst(aFlag) {
+    this._actionsFirst = aFlag;
     if (aFlag) {
       this._parent.setAttribute("actions-first", "");
     } else {
@@ -956,6 +979,8 @@ VariablesView.prototype = {
   _currHierarchy: null,
   _enumVisible: true,
   _nonEnumVisible: true,
+  _alignedValues: false,
+  _actionsFirst: false,
   _parent: null,
   _list: null,
   _searchboxNode: null,
@@ -1152,7 +1177,8 @@ function Scope(aView, aName, aFlags = {}) {
   this.eval = aView.eval;
   this.switch = aView.switch;
   this.delete = aView.delete;
-  this.preventDisableOnChage = aView.preventDisableOnChage;
+  this.new = aView.new;
+  this.preventDisableOnChange = aView.preventDisableOnChange;
   this.preventDescriptorModifiers = aView.preventDescriptorModifiers;
   this.editableNameTooltip = aView.editableNameTooltip;
   this.editableValueTooltip = aView.editableValueTooltip;
@@ -1256,6 +1282,20 @@ Scope.prototype = {
       if (aOptions.callback) {
         aOptions.callback(item, descriptor.value);
       }
+    }
+  },
+
+  
+
+
+  remove: function() {
+    let view = this._variablesView;
+    view._store.splice(view._store.indexOf(this), 1);
+    view._itemsByElement.delete(this._target);
+    view._currHierarchy.delete(this._nameString);
+    this._target.remove();
+    for (let variable of this._store.values()) {
+      variable.remove();
     }
   },
 
@@ -1683,7 +1723,6 @@ Scope.prototype = {
 
   _onClick: function(e) {
     if (e.button != 0 ||
-        e.target == this._inputNode ||
         e.target == this._editNode ||
         e.target == this._deleteNode) {
       return;
@@ -2037,6 +2076,7 @@ Scope.prototype = {
   eval: null,
   switch: null,
   delete: null,
+  new: null,
   editableValueTooltip: "",
   editableNameTooltip: "",
   editButtonTooltip: "",
@@ -2128,6 +2168,19 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
   _createChild: function(aName, aDescriptor) {
     return new Property(this, aName, aDescriptor);
+  },
+
+  
+
+
+  remove: function() {
+    this.ownerView._store.delete(this._nameString);
+    this._variablesView._itemsByElement.delete(this._target);
+    this._variablesView._currHierarchy.delete(this._absoluteName);
+    this._target.remove();
+    for (let property of this._store.values()) {
+      property.remove();
+    }
   },
 
   
@@ -2313,14 +2366,11 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     this._idString = generateId(this._nameString = aName);
     this._displayScope(aName, "variables-view-variable variable-or-property");
 
-    
-    if (this._nameString) {
-      this._displayVariable();
-      this._customizeVariable();
-      this._prepareTooltips();
-      this._setAttributes();
-      this._addEventListeners();
-    }
+    this._displayVariable();
+    this._customizeVariable();
+    this._prepareTooltips();
+    this._setAttributes();
+    this._addEventListeners();
 
     this._onInit(this.ownerView._store.size < LAZY_APPEND_BATCH);
   },
@@ -2421,12 +2471,25 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
       editNode.addEventListener("mousedown", this._onEdit.bind(this), false);
       this._title.insertBefore(editNode, this._spacer);
     }
+
     if (ownerView.delete) {
       let deleteNode = this._deleteNode = this.document.createElement("toolbarbutton");
       deleteNode.className = "plain variables-view-delete";
       deleteNode.addEventListener("click", this._onDelete.bind(this), false);
       this._title.appendChild(deleteNode);
     }
+
+    let { actionsFirst } = this._variablesView;
+    if (ownerView.new || actionsFirst) {
+      let addPropertyNode = this._addPropertyNode = this.document.createElement("toolbarbutton");
+      addPropertyNode.className = "plain variables-view-add-property";
+      addPropertyNode.addEventListener("mousedown", this._onAddProperty.bind(this), false);
+      if (actionsFirst && VariablesView.isPrimitive(descriptor)) {
+        addPropertyNode.setAttribute("invisible", "");
+      }
+      this._title.appendChild(addPropertyNode);
+    }
+
     if (ownerView.contextMenuId) {
       this._title.setAttribute("context", ownerView.contextMenuId);
     }
@@ -2585,146 +2648,40 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
   
 
 
-
-
-
-
-
-
-
-  _activateInput: function(aLabel, aClassName, aCallbacks) {
-    let initialString = aLabel.getAttribute("value");
-
-    
-    
-    let input = this.document.createElement("textbox");
-    input.className = "plain " + aClassName;
-    input.setAttribute("value", initialString);
-    if (!this._variablesView.alignedValues) {
-      input.setAttribute("flex", "1");
-    }
-
-    
-    aLabel.parentNode.replaceChild(input, aLabel);
-    this._variablesView.boxObject.ensureElementIsVisible(input);
-    input.select();
-
-    
-    
-    
-    if (aLabel.getAttribute("value").match(/^".+"$/)) {
-      input.selectionEnd--;
-      input.selectionStart++;
-    }
-
-    input.addEventListener("keypress", aCallbacks.onKeypress, false);
-    input.addEventListener("blur", aCallbacks.onBlur, false);
-
-    this._prevExpandable = this.twisty;
-    this._prevExpanded = this.expanded;
-    this.collapse();
-    this.hideArrow();
-    this._locked = true;
-
-    this._inputNode = input;
-    this._stopThrobber();
-  },
-
-  
-
-
-
-
-
-
-
-  _deactivateInput: function(aLabel, aInput, aCallbacks) {
-    aInput.parentNode.replaceChild(aLabel, aInput);
-    this._variablesView.boxObject.scrollBy(-this._target.clientWidth, 0);
-
-    aInput.removeEventListener("keypress", aCallbacks.onKeypress, false);
-    aInput.removeEventListener("blur", aCallbacks.onBlur, false);
-
-    this._locked = false;
-    this.twisty = this._prevExpandable;
-    this.expanded = this._prevExpanded;
-
-    this._inputNode = null;
-    this._stopThrobber();
-  },
-
-  
-
-
   _activateNameInput: function(e) {
-    if (e && e.button != 0) {
-      
-      return;
-    }
-    if (!this.ownerView.switch) {
-      return;
-    }
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    if (!this._variablesView.alignedValues) {
+      this._separatorLabel.hidden = true;
+      this._valueLabel.hidden = true;
     }
 
-    this._onNameInputKeyPress = this._onNameInputKeyPress.bind(this);
-    this._deactivateNameInput = this._deactivateNameInput.bind(this);
-
-    this._activateInput(this._name, "element-name-input", {
-      onKeypress: this._onNameInputKeyPress,
-      onBlur: this._deactivateNameInput
-    });
-    this._separatorLabel.hidden = true;
-    this._valueLabel.hidden = true;
-  },
-
-  
-
-
-  _deactivateNameInput: function(e) {
-    this._deactivateInput(this._name, e.target, {
-      onKeypress: this._onNameInputKeyPress,
-      onBlur: this._deactivateNameInput
-    });
-    this._separatorLabel.hidden = false;
-    this._valueLabel.hidden = false;
+    EditableName.create(this, {
+      onSave: aKey => {
+        if (!this._variablesView.preventDisableOnChange) {
+          this._disable();
+        }
+        this.ownerView.switch(this, aKey);
+      },
+      onCleanup: () => {
+        if (!this._variablesView.alignedValues) {
+          this._separatorLabel.hidden = false;
+          this._valueLabel.hidden = false;
+        }
+      }
+    }, e);
   },
 
   
 
 
   _activateValueInput: function(e) {
-    if (e && e.button != 0) {
-      
-      return;
-    }
-    if (!this.ownerView.eval) {
-      return;
-    }
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    this._onValueInputKeyPress = this._onValueInputKeyPress.bind(this);
-    this._deactivateValueInput = this._deactivateValueInput.bind(this);
-
-    this._activateInput(this._valueLabel, "element-value-input", {
-      onKeypress: this._onValueInputKeyPress,
-      onBlur: this._deactivateValueInput
-    });
-  },
-
-  
-
-
-  _deactivateValueInput: function(e) {
-    this._deactivateInput(this._valueLabel, e.target, {
-      onKeypress: this._onValueInputKeyPress,
-      onBlur: this._deactivateValueInput
-    });
+    EditableValue.create(this, {
+      onSave: aString => {
+        if (!this._variablesView.preventDisableOnChange) {
+          this._disable();
+        }
+        this.ownerView.eval(this.evaluationMacro(this, aString));
+      }
+    }, e);
   },
 
   
@@ -2745,81 +2702,8 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
   
 
 
-  _saveNameInput: function(e) {
-    let input = e.target;
-    let initialString = this._name.getAttribute("value");
-    let currentString = input.value.trim();
-    this._deactivateNameInput(e);
-
-    if (initialString != currentString) {
-      if (!this._variablesView.preventDisableOnChage) {
-        this._disable();
-        this._name.value = currentString;
-      }
-      this.ownerView.switch(this, currentString);
-    }
-  },
-
-  
-
-
-  _saveValueInput: function(e) {
-    let input = e.target;
-    let initialString = this._valueLabel.getAttribute("value");
-    let currentString = input.value.trim();
-    this._deactivateValueInput(e);
-
-    if (initialString != currentString) {
-      if (!this._variablesView.preventDisableOnChage) {
-        this._disable();
-      }
-      this.ownerView.eval(this.evaluationMacro(this, currentString.trim()));
-    }
-  },
-
-  
-
-
 
   evaluationMacro: VariablesView.simpleValueEvalMacro,
-
-  
-
-
-  _onNameInputKeyPress: function(e) {
-    e.stopPropagation();
-
-    switch(e.keyCode) {
-      case e.DOM_VK_RETURN:
-      case e.DOM_VK_ENTER:
-        this._saveNameInput(e);
-        this.focus();
-        return;
-      case e.DOM_VK_ESCAPE:
-        this._deactivateNameInput(e);
-        this.focus();
-        return;
-    }
-  },
-
-  
-
-
-  _onValueInputKeyPress: function(e) {
-    e.stopPropagation();
-
-    switch(e.keyCode) {
-      case e.DOM_VK_RETURN:
-      case e.DOM_VK_ENTER:
-        this._saveValueInput(e);
-        this.focus();
-        return;
-      case e.DOM_VK_ESCAPE:
-        this._deactivateValueInput(e);
-        this.focus();
-        return;
-    }
-  },
 
   
 
@@ -2852,15 +2736,48 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     }
   },
 
+  
+
+
+  _onAddProperty: function(e) {
+    if ("button" in e && e.button != 0) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    this.expanded = true;
+
+    let item = this.addItem(" ", {
+      value: undefined,
+      configurable: true,
+      enumerable: true,
+      writable: true
+    }, true);
+
+    
+    item._separatorLabel.hidden = false;
+
+    EditableNameAndValue.create(item, {
+      onSave: ([aKey, aValue]) => {
+        if (!this._variablesView.preventDisableOnChange) {
+          this._disable();
+        }
+        this.ownerView.new(this, aKey, aValue);
+      }
+    }, e);
+  },
+
   _symbolicName: "",
   _absoluteName: "",
   _initialDescriptor: null,
   _separatorLabel: null,
   _spacer: null,
   _valueLabel: null,
-  _inputNode: null,
   _editNode: null,
   _deleteNode: null,
+  _addPropertyNode: null,
   _tooltip: null,
   _valueGrip: null,
   _valueString: "",
@@ -2895,18 +2812,15 @@ Property.prototype = Heritage.extend(Variable.prototype, {
 
 
 
-  _init: function(aName, aDescriptor) {
+  _init: function(aName = "", aDescriptor) {
     this._idString = generateId(this._nameString = aName);
     this._displayScope(aName, "variables-view-property variable-or-property");
 
-    
-    if (this._nameString) {
-      this._displayVariable();
-      this._customizeVariable();
-      this._prepareTooltips();
-      this._setAttributes();
-      this._addEventListeners();
-    }
+    this._displayVariable();
+    this._customizeVariable();
+    this._prepareTooltips();
+    this._setAttributes();
+    this._addEventListeners();
 
     this._onInit(this.ownerView._store.size < LAZY_APPEND_BATCH);
   },
@@ -3263,3 +3177,262 @@ let generateId = (function() {
     return aName.toLowerCase().trim().replace(/\s+/g, "-") + (++count);
   };
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Editable(aVariable, aOptions) {
+  this._variable = aVariable;
+  this._onSave = aOptions.onSave;
+  this._onCleanup = aOptions.onCleanup;
+}
+
+Editable.create = function(aVariable, aOptions, aEvent) {
+  let editable = new this(aVariable, aOptions);
+  editable.activate(aEvent);
+  return editable;
+};
+
+Editable.prototype = {
+  
+
+
+
+  className: null,
+
+  
+
+
+
+  shouldActivate: null,
+
+  
+
+
+  label: null,
+
+  
+
+
+
+
+
+
+  activate: function(e) {
+    if (!this.shouldActivate) {
+      return;
+    }
+
+    let { label } = this;
+    let initialString = label.getAttribute("value");
+
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    
+    
+    let input = this._input = this._variable.document.createElement("textbox");
+    input.className = "plain " + this.className;
+    input.setAttribute("value", initialString);
+    if (!this._variable._variablesView.alignedValues) {
+      input.setAttribute("flex", "1");
+    }
+
+    
+    label.parentNode.replaceChild(input, label);
+    this._variable._variablesView.boxObject.ensureElementIsVisible(input);
+    input.select();
+
+    
+    
+    
+    if (initialString.match(/^".+"$/)) {
+      input.selectionEnd--;
+      input.selectionStart++;
+    }
+
+    this._onKeypress = this._onKeypress.bind(this);
+    this._onBlur = this._onBlur.bind(this);
+    input.addEventListener("keypress", this._onKeypress);
+    input.addEventListener("blur", this._onBlur);
+
+    this._prevExpandable = this._variable.twisty;
+    this._prevExpanded = this._variable.expanded;
+    this._variable.collapse();
+    this._variable.hideArrow();
+    this._variable.locked = true;
+    this._variable._stopThrobber();
+  },
+
+  
+
+
+
+  deactivate: function() {
+    this._input.removeEventListener("keypress", this._onKeypress);
+    this._input.removeEventListener("blur", this.deactivate);
+    this._input.parentNode.replaceChild(this.label, this._input);
+    this._input = null;
+
+    let { boxObject } = this._variable._variablesView;
+    boxObject.scrollBy(-this._variable._target, 0);
+    this._variable.locked = false;
+    this._variable.twisty = this._prevExpandable;
+    this._variable.expanded = this._prevExpanded;
+    this._variable._stopThrobber();
+  },
+
+  
+
+
+  _save: function() {
+    let initial = this.label.getAttribute("value");
+    let current = this._input.value.trim();
+    this.deactivate();
+    if (initial != current) {
+      this._onSave(current);
+    }
+  },
+
+  
+
+
+
+  _next: function() {
+    this._save();
+  },
+
+  
+
+
+
+  _reset: function() {
+    this.deactivate();
+    this._variable.focus();
+  },
+
+  
+
+
+  _onBlur: function() {
+    this.deactivate();
+  },
+
+  
+
+
+  _onKeypress: function(e) {
+    e.stopPropagation();
+
+    switch (e.keyCode) {
+      case e.DOM_VK_TAB:
+        this._next();
+        break;
+      case e.DOM_VK_RETURN:
+      case e.DOM_VK_ENTER:
+        this._save();
+        break;
+      case e.DOM_VK_ESCAPE:
+        this._reset();
+        break;
+    }
+  },
+};
+
+
+
+
+
+function EditableName(aVariable, aOptions) {
+  Editable.call(this, aVariable, aOptions);
+}
+
+EditableName.create = Editable.create;
+
+EditableName.prototype = Heritage.extend(Editable.prototype, {
+  className: "element-name-input",
+
+  get label() {
+    return this._variable._name;
+  },
+
+  get shouldActivate() {
+    return !!this._variable.ownerView.switch;
+  },
+});
+
+
+
+
+
+function EditableValue(aVariable, aOptions) {
+  Editable.call(this, aVariable, aOptions);
+}
+
+EditableValue.create = Editable.create;
+
+EditableValue.prototype = Heritage.extend(Editable.prototype, {
+  className: "element-value-input",
+
+  get label() {
+    return this._variable._valueLabel;
+  },
+
+  get shouldActivate() {
+    return !!this._variable.ownerView.eval;
+  },
+});
+
+
+
+
+
+function EditableNameAndValue(aVariable, aOptions) {
+  EditableName.call(this, aVariable, aOptions);
+}
+
+EditableNameAndValue.create = Editable.create;
+
+EditableNameAndValue.prototype = Heritage.extend(EditableName.prototype, {
+  _reset: function(e) {
+    
+    this._variable.remove();
+    this.deactivate();
+  },
+
+  _next: function(e) {
+    
+    let key = this._input.value;
+    this.label.setAttribute("value", key);
+
+    let valueEditable = EditableValue.create(this._variable, {
+      onSave: aValue => {
+        this._onSave([key, aValue]);
+      },
+      onCleanup: () => {
+        this._onCleanup();
+      }
+    });
+    valueEditable._reset = () => {
+      this._variable.remove();
+      valueEditable.deactivate();
+    };
+  },
+
+  _save: function(e) {
+    
+    this._next(e);
+  }
+});
