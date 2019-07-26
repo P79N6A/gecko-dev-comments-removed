@@ -154,21 +154,6 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
     
     mGLContext->MakeCurrent();
 
-#if defined (MOZ_X11) && defined (MOZ_EGL_XRENDER_COMPOSITE)
-    if (!mForceReadback) {
-      mGLContext->GuaranteeResolve();
-      gfxASurface* offscreenSurface = mGLContext->GetOffscreenPixmapSurface();
-
-      
-      
-      if (offscreenSurface && (mGLBufferIsPremultiplied || (GetContentFlags() & CONTENT_OPAQUE))) {  
-        mSurface = offscreenSurface;
-        mNeedsYFlip = false;
-        return;
-      }
-    }
-#endif
-
     gfxIntSize readSize(mBounds.width, mBounds.height);
     gfxImageFormat format = (GetContentFlags() & CONTENT_OPAQUE)
                               ? gfxASurface::ImageFormatRGB24
@@ -284,14 +269,6 @@ BasicCanvasLayer::PaintWithOpacity(gfxContext* aContext,
   aContext->SetPattern(pat);
 
   FillWithMask(aContext, aOpacity, aMaskLayer);
-
-#if defined (MOZ_X11) && defined (MOZ_EGL_XRENDER_COMPOSITE)
-  if (mGLContext && !mForceReadback) {
-    
-    
-    mGLContext->WaitNative();
-  }
-#endif
 
   
   if (GetContentFlags() & CONTENT_OPAQUE) {
