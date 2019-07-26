@@ -260,8 +260,7 @@ class nsGlobalWindow : public mozilla::dom::EventTarget,
                        public PRCListStr,
                        public nsIDOMWindowPerformance,
                        public nsITouchEventReceiver,
-                       public nsIInlineEventHandlers,
-                       public nsIWindowCrypto
+                       public nsIInlineEventHandlers
 #ifdef MOZ_B2G
                      , public nsIDOMWindowB2G
 #endif 
@@ -331,9 +330,6 @@ public:
 
   
   NS_DECL_NSIINLINEEVENTHANDLERS
-
-  
-  NS_DECL_NSIWINDOWCRYPTO
 
   
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();

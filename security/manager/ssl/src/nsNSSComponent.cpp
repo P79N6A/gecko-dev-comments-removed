@@ -478,52 +478,47 @@ nsNSSComponent::DispatchEvent(const nsAString &eventType,
 
 nsresult
 nsNSSComponent::DispatchEventToWindow(nsIDOMWindow *domWin,
-                      const nsAString &eventType, const nsAString &tokenName)
+                                      const nsAString &eventType,
+                                      const nsAString &tokenName)
 {
-  
-  {
-    nsresult rv;
-    nsCOMPtr<nsIDOMWindowCollection> frames;
-    rv = domWin->GetFrames(getter_AddRefs(frames));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    uint32_t length;
-    frames->GetLength(&length);
-    uint32_t i;
-    for (i = 0; i < length; i++) {
-      nsCOMPtr<nsIDOMWindow> childWin;
-      frames->Item(i, getter_AddRefs(childWin));
-      DispatchEventToWindow(childWin, eventType, tokenName);
-    }
+  if (!domWin) {
+    return NS_OK;
   }
 
   
-  
-  
-  {
-    nsCOMPtr<nsIWindowCrypto> domWindow = do_QueryInterface(domWin);
-    if (!domWindow) {
-      return NS_OK; 
-    }
-
-    nsCOMPtr<nsIDOMCrypto> crypto;
-    domWindow->GetCrypto(getter_AddRefs(crypto));
-    if (!crypto) {
-      return NS_OK; 
-    }
-
-    bool boolrv;
-    crypto->GetEnableSmartCardEvents(&boolrv);
-    if (!boolrv) {
-      return NS_OK; 
-    }
-  }
-
-  
-
   nsresult rv;
+  nsCOMPtr<nsIDOMWindowCollection> frames;
+  rv = domWin->GetFrames(getter_AddRefs(frames));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  uint32_t length;
+  frames->GetLength(&length);
+  uint32_t i;
+  for (i = 0; i < length; i++) {
+    nsCOMPtr<nsIDOMWindow> childWin;
+    frames->Item(i, getter_AddRefs(childWin));
+    DispatchEventToWindow(childWin, eventType, tokenName);
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIDOMCrypto> crypto;
+  domWin->GetCrypto(getter_AddRefs(crypto));
+  if (!crypto) {
+    return NS_OK; 
+  }
+
+  bool boolrv;
+  crypto->GetEnableSmartCardEvents(&boolrv);
+  if (!boolrv) {
+    return NS_OK; 
+  }
+
+  
+
   
   nsCOMPtr<nsIDOMDocument> doc;
   rv = domWin->GetDocument(getter_AddRefs(doc));
@@ -545,9 +540,7 @@ nsNSSComponent::DispatchEventToWindow(nsIDOMWindow *domWin,
     return rv;
   }
 
-  bool boolrv;
-  rv = target->DispatchEvent(smartCardEvent, &boolrv);
-  return rv;
+  return target->DispatchEvent(smartCardEvent, &boolrv);
 }
 #endif 
 
