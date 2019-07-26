@@ -9,7 +9,7 @@
 
 #include "nsIControllerCommandTable.h"
 #include "nsWeakReference.h"
-#include "nsHashtable.h"
+#include "nsInterfaceHashtable.h"
 
 class nsIControllerCommand;
 
@@ -27,8 +27,11 @@ public:
 
 protected:
 
-  nsSupportsHashtable   mCommandsTable;   
-  bool                  mMutable;         
+  
+  nsInterfaceHashtable<nsCStringHashKey, nsIControllerCommand> mCommandsTable;
+
+  
+  bool mMutable;
 };
 
 
