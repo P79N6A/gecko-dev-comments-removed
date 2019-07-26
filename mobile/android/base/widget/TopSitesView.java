@@ -124,6 +124,11 @@ public class TopSitesView extends GridView {
                 
                 
                 View view = getChildAt(info.position);
+                
+                
+                if (view == null) {
+                    return;
+                }
                 TopSitesViewHolder holder = (TopSitesViewHolder) view.getTag();
                 if (TextUtils.isEmpty(holder.getUrl())) {
                     menu.findItem(R.id.abouthome_open_new_tab).setVisible(false);
@@ -288,8 +293,9 @@ public class TopSitesView extends GridView {
 
             
             
-            if (view == null)
+            if (view == null) {
                 continue;
+            }
 
             TopSitesViewHolder holder = (TopSitesViewHolder)view.getTag();
             final String url = holder.getUrl();
@@ -510,6 +516,11 @@ public class TopSitesView extends GridView {
     private void clearThumbnailsWithUrl(final String url) {
         for (int i = 0; i < mTopSitesAdapter.getCount(); i++) {
             final View view = getChildAt(i);
+            
+            
+            if (view == null) {
+                continue;
+            }
             final TopSitesViewHolder holder = (TopSitesViewHolder) view.getTag();
 
             if (holder.getUrl().equals(url)) {
@@ -550,6 +561,11 @@ public class TopSitesView extends GridView {
         final int position = info.position;
 
         final View v = getChildAt(position);
+        
+        
+        if (v == null) {
+            return;
+        }
         final TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
         final String url = holder.getUrl();
         
@@ -568,6 +584,11 @@ public class TopSitesView extends GridView {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         final int position = info.position;
         View v = getChildAt(position);
+        
+        
+        if (v == null) {
+            return;
+        }
 
         final TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
         holder.setPinned(true);
@@ -599,6 +620,11 @@ public class TopSitesView extends GridView {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         int position = info.position;
         View v = getChildAt(position);
+        
+        
+        if (v == null) {
+            return;
+        }
 
         TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
         
@@ -621,6 +647,11 @@ public class TopSitesView extends GridView {
                     return;
 
                 final View v = getChildAt(position);
+                
+                
+                if (v == null) {
+                    return;
+                }
                 final TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
 
                 String title = data.getStringExtra(AwesomeBar.TITLE_KEY);
