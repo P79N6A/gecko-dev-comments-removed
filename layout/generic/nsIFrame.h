@@ -1271,11 +1271,6 @@ public:
   
   bool HasOpacity() const;
 
-   
-
-
-  virtual bool HasTransformGetter() const { return false; }
-
   
 
 
@@ -2230,24 +2225,7 @@ public:
 
 
   virtual void InvalidateFrameForRemoval() {}
-
   
-
-
-
-
-  static void* LayerIsPrerenderedDataKey() { 
-    return &sLayerIsPrerenderedDataKey;
-  }
-  static uint8_t sLayerIsPrerenderedDataKey;
-
-   
-
-
-
-
-  bool TryUpdateTransformOnly();
-
   
 
 

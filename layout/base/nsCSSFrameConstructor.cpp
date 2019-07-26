@@ -7732,47 +7732,30 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
                        nsChangeHint(aChange & (nsChangeHint_RepaintFrame |
                                                nsChangeHint_SyncFrameView |
                                                nsChangeHint_UpdateOpacityLayer)));
-    
-    
-    
-    bool needInvalidatingPaint = false;
 
     
     if (aChange & nsChangeHint_RepaintFrame) {
       if (aFrame->IsFrameOfType(nsIFrame::eSVG) &&
           !(aFrame->GetStateBits() & NS_STATE_IS_OUTER_SVG)) {
         if (aChange & nsChangeHint_UpdateEffects) {
-          needInvalidatingPaint = true;
           
           nsSVGUtils::InvalidateAndScheduleReflowSVG(aFrame);
         } else {
-          needInvalidatingPaint = true;
           
           nsSVGUtils::InvalidateBounds(aFrame);
         }
       } else {
-        needInvalidatingPaint = true;
         aFrame->InvalidateFrameSubtree();
       }
     }
     if (aChange & nsChangeHint_UpdateOpacityLayer) {
-      
-      
-      needInvalidatingPaint = true;
       aFrame->MarkLayersActive(nsChangeHint_UpdateOpacityLayer);
     }
+    
     if (aChange & nsChangeHint_UpdateTransformLayer) {
       aFrame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
-      
-      
-      
-      
-      if (!needInvalidatingPaint) {
-        needInvalidatingPaint |= !aFrame->TryUpdateTransformOnly();
-      }
     }
     if (aChange & nsChangeHint_ChildrenOnlyTransform) {
-      needInvalidatingPaint = true;
       
       
       nsIFrame *f = aFrame->GetContent()->GetPrimaryFrame();
@@ -7784,9 +7767,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
         childFrame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
       }
     }
-    aFrame->SchedulePaint(needInvalidatingPaint ?
-                          nsIFrame::PAINT_DEFAULT :
-                          nsIFrame::PAINT_COMPOSITE_ONLY);
+    aFrame->SchedulePaint();
   }
 }
 

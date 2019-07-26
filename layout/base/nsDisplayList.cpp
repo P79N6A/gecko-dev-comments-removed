@@ -3745,12 +3745,6 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
 
   AddAnimationsAndTransitionsToLayer(container, aBuilder,
                                      this, eCSSProperty_transform);
-  if (ShouldPrerenderTransformedContent(aBuilder, mFrame, false)) {
-    container->SetUserData(nsIFrame::LayerIsPrerenderedDataKey(),
-                           nullptr);
-  } else {
-    container->RemoveUserData(nsIFrame::LayerIsPrerenderedDataKey());
-  }
   return container.forget();
 }
 
@@ -3934,14 +3928,7 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder *aBuilder,
   *aSnap = false;
   nsRect untransformedVisible;
   float factor = nsPresContext::AppUnitsPerCSSPixel();
-  
-  
-  
-  
-  
-  
-  if (ShouldPrerenderTransformedContent(aBuilder, mFrame) ||
-      !UntransformRectMatrix(mVisibleRect, GetTransform(factor), factor, &untransformedVisible)) {
+  if (!UntransformRectMatrix(mVisibleRect, GetTransform(factor), factor, &untransformedVisible)) {
       return nsRegion();
   }
 

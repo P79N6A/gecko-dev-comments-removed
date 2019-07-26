@@ -98,7 +98,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/css/ImageLoader.h"
-#include "mozilla/gfx/Tools.h"
 
 using namespace mozilla;
 using namespace mozilla::layers;
@@ -4883,48 +4882,7 @@ nsIFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
 
   *rect = rect->Union(aRect);
 }
-
- uint8_t nsIFrame::sLayerIsPrerenderedDataKey;
-
-bool
-nsIFrame::TryUpdateTransformOnly()
-{
-  Layer* layer = FrameLayerBuilder::GetDedicatedLayer(
-    this, nsDisplayItem::TYPE_TRANSFORM);
-  if (!layer || !layer->HasUserData(LayerIsPrerenderedDataKey())) {
-    
-    
-    return false;
-  }
-
-  gfx3DMatrix transform3d;
-  if (!nsLayoutUtils::GetLayerTransformForFrame(this, &transform3d)) {
-    
-    
-    
-    return false;
-  }
-  gfxMatrix transform, previousTransform;
   
-  
-  
-  
-  
-  
-  
- static const gfx::Float kError = 0.0001;
-  if (!transform3d.Is2D(&transform) ||
-      !layer->GetTransform().Is2D(&previousTransform) ||
-      !gfx::FuzzyEqual(transform.xx, previousTransform.xx, kError) ||
-      !gfx::FuzzyEqual(transform.yy, previousTransform.yy, kError) ||
-      !gfx::FuzzyEqual(transform.xy, previousTransform.xy, kError) ||
-      !gfx::FuzzyEqual(transform.yx, previousTransform.yx, kError)) {
-    return false;
-  }
-  layer->SetBaseTransformForNextTransaction(transform3d);
-  return true;
-}
-
 bool 
 nsIFrame::IsInvalid(nsRect& aRect)
 {
