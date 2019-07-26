@@ -4214,6 +4214,7 @@ RILNetworkInterface.prototype = {
   NETWORK_TYPE_MOBILE:      Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE,
   NETWORK_TYPE_MOBILE_MMS:  Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS,
   NETWORK_TYPE_MOBILE_SUPL: Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL,
+  NETWORK_TYPE_MOBILE_IMS:  Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_IMS,
   
   
   
@@ -4245,6 +4246,9 @@ RILNetworkInterface.prototype = {
     }
     if (this.connectedTypes.indexOf("supl") != -1) {
       return this.NETWORK_TYPE_MOBILE_SUPL;
+    }
+    if (this.connectedTypes.indexOf("ims") != -1) {
+      return this.NETWORK_TYPE_MOBILE_IMS;
     }
     return this.NETWORK_TYPE_MOBILE_OTHERS;
   },
