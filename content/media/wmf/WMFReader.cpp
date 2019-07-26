@@ -438,21 +438,17 @@ WMFReader::ConfigureAudioDecoder()
   return S_OK;
 }
 
-nsresult
-WMFReader::ReadMetadata(MediaInfo* aInfo,
-                        MetadataTags** aTags)
+HRESULT
+WMFReader::CreateSourceReader()
 {
-  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-
-  DECODER_LOG("WMFReader::ReadMetadata()");
   HRESULT hr;
 
   RefPtr<IMFAttributes> attr;
   hr = wmf::MFCreateAttributes(byRef(attr), 1);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   hr = attr->SetUnknown(MF_SOURCE_READER_ASYNC_CALLBACK, mSourceReaderCallback);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   if (mUseHwAccel) {
     hr = attr->SetUnknown(MF_SOURCE_READER_D3D_MANAGER,
@@ -464,13 +460,13 @@ WMFReader::ReadMetadata(MediaInfo* aInfo,
   }
 
   hr = wmf::MFCreateSourceReaderFromByteStream(mByteStream, attr, byRef(mSourceReader));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   hr = ConfigureVideoDecoder();
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   hr = ConfigureAudioDecoder();
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   if (mUseHwAccel && mInfo.mVideo.mHasVideo) {
     RefPtr<IMFTransform> videoDecoder;
@@ -494,14 +490,40 @@ WMFReader::ReadMetadata(MediaInfo* aInfo,
     if (FAILED(hr)) {
       DECODER_LOG("Failed to set DXVA2 D3D Device manager on decoder hr=0x%x", hr);
       mUseHwAccel = false;
-      
-      
-      
-      
-      
-      hr = ConfigureVideoDecoder();
     }
   }
+  return hr;
+}
+
+nsresult
+WMFReader::ReadMetadata(MediaInfo* aInfo,
+                        MetadataTags** aTags)
+{
+  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
+
+  DECODER_LOG("WMFReader::ReadMetadata()");
+  HRESULT hr;
+
+  const bool triedToInitDXVA = mUseHwAccel;
+  hr = CreateSourceReader();
+  if (FAILED(hr)) {
+    mSourceReader = nullptr;
+    if (triedToInitDXVA && !mUseHwAccel) {
+      
+      
+      
+      
+      
+      
+      hr = CreateSourceReader();
+      if (FAILED(hr)) {
+        NS_WARNING("Failed to create IMFSourceReader");
+        mSourceReader = nullptr;
+        return NS_ERROR_FAILURE;
+      }
+    }
+  }
+
   if (mInfo.HasVideo()) {
     DECODER_LOG("Using DXVA: %s", (mUseHwAccel ? "Yes" : "No"));
   }
