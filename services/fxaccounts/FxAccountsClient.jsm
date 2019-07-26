@@ -95,13 +95,42 @@ this.FxAccountsClient.prototype = {
 
 
 
-  signIn: function signIn(email, password) {
+  signIn: function signIn(email, password, retryOK=true) {
     return Credentials.setup(email, password).then((creds) => {
       let data = {
         email: creds.emailUTF8,
         authPW: CommonUtils.bytesAsHex(creds.authPW),
       };
-      return this._request("/account/login", "POST", null, data);
+      return this._request("/account/login", "POST", null, data).then(
+        
+        
+        result => {
+          result.email = data.email;
+          return result;
+        },
+        error => {
+          log.debug("signIn error: " + JSON.stringify(error));
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          if (ERRNO_INCORRECT_EMAIL_CASE === error.errno && retryOK) {
+            if (!error.email) {
+              log.error("Server returned errno 120 but did not provide email");
+              throw error;
+            }
+            return this.signIn(error.email, password, false);
+          }
+          throw error;
+        }
+      );
     });
   },
 
@@ -315,7 +344,7 @@ this.FxAccountsClient.prototype = {
       },
 
       (error) => {
-        log.error("request error: " + JSON.stringify(error));
+        log.error("error " + method + "ing " + path + ": " + JSON.stringify(error));
         deferred.reject(error);
       }
     );
