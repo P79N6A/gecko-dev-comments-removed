@@ -160,7 +160,9 @@ class AudioEventTimeline
 {
 public:
   explicit AudioEventTimeline(float aDefaultValue)
-    : mValue(aDefaultValue)
+    : mValue(aDefaultValue),
+      mComputedValue(aDefaultValue),
+      mLastComputedValue(aDefaultValue)
   {
   }
 
@@ -186,7 +188,7 @@ public:
   {
     
     if (mEvents.IsEmpty()) {
-      mValue = aValue;
+      mLastComputedValue = mComputedValue = mValue = aValue;
     }
   }
 
@@ -237,9 +239,29 @@ public:
     mEvents.Clear();
   }
 
+  static bool TimesEqual(int64_t aLhs, int64_t aRhs)
+  {
+    return aLhs == aRhs;
+  }
+
+  
+  
+  static bool TimesEqual(double aLhs, double aRhs)
+  {
+    const float kEpsilon = 0.0000000001f;
+    return fabs(aLhs - aRhs) < kEpsilon;
+  }
+
+  template<class TimeType>
+  float GetValueAtTime(TimeType aTime)
+  {
+    mComputedValue = GetValueAtTimeHelper(aTime);
+    return mComputedValue;
+  }
+
   
   template<class TimeType>
-  float GetValueAtTime(TimeType aTime) const
+  float GetValueAtTimeHelper(TimeType aTime)
   {
     const AudioTimelineEvent* previous = nullptr;
     const AudioTimelineEvent* next = nullptr;
@@ -252,7 +274,8 @@ public:
       case AudioTimelineEvent::LinearRamp:
       case AudioTimelineEvent::ExponentialRamp:
       case AudioTimelineEvent::SetValueCurve:
-        if (aTime == mEvents[i].template Time<TimeType>()) {
+        if (TimesEqual(aTime, mEvents[i].template Time<TimeType>())) {
+          mLastComputedValue = mComputedValue;
           
           do {
             ++i;
@@ -262,8 +285,9 @@ public:
           
           if (mEvents[i - 1].mType == AudioTimelineEvent::SetTarget) {
             
+            
             return ExponentialApproach(mEvents[i - 1].template Time<TimeType>(),
-                                       mValue, mEvents[i - 1].mValue,
+                                       mLastComputedValue, mEvents[i - 1].mValue,
                                        mEvents[i - 1].mTimeConstant, aTime);
           }
 
@@ -306,8 +330,8 @@ public:
 
     
     if (previous->mType == AudioTimelineEvent::SetTarget) {
-      
-      return ExponentialApproach(previous->template Time<TimeType>(), mValue, previous->mValue,
+      return ExponentialApproach(previous->template Time<TimeType>(),
+                                 mLastComputedValue, previous->mValue,
                                  previous->mTimeConstant, aTime);
     }
 
@@ -540,6 +564,10 @@ private:
   
   nsTArray<AudioTimelineEvent> mEvents;
   float mValue;
+  
+  float mComputedValue;
+  
+  float mLastComputedValue;
 };
 
 }

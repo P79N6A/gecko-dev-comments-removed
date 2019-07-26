@@ -314,6 +314,15 @@ void TestAfterLastTargetValueEventWithValueSet()
 
   timeline.SetValue(50.f);
   timeline.SetTargetAtTime(20.0f, 1.0, 5.0, rv);
+
+  
+  
+  
+  
+  for (double i = 0.0; i < 9.99; i+=0.01) {
+    timeline.GetValueAtTime(i);
+  }
+
   is(timeline.GetValueAtTime(10.), (20.f + (50.f - 20.f) * expf(-9.0f / 5.0f)), "Return the value after SetValue and the last SetTarget event based on the curve");
 }
 
