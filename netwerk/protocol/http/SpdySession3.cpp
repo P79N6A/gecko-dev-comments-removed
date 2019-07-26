@@ -1330,6 +1330,7 @@ SpdySession3::HandleWindowUpdate(SpdySession3 *self)
   }
 
   self->ResetDownstreamState();
+  self->ResumeRecv();
   return NS_OK;
 }
 
@@ -1432,6 +1433,10 @@ SpdySession3::ReadSegments(nsAHttpSegmentReader *reader,
   
   FlushOutputQueue();
 
+  
+  
+  ResumeRecv();
+
   if (stream->RequestBlockedOnRead()) {
     
     
@@ -1475,9 +1480,6 @@ SpdySession3::ReadSegments(nsAHttpSegmentReader *reader,
   LOG3(("SpdySession3::ReadSegments %p stream=%p stream send complete",
         this, stream));
   
-  
-  ResumeRecv();
-
   
   
   SetWriteCallbacks();
