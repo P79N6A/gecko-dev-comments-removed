@@ -118,11 +118,6 @@ private:
     
     static nsIPrincipal* doGetObjectPrincipal(JSObject* obj);
 
-    
-    
-    nsIPrincipal*
-    doGetSubjectPrincipal(nsresult* rv);
-
     nsresult
     GetCodebasePrincipalInternal(nsIURI* aURI, uint32_t aAppId,
                                  bool aInMozBrowser,
@@ -131,12 +126,6 @@ private:
     nsresult
     CreateCodebasePrincipal(nsIURI* aURI, uint32_t aAppId, bool aInMozBrowser,
                             nsIPrincipal** result);
-
-    
-    
-    
-    nsIPrincipal*
-    GetSubjectPrincipal(JSContext* cx, nsresult* rv);
 
     nsresult
     Init();
