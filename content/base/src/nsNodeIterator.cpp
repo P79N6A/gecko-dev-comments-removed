@@ -209,13 +209,6 @@ NS_IMETHODIMP nsNodeIterator::GetFilter(nsIDOMNodeFilter **aFilter)
 }
 
 
-NS_IMETHODIMP nsNodeIterator::GetExpandEntityReferences(bool *aExpandEntityReferences)
-{
-    *aExpandEntityReferences = false;
-    return NS_OK;
-}
-
-
 NS_IMETHODIMP nsNodeIterator::NextNode(nsIDOMNode **_retval)
 {
     return NextOrPrevNode(&NodePointer::MoveToNext, _retval);

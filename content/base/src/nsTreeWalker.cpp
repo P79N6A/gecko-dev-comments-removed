@@ -88,14 +88,6 @@ NS_IMETHODIMP nsTreeWalker::GetFilter(nsIDOMNodeFilter * *aFilter)
 }
 
 
-NS_IMETHODIMP
-nsTreeWalker::GetExpandEntityReferences(bool *aExpandEntityReferences)
-{
-    *aExpandEntityReferences = false;
-    return NS_OK;
-}
-
-
 NS_IMETHODIMP nsTreeWalker::GetCurrentNode(nsIDOMNode * *aCurrentNode)
 {
     if (mCurrentNode) {
