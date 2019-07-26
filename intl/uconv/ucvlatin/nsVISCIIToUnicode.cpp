@@ -5,6 +5,9 @@
 
 #include "nsVISCIIToUnicode.h"
 #include "nsUCConstructors.h"
+#include "mozilla/Telemetry.h"
+
+using namespace mozilla;
 
 
 
@@ -17,6 +20,7 @@ nsVISCIIToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
 #include "viscii.ut"
   };
 
+  Telemetry::Accumulate(Telemetry::DECODER_INSTANTIATED_VISCII, true);
   return CreateOneByteDecoder((uMappingTable*) &g_utMappingTable,
                               aOuter, aIID, aResult);
 }

@@ -5,6 +5,9 @@
 
 #include "nsUCConstructors.h"
 #include "nsMacHebrewToUnicode.h"
+#include "mozilla/Telemetry.h"
+
+using namespace mozilla;
 
 
 
@@ -17,6 +20,7 @@ nsMacHebrewToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
 #include "machebrew.ut"
    };
 
+   Telemetry::Accumulate(Telemetry::DECODER_INSTANTIATED_MACHEBREW, true);
    return CreateOneByteDecoder((uMappingTable*) &g_utMappingTable,
                                aOuter, aIID, aResult);
 }
