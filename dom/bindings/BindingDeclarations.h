@@ -326,6 +326,59 @@ public:
   {}
 };
 
+class RootedJSValue
+{
+public:
+  RootedJSValue()
+    : mCx(nullptr)
+  {}
+
+  ~RootedJSValue()
+  {
+    if (mCx) {
+      JS_RemoveValueRoot(mCx, &mValue);
+    }
+  }
+
+  bool SetValue(JSContext* aCx, JS::Value aValue)
+  {
+    
+    
+    MOZ_ASSERT_IF(!aValue.isNull(), aCx);
+
+    
+    
+    
+    if (!aValue.isNull() && !mCx) {
+      if (!JS_AddNamedValueRoot(aCx, &mValue, "RootedJSValue::mValue")) {
+        return false;
+      }
+      mCx = aCx;
+    }
+
+    mValue = aValue;
+    return true;
+  }
+
+  operator JS::Value()
+  {
+    return mValue;
+  }
+
+  operator const JS::Value() const
+  {
+    return mValue;
+  }
+
+private:
+  
+  
+  RootedJSValue(const RootedJSValue&) MOZ_DELETE;
+
+  JS::Value mValue;
+  JSContext* mCx;
+};
+
 } 
 } 
 
