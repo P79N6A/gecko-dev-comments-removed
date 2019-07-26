@@ -197,11 +197,9 @@ class MOZ_STACK_CLASS nsWSRunObject
     
     
     
-    
-    
-    static nsresult PrepareToSplitAcrossBlocks(nsHTMLEditor *aHTMLEd, 
-                                               nsCOMPtr<nsIDOMNode> *aSplitNode, 
-                                               int32_t *aSplitOffset);
+    static nsresult PrepareToSplitAcrossBlocks(nsHTMLEditor* aHTMLEd,
+                                               nsCOMPtr<nsINode>* aSplitNode,
+                                               int32_t* aSplitOffset);
 
     
     
