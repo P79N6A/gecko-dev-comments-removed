@@ -5,14 +5,13 @@
 
 
 nsTAdoptingString_CharT&
-nsTAdoptingString_CharT::operator=( const self_type& str )
+nsTAdoptingString_CharT::operator=(const self_type& str)
 {
   
   
   self_type* mutable_str = const_cast<self_type*>(&str);
 
-  if (str.mFlags & F_OWNED)
-  {
+  if (str.mFlags & F_OWNED) {
     
     
     
@@ -24,10 +23,8 @@ nsTAdoptingString_CharT::operator=( const self_type& str )
     SetDataFlags(F_TERMINATED | F_OWNED);
 
     
-    new (mutable_str) self_type();
-  }
-  else
-  {
+    new(mutable_str) self_type();
+  } else {
     Assign(str);
 
     mutable_str->Truncate();
@@ -37,7 +34,7 @@ nsTAdoptingString_CharT::operator=( const self_type& str )
 }
 
 void
-nsTString_CharT::Rebind( const char_type* data, size_type length )
+nsTString_CharT::Rebind(const char_type* data, size_type length)
 {
   
   Finalize();

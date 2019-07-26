@@ -28,15 +28,21 @@ public:
 
 public:
 
-  nsTSubstringTuple_CharT(const base_string_type* a, const base_string_type* b)
+  nsTSubstringTuple_CharT(const base_string_type* aStrA,
+                          const base_string_type* aStrB)
     : mHead(nullptr)
-    , mFragA(a)
-    , mFragB(b) {}
+    , mFragA(aStrA)
+    , mFragB(aStrB)
+  {
+  }
 
-  nsTSubstringTuple_CharT(const self_type& head, const base_string_type* b)
-    : mHead(&head)
+  nsTSubstringTuple_CharT(const self_type& aHead,
+                          const base_string_type* aStrB)
+    : mHead(&aHead)
     , mFragA(nullptr) 
-    , mFragB(b) {}
+    , mFragB(aStrB)
+  {
+  }
 
   
 
@@ -48,13 +54,13 @@ public:
 
 
 
-  void WriteTo(char_type *buf, uint32_t bufLen) const;
+  void WriteTo(char_type* aBuf, uint32_t aBufLen) const;
 
   
 
 
 
-  bool IsDependentOn(const char_type *start, const char_type *end) const;
+  bool IsDependentOn(const char_type* aStart, const char_type* aEnd) const;
 
 private:
 
@@ -63,16 +69,16 @@ private:
   const base_string_type* mFragB;
 };
 
-inline
-const nsTSubstringTuple_CharT
-operator+(const nsTSubstringTuple_CharT::base_string_type& a, const nsTSubstringTuple_CharT::base_string_type& b)
+inline const nsTSubstringTuple_CharT
+operator+(const nsTSubstringTuple_CharT::base_string_type& aStrA,
+          const nsTSubstringTuple_CharT::base_string_type& aStrB)
 {
-  return nsTSubstringTuple_CharT(&a, &b);
+  return nsTSubstringTuple_CharT(&aStrA, &aStrB);
 }
 
-inline
-const nsTSubstringTuple_CharT
-operator+(const nsTSubstringTuple_CharT& head, const nsTSubstringTuple_CharT::base_string_type& b)
+inline const nsTSubstringTuple_CharT
+operator+(const nsTSubstringTuple_CharT& aHead,
+          const nsTSubstringTuple_CharT::base_string_type& aStrB)
 {
-  return nsTSubstringTuple_CharT(head, &b);
+  return nsTSubstringTuple_CharT(aHead, &aStrB);
 }

@@ -45,7 +45,7 @@ public:
 
 
 
-  static already_AddRefed<nsStringBuffer> Alloc(size_t storageSize);
+  static already_AddRefed<nsStringBuffer> Alloc(size_t aStorageSize);
 
   
 
@@ -58,7 +58,7 @@ public:
 
 
 
-  static nsStringBuffer* Realloc(nsStringBuffer* buf, size_t storageSize);
+  static nsStringBuffer* Realloc(nsStringBuffer* aBuf, size_t aStorageSize);
 
   
 
@@ -76,9 +76,9 @@ public:
 
 
 
-  static nsStringBuffer* FromData(void* data)
+  static nsStringBuffer* FromData(void* aData)
   {
-    return reinterpret_cast<nsStringBuffer*> (data) - 1;
+    return reinterpret_cast<nsStringBuffer*>(aData) - 1;
   }
 
   
@@ -86,7 +86,7 @@ public:
 
   void* Data() const
   {
-    return const_cast<char*> (reinterpret_cast<const char*> (this + 1));
+    return const_cast<char*>(reinterpret_cast<const char*>(this + 1));
   }
 
   
@@ -120,8 +120,8 @@ public:
 
 
 
-  static nsStringBuffer* FromString(const nsAString &str);
-  static nsStringBuffer* FromString(const nsACString &str);
+  static nsStringBuffer* FromString(const nsAString& aStr);
+  static nsStringBuffer* FromString(const nsACString& aStr);
 
   
 
@@ -137,10 +137,8 @@ public:
 
 
 
-  void ToString(uint32_t len, nsAString &str,
-                bool aMoveOwnership = false);
-  void ToString(uint32_t len, nsACString &str,
-                bool aMoveOwnership = false);
+  void ToString(uint32_t aLen, nsAString& aStr, bool aMoveOwnership = false);
+  void ToString(uint32_t aLen, nsACString& aStr, bool aMoveOwnership = false);
 
   
 
