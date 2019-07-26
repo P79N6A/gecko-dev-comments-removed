@@ -4,10 +4,13 @@
 
 
 
+#include "MIR.h"
+
+#include "mozilla/Casting.h"
+
 #include "BaselineInspector.h"
 #include "IonBuilder.h"
 #include "LICM.h" 
-#include "MIR.h"
 #include "MIRGraph.h"
 #include "EdgeCaseAnalysis.h"
 #include "RangeAnalysis.h"
@@ -19,6 +22,8 @@
 
 using namespace js;
 using namespace js::ion;
+
+using mozilla::BitwiseCast;
 
 void
 MDefinition::PrintOpcodeName(FILE *fp, MDefinition::Opcode op)
@@ -863,10 +868,9 @@ IsConstant(MDefinition *def, double v)
         return false;
 
     
-    mozilla::detail::DoublePun lhs, rhs;
-    lhs.d = def->toConstant()->value().toNumber();
-    rhs.d = v;
-    return lhs.u == rhs.u;
+    uint64_t lhs = BitwiseCast<uint64_t>(def->toConstant()->value().toNumber());
+    uint64_t rhs = BitwiseCast<uint64_t>(v);
+    return lhs == rhs;
 }
 
 MDefinition *
