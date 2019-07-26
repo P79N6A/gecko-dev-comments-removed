@@ -2426,21 +2426,39 @@ class FunctionCompiler
         curBlock_ = nullptr;
     }
 
-    bool branchAndStartThen(MDefinition *cond, MBasicBlock **thenBlock, MBasicBlock **elseBlock, ParseNode *thenPn, ParseNode* elsePn)
+    bool branchAndStartThen(MDefinition *cond, MBasicBlock **thenBlock, MBasicBlock **elseBlock,
+                            ParseNode *thenPn, ParseNode* elsePn)
     {
-        if (!curBlock_) {
-            *thenBlock = nullptr;
-            *elseBlock = nullptr;
+        if (!curBlock_)
             return true;
-        }
-        if (!newBlock(curBlock_, thenBlock, thenPn) || !newBlock(curBlock_, elseBlock, elsePn))
+
+        bool hasThenBlock = *thenBlock != nullptr;
+        bool hasElseBlock = *elseBlock != nullptr;
+
+        if (!hasThenBlock && !newBlock(curBlock_, thenBlock, thenPn))
             return false;
+        if (!hasElseBlock && !newBlock(curBlock_, elseBlock, thenPn))
+            return false;
+
         curBlock_->end(MTest::New(alloc(), cond, *thenBlock, *elseBlock));
+
+        
+        if (hasThenBlock && !(*thenBlock)->addPredecessor(alloc(), curBlock_))
+            return false;
+        if (hasElseBlock && !(*elseBlock)->addPredecessor(alloc(), curBlock_))
+            return false;
+
         curBlock_ = *thenBlock;
+        mirGraph().moveBlockToEnd(curBlock_);
         return true;
     }
 
-    bool appendThenBlock(BlockVector *thenBlocks) {
+    void assertCurrentBlockIs(MBasicBlock *block) {
+        JS_ASSERT(curBlock_ == block);
+    }
+
+    bool appendThenBlock(BlockVector *thenBlocks)
+    {
         if (!curBlock_)
             return true;
         return thenBlocks->append(curBlock_);
@@ -4298,7 +4316,7 @@ CheckConditional(FunctionCompiler &f, ParseNode *ternary, MDefinition **def, Typ
     if (!condType.isInt())
         return f.failf(cond, "%s is not a subtype of int", condType.toChars());
 
-    MBasicBlock *thenBlock, *elseBlock;
+    MBasicBlock *thenBlock = nullptr, *elseBlock = nullptr;
     if (!f.branchAndStartThen(condDef, &thenBlock, &elseBlock, thenExpr, elseExpr))
         return false;
 
@@ -4857,6 +4875,150 @@ CheckLabel(FunctionCompiler &f, ParseNode *labeledStmt, LabelVector *maybeLabels
 }
 
 static bool
+CheckLeafCondition(FunctionCompiler &f, ParseNode *cond, ParseNode *thenStmt, ParseNode *elseOrJoinStmt,
+                   MBasicBlock **thenBlock, MBasicBlock **elseOrJoinBlock)
+{
+    MDefinition *condDef;
+    Type condType;
+    if (!CheckExpr(f, cond, &condDef, &condType))
+        return false;
+    if (!condType.isInt())
+        return f.failf(cond, "%s is not a subtype of int", condType.toChars());
+
+    if (!f.branchAndStartThen(condDef, thenBlock, elseOrJoinBlock, thenStmt, elseOrJoinStmt))
+        return false;
+    return true;
+}
+
+static bool
+CheckIfCondition(FunctionCompiler &f, ParseNode *cond, ParseNode *thenStmt, ParseNode *elseOrJoinStmt,
+                 MBasicBlock **thenBlock, MBasicBlock **elseOrJoinBlock);
+
+static bool
+CheckIfConditional(FunctionCompiler &f, ParseNode *conditional, ParseNode *thenStmt, ParseNode *elseOrJoinStmt,
+                   MBasicBlock **thenBlock, MBasicBlock **elseOrJoinBlock)
+{
+    JS_ASSERT(conditional->isKind(PNK_CONDITIONAL));
+
+    
+    
+    
+    ParseNode *cond = TernaryKid1(conditional);
+    ParseNode *lhs = TernaryKid2(conditional);
+    ParseNode *rhs = TernaryKid3(conditional);
+
+    MBasicBlock *maybeAndTest = nullptr, *maybeOrTest = nullptr;
+    MBasicBlock **ifTrueBlock = &maybeAndTest, **ifFalseBlock = &maybeOrTest;
+    ParseNode *ifTrueBlockNode = lhs, *ifFalseBlockNode = rhs;
+
+    
+    uint32_t andTestLiteral = 0;
+    bool skipAndTest = false;
+
+    if (IsLiteralInt(f.m(), lhs, &andTestLiteral)) {
+        skipAndTest = true;
+        if (andTestLiteral == 0) {
+            
+            
+            ifTrueBlock = elseOrJoinBlock;
+            ifTrueBlockNode = elseOrJoinStmt;
+        } else {
+            
+            
+            ifTrueBlock = thenBlock;
+            ifTrueBlockNode = thenStmt;
+        }
+    }
+
+    
+    uint32_t orTestLiteral = 0;
+    bool skipOrTest = false;
+
+    if (IsLiteralInt(f.m(), rhs, &orTestLiteral)) {
+        skipOrTest = true;
+        if (orTestLiteral == 0) {
+            
+            
+            ifFalseBlock = elseOrJoinBlock;
+            ifFalseBlockNode = elseOrJoinStmt;
+        } else {
+            
+            
+            ifFalseBlock = thenBlock;
+            ifFalseBlockNode = thenStmt;
+        }
+    }
+
+    
+    
+    
+    
+    
+    
+    if (skipOrTest && skipAndTest && (!!orTestLiteral == !!andTestLiteral))
+        return CheckLeafCondition(f, conditional, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock);
+
+    if (!CheckIfCondition(f, cond, ifTrueBlockNode, ifFalseBlockNode, ifTrueBlock, ifFalseBlock))
+        return false;
+    f.assertCurrentBlockIs(*ifTrueBlock);
+
+    
+    if (!skipAndTest) {
+        if (!CheckIfCondition(f, lhs, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock))
+            return false;
+        f.assertCurrentBlockIs(*thenBlock);
+    }
+
+    if (!skipOrTest) {
+        f.switchToElse(*ifFalseBlock);
+        if (!CheckIfCondition(f, rhs, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock))
+            return false;
+        f.assertCurrentBlockIs(*thenBlock);
+    }
+
+    
+    if (ifTrueBlock == elseOrJoinBlock) {
+        JS_ASSERT(skipAndTest && andTestLiteral == 0);
+        f.switchToElse(*thenBlock);
+    }
+
+    
+    f.assertCurrentBlockIs(*thenBlock);
+    JS_ASSERT(*thenBlock && *elseOrJoinBlock);
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+static bool
+CheckIfCondition(FunctionCompiler &f, ParseNode *cond, ParseNode *thenStmt,
+                 ParseNode *elseOrJoinStmt, MBasicBlock **thenBlock, MBasicBlock **elseOrJoinBlock)
+{
+    JS_CHECK_RECURSION_DONT_REPORT(f.cx(), return f.m().failOverRecursed());
+
+    if (cond->isKind(PNK_CONDITIONAL))
+        return CheckIfConditional(f, cond, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock);
+
+    
+    JS_ASSERT(!cond->isKind(PNK_CONDITIONAL));
+    if (!CheckLeafCondition(f, cond, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock))
+        return false;
+
+    
+    f.assertCurrentBlockIs(*thenBlock);
+    JS_ASSERT(*thenBlock && *elseOrJoinBlock);
+    return true;
+}
+
+static bool
 CheckIf(FunctionCompiler &f, ParseNode *ifStmt)
 {
     
@@ -4872,21 +5034,10 @@ CheckIf(FunctionCompiler &f, ParseNode *ifStmt)
     ParseNode *thenStmt = TernaryKid2(ifStmt);
     ParseNode *elseStmt = TernaryKid3(ifStmt);
 
-    MDefinition *condDef;
-    Type condType;
-    if (!CheckExpr(f, cond, &condDef, &condType))
-        return false;
+    MBasicBlock *thenBlock = nullptr, *elseBlock = nullptr;
+    ParseNode *elseOrJoinStmt = elseStmt ? elseStmt : nextStmt;
 
-    if (!condType.isInt())
-        return f.failf(cond, "%s is not a subtype of int", condType.toChars());
-
-    MBasicBlock *thenBlock, *elseBlock;
-
-    
-    
-    ParseNode *elseBlockStmt = elseStmt ? elseStmt : nextStmt;
-
-    if (!f.branchAndStartThen(condDef, &thenBlock, &elseBlock, thenStmt, elseBlockStmt))
+    if (!CheckIfCondition(f, cond, thenStmt, elseOrJoinStmt, &thenBlock, &elseBlock))
         return false;
 
     if (!CheckStatement(f, thenStmt))
