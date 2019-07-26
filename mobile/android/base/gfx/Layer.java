@@ -3,63 +3,37 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.gfx;
 
-import android.graphics.Point;
-import android.graphics.PointF;
+import org.mozilla.gecko.util.FloatUtils;
+
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Region;
-import android.util.Log;
+
+import java.nio.FloatBuffer;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.microedition.khronos.opengles.GL10;
-import org.mozilla.gecko.FloatUtils;
 
 public abstract class Layer {
     private final ReentrantLock mTransactionLock;
     private boolean mInTransaction;
-    private Point mNewOrigin;
+    private Rect mNewPosition;
     private float mNewResolution;
-    private LayerView mView;
 
-    protected Point mOrigin;
+    protected Rect mPosition;
     protected float mResolution;
 
     public Layer() {
+        this(null);
+    }
+
+    public Layer(IntSize size) {
         mTransactionLock = new ReentrantLock();
-        mOrigin = new Point(0, 0);
+        if (size == null) {
+            mPosition = new Rect();
+        } else {
+            mPosition = new Rect(0, 0, size.width, size.height);
+        }
         mResolution = 1.0f;
     }
 
@@ -67,7 +41,7 @@ public abstract class Layer {
 
 
 
-    public final boolean update(GL10 gl, RenderContext context) {
+    public final boolean update(RenderContext context) {
         if (mTransactionLock.isHeldByCurrentThread()) {
             throw new RuntimeException("draw() called while transaction lock held by this " +
                                        "thread?!");
@@ -75,7 +49,8 @@ public abstract class Layer {
 
         if (mTransactionLock.tryLock()) {
             try {
-                return performUpdates(gl, context);
+                performUpdates(context);
+                return true;
             } finally {
                 mTransactionLock.unlock();
             }
@@ -88,14 +63,8 @@ public abstract class Layer {
     public abstract void draw(RenderContext context);
 
     
-    public abstract IntSize getSize();
-
-    
-    protected RectF getBounds(RenderContext context, FloatSize size) {
-        float scaleFactor = context.zoomFactor / mResolution;
-        float x = mOrigin.x * scaleFactor, y = mOrigin.y * scaleFactor;
-        float width = size.width * scaleFactor, height = size.height * scaleFactor;
-        return new RectF(x, y, x + width, y + height);
+    protected RectF getBounds(RenderContext context) {
+        return RectUtils.scale(new RectF(mPosition), context.zoomFactor / mResolution);
     }
 
     
@@ -104,7 +73,7 @@ public abstract class Layer {
 
 
     public Region getValidRegion(RenderContext context) {
-        return new Region(RectUtils.round(getBounds(context, new FloatSize(getSize()))));
+        return new Region(RectUtils.round(getBounds(context)));
     }
 
     
@@ -114,17 +83,12 @@ public abstract class Layer {
 
 
 
-    public void beginTransaction(LayerView aView) {
+    public void beginTransaction() {
         if (mTransactionLock.isHeldByCurrentThread())
             throw new RuntimeException("Nested transactions are not supported");
         mTransactionLock.lock();
-        mView = aView;
         mInTransaction = true;
         mNewResolution = mResolution;
-    }
-
-    public void beginTransaction() {
-        beginTransaction(null);
     }
 
     
@@ -133,9 +97,6 @@ public abstract class Layer {
             throw new RuntimeException("endTransaction() called outside a transaction");
         mInTransaction = false;
         mTransactionLock.unlock();
-
-        if (mView != null)
-            mView.requestRender();
     }
 
     
@@ -144,15 +105,15 @@ public abstract class Layer {
     }
 
     
-    public Point getOrigin() {
-        return mOrigin;
+    public Rect getPosition() {
+        return mPosition;
     }
 
     
-    public void setOrigin(Point newOrigin) {
+    public void setPosition(Rect newPosition) {
         if (!mInTransaction)
-            throw new RuntimeException("setOrigin() is only valid inside a transaction");
-        mNewOrigin = newOrigin;
+            throw new RuntimeException("setPosition() is only valid inside a transaction");
+        mNewPosition = newPosition;
     }
 
     
@@ -177,28 +138,66 @@ public abstract class Layer {
 
 
 
-    protected boolean performUpdates(GL10 gl, RenderContext context) {
-        if (mNewOrigin != null) {
-            mOrigin = mNewOrigin;
-            mNewOrigin = null;
+    protected void performUpdates(RenderContext context) {
+        if (mNewPosition != null) {
+            mPosition = mNewPosition;
+            mNewPosition = null;
         }
         if (mNewResolution != 0.0f) {
             mResolution = mNewResolution;
             mNewResolution = 0.0f;
         }
+    }
 
-        return true;
+    
+
+
+
+
+    protected final void fillRectCoordBuffer(float[] dest, RectF rect, float viewWidth, float viewHeight,
+                                             Rect cropRect, float texWidth, float texHeight) {
+        
+        dest[0] = rect.left / viewWidth;
+        dest[1] = rect.bottom / viewHeight;
+        dest[2] = 0;
+        dest[3] = cropRect.left / texWidth;
+        dest[4] = cropRect.top / texHeight;
+
+        dest[5] = rect.left / viewWidth;
+        dest[6] = rect.top / viewHeight;
+        dest[7] = 0;
+        dest[8] = cropRect.left / texWidth;
+        dest[9] = cropRect.bottom / texHeight;
+
+        dest[10] = rect.right / viewWidth;
+        dest[11] = rect.bottom / viewHeight;
+        dest[12] = 0;
+        dest[13] = cropRect.right / texWidth;
+        dest[14] = cropRect.top / texHeight;
+
+        dest[15] = rect.right / viewWidth;
+        dest[16] = rect.top / viewHeight;
+        dest[17] = 0;
+        dest[18] = cropRect.right / texWidth;
+        dest[19] = cropRect.bottom / texHeight;
     }
 
     public static class RenderContext {
         public final RectF viewport;
-        public final FloatSize pageSize;
+        public final RectF pageRect;
         public final float zoomFactor;
+        public final int positionHandle;
+        public final int textureHandle;
+        public final FloatBuffer coordBuffer;
 
-        public RenderContext(RectF aViewport, FloatSize aPageSize, float aZoomFactor) {
+        public RenderContext(RectF aViewport, RectF aPageRect, float aZoomFactor,
+                             int aPositionHandle, int aTextureHandle, FloatBuffer aCoordBuffer) {
             viewport = aViewport;
-            pageSize = aPageSize;
+            pageRect = aPageRect;
             zoomFactor = aZoomFactor;
+            positionHandle = aPositionHandle;
+            textureHandle = aTextureHandle;
+            coordBuffer = aCoordBuffer;
         }
 
         public boolean fuzzyEquals(RenderContext other) {
@@ -206,7 +205,7 @@ public abstract class Layer {
                 return false;
             }
             return RectUtils.fuzzyEquals(viewport, other.viewport)
-                && pageSize.fuzzyEquals(other.pageSize)
+                && RectUtils.fuzzyEquals(pageRect, other.pageRect)
                 && FloatUtils.fuzzyEquals(zoomFactor, other.zoomFactor);
         }
     }
