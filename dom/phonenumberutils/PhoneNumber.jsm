@@ -346,7 +346,7 @@ this.PhoneNumber = (function (dataBase) {
     if (md.nationalPrefixForParsing) {
       
       var withoutPrefix = number.replace(md.nationalPrefixForParsing,
-                                         md.nationalPrefixTransformRule);
+                                         md.nationalPrefixTransformRule || '');
       ret = ParseNationalNumber(withoutPrefix, md)
       if (ret)
         return ret;
