@@ -244,13 +244,10 @@ nsImageFrame::Init(nsIContent*      aContent,
     p->AdjustPriority(-1);
 
   
-  
   if (currentRequest) {
     nsCOMPtr<imgIContainer> image;
     currentRequest->GetImage(getter_AddRefs(image));
-    if (image) {
-      image->SetAnimationMode(aPresContext->ImageAnimationMode());
-    }
+    OnStartContainer(currentRequest, image);
   }
 }
 
@@ -515,6 +512,18 @@ nsImageFrame::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aDat
   return NS_OK;
 }
 
+static bool
+SizeIsAvailable(imgIRequest* aRequest)
+{
+  if (!aRequest)
+    return false;
+
+  uint32_t imageStatus = 0;
+  nsresult rv = aRequest->GetImageStatus(&imageStatus);
+
+  return NS_SUCCEEDED(rv) && (imageStatus & imgIRequest::STATUS_SIZE_AVAILABLE); 
+}
+
 nsresult
 nsImageFrame::OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage)
 {
@@ -532,9 +541,25 @@ nsImageFrame::OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage)
     
     return NS_OK;
   }
-  
-  bool intrinsicSizeChanged = UpdateIntrinsicSize(aImage);
-  intrinsicSizeChanged = UpdateIntrinsicRatio(aImage) || intrinsicSizeChanged;
+
+  bool intrinsicSizeChanged = false;
+  if (SizeIsAvailable(aRequest)) {
+    
+    
+    mImage = aImage;
+    
+    intrinsicSizeChanged = UpdateIntrinsicSize(mImage);
+    intrinsicSizeChanged = UpdateIntrinsicRatio(mImage) || intrinsicSizeChanged;
+  } else {
+    
+    mImage = nullptr;
+
+    
+    mIntrinsicSize.width.SetCoordValue(0);
+    mIntrinsicSize.height.SetCoordValue(0);
+    mIntrinsicRatio.SizeTo(0, 0);
+    intrinsicSizeChanged = true;
+  }
 
   if (intrinsicSizeChanged && (mState & IMAGE_GOTINITIALREFLOW)) {
     
@@ -609,13 +634,7 @@ nsImageFrame::OnStopRequest(imgIRequest *aRequest,
     return NS_ERROR_FAILURE;
   }
 
-  bool multipart = false;
-  aRequest->GetMultipart(&multipart);
-
-  if (loadType == nsIImageLoadingContent::PENDING_REQUEST || multipart) {
-    NotifyNewCurrentRequest(aRequest, aStatus);
-  }
-
+  NotifyNewCurrentRequest(aRequest, aStatus);
   return NS_OK;
 }
 
@@ -623,17 +642,21 @@ void
 nsImageFrame::NotifyNewCurrentRequest(imgIRequest *aRequest,
                                       nsresult aStatus)
 {
+  nsCOMPtr<imgIContainer> image;
+  aRequest->GetImage(getter_AddRefs(image));
+  NS_ASSERTION(image || NS_FAILED(aStatus), "Successful load with no container?");
+
   
   bool intrinsicSizeChanged = true;
-  if (NS_SUCCEEDED(aStatus)) {
-    nsCOMPtr<imgIContainer> imageContainer;
-    aRequest->GetImage(getter_AddRefs(imageContainer));
-    NS_ASSERTION(imageContainer, "Successful load with no container?");
-    intrinsicSizeChanged = UpdateIntrinsicSize(imageContainer);
-    intrinsicSizeChanged = UpdateIntrinsicRatio(imageContainer) ||
-      intrinsicSizeChanged;
+  if (NS_SUCCEEDED(aStatus) && image && SizeIsAvailable(aRequest)) {
+    mImage = image;
+    intrinsicSizeChanged = UpdateIntrinsicSize(mImage);
+    intrinsicSizeChanged = UpdateIntrinsicRatio(mImage) || intrinsicSizeChanged;
   }
   else {
+    
+    mImage = nullptr;
+
     
     mIntrinsicSize.width.SetCoordValue(0);
     mIntrinsicSize.height.SetCoordValue(0);
@@ -680,23 +703,9 @@ nsImageFrame::EnsureIntrinsicSizeAndRatio(nsPresContext* aPresContext)
       mIntrinsicSize.height.GetUnit() == eStyleUnit_Coord &&
       mIntrinsicSize.height.GetCoordValue() == 0) {
 
-    
-    nsCOMPtr<imgIRequest> currentRequest;
-    nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mContent);
-    if (imageLoader)
-      imageLoader->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
-                              getter_AddRefs(currentRequest));
-    uint32_t status = 0;
-    if (currentRequest)
-      currentRequest->GetImageStatus(&status);
-
-    
-    if (status & imgIRequest::STATUS_SIZE_AVAILABLE) {
-      nsCOMPtr<imgIContainer> imgCon;
-      currentRequest->GetImage(getter_AddRefs(imgCon));
-      NS_ABORT_IF_FALSE(imgCon, "SIZE_AVAILABLE, but no imgContainer?");
-      UpdateIntrinsicSize(imgCon);
-      UpdateIntrinsicRatio(imgCon);
+    if (mImage) {
+      UpdateIntrinsicSize(mImage);
+      UpdateIntrinsicRatio(mImage);
     } else {
       
       
@@ -1393,31 +1402,17 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     nsEventStates contentState = mContent->AsElement()->State();
     bool imageOK = IMAGE_OK(contentState, true);
 
-    nsCOMPtr<imgIContainer> imgCon;
-    if (currentRequest) {
-      currentRequest->GetImage(getter_AddRefs(imgCon));
-    }
-
     
-    bool haveSize = false;
-    uint32_t imageStatus = 0;
-    if (currentRequest)
-      currentRequest->GetImageStatus(&imageStatus);
-    if (imageStatus & imgIRequest::STATUS_SIZE_AVAILABLE)
-      haveSize = true;
-
     
-    NS_ABORT_IF_FALSE(!haveSize || imgCon, "Have size but not container?");
-
-    if (!imageOK || !haveSize) {
+    
+    if (!imageOK || !mImage || !SizeIsAvailable(currentRequest)) {
       
       
       aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayAltFeedback(aBuilder, this));
-    }
-    else {
+    } else {
       aLists.Content()->AppendNewToTop(new (aBuilder)
-        nsDisplayImage(aBuilder, this, imgCon));
+        nsDisplayImage(aBuilder, this, mImage));
 
       
       if (mDisplayingIcon) {
