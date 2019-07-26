@@ -1907,7 +1907,8 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mHasAudio(false),
     mDownloadSuspendedByCache(false),
     mAudioChannelType(AUDIO_CHANNEL_NORMAL),
-    mPlayingThroughTheAudioChannel(false)
+    mPlayingThroughTheAudioChannel(false),
+    mWasInDocument(false)
 {
 #ifdef PR_LOGGING
   if (!gMediaElementLog) {
@@ -2328,6 +2329,8 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
     
     UpdatePreloadAction();
 
+    mWasInDocument = true;
+
     if (aDocument->HasAudioAvailableListeners()) {
       
       
@@ -2342,8 +2345,9 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
 void HTMLMediaElement::UnbindFromTree(bool aDeep,
                                       bool aNullParent)
 {
-  if (!mPaused && mNetworkState != nsIDOMHTMLMediaElement::NETWORK_EMPTY)
+  if (!mPaused && mNetworkState != nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
     Pause();
+  }
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
@@ -3042,7 +3046,10 @@ bool HTMLMediaElement::CanActivateAutoplay()
   
   
   
+  
+  
   return !mPausedForInactiveDocumentOrChannel &&
+         mWasInDocument && IsInDoc() &&
          mAutoplaying &&
          mPaused &&
          (mDownloadSuspendedByCache ||

@@ -1120,6 +1120,9 @@ protected:
   bool mPlayingThroughTheAudioChannel;
 
   
+  bool mWasInDocument;
+
+  
   nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 
   
