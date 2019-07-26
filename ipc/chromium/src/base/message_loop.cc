@@ -337,7 +337,7 @@ void MessageLoop::RunTask(Task* task) {
 }
 
 bool MessageLoop::DeferOrRunPendingTask(const PendingTask& pending_task) {
-  if (pending_task.nestable || state_->run_depth >= run_depth_base_) {
+  if (pending_task.nestable || state_->run_depth <= run_depth_base_) {
     RunTask(pending_task.task);
     
     
