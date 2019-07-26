@@ -917,12 +917,13 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
     
     
     
+    
     TrackTicks offset = track->TimeToTicksRoundDown(GraphTimeToStreamTime(aStream, aFrom));
     if (audioOutput.mLastTickWritten &&
         audioOutput.mLastTickWritten != offset) {
       
       
-      if (mozilla::Abs(audioOutput.mLastTickWritten - offset) == 1) {
+      if (offset - audioOutput.mLastTickWritten == 1) {
         offset = audioOutput.mLastTickWritten;
       }
     }
