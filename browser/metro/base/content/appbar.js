@@ -32,12 +32,7 @@ var Appbar = {
       case 'URLChanged':
       case 'TabSelect':
         this.update();
-        
-        
-        if (this.activeTileset && aEvent.lastTab && aEvent.lastTab.browser &&
-            aEvent.lastTab.browser.currentURI.spec == kStartURI) {
-          ContextUI.dismiss();
-        }
+        this.flushActiveTileset(aEvent.lastTab);
         break;
 
       case 'MozAppbarShowing':
@@ -66,6 +61,21 @@ var Appbar = {
         }
         break;
     }
+  },
+
+  flushActiveTileset: function flushActiveTileset(aTab) {
+    try {
+      let tab = aTab || Browser.selectedTab;
+      
+      
+      if (this.activeTileset && tab && tab.browser && tab.browser.currentURI.spec == kStartURI) {
+        ContextUI.dismiss();
+      }
+    } catch (ex) {}
+  },
+
+  shutdown: function shutdown() {
+    this.flushActiveTileset();
   },
 
   
