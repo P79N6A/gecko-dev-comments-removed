@@ -6595,11 +6595,12 @@ public class Tokenizer implements Locator {
             attributeName = null;
         }
         tokenHandler.endTokenization();
-        
         if (attributes != null) {
+            
             attributes = null;
+            
+            
         }
-        
     }
 
     public void requestSuspension() {
