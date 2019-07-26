@@ -41,12 +41,13 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
     ValueOperand operand = ToValue(lir, LValueToInt32::Input);
     Register output = ToRegister(lir->output());
 
-    Label done, simple, isInt32, isBool, notDouble;
+    Register tag = masm.splitTagForTest(operand);
 
+    Label done, simple, isInt32, isBool, notDouble;
     
-    masm.branchTestInt32(Assembler::Equal, operand, &isInt32);
-    masm.branchTestBoolean(Assembler::Equal, operand, &isBool);
-    masm.branchTestDouble(Assembler::NotEqual, operand, &notDouble);
+    masm.branchTestInt32(Assembler::Equal, tag, &isInt32);
+    masm.branchTestBoolean(Assembler::Equal, tag, &isBool);
+    masm.branchTestDouble(Assembler::NotEqual, tag, &notDouble);
 
     
     
@@ -71,12 +72,12 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
     if (lir->mode() == LValueToInt32::NORMAL) {
         
         
-        masm.branchTestNull(Assembler::NotEqual, operand, &fails);
+        masm.branchTestNull(Assembler::NotEqual, tag, &fails);
     } else {
         
         
-        masm.branchTestObject(Assembler::Equal, operand, &fails);
-        masm.branchTestString(Assembler::Equal, operand, &fails);
+        masm.branchTestObject(Assembler::Equal, tag, &fails);
+        masm.branchTestString(Assembler::Equal, tag, &fails);
     }
 
     if (fails.used() && !bailoutFrom(&fails, lir->snapshot()))
@@ -108,15 +109,16 @@ CodeGenerator::visitValueToDouble(LValueToDouble *lir)
     ValueOperand operand = ToValue(lir, LValueToDouble::Input);
     FloatRegister output = ToFloatRegister(lir->output());
 
+    Register tag = masm.splitTagForTest(operand);
+
     Label isDouble, isInt32, isBool, isNull, done;
-
     
-    masm.branchTestDouble(Assembler::Equal, operand, &isDouble);
-    masm.branchTestInt32(Assembler::Equal, operand, &isInt32);
-    masm.branchTestBoolean(Assembler::Equal, operand, &isBool);
-    masm.branchTestNull(Assembler::Equal, operand, &isNull);
+    masm.branchTestDouble(Assembler::Equal, tag, &isDouble);
+    masm.branchTestInt32(Assembler::Equal, tag, &isInt32);
+    masm.branchTestBoolean(Assembler::Equal, tag, &isBool);
+    masm.branchTestNull(Assembler::Equal, tag, &isNull);
 
-    Assembler::Condition cond = masm.testUndefined(Assembler::NotEqual, operand);
+    Assembler::Condition cond = masm.testUndefined(Assembler::NotEqual, tag);
     if (!bailoutIf(cond, lir->snapshot()))
         return false;
     masm.loadStaticDouble(&js_NaN, output);
@@ -168,7 +170,7 @@ CodeGenerator::visitTestVAndBranch(LTestVAndBranch *lir)
     masm.jump(lir->ifFalse());
     return true;
 }
- 
+
 bool
 CodeGenerator::visitPolyInlineDispatch(LPolyInlineDispatch *lir)
 {
