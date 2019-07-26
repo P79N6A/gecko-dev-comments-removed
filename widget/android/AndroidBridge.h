@@ -28,6 +28,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Types.h"
 
 
 
@@ -38,7 +39,7 @@ class nsIDOMMozSmsMessage;
 class nsIObserver;
 
 
-extern "C" JNIEnv * GetJNIForThread();
+extern "C" MOZ_EXPORT JNIEnv * GetJNIForThread();
 
 extern bool mozilla_AndroidBridge_SetMainThread(pthread_t);
 

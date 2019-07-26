@@ -54,6 +54,7 @@
 #include "updatelogging.h"
 
 #include "mozilla/Compiler.h"
+#include "mozilla/Types.h"
 
 
 
@@ -99,7 +100,7 @@ void LaunchMacPostProcess(const char* aAppExe);
 
 
 
-extern "C" int ioprio_set(int which, int who, int ioprio);
+extern "C" MOZ_EXPORT int ioprio_set(int which, int who, int ioprio);
 
 # define MAYBE_USE_HARD_LINKS 1
 static bool sUseHardLinks = true;
