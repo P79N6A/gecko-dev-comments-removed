@@ -1075,48 +1075,50 @@ var BrowserApp = {
   setPreferences: function setPreferences(aPref) {
     let json = JSON.parse(aPref);
 
-    if (json.name == "plugin.enable") {
-      
-      
-      PluginHelper.setPluginPreference(json.value);
-      return;
-    } else if (json.name == "privacy.masterpassword.enabled") {
-      
-      
-      if (MasterPassword.enabled)
-        MasterPassword.removePassword(json.value);
-      else
-        MasterPassword.setPassword(json.value);
-      return;
-    } else if (json.name === "privacy.donottrackheader") {
-      
-      switch (json.value) {
-        case kDoNotTrackPrefState.NO_PREF:
-          
-          Services.prefs.setBoolPref("privacy.donottrackheader.enabled", false);
-          Services.prefs.clearUserPref("privacy.donottrackheader.value");
-          break;
-        case kDoNotTrackPrefState.ALLOW_TRACKING:
-          
-          Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
-          Services.prefs.setIntPref("privacy.donottrackheader.value", 0);
-          break;
-        case kDoNotTrackPrefState.DISALLOW_TRACKING:
-          
-          Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
-          Services.prefs.setIntPref("privacy.donottrackheader.value", 1);
-          break;
-      }
-      return;
-    } else if (json.name == SearchEngines.PREF_SUGGEST_ENABLED) {
-      
-      Services.prefs.setBoolPref(SearchEngines.PREF_SUGGEST_PROMPTED, true);
-    }
-
-    
-    
-    
     switch (json.name) {
+      
+      
+      case "plugin.enable":
+        PluginHelper.setPluginPreference(json.value);
+        return;
+
+      
+      case "privacy.masterpassword.enabled":
+        if (MasterPassword.enabled)
+          MasterPassword.removePassword(json.value);
+        else
+          MasterPassword.setPassword(json.value);
+        return;
+
+      
+      case "privacy.donottrackheader":
+        switch (json.value) {
+          
+          case kDoNotTrackPrefState.NO_PREF:
+            Services.prefs.setBoolPref("privacy.donottrackheader.enabled", false);
+            Services.prefs.clearUserPref("privacy.donottrackheader.value");
+            break;
+          
+          case kDoNotTrackPrefState.ALLOW_TRACKING:
+            Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
+            Services.prefs.setIntPref("privacy.donottrackheader.value", 0);
+            break;
+          
+          case kDoNotTrackPrefState.DISALLOW_TRACKING:
+            Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
+            Services.prefs.setIntPref("privacy.donottrackheader.value", 1);
+            break;
+        }
+        return;
+
+      
+      case SearchEngines.PREF_SUGGEST_ENABLED:
+        Services.prefs.setBoolPref(SearchEngines.PREF_SUGGEST_PROMPTED, true);
+        break;
+
+      
+      
+      
       case "network.cookie.cookieBehavior":
         json.type = "int";
         json.value = parseInt(json.value);
@@ -1127,14 +1129,19 @@ var BrowserApp = {
         break;
     }
 
-    if (json.type == "bool") {
-      Services.prefs.setBoolPref(json.name, json.value);
-    } else if (json.type == "int") {
-      Services.prefs.setIntPref(json.name, json.value);
-    } else {
-      let pref = Cc["@mozilla.org/pref-localizedstring;1"].createInstance(Ci.nsIPrefLocalizedString);
-      pref.data = json.value;
-      Services.prefs.setComplexValue(json.name, Ci.nsISupportsString, pref);
+    switch (json.type) {
+      case "bool":
+        Services.prefs.setBoolPref(json.name, json.value);
+        break;
+      case "int":
+        Services.prefs.setIntPref(json.name, json.value);
+        break;
+      default: {
+        let pref = Cc["@mozilla.org/pref-localizedstring;1"].createInstance(Ci.nsIPrefLocalizedString);
+        pref.data = json.value;
+        Services.prefs.setComplexValue(json.name, Ci.nsISupportsString, pref);
+        break;
+      }
     }
   },
 
