@@ -1,7 +1,7 @@
-/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "SharedSurfaceGL.h"
 
@@ -13,8 +13,8 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace gl {
 
-// |src| must begin and end locked, though we may
-// temporarily unlock it if we need to.
+
+
 void
 SharedSurface_GL::Copy(SharedSurface_GL* src, SharedSurface_GL* dest,
                        SurfaceFactory_GL* factory)
@@ -24,7 +24,7 @@ SharedSurface_GL::Copy(SharedSurface_GL* src, SharedSurface_GL* dest,
     if (src->AttachType() == AttachmentType::Screen &&
         dest->AttachType() == AttachmentType::Screen)
     {
-        // Here, we actually need to blit through a temp surface, so let's make one.
+        
         nsAutoPtr<SharedSurface_GLTexture> tempSurf(
             SharedSurface_GLTexture::Create(gl, gl,
                                             factory->Formats(),
@@ -112,8 +112,8 @@ SharedSurface_GL::Copy(SharedSurface_GL* src, SharedSurface_GL* dest,
         return;
     }
 
-    // Alright, done with cases involving Screen types.
-    // Only {src,dest}x{texture,renderbuffer} left.
+    
+    
 
     if (src->AttachType() == AttachmentType::GLTexture) {
         GLuint srcTex = src->Texture();
@@ -227,7 +227,7 @@ SurfaceFactory_GL::ChooseBufferBits(const SurfaceCaps& caps,
         drawCaps = screenCaps;
         readCaps.Clear();
 
-        // Color caps need to be duplicated in readCaps.
+        
         readCaps.color = caps.color;
         readCaps.alpha = caps.alpha;
         readCaps.bpp16 = caps.bpp16;
@@ -362,29 +362,20 @@ bool
 SharedSurface_GLTexture::WaitSync()
 {
     if (!mSync) {
-        // We must have used glFinish instead of glFenceSync.
+        
         return true;
     }
-    MOZ_ASSERT(mGL->IsExtensionSupported(GLContext::ARB_sync));
+    MOZ_ASSERT(mConsGL->IsExtensionSupported(GLContext::ARB_sync));
 
-    GLuint64 waitMS = 500;
-    const GLuint64 nsPerMS = 1000 * 1000;
-    GLuint64 waitNS = waitMS * nsPerMS;
-    GLenum status = mGL->fClientWaitSync(mSync,
-                                         0,
-                                         waitNS);
+    mConsGL->fWaitSync(mSync,
+                       0,
+                       LOCAL_GL_TIMEOUT_IGNORED);
 
-    if (status != LOCAL_GL_CONDITION_SATISFIED &&
-        status != LOCAL_GL_ALREADY_SIGNALED)
-    {
-        return false;
-    }
-
-    mGL->fDeleteSync(mSync);
+    mConsGL->fDeleteSync(mSync);
     mSync = 0;
 
     return true;
 }
 
-} /* namespace gfx */
-} /* namespace mozilla */
+} 
+} 
