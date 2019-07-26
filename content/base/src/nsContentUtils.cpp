@@ -1725,20 +1725,20 @@ nsContentUtils::IsCallerChrome()
 bool
 nsContentUtils::IsCallerXBL()
 {
-    JSScript *script;
     JSContext *cx = GetCurrentJSContext();
     if (!cx)
         return false;
 
-    
     JSCompartment *c = js::GetContextCompartment(cx);
-    if (xpc::AllowXBLScope(c))
-        return xpc::IsXBLScope(c);
 
     
-    if (!JS_DescribeScriptedCaller(cx, &script, nullptr) || !script)
-        return false;
-    return JS_GetScriptUserBit(script);
+    
+    if (!xpc::AllowXBLScope(c)) {
+      MOZ_ASSERT(nsContentUtils::AllowXULXBLForPrincipal(xpc::GetCompartmentPrincipal(c)));
+      return true;
+    }
+
+    return xpc::IsXBLScope(c);
 }
 
 
