@@ -1839,6 +1839,7 @@ NS_SecurityCompareURIs(nsIURI* aSourceURI,
     }
 
     
+    
     if (targetScheme.EqualsLiteral("file"))
     {
         
@@ -1905,6 +1906,93 @@ NS_SecurityCompareURIs(nsIURI* aSourceURI,
     }
 
     return NS_GetRealPort(targetBaseURI) == NS_GetRealPort(sourceBaseURI);
+}
+
+inline bool
+NS_URIIsLocalFile(nsIURI *aURI)
+{
+  nsCOMPtr<nsINetUtil> util = do_GetNetUtil();
+
+  bool isFile;
+  return util && NS_SUCCEEDED(util->ProtocolHasFlags(aURI,
+                                nsIProtocolHandler::URI_IS_LOCAL_FILE,
+                                &isFile)) &&
+         isFile;
+}
+
+
+
+
+
+
+
+inline bool
+NS_RelaxStrictFileOriginPolicy(nsIURI *aTargetURI,
+                               nsIURI *aSourceURI,
+                               bool aAllowDirectoryTarget = false)
+{
+  if (!NS_URIIsLocalFile(aTargetURI)) {
+    
+    NS_NOTREACHED("NS_RelaxStrictFileOriginPolicy called with non-file URI");
+    return false;
+  }
+
+  if (!NS_URIIsLocalFile(aSourceURI)) {
+    
+    
+    
+    
+    
+    return false;
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIFileURL> targetFileURL(do_QueryInterface(aTargetURI));
+  nsCOMPtr<nsIFileURL> sourceFileURL(do_QueryInterface(aSourceURI));
+  nsCOMPtr<nsIFile> targetFile;
+  nsCOMPtr<nsIFile> sourceFile;
+  bool targetIsDir;
+
+  
+  
+  if (!sourceFileURL || !targetFileURL ||
+      NS_FAILED(targetFileURL->GetFile(getter_AddRefs(targetFile))) ||
+      NS_FAILED(sourceFileURL->GetFile(getter_AddRefs(sourceFile))) ||
+      !targetFile || !sourceFile ||
+      NS_FAILED(targetFile->Normalize()) ||
+#ifndef MOZ_WIDGET_ANDROID
+      NS_FAILED(sourceFile->Normalize()) ||
+#endif
+      (!aAllowDirectoryTarget &&
+       (NS_FAILED(targetFile->IsDirectory(&targetIsDir)) || targetIsDir))) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  bool sourceIsDir;
+  bool contained = false;
+  nsresult rv = sourceFile->IsDirectory(&sourceIsDir);
+  if (NS_SUCCEEDED(rv) && sourceIsDir) {
+    rv = sourceFile->Contains(targetFile, true, &contained);
+  } else {
+    nsCOMPtr<nsIFile> sourceParent;
+    rv = sourceFile->GetParent(getter_AddRefs(sourceParent));
+    if (NS_SUCCEEDED(rv) && sourceParent) {
+      rv = sourceParent->Contains(targetFile, true, &contained);
+    }
+  }
+
+  if (NS_SUCCEEDED(rv) && contained) {
+    return true;
+  }
+
+  return false;
 }
 
 inline bool

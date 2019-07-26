@@ -46,7 +46,7 @@ static bool URIIsImmutable(nsIURI* aURI)
   return
     mutableObj &&
     NS_SUCCEEDED(mutableObj->GetMutable(&isMutable)) &&
-    !isMutable;                               
+    !isMutable;
 }
 
 
@@ -344,18 +344,6 @@ nsPrincipal::GetURI(nsIURI** aURI)
   return NS_EnsureSafeToReturn(mCodebase, aURI);
 }
 
-static bool
-URIIsLocalFile(nsIURI *aURI)
-{
-  bool isFile;
-  nsCOMPtr<nsINetUtil> util = do_GetNetUtil();
-
-  return util && NS_SUCCEEDED(util->ProtocolHasFlags(aURI,
-                                nsIProtocolHandler::URI_IS_LOCAL_FILE,
-                                &isFile)) &&
-         isFile;
-}
-
 NS_IMETHODIMP
 nsPrincipal::CheckMayLoad(nsIURI* aURI, bool aReport, bool aAllowIfInheritsPrincipal)
 {
@@ -367,88 +355,23 @@ nsPrincipal::CheckMayLoad(nsIURI* aURI, bool aReport, bool aAllowIfInheritsPrinc
     }
   }
 
-  if (!nsScriptSecurityManager::SecurityCompareURIs(mCodebase, aURI)) {
-    if (nsScriptSecurityManager::GetStrictFileOriginPolicy() &&
-        URIIsLocalFile(aURI)) {
-      nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(aURI));
-
-      if (!URIIsLocalFile(mCodebase)) {
-        
-        
-        
-        
-        
-
-        if (aReport) {
-          nsScriptSecurityManager::ReportError(
-            nullptr, NS_LITERAL_STRING("CheckSameOriginError"), mCodebase, aURI);
-        }
-
-        return NS_ERROR_DOM_BAD_URI;
-      }
-
-      
-      
-      
-      nsCOMPtr<nsIFileURL> codebaseFileURL(do_QueryInterface(mCodebase));
-      nsCOMPtr<nsIFile> targetFile;
-      nsCOMPtr<nsIFile> codebaseFile;
-      bool targetIsDir;
-
-      
-      
-
-      if (!codebaseFileURL || !fileURL ||
-          NS_FAILED(fileURL->GetFile(getter_AddRefs(targetFile))) ||
-          NS_FAILED(codebaseFileURL->GetFile(getter_AddRefs(codebaseFile))) ||
-          !targetFile || !codebaseFile ||
-          NS_FAILED(targetFile->Normalize()) ||
-#ifndef MOZ_WIDGET_ANDROID
-          NS_FAILED(codebaseFile->Normalize()) ||
-#endif
-          NS_FAILED(targetFile->IsDirectory(&targetIsDir)) ||
-          targetIsDir) {
-        if (aReport) {
-          nsScriptSecurityManager::ReportError(
-            nullptr, NS_LITERAL_STRING("CheckSameOriginError"), mCodebase, aURI);
-        }
-
-        return NS_ERROR_DOM_BAD_URI;
-      }
-
-      
-      
-      
-      
-      
-      bool codebaseIsDir;
-      bool contained = false;
-      nsresult rv = codebaseFile->IsDirectory(&codebaseIsDir);
-      if (NS_SUCCEEDED(rv) && codebaseIsDir) {
-        rv = codebaseFile->Contains(targetFile, true, &contained);
-      }
-      else {
-        nsCOMPtr<nsIFile> codebaseParent;
-        rv = codebaseFile->GetParent(getter_AddRefs(codebaseParent));
-        if (NS_SUCCEEDED(rv) && codebaseParent) {
-          rv = codebaseParent->Contains(targetFile, true, &contained);
-        }
-      }
-
-      if (NS_SUCCEEDED(rv) && contained) {
-        return NS_OK;
-      }
-    }
-
-    if (aReport) {
-      nsScriptSecurityManager::ReportError(
-        nullptr, NS_LITERAL_STRING("CheckSameOriginError"), mCodebase, aURI);
-    }
-
-    return NS_ERROR_DOM_BAD_URI;
+  if (nsScriptSecurityManager::SecurityCompareURIs(mCodebase, aURI)) {
+    return NS_OK;
   }
 
-  return NS_OK;
+  
+  
+  
+  if (nsScriptSecurityManager::GetStrictFileOriginPolicy() &&
+      NS_URIIsLocalFile(aURI) &&
+      NS_RelaxStrictFileOriginPolicy(aURI, mCodebase)) {
+    return NS_OK;
+  }
+
+  if (aReport) {
+    nsScriptSecurityManager::ReportError(nullptr, NS_LITERAL_STRING("CheckSameOriginError"), mCodebase, aURI);
+  }
+  return NS_ERROR_DOM_BAD_URI;
 }
 
 void
@@ -562,7 +485,7 @@ NS_IMETHODIMP
 nsPrincipal::GetBaseDomain(nsACString& aBaseDomain)
 {
   
-  if (URIIsLocalFile(mCodebase)) {
+  if (NS_URIIsLocalFile(mCodebase)) {
     nsCOMPtr<nsIURL> url = do_QueryInterface(mCodebase);
 
     if (url) {
