@@ -16,6 +16,7 @@
 #include "ion/IonCompartment.h"
 #include "ion/IonFrames.h"
 #include "ion/ParallelFunctions.h"
+#include "ion/RangeAnalysis.h"
 
 #include "ion/shared/CodeGenerator-shared-inl.h"
 
@@ -388,7 +389,8 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
     
     masm.ucomisd(first, second);
     masm.j(Assembler::NotEqual, &minMaxInst);
-    masm.j(Assembler::Parity, &nan);
+    if (!ins->mir()->range() || ins->mir()->range()->isInfinite())
+        masm.j(Assembler::Parity, &nan);
 
     
     
@@ -402,9 +404,11 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
     
     
     
-    masm.bind(&nan);
-    masm.ucomisd(first, first);
-    masm.j(Assembler::Parity, &done);
+    if (!ins->mir()->range() || ins->mir()->range()->isInfinite()) {
+        masm.bind(&nan);
+        masm.ucomisd(first, first);
+        masm.j(Assembler::Parity, &done);
+    }
 
     
     
