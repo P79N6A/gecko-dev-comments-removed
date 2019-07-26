@@ -369,6 +369,16 @@ class CodeGenerator : public CodeGeneratorSpecific
     
     
     
+    void testValueTruthyKernel(const ValueOperand &value,
+                               const LDefinition *scratch1, const LDefinition *scratch2,
+                               FloatRegister fr,
+                               Label *ifTruthy, Label *ifFalsy,
+                               OutOfLineTestObject *ool);
+
+    
+    
+    
+    
     
     void testValueTruthy(const ValueOperand &value,
                          const LDefinition *scratch1, const LDefinition *scratch2,
