@@ -109,7 +109,7 @@ void ccsip_dump_send_msg_info (char *msg, sipMessage_t *pSIPMessage,
 
 
     if (disp_buf != NULL) {
-        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>:%c%c%c%c%c%c%c: %-10s :%-6s::%s\n",
+        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>:%c%c%c%c%c%c%c: %-10s :%-6s::%s",
                     DEB_F_PREFIX_ARGS(SIP_MSG_SEND, fname),
                     ipaddr_str, cc_remote_port,
                     disp_buf[0],
@@ -123,7 +123,7 @@ void ccsip_dump_send_msg_info (char *msg, sipMessage_t *pSIPMessage,
                     cseq, callid);
     } else {
         
-        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>: empty message\n",
+        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>: empty message",
                   DEB_F_PREFIX_ARGS(SIP_MSG_SEND, fname),
                   ipaddr_str, cc_remote_port);
     }
@@ -202,7 +202,7 @@ void ccsip_dump_recv_msg_info (sipMessage_t *pSIPMessage,
     }
 
     if (disp_buf != NULL) {
-        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>:%c%c%c%c%c%c%c: %-10s :%-6s::%s\n",
+        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>:%c%c%c%c%c%c%c: %-10s :%-6s::%s",
                     DEB_F_PREFIX_ARGS(SIP_MSG_RECV, fname),
                     ipaddr_str, cc_remote_port,
                     disp_buf[0],
@@ -216,7 +216,7 @@ void ccsip_dump_recv_msg_info (sipMessage_t *pSIPMessage,
                     cseq, callid);
     } else {
         
-        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>: empty message\n",
+        DEF_DEBUG(DEB_F_PREFIX"<%s:%-4d>: empty message",
                   DEB_F_PREFIX_ARGS(SIP_MSG_RECV, fname),
                   ipaddr_str, cc_remote_port);
     }
@@ -247,14 +247,14 @@ platform_print_sip_msg (const char *msg)
         return;
     }
 
-    buginf_msg("\n");
+    CSFLogDebug("sipstack", "");
     
     if (strstr(msg, "kpml-response")) {
         
         c_line_begin = strstr(msg, digits_tag);
         if (c_line_begin == NULL) {
             
-            buginf_msg(msg);
+            CSFLogDebug("sipstack", "%s", msg);
             return;
         }
         
@@ -275,19 +275,19 @@ platform_print_sip_msg (const char *msg)
         
         memcpy(&buf[msg_to_digits_tag_len], crypto_mask, sizeof(crypto_mask));
         
-        buginf_msg(buf);
+        CSFLogDebug("sipstack", "%s", buf);
         cpr_free(buf);
 
         c_line_end = c_line_begin + sizeof(digits_tag) + 3; 
         msg = c_line_end;
-        buginf_msg(msg);
+        CSFLogDebug("sipstack", "%s", msg);
     } else if (sip_regmgr_get_sec_level(1) == ENCRYPTED) {
         
         while (TRUE) {
             c_line_begin = strstr(msg, crypto_line_tag);
             if (c_line_begin == NULL) {
                 
-                buginf_msg(msg);
+                CSFLogDebug("sipstack", "%s", msg);
                 return;
             } else {
                 
@@ -355,7 +355,7 @@ platform_print_sip_msg (const char *msg)
                 memcpy(&buf[msg_to_crypto_line_len], crypto_mask,
                        sizeof(crypto_mask));
                 
-                buginf_msg(buf);
+                CSFLogDebug("sipstack", "%s", buf);
                 cpr_free(buf);
 
                 
@@ -371,7 +371,7 @@ platform_print_sip_msg (const char *msg)
         }
     } else {
         
-        buginf_msg(msg);
+        CSFLogDebug("sipstack", "%s", msg);
     }
 }
 
