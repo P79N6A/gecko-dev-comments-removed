@@ -243,7 +243,7 @@ class IDLScope(IDLObject):
                 return
 
             
-            assert object != self._dict[identifier.name]
+            assert id(object) != id(self._dict[identifier.name])
 
             replacement = self.resolveIdentifierConflict(self, identifier,
                                                          self._dict[identifier.name],
