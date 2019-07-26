@@ -71,26 +71,19 @@ function test()
 function openEditor(testcaseURI) {
   let deferred = promise.defer();
 
-  addTabAndOpenStyleEditor((panel) => {
-    info("style editor panel opened");
-
+  addTabAndOpenStyleEditors(3, panel => {
     let UI = panel.UI;
-    let count = 0;
 
-    UI.on("editor-added", (event, editor) => {
-      if (++count == 3) {
-        
-        
-        
-        let editor = UI.editors[1];
+    
+    
+    
+    let editor = UI.editors[1];
 
-        let link = getStylesheetNameLinkFor(editor);
-        link.click();
+    let link = getStylesheetNameLinkFor(editor);
+    link.click();
 
-        editor.getSourceEditor().then(deferred.resolve);
-      }
-    });
-  })
+    editor.getSourceEditor().then(deferred.resolve);
+  });
   content.location = testcaseURI;
 
   return deferred.promise;

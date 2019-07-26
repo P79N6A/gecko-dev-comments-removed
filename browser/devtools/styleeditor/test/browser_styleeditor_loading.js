@@ -14,11 +14,9 @@ function test()
   
   
 
-  addTabAndOpenStyleEditor(function(panel) {
-    panel.UI.on("editor-added", testEditorAdded);
-
+  addTabAndCheckOnStyleEditorAdded(function(panel) {
     content.location = TESTCASE_URI;
-  });
+  }, testEditorAdded);
 }
 
 function testEditorAdded(event, editor)

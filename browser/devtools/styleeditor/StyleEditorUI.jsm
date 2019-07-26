@@ -15,12 +15,13 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PluralForm.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
-let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
 Cu.import("resource:///modules/devtools/StyleEditorUtil.jsm");
 Cu.import("resource:///modules/devtools/SplitView.jsm");
 Cu.import("resource:///modules/devtools/StyleSheetEditor.jsm");
+const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const { PrefObserver, PREF_ORIG_SOURCES } = require("devtools/styleeditor/utils");
@@ -429,38 +430,43 @@ StyleEditorUI.prototype = {
           }
         }, false);
 
-        
-        if (editor.isNew) {
-          this._selectEditor(editor);
-        }
+        Task.spawn(function* () {
+          
+          if (editor.isNew) {
+            yield this._selectEditor(editor);
+          }
 
-        if (this._styleSheetToSelect
-            && this._styleSheetToSelect.href == editor.styleSheet.href) {
-          this.switchToSelectedSheet();
-        }
+          if (this._styleSheetToSelect
+              && this._styleSheetToSelect.href == editor.styleSheet.href) {
+            yield this.switchToSelectedSheet();
+          }
 
-        
-        
-        if (!this.selectedEditor && !this._styleSheetBoundToSelect
-            && editor.styleSheet.styleSheetIndex == 0) {
-          this._selectEditor(editor);
-        }
+          
+          
+          if (!this.selectedEditor && !this._styleSheetBoundToSelect
+              && editor.styleSheet.styleSheetIndex == 0) {
+            yield this._selectEditor(editor);
+          }
 
-        this.emit("editor-added", editor);
+          this.emit("editor-added", editor);
+        }.bind(this)).then(null, Cu.reportError);
       }.bind(this),
 
       onShow: function(summary, details, data) {
         let editor = data.editor;
         this.selectedEditor = editor;
 
-        if (!editor.sourceEditor) {
-          
-          let inputElement = details.querySelector(".stylesheet-editor-input");
-          editor.load(inputElement);
-        }
-        editor.onShow();
+        Task.spawn(function* () {
+          if (!editor.sourceEditor) {
+            
+            let inputElement = details.querySelector(".stylesheet-editor-input");
+            yield editor.load(inputElement);
+          }
 
-        this.emit("editor-selected", editor);
+          editor.onShow();
+
+          this.emit("editor-selected", editor);
+        }.bind(this)).then(null, Cu.reportError);
       }.bind(this)
     });
   },
@@ -468,24 +474,30 @@ StyleEditorUI.prototype = {
   
 
 
+
+
+
   switchToSelectedSheet: function() {
     let sheet = this._styleSheetToSelect;
 
-    for each (let editor in this.editors) {
+    for (let editor of this.editors) {
       if (editor.styleSheet.href == sheet.href) {
         
         
         
         
         this._styleSheetBoundToSelect = this._styleSheetToSelect;
-        this._selectEditor(editor, sheet.line, sheet.col);
         this._styleSheetToSelect = null;
-        return;
+        return this._selectEditor(editor, sheet.line, sheet.col);
       }
     }
+
+    return promise.resolve();
   },
 
   
+
+
 
 
 
@@ -499,14 +511,16 @@ StyleEditorUI.prototype = {
     line = line || 0;
     col = col || 0;
 
-    editor.getSourceEditor().then(() => {
+    let editorPromise = editor.getSourceEditor().then(() => {
       editor.sourceEditor.setCursor({line: line, ch: col});
       this._styleSheetBoundToSelect = null;
     });
 
-    this.getEditorSummary(editor).then((summary) => {
+    let summaryPromise = this.getEditorSummary(editor).then((summary) => {
       this._view.activeSummary = summary;
-    })
+    });
+
+    return promise.all([editorPromise, summaryPromise]);
   },
 
   getEditorSummary: function(editor) {

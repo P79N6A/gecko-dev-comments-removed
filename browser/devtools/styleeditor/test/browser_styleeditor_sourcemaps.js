@@ -12,18 +12,10 @@ function test()
 
   Services.prefs.setBoolPref(PREF, true);
 
-  let count = 0;
-  addTabAndOpenStyleEditor(function(panel) {
-    let UI = panel.UI;
-    UI.on("editor-added", (event, editor) => {
-      if (++count == 3) {
-        
-        
-        
-        runTests(UI);
-      }
-    })
-  });
+  
+  
+  
+  addTabAndOpenStyleEditors(3, panel => runTests(panel.UI));
 
   content.location = TESTCASE_URI;
 }

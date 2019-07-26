@@ -13,7 +13,7 @@ const Cu = Components.utils;
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const Editor  = require("devtools/sourceeditor/editor");
-const promise = require("sdk/core/promise");
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {CssLogic} = require("devtools/styleinspector/css-logic");
 const AutoCompleter = require("devtools/sourceeditor/autocomplete");
 
@@ -247,6 +247,9 @@ StyleSheetEditor.prototype = {
 
 
 
+
+
+
   load: function(inputElement) {
     this._inputElement = inputElement;
 
@@ -261,7 +264,9 @@ StyleSheetEditor.prototype = {
     };
     let sourceEditor = new Editor(config);
 
-    sourceEditor.appendTo(inputElement).then(() => {
+    sourceEditor.on("dirty-change", this._onPropertyChange);
+
+    return sourceEditor.appendTo(inputElement).then(() => {
       if (Services.prefs.getBoolPref(AUTOCOMPLETION_PREF)) {
         sourceEditor.extend(AutoCompleter);
         sourceEditor.setupAutoCompletion(this.walker);
@@ -289,8 +294,6 @@ StyleSheetEditor.prototype = {
 
       this.emit("source-editor-load");
     });
-
-    sourceEditor.on("dirty-change", this._onPropertyChange);
   },
 
   

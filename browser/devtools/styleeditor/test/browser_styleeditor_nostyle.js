@@ -14,11 +14,11 @@ function test()
   
   
 
-  addTabAndOpenStyleEditor(function(panel) {
+  addTabAndCheckOnStyleEditorAdded(function(panel) {
     panel.UI.once("stylesheets-reset", testDocumentLoad);
 
     content.location = TESTCASE_URI;
-  });
+  }, () => {});
 }
 
 function testDocumentLoad(event)

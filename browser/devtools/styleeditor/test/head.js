@@ -36,11 +36,32 @@ function cleanup()
   }
 }
 
-function addTabAndOpenStyleEditor(callback) {
+function addTabAndOpenStyleEditors(count, callback) {
+  let currentCount = 0;
+  let panel;
+  addTabAndCheckOnStyleEditorAdded(p => panel = p, function () {
+    currentCount++;
+    info(currentCount + " of " + count + " editors opened");
+    if (currentCount == count) {
+      callback(panel);
+    }
+  });
+}
+
+function addTabAndCheckOnStyleEditorAdded(callbackOnce, callbackOnAdded) {
   gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
     gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-    openStyleEditorInWindow(window, callback);
+    openStyleEditorInWindow(window, function (panel) {
+      
+      callbackOnce(panel);
+      
+      for (let editor of panel.UI.editors) {
+        callbackOnAdded(editor);
+      }
+      
+      panel.UI.on("editor-added", (event, editor) => callbackOnAdded(editor));
+    });
   }, true);
 }
 
