@@ -238,8 +238,16 @@ nsHtml5StreamParser::Notify(const char* aCharset, nsDetectionConfident aConf)
   NS_ASSERTION(IsParserThread(), "Wrong thread!");
   if (aConf == eBestAnswer || aConf == eSureAnswer) {
     mFeedChardet = false; 
+    nsAutoCString encoding;
+    if (!EncodingUtils::FindEncodingForLabel(nsDependentCString(aCharset),
+                                             encoding)) {
+      return NS_OK;
+    }
+    if (encoding.EqualsLiteral("replacement")) {
+      return NS_OK;
+    }
     if (HasDecoder()) {
-      if (mCharset.Equals(aCharset)) {
+      if (mCharset.Equals(encoding)) {
         NS_ASSERTION(mCharsetSource < kCharsetFromAutoDetection,
             "Why are we running chardet at all?");
         mCharsetSource = kCharsetFromAutoDetection;
@@ -247,8 +255,7 @@ nsHtml5StreamParser::Notify(const char* aCharset, nsDetectionConfident aConf)
       } else {
         
         
-        nsAutoCString charset(aCharset);
-        mTreeBuilder->NeedsCharsetSwitchTo(charset,
+        mTreeBuilder->NeedsCharsetSwitchTo(encoding,
                                            kCharsetFromAutoDetection,
                                            0);
         FlushTreeOpsAndDisarmTimer();
@@ -257,7 +264,7 @@ nsHtml5StreamParser::Notify(const char* aCharset, nsDetectionConfident aConf)
     } else {
       
       
-      mCharset.Assign(aCharset);
+      mCharset.Assign(encoding);
       mCharsetSource = kCharsetFromAutoDetection;
       mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
     }
@@ -299,7 +306,8 @@ nsHtml5StreamParser::SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const 
   nsresult rv = NS_OK;
   nsCOMPtr<nsICharsetConverterManager> convManager = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = convManager->GetUnicodeDecoder(mCharset.get(), getter_AddRefs(mUnicodeDecoder));
+  rv = convManager->GetUnicodeDecoderRaw(mCharset.get(),
+                                         getter_AddRefs(mUnicodeDecoder));
   if (rv == NS_ERROR_UCONV_NOCONV) {
     mCharset.AssignLiteral("windows-1252"); 
     mCharsetSource = kCharsetFromFallback;
@@ -307,16 +315,6 @@ nsHtml5StreamParser::SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const 
     mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
   }
   NS_ENSURE_SUCCESS(rv, rv);
-  return WriteSniffingBufferAndCurrentSegment(aFromSegment, aCount, aWriteCount);
-}
-
-nsresult
-nsHtml5StreamParser::WriteSniffingBufferAndCurrentSegment(const uint8_t* aFromSegment, 
-                                                          uint32_t aCount,
-                                                          uint32_t* aWriteCount)
-{
-  NS_ASSERTION(IsParserThread(), "Wrong thread!");
-  nsresult rv = NS_OK;
   if (mSniffingBuffer) {
     uint32_t writeCount;
     rv = WriteStreamBytes(mSniffingBuffer, mSniffingLength, &writeCount);
@@ -710,29 +708,22 @@ nsHtml5StreamParser::SniffStreamBytes(const uint8_t* aFromSegment,
   
   
   
+  MOZ_ASSERT(mCharsetSource != kCharsetFromByteOrderMark,
+             "Should not come here if BOM was found.");
+  MOZ_ASSERT(mCharsetSource != kCharsetFromOtherComponent,
+             "kCharsetFromOtherComponent is for XSLT.");
+
   if (mBomState == BOM_SNIFFING_OVER &&
-    mCharsetSource >= kCharsetFromChannel) {
+    mCharsetSource == kCharsetFromChannel) {
     
     
     
     
-    nsCOMPtr<nsICharsetConverterManager> convManager =
-      do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID);
-    convManager->GetUnicodeDecoder(mCharset.get(),
-                                   getter_AddRefs(mUnicodeDecoder));
-    if (mUnicodeDecoder) {
-      mFeedChardet = false;
-      mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
-      mMetaScanner = nullptr;
-      return WriteSniffingBufferAndCurrentSegment(aFromSegment,
-                                                  aCount,
-                                                  aWriteCount);
-    } else {
-      
-      
-      
-      mCharsetSource = kCharsetFromFallback;
-    }
+    
+    mFeedChardet = false;
+    mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
+    return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(aFromSegment,
+      aCount, aWriteCount);
   }
 
   if (!mMetaScanner && (mMode == NORMAL ||
@@ -748,16 +739,30 @@ nsHtml5StreamParser::SniffStreamBytes(const uint8_t* aFromSegment,
     if (mMode == NORMAL || mMode == VIEW_SOURCE_HTML || mMode == LOAD_AS_DATA) {
       nsHtml5ByteReadable readable(aFromSegment, aFromSegment +
           countToSniffingLimit);
-      mMetaScanner->sniff(&readable, getter_AddRefs(mUnicodeDecoder), mCharset);
-      if (mUnicodeDecoder) {
+      nsAutoCString encoding;
+      mMetaScanner->sniff(&readable, encoding);
+      if (!encoding.IsEmpty()) {
         
+        if ((mCharsetSource == kCharsetFromParentForced ||
+             mCharsetSource == kCharsetFromUserForced) &&
+            EncodingUtils::IsAsciiCompatible(encoding)) {
+          
+          return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(
+            aFromSegment, aCount, aWriteCount);
+        }
+        mCharset.Assign(encoding);
         mCharsetSource = kCharsetFromMetaPrescan;
         mFeedChardet = false;
         mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
-        mMetaScanner = nullptr;
-        return WriteSniffingBufferAndCurrentSegment(aFromSegment, aCount,
-            aWriteCount);
+        return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(
+          aFromSegment, aCount, aWriteCount);
       }
+    }
+    if (mCharsetSource == kCharsetFromParentForced ||
+        mCharsetSource == kCharsetFromUserForced) {
+      
+      return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(
+        aFromSegment, aCount, aWriteCount);
     }
     return FinalizeSniffing(aFromSegment, aCount, aWriteCount,
         countToSniffingLimit);
@@ -766,16 +771,23 @@ nsHtml5StreamParser::SniffStreamBytes(const uint8_t* aFromSegment,
   
   if (mMode == NORMAL || mMode == VIEW_SOURCE_HTML || mMode == LOAD_AS_DATA) {
     nsHtml5ByteReadable readable(aFromSegment, aFromSegment + aCount);
-    mMetaScanner->sniff(&readable, getter_AddRefs(mUnicodeDecoder), mCharset);
-    if (mUnicodeDecoder) {
+    nsAutoCString encoding;
+    mMetaScanner->sniff(&readable, encoding);
+    if (!encoding.IsEmpty()) {
       
+      if ((mCharsetSource == kCharsetFromParentForced ||
+           mCharsetSource == kCharsetFromUserForced) &&
+          EncodingUtils::IsAsciiCompatible(encoding)) {
+        
+        return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(aFromSegment,
+            aCount, aWriteCount);
+      }
+      mCharset.Assign(encoding);
       mCharsetSource = kCharsetFromMetaPrescan;
       mFeedChardet = false;
       mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
-      mMetaScanner = nullptr;
-      return WriteSniffingBufferAndCurrentSegment(aFromSegment, 
-                                                  aCount,
-                                                  aWriteCount);
+      return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(aFromSegment,
+        aCount, aWriteCount);
     }
   }
 
@@ -975,9 +987,11 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   mFeedChardet = false;
 
   
-  nsCOMPtr<nsICharsetConverterManager> convManager = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
+  nsCOMPtr<nsICharsetConverterManager> convManager =
+    do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = convManager->GetUnicodeDecoder(mCharset.get(), getter_AddRefs(mUnicodeDecoder));
+  rv = convManager->GetUnicodeDecoderRaw(mCharset.get(),
+                                         getter_AddRefs(mUnicodeDecoder));
   
   
   if (NS_FAILED(rv)) {

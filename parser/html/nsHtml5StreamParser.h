@@ -330,21 +330,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-
-
-
-    nsresult WriteSniffingBufferAndCurrentSegment(const uint8_t* aFromSegment,
-                                                  uint32_t aCount,
-                                                  uint32_t* aWriteCount);
-
-    
-
-
-
-
-
-
-
     nsresult SetupDecodingFromBom(const char* aDecoderCharsetName);
 
     

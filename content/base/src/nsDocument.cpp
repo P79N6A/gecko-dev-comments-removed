@@ -3289,15 +3289,11 @@ nsDocument::GetBaseTarget(nsAString &aBaseTarget)
 void
 nsDocument::SetDocumentCharacterSet(const nsACString& aCharSetID)
 {
+  
+  
+  
   if (!mCharacterSet.Equals(aCharSetID)) {
     mCharacterSet = aCharSetID;
-
-#ifdef DEBUG
-    nsAutoCString canonicalName;
-    nsCharsetAlias::GetPreferred(aCharSetID, canonicalName);
-    NS_ASSERTION(canonicalName.Equals(aCharSetID),
-                 "charset name must be canonical");
-#endif
 
     int32_t n = mCharSetObservers.Length();
 

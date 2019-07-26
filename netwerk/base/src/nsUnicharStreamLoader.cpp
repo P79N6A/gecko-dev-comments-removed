@@ -181,7 +181,16 @@ nsUnicharStreamLoader::DetermineCharset()
     do_GetService(kCharsetConverterManagerCID, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  rv = ccm->GetUnicodeDecoder(mCharset.get(), getter_AddRefs(mDecoder));
+  
+  
+  
+  
+  
+  if (mCharset.EqualsLiteral("replacement")) {
+    rv = ccm->GetUnicodeDecoderRaw(mCharset.get(), getter_AddRefs(mDecoder));
+  } else {
+    rv = ccm->GetUnicodeDecoder(mCharset.get(), getter_AddRefs(mDecoder));
+  }
   if (NS_FAILED(rv)) return rv;
 
   

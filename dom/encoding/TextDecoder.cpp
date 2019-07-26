@@ -22,7 +22,8 @@ TextDecoder::Init(const nsAString& aEncoding, const bool aFatal,
 
   
   
-  if (!EncodingUtils::FindEncodingForLabel(label, mEncoding)) {
+  if (!EncodingUtils::FindEncodingForLabel(label, mEncoding) ||
+      mEncoding.EqualsLiteral("replacement")) {
     aRv.ThrowTypeError(MSG_ENCODING_NOT_SUPPORTED, &label);
     return;
   }
