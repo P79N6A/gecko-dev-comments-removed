@@ -2179,7 +2179,12 @@ ParseSelectorList(nsINode* aNode,
                                            doc->GetDocumentURI(),
                                            0, 
                                            &selectorList);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    return rv;
+  }
 
   
   nsCSSSelectorList** slot = &selectorList;
@@ -2218,7 +2223,12 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
   nsAutoPtr<nsCSSSelectorList> selectorList;
   nsresult rv = ParseSelectorList(aRoot, aSelector,
                                   getter_Transfers(selectorList));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    return rv;
+  }
   NS_ENSURE_TRUE(selectorList, NS_OK);
 
   NS_ASSERTION(selectorList->mSelectors,
