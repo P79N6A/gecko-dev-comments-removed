@@ -170,6 +170,14 @@ this.SessionStore = {
     return SessionStoreInternal.duplicateTab(aWindow, aTab, aDelta);
   },
 
+  getNumberOfTabsClosedLast: function ss_getNumberOfTabsClosedLast(aWindow) {
+    return SessionStoreInternal.getNumberOfTabsClosedLast(aWindow);
+  },
+
+  setNumberOfTabsClosedLast: function ss_setNumberOfTabsClosedLast(aWindow, aNumber) {
+    return SessionStoreInternal.setNumberOfTabsClosedLast(aWindow, aNumber);
+  },
+
   getClosedTabCount: function ss_getClosedTabCount(aWindow) {
     return SessionStoreInternal.getClosedTabCount(aWindow);
   },
@@ -1527,6 +1535,28 @@ let SessionStoreInternal = {
                                  true );
 
     return newTab;
+  },
+
+  setNumberOfTabsClosedLast: function ssi_setNumberOfTabsClosedLast(aWindow, aNumber) {
+    if ("__SSi" in aWindow) {
+      return NumberOfTabsClosedLastPerWindow.set(aWindow, aNumber);
+    }
+
+    throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+  },
+
+  
+  getNumberOfTabsClosedLast: function ssi_getNumberOfTabsClosedLast(aWindow) {
+    if ("__SSi" in aWindow) {
+      
+      
+      
+      
+      return Math.min(NumberOfTabsClosedLastPerWindow.get(aWindow) || 1,
+                      this.getClosedTabCount(aWindow));
+    }
+
+    throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
 
   getClosedTabCount: function ssi_getClosedTabCount(aWindow) {
@@ -4693,6 +4723,11 @@ let DyingWindowCache = {
     this._data.delete(window);
   }
 };
+
+
+
+
+let NumberOfTabsClosedLastPerWindow = new WeakMap();
 
 
 
