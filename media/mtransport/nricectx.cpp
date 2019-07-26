@@ -44,10 +44,10 @@
 #include <string>
 #include <vector>
 
+#include "logging.h"
 #include "nspr.h"
 #include "nss.h"
 #include "pk11pub.h"
-#include "prlog.h"
 
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
@@ -79,7 +79,6 @@ extern "C" {
 }
 
 
-#include "logging.h"
 #include "nricectx.h"
 #include "nricemediastream.h"
 #include "nr_socket_prsock.h"

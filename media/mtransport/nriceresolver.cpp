@@ -41,6 +41,7 @@
 
 
 
+#include "logging.h"
 #include "nspr.h"
 #include "prnetdb.h"
 
@@ -64,9 +65,6 @@ extern "C" {
 #include "nriceresolver.h"
 #include "nr_socket_prsock.h"
 #include "mtransport/runnable_utils.h"
-
-
-#include "logging.h"
 
 namespace mozilla {
 

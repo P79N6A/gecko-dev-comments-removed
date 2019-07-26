@@ -4,13 +4,12 @@
 
 
 
+#include "logging.h"
 #include "SrtpFlow.h"
 
 #include "srtp.h"
 #include "ssl.h"
 #include "sslproto.h"
-
-#include "logging.h"
 
 #include "mozilla/RefPtr.h"
 

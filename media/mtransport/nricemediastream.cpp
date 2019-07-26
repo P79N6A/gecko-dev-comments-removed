@@ -44,6 +44,7 @@
 #include <string>
 #include <vector>
 
+#include "logging.h"
 #include "nsError.h"
 
 
@@ -64,7 +65,6 @@ extern "C" {
 }
 
 
-#include "logging.h"
 #include "nricectx.h"
 #include "nricemediastream.h"
 

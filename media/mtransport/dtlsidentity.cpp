@@ -4,6 +4,7 @@
 
 
 
+#include "logging.h"
 #include "nspr.h"
 #include "cryptohi.h"
 #include "ssl.h"
@@ -12,7 +13,6 @@
 #include "sechash.h"
 #include "nsError.h"
 #include "dtlsidentity.h"
-#include "logging.h"
 
 namespace mozilla {
 
