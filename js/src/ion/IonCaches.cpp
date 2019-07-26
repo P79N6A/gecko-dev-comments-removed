@@ -3035,11 +3035,10 @@ CallsiteCloneIC::attach(JSContext *cx, IonScript *ion, HandleFunction original,
     RepatchStubAppender attacher(*this);
 
     
-    attacher.branchNextStub(masm, Assembler::NotEqual, calleeReg(),
-                            ImmWord(uintptr_t(original.get())));
+    attacher.branchNextStub(masm, Assembler::NotEqual, calleeReg(), ImmGCPtr(original));
 
     
-    masm.movePtr(ImmWord(uintptr_t(clone.get())), outputReg());
+    masm.movePtr(ImmGCPtr(clone), outputReg());
 
     attacher.jumpRejoin(masm);
 

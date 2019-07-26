@@ -4151,10 +4151,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
             return false;
 
         
-        
-        
-        JSFunction *original = &originals[i]->as<JSFunction>();
-        MConstant *funcDef = MConstant::New(ObjectValue(*original));
+        MConstant *funcDef = MConstant::New(ObjectValue(*target));
         funcDef->setFoldedUnchecked();
         dispatchBlock->add(funcDef);
 
@@ -4201,7 +4198,10 @@ IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
         setCurrent(dispatchBlock);
 
         
-        dispatch->addCase(original, inlineBlock);
+        
+        
+        
+        dispatch->addCase(&originals[i]->as<JSFunction>(), inlineBlock);
 
         MDefinition *retVal = inlineReturnBlock->peek(-1);
         retPhi->addInput(retVal);
