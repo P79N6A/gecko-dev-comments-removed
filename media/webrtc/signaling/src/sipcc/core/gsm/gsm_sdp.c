@@ -83,6 +83,14 @@ static fsmdef_media_t *
 gsmsdp_add_media_line(fsmdef_dcb_t *dcb_p, const cc_media_cap_t *media_cap,
                       uint8_t cap_index, uint16_t level,
                       cpr_ip_type addr_type, boolean offer);
+static boolean
+gsmsdp_add_remote_stream(uint16_t idx, int pc_stream_id,
+                         fsmdef_dcb_t *dcb_p);
+
+static boolean
+gsmsdp_add_remote_track(uint16_t idx, uint16_t track,
+                         fsmdef_dcb_t *dcb_p, fsmdef_media_t *media);
+
 
 
 extern cc_media_cap_table_t g_media_table;
@@ -304,16 +312,15 @@ static const cc_media_remote_stream_table_t *gsmsdp_get_media_stream_table (fsmd
 {
     static const char *fname = "gsmsdp_get_media_stream_table";
     if ( dcb_p->remote_media_stream_tbl == NULL ) {
-        dcb_p->remote_media_stream_tbl = (cc_media_remote_stream_table_t*) cpr_malloc(sizeof(cc_media_remote_stream_table_t));
-        memset(dcb_p->remote_media_stream_tbl, 0, sizeof(cc_media_remote_stream_table_t));
-
-        if ( dcb_p->remote_media_stream_tbl == NULL ) {
-
-             GSM_ERR_MSG(GSM_L_C_F_PREFIX"media track table malloc failed.\n",
+      dcb_p->remote_media_stream_tbl = (cc_media_remote_stream_table_t*) cpr_malloc(sizeof(cc_media_remote_stream_table_t));
+      if ( dcb_p->remote_media_stream_tbl == NULL ) {
+        GSM_ERR_MSG(GSM_L_C_F_PREFIX"media track table malloc failed.\n",
                     dcb_p->line, dcb_p->call_id, fname);
-             return NULL;
-         }
+        return NULL;
+      }
     }
+
+    memset(dcb_p->remote_media_stream_tbl, 0, sizeof(cc_media_remote_stream_table_t));
 
     return (dcb_p->remote_media_stream_tbl);
 }
@@ -4272,6 +4279,7 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
     int             rtcpmux = 0;
     tinybool        rtcp_mux = FALSE;
     sdp_result_e    sdp_res;
+    boolean         created_media_stream = FALSE;
 
     config_get_value(CFGID_SDPMODE, &sdpmode, sizeof(sdpmode));
 
@@ -4571,24 +4579,55 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
 
                   config_get_value(CFGID_RTCPMUX, &rtcpmux, sizeof(rtcpmux));
                   if (rtcpmux) {
-                    gsmsdp_set_rtcp_mux_attribute (SDP_ATTR_RTCP_MUX, media->level, sdp_p->src_sdp, TRUE);
+                    gsmsdp_set_rtcp_mux_attribute (SDP_ATTR_RTCP_MUX, media->level,
+                                                   sdp_p->src_sdp, TRUE);
                   }
 
                   if (notify_stream_added) {
-                    
+                      
 
 
-                     int pc_stream_id = 0;
+                      if (SDP_MEDIA_APPLICATION != media_type) {
+                          int pc_stream_id = -1;
 
-                     if (SDP_MEDIA_APPLICATION != media_type) {
-                         lsm_add_remote_stream (dcb_p->line, dcb_p->call_id, media, &pc_stream_id);
-                         gsmsdp_add_remote_stream(i-1, pc_stream_id, dcb_p, media);
-                     } else {
-                         
+                          
 
 
-                         lsm_data_channel_negotiated(dcb_p->line, dcb_p->call_id, media, &pc_stream_id);
-                     }
+
+                          if (!created_media_stream){
+                              lsm_add_remote_stream (dcb_p->line,
+                                                     dcb_p->call_id,
+                                                     media,
+                                                     &pc_stream_id);
+                              MOZ_ASSERT(pc_stream_id == 0);
+                              
+                              result = gsmsdp_add_remote_stream(0,
+                                                                pc_stream_id,
+                                                                dcb_p);
+                              MOZ_ASSERT(result);  
+
+
+                              created_media_stream = TRUE;
+                          }
+
+                          
+
+                          result = gsmsdp_add_remote_track(0, i, dcb_p, media);
+                          MOZ_ASSERT(result);  
+
+
+                      } else {
+                          
+
+
+                          int pc_stream_id; 
+
+
+
+
+                          lsm_data_channel_negotiated(dcb_p->line, dcb_p->call_id,
+                                                      media, &pc_stream_id);
+                      }
                   }
               }
             }
@@ -4675,13 +4714,21 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
 
             if (notify_stream_added) {
                 for (j=0; j < CC_MAX_STREAMS; j++ ) {
-                    
-                    if (dcb_p->remote_media_stream_tbl->streams[j].num_tracks) {
-                        ui_on_remote_stream_added(evOnRemoteStreamAdd, dcb_p->line, dcb_p->call_id,
-                           dcb_p->caller_id.call_instance_id, dcb_p->remote_media_stream_tbl->streams[j]);
-
+                    if (dcb_p->remote_media_stream_tbl->streams[j].
+                        num_tracks &&
+                        (!dcb_p->remote_media_stream_tbl->streams[j].
+                         num_tracks_notified)) {
                         
-                        dcb_p->remote_media_stream_tbl->streams[j].num_tracks = 0;
+
+
+
+                        ui_on_remote_stream_added(evOnRemoteStreamAdd,
+                            dcb_p->line, dcb_p->call_id,
+                            dcb_p->caller_id.call_instance_id,
+                            dcb_p->remote_media_stream_tbl->streams[j]);
+
+                        dcb_p->remote_media_stream_tbl->streams[j].num_tracks_notified =
+                            dcb_p->remote_media_stream_tbl->streams[j].num_tracks;
                     }
                 }
             }
@@ -6610,22 +6657,63 @@ gsmsdp_sdp_differs_from_previous_sdp (boolean rcv_only, fsmdef_media_t *media)
 
 
 
-void gsmsdp_add_remote_stream(uint16_t idx, int pc_stream_id, fsmdef_dcb_t *dcb_p, fsmdef_media_t *media) {
-
- 
-
-
-
-
-
+static boolean gsmsdp_add_remote_stream(uint16_t idx, int pc_stream_id, fsmdef_dcb_t *dcb_p) {
   PR_ASSERT(idx < CC_MAX_STREAMS);
+  if (idx >= CC_MAX_STREAMS)
+    return FALSE;
 
-  if (idx < CC_MAX_STREAMS) {
-    dcb_p->remote_media_stream_tbl->streams[idx].num_tracks = 1;
-    dcb_p->remote_media_stream_tbl->streams[idx].media_stream_id = pc_stream_id;
-    dcb_p->remote_media_stream_tbl->streams[idx].track[0].media_stream_track_id = idx+1;
-    dcb_p->remote_media_stream_tbl->streams[idx].track[0].video = (media->type == 0 ? FALSE : TRUE);
-  }
+  PR_ASSERT(!dcb_p->remote_media_stream_tbl->streams[idx].created);
+  if (dcb_p->remote_media_stream_tbl->streams[idx].created)
+    return FALSE;
+
+  dcb_p->remote_media_stream_tbl->streams[idx].media_stream_id = pc_stream_id;
+  dcb_p->remote_media_stream_tbl->streams[idx].created = TRUE;
+
+  return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static boolean gsmsdp_add_remote_track(uint16_t idx, uint16_t track,
+                                       fsmdef_dcb_t *dcb_p,
+                                       fsmdef_media_t *media) {
+  cc_media_remote_track_table_t *stream;
+  PR_ASSERT(idx < CC_MAX_STREAMS);
+  if (idx >= CC_MAX_STREAMS)
+    return FALSE;
+
+  stream = &dcb_p->remote_media_stream_tbl->streams[idx];
+
+  PR_ASSERT(stream->created);
+  if (!stream->created)
+    return FALSE;
+
+  PR_ASSERT(stream->num_tracks < (CC_MAX_TRACKS - 1));
+  if (stream->num_tracks > (CC_MAX_TRACKS - 1))
+    return FALSE;
+
+  stream->track[stream->num_tracks].media_stream_track_id = track;
+  stream->track[stream->num_tracks].video =
+      (media->type == SDP_MEDIA_VIDEO) ? TRUE : FALSE;
+
+  ++stream->num_tracks;
+
+  return TRUE;
 }
 
 cc_causes_t

@@ -149,8 +149,7 @@ public:
     return mRole;
   }
 
-  nsresult CreateRemoteSourceStreamInfo(uint32_t aHint,
-    nsRefPtr<RemoteSourceStreamInfo>* aInfo);
+  nsresult CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>* aInfo);
 
   
   virtual void onCallEvent(

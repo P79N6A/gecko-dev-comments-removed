@@ -177,7 +177,6 @@ public:
       case REMOTESTREAMADD:
         {
           nsDOMMediaStream* stream = nullptr;
-          uint32_t hint;
 
           if (!mRemoteStream) {
             CSFLogErrorS(logTag, __FUNCTION__ << " GetRemoteStream returned NULL");
@@ -188,15 +187,14 @@ public:
           if (!stream) {
             CSFLogErrorS(logTag, __FUNCTION__ << " GetMediaStream returned NULL");
           } else {
-            hint = stream->GetHintContents();
-            if (hint == nsDOMMediaStream::HINT_CONTENTS_AUDIO) {
-              mObserver->OnAddStream(stream, "audio");
-            } else if (hint == nsDOMMediaStream::HINT_CONTENTS_VIDEO) {
-              mObserver->OnAddStream(stream, "video");
-            } else {
-              CSFLogErrorS(logTag, __FUNCTION__ << "Audio & Video not supported");
-              MOZ_ASSERT(PR_FALSE);
-            }
+            
+            
+            
+            
+            
+            
+            
+            mObserver->OnAddStream(stream, "video");
           }
           break;
         }
@@ -278,14 +276,19 @@ PeerConnectionImpl::MakeMediaStream(uint32_t aHint, nsIDOMMediaStream** aRetval)
 }
 
 nsresult
-PeerConnectionImpl::CreateRemoteSourceStreamInfo(uint32_t aHint, nsRefPtr<RemoteSourceStreamInfo>* aInfo)
+PeerConnectionImpl::CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>*
+                                                 aInfo)
 {
   MOZ_ASSERT(aInfo);
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 
   nsIDOMMediaStream* stream;
 
-  nsresult res = MakeMediaStream(aHint, &stream);
+  
+  
+  
+  
+  nsresult res = MakeMediaStream(0, &stream);
   if (NS_FAILED(res)) {
     return res;
   }
