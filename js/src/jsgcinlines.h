@@ -513,35 +513,6 @@ NewGCThing(JSContext *cx, AllocKind kind, size_t thingSize, InitialHeap heap)
     return t;
 }
 
-
-
-
-
-
-
-class AutoSuppressGC
-{
-    int32_t &suppressGC_;
-
-  public:
-    AutoSuppressGC(JSContext *cx)
-      : suppressGC_(cx->runtime->mainThread.suppressGC)
-    {
-        suppressGC_++;
-    }
-
-    AutoSuppressGC(JSCompartment *comp)
-      : suppressGC_(comp->rt->mainThread.suppressGC)
-    {
-        suppressGC_++;
-    }
-
-    ~AutoSuppressGC()
-    {
-        suppressGC_--;
-    }
-};
-
 } 
 } 
 
