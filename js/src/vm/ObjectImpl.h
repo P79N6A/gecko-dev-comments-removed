@@ -980,19 +980,11 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
   public:
     JSObject * getProto() const {
-        AutoUnprotectCellUnderCompilationLock unprotect0(this);
-        return type_->getProto();
+        return type_->proto;
     }
 
     const Class *getClass() const {
-        AutoUnprotectCellUnderCompilationLock unprotect0(this);
-        return type_->getClass();
-    }
-
-    const Class *getClassImmutable() {
-        
-        AutoUnprotectCell unprotect(this);
-        return type_->getClass();
+        return type_->clasp;
     }
 
     static inline bool
@@ -1035,16 +1027,8 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         JS_ASSERT(isNative());
         return getElementsHeader()->initializedLength;
     }
-    uint32_t getDenseInitializedLengthForCompilation() {
-        
-        return getElementsHeader()->initializedLength;
-    }
     uint32_t getDenseCapacity() {
         JS_ASSERT(isNative());
-        return getElementsHeader()->capacity;
-    }
-    uint32_t getDenseCapacityForCompilation() {
-        
         return getElementsHeader()->capacity;
     }
 
@@ -1210,7 +1194,6 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
     types::TypeObject *type() const {
         MOZ_ASSERT(!hasLazyType());
-        AutoUnprotectCellUnderCompilationLock unprotect(this);
         return type_;
     }
 
@@ -1218,26 +1201,17 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return reinterpret_cast<const shadow::Object *>(this)->numFixedSlots();
     }
 
-    uint32_t numFixedSlotsForCompilation() const;
+    
+
+
+
+    bool hasSingletonType() const { return !!type_->singleton; }
 
     
 
 
 
-    bool hasSingletonType() const {
-        AutoUnprotectCellUnderCompilationLock unprotect0(this);
-        AutoUnprotectCellUnderCompilationLock unprotect1(type_);
-        return !!type_->singleton;
-    }
-
-    
-
-
-
-    bool hasLazyType() const {
-        AutoUnprotectCellUnderCompilationLock unprotect(this);
-        return type_->lazy();
-    }
+    bool hasLazyType() const { return type_->lazy(); }
 
     uint32_t slotSpan() const {
         if (inDictionaryMode())
@@ -1394,7 +1368,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     }
 
     const Value &getFixedSlot(uint32_t slot) const {
-        MOZ_ASSERT(slot < numFixedSlotsForCompilation());
+        MOZ_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
 
@@ -1491,7 +1465,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
 
 
-        MOZ_ASSERT(nfixed == numFixedSlotsForCompilation());
+        MOZ_ASSERT(nfixed == numFixedSlots());
         MOZ_ASSERT(hasPrivate());
         HeapSlot *end = &fixedSlots()[nfixed];
         return *reinterpret_cast<void**>(end);
@@ -1565,10 +1539,6 @@ JS_ALWAYS_INLINE Zone *
 BarrieredCell<ObjectImpl>::zoneFromAnyThread() const
 {
     const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
-
-    
-    AutoUnprotectCell unprotect(obj->shape_);
-
     return obj->shape_->zoneFromAnyThread();
 }
 

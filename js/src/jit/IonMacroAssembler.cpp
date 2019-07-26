@@ -685,6 +685,7 @@ MacroAssembler::newGCThing(const Register &result, JSObject *templateObject, Lab
 {
     gc::AllocKind allocKind = templateObject->tenuredGetAllocKind();
     JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
+    JS_ASSERT(!templateObject->hasDynamicElements());
 
     gc::InitialHeap initialHeap = templateObject->type()->initialHeapForJITAlloc();
     newGCThing(result, allocKind, fail, initialHeap);
@@ -757,6 +758,7 @@ MacroAssembler::newGCThingPar(const Register &result, const Register &slice,
 {
     gc::AllocKind allocKind = templateObject->tenuredGetAllocKind();
     JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
+    JS_ASSERT(!templateObject->hasDynamicElements());
 
     newGCThingPar(result, slice, tempReg1, tempReg2, allocKind, fail);
 }
@@ -782,17 +784,12 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 {
     
 
-    
-    AutoUnprotectCell unprotect(templateObject);
-
-    JS_ASSERT(!templateObject->hasDynamicElements());
-
     storePtr(ImmGCPtr(templateObject->lastProperty()), Address(obj, JSObject::offsetOfShape()));
     storePtr(ImmGCPtr(templateObject->type()), Address(obj, JSObject::offsetOfType()));
     storePtr(ImmPtr(nullptr), Address(obj, JSObject::offsetOfSlots()));
 
     if (templateObject->is<ArrayObject>()) {
-        JS_ASSERT(!templateObject->getDenseInitializedLengthForCompilation());
+        JS_ASSERT(!templateObject->getDenseInitializedLength());
 
         int elementsOffset = JSObject::offsetOfFixedElements();
 
@@ -801,13 +798,13 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
         addPtr(Imm32(-elementsOffset), obj);
 
         
-        store32(Imm32(templateObject->getDenseCapacityForCompilation()),
+        store32(Imm32(templateObject->getDenseCapacity()),
                 Address(obj, elementsOffset + ObjectElements::offsetOfCapacity()));
-        store32(Imm32(templateObject->getDenseInitializedLengthForCompilation()),
+        store32(Imm32(templateObject->getDenseInitializedLength()),
                 Address(obj, elementsOffset + ObjectElements::offsetOfInitializedLength()));
         store32(Imm32(templateObject->as<ArrayObject>().length()),
                 Address(obj, elementsOffset + ObjectElements::offsetOfLength()));
-        store32(Imm32(templateObject->shouldConvertDoubleElementsForCompilation()
+        store32(Imm32(templateObject->shouldConvertDoubleElements()
                       ? ObjectElements::CONVERT_DOUBLE_ELEMENTS
                       : 0),
                 Address(obj, elementsOffset + ObjectElements::offsetOfFlags()));
@@ -816,8 +813,7 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 
         
         
-        size_t nslots = Min(templateObject->numFixedSlotsForCompilation(),
-                            templateObject->lastProperty()->slotSpan(templateObject->getClassImmutable()));
+        size_t nslots = Min(templateObject->numFixedSlots(), templateObject->slotSpan());
         for (unsigned i = 0; i < nslots; i++) {
             storeValue(templateObject->getFixedSlot(i),
                        Address(obj, JSObject::getFixedSlotOffset(i)));

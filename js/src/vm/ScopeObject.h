@@ -181,8 +181,7 @@ class ScopeObject : public JSObject
 
 
     inline JSObject &enclosingScope() const {
-        AutoUnprotectCell unprotect(this);
-        return getFixedSlot(SCOPE_CHAIN_SLOT).toObject();
+        return getReservedSlot(SCOPE_CHAIN_SLOT).toObject();
     }
 
     void setEnclosingScope(HandleObject obj);
@@ -233,11 +232,10 @@ class CallObject : public ScopeObject
 
     
     bool isForEval() const {
-        AutoUnprotectCell unprotect(this);
-        JS_ASSERT(getFixedSlot(CALLEE_SLOT).isObjectOrNull());
-        JS_ASSERT_IF(getFixedSlot(CALLEE_SLOT).isObject(),
-                     getFixedSlot(CALLEE_SLOT).toObject().is<JSFunction>());
-        return getFixedSlot(CALLEE_SLOT).isNull();
+        JS_ASSERT(getReservedSlot(CALLEE_SLOT).isObjectOrNull());
+        JS_ASSERT_IF(getReservedSlot(CALLEE_SLOT).isObject(),
+                     getReservedSlot(CALLEE_SLOT).toObject().is<JSFunction>());
+        return getReservedSlot(CALLEE_SLOT).isNull();
     }
 
     
@@ -245,8 +243,7 @@ class CallObject : public ScopeObject
 
 
     JSFunction &callee() const {
-        AutoUnprotectCell unprotect(this);
-        return getFixedSlot(CALLEE_SLOT).toObject().as<JSFunction>();
+        return getReservedSlot(CALLEE_SLOT).toObject().as<JSFunction>();
     }
 
     
@@ -336,7 +333,7 @@ class BlockObject : public NestedScopeObject
 
     
     uint32_t slotCount() const {
-        return propertyCountForCompilation();
+        return propertyCount();
     }
 
     
@@ -371,8 +368,7 @@ class StaticBlockObject : public BlockObject
 
     
     JSObject *enclosingStaticScope() const {
-        AutoUnprotectCell unprotect(this);
-        return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+        return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     }
 
     
@@ -402,10 +398,7 @@ class StaticBlockObject : public BlockObject
 
 
     bool needsClone() {
-        
-        
-        AutoUnprotectCell unprotect(this);
-        return !getFixedSlot(RESERVED_SLOTS).isFalse();
+        return !slotValue(0).isFalse();
     }
 
     

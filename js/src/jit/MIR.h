@@ -966,18 +966,8 @@ class MConstant : public MNullaryInstruction
         return &value_;
     }
     const bool valueToBoolean() const {
-        if (value_.isString()) {
-            AutoUnprotectCell unprotect(&value_.toString()->asAtom());
-            return ToBoolean(value_);
-        }
-        if (value_.isObject()) {
-            
-            
-            
-            
-            return !value_.toObject().getClass()->emulatesUndefined();
-        }
-        return ToBoolean(value_);
+        
+        return ToBoolean(HandleValue::fromMarkedLocation(&value_));
     }
 
     void printOpcode(FILE *fp) const;
@@ -4826,14 +4816,13 @@ struct LambdaFunctionInfo
     
     
     CompilerRootFunction fun;
-    uint16_t nargs;
     uint16_t flags;
     gc::Cell *scriptOrLazyScript;
     bool singletonType;
     bool useNewTypeForClone;
 
     LambdaFunctionInfo(JSFunction *fun)
-      : fun(fun), nargs(fun->getNargs()), flags(fun->getFlags()),
+      : fun(fun), flags(fun->flags),
         scriptOrLazyScript(fun->hasScript()
                            ? (gc::Cell *) fun->nonLazyScript()
                            : (gc::Cell *) fun->lazyScript()),
@@ -4842,7 +4831,7 @@ struct LambdaFunctionInfo
     {}
 
     LambdaFunctionInfo(const LambdaFunctionInfo &info)
-      : fun((JSFunction *) info.fun), nargs(info.nargs), flags(info.flags),
+      : fun((JSFunction *) info.fun), flags(info.flags),
         scriptOrLazyScript(info.scriptOrLazyScript),
         singletonType(info.singletonType),
         useNewTypeForClone(info.useNewTypeForClone)
@@ -5970,9 +5959,7 @@ class MLoadTypedArrayElementStatic
         return new(alloc) MLoadTypedArrayElementStatic(typedArray, ptr);
     }
 
-    ArrayBufferView::ViewType viewType() const {
-        return (ArrayBufferView::ViewType) typedArray_->type();
-    }
+    ArrayBufferView::ViewType viewType() const { return JS_GetArrayBufferViewType(typedArray_); }
     void *base() const;
     size_t length() const;
 
@@ -6154,9 +6141,7 @@ class MStoreTypedArrayElementStatic :
         return this;
     }
 
-    ArrayBufferView::ViewType viewType() const {
-        return (ArrayBufferView::ViewType) typedArray_->type();
-    }
+    ArrayBufferView::ViewType viewType() const { return JS_GetArrayBufferViewType(typedArray_); }
     bool isFloatArray() const {
         return (viewType() == ArrayBufferView::TYPE_FLOAT32 ||
                 viewType() == ArrayBufferView::TYPE_FLOAT64);
