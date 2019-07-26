@@ -3099,7 +3099,9 @@ for (uint32_t i = 0; i < length; ++i) {
 
         unionArgumentObj = "${declName}" if isMember else "${holderName}"
         if nullable:
-            unionArgumentObj += ".ref()"
+            
+            
+            unionArgumentObj += ".SetValue()" if isMember else ".ref()"
 
         memberTypes = type.flatMemberTypes
         names = []
@@ -3289,7 +3291,12 @@ for (uint32_t i = 0; i < length; ++i) {
                                       extraConditionForNull=extraConditionForNull)
 
         declType = CGGeneric(typeName)
-        holderType = CGGeneric(argumentTypeName) if not isMember else None
+        if isMember:
+            holderType = None
+        else:
+            holderType = CGGeneric(argumentTypeName)
+            if nullable:
+                holderType = CGTemplatedType("Maybe", holderType)
 
         
         
@@ -3305,8 +3312,10 @@ for (uint32_t i = 0; i < length; ++i) {
                 declLoc = "${declName}.Value()"
             else:
                 holderArgs = "${declName}.SetValue()"
-            holderType = CGTemplatedType("Maybe", holderType)
-            constructHolder = CGGeneric("${holderName}.construct(%s);" % holderArgs)
+            if holderType is not None:
+                constructHolder = CGGeneric("${holderName}.construct(%s);" % holderArgs)
+            else:
+                constructHolder = None
             
             holderArgs = None
         else:
@@ -4933,6 +4942,9 @@ def wrapTypeIntoCurrentCompartment(type, value, isMember=True):
 
     if type.isUnion():
         memberWraps = []
+        if type.nullable():
+            type = type.inner
+            value = "%s.Value()" % value
         for member in type.flatMemberTypes:
             memberName = getUnionMemberName(member)
             memberWrap = wrapTypeIntoCurrentCompartment(
