@@ -112,6 +112,7 @@ var BrowserUI = {
     NewTabUtils.init();
     SettingsCharm.init();
     NavButtonSlider.init();
+    ShumwayUtils.init();
 
     
     

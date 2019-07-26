@@ -449,7 +449,7 @@ pref("app.update.silent", true);
 pref("app.update.staging.enabled", true);
 
 
-#ifndef RELEASE_BUILD
+#ifdef NIGHTLY_BUILD
 pref("app.update.url", "https://aus4.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
 #else
 pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
@@ -523,8 +523,7 @@ pref("app.update.cert.maxErrors", 5);
 
 
 
-
-#ifndef RELEASE_BUILD
+#ifdef NIGHTLY_BUILD
 pref("app.update.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
 pref("app.update.certs.1.commonName", "aus4.mozilla.org");
 pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
@@ -576,6 +575,8 @@ pref("pdfjs.firstRun", false);
 
 pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
+
+pref("shumway.disabled", true);
 
 
 
