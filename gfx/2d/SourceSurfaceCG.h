@@ -88,10 +88,7 @@ class SourceSurfaceCGBitmapContext : public SourceSurfaceCGContext
 {
 public:
   SourceSurfaceCGBitmapContext(DrawTargetCG *);
-  SourceSurfaceCGBitmapContext(CGContextRef);
   ~SourceSurfaceCGBitmapContext();
-
-  void Init(CGContextRef);
 
   virtual SurfaceType GetType() const { return SURFACE_COREGRAPHICS_CGCONTEXT; }
   virtual IntSize GetSize() const;
@@ -110,10 +107,8 @@ private:
   void EnsureImage() const;
 
   
+  
   DrawTargetCG *mDrawTarget;
-
-  
-  
   CGContextRef mCg;
 
   mutable CGImageRef mImage;

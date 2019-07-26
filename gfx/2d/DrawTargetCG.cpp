@@ -646,7 +646,22 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
 
   CGContextConcatCTM(cg, GfxMatrixToCGAffineTransform(mTransform));
 
-  SetStrokeOptions(cg, aStrokeOptions);
+  
+  
+  switch (aStrokeOptions.mLineJoin)
+  {
+    case JOIN_BEVEL:
+      CGContextSetLineJoin(cg, kCGLineJoinBevel);
+      break;
+    case JOIN_ROUND:
+      CGContextSetLineJoin(cg, kCGLineJoinRound);
+      break;
+    case JOIN_MITER:
+    case JOIN_MITER_OR_BEVEL:
+      CGContextSetLineJoin(cg, kCGLineJoinMiter);
+      break;
+  }
+  CGContextSetLineWidth(cg, aStrokeOptions.mLineWidth);
 
   if (isGradient(aPattern)) {
     
@@ -1030,7 +1045,6 @@ DrawTargetCG::Init(CGContextRef cgContext, const IntSize &aSize)
   mSize = aSize;
 
   mCg = cgContext;
-  CGContextRetain(mCg);
 
   mData = nullptr;
 
@@ -1081,21 +1095,6 @@ DrawTargetCG::GetNativeSurface(NativeSurfaceType aType)
   } else {
     return nullptr;
   }
-}
-
-TemporaryRef<SourceSurface>
-DrawTargetCG::CreateSourceSurfaceFromNativeSurface(const NativeSurface& aNative) const
-{
-  if (aNative.mType != NATIVE_SURFACE_CGCONTEXT) {
-    return nullptr;
-  }
-
-  CGContextRef cg = (CGContextRef)aNative.mSurface;
-  if (GetContextType(cg) != CG_CONTEXT_TYPE_BITMAP) {
-    return nullptr;
-  }
-
-  return new SourceSurfaceCGBitmapContext(cg);
 }
 
 void
@@ -1209,8 +1208,6 @@ BorrowedCGContext::BorrowCGContextFromDrawTarget(DrawTarget *aDT)
 
     
     CGContextSaveGState(cg);
-
-    CGContextConcatCTM(cg, GfxMatrixToCGAffineTransform(cgDT->mTransform));
 
     return cg;
   }
