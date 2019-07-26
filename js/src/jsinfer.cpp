@@ -2697,12 +2697,26 @@ ScriptAnalysis::addTypeBarrier(JSContext *cx, const jsbytecode *pc, TypeSet *tar
     }
 
     
+    size_t barrierCount = 0;
     TypeBarrier *barrier = code.typeBarriers;
     while (barrier) {
-        if (barrier->target == target && barrier->type == type && !barrier->singleton)
-            return;
+        if (barrier->target == target && !barrier->singleton) {
+            if (barrier->type == type)
+                return;
+            if (barrier->type.isAnyObject() && type.isObject())
+                return;
+        }
         barrier = barrier->next;
+        barrierCount++;
     }
+
+    
+
+
+
+
+    if (barrierCount >= BARRIER_OBJECT_LIMIT && type.isObject())
+        type = Type::AnyObjectType();
 
     InferSpew(ISpewOps, "typeBarrier: #%u:%05u: %sT%p%s %s",
               script_->id(), pc - script_->code,
