@@ -213,7 +213,8 @@ IsScopedStyleElement(nsIContent* aContent)
   
   
   
-  return aContent->IsHTML(nsGkAtoms::style) &&
+  return (aContent->IsHTML(nsGkAtoms::style) ||
+          aContent->IsSVG(nsGkAtoms::style)) &&
          aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::scoped);
 }
 
