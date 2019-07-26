@@ -1081,13 +1081,20 @@ MarionetteServerConnection.prototype = {
   
 
 
-  getUrl: function MDA_getUrl() {
+
+
+
+
+
+
+
+  getCurrentUrl: function MDA_getCurrentUrl() {
     this.command_id = this.getCommandId();
     if (this.context == "chrome") {
       this.sendResponse(this.getCurrentWindow().location.href, this.command_id);
     }
     else {
-      this.sendAsync("getUrl", {}, this.command_id);
+      this.sendAsync("getCurrentUrl", {}, this.command_id);
     }
   },
 
@@ -2375,7 +2382,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "getWindowType": MarionetteServerConnection.prototype.getWindowType,
   "getPageSource": MarionetteServerConnection.prototype.getPageSource,
   "goUrl": MarionetteServerConnection.prototype.goUrl,
-  "getUrl": MarionetteServerConnection.prototype.getUrl,
+  "getCurrentUrl": MarionetteServerConnection.prototype.getCurrentUrl,
+  "getUrl": MarionetteServerConnection.prototype.getCurrentUrl,  
   "goBack": MarionetteServerConnection.prototype.goBack,
   "goForward": MarionetteServerConnection.prototype.goForward,
   "refresh":  MarionetteServerConnection.prototype.refresh,
