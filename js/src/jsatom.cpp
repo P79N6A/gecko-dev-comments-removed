@@ -363,7 +363,7 @@ AtomizeAndtake(ExclusiveContext *cx, jschar *tbchars, size_t length, InternBehav
 
     AutoCompartment ac(cx, cx->atomsCompartment());
 
-    JSFlatString *flat = js_NewString<NoGC>(cx, tbchars, length);
+    JSFlatString *flat = NewString<NoGC>(cx, tbchars, length);
     if (!flat) {
         js_free(tbchars);
         js_ReportOutOfMemory(cx);
@@ -407,7 +407,7 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const CharT *tbchars, size_t length, I
 
     AutoCompartment ac(cx, cx->atomsCompartment());
 
-    JSFlatString *flat = js_NewStringCopyN<NoGC>(cx, tbchars, length);
+    JSFlatString *flat = NewStringCopyN<NoGC>(cx, tbchars, length);
     if (!flat) {
         
         
