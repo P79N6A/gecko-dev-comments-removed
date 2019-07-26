@@ -4991,7 +4991,12 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
                     return false;
             }
 
-            TypedArrayObject::setElement(obj->as<TypedArrayObject>(), index, d);
+            
+            
+            
+            TypedArrayObject &tarray = obj->as<TypedArrayObject>();
+            if (index < tarray.length())
+                TypedArrayObject::setElement(tarray, index, d);
             return true;
         }
 
