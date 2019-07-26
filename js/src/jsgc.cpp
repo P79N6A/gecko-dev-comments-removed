@@ -2909,9 +2909,29 @@ JSCompartment::findOutgoingEdges(ComponentFinder& finder)
         finder.addEdgeTo(rt->atomsCompartment);
 
     for (js::WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
-        JS_ASSERT(e.front().key.kind != CrossCompartmentKey::StringWrapper);
+        CrossCompartmentKey::Kind kind = e.front().key.kind;
+        JS_ASSERT(kind != CrossCompartmentKey::StringWrapper);
         Cell *other = e.front().key.wrapped;
-        if (!other->isMarked(BLACK) || other->isMarked(GRAY)) {
+        if (kind == CrossCompartmentKey::ObjectWrapper) {
+            
+
+
+
+
+            if (!other->isMarked(BLACK) || other->isMarked(GRAY)) {
+                JSCompartment *w = other->compartment();
+                if (w->isGCMarking())
+                    finder.addEdgeTo(w);
+            }
+        } else {
+            JS_ASSERT(kind == CrossCompartmentKey::DebuggerScript ||
+                      kind == CrossCompartmentKey::DebuggerObject ||
+                      kind == CrossCompartmentKey::DebuggerEnvironment);
+            
+
+
+
+
             JSCompartment *w = other->compartment();
             if (w->isGCMarking())
                 finder.addEdgeTo(w);
@@ -3002,11 +3022,13 @@ GrayLinkSlot(RawObject o)
     return IsCrossCompartmentWrapper(o) ? JSSLOT_GC_GRAY_LINK : Debugger::gcGrayLinkSlot();
 }
 
+#ifdef DEBUG
 static void
 AssertNotOnGrayList(RawObject o)
 {
     JS_ASSERT_IF(IsGrayListObject(o), o->getReservedSlot(GrayLinkSlot(o)).isUndefined());
 }
+#endif
 
 static Cell *
 CrossCompartmentPointerReferent(RawObject o)
@@ -3225,29 +3247,6 @@ EndMarkingCompartmentGroup(JSRuntime *rt)
 #endif
 
     JS_ASSERT(rt->gcMarker.isDrained());
-
-    {
-        gcstats::AutoPhase ap1(rt->gcStats, gcstats::PHASE_SWEEP_FIND_BLACK_GRAY);
-
-        
-
-
-
-
-
-
-        for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
-            for (WrapperMap::Enum e(c->crossCompartmentWrappers); !e.empty(); e.popFront()) {
-                Cell *dst = e.front().key.wrapped;
-                Cell *src = ToMarkable(e.front().value);
-                JS_ASSERT(src->compartment() == c);
-                if (IsCellMarked(&src) && !src->isMarked(GRAY) && dst->isMarked(GRAY)) {
-                    JS_ASSERT(!dst->compartment()->isCollecting());
-                    rt->gcFoundBlackGrayEdges = true;
-                }
-            }
-        }
-    }
 }
 
 static void
