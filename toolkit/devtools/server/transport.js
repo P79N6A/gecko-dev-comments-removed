@@ -63,10 +63,9 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 
 
 
-function DebuggerTransport(aInput, aOutput)
-{
-  this._input = aInput;
-  this._output = aOutput;
+function DebuggerTransport(input, output) {
+  this._input = input;
+  this._output = output;
 
   this._converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
     .createInstance(Ci.nsIScriptableUnicodeConverter);
@@ -87,10 +86,10 @@ DebuggerTransport.prototype = {
 
 
 
-  send: function DT_send(aPacket) {
-    let data = JSON.stringify(aPacket);
+  send: function(packet) {
+    let data = JSON.stringify(packet);
     data = this._converter.ConvertFromUnicode(data);
-    data = data.length + ':' + data;
+    data = data.length + ":" + data;
     this._outgoing += data;
     this._flushOutgoing();
   },
@@ -98,7 +97,7 @@ DebuggerTransport.prototype = {
   
 
 
-  close: function DT_close() {
+  close: function() {
     this._input.close();
     this._output.close();
   },
@@ -106,7 +105,7 @@ DebuggerTransport.prototype = {
   
 
 
-  _flushOutgoing: function DT_flushOutgoing() {
+  _flushOutgoing: function() {
     if (this._outgoing.length > 0) {
       var threadManager = Cc["@mozilla.org/thread-manager;1"].getService();
       this._output.asyncWait(this, 0, 0, threadManager.currentThread);
@@ -114,10 +113,10 @@ DebuggerTransport.prototype = {
   },
 
   onOutputStreamReady:
-  DevToolsUtils.makeInfallible(function DT_onOutputStreamReady(aStream) {
+  DevToolsUtils.makeInfallible(function(stream) {
     let written = 0;
     try {
-      written = aStream.write(this._outgoing, this._outgoing.length);
+      written = stream.write(this._outgoing, this._outgoing.length);
     } catch(e if e.result == Cr.NS_BASE_STREAM_CLOSED) {
       dumpn("Connection closed.");
       this.close();
@@ -132,7 +131,7 @@ DebuggerTransport.prototype = {
 
 
 
-  ready: function DT_ready() {
+  ready: function() {
     let pump = Cc["@mozilla.org/network/input-stream-pump;1"]
       .createInstance(Ci.nsIInputStreamPump);
     pump.init(this._input, -1, -1, 0, 0, false);
@@ -141,24 +140,24 @@ DebuggerTransport.prototype = {
 
   
   onStartRequest:
-  DevToolsUtils.makeInfallible(function DT_onStartRequest(aRequest, aContext) {},
+  DevToolsUtils.makeInfallible(function(request, context) {},
                  "DebuggerTransport.prototype.onStartRequest"),
 
   onStopRequest:
-  DevToolsUtils.makeInfallible(function DT_onStopRequest(aRequest, aContext, aStatus) {
+  DevToolsUtils.makeInfallible(function(request, context, status) {
     this.close();
     if (this.hooks) {
-      this.hooks.onClosed(aStatus);
+      this.hooks.onClosed(status);
       this.hooks = null;
     }
   }, "DebuggerTransport.prototype.onStopRequest"),
 
   onDataAvailable:
-  DevToolsUtils.makeInfallible(function DT_onDataAvailable(aRequest, aContext,
-                                             aStream, aOffset, aCount) {
-    this._incoming += NetUtil.readInputStreamToString(aStream,
-                                                      aStream.available());
-    while (this._processIncoming()) {};
+  DevToolsUtils.makeInfallible(function(request, context, stream,
+                                        offset, count) {
+    this._incoming += NetUtil.readInputStreamToString(stream,
+                                                      stream.available());
+    while (this._processIncoming()) {}
   }, "DebuggerTransport.prototype.onDataAvailable"),
 
   
@@ -168,9 +167,9 @@ DebuggerTransport.prototype = {
 
 
 
-  _processIncoming: function DT__processIncoming() {
+  _processIncoming: function() {
     
-    let sep = this._incoming.indexOf(':');
+    let sep = this._incoming.indexOf(":");
     if (sep < 0) {
       
       if (this._incoming.length > 20) {
@@ -224,7 +223,7 @@ DebuggerTransport.prototype = {
 
     return true;
   }
-}
+};
 
 exports.DebuggerTransport = DebuggerTransport;
 
@@ -239,9 +238,8 @@ exports.DebuggerTransport = DebuggerTransport;
 
 
 
-function LocalDebuggerTransport(aOther)
-{
-  this.other = aOther;
+function LocalDebuggerTransport(other) {
+  this.other = other;
   this.hooks = null;
 
   
@@ -257,26 +255,26 @@ LocalDebuggerTransport.prototype = {
 
 
 
-  send: function LDT_send(aPacket) {
+  send: function(packet) {
     let serial = this._serial.count++;
     if (dumpn.wantLogging) {
       
-      if (aPacket.from) {
-        dumpn("Packet " + serial + " sent from " + uneval(aPacket.from));
-      } else if (aPacket.to) {
-        dumpn("Packet " + serial + " sent to " + uneval(aPacket.to));
+      if (packet.from) {
+        dumpn("Packet " + serial + " sent from " + uneval(packet.from));
+      } else if (packet.to) {
+        dumpn("Packet " + serial + " sent to " + uneval(packet.to));
       }
     }
-    this._deepFreeze(aPacket);
+    this._deepFreeze(packet);
     let other = this.other;
     if (other) {
-      Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(function() {
+      Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
         
         if (dumpn.wantLogging) {
-          dumpn("Received packet " + serial + ": " + JSON.stringify(aPacket, null, 2));
+          dumpn("Received packet " + serial + ": " + JSON.stringify(packet, null, 2));
         }
         if (other.hooks) {
-          other.hooks.onPacket(aPacket);
+          other.hooks.onPacket(packet);
         }
       }, "LocalDebuggerTransport instance's this.other.hooks.onPacket"), 0);
     }
@@ -285,7 +283,7 @@ LocalDebuggerTransport.prototype = {
   
 
 
-  close: function LDT_close() {
+  close: function() {
     if (this.other) {
       
       
@@ -306,20 +304,20 @@ LocalDebuggerTransport.prototype = {
   
 
 
-  ready: function LDT_ready() {},
+  ready: function() {},
 
   
 
 
-  _deepFreeze: function LDT_deepFreeze(aObject) {
-    Object.freeze(aObject);
-    for (let prop in aObject) {
+  _deepFreeze: function(object) {
+    Object.freeze(object);
+    for (let prop in object) {
       
       
       
       
-      if (aObject.hasOwnProperty(prop) && typeof aObject === "object" &&
-          !Object.isFrozen(aObject)) {
+      if (object.hasOwnProperty(prop) && typeof object === "object" &&
+          !Object.isFrozen(object)) {
         this._deepFreeze(o[prop]);
       }
     }
@@ -342,9 +340,9 @@ exports.LocalDebuggerTransport = LocalDebuggerTransport;
 
 
 
-function ChildDebuggerTransport(aSender, aPrefix) {
-  this._sender = aSender.QueryInterface(Ci.nsIMessageSender);
-  this._messageName = "debug:" + aPrefix + ":packet";
+function ChildDebuggerTransport(sender, prefix) {
+  this._sender = sender.QueryInterface(Ci.nsIMessageSender);
+  this._messageName = "debug:" + prefix + ":packet";
 }
 
 
