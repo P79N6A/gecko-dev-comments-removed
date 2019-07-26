@@ -90,7 +90,22 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsJSEventListener)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsJSEventListener)
-  return tmp->IsBlackForCC();
+  if (tmp->IsBlackForCC()) {
+    return true;
+  }
+  
+  if (tmp->mTarget) {
+    nsXPCOMCycleCollectionParticipant* cp = nullptr;
+    CallQueryInterface(tmp->mTarget, &cp);
+    nsISupports* canonical = nullptr;
+    tmp->mTarget->QueryInterface(NS_GET_IID(nsCycleCollectionISupports),
+                                 reinterpret_cast<void**>(&canonical));
+    
+    
+    if (cp && canonical && cp->CanSkip(canonical, true)) {
+      return tmp->IsBlackForCC();
+    }
+  }
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsJSEventListener)
