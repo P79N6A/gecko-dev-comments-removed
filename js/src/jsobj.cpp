@@ -4171,29 +4171,34 @@ js::LookupPropertyPure(JSObject *obj, jsid id, JSObject **objp, Shape **propp)
 
 
 
-
 bool
-js::GetPropertyPure(JSObject *obj, jsid id, Value *vp)
+js::GetPropertyPure(ThreadSafeContext *tcx, JSObject *obj, jsid id, Value *vp)
 {
     JSObject *obj2;
     Shape *shape;
     if (!LookupPropertyPureInline(obj, id, &obj2, &shape))
         return false;
 
-    
-
-
-
     if (!shape) {
         
         if (obj->getClass()->getProperty && obj->getClass()->getProperty != JS_PropertyStub)
             return false;
+
+        
         vp->setUndefined();
         return true;
     }
 
     if (IsImplicitDenseElement(shape)) {
         *vp = obj2->getDenseElement(JSID_TO_INT(id));
+        return true;
+    }
+
+    
+    if (obj->is<ArrayObject>() &&
+        (JSID_IS_ATOM(id) && tcx->names().length == JSID_TO_ATOM(id)))
+    {
+        vp->setNumber(obj->as<ArrayObject>().length());
         return true;
     }
 

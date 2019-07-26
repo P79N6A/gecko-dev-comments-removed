@@ -1656,6 +1656,7 @@ struct ThreadSafeContext : js::ContextFriendFields,
 
     
     StaticStrings &staticStrings() { return runtime_->staticStrings; }
+    JSAtomState &names() { return runtime_->atomState; }
 
     
 
@@ -1948,8 +1949,6 @@ struct JSContext : js::ThreadSafeContext,
         throwing = false;
         exception.setUndefined();
     }
-
-    JSAtomState & names() { return runtime()->atomState; }
 
 #ifdef DEBUG
     
