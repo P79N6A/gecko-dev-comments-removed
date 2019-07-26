@@ -77,7 +77,7 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
     
     
     
-    boolean enabledInMetaGlobal = session.engineIsEnabled(this.getEngineName(), engineSettings);
+    boolean enabledInMetaGlobal = session.isEngineRemotelyEnabled(this.getEngineName(), engineSettings);
 
     
     checkAndUpdateUserSelectedEngines(enabledInMetaGlobal);
@@ -89,10 +89,7 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
     }
 
     
-    if (session.config.stagesToSync == null) {
-      return true;
-    }
-    boolean enabledThisSync = session.config.stagesToSync.contains(this.getEngineName()); 
+    boolean enabledThisSync = session.isEngineLocallyEnabled(this.getEngineName()); 
     if (!enabledThisSync) {
       Logger.debug(LOG_TAG, "Stage " + this.getEngineName() + " disabled just for this sync.");
     }
