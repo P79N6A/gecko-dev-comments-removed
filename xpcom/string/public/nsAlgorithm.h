@@ -11,12 +11,6 @@
   
 #endif
 
-#ifndef nsDebug_h___
-#include "nsDebug.h"
-  
-#endif
-
-
 template <class T>
 inline
 T
