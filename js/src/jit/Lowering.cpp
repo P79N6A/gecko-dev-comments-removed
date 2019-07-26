@@ -1958,13 +1958,10 @@ LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
     MIRType outputType = ins->type();
 
     JS_ASSERT(inputType == outputType);
-    JS_ASSERT_IF(ins->alwaysBails(), outputType == MIRType_Value);
 
     
     
     if (ins->alwaysBails()) {
-        JS_ASSERT(outputType == MIRType_Value);
-
         LBail *bail = new LBail();
         if (!assignSnapshot(bail, ins->bailoutKind()))
             return false;
