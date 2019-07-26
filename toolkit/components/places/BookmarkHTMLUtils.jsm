@@ -2,7 +2,7 @@
 
 
  
-const EXPORTED_SYMBOLS = [ "BookmarkHTMLUtils" ];
+this.EXPORTED_SYMBOLS = [ "BookmarkHTMLUtils" ];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
@@ -30,7 +30,7 @@ const POST_DATA_ANNO = "bookmarkProperties/POSTData";
 
 let serialNumber = 0; 
 
-let BookmarkHTMLUtils = Object.freeze({
+this.BookmarkHTMLUtils = Object.freeze({
   importFromURL: function importFromFile(aUrlString,
                                          aInitialImport,
                                          aCallback) {

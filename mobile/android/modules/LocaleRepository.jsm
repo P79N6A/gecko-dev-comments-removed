@@ -2,7 +2,7 @@
 
 
 
-let EXPORTED_SYMBOLS = ["LocaleRepository"];
+this.EXPORTED_SYMBOLS = ["LocaleRepository"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -24,7 +24,7 @@ const STRING_KEY_MAP = {
   strings:            "strings"
 };
 
-var LocaleRepository = {
+this.LocaleRepository = {
   loggingEnabled: false,
 
   log: function(aMessage) {

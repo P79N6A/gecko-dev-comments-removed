@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["Async"];
+this.EXPORTED_SYMBOLS = ["Async"];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
@@ -18,7 +18,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-let Async = {
+this.Async = {
 
   
 

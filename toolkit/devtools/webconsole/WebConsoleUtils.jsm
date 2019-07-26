@@ -28,10 +28,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gActivityDistributor",
                                    "@mozilla.org/network/http-activity-distributor;1",
                                    "nsIHttpActivityDistributor");
 
-var EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider", "JSTermHelpers",
-                        "PageErrorListener", "ConsoleAPIListener",
-                        "NetworkResponseListener", "NetworkMonitor",
-                        "ConsoleProgressListener"];
+this.EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider", "JSTermHelpers",
+                         "PageErrorListener", "ConsoleAPIListener",
+                         "NetworkResponseListener", "NetworkMonitor",
+                         "ConsoleProgressListener"];
 
 
 
@@ -44,7 +44,7 @@ const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
 
 const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
-var WebConsoleUtils = {
+this.WebConsoleUtils = {
   
 
 
@@ -914,7 +914,7 @@ WebConsoleUtils.l10n.prototype = {
 
 
 
-var JSPropertyProvider = (function _JSPP(WCU) {
+this.JSPropertyProvider = (function _JSPP(WCU) {
 const STATE_NORMAL = 0;
 const STATE_QUOTE = 2;
 const STATE_DQUOTE = 3;
@@ -1225,7 +1225,7 @@ return JSPropertyProvider;
 
 
 
-function PageErrorListener(aWindow, aListener)
+this.PageErrorListener = function PageErrorListener(aWindow, aListener)
 {
   this.window = aWindow;
   this.listener = aListener;
@@ -1373,7 +1373,7 @@ PageErrorListener.prototype =
 
 
 
-function ConsoleAPIListener(aWindow, aOwner)
+this.ConsoleAPIListener = function ConsoleAPIListener(aWindow, aOwner)
 {
   this.window = aWindow;
   this.owner = aOwner;
@@ -1475,7 +1475,7 @@ ConsoleAPIListener.prototype =
 
 
 
-function JSTermHelpers(aOwner)
+this.JSTermHelpers = function JSTermHelpers(aOwner)
 {
   
 
@@ -1679,7 +1679,7 @@ function JSTermHelpers(aOwner)
     aOwner.helperResult = { rawOutput: true };
     return String(aString);
   };
-}
+};
 
 
 (function(_global, WCU) {
@@ -2596,8 +2596,8 @@ _global.NetworkResponseListener = NetworkResponseListener;
 
 
 
-
-function ConsoleProgressListener(aWindow, aOwner)
+this.ConsoleProgressListener =
+ function ConsoleProgressListener(aWindow, aOwner)
 {
   this.window = aWindow;
   this.owner = aOwner;

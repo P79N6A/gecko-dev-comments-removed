@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 "use strict";
 
@@ -17,8 +17,8 @@ const PC_CID = Components.ID("{7cb2b368-b1ce-4560-acac-8e0dbda7d3d0}");
 const PC_ICE_CID = Components.ID("{8c5dbd70-2c8e-4ecb-a5ad-2fc919099f01}");
 const PC_SESSION_CID = Components.ID("{5f21ffd9-b73f-4ba0-a685-56b4667aaf1c}");
 
-// Global list of PeerConnection objects, so they can be cleaned up when
-// a page is torn down. (Maps inner window ID to an array of PC objects).
+
+
 function GlobalPCList() {
   this._list = {};
   Services.obs.addObserver(this, "inner-window-destroyed", true);
@@ -130,17 +130,17 @@ function PeerConnection() {
   this._onCreateAnswerSuccess = null;
   this._onCreateAnswerFailure = null;
 
-  /**
-   * Everytime we get a request from content, we put it in the queue. If
-   * there are no pending operations though, we will execute it immediately.
-   * In PeerConnectionObserver, whenever we are notified that an operation
-   * has finished, we will check the queue for the next operation and execute
-   * if neccesary. The _pending flag indicates whether an operation is currently
-   * in progress.
-   */
+  
+
+
+
+
+
+
+
   this._pending = false;
 
-  // Public attributes.
+  
   this.onaddstream = null;
   this.onremovestream = null;
   this.onicecandidate = null;
@@ -149,7 +149,7 @@ function PeerConnection() {
   this.onicechange = null;
   this.remoteDescription = null;
 
-  // Data channel.
+  
   this.ondatachannel = null;
   this.onconnection = null;
   this.onclosedconnection = null;
@@ -169,7 +169,7 @@ PeerConnection.prototype = {
     Ci.nsIDOMRTCPeerConnection, Ci.nsIDOMGlobalObjectConstructor
   ]),
 
-  // Constructor is an explicit function, because of nsIDOMGlobalObjectConstructor.
+  
   constructor: function(win) {
     if (!Services.prefs.getBoolPref("media.peerconnection.enabled")) {
       throw new Error("PeerConnection not enabled (did you set the pref?)");
@@ -182,7 +182,7 @@ PeerConnection.prototype = {
              createInstance(Ci.IPeerConnection);
     this._observer = new PeerConnectionObserver(this);
 
-    // Nothing starts until ICE gathering completes.
+    
     this._queueOrRun({
       func: this._pc.initialize,
       args: [this._observer, win, Services.tm.currentThread],
@@ -193,16 +193,16 @@ PeerConnection.prototype = {
     this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
 
-    // Add a reference to the PeerConnection to global list.
+    
     _globalPCList.addPC(this);
   },
 
-  /**
-   * Add a function to the queue or run it immediately if the queue is empty.
-   * Argument is an object with the func, args and wait properties; wait should
-   * be set to true if the function has a success/error callback that will
-   * call _executeNext, false if it doesn't have a callback.
-   */
+  
+
+
+
+
+
   _queueOrRun: function(obj) {
     if (this._closed) {
 	return;
@@ -217,7 +217,7 @@ PeerConnection.prototype = {
     }
   },
 
-  // Pick the next item from the queue and run it.
+  
   _executeNext: function() {
     if (this._queue.length) {
       let obj = this._queue.shift();
@@ -230,17 +230,17 @@ PeerConnection.prototype = {
     }
   },
 
-  /**
-   * Constraints look like this:
-   *
-   * {
-   *   mandatory: {"foo": true, "bar": 10, "baz": "boo"},
-   *   optional: [{"foo": true}, {"bar": 10}]
-   * }
-   *
-   * We check for basic structure but not the validity of the constraints
-   * themselves before passing them along to C++.
-   */
+  
+
+
+
+
+
+
+
+
+
+
   _validateConstraints: function(constraints) {
     function isObject(obj) {
       return obj && (typeof obj === "object");
@@ -314,7 +314,7 @@ PeerConnection.prototype = {
       provisional = false;
     }
 
-    // TODO: Implement provisional answer.
+    
     this._queueOrRun({
       func: this._pc.createAnswer,
       args: [constraints],
@@ -407,7 +407,7 @@ PeerConnection.prototype = {
   },
 
   addStream: function(stream, constraints) {
-    // TODO: Implement constraints.
+    
     this._queueOrRun({
       func: this._pc.addStream,
       args: [stream],
@@ -446,7 +446,7 @@ PeerConnection.prototype = {
       throw new Error("Both maxRetransmitTime and maxRetransmitNum cannot be provided");
     }
 
-    // Must determine the type where we still know if entries are undefined.
+    
     let type;
     if (dict.maxRetransmitTime != undefined) {
       type = Ci.IPeerConnection.DATACHANNEL_PARTIAL_RELIABLE_TIMED;
@@ -456,7 +456,7 @@ PeerConnection.prototype = {
       type = Ci.IPeerConnection.DATACHANNEL_RELIABLE;
     }
 
-    // Synchronous since it doesn't block.
+    
     let channel = this._pc.createDataChannel(
       label, type, dict.outOfOrderAllowed, dict.maxRetransmitTime,
       dict.maxRetransmitNum
@@ -476,7 +476,7 @@ PeerConnection.prototype = {
   }
 };
 
-// This is a seperate object because we don't want to expose it to DOM.
+
 function PeerConnectionObserver(dompc) {
   this._dompc = dompc;
 }
@@ -595,7 +595,7 @@ PeerConnectionObserver.prototype = {
         this._dompc._executeNext();
         break;
       case Ci.IPeerConnection.kIceConnected:
-        // ICE gathering complete.
+        
         iceCb("connected");
         iceGatherCb("complete");
         this._dompc._executeNext();
@@ -604,7 +604,7 @@ PeerConnectionObserver.prototype = {
         iceCb("failed");
         break;
       default:
-        // Unknown state!
+        
         break;
     }
   },
@@ -673,6 +673,6 @@ PeerConnectionObserver.prototype = {
   }
 };
 
-let NSGetFactory = XPCOMUtils.generateNSGetFactory(
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory(
   [IceCandidate, SessionDescription, PeerConnection]
 );

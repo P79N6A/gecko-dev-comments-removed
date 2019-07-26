@@ -2,11 +2,11 @@
 
 
 
-let EXPORTED_SYMBOLS = ["Contacts"];
+this.EXPORTED_SYMBOLS = ["Contacts"];
 
 const Cu = Components.utils;
 
-let Contacts = {
+this.Contacts = {
   _providers: [],
   _contacts: [],
 

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 "use strict"
 let DEBUG = 0;
@@ -44,7 +44,7 @@ DOMFMRadioChild.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMFMRadio,
                                          Ci.nsIDOMGlobalPropertyInitializer]),
 
-  // nsIDOMGlobalPropertyInitializer implementation
+  
   init: function(aWindow) {
     let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"]
                    .getService(Ci.nsIScriptSecurityManager);
@@ -74,7 +74,7 @@ DOMFMRadioChild.prototype = {
     this.initHelper(aWindow, messages);
   },
 
-  // Called from DOMRequestIpcHelper
+  
   uninit: function() {
     this._onFrequencyChange = null;
     this._onAntennaChange = null;
@@ -241,7 +241,7 @@ DOMFMRadioChild.prototype = {
     return request;
   },
 
-  // nsIDOMFMRadio
+  
   get enabled() {
     return cpmm.sendSyncMessage("DOMFMRadio:getPowerState")[0];
   },
@@ -309,8 +309,8 @@ DOMFMRadioChild.prototype = {
     return this._call("cancelSeek", null);
   },
 
-  // These are fake implementations, will be replaced by using
-  // nsJSDOMEventTargetHelper, see bug 731746
+  
+  
   addEventListener: function(type, listener, useCapture) {
     if (!this._eventListenersByType) {
       this._eventListenersByType = {};
@@ -383,5 +383,5 @@ DOMFMRadioChild.prototype = {
   }
 };
 
-const NSGetFactory = XPCOMUtils.generateNSGetFactory([DOMFMRadioChild]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([DOMFMRadioChild]);
 

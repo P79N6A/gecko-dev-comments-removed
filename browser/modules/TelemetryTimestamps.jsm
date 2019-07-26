@@ -2,7 +2,7 @@
 
 
 
-let EXPORTED_SYMBOLS = ["TelemetryTimestamps"];
+this.EXPORTED_SYMBOLS = ["TelemetryTimestamps"];
 
 
 
@@ -15,7 +15,7 @@ let EXPORTED_SYMBOLS = ["TelemetryTimestamps"];
 
 let timeStamps = {};
 
-let TelemetryTimestamps = {
+this.TelemetryTimestamps = {
   
 
 

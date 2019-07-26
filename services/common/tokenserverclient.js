@@ -4,7 +4,7 @@
 
 "use strict";
 
-const EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "TokenServerClient",
   "TokenServerClientError",
   "TokenServerClientNetworkError",
@@ -28,7 +28,7 @@ const Prefs = new Preferences("services.common.tokenserverclient.");
 
 
 
-function TokenServerClientError(message) {
+this.TokenServerClientError = function TokenServerClientError(message) {
   this.name = "TokenServerClientError";
   this.message = message || "Client error.";
 }
@@ -41,7 +41,8 @@ TokenServerClientError.prototype.constructor = TokenServerClientError;
 
 
 
-function TokenServerClientNetworkError(error) {
+this.TokenServerClientNetworkError =
+ function TokenServerClientNetworkError(error) {
   this.name = "TokenServerClientNetworkError";
   this.error = error;
 }
@@ -79,7 +80,8 @@ TokenServerClientNetworkError.prototype.constructor =
 
 
 
-function TokenServerClientServerError(message, cause="general") {
+this.TokenServerClientServerError =
+ function TokenServerClientServerError(message, cause="general") {
   this.name = "TokenServerClientServerError";
   this.message = message || "Server error.";
   this.cause = cause;
@@ -111,7 +113,7 @@ TokenServerClientServerError.prototype.constructor =
 
 
 
-function TokenServerClient() {
+this.TokenServerClient = function TokenServerClient() {
   this._log = Log4Moz.repository.getLogger("Common.TokenServerClient");
   this._log.level = Log4Moz.Level[Prefs.get("logger.level")];
 }

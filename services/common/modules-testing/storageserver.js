@@ -10,7 +10,7 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-const EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "ServerBSO",
   "StorageServerCallback",
   "StorageServerCollection",
@@ -65,7 +65,7 @@ function sendMozSvcError(request, response, code) {
 
 
 
-function ServerBSO(id, payload, modified) {
+this.ServerBSO = function ServerBSO(id, payload, modified) {
   if (!id) {
     throw new Error("No ID for ServerBSO!");
   }
@@ -274,7 +274,8 @@ ServerBSO.prototype = {
 
 
 
-function StorageServerCollection(bsos, acceptNew, timestamp=new_timestamp()) {
+this.StorageServerCollection =
+ function StorageServerCollection(bsos, acceptNew, timestamp=new_timestamp()) {
   this._bsos = bsos || {};
   this.acceptNew = acceptNew || false;
 
@@ -848,7 +849,7 @@ StorageServerCollection.prototype = {
 
 
 
-let StorageServerCallback = {
+this.StorageServerCallback = {
   onCollectionDeleted: function onCollectionDeleted(user, collection) {},
   onItemDeleted: function onItemDeleted(user, collection, bsoID) {},
 
@@ -865,7 +866,7 @@ let StorageServerCallback = {
 
 
 
-function StorageServer(callback) {
+this.StorageServer = function StorageServer(callback) {
   this.callback     = callback || {__proto__: StorageServerCallback};
   this.server       = new HttpServer();
   this.started      = false;
@@ -1644,7 +1645,8 @@ StorageServer.prototype = {
 
 
 
-function storageServerForUsers(users, contents, callback) {
+this.storageServerForUsers =
+ function storageServerForUsers(users, contents, callback) {
   let server = new StorageServer(callback);
   for (let [user, pass] in Iterator(users)) {
     server.registerUser(user, pass);

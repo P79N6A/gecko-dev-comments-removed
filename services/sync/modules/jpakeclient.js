@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["JPAKEClient", "SendCredentialsController"];
+this.EXPORTED_SYMBOLS = ["JPAKEClient", "SendCredentialsController"];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
@@ -111,7 +111,7 @@ const JPAKE_VERIFY_VALUE      = "0123456789ABCDEF";
 
 
 
-function JPAKEClient(controller) {
+this.JPAKEClient = function JPAKEClient(controller) {
   this.controller = controller;
 
   this._log = Log4Moz.repository.getLogger("Sync.JPAKEClient");
@@ -698,7 +698,8 @@ JPAKEClient.prototype = {
 
 
 
-function SendCredentialsController(jpakeclient, service) {
+this.SendCredentialsController =
+ function SendCredentialsController(jpakeclient, service) {
   this._log = Log4Moz.repository.getLogger("Sync.SendCredentialsController");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
 

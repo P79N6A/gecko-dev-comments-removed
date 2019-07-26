@@ -2,13 +2,13 @@
 
 
 
-let EXPORTED_SYMBOLS = ["GLib", "EBook"];
+this.EXPORTED_SYMBOLS = ["GLib", "EBook"];
 
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/ctypes.jsm");
 
-let GLib = {
+this.GLib = {
   lib: null,
 
   init: function glib_init() {
@@ -31,7 +31,7 @@ let GLib = {
   }
 };
 
-let EBook = {
+this.EBook = {
   lib: null,
   
   E_CONTACT_FULL_NAME: 4,

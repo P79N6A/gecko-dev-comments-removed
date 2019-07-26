@@ -2,7 +2,7 @@
 
 
 
-let EXPORTED_SYMBOLS = [ "CmdCommands" ];
+this.EXPORTED_SYMBOLS = [ "CmdCommands" ];
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
@@ -32,7 +32,7 @@ let commands = [];
 
 
 
-let CmdCommands = {
+this.CmdCommands = {
   
 
 

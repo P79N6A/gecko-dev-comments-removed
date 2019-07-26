@@ -11,14 +11,14 @@
 
 
 
-const EXPORTED_SYMBOLS = [ "Node", "HTMLElement", "setTimeout", "clearTimeout" ];
+this.EXPORTED_SYMBOLS = [ "Node", "HTMLElement", "setTimeout", "clearTimeout" ];
 
 
 
 
 
-const Node = Components.interfaces.nsIDOMNode;
-const HTMLElement = Components.interfaces.nsIDOMHTMLElement;
+this.Node = Components.interfaces.nsIDOMNode;
+this.HTMLElement = Components.interfaces.nsIDOMHTMLElement;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -66,7 +66,7 @@ TimerCallback.prototype.notify = function(timer) {
 
 
 
-const setTimeout = function setTimeout(callback, delay) {
+this.setTimeout = function setTimeout(callback, delay) {
   const timer = Components.classes["@mozilla.org/timer;1"]
                         .createInstance(Components.interfaces.nsITimer);
 
@@ -83,7 +83,7 @@ const setTimeout = function setTimeout(callback, delay) {
 
 
 
-const clearTimeout = function clearTimeout(timerID) {
+this.clearTimeout = function clearTimeout(timerID) {
   let timer = timers[timerID];
   if (timer) {
     timer.cancel();

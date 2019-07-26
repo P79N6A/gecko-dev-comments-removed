@@ -2,7 +2,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["foo", "bar"];
+this.EXPORTED_SYMBOLS = ["foo", "bar"];
 
 function foo() {
   return "foo";

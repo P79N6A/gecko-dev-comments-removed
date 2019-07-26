@@ -994,4 +994,4 @@ nsPlacesExpiration.prototype = {
 
 
 let components = [nsPlacesExpiration];
-var NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);

@@ -53,9 +53,9 @@ const RX_PSEUDO = /\s*:?:([\w-]+)(\(?\)?)\s*/g;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-var EXPORTED_SYMBOLS = ["CssLogic", "CssSelector"];
+this.EXPORTED_SYMBOLS = ["CssLogic", "CssSelector"];
 
-function CssLogic()
+this.CssLogic = function CssLogic()
 {
   
   _propertyInfos: {};
@@ -1350,7 +1350,7 @@ CssRule.prototype = {
 
 
 
-function CssSelector(aCssRule, aSelector)
+this.CssSelector = function CssSelector(aCssRule, aSelector)
 {
   this._cssRule = aCssRule;
   this.text = aSelector;

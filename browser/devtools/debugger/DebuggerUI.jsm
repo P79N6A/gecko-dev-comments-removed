@@ -25,7 +25,7 @@ XPCOMUtils.defineLazyModuleGetter(this,
 XPCOMUtils.defineLazyModuleGetter(this,
   "FileUtils", "resource:///modules/FileUtils.jsm");
 
-let EXPORTED_SYMBOLS = ["DebuggerUI"];
+this.EXPORTED_SYMBOLS = ["DebuggerUI"];
 
 
 
@@ -33,10 +33,10 @@ let EXPORTED_SYMBOLS = ["DebuggerUI"];
 
 
 
-function DebuggerUI(aWindow) {
+this.DebuggerUI = function DebuggerUI(aWindow) {
   this.chromeWindow = aWindow;
   this.listenToTabs();
-}
+};
 
 DebuggerUI.prototype = {
   

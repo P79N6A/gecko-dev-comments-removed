@@ -13,7 +13,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
-let EXPORTED_SYMBOLS = [ "PlacesDBUtils" ];
+this.EXPORTED_SYMBOLS = [ "PlacesDBUtils" ];
 
 
 
@@ -32,7 +32,7 @@ XPCOMUtils.defineLazyGetter(this, "DBConn", function() {
 
 
 
-let PlacesDBUtils = {
+this.PlacesDBUtils = {
   
 
 

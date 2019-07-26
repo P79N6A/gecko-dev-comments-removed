@@ -6,7 +6,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "DownloadsCommon",
 ];
 
@@ -87,7 +87,7 @@ XPCOMUtils.defineLazyGetter(this, "DownloadsLocalFileCtor", function () {
 
 
 
-const DownloadsCommon = {
+this.DownloadsCommon = {
   
 
 

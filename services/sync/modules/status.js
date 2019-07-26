@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["Status"];
+this.EXPORTED_SYMBOLS = ["Status"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -14,7 +14,7 @@ Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://gre/modules/Services.jsm");
 
-let Status = {
+this.Status = {
   _log: Log4Moz.repository.getLogger("Sync.Status"),
   _authManager: new IdentityManager(),
   ready: false,

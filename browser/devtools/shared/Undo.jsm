@@ -5,7 +5,7 @@
 
 const Cu = Components.utils;
 
-var EXPORTED_SYMBOLS=["UndoStack"];
+this.EXPORTED_SYMBOLS = ["UndoStack"];
 
 
 
@@ -19,7 +19,7 @@ var EXPORTED_SYMBOLS=["UndoStack"];
 
 
 
-function UndoStack(aMaxUndo)
+this.UndoStack = function UndoStack(aMaxUndo)
 {
   this.maxUndo = aMaxUndo || 50;
   this._stack = [];

@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["WebappRT"];
+this.EXPORTED_SYMBOLS = ["WebappRT"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -21,7 +21,7 @@ XPCOMUtils.defineLazyGetter(this, "DOMApplicationRegistry", function() {
   return DOMApplicationRegistry;
 });
 
-let WebappRT = {
+this.WebappRT = {
   _config: null,
 
   get config() {

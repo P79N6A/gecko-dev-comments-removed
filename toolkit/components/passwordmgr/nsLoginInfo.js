@@ -107,4 +107,4 @@ nsLoginInfo.prototype = {
 
 }; 
 
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([nsLoginInfo]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsLoginInfo]);

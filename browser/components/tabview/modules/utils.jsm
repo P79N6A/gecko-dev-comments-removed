@@ -7,7 +7,7 @@
 
 
 
-let EXPORTED_SYMBOLS = ["Point", "Rect", "Range", "Subscribable", "Utils", "MRUList"];
+this.EXPORTED_SYMBOLS = ["Point", "Rect", "Range", "Subscribable", "Utils", "MRUList"];
 
 
 const Ci = Components.interfaces;
@@ -23,7 +23,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-function Point(a, y) {
+this.Point = function Point(a, y) {
   if (Utils.isPoint(a)) {
     this.x = a.x;
     this.y = a.y;
@@ -60,7 +60,7 @@ Point.prototype = {
 
 
 
-function Rect(a, top, width, height) {
+this.Rect = function Rect(a, top, width, height) {
   
   if (Utils.isRect(a)) {
     this.left = a.left;
@@ -251,7 +251,7 @@ Rect.prototype = {
 
 
 
-function Range(min, max) {
+this.Range = function Range(min, max) {
   if (Utils.isRange(min) && !max) { 
     this.min = min.min;
     this.max = min.max;
@@ -357,7 +357,7 @@ Range.prototype = {
 
 
 
-function Subscribable() {
+this.Subscribable = function Subscribable() {
   this.subscribers = null;
 };
 
@@ -438,7 +438,7 @@ Subscribable.prototype = {
 
 
 
-let Utils = {
+this.Utils = {
   
   
   
@@ -768,7 +768,7 @@ let Utils = {
 
 
 
-function MRUList(a) {
+this.MRUList = function MRUList(a) {
   if (Array.isArray(a))
     this._list = a.concat();
   else

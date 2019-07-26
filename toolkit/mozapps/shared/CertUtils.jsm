@@ -4,7 +4,7 @@
 
 
 #endif
-EXPORTED_SYMBOLS = [ "BadCertHandler", "checkCert", "readCertPrefs", "validateCert" ];
+this.EXPORTED_SYMBOLS = [ "BadCertHandler", "checkCert", "readCertPrefs", "validateCert" ];
 
 const Ce = Components.Exception;
 const Ci = Components.interfaces;
@@ -31,7 +31,8 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 
-function readCertPrefs(aPrefBranch) {
+this.readCertPrefs =
+  function readCertPrefs(aPrefBranch) {
   if (Services.prefs.getBranch(aPrefBranch).getChildList("").length == 0)
     return null;
 
@@ -70,7 +71,8 @@ function readCertPrefs(aPrefBranch) {
 
 
 
-function validateCert(aCertificate, aCerts) {
+this.validateCert =
+  function validateCert(aCertificate, aCerts) {
   
   if (!aCerts || aCerts.length == 0)
     return;
@@ -137,7 +139,8 @@ function validateCert(aCertificate, aCerts) {
 
 
 
-function checkCert(aChannel, aAllowNonBuiltInCerts, aCerts) {
+this.checkCert =
+  function checkCert(aChannel, aAllowNonBuiltInCerts, aCerts) {
   if (!aChannel.originalURI.schemeIs("https")) {
     
     if (aCerts) {
@@ -184,7 +187,8 @@ function isBuiltinToken(tokenName) {
 
 
 
-function BadCertHandler(aAllowNonBuiltInCerts) {
+this.BadCertHandler =
+  function BadCertHandler(aAllowNonBuiltInCerts) {
   this.allowNonBuiltInCerts = aAllowNonBuiltInCerts;
 }
 BadCertHandler.prototype = {
