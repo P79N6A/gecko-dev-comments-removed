@@ -155,6 +155,45 @@ GetIncumbentGlobal()
   return ScriptSettingsStack::Ref().IncumbentGlobal();
 }
 
+nsIPrincipal*
+GetWebIDLCallerPrincipal()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  ScriptSettingsStackEntry *entry = ScriptSettingsStack::Ref().EntryPoint();
+
+  
+  
+  if (!entry || entry->IsSystemSingleton()) {
+    return nullptr;
+  }
+  AutoEntryScript* aes = static_cast<AutoEntryScript*>(entry);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!aes->mCxPusher.ref().IsStackTop()) {
+    return nullptr;
+  }
+
+  return aes->mWebIDLCallerPrincipal;
+}
+
 AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
                                  bool aIsMainThread,
                                  JSContext* aCx)
