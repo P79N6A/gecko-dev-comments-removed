@@ -19,13 +19,22 @@ class DelayBuffer {
 public:
   
   
-  DelayBuffer(int aMaxDelayTicks, double aSmoothingRate)
+  DelayBuffer(double aMaxDelayTicks, double aSmoothingRate)
     : mSmoothingRate(aSmoothingRate)
     , mCurrentDelay(-1.0)
-    , mMaxDelayTicks(aMaxDelayTicks)
+    
+    , mMaxDelayTicks(ceil(aMaxDelayTicks))
     , mCurrentChunk(0)
     
+#ifdef DEBUG
+    , mHaveWrittenBlock(false)
+#endif
   {
+    
+    
+    
+    MOZ_ASSERT(aMaxDelayTicks <=
+               std::numeric_limits<decltype(mMaxDelayTicks)>::max());
   }
 
   
@@ -53,6 +62,10 @@ public:
   void NextBlock()
   {
     mCurrentChunk = (mCurrentChunk + 1) % mChunks.Length();
+#ifdef DEBUG
+    MOZ_ASSERT(mHaveWrittenBlock);
+    mHaveWrittenBlock = false;
+#endif
   }
 
   void Reset() {
@@ -89,6 +102,9 @@ private:
   int mCurrentChunk;
   
   int mLastReadChunk;
+#ifdef DEBUG
+  bool mHaveWrittenBlock;
+#endif
 };
 
 } 

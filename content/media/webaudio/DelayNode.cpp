@@ -30,16 +30,18 @@ class DelayNodeEngine : public AudioNodeEngine
   typedef PlayingRefChangeHandler PlayingRefChanged;
 public:
   DelayNodeEngine(AudioNode* aNode, AudioDestinationNode* aDestination,
-                  int aMaxDelayTicks)
+                  double aMaxDelayTicks)
     : AudioNodeEngine(aNode)
     , mSource(nullptr)
     , mDestination(static_cast<AudioNodeStream*> (aDestination->Stream()))
     
     , mDelay(0.f)
     
-    , mBuffer(aMaxDelayTicks,
+    , mBuffer(std::max(aMaxDelayTicks,
+                       static_cast<double>(WEBAUDIO_BLOCK_SIZE)),
               WebAudioUtils::ComputeSmoothingRate(0.02,
                                                   mDestination->SampleRate()))
+    , mMaxDelay(aMaxDelayTicks)
     , mLastOutputPosition(-1)
     , mLeftOverData(INT32_MIN)
   {
@@ -122,7 +124,7 @@ public:
     mLastOutputPosition = tick;
     bool inCycle = mSource->AsProcessedStream()->InCycle();
     double minDelay = inCycle ? static_cast<double>(WEBAUDIO_BLOCK_SIZE) : 0.0;
-    double maxDelay = mBuffer.MaxDelayTicks();
+    double maxDelay = mMaxDelay;
     double sampleRate = mSource->SampleRate();
     ChannelInterpretation channelInterpretation =
       mSource->GetChannelInterpretation();
@@ -130,7 +132,8 @@ public:
       
       
       double delayFrames = mDelay.GetValue() * sampleRate;
-      double delayFramesClamped = clamped(delayFrames, minDelay, maxDelay);
+      double delayFramesClamped =
+        std::max(minDelay, std::min(delayFrames, maxDelay));
       mBuffer.Read(delayFramesClamped, aOutput, channelInterpretation);
     } else {
       
@@ -139,7 +142,8 @@ public:
       double computedDelay[WEBAUDIO_BLOCK_SIZE];
       for (size_t counter = 0; counter < WEBAUDIO_BLOCK_SIZE; ++counter) {
         double delayAtTick = mDelay.GetValueAtTime(tick, counter) * sampleRate;
-        double delayAtTickClamped = clamped(delayAtTick, minDelay, maxDelay);
+        double delayAtTickClamped =
+          std::max(minDelay, std::min(delayAtTick, maxDelay));
         computedDelay[counter] = delayAtTickClamped;
       }
       mBuffer.Read(computedDelay, aOutput, channelInterpretation);
@@ -159,6 +163,7 @@ public:
   AudioNodeStream* mDestination;
   AudioParamTimeline mDelay;
   DelayBuffer mBuffer;
+  double mMaxDelay;
   TrackTicks mLastOutputPosition;
   
   
@@ -175,7 +180,7 @@ DelayNode::DelayNode(AudioContext* aContext, double aMaxDelay)
 {
   DelayNodeEngine* engine =
     new DelayNodeEngine(this, aContext->Destination(),
-                        ceil(aContext->SampleRate() * aMaxDelay));
+                        aContext->SampleRate() * aMaxDelay);
   mStream = aContext->Graph()->CreateAudioNodeStream(engine, MediaStreamGraph::INTERNAL_STREAM);
   engine->SetSourceStream(static_cast<AudioNodeStream*> (mStream.get()));
 }
