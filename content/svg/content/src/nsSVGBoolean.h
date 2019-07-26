@@ -52,45 +52,18 @@ private:
   uint8_t mAttrEnum; 
 
 public:
-  struct DOMAnimatedBoolean MOZ_FINAL : public nsIDOMSVGAnimatedBoolean
-  {
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedBoolean)
-
-    DOMAnimatedBoolean(nsSVGBoolean* aVal, nsSVGElement *aSVGElement)
-      : mVal(aVal), mSVGElement(aSVGElement) {}
-    virtual ~DOMAnimatedBoolean();
-
-    nsSVGBoolean* mVal; 
-    nsRefPtr<nsSVGElement> mSVGElement;
-
-    NS_IMETHOD GetBaseVal(bool* aResult)
-      { *aResult = mVal->GetBaseValue(); return NS_OK; }
-    NS_IMETHOD SetBaseVal(bool aValue)
-      { mVal->SetBaseValue(aValue, mSVGElement); return NS_OK; }
-
-    
-    
-    NS_IMETHOD GetAnimVal(bool* aResult)
-    {
-      mSVGElement->FlushAnimations();
-      *aResult = mVal->GetAnimValue();
-      return NS_OK;
-    }
-  };
-
   struct SMILBool : public nsISMILAttr
   {
   public:
     SMILBool(nsSVGBoolean* aVal, nsSVGElement* aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
-    
+
     
     
     
     nsSVGBoolean* mVal;
     nsSVGElement* mSVGElement;
-    
+
     
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
