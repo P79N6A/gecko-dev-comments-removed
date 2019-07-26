@@ -3059,6 +3059,23 @@ xpc::CreateObjectIn(JSContext *cx, HandleValue vobj, CreateObjectInOptions &opti
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::IsProxy(const Value &vobj, JSContext *cx, bool *rval)
+{
+    if (!vobj.isObject()) {
+        *rval = false;
+        return NS_OK;
+    }
+
+    RootedObject obj(cx, &vobj.toObject());
+    obj = js::CheckedUnwrap(obj,  false);
+    NS_ENSURE_TRUE(obj, NS_ERROR_FAILURE);
+
+    *rval = js::IsScriptedProxy(obj);
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::EvalInWindow(const nsAString &source, const Value &window,
                                     JSContext *cx, Value *rval)
 {
