@@ -100,6 +100,8 @@ ReportOverRecursed(JSContext *cx)
 
     js_ReportOverRecursed(cx);
 
+    MOZ_CRASH();
+
     
     return false;
 }
