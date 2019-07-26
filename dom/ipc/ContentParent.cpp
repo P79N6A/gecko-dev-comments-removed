@@ -730,19 +730,28 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
 }
 
 void
-ContentParent::ShutDownProcess()
+ContentParent::ShutDownProcess(bool aFromActorDestroyed)
 {
   if (!mIsDestroyed) {
+    mIsDestroyed = true;
+
     const InfallibleTArray<PIndexedDBParent*>& idbParents =
       ManagedPIndexedDBParent();
     for (uint32_t i = 0; i < idbParents.Length(); ++i) {
       static_cast<IndexedDBParent*>(idbParents[i])->Disconnect();
     }
 
-    
-    
-    Close();
-    mIsDestroyed = true;
+    if (aFromActorDestroyed) {
+      
+      
+      AsyncChannel* channel = GetIPCChannel();
+      if (channel) {
+        channel->CloseWithError();
+      }
+    } else {
+      
+      Close();
+    }
   }
   
   
@@ -948,6 +957,11 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
         obs->NotifyObservers((nsIPropertyBag2*) props, "ipc:content-shutdown", nullptr);
     }
 
+    
+    
+    
+    ShutDownProcess( true);
+
     MessageLoop::current()->
         PostTask(FROM_HERE,
                  NewRunnableFunction(DelayedDeleteSubprocess, mSubprocess));
@@ -1006,7 +1020,8 @@ ContentParent::NotifyTabDestroyed(PBrowserParent* aTab,
     if (ManagedPBrowserParent().Length() == 1) {
         MessageLoop::current()->PostTask(
             FROM_HERE,
-            NewRunnableMethod(this, &ContentParent::ShutDownProcess));
+            NewRunnableMethod(this, &ContentParent::ShutDownProcess,
+                               false));
     }
 }
 
@@ -1464,7 +1479,7 @@ ContentParent::Observe(nsISupports* aSubject,
                        const PRUnichar* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        ShutDownProcess();
+        ShutDownProcess( false);
         NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
     }
 

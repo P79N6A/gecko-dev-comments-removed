@@ -244,7 +244,13 @@ private:
 
 
 
-    void ShutDownProcess();
+
+
+
+
+
+
+    void ShutDownProcess(bool aFromActorDestroyed);
 
     PCompositorParent*
     AllocPCompositorParent(mozilla::ipc::Transport* aTransport,
