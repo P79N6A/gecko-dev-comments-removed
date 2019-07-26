@@ -189,6 +189,49 @@ class FullParseHandler
         return new_<TernaryNode>(kind, op, first, second, third);
     }
 
+    
+
+    ParseNode *newObjectLiteral(uint32_t begin) {
+        ParseNode *literal = new_<ListNode>(PNK_OBJECT, TokenPos(begin, begin + 1));
+        
+        if (literal)
+            literal->setOp(JSOP_NEWINIT);
+        return literal;
+    }
+
+    bool addPropertyDefinition(ParseNode *literal, ParseNode *name, ParseNode *expr) {
+        ParseNode *propdef = newBinary(PNK_COLON, name, expr, JSOP_INITPROP);
+        if (!propdef)
+            return false;
+        literal->append(propdef);
+        return true;
+    }
+
+    bool addShorthandPropertyDefinition(ParseNode *literal, ParseNode *name) {
+        JS_ASSERT(literal->isArity(PN_LIST));
+        literal->pn_xflags |= PNX_DESTRUCT | PNX_NONCONST;  
+
+        ParseNode *propdef = newBinary(PNK_COLON, name, name, JSOP_INITPROP);
+        if (!propdef)
+            return false;
+        literal->append(propdef);
+        return true;
+    }
+
+    bool addAccessorPropertyDefinition(ParseNode *literal, ParseNode *name, ParseNode *fn, JSOp op)
+    {
+        JS_ASSERT(literal->isArity(PN_LIST));
+        literal->pn_xflags |= PNX_NONCONST;
+
+        ParseNode *propdef = newBinary(PNK_COLON, name, fn, op);
+        if (!propdef)
+            return false;
+        literal->append(propdef);
+        return true;
+    }
+
+    
+
     ParseNode *newStatementList(unsigned blockid, const TokenPos &pos) {
         ParseNode *pn = new_<ListNode>(PNK_STATEMENTLIST, pos);
         if (pn)

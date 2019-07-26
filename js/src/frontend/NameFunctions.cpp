@@ -151,10 +151,6 @@ class NameResolver
 
 
 
-
-
-                if (pos == 0 || !parents[pos - 1]->isKind(PNK_OBJECT))
-                    return NULL;
                 pos--;
                 
 
