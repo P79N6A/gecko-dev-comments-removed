@@ -59,8 +59,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
   virtual GroupPos GroupPosition();
   virtual ENameValueFlag Name(nsString& aName);

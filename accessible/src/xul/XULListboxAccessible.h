@@ -94,8 +94,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual void Value(nsString& aValue);
   virtual TableAccessible* AsTable() { return this; }
   virtual a11y::role NativeRole();

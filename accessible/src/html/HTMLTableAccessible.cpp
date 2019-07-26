@@ -374,10 +374,6 @@ HTMLTableAccessible::Shutdown()
   AccessibleWrap::Shutdown();
 }
 
-
-
-
-
 void
 HTMLTableAccessible::CacheChildren()
 {

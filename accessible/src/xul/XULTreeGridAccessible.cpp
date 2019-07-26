@@ -229,9 +229,6 @@ XULTreeGridAccessible::Shutdown()
   XULTreeAccessible::Shutdown();
 }
 
-
-
-
 role
 XULTreeGridAccessible::NativeRole()
 {
@@ -299,9 +296,6 @@ XULTreeGridRowAccessible::Shutdown()
   ClearCache(mAccessibleCache);
   XULTreeItemAccessibleBase::Shutdown();
 }
-
-
-
 
 role
 XULTreeGridRowAccessible::NativeRole()

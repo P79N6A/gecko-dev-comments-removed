@@ -52,7 +52,6 @@ public:
   virtual ~AccessibleWrap();
   void ShutdownAtkObject();
 
-  
   virtual void Shutdown();
 
   

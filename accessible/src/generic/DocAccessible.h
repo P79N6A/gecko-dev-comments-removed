@@ -78,7 +78,6 @@ public:
   virtual nsINode* GetNode() const { return mDocumentNode; }
   nsIDocument* DocumentNode() const { return mDocumentNode; }
 
-  
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
   virtual void Description(nsString& aDescription);
   virtual Accessible* FocusedChild();

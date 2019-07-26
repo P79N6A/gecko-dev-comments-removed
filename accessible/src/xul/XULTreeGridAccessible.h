@@ -56,8 +56,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual TableAccessible* AsTable() { return this; }
   virtual a11y::role NativeRole();
 
@@ -88,8 +86,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual a11y::role NativeRole();
   virtual ENameValueFlag Name(nsString& aName);
   virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,

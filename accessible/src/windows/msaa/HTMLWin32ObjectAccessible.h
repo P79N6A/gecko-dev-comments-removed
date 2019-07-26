@@ -28,8 +28,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual mozilla::a11y::role NativeRole();
   virtual bool NativelyUnavailable() const;
 

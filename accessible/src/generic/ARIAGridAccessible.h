@@ -36,8 +36,6 @@ public:
 
   
   virtual TableAccessible* AsTable() { return this; }
-
-  
   virtual void Shutdown();
 
   

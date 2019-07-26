@@ -35,8 +35,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual mozilla::a11y::role NativeRole();
   virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
                                    EWhichChildAtPoint aWhichChild);

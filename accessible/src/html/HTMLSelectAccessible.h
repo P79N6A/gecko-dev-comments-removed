@@ -177,8 +177,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual void Description(nsString& aDescription);
   virtual void Value(nsString& aValue);
   virtual a11y::role NativeRole();
@@ -223,8 +221,6 @@ public:
 
   
   virtual nsIFrame* GetFrame() const;
-
-  
   virtual a11y::role NativeRole();
   virtual uint64_t NativeState();
   virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);

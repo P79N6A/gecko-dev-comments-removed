@@ -40,8 +40,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual void Value(nsString& aValue);
   virtual a11y::role NativeRole();
   virtual uint64_t NativeState();
@@ -157,8 +155,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual GroupPos GroupPosition();
   virtual uint64_t NativeState();
   virtual uint64_t NativeInteractiveState() const;
@@ -238,8 +234,6 @@ public:
 
   
   virtual void Shutdown();
-
-  
   virtual ENameValueFlag Name(nsString& aName);
   virtual a11y::role NativeRole();
 

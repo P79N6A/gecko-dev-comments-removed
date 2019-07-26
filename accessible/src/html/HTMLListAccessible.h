@@ -47,13 +47,11 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual void Shutdown();
-
-  
   NS_IMETHOD GetBounds(int32_t* aX, int32_t* aY,
                        int32_t* aWidth, int32_t* aHeight);
 
   
+  virtual void Shutdown();
   virtual a11y::role NativeRole();
   virtual uint64_t NativeState();
 
@@ -80,8 +78,6 @@ public:
 
   
   virtual nsIFrame* GetFrame() const;
-
-  
   virtual ENameValueFlag Name(nsString& aName);
   virtual a11y::role NativeRole();
   virtual uint64_t NativeState();

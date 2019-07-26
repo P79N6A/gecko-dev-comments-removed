@@ -273,10 +273,6 @@ ApplicationAccessible::Shutdown()
   mAppInfo = nullptr;
 }
 
-
-
-
-
 void
 ApplicationAccessible::ApplyARIAState(uint64_t* aState) const
 {

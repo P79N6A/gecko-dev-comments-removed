@@ -612,9 +612,6 @@ HTMLComboboxListAccessible::GetFrame() const
   return nullptr;
 }
 
-
-
-
 role
 HTMLComboboxListAccessible::NativeRole()
 {

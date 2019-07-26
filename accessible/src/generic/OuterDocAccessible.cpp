@@ -133,9 +133,6 @@ OuterDocAccessible::Shutdown()
   AccessibleWrap::Shutdown();
 }
 
-
-
-
 void
 OuterDocAccessible::InvalidateChildren()
 {

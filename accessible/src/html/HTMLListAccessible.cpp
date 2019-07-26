@@ -156,9 +156,6 @@ HTMLListBulletAccessible::GetFrame() const
   return blockFrame ? blockFrame->GetBullet() : nullptr;
 }
 
-
-
-
 ENameValueFlag
 HTMLListBulletAccessible::Name(nsString &aName)
 {

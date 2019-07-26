@@ -10,7 +10,6 @@
 #include "mozilla/a11y/RelationType.h"
 #include "mozilla/a11y/Role.h"
 #include "mozilla/a11y/States.h"
-#include "nsAccessNode.h"
 
 #include "nsIAccessible.h"
 #include "nsIAccessibleHyperLink.h"
@@ -36,6 +35,7 @@ namespace a11y {
 class Accessible;
 class AccEvent;
 class AccGroupInfo;
+class DocAccessible;
 class EmbeddedObjCollector;
 class HTMLImageMapAccessible;
 class HTMLLIAccessible;
@@ -43,6 +43,7 @@ class HyperTextAccessible;
 class ImageAccessible;
 class KeyBinding;
 class Relation;
+class RootAccessible;
 class TableAccessible;
 class TableCellAccessible;
 class TextLeafAccessible;
@@ -101,8 +102,7 @@ typedef nsRefPtrHashtable<nsPtrHashKey<const void>, Accessible>
   { 0xbd, 0x50, 0x42, 0x6b, 0xd1, 0xd6, 0xe1, 0xad }    \
 }
 
-class Accessible : public nsAccessNode,
-                   public nsIAccessible,
+class Accessible : public nsIAccessible,
                    public nsIAccessibleHyperLink,
                    public nsIAccessibleSelectable,
                    public nsIAccessibleValue
@@ -111,8 +111,8 @@ public:
   Accessible(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~Accessible();
 
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Accessible, nsAccessNode)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(Accessible, nsIAccessible)
 
   NS_DECL_NSIACCESSIBLE
   NS_DECL_NSIACCESSIBLEHYPERLINK
@@ -123,10 +123,47 @@ public:
   
   
 
-  virtual void Shutdown();
+  
+
+
+  DocAccessible* Document() const { return mDoc; }
 
   
+
+
+  a11y::RootAccessible* RootAccessible() const;
+
   
+
+
+  virtual nsIFrame* GetFrame() const;
+
+  
+
+
+  virtual nsINode* GetNode() const;
+  inline already_AddRefed<nsIDOMNode> DOMNode() const
+  {
+    nsCOMPtr<nsIDOMNode> DOMNode = do_QueryInterface(GetNode());
+    return DOMNode.forget();
+  }
+  nsIContent* GetContent() const { return mContent; }
+
+  
+
+
+  bool IsContent() const
+    { return GetNode() && GetNode()->IsNodeOfType(nsINode::eCONTENT); }
+
+  
+
+
+  void* UniqueID() { return static_cast<void*>(this); }
+
+  
+
+
+  void Language(nsAString& aLocale);
 
   
 
@@ -145,15 +182,6 @@ public:
 
 
   virtual ENameValueFlag Name(nsString& aName);
-
-  
-
-
-  inline already_AddRefed<nsIDOMNode> DOMNode() const
-  {
-    nsCOMPtr<nsIDOMNode> DOMNode = do_QueryInterface(GetNode());
-    return DOMNode.forget();
-  }
 
   
 
@@ -303,6 +331,11 @@ public:
   
 
 
+  virtual void Shutdown();
+
+  
+
+
   void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
     { mRoleMapEntry = aRoleMapEntry; }
 
@@ -383,7 +416,6 @@ public:
     uint32_t childCount = ChildCount();
     return childCount != 0 ? GetChildAt(childCount - 1) : nullptr;
   }
-
 
   
 
@@ -759,6 +791,11 @@ protected:
   
 
 
+  void LastRelease();
+
+  
+
+
   virtual void CacheChildren();
 
   
@@ -900,6 +937,9 @@ protected:
   AccGroupInfo* GetGroupInfo();
 
   
+  nsCOMPtr<nsIContent> mContent;
+  DocAccessible* mDoc;
+
   nsRefPtr<Accessible> mParent;
   nsTArray<nsRefPtr<Accessible> > mChildren;
   int32_t mIndexInParent;
@@ -932,6 +972,12 @@ protected:
 
 
   nsRoleMapEntry* mRoleMapEntry;
+
+private:
+  Accessible() MOZ_DELETE;
+  Accessible(const Accessible&) MOZ_DELETE;
+  Accessible& operator =(const Accessible&) MOZ_DELETE;
+
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Accessible,

@@ -151,9 +151,6 @@ XULTreeAccessible::Shutdown()
   AccessibleWrap::Shutdown();
 }
 
-
-
-
 role
 XULTreeAccessible::NativeRole()
 {
@@ -901,10 +898,6 @@ XULTreeItemAccessibleBase::Shutdown()
   AccessibleWrap::Shutdown();
 }
 
-
-
-
-
 GroupPos
 XULTreeItemAccessibleBase::GroupPosition()
 {
@@ -1142,9 +1135,6 @@ XULTreeItemAccessible::Shutdown()
   mColumn = nullptr;
   XULTreeItemAccessibleBase::Shutdown();
 }
-
-
-
 
 role
 XULTreeItemAccessible::NativeRole()

@@ -34,9 +34,6 @@ HTMLWin32ObjectOwnerAccessible::Shutdown()
   mNativeAccessible = nullptr;
 }
 
-
-
-
 role
 HTMLWin32ObjectOwnerAccessible::NativeRole()
 {
