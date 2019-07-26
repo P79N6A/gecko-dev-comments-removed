@@ -67,6 +67,10 @@ public class GeckoAccessibility {
                         }
                     }
 
+                    
+                    
+                    GeckoApp.mAppContext.setAccessibilityEnabled(sEnabled);
+
                     try {
                         ret.put("enabled", sEnabled);
                     } catch (Exception ex) {
