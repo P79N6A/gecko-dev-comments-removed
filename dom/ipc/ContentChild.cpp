@@ -1348,17 +1348,6 @@ PreloadSlowThings()
 
     TabChild::PreloadSlowThings();
 
-#ifdef MOZ_NUWA_PROCESS
-    
-    if (IsNuwaProcess()) {
-        
-        ContentChild::GetSingleton()->RecvGarbageCollect();
-
-        MessageLoop::current()->
-                PostTask(FROM_HERE,
-                         NewRunnableFunction(OnFinishNuwaPreparation));
-    }
-#endif
 }
 
 bool
@@ -1369,15 +1358,32 @@ ContentChild::RecvAppInfo(const nsCString& version, const nsCString& buildID,
     mAppInfo.buildID.Assign(buildID);
     mAppInfo.name.Assign(name);
     mAppInfo.UAName.Assign(UAName);
+
+    if (!Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
+        return true;
+    }
+
     
     
     
     
     
-    if ((mIsForApp || mIsForBrowser) &&
-        Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
+    if ((mIsForApp || mIsForBrowser)
+#ifdef MOZ_NUWA_PROCESS
+        && !IsNuwaProcess()
+#endif
+       ) {
         PreloadSlowThings();
     }
+
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+        ContentChild::GetSingleton()->RecvGarbageCollect();
+        MessageLoop::current()->PostTask(
+            FROM_HERE, NewRunnableFunction(OnFinishNuwaPreparation));
+    }
+#endif
+
     return true;
 }
 
