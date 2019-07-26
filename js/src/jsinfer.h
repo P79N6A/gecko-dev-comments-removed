@@ -28,6 +28,14 @@ namespace js {
 
 class CallObject;
 
+namespace mjit {
+    struct JITScript;
+}
+
+namespace ion {
+    struct IonScript;
+}
+
 namespace types {
 
 
@@ -1003,31 +1011,47 @@ typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey,SystemAllocPolicy
 struct AllocationSiteKey;
 typedef HashMap<AllocationSiteKey,ReadBarriered<TypeObject>,AllocationSiteKey,SystemAllocPolicy> AllocationSiteTable;
 
-struct RecompileInfo
+
+
+
+
+
+
+struct CompilerOutput
 {
     JSScript *script;
+    bool isIonFlag : 1;
     bool constructing : 1;
     bool barriers : 1;
-    uint32_t chunkIndex:30;
+    uint32_t chunkIndex:29;
+
+    
+    union {
+        mjit::JITScript *mjit;
+        ion::IonScript *ion;
+    } out;
+
+    CompilerOutput();
+    explicit CompilerOutput(JSScript *script, bool isIonFlag = true);
+
+    bool isJM() const { return !isIonFlag; }
+    bool isIon() const { return isIonFlag; }
+    bool isValid() const;
+
+    void invalidate() {
+        out.ion = NULL;
+    }
+};
+
+struct RecompileInfo
+{
+    static const uint32_t NoCompilerRunning = uint32_t(-1);
+    uint32_t outputIndex;
 
     bool operator == (const RecompileInfo &o) const {
-        return script == o.script
-            && constructing == o.constructing
-            && barriers == o.barriers
-            && chunkIndex == o.chunkIndex;
+        return outputIndex == o.outputIndex;
     }
-
-    RecompileInfo()
-    {
-    }
-
-    explicit RecompileInfo(JSScript *script)
-      : script(script),
-        constructing(false),
-        barriers(false),
-        chunkIndex(0)
-    {
-    }
+    CompilerOutput *compilerOutput(JSContext *cx) const;
 };
 
 
@@ -1065,7 +1089,10 @@ struct TypeCompartment
     unsigned scriptCount;
 
     
-    Vector<RecompileInfo> *pendingRecompiles;
+    Vector<CompilerOutput> *constrainedOutputs;
+
+    
+    Vector<CompilerOutput> *pendingRecompiles;
 
     
 
@@ -1136,6 +1163,7 @@ struct TypeCompartment
     void setPendingNukeTypesNoReport();
 
     
+    void addPendingRecompile(JSContext *cx, CompilerOutput &co);
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
     void addPendingRecompile(JSContext *cx, JSScript *script, jsbytecode *pc);
 
