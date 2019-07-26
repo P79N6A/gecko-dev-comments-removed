@@ -56,13 +56,15 @@ function compareBuffers(buf1, buf2,
 
   is(difference, 0, "Found " + difference + " different samples, maxDifference: " +
      maxDifference + ", first bad index: " + firstBadIndex +
-     " with source offset " + sourceOffset + " and desitnation offset " +
+     " with source offset " + sourceOffset + " and destination offset " +
      destOffset);
 }
 
 function getEmptyBuffer(context, length) {
   return context.createBuffer(gTest.numberOfChannels, length, context.sampleRate);
 }
+
+
 
 
 
@@ -95,7 +97,7 @@ function runTest()
   }
 
   SimpleTest.waitForExplicitFinish();
-  addLoadEvent(function() {
+  function runTestFunction () {
     if (!gTest.numberOfChannels) {
       gTest.numberOfChannels = 2; 
     }
@@ -177,14 +179,25 @@ function runTest()
         };
         context.startRendering();
       }
+
       var context = new OfflineAudioContext(gTest.numberOfChannels, testLength, sampleRate);
       runTestOnContext(context, callback, testOutput);
     }
 
     testOnNormalContext(function() {
-      testOnOfflineContext(function() {
-        testOnOfflineContext(done, 44100);
-      }, 48000);
+      if (!gTest.skipOfflineContextTests) {
+        testOnOfflineContext(function() {
+          testOnOfflineContext(done, 44100);
+        }, 48000);
+      } else {
+        done();
+      }
     });
-  });
+  };
+
+  if (document.readyState !== 'complete') {
+    addLoadEvent(runTestFunction);
+  } else {
+    runTestFunction();
+  }
 }
