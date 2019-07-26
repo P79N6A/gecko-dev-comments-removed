@@ -151,7 +151,6 @@ static const char* sBluetoothDBusSignals[] =
 static nsAutoPtr<RawDBusConnection> gThreadConnection;
 static nsDataHashtable<nsStringHashKey, DBusMessage* > sPairingReqTable;
 static nsDataHashtable<nsStringHashKey, DBusMessage* > sAuthorizeReqTable;
-static bool sIsPairing = false;
 typedef void (*UnpackFunc)(DBusMessage*, DBusError*, BluetoothValue&, nsAString&);
 
 class DistributeBluetoothSignalTask : public nsRunnable {
@@ -820,12 +819,8 @@ RunDBusCallback(DBusMessage* aMsg, void* aBluetoothReplyRunnable,
 void
 GetObjectPathCallback(DBusMessage* aMsg, void* aBluetoothReplyRunnable)
 {
-  if (sIsPairing) {
-    RunDBusCallback(aMsg, aBluetoothReplyRunnable,
-                    UnpackObjectPathMessage);
-
-    sIsPairing = false;
-  }
+  RunDBusCallback(aMsg, aBluetoothReplyRunnable,
+                  UnpackObjectPathMessage);
 }
 
 void
@@ -1571,8 +1566,6 @@ BluetoothDBusService::StopInternal()
   sAuthorizeReqTable.EnumerateRead(UnrefDBusMessages, nullptr);
   sAuthorizeReqTable.Clear();
 
-  sIsPairing = false;
-
   StopDBus();
   return NS_OK;
 }
@@ -2093,21 +2086,6 @@ BluetoothDBusService::CreatePairedDeviceInternal(const nsAString& aAdapterPath,
     NS_WARNING("Could not start async function!");
     return NS_ERROR_FAILURE;
   }
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  sIsPairing = true;
 
   runnable.forget();
   return NS_OK;
