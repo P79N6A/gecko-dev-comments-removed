@@ -2864,11 +2864,23 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
       flexDirection == NS_STYLE_FLEX_DIRECTION_ROW ||
       flexDirection == NS_STYLE_FLEX_DIRECTION_ROW_REVERSE;
 
-    if (stylePos->mFlexBasis.GetUnit() != eStyleUnit_Auto) {
+    
+    
+    const nsStyleCoord* flexBasis = &(stylePos->mFlexBasis);
+    if (flexBasis->GetUnit() != eStyleUnit_Auto) {
       if (isHorizontalFlexItem) {
-        widthStyleCoord = &(stylePos->mFlexBasis);
+        widthStyleCoord = flexBasis;
       } else {
-        heightStyleCoord = &(stylePos->mFlexBasis);
+        
+        
+        
+        
+        
+        
+        
+        if (flexBasis->GetUnit() != eStyleUnit_Enumerated) {
+          heightStyleCoord = flexBasis;
+        }
       }
     }
   }
