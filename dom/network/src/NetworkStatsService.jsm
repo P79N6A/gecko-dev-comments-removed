@@ -428,19 +428,26 @@ this.NetworkStatsService = {
     debug("clear stats for network " + network.id + " of type " + network.type);
 
     if (!this._networks[netId]) {
-      let error = "Invalid networkType";
-      let result = null;
-
+      
+      
       
       let rilNetworks = this.getRilNetworks();
-      if (rilNetworks[netId]) {
-        error = null;
-        result = true;
-      }
+      if (!rilNetworks[netId]) {
+        
+        this._db.isNetworkAvailable(network, function(aError, aResult) {
+          if (aResult) {
+            this._db.clearInterfaceStats(network, function onDBCleared(aError, aResult) {
+              mm.sendAsyncMessage("NetworkStats:Clear:Return",
+                                  { id: msg.id, error: aError, result: aResult });
+            });
+            return;
+          }
 
-      mm.sendAsyncMessage("NetworkStats:Clear:Return",
-                          { id: msg.id, error: error, result: result });
-      return;
+          mm.sendAsyncMessage("NetworkStats:Clear:Return",
+                              { id: msg.id, error: "Invalid networkType", result: null });
+        });
+        return;
+      }
     }
 
     this._db.clearInterfaceStats(network, function onDBCleared(aError, aResult) {
