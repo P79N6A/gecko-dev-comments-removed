@@ -4,19 +4,23 @@
 
 
 
+#include "jsanalyze.h"
 #include "jscntxt.h"
 #include "jscompartment.h"
+#include "jsinfer.h"
+
 #include "Bailouts.h"
 #include "SnapshotReader.h"
 #include "Ion.h"
 #include "IonCompartment.h"
 #include "IonSpewer.h"
-#include "jsinfer.h"
-#include "jsanalyze.h"
-#include "jsinferinlines.h"
 #include "vm/Interpreter.h"
-#include "IonFrames-inl.h"
 #include "BaselineJIT.h"
+
+#include "jsinferinlines.h"
+
+#include "ion/IonFrames-inl.h"
+#include "vm/Stack-inl.h"
 
 using namespace js;
 using namespace js::ion;

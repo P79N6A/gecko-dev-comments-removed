@@ -11,6 +11,7 @@
 #include "jsobj.h"
 #include "jstypedarray.h"
 
+#include "jscntxtinlines.h"
 #include "jsobjinlines.h"
 
 
