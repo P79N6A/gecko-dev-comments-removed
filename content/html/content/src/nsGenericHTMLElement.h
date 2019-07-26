@@ -1104,7 +1104,13 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) SetDoubleAttr(nsIAtom* aAttr, double aValue);
+  void SetDoubleAttr(nsIAtom* aAttr, double aValue, mozilla::ErrorResult& aRv)
+  {
+    nsAutoString value;
+    value.AppendFloat(aValue);
+
+    SetHTMLAttr(aAttr, value, aRv);
+  }
 
   
 
