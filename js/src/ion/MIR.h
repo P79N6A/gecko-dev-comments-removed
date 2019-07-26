@@ -7428,6 +7428,21 @@ static inline bool isOSRLikeValue (MDefinition *def) {
 
 typedef Vector<MDefinition *, 8, IonAllocPolicy> MDefinitionVector;
 
+
+
+bool ElementAccessIsDenseNative(MDefinition *obj, MDefinition *id);
+bool ElementAccessIsTypedArray(MDefinition *obj, MDefinition *id, int *arrayType);
+bool ElementAccessIsPacked(JSContext *cx, MDefinition *obj);
+bool ElementAccessHasExtraIndexedProperty(JSContext *cx, MDefinition *obj);
+MIRType DenseNativeElementType(JSContext *cx, MDefinition *obj);
+bool PropertyReadNeedsTypeBarrier(JSContext *cx, types::TypeObject *object, PropertyName *name,
+                                  types::StackTypeSet *observed);
+bool PropertyReadNeedsTypeBarrier(JSContext *cx, MDefinition *obj, PropertyName *name,
+                                  types::StackTypeSet *observed);
+bool PropertyReadIsIdempotent(JSContext *cx, MDefinition *obj, PropertyName *name);
+bool PropertyWriteNeedsTypeBarrier(JSContext *cx, MBasicBlock *current, MDefinition **pobj,
+                                   PropertyName *name, MDefinition **pvalue);
+
 } 
 } 
 
