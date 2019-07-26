@@ -227,6 +227,12 @@ exports.shutdown = function() {
 
 
 
+
+
+
+
+
+
 function StringType(typeSpec) {
 }
 
@@ -236,14 +242,50 @@ StringType.prototype.stringify = function(value, context) {
   if (value == null) {
     return '';
   }
-  return value.toString();
+
+  return value
+       .replace(/\\/g, '\\\\')
+       .replace(/\f/g, '\\f')
+       .replace(/\n/g, '\\n')
+       .replace(/\r/g, '\\r')
+       .replace(/\t/g, '\\t')
+       .replace(/\v/g, '\\v')
+       .replace(/\n/g, '\\n')
+       .replace(/\r/g, '\\r')
+       .replace(/ /g, '\\ ')
+       .replace(/'/g, '\\\'')
+       .replace(/"/g, '\\"')
+       .replace(/{/g, '\\{')
+       .replace(/}/g, '\\}');
 };
 
 StringType.prototype.parse = function(arg, context) {
   if (arg.text == null || arg.text === '') {
     return Promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE, ''));
   }
-  return Promise.resolve(new Conversion(arg.text, arg));
+
+  
+  
+  
+  
+
+  var value = arg.text
+       .replace(/\\\\/g, '\uF000')
+       .replace(/\\f/g, '\f')
+       .replace(/\\n/g, '\n')
+       .replace(/\\r/g, '\r')
+       .replace(/\\t/g, '\t')
+       .replace(/\\v/g, '\v')
+       .replace(/\\n/g, '\n')
+       .replace(/\\r/g, '\r')
+       .replace(/\\ /g, ' ')
+       .replace(/\\'/g, '\'')
+       .replace(/\\"/g, '"')
+       .replace(/\\{/g, '{')
+       .replace(/\\}/g, '}')
+       .replace(/\uF000/g, '\\');
+
+  return Promise.resolve(new Conversion(value, arg));
 };
 
 StringType.prototype.name = 'string';
@@ -7053,32 +7095,22 @@ exports.tokenize = function(typed) {
   
   
   
-  
-  
-  
   typed = typed
-      .replace(/\\\\/g, '\\')
-      .replace(/\\b/g, '\b')
-      .replace(/\\f/g, '\f')
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\t/g, '\t')
-      .replace(/\\v/g, '\v')
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\ /g, '\uF000')
-      .replace(/\\'/g, '\uF001')
-      .replace(/\\"/g, '\uF002')
-      .replace(/\\{/g, '\uF003')
-      .replace(/\\}/g, '\uF004');
+      .replace(/\\\\/g, '\uF000')
+      .replace(/\\ /g, '\uF001')
+      .replace(/\\'/g, '\uF002')
+      .replace(/\\"/g, '\uF003')
+      .replace(/\\{/g, '\uF004')
+      .replace(/\\}/g, '\uF005');
 
   function unescape2(escaped) {
     return escaped
-        .replace(/\uF000/g, ' ')
-        .replace(/\uF001/g, '\'')
-        .replace(/\uF002/g, '"')
-        .replace(/\uF003/g, '{')
-        .replace(/\uF004/g, '}');
+        .replace(/\uF000/g, '\\\\')
+        .replace(/\uF001/g, '\\ ')
+        .replace(/\uF002/g, '\\\'')
+        .replace(/\uF003/g, '\\\"')
+        .replace(/\uF004/g, '\\\{')
+        .replace(/\uF005/g, '\\\}');
   }
 
   var i = 0;          
@@ -7283,13 +7315,16 @@ Requisition.prototype._split = function(args) {
     argsUsed++;
   }
 
+  
   for (var i = 0; i < argsUsed; i++) {
     args.shift();
   }
 
-  return this.setAssignment(this.commandAssignment, conversion, noArgUp);
-
   
+  
+  
+
+  return this.setAssignment(this.commandAssignment, conversion, noArgUp);
 };
 
 
