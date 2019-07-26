@@ -81,11 +81,27 @@ let snapshotFormatters = {
 
     function localizedMsg(msgArray) {
       let nameOrMsg = msgArray.shift();
-      try {
-        return strings.formatStringFromName(nameOrMsg, msgArray,
-                                            msgArray.length);
+      if (msgArray.length) {
+        
+        
+        try {
+          return strings.formatStringFromName(nameOrMsg, msgArray,
+                                              msgArray.length);
+        }
+        catch (err) {
+          
+          
+          
+          
+          return nameOrMsg;
+        }
       }
-      catch (err) {}
+      try {
+        return strings.GetStringFromName(nameOrMsg);
+      }
+      catch (err) {
+        
+      }
       return nameOrMsg;
     }
 
