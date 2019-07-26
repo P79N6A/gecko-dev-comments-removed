@@ -2562,20 +2562,18 @@ MacroAssemblerARM::ma_callIon(const Register r)
     
     
     
-    enterNoPool();
+    AutoForbidPools afp(this);
     as_dtr(IsStore, 32, PreIndex, pc, DTRAddr(sp, DtrOffImm(-8)));
     as_blx(r);
-    leaveNoPool();
 }
 void
 MacroAssemblerARM::ma_callIonNoPush(const Register r)
 {
     
     
-    enterNoPool();
+    AutoForbidPools afp(this);
     as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
     as_blx(r);
-    leaveNoPool();
 }
 
 void
@@ -2584,10 +2582,9 @@ MacroAssemblerARM::ma_callIonHalfPush(const Register r)
     
     
     
-    enterNoPool();
+    AutoForbidPools afp(this);
     ma_push(pc);
     as_blx(r);
-    leaveNoPool();
 }
 
 void
