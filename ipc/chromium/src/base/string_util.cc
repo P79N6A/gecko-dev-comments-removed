@@ -302,20 +302,6 @@ TrimPositions TrimStringT(const STR& input,
       ((last_good_char == last_char) ? TRIM_NONE : TRIM_TRAILING));
 }
 
-
-
-static bool TrimString(const std::wstring& input,
-                       const wchar_t trim_chars[],
-                       std::wstring* output) {
-  return TrimStringT(input, trim_chars, TRIM_ALL, output) != TRIM_NONE;
-}
-
-static bool TrimString(const std::string& input,
-                       const char trim_chars[],
-                       std::string* output) {
-  return TrimStringT(input, trim_chars, TRIM_ALL, output) != TRIM_NONE;
-}
-
 TrimPositions TrimWhitespace(const std::wstring& input,
                              TrimPositions positions,
                              std::wstring* output) {
@@ -501,6 +487,24 @@ struct IntToStringT {
     }
   };
 
+  
+  
+  template <typename INT2, bool NEG2>
+  struct TestNegT {};
+  template <typename INT2>
+  struct TestNegT<INT2, false> {
+    static bool TestNeg(INT2 value) {
+      
+      return false;
+    }
+  };
+  template <typename INT2>
+  struct TestNegT<INT2, true> {
+    static bool TestNeg(INT2 value) {
+      return value < 0;
+    }
+  };
+
   static STR IntToString(INT value) {
     
     
@@ -510,7 +514,7 @@ struct IntToStringT {
     
     STR outbuf(kOutputBufSize, 0);
 
-    bool is_neg = value < 0;
+    bool is_neg = TestNegT<INT, NEG>::TestNeg(value);
     
     
     UINT res = ToUnsignedT<INT, UINT, NEG>::ToUnsigned(value);
