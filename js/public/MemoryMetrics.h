@@ -35,7 +35,10 @@ namespace js {
 
 JS_FRIEND_API(size_t) MemoryReportingSundriesThreshold();
 
-struct StringHashPolicy
+
+
+
+struct InefficientNonFlatteningStringHashPolicy
 {
     typedef JSString *Lookup;
     static HashNumber hash(const Lookup &l);
@@ -301,8 +304,10 @@ struct ZoneStats : js::ZoneStatsPod
         }
     }
 
-    typedef js::HashMap<JSString*, StringInfo, js::StringHashPolicy, js::SystemAllocPolicy>
-        StringsHashMap;
+    typedef js::HashMap<JSString*,
+                        StringInfo,
+                        js::InefficientNonFlatteningStringHashPolicy,
+                        js::SystemAllocPolicy> StringsHashMap;
 
     StringsHashMap strings;
     js::Vector<NotableStringInfo, 0, js::SystemAllocPolicy> notableStrings;
