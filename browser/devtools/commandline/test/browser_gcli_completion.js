@@ -1,25 +1,25 @@
-/*
- * Copyright 2012, Mozilla Foundation and contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var exports = {};
 
@@ -31,12 +31,12 @@ function test() {
   }).then(finish);
 }
 
-// <INJECTED SOURCE:END>
+
 
 'use strict';
 
-// var helpers = require('gclitest/helpers');
-// var mockCommands = require('gclitest/mockCommands');
+
+
 
 exports.setup = function(options) {
   mockCommands.setup();
@@ -427,7 +427,7 @@ exports.testNoTab = function(options) {
     {
       name: '<TAB>',
       setup: function() {
-        // Doing it this way avoids clearing the input buffer
+        
         return helpers.pressTab(options);
       },
       check: {
@@ -440,23 +440,23 @@ exports.testNoTab = function(options) {
 };
 
 exports.testOutstanding = function(options) {
-  // See bug 779800
-  /*
-  return helpers.audit(options, [
-    {
-      setup:    'tsg --txt1 ddd ',
-      check: {
-        input:  'tsg --txt1 ddd ',
-        hints:                 'aaa [options]',
-        markup: 'VVVVVVVVVVVVVVV'
-      }
-    },
-  ]);
-  */
+  
+  
+
+
+
+
+
+
+
+
+
+
+
 };
 
 exports.testCompleteIntoOptional = function(options) {
-  // From bug 779816
+  
   return helpers.audit(options, [
     {
       setup:    'tso ',
@@ -519,9 +519,9 @@ exports.testSpaceComplete = function(options) {
           msg: { status: 'INCOMPLETE', message: '' },
           num: { status: 'VALID' },
           sel: { status: 'VALID' },
-          bool: { value: false,status: 'VALID' },
+          bool: { value: false, status: 'VALID' },
           num2: { status: 'VALID' },
-          bool2: { value: false,status: 'VALID' },
+          bool2: { value: false, status: 'VALID' },
           sel2: {
             value: 'with space',
             arg: ' --sel2 \'with space\' ',
@@ -534,4 +534,4 @@ exports.testSpaceComplete = function(options) {
 };
 
 
-// });
+
