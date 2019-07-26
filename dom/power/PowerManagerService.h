@@ -16,9 +16,6 @@
 
 namespace mozilla {
 namespace dom {
-
-class ContentParent;
-
 namespace power {
 
 class PowerManagerService
@@ -35,22 +32,6 @@ public:
 
   
   void Notify(const hal::WakeLockInformation& aWakeLockInfo);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  already_AddRefed<nsIDOMMozWakeLock>
-  NewWakeLockOnBehalfOfProcess(const nsAString& aTopic,
-                               ContentParent* aContentParent);
 
 private:
 
