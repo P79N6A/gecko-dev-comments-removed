@@ -181,6 +181,19 @@ var DebuggerServer = {
 
 
 
+  onConnectionChange: null,
+
+  _fireConnectionChange: function(aWhat) {
+    if (this.onConnectionChange &&
+        typeof this.onConnectionChange === "function") {
+      this.onConnectionChange(aWhat);
+    }
+  },
+
+  
+
+
+
 
 
 
@@ -275,6 +288,9 @@ var DebuggerServer = {
     delete this._allowConnection;
     this._transportInitialized = false;
     this._initialized = false;
+
+    this._fireConnectionChange("closed");
+
     dumpn("Debugger server is shut down.");
   },
 
@@ -546,6 +562,7 @@ var DebuggerServer = {
     }
     aTransport.ready();
 
+    this._fireConnectionChange("opened");
     return conn;
   },
 
@@ -554,6 +571,7 @@ var DebuggerServer = {
 
   _connectionClosed: function DS_connectionClosed(aConnection) {
     delete this._connections[aConnection.prefix];
+    this._fireConnectionChange("closed");
   },
 
   
