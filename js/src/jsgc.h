@@ -756,8 +756,6 @@ class GCHelperThread {
         return thread;
     }
 
-    bool onBackgroundThread();
-
     
 
 
