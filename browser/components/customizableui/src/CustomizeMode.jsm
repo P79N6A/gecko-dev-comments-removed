@@ -115,8 +115,6 @@ CustomizeMode.prototype = {
       let window = this.window;
       let document = this.document;
 
-      CustomizableUI.addListener(this);
-
       
       
       
@@ -155,6 +153,7 @@ CustomizeMode.prototype = {
       yield window.PanelUI.ensureReady(true);
 
       this._showPanelCustomizationPlaceholders();
+      CustomizableUI.addListener(this);
 
       yield this._wrapToolbarItems();
       yield this.populatePalette();
