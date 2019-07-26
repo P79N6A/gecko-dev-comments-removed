@@ -163,7 +163,8 @@ typedef JSObject* (*ParentGetter)(JSContext* aCx, JS::Handle<JSObject*> aObj);
 
 
 
-typedef JS::Handle<JSObject*> (*ProtoGetter)(JSContext* aCx, JSObject* aGlobal);
+typedef JS::Handle<JSObject*> (*ProtoGetter)(JSContext* aCx,
+                                             JS::Handle<JSObject*> aGlobal);
 
 struct DOMClass
 {

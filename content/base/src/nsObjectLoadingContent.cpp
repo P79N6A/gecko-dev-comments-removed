@@ -2979,8 +2979,8 @@ nsObjectLoadingContent::SetupProtoChain(JSContext* aCx, JSObject* aObject)
   
   
 
-  JS::Handle<JSObject*> my_proto =
-    GetDOMClass(aObject)->mGetProto(aCx, JS_GetGlobalForObject(aCx, aObject));
+  JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForObject(aCx, aObject));
+  JS::Handle<JSObject*> my_proto = GetDOMClass(aObject)->mGetProto(aCx, global);
   MOZ_ASSERT(my_proto);
 
   
