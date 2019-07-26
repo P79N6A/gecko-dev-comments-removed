@@ -49,11 +49,7 @@ EmitEnterTypeMonitorIC(MacroAssembler &masm,
     masm.movl(Operand(BaselineStubReg, (int32_t) monitorStubOffset), BaselineStubReg);
 
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
-              BaselineTailCallReg);
-
-    
-    masm.jmp(Operand(BaselineTailCallReg));
+    masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));
 }
 
 inline void
@@ -277,12 +273,7 @@ EmitStubGuardFailure(MacroAssembler &masm)
     masm.movl(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfNext()), BaselineStubReg);
 
     
-    
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
-              BaselineTailCallReg);
-
-    
-    masm.jmp(Operand(BaselineTailCallReg));
+    masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));
 }
 
 
