@@ -252,6 +252,9 @@ function test() {
     return;
   }
 
+  
+  setDevPixelEqualToPx();
+
   requestLongerTimeout(3);
   runTests();
 }
