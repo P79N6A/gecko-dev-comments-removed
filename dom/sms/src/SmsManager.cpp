@@ -60,9 +60,13 @@ NS_IMPL_EVENT_HANDLER(SmsManager, sent)
 NS_IMPL_EVENT_HANDLER(SmsManager, delivered)
 
 already_AddRefed<SmsManager>
-SmsManager::CheckPermissionAndCreateInstance(nsPIDOMWindow* aWindow)
+SmsManager::CreateInstanceIfAllowed(nsPIDOMWindow* aWindow)
 {
   NS_ASSERTION(aWindow, "Null pointer!");
+
+#ifndef MOZ_WEBSMS_BACKEND
+  return nullptr;
+#endif
 
   
   bool enabled = false;
@@ -77,6 +81,16 @@ SmsManager::CheckPermissionAndCreateInstance(nsPIDOMWindow* aWindow)
   permMgr->TestPermissionFromWindow(aWindow, "sms", &permission);
 
   if (permission != nsIPermissionManager::ALLOW_ACTION) {
+    return nullptr;
+  }
+
+  
+  nsCOMPtr<nsISmsService> smsService = do_GetService(SMS_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(smsService, nullptr);
+
+  bool result = false;
+  smsService->HasSupport(&result);
+  if (!result) {
     return nullptr;
   }
 
