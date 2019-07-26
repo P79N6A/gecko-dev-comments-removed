@@ -8357,6 +8357,8 @@ var Distribution = {
     if (this._path) {
       file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
       file.initWithPath(this._path);
+      
+      Services.prefs.setCharPref("distribution.path", this._path);
     } else {
       
       
