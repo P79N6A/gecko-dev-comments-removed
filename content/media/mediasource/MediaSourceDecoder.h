@@ -50,12 +50,13 @@ public:
 
   already_AddRefed<SubBufferDecoder> CreateSubDecoder(const nsACString& aType);
 
+  void CallDecoderInitialization();
+
 private:
   
   
   
   dom::MediaSource* mMediaSource;
-  nsRefPtr<MediaSourceReader> mReader;
 };
 
 } 
