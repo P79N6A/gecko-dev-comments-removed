@@ -1339,6 +1339,16 @@ stream.write(data, data.length);
 stream.close();
 
 
+function copyBlocklistToProfile(blocklistFile) {
+  var dest = gProfD.clone();
+  dest.append("blocklist.xml");
+  if (dest.exists())
+    dest.remove(false);
+  blocklistFile.copyTo(gProfD, "blocklist.xml");
+  dest.lastModifiedTime = Date.now();
+}
+
+
 
 function timeout() {
   timer = null;
