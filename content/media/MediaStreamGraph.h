@@ -909,8 +909,7 @@ public:
 
 
   AudioNodeStream* CreateAudioNodeStream(AudioNodeEngine* aEngine,
-                                         AudioNodeStreamKind aKind,
-                                         uint32_t aNumberOfInputChannels = 0);
+                                         AudioNodeStreamKind aKind);
   
 
 
