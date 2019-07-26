@@ -58,24 +58,6 @@ function rejected(reason) {
 
 
 
-function attempt(f) {
-  return function effort(input) {
-    try {
-      return f(input);
-    }
-    catch(error) {
-      if (exports._reportErrors && typeof(console) === 'object') {
-        console.error(error)
-      }
-      return rejected(error)
-    }
-  };
-}
-
-
-
-
-
 function isPromise(value) {
   return value && typeof(value.then) === 'function';
 }
@@ -130,20 +112,35 @@ function defer(prototype) {
     then: { value: function then(onFulfill, onError) {
       var deferred = defer(prototype);
 
-      
-      
-      
-      
-      
-      
-      
-      onFulfill = onFulfill ? attempt(onFulfill) : fulfilled;
-      onError = onError ? attempt(onError) : rejected;
+      function resolve(value) {
+        
+        
+        
+        try {
+          deferred.resolve(onFulfill ? onFulfill(value) : value);
+        }
+        
+        
+        catch(error) {
+          if (exports._reportErrors && typeof(console) === 'object')
+            console.error(error);
+          
+          
+          deferred.resolve(rejected(error));
+        }
+      }
 
-      
-      
-      function resolveDeferred(value) { deferred.resolve(onFulfill(value)); }
-      function rejectDeferred(reason) { deferred.resolve(onError(reason)); }
+      function reject(reason) {
+        try {
+          if (onError) deferred.resolve(onError(reason));
+          else deferred.resolve(rejected(reason));
+        }
+        catch(error) {
+          if (exports._reportErrors && typeof(console) === 'object')
+            console.error(error)
+          deferred.resolve(rejected(error));
+        }
+      }
 
       
       
@@ -151,11 +148,11 @@ function defer(prototype) {
       
       
       if (observers) {
-        observers.push({ resolve: resolveDeferred, reject: rejectDeferred });
+        observers.push({ resolve: resolve, reject: reject });
       }
       
       else {
-        result.then(resolveDeferred, rejectDeferred);
+        result.then(resolve, reject);
       }
 
       return deferred.promise;
@@ -288,5 +285,8 @@ var promised = (function() {
   }
 })()
 exports.promised = promised;
+
+var all = promised(Array);
+exports.all = all;
 
 });

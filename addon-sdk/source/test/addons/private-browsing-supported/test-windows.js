@@ -12,6 +12,7 @@ const { open, close, focus, promise } = require('sdk/window/helpers');
 const { browserWindows } = require("sdk/windows");
 const winUtils = require("sdk/deprecated/window-utils");
 const { fromIterator: toArray } = require('sdk/util/array');
+const tabs = require('sdk/tabs');
 
 const WM = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
 
@@ -171,7 +172,7 @@ exports.testActiveWindowDoesNotIgnorePrivateWindow = function(assert, done) {
   
   makeEmptyBrowserWindow({
     private: true
-  }).then(function(window) {
+  }).then(focus).then(function(window) {
     
     if (isWindowPBSupported) {
       assert.equal(isPrivate(winUtils.activeWindow), true,
@@ -211,7 +212,7 @@ exports.testWindowIteratorIgnoresPrivateWindows = function(assert, done) {
   
   makeEmptyBrowserWindow({
     private: true
-  }).then(function(window) {
+  }).then(focus).then(function(window) {
     assert.equal(isWindowPrivate(window), isWindowPBSupported);
     assert.ok(toArray(winUtils.windowIterator()).indexOf(window) > -1,
               "window is in windowIterator()");
@@ -223,14 +224,23 @@ exports.testWindowIteratorIgnoresPrivateWindows = function(assert, done) {
 
 
 exports.testWindowIteratorPrivateDefault = function(assert, done) {
-  assert.equal(browserWindows.length, 1, 'only one window open');
+  
+  
+  if (browserWindows.length > 1) {
+    for each (let tab in tabs) {
+      assert.fail("TAB URL: " + tab.url);
+    }
+  }
+  else {
+    assert.equal(browserWindows.length, 1, 'only one window open');
+  }
 
   open('chrome://browser/content/browser.xul', {
     features: {
       private: true,
       chrome: true
     }
-  }).then(function(window) {
+  }).then(focus).then(function(window) {
     
     assert.equal(isPrivate(window), isWindowPBSupported, 'there is a private window open');
     assert.equal(isPrivate(winUtils.activeWindow), isWindowPBSupported);

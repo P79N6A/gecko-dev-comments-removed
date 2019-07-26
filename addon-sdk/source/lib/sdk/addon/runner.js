@@ -78,6 +78,9 @@ function startup(reason, options) {
 
   
   
+  let { ready } = require('../addon/window');
+  
+  
   require('../l10n/loader').
     load(rootURI).
     then(null, function failure(error) {
@@ -87,8 +90,10 @@ function startup(reason, options) {
       
       
       definePseudo(options.loader, '@l10n/data', data ? data : null);
+      return ready;
+    }).then(function() {
       run(options);
-    });
+    }).then(null, console.exception);
 }
 
 function run(options) {

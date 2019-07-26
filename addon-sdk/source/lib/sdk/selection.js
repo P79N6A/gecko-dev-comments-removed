@@ -18,10 +18,10 @@ const { Ci, Cc } = require("chrome"),
     { EventTarget } = require("./event/target"),
     { ns } = require("./core/namespace"),
     { when: unload } = require("./system/unload"),
+    { ignoreWindow } = require('./private-browsing/utils'),
     { getTabs, getTabContentWindow, getTabForContentWindow,
       getAllTabContentWindows } = require('./tabs/utils'),
-    { getMostRecentBrowserWindow,
-      windows, getFocusedWindow, getFocusedElement } = require("./window/utils"),
+    winUtils = require("./window/utils"),
     events = require("./system/events");
 
 
@@ -101,7 +101,10 @@ const selectionListener = {
 
 function iterator() {
     let selection = getSelection(DOM);
-    let count = selection.rangeCount || (getElementWithSelection() ? 1 : 0);
+    let count = 0;
+
+    if (selection)
+      count = selection.rangeCount || (getElementWithSelection() ? 1 : 0);
 
     for (let i = 0; i < count; i++) {
       let sel = Selection(i);
@@ -115,6 +118,33 @@ const selectionIterator = obscure({
   __iterator__: iterator, 
   iterator: iterator 
 });
+
+
+
+
+
+
+
+function getFocusedWindow() {
+  let window = winUtils.getFocusedWindow();
+
+  return ignoreWindow(window) ? null : window;
+}
+
+
+
+
+
+
+
+function getFocusedElement() {
+  let element = winUtils.getFocusedElement();
+
+  if (!element || ignoreWindow(element.ownerDocument.defaultView))
+    return null;
+
+  return element;
+}
 
 
 
@@ -350,8 +380,9 @@ function onContent(event) {
 
   
   
-   if (window && getTabForContentWindow(window))
+   if (window && getTabForContentWindow(window) && !ignoreWindow(window)) {
     addSelectionListener(window);
+  }
 }
 
 

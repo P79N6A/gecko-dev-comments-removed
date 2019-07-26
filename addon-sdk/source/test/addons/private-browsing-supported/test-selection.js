@@ -1,0 +1,458 @@
+
+
+
+
+"use strict";
+
+const HTML = "<html>\
+  <body>\
+    <div>foo</div>\
+    <div>and</div>\
+    <textarea>noodles</textarea>\
+  </body>\
+</html>";
+
+const URL = "data:text/html;charset=utf-8," + encodeURIComponent(HTML);
+
+const FRAME_HTML = "<iframe src='" + URL + "'><iframe>";
+const FRAME_URL = "data:text/html;charset=utf-8," + encodeURIComponent(FRAME_HTML);
+
+const { defer } = require("sdk/core/promise");
+const { browserWindows } = require("sdk/windows");
+const tabs = require("sdk/tabs");
+const { setTabURL, getActiveTab, getTabContentWindow, closeTab, getTabs,
+  getTabTitle } = require("sdk/tabs/utils");
+const { getMostRecentBrowserWindow, isFocused } = require("sdk/window/utils");
+const { open: openNewWindow, close: closeWindow, focus } = require("sdk/window/helpers");
+const { Loader } = require("sdk/test/loader");
+const { merge } = require("sdk/util/object");
+const { isPrivate } = require("sdk/private-browsing");
+
+
+
+
+
+
+
+
+
+
+function open(url, options) {
+  let { promise, resolve } = defer();
+
+  if (options && typeof(options) === "object") {
+    openNewWindow("", {
+      features: merge({ toolbar: true }, options)
+    }).then(function(chromeWindow) {
+      if (isPrivate(chromeWindow) !== !!options.private)
+        throw new Error("Window should have Private set to " + !!options.private);
+
+      let tab = getActiveTab(chromeWindow);
+
+      tab.addEventListener("load", function ready(event) {
+        let { document } = getTabContentWindow(this);
+
+        if (document.readyState === "complete" && document.URL === url) {
+          this.removeEventListener(event.type, ready);
+
+          if (options.title)
+            document.title = options.title;
+
+          resolve(document.defaultView);
+        }
+      })
+
+      setTabURL(tab, url);
+    });
+
+    return promise;
+  };
+
+  tabs.open({
+    url: url,
+    onReady: function(tab) {
+      
+      
+      
+
+      
+      
+      let window = getTabContentWindow(getActiveTab(getMostRecentBrowserWindow()));
+
+      resolve(window);
+    }
+  });
+
+  return promise;
+};
+
+
+
+
+function close(window) {
+  let { promise, resolve } = defer();
+
+  if (window && typeof(window.close) === "function") {
+    closeWindow(window).then(function() resolve());
+  }
+  else {
+    
+    
+    closeTab(getActiveTab(getMostRecentBrowserWindow()));
+    resolve();
+  }
+
+  return promise;
+}
+
+
+
+
+
+function reload(window) {
+  let { promise, resolve } = defer();
+
+  
+  
+  let tab = tabs.activeTab;
+
+  tab.once("ready", function () {
+    resolve(window);
+  });
+
+  window.location.reload(true);
+
+  return promise;
+}
+
+
+
+
+
+
+function selectFirstDiv(window) {
+  let div = window.document.querySelector("div");
+  let selection = window.getSelection();
+  let range = window.document.createRange();
+
+  if (selection.rangeCount > 0)
+    selection.removeAllRanges();
+
+  range.selectNode(div);
+  selection.addRange(range);
+
+  return window;
+}
+
+
+
+
+function selectAllDivs(window) {
+  let divs = window.document.getElementsByTagName("div");
+  let selection = window.getSelection();
+
+  if (selection.rangeCount > 0)
+    selection.removeAllRanges();
+
+  for (let i = 0; i < divs.length; i++) {
+    let range = window.document.createRange();
+
+    range.selectNode(divs[i]);
+    selection.addRange(range);
+  }
+
+  return window;
+}
+
+
+
+
+function selectTextarea(window) {
+  let selection = window.getSelection();
+  let textarea = window.document.querySelector("textarea");
+
+  if (selection.rangeCount > 0)
+    selection.removeAllRanges();
+
+  textarea.setSelectionRange(0, textarea.value.length);
+  textarea.focus();
+
+  return window;
+}
+
+
+
+
+function selectContentFirstDiv(window) {
+  let div = window.document.querySelector("div");
+  let selection = window.getSelection();
+  let range = window.document.createRange();
+
+  if (selection.rangeCount > 0)
+    selection.removeAllRanges();
+
+  range.selectNodeContents(div);
+  selection.addRange(range);
+
+  return window;
+}
+
+
+
+
+
+function dispatchSelectionEvent(window) {
+  
+  
+  
+  window.getSelection().modify("extend", "backward", "character");
+
+  return window;
+}
+
+
+
+
+
+function dispatchOnSelectEvent(window) {
+  let { document } = window;
+  let textarea = document.querySelector("textarea");
+  let event = document.createEvent("UIEvents");
+
+  event.initUIEvent("select", true, true, window, 1);
+
+  textarea.dispatchEvent(event);
+
+  return window;
+}
+
+
+
+exports["test PWPB Selection Listener"] = function(assert, done) {
+  let loader = Loader(module);
+  let selection = loader.require("sdk/selection");
+
+  open(URL, {private: true, title: "PWPB Selection Listener"}).
+    then(function(window) {
+      selection.once("select", function() {
+        assert.equal(browserWindows.length, 2, "there should be only two windows open.");
+        assert.equal(getTabs().length, 2, "there should be only two tabs open: '" +
+                     getTabs().map(function(tab) getTabTitle(tab)).join("', '") +
+                     "'."
+        );
+
+        
+        focus(window).then(function() {
+          
+          assert.ok(isFocused(window), "the window is focused");
+          assert.ok(isPrivate(window), "the window should be a private window");
+
+          assert.equal(selection.text, "fo");
+
+          close(window).
+            then(loader.unload).
+            then(done, assert.fail);
+        });
+      });
+      return window;
+    }).
+    then(selectContentFirstDiv).
+    then(dispatchSelectionEvent).
+    then(null, assert.fail);
+};
+
+exports["test PWPB Textarea OnSelect Listener"] = function(assert, done) {
+  let loader = Loader(module);
+  let selection = loader.require("sdk/selection");
+
+  open(URL, {private: true, title: "PWPB OnSelect Listener"}).
+    then(function(window) {
+      selection.once("select", function() {
+        assert.equal(browserWindows.length, 2, "there should be only two windows open.");
+        assert.equal(getTabs().length, 2, "there should be only two tabs open: '" +
+                     getTabs().map(function(tab) getTabTitle(tab)).join("', '") +
+                     "'."
+        );
+
+        
+        focus(window).then(function() {
+          assert.equal(selection.text, "noodles");
+
+          close(window).
+            then(loader.unload).
+            then(done, assert.fail);
+        });
+      });
+      return window;
+    }).
+    then(selectTextarea).
+    then(dispatchOnSelectEvent).
+    then(null, assert.fail);
+};
+
+exports["test PWPB Single DOM Selection"] = function(assert, done) {
+  let loader = Loader(module);
+  let selection = loader.require("sdk/selection");
+
+  open(URL, {private: true, title: "PWPB Single DOM Selection"}).
+    then(selectFirstDiv).
+    then(focus).then(function() {
+      assert.equal(selection.isContiguous, true,
+        "selection.isContiguous with single DOM Selection works.");
+
+      assert.equal(selection.text, "foo",
+        "selection.text with single DOM Selection works.");
+
+      assert.equal(selection.html, "<div>foo</div>",
+        "selection.html with single DOM Selection works.");
+
+      let selectionCount = 0;
+      for each (let sel in selection) {
+        selectionCount++;
+
+        assert.equal(sel.text, "foo",
+          "iterable selection.text with single DOM Selection works.");
+
+        assert.equal(sel.html, "<div>foo</div>",
+          "iterable selection.html with single DOM Selection works.");
+      }
+
+      assert.equal(selectionCount, 1,
+        "One iterable selection");
+    }).then(close).then(loader.unload).then(done, assert.fail);
+}
+
+exports["test PWPB Textarea Selection"] = function(assert, done) {
+  let loader = Loader(module);
+  let selection = loader.require("sdk/selection");
+
+  open(URL, {private: true, title: "PWPB Textarea Listener"}).
+    then(selectTextarea).
+    then(focus).
+    then(function() {
+
+      assert.equal(selection.isContiguous, true,
+        "selection.isContiguous with Textarea Selection works.");
+
+      assert.equal(selection.text, "noodles",
+        "selection.text with Textarea Selection works.");
+
+      assert.strictEqual(selection.html, null,
+        "selection.html with Textarea Selection works.");
+
+      let selectionCount = 0;
+      for each (let sel in selection) {
+        selectionCount++;
+
+        assert.equal(sel.text, "noodles",
+          "iterable selection.text with Textarea Selection works.");
+
+        assert.strictEqual(sel.html, null,
+          "iterable selection.html with Textarea Selection works.");
+      }
+
+      assert.equal(selectionCount, 1,
+        "One iterable selection");
+
+    }).then(close).then(loader.unload).then(done, assert.fail);
+};
+
+exports["test PWPB Set HTML in Multiple DOM Selection"] = function(assert, done) {
+  let loader = Loader(module);
+  let selection = loader.require("sdk/selection");
+
+  open(URL, {private: true, title: "PWPB Set HTML in Multiple DOM Selection"}).
+    then(selectAllDivs).
+    then(focus).
+    then(function() {
+      let html = "<span>b<b>a</b>r</span>";
+
+      let expectedText = ["bar", "and"];
+      let expectedHTML = [html, "<div>and</div>"];
+
+      selection.html = html;
+
+      assert.equal(selection.text, expectedText[0],
+        "set selection.text with DOM Selection works.");
+
+      assert.equal(selection.html, expectedHTML[0],
+        "selection.html with DOM Selection works.");
+
+      let selectionCount = 0;
+      for each (let sel in selection) {
+
+        assert.equal(sel.text, expectedText[selectionCount],
+          "iterable selection.text with multiple DOM Selection works.");
+
+        assert.equal(sel.html, expectedHTML[selectionCount],
+          "iterable selection.html with multiple DOM Selection works.");
+
+        selectionCount++;
+      }
+
+      assert.equal(selectionCount, 2,
+        "Two iterable selections");
+    }).then(close).then(loader.unload).then(done, assert.fail);
+};
+
+exports["test PWPB Set Text in Textarea Selection"] = function(assert, done) {
+  let loader = Loader(module);
+  let selection = loader.require("sdk/selection");
+
+  open(URL, {private: true, title: "test PWPB Set Text in Textarea Selection"}).
+    then(selectTextarea).
+    then(focus).
+    then(function() {
+
+      let text = "bar";
+
+      selection.text = text;
+
+      assert.equal(selection.text, text,
+        "set selection.text with Textarea Selection works.");
+
+      assert.strictEqual(selection.html, null,
+        "selection.html with Textarea Selection works.");
+
+      let selectionCount = 0;
+      for each (let sel in selection) {
+        selectionCount++;
+
+        assert.equal(sel.text, text,
+          "iterable selection.text with Textarea Selection works.");
+
+        assert.strictEqual(sel.html, null,
+          "iterable selection.html with Textarea Selection works.");
+      }
+
+      assert.equal(selectionCount, 1,
+        "One iterable selection");
+
+    }).then(close).then(loader.unload).then(done, assert.fail);
+};
+
+
+if (!require("sdk/private-browsing/utils").isWindowPBSupported) {
+  module.exports = {
+    "test PBPW Unsupported": function Unsupported (assert) {
+      assert.pass("Private Window Per Browsing is not supported on this platform.");
+    }
+  }
+}
+
+
+
+
+try {
+  require("sdk/selection");
+}
+catch (err) {
+  if (!/^Unsupported Application/.test(err.message))
+    throw err;
+
+  module.exports = {
+    "test Unsupported Application": function Unsupported (assert) {
+      assert.pass(err.message);
+    }
+  }
+}

@@ -43,8 +43,9 @@ exports.getDocShell = getDocShell;
 function create(document, options) {
   options = options || {};
   let remote = options.remote || false;
-  let nodeName = options.nodeName || 'browser';
   let namespaceURI = options.namespaceURI || XUL;
+  let isXUL = namespaceURI === XUL;
+  let nodeName = isXUL && options.browser ? 'browser' : 'iframe';
 
   let frame = document.createElementNS(namespaceURI, nodeName);
   
@@ -52,17 +53,25 @@ function create(document, options) {
   frame.setAttribute('type', options.type || 'content');
   frame.setAttribute('src', options.uri || 'about:blank');
 
+  document.documentElement.appendChild(frame);
+
   
   
   if (remote) {
-    
-    
-    
-    frame.setAttribute('style', '-moz-binding: none;');
-    frame.setAttribute('remote', 'true');
+    if (isXUL) {
+      
+      
+      
+      frame.setAttribute('style', '-moz-binding: none;');
+      frame.setAttribute('remote', 'true');
+    }
+    else {
+      frame.QueryInterface(Ci.nsIMozBrowserFrame);
+      frame.createRemoteFrameLoader(null);
+    }
   }
 
-  document.documentElement.appendChild(frame);
+
 
   
   if (!remote) {

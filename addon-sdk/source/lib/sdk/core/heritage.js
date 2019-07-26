@@ -98,7 +98,7 @@ exports.mix = mix;
 
 
 function extend(prototype, properties) {
-  return freeze(create(prototype, getOwnPropertyDescriptors(properties)));
+  return create(prototype, getOwnPropertyDescriptors(properties));
 }
 exports.extend = extend;
 

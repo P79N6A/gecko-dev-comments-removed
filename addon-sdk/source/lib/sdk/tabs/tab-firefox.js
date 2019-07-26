@@ -63,7 +63,10 @@ const TabTrait = Trait.compose(EventEmitter, {
   destroy: function destroy() {
     this._removeAllListeners();
     if (this._tab) {
-      this._browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
+      let browser = this._browser;
+      
+      if (browser)
+        browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
       this._tab = null;
       TABS.splice(TABS.indexOf(this), 1);
     }
@@ -221,12 +224,17 @@ function getChromeTab(tab) {
   return getOwnerWindow(viewNS(tab).tab);
 }
 
-function Tab(options) {
+function Tab(options, existingOnly) {
   let chromeTab = options.tab;
   for each (let tab in TABS) {
     if (chromeTab == tab._tab)
       return tab._public;
   }
+  
+  
+  if (existingOnly)
+    return null;
+
   let tab = TabTrait(options);
   TABS.push(tab);
   return tab._public;

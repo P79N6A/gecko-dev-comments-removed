@@ -99,7 +99,14 @@ const WindowTabTracker = Trait.compose({
       options.window = this._public;
 
       
-      let wrappedTab = Tab(options);
+      if (type == "open" && !tab.linkedBrowser)
+        return;
+
+      
+      
+      let wrappedTab = Tab(options, type !== "open");
+      if (!wrappedTab)
+        return;
 
       
       if (type === "open")

@@ -3,13 +3,14 @@
 
 'use strict';
 
-const { Loader } = require('sdk/test/loader');
+const { Loader, LoaderWithHookedConsole } = require("sdk/test/loader");
 const { browserWindows } = require('sdk/windows');
 const tabs = require('sdk/tabs');
 const { isPrivate } = require('sdk/private-browsing');
 const { openDialog } = require('sdk/window/utils');
 const pbUtils = require('sdk/private-browsing/utils');
 const { isWindowPrivate } = require('sdk/window/utils');
+const { setTimeout } = require('sdk/timers');
 
 const URL = 'data:text/html;charset=utf-8,<html><head><title>#title#</title></head></html>';
 
@@ -350,5 +351,39 @@ exports.testPrivateAreNotListed = function (test) {
       test.done();
     });
     win.close();
+  });
+}
+
+
+
+
+
+exports.testImmediateClosing = function (test) {
+  test.waitUntilDone();
+  let { loader, messages } = LoaderWithHookedConsole(module, onMessage);
+  let concurrentTabs = loader.require("sdk/tabs");
+  concurrentTabs.on("open", function () {
+    test.fail("Concurrent loader manager receive a tabs `open` event");
+    
+    
+    
+  });
+  function onMessage(type, msg) {
+    test.fail("Unexpected mesage on concurrent loader: " + msg);
+  }
+
+  tabs.open({
+    url: 'about:blank',
+    onOpen: function(tab) {
+      tab.close(function () {
+        test.pass("Tab succesfully removed");
+        
+        
+        setTimeout(function () {
+          loader.unload();
+          test.done();
+        }, 0);
+      });
+    }
   });
 }
