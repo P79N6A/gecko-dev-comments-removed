@@ -79,9 +79,14 @@ pref("offline-apps.quota.warn",        51200);
 pref("browser.cache.compression_level", 0);
 
 
+pref("dom.quotaManager.testing", false);
+
+
 pref("dom.indexedDB.enabled", true);
 
 pref("dom.indexedDB.warningQuota", 50);
+
+pref("dom.indexedDB.experimental", false);
 
 
 pref("dom.workers.enabled", true);
@@ -326,7 +331,7 @@ pref("gfx.font_rendering.directwrite.enabled", false);
 pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
 #endif
 
-pref("gfx.font_rendering.opentype_svg.enabled", false);
+pref("gfx.font_rendering.opentype_svg.enabled", true);
 
 #ifdef XP_WIN
 
