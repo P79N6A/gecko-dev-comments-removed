@@ -432,6 +432,30 @@ CreateBasicTextureImage(GLContext* aGL,
                         GLenum aWrapMode,
                         TextureImage::Flags aFlags);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+already_AddRefed<TextureImage>
+CreateTextureImage(GLContext* gl,
+                   const nsIntSize& aSize,
+                   TextureImage::ContentType aContentType,
+                   GLenum aWrapMode,
+                   TextureImage::Flags aFlags = TextureImage::NoFlags,
+                   TextureImage::ImageFormat aImageFormat = gfxImageFormatUnknown);
+
 } 
 } 
 
