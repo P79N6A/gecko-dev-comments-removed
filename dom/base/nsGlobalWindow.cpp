@@ -649,9 +649,6 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
   
   PR_INIT_CLIST(this);
 
-  
-  PR_INIT_CLIST(&mTimeouts);
-
   if (aOuterWindow) {
     
     
@@ -1242,7 +1239,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindow)
                                                   nsEventListenerManager)
 
   for (nsTimeout* timeout = tmp->FirstTimeout();
-       tmp->IsTimeout(timeout);
+       timeout;
        timeout = timeout->Next()) {
     cb.NoteNativeChild(timeout, NS_CYCLE_COLLECTION_PARTICIPANT(nsTimeout));
   }
@@ -1348,9 +1345,7 @@ nsGlobalWindow::IsBlackForCC()
 void
 nsGlobalWindow::UnmarkGrayTimers()
 {
-  for (nsTimeout* timeout = FirstTimeout();
-       timeout && IsTimeout(timeout);
-       timeout = timeout->Next()) {
+  for (nsTimeout* timeout = FirstTimeout(); timeout; timeout = timeout->Next()) {
     if (timeout->mScriptHandler) {
       JSObject* o = timeout->mScriptHandler->GetScriptObject();
       xpc_UnmarkGrayObject(o);
@@ -2240,8 +2235,7 @@ nsGlobalWindow::DetachFromDocShell()
   
   
 
-  NS_ASSERTION(PR_CLIST_IS_EMPTY(&mTimeouts),
-               "Uh, outer window holds timeouts!");
+  NS_ASSERTION(mTimeouts.isEmpty(), "Uh, outer window holds timeouts!");
 
   
   
@@ -9828,7 +9822,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   
   last_expired_timeout = nullptr;
-  for (timeout = FirstTimeout(); IsTimeout(timeout); timeout = timeout->Next()) {
+  for (timeout = FirstTimeout(); timeout; timeout = timeout->Next()) {
     if (((timeout == aTimeout) || (timeout->mWhen <= deadline)) &&
         (timeout->mFiringDepth == 0)) {
       
@@ -9862,7 +9856,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   dummy_timeout.mFiringDepth = firingDepth;
   dummy_timeout.mWhen = now;
-  PR_INSERT_AFTER(&dummy_timeout, last_expired_timeout);
+  last_expired_timeout->setNext(&dummy_timeout);
 
   
   
@@ -9945,7 +9939,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     
     nextTimeout = timeout->Next();
 
-    PR_REMOVE_LINK(timeout);
+    timeout->remove();
 
     if (needsReinsertion) {
       
@@ -9958,7 +9952,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   }
 
   
-  PR_REMOVE_LINK(&dummy_timeout);
+  dummy_timeout.remove();
 
   mTimeoutInsertionPoint = last_insertion_point;
 }
@@ -9996,9 +9990,7 @@ nsGlobalWindow::ClearTimeoutOrInterval(int32_t aTimerID)
   uint32_t public_id = (uint32_t)aTimerID;
   nsTimeout *timeout;
 
-  for (timeout = FirstTimeout();
-       IsTimeout(timeout);
-       timeout = timeout->Next()) {
+  for (timeout = FirstTimeout(); timeout; timeout = timeout->Next()) {
     if (timeout->mPublicId == public_id) {
       if (timeout->mRunning) {
         
@@ -10008,7 +10000,7 @@ nsGlobalWindow::ClearTimeoutOrInterval(int32_t aTimerID)
       }
       else {
         
-        PR_REMOVE_LINK(timeout);
+        timeout->remove();
 
         if (timeout->mTimer) {
           timeout->mTimer->Cancel();
@@ -10044,7 +10036,7 @@ nsresult nsGlobalWindow::ResetTimersForNonBackgroundWindow()
   
   for (nsTimeout *timeout = mTimeoutInsertionPoint ?
          mTimeoutInsertionPoint->Next() : FirstTimeout();
-       IsTimeout(timeout); ) {
+       timeout; ) {
     
     
     
@@ -10091,9 +10083,9 @@ nsresult nsGlobalWindow::ResetTimersForNonBackgroundWindow()
       
       
       
-      NS_ASSERTION(!IsTimeout(nextTimeout) ||
+      NS_ASSERTION(!nextTimeout ||
                    timeout->mWhen < nextTimeout->mWhen, "How did that happen?");
-      PR_REMOVE_LINK(timeout);
+      timeout->remove();
       
       
       uint32_t firingDepth = timeout->mFiringDepth;
@@ -10122,7 +10114,7 @@ nsGlobalWindow::ClearAllTimeouts()
 {
   nsTimeout *timeout, *nextTimeout;
 
-  for (timeout = FirstTimeout(); IsTimeout(timeout); timeout = nextTimeout) {
+  for (timeout = FirstTimeout(); timeout; timeout = nextTimeout) {
     
 
 
@@ -10151,7 +10143,7 @@ nsGlobalWindow::ClearAllTimeouts()
   }
 
   
-  PR_INIT_CLIST(&mTimeouts);
+  mTimeouts.clear();
 }
 
 void
@@ -10165,7 +10157,7 @@ nsGlobalWindow::InsertTimeoutIntoList(nsTimeout *aTimeout)
   
   nsTimeout* prevSibling;
   for (prevSibling = LastTimeout();
-       IsTimeout(prevSibling) && prevSibling != mTimeoutInsertionPoint &&
+       prevSibling && prevSibling != mTimeoutInsertionPoint &&
          
          
          ((IsFrozen() || mTimeoutsSuspendDepth) ?
@@ -10176,7 +10168,11 @@ nsGlobalWindow::InsertTimeoutIntoList(nsTimeout *aTimeout)
   }
 
   
-  PR_INSERT_AFTER(aTimeout, prevSibling);
+  if (prevSibling) {
+    prevSibling->setNext(aTimeout);
+  } else {
+    mTimeouts.insertFront(aTimeout);
+  }
 
   aTimeout->mFiringDepth = 0;
 
@@ -10468,7 +10464,7 @@ nsGlobalWindow::SuspendTimeouts(uint32_t aIncrease,
     mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
 
     TimeStamp now = TimeStamp::Now();
-    for (nsTimeout *t = FirstTimeout(); IsTimeout(t); t = t->Next()) {
+    for (nsTimeout *t = FirstTimeout(); t; t = t->Next()) {
       
       if (t->mWhen > now)
         t->mTimeRemaining = t->mWhen - now;
@@ -10556,7 +10552,7 @@ nsGlobalWindow::ResumeTimeouts(bool aThawChildren)
     bool _seenDummyTimeout = false;
 #endif
 
-    for (nsTimeout *t = FirstTimeout(); IsTimeout(t); t = t->Next()) {
+    for (nsTimeout *t = FirstTimeout(); t; t = t->Next()) {
       
       
       
