@@ -597,7 +597,7 @@ nsSVGSVGElement::CreateSVGRect(nsIDOMSVGRect **_retval)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::CreateSVGTransform(nsIDOMSVGTransform **_retval)
+nsSVGSVGElement::CreateSVGTransform(nsISupports **_retval)
 {
   NS_ADDREF(*_retval = new DOMSVGTransform());
   return NS_OK;
@@ -605,8 +605,8 @@ nsSVGSVGElement::CreateSVGTransform(nsIDOMSVGTransform **_retval)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::CreateSVGTransformFromMatrix(nsIDOMSVGMatrix *matrix, 
-                                              nsIDOMSVGTransform **_retval)
+nsSVGSVGElement::CreateSVGTransformFromMatrix(nsIDOMSVGMatrix *matrix,
+                                              nsISupports **_retval)
 {
   nsCOMPtr<DOMSVGMatrix> domItem = do_QueryInterface(matrix);
   if (!domItem) {
