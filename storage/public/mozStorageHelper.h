@@ -8,6 +8,7 @@
 
 #include "nsAutoPtr.h"
 
+#include "mozIStorageAsyncConnection.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
 #include "nsError.h"
@@ -28,12 +29,16 @@
 
 
 
-class mozStorageTransaction
+
+
+
+template<typename T, typename U>
+class mozStorageTransactionBase
 {
 public:
-  mozStorageTransaction(mozIStorageConnection* aConnection,
-                        bool aCommitOnComplete,
-                        int32_t aType = mozIStorageConnection::TRANSACTION_DEFERRED)
+  mozStorageTransactionBase(T* aConnection,
+                            bool aCommitOnComplete,
+                            int32_t aType = mozIStorageConnection::TRANSACTION_DEFERRED)
     : mConnection(aConnection),
       mHasTransaction(false),
       mCommitOnComplete(aCommitOnComplete),
@@ -43,7 +48,7 @@ public:
     if (mConnection)
       mHasTransaction = NS_SUCCEEDED(mConnection->BeginTransactionAs(aType));
   }
-  ~mozStorageTransaction()
+  ~mozStorageTransactionBase()
   {
     if (mConnection && mHasTransaction && ! mCompleted) {
       if (mCommitOnComplete)
@@ -119,11 +124,20 @@ public:
   }
 
 protected:
-  nsCOMPtr<mozIStorageConnection> mConnection;
+  U mConnection;
   bool mHasTransaction;
   bool mCommitOnComplete;
   bool mCompleted;
 };
+
+
+
+
+
+typedef mozStorageTransactionBase<mozIStorageConnection,
+                                  nsCOMPtr<mozIStorageConnection> >
+mozStorageTransaction;
+
 
 
 

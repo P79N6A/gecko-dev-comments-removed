@@ -10,6 +10,8 @@
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Mutex.h"
+#include "nsProxyRelease.h"
+#include "nsThreadUtils.h"
 #include "nsIInterfaceRequestor.h"
 
 #include "nsDataHashtable.h"
@@ -17,6 +19,8 @@
 #include "SQLiteMutex.h"
 #include "mozIStorageConnection.h"
 #include "mozStorageService.h"
+#include "mozIStorageAsyncConnection.h"
+#include "mozIStorageCompletionCallback.h"
 
 #include "nsIMutableArray.h"
 #include "mozilla/Attributes.h"
@@ -37,6 +41,7 @@ class Connection MOZ_FINAL : public mozIStorageConnection
 {
 public:
   NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGEASYNCCONNECTION
   NS_DECL_MOZISTORAGECONNECTION
   NS_DECL_NSIINTERFACEREQUESTOR
 
@@ -61,7 +66,12 @@ public:
 
 
 
-  Connection(Service *aService, int aFlags);
+
+
+
+
+
+  Connection(Service *aService, int aFlags, bool aAsyncOnly);
 
   
 
@@ -162,9 +172,11 @@ public:
 
   bool isAsyncClosing();
 
+
+  nsresult initializeClone(Connection *aClone, bool aReadOnly);
+
 private:
   ~Connection();
-
   nsresult initializeInternal(nsIFile *aDatabaseFile);
 
   
@@ -262,6 +274,54 @@ private:
   
   
   nsRefPtr<Service> mStorageService;
+
+  
+
+
+
+  const bool mAsyncOnly;
+};
+
+
+
+
+
+
+class CallbackComplete MOZ_FINAL : public nsRunnable
+{
+public:
+  
+
+
+
+
+
+  CallbackComplete(nsresult aStatus,
+                   nsISupports* aValue,
+                   already_AddRefed<mozIStorageCompletionCallback> aCallback)
+    : mStatus(aStatus)
+    , mValue(aValue)
+    , mCallback(aCallback)
+  {
+  }
+
+  NS_IMETHOD Run() {
+    MOZ_ASSERT(NS_IsMainThread());
+    nsresult rv = mCallback->Complete(mStatus, mValue);
+
+    
+    mValue = nullptr;
+    mCallback = nullptr;
+    return rv;
+  }
+
+private:
+  nsresult mStatus;
+  nsCOMPtr<nsISupports> mValue;
+  
+  
+  
+  nsRefPtr<mozIStorageCompletionCallback> mCallback;
 };
 
 } 

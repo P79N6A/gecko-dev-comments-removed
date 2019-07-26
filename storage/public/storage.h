@@ -27,6 +27,7 @@
 #include "mozIStorageVacuumParticipant.h"
 #include "mozIStorageCompletionCallback.h"
 #include "mozIStorageAsyncStatement.h"
+#include "mozIStorageAsyncConnection.h"
 
 
 
