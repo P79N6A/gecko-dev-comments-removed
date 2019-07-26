@@ -337,6 +337,14 @@ public:
   
 
 
+
+
+
+
+  void ResetMarkedFramesForDisplayList();
+  
+
+
   void LeavePresShell(nsIFrame* aReferenceFrame, const nsRect& aDirtyRect);
 
   
