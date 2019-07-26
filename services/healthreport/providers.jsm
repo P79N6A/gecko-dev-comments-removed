@@ -16,6 +16,7 @@
 
 this.EXPORTED_SYMBOLS = [
   "AppInfoProvider",
+  "SessionsProvider",
   "SysInfoProvider",
 ];
 
@@ -91,6 +92,7 @@ AppVersionMeasurement.prototype = Object.freeze({
                                      this.storage.FIELD_DAILY_DISCRETE_TEXT);
   },
 });
+
 
 
 this.AppInfoProvider = function AppInfoProvider() {
@@ -307,6 +309,304 @@ SysInfoProvider.prototype = Object.freeze({
                        CommonUtils.exceptionStr(ex));
       }
     }
+  },
+});
+
+
+
+
+
+
+
+
+function CurrentSessionMeasurement() {
+  Metrics.Measurement.call(this);
+}
+
+CurrentSessionMeasurement.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "current",
+  version: 1,
+
+  LAST_NUMERIC_FIELDS: [
+    
+    
+    
+    "startDay",
+
+    
+    "activeTime",
+
+    
+    "totalTime",
+
+    
+    "main",
+    "firstPaint",
+    "sessionRestored",
+  ],
+
+  configureStorage: function () {
+    return Task.spawn(function configureStorage() {
+      for (let field of this.LAST_NUMERIC_FIELDS) {
+        yield this.registerStorageField(field, this.storage.FIELD_LAST_NUMERIC);
+      }
+    }.bind(this));
+  },
+});
+
+
+
+
+
+function PreviousSessionsMeasurement() {
+  Metrics.Measurement.call(this);
+}
+
+PreviousSessionsMeasurement.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "previous",
+  version: 1,
+
+  DAILY_DISCRETE_NUMERIC_FIELDS: [
+    
+    "cleanActiveTime",
+    "cleanTotalTime",
+
+    
+    "abortedActiveTime",
+    "abortedTotalTime",
+
+    
+    "main",
+    "firstPaint",
+    "sessionRestored",
+  ],
+
+  configureStorage: function () {
+    return Task.spawn(function configureStorage() {
+      for (let field of this.DAILY_DISCRETE_NUMERIC_FIELDS) {
+        yield this.registerStorageField(field, this.storage.FIELD_DAILY_DISCRETE_NUMERIC);
+      }
+    }.bind(this));
+  },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.SessionsProvider = function () {
+  Metrics.Provider.call(this);
+
+  this._startDate = null;
+  this._currentActiveTime = null;
+  this._lastActivityDate = null;
+  this._lastActivityWasInactive = false;
+};
+
+SessionsProvider.prototype = Object.freeze({
+  __proto__: Metrics.Provider.prototype,
+
+  name: "org.mozilla.appSessions",
+
+  measurementTypes: [CurrentSessionMeasurement, PreviousSessionsMeasurement],
+
+  _OBSERVERS: ["user-interaction-active", "user-interaction-inactive"],
+
+  onInit: function () {
+    return Task.spawn(this._onInit.bind(this));
+  },
+
+  _onInit: function () {
+    
+    
+    let now = new Date();
+    this._startDate = now;
+    let current = this.getMeasurement("current", 1);
+
+    
+    
+    let currentData = yield this.storage.getMeasurementLastValuesFromMeasurementID(current.id);
+
+    
+    
+    if (currentData.size) {
+      this._log.info("Data left over from old session. Counting as aborted.");
+      yield Task.spawn(this._moveCurrentToDaily.bind(this, currentData, true));
+    }
+
+    this._currentActiveTime = 0;
+    this._lastActivityDate = now;
+
+    this._log.debug("Registering new/current session.");
+    yield current.setLastNumeric("activeTime", 0, now);
+    yield current.setLastNumeric("totalTime", 0, now);
+    yield current.setLastNumeric("startDay", this._dateToDays(now), now);
+
+    let si = this._getStartupInfo();
+
+    for (let field of ["main", "firstPaint", "sessionRestored"]) {
+      if (!(field in si)) {
+        continue;
+      }
+
+      
+      let value = si[field] - si.process;
+      yield current.setLastNumeric(field, value, now);
+    }
+
+    for (let channel of this._OBSERVERS) {
+      Services.obs.addObserver(this, channel, false);
+    }
+  },
+
+  onShutdown: function () {
+    for (let channel of this._OBSERVERS) {
+      Services.obs.removeObserver(this, channel);
+    }
+
+    return Task.spawn(this._onShutdown.bind(this));
+  },
+
+  _onShutdown: function () {
+    this._log.debug("Recording clean shutdown.");
+    yield this.recordBrowserActivity(true);
+    let current = this.getMeasurement("current", 1);
+
+    let self = this;
+    yield this.enqueueStorageOperation(function doShutdown() {
+      return Task.spawn(function shutdownTask() {
+        let data = yield self.storage.getMeasurementLastValuesFromMeasurementID(current.id);
+        yield self._moveCurrentToDaily(data, false);
+      });
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  recordBrowserActivity: function (active) {
+    
+    
+    
+    let now = new Date();
+    this._log.trace("Recording browser activity. Active? " + !!active);
+
+    let m = this.getMeasurement("current", 1);
+
+    let updateActive = active && !this._lastActivityWasInactive;
+    this._lastActivityWasInactive = !active;
+
+    if (updateActive) {
+      this._currentActiveTime += now - this._lastActivityDate;
+    }
+
+    this._lastActivityDate = now;
+
+    let totalTime = now - this._startDate;
+    let activeTime = this._currentActiveTime;
+
+    return this.enqueueStorageOperation(function op() {
+      let promise = m.setLastNumeric("totalTime", totalTime, now);
+
+      if (!updateActive) {
+        return promise;
+      }
+
+      return m.setLastNumeric("activeTime", activeTime, now);
+    });
+  },
+
+  _moveCurrentToDaily: function (fields, aborted) {
+    this._log.debug("Moving current session to past. Aborted? " + aborted);
+    let current = this.getMeasurement("current", 1);
+
+    function clearCurrent() {
+      current.deleteLastNumeric("startDay");
+      current.deleteLastNumeric("activeTime");
+      current.deleteLastNumeric("totalTime");
+      current.deleteLastNumeric("main");
+      current.deleteLastNumeric("firstPaint");
+      return current.deleteLastNumeric("sessionRestored");
+    }
+
+    
+    
+    if (!fields.has("startDay") || !fields.has("activeTime") || !fields.has("totalTime")) {
+      yield clearCurrent();
+      return;
+    }
+
+    let daily = this.getMeasurement("previous", 1);
+
+    let startDays = fields.get("startDay")[1];
+    let activeTime = fields.get("activeTime")[1];
+    let totalTime = fields.get("totalTime")[1];
+
+    let date = this._daysToDate(startDays);
+    let type = aborted ? "aborted" : "clean";
+
+    yield daily.addDailyDiscreteNumeric(type + "ActiveTime", activeTime, date);
+    yield daily.addDailyDiscreteNumeric(type + "TotalTime", totalTime, date);
+
+    for (let field of ["main", "firstPaint", "sessionRestored"]) {
+      if (!fields.has(field)) {
+        this._log.info(field + " field not recorded for current session.");
+        continue;
+      }
+
+      yield daily.addDailyDiscreteNumeric(field, fields.get(field)[1], date);
+    }
+
+    yield clearCurrent();
+  },
+
+  observe: function (subject, topic, data) {
+    switch (topic) {
+      case "user-interaction-active":
+        this.recordBrowserActivity(true);
+        break;
+
+      case "user-interaction-inactive":
+        this.recordBrowserActivity(false);
+        break;
+    }
+  },
+
+  
+  _getStartupInfo: function () {
+    return Cc["@mozilla.org/toolkit/app-startup;1"]
+             .getService(Ci.nsIAppStartup)
+             .getStartupInfo();
   },
 });
 
