@@ -1031,11 +1031,18 @@ SpecialPowersAPI.prototype = {
   
   
   setAllAppsLaunchable: function(launchable) {
-    var message = {
+    this._sendSyncMessage("SPWebAppService", {
       op: "set-launchable",
       launchable: launchable
-    };
-    return this._sendSyncMessage("SPWebAppService", message);
+    });
+  },
+
+  
+  flushAllAppsLaunchable: function() {
+    this._sendSyncMessage("SPWebAppService", {
+      op: "set-launchable",
+      launchable: false
+    });
   },
 
   _proxiedObservers: {

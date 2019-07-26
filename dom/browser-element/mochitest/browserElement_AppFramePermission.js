@@ -8,18 +8,7 @@ SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
 
-function makeAllAppsLaunchable() {
-  var originalValue = SpecialPowers.setAllAppsLaunchable(true);
-
-  
-  window.addEventListener("unload", function restoreAllAppsLaunchable(event) {
-    if (event.target == window.document) {
-      window.removeEventListener("unload", restoreAllAppsLaunchable, false);
-      SpecialPowers.setAllAppsLaunchable(originalValue);
-    }
-  }, false);
-}
-makeAllAppsLaunchable();
+SpecialPowers.setAllAppsLaunchable(true);
 
 function testAppElement(expectAnApp, callback) {
   var iframe = document.createElement('iframe');
