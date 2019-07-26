@@ -86,8 +86,10 @@ function test() {
 
       ok(requestItem.attachment.requestHeaders,
         "There should be a requestHeaders attachment available.");
-      is(requestItem.attachment.requestHeaders.headers.length, 7,
+      ok(requestItem.attachment.requestHeaders.headers.length >= 6,
         "The requestHeaders attachment has an incorrect |headers| property.");
+      
+      
       isnot(requestItem.attachment.requestHeaders.headersSize, 0,
         "The requestHeaders attachment has an incorrect |headersSize| property.");
       
