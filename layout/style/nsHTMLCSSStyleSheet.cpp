@@ -39,12 +39,8 @@ ClearAttrCache(const nsAString& aKey, MiscContainer*& aValue, void*)
 
 } 
 
-nsHTMLCSSStyleSheet::nsHTMLCSSStyleSheet(nsIURI* aURL, nsIDocument* aDocument)
-  : mURL(aURL)
-  , mDocument(aDocument) 
+nsHTMLCSSStyleSheet::nsHTMLCSSStyleSheet()
 {
-  MOZ_ASSERT(aURL);
-  MOZ_ASSERT(aDocument);
   mCachedStyleAttrs.Init();
 }
 
@@ -55,9 +51,7 @@ nsHTMLCSSStyleSheet::~nsHTMLCSSStyleSheet()
   mCachedStyleAttrs.Enumerate(ClearAttrCache, nullptr);
 }
 
-NS_IMPL_ISUPPORTS2(nsHTMLCSSStyleSheet,
-                   nsIStyleSheet,
-                   nsIStyleRuleProcessor)
+NS_IMPL_ISUPPORTS1(nsHTMLCSSStyleSheet, nsIStyleRuleProcessor)
 
  void
 nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
@@ -175,98 +169,3 @@ nsHTMLCSSStyleSheet::LookupStyleAttr(const nsAString& aSerialized)
 {
   return mCachedStyleAttrs.Get(aSerialized);
 }
-
-void
-nsHTMLCSSStyleSheet::Reset(nsIURI* aURL)
-{
-  mURL = aURL;
-}
-
- nsIURI*
-nsHTMLCSSStyleSheet::GetSheetURI() const
-{
-  return mURL;
-}
-
- nsIURI*
-nsHTMLCSSStyleSheet::GetBaseURI() const
-{
-  return mURL;
-}
-
- void
-nsHTMLCSSStyleSheet::GetTitle(nsString& aTitle) const
-{
-  aTitle.AssignLiteral("Internal HTML/CSS Style Sheet");
-}
-
- void
-nsHTMLCSSStyleSheet::GetType(nsString& aType) const
-{
-  aType.AssignLiteral("text/html");
-}
-
- bool
-nsHTMLCSSStyleSheet::HasRules() const
-{
-  
-  return true;
-}
-
- bool
-nsHTMLCSSStyleSheet::IsApplicable() const
-{
-  return true;
-}
-
- void
-nsHTMLCSSStyleSheet::SetEnabled(bool aEnabled)
-{ 
-}
-
- bool
-nsHTMLCSSStyleSheet::IsComplete() const
-{
-  return true;
-}
-
- void
-nsHTMLCSSStyleSheet::SetComplete()
-{
-}
-
-
- nsIStyleSheet*
-nsHTMLCSSStyleSheet::GetParentSheet() const
-{
-  return nullptr;
-}
-
- nsIDocument*
-nsHTMLCSSStyleSheet::GetOwningDocument() const
-{
-  return mDocument;
-}
-
- void
-nsHTMLCSSStyleSheet::SetOwningDocument(nsIDocument* aDocument)
-{
-  mDocument = aDocument;
-}
-
-#ifdef DEBUG
- void
-nsHTMLCSSStyleSheet::List(FILE* out, int32_t aIndent) const
-{
-  
-  for (int32_t index = aIndent; --index >= 0; ) fputs("  ", out);
-
-  fputs("HTML CSS Style Sheet: ", out);
-  nsAutoCString urlSpec;
-  mURL->GetSpec(urlSpec);
-  if (!urlSpec.IsEmpty()) {
-    fputs(urlSpec.get(), out);
-  }
-  fputs("\n", out);
-}
-#endif

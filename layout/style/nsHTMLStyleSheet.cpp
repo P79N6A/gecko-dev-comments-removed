@@ -227,13 +227,11 @@ static PLDHashTableOps LangRuleTable_Ops = {
 
 
 
-nsHTMLStyleSheet::nsHTMLStyleSheet(nsIURI* aURL, nsIDocument* aDocument)
-  : mURL(aURL)
-  , mDocument(aDocument)
+nsHTMLStyleSheet::nsHTMLStyleSheet(nsIDocument* aDocument)
+  : mDocument(aDocument)
   , mTableQuirkColorRule(new TableQuirkColorRule())
   , mTableTHRule(new TableTHRule())
 {
-  MOZ_ASSERT(aURL);
   MOZ_ASSERT(aDocument);
   mMappedAttrTable.ops = nullptr;
   mLangRuleTable.ops = nullptr;
@@ -247,7 +245,7 @@ nsHTMLStyleSheet::~nsHTMLStyleSheet()
     PL_DHashTableFinish(&mMappedAttrTable);
 }
 
-NS_IMPL_ISUPPORTS2(nsHTMLStyleSheet, nsIStyleSheet, nsIStyleRuleProcessor)
+NS_IMPL_ISUPPORTS1(nsHTMLStyleSheet, nsIStyleRuleProcessor)
 
  void
 nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
@@ -402,82 +400,15 @@ nsHTMLStyleSheet::RulesMatching(XULTreeRuleProcessorData* aData)
 }
 #endif
 
-  
- nsIURI*
-nsHTMLStyleSheet::GetSheetURI() const
-{
-  return mURL;
-}
-
- nsIURI*
-nsHTMLStyleSheet::GetBaseURI() const
-{
-  return mURL;
-}
-
- void
-nsHTMLStyleSheet::GetTitle(nsString& aTitle) const
-{
-  aTitle.Truncate();
-}
-
- void
-nsHTMLStyleSheet::GetType(nsString& aType) const
-{
-  aType.AssignLiteral("text/html");
-}
-
- bool
-nsHTMLStyleSheet::HasRules() const
-{
-  return true; 
-}
-
- bool
-nsHTMLStyleSheet::IsApplicable() const
-{
-  return true;
-}
-
- void
-nsHTMLStyleSheet::SetEnabled(bool aEnabled)
-{ 
-}
-
- bool
-nsHTMLStyleSheet::IsComplete() const
-{
-  return true;
-}
-
- void
-nsHTMLStyleSheet::SetComplete()
-{
-}
-
- nsIStyleSheet*
-nsHTMLStyleSheet::GetParentSheet() const
-{
-  return nullptr;
-}
-
- nsIDocument*
-nsHTMLStyleSheet::GetOwningDocument() const
-{
-  return mDocument;
-}
-
- void
+void
 nsHTMLStyleSheet::SetOwningDocument(nsIDocument* aDocument)
 {
   mDocument = aDocument; 
 }
 
 void
-nsHTMLStyleSheet::Reset(nsIURI* aURL)
+nsHTMLStyleSheet::Reset()
 {
-  mURL = aURL;
-
   mLinkRule          = nullptr;
   mVisitedRule       = nullptr;
   mActiveRule        = nullptr;
@@ -593,23 +524,6 @@ nsHTMLStyleSheet::LangRuleFor(const nsString& aLanguage)
   }
   return entry->mRule;
 }
-
-#ifdef DEBUG
- void
-nsHTMLStyleSheet::List(FILE* out, int32_t aIndent) const
-{
-  
-  for (int32_t index = aIndent; --index >= 0; ) fputs("  ", out);
-
-  fputs("HTML Style Sheet: ", out);
-  nsAutoCString urlSpec;
-  mURL->GetSpec(urlSpec);
-  if (!urlSpec.IsEmpty()) {
-    fputs(urlSpec.get(), out);
-  }
-  fputs("\n", out);
-}
-#endif
 
 static size_t
 SizeOfAttributesEntryExcludingThis(PLDHashEntryHdr* aEntry,
