@@ -811,7 +811,7 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
   NS_ENSURE_STATE(context);
 
   
-  AutoPushJSContext cx(context->GetNativeContext());
+  AutoPushJSContextForErrorReporting cx(context->GetNativeContext());
   JS::Rooted<JSObject*> handler(cx);
 
   JS::Rooted<JSObject*> scope(cx, jsListener->GetEventScope());

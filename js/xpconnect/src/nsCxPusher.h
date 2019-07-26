@@ -174,6 +174,16 @@ public:
   operator JSContext*() { return mCx; }
 };
 
+
+
+
+
+
+
+
+
+typedef AutoPushJSContext AutoPushJSContextForErrorReporting;
+
 } 
 
 #endif
