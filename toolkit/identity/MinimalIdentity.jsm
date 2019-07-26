@@ -19,24 +19,15 @@ this.EXPORTED_SYMBOLS = ["IdentityService"];
 
 const Cu = Components.utils;
 const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/identity/LogUtils.jsm");
 Cu.import("resource://gre/modules/identity/IdentityUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this,
-                                  "jwcrypto",
-                                  "resource://gre/modules/identity/jwcrypto.jsm");
-
-function log(...aMessageArgs) {
-  Logger.log.apply(Logger, ["minimal core"].concat(aMessageArgs));
-}
-function reportError(...aMessageArgs) {
-  Logger.reportError.apply(Logger, ["core"].concat(aMessageArgs));
-}
+XPCOMUtils.defineLazyGetter(this, "logger", function() {
+  Cu.import('resource://gre/modules/identity/LogUtils.jsm');
+  return getLogger("Identity", "toolkit.identity.debug");
+});
 
 function makeMessageObject(aRpCaller) {
   let options = {};
@@ -64,7 +55,7 @@ function makeMessageObject(aRpCaller) {
   if ((typeof options.id === 'undefined') ||
       (typeof options.origin === 'undefined')) {
     let err = "id and origin required in relying-party message: " + JSON.stringify(options);
-    reportError(err);
+    logger.error(err);
     throw new Error(err);
   }
 
@@ -73,7 +64,6 @@ function makeMessageObject(aRpCaller) {
 
 function IDService() {
   Services.obs.addObserver(this, "quit-application-granted", false);
-  
 
   
   this.RP = this;
@@ -88,11 +78,10 @@ function IDService() {
 IDService.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports, Ci.nsIObserver]),
 
-  observe: function observe(aSubject, aTopic, aData) {
+  observe: function IDService_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "quit-application-granted":
         Services.obs.removeObserver(this, "quit-application-granted");
-        
         break;
     }
   },
@@ -100,18 +89,6 @@ IDService.prototype = {
   
 
 
-  parseEmail: function parseEmail(email) {
-    var match = email.match(/^([^@]+)@([^@^/]+.[a-z]+)$/);
-    if (match) {
-      return {
-        username: match[1],
-        domain: match[2]
-      };
-    }
-    return null;
-  },
-
-  
 
 
 
@@ -128,14 +105,12 @@ IDService.prototype = {
 
 
 
-
-
-  watch: function watch(aRpCaller) {
+  watch: function IDService_watch(aRpCaller) {
     
     this._rpFlows[aRpCaller.id] = aRpCaller;
 
     let options = makeMessageObject(aRpCaller);
-    log("sending identity-controller-watch:", options);
+    logger.log("sending identity-controller-watch:", options);
     Services.obs.notifyObservers({wrappedJSObject: options},"identity-controller-watch", null);
   },
 
@@ -143,14 +118,14 @@ IDService.prototype = {
 
 
 
-  unwatch: function unwatch(aRpId, aTargetMM) {
+  unwatch: function IDService_unwatch(aRpId, aTargetMM) {
     let rp = this._rpFlows[aRpId];
     let options = makeMessageObject({
       id: aRpId,
       origin: rp.origin,
       messageManager: aTargetMM
     });
-    log("sending identity-controller-unwatch for id", options.id, options.origin);
+    logger.log("sending identity-controller-unwatch for id", options.id, options.origin);
     Services.obs.notifyObservers({wrappedJSObject: options}, "identity-controller-unwatch", null);
   },
 
@@ -164,7 +139,7 @@ IDService.prototype = {
 
 
 
-  request: function request(aRPId, aOptions) {
+  request: function IDService_request(aRPId, aOptions) {
     let rp = this._rpFlows[aRPId];
 
     
@@ -182,19 +157,19 @@ IDService.prototype = {
 
 
 
-  logout: function logout(aRpCallerId) {
+  logout: function IDService_logout(aRpCallerId) {
     let rp = this._rpFlows[aRpCallerId];
 
     let options = makeMessageObject(rp);
     Services.obs.notifyObservers({wrappedJSObject: options}, "identity-controller-logout", null);
   },
 
-  childProcessShutdown: function childProcessShutdown(messageManager) {
+  childProcessShutdown: function IDService_childProcessShutdown(messageManager) {
     let options = makeMessageObject({messageManager: messageManager, id: null, origin: null});
     Services.obs.notifyObservers({wrappedJSObject: options}, "identity-child-process-shutdown", null);
     Object.keys(this._rpFlows).forEach(function(key) {
       if (this._rpFlows[key]._mm === messageManager) {
-        log("child process shutdown for rp", key, "- deleting flow");
+        logger.log("child process shutdown for rp", key, "- deleting flow");
         delete this._rpFlows[key];
       }
     }, this);
@@ -206,7 +181,7 @@ IDService.prototype = {
 
 
 
-  doLogin: function doLogin(aRpCallerId, aAssertion, aInternalParams) {
+  doLogin: function IDService_doLogin(aRpCallerId, aAssertion, aInternalParams) {
     let rp = this._rpFlows[aRpCallerId];
     if (!rp) {
       dump("WARNING: doLogin found no rp to go with callerId " + aRpCallerId + "\n");
@@ -216,7 +191,7 @@ IDService.prototype = {
     rp.doLogin(aAssertion, aInternalParams);
   },
 
-  doLogout: function doLogout(aRpCallerId) {
+  doLogout: function IDService_doLogout(aRpCallerId) {
     let rp = this._rpFlows[aRpCallerId];
     if (!rp) {
       dump("WARNING: doLogout found no rp to go with callerId " + aRpCallerId + "\n");
@@ -226,7 +201,7 @@ IDService.prototype = {
     rp.doLogout();
   },
 
-  doReady: function doReady(aRpCallerId) {
+  doReady: function IDService_doReady(aRpCallerId) {
     let rp = this._rpFlows[aRpCallerId];
     if (!rp) {
       dump("WARNING: doReady found no rp to go with callerId " + aRpCallerId + "\n");
@@ -236,7 +211,7 @@ IDService.prototype = {
     rp.doReady();
   },
 
-  doCancel: function doCancel(aRpCallerId) {
+  doCancel: function IDService_doCancel(aRpCallerId) {
     let rp = this._rpFlows[aRpCallerId];
     if (!rp) {
       dump("WARNING: doCancel found no rp to go with callerId " + aRpCallerId + "\n");
@@ -244,202 +219,7 @@ IDService.prototype = {
     }
 
     rp.doCancel();
-  },
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-  beginProvisioning: function beginProvisioning(aCaller) {
-  },
-
-  
-
-
-
-
-
-
-
-  raiseProvisioningFailure: function raiseProvisioningFailure(aProvId, aReason) {
-    reportError("Provisioning failure", aReason);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  genKeyPair: function genKeyPair(aProvId) {
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  registerCertificate: function registerCertificate(aProvId, aCert) {
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  beginAuthentication: function beginAuthentication(aCaller) {
-  },
-
-  
-
-
-
-
-
-
-  completeAuthentication: function completeAuthentication(aAuthId) {
-  },
-
-  
-
-
-
-
-
-
-  cancelAuthentication: function cancelAuthentication(aAuthId) {
-  },
-
-  
-
-  
-
-
-
-
-
-
-
-
-
-  _discoverIdentityProvider: function _discoverIdentityProvider(aIdentity, aCallback) {
-    
-    
-    var parsedEmail = this.parseEmail(aIdentity);
-    if (parsedEmail === null) {
-      return aCallback("Could not parse email: " + aIdentity);
-    }
-    log("_discoverIdentityProvider: identity:", aIdentity, "domain:", parsedEmail.domain);
-
-    this._fetchWellKnownFile(parsedEmail.domain, function fetchedWellKnown(err, idpParams) {
-      
-      
-
-      
-      
-      
-      return aCallback(err, idpParams);
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _fetchWellKnownFile: function _fetchWellKnownFile(aDomain, aCallback, aScheme='https') {
-    
-    let url = aScheme + '://' + aDomain + "/.well-known/browserid";
-    log("_fetchWellKnownFile:", url);
-
-    
-    let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                .createInstance(Ci.nsIXMLHttpRequest);
-
-    
-    
-    req.open("GET", url, true);
-    req.responseType = "json";
-    req.mozBackgroundRequest = true;
-    req.onload = function _fetchWellKnownFile_onload() {
-      if (req.status < 200 || req.status >= 400) {
-        log("_fetchWellKnownFile", url, ": server returned status:", req.status);
-        return aCallback("Error");
-      }
-      try {
-        let idpParams = req.response;
-
-        
-        if (! (idpParams.provisioning &&
-            idpParams.authentication &&
-            idpParams['public-key'])) {
-          let errStr= "Invalid well-known file from: " + aDomain;
-          log("_fetchWellKnownFile:", errStr);
-          return aCallback(errStr);
-        }
-
-        let callbackObj = {
-          domain: aDomain,
-          idpParams: idpParams,
-        };
-        log("_fetchWellKnownFile result: ", callbackObj);
-        
-        return aCallback(null, callbackObj);
-
-      } catch (err) {
-        reportError("_fetchWellKnownFile", "Bad configuration from", aDomain, err);
-        return aCallback(err.toString());
-      }
-    };
-    req.onerror = function _fetchWellKnownFile_onerror() {
-      log("_fetchWellKnownFile", "ERROR:", req.status, req.statusText);
-      log("ERROR: _fetchWellKnownFile:", err);
-      return aCallback("Error");
-    };
-    req.send(null);
-  },
-
+  }
 };
 
 this.IdentityService = new IDService();

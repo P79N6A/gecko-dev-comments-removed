@@ -15,7 +15,6 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/identity/LogUtils.jsm");
 Cu.import("resource://gre/modules/identity/IdentityStore.jsm");
 Cu.import("resource://gre/modules/identity/RelyingParty.jsm");
 Cu.import("resource://gre/modules/identity/IdentityProvider.jsm");
@@ -24,12 +23,10 @@ XPCOMUtils.defineLazyModuleGetter(this,
                                   "jwcrypto",
                                   "resource://gre/modules/identity/jwcrypto.jsm");
 
-function log(...aMessageArgs) {
-  Logger.log.apply(Logger, ["core"].concat(aMessageArgs));
-}
-function reportError(...aMessageArgs) {
-  Logger.reportError.apply(Logger, ["core"].concat(aMessageArgs));
-}
+XPCOMUtils.defineLazyGetter(this, "logger", function() {
+  Cu.import('resource://gre/modules/identity/LogUtils.jsm');
+  return getLogger("Identity", "toolkit.identity.debug");
+});
 
 function IDService() {
   Services.obs.addObserver(this, "quit-application-granted", false);
@@ -53,7 +50,7 @@ IDService.prototype = {
         if (!aSubject || !aSubject.wrappedJSObject)
           break;
         let subject = aSubject.wrappedJSObject;
-        log("Auth complete:", aSubject.wrappedJSObject);
+        logger.log("Auth complete:", aSubject.wrappedJSObject);
         
         
         this.selectIdentity(subject.rpId, subject.identity);
@@ -73,7 +70,7 @@ IDService.prototype = {
   },
 
   shutdown: function shutdown() {
-    log("shutdown");
+    logger.log("shutdown");
     Services.obs.removeObserver(this, "identity-auth-complete");
     Services.obs.removeObserver(this, "quit-application-granted");
   },
@@ -117,12 +114,12 @@ IDService.prototype = {
 
 
   selectIdentity: function selectIdentity(aRPId, aIdentity) {
-    log("selectIdentity: RP id:", aRPId, "identity:", aIdentity);
+    logger.log("selectIdentity: RP id:", aRPId, "identity:", aIdentity);
 
     
     let rp = this.RP._rpFlows[aRPId];
     if (!rp) {
-      reportError("selectIdentity", "Invalid RP id: ", aRPId);
+      logger.warning("selectIdentity", "Invalid RP id: ", aRPId);
       return;
     }
 
@@ -134,7 +131,7 @@ IDService.prototype = {
       loggedInUser: aIdentity,
       origin: rp.origin
     };
-    log("selectIdentity: provId:", provId, "origin:", rp.origin);
+    logger.log("selectIdentity: provId:", provId, "origin:", rp.origin);
 
     
     
@@ -175,7 +172,7 @@ IDService.prototype = {
             if (self.IDP._provisionFlows[aProvId].didAuthentication) {
               self.IDP._cleanUpProvisionFlow(aProvId);
               self.RP._cleanUpProvisionFlow(aRPId, aProvId);
-              log("ERROR: selectIdentity: authentication hard fail");
+              logger.error("ERROR: selectIdentity: authentication hard fail");
               rp.doError("Authentication fail.");
               return;
             }
@@ -222,7 +219,7 @@ IDService.prototype = {
     if (parsedEmail === null) {
       return aCallback("Could not parse email: " + aIdentity);
     }
-    log("_discoverIdentityProvider: identity:", aIdentity, "domain:", parsedEmail.domain);
+    logger.log("_discoverIdentityProvider: identity:", aIdentity, "domain:", parsedEmail.domain);
 
     this._fetchWellKnownFile(parsedEmail.domain, function fetchedWellKnown(err, idpParams) {
       
@@ -251,7 +248,7 @@ IDService.prototype = {
   _fetchWellKnownFile: function _fetchWellKnownFile(aDomain, aCallback, aScheme='https') {
     
     let url = aScheme + '://' + aDomain + "/.well-known/browserid";
-    log("_fetchWellKnownFile:", url);
+    logger.log("_fetchWellKnownFile:", url);
 
     
     let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -264,7 +261,7 @@ IDService.prototype = {
     req.mozBackgroundRequest = true;
     req.onload = function _fetchWellKnownFile_onload() {
       if (req.status < 200 || req.status >= 400) {
-        log("_fetchWellKnownFile", url, ": server returned status:", req.status);
+        logger.log("_fetchWellKnownFile", url, ": server returned status:", req.status);
         return aCallback("Error");
       }
       try {
@@ -275,7 +272,7 @@ IDService.prototype = {
             idpParams.authentication &&
             idpParams['public-key'])) {
           let errStr= "Invalid well-known file from: " + aDomain;
-          log("_fetchWellKnownFile:", errStr);
+          logger.log("_fetchWellKnownFile:", errStr);
           return aCallback(errStr);
         }
 
@@ -283,18 +280,18 @@ IDService.prototype = {
           domain: aDomain,
           idpParams: idpParams,
         };
-        log("_fetchWellKnownFile result: ", callbackObj);
+        logger.log("_fetchWellKnownFile result: ", callbackObj);
         
         return aCallback(null, callbackObj);
 
       } catch (err) {
-        reportError("_fetchWellKnownFile", "Bad configuration from", aDomain, err);
+        logger.warning("_fetchWellKnownFile", "Bad configuration from", aDomain, err);
         return aCallback(err.toString());
       }
     };
     req.onerror = function _fetchWellKnownFile_onerror() {
-      log("_fetchWellKnownFile", "ERROR:", req.status, req.statusText);
-      log("ERROR: _fetchWellKnownFile:", err);
+      logger.log("_fetchWellKnownFile", "ERROR:", req.status, req.statusText);
+      logger.error("ERROR: _fetchWellKnownFile:", err);
       return aCallback("Error");
     };
     req.send(null);
