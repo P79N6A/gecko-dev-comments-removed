@@ -210,39 +210,19 @@ public:
 
   virtual TiledLayerComposer* AsTiledLayerComposer() { return nullptr; }
 
-  typedef uint32_t AttachFlags;
-  static const AttachFlags NO_FLAGS = 0;
-  static const AttachFlags ALLOW_REATTACH = 1;
-  static const AttachFlags KEEP_ATTACHED = 2;
-
-  virtual void Attach(Layer* aLayer,
-                      Compositor* aCompositor,
-                      AttachFlags aFlags = NO_FLAGS)
+  virtual void Attach(Layer* aLayer, Compositor* aCompositor)
   {
     MOZ_ASSERT(aCompositor, "Compositor is required");
-    NS_ASSERTION(aFlags & ALLOW_REATTACH || !mAttached,
-                 "Re-attaching compositables must be explicitly authorised");
+    MOZ_ASSERT(!IsAttached());
     SetCompositor(aCompositor);
     SetLayer(aLayer);
     mAttached = true;
-    mKeepAttached = aFlags & KEEP_ATTACHED;
   }
-  
-  
-  
-  
-  
-  
-  
-  void Detach(Layer* aLayer = nullptr)
+  void Detach()
   {
-    if (!mKeepAttached ||
-        aLayer == mLayer) {
-      SetLayer(nullptr);
-      SetCompositor(nullptr);
-      mAttached = false;
-      mKeepAttached = false;
-    }
+    SetLayer(nullptr);
+    SetCompositor(nullptr);
+    mAttached = false;
   }
   bool IsAttached() { return mAttached; }
 
@@ -271,7 +251,6 @@ protected:
   Layer* mLayer;
   RefPtr<TextureHost> mFirstTexture;
   bool mAttached;
-  bool mKeepAttached;
 };
 
 class CompositableParentManager;
