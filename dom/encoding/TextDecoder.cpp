@@ -28,8 +28,8 @@ TextDecoder::Init(const nsAString& aEncoding,
     return;
   }
 
-  mIsUTF16Family = !strcmp(mEncoding, "utf-16le") ||
-                   !strcmp(mEncoding, "utf-16be");
+  mIsUTF16Family = mEncoding.EqualsLiteral("UTF-16LE") ||
+                   mEncoding.EqualsLiteral("UTF-16BE");
 
   
   
@@ -44,7 +44,7 @@ TextDecoder::Init(const nsAString& aEncoding,
     return;
   }
 
-  ccm->GetUnicodeDecoder(mEncoding, getter_AddRefs(mDecoder));
+  ccm->GetUnicodeDecoderRaw(mEncoding.get(), getter_AddRefs(mDecoder));
   if (!mDecoder) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return;
@@ -168,12 +168,12 @@ TextDecoder::HandleBOM(const char*& aData, uint32_t& aLength,
   aLength -= 2 - mOffset;
   mOffset = 2;
 
-  const char* encoding = "";
+  nsAutoCString encoding;
   if (!EncodingUtils::IdentifyDataOffset(mInitialBytes, 2, encoding) ||
-      strcmp(encoding, mEncoding)) {
+      !encoding.Equals(mEncoding)) {
     
     
-    FeedBytes(!strcmp(mEncoding, "utf-16le") ? "\xFF\xFE" : "\xFE\xFF");
+    FeedBytes(mEncoding.EqualsLiteral("UTF-16LE") ? "\xFF\xFE" : "\xFE\xFF");
   }
   FeedBytes(mInitialBytes, &aOutString);
 }
@@ -201,12 +201,13 @@ TextDecoder::GetEncoding(nsAString& aEncoding)
   
   
   
-  if (!strcmp(mEncoding, "utf-16le")) {
+  if (mEncoding.EqualsLiteral("UTF-16LE")) {
     aEncoding.AssignLiteral("utf-16");
     return;
   }
 
-  aEncoding.AssignASCII(mEncoding);
+  CopyASCIItoUTF16(mEncoding, aEncoding);
+  nsContentUtils::ASCIIToLower(aEncoding);
 }
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(TextDecoder)

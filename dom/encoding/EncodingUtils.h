@@ -14,9 +14,10 @@ namespace dom {
 class EncodingUtils
 {
 public:
-  NS_INLINE_DECL_REFCOUNTING(EncodingUtils)
 
   
+
+
 
 
 
@@ -29,7 +30,7 @@ public:
 
   static uint32_t IdentifyDataOffset(const char* aData,
                                      const uint32_t aLength,
-                                     const char*& aRetval);
+                                     nsACString& aRetval);
 
   
 
@@ -41,9 +42,17 @@ public:
 
 
 
+
+
+
+  static bool FindEncodingForLabel(const nsACString& aLabel,
+                                   nsACString& aOutEncoding);
 
   static bool FindEncodingForLabel(const nsAString& aLabel,
-                                   const char*& aOutEncoding);
+                                   nsACString& aOutEncoding)
+  {
+    return FindEncodingForLabel(NS_ConvertUTF16toUTF8(aLabel), aOutEncoding);
+  }
 
   
 
@@ -55,19 +64,14 @@ public:
 
 
 
-  static void TrimSpaceCharacters(nsString& aString)
+  template<class T>
+  static void TrimSpaceCharacters(T& aString)
   {
     aString.Trim(" \t\n\f\r");
   }
 
-  
-  static void Shutdown();
-
-protected:
-  nsDataHashtable<nsStringHashKey, const char *> mLabelsEncodings;
-  EncodingUtils();
-  virtual ~EncodingUtils();
-  static already_AddRefed<EncodingUtils> GetOrCreate();
+private:
+  EncodingUtils() MOZ_DELETE;
 };
 
 } 
