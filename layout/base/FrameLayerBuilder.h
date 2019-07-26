@@ -318,7 +318,7 @@ public:
 
 
 
-  static bool HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
+  static bool HasVisibleRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
   typedef void (*DisplayItemDataCallback)(nsIFrame *aFrame, DisplayItemData* aItem);
 
