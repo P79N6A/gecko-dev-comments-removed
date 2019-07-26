@@ -381,6 +381,11 @@ AbstractFile.read = function read(path, bytes, options = {}) {
 
 
 
+
+
+
+
+
 AbstractFile.writeAtomic =
      function writeAtomic(path, buffer, options = {}) {
 
@@ -408,6 +413,13 @@ AbstractFile.writeAtomic =
   let bytesWritten = 0;
 
   if (!options.tmpPath) {
+    if (options.backupTo) {
+      try {
+        OS.File.move(path, options.backupTo, {noCopy: true});
+      } catch (ex if ex.becauseNoSuchFile) {
+        
+      }
+    }
     
     let dest = OS.File.open(path, {write: true, truncate: true});
     try {
@@ -432,6 +444,14 @@ AbstractFile.writeAtomic =
     throw x;
   } finally {
     tmpFile.close();
+  }
+
+  if (options.backupTo) {
+    try {
+      OS.File.move(path, options.backupTo, {noCopy: true});
+    } catch (ex if ex.becauseNoSuchFile) {
+      
+    }
   }
 
   OS.File.move(options.tmpPath, path, {noCopy: true});
