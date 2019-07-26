@@ -302,6 +302,18 @@ public:
   
 
 
+
+
+
+
+
+  bool IsFixedItem(nsDisplayItem* aItem,
+                   nsIFrame** aActiveScrolledRoot = nullptr,
+                   nsIFrame* aOverrideActiveScrolledRoot = nullptr);
+
+  
+
+
   bool ShouldSyncDecodeImages() { return mSyncDecodeImages; }
 
   
@@ -1605,8 +1617,11 @@ private:
 class nsDisplayBackground : public nsDisplayItem {
 public:
   
+  
+  
+  
   nsDisplayBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                      uint32_t aLayer);
+                      uint32_t aLayer, bool aSkipFixedItemBoundsCheck = false);
   virtual ~nsDisplayBackground();
 
   
@@ -1656,6 +1671,9 @@ protected:
 
   
   bool mIsThemed;
+  
+
+  bool mIsFixed;
   
   bool mIsBottommostLayer;
   nsITheme::Transparency mThemeTransparency;
