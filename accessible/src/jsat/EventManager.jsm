@@ -140,7 +140,7 @@ this.EventManager.prototype = {
     
     if (Utils.MozBuildApp == 'browser' &&
         aEvent.eventType != EVENT_VIRTUALCURSOR_CHANGED &&
-        aEvent.accessibleDocument != Utils.CurrentContentDoc) {
+        aEvent.accessibleDocument.docType == 'window') {
       return;
     }
 
