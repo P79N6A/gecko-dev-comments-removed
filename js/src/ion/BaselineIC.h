@@ -201,6 +201,9 @@ class ICEntry
 {
   private:
     
+    ICStub *firstStub_;
+
+    
     
     uint32_t returnOffset_;
 
@@ -210,12 +213,9 @@ class ICEntry
     
     uint32_t isForOp_ : 1;
 
-    
-    ICStub *firstStub_;
-
   public:
     ICEntry(uint32_t pcOffset, bool isForOp)
-      : returnOffset_(), pcOffset_(pcOffset), isForOp_(isForOp), firstStub_(NULL)
+      : firstStub_(NULL), returnOffset_(), pcOffset_(pcOffset), isForOp_(isForOp)
     {}
 
     CodeOffsetLabel returnOffset() const {
@@ -562,37 +562,37 @@ class ICStub
 
   protected:
     
-    
-    
-    Trait trait_ : 3;
-    Kind kind_ : 13;
-
-    
-    uint16_t extra_;
-
-    
     uint8_t *stubCode_;
 
     
     
     ICStub *next_;
 
+    
+    uint16_t extra_;
+
+    
+    
+    
+    Trait trait_ : 3;
+    Kind kind_ : 13;
+
     inline ICStub(Kind kind, IonCode *stubCode)
-      : trait_(Regular),
-        kind_(kind),
+      : stubCode_(stubCode->raw()),
+        next_(NULL),
         extra_(0),
-        stubCode_(stubCode->raw()),
-        next_(NULL)
+        trait_(Regular),
+        kind_(kind)
     {
         JS_ASSERT(stubCode != NULL);
     }
 
     inline ICStub(Kind kind, Trait trait, IonCode *stubCode)
-      : trait_(trait),
-        kind_(kind),
+      : stubCode_(stubCode->raw()),
+        next_(NULL),
         extra_(0),
-        stubCode_(stubCode->raw()),
-        next_(NULL)
+        trait_(trait),
+        kind_(kind)
     {
         JS_ASSERT(stubCode != NULL);
     }
