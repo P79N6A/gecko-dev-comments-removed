@@ -12,6 +12,7 @@
 #include <ui/Fence.h>
 
 #include "ipc/IPCMessageUtils.h"
+#include "mozilla/layers/AsyncTransactionTracker.h" 
 
 namespace mozilla {
 namespace layers {
@@ -33,6 +34,34 @@ struct FenceHandle {
   }
 
   android::sp<Fence> mFence;
+};
+
+
+class FenceDeliveryTracker : public AsyncTransactionTracker {
+public:
+  FenceDeliveryTracker(const android::sp<android::Fence>& aFence)
+    : mFence(aFence)
+  {
+    MOZ_COUNT_CTOR(FenceDeliveryTracker);
+  }
+
+  ~FenceDeliveryTracker()
+  {
+    MOZ_COUNT_DTOR(FenceDeliveryTracker);
+  }
+
+  virtual void Complete() MOZ_OVERRIDE
+  {
+    mFence = nullptr;
+  }
+
+  virtual void Cancel() MOZ_OVERRIDE
+  {
+    mFence = nullptr;
+  }
+
+private:
+  android::sp<android::Fence> mFence;
 };
 
 } 

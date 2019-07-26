@@ -80,6 +80,10 @@ public:
     virtual void Fence() = 0;
     virtual bool WaitSync() = 0;
 
+    
+    
+    
+    virtual void WaitForBufferOwnership() {}
 
     SharedSurfaceType Type() const {
         return mType;

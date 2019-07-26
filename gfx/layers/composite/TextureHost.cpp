@@ -9,7 +9,6 @@
 #include "gfx2DGlue.h"                  
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/ipc/Shmem.h"          
-#include "mozilla/layers/AsyncTransactionTracker.h" 
 #include "mozilla/layers/CompositableTransactionParent.h" 
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/ISurfaceAllocator.h"  
@@ -37,36 +36,6 @@ struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-
-class FenceDeliveryTracker : public AsyncTransactionTracker {
-public:
-  FenceDeliveryTracker(const android::sp<android::Fence>& aFence)
-    : mFence(aFence)
-  {
-    MOZ_COUNT_CTOR(FenceDeliveryTracker);
-  }
-
-  ~FenceDeliveryTracker()
-  {
-    MOZ_COUNT_DTOR(FenceDeliveryTracker);
-  }
-
-  virtual void Complete() MOZ_OVERRIDE
-  {
-    mFence = nullptr;
-  }
-
-  virtual void Cancel() MOZ_OVERRIDE
-  {
-    mFence = nullptr;
-  }
-
-private:
-  android::sp<android::Fence> mFence;
-};
-#endif
 
 
 
