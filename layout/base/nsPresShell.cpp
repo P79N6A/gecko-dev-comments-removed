@@ -2314,19 +2314,6 @@ PresShell::CheckVisibilityContent(nsIContent* aNode, int16_t aStartOffset,
 
 
 
-
-void
-PresShell::StyleChangeReflow()
-{
-  nsIFrame* rootFrame = mFrameConstructor->GetRootFrame();
-  
-  
-  if (!rootFrame)
-    return;
-
-  FrameNeedsReflow(rootFrame, eStyleChange, NS_FRAME_IS_DIRTY);
-}
-
 nsIFrame*
 nsIPresShell::GetRootFrameExternal() const
 {

@@ -123,8 +123,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xbf539e0a, 0xc314, 0x4ea7, \
-  { 0xba, 0x7c, 0xeb, 0xd3, 0x4e, 0x8a, 0x40, 0x65 } }
+{ 0xfac033dd, 0x938d, 0x45bc, \
+  { 0xaa, 0xa5, 0xdc, 0x2f, 0xa7, 0xef, 0x5a, 0x40 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -410,11 +410,6 @@ public:
 
 
   virtual bool IsLayoutFlushObserver() = 0;
-
-  
-
-
-  virtual NS_HIDDEN_(void) StyleChangeReflow() = 0;
 
   
 
