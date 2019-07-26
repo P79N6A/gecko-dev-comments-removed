@@ -271,12 +271,13 @@ AsyncChannel::ThreadLink::SendClose()
 }
 
 AsyncChannel::AsyncChannel(AsyncListener* aListener)
-  : mListener(aListener),
+  : mListener(aListener->asWeakPtr()),
     mChannelState(ChannelClosed),
     mWorkerLoop(),
     mChild(false),
     mChannelErrorTask(NULL),
-    mLink(NULL)
+    mLink(NULL),
+    mWorkerLoopID(-1)
 {
     MOZ_COUNT_CTOR(AsyncChannel);
 }
@@ -296,6 +297,7 @@ AsyncChannel::Open(Transport* aTransport,
     NS_PRECONDITION(!mLink, "Open() called > once");
     mMonitor = new RefCountedMonitor();
     mWorkerLoop = MessageLoop::current();
+    mWorkerLoopID = mWorkerLoop->id();
     mLink = link = new ProcessLink(this);
     link->Open(aTransport, aIOLoop, aSide); 
     return true;
@@ -353,6 +355,7 @@ void
 AsyncChannel::CommonThreadOpenInit(AsyncChannel *aTargetChan, Side aSide)
 {
     mWorkerLoop = MessageLoop::current();
+    mWorkerLoopID = mWorkerLoop->id();
     mLink = new ThreadLink(this, aTargetChan);
     mChild = (aSide == Child); 
 }
@@ -383,12 +386,7 @@ AsyncChannel::Close()
     AssertWorkerThread();
 
     {
-        
-        
-        
-        
-        nsRefPtr<RefCountedMonitor> monitor(mMonitor);
-        MonitorAutoLock lock(*monitor);
+        MonitorAutoLock lock(*mMonitor);
 
         if (ChannelError == mChannelState ||
             ChannelTimeout == mChannelState) {
@@ -398,7 +396,7 @@ AsyncChannel::Close()
             
             
             if (mListener) {
-                MonitorAutoUnlock unlock(*monitor);
+                MonitorAutoUnlock unlock(*mMonitor);
                 NotifyMaybeChannelError();
             }
             return;
@@ -575,12 +573,20 @@ AsyncChannel::NotifyMaybeChannelError()
 void
 AsyncChannel::Clear()
 {
-    mListener = 0;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     mWorkerLoop = 0;
 
     delete mLink;
     mLink = 0;
-    mMonitor = 0;
 
     if (mChannelErrorTask) {
         mChannelErrorTask->Cancel();

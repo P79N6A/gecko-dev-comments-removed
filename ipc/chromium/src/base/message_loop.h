@@ -220,6 +220,9 @@ public:
   Type type() const { return type_; }
 
   
+  PRInt32 id() const { return id_; }
+
+  
   void set_thread_name(const std::string& thread_name) {
     DCHECK(thread_name_.empty()) << "Should not rename this thread!";
     thread_name_ = thread_name;
@@ -374,6 +377,7 @@ public:
   virtual bool DoIdleWork();
 
   Type type_;
+  PRInt32 id_;
 
   
   

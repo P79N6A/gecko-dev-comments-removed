@@ -11,6 +11,7 @@
 #include "base/basictypes.h"
 #include "base/message_loop.h"
 
+#include "mozilla/WeakPtr.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/ipc/Transport.h"
 
@@ -62,7 +63,9 @@ public:
     typedef IPC::Message Message;
     typedef mozilla::ipc::Transport Transport;
 
-    class  AsyncListener: protected HasResultCodes
+    class  AsyncListener
+        : protected HasResultCodes
+        , public mozilla::SupportsWeakPtr<AsyncListener>
     {
     public:
         virtual ~AsyncListener() { }
@@ -199,14 +202,14 @@ protected:
     
     void AssertLinkThread() const
     {
-        NS_ABORT_IF_FALSE(mWorkerLoop != MessageLoop::current(),
+        NS_ABORT_IF_FALSE(mWorkerLoopID != MessageLoop::current()->id(),
                           "on worker thread but should not be!");
     }
 
     
     void AssertWorkerThread() const
     {
-        NS_ABORT_IF_FALSE(mWorkerLoop == MessageLoop::current(),
+        NS_ABORT_IF_FALSE(mWorkerLoopID == MessageLoop::current()->id(),
                           "not on worker thread!");
     }
 
@@ -258,13 +261,17 @@ protected:
 
     virtual void Clear();
 
-    AsyncListener* mListener;
+    mozilla::WeakPtr<AsyncListener> mListener;
     ChannelState mChannelState;
     nsRefPtr<RefCountedMonitor> mMonitor;
     MessageLoop* mWorkerLoop;   
     bool mChild;                
     CancelableTask* mChannelErrorTask; 
     Link *mLink;                
+
+    
+    
+    int mWorkerLoopID;
 };
 
 } 

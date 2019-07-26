@@ -152,7 +152,7 @@ private:
     
 
     RPCListener* Listener() const {
-        return static_cast<RPCListener*>(mListener);
+        return static_cast<RPCListener*>(mListener.get());
     }
 
     virtual bool ShouldDeferNotifyMaybeError() const MOZ_OVERRIDE {
