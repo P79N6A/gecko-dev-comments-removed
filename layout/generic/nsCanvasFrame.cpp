@@ -82,6 +82,7 @@ nsCanvasFrame::SetHasFocus(bool aHasFocus)
   return NS_OK;
 }
 
+#ifdef DEBUG
 void
 nsCanvasFrame::SetInitialChildList(ChildListID     aListID,
                                    nsFrameList&    aChildList)
@@ -96,31 +97,12 @@ void
 nsCanvasFrame::AppendFrames(ChildListID     aListID,
                             nsFrameList&    aFrameList)
 {
-  NS_ASSERTION(aListID == kPrincipalList ||
-               aListID == kAbsoluteList, "unexpected child list ID");
-  NS_PRECONDITION(aListID != kAbsoluteList ||
-                  mFrames.IsEmpty(), "already have a child frame");
-  if (aListID != kPrincipalList) {
-    
-    return;  
-  }
-
-  if (!mFrames.IsEmpty()) {
-    
-    return; 
-  }
-
-  
-  NS_ASSERTION(aFrameList.FirstChild() == aFrameList.LastChild(),
-               "Only one principal child frame allowed");
-#ifdef DEBUG
+  MOZ_ASSERT(aListID == kPrincipalList, "unexpected child list");
+  MOZ_ASSERT(mFrames.IsEmpty(), "already have a child frame");
+  MOZ_ASSERT(aFrameList.FirstChild() == aFrameList.LastChild(),
+             "Only one principal child frame allowed");
   nsFrame::VerifyDirtyBitSet(aFrameList);
-#endif
-  mFrames.AppendFrames(nullptr, aFrameList);
-
-  PresContext()->PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  nsContainerFrame::AppendFrames(aListID, aFrameList);
 }
 
 void
@@ -138,18 +120,11 @@ void
 nsCanvasFrame::RemoveFrame(ChildListID     aListID,
                            nsIFrame*       aOldFrame)
 {
-  MOZ_ASSERT(aListID == kPrincipalList || aListID == kAbsoluteList,
-             "unexpected child list");
-  if (aOldFrame != mFrames.FirstChild())
-    return; 
-
-  
-  mFrames.DestroyFrame(aOldFrame);
-
-  PresContext()->PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  MOZ_ASSERT(aListID == kPrincipalList, "unexpected child list");
+  MOZ_ASSERT(aOldFrame == mFrames.FirstChild(), "unknown aOldFrame");
+  nsContainerFrame::RemoveFrame(aListID, aOldFrame);
 }
+#endif
 
 nsRect nsCanvasFrame::CanvasArea() const
 {
