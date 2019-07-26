@@ -835,7 +835,9 @@ StackFrames.prototype = {
     
     
     
-    if (this._currentFrameDescription != FRAME_TYPE.PUBLIC_CLIENT_EVAL) {
+    let isClientEval = this._currentFrameDescription == FRAME_TYPE.PUBLIC_CLIENT_EVAL;
+    let isPopupShown = DebuggerView.VariableBubble.contentsShown();
+    if (!isClientEval && !isPopupShown) {
       
       DebuggerView.setEditorLocation(where.url, where.line);
       

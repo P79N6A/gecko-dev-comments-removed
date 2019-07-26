@@ -51,13 +51,15 @@ function test() {
     checkView(0, 20);
 
     
+    yield hideVarPopup(panel);
+
     let updatedFrame = waitForDebuggerEvents(panel, events.FETCHED_SCOPES);
     frames.selectedDepth = 1;
     yield updatedFrame;
     checkView(1, 15);
 
     
-    yield reopenVarPopup(panel, { line: 13, ch: 12 });
+    yield openVarPopup(panel, { line: 13, ch: 12 });
     verifyContents("\"first scope\"", "token-string");
     checkView(1, 15);
 

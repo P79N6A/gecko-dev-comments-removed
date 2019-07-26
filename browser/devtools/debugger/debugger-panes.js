@@ -1914,6 +1914,16 @@ VariableBubbleView.prototype = {
 
 
 
+  contentsShown: function() {
+    return this._tooltip.isShown();
+  },
+
+  
+
+
+
+
+
   _getSimpleValueEvalMacro: function(aPrefix) {
     return (item, string) =>
       VariablesView.simpleValueEvalMacro(item, string, aPrefix);
