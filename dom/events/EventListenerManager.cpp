@@ -808,13 +808,11 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
   
   AutoPushJSContextForErrorReporting cx(context->GetNativeContext());
   JS::Rooted<JSObject*> handler(cx);
-
   JS::Rooted<JSObject*> scope(cx, jsListener->GetEventScope());
 
   nsCOMPtr<nsIAtom> typeAtom = aListener->mTypeAtom;
   nsIAtom* attrName = typeAtom;
 
-  
   
   
   aListener->mHandlerIsString = false;
@@ -871,30 +869,45 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
                                    typeAtom,
                                    &argCount, &argNames);
 
-  JSAutoCompartment ac(cx, context->GetWindowProxy());
+  
+  
+  
+  
+  
+  
+  JS::Rooted<JSObject*> wrapScope(cx, context->GetWindowProxy());
+  JS::Rooted<JS::Value> v(cx);
+  {
+    JSAutoCompartment ac(cx, wrapScope);
+    nsresult rv = nsContentUtils::WrapNative(cx, wrapScope, mTarget, &v,
+                                              false);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  }
+  JS::Rooted<JSObject*> target(cx, &v.toObject());
+  JSAutoCompartment ac(cx, target);
+
+  nsDependentAtomString str(attrName);
+  
+  
+  
+  JS::Rooted<JSString*> jsStr(cx, JS_NewUCStringCopyN(cx,
+                                                      str.BeginReading(),
+                                                      str.Length()));
+  NS_ENSURE_TRUE(jsStr, NS_ERROR_OUT_OF_MEMORY);
+
+
+  
+  if (NS_WARN_IF(!WrapNewBindingObject(cx, target, aElement, &v))) {
+    return NS_ERROR_FAILURE;
+  }
   JS::CompileOptions options(cx);
   options.setIntroductionType("eventHandler")
          .setFileAndLine(url.get(), lineNo)
-         .setVersion(SCRIPTVERSION_DEFAULT);
-
-  JS::Rooted<JS::Value> targetVal(cx);
-  
-  JS::Rooted<JSObject*> wrapScope(cx, JS::CurrentGlobalOrNull(cx));
-  if (WrapNewBindingObject(cx, wrapScope, aElement, &targetVal)) {
-    MOZ_ASSERT(targetVal.isObject());
-
-    nsDependentAtomString str(attrName);
-    
-    
-    
-    JS::Rooted<JSString*> jsStr(cx, JS_NewUCStringCopyN(cx,
-                                                        str.BeginReading(),
-                                                        str.Length()));
-    NS_ENSURE_TRUE(jsStr, NS_ERROR_OUT_OF_MEMORY);
-
-    options.setElement(&targetVal.toObject())
-           .setElementAttributeName(jsStr);
-  }
+         .setVersion(SCRIPTVERSION_DEFAULT)
+         .setElement(&v.toObject())
+         .setElementAttributeName(jsStr);
 
   JS::Rooted<JSObject*> handlerFun(cx);
   result = nsJSUtils::CompileFunction(cx, JS::NullPtr(), options,
