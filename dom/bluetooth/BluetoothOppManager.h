@@ -118,6 +118,8 @@ private:
   void RetrieveSentFileName();
   void NotifyAboutFileChange();
   bool AcquireSdcardMountLock();
+  void SendObexData(uint8_t* aData, uint8_t aOpcode, int aSize);
+
   
 
 
