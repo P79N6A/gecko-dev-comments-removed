@@ -255,6 +255,10 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -283,11 +287,6 @@ static const double AXIS_BREAKOUT_ANGLE = M_PI / 8.0;
 
 
 static const double ALLOWED_DIRECT_PAN_ANGLE = M_PI / 3.0; 
-
-
-
-
-static const TimeDuration ZOOM_TO_DURATION = TimeDuration::FromSeconds(0.25);
 
 
 
@@ -419,7 +418,8 @@ class ZoomAnimation: public AsyncPanZoomAnimation {
 public:
   ZoomAnimation(CSSPoint aStartOffset, CSSToScreenScale aStartZoom,
                 CSSPoint aEndOffset, CSSToScreenScale aEndZoom)
-    : mStartOffset(aStartOffset)
+    : mTotalDuration(TimeDuration::FromMilliseconds(gfxPrefs::APZZoomAnimationDuration()))
+    , mStartOffset(aStartOffset)
     , mStartZoom(aStartZoom)
     , mEndOffset(aEndOffset)
     , mEndZoom(aEndZoom)
@@ -430,6 +430,7 @@ public:
 
 private:
   TimeDuration mDuration;
+  const TimeDuration mTotalDuration;
 
   
   
@@ -1643,7 +1644,7 @@ AsyncPanZoomController::FireAsyncScrollOnTimeout()
 bool ZoomAnimation::Sample(FrameMetrics& aFrameMetrics,
                            const TimeDuration& aDelta) {
   mDuration += aDelta;
-  double animPosition = mDuration / ZOOM_TO_DURATION;
+  double animPosition = mDuration / mTotalDuration;
 
   if (animPosition >= 1.0) {
     aFrameMetrics.SetZoom(mEndZoom);
