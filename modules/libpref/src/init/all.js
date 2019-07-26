@@ -263,6 +263,19 @@ pref("media.peerconnection.agc_enabled", false);
 pref("media.peerconnection.agc", 1);
 pref("media.peerconnection.noise_enabled", false);
 pref("media.peerconnection.noise", 1);
+
+#if defined(XP_MACOSX)
+pref("media.peerconnection.capture_delay", 50);
+#elif defined(XP_WIN)
+pref("media.peerconnection.capture_delay", 50);
+#elif defined(ANDROID)
+pref("media.peerconnection.capture_delay", 100);
+#elif defined(XP_LINUX)
+pref("media.peerconnection.capture_delay", 70);
+#else
+
+pref("media.peerconnection.capture_delay", 50);
+#endif
 #else
 #ifdef ANDROID
 pref("media.navigator.enabled", true);
@@ -4152,7 +4165,7 @@ pref("social.enabled", false);
 pref("social.whitelist", "https://mozsocial.cliqz.com,https://now.msn.com,https://mixi.jp");
 
 
-pref("social.directories", "https://activations.mozilla.org");
+pref("social.directories", "https://addons.mozilla.org");
 
 
 
