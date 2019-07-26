@@ -176,6 +176,7 @@ public:
     mTarget = base.get();
   }
 
+  
   nsIScriptContext *GetEventContext() const
   {
     return mContext;
@@ -208,9 +209,12 @@ public:
 
   
   
-  void SetHandler(const nsEventHandler& aHandler)
+  void SetHandler(const nsEventHandler& aHandler, nsIScriptContext* aContext,
+                  JSObject* aScopeObject)
   {
     mHandler.SetHandler(aHandler);
+    mContext = aContext;
+    mScopeObject = aScopeObject;
   }
   void SetHandler(mozilla::dom::EventHandlerNonNull* aHandler)
   {
@@ -259,6 +263,8 @@ protected:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIJSEventListener, NS_IJSEVENTLISTENER_IID)
+
+
 
 
 nsresult NS_NewJSEventListener(nsIScriptContext *aContext,
