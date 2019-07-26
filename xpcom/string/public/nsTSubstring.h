@@ -630,6 +630,17 @@ class nsTSubstring_CharT
       size_t SizeOfIncludingThisIfUnshared(nsMallocSizeOfFun mallocSizeOf)
         const;
 
+        
+
+
+
+
+
+      size_t SizeOfExcludingThisEvenIfShared(nsMallocSizeOfFun mallocSizeOf)
+        const;
+      size_t SizeOfIncludingThisEvenIfShared(nsMallocSizeOfFun mallocSizeOf)
+        const;
+
     protected:
 
       friend class nsTObsoleteAStringThunk_CharT;

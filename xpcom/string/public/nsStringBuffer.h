@@ -148,6 +148,17 @@ class nsStringBuffer
 
 
       size_t SizeOfIncludingThisIfUnshared(nsMallocSizeOfFun aMallocSizeOf) const;
+
+      
+
+
+
+
+
+
+
+
+      size_t SizeOfIncludingThisEvenIfShared(nsMallocSizeOfFun aMallocSizeOf) const;
   };
 
 #endif 
