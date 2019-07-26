@@ -318,6 +318,7 @@ class AsmJSModule
     ExitVector                            exits_;
     ExportedFunctionVector                exports_;
     HeapAccessVector                      heapAccesses_;
+    uint32_t                              minHeapLength_;
 #if defined(MOZ_VTUNE) or defined(JS_ION_PERF)
     ProfiledFunctionVector                profiledFunctions_;
 #endif
@@ -349,6 +350,7 @@ class AsmJSModule
       : globalArgumentName_(NULL),
         importArgumentName_(NULL),
         bufferArgumentName_(NULL),
+        minHeapLength_(AsmJSAllocationGranularity),
         code_(NULL),
         operationCallbackExit_(NULL),
         linked_(false)
@@ -630,6 +632,14 @@ class AsmJSModule
     }
     void patchHeapAccesses(ArrayBufferObject *heap, JSContext *cx);
 
+    void requireHeapLengthToBeAtLeast(uint32_t len) {
+        if (len > minHeapLength_)
+            minHeapLength_ = len;
+    }
+    uint32_t minHeapLength() const {
+        return minHeapLength_;
+    }
+
     uint8_t *allocateCodeAndGlobalSegment(ExclusiveContext *cx, size_t bytesNeeded);
 
     uint8_t *functionCode() const {
@@ -729,6 +739,6 @@ class AsmJSModuleObject : public JSObject
 
 }  
 
-#endif
+#endif  
 
-#endif
+#endif 

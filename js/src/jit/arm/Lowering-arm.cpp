@@ -502,25 +502,38 @@ LIRGeneratorARM::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins)
 }
 
 bool
+LIRGeneratorARM::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
+{
+    MDefinition *ptr = ins->ptr();
+    JS_ASSERT(ptr->type() == MIRType_Int32);
+    LAllocation ptrAlloc;
+
+    
+    if (ptr->isConstant() && ins->skipBoundsCheck()) {
+        int32_t ptrValue = ptr->toConstant()->value().toInt32();
+        
+        JS_ASSERT(ptrValue >= 0);
+        ptrAlloc = LAllocation(ptr->toConstant()->vp());
+    } else
+        ptrAlloc = useRegisterAtStart(ptr);
+
+    return define(new LAsmJSLoadHeap(ptrAlloc), ins);
+}
+
+bool
 LIRGeneratorARM::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
 {
-    LAsmJSStoreHeap *lir;
-    switch (ins->viewType()) {
-      case ArrayBufferView::TYPE_INT8: case ArrayBufferView::TYPE_UINT8:
-      case ArrayBufferView::TYPE_INT16: case ArrayBufferView::TYPE_UINT16:
-      case ArrayBufferView::TYPE_INT32: case ArrayBufferView::TYPE_UINT32:
-        lir = new LAsmJSStoreHeap(useRegisterAtStart(ins->ptr()),
-                                  useRegisterAtStart(ins->value()));
-        break;
-      case ArrayBufferView::TYPE_FLOAT32:
-      case ArrayBufferView::TYPE_FLOAT64:
-        lir = new LAsmJSStoreHeap(useRegisterAtStart(ins->ptr()),
-                                  useRegisterAtStart(ins->value()));
-        break;
-      default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
-    }
+    MDefinition *ptr = ins->ptr();
+    JS_ASSERT(ptr->type() == MIRType_Int32);
+    LAllocation ptrAlloc;
 
-    return add(lir, ins);
+    if (ptr->isConstant() && ins->skipBoundsCheck()) {
+        JS_ASSERT(ptr->toConstant()->value().toInt32() >= 0);
+        ptrAlloc = LAllocation(ptr->toConstant()->vp());
+    } else
+        ptrAlloc = useRegisterAtStart(ptr);
+
+    return add(new LAsmJSStoreHeap(ptrAlloc, useRegisterAtStart(ins->value())), ins);
 }
 
 bool
