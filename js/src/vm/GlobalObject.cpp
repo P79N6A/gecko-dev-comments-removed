@@ -108,19 +108,17 @@ JSObject *
 js::CreateObjectPrototype(JSContext *cx, JSProtoKey key)
 {
     Rooted<GlobalObject*> self(cx, cx->global());
+    cx->setDefaultCompartmentObjectIfUnset(self);
 
     JS_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
     JS_ASSERT(self->isNative());
-
-    cx->setDefaultCompartmentObjectIfUnset(self);
-
-    RootedObject objectProto(cx);
 
     
 
 
 
-    objectProto = NewObjectWithGivenProto(cx, &JSObject::class_, nullptr, self, SingletonObject);
+    RootedObject objectProto(cx, NewObjectWithGivenProto(cx, &JSObject::class_, nullptr,
+                                                         self, SingletonObject));
     if (!objectProto)
         return nullptr;
 
@@ -139,75 +137,71 @@ JSObject *
 js::CreateFunctionPrototype(JSContext *cx, JSProtoKey key)
 {
     Rooted<GlobalObject*> self(cx, cx->global());
-
     RootedObject objectProto(cx, &self->getPrototype(JSProto_Object).toObject());
-    RootedFunction functionProto(cx);
+    JSObject *functionProto_ = NewObjectWithGivenProto(cx, &JSFunction::class_,
+                                                       objectProto, self, SingletonObject);
+    if (!functionProto_)
+        return nullptr;
+    RootedFunction functionProto(cx, &functionProto_->as<JSFunction>());
+
+    
+
+
+
     {
-        JSObject *functionProto_ = NewObjectWithGivenProto(cx, &JSFunction::class_,
-                                                           objectProto, self, SingletonObject);
-        if (!functionProto_)
+        JSObject *proto = NewFunction(cx, functionProto, nullptr, 0, JSFunction::INTERPRETED,
+                                      self, NullPtr());
+        if (!proto)
             return nullptr;
-        functionProto = &functionProto_->as<JSFunction>();
-
-        
-
-
-
-        {
-            JSObject *proto = NewFunction(cx, functionProto, nullptr, 0, JSFunction::INTERPRETED,
-                                          self, NullPtr());
-            if (!proto)
-                return nullptr;
-            JS_ASSERT(proto == functionProto);
-            functionProto->setIsFunctionPrototype();
-        }
-
-        const char *rawSource = "() {\n}";
-        size_t sourceLen = strlen(rawSource);
-        jschar *source = InflateString(cx, rawSource, &sourceLen);
-        if (!source)
-            return nullptr;
-        ScriptSource *ss =
-            cx->new_<ScriptSource>();
-        if (!ss) {
-            js_free(source);
-            return nullptr;
-        }
-        ScriptSourceHolder ssHolder(ss);
-        ss->setSource(source, sourceLen);
-        CompileOptions options(cx);
-        options.setNoScriptRval(true)
-               .setVersion(JSVERSION_DEFAULT);
-        RootedScriptSource sourceObject(cx, ScriptSourceObject::create(cx, ss, options));
-        if (!sourceObject)
-            return nullptr;
-
-        RootedScript script(cx, JSScript::Create(cx,
-                                                  NullPtr(),
-                                                  false,
-                                                 options,
-                                                  0,
-                                                 sourceObject,
-                                                 0,
-                                                 ss->length()));
-        if (!script || !JSScript::fullyInitTrivial(cx, script))
-            return nullptr;
-
-        functionProto->initScript(script);
-        types::TypeObject* protoType = functionProto->getType(cx);
-        if (!protoType)
-            return nullptr;
-        protoType->interpretedFunction = functionProto;
-        script->setFunction(functionProto);
-
-        
-
-
-
-
-        if (!JSObject::setNewTypeUnknown(cx, &JSFunction::class_, functionProto))
-            return nullptr;
+        JS_ASSERT(proto == functionProto);
+        functionProto->setIsFunctionPrototype();
     }
+
+    const char *rawSource = "() {\n}";
+    size_t sourceLen = strlen(rawSource);
+    jschar *source = InflateString(cx, rawSource, &sourceLen);
+    if (!source)
+        return nullptr;
+    ScriptSource *ss =
+        cx->new_<ScriptSource>();
+    if (!ss) {
+        js_free(source);
+        return nullptr;
+    }
+    ScriptSourceHolder ssHolder(ss);
+    ss->setSource(source, sourceLen);
+    CompileOptions options(cx);
+    options.setNoScriptRval(true)
+           .setVersion(JSVERSION_DEFAULT);
+    RootedScriptSource sourceObject(cx, ScriptSourceObject::create(cx, ss, options));
+    if (!sourceObject)
+        return nullptr;
+
+    RootedScript script(cx, JSScript::Create(cx,
+                                              NullPtr(),
+                                              false,
+                                             options,
+                                              0,
+                                             sourceObject,
+                                             0,
+                                             ss->length()));
+    if (!script || !JSScript::fullyInitTrivial(cx, script))
+        return nullptr;
+
+    functionProto->initScript(script);
+    types::TypeObject* protoType = functionProto->getType(cx);
+    if (!protoType)
+        return nullptr;
+    protoType->interpretedFunction = functionProto;
+    script->setFunction(functionProto);
+
+    
+
+
+
+
+    if (!JSObject::setNewTypeUnknown(cx, &JSFunction::class_, functionProto))
+        return nullptr;
 
     return functionProto;
 }
@@ -219,20 +213,13 @@ js::CreateObjectConstructor(JSContext *cx, JSProtoKey key)
     RootedObject functionProto(cx, &self->getPrototype(JSProto_Function).toObject());
 
     
-    RootedFunction objectCtor(cx);
-    {
-        RootedObject ctor(cx, NewObjectWithGivenProto(cx, &JSFunction::class_, functionProto,
-                                                      self, SingletonObject));
-        if (!ctor)
-            return nullptr;
-        RootedAtom objectAtom(cx, cx->names().Object);
-        objectCtor = NewFunction(cx, ctor, obj_construct, 1, JSFunction::NATIVE_CTOR, self,
-                                 objectAtom);
-        if (!objectCtor)
-            return nullptr;
-    }
-
-    return objectCtor;
+    RootedObject ctor(cx, NewObjectWithGivenProto(cx, &JSFunction::class_, functionProto,
+                                                  self, SingletonObject));
+    if (!ctor)
+        return nullptr;
+    RootedAtom objectAtom(cx, cx->names().Object);
+    return NewFunction(cx, ctor, obj_construct, 1, JSFunction::NATIVE_CTOR, self,
+                       objectAtom);
 }
 
 JSObject *
@@ -242,21 +229,16 @@ js::CreateFunctionConstructor(JSContext *cx, JSProtoKey key)
     RootedObject functionProto(cx, &self->getPrototype(JSProto_Function).toObject());
 
     
-    RootedFunction functionCtor(cx);
-    {
-        
-        RootedObject ctor(cx, NewObjectWithGivenProto(cx, &JSFunction::class_, functionProto,
-                                                      self, SingletonObject));
-        if (!ctor)
-            return nullptr;
-        RootedAtom functionAtom(cx, cx->names().Function);
-        functionCtor = NewFunction(cx, ctor, Function, 1, JSFunction::NATIVE_CTOR, self,
-                                   functionAtom);
-        if (!functionCtor)
-            return nullptr;
-        JS_ASSERT(ctor == functionCtor);
-    }
-
+    RootedObject ctor(cx, NewObjectWithGivenProto(cx, &JSFunction::class_, functionProto,
+                                                  self, SingletonObject));
+    if (!ctor)
+        return nullptr;
+    RootedAtom functionAtom(cx, cx->names().Function);
+    RootedObject functionCtor(cx, NewFunction(cx, ctor, Function, 1, JSFunction::NATIVE_CTOR, self,
+                                              functionAtom));
+    if (!functionCtor)
+        return nullptr;
+    JS_ASSERT(ctor == functionCtor);
     return functionCtor;
 }
 
