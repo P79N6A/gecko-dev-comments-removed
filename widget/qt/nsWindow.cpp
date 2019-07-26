@@ -1523,8 +1523,6 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     
     UserActivity();
 
-    bool setNoDefault = false;
-
     if (aEvent->key() == Qt::Key_AltGr) {
         sAltGrModifier = true;
     }
@@ -1634,8 +1632,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         }
 
         
-        if (status == nsEventStatus_eConsumeNoDefault)
-            setNoDefault = true;
+        if (status == nsEventStatus_eConsumeNoDefault) {
+            return nsEventStatus_eConsumeNoDefault;
+        }
     }
 
     
@@ -1649,9 +1648,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         aEvent->key() == Qt::Key_Alt     ||
         aEvent->key() == Qt::Key_AltGr) {
 
-        return setNoDefault ?
-            nsEventStatus_eConsumeNoDefault :
-            nsEventStatus_eIgnore;
+        return nsEventStatus_eIgnore;
     }
 
     
@@ -1694,11 +1691,6 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 
     nsKeyEvent event(true, NS_KEY_PRESS, this);
     InitKeyEvent(event, aEvent);
-
-    
-    if (setNoDefault) {
-        event.mFlags.mDefaultPrevented = true;
-    }
 
     
     
@@ -1876,8 +1868,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         nsEventStatus status = DispatchEvent(&downEvent);
 
         
-        if (status == nsEventStatus_eConsumeNoDefault)
-            setNoDefault = true;
+        if (status == nsEventStatus_eConsumeNoDefault) {
+            return nsEventStatus_eConsumeNoDefault;
+        }
     }
 
     nsKeyEvent event(true, NS_KEY_PRESS, this);
@@ -1887,9 +1880,6 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 
     event.keyCode = domCharCode ? 0 : domKeyCode;
     event.mKeyNameIndex = keyNameIndex;
-
-    if (setNoDefault)
-        event.mFlags.mDefaultPrevented = true;
 
     
     return DispatchEvent(&event);
