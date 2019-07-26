@@ -68,6 +68,44 @@ LIRGenerator::visitGoto(MGoto *ins)
 }
 
 bool
+LIRGenerator::visitTableSwitch(MTableSwitch *tableswitch)
+{
+    MDefinition *opd = tableswitch->getOperand(0);
+
+    
+    JS_ASSERT(tableswitch->numSuccessors() > 0);
+
+    
+    if (tableswitch->numSuccessors() == 1)
+        return add(new LGoto(tableswitch->getDefault()));
+
+    
+    if (opd->type() == MIRType_Value) {
+        LTableSwitchV *lir = newLTableSwitchV(tableswitch);
+        if (!useBox(lir, LTableSwitchV::InputValue, opd))
+            return false;
+        return add(lir);
+    }
+
+    
+    if (opd->type() != MIRType_Int32 && opd->type() != MIRType_Double)
+        return add(new LGoto(tableswitch->getDefault()));
+
+    
+    
+    LAllocation index;
+    LDefinition tempInt;
+    if (opd->type() == MIRType_Int32) {
+        index = useRegisterAtStart(opd);
+        tempInt = tempCopy(opd, 0);
+    } else {
+        index = useRegister(opd);
+        tempInt = temp(LDefinition::GENERAL);
+    }
+    return add(newLTableSwitch(index, tempInt, tableswitch));
+}
+
+bool
 LIRGenerator::visitCheckOverRecursed(MCheckOverRecursed *ins)
 {
     LCheckOverRecursed *lir = new LCheckOverRecursed(temp());
