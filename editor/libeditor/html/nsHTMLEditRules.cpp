@@ -2072,7 +2072,7 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
                               &otherOffset, &otherWSType);
       
       
-      nsCOMPtr<nsIDOMNode> leafNode, leftNode, rightNode, leftParent, rightParent;
+      nsCOMPtr<nsIDOMNode> leafNode, leftNode, rightNode;
       if (aAction == nsIEditor::ePrevious) 
       {
         res = mHTMLEditor->GetLastEditableLeaf( visNode, address_of(leafNode));
@@ -2113,29 +2113,14 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
       }
       
       
-      
-      
-      if (IsBlockNode(leftNode))
-        leftParent = leftNode;
-      else if (leftNode)
-        leftParent = mHTMLEditor->GetBlockNodeParent(leftNode);
-      if (IsBlockNode(rightNode))
-        rightParent = rightNode;
-      else
-        rightParent = mHTMLEditor->GetBlockNodeParent(rightNode);
-      
-      
-      NS_ENSURE_TRUE(leftParent && rightParent, NS_ERROR_NULL_POINTER);  
-      if (leftParent == rightParent)
-        return NS_ERROR_UNEXPECTED;  
-      
-      
+
       nsCOMPtr<nsIDOMNode> selPointNode = startNode;
       int32_t selPointOffset = startOffset;
       {
         nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, address_of(selPointNode), &selPointOffset);
-        res = JoinBlocks(address_of(leftParent), address_of(rightParent), aCancel);
+        res = JoinBlocks(leftNode, rightNode, aCancel);
         *aHandled = true;
+        NS_ENSURE_SUCCESS(res, res);
       }
       aSelection->Collapse(selPointNode, selPointOffset);
       return res;
@@ -2151,7 +2136,7 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
       }
       
       
-      nsCOMPtr<nsIDOMNode> leftNode, rightNode, leftParent, rightParent;
+      nsCOMPtr<nsIDOMNode> leftNode, rightNode;
       if (aAction == nsIEditor::ePrevious) 
       {
         res = mHTMLEditor->GetPriorHTMLNode(visNode, address_of(leftNode));
@@ -2178,28 +2163,13 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
         return NS_OK;
       }
 
-      
-      if (IsBlockNode(leftNode))
-        leftParent = leftNode;
-      else
-        leftParent = mHTMLEditor->GetBlockNodeParent(leftNode);
-      if (IsBlockNode(rightNode))
-        rightParent = rightNode;
-      else
-        rightParent = mHTMLEditor->GetBlockNodeParent(rightNode);
-      
-      
-      NS_ENSURE_TRUE(leftParent && rightParent, NS_ERROR_NULL_POINTER);  
-      if (leftParent == rightParent)
-        return NS_ERROR_UNEXPECTED;  
-      
-      
       nsCOMPtr<nsIDOMNode> selPointNode = startNode;
       int32_t selPointOffset = startOffset;
       {
         nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, address_of(selPointNode), &selPointOffset);
-        res = JoinBlocks(address_of(leftParent), address_of(rightParent), aCancel);
+        res = JoinBlocks(leftNode, rightNode, aCancel);
         *aHandled = true;
+        NS_ENSURE_SUCCESS(res, res);
       }
       aSelection->Collapse(selPointNode, selPointOffset);
       return res;
@@ -2414,8 +2384,7 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
         }
 
         if (join) {
-          res = JoinBlocks(address_of(leftParent), address_of(rightParent),
-                           aCancel);
+          res = JoinBlocks(leftParent, rightParent, aCancel);
           NS_ENSURE_SUCCESS(res, res);
         }
       }
@@ -2531,44 +2500,61 @@ nsHTMLEditRules::GetGoodSelPointForNode(nsIDOMNode *aNode, nsIEditor::EDirection
 
 
 nsresult
-nsHTMLEditRules::JoinBlocks(nsCOMPtr<nsIDOMNode> *aLeftBlock, 
-                            nsCOMPtr<nsIDOMNode> *aRightBlock, 
+nsHTMLEditRules::JoinBlocks(nsIDOMNode *aLeftNode,
+                            nsIDOMNode *aRightNode,
                             bool *aCanceled)
 {
-  NS_ENSURE_TRUE(aLeftBlock && aRightBlock && *aLeftBlock  && *aRightBlock, NS_ERROR_NULL_POINTER);
-  if (nsHTMLEditUtils::IsTableElement(*aLeftBlock) || nsHTMLEditUtils::IsTableElement(*aRightBlock))
-  {
+  NS_ENSURE_ARG_POINTER(aLeftNode && aRightNode);
+
+  nsCOMPtr<nsIDOMNode> aLeftBlock, aRightBlock;
+
+  if (IsBlockNode(aLeftNode)) {
+    aLeftBlock = aLeftNode;
+  } else if (aLeftNode) {
+    aLeftBlock = mHTMLEditor->GetBlockNodeParent(aLeftNode);
+  }
+
+  if (IsBlockNode(aRightNode)) {
+    aRightBlock = aRightNode;
+  } else if (aRightNode) {
+    aRightBlock = mHTMLEditor->GetBlockNodeParent(aRightNode);
+  }
+
+  
+  NS_ENSURE_TRUE(aLeftBlock && aRightBlock, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_STATE(aLeftBlock != aRightBlock);
+
+  if (nsHTMLEditUtils::IsTableElement(aLeftBlock) ||
+      nsHTMLEditUtils::IsTableElement(aRightBlock)) {
     
     *aCanceled = true;
     return NS_OK;
   }
 
   
-  if (nsHTMLEditUtils::IsHR(*aLeftBlock))
-  {
-    nsCOMPtr<nsIDOMNode> realLeft = mHTMLEditor->GetBlockNodeParent(*aLeftBlock);
-    *aLeftBlock = realLeft;
+  if (nsHTMLEditUtils::IsHR(aLeftBlock)) {
+    nsCOMPtr<nsIDOMNode> realLeft = mHTMLEditor->GetBlockNodeParent(aLeftBlock);
+    aLeftBlock = realLeft;
   }
-  if (nsHTMLEditUtils::IsHR(*aRightBlock))
-  {
-    nsCOMPtr<nsIDOMNode> realRight = mHTMLEditor->GetBlockNodeParent(*aRightBlock);
-    *aRightBlock = realRight;
+  if (nsHTMLEditUtils::IsHR(aRightBlock)) {
+    nsCOMPtr<nsIDOMNode> realRight = mHTMLEditor->GetBlockNodeParent(aRightBlock);
+    aRightBlock = realRight;
   }
 
   
-  if (*aLeftBlock == *aRightBlock)
-  {
+  if (aLeftBlock == aRightBlock) {
     *aCanceled = true;
     return NS_OK;
   }
   
   
-  if (nsHTMLEditUtils::IsList(*aLeftBlock) && nsHTMLEditUtils::IsListItem(*aRightBlock))
-  {
+  if (nsHTMLEditUtils::IsList(aLeftBlock) &&
+      nsHTMLEditUtils::IsListItem(aRightBlock)) {
     nsCOMPtr<nsIDOMNode> rightParent;
-    (*aRightBlock)->GetParentNode(getter_AddRefs(rightParent));
-    if (rightParent == *aLeftBlock)
+    aRightBlock->GetParentNode(getter_AddRefs(rightParent));
+    if (rightParent == aLeftBlock) {
       return NS_OK;
+    }
   }
 
   
@@ -2577,21 +2563,21 @@ nsHTMLEditRules::JoinBlocks(nsCOMPtr<nsIDOMNode> *aLeftBlock,
   nsIAtom* existingList = nsGkAtoms::_empty;
   int32_t theOffset;
   nsCOMPtr<nsIDOMNode> leftList, rightList;
-  if (nsHTMLEditUtils::IsListItem(*aLeftBlock) && nsHTMLEditUtils::IsListItem(*aRightBlock))
-  {
-    (*aLeftBlock)->GetParentNode(getter_AddRefs(leftList));
-    (*aRightBlock)->GetParentNode(getter_AddRefs(rightList));
+  if (nsHTMLEditUtils::IsListItem(aLeftBlock) &&
+      nsHTMLEditUtils::IsListItem(aRightBlock)) {
+    aLeftBlock->GetParentNode(getter_AddRefs(leftList));
+    aRightBlock->GetParentNode(getter_AddRefs(rightList));
     if (leftList && rightList && (leftList!=rightList))
     {
       
       
       
       
-      if (!nsEditorUtils::IsDescendantOf(leftList, *aRightBlock, &theOffset) &&
-          !nsEditorUtils::IsDescendantOf(rightList, *aLeftBlock, &theOffset))
+      if (!nsEditorUtils::IsDescendantOf(leftList, aRightBlock, &theOffset) &&
+          !nsEditorUtils::IsDescendantOf(rightList, aLeftBlock, &theOffset))
       {
-        *aLeftBlock = leftList;
-        *aRightBlock = rightList;
+        aLeftBlock = leftList;
+        aRightBlock = rightList;
         bMergeLists = true;
         existingList = mHTMLEditor->GetTag(leftList);
       }
@@ -2606,18 +2592,22 @@ nsHTMLEditRules::JoinBlocks(nsCOMPtr<nsIDOMNode> *aLeftBlock,
 
   
   
-  if (nsEditorUtils::IsDescendantOf(*aLeftBlock, *aRightBlock, &rightOffset))
-  {
+  if (nsEditorUtils::IsDescendantOf(aLeftBlock, aRightBlock, &rightOffset)) {
     
     
     rightOffset++;
-    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor, aLeftBlock, nsWSRunObject::kBlockEnd);
+    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor,
+                                            address_of(aLeftBlock),
+                                            nsWSRunObject::kBlockEnd);
     NS_ENSURE_SUCCESS(res, res);
-    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor, aRightBlock, nsWSRunObject::kAfterBlock, &rightOffset);
+    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor,
+                                            address_of(aRightBlock),
+                                            nsWSRunObject::kAfterBlock,
+                                            &rightOffset);
     NS_ENSURE_SUCCESS(res, res);
     
     nsCOMPtr<nsIDOMNode> brNode;
-    res = CheckForInvisibleBR(*aLeftBlock, kBlockEnd, address_of(brNode));
+    res = CheckForInvisibleBR(aLeftBlock, kBlockEnd, address_of(brNode));
     NS_ENSURE_SUCCESS(res, res);
     if (bMergeLists)
     {
@@ -2639,23 +2629,27 @@ nsHTMLEditRules::JoinBlocks(nsCOMPtr<nsIDOMNode> *aLeftBlock,
     }
     else
     {
-      res = MoveBlock(*aLeftBlock, *aRightBlock, leftOffset, rightOffset);
+      res = MoveBlock(aLeftBlock, aRightBlock, leftOffset, rightOffset);
     }
     if (brNode) mHTMLEditor->DeleteNode(brNode);
-  }
   
   
-  else if (nsEditorUtils::IsDescendantOf(*aRightBlock, *aLeftBlock, &leftOffset))
-  {
+  } else if (nsEditorUtils::IsDescendantOf(aRightBlock, aLeftBlock, &leftOffset)) {
     
     
-    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor, aRightBlock, nsWSRunObject::kBlockStart);
+    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor,
+                                            address_of(aRightBlock),
+                                            nsWSRunObject::kBlockStart);
     NS_ENSURE_SUCCESS(res, res);
-    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor, aLeftBlock, nsWSRunObject::kBeforeBlock, &leftOffset);
+    res = nsWSRunObject::ScrubBlockBoundary(mHTMLEditor,
+                                            address_of(aLeftBlock),
+                                            nsWSRunObject::kBeforeBlock,
+                                            &leftOffset);
     NS_ENSURE_SUCCESS(res, res);
     
     nsCOMPtr<nsIDOMNode> brNode;
-    res = CheckForInvisibleBR(*aLeftBlock, kBeforeBlock, address_of(brNode), leftOffset);
+    res = CheckForInvisibleBR(aLeftBlock, kBeforeBlock, address_of(brNode),
+                              leftOffset);
     NS_ENSURE_SUCCESS(res, res);
     if (bMergeLists)
     {
@@ -2663,7 +2657,58 @@ nsHTMLEditRules::JoinBlocks(nsCOMPtr<nsIDOMNode> *aLeftBlock,
     }
     else
     {
-      res = MoveBlock(*aLeftBlock, *aRightBlock, leftOffset, rightOffset);
+      
+      
+      
+
+      int32_t previousContentOffset;
+      nsCOMPtr<nsIDOMNode> previousContentParent;
+
+      if (aLeftNode == aLeftBlock) {
+        
+        
+        
+        previousContentParent = aLeftBlock;
+        previousContentOffset = leftOffset;
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        previousContentParent =
+          nsEditor::GetNodeLocation(aLeftNode, &previousContentOffset);
+
+        
+        previousContentOffset++;
+      }
+
+      
+      
+
+      nsCOMPtr<nsINode> editorRoot = mHTMLEditor->GetEditorRoot();
+      if (!editorRoot || aLeftNode != editorRoot->AsDOMNode()) {
+        nsCOMPtr<nsIDOMNode> splittedPreviousContent;
+        res = mHTMLEditor->SplitStyleAbovePoint(address_of(previousContentParent),
+                                                &previousContentOffset,
+                                                nullptr, nullptr, nullptr,
+                                                address_of(splittedPreviousContent));
+        NS_ENSURE_SUCCESS(res, res);
+
+        if (splittedPreviousContent) {
+          previousContentParent =
+            nsEditor::GetNodeLocation(splittedPreviousContent,
+                                      &previousContentOffset);
+        }
+      }
+
+      res = MoveBlock(previousContentParent, aRightBlock,
+                      previousContentOffset, rightOffset);
     }
     if (brNode) mHTMLEditor->DeleteNode(brNode);
   }
@@ -2675,29 +2720,28 @@ nsHTMLEditRules::JoinBlocks(nsCOMPtr<nsIDOMNode> *aLeftBlock,
     
     
     
-    res = nsWSRunObject::PrepareToJoinBlocks(mHTMLEditor, *aLeftBlock, *aRightBlock);
+    res = nsWSRunObject::PrepareToJoinBlocks(mHTMLEditor, aLeftBlock, aRightBlock);
     NS_ENSURE_SUCCESS(res, res);
     
     nsCOMPtr<nsIDOMNode> brNode;
-    res = CheckForInvisibleBR(*aLeftBlock, kBlockEnd, address_of(brNode));
+    res = CheckForInvisibleBR(aLeftBlock, kBlockEnd, address_of(brNode));
     NS_ENSURE_SUCCESS(res, res);
-    if (bMergeLists || mHTMLEditor->NodesSameType(*aLeftBlock, *aRightBlock))
-    {
+    if (bMergeLists || mHTMLEditor->NodesSameType(aLeftBlock, aRightBlock)) {
       
       nsCOMPtr<nsIDOMNode> parent;
       int32_t offset;
-      res = JoinNodesSmart(*aLeftBlock, *aRightBlock, address_of(parent), &offset);
+      res = JoinNodesSmart(aLeftBlock, aRightBlock, address_of(parent), &offset);
       if (NS_SUCCEEDED(res) && bMergeLists)
       {
         nsCOMPtr<nsIDOMNode> newBlock;
-        res = ConvertListType(*aRightBlock, address_of(newBlock),
+        res = ConvertListType(aRightBlock, address_of(newBlock),
                               existingList, nsGkAtoms::li);
       }
     }
     else
     {
       
-      res = MoveBlock(*aLeftBlock, *aRightBlock, leftOffset, rightOffset);
+      res = MoveBlock(aLeftBlock, aRightBlock, leftOffset, rightOffset);
     }
     if (NS_SUCCEEDED(res) && brNode)
     {
