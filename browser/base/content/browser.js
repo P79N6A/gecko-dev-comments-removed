@@ -4428,7 +4428,8 @@ var TabsInTitlebar = {
 
       
       let tabsToolbar = $("TabsToolbar");
-      let fullTabsHeight = rect(tabsToolbar).height;
+      let tabsStyles = window.getComputedStyle(tabsToolbar);
+      let fullTabsHeight = rect(tabsToolbar).height + verticalMargins(tabsStyles);
       
       let captionButtonsBoxWidth = rect($("titlebar-buttonbox-container")).width;
 
@@ -4437,15 +4438,11 @@ var TabsInTitlebar = {
       
       let menuHeight = 0;
       let fullMenuHeight = 0;
-      
-      let titlebarPadding = parseInt(window.getComputedStyle(titlebar).paddingTop, 10);
 #else
       
       let menuHeight = rect(menubar).height;
       let menuStyles = window.getComputedStyle(menubar);
       let fullMenuHeight = verticalMargins(menuStyles) + menuHeight;
-      let tabsStyles = window.getComputedStyle(tabsToolbar);
-      fullTabsHeight += verticalMargins(tabsStyles);
 #endif
 
       
@@ -4488,7 +4485,6 @@ var TabsInTitlebar = {
         
         
         let extraMargin = tabAndMenuHeight - titlebarContentHeight;
-        
 #ifndef XP_MACOSX
         titlebarContent.style.marginBottom = extraMargin + "px";
 #endif
