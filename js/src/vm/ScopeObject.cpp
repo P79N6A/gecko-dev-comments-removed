@@ -755,19 +755,19 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
     if (!xdr->codeUint32(&offset))
         return false;
 
+    
+
+
+
+
     if (mode == XDR_DECODE) {
         obj->setLocalOffset(offset);
-
-        
-
-
 
         for (unsigned i = 0; i < count; i++) {
             RootedAtom atom(cx);
             if (!XDRAtom(xdr, &atom))
                 return false;
 
-            
             RootedId id(cx, atom != cx->runtime()->emptyString
                             ? AtomToId(atom)
                             : INT_TO_JSID(i));
@@ -793,10 +793,6 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
         for (Shape::Range<NoGC> r(obj->lastProperty()); !r.empty(); r.popFront())
             shapes[obj->shapeToIndex(r.front())] = &r.front();
 
-        
-
-
-
         RootedShape shape(cx);
         RootedId propid(cx);
         RootedAtom atom(cx);
@@ -808,7 +804,6 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
             propid = shape->propid();
             JS_ASSERT(JSID_IS_ATOM(propid) || JSID_IS_INT(propid));
 
-            
             atom = JSID_IS_ATOM(propid)
                    ? JSID_TO_ATOM(propid)
                    : cx->runtime()->emptyString;
