@@ -205,13 +205,23 @@ SettingsListener.observe('devtools.debugger.remote-enabled', false, function(val
   value ? RemoteDebugger.start() : RemoteDebugger.stop();
 
 #ifdef MOZ_WIDGET_GONK
+  let enableAdb = value;
+
+  if (Services.prefs.getBoolPref('marionette.defaultPrefs.enabled')) {
+    
+    
+    
+
+    enableAdb = true;
+  }
+
   
   try {
     let currentConfig = libcutils.property_get("persist.sys.usb.config");
     let configFuncs = currentConfig.split(",");
     let adbIndex = configFuncs.indexOf("adb");
 
-    if (value) {
+    if (enableAdb) {
       
       if (adbIndex < 0) {
         configFuncs.push("adb");
