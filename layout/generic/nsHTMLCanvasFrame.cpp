@@ -95,7 +95,7 @@ nsHTMLCanvasFrame::Init(nsIContent* aContent,
                         nsIFrame*   aParent,
                         nsIFrame*   aPrevInFlow)
 {
-  nsSplittableFrame::Init(aContent, aParent, aPrevInFlow);
+  nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   
