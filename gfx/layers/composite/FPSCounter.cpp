@@ -365,7 +365,6 @@ FPSState::FPSState()
 
 static const float FontHeight = 7.f;
 static const float FontWidth = 4.f;
-static const float FontStride = 4.f;
 
 
 static const float FontScaleX = 2.f;
