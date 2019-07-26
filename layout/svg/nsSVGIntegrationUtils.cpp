@@ -465,7 +465,8 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   nsPoint offset = aBuilder->ToReferenceFrame(firstFrame) - firstFrameOffset;
   nsPoint offsetWithoutSVGGeomFramePos = offset;
   nsPoint svgGeomFramePos;
-  if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry)) {
+  if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
+      aFrame->IsSVGText()) {
     
     
     svgGeomFramePos = aFrame->GetPosition();

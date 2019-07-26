@@ -795,7 +795,8 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
     
     
     nsRect overflowRect = aFrame->GetVisualOverflowRectRelativeToSelf();
-    if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry)) {
+    if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
+        aFrame->IsSVGText()) {
       
       
       overflowRect = overflowRect + aFrame->GetPosition();
@@ -865,7 +866,8 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
       gfxContextMatrixAutoSaveRestore matrixAutoSaveRestore(gfx);
       gfx->Multiply(GetCanvasTM(aFrame, nsISVGChildFrame::FOR_PAINTING));
       nsRect overflowRect = aFrame->GetVisualOverflowRectRelativeToSelf();
-      if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry)) {
+      if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
+          aFrame->IsSVGText()) {
         
         
         overflowRect = overflowRect + aFrame->GetPosition();
