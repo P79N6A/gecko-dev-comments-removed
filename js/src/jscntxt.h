@@ -868,12 +868,6 @@ struct JSRuntime : js::RuntimeFriendFields
     const char          *decimalSeparator;
     const char          *numGrouping;
 
-    
-
-
-
-    bool                waiveGCQuota;
-
   private:
     js::MathCache *mathCache_;
     js::MathCache *createMathCache(JSContext *cx);
