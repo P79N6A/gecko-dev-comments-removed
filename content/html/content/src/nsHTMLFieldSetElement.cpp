@@ -74,13 +74,19 @@ NS_IMPL_STRING_ATTR(nsHTMLFieldSetElement, Name, name)
 
 NS_IMPL_NSICONSTRAINTVALIDATION(nsHTMLFieldSetElement)
 
+bool
+nsHTMLFieldSetElement::IsDisabledForEvents(uint32_t aMessage)
+{
+  return IsElementDisabledForEvents(aMessage, nullptr);
+}
+
 
 nsresult
 nsHTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   
   aVisitor.mCanHandle = false;
-  if (IsElementDisabledForEvents(aVisitor.mEvent->message, NULL)) {
+  if (IsDisabledForEvents(aVisitor.mEvent->message)) {
     return NS_OK;
   }
 

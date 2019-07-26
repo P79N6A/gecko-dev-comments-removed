@@ -1126,6 +1126,7 @@ nsXULElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
             
             
             aVisitor.mCanHandle = false;
+            aVisitor.mAutomaticChromeDispatch = false;
 
             
             nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(GetCurrentDoc()));

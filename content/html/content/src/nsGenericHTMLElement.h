@@ -1178,7 +1178,7 @@ protected:
                               void* aData);
 
   
-  virtual bool IsElementDisabledForEvents(uint32_t aMessage, nsIFrame* aFrame);
+  bool IsElementDisabledForEvents(uint32_t aMessage, nsIFrame* aFrame);
 
   
   

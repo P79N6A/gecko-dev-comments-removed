@@ -100,15 +100,17 @@ public:
                          nsEventStatus aEventStatus,
                          bool aIsInAnon)
   : nsEventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
-    mCanHandle(true), mForceContentDispatch(false),
-    mRelatedTargetIsInAnon(false), mOriginalTargetIsInAnon(aIsInAnon),
-    mWantsWillHandleEvent(false), mMayHaveListenerManager(true),
-    mParentTarget(nullptr), mEventTargetAtParent(nullptr) {}
+    mCanHandle(true), mAutomaticChromeDispatch(true),
+    mForceContentDispatch(false), mRelatedTargetIsInAnon(false),
+    mOriginalTargetIsInAnon(aIsInAnon), mWantsWillHandleEvent(false),
+    mMayHaveListenerManager(true), mParentTarget(nullptr),
+    mEventTargetAtParent(nullptr) {}
 
   void Reset() {
     mItemFlags = 0;
     mItemData = nullptr;
     mCanHandle = true;
+    mAutomaticChromeDispatch = true;
     mForceContentDispatch = false;
     mWantsWillHandleEvent = false;
     mMayHaveListenerManager = true;
@@ -123,6 +125,12 @@ public:
 
 
   bool                  mCanHandle;
+
+  
+
+
+
+  bool                  mAutomaticChromeDispatch;
 
   
 
