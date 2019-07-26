@@ -129,7 +129,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
         STRINGVECTOR =-17, 
         SCRIPTVECTOR =-18, 
         PROPDESC =    -19, 
-        SHAPERANGE =  -20, 
         STACKSHAPE =  -21, 
         STACKBASESHAPE=-22,
         GETTERSETTER =-24, 
@@ -2093,10 +2092,8 @@ JS_StringToVersion(const char *string);
                                                    script once only; enables
                                                    compile-time scope chain
                                                    resolution of consts. */
-#define JSOPTION_ATLINE         JS_BIT(5)       /* //@line number ["filename"]
-                                                   option supported for the
-                                                   XUL preprocessor and kindred
-                                                   beasts. */
+
+
 
 
 

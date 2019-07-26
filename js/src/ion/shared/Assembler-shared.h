@@ -238,9 +238,12 @@ class Label : public LabelBase
     { }
     ~Label()
     {
+#ifdef DEBUG
         
         
-        JS_ASSERT_IF(OOM_counter < OOM_maxAllocations, !used());
+        if (!js_IonOptions.parallelCompilation)
+            JS_ASSERT_IF(!GetIonContext()->cx->runtime->hadOutOfMemory, !used());
+#endif
     }
 };
 
