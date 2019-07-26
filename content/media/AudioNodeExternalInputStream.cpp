@@ -412,7 +412,7 @@ AudioNodeExternalInputStream::ProcessInput(GraphTime aFrom, GraphTime aTo,
                               std::min(inputTrackEndPoint, inputEndTicks));
         }
         
-        segment.AppendNullData(std::max<TrackTicks>(0, inputEndTicks - inputTrackEndPoint));
+        segment.AppendNullData(ticks - segment.GetDuration());
       }
     }
 
