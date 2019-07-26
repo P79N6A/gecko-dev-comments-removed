@@ -36,6 +36,8 @@
 #include <map>
 #endif
 
+#include "OpusParser.h"
+
 namespace mozilla {
 
 
@@ -341,7 +343,6 @@ public:
 
   
   int mRate;        
-  uint32_t mNominalRate; 
   int mChannels;    
   uint16_t mPreSkip; 
 #ifdef MOZ_SAMPLE_TYPE_FLOAT32
@@ -349,11 +350,8 @@ public:
 #else
   int32_t mGain_Q16; 
 #endif
-  int mChannelMapping; 
-  int mStreams;     
-  int mCoupledStreams; 
-  unsigned char mMappingTable[255]; 
 
+  nsAutoPtr<OpusParser> mParser;
   OpusMSDecoder *mDecoder;
 
   int mSkip;        
@@ -365,9 +363,6 @@ public:
   MetadataTags* GetTags();
 
 private:
-
-  nsCString mVendorString;   
-  nsTArray<nsCString> mTags; 
 
   
   
