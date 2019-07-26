@@ -500,6 +500,9 @@ public:
     mAppUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
     mContainerReferenceFrame = aContainerItem ? aContainerItem->ReferenceFrameForChildren() :
       mBuilder->FindReferenceFrameFor(mContainerFrame);
+    mContainerAnimatedGeometryRoot = aContainerItem
+      ? nsLayoutUtils::GetAnimatedGeometryRootFor(aContainerItem, aBuilder)
+      : mContainerReferenceFrame;
     
     
     
@@ -705,6 +708,7 @@ protected:
   FrameLayerBuilder*               mLayerBuilder;
   nsIFrame*                        mContainerFrame;
   const nsIFrame*                  mContainerReferenceFrame;
+  const nsIFrame*                  mContainerAnimatedGeometryRoot;
   ContainerLayer*                  mContainerLayer;
   ContainerLayerParameters         mParameters;
   
@@ -2452,7 +2456,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         
         
         
-        animatedGeometryRoot = mContainerReferenceFrame;
+        animatedGeometryRoot = mContainerAnimatedGeometryRoot;
       }
       if (animatedGeometryRoot != lastAnimatedGeometryRoot) {
         lastAnimatedGeometryRoot = animatedGeometryRoot;
