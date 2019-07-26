@@ -124,6 +124,12 @@ struct RectTyped :
     RectTyped<UnknownUnits> ToUnknownRect() const {
         return RectTyped<UnknownUnits>(this->x, this->y, this->width, this->height);
     }
+
+    
+    bool operator==(const RectTyped<units>& aRect) const
+    {
+      return RectTyped<units>::IsEqualEdges(aRect);
+    }
 };
 typedef RectTyped<UnknownUnits> Rect;
 
