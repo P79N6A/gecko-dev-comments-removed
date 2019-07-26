@@ -114,6 +114,7 @@ private:
   
   
   
+  
   enum EngineParameters {
     SAMPLE_RATE,
     START,
@@ -129,9 +130,7 @@ private:
 
   void SendLoopParametersToStream();
   void SendBufferParameterToStream(JSContext* aCx);
-  void SendOffsetAndDurationParametersToStream(AudioNodeStream* aStream,
-                                               double aOffset,
-                                               double aDuration);
+  void SendOffsetAndDurationParametersToStream(AudioNodeStream* aStream);
   static void SendPlaybackRateToStream(AudioNode* aNode);
 
 private:
