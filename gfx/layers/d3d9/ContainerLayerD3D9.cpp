@@ -4,8 +4,7 @@
 
 
 #include "ContainerLayerD3D9.h"
-#include "gfxUtils.h"
-#include "nsRect.h"
+
 #include "ThebesLayerD3D9.h"
 #include "ReadbackProcessor.h"
 
