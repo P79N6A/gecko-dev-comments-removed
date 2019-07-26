@@ -5,6 +5,7 @@
 
 
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/FormHistory.jsm");
 
 var dialog;     
 var gFindInst;   
@@ -100,6 +101,7 @@ function onAccept()
 
   
   saveFindData();
+  updateFormHistory();
 
   
   gFindInst.searchString  = dialog.findKey.value;
@@ -125,4 +127,23 @@ function onAccept()
 function doEnabling()
 {
   dialog.find.disabled = !dialog.findKey.value;
+}
+
+function updateFormHistory()
+{
+  if (window.opener.PrivateBrowsingUtils &&
+      window.opener.PrivateBrowsingUtils.isWindowPrivate(window.opener) ||
+      !dialog.findKey.value)
+    return;
+
+  FormHistory.update({
+    op: "bump",
+    fieldname: "find-dialog",
+    value: dialog.findKey.value
+  }, {
+    handleError: function(aError) {
+      Components.utils.reportError("Saving find to form history failed: " +
+                                   aError.message);
+    }
+  });
 }
