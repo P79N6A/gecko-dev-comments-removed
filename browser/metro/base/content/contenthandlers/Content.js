@@ -28,6 +28,9 @@ XPCOMUtils.defineLazyGetter(this, "Point", function() {
   return Point;
 });
 
+XPCOMUtils.defineLazyModuleGetter(this, "LoginManagerContent",
+  "resource://gre/modules/LoginManagerContent.jsm");
+
 XPCOMUtils.defineLazyServiceGetter(this, "gFocusManager",
   "@mozilla.org/focus-manager;1", "nsIFocusManager");
 
@@ -136,6 +139,8 @@ let Content = {
     
     addEventListener("MozApplicationManifest", this, false);
     addEventListener("DOMContentLoaded", this, false);
+    addEventListener("DOMAutoComplete", this, false);
+    addEventListener("blur", this, false);
     addEventListener("pagehide", this, false);
     
     
@@ -183,9 +188,15 @@ let Content = {
         else
           this._onClickCapture(aEvent);
         break;
-      
+
       case "DOMContentLoaded":
+        LoginManagerContent.onContentLoaded(aEvent);
         this._maybeNotifyErrorPage();
+        break;
+
+      case "DOMAutoComplete":
+      case "blur":
+        LoginManagerContent.onUsernameInput(aEvent);
         break;
 
       case "pagehide":
