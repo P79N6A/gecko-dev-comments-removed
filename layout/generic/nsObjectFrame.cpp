@@ -1993,7 +1993,7 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
 #endif
 
   if (mInstanceOwner->SendNativeEvents() &&
-      NS_IS_PLUGIN_EVENT(anEvent)) {
+      anEvent->IsNativeEventDelivererForPlugin()) {
     *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);
     
     

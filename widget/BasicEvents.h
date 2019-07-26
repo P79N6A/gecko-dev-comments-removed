@@ -669,6 +669,118 @@ public:
     currentTarget = aCopyTargets ? aEvent.currentTarget : nullptr;
     originalTarget = aCopyTargets ? aEvent.originalTarget : nullptr;
   }
+
+  
+
+
+
+  
+
+
+  bool IsInputDerivedEvent() const;
+  
+
+
+  bool IsMouseDerivedEvent() const;
+  
+
+
+  bool IsQueryContentEvent() const;
+  
+
+
+  bool IsSelectionEvent() const;
+  
+
+
+  bool IsContentCommandEvent() const;
+  
+
+
+  bool IsNativeEventDelivererForPlugin() const;
+
+  
+
+
+  bool HasMouseEventMessage() const;
+  
+
+
+  bool HasDragEventMessage() const;
+  
+
+
+  bool HasKeyEventMessage() const;
+  
+
+
+
+  bool HasIMEEventMessage() const;
+  
+
+
+  bool HasPluginActivationEventMessage() const;
+
+  
+
+
+  bool IsLeftClickEvent() const;
+  
+
+
+  bool IsContextMenuKeyEvent() const;
+  
+
+
+
+  bool IsRetargetedNativeEventDelivererForPlugin() const;
+  
+
+
+
+  bool IsNonRetargetedNativeEventDelivererForPlugin() const;
+  
+
+
+
+
+  bool IsIMERelatedEvent() const;
+
+  
+
+
+
+
+  bool IsUsingCoordinates() const;
+  
+
+
+
+
+
+
+
+
+
+
+
+  bool IsTargetedAtFocusedWindow() const;
+  
+
+
+
+
+
+
+
+
+
+
+  bool IsTargetedAtFocusedContent() const;
+  
+
+
+  bool IsAllowedToDispatchDOMEvent() const;
 };
 
 

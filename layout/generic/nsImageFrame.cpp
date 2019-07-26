@@ -1609,7 +1609,8 @@ nsImageFrame::GetContentForEvent(nsEvent* aEvent,
   
   
   nsIContent* capturingContent =
-    NS_IS_MOUSE_EVENT(aEvent) ? nsIPresShell::GetCapturingContent() : nullptr;
+    aEvent->HasMouseEventMessage() ? nsIPresShell::GetCapturingContent() :
+                                     nullptr;
   if (capturingContent && capturingContent->GetPrimaryFrame() == this) {
     *aContent = capturingContent;
     NS_IF_ADDREF(*aContent);

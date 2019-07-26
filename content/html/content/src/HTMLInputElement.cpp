@@ -3010,7 +3010,7 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   
   bool outerActivateEvent =
-    (NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) ||
+    (aVisitor.mEvent->IsLeftClickEvent() ||
      (aVisitor.mEvent->message == NS_UI_ACTIVATE && !mInInternalActivate));
 
   if (outerActivateEvent) {
@@ -3240,7 +3240,7 @@ HTMLInputElement::MaybeInitPickers(nsEventChainPostVisitor& aVisitor)
   
   
   
-  if (NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
+  if (aVisitor.mEvent->IsLeftClickEvent() &&
       !aVisitor.mEvent->mFlags.mDefaultPrevented) {
     if (mType == NS_FORM_INPUT_FILE) {
       return InitFilePicker(FILE_PICKER_FILE);
@@ -3294,7 +3294,7 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   
   if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault &&
       !IsSingleLineTextControl(true) &&
-      NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
+      aVisitor.mEvent->IsLeftClickEvent() &&
       !ShouldPreventDOMActivateDispatch(aVisitor.mEvent->originalTarget)) {
     nsUIEvent actEvent(aVisitor.mEvent->mFlags.mIsTrusted, NS_UI_ACTIVATE, 1);
 
