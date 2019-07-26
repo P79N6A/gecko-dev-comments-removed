@@ -1921,23 +1921,28 @@ let CustomizableUIInternal = {
       
       
       
+      
       let buildAreaNodes = gBuildAreas.get(areaId);
       if (buildAreaNodes && buildAreaNodes.size) {
         let container = [...buildAreaNodes][0];
+        let removableOrDefault = (itemNodeOrItem) => {
+          let item = (itemNodeOrItem && itemNodeOrItem.id) || itemNodeOrItem;
+          let isRemovable = this.isWidgetRemovable(itemNodeOrItem);
+          let isInDefault = defaultPlacements.indexOf(item) != -1;
+          return isRemovable || isInDefault;
+        };
         
         
         if (props.get("type") == CustomizableUI.TYPE_TOOLBAR) {
           currentPlacements = container.currentSet.split(',');
+          currentPlacements = currentPlacements.filter(removableOrDefault);
         } else {
           
           currentPlacements = [...currentPlacements];
-          
-          let itemIndex = currentPlacements.length;
-          while (itemIndex--) {
-            if (!container.querySelector(idToSelector(currentPlacements[itemIndex]))) {
-              currentPlacements.splice(itemIndex, 1);
-            }
-          }
+          currentPlacements = currentPlacements.filter((item) => {
+            let itemNode = container.querySelector(idToSelector(item));
+            return itemNode && removableOrDefault(itemNode || item);
+          });
         }
       }
       LOG("Checking default state for " + areaId + ":\n" + currentPlacements.join(",") +
