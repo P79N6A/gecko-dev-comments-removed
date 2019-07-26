@@ -380,6 +380,11 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 #endif 
 
+        
+
+
+
+
       void Rebind( const char_type* data, size_type length );
 
         
