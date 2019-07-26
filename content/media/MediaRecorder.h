@@ -75,7 +75,8 @@ public:
   static already_AddRefed<MediaRecorder>
   Constructor(const GlobalObject& aGlobal,
               DOMMediaStream& aStream, ErrorResult& aRv);
-
+  
+  virtual void DisconnectFromOwner() MOZ_OVERRIDE;
   
   IMPL_EVENT_HANDLER(dataavailable)
   IMPL_EVENT_HANDLER(error)
