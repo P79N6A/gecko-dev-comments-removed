@@ -605,7 +605,11 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
     addDouble(ScratchFloatReg, input);
 
     Label outOfRange;
-    branchTruncateDouble(input, output, &outOfRange);
+
+    
+    
+    
+    cvttsd2si(input, output);
     branch32(Assembler::Above, output, Imm32(255), &outOfRange);
     {
         
