@@ -113,3 +113,59 @@ add_test(function test_read_cdmahome() {
 
   run_next_test();
 });
+
+
+
+
+add_test(function test_read_cdmaspn() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  let buf    = worker.Buf;
+  let io     = worker.ICCIOHelper;
+
+  function testReadSpn(file, expectedSpn, expectedDisplayCondition) {
+    io.loadTransparentEF = function fakeLoadTransparentEF(options)  {
+      
+      buf.writeUint32(file.length * 2);
+
+      
+      for (let i = 0; i < file.length; i++) {
+        helper.writeHexOctet(file[i]);
+      }
+
+      
+      buf.writeStringDelimiter(file.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    worker.RuimRecordHelper.readSPN();
+    do_check_eq(worker.RIL.iccInfo.spn, expectedSpn);
+    do_check_eq(worker.RIL.iccInfoPrivate.SPN.spnDisplayCondition,
+                expectedDisplayCondition);
+  }
+
+  testReadSpn([0x01, 0x04, 0x06, 0x4e, 0x9e, 0x59, 0x2a, 0x96,
+               0xfb, 0x4f, 0xe1, 0xff, 0xff, 0xff, 0xff, 0xff,
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+               0xff, 0xff, 0xff],
+              String.fromCharCode(0x4e9e) +
+              String.fromCharCode(0x592a) +
+              String.fromCharCode(0x96fb) +
+              String.fromCharCode(0x4fe1),
+              true);
+
+  
+  testReadSpn([0x01, 0x04, 0x06, 0x4e, 0x9e, 0x59, 0x2a, 0x96,
+               0xfb, 0x4f, 0xe1],
+              String.fromCharCode(0x4e9e) +
+              String.fromCharCode(0x592a) +
+              String.fromCharCode(0x96fb) +
+              String.fromCharCode(0x4fe1),
+              true);
+
+  run_next_test();
+});
