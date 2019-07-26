@@ -958,7 +958,7 @@ CreateEncodedOCSPRequest(PLArenaPool* arena,
   
   
   
-  if (cert->serialNumber.len > 127u - totalLenWithoutSerialNumberData) {
+  if (issuerCert->serialNumber.len > 127u - totalLenWithoutSerialNumberData) {
     PR_SetError(SEC_ERROR_BAD_DATA, 0);
     return nullptr;
   }
