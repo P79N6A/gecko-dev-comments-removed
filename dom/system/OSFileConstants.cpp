@@ -838,7 +838,10 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
 
 #if defined(XP_MACOSX)
   
-  nsAutoString libxul(NS_LITERAL_STRING("XUL"));
+  
+  nsAutoString libxul;
+  libxul.Append(gPaths->libDir);
+  libxul.Append(NS_LITERAL_STRING("/XUL"));
 #else
   
   
