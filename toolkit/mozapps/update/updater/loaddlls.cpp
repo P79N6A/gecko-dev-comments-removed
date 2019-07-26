@@ -16,10 +16,15 @@ struct AutoLoadSystemDependencies
     
     SetDllDirectory(L"");
 
-    static LPCWSTR delayDLLs[] = { L"wsock32.dll", L"crypt32.dll",
-                                   L"cryptsp.dll", L"cryptbase.dll",
-                                   L"msasn1.dll", L"userenv.dll",
-                                   L"secur32.dll" };
+    
+    
+    
+    static LPCWSTR delayDLLs[] = { L"profapi.dll", L"wsock32.dll",
+                                   L"crypt32.dll", L"cryptsp.dll",
+                                   L"cryptbase.dll", L"msasn1.dll",
+                                   L"userenv.dll", L"secur32.dll",
+                                   L"ws2_32.dll", L"ws2help.dll",
+                                   L"apphelp.dll", L"bcryptprimitives.dll" };
 
     WCHAR systemDirectory[MAX_PATH + 1] = { L'\0' };
     
