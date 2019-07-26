@@ -20,7 +20,6 @@
 namespace js {
 
 
-
 enum AsmJSCoercion
 {
     AsmJS_ToInt32,
