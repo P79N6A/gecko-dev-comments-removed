@@ -348,7 +348,7 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
 
-    Vector<uint64_t, 8> coercedArgs(cx);
+    js::Vector<uint64_t, 8> coercedArgs(cx);
     if (!coercedArgs.resize(Max<size_t>(1, func.numArgs())))
         return false;
 
