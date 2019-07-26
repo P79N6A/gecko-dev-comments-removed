@@ -795,7 +795,9 @@ CustomizeMode.prototype = {
     
     let dragOverItem, dragValue;
     if (targetNode == targetArea.customizationTarget) {
-      dragOverItem = targetNode.lastChild;
+      
+      
+      dragOverItem = targetNode.lastChild || targetNode;
       dragValue = "after";
     } else {
       let position = Array.indexOf(targetParent.children, targetNode);
@@ -835,7 +837,9 @@ CustomizeMode.prototype = {
     }
 
     if (dragOverItem != this._dragOverItem || dragValue != dragOverItem.getAttribute("dragover")) {
-      this._setDragActive(dragOverItem, dragValue, draggedItemId);
+      if (dragOverItem != targetArea.customizationTarget) {
+        this._setDragActive(dragOverItem, dragValue, draggedItemId);
+      }
       this._dragOverItem = dragOverItem;
     }
 

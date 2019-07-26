@@ -295,7 +295,7 @@ let CustomizableUIInternal = {
     this.endBatchUpdate(true);
   },
 
-  registerToolbar: function(aToolbar, aIsOverlayed) {
+  registerToolbarNode: function(aToolbar, aExistingChildren) {
     let area = aToolbar.id;
     if (gBuildAreas.has(area) && gBuildAreas.get(area).has(aToolbar)) {
       return;
@@ -322,8 +322,8 @@ let CustomizableUIInternal = {
 
     
     
-    
-    if (aIsOverlayed) {
+    if (aExistingChildren.length != placements.length ||
+        aExistingChildren.every((id, i) => id == placements[i])) {
       gDirtyAreaCache.add(area);
     }
 
@@ -2001,9 +2001,8 @@ this.CustomizableUI = {
   registerArea: function(aName, aProperties) {
     CustomizableUIInternal.registerArea(aName, aProperties);
   },
-  
-  registerToolbar: function(aToolbar, aIsOverlayed) {
-    CustomizableUIInternal.registerToolbar(aToolbar, aIsOverlayed);
+  registerToolbarNode: function(aToolbar, aExistingChildren) {
+    CustomizableUIInternal.registerToolbarNode(aToolbar, aExistingChildren);
   },
   registerMenuPanel: function(aPanel) {
     CustomizableUIInternal.registerMenuPanel(aPanel);
