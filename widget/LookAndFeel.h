@@ -189,6 +189,8 @@ public:
     
     eIntID_UseOverlayScrollbars,
     
+    eIntID_AllowOverlayScrollbarsOverlap,
+    
     eIntID_ShowHideScrollbars,
     
     eIntID_SkipNavigatingDisabledMenuItem,
