@@ -794,6 +794,10 @@ let CustomizableUIInternal = {
     }
 
     gBuildAreas.get(aArea).add(aNode);
+
+    
+    let customizableNode = this.getCustomizeTargetForArea(aArea, window);
+    customizableNode.classList.add("customization-target");
   },
 
   registerBuildWindow: function(aWindow) {
