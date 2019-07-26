@@ -18,8 +18,11 @@ function test() {
     
     oldPrompt = Services.prompt;
     Services.prompt = {
+      value: "",
+      returnBool: true,
       prompt: function(aParent, aDialogTitle, aText, aValue, aCheckMsg, aCheckState) {
-        aValue.value = "Testing preset";
+        aValue.value = this.value;
+        return this.returnBool;
       }
     };
 
@@ -42,10 +45,23 @@ function test() {
   }
 
   function testAddCustomPreset() {
+    
+    let idx = instance.menulist.selectedIndex;
+    let presetCount = instance.presets.length;
+
+    Services.prompt.value = "";
+    Services.prompt.returnBool = false;
+    instance.addbutton.doCommand();
+
+    is(idx, instance.menulist.selectedIndex, "selected item didn't change after add preset and cancel");
+    is(presetCount, instance.presets.length, "number of presets didn't change after add preset and cancel");
+
     let customHeight = 123, customWidth = 456;
     instance.setSize(customWidth, customHeight);
 
     
+    Services.prompt.value = "Testing preset";
+    Services.prompt.returnBool = true;
     instance.addbutton.doCommand();
 
     instance.menulist.selectedIndex = 1;
