@@ -231,6 +231,16 @@ VariablesView.prototype = {
 
 
 
+
+  editButtonTooltip: STR.GetStringFromName("variablesEditButtonTooltip"),
+
+  
+
+
+
+
+
+
   deleteButtonTooltip: STR.GetStringFromName("variablesCloseButtonTooltip"),
 
   
@@ -894,6 +904,133 @@ VariablesView.prototype = {
 
 
 
+VariablesView.simpleValueEvalMacro = function(aItem, aCurrentString) {
+  return aItem._symbolicName + "=" + aCurrentString;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+VariablesView.overrideValueEvalMacro = function(aItem, aCurrentString) {
+  let property = "\"" + aItem._nameString + "\"";
+  let parent = aItem.ownerView._symbolicName || "this";
+
+  return "Object.defineProperty(" + parent + "," + property + "," +
+    "{ value: " + aCurrentString +
+    ", enumerable: " + parent + ".propertyIsEnumerable(" + property + ")" +
+    ", configurable: true" +
+    ", writable: true" +
+    "})";
+};
+
+
+
+
+
+
+
+
+
+
+
+VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString) {
+  let type = aItem._nameString;
+  let propertyObject = aItem.ownerView;
+  let parentObject = propertyObject.ownerView;
+  let property = "\"" + propertyObject._nameString + "\"";
+  let parent = parentObject._symbolicName || "this";
+
+  switch (aCurrentString) {
+    case "":
+    case "null":
+    case "undefined":
+      let mirrorType = type == "get" ? "set" : "get";
+      let mirrorLookup = type == "get" ? "__lookupSetter__" : "__lookupGetter__";
+
+      
+      
+      if ((type == "set" && propertyObject.getter.type == "undefined") ||
+          (type == "get" && propertyObject.setter.type == "undefined")) {
+        return VariablesView.overrideValueEvalMacro(propertyObject, "undefined");
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      return "Object.defineProperty(" + parent + "," + property + "," +
+        "{" + mirrorType + ":" + parent + "." + mirrorLookup + "(" + property + ")" +
+        "," + type + ":" + undefined +
+        ", enumerable: " + parent + ".propertyIsEnumerable(" + property + ")" +
+        ", configurable: true" +
+        "})";
+
+    default:
+      
+      if (aCurrentString.indexOf("function") != 0) {
+        let header = "function(" + (type == "set" ? "value" : "") + ")";
+        let body = "";
+        
+        
+        if (aCurrentString.indexOf("return ") != -1) {
+          body = "{" + aCurrentString + "}";
+        }
+        
+        else if (aCurrentString.indexOf("{") == 0) {
+          body = aCurrentString;
+        }
+        
+        else {
+          body = "(" + aCurrentString + ")";
+        }
+        aCurrentString = header + body;
+      }
+
+      
+      let defineType = type == "get" ? "__defineGetter__" : "__defineSetter__";
+
+      
+      let defineFunc = "eval(\"(" + aCurrentString.replace(/"/g, "\\$&") + ")\")";
+
+      
+      
+      return parent + "." + defineType + "(" + property + "," + defineFunc + ")";
+  }
+};
+
+
+
+
+
+
+
+VariablesView.getterOrSetterDeleteCallback = function(aItem) {
+  aItem._disable();
+  aItem.ownerView.eval(VariablesView.getterOrSetterEvalMacro(aItem, ""));
+  return true; 
+};
+
+
+
+
+
+
+
+
+
+
+
 
 function Scope(aView, aName, aFlags = {}) {
   this.ownerView = aView;
@@ -911,6 +1048,7 @@ function Scope(aView, aName, aFlags = {}) {
   this.delete = aView.delete;
   this.editableValueTooltip = aView.editableValueTooltip;
   this.editableNameTooltip = aView.editableNameTooltip;
+  this.editButtonTooltip = aView.editButtonTooltip;
   this.deleteButtonTooltip = aView.deleteButtonTooltip;
   this.descriptorTooltip = aView.descriptorTooltip;
   this.contextMenuId = aView.contextMenuId;
@@ -1636,6 +1774,7 @@ Scope.prototype = {
   delete: null,
   editableValueTooltip: "",
   editableNameTooltip: "",
+  editButtonTooltip: "",
   deleteButtonTooltip: "",
   descriptorTooltip: true,
   contextMenuId: "",
@@ -1681,10 +1820,6 @@ function Variable(aScope, aName, aDescriptor) {
   this._displayTooltip = this._displayTooltip.bind(this);
   this._activateNameInput = this._activateNameInput.bind(this);
   this._activateValueInput = this._activateValueInput.bind(this);
-  this._deactivateNameInput = this._deactivateNameInput.bind(this);
-  this._deactivateValueInput = this._deactivateValueInput.bind(this);
-  this._onNameInputKeyPress = this._onNameInputKeyPress.bind(this);
-  this._onValueInputKeyPress = this._onValueInputKeyPress.bind(this);
 
   Scope.call(this, aScope, aName, this._initialDescriptor = aDescriptor);
   this.setGrip(aDescriptor.value);
@@ -1886,6 +2021,11 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     if (!this._nameString) {
       return;
     }
+    
+    if (!this._isUndefined && (this.getter || this.setter)) {
+      this._valueLabel.setAttribute("value", "");
+      return;
+    }
 
     if (aGrip === undefined) {
       aGrip = { type: "undefined" };
@@ -1965,20 +2105,27 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     this._title.appendChild(separatorLabel);
     this._title.appendChild(valueLabel);
 
-    let isPrimitive = VariablesView.isPrimitive(descriptor);
-    let isUndefined = VariablesView.isUndefined(descriptor);
+    let isPrimitive = this._isPrimitive = VariablesView.isPrimitive(descriptor);
+    let isUndefined = this._isUndefined = VariablesView.isUndefined(descriptor);
 
     if (isPrimitive || isUndefined) {
       this.hideArrow();
     }
     if (!isUndefined && (descriptor.get || descriptor.set)) {
-      
-      this.eval = null;
-      this.addProperty("get", { value: descriptor.get });
-      this.addProperty("set", { value: descriptor.set });
-      this.expand();
       separatorLabel.hidden = true;
       valueLabel.hidden = true;
+
+      this.delete = VariablesView.getterOrSetterDeleteCallback;
+      this.evaluationMacro = VariablesView.overrideValueEvalMacro;
+
+      let getter = this.addProperty("get", { value: descriptor.get });
+      let setter = this.addProperty("set", { value: descriptor.set });
+      getter.evaluationMacro = VariablesView.getterOrSetterEvalMacro;
+      setter.evaluationMacro = VariablesView.getterOrSetterEvalMacro;
+
+      getter.hideArrow();
+      setter.hideArrow();
+      this.expand();
     }
   },
 
@@ -1986,11 +2133,21 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
   _customizeVariable: function V__customizeVariable() {
+    if (this.ownerView.eval) {
+      if (!this._isUndefined && (this.getter || this.setter)) {
+        let editNode = this._editNode = this.document.createElement("toolbarbutton");
+        editNode.className = "plain dbg-variable-edit";
+        editNode.addEventListener("mousedown", this._onEdit.bind(this), false);
+        this._title.appendChild(editNode);
+      }
+    }
     if (this.ownerView.delete) {
-      let deleteNode = this._deleteNode = this.document.createElement("toolbarbutton");
-      deleteNode.className = "plain dbg-variable-delete devtools-closebutton";
-      deleteNode.addEventListener("click", this._onDelete.bind(this), false);
-      this._title.appendChild(deleteNode);
+      if (!this._isUndefined || !(this.ownerView.getter && this.ownerView.setter)) {
+        let deleteNode = this._deleteNode = this.document.createElement("toolbarbutton");
+        deleteNode.className = "plain dbg-variable-delete devtools-closebutton";
+        deleteNode.addEventListener("click", this._onDelete.bind(this), false);
+        this._title.appendChild(deleteNode);
+      }
     }
     if (this.ownerView.contextMenuId) {
       this._title.setAttribute("context", this.ownerView.contextMenuId);
@@ -2031,6 +2188,9 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       this._target.appendChild(tooltip);
       this._target.setAttribute("tooltip", tooltip.id);
     }
+    if (this.ownerView.eval && !this._isUndefined && (this.getter || this.setter)) {
+      this._editNode.setAttribute("tooltiptext", this.ownerView.editButtonTooltip);
+    }
     if (this.ownerView.eval) {
       this._valueLabel.setAttribute("tooltiptext", this.ownerView.editableValueTooltip);
     }
@@ -2056,7 +2216,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     if (!descriptor.enumerable) {
       this._target.setAttribute("non-enumerable", "");
     }
-    if (!descriptor.writable) {
+    if (!descriptor.writable && !this.ownerView.get && !this.ownerView.set) {
       this._target.setAttribute("non-writable", "");
     }
     if (name == "this") {
@@ -2158,6 +2318,9 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       e.stopPropagation();
     }
 
+    this._onNameInputKeyPress = this._onNameInputKeyPress.bind(this);
+    this._deactivateNameInput = this._deactivateNameInput.bind(this);
+
     this._activateInput(this._name, "element-name-input", {
       onKeypress: this._onNameInputKeyPress,
       onBlur: this._deactivateNameInput
@@ -2194,6 +2357,9 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       e.stopPropagation();
     }
 
+    this._onValueInputKeyPress = this._onValueInputKeyPress.bind(this);
+    this._deactivateValueInput = this._deactivateValueInput.bind(this);
+
     this._activateInput(this._valueLabel, "element-value-input", {
       onKeypress: this._onValueInputKeyPress,
       onBlur: this._deactivateValueInput
@@ -2214,11 +2380,18 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
   _disable: function V__disable() {
-    this.twisty = false;
+    this.hideArrow();
     this._separatorLabel.hidden = true;
     this._valueLabel.hidden = true;
     this._enum.hidden = true;
     this._nonenum.hidden = true;
+
+    if (this._editNode) {
+      this._editNode.hidden = true;
+    }
+    if (this._deleteNode) {
+      this._deleteNode.hidden = true;
+    }
   },
 
   
@@ -2248,9 +2421,15 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
     if (initialString != currentString) {
       this._disable();
-      this.ownerView.eval(this._symbolicName + "=" + currentString);
+      this.ownerView.eval(this.evaluationMacro(this, currentString.trim()));
     }
   },
+
+  
+
+
+
+  evaluationMacro: VariablesView.simpleValueEvalMacro,
 
   
 
@@ -2293,21 +2472,34 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
+  _onEdit: function V__onEdit(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this._activateValueInput();
+  },
+
+  
+
+
   _onDelete: function V__onDelete(e) {
     e.preventDefault();
     e.stopPropagation();
 
     if (this.ownerView.delete) {
-      this.ownerView.delete(this);
-      this.hide();
+      if (!this.ownerView.delete(this)) {
+        this.hide();
+      }
     }
   },
 
   _symbolicName: "",
   _absoluteName: "",
   _initialDescriptor: null,
+  _isPrimitive: false,
+  _isUndefined: false,
   _separatorLabel: null,
   _valueLabel: null,
+  _editNode: null,
   _deleteNode: null,
   _tooltip: null,
   _valueGrip: null,
