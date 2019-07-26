@@ -79,14 +79,6 @@ XPCConvert::GetISupportsFromJSObject(JSObject* obj, nsISupports** iface)
 
 
 
-static void
-FinalizeXPCOMUCString(const JSStringFinalizer *fin, jschar *chars)
-{
-    nsMemory::Free(chars);
-}
-
-static const JSStringFinalizer sXPCOMUCStringFinalizer = { FinalizeXPCOMUCString };
-
 
 JSBool
 XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
@@ -245,58 +237,70 @@ XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
             }
         case nsXPTType::T_UTF8STRING:
             {
-                const nsACString* cString = *((const nsACString**)s);
+                const nsACString* utf8String = *((const nsACString**)s);
 
-                if (!cString)
+                if (!utf8String || utf8String->IsVoid())
                     break;
 
-                if (!cString->IsVoid()) {
-                    uint32_t len;
-                    jschar *p = (jschar *)UTF8ToNewUnicode(*cString, &len);
-
-                    if (!p)
-                        return false;
-
-                    JSString* jsString =
-                        JS_NewExternalString(cx, p, len,
-                                             &sXPCOMUCStringFinalizer);
-
-                    if (!jsString) {
-                        nsMemory::Free(p);
-                        return false;
-                    }
-
-                    *d = STRING_TO_JSVAL(jsString);
+                if (utf8String->IsEmpty()) {
+                    *d = JS_GetEmptyStringValue(cx);
+                    break;
                 }
 
-                break;
+                const uint32_t len = CalcUTF8ToUnicodeLength(*utf8String);
+                
+                
+                if (!len)
+                    return false;
 
+                const size_t buffer_size = (len + 1) * sizeof(PRUnichar);
+                PRUnichar* buffer =
+                    static_cast<PRUnichar*>(JS_malloc(cx, buffer_size));
+                if (!buffer)
+                    return false;
+
+                uint32_t copied;
+                if (!UTF8ToUnicodeBuffer(*utf8String, buffer, &copied) ||
+                    len != copied) {
+                    
+                    
+                    JS_free(cx, buffer);
+                    return false;
+                }
+
+                
+                
+                
+                JSString* str = JS_NewUCString(cx, (jschar*)buffer, len);
+                if (!str) {
+                    JS_free(cx, buffer);
+                    return false;
+                }
+
+                *d = STRING_TO_JSVAL(str);
+                break;
             }
         case nsXPTType::T_CSTRING:
             {
                 const nsACString* cString = *((const nsACString**)s);
 
-                if (!cString)
+                if (!cString || cString->IsVoid())
                     break;
 
-                if (!cString->IsVoid()) {
-                    PRUnichar* unicodeString = ToNewUnicode(*cString);
-                    if (!unicodeString)
-                        return false;
-
-                    JSString* jsString = JS_NewExternalString(cx,
-                                                              (jschar*)unicodeString,
-                                                              cString->Length(),
-                                                              &sXPCOMUCStringFinalizer);
-
-                    if (!jsString) {
-                        nsMemory::Free(unicodeString);
-                        return false;
-                    }
-
-                    *d = STRING_TO_JSVAL(jsString);
+                if (cString->IsEmpty()) {
+                    *d = JS_GetEmptyStringValue(cx);
+                    break;
                 }
 
+                
+                
+                
+                JSString* str = JS_NewStringCopyN(cx, cString->Data(),
+                                                  cString->Length());
+                if (!str)
+                    return false;
+
+                *d = STRING_TO_JSVAL(str);
                 break;
             }
 
