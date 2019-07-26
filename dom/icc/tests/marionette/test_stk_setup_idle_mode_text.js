@@ -195,6 +195,7 @@ let tests = [
             text: "80ル0"}},
 ];
 
+
 let pendingEmulatorCmdCount = 0;
 function sendStkPduToEmulator(command, func, expect) {
   ++pendingEmulatorCmdCount;

@@ -52,6 +52,7 @@ let tests = [
             eventList: [7]}}
 ];
 
+
 let pendingEmulatorCmdCount = 0;
 function sendStkPduToEmulator(command, func, expect) {
   ++pendingEmulatorCmdCount;

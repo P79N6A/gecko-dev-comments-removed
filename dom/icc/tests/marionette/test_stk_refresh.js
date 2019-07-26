@@ -27,6 +27,7 @@ let tests = [
             commandQualifier: 0x04}}
 ];
 
+
 let pendingEmulatorCmdCount = 0;
 function sendStkPduToEmulator(command, func, expect) {
   ++pendingEmulatorCmdCount;

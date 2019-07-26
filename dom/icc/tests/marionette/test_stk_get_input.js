@@ -174,6 +174,7 @@ let tests = [
             maxLength: 10}},
 ];
 
+
 let pendingEmulatorCmdCount = 0;
 function sendStkPduToEmulator(command, func, expect) {
   ++pendingEmulatorCmdCount;
