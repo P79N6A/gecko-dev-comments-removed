@@ -282,6 +282,31 @@ XRE_InitChildProcess(int aArgc,
   NS_ENSURE_ARG_MIN(aArgc, 2);
   NS_ENSURE_ARG_POINTER(aArgv);
   NS_ENSURE_ARG_POINTER(aArgv[0]);
+
+#if defined(XP_WIN)
+  
+  
+  
+  
+  
+  
+  if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+    
+    
+    
+    if (_fileno(stdout) == -1 ||
+        _get_osfhandle(fileno(stdout)) == -1)
+        freopen("CONOUT$", "w", stdout);
+    
+    
+    if (_fileno(stderr) == -1 ||
+        _get_osfhandle(fileno(stderr)) == -1)
+        freopen("CONOUT$", "w", stderr);
+    if (_fileno(stdin) == -1 || _get_osfhandle(fileno(stdin)) == -1)
+        freopen("CONIN$", "r", stdin);
+  }
+#endif
+
   char aLocal;
   profiler_init(&aLocal);
   PROFILER_LABEL("Startup", "XRE_InitChildProcess");
