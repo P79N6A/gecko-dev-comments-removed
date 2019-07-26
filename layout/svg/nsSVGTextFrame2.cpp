@@ -2969,7 +2969,85 @@ SVGTextDrawPathCallbacks::StrokeGeometry()
   }
 }
 
+
+
+
+already_AddRefed<gfxPattern>
+SVGTextContextPaint::GetFillPattern(float aOpacity,
+                                    const gfxMatrix& aCTM)
+{
+  return mFillPaint.GetPattern(aOpacity, &nsStyleSVG::mFill, aCTM);
 }
+
+already_AddRefed<gfxPattern>
+SVGTextContextPaint::GetStrokePattern(float aOpacity,
+                                      const gfxMatrix& aCTM)
+{
+  return mStrokePaint.GetPattern(aOpacity, &nsStyleSVG::mStroke, aCTM);
+}
+
+already_AddRefed<gfxPattern>
+SVGTextContextPaint::Paint::GetPattern(float aOpacity,
+                                       nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                                       const gfxMatrix& aCTM)
+{
+  nsRefPtr<gfxPattern> pattern;
+  if (mPatternCache.Get(aOpacity, getter_AddRefs(pattern))) {
+    
+    
+    
+    pattern->SetMatrix(aCTM * mPatternMatrix);
+    return pattern.forget();
+  }
+
+  switch (mPaintType) {
+  case eStyleSVGPaintType_None:
+    pattern = new gfxPattern(gfxRGBA(0.0f, 0.0f, 0.0f, 0.0f));
+    mPatternMatrix = gfxMatrix();
+    break;
+  case eStyleSVGPaintType_Color:
+    pattern = new gfxPattern(gfxRGBA(NS_GET_R(mPaintDefinition.mColor) / 255.0,
+                                     NS_GET_G(mPaintDefinition.mColor) / 255.0,
+                                     NS_GET_B(mPaintDefinition.mColor) / 255.0,
+                                     NS_GET_A(mPaintDefinition.mColor) / 255.0 * aOpacity));
+    mPatternMatrix = gfxMatrix();
+    break;
+  case eStyleSVGPaintType_Server:
+    pattern = mPaintDefinition.mPaintServerFrame->GetPaintServerPattern(mFrame,
+                                                                        mContextMatrix,
+                                                                        aFillOrStroke,
+                                                                        aOpacity);
+    {
+      
+      gfxMatrix m = pattern->GetMatrix();
+      gfxMatrix deviceToOriginalUserSpace = mContextMatrix;
+      deviceToOriginalUserSpace.Invert();
+      
+      mPatternMatrix = deviceToOriginalUserSpace * m;
+    }
+    pattern->SetMatrix(aCTM * mPatternMatrix);
+    break;
+  case eStyleSVGPaintType_ContextFill:
+    pattern = mPaintDefinition.mContextPaint->GetFillPattern(aOpacity, aCTM);
+    
+    
+    return pattern.forget();
+  case eStyleSVGPaintType_ContextStroke:
+    pattern = mPaintDefinition.mContextPaint->GetStrokePattern(aOpacity, aCTM);
+    
+    
+    return pattern.forget();
+  default:
+    MOZ_ASSERT(false, "invalid paint type");
+    return nullptr;
+  }
+
+  mPatternCache.Put(aOpacity, pattern);
+  return pattern.forget();
+}
+
+} 
+
 
 
 
