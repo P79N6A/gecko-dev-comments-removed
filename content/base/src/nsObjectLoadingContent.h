@@ -26,8 +26,6 @@
 
 class nsAsyncInstantiateEvent;
 class nsStopPluginRunnable;
-class AutoNotifier;
-class AutoFallback;
 class AutoSetInstantiatingToFalse;
 class nsObjectFrame;
 class nsFrameLoader;
@@ -131,12 +129,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
     void NotifyOwnerDocumentActivityChanged();
-
-    
-
-
-
-    bool SrcStreamLoading() { return mSrcStreamLoading; }
 
     
 
@@ -525,14 +517,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     
     bool                        mScriptRequested : 1;
-
-    
-    
-    
-    
-    
-    bool                        mSrcStreamLoading : 1;
-
 
     nsWeakFrame                 mPrintFrame;
 
