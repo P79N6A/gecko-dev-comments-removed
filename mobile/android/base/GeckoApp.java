@@ -12,6 +12,7 @@ import org.mozilla.gecko.gfx.Layer;
 import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.PluginLayer;
 import org.mozilla.gecko.gfx.PointUtils;
+import org.mozilla.gecko.mozglue.GeckoLoader;
 import org.mozilla.gecko.ui.PanZoomController;
 import org.mozilla.gecko.util.GeckoAsyncTask;
 import org.mozilla.gecko.util.GeckoBackgroundThread;
@@ -1490,7 +1491,7 @@ abstract public class GeckoApp
             enableStrictMode();
         }
 
-        GeckoAppShell.loadMozGlue(this);
+        GeckoLoader.loadMozGlue(this);
         if (sGeckoThread != null) {
             
             
@@ -2626,10 +2627,6 @@ abstract public class GeckoApp
             
             super.setChildrenDrawnWithCacheEnabled(enabled);
         }
-    }
-
-    public boolean linkerExtract() {
-        return false;
     }
 
     private class FullScreenHolder extends FrameLayout {
