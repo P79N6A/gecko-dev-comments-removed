@@ -185,18 +185,6 @@ this.PageThumbs = {
            "?url=" + encodeURIComponent(aUrl);
   },
 
-   
-
-
-
-
-
-
-
-   getThumbnailPath: function PageThumbs_getThumbnailPath(aUrl) {
-     return PageThumbsStorage.getFilePathForURL(aUrl);
-   },
-
   
 
 
@@ -465,7 +453,7 @@ this.PageThumbs = {
 
   _prefEnabled: function PageThumbs_prefEnabled() {
     try {
-      return Services.prefs.getBoolPref("browser.pagethumbnails.capturing_disabled");
+      return !Services.prefs.getBoolPref("browser.pagethumbnails.capturing_disabled");
     }
     catch (e) {
       return true;

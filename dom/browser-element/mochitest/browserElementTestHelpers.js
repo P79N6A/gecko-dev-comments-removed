@@ -244,7 +244,7 @@ function expectMozbrowserEvent(iframe, eventName) {
 
   browserElementTestHelpers.lockTestReady();
   SpecialPowers.setBoolPref("network.disable.ipc.security", true);
-  SpecialPowers.pushPrefEnv({set: [["browser.pagethumbnails.capturing_disabled", false],
+  SpecialPowers.pushPrefEnv({set: [["browser.pagethumbnails.capturing_disabled", true],
                                    ["dom.ipc.browser_frames.oop_by_default", oop],
                                    ["dom.ipc.tabs.disabled", false],
                                    ["security.mixed_content.block_active_content", false]]},
