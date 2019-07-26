@@ -4,7 +4,6 @@
 
 #include "nsHTMLFormElement.h"
 #include "nsIHTMLDocument.h"
-#include "nsIDOMEventTarget.h"
 #include "nsEventStateManager.h"
 #include "nsEventStates.h"
 #include "nsGkAtoms.h"

@@ -4,7 +4,6 @@
 
 
 
-#include "nsIDOMEventTarget.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsIDocument.h"

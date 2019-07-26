@@ -96,6 +96,7 @@
 #include "p12plcy.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::psm;
 
 #ifdef MOZ_LOGGING
@@ -544,7 +545,7 @@ nsNSSComponent::DispatchEventToWindow(nsIDOMWindow *domWin,
   smartCardEvent->SetTrusted(true);
 
   
-  nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(doc, &rv);
+  nsCOMPtr<EventTarget> target = do_QueryInterface(doc, &rv);
   if (NS_FAILED(rv)) {
     return rv;
   }
