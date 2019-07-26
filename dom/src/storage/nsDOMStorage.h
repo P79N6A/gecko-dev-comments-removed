@@ -327,6 +327,9 @@ public:
   virtual nsIPrincipal* Principal();
   virtual bool CanAccess(nsIPrincipal *aPrincipal);
   virtual nsDOMStorageType StorageType();
+  virtual bool IsPrivate() {
+    return mStorageImpl && mStorageImpl->IsPrivate();
+  }
 
   
   
@@ -396,6 +399,7 @@ public:
   virtual nsIPrincipal* Principal();
   virtual bool CanAccess(nsIPrincipal *aPrincipal);
   virtual nsDOMStorageType StorageType();
+  virtual bool IsPrivate();
 
   void BroadcastChangeNotification(const nsSubstring &aKey,
                                    const nsSubstring &aOldValue,
