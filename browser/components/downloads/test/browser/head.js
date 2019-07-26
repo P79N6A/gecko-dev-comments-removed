@@ -12,7 +12,8 @@
 
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
-
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
+                                  "resource:///modules/DownloadsCommon.jsm");
 const nsIDM = Ci.nsIDownloadManager;
 
 let gTestTargetFile = FileUtils.getFile("TmpD", ["dm-ui-test.file"]);
@@ -151,8 +152,12 @@ function gen_resetState()
   }
 
   
+  Services.prefs.clearUserPref("browser.download.panel.shown");
+
+  
   DownloadsCommon.data.clear();
   DownloadsCommon.data._loadState = DownloadsCommon.data.kLoadNone;
+  DownloadsPanel.hidePanel();
 
   
   waitForFocus(testRunner.continueTest);
@@ -226,4 +231,42 @@ function gen_openPanel(aData)
   
   DownloadsPanel.showPanel();
   yield;
+}
+
+
+
+
+
+
+
+
+
+function waitFor(aSeconds)
+{
+  setTimeout(function() {
+    testRunner.continueTest();
+  }, aSeconds * 1000);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function prepareForPanelOpen()
+{
+  
+  let originalOnPopupShown = DownloadsPanel.onPopupShown;
+  DownloadsPanel.onPopupShown = function (aEvent) {
+    DownloadsPanel.onPopupShown = originalOnPopupShown;
+    DownloadsPanel.onPopupShown.apply(this, [aEvent]);
+    testRunner.continueTest();
+  };
 }
