@@ -22,7 +22,6 @@ nsMathMLmstyleFrame::~nsMathMLmstyleFrame()
 {
 }
 
-
 NS_IMETHODIMP
 nsMathMLmstyleFrame::InheritAutomaticData(nsIFrame* aParent) 
 {
@@ -33,9 +32,6 @@ nsMathMLmstyleFrame::InheritAutomaticData(nsIFrame* aParent)
   mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY;
   mPresentationData.mstyle = this;
 
-  
-  nsMathMLFrame::FindAttrDisplaystyle(mContent, mPresentationData);
-
   return NS_OK;
 }
 
@@ -43,40 +39,6 @@ NS_IMETHODIMP
 nsMathMLmstyleFrame::TransmitAutomaticData()
 {
   return TransmitAutomaticDataForMrowLikeElement();
-}
-
-
-
-
-NS_IMETHODIMP
-nsMathMLmstyleFrame::UpdatePresentationData(uint32_t        aFlagsValues,
-                                            uint32_t        aWhichFlags)
-{
-  if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
-    
-    aWhichFlags &= ~NS_MATHML_DISPLAYSTYLE;
-    aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
-  }
-
-  return nsMathMLContainerFrame::UpdatePresentationData(aFlagsValues, aWhichFlags);
-}
-
-NS_IMETHODIMP
-nsMathMLmstyleFrame::UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                                       int32_t         aLastIndex,
-                                                       uint32_t        aFlagsValues,
-                                                       uint32_t        aWhichFlags)
-{
-  if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
-    
-    aWhichFlags &= ~NS_MATHML_DISPLAYSTYLE;
-    aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
-  }
-
-  
-  return
-    nsMathMLContainerFrame::UpdatePresentationDataFromChildAt(
-      aFirstIndex, aLastIndex, aFlagsValues, aWhichFlags); 
 }
 
 NS_IMETHODIMP

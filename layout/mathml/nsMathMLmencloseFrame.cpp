@@ -351,7 +351,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       nscoord phi;
       
       
-      if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags))
+      if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK)
         phi = fm->XHeight();
       else
         phi = mRuleThickness;

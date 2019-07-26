@@ -421,55 +421,6 @@ nsMathMLmtableOuterFrame::~nsMathMLmtableOuterFrame()
 }
 
 NS_IMETHODIMP
-nsMathMLmtableOuterFrame::InheritAutomaticData(nsIFrame* aParent)
-{
-  
-
-  
-  nsMathMLFrame::InheritAutomaticData(aParent);
-
-  
-  if (mContent->Tag() == nsGkAtoms::mtable_)
-    nsMathMLFrame::FindAttrDisplaystyle(mContent, mPresentationData);
-
-  return NS_OK;
-}
-
-
-
-
-NS_IMETHODIMP
-nsMathMLmtableOuterFrame::UpdatePresentationData(uint32_t aFlagsValues,
-                                                 uint32_t aWhichFlags)
-{
-  if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
-    
-    aWhichFlags &= ~NS_MATHML_DISPLAYSTYLE;
-    aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
-  }
-
-  return nsMathMLFrame::UpdatePresentationData(aFlagsValues, aWhichFlags);
-}
-
-NS_IMETHODIMP
-nsMathMLmtableOuterFrame::UpdatePresentationDataFromChildAt(int32_t  aFirstIndex,
-                                                            int32_t  aLastIndex,
-                                                            uint32_t aFlagsValues,
-                                                            uint32_t aWhichFlags)
-{
-  if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
-    
-    aWhichFlags &= ~NS_MATHML_DISPLAYSTYLE;
-    aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
-  }
-
-  nsMathMLContainerFrame::PropagatePresentationDataFromChildAt(this,
-    aFirstIndex, aLastIndex, aFlagsValues, aWhichFlags);
-
-  return NS_OK; 
-}
-
-NS_IMETHODIMP
 nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
                                            nsIAtom* aAttribute,
                                            int32_t  aModType)

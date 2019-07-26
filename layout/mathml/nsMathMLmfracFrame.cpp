@@ -48,16 +48,6 @@ nsMathMLmfracFrame::TransmitAutomaticData()
 {
   
   
-  
-  
-  
-  bool increment = !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
-  SetIncrementScriptLevel(0, increment);
-  SetIncrementScriptLevel(1, increment);
-
-  UpdatePresentationDataFromChildAt(0, -1,
-    ~NS_MATHML_DISPLAYSTYLE,
-     NS_MATHML_DISPLAYSTYLE);
   UpdatePresentationDataFromChildAt(1,  1,
      NS_MATHML_COMPRESSED,
      NS_MATHML_COMPRESSED);
@@ -252,7 +242,7 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
 
     GetNumeratorShifts(fm, numShift1, numShift2, numShift3);
     GetDenominatorShifts(fm, denShift1, denShift2);
-    if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+    if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK) {
       
       numShift = numShift1;
       denShift = denShift1;
@@ -271,7 +261,7 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       
 
       
-      minClearance = (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) ?
+      minClearance = StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK ?
         7 * defaultRuleThickness : 3 * defaultRuleThickness;
       actualClearance =
         (numShift - bmNum.descent) - (bmDen.ascent - denShift);
@@ -289,14 +279,14 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
 
     
     
-
-
+    
+    
  
     
     
     
     
-     minClearance = (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) ?
+     minClearance = StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK ?
       3 * defaultRuleThickness : defaultRuleThickness + onePixel;
 
       
@@ -414,7 +404,7 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       denShift += delta;
     }
 
-    if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+    if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK) {
       delta = std::min(bmDen.ascent + bmDen.descent,
                      bmNum.ascent + bmNum.descent) / 2;
       numShift += delta;
@@ -497,31 +487,6 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   }
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMathMLmfracFrame::UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                                      int32_t         aLastIndex,
-                                                      uint32_t        aFlagsValues,
-                                                      uint32_t        aFlagsToUpdate)
-{
-  
-  
-#if 0
-  
-  
-  
-  
-
-  
-  
-
-  aFlagsToUpdate &= ~NS_MATHML_DISPLAYSTYLE;
-  aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
-#endif
-  return nsMathMLContainerFrame::
-    UpdatePresentationDataFromChildAt(aFirstIndex, aLastIndex,
-                                      aFlagsValues, aFlagsToUpdate);
 }
 
 class nsDisplayMathMLSlash : public nsDisplayItem {

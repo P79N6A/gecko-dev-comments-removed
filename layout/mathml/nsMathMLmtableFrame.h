@@ -29,21 +29,6 @@ public:
   
 
   NS_IMETHOD
-  InheritAutomaticData(nsIFrame* aParent) MOZ_OVERRIDE;
-
-  NS_IMETHOD
-  UpdatePresentationData(uint32_t aFlagsValues,
-                         uint32_t aWhichFlags) MOZ_OVERRIDE;
-
-  NS_IMETHOD
-  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                    int32_t         aLastIndex,
-                                    uint32_t        aFlagsValues,
-                                    uint32_t        aWhichFlags) MOZ_OVERRIDE;
-
-  
-
-  NS_IMETHOD
   Reflow(nsPresContext*          aPresContext,
          nsHTMLReflowMetrics&     aDesiredSize,
          const nsHTMLReflowState& aReflowState,

@@ -70,8 +70,8 @@ nsMathMLmrootFrame::TransmitAutomaticData()
   
   
   UpdatePresentationDataFromChildAt(1, 1,
-    ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
-     NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
+                                    NS_MATHML_COMPRESSED,
+                                    NS_MATHML_COMPRESSED);
   UpdatePresentationDataFromChildAt(0, 0,
      NS_MATHML_COMPRESSED, NS_MATHML_COMPRESSED);
 
@@ -233,7 +233,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   
   
   nscoord phi = 0, psi = 0;
-  if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags))
+  if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK)
     phi = fm->XHeight();
   else
     phi = ruleThickness;

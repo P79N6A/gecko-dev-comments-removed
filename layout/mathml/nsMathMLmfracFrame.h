@@ -73,12 +73,6 @@ public:
   NS_IMETHOD
   TransmitAutomaticData() MOZ_OVERRIDE;
 
-  NS_IMETHOD
-  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                    int32_t         aLastIndex,
-                                    uint32_t        aFlagsValues,
-                                    uint32_t        aFlagsToUpdate) MOZ_OVERRIDE;
-
   
   virtual nscoord
   FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;

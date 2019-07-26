@@ -49,56 +49,14 @@ nsMathMLmunderoverFrame::UpdatePresentationData(uint32_t        aFlagsValues,
 {
   nsMathMLContainerFrame::UpdatePresentationData(aFlagsValues, aFlagsToUpdate);
   
-  if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-      !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+  if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
+      StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE) {
     mPresentationData.flags &= ~NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY;
   }
   else {
     mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY;
   }
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                                           int32_t         aLastIndex,
-                                                           uint32_t        aFlagsValues,
-                                                           uint32_t        aFlagsToUpdate)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  int32_t index = 0;
-  nsIFrame* childFrame = mFrames.FirstChild();
-  while (childFrame) {
-    if ((index >= aFirstIndex) &&
-        ((aLastIndex <= 0) || ((aLastIndex > 0) && (index <= aLastIndex)))) {
-      if (index > 0) {
-        
-        aFlagsToUpdate &= ~NS_MATHML_DISPLAYSTYLE;
-        aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
-      }
-      PropagatePresentationDataFor(childFrame, aFlagsValues, aFlagsToUpdate);
-    }
-    index++;
-    childFrame = childFrame->GetNextSibling();
-  }
-  return NS_OK;
-
-  
-  
 }
 
 NS_IMETHODIMP
@@ -220,7 +178,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
   bool subsupDisplay =
     NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-    !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
+    StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE;
 
   
   if (subsupDisplay) {
@@ -253,9 +211,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
       ? NS_MATHML_COMPRESSED : 0;
     SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2,
                             !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) || subsupDisplay);
-    PropagatePresentationDataFor(overscriptFrame,
-                                 ~NS_MATHML_DISPLAYSTYLE | compress,
-                                 NS_MATHML_DISPLAYSTYLE | compress);
+    PropagatePresentationDataFor(overscriptFrame, compress, compress);
   }
   
 
@@ -265,8 +221,8 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
       tag == nsGkAtoms::munderover_) {
     SetIncrementScriptLevel(1, !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags) || subsupDisplay);
     PropagatePresentationDataFor(underscriptFrame,
-                                 ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
-                                 NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
+                                 NS_MATHML_COMPRESSED,
+                                 NS_MATHML_COMPRESSED);
   }
   return NS_OK;
 }
@@ -296,8 +252,8 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
                                nsHTMLReflowMetrics& aDesiredSize)
 {
   nsIAtom* tag = mContent->Tag();
-  if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-       !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+  if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
+      StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE) {
     
     nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f);
     if (tag == nsGkAtoms::munderover_) {

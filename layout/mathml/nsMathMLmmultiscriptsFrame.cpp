@@ -40,12 +40,6 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
   
   
   
-  UpdatePresentationDataFromChildAt(1, -1,
-    ~NS_MATHML_DISPLAYSTYLE, NS_MATHML_DISPLAYSTYLE);
-
-  
-  
-  
 
   if (mContent->Tag() == nsGkAtoms::msup_)
     return NS_OK;
@@ -238,8 +232,8 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
   nsPresentationData presentationData;
   aFrame->GetPresentationData(presentationData);
   nscoord supScriptShift;
-  if ( font->mScriptLevel == 0 &&
-       NS_MATHML_IS_DISPLAYSTYLE(presentationData.flags) &&
+  if (font->mScriptLevel == 0 &&
+      font->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
       !NS_MATHML_IS_COMPRESSED(presentationData.flags)) {
     
     supScriptShift = supScriptShift1;
