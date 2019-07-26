@@ -20,6 +20,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
+const INTERNAL_FIELDS = new Set(["_level", "_message", "_time", "_namespace"]);
+
+
+
+
+
+function dumpError(text) {
+  dump(text + "\n");
+  Cu.reportError(text);
+}
 
 this.Log = {
   Level: {
@@ -80,6 +90,7 @@ this.Log = {
   FileAppender: FileAppender,
   BoundedFileAppender: BoundedFileAppender,
 
+  ParameterFormatter: ParameterFormatter,
   
   
   
@@ -100,14 +111,13 @@ this.Log = {
   
   
   
-  enumerateProperties: function Log_enumerateProps(aObject,
-                                                       aExcludeComplexTypes) {
+  enumerateProperties: function (aObject, aExcludeComplexTypes) {
     let properties = [];
 
     for (p in aObject) {
       try {
         if (aExcludeComplexTypes &&
-            (typeof aObject[p] == "object" || typeof aObject[p] == "function"))
+            (typeof(aObject[p]) == "object" || typeof(aObject[p]) == "function"))
           continue;
         properties.push(p + " = " + aObject[p]);
       }
@@ -199,8 +209,21 @@ this.Log = {
 function LogMessage(loggerName, level, message, params) {
   this.loggerName = loggerName;
   this.level = level;
-  this.message = message;
-  this.params = params;
+  
+
+
+
+
+
+  if (!params && message && (typeof(message) == "object") &&
+      (typeof(message.valueOf()) != "string")) {
+    this.message = null;
+    this.params = message;
+  } else {
+    
+    this.message = message;
+    this.params = params;
+  }
 
   
   
@@ -249,7 +272,7 @@ Logger.prototype = {
       return this._level;
     if (this.parent)
       return this.parent.level;
-    dump("Log warning: root logger configuration error: no level defined\n");
+    dumpError("Log warning: root logger configuration error: no level defined");
     return Log.Level.All;
   },
   set level(level) {
@@ -319,6 +342,7 @@ Logger.prototype = {
 
 
 
+
   logStructured: function (action, params) {
     if (!action) {
       throw "An action is required when logging a structured message.";
@@ -326,7 +350,7 @@ Logger.prototype = {
     if (!params) {
       return this.log(this.level, undefined, {"action": action});
     }
-    if (typeof params != "object") {
+    if (typeof(params) != "object") {
       throw "The params argument is required to be an object.";
     }
 
@@ -336,8 +360,7 @@ Logger.prototype = {
       if (ulevel in Log.Level.Numbers) {
         level = Log.Level.Numbers[ulevel];
       }
-    }
-    else {
+    } else {
       level = this.level;
     }
 
@@ -505,17 +528,69 @@ Formatter.prototype = {
 
 
 function BasicFormatter(dateFormat) {
-  if (dateFormat)
+  if (dateFormat) {
     this.dateFormat = dateFormat;
+  }
+  this.parameterFormatter = new ParameterFormatter();
 }
 BasicFormatter.prototype = {
   __proto__: Formatter.prototype,
+
+  
+
+
+
+
+
+
+
+  formatText: function (message) {
+    let params = message.params;
+    if (!params) {
+      return message.message || "";
+    }
+    
+    
+    let pIsObject = (typeof(params) == 'object' || typeof(params) == 'function');
+
+    
+    if (message.params && this.parameterFormatter) {
+      
+      
+      let subDone = false;
+      let regex = /\$\{(\S*)\}/g;
+      let textParts = [];
+      if (message.message) {
+        textParts.push(message.message.replace(regex, (_, sub) => {
+          
+          if (sub) {
+            if (pIsObject && sub in message.params) {
+              subDone = true;
+              return this.parameterFormatter.format(message.params[sub]);
+            }
+            return '${' + sub + '}';
+          }
+          
+          subDone = true;
+          return this.parameterFormatter.format(message.params);
+        }));
+      }
+      if (!subDone) {
+        
+        let rest = this.parameterFormatter.format(message.params);
+        if (rest !== null && rest != "{}") {
+          textParts.push(rest);
+        }
+      }
+      return textParts.join(': ');
+    }
+  },
 
   format: function BF_format(message) {
     return message.time + "\t" +
       message.loggerName + "\t" +
       message.levelDesc + "\t" +
-      message.message;
+      this.formatText(message);
   }
 };
 
@@ -559,6 +634,67 @@ StructuredFormatter.prototype = {
     }
 
     return JSON.stringify(output);
+  }
+}
+
+
+
+
+function isError(aObj) {
+  return (aObj && typeof(aObj) == 'object' && "name" in aObj && "message" in aObj &&
+          "fileName" in aObj && "lineNumber" in aObj && "stack" in aObj);
+};
+
+
+
+
+
+
+
+function ParameterFormatter() {
+  this._name = "ParameterFormatter"
+}
+ParameterFormatter.prototype = {
+  format: function(ob) {
+    try {
+      if (ob === undefined) {
+        return "undefined";
+      }
+      if (ob === null) {
+        return "null";
+      }
+      
+      if ((typeof(ob) != "object" || typeof(ob.valueOf()) != "object") &&
+          typeof(ob) != "function") {
+        return ob;
+      }
+      if (ob instanceof Ci.nsIException) {
+        return ob.toString() + " " + Log.stackTrace(ob);
+      }
+      else if (isError(ob)) {
+        return Log._formatError(ob);
+      }
+      
+      
+      return JSON.stringify(ob, (key, val) => {
+        if (INTERNAL_FIELDS.has(key)) {
+          return undefined;
+        }
+        return val;
+      });
+    }
+    catch (e) {
+      dumpError("Exception trying to format object for log message: " + Log.exceptionStr(e));
+    }
+    
+    try {
+      return ob.toSource();
+    } catch (_) { }
+    try {
+      return "" + ob;
+    } catch (_) {
+      return "[object]"
+    }
   }
 }
 

@@ -32,7 +32,7 @@ function run_test() {
   run_next_test();
 }
 
-add_test(function test_Logger() {
+add_task(function test_Logger() {
   let log = Log.repository.getLogger("test.logger");
   let appender = new MockAppender(new Log.BasicFormatter());
 
@@ -46,11 +46,9 @@ add_test(function test_Logger() {
 
   let msgRe = /\d+\ttest.logger\t\INFO\tinfo test/;
   do_check_true(msgRe.test(appender.messages[0]));
-
-  run_next_test();
 });
 
-add_test(function test_Logger_parent() {
+add_task(function test_Logger_parent() {
   
   let grandparentLog = Log.repository.getLogger("grandparent");
   let childLog = Log.repository.getLogger("grandparent.parent.child");
@@ -68,8 +66,6 @@ add_test(function test_Logger_parent() {
 
   do_check_eq(gpAppender.messages.length, 1);
   do_check_true(gpAppender.messages[0].indexOf("child info test") > 0);
-
-  run_next_test();
 });
 
 add_test(function test_LoggerWithMessagePrefix() {
@@ -96,6 +92,8 @@ add_test(function test_LoggerWithMessagePrefix() {
 
 
 
+
+
 function checkObjects(expected, actual) {
   do_check_true(expected instanceof Object);
   do_check_true(actual instanceof Object);
@@ -117,7 +115,7 @@ function checkObjects(expected, actual) {
   }
 }
 
-add_test(function test_StructuredLogCommands() {
+add_task(function test_StructuredLogCommands() {
   let appender = new MockAppender(new Log.StructuredFormatter());
   let logger = Log.repository.getLogger("test.StructuredOutput");
   logger.addAppender(appender);
@@ -195,11 +193,9 @@ add_test(function test_StructuredLogCommands() {
 
   checkObjects(messageOne, JSON.parse(appender.messages[0]));
   checkObjects(messageTwo, JSON.parse(appender.messages[1]));
-
-  run_next_test();
 });
 
-add_test(function test_StorageStreamAppender() {
+add_task(function test_StorageStreamAppender() {
   let appender = new Log.StorageStreamAppender(testFormatter);
   do_check_eq(appender.getInputStream(), null);
 
@@ -227,8 +223,6 @@ add_test(function test_StorageStreamAppender() {
   data = NetUtil.readInputStreamToString(inputStream,
                                          inputStream.available());
   do_check_eq(data, "test.StorageStreamAppender\tDEBUG\twut?!?\n");
-
-  run_next_test();
 });
 
 function fileContents(path) {
@@ -335,3 +329,244 @@ add_task(function test_BoundedFileAppender() {
 
 });
 
+
+
+
+add_task(function log_message_with_params() {
+  let formatter = new Log.BasicFormatter();
+
+  function formatMessage(text, params) {
+    let full = formatter.format(new Log.LogMessage("test.logger", Log.Level.Warn, text, params));
+    return full.split("\t")[3];
+  }
+
+  
+  do_check_eq(formatMessage("String is ${foo}", {foo: "bar"}),
+              "String is bar");
+
+  
+  do_check_eq(formatMessage("Number is ${number}", {number: 47}),
+              "Number is 47")
+
+  
+  do_check_eq(formatMessage("Object is ${}", {foo: "bar"}),
+              'Object is {"foo":"bar"}');
+
+  
+  do_check_eq(formatMessage("Sub object is ${sub}", {sub: {foo: "bar"}}),
+                'Sub object is {"foo":"bar"}');
+
+  
+  
+  do_check_eq(formatMessage("Missing object is ${missing}", {}),
+              'Missing object is ${missing}');
+
+  
+  do_check_eq(formatMessage("False is ${false}", {false: true}),
+              'False is true');
+
+  
+  let ob = function() {};
+  ob.toJSON = function() {return {sneaky: "value"}};
+  do_check_eq(formatMessage("JSON is ${sub}", {sub: ob}),
+              'JSON is {"sneaky":"value"}');
+
+  
+  let ob = function() {};
+  ob.toJSON = function() {throw "oh noes JSON"};
+  do_check_eq(formatMessage("Fail is ${sub}", {sub: ob}),
+              'Fail is (function () {})');
+
+  
+  ob.toSource = function() {throw "oh noes SOURCE"};
+  do_check_eq(formatMessage("Fail is ${sub}", {sub: ob}),
+              'Fail is function () {}');
+
+  
+  ob.toString = function() {throw "oh noes STRING"};
+  do_check_eq(formatMessage("Fail is ${sub}", {sub: ob}),
+              'Fail is [object]');
+
+  
+  
+  do_check_eq(formatMessage("Text with no subs", {a: "b", c: "d"}),
+              'Text with no subs: {"a":"b","c":"d"}');
+
+  
+  
+  do_check_eq(formatMessage("Text with partial sub ${a}", {a: "b", c: "d"}),
+              'Text with partial sub b');
+
+  
+  do_check_eq(formatMessage("Params with _ ${}", {a: "b", _c: "d", _level:20, _message:"froo",
+                                                  _time:123456, _namespace:"here.there"}),
+              'Params with _ {"a":"b","_c":"d"}');
+
+  
+  do_check_eq(formatMessage("All params internal", {_level:20, _message:"froo",
+                                                    _time:123456, _namespace:"here.there"}),
+              'All params internal');
+
+  
+  do_check_eq(formatMessage("Null ${n} undefined ${u}", {n: null, u: undefined}),
+              'Null null undefined undefined');
+
+  
+  do_check_eq(formatMessage("number ${n} boolean ${b} boxed Boolean ${bx} String ${s}",
+                            {n: 45, b: false, bx: new Boolean(true), s: new String("whatevs")}),
+              'number 45 boolean false boxed Boolean true String whatevs');
+
+  
+
+
+
+
+  let err = Components.Exception("test exception", Components.results.NS_ERROR_FAILURE);
+  let str = formatMessage("Exception is ${}", err);
+  do_check_true(str.contains('Exception is [Exception... "test exception"'));
+  do_check_true(str.contains("(NS_ERROR_FAILURE)"));
+  let str = formatMessage("Exception is", err);
+  do_check_true(str.contains('Exception is: [Exception... "test exception"'));
+  let str = formatMessage("Exception is ${error}", {error: err});
+  do_check_true(str.contains('Exception is [Exception... "test exception"'));
+  let str = formatMessage("Exception is", {_error: err});
+  do_print(str);
+  
+  do_check_true(str.contains('Exception is: {"_error":{}'));
+  
+  let str = formatMessage(null, err);
+  do_check_true(str.startsWith('[Exception... "test exception"'));
+  
+  let str = formatMessage(null, new String("String in place of params"));
+  do_check_eq(str, "String in place of params");
+
+  
+  
+  let vOf = {a: 1, valueOf: function() {throw "oh noes valueOf"}};
+  do_check_eq(formatMessage("Broken valueOf ${}", vOf),
+              'Broken valueOf ({a:1, valueOf:(function () {throw "oh noes valueOf"})})');
+
+  
+  
+  do_check_eq(formatMessage("non-object no subst", 1),
+              'non-object no subst: 1');
+  do_check_eq(formatMessage("non-object all subst ${}", 2),
+              'non-object all subst 2');
+  
+  
+  do_check_eq(formatMessage("non-object named subst ${junk} space", 3),
+              'non-object named subst ${junk} space: 3');
+  
+  do_check_eq(formatMessage("no params ${missing}", undefined),
+              'no params ${missing}');
+  
+  
+  do_check_eq(formatMessage("object missing tag ${missing} space", {mising: "not here"}),
+              'object missing tag ${missing} space: {"mising":"not here"}');
+  
+  do_check_eq(formatMessage(null), '');
+});
+
+
+
+
+
+
+
+add_task(function test_log_err_only() {
+  let log = Log.repository.getLogger("error.only");
+  let testFormatter = { format: msg => msg };
+  let appender = new MockAppender(testFormatter);
+  log.addAppender(appender);
+
+  
+
+
+
+
+
+  try {
+    eval("javascript syntax error");
+  }
+  catch (e) {
+    log.error(e);
+    msg = appender.messages.pop();
+    do_check_eq(msg.message, null);
+    do_check_eq(msg.params, e);
+  }
+});
+
+
+
+
+add_task(function test_structured_basic() {
+  let log = Log.repository.getLogger("test.logger");
+  let appender = new MockAppender(new Log.BasicFormatter());
+
+  log.level = Log.Level.Info;
+  appender.level = Log.Level.Info;
+  log.addAppender(appender);
+
+  
+  
+  log.logStructured("action", {data: "structure"});
+  do_check_eq(appender.messages.length, 1);
+  do_check_true(appender.messages[0].contains('{"data":"structure","action":"action"}'));
+
+  
+  
+  log.logStructured("action", {_message: "Structured sub ${data}", data: "structure"});
+  do_check_eq(appender.messages.length, 2);
+  do_print(appender.messages[1]);
+  do_check_true(appender.messages[1].contains('Structured sub structure'));
+});
+
+
+
+
+add_task(function log_message_with_params() {
+  let log = Log.repository.getLogger("error.logger");
+  let testFormatter = { format: msg => msg };
+  let appender = new MockAppender(testFormatter);
+  log.addAppender(appender);
+
+  let testParams = {a:1, b:2};
+  log.fatal("Test fatal", testParams);
+  log.error("Test error", testParams);
+  log.warn("Test warn", testParams);
+  log.info("Test info", testParams);
+  log.config("Test config", testParams);
+  log.debug("Test debug", testParams);
+  log.trace("Test trace", testParams);
+  do_check_eq(appender.messages.length, 7);
+  for (let msg of appender.messages) {
+    do_check_true(msg.params === testParams);
+    do_check_true(msg.message.startsWith("Test "));
+  }
+});
+
+
+
+
+add_task(function format_errors() {
+  let pFormat = new Log.ParameterFormatter();
+
+  
+  err = new ReferenceError("Ref Error", "ERROR_FILE", 28);
+  str = pFormat.format(err);
+  do_check_true(str.contains("ReferenceError"));
+  do_check_true(str.contains("ERROR_FILE:28"));
+  do_check_true(str.contains("Ref Error"));
+
+  
+  try {
+    eval("javascript syntax error");
+  }
+  catch (e) {
+    str = pFormat.format(e);
+    do_check_true(str.contains("SyntaxError: missing ;"));
+    
+    
+    do_check_true(str.contains(":1:11)"));
+  }
+});
