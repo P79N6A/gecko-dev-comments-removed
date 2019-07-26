@@ -7,6 +7,7 @@
 #include "IndexedDatabaseManager.h"
 
 #include "nsIConsoleService.h"
+#include "nsIDiskSpaceWatcher.h"
 #include "nsIDOMScriptObjectFactory.h"
 #include "nsIFile.h"
 #include "nsIFileStorage.h"
@@ -25,6 +26,11 @@
 #include "IDBFactory.h"
 #include "IDBKeyRange.h"
 #include "IDBRequest.h"
+
+
+
+#define LOW_DISK_SPACE_DATA_FULL "full"
+#define LOW_DISK_SPACE_DATA_FREE "free"
 
 USING_INDEXEDDB_NAMESPACE
 using namespace mozilla::dom;
@@ -92,6 +98,7 @@ IndexedDatabaseManager::~IndexedDatabaseManager()
 }
 
 bool IndexedDatabaseManager::sIsMainProcess = false;
+int32_t IndexedDatabaseManager::sLowDiskSpaceMode = 0;
 
 
 IndexedDatabaseManager*
@@ -106,6 +113,24 @@ IndexedDatabaseManager::GetOrCreate()
 
   if (!gInstance) {
     sIsMainProcess = XRE_GetProcessType() == GeckoProcessType_Default;
+
+    if (sIsMainProcess) {
+      
+      nsCOMPtr<nsIDiskSpaceWatcher> watcher =
+        do_GetService(DISKSPACEWATCHER_CONTRACTID);
+      if (watcher) {
+        bool isDiskFull;
+        if (NS_SUCCEEDED(watcher->GetIsDiskFull(&isDiskFull))) {
+          sLowDiskSpaceMode = isDiskFull ? 1 : 0;
+        }
+        else {
+          NS_WARNING("GetIsDiskFull failed!");
+        }
+      }
+      else {
+        NS_WARNING("No disk space watcher component available!");
+      }
+    }
 
     nsRefPtr<IndexedDatabaseManager> instance(new IndexedDatabaseManager());
 
@@ -146,13 +171,27 @@ IndexedDatabaseManager::FactoryCreate()
 nsresult
 IndexedDatabaseManager::Init()
 {
-  
-  NS_ENSURE_TRUE(QuotaManager::GetOrCreate(), NS_ERROR_FAILURE);
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
   
-  nsCOMPtr<mozIStorageService> ss =
-    do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
-  NS_ENSURE_TRUE(ss, NS_ERROR_FAILURE);
+  QuotaManager* qm = QuotaManager::GetOrCreate();
+  NS_ENSURE_STATE(qm);
+
+  
+  
+  if (sIsMainProcess) {
+    
+    nsCOMPtr<mozIStorageService> ss =
+      do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+    NS_ENSURE_STATE(ss);
+
+    nsCOMPtr<nsIObserverService> obs = GetObserverService();
+    NS_ENSURE_STATE(obs);
+
+    nsresult rv =
+      obs->AddObserver(this, DISKSPACEWATCHER_OBSERVER_TOPIC, false);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
@@ -289,6 +328,16 @@ IndexedDatabaseManager::IsMainProcess()
                sIsMainProcess, "XRE_GetProcessType changed its tune!");
   return sIsMainProcess;
 }
+
+
+bool
+IndexedDatabaseManager::InLowDiskSpaceMode()
+{
+  NS_ASSERTION(gInstance,
+               "InLowDiskSpaceMode() called before indexedDB has been "
+               "initialized!");
+  return !!sLowDiskSpaceMode;
+}
 #endif
 
 already_AddRefed<FileManager>
@@ -394,7 +443,8 @@ IndexedDatabaseManager::AsyncDeleteFile(FileManager* aFileManager,
 
 NS_IMPL_ADDREF(IndexedDatabaseManager)
 NS_IMPL_RELEASE_WITH_DESTROY(IndexedDatabaseManager, Destroy())
-NS_IMPL_QUERY_INTERFACE1(IndexedDatabaseManager, nsIIndexedDatabaseManager)
+NS_IMPL_QUERY_INTERFACE2(IndexedDatabaseManager, nsIIndexedDatabaseManager,
+                                                 nsIObserver)
 
 NS_IMETHODIMP
 IndexedDatabaseManager::InitWindowless(const jsval& aObj, JSContext* aCx)
@@ -453,6 +503,35 @@ IndexedDatabaseManager::InitWindowless(const jsval& aObj, JSContext* aCx)
 
   return NS_OK;
 }
+
+NS_IMETHODIMP
+IndexedDatabaseManager::Observe(nsISupports* aSubject, const char* aTopic,
+                                const PRUnichar* aData)
+{
+  NS_ASSERTION(IsMainProcess(), "Wrong process!");
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+  if (!strcmp(aTopic, LOW_DISK_SPACE_OBSERVER_ID)) {
+    NS_ASSERTION(aData, "No data?!");
+
+    const nsDependentString data(aData);
+
+    if (data.EqualsLiteral(LOW_DISK_SPACE_DATA_FULL)) {
+      PR_ATOMIC_SET(&sLowDiskSpaceMode, 1);
+    }
+    else if (data.EqualsLiteral(LOW_DISK_SPACE_DATA_FREE)) {
+      PR_ATOMIC_SET(&sLowDiskSpaceMode, 0);
+    }
+    else {
+      NS_NOTREACHED("Unknown data value!");
+    }
+
+    return NS_OK;
+  }
+
+   NS_NOTREACHED("Unknown topic!");
+   return NS_ERROR_UNEXPECTED;
+ }
 
 AsyncDeleteFileRunnable::AsyncDeleteFileRunnable(FileManager* aFileManager,
                                                  int64_t aFileId)
