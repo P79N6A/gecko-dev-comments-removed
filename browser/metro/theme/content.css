@@ -125,7 +125,7 @@ select[size][multiple],
 
 
 
-select[size=1] :-moz-any(option, optgroup),
+select[size="1"] :-moz-any(option, optgroup),
 select:not([size]):not([multiple]) :-moz-any(option, optgroup) {
   pointer-events: none;
 }
