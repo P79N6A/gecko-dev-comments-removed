@@ -190,6 +190,7 @@ IsSafeImageTransformComponent(gfxFloat aValue)
   return aValue >= -32768 && aValue <= 32767;
 }
 
+#ifndef MOZ_GFX_OPTIMIZE_MOBILE
 
 
 
@@ -211,7 +212,6 @@ OptimalFillOperator()
 #endif
 }
 
-#ifndef MOZ_GFX_OPTIMIZE_MOBILE
 
 
 static already_AddRefed<gfxDrawable>
@@ -482,15 +482,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
     }
 #endif
 
-    gfxContext::GraphicsOperator op = aContext->CurrentOperator();
-    if ((op == gfxContext::OPERATOR_OVER || workaround.PushedGroup()) &&
-        aFormat == gfxImageFormatRGB24) {
-        aContext->SetOperator(OptimalFillOperator());
-    }
-
     drawable->Draw(aContext, aFill, doTile, aFilter, userSpaceToImageSpace);
-
-    aContext->SetOperator(op);
 }
 
  int
