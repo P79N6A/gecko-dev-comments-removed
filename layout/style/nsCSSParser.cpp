@@ -6897,9 +6897,25 @@ CSSParserImpl::ParseRadialGradient(nsCSSValue& aValue, bool aIsRepeating,
     }
   } else if (!aIsLegacy) {
     
+    
+    int32_t shape =
+      cssGradient->GetRadialShape().GetUnit() == eCSSUnit_Enumerated ?
+      cssGradient->GetRadialShape().GetIntValue() : -1;
+    
+    cssGradient->mIsExplicitSize = true;
     haveSize =
       ParseNonNegativeVariant(cssGradient->GetRadiusX(), VARIANT_LP, nullptr);
-    if (haveSize) {
+    if (!haveSize) {
+      
+      
+      
+      
+      
+      
+      
+      
+      cssGradient->mIsExplicitSize = false;
+    } else {
       
       bool haveYSize =
         ParseNonNegativeVariant(cssGradient->GetRadiusY(), VARIANT_LP, nullptr);
@@ -6907,10 +6923,10 @@ CSSParserImpl::ParseRadialGradient(nsCSSValue& aValue, bool aIsRepeating,
         nsCSSValue shapeValue;
         haveShape = ParseVariant(shapeValue, VARIANT_KEYWORD,
                                  nsCSSProps::kRadialGradientShapeKTable);
+        if (haveShape) {
+          shape = shapeValue.GetIntValue();
+        }
       }
-      int32_t shape =
-        cssGradient->GetRadialShape().GetUnit() == eCSSUnit_Enumerated ?
-        cssGradient->GetRadialShape().GetIntValue() : -1;
       if (haveYSize
             ? shape == NS_STYLE_GRADIENT_SHAPE_CIRCULAR
             : cssGradient->GetRadiusX().GetUnit() == eCSSUnit_Percent ||
@@ -6918,7 +6934,6 @@ CSSParserImpl::ParseRadialGradient(nsCSSValue& aValue, bool aIsRepeating,
         SkipUntil(')');
         return false;
       }
-      cssGradient->mIsExplicitSize = true;
     }
   }
 
