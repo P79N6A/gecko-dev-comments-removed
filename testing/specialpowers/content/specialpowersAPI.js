@@ -32,43 +32,9 @@ function bindDOMWindowUtils(aWindow) {
   if (!aWindow)
     return
 
-  var util = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                   .getInterface(Components.interfaces.nsIDOMWindowUtils);
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  var proto = Object.getPrototypeOf(util);
-  var target = { __exposedProps__: {} };
-  function rebind(desc, prop) {
-    if (prop in desc && typeof(desc[prop]) == "function") {
-      var oldval = desc[prop];
-      try {
-        desc[prop] = function() {
-          return oldval.apply(util, arguments);
-        };
-      } catch (ex) {
-        dump("WARNING: Special Powers failed to rebind function: " + desc + "::" + prop + "\n");
-      }
-    }
-  }
-  for (var i in proto) {
-    var desc = Object.getOwnPropertyDescriptor(proto, i);
-    rebind(desc, "get");
-    rebind(desc, "set");
-    rebind(desc, "value");
-    Object.defineProperty(target, i, desc);
-    target.__exposedProps__[i] = 'rw';
-  }
-  return target;
+   var util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIDOMWindowUtils);
+   return wrapPrivileged(util);
 }
 
 function getRawComponents(aWindow) {
