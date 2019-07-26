@@ -2015,17 +2015,14 @@ nsGlobalWindow::SetInitialPrincipalToSubject()
   FORWARD_TO_OUTER_VOID(SetInitialPrincipalToSubject, ());
 
   
-  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-  nsCOMPtr<nsIPrincipal> newWindowPrincipal, systemPrincipal;
-  ssm->GetSubjectPrincipal(getter_AddRefs(newWindowPrincipal));
-  ssm->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+  nsCOMPtr<nsIPrincipal> newWindowPrincipal = nsContentUtils::GetSubjectPrincipal();
   if (!newWindowPrincipal) {
-    newWindowPrincipal = systemPrincipal;
+    newWindowPrincipal = nsContentUtils::GetSystemPrincipal();
   }
 
   
   
-  if (newWindowPrincipal == systemPrincipal &&
+  if (nsContentUtils::IsSystemOrExpandedPrincipal(newWindowPrincipal) &&
       GetDocShell()->ItemType() != nsIDocShellTreeItem::typeChrome) {
     newWindowPrincipal = nullptr;
   }
