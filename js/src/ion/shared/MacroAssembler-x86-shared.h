@@ -285,6 +285,42 @@ class MacroAssemblerX86Shared : public Assembler
         movss(src, Operand(dest));
     }
 
+    
+    
+    
+    void convertDoubleToInt32(FloatRegister src, Register dest, Label *fail,
+                              bool negativeZeroCheck = true)
+    {
+        
+        
+        
+        cvttsd2s(src, dest);
+        cvtsi2sd(dest, ScratchFloatReg);
+        ucomisd(src, ScratchFloatReg);
+        j(Assembler::Parity, fail);
+        j(Assembler::NotEqual, fail);
+
+        
+        if (negativeZeroCheck) {
+            Label notZero;
+            testl(dest, dest);
+            j(Assembler::NonZero, &notZero);
+
+            if (Assembler::HasSSE41()) {
+                ptest(src, src);
+                j(Assembler::NonZero, fail);
+            } else {
+                
+                
+                movmskpd(src, dest);
+                andl(Imm32(1), dest);
+                j(Assembler::NonZero, fail);
+            }
+
+            bind(&notZero);
+        }
+    }
+
     void clampIntToUint8(Register src, Register dest) {
         Label inRange, done;
         branchTest32(Assembler::Zero, src, Imm32(0xffffff00), &inRange);

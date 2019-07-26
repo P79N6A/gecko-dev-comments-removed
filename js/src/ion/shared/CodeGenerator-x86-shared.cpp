@@ -1293,42 +1293,6 @@ CodeGeneratorX86Shared::visitGuardClass(LGuardClass *guard)
     return true;
 }
 
-
-
-
-void
-CodeGeneratorX86Shared::emitDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
-{
-    
-    
-    
-    masm.cvttsd2s(src, dest);
-    masm.cvtsi2sd(dest, ScratchFloatReg);
-    masm.ucomisd(src, ScratchFloatReg);
-    masm.j(Assembler::Parity, fail);
-    masm.j(Assembler::NotEqual, fail);
-
-    
-    if (negativeZeroCheck) {
-        Label notZero;
-        masm.testl(dest, dest);
-        masm.j(Assembler::NonZero, &notZero);
-
-        if (Assembler::HasSSE41()) {
-            masm.ptest(src, src);
-            masm.j(Assembler::NonZero, fail);
-        } else {
-            
-            
-            masm.movmskpd(src, dest);
-            masm.andl(Imm32(1), dest);
-            masm.j(Assembler::NonZero, fail);
-        }
-
-        masm.bind(&notZero);
-    }
-}
-
 class OutOfLineTruncate : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 {
     LTruncateDToInt32 *ins_;

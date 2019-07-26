@@ -68,6 +68,30 @@ MacroAssemblerARM::branchTruncateDouble(const FloatRegister &src, const Register
     ma_b(fail, Assembler::Equal);
 }
 
+
+
+
+void
+MacroAssemblerARM::convertDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
+{
+    
+    
+    
+    ma_vcvt_F64_I32(src, ScratchFloatReg);
+    
+    ma_vxfer(ScratchFloatReg, dest);
+    ma_vcvt_I32_F64(ScratchFloatReg, ScratchFloatReg);
+    ma_vcmp(src, ScratchFloatReg);
+    as_vmrs(pc);
+    ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
+    
+    if (negativeZeroCheck) {
+        ma_cmp(dest, Imm32(0));
+        ma_b(fail, Assembler::Equal);
+        
+    }
+}
+
 void
 MacroAssemblerARM::negateDouble(FloatRegister reg)
 {

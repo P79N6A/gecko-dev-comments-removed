@@ -1030,30 +1030,6 @@ CodeGeneratorARM::visitRound(LRound *lir)
     return true;
 }
 
-
-
-
-void
-CodeGeneratorARM::emitDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
-{
-    
-    
-    
-    masm.ma_vcvt_F64_I32(src, ScratchFloatReg);
-    
-    masm.ma_vxfer(ScratchFloatReg, dest);
-    masm.ma_vcvt_I32_F64(ScratchFloatReg, ScratchFloatReg);
-    masm.ma_vcmp(src, ScratchFloatReg);
-    masm.as_vmrs(pc);
-    masm.ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
-    
-    if (negativeZeroCheck) {
-        masm.ma_cmp(dest, Imm32(0));
-        masm.ma_b(fail, Assembler::Equal);
-        
-    }
-}
-
 void
 CodeGeneratorARM::emitRoundDouble(const FloatRegister &src, const Register &dest, Label *fail)
 {
