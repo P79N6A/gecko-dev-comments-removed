@@ -1664,6 +1664,10 @@ var BrowserApp = {
 
         
         
+        Services.prefs.savePrefFile(null);
+
+        
+        
         Services.strings.flushBundles();
         break;
 
