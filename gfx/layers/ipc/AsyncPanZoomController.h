@@ -648,6 +648,9 @@ private:
   
   void UpdateTransformScale();
 
+  
+  nsEventStatus GenerateSingleTap(const ScreenIntPoint& aPoint, mozilla::Modifiers aModifiers);
+
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
   PCompositorParent* mCrossProcessCompositorParent;
