@@ -9,8 +9,6 @@
 
 
 
-
-
 #include "mozilla/DebugOnly.h"
 #include "mozilla/PodOperations.h"
 
@@ -82,14 +80,10 @@ enum TokenKind {
     TOK_STRICT_RESERVED,           
 
     
-
-
-
-
     
 
-
-
+    
+    
     TOK_OR,                        
     TOK_BINOP_FIRST = TOK_OR,
     TOK_AND,                       
@@ -139,7 +133,7 @@ enum TokenKind {
     TOK_ARROW,                     
 
     
-    TOK_ASSIGN,                    
+    TOK_ASSIGN,
     TOK_ASSIGNMENT_START = TOK_ASSIGN,
     TOK_ADDASSIGN,
     TOK_SUBASSIGN,
@@ -198,8 +192,8 @@ TokenKindIsDecl(TokenKind tt)
 }
 
 struct TokenPos {
-    uint32_t          begin;          
-    uint32_t          end;            
+    uint32_t    begin;  
+    uint32_t    end;    
 
     TokenPos() {}
     TokenPos(uint32_t begin, uint32_t end) : begin(begin), end(end) {}
@@ -249,22 +243,20 @@ struct Token {
     union {
       private:
         friend struct Token;
-        PropertyName *name;             
-        JSAtom       *atom;             
+        PropertyName    *name;          
+        JSAtom          *atom;          
         struct {
-            double       value;         
+            double      value;          
             DecimalPoint decimalPoint;  
         } number;
         RegExpFlag      reflags;        
-
+                                        
     } u;
 
     
 
     
-
-
-
+    
 
     void setName(PropertyName *name) {
         JS_ASSERT(!IsPoisonedPtr(name));
@@ -389,7 +381,7 @@ class MOZ_STACK_CLASS TokenStream
     };
 
     static const size_t ntokens = 4;                
-
+                                                    
     static const unsigned maxLookahead = 2;
     static const unsigned ntokensMask = ntokens - 1;
 
@@ -477,9 +469,7 @@ class MOZ_STACK_CLASS TokenStream
     };
 
     
-
-
-
+    
     TokenKind getToken(Modifier modifier = None) {
         
         if (lookahead != 0) {
@@ -494,8 +484,6 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     
-
-
     void ungetToken() {
         JS_ASSERT(lookahead < maxLookahead);
         lookahead++;
@@ -518,9 +506,7 @@ class MOZ_STACK_CLASS TokenStream
             return tokens[(cursor + 1) & ntokensMask].type;
 
         
-
-
-
+        
         flags.sawEOL = false;
         TokenKind tt = getToken(modifier);
         if (flags.sawEOL) {
@@ -532,8 +518,6 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     
-
-
     bool matchToken(TokenKind tt, Modifier modifier = None) {
         if (getToken(modifier) == tt)
             return true;
@@ -559,14 +543,12 @@ class MOZ_STACK_CLASS TokenStream
     class MOZ_STACK_CLASS Position {
       public:
         
-
-
-
-
-
-
-
-
+        
+        
+        
+        
+        
+        
         Position(AutoKeepAtoms&) { }
       private:
         Position(const Position&) MOZ_DELETE;
@@ -595,8 +577,6 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     
-
-
     jschar *releaseSourceMap() {
         JS_ASSERT(hasSourceMap());
         jschar *sm = sourceMap;
@@ -605,17 +585,15 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     
-
-
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
     bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp);
 
     
@@ -702,12 +680,10 @@ class MOZ_STACK_CLASS TokenStream
 
   private:
     
-
-
-
-
-
-
+    
+    
+    
+    
     class TokenBuf {
       public:
         TokenBuf(ExclusiveContext *cx, const jschar *buf, size_t length)
@@ -838,37 +814,33 @@ class MOZ_STACK_CLASS TokenStream
     
     const CompileOptions &options_;
 
-    Token               tokens[ntokens];
-    unsigned            cursor;         
-    unsigned            lookahead;      
-    unsigned            lineno;         
-    Flags               flags;          
-    const jschar        *linebase;      
-    const jschar        *prevLinebase;  
-    TokenBuf            userbuf;        
-    const char          *filename;      
-    jschar              *sourceMap;     
-    CharBuffer          tokenbuf;       
-    bool                maybeEOL[256];       
-    bool                maybeStrSpecial[256];
-    uint8_t             isExprEnding[TOK_LIMIT]; 
+    Token               tokens[ntokens];    
+    unsigned            cursor;             
+    unsigned            lookahead;          
+    unsigned            lineno;             
+    Flags               flags;              
+    const jschar        *linebase;          
+    const jschar        *prevLinebase;      
+    TokenBuf            userbuf;            
+    const char          *filename;          
+    jschar              *sourceMap;         
+    CharBuffer          tokenbuf;           
+    bool                maybeEOL[256];      
+    bool                maybeStrSpecial[256];   
+    uint8_t             isExprEnding[TOK_LIMIT];
     ExclusiveContext    *const cx;
     JSPrincipals        *const originPrincipals;
-    StrictModeGetter    *strictModeGetter; 
+    StrictModeGetter    *strictModeGetter;  
 
     
-
-
-
-
+    
+    
     SkipRoot            tokenSkip;
 
     
     SkipRoot            linebaseSkip;
     SkipRoot            prevLinebaseSkip;
 };
-
-
 
 
 

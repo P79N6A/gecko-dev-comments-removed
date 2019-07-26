@@ -6,8 +6,6 @@
 
 
 
-
-
 #include "frontend/TokenStream.h"
 
 #include "mozilla/PodOperations.h"
@@ -40,7 +38,7 @@ using mozilla::PodZero;
 struct KeywordInfo {
     const char  *chars;         
     TokenKind   tokentype;
-    JSVersion   version;        
+    JSVersion   version;
 };
 
 static const KeywordInfo keywords[] = {
@@ -49,8 +47,6 @@ static const KeywordInfo keywords[] = {
     FOR_EACH_JAVASCRIPT_KEYWORD(KEYWORD_INFO)
 #undef KEYWORD_INFO
 };
-
-
 
 
 
@@ -376,20 +372,18 @@ TokenStream::getChar()
         c = userbuf.getRawChar();
 
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         if (JS_UNLIKELY(maybeEOL[c & 0xff])) {
             if (c == '\n')
                 goto eol;
@@ -412,8 +406,6 @@ TokenStream::getChar()
     updateLineInfoForEOL();
     return '\n';
 }
-
-
 
 
 
@@ -464,8 +456,6 @@ TokenStream::ungetCharIgnoreEOL(int32_t c)
     JS_ASSERT(!userbuf.atStart());
     userbuf.ungetRawChar();
 }
-
-
 
 
 
@@ -579,23 +569,19 @@ void
 CompileError::throwError()
 {
     
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (!js_ErrorToException(cx, message, &report, NULL, NULL)) {
         
-
-
-
+        
         bool reportError = true;
         if (JSDebugErrorHook hook = cx->runtime()->debugHooks.debugErrorHook) {
             reportError = hook(cx, message, &report, cx->runtime()->debugHooks.debugErrorHookData);
@@ -661,15 +647,13 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     }
 
     
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
     if (err.report.lineno == lineno) {
         const jschar *tokenStart = userbuf.base() + offset;
 
@@ -770,8 +754,6 @@ TokenStream::reportAsmJSError(uint32_t offset, unsigned errorNumber, ...)
 
 
 
-
-
 bool
 TokenStream::peekUnicodeEscape(int *result)
 {
@@ -812,8 +794,6 @@ TokenStream::matchUnicodeEscapeIdent(int32_t *cp)
 
 
 
-
-
 static bool
 CharsMatch(const jschar *p, const char *q) {
     while (*q) {
@@ -827,13 +807,12 @@ bool
 TokenStream::getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated)
 {
     
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
     jschar peeked[18];
     int32_t c;
 
@@ -848,10 +827,8 @@ TokenStream::getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated)
         while ((c = peekChar()) && c != EOF && !IsSpaceOrBOM2(c)) {
             getChar();
             
-
-
-
-
+            
+            
             if (isMultiline && c == '*' && peekChar() == '/') {
                 ungetChar('*');
                 break;
@@ -861,7 +838,7 @@ TokenStream::getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated)
 
         if (tokenbuf.empty())
             
-
+            
             return true;
 
         size_t sourceMapLength = tokenbuf.length();
@@ -902,9 +879,7 @@ bool
 IsTokenSane(Token *tp)
 {
     
-
-
-
+    
     if (tp->type < TOK_ERROR || tp->type >= TOK_LIMIT || tp->type == TOK_EOL)
         return false;
 
@@ -960,10 +935,8 @@ TokenStream::checkForKeyword(const jschar *s, size_t length, TokenKind *ttp)
         }
 
         
-
-
-
-
+        
+        
         if (kw->tokentype != TOK_LET && kw->tokentype != TOK_YIELD)
             return true;
     }
@@ -998,8 +971,6 @@ enum FirstCharKind {
 
     LastCharKind = Other
 };
-
-
 
 
 
@@ -1066,9 +1037,7 @@ TokenStream::getTokenInternal(Modifier modifier)
     JS_ASSERT(c != EOF);
 
     
-
-
-
+    
     if (JS_UNLIKELY(c >= 128)) {
         if (IsSpaceOrBOM2(c)) {
             if (c == LINE_SEPARATOR || c == PARA_SEPARATOR) {
@@ -1093,31 +1062,29 @@ TokenStream::getTokenInternal(Modifier modifier)
     }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     c1kind = FirstCharKind(firstCharKinds[c]);
 
     
-
-
+    
     if (c1kind < OneChar_Max) {
         tp = newToken(-1);
         tt = TokenKind(c1kind);
@@ -1125,14 +1092,12 @@ TokenStream::getTokenInternal(Modifier modifier)
     }
 
     
-
-
+    
     if (c1kind == Space)
         goto retry;
 
     
-
-
+    
     if (c1kind == Ident) {
         tp = newToken(-1);
         identStart = userbuf.addressOfNextRawChar() - 1;
@@ -1152,10 +1117,8 @@ TokenStream::getTokenInternal(Modifier modifier)
         ungetCharIgnoreEOL(c);
 
         
-
-
-
-
+        
+        
         const jschar *chars;
         size_t length;
         if (hadUnicodeEscape) {
@@ -1187,8 +1150,7 @@ TokenStream::getTokenInternal(Modifier modifier)
     }
 
     
-
-
+    
     if (c1kind == Dec) {
         tp = newToken(-1);
         numStart = userbuf.addressOfNextRawChar() - 1;
@@ -1228,10 +1190,8 @@ TokenStream::getTokenInternal(Modifier modifier)
         }
 
         
-
-
-
-
+        
+        
         double dval;
         if (!((decimalPoint == HasDecimal) || hasExp)) {
             if (!GetDecimalInteger(cx, numStart, userbuf.addressOfNextRawChar(), &dval))
@@ -1247,20 +1207,17 @@ TokenStream::getTokenInternal(Modifier modifier)
     }
 
     
-
-
+    
     if (c1kind == String) {
         tp = newToken(-1);
         qc = c;
         tokenbuf.clear();
         while (true) {
             
-
-
-
-
-
-
+            
+            
+            
+            
             c = getCharIgnoreEOL();
             if (maybeStrSpecial[c & 0xff]) {
                 if (c == qc)
@@ -1326,9 +1283,7 @@ TokenStream::getTokenInternal(Modifier modifier)
                             }
                         } else if (c == '\n') {
                             
-
-
-
+                            
                             continue;
                         }
                         break;
@@ -1351,8 +1306,7 @@ TokenStream::getTokenInternal(Modifier modifier)
     }
 
     
-
-
+    
     if (c1kind == EOL) {
         
         if (c == '\r' && userbuf.hasRawChars())
@@ -1362,6 +1316,7 @@ TokenStream::getTokenInternal(Modifier modifier)
         goto retry;
     }
 
+    
     
     if (c1kind == BasePrefix) {
         tp = newToken(-1);
@@ -1409,11 +1364,9 @@ TokenStream::getTokenInternal(Modifier modifier)
                     goto error;
 
                 
-
-
-
-
-
+                
+                
+                
                 if (c >= '8') {
                     if (!reportWarning(JSMSG_BAD_OCTAL, c == '8' ? "08" : "09")) {
                         goto error;
@@ -1444,8 +1397,7 @@ TokenStream::getTokenInternal(Modifier modifier)
     }
 
     
-
-
+    
     JS_ASSERT(c1kind == Other);
     tp = newToken(-1);
     switch (c) {
@@ -1550,8 +1502,6 @@ TokenStream::getTokenInternal(Modifier modifier)
 
       case '/':
         
-
-
         if (matchChar('/')) {
             c = peekChar();
             if (c == '@' || c == '#') {
@@ -1568,8 +1518,6 @@ TokenStream::getTokenInternal(Modifier modifier)
         }
 
         
-
-
         if (matchChar('*')) {
             unsigned linenoBefore = lineno;
             while ((c = getChar()) != EOF &&
@@ -1590,8 +1538,6 @@ TokenStream::getTokenInternal(Modifier modifier)
         }
 
         
-
-
         if (modifier == Operand) {
             tokenbuf.clear();
 
@@ -1698,14 +1644,12 @@ TokenStream::onError()
     flags.hadError = true;
 #ifdef DEBUG
     
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
     userbuf.poison();
 #endif
 }
