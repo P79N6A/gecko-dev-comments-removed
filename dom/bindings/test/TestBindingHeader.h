@@ -36,6 +36,22 @@ public:
 };
 
 
+#define NS_RENAMED_INTERFACE_IID \
+{ 0xd4b19ef3, 0xe68b, 0x4e3f, \
+ { 0x94, 0xbc, 0xc9, 0xde, 0x3a, 0x69, 0xb0, 0xe8 } }
+
+class nsRenamedInterface : public nsISupports,
+                           public nsWrapperCache
+{
+public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_RENAMED_INTERFACE_IID)
+  NS_DECL_ISUPPORTS
+
+  
+  virtual nsISupports* GetParentObject();
+};
+
+
 #define NS_INDIRECTLY_IMPLEMENTED_INTERFACE_IID \
 { 0xfed55b69, 0x7012, 0x4849, \
  { 0xaf, 0x56, 0x4b, 0xa9, 0xee, 0x41, 0x30, 0x89 } }
@@ -417,6 +433,7 @@ public:
   void SetAttrWithLenientThis(int32_t);
   uint32_t UnforgeableAttr();
   uint32_t UnforgeableAttr2();
+  void PassRenamedInterface(nsRenamedInterface&);
 
   
   bool ImplementedProperty();
