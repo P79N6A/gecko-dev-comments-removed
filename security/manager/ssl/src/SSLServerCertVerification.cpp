@@ -1167,21 +1167,18 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
   
   
   PRTime now = PR_Now();
-  PRBool enabled;
-  if (SECSuccess != SSL_OptionGet(fd, SSL_ENABLE_OCSP_STAPLING, &enabled)) {
-    return SECFailure;
-  }
-  if (enabled) {
-      
-      const SECItemArray *csa = SSL_PeerStapledOCSPResponses(fd);
-      
-      if (csa && csa->len == 1) {
-          CERTCertDBHandle *handle = CERT_GetDefaultCertDB();
-          SECStatus cacheResult = CERT_CacheOCSPResponseFromSideChannel(
-              handle, serverCert, now, &csa->items[0], arg);
-          if (cacheResult != SECSuccess) {
-              return SECFailure;
-          }
+  
+  
+  
+  
+  const SECItemArray *csa = SSL_PeerStapledOCSPResponses(fd);
+  
+  if (csa && csa->len == 1) {
+      CERTCertDBHandle *handle = CERT_GetDefaultCertDB();
+      SECStatus cacheResult = CERT_CacheOCSPResponseFromSideChannel(
+          handle, serverCert, now, &csa->items[0], arg);
+      if (cacheResult != SECSuccess) {
+          return SECFailure;
       }
   }
 
