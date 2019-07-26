@@ -264,9 +264,14 @@ let FormAssistant = {
           this.showKeyboard(target);
         break;
 
+      case "pagehide":
+        
+        if (target && target != content.document) {
+          break;
+        }
+        
       case "blur":
       case "submit":
-      case "pagehide":
         if (this.focusedElement)
           this.hideKeyboard();
         break;
