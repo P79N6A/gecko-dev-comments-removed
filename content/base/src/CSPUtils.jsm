@@ -45,7 +45,8 @@ const R_HOSTCHAR   = new RegExp ("[a-zA-Z0-9\\-]", 'i');
 
 
 const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
-                                      "+)(\\." + R_HOSTCHAR.source +"+)*)",'i');
+                              "+)" + "(\\." + R_HOSTCHAR.source + "+)*)", 'i');
+
 
 const R_PORT       = new RegExp ("(\\:([0-9]+|\\*))", 'i');
 
@@ -1351,6 +1352,7 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   }
 
   
+  
   if (R_SCHEMESRC.test(aStr)) {
     var schemeSrcMatch = R_GETSCHEME.exec(aStr);
     sObj._scheme = schemeSrcMatch[0];
@@ -1372,7 +1374,7 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     }
 
     
-    var hostMatch = R_HOST.exec(aStr);
+    var hostMatch = R_HOSTSRC.exec(aStr);
     if (!hostMatch) {
       cspError(aCSPRep, CSPLocalizer.getFormatStr("couldntParseInvalidSource",
                                                   [aStr]));
@@ -1380,9 +1382,15 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     }
     
     if (schemeMatch)
-      hostMatch = R_HOST.exec(aStr.substring(schemeMatch[0].length + 3));
+      hostMatch = R_HOSTSRC.exec(aStr.substring(schemeMatch[0].length + 3));
+
+    var portMatch = R_PORT.exec(hostMatch);
+
+    
+    if (portMatch)
+      hostMatch = R_HOSTSRC.exec(hostMatch[0].substring(0, hostMatch[0].length - portMatch[0].length));
+
     sObj._host = CSPHost.fromString(hostMatch[0]);
-    var portMatch = R_PORT.exec(aStr);
     if (!portMatch) {
       
       defPort = Services.io.getProtocolHandler(sObj._scheme).defaultPort;
