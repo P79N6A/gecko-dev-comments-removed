@@ -56,7 +56,10 @@ class BaselineFrame
         PREV_UP_TO_DATE  = 1 << 5,
 
         
-        EVAL             = 1 << 6
+        EVAL             = 1 << 6,
+
+        
+        HAS_HOOK_DATA    = 1 << 7
     };
 
   protected: 
@@ -71,11 +74,16 @@ class BaselineFrame
     StaticBlockObject *blockChain_; 
     JSScript *evalScript_;          
     ArgumentsObject *argsObj_;      
+    void *hookData_;                
     uint32_t flags_;
 
     
     
     AbstractFramePtr evalPrev_;
+
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding_;
+#endif
 
   public:
     
@@ -275,10 +283,6 @@ class BaselineFrame
         flags_ |= PREV_UP_TO_DATE;
     }
 
-    void *maybeHookData() const {
-        return NULL;
-    }
-
     JSScript *evalScript() const {
         JS_ASSERT(isEvalFrame());
         return evalScript_;
@@ -291,6 +295,19 @@ class BaselineFrame
     }
 
     void initEvalPrev(JSContext *cx);
+
+    bool hasHookData() const {
+        return flags_ & HAS_HOOK_DATA;
+    }
+
+    void *maybeHookData() const {
+        return hasHookData() ? hookData_ : NULL;
+    }
+
+    void setHookData(void *v) {
+        hookData_ = v;
+        flags_ |= HAS_HOOK_DATA;
+    }
 
     void trace(JSTracer *trc);
 
