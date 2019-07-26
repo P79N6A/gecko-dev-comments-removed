@@ -4630,16 +4630,27 @@ nsNavHistoryResult::OnVisit(nsIURI* aURI, int64_t aVisitId, PRTime aTime,
     
     uint32_t resultType = mRootNode->mOptions->ResultType();
     if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ||
-        resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY ||
-        resultType == nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY)
-      (void)mRootNode->GetAsQuery()->Refresh();
-    else {
+        resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY) {
       
       
-      
-      
-      ENUMERATE_QUERY_OBSERVERS(Refresh(), mHistoryObservers, IsContainersQuery());
+      int64_t beginOfToday =
+        nsNavHistory::NormalizeTime(nsINavHistoryQuery::TIME_RELATIVE_TODAY, 0);
+      if (todayIsMissing || aTime < beginOfToday) {
+        (void)mRootNode->GetAsQuery()->Refresh();
+      }
+      return NS_OK;
     }
+
+    if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY) {
+      (void)mRootNode->GetAsQuery()->Refresh();
+      return NS_OK;
+    }
+
+    
+    
+    
+    
+    ENUMERATE_QUERY_OBSERVERS(Refresh(), mHistoryObservers, IsContainersQuery());
   }
 
   return NS_OK;
