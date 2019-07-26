@@ -154,7 +154,12 @@ CheckBasicConstraints(const BackCert& cert,
       
       
       
-      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_CERT_TYPE);
+      
+      
+      
+      
+      
+      return Fail(RecoverableError, SEC_ERROR_CA_CERT_INVALID);
     }
 
     return Success;
@@ -180,12 +185,94 @@ CheckBasicConstraints(const BackCert& cert,
 
 
 Result
+CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
+                      SECOidTag requiredEKU)
+{
+  
+  
+  
+
+  
+  
+  
+  
+
+  bool foundOCSPSigning = false;
+
+  if (encodedEKUs) {
+    ScopedPtr<CERTOidSequence, CERT_DestroyOidSequence>
+      seq(CERT_DecodeOidSequence(encodedEKUs));
+    if (!seq) {
+      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
+      return RecoverableError;
+    }
+
+    bool found = false;
+
+    
+    for (const SECItem* const* oids = seq->oids; oids && *oids; ++oids) {
+      SECOidTag oidTag = SECOID_FindOIDTag(*oids);
+      if (requiredEKU != SEC_OID_UNKNOWN && oidTag == requiredEKU) {
+        found = true;
+      }
+      if (oidTag == SEC_OID_OCSP_RESPONDER) {
+        foundOCSPSigning = true;
+      }
+    }
+
+    
+    
+    if (!found) {
+      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
+      return RecoverableError;
+    }
+  }
+
+  
+
+  if (foundOCSPSigning) {
+    
+    
+    
+    
+    
+    if (requiredEKU != SEC_OID_OCSP_RESPONDER) {
+      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
+      return RecoverableError;
+    }
+  } else if (requiredEKU == SEC_OID_OCSP_RESPONDER &&
+             endEntityOrCA == MustBeEndEntity) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
+    return RecoverableError;
+  }
+
+  return Success;
+}
+
+
+
+Result
 CheckExtensions(BackCert& cert,
                 EndEntityOrCA endEntityOrCA,
                 bool isTrustAnchor,
                 KeyUsages requiredKeyUsagesIfPresent,
+                SECOidTag requiredEKUIfPresent,
                 unsigned int subCACount)
 {
+  if (endEntityOrCA != MustBeCA && isTrustAnchor) {
+    PR_NOT_REACHED("only CAs can be trust anchors.");
+    return Fail(FatalError, PR_INVALID_STATE_ERROR);
+  }
+
   
   
 
@@ -221,6 +308,12 @@ CheckExtensions(BackCert& cert,
   
   
   
+  rv = CheckExtendedKeyUsage(endEntityOrCA, cert.encodedExtendedKeyUsage,
+                             requiredEKUIfPresent);
+  if (rv != Success) {
+    return rv;
+  }
+
   
   
 

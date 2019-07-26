@@ -27,6 +27,7 @@ SECStatus BuildCertChain(TrustDomain& trustDomain,
                          CERTCertificate* cert,
                          PRTime time,
              KeyUsages requiredKeyUsagesIfPresent,
+             SECOidTag requiredEKUIfPresent,
                   ScopedCERTCertList& results);
 
 
