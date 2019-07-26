@@ -305,7 +305,7 @@ InternalMethods.prototype = {
   },
 
   isUserEmailVerified: function isUserEmailVerified(data) {
-    return !!(data && data.isVerified);
+    return !!(data && data.verified);
   },
 
   
@@ -334,7 +334,7 @@ InternalMethods.prototype = {
   },
 
   whenVerified: function(data) {
-    if (data.isVerified) {
+    if (data.verified) {
       log.debug("already verified");
       return Promise.resolve(data);
     }
@@ -388,7 +388,7 @@ InternalMethods.prototype = {
           
           this.getUserAccountData()
             .then((data) => {
-              data.isVerified = true;
+              data.verified = true;
               return this.setUserAccountData(data);
             })
             .then((data) => {
