@@ -136,11 +136,15 @@ nsScriptError::InitWithWindowID(const nsAString& message,
 
             nsIDocShell* docShell = window->GetDocShell();
             nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
+
             if (loadContext) {
-              
-              mIsFromPrivateWindow = !nsContentUtils::IsCallerChrome() &&
-                                     loadContext->UsePrivateBrowsing();
+                
+                
+                nsIPrincipal* winPrincipal = window->GetPrincipal();
+                mIsFromPrivateWindow = loadContext->UsePrivateBrowsing() &&
+                                       !nsContentUtils::IsSystemPrincipal(winPrincipal);
             }
+
         }
     }
 
