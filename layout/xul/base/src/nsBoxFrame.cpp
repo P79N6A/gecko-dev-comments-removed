@@ -1988,25 +1988,32 @@ MergeSort(nsIFrame *aSource)
 void 
 nsBoxFrame::CheckBoxOrder()
 {
-  nsIFrame *child = mFrames.FirstChild();
-  if (!child)
-    return;
-
   if (!SupportsOrdinalsInChildren())
     return;
 
-  
-  
-  uint32_t maxOrdinal = child->GetOrdinal();
-  child = child->GetNextSibling();
-  for ( ; child; child = child->GetNextSibling()) {
-    uint32_t ordinal = child->GetOrdinal();
-    if (ordinal < maxOrdinal)
-      break;
-    maxOrdinal = ordinal;
+  if (mFrames.IsEmpty()) {
+    
+    return;
   }
 
-  if (!child)
+  
+  
+  nsFrameList::Enumerator trailingIter(mFrames);
+  nsFrameList::Enumerator iter(mFrames);
+  iter.Next(); 
+
+  
+  while (!iter.AtEnd()) {
+    MOZ_ASSERT(!trailingIter.AtEnd(), "trailing iter shouldn't finish first");
+    if (trailingIter.get()->GetOrdinal() > iter.get()->GetOrdinal()) {
+      break;
+    }
+    trailingIter.Next();
+    iter.Next();
+  }
+
+  
+  if (iter.AtEnd())
     return;
 
   nsIFrame* head = MergeSort(mFrames.FirstChild());
