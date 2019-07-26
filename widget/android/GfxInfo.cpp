@@ -367,9 +367,24 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
-	bool isWhitelisted =
+        
+        bool isWhitelisted =
           cManufacturer.Equals("htc", nsCaseInsensitiveCStringComparator()) ||
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator());
+
+        if (cModel.Equals("GT-I8160", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-I8160L", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-I8530", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-I9070", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-I9070P", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-I8160P", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-S7500", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-S7500T", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-S7500L", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("GT-S6500T", nsCaseInsensitiveCStringComparator()))
+        {
+          isWhitelisted = false;
+        }
 
         if (!isWhitelisted) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
