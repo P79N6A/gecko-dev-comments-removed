@@ -736,9 +736,7 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
             else if (!identFromURI ||
                      (nsCRT::strcmp(ident->User(),
                                     entry->Identity().User()) == 0 &&
-                     !(loadFlags &&
-                       (nsIChannel::LOAD_ANONYMOUS |
-                        nsIChannel::LOAD_EXPLICIT_CREDENTIALS)))) {
+                     !(loadFlags && nsIChannel::LOAD_ANONYMOUS))) {
                 LOG(("  taking identity from auth cache\n"));
                 
                 
@@ -1301,15 +1299,8 @@ nsHttpChannelAuthProvider::SetAuthorizationHeader(nsHttpAuthCache    *authCache,
             GetIdentityFromURI(0, ident);
             
             
-            
-            
-            if (nsCRT::strcmp(ident.User(), entry->User()) == 0) {
-                uint32_t loadFlags;
-                if (NS_SUCCEEDED(mAuthChannel->GetLoadFlags(&loadFlags)) &&
-                    !(loadFlags && nsIChannel::LOAD_EXPLICIT_CREDENTIALS)) {
-                    ident.Clear();
-                }
-            }
+            if (nsCRT::strcmp(ident.User(), entry->User()) == 0)
+                ident.Clear();
         }
         bool identFromURI;
         if (ident.IsEmpty()) {
