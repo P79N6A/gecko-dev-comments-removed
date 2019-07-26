@@ -325,7 +325,7 @@ IonCode::trace(JSTracer *trc)
         
         
         IonCompartment *ion = compartment()->ionCompartment();
-        MarkIonCodeRoot(trc, ion->getInvalidationThunkAddr(), "invalidator");
+        MarkIonCodeUnbarriered(trc, ion->getInvalidationThunkAddr(), "invalidator");
         return;
     }
 
