@@ -489,6 +489,8 @@ class MachCommandBase(MozbuildObject):
         MozbuildObject.__init__(self, context.topdir, context.settings,
             context.log_manager)
 
+        self._mach_context = context
+
         
         
         
