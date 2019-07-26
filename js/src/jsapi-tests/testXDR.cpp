@@ -4,14 +4,10 @@
 
 
 
-
-
 #include "tests.h"
 #include "jsscript.h"
 #include "jsstr.h"
 #include "jsfriendapi.h"
-
-#include "jsscriptinlines.h"
 
 static JSScript *
 CompileScriptForPrincipalsVersionOrigin(JSContext *cx, JS::HandleObject obj,
