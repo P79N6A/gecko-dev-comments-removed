@@ -23,6 +23,7 @@
 #include "nsILoadGroup.h"
 #include "imgIContainer.h"
 #include "imgLoader.h"
+#include "imgRequestProxy.h"
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"
 #include "nsAsyncDOMEvent.h"
@@ -464,7 +465,7 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
   AutoStateChanger changer(this, true);
 
   
-  nsCOMPtr<imgIRequest>& req = PrepareNextRequest();
+  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest();
   nsresult rv = nsContentUtils::GetImgLoaderForChannel(aChannel)->
     LoadImageWithChannel(aChannel, this, doc, aListener,
                          getter_AddRefs(req));
@@ -654,7 +655,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   }
 
   
-  nsCOMPtr<imgIRequest>& req = PrepareNextRequest();
+  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest();
   nsresult rv;
   rv = nsContentUtils::LoadImage(aNewURI, aDocument,
                                  aDocument->NodePrincipal(),
@@ -784,7 +785,7 @@ nsImageLoadingContent::CancelImageRequests(bool aNotify)
 }
 
 nsresult
-nsImageLoadingContent::UseAsPrimaryRequest(imgIRequest* aRequest,
+nsImageLoadingContent::UseAsPrimaryRequest(imgRequestProxy* aRequest,
                                            bool aNotify)
 {
   
@@ -795,7 +796,7 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgIRequest* aRequest,
   ClearCurrentRequest(NS_BINDING_ABORTED);
 
   
-  nsCOMPtr<imgIRequest>& req = PrepareNextRequest();;
+  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest();
   nsresult rv = aRequest->Clone(this, getter_AddRefs(req));
   if (NS_SUCCEEDED(rv))
     TrackImage(req);
@@ -883,7 +884,7 @@ nsImageLoadingContent::FireEvent(const nsAString& aEventType)
   return NS_OK;
 }
 
-nsCOMPtr<imgIRequest>&
+nsRefPtr<imgRequestProxy>&
 nsImageLoadingContent::PrepareNextRequest()
 {
   
@@ -922,7 +923,7 @@ nsImageLoadingContent::SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision)
   }
 }
 
-nsCOMPtr<imgIRequest>&
+nsRefPtr<imgRequestProxy>&
 nsImageLoadingContent::PrepareCurrentRequest()
 {
   
@@ -940,7 +941,7 @@ nsImageLoadingContent::PrepareCurrentRequest()
   return mCurrentRequest;
 }
 
-nsCOMPtr<imgIRequest>&
+nsRefPtr<imgRequestProxy>&
 nsImageLoadingContent::PreparePendingRequest()
 {
   

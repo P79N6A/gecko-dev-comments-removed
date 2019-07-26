@@ -128,7 +128,7 @@ protected:
 
 
 
-  nsresult UseAsPrimaryRequest(imgIRequest* aRequest, bool aNotify);
+  nsresult UseAsPrimaryRequest(imgRequestProxy* aRequest, bool aNotify);
 
   
 
@@ -255,7 +255,7 @@ protected:
 
 
 
-   nsCOMPtr<imgIRequest>& PrepareNextRequest();
+   nsRefPtr<imgRequestProxy>& PrepareNextRequest();
 
   
 
@@ -270,8 +270,8 @@ protected:
 
 
 
-  nsCOMPtr<imgIRequest>& PrepareCurrentRequest();
-  nsCOMPtr<imgIRequest>& PreparePendingRequest();
+  nsRefPtr<imgRequestProxy>& PrepareCurrentRequest();
+  nsRefPtr<imgRequestProxy>& PreparePendingRequest();
 
   
 
@@ -316,8 +316,8 @@ protected:
   nsresult UntrackImage(imgIRequest* aImage);
 
   
-  nsCOMPtr<imgIRequest> mCurrentRequest;
-  nsCOMPtr<imgIRequest> mPendingRequest;
+  nsRefPtr<imgRequestProxy> mCurrentRequest;
+  nsRefPtr<imgRequestProxy> mPendingRequest;
   uint32_t mCurrentRequestFlags;
   uint32_t mPendingRequestFlags;
 

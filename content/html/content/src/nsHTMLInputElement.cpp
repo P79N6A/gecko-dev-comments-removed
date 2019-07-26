@@ -77,6 +77,7 @@
 
 
 #include "nsImageLoadingContent.h"
+#include "imgRequestProxy.h"
 
 #include "mozAutoDocUpdate.h"
 #include "nsContentCreatorFunctions.h"

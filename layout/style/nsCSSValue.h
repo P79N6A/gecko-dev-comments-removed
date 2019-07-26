@@ -16,14 +16,14 @@
 #include "nsCSSProperty.h"
 #include "nsColor.h"
 #include "nsCoord.h"
-#include "nsInterfaceHashtable.h"
+#include "nsRefPtrHashtable.h"
 #include "nsString.h"
 #include "nsStringBuffer.h"
 #include "nsTArray.h"
 #include "nsStyleConsts.h"
 #include "mozilla/FloatingPoint.h"
 
-class imgIRequest;
+class imgRequestProxy;
 class nsIDocument;
 class nsIPrincipal;
 class nsPresContext;
@@ -125,7 +125,7 @@ struct ImageValue : public URLValue {
 
   
 
-  nsInterfaceHashtable<nsISupportsHashKey, imgIRequest> mRequests; 
+  nsRefPtrHashtable<nsISupportsHashKey, imgRequestProxy> mRequests; 
 
   
   
@@ -454,7 +454,7 @@ public:
   
   
   
-  imgIRequest* GetImageValue(nsIDocument* aDocument) const;
+  imgRequestProxy* GetImageValue(nsIDocument* aDocument) const;
 
   nscoord GetFixedLength(nsPresContext* aPresContext) const;
   nscoord GetPixelLength() const;

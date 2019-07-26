@@ -103,6 +103,9 @@ public:
   
   void ClearAnimationConsumers();
 
+  nsresult Clone(imgINotificationObserver* aObserver, imgRequestProxy** aClone);
+  nsresult GetStaticRequest(imgRequestProxy** aReturn);
+
 protected:
   friend class imgStatusTracker;
   friend class imgStatusNotifyRunnable;
@@ -176,7 +179,7 @@ protected:
 
   nsresult PerformClone(imgINotificationObserver* aObserver,
                         imgRequestProxy* (aAllocFn)(imgRequestProxy*),
-                        imgIRequest** aClone);
+                        imgRequestProxy** aClone);
 
 public:
   NS_FORWARD_SAFE_NSITIMEDCHANNEL(TimedChannel())
