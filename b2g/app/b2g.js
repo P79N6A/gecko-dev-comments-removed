@@ -565,36 +565,56 @@ pref("dom.ipc.processPriorityManager.backgroundGracePeriodMS", 1000);
 pref("dom.ipc.processPriorityManager.temporaryPriorityLockMS", 5000);
 
 
-pref("gonk.systemMemoryPressureRecoveryPollMS", 5000);
-pref("hal.processPriorityManager.gonk.masterOomScoreAdjust", 0);
-pref("hal.processPriorityManager.gonk.masterKillUnderMB", 4);
-pref("hal.processPriorityManager.gonk.foregroundHighOomScoreAdjust", 67);
-pref("hal.processPriorityManager.gonk.foregroundHighKillUnderMB", 5);
-pref("hal.processPriorityManager.gonk.foregroundOomScoreAdjust", 134);
-pref("hal.processPriorityManager.gonk.foregroundKillUnderMB", 6);
-pref("hal.processPriorityManager.gonk.backgroundPerceivableOomScoreAdjust", 200);
-pref("hal.processPriorityManager.gonk.backgroundPerceivableKillUnderMB", 7);
-pref("hal.processPriorityManager.gonk.backgroundHomescreenOomScoreAdjust", 267);
-pref("hal.processPriorityManager.gonk.backgroundHomescreenKillUnderMB", 8);
-pref("hal.processPriorityManager.gonk.backgroundOomScoreAdjust", 400);
-pref("hal.processPriorityManager.gonk.backgroundKillUnderMB", 20);
+
+
+
+
+
+
+
+
+
+
+pref("hal.processPriorityManager.gonk.MASTER.OomScoreAdjust", 0);
+pref("hal.processPriorityManager.gonk.MASTER.KillUnderMB", 4);
+pref("hal.processPriorityManager.gonk.MASTER.Nice", 0);
+
+pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.OomScoreAdjust", 67);
+pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.KillUnderMB", 5);
+pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.Nice", 0);
+
+pref("hal.processPriorityManager.gonk.FOREGROUND.OomScoreAdjust", 134);
+pref("hal.processPriorityManager.gonk.FOREGROUND.KillUnderMB", 6);
+pref("hal.processPriorityManager.gonk.FOREGROUND.Nice", 1);
+
+pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.OomScoreAdjust", 200);
+pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.KillUnderMB", 7);
+pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.Nice", 10);
+
+pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.OomScoreAdjust", 267);
+pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.KillUnderMB", 8);
+pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.Nice", 18);
+
+pref("hal.processPriorityManager.gonk.BACKGROUND.OomScoreAdjust", 400);
+pref("hal.processPriorityManager.gonk.BACKGROUND.KillUnderMB", 20);
+pref("hal.processPriorityManager.gonk.BACKGROUND.Nice", 18);
+
+
+pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
+
+
+
+
+
+
+
+
 pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 10);
 
 
 
 
-
-
-
-
-
-
-pref("hal.processPriorityManager.gonk.masterNice", 0);
-pref("hal.processPriorityManager.gonk.foregroundHighNice", 0);
-pref("hal.processPriorityManager.gonk.foregroundNice", 1);
-pref("hal.processPriorityManager.gonk.backgroundPerceivableNice", 10);
-pref("hal.processPriorityManager.gonk.backgroundHomescreenNice", 18);
-pref("hal.processPriorityManager.gonk.backgroundNice", 18);
+pref("gonk.systemMemoryPressureRecoveryPollMS", 5000);
 
 #ifndef DEBUG
 

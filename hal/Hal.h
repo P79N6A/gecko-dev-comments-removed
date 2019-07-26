@@ -476,7 +476,15 @@ bool SetAlarm(int32_t aSeconds, int32_t aNanoseconds);
 
 
 
-void SetProcessPriority(int aPid, hal::ProcessPriority aPriority);
+
+
+
+
+
+
+void SetProcessPriority(int aPid,
+                        hal::ProcessPriority aPriority,
+                        hal::ProcessCPUPriority aCPUPriority);
 
 
 

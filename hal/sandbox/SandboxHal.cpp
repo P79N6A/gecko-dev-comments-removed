@@ -339,9 +339,11 @@ SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
 }
 
 void
-SetProcessPriority(int aPid, ProcessPriority aPriority)
+SetProcessPriority(int aPid,
+                   ProcessPriority aPriority,
+                   ProcessCPUPriority aCPUPriority)
 {
-  Hal()->SendSetProcessPriority(aPid, aPriority);
+  NS_RUNTIMEABORT("Only the main process may set processes' priorities.");
 }
 
 void
@@ -779,15 +781,6 @@ public:
   {
     
     *aState = hal::GetCurrentSwitchState(aDevice);
-    return true;
-  }
-
-  virtual bool
-  RecvSetProcessPriority(const int& aPid, const ProcessPriority& aPriority)
-  {
-    
-    
-    hal::SetProcessPriority(aPid, aPriority);
     return true;
   }
 
