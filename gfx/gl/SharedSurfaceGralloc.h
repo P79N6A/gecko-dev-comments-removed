@@ -9,11 +9,11 @@
 #include "SharedSurfaceGL.h"
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
-#include "mozilla/layers/TextureClient.h"
 
 namespace mozilla {
 namespace layers {
 class ISurfaceAllocator;
+class SurfaceDescriptorGralloc;
 }
 
 namespace gl {
@@ -39,7 +39,16 @@ public:
 protected:
     GLLibraryEGL* const mEGL;
     RefPtr<layers::ISurfaceAllocator> mAllocator;
-    RefPtr<layers::TextureClient> mTextureClient;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    layers::SurfaceDescriptorGralloc mDesc;
     const GLuint mProdTex;
 
     SharedSurface_Gralloc(GLContext* prodGL,
@@ -47,7 +56,7 @@ protected:
                           bool hasAlpha,
                           GLLibraryEGL* egl,
                           layers::ISurfaceAllocator* allocator,
-                          layers::TextureClient* textureClient,
+                          layers::SurfaceDescriptorGralloc& desc,
                           GLuint prodTex)
         : SharedSurface_GL(SharedSurfaceType::Gralloc,
                            AttachmentType::GLTexture,
@@ -56,7 +65,7 @@ protected:
                            hasAlpha)
         , mEGL(egl)
         , mAllocator(allocator)
-        , mTextureClient(textureClient)
+        , mDesc(desc)
         , mProdTex(prodTex)
     {}
 
@@ -75,8 +84,8 @@ public:
         return mProdTex;
     }
 
-    layers::TextureClient* GetTextureClient() {
-        return mTextureClient;
+    layers::SurfaceDescriptorGralloc& GetDescriptor() {
+        return mDesc;
     }
 };
 
