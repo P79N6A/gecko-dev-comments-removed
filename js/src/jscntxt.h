@@ -485,36 +485,6 @@ class PerThreadData : public js::PerThreadDataFriendFields
     JSContext           *ionJSContext;
     uintptr_t            ionStackLimit;
 
-# ifdef JS_THREADSAFE
-    
-
-
-
-    PRLock *ionStackLimitLock_;
-
-    class IonStackLimitLock {
-        PerThreadData &data_;
-      public:
-        IonStackLimitLock(PerThreadData &data) : data_(data) {
-            JS_ASSERT(data_.ionStackLimitLock_);
-            PR_Lock(data_.ionStackLimitLock_);
-        }
-        ~IonStackLimitLock() {
-            JS_ASSERT(data_.ionStackLimitLock_);
-            PR_Unlock(data_.ionStackLimitLock_);
-        }
-    };
-#else
-    class IonStackLimitLock {
-      public:
-        IonStackLimitLock(PerThreadData &data) {}
-    };
-# endif
-    void setIonStackLimit(uintptr_t limit) {
-        IonStackLimitLock lock(*this);
-        ionStackLimit = limit;
-    }
-
     
 
 
@@ -806,6 +776,8 @@ struct JSRuntime : private JS::shadow::Runtime,
                                        js::Handle<JSFunction*> targetFun);
     bool cloneSelfHostedValue(JSContext *cx, js::Handle<js::PropertyName*> name,
                               js::MutableHandleValue vp);
+    bool maybeWrappedSelfHostedFunction(JSContext *cx, js::Handle<js::PropertyName*> name,
+                                        js::MutableHandleValue funVal);
 
     
     
@@ -1302,10 +1274,8 @@ struct JSRuntime : private JS::shadow::Runtime,
 
     bool                jitHardening;
 
-    
-    
     void resetIonStackLimit() {
-        mainThread.setIonStackLimit(mainThread.nativeStackLimit);
+        mainThread.ionStackLimit = mainThread.nativeStackLimit;
     }
 
     
@@ -2122,6 +2092,9 @@ js_InvokeOperationCallback(JSContext *cx);
 
 extern JSBool
 js_HandleExecutionInterrupt(JSContext *cx);
+
+extern jsbytecode*
+js_GetCurrentBytecodePC(JSContext* cx);
 
 
 

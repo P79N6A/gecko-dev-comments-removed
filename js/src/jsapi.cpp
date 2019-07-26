@@ -692,14 +692,11 @@ PerThreadData::PerThreadData(JSRuntime *runtime)
     ionTop(NULL),
     ionJSContext(NULL),
     ionStackLimit(0),
-#ifdef JS_THREADSAFE
-    ionStackLimitLock_(NULL),
-#endif
     ionActivation(NULL),
     asmJSActivationStack_(NULL),
-#ifdef JS_THREADSAFE
+# ifdef JS_THREADSAFE
     asmJSActivationStackLock_(NULL),
-#endif
+# endif
     suppressGC(0)
 {}
 
@@ -707,10 +704,6 @@ bool
 PerThreadData::init()
 {
 #ifdef JS_THREADSAFE
-    ionStackLimitLock_ = PR_NewLock();
-    if (!ionStackLimitLock_)
-        return false;
-
     asmJSActivationStackLock_ = PR_NewLock();
     if (!asmJSActivationStackLock_)
         return false;
@@ -721,9 +714,6 @@ PerThreadData::init()
 PerThreadData::~PerThreadData()
 {
 #ifdef JS_THREADSAFE
-    if (ionStackLimitLock_)
-        PR_DestroyLock(ionStackLimitLock_);
-
     if (asmJSActivationStackLock_)
         PR_DestroyLock(asmJSActivationStackLock_);
 #endif
@@ -3088,16 +3078,6 @@ JS_SetNativeStackQuota(JSRuntime *rt, size_t stackSize)
         rt->mainThread.nativeStackLimit = rt->nativeStackBase - (stackSize - 1);
     }
 #endif
-
-    
-    
-#ifdef JS_ION
-    {
-        PerThreadData::IonStackLimitLock lock(rt->mainThread);
-        if (rt->mainThread.ionStackLimit != uintptr_t(-1))
-            rt->mainThread.ionStackLimit = rt->mainThread.nativeStackLimit;
-    }
-#endif
 }
 
 
@@ -5071,21 +5051,31 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, const JSFunctionSpec *fs)
             if (cx->runtime->isSelfHostingGlobal(cx->global()))
                 continue;
 
-            RootedFunction fun(cx, DefineFunction(cx, obj, id,  NULL, fs->nargs, 0,
-                                                  JSFunction::ExtendedFinalizeKind, SingletonObject));
-            if (!fun)
-                return JS_FALSE;
-            fun->setIsSelfHostedBuiltin();
-            fun->setExtendedSlot(0, PrivateValue(const_cast<JSFunctionSpec*>(fs)));
             RootedAtom shAtom(cx, Atomize(cx, fs->selfHostedName, strlen(fs->selfHostedName)));
             if (!shAtom)
                 return JS_FALSE;
-            RootedObject holder(cx, cx->global()->intrinsicsHolder());
-            if (!JS_DefinePropertyById(cx,holder, AtomToId(shAtom),
-                                       ObjectValue(*fun), NULL, NULL, 0))
-            {
+            RootedPropertyName shName(cx, shAtom->asPropertyName());
+            RootedValue funVal(cx);
+            if (!cx->runtime->maybeWrappedSelfHostedFunction(cx, shName, &funVal))
                 return JS_FALSE;
+            if (!funVal.isUndefined()) {
+                if (!JSObject::defineProperty(cx, obj, atom->asPropertyName(), funVal,
+                                             NULL, NULL, flags & ~JSFUN_FLAGS_MASK))
+                {
+                    return JS_FALSE;
+                }
+            } else {
+                RawFunction fun = DefineFunction(cx, obj, id,  NULL, fs->nargs, 0,
+                                                 JSFunction::ExtendedFinalizeKind, SingletonObject);
+                if (!fun)
+                    return JS_FALSE;
+                fun->setIsSelfHostedBuiltin();
+                fun->setExtendedSlot(0, PrivateValue(const_cast<JSFunctionSpec*>(fs)));
+                funVal.setObject(*fun);
             }
+            RootedObject holder(cx, cx->global()->intrinsicsHolder());
+            if (!JSObject::defineProperty(cx, holder, shName, funVal))
+                return JS_FALSE;
         } else {
             JSFunction *fun = DefineFunction(cx, obj, id, fs->call.op, fs->nargs, flags);
             if (!fun)

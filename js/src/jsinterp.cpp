@@ -51,11 +51,6 @@
 #include "methodjit/Logging.h"
 #endif
 #include "ion/Ion.h"
-#include "ion/BaselineJIT.h"
-
-#ifdef JS_ION
-#include "ion/IonFrames-inl.h"
-#endif
 
 #include "jsatominlines.h"
 #include "jsboolinlines.h"
@@ -328,23 +323,6 @@ js::RunScript(JSContext *cx, StackFrame *fp)
             
             if (status == ion::IonExec_Bailout)
                 return Interpret(cx, fp, JSINTERP_REJOIN);
-
-            return !IsErrorStatus(status);
-        }
-    }
-
-    if (ion::IsBaselineEnabled(cx)) {
-        ion::MethodStatus status = ion::CanEnterBaselineJIT(cx, script, fp, false);
-        if (status == ion::Method_Error)
-            return false;
-        if (status == ion::Method_Compiled) {
-            ion::IonExecStatus status = ion::EnterBaselineMethod(cx, fp);
-
-            
-            
-            
-            
-            JS_ASSERT(status != ion::IonExec_Bailout);
 
             return !IsErrorStatus(status);
         }
@@ -981,8 +959,8 @@ JS_STATIC_ASSERT(JSOP_INCNAME_LENGTH == JSOP_NAMEDEC_LENGTH);
 
 
 
-bool
-js::IteratorMore(JSContext *cx, JSObject *iterobj, bool *cond, MutableHandleValue rval)
+static inline bool
+IteratorMore(JSContext *cx, JSObject *iterobj, bool *cond, MutableHandleValue rval)
 {
     if (iterobj->isPropertyIterator()) {
         NativeIterator *ni = iterobj->asPropertyIterator().getNativeIterator();
@@ -998,8 +976,8 @@ js::IteratorMore(JSContext *cx, JSObject *iterobj, bool *cond, MutableHandleValu
     return true;
 }
 
-bool
-js::IteratorNext(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
+static inline bool
+IteratorNext(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
 {
     if (iterobj->isPropertyIterator()) {
         NativeIterator *ni = iterobj->asPropertyIterator().getNativeIterator();
@@ -1027,7 +1005,7 @@ TypeCheckNextBytecode(JSContext *cx, HandleScript script, unsigned n, const Fram
 }
 
 JS_NEVER_INLINE InterpretStatus
-js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode, bool useNewType)
+js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 {
     JSAutoResolveFlags rf(cx, RESOLVE_INFER);
 
@@ -1456,30 +1434,6 @@ BEGIN_CASE(JSOP_LOOPENTRY)
             goto leave_on_safe_point;
         }
     }
-
-    if (ion::IsBaselineEnabled(cx)) {
-        ion::MethodStatus status = ion::CanEnterBaselineJIT(cx, script, regs.fp(), false);
-        if (status == ion::Method_Error)
-            goto error;
-        if (status == ion::Method_Compiled) {
-            ion::IonExecStatus maybeOsr = ion::EnterBaselineAtBranch(cx, regs.fp(), regs.pc);
-
-            
-            JS_ASSERT(maybeOsr != ion::IonExec_Bailout);
-
-            
-            if (maybeOsr == ion::IonExec_Aborted)
-                goto error;
-
-            interpReturnOK = (maybeOsr == ion::IonExec_Ok);
-
-            if (entryFrame != regs.fp())
-                goto jit_return;
-
-            regs.fp()->setFinishedInInterpreter();
-            goto leave_on_safe_point;
-        }
-    }
 #endif
 
 END_CASE(JSOP_LOOPENTRY)
@@ -1561,7 +1515,7 @@ BEGIN_CASE(JSOP_STOP)
             Probes::exitScript(cx, script, script->function(), regs.fp());
 
         
-#if defined(JS_METHODJIT) || defined(JS_ION)
+#ifdef JS_METHODJIT
   jit_return:
 #endif
 
@@ -1789,9 +1743,11 @@ BEGIN_CASE(JSOP_SETCONST)
 
     RootedObject &obj = rootObject0;
     obj = &regs.fp()->varObj();
-
-    if (!SetConstOperation(cx, obj, name, rval))
+    if (!JSObject::defineProperty(cx, obj, name, rval,
+                                  JS_PropertyStub, JS_StrictPropertyStub,
+                                  JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY)) {
         goto error;
+    }
 }
 END_CASE(JSOP_SETCONST);
 
@@ -2105,19 +2061,29 @@ END_CASE(JSOP_POS)
 
 BEGIN_CASE(JSOP_DELNAME)
 {
-    
-    JS_ASSERT(!script->strict);
-
     RootedPropertyName &name = rootName0;
     name = script->getName(regs.pc);
 
     RootedObject &scopeObj = rootObject0;
     scopeObj = cx->stack.currentScriptedScopeChain();
 
-    PUSH_BOOLEAN(true);
-    MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-1]);
-    if (!DeleteNameOperation(cx, name, scopeObj, res))
+    RootedObject &scope = rootObject1;
+    RootedObject &pobj = rootObject2;
+    RootedShape &prop = rootShape0;
+    if (!LookupName(cx, name, scopeObj, &scope, &pobj, &prop))
         goto error;
+
+    
+    JS_ASSERT(!script->strict);
+
+    
+    PUSH_BOOLEAN(true);
+    if (prop) {
+        MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-1]);
+        if (!JSObject::deleteProperty(cx, scope, name, res, false))
+            goto error;
+    }
+    prop = NULL;
 }
 END_CASE(JSOP_DELNAME)
 
@@ -2435,25 +2401,6 @@ BEGIN_CASE(JSOP_FUNCALL)
             goto jit_return;
         }
     }
-
-    if (ion::IsBaselineEnabled(cx)) {
-        ion::MethodStatus status = ion::CanEnterBaselineJIT(cx, script, regs.fp(), newType);
-        if (status == ion::Method_Error)
-            goto error;
-        if (status == ion::Method_Compiled) {
-            ion::IonExecStatus exec = ion::EnterBaselineMethod(cx, regs.fp());
-            CHECK_BRANCH();
-
-            
-            
-            
-            
-            JS_ASSERT(exec != ion::IonExec_Bailout);
-
-            interpReturnOK = !IsErrorStatus(exec);
-            goto jit_return;
-        }
-    }
 #endif
 
 #ifdef JS_METHODJIT
@@ -2542,7 +2489,7 @@ BEGIN_CASE(JSOP_CALLINTRINSIC)
 {
     RootedValue &rval = rootValue0;
 
-    if (!GetIntrinsicOperation(cx, script, regs.pc, &rval))
+    if (!GetIntrinsicOperation(cx, regs.pc, &rval))
         goto error;
 
     PUSH_COPY(rval);
@@ -3476,18 +3423,14 @@ js::Lambda(JSContext *cx, HandleFunction fun, HandleObject parent)
         return NULL;
 
     if (fun->isArrow()) {
-        
-        
-        AbstractFramePtr frame = cx->fp();
-#ifdef JS_ION
-        if (cx->fp()->runningInIon())
-            frame = ion::GetTopBaselineFrame(cx);
-#endif
+        StackFrame *fp = cx->fp();
 
-        if (!ComputeThis(cx, frame))
+        
+        
+        if (!ComputeThis(cx, fp))
             return NULL;
 
-        RootedValue thisval(cx, frame.thisValue());
+        RootedValue thisval(cx, fp->thisValue());
         clone = js_fun_bind(cx, clone, thisval, NULL, 0);
         if (!clone)
             return NULL;
@@ -3635,25 +3578,6 @@ js::DeleteProperty(JSContext *cx, HandleValue v, HandlePropertyName name, JSBool
 template bool js::DeleteProperty<true> (JSContext *cx, HandleValue val, HandlePropertyName name, JSBool *bp);
 template bool js::DeleteProperty<false>(JSContext *cx, HandleValue val, HandlePropertyName name, JSBool *bp);
 
-template <bool strict>
-bool
-js::DeleteElement(JSContext *cx, HandleValue val, HandleValue index, JSBool *bp)
-{
-    RootedObject obj(cx, ToObjectFromStack(cx, val));
-    if (!obj)
-        return false;
-
-    RootedValue result(cx);
-    if (!JSObject::deleteByValue(cx, obj, index, &result, strict))
-        return false;
-
-    *bp = result.toBoolean();
-    return true;
-}
-
-template bool js::DeleteElement<true> (JSContext *, HandleValue, HandleValue, JSBool *);
-template bool js::DeleteElement<false>(JSContext *, HandleValue, HandleValue, JSBool *);
-
 bool
 js::GetElement(JSContext *cx, MutableHandleValue lref, HandleValue rref, MutableHandleValue vp)
 {
@@ -3746,31 +3670,4 @@ js::UrshValues(JSContext *cx, HandleScript script, jsbytecode *pc,
                Value *res)
 {
     return UrshOperation(cx, script, pc, lhs, rhs, res);
-}
-
-bool
-js::DeleteNameOperation(JSContext *cx, HandlePropertyName name, HandleObject scopeObj,
-                        MutableHandleValue res)
-{
-    RootedObject scope(cx), pobj(cx);
-    RootedShape shape(cx);
-    if (!LookupName(cx, name, scopeObj, &scope, &pobj, &shape))
-        return false;
-
-    
-    res.setBoolean(true);
-    if (shape)
-        return JSObject::deleteProperty(cx, scope, name, res, false);
-    return true;
-}
-
-bool
-js::ImplicitThisOperation(JSContext *cx, HandleObject scopeObj, HandlePropertyName name,
-                          MutableHandleValue res)
-{
-    RootedObject obj(cx);
-    if (!LookupNameWithGlobalDefault(cx, name, scopeObj, &obj))
-        return false;
-
-    return ComputeImplicitThis(cx, obj, res);
 }
