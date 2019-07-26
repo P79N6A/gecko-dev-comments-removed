@@ -802,7 +802,7 @@ protected:
   nsresult UpdateChannelMuteState(bool aCanPlay);
 
   
-  void UpdateAudioChannelPlayingState();
+  virtual void UpdateAudioChannelPlayingState();
 
   
   

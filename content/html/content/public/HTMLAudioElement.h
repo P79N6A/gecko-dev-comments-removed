@@ -6,6 +6,7 @@
 #ifndef mozilla_dom_HTMLAudioElement_h
 #define mozilla_dom_HTMLAudioElement_h
 
+#include "nsITimer.h"
 #include "nsIDOMHTMLAudioElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/TypedArray.h"
@@ -17,6 +18,7 @@ namespace mozilla {
 namespace dom {
 
 class HTMLAudioElement : public HTMLMediaElement,
+                         public nsITimerCallback,
                          public nsIDOMHTMLAudioElement
 {
 public:
@@ -38,6 +40,12 @@ public:
   
   using HTMLMediaElement::GetPaused;
   NS_FORWARD_NSIDOMHTMLMEDIAELEMENT(HTMLMediaElement::)
+
+  
+  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
+
+  
+  NS_DECL_NSITIMERCALLBACK
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsresult SetAcceptHeader(nsIHttpChannel* aChannel);
@@ -68,6 +76,15 @@ public:
 protected:
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+
+  
+  virtual void UpdateAudioChannelPlayingState() MOZ_OVERRIDE;
+
+  
+  
+  nsCOMPtr<nsITimer> mDeferStopPlayTimer;
+  
+  bool mTimerActivated;
 };
 
 } 
