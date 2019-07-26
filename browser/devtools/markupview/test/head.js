@@ -241,6 +241,28 @@ function setEditableFieldValue(field, value, inspector) {
 
 
 
+function addNewAttributes(nodeOrSelector, text, inspector) {
+  info("Entering text '" + text + "' in node '" + nodeOrSelector + "''s new attribute field");
+
+  let container = getContainerForRawNode(nodeOrSelector, inspector);
+  ok(container, "The container for '" + nodeOrSelector + "' was found");
+
+  info("Listening for the markupmutation event");
+  let nodeMutated = inspector.once("markupmutation");
+  setEditableFieldValue(container.editor.newAttr, text, inspector);
+  return nodeMutated;
+}
+
+
+
+
+
+
+
+
+
+
+
 function assertAttributes(nodeOrSelector, attrs) {
   let node = getNode(nodeOrSelector);
 
@@ -327,7 +349,69 @@ function searchUsingSelectorSearch(selector, inspector) {
 
 
 
+
+
+
+function runAddAttributesTests(tests, nodeOrSelector, inspector) {
+  info("Running " + tests.length + " add-attributes tests");
+  return Task.spawn(function*() {
+    info("Selecting the test node");
+    let div = getNode("div");
+    yield selectNode(div, inspector);
+
+    for (let test of tests) {
+      yield runAddAttributesTest(test, div, inspector);
+    }
+
+    yield inspector.once("inspector-updated");
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function* runAddAttributesTest(test, nodeOrSelector, inspector) {
+  let element = getNode(nodeOrSelector);
+
+  info("Starting add-attribute test: " + test.desc);
+  yield addNewAttributes(element, test.text, inspector);
+
+  info("Assert that the attribute(s) has/have been applied correctly");
+  assertAttributes(element, test.expectedAttributes);
+
+  info("Undo the change");
+  yield undoChange(inspector);
+
+  info("Assert that the attribute(s) has/have been removed correctly");
+  assertAttributes(element, {});
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function runEditOuterHTMLTests(tests, inspector) {
+  info("Running " + tests.length + " edit-outer-html tests");
   return Task.spawn(function* () {
     for (let step of TEST_DATA) {
       yield runEditOuterHTMLTest(step, inspector);
