@@ -846,6 +846,10 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
 
 
+
+
+
+
     public static final String MEASUREMENT_NAME_SESSIONS = "org.mozilla.appSessions";
     public static final int MEASUREMENT_VERSION_SESSIONS = 4;
 
