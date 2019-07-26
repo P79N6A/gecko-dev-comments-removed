@@ -1287,87 +1287,6 @@ let RIL = {
 
 
 
-  updateNetworkName: function updateNetworkName() {
-    let iccInfoPriv = this.iccInfoPrivate;
-    let iccInfo = this.iccInfo;
-
-    
-    
-    if (!iccInfoPriv.PNN ||
-        !this.voiceRegistrationState.cell ||
-        this.voiceRegistrationState.cell.gsmLocationAreaCode == -1) {
-      return null;
-    }
-
-    let pnnEntry;
-    let lac = this.voiceRegistrationState.cell.gsmLocationAreaCode;
-    let mcc = this.operator.mcc;
-    let mnc = this.operator.mnc;
-
-    
-    
-    
-    
-    if (iccInfoPriv.OPL) {
-      for (let i in iccInfoPriv.OPL) {
-        let opl = iccInfoPriv.OPL[i];
-        
-        if (mcc != opl.mcc || mnc != opl.mnc) {
-          continue;
-        }
-        
-        
-        
-        if ((opl.lacTacStart == 0x0 && opl.lacTacEnd == 0xFFFE) ||
-            (opl.lacTacStart <= lac && opl.lacTacEnd >= lac)) {
-          if (opl.pnnRecordId == 0) {
-            
-            
-            
-            return null;
-          }
-          pnnEntry = iccInfoPriv.PNN[opl.pnnRecordId - 1]
-          break;
-        }
-      }
-    }
-
-    
-    
-    
-    
-    
-    if (!pnnEntry && mcc == iccInfo.mcc && mnc == iccInfo.mnc) {
-      pnnEntry = iccInfoPriv.PNN[0]
-    }
-
-    if (DEBUG) {
-      if (pnnEntry) {
-        debug("updateNetworkName: Network names will be overriden: longName = " +
-              pnnEntry.fullName + ", shortName = " + pnnEntry.shortName);
-      } else {
-        debug("updateNetworkName: Network names will not be overriden");
-      }
-    }
-
-    
-    let ret = null;
-
-    if (pnnEntry) {
-      ret = {
-        fullName: pnnEntry.fullName || "",
-        shortName: pnnEntry.shortName || "",
-      };
-    }
-
-    return ret;
-  },
-
-  
-
-
-
-
 
 
 
@@ -3093,8 +3012,23 @@ let RIL = {
         }
       }
 
-      let networkName = this.updateNetworkName();
+      let networkName;
+      
+      if (this.voiceRegistrationState.cell &&
+          this.voiceRegistrationState.cell.gsmLocationAreaCode != -1) {
+        networkName = ICCUtilsHelper.getNetworkNameFromICC(
+          this.operator.mcc,
+          this.operator.mnc,
+          this.voiceRegistrationState.cell.gsmLocationAreaCode);
+      }
+
       if (networkName) {
+        if (DEBUG) {
+          debug("Operator names will be overriden: " +
+                "longName = " + networkName.fullName + ", " +
+                "shortName = " + networkName.shortName);
+        }
+
         this.operator.longName = networkName.fullName;
         this.operator.shortName = networkName.shortName;
       } else {
@@ -9638,6 +9572,75 @@ let ICCRecordHelper = {
 
 
 let ICCUtilsHelper = {
+  
+
+
+
+
+
+
+
+
+
+  getNetworkNameFromICC: function getNetworkNameFromICC(mcc, mnc, lac) {
+    let iccInfoPriv = RIL.iccInfoPrivate;
+    let iccInfo = RIL.iccInfo;
+    let pnnEntry;
+
+    if (!mcc || !mnc || !lac) {
+      return null;
+    }
+
+    
+    if (!iccInfoPriv.PNN) {
+      return null;
+    }
+
+    
+    
+    
+    
+    let length = iccInfoPriv.OPL ? iccInfoPriv.OPL.length : 0;
+    for (let i = 0; i < length; i++) {
+      let opl = iccInfoPriv.OPL[i];
+      
+      if (mcc != opl.mcc || mnc != opl.mnc) {
+        continue;
+      }
+      
+      
+      
+      if ((opl.lacTacStart == 0x0 && opl.lacTacEnd == 0xFFFE) ||
+          (opl.lacTacStart <= lac && opl.lacTacEnd >= lac)) {
+        if (opl.pnnRecordId == 0) {
+          
+          
+          
+          return null;
+        }
+        pnnEntry = iccInfoPriv.PNN[opl.pnnRecordId - 1]
+        break;
+      }
+    }
+
+    
+    
+    
+    
+    
+    if (!pnnEntry && mcc == iccInfo.mcc && mnc == iccInfo.mnc) {
+      pnnEntry = iccInfoPriv.PNN[0]
+    }
+
+    if (!pnnEntry) {
+      return null;
+    }
+
+    
+    return {fullName: pnnEntry.fullName || "",
+            shortName: pnnEntry.shortName || ""};
+  },
+
   
 
 
