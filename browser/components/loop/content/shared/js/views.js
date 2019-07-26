@@ -110,7 +110,11 @@ loop.shared.views = (function(_, OT, l10n) {
 
     
     
-    videoStyles: { width: "100%", height: "auto" },
+    videoStyles: {
+      width: "100%",
+      height: "auto",
+      style: { "bugDisplayMode": "off" }
+    },
 
     events: {
       'click .btn.stop': 'hangup'
