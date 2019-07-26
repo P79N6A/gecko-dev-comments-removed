@@ -643,7 +643,9 @@ protected:
   
   
   
-  ReentrantMonitor mMonitor;
+  
+  
+  mutable ReentrantMonitor mMonitor;
 
   
   
