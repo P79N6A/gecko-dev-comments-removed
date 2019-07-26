@@ -6,12 +6,14 @@ package org.mozilla.gecko.background.fxa;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.crypto.HKDF;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
+import org.mozilla.gecko.sync.crypto.PBKDF2;
 
 public class FxAccountUtils {
   public static final int SALT_LENGTH_BYTES = 32;
@@ -21,6 +23,8 @@ public class FxAccountUtils {
   public static final int HASH_LENGTH_HEX = 2 * HASH_LENGTH_BYTES;
 
   public static final String KW_VERSION_STRING = "identity.mozilla.com/picl/v1/";
+
+  public static final int NUMBER_OF_QUICK_STRETCH_ROUNDS = 1000;
 
   public static String bytes(String string) throws UnsupportedEncodingException {
     return Utils.byte2Hex(string.getBytes("UTF-8"));
@@ -72,6 +76,12 @@ public class FxAccountUtils {
     return Utils.byte2Hex(Utils.hex2Byte((x.mod(N)).toString(16), byteLength), hexLength);
   }
 
+  
+
+
+
+
+
   public static KeyBundle generateSyncKeyBundle(final byte[] kB) throws InvalidKeyException, NoSuchAlgorithmException, UnsupportedEncodingException {
     byte[] encryptionKey = new byte[32];
     byte[] hmacKey = new byte[32];
@@ -79,5 +89,34 @@ public class FxAccountUtils {
     System.arraycopy(derived, 0*32, encryptionKey, 0, 1*32);
     System.arraycopy(derived, 1*32, hmacKey, 0, 1*32);
     return new KeyBundle(encryptionKey, hmacKey);
+  }
+
+  
+
+
+
+
+
+
+
+  public static byte[] generateQuickStretchedPW(byte[] emailUTF8, byte[] passwordUTF8) throws GeneralSecurityException, UnsupportedEncodingException {
+    byte[] S = FxAccountUtils.KWE("quickStretch", emailUTF8);
+    return PBKDF2.pbkdf2SHA256(passwordUTF8, S, NUMBER_OF_QUICK_STRETCH_ROUNDS, 32);
+  }
+
+  
+
+
+
+  public static byte[] generateAuthPW(byte[] quickStretchedPW) throws GeneralSecurityException, UnsupportedEncodingException {
+    return HKDF.derive(quickStretchedPW, new byte[0], FxAccountUtils.KW("authPW"), 32);
+  }
+
+  
+
+
+
+  public static byte[] generateUnwrapBKey(byte[] quickStretchedPW) throws GeneralSecurityException, UnsupportedEncodingException {
+    return HKDF.derive(quickStretchedPW, new byte[0], FxAccountUtils.KW("unwrapBkey"), 32);
   }
 }

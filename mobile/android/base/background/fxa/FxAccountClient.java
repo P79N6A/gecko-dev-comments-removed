@@ -52,6 +52,12 @@ public class FxAccountClient {
 
   protected static final String VERSION_FRAGMENT = "v1/";
 
+  public static final String JSON_KEY_EMAIL = "email";
+  public static final String JSON_KEY_KEYFETCHTOKEN = "keyFetchToken";
+  public static final String JSON_KEY_SESSIONTOKEN = "sessionToken";
+  public static final String JSON_KEY_UID = "uid";
+  public static final String JSON_KEY_VERIFIED = "verified";
+
   protected final String serverURI;
   protected final Executor executor;
 
@@ -524,6 +530,69 @@ public class FxAccountClient {
           byte[] wrapkB = new byte[32];
           unbundleBody(body, requestKey, FxAccountUtils.KW("account/keys"), kA, wrapkB);
           delegate.handleSuccess(new TwoKeys(kA, wrapkB));
+          return;
+        } catch (Exception e) {
+          delegate.handleError(e);
+          return;
+        }
+      }
+    };
+    resource.get();
+  }
+
+  
+
+
+  public static class StatusResponse {
+    public final String email;
+    public final boolean verified;
+    public StatusResponse(String email, boolean verified) {
+      this.email = email;
+      this.verified = verified;
+    }
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  public void status(byte[] sessionToken, final RequestDelegate<StatusResponse> delegate) {
+    final byte[] tokenId = new byte[32];
+    final byte[] reqHMACKey = new byte[32];
+    final byte[] requestKey = new byte[32];
+    try {
+      HKDF.deriveMany(sessionToken, new byte[0], FxAccountUtils.KW("sessionToken"), tokenId, reqHMACKey, requestKey);
+    } catch (Exception e) {
+      invokeHandleError(delegate, e);
+      return;
+    }
+
+    BaseResource resource;
+    try {
+      resource = new BaseResource(new URI(serverURI + "recovery_email/status"));
+    } catch (URISyntaxException e) {
+      invokeHandleError(delegate, e);
+      return;
+    }
+
+    resource.delegate = new ResourceDelegate<StatusResponse>(resource, delegate, tokenId, reqHMACKey, false) {
+      @Override
+      public void handleSuccess(int status, HttpResponse response, ExtendedJSONObject body) {
+        try {
+          String[] requiredStringFields = new String[] { JSON_KEY_EMAIL };
+          body.throwIfFieldsMissingOrMisTyped(requiredStringFields, String.class);
+          String email = body.getString(JSON_KEY_EMAIL);
+          Boolean verified = body.getBoolean(JSON_KEY_VERIFIED);
+          delegate.handleSuccess(new StatusResponse(email, verified));
           return;
         } catch (Exception e) {
           delegate.handleError(e);
