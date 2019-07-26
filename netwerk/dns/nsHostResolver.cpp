@@ -538,7 +538,8 @@ nsHostResolver::ResolveHost(const char            *host,
                 
                 
                 
-                if (((NowInMinutes() > he->rec->expiration) ||
+                if ((((NowInMinutes() > he->rec->expiration) &&
+                      he->rec->mBlacklistedItems.Length()) ||
                      he->rec->negative) && !he->rec->resolving) {
                     LOG(("Using %s cache entry for host [%s] but starting async renewal.",
                          he->rec->negative ? "negative" :"positive", host));
