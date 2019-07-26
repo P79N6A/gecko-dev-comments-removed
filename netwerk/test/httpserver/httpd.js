@@ -529,9 +529,42 @@ nsHttpServer.prototype =
         var loopback = false;
       }
 
-      var socket = new ServerSocket(this._port,
+      
+      
+      
+      
+      
+      var ios = Cc["@mozilla.org/network/io-service;1"]
+                  .getService(Ci.nsIIOService);
+      var socket;
+      for (var i = 100; i; i--)
+      {
+        var temp = new ServerSocket(this._port,
                                     loopback, 
                                     maxConnections);
+
+        var allowed = ios.allowPort(temp.port, "http");
+        if (!allowed)
+        {
+          dumpn(">>>Warning: obtained ServerSocket listens on a blocked " +
+                "port: " + socket.port);
+        }
+
+        if (!allowed && this._port == -1)
+        {
+          dumpn(">>>Throwing away ServerSocket with bad port.");
+          temp.close();
+          continue;
+        }
+
+        socket = temp;
+        break;
+      }
+
+      if (!socket) {
+        throw new Error("No socket server available. Are there no available ports?");
+      }
+
       dumpn(">>> listening on port " + socket.port + ", " + maxConnections +
             " pending connections");
       socket.asyncListen(this);
