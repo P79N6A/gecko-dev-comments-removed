@@ -1063,14 +1063,6 @@ static bool
 ProtoSetter(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    
-    
-    RootedObject callee(cx, &args.callee());
-    if (!GlobalObject::warnOnceAboutPrototypeMutation(cx, callee))
-       return false;
-
     HandleValue thisv = args.thisv();
     if (thisv.isNullOrUndefined()) {
         ReportIncompatible(cx, args);
