@@ -233,6 +233,7 @@ class nsStyleSet
     eUserSheet, 
     ePresHintSheet,
     eDocSheet, 
+    eScopedDocSheet,
     eStyleAttrSheet,
     eOverrideSheet, 
     eAnimationSheet,
@@ -265,6 +266,7 @@ class nsStyleSet
     return mSheets[aType].ObjectAt(aIndex);
   }
 
+  nsresult RemoveDocStyleSheet(nsIStyleSheet* aSheet);
   nsresult AddDocStyleSheet(nsIStyleSheet* aSheet, nsIDocument* aDocument);
 
   void     BeginUpdate();
@@ -388,7 +390,7 @@ class nsStyleSet
   unsigned mInShutdown : 1;
   unsigned mAuthorStyleDisabled: 1;
   unsigned mInReconstruct : 1;
-  unsigned mDirty : 8;  
+  unsigned mDirty : 9;  
 
   uint32_t mUnusedRuleNodeCount; 
   nsTArray<nsStyleContext*> mRoots; 
