@@ -285,14 +285,30 @@ MarkupView.prototype = {
   
 
 
+
+
+
+
+
+
+
+
+  _shouldNewSelectionBeHighlighted: function() {
+    let reason = this._inspector.selection.reason;
+    let unwantedReasons = ["inspector-open", "navigateaway", "test"];
+    return reason && unwantedReasons.indexOf(reason) === -1;
+  },
+
+  
+
+
   _onNewSelection: function() {
     let selection = this._inspector.selection;
 
     this.htmlEditor.hide();
     let done = this._inspector.updating("markup-view");
     if (selection.isNode()) {
-      let reason = selection.reason;
-      if (reason && reason !== "inspector-open" && reason !== "navigateaway") {
+      if (this._shouldNewSelectionBeHighlighted()) {
         this._brieflyShowBoxModel(selection.nodeFront, {
           scrollIntoView: true
         });
