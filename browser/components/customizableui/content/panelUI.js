@@ -115,18 +115,8 @@ const PanelUI = {
 
 
 
-
-
-
-
-  ensureRegistered: function(aCustomizing=false) {
-    if (aCustomizing) {
-      CustomizableUI.registerMenuPanel(this.contents);
-    } else {
-      this.beginBatchUpdate();
-      CustomizableUI.registerMenuPanel(this.contents);
-      this.endBatchUpdate();
-    }
+  ensureRegistered: function() {
+    CustomizableUI.registerMenuPanel(this.contents);
   },
 
   
@@ -199,23 +189,6 @@ const PanelUI = {
 
       tempPanel.openPopup(iconAnchor || aAnchor, "bottomcenter topright");
     }
-  },
-
-  
-
-
-
-  beginBatchUpdate: function() {
-    this.multiView.ignoreMutations = true;
-  },
-
-  
-
-
-
-
-  endBatchUpdate: function(aReason) {
-    this.multiView.ignoreMutations = false;
   },
 
   
