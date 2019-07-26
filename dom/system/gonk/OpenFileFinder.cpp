@@ -19,9 +19,10 @@ OpenFileFinder::OpenFileFinder(const nsACString& aPath,
     mProcDir(nullptr),
     mFdDir(nullptr),
     mPid(0),
-    mMyPid(-1),
     mCheckIsB2gOrDescendant(aCheckIsB2gOrDescendant)
 {
+  
+  mMyPid = getpid();
 }
 
 OpenFileFinder::~OpenFileFinder()
@@ -162,10 +163,6 @@ OpenFileFinder::FillInfo(OpenFileFinder::Info* aInfo, const nsACString& aPath)
   
   
   int ppid = atoi(&closeParen[4]);
-  
-  if (mMyPid == -1) {
-    mMyPid = getpid();
-  }
 
   if (mPid == mMyPid) {
     
