@@ -12,8 +12,8 @@
 #include "builtin/Intl.h"
 #include "builtin/ParallelArray.h"
 #include "gc/Marking.h"
+
 #include "vm/ForkJoin.h"
-#include "vm/ParallelDo.h"
 #include "vm/ThreadPool.h"
 
 #include "jsfuninlines.h"
@@ -242,32 +242,11 @@ js::intrinsic_Dump(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static JSBool
-intrinsic_ParallelDo(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_ForkJoin(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return parallel::Do(cx, args);
+    return ForkJoin(cx, args);
 }
 
 
@@ -275,7 +254,7 @@ intrinsic_ParallelDo(JSContext *cx, unsigned argc, Value *vp)
 
 
 static JSBool
-intrinsic_ParallelSlices(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_ForkJoinSlices(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().setInt32(ForkJoinSlices(cx));
@@ -478,8 +457,8 @@ const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("DecompileArg",         intrinsic_DecompileArg,         2,0),
     JS_FN("RuntimeDefaultLocale", intrinsic_RuntimeDefaultLocale, 0,0),
 
-    JS_FN("ParallelDo",           intrinsic_ParallelDo,           2,0),
-    JS_FN("ParallelSlices",       intrinsic_ParallelSlices,       0,0),
+    JS_FN("ForkJoin",             intrinsic_ForkJoin,             2,0),
+    JS_FN("ForkJoinSlices",       intrinsic_ForkJoinSlices,       0,0),
     JS_FN("NewParallelArray",     intrinsic_NewParallelArray,     3,0),
     JS_FN("NewDenseArray",        intrinsic_NewDenseArray,        1,0),
     JS_FN("UnsafeSetElement",     intrinsic_UnsafeSetElement,     3,0),

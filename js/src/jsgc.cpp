@@ -1909,8 +1909,8 @@ void
 js::TriggerGC(JSRuntime *rt, JS::gcreason::Reason reason)
 {
     
-    if (ForkJoinSlice *slice = ForkJoinSlice::Current()) {
-        slice->requestGC(reason);
+    if (InParallelSection()) {
+        ForkJoinSlice::Current()->requestGC(reason);
         return;
     }
 
@@ -1927,8 +1927,11 @@ void
 js::TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
 {
     
-    if (ForkJoinSlice *slice = ForkJoinSlice::Current()) {
-        slice->requestZoneGC(zone, reason);
+
+
+
+    if (InParallelSection()) {
+        ForkJoinSlice::Current()->requestZoneGC(zone, reason);
         return;
     }
 

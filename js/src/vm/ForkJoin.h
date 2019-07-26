@@ -7,8 +7,83 @@
 #ifndef ForkJoin_h__
 #define ForkJoin_h__
 
+#include "jscntxt.h"
 #include "vm/ThreadPool.h"
 #include "jsgc.h"
+#include "ion/Ion.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -101,28 +176,14 @@
 
 namespace js {
 
+struct ForkJoinShared;
+struct ForkJoinSlice;
+
+bool ForkJoin(JSContext *cx, CallArgs &args);
 
 
 
-enum ParallelResult { TP_SUCCESS, TP_RETRY_SEQUENTIALLY, TP_FATAL };
-
-struct ForkJoinOp;
-
-
-
-uint32_t
-ForkJoinSlices(JSContext *cx);
-
-
-
-
-
-ParallelResult ExecuteForkJoinOp(JSContext *cx, ForkJoinOp &op);
-
-class PerThreadData;
-class ForkJoinShared;
-class AutoRendezvous;
-class AutoSetForkJoinSlice;
+uint32_t ForkJoinSlices(JSContext *cx);
 
 #ifdef DEBUG
 struct IonLIRTraceData {
@@ -136,6 +197,12 @@ struct IonLIRTraceData {
 };
 #endif
 
+
+
+
+
+
+enum ParallelResult { TP_SUCCESS, TP_RETRY_SEQUENTIALLY, TP_RETRY_AFTER_GC, TP_FATAL };
 struct ForkJoinSlice
 {
   public:
@@ -216,26 +283,7 @@ struct ForkJoinSlice
     static bool TLSInitialized;
 #endif
 
-#if defined(JS_THREADSAFE) && defined(JS_ION)
-    
-    
-    
-    void triggerAbort();
-#endif
-
     ForkJoinShared *const shared;
-};
-
-
-
-struct ForkJoinOp
-{
-  public:
-    
-    
-    
-    
-    virtual bool parallel(ForkJoinSlice &slice) = 0;
 };
 
 
@@ -269,9 +317,69 @@ class LockedJSContext
 static inline bool
 InParallelSection()
 {
-    return ForkJoinSlice::Current() != NULL;
+#ifdef JS_THREADSAFE
+    ForkJoinSlice *current = ForkJoinSlice::Current();
+    return current != NULL;
+#else
+    return false;
+#endif
 }
 
+
+
+
+namespace parallel {
+
+enum ExecutionStatus {
+    
+    ExecutionFatal,
+
+    
+    ExecutionSequential,
+
+    
+    ExecutionParallel
+};
+
+enum SpewChannel {
+    SpewOps,
+    SpewCompile,
+    SpewBailouts,
+    NumSpewChannels
+};
+
+#if defined(DEBUG) && defined(JS_THREADSAFE) && defined(JS_ION)
+
+bool SpewEnabled(SpewChannel channel);
+void Spew(SpewChannel channel, const char *fmt, ...);
+void SpewBeginOp(JSContext *cx, const char *name);
+void SpewBailout(uint32_t count);
+ExecutionStatus SpewEndOp(ExecutionStatus status);
+void SpewBeginCompile(HandleScript script);
+ion::MethodStatus SpewEndCompile(ion::MethodStatus status);
+void SpewMIR(ion::MDefinition *mir, const char *fmt, ...);
+void SpewBailoutIR(uint32_t bblockId, uint32_t lirId,
+                   const char *lir, const char *mir, JSScript *script, jsbytecode *pc);
+
+#else
+
+static inline bool SpewEnabled(SpewChannel channel) { return false; }
+static inline void Spew(SpewChannel channel, const char *fmt, ...) { }
+static inline void SpewBeginOp(JSContext *cx, const char *name) { }
+static inline void SpewBailout(uint32_t count) {}
+static inline ExecutionStatus SpewEndOp(ExecutionStatus status) { return status; }
+static inline void SpewBeginCompile(HandleScript script) { }
+#ifdef JS_ION
+static inline ion::MethodStatus SpewEndCompile(ion::MethodStatus status) { return status; }
+static inline void SpewMIR(ion::MDefinition *mir, const char *fmt, ...) { }
+#endif
+static inline void SpewBailoutIR(uint32_t bblockId, uint32_t lirId,
+                                 const char *lir, const char *mir,
+                                 JSScript *script, jsbytecode *pc) { }
+
+#endif 
+
+} 
 } 
 
  inline js::ForkJoinSlice *
