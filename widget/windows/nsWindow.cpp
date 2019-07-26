@@ -961,6 +961,19 @@ float nsWindow::GetDPI()
   return float(heightPx/heightInches);
 }
 
+double nsWindow::GetDefaultScale()
+{
+  HDC dc = ::GetDC(mWnd);
+  if (!dc)
+    return 1.0;
+
+  
+  
+  double pixelsPerInch = ::GetDeviceCaps(dc, LOGPIXELSY);
+  ::ReleaseDC(mWnd, dc);
+  return pixelsPerInch/96.0;
+}
+
 nsWindow* nsWindow::GetParentWindow(bool aIncludeOwner)
 {
   if (mIsTopWidgetWindow) {

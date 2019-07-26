@@ -2299,6 +2299,10 @@ pref("ui.window_class_override", "");
 
 pref("ui.elantech_gesture_hacks.enabled", -1);
 
+
+
+pref("layout.css.devPixelsPerPx", "1.0");
+
 # WINNT
 #endif
 
