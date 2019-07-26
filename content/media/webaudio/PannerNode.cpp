@@ -142,7 +142,8 @@ public:
       
       
       
-      if (mLeftOverData > 0) {
+      if (mLeftOverData > 0 &&
+          mPanningModelFunction == &PannerNodeEngine::HRTFPanningFunction) {
         mLeftOverData -= WEBAUDIO_BLOCK_SIZE;
       } else {
         if (mLeftOverData != INT_MIN) {
