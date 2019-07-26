@@ -976,9 +976,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        nsContainerFrame* parent = static_cast<nsContainerFrame*>
-                                                  (kidNextInFlow->GetParent());
-        parent->DeleteNextInFlowChild(kidNextInFlow, true);
+        kidNextInFlow->GetParent()->
+          DeleteNextInFlowChild(kidNextInFlow, true);
       }
     }
 
