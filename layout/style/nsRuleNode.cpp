@@ -322,27 +322,35 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
       aPresContext->SetUsesRootEMUnits(true);
       nscoord rootFontSize;
 
+      
+      
+      
+      const nsStyleFont *styleFont =
+        aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
+
       if (aUseProvidedRootEmSize) {
         
         
         
         
         
+        if (aFontSize == -1) {
+          
+          
+          aFontSize = styleFont->mFont.size;
+        }
         rootFontSize = aFontSize;
       } else if (aStyleContext && !aStyleContext->GetParent()) {
         
         
         
         
-        const nsStyleFont *styleFont =
-          aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
         rootFontSize = styleFont->mFont.size;
       } else {
         
         
         nsRefPtr<nsStyleContext> rootStyle;
-        const nsStyleFont *rootStyleFont =
-          aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
+        const nsStyleFont *rootStyleFont = styleFont;
         Element* docElement = aPresContext->Document()->GetRootElement();
 
         if (docElement) {
