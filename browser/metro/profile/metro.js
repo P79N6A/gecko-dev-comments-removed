@@ -540,6 +540,7 @@ pref("ui.dragThresholdY", 50);
 
 pref("browser.chrome.toolbar_tips", false);
 
+#ifdef NIGHTLY_BUILD
 
 
 
@@ -551,6 +552,7 @@ pref("pdfjs.firstRun", true);
 
 pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
+#endif
 
 #ifdef NIGHTLY_BUILD
 pref("shumway.disabled", true);
