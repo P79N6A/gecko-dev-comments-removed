@@ -620,9 +620,6 @@ public:
   DrawTarget() : mTransformDirty(false), mPermitSubpixelAA(false) {}
   virtual ~DrawTarget() {}
 
-  
-  BackendType GetType() const { return GetBackendType(); }
-
   virtual BackendType GetBackendType() const = 0;
   
 
