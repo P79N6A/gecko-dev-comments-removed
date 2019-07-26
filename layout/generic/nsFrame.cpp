@@ -7770,6 +7770,15 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
   gIndent2++;
 #endif
 
+  
+  
+
+
+
+
+
+
+
   nsBoxLayoutMetrics *metrics = BoxMetrics();
   nsReflowStatus status = NS_FRAME_COMPLETE;
 
@@ -7848,33 +7857,28 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
 
     
     
+    nsSize availSize(aWidth, NS_INTRINSICSIZE);
+    nsHTMLReflowState reflowState(aPresContext, this, aRenderingContext,
+                                  availSize,
+                                  nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
+
+    
+    
     const nsHTMLReflowState *outerReflowState = aState.OuterReflowState();
     NS_ASSERTION(!outerReflowState || outerReflowState->frame != this,
                  "in and out of XUL on a single frame?");
-    const nsHTMLReflowState* parentRS;
     if (outerReflowState && outerReflowState->frame == parentFrame) {
       
       
       
       
       
-      parentRS = outerReflowState;
+      reflowState.parentReflowState = outerReflowState;
+      reflowState.mCBReflowState = outerReflowState;
     } else {
-      parentRS = &parentReflowState;
+      reflowState.parentReflowState = &parentReflowState;
+      reflowState.mCBReflowState = &parentReflowState;
     }
-
-    
-    
-    nsSize availSize(aWidth, NS_INTRINSICSIZE);
-    nsHTMLReflowState reflowState(aPresContext, *parentRS, this,
-                                  availSize, -1, -1,
-                                  nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
-
-    
-    
-    
-    reflowState.mCBReflowState = parentRS;
-
     reflowState.mReflowDepth = aState.GetReflowDepth();
 
     
