@@ -1055,6 +1055,7 @@ enum WrapperType {
 
 
 
+class nsXPCComponentsBase;
 class XPCWrappedNativeScope : public PRCList
 {
 public:
@@ -1071,7 +1072,7 @@ public:
     ClassInfo2WrappedNativeProtoMap*
     GetWrappedNativeProtoMap() const {return mWrappedNativeProtoMap;}
 
-    nsXPCComponents*
+    nsXPCComponentsBase*
     GetComponents() const {return mComponents;}
 
     bool AttachComponentsObject(JSContext *aCx);
@@ -1210,7 +1211,7 @@ private:
     XPCJSRuntime*                    mRuntime;
     Native2WrappedNativeMap*         mWrappedNativeMap;
     ClassInfo2WrappedNativeProtoMap* mWrappedNativeProtoMap;
-    nsRefPtr<nsXPCComponents>        mComponents;
+    nsRefPtr<nsXPCComponentsBase>    mComponents;
     XPCWrappedNativeScope*           mNext;
     
     
