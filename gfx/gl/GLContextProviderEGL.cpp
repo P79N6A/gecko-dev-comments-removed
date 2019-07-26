@@ -270,7 +270,7 @@ public:
         , mTemporaryEGLImageTexture(0)
     {
         
-        SetIsGLES2(true);
+        SetProfileVersion(ContextProfile::OpenGLES, 200);
 
 #ifdef DEBUG
         printf_stderr("Initializing context %p surface %p on display %p\n", mContext, mSurface, EGL_DISPLAY());

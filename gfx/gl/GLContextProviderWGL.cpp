@@ -272,6 +272,8 @@ public:
           mLibType(aLibUsed),
           mIsDoubleBuffered(false)
     {
+        
+        SetProfileVersion(ContextProfile::OpenGLCompatibility, 200);
     }
 
     
@@ -292,6 +294,8 @@ public:
           mLibType(aLibUsed),
           mIsDoubleBuffered(false)
     {
+        
+        SetProfileVersion(ContextProfile::OpenGLCompatibility, 200);
     }
 
     ~GLContextWGL()
