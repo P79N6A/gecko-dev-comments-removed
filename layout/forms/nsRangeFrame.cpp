@@ -5,34 +5,27 @@
 
 #include "nsRangeFrame.h"
 
-#include "nsHTMLInputElement.h"
-#include "nsIDOMHTMLInputElement.h"
-#include "nsIContent.h"
-#include "prtypes.h"
-#include "nsPresContext.h"
-#include "nsGkAtoms.h"
-#include "nsINameSpaceManager.h"
-#include "nsIDocument.h"
-#include "nsIPresShell.h"
-#include "nsNodeInfoManager.h"
-#include "nsINodeInfo.h"
 #include "nsContentCreatorFunctions.h"
+#include "nsContentList.h"
 #include "nsContentUtils.h"
-#include "nsFormControlFrame.h"
-#include "nsContentList.h"
 #include "nsFontMetrics.h"
+#include "nsFormControlFrame.h"
+#include "nsIContent.h"
+#include "nsIDocument.h"
+#include "nsIDOMHTMLInputElement.h"
+#include "nsINameSpaceManager.h"
+#include "nsINodeInfo.h"
+#include "nsIPresShell.h"
+#include "nsGkAtoms.h"
+#include "nsHTMLInputElement.h"
+#include "nsPresContext.h"
+#include "nsNodeInfoManager.h"
 #include "mozilla/dom/Element.h"
-#include "nsContentList.h"
+#include "prtypes.h"
 
 #include <algorithm>
 
-NS_IMETHODIMP
-nsRangeFrame::SetInitialChildList(ChildListID     aListID,
-                                   nsFrameList&    aChildList)
-{
-  nsresult rv = nsContainerFrame::SetInitialChildList(aListID, aChildList);
-  return rv;
-}
+#define LONG_SIDE_TO_SHORT_SIDE_RATIO 10
 
 nsIFrame*
 NS_NewRangeFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -40,12 +33,8 @@ NS_NewRangeFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsRangeFrame(aContext);
 }
 
-NS_IMPL_FRAMEARENA_HELPERS(nsRangeFrame)
-
 nsRangeFrame::nsRangeFrame(nsStyleContext* aContext)
   : nsContainerFrame(aContext)
-  , mThumbDiv(nullptr)
-  , mProgressDiv(nullptr)
 {
 }
 
@@ -53,15 +42,22 @@ nsRangeFrame::~nsRangeFrame()
 {
 }
 
+NS_IMPL_FRAMEARENA_HELPERS(nsRangeFrame)
+
+NS_QUERYFRAME_HEAD(nsRangeFrame)
+  NS_QUERYFRAME_ENTRY(nsRangeFrame)
+  NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
+NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
+
 void
 nsRangeFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  NS_ASSERTION(!GetPrevContinuation(),
+  NS_ASSERTION(!GetPrevContinuation() && !GetNextContinuation(),
                "nsRangeFrame should not have continuations; if it does we "
                "need to call RegUnregAccessKey only for the first.");
   nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
+  nsContentUtils::DestroyAnonymousContent(&mTrackDiv);
   nsContentUtils::DestroyAnonymousContent(&mThumbDiv);
-  nsContentUtils::DestroyAnonymousContent(&mProgressDiv);
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -71,36 +67,43 @@ nsRangeFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
 
+  
   nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
                                                  kNameSpaceID_XHTML,
                                                  nsIDOMNode::ELEMENT_NODE);
   NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
+  nsresult rv = NS_NewHTMLElement(getter_AddRefs(mTrackDiv), nodeInfo.forget(),
+                                  mozilla::dom::NOT_FROM_PARSER);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsCSSPseudoElements::Type pseudoType =
+    nsCSSPseudoElements::ePseudo_mozRangeTrack;
+  nsRefPtr<nsStyleContext> newStyleContext =
+    PresContext()->StyleSet()->ResolvePseudoElementStyle(mContent->AsElement(),
+                                                         pseudoType,
+                                                         StyleContext());
+
+  if (!aElements.AppendElement(ContentInfo(mTrackDiv, newStyleContext))) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   
   nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
                                                  kNameSpaceID_XHTML,
                                                  nsIDOMNode::ELEMENT_NODE);
-  nsresult rv = NS_NewHTMLElement(getter_AddRefs(mThumbDiv), nodeInfo.forget(),
+  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
+  rv = NS_NewHTMLElement(getter_AddRefs(mThumbDiv), nodeInfo.forget(),
                          mozilla::dom::NOT_FROM_PARSER);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCSSPseudoElements::Type pseudoType = nsCSSPseudoElements::ePseudo_mozRangeThumb;
-  nsRefPtr<nsStyleContext> newStyleContext = PresContext()->StyleSet()->
-    ResolvePseudoElementStyle(mContent->AsElement(), pseudoType, GetStyleContext());
+  
+  pseudoType = nsCSSPseudoElements::ePseudo_mozRangeThumb;
+  newStyleContext =
+    PresContext()->StyleSet()->ResolvePseudoElementStyle(mContent->AsElement(),
+                                                         pseudoType,
+                                                         StyleContext());
 
   if (!aElements.AppendElement(ContentInfo(mThumbDiv, newStyleContext))) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  
-  rv = NS_NewHTMLElement(getter_AddRefs(mProgressDiv), nodeInfo.forget(),
-                         mozilla::dom::NOT_FROM_PARSER);
-  NS_ENSURE_SUCCESS(rv, rv);
-  pseudoType = nsCSSPseudoElements::ePseudo_mozRangeActive;
-  newStyleContext = PresContext()->StyleSet()->
-    ResolvePseudoElementStyle(mContent->AsElement(), pseudoType, GetStyleContext());
-
-  if (!aElements.AppendElement(ContentInfo(mProgressDiv, newStyleContext))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -111,34 +114,30 @@ void
 nsRangeFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
                                        uint32_t aFilter)
 {
+  aElements.MaybeAppendElement(mTrackDiv);
   aElements.MaybeAppendElement(mThumbDiv);
-  aElements.MaybeAppendElement(mProgressDiv);
 }
 
-NS_QUERYFRAME_HEAD(nsRangeFrame)
-  NS_QUERYFRAME_ENTRY(nsRangeFrame)
-  NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
-NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
-
+void
+nsRangeFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                               const nsRect&           aDirtyRect,
+                               const nsDisplayListSet& aLists)
+{
+  BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
+}
 
 NS_IMETHODIMP
-nsRangeFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                  const nsRect&           aDirtyRect,
-                                  const nsDisplayListSet& aLists)
-{
-  return BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
-}
-
-NS_IMETHODIMP nsRangeFrame::Reflow(nsPresContext*           aPresContext,
-                                      nsHTMLReflowMetrics&     aDesiredSize,
-                                      const nsHTMLReflowState& aReflowState,
-                                      nsReflowStatus&          aStatus)
+nsRangeFrame::Reflow(nsPresContext*           aPresContext,
+                     nsHTMLReflowMetrics&     aDesiredSize,
+                     const nsHTMLReflowState& aReflowState,
+                     nsReflowStatus&          aStatus)
 {
   DO_GLOBAL_REFLOW_COUNT("nsRangeFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
+  NS_ASSERTION(mTrackDiv, "Track div must exist!");
   NS_ASSERTION(mThumbDiv, "Thumb div must exist!");
-  NS_ASSERTION(!GetPrevContinuation(),
+  NS_ASSERTION(!GetPrevContinuation() && !GetNextContinuation(),
                "nsRangeFrame should not have continuations; if it does we "
                "need to call RegUnregAccessKey only for the first.");
 
@@ -146,21 +145,32 @@ NS_IMETHODIMP nsRangeFrame::Reflow(nsPresContext*           aPresContext,
     nsFormControlFrame::RegUnRegAccessKey(this, true);
   }
 
+  nscoord computedHeight = aReflowState.ComputedHeight();
+  if (computedHeight == NS_AUTOHEIGHT) {
+    computedHeight = 0;
+  }
   aDesiredSize.width = aReflowState.ComputedWidth() +
                        aReflowState.mComputedBorderPadding.LeftRight();
-  aDesiredSize.height = aReflowState.ComputedHeight() +
+  aDesiredSize.height = computedHeight +
                         aReflowState.mComputedBorderPadding.TopBottom();
 
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  nsIFrame* barFrame = mThumbDiv->GetPrimaryFrame();
-  ConsiderChildOverflow(aDesiredSize.mOverflowAreas, barFrame);
+  nsresult rv =
+    ReflowAnonymousContent(aPresContext, aDesiredSize, aReflowState);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIFrame* progressFrame = mProgressDiv->GetPrimaryFrame();
-  ConsiderChildOverflow(aDesiredSize.mOverflowAreas, progressFrame);
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
+
+  nsIFrame* trackFrame = mTrackDiv->GetPrimaryFrame();
+  if (trackFrame) {
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, trackFrame);
+  }
+
+  nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
+  if (thumbFrame) {
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, thumbFrame);
+  }
 
   FinishAndStoreOverflow(&aDesiredSize);
-
-  ReflowBarFrame(aPresContext, aReflowState, aStatus);
 
   aStatus = NS_FRAME_COMPLETE;
 
@@ -169,113 +179,181 @@ NS_IMETHODIMP nsRangeFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
-void
-nsRangeFrame::ReflowBarFrame(nsPresContext*           aPresContext,
-                             const nsHTMLReflowState& aReflowState,
-                             nsReflowStatus&          aStatus)
+nsresult
+nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
+                                     nsHTMLReflowMetrics&     aDesiredSize,
+                                     const nsHTMLReflowState& aReflowState)
 {
-  nsIFrame* barFrame = mThumbDiv->GetPrimaryFrame();
-  NS_ASSERTION(barFrame, "The range frame should have a child with a frame!");
-
-  nsIFrame* progressFrame = mProgressDiv->GetPrimaryFrame();
-  NS_ASSERTION(progressFrame, "The range frame should have a child with a frame!");
-
-  bool vertical = !IsHorizontal(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
-  nsHTMLReflowState barReflowState(aPresContext, aReflowState, barFrame,
-                                nsSize(aReflowState.ComputedWidth(),
-                                       NS_UNCONSTRAINEDSIZE));
-  nsHTMLReflowState progressReflowState(aPresContext, aReflowState, progressFrame,
-                                        nsSize(aReflowState.ComputedWidth(),
-                                               NS_UNCONSTRAINEDSIZE));
-
-  nscoord parentHeight = aReflowState.ComputedHeight() + aReflowState.mComputedBorderPadding.TopBottom();
-  nscoord parentWidth = aReflowState.ComputedWidth() + aReflowState.mComputedBorderPadding.LeftRight();
-
-  nscoord size = vertical ? aReflowState.ComputedHeight() : aReflowState.ComputedWidth();
-  nscoord progressSize = size;
-
-  nsSize thumbSize = barFrame->GetSize();
-  size -= vertical ? thumbSize.height : thumbSize.width;
-
-  nscoord xoffset = vertical ? 0 : aReflowState.mComputedBorderPadding.left;
-  nscoord yoffset = vertical ? aReflowState.mComputedBorderPadding.top : 0;
-  nscoord xProgressOffset = 0;
-  nscoord yProgressOffset = 0;
+  if (ShouldUseNativeStyle()) {
+    return NS_OK; 
+  }
 
   
-  xoffset += vertical ? (parentWidth - barReflowState.ComputedWidth()) / 2   : 0;
-  yoffset += vertical ? 0 : (parentHeight - barReflowState.ComputedHeight()) / 2;
-
-  nsHTMLInputElement* element = static_cast<nsHTMLInputElement*>(mContent);
-  double position = element->GetPositionAsPercent();
-
-  if (position >= 0.0) {
-    size *= vertical ? (1 - position) : position;
-    progressSize *= vertical ? (1 - position) : position;
+  
+  nscoord rangeFrameContentBoxWidth = aReflowState.ComputedWidth();
+  nscoord rangeFrameContentBoxHeight = aReflowState.ComputedHeight();
+  if (rangeFrameContentBoxHeight == NS_AUTOHEIGHT) {
+    rangeFrameContentBoxHeight = 0;
   }
 
-  if (!vertical && GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-    xoffset += parentWidth - size;
-    xProgressOffset += parentWidth - progressSize;
+  nsIFrame* trackFrame = mTrackDiv->GetPrimaryFrame();
+
+  if (trackFrame) { 
+
+    
+    
+    
+    
+    
+    
+
+    nsHTMLReflowState trackReflowState(aPresContext, aReflowState, trackFrame,
+                                       nsSize(aReflowState.ComputedWidth(),
+                                              NS_UNCONSTRAINEDSIZE));
+
+    
+    
+    
+    nscoord trackX = rangeFrameContentBoxWidth / 2;
+    nscoord trackY = rangeFrameContentBoxHeight / 2;
+
+    
+    trackX -= trackReflowState.mComputedBorderPadding.left +
+                trackReflowState.ComputedWidth() / 2;
+    trackY -= trackReflowState.mComputedBorderPadding.top +
+                trackReflowState.ComputedHeight() / 2;
+
+    
+    trackX += aReflowState.mComputedBorderPadding.left;
+    trackY += aReflowState.mComputedBorderPadding.top;
+
+    nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
+    nsHTMLReflowMetrics trackDesiredSize;
+    nsresult rv = ReflowChild(trackFrame, aPresContext, trackDesiredSize,
+                              trackReflowState, trackX, trackY, 0, frameStatus);
+    NS_ENSURE_SUCCESS(rv, rv);
+    MOZ_ASSERT(NS_FRAME_IS_FULLY_COMPLETE(frameStatus),
+               "We gave our child unconstrained height, so it should be complete");
+    rv = FinishReflowChild(trackFrame, aPresContext, &trackReflowState,
+                           trackDesiredSize, trackX, trackY, 0);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  if (position != -1 || ShouldUseNativeStyle()) {
-    if (vertical) {
-      size -= barReflowState.mComputedMargin.TopBottom() +
-              barReflowState.mComputedBorderPadding.TopBottom();
-      size = std::max(size, 0);
-      yoffset += size;
-      yProgressOffset = yoffset;
+  nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
 
-      progressSize = parentHeight - yoffset;
-      progressSize = std::max(progressSize, 0);
-      progressReflowState.SetComputedHeight(progressSize);
-      progressReflowState.SetComputedWidth(parentWidth);
+  if (thumbFrame) { 
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+    nsSize frameSizeOverride(aDesiredSize.width, aDesiredSize.height);
+    bool isHorizontal = IsHorizontal(&frameSizeOverride);
+
+    double valueAsFraction = GetValueAsFractionOfRange();
+    MOZ_ASSERT(valueAsFraction >= 0.0 && valueAsFraction <= 1.0);
+
+    nsHTMLReflowState thumbReflowState(aPresContext, aReflowState, thumbFrame,
+                                       nsSize(aReflowState.ComputedWidth(),
+                                              NS_UNCONSTRAINEDSIZE));
+
+    
+    
+    
+    nscoord thumbX, thumbY;
+
+    if (isHorizontal) {
+      thumbX = NSToCoordRound(rangeFrameContentBoxWidth * valueAsFraction);
+      thumbY = rangeFrameContentBoxHeight / 2;
     } else {
-      size -= barReflowState.mComputedMargin.LeftRight() +
-              barReflowState.mComputedBorderPadding.LeftRight();
-      size = std::max(size, 0);
-      xoffset += size;
-
-      progressReflowState.SetComputedWidth(xoffset + thumbSize.width);
-      progressReflowState.SetComputedHeight(parentHeight);
+      thumbX = rangeFrameContentBoxWidth / 2;
+      
+      thumbY = rangeFrameContentBoxHeight -
+                 NSToCoordRound(rangeFrameContentBoxHeight * valueAsFraction);
     }
-  } else if (vertical) {
-    yoffset += parentHeight - barReflowState.ComputedHeight();
-    yProgressOffset += parentHeight - progressReflowState.ComputedHeight();
+
+    thumbX -= thumbReflowState.mComputedBorderPadding.left +
+                thumbReflowState.ComputedWidth() / 2;
+    thumbY -= thumbReflowState.mComputedBorderPadding.top +
+                thumbReflowState.ComputedHeight() / 2;
+
+    
+    thumbX += aReflowState.mComputedBorderPadding.left;
+    thumbY += aReflowState.mComputedBorderPadding.top;
+
+    nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
+    nsHTMLReflowMetrics thumbDesiredSize;
+    nsresult rv = ReflowChild(thumbFrame, aPresContext, thumbDesiredSize,
+                              thumbReflowState, thumbX, thumbY, 0, frameStatus);
+    NS_ENSURE_SUCCESS(rv, rv);
+    MOZ_ASSERT(NS_FRAME_IS_FULLY_COMPLETE(frameStatus),
+               "We gave our child unconstrained height, so it should be complete");
+    rv = FinishReflowChild(thumbFrame, aPresContext, &thumbReflowState,
+                           thumbDesiredSize, thumbX, thumbY, 0);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsHTMLReflowMetrics barDesiredSize;
-  ReflowChild(barFrame, aPresContext, barDesiredSize, barReflowState, xoffset, yoffset, 0, aStatus);
-  FinishReflowChild(barFrame, aPresContext, &barReflowState, barDesiredSize, xoffset, yoffset, 0);
+  return NS_OK;
+}
 
-  nsHTMLReflowMetrics progressDesiredSize;
-  ReflowChild(progressFrame, aPresContext, progressDesiredSize, progressReflowState, 0,
-              xProgressOffset, yProgressOffset, aStatus);
-  FinishReflowChild(progressFrame, aPresContext, &progressReflowState, progressDesiredSize,
-                    xProgressOffset, yProgressOffset, 0);}
+double
+nsRangeFrame::GetValueAsFractionOfRange()
+{
+  MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
+  nsHTMLInputElement* input = static_cast<nsHTMLInputElement*>(mContent);
+
+  MOZ_ASSERT(input->GetType() == NS_FORM_INPUT_RANGE);
+
+  double value = input->GetValueAsDouble();
+  double minimum = input->GetMinimum();
+  double maximum = input->GetMaximum();
+
+  MOZ_ASSERT(MOZ_DOUBLE_IS_FINITE(value) &&
+             MOZ_DOUBLE_IS_FINITE(minimum) &&
+             MOZ_DOUBLE_IS_FINITE(maximum),
+             "type=range should have a default maximum/minimum");
+  
+  if (maximum <= minimum) {
+    MOZ_ASSERT(value == minimum, "Unsanitized value");
+    return 0.0;
+  }
+  
+  MOZ_ASSERT(value >= minimum && value <= maximum, "Unsanitized value");
+  
+  return (value - minimum) / (maximum - minimum);
+}
 
 NS_IMETHODIMP
 nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
-                                  nsIAtom* aAttribute,
-                                  int32_t  aModType)
+                               nsIAtom* aAttribute,
+                               int32_t  aModType)
 {
-  NS_ASSERTION(mThumbDiv, "Thumb div must exist!");
-  NS_ASSERTION(mProgressDiv, "Progress div must exist!");
+  NS_ASSERTION(mTrackDiv, "The track div must exist!");
+  NS_ASSERTION(mThumbDiv, "The thumb div must exist!");
 
   if (aNameSpaceID == kNameSpaceID_None &&
-      (aAttribute == nsGkAtoms::value || aAttribute == nsGkAtoms::max)) {
-    nsIFrame* barFrame = mThumbDiv->GetPrimaryFrame();
-    NS_ASSERTION(barFrame, "The range frame should have a child with a frame!");
-    PresContext()->PresShell()->FrameNeedsReflow(barFrame, nsIPresShell::eResize,
-                                                 NS_FRAME_IS_DIRTY);
+      (aAttribute == nsGkAtoms::value ||
+       aAttribute == nsGkAtoms::min ||
+       aAttribute == nsGkAtoms::max ||
+       aAttribute == nsGkAtoms::step)) {
+    nsIFrame* trackFrame = mTrackDiv->GetPrimaryFrame();
+    if (trackFrame) { 
+      PresContext()->PresShell()->FrameNeedsReflow(trackFrame,
+                                                   nsIPresShell::eResize,
+                                                   NS_FRAME_IS_DIRTY);
+    }
 
-    nsIFrame* progressFrame = mProgressDiv->GetPrimaryFrame();
-    NS_ASSERTION(progressFrame, "The range frame should have a child with a frame!");
-    PresContext()->PresShell()->FrameNeedsReflow(progressFrame, nsIPresShell::eResize,
-                                                 NS_FRAME_IS_DIRTY);
-
-    InvalidateFrame();
+    nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
+    if (thumbFrame) { 
+      PresContext()->PresShell()->FrameNeedsReflow(thumbFrame,
+                                                   nsIPresShell::eResize,
+                                                   NS_FRAME_IS_DIRTY);
+    }
   }
 
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
@@ -283,24 +361,32 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
 
 nsSize
 nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                 nsSize aCBSize, nscoord aAvailableWidth,
-                                 nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, bool aShrinkWrap)
+                              nsSize aCBSize, nscoord aAvailableWidth,
+                              nsSize aMargin, nsSize aBorder,
+                              nsSize aPadding, bool aShrinkWrap)
 {
-  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-  nsRefPtr<nsFontMetrics> fontMet;
-  NS_ENSURE_SUCCESS(nsLayoutUtils::GetFontMetricsForFrame(this,
-                                                          getter_AddRefs(fontMet),
-                                                          inflation),
-                    nsSize(0, 0));
+  nscoord oneEm = NSToCoordRound(GetStyleFont()->mFont.size *
+                                 nsLayoutUtils::FontSizeInflationFor(this)); 
+
+  
+  
+  nsSize frameSizeOverride(10,1);
+  bool isHorizontal = IsHorizontal(&frameSizeOverride);
 
   nsSize autoSize;
-  autoSize.height = autoSize.width = fontMet->Font().size; 
 
-  if (IsHorizontal(autoSize.width, autoSize.height)) {
-    autoSize.width *= 10; 
+  
+  
+  
+  
+  
+
+  if (isHorizontal) {
+    autoSize.width = LONG_SIDE_TO_SHORT_SIDE_RATIO * oneEm;
+    autoSize.height = IsThemed() ? 0 : oneEm;
   } else {
-    autoSize.height *= 10; 
+    autoSize.width = IsThemed() ? 0 : oneEm;
+    autoSize.height = LONG_SIDE_TO_SHORT_SIDE_RATIO * oneEm;
   }
 
   return autoSize;
@@ -309,62 +395,51 @@ nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 nscoord
 nsRangeFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
-  nsRefPtr<nsFontMetrics> fontMet;
-  NS_ENSURE_SUCCESS(
-      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet)), 0);
-
-  nscoord minWidth = fontMet->Font().size; 
-
-  nsSize size = GetSize();
-  if (IsHorizontal(size.width, size.height)) {
-    minWidth *= 10; 
-  }
-
-  return minWidth;
+  
+  
+  
+  return nscoord(0);
 }
 
 nscoord
 nsRangeFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
-  return GetMinWidth(aRenderingContext);
+  
+  nsSize frameSizeOverride(10,1);
+  bool isHorizontal = IsHorizontal(&frameSizeOverride);
+
+  if (!isHorizontal && IsThemed()) {
+    
+    
+    
+    
+    return 0;
+  }
+
+  nscoord prefWidth = NSToCoordRound(GetStyleFont()->mFont.size *
+                                     nsLayoutUtils::FontSizeInflationFor(this)); 
+
+  if (isHorizontal) {
+    prefWidth *= LONG_SIDE_TO_SHORT_SIDE_RATIO;
+  }
+
+  return prefWidth;
 }
 
-double
-nsRangeFrame::GetMin() const
+bool
+nsRangeFrame::IsHorizontal(const nsSize *aFrameSizeOverride) const
 {
-  return static_cast<nsHTMLInputElement*>(mContent)->GetMinimum();
+  return true; 
 }
 
-double
-nsRangeFrame::GetMax() const
+nsIAtom*
+nsRangeFrame::GetType() const
 {
-  return static_cast<nsHTMLInputElement*>(mContent)->GetMaximum();
-}
-
-double
-nsRangeFrame::GetValue() const
-{
-  return static_cast<nsHTMLInputElement*>(mContent)->GetValueAsDouble();
+  return nsGkAtoms::rangeFrame;
 }
 
 bool
 nsRangeFrame::ShouldUseNativeStyle() const
 {
-  
-  
-  
-  
-  return (GetStyleDisplay()->mAppearance == NS_THEME_SCALE_HORIZONTAL) &&
-         (mThumbDiv->GetPrimaryFrame()->GetStyleDisplay()->mAppearance == NS_THEME_SCALE_THUMB_HORIZONTAL) &&
-         !PresContext()->HasAuthorSpecifiedRules(const_cast<nsRangeFrame*>(this),
-                                                 NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND) &&
-         !PresContext()->HasAuthorSpecifiedRules(mThumbDiv->GetPrimaryFrame(),
-                                                 NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND);
-}
-
-bool nsRangeFrame::IsHorizontal(nscoord width, nscoord height) {
-  if (GetStyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL)
-    return false;
-
-  return width >= height;
+  return false; 
 }

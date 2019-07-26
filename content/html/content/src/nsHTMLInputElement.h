@@ -289,6 +289,14 @@ public:
 
 
 
+  double GetValueAsDouble() const;
+
+  
+
+
+
+
+
 
 
   double GetMinimum() const;
@@ -302,18 +310,6 @@ public:
 
 
   double GetMaximum() const;
-
-  
-
-
-
-
-
-  double GetValueAsDouble() const;
-
-  double GetPositionAsPercent();
-
-  void SetPositionAsPercent(double position);
 
 protected:
   
