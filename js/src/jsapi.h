@@ -3586,8 +3586,8 @@ CompileOffThread(JSContext *cx, Handle<JSObject*> obj, CompileOptions options,
                  const jschar *chars, size_t length,
                  OffThreadCompileCallback callback, void *callbackData);
 
-extern JS_PUBLIC_API(void)
-FinishOffThreadScript(JSRuntime *rt, JSScript *script);
+extern JS_PUBLIC_API(JSScript *)
+FinishOffThreadScript(JSContext *maybecx, JSRuntime *rt, void *token);
 
 extern JS_PUBLIC_API(JSFunction *)
 CompileFunction(JSContext *cx, JS::Handle<JSObject*> obj, CompileOptions options,

@@ -173,14 +173,14 @@ static JSClass workerGlobalClass = {
     JS_ConvertStub,   NULL
 };
 
-ParseTask::ParseTask(Zone *zone, ExclusiveContext *cx, const CompileOptions &options,
+ParseTask::ParseTask(ExclusiveContext *cx, const CompileOptions &options,
                      const jschar *chars, size_t length, JSObject *scopeChain,
                      JS::OffThreadCompileCallback callback, void *callbackData)
-  : zone(zone), cx(cx), options(options), chars(chars), length(length),
+  : cx(cx), options(options), chars(chars), length(length),
     alloc(JSRuntime::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE), scopeChain(scopeChain),
-    callback(callback), callbackData(callbackData), script(NULL)
+    callback(callback), callbackData(callbackData), script(NULL), errors(cx)
 {
-    JSRuntime *rt = zone->runtimeFromMainThread();
+    JSRuntime *rt = scopeChain->runtimeFromMainThread();
 
     if (options.principals())
         JS_HoldPrincipals(options.principals());
@@ -192,7 +192,7 @@ ParseTask::ParseTask(Zone *zone, ExclusiveContext *cx, const CompileOptions &opt
 
 ParseTask::~ParseTask()
 {
-    JSRuntime *rt = zone->runtimeFromMainThread();
+    JSRuntime *rt = scopeChain->runtimeFromMainThread();
 
     if (options.principals())
         JS_DropPrincipals(rt, options.principals());
@@ -263,7 +263,7 @@ js::StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
     workercx->enterCompartment(global->compartment());
 
     ScopedJSDeletePtr<ParseTask> task(
-        cx->new_<ParseTask>(global->zone(), workercx.get(), options, chars, length,
+        cx->new_<ParseTask>(workercx.get(), options, chars, length,
                             scopeChain, callback, callbackData));
     if (!task)
         return false;
@@ -372,10 +372,8 @@ WorkerThreadState::cleanup(JSRuntime *rt)
     }
 
     
-    while (!parseFinishedList.empty()) {
-        JSScript *script = parseFinishedList[0]->script;
-        finishParseTaskForScript(rt, script);
-    }
+    while (!parseFinishedList.empty())
+        finishParseTask( NULL, rt, parseFinishedList[0]);
 }
 
 WorkerThreadState::~WorkerThreadState()
@@ -498,15 +496,16 @@ WorkerThreadState::canStartCompressionTask()
     return !compressionWorklist.empty();
 }
 
-void
-WorkerThreadState::finishParseTaskForScript(JSRuntime *rt, JSScript *script)
+JSScript *
+WorkerThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void *token)
 {
     ParseTask *parseTask = NULL;
 
+    
     {
         AutoLockWorkerThreadState lock(*rt->workerThreadState);
         for (size_t i = 0; i < parseFinishedList.length(); i++) {
-            if (parseFinishedList[i]->script == script) {
+            if (parseFinishedList[i] == token) {
                 parseTask = parseFinishedList[i];
                 parseFinishedList[i] = parseFinishedList.back();
                 parseFinishedList.popBack();
@@ -518,23 +517,16 @@ WorkerThreadState::finishParseTaskForScript(JSRuntime *rt, JSScript *script)
 
     
     
-    rt->clearUsedByExclusiveThread(parseTask->zone);
-
-    if (!script) {
-        
-        
-        
-        
-        
-        js_delete(parseTask);
-        return;
-    }
+    rt->clearUsedByExclusiveThread(parseTask->cx->zone());
 
     
     
     
     
-    for (gc::CellIter iter(parseTask->zone, gc::FINALIZE_TYPE_OBJECT); !iter.done(); iter.next()) {
+    for (gc::CellIter iter(parseTask->cx->zone(), gc::FINALIZE_TYPE_OBJECT);
+         !iter.done();
+         iter.next())
+    {
         types::TypeObject *object = iter.get<types::TypeObject>();
         JSObject *proto = object->proto;
         if (!proto)
@@ -551,9 +543,19 @@ WorkerThreadState::finishParseTaskForScript(JSRuntime *rt, JSScript *script)
     }
 
     
-    gc::MergeCompartments(parseTask->script->compartment(), parseTask->scopeChain->compartment());
+    gc::MergeCompartments(parseTask->cx->compartment(), parseTask->scopeChain->compartment());
 
+    
+    
+    if (maybecx) {
+        AutoCompartment ac(maybecx, parseTask->scopeChain);
+        for (size_t i = 0; i < parseTask->errors.length(); i++)
+            parseTask->errors[i].throwError(maybecx);
+    }
+
+    JSScript *script = parseTask->script;
     js_delete(parseTask);
+    return script;
 }
 
 void
@@ -672,6 +674,14 @@ ExclusiveContext::setWorkerThread(WorkerThread *workerThread)
     this->perThreadData = workerThread->threadData.addr();
 }
 
+frontend::CompileError &
+ExclusiveContext::addPendingCompileError()
+{
+    if (!workerThread->parseTask->errors.append(frontend::CompileError()))
+        MOZ_CRASH();
+    return workerThread->parseTask->errors.back();
+}
+
 void
 WorkerThread::handleParseWorkload(WorkerThreadState &state)
 {
@@ -691,7 +701,7 @@ WorkerThread::handleParseWorkload(WorkerThreadState &state)
     }
 
     
-    parseTask->callback(parseTask->script, parseTask->callbackData);
+    parseTask->callback(parseTask, parseTask->callbackData);
 
     
     
@@ -998,6 +1008,12 @@ AutoPauseWorkersForGC::AutoPauseWorkersForGC(JSRuntime *rt MOZ_GUARD_OBJECT_NOTI
 
 AutoPauseWorkersForGC::~AutoPauseWorkersForGC()
 {
+}
+
+frontend::CompileError &
+ExclusiveContext::addPendingCompileError()
+{
+    MOZ_ASSUME_UNREACHABLE("Off thread compilation not available.");
 }
 
 #endif 

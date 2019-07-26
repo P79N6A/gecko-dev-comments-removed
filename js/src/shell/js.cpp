@@ -3237,7 +3237,7 @@ SyntaxParse(JSContext *cx, unsigned argc, jsval *vp)
 #ifdef JS_THREADSAFE
 
 static void
-OffThreadCompileScriptCallback(JSScript *script, void *callbackData)
+OffThreadCompileScriptCallback(void *token, void *callbackData)
 {
     
     

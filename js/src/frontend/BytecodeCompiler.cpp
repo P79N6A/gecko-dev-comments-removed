@@ -258,7 +258,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
     pc.construct(&parser, (GenericParseContext *) NULL, (ParseNode *) NULL, &globalsc,
                  (Directives *) NULL, staticLevel,  0);
-    if (!pc.ref().init())
+    if (!pc.ref().init(parser.tokenStream))
         return NULL;
 
     
@@ -325,7 +325,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
                 pc.destroy();
                 pc.construct(&parser, (GenericParseContext *) NULL, (ParseNode *) NULL,
                              &globalsc, (Directives *) NULL, staticLevel,  0);
-                if (!pc.ref().init())
+                if (!pc.ref().init(parser.tokenStream))
                     return NULL;
                 JS_ASSERT(parser.pc == pc.addr());
                 pn = parser.statement();
