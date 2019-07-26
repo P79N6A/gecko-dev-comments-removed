@@ -223,11 +223,6 @@ public:
 
   virtual bool            AutoErase(HDC dc);
   nsIntPoint*             GetLastPoint() { return &mLastPoint; }
-  
-  bool                    PluginHasFocus()
-  {
-    return (mInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
-  }
   bool                    IsTopLevelWidget() { return mIsTopWidgetWindow; }
   
 
@@ -326,7 +321,6 @@ protected:
   
 
 
-  bool                    DispatchPluginEvent(const MSG &aMsg);
   void                    DispatchFocusToTopLevelWindow(bool aIsActivate);
   bool                    DispatchStandardEvent(uint32_t aMsg);
   bool                    DispatchCommandEvent(uint32_t aEventCommand);
@@ -457,7 +451,6 @@ protected:
   uint32_t              mBlurSuppressLevel;
   DWORD_PTR             mOldStyle;
   DWORD_PTR             mOldExStyle;
-  InputContext mInputContext;
   nsNativeDragTarget*   mNativeDragTarget;
   HKL                   mLastKeyboardLayout;
   nsSizeMode            mOldSizeMode;
