@@ -79,21 +79,6 @@ struct ElementAnimations MOZ_FINAL
     nsRestyleHint styleHint = IsForElement() ? eRestyle_Self : eRestyle_Subtree;
     aPresContext->PresShell()->RestyleForAnimation(mElement, styleHint);
   }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
 };
 
 class nsAnimationManager MOZ_FINAL

@@ -454,7 +454,21 @@ struct CommonElementAnimationData : public PRCList
   
   
   
-  virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const = 0;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const;
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
 
   static void LogAsyncAnimationFailure(nsCString& aMessage,

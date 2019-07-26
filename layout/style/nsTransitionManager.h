@@ -57,24 +57,7 @@ struct ElementTransitions MOZ_FINAL
   ElementTransitions(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
                      nsTransitionManager *aTransitionManager,
                      mozilla::TimeStamp aNow);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
 };
-
-
 
 class nsTransitionManager MOZ_FINAL
   : public mozilla::css::CommonAnimationManager
