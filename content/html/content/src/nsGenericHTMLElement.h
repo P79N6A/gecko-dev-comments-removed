@@ -928,6 +928,22 @@ protected:
 
 
 
+
+
+
+  NS_HIDDEN_(void) GetEnumAttr(nsIAtom* aAttr,
+                               const char* aDefaultMissing,
+                               const char* aDefaultInvalid,
+                               nsAString& aResult) const;
+
+  
+
+
+
+
+
+
+
   virtual already_AddRefed<nsIEditor> GetAssociatedEditor();
 
   
@@ -1363,6 +1379,25 @@ protected:
   _class::Set##_method(const nsAString& aValue)                           \
   {                                                                       \
     return SetAttrHelper(nsGkAtoms::_atom, aValue);                       \
+  }
+
+
+
+
+
+
+
+#define NS_IMPL_ENUM_ATTR_DEFAULT_MISSING_INVALID_VALUES(_class, _method, _atom, _defaultMissing, _defaultInvalid) \
+  NS_IMETHODIMP                                                                                   \
+  _class::Get##_method(nsAString& aValue)                                                         \
+  {                                                                                               \
+    GetEnumAttr(nsGkAtoms::_atom, _defaultMissing, _defaultInvalid, aValue);                      \
+    return NS_OK;                                                                                 \
+  }                                                                                               \
+  NS_IMETHODIMP                                                                                   \
+  _class::Set##_method(const nsAString& aValue)                                                   \
+  {                                                                                               \
+    return SetAttrHelper(nsGkAtoms::_atom, aValue);                                               \
   }
 
 

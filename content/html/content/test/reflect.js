@@ -253,6 +253,8 @@ function reflectUnsignedInt(aParameters)
 
 
 
+
+
 function reflectLimitedEnumerated(aParameters)
 {
   var element = aParameters.element;
@@ -264,6 +266,12 @@ function reflectLimitedEnumerated(aParameters)
   var invalidValues = aParameters.invalidValues;
   var defaultValue = aParameters.defaultValue !== undefined
                        ? aParameters.defaultValue : "";
+  var defaultValueInvalid = aParameters.defaultValue === undefined
+                               ? "" : typeof aParameters.defaultValue === "string"
+                                   ? aParameters.defaultValue : aParameters.defaultValue.invalid
+  var defaultValueMissing = aParameters.defaultValue === undefined
+                                ? "" : typeof aParameters.defaultValue === "string"
+                                    ? aParameters.defaultValue : aParameters.defaultValue.missing
   var unsupportedValues = aParameters.unsupportedValues !== undefined
                             ? aParameters.unsupportedValues : [];
 
@@ -272,7 +280,7 @@ function reflectLimitedEnumerated(aParameters)
 
   
   element.removeAttribute(contentAttr);
-  is(element[idlAttr], defaultValue,
+  is(element[idlAttr], defaultValueMissing,
      "When no attribute is set, the value should be the default value.");
 
   
@@ -309,14 +317,14 @@ function reflectLimitedEnumerated(aParameters)
   
   invalidValues.forEach(function (v) {
     element.setAttribute(contentAttr, v);
-    is(element[idlAttr], defaultValue,
+    is(element[idlAttr], defaultValueInvalid,
        "When the content attribute is set to an invalid value, the default value should be returned.");
     is(element.getAttribute(contentAttr), v,
        "Content attribute should not have been changed.");
     element.removeAttribute(contentAttr);
 
     element[idlAttr] = v;
-    is(element[idlAttr], defaultValue,
+    is(element[idlAttr], defaultValueInvalid,
        "When the value is set to an invalid value, the default value should be returned.");
     is(element.getAttribute(contentAttr), v,
        "Content attribute should not have been changed.");
