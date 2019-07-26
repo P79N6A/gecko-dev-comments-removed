@@ -248,7 +248,7 @@ public:
 
 
 
-  virtual already_AddRefed<IDirect3DTexture9> GetAsTexture(gfxIntSize* aSize)
+  virtual already_AddRefed<IDirect3DTexture9> GetAsTexture(gfx::IntSize* aSize)
   {
     return nullptr;
   }

@@ -230,7 +230,7 @@ public:
 
 
 
-  virtual already_AddRefed<ID3D10ShaderResourceView> GetAsTexture(gfxIntSize* aSize)
+  virtual already_AddRefed<ID3D10ShaderResourceView> GetAsTexture(gfx::IntSize* aSize)
   {
     return nullptr;
   }
