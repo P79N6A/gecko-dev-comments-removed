@@ -2073,7 +2073,13 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (StylePosition()->mHeight.HasPercent()) {
+  
+  const nsStylePosition* stylePos = StylePosition();
+  if (stylePos->mHeight.HasPercent() ||
+      (StyleDisplay()->IsAbsolutelyPositionedStyle() &&
+       eStyleUnit_Auto == stylePos->mHeight.GetUnit() &&
+       eStyleUnit_Auto != stylePos->mOffset.GetTopUnit() &&
+       eStyleUnit_Auto != stylePos->mOffset.GetBottomUnit())) {
     AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
   }
 
