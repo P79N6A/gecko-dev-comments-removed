@@ -3879,9 +3879,11 @@ void HTMLMediaElement::UpdateAudioChannelPlayingState()
       nsCOMPtr<nsIDOMHTMLVideoElement> video = do_QueryObject(this);
       
       if (AUDIO_CHANNEL_NORMAL == mAudioChannelType && video) {
-        mAudioChannelAgent->InitWithVideo(mAudioChannelType, this, true);
+        mAudioChannelAgent->InitWithVideo(OwnerDoc()->GetWindow(),
+                                          mAudioChannelType, this, true);
       } else {
-        mAudioChannelAgent->InitWithWeakCallback(mAudioChannelType, this);
+        mAudioChannelAgent->InitWithWeakCallback(OwnerDoc()->GetWindow(),
+                                                 mAudioChannelType, this);
       }
       mAudioChannelAgent->SetVisibilityState(!OwnerDoc()->Hidden());
     }
