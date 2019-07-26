@@ -13,7 +13,6 @@
 
 #include "libyuv/basic_types.h"
 
-#ifdef __cplusplus
 
 
 struct jpeg_common_struct;
@@ -21,16 +20,6 @@ struct jpeg_decompress_struct;
 struct jpeg_source_mgr;
 
 namespace libyuv {
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-LIBYUV_BOOL ValidateJpeg(const uint8* sample, size_t sample_size);
-
-#ifdef __cplusplus
-}  
-#endif
 
 static const uint32 kUnknownDataSize = 0xFFFFFFFF;
 
@@ -52,7 +41,7 @@ struct SetJmpErrorMgr;
 
 
 
-class LIBYUV_API MJpegDecoder {
+class MJpegDecoder {
  public:
   typedef void (*CallbackFunction)(void* opaque,
                                    const uint8* const* data,
@@ -74,8 +63,7 @@ class LIBYUV_API MJpegDecoder {
   
   
   
-  
-  LIBYUV_BOOL LoadFrame(const uint8* src, size_t src_len);
+  bool LoadFrame(const uint8* src, size_t src_len);
 
   
   int GetWidth();
@@ -119,7 +107,7 @@ class LIBYUV_API MJpegDecoder {
 
   
   
-  LIBYUV_BOOL UnloadFrame();
+  bool UnloadFrame();
 
   
   
@@ -128,13 +116,13 @@ class LIBYUV_API MJpegDecoder {
   
   
   
-  LIBYUV_BOOL DecodeToBuffers(uint8** planes, int dst_width, int dst_height);
+  bool DecodeToBuffers(uint8** planes, int dst_width, int dst_height);
 
   
   
   
   
-  LIBYUV_BOOL DecodeToCallback(CallbackFunction fn, void* opaque,
+  bool DecodeToCallback(CallbackFunction fn, void* opaque,
                         int dst_width, int dst_height);
 
   
@@ -165,11 +153,11 @@ class LIBYUV_API MJpegDecoder {
   void AllocOutputBuffers(int num_outbufs);
   void DestroyOutputBuffers();
 
-  LIBYUV_BOOL StartDecode();
-  LIBYUV_BOOL FinishDecode();
+  bool StartDecode();
+  bool FinishDecode();
 
   void SetScanlinePointers(uint8** data);
-  LIBYUV_BOOL DecodeImcuRow();
+  bool DecodeImcuRow();
 
   int GetComponentScanlinePadding(int component);
 
@@ -183,7 +171,7 @@ class LIBYUV_API MJpegDecoder {
 
   
   
-  LIBYUV_BOOL has_scanline_padding_;
+  bool has_scanline_padding_;
 
   
   int num_outbufs_;  
@@ -198,4 +186,3 @@ class LIBYUV_API MJpegDecoder {
 }  
 
 #endif  
-#endif
