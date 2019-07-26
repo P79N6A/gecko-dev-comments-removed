@@ -34,111 +34,155 @@ namespace mozilla {
 
 
 
+struct FloatTypeTraits
+{
+    typedef uint32_t Bits;
+
+    static const unsigned ExponentBias = 127;
+    static const unsigned ExponentShift = 23;
+
+    static const Bits SignBit         = 0x80000000UL;
+    static const Bits ExponentBits    = 0x7F800000UL;
+    static const Bits SignificandBits = 0x007FFFFFUL;
+};
+
+struct DoubleTypeTraits
+{
+    typedef uint64_t Bits;
+
+    static const unsigned ExponentBias = 1023;
+    static const unsigned ExponentShift = 52;
+
+    static const Bits SignBit         = 0x8000000000000000ULL;
+    static const Bits ExponentBits    = 0x7ff0000000000000ULL;
+    static const Bits SignificandBits = 0x000fffffffffffffULL;
+};
+
+template<typename T> struct SelectTrait;
+template<> struct SelectTrait<float> : public FloatTypeTraits {};
+template<> struct SelectTrait<double> : public DoubleTypeTraits {};
 
 
 
 
 
 
-static_assert(sizeof(double) == sizeof(uint64_t), "double must be 64 bits");
-
-const unsigned DoubleExponentBias = 1023;
-const unsigned DoubleExponentShift = 52;
-
-const uint64_t DoubleSignBit         = 0x8000000000000000ULL;
-const uint64_t DoubleExponentBits    = 0x7ff0000000000000ULL;
-const uint64_t DoubleSignificandBits = 0x000fffffffffffffULL;
-
-static_assert((DoubleSignBit & DoubleExponentBits) == 0,
-              "sign bit doesn't overlap exponent bits");
-static_assert((DoubleSignBit & DoubleSignificandBits) == 0,
-              "sign bit doesn't overlap significand bits");
-static_assert((DoubleExponentBits & DoubleSignificandBits) == 0,
-              "exponent bits don't overlap significand bits");
-
-static_assert((DoubleSignBit | DoubleExponentBits | DoubleSignificandBits) ==
-              ~uint64_t(0),
-              "all bits accounted for");
 
 
 
 
 
-static_assert(sizeof(float) == sizeof(uint32_t), "float must be 32bits");
-
-const unsigned FloatExponentBias = 127;
-const unsigned FloatExponentShift = 23;
-
-const uint32_t FloatSignBit         = 0x80000000UL;
-const uint32_t FloatExponentBits    = 0x7F800000UL;
-const uint32_t FloatSignificandBits = 0x007FFFFFUL;
-
-static_assert((FloatSignBit & FloatExponentBits) == 0,
-              "sign bit doesn't overlap exponent bits");
-static_assert((FloatSignBit & FloatSignificandBits) == 0,
-              "sign bit doesn't overlap significand bits");
-static_assert((FloatExponentBits & FloatSignificandBits) == 0,
-              "exponent bits don't overlap significand bits");
-
-static_assert((FloatSignBit | FloatExponentBits | FloatSignificandBits) ==
-              ~uint32_t(0),
-              "all bits accounted for");
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct FloatingPoint : public SelectTrait<T>
+{
+    typedef SelectTrait<T> Base;
+    typedef typename Base::Bits Bits;
+
+    static_assert((Base::SignBit & Base::ExponentBits) == 0,
+                  "sign bit shouldn't overlap exponent bits");
+    static_assert((Base::SignBit & Base::SignificandBits) == 0,
+                  "sign bit shouldn't overlap significand bits");
+    static_assert((Base::ExponentBits & Base::SignificandBits) == 0,
+                  "exponent bits shouldn't overlap significand bits");
+
+    static_assert((Base::SignBit | Base::ExponentBits | Base::SignificandBits) ==
+                  ~Bits(0),
+                  "all bits accounted for");
+
+    
+
+
+
+
+
+    static_assert(sizeof(T) == sizeof(Bits), "Bits must be same size as T");
+};
+
+
+template<typename T>
 static MOZ_ALWAYS_INLINE bool
-IsNaN(double d)
+IsNaN(T t)
 {
   
 
 
 
-  uint64_t bits = BitwiseCast<uint64_t>(d);
-  return (bits & DoubleExponentBits) == DoubleExponentBits &&
-         (bits & DoubleSignificandBits) != 0;
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  Bits bits = BitwiseCast<Bits>(t);
+  return (bits & Traits::ExponentBits) == Traits::ExponentBits &&
+         (bits & Traits::SignificandBits) != 0;
 }
 
 
+template<typename T>
 static MOZ_ALWAYS_INLINE bool
-IsInfinite(double d)
+IsInfinite(T t)
 {
   
-  uint64_t bits = BitwiseCast<uint64_t>(d);
-  return (bits & ~DoubleSignBit) == DoubleExponentBits;
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  Bits bits = BitwiseCast<Bits>(t);
+  return (bits & ~Traits::SignBit) == Traits::ExponentBits;
 }
 
 
+template<typename T>
 static MOZ_ALWAYS_INLINE bool
-IsFinite(double d)
+IsFinite(T t)
 {
   
 
 
 
-  uint64_t bits = BitwiseCast<uint64_t>(d);
-  return (bits & DoubleExponentBits) != DoubleExponentBits;
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  Bits bits = BitwiseCast<Bits>(t);
+  return (bits & Traits::ExponentBits) != Traits::ExponentBits;
 }
 
 
 
 
 
+template<typename T>
 static MOZ_ALWAYS_INLINE bool
-IsNegative(double d)
+IsNegative(T t)
 {
-  MOZ_ASSERT(!IsNaN(d), "NaN does not have a sign");
+  MOZ_ASSERT(!IsNaN(t), "NaN does not have a sign");
 
   
-  uint64_t bits = BitwiseCast<uint64_t>(d);
-  return (bits & DoubleSignBit) != 0;
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  Bits bits = BitwiseCast<Bits>(t);
+  return (bits & Traits::SignBit) != 0;
 }
 
 
+template<typename T>
 static MOZ_ALWAYS_INLINE bool
-IsNegativeZero(double d)
+IsNegativeZero(T t)
 {
   
-  uint64_t bits = BitwiseCast<uint64_t>(d);
-  return bits == DoubleSignBit;
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  Bits bits = BitwiseCast<Bits>(t);
+  return bits == Traits::SignBit;
 }
 
 
@@ -147,60 +191,73 @@ IsNegativeZero(double d)
 
 
 
+template<typename T>
 static MOZ_ALWAYS_INLINE int_fast16_t
-ExponentComponent(double d)
+ExponentComponent(T t)
 {
   
 
 
 
-  uint64_t bits = BitwiseCast<uint64_t>(d);
-  return int_fast16_t((bits & DoubleExponentBits) >> DoubleExponentShift) -
-         int_fast16_t(DoubleExponentBias);
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  Bits bits = BitwiseCast<Bits>(t);
+  return int_fast16_t((bits & Traits::ExponentBits) >> Traits::ExponentShift) -
+         int_fast16_t(Traits::ExponentBias);
 }
 
 
-static MOZ_ALWAYS_INLINE double
+template<typename T>
+static MOZ_ALWAYS_INLINE T
 PositiveInfinity()
 {
   
 
 
 
-  return BitwiseCast<double>(DoubleExponentBits);
+  typedef FloatingPoint<T> Traits;
+  return BitwiseCast<T>(Traits::ExponentBits);
 }
 
 
-static MOZ_ALWAYS_INLINE double
+template<typename T>
+static MOZ_ALWAYS_INLINE T
 NegativeInfinity()
 {
   
 
 
 
-  return BitwiseCast<double>(DoubleSignBit | DoubleExponentBits);
+  typedef FloatingPoint<T> Traits;
+  return BitwiseCast<T>(Traits::SignBit | Traits::ExponentBits);
 }
 
 
-static MOZ_ALWAYS_INLINE double
-SpecificNaN(int signbit, uint64_t significand)
+
+template<typename T>
+static MOZ_ALWAYS_INLINE T
+SpecificNaN(int signbit, typename FloatingPoint<T>::Bits significand)
 {
+  typedef FloatingPoint<T> Traits;
   MOZ_ASSERT(signbit == 0 || signbit == 1);
-  MOZ_ASSERT((significand & ~DoubleSignificandBits) == 0);
-  MOZ_ASSERT(significand & DoubleSignificandBits);
+  MOZ_ASSERT((significand & ~Traits::SignificandBits) == 0);
+  MOZ_ASSERT(significand & Traits::SignificandBits);
 
-  double d = BitwiseCast<double>((signbit ? DoubleSignBit : 0) |
-                                 DoubleExponentBits |
-                                 significand);
-  MOZ_ASSERT(IsNaN(d));
-  return d;
+  T t = BitwiseCast<T>((signbit ? Traits::SignBit : 0) |
+                       Traits::ExponentBits |
+                       significand);
+  MOZ_ASSERT(IsNaN(t));
+  return t;
 }
 
 
-static MOZ_ALWAYS_INLINE double
-MinDoubleValue()
+template<typename T>
+static MOZ_ALWAYS_INLINE T
+MinNumberValue()
 {
-  return BitwiseCast<double>(uint64_t(1));
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  return BitwiseCast<T>(Bits(1));
 }
 
 
@@ -210,15 +267,17 @@ MinDoubleValue()
 
 
 
+template<typename T>
 static MOZ_ALWAYS_INLINE bool
-DoubleEqualsInt32(double d, int32_t* i)
+NumberEqualsInt32(T t, int32_t* i)
 {
   
 
 
 
 
-  return d == (*i = int32_t(d));
+
+  return t == (*i = int32_t(t));
 }
 
 
@@ -228,17 +287,19 @@ DoubleEqualsInt32(double d, int32_t* i)
 
 
 
+template<typename T>
 static MOZ_ALWAYS_INLINE bool
-DoubleIsInt32(double d, int32_t* i)
+NumberIsInt32(T t, int32_t* i)
 {
-  return !IsNegativeZero(d) && DoubleEqualsInt32(d, i);
+  return !IsNegativeZero(t) && NumberEqualsInt32(t, i);
 }
 
 
 
 
 
-static MOZ_ALWAYS_INLINE double
+template<typename T>
+static MOZ_ALWAYS_INLINE T
 UnspecifiedNaN()
 {
   
@@ -247,7 +308,8 @@ UnspecifiedNaN()
 
 
 
-  return SpecificNaN(1, 0xfffffffffffffULL);
+  typedef FloatingPoint<T> Traits;
+  return SpecificNaN<T>(1, Traits::SignificandBits);
 }
 
 
@@ -255,40 +317,15 @@ UnspecifiedNaN()
 
 
 
+template<typename T>
 static inline bool
-DoublesAreIdentical(double d1, double d2)
+NumbersAreIdentical(T t1, T t2)
 {
-  if (IsNaN(d1))
-    return IsNaN(d2);
-  return BitwiseCast<uint64_t>(d1) == BitwiseCast<uint64_t>(d2);
-}
-
-
-static MOZ_ALWAYS_INLINE bool
-IsFloatNaN(float f)
-{
-  
-
-
-
-  uint32_t bits = BitwiseCast<uint32_t>(f);
-  return (bits & FloatExponentBits) == FloatExponentBits &&
-         (bits & FloatSignificandBits) != 0;
-}
-
-
-static MOZ_ALWAYS_INLINE float
-SpecificFloatNaN(int signbit, uint32_t significand)
-{
-  MOZ_ASSERT(signbit == 0 || signbit == 1);
-  MOZ_ASSERT((significand & ~FloatSignificandBits) == 0);
-  MOZ_ASSERT(significand & FloatSignificandBits);
-
-  float f = BitwiseCast<float>((signbit ? FloatSignBit : 0) |
-                                 FloatExponentBits |
-                                 significand);
-  MOZ_ASSERT(IsFloatNaN(f));
-  return f;
+  typedef FloatingPoint<T> Traits;
+  typedef typename Traits::Bits Bits;
+  if (IsNaN(t1))
+    return IsNaN(t2);
+  return BitwiseCast<Bits>(t1) == BitwiseCast<Bits>(t2);
 }
 
 namespace detail {
