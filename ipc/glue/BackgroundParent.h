@@ -9,6 +9,8 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/Transport.h"
 
+template <class> class already_AddRefed;
+
 namespace mozilla {
 namespace dom {
 
@@ -29,6 +31,25 @@ class BackgroundParent MOZ_FINAL
   typedef base::ProcessId ProcessId;
   typedef mozilla::dom::ContentParent ContentParent;
   typedef mozilla::ipc::Transport Transport;
+
+public:
+  
+  
+  
+  
+  static bool
+  IsOtherProcessActor(PBackgroundParent* aBackgroundActor);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  static already_AddRefed<ContentParent>
+  GetContentParent(PBackgroundParent* aBackgroundActor);
 
 private:
   

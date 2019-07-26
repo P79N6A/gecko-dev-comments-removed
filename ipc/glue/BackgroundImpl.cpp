@@ -35,6 +35,12 @@
 #include "nsXPCOMPrivate.h"
 #include "prthread.h"
 
+#ifdef RELEASE_BUILD
+#define THREADSAFETY_ASSERT MOZ_ASSERT
+#else
+#define THREADSAFETY_ASSERT MOZ_RELEASE_ASSERT
+#endif
+
 #define CRASH_IN_CHILD_PROCESS(_msg)                                           \
   do {                                                                         \
     if (IsMainProcess()) {                                                     \
@@ -86,7 +92,7 @@ AssertIsInChildProcess()
 void
 AssertIsOnMainThread()
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  THREADSAFETY_ASSERT(NS_IsMainThread());
 }
 
 
@@ -174,10 +180,18 @@ private:
   
   Transport* mTransport;
 
+  
+  
   nsTArray<ParentImpl*>* mLiveActorArray;
 
   
-  DebugOnly<bool> mIsOtherProcessActorDEBUG;
+  
+  
+  const bool mIsOtherProcessActor;
+
+  
+  
+  bool mActorDestroyed;
 
 public:
   static bool
@@ -192,7 +206,7 @@ public:
   static void
   AssertIsOnBackgroundThread()
   {
-    MOZ_ASSERT(IsOnBackgroundThread());
+    THREADSAFETY_ASSERT(IsOnBackgroundThread());
   }
 
   NS_INLINE_DECL_REFCOUNTING(ParentImpl)
@@ -201,6 +215,14 @@ public:
   Destroy();
 
 private:
+  
+  static bool
+  IsOtherProcessActor(PBackgroundParent* aBackgroundActor);
+
+  
+  static already_AddRefed<ContentParent>
+  GetContentParent(PBackgroundParent* aBackgroundActor);
+
   
   static PBackgroundParent*
   Alloc(ContentParent* aContent,
@@ -218,8 +240,8 @@ private:
 
   
   ParentImpl()
-  : mTransport(nullptr), mLiveActorArray(nullptr),
-    mIsOtherProcessActorDEBUG(false)
+  : mTransport(nullptr), mLiveActorArray(nullptr), mIsOtherProcessActor(false),
+    mActorDestroyed(false)
   {
     AssertIsInMainProcess();
     AssertIsOnMainThread();
@@ -230,7 +252,7 @@ private:
   
   ParentImpl(ContentParent* aContent, Transport* aTransport)
   : mContent(aContent), mTransport(aTransport), mLiveActorArray(nullptr),
-    mIsOtherProcessActorDEBUG(true)
+    mIsOtherProcessActor(true), mActorDestroyed(false)
   {
     AssertIsInMainProcess();
     AssertIsOnMainThread();
@@ -257,7 +279,7 @@ private:
     MOZ_ASSERT(aLiveActorArray);
     MOZ_ASSERT(!aLiveActorArray->Contains(this));
     MOZ_ASSERT(!mLiveActorArray);
-    MOZ_ASSERT(mIsOtherProcessActorDEBUG);
+    MOZ_ASSERT(mIsOtherProcessActor);
 
     mLiveActorArray = aLiveActorArray;
     mLiveActorArray->AppendElement(this);
@@ -318,7 +340,11 @@ class ChildImpl MOZ_FINAL : public BackgroundChildImpl
   
   static bool sShutdownHasStarted;
 
+#ifdef RELEASE_BUILD
   DebugOnly<nsIThread*> mBoundThread;
+#else
+  nsIThread* mBoundThread;
+#endif
 
 public:
   static bool
@@ -330,14 +356,17 @@ public:
   void
   AssertIsOnBoundThread()
   {
-    MOZ_ASSERT(mBoundThread);
+    THREADSAFETY_ASSERT(mBoundThread);
 
+#ifdef RELEASE_BUILD
     DebugOnly<bool> current;
-    MOZ_ASSERT(NS_SUCCEEDED(mBoundThread->IsOnCurrentThread(&current)));
-
-    MOZ_ASSERT(current);
+#else
+    bool current;
+#endif
+    THREADSAFETY_ASSERT(
+      NS_SUCCEEDED(mBoundThread->IsOnCurrentThread(&current)));
+    THREADSAFETY_ASSERT(current);
   }
-
 
   ChildImpl()
   : mBoundThread(nullptr)
@@ -387,11 +416,13 @@ private:
   void
   SetBoundThread()
   {
-#ifdef DEBUG
-    MOZ_ASSERT(!mBoundThread);
+    THREADSAFETY_ASSERT(!mBoundThread);
+
+#if defined(DEBUG) || !defined(RELEASE_BUILD)
     mBoundThread = NS_GetCurrentThread();
-    MOZ_ASSERT(mBoundThread);
 #endif
+
+    THREADSAFETY_ASSERT(mBoundThread);
   }
 
   
@@ -741,6 +772,20 @@ AssertIsOnBackgroundThread()
 
 
 
+bool
+BackgroundParent::IsOtherProcessActor(PBackgroundParent* aBackgroundActor)
+{
+  return ParentImpl::IsOtherProcessActor(aBackgroundActor);
+}
+
+
+already_AddRefed<ContentParent>
+BackgroundParent::GetContentParent(PBackgroundParent* aBackgroundActor)
+{
+  return ParentImpl::GetContentParent(aBackgroundActor);
+}
+
+
 PBackgroundParent*
 BackgroundParent::Alloc(ContentParent* aContent,
                         Transport* aTransport,
@@ -825,6 +870,46 @@ bool ChildImpl::sShutdownHasStarted = false;
 
 
 
+
+
+bool
+ParentImpl::IsOtherProcessActor(PBackgroundParent* aBackgroundActor)
+{
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aBackgroundActor);
+
+  return static_cast<ParentImpl*>(aBackgroundActor)->mIsOtherProcessActor;
+}
+
+
+already_AddRefed<ContentParent>
+ParentImpl::GetContentParent(PBackgroundParent* aBackgroundActor)
+{
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aBackgroundActor);
+
+  auto actor = static_cast<ParentImpl*>(aBackgroundActor);
+  if (actor->mActorDestroyed) {
+    MOZ_ASSERT(false, "GetContentParent called after ActorDestroy was called!");
+    return nullptr;
+  }
+
+  if (actor->mContent) {
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewNonOwningRunnableMethod(actor->mContent, &ContentParent::AddRef);
+    MOZ_ASSERT(runnable);
+
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
+  }
+
+  return actor->mContent.get();
+}
 
 
 PBackgroundParent*
@@ -1095,10 +1180,10 @@ ParentImpl::MainThreadActorDestroy()
 {
   AssertIsInMainProcess();
   AssertIsOnMainThread();
-  MOZ_ASSERT_IF(mIsOtherProcessActorDEBUG, mContent);
-  MOZ_ASSERT_IF(!mIsOtherProcessActorDEBUG, !mContent);
-  MOZ_ASSERT_IF(mIsOtherProcessActorDEBUG, mTransport);
-  MOZ_ASSERT_IF(!mIsOtherProcessActorDEBUG, !mTransport);
+  MOZ_ASSERT_IF(mIsOtherProcessActor, mContent);
+  MOZ_ASSERT_IF(!mIsOtherProcessActor, !mContent);
+  MOZ_ASSERT_IF(mIsOtherProcessActor, mTransport);
+  MOZ_ASSERT_IF(!mIsOtherProcessActor, !mTransport);
 
   if (mTransport) {
     XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
@@ -1167,9 +1252,12 @@ ParentImpl::ActorDestroy(ActorDestroyReason aWhy)
 {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT_IF(mIsOtherProcessActorDEBUG, mLiveActorArray);
+  MOZ_ASSERT(!mActorDestroyed);
+  MOZ_ASSERT_IF(mIsOtherProcessActor, mLiveActorArray);
 
   BackgroundParentImpl::ActorDestroy(aWhy);
+
+  mActorDestroyed = true;
 
   if (mLiveActorArray) {
     MOZ_ALWAYS_TRUE(mLiveActorArray->RemoveElement(this));
