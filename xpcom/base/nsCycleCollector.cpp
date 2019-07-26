@@ -1660,6 +1660,8 @@ private:
 
         
         
+        
+        
         nsIFile* logFile = nullptr;
         if (char* env = PR_GetEnv("MOZ_CC_LOG_DIRECTORY")) {
             NS_NewNativeLocalFile(nsCString(env),  true,
@@ -1671,7 +1673,7 @@ private:
           return nullptr;
         }
 
-        return logFile;
+        return dont_AddRef(logFile);
     }
 
     FILE *mStream;
@@ -1885,6 +1887,7 @@ GCGraphBuilder::AddNode(void *s, nsCycleCollectionParticipant *aParticipant)
 {
     PtrToNodeEntry *e = static_cast<PtrToNodeEntry*>(PL_DHashTableOperate(&mPtrToNodeMap, s, PL_DHASH_ADD));
     if (!e) {
+        NS_WARNING("Hash table add in GCGraphBuilder::AddNode failed");
         return nullptr;
     }
 

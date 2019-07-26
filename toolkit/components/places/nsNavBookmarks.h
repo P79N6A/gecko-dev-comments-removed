@@ -104,7 +104,7 @@ public:
   
 
 
-  static nsNavBookmarks* GetSingleton();
+  static already_AddRefed<nsNavBookmarks> GetSingleton();
 
   
 

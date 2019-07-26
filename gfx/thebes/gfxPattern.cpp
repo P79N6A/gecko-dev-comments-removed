@@ -388,7 +388,7 @@ gfxPattern::GetSurface()
   } else {
     
     NS_ERROR("Attempt to get surface off an Azure gfxPattern!");
-    return NULL;
+    return nullptr;
   }
 }
 

@@ -217,7 +217,7 @@ public:
 
 
     virtual already_AddRefed<gfxASurface> GetBackingSurface()
-    { return NULL; }
+    { return nullptr; }
 
     const nsIntSize& GetSize() const { return mSize; }
     ContentType GetContentType() const { return mContentType; }

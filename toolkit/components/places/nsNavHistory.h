@@ -87,7 +87,7 @@ public:
   
 
 
-  static nsNavHistory* GetSingleton();
+  static already_AddRefed<nsNavHistory> GetSingleton();
 
   
 

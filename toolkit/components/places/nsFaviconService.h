@@ -61,7 +61,7 @@ public:
   
 
 
-  static nsFaviconService* GetSingleton();
+  static already_AddRefed<nsFaviconService> GetSingleton();
 
   
 

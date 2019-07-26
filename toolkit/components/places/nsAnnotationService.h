@@ -55,7 +55,7 @@ public:
   
 
 
-  static nsAnnotationService* GetSingleton();
+  static already_AddRefed<nsAnnotationService> GetSingleton();
 
   
 

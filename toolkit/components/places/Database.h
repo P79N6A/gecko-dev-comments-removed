@@ -283,9 +283,7 @@ private:
   
 
 
-
-
-  static Database* GetSingleton();
+  static already_AddRefed<Database> GetSingleton();
 
   static Database* gDatabase;
 

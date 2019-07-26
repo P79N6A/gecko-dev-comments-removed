@@ -160,7 +160,7 @@ gfxContext::CurrentSurface(gfxFloat *dx, gfxFloat *dy)
       *dx = *dy = 0;
     }
     
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -249,7 +249,7 @@ already_AddRefed<gfxPath> gfxContext::CopyPath() const
     return path.forget();
   } else {
     
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -1711,7 +1711,7 @@ gfxContext::GetFlattenedPath()
     return path.forget();
   } else {
     
-    return NULL;
+    return nullptr;
   }
 }
 
