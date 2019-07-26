@@ -741,8 +741,4 @@ pref("dom.payment.provider.0.requestMethod", "GET");
 #endif
 
 
-pref("media.navigator.enabled", false);
-pref("media.peerconnection.enabled", false);
-
-
 pref("media.useAudioChannelService", true);
