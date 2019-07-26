@@ -266,14 +266,6 @@ public:
   {
     SetAttr(kNameSpaceID_None, nsGkAtoms::_class, aClassName, true);
   }
-  virtual void GetInnerHTML(nsAString& aInnerHTML,
-                            mozilla::ErrorResult& aError);
-  virtual void SetInnerHTML(const nsAString& aInnerHTML,
-                            mozilla::ErrorResult& aError);
-  void GetOuterHTML(nsAString& aOuterHTML, mozilla::ErrorResult& aError);
-  void SetOuterHTML(const nsAString& aOuterHTML, mozilla::ErrorResult& aError);
-  void InsertAdjacentHTML(const nsAString& aPosition, const nsAString& aText,
-                          mozilla::ErrorResult& aError);
   mozilla::dom::Element* GetOffsetParent()
   {
     nsRect rcFrame;
@@ -336,9 +328,6 @@ public:
 
 
   nsSize GetWidthHeightForImage(imgIRequest *aImageRequest);
-
-protected:
-  nsresult GetMarkup(bool aIncludeSelf, nsAString& aMarkup);
 
 public:
   
@@ -697,7 +686,6 @@ public:
 
 
   NS_HIDDEN_(nsresult) GetEditor(nsIEditor** aEditor);
-  NS_HIDDEN_(nsresult) GetEditorInternal(nsIEditor** aEditor);
 
   
 
@@ -776,18 +764,6 @@ protected:
   }
 
 private:
-  
-
-
-
-
-
-
-
-  void FireMutationEventsForDirectParsing(nsIDocument* aDoc,
-                                          nsIContent* aDest,
-                                          int32_t aOldChildCount);
-
   void RegUnRegAccessKey(bool aDoReg);
 
 protected:
@@ -1804,13 +1780,13 @@ protected:
     *aDraggable = Draggable();                                                 \
     return NS_OK;                                                              \
   }                                                                            \
-  using nsGenericHTMLElement::GetInnerHTML;                                    \
+  using Element::GetInnerHTML;                                                 \
   NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML) MOZ_FINAL {                   \
     mozilla::ErrorResult rv;                                                   \
     GetInnerHTML(aInnerHTML, rv);                                              \
     return rv.ErrorCode();                                                     \
   }                                                                            \
-  using nsGenericHTMLElement::SetInnerHTML;                                    \
+  using Element::SetInnerHTML;                                                 \
   NS_IMETHOD SetInnerHTML(const nsAString& aInnerHTML) MOZ_FINAL {             \
     mozilla::ErrorResult rv;                                                   \
     SetInnerHTML(aInnerHTML, rv);                                              \
