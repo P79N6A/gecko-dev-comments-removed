@@ -22,8 +22,11 @@ Cu.import("resource:///modules/CustomizableUI.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "DragPositionManager",
                                   "resource:///modules/DragPositionManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
+                                  "resource:///modules/BrowserUITelemetry.jsm");
 
 let gModuleName = "[CustomizeMode]";
 #include logging.js
@@ -731,6 +734,7 @@ CustomizeMode.prototype = {
     this.resetting = true;
     
     let btn = this.document.getElementById("customization-reset-button");
+    BrowserUITelemetry.countCustomizationEvent("reset");
     btn.disabled = true;
     return Task.spawn(function() {
       this._removePanelCustomizationPlaceholders();
@@ -1106,6 +1110,7 @@ CustomizeMode.prototype = {
         }
 
         CustomizableUI.removeWidgetFromArea(aDraggedItemId);
+        BrowserUITelemetry.countCustomizationEvent("remove");
         
         if (CustomizableUI.isSpecialWidget(aDraggedItemId)) {
           return;
@@ -1143,6 +1148,7 @@ CustomizeMode.prototype = {
         this.wrapToolbarItem(aTargetNode, place);
       }
       this.wrapToolbarItem(draggedItem, place);
+      BrowserUITelemetry.countCustomizationEvent("move");
       return;
     }
 
@@ -1150,6 +1156,12 @@ CustomizeMode.prototype = {
     
     if (aTargetNode == aTargetArea.customizationTarget) {
       CustomizableUI.addWidgetToArea(aDraggedItemId, aTargetArea.id);
+      
+      
+      
+      
+      let custEventType = aOriginArea.id == kPaletteId ? "add" : "move";
+      BrowserUITelemetry.countCustomizationEvent(custEventType);
       return;
     }
 
@@ -1177,7 +1189,6 @@ CustomizeMode.prototype = {
     }
     let position = placement ? placement.position : null;
 
-
     
     
     
@@ -1186,6 +1197,12 @@ CustomizeMode.prototype = {
     } else {
       CustomizableUI.addWidgetToArea(aDraggedItemId, aTargetArea.id, position);
     }
+
+    
+    
+    let custEventType = aOriginArea.id == kPaletteId ? "add" : "move";
+    BrowserUITelemetry.countCustomizationEvent(custEventType);
+
     
     if (aTargetNode != itemForPlacement) {
       let draggedWrapper = draggedItem.parentNode;
