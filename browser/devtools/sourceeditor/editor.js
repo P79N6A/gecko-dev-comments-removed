@@ -690,8 +690,13 @@ CM_MAPPING.forEach(function (name) {
 
 
 
-Editor.accel = function (key) {
-  return (Services.appinfo.OS == "Darwin" ? "Cmd-" : "Ctrl-") + key;
+
+
+
+Editor.accel = function (key, modifiers={}) {
+  return (modifiers.shift ? "Shift-" : "") +
+         (Services.appinfo.OS == "Darwin" ? "Cmd-" : "Ctrl-") +
+         (modifiers.alt ? "Alt-" : "") + key;
 };
 
 
