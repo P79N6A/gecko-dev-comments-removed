@@ -160,9 +160,6 @@ private:
   PRTime mModalStateTime;
   uint32_t mModalStateDepth;
 
-  nsJSContext *mNext;
-  nsJSContext **mPrev;
-
   
   
   nsCOMPtr<nsIScriptGlobalObject> mGlobalObjectRef;
