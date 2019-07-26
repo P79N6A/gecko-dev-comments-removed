@@ -135,12 +135,12 @@ bool nsIContent::sTabFocusModelAppliesToXUL = false;
 uint32_t nsMutationGuard::sMutationCount = 0;
 
 nsIContent*
-nsIContent::FindFirstNonNativeAnonymous() const
+nsIContent::FindFirstNonChromeOnlyAccessContent() const
 {
   
   for (const nsIContent *content = this; content;
        content = content->GetBindingParent()) {
-    if (!content->IsInNativeAnonymousSubtree()) {
+    if (!content->ChromeOnlyAccess()) {
       
       
       return const_cast<nsIContent*>(content);
@@ -851,12 +851,12 @@ FragmentOrElement::GetChildren(uint32_t aFilter)
 }
 
 static nsIContent*
-FindNativeAnonymousSubtreeOwner(nsIContent* aContent)
+FindChromeAccessOnlySubtreeOwner(nsIContent* aContent)
 {
-  if (aContent->IsInNativeAnonymousSubtree()) {
-    bool isNativeAnon = false;
-    while (aContent && !isNativeAnon) {
-      isNativeAnon = aContent->IsRootOfNativeAnonymousSubtree();
+  if (aContent->ChromeOnlyAccess()) {
+    bool chromeAccessOnly = false;
+    while (aContent && !chromeAccessOnly) {
+      chromeAccessOnly = aContent->IsRootOfChromeAccessOnlySubtree();
       aContent = aContent->GetParent();
     }
   }
@@ -872,14 +872,14 @@ nsIContent::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 
   
   
-  bool isAnonForEvents = IsRootOfNativeAnonymousSubtree();
+  bool isAnonForEvents = IsRootOfChromeAccessOnlySubtree();
   if ((aVisitor.mEvent->message == NS_MOUSE_ENTER_SYNTH ||
        aVisitor.mEvent->message == NS_MOUSE_EXIT_SYNTH) &&
       
       
       
       ((this == aVisitor.mEvent->originalTarget &&
-        !IsInNativeAnonymousSubtree()) || isAnonForEvents)) {
+        !ChromeOnlyAccess()) || isAnonForEvents)) {
      nsCOMPtr<nsIContent> relatedTarget =
        do_QueryInterface(static_cast<nsMouseEvent*>
                                     (aVisitor.mEvent)->relatedTarget);
@@ -894,19 +894,19 @@ nsIContent::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
       if (isAnonForEvents || aVisitor.mRelatedTargetIsInAnon ||
           (aVisitor.mEvent->originalTarget == this &&
            (aVisitor.mRelatedTargetIsInAnon =
-            relatedTarget->IsInNativeAnonymousSubtree()))) {
-        nsIContent* anonOwner = FindNativeAnonymousSubtreeOwner(this);
+            relatedTarget->ChromeOnlyAccess()))) {
+        nsIContent* anonOwner = FindChromeAccessOnlySubtreeOwner(this);
         if (anonOwner) {
           nsIContent* anonOwnerRelated =
-            FindNativeAnonymousSubtreeOwner(relatedTarget);
+            FindChromeAccessOnlySubtreeOwner(relatedTarget);
           if (anonOwnerRelated) {
             
             
             
             
             while (anonOwner != anonOwnerRelated &&
-                   anonOwnerRelated->IsInNativeAnonymousSubtree()) {
-              anonOwnerRelated = FindNativeAnonymousSubtreeOwner(anonOwnerRelated);
+                   anonOwnerRelated->ChromeOnlyAccess()) {
+              anonOwnerRelated = FindChromeAccessOnlySubtreeOwner(anonOwnerRelated);
             }
             if (anonOwner == anonOwnerRelated) {
 #ifdef DEBUG_smaug
@@ -927,13 +927,14 @@ nsIContent::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
                      NS_ConvertUTF16toUTF8(ct).get(),
                      isAnonForEvents
                        ? "(is native anonymous)"
-                       : (IsInNativeAnonymousSubtree()
+                       : (ChromeOnlyAccess()
                            ? "(is in native anonymous subtree)" : ""),
                      NS_ConvertUTF16toUTF8(rt).get(),
-                     relatedTarget->IsInNativeAnonymousSubtree()
+                     relatedTarget->ChromeOnlyAccess()
                        ? "(is in native anonymous subtree)" : "",
-                     (originalTarget && relatedTarget->FindFirstNonNativeAnonymous() ==
-                       originalTarget->FindFirstNonNativeAnonymous())
+                     (originalTarget &&
+                      relatedTarget->FindFirstNonChromeOnlyAccessContent() ==
+                        originalTarget->FindFirstNonChromeOnlyAccessContent())
                        ? "" : "Wrong event propagation!?!\n");
 #endif
               aVisitor.mParentTarget = nullptr;

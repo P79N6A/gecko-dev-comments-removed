@@ -193,6 +193,8 @@ public:
 
 
 
+
+
   nsresult Read(nsIObjectInputStream* aStream,
                 nsXBLDocumentInfo* aDocInfo,
                 nsIDocument* aDocument,
@@ -301,6 +303,7 @@ public:
                              nsIContent* aCopyRoot,
                              nsIContent* aTemplChild);
 
+  bool ChromeOnlyContent() { return mChromeOnlyContent; }
 protected:
   
   void EnsureAttributeTable();
@@ -332,6 +335,7 @@ protected:
   bool mInheritStyle;
   bool mCheckedBaseProto;
   bool mKeyHandlersRegistered;
+  bool mChromeOnlyContent;
  
   nsXBLPrototypeResources* mResources; 
                                       

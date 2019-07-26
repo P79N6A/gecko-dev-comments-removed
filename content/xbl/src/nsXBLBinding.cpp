@@ -465,7 +465,8 @@ nsXBLBinding::SetBaseBinding(nsXBLBinding* aBinding)
 }
 
 void
-nsXBLBinding::InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElement)
+nsXBLBinding::InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElement,
+                                      bool aChromeOnlyContent)
 {
   
   
@@ -484,6 +485,10 @@ nsXBLBinding::InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElem
        child;
        child = child->GetNextSibling()) {
     child->UnbindFromTree();
+    if (aChromeOnlyContent) {
+      child->SetFlags(NODE_CHROME_ONLY_ACCESS |
+                      NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS);
+    }
     nsresult rv =
       child->BindToTree(doc, aElement, mBoundElement, allowScripts);
     if (NS_FAILED(rv)) {
@@ -693,7 +698,9 @@ RealizeDefaultContent(nsISupports* aKey,
         
         
         nsCOMPtr<nsIContent> clonedContent(do_QueryInterface(clonedNode));
-        binding->InstallAnonymousContent(clonedContent, insParent);
+        binding->InstallAnonymousContent(clonedContent, insParent,
+                                         binding->PrototypeBinding()->
+                                           ChromeOnlyContent());
 
         
         
@@ -805,7 +812,8 @@ nsXBLBinding::GenerateAnonymousContent()
                          nodesWithProperties, getter_AddRefs(clonedNode));
 
       mContent = do_QueryInterface(clonedNode);
-      InstallAnonymousContent(mContent, mBoundElement);
+      InstallAnonymousContent(mContent, mBoundElement,
+                              mPrototypeBinding->ChromeOnlyContent());
 
       if (hasInsertionPoints) {
         

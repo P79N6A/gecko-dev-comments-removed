@@ -248,13 +248,13 @@ nsFindContentIterator::Reset()
   
   nsCOMPtr<nsIContent> startContent(do_QueryInterface(mStartNode));
   if (startContent) {
-    mStartOuterContent = startContent->FindFirstNonNativeAnonymous();
+    mStartOuterContent = startContent->FindFirstNonChromeOnlyAccessContent();
   }
 
   
   nsCOMPtr<nsIContent> endContent(do_QueryInterface(mEndNode));
   if (endContent) {
-    mEndOuterContent = endContent->FindFirstNonNativeAnonymous();
+    mEndOuterContent = endContent->FindFirstNonChromeOnlyAccessContent();
   }
 
   

@@ -35,8 +35,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID \
-{ 0x98fb308d, 0xc6dd, 0x4c6d, \
-  { 0xb7, 0x7c, 0x91, 0x18, 0x0c, 0xf0, 0x6f, 0x23 } }
+{ 0xe2985850, 0x81ca, 0x4b5d, \
+  { 0xb0, 0xf3, 0xe3, 0x95, 0xd5, 0x0d, 0x85, 0x64 } }
 
 
 
@@ -177,6 +177,12 @@ public:
     return HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT);
   }
 
+  bool IsRootOfChromeAccessOnlySubtree() const
+  {
+    return HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT |
+                   NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS);
+  }
+
   
 
 
@@ -191,7 +197,7 @@ public:
 
 
 
-  virtual nsIContent* FindFirstNonNativeAnonymous() const;
+  virtual nsIContent* FindFirstNonChromeOnlyAccessContent() const;
 
   
 
