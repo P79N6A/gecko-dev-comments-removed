@@ -2724,11 +2724,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
   
   
-  if (mDecoder && !mDecoder->IsSizeDecode()) {
-    if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SOMEWHAT_SYNCHRONOUS) {
-      SAMPLE_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString());
-      DecodeWorker::Singleton()->DecodeABitOf(this);
-    }
+  if (mDecoder && !mDecoder->IsSizeDecode() && mBytesDecoded) {
     return NS_OK;
   }
 
