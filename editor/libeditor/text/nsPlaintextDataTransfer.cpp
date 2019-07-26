@@ -322,7 +322,7 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 
 NS_IMETHODIMP nsPlaintextEditor::Paste(int32_t aSelectionType)
 {
-  if (!FireClipboardEvent(NS_PASTE, aSelectionType))
+  if (!FireClipboardEvent(NS_PASTE))
     return NS_OK;
 
   
@@ -353,9 +353,7 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(int32_t aSelectionType)
 
 NS_IMETHODIMP nsPlaintextEditor::PasteTransferable(nsITransferable *aTransferable)
 {
-  
-  
-  if (!FireClipboardEvent(NS_PASTE, -1))
+  if (!FireClipboardEvent(NS_PASTE))
     return NS_OK;
 
   if (!IsModifiable())
