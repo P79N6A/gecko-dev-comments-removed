@@ -1,4 +1,11 @@
+
+
+
+
+
+
 #include "MacIOSurface.h"
+#include <OpenGL/gl.h>
 #include <QuartzCore/QuartzCore.h>
 #include <dlfcn.h>
 #include "mozilla/RefPtr.h"
