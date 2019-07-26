@@ -1088,7 +1088,8 @@ protected:
 
 
   void AddToIdTable(nsIAtom* aId);
-  void RemoveFromIdTable();
+  void RemoveFromIdTable(); 
+  void RemoveFromIdTable(nsIAtom* aId);
 
   
 
