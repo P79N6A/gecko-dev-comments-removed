@@ -2224,7 +2224,9 @@ nsHttpConnectionMgr::OnMsgCancelTransaction(int32_t reason, void *param)
         
         
         
-        for (uint32_t index = 0; index < ent->mActiveConns.Length(); ++index) {
+        for (uint32_t index = 0;
+             ent && (index < ent->mActiveConns.Length());
+             ++index) {
             nsHttpConnection *activeConn = ent->mActiveConns[index];
             nsAHttpTransaction *liveTransaction = activeConn->Transaction();
             if (liveTransaction && liveTransaction->IsNullTransaction()) {
