@@ -12,6 +12,8 @@
 #include "VideoUtils.h"
 
 #include "mozilla/StandardInteger.h"
+#include "mozilla/Util.h"
+#include "mozilla/CheckedInt.h"
 
 namespace mozilla {
 
@@ -31,17 +33,24 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 #define SEEK_LOG(type, msg)
 #endif
 
+struct waveIdToName {
+  uint32_t id;
+  nsCString name;
+};
+
+
 
 static const uint32_t RIFF_CHUNK_MAGIC = 0x52494646;
 static const uint32_t WAVE_CHUNK_MAGIC = 0x57415645;
 static const uint32_t FRMT_CHUNK_MAGIC = 0x666d7420;
 static const uint32_t DATA_CHUNK_MAGIC = 0x64617461;
+static const uint32_t LIST_CHUNK_MAGIC = 0x4c495354;
 
 
-static const uint16_t RIFF_CHUNK_HEADER_SIZE = 8;
+static const uint16_t CHUNK_HEADER_SIZE = 8;
 
 
-static const uint16_t RIFF_INITIAL_SIZE = RIFF_CHUNK_HEADER_SIZE + 4;
+static const uint16_t RIFF_INITIAL_SIZE = CHUNK_HEADER_SIZE + 4;
 
 
 
@@ -125,8 +134,15 @@ nsresult WaveReader::ReadMetadata(VideoInfo* aInfo,
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
-  bool loaded = LoadRIFFChunk() && LoadFormatChunk() && FindDataOffset();
+  bool loaded = LoadRIFFChunk();
   if (!loaded) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoPtr<nsHTMLMediaElement::MetadataTags> tags;
+
+  bool loadAllChunks = LoadAllChunks(tags);
+  if (!loadAllChunks) {
     return NS_ERROR_FAILURE;
   }
 
@@ -137,7 +153,7 @@ nsresult WaveReader::ReadMetadata(VideoInfo* aInfo,
 
   *aInfo = mInfo;
 
-  *aTags = nullptr;
+  *aTags = tags.forget();
 
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
@@ -335,61 +351,15 @@ WaveReader::LoadRIFFChunk()
 }
 
 bool
-WaveReader::ScanForwardUntil(uint32_t aWantedChunk, uint32_t* aChunkSize)
+WaveReader::LoadFormatChunk(uint32_t aChunkSize)
 {
-  NS_ABORT_IF_FALSE(aChunkSize, "Require aChunkSize argument");
-  *aChunkSize = 0;
-
-  for (;;) {
-    static const unsigned int CHUNK_HEADER_SIZE = 8;
-    char chunkHeader[CHUNK_HEADER_SIZE];
-    const char* p = chunkHeader;
-
-    if (!ReadAll(chunkHeader, sizeof(chunkHeader))) {
-      return false;
-    }
-
-    PR_STATIC_ASSERT(sizeof(uint32_t) * 2 <= CHUNK_HEADER_SIZE);
-    uint32_t magic = ReadUint32BE(&p);
-    uint32_t chunkSize = ReadUint32LE(&p);
-
-    if (magic == aWantedChunk) {
-      *aChunkSize = chunkSize;
-      return true;
-    }
-
-    
-    chunkSize += chunkSize % 2;
-
-    static const unsigned int MAX_CHUNK_SIZE = 1 << 16;
-    PR_STATIC_ASSERT(MAX_CHUNK_SIZE < UINT_MAX / sizeof(char));
-    nsAutoArrayPtr<char> chunk(new char[MAX_CHUNK_SIZE]);
-    while (chunkSize > 0) {
-      uint32_t size = NS_MIN(chunkSize, MAX_CHUNK_SIZE);
-      if (!ReadAll(chunk.get(), size)) {
-        return false;
-      }
-      chunkSize -= size;
-    }
-  }
-}
-
-bool
-WaveReader::LoadFormatChunk()
-{
-  uint32_t fmtSize, rate, channels, frameSize, sampleFormat;
+  uint32_t rate, channels, frameSize, sampleFormat;
   char waveFormat[WAVE_FORMAT_CHUNK_SIZE];
   const char* p = waveFormat;
 
   
   NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
                     "LoadFormatChunk called with unaligned resource");
-
-  
-  
-  if (!ScanForwardUntil(FRMT_CHUNK_MAGIC, &fmtSize)) {
-    return false;
-  }
 
   if (!ReadAll(waveFormat, sizeof(waveFormat))) {
     return false;
@@ -421,7 +391,7 @@ WaveReader::LoadFormatChunk()
   
   
   
-  if (fmtSize > WAVE_FORMAT_CHUNK_SIZE) {
+  if (aChunkSize > WAVE_FORMAT_CHUNK_SIZE) {
     char extLength[2];
     const char* p = extLength;
 
@@ -431,7 +401,7 @@ WaveReader::LoadFormatChunk()
 
     PR_STATIC_ASSERT(sizeof(uint16_t) <= sizeof(extLength));
     uint16_t extra = ReadUint16LE(&p);
-    if (fmtSize - (WAVE_FORMAT_CHUNK_SIZE + 2) != extra) {
+    if (aChunkSize - (WAVE_FORMAT_CHUNK_SIZE + 2) != extra) {
       NS_WARNING("Invalid extended format chunk size");
       return false;
     }
@@ -476,18 +446,11 @@ WaveReader::LoadFormatChunk()
 }
 
 bool
-WaveReader::FindDataOffset()
+WaveReader::FindDataOffset(uint32_t aChunkSize)
 {
   
   NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
                     "FindDataOffset called with unaligned resource");
-
-  
-  
-  uint32_t length;
-  if (!ScanForwardUntil(DATA_CHUNK_MAGIC, &length)) {
-    return false;
-  }
 
   int64_t offset = mDecoder->GetResource()->Tell();
   if (offset <= 0 || offset > UINT32_MAX) {
@@ -496,7 +459,7 @@ WaveReader::FindDataOffset()
   }
 
   ReentrantMonitorAutoEnter monitor(mDecoder->GetReentrantMonitor());
-  mWaveLength = length;
+  mWaveLength = aChunkSize;
   mWavePCMOffset = uint32_t(offset);
   return true;
 }
@@ -541,6 +504,175 @@ int64_t
 WaveReader::GetPosition()
 {
   return mDecoder->GetResource()->Tell();
+}
+
+bool
+WaveReader::GetNextChunk(uint32_t* aChunk, uint32_t* aChunkSize)
+{
+  NS_ABORT_IF_FALSE(aChunk, "Must have aChunk");
+  NS_ABORT_IF_FALSE(aChunkSize, "Must have aChunkSize");
+  NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
+                    "GetNextChunk called with unaligned resource");
+
+  char chunkHeader[CHUNK_HEADER_SIZE];
+  const char* p = chunkHeader;
+
+  if (!ReadAll(chunkHeader, sizeof(chunkHeader))) {
+    return false;
+  }
+
+  PR_STATIC_ASSERT(sizeof(uint32_t) * 2 <= CHUNK_HEADER_SIZE);
+  *aChunk = ReadUint32BE(&p);
+  *aChunkSize = ReadUint32LE(&p);
+
+  return true;
+}
+
+bool
+WaveReader::LoadListChunk(uint32_t aChunkSize,
+    nsAutoPtr<nsHTMLMediaElement::MetadataTags> &aTags)
+{
+  
+  NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
+                    "LoadListChunk called with unaligned resource");
+
+  static const unsigned int MAX_CHUNK_SIZE = 1 << 16;
+  PR_STATIC_ASSERT(MAX_CHUNK_SIZE < UINT_MAX / sizeof(char));
+
+  if (aChunkSize > MAX_CHUNK_SIZE) {
+    return false;
+  }
+
+  nsAutoArrayPtr<char> chunk(new char[aChunkSize]);
+  if (!ReadAll(chunk.get(), aChunkSize)) {
+    return false;
+  }
+
+  static const uint32_t INFO_LIST_MAGIC = 0x494e464f;
+  const char *p = chunk.get();
+  if (ReadUint32BE(&p) != INFO_LIST_MAGIC) {
+    return false;
+  }
+
+  const waveIdToName ID_TO_NAME[] = {
+    { 0x49415254, NS_LITERAL_CSTRING("artist") },   
+    { 0x49434d54, NS_LITERAL_CSTRING("comments") }, 
+    { 0x49474e52, NS_LITERAL_CSTRING("genre") },    
+    { 0x494e414d, NS_LITERAL_CSTRING("name") },     
+  };
+
+  const char* const end = chunk.get() + aChunkSize;
+
+  aTags = new nsHTMLMediaElement::MetadataTags;
+  aTags->Init();
+
+  while (p + 8 < end) {
+    uint32_t id = ReadUint32BE(&p);
+    
+    id &= 0xDFDFDFDF;
+
+    uint32_t length = ReadUint32LE(&p);
+
+    
+    if (p + length > end) {
+      break;
+    }
+
+    nsCString val(p, length);
+    if (val[length - 1] == '\0') {
+      val.SetLength(length - 1);
+    }
+
+    
+    
+    length += length % 2;
+    p += length;
+
+    if (!IsUTF8(val)) {
+      continue;
+    }
+
+    for (size_t i = 0; i < mozilla::ArrayLength(ID_TO_NAME); ++i) {
+      if (id == ID_TO_NAME[i].id) {
+        aTags->Put(ID_TO_NAME[i].name, val);
+        break;
+      }
+    }
+  }
+
+  return true;
+}
+
+bool
+WaveReader::LoadAllChunks(nsAutoPtr<nsHTMLMediaElement::MetadataTags> &aTags)
+{
+  
+  NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
+                    "LoadAllChunks called with unaligned resource");
+
+  bool loadFormatChunk = false;
+  bool findDataOffset = false;
+
+  for (;;) {
+    static const unsigned int CHUNK_HEADER_SIZE = 8;
+    char chunkHeader[CHUNK_HEADER_SIZE];
+    const char* p = chunkHeader;
+
+    if (!ReadAll(chunkHeader, sizeof(chunkHeader))) {
+      return false;
+    }
+
+    PR_STATIC_ASSERT(sizeof(uint32_t) * 2 <= CHUNK_HEADER_SIZE);
+
+    uint32_t magic = ReadUint32BE(&p);
+    uint32_t chunkSize = ReadUint32LE(&p);
+    int64_t chunkStart = GetPosition();
+
+    switch (magic) {
+      case FRMT_CHUNK_MAGIC:
+        loadFormatChunk = LoadFormatChunk(chunkSize);
+        if (!loadFormatChunk) {
+          return false;
+        }
+        break;
+
+      case LIST_CHUNK_MAGIC:
+        if (!aTags) {
+          LoadListChunk(chunkSize, aTags);
+        }
+        break;
+
+      case DATA_CHUNK_MAGIC:
+        findDataOffset = FindDataOffset(chunkSize);
+        return loadFormatChunk && findDataOffset;
+
+      default:
+        break;
+    }
+
+    
+    chunkSize += chunkSize % 2;
+
+    
+    CheckedInt64 forward = CheckedInt64(chunkStart) + chunkSize - GetPosition();
+
+    if (!forward.isValid() || forward.value() < 0) {
+      return false;
+    }
+
+    static const int64_t MAX_CHUNK_SIZE = 1 << 16;
+    PR_STATIC_ASSERT(uint64_t(MAX_CHUNK_SIZE) < UINT_MAX / sizeof(char));
+    nsAutoArrayPtr<char> chunk(new char[MAX_CHUNK_SIZE]);
+    while (forward.value() > 0) {
+      int64_t size = NS_MIN(forward.value(), MAX_CHUNK_SIZE);
+      if (!ReadAll(chunk.get(), size)) {
+        return false;
+      }
+      forward -= size;
+    }
+  }
+
+  return false;
 }
 
 } 
