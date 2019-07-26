@@ -1704,9 +1704,6 @@ var SelectionHandler = {
           
           
           this.endSelection();
-        } else if (this._activeType == this.TYPE_CURSOR) {
-          
-          this.hideThumb();
         }
         break;
       }
@@ -1721,8 +1718,13 @@ var SelectionHandler = {
         let data = JSON.parse(aData);
         if (this._activeType == this.TYPE_SELECTION)
           this.moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
-        else if (this._activeType == this.TYPE_CURSOR)
+        else if (this._activeType == this.TYPE_CURSOR) {
+          
           this._sendMouseEvents(data.x, data.y);
+
+          
+          this.positionHandles();
+        }
         break;
       }
       case "TextSelection:Position": {
@@ -1937,8 +1939,48 @@ var SelectionHandler = {
 
   _sendMouseEvents: function sh_sendMouseEvents(aX, aY, useShift) {
     
-    this._cwu.sendMouseEventToWindow("mousedown", aX, aY - 1, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
-    this._cwu.sendMouseEventToWindow("mouseup", aX, aY - 1, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
+    
+    if (this._activeType == this.TYPE_CURSOR) {
+      
+      let range = document.createRange();
+      range.selectNodeContents(this._target.QueryInterface(Ci.nsIDOMNSEditableElement).editor.rootElement);
+      let textBounds = range.getBoundingClientRect();
+
+      
+      let editorBounds = this._cwu.sendQueryContentEvent(this._cwu.QUERY_EDITOR_RECT, 0, 0, 0, 0);
+      let editorRect = new Rect(editorBounds.left, editorBounds.top, editorBounds.width, editorBounds.height);
+
+      
+      let rect = new Rect(textBounds.left, textBounds.top, textBounds.width, textBounds.height);
+      rect.restrictTo(editorRect);
+
+      
+      
+      
+      
+      if (aY < rect.y + 1) {
+        aY = rect.y + 1;
+        this.getSelectionController().scrollLine(false);
+      } else if (aY > rect.y + rect.height - 1) {
+        aY = rect.y + rect.height - 1;
+        this.getSelectionController().scrollLine(true);
+      }
+
+      
+      if (aX < rect.x) {
+        aX = rect.x;
+        this.getSelectionController().scrollCharacter(false);
+      } else if (aX > rect.x + rect.width) {
+        aX = rect.x + rect.width;
+        this.getSelectionController().scrollCharacter(true);
+      }
+    } else if (this._activeType == this.TYPE_SELECTION) {
+      
+      aY -= 1;
+    }
+
+    this._cwu.sendMouseEventToWindow("mousedown", aX, aY, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
+    this._cwu.sendMouseEventToWindow("mouseup", aX, aY, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
   },
 
   
