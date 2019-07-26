@@ -61,6 +61,16 @@
   color: #3689b2;
 }
 
+
+
+
+
+.theme-link:visited,
+.cm-s-mozilla .cm-link:visited { 
+  color: #3689b2;
+}
+
+
 .theme-comment,
 .cm-s-mozilla .cm-meta,
 .cm-s-mozilla .cm-hr,

@@ -8,6 +8,8 @@ const {Cc, Ci, Cu} = require("chrome");
 const {colorUtils} = require("devtools/css-color");
 const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
 const MAX_ITERATIONS = 100;
 const REGEX_QUOTES = /^".*?"|^".*/;
 const REGEX_URL = /^url\(["']?(.+?)(?::(\d+))?["']?\)/;
@@ -90,17 +92,16 @@ OutputParser.prototype = {
 
   parseCssProperty: function(name, value, options={}) {
     options = this._mergeOptions(options);
-    options.cssPropertyName = name;
 
-    
-    
-    options.colors = this._cssPropertySupportsValue(name, "papayawhip");
+    if (this._cssPropertySupportsValue(name, value)) {
+      return this._parse(value, options);
+    }
+    this._appendTextNode(value);
 
-    return this._parse(value, options);
+    return this._toDOM();
   },
 
   
-
 
 
 
@@ -113,13 +114,11 @@ OutputParser.prototype = {
 
   parseHTMLAttribute: function(value, options={}) {
     options = this._mergeOptions(options);
-    options.colors = false;
 
     return this._parse(value, options);
   },
 
   
-
 
 
 
@@ -135,7 +134,6 @@ OutputParser.prototype = {
     this.parsed.length = 0;
     let dirty = false;
     let matched = null;
-    let nameValueSupported = false;
     let i = 0;
 
     let trimMatchFromStart = function(match) {
@@ -161,39 +159,26 @@ OutputParser.prototype = {
 
       matched = text.match(REGEX_URL);
       if (matched) {
-        let [match, url, line] = matched;
+        let [match, url] = matched;
         trimMatchFromStart(match);
-        this._appendURL(match, url, line, options);
+        this._appendURL(match, url, options);
       }
 
-      
-      
       matched = text.match(REGEX_ALL_CSS_PROPERTIES);
       if (matched) {
-        let [match, propertyName] = matched;
+        let [match] = matched;
         trimMatchFromStart(match);
         this._appendTextNode(match);
 
-        matched = text.match(REGEX_CSS_PROPERTY_VALUE);
-        if (matched) {
-          let [, value] = matched;
-          nameValueSupported = this._cssPropertySupportsValue(propertyName, value);
-        }
+        dirty = true;
       }
 
-      
-      
-      
-      
-      if (options.cssPropertyName || (!options.cssPropertyName && nameValueSupported)) {
-        matched = text.match(REGEX_ALL_COLORS);
-        if (matched) {
-          let match = matched[0];
+      matched = text.match(REGEX_ALL_COLORS);
+      if (matched) {
+        let match = matched[0];
+        if (this._appendColor(match, options)) {
           trimMatchFromStart(match);
-          this._appendColor(match, options);
         }
-
-        nameValueSupported = false;
       }
 
       if (!dirty) {
@@ -204,7 +189,6 @@ OutputParser.prototype = {
           let match = matched[0];
           trimMatchFromStart(match);
           this._appendTextNode(match);
-          nameValueSupported = false;
         }
       }
 
@@ -230,20 +214,24 @@ OutputParser.prototype = {
 
 
 
-  _cssPropertySupportsValue: function(propertyName, propertyValue) {
-    let autoCompleteValues = DOMUtils.getCSSValuesForProperty(propertyName);
+  _cssPropertySupportsValue: function(name, value) {
+    let win = Services.appShell.hiddenDOMWindow;
+    let doc = win.document;
 
-    
-    
-    if (autoCompleteValues.indexOf("papayawhip") !== -1) {
-      return this._isColorValid(propertyValue);
-    }
+    name = name.replace(/-\w{1}/g, function(match) {
+      return match.charAt(1).toUpperCase();
+    });
 
-    
-    return autoCompleteValues.indexOf(propertyValue) !== -1;
+    let div = doc.createElement("div");
+    div.style[name] = value;
+
+    return !!div.style[name];
   },
 
   
+
+
+
 
 
 
@@ -253,7 +241,9 @@ OutputParser.prototype = {
 
 
   _appendColor: function(color, options={}) {
-    if (options.colors && this._isColorValid(color)) {
+    let colorObj = new colorUtils.CssColor(color);
+
+    if (colorObj.valid && !colorObj.specialValue) {
       if (options.colorSwatchClass) {
         this._appendNode("span", {
           class: options.colorSwatchClass,
@@ -261,13 +251,15 @@ OutputParser.prototype = {
         });
       }
       if (options.defaultColorType) {
-        color = new colorUtils.CssColor(color).toString();
+        color = colorObj.toString();
       }
+      this._appendTextNode(color);
+      return true;
     }
-    this._appendTextNode(color);
+    return false;
   },
 
-  
+   
 
 
 
@@ -278,10 +270,27 @@ OutputParser.prototype = {
 
 
 
+  _appendURL: function(match, url, options={}) {
+    if (options.urlClass) {
+      
+      
+      this._appendTextNode("url('");
 
+      let href = url;
+      if (options.baseURI) {
+        href = options.baseURI.resolve(url);
+      }
 
-  _appendURL: function(match, url, line, options={}) {
-    this._appendTextNode(match);
+      this._appendNode("a",  {
+        target: "_blank",
+        class: options.urlClass,
+        href: href
+      }, url);
+
+      this._appendTextNode("')");
+    } else {
+      this._appendTextNode("url('" + url + "')");
+    }
   },
 
   
@@ -298,7 +307,7 @@ OutputParser.prototype = {
   _appendNode: function(tagName, attributes, value="") {
     let win = Services.appShell.hiddenDOMWindow;
     let doc = win.document;
-    let node = doc.createElement(tagName);
+    let node = doc.createElementNS(HTML_NS, tagName);
     let attrs = Object.getOwnPropertyNames(attributes);
 
     for (let attr of attrs) {
@@ -306,7 +315,7 @@ OutputParser.prototype = {
     }
 
     if (value) {
-      let textNode = content.document.createTextNode(value);
+      let textNode = doc.createTextNode(value);
       node.appendChild(textNode);
     }
 
@@ -358,17 +367,6 @@ OutputParser.prototype = {
 
 
 
-  _isColorValid: function(color) {
-    return new colorUtils.CssColor(color).valid;
-  },
-
-  
-
-
-
-
-
-
 
 
 
@@ -381,11 +379,15 @@ OutputParser.prototype = {
 
   _mergeOptions: function(overrides) {
     let defaults = {
-      colors: true,
       defaultColorType: true,
       colorSwatchClass: "",
-      cssPropertyName: ""
+      urlClass: "",
+      baseURI: ""
     };
+
+    if (typeof overrides.baseURI === "string") {
+      overrides.baseURI = Services.io.newURI(overrides.baseURI, null, null);
+    }
 
     for (let item in overrides) {
       defaults[item] = overrides[item];

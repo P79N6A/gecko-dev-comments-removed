@@ -61,6 +61,15 @@
   color: hsl(208,56%,40%);
 }
 
+
+
+
+
+.theme-link:visited,
+.cm-s-mozilla .cm-link:visited { 
+  color: hsl(208,56%,40%);
+}
+
 .theme-comment,
 .cm-s-mozilla .cm-meta,
 .cm-s-mozilla .cm-hr,
