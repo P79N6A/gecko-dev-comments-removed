@@ -239,7 +239,7 @@ RegExpCode::execute(JSContext *cx, const jschar *chars, size_t length, size_t st
 
 
 static void
-regexp_trace(JSTracer *trc, JSObject *obj)
+regexp_trace(JSTracer *trc, RawObject obj)
 {
      
 

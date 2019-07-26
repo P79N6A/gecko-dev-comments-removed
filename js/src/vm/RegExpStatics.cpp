@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "vm/RegExpStatics.h"
 
 #include "jsobjinlines.h"
@@ -54,14 +21,14 @@ using namespace js;
 
 
 static void
-resc_finalize(JSContext *cx, JSObject *obj)
+resc_finalize(FreeOp *fop, JSObject *obj)
 {
     RegExpStatics *res = static_cast<RegExpStatics *>(obj->getPrivate());
-    cx->delete_(res);
+    fop->delete_(res);
 }
 
 static void
-resc_trace(JSTracer *trc, JSObject *obj)
+resc_trace(JSTracer *trc, RawObject obj)
 {
     void *pdata = obj->getPrivate();
     JS_ASSERT(pdata);
@@ -71,7 +38,7 @@ resc_trace(JSTracer *trc, JSObject *obj)
 
 Class js::RegExpStaticsClass = {
     "RegExpStatics",
-    JSCLASS_HAS_PRIVATE,
+    JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS,
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
@@ -80,8 +47,6 @@ Class js::RegExpStaticsClass = {
     JS_ResolveStub,
     JS_ConvertStub,
     resc_finalize,
-    NULL,                    
-    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    

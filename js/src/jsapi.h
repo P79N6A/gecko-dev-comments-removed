@@ -1838,7 +1838,7 @@ typedef JSBool
 
 
 typedef void
-(* JSTraceOp)(JSTracer *trc, JSObject *obj);
+(* JSTraceOp)(JSTracer *trc, JSRawObject obj);
 
 
 
