@@ -53,9 +53,18 @@ public class AnnouncementsBroadcastService extends IntentService {
     return (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
   }
 
-  private void recordLastLaunch(final Context context) {
+  
+
+
+
+
+
+
+  public static void recordLastLaunch(final Context context) {
+    final long now = System.currentTimeMillis();
+    Logger.info(LOG_TAG, "Recording launch: " + now);
     final SharedPreferences preferences = context.getSharedPreferences(AnnouncementsConstants.PREFS_BRANCH, BackgroundConstants.SHARED_PREFERENCES_MODE);
-    preferences.edit().putLong(AnnouncementsConstants.PREF_LAST_LAUNCH, System.currentTimeMillis()).commit();
+    preferences.edit().putLong(AnnouncementsConstants.PREF_LAST_LAUNCH, now).commit();
   }
 
   public static long getPollInterval(final Context context) {
@@ -130,8 +139,6 @@ public class AnnouncementsBroadcastService extends IntentService {
 
 
   protected void handlePrefIntent(Intent intent) {
-    recordLastLaunch(this);               
-
     if (!intent.hasExtra("enabled")) {
       Logger.warn(LOG_TAG, "Got ANNOUNCEMENTS_PREF intent without enabled. Ignoring.");
       return;
