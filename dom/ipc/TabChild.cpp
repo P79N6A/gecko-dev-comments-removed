@@ -136,6 +136,19 @@ TabChild::PreloadSlowThings()
     tab->TryCacheLoadAndCompileScript(BROWSER_ELEMENT_CHILD_SCRIPT);
     tab->RecvLoadRemoteScript(NS_LITERAL_STRING("chrome://global/content/preload.js"));
 
+    nsCOMPtr<nsIDocShell> docShell = do_GetInterface(tab->mWebNav);
+    nsCOMPtr<nsIPresShell> presShell;
+    if (nsIPresShell* presShell = docShell->GetPresShell()) {
+        
+        
+        presShell->Initialize(0, 0);
+        nsIDocument* doc = presShell->GetDocument();
+        doc->FlushPendingNotifications(Flush_Layout);
+        
+        
+        presShell->MakeZombie();
+    }
+
     sPreallocatedTab = tab;
     ClearOnShutdown(&sPreallocatedTab);
 }
