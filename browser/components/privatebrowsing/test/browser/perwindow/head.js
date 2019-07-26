@@ -44,3 +44,12 @@ function clearHistory() {
   
   Services.obs.notifyObservers(null, "browser:purge-session-history", "");
 }
+
+function _initTest() {
+  
+  Services.prefs.setIntPref("browser.startup.page", 0);
+  registerCleanupFunction(function() Services.prefs.clearUserPref("browser.startup.page"));
+}
+
+_initTest();
+
