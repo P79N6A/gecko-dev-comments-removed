@@ -904,10 +904,26 @@ SetDirOnBind(mozilla::dom::Element* aElement, nsIContent* aParent)
       aParent && aParent->NodeOrAncestorHasDirAuto()) {
     aElement->SetAncestorHasDirAuto();
 
-    
-    
-    
-    if (aElement->GetFirstChild()) {
+    nsIContent* child = aElement->GetFirstChild();
+    if (child) {
+      
+      
+      
+      
+      do {
+        if (child->IsElement() &&
+            (DoesNotParticipateInAutoDirection(child->AsElement()) ||
+             child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
+             child->HasFixedDir())) {
+          child = child->GetNextNonChildNode(aElement);
+          continue;
+        }
+
+        child->SetAncestorHasDirAuto();
+        child = child->GetNextNode(aElement);
+      } while (child);
+
+      
       WalkAncestorsResetAutoDirection(aElement, true);
     }
   }
