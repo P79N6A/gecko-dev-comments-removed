@@ -133,7 +133,7 @@ var ContextMenuHandler = {
 
 
   _onSelectAll: function _onSelectAll() {
-    if (this._isTextInput(this._target)) {
+    if (Util.isTextInput(this._target)) {
       
       this._target.select();
     } else {
@@ -145,7 +145,7 @@ var ContextMenuHandler = {
 
   _onPaste: function _onPaste() {
     
-    if (this._isTextInput(this._target)) {
+    if (Util.isTextInput(this._target)) {
       let edit = this._target.QueryInterface(Ci.nsIDOMNSEditableElement);
       if (edit) {
         edit.editor.paste(Ci.nsIClipboard.kGlobalClipboard);
@@ -161,7 +161,7 @@ var ContextMenuHandler = {
   },
 
   _onCut: function _onCut() {
-    if (this._isTextInput(this._target)) {
+    if (Util.isTextInput(this._target)) {
       let edit = this._target.QueryInterface(Ci.nsIDOMNSEditableElement);
       if (edit) {
         edit.editor.cut();
@@ -173,7 +173,7 @@ var ContextMenuHandler = {
   },
 
   _onCopy: function _onCopy() {
-    if (this._isTextInput(this._target)) {
+    if (Util.isTextInput(this._target)) {
       let edit = this._target.QueryInterface(Ci.nsIDOMNSEditableElement);
       if (edit) {
         edit.editor.copy();
@@ -281,7 +281,7 @@ var ContextMenuHandler = {
     while (elem) {
       if (elem.nodeType == Ci.nsIDOMNode.ELEMENT_NODE) {
         
-        if (this._isLink(elem)) {
+        if (Util.isLink(elem)) {
           
           
           if (imageUrl == this._getLinkURL(elem)) {
@@ -297,7 +297,7 @@ var ContextMenuHandler = {
           
           isText = true;
           break;
-        } else if (this._isTextInput(elem)) {
+        } else if (Util.isTextInput(elem)) {
           let selectionStart = elem.selectionStart;
           let selectionEnd = elem.selectionEnd;
 
@@ -330,7 +330,7 @@ var ContextMenuHandler = {
             state.types.push("paste");
           }
           break;
-        } else if (this._isText(elem)) {
+        } else if (Util.isText(elem)) {
           isText = true;
         } else if (elem instanceof Ci.nsIDOMHTMLMediaElement ||
                    elem instanceof Ci.nsIDOMHTMLVideoElement) {
@@ -379,29 +379,6 @@ var ContextMenuHandler = {
     this._previousState = state;
 
     sendAsyncMessage("Content:ContextMenu", state);
-  },
-
-  _isTextInput: function _isTextInput(element) {
-    return ((element instanceof Ci.nsIDOMHTMLInputElement &&
-             element.mozIsTextField(false)) ||
-            element instanceof Ci.nsIDOMHTMLTextAreaElement);
-  },
-
-  _isLink: function _isLink(element) {
-    return ((element instanceof Ci.nsIDOMHTMLAnchorElement && element.href) ||
-            (element instanceof Ci.nsIDOMHTMLAreaElement && element.href) ||
-            element instanceof Ci.nsIDOMHTMLLinkElement ||
-            element.getAttributeNS(kXLinkNamespace, "type") == "simple");
-  },
-
-  _isText: function _isText(element) {
-    return (element instanceof Ci.nsIDOMHTMLParagraphElement ||
-            element instanceof Ci.nsIDOMHTMLDivElement ||
-            element instanceof Ci.nsIDOMHTMLLIElement ||
-            element instanceof Ci.nsIDOMHTMLPreElement ||
-            element instanceof Ci.nsIDOMHTMLHeadingElement ||
-            element instanceof Ci.nsIDOMHTMLTableCellElement ||
-            element instanceof Ci.nsIDOMHTMLBodyElement);
   },
 
   _getLinkURL: function ch_getLinkURL(aLink) {
