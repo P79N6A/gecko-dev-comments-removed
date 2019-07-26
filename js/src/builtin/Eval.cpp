@@ -156,10 +156,10 @@ enum EvalType { DIRECT_EVAL = EXECUTE_DIRECT_EVAL, INDIRECT_EVAL = EXECUTE_INDIR
 
 
 static bool
-EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *caller,
+EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, AbstractFramePtr caller,
            HandleObject scopeobj)
 {
-    JS_ASSERT((evalType == INDIRECT_EVAL) == (caller == NULL));
+    JS_ASSERT((evalType == INDIRECT_EVAL) == !caller);
     JS_ASSERT_IF(evalType == INDIRECT_EVAL, scopeobj->isGlobal());
     AssertInnerizedScopeChain(cx, *scopeobj);
 
@@ -187,15 +187,15 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
     unsigned staticLevel;
     RootedValue thisv(cx);
     if (evalType == DIRECT_EVAL) {
-        JS_ASSERT(!caller->runningInIon());
-        staticLevel = caller->script()->staticLevel + 1;
+        JS_ASSERT_IF(caller.isStackFrame(), !caller.asStackFrame()->runningInIon());
+        staticLevel = caller.script()->staticLevel + 1;
 
         
         
         
         if (!ComputeThis(cx, caller))
             return false;
-        thisv = caller->thisValue();
+        thisv = caller.thisValue();
     } else {
         JS_ASSERT(args.callee().global() == *scopeobj);
         staticLevel = 0;
@@ -226,7 +226,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
     if (length > 2 &&
         ((chars[0] == '[' && chars[length - 1] == ']') ||
         (chars[0] == '(' && chars[length - 1] == ')')) &&
-         (!caller || !caller->script()->strict))
+         (!caller || !caller.script()->strict))
     {
         
         
@@ -257,8 +257,8 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
 
     JSPrincipals *principals = PrincipalsForCompiledCode(args, cx);
 
-    if (evalType == DIRECT_EVAL && caller->isNonEvalFunctionFrame())
-        esg.lookupInEvalCache(stableStr, caller->fun(), staticLevel);
+    if (evalType == DIRECT_EVAL && caller.isNonEvalFunctionFrame())
+        esg.lookupInEvalCache(stableStr, caller.fun(), staticLevel);
 
     if (!esg.foundScript()) {
         unsigned lineno;
@@ -283,7 +283,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
     }
 
     return ExecuteKernel(cx, esg.script(), *scopeobj, thisv, ExecuteType(evalType),
-                         NULL , args.rval().address());
+                         NullFramePtr() , args.rval().address());
 }
 
 
@@ -318,7 +318,7 @@ js::IndirectEval(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     Rooted<GlobalObject*> global(cx, &args.callee().global());
-    return EvalKernel(cx, args, INDIRECT_EVAL, NULL, global);
+    return EvalKernel(cx, args, INDIRECT_EVAL, NullFramePtr(), global);
 }
 
 bool

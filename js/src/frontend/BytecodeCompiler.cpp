@@ -47,7 +47,7 @@ SetSourceMap(JSContext *cx, TokenStream &tokenStream, ScriptSource *ss, Unrooted
 }
 
 UnrootedScript
-frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *callerFrame,
+frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr callerFrame,
                         const CompileOptions &options,
                         StableCharPtr chars, size_t length,
                         JSString *source_ ,
@@ -106,7 +106,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
     if (!pc.init())
         return UnrootedScript(NULL);
 
-    bool savedCallerFun = options.compileAndGo && callerFrame && callerFrame->isFunctionFrame();
+    bool savedCallerFun = options.compileAndGo && callerFrame && callerFrame.isFunctionFrame();
     Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), savedCallerFun,
                                                   options, staticLevel, ss, 0, length));
     if (!script)
@@ -129,7 +129,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         return UnrootedScript(NULL);
 
     
-    if (callerFrame && callerFrame->script()->strict)
+    if (callerFrame && callerFrame.script()->strict)
         globalsc.strict = true;
 
     if (options.compileAndGo) {
@@ -144,13 +144,13 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
                 return UnrootedScript(NULL);
         }
 
-        if (callerFrame && callerFrame->isFunctionFrame()) {
+        if (callerFrame && callerFrame.isFunctionFrame()) {
             
 
 
 
 
-            JSFunction *fun = callerFrame->fun();
+            JSFunction *fun = callerFrame.fun();
             ObjectBox *funbox = parser.newFunctionBox(fun, &pc, fun->strict());
             if (!funbox)
                 return UnrootedScript(NULL);
@@ -217,7 +217,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 #endif
 
     
-    if (callerFrame && callerFrame->isFunctionFrame() && callerFrame->fun()->hasRest()) {
+    if (callerFrame && callerFrame.isFunctionFrame() && callerFrame.fun()->hasRest()) {
         HandlePropertyName arguments = cx->names().arguments;
         for (AtomDefnRange r = pc.lexdeps->all(); !r.empty(); r.popFront()) {
             if (r.front().key() == arguments) {
@@ -318,7 +318,8 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
             return false;
     }
 
-    BytecodeEmitter funbce( NULL, &parser, funbox, script,  NULL,
+    BytecodeEmitter funbce( NULL, &parser, funbox, script,
+                            NullFramePtr(),
                             false, options.lineno);
     if (!funbce.init())
         return false;

@@ -3689,12 +3689,12 @@ DebuggerFrame_setOnPop(JSContext *cx, unsigned argc, Value *vp)
 
 
 JSBool
-js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, StackFrame *fp,
+js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFramePtr frame,
                   StableCharPtr chars, unsigned length, const char *filename, unsigned lineno,
                   Value *rval)
 {
-    assertSameCompartment(cx, env, fp);
-    JS_ASSERT_IF(fp, thisv.get() == fp->thisValue());
+    assertSameCompartment(cx, env, frame);
+    JS_ASSERT_IF(frame, thisv.get() == frame.thisValue());
 
     JS_ASSERT(!IsPoisonedPtr(chars.get()));
 
@@ -3708,15 +3708,15 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, StackFrame
            .setCompileAndGo(true)
            .setNoScriptRval(false)
            .setFileAndLine(filename, lineno);
-    RootedScript script(cx, frontend::CompileScript(cx, env, fp, options, chars, length,
+    RootedScript script(cx, frontend::CompileScript(cx, env, frame, options, chars, length,
                                                      NULL,
-                                                     fp ? 1 : 0));
+                                                     frame ? 1 : 0));
     if (!script)
         return false;
 
     script->isActiveEval = true;
-    ExecuteType type = !fp && env->isGlobal() ? EXECUTE_DEBUG_GLOBAL : EXECUTE_DEBUG;
-    return ExecuteKernel(cx, script, *env, thisv, type, fp, rval);
+    ExecuteType type = !frame && env->isGlobal() ? EXECUTE_DEBUG_GLOBAL : EXECUTE_DEBUG;
+    return ExecuteKernel(cx, script, *env, thisv, type, frame, rval);
 }
 
 static JSBool
@@ -3806,8 +3806,8 @@ DebuggerGenericEval(JSContext *cx, const char *fullMethodName,
     
     Value rval;
     JS::Anchor<JSString *> anchor(stable);
-    StackFrame *fp = iter ? iter->interpFrame() : NULL;
-    bool ok = EvaluateInEnv(cx, env, thisv, fp, stable->chars(), stable->length(),
+    AbstractFramePtr frame = iter ? iter->abstractFramePtr() : NullFramePtr();
+    bool ok = EvaluateInEnv(cx, env, thisv, frame, stable->chars(), stable->length(),
                             "debugger eval code", 1, &rval);
     return dbg->receiveCompletionValue(ac, ok, rval, vp);
 }

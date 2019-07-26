@@ -83,7 +83,7 @@ struct BytecodeEmitter
 
     Parser          *const parser;  
 
-    StackFrame      *const callerFrame; 
+    AbstractFramePtr callerFrame;   
 
     StmtInfoBCE     *topStmt;       
     StmtInfoBCE     *topScopeStmt;  
@@ -126,7 +126,7 @@ struct BytecodeEmitter
 
 
     BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
-                    HandleScript script, StackFrame *callerFrame, bool hasGlobalScope,
+                    HandleScript script, AbstractFramePtr callerFrame, bool hasGlobalScope,
                     unsigned lineno, bool selfHostingMode = false);
     bool init();
 
