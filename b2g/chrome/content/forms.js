@@ -594,7 +594,7 @@ function getSelectionRange(element) {
     
     start = element.selectionStart;
     end = element.selectionEnd;
-  } else {
+  } else if (isContentEditable(element)){
     
     let win = element.ownerDocument.defaultView;
     let sel = win.getSelection();
