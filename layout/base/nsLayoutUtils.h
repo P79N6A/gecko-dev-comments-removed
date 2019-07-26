@@ -872,9 +872,18 @@ public:
   static nsIFrame* GetContainingBlockForClientRect(nsIFrame* aFrame);
 
   enum {
-    RECTS_ACCOUNT_FOR_TRANSFORMS = 0x01
+    RECTS_ACCOUNT_FOR_TRANSFORMS = 0x01,
+    
+    
+    RECTS_USE_CONTENT_BOX = 0x02,
+    RECTS_USE_PADDING_BOX = 0x04,
+    RECTS_USE_MARGIN_BOX = 0x06, 
+    RECTS_WHICH_BOX_MASK = 0x06 
   };
   
+
+
+
 
 
 
@@ -890,6 +899,9 @@ public:
                                 RectCallback* aCallback, uint32_t aFlags = 0);
 
   
+
+
+
 
 
 
