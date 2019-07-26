@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "jit/x64/MacroAssembler-x64.h"
 
@@ -38,11 +38,11 @@ MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
     Double &dbl = doubles_[doubleIndex];
     JS_ASSERT(!dbl.uses.bound());
 
-    // The constants will be stored in a pool appended to the text (see
-    // finish()), so they will always be a fixed distance from the
-    // instructions which reference them. This allows the instructions to use
-    // PC-relative addressing. Use "jump" label support code, because we need
-    // the same PC-relative address patching that jumps use.
+    
+    
+    
+    
+    
     JmpSrc j = masm.movsd_ripr(dest.code());
     JmpSrc prev = JmpSrc(dbl.uses.use(j.offset()));
     masm.setNextJump(j, prev);
@@ -103,7 +103,7 @@ MacroAssemblerX64::passABIArg(const MoveOperand &from)
         FloatRegister dest;
         if (GetFloatArgReg(passedIntArgs_, passedFloatArgs_++, &dest)) {
             if (from.isFloatReg() && from.floatReg() == dest) {
-                // Nothing to do; the value is in the right register already
+                
                 return;
             }
             to = MoveOperand(dest);
@@ -116,7 +116,7 @@ MacroAssemblerX64::passABIArg(const MoveOperand &from)
         Register dest;
         if (GetIntArgReg(passedIntArgs_++, passedFloatArgs_, &dest)) {
             if (from.isGeneralReg() && from.reg() == dest) {
-                // Nothing to do; the value is in the right register already
+                
                 return;
             }
             to = MoveOperand(dest);
@@ -158,7 +158,7 @@ MacroAssemblerX64::callWithABIPre(uint32_t *stackAdjust)
 
     reserveStack(*stackAdjust);
 
-    // Position all arguments.
+    
     {
         enoughMemory_ &= moveResolver_.resolve();
         if (!enoughMemory_)
@@ -215,8 +215,8 @@ void
 MacroAssemblerX64::callWithABI(Address fun, Result result)
 {
     if (IsIntArgReg(fun.base)) {
-        // Callee register may be clobbered for an argument. Move the callee to
-        // r10, a volatile, non-argument register.
+        
+        
         moveResolver_.addMove(MoveOperand(fun.base), MoveOperand(r10), Move::GENERAL);
         fun.base = r10;
     }
@@ -232,11 +232,11 @@ MacroAssemblerX64::callWithABI(Address fun, Result result)
 void
 MacroAssemblerX64::handleFailureWithHandler(void *handler)
 {
-    // Reserve space for exception information.
+    
     subq(Imm32(sizeof(ResumeFromException)), rsp);
     movq(rsp, rax);
 
-    // Ask for an exception handler.
+    
     setupUnalignedABICall(1, rcx);
     passABIArg(rax);
     callWithABI(handler);
@@ -261,26 +261,26 @@ MacroAssemblerX64::handleFailureWithHandlerTail()
     branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_FORCED_RETURN), &return_);
     branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_BAILOUT), &bailout);
 
-    breakpoint(); // Invalid kind.
+    breakpoint(); 
 
-    // No exception handler. Load the error value, load the new stack pointer
-    // and return from the entry frame.
+    
+    
     bind(&entryFrame);
     moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
     movq(Operand(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
     ret();
 
-    // If we found a catch handler, this must be a baseline frame. Restore state
-    // and jump to the catch block.
+    
+    
     bind(&catch_);
     movq(Operand(rsp, offsetof(ResumeFromException, target)), rax);
     movq(Operand(rsp, offsetof(ResumeFromException, framePointer)), rbp);
     movq(Operand(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
     jmp(Operand(rax));
 
-    // If we found a finally block, this must be a baseline frame. Push
-    // two values expected by JSOP_RETSUB: BooleanValue(true) and the
-    // exception.
+    
+    
+    
     bind(&finally);
     ValueOperand exception = ValueOperand(rcx);
     loadValue(Operand(esp, offsetof(ResumeFromException, exception)), exception);
@@ -293,7 +293,7 @@ MacroAssemblerX64::handleFailureWithHandlerTail()
     pushValue(exception);
     jmp(Operand(rax));
 
-    // Only used in debug mode. Return BaselineFrame->returnValue() to the caller.
+    
     bind(&return_);
     movq(Operand(rsp, offsetof(ResumeFromException, framePointer)), rbp);
     movq(Operand(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
@@ -302,8 +302,8 @@ MacroAssemblerX64::handleFailureWithHandlerTail()
     pop(rbp);
     ret();
 
-    // If we are bailing out to baseline to handle an exception, jump to
-    // the bailout tail stub.
+    
+    
     bind(&bailout);
     movq(Operand(esp, offsetof(ResumeFromException, bailoutInfo)), r9);
     movl(Imm32(BAILOUT_RETURN_OK), rax);
@@ -313,7 +313,7 @@ MacroAssemblerX64::handleFailureWithHandlerTail()
 Assembler::Condition
 MacroAssemblerX64::testNegativeZero(const FloatRegister &reg, const Register &scratch)
 {
-    movqsd(reg, scratch);
+    movq(reg, scratch);
     subq(Imm32(1), scratch);
     return Overflow;
 }
