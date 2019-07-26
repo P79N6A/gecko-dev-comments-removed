@@ -421,10 +421,9 @@ SSL_IMPORT const SECItemArray * SSL_PeerStapledOCSPResponses(PRFileDesc *fd);
 
 
 
-
 SSL_IMPORT SECStatus
-SSL_SetStapledOCSPResponses(PRFileDesc *fd, SECItemArray *responses,
-			    PRBool takeOwnership);
+SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
+			    SSLKEAType kea);
 
 
 

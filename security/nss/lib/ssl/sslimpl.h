@@ -1175,7 +1175,8 @@ const unsigned char *  preferredCipher;
     
     
     sslServerCerts        serverCerts[kt_kea_size];
-    SECItemArray *        certStatusArray;
+    
+    SECItemArray *        certStatusArray[kt_kea_size];
 
     ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED];
     ssl3KeyPair *         ephemeralECDHKeyPair; 

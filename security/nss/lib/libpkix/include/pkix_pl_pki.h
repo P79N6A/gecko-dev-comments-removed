@@ -1491,6 +1491,33 @@ PKIX_PL_Cert_VerifySignature(
 
 
 
+typedef enum PKIX_PL_TrustAnchorModeEnum {
+        
+
+
+        PKIX_PL_TrustAnchorMode_Ignore,
+
+        
+
+
+
+
+
+        PKIX_PL_TrustAnchorMode_Additive,
+
+        
+
+
+
+
+
+        PKIX_PL_TrustAnchorMode_Exclusive,
+} PKIX_PL_TrustAnchorMode;
+
+
+
+
+
 
 
 
@@ -1525,7 +1552,7 @@ PKIX_PL_Cert_VerifySignature(
 PKIX_Error *
 PKIX_PL_Cert_IsCertTrusted(
         PKIX_PL_Cert *cert,
-        PKIX_Boolean trustOnlyUserAnchors,
+        PKIX_PL_TrustAnchorMode trustAnchorMode,
         PKIX_Boolean *pTrusted,
         void *plContext);
 
