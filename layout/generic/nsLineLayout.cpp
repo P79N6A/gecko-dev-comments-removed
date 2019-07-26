@@ -2628,8 +2628,9 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
     if (pfd->GetFlag(PFD_RELATIVEPOS)) {
       
       
-      nsPoint change(pfd->mOffsets.left, pfd->mOffsets.top);
-      origin += change;
+      nsHTMLReflowState::ApplyRelativePositioning(pfd->mFrame->StyleDisplay(),
+                                                  pfd->mOffsets,
+                                                  &origin);
       frame->SetPosition(origin);
     }
 

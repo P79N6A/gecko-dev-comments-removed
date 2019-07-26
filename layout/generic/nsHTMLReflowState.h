@@ -533,6 +533,15 @@ public:
                                      nscoord aContainingBlockHeight,
                                      nsMargin& aComputedOffsets);
 
+  
+  static void ApplyRelativePositioning(const nsStyleDisplay* aDisplay,
+                                       const nsMargin& aComputedOffsets,
+                                       nsPoint* aPosition);
+
+  void ApplyRelativePositioning(nsPoint* aPosition) const {
+    ApplyRelativePositioning(mStyleDisplay, mComputedOffsets, aPosition);
+  }
+
 #ifdef DEBUG
   
   
