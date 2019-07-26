@@ -184,7 +184,7 @@ Promise::EnabledForScope(JSContext* aCx, JSObject* )
   
   
   if (!NS_IsMainThread()) {
-    return workers::GetWorkerPrivateFromContext(aCx)->IsChromeWorker();
+    return workers::GetWorkerPrivateFromContext(aCx)->UsesSystemPrincipal();
   }
 
   nsIPrincipal* prin = nsContentUtils::GetSubjectPrincipal();
