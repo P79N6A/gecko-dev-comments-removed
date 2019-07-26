@@ -83,7 +83,7 @@ TimerManager.prototype = {
 
   observe: function TM_observe(aSubject, aTopic, aData) {
     
-    var minInterval = 30000;
+    var minInterval = 60000;
     
     
     var minFirstInterval = 10000;
