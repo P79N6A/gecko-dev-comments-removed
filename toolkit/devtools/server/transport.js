@@ -151,10 +151,22 @@ DebuggerTransport.prototype = {
     
     let sep = this._incoming.indexOf(':');
     if (sep < 0) {
+      
+      if (this._incoming.length > 20) {
+        this.close();
+      }
+
       return false;
     }
 
-    let count = parseInt(this._incoming.substring(0, sep));
+    let count = this._incoming.substring(0, sep);
+    
+    if (!/^[0-9]+$/.exec(count)) {
+      this.close();
+      return false;
+    }
+
+    count = +count;
     if (this._incoming.length - (sep + 1) < count) {
       
       return false;
