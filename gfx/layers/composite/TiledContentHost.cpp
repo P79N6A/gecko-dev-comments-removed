@@ -228,7 +228,7 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
     NS_WARNING("Can't render tiled content host - no compositor");
     return;
   }
-  float resolution = aLayerBuffer.GetResolution();
+  volatile float resolution = aLayerBuffer.GetResolution(); 
   gfxSize layerScale(1, 1);
   
   
