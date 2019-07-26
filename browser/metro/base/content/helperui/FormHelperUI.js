@@ -72,7 +72,7 @@ var FormHelperUI = {
     };
 
     this._updateContainerForSelect(lastElement, this._currentElement);
-    this._updatePopupsFor(this._currentElement);
+    this._showAutoCompleteSuggestions(this._currentElement);
 
     
     this._currentBrowser.scrollSync = false;
@@ -162,56 +162,72 @@ var FormHelperUI = {
       { value: aData });
   },
 
-  _updatePopupsFor: function _formHelperUpdatePopupsFor(aElement) {
-    if (!this._updateSuggestionsFor(aElement)) {
-      AutofillMenuUI.hide();
-    }
-  },
-
   
 
 
-  _updateSuggestionsFor: function _formHelperUpdateSuggestionsFor(aElement) {
-    let suggestions = this._getAutocompleteSuggestions(aElement);
-    if (!suggestions.length)
-      return false;
-    AutofillMenuUI.show(this._currentElementRect, suggestions);
-    return true;
-  },
-
-  
 
 
-  _getAutocompleteSuggestions: function _formHelperGetAutocompleteSuggestions(aElement) {
+
+  _showAutoCompleteSuggestions: function (aElement) {
     if (!aElement.isAutocomplete) {
-      return [];
+      return;
     }
 
-    let suggestions = [];
+    let resultsAvailable = autoCompleteSuggestions => {
+      
+      if (!autoCompleteSuggestions.length) {
+        return;
+      }
+      AutofillMenuUI.show(this._currentElementRect, autoCompleteSuggestions);
+    };
 
-    let autocompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"].getService(Ci.nsIFormAutoComplete);
-    let results = autocompleteService.autoCompleteSearch(aElement.name || aElement.id, aElement.value, aElement, null);
-    if (results.matchCount > 0) {
-      for (let i = 0; i < results.matchCount; i++) {
-        let value = results.getValueAt(i);
+    this._getAutoCompleteSuggestions(aElement.value, aElement, resultsAvailable);
+  },
+
+  
+
+
+
+
+
+
+
+  _getAutoCompleteSuggestions: function (aSearchString, aElement, aCallback) {
+    
+    if (!this._formAutoCompleteService)
+      this._formAutoCompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"].
+                                      getService(Ci.nsIFormAutoComplete);
+
+    
+    let resultsAvailable = function (results) {
+      let suggestions = [];
+      for (let idx = 0; idx < results.matchCount; idx++) {
+        let value = results.getValueAt(idx);
 
         
-        if (value == aElement.value)
+        if (value == aSearchString)
           continue;
 
-        suggestions.push({ "label": value, "value": value});
+        
+        suggestions.push({ label: value, value: value });
       }
-    }
+
+      
+      
+      let options = aElement.list;
+      for (let idx = 0; idx < options.length; idx++) {
+        suggestions.push(options[idx]);
+      }
+
+      aCallback(suggestions);
+    };
 
     
-    
-    let options = aElement.list;
-    for (let i = 0; i < options.length; i++)
-      suggestions.push(options[i]);
-
-    return suggestions;
+    this._formAutoCompleteService.autoCompleteSearchAsync(aElement.name || aElement.id,
+                                                          aSearchString, aElement, null,
+                                                          resultsAvailable);
   },
-
+  
   
 
 
