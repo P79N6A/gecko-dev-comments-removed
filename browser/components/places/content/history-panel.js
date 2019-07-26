@@ -77,6 +77,7 @@ function searchHistory(aInput)
 
   options.sortingMode = sortingMode;
   options.resultType = resultType;
+  options.includeHidden = !!aInput;
 
   
   
