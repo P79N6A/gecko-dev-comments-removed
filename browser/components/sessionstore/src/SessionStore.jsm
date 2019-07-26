@@ -1037,6 +1037,11 @@ let SessionStoreInternal = {
 
       
       
+      
+      winData.closedAt = Date.now();
+
+      
+      
       if (!winData.isPrivate && (winData.tabs.length > 1 ||
           (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0])))) {
         
@@ -1348,7 +1353,8 @@ let SessionStoreInternal = {
         state: tabState,
         title: tabTitle,
         image: tabbrowser.getIcon(aTab),
-        pos: aTab._tPos
+        pos: aTab._tPos,
+        closedAt: Date.now()
       });
       var length = this._windows[aWindow.__SSi]._closedTabs.length;
       if (length > this._max_tabs_undo)
