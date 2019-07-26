@@ -63,8 +63,7 @@ exports.CssLogic = CssLogic;
 
 
 CssLogic.FILTER = {
-  ALL: "user", 
-  USER: "user",
+  USER: "user", 
   UA: "ua",    
 };
 
@@ -113,7 +112,7 @@ CssLogic.prototype = {
   _computedStyle: null,
 
   
-  _sourceFilter: CssLogic.FILTER.ALL,
+  _sourceFilter: CssLogic.FILTER.USER,
 
   
   
@@ -591,7 +590,7 @@ CssLogic.prototype = {
           sheet._passId = this._passId;
         }
 
-        if (filter === CssLogic.FILTER.ALL && !sheet.contentSheet) {
+        if (filter === CssLogic.FILTER.USER && !sheet.contentSheet) {
           continue;
         }
 
@@ -989,10 +988,10 @@ CssSheet.prototype = {
     this._sheetAllowed = true;
 
     let filter = this._cssLogic.sourceFilter;
-    if (filter === CssLogic.FILTER.ALL && !this.contentSheet) {
+    if (filter === CssLogic.FILTER.USER && !this.contentSheet) {
       this._sheetAllowed = false;
     }
-    if (filter !== CssLogic.FILTER.ALL && filter !== CssLogic.FILTER.UA) {
+    if (filter !== CssLogic.FILTER.USER && filter !== CssLogic.FILTER.UA) {
       this._sheetAllowed = (filter === this.href);
     }
 
