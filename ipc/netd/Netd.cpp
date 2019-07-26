@@ -59,6 +59,7 @@ InitRndisAddress()
 
   property_get("ro.serialno", serialno, "1234567890ABCDEF");
 
+  memset(address, 0, sizeof(address));
   
   address[0] = 0x02;
   length = strlen(serialno);
