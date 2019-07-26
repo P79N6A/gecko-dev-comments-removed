@@ -213,39 +213,5 @@ class nsCStringKey : public nsHashKey {
 };
 
 
-class nsStringKey : public nsHashKey {
-  public:
-
-    
-    enum Ownership {
-        NEVER_OWN,  
-        OWN_CLONE,  
-        OWN         
-    };
-
-    nsStringKey(const nsStringKey& aKey);
-    nsStringKey(const char16_t* str, int32_t strLen = -1, Ownership own = OWN_CLONE);
-    nsStringKey(const nsAFlatString& str);
-    nsStringKey(const nsAString& str);
-    ~nsStringKey(void);
-
-    uint32_t HashCode(void) const;
-    bool Equals(const nsHashKey* aKey) const;
-    nsHashKey* Clone() const;
-    nsStringKey(nsIObjectInputStream* aStream, nsresult *aResult);
-    nsresult Write(nsIObjectOutputStream* aStream) const;
-
-    
-    
-    const char16_t* GetString() const { return mStr; }
-    uint32_t GetStringLength() const { return mStrLen; }
-
-  protected:
-    char16_t*  mStr;
-    uint32_t    mStrLen;
-    Ownership   mOwnership;
-};
-
-
 
 #endif
