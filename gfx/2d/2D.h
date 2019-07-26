@@ -443,6 +443,11 @@ public:
   
 
 
+  virtual void StreamToSink(PathSink *aSink) const = 0;
+ 
+  
+
+
   virtual FillRule GetFillRule() const = 0;
 
   virtual Float ComputeLength() { return 0; }
