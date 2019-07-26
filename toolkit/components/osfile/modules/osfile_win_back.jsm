@@ -98,18 +98,14 @@
            return SysFile._FindClose;
          });
 
-       Type.DWORD = Type.uint32_t.withName("DWORD");
+       Type.DWORD = Type.int32_t.withName("DWORD");
 
        
 
 
 
-
-
-
-
-
-       Type.DWORD_FLAGS = Type.int32_t.withName("DWORD_FLAGS");
+       Type.negative_or_DWORD =
+         Type.DWORD.withName("negative_or_DWORD");
 
        
 
@@ -223,11 +219,11 @@
          "CreateFileW", ctypes.winapi_abi,
                       Type.file_HANDLE,
                         Type.path,
-                      Type.DWORD_FLAGS,
-                       Type.DWORD_FLAGS,
+                      Type.DWORD,
+                       Type.DWORD,
                     Type.SECURITY_ATTRIBUTES.in_ptr,
-                    Type.DWORD_FLAGS,
-                       Type.DWORD_FLAGS,
+                    Type.DWORD,
+                       Type.DWORD,
                     Type.HANDLE);
 
        declareLazyFFI(SysFile, "DeleteFile", libc,
@@ -262,10 +258,10 @@
        declareLazyFFI(SysFile, "FormatMessage", libc,
          "FormatMessageW", ctypes.winapi_abi,
                      Type.DWORD,
-                      Type.DWORD_FLAGS,
+                      Type.DWORD,
                      Type.void_t.in_ptr,
-                      Type.DWORD_FLAGS,
-                     Type.DWORD_FLAGS,
+                      Type.DWORD,
+                     Type.DWORD,
                         Type.out_wstring,
                        Type.DWORD,
                     Type.void_t.in_ptr
@@ -289,7 +285,7 @@
                        Type.zero_or_nothing,
                      Type.path,
                      Type.path,
-                        Type.DWORD_FLAGS
+                        Type.DWORD
                    );
 
        declareLazyFFI(SysFile, "ReadFile", libc,
@@ -320,7 +316,7 @@
 
        declareLazyFFI(SysFile, "SetFilePointer", libc,
          "SetFilePointer", ctypes.winapi_abi,
-                     Type.DWORD,
+                     Type.negative_or_DWORD,
                        Type.HANDLE,
                     Type.long,
                      Type.long.in_ptr,
@@ -352,14 +348,14 @@
 
         declareLazyFFI(SysFile, "GetFileAttributes", libc,
           "GetFileAttributesW", ctypes.winapi_abi,
-                        Type.DWORD_FLAGS,
+                        Type.DWORD,
                       Type.path);
 
         declareLazyFFI(SysFile, "SetFileAttributes", libc,
           "SetFileAttributesW", ctypes.winapi_abi,
                               Type.zero_or_nothing,
                             Type.path,
-                      Type.DWORD_FLAGS);
+                      Type.DWORD);
      };
 
      exports.OS.Win = {

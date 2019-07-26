@@ -306,17 +306,6 @@ void CleanupOSFileConstants()
 
 
 
-
-
-
-
-
-#define UINT_CONSTANT(name)      \
-  { #name, UINT_TO_JSVAL((name)) }
-
-
-
-
 #define PROP_END { nullptr, JS::UndefinedValue() }
 
 
@@ -660,7 +649,7 @@ static const dom::ConstantSpec gWinProperties[] =
   INT_CONSTANT(FILE_END),
 
   
-  UINT_CONSTANT(INVALID_SET_FILE_POINTER),
+  INT_CONSTANT(INVALID_SET_FILE_POINTER),
 
   
   INT_CONSTANT(FILE_ATTRIBUTE_DIRECTORY),
