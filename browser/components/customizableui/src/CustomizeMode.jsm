@@ -106,15 +106,15 @@ CustomizeMode.prototype = {
 
     
     
+    window.PanelUI.hide();
     window.PanelUI.menuButton.addEventListener("click", this, false);
-    window.PanelUI.menuButton.disabled = true;
+    window.PanelUI.menuButton.open = true;
 
     
     this.dispatchToolboxEvent("customizationstarting");
 
     customizer.parentNode.selectedPanel = customizer;
 
-    window.PanelUI.hide();
     
     
     let panelHolder = document.getElementById("customization-panelHolder");
@@ -158,7 +158,7 @@ CustomizeMode.prototype = {
     deck.removeEventListener("keypress", this, false);
     deck.removeEventListener("click", this, false);
     this.window.PanelUI.menuButton.removeEventListener("click", this, false);
-    this.window.PanelUI.menuButton.disabled = false;
+    this.window.PanelUI.menuButton.open = false;
 
     this._removePanelCustomizationPlaceholders();
     this.depopulatePalette();
