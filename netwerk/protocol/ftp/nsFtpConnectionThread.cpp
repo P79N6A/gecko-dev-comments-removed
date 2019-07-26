@@ -1556,12 +1556,12 @@ nsFtpState::R_pasv() {
 
 
 static inline
-uint32_t NowInSeconds()
+uint32_t GetFtpTime()
 {
     return uint32_t(PR_Now() / PR_USEC_PER_SEC);
 }
 
-uint32_t nsFtpState::mSessionStartTime = NowInSeconds();
+uint32_t nsFtpState::mSessionStartTime = GetFtpTime();
 
 
 
@@ -1620,7 +1620,7 @@ nsFtpState::CanReadCacheEntry()
     if (NS_FAILED(rv))
         return false;
 
-    return (NowInSeconds() <= time);
+    return (GetFtpTime() <= time);
 }
 
 nsresult
