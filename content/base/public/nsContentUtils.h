@@ -1261,10 +1261,6 @@ public:
 
 #ifdef DEBUG
   static bool AreJSObjectsHeld(void* aScriptObjectHolder); 
-
-  static void CheckCCWrapperTraversal(void* aScriptObjectHolder,
-                                      nsWrapperCache* aCache,
-                                      nsScriptObjectTracer* aTracer);
 #endif
 
   static void PreserveWrapper(nsISupports* aScriptObjectHolder,
@@ -1289,7 +1285,7 @@ public:
       aCache->SetPreservingWrapper(true);
 #ifdef DEBUG
       
-      CheckCCWrapperTraversal(aScriptObjectHolder, aCache, aTracer);
+      aCache->CheckCCWrapperTraversal(aScriptObjectHolder, aTracer);
 #endif
     }
   }

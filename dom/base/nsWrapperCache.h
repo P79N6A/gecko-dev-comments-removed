@@ -214,6 +214,11 @@ public:
     mFlags &= ~aFlagsToUnset;
   }
 
+#ifdef DEBUG
+  void CheckCCWrapperTraversal(void* aScriptObjectHolder,
+                               nsScriptObjectTracer* aTracer);
+#endif 
+
 private:
   JSObject *GetWrapperJSObject() const
   {
