@@ -127,7 +127,9 @@ nsRuleNode::ChildrenHashOps = {
 
 
 
-static void EnsureBlockDisplay(uint8_t& display)
+
+void
+nsRuleNode::EnsureBlockDisplay(uint8_t& display)
 {
   
   switch (display) {

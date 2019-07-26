@@ -627,6 +627,7 @@ private:
 
 public:
   static nsRuleNode* CreateRootNode(nsPresContext* aPresContext);
+  static void EnsureBlockDisplay(uint8_t& display);
 
   
   nsRuleNode* Transition(nsIStyleRule* aRule, uint8_t aLevel,
