@@ -232,9 +232,7 @@ RDFSerializer.prototype = {
 
 
 
-
-
-function parseRDFManifest(aId, aType, aUpdateKey, aRequest) {
+function parseRDFManifest(aId, aUpdateKey, aRequest) {
   function EM_R(aProp) {
     return gRDF.GetResource(PREFIX_NS_EM + aProp);
   }
@@ -390,11 +388,8 @@ function parseRDFManifest(aId, aType, aUpdateKey, aRequest) {
 
 
 
-
-
-function UpdateParser(aId, aType, aUpdateKey, aUrl, aObserver) {
+function UpdateParser(aId, aUpdateKey, aUrl, aObserver) {
   this.id = aId;
-  this.type = aType;
   this.updateKey = aUpdateKey;
   this.observer = aObserver;
 
@@ -429,7 +424,6 @@ function UpdateParser(aId, aType, aUpdateKey, aUrl, aObserver) {
 
 UpdateParser.prototype = {
   id: null,
-  type: null,
   updateKey: null,
   observer: null,
   request: null,
@@ -484,7 +478,7 @@ UpdateParser.prototype = {
       let results = null;
 
       try {
-        results = parseRDFManifest(this.id, this.type, this.updateKey, request);
+        results = parseRDFManifest(this.id, this.updateKey, request);
       }
       catch (e) {
         WARN(e);
@@ -722,10 +716,8 @@ var AddonUpdateChecker = {
 
 
 
-
-
-  checkForUpdates: function AUC_checkForUpdates(aId, aType, aUpdateKey, aUrl,
+  checkForUpdates: function AUC_checkForUpdates(aId, aUpdateKey, aUrl,
                                                 aObserver) {
-    new UpdateParser(aId, aType, aUpdateKey, aUrl, aObserver);
+    new UpdateParser(aId, aUpdateKey, aUrl, aObserver);
   }
 };
