@@ -107,10 +107,16 @@ class DependencyLinker(Makefile):
             '$(DIST)': dist_value,
             '$(depth)': topobjdir_value, 
             '$(dist)': dist_value,       
-            mozpath.relpath(topsrcdir, os.curdir): topsrcdir_value,
             mozpath.relpath(topobjdir, os.curdir): topobjdir_value,
             mozpath.relpath(dist, os.curdir): dist_value,
         }
+        try:
+            
+            
+            
+            self._normpaths[mozpath.relpath(topsrcdir, os.curdir)] = topsrcdir_value
+        except ValueError:
+            pass
 
         Makefile.__init__(self)
         self._group = group
