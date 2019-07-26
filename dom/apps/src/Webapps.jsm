@@ -1983,7 +1983,15 @@ this.DOMApplicationRegistry = {
       
       
       
-      app.installState = download ? download.previousState : "pending";
+      
+      app.installState = download ? download.previousState
+                                  : aIsUpdate ? "installed"
+                                  : "pending";
+
+      if (app.staged) {
+        delete app.staged;
+      }
+
       self.broadcastMessage("Webapps:PackageEvent",
                             { type: "error",
                               manifestURL:  aApp.manifestURL,
