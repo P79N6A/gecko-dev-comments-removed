@@ -325,7 +325,7 @@ TypeDescrSet::fieldNamed(IonBuilder &builder,
 
     
     
-    *offset = SIZE_MAX;
+    *offset = -1;
     *index = SIZE_MAX;
     *out = TypeDescrSet();
 
