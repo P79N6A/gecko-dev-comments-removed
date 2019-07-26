@@ -22,19 +22,6 @@ bool CheckInterruptPar(ForkJoinSlice *slice);
 
 
 
-struct PushParArgs {
-    JSObject *object;
-    Value value;
-};
-
-
-
-
-JSObject *PushPar(PushParArgs *args);
-
-
-
-
 JSObject *ExtendArrayPar(ForkJoinSlice *slice, JSObject *array, uint32_t length);
 
 
