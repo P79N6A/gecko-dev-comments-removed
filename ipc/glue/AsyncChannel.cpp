@@ -159,7 +159,8 @@ AsyncChannel::ProcessLink::Open(mozilla::ipc::Transport* aTransport,
         }
 
         
-        while (!mChan->Connected()) {
+        while (!mChan->Connected() &&
+               mChan->mChannelState != AsyncChannel::ChannelError) {
             mChan->mMonitor->Wait();
         }
     }
@@ -856,8 +857,10 @@ AsyncChannel::OnChannelErrorFromLink()
     AssertLinkThread();
     mMonitor->AssertCurrentThreadOwns();
 
-    if (ChannelClosing != mChannelState)
+    if (ChannelClosing != mChannelState) {
         mChannelState = ChannelError;
+        mMonitor->Notify();
+    }
 
     PostErrorNotifyTask();
 }
