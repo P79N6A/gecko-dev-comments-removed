@@ -47,20 +47,6 @@ def ptr_pretty_printer(type_name):
 
 
 
-ref_printers_by_tag = {}
-
-
-
-def ref_pretty_printer(type_name):
-    def add(fn):
-        check_for_reused_pretty_printer(fn)
-        add_to_subprinter_list(fn, "ref-to-" + type_name)
-        ref_printers_by_tag[type_name] = fn
-        return fn
-    return add
-
-
-
 template_printers_by_tag = {}
 
 
@@ -97,8 +83,7 @@ def pretty_printer_for_regexp(pattern, name):
 
 
 def clear_module_printers(module_name):
-    global printers_by_tag, ptr_printers_by_tag, ref_printers_by_tag
-    global template_printers_by_tag, printers_by_regexp
+    global printers_by_tag, ptr_printers_by_tag, template_printers_by_tag, printers_by_regexp
 
     
     
@@ -116,7 +101,6 @@ def clear_module_printers(module_name):
 
     clear_dictionary(printers_by_tag)
     clear_dictionary(ptr_printers_by_tag)
-    clear_dictionary(ref_printers_by_tag)
     clear_dictionary(template_printers_by_tag)
 
     
@@ -242,31 +226,28 @@ def lookup_for_objfile(objfile):
                     return f(value, cache)
             return None
 
-        def check_table_by_type_name(table, t):
-            if t.code == gdb.TYPE_CODE_TYPEDEF:
-                return check_table(table, str(t))
-            elif t.code == gdb.TYPE_CODE_STRUCT and t.tag:
-                return check_table(table, t.tag)
-            else:
-                return None
-
         for t in implemented_types(value.type):
             if t.code == gdb.TYPE_CODE_PTR:
                 for t2 in implemented_types(t.target()):
-                    p = check_table_by_type_name(ptr_printers_by_tag, t2)
-                    if p: return p
-            elif t.code == gdb.TYPE_CODE_REF:
-                for t2 in implemented_types(t.target()):
-                    p = check_table_by_type_name(ref_printers_by_tag, t2)
+                    if t2.code == gdb.TYPE_CODE_TYPEDEF:
+                        p = check_table(ptr_printers_by_tag, str(t2))
+                    elif t2.code == gdb.TYPE_CODE_STRUCT and t2.tag:
+                        p = check_table(ptr_printers_by_tag, t2.tag)
+                    else:
+                        p = None
                     if p: return p
             else:
-                p = check_table_by_type_name(printers_by_tag, t)
-                if p: return p
-                if t.code == gdb.TYPE_CODE_STRUCT and t.tag:
+                if t.code == gdb.TYPE_CODE_TYPEDEF:
+                    p = check_table(printers_by_tag, str(t))
+                elif t.code == gdb.TYPE_CODE_STRUCT and t.tag:
                     m = template_regexp.match(t.tag)
                     if m:
                         p = check_table(template_printers_by_tag, m.group(1))
-                        if p: return p
+                    else:
+                        p = check_table(printers_by_tag, t.tag)
+                else:
+                    p = None
+                if p: return p
 
         
         
@@ -307,13 +288,10 @@ def lookup_for_objfile(objfile):
 
 
 
-
-
 class Pointer(object):
     def __new__(cls, value, cache):
         
-        if value.type.code == gdb.TYPE_CODE_PTR and value == 0:
-            return None
+        if value == 0: return None
         return super(Pointer, cls).__new__(cls)
 
     def __init__(self, value, cache):
@@ -323,10 +301,7 @@ class Pointer(object):
     def to_string(self):
         
         assert not hasattr(self, 'display_hint') or self.display_hint() != 'string'
-        if self.value.type.code == gdb.TYPE_CODE_PTR:
-            address = self.value.cast(self.cache.void_ptr_t)
-        elif self.value.type.code == gdb.TYPE_CODE_REF:
-            address = '@' + str(self.value.address.cast(self.cache.void_ptr_t))
+        address = self.value.cast(self.cache.void_ptr_t)
         try:
             summary = self.summary()
         except gdb.MemoryError as r:
