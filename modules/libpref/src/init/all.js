@@ -4516,7 +4516,11 @@ pref("dom.mobileconnection.enabled", false);
 #endif
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.voicemail.enabled", true);
+#else
 pref("dom.voicemail.enabled", false);
+#endif
 
 
 pref("dom.voicemail.defaultServiceId", 0);

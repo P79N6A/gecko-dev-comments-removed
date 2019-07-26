@@ -821,9 +821,6 @@ pref("gfx.canvas.skiagl.dynamic-cache", true);
 pref("ril.cellbroadcast.disabled", false);
 
 
-pref("dom.voicemail.enabled", true);
-
-
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
 
 
