@@ -270,11 +270,20 @@ MarionetteDriverActor.prototype = {
       logger.warn("got a response with no command_id");
       return;
     }
-    else if (this.command_id && command_id != -1 &&
-             this.command_id != command_id) {
+    else if (command_id != -1) {
       
-      logger.warn("ignoring out-of-sync response");
-      return;
+      
+      if (!this.command_id) {
+        
+        
+        
+        logger.warn("ignoring duplicate response for command_id " + command_id);
+        return;
+      }
+      else if (this.command_id != command_id) {
+        logger.warn("ignoring out-of-sync response");
+        return;
+      }
     }
     this.conn.send(msg);
     if (command_id != -1) {
@@ -1962,9 +1971,10 @@ MarionetteDriverActor.prototype = {
 
 
   screenShot: function MDA_saveScreenshot(aRequest) {
+    this.command_id = this.getCommandId();
     this.sendAsync("screenShot", {element: aRequest.element,
                                   highlights: aRequest.highlights,
-                                  command_id: this.getCommandId()});
+                                  command_id: this.command_id});
   },
 
   
