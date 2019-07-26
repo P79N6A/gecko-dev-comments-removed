@@ -75,15 +75,6 @@ public:
 
 
 
-  operator sqlite3 *() const
-  {
-    return mStatementOwner->getOwner()->GetNativeConnection();
-  }
-
-  
-
-
-
   inline void reset()
   {
     NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");

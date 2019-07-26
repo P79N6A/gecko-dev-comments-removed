@@ -97,8 +97,28 @@ public:
   nsresult initialize(nsIFileURL *aFileURL);
 
   
-  sqlite3 *GetNativeConnection() { return mDBConn; }
-  operator sqlite3 *() const { return mDBConn; }
+
+
+
+
+
+
+
+
+  int32_t getSqliteRuntimeStatus(int32_t aStatusOption,
+                                 int32_t* aMaxValue=nullptr);
+  
+
+
+
+
+
+
+
+  void setCommitHook(int (*aCallbackFn)(void *) , void *aData=nullptr) {
+    MOZ_ASSERT(mDBConn, "A connection must exist at this point");
+    ::sqlite3_commit_hook(mDBConn, aCallbackFn, aData);
+  };
 
   
 

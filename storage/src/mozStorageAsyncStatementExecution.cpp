@@ -163,12 +163,14 @@ private:
 nsresult
 AsyncExecuteStatements::execute(StatementDataArray &aStatements,
                                 Connection *aConnection,
+                                sqlite3 *aNativeConnection,
                                 mozIStorageStatementCallback *aCallback,
                                 mozIStoragePendingStatement **_stmt)
 {
   
   nsRefPtr<AsyncExecuteStatements> event =
-    new AsyncExecuteStatements(aStatements, aConnection, aCallback);
+    new AsyncExecuteStatements(aStatements, aConnection, aNativeConnection,
+                               aCallback);
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
   
@@ -194,8 +196,10 @@ AsyncExecuteStatements::execute(StatementDataArray &aStatements,
 
 AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
                                                Connection *aConnection,
+                                               sqlite3 *aNativeConnection,
                                                mozIStorageStatementCallback *aCallback)
 : mConnection(aConnection)
+, mNativeConnection(aNativeConnection)
 , mTransactionManager(nullptr)
 , mCallback(aCallback)
 , mCallingThread(::do_GetCurrentThread())
@@ -364,8 +368,9 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
 
     
     
-    sqlite3 *db = mConnection->GetNativeConnection();
-    nsCOMPtr<mozIStorageError> errorObj(new Error(rc, ::sqlite3_errmsg(db)));
+    nsCOMPtr<mozIStorageError> errorObj(
+      new Error(rc, ::sqlite3_errmsg(mNativeConnection))
+    );
     
     SQLiteMutexAutoUnlock unlockedScope(mDBMutex);
     (void)notifyError(errorObj);
@@ -592,9 +597,8 @@ AsyncExecuteStatements::Run()
         mState = ERROR;
 
         
-        sqlite3 *db = mConnection->GetNativeConnection();
         nsCOMPtr<mozIStorageError> errorObj(
-          new Error(rc, ::sqlite3_errmsg(db))
+          new Error(rc, ::sqlite3_errmsg(mNativeConnection))
         );
         {
           
