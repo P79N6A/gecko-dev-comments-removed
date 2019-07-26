@@ -899,30 +899,35 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     }
   }
 
-  if (windowIsNew) {
-    
-    
-    
-    bool isPrivateBrowsingWindow =
+  
+  
+  
+  bool isPrivateBrowsingWindow =
       Preferences::GetBool("browser.privatebrowsing.autostart") ||
       (!!(chromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) &&
        !(chromeFlags & nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW));
 
-    
-    
-    if (!isPrivateBrowsingWindow &&
-        !(chromeFlags & nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW)) {
-      nsCOMPtr<nsIDocShellTreeItem> parentItem;
-      GetWindowTreeItem(aParent, getter_AddRefs(parentItem));
-      nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(parentItem);
-      if (parentContext) {
-        isPrivateBrowsingWindow = parentContext->UsePrivateBrowsing();
-      }
+  
+  
+  if (!isPrivateBrowsingWindow &&
+      !(chromeFlags & nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW)) {
+    nsCOMPtr<nsIDocShellTreeItem> parentItem;
+    GetWindowTreeItem(aParent, getter_AddRefs(parentItem));
+    nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(parentItem);
+    if (parentContext) {
+      isPrivateBrowsingWindow = parentContext->UsePrivateBrowsing();
     }
+  }
 
+  if (isNewToplevelWindow) {
     nsCOMPtr<nsIDocShellTreeItem> childRoot;
     newDocShellItem->GetRootTreeItem(getter_AddRefs(childRoot));
     nsCOMPtr<nsILoadContext> childContext = do_QueryInterface(childRoot);
+    if (childContext) {
+      childContext->SetPrivateBrowsing(isPrivateBrowsingWindow);
+    }
+  } else if (windowIsNew) {
+    nsCOMPtr<nsILoadContext> childContext = do_QueryInterface(newDocShellItem);
     if (childContext) {
       childContext->SetPrivateBrowsing(isPrivateBrowsingWindow);
     }
