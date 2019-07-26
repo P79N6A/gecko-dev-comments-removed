@@ -48,6 +48,7 @@
 
 
 
+
 #include "GeckoProfiler.h"
 
 #include "EventTracer.h"
@@ -125,7 +126,8 @@ void TracerThread(void *arg)
   }
 
   if (threadArgs->mLogTracing) {
-    fprintf(log, "MOZ_EVENT_TRACE start %llu\n", PR_Now() / PR_USEC_PER_MSEC);
+    long long now = PR_Now() / PR_USEC_PER_MSEC;
+    fprintf(log, "MOZ_EVENT_TRACE start %llu\n", now);
   }
 
   while (!sExit) {
@@ -139,10 +141,11 @@ void TracerThread(void *arg)
     if (FireAndWaitForTracerEvent()) {
       TimeDuration duration = TimeStamp::Now() - start;
       
+      long long now = PR_Now() / PR_USEC_PER_MSEC;
       if (threadArgs->mLogTracing && duration.ToMilliseconds() > threshold) {
-        fprintf(log, "MOZ_EVENT_TRACE sample %llu %d\n",
-                PR_Now() / PR_USEC_PER_MSEC,
-                int(duration.ToSecondsSigDigits() * 1000));
+        fprintf(log, "MOZ_EVENT_TRACE sample %llu %lf\n",
+                now,
+                duration.ToMilliseconds());
       }
 
       if (next_sleep > duration.ToMilliseconds()) {
@@ -161,7 +164,8 @@ void TracerThread(void *arg)
   }
 
   if (threadArgs->mLogTracing) {
-    fprintf(log, "MOZ_EVENT_TRACE stop %llu\n", PR_Now() / PR_USEC_PER_MSEC);
+    long long now = PR_Now() / PR_USEC_PER_MSEC;
+    fprintf(log, "MOZ_EVENT_TRACE stop %llu\n", now);
   }
 
   if (log != stdout)
