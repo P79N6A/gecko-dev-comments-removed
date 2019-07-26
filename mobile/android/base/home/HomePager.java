@@ -8,6 +8,7 @@ package org.mozilla.gecko.home;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
 import android.os.Build;
@@ -38,6 +39,7 @@ public class HomePager extends ViewPager {
     
     public enum Page {
         HISTORY,
+        TOP_SITES,
         BOOKMARKS,
         READING_LIST
     }
@@ -92,7 +94,7 @@ public class HomePager extends ViewPager {
 
         
         
-        setOffscreenPageLimit(2);
+        setOffscreenPageLimit(3);
     }
 
     @Override
@@ -131,13 +133,18 @@ public class HomePager extends ViewPager {
         
         final boolean shouldAnimate = (animator != null && Build.VERSION.SDK_INT >= 11);
 
-        
-        adapter.addTab(Page.HISTORY, HistoryPage.class, new Bundle(),
-                getContext().getString(R.string.home_history_title));
+        adapter.addTab(Page.TOP_SITES, TopSitesPage.class, new Bundle(),
+                getContext().getString(R.string.home_top_sites_title));
         adapter.addTab(Page.BOOKMARKS, BookmarksPage.class, new Bundle(),
                 getContext().getString(R.string.bookmarks_title));
         adapter.addTab(Page.READING_LIST, ReadingListPage.class, new Bundle(),
                 getContext().getString(R.string.reading_list_title));
+
+        
+        
+        adapter.addTab(HardwareUtils.isTablet() ? -1 : 0,
+                Page.HISTORY, HistoryPage.class, new Bundle(),
+                getContext().getString(R.string.home_history_title));
 
         adapter.setCanLoadHint(!shouldAnimate);
 
@@ -226,8 +233,18 @@ public class HomePager extends ViewPager {
         }
 
         public void addTab(Page page, Class<?> clss, Bundle args, String title) {
+            addTab(-1, page, clss, args, title);
+        }
+
+        public void addTab(int index, Page page, Class<?> clss, Bundle args, String title) {
             TabInfo info = new TabInfo(page, clss, args, title);
-            mTabs.add(info);
+
+            if (index >= 0) {
+                mTabs.add(index, info);
+            } else {
+                mTabs.add(info);
+            }
+
             notifyDataSetChanged();
 
             if (mDecor != null) {

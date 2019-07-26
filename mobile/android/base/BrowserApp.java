@@ -43,7 +43,6 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.nfc.NdefMessage;
@@ -69,8 +68,6 @@ import android.view.animation.Interpolator;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.net.URLEncoder;
 import java.util.EnumSet;
 import java.util.Vector;
@@ -185,7 +182,16 @@ abstract public class BrowserApp extends GeckoApp
                 
             case SELECTED:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
-                    updateHomePagerForTab(tab);
+                    if (isAboutHome(tab)) {
+                        showHomePager(tab.getAboutHomePage());
+
+                        if (isDynamicToolbarEnabled()) {
+                            
+                            mLayerView.getLayerMarginsAnimator().showMargins(false);
+                        }
+                    } else {
+                        hideHomePager();
+                    }
 
                     if (mSiteIdentityPopup != null)
                         mSiteIdentityPopup.dismiss();
@@ -1395,7 +1401,7 @@ abstract public class BrowserApp extends GeckoApp
         animator.setUseHardwareLayer(false);
 
         mBrowserToolbar.startEditing(url, animator);
-        showHomePagerWithAnimator(HomePager.Page.HISTORY, animator);
+        showHomePagerWithAnimator(HomePager.Page.TOP_SITES, animator);
 
         animator.start();
     }
@@ -1499,27 +1505,6 @@ abstract public class BrowserApp extends GeckoApp
             showBrowserSearch();
             mHomePager.setVisibility(View.INVISIBLE);
             mBrowserSearch.filter(searchTerm, handler);
-        }
-    }
-
-    
-
-
-    private void updateHomePagerForTab(Tab tab) {
-        
-        if (mBrowserToolbar.isEditing()) {
-            return;
-        }
-
-        if (isAboutHome(tab)) {
-            showHomePager(tab.getAboutHomePage());
-
-            if (isDynamicToolbarEnabled()) {
-                
-                mLayerView.getLayerMarginsAnimator().showMargins(false);
-            }
-        } else {
-            hideHomePager();
         }
     }
 
@@ -1914,45 +1899,13 @@ abstract public class BrowserApp extends GeckoApp
             if (provider != null) {
                 Intent shareIntent = provider.getIntent();
 
-                
                 if (shareIntent == null) {
-                    shareIntent = new Intent(Intent.ACTION_SEND);
-                    shareIntent.setType("text/plain");
+                    shareIntent = GeckoAppShell.getShareIntent(this, url,
+                                                               "text/plain", tab.getDisplayTitle());
                     provider.setIntent(shareIntent);
-                }
-
-                
-                shareIntent.putExtra(Intent.EXTRA_TEXT, url);
-                shareIntent.putExtra(Intent.EXTRA_SUBJECT, tab.getDisplayTitle());
-                shareIntent.putExtra(Intent.EXTRA_TITLE, tab.getDisplayTitle());
-
-                
-                shareIntent.removeExtra("share_screenshot");
-                shareIntent.removeExtra("share_screenshot_uri");
-
-                
-                BitmapDrawable drawable = tab.getThumbnail();
-                if (drawable != null) {
-                    Bitmap thumbnail = drawable.getBitmap();
-                    shareIntent.putExtra("share_screenshot", thumbnail);
-
-                    
-                    if (Build.MANUFACTURER.equals("Kobo")) {
-                        File cacheDir = getExternalCacheDir();
-
-                        if (cacheDir != null) {
-                            File outFile = new File(cacheDir, "thumbnail.png");
-
-                            try {
-                                java.io.FileOutputStream out = new java.io.FileOutputStream(outFile);
-                                thumbnail.compress(Bitmap.CompressFormat.PNG, 90, out);
-                            } catch (FileNotFoundException e) {
-                                Log.e(LOGTAG, "File not found", e);
-                            }
-
-                            shareIntent.putExtra("share_screenshot_uri", Uri.parse(outFile.getPath()));
-                        }
-                    }
+                } else {
+                    shareIntent.putExtra(Intent.EXTRA_TEXT, url);
+                    shareIntent.putExtra(Intent.EXTRA_SUBJECT, tab.getDisplayTitle());
                 }
             }
         }
@@ -2172,18 +2125,7 @@ abstract public class BrowserApp extends GeckoApp
             GeckoAppShell.sendEventToGecko(GeckoEvent.createURILoadEvent(uri));
         }
 
-        if (!mInitialized) {
-            return;
-        }
-
-        
-        if (Intent.ACTION_VIEW.equals(action)) {
-            dismissEditingMode();
-            return;
-        }
-
-        
-        if (!Intent.ACTION_MAIN.equals(action)) {
+        if (!Intent.ACTION_MAIN.equals(action) || !mInitialized) {
             return;
         }
 
