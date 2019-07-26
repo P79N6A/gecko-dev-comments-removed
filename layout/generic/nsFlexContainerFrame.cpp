@@ -550,6 +550,9 @@ public:
     return mBaselineOffsetFromCrossStart;
   }
 
+  void PositionItemsInCrossAxis(nscoord aLineStartPosition,
+                                const FlexboxAxisTracker& aAxisTracker);
+
   nsTArray<FlexItem> mItems; 
 
 private:
@@ -2265,30 +2268,32 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
 }
 
 void
-nsFlexContainerFrame::PositionItemInCrossAxis(
-  nscoord aLineStartPosition,
-  SingleLineCrossAxisPositionTracker& aLineCrossAxisPosnTracker,
-  FlexLine& aLine,
-  FlexItem& aItem)
+FlexLine::PositionItemsInCrossAxis(nscoord aLineStartPosition,
+                                   const FlexboxAxisTracker& aAxisTracker)
 {
-  MOZ_ASSERT(aLineCrossAxisPosnTracker.GetPosition() == 0,
-             "per-line cross-axis position tracker wasn't correctly reset");
+  SingleLineCrossAxisPositionTracker lineCrossAxisPosnTracker(aAxisTracker);
 
-  aLineCrossAxisPosnTracker.ResolveAutoMarginsInCrossAxis(aLine, aItem);
+  for (uint32_t i = 0; i < mItems.Length(); ++i) {
+    FlexItem& item = mItems[i];
+    
+    
+    item.ResolveStretchedCrossSize(mLineCrossSize, aAxisTracker);
+    lineCrossAxisPosnTracker.ResolveAutoMarginsInCrossAxis(*this, item);
 
-  
-  nscoord itemCrossBorderBoxSize =
-    aItem.GetCrossSize() +
-    aItem.GetBorderPaddingSizeInAxis(aLineCrossAxisPosnTracker.GetAxis());
-  aLineCrossAxisPosnTracker.EnterAlignPackingSpace(aLine, aItem);
-  aLineCrossAxisPosnTracker.EnterMargin(aItem.GetMargin());
-  aLineCrossAxisPosnTracker.EnterChildFrame(itemCrossBorderBoxSize);
+    
+    nscoord itemCrossBorderBoxSize =
+      item.GetCrossSize() +
+      item.GetBorderPaddingSizeInAxis(aAxisTracker.GetCrossAxis());
+    lineCrossAxisPosnTracker.EnterAlignPackingSpace(*this, item);
+    lineCrossAxisPosnTracker.EnterMargin(item.GetMargin());
+    lineCrossAxisPosnTracker.EnterChildFrame(itemCrossBorderBoxSize);
 
-  aItem.SetCrossPosition(aLineStartPosition +
-                         aLineCrossAxisPosnTracker.GetPosition());
+    item.SetCrossPosition(aLineStartPosition +
+                          lineCrossAxisPosnTracker.GetPosition());
 
-  
-  aLineCrossAxisPosnTracker.ResetPosition();
+    
+    lineCrossAxisPosnTracker.ResetPosition();
+  }
 }
 
 NS_IMETHODIMP
@@ -2446,20 +2451,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  
-  
-  SingleLineCrossAxisPositionTracker lineCrossAxisPosnTracker(axisTracker);
-  for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
-    
-    nscoord lineCrossSize = line.GetLineCrossSize();
-    line.mItems[i].ResolveStretchedCrossSize(lineCrossSize, axisTracker);
-
-    
-    PositionItemInCrossAxis(crossAxisPosnTracker.GetPosition(),
-                            lineCrossAxisPosnTracker,
-                            line,
-                            line.mItems[i]);
-  }
+  line.PositionItemsInCrossAxis(crossAxisPosnTracker.GetPosition(),
+                                axisTracker);
 
   
   
