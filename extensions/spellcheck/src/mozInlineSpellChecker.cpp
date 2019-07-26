@@ -65,6 +65,7 @@
 #include "nsEditor.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
+#include "nsITextControlElement.h"
 
 using namespace mozilla::dom;
 
@@ -1266,6 +1267,21 @@ mozInlineSpellChecker::SkipSpellCheckForNode(nsIEditor* aEditor,
     if (!content->IsEditable()) {
       *checkSpelling = false;
       return NS_OK;
+    }
+
+    
+    
+    
+    if (content->IsInAnonymousSubtree()) {
+      nsCOMPtr<nsIContent> node = content->GetParent();
+      while (node && node->IsInNativeAnonymousSubtree()) {
+        node = node->GetParent();
+      }
+      nsCOMPtr<nsITextControlElement> textControl = do_QueryInterface(node);
+      if (textControl) {
+        *checkSpelling = true;
+        return NS_OK;
+      }
     }
 
     
