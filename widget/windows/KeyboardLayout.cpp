@@ -746,6 +746,10 @@ bool
 NativeKey::DispatchKeyEvent(nsKeyEvent& aKeyEvent,
                             const MSG* aMsgSentToPlugin) const
 {
+  if (mWidget->Destroyed()) {
+    MOZ_CRASH("NativeKey tries to dispatch a key event on destroyed widget");
+  }
+
   KeyboardLayout::NotifyIdleServiceOfUserActivity();
 
   NPEvent pluginEvent;
@@ -757,7 +761,7 @@ NativeKey::DispatchKeyEvent(nsKeyEvent& aKeyEvent,
     aKeyEvent.pluginEvent = static_cast<void*>(&pluginEvent);
   }
 
-  return mWidget->DispatchWindowEvent(&aKeyEvent);
+  return (mWidget->DispatchWindowEvent(&aKeyEvent) || mWidget->Destroyed());
 }
 
 bool
@@ -785,6 +789,12 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
       *aEventDispatched = true;
     }
     defaultPrevented = DispatchKeyEvent(keydownEvent, &mMsg);
+
+    if (mWidget->Destroyed()) {
+      
+      
+      return true;
+    }
 
     
     
@@ -816,12 +826,6 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
       ::SendInput(1, &keyinput, sizeof(keyinput));
 
       
-      
-      
-      return true;
-    }
-
-    if (mWidget->Destroyed()) {
       
       
       return true;
@@ -1075,20 +1079,24 @@ NativeKey::RemoveFollowingCharMessage() const
   return mCharMsg;
 }
 
-void
+bool
 NativeKey::RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg,
                                                UINT aLastMsg) const
 {
   MSG msg;
   if (mIsFakeCharMsg) {
     if (aFirstMsg > WM_CHAR || aLastMsg < WM_CHAR) {
-      return;
+      return false;
     }
     msg = mCharMsg;
   } else {
     WinUtils::GetMessage(&msg, mMsg.hwnd, aFirstMsg, aLastMsg);
   }
+  if (mWidget->Destroyed()) {
+    MOZ_CRASH("NativeKey tries to dispatch a plugin event on destroyed widget");
+  }
   mWidget->DispatchPluginEvent(msg);
+  return mWidget->Destroyed();
 }
 
 bool
@@ -1104,7 +1112,9 @@ NativeKey::DispatchKeyPressEventsAndDiscardsCharMessages(
   bool anyCharMessagesRemoved = false;
 
   if (mIsFakeCharMsg) {
-    RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST);
+    if (RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST)) {
+      return true;
+    }
     anyCharMessagesRemoved = true;
   } else {
     MSG msg;
@@ -1112,7 +1122,9 @@ NativeKey::DispatchKeyPressEventsAndDiscardsCharMessages(
       WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
                             PM_NOREMOVE | PM_NOYIELD);
     while (gotMsg && (msg.message == WM_CHAR || msg.message == WM_SYSCHAR)) {
-      RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST);
+      if (RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST)) {
+        return true;
+      }
       anyCharMessagesRemoved = true;
       gotMsg = WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
                                      PM_NOREMOVE | PM_NOYIELD);
@@ -1122,7 +1134,9 @@ NativeKey::DispatchKeyPressEventsAndDiscardsCharMessages(
   if (!anyCharMessagesRemoved &&
       mDOMKeyCode == NS_VK_BACK && IsIMEDoingKakuteiUndo()) {
     MOZ_ASSERT(!mIsFakeCharMsg);
-    RemoveMessageAndDispatchPluginEvent(WM_CHAR, WM_CHAR);
+    if (RemoveMessageAndDispatchPluginEvent(WM_CHAR, WM_CHAR)) {
+      return true;
+    }
   }
 
   return DispatchKeyPressEventsWithKeyboardLayout(aExtraFlags);
@@ -1287,6 +1301,9 @@ NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
     keypressEvent.alternativeCharCodes.AppendElements(altArray);
     InitKeyEvent(keypressEvent, modKeyState);
     defaultPrevented = (DispatchKeyEvent(keypressEvent) || defaultPrevented);
+    if (mWidget->Destroyed()) {
+      return true;
+    }
   }
 
   return defaultPrevented;
@@ -1334,7 +1351,9 @@ NativeKey::DispatchKeyPressEventForFollowingCharMessage(
     bool defaultPrevented = aExtraFlags.mDefaultPrevented;
     if (mWidget->PluginHasFocus()) {
       
-      defaultPrevented = mWidget->DispatchPluginEvent(msg) || defaultPrevented;
+      defaultPrevented =
+        (mWidget->DispatchPluginEvent(msg) || defaultPrevented ||
+         mWidget->Destroyed());
     }
     return defaultPrevented;
   }

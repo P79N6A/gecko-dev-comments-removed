@@ -395,7 +395,8 @@ private:
   
 
 
-  void RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg) const;
+
+  bool RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg) const;
 
   bool IsKeyDownMessage() const
   {
