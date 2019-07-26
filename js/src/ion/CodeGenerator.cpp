@@ -1340,7 +1340,7 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     Register calleereg = ToRegister(call->getFunction());
     Register objreg    = ToRegister(call->getTempObject());
     uint32_t unusedStack = StackOffsetOfPassedArg(call->argslot());
-    RootedFunction target(cx, call->getSingleTarget());
+    RawFunction target = call->getSingleTarget();
     ExecutionMode executionMode = gen->info().executionMode();
     Label end, uncompiled;
 
@@ -1357,7 +1357,7 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
 
     
     
-    RootedScript targetScript(cx, target->nonLazyScript());
+    RawScript targetScript = target->nonLazyScript();
     if (GetIonScript(targetScript, executionMode) == ION_DISABLED_SCRIPT) {
         if (executionMode == ParallelExecution)
             return false;
@@ -1567,8 +1567,8 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
     
     ExecutionMode executionMode = gen->info().executionMode();
     if (apply->hasSingleTarget()) {
-        RootedFunction target(cx, apply->getSingleTarget());
-        if (!CanIonCompile(cx, target, executionMode)) {
+        RawFunction target = apply->getSingleTarget();
+        if (!CanIonCompile(target, executionMode)) {
             if (!emitCallInvokeFunction(apply, copyreg))
                 return false;
             emitPopArguments(apply, copyreg);
@@ -4491,7 +4491,7 @@ CodeGenerator::link()
     
     encodeSafepoints();
 
-    RootedScript script(cx, gen->info().script());
+    RawScript script = gen->info().script();
     ExecutionMode executionMode = gen->info().executionMode();
     JS_ASSERT(!HasIonScript(script, executionMode));
 
