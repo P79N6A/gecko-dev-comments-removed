@@ -43,11 +43,11 @@ public:
                                const FrameMetrics& aMetrics);
 
     
-    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIDocument* doc);
+    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIDocument* aDoc);
 
     
 
-    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIContent* content);
+    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIContent* aContent);
 };
 
 }
