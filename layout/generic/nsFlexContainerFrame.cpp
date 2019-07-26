@@ -18,6 +18,7 @@
 #include <algorithm>
 
 using namespace mozilla::css;
+using namespace mozilla::layout;
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo*
@@ -477,6 +478,29 @@ GetFirstNonAnonBoxDescendant(nsIFrame* aFrame)
         !nsCSSAnonBoxes::IsAnonBox(pseudoTag) ||      
         pseudoTag == nsCSSAnonBoxes::mozNonElement) { 
       break;
+    }
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+    if (MOZ_UNLIKELY(aFrame->GetType() == nsGkAtoms::tableOuterFrame)) {
+      nsIFrame* captionDescendant =
+        GetFirstNonAnonBoxDescendant(aFrame->GetFirstChild(kCaptionList));
+      if (captionDescendant) {
+        return captionDescendant;
+      }
+    } else if (MOZ_UNLIKELY(aFrame->GetType() == nsGkAtoms::tableFrame)) {
+      nsIFrame* colgroupDescendant =
+        GetFirstNonAnonBoxDescendant(aFrame->GetFirstChild(kColGroupList));
+      if (colgroupDescendant) {
+        return colgroupDescendant;
+      }
     }
 
     
