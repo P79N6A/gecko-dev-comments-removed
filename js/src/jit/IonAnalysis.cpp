@@ -1748,9 +1748,6 @@ FindLeadingGoto(LBlock *bb)
         if (ins->isLabel())
             continue;
         
-        if (ins->isMoveGroup() && ins->toMoveGroup()->numMoves() == 0)
-            continue;
-        
         if (ins->isGoto())
             return ins->toGoto();
         break;
