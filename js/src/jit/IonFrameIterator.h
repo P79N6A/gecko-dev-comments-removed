@@ -291,18 +291,18 @@ class SnapshotIterator
         return UndefinedValue();
     }
 
-    inline uint32_t allocations() const {
-        return recover_.allocations();
+    const RResumePoint *resumePoint() const {
+        return recover_.resumePoint();
     }
+
+    uint32_t numAllocations() const;
     inline bool moreAllocations() const {
-        return recover_.moreAllocations(snapshot_);
+        return snapshot_.numAllocationsRead() < numAllocations();
     }
 
   public:
     
-    inline uint32_t pcOffset() const {
-        return recover_.pcOffset();
-    }
+    uint32_t pcOffset() const;
     inline bool resumeAfter() const {
         
         
@@ -318,8 +318,9 @@ class SnapshotIterator
   public:
     
     inline void nextFrame() {
-        
-        recover_.nextFrame(snapshot_);
+        JS_ASSERT(snapshot_.numAllocationsRead() == numAllocations());
+        recover_.nextFrame();
+        snapshot_.resetNumAllocationsRead();
     }
     inline bool moreFrames() const {
         return recover_.moreFrames();
@@ -510,8 +511,8 @@ class InlineFrameIteratorMaybeGC
                 
                 
                 
-                JS_ASSERT(parent_s.allocations() >= nactual + 3 + argsObjAdj);
-                unsigned skip = parent_s.allocations() - nactual - 3 - argsObjAdj;
+                JS_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj);
+                unsigned skip = parent_s.numAllocations() - nactual - 3 - argsObjAdj;
                 for (unsigned j = 0; j < skip; j++)
                     parent_s.skip();
 
