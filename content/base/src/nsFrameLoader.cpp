@@ -713,7 +713,7 @@ bool
 nsFrameLoader::AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem,
                                       nsIDocShellTreeOwner* aOwner,
                                       int32_t aParentType,
-                                      nsIDocShellTreeNode* aParentNode)
+                                      nsIDocShell* aParentNode)
 {
   NS_PRECONDITION(aItem, "Must have docshell treeitem");
   NS_PRECONDITION(mOwnerContent, "Must have owning content");
@@ -1571,9 +1571,8 @@ nsFrameLoader::MaybeCreateDocShell()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsCOMPtr<nsISupports> container =
-    doc->GetContainer();
-  nsCOMPtr<nsIWebNavigation> parentAsWebNav = do_QueryInterface(container);
+  nsCOMPtr<nsIDocShell> docShell = doc->GetDocShell();
+  nsCOMPtr<nsIWebNavigation> parentAsWebNav = do_QueryInterface(docShell);
   NS_ENSURE_STATE(parentAsWebNav);
 
   
@@ -1619,48 +1618,36 @@ nsFrameLoader::MaybeCreateDocShell()
   
   
 
-  nsCOMPtr<nsIDocShellTreeNode> parentAsNode(do_QueryInterface(parentAsWebNav));
-  if (parentAsNode) {
+  int32_t parentType;
+  docShell->GetItemType(&parentType);
+
+  
+  
+  nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner;
+  docShell->GetTreeOwner(getter_AddRefs(parentTreeOwner));
+  NS_ENSURE_STATE(parentTreeOwner);
+  mIsTopLevelContent =
+    AddTreeItemToTreeOwner(mDocShell, parentTreeOwner, parentType, docShell);
+
+  
+  
+  nsCOMPtr<nsIDOMEventTarget> chromeEventHandler;
+
+  if (parentType == nsIDocShellTreeItem::typeChrome) {
     
     
 
-    nsCOMPtr<nsIDocShellTreeItem> parentAsItem =
-      do_QueryInterface(parentAsNode);
-
-    int32_t parentType;
-    parentAsItem->GetItemType(&parentType);
-
+    chromeEventHandler = do_QueryInterface(mOwnerContent);
+    NS_ASSERTION(chromeEventHandler,
+                 "This mContent should implement this.");
+  } else {
     
     
-    nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner;
-    parentAsItem->GetTreeOwner(getter_AddRefs(parentTreeOwner));
-    NS_ENSURE_STATE(parentTreeOwner);
-    mIsTopLevelContent =
-      AddTreeItemToTreeOwner(mDocShell, parentTreeOwner, parentType,
-                             parentAsNode);
 
-    
-    
-    nsCOMPtr<nsIDOMEventTarget> chromeEventHandler;
-
-    if (parentType == nsIDocShellTreeItem::typeChrome) {
-      
-      
-
-      chromeEventHandler = do_QueryInterface(mOwnerContent);
-      NS_ASSERTION(chromeEventHandler,
-                   "This mContent should implement this.");
-    } else {
-      nsCOMPtr<nsIDocShell> parentShell(do_QueryInterface(parentAsNode));
-
-      
-      
-
-      parentShell->GetChromeEventHandler(getter_AddRefs(chromeEventHandler));
-    }
-
-    mDocShell->SetChromeEventHandler(chromeEventHandler);
+    docShell->GetChromeEventHandler(getter_AddRefs(chromeEventHandler));
   }
+
+  mDocShell->SetChromeEventHandler(chromeEventHandler);
 
   
   

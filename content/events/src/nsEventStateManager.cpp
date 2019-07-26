@@ -1490,11 +1490,11 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
                                      ProcessingAccessKeyState aAccessKeyState,
                                      int32_t aModifierMask)
 {
-  nsCOMPtr<nsISupports> pcContainer = aPresContext->GetContainerWeak();
+  nsCOMPtr<nsIDocShell> docShell = aPresContext->GetDocShell();
 
   
   if (mAccessKeys.Count() > 0 &&
-      aModifierMask == GetAccessModifierMaskFor(pcContainer)) {
+      aModifierMask == GetAccessModifierMaskFor(docShell)) {
     
     nsAutoTArray<uint32_t, 10> accessCharCodes;
     nsContentUtils::GetAccessKeyCandidates(aEvent, accessCharCodes);
@@ -1508,7 +1508,6 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
   if (nsEventStatus_eConsumeNoDefault != *aStatus) {
     
 
-    nsCOMPtr<nsIDocShellTreeNode> docShell(do_QueryInterface(pcContainer));
     if (!docShell) {
       NS_WARNING("no docShellTreeNode for presContext");
       return;
@@ -1552,7 +1551,6 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
 
   
   if (eAccessKeyProcessingDown != aAccessKeyState && nsEventStatus_eConsumeNoDefault != *aStatus) {
-    nsCOMPtr<nsIDocShellTreeItem> docShell(do_QueryInterface(pcContainer));
     if (!docShell) {
       NS_WARNING("no docShellTreeItem for presContext");
       return;

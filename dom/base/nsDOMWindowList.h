@@ -8,7 +8,7 @@
 #include "nsCOMPtr.h"
 #include "nsIDOMWindowCollection.h"
 #include <stdint.h>
-#include "nsIDocShellTreeItem.h"
+#include "nsIDocShell.h"
 
 class nsIDocShell;
 class nsIDOMWindow;
@@ -41,7 +41,7 @@ protected:
   
   void EnsureFresh();
 
-  nsIDocShellTreeNode* mDocShellNode; 
+  nsIDocShell* mDocShellNode; 
 };
 
 #endif 

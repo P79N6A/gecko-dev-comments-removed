@@ -38,8 +38,7 @@ NS_INTERFACE_MAP_END
 NS_IMETHODIMP
 nsDOMWindowList::SetDocShell(nsIDocShell* aDocShell)
 {
-  nsCOMPtr<nsIDocShellTreeNode> docShellAsNode(do_QueryInterface(aDocShell));
-  mDocShellNode = docShellAsNode; 
+  mDocShellNode = aDocShell; 
 
   return NS_OK;
 }
