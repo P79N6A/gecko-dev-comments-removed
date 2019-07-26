@@ -1084,6 +1084,10 @@ public:
 
   
   virtual mozilla::dom::Element* GetFormElement();
+  nsHTMLFormElement* GetForm() const
+  {
+    return mForm;
+  }
   virtual void SetForm(nsIDOMHTMLFormElement* aForm);
   virtual void ClearForm(bool aRemoveFromForm);
 
