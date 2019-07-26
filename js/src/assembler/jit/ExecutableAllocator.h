@@ -82,7 +82,7 @@ namespace JSC {
 
   class ExecutableAllocator;
 
-  enum CodeKind { METHOD_CODE, REGEXP_CODE };
+  enum CodeKind { JAEGER_CODE, ION_CODE, REGEXP_CODE };
 
   
   class ExecutablePool {
@@ -104,10 +104,11 @@ private:
 
     
     unsigned m_refCount;
- 
+
     
-    size_t m_mjitCodeMethod;
-    size_t m_mjitCodeRegexp;
+    size_t m_jaegerCodeBytes;
+    size_t m_ionCodeBytes;
+    size_t m_regexpCodeBytes;
 
 public:
     
@@ -118,7 +119,7 @@ public:
     size_t m_gcNumber;
 
     void release(bool willDestroy = false)
-    { 
+    {
         JS_ASSERT(m_refCount != 0);
         
         
@@ -128,7 +129,8 @@ public:
 
     ExecutablePool(ExecutableAllocator* allocator, Allocation a)
       : m_allocator(allocator), m_freePtr(a.pages), m_end(m_freePtr + a.size), m_allocation(a),
-        m_refCount(1), m_mjitCodeMethod(0), m_mjitCodeRegexp(0), m_destroy(false), m_gcNumber(0)
+        m_refCount(1), m_jaegerCodeBytes(0), m_ionCodeBytes(0), m_regexpCodeBytes(0),
+        m_destroy(false), m_gcNumber(0)
     { }
 
     ~ExecutablePool();
@@ -149,15 +151,16 @@ private:
         void *result = m_freePtr;
         m_freePtr += n;
 
-        if ( kind == REGEXP_CODE )
-            m_mjitCodeRegexp += n;
-        else
-            m_mjitCodeMethod += n;
-
+        switch (kind) {
+          case JAEGER_CODE: m_jaegerCodeBytes += n;          break;
+          case ION_CODE:    m_ionCodeBytes    += n;          break;
+          case REGEXP_CODE: m_regexpCodeBytes += n;          break;
+          default:          JS_NOT_REACHED("bad code kind"); break;
+        }
         return result;
     }
-    
-    size_t available() const { 
+
+    size_t available() const {
         JS_ASSERT(m_end >= m_freePtr);
         return m_end - m_freePtr;
     }
@@ -243,7 +246,7 @@ public:
         m_pools.remove(m_pools.lookup(pool));   
     }
 
-    void sizeOfCode(size_t *method, size_t *regexp, size_t *unused) const;
+    void sizeOfCode(size_t *jaeger, size_t *ion, size_t *regexp, size_t *unused) const;
 
     void setDestroyCallback(DestroyCallback destroyCallback) {
         this->destroyCallback = destroyCallback;
