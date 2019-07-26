@@ -98,6 +98,17 @@ public:
   virtual void OnSocketDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
 
   bool Listen();
+  
+
+
+
+
+
+
+
+
+
+
   bool ConnectSco(BluetoothReplyRunnable* aRunnable = nullptr);
   bool DisconnectSco();
   bool ListenSco();
@@ -175,6 +186,8 @@ private:
 #endif
   bool mCMEE;
   bool mCMER;
+  bool mConnectScoRequest;
+  bool mSlcConnected;
 #ifdef MOZ_B2G_RIL
   bool mFirstCKPD;
   int mNetworkSelectionMode;
