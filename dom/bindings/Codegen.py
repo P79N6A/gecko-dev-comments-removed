@@ -1419,6 +1419,21 @@ def overloadLength(arguments):
 def methodLength(method):
     signatures = method.signatures()
     return min(overloadLength(arguments) for (retType, arguments) in signatures)
+def requiresQueryInterfaceMethod(descriptor):
+    
+    
+    
+    def allAncestorsAbstract(iface):
+        if not iface.parent:
+            return True
+        desc = descriptor.getDescriptor(iface.parent.identifier.name)
+        if desc.concrete:
+            return False
+        return allAncestorsAbstract(iface.parent)
+    return (descriptor.nativeOwnership == 'nsisupports' and
+            descriptor.interface.hasInterfacePrototypeObject() and
+            descriptor.concrete and
+            allAncestorsAbstract(descriptor.interface))
 
 class MethodDefiner(PropertyDefiner):
     """
@@ -1460,21 +1475,7 @@ class MethodDefiner(PropertyDefiner):
                                  "flags": "JSPROP_ENUMERATE",
                                  "condition": MemberCondition(None, None) })
 
-        
-        
-        
-        def allAncestorsAbstract(iface):
-            if not iface.parent:
-                return True
-            desc = descriptor.getDescriptor(iface.parent.identifier.name)
-            if desc.concrete:
-                return False
-            return allAncestorsAbstract(iface.parent)
-        if (not static and
-            descriptor.nativeOwnership == 'nsisupports' and
-            descriptor.interface.hasInterfacePrototypeObject() and
-            descriptor.concrete and
-            allAncestorsAbstract(descriptor.interface)):
+        if not static and requiresQueryInterfaceMethod(descriptor):
             self.regular.append({"name": 'QueryInterface',
                                  "methodInfo": False,
                                  "length": 1,
@@ -8073,6 +8074,9 @@ class CGBindingRoot(CGThing):
                      not desc.workers and desc.wrapperCache) or
                     desc.interface.hasInterfaceObject())
         requiresContentUtils = any(descriptorRequiresContentUtils(d) for d in descriptors)
+        def descriptorHasChromeOnlyMembers(desc):
+            return any(isChromeOnly(a) for a in desc.interface.members)
+        hasChromeOnlyMembers = any(descriptorHasChromeOnlyMembers(d) for d in descriptors)
         hasWorkerStuff = len(config.getDescriptors(webIDLFile=webIDLFile,
                                                    workers=True)) != 0
         mainDictionaries = config.getDictionaries(webIDLFile=webIDLFile,
@@ -8178,8 +8182,8 @@ class CGBindingRoot(CGThing):
                           'PrimitiveConversions.h',
                           'XPCQuickStubs.h',
                           'XPCWrapper.h',
+                          'WrapperFactory.h',
                           'nsDOMQS.h',
-                          'AccessCheck.h',
                           
                           
                           'nsDOMQS.h'
@@ -8187,7 +8191,8 @@ class CGBindingRoot(CGThing):
                                 'nsThreadUtils.h'] if hasWorkerStuff else [])
                             + (['mozilla/Preferences.h'] if requiresPreferences else [])
                             + (['mozilla/dom/NonRefcountedDOMObject.h'] if hasOwnedDescriptors else [])
-                            + (['nsContentUtils.h'] if requiresContentUtils else []),
+                            + (['nsContentUtils.h'] if requiresContentUtils else [])
+                            + (['AccessCheck.h'] if hasChromeOnlyMembers else []),
                          curr,
                          config,
                          jsImplemented)
