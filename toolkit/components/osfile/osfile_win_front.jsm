@@ -255,10 +255,10 @@
 
 
      File.open = function Win_open(path, mode = {}, options = {}) {
-       let share = options.winShare || DEFAULT_SHARE;
+       let share = options.winShare !== undefined ? options.winShare : DEFAULT_SHARE;
        let security = options.winSecurity || null;
-       let flags = options.winFlags || DEFAULT_FLAGS;
-       let template = options.winTemplate?options.winTemplate._fd:null;
+       let flags = options.winFlags !== undefined ? options.winFlags : DEFAULT_FLAGS;
+       let template = options.winTemplate ? options.winTemplate._fd : null;
        let access;
        let disposition;
        if ("winAccess" in options && "winDisposition" in options) {
@@ -488,6 +488,8 @@
      };
 
      
+
+
 
 
 
