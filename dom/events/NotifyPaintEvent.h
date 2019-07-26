@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsDOMNotifyPaintEvent_h_
-#define nsDOMNotifyPaintEvent_h_
+#ifndef mozilla_dom_NotifyPaintEvent_h_
+#define mozilla_dom_NotifyPaintEvent_h_
 
 #include "mozilla/Attributes.h"
 #include "nsIDOMNotifyPaintEvent.h"
@@ -16,23 +16,20 @@ class nsPaintRequestList;
 
 namespace mozilla {
 namespace dom {
+
 class DOMRect;
 class DOMRectList;
-}
-}
 
-class nsDOMNotifyPaintEvent : public nsDOMEvent,
-                              public nsIDOMNotifyPaintEvent
+class NotifyPaintEvent : public nsDOMEvent,
+                         public nsIDOMNotifyPaintEvent
 {
-  typedef mozilla::dom::DOMRect DOMRect;
-  typedef mozilla::dom::DOMRectList DOMRectList;
 
 public:
-  nsDOMNotifyPaintEvent(mozilla::dom::EventTarget* aOwner,
-                        nsPresContext*           aPresContext,
-                        mozilla::WidgetEvent*    aEvent,
-                        uint32_t                 aEventType,
-                        nsInvalidateRequestList* aInvalidateRequests);
+  NotifyPaintEvent(EventTarget* aOwner,
+                   nsPresContext* aPresContext,
+                   WidgetEvent* aEvent,
+                   uint32_t aEventType,
+                   nsInvalidateRequestList* aInvalidateRequests);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -50,7 +47,7 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
   {
-    return mozilla::dom::NotifyPaintEventBinding::Wrap(aCx, aScope, this);
+    return NotifyPaintEventBinding::Wrap(aCx, aScope, this);
   }
 
   already_AddRefed<DOMRectList> ClientRects();
@@ -63,5 +60,8 @@ private:
 
   nsTArray<nsInvalidateRequestList::Request> mInvalidateRequests;
 };
+
+} 
+} 
 
 #endif 
