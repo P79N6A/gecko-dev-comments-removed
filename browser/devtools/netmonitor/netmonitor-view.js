@@ -21,6 +21,7 @@ const REQUESTS_WATERFALL_BACKGROUND_TICKS_COLOR_RGB = [128, 136, 144];
 const REQUESTS_WATERFALL_BACKGROUND_TICKS_OPACITY_MIN = 32; 
 const REQUESTS_WATERFALL_BACKGROUND_TICKS_OPACITY_ADD = 32; 
 const DEFAULT_HTTP_VERSION = "HTTP/1.1";
+const REQUEST_TIME_DECIMALS = 2;
 const HEADERS_SIZE_DECIMALS = 3;
 const CONTENT_SIZE_DECIMALS = 2;
 const CONTENT_MIME_TYPE_ABBREVIATIONS = {
@@ -57,6 +58,7 @@ const GENERIC_VARIABLES_VIEW_SETTINGS = {
   eval: () => {},
   switch: () => {}
 };
+const NETWORK_ANALYSIS_PIE_CHART_DIAMETER = 200; 
 
 
 
@@ -102,6 +104,14 @@ let NetMonitorView = {
     this._detailsPane.setAttribute("width", Prefs.networkDetailsWidth);
     this._detailsPane.setAttribute("height", Prefs.networkDetailsHeight);
     this.toggleDetailsPane({ visible: false });
+
+    
+    if (!Prefs.statistics) {
+      $("#request-menu-context-perf").hidden = true;
+      $("#notice-perf-message").hidden = true;
+      $("#requests-menu-network-summary-button").hidden = true;
+      $("#requests-menu-network-summary-label").hidden = true;
+    }
   },
 
   
@@ -121,8 +131,9 @@ let NetMonitorView = {
 
 
 
-  get detailsPaneHidden()
-    this._detailsPane.hasAttribute("pane-collapsed"),
+  get detailsPaneHidden() {
+    return this._detailsPane.hasAttribute("pane-collapsed");
+  },
 
   
 
@@ -155,6 +166,66 @@ let NetMonitorView = {
     if (aTabIndex !== undefined) {
       $("#event-details-pane").selectedIndex = aTabIndex;
     }
+  },
+
+  
+
+
+
+  get currentFrontendMode() {
+    return this._body.selectedPanel.id;
+  },
+
+  
+
+
+  toggleFrontendMode: function() {
+    if (this.currentFrontendMode != "network-inspector-view") {
+      this.showNetworkInspectorView();
+    } else {
+      this.showNetworkStatisticsView();
+    }
+  },
+
+  
+
+
+  showNetworkInspectorView: function() {
+    this._body.selectedPanel = $("#network-inspector-view");
+    this.RequestsMenu._flushWaterfallViews(true);
+  },
+
+  
+
+
+  showNetworkStatisticsView: function() {
+    this._body.selectedPanel = $("#network-statistics-view");
+
+    let controller = NetMonitorController;
+    let requestsView = this.RequestsMenu;
+    let statisticsView = this.PerformanceStatistics;
+
+    Task.spawn(function() {
+      statisticsView.displayPlaceholderCharts();
+      yield controller.triggerActivity(ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED);
+
+      try {
+        
+        
+        
+        
+        
+        yield whenDataAvailable(requestsView.attachments, [
+          "responseHeaders", "status", "contentSize", "mimeType", "totalTime"
+        ]);
+      } catch (ex) {
+        
+        DevToolsUtils.reportException("showNetworkStatisticsView", ex);
+      }
+
+      statisticsView.createPrimedCacheChart(requestsView.items);
+      statisticsView.createEmptyCacheChart(requestsView.items);
+    });
   },
 
   
@@ -263,8 +334,9 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     dumpn("Initializing the RequestsMenuView");
 
     this.widget = new SideMenuWidget($("#requests-menu-contents"));
-    this._splitter = $('#splitter');
-    this._summary = $("#request-menu-network-summary");
+    this._splitter = $("#network-inspector-view-splitter");
+    this._summary = $("#requests-menu-network-summary-label");
+    this._summary.setAttribute("value", L10N.getStr("networkMenu.empty"));
 
     this.allowFocusOnRightClick = true;
     this.widget.maintainSelectionVisible = false;
@@ -276,11 +348,12 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     this.requestsMenuSortEvent = getKeyWithEvent(this.sortBy.bind(this));
     this.requestsMenuFilterEvent = getKeyWithEvent(this.filterOn.bind(this));
-    this.clearEvent = this.clear.bind(this);
+    this.reqeustsMenuClearEvent = this.clear.bind(this);
     this._onContextShowing = this._onContextShowing.bind(this);
     this._onContextNewTabCommand = this.openRequestInTab.bind(this);
     this._onContextCopyUrlCommand = this.copyUrl.bind(this);
     this._onContextResendCommand = this.cloneSelectedRequest.bind(this);
+    this._onContextPerfCommand = () => NetMonitorView.toggleFrontendMode();
 
     this.sendCustomRequestEvent = this.sendCustomRequest.bind(this);
     this.closeCustomRequestEvent = this.closeCustomRequest.bind(this);
@@ -288,11 +361,16 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     $("#toolbar-labels").addEventListener("click", this.requestsMenuSortEvent, false);
     $("#requests-menu-footer").addEventListener("click", this.requestsMenuFilterEvent, false);
-    $("#requests-menu-clear-button").addEventListener("click", this.clearEvent, false);
+    $("#requests-menu-clear-button").addEventListener("click", this.reqeustsMenuClearEvent, false);
     $("#network-request-popup").addEventListener("popupshowing", this._onContextShowing, false);
     $("#request-menu-context-newtab").addEventListener("command", this._onContextNewTabCommand, false);
     $("#request-menu-context-copy-url").addEventListener("command", this._onContextCopyUrlCommand, false);
     $("#request-menu-context-resend").addEventListener("command", this._onContextResendCommand, false);
+    $("#request-menu-context-perf").addEventListener("command", this._onContextPerfCommand, false);
+
+    $("#requests-menu-perf-notice-button").addEventListener("command", this._onContextPerfCommand, false);
+    $("#requests-menu-network-summary-button").addEventListener("command", this._onContextPerfCommand, false);
+    $("#requests-menu-network-summary-label").addEventListener("click", this._onContextPerfCommand, false);
 
     $("#custom-request-send-button").addEventListener("click", this.sendCustomRequestEvent, false);
     $("#custom-request-close-button").addEventListener("click", this.closeCustomRequestEvent, false);
@@ -311,11 +389,16 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     $("#toolbar-labels").removeEventListener("click", this.requestsMenuSortEvent, false);
     $("#requests-menu-footer").removeEventListener("click", this.requestsMenuFilterEvent, false);
-    $("#requests-menu-clear-button").removeEventListener("click", this.clearEvent, false);
+    $("#requests-menu-clear-button").removeEventListener("click", this.reqeustsMenuClearEvent, false);
     $("#network-request-popup").removeEventListener("popupshowing", this._onContextShowing, false);
     $("#request-menu-context-newtab").removeEventListener("command", this._onContextNewTabCommand, false);
     $("#request-menu-context-copy-url").removeEventListener("command", this._onContextCopyUrlCommand, false);
     $("#request-menu-context-resend").removeEventListener("command", this._onContextResendCommand, false);
+    $("#request-menu-context-perf").removeEventListener("command", this._onContextPerfCommand, false);
+
+    $("#requests-menu-perf-notice-button").removeEventListener("command", this._onContextPerfCommand, false);
+    $("#requests-menu-network-summary-button").removeEventListener("command", this._onContextPerfCommand, false);
+    $("#requests-menu-network-summary-label").removeEventListener("click", this._onContextPerfCommand, false);
 
     $("#custom-request-send-button").removeEventListener("click", this.sendCustomRequestEvent, false);
     $("#custom-request-close-button").removeEventListener("click", this.closeCustomRequestEvent, false);
@@ -327,6 +410,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   reset: function() {
     this.empty();
+    this.filterOn("all");
     this._firstRequestStartedMillis = -1;
     this._lastRequestEndedMillis = -1;
   },
@@ -394,6 +478,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     
     let menuView = this._createMenuView(selected.method, selected.url);
 
+    
     let newItem = this.push([menuView], {
       attachment: Object.create(selected, {
         isCustom: { value: true }
@@ -477,28 +562,31 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         this.filterContents(() => true);
         break;
       case "html":
-        this.filterContents(this._onHtml);
+        this.filterContents(e => this.isHtml(e));
         break;
       case "css":
-        this.filterContents(this._onCss);
+        this.filterContents(e => this.isCss(e));
         break;
       case "js":
-        this.filterContents(this._onJs);
+        this.filterContents(e => this.isJs(e));
         break;
       case "xhr":
-        this.filterContents(this._onXhr);
+        this.filterContents(e => this.isXHR(e));
         break;
       case "fonts":
-        this.filterContents(this._onFonts);
+        this.filterContents(e => this.isFont(e));
         break;
       case "images":
-        this.filterContents(this._onImages);
+        this.filterContents(e => this.isImage(e));
         break;
       case "media":
-        this.filterContents(this._onMedia);
+        this.filterContents(e => this.isMedia(e));
         break;
       case "flash":
-        this.filterContents(this._onFlash);
+        this.filterContents(e => this.isFlash(e));
+        break;
+      case "other":
+        this.filterContents(e => this.isOther(e));
         break;
     }
 
@@ -611,22 +699,22 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onHtml: function({ attachment: { mimeType } })
+  isHtml: function({ attachment: { mimeType } })
     mimeType && mimeType.contains("/html"),
 
-  _onCss: function({ attachment: { mimeType } })
+  isCss: function({ attachment: { mimeType } })
     mimeType && mimeType.contains("/css"),
 
-  _onJs: function({ attachment: { mimeType } })
+  isJs: function({ attachment: { mimeType } })
     mimeType && (
       mimeType.contains("/ecmascript") ||
       mimeType.contains("/javascript") ||
       mimeType.contains("/x-javascript")),
 
-  _onXhr: function({ attachment: { isXHR } })
+  isXHR: function({ attachment: { isXHR } })
     isXHR,
 
-  _onFonts: function({ attachment: { url, mimeType } }) 
+  isFont: function({ attachment: { url, mimeType } }) 
     (mimeType && (
       mimeType.contains("font/") ||
       mimeType.contains("/font"))) ||
@@ -635,21 +723,25 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     url.contains(".otf") ||
     url.contains(".woff"),
 
-  _onImages: function({ attachment: { mimeType } })
+  isImage: function({ attachment: { mimeType } })
     mimeType && mimeType.contains("image/"),
 
-  _onMedia: function({ attachment: { mimeType } }) 
+  isMedia: function({ attachment: { mimeType } }) 
     mimeType && (
       mimeType.contains("audio/") ||
       mimeType.contains("video/") ||
       mimeType.contains("model/")),
 
-  _onFlash: function({ attachment: { url, mimeType } }) 
+  isFlash: function({ attachment: { url, mimeType } }) 
     (mimeType && (
       mimeType.contains("/x-flv") ||
       mimeType.contains("/x-shockwave-flash"))) ||
     url.contains(".swf") ||
     url.contains(".flv"),
+
+  isOther: function(e)
+    !this.isHtml(e) && !this.isCss(e) && !this.isJs(e) && !this.isXHR(e) &&
+    !this.isFont(e) && !this.isImage(e) && !this.isMedia(e) && !this.isFlash(e),
 
   
 
@@ -724,8 +816,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     let str = PluralForm.get(visibleRequestsCount, L10N.getStr("networkMenu.summary"));
     this._summary.setAttribute("value", str
       .replace("#1", visibleRequestsCount)
-      .replace("#2", L10N.numberWithDecimals((totalBytes || 0) / 1024, 2))
-      .replace("#3", L10N.numberWithDecimals((totalMillis || 0) / 1000, 2))
+      .replace("#2", L10N.numberWithDecimals((totalBytes || 0) / 1024, CONTENT_SIZE_DECIMALS))
+      .replace("#3", L10N.numberWithDecimals((totalMillis || 0) / 1000, REQUEST_TIME_DECIMALS))
     );
   },
 
@@ -838,6 +930,12 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             break;
           case "responseContent":
             requestItem.attachment.responseContent = value;
+            
+            
+            if (!requestItem.attachment.mimeType) {
+              requestItem.attachment.mimeType = "text/plain";
+              this.updateMenuView(requestItem, "mimeType", "text/plain");
+            }
             break;
           case "totalTime":
             requestItem.attachment.totalTime = value;
@@ -1022,6 +1120,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     endCapNode.hidden = false;
 
     
+    if (NetMonitorView.currentFrontendMode != "network-inspector-view") {
+      return;
+    }
+
+    
     this._flushWaterfallViews();
   },
 
@@ -1134,7 +1237,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         if (divisionScale == "millisecond") {
           normalizedTime |= 0;
         } else {
-          normalizedTime = L10N.numberWithDecimals(normalizedTime, 2);
+          normalizedTime = L10N.numberWithDecimals(normalizedTime, REQUEST_TIME_DECIMALS);
         }
 
         let node = document.createElement("label");
@@ -1263,6 +1366,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onResize: function(e) {
+    
+    if (NetMonitorView.currentFrontendMode != "network-inspector-view") {
+      return;
+    }
+
     
     setNamedTimeout(
       "resize-events", RESIZE_REFRESH_RATE, () => this._flushWaterfallViews(true));
@@ -1453,7 +1561,7 @@ SidebarView.prototype = {
 
     return view.populate(aData).then(() => {
       $("#details-pane").selectedIndex = isCustom ? 0 : 1
-      window.emit(EVENTS.SIDEBAR_POPULATED)
+      window.emit(EVENTS.SIDEBAR_POPULATED);
     });
   },
 
@@ -1480,7 +1588,6 @@ CustomRequestView.prototype = {
     dumpn("Initializing the CustomRequestView");
 
     this.updateCustomRequestEvent = getKeyWithEvent(this.onUpdate.bind(this));
-
     $("#custom-pane").addEventListener("input", this.updateCustomRequestEvent, false);
   },
 
@@ -1555,18 +1662,12 @@ CustomRequestView.prototype = {
         break;
       case 'body':
         value = $("#custom-postdata-value").value;
-        selectedItem.attachment.requestPostData = {
-          postData: {
-            text: value
-          }
-        };
+        selectedItem.attachment.requestPostData = { postData: { text: value } };
         break;
       case 'headers':
         let headersText = $("#custom-headers-value").value;
         value = parseHeaderText(headersText);
-        selectedItem.attachment.requestHeaders = {
-          headers: value
-        };
+        selectedItem.attachment.requestHeaders = { headers: value };
         break;
     }
 
@@ -2175,6 +2276,170 @@ NetworkDetailsView.prototype = {
 
 
 
+function PerformanceStatisticsView() {
+}
+
+PerformanceStatisticsView.prototype = {
+  
+
+
+  displayPlaceholderCharts: function() {
+    this._createChart({
+      id: "#primed-cache-chart",
+      title: "charts.cacheEnabled"
+    });
+    this._createChart({
+      id: "#empty-cache-chart",
+      title: "charts.cacheDisabled"
+    });
+    window.emit(EVENTS.PLACEHOLDER_CHARTS_DISPLAYED);
+  },
+
+  
+
+
+
+
+
+  createPrimedCacheChart: function(aItems) {
+    this._createChart({
+      id: "#primed-cache-chart",
+      title: "charts.cacheEnabled",
+      data: this._sanitizeChartDataSource(aItems),
+      sorted: true,
+      totals: {
+        size: L10N.getStr("charts.totalSize"),
+        time: L10N.getStr("charts.totalTime"),
+        cached: L10N.getStr("charts.totalCached"),
+        count: L10N.getStr("charts.totalCount")
+      }
+    });
+    window.emit(EVENTS.PRIMED_CACHE_CHART_DISPLAYED);
+  },
+
+  
+
+
+
+
+
+  createEmptyCacheChart: function(aItems) {
+    this._createChart({
+      id: "#empty-cache-chart",
+      title: "charts.cacheDisabled",
+      data: this._sanitizeChartDataSource(aItems, true),
+      sorted: true,
+      totals: {
+        size: L10N.getStr("charts.totalSize"),
+        time: L10N.getStr("charts.totalTime"),
+        cached: L10N.getStr("charts.totalCached"),
+        count: L10N.getStr("charts.totalCount")
+      }
+    });
+    window.emit(EVENTS.EMPTY_CACHE_CHART_DISPLAYED);
+  },
+
+  
+
+
+
+
+
+
+
+  _createChart: function({ id, title, data, sorted, totals }) {
+    let container = $(id);
+
+    
+    while (container.hasChildNodes()) {
+      container.firstChild.remove();
+    }
+
+    
+    let chart = Chart.PieTable(document, {
+      diameter: NETWORK_ANALYSIS_PIE_CHART_DIAMETER,
+      title: L10N.getStr(title),
+      data: data,
+      sorted: sorted,
+      totals: totals
+    });
+
+    chart.on("click", (_, item) => {
+      NetMonitorView.RequestsMenu.filterOn(item.label);
+      NetMonitorView.showNetworkInspectorView();
+    });
+
+    container.appendChild(chart.node);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _sanitizeChartDataSource: function(aItems, aEmptyCache) {
+    let data = [
+      "html", "css", "js", "xhr", "fonts", "images", "media", "flash", "other"
+    ].map(e => ({
+      cached: 0,
+      count: 0,
+      label: e,
+      size: 0,
+      time: 0
+    }));
+
+    for (let requestItem of aItems) {
+      let details = requestItem.attachment;
+      let type;
+
+      if (RequestsMenuView.prototype.isHtml(requestItem)) {
+        type = 0; 
+      } else if (RequestsMenuView.prototype.isCss(requestItem)) {
+        type = 1; 
+      } else if (RequestsMenuView.prototype.isJs(requestItem)) {
+        type = 2; 
+      } else if (RequestsMenuView.prototype.isFont(requestItem)) {
+        type = 4; 
+      } else if (RequestsMenuView.prototype.isImage(requestItem)) {
+        type = 5; 
+      } else if (RequestsMenuView.prototype.isMedia(requestItem)) {
+        type = 6; 
+      } else if (RequestsMenuView.prototype.isFlash(requestItem)) {
+        type = 7; 
+      } else if (RequestsMenuView.prototype.isXHR(requestItem)) {
+        
+        type = 3; 
+      } else {
+        type = 8; 
+      }
+
+      if (aEmptyCache || !responseIsFresh(details)) {
+        data[type].time += details.totalTime || 0;
+        data[type].size += details.contentSize || 0;
+      } else {
+        data[type].cached++;
+      }
+      data[type].count++;
+    }
+
+    for (let chartItem of data) {
+      let size = L10N.numberWithDecimals(chartItem.size / 1024, CONTENT_SIZE_DECIMALS);
+      let time = L10N.numberWithDecimals(chartItem.time / 1000, REQUEST_TIME_DECIMALS);
+      chartItem.size = L10N.getFormatStr("charts.sizeKB", size);
+      chartItem.time = L10N.getFormatStr("charts.totalMS", time);
+    }
+
+    return data.filter(e => e.count > 0);
+  },
+};
+
+
+
+
 function $(aSelector, aTarget = document) aTarget.querySelector(aSelector);
 function $all(aSelector, aTarget = document) aTarget.querySelectorAll(aSelector);
 
@@ -2303,6 +2568,44 @@ function writeQueryString(aParams) {
 
 
 
+
+function responseIsFresh({ responseHeaders, status }) {
+  
+  if (status != 304 || !responseHeaders) {
+    return false;
+  }
+
+  let list = responseHeaders.headers;
+  let cacheControl = list.filter(e => e.name.toLowerCase() == "cache-control")[0];
+  let expires = list.filter(e => e.name.toLowerCase() == "expires")[0];
+
+  
+  if (cacheControl) {
+    let maxAgeMatch =
+      cacheControl.value.match(/s-maxage\s*=\s*(\d+)/) ||
+      cacheControl.value.match(/max-age\s*=\s*(\d+)/);
+
+    if (maxAgeMatch && maxAgeMatch.pop() > 0) {
+      return true;
+    }
+  }
+
+  
+  if (expires && Date.parse(expires.value)) {
+    return true;
+  }
+
+  return false;
+}
+
+
+
+
+
+
+
+
+
 function getKeyWithEvent(callback) {
   return function(event) {
     var key = event.target.getAttribute("data-key");
@@ -2320,3 +2623,4 @@ NetMonitorView.RequestsMenu = new RequestsMenuView();
 NetMonitorView.Sidebar = new SidebarView();
 NetMonitorView.CustomRequest = new CustomRequestView();
 NetMonitorView.NetworkDetails = new NetworkDetailsView();
+NetMonitorView.PerformanceStatistics = new PerformanceStatisticsView();

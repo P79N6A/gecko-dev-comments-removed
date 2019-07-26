@@ -781,7 +781,12 @@ BrowserTabActor.prototype = {
       reload = true;
     }
 
-    if (reload) {
+    
+    
+    
+    let hasExplicitReloadFlag = "performReload" in options;
+    if ((hasExplicitReloadFlag && options.performReload) ||
+       (!hasExplicitReloadFlag && reload)) {
       this.onReload();
     }
   },

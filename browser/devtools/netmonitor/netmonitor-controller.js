@@ -67,24 +67,53 @@ const EVENTS = {
   NETWORKDETAILSVIEW_POPULATED: "NetMonitor:NetworkDetailsViewPopulated",
 
   
-  CUSTOMREQUESTVIEW_POPULATED: "NetMonitor:CustomRequestViewPopulated"
+  CUSTOMREQUESTVIEW_POPULATED: "NetMonitor:CustomRequestViewPopulated",
+
+  
+  PLACEHOLDER_CHARTS_DISPLAYED: "NetMonitor:PlaceholderChartsDisplayed",
+  PRIMED_CACHE_CHART_DISPLAYED: "NetMonitor:PrimedChartsDisplayed",
+  EMPTY_CACHE_CHART_DISPLAYED: "NetMonitor:EmptyChartsDisplayed"
+};
+
+
+const ACTIVITY_TYPE = {
+  
+  NONE: 0,
+
+  
+  RELOAD: {
+    WITH_CACHE_ENABLED: 1,
+    WITH_CACHE_DISABLED: 2
+  },
+
+  
+  ENABLE_CACHE: 3,
+  DISABLE_CACHE: 4
 };
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
-const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
+const EventEmitter = require("devtools/shared/event-emitter");
 const Editor = require("devtools/sourceeditor/editor");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Chart",
+  "resource:///modules/devtools/Chart.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
   "resource://gre/modules/PluralForm.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "DevToolsUtils",
+  "resource://gre/modules/devtools/DevToolsUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "devtools",
   "resource://gre/modules/devtools/Loader.jsm");
@@ -255,9 +284,81 @@ let NetMonitorController = {
     });
   },
 
+  
+
+
+
+  getCurrentActivity: function() {
+    return this._currentActivity || ACTIVITY_TYPE.NONE;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  triggerActivity: function(aType) {
+    
+    let standBy = () => {
+      this._currentActivity = ACTIVITY_TYPE.NONE;
+    };
+
+    
+    let waitForNavigation = () => {
+      let deferred = promise.defer();
+      this._target.once("will-navigate", () => {
+        this._target.once("navigate", () => {
+          deferred.resolve();
+        });
+      });
+      return deferred.promise;
+    };
+
+    
+    let reconfigureTab = aOptions => {
+      let deferred = promise.defer();
+      this._target.activeTab.reconfigure(aOptions, deferred.resolve);
+      return deferred.promise;
+    };
+
+    
+    let reconfigureTabAndWaitForNavigation = aOptions => {
+      aOptions.performReload = true;
+      let navigationFinished = waitForNavigation();
+      return reconfigureTab(aOptions).then(() => navigationFinished);
+    }
+
+    if (aType == ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED) {
+      this._currentActivity = ACTIVITY_TYPE.ENABLE_CACHE;
+      this._target.once("will-navigate", () => this._currentActivity = aType);
+      return reconfigureTabAndWaitForNavigation({ cacheEnabled: true }).then(standBy);
+    }
+    if (aType == ACTIVITY_TYPE.RELOAD.WITH_CACHE_DISABLED) {
+      this._currentActivity = ACTIVITY_TYPE.DISABLE_CACHE;
+      this._target.once("will-navigate", () => this._currentActivity = aType);
+      return reconfigureTabAndWaitForNavigation({ cacheEnabled: false }).then(standBy);
+    }
+    if (aType == ACTIVITY_TYPE.ENABLE_CACHE) {
+      this._currentActivity = aType;
+      return reconfigureTab({ cacheEnabled: true, performReload: false }).then(standBy);
+    }
+    if (aType == ACTIVITY_TYPE.DISABLE_CACHE) {
+      this._currentActivity = aType;
+      return reconfigureTab({ cacheEnabled: false, performReload: false }).then(standBy);
+    }
+    this._currentActivity = ACTIVITY_TYPE.NONE;
+    return promise.reject(new Error("Invalid activity type"));
+  },
+
   _startup: null,
   _shutdown: null,
   _connection: null,
+  _currentActivity: null,
   client: null,
   tabClient: null,
   webConsoleClient: null
@@ -313,6 +414,11 @@ TargetEventsHandler.prototype = {
         NetMonitorView.RequestsMenu.reset();
         NetMonitorView.Sidebar.reset();
         NetMonitorView.NetworkDetails.reset();
+
+        
+        if (NetMonitorController.getCurrentActivity() == ACTIVITY_TYPE.NONE) {
+          NetMonitorView.showNetworkInspectorView();
+        }
 
         window.emit(EVENTS.TARGET_WILL_NAVIGATE);
         break;
@@ -383,7 +489,6 @@ NetworkEventsHandler.prototype = {
   _onNetworkEvent: function(aType, aPacket) {
     let { actor, startedDateTime, method, url, isXHR } = aPacket.eventActor;
     NetMonitorView.RequestsMenu.addRequest(actor, startedDateTime, method, url, isXHR);
-
     window.emit(EVENTS.NETWORK_EVENT);
   },
 
@@ -585,7 +690,8 @@ let L10N = new ViewHelpers.L10N(NET_STRINGS_URI);
 
 let Prefs = new ViewHelpers.Prefs("devtools.netmonitor", {
   networkDetailsWidth: ["Int", "panes-network-details-width"],
-  networkDetailsHeight: ["Int", "panes-network-details-height"]
+  networkDetailsHeight: ["Int", "panes-network-details-height"],
+  statistics: ["Bool", "statistics"]
 });
 
 
@@ -615,6 +721,39 @@ Object.defineProperties(window, {
     get: function() NetMonitorController.NetworkEventsHandler
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+function whenDataAvailable(aDataStore, aMandatoryFields) {
+  let deferred = promise.defer();
+
+  let interval = setInterval(() => {
+    if (aDataStore.every(item => aMandatoryFields.every(field => field in item))) {
+      clearInterval(interval);
+      clearTimeout(timer);
+      deferred.resolve();
+    }
+  }, WDA_DEFAULT_VERIFY_INTERVAL);
+
+  let timer = setTimeout(() => {
+    clearInterval(interval);
+    deferred.reject(new Error("Timed out while waiting for data"));
+  }, WDA_DEFAULT_GIVE_UP_TIMEOUT);
+
+  return deferred.promise;
+};
+
+const WDA_DEFAULT_VERIFY_INTERVAL = 50; 
+const WDA_DEFAULT_GIVE_UP_TIMEOUT = 2000; 
 
 
 
