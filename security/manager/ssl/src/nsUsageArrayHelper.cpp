@@ -110,6 +110,8 @@ isFatalError(uint32_t checkResult)
 
 } 
 
+#ifndef NSS_NO_LIBPKIX
+
 
 
 
@@ -213,6 +215,8 @@ nsUsageArrayHelper::check(uint32_t previousCheckResult,
   return result;
 }
 
+#endif
+
 
 
 void
@@ -266,7 +270,9 @@ nsUsageArrayHelper::GetUsagesArray(const char *suffix,
 
 
 
+#ifndef NSS_NO_LIBPKIX
 if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+#endif
   if (localOnly) {
     nssComponent->SkipOcsp();
   }
@@ -321,6 +327,8 @@ if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
     *_verified = nsNSSCertificate::VERIFIED_OK;
   }
   return NS_OK;
+
+#ifndef NSS_NO_LIBPKIX
 }
 
   RefPtr<nsCERTValInParamWrapper> params;
@@ -377,4 +385,5 @@ if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
     *_verified = nsNSSCertificate::VERIFIED_OK;
   }
   return NS_OK;
+#endif
 }

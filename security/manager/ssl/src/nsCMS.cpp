@@ -264,7 +264,9 @@ nsresult nsCMSMessage::CommonVerifySignature(unsigned char* aDigestData, uint32_
   
   
 
+#ifndef NSS_NO_LIBPKIX
   if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+#endif
     if (CERT_VerifyCertificateNow(CERT_GetDefaultCertDB(), si->cert, true, 
                                   certificateUsageEmailSigner,
                                   si->cmsg->pwfn_arg, nullptr) != SECSuccess) {
@@ -272,6 +274,7 @@ nsresult nsCMSMessage::CommonVerifySignature(unsigned char* aDigestData, uint32_
       rv = NS_ERROR_CMS_VERIFY_UNTRUSTED;
       goto loser;
     }
+#ifndef NSS_NO_LIBPKIX
   }
   else {
     CERTValOutParam cvout[1];
@@ -294,6 +297,7 @@ nsresult nsCMSMessage::CommonVerifySignature(unsigned char* aDigestData, uint32_
       goto loser;
     }
   }
+#endif
 
   
   if (NSS_CMSSignedData_VerifySignerInfo(sigd, 0, CERT_GetDefaultCertDB(), certUsageEmailSigner) != SECSuccess) {
