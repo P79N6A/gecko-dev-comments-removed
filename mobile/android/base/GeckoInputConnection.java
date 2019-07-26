@@ -684,6 +684,17 @@ class GeckoInputConnection
     }
 
     @Override
+    public boolean setSelection(int start, int end) {
+        if (start < 0 || end < 0) {
+            
+            
+            
+            return true;
+        }
+        return super.setSelection(start, end);
+    }
+
+    @Override
     public boolean sendKeyEvent(KeyEvent event) {
         
         
