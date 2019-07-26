@@ -923,6 +923,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     JSContextCallback   cxCallback;
+    void               *cxCallbackData;
 
     
     JSDestroyCompartmentCallback destroyCompartmentCallback;
