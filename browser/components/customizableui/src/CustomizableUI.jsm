@@ -2089,25 +2089,73 @@ let CustomizableUIInternal = {
 Object.freeze(CustomizableUIInternal);
 
 this.CustomizableUI = {
+  
+
+
   get AREA_PANEL() "PanelUI-contents",
+  
+
+
   get AREA_NAVBAR() "nav-bar",
+  
+
+
   get AREA_MENUBAR() "toolbar-menubar",
+  
+
+
   get AREA_TABSTRIP() "TabsToolbar",
+  
+
+
   get AREA_BOOKMARKS() "PersonalToolbar",
+  
+
+
+
+
   get AREA_ADDONBAR() "addon-bar",
+  
+
+
+  get TYPE_MENU_PANEL() "menu-panel",
+  
+
+
+  get TYPE_TOOLBAR() "toolbar",
+
+  
+
 
   get PROVIDER_XUL() "xul",
+  
+
+
   get PROVIDER_API() "api",
+  
+
+
   get PROVIDER_SPECIAL() "special",
 
+  
+
+
   get SOURCE_BUILTIN() "builtin",
+  
+
+
+
   get SOURCE_EXTERNAL() "external",
 
   get TYPE_BUTTON() "button",
-  get TYPE_MENU_PANEL() "menu-panel",
-  get TYPE_TOOLBAR() "toolbar",
+
+  
+
 
   get WIDE_PANEL_CLASS() "panel-wide-item",
+  
+
+
   get PANEL_COLUMN_COUNT() 3,
 
   
