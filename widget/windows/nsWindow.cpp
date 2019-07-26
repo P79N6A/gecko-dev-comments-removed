@@ -7390,25 +7390,39 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
           ::PostMessageW(aWnd, MOZ_WM_REACTIVATE, aWParam, aLParam);
           return true;
         }
-      } else if (sPendingNCACTIVATE && LOWORD(aWParam) == WA_INACTIVE &&
-                 NeedsToHandleNCActivateDelayed(aWnd)) {
         
         
+        nsWindow* prevWindow =
+          WinUtils::GetNSWindowPtr(reinterpret_cast<HWND>(aLParam));
+        if (prevWindow && prevWindow->IsPopup()) {
+          return false;
+        }
+      } else if (LOWORD(aWParam) == WA_INACTIVE) {
         nsWindow* activeWindow =
           WinUtils::GetNSWindowPtr(reinterpret_cast<HWND>(aLParam));
-        if (!activeWindow || !activeWindow->IsPopup()) {
-          sSendingNCACTIVATE = true;
-          ::SendMessageW(aWnd, WM_NCACTIVATE, false, 0);
-          sSendingNCACTIVATE = false;
+        if (sPendingNCACTIVATE && NeedsToHandleNCActivateDelayed(aWnd)) {
+          
+          
+          if (!activeWindow || !activeWindow->IsPopup()) {
+            sSendingNCACTIVATE = true;
+            ::SendMessageW(aWnd, WM_NCACTIVATE, false, 0);
+            sSendingNCACTIVATE = false;
+          }
+          sPendingNCACTIVATE = false;
         }
-        sPendingNCACTIVATE = false;
+        
+        
+        if (activeWindow) {
+          if (activeWindow->IsPopup()) {
+            return false;
+          }
+          nsWindow* deactiveWindow = WinUtils::GetNSWindowPtr(aWnd);
+          if (deactiveWindow && deactiveWindow->IsPopup()) {
+            return false;
+          }
+        }
       }
-      
-      if (!EventIsInsideWindow(popupWindow) &&
-          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
-        break;
-      }
-      return false;
+      break;
 
     case MOZ_WM_REACTIVATE:
       
@@ -7432,7 +7446,6 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
       return false;
 
     case WM_MOUSEACTIVATE:
-      
       if (!EventIsInsideWindow(popupWindow) &&
           GetPopupsToRollup(rollupListener, &popupsToRollup)) {
         
@@ -7456,23 +7469,14 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
       
       
       if (IsDifferentThreadWindow(reinterpret_cast<HWND>(aWParam))) {
-        
-        if (!EventIsInsideWindow(popupWindow) &&
-            GetPopupsToRollup(rollupListener, &popupsToRollup)) {
-          break;
-        }
+        break;
       }
       return false;
 
     case WM_MOVING:
     case WM_SIZING:
     case WM_MENUSELECT:
-      
-      if (!EventIsInsideWindow(popupWindow) &&
-          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
-        break;
-      }
-      return false;
+      break;
 
     default:
       return false;
