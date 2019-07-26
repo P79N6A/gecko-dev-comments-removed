@@ -1027,8 +1027,9 @@ nsScriptLoader::FillCompileOptionsForRequest(nsScriptLoadRequest *aRequest,
   
   
   
-  if (NS_SUCCEEDED(nsContentUtils::WrapNative(cx, aScopeChain,
-                                              aRequest->mElement, &elementVal,
+  JSAutoCompartment ac(cx, aScopeChain);
+  if (NS_SUCCEEDED(nsContentUtils::WrapNative(cx, aRequest->mElement,
+                                              &elementVal,
                                                true))) {
     MOZ_ASSERT(elementVal.isObject());
     aOptions->setElement(&elementVal.toObject());

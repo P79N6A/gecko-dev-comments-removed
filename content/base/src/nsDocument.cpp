@@ -5509,8 +5509,7 @@ nsDocument::CustomElementConstructor(JSContext* aCx, unsigned aArgc, JS::Value* 
     return true;
   }
 
-  rv = nsContentUtils::WrapNative(aCx, global, newElement, newElement,
-                                  args.rval());
+  rv = nsContentUtils::WrapNative(aCx, newElement, newElement, args.rval());
   NS_ENSURE_SUCCESS(rv, true);
 
   return true;
@@ -7432,10 +7431,9 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
       
       
       
-      JS::Rooted<JSObject*> global(cx, GetScopeObject()->GetGlobalJSObject());
-
+      JSAutoCompartment ac(cx, GetScopeObject()->GetGlobalJSObject());
       JS::Rooted<JS::Value> v(cx);
-      rv = nsContentUtils::WrapNative(cx, global, this, this, &v,
+      rv = nsContentUtils::WrapNative(cx, this, this, &v,
                                        false);
       if (rv.Failed())
         return nullptr;
@@ -12152,8 +12150,7 @@ nsIDocument::WrapObject(JSContext *aCx)
   JSAutoCompartment ac(aCx, obj);
 
   JS::Rooted<JS::Value> winVal(aCx);
-  nsresult rv = nsContentUtils::WrapNative(aCx, obj, win,
-                                           &NS_GET_IID(nsIDOMWindow),
+  nsresult rv = nsContentUtils::WrapNative(aCx, win, &NS_GET_IID(nsIDOMWindow),
                                            &winVal);
   if (NS_FAILED(rv)) {
     Throw(aCx, rv);

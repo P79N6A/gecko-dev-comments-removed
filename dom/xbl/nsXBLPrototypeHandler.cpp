@@ -305,7 +305,7 @@ nsXBLPrototypeHandler::ExecuteHandler(EventTarget* aTarget,
   
   
   JS::Rooted<JS::Value> targetV(cx, JS::UndefinedValue());
-  rv = nsContentUtils::WrapNative(cx, scopeObject, scriptTarget, &targetV);
+  rv = nsContentUtils::WrapNative(cx, scriptTarget, &targetV);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
