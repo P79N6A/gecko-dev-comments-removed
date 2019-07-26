@@ -489,10 +489,6 @@ public:
     
     static float GetLowPrecisionResolution();
 
-    
-    
-    static bool UseReusableTileStore();
-
     static bool OffMainThreadCompositingEnabled();
 
     
