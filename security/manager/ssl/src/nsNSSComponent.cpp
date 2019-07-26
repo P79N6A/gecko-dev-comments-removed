@@ -18,6 +18,8 @@
 #include "nsICertOverrideService.h"
 #include "mozilla/Preferences.h"
 #include "nsThreadUtils.h"
+#include "mozilla/PublicSSL.h"
+#include "mozilla/StaticPtr.h"
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
 #include "nsIDOMNode.h"
@@ -896,6 +898,90 @@ setNonPkixOcspEnabled(int32_t ocspEnabled)
 #define USE_NSS_LIBPKIX_DEFAULT false
 #define OCSP_STAPLING_ENABLED_DEFAULT true
 
+static const bool SUPPRESS_WARNING_PREF_DEFAULT = false;
+static const bool MD5_ENABLED_DEFAULT = false;
+static const bool REQUIRE_SAFE_NEGOTIATION_DEFAULT = false;
+static const bool ALLOW_UNRESTRICTED_RENEGO_DEFAULT = false;
+static const bool FALSE_START_ENABLED_DEFAULT = true;
+static const bool CIPHER_ENABLED_DEFAULT = false;
+
+namespace {
+
+class CipherSuiteChangeObserver : public nsIObserver
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  virtual ~CipherSuiteChangeObserver() {}
+  static nsresult StartObserve();
+  static nsresult StopObserve();
+
+private:
+  static StaticRefPtr<CipherSuiteChangeObserver> sObserver;
+  CipherSuiteChangeObserver() {}
+};
+
+NS_IMPL_ISUPPORTS1(CipherSuiteChangeObserver, nsIObserver)
+
+
+StaticRefPtr<CipherSuiteChangeObserver> CipherSuiteChangeObserver::sObserver;
+
+
+nsresult
+CipherSuiteChangeObserver::StartObserve()
+{
+  NS_ASSERTION(NS_IsMainThread(), "CipherSuiteChangeObserver::StartObserve() can only be accessed in main thread");
+  if (!sObserver) {
+    nsRefPtr<CipherSuiteChangeObserver> observer = new CipherSuiteChangeObserver();
+    nsresult rv = Preferences::AddStrongObserver(observer.get(), "security.");
+    if (NS_FAILED(rv)) {
+      sObserver = nullptr;
+      return rv;
+    }
+    sObserver = observer;
+  }
+  return NS_OK;
+}
+
+
+nsresult
+CipherSuiteChangeObserver::StopObserve()
+{
+  NS_ASSERTION(NS_IsMainThread(), "CipherSuiteChangeObserver::StopObserve() can only be accessed in main thread");
+  if (sObserver) {
+    nsresult rv = Preferences::RemoveObserver(sObserver.get(), "security.");
+    sObserver = nullptr;
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+  }
+  return NS_OK;
+}
+
+nsresult
+CipherSuiteChangeObserver::Observe(nsISupports *aSubject,
+                                   const char *aTopic,
+                                   const PRUnichar *someData)
+{
+  NS_ASSERTION(NS_IsMainThread(), "CipherSuiteChangeObserver::Observe can only be accessed in main thread");
+  if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
+    NS_ConvertUTF16toUTF8  prefName(someData);
+    
+    for (CipherPref* cp = CipherPrefs; cp->pref; ++cp) {
+      if (prefName.Equals(cp->pref)) {
+        bool cipherEnabled = Preferences::GetBool(cp->pref, CIPHER_ENABLED_DEFAULT);
+        SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
+        SSL_ClearSessionCache();
+        break;
+      }
+    }
+  }
+  return NS_OK;
+}
+
+} 
+
 
 void nsNSSComponent::setValidationOptions()
 {
@@ -940,10 +1026,6 @@ void nsNSSComponent::setValidationOptions()
   }
   CERT_SetOCSPTimeout(OCSPTimeoutSeconds);
 
-  
-  bool ocspGetEnabled = Preferences::GetBool("security.OCSP.GET.enabled", false);
-  CERT_ForcePostMethodForOCSP(!ocspGetEnabled);
-
   mDefaultCertVerifier = new CertVerifier(
       aiaDownloadEnabled ? 
         CertVerifier::missing_cert_download_on : CertVerifier::missing_cert_download_off,
@@ -955,9 +1037,7 @@ void nsNSSComponent::setValidationOptions()
         CertVerifier::ocsp_strict : CertVerifier::ocsp_relaxed,
       anyFreshRequired ?
         CertVerifier::any_revo_strict : CertVerifier::any_revo_relaxed,
-      firstNetworkRevo.get(),
-      ocspGetEnabled ?
-        CertVerifier::ocsp_get_enabled : CertVerifier::ocsp_get_disabled);
+      firstNetworkRevo.get());
 
   
 
@@ -974,7 +1054,7 @@ nsNSSComponent::setEnabledTLSVersions()
 {
   
   static const int32_t PSM_DEFAULT_MIN_TLS_VERSION = 0;
-  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 3;
+  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 2;
 
   int32_t minVersion = Preferences::GetInt("security.tls.version.min",
                                            PSM_DEFAULT_MIN_TLS_VERSION);
@@ -1030,7 +1110,7 @@ nsNSSComponent::SkipOcspOff()
 static void configureMD5(bool enabled)
 {
   if (enabled) { 
-    NSS_SetAlgorithmPolicy(SEC_OID_MD5, 
+    NSS_SetAlgorithmPolicy(SEC_OID_MD5,
         NSS_USE_ALG_IN_CERT_SIGNATURE | NSS_USE_ALG_IN_CMS_SIGNATURE, 0);
     NSS_SetAlgorithmPolicy(SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION,
         NSS_USE_ALG_IN_CERT_SIGNATURE | NSS_USE_ALG_IN_CMS_SIGNATURE, 0);
@@ -1046,13 +1126,6 @@ static void configureMD5(bool enabled)
         0, NSS_USE_ALG_IN_CERT_SIGNATURE | NSS_USE_ALG_IN_CMS_SIGNATURE);
   }
 }
-
-static const bool SUPPRESS_WARNING_PREF_DEFAULT = false;
-static const bool MD5_ENABLED_DEFAULT = false;
-static const bool REQUIRE_SAFE_NEGOTIATION_DEFAULT = false;
-static const bool ALLOW_UNRESTRICTED_RENEGO_DEFAULT = false;
-static const bool FALSE_START_ENABLED_DEFAULT = true;
-static const bool CIPHER_ENABLED_DEFAULT = false;
 
 nsresult
 nsNSSComponent::InitializeNSS(bool showWarningBox)
@@ -1186,8 +1259,6 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
 
       mNSSInitialized = true;
 
-      ::NSS_SetDomesticPolicy();
-
       PK11_SetPasswordFunc(PK11PasswordPrompt);
 
       SharedSSLState::GlobalInit();
@@ -1228,29 +1299,10 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
 
       SSL_OptionSetDefault(SSL_ENABLE_FALSE_START, false);
 
-      
-      for (uint16_t i = 0; i < SSL_NumImplementedCiphers; ++i)
-      {
-        uint16_t cipher_id = SSL_ImplementedCiphers[i];
-        SSL_CipherPrefSetDefault(cipher_id, false);
+      if (NS_FAILED(InitializeCipherSuite())) {
+        PR_LOG(gPIPNSSLog, PR_LOG_ERROR, ("Unable to initialize cipher suite settings\n"));
+        return NS_ERROR_FAILURE;
       }
-
-      bool cipherEnabled;
-      
-      for (CipherPref* cp = CipherPrefs; cp->pref; ++cp) {
-        cipherEnabled = Preferences::GetBool(cp->pref, CIPHER_ENABLED_DEFAULT);
-        SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
-      }
-
-      
-      SEC_PKCS12EnableCipher(PKCS12_RC4_40, 1);
-      SEC_PKCS12EnableCipher(PKCS12_RC4_128, 1);
-      SEC_PKCS12EnableCipher(PKCS12_RC2_CBC_40, 1);
-      SEC_PKCS12EnableCipher(PKCS12_RC2_CBC_128, 1);
-      SEC_PKCS12EnableCipher(PKCS12_DES_56, 1);
-      SEC_PKCS12EnableCipher(PKCS12_DES_EDE3_168, 1);
-      SEC_PKCS12SetPreferredCipher(PKCS12_DES_EDE3_168, 1);
-      PORT_SetUCS2_ASCIIConversionFunction(pip_ucs2_ascii_conversion_fn);
 
       
       setValidationOptions();
@@ -1300,6 +1352,9 @@ nsNSSComponent::ShutdownNSS()
     mHttpForNSS.unregisterHttpClient();
 
     Preferences::RemoveObserver(this, "security.");
+    if (NS_FAILED(CipherSuiteChangeObserver::StopObserve())) {
+      PR_LOG(gPIPNSSLog, PR_LOG_ERROR, ("nsNSSComponent::ShutdownNSS cannot stop observing cipher suite change\n"));
+    }
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
     ShutdownSmartCardThreads();
@@ -1664,7 +1719,6 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
                || prefName.Equals("security.missing_cert_download.enabled")
                || prefName.Equals("security.first_network_revocation_method")
                || prefName.Equals("security.OCSP.require")
-               || prefName.Equals("security.OCSP.GET.enabled")
                || prefName.Equals("security.ssl.enable_ocsp_stapling")) {
       MutexAutoLock lock(mutex);
       setValidationOptions();
@@ -1672,17 +1726,6 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
       bool sendLM = Preferences::GetBool("network.ntlm.send-lm-response",
                                          SEND_LM_DEFAULT);
       nsNTLMAuthModule::SetSendLM(sendLM);
-    } else {
-      
-      bool cipherEnabled;
-      for (CipherPref* cp = CipherPrefs; cp->pref; ++cp) {
-        if (prefName.Equals(cp->pref)) {
-          cipherEnabled = Preferences::GetBool(cp->pref, CIPHER_ENABLED_DEFAULT);
-          SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
-          clearSessionCache = true;
-          break;
-        }
-      }
     }
     if (clearSessionCache)
       SSL_ClearSessionCache();
@@ -1970,3 +2013,44 @@ setPassword(PK11SlotInfo *slot, nsIInterfaceRequestor *ctx)
  loser:
   return rv;
 }
+
+namespace mozilla {
+namespace psm {
+
+nsresult InitializeCipherSuite()
+{
+  NS_ASSERTION(NS_IsMainThread(), "InitializeCipherSuite() can only be accessed in main thread");
+
+  if (NSS_SetDomesticPolicy() != SECSuccess) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  for (uint16_t i = 0; i < SSL_NumImplementedCiphers; ++i) {
+    uint16_t cipher_id = SSL_ImplementedCiphers[i];
+    SSL_CipherPrefSetDefault(cipher_id, false);
+  }
+
+  bool cipherEnabled;
+  
+  for (CipherPref* cp = CipherPrefs; cp->pref; ++cp) {
+    cipherEnabled = Preferences::GetBool(cp->pref, CIPHER_ENABLED_DEFAULT);
+    SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
+  }
+
+  
+  SEC_PKCS12EnableCipher(PKCS12_RC4_40, 1);
+  SEC_PKCS12EnableCipher(PKCS12_RC4_128, 1);
+  SEC_PKCS12EnableCipher(PKCS12_RC2_CBC_40, 1);
+  SEC_PKCS12EnableCipher(PKCS12_RC2_CBC_128, 1);
+  SEC_PKCS12EnableCipher(PKCS12_DES_56, 1);
+  SEC_PKCS12EnableCipher(PKCS12_DES_EDE3_168, 1);
+  SEC_PKCS12SetPreferredCipher(PKCS12_DES_EDE3_168, 1);
+  PORT_SetUCS2_ASCIIConversionFunction(pip_ucs2_ascii_conversion_fn);
+
+  
+  return CipherSuiteChangeObserver::StartObserve();
+}
+
+} 
+} 
