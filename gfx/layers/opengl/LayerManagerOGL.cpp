@@ -168,6 +168,8 @@ LayerManagerOGL::Destroy()
     mRoot = nullptr;
   }
 
+  mWidget->CleanupWindowEffects();
+
   if (!mGLContext)
     return;
 
@@ -849,6 +851,7 @@ LayerManagerOGL::Render()
 #endif
 
   
+  mWidget->PrepareWindowEffects();
   mWidget->DrawWindowUnderlay(this, rect);
 
   

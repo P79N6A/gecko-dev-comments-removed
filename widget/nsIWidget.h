@@ -1156,9 +1156,31 @@ class nsIWidget : public nsISupports {
     
 
 
+
+
+
+    virtual void PrepareWindowEffects() = 0;
+
+    
+
+
+
+
+
+    virtual void CleanupWindowEffects() = 0;
+
+    
+
+
+
+
+
     virtual void DrawWindowUnderlay(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
+
+
+
 
 
     virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
