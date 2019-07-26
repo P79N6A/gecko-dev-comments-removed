@@ -181,7 +181,7 @@ struct nsHttp
     }
 
     
-    static bool IsPermanentRedirect(PRUint32 httpStatus);
+    static bool IsPermanentRedirect(uint32_t httpStatus);
 
     
     

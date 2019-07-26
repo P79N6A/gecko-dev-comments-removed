@@ -388,7 +388,7 @@ public:
 
 
 
-  void StoreOptimizedLayerForFrame(nsIFrame* aFrame, PRUint32 aDisplayItemKey, Layer* aImage);
+  void StoreOptimizedLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey, Layer* aImage);
 
   
 
