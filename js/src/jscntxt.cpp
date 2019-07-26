@@ -493,13 +493,17 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 
 
 
+
+
 void
 js_ReportOutOfMemory(JSContext *cx)
 {
     cx->runtime->hadOutOfMemory = true;
 
-    JSErrorReport report;
-    JSErrorReporter onError = cx->errorReporter;
+    if (JS_IsRunning(cx)) {
+        cx->setPendingException(StringValue(cx->names().outOfMemory));
+        return;
+    }
 
     
     const JSErrorFormatString *efs =
@@ -507,17 +511,14 @@ js_ReportOutOfMemory(JSContext *cx)
     const char *msg = efs ? efs->format : "Out of memory";
 
     
+    JSErrorReport report;
     PodZero(&report);
     report.flags = JSREPORT_ERROR;
     report.errorNumber = JSMSG_OUT_OF_MEMORY;
     PopulateReportBlame(cx, &report);
 
     
-
-
-
-    cx->clearPendingException();
-    if (onError) {
+    if (JSErrorReporter onError = cx->errorReporter) {
         AutoSuppressGC suppressGC(cx);
         onError(cx, msg, &report);
     }
