@@ -812,13 +812,6 @@ nsFocusManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
     bool shouldShowFocusRing = window->ShouldShowFocusRing();
     window->SetFocusedNode(nullptr);
 
-    nsCOMPtr<nsIDocShell> docShell = window->GetDocShell();
-    if (docShell) {
-      nsCOMPtr<nsIPresShell> presShell;
-      docShell->GetPresShell(getter_AddRefs(presShell));
-      nsIMEStateManager::OnRemoveContent(presShell->GetPresContext(), content);
-    }
-
     
     
     if (window == mFocusedWindow) {

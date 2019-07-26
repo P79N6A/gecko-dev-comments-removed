@@ -4886,6 +4886,8 @@ nsEventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent
     element->LeaveLink(element->GetPresContext());
   }
 
+  nsIMEStateManager::OnRemoveContent(mPresContext, aContent);
+
   
   
   nsFocusManager* fm = nsFocusManager::GetFocusManager();

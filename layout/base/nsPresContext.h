@@ -195,6 +195,16 @@ public:
 
 
 
+
+
+
+  nsIWidget* GetNearestWidget(nsPoint* aOffset = nullptr);
+
+  
+
+
+
+
   nsRootPresContext* GetRootPresContext();
   nsRootPresContext* GetDisplayRootPresContext();
   virtual bool IsRoot() { return false; }

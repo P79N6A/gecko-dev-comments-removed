@@ -90,8 +90,35 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
 
 
 function sendChar(aChar, aWindow) {
+  var hasShift;
   
-  var hasShift = (aChar == aChar.toUpperCase());
+  switch (aChar) {
+    case "!":
+    case "@":
+    case "#":
+    case "$":
+    case "%":
+    case "^":
+    case "&":
+    case "*":
+    case "(":
+    case ")":
+    case "_":
+    case "+":
+    case "{":
+    case "}":
+    case ":":
+    case "\"":
+    case "|":
+    case "<":
+    case ">":
+    case "?":
+      hasShift = true;
+      break;
+    default:
+      hasShift = (aChar == aChar.toUpperCase());
+      break;
+  }
   synthesizeKey(aChar, { shiftKey: hasShift }, aWindow);
 }
 

@@ -9,12 +9,18 @@
 #include "nscore.h"
 #include "nsIWidget.h"
 
+class nsDispatchingCallback;
 class nsIContent;
 class nsIDOMMouseEvent;
+class nsINode;
 class nsPIDOMWindow;
 class nsPresContext;
 class nsTextStateManager;
 class nsISelection;
+
+namespace mozilla {
+class TextCompositionArray;
+} 
 
 
 
@@ -28,6 +34,8 @@ protected:
   typedef mozilla::widget::InputContextAction InputContextAction;
 
 public:
+  static void Shutdown();
+
   static nsresult OnDestroyPresContext(nsPresContext* aPresContext);
   static nsresult OnRemoveContent(nsPresContext* aPresContext,
                                   nsIContent* aContent);
@@ -75,6 +83,19 @@ public:
                               nsIContent* aContent,
                               nsIDOMMouseEvent* aMouseEvent);
 
+  
+
+
+
+
+
+
+  static void DispatchCompositionEvent(nsINode* aEventTargetNode,
+                                       nsPresContext* aPresContext,
+                                       nsEvent* aEvent,
+                                       nsEventStatus* aStatus,
+                                       nsDispatchingCallback* aCallBack);
+
 protected:
   static nsresult OnChangeFocusInternal(nsPresContext* aPresContext,
                                         nsIContent* aContent,
@@ -87,6 +108,7 @@ protected:
                                  nsIContent* aContent);
 
   static nsIWidget* GetWidget(nsPresContext* aPresContext);
+  static void EnsureTextCompositionArray();
 
   static nsIContent*    sContent;
   static nsPresContext* sPresContext;
@@ -94,6 +116,12 @@ protected:
   static bool           sInSecureInputMode;
 
   static nsTextStateManager* sTextStateObserver;
+
+  
+  
+  
+  
+  static mozilla::TextCompositionArray* sTextCompositions;
 };
 
 #endif 

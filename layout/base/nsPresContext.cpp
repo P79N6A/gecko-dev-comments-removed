@@ -1170,6 +1170,15 @@ nsPresContext::GetToplevelContentDocumentPresContext()
   }
 }
 
+nsIWidget*
+nsPresContext::GetNearestWidget(nsPoint* aOffset)
+{
+  NS_ENSURE_TRUE(mShell, nullptr);
+  nsIFrame* frame = mShell->GetRootFrame();
+  NS_ENSURE_TRUE(frame, nullptr);
+  return frame->GetView()->GetNearestWidget(aOffset);
+}
+
 
 nsRootPresContext*
 nsPresContext::GetRootPresContext()
