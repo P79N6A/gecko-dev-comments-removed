@@ -1152,6 +1152,12 @@ this.PushService = {
 
     this._db.getByPushEndpoint(aPageRecord.pushEndpoint, function(record) {
       
+      if (record === undefined) {
+        fail("NotFoundError");
+        return;
+      }
+
+      
       if (record.manifestURL !== aPageRecord.manifestURL) {
         aMessageManager.sendAsyncMessage("PushService:Unregister:OK", {
           requestID: aPageRecord.requestID,
