@@ -476,57 +476,6 @@ void imgFrame::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
   }
 }
 
-nsresult imgFrame::Extract(const nsIntRect& aRegion, imgFrame** aResult)
-{
-  nsAutoPtr<imgFrame> subImage(new imgFrame());
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  subImage->mNeverUseDeviceSurface = true;
-
-  nsresult rv = subImage->Init(0, 0, aRegion.width, aRegion.height,
-                               mFormat, mPaletteDepth);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  subImage->SetAsNonPremult(mNonPremult);
-
-  
-  {
-    gfxContext ctx(subImage->ThebesSurface());
-    ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
-    if (mSinglePixel) {
-      ctx.SetDeviceColor(mSinglePixelColor);
-    } else {
-      
-      
-      
-      
-      ctx.SetSource(this->ThebesSurface(), gfxPoint(-aRegion.x, -aRegion.y));
-    }
-    ctx.Rectangle(gfxRect(0, 0, aRegion.width, aRegion.height));
-    ctx.Fill();
-  }
-
-  nsIntRect filled(0, 0, aRegion.width, aRegion.height);
-
-  rv = subImage->ImageUpdated(filled);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  subImage->Optimize();
-
-  *aResult = subImage.forget();
-
-  return NS_OK;
-}
-
 nsresult imgFrame::ImageUpdated(const nsIntRect &aUpdateRect)
 {
   mDecoded.UnionRect(mDecoded, aUpdateRect);
