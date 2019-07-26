@@ -305,10 +305,6 @@ let SessionStoreInternal = {
   _windows: {},
 
   
-  
-  _internalWindows: {},
-
-  
   _closedWindows: [],
 
   
@@ -719,9 +715,6 @@ let SessionStoreInternal = {
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
 
-    
-    this._internalWindows[aWindow.__SSi] = { hosts: {} }
-
     let isPrivateWindow = false;
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow))
       this._windows[aWindow.__SSi].isPrivate = isPrivateWindow = true;
@@ -935,9 +928,7 @@ let SessionStoreInternal = {
         winData.title = aWindow.content.document.title || tabbrowser.selectedTab.label;
         winData.title = this._replaceLoadingTitle(winData.title, tabbrowser,
                                                   tabbrowser.selectedTab);
-        let windows = {};
-        windows[aWindow.__SSi] = winData;
-        this._updateCookies(windows);
+        this._updateCookies([winData]);
       }
 
 #ifndef XP_MACOSX
@@ -959,7 +950,6 @@ let SessionStoreInternal = {
 
       
       delete this._windows[aWindow.__SSi];
-      delete this._internalWindows[aWindow.__SSi];
 
       
       this.saveStateDelayed();
@@ -1055,7 +1045,6 @@ let SessionStoreInternal = {
         delete aTab.linkedBrowser.__SS_data;
         delete aTab.linkedBrowser.__SS_tabStillLoading;
         delete aTab.linkedBrowser.__SS_formDataSaved;
-        delete aTab.linkedBrowser.__SS_hostSchemeData;
         if (aTab.linkedBrowser.__SS_restoreState)
           this._resetTabRestoringState(aTab);
       });
@@ -1065,10 +1054,8 @@ let SessionStoreInternal = {
     for (let ix in this._windows) {
       if (ix in openWindows) {
         this._windows[ix]._closedTabs = [];
-      }
-      else {
+      } else {
         delete this._windows[ix];
-        delete this._internalWindows[ix];
       }
     }
     
@@ -1225,7 +1212,6 @@ let SessionStoreInternal = {
     delete browser.__SS_data;
     delete browser.__SS_tabStillLoading;
     delete browser.__SS_formDataSaved;
-    delete browser.__SS_hostSchemeData;
 
     
     
@@ -1981,11 +1967,10 @@ let SessionStoreInternal = {
       tabData.index = history.index + 1;
     }
     else if (history && history.count > 0) {
-      browser.__SS_hostSchemeData = [];
       try {
         for (var j = 0; j < history.count; j++) {
           let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                  includePrivateData, aTab.pinned, browser.__SS_hostSchemeData);
+                                                  includePrivateData, aTab.pinned);
           tabData.entries.push(entry);
         }
         
@@ -2079,20 +2064,9 @@ let SessionStoreInternal = {
 
 
 
-
-
   _serializeHistoryEntry:
-    function ssi_serializeHistoryEntry(aEntry, aIncludePrivateData, aIsPinned, aHostSchemeData) {
+    function ssi_serializeHistoryEntry(aEntry, aIncludePrivateData, aIsPinned) {
     var entry = { url: aEntry.URI.spec };
-
-    try {
-      
-      if (entry.url.indexOf("about:") != 0)
-        aHostSchemeData.push({ host: aEntry.URI.host, scheme: aEntry.URI.scheme });
-    }
-    catch (ex) {
-      
-    }
 
     if (aEntry.title && aEntry.title != entry.url) {
       entry.title = aEntry.title;
@@ -2204,7 +2178,7 @@ let SessionStoreInternal = {
           }
 
           children.push(this._serializeHistoryEntry(child, aIncludePrivateData,
-                                                    aIsPinned, aHostSchemeData));
+                                                    aIsPinned));
         }
       }
 
@@ -2444,12 +2418,18 @@ let SessionStoreInternal = {
     
     var MAX_EXPIRY = Math.pow(2, 62);
 
-    for (let [id, window] in Iterator(aWindows)) {
+    for (let window of aWindows) {
       window.cookies = [];
-      let internalWindow = this._internalWindows[id];
-      if (!internalWindow.hosts)
-        return;
-      for (var [host, isPinned] in Iterator(internalWindow.hosts)) {
+
+      
+      let hosts = {};
+      window.tabs.forEach(function(tab) {
+        tab.entries.forEach(function(entry) {
+          this._extractHostsForCookiesFromEntry(entry, hosts, true, tab.pinned);
+        }, this);
+      }, this);
+
+      for (var [host, isPinned] in Iterator(hosts)) {
         let list;
         try {
           list = Services.cookies.getCookiesFromHost(host);
@@ -2543,19 +2523,23 @@ let SessionStoreInternal = {
     }
 
     
-    var total = [], windows = {}, ids = [];
+    var total = [];
+    
+    var ids = [];
+    
     var nonPopupCount = 0;
     var ix;
+
+    
     for (ix in this._windows) {
       if (this._windows[ix]._restoring) 
         continue;
       total.push(this._windows[ix]);
       ids.push(ix);
-      windows[ix] = this._windows[ix];
       if (!this._windows[ix].isPopup)
         nonPopupCount++;
     }
-    this._updateCookies(windows);
+    this._updateCookies(total);
 
     
     for (ix in this._statesToRestore) {
@@ -2627,12 +2611,10 @@ let SessionStoreInternal = {
       this._collectWindowData(aWindow);
     }
 
-    var winData = this._windows[aWindow.__SSi];
-    let windows = {};
-    windows[aWindow.__SSi] = winData;
+    let windows = [this._windows[aWindow.__SSi]];
     this._updateCookies(windows);
 
-    return { windows: [winData] };
+    return { windows: windows };
   },
 
   _collectWindowData: function ssi_collectWindowData(aWindow) {
@@ -2643,22 +2625,10 @@ let SessionStoreInternal = {
     let tabs = tabbrowser.tabs;
     let winData = this._windows[aWindow.__SSi];
     let tabsData = winData.tabs = [];
-    let hosts = this._internalWindows[aWindow.__SSi].hosts = {};
 
     
     for (let tab of tabs) {
       tabsData.push(this._collectTabData(tab));
-
-      
-      
-      
-      
-      let hostSchemeData = tab.linkedBrowser.__SS_hostSchemeData || [];
-      for (let j = 0; j < hostSchemeData.length; j++) {
-        this._extractHostsForCookiesFromHostScheme(hostSchemeData[j].host,
-                                                   hostSchemeData[j].scheme,
-                                                   hosts, true, tab.pinned);
-      }
     }
     winData.selected = tabbrowser.mTabBox.selectedIndex + 1;
 
