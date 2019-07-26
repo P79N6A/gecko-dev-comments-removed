@@ -873,8 +873,15 @@ nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
     mActiveTimer->AddRefreshDriver(this);
   }
 
-  mMostRecentRefresh = mActiveTimer->MostRecentRefresh();
-  mMostRecentRefreshEpochTime = mActiveTimer->MostRecentRefreshEpochTime();
+  
+  
+  
+  
+  mMostRecentRefresh =
+    std::max(mActiveTimer->MostRecentRefresh(), mMostRecentRefresh);
+  mMostRecentRefreshEpochTime =
+    std::max(mActiveTimer->MostRecentRefreshEpochTime(),
+             mMostRecentRefreshEpochTime);
 }
 
 void
