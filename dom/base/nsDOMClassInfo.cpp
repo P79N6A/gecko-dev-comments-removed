@@ -2856,7 +2856,16 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
       }
 
       ConstructorEnabled* checkEnabledForScope = name_struct->mConstructorEnabled;
-      if (checkEnabledForScope && !checkEnabledForScope(cx, obj)) {
+      
+      
+      
+      
+      JS::Rooted<JSObject*> global(cx,
+        js::CheckedUnwrap(obj,  false));
+      if (!global) {
+        return NS_ERROR_DOM_SECURITY_ERR;
+      }
+      if (checkEnabledForScope && !checkEnabledForScope(cx, global)) {
         return NS_OK;
       }
 
@@ -2895,11 +2904,6 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
       
       
       if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
-        JS::Rooted<JSObject*> global(cx,
-          js::CheckedUnwrap(obj,  false));
-        if (!global) {
-          return NS_ERROR_DOM_SECURITY_ERR;
-        }
         JS::Rooted<JSObject*> interfaceObject(cx);
         {
           JSAutoCompartment ac(cx, global);

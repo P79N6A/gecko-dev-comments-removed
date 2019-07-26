@@ -1960,17 +1960,7 @@ Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
 bool
 Navigator::HasDownloadsSupport(JSContext* aCx, JSObject* aGlobal)
 {
-  
-  
-  JS::Rooted<JSObject*> global(aCx, aGlobal);
-
-  
-  
-  if (ThreadsafeCheckIsChrome(aCx, global)) {
-    return true;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(global);
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
 
   return win &&
          CheckPermission(win, "downloads")  &&

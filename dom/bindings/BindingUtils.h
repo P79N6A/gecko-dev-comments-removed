@@ -2351,9 +2351,6 @@ public:
   }
 };
 
-bool
-ThreadsafeCheckIsChrome(JSContext* aCx, JSObject* aObj);
-
 
 
 

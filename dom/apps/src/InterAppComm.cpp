@@ -12,7 +12,8 @@
 using namespace mozilla::dom;
 
  bool
-InterAppComm::EnabledForScope(JSContext* , JS::Handle<JSObject*> aObj)
+InterAppComm::EnabledForScope(JSContext* ,
+			      JS::Handle<JSObject*> )
 {
   
   if (!Preferences::GetBool("dom.inter-app-communication-api.enabled", false)) {
@@ -21,5 +22,5 @@ InterAppComm::EnabledForScope(JSContext* , JS::Handle<JSObject*> aObj)
 
   
   
-  return xpc::AccessCheck::isChrome(aObj);
+  return nsContentUtils::ThreadsafeIsCallerChrome();
 }
