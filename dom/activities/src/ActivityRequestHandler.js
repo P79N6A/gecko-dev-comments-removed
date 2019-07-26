@@ -42,6 +42,9 @@ ActivityRequestHandler.prototype = {
   },
 
   get source() {
+    
+    
+    
     return Cu.cloneInto(this._options, this._window);
   },
 
