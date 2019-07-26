@@ -2359,6 +2359,13 @@ static void GetFixedOrDynamicSlotOffset(HandleObject obj, uint32_t slot,
 static bool
 IsCacheableProtoChain(JSObject *obj, JSObject *holder)
 {
+    JS_ASSERT(obj->isNative());
+
+    
+    
+    if (obj->hasUncacheableProto())
+        return false;
+
     while (obj != holder) {
         
         
@@ -2367,8 +2374,6 @@ IsCacheableProtoChain(JSObject *obj, JSObject *holder)
         if (!proto || !proto->isNative())
             return false;
 
-        
-        
         if (proto->hasUncacheableProto())
             return false;
 
