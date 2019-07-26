@@ -58,7 +58,7 @@ CheckStackRoot(JSRuntime *rt, uintptr_t *w, Rooter *begin, Rooter *end)
         return;
 
     
-    if (static_cast<Cell *>(thing)->zone() == rt->atomsCompartment->zone())
+    if (static_cast<Cell *>(thing)->tenuredZone() == rt->atomsCompartment->zone())
         return;
 
     
