@@ -42,15 +42,18 @@ def MergeProfiles(files):
 
             
             
-            
-            pidStr = "%05d" % (int(pid))
+            pidStr = pid + ":"
 
             thread['startTime'] = fileData['profileJSON']['meta']['startTime']
             samples = thread['samples']
             for sample in thread['samples']:
                 for frame in sample['frames']:
                     if "location" in frame and frame['location'][0:2] == '0x':
-                        frame['location'] = pidStr + frame['location']
+                        oldLoc = frame['location']
+                        newLoc = pidStr + oldLoc
+                        frame['location'] = newLoc
+                        
+                        symTable[newLoc] = oldLoc
 
         filesyms = fileData['symbolicationTable']
         for sym in filesyms.keys():
