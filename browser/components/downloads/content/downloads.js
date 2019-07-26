@@ -66,9 +66,12 @@ const DownloadsPanel = {
   
   get kStateHidden() 1,
   
-  get kStateShowing() 2,
+  get kStateWaitingData() 2,
   
-  get kStateShown() 3,
+
+  get kStateWaitingAnchor() 3,
+  
+  get kStateShown() 4,
 
   
 
@@ -164,7 +167,7 @@ const DownloadsPanel = {
       setTimeout(function () DownloadsPanel._openPopupIfDataReady(), 0);
     }.bind(this));
 
-    this._state = this.kStateShowing;
+    this._state = this.kStateWaitingData;
   },
 
   
@@ -190,7 +193,8 @@ const DownloadsPanel = {
 
   get isPanelShowing()
   {
-    return this._state == this.kStateShowing ||
+    return this._state == this.kStateWaitingData ||
+           this._state == this.kStateWaitingAnchor ||
            this._state == this.kStateShown;
   },
 
@@ -264,8 +268,7 @@ const DownloadsPanel = {
     
     this.hidePanel();
 
-    
-    PlacesCommandHook.showPlacesOrganizer("Downloads");
+    BrowserDownloadsUI();
   },
 
   
@@ -298,13 +301,20 @@ const DownloadsPanel = {
   {
     
     
-    if (this._state != this.kStateShowing || DownloadsView.loading) {
+    if (this._state != this.kStateWaitingData || DownloadsView.loading) {
       return;
     }
+
+    this._state = this.kStateWaitingAnchor;
 
     
     
     DownloadsButton.getAnchor(function DP_OPIDR_callback(aAnchor) {
+      
+      
+      if (this._state != this.kStateWaitingAnchor)
+        return;
+
       
       
       
@@ -427,9 +437,23 @@ const DownloadsView = {
   
 
 
+  kItemCountLimit: 3,
+
+  
+
+
   loading: false,
 
   
+
+
+
+
+
+  _dataItems: [],
+
+  
+
 
 
 
@@ -440,11 +464,20 @@ const DownloadsView = {
 
   _itemCountChanged: function DV_itemCountChanged()
   {
-    if (Object.keys(this._viewItems).length > 0) {
+    let count = this._dataItems.length;
+    let hiddenCount = count - this.kItemCountLimit;
+
+    if (count > 0) {
       DownloadsPanel.panel.setAttribute("hasdownloads", "true");
     } else {
       DownloadsPanel.panel.removeAttribute("hasdownloads");
     }
+
+    let s = DownloadsCommon.strings;
+    this.downloadsHistory.label = (hiddenCount > 0)
+                                  ? s.showMoreDownloads(hiddenCount)
+                                  : s.showAllDownloads;
+    this.downloadsHistory.accessKey = s.showDownloadsAccessKey;
   },
 
   
@@ -454,6 +487,15 @@ const DownloadsView = {
   {
     delete this.richListBox;
     return this.richListBox = document.getElementById("downloadsListBox");
+  },
+
+  
+
+
+  get downloadsHistory()
+  {
+    delete this.downloadsHistory;
+    return this.downloadsHistory = document.getElementById("downloadsHistory");
   },
 
   
@@ -476,6 +518,10 @@ const DownloadsView = {
 
     
     
+    this._itemCountChanged();
+
+    
+    
     DownloadsPanel.onViewLoadCompleted();
   },
 
@@ -493,6 +539,7 @@ const DownloadsView = {
     this.richListBox.parentNode.replaceChild(emptyView, this.richListBox);
     this.richListBox = emptyView;
     this._viewItems = {};
+    this._dataItems = [];
   },
 
   
@@ -510,17 +557,30 @@ const DownloadsView = {
 
   onDataItemAdded: function DV_onDataItemAdded(aDataItem, aNewest)
   {
-    
-    let element = document.createElement("richlistitem");
-    let viewItem = new DownloadsViewItem(aDataItem, element);
-    this._viewItems[aDataItem.downloadId] = viewItem;
     if (aNewest) {
-      this.richListBox.insertBefore(element, this.richListBox.firstChild);
+      this._dataItems.unshift(aDataItem);
     } else {
-      this.richListBox.appendChild(element);
+      this._dataItems.push(aDataItem);
     }
 
-    this._itemCountChanged();
+    let itemsNowOverflow = this._dataItems.length > this.kItemCountLimit;
+    if (aNewest || !itemsNowOverflow) {
+      
+      
+      
+      this._addViewItem(aDataItem, aNewest);
+    }
+    if (aNewest && itemsNowOverflow) {
+      
+      
+      this._removeViewItem(this._dataItems[this.kItemCountLimit]);
+    }
+
+    
+    
+    if (!this.loading) {
+      this._itemCountChanged();
+    }
   },
 
   
@@ -532,12 +592,17 @@ const DownloadsView = {
 
   onDataItemRemoved: function DV_onDataItemRemoved(aDataItem)
   {
-    let element = this.getViewItem(aDataItem)._element;
-    let previousSelectedIndex = this.richListBox.selectedIndex;
-    this.richListBox.removeChild(element);
-    this.richListBox.selectedIndex = Math.min(previousSelectedIndex,
-                                              this.richListBox.itemCount - 1);
-    delete this._viewItems[aDataItem.downloadId];
+    let itemIndex = this._dataItems.indexOf(aDataItem);
+    this._dataItems.splice(itemIndex, 1);
+
+    if (itemIndex < this.kItemCountLimit) {
+      
+      this._removeViewItem(aDataItem);
+      if (this._dataItems.length >= this.kItemCountLimit) {
+        
+        this._addViewItem(this._dataItems[this.kItemCountLimit - 1], false);
+      }
+    }
 
     this._itemCountChanged();
   },
@@ -552,7 +617,49 @@ const DownloadsView = {
 
   getViewItem: function DV_getViewItem(aDataItem)
   {
-    return this._viewItems[aDataItem.downloadId];
+    
+    
+    if (aDataItem.downloadId in this._viewItems) {
+      return this._viewItems[aDataItem.downloadId];
+    }
+    return this._invisibleViewItem;
+  },
+
+  
+
+
+  _invisibleViewItem: Object.freeze({
+    onStateChange: function () { },
+    onProgressChange: function () { }
+  }),
+
+  
+
+
+
+  _addViewItem: function DV_addViewItem(aDataItem, aNewest)
+  {
+    let element = document.createElement("richlistitem");
+    let viewItem = new DownloadsViewItem(aDataItem, element);
+    this._viewItems[aDataItem.downloadId] = viewItem;
+    if (aNewest) {
+      this.richListBox.insertBefore(element, this.richListBox.firstChild);
+    } else {
+      this.richListBox.appendChild(element);
+    }
+  },
+
+  
+
+
+  _removeViewItem: function DV_removeViewItem(aDataItem)
+  {
+    let element = this.getViewItem(aDataItem)._element;
+    let previousSelectedIndex = this.richListBox.selectedIndex;
+    this.richListBox.removeChild(element);
+    this.richListBox.selectedIndex = Math.min(previousSelectedIndex,
+                                              this.richListBox.itemCount - 1);
+    delete this._viewItems[aDataItem.downloadId];
   },
 
   
@@ -580,7 +687,8 @@ const DownloadsView = {
   onDownloadClick: function DV_onDownloadClick(aEvent)
   {
     
-    if (aEvent.button == 0) {
+    if (aEvent.button == 0 &&
+        !aEvent.originalTarget.hasAttribute("oncommand")) {
       goDoCommand("downloadsCmd_open");
     }
   },
@@ -1167,7 +1275,7 @@ DownloadsViewItemController.prototype = {
     {
       let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"]
                       .getService(Ci.nsIClipboardHelper);
-      clipboard.copyString(this.dataItem.uri);
+      clipboard.copyString(this.dataItem.uri, document);
     },
 
     downloadsCmd_doDefault: function DVIC_downloadsCmd_doDefault()
