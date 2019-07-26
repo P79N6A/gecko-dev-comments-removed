@@ -191,10 +191,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     startcode->stackDepth = 0;
     codeArray[0] = startcode;
 
-    
-    unsigned nTypeSets = 0;
-    types::TypeSet *typeArray = script_->types->typeArray();
-
     unsigned offset, nextOffset = 0;
     while (nextOffset < length) {
         offset = nextOffset;
@@ -269,22 +265,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             JS_ASSERT(stackDepth >= nuses);
             stackDepth -= nuses;
             stackDepth += ndefs;
-        }
-
-        
-
-
-
-
-
-
-        if ((js_CodeSpec[op].format & JOF_TYPESET) && cx->typeInferenceEnabled()) {
-            if (nTypeSets < script_->nTypeSets) {
-                code->observedTypes = typeArray[nTypeSets++].toStackTypeSet();
-            } else {
-                JS_ASSERT(nTypeSets == UINT16_MAX);
-                code->observedTypes = typeArray[nTypeSets - 1].toStackTypeSet();
-            }
         }
 
         switch (op) {
@@ -393,7 +373,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
                     if (catchOffset > forwardCatch)
                         forwardCatch = catchOffset;
 
-                    if (tn->kind != JSTRY_ITER) {
+                    if (tn->kind != JSTRY_ITER && tn->kind != JSTRY_LOOP) {
                         if (!addJump(cx, catchOffset, &nextOffset, &forwardJump, &forwardLoop, stackDepth))
                             return;
                         getCode(catchOffset).exceptionEntry = true;
@@ -1495,7 +1475,7 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
                 if (startOffset == offset + 1) {
                     unsigned catchOffset = startOffset + tn->length;
 
-                    if (tn->kind != JSTRY_ITER) {
+                    if (tn->kind != JSTRY_ITER && tn->kind != JSTRY_LOOP) {
                         checkBranchTarget(cx, catchOffset, branchTargets, values, stackDepth);
                         checkExceptionTarget(cx, catchOffset, exceptionTargets);
                     }

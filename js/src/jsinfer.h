@@ -1177,6 +1177,12 @@ class TypeScript
     
     analyze::ScriptAnalysis *analysis;
 
+    
+
+
+
+    uint32_t *bytecodeMap;
+
   public:
     
     TypeResult *dynamicList;
@@ -1200,6 +1206,9 @@ class TypeScript
 
     
     static inline StackTypeSet *SlotTypes(JSScript *script, unsigned slot);
+
+    
+    static inline StackTypeSet *BytecodeTypes(JSScript *script, jsbytecode *pc);
 
     
     static inline TypeObject *StandardType(JSContext *cx, JSProtoKey kind);
@@ -1465,6 +1474,13 @@ struct TypeZone
 
     
     bool                         inferenceEnabled;
+
+    
+
+
+
+
+    bool jaegerCompilationAllowed;
 
     TypeZone(JS::Zone *zone);
     ~TypeZone();
