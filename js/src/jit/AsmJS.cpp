@@ -6586,10 +6586,6 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         Register reg1 = AsmJSIonExitRegD1;
         Register reg2 = AsmJSIonExitRegD2;
 
-        LoadAsmJSActivationIntoRegister(masm, reg0);
-
-        
-        
         
         
         
@@ -6600,8 +6596,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         size_t offsetOfJitTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, jitTop);
         size_t offsetOfJitJSContext = offsetof(JSRuntime, mainThread) +
                                       offsetof(PerThreadData, jitJSContext);
-        masm.loadPtr(Address(reg0, AsmJSActivation::offsetOfContext()), reg0);
-        masm.loadPtr(Address(reg0, JSContext::offsetOfRuntime()), reg0);
+        masm.movePtr(AsmJSImmPtr(AsmJSImm_Runtime), reg0);
         masm.loadPtr(Address(reg0, offsetOfActivation), reg1);
         masm.store8(Imm32(0), Address(reg1, JitActivation::offsetOfActiveUint8()));
         masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevJitTop()), reg2);
