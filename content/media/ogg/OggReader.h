@@ -236,7 +236,7 @@ private:
 
   
   
-  int64_t ReadOggPage(ogg_page* aPage);
+  bool ReadOggPage(ogg_page* aPage);
 
   
   
@@ -294,10 +294,6 @@ private:
   vorbis_info mVorbisInfo;
   int mOpusPreSkip;
   th_info mTheoraInfo;
-
-  
-  
-  int64_t mPageOffset;
 
   
   
