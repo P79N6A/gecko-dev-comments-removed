@@ -628,7 +628,7 @@ protected:
 
   
   
-  void UpdateTitlebarImageBuffer();
+  void UpdateTitlebarCGContext();
 
   nsIntRect RectContainingTitlebarControls();
 
@@ -648,7 +648,6 @@ protected:
   
   nsWeakPtr             mAccessible;
 #endif
-
 
   nsRefPtr<gfxASurface> mTempThebesSurface;
 
@@ -670,8 +669,7 @@ protected:
   
   
   nsIntRegion mUpdatedTitlebarRegion;
-
-  mozilla::RefPtr<mozilla::gfx::DrawTarget> mTitlebarImageBuffer;
+  CGContextRef mTitlebarCGContext;
 
   
   nsAutoPtr<RectTextureImage> mResizerImage;
@@ -702,6 +700,8 @@ protected:
   nsAutoPtr<GLPresenter> mGLPresenter;
 
   static uint32_t sLastInputEventCount;
+
+  void ReleaseTitlebarCGContext();
 };
 
 void NS_InstallPluginKeyEventsHandler();
