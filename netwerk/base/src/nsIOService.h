@@ -71,11 +71,6 @@ public:
                                     uint32_t flags,
                                     nsAsyncRedirectVerifyHelper *helper);
 
-    
-    const nsCOMArray<nsIContentSniffer>& GetContentSniffers() {
-      return mContentSniffers.GetEntries();
-    }
-
     bool IsOffline() { return mOffline; }
     bool IsLinkUp();
 
@@ -134,7 +129,6 @@ private:
 
     
     nsCategoryCache<nsIChannelEventSink> mChannelEventSinks;
-    nsCategoryCache<nsIContentSniffer>   mContentSniffers;
 
     nsTArray<int32_t>                    mRestrictedPortList;
 
