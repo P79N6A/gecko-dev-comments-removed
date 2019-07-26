@@ -3,8 +3,8 @@
 
 
 
-#ifndef jsscopeinlines_h___
-#define jsscopeinlines_h___
+#ifndef Shape_inl_h__
+#define Shape_inl_h__
 
 #include "mozilla/DebugOnly.h"
 
@@ -15,11 +15,11 @@
 #include "jsfun.h"
 #include "jsgc.h"
 #include "jsobj.h"
-#include "jsscope.h"
 
 #include "gc/Marking.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/ScopeObject.h"
+#include "vm/Shape-inl.h"
 #include "vm/StringObject.h"
 
 #include "jscntxtinlines.h"

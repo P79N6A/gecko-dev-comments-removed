@@ -5,8 +5,8 @@
 
 
 
-#ifndef jsscope_h___
-#define jsscope_h___
+#ifndef Shape_h___
+#define Shape_h___
 
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
