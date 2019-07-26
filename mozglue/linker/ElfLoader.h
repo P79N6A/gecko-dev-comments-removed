@@ -163,7 +163,7 @@ public:
   
 
 
-  int DirectRefCount()
+  MozRefCountType DirectRefCount()
   {
     return directRefCnt;
   }
@@ -210,7 +210,7 @@ protected:
   virtual bool IsSystemElf() const { return false; }
 
 private:
-  int directRefCnt;
+  MozRefCountType directRefCnt;
   char *path;
 
   

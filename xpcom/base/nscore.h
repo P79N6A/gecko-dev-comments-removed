@@ -29,6 +29,8 @@
 #  include "mozilla/NullPtr.h"
 #endif
 
+#include "mozilla/RefCountType.h"
+
 
 
 
@@ -297,19 +299,7 @@
 
 #include "nsError.h"
 
-
-
-
-
-
-
-
-
-#ifdef XP_WIN
-typedef unsigned long nsrefcnt;
-#else
-typedef uint32_t nsrefcnt;
-#endif
+typedef MozRefCountType nsrefcnt;
 
 
 
