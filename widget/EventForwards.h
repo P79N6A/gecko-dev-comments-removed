@@ -49,14 +49,18 @@ enum KeyNameIndex
 
 
 
-
 namespace mozilla {
-struct EventFlags;
 
-class WidgetEvent;
-class WidgetGUIEvent;
-class WidgetInputEvent;
-class InternalUIEvent;
+#define NS_EVENT_CLASS(aPrefix, aName) class aPrefix##aName;
+#define NS_ROOT_EVENT_CLASS(aPrefix, aName) NS_EVENT_CLASS(aPrefix, aName)
+
+#include "mozilla/EventClassList.h"
+
+#undef NS_EVENT_CLASS
+#undef NS_ROOT_EVENT_CLASS
+
+
+struct EventFlags;
 
 
 struct AlternativeCharCode;
@@ -65,41 +69,6 @@ struct TextRange;
 
 typedef TextRange* TextRangeArray;
 
-class WidgetKeyboardEvent;
-class WidgetTextEvent;
-class WidgetCompositionEvent;
-class WidgetQueryContentEvent;
-class WidgetSelectionEvent;
-
-
-class WidgetMouseEventBase;
-class WidgetMouseEvent;
-class WidgetDragEvent;
-class WidgetMouseScrollEvent;
-class WidgetWheelEvent;
-
-
-class WidgetGestureNotifyEvent;
-class WidgetSimpleGestureEvent;
-class WidgetTouchEvent;
-
-
-class InternalScriptErrorEvent;
-class InternalScrollPortEvent;
-class InternalScrollAreaEvent;
-class InternalFormEvent;
-class InternalClipboardEvent;
-class InternalFocusEvent;
-class InternalTransitionEvent;
-class InternalAnimationEvent;
-
-
-class WidgetCommandEvent;
-class WidgetContentCommandEvent;
-class WidgetPluginEvent;
-
-
-class InternalMutationEvent;
 } 
 
 #endif 
