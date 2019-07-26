@@ -2237,7 +2237,7 @@ IonBuilder::jsop_pos()
 {
     TypeOracle::Unary types = oracle->unaryOp(script, pc);
     MDefinition *value = current->pop();
-    if (types.rval == MIRType_Int32) {
+    if (types.ival == MIRType_Int32) {
         
         current->push(value);
         return true;
