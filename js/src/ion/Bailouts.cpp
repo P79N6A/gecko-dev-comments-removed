@@ -473,6 +473,18 @@ ion::ThunkToInterpreter(Value *vp)
     IonActivation *activation = cx->runtime->ionActivation;
     BailoutClosure *br = activation->takeBailout();
 
+    
+    
+    
+    
+    
+    
+    jsbytecode *pc = cx->regs().pc;
+    while (JSOp(*pc) == JSOP_GOTO)
+        pc += GET_JUMP_OFFSET(pc);
+    if (JSOp(*pc) == JSOP_LOOPENTRY)
+        cx->regs().pc = GetNextPc(pc);
+
     bool ok = Interpret(cx, br->entryfp(), JSINTERP_BAILOUT);
 
     if (ok)
