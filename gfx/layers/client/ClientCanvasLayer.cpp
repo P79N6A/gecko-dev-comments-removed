@@ -86,13 +86,13 @@ ClientCanvasLayer::RenderLayer()
       flags |= TEXTURE_NEEDS_Y_FLIP;
     }
 
-    bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
-    
-    if (isCrossProcess && mGLContext) {
-      GLScreenBuffer* screen = mGLContext->Screen();
-      if (screen && screen->Stream()) {
-        flags |= TEXTURE_DEALLOCATE_CLIENT;
-      }
+    if (!mGLContext) {
+      
+      
+      flags |= TEXTURE_DEALLOCATE_HOST;
+
+      
+      flags |= TEXTURE_IMMEDIATE_UPLOAD;
     }
     mCanvasClient = CanvasClient::CreateCanvasClient(GetCanvasClientType(),
                                                      ClientManager(), flags);
