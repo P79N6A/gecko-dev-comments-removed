@@ -918,6 +918,61 @@ class SkipRoot
 };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename GCType>
+class JS_PUBLIC_API(RootedGeneric)
+{
+  public:
+    JS::Rooted<GCType> rooter;
+    SkipRoot skip;
+
+    RootedGeneric(js::ContextFriendFields *cx)
+        : rooter(cx), skip(cx, rooter.address())
+    {
+    }
+
+    RootedGeneric(js::ContextFriendFields *cx, const GCType &initial)
+        : rooter(cx, initial), skip(cx, rooter.address())
+    {
+    }
+
+    virtual inline void trace(JSTracer *trc);
+
+    operator const GCType&() const { return rooter.get(); }
+    GCType operator->() const { return rooter.get(); }
+};
+
+template <typename GCType>
+inline void RootedGeneric<GCType>::trace(JSTracer *trc)
+{
+    rooter->trace(trc);
+}
+
+
+
+
+
+template <>
+inline void RootedGeneric<void*>::trace(JSTracer *trc)
+{
+    MOZ_ASSUME_UNREACHABLE("RootedGeneric<void*>::trace()");
+}
+
+
 template <typename T>
 class FakeRooted : public RootedBase<T>
 {
