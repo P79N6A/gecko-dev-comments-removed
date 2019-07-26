@@ -148,20 +148,12 @@ void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
                                int32_t width, int32_t height,
                                gfxASurface::gfxImageFormat format)
 {
-  uint32_t imageDataLength;
-  nsresult rv = mImage.EnsureFrame(GetFrameCount(), x_offset, y_offset,
-                                   width, height, format,
-                                   &mImageData, &imageDataLength);
-  if (NS_FAILED(rv))
-    longjmp(png_jmpbuf(mPNG), 5); 
+  NeedNewFrame(GetFrameCount(), x_offset, y_offset, width, height, format);
 
   mFrameRect.x = x_offset;
   mFrameRect.y = y_offset;
   mFrameRect.width = width;
   mFrameRect.height = height;
-
-  
-  PostFrameStart();
 
   PR_LOG(GetPNGDecoderAccountingLog(), PR_LOG_DEBUG,
          ("PNGDecoderAccounting: nsPNGDecoder::CreateFrame -- created "
@@ -292,10 +284,6 @@ nsPNGDecoder::InitInternal()
 void
 nsPNGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
 {
-  
-  uint32_t width = 0;
-  uint32_t height = 0;
-
   NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
   
@@ -322,8 +310,8 @@ nsPNGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
       }
 
       
-      width = png_get_uint_32(mHeaderBuf + WIDTH_OFFSET);
-      height = png_get_uint_32(mHeaderBuf + HEIGHT_OFFSET);
+      uint32_t width = png_get_uint_32(mHeaderBuf + WIDTH_OFFSET);
+      uint32_t height = png_get_uint_32(mHeaderBuf + HEIGHT_OFFSET);
 
       
       if ((width > MOZ_PNG_MAX_DIMENSION) || (height > MOZ_PNG_MAX_DIMENSION)) {
@@ -668,7 +656,12 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
 
   png_set_crc_action(png_ptr, PNG_CRC_NO_CHANGE, PNG_CRC_ERROR_QUIT);
 
-  return;
+  if (!decoder->mFrameIsHidden) {
+    
+
+
+    png_process_data_pause(png_ptr,  1);
+  }
 }
 
 void
@@ -829,6 +822,11 @@ nsPNGDecoder::frame_info_callback(png_structp png_ptr, png_uint_32 frame_num)
   height = png_get_next_frame_height(png_ptr, decoder->mInfo);
 
   decoder->CreateFrame(x_offset, y_offset, width, height, decoder->format);
+
+  
+
+
+  png_process_data_pause(png_ptr,  1);
 #endif
 }
 

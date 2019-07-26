@@ -59,8 +59,6 @@ namespace image {
 
 
 
-
-
 #define GETN(n,s)                      \
   PR_BEGIN_MACRO                       \
     mGIFStruct.bytes_to_consume = (n); \
@@ -96,9 +94,8 @@ nsGIFDecoder2::nsGIFDecoder2(RasterImage &aImage)
 
 nsGIFDecoder2::~nsGIFDecoder2()
 {
-  if (mGIFStruct.local_colormap) {
-    moz_free(mGIFStruct.local_colormap);
-  }
+  moz_free(mGIFStruct.local_colormap);
+  moz_free(mGIFStruct.hold);
 }
 
 void
@@ -164,10 +161,8 @@ void nsGIFDecoder2::BeginGIF()
 }
 
 
-nsresult nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
+void nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
 {
-  uint32_t imageDataLength;
-  nsresult rv;
   gfxASurface::gfxImageFormat format;
   if (mGIFStruct.is_transparent)
     format = gfxASurface::ImageFormatARGB32;
@@ -178,47 +173,17 @@ nsresult nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
   
   if (mGIFStruct.images_decoded) {
     
-    rv = mImage.EnsureFrame(mGIFStruct.images_decoded,
-                            mGIFStruct.x_offset, mGIFStruct.y_offset,
-                            mGIFStruct.width, mGIFStruct.height,
-                            format, aDepth, &mImageData, &imageDataLength,
-                            &mColormap, &mColormapSize);
-
-    
-    
-    
-    
-    if (NS_SUCCEEDED(rv) && mColormap) {
-      memset(mColormap, 0, mColormapSize);
-    }
+    NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
+                 mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
+                 format, aDepth);
   } else {
     
-    rv = mImage.EnsureFrame(mGIFStruct.images_decoded,
-                            mGIFStruct.x_offset, mGIFStruct.y_offset,
-                            mGIFStruct.width, mGIFStruct.height,
-                            format, &mImageData, &imageDataLength);
-  }
-
-  if (NS_FAILED(rv))
-    return rv;
-
-  memset(mImageData, 0, imageDataLength);
-
-  
-  PostFrameStart();
-
-  if (!mGIFStruct.images_decoded) {
-    
-    
-    
-    if (mGIFStruct.y_offset > 0) {
-      nsIntRect r(0, 0, mGIFStruct.screen_width, mGIFStruct.y_offset);
-      PostInvalidation(r);
-    }
+    NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
+                 mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
+                 format);
   }
 
   mCurrentFrame = mGIFStruct.images_decoded;
-  return NS_OK;
 }
 
 
@@ -585,7 +550,13 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
   uint8_t* p = (mGIFStruct.state == gif_global_colormap) ? (uint8_t*)mGIFStruct.global_colormap :
                (mGIFStruct.state == gif_image_colormap) ? (uint8_t*)mColormap :
                (mGIFStruct.bytes_in_hold) ? mGIFStruct.hold : nullptr;
-  if (p) {
+
+  if (len == 0 && buf == nullptr) {
+    
+    
+    len = mGIFStruct.bytes_in_hold;
+    q = buf = p;
+  } else if (p) {
     
     uint32_t l = std::min(len, mGIFStruct.bytes_to_consume);
     memcpy(p+mGIFStruct.bytes_in_hold, buf, l);
@@ -596,8 +567,6 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       mGIFStruct.bytes_to_consume -= l;
       return;
     }
-    
-    mGIFStruct.bytes_in_hold = 0;
     
     q = p;
   }
@@ -611,7 +580,7 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
   
   
 
-  for (;len >= mGIFStruct.bytes_to_consume; q=buf) {
+  for (;len >= mGIFStruct.bytes_to_consume; q=buf, mGIFStruct.bytes_in_hold = 0) {
     
     buf += mGIFStruct.bytes_to_consume;
     len -= mGIFStruct.bytes_to_consume;
@@ -926,10 +895,40 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       } 
       
       mColorMask = 0xFF >> (8 - realDepth);
-      nsresult rv = BeginImageFrame(realDepth);
-      if (NS_FAILED(rv) || !mImageData) {
-        mGIFStruct.state = gif_error;
-        break;
+      BeginImageFrame(realDepth);
+
+      
+      
+      
+      uint32_t size = len + mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold;
+      if (size) {
+        if (SetHold(q, mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold, buf, len)) {
+          
+          GETN(9, gif_image_header_continue);
+          return;
+        }
+      }
+    }
+    break;
+
+    case gif_image_header_continue:
+    {
+      
+      
+      
+      memset(mImageData, 0, mImageDataLength);
+      if (mColormap) {
+        memset(mColormap, 0, mColormapSize);
+      }
+
+      if (!mGIFStruct.images_decoded) {
+        
+        
+        
+        if (mGIFStruct.y_offset > 0) {
+          nsIntRect r(0, 0, mGIFStruct.screen_width, mGIFStruct.y_offset);
+          PostInvalidation(r);
+        }
       }
 
       if (q[8] & 0x40) {
@@ -949,6 +948,15 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       mGIFStruct.rowp = mImageData;
 
       
+      
+      
+      uint32_t depth = mGIFStruct.global_colormap_depth;
+      if (q[8] & 0x80)
+        depth = (q[8]&0x07) + 1;
+      uint32_t realDepth = depth;
+      while (mGIFStruct.tpixel >= (1 << realDepth) && (realDepth < 8)) {
+        realDepth++;
+      }
 
       if (q[8] & 0x80) 
       {
@@ -1027,7 +1035,7 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       break;
 
     case gif_done:
-      PostDecodeDone();
+      PostDecodeDone(mGIFStruct.loop_count - 1);
       mGIFOpen = false;
       goto done;
 
@@ -1046,15 +1054,22 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       PostDataError();
       return;
   }
+
   
-  
-  mGIFStruct.bytes_in_hold = len;
   if (len) {
     
-    uint8_t* p = (mGIFStruct.state == gif_global_colormap) ? (uint8_t*)mGIFStruct.global_colormap :
-                 (mGIFStruct.state == gif_image_colormap) ? (uint8_t*)mColormap :
-                 mGIFStruct.hold;
-    memcpy(p, buf, len);
+    if (mGIFStruct.state != gif_global_colormap && mGIFStruct.state != gif_image_colormap) {
+      if (!SetHold(buf, len)) {
+        PostDataError();
+        return;
+      }
+    } else {
+      uint8_t* p = (mGIFStruct.state == gif_global_colormap) ? (uint8_t*)mGIFStruct.global_colormap :
+                                                               (uint8_t*)mColormap;
+      memcpy(p, buf, len);
+      mGIFStruct.bytes_in_hold = len;
+    }
+
     mGIFStruct.bytes_to_consume -= len;
   }
 
@@ -1067,6 +1082,27 @@ done:
   }
 
   return;
+}
+
+bool
+nsGIFDecoder2::SetHold(const uint8_t* buf1, uint32_t count1, const uint8_t* buf2 , uint32_t count2 )
+{
+  
+  uint8_t* newHold = (uint8_t *) moz_malloc(std::max(uint32_t(MIN_HOLD_SIZE), count1 + count2));
+  if (!newHold) {
+    mGIFStruct.state = gif_error;
+    return false;
+  }
+
+  memcpy(newHold, buf1, count1);
+  if (buf2) {
+    memcpy(newHold + count1, buf2, count2);
+  }
+
+  moz_free(mGIFStruct.hold);
+  mGIFStruct.hold = newHold;
+  mGIFStruct.bytes_in_hold = count1 + count2;
+  return true;
 }
 
 Telemetry::ID

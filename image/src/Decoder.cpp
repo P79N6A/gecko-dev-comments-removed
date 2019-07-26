@@ -22,6 +22,7 @@ Decoder::Decoder(RasterImage &aImage)
   , mDataError(false)
   , mFrameCount(0)
   , mFailCode(NS_OK)
+  , mNeedsNewFrame(false)
   , mInitialized(false)
   , mSizeDecode(false)
   , mInFrame(false)
@@ -82,6 +83,40 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
 
   
   WriteInternal(aBuffer, aCount);
+
+  
+  
+  while (mNeedsNewFrame && !HasDataError()) {
+    nsresult rv;
+    if (mNewFrameData.mPaletteDepth) {
+      rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
+                              mNewFrameData.mOffsetY, mNewFrameData.mWidth,
+                              mNewFrameData.mHeight, mNewFrameData.mFormat,
+                              mNewFrameData.mPaletteDepth,
+                              &mImageData, &mImageDataLength,
+                              &mColormap, &mColormapSize);
+    } else {
+      rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
+                              mNewFrameData.mOffsetY, mNewFrameData.mWidth,
+                              mNewFrameData.mHeight, mNewFrameData.mFormat,
+                              &mImageData, &mImageDataLength);
+    }
+
+    
+    
+    mNeedsNewFrame = false;
+
+    if (NS_SUCCEEDED(rv)) {
+      
+      PostFrameStart();
+
+      
+      WriteInternal(nullptr, 0);
+    } else {
+      PostDataError();
+      break;
+    }
+  }
 }
 
 void
@@ -315,6 +350,22 @@ Decoder::PostDecoderError(nsresult aFailureCode)
   
   
   NS_WARNING("Image decoding error - This is probably a bug!");
+}
+
+void
+Decoder::NeedNewFrame(uint32_t framenum, uint32_t x_offset, uint32_t y_offset,
+                      uint32_t width, uint32_t height,
+                      gfxASurface::gfxImageFormat format,
+                      uint8_t palette_depth )
+{
+  
+  MOZ_ASSERT(!mNeedsNewFrame);
+
+  
+  MOZ_ASSERT(framenum == mFrameCount || framenum == (mFrameCount + 1));
+
+  mNewFrameData = NewFrameData(framenum, x_offset, y_offset, width, height, format, palette_depth);
+  mNeedsNewFrame = true;
 }
 
 } 
