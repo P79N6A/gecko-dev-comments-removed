@@ -994,6 +994,8 @@ public:
 
   NS_DECLARE_FRAME_PROPERTY(InvalidationRect, DestroyRect)
 
+  NS_DECLARE_FRAME_PROPERTY(RefusedAsyncAnimation, nullptr)
+
   
 
 
