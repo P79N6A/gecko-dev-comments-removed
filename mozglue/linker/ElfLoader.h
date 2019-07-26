@@ -42,6 +42,10 @@ extern "C" {
   typedef int (*dl_phdr_cb)(struct dl_phdr_info *, size_t, void *);
   int __wrap_dl_iterate_phdr(dl_phdr_cb callback, void *data);
 
+#ifdef __ARM_EABI__
+  const void *__wrap___gnu_Unwind_Find_exidx(void *pc, int *pcount);
+#endif
+
 
 
 
@@ -181,6 +185,14 @@ public:
 
   void MappableMUnmap(void *addr, size_t length) const;
 
+#ifdef __ARM_EABI__
+  
+
+
+
+  virtual const void *FindExidx(int *pcount) const = 0;
+#endif
+
 protected:
   
 
@@ -254,6 +266,10 @@ public:
   virtual ~SystemElf();
   virtual void *GetSymbolPtr(const char *symbol) const;
   virtual bool Contains(void *addr) const { return false;  }
+
+#ifdef __ARM_EABI__
+  virtual const void *FindExidx(int *pcount) const;
+#endif
 
 protected:
   virtual Mappable *GetMappable() const;
