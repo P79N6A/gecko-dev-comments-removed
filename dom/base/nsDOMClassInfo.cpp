@@ -3648,6 +3648,33 @@ nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSHandleObject obj,
   return JS_TRUE;
 }
 
+
+static JSBool
+ChildWindowGetter(JSContext *cx, JSHandleObject obj, JSHandleId id,
+                  JSMutableHandleValue vp)
+{
+  
+  vp.setUndefined();
+  nsCOMPtr<nsISupports> winSupports =
+    do_QueryInterface(nsDOMClassInfo::XPConnect()->GetNativeOfWrapper(cx, obj));
+  if (!winSupports)
+    return true;
+  nsGlobalWindow *win = nsGlobalWindow::FromSupports(winSupports);
+
+  
+  nsCOMPtr<nsIDOMWindow> child = win->GetChildWindow(id);
+  if (!child)
+    return true;
+
+  
+  jsval v;
+  nsresult rv = WrapNative(cx, JS_GetGlobalForScopeChain(cx), child,
+                            true, &v);
+  NS_ENSURE_SUCCESS(rv, false);
+  vp.set(v);
+  return true;
+}
+
 static nsHTMLDocument*
 GetDocument(JSObject *obj)
 {
@@ -3672,6 +3699,27 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSHandleObject obj,
     
 
     return JS_TRUE;
+  }
+
+  nsGlobalWindow* win = static_cast<nsGlobalWindow*>(document->GetWindow());
+  MOZ_ASSERT(win);
+  if (win->GetLength() > 0) {
+    nsCOMPtr<nsIDOMWindow> child_win = win->GetChildWindow(id);
+    if (child_win) {
+      
+      
+      
+      
+      if (!JS_DefinePropertyById(cx, obj, id, JS::UndefinedValue(),
+                                 ChildWindowGetter, JS_StrictPropertyStub,
+                                 JSPROP_SHARED | JSPROP_ENUMERATE))
+      {
+        return false;
+      }
+
+      objp.set(obj);
+      return true;
+    }
   }
 
   JSObject *proto;
@@ -5477,44 +5525,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     *objp = obj;
 
     return NS_OK;
-  }
-
-  
-  
-  
-
-  if (!ObjectIsNativeWrapper(cx, obj) ||
-      xpc::WrapperFactory::XrayWrapperNotShadowing(obj, id)) {
-    if (win->GetLength() > 0) {
-      nsCOMPtr<nsIDOMWindow> child_win = win->GetChildWindow(id);
-      if (child_win) {
-        
-        
-        
-
-        JSObject *wrapperObj;
-        wrapper->GetJSObject(&wrapperObj);
-
-        jsval v;
-        nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-        nsresult rv = WrapNative(cx, wrapperObj, child_win,
-                                 &NS_GET_IID(nsIDOMWindow), true, &v,
-                                 getter_AddRefs(holder));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        JSAutoRequest ar(cx);
-
-        bool ok = JS_WrapValue(cx, &v) &&
-                    JS_DefinePropertyById(cx, obj, id, v, nullptr, nullptr, 0);
-        if (!ok) {
-          return NS_ERROR_FAILURE;
-        }
-
-        *objp = obj;
-
-        return NS_OK;
-      }
-    }
   }
 
   
