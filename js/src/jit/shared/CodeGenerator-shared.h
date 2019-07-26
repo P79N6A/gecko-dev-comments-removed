@@ -258,6 +258,7 @@ class CodeGeneratorShared : public LInstructionVisitor
   protected:
     
     
+    bool encode(LRecoverInfo *recover);
     bool encode(LSnapshot *snapshot);
     bool encodeAllocations(LSnapshot *snapshot, MResumePoint *resumePoint, uint32_t *startIndex);
 
