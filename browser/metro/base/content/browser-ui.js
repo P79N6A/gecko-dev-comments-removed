@@ -510,7 +510,7 @@ var BrowserUI = {
     this.setOnTabAnimationEnd(function() {
 	    Browser.closeTab(tabToClose, { forceClose: true } );
         if (wasCollapsed)
-          ContextUI.dismissWithDelay(kNewTabAnimationDelayMsec);
+          ContextUI.dismissTabsWithDelay(kNewTabAnimationDelayMsec);
     });
   },
 
@@ -552,7 +552,7 @@ var BrowserUI = {
 
   selectTabAndDismiss: function selectTabAndDismiss(aTab) {
     this.selectTab(aTab);
-    ContextUI.dismiss();
+    ContextUI.dismissTabs();
   },
 
   selectTabAtIndex: function selectTabAtIndex(aIndex) {
@@ -618,12 +618,6 @@ var BrowserUI = {
       return true;
     }
     return false;
-  },
-
-  
-  
-  navEditKeyPress: function navEditKeyPress() {
-    ContextUI.cancelDismiss();
   },
 
   observe: function BrowserUI_observe(aSubject, aTopic, aData) {

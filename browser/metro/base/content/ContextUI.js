@@ -163,25 +163,24 @@ var ContextUI = {
   peekTabs: function peekTabs() {
     if (this.tabbarVisible) {
       setTimeout(function () {
-        ContextUI.dismissWithDelay(kNewTabAnimationDelayMsec);
+        ContextUI.dismissTabsWithDelay(kNewTabAnimationDelayMsec);
       }, 0);
     } else {
       BrowserUI.setOnTabAnimationEnd(function () {
-        ContextUI.dismissWithDelay(kNewTabAnimationDelayMsec);
+        ContextUI.dismissTabsWithDelay(kNewTabAnimationDelayMsec);
       });
       this.displayTabs();
     }
   },
 
-
   
 
 
-  dismissWithDelay: function dismissWithDelay(aDelay) {
+  dismissTabsWithDelay: function (aDelay) {
     aDelay = aDelay || kHideContextAndTrayDelayMsec;
     this._clearDelayedTimeout();
     this._hidingId = setTimeout(function () {
-        ContextUI.dismiss();
+        ContextUI.dismissTabs();
       }, aDelay);
   },
 
@@ -317,6 +316,9 @@ var ContextUI = {
         this.dismissTabs();
         break;
       case 'TabSelect':
+        this.dismissTabs();
+        break;
+
       case 'ToolPanelShown':
       case 'ToolPanelHidden':
       case "touchstart":
