@@ -50,6 +50,54 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
+  
+
+  
+  double Value() const;
+  void SetValue(double aValue, ErrorResult& aRv)
+  {
+    aRv = SetValue(aValue);
+  }
+
+  
+  double Min() const;
+  void SetMin(double aValue, ErrorResult& aRv)
+  {
+    aRv = SetMin(aValue);
+  }
+
+  
+  double Max() const;
+  void SetMax(double aValue, ErrorResult& aRv)
+  {
+    aRv = SetMax(aValue);
+  }
+
+  
+  double Low() const;
+  void SetLow(double aValue, ErrorResult& aRv)
+  {
+    aRv = SetLow(aValue);
+  }
+
+  
+  double High() const;
+  void SetHigh(double aValue, ErrorResult& aRv)
+  {
+    aRv = SetHigh(aValue);
+  }
+
+  
+  double Optimum() const;
+  void SetOptimum(double aValue, ErrorResult& aRv)
+  {
+    aRv = SetOptimum(aValue);
+  }
+
+protected:
+  virtual JSObject* WrapNode(JSContext* aCx, JSObject* aScope,
+                             bool* aTriedToWrap) MOZ_OVERRIDE;
+
 private:
 
   static const double kDefaultValue;
@@ -65,24 +113,6 @@ private:
 
 
   nsEventStates GetOptimumState() const;
-
-  
-  double GetMin() const;
-
-  
-  double GetMax() const;
-
-  
-  double GetValue() const;
-
-  
-  double GetLow() const;
-
-  
-  double GetHigh() const;
-
-  
-  double GetOptimum() const;
 };
 
 } 

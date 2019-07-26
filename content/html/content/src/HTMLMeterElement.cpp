@@ -4,6 +4,7 @@
 
 
 #include "HTMLMeterElement.h"
+#include "mozilla/dom/HTMLMeterElementBinding.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Meter)
 DOMCI_NODE_DATA(HTMLMeterElement, mozilla::dom::HTMLMeterElement)
@@ -20,6 +21,7 @@ const double HTMLMeterElement::kDefaultMax   =  1.0;
 HTMLMeterElement::HTMLMeterElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
+  SetIsDOMBinding();
 }
 
 HTMLMeterElement::~HTMLMeterElement()
@@ -72,7 +74,7 @@ HTMLMeterElement::ParseAttribute(int32_t aNamespaceID, nsIAtom* aAttribute,
 
 
 double
-HTMLMeterElement::GetMin() const
+HTMLMeterElement::Min() const
 {
   
 
@@ -86,7 +88,7 @@ HTMLMeterElement::GetMin() const
 }
 
 double
-HTMLMeterElement::GetMax() const
+HTMLMeterElement::Max() const
 {
   
 
@@ -103,11 +105,11 @@ HTMLMeterElement::GetMax() const
     max = kDefaultMax;
   }
 
-  return std::max(max, GetMin());
+  return std::max(max, Min());
 }
 
 double
-HTMLMeterElement::GetValue() const
+HTMLMeterElement::Value() const
 {
   
 
@@ -126,17 +128,17 @@ HTMLMeterElement::GetValue() const
     value = kDefaultValue;
   }
 
-  double min = GetMin();
+  double min = Min();
 
   if (value <= min) {
     return min;
   }
 
-  return std::min(value, GetMax());
+  return std::min(value, Max());
 }
 
 double
-HTMLMeterElement::GetLow() const
+HTMLMeterElement::Low() const
 {
   
 
@@ -147,7 +149,7 @@ HTMLMeterElement::GetLow() const
 
 
 
-  double min = GetMin();
+  double min = Min();
 
   const nsAttrValue* attrLow = mAttrsAndChildren.GetAttr(nsGkAtoms::low);
   if (!attrLow || attrLow->Type() != nsAttrValue::eDoubleValue) {
@@ -160,11 +162,11 @@ HTMLMeterElement::GetLow() const
     return min;
   }
 
-  return std::min(low, GetMax());
+  return std::min(low, Max());
 }
 
 double
-HTMLMeterElement::GetHigh() const
+HTMLMeterElement::High() const
 {
   
 
@@ -175,7 +177,7 @@ HTMLMeterElement::GetHigh() const
 
 
 
-  double max = GetMax();
+  double max = Max();
 
   const nsAttrValue* attrHigh = mAttrsAndChildren.GetAttr(nsGkAtoms::high);
   if (!attrHigh || attrHigh->Type() != nsAttrValue::eDoubleValue) {
@@ -188,11 +190,11 @@ HTMLMeterElement::GetHigh() const
     return max;
   }
 
-  return std::max(high, GetLow());
+  return std::max(high, Low());
 }
 
 double
-HTMLMeterElement::GetOptimum() const
+HTMLMeterElement::Optimum() const
 {
   
 
@@ -205,9 +207,9 @@ HTMLMeterElement::GetOptimum() const
 
 
 
-  double max = GetMax();
+  double max = Max();
 
-  double min = GetMin();
+  double min = Min();
 
   const nsAttrValue* attrOptimum =
               mAttrsAndChildren.GetAttr(nsGkAtoms::optimum);
@@ -231,7 +233,7 @@ HTMLMeterElement::GetOptimum() const
 NS_IMETHODIMP
 HTMLMeterElement::GetMin(double* aValue)
 {
-  *aValue = GetMin();
+  *aValue = Min();
   return NS_OK;
 }
 
@@ -244,7 +246,7 @@ HTMLMeterElement::SetMin(double aValue)
 NS_IMETHODIMP
 HTMLMeterElement::GetMax(double* aValue)
 {
-  *aValue = GetMax();
+  *aValue = Max();
   return NS_OK;
 }
 
@@ -257,7 +259,7 @@ HTMLMeterElement::SetMax(double aValue)
 NS_IMETHODIMP
 HTMLMeterElement::GetValue(double* aValue)
 {
-  *aValue = GetValue();
+  *aValue = Value();
   return NS_OK;
 }
 
@@ -270,7 +272,7 @@ HTMLMeterElement::SetValue(double aValue)
 NS_IMETHODIMP
 HTMLMeterElement::GetLow(double* aValue)
 {
-  *aValue = GetLow();
+  *aValue = Low();
   return NS_OK;
 }
 
@@ -283,7 +285,7 @@ HTMLMeterElement::SetLow(double aValue)
 NS_IMETHODIMP
 HTMLMeterElement::GetHigh(double* aValue)
 {
-  *aValue = GetHigh();
+  *aValue = High();
   return NS_OK;
 }
 
@@ -296,7 +298,7 @@ HTMLMeterElement::SetHigh(double aValue)
 NS_IMETHODIMP
 HTMLMeterElement::GetOptimum(double* aValue)
 {
-  *aValue = GetOptimum();
+  *aValue = Optimum();
   return NS_OK;
 }
 
@@ -319,10 +321,10 @@ HTMLMeterElement::GetOptimumState() const
 
 
 
-  double value = GetValue();
-  double low = GetLow();
-  double high = GetHigh();
-  double optimum = GetOptimum();
+  double value = Value();
+  double low = Low();
+  double high = High();
+  double optimum = Optimum();
 
   if (optimum < low) {
     if (value < low) {
@@ -347,6 +349,13 @@ HTMLMeterElement::GetOptimumState() const
     return NS_EVENT_STATE_OPTIMUM;
   }
   return NS_EVENT_STATE_SUB_OPTIMUM;
+}
+
+JSObject*
+HTMLMeterElement::WrapNode(JSContext* aCx, JSObject* aScope,
+                           bool* aTriedToWrap)
+{
+  return HTMLMeterElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
