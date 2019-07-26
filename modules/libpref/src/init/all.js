@@ -3962,6 +3962,8 @@ pref("layers.acceleration.force-enabled", false);
 
 pref("layers.acceleration.draw-fps", false);
 
+pref("layers.draw-borders", false);
+
 pref("layers.offmainthreadcomposition.enabled", false);
 
 
