@@ -3747,13 +3747,6 @@ var XULBrowserWindow = {
       }
 
       
-      let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-      if (ss.getTabValue(gBrowser.selectedTab, "appOrigin"))
-        document.documentElement.setAttribute("disablechrome", "true");
-      else
-        document.documentElement.removeAttribute("disablechrome");
-
-      
       var shouldDisableFind = function shouldDisableFind(aDocument) {
         let docElt = aDocument.documentElement;
         return docElt && docElt.getAttribute("disablefastfind") == "true";
