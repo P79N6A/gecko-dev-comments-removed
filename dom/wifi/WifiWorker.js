@@ -1761,7 +1761,6 @@ function WifiWorker() {
 
   this.wantScanResults = [];
 
-  this._allowWpaEap = false;
   this._needToEnableNetworks = false;
   this._highestPriority = -1;
 
@@ -1965,12 +1964,6 @@ function WifiWorker() {
       self._enableAllNetworks();
       WifiManager.saveConfig(function() {})
     });
-
-    try {
-      self._allowWpaEap = (WifiManager.getCapabilities().eapMethod.indexOf("SIM") != -1);
-    } catch (e) {
-      self._allowWpaEap = false;
-    }
 
     
     WifiManager.getMacAddress(function (mac) {
@@ -2282,18 +2275,6 @@ function WifiWorker() {
                 ("wep_key0" in known && known.wep_key0)) {
               network.password = "*";
             }
-          } else if (!self._allowWpaEap &&
-                     (eapIndex = network.security.indexOf("WPA-EAP")) >= 0) {
-            
-            
-            
-            
-            
-            
-            if (network.security.length === 1)
-              continue;
-
-            network.security.splice(eapIndex, 1);
           }
 
           self.networksArray.push(network);
