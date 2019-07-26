@@ -101,7 +101,8 @@ public:
   
 
 
-  void InitAnimationFrameTime();
+
+  void InitAnimationFrameTimeIfNecessary();
 
   
 

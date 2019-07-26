@@ -529,11 +529,11 @@ RasterImage::Init(const char* aMimeType,
 NS_IMETHODIMP_(void)
 RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
 {
-  EvaluateAnimation();
-
-  if (!mAnimating) {
+  if (!ShouldAnimate()) {
     return;
   }
+
+  EvaluateAnimation();
 
   FrameAnimator::RefreshResult res;
   if (mAnim) {
@@ -1441,8 +1441,7 @@ RasterImage::StartAnimation()
 
     
     
-    if (!mAnimating)
-      mAnim->InitAnimationFrameTime();
+    mAnim->InitAnimationFrameTimeIfNecessary();
   }
 
   return NS_OK;
@@ -1489,7 +1488,7 @@ RasterImage::ResetAnimation()
   
 
   
-  if (mStatusTracker) {
+  if (mAnimating && mStatusTracker) {
     nsIntRect rect = mAnim->GetFirstFrameRefreshArea();
     mStatusTracker->FrameChanged(&rect);
   }
