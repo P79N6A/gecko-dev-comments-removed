@@ -32,8 +32,9 @@ public:
 
 
 
-  static AudioChannelService*
-  GetAudioChannelService();
+
+
+  static AudioChannelService* GetAudioChannelService();
 
   
 
@@ -56,7 +57,9 @@ public:
   
 
 
-  virtual bool GetMuted(AudioChannelAgent* aAgent, bool aElementHidden);
+
+  virtual AudioChannelState GetState(AudioChannelAgent* aAgent,
+                                     bool aElementHidden);
 
   
 
@@ -93,8 +96,9 @@ protected:
   void UnregisterTypeInternal(AudioChannelType aType, bool aElementHidden,
                               uint64_t aChildID);
 
-  bool GetMutedInternal(AudioChannelType aType, uint64_t aChildID,
-                        bool aElementHidden, bool aElementWasHidden);
+  AudioChannelState GetStateInternal(AudioChannelType aType, uint64_t aChildID,
+                                     bool aElementHidden,
+                                     bool aElementWasHidden);
 
   
   void UpdateChannelType(AudioChannelType aType, uint64_t aChildID,
@@ -127,6 +131,9 @@ protected:
 
   bool ChannelsActiveWithHigherPriorityThan(AudioChannelInternalType aType);
 
+  bool CheckVolumeFadedCondition(AudioChannelInternalType aType,
+                                 bool aElementHidden);
+
   const char* ChannelName(AudioChannelType aType);
 
   AudioChannelInternalType GetInternalType(AudioChannelType aType,
@@ -136,15 +143,15 @@ protected:
   public:
     AudioChannelAgentData(AudioChannelType aType,
                           bool aElementHidden,
-                          bool aMuted)
+                          AudioChannelState aState)
     : mType(aType)
     , mElementHidden(aElementHidden)
-    , mMuted(aMuted)
+    , mState(aState)
     {}
 
     AudioChannelType mType;
     bool mElementHidden;
-    bool mMuted;
+    AudioChannelState mState;
   };
 
   static PLDHashOperator

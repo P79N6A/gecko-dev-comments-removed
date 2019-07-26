@@ -24,8 +24,9 @@ public:
 
 
 
-  static AudioChannelService*
-  GetAudioChannelService();
+
+
+  static AudioChannelService* GetAudioChannelService();
 
   static void Shutdown();
 
@@ -36,7 +37,9 @@ public:
   
 
 
-  virtual bool GetMuted(AudioChannelAgent* aAgent, bool aMozHidden);
+
+  virtual AudioChannelState GetState(AudioChannelAgent* aAgent,
+                                     bool aElementHidden);
 
   virtual void SetDefaultVolumeControlChannel(AudioChannelType aType, bool aHidden);
 
