@@ -1324,6 +1324,22 @@ let BookmarkingUI = {
   },
 
   _showBookmarkedNotification: function BUI_showBookmarkedNotification() {
+    
+
+
+
+
+
+
+
+    let onDropmarkerAnimationEnd = () => {
+      this.button.removeEventListener("animationend", onDropmarkerAnimationEnd);
+      this.button.style.removeProperty("pointer-events");
+    };
+    let onDropmarkerAnimationStart = () => {
+      this.button.removeEventListener("animationstart", onDropmarkerAnimationStart);
+      this.button.style.pointerEvents = 'none';
+    };
 
     if (this._notificationTimeout) {
       clearTimeout(this._notificationTimeout);
@@ -1354,6 +1370,8 @@ let BookmarkingUI = {
     if (!isInOverflowPanel) {
       this.notifier.setAttribute("notification", "finish");
       this.button.setAttribute("notification", "finish");
+      this.button.addEventListener('animationstart', onDropmarkerAnimationStart);
+      this.button.addEventListener("animationend", onDropmarkerAnimationEnd);
     }
 
     this._notificationTimeout = setTimeout( () => {
@@ -1361,6 +1379,7 @@ let BookmarkingUI = {
       this.notifier.removeAttribute("in-bookmarks-toolbar");
       this.button.removeAttribute("notification");
       this.notifier.style.transform = '';
+      this.button.style.removeProperty("pointer-events");
     }, 1000);
   },
 
