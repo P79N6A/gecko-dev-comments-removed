@@ -4,20 +4,27 @@
 
 'use strict';
 
-const WIDGET_PANEL_LOG_PREFIX = 'WidgetPanel';
+const DEVELOPER_HUD_LOG_PREFIX = 'DeveloperHUD';
+
+XPCOMUtils.defineLazyGetter(this, 'devtools', function() {
+  const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+  return devtools;
+});
 
 XPCOMUtils.defineLazyGetter(this, 'DebuggerClient', function() {
   return Cu.import('resource://gre/modules/devtools/dbg-client.jsm', {}).DebuggerClient;
 });
 
 XPCOMUtils.defineLazyGetter(this, 'WebConsoleUtils', function() {
-  let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
   return devtools.require("devtools/toolkit/webconsole/utils").Utils;
 });
 
 XPCOMUtils.defineLazyGetter(this, 'EventLoopLagFront', function() {
-  const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
   return devtools.require("devtools/server/actors/eventlooplag").EventLoopLagFront;
+});
+
+XPCOMUtils.defineLazyGetter(this, 'MemoryFront', function() {
+  return devtools.require("devtools/server/actors/memory").MemoryFront;
 });
 
 
@@ -26,7 +33,7 @@ XPCOMUtils.defineLazyGetter(this, 'EventLoopLagFront', function() {
 
 
 
-let devtoolsWidgetPanel = {
+let developerHUD = {
 
   _apps: new Map(),
   _urls: new Map(),
@@ -179,7 +186,7 @@ let devtoolsWidgetPanel = {
   },
 
   log: function dwp_log(message) {
-    dump(WIDGET_PANEL_LOG_PREFIX + ': ' + message + '\n');
+    dump(DEVELOPER_HUD_LOG_PREFIX + ': ' + message + '\n');
   }
 
 };
@@ -208,7 +215,7 @@ App.prototype = {
       }
     }
 
-    shell.sendCustomEvent('widget-panel-update', data);
+    shell.sendCustomEvent('developer-hud-update', data);
     
     return false;
   }
@@ -238,9 +245,9 @@ let consoleWatcher = {
 
     for (let key in watching) {
       let metric = key;
-      SettingsListener.observe('devtools.hud.' + metric, false, value => {
+      SettingsListener.observe('hud.' + metric, false, watch => {
         
-        if (watching[metric] = value) {
+        if (watching[metric] = watch) {
           return;
         }
 
@@ -356,7 +363,7 @@ let consoleWatcher = {
 
     if (!app.display()) {
       
-      devtoolsWidgetPanel.log(output);
+      developerHUD.log(output);
     }
   },
 
@@ -372,11 +379,10 @@ let consoleWatcher = {
     return source;
   }
 };
+developerHUD.registerWatcher(consoleWatcher);
 
-devtoolsWidgetPanel.registerWatcher(consoleWatcher);
 
-
-let jankWatcher = {
+let eventLoopLagWatcher = {
   _client: null,
   _fronts: new Map(),
   _active: false,
@@ -384,8 +390,7 @@ let jankWatcher = {
   init: function(client) {
     this._client = client;
 
-    SettingsListener.observe('devtools.hud.jank', false,
-      this.settingsListener.bind(this));
+    SettingsListener.observe('hud.jank', false, this.settingsListener.bind(this));
   },
 
   settingsListener: function(value) {
@@ -417,7 +422,7 @@ let jankWatcher = {
       app.metrics.set('jank', time);
 
       if (!app.display()) {
-        devtoolsWidgetPanel.log('jank: ' + time + 'ms');
+        developerHUD.log('jank: ' + time + 'ms');
       }
     });
 
@@ -434,5 +439,108 @@ let jankWatcher = {
     }
   }
 };
+developerHUD.registerWatcher(eventLoopLagWatcher);
 
-devtoolsWidgetPanel.registerWatcher(jankWatcher);
+
+
+
+
+let memoryWatcher = {
+
+  _client: null,
+  _fronts: new Map(),
+  _timers: new Map(),
+  _watching: {
+    jsobjects: false,
+    jsstrings: false,
+    jsother: false,
+    dom: false,
+    style: false,
+    other: false
+  },
+  _active: false,
+
+  init: function mw_init(client) {
+    this._client = client;
+    let watching = this._watching;
+
+    for (let key in watching) {
+      let category = key;
+      SettingsListener.observe('hud.' + category, false, watch => {
+        watching[category] = watch;
+      });
+    }
+
+    SettingsListener.observe('hud.appmemory', false, enabled => {
+      if (this._active = enabled) {
+        for (let app of this._fronts.keys()) {
+          this.measure(app);
+        }
+      } else {
+        for (let timer of this._timers.values()) {
+          clearTimeout(this._timers.get(app));
+        }
+      }
+    });
+  },
+
+  measure: function mw_measure(app) {
+
+    
+
+    let watch = this._watching;
+    let front = this._fronts.get(app);
+
+    front.measure().then((data) => {
+
+      let total = 0;
+      if (watch.jsobjects) {
+        total += parseInt(data.jsObjectsSize);
+      }
+      if (watch.jsstrings) {
+        total += parseInt(data.jsStringsSize);
+      }
+      if (watch.jsother) {
+        total += parseInt(data.jsOtherSize);
+      }
+      if (watch.dom) {
+        total += parseInt(data.domSize);
+      }
+      if (watch.style) {
+        total += parseInt(data.styleSize);
+      }
+      if (watch.other) {
+        total += parseInt(data.otherSize);
+      }
+      
+
+      app.metrics.set('memory', total);
+      app.display();
+      let duration = parseInt(data.jsMilliseconds) + parseInt(data.nonJSMilliseconds);
+      let timer = setTimeout(() => this.measure(app), 100 * duration);
+      this._timers.set(app, timer);
+    }, (err) => {
+      console.error(err);
+    });
+  },
+
+  trackApp: function mw_trackApp(app) {
+    app.metrics.set('uss', 0);
+    app.metrics.set('memory', 0);
+    this._fronts.set(app, MemoryFront(this._client, app.actor));
+    if (this._active) {
+      this.measure(app);
+    }
+  },
+
+  untrackApp: function mw_untrackApp(app) {
+    let front = this._fronts.get(app);
+    if (front) {
+      front.destroy();
+      clearTimeout(this._timers.get(app));
+      this._fronts.delete(app);
+      this._timers.delete(app);
+    }
+  }
+};
+developerHUD.registerWatcher(memoryWatcher);
