@@ -380,11 +380,6 @@ ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buf
 # endif
 
     
-    
-    
-    buffer->runtime()->sizeOfNonHeapAsmJSArrays_ += buffer->byteLength();
-
-    
     uint8_t *data = reinterpret_cast<uint8_t*>(p) + PageSize;
     memcpy(data, buffer->dataPointer(), buffer->byteLength());
 
@@ -406,8 +401,6 @@ ArrayBufferObject::releaseAsmJSArrayBuffer(FreeOp *fop, RawObject obj)
 {
     ArrayBufferObject &buffer = obj->asArrayBuffer();
     JS_ASSERT(buffer.isAsmJSArrayBuffer());
-
-    buffer.runtime()->sizeOfNonHeapAsmJSArrays_ -= buffer.byteLength();
 
     uint8_t *p = buffer.dataPointer() - PageSize ;
     JS_ASSERT(uintptr_t(p) % PageSize == 0);

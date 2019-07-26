@@ -594,27 +594,6 @@ private:
         return (int64_t) stats.allocated;
     }
 };
-
-
-
-class ExplicitReporter MOZ_FINAL : public MemoryReporterBase
-{
-public:
-    ExplicitReporter()
-      : MemoryReporterBase("explicit", KIND_OTHER, UNITS_BYTES,
-"This is the same measurement as the root of the 'explicit' tree.  However, "
-"it is measured at a different time and so gives slightly different results.")
-    {}
-
-    NS_IMETHOD GetAmount(int64_t *aAmount)
-    {
-        nsCOMPtr<nsIMemoryReporterManager> mgr = do_GetService("@mozilla.org/memory-reporter-manager;1");
-        if (mgr == nullptr)
-            return NS_ERROR_FAILURE;
-
-        return mgr->GetExplicit(aAmount);
-    }
-};
 #endif  
 
 
@@ -690,13 +669,6 @@ public:
 
     return NS_OK;
   }
-
-  NS_IMETHOD GetExplicitNonHeap(int64_t *n)
-  {
-    
-    *n = 0;
-    return NS_OK;
-  }
 };
 
 NS_IMPL_ISUPPORTS1(DMDMultiReporter, nsIMemoryMultiReporter)
@@ -727,7 +699,6 @@ nsMemoryReporterManager::Init()
     RegisterReporter(new HeapCommittedUnusedReporter);
     RegisterReporter(new HeapCommittedUnusedRatioReporter);
     RegisterReporter(new HeapDirtyReporter);
-    RegisterReporter(new ExplicitReporter);
 #endif
 
 #ifdef HAVE_VSIZE_AND_RESIDENT_REPORTERS
@@ -1111,50 +1082,19 @@ nsMemoryReporterManager::GetExplicit(int64_t *aExplicit)
     
     
     
-    
-    
-    
-    
-    
-    
-    
 
-    int64_t explicitNonHeapMultiSize = 0;
+    nsRefPtr<ExplicitNonHeapCountingCallback> cb =
+      new ExplicitNonHeapCountingCallback();
+    nsRefPtr<Int64Wrapper> wrappedExplicitNonHeapMultiSize =
+      new Int64Wrapper();
     nsCOMPtr<nsISimpleEnumerator> e2;
     EnumerateMultiReporters(getter_AddRefs(e2));
     while (NS_SUCCEEDED(e2->HasMoreElements(&more)) && more) {
       nsCOMPtr<nsIMemoryMultiReporter> r;
       e2->GetNext(getter_AddRefs(r));
-      int64_t n;
-      rv = r->GetExplicitNonHeap(&n);
-      NS_ENSURE_SUCCESS(rv, rv);
-      explicitNonHeapMultiSize += n;
+      r->CollectReports(cb, wrappedExplicitNonHeapMultiSize);
     }
-
-#if defined(DEBUG) && !defined(MOZ_DMD)
-    nsRefPtr<ExplicitNonHeapCountingCallback> cb =
-      new ExplicitNonHeapCountingCallback();
-    nsRefPtr<Int64Wrapper> wrappedExplicitNonHeapMultiSize2 =
-      new Int64Wrapper();
-    nsCOMPtr<nsISimpleEnumerator> e3;
-    EnumerateMultiReporters(getter_AddRefs(e3));
-    while (NS_SUCCEEDED(e3->HasMoreElements(&more)) && more) {
-      nsCOMPtr<nsIMemoryMultiReporter> r;
-      e3->GetNext(getter_AddRefs(r));
-      r->CollectReports(cb, wrappedExplicitNonHeapMultiSize2);
-    }
-    int64_t explicitNonHeapMultiSize2 = wrappedExplicitNonHeapMultiSize2->mValue;
-
-    
-    
-    
-    if (explicitNonHeapMultiSize != explicitNonHeapMultiSize2) {
-        NS_WARNING(nsPrintfCString("The two measurements of 'explicit' memory "
-                                   "usage don't match (%lld vs %lld)",
-                                   explicitNonHeapMultiSize,
-                                   explicitNonHeapMultiSize2).get());
-    }
-#endif  
+    int64_t explicitNonHeapMultiSize = wrappedExplicitNonHeapMultiSize->mValue;
 
     *aExplicit = heapAllocated + explicitNonHeapNormalSize + explicitNonHeapMultiSize;
     return NS_OK;

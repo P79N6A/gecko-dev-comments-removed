@@ -1137,14 +1137,6 @@ gfxFontCache::MemoryReporter::CollectReports
     return NS_OK;
 }
 
-NS_IMETHODIMP
-gfxFontCache::MemoryReporter::GetExplicitNonHeap(int64_t* aAmount)
-{
-    
-    *aAmount = 0;
-    return NS_OK;
-}
-
 
 
 class MemoryPressureObserver MOZ_FINAL : public nsIObserver,

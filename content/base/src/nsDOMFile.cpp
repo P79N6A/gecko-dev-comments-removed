@@ -631,13 +631,6 @@ class nsDOMMemoryFileDataOwnerMemoryReporter MOZ_FINAL
     return NS_OK;
   }
 
-  NS_IMETHOD GetExplicitNonHeap(int64_t *aResult)
-  {
-    
-    *aResult = 0;
-    return NS_OK;
-  }
-
   NS_IMETHOD CollectReports(nsIMemoryMultiReporterCallback *aCallback,
                             nsISupports *aClosure)
   {

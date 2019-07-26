@@ -323,15 +323,6 @@ public:
 
         return NS_OK;
     }
-
-    
-    NS_IMETHOD
-    GetExplicitNonHeap(int64_t *aExplicitNonHeap)
-    {
-        
-        *aExplicitNonHeap = 0;
-        return NS_OK;
-    }
 };
 NS_IMPL_ISUPPORTS1(GPUAdapterMultiReporter, nsIMemoryMultiReporter)
 #endif 

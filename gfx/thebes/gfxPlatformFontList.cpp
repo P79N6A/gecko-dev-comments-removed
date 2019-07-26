@@ -120,14 +120,6 @@ gfxPlatformFontList::MemoryReporter::CollectReports
     return NS_OK;
 }
 
-NS_IMETHODIMP
-gfxPlatformFontList::MemoryReporter::GetExplicitNonHeap(int64_t* aAmount)
-{
-    
-    *aAmount = 0;
-    return NS_OK;
-}
-
 gfxPlatformFontList::gfxPlatformFontList(bool aNeedFullnamePostscriptNames)
     : mNeedFullnamePostscriptNames(aNeedFullnamePostscriptNames),
       mStartIndex(0), mIncrement(kNumFontsPerSlice), mNumFamilies(0)

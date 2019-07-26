@@ -128,13 +128,6 @@ public:
   CollectReports(nsIMemoryMultiReporterCallback *aCb,
                  nsISupports *aClosure);
 
-  NS_IMETHOD
-  GetExplicitNonHeap(int64_t *aAmount) {
-    
-    *aAmount = 0;
-    return NS_OK;
-  }
-
 private:
   
   
