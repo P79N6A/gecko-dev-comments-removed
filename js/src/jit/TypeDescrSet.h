@@ -86,7 +86,7 @@ class TypeDescrSet {
     
 
     bool empty() const;
-    bool allOfKind(TypeDescr::Kind kind);
+    bool allOfKind(type::Kind kind);
 
     
     
@@ -108,7 +108,7 @@ class TypeDescrSet {
     
     
 
-    TypeDescr::Kind kind();
+    type::Kind kind();
 
     
     
