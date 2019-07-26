@@ -31,7 +31,8 @@ public:
   
   
   
-  static TemporaryRef<SharedThreadPool> Get(const nsCString& aName);
+  static TemporaryRef<SharedThreadPool> Get(const nsCString& aName,
+                                            uint32_t aThreadLimit = 4);
 
   
   
@@ -54,8 +55,11 @@ private:
   
   
   
-  SharedThreadPool(const nsCString& aName, nsIThreadPool* aPool);
+  SharedThreadPool(const nsCString& aName,
+                   nsIThreadPool* aPool);
   virtual ~SharedThreadPool();
+
+  nsresult EnsureThreadLimitIsAtLeast(uint32_t aThreadLimit);
 
   
   const nsCString mName;

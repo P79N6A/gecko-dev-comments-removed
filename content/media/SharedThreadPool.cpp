@@ -11,7 +11,6 @@
 #include "VideoUtils.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsComponentManagerUtils.h"
-#include "mozilla/Preferences.h"
 
 #ifdef XP_WIN
 
@@ -70,19 +69,35 @@ DestroySharedThreadPoolHashTable()
 }
 
 TemporaryRef<SharedThreadPool>
-SharedThreadPool::Get(const nsCString& aName)
+SharedThreadPool::Get(const nsCString& aName, uint32_t aThreadLimit)
 {
   MOZ_ASSERT(NS_IsMainThread());
   EnsureInitialized();
   MOZ_ASSERT(sMonitor);
   ReentrantMonitorAutoEnter mon(*sMonitor);
   SharedThreadPool* pool = nullptr;
+  nsresult rv;
   if (!sPools->Get(aName, &pool)) {
     nsCOMPtr<nsIThreadPool> threadPool(CreateThreadPool(aName));
     NS_ENSURE_TRUE(threadPool, nullptr);
     pool = new SharedThreadPool(aName, threadPool);
+
+    
+    
+    
+    
+    
+    rv = pool->SetThreadLimit(aThreadLimit);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+
+    rv = pool->SetIdleThreadLimit(aThreadLimit);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+
     sPools->Put(aName, pool);
+  } else if (NS_FAILED(pool->EnsureThreadLimitIsAtLeast(aThreadLimit))) {
+    NS_WARNING("Failed to set limits on thread pool");
   }
+
   MOZ_ASSERT(pool);
   RefPtr<SharedThreadPool> instance(pool);
   return instance.forget();
@@ -187,6 +202,36 @@ MSCOMInitThreadPoolListener::OnThreadShuttingDown()
 
 #endif
 
+nsresult
+SharedThreadPool::EnsureThreadLimitIsAtLeast(uint32_t aLimit)
+{
+  
+  
+  
+  
+  
+  
+  
+  uint32_t existingLimit = 0;
+  nsresult rv;
+
+  rv = mPool->GetThreadLimit(&existingLimit);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (aLimit > existingLimit) {
+    rv = mPool->SetThreadLimit(aLimit);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  rv = mPool->GetIdleThreadLimit(&existingLimit);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (aLimit > existingLimit) {
+    rv = mPool->SetIdleThreadLimit(aLimit);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
+}
+
 static already_AddRefed<nsIThreadPool>
 CreateThreadPool(const nsCString& aName)
 {
@@ -197,21 +242,6 @@ CreateThreadPool(const nsCString& aName)
   NS_ENSURE_SUCCESS(rv, nullptr);
 
   rv = pool->SetName(aName);
-  NS_ENSURE_SUCCESS(rv, nullptr);
-
-  
-  
-  
-  
-  
-  
-  
-  rv = pool->SetThreadLimit(
-    Preferences::GetUint("media.thread-pool.thread-limit", 4));
-  NS_ENSURE_SUCCESS(rv, nullptr);
-
-  rv = pool->SetIdleThreadLimit(
-    Preferences::GetUint("media.thread-pool.idle-thread-limit", 4));
   NS_ENSURE_SUCCESS(rv, nullptr);
 
 #ifdef XP_WIN
