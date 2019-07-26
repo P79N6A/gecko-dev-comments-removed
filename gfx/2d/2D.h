@@ -644,6 +644,19 @@ public:
 
 
 
+  virtual void CopyRect(const IntRect &aSourceRect,
+                        const IntPoint &aDestination)
+  {
+    RefPtr<SourceSurface> source = Snapshot();
+    CopySurface(source, aSourceRect, aDestination);
+  }
+
+  
+
+
+
+
+
 
   virtual void FillRect(const Rect &aRect,
                         const Pattern &aPattern,
