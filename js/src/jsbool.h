@@ -11,7 +11,6 @@
 
 
 
-#include "jsapi.h"
 #include "NamespaceImports.h"
 
 extern JSObject *
