@@ -1434,13 +1434,13 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_NEWINIT:
         if (GET_UINT8(pc) == JSProto_Array)
             return jsop_newarray(0);
-        return jsop_newobject();
+        return jsop_newobject(nullptr);
 
       case JSOP_NEWARRAY:
         return jsop_newarray(GET_UINT24(pc));
 
       case JSOP_NEWOBJECT:
-        return jsop_newobject();
+        return jsop_newobject(info().getObject(pc));
 
       case JSOP_INITELEM:
         return jsop_initelem();
@@ -4634,30 +4634,24 @@ IonBuilder::createThisScriptedSingleton(JSFunction *target, MDefinition *callee)
     if (!target->nonLazyScript()->types)
         return nullptr;
 
-    JSObject *templateObject = inspector->getTemplateObject(pc);
-    if (!templateObject || !templateObject->is<JSObject>())
+    
+    
+    types::TypeObject *type = cx->getNewType(&JSObject::class_, proto, target);
+    if (!type)
         return nullptr;
-    if (templateObject->getProto() != proto)
+    if (!types::TypeScript::ThisTypes(target->nonLazyScript())->hasType(types::Type::ObjectType(type)))
         return nullptr;
 
-    if (!types::TypeScript::ThisTypes(target->nonLazyScript())->hasType(types::Type::ObjectType(templateObject)))
+    RootedObject targetRoot(cx, target);
+    JSObject *templateObject = CreateThisForFunctionWithProto(cx, targetRoot, proto, TenuredObject);
+    if (!templateObject)
         return nullptr;
 
     
-    
-    
-    
-    types::TypeObject *templateType = templateObject->type();
-    if (templateType->hasNewScript()) {
-        templateObject = templateType->newScript()->templateObject;
-        JS_ASSERT(templateObject->type() == templateType);
+    types::TypeObjectKey *templateType = types::TypeObjectKey::get(templateObject);
+    if (templateType->newScript())
+        templateType->watchStateChangeForNewScriptTemplate(constraints());
 
-        
-        types::TypeObjectKey::get(templateType)->watchStateChangeForNewScriptTemplate(constraints());
-    }
-
-    
-    
     MCreateThisWithTemplate *createThis = MCreateThisWithTemplate::New(templateObject);
     current->add(createThis);
 
@@ -5340,16 +5334,38 @@ IonBuilder::jsop_compare(JSOp op)
     return true;
 }
 
+JSObject *
+IonBuilder::getNewArrayTemplateObject(uint32_t count)
+{
+    NewObjectKind newKind = types::UseNewTypeForInitializer(script(), pc, JSProto_Array);
+
+    
+    if (newKind == GenericObject)
+        newKind = TenuredObject;
+
+    JSObject *templateObject = NewDenseUnallocatedArray(cx, count, nullptr, newKind);
+    if (!templateObject)
+        return nullptr;
+
+    if (newKind != SingletonObject) {
+        types::TypeObject *type = types::TypeScript::InitObject(cx, script(), pc, JSProto_Array);
+        if (!type)
+            return nullptr;
+        templateObject->setType(type);
+    }
+
+    return templateObject;
+}
+
 bool
 IonBuilder::jsop_newarray(uint32_t count)
 {
     JS_ASSERT(script()->compileAndGo);
 
-    JSObject *templateObject = inspector->getTemplateObject(pc);
+    JSObject *templateObject = getNewArrayTemplateObject(count);
     if (!templateObject)
-        return abort("No template object for NEWARRAY");
+        return false;
 
-    JS_ASSERT(templateObject->is<ArrayObject>());
     if (templateObject->type()->unknownProperties()) {
         
         
@@ -5370,16 +5386,36 @@ IonBuilder::jsop_newarray(uint32_t count)
 }
 
 bool
-IonBuilder::jsop_newobject()
+IonBuilder::jsop_newobject(JSObject *baseObj)
 {
     
     JS_ASSERT(script()->compileAndGo);
 
-    JSObject *templateObject = inspector->getTemplateObject(pc);
-    if (!templateObject)
-        return abort("No template object for NEWOBJECT");
+    NewObjectKind newKind = types::UseNewTypeForInitializer(script(), pc, JSProto_Object);
 
-    JS_ASSERT(templateObject->is<JSObject>());
+    
+    if (newKind == GenericObject)
+        newKind = TenuredObject;
+
+    JSObject *templateObject;
+    if (baseObj) {
+        RootedObject baseObjRoot(cx, baseObj);
+        templateObject = CopyInitializerObject(cx, baseObjRoot, newKind);
+    } else {
+        gc::AllocKind allocKind = GuessObjectGCKind(0);
+        templateObject = NewBuiltinClassInstance(cx, &JSObject::class_, allocKind, newKind);
+    }
+
+    if (!templateObject)
+        return false;
+
+    if (newKind != SingletonObject) {
+        types::TypeObject *type = types::TypeScript::InitObject(cx, script(), pc, JSProto_Object);
+        if (!type)
+            return false;
+        templateObject->setType(type);
+    }
+
     MNewObject *ins = MNewObject::New(templateObject,
                                        false);
 
