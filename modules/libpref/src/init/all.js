@@ -191,6 +191,7 @@ pref("media.peerconnection.use_document_iceservers", true);
 
 
 
+pref("media.peerconnection.turn.disable", false);
 pref("media.peerconnection.aec_enabled", true);
 pref("media.peerconnection.aec", 1);
 pref("media.peerconnection.agc_enabled", false);
