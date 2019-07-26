@@ -266,20 +266,6 @@ APZController::PostDelayedTask(Task* aTask, int aDelayMs)
   MessageLoop::current()->PostDelayedTask(FROM_HERE, aTask, aDelayMs);
 }
 
-bool
-APZController::GetRootZoomConstraints(ZoomConstraints* aOutConstraints)
-{
-  if (aOutConstraints) {
-    
-    
-    aOutConstraints->mAllowZoom = true;
-    aOutConstraints->mMinZoom = CSSToScreenScale(0.25f);
-    aOutConstraints->mMaxZoom = CSSToScreenScale(4.0f);
-    return true;
-  }
-  return false;
-}
-
 
 
 class TransformedStartEvent : public nsRunnable
