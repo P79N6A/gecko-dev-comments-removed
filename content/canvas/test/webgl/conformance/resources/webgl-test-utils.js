@@ -221,6 +221,40 @@ var setupUnitQuad = function(gl, opt_positionLocation, opt_texcoordLocation) {
 
 
 
+var drawUnitQuad = function(gl) {
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+};
+
+
+
+
+
+
+
+
+var clearAndDrawUnitQuad = function(gl, opt_color) {
+  opt_color = opt_color || [255, 255, 255, 255];
+
+  
+  var prevClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+
+  gl.clearColor(opt_color[0] / 255,
+                opt_color[1] / 255,
+                opt_color[2] / 255,
+                opt_color[3] / 255);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  drawUnitQuad(gl);
+
+  gl.clearColor(prevClearColor[0],
+                prevClearColor[1],
+                prevClearColor[2],
+                prevClearColor[3]);
+};
+
+
+
+
+
 
 
 
@@ -1313,6 +1347,7 @@ var addShaderSource = function(element, label, source) {
 
 return {
   addShaderSource: addShaderSource,
+  clearAndDrawUnitQuad : clearAndDrawUnitQuad,
   create3DContext: create3DContext,
   create3DContextWithWrapperThatThrowsOnGLError:
     create3DContextWithWrapperThatThrowsOnGLError,
@@ -1320,6 +1355,7 @@ return {
   checkCanvasRect: checkCanvasRect,
   createColoredTexture: createColoredTexture,
   drawQuad: drawQuad,
+  drawUnitQuad: drawUnitQuad,
   endsWith: endsWith,
   getExtensionWithKnownPrefixes: getExtensionWithKnownPrefixes,
   getFileListAsync: getFileListAsync,
