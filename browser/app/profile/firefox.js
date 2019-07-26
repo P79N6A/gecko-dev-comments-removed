@@ -1340,6 +1340,8 @@ pref("devtools.styleeditor.enabled", true);
 pref("devtools.styleeditor.source-maps-enabled", false);
 pref("devtools.styleeditor.autocompletion-enabled", true);
 pref("devtools.styleeditor.showMediaSidebar", true);
+pref("devtools.styleeditor.mediaSidebarWidth", 238);
+pref("devtools.styleeditor.navSidebarWidth", 245);
 
 
 pref("devtools.shadereditor.enabled", false);
