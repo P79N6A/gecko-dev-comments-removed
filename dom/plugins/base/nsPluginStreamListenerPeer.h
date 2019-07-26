@@ -68,12 +68,10 @@ public:
   bool UseExistingPluginCacheFile(nsPluginStreamListenerPeer* psi);
 
   
+  
   nsresult Initialize(nsIURI *aURL,
                       nsNPAPIPluginInstance *aInstance,
                       nsNPAPIPluginStreamListener *aListener);
-
-  nsresult InitializeEmbedded(nsIURI *aURL,
-                              nsNPAPIPluginInstance* aInstance);
 
   nsresult OnFileAvailable(nsIFile* aFile);
 

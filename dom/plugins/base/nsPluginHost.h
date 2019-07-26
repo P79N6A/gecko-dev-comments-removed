@@ -184,18 +184,18 @@ public:
 
   
   
-  nsresult InstantiateEmbeddedPluginInstance(const char *aMimeType, nsIURI* aURL,
-                                             nsObjectLoadingContent *aContent,
-                                             nsPluginInstanceOwner** aOwner);
+  nsresult InstantiatePluginInstance(const char *aMimeType, nsIURI* aURL,
+                                     nsObjectLoadingContent *aContent,
+                                     nsPluginInstanceOwner** aOwner);
 
   
   nsPluginTag* TagForPlugin(nsNPAPIPlugin* aPlugin);
 
   nsresult GetPlugin(const char *aMimeType, nsNPAPIPlugin** aPlugin);
 
-  nsresult NewEmbeddedPluginStreamListener(nsIURI* aURL,
-                                           nsNPAPIPluginInstance* aInstance,
-                                           nsIStreamListener **aStreamListener);
+  nsresult NewPluginStreamListener(nsIURI* aURL,
+                                   nsNPAPIPluginInstance* aInstance,
+                                   nsIStreamListener **aStreamListener);
 
 private:
   nsresult
