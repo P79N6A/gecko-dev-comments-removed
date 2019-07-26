@@ -574,10 +574,12 @@ ccUnload (void)
 
 
 
+
+
     send_task_unload_msg(CC_SRC_SIP);
     send_task_unload_msg(CC_SRC_GSM);
 
-    if (FALSE == gHardCodeSDPMode) {
+    if (!gHardCodeSDPMode) {
     	send_task_unload_msg(CC_SRC_MISC_APP);
     }
 

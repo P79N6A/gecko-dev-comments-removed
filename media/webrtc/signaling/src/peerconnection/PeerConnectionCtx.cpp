@@ -24,7 +24,9 @@
 #include "nsIObserver.h"
 #include "mozilla/Services.h"
 #include "StaticPtr.h"
-#include "mozilla/SyncRunnable.h"
+extern "C" {
+#include "../sipcc/core/common/thread_monitor.h"
+}
 
 static const char* logTag = "PeerConnectionCtx";
 
@@ -100,10 +102,28 @@ PeerConnectionCtx* PeerConnectionCtx::gInstance;
 nsIThread* PeerConnectionCtx::gMainThread;
 StaticRefPtr<mozilla::PeerConnectionCtxShutdown> PeerConnectionCtx::gPeerConnectionCtxShutdown;
 
+
+
+
+
+static void thread_ended_dispatcher(thread_ended_funct func, thread_monitor_id_t id)
+{
+  nsresult rv = PeerConnectionCtx::gMainThread->Dispatch(WrapRunnableNM(func, id),
+                                                         NS_DISPATCH_NORMAL);
+  if (NS_FAILED(rv)) {
+    CSFLogError( logTag, "%s(): Could not dispatch to main thread", __FUNCTION__);
+  }
+}
+
+static void join_waiter() {
+  NS_ProcessPendingEvents(PeerConnectionCtx::gMainThread);
+}
+
 nsresult PeerConnectionCtx::InitializeGlobal(nsIThread *mainThread) {
   if (!gMainThread) {
     gMainThread = mainThread;
     CSF::VcmSIPCCBinding::setMainThread(gMainThread);
+    init_thread_monitor(&thread_ended_dispatcher, &join_waiter);
   } else {
 #ifdef MOZILLA_INTERNAL_API
     MOZ_ASSERT(gMainThread == mainThread);
@@ -258,31 +278,40 @@ void PeerConnectionCtx::onDeviceEvent(ccapi_device_event_e aDeviceEvent,
   }
 }
 
+static void onCallEvent_m(nsAutoPtr<std::string> peerconnection,
+                          ccapi_call_event_e aCallEvent,
+                          CSF::CC_CallInfoPtr aInfo);
+
 void PeerConnectionCtx::onCallEvent(ccapi_call_event_e aCallEvent,
-                                      CSF::CC_CallPtr aCall,
-                                      CSF::CC_CallInfoPtr aInfo) {
+                                    CSF::CC_CallPtr aCall,
+                                    CSF::CC_CallInfoPtr aInfo) {
   
   
   
   
   
-  mozilla::SyncRunnable::DispatchToThread(gMainThread,
-                WrapRunnable(this,
-                             &PeerConnectionCtx::onCallEvent_m,
-                             aCallEvent, aCall, aInfo));
+  
+  nsAutoPtr<std::string> pcDuped(new std::string(aCall->getPeerConnection()));
+
+  
+  nsresult rv = gMainThread->Dispatch(WrapRunnableNM(&onCallEvent_m, pcDuped,
+                                                     aCallEvent, aInfo),
+                                      NS_DISPATCH_NORMAL);
+  if (NS_FAILED(rv)) {
+    CSFLogError( logTag, "%s(): Could not dispatch to main thread", __FUNCTION__);
+  }
 }
 
 
-void PeerConnectionCtx::onCallEvent_m(ccapi_call_event_e aCallEvent,
-                                      CSF::CC_CallPtr aCall,
-                                      CSF::CC_CallInfoPtr aInfo) {
+static void onCallEvent_m(nsAutoPtr<std::string> peerconnection,
+                          ccapi_call_event_e aCallEvent,
+                          CSF::CC_CallInfoPtr aInfo) {
   CSFLogDebug(logTag, "onCallEvent()");
-  PeerConnectionWrapper pc(aCall->getPeerConnection());
+  PeerConnectionWrapper pc(peerconnection->c_str());
   if (!pc.impl())  
     return;
-
   CSFLogDebug(logTag, "Calling PC");
-  pc.impl()->onCallEvent(aCallEvent, aCall, aInfo);
+  pc.impl()->onCallEvent(aCallEvent, aInfo);
 }
 
 }  
