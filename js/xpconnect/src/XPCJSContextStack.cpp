@@ -80,16 +80,16 @@ XPCJSContextStack::Push(JSContext *cx)
             
             
             
-            
             RootedObject defaultScope(cx, GetDefaultScopeFromJSContext(cx));
-            if (defaultScope) {
-                nsIPrincipal *currentPrincipal =
-                  GetCompartmentPrincipal(js::GetContextCompartment(cx));
-                nsIPrincipal *defaultPrincipal = GetObjectPrincipal(defaultScope);
-                if (currentPrincipal->Equals(defaultPrincipal)) {
-                    mStack.AppendElement(cx);
-                    return true;
-                }
+
+            nsIPrincipal *currentPrincipal =
+              GetCompartmentPrincipal(js::GetContextCompartment(cx));
+            nsIPrincipal *defaultPrincipal = GetObjectPrincipal(defaultScope);
+            bool equal = false;
+            currentPrincipal->Equals(defaultPrincipal, &equal);
+            if (equal) {
+                mStack.AppendElement(cx);
+                return true;
             }
         }
 
