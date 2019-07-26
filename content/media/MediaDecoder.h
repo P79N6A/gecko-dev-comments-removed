@@ -818,7 +818,7 @@ public:
 
     FrameStatistics() :
         mReentrantMonitor("MediaDecoder::FrameStats"),
-        mPlaybackJitter(0.0),
+        mTotalFrameDelay(0.0),
         mParsedFrames(0),
         mDecodedFrames(0),
         mPresentedFrames(0) {}
@@ -845,9 +845,9 @@ public:
       return mPresentedFrames;
     }
 
-    double GetPlaybackJitter() {
+    double GetTotalFrameDelay() {
       ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-      return mPlaybackJitter;
+      return mTotalFrameDelay;
     }
 
     
@@ -869,9 +869,9 @@ public:
 
     
     
-    void NotifyPlaybackJitter(double aDisplayError) {
+    void NotifyFrameDelay(double aFrameDelay) {
       ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-      mPlaybackJitter += aDisplayError;
+      mTotalFrameDelay += aFrameDelay;
     }
 
   private:
@@ -881,7 +881,7 @@ public:
 
     
     
-    double mPlaybackJitter;
+    double mTotalFrameDelay;
 
     
     
