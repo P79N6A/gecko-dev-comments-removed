@@ -2400,7 +2400,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  mShouldBuildScrollableLayer = usingDisplayport || nsContentUtils::HasScrollgrab(mOuter->GetContent());
+  mShouldBuildScrollableLayer = usingDisplayport || nsContentUtils::HasScrollgrab(mOuter->GetContent()) || !mOuter->PresContext()->IsChrome();
   bool shouldBuildLayer = false;
   if (mShouldBuildScrollableLayer) {
     shouldBuildLayer = true;
