@@ -526,21 +526,14 @@ MediaStreamGraphImpl::UpdateStreamOrderForStream(mozilla::LinkedList<MediaStream
     if (cycleFound && !delayNodePresent) {
       
       
-      
-      if (!iter) {
+      MOZ_ASSERT(iter);
+      do {
         
-        iter = aStack->getLast();
+        
+        
+        MOZ_ASSERT(iter->AsAudioNodeStream());
         iter->AsAudioNodeStream()->Mute();
-      } else {
-        MOZ_ASSERT(iter);
-        do {
-          
-          
-          
-          MOZ_ASSERT(iter->AsAudioNodeStream());
-          iter->AsAudioNodeStream()->Mute();
-        } while((iter = iter->getNext()));
-      }
+      } while((iter = iter->getNext()));
 
       
       
