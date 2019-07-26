@@ -14,6 +14,7 @@
 #include "nsIAtom.h"
 
 class nsDOMEvent;
+class nsIDOMWindow;
 
 namespace mozilla {
 namespace dom {
@@ -63,6 +64,11 @@ public:
   
   virtual void EventListenerAdded(nsIAtom* aType) {}
   virtual void EventListenerRemoved(nsIAtom* aType) {}
+
+  
+  
+  
+  virtual nsIDOMWindow* GetOwnerGlobal() = 0;
 
 protected:
   EventHandlerNonNull* GetEventHandler(nsIAtom* aType);
