@@ -434,11 +434,11 @@ sipsdp_write_to_buf (cc_sdp_t *sdp_info, uint32_t *retbytes)
         if (rc == SDP_POTENTIAL_SDP_OVERFLOW) {
             
             CCSIP_DEBUG_ERROR(SIP_F_PREFIX"Build SDP buffer overflow\n", fname);
-        } else {
-            cpr_free(buf);
-            *retbytes = 0;
-            return (NULL);
         }
+
+        cpr_free(buf);
+        *retbytes = 0;
+        return (NULL);
     }
 
     
