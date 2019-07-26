@@ -274,7 +274,7 @@ public:
 
 
 
-  bool IsImmutable() const { return mFlags & TextureFlags::IMMUTABLE; }
+  bool IsImmutable() const { return !!(mFlags & TextureFlags::IMMUTABLE); }
 
   void MarkImmutable() { AddFlags(TextureFlags::IMMUTABLE); }
 
