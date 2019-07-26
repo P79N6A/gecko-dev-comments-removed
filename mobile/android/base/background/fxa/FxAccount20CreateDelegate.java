@@ -42,7 +42,11 @@ public class FxAccount20CreateDelegate implements CreateDelegate {
     try {
       body.put("email", new String(emailUTF8, "UTF-8"));
       body.put("authPW", Utils.byte2Hex(authPW));
-      body.put("preVerified", preVerified);
+      if (preVerified) {
+        
+        
+        body.put("preVerified", preVerified);
+      }
       return body;
     } catch (UnsupportedEncodingException e) {
       throw new FxAccountClientException(e);
