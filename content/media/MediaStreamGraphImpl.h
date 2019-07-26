@@ -15,9 +15,6 @@
 
 namespace mozilla {
 
-template <typename T>
-class LinkedList;
-
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaStreamGraphLog;
 #define LOG(type, msg) PR_LOG(gMediaStreamGraphLog, type, msg)
@@ -194,12 +191,6 @@ public:
 
   void PrepareUpdatesToMainThreadState(bool aFinalUpdate);
   
-
-
-
-
-  bool ShouldUpdateMainThread();
-  
   
 
 
@@ -224,7 +215,7 @@ public:
 
 
 
-  void UpdateStreamOrderForStream(mozilla::LinkedList<MediaStream>* aStack,
+  void UpdateStreamOrderForStream(nsTArray<MediaStream*>* aStack,
                                   already_AddRefed<MediaStream> aStream);
   
 
@@ -383,11 +374,6 @@ public:
 
 
 
-  nsTArray<nsRefPtr<MediaStream> > mOldStreams;
-  
-
-
-
   GraphTime mCurrentTime;
   
 
@@ -403,10 +389,6 @@ public:
 
 
   TimeStamp mCurrentTimeStamp;
-  
-
-
-  TimeStamp mLastMainThreadUpdate;
   
 
 

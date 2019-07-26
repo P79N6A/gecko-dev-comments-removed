@@ -1042,20 +1042,6 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  void ClearAndRetainStorage() {
-    if (base_type::mHdr == EmptyHdr()) {
-      return;
-    }
-
-    DestructRange(0, Length());
-    base_type::mHdr->mLength = 0;
-  }
-
 
   
   
