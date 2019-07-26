@@ -463,8 +463,8 @@ CodeGenerator::visitCallNative(LCallNative *call)
 
     
     uint32 safepointOffset = masm.buildFakeExitFrame(tempReg);
-    masm.linkExitFrame();
-    masm.Push(ImmWord(uintptr_t(NULL)));
+    masm.enterFakeExitFrame();
+
     if (!markSafepointAt(safepointOffset, call))
         return false;
 
@@ -489,6 +489,9 @@ CodeGenerator::visitCallNative(LCallNative *call)
         masm.handleException();
     }
     masm.bind(&success);
+
+    
+    
 
     
     masm.adjustStack(IonExitFrameLayout::SizeWithFooter() - unusedStack + sizeof(Value));

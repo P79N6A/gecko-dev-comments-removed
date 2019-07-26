@@ -198,7 +198,7 @@ IonCompartment::generateReturnError(JSContext *cx)
 static void
 GenerateBailoutTail(MacroAssembler &masm)
 {
-    masm.linkExitFrameAndCode();
+    masm.enterExitFrame();
 
     Label reflow;
     Label interpret;
@@ -255,7 +255,7 @@ GenerateBailoutTail(MacroAssembler &masm)
     masm.j(Assembler::Zero, &exception);
 
     
-    masm.freeStack(sizeof(IonCode*));
+    masm.leaveExitFrame();
 
     
     masm.ret();
@@ -474,7 +474,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     
     
-    masm.linkExitFrameAndCode();
+    masm.enterExitFrame(&f);
 
     
     Register argsBase = InvalidReg;
@@ -573,7 +573,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
         JS_ASSERT(f.outParam == Type_Void);
         break;
     }
-    masm.freeStack(sizeof(IonCode*));
+    masm.leaveExitFrame();
     masm.retn(Imm32(sizeof(IonExitFrameLayout) + f.explicitStackSlots() * sizeof(void *)));
 
     masm.bind(&exception);

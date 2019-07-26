@@ -142,6 +142,27 @@ class IonBailedRectifierFrameLayout : public IonJSFrameLayout
 };
 
 
+class IonExitFooterFrame
+{
+    const VMFunction *function_;
+    IonCode *ionCode_;
+
+  public:
+    static inline size_t Size() {
+        return sizeof(IonExitFooterFrame);
+    }
+    inline IonCode *ionCode() const {
+        return ionCode_;
+    }
+    inline IonCode **addressOfIonCode() {
+        return &ionCode_;
+    }
+    inline const VMFunction *function() const {
+        return function_;
+    }
+};
+
+
 class IonExitFrameLayout : public IonCommonFrameLayout
 {
     void *padding2;
@@ -151,10 +172,20 @@ class IonExitFrameLayout : public IonCommonFrameLayout
         return sizeof(IonExitFrameLayout);
     }
     static inline size_t SizeWithFooter() {
-        return Size() + sizeof(IonCode *);
+        return Size() + IonExitFooterFrame::Size();
     }
-    inline IonCode ** ionCodePointer() {
-        return ((IonCode**)this)-1;
+
+    inline IonExitFooterFrame *footer() {
+        uint8 *sp = reinterpret_cast<uint8 *>(this);
+        return reinterpret_cast<IonExitFooterFrame *>(sp - IonExitFooterFrame::Size());
+    }
+
+    
+    
+    
+    inline uint8 *argBase() {
+        uint8 *sp = reinterpret_cast<uint8 *>(this);
+        return sp + IonExitFrameLayout::Size();
     }
 };
 
