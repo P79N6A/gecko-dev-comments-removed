@@ -284,7 +284,6 @@ enum SrcNoteType {
     SRC_SWITCH      = 18,       
 
     SRC_SWITCHBREAK = 18,       
-    SRC_FUNCDEF     = 19,       
     SRC_CATCH       = 20,       
     SRC_COLSPAN     = 21,       
     SRC_NEWLINE     = 22,       
