@@ -62,8 +62,6 @@ public:
     , mMayHaveTouchListeners(false)
     , mIsRoot(false)
     , mHasScrollgrab(false)
-    , mDisableScrollingX(false)
-    , mDisableScrollingY(false)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
   {}
@@ -88,8 +86,6 @@ public:
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
-           mDisableScrollingX == aOther.mDisableScrollingX &&
-           mDisableScrollingY == aOther.mDisableScrollingY &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset;
   }
   bool operator!=(const FrameMetrics& aOther) const
@@ -304,26 +300,6 @@ public:
   bool mHasScrollgrab;
 
 public:
-  bool GetDisableScrollingX() const
-  {
-    return mDisableScrollingX;
-  }
-
-  void SetDisableScrollingX(bool aDisableScrollingX)
-  {
-    mDisableScrollingX = aDisableScrollingX;
-  }
-
-  bool GetDisableScrollingY() const
-  {
-    return mDisableScrollingY;
-  }
-
-  void SetDisableScrollingY(bool aDisableScrollingY)
-  {
-    mDisableScrollingY = aDisableScrollingY;
-  }
-
   void SetScrollOffsetUpdated(uint32_t aScrollGeneration)
   {
     mUpdateScrollOffset = true;
@@ -353,11 +329,6 @@ public:
 private:
   
   
-
-  
-  
-  bool mDisableScrollingX;
-  bool mDisableScrollingY;
 
   
   

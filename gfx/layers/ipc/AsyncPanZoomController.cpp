@@ -792,7 +792,7 @@ nsEventStatus AsyncPanZoomController::OnScaleBegin(const PinchGestureInput& aEve
     return nsEventStatus_eIgnore;
   }
 
-  if (!AllowZoom()) {
+  if (!mZoomConstraints.mAllowZoom) {
     return nsEventStatus_eConsumeNoDefault;
   }
 
@@ -952,7 +952,7 @@ nsEventStatus AsyncPanZoomController::OnSingleTapUp(const TapGestureInput& aEven
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   
   
-  if (controller && !AllowDoubleTapZoom()) {
+  if (controller && !mZoomConstraints.mAllowDoubleTapZoom) {
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
     CSSIntPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
@@ -993,7 +993,7 @@ nsEventStatus AsyncPanZoomController::OnDoubleTap(const TapGestureInput& aEvent)
   APZC_LOG("%p got a double-tap in state %d\n", this, mState);
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
-    if (AllowDoubleTapZoom()) {
+    if (mZoomConstraints.mAllowDoubleTapZoom) {
       int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
       CSSIntPoint geckoScreenPoint;
       if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
@@ -1155,11 +1155,9 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
 
     CSSPoint cssOverscroll;
     gfx::Point scrollOffset(mX.AdjustDisplacement(cssDisplacement.x,
-                                                  cssOverscroll.x,
-                                                  mFrameMetrics.GetDisableScrollingX()),
+                                                  cssOverscroll.x),
                             mY.AdjustDisplacement(cssDisplacement.y,
-                                                  cssOverscroll.y,
-                                                  mFrameMetrics.GetDisableScrollingY()));
+                                                  cssOverscroll.y));
     overscroll = cssOverscroll * zoom;
 
     if (fabs(scrollOffset.x) > EPSILON || fabs(scrollOffset.y) > EPSILON) {
@@ -1255,10 +1253,8 @@ bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
   
   CSSPoint cssOffset = offset / aFrameMetrics.mZoom;
   aFrameMetrics.mScrollOffset += CSSPoint::FromUnknownPoint(gfx::Point(
-    mX.AdjustDisplacement(cssOffset.x, overscroll.x,
-                          aFrameMetrics.GetDisableScrollingX()),
-    mY.AdjustDisplacement(cssOffset.y, overscroll.y,
-                          aFrameMetrics.GetDisableScrollingY())
+    mX.AdjustDisplacement(cssOffset.x, overscroll.x),
+    mY.AdjustDisplacement(cssOffset.y, overscroll.y)
   ));
 
   return true;
@@ -1325,21 +1321,10 @@ CalculateDisplayPortSize(const CSSRect& aCompositionBounds,
 static void
 RedistributeDisplayPortExcess(CSSSize& aDisplayPortSize,
                               const CSSRect& aCompositionBounds,
-                              const CSSRect& aScrollableRect,
-                              bool aScrollingDisabledX,
-                              bool aScrollingDisabledY)
+                              const CSSRect& aScrollableRect)
 {
-  float xSlack, ySlack;
-  if (aScrollingDisabledX) {
-    xSlack = aDisplayPortSize.width - aCompositionBounds.width;
-  } else {
-    xSlack = std::max(0.0f, aDisplayPortSize.width - aScrollableRect.width);
-  }
-  if (aScrollingDisabledY) {
-    ySlack = aDisplayPortSize.height - aCompositionBounds.height;
-  } else {
-    ySlack = std::max(0.0f, aDisplayPortSize.height - aScrollableRect.height);
-  }
+  float xSlack = std::max(0.0f, aDisplayPortSize.width - aScrollableRect.width);
+  float ySlack = std::max(0.0f, aDisplayPortSize.height - aScrollableRect.height);
 
   if (ySlack > 0) {
     
@@ -1366,21 +1351,10 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   CSSRect scrollableRect = aFrameMetrics.GetExpandedScrollableRect();
 
   
-  
-  if (aFrameMetrics.GetDisableScrollingX()) {
-    velocity.x = 0;
-  }
-  if (aFrameMetrics.GetDisableScrollingY()) {
-    velocity.y = 0;
-  }
-
-  
   CSSSize displayPortSize = CalculateDisplayPortSize(compositionBounds, velocity);
 
   if (gEnlargeDisplayPortWhenClipped) {
-    RedistributeDisplayPortExcess(displayPortSize, compositionBounds, scrollableRect,
-                                  aFrameMetrics.GetDisableScrollingX(),
-                                  aFrameMetrics.GetDisableScrollingY());
+    RedistributeDisplayPortExcess(displayPortSize, compositionBounds, scrollableRect);
   }
 
   
@@ -1701,8 +1675,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mFrameMetrics.mResolution = aLayerMetrics.mResolution;
     mFrameMetrics.mCumulativeResolution = aLayerMetrics.mCumulativeResolution;
     mFrameMetrics.mHasScrollgrab = aLayerMetrics.mHasScrollgrab;
-    mFrameMetrics.SetDisableScrollingX(aLayerMetrics.GetDisableScrollingX());
-    mFrameMetrics.SetDisableScrollingY(aLayerMetrics.GetDisableScrollingY());
 
     
     
@@ -1954,19 +1926,6 @@ bool AsyncPanZoomController::IsTransformingState(PanZoomState aState) {
 
 bool AsyncPanZoomController::IsPanningState(PanZoomState aState) {
   return (aState == PANNING || aState == PANNING_LOCKED_X || aState == PANNING_LOCKED_Y);
-}
-
-bool AsyncPanZoomController::AllowZoom() {
-  
-  
-  ReentrantMonitorAutoEnter lock(mMonitor);
-  return mZoomConstraints.mAllowZoom
-      && !(mFrameMetrics.GetDisableScrollingX() || mFrameMetrics.GetDisableScrollingY());
-}
-
-bool AsyncPanZoomController::AllowDoubleTapZoom() {
-  ReentrantMonitorAutoEnter lock(mMonitor);
-  return mZoomConstraints.mAllowDoubleTapZoom && AllowZoom();
 }
 
 void AsyncPanZoomController::SetContentResponseTimer() {

@@ -77,11 +77,7 @@ public:
 
 
 
-
-
-
-  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut,
-                           bool aScrollingDisabled);
+  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut);
 
   
 

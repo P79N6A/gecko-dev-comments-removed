@@ -599,9 +599,6 @@ private:
   bool IsTransformingState(PanZoomState aState);
   bool IsPanningState(PanZoomState mState);
 
-  bool AllowZoom();
-  bool AllowDoubleTapZoom();
-
   enum AxisLockMode {
     FREE,     
     STANDARD, 
