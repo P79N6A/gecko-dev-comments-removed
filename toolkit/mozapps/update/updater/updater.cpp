@@ -2643,7 +2643,12 @@ int NS_main(int argc, NS_tchar **argv)
   
   
   
+  umask(0022);
 
+  
+  
+  
+  
   {
     GonkAutoMounter mounter;
     if (mounter.GetAccess() != MountAccess::ReadWrite) {
