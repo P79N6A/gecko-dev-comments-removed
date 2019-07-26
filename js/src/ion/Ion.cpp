@@ -1697,10 +1697,10 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
     int numActualArgs = 0;
     RootedValue thisv(cx);
 
-    fp->cleanupTornValues();
-
     void *calleeToken;
     if (fp->isFunctionFrame()) {
+        fp->cleanupTornValues();
+
         
         maxArgc = CountArgSlots(fp->fun()) - 1; 
         maxArgv = fp->formals() - 1;            
