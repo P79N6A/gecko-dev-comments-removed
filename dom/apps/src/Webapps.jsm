@@ -1635,7 +1635,8 @@ this.DOMApplicationRegistry = {
     
     
     if (this.getAppLocalIdByManifestURL(app.manifestURL) !==
-        Ci.nsIScriptSecurityManager.NO_APP_ID) {
+        Ci.nsIScriptSecurityManager.NO_APP_ID ||
+        this._appId(app.origin) !== null) {
       sendError("REINSTALL_FORBIDDEN");
       return;
     }
