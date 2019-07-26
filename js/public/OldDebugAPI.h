@@ -24,8 +24,7 @@ class JSFreeOp;
 
 namespace js {
 class InterpreterFrame;
-class FrameIter;
-class ScriptSource;
+class ScriptFrameIter;
 }
 
 
@@ -40,20 +39,18 @@ namespace JS {
 class FrameDescription
 {
   public:
-    explicit FrameDescription(const js::FrameIter& iter);
-    FrameDescription(const FrameDescription &rhs);
-    ~FrameDescription();
+    explicit FrameDescription(const js::ScriptFrameIter& iter);
 
     unsigned lineno() {
-        if (!linenoComputed_) {
+        if (!linenoComputed) {
             lineno_ = JS_PCToLineNumber(nullptr, script_, pc_);
-            linenoComputed_ = true;
+            linenoComputed = true;
         }
         return lineno_;
     }
 
     const char *filename() const {
-        return filename_;
+        return JS_GetScriptFilename(script_);
     }
 
     JSFlatString *funDisplayName() const {
@@ -70,22 +67,11 @@ class FrameDescription
     }
 
   private:
-    void operator=(const FrameDescription &) MOZ_DELETE;
-
-    
-    Heap<JSString*> funDisplayName_;
-    const char *filename_;
-
-    
     Heap<JSScript*> script_;
-    js::ScriptSource *scriptSource_;
-
-    
-    bool linenoComputed_;
-    unsigned lineno_;
-
-    
+    Heap<JSString*> funDisplayName_;
     jsbytecode *pc_;
+    unsigned lineno_;
+    bool linenoComputed;
 };
 
 struct StackDescription
