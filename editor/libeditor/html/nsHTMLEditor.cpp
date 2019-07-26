@@ -1721,8 +1721,7 @@ nsHTMLEditor::GetParagraphState(bool *aMixed, nsAString &outFormat)
 {
   if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
   NS_ENSURE_TRUE(aMixed, NS_ERROR_NULL_POINTER);
-  nsHTMLEditRules* htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
-  NS_ENSURE_TRUE(htmlRules, NS_ERROR_FAILURE);
+  nsRefPtr<nsHTMLEditRules> htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
   
   return htmlRules->GetParagraphState(aMixed, outFormat);
 }
@@ -1912,8 +1911,7 @@ nsHTMLEditor::GetListState(bool *aMixed, bool *aOL, bool *aUL, bool *aDL)
 {
   if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
   NS_ENSURE_TRUE(aMixed && aOL && aUL && aDL, NS_ERROR_NULL_POINTER);
-  nsHTMLEditRules* htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
-  NS_ENSURE_TRUE(htmlRules, NS_ERROR_FAILURE);
+  nsRefPtr<nsHTMLEditRules> htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
   
   return htmlRules->GetListState(aMixed, aOL, aUL, aDL);
 }
@@ -1924,8 +1922,7 @@ nsHTMLEditor::GetListItemState(bool *aMixed, bool *aLI, bool *aDT, bool *aDD)
   if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
   NS_ENSURE_TRUE(aMixed && aLI && aDT && aDD, NS_ERROR_NULL_POINTER);
 
-  nsHTMLEditRules* htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
-  NS_ENSURE_TRUE(htmlRules, NS_ERROR_FAILURE);
+  nsRefPtr<nsHTMLEditRules> htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
   
   return htmlRules->GetListItemState(aMixed, aLI, aDT, aDD);
 }
@@ -1935,8 +1932,7 @@ nsHTMLEditor::GetAlignment(bool *aMixed, nsIHTMLEditor::EAlignment *aAlign)
 {
   if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
   NS_ENSURE_TRUE(aMixed && aAlign, NS_ERROR_NULL_POINTER);
-  nsHTMLEditRules* htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
-  NS_ENSURE_TRUE(htmlRules, NS_ERROR_FAILURE);
+  nsRefPtr<nsHTMLEditRules> htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
   
   return htmlRules->GetAlignment(aMixed, aAlign);
 }
@@ -1948,8 +1944,7 @@ nsHTMLEditor::GetIndentState(bool *aCanIndent, bool *aCanOutdent)
   if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
   NS_ENSURE_TRUE(aCanIndent && aCanOutdent, NS_ERROR_NULL_POINTER);
 
-  nsHTMLEditRules* htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
-  NS_ENSURE_TRUE(htmlRules, NS_ERROR_FAILURE);
+  nsRefPtr<nsHTMLEditRules> htmlRules = static_cast<nsHTMLEditRules*>(mRules.get());
   
   return htmlRules->GetIndentState(aCanIndent, aCanOutdent);
 }
@@ -3249,6 +3244,8 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
       
       return;
     }
+    
+    nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
     mRules->DocumentModified();
 
     
@@ -3280,6 +3277,8 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
       
       return;
     }
+    
+    nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
     mRules->DocumentModified();
   }
 }

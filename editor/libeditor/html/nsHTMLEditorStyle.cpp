@@ -140,6 +140,8 @@ nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
 
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(EditAction::setTextProperty);
+  
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled) {
@@ -1354,6 +1356,8 @@ nsresult nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom *aProperty, const nsAStr
   
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(EditAction::removeTextProperty);
+  
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled)

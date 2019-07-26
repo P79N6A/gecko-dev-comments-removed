@@ -152,6 +152,8 @@ NS_IMETHODIMP nsHTMLEditor::LoadHTML(const nsAString & aInputString)
 
   nsTextRulesInfo ruleInfo(EditAction::loadHTML);
   bool cancel, handled;
+  
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel) {
@@ -1702,6 +1704,8 @@ NS_IMETHODIMP nsHTMLEditor::PasteAsCitedQuotation(const nsAString & aCitation,
   
   nsTextRulesInfo ruleInfo(EditAction::insertElement);
   bool cancel, handled;
+  
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
@@ -1906,6 +1910,8 @@ nsHTMLEditor::InsertAsPlaintextQuotation(const nsAString & aQuotedText,
   
   nsTextRulesInfo ruleInfo(EditAction::insertElement);
   bool cancel, handled;
+  
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
@@ -1999,6 +2005,8 @@ nsHTMLEditor::InsertAsCitedQuotation(const nsAString & aQuotedText,
   
   nsTextRulesInfo ruleInfo(EditAction::insertElement);
   bool cancel, handled;
+  
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
