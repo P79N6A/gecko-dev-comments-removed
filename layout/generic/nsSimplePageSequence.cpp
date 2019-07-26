@@ -2,8 +2,10 @@
 
 
 
-#include "nsCOMPtr.h"
+
 #include "nsSimplePageSequence.h"
+
+#include "nsCOMPtr.h"
 #include "nsPresContext.h"
 #include "gfxContext.h"
 #include "nsRenderingContext.h"

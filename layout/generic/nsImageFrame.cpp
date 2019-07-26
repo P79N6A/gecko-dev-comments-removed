@@ -5,10 +5,11 @@
 
 
 
+#include "nsImageFrame.h"
+
 #include "mozilla/DebugOnly.h"
 
 #include "nsCOMPtr.h"
-#include "nsImageFrame.h"
 #include "nsIImageLoadingContent.h"
 #include "nsString.h"
 #include "nsPrintfCString.h"

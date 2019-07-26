@@ -6,6 +6,8 @@
 
 
 
+#include "nsBlockReflowState.h"
+
 #include "mozilla/DebugOnly.h"
 
 #include "nsBlockFrame.h"

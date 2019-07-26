@@ -6,6 +6,8 @@
 
 
 
+#include "nsObjectFrame.h"
+
 #ifdef XP_WIN
 
 #include "mozilla/plugins/PluginMessageUtils.h"
@@ -36,7 +38,6 @@
 #include "GeckoProfiler.h"
 #include <algorithm>
 
-#include "nsObjectFrame.h"
 #include "nsIObjectFrame.h"
 #include "nsPluginNativeWindow.h"
 #include "FrameLayerBuilder.h"

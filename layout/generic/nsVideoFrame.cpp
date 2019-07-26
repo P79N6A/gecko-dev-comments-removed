@@ -6,10 +6,11 @@
 
 
 
+#include "nsVideoFrame.h"
+
 #include "nsCOMPtr.h"
 #include "nsGkAtoms.h"
 
-#include "nsVideoFrame.h"
 #include "mozilla/dom/HTMLVideoElement.h"
 #include "nsIDOMHTMLVideoElement.h"
 #include "nsIDOMHTMLImageElement.h"
