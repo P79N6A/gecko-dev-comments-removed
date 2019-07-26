@@ -178,6 +178,19 @@ RotatedBuffer::DrawBufferQuadrant(gfx::DrawTarget* aTarget,
 
   gfx::Point quadrantTranslation(quadrantRect.x, quadrantRect.y);
 
+  MOZ_ASSERT(aOperator == OP_OVER || aOperator == OP_SOURCE);
+  
+  
+  
+  
+  
+  if (aTarget->GetType() == BACKEND_DIRECT2D && aOperator == OP_SOURCE) {
+    aOperator = OP_OVER;
+    if (mDTBuffer->GetFormat() == FORMAT_B8G8R8A8) {
+      aTarget->ClearRect(ToRect(fillRect));
+    }
+  }
+
   RefPtr<SourceSurface> snapshot;
   if (aSource == BUFFER_BLACK) {
     snapshot = mDTBuffer->Snapshot();
