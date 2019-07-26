@@ -135,11 +135,13 @@ gcli.addCommand({
       }
 
       
-      this.resolve(header +
-        "<ol>" +
-        enabledAddons.sort(compareAddonNames).map(representEnabledAddon).join("") +
-        disabledAddons.sort(compareAddonNames).map(representDisabledAddon).join("") +
-        "</ol>");
+      let message = header +
+                    "<ol>" +
+                    enabledAddons.sort(compareAddonNames).map(representEnabledAddon).join("") +
+                    disabledAddons.sort(compareAddonNames).map(representDisabledAddon).join("") +
+                    "</ol>";
+
+      this.resolve(context.createView({ html: message }));
     }
 
     
@@ -231,16 +233,15 @@ AddonManager.getAllAddons(function addonAsync(aAddons) {
         });
 
         let name = representAddon(addon);
+        let message = "";
 
         if (!addon.userDisabled) {
-          this.resolve("<![CDATA[" +
-            gcli.lookupFormat("addonAlreadyEnabled", [name]) + "]]>");
+          message = gcli.lookupFormat("addonAlreadyEnabled", [name]);
         } else {
           addon.userDisabled = false;
-          
-          this.resolve("<![CDATA[" +
-            gcli.lookupFormat("addonEnabled", [name]) + "]]>");
+          message = gcli.lookupFormat("addonEnabled", [name]);
         }
+        this.resolve(message);
       }
 
       let promise = context.createPromise();
@@ -274,16 +275,15 @@ AddonManager.getAllAddons(function addonAsync(aAddons) {
         });
 
         let name = representAddon(addon);
+        let message = "";
 
         if (addon.userDisabled) {
-          this.resolve("<![CDATA[" +
-            gcli.lookupFormat("addonAlreadyDisabled", [name]) + "]]>");
+          message = gcli.lookupFormat("addonAlreadyDisabled", [name]);
         } else {
           addon.userDisabled = true;
-          
-          this.resolve("<![CDATA[" +
-            gcli.lookupFormat("addonDisabled", [name]) + "]]>");
+          message = gcli.lookupFormat("addonDisabled", [name]);
         }
+        this.resolve(message);
       }
 
       let promise = context.createPromise();
