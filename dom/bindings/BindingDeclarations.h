@@ -270,7 +270,7 @@ private:
 
 
 
-class FakeDependentString;
+struct FakeDependentString;
 
 template<>
 class Optional<nsAString>
