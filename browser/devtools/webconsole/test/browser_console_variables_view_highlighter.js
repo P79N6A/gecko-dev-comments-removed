@@ -66,7 +66,7 @@ function onNodeListVviewFetched(aEvent, aVar)
       
       prop.highlightDomNode();
     } else {
-      finishTest();
+      finishUp();
     }
   }
 
@@ -88,4 +88,10 @@ function onNodeListVviewFetched(aEvent, aVar)
   }
 
   hoverOverDomNodeVariableAndAssertHighlighter(0);
+}
+
+function finishUp() {
+  gWebConsole = gJSTerm = gVariablesView = gToolbox = null;
+
+  finishTest();
 }
