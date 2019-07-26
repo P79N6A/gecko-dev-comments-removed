@@ -94,6 +94,42 @@ this.BookmarkJSONUtils = Object.freeze({
       }
     }, Ci.nsIThread.DISPATCH_NORMAL);
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  serializeNodeAsJSONToOutputStream: function BJU_serializeNodeAsJSONToOutputStream(
+    aNode, aStream, aIsUICommand, aResolveShortcuts, aExcludeItems) {
+    let deferred = Promise.defer();
+    Services.tm.mainThread.dispatch(function() {
+      try {
+        BookmarkNode.serializeAsJSONToOutputStream(
+          aNode, aStream, aIsUICommand, aResolveShortcuts, aExcludeItems);
+        deferred.resolve();
+      } catch (ex) {
+        deferred.reject(ex);
+      }
+    }, Ci.nsIThread.DISPATCH_NORMAL);
+    return deferred.promise;
   }
 });
 

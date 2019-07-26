@@ -559,7 +559,7 @@ this.PlacesUtils = {
         };
 
         let [node, shouldClose] = convertNode(aNode);
-        this.serializeNodeAsJSONToOutputStream(node, writer, true, aForceCopy);
+        this._serializeNodeAsJSONToOutputStream(node, writer, true, aForceCopy);
         if (shouldClose)
           node.containerOpen = false;
 
@@ -1326,8 +1326,8 @@ this.PlacesUtils = {
 
 
 
-  serializeNodeAsJSONToOutputStream:
-  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
+  _serializeNodeAsJSONToOutputStream:
+  function PU__serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
                                                 aResolveShortcuts,
                                                 aExcludeItems) {
     function addGenericProperties(aPlacesNode, aJSNode) {
@@ -1518,6 +1518,36 @@ this.PlacesUtils = {
     else {
       throw Cr.NS_ERROR_UNEXPECTED;
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  serializeNodeAsJSONToOutputStream:
+  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
+                                                aResolveShortcuts,
+                                                aExcludeItems) {
+    Deprecated.warning(
+      "serializeNodeAsJSONToOutputStream is deprecated and will be removed in a future version",
+      "https://bugzilla.mozilla.org/show_bug.cgi?id=854761");
+
+    this._serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
+                                            aResolveShortcuts, aExcludeItems);
   },
 
   
