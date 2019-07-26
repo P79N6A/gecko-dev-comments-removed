@@ -82,6 +82,12 @@ function setup() {
   
   Components.utils.import('resource://gre/modules/Webapps.jsm');
   DOMApplicationRegistry.allAppsLaunchable = true;
+
+  
+  Cu.import("resource://gre/modules/WebappOSUtils.jsm");
+  WebappOSUtils.getPackagePath = function(aApp) {
+    return aApp.basePath + "/" + aApp.id;
+  }
 }
 
 function do_get_webappsdir() {

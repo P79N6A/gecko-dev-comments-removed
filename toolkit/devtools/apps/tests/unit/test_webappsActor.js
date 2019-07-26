@@ -1,7 +1,6 @@
 
 
 
-Cu.import("resource://gre/modules/osfile.jsm");
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const {require} = devtools;
 const {installHosted, installPackaged} = require("devtools/app-actor-front");
