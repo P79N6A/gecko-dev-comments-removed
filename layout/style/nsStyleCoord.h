@@ -11,7 +11,7 @@
 #include "nsCoord.h"
 #include "nsStyleConsts.h"
 
-enum nsStyleUnit {
+enum nsStyleUnit : uint8_t {
   eStyleUnit_Null         = 0,      
   eStyleUnit_Normal       = 1,      
   eStyleUnit_Auto         = 2,      
@@ -186,7 +186,7 @@ public:
   inline void SetBottom(const nsStyleCoord& aCoord);
 
 protected:
-  uint8_t       mUnits[4];
+  nsStyleUnit   mUnits[4];
   nsStyleUnion  mValues[4];
 };
 
@@ -214,7 +214,7 @@ public:
   inline void Set(uint8_t aHalfCorner, const nsStyleCoord& aCoord);
 
 protected:
-  uint8_t       mUnits[8];
+  nsStyleUnit   mUnits[8];
   nsStyleUnion  mValues[8];
 };
 
