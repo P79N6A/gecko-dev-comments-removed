@@ -290,8 +290,11 @@ CopyableCanvasLayer::PaintWithOpacity(gfx::DrawTarget* aTarget,
     options.mCompositionOp = aOperator;
   }
 
+  
+  
   Rect rect = Rect(0, 0, mBounds.width, mBounds.height);
   aTarget->FillRect(rect, pat, options);
+
   if (aMaskSurface) {
     aTarget->MaskSurface(pat, aMaskSurface, Point(0, 0), options);
   }
