@@ -165,17 +165,15 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
         
 
         nsCStringKey *newFromKey = new nsCStringKey(ToNewCString(fromStr), fromStr.Length(), nsCStringKey::OWN);
-        SCTableData *data = new SCTableData();
-        mAdjacencyList.Put(newFromKey, data);
-        fromEdges = data;
+        fromEdges = new SCTableData();
+        mAdjacencyList.Put(newFromKey, fromEdges);
     }
 
     nsCStringKey toKey(toStr);
     if (!mAdjacencyList.Get(&toKey)) {
         
         nsCStringKey *newToKey = new nsCStringKey(ToNewCString(toStr), toStr.Length(), nsCStringKey::OWN);
-        SCTableData *data = new SCTableData();
-        mAdjacencyList.Put(newToKey, data);
+        mAdjacencyList.Put(newToKey, new SCTableData());
     }
 
     
