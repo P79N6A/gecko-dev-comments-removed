@@ -369,7 +369,7 @@ bool nsXBLService::gAllowDataURIs = false;
 
 nsHashtable* nsXBLService::gClassTable = nullptr;
 
-JSCList  nsXBLService::gClassLRUList = JS_INIT_STATIC_CLIST(&nsXBLService::gClassLRUList);
+LinkedList<nsXBLJSClass>* nsXBLService::gClassLRUList = nullptr;
 uint32_t nsXBLService::gClassLRUListLength = 0;
 uint32_t nsXBLService::gClassLRUListQuota = 64;
 
@@ -393,6 +393,7 @@ nsXBLService::Init()
 nsXBLService::nsXBLService(void)
 {
   gClassTable = new nsHashtable();
+  gClassLRUList = new LinkedList<nsXBLJSClass>();
 
   Preferences::AddBoolVarCache(&gAllowDataURIs, "layout.debug.enable_data_xbl");
 }
@@ -406,6 +407,8 @@ nsXBLService::~nsXBLService(void)
   
   
   gClassLRUListLength = gClassLRUListQuota = 0;
+  delete gClassLRUList;
+  gClassLRUList = nullptr;
 
   
   
@@ -642,11 +645,8 @@ nsXBLService::Observe(nsISupports* aSubject, const char* aTopic, const PRUnichar
 nsresult
 nsXBLService::FlushMemory()
 {
-  while (!JS_CLIST_IS_EMPTY(&gClassLRUList)) {
-    JSCList* lru = gClassLRUList.next;
-    nsXBLJSClass* c = static_cast<nsXBLJSClass*>(lru);
-
-    JS_REMOVE_AND_INIT_LINK(lru);
+  while (!gClassLRUList->isEmpty()) {
+    nsXBLJSClass* c = gClassLRUList->popFirst();
     delete c;
     gClassLRUListLength--;
   }
