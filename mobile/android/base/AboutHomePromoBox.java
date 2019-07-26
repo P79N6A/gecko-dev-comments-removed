@@ -156,7 +156,7 @@ public class AboutHomePromoBox extends TextView implements View.OnClickListener 
                 }
 
                 
-                if (AboutHomePromoBox.sTypeIndex == -1) {
+                if (AboutHomePromoBox.sTypeIndex == -1 || AboutHomePromoBox.sTypeIndex > types.size()) {
                     AboutHomePromoBox.sTypeIndex = new Random().nextInt(types.size());
                 }
                 mType = types.get(AboutHomePromoBox.sTypeIndex);
