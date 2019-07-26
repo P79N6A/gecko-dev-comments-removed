@@ -1903,12 +1903,6 @@ DownloadLegacySaver.prototype = {
 
     
     this.deferCanceled.resolve();
-
-    
-    
-    
-    this.deferExecuted.reject(new DownloadError(Cr.NS_ERROR_FAILURE,
-                                                "Download canceled."));
   },
 
   
