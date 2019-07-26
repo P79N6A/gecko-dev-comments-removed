@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#include "mozilla/TypedEnum.h"
+
 
 
 
@@ -42,6 +44,17 @@ enum KeyNameIndex
 };
 
 #undef NS_DEFINE_KEYNAME
+
+#define NS_DEFINE_COMMAND(aName, aCommandStr) , Command##aName
+
+typedef int8_t CommandInt;
+enum Command MOZ_ENUM_TYPE(CommandInt)
+{
+  CommandDoNothing
+
+#include "mozilla/CommandList.h"
+};
+#undef NS_DEFINE_COMMAND
 
 } 
 

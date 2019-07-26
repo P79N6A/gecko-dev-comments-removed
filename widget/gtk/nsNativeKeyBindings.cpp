@@ -32,7 +32,7 @@ static bool gHandled;
 static void
 copy_clipboard_cb(GtkWidget *w, gpointer user_data)
 {
-  gCurrentCallback("cmd_copy", gCurrentCallbackData);
+  gCurrentCallback(CommandCopy, gCurrentCallbackData);
   g_signal_stop_emission_by_name(w, "copy_clipboard");
   gHandled = true;
 }
@@ -40,7 +40,7 @@ copy_clipboard_cb(GtkWidget *w, gpointer user_data)
 static void
 cut_clipboard_cb(GtkWidget *w, gpointer user_data)
 {
-  gCurrentCallback("cmd_cut", gCurrentCallbackData);
+  gCurrentCallback(CommandCut, gCurrentCallbackData);
   g_signal_stop_emission_by_name(w, "cut_clipboard");
   gHandled = true;
 }
@@ -50,19 +50,19 @@ cut_clipboard_cb(GtkWidget *w, gpointer user_data)
 
 
 
-static const char *const sDeleteCommands[][2] = {
+static const Command sDeleteCommands[][2] = {
   
-  { "cmd_deleteCharBackward", "cmd_deleteCharForward" },    
-  { "cmd_deleteWordBackward", "cmd_deleteWordForward" },    
-  { "cmd_deleteWordBackward", "cmd_deleteWordForward" },    
-  { "cmd_deleteToBeginningOfLine", "cmd_deleteToEndOfLine" }, 
-  { "cmd_deleteToBeginningOfLine", "cmd_deleteToEndOfLine" }, 
-  { "cmd_deleteToBeginningOfLine", "cmd_deleteToEndOfLine" }, 
-  { "cmd_deleteToBeginningOfLine", "cmd_deleteToEndOfLine" }, 
+  { CommandDeleteCharBackward, CommandDeleteCharForward },    
+  { CommandDeleteWordBackward, CommandDeleteWordForward },    
+  { CommandDeleteWordBackward, CommandDeleteWordForward },    
+  { CommandDeleteToBeginningOfLine, CommandDeleteToEndOfLine }, 
+  { CommandDeleteToBeginningOfLine, CommandDeleteToEndOfLine }, 
+  { CommandDeleteToBeginningOfLine, CommandDeleteToEndOfLine }, 
+  { CommandDeleteToBeginningOfLine, CommandDeleteToEndOfLine }, 
   
   
   
-  { nullptr, nullptr } 
+  { CommandDoNothing, CommandDoNothing } 
 };
 
 static void
@@ -82,11 +82,11 @@ delete_from_cursor_cb(GtkWidget *w, GtkDeleteType del_type,
     
     
     if (forward) {
-      gCurrentCallback("cmd_wordNext", gCurrentCallbackData);
-      gCurrentCallback("cmd_wordPrevious", gCurrentCallbackData);
+      gCurrentCallback(CommandWordNext, gCurrentCallbackData);
+      gCurrentCallback(CommandWordPrevious, gCurrentCallbackData);
     } else {
-      gCurrentCallback("cmd_wordPrevious", gCurrentCallbackData);
-      gCurrentCallback("cmd_wordNext", gCurrentCallbackData);
+      gCurrentCallback(CommandWordPrevious, gCurrentCallbackData);
+      gCurrentCallback(CommandWordNext, gCurrentCallbackData);
     }
   } else if (del_type == GTK_DELETE_DISPLAY_LINES ||
              del_type == GTK_DELETE_PARAGRAPHS) {
@@ -94,66 +94,67 @@ delete_from_cursor_cb(GtkWidget *w, GtkDeleteType del_type,
     
     
     if (forward) {
-      gCurrentCallback("cmd_beginLine", gCurrentCallbackData);
+      gCurrentCallback(CommandBeginLine, gCurrentCallbackData);
     } else {
-      gCurrentCallback("cmd_endLine", gCurrentCallbackData);
+      gCurrentCallback(CommandEndLine, gCurrentCallbackData);
     }
   }
 
-  const char *cmd = sDeleteCommands[del_type][forward];
-  if (!cmd)
+  Command command = sDeleteCommands[del_type][forward];
+  if (!command) {
     return; 
+  }
 
   unsigned int absCount = Abs(count);
   for (unsigned int i = 0; i < absCount; ++i) {
-    gCurrentCallback(cmd, gCurrentCallbackData);
+    gCurrentCallback(command, gCurrentCallbackData);
   }
 }
 
-static const char *const sMoveCommands[][2][2] = {
+static const Command sMoveCommands[][2][2] = {
   
   
   
   
   { 
-    { "cmd_charPrevious", "cmd_charNext" },
-    { "cmd_selectCharPrevious", "cmd_selectCharNext" }
+    { CommandCharPrevious, CommandCharNext },
+    { CommandSelectCharPrevious, CommandSelectCharNext }
   },
   { 
-    { "cmd_charPrevious", "cmd_charNext" },
-    { "cmd_selectCharPrevious", "cmd_selectCharNext" }
+    { CommandCharPrevious, CommandCharNext },
+    { CommandSelectCharPrevious, CommandSelectCharNext }
   },
   { 
-    { "cmd_wordPrevious", "cmd_wordNext" },
-    { "cmd_selectWordPrevious", "cmd_selectWordNext" }
+    { CommandWordPrevious, CommandWordNext },
+    { CommandSelectWordPrevious, CommandSelectWordNext }
   },
   { 
-    { "cmd_linePrevious", "cmd_lineNext" },
-    { "cmd_selectLinePrevious", "cmd_selectLineNext" }
+    { CommandLinePrevious, CommandLineNext },
+    { CommandSelectLinePrevious, CommandSelectLineNext }
   },
   { 
-    { "cmd_beginLine", "cmd_endLine" },
-    { "cmd_selectBeginLine", "cmd_selectEndLine" }
+    { CommandBeginLine, CommandEndLine },
+    { CommandSelectBeginLine, CommandSelectEndLine }
   },
   { 
-    { "cmd_linePrevious", "cmd_lineNext" },
-    { "cmd_selectLinePrevious", "cmd_selectLineNext" }
+    { CommandLinePrevious, CommandLineNext },
+    { CommandSelectLinePrevious, CommandSelectLineNext }
   },
   { 
-    { "cmd_beginLine", "cmd_endLine" },
-    { "cmd_selectBeginLine", "cmd_selectEndLine" }
+    { CommandBeginLine, CommandEndLine },
+    { CommandSelectBeginLine, CommandSelectEndLine }
   },
   { 
-    { "cmd_movePageUp", "cmd_movePageDown" },
-    { "cmd_selectPageUp", "cmd_selectPageDown" }
+    { CommandMovePageUp, CommandMovePageDown },
+    { CommandSelectPageUp, CommandSelectPageDown }
   },
   { 
-    { "cmd_moveTop", "cmd_moveBottom" },
-    { "cmd_selectTop", "cmd_selectBottom" }
+    { CommandMoveTop, CommandMoveBottom },
+    { CommandSelectTop, CommandSelectBottom }
   },
   { 
-    { nullptr, nullptr },
-    { nullptr, nullptr }
+    { CommandDoNothing, CommandDoNothing },
+    { CommandDoNothing, CommandDoNothing }
   }
 };
 
@@ -169,21 +170,21 @@ move_cursor_cb(GtkWidget *w, GtkMovementStep step, gint count,
     return;
   }
 
-  const char *cmd = sMoveCommands[step][extend_selection][forward];
-  if (!cmd)
+  Command command = sMoveCommands[step][extend_selection][forward];
+  if (!command) {
     return; 
+  }
 
-  
   unsigned int absCount = Abs(count);
   for (unsigned int i = 0; i < absCount; ++i) {
-    gCurrentCallback(cmd, gCurrentCallbackData);
+    gCurrentCallback(command, gCurrentCallbackData);
   }
 }
 
 static void
 paste_clipboard_cb(GtkWidget *w, gpointer user_data)
 {
-  gCurrentCallback("cmd_paste", gCurrentCallbackData);
+  gCurrentCallback(CommandPaste, gCurrentCallbackData);
   g_signal_stop_emission_by_name(w, "paste_clipboard");
   gHandled = true;
 }
@@ -192,7 +193,7 @@ paste_clipboard_cb(GtkWidget *w, gpointer user_data)
 static void
 select_all_cb(GtkWidget *w, gboolean select, gpointer user_data)
 {
-  gCurrentCallback("cmd_selectAll", gCurrentCallbackData);
+  gCurrentCallback(CommandSelectAll, gCurrentCallbackData);
   g_signal_stop_emission_by_name(w, "select_all");
   gHandled = true;
 }
