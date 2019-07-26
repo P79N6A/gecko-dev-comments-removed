@@ -1097,6 +1097,13 @@ ion::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 
     
     
+    
+    BaselineFrame *topFrame = GetTopBaselineFrame(cx);
+    if (topFrame->scopeChain() && !EnsureHasScopeObjects(cx, topFrame))
+        return false;
+
+    
+    
     RootedScript innerScript(cx, NULL);
     RootedScript outerScript(cx, NULL);
     IonFrameIterator iter(cx);

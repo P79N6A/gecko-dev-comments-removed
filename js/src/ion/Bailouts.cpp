@@ -544,13 +544,13 @@ ion::RecompileForInlining()
 
 
 bool
-ion::EnsureHasScopeObjects(JSContext *cx, StackFrame *fp)
+ion::EnsureHasScopeObjects(JSContext *cx, AbstractFramePtr fp)
 {
-    if (fp->isFunctionFrame() &&
-        fp->fun()->isHeavyweight() &&
-        !fp->hasCallObj())
+    if (fp.isFunctionFrame() &&
+        fp.fun()->isHeavyweight() &&
+        !fp.hasCallObj())
     {
-        return fp->initFunctionScopeObjects(cx);
+        return fp.initFunctionScopeObjects(cx);
     }
     return true;
 }
