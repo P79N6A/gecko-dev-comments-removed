@@ -531,8 +531,9 @@ nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
         } else if (IsDOMObject(obj)) {
               
               
-              if (!UnwrapDOMObjectToISupports(obj, identity))
-                  return NS_OK;;
+              identity = UnwrapDOMObjectToISupports(obj);
+              if (!identity)
+                  return NS_OK;
               nsCOMPtr<nsISupports> supp;
               identity->QueryInterface(*iid, getter_AddRefs(supp));
               *bp = supp;
