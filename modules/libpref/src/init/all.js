@@ -3058,6 +3058,28 @@ pref("font.preload-names-list", "Hiragino Kaku Gothic Pro,Hiragino Mincho Pro,ST
 
 
 
+
+
+pref("font.weight-override.AppleSDGothicNeo-Thin", 100); 
+pref("font.weight-override.AppleSDGothicNeo-UltraLight", 200);
+pref("font.weight-override.AppleSDGothicNeo-Light", 300);
+pref("font.weight-override.AppleSDGothicNeo-Heavy", 900); 
+
+pref("font.weight-override.Avenir-Book", 300); 
+pref("font.weight-override.Avenir-BookOblique", 300);
+pref("font.weight-override.Avenir-MediumOblique", 500); 
+pref("font.weight-override.Avenir-Black", 900); 
+pref("font.weight-override.Avenir-BlackOblique", 900);
+
+pref("font.weight-override.AvenirNext-MediumItalic", 500); 
+pref("font.weight-override.AvenirNextCondensed-MediumItalic", 500);
+
+pref("font.weight-override.HelveticaNeue-Light", 300); 
+pref("font.weight-override.HelveticaNeue-LightItalic", 300);
+pref("font.weight-override.HelveticaNeue-MediumItalic", 500); 
+
+
+
 pref("ui.key.menuAccessKey", 0);
 pref("ui.key.accelKey", 224);
 
