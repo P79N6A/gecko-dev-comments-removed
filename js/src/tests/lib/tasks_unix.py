@@ -2,7 +2,7 @@
 
 
 
-import errno, os, sys, select
+import errno, os, select
 from datetime import datetime, timedelta
 from results import TestOutput
 
