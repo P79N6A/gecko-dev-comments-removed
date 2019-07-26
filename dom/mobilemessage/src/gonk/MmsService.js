@@ -60,7 +60,8 @@ const CONFIG_SEND_REPORT_DEFAULT_YES = 2;
 const CONFIG_SEND_REPORT_ALWAYS      = 3;
 
 const TIME_TO_BUFFER_MMS_REQUESTS    = 30000;
-const TIME_TO_RELEASE_MMS_CONNECTION = 30000;
+const PREF_TIME_TO_RELEASE_MMS_CONNECTION =
+  Services.prefs.getIntPref("network.gonk.ms-release-mms-connection");
 
 const PREF_RETRIEVAL_MODE      = 'dom.mms.retrieval_mode';
 const RETRIEVAL_MODE_MANUAL    = "manual";
@@ -294,10 +295,16 @@ XPCOMUtils.defineLazyGetter(this, "gMmsConnection", function () {
         this.refCount = 0;
 
         
+        if (PREF_TIME_TO_RELEASE_MMS_CONNECTION < 1000) {
+          this.onDisconnectTimerTimeout();
+          return;
+        }
+
+        
         
         this.disconnectTimer.
           initWithCallback(this.onDisconnectTimerTimeout.bind(this),
-                           TIME_TO_RELEASE_MMS_CONNECTION,
+                           PREF_TIME_TO_RELEASE_MMS_CONNECTION,
                            Ci.nsITimer.TYPE_ONE_SHOT);
       }
     },

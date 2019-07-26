@@ -257,8 +257,6 @@ pref("layers.acceleration.disabled", false);
 pref("layers.offmainthreadcomposition.async-animations", true);
 pref("layers.async-video.enabled", true);
 pref("layers.async-pan-zoom.enabled", true);
-pref("gfx.content.azure.enabled", true);
-pref("gfx.content.azure.backends", "cairo");
 #endif
 
 
@@ -390,6 +388,9 @@ pref("dom.sms.enabled", true);
 pref("dom.sms.strict7BitEncoding", false); 
 pref("dom.sms.requestStatusReport", true); 
 pref("dom.mms.requestStatusReport", true); 
+
+
+pref("network.gonk.ms-release-mms-connection", 30000);
 
 
 pref("dom.mozContacts.enabled", true);
