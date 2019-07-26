@@ -1,3 +1,4 @@
+#filter substitution
 
 
 
@@ -25,6 +26,8 @@ pref("datareporting.healthreport.service.loadDelayFirstRunMsec", 60000);
 
 pref("datareporting.healthreport.service.providerCategories",
 #if MOZ_UPDATE_CHANNEL == release
+    "healthreport-js-provider-default"
+#elif MOZ_UPDATE_CHANNEL == default
     "healthreport-js-provider-default"
 #else
     "healthreport-js-provider-default,healthreport-js-provider-@MOZ_UPDATE_CHANNEL@"
