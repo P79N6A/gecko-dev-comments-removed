@@ -1555,16 +1555,13 @@ let RIL = {
 
   getSPDI: function getSPDI() {
     function callback() {
-      if (DEBUG) debug("SPDI: Process SPDI callback");
       let length = Buf.readUint32();
-      let tlvTag;
-      let tlvLen;
       let readLen = 0;
       let endLoop = false;
       this.iccInfoPrivate.SPDI = null;
-      while ((readLen < length) && !endLoop) {
-        tlvTag = GsmPDUHelper.readHexOctet();
-        tlvLen = GsmPDUHelper.readHexOctet();
+      while ((readLen < length / 2) && !endLoop) {
+        let tlvTag = GsmPDUHelper.readHexOctet();
+        let tlvLen = GsmPDUHelper.readHexOctet();
         readLen += 2; 
         switch (tlvTag) {
         case SPDI_TAG_SPDI:
@@ -1572,22 +1569,20 @@ let RIL = {
           continue;
         case SPDI_TAG_PLMN_LIST:
           
-          this.iccInfoPrivate.SPDI = this.readPLMNEntries(tlvLen/3);
+          this.iccInfoPrivate.SPDI = this.readPLMNEntries(tlvLen / 3);
           readLen += tlvLen;
           endLoop = true;
           break;
         default:
           
           
-          GsmPDUHelper.readHexOctetArray(tlvLen);
-          readLen += tlvLen;
+          endLoop = true;
+          break;
         }
       }
 
       
-      if (length - readLen > 0) {
-        GsmPDUHelper.readHexOctetArray(length - readLen);
-      }
+      Buf.seekIncoming((length / 2 - readLen) * PDU_HEX_OCTET_SIZE);
       Buf.readStringDelimiter(length);
 
       if (DEBUG) debug("SPDI: " + JSON.stringify(this.iccInfoPrivate.SPDI));
