@@ -361,7 +361,9 @@ var SelectionHelperUI = {
         
         if (this.isActive && this.layerMode == kContentLayer) {
           this._showAfterUpdate = true;
-          this._sendAsyncMessage("Browser:SelectionUpdate", {});
+          this._sendAsyncMessage("Browser:SelectionUpdate", {
+            isInitiatedByAPZC: true
+          });
         }
         break;
       }
