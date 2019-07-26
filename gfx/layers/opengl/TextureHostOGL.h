@@ -318,7 +318,7 @@ public:
   virtual GLenum GetWrapMode() const MOZ_OVERRIDE { return mWrapMode; }
 
   
-  virtual void DeallocateDeviceData() {}
+  virtual void DeallocateDeviceData() MOZ_OVERRIDE {}
 
   void DetachSharedHandle();
 
@@ -393,32 +393,26 @@ protected:
 
 
 
-class StreamTextureSourceOGL : public NewTextureSource
-                             , public TextureSourceOGL
+
+
+
+class GLTextureSource : public NewTextureSource
+                      , public TextureSourceOGL
 {
 public:
-  StreamTextureSourceOGL(CompositorOGL* aCompositor,
-                         gfx::SurfaceStream* aStream)
-    : mCompositor(aCompositor)
-    , mStream(aStream)
-    , mTextureHandle(0)
-    , mTextureTarget(LOCAL_GL_TEXTURE_2D)
-    , mUploadTexture(0)
-    , mFormat(gfx::SurfaceFormat::UNKNOWN)
-  {
-    MOZ_COUNT_CTOR(StreamTextureSourceOGL);
-  }
+  typedef gl::SharedTextureShareType SharedTextureShareType;
 
-  ~StreamTextureSourceOGL()
-  {
-    MOZ_COUNT_DTOR(StreamTextureSourceOGL);
-  }
+  GLTextureSource(CompositorOGL* aCompositor,
+                  GLuint aTex,
+                  gfx::SurfaceFormat aFormat,
+                  GLenum aTarget,
+                  gfx::IntSize aSize);
 
-  virtual TextureSourceOGL* AsSourceOGL() { return this; }
+  virtual TextureSourceOGL* AsSourceOGL() MOZ_OVERRIDE { return this; }
 
   virtual void BindTexture(GLenum activetex, gfx::Filter aFilter) MOZ_OVERRIDE;
 
-  virtual bool IsValid() const MOZ_OVERRIDE { return !!gl(); }
+  virtual bool IsValid() const MOZ_OVERRIDE;
 
   virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mSize; }
 
@@ -428,66 +422,18 @@ public:
 
   virtual GLenum GetWrapMode() const MOZ_OVERRIDE { return LOCAL_GL_CLAMP_TO_EDGE; }
 
-  virtual void DeallocateDeviceData();
-
-  bool RetrieveTextureFromStream();
-
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
-
-protected:
-  gl::GLContext* gl() const;
-
-  CompositorOGL* mCompositor;
-  gfx::SurfaceStream* mStream;
-  GLuint mTextureHandle;
-  GLenum mTextureTarget;
-  GLuint mUploadTexture;
-  gfx::IntSize mSize;
-  gfx::SurfaceFormat mFormat;
-};
-
-
-
-
-class StreamTextureHostOGL : public TextureHost
-{
-public:
-  StreamTextureHostOGL(TextureFlags aFlags,
-                       const SurfaceStreamDescriptor& aDesc);
-
-  virtual ~StreamTextureHostOGL();
-
-  
   virtual void DeallocateDeviceData() MOZ_OVERRIDE {}
 
   virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
 
-  virtual bool Lock() MOZ_OVERRIDE;
-
-  virtual void Unlock() MOZ_OVERRIDE;
-
-  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
-
-  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
-  {
-    return mTextureSource;
-  }
-
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE
-  {
-    return nullptr; 
-  }
-
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE;
-
-#ifdef MOZ_LAYERS_HAVE_LOG
-  virtual const char* Name() { return "StreamTextureHostOGL"; }
-#endif
+  gl::GLContext* gl() const;
 
 protected:
+  const gfx::IntSize mSize;
   CompositorOGL* mCompositor;
-  gfx::SurfaceStream* mStream;
-  RefPtr<StreamTextureSourceOGL> mTextureSource;
+  const GLuint mTex;
+  const gfx::SurfaceFormat mFormat;
+  const GLenum mTextureTarget;
 };
 
 } 

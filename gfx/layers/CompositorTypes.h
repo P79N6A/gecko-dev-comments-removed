@@ -88,7 +88,10 @@ MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
   
   ALLOC_FALLBACK     = 1 << 17,
   
-  ALL_BITS           = (1 << 18) - 1,
+  NON_PREMULTIPLIED  = 1 << 18,
+
+  
+  ALL_BITS           = (1 << 19) - 1,
   
   DEFAULT = FRONT
 MOZ_END_ENUM_CLASS(TextureFlags)

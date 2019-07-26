@@ -319,11 +319,25 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
           static_cast<TexturedEffect*>(aEffectChain.mPrimaryEffect.get());
       TextureSourceBasic* source = texturedEffect->mTexture->AsSourceBasic();
 
-      DrawSurfaceWithTextureCoords(dest, aRect,
-                                   source->GetSurface(dest),
-                                   texturedEffect->mTextureCoords,
-                                   texturedEffect->mFilter,
-                                   aOpacity, sourceMask, &maskTransform);
+      if (texturedEffect->mPremultiplied) {
+          DrawSurfaceWithTextureCoords(dest, aRect,
+                                       source->GetSurface(dest),
+                                       texturedEffect->mTextureCoords,
+                                       texturedEffect->mFilter,
+                                       aOpacity, sourceMask, &maskTransform);
+      } else {
+          RefPtr<DataSourceSurface> srcData = source->GetSurface(dest)->GetDataSurface();
+
+          
+          
+          RefPtr<DataSourceSurface> premultData = gfxUtils::CreatePremultipliedDataSurface(srcData);
+
+          DrawSurfaceWithTextureCoords(dest, aRect,
+                                       premultData,
+                                       texturedEffect->mTextureCoords,
+                                       texturedEffect->mFilter,
+                                       aOpacity, sourceMask, &maskTransform);
+      }
       break;
     }
     case EffectTypes::YCBCR: {
