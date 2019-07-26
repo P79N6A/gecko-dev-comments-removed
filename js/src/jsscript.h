@@ -279,10 +279,9 @@ typedef HashMap<JSScript *,
                 DefaultHasher<JSScript *>,
                 SystemAllocPolicy> DebugScriptMap;
 
-struct ScriptSource
+class ScriptSource
 {
     friend class SourceCompressorThread;
-  private:
     union {
         
         
@@ -1328,7 +1327,7 @@ class SourceCompressorThread
 
 struct SourceCompressionToken
 {
-    friend struct ScriptSource;
+    friend class ScriptSource;
     friend class SourceCompressorThread;
   private:
     JSContext *cx;

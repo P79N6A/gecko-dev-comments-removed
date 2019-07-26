@@ -66,7 +66,7 @@ typedef Vector<IonBuilder*, 0, SystemAllocPolicy> OffThreadCompilationVector;
 
 
 
-struct ICStubSpace
+class ICStubSpace
 {
   protected:
     LifoAlloc allocator_;

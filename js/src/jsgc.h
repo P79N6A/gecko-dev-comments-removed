@@ -25,11 +25,11 @@
 #include "js/HashTable.h"
 #include "js/Vector.h"
 
-struct JSAtom;
+class JSAtom;
 struct JSCompartment;
-struct JSFunction;
-struct JSFlatString;
-struct JSLinearString;
+class JSFunction;
+class JSFlatString;
+class JSLinearString;
 
 namespace js {
 
@@ -258,9 +258,8 @@ struct ArenaList {
     void insert(ArenaHeader *arena);
 };
 
-struct ArenaLists
+class ArenaLists
 {
-  private:
     
 
 
@@ -684,7 +683,7 @@ class GCHelperThread {
 
     bool              backgroundAllocation;
 
-    friend struct js::gc::ArenaLists;
+    friend class js::gc::ArenaLists;
 
     void
     replenishAndFreeLater(void *ptr);

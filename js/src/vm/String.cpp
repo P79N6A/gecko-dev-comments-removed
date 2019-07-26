@@ -4,7 +4,7 @@
 
 
 
-#include "vm/String.h"
+#include "vm/String-inl.h"
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
@@ -14,7 +14,9 @@
 
 #include "jscompartmentinlines.h"
 
-#include "String-inl.h"
+#ifdef JSGC_GENERATIONAL
+#include "vm/Shape-inl.h"
+#endif
 
 using namespace js;
 

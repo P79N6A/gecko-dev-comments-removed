@@ -416,9 +416,8 @@ class ConditionalExpression;
 class PropertyAccess;
 class ModuleBox;
 
-struct ParseNode
+class ParseNode
 {
-  private:
     uint32_t            pn_type   : 16, 
                         pn_op     : 8,  
                         pn_arity  : 5,  
