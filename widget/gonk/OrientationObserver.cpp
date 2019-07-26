@@ -37,13 +37,11 @@ struct OrientationMapping {
 static OrientationMapping sOrientationMappings[] = {
   {nsIScreen::ROTATION_0_DEG,   eScreenOrientation_PortraitPrimary},
   {nsIScreen::ROTATION_180_DEG, eScreenOrientation_PortraitSecondary},
-  {nsIScreen::ROTATION_0_DEG,   eScreenOrientation_PortraitPrimary | eScreenOrientation_PortraitSecondary},
   {nsIScreen::ROTATION_90_DEG,  eScreenOrientation_LandscapePrimary},
   {nsIScreen::ROTATION_270_DEG, eScreenOrientation_LandscapeSecondary},
-  {nsIScreen::ROTATION_90_DEG,  eScreenOrientation_LandscapePrimary | eScreenOrientation_LandscapeSecondary}
 };
 
-const static int sDefaultLandscape = 3;
+const static int sDefaultLandscape = 2;
 const static int sDefaultPortrait = 0;
 
 static uint32_t sOrientationOffset = 0;
@@ -109,7 +107,7 @@ static nsresult
 ConvertToScreenRotation(ScreenOrientation aOrientation, uint32_t *aResult)
 {
   for (int i = 0; i < ArrayLength(sOrientationMappings); i++) {
-    if (aOrientation == sOrientationMappings[i].mDomOrientation) {
+    if (aOrientation & sOrientationMappings[i].mDomOrientation) {
       
       
       int adjusted = (i + sOrientationOffset) %
@@ -290,10 +288,10 @@ OrientationObserver::LockScreenOrientation(ScreenOrientation aOrientation)
 
   
   
-  if (aOrientation == (eScreenOrientation_LandscapePrimary |
-                       eScreenOrientation_LandscapeSecondary) ||
-      aOrientation == (eScreenOrientation_PortraitPrimary |
-                       eScreenOrientation_PortraitSecondary)) {
+  if (aOrientation != eScreenOrientation_LandscapePrimary &&
+      aOrientation != eScreenOrientation_LandscapeSecondary &&
+      aOrientation != eScreenOrientation_PortraitPrimary &&
+      aOrientation != eScreenOrientation_PortraitSecondary) {
     if (!mAutoOrientationEnabled) {
       EnableAutoOrientation();
     }
