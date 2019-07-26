@@ -322,17 +322,6 @@ var SelectionHandler = {
 
 
   _repositionInfoRequest: function _repositionInfoRequest(aJsonMsg) {
-    if (!this.isActive) {
-      Util.dumpLn("unexpected: repositionInfoRequest but selection isn't active.");
-      this.sendAsync("Content:RepositionInfoResponse", { reposition: false });
-      return;
-    }
-    
-    if (!this.targetIsEditable) {
-      Util.dumpLn("unexpected: repositionInfoRequest but targetIsEditable is false.");
-      this.sendAsync("Content:RepositionInfoResponse", { reposition: false });
-    }
-    
     let result = this._calcNewContentPosition(aJsonMsg.viewHeight);
 
     
@@ -423,8 +412,9 @@ var SelectionHandler = {
 
   _calcNewContentPosition: function _calcNewContentPosition(aNewViewHeight) {
     
-    if (!this._targetIsEditable) {
-      return 0;
+    
+    if (!this._cache || !this._cache.element) {
+      return Services.metro.keyboardHeight;
     }
 
     let position = Util.centerElementInView(aNewViewHeight, this._cache.element);

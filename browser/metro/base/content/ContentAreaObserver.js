@@ -232,9 +232,11 @@ var ContentAreaObserver = {
 
     
     
-    Browser.selectedBrowser.messageManager.sendAsyncMessage("Browser:RepositionInfoRequest", {
-      viewHeight: this.viewableHeight,
-    });
+    if (SelectionHelperUI.layerMode === 2 ) {
+      Browser.selectedBrowser.messageManager.sendAsyncMessage("Browser:RepositionInfoRequest", {
+        viewHeight: this.viewableHeight,
+      });
+    }
   },
 
   _onRepositionResponse: function _onRepositionResponse(aJsonMsg) {
