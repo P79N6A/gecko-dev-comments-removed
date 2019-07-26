@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+<html>
+<head>
+  <style>
+    #container { display: flex; }
+    #lowOrdinal {
+      position: absolute;
+      order: 5;
+      background: red;
+      height: 100px; width: 100px;
+    }
+    #highOrdinal {
+      position: absolute;
+      order: 10;
+      background: lime;
+      height: 100px; width: 100px;
+    }
+    #noOrdinal {
+      position: absolute;
+      background: orange;
+      height: 100px; width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="highOrdinal"></div>
+    <div id="lowOrdinal"></div>
+    <div id="noOrdinal"></div>
+  </div>
+</body>
+</html>
