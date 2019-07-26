@@ -5324,7 +5324,6 @@ Selection::ScrollIntoView(SelectionRegion aRegion,
                           nsIPresShell::ScrollAxis aHorizontal,
                           int32_t aFlags)
 {
-  nsresult result;
   if (!mFrameSelection)
     return NS_OK;
 
@@ -5335,59 +5334,50 @@ Selection::ScrollIntoView(SelectionRegion aRegion,
     return PostScrollSelectionIntoViewEvent(aRegion, aFlags,
       aVertical, aHorizontal);
 
-  
-  
-  
-  
   nsCOMPtr<nsIPresShell> presShell;
-  result = GetPresShell(getter_AddRefs(presShell));
+  nsresult result = GetPresShell(getter_AddRefs(presShell));
   if (NS_FAILED(result) || !presShell)
     return result;
-  nsRefPtr<nsCaret> caret = presShell->GetCaret();
-  if (caret)
-  {
-    
-    
-    
-    
-    
-    if (aFlags & Selection::SCROLL_DO_FLUSH) {
-      presShell->FlushPendingNotifications(Flush_Layout);
 
-      
-      result = GetPresShell(getter_AddRefs(presShell));
-      if (NS_FAILED(result) || !presShell)
-        return result;
-    }
+  
+  
+  
+  
+  
+  if (aFlags & Selection::SCROLL_DO_FLUSH) {
+    presShell->FlushPendingNotifications(Flush_Layout);
 
     
-    
-    
-
-    nsRect rect;
-    nsIFrame* frame = GetSelectionAnchorGeometry(aRegion, &rect);
-    if (!frame)
-      return NS_ERROR_FAILURE;
-
-    
-    
-    
-    aVertical.mOnlyIfPerceivedScrollableDirection = true;
-
-
-    uint32_t flags = 0;
-    if (aFlags & Selection::SCROLL_FIRST_ANCESTOR_ONLY) {
-      flags |= nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY;
-    }
-    if (aFlags & Selection::SCROLL_OVERFLOW_HIDDEN) {
-      flags |= nsIPresShell::SCROLL_OVERFLOW_HIDDEN;
-    }
-
-    presShell->ScrollFrameRectIntoView(frame, rect, aVertical, aHorizontal,
-      flags);
-    return NS_OK;
+    result = GetPresShell(getter_AddRefs(presShell));
+    if (NS_FAILED(result) || !presShell)
+      return result;
   }
-  return result;
+
+  
+  
+  
+
+  nsRect rect;
+  nsIFrame* frame = GetSelectionAnchorGeometry(aRegion, &rect);
+  if (!frame)
+    return NS_ERROR_FAILURE;
+
+  
+  
+  
+  aVertical.mOnlyIfPerceivedScrollableDirection = true;
+
+  uint32_t flags = 0;
+  if (aFlags & Selection::SCROLL_FIRST_ANCESTOR_ONLY) {
+    flags |= nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY;
+  }
+  if (aFlags & Selection::SCROLL_OVERFLOW_HIDDEN) {
+    flags |= nsIPresShell::SCROLL_OVERFLOW_HIDDEN;
+  }
+
+  presShell->ScrollFrameRectIntoView(frame, rect, aVertical, aHorizontal,
+    flags);
+  return NS_OK;
 }
 
 
