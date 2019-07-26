@@ -45,7 +45,7 @@
 
 
 
-#if defined(__clang__) || defined(__clang_analyzer__)
+#if defined(__clang__)
    
 
 
@@ -63,9 +63,6 @@
 #  if __has_extension(cxx_override_control)
 #    define MOZ_HAVE_CXX11_OVERRIDE
 #    define MOZ_HAVE_CXX11_FINAL         final
-#  endif
-#  if __has_extension(attribute_analyzer_noreturn)
-#    define MOZ_HAVE_ANALYZER_NORETURN   __attribute__((analyzer_noreturn))
 #  endif
 #  if __has_attribute(noinline)
 #    define MOZ_HAVE_NEVER_INLINE        __attribute__((noinline))
@@ -154,27 +151,6 @@
 #  define MOZ_NORETURN          MOZ_HAVE_NORETURN
 #else
 #  define MOZ_NORETURN
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(MOZ_HAVE_ANALYZER_NORETURN)
-#  define MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS          MOZ_HAVE_ANALYZER_NORETURN
-#else
-#  define MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
 #endif
 
 
