@@ -984,14 +984,12 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
   public:
     TaggedProto getTaggedProto() const {
-        AutoThreadSafeAccess ts(this);
         return type_->proto();
     }
 
     bool hasTenuredProto() const;
 
     const Class *getClass() const {
-        AutoThreadSafeAccess ts(this);
         return type_->clasp();
     }
 
@@ -1206,8 +1204,6 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     }
 
     types::TypeObject *typeRaw() const {
-        AutoThreadSafeAccess ts0(this);
-        AutoThreadSafeAccess ts1(type_);
         return type_;
     }
 
@@ -1215,14 +1211,11 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return reinterpret_cast<const shadow::Object *>(this)->numFixedSlots();
     }
 
-    uint32_t numFixedSlotsForCompilation() const;
-
     
 
 
 
     bool hasSingletonType() const {
-        AutoThreadSafeAccess ts(this);
         return !!type_->singleton();
     }
 
@@ -1231,7 +1224,6 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
 
     bool hasLazyType() const {
-        AutoThreadSafeAccess ts(this);
         return type_->lazy();
     }
 
@@ -1391,7 +1383,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     }
 
     const Value &getFixedSlot(uint32_t slot) const {
-        MOZ_ASSERT(slot < numFixedSlotsForCompilation());
+        MOZ_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
 
@@ -1478,7 +1470,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
 
 
-        MOZ_ASSERT(nfixed == numFixedSlotsForCompilation());
+        MOZ_ASSERT(nfixed == numFixedSlots());
         MOZ_ASSERT(hasPrivate());
         HeapSlot *end = &fixedSlots()[nfixed];
         return *reinterpret_cast<void**>(end);
@@ -1555,10 +1547,6 @@ MOZ_ALWAYS_INLINE Zone *
 BarrieredCell<ObjectImpl>::zoneFromAnyThread() const
 {
     const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
-
-    
-    AutoThreadSafeAccess ts(obj->shape_);
-
     return obj->shape_->zoneFromAnyThread();
 }
 

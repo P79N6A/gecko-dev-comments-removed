@@ -335,25 +335,6 @@ js::ObjectImpl::nativeLookupPure(jsid id)
 }
 
 uint32_t
-js::ObjectImpl::numFixedSlotsForCompilation() const
-{
-    
-    
-    
-    
-    if (static_cast<const JSObject *>(this)->is<ArrayObject>())
-        return 0;
-#ifdef JSGC_GENERATIONAL
-    
-    
-    if (IsInsideNursery(GetGCThingRuntime(this), this))
-        return numFixedSlots();
-#endif
-    gc::AllocKind kind = tenuredGetAllocKind();
-    return gc::GetGCKindSlots(kind, getClass());
-}
-
-uint32_t
 js::ObjectImpl::dynamicSlotsCount(uint32_t nfixed, uint32_t span, const Class *clasp)
 {
     if (span <= nfixed)

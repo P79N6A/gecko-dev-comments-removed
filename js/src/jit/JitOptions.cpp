@@ -34,10 +34,6 @@ JitOptions::JitOptions()
     checkRangeAnalysis = false;
 
     
-    
-    checkThreadSafety = false;
-
-    
     compileTryCatch = true;
 
     

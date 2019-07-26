@@ -52,7 +52,6 @@
 using namespace js;
 using namespace js::jit;
 
-using mozilla::Maybe;
 using mozilla::ThreadLocal;
 
 
@@ -492,8 +491,6 @@ JitCompartment::ensureIonStubsExist(JSContext *cx)
 void
 jit::FinishOffThreadBuilder(IonBuilder *builder)
 {
-    builder->script()->runtimeFromMainThread()->removeCompilationThread();
-
     ExecutionMode executionMode = builder->info().executionMode();
 
     
@@ -1565,9 +1562,6 @@ AttachFinishedCompilations(JSContext *cx)
                 
                 cx->clearPendingException();
             }
-        } else {
-            if (builder->abortReason() == AbortReason_Disable)
-                SetIonScript(builder->script(), builder->info().executionMode(), ION_DISABLED_SCRIPT);
         }
 
         FinishOffThreadBuilder(builder);
@@ -1722,6 +1716,14 @@ IonCompile(JSContext *cx, JSScript *script,
         builderScript->ionScript()->setRecompiling();
     }
 
+    IonSpewNewFunction(graph, builderScript);
+
+    bool succeeded = builder->build();
+    builder->clearForBackEnd();
+
+    if (!succeeded)
+        return builder->abortReason();
+
     
     if (OffThreadCompilationAvailable(cx)) {
         if (!recompile)
@@ -1742,41 +1744,11 @@ IonCompile(JSContext *cx, JSScript *script,
         return AbortReason_NoAbort;
     }
 
-    Maybe<AutoEnterIonCompilation> ionCompiling;
-    if (!cx->runtime()->profilingScripts && !IonSpewEnabled(IonSpew_Logs)) {
-        
-        
-        
-        
-        ionCompiling.construct();
-    }
-
-    Maybe<AutoProtectHeapForIonCompilation> protect;
-    if (js_JitOptions.checkThreadSafety &&
-        cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL &&
-        !cx->runtime()->profilingScripts)
-    {
-        protect.construct(cx->runtime());
-    }
-
-    IonSpewNewFunction(graph, builderScript);
-
-    bool succeeded = builder->build();
-    builder->clearForBackEnd();
-
-    if (!succeeded)
-        return builder->abortReason();
-
     ScopedJSDeletePtr<CodeGenerator> codegen(CompileBackEnd(builder));
     if (!codegen) {
         IonSpew(IonSpew_Abort, "Failed during back-end compilation.");
         return AbortReason_Disable;
     }
-
-    if (!protect.empty())
-        protect.destroy();
-    if (!ionCompiling.empty())
-        ionCompiling.destroy();
 
     bool success = codegen->link(cx, builder->constraints());
 

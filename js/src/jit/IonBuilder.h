@@ -787,17 +787,6 @@ class IonBuilder : public MIRGenerator
     
     types::CompilerConstraintList *constraints_;
 
-    mozilla::Maybe<AutoLockForCompilation> lock_;
-
-    void lock() {
-        if (!analysisContext)
-            lock_.construct(compartment);
-    }
-    void unlock() {
-        if (!analysisContext)
-            lock_.destroy();
-    }
-
     
     BytecodeAnalysis analysis_;
     BytecodeAnalysis &analysis() {

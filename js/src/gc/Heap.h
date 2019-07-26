@@ -1109,37 +1109,9 @@ InFreeList(ArenaHeader *aheader, void *thing)
 
 } 
 
-
-
-
-
-
-
-class MOZ_STACK_CLASS AutoThreadSafeAccess
-{
-public:
-#if defined(DEBUG) && defined(JS_CPU_X64) && !defined(XP_WIN)
-#define JS_CAN_CHECK_THREADSAFE_ACCESSES
-
-    JSRuntime *runtime;
-    gc::ArenaHeader *arena;
-
-    AutoThreadSafeAccess(const gc::Cell *cell MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    ~AutoThreadSafeAccess();
-#else
-    AutoThreadSafeAccess(const gc::Cell *cell MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-    ~AutoThreadSafeAccess() {}
-#endif
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
 gc::AllocKind
 gc::Cell::tenuredGetAllocKind() const
 {
-    AutoThreadSafeAccess ts(this);
     return arenaHeader()->getAllocKind();
 }
 

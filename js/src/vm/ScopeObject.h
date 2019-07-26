@@ -200,7 +200,6 @@ class ScopeObject : public JSObject
 
 
     inline JSObject &enclosingScope() const {
-        AutoThreadSafeAccess ts(this);
         return getFixedSlot(SCOPE_CHAIN_SLOT).toObject();
     }
 
@@ -252,7 +251,6 @@ class CallObject : public ScopeObject
 
     
     bool isForEval() const {
-        AutoThreadSafeAccess ts(this);
         JS_ASSERT(getFixedSlot(CALLEE_SLOT).isObjectOrNull());
         JS_ASSERT_IF(getFixedSlot(CALLEE_SLOT).isObject(),
                      getFixedSlot(CALLEE_SLOT).toObject().is<JSFunction>());
@@ -264,7 +262,6 @@ class CallObject : public ScopeObject
 
 
     JSFunction &callee() const {
-        AutoThreadSafeAccess ts(this);
         return getFixedSlot(CALLEE_SLOT).toObject().as<JSFunction>();
     }
 
@@ -410,7 +407,7 @@ class BlockObject : public NestedScopeObject
 
     
     uint32_t slotCount() const {
-        return propertyCountForCompilation();
+        return propertyCount();
     }
 
     
@@ -464,9 +461,6 @@ class StaticBlockObject : public BlockObject
 
 
     bool needsClone() {
-        
-        
-        AutoThreadSafeAccess ts(this);
         return !getFixedSlot(RESERVED_SLOTS).isFalse();
     }
 

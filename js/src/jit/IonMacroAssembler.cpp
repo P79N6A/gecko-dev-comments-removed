@@ -787,10 +787,6 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 {
     
 
-    AutoThreadSafeAccess ts0(templateObject);
-    AutoThreadSafeAccess ts1(templateObject->lastProperty());
-    AutoThreadSafeAccess ts2(templateObject->lastProperty()->base()); 
-
     JS_ASSERT(!templateObject->hasDynamicElements());
 
     storePtr(ImmGCPtr(templateObject->lastProperty()), Address(obj, JSObject::offsetOfShape()));
@@ -822,7 +818,7 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 
         
         
-        size_t nslots = Min(templateObject->numFixedSlotsForCompilation(),
+        size_t nslots = Min(templateObject->numFixedSlots(),
                             templateObject->lastProperty()->slotSpan(templateObject->getClass()));
         for (unsigned i = 0; i < nslots; i++) {
             storeValue(templateObject->getFixedSlot(i),

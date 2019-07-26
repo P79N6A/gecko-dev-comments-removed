@@ -3568,7 +3568,6 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
     Register obj = ToRegister(lir->output());
 
     JSObject *templateObj = lir->mir()->templateObject();
-    AutoThreadSafeAccess ts(templateObj);
 
     
     OutOfLineCode *ool;
