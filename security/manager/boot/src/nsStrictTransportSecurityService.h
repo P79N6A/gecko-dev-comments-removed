@@ -6,10 +6,10 @@
 
 
 
-#ifndef __nsSiteSecurityService_h__
-#define __nsSiteSecurityService_h__
+#ifndef __nsStrictTransportSecurityService_h__
+#define __nsStrictTransportSecurityService_h__
 
-#include "nsISiteSecurityService.h"
+#include "nsIStrictTransportSecurityService.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIPermissionManager.h"
@@ -20,7 +20,7 @@
 #include "prtime.h"
 
 
-#define NS_SITE_SECURITY_SERVICE_CID \
+#define NS_STRICT_TRANSPORT_SECURITY_CID \
   {0x16955eee, 0x6c48, 0x4152, \
     {0x93, 0x09, 0xc4, 0x2a, 0x46, 0x51, 0x38, 0xa1} }
 
@@ -55,11 +55,11 @@
 
 
 
-class nsSSSHostEntry : public PLDHashEntryHdr
+class nsSTSHostEntry : public PLDHashEntryHdr
 {
   public:
-    explicit nsSSSHostEntry(const char* aHost);
-    explicit nsSSSHostEntry(const nsSSSHostEntry& toCopy);
+    explicit nsSTSHostEntry(const char* aHost);
+    explicit nsSTSHostEntry(const nsSTSHostEntry& toCopy);
 
     nsCString    mHost;
     PRTime       mExpireTime;
@@ -121,26 +121,24 @@ class nsSSSHostEntry : public PLDHashEntryHdr
 
 class nsSTSPreload;
 
-class nsSiteSecurityService : public nsISiteSecurityService
-                            , public nsIObserver
+class nsStrictTransportSecurityService : public nsIStrictTransportSecurityService
+                                       , public nsIObserver
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
-  NS_DECL_NSISITESECURITYSERVICE
+  NS_DECL_NSISTRICTTRANSPORTSECURITYSERVICE
 
-  nsSiteSecurityService();
+  nsStrictTransportSecurityService();
   nsresult Init();
-  virtual ~nsSiteSecurityService();
+  virtual ~nsStrictTransportSecurityService();
 
 private:
   nsresult GetHost(nsIURI *aURI, nsACString &aResult);
   nsresult GetPrincipalForURI(nsIURI *aURI, nsIPrincipal **aPrincipal);
-  nsresult SetState(uint32_t aType, nsIURI* aSourceURI, int64_t maxage,
-                    bool includeSubdomains, uint32_t flags);
-  nsresult ProcessHeaderMutating(uint32_t aType, nsIURI* aSourceURI,
-                                 char* aHeader, uint32_t flags,
-                                 uint64_t *aMaxAge, bool *aIncludeSubdomains);
+  nsresult SetStsState(nsIURI* aSourceURI, int64_t maxage, bool includeSubdomains, uint32_t flags);
+  nsresult ProcessStsHeaderMutating(nsIURI* aSourceURI, char* aHeader, uint32_t flags,
+                                    uint64_t *aMaxAge, bool *aIncludeSubdomains);
   const nsSTSPreload *GetPreloadListEntry(const char *aHost);
 
   
@@ -158,7 +156,7 @@ private:
   nsCOMPtr<nsIPermissionManager> mPermMgr;
   nsCOMPtr<nsIObserverService> mObserverService;
 
-  nsTHashtable<nsSSSHostEntry> mPrivateModeHostTable;
+  nsTHashtable<nsSTSHostEntry> mPrivateModeHostTable;
   bool mUsePreloadList;
 };
 

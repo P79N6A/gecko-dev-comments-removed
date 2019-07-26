@@ -378,18 +378,17 @@ nsHttpChannel::Connect()
 
     if (!usingSSL) {
         
-        nsISiteSecurityService* sss = gHttpHandler->GetSSService();
-        NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
+        nsIStrictTransportSecurityService* stss = gHttpHandler->GetSTSService();
+        NS_ENSURE_TRUE(stss, NS_ERROR_OUT_OF_MEMORY);
 
         bool isStsHost = false;
         uint32_t flags = mPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-        rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, mURI, flags,
-                              &isStsHost);
+        rv = stss->IsStsURI(mURI, flags, &isStsHost);
 
         
         
         NS_ASSERTION(NS_SUCCEEDED(rv),
-                     "Something is wrong with SSS: IsSecureURI failed.");
+                     "Something is wrong with STS: IsStsURI failed.");
 
         if (NS_SUCCEEDED(rv) && isStsHost) {
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
@@ -1144,8 +1143,8 @@ nsHttpChannel::ProcessSTSHeader()
     if (PR_SUCCESS == PR_StringToNetAddr(asciiHost.get(), &hostAddr))
         return NS_OK;
 
-    nsISiteSecurityService* sss = gHttpHandler->GetSSService();
-    NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
+    nsIStrictTransportSecurityService* stss = gHttpHandler->GetSTSService();
+    NS_ENSURE_TRUE(stss, NS_ERROR_OUT_OF_MEMORY);
 
     
     
@@ -1156,7 +1155,7 @@ nsHttpChannel::ProcessSTSHeader()
     
     
     bool tlsIsBroken = false;
-    rv = sss->ShouldIgnoreHeader(mSecurityInfo, &tlsIsBroken);
+    rv = stss->ShouldIgnoreStsHeader(mSecurityInfo, &tlsIsBroken);
     NS_ENSURE_SUCCESS(rv, NS_OK);
 
     
@@ -1167,8 +1166,7 @@ nsHttpChannel::ProcessSTSHeader()
     bool wasAlreadySTSHost;
     uint32_t flags =
       NS_UsePrivateBrowsing(this) ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-    rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, mURI, flags,
-                          &wasAlreadySTSHost);
+    rv = stss->IsStsURI(mURI, flags, &wasAlreadySTSHost);
     
     
     NS_ENSURE_SUCCESS(rv, NS_OK);
@@ -1196,8 +1194,7 @@ nsHttpChannel::ProcessSTSHeader()
     
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = sss->ProcessHeader(nsISiteSecurityService::HEADER_HSTS, mURI,
-                            stsHeader.get(), flags, NULL, NULL);
+    rv = stss->ProcessStsHeader(mURI, stsHeader.get(), flags, NULL, NULL);
     if (NS_FAILED(rv)) {
         AddSecurityMessage(NS_LITERAL_STRING("InvalidSTSHeaders"),
                 NS_LITERAL_STRING("Invalid HSTS Headers"));

@@ -9,7 +9,7 @@
 #include "nsIPermissionManager.h"
 #include "nsISSLStatus.h"
 #include "nsISSLStatusProvider.h"
-#include "nsSiteSecurityService.h"
+#include "nsStrictTransportSecurityService.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
@@ -49,7 +49,7 @@ GetSTSLog()
 
 
 
-nsSSSHostEntry::nsSSSHostEntry(const char* aHost)
+nsSTSHostEntry::nsSTSHostEntry(const char* aHost)
   : mHost(aHost)
   , mExpireTime(0)
   , mStsPermission(STS_UNSET)
@@ -58,7 +58,7 @@ nsSSSHostEntry::nsSSSHostEntry(const char* aHost)
 {
 }
 
-nsSSSHostEntry::nsSSSHostEntry(const nsSSSHostEntry& toCopy)
+nsSTSHostEntry::nsSTSHostEntry(const nsSTSHostEntry& toCopy)
   : mHost(toCopy.mHost)
   , mExpireTime(toCopy.mExpireTime)
   , mStsPermission(toCopy.mStsPermission)
@@ -70,21 +70,21 @@ nsSSSHostEntry::nsSSSHostEntry(const nsSSSHostEntry& toCopy)
 
 
 
-nsSiteSecurityService::nsSiteSecurityService()
+nsStrictTransportSecurityService::nsStrictTransportSecurityService()
   : mUsePreloadList(true)
 {
 }
 
-nsSiteSecurityService::~nsSiteSecurityService()
+nsStrictTransportSecurityService::~nsStrictTransportSecurityService()
 {
 }
 
-NS_IMPL_ISUPPORTS2(nsSiteSecurityService,
+NS_IMPL_ISUPPORTS2(nsStrictTransportSecurityService,
                    nsIObserver,
-                   nsISiteSecurityService)
+                   nsIStrictTransportSecurityService)
 
 nsresult
-nsSiteSecurityService::Init()
+nsStrictTransportSecurityService::Init()
 {
    nsresult rv;
 
@@ -103,7 +103,7 @@ nsSiteSecurityService::Init()
 }
 
 nsresult
-nsSiteSecurityService::GetHost(nsIURI *aURI, nsACString &aResult)
+nsStrictTransportSecurityService::GetHost(nsIURI *aURI, nsACString &aResult)
 {
   nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
   if (!innerURI) return NS_ERROR_FAILURE;
@@ -117,8 +117,8 @@ nsSiteSecurityService::GetHost(nsIURI *aURI, nsACString &aResult)
 }
 
 nsresult
-nsSiteSecurityService::GetPrincipalForURI(nsIURI* aURI,
-                                          nsIPrincipal** aPrincipal)
+nsStrictTransportSecurityService::GetPrincipalForURI(nsIURI* aURI,
+                                                     nsIPrincipal** aPrincipal)
 {
   nsresult rv;
   nsCOMPtr<nsIScriptSecurityManager> securityManager =
@@ -140,16 +140,15 @@ nsSiteSecurityService::GetPrincipalForURI(nsIURI* aURI,
 }
 
 nsresult
-nsSiteSecurityService::SetState(uint32_t aType,
-                                nsIURI* aSourceURI,
-                                int64_t maxage,
-                                bool includeSubdomains,
-                                uint32_t flags)
+nsStrictTransportSecurityService::SetStsState(nsIURI* aSourceURI,
+                                              int64_t maxage,
+                                              bool includeSubdomains,
+                                              uint32_t flags)
 {
   
   
   if (!maxage) {
-    return RemoveState(aType, aSourceURI, flags);
+    return RemoveStsState(aSourceURI, flags);
   }
 
   
@@ -192,14 +191,11 @@ nsSiteSecurityService::SetState(uint32_t aType,
 }
 
 NS_IMETHODIMP
-nsSiteSecurityService::RemoveState(uint32_t aType, nsIURI* aURI, uint32_t aFlags)
+nsStrictTransportSecurityService::RemoveStsState(nsIURI* aURI, uint32_t aFlags)
 {
   
   
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
-  
-  NS_ENSURE_TRUE(aType == nsISiteSecurityService::HEADER_HSTS,
-                 NS_ERROR_NOT_IMPLEMENTED);
 
   nsAutoCString hostname;
   nsresult rv = GetHost(aURI, hostname);
@@ -219,19 +215,15 @@ nsSiteSecurityService::RemoveState(uint32_t aType, nsIURI* aURI, uint32_t aFlags
 }
 
 NS_IMETHODIMP
-nsSiteSecurityService::ProcessHeader(uint32_t aType,
-                                     nsIURI* aSourceURI,
-                                     const char* aHeader,
-                                     uint32_t aFlags,
-                                     uint64_t *aMaxAge,
-                                     bool *aIncludeSubdomains)
+nsStrictTransportSecurityService::ProcessStsHeader(nsIURI* aSourceURI,
+                                                   const char* aHeader,
+                                                   uint32_t aFlags,
+                                                   uint64_t *aMaxAge,
+                                                   bool *aIncludeSubdomains)
 {
   
   
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
-  
-  NS_ENSURE_TRUE(aType == nsISiteSecurityService::HEADER_HSTS,
-                 NS_ERROR_NOT_IMPLEMENTED);
 
   if (aMaxAge != nullptr) {
     *aMaxAge = 0;
@@ -243,19 +235,18 @@ nsSiteSecurityService::ProcessHeader(uint32_t aType,
 
   char * header = NS_strdup(aHeader);
   if (!header) return NS_ERROR_OUT_OF_MEMORY;
-  nsresult rv = ProcessHeaderMutating(aType, aSourceURI, header, aFlags,
-                                      aMaxAge, aIncludeSubdomains);
+  nsresult rv = ProcessStsHeaderMutating(aSourceURI, header, aFlags,
+                                         aMaxAge, aIncludeSubdomains);
   NS_Free(header);
   return rv;
 }
 
 nsresult
-nsSiteSecurityService::ProcessHeaderMutating(uint32_t aType,
-                                             nsIURI* aSourceURI,
-                                             char* aHeader,
-                                             uint32_t aFlags,
-                                             uint64_t *aMaxAge,
-                                             bool *aIncludeSubdomains)
+nsStrictTransportSecurityService::ProcessStsHeaderMutating(nsIURI* aSourceURI,
+                                                           char* aHeader,
+                                                           uint32_t aFlags,
+                                                           uint64_t *aMaxAge,
+                                                           bool *aIncludeSubdomains)
 {
   STSLOG(("STS: processing header '%s'", aHeader));
 
@@ -351,7 +342,7 @@ nsSiteSecurityService::ProcessHeaderMutating(uint32_t aType,
   }
 
   
-  SetState(aType, aSourceURI, maxAge, foundIncludeSubdomains, aFlags);
+  SetStsState(aSourceURI, maxAge, foundIncludeSubdomains, aFlags);
 
   if (aMaxAge != nullptr) {
     *aMaxAge = (uint64_t)maxAge;
@@ -366,6 +357,21 @@ nsSiteSecurityService::ProcessHeaderMutating(uint32_t aType,
          NS_OK;
 }
 
+NS_IMETHODIMP
+nsStrictTransportSecurityService::IsStsHost(const char* aHost, uint32_t aFlags, bool* aResult)
+{
+  
+  
+  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
+
+  nsCOMPtr<nsIURI> uri;
+  nsDependentCString hostString(aHost);
+  nsresult rv = NS_NewURI(getter_AddRefs(uri),
+                          NS_LITERAL_CSTRING("https://") + hostString);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return IsStsURI(uri, aFlags, aResult);
+}
+
 int STSPreloadCompare(const void *key, const void *entry)
 {
   const char *keyStr = (const char *)key;
@@ -377,7 +383,7 @@ int STSPreloadCompare(const void *key, const void *entry)
 
 
 const nsSTSPreload *
-nsSiteSecurityService::GetPreloadListEntry(const char *aHost)
+nsStrictTransportSecurityService::GetPreloadListEntry(const char *aHost)
 {
   PRTime currentTime = PR_Now();
   int32_t timeOffset = 0;
@@ -399,15 +405,11 @@ nsSiteSecurityService::GetPreloadListEntry(const char *aHost)
 }
 
 NS_IMETHODIMP
-nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
-                                   uint32_t aFlags, bool* aResult)
+nsStrictTransportSecurityService::IsStsURI(nsIURI* aURI, uint32_t aFlags, bool* aResult)
 {
   
   
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
-  
-  NS_ENSURE_TRUE(aType == nsISiteSecurityService::HEADER_HSTS,
-                 NS_ERROR_NOT_IMPLEMENTED);
 
   
   *aResult = false;
@@ -417,7 +419,7 @@ nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
   NS_ENSURE_SUCCESS(rv, rv);
 
   const nsSTSPreload *preload = nullptr;
-  nsSSSHostEntry *pbEntry = nullptr;
+  nsSTSHostEntry *pbEntry = nullptr;
 
   bool isPrivate = aFlags & nsISocketProvider::NO_PERMANENT_STORAGE;
   if (isPrivate) {
@@ -544,8 +546,8 @@ nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
 
 
 NS_IMETHODIMP
-nsSiteSecurityService::ShouldIgnoreHeader(nsISupports* aSecurityInfo,
-                                          bool* aResult)
+nsStrictTransportSecurityService::ShouldIgnoreStsHeader(nsISupports* aSecurityInfo,
+                                                        bool* aResult)
 {
   nsresult rv;
   bool tlsIsBroken = false;
@@ -579,9 +581,9 @@ nsSiteSecurityService::ShouldIgnoreHeader(nsISupports* aSecurityInfo,
 
 
 NS_IMETHODIMP
-nsSiteSecurityService::Observe(nsISupports *subject,
-                               const char *topic,
-                               const PRUnichar *data)
+nsStrictTransportSecurityService::Observe(nsISupports *subject,
+                                          const char *topic,
+                                          const PRUnichar *data)
 {
   if (strcmp(topic, "last-pb-context-exited") == 0) {
     mPrivateModeHostTable.Clear();
@@ -598,12 +600,12 @@ nsSiteSecurityService::Observe(nsISupports *subject,
 
 
 nsresult
-nsSiteSecurityService::AddPermission(nsIURI     *aURI,
-                                     const char *aType,
-                                     uint32_t   aPermission,
-                                     uint32_t   aExpireType,
-                                     int64_t    aExpireTime,
-                                     bool       aIsPrivate)
+nsStrictTransportSecurityService::AddPermission(nsIURI     *aURI,
+                                                const char *aType,
+                                                uint32_t   aPermission,
+                                                uint32_t   aExpireType,
+                                                int64_t    aExpireTime,
+                                                bool       aIsPrivate)
 {
     
     
@@ -634,7 +636,7 @@ nsSiteSecurityService::AddPermission(nsIURI     *aURI,
 
     
     
-    nsSSSHostEntry* entry = mPrivateModeHostTable.PutEntry(host.get());
+    nsSTSHostEntry* entry = mPrivateModeHostTable.PutEntry(host.get());
     if (!entry) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -658,9 +660,9 @@ nsSiteSecurityService::AddPermission(nsIURI     *aURI,
 }
 
 nsresult
-nsSiteSecurityService::RemovePermission(const nsCString  &aHost,
-                                        const char       *aType,
-                                        bool aIsPrivate)
+nsStrictTransportSecurityService::RemovePermission(const nsCString  &aHost,
+                                                   const char       *aType,
+                                                   bool aIsPrivate)
 {
     
     
@@ -684,7 +686,7 @@ nsSiteSecurityService::RemovePermission(const nsCString  &aHost,
 
     
     
-    nsSSSHostEntry* entry = mPrivateModeHostTable.GetEntry(aHost.get());
+    nsSTSHostEntry* entry = mPrivateModeHostTable.GetEntry(aHost.get());
 
     if (!entry) {
       entry = mPrivateModeHostTable.PutEntry(aHost.get());
