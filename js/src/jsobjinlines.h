@@ -384,7 +384,7 @@ JSObject::extendDenseElements(js::ThreadSafeContext *tcx,
 
 
 
-    if (!isExtensible() || watched()) {
+    if (!nonProxyIsExtensible() || watched()) {
         JS_ASSERT(getDenseCapacity() == 0);
         return ED_SPARSE;
     }

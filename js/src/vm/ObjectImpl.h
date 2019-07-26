@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef vm_ObjectImpl_h
 #define vm_ObjectImpl_h
@@ -27,12 +27,12 @@ class ObjectImpl;
 class Nursery;
 class Shape;
 
-/*
- * To really poison a set of values, using 'magic' or 'undefined' isn't good
- * enough since often these will just be ignored by buggy code (see bug 629974)
- * in debug builds and crash in release builds. Instead, we use a safe-for-crash
- * pointer.
- */
+
+
+
+
+
+
 static JS_ALWAYS_INLINE void
 Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
 {
@@ -86,16 +86,16 @@ CastAsStrictPropertyOp(JSObject *object)
     return JS_DATA_TO_FUNC_PTR(StrictPropertyOp, object);
 }
 
-/*
- * Properties are stored differently depending on the type of the key.  If the
- * key is an unsigned 32-bit integer (i.e. an index), we call such properties
- * "elements" and store them in one of a number of forms (optimized for dense
- * property storage, typed array data, and so on).  All other properties are
- * stored using shapes and shape trees.  Keys for these properties are either
- * PropertyNames (that is, atomized strings whose contents are not unsigned
- * 32-bit integers) or SpecialIds (see jsid for details); the union of these
- * types, used in individual shapes, is PropertyId.
- */
+
+
+
+
+
+
+
+
+
+
 class PropertyId
 {
     jsid id;
@@ -137,24 +137,24 @@ class PropertyId
     bool operator!=(const PropertyId &rhs) const { return id != rhs.id; }
 };
 
-/*
- * A representation of ECMA-262 ed. 5's internal Property Descriptor data
- * structure.
- */
+
+
+
+
 struct PropDesc {
   private:
-    /*
-     * Original object from which this descriptor derives, passed through for
-     * the benefit of proxies.  FIXME: Remove this when direct proxies happen.
-     */
+    
+
+
+
     Value pd_;
 
     Value value_, get_, set_;
 
-    /* Property descriptor boolean fields. */
+    
     uint8_t attrs;
 
-    /* Bits indicating which values are set. */
+    
     bool hasGet_ : 1;
     bool hasSet_ : 1;
     bool hasValue_ : 1;
@@ -162,7 +162,7 @@ struct PropDesc {
     bool hasEnumerable_ : 1;
     bool hasConfigurable_ : 1;
 
-    /* Or maybe this represents a property's absence, and it's undefined. */
+    
     bool isUndefined_ : 1;
 
     PropDesc(const Value &v)
@@ -205,36 +205,36 @@ struct PropDesc {
     inline PropDesc(const Value &getter, const Value &setter,
                     Enumerability enumerable, Configurability configurable);
 
-    /*
-     * 8.10.5 ToPropertyDescriptor(Obj)
-     *
-     * If checkAccessors is false, skip steps 7.b and 8.b, which throw a
-     * TypeError if .get or .set is neither a callable object nor undefined.
-     *
-     * (DebuggerObject_defineProperty uses this: the .get and .set properties
-     * are expected to be Debugger.Object wrappers of functions, which are not
-     * themselves callable.)
-     */
+    
+
+
+
+
+
+
+
+
+
     bool initialize(JSContext *cx, const Value &v, bool checkAccessors = true);
 
-    /*
-     * If IsGenericDescriptor(desc) or IsDataDescriptor(desc) is true, then if
-     * the value of an attribute field of desc, considered as a data
-     * descriptor, is absent, set it to its default value. Else if the value of
-     * an attribute field of desc, considered as an attribute descriptor, is
-     * absent, set it to its default value.
-     */
+    
+
+
+
+
+
+
     void complete();
 
-    /*
-     * 8.10.4 FromPropertyDescriptor(Desc)
-     *
-     * initFromPropertyDescriptor sets pd to undefined and populates all the
-     * other fields of this PropDesc from desc.
-     *
-     * makeObject populates pd based on the other fields of *this, creating a
-     * new property descriptor JSObject and defining properties on it.
-     */
+    
+
+
+
+
+
+
+
+
     void initFromPropertyDescriptor(const PropertyDescriptor &desc);
     bool makeObject(JSContext *cx);
 
@@ -254,17 +254,17 @@ struct PropDesc {
 
     uint8_t attributes() const { MOZ_ASSERT(!isUndefined()); return attrs; }
 
-    /* 8.10.1 IsAccessorDescriptor(desc) */
+    
     bool isAccessorDescriptor() const {
         return !isUndefined() && (hasGet() || hasSet());
     }
 
-    /* 8.10.2 IsDataDescriptor(desc) */
+    
     bool isDataDescriptor() const {
         return !isUndefined() && (hasValue() || hasWritable());
     }
 
-    /* 8.10.3 IsGenericDescriptor(desc) */
+    
     bool isGenericDescriptor() const {
         return !isUndefined() && !isAccessorDescriptor() && !isDataDescriptor();
     }
@@ -314,10 +314,10 @@ struct PropDesc {
         return HandleValue::fromMarkedLocation(&set_);
     }
 
-    /*
-     * Unfortunately the values produced by these methods are used such that
-     * we can't assert anything here.  :-(
-     */
+    
+
+
+
     PropertyOp getter() const {
         return CastAsPropertyOp(get_.isUndefined() ? NULL : &get_.toObject());
     }
@@ -325,11 +325,11 @@ struct PropDesc {
         return CastAsStrictPropertyOp(set_.isUndefined() ? NULL : &set_.toObject());
     }
 
-    /*
-     * Throw a TypeError if a getter/setter is present and is neither callable
-     * nor undefined. These methods do exactly the type checks that are skipped
-     * by passing false as the checkAccessors parameter of initialize.
-     */
+    
+
+
+
+
     bool checkGetter(JSContext *cx);
     bool checkSetter(JSContext *cx);
 
@@ -419,7 +419,7 @@ enum ElementsKind {
 
     ArrayBufferElements,
 
-    /* These typed element types must remain contiguous. */
+    
     Uint8Elements,
     Int8Elements,
     Uint16Elements,
@@ -435,7 +435,7 @@ class ElementsHeader
 {
   protected:
     uint32_t type;
-    uint32_t length; /* Array length, ArrayBuffer length, typed array length */
+    uint32_t length; 
 
     union {
         class {
@@ -573,7 +573,7 @@ struct uint8_clamped {
     uint8_clamped() { }
     uint8_clamped(const uint8_clamped& other) : val(other.val) { }
 
-    // invoke our assignment helpers for constructor conversion
+    
     uint8_clamped(uint8_t x)    { *this = x; }
     uint8_clamped(uint16_t x)   { *this = x; }
     uint8_clamped(uint32_t x)   { *this = x; }
@@ -640,7 +640,7 @@ struct uint8_clamped {
     }
 };
 
-/* Note that we can't use std::numeric_limits here due to uint8_clamped. */
+
 template<typename T> inline const bool TypeIsFloatingPoint() { return false; }
 template<> inline const bool TypeIsFloatingPoint<float>() { return true; }
 template<> inline const bool TypeIsFloatingPoint<double>() { return true; }
@@ -714,7 +714,7 @@ TypedElementsHeader<uint8_t>::assign(uint32_t index, double d)
 template<> inline void
 TypedElementsHeader<int8_t>::assign(uint32_t index, double d)
 {
-    /* FIXME: Casting out-of-range signed integers has undefined behavior! */
+    
     setElement(index, int8_t(ToInt32(d)));
 }
 
@@ -727,7 +727,7 @@ TypedElementsHeader<uint16_t>::assign(uint32_t index, double d)
 template<> inline void
 TypedElementsHeader<int16_t>::assign(uint32_t index, double d)
 {
-    /* FIXME: Casting out-of-range signed integers has undefined behavior! */
+    
     setElement(index, int16_t(ToInt32(d)));
 }
 
@@ -740,7 +740,7 @@ TypedElementsHeader<uint32_t>::assign(uint32_t index, double d)
 template<> inline void
 TypedElementsHeader<int32_t>::assign(uint32_t index, double d)
 {
-    /* FIXME: Casting out-of-range signed integers has undefined behavior! */
+    
     setElement(index, int32_t(ToInt32(d)));
 }
 
@@ -940,87 +940,87 @@ ElementsHeader::asArrayBufferElements()
 class ArrayObject;
 class ArrayBufferObject;
 
-/*
- * ES6 20130308 draft 8.4.2.4 ArraySetLength.
- *
- * |id| must be "length", |attrs| are the attributes to be used for the newly-
- * changed length property, |value| is the value for the new length, and
- * |setterIsStrict| indicates whether invalid changes will cause a TypeError
- * to be thrown.
- */
+
+
+
+
+
+
+
+
 extern bool
 ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
                HandleValue value, bool setterIsStrict);
 
-/*
- * Elements header used for all native objects. The elements component of such
- * objects offers an efficient representation for all or some of the indexed
- * properties of the object, using a flat array of Values rather than a shape
- * hierarchy stored in the object's slots. This structure is immediately
- * followed by an array of elements, with the elements member in an object
- * pointing to the beginning of that array (the end of this structure).
- * See below for usage of this structure.
- *
- * The sets of properties represented by an object's elements and slots
- * are disjoint. The elements contain only indexed properties, while the slots
- * can contain both named and indexed properties; any indexes in the slots are
- * distinct from those in the elements. If isIndexed() is false for an object,
- * all indexed properties (if any) are stored in the dense elements.
- *
- * Indexes will be stored in the object's slots instead of its elements in
- * the following case:
- *  - there are more than MIN_SPARSE_INDEX slots total and the load factor
- *    (COUNT / capacity) is less than 0.25
- *  - a property is defined that has non-default property attributes.
- *
- * We track these pieces of metadata for dense elements:
- *  - The length property as a uint32_t, accessible for array objects with
- *    ArrayObject::{length,setLength}().  This is unused for non-arrays.
- *  - The number of element slots (capacity), gettable with
- *    getDenseElementsCapacity().
- *  - The array's initialized length, accessible with
- *    getDenseElementsInitializedLength().
- *
- * Holes in the array are represented by MagicValue(JS_ELEMENTS_HOLE) values.
- * These indicate indexes which are not dense properties of the array. The
- * property may, however, be held by the object's properties.
- *
- * The capacity and length of an object's elements are almost entirely
- * unrelated!  In general the length may be greater than, less than, or equal
- * to the capacity.  The first case occurs with |new Array(100)|.  The length
- * is 100, but the capacity remains 0 (indices below length and above capacity
- * must be treated as holes) until elements between capacity and length are
- * set.  The other two cases are common, depending upon the number of elements
- * in an array and the underlying allocator used for element storage.
- *
- * The only case in which the capacity and length of an object's elements are
- * related is when the object is an array with non-writable length.  In this
- * case the capacity is always less than or equal to the length.  This permits
- * JIT code to optimize away the check for non-writable length when assigning
- * to possibly out-of-range elements: such code already has to check for
- * |index < capacity|, and fallback code checks for non-writable length.
- *
- * The initialized length of an object specifies the number of elements that
- * have been initialized. All elements above the initialized length are
- * holes in the object, and the memory for all elements between the initialized
- * length and capacity is left uninitialized. When type inference is disabled,
- * the initialized length always equals the capacity. When inference is
- * enabled, the initialized length is some value less than or equal to both the
- * object's length and the object's capacity.
- *
- * With inference enabled, there is flexibility in exactly the value the
- * initialized length must hold, e.g. if an array has length 5, capacity 10,
- * completely empty, it is valid for the initialized length to be any value
- * between zero and 5, as long as the in memory values below the initialized
- * length have been initialized with a hole value. However, in such cases we
- * want to keep the initialized length as small as possible: if the object is
- * known to have no hole values below its initialized length, then it is
- * "packed" and can be accessed much faster by JIT code.
- *
- * Elements do not track property creation order, so enumerating the elements
- * of an object does not necessarily visit indexes in the order they were
- * created.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ObjectElements
 {
   public:
@@ -1028,8 +1028,8 @@ class ObjectElements
         CONVERT_DOUBLE_ELEMENTS = 0x1,
         ASMJS_ARRAY_BUFFER = 0x2,
 
-        // Present only if these elements correspond to an array with
-        // non-writable length; never present for non-arrays.
+        
+        
         NONWRITABLE_ARRAY_LENGTH = 0x4
     };
 
@@ -1044,28 +1044,28 @@ class ObjectElements
     ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
                    HandleValue value, bool setterIsStrict);
 
-    /* See Flags enum above. */
+    
     uint32_t flags;
 
-    /*
-     * Number of initialized elements. This is <= the capacity, and for arrays
-     * is <= the length. Memory for elements above the initialized length is
-     * uninitialized, but values between the initialized length and the proper
-     * length are conceptually holes.
-     *
-     * ArrayBufferObject uses this field to store byteLength.
-     */
+    
+
+
+
+
+
+
+
     uint32_t initializedLength;
 
-    /*
-     * Beware, one or both of the following fields is clobbered by
-     * ArrayBufferObject. See GetViewList.
-     */
+    
 
-    /* Number of allocated slots. */
+
+
+
+    
     uint32_t capacity;
 
-    /* 'length' property of array objects, unused for other objects. */
+    
     uint32_t length;
 
     void staticAsserts() {
@@ -1122,7 +1122,7 @@ class ObjectElements
     static const size_t VALUES_PER_HEADER = 2;
 };
 
-/* Shared singleton for objects with no elements. */
+
 extern HeapSlot *emptyObjectElements;
 
 struct Class;
@@ -1136,71 +1136,71 @@ class TaggedProto;
 inline Value
 ObjectValue(ObjectImpl &obj);
 
-/*
- * ObjectImpl specifies the internal implementation of an object.  (In contrast
- * JSObject specifies an "external" interface, at the conceptual level of that
- * exposed in ECMAScript.)
- *
- * The |shape_| member stores the shape of the object, which includes the
- * object's class and the layout of all its properties.
- *
- * The type member stores the type of the object, which contains its prototype
- * object and the possible types of its properties.
- *
- * The rest of the object stores its named properties and indexed elements.
- * These are stored separately from one another. Objects are followed by an
- * variable-sized array of values for inline storage, which may be used by
- * either properties of native objects (fixed slots) or by elements.
- *
- * Two native objects with the same shape are guaranteed to have the same
- * number of fixed slots.
- *
- * Named property storage can be split between fixed slots and a dynamically
- * allocated array (the slots member). For an object with N fixed slots, shapes
- * with slots [0..N-1] are stored in the fixed slots, and the remainder are
- * stored in the dynamic array. If all properties fit in the fixed slots, the
- * 'slots' member is NULL.
- *
- * Elements are indexed via the 'elements' member. This member can point to
- * either the shared emptyObjectElements singleton, into the inline value array
- * (the address of the third value, to leave room for a ObjectElements header;
- * in this case numFixedSlots() is zero) or to a dynamically allocated array.
- *
- * Only certain combinations of slots and elements storage are possible.
- *
- * - For native objects, slots and elements may both be non-empty. The
- *   slots may be either names or indexes; no indexed property will be in both
- *   the slots and elements.
- *
- * - For non-native objects other than typed arrays, properties and elements
- *   are both empty.
- *
- * - For typed array buffers, elements are used and properties are not used.
- *   The data indexed by the elements do not represent Values, but primitive
- *   unboxed integers or floating point values.
- *
- * The members of this class are currently protected; in the long run this will
- * will change so that some members are private, and only certain methods that
- * act upon them will be protected.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ObjectImpl : public gc::Cell
 {
   protected:
-    /*
-     * Shape of the object, encodes the layout of the object's properties and
-     * all other information about its structure. See jsscope.h.
-     */
+    
+
+
+
     HeapPtrShape shape_;
 
-    /*
-     * The object's type and prototype. For objects with the LAZY_TYPE flag
-     * set, this is the prototype's default 'new' type and can only be used
-     * to get that prototype.
-     */
+    
+
+
+
+
     HeapPtrTypeObject type_;
 
-    HeapSlot *slots;     /* Slots for object properties. */
-    HeapSlot *elements;  /* Slots for object elements. */
+    HeapSlot *slots;     
+    HeapSlot *elements;  
 
     friend bool
     ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
@@ -1228,7 +1228,7 @@ class ObjectImpl : public gc::Cell
 
     friend inline Value ObjectValue(ObjectImpl &obj);
 
-    /* These functions are public, and they should remain public. */
+    
 
   public:
     JSObject * getProto() const {
@@ -1239,10 +1239,17 @@ class ObjectImpl : public gc::Cell
         return type_->clasp;
     }
 
-    inline bool isExtensible() const;
+    static inline bool
+    isExtensible(JSContext *cx, Handle<ObjectImpl*> obj, bool *extensible);
 
-    // Attempt to change the [[Extensible]] bit on |obj| to false.  Callers
-    // must ensure that |obj| is currently extensible before calling this!
+    
+    
+    
+    
+    inline bool nonProxyIsExtensible() const;
+
+    
+    
     static bool
     preventExtensions(JSContext *cx, Handle<ObjectImpl*> obj);
 
@@ -1290,17 +1297,17 @@ class ObjectImpl : public gc::Cell
         GENERATE_SHAPE
     };
 
-    bool setFlag(JSContext *cx, /*BaseShape::Flag*/ uint32_t flag,
+    bool setFlag(JSContext *cx,  uint32_t flag,
                  GenerateShape generateShape = GENERATE_NONE);
-    bool clearFlag(JSContext *cx, /*BaseShape::Flag*/ uint32_t flag);
+    bool clearFlag(JSContext *cx,  uint32_t flag);
 
     bool toDictionaryMode(JSContext *cx);
 
   private:
-    /*
-     * Get internal pointers to the range of values starting at start and
-     * running for length.
-     */
+    
+
+
+
     void getSlotRangeUnchecked(uint32_t start, uint32_t length,
                                HeapSlot **fixedStart, HeapSlot **fixedEnd,
                                HeapSlot **slotsStart, HeapSlot **slotsEnd)
@@ -1346,21 +1353,21 @@ class ObjectImpl : public gc::Cell
         getSlotRange(start, length, &fixedStart, &fixedEnd, &slotsStart, &slotsEnd);
         Debug_SetSlotRangeToCrashOnTouch(fixedStart, fixedEnd);
         Debug_SetSlotRangeToCrashOnTouch(slotsStart, slotsEnd);
-#endif /* DEBUG */
+#endif 
     }
 
     void initializeSlotRange(uint32_t start, uint32_t count);
 
-    /*
-     * Initialize a flat array of slots to this object at a start slot.  The
-     * caller must ensure that are enough slots.
-     */
+    
+
+
+
     void initSlotRange(uint32_t start, const Value *vector, uint32_t length);
 
-    /*
-     * Copy a flat array of slots to this object at a start slot. Caller must
-     * ensure there are enough slots in this object.
-     */
+    
+
+
+
     void copySlotRange(uint32_t start, const Value *vector, uint32_t length);
 
 #ifdef DEBUG
@@ -1369,14 +1376,14 @@ class ObjectImpl : public gc::Cell
         SENTINEL_ALLOWED
     };
 
-    /*
-     * Check that slot is in range for the object's allocated slots.
-     * If sentinelAllowed then slot may equal the slot capacity.
-     */
+    
+
+
+
     bool slotInRange(uint32_t slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
 #endif
 
-    /* Minimum size for dynamically allocated slots. */
+    
     static const uint32_t SLOT_CAPACITY_MIN = 8;
 
     HeapSlot *fixedSlots() const {
@@ -1400,10 +1407,10 @@ class ObjectImpl : public gc::Cell
         MOZ_ASSUME_UNREACHABLE("NYI");
     }
 
-    /*
-     * These functions are currently public for simplicity; in the long run
-     * it may make sense to make at least some of them private.
-     */
+    
+
+
+
 
   public:
     js::TaggedProto getTaggedProto() const {
@@ -1421,7 +1428,7 @@ class ObjectImpl : public gc::Cell
 
     inline JSCompartment *compartment() const;
 
-    // uninlinedIsNative() is equivalent to isNative(), but isn't inlined.
+    
     inline bool isNative() const;
     bool uninlinedIsNative() const;
 
@@ -1434,23 +1441,23 @@ class ObjectImpl : public gc::Cell
         return reinterpret_cast<const shadow::Object *>(this)->numFixedSlots();
     }
 
-    /*
-     * Whether this is the only object which has its specified type. This
-     * object will have its type constructed lazily as needed by analysis.
-     */
+    
+
+
+
     bool hasSingletonType() const { return !!type_->singleton; }
 
-    /*
-     * Whether the object's type has not been constructed yet. If an object
-     * might have a lazy type, use getType() below, otherwise type().
-     */
+    
+
+
+
     bool hasLazyType() const { return type_->lazy(); }
 
-    // uninlinedSlotSpan() is the same as slotSpan(), but isn't inlined.
+    
     inline uint32_t slotSpan() const;
     uint32_t uninlinedSlotSpan() const;
 
-    /* Compute dynamicSlotsCount() for this object. */
+    
     inline uint32_t numDynamicSlots() const;
 
     Shape *nativeLookup(JSContext *cx, jsid id);
@@ -1469,10 +1476,10 @@ class ObjectImpl : public gc::Cell
     }
     inline bool nativeContains(JSContext *cx, Shape* shape);
 
-    /*
-     * Contextless; can be called from parallel code. Returns false if the
-     * operation would have been effectful.
-     */
+    
+
+
+
     Shape *nativeLookupPure(jsid id);
     Shape *nativeLookupPure(PropertyId pid) {
         return nativeLookupPure(pid.asId());
@@ -1499,22 +1506,22 @@ class ObjectImpl : public gc::Cell
         return &getClass()->ops;
     }
 
-    /*
-     * An object is a delegate if it is on another object's prototype or scope
-     * chain, and therefore the delegate might be asked implicitly to get or
-     * set a property on behalf of another object. Delegates may be accessed
-     * directly too, as may any object, but only those objects linked after the
-     * head of any prototype or scope chain are flagged as delegates. This
-     * definition helps to optimize shape-based property cache invalidation
-     * (see Purge{Scope,Proto}Chain in jsobj.cpp).
-     */
+    
+
+
+
+
+
+
+
+
     inline bool isDelegate() const;
 
-    /*
-     * Return true if this object is a native one that has been converted from
-     * shared-immutable prototype-rooted shape storage to dictionary-shapes in
-     * a doubly-linked list.
-     */
+    
+
+
+
+
     inline bool inDictionaryMode() const;
 
     const Value &getSlot(uint32_t slot) const {
@@ -1533,11 +1540,11 @@ class ObjectImpl : public gc::Cell
     }
 
     HeapSlot *getSlotAddress(uint32_t slot) {
-        /*
-         * This can be used to get the address of the end of the slots for the
-         * object, which may be necessary when fetching zero-length arrays of
-         * slots (e.g. for callObjVarArray).
-         */
+        
+
+
+
+
         MOZ_ASSERT(slotInRange(slot, SENTINEL_ALLOWED));
         return getSlotAddressUnchecked(slot);
     }
@@ -1562,7 +1569,7 @@ class ObjectImpl : public gc::Cell
     inline void initCrossCompartmentSlot(uint32_t slot, const Value &value);
     inline void initSlotUnchecked(uint32_t slot, const Value &value);
 
-    /* For slots which are known to always be fixed, due to the way they are allocated. */
+    
 
     HeapSlot &getFixedSlotRef(uint32_t slot) {
         MOZ_ASSERT(slot < numFixedSlots());
@@ -1577,12 +1584,12 @@ class ObjectImpl : public gc::Cell
     inline void setFixedSlot(uint32_t slot, const Value &value);
     inline void initFixedSlot(uint32_t slot, const Value &value);
 
-    /*
-     * Get the number of dynamic slots to allocate to cover the properties in
-     * an object with the given number of fixed slots and slot span. The slot
-     * capacity is not stored explicitly, and the allocated size of the slot
-     * array is kept in sync with this count.
-     */
+    
+
+
+
+
+
     static uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span) {
         if (span <= nfixed)
             return 0;
@@ -1595,12 +1602,12 @@ class ObjectImpl : public gc::Cell
         return slots;
     }
 
-    /* Memory usage functions. */
+    
     size_t tenuredSizeOfThis() const {
         return js::gc::Arena::thingSize(tenuredGetAllocKind());
     }
 
-    /* Elements accessors. */
+    
 
     ObjectElements * getElementsHeader() const {
         return ObjectElements::fromElements(elements);
@@ -1621,13 +1628,13 @@ class ObjectImpl : public gc::Cell
     void setFixedElements() { this->elements = fixedElements(); }
 
     inline bool hasDynamicElements() const {
-        /*
-         * Note: for objects with zero fixed slots this could potentially give
-         * a spurious 'true' result, if the end of this object is exactly
-         * aligned with the end of its arena and dynamic slots are allocated
-         * immediately afterwards. Such cases cannot occur for dense arrays
-         * (which have at least two fixed slots) and can only result in a leak.
-         */
+        
+
+
+
+
+
+
         return !hasEmptyElements() && elements != fixedElements();
     }
 
@@ -1639,7 +1646,7 @@ class ObjectImpl : public gc::Cell
         return elements == emptyObjectElements;
     }
 
-    /* GC support. */
+    
     JS_ALWAYS_INLINE Zone *zone() const;
     static inline ThingRootKind rootKind() { return THING_ROOT_OBJECT; }
     static inline void readBarrier(ObjectImpl *obj);
@@ -1649,14 +1656,14 @@ class ObjectImpl : public gc::Cell
     inline void privateWriteBarrierPost(void **pprivate);
     void markChildren(JSTracer *trc);
 
-    /* Private data accessors. */
+    
 
-    inline void *&privateRef(uint32_t nfixed) const { /* XXX should be private, not protected! */
-        /*
-         * The private pointer of an object can hold any word sized value.
-         * Private pointers are stored immediately after the last fixed slot of
-         * the object.
-         */
+    inline void *&privateRef(uint32_t nfixed) const { 
+        
+
+
+
+
         MOZ_ASSERT(nfixed == numFixedSlots());
         MOZ_ASSERT(hasPrivate());
         HeapSlot *end = &fixedSlots()[nfixed];
@@ -1679,12 +1686,12 @@ class ObjectImpl : public gc::Cell
         privateRef(numFixedSlots()) = data;
     }
 
-    /* Access private data for an object with a known number of fixed slots. */
+    
     inline void *getPrivate(uint32_t nfixed) const {
         return privateRef(nfixed);
     }
 
-    /* JIT Accessors */
+    
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
     HeapPtrShape *addressOfShape() { return &shape_; }
 
@@ -1720,7 +1727,7 @@ Downcast(Handle<ObjectImpl*> obj)
 extern JSObject *
 ArrayBufferDelegate(JSContext *cx, Handle<ObjectImpl*> obj);
 
-/* Generic [[GetOwnProperty]] method. */
+
 bool
 GetOwnElement(JSContext *cx, Handle<ObjectImpl*> obj, uint32_t index, unsigned resolveFlags,
               PropDesc *desc);
@@ -1740,7 +1747,7 @@ GetOwnProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<SpecialId> sid, un
     return GetOwnProperty(cx, obj, PropertyId(sid), resolveFlags, desc);
 }
 
-/* Proposed default [[GetP]](Receiver, P) method. */
+
 extern bool
 GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver, uint32_t index,
            unsigned resolveFlags, Value *vp);
@@ -1766,7 +1773,7 @@ extern bool
 DefineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint32_t index, const PropDesc &desc,
               bool shouldThrow, unsigned resolveFlags, bool *succeeded);
 
-/* Proposed default [[SetP]](Receiver, P, V) method. */
+
 extern bool
 SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver, uint32_t index,
            const Value &v, unsigned resolveFlags, bool *succeeded);
@@ -1782,6 +1789,6 @@ template <> struct GCMethods<PropertyId>
     static bool poisoned(PropertyId propid) { return IsPoisonedId(propid.asId()); }
 };
 
-} /* namespace js */
+} 
 
-#endif /* vm_ObjectImpl_h */
+#endif 

@@ -3336,7 +3336,7 @@ IsCacheableSetPropAddSlot(JSContext *cx, HandleObject obj, HandleShape oldShape,
         return false;
 
     
-    if (!obj->isExtensible() || obj->lastProperty()->previous() != oldShape)
+    if (!obj->nonProxyIsExtensible() || obj->lastProperty()->previous() != oldShape)
         return false;
 
     

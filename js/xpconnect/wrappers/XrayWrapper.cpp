@@ -1306,13 +1306,14 @@ DEBUG_CheckXBLLookup(JSContext *cx, JSPropertyDescriptor *desc)
 
 template <typename Base, typename Traits>
 bool
-XrayWrapper<Base, Traits>::isExtensible(JSObject *wrapper)
+XrayWrapper<Base, Traits>::isExtensible(JSContext *cx, JS::Handle<JSObject*> wrapper, bool *extensible)
 {
     
     
     
     
     
+    *extensible = true;
     return true;
 }
 

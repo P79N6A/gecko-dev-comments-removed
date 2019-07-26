@@ -608,7 +608,10 @@ DefinePropertyOnObject(JSContext *cx, HandleObject obj, HandleId id, const PropD
 
     
     if (!shape) {
-        if (!obj->isExtensible())
+        bool extensible;
+        if (!JSObject::isExtensible(cx, obj, &extensible))
+            return false;
+        if (!extensible)
             return Reject(cx, obj, JSMSG_OBJECT_NOT_EXTENSIBLE, throwError, rval);
 
         *rval = true;
@@ -1131,7 +1134,10 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
     assertSameCompartment(cx, obj);
     JS_ASSERT(it == SEAL || it == FREEZE);
 
-    if (obj->isExtensible() && !JSObject::preventExtensions(cx, obj))
+    bool extensible;
+    if (!JSObject::isExtensible(cx, obj, &extensible))
+        return false;
+    if (extensible && !JSObject::preventExtensions(cx, obj))
         return false;
 
     AutoIdVector props(cx);
@@ -1220,7 +1226,10 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
  bool
 JSObject::isSealedOrFrozen(JSContext *cx, HandleObject obj, ImmutabilityType it, bool *resultp)
 {
-    if (obj->isExtensible()) {
+    bool extensible;
+    if (!JSObject::isExtensible(cx, obj, &extensible))
+        return false;
+    if (extensible) {
         *resultp = false;
         return true;
     }
@@ -2730,7 +2739,7 @@ JSObject::maybeDensifySparseElements(JSContext *cx, HandleObject obj)
         return ED_SPARSE;
 
     
-    if (!obj->isExtensible() || obj->watched())
+    if (!obj->nonProxyIsExtensible() || obj->watched())
         return ED_SPARSE;
 
     
@@ -2853,7 +2862,7 @@ ReallocateElements(ThreadSafeContext *tcx, JSObject *obj, ObjectElements *oldHea
 bool
 JSObject::growElements(ThreadSafeContext *tcx, uint32_t newcap)
 {
-    JS_ASSERT(isExtensible());
+    JS_ASSERT(nonProxyIsExtensible());
 
     
 
@@ -4466,7 +4475,10 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
     }
 
     if (!shape) {
-        if (!obj->isExtensible()) {
+        bool extensible;
+        if (!JSObject::isExtensible(cx, obj, &extensible))
+            return false;
+        if (!extensible) {
             
             if (strict)
                 return obj->reportNotExtensible(cx);
@@ -5192,7 +5204,7 @@ JSObject::dump()
 
     fprintf(stderr, "flags:");
     if (obj->isDelegate()) fprintf(stderr, " delegate");
-    if (!obj->isExtensible()) fprintf(stderr, " not_extensible");
+    if (!obj->isProxy() && !obj->nonProxyIsExtensible()) fprintf(stderr, " not_extensible");
     if (obj->isIndexed()) fprintf(stderr, " indexed");
 
     if (obj->isNative()) {

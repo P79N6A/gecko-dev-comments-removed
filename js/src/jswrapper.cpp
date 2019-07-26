@@ -191,18 +191,12 @@ bool CrossCompartmentWrapper::finalizeInBackground(Value priv)
 #define NOTHING (true)
 
 bool
-CrossCompartmentWrapper::isExtensible(JSObject *wrapper)
+CrossCompartmentWrapper::isExtensible(JSContext *cx, HandleObject wrapper, bool *extensible)
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    return wrappedObject(wrapper)->isExtensible();
+    PIERCE(cx, wrapper,
+           NOTHING,
+           Wrapper::isExtensible(cx, wrapper, extensible),
+           NOTHING);
 }
 
 bool
@@ -605,11 +599,12 @@ SecurityWrapper<Base>::SecurityWrapper(unsigned flags)
 
 template <class Base>
 bool
-SecurityWrapper<Base>::isExtensible(JSObject *wrapper)
+SecurityWrapper<Base>::isExtensible(JSContext *cx, HandleObject wrapper, bool *extensible)
 {
     
     
     
+    *extensible = true;
     return true;
 }
 
@@ -691,10 +686,11 @@ DeadObjectProxy::DeadObjectProxy()
 }
 
 bool
-DeadObjectProxy::isExtensible(JSObject *proxy)
+DeadObjectProxy::isExtensible(JSContext *cx, HandleObject proxy, bool *extensible)
 {
     
     
+    *extensible = true;
     return true;
 }
 

@@ -569,7 +569,8 @@ public:
   virtual void finalize(JSFreeOp *fop, JSObject *proxy) MOZ_OVERRIDE;
 
   
-  virtual bool isExtensible(JSObject *proxy) MOZ_OVERRIDE;
+  virtual bool isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy, bool *extensible)
+                           MOZ_OVERRIDE;
   virtual bool preventExtensions(JSContext *cx,
                                  JS::Handle<JSObject*> proxy) MOZ_OVERRIDE;
   virtual bool getPropertyDescriptor(JSContext* cx,
@@ -641,11 +642,13 @@ protected:
 };
 
 bool
-nsOuterWindowProxy::isExtensible(JSObject *proxy)
+nsOuterWindowProxy::isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy,
+                                 bool *extensible)
 {
   
   
   
+  *extensible = true;
   return true;
 }
 

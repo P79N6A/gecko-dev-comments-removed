@@ -144,9 +144,11 @@ DOMProxyHandler::EnsureExpandoObject(JSContext* cx, JS::Handle<JSObject*> obj)
 }
 
 bool
-DOMProxyHandler::isExtensible(JSObject *proxy)
+DOMProxyHandler::isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy, bool *extensible)
 {
-  return true; 
+  
+  *extensible = true;
+  return true;
 }
 
 bool

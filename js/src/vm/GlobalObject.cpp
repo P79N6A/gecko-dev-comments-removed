@@ -124,7 +124,10 @@ ProtoSetterImpl(JSContext *cx, CallArgs args)
     Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
     
-    if (!obj->isExtensible()) {
+    bool extensible;
+    if (!JSObject::isExtensible(cx, obj, &extensible))
+        return false;
+    if (!extensible) {
         obj->reportNotExtensible(cx);
         return false;
     }

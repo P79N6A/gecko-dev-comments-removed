@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "vm/ObjectImpl-inl.h"
 
@@ -83,10 +83,10 @@ CheckArgCompartment(JSContext *cx, JSObject *obj, HandleValue v,
     return true;
 }
 
-/*
- * Convert Debugger.Objects in desc to debuggee values.
- * Reject non-callable getters and setters.
- */
+
+
+
+
 bool
 PropDesc::unwrapDebuggerObjectsInto(JSContext *cx, Debugger *dbg, HandleObject obj,
                                     PropDesc *unwrapped) const
@@ -128,11 +128,11 @@ PropDesc::unwrapDebuggerObjectsInto(JSContext *cx, Debugger *dbg, HandleObject o
     return true;
 }
 
-/*
- * Rewrap *idp and the fields of *desc for the current compartment.  Also:
- * defining a property on a proxy requires pd_ to contain a descriptor object,
- * so reconstitute desc->pd_ if needed.
- */
+
+
+
+
+
 bool
 PropDesc::wrapInto(JSContext *cx, HandleObject obj, const jsid &id, jsid *wrappedId,
                    PropDesc *desc) const
@@ -161,18 +161,18 @@ PropDesc::wrapInto(JSContext *cx, HandleObject obj, const jsid &id, jsid *wrappe
 
 static ObjectElements emptyElementsHeader(0, 0);
 
-/* Objects with no elements share one empty set of elements. */
+
 HeapSlot *js::emptyObjectElements =
     reinterpret_cast<HeapSlot *>(uintptr_t(&emptyElementsHeader) + sizeof(ObjectElements));
 
-/* static */ bool
+ bool
 ObjectElements::ConvertElementsToDoubles(JSContext *cx, uintptr_t elementsPtr)
 {
-    /*
-     * This function is infallible, but has a fallible interface so that it can
-     * be called directly from Ion code. Only arrays can have their dense
-     * elements converted to doubles, and arrays never have empty elements.
-     */
+    
+
+
+
+
     HeapSlot *elementsHeapPtr = (HeapSlot *) elementsPtr;
     JS_ASSERT(elementsHeapPtr != emptyObjectElements);
 
@@ -258,10 +258,10 @@ js::ObjectImpl::checkShapeConsistency()
 void
 js::ObjectImpl::initializeSlotRange(uint32_t start, uint32_t length)
 {
-    /*
-     * No bounds check, as this is used when the object's shape does not
-     * reflect its allocated slots (updateSlotsForSpan).
-     */
+    
+
+
+
     HeapSlot *fixedStart, *fixedEnd, *slotsStart, *slotsEnd;
     getSlotRangeUnchecked(start, length, &fixedStart, &fixedEnd, &slotsStart, &slotsEnd);
 
@@ -306,19 +306,19 @@ js::ObjectImpl::slotInRange(uint32_t slot, SentinelAllowed sentinel) const
         return slot <= capacity;
     return slot < capacity;
 }
-#endif /* DEBUG */
+#endif 
 
-// See bug 844580.
+
 #if defined(_MSC_VER)
 # pragma optimize("g", off)
 #endif
 
 #if defined(_MSC_VER) && _MSC_VER >= 1500
-/*
- * Work around a compiler bug in MSVC9 and above, where inlining this function
- * causes stack pointer offsets to go awry and spp to refer to something higher
- * up the stack.
- */
+
+
+
+
+
 MOZ_NEVER_INLINE
 #endif
 Shape *
@@ -397,7 +397,7 @@ ElementToValue(const T &t)
 }
 
 template<>
-/* static */ Value
+ Value
 ElementToValue(const uint8_clamped &u)
 {
     return NumberValue(uint8_t(u));
@@ -449,10 +449,10 @@ DenseElementsHeader::defineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint3
     MOZ_ASSERT_IF(desc.hasGet() || desc.hasSet(), !desc.hasValue() && !desc.hasWritable());
     MOZ_ASSERT_IF(desc.hasValue() || desc.hasWritable(), !desc.hasGet() && !desc.hasSet());
 
-    /*
-     * If desc is an accessor descriptor or a data descriptor with atypical
-     * attributes, convert to sparse and retry.
-     */
+    
+
+
+
     if (desc.hasGet() || desc.hasSet() ||
         (desc.hasEnumerable() && !desc.enumerable()) ||
         (desc.hasConfigurable() && !desc.configurable()) ||
@@ -464,24 +464,27 @@ DenseElementsHeader::defineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint3
         return elts.defineElement(cx, obj, index, desc, shouldThrow, resolveFlags, succeeded);
     }
 
-    /* Does the element exist?  All behavior depends upon this. */
+    
     uint32_t initLen = initializedLength();
     if (index < initLen) {
         HeapSlot &slot = obj->elements[index];
         if (!slot.isMagic(JS_ELEMENTS_HOLE)) {
-            /*
-             * The element exists with attributes { [[Enumerable]]: true,
-             * [[Configurable]]: true, [[Writable]]: true, [[Value]]: slot }.
-             */
-            // XXX jwalden fill this in!
+            
+
+
+
+            
         }
     }
 
-    /*
-     * If the element doesn't exist, we can only add it if the object is
-     * extensible.
-     */
-    if (!obj->isExtensible()) {
+    
+
+
+
+    bool extensible;
+    if (!JSObject::isExtensible(cx, obj, &extensible))
+        return false;
+    if (!extensible) {
         *succeeded = false;
         if (!shouldThrow)
             return true;
@@ -493,14 +496,14 @@ DenseElementsHeader::defineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint3
         return false;
     }
 
-    /* Otherwise we ensure space for it exists and that it's initialized. */
+    
     ObjectImpl::DenseElementsResult res = obj->ensureDenseElementsInitialized(cx, index, 0);
 
-    /* Propagate any error. */
+    
     if (res == ObjectImpl::Failure)
         return false;
 
-    /* Otherwise, if the index was too far out of range, go sparse. */
+    
     if (res == ObjectImpl::ConvertToSparse) {
         if (!obj->makeElementsSparse(cx))
             return false;
@@ -508,7 +511,7 @@ DenseElementsHeader::defineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint3
         return elts.defineElement(cx, obj, index, desc, shouldThrow, resolveFlags, succeeded);
     }
 
-    /* But if we were able to ensure the element's existence, we're good. */
+    
     MOZ_ASSERT(res == ObjectImpl::Succeeded);
     obj->elements[index].set(obj->asObjectPtr(), HeapSlot::Element, index, desc.value());
     *succeeded = true;
@@ -532,7 +535,7 @@ TypedElementsHeader<T>::defineElement(JSContext *cx, Handle<ObjectImpl*> obj,
                                       uint32_t index, const PropDesc &desc, bool shouldThrow,
                                       unsigned resolveFlags, bool *succeeded)
 {
-    /* XXX jwalden This probably isn't how typed arrays should behave... */
+    
     *succeeded = false;
 
     RootedValue val(cx, ObjectValue(*obj));
@@ -571,7 +574,7 @@ js::GetOwnProperty(JSContext *cx, Handle<ObjectImpl*> obj, PropertyId pid_, unsi
 
     RootedShape shape(cx, obj->nativeLookup(cx, pid));
     if (!shape) {
-        /* Not found: attempt to resolve it. */
+        
         Class *clasp = obj->getClass();
         JSResolveOp resolve = clasp->resolve;
         if (resolve != JS_ResolveStub) {
@@ -588,7 +591,7 @@ js::GetOwnProperty(JSContext *cx, Handle<ObjectImpl*> obj, PropertyId pid_, unsi
             }
         }
 
-        /* Now look it up again. */
+        
         shape = obj->nativeLookup(cx, pid);
         if (!shape) {
             desc->setUndefined();
@@ -667,7 +670,7 @@ js::GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> rece
         if (!GetOwnProperty(cx, current, pid, resolveFlags, &desc.getPropDesc()))
             return false;
 
-        /* No property?  Recur or bottom out. */
+        
         if (desc.isUndefined()) {
             current = current->getProto();
             if (current)
@@ -677,13 +680,13 @@ js::GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> rece
             return true;
         }
 
-        /* If it's a data property, return the value. */
+        
         if (desc.isDataDescriptor()) {
             vp.set(desc.value());
             return true;
         }
 
-        /* If it's an accessor property, call its [[Get]] with the receiver. */
+        
         if (desc.isAccessorDescriptor()) {
             Rooted<Value> get(cx, desc.getterValue());
             if (get.isUndefined()) {
@@ -703,7 +706,7 @@ js::GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> rece
             return ok;
         }
 
-        /* Otherwise it's a PropertyOp-based property.  XXX handle this! */
+        
         MOZ_ASSUME_UNREACHABLE("NYI: handle PropertyOp'd properties here");
     } while (false);
 
@@ -730,7 +733,7 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
         if (!GetOwnElement(cx, current, index, resolveFlags, &desc))
             return false;
 
-        /* No property?  Recur or bottom out. */
+        
         if (desc.isUndefined()) {
             current = current->getProto();
             if (current)
@@ -740,13 +743,13 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
             return true;
         }
 
-        /* If it's a data property, return the value. */
+        
         if (desc.isDataDescriptor()) {
             *vp = desc.value();
             return true;
         }
 
-        /* If it's an accessor property, call its [[Get]] with the receiver. */
+        
         if (desc.isAccessorDescriptor()) {
             getter = desc.getterValue();
             if (getter.isUndefined()) {
@@ -758,7 +761,7 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
             if (!args.init(0))
                 return false;
 
-            /* Push getter, receiver, and no args. */
+            
             args.setCallee(getter);
             args.setThis(ObjectValue(*current));
 
@@ -767,7 +770,7 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
             return ok;
         }
 
-        /* Otherwise it's a PropertyOp-based property.  XXX handle this! */
+        
         MOZ_ASSUME_UNREACHABLE("NYI: handle PropertyOp'd properties here");
     } while (false);
 
@@ -889,15 +892,15 @@ TypedElementsHeader<T>::setElement(JSContext *cx, Handle<ObjectImpl*> obj,
 
     uint32_t len = length();
     if (index >= len) {
-        /*
-         * Silent ignore is better than an exception here, because at some
-         * point we may want to support other properties on these objects.
-         */
+        
+
+
+
         *succeeded = true;
         return true;
     }
 
-    /* Convert the value being set to the element type. */
+    
     double d;
     if (v.isNumber()) {
         d = v.toNumber();
@@ -913,7 +916,7 @@ TypedElementsHeader<T>::setElement(JSContext *cx, Handle<ObjectImpl*> obj,
             d = double(v.toBoolean());
         }
     } else {
-        // non-primitive assignments become NaN or 0 (for float/int arrays)
+        
         d = js_NaN;
     }
 
@@ -985,7 +988,7 @@ js::SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
                 if (!args.init(1))
                     return false;
 
-                /* Push set, receiver, and v as the sole argument. */
+                
                 args.setCallee(setter);
                 args.setThis(ObjectValue(*current));
                 args[0] = v;
