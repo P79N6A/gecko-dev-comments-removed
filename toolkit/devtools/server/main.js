@@ -24,8 +24,7 @@ let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Cu.import("resource://gre/modules/jsdebugger.jsm");
 addDebuggerToGlobal(this);
 
-let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
-const { defer, resolve, reject, all } = promise;
+loadSubScript.call(this, "resource://gre/modules/commonjs/sdk/core/promise.js");
 
 Cu.import("resource://gre/modules/devtools/SourceMap.jsm");
 
