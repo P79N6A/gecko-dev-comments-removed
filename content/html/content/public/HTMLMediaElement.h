@@ -518,16 +518,14 @@ public:
   AudioChannel MozAudioChannelType() const;
   void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
 
-  TextTrackList* TextTracks() const;
+  TextTrackList* TextTracks();
 
   already_AddRefed<TextTrack> AddTextTrack(TextTrackKind aKind,
                                            const nsAString& aLabel,
                                            const nsAString& aLanguage);
 
   void AddTextTrack(TextTrack* aTextTrack) {
-    if (mTextTrackManager) {
-      mTextTrackManager->AddTextTrack(aTextTrack);
-    }
+    GetOrCreateTextTrackManager()->AddTextTrack(aTextTrack);
   }
 
   void RemoveTextTrack(TextTrack* aTextTrack, bool aPendingListOnly = false) {
@@ -870,6 +868,10 @@ protected:
   
   
   void PopulatePendingTextTrackList();
+
+  
+  
+  TextTrackManager* GetOrCreateTextTrackManager();
 
   
   
