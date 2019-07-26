@@ -121,7 +121,6 @@ public:
 
 
 
-
 class TextureClientData {
 public:
   virtual void DeallocateSharedData(ISurfaceAllocator* allocator) = 0;
@@ -297,6 +296,11 @@ public:
 
   PTextureChild* GetIPDLActor();
 
+  
+
+
+  void ForceRemove();
+
 private:
   Atomic<int> mRefCount;
 
@@ -306,10 +310,7 @@ private:
 
 
 
-  void Finalize()
-  {
-    
-  }
+  void Finalize();
 
 protected:
   void AddFlags(TextureFlags  aFlags)

@@ -39,11 +39,71 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace layers {
 
+
+
+
+
+
+
+
+
+
+
+
 class TextureChild : public PTextureChild
 {
 public:
+  TextureChild()
+  : mForwarder(nullptr)
+  , mTextureData(nullptr)
+  {
+    MOZ_COUNT_CTOR(TextureChild);
+  }
+
+  ~TextureChild()
+  {
+    MOZ_COUNT_DTOR(TextureChild);
+  }
+
+  bool Recv__delete__() MOZ_OVERRIDE;
+
+  
+
+
+
+
+  void SetTextureData(TextureClientData* aData)
+  {
+    mTextureData = aData;
+  }
+
+  void DeleteTextureData();
+
+  CompositableForwarder* GetForwarder() { return mForwarder; }
+
+  ISurfaceAllocator* GetAllocator() { return mForwarder; }
+
+  CompositableForwarder* mForwarder;
+  TextureClientData* mTextureData;
 
 };
+
+void
+TextureChild::DeleteTextureData()
+{
+  if (mTextureData) {
+    mTextureData->DeallocateSharedData(GetAllocator());
+    delete mTextureData;
+    mTextureData = nullptr;
+  }
+}
+
+bool
+TextureChild::Recv__delete__()
+{
+  DeleteTextureData();
+  return true;
+}
 
 
 PTextureChild*
@@ -70,6 +130,7 @@ TextureClient::InitIPDLActor(CompositableForwarder* aForwarder)
   }
 
   mActor = static_cast<TextureChild*>(aForwarder->CreateEmptyTextureChild());
+  mActor->mForwarder = aForwarder;
   mShared = true;
   return mActor->SendInit(desc, GetFlags());
 }
@@ -122,6 +183,7 @@ public:
   virtual void DeallocateSharedData(ISurfaceAllocator*)
   {
     delete[] mBuffer;
+    mBuffer = nullptr;
   }
 
 private:
@@ -162,7 +224,33 @@ TextureClient::TextureClient(TextureFlags aFlags)
 {}
 
 TextureClient::~TextureClient()
-{}
+{
+  
+  
+}
+
+void TextureClient::ForceRemove()
+{
+  if (mValid && mActor) {
+    if (GetFlags() & TEXTURE_DEALLOCATE_CLIENT) {
+      mActor->SetTextureData(DropTextureData());
+      mActor->SendRemoveTextureSync();
+      mActor->DeleteTextureData();
+    } else {
+      mActor->SendRemoveTexture();
+    }
+  }
+  MarkInvalid();
+}
+
+void
+TextureClient::Finalize()
+{
+  if (mActor) {
+    
+    mActor->GetForwarder()->RemoveTexture(this);
+  }
+}
 
 bool
 TextureClient::ShouldDeallocateInDestructor() const

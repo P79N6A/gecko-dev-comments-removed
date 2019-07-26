@@ -338,6 +338,14 @@ public:
 
 
 
+  virtual void ForgetSharedData() {}
+
+  
+
+
+
+
+
 
 
   uint64_t GetID() const { return mID; }
@@ -502,6 +510,8 @@ public:
 
   virtual void DeallocateSharedData() MOZ_OVERRIDE;
 
+  virtual void ForgetSharedData() MOZ_OVERRIDE;
+
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
 
   virtual const char *Name() MOZ_OVERRIDE { return "ShmemTextureHost"; }
@@ -530,6 +540,8 @@ public:
   ~MemoryTextureHost();
 
   virtual void DeallocateSharedData() MOZ_OVERRIDE;
+
+  virtual void ForgetSharedData() MOZ_OVERRIDE;
 
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
 

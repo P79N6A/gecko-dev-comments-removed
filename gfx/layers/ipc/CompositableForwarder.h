@@ -163,11 +163,7 @@ public:
 
 
 
-  virtual void RemoveTexture(TextureClient* aTexture)
-  {
-    
-    
-  }
+  virtual void RemoveTexture(TextureClient* aTexture) = 0;
 
   
 
