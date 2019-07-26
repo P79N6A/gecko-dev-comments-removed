@@ -470,7 +470,7 @@ class TypeSet
 
 
 
-    const TypeSet *clone(LifoAlloc *alloc) const;
+    const StackTypeSet *clone(LifoAlloc *alloc) const;
 
     
 
@@ -603,6 +603,12 @@ class StackTypeSet : public TypeSet
 
     
     bool propertyNeedsBarrier(JSContext *cx, jsid id);
+
+    
+
+
+
+    bool filtersType(const StackTypeSet *other, Type type) const;
 
     
 

@@ -960,7 +960,7 @@ CompileBackEnd(MIRGenerator *mir)
     
     
     
-    if (!EliminateRedundantBoundsChecks(graph))
+    if (!EliminateRedundantChecks(graph))
         return NULL;
     IonSpewPass("Bounds Check Elimination");
     AssertGraphCoherency(graph);
