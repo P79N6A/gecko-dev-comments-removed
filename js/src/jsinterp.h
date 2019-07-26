@@ -38,7 +38,7 @@ namespace js {
 
 
 extern JSTrapStatus
-ScriptDebugPrologue(JSContext *cx, StackFrame *fp);
+ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame);
 
 
 
@@ -56,7 +56,7 @@ ScriptDebugPrologue(JSContext *cx, StackFrame *fp);
 
 
 extern bool
-ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool ok);
+ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, bool ok);
 
 
 
