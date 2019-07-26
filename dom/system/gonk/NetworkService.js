@@ -126,7 +126,7 @@ NetworkService.prototype = {
 
       if (Components.isSuccessCode(status)) {
         
-        let statExpr = / +(\S+): +(\d+) +\d+ +\d+ +\d+ +\d+ +\d+ +\d+ +\d+ +(\d+) +\d+ +\d+ +\d+ +\d+ +\d+ +\d+ +\d+/;
+        let statExpr = /(\S+): +(\d+) +\d+ +\d+ +\d+ +\d+ +\d+ +\d+ +\d+ +(\d+) +\d+ +\d+ +\d+ +\d+ +\d+ +\d+ +\d+/;
         let data = NetUtil.readInputStreamToString(inputStream,
                     inputStream.available()).split("\n");
         for (let i = 2; i < data.length; i++) {
