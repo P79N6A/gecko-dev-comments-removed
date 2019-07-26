@@ -70,8 +70,8 @@ var Appbar = {
   },
 
   onDownloadButton: function() {
-    
-    
+    let notificationBox = Browser.getNotificationBox();
+    notificationBox.notificationsHidden = !notificationBox.notificationsHidden;
     ContextUI.dismiss();
   },
 
