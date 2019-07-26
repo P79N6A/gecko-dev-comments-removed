@@ -5,6 +5,7 @@
 
 
 #include "mozilla/PluginPRLibrary.h"
+#include "nsNPAPIPluginInstance.h"
 
 
 
