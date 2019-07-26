@@ -1793,6 +1793,18 @@ Navigator::HasFMRadioSupport(JSContext* , JSObject* aGlobal)
 }
 #endif 
 
+#ifdef MOZ_NFC
+
+bool
+Navigator::HasNfcSupport(JSContext* , JSObject* aGlobal)
+{
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
+  return win && (CheckPermission(win, "nfc-read") ||
+                 CheckPermission(win, "nfc-write"));
+}
+#endif 
+
+
 #ifdef MOZ_TIME_MANAGER
 
 bool
