@@ -1013,10 +1013,11 @@
       case 19: 
 #ifdef FT_CONFIG_OPTION_USE_PNG
         loader = tt_sbit_decoder_load_png;
+        break;
 #else
         error = FT_THROW( Unimplemented_Feature );
+        goto Fail;
 #endif 
-        break;
 
       default:
         error = FT_THROW( Invalid_Table );
