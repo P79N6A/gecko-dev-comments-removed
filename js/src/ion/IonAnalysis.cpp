@@ -204,10 +204,11 @@ IsPhiObservable(MPhi *phi, Observability observe)
     
     
     if (info.fun() && info.hasArguments()) {
-        uint32_t first = info.firstActualArgSlot();
+        uint32_t first = info.firstArgSlot();
         if (first <= slot && slot - first < info.nargs()) {
             
-            JS_ASSERT(!info.argsObjAliasesFormals());
+            if (info.argsObjAliasesFormals())
+                return false;
             return true;
         }
     }
