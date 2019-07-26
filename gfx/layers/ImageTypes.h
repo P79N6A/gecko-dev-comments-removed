@@ -65,7 +65,14 @@ enum ImageFormat {
   
 
 
-  REMOTE_IMAGE_DXGI_TEXTURE
+  REMOTE_IMAGE_DXGI_TEXTURE,
+
+  
+
+
+
+  D3D9_RGB32_TEXTURE
+
 };
 
 
