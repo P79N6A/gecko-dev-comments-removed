@@ -1157,6 +1157,18 @@ HttpBaseChannel::GetRequestSucceeded(bool *aValue)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::RedirectTo(nsIURI *newURI)
+{
+  
+  ENSURE_CALLED_BEFORE_CONNECT();
+
+  
+  mAPIRedirectToURI = newURI;
+
+  return NS_OK;
+}
+
 
 
 

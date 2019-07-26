@@ -863,6 +863,7 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
 NS_IMETHODIMP
 HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
 {
+  OptionalURIParams redirectURI;
   nsCOMPtr<nsIHttpChannel> newHttpChannel =
       do_QueryInterface(mRedirectChannelChild);
 
@@ -881,16 +882,28 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
     newHttpChannelChild->GetClientSetRequestHeaders(&headerTuples);
   }
 
-  
-  
-  
-  
-  
-  
-  
+  if (NS_SUCCEEDED(result)) {
+    
+    HttpChannelChild* base =
+      static_cast<HttpChannelChild*>(mRedirectChannelChild.get());
+    
+    
+    
+    
+    
+    
+
+    
+
+    SerializeURI(base->mAPIRedirectToURI, redirectURI);
+  } else {
+    
+
+    SerializeURI(nullptr, redirectURI);
+  }
 
   if (mIPCOpen)
-    SendRedirect2Verify(result, *headerTuples);
+    SendRedirect2Verify(result, *headerTuples, redirectURI);
 
   return NS_OK;
 }
@@ -1061,15 +1074,16 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   URIParams uri;
   SerializeURI(mURI, uri);
 
-  OptionalURIParams originalURI, documentURI, referrer;
+  OptionalURIParams originalURI, documentURI, referrer, redirectURI;
   SerializeURI(mOriginalURI, originalURI);
   SerializeURI(mDocumentURI, documentURI);
   SerializeURI(mReferrer, referrer);
+  SerializeURI(mAPIRedirectToURI, redirectURI);
 
   OptionalInputStreamParams uploadStream;
   SerializeInputStream(mUploadStream, uploadStream);
 
-  SendAsyncOpen(uri, originalURI, documentURI, referrer, mLoadFlags,
+  SendAsyncOpen(uri, originalURI, documentURI, referrer, redirectURI, mLoadFlags,
                 mClientSetRequestHeaders, mRequestHead.Method(), uploadStream,
                 mUploadStreamHasHeaders, mPriority, mRedirectionLimit,
                 mAllowPipelining, mForceAllowThirdPartyCookie, mSendResumeAt,
@@ -1100,6 +1114,13 @@ HttpChannelChild::SetRequestHeader(const nsACString& aHeader,
   tuple->mValue = aValue;
   tuple->mMerge = aMerge;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpChannelChild::RedirectTo(nsIURI *newURI)
+{
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 

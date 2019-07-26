@@ -17,6 +17,7 @@
 #include "nsHttpConnectionInfo.h"
 #include "nsIEncodedChannel.h"
 #include "nsIHttpChannel.h"
+#include "nsHttpHandler.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIUploadChannel.h"
 #include "nsIUploadChannel2.h"
@@ -124,6 +125,7 @@ public:
   NS_IMETHOD GetResponseStatus(uint32_t *aValue);
   NS_IMETHOD GetResponseStatusText(nsACString& aValue);
   NS_IMETHOD GetRequestSucceeded(bool *aValue);
+  NS_IMETHOD RedirectTo(nsIURI *newURI);
 
   
   NS_IMETHOD GetDocumentURI(nsIURI **aDocumentURI);
@@ -211,6 +213,12 @@ protected:
                                            bool preserveMethod);
 
   
+  inline void CallOnModifyRequestObservers() {
+    gHttpHandler->OnModifyRequest(this);
+    mRequestObserversCalled = true;
+  }
+
+  
   template <class T>
   void GetCallback(nsCOMPtr<T> &aResult)
   {
@@ -285,6 +293,7 @@ protected:
   
   uint32_t                          mSuspendCount;
 
+  nsCOMPtr<nsIURI>                  mAPIRedirectToURI;
   nsAutoPtr<nsTArray<nsCString> >   mRedirectedCachekeys;
 
   uint32_t                          mProxyResolveFlags;
