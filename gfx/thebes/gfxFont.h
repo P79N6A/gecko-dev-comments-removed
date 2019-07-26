@@ -74,6 +74,10 @@ struct THEBES_API gfxFontStyle {
     nsRefPtr<nsIAtom> language;
 
     
+    
+    
+
+    
     nsTArray<gfxFontFeature> featureSettings;
 
     
@@ -113,6 +117,9 @@ struct THEBES_API gfxFontStyle {
     bool printerFont : 1;
 
     
+    bool kerning : 1;
+
+    
     uint8_t style : 2;
 
     
@@ -143,6 +150,7 @@ struct THEBES_API gfxFontStyle {
             (language == other.language) &&
             (*reinterpret_cast<const uint32_t*>(&sizeAdjust) ==
              *reinterpret_cast<const uint32_t*>(&other.sizeAdjust)) &&
+            (kerning == other.kerning) &&
             (featureSettings == other.featureSettings) &&
             (languageOverride == other.languageOverride);
     }
@@ -1147,7 +1155,7 @@ public:
 
     
     static bool
-    MergeFontFeatures(const nsTArray<gfxFontFeature>& aStyleRuleFeatures,
+    MergeFontFeatures(const gfxFontStyle *aStyle,
                       const nsTArray<gfxFontFeature>& aFontFeatures,
                       bool aDisableLigatures,
                       nsDataHashtable<nsUint32HashKey,uint32_t>& aMergedFeatures);
