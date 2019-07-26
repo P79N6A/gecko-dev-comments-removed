@@ -891,145 +891,6 @@ mjit::Compiler::jsop_andor(JSOp op, jsbytecode *target)
     return booleanJumpScript(op, target);
 }
 
-bool
-mjit::Compiler::jsop_localinc(JSOp op, uint32_t slot)
-{
-    restoreVarType();
-
-    types::StackTypeSet *types = pushedTypeSet(0);
-    JSValueType type = types ? types->getKnownTypeTag() : JSVAL_TYPE_UNKNOWN;
-
-    int amt = (op == JSOP_LOCALINC || op == JSOP_INCLOCAL) ? 1 : -1;
-
-    if (!analysis->incrementInitialValueObserved(PC)) {
-        
-        
-        frame.pushLocal(slot);
-
-        
-        
-        frame.push(Int32Value(-amt));
-
-        
-        
-        
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, types))
-            return false;
-
-        
-        
-        frame.storeLocal(slot, analysis->popGuaranteed(PC));
-    } else {
-        
-        
-        frame.pushLocal(slot);
-
-        
-        
-        jsop_pos();
-
-        
-        
-        frame.dup();
-
-        
-        
-        frame.push(Int32Value(amt));
-
-        
-        
-        if (!jsop_binary(JSOP_ADD, stubs::Add, type, types))
-            return false;
-
-        
-        
-        frame.storeLocal(slot, true);
-
-        
-        
-        frame.pop();
-    }
-
-    updateVarType();
-    return true;
-}
-
-bool
-mjit::Compiler::jsop_arginc(JSOp op, uint32_t slot)
-{
-    restoreVarType();
-
-    types::StackTypeSet *types = pushedTypeSet(0);
-    JSValueType type = types ? types->getKnownTypeTag() : JSVAL_TYPE_UNKNOWN;
-
-    int amt = (op == JSOP_ARGINC || op == JSOP_INCARG) ? 1 : -1;
-
-    if (!analysis->incrementInitialValueObserved(PC)) {
-        
-        
-        if (script_->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  true);
-        else
-            frame.pushArg(slot);
-
-        
-        
-        frame.push(Int32Value(-amt));
-
-        
-        
-        
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, types))
-            return false;
-
-        
-        
-        bool popGuaranteed = analysis->popGuaranteed(PC);
-        if (script_->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  false, popGuaranteed);
-        else
-            frame.storeArg(slot, popGuaranteed);
-    } else {
-        
-        
-        if (script_->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  true);
-        else
-            frame.pushArg(slot);
-
-        
-        
-        jsop_pos();
-
-        
-        
-        frame.dup();
-
-        
-        
-        frame.push(Int32Value(amt));
-
-        
-        
-        if (!jsop_binary(JSOP_ADD, stubs::Add, type, types))
-            return false;
-
-        
-        
-        if (script_->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  false, true);
-        else
-            frame.storeArg(slot, true);
-
-        
-        
-        frame.pop();
-    }
-
-    updateVarType();
-    return true;
-}
-
 static inline bool
 IsCacheableSetElem(FrameEntry *obj, FrameEntry *id, FrameEntry *value)
 {
@@ -2658,7 +2519,7 @@ mjit::Compiler::jsop_pos()
         if (top->getKnownType() <= JSVAL_TYPE_INT32)
             return;
         prepareStubCall(Uses(1));
-        INLINE_STUBCALL(stubs::Pos, REJOIN_POS);
+        INLINE_STUBCALL(stubs::Pos, REJOIN_FALLTHROUGH);
         frame.pop();
         frame.pushSynced(knownPushedType(0));
         return;
@@ -2674,7 +2535,7 @@ mjit::Compiler::jsop_pos()
     stubcc.linkExit(j, Uses(1));
 
     stubcc.leave();
-    OOL_STUBCALL(stubs::Pos, REJOIN_POS);
+    OOL_STUBCALL(stubs::Pos, REJOIN_FALLTHROUGH);
 
     stubcc.rejoin(Changes(1));
 }

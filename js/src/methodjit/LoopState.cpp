@@ -1444,45 +1444,9 @@ LoopState::getLoopTestAccess(const SSAValue &v, uint32_t *pslot, int32_t *pconst
     }
 
     jsbytecode *pc = outerScript->code + v.pushedOffset();
-
     JSOp op = JSOp(*pc);
-    const JSCodeSpec *cs = &js_CodeSpec[op];
-
-    
-
-
-
-
-
-
-
 
     switch (op) {
-
-      case JSOP_INCLOCAL:
-      case JSOP_DECLOCAL:
-      case JSOP_LOCALINC:
-      case JSOP_LOCALDEC:
-      case JSOP_INCARG:
-      case JSOP_DECARG:
-      case JSOP_ARGINC:
-      case JSOP_ARGDEC: {
-        if (!outerAnalysis->integerOperation(pc))
-            return false;
-        uint32_t slot = GetBytecodeSlot(outerScript, pc);
-        if (outerAnalysis->slotEscapes(slot))
-            return false;
-
-        *pslot = slot;
-        if (cs->format & JOF_POST) {
-            if (cs->format & JOF_INC)
-                *pconstant = -1;
-            else
-                *pconstant = 1;
-        }
-        return true;
-      }
-
       case JSOP_ZERO:
       case JSOP_ONE:
       case JSOP_UINT16:

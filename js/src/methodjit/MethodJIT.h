@@ -336,8 +336,6 @@ enum RejoinState {
 
     
     REJOIN_GETTER,
-    REJOIN_POS,
-    REJOIN_BINARY,
 
     
 

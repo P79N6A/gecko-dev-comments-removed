@@ -2532,27 +2532,10 @@ FrameState::binaryEntryLive(FrameEntry *fe) const
 
 
 
-
     JS_ASSERT(cx->typeInferenceEnabled());
 
     if (deadEntry(fe, 2))
         return false;
-
-    switch (JSOp(*a->PC)) {
-      case JSOP_INCLOCAL:
-      case JSOP_DECLOCAL:
-      case JSOP_LOCALINC:
-      case JSOP_LOCALDEC:
-        if (fe - a->locals == (int) GET_SLOTNO(a->PC))
-            return false;
-      case JSOP_INCARG:
-      case JSOP_DECARG:
-      case JSOP_ARGINC:
-      case JSOP_ARGDEC:
-        if (fe - a->args == (int) GET_SLOTNO(a->PC))
-            return false;
-      default:;
-    }
 
     JS_ASSERT(fe != a->callee_);
 
