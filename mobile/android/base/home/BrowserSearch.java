@@ -230,6 +230,13 @@ public class BrowserSearch extends HomeFragment
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 
+                
+                if (view instanceof SearchEngineRow) {
+                    ((SearchEngineRow) view).performUserEnteredSearch();
+                    return;
+                }
+
+                
                 position -= getSuggestEngineCount();
                 final Cursor c = mAdapter.getCursor(position);
                 final String url = c.getString(c.getColumnIndexOrThrow(URLColumns.URL));
@@ -243,8 +250,12 @@ public class BrowserSearch extends HomeFragment
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 
-                position -= getSuggestEngineCount();
+                if (view instanceof SearchEngineRow) {
+                    return true;
+                }
 
+                
+                position -= getSuggestEngineCount();
                 return mList.onItemLongClick(parent, view, position, id);
             }
         });

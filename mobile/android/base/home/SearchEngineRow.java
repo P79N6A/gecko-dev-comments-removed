@@ -111,31 +111,6 @@ class SearchEngineRow extends AnimatedHeightLayout {
         mUserEnteredView.setOnClickListener(mClickListener);
 
         mUserEnteredTextView = (TextView) findViewById(R.id.suggestion_text);
-
-        
-        setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                
-                if (mSearchEngine.suggestions.size() > 0) {
-                    return;
-                }
-
-                
-                String searchTerm = getSuggestionTextFromView(mUserEnteredView);
-                if (mSearchListener != null) {
-                    mSearchListener.onSearch(mSearchEngine.name, searchTerm);
-                }
-            }
-        });
-
-        
-        setOnLongClickListener(new OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                return true;
-            }
-        });
     }
 
     private void setDescriptionOnSuggestion(View v, String suggestion) {
@@ -152,6 +127,16 @@ class SearchEngineRow extends AnimatedHeightLayout {
         final TextView suggestionText = (TextView) v.findViewById(R.id.suggestion_text);
         suggestionText.setText(suggestion);
         setDescriptionOnSuggestion(suggestionText, suggestion);
+    }
+
+    
+
+
+    public void performUserEnteredSearch() {
+        String searchTerm = getSuggestionTextFromView(mUserEnteredView);
+        if (mSearchListener != null) {
+            mSearchListener.onSearch(mSearchEngine.name, searchTerm);
+        }
     }
 
     public void setSearchTerm(String searchTerm) {
