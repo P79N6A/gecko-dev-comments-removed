@@ -279,12 +279,16 @@ private:
 
 class FlexItem {
 public:
+  
   FlexItem(nsIFrame* aChildFrame,
            float aFlexGrow, float aFlexShrink, nscoord aMainBaseSize,
            nscoord aMainMinSize, nscoord aMainMaxSize,
            nscoord aCrossMinSize, nscoord aCrossMaxSize,
            nsMargin aMargin, nsMargin aBorderPadding,
            const FlexboxAxisTracker& aAxisTracker);
+
+  
+  FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize);
 
   
   nsIFrame* Frame() const          { return mFrame; }
@@ -326,6 +330,10 @@ public:
   
   
   bool IsStretched() const         { return mIsStretched; }
+
+  
+  
+  bool IsStrut() const             { return mIsStrut; }
 
   uint8_t GetAlignSelf() const     { return mAlignSelf; }
 
@@ -544,6 +552,8 @@ protected:
   bool mHadMeasuringReflow; 
                             
   bool mIsStretched; 
+  bool mIsStrut;     
+                     
   uint8_t mAlignSelf; 
                       
                       
@@ -1036,6 +1046,7 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
     mHadMaxViolation(false),
     mHadMeasuringReflow(false),
     mIsStretched(false),
+    mIsStrut(false),
     mAlignSelf(aChildFrame->StylePosition()->mAlignSelf)
 {
   MOZ_ASSERT(aChildFrame, "expecting a non-null child frame");
@@ -1076,6 +1087,39 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
       IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
     mAlignSelf = NS_STYLE_ALIGN_ITEMS_FLEX_START;
   }
+}
+
+
+
+
+FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize)
+  : mFrame(aChildFrame),
+    mFlexGrow(0.0f),
+    mFlexShrink(0.0f),
+    
+    
+    mFlexBaseSize(0),
+    mMainMinSize(0),
+    mMainMaxSize(0),
+    mCrossMinSize(0),
+    mCrossMaxSize(0),
+    mMainSize(0),
+    mMainPosn(0),
+    mCrossSize(aCrossSize),
+    mCrossPosn(0),
+    mAscent(0),
+    mShareOfFlexWeightSoFar(0.0f),
+    mIsFrozen(true),
+    mHadMinViolation(false),
+    mHadMaxViolation(false),
+    mHadMeasuringReflow(false),
+    mIsStretched(false),
+    mIsStrut(true), 
+    mAlignSelf(NS_STYLE_ALIGN_ITEMS_FLEX_START)
+{
+  MOZ_ASSERT(NS_STYLE_VISIBILITY_COLLAPSE ==
+             mFrame->StyleVisibility()->mVisible,
+             "Should only make struts for children with 'visibility:collapse'");
 }
 
 nscoord
@@ -2216,6 +2260,7 @@ nsFlexContainerFrame::GenerateFlexLines(
   const nsHTMLReflowState& aReflowState,
   nscoord aContentBoxMainSize,
   nscoord aAvailableHeightForContent,
+  const nsTArray<StrutInfo>& aStruts,
   const FlexboxAxisTracker& aAxisTracker,
   nsTArray<FlexLine>& aLines)
 {
@@ -2260,6 +2305,14 @@ nsFlexContainerFrame::GenerateFlexLines(
     }
   }
 
+  
+  
+  uint32_t nextStrutIdx = 0;
+
+  
+  
+  uint32_t itemIdxInContainer = 0;
+
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
     nsIFrame* childFrame = e.get();
 
@@ -2269,13 +2322,24 @@ nsFlexContainerFrame::GenerateFlexLines(
       curLine = aLines.AppendElement();
     }
 
-    FlexItem* item = curLine->mItems.AppendElement(
-                       GenerateFlexItemForChild(aPresContext, childFrame,
-                                                aReflowState, aAxisTracker));
+    FlexItem* item;
+    if (nextStrutIdx < aStruts.Length() &&
+        aStruts[nextStrutIdx].mItemIdx == itemIdxInContainer) {
 
-    nsresult rv = ResolveFlexItemMaxContentSizing(aPresContext, *item,
-                                                  aReflowState, aAxisTracker);
-    NS_ENSURE_SUCCESS(rv,rv);
+      
+      item = curLine->mItems.AppendElement(
+               FlexItem(childFrame, aStruts[nextStrutIdx].mStrutCrossSize));
+      nextStrutIdx++;
+    } else {
+      item = curLine->mItems.AppendElement(
+               GenerateFlexItemForChild(aPresContext, childFrame,
+                                        aReflowState, aAxisTracker));
+
+      nsresult rv = ResolveFlexItemMaxContentSizing(aPresContext, *item,
+                                                    aReflowState, aAxisTracker);
+      NS_ENSURE_SUCCESS(rv,rv);
+    }
+
     nscoord itemInnerHypotheticalMainSize = item->GetMainSize();
     nscoord itemOuterHypotheticalMainSize = item->GetMainSize() +
       item->GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
@@ -2313,6 +2377,7 @@ nsFlexContainerFrame::GenerateFlexLines(
         childFrame->StyleDisplay()->mBreakAfter) {
       curLine = aLines.AppendElement();
     }
+    itemIdxInContainer++;
   }
 
   return NS_OK;
@@ -2732,7 +2797,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   nsresult rv = GenerateFlexLines(aPresContext, aReflowState,
                                   aContentBoxMainSize,
                                   aAvailableHeightForContent,
-                                  aAxisTracker, lines);
+                                  aStruts, aAxisTracker, lines);
   NS_ENSURE_SUCCESS(rv, rv);
 
   aContentBoxMainSize =
@@ -2754,7 +2819,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
       
       
-      if (!curItem.IsStretched()) {
+      if (!curItem.IsStretched() && !curItem.IsStrut()) {
         nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                            curItem.Frame(),
                                            nsSize(aReflowState.ComputedWidth(),
