@@ -58,6 +58,19 @@ ApplyParentLayerToLayoutTransform(const gfx3DMatrix& aTransform, const ParentLay
   return TransformTo<LayoutDevicePixel>(aTransform, aParentLayerRect);
 }
 
+static gfx3DMatrix
+GetTransformToAncestorsParentLayer(Layer* aStart, Layer* aAncestor)
+{
+  gfx::Matrix4x4 transform;
+  Layer* ancestorParent = aAncestor->GetParent();
+  for (Layer* iter = aStart; iter != ancestorParent; iter = iter->GetParent()) {
+    transform = transform * iter->GetTransform();
+  }
+  gfx3DMatrix ret;
+  gfx::To3DMatrix(transform, ret);
+  return ret;
+}
+
 void
 ClientTiledThebesLayer::BeginPaint()
 {
@@ -139,24 +152,13 @@ ClientTiledThebesLayer::BeginPaint()
     return;
   }
 
-  
-  
-  
   const FrameMetrics& scrollMetrics = scrollAncestor->GetFrameMetrics();
   const FrameMetrics& displayportMetrics = displayPortAncestor->GetFrameMetrics();
 
   
   
-  gfx::Matrix4x4 transform = scrollAncestor->GetTransform();
-  ContainerLayer* displayPortAncestorGrandParent = displayPortAncestor->GetParent() ?
-    displayPortAncestor->GetParent()->GetParent() : nullptr;
-  for (ContainerLayer* ancestor = scrollAncestor->GetParent();
-       ancestor != displayPortAncestorGrandParent;
-       ancestor = ancestor->GetParent()) {
-    transform = transform * ancestor->GetTransform();
-  }
-  gfx3DMatrix layoutDeviceToDisplayPort;
-  gfx::To3DMatrix(transform, layoutDeviceToDisplayPort);
+  gfx3DMatrix layoutDeviceToDisplayPort =
+    GetTransformToAncestorsParentLayer(this, displayPortAncestor);
   layoutDeviceToDisplayPort.ScalePost(scrollMetrics.mCumulativeResolution.scale,
                                       scrollMetrics.mCumulativeResolution.scale,
                                       1.f);
@@ -166,8 +168,8 @@ ClientTiledThebesLayer::BeginPaint()
   
   
   ParentLayerRect criticalDisplayPort =
-    (displayportMetrics.mCriticalDisplayPort + displayportMetrics.GetScrollOffset()) *
-    displayportMetrics.GetZoomToParent();
+    (displayportMetrics.mCriticalDisplayPort * displayportMetrics.GetZoomToParent())
+    + displayportMetrics.mCompositionBounds.TopLeft();
   mPaintData.mCriticalDisplayPort = LayoutDeviceIntRect::ToUntyped(RoundedOut(
     ApplyParentLayerToLayoutTransform(mPaintData.mTransformDisplayPortToLayoutDevice,
                                       criticalDisplayPort)));
@@ -175,8 +177,8 @@ ClientTiledThebesLayer::BeginPaint()
   
   
   ParentLayerRect viewport =
-    (displayportMetrics.mViewport + displayportMetrics.GetScrollOffset()) *
-    displayportMetrics.GetZoomToParent();
+    (displayportMetrics.mViewport * displayportMetrics.GetZoomToParent())
+    + displayportMetrics.mCompositionBounds.TopLeft();
   mPaintData.mViewport = ApplyParentLayerToLayoutTransform(
     mPaintData.mTransformDisplayPortToLayoutDevice, viewport);
 
@@ -185,10 +187,11 @@ ClientTiledThebesLayer::BeginPaint()
   mPaintData.mResolution = displayportMetrics.GetZoomToParent();
 
   
-  
-  
-  mPaintData.mCompositionBounds =
-    scrollMetrics.mCompositionBounds / scrollMetrics.GetParentResolution();
+  gfx3DMatrix layoutDeviceToCompBounds =
+    GetTransformToAncestorsParentLayer(this, scrollAncestor);
+  mPaintData.mCompositionBounds = TransformTo<LayoutDevicePixel>(
+    layoutDeviceToCompBounds.Inverse(),
+    scrollMetrics.mCompositionBounds / scrollMetrics.GetParentResolution());
 
   
   mPaintData.mScrollOffset = displayportMetrics.GetScrollOffset() * displayportMetrics.GetZoomToParent();
