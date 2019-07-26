@@ -819,6 +819,7 @@ nsFrameLoader::Show(int32_t marginWidth, int32_t marginHeight,
   
   baseWindow->Create();
   baseWindow->SetVisibility(true);
+  NS_ENSURE_TRUE(mDocShell, false);
 
   
   
