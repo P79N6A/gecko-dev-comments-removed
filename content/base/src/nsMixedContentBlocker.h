@@ -14,12 +14,12 @@
 
 
 
-enum MixedContentBlockedTypes {
+enum MixedContentTypes {
   
   
-  eBlockedMixedScript,
+  eMixedScript,
   
-  eBlockedMixedDisplay
+  eMixedDisplay
 };
 
 #include "nsIContentPolicy.h"

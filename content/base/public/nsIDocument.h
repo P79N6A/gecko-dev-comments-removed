@@ -79,8 +79,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0xcc604bdc, 0xd55e, 0x4918, \
- { 0xaa, 0x82, 0xb2, 0xde, 0xbf, 0x01, 0x09, 0x5d } }
+{ 0xcb362f1b, 0x8a05, 0x4d4f, \
+  { 0x90, 0x63, 0xf2, 0x5f, 0x8b, 0x8c, 0xb2, 0xe1 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -398,6 +398,22 @@ public:
   void SetBidiOptions(uint32_t aBidiOptions)
   {
     mBidiOptions = aBidiOptions;
+  }
+
+  
+
+
+  bool GetHasMixedActiveContentLoaded()
+  {
+    return mHasMixedActiveContentLoaded;
+  }
+
+  
+
+
+  void SetHasMixedActiveContentLoaded(bool aHasMixedActiveContentLoaded)
+  {
+    mHasMixedActiveContentLoaded = aHasMixedActiveContentLoaded;
   }
 
 
@@ -1898,6 +1914,9 @@ protected:
 
   
   bool mMayHaveDOMMutationObservers;
+
+  
+  bool mHasMixedActiveContentLoaded;
 
   
   

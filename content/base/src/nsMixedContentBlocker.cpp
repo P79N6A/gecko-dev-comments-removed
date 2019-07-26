@@ -9,11 +9,19 @@
 #include "nsINode.h"
 #include "nsCOMPtr.h"
 #include "nsIDocShell.h"
+#include "nsIDocShellTreeItem.h"
 #include "nsISecurityEventSink.h"
 #include "nsIWebProgressListener.h"
 #include "nsContentUtils.h"
 #include "nsNetUtil.h"
+#include "nsIRequest.h"
+#include "nsIDocument.h"
+#include "nsIContentViewer.h"
+#include "nsIChannel.h"
+#include "nsIHttpChannel.h"
 #include "mozilla/Preferences.h"
+
+#include "prlog.h"
 
 using namespace mozilla;
 
@@ -27,36 +35,68 @@ bool nsMixedContentBlocker::sBlockMixedDisplay = false;
 
 
 
+class nsMixedContentEvent : public nsRunnable
+{
+public:
+  nsMixedContentEvent(nsISupports *aContext, MixedContentTypes aType)
+    : mContext(aContext), mType(aType)
+  {}
+
+  NS_IMETHOD Run()
+  {
+    NS_ASSERTION(mContext,
+                 "You can't call this runnable without a requesting context");
+
+    
+    
+    
+    
+
+
+    
+    
+    
+    nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(mContext);
+    nsCOMPtr<nsIDocShellTreeItem> currentDocShellTreeItem(do_QueryInterface(docShell));
+    if(!currentDocShellTreeItem) {
+        return NS_OK;
+    }
+    nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
+    currentDocShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
+    NS_ASSERTION(sameTypeRoot, "No document shell root tree item from document shell tree item!");
+
+    
+    nsCOMPtr<nsIDocument> rootDoc = do_GetInterface(sameTypeRoot);
+    NS_ASSERTION(rootDoc, "No root document from document shell root tree item.");
+
+
+    if(mType == eMixedScript) {
+      rootDoc->SetHasMixedActiveContentLoaded(true);
+
+      
+      nsCOMPtr<nsISecurityEventSink> eventSink = do_QueryInterface(docShell);
+      if (eventSink) {
+        eventSink->OnSecurityChange(mContext, nsIWebProgressListener::STATE_IS_BROKEN);
+      }
+
+    } else {
+        if(mType == eMixedDisplay) {
+          
+        }
+    }
 
 
 
+    return NS_OK;
+  }
+private:
+  
+  
+  nsCOMPtr<nsISupports> mContext;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
+  const MixedContentTypes mType;
+};
 
 
 nsMixedContentBlocker::nsMixedContentBlocker()
