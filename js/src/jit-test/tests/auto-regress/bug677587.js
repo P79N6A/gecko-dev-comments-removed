@@ -2,7 +2,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("var a = {};");
 var dbg = new Debugger;
 var gw = dbg.addDebuggee(g);

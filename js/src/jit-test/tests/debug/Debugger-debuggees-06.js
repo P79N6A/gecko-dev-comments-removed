@@ -19,7 +19,7 @@ check(NaN);
 check("ok");
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var dbg2 = new Debugger;
 var w = dbg2.addDebuggee(g);
 assertEq(w instanceof Debugger.Object, true);

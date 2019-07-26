@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.debuggeeGlobal = this;
 g.eval("(" + function () {
         function id(f) {

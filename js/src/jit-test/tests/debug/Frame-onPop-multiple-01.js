@@ -20,7 +20,7 @@ function completionString(c) {
     return '?';
 }
 
-var g = newGlobal('new-compartment'); 
+var g = newGlobal(); 
 g.eval('function f() { debugger; return "1"; }');
 
 

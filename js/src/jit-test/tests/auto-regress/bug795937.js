@@ -2,5 +2,5 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 new Proxy(g, {});

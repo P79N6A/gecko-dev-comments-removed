@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var hits;
 
 function addDebug() {

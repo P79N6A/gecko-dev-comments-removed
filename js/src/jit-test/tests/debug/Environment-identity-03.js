@@ -5,7 +5,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("function h() { debugger; }");
 var dbg = Debugger(g);
 var hits, name, shared, unshared;

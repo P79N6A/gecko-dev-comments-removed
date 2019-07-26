@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var dbg1 = Debugger(g);
 var dbg2 = Debugger();
 g.parent = this;

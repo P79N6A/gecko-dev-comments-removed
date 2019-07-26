@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var N = g.N = 12; 
 assertEq(N % 2, 0);
 var dbg = new Debugger(g);

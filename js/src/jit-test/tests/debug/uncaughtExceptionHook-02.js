@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var dbg = new Debugger(g);
 dbg.onDebuggerStatement = function () { return {oops: "bad resumption value"}; };
 dbg.uncaughtExceptionHook = function (exc) {

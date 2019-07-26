@@ -4,5 +4,5 @@
 
 
 
-this.__proto__ = newGlobal('new-compartment');
+this.__proto__ = newGlobal();
 eval("(toLocaleString)();");

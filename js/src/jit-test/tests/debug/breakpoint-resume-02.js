@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var dbg = Debugger(g);
 dbg.onDebuggerStatement = function (frame) {
     g.log += 'D';

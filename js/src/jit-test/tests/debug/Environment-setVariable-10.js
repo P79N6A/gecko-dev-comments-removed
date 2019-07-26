@@ -6,7 +6,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("function d() { debugger; }\n" +
        "var i = 'FAIL';\n" +
        "function a() {\n" +

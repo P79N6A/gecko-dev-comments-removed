@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var s = '';
 for (var x of g.Array(1, 1, 2, 3, 5))
     s += x;

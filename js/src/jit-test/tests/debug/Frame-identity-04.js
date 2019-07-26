@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("function f(n) { if (n) f(n - 1); debugger; }");
 var dbg = new Debugger(g);
 var hits = 0;

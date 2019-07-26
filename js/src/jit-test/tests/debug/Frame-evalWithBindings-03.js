@@ -1,5 +1,5 @@
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var dbg = new Debugger;
 var global = dbg.addDebuggee(g);
 var hits = 0;

@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("var a = {}, b = {};");
 var dbg = Debugger(g.a, g.b);
 var arr = dbg.getDebuggees();

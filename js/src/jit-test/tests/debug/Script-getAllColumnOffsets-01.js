@@ -1,6 +1,6 @@
 
 
-var global = newGlobal('new-compartment');
+var global = newGlobal();
 Debugger(global).onDebuggerStatement = function (frame) {
     var script = frame.eval("f").return.script;
     script.getAllColumnOffsets().forEach(function (offset) {

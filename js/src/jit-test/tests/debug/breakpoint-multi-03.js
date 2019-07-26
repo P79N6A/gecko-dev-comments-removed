@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 function attach(g, i) {
     var dbg = Debugger(g);
     dbg.onDebuggerStatement = function (frame) {

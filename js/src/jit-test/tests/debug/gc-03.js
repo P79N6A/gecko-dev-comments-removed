@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var N = g.N = 3;
 var dbg = Debugger(g);
 

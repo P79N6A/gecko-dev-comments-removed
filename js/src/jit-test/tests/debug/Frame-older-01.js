@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var result = null;
 var dbg = new Debugger(g);
 dbg.onDebuggerStatement = function (frame) {

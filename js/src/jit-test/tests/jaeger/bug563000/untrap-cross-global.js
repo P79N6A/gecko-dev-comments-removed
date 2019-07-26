@@ -1,5 +1,5 @@
 
 
-var otherGlobal = newGlobal('new-compartment');
+var otherGlobal = newGlobal();
 var f = otherGlobal.untrap;
 f();

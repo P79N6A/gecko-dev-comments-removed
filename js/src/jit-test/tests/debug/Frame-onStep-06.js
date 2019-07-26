@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("var originalX = {toString: function () { debugger; log += 'x'; return 1; }};\n");
 
 var dbg = Debugger(g);

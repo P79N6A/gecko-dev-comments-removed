@@ -1,5 +1,5 @@
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("function f() { }");
 g.eval("function g() { f(); }");
 g.eval("function h() { g(); }");

@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.s = '';
 var handler = {
     hit: function (frame) {

@@ -1,10 +1,10 @@
 
 
 
-var g1 = newGlobal('new-compartment');
+var g1 = newGlobal();
 g1.eval('function f(){}');
 
-var g2 = newGlobal('new-compartment');
+var g2 = newGlobal();
 g2.eval('function g(){}');
 
 var dbg = new Debugger(g1);

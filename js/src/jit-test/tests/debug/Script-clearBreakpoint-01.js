@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var bphits = 0;
 var handler = {hit: function (frame) { frame.script.clearBreakpoint(this); bphits++; }};
 var dbg = Debugger(g);

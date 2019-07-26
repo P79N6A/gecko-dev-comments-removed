@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var calls = 0;
 
 var dbg = Debugger(g);

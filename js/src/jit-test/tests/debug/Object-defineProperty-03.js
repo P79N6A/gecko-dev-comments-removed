@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.a = g.Array(0, 1, 2);
 var dbg = new Debugger;
 var gw = dbg.addDebuggee(g);

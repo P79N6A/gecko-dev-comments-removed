@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("function h() { debugger }");
 g.eval("function f() { let (x = 1, y) { (function() { y = 0 })(); h() } }");
 g.eval("var surprise = null");

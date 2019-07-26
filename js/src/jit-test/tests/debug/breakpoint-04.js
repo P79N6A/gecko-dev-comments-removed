@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.s = '';
 g.eval("var line0 = Error().lineNumber;\n" +
        "function f() {\n" +   

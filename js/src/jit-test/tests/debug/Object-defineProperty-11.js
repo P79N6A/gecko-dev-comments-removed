@@ -1,7 +1,7 @@
 
 
 var x = {};
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.x = x;
 var dbg = new Debugger;
 var gw = dbg.addDebuggee(g);

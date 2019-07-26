@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var dbg = Debugger(g);
 var arr = [];
 dbg.onDebuggerStatement = function (frame) { arr.push(frame.eval("[]").return); };

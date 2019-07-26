@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment')
+var g = newGlobal()
 g.eval("function f(a) { return function (b) { return function (c) { h(); return a + b + c; }; }; }");
 var dbg = Debugger(g);
 var hits = 0;

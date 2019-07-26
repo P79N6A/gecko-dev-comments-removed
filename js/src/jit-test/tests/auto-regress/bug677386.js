@@ -4,7 +4,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("var line0 = Error().lineNumber;\n" +
        "function f() {\n" +     
        "    return 2;\n" +      

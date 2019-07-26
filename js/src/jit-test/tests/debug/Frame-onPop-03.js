@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("function f() { throw 'mud'; }");
 g.eval("function g() { f(); }");
 g.eval("function h() { g(); }");

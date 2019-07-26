@@ -1,7 +1,7 @@
 
 
-var g1 = newGlobal('new-compartment');
-var g2 = newGlobal('new-compartment');
+var g1 = newGlobal();
+var g2 = newGlobal();
 
 schedulegc(g1);
 schedulegc(g2);

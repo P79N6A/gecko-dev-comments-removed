@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("function f() { debugger; throw 'mud'; }");
 
 var dbg = Debugger(g);

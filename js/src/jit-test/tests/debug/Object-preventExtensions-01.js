@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var obj = g.eval("({x: 1})");
 assertEq(g.Object.isExtensible(obj), true);
 

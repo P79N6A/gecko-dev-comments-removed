@@ -1,7 +1,7 @@
 
 
 var dbg = new Debugger;
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var w = dbg.addDebuggee(g);
 assertEq(w instanceof Debugger.Object, true);
 

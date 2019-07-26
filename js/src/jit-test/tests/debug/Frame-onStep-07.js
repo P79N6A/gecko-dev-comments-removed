@@ -4,7 +4,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.N = 11;
 g.log = '';
 g.eval("function f() {\n" +

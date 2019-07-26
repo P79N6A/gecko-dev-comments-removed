@@ -1,6 +1,6 @@
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.eval("var x = 'some-atom';");
 
 schedulegc(this);

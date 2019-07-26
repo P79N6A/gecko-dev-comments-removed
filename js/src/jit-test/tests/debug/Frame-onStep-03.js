@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.a = 1;
 g.eval("function f(a) {\n" +
        "    var x = 2 * a;\n" +

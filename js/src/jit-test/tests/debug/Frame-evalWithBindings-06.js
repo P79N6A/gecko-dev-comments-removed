@@ -1,5 +1,5 @@
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 var dbg = new Debugger(g);
 dbg.onDebuggerStatement = function (frame) {
     assertEq(frame.evalWithBindings("y = z; x = w;", {z: 2, w: 3}).return, 3);

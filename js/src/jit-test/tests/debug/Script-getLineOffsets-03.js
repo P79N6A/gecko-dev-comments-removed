@@ -1,7 +1,7 @@
 
 
 
-var g = newGlobal('new-compartment');
+var g = newGlobal();
 g.line0 = null;
 var dbg = Debugger(g);
 var log;
