@@ -387,11 +387,11 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
     }
 
     
-    MOZ_ASSERT(root,"bad root");
-    MOZ_ASSERT(clazz,"bad clazz");
+    MOZ_ASSERT(root, "bad root");
+    MOZ_ASSERT(clazz, "bad clazz");
+    MOZ_ASSERT(!wrapper, "no wrapper found yet");
 
-    if (!wrapper)
-        wrapper = new nsXPCWrappedJS(cx, jsObj, clazz, root);
+    wrapper = new nsXPCWrappedJS(cx, jsObj, clazz, root);
 
     wrapper->mNext = root->mNext;
     root->mNext = wrapper;
