@@ -20,16 +20,16 @@
 
 
 
-function ContentTabActor(connection, browser)
+function ContentAppActor(connection, browser)
 {
   BrowserTabActor.call(this, connection, browser);
 }
 
-ContentTabActor.prototype = Object.create(BrowserTabActor.prototype);
+ContentAppActor.prototype = Object.create(BrowserTabActor.prototype);
 
-ContentTabActor.prototype.constructor = ContentTabActor;
+ContentAppActor.prototype.constructor = ContentAppActor;
 
-Object.defineProperty(ContentTabActor.prototype, "title", {
+Object.defineProperty(ContentAppActor.prototype, "title", {
   get: function() {
     return this.browser.title;
   },
@@ -37,7 +37,7 @@ Object.defineProperty(ContentTabActor.prototype, "title", {
   configurable: false
 });
 
-Object.defineProperty(ContentTabActor.prototype, "url", {
+Object.defineProperty(ContentAppActor.prototype, "url", {
   get: function() {
     return this.browser.document.documentURI;
   },
@@ -45,7 +45,7 @@ Object.defineProperty(ContentTabActor.prototype, "url", {
   configurable: false
 });
 
-Object.defineProperty(ContentTabActor.prototype, "window", {
+Object.defineProperty(ContentAppActor.prototype, "window", {
   get: function() {
     return this.browser;
   },
@@ -57,7 +57,7 @@ Object.defineProperty(ContentTabActor.prototype, "window", {
 
 
 
-ContentTabActor.prototype.grip = function () {
+ContentAppActor.prototype.grip = function () {
   let response = {
     'actor': this.actorID,
     'title': this.title,
