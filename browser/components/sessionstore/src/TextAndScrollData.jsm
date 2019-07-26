@@ -16,6 +16,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "DocumentUtils",
   "resource:///modules/sessionstore/DocumentUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
   "resource:///modules/sessionstore/PrivacyLevel.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ScrollPosition",
+  "resource:///modules/sessionstore/ScrollPosition.jsm");
 
 
 
@@ -78,14 +80,6 @@ let TextAndScrollDataInternal = {
         entry.innerHTML = content.document.body.innerHTML;
       }
     }
-
-    
-    
-    let domWindowUtils = content.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIDOMWindowUtils);
-    let scrollX = {}, scrollY = {};
-    domWindowUtils.getScrollXY(false, scrollX, scrollY);
-    entry.scroll = scrollX.value + "," + scrollY.value;
   },
 
   isAboutSessionRestore: function (url) {
@@ -146,9 +140,6 @@ let TextAndScrollDataInternal = {
       }, 0);
     }
 
-    let match;
-    if (data.scroll && (match = /(\d+),(\d+)/.exec(data.scroll)) != null) {
-      content.scrollTo(match[1], match[2]);
-    }
+    ScrollPosition.restore(content, data.scroll || "");
   },
 };
