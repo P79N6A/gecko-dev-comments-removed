@@ -462,6 +462,7 @@ class TokenStream
 
     static const size_t ntokens = 4;                
 
+    static const unsigned maxLookahead = 2;
     static const unsigned ntokensMask = ntokens - 1;
 
   public:
@@ -604,7 +605,7 @@ class TokenStream
 
     TokenKind peekToken() {
         if (lookahead != 0) {
-            JS_ASSERT(lookahead <= 2);
+            JS_ASSERT(lookahead < maxLookahead);
             return tokens[(cursor + lookahead) & ntokensMask].type;
         }
         TokenKind tt = getTokenInternal();
@@ -622,7 +623,7 @@ class TokenStream
             return TOK_EOL;
 
         if (lookahead != 0) {
-            JS_ASSERT(lookahead <= 2);
+            JS_ASSERT(lookahead < maxLookahead);
             return tokens[(cursor + lookahead) & ntokensMask].type;
         }
 
