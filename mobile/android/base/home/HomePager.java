@@ -28,8 +28,7 @@ public class HomePager extends ViewPager {
     
     private enum Page {
         VISITED,
-        BOOKMARKS,
-        READING_LIST
+        BOOKMARKS
     }
 
     private EnumMap<Page, Fragment> mPages = new EnumMap<Page, Fragment>(Page.class);
@@ -60,7 +59,6 @@ public class HomePager extends ViewPager {
         
         adapter.addTab(Page.VISITED, VisitedPage.class, null, getContext().getString(R.string.visited_title));
         adapter.addTab(Page.BOOKMARKS, BookmarksPage.class, null, getContext().getString(R.string.bookmarks_title));
-        adapter.addTab(Page.READING_LIST, ReadingListPage.class, null, getContext().getString(R.string.reading_list));
 
         setAdapter(adapter);
 
