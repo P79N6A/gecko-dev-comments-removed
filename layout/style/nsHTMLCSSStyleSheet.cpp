@@ -148,10 +148,26 @@ nsHTMLCSSStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
   return false;
 }
 
+size_t
+SizeOfCachedStyleAttrsEntryExcludingThis(nsStringHashKey::KeyType& aKey,
+                                         MiscContainer* const& aData,
+                                         mozilla::MallocSizeOf aMallocSizeOf,
+                                         void* userArg)
+{
+  
+  
+  return aKey.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+}
+
  size_t
 nsHTMLCSSStyleSheet::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
-  return 0;
+  
+  
+  
+  return mCachedStyleAttrs.SizeOfExcludingThis(SizeOfCachedStyleAttrsEntryExcludingThis,
+                                               aMallocSizeOf,
+                                               nullptr);
 }
 
  size_t
