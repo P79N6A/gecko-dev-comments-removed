@@ -20,6 +20,7 @@
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
 #include "mozilla/dom/DocumentBinding.h"
+#include "mozilla/WeakPtr.h"
 #include "Units.h"
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
@@ -28,6 +29,8 @@ class imgIRequest;
 class nsAString;
 class nsBindingManager;
 class nsCSSStyleSheet;
+class nsIDocShell;
+class nsDocShell;
 class nsDOMNavigationTiming;
 class nsDOMTouchList;
 class nsEventStates;
@@ -1150,16 +1153,12 @@ public:
 
 
 
-  virtual void SetContainer(nsISupports *aContainer);
+  virtual void SetContainer(nsDocShell* aContainer);
 
   
 
 
-  already_AddRefed<nsISupports> GetContainer() const
-  {
-    nsCOMPtr<nsISupports> container = do_QueryReferent(mDocumentContainer);
-    return container.forget();
-  }
+  virtual nsISupports* GetContainer() const;
 
   
 
@@ -1696,7 +1695,7 @@ public:
 
 
   virtual already_AddRefed<nsIDocument>
-  CreateStaticClone(nsISupports* aCloneContainer);
+  CreateStaticClone(nsIDocShell* aCloneContainer);
 
   
 
@@ -2227,7 +2226,7 @@ protected:
 
   nsWeakPtr mDocumentLoadGroup;
 
-  nsWeakPtr mDocumentContainer;
+  mozilla::WeakPtr<nsDocShell> mDocumentContainer;
 
   nsCString mCharacterSet;
   int32_t mCharacterSetSource;
