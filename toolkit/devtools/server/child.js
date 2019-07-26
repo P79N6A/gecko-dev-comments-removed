@@ -4,6 +4,8 @@
 
 "use strict";
 
+let chromeGlobal = this;
+
 
 
 (function () {
@@ -28,7 +30,7 @@
 
     let conn = DebuggerServer.connectToParent(msg.data.prefix, mm);
 
-    let actor = new DebuggerServer.ContentActor(conn, content);
+    let actor = new DebuggerServer.ContentActor(conn, chromeGlobal);
     let actorPool = new ActorPool(conn);
     actorPool.addActor(actor);
     conn.addActorPool(actorPool);

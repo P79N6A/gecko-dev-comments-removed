@@ -20,38 +20,28 @@
 
 
 
-function ContentActor(connection, browser)
+function ContentActor(connection, chromeGlobal)
 {
-  BrowserTabActor.call(this, connection, browser);
+  TabActor.call(this, connection, chromeGlobal);
+  this._chromeGlobal = chromeGlobal;
 }
 
-ContentActor.prototype = Object.create(BrowserTabActor.prototype);
+ContentActor.prototype = Object.create(TabActor.prototype);
 
 ContentActor.prototype.constructor = ContentActor;
 
-Object.defineProperty(ContentActor.prototype, "title", {
+Object.defineProperty(ContentActor.prototype, "docShell", {
   get: function() {
-    return this.browser.title;
+    return this._chromeGlobal.docShell;
   },
   enumerable: true,
   configurable: false
 });
 
-Object.defineProperty(ContentActor.prototype, "url", {
-  get: function() {
-    return this.browser.document.documentURI;
-  },
-  enumerable: true,
-  configurable: false
-});
-
-Object.defineProperty(ContentActor.prototype, "window", {
-  get: function() {
-    return this.browser;
-  },
-  enumerable: true,
-  configurable: false
-});
+ContentActor.prototype.exit = function() {
+  TabActor.prototype.exit.call(this);
+  this._chromeGlobal = null;
+};
 
 
 
