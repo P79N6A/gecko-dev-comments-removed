@@ -96,6 +96,14 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
 
     
+    sControllerArray.Clear();
+    sBondingRunnableArray.Clear();
+    sChangeDiscoveryRunnableArray.Clear();
+    sGetDeviceRunnableArray.Clear();
+    sSetPropertyRunnableArray.Clear();
+    sUnbondingRunnableArray.Clear();
+
+    
     bt_scan_mode_t mode = BT_SCAN_MODE_CONNECTABLE;
     bt_property_t prop;
     prop.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
@@ -1149,8 +1157,9 @@ NextBluetoothProfileController()
   NS_ENSURE_FALSE_VOID(sControllerArray.IsEmpty());
   sControllerArray.RemoveElementAt(0);
   
-  NS_ENSURE_FALSE_VOID(sControllerArray.IsEmpty());
-  sControllerArray[0]->StartSession();
+  if (!sControllerArray.IsEmpty()) {
+    sControllerArray[0]->StartSession();
+  }
 }
 
 static void

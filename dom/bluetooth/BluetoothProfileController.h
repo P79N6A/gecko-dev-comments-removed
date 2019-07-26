@@ -122,6 +122,9 @@ private:
   
   void Next();
 
+  
+  bool IsBtServiceAvailable() const;
+
   const bool mConnect;
   nsString mDeviceAddress;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
