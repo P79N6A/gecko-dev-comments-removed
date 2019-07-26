@@ -96,39 +96,60 @@ TabStore.prototype = {
     return id == this.engine.service.clientsEngine.localID;
   },
 
-  getAllTabs: function getAllTabs(filter) {
+  getWindowEnumerator: function () {
+    return Services.wm.getEnumerator("navigator:browser");
+  },
+
+  shouldSkipWindow: function (win) {
+    return win.closed ||
+           PrivateBrowsingUtils.isWindowPrivate(win);
+  },
+
+  getTabState: function (tab) {
+    return JSON.parse(Svc.Session.getTabState(tab));
+  },
+
+  getAllTabs: function (filter) {
     let filteredUrls = new RegExp(Svc.Prefs.get("engine.tabs.filteredUrls"), "i");
 
     let allTabs = [];
 
-    let currentState = JSON.parse(Svc.Session.getBrowserState());
-    currentState.windows.forEach(function (window) {
-      if (window.isPrivate) {
-        return;
+    let winEnum = this.getWindowEnumerator();
+    while (winEnum.hasMoreElements()) {
+      let win = winEnum.getNext();
+      if (this.shouldSkipWindow(win)) {
+        continue;
       }
-      window.tabs.forEach(function (tab) {
+
+      dump("WIN IS " + JSON.stringify(win)  + "\n");
+      for (let tab of win.gBrowser.tabs) {
+        tabState = this.getTabState(tab);
+
         
-        if (!tab.entries.length)
-          return;
-        
-        
-        let entry = tab.entries[tab.index - 1];
+        if (!tabState || !tabState.entries.length) {
+          continue;
+        }
 
         
         
-        if (!entry.url || filter && filteredUrls.test(entry.url))
-          return;
+        let entry = tabState.entries[tabState.index - 1];
+
+        
+        
+        if (!entry.url || filter && filteredUrls.test(entry.url)) {
+          continue;
+        }
 
         
         
         allTabs.push({
           title: entry.title || "",
           urlHistory: [entry.url],
-          icon: tab.attributes && tab.attributes.image || "",
-          lastUsed: Math.floor((tab.lastAccessed || 0) / 1000)
+          icon: tabState.attributes && tabState.attributes.image || "",
+          lastUsed: Math.floor((tabState.lastAccessed || 0) / 1000)
         });
-      });
-    });
+      }
+    }
 
     return allTabs;
   },
