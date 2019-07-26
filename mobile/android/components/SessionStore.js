@@ -28,7 +28,6 @@ function dump(a) {
 
 const STATE_STOPPED = 0;
 const STATE_RUNNING = 1;
-const STATE_QUITTING = -1;
 
 function SessionStore() { }
 
@@ -76,11 +75,7 @@ SessionStore.prototype = {
         observerService.addObserver(this, "final-ui-startup", true);
         observerService.addObserver(this, "domwindowopened", true);
         observerService.addObserver(this, "domwindowclosed", true);
-        observerService.addObserver(this, "browser-lastwindow-close-granted", true);
         observerService.addObserver(this, "browser:purge-session-history", true);
-        observerService.addObserver(this, "quit-application-requested", true);
-        observerService.addObserver(this, "quit-application-granted", true);
-        observerService.addObserver(this, "quit-application", true);
         observerService.addObserver(this, "Session:Restore", true);
         break;
       case "final-ui-startup":
@@ -98,59 +93,8 @@ SessionStore.prototype = {
       case "domwindowclosed": 
         this.onWindowClose(aSubject);
         break;
-      case "browser-lastwindow-close-granted":
-        
-        if (this._saveTimer) {
-          this._saveTimer.cancel();
-          this._saveTimer = null;
-          this.saveState();
-        }
-
-        
-        this._loadState = STATE_QUITTING;
-        break;
-      case "quit-application-requested":
-        
-        this._forEachBrowserWindow(function(aWindow) {
-          self._collectWindowData(aWindow);
-        });
-        break;
-      case "quit-application-granted":
-        
-        this._forEachBrowserWindow(function(aWindow) {
-          self._collectWindowData(aWindow);
-        });
-
-        
-        this._loadState = STATE_QUITTING;
-        break;
-      case "quit-application":
-        
-        this._loadState = STATE_QUITTING;
-
-        observerService.removeObserver(this, "domwindowopened");
-        observerService.removeObserver(this, "domwindowclosed");
-        observerService.removeObserver(this, "browser-lastwindow-close-granted");
-        observerService.removeObserver(this, "quit-application-requested");
-        observerService.removeObserver(this, "quit-application-granted");
-        observerService.removeObserver(this, "quit-application");
-        observerService.removeObserver(this, "Session:Restore");
-
-        
-        if (this._saveTimer) {
-          this._saveTimer.cancel();
-          this._saveTimer = null;
-          this.saveState();
-        }
-        break;
       case "browser:purge-session-history": 
         this._clearDisk();
-
-        
-        
-        
-        if (this._loadState == STATE_QUITTING)
-          return;
 
         
         for (let [ssid, win] in Iterator(this._windows))
@@ -237,7 +181,7 @@ SessionStore.prototype = {
       return;
 
     
-    if (aWindow.document.documentElement.getAttribute("windowtype") != "navigator:browser" || this._loadState == STATE_QUITTING)
+    if (aWindow.document.documentElement.getAttribute("windowtype") != "navigator:browser")
       return;
 
     
