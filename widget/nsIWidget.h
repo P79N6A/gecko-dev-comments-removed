@@ -222,15 +222,18 @@ enum nsTopLevelWidgetZPlacement {
 
 
 
+
+
 struct nsIMEUpdatePreference {
 
-  typedef int8_t Notifications;
+  typedef uint8_t Notifications;
 
   enum
   {
-    NOTIFY_NOTHING           = 0x0000,
-    NOTIFY_SELECTION_CHANGE  = 0x0001,
-    NOTIFY_TEXT_CHANGE       = 0x0002
+    NOTIFY_NOTHING           = 0x00,
+    NOTIFY_SELECTION_CHANGE  = 0x01,
+    NOTIFY_TEXT_CHANGE       = 0x02,
+    NOTIFY_DURING_DEACTIVE   = 0x80
   };
 
   nsIMEUpdatePreference()
