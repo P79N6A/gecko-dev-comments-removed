@@ -194,14 +194,17 @@ SystemMessageManager.prototype = {
   receiveMessage: function(aMessage) {
     let msg = aMessage.data;
     debug("receiveMessage " + aMessage.name + " for [" + msg.type + "] " +
-          "with manifest URL = " + msg.manifestURL + " and page URL = " + msg.pageURL);
+          "with manifest URL = " + msg.manifestURL +
+          " and page URL = " + msg.pageURL);
 
     
     
     
-    if (msg.manifestURL !== this._manifestURL || msg.pageURL !== this._pageURL) {
+    if (msg.manifestURL !== this._manifestURL ||
+        msg.pageURL !== this._pageURL) {
       debug("This page shouldn't handle the messages because its " +
-            "manifest URL = " + this._manifestURL + " and page URL = " + this._pageURL);
+            "manifest URL = " + this._manifestURL +
+            " and page URL = " + this._pageURL);
       return;
     }
 
@@ -247,8 +250,9 @@ SystemMessageManager.prototype = {
   
   init: function(aWindow) {
     debug("init");
-    this.initDOMRequestHelper(aWindow, ["SystemMessageManager:Message",
-                              "SystemMessageManager:GetPendingMessages:Return"]);
+    this.initDOMRequestHelper(aWindow,
+                              ["SystemMessageManager:Message",
+                               "SystemMessageManager:GetPendingMessages:Return"]);
 
     let principal = aWindow.document.nodePrincipal;
     this._isInBrowserElement = principal.isInBrowserElement;
