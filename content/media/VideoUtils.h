@@ -19,6 +19,7 @@
 #include "nsThreadUtils.h"
 #include "prtime.h"
 #include "AudioSampleFormat.h"
+#include "mozilla/RefPtr.h"
 
 using mozilla::CheckedInt64;
 using mozilla::CheckedUint64;
@@ -185,6 +186,12 @@ private:
   T& mVar;
   const T mValue;
 };
+
+class SharedThreadPool;
+
+
+
+TemporaryRef<SharedThreadPool> GetMediaDecodeThreadPool();
 
 } 
 
