@@ -53,6 +53,9 @@ public:
   void Shutdown();
   void DropPrivateBrowsingEntries();
 
+  
+  static void WipeCacheDirectory(uint32_t aVersion);
+
   static CacheStorageService* Self() { return sSelf; }
   nsresult Dispatch(nsIRunnable* aEvent);
   static bool IsRunning() { return sSelf && !sSelf->mShutdown; }

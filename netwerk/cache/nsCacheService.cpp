@@ -3054,6 +3054,23 @@ nsCacheService::GetClearingEntries()
 }
 
 
+void nsCacheService::GetDiskCacheDirectory(nsIFile ** result) {
+    *result = nullptr;
+    if (gService && gService->mObserver) {
+        nsCOMPtr<nsIFile> directory =
+            gService->mObserver->DiskCacheParentDirectory();
+        if (!directory)
+            return;
+
+        nsresult rv = directory->AppendNative(NS_LITERAL_CSTRING("Cache"));
+        if (NS_FAILED(rv))
+            return;
+
+        directory.forget(result);
+    }
+}
+
+
 #if defined(PR_LOGGING)
 void
 nsCacheService::LogCacheStatistics()
