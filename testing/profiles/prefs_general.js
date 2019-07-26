@@ -155,6 +155,9 @@ user_pref("browser.download.panel.shown", true);
 user_pref("browser.firstrun.count", 0);
 
 
+user_pref("pbackground.testing", true);
+
+
 user_pref("browser.webapps.testing", true);
 
 

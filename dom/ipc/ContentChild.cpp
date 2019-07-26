@@ -23,6 +23,7 @@
 #include "mozilla/dom/PCrashReporterChild.h"
 #include "mozilla/dom/DOMStorageIPC.h"
 #include "mozilla/hal_sandbox/PHalChild.h"
+#include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/ipc/TestShellChild.h"
 #include "mozilla/layers/CompositorChild.h"
@@ -43,6 +44,7 @@
 #include "mozilla/unused.h"
 
 #include "nsIConsoleListener.h"
+#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIMemoryReporter.h"
 #include "nsIMemoryInfoDumper.h"
@@ -310,6 +312,34 @@ SystemMessageHandledObserver::Observe(nsISupports* aSubject,
 
 NS_IMPL_ISUPPORTS1(SystemMessageHandledObserver, nsIObserver)
 
+class BackgroundChildPrimer MOZ_FINAL :
+  public nsIIPCBackgroundChildCreateCallback
+{
+public:
+    BackgroundChildPrimer()
+    { }
+
+    NS_DECL_ISUPPORTS
+
+private:
+    ~BackgroundChildPrimer()
+    { }
+
+    virtual void
+    ActorCreated(PBackgroundChild* aActor) MOZ_OVERRIDE
+    {
+        MOZ_ASSERT(aActor, "Failed to create a PBackgroundChild actor!");
+    }
+
+    virtual void
+    ActorFailed() MOZ_OVERRIDE
+    {
+        MOZ_CRASH("Failed to create a PBackgroundChild actor!");
+    }
+};
+
+NS_IMPL_ISUPPORTS1(BackgroundChildPrimer, nsIIPCBackgroundChildCreateCallback)
+
 ContentChild* ContentChild::sSingleton;
 
 
@@ -451,6 +481,16 @@ ContentChild::AppendProcessId(nsACString& aName)
 void
 ContentChild::InitXPCOM()
 {
+    
+    
+    BackgroundChild::Startup();
+
+    nsCOMPtr<nsIIPCBackgroundChildCreateCallback> callback =
+        new BackgroundChildPrimer();
+    if (!BackgroundChild::GetOrCreateForCurrentThread(callback)) {
+        MOZ_CRASH("Failed to create PBackgroundChild!");
+    }
+
     nsCOMPtr<nsIConsoleService> svc(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
     if (!svc) {
         NS_WARNING("Couldn't acquire console service");
@@ -604,6 +644,13 @@ ContentChild::AllocPImageBridgeChild(mozilla::ipc::Transport* aTransport,
                                      base::ProcessId aOtherProcess)
 {
     return ImageBridgeChild::StartUpInChildProcess(aTransport, aOtherProcess);
+}
+
+PBackgroundChild*
+ContentChild::AllocPBackgroundChild(Transport* aTransport,
+                                    ProcessId aOtherProcess)
+{
+    return BackgroundChild::Alloc(aTransport, aOtherProcess);
 }
 
 bool
@@ -1685,6 +1732,20 @@ ContentChild::RecvNuwaFork()
         return true;
     }
     sNuwaForking = true;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    while (!BackgroundChild::GetForCurrentThread()) {
+        if (NS_WARN_IF(NS_FAILED(NS_ProcessNextEvent()))) {
+            return false;
+        }
+    }
 
     MessageLoop* ioloop = XRE_GetIOMessageLoop();
     ioloop->PostTask(FROM_HERE, NewRunnableFunction(RunNuwaFork));
