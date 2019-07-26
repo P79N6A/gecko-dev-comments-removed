@@ -1678,6 +1678,11 @@ var NativeWindow = {
         }
       };
       let data = JSON.parse(sendMessageToJava(msg));
+      if (data.button == -1) {
+        
+        return;
+      }
+
       let selectedId = itemArray[data.button].id;
       let selectedItem = this._getMenuItemForId(selectedId);
 
