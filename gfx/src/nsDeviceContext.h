@@ -17,6 +17,7 @@
 #include "nsISupports.h"                
 #include "nsMathUtils.h"                
 #include "nscore.h"                     
+#include "mozilla/AppUnits.h"           
 
 class gfxASurface;
 class gfxUserFontSet;
@@ -65,7 +66,7 @@ public:
 
 
 
-    static int32_t AppUnitsPerCSSPixel() { return 60; }
+    static int32_t AppUnitsPerCSSPixel() { return mozilla::AppUnitsPerCSSPixel(); }
 
     
 
