@@ -18,6 +18,12 @@ import java.util.regex.Pattern;
 public final class JavascriptMessageParser {
 
     
+
+
+
+    public static final String EVENT_TYPE = "Robocop:JS";
+
+    
     
     private static final Pattern testMessagePattern =
         Pattern.compile("\n+TEST-(.*) \\| (.*) \\| (.*)\n*");
