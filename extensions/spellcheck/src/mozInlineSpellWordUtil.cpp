@@ -374,18 +374,16 @@ IsBRElement(nsINode* aNode)
 
 
 
-static bool
-ContainsDOMWordSeparator(nsINode* aNode, int32_t aBeforeOffset,
-                         int32_t* aSeparatorOffset)
-{
-  if (IsBRElement(aNode)) {
-    *aSeparatorOffset = 0;
-    return true;
-  }
-  
-  if (!IsTextNode(aNode))
-    return false;
 
+
+
+
+
+static bool
+TextNodeContainsDOMWordSeparator(nsINode* aNode,
+                                 int32_t aBeforeOffset,
+                                 int32_t* aSeparatorOffset)
+{
   
   nsIContent* content = static_cast<nsIContent*>(aNode);
   const nsTextFragment* textFragment = content->GetText();
@@ -405,6 +403,30 @@ ContainsDOMWordSeparator(nsINode* aNode, int32_t aBeforeOffset,
     }
   }
   return false;
+}
+
+
+
+
+
+
+
+
+
+static bool
+ContainsDOMWordSeparator(nsINode* aNode, int32_t aBeforeOffset,
+                         int32_t* aSeparatorOffset)
+{
+  if (IsBRElement(aNode)) {
+    *aSeparatorOffset = 0;
+    return true;
+  }
+
+  if (!IsTextNode(aNode))
+    return false;
+
+  return TextNodeContainsDOMWordSeparator(aNode, aBeforeOffset,
+                                          aSeparatorOffset);
 }
 
 static bool
@@ -475,7 +497,21 @@ mozInlineSpellWordUtil::BuildSoftText()
           
           
           
-          ContainsDOMWordSeparator(node, firstOffsetInNode - 1, &newOffset);
+          
+          
+          
+          if (!ContainsDOMWordSeparator(node, firstOffsetInNode - 1,
+                                        &newOffset)) {
+            nsINode* prevNode = node->GetPreviousSibling();
+            while (prevNode && IsTextNode(prevNode)) {
+              mSoftBegin.mNode = prevNode;
+              if (TextNodeContainsDOMWordSeparator(prevNode, INT32_MAX,
+                                                   &newOffset)) {
+                break;
+              }
+              prevNode = prevNode->GetPreviousSibling();
+            }
+          }
         }
         firstOffsetInNode = newOffset;
         mSoftBegin.mOffset = newOffset;
