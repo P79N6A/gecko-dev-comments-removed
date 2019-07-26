@@ -23,11 +23,11 @@ public:
   NS_DECL_NSIVOLUME
 
   
-  nsVolume(const Volume *aVolume);
+  nsVolume(const Volume* aVolume);
 
   
-  nsVolume(const nsAString &aName, const nsAString &aMountPoint,
-           const int32_t &aState, const int32_t &aMountGeneration)
+  nsVolume(const nsAString& aName, const nsAString& aMountPoint,
+           const int32_t& aState, const int32_t& aMountGeneration)
     : mName(aName),
       mMountPoint(aMountPoint),
       mState(aState),
@@ -38,7 +38,7 @@ public:
 
   
   
-  nsVolume(const nsAString &aName)
+  nsVolume(const nsAString& aName)
     : mName(aName),
       mState(STATE_INIT),
       mMountGeneration(-1),
@@ -46,7 +46,7 @@ public:
   {
   }
 
-  bool Equals(const nsVolume *aVolume)
+  bool Equals(const nsVolume* aVolume)
   {
     return mName.Equals(aVolume->mName)
         && mMountPoint.Equals(aVolume->mMountPoint)
@@ -55,21 +55,21 @@ public:
         && (mMountLocked == aVolume->mMountLocked);
   }
 
-  void Set(const nsVolume *aVolume);
+  void Set(const nsVolume* aVolume);
 
   void LogState() const;
 
-  const nsString &Name() const        { return mName; }
-  const char *NameStr() const         { return NS_LossyConvertUTF16toASCII(mName).get(); }
+  const nsString& Name() const        { return mName; }
+  const char* NameStr() const         { return NS_LossyConvertUTF16toASCII(mName).get(); }
 
   int32_t MountGeneration() const     { return mMountGeneration; }
   bool IsMountLocked() const          { return mMountLocked; }
 
-  const nsString &MountPoint() const  { return mMountPoint; }
-  const char *MountPointStr() const   { return NS_LossyConvertUTF16toASCII(mMountPoint).get(); }
+  const nsString& MountPoint() const  { return mMountPoint; }
+  const char* MountPointStr() const   { return NS_LossyConvertUTF16toASCII(mMountPoint).get(); }
 
   int32_t State() const               { return mState; }
-  const char *StateStr() const        { return NS_VolumeStateStr(mState); }
+  const char* StateStr() const        { return NS_VolumeStateStr(mState); }
 
   typedef nsTArray<nsRefPtr<nsVolume> > Array;
 
@@ -77,7 +77,7 @@ private:
   ~nsVolume() {}
 
   friend class nsVolumeService; 
-  void UpdateMountLock(const nsAString &aMountLockState);
+  void UpdateMountLock(const nsAString& aMountLockState);
   void UpdateMountLock(bool aMountLocked);
 
   nsString mName;

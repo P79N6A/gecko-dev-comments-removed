@@ -95,20 +95,20 @@ VolumeManager::SetState(STATE aNewState)
 
 
 void
-VolumeManager::RegisterStateObserver(StateObserver *aObserver)
+VolumeManager::RegisterStateObserver(StateObserver* aObserver)
 {
   mStateObserverList.AddObserver(aObserver);
 }
 
 
-void VolumeManager::UnregisterStateObserver(StateObserver *aObserver)
+void VolumeManager::UnregisterStateObserver(StateObserver* aObserver)
 {
   mStateObserverList.RemoveObserver(aObserver);
 }
 
 
 TemporaryRef<Volume>
-VolumeManager::FindVolumeByName(const nsCSubstring &aName)
+VolumeManager::FindVolumeByName(const nsCSubstring& aName)
 {
   if (!sVolumeManager) {
     return NULL;
@@ -126,7 +126,7 @@ VolumeManager::FindVolumeByName(const nsCSubstring &aName)
 
 
 TemporaryRef<Volume>
-VolumeManager::FindAddVolumeByName(const nsCSubstring &aName)
+VolumeManager::FindAddVolumeByName(const nsCSubstring& aName)
 {
   RefPtr<Volume> vol = FindVolumeByName(aName);
   if (vol) {
@@ -140,7 +140,7 @@ VolumeManager::FindAddVolumeByName(const nsCSubstring &aName)
 
 class VolumeListCallback : public VolumeResponseCallback
 {
-  virtual void ResponseReceived(const VolumeCommand *aCommand)
+  virtual void ResponseReceived(const VolumeCommand* aCommand)
   {
     switch (ResponseCode()) {
       case ResponseCode::VolumeListResult: {
@@ -206,7 +206,7 @@ VolumeManager::OpenSocket()
 
 
 void
-VolumeManager::PostCommand(VolumeCommand *aCommand)
+VolumeManager::PostCommand(VolumeCommand* aCommand)
 {
   if (!sVolumeManager) {
     ERR("VolumeManager not initialized. Dropping command '%s'", aCommand->Data());
@@ -241,7 +241,7 @@ VolumeManager::WriteCommandData()
     return;
   }
 
-  VolumeCommand *cmd = mCommands.front();
+  VolumeCommand* cmd = mCommands.front();
   if (cmd->BytesRemaining() == 0) {
     
     return;
@@ -275,7 +275,7 @@ void
 VolumeManager::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
 {
   MOZ_ASSERT(aFd == mSocket.get());
-  char *endPtr;
+  char* endPtr;
   int responseCode = strtol(aMessage.Data(), &endPtr, 10);
   if (*endPtr == ' ') {
     endPtr++;
@@ -292,7 +292,7 @@ VolumeManager::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
   } else {
     
     if (mCommands.size() > 0) {
-      VolumeCommand *cmd = mCommands.front();
+      VolumeCommand* cmd = mCommands.front();
       cmd->HandleResponse(responseCode, responseLine);
       if (responseCode >= ResponseCode::CommandOkay) {
         
@@ -315,7 +315,7 @@ VolumeManager::OnFileCanWriteWithoutBlocking(int aFd)
 }
 
 void
-VolumeManager::HandleBroadcast(int aResponseCode, nsCString &aResponseLine)
+VolumeManager::HandleBroadcast(int aResponseCode, nsCString& aResponseLine)
 {
   
   
