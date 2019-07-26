@@ -1130,7 +1130,13 @@ SequentialCompileContext::compile(IonBuilder *builder, MIRGraph *graph,
     }
     builder->clearForBackEnd();
 
-    if (js_IonOptions.parallelCompilation && OffThreadCompilationAvailable(cx)) {
+    
+    
+    
+    if (js_IonOptions.parallelCompilation &&
+        OffThreadCompilationAvailable(cx) &&
+        !cx->compartment->needsBarrier())
+    {
         builder->script()->ion = ION_COMPILING_SCRIPT;
 
         if (!StartOffThreadIonCompile(cx, builder)) {

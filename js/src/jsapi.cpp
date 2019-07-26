@@ -874,7 +874,8 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     ionPcScriptCache(NULL),
     threadPool(this),
     ionReturnOverride_(MagicValue(JS_ARG_POISON)),
-    useHelperThreads_(useHelperThreads)
+    useHelperThreads_(useHelperThreads),
+    requestedHelperThreadCount(-1)
 {
     
     JS_INIT_CLIST(&debuggerList);

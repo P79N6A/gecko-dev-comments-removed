@@ -143,7 +143,7 @@ WorkerThreadState::init(JSRuntime *rt)
     if (!helperWakeup)
         return false;
 
-    numThreads = GetCPUCount() - 1;
+    numThreads = rt->helperThreadCount();
 
     threads = (WorkerThread*) rt->calloc_(sizeof(WorkerThread) * numThreads);
     if (!threads) {
@@ -250,6 +250,22 @@ WorkerThreadState::notifyAll(CondVar which)
     PR_NotifyAllCondVar((which == MAIN) ? mainWakeup : helperWakeup);
 }
 
+bool
+WorkerThreadState::canStartIonCompile()
+{
+    
+    
+    
+    
+    if (ionWorklist.empty())
+        return false;
+    for (size_t i = 0; i < numThreads; i++) {
+        if (threads[i].ionBuilder)
+            return false;
+    }
+    return true;
+}
+
 void
 WorkerThread::destroy()
 {
@@ -289,7 +305,7 @@ WorkerThread::threadLoop()
     while (true) {
         JS_ASSERT(!ionBuilder);
 
-        while (state.ionWorklist.empty()) {
+        while (!state.canStartIonCompile()) {
             if (terminate) {
                 state.unlock();
                 return;
