@@ -807,7 +807,8 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 
     
     nsAutoArrayPtr<uint8_t> pixelData;
-    pixelData = new (fallible_t()) uint8_t[length];
+    static const fallible_t fallible = fallible_t();
+    pixelData = new (fallible) uint8_t[length];
     if (pixelData) {
       memset(pixelData, 0x10, yPlaneLen);
       
