@@ -650,6 +650,9 @@ pref("network.manage-offline-status", true);
 pref("dom.min_background_timeout_value", 900000);
 
 
+pref("reader.force_allow", false);
+
+
 pref("reader.font_size", 4);
 
 

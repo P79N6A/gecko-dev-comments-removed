@@ -3279,7 +3279,7 @@ Tab.prototype = {
 
         
         
-        if (BrowserApp.isOnLowMemoryPlatform)
+        if (BrowserApp.isOnLowMemoryPlatform && !Services.prefs.getBoolPref("reader.force_allow"))
           return;
 
         
