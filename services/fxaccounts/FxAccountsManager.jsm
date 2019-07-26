@@ -177,7 +177,7 @@ this.FxAccountsManager = {
           if (exists) {
             return this.getAccount().then(
               (user) => {
-                return this._refreshAuthentication(aAudience, user.email);
+                return this._refreshAuthentication(aAudience, user.email, true);
               }
             );
           
@@ -209,7 +209,17 @@ this.FxAccountsManager = {
     );
   },
 
-  _refreshAuthentication: function(aAudience, aEmail) {
+  
+
+
+
+
+
+
+
+
+
+  _refreshAuthentication: function(aAudience, aEmail, logoutOnFailure=false) {
     this._refreshing = true;
     return this._uiRequest(UI_REQUEST_REFRESH_AUTH,
                            aAudience, aEmail).then(
@@ -219,11 +229,14 @@ this.FxAccountsManager = {
       },
       (reason) => {
         this._refreshing = false;
-        return this._signOut().then(
-          () => {
-            return this._error(reason);
-          }
-        );
+        if (logoutOnFailure) {
+          return this._signOut().then(
+            () => {
+              return this._error(reason);
+            }
+          );
+        }
+        return this._error(reason);
       }
     );
   },
