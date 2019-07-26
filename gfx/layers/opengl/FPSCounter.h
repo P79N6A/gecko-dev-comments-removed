@@ -8,7 +8,6 @@
 #include "GLDefs.h"                     
 #include "mozilla/TimeStamp.h"          
 #include "nsTArray.h"                   
-#include "VBOArena.h"                   
 
 namespace mozilla {
 namespace gl {
@@ -71,7 +70,6 @@ struct FPSState {
   GLuint mTexture;
   FPSCounter mCompositionFps;
   FPSCounter mTransactionFps;
-  gl::VBOArena mVBOs;
 
   FPSState() : mTexture(0) { }
 
