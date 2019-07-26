@@ -2270,6 +2270,18 @@ MmsService.prototype = {
 
       
       
+      
+      
+      
+      if (getRadioDisabledState()) {
+        if (DEBUG) debug("Error! Radio is disabled when retrieving MMS.");
+        aRequest.notifyGetMessageFailed(
+          Ci.nsIMobileMessageCallback.RADIO_DISABLED_ERROR);
+        return;
+      }
+
+      
+      
       let serviceId;
       try {
         if (aMessageRecord.iccId == null) {
