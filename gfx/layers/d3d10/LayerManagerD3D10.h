@@ -62,7 +62,7 @@ public:
 
 
 
-  bool Initialize(bool force = false, HRESULT* aHresultPtr = nullptr);
+  bool Initialize(bool force = false);
 
   
 
