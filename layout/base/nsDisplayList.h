@@ -2484,6 +2484,8 @@ public:
   {
     
   }
+  virtual bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
+  bool NeedsActiveLayer();
   NS_DISPLAY_DECL_NAME("Opacity", TYPE_OPACITY)
 #ifdef MOZ_DUMP_PAINTING
   virtual void WriteDebugInfo(FILE *aOutput) MOZ_OVERRIDE {
