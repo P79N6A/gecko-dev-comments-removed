@@ -22,6 +22,48 @@ loop.conversation = (function(OT, mozL10n) {
 
 
 
+  var IncomingCallView = sharedViews.BaseView.extend({
+    template: _.template([
+      '<h2 data-l10n-id="incoming_call"></h2>',
+      '<p>',
+      '  <button class="btn btn-success btn-accept"',
+      '           data-l10n-id="accept_button"></button>',
+      '  <button class="btn btn-error btn-decline"',
+      '           data-l10n-id="decline_button"></button>',
+      '</p>'
+    ].join("")),
+
+    className: "incoming-call",
+
+    events: {
+      "click .btn-accept": "handleAccept",
+      "click .btn-decline": "handleDecline"
+    },
+
+    
+
+
+
+    handleAccept: function(event) {
+      event.preventDefault();
+      this.model.trigger("accept");
+    },
+
+    
+
+
+
+    handleDecline: function(event) {
+      event.preventDefault();
+      
+      window.close();
+    }
+  });
+
+  
+
+
+
   var EndedCallView = sharedViews.BaseView.extend({
     template: _.template([
       '<p>',
@@ -53,7 +95,8 @@ loop.conversation = (function(OT, mozL10n) {
 
   var ConversationRouter = loop.desktopRouter.DesktopConversationRouter.extend({
     routes: {
-      "start/:version": "start",
+      "incoming/:version": "incoming",
+      "call/accept": "accept",
       "call/ongoing": "conversation",
       "call/ended": "ended"
     },
@@ -78,11 +121,18 @@ loop.conversation = (function(OT, mozL10n) {
 
 
 
-
-    start: function(loopVersion) {
-      
-      
+    incoming: function(loopVersion) {
       this._conversation.set({loopVersion: loopVersion});
+      this._conversation.once("accept", function() {
+        this.navigate("call/accept", {trigger: true});
+      }.bind(this));
+      this.loadView(new IncomingCallView({model: this._conversation}));
+    },
+
+    
+
+
+    accept: function() {
       this._conversation.initiate({
         baseServerUrl: window.navigator.mozLoop.serverUrl,
         outgoing: false
@@ -134,6 +184,7 @@ loop.conversation = (function(OT, mozL10n) {
   return {
     ConversationRouter: ConversationRouter,
     EndedCallView: EndedCallView,
+    IncomingCallView: IncomingCallView,
     init: init
   };
 })(window.OT, document.mozL10n);
