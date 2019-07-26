@@ -37,13 +37,21 @@ public class GeckoView extends LayerView
     private ChromeDelegate mChromeDelegate;
     private ContentDelegate mContentDelegate;
 
+    public GeckoView(Context context) {
+        super(context);
+        init(context, null, true);
+    }
+
     public GeckoView(Context context, AttributeSet attrs) {
         super(context, attrs);
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.GeckoView);
         String url = a.getString(R.styleable.GeckoView_url);
         boolean doInit = a.getBoolean(R.styleable.GeckoView_doinit, true);
         a.recycle();
+        init(context, url, doInit);
+    }
 
+    private void init(Context context, String url, boolean doInit) {
         
         
         
