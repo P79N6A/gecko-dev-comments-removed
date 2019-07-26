@@ -54,6 +54,10 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void assertUsesAreNotWithin(MUseIterator use, MUseIterator end);
 
     
+    bool earlyAbort_;
+
+
+    
     void setSlot(uint32 slot, MDefinition *ins);
 
     
@@ -84,7 +88,15 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void setId(uint32 id) {
         id_ = id;
     }
-
+    void setEarlyAbort() {
+        earlyAbort_ = true;
+    }
+    void clearEarlyAbort() {
+        earlyAbort_ = false;
+    }
+    bool earlyAbort() {
+        return earlyAbort_;
+    }
     
     void pick(int32 depth);
 
