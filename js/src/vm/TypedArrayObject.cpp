@@ -2140,8 +2140,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
             return NULL; 
         }
 
-        JS_ASSERT(bufobj->is<ArrayBufferObject>() || bufobj->isProxy());
-        if (bufobj->isProxy()) {
+        JS_ASSERT(bufobj->is<ArrayBufferObject>() || bufobj->is<ProxyObject>());
+        if (bufobj->is<ProxyObject>()) {
             
 
 

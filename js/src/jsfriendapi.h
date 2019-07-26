@@ -387,9 +387,12 @@ struct Atom {
 
 } 
 
-extern JS_FRIEND_DATA(js::Class) FunctionProxyClass;
-extern JS_FRIEND_DATA(js::Class) OuterWindowProxyClass;
-extern JS_FRIEND_DATA(js::Class) ObjectProxyClass;
+
+
+extern JS_FRIEND_DATA(js::Class*) FunctionProxyClassPtr;
+extern JS_FRIEND_DATA(js::Class*) ObjectProxyClassPtr;
+extern JS_FRIEND_DATA(js::Class*) OuterWindowProxyClassPtr;
+
 extern JS_FRIEND_DATA(js::Class) ObjectClass;
 
 inline js::Class *
@@ -492,9 +495,9 @@ inline bool
 GetObjectProto(JSContext *cx, JS::Handle<JSObject*> obj, JS::MutableHandle<JSObject*> proto)
 {
     js::Class *clasp = GetObjectClass(obj);
-    if (clasp == &js::ObjectProxyClass ||
-        clasp == &js::OuterWindowProxyClass ||
-        clasp == &js::FunctionProxyClass)
+    if (clasp == js::ObjectProxyClassPtr ||
+        clasp == js::OuterWindowProxyClassPtr ||
+        clasp == js::FunctionProxyClassPtr)
     {
         return JS_GetPrototype(cx, obj, proto.address());
     }

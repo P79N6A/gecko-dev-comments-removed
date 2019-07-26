@@ -995,11 +995,6 @@ class JSObject : public js::ObjectImpl
 
 
 
-
-
-
-
-
     template <class T>
     inline bool is() const { return getClass() == &T::class_; }
 
@@ -1017,11 +1012,9 @@ class JSObject : public js::ObjectImpl
 
     
     inline bool isObject()           const { return hasClass(&js::ObjectClass); }
-    using js::ObjectImpl::isProxy;
 
     
     inline bool isWrapper()                 const;
-    inline bool isFunctionProxy()           const { return hasClass(&js::FunctionProxyClass); }
     inline bool isCrossCompartmentWrapper() const;
 
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_OBJECT; }

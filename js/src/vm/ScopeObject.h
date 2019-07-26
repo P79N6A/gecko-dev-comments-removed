@@ -12,6 +12,7 @@
 #include "jsweakmap.h"
 
 #include "gc/Barrier.h"
+#include "vm/ProxyObject.h"
 
 namespace js {
 
@@ -587,7 +588,7 @@ extern JSObject *
 GetDebugScopeForFrame(JSContext *cx, AbstractFramePtr frame);
 
 
-class DebugScopeObject : public JSObject
+class DebugScopeObject : public ObjectProxyObject
 {
     
 
@@ -699,8 +700,11 @@ template<>
 inline bool
 JSObject::is<js::DebugScopeObject>() const
 {
-    extern bool js_IsDebugScopeSlow(JSObject *obj);
-    return getClass() == &js::ObjectProxyClass && js_IsDebugScopeSlow(const_cast<JSObject*>(this));
+    extern bool js_IsDebugScopeSlow(js::ObjectProxyObject *proxy);
+
+    
+    return hasClass(&js::ObjectProxyObject::class_) &&
+           js_IsDebugScopeSlow(&const_cast<JSObject*>(this)->as<js::ObjectProxyObject>());
 }
 
 template<>

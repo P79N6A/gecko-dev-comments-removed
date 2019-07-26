@@ -312,7 +312,8 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
     if (existing) {
         
         if (!existing->getTaggedProto().isLazy() ||
-            existing->getClass() != &ObjectProxyClass ||
+            
+            existing->getClass() != &ObjectProxyObject::class_ ||
             existing->getParent() != global ||
             obj->isCallable())
         {
