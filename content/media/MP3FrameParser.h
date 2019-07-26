@@ -56,6 +56,11 @@ public:
   
   int64_t GetMP3Offset();
 
+  
+  uint64_t GetLastStreamOffset() {
+    return mOffset + mBufferLength;
+  }
+
 private:
 
   

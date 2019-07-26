@@ -132,6 +132,7 @@ private:
 };
 
 class MediaResource;
+class MP3FrameParser;
 } 
 
 namespace mozilla {
@@ -149,6 +150,11 @@ class TimeRanges;
 void GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStream,
                                     int64_t aDurationUsecs,
                                     mozilla::dom::TimeRanges* aOutBuffered);
+
+
+
+int64_t GetEstimatedMP3Duration(mozilla::MediaResource *aResource,
+                                mozilla::MP3FrameParser *aParser);
 
 
 
