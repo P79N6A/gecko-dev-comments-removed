@@ -225,6 +225,11 @@ public:
     
 
 
+    float GetPixelScale() const { return mPixelScale; }
+
+    
+
+
     bool IsPrinterSurface();
 
 protected:

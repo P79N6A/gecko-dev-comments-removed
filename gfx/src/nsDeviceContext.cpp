@@ -734,4 +734,6 @@ nsDeviceContext::UpdateScaledAppUnits()
 {
     mAppUnitsPerDevPixel =
         NS_MAX(1, NSToIntRound(float(mAppUnitsPerDevNotScaledPixel) / mPixelScale));
+    
+    mPixelScale = float(mAppUnitsPerDevNotScaledPixel) / mAppUnitsPerDevPixel;
 }

@@ -175,7 +175,7 @@ LayoutHelpers = {
     let zoom =
       aWin.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
         .getInterface(Components.interfaces.nsIDOMWindowUtils)
-        .screenPixelsPerCSSPixel;
+        .fullZoom;
 
     
     let aRectScaled = {};
