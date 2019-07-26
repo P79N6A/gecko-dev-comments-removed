@@ -25,121 +25,19 @@ HelperAppLauncherDialog.prototype = {
 
   show: function hald_show(aLauncher, aContext, aReason) {
     
-    if (aLauncher.MIMEInfo.hasDefaultHandler) {
-      aLauncher.MIMEInfo.preferredAction = Ci.nsIMIMEInfo.useSystemDefault;
-      aLauncher.launchWithApplication(null, false);
-    } else {
-      let wasClicked = false;
-      let listener = {
-        observe: function(aSubject, aTopic, aData) {
-          if (aTopic == "alertclickcallback") {
-            wasClicked = true;
-            let win = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator).getMostRecentWindow("navigator:browser");
-            if (win)
-              win.BrowserUI.showPanel("downloads-container");
-  
-            aLauncher.saveToDisk(null, false);
-          } else {
-            if (!wasClicked)
-              aLauncher.cancel(Cr.NS_BINDING_ABORTED);
-          }
-        }
-      };
-      this._notify(aLauncher, listener);
-    }
+    aLauncher.MIMEInfo.preferredAction = Ci.nsIMIMEInfo.useSystemDefault;
+    aLauncher.saveToDisk(null, false);
   },
 
   promptForSaveToFile: function hald_promptForSaveToFile(aLauncher, aContext, aDefaultFile, aSuggestedFileExt, aForcePrompt) {
-    let file = null;
-    let prefs = Services.prefs;
-
-    if (!aForcePrompt) {
-      
-      
-      let autodownload = true;
-      try {
-        autodownload = prefs.getBoolPref(PREF_BD_USEDOWNLOADDIR);
-      } catch (e) { }
-
-      if (autodownload) {
-        
-        let dnldMgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
-        let defaultFolder = dnldMgr.userDownloadsDirectory;
-
-        try {
-          file = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExt);
-        }
-        catch (e) {
-        }
-
-        
-        if (file)
-          return file;
-      }
-    }
-
     
-    let picker = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-    let windowTitle = "";
-    let parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-    picker.init(parent, windowTitle, Ci.nsIFilePicker.modeSave);
-    picker.defaultString = aDefaultFile;
+    let dnldMgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
+    let defaultFolder = dnldMgr.userDownloadsDirectory;
 
-    if (aSuggestedFileExt) {
-      
-      picker.defaultExtension = aSuggestedFileExt.substring(1);
-    }
-    else {
-      try {
-        picker.defaultExtension = aLauncher.MIMEInfo.primaryExtension;
-      }
-      catch (e) { }
-    }
-
-    var wildCardExtension = "*";
-    if (aSuggestedFileExt) {
-      wildCardExtension += aSuggestedFileExt;
-      picker.appendFilter(aLauncher.MIMEInfo.description, wildCardExtension);
-    }
-
-    picker.appendFilters(Ci.nsIFilePicker.filterAll);
-
-    
-    
-    
-    var dnldMgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
-    picker.displayDirectory = dnldMgr.userDownloadsDirectory;
-
-    
     try {
-      let lastDir = prefs.getComplexValue("browser.download.lastDir", Ci.nsILocalFile);
-      if (isUsableDirectory(lastDir))
-        picker.displayDirectory = lastDir;
-    }
-    catch (e) { }
+      file = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExt);
+    } catch (e) { }
 
-    if (picker.show() == Ci.nsIFilePicker.returnCancel) {
-      
-      return null;
-    }
-
-    
-    
-    
-    file = picker.file;
-
-    if (file) {
-      try {
-        
-        
-        
-        file.remove(false);
-      }
-      catch (e) {}
-      var newDir = file.parent.QueryInterface(Ci.nsILocalFile);
-      prefs.setComplexValue("browser.download.lastDir", Ci.nsILocalFile, newDir);
-      file = this.validateLeafName(newDir, file.leafName, null);
-    }
     return file;
   },
 
@@ -200,16 +98,6 @@ HelperAppLauncherDialog.prototype = {
   isUsableDirectory: function hald_isUsableDirectory(aDirectory) {
     return aDirectory.exists() && aDirectory.isDirectory() && aDirectory.isWritable();
   },
-
-  _notify: function hald_notify(aLauncher, aCallback) {
-    let bundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
-
-    let notifier = Cc[aCallback ? "@mozilla.org/alerts-service;1" : "@mozilla.org/toaster-alerts-service;1"].getService(Ci.nsIAlertsService);
-    notifier.showAlertNotification(URI_GENERIC_ICON_DOWNLOAD,
-                                   bundle.GetStringFromName("alertDownloads"),
-                                   bundle.GetStringFromName("alertCantOpenDownload"),
-                                   true, "", aCallback, "downloadopen-fail");
-  }
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([HelperAppLauncherDialog]);
