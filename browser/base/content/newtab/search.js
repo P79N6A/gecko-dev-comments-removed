@@ -59,20 +59,21 @@ let gSearch = {
   },
 
   onState: function (data) {
-    this._makePanel(data.engines);
+    this._newEngines = data.engines;
     this._setCurrentEngine(data.currentEngine);
     this._initWhenInitalStateReceived();
   },
 
   onCurrentState: function (data) {
     if (this._initialStateReceived) {
-      this._makePanel(data.engines);
+      this._newEngines = data.engines;
       this._setCurrentEngine(data.currentEngine);
     }
   },
 
   onCurrentEngine: function (engineName) {
     if (this._initialStateReceived) {
+      this._nodes.panel.hidePopup();
       this._setCurrentEngine(engineName);
     }
   },
@@ -91,6 +92,7 @@ let gSearch = {
     this._nodes.form.addEventListener("submit", e => this.search(e));
     this._nodes.logo.addEventListener("click", e => this.showPanel());
     this._nodes.manage.addEventListener("click", e => this.manageEngines());
+    this._nodes.panel.addEventListener("popupshowing", e => this._setUpPanel());
     this._initialStateReceived = true;
     this._initWhenInitalStateReceived = function () {};
   },
@@ -104,7 +106,26 @@ let gSearch = {
     }));
   },
 
-  _makePanel: function (engines) {
+  _setUpPanel: function () {
+    
+    if (this._newEngines) {
+      this._buildPanel(this._newEngines);
+      delete this._newEngines;
+    }
+
+    
+    let panel = this._nodes.panel;
+    for (let box of panel.childNodes) {
+      if (box.getAttribute("engine") == this.currentEngineName) {
+        box.setAttribute("selected", "true");
+      }
+      else {
+        box.removeAttribute("selected");
+      }
+    }
+  },
+
+  _buildPanel: function (engines) {
     let panel = this._nodes.panel;
 
     
@@ -166,16 +187,6 @@ let gSearch = {
     else {
       this._nodes.logo.hidden = true;
       this._nodes.text.placeholder = engine.name;
-    }
-
-    
-    for (let box of this._nodes.panel.childNodes) {
-      if (box.getAttribute("engine") == engine.name) {
-        box.setAttribute("selected", "true");
-      }
-      else {
-        box.removeAttribute("selected");
-      }
     }
   },
 };
