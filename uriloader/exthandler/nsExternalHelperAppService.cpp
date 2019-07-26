@@ -127,6 +127,9 @@ using namespace mozilla;
 using namespace mozilla::ipc;
 
 
+#define BUFFERED_OUTPUT_SIZE (1024 * 32)
+
+
 #define NS_PREF_DOWNLOAD_DIR        "browser.download.dir"
 #define NS_PREF_DOWNLOAD_FOLDERLIST "browser.download.folderList"
 enum {
@@ -429,14 +432,12 @@ static nsDefaultMimeTypeEntry defaultMimeEntries [] =
   { "application/xhtml+xml", "xhtml" },
   { "application/xhtml+xml", "xht" },
   { TEXT_PLAIN, "txt" },
-#ifdef MOZ_OGG
   { VIDEO_OGG, "ogv" },
   { VIDEO_OGG, "ogg" },
   { APPLICATION_OGG, "ogg" },
   { AUDIO_OGG, "oga" },
 #ifdef MOZ_OPUS
   { AUDIO_OGG, "opus" },
-#endif
 #endif
 #ifdef MOZ_WEBM
   { VIDEO_WEBM, "webm" },
