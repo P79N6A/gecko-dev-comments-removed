@@ -413,15 +413,6 @@ nsSVGForeignObjectFrame::ReflowSVG()
 
   
   
-  
-  
-  
-  bool invalidate = (mState & NS_FRAME_IS_DIRTY) &&
-    !(GetParent()->GetStateBits() &
-       (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY));
-
-  
-  
   nsRect overflow = nsRect(nsPoint(0,0), mRect.Size());
   nsOverflowAreas overflowAreas(overflow, overflow);
   FinishAndStoreOverflow(overflowAreas, mRect.Size());
@@ -429,11 +420,6 @@ nsSVGForeignObjectFrame::ReflowSVG()
   
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
-
-  if (invalidate) {
-    
-    nsSVGUtils::InvalidateBounds(this, true);
-  }
 }
 
 void
