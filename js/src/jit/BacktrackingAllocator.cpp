@@ -13,6 +13,52 @@ using namespace js::jit;
 using mozilla::DebugOnly;
 
 bool
+SplitPositions::append(CodePosition pos)
+{
+    MOZ_ASSERT(empty() || positions_.back() < pos,
+               "split positions must be sorted");
+    return positions_.append(pos);
+}
+
+bool
+SplitPositions::empty() const
+{
+    return positions_.empty();
+}
+
+SplitPositionsIterator::SplitPositionsIterator(const SplitPositions &splitPositions)
+  : splitPositions_(splitPositions),
+    current_(splitPositions_.positions_.begin())
+{
+    JS_ASSERT(!splitPositions_.empty());
+}
+
+
+void
+SplitPositionsIterator::advancePast(CodePosition pos)
+{
+    JS_ASSERT(!splitPositions_.empty());
+    while (current_ < splitPositions_.positions_.end() && *current_ <= pos)
+        ++current_;
+}
+
+
+bool
+SplitPositionsIterator::isBeyondNextSplit(CodePosition pos) const
+{
+    JS_ASSERT(!splitPositions_.empty());
+    return current_ < splitPositions_.positions_.end() && pos >= *current_;
+}
+
+
+bool
+SplitPositionsIterator::isEndBeyondNextSplit(CodePosition pos) const
+{
+    JS_ASSERT(!splitPositions_.empty());
+    return current_ < splitPositions_.positions_.end() && pos > *current_;
+}
+
+bool
 BacktrackingAllocator::init()
 {
     RegisterSet remainingRegisters(allRegisters_);
@@ -1493,7 +1539,7 @@ BacktrackingAllocator::trySplitAcrossHotcode(LiveInterval *interval, bool *succe
 
     IonSpew(IonSpew_RegAlloc, "  split across hot range %s", hotRange->toString());
 
-    SplitPositionVector splitPositions;
+    SplitPositions splitPositions;
     if (!splitPositions.append(hotRange->from) || !splitPositions.append(hotRange->to))
         return false;
     *success = true;
@@ -1541,7 +1587,7 @@ BacktrackingAllocator::trySplitAfterLastRegisterUse(LiveInterval *interval, Live
     IonSpew(IonSpew_RegAlloc, "  split after last register use at %u",
             lastRegisterTo.pos());
 
-    SplitPositionVector splitPositions;
+    SplitPositions splitPositions;
     if (!splitPositions.append(lastRegisterTo))
         return false;
     *success = true;
@@ -1623,40 +1669,12 @@ BacktrackingAllocator::splitAtAllRegisterUses(LiveInterval *interval)
     return split(interval, newIntervals) && requeueIntervals(newIntervals);
 }
 
-
-static size_t NextSplitPosition(size_t activeSplitPosition,
-                                const SplitPositionVector &splitPositions,
-                                CodePosition currentPos)
-{
-    while (activeSplitPosition < splitPositions.length() &&
-           splitPositions[activeSplitPosition] <= currentPos)
-    {
-        ++activeSplitPosition;
-    }
-    return activeSplitPosition;
-}
-
-
-static bool SplitHere(size_t activeSplitPosition,
-                      const SplitPositionVector &splitPositions,
-                      CodePosition currentPos)
-{
-    return activeSplitPosition < splitPositions.length() &&
-           currentPos >= splitPositions[activeSplitPosition];
-}
-
 bool
-BacktrackingAllocator::splitAt(LiveInterval *interval,
-                               const SplitPositionVector &splitPositions)
+BacktrackingAllocator::splitAt(LiveInterval *interval, const SplitPositions &splitPositions)
 {
     
     
     
-
-    
-    JS_ASSERT(!splitPositions.empty());
-    for (size_t i = 1; i < splitPositions.length(); ++i)
-        JS_ASSERT(splitPositions[i-1] < splitPositions[i]);
 
     
     CodePosition spillStart = interval->start();
@@ -1693,15 +1711,17 @@ BacktrackingAllocator::splitAt(LiveInterval *interval,
         lastRegisterUse = interval->start();
     }
 
-    size_t activeSplitPosition = NextSplitPosition(0, splitPositions, interval->start());
+    SplitPositionsIterator splitIter(splitPositions);
+    splitIter.advancePast(interval->start());
+
     for (UsePositionIterator iter(interval->usesBegin()); iter != interval->usesEnd(); iter++) {
         LInstruction *ins = insData[iter->pos].ins();
         if (iter->pos < spillStart) {
             newIntervals.back()->addUseAtEnd(new(alloc()) UsePosition(iter->use, iter->pos));
-            activeSplitPosition = NextSplitPosition(activeSplitPosition, splitPositions, iter->pos);
+            splitIter.advancePast(iter->pos);
         } else if (isRegisterUse(iter->use, ins)) {
             if (lastRegisterUse.pos() == 0 ||
-                SplitHere(activeSplitPosition, splitPositions, iter->pos))
+                splitIter.isBeyondNextSplit(iter->pos))
             {
                 
                 
@@ -1709,9 +1729,7 @@ BacktrackingAllocator::splitAt(LiveInterval *interval,
                 newInterval->setSpillInterval(spillInterval);
                 if (!newIntervals.append(newInterval))
                     return false;
-                activeSplitPosition = NextSplitPosition(activeSplitPosition,
-                                                        splitPositions,
-                                                        iter->pos);
+                splitIter.advancePast(iter->pos);
             }
             newIntervals.back()->addUseAtEnd(new(alloc()) UsePosition(iter->use, iter->pos));
             lastRegisterUse = iter->pos;
@@ -1766,23 +1784,19 @@ BacktrackingAllocator::splitAcrossCalls(LiveInterval *interval)
     
     
     
-    SplitPositionVector callPositions;
+    SplitPositions callPositions;
+    IonSpewStart(IonSpew_RegAlloc, "  split across calls at ");
     for (size_t i = fixedIntervalsUnion->numRanges(); i > 0; i--) {
         const LiveInterval::Range *range = fixedIntervalsUnion->getRange(i - 1);
         if (interval->covers(range->from) && interval->covers(range->from.previous())) {
+            if (!callPositions.empty())
+                IonSpewCont(IonSpew_RegAlloc, ", ");
+            IonSpewCont(IonSpew_RegAlloc, "%u", range->from);
             if (!callPositions.append(range->from))
                 return false;
         }
     }
-    JS_ASSERT(callPositions.length());
-
-#ifdef DEBUG
-    IonSpewStart(IonSpew_RegAlloc, "  split across calls at ");
-    for (size_t i = 0; i < callPositions.length(); ++i) {
-        IonSpewCont(IonSpew_RegAlloc, "%s%u", i != 0 ? ", " : "", callPositions[i].pos());
-    }
     IonSpewFin(IonSpew_RegAlloc);
-#endif
 
     return splitAt(interval, callPositions);
 }

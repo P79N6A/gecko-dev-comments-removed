@@ -104,9 +104,32 @@ class BacktrackingVirtualRegister : public VirtualRegister
     }
 };
 
+class SplitPositionsIterator;
 
 
-typedef js::Vector<CodePosition, 4, SystemAllocPolicy> SplitPositionVector;
+
+class SplitPositions {
+    friend class SplitPositionsIterator;
+
+    js::Vector<CodePosition, 4, SystemAllocPolicy> positions_;
+
+  public:
+    bool append(CodePosition pos);
+    bool empty() const;
+};
+
+
+class SplitPositionsIterator {
+    const SplitPositions &splitPositions_;
+    const CodePosition *current_;
+
+  public:
+    explicit SplitPositionsIterator(const SplitPositions &splitPositions);
+
+    void advancePast(CodePosition pos);
+    bool isBeyondNextSplit(CodePosition pos) const;
+    bool isEndBeyondNextSplit(CodePosition pos) const;
+};
 
 class BacktrackingAllocator
   : private LiveRangeAllocator<BacktrackingVirtualRegister,  false>
@@ -238,8 +261,7 @@ class BacktrackingAllocator
 
     bool chooseIntervalSplit(LiveInterval *interval, LiveInterval *conflict);
 
-    bool splitAt(LiveInterval *interval,
-                 const SplitPositionVector &splitPositions);
+    bool splitAt(LiveInterval *interval, const SplitPositions &splitPositions);
     bool trySplitAcrossHotcode(LiveInterval *interval, bool *success);
     bool trySplitAfterLastRegisterUse(LiveInterval *interval, LiveInterval *conflict, bool *success);
     bool splitAtAllRegisterUses(LiveInterval *interval);
