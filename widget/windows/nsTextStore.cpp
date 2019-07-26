@@ -567,6 +567,8 @@ nsTextStore::Destroy(void)
   PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
     ("TSF: 0x%p nsTextStore::Destroy()", this));
 
+  mSelection.MarkDirty();
+
   if (mWidget) {
     
     
@@ -1108,66 +1110,48 @@ nsTextStore::GetSelection(ULONG ulIndex,
     return TS_E_NOSELECTION;
   }
 
-  if (!GetSelectionInternal(*pSelection)) {
+  Selection& currentSel = CurrentSelection();
+  if (currentSel.IsDirty()) {
     PR_LOG(sTextStoreLog, PR_LOG_ERROR,
-           ("TSF: 0x%p   nsTextStore::GetSelection() FAILED to get selection",
-            this));
+           ("TSF: 0x%p   nsTextStore::GetSelection() FAILED due to "
+            "CurrentSelection() failure", this));
     return E_FAIL;
   }
-
+  *pSelection = currentSel.ACP();
   *pcFetched = 1;
   PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
          ("TSF: 0x%p   nsTextStore::GetSelection() succeeded", this));
   return S_OK;
 }
 
-bool
-nsTextStore::GetSelectionInternal(TS_SELECTION_ACP &aSelectionACP)
+nsTextStore::Selection&
+nsTextStore::CurrentSelection()
 {
-  if (mComposition.IsComposing()) {
-    PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
-           ("TSF: 0x%p   nsTextStore::GetSelectionInternal(), "
-            "there is no composition view", this));
-
+  if (mSelection.IsDirty()) {
     
-    aSelectionACP = mComposition.mSelection;
-  } else {
-    PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
-           ("TSF: 0x%p   nsTextStore::GetSelectionInternal(), "
-            "try to get normal selection...", this));
-
     
-    nsQueryContentEvent event(true, NS_QUERY_SELECTED_TEXT, mWidget);
-    mWidget->InitEvent(event);
-    mWidget->DispatchWindowEvent(&event);
-    if (!event.mSucceeded) {
-      PR_LOG(sTextStoreLog, PR_LOG_ERROR,
-             ("TSF: 0x%p   nsTextStore::GetSelectionInternal() FAILED to "
-              "query selected text", this));
-      return false;
+    if (!mWidget || mWidget->Destroyed()) {
+      MOZ_CRASH();
     }
-    
-    
-    
-    
-    aSelectionACP.acpStart = event.mReply.mOffset;
-    aSelectionACP.acpEnd =
-      aSelectionACP.acpStart + event.mReply.mString.Length();
-    aSelectionACP.style.ase =
-      event.mReply.mString.Length() && event.mReply.mReversed ? TS_AE_START :
-                                                                TS_AE_END;
-    
-    aSelectionACP.style.fInterimChar = FALSE;
+
+    nsQueryContentEvent querySelection(true, NS_QUERY_SELECTED_TEXT, mWidget);
+    mWidget->InitEvent(querySelection);
+    mWidget->DispatchWindowEvent(&querySelection);
+    NS_ENSURE_TRUE(querySelection.mSucceeded, mSelection);
+
+    mSelection.SetSelection(querySelection.mReply.mOffset,
+                            querySelection.mReply.mString.Length(),
+                            querySelection.mReply.mReversed);
   }
 
-  PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
-         ("TSF: 0x%p   nsTextStore::GetSelectionInternal() succeeded: "
-          "acpStart=%lu, acpEnd=%lu, style.ase=%s, style.fInterimChar=%s",
-          this, aSelectionACP.acpStart, aSelectionACP.acpEnd,
-          GetActiveSelEndName(aSelectionACP.style.ase),
-          GetBoolName(aSelectionACP.style.fInterimChar)));
+  PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
+         ("TSF: 0x%p   nsTextStore::CurrentSelection(): "
+          "acpStart=%d, acpEnd=%d (length=%d), reverted=%s",
+          this, mSelection.StartOffset(), mSelection.EndOffset(),
+          mSelection.Length(),
+          GetBoolName(mSelection.IsReversed())));
 
-  return true;
+  return mSelection;
 }
 
 static HRESULT
@@ -1437,6 +1421,15 @@ nsTextStore::RecordCompositionUpdateAction()
     return FAILED(hr) ? hr : E_FAIL;
   }
 
+  
+  Selection& currentSel = CurrentSelection();
+  if (currentSel.IsDirty()) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::RecordCompositionUpdateAction() FAILED "
+            "due to CurrentSelection() failure", this));
+    return E_FAIL;
+  }
+
   PendingAction* action = GetPendingCompositionUpdate();
   action->mData = mComposition.mString;
   nsTArray<nsTextRange>& textRanges = action->mRanges;
@@ -1510,10 +1503,10 @@ nsTextStore::RecordCompositionUpdateAction()
   
   
   
-  if (!mComposition.IsSelectionCollapsed() && textRanges.Length() == 1) {
+  if (!currentSel.IsCollapsed() && textRanges.Length() == 1) {
     nsTextRange& range = textRanges[0];
-    LONG start = mComposition.MinSelectionOffset();
-    LONG end = mComposition.MaxSelectionOffset();
+    LONG start = currentSel.MinOffset();
+    LONG end = currentSel.MaxOffset();
     if ((LONG)range.mStartOffset == start - mComposition.mStart &&
         (LONG)range.mEndOffset == end - mComposition.mStart &&
         range.mRangeStyle.IsNoChangeStyle()) {
@@ -1524,7 +1517,7 @@ nsTextStore::RecordCompositionUpdateAction()
   }
 
   
-  LONG caretPosition = mComposition.MaxSelectionOffset();
+  LONG caretPosition = currentSel.MaxOffset();
   caretPosition -= mComposition.mStart;
   nsTextRange caretRange;
   caretRange.mStartOffset = caretRange.mEndOffset = uint32_t(caretPosition);
@@ -1551,6 +1544,14 @@ nsTextStore::SetSelectionInternal(const TS_SELECTION_ACP* pSelection,
 
   MOZ_ASSERT(IsReadWriteLocked());
 
+  Selection& currentSel = CurrentSelection();
+  if (currentSel.IsDirty()) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+       ("TSF: 0x%p   nsTextStore::SetSelectionInternal() FAILED due to "
+        "CurrentSelection() failure", this));
+    return E_FAIL;
+  }
+
   if (mComposition.IsComposing()) {
     if (aDispatchTextEvent) {
       HRESULT hr = UpdateCompositionExtent(nullptr);
@@ -1569,7 +1570,7 @@ nsTextStore::SetSelectionInternal(const TS_SELECTION_ACP* pSelection,
       return TS_E_INVALIDPOS;
     }
     
-    mComposition.mSelection = *pSelection;
+    currentSel.SetSelection(*pSelection);
     if (aDispatchTextEvent) {
       HRESULT hr = RecordCompositionUpdateAction();
       if (FAILED(hr)) {
@@ -1588,7 +1589,7 @@ nsTextStore::SetSelectionInternal(const TS_SELECTION_ACP* pSelection,
   action->mSelectionLength = pSelection->acpEnd - pSelection->acpStart;
   action->mSelectionReversed = (pSelection->style.ase == TS_AE_START);
 
-  
+  currentSel.SetSelection(*pSelection);
 
   return S_OK;
 }
@@ -2437,21 +2438,21 @@ nsTextStore::InsertTextAtSelection(DWORD dwFlags,
     }
 
     
-    TS_SELECTION_ACP sel;
-    if (!GetSelectionInternal(sel)) {
+    Selection& currentSel = CurrentSelection();
+    if (currentSel.IsDirty()) {
       PR_LOG(sTextStoreLog, PR_LOG_ERROR,
              ("TSF: 0x%p   nsTextStore::InsertTextAtSelection() FAILED due to "
-              "GetSelectionInternal() failure", this));
+              "CurrentSelection() failure", this));
       return E_FAIL;
     }
 
     
-    *pacpStart = sel.acpStart;
-    *pacpEnd = sel.acpEnd;
+    *pacpStart = currentSel.StartOffset();
+    *pacpEnd = currentSel.EndOffset();
     if (pChange) {
-      pChange->acpStart = sel.acpStart;
-      pChange->acpOldEnd = sel.acpEnd;
-      pChange->acpNewEnd = sel.acpStart + cch;
+      pChange->acpStart = currentSel.StartOffset();
+      pChange->acpOldEnd = currentSel.EndOffset();
+      pChange->acpNewEnd = currentSel.StartOffset() + static_cast<LONG>(cch);
     }
   } else {
     if (!IsReadWriteLocked()) {
@@ -2508,12 +2509,16 @@ nsTextStore::InsertTextAtSelectionInternal(const nsAString &aInsertStr,
           this, NS_ConvertUTF16toUTF8(aInsertStr).get(), aTextChange,
           GetBoolName(mComposition.IsComposing())));
 
-  TS_SELECTION_ACP oldSelection;
-  oldSelection.acpStart = 0;
-  oldSelection.acpEnd = 0;
+  Selection& currentSel = CurrentSelection();
+  if (currentSel.IsDirty()) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::InsertTextAtSelectionInternal() failed "
+            "due to CurrentSelection() failure()", this));
+    return false;
+  }
 
+  TS_SELECTION_ACP oldSelection = currentSel.ACP();
   if (mComposition.IsComposing()) {
-    oldSelection = mComposition.mSelection;
     
     
     
@@ -2523,26 +2528,7 @@ nsTextStore::InsertTextAtSelectionInternal(const nsAString &aInsertStr,
       static_cast<uint32_t>(oldSelection.acpStart) - mComposition.mStart,
       static_cast<uint32_t>(oldSelection.acpEnd - oldSelection.acpStart),
       aInsertStr);
-
-    mComposition.mSelection.acpStart += aInsertStr.Length();
-    mComposition.mSelection.acpEnd =
-      mComposition.mSelection.acpStart;
-    mComposition.mSelection.style.ase = TS_AE_END;
-    PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
-           ("TSF: 0x%p   nsTextStore::InsertTextAtSelectionInternal() replaced "
-            "a part of (%lu-%lu) the composition string, waiting "
-            "SetSelection() or OnUpdateComposition()...", this,
-            oldSelection.acpStart - mComposition.mStart,
-            oldSelection.acpEnd - mComposition.mStart));
   } else {
-    
-    if (aTextChange && !GetSelectionInternal(oldSelection)) {
-      PR_LOG(sTextStoreLog, PR_LOG_ERROR,
-             ("TSF: 0x%p   nsTextStore::InsertTextAtSelectionInternal() FAILED "
-              "due to GetSelectionInternal() failure", this));
-      return false;
-    }
-
     
     PendingAction* compositionStart = mPendingActions.AppendElement();
     compositionStart->mType = PendingAction::COMPOSITION_START;
@@ -2555,10 +2541,13 @@ nsTextStore::InsertTextAtSelectionInternal(const nsAString &aInsertStr,
     compositionEnd->mData = aInsertStr;
   }
 
+  currentSel.CollapseAt(
+    static_cast<uint32_t>(oldSelection.acpStart) + aInsertStr.Length());
+
   if (aTextChange) {
     aTextChange->acpStart = oldSelection.acpStart;
     aTextChange->acpOldEnd = oldSelection.acpEnd;
-    aTextChange->acpNewEnd = oldSelection.acpStart + aInsertStr.Length();
+    aTextChange->acpNewEnd = currentSel.EndOffset();
   }
 
   PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
@@ -2609,6 +2598,14 @@ nsTextStore::OnStartCompositionInternal(ITfCompositionView* pComposition,
     return hr;
   }
 
+  Selection& currentSel = CurrentSelection();
+  if (currentSel.IsDirty()) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::OnStartCompositionInternal() FAILED due "
+            "to CurrentSelection() failure", this));
+    return E_FAIL;
+  }
+
   PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
          ("TSF: 0x%p   nsTextStore::OnStartCompositionInternal(), "
           "mComposition={ mStart=%ld, mLength=%ld }",
@@ -2633,22 +2630,18 @@ nsTextStore::OnStartCompositionInternal(ITfCompositionView* pComposition,
   action->mSelectionLength = mComposition.mLength;
 
   if (!aPreserveSelection) {
-    mComposition.mSelection.acpStart = mComposition.mStart;
-    mComposition.mSelection.acpEnd = mComposition.EndOffset();
-    mComposition.mSelection.style.ase = TS_AE_END;
-    mComposition.mSelection.style.fInterimChar = FALSE;
+    currentSel.SetSelection(mComposition.mStart, mComposition.mLength, false);
   }
 
   PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
          ("TSF: 0x%p   nsTextStore::OnStartCompositionInternal() succeeded: "
           "mComposition={ mStart=%ld, mLength=%ld, "
           "mSelection={ acpStart=%ld, acpEnd=%ld, style.ase=%s, "
-          "style.iInterimChar=%s } }",
+          "style.fInterimChar=%s } }",
           this, mComposition.mStart, mComposition.mLength,
-          mComposition.mSelection.acpStart,
-          mComposition.mSelection.acpEnd,
-          GetActiveSelEndName(mComposition.mSelection.style.ase),
-          GetBoolName(mComposition.mSelection.style.fInterimChar)));
+          currentSel.StartOffset(), currentSel.EndOffset(),
+          GetActiveSelEndName(currentSel.ActiveSelEnd()),
+          GetBoolName(currentSel.IsInterimChar())));
   return S_OK;
 }
 
@@ -2749,17 +2742,25 @@ nsTextStore::OnUpdateComposition(ITfCompositionView* pComposition,
     return hr;
   }
 
-  PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
-         ("TSF: 0x%p   nsTextStore::OnUpdateComposition() succeeded: "
-          "mComposition={ mStart=%ld, mLength=%ld, "
-          "mSelection={ acpStart=%ld, acpEnd=%ld, style.ase=%s, "
-          "style.iInterimChar=%s }, mString=\"%s\" }",
-          this, mComposition.mStart, mComposition.mLength,
-          mComposition.mSelection.acpStart,
-          mComposition.mSelection.acpEnd,
-          GetActiveSelEndName(mComposition.mSelection.style.ase),
-          GetBoolName(mComposition.mSelection.style.fInterimChar),
-          NS_ConvertUTF16toUTF8(mComposition.mString).get()));
+#ifdef PR_LOGGING
+  if (PR_LOG_TEST(sTextStoreLog, PR_LOG_ALWAYS)) {
+    Selection& currentSel = CurrentSelection();
+    if (currentSel.IsDirty()) {
+      PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+             ("TSF: 0x%p   nsTextStore::OnUpdateComposition() FAILED due to "
+              "CurrentSelection() failure", this));
+      return E_FAIL;
+    }
+    PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
+           ("TSF: 0x%p   nsTextStore::OnUpdateComposition() succeeded: "
+            "mComposition={ mStart=%ld, mLength=%ld, mString=\"%s\" }, "
+            "CurrentSelection()={ acpStart=%ld, acpEnd=%ld, style.ase=%s }",
+            this, mComposition.mStart, mComposition.mLength,
+            NS_ConvertUTF16toUTF8(mComposition.mString).get(),
+            currentSel.StartOffset(), currentSel.EndOffset(),
+            GetActiveSelEndName(currentSel.ActiveSelEnd())));
+  }
+#endif 
   return S_OK;
 }
 
@@ -2853,7 +2854,14 @@ nsTextStore::OnTextChangeInternal(uint32_t aStart,
           GetSinkMaskNameStr(mSinkMask).get(), mTextChange.acpStart,
           mTextChange.acpOldEnd, mTextChange.acpNewEnd));
 
-  if (!mLock && mSink && 0 != (mSinkMask & TS_AS_TEXT_CHANGE)) {
+  if (IsReadLocked()) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!mComposition.IsComposing(), "text changed during composition");
+  mSelection.MarkDirty();
+
+  if (mSink && 0 != (mSinkMask & TS_AS_TEXT_CHANGE)) {
     mTextChange.acpStart = std::min(mTextChange.acpStart, LONG(aStart));
     mTextChange.acpOldEnd = std::max(mTextChange.acpOldEnd, LONG(aOldEnd));
     mTextChange.acpNewEnd = std::max(mTextChange.acpNewEnd, LONG(aNewEnd));
@@ -2896,7 +2904,15 @@ nsTextStore::OnSelectionChangeInternal(void)
           this, mSink.get(), GetSinkMaskNameStr(mSinkMask).get(),
           GetBoolName(mIsRecordingActionsWithoutLock)));
 
-  if (!mLock && mSink && 0 != (mSinkMask & TS_AS_SEL_CHANGE)) {
+  if (IsReadLocked()) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!mComposition.IsComposing(),
+               "selection changed during composition");
+  mSelection.MarkDirty();
+
+  if (mSink && 0 != (mSinkMask & TS_AS_SEL_CHANGE)) {
     PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
            ("TSF: 0x%p   nsTextStore::OnSelectionChangeInternal(), calling "
             "mSink->OnSelectionChange()...", this));
