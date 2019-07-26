@@ -222,6 +222,12 @@ nsServerSocket::OnSocketDetached(PRFileDesc *fd)
   }
 }
 
+void
+nsServerSocket::IsLocal(bool *aIsLocal)
+{
+  
+  *aIsLocal = PR_IsNetAddrType(&mAddr, PR_IpAddrLoopback);
+}
 
 
 

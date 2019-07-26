@@ -597,6 +597,10 @@ nsHostResolver::ResolveHost(const char            *host,
                 
                 rv = NS_ERROR_DNS_LOOKUP_QUEUE_FULL;
             }
+            else if (flags & RES_OFFLINE) {
+                rv = NS_ERROR_OFFLINE;
+            }
+
             
             else {
                 

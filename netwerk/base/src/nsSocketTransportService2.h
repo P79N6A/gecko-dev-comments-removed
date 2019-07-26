@@ -107,6 +107,11 @@ private:
     bool          mShuttingDown;
                             
                             
+    bool          mOffline;
+    bool          mGoingOffline;
+
+    
+    void Reset(bool aGuardLocals);
 
     
     

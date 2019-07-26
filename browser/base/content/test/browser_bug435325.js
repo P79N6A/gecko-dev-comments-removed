@@ -3,6 +3,8 @@
 
 
 
+let proxyPrefValue;
+
 function test() {
   waitForExplicitFinish();
 
@@ -11,6 +13,12 @@ function test() {
 
   
   Services.io.offline = true;
+
+  
+  
+  proxyPrefValue = Services.prefs.getIntPref("network.proxy.type");
+  Services.prefs.setIntPref("network.proxy.type", 0);
+
   Services.prefs.setBoolPref("browser.cache.disk.enable", false);
   Services.prefs.setBoolPref("browser.cache.memory.enable", false);
   content.location = "http://example.com/";
@@ -40,6 +48,7 @@ function checkPage() {
 }
 
 registerCleanupFunction(function() {
+  Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
   Services.prefs.setBoolPref("browser.cache.disk.enable", true);
   Services.prefs.setBoolPref("browser.cache.memory.enable", true);
   Services.io.offline = false;

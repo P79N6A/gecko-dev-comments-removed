@@ -1048,6 +1048,10 @@ nsSocketTransport::InitiateSocket()
 
     nsresult rv;
 
+    if (gIOService->IsOffline() &&
+        !PR_IsNetAddrType(&mNetAddr, PR_IpAddrLoopback))
+        return NS_ERROR_OFFLINE;
+
     
     
     
@@ -1661,6 +1665,15 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
             mCallbacks.swap(ourCallbacks);
             mEventSink.swap(ourEventSink);
         }
+    }
+}
+
+void
+nsSocketTransport::IsLocal(bool *aIsLocal)
+{
+    {
+        MutexAutoLock lock(mLock);
+        *aIsLocal = PR_IsNetAddrType(&mNetAddr, PR_IpAddrLoopback);
     }
 }
 

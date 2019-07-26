@@ -407,11 +407,7 @@ nsHttpChannel::Connect()
     
     SpeculativeConnect();
 
-    
-    bool offline = gIOService->IsOffline();
-    if (offline)
-        mLoadFlags |= LOAD_ONLY_FROM_CACHE;
-    else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
+    if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
         return ResolveProxy();  
 
     

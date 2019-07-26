@@ -126,6 +126,7 @@ public:
     
     void OnSocketReady(PRFileDesc *, int16_t outFlags); 
     void OnSocketDetached(PRFileDesc *);
+    void IsLocal(bool *aIsLocal);
 
     
     void OnSocketEvent(uint32_t type, nsresult status, nsISupports *param);

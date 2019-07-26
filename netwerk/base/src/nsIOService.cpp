@@ -245,6 +245,7 @@ nsIOService::InitializeSocketTransportService()
         rv = mSocketTransportService->Init();
         NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service init failed");
         mSocketTransportService->SetAutodialEnabled(mAutoDialEnabled);
+        mSocketTransportService->SetOffline(false);
     }
 
     return rv;
@@ -742,41 +743,36 @@ nsIOService::SetOffline(bool offline)
         }
     }
 
+    nsIIOService *subject = static_cast<nsIIOService *>(this);
+    nsresult rv;
     while (mSetOfflineValue != mOffline) {
         offline = mSetOfflineValue;
 
-        nsresult rv;
         if (offline && !mOffline) {
             NS_NAMED_LITERAL_STRING(offlineString, NS_IOSERVICE_OFFLINE);
             mOffline = true; 
 
             
-            
             if (observerService)
-                observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                observerService->NotifyObservers(subject,
                                                  NS_IOSERVICE_GOING_OFFLINE_TOPIC,
                                                  offlineString.get());
 
-            
-            
-            if (mDNSService) {
-                rv = mDNSService->Shutdown();
-                NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service shutdown failed");
-            }
-            if (mSocketTransportService) {
-                rv = mSocketTransportService->Shutdown();
-                NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service shutdown failed");
-            }
+            if (mDNSService)
+                mDNSService->SetOffline(true);
 
-            
+            if (mSocketTransportService)
+                mSocketTransportService->SetOffline(true);
+
             if (observerService)
-                observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                observerService->NotifyObservers(subject,
                                                  NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
                                                  offlineString.get());
         }
         else if (!offline && mOffline) {
             
             if (mDNSService) {
+                mDNSService->SetOffline(false);
                 rv = mDNSService->Init();
                 NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service init failed");
             }
@@ -790,9 +786,23 @@ nsIOService::SetOffline(bool offline)
 
             
             if (observerService)
-                observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                observerService->NotifyObservers(subject,
                                                  NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
                                                  NS_LITERAL_STRING(NS_IOSERVICE_ONLINE).get());
+        }
+    }
+
+    
+    if (mShutdown && mOffline) {
+        
+        
+        if (mDNSService) {
+            rv = mDNSService->Shutdown();
+            NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service shutdown failed");
+        }
+        if (mSocketTransportService) {
+            rv = mSocketTransportService->Shutdown();
+            NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service shutdown failed");
         }
     }
 
