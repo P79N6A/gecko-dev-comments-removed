@@ -849,10 +849,12 @@ static bool Match(const char *aMimeChars, size_t aMimeLen, const char *aNeedle)
 }
 
 static const char* const gCodecs[] = {
-  "avc",
-  "mp3",
-  "mp4v",
-  "mp4a",
+  "avc1.42E01E",  
+  "avc1.42001E",  
+  "avc1.42001F",  
+  "avc1.4D401E",  
+  "avc1.4D401F",  
+  "mp4a.40.2",    
   NULL
 };
 
