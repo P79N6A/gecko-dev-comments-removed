@@ -1831,6 +1831,9 @@ pref("layout.css.variables.enabled", true);
 #endif
 
 
+pref("layout.css.overflow-clip-box.enabled", false);
+
+
 
 
 

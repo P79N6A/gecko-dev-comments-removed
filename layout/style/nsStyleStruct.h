@@ -1797,6 +1797,7 @@ struct nsStyleDisplay {
   bool mBreakAfter;     
   uint8_t mOverflowX;           
   uint8_t mOverflowY;           
+  uint8_t mOverflowClipBox;     
   uint8_t mResize;              
   uint8_t mClipFlags;           
   uint8_t mOrient;              
