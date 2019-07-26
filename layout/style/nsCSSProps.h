@@ -196,6 +196,11 @@ public:
 
   
   
+  
+  static int32_t FindIndexOfKeyword(nsCSSKeyword aKeyword, const int32_t aTable[]);
+
+  
+  
   static bool FindKeyword(nsCSSKeyword aKeyword, const int32_t aTable[], int32_t& aValue);
   
   
@@ -373,7 +378,8 @@ public:
   static const int32_t kContentKTable[];
   static const int32_t kCursorKTable[];
   static const int32_t kDirectionKTable[];
-  static const int32_t kDisplayKTable[];
+  
+  static int32_t kDisplayKTable[];
   static const int32_t kElevationKTable[];
   static const int32_t kEmptyCellsKTable[];
 #ifdef MOZ_FLEXBOX
