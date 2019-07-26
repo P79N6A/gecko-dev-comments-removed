@@ -882,3 +882,6 @@ pref("gfx.canvas.willReadFrequently.enable", true);
 
 
 pref("browser.autofocus", false);
+
+
+pref("dom.wakelock.enabled", true);
