@@ -12,6 +12,11 @@ function test() {
     ok(~src.indexOf(".CodeMirror"), "correct iframe is there");
 
     
+    ok(ed.getOption("styleActiveLine"), "getOption works");
+    ed.setOption("styleActiveLine", false);
+    ok(!ed.getOption("styleActiveLine"), "setOption works");
+
+    
     is(ed.getMode(), Editor.modes.text, "getMode");
     ed.setMode(Editor.modes.js);
     is(ed.getMode(), Editor.modes.js, "setMode");

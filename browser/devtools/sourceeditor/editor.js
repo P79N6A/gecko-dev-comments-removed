@@ -77,7 +77,9 @@ const CM_MAPPING = [
   "redo",
   "clearHistory",
   "openDialog",
-  "refresh"
+  "refresh",
+  "getOption",
+  "setOption"
 ];
 
 const { cssProperties, cssValues, cssColors } = getCSSKeywords();
@@ -288,8 +290,7 @@ Editor.prototype = {
 
 
   getMode: function () {
-    let cm = editors.get(this);
-    return cm.getOption("mode");
+    return this.getOption("mode");
   },
 
   
@@ -297,8 +298,7 @@ Editor.prototype = {
 
 
   setMode: function (value) {
-    let cm = editors.get(this);
-    cm.setOption("mode", value);
+    this.setOption("mode", value);
   },
 
   
@@ -649,8 +649,7 @@ Editor.prototype = {
 
 
   isReadOnly: function () {
-    let cm = editors.get(this);
-    return cm.getOption("readOnly");
+    return this.getOption("readOnly");
   },
 
   
