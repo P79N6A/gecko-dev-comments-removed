@@ -9,11 +9,6 @@ import org.mozilla.gecko.*;
 
 
 public class testPanCorrectness extends PixelTest {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     public void testPanCorrectness() {
         String url = getAbsoluteUrl("/robocop/robocop_boxes.html");
 

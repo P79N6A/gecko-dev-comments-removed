@@ -13,11 +13,6 @@ import org.mozilla.gecko.*;
 
 
 public class testAdobeFlash extends PixelTest {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     public void testLoad() {
         
         if (Build.VERSION.SDK_INT < 15) {

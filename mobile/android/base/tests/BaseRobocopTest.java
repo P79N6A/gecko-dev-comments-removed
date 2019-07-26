@@ -16,8 +16,10 @@ import android.app.Activity;
 import android.test.ActivityInstrumentationTestCase2;
 
 public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<Activity> {
-    public static final int TEST_MOCHITEST = 0;
-    public static final int TEST_TALOS = 1;
+    public enum Type {
+        MOCHITEST,
+        TALOS
+    }
 
     protected static final String TARGET_PACKAGE_ID = "org.mozilla.gecko";
     protected Assert mAsserter;
@@ -35,7 +37,15 @@ public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<A
         super(targetPackageId, activityClass);
     }
 
-    protected abstract int getTestType();
+    
+
+
+
+
+
+    protected Type getTestType() {
+        return Type.MOCHITEST;
+    }
 
     @Override
     protected void setUp() throws Exception {
@@ -46,7 +56,7 @@ public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<A
         mLogFile = (String) mConfig.get("logfile");
 
         
-        if (getTestType() == TEST_TALOS) {
+        if (getTestType() == Type.TALOS) {
             mAsserter = new FennecTalosAssert();
         } else {
             mAsserter = new FennecMochitestAssert();

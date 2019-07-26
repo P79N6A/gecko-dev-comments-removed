@@ -7,11 +7,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class testAddonManager extends PixelTest  {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     
 
 

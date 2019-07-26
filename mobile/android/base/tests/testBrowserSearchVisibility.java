@@ -18,11 +18,6 @@ import java.util.HashMap;
 
 
 public class testBrowserSearchVisibility extends BaseTest {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     public void testSearchSuggestions() {
         blockForGeckoReady();
 

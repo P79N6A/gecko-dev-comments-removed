@@ -10,11 +10,6 @@ import org.mozilla.gecko.util.GeckoJarReader;
 
 
 public class testJarReader extends BaseTest {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     public void testJarReader() {
         String appPath = getActivity().getApplication().getPackageResourcePath();
         mAsserter.isnot(appPath, null, "getPackageResourcePath is non-null");
