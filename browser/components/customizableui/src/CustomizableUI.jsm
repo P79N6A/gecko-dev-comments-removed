@@ -2380,6 +2380,12 @@ OverflowableToolbar.prototype = {
 
       this._collapsed.pop();
       let beforeNodeIndex = placements.indexOf(child.id) + 1;
+      
+      
+      
+      if (beforeNodeIndex == 0) {
+        beforeNodeIndex = placements.length;
+      }
       let inserted = false;
       for (; beforeNodeIndex < placements.length; beforeNodeIndex++) {
         let beforeNode = this._target.querySelector(idToSelector(placements[beforeNodeIndex]));
