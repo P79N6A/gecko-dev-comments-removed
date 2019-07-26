@@ -1472,6 +1472,7 @@ static void	_malloc_postfork(void);
 
 
 
+#ifndef MOZ_REPLACE_MALLOC
 #include "osx_zone_types.h"
 
 #define LEOPARD_MALLOC_ZONE_T_VERSION 3
@@ -1489,6 +1490,10 @@ static malloc_introspection_t * const ozone_introspect =
 	(malloc_introspection_t*)(&l_ozone_introspect);
 static void szone2ozone(malloc_zone_t *zone, size_t size);
 static size_t zone_version_size(int version);
+#else
+static const bool osx_use_jemalloc = true;
+#endif
+
 #endif
 
 
@@ -6176,7 +6181,7 @@ MALLOC_OUT:
 	}
 #endif
 
-#ifdef MOZ_MEMORY_DARWIN
+#if defined(MOZ_MEMORY_DARWIN) && !defined(MOZ_REPLACE_MALLOC)
 	
 
 
@@ -6255,7 +6260,7 @@ malloc_shutdown()
 
 
 
-#if defined(MOZ_MEMORY_DARWIN) && !defined(__i386__)
+#if defined(MOZ_MEMORY_DARWIN) && !defined(__i386__) && !defined(MOZ_REPLACE_MALLOC)
 #define DARWIN_ONLY(A) if (!osx_use_jemalloc) { A; }
 #else
 #define DARWIN_ONLY(A)
@@ -6316,6 +6321,7 @@ RETURN:
 
 
 
+#ifndef MOZ_REPLACE_MALLOC
 #if defined(__GNUC__) && !defined(MOZ_MEMORY_DARWIN)
 #define MOZ_MEMORY_ELF
 #endif
@@ -6333,7 +6339,7 @@ __attribute__((noinline))
 __attribute__((visibility ("hidden")))
 #endif
 #endif
-
+#endif 
 
 #ifdef MOZ_MEMORY_ELF
 #define MEMALIGN memalign_internal
@@ -6594,7 +6600,7 @@ free_impl(void *ptr)
 
 
 
-#ifdef MOZ_MEMORY_DARWIN
+#if defined(MOZ_MEMORY_DARWIN) && !defined(MOZ_REPLACE_MALLOC)
 static
 #else
 MOZ_MEMORY_API
@@ -6935,8 +6941,9 @@ _malloc_postfork(void)
 #  include <dlfcn.h>
 #endif
 
-#ifdef MOZ_MEMORY_DARWIN
+#if defined(MOZ_MEMORY_DARWIN)
 
+#if !defined(MOZ_REPLACE_MALLOC)
 static void *
 zone_malloc(malloc_zone_t *zone, size_t size)
 {
@@ -7156,6 +7163,7 @@ szone2ozone(malloc_zone_t *default_zone, size_t size)
         l_ozone_introspect.m13 = NULL;
     }
 }
+#endif
 
 __attribute__((constructor))
 void
@@ -7165,7 +7173,18 @@ jemalloc_darwin_init(void)
 		abort();
 }
 
-#elif defined(__GLIBC__) && !defined(__UCLIBC__)
+#endif
+
+
+
+
+
+#define malloc_is_malloc 1
+#define is_malloc_(a) malloc_is_ ## a
+#define is_malloc(a) is_malloc_(a)
+
+#if !defined(MOZ_MEMORY_DARWIN) && (is_malloc(malloc_impl) == 1)
+#  if defined(__GLIBC__) && !defined(__UCLIBC__)
 
 
 
@@ -7175,18 +7194,19 @@ jemalloc_darwin_init(void)
 
 
 
-MOZ_MEMORY_API void (*__free_hook)(void *ptr) = free;
-MOZ_MEMORY_API void *(*__malloc_hook)(size_t size) = malloc;
-MOZ_MEMORY_API void *(*__realloc_hook)(void *ptr, size_t size) = realloc;
+MOZ_MEMORY_API void (*__free_hook)(void *ptr) = free_impl;
+MOZ_MEMORY_API void *(*__malloc_hook)(size_t size) = malloc_impl;
+MOZ_MEMORY_API void *(*__realloc_hook)(void *ptr, size_t size) = realloc_impl;
 MOZ_MEMORY_API void *(*__memalign_hook)(size_t alignment, size_t size) = MEMALIGN;
 
-#elif defined(RTLD_DEEPBIND)
+#  elif defined(RTLD_DEEPBIND)
 
 
 
 
 
-#  error "Interposing malloc is unsafe on this system without libc malloc hooks."
+#    error "Interposing malloc is unsafe on this system without libc malloc hooks."
+#  endif
 #endif
 
 #ifdef MOZ_MEMORY_WINDOWS
