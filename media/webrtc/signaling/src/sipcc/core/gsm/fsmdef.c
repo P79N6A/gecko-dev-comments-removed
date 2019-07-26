@@ -2769,7 +2769,7 @@ fsmdef_dialstring (fsm_fcb_t *fcb, const char *dialstring,
         break;
     }
 
-    cause = gsmsdp_create_local_sdp(dcb, FALSE, TRUE, TRUE, TRUE);
+    cause = gsmsdp_create_local_sdp(dcb, FALSE, TRUE, TRUE, TRUE, TRUE);
     if (cause != CC_CAUSE_OK) {
         FSM_DEBUG_SM(get_debug_string(FSM_DBG_SDP_BUILD_ERR));
         
@@ -2932,7 +2932,7 @@ fsmdef_ev_createoffer (sm_event_t *event) {
         return SM_RC_END;
     }
 
-    cause = gsmsdp_create_local_sdp(dcb, FALSE, TRUE, TRUE, TRUE);
+    cause = gsmsdp_create_local_sdp(dcb, FALSE, TRUE, TRUE, TRUE, TRUE);
     if (cause != CC_CAUSE_OK) {
         ui_create_offer(evCreateOfferError, line, call_id, dcb->caller_id.call_instance_id, NULL);
         FSM_DEBUG_SM(get_debug_string(FSM_DBG_SDP_BUILD_ERR));
@@ -2979,6 +2979,9 @@ fsmdef_ev_createanswer (sm_event_t *event) {
     char                *ice_pwd = NULL;
     short               vcm_res;
     session_data_t      *sess_data_p;
+    boolean             has_audio;
+    boolean             has_video;
+    boolean             has_data;
 
     FSM_DEBUG_SM(DEB_F_PREFIX"Entered.\n", DEB_F_PREFIX_ARGS(FSM, __FUNCTION__));
 
@@ -3039,7 +3042,13 @@ fsmdef_ev_createanswer (sm_event_t *event) {
 
 
 
-    cause = gsmsdp_create_local_sdp(dcb, FALSE, TRUE, TRUE, TRUE);
+    gsmsdp_get_offered_media_types(fcb, dcb->sdp, &has_audio, &has_video, &has_data);
+
+    
+
+
+
+    cause = gsmsdp_create_local_sdp(dcb, FALSE, has_audio, has_video, has_data, FALSE);
     if (cause != CC_CAUSE_OK) {
         ui_create_answer(evCreateAnswerError, line, call_id, dcb->caller_id.call_instance_id, NULL);
         FSM_DEBUG_SM(get_debug_string(FSM_DBG_SDP_BUILD_ERR));
@@ -3050,7 +3059,7 @@ fsmdef_ev_createanswer (sm_event_t *event) {
     
 
 
-    cause = gsmsdp_negotiate_media_lines(fcb, dcb->sdp, TRUE, TRUE, FALSE);
+    cause = gsmsdp_negotiate_media_lines(fcb, dcb->sdp, TRUE, TRUE, FALSE, TRUE);
 
     if (cause != CC_CAUSE_OK) {
         ui_create_answer(evCreateAnswerError, line, call_id, dcb->caller_id.call_instance_id, NULL);
@@ -3247,7 +3256,7 @@ fsmdef_ev_setremotedesc(sm_event_t *event) {
 
 
 
-        cause = gsmsdp_create_local_sdp(dcb, TRUE, has_audio, has_video, has_data);
+        cause = gsmsdp_create_local_sdp(dcb, TRUE, has_audio, has_video, has_data, FALSE);
         if (cause != CC_CAUSE_OK) {
             ui_set_remote_description(evSetRemoteDescError, line, call_id, dcb->caller_id.call_instance_id,
                 NULL, PC_SETREMOTEDESCERROR);
@@ -3256,7 +3265,7 @@ fsmdef_ev_setremotedesc(sm_event_t *event) {
             return (fsmdef_release(fcb, cause, FALSE));
         }
 
-        cause = gsmsdp_negotiate_media_lines(fcb, dcb->sdp, TRUE, TRUE, TRUE);
+        cause = gsmsdp_negotiate_media_lines(fcb, dcb->sdp, TRUE, TRUE, TRUE, FALSE);
         if (cause != CC_CAUSE_OK) {
             ui_set_remote_description(evSetRemoteDescError, line, call_id, dcb->caller_id.call_instance_id,
                 NULL, PC_SETREMOTEDESCERROR);
@@ -3441,7 +3450,6 @@ fsmdef_ev_addstream(sm_event_t *event) {
         dcb->media_cap_tbl->cap[CC_VIDEO_1].support_direction = SDP_DIRECTION_SENDRECV;
         dcb->media_cap_tbl->cap[CC_VIDEO_1].pc_stream = msg->data.track.stream_id;
         dcb->media_cap_tbl->cap[CC_VIDEO_1].pc_track = msg->data.track.track_id;
-        dcb->video_pref = SDP_DIRECTION_SENDRECV;
     } else if (msg->data.track.media_type == AUDIO) {
         dcb->media_cap_tbl->cap[CC_AUDIO_1].enabled = TRUE;
         dcb->media_cap_tbl->cap[CC_AUDIO_1].support_direction = SDP_DIRECTION_SENDRECV;
@@ -3484,13 +3492,13 @@ fsmdef_ev_removestream(sm_event_t *event) {
 
 
 
-    if (msg->data.track.media_type == VIDEO) {
-        dcb->media_cap_tbl->cap[CC_AUDIO_1].enabled = FALSE;
-        dcb->media_cap_tbl->cap[CC_AUDIO_1].support_direction = SDP_DIRECTION_INACTIVE;
+    if (msg->data.track.media_type == AUDIO) {
+        dcb->media_cap_tbl->cap[CC_AUDIO_1].enabled = TRUE;
+        dcb->media_cap_tbl->cap[CC_AUDIO_1].support_direction = SDP_DIRECTION_RECVONLY;
         dcb->video_pref = SDP_DIRECTION_SENDRECV;
-    } else if (msg->data.track.media_type == AUDIO) {
-        dcb->media_cap_tbl->cap[CC_VIDEO_1].enabled = FALSE;
-        dcb->media_cap_tbl->cap[CC_VIDEO_1].support_direction = SDP_DIRECTION_INACTIVE;
+    } else if (msg->data.track.media_type == VIDEO) {
+        dcb->media_cap_tbl->cap[CC_VIDEO_1].enabled = TRUE;
+        dcb->media_cap_tbl->cap[CC_VIDEO_1].support_direction = SDP_DIRECTION_RECVONLY;
     } else {
         return (SM_RC_END);
     }
@@ -7751,7 +7759,7 @@ fsmdef_cfwd_clear_ccm (fsm_fcb_t *fcb)
     
     
     
-    cause = gsmsdp_create_local_sdp(dcb, FALSE, TRUE, TRUE, TRUE);
+    cause = gsmsdp_create_local_sdp(dcb, FALSE, TRUE, TRUE, TRUE, TRUE);
     if (cause != CC_CAUSE_OK) {
         FSM_DEBUG_SM(get_debug_string(FSM_DBG_SDP_BUILD_ERR));
         return (fsmdef_release(fcb, cause, dcb->send_release));
