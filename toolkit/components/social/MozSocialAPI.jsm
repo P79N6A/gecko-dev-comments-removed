@@ -66,6 +66,11 @@ function injectController(doc, topic, data) {
       return;
     }
 
+    
+    
+    
+    handleWindowClose(window);
+
     SocialService.getProvider(doc.nodePrincipal.origin, function(provider) {
       if (provider && provider.enabled) {
         attachToWindow(provider, window);
@@ -214,7 +219,9 @@ function attachToWindow(provider, targetWindow) {
       schedule(function () { port.close(); });
     });
   }
+}
 
+function handleWindowClose(targetWindow) {
   
   
   
