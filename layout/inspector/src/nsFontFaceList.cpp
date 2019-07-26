@@ -2,8 +2,6 @@
 
 
 
-#define _IMPL_NS_LAYOUT
-
 #include "nsFontFaceList.h"
 #include "nsFontFace.h"
 #include "nsFontFaceLoader.h"

@@ -2,8 +2,6 @@
 
 
 
-#define _IMPL_NS_LAYOUT
-
 #include "nsFontFace.h"
 #include "nsIDOMCSSFontFaceRule.h"
 #include "nsCSSRules.h"
