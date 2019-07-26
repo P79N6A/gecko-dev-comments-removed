@@ -706,9 +706,8 @@ SVGSVGElement::ChildrenOnlyTransformChanged(uint32_t aFlags)
     changeHint = nsChangeHint_ReconstructFrame;
   } else {
     
-    changeHint = nsChangeHint(nsChangeHint_RepaintFrame |
-                   nsChangeHint_UpdateOverflow |
-                   nsChangeHint_ChildrenOnlyTransform);
+    changeHint = nsChangeHint(nsChangeHint_UpdateOverflow |
+                              nsChangeHint_ChildrenOnlyTransform);
   }
 
   
