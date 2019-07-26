@@ -207,13 +207,13 @@ struct ForkJoinSlice
     friend class AutoRendezvous;
     friend class AutoSetForkJoinSlice;
 
-#ifdef JS_THREADSAFE
+#if defined(JS_THREADSAFE) && defined(JS_ION)
     
     static unsigned ThreadPrivateIndex;
     static bool TLSInitialized;
 #endif
 
-#ifdef JS_THREADSAFE
+#if defined(JS_THREADSAFE) && defined(JS_ION)
     
     
     
@@ -246,7 +246,7 @@ InParallelSection()
  inline js::ForkJoinSlice *
 js::ForkJoinSlice::Current()
 {
-#ifdef JS_THREADSAFE
+#if defined(JS_THREADSAFE) && defined(JS_ION)
     return (ForkJoinSlice*) PR_GetThreadPrivate(ThreadPrivateIndex);
 #else
     return NULL;
