@@ -398,9 +398,13 @@ bool
 DefineUnforgeableAttributes(JSContext* cx, JSObject* obj,
                             Prefable<JSPropertySpec>* props);
 
+
+
+
 inline bool
 MaybeWrapValue(JSContext* cx, JSObject* obj, JS::Value* vp)
 {
+  MOZ_ASSERT(js::GetObjectCompartment(obj) == js::GetContextCompartment(cx));
   if (vp->isObject() &&
       js::GetObjectCompartment(&vp->toObject()) != js::GetObjectCompartment(obj)) {
     return JS_WrapValue(cx, vp);
@@ -467,6 +471,9 @@ public:
                             sizeof(Check<T>(nullptr)) == sizeof(yes);
 };
 
+
+
+
 template <class T>
 inline bool
 WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
@@ -516,6 +523,11 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
   *vp = JS::ObjectValue(*obj);
   return JS_WrapValue(cx, vp);
 }
+
+
+
+
+
 
 template <class T>
 inline bool
@@ -744,6 +756,10 @@ bool
 XPCOMObjectToJsval(JSContext* cx, JSObject* scope, xpcObjectHelper &helper,
                    const nsIID* iid, bool allowNativeWrapper, JS::Value* rval);
 
+
+
+
+
 template<class T>
 inline bool
 WrapObject(JSContext* cx, JSObject* scope, T* p, nsWrapperCache* cache,
@@ -755,6 +771,9 @@ WrapObject(JSContext* cx, JSObject* scope, T* p, nsWrapperCache* cache,
   return XPCOMObjectToJsval(cx, scope, helper, iid, true, vp);
 }
 
+
+
+
 template<class T>
 inline bool
 WrapObject(JSContext* cx, JSObject* scope, T* p, const nsIID* iid,
@@ -763,12 +782,16 @@ WrapObject(JSContext* cx, JSObject* scope, T* p, const nsIID* iid,
   return WrapObject(cx, scope, p, GetWrapperCache(p), iid, vp);
 }
 
+
+
+
 template<class T>
 inline bool
 WrapObject(JSContext* cx, JSObject* scope, T* p, JS::Value* vp)
 {
   return WrapObject(cx, scope, p, NULL, vp);
 }
+
 
 template<class T>
 inline bool
@@ -778,12 +801,14 @@ WrapObject(JSContext* cx, JSObject* scope, const nsCOMPtr<T> &p, const nsIID* ii
   return WrapObject(cx, scope, p.get(), iid, vp);
 }
 
+
 template<class T>
 inline bool
 WrapObject(JSContext* cx, JSObject* scope, const nsCOMPtr<T> &p, JS::Value* vp)
 {
   return WrapObject(cx, scope, p, NULL, vp);
 }
+
 
 template<class T>
 inline bool
@@ -793,12 +818,14 @@ WrapObject(JSContext* cx, JSObject* scope, const nsRefPtr<T> &p, const nsIID* ii
   return WrapObject(cx, scope, p.get(), iid, vp);
 }
 
+
 template<class T>
 inline bool
 WrapObject(JSContext* cx, JSObject* scope, const nsRefPtr<T> &p, JS::Value* vp)
 {
   return WrapObject(cx, scope, p, NULL, vp);
 }
+
 
 template<>
 inline bool
@@ -828,6 +855,10 @@ WrapCallbackInterface(JSContext* cx, JSObject* scope, const SmartPtr<T>& value,
   return WrapCallbackInterface(cx, scope, value.get(), vp);
 }
 
+
+
+
+
 template<typename T>
 static inline JSObject*
 WrapNativeISupportsParent(JSContext* cx, JSObject* scope, T* p,
@@ -839,6 +870,8 @@ WrapNativeISupportsParent(JSContext* cx, JSObject* scope, T* p,
          JSVAL_TO_OBJECT(v) :
          nullptr;
 }
+
+
 
 template<typename T, bool isISupports=IsISupports<T>::Value >
 struct WrapNativeParentFallback
@@ -852,6 +885,8 @@ struct WrapNativeParentFallback
   }
 };
 
+
+
 template<typename T >
 struct WrapNativeParentFallback<T, true >
 {
@@ -861,6 +896,8 @@ struct WrapNativeParentFallback<T, true >
     return WrapNativeISupportsParent(cx, scope, parent, cache);
   }
 };
+
+
 
 template<typename T, bool hasWrapObject=HasWrapObject<T>::Value >
 struct WrapNativeParentHelper
@@ -884,6 +921,8 @@ struct WrapNativeParentHelper
   }
 };
 
+
+
 template<typename T>
 struct WrapNativeParentHelper<T, false >
 {
@@ -903,6 +942,7 @@ struct WrapNativeParentHelper<T, false >
   }
 };
 
+
 template<typename T>
 static inline JSObject*
 WrapNativeParent(JSContext* cx, JSObject* scope, T* p, nsWrapperCache* cache)
@@ -913,6 +953,8 @@ WrapNativeParent(JSContext* cx, JSObject* scope, T* p, nsWrapperCache* cache)
 
   return WrapNativeParentHelper<T>::Wrap(cx, scope, p, cache);
 }
+
+
 
 template<typename T>
 static inline JSObject*
