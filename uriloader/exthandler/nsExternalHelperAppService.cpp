@@ -121,7 +121,8 @@
 #endif
 
 #ifdef NECKO_PROTOCOL_rtsp
-#include "nsISystemMessagesInternal.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsIMessageManager.h"
 #endif
 
 using namespace mozilla;
@@ -608,14 +609,19 @@ private:
 
 
 
+
 void nsExternalHelperAppService::LaunchVideoAppForRtsp(nsIURI* aURI)
 {
-  NS_NAMED_LITERAL_STRING(msgType, "rtsp-open-video");
+  bool rv;
 
   
-  bool isRTSP = false;
-  aURI->SchemeIs("rtsp", &isRTSP);
-  NS_ASSERTION(isRTSP, "Not rtsp protocol! Something goes wrong here");
+  nsCOMPtr<nsIScriptSecurityManager> securityManager =
+    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
+  NS_ENSURE_TRUE_VOID(securityManager);
+
+  nsCOMPtr<nsIPrincipal> principal;
+  securityManager->GetSystemPrincipal(getter_AddRefs(principal));
+  NS_ENSURE_TRUE_VOID(principal);
 
   
   AutoSafeJSContext cx;
@@ -623,23 +629,6 @@ void nsExternalHelperAppService::LaunchVideoAppForRtsp(nsIURI* aURI)
   JS::Rooted<JSObject*> msgObj(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
   NS_ENSURE_TRUE_VOID(msgObj);
   JS::Rooted<JS::Value> jsVal(cx);
-  bool rv;
-
-  
-  
-  {
-    nsAutoCString spec;
-    aURI->GetAsciiSpec(spec);
-    JSString *urlStr = JS_NewStringCopyN(cx, spec.get(), spec.Length());
-    NS_ENSURE_TRUE_VOID(urlStr);
-    jsVal.setString(urlStr);
-
-    rv = JS_SetProperty(cx, msgObj, "url", jsVal);
-    NS_ENSURE_TRUE_VOID(rv);
-
-    rv = JS_SetProperty(cx, msgObj, "title", jsVal);
-    NS_ENSURE_TRUE_VOID(rv);
-  }
 
   
   {
@@ -647,18 +636,29 @@ void nsExternalHelperAppService::LaunchVideoAppForRtsp(nsIURI* aURI)
     JSString *typeStr = JS_NewStringCopyN(cx, mimeType.get(), mimeType.Length());
     NS_ENSURE_TRUE_VOID(typeStr);
     jsVal.setString(typeStr);
+    rv = JS_SetProperty(cx, msgObj, "type", jsVal);
+    NS_ENSURE_TRUE_VOID(rv);
   }
-  rv = JS_SetProperty(cx, msgObj, "type", jsVal);
-  NS_ENSURE_TRUE_VOID(rv);
+  
+  
+  {
+    nsAutoCString spec;
+    aURI->GetSpec(spec);
+    JSString *urlStr = JS_NewStringCopyN(cx, spec.get(), spec.Length());
+    NS_ENSURE_TRUE_VOID(urlStr);
+    jsVal.setString(urlStr);
+    rv = JS_SetProperty(cx, msgObj, "url", jsVal);
+    NS_ENSURE_TRUE_VOID(rv);
+    rv = JS_SetProperty(cx, msgObj, "title", jsVal);
+  }
+  jsVal.setObject(*msgObj);
 
   
-  nsCOMPtr<nsISystemMessagesInternal> systemMessenger =
-    do_GetService("@mozilla.org/system-message-internal;1");
-  NS_ENSURE_TRUE_VOID(systemMessenger);
-  jsVal.setObject(*msgObj);
-  systemMessenger->BroadcastMessage(msgType, jsVal, JS::UndefinedValue());
-
-  return;
+  nsCOMPtr<nsIMessageSender> cpmm =
+    do_GetService("@mozilla.org/childprocessmessagemanager;1");
+  NS_ENSURE_TRUE_VOID(cpmm);
+  cpmm->SendAsyncMessage(NS_LITERAL_STRING("content-handler"),
+    jsVal, JSVAL_NULL, principal, cx, 2);
 }
 #endif
 
