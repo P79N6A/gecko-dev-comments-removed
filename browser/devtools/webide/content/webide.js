@@ -616,8 +616,7 @@ let Cmds = {
         projectsNode.appendChild(panelItemNode);
         panelItemNode.setAttribute("label", project.name || AppManager.DEFAULT_PROJECT_NAME);
         panelItemNode.setAttribute("image", project.icon || AppManager.DEFAULT_PROJECT_ICON);
-        if (!project.validationStatus) {
-          
+        if (!project.name || !project.icon) {
           
           
           
