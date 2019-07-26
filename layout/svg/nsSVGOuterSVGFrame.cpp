@@ -765,7 +765,13 @@ nsSVGOuterSVGFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
-  DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox clip(aBuilder, this);
+  
+  
+  DisplayListClipState::AutoSaveRestore autoSR(aBuilder);
+  if (mIsRootContent ||
+      StyleDisplay()->IsScrollableOverflow()) {
+    autoSR.ClipContainingBlockDescendantsToContentBox(aBuilder, this);
+  }
 
   if ((aBuilder->IsForEventDelivery() &&
        NS_SVGDisplayListHitTestingEnabled()) ||
