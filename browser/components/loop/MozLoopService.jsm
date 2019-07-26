@@ -24,7 +24,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "CommonUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "CryptoUtils",
                                   "resource://services-crypto/utils.js");
 
-XPCOMUtils.defineLazyModuleGetter(this, "HAWKAuthenticatedRESTRequest",
+XPCOMUtils.defineLazyModuleGetter(this, "HawkClient",
+                                  "resource://services-common/hawkclient.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "deriveHawkCredentials",
                                   "resource://services-common/hawkrequest.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "MozLoopPushHandler",
@@ -143,22 +146,50 @@ let MozLoopServiceInternal = {
 
 
 
-  deriveHawkCredentials: function(tokenHex, context) {
-    const PREFIX_NAME = "identity.mozilla.com/picl/v1/";
 
-    let token = CommonUtils.hexToBytes(tokenHex);
-    let keyWord = CommonUtils.stringToBytes(PREFIX_NAME + context);
 
-    
-    
-    
-    let out = CryptoUtils.hkdf(token, undefined, keyWord, 2 * 32);
+  hawkRequest: function(path, method, payloadObj) {
+    if (!this._hawkClient) {
+      this._hawkClient = new HawkClient(this.loopServerUri);
+    }
 
-    return {
-      algorithm: "sha256",
-      key: out.slice(32, 64),
-      id: CommonUtils.bytesAsHex(out.slice(0, 32))
-    };
+    let sessionToken;
+    try {
+      sessionToken = Services.prefs.getCharPref("loop.hawk-session-token");
+    } catch (x) {
+      
+    }
+
+    let credentials;
+    if (sessionToken) {
+      credentials = deriveHawkCredentials(sessionToken, "sessionToken", 2 * 32);
+    }
+
+    return this._hawkClient.request(path, method, credentials, payloadObj);
+  },
+
+  
+
+
+
+
+
+
+  storeSessionToken: function(headers) {
+    let sessionToken = headers["hawk-session-token"];
+    if (sessionToken) {
+      
+      if (sessionToken.length === 64) {
+        Services.prefs.setCharPref("loop.hawk-session-token", sessionToken);
+      } else {
+        
+        console.warn("Loop server sent an invalid session token");
+        this._registeredDeferred.reject("session-token-wrong-size");
+        this._registeredDeferred = null;
+        return false;
+      }
+    }
+    return true;
   },
 
   
@@ -184,39 +215,38 @@ let MozLoopServiceInternal = {
 
 
   registerWithLoopServer: function(pushUrl, noRetry) {
-    let sessionToken;
-    try {
-      sessionToken = Services.prefs.getCharPref("loop.hawk-session-token");
-    } catch (x) {
-      
-    }
+    this.hawkRequest("/registration", "POST", { simple_push_url: pushUrl})
+      .then((response) => {
+        
+        
+        
+        if (!this.storeSessionToken(response.headers))
+          return;
 
-    let credentials;
-    if (sessionToken) {
-      credentials = this.deriveHawkCredentials(sessionToken, "sessionToken");
-    }
+        this.registeredLoopServer = true;
+        this._registeredDeferred.resolve();
+        
+        
+      }, (error) => {
+        if (error.errno == 401) {
+          if (this.urlExpiryTimeIsInFuture()) {
+            
+            Cu.reportError("Loop session token is invalid, all previously "
+                           + "generated urls will no longer work.");
+          }
 
-    let uri = Services.io.newURI(this.loopServerUri, null, null).resolve("/registration");
-    this.loopXhr = new HAWKAuthenticatedRESTRequest(uri, credentials);
-
-    this.loopXhr.dispatch('POST', { simple_push_url: pushUrl }, (error) => {
-      if (this.loopXhr.response.status == 401) {
-        if (this.urlExpiryTimeIsInFuture()) {
           
-          Cu.reportError("Loop session token is invalid, all previously "
-                         + "generated urls will no longer work.");
+          Services.prefs.clearUserPref("loop.hawk-session-token");
+          this.registerWithLoopServer(pushUrl, true);
+          return;
         }
 
         
-        Services.prefs.clearUserPref("loop.hawk-session-token");
-        this.registerWithLoopServer(pushUrl, true);
-
-        return;
+        Cu.reportError("Failed to register with the loop server. error: " + error);
+        this._registeredDeferred.reject(error.errno);
+        this._registeredDeferred = null;
       }
-
-      
-      this.onLoopRegistered(error);
-    });
+    );
   },
 
   
@@ -231,43 +261,6 @@ let MozLoopServiceInternal = {
     }
 
     this.openChatWindow(null, "LooP", "about:loopconversation#incoming/" + version);
-  },
-
-  
-
-
-  onLoopRegistered: function(error) {
-    let status = this.loopXhr.response.status;
-    if (status != 200) {
-      
-      Cu.reportError("Failed to register with the loop server. Code: " +
-        status + " Text: " + this.loopXhr.response.statusText);
-      this._registeredDeferred.reject(status);
-      this._registeredDeferred = null;
-      return;
-    }
-
-    let sessionToken = this.loopXhr.response.headers["hawk-session-token"];
-    if (sessionToken) {
-
-      
-      if (sessionToken.length === 64) {
-
-        Services.prefs.setCharPref("loop.hawk-session-token", sessionToken);
-      } else {
-        
-        console.warn("Loop server sent an invalid session token");
-        this._registeredDeferred.reject("session-token-wrong-size");
-        this._registeredDeferred = null;
-        return;
-      }
-    }
-
-    
-    this.registeredLoopServer = true;
-    this._registeredDeferred.resolve();
-    
-    
   },
 
   
