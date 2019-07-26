@@ -42,8 +42,7 @@ WorkerGlobalScope::WorkerGlobalScope(WorkerPrivate* aWorkerPrivate)
 
 WorkerGlobalScope::~WorkerGlobalScope()
 {
-  
-  mozilla::DropJSObjects(this);
+  mWorkerPrivate->AssertIsOnWorkerThread();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(WorkerGlobalScope)
