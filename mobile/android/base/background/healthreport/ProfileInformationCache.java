@@ -10,7 +10,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
-import java.util.Locale;
 import java.util.Scanner;
 
 import org.json.JSONException;
@@ -34,8 +33,7 @@ public class ProfileInformationCache implements ProfileInformationProvider {
 
 
 
-
-  public static final int FORMAT_VERSION = 3;
+  public static final int FORMAT_VERSION = 2;
 
   protected boolean initialized = false;
   protected boolean needsWrite = false;
@@ -44,29 +42,7 @@ public class ProfileInformationCache implements ProfileInformationProvider {
 
   private volatile boolean blocklistEnabled = true;
   private volatile boolean telemetryEnabled = false;
-  private volatile boolean isAcceptLangUserSet = false;
-
   private volatile long profileCreationTime = 0;
-  private volatile String distribution = "";
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  private volatile String osLocale = "";
-  private volatile String appLocale = "";
 
   private volatile JSONObject addons = null;
 
@@ -86,11 +62,7 @@ public class ProfileInformationCache implements ProfileInformationProvider {
       object.put("version", FORMAT_VERSION);
       object.put("blocklist", blocklistEnabled);
       object.put("telemetry", telemetryEnabled);
-      object.put("isAcceptLangUserSet", isAcceptLangUserSet);
       object.put("profileCreated", profileCreationTime);
-      object.put("osLocale", osLocale);
-      object.put("appLocale", appLocale);
-      object.put("distribution", distribution);
       object.put("addons", addons);
     } catch (JSONException e) {
       
@@ -114,12 +86,8 @@ public class ProfileInformationCache implements ProfileInformationProvider {
     case FORMAT_VERSION:
       blocklistEnabled = object.getBoolean("blocklist");
       telemetryEnabled = object.getBoolean("telemetry");
-      isAcceptLangUserSet = object.getBoolean("isAcceptLangUserSet");
       profileCreationTime = object.getLong("profileCreated");
       addons = object.getJSONObject("addons");
-      distribution = object.getString("distribution");
-      osLocale = object.getString("osLocale");
-      appLocale = object.getString("appLocale");
       return true;
     default:
       Logger.warn(LOG_TAG, "Unable to restore from version " + version + " PIC file: expecting " + FORMAT_VERSION);
@@ -239,18 +207,6 @@ public class ProfileInformationCache implements ProfileInformationProvider {
   }
 
   @Override
-  public boolean isAcceptLangUserSet() {
-    ensureInitialized();
-    return isAcceptLangUserSet;
-  }
-
-  public void setAcceptLangUserSet(boolean value) {
-    Logger.debug(LOG_TAG, "Setting accept-lang as user-set: " + value);
-    isAcceptLangUserSet = value;
-    needsWrite = true;
-  }
-
-  @Override
   public long getProfileCreationTime() {
     ensureInitialized();
     return profileCreationTime;
@@ -263,82 +219,16 @@ public class ProfileInformationCache implements ProfileInformationProvider {
   }
 
   @Override
-  public String getDistributionString() {
-    ensureInitialized();
-    return distribution;
-  }
-
-  
-
-
-  public void setDistributionString(String distributionID, String distributionVersion) {
-    Logger.debug(LOG_TAG, "Setting distribution: " + distributionID + ", " + distributionVersion);
-    distribution = distributionID + ":" + distributionVersion;
-    needsWrite = true;
-  }
-
-  @Override
-  public String getAppLocale() {
-    ensureInitialized();
-    return appLocale;
-  }
-
-  public void setAppLocale(String value) {
-    if (value.equalsIgnoreCase(appLocale)) {
-      return;
-    }
-    Logger.debug(LOG_TAG, "Setting app locale: " + value);
-    appLocale = value.toLowerCase(Locale.US);
-    needsWrite = true;
-  }
-
-  @Override
-  public String getOSLocale() {
-    ensureInitialized();
-    return osLocale;
-  }
-
-  public void setOSLocale(String value) {
-    if (value.equalsIgnoreCase(osLocale)) {
-      return;
-    }
-    Logger.debug(LOG_TAG, "Setting OS locale: " + value);
-    osLocale = value.toLowerCase(Locale.US);
-    needsWrite = true;
-  }
-
-  
-
-
-
-
-  public boolean updateLocales(String osLocale, String appLocale) {
-    if (this.osLocale.equalsIgnoreCase(osLocale) &&
-        (appLocale == null || this.appLocale.equalsIgnoreCase(appLocale))) {
-      return false;
-    }
-    this.setOSLocale(osLocale);
-    if (appLocale != null) {
-      this.setAppLocale(appLocale);
-    }
-    return true;
-  }
-
-  @Override
   public JSONObject getAddonsJSON() {
-    ensureInitialized();
     return addons;
   }
 
   public void updateJSONForAddon(String id, String json) throws Exception {
     addons.put(id, new JSONObject(json));
-    needsWrite = true;
   }
 
   public void removeAddon(String id) {
-    if (null != addons.remove(id)) {
-      needsWrite = true;
-    }
+    addons.remove(id);
   }
 
   
@@ -350,7 +240,6 @@ public class ProfileInformationCache implements ProfileInformationProvider {
     }
     try {
       addons.put(id, json);
-      needsWrite = true;
     } catch (Exception e) {
       
       Logger.warn(LOG_TAG, "Unexpected failure updating JSON for add-on.", e);
@@ -364,11 +253,9 @@ public class ProfileInformationCache implements ProfileInformationProvider {
 
   public void setJSONForAddons(String json) throws Exception {
     addons = new JSONObject(json);
-    needsWrite = true;
   }
 
   public void setJSONForAddons(JSONObject json) {
     addons = json;
-    needsWrite = true;
   }
 }
