@@ -1,4 +1,4 @@
-
+G
 
 
 
@@ -2487,28 +2487,12 @@ public class GeckoAppShell
         return true;
     }
 
-    static class AsyncResultHandler extends FilePickerResultHandler {
-        private long mId;
-        AsyncResultHandler(long id) {
-            super(null);
-            mId = id;
-        }
-
-        @Override
-        public void onActivityResult(int resultCode, Intent data) {
-            GeckoAppShell.notifyFilePickerResult(handleActivityResult(resultCode, data), mId);
-        }
-        
-    }
-
-    static native void notifyFilePickerResult(String filePath, long id);
-
-    
-    public static void showFilePickerAsync(String aMimeType, long id) {
-        if (getGeckoInterface() != null)
-            if (!sActivityHelper.showFilePicker(getGeckoInterface().getActivity(), aMimeType, new AsyncResultHandler(id))) {
-                GeckoAppShell.notifyFilePickerResult("", id);
+    public static void showFilePickerAsync(String aMimeType, final long id) {
+        sActivityHelper.showFilePickerAsync(GeckoApp.mAppContext, aMimeType, new ActivityHandlerHelper.FileResultHandler() {
+            public void gotFile(String filename) {
+                GeckoAppShell.notifyFilePickerResult(filename, id);
             }
+        });
     }
 
     public static void notifyWakeLockChanged(String topic, String state) {
