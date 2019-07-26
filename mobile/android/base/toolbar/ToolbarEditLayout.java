@@ -108,27 +108,6 @@ public class ToolbarEditLayout extends ThemedLinearLayout {
         mEditText.setOnFilterListener(listener);
     }
 
-    boolean onKey(int keyCode, KeyEvent event) {
-        final int prevSelStart = mEditText.getSelectionStart();
-        final int prevSelEnd = mEditText.getSelectionEnd();
-
-        
-        
-        mEditText.dispatchKeyEvent(event);
-
-        final int curSelStart = mEditText.getSelectionStart();
-        final int curSelEnd = mEditText.getSelectionEnd();
-
-        if (prevSelStart != curSelStart || prevSelEnd != curSelEnd) {
-            mEditText.requestFocusFromTouch();
-
-            
-            mEditText.setSelection(curSelStart, curSelEnd);
-        }
-
-        return true;
-    }
-
     void onEditSuggestion(String suggestion) {
         mEditText.setText(suggestion);
         mEditText.setSelection(mEditText.getText().length());

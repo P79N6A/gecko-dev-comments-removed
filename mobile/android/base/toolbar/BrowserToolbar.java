@@ -417,37 +417,6 @@ public class BrowserToolbar extends ThemedRelativeLayout
         return urlDisplayLayout.dismissSiteIdentityPopup();
     }
 
-    public boolean onKey(int keyCode, KeyEvent event) {
-        if (event.getAction() != KeyEvent.ACTION_DOWN) {
-            return false;
-        }
-
-        
-        
-        if (keyCode > KeyEvent.getMaxKeyCode()) {
-            return true;
-        }
-
-        
-        
-        if (keyCode == KeyEvent.KEYCODE_BACK ||
-            keyCode == KeyEvent.KEYCODE_MENU ||
-            keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-            keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
-            keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ||
-            keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-            keyCode == KeyEvent.KEYCODE_DEL ||
-            keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-            keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            return false;
-        } else if (isEditing()) {
-            return urlEditLayout.onKey(keyCode, event);
-        }
-
-        return false;
-    }
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         
