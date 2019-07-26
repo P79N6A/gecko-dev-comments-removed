@@ -262,8 +262,13 @@ SettingsListener.observe('debug.log-animations.enabled', false, function(value) 
 });
 
 
-SettingsListener.observe('device.storage.writable.name', false, function(value) {
-  Services.prefs.setBoolPref('device.storage.writable.name', value);
+SettingsListener.observe('device.storage.writable.name', 'sdcard', function(value) {
+  if (Services.prefs.getPrefType('device.storage.writable.name') != Ci.nsIPrefBranch.PREF_STRING) {
+    
+    
+    Services.prefs.clearUserPref('device.storage.writable.name');
+  }
+  Services.prefs.setCharPref('device.storage.writable.name', value);
 });
 
 
