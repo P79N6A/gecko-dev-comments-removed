@@ -157,10 +157,58 @@ struct NS_STACK_CLASS TreeMatchContext {
     }
   }
  
-  
-  
-  
-  const bool mForStyling;
+  bool PopStyleScopeForSelectorMatching(mozilla::dom::Element* aElement)
+  {
+    NS_ASSERTION(mForScopedStyle, "only call PopScopeForSelectorMatching when "
+                                  "mForScopedStyle is true");
+
+    if (!mCurrentStyleScope) {
+      return false;
+    }
+    if (mCurrentStyleScope == aElement) {
+      mCurrentStyleScope = nullptr;
+    }
+    return true;
+  }
+
+  bool SetStyleScopeForSelectorMatching(mozilla::dom::Element* aSubject,
+                                        mozilla::dom::Element* aScope)
+  {
+    mForScopedStyle = !!aScope;
+    if (!aScope) {
+      
+      
+      mCurrentStyleScope = nullptr;
+      return true;
+    }
+    if (aScope == aSubject) {
+      
+      
+      
+      
+      
+      mCurrentStyleScope = nullptr;
+      return true;
+    }
+    if (mStyleScopes.Contains(aScope)) {
+      
+      
+      
+      mCurrentStyleScope = aScope;
+      return true;
+    }
+    
+    
+    mCurrentStyleScope = nullptr;
+    return false;
+  }
+
+  bool IsWithinStyleScopeForSelectorMatching() const
+  {
+    NS_ASSERTION(mForScopedStyle, "only call IsWithinScopeForSelectorMatching "
+                                  "when mForScopedStyle is true");
+    return mCurrentStyleScope;
+  }
 
   
   class NS_STACK_CLASS AutoAncestorPusher {
@@ -192,6 +240,11 @@ struct NS_STACK_CLASS TreeMatchContext {
     mozilla::dom::Element* mElement;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
   };
+
+  
+  
+  
+  const bool mForStyling;
 
  private:
   
@@ -237,6 +290,10 @@ struct NS_STACK_CLASS TreeMatchContext {
   
   bool mUsingPrivateBrowsing;
 
+  
+  
+  bool mForScopedStyle;
+
   enum MatchVisited {
     eNeverMatchVisited,
     eMatchVisitedDefault
@@ -245,6 +302,9 @@ struct NS_STACK_CLASS TreeMatchContext {
   
   
   nsAutoTArray<mozilla::dom::Element*, 1> mStyleScopes;
+
+  
+  mozilla::dom::Element* mCurrentStyleScope;
 
   
   TreeMatchContext(bool aForStyling,
@@ -260,6 +320,8 @@ struct NS_STACK_CLASS TreeMatchContext {
     , mIsHTMLDocument(aDocument->IsHTML())
     , mCompatMode(aDocument->GetCompatibilityMode())
     , mUsingPrivateBrowsing(false)
+    , mForScopedStyle(false)
+    , mCurrentStyleScope(nullptr)
   {
     if (aMatchVisited != eNeverMatchVisited) {
       nsCOMPtr<nsISupports> container = mDocument->GetContainer();
@@ -278,13 +340,15 @@ struct NS_STACK_CLASS RuleProcessorData {
   RuleProcessorData(nsPresContext* aPresContext,
                     nsRuleWalker* aRuleWalker)
     : mPresContext(aPresContext),
-      mRuleWalker(aRuleWalker)
+      mRuleWalker(aRuleWalker),
+      mScope(nullptr)
   {
     NS_PRECONDITION(mPresContext, "Must have prescontext");
   }
 
   nsPresContext* const mPresContext;
   nsRuleWalker* const mRuleWalker; 
+  mozilla::dom::Element* mScope;
 };
 
 struct NS_STACK_CLASS ElementDependentRuleProcessorData :
