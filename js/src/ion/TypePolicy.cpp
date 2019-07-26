@@ -160,13 +160,17 @@ ComparePolicy::adjustInputs(MInstruction *def)
         return true;
     }
 
+    if (compare->compareType() == MCompare::Compare_Undefined ||
+        compare->compareType() == MCompare::Compare_Null)
+    {
+        
+        return true;
+    }
+
     
     MIRType type = compare->inputType();
-
-    
-    if (type == MIRType_Undefined || type == MIRType_Null)
-        return true;
-
+    JS_ASSERT(type == MIRType_Int32 || type == MIRType_Double ||
+              type == MIRType_Object || type == MIRType_String);
     for (size_t i = 0; i < 2; i++) {
         MDefinition *in = def->getOperand(i);
         if (in->type() == type)
@@ -175,11 +179,8 @@ ComparePolicy::adjustInputs(MInstruction *def)
         MInstruction *replace;
 
         
-        if (in->type() == MIRType_Object || in->type() == MIRType_String ||
-            (in->type() == MIRType_Boolean && type != MIRType_Double && type != MIRType_Int32))
-        {
+        if (in->type() == MIRType_Object || in->type() == MIRType_String)
             in = boxAt(def, in);
-        }
 
         switch (type) {
           case MIRType_Double:
