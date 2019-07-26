@@ -49,25 +49,19 @@ let tests = {
   },
 
   
-  
-  
-  
-  
+  testEarlyClose: function(cbnext) {
+    let run = function() {
+      onconnect = function(e) {
+        let port = e.ports[0];
+        port.postMessage({topic: "oh hai"});
+      }
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    let worker = getFrameWorkerHandle(makeWorkerUrl(run), undefined, "testEarlyClose");
+    worker.port.close();
+    worker.terminate();
+    cbnext();
+  },
 
   
   testPortClosingMessage: function(cbnext) {
