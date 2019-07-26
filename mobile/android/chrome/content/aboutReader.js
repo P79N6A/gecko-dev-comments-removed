@@ -671,7 +671,8 @@ AboutReader.prototype = {
         if (!aEvent.isTrusted)
           return;
 
-        updatePopupPosition();
+        
+        setTimeout(updatePopupPosition, 0);
       }, true);
 
       dropdownToggle.addEventListener("click", function(aEvent) {
