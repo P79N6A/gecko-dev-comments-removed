@@ -26,6 +26,8 @@ import android.view.LayoutInflater;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
+
 public class TwoLinePageRow extends LinearLayout
                             implements Tabs.OnTabsChangedListener {
     private static final int NO_ICON = 0;
@@ -40,12 +42,32 @@ public class TwoLinePageRow extends LinearLayout
     private int mLoadFaviconJobId = Favicons.NOT_LOADING;
 
     
-    private final OnFaviconLoadedListener mFaviconListener = new OnFaviconLoadedListener() {
+    
+    private static class UpdateViewFaviconLoadedListener implements OnFaviconLoadedListener {
+        private final WeakReference<FaviconView> view;
+        public UpdateViewFaviconLoadedListener(FaviconView view) {
+            this.view = new WeakReference<FaviconView>(view);
+        }
+
         @Override
         public void onFaviconLoaded(String url, String faviconURL, Bitmap favicon) {
-            setFaviconWithUrl(favicon, faviconURL);
+            FaviconView v = view.get();
+            if (v == null) {
+                
+                return;
+            }
+
+            if (favicon == null) {
+                v.showDefaultFavicon();
+                return;
+            }
+
+            v.updateImage(favicon, url);
         }
-    };
+    }
+
+    
+    private final OnFaviconLoadedListener mFaviconListener;
 
     
     private String mPageUrl;
@@ -67,6 +89,7 @@ public class TwoLinePageRow extends LinearLayout
         mTitle = (TextView) findViewById(R.id.title);
         mUrl = (TextView) findViewById(R.id.url);
         mFavicon = (FaviconView) findViewById(R.id.favicon);
+        mFaviconListener = new UpdateViewFaviconLoadedListener(mFavicon);
     }
 
     @Override

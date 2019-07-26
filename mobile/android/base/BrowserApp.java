@@ -738,21 +738,22 @@ abstract public class BrowserApp extends GeckoApp
 
         if (itemId == R.id.add_to_launcher) {
             Tab tab = Tabs.getInstance().getSelectedTab();
-            if (tab != null) {
-                final String url = tab.getURL();
-                final String title = tab.getDisplayTitle();
-                if (url == null || title == null) {
-                    return true;
-                }
-
-                Favicons.getFaviconForSize(url, tab.getFaviconURL(), Integer.MAX_VALUE, LoadFaviconTask.FLAG_PERSIST,
-                new OnFaviconLoadedListener() {
-                    @Override
-                    public void onFaviconLoaded(String pageUrl, String faviconURL, Bitmap favicon) {
-                        GeckoAppShell.createShortcut(title, url, url, favicon, "");
-                    }
-                });
+            if (tab == null) {
+                return true;
             }
+
+            final String url = tab.getURL();
+            final String title = tab.getDisplayTitle();
+            if (url == null || title == null) {
+                return true;
+            }
+
+            final OnFaviconLoadedListener listener = new GeckoAppShell.CreateShortcutFaviconLoadedListener(url, title);
+            Favicons.getFaviconForSize(url,
+                                       tab.getFaviconURL(),
+                                       Integer.MAX_VALUE,
+                                       LoadFaviconTask.FLAG_PERSIST,
+                                       listener);
             return true;
         }
 
@@ -1360,34 +1361,23 @@ abstract public class BrowserApp extends GeckoApp
     }
 
     
+    private static OnFaviconLoadedListener sFaviconLoadedListener = new OnFaviconLoadedListener() {
+        @Override
+        public void onFaviconLoaded(String pageUrl, String faviconURL, Bitmap favicon) {
+            
+            Tabs.getInstance()
+                .updateFaviconForURL(pageUrl,
+                                     (favicon == null) ? Favicons.sDefaultFavicon : favicon);
+        }
+    };
+
     private void loadFavicon(final Tab tab) {
         maybeCancelFaviconLoad(tab);
 
         final int tabFaviconSize = getResources().getDimensionPixelSize(R.dimen.browser_toolbar_favicon_size);
 
         int flags = (tab.isPrivate() || tab.getErrorType() != Tab.ErrorType.NONE) ? 0 : LoadFaviconTask.FLAG_PERSIST;
-        int id = Favicons.getFaviconForSize(tab.getURL(), tab.getFaviconURL(), tabFaviconSize, flags,
-            new OnFaviconLoadedListener() {
-                @Override
-                public void onFaviconLoaded(String pageUrl, String faviconURL, Bitmap favicon) {
-                    
-                    if (favicon == null) {
-                        favicon = Favicons.sDefaultFavicon;
-                    }
-
-                    
-                    
-                    
-                    if (!tab.getURL().equals(pageUrl)) {
-                        return;
-                    }
-
-                    tab.updateFavicon(favicon);
-                    tab.setFaviconLoadId(Favicons.NOT_LOADING);
-                    Tabs.getInstance().notifyListeners(tab, Tabs.TabEvents.FAVICON);
-                }
-            });
-
+        int id = Favicons.getFaviconForSize(tab.getURL(), tab.getFaviconURL(), tabFaviconSize, flags, sFaviconLoadedListener);
         tab.setFaviconLoadId(id);
     }
 
