@@ -310,8 +310,6 @@ npnComplete:
 nsresult
 nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri)
 {
-    nsresult rv;
-
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
     LOG(("nsHttpConnection::Activate [this=%p trans=%x caps=%x]\n",
          this, trans, caps));
@@ -348,6 +346,7 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
 
     
     
+    nsresult rv = NS_OK;
     if (mConnInfo->UsingConnect() && !mCompletedProxyConnect) {
         rv = SetupProxyConnect();
         if (NS_FAILED(rv))
@@ -364,13 +363,11 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
     mResponseTimeoutEnabled = mTransaction->ResponseTimeout() > 0 &&
                               mTransaction->ResponseTimeoutEnabled();
 
-    if (NS_SUCCEEDED(rv)) {
-        nsresult rv2 = StartShortLivedTCPKeepalives();
-        if (NS_WARN_IF(NS_FAILED(rv2))) {
-            LOG(("nsHttpConnection::Activate [%p] "
-                 "StartShortLivedTCPKeepalives failed rv2[0x%x]",
-                 this, rv2));
-        }
+    rv = StartShortLivedTCPKeepalives();
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+        LOG(("nsHttpConnection::Activate [%p] "
+             "StartShortLivedTCPKeepalives failed rv[0x%x]",
+             this, rv));
     }
 
     rv = OnOutputStreamReady(mSocketOut);
