@@ -1517,19 +1517,6 @@ OptimizeMIR(MIRGenerator *mir)
 
     
     
-    {
-        AutoTraceLog log(logger, TraceLogger::MakeLoopsContiguous);
-        if (!MakeLoopsContiguous(graph))
-            return false;
-        IonSpewPass("Make loops contiguous");
-        AssertExtendedGraphCoherency(graph);
-
-        if (mir->shouldCancel("Make loops contiguous"))
-            return false;
-    }
-
-    
-    
 
     if (mir->optimizationInfo().edgeCaseAnalysisEnabled()) {
         AutoTraceLog log(logger, TraceLogger::EdgeCaseAnalysis);
