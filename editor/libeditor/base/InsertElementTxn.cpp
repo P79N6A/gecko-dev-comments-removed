@@ -95,7 +95,7 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
   }
 
   
-  nsIContent* refContent = parent->GetChildAt(mOffset);
+  nsCOMPtr<nsIContent> refContent = parent->GetChildAt(mOffset);
 
   mEditor->MarkNodeDirty(mNode);
 
