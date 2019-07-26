@@ -76,10 +76,8 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       
       TimeDuration elapsedDuration = anim->ElapsedDurationAt(aRefreshTime);
-      AnimationTiming timing = anim->mTiming;
-      timing.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
       ComputedTiming computedTiming =
-        ElementAnimation::GetComputedTimingAt(elapsedDuration, timing);
+        ElementAnimation::GetComputedTimingAt(elapsedDuration, anim->mTiming);
 
       
       
