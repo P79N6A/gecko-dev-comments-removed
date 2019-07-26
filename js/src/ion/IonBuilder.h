@@ -497,6 +497,7 @@ class IonBuilder : public MIRGenerator
     
     
     
+    
     CodeGenerator *backgroundCodegen_;
 
   public:
