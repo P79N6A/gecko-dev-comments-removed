@@ -48,7 +48,7 @@ function BannerMessage(options) {
     this.onclick = options.onclick;
 }
 
-let HomeBanner = {
+let HomeBanner = Object.freeze({
   
   _messages: {},
 
@@ -135,7 +135,7 @@ let HomeBanner = {
       Services.obs.removeObserver(this, "HomeBanner:Click");
     }
   }
-};
+});
 
 function Panel(options) {
   if ("id" in options)
@@ -151,17 +151,17 @@ function Panel(options) {
     this.views = options.views;
 }
 
-let HomePanels = {
+let HomePanels = Object.freeze({
   
-  Layout: {
+  Layout: Object.freeze({
     FRAME: "frame"
-  },
+  }),
 
   
-  View: {
+  View: Object.freeze({
     LIST: "list",
     GRID: "grid"
-  },
+  }),
 
   
   _panels: {},
@@ -254,10 +254,10 @@ let HomePanels = {
     }
     return false;
   }
-};
+});
 
 
-this.Home = {
+this.Home = Object.freeze({
   banner: HomeBanner,
   panels: HomePanels,
 
@@ -269,4 +269,4 @@ this.Home = {
         break;
     }
   }
-}
+});
