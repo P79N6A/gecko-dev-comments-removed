@@ -1223,9 +1223,12 @@ SequentialCompileContext::compile(IonBuilder *builder, MIRGraph *graph,
     
     
     
+    
+    
     if (js_IonOptions.parallelCompilation &&
         OffThreadCompilationAvailable(cx) &&
-        cx->runtime->gcIncrementalState == gc::NO_INCREMENTAL)
+        cx->runtime->gcIncrementalState == gc::NO_INCREMENTAL &&
+        !cx->runtime->profilingScripts)
     {
         builder->script()->ion = ION_COMPILING_SCRIPT;
 
