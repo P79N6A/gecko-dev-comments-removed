@@ -313,8 +313,6 @@ nsSVGDisplayContainerFrame::ReflowSVG()
   
   
 
-  bool isFirstReflow = (mState & NS_FRAME_FIRST_REFLOW);
-
   bool outerSVGHasHadFirstReflow =
     (GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW) == 0;
 
@@ -365,7 +363,7 @@ nsSVGDisplayContainerFrame::ReflowSVG()
                     mRect.IsEqualEdges(nsRect()),
                     "Only inner-<svg>/<use> is expected to have mRect set");
 
-  if (isFirstReflow) {
+  if (mState & NS_FRAME_FIRST_REFLOW) {
     
     
     

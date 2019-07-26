@@ -1154,7 +1154,6 @@ nsChangeHint nsStyleSVGReset::CalcDifference(const nsStyleSVGReset& aOther) cons
       !EqualURIs(mMask, aOther.mMask) ||
       mFilters != aOther.mFilters) {
     NS_UpdateHint(hint, nsChangeHint_UpdateEffects);
-    NS_UpdateHint(hint, nsChangeHint_UpdateOverflow); 
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
   }
 
