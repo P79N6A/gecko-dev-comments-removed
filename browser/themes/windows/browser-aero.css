@@ -10,8 +10,6 @@
 %define glassActiveBorderColor rgb(37, 44, 51)
 %define glassInactiveBorderColor rgb(102, 102, 102)
 
-%include downloads/indicator-aero.css
-
 @media not all and (-moz-windows-classic) {
   #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #appmenu-button-container {
     margin-top: 1px;
@@ -45,32 +43,19 @@
 
 @media (-moz-windows-default-theme) {
   #navigator-toolbox > toolbar:not(:-moz-lwtheme),
-  #browser-bottombox:not(:-moz-lwtheme),
-  .browserContainer > findbar {
+  #browser-bottombox:not(:-moz-lwtheme) {
     background-color: @customToolbarColor@;
   }
 
-  .tabbrowser-tab:not(:-moz-lwtheme),
-  .tabs-newtab-button:not(:-moz-lwtheme) {
-    background-image: @toolbarShadowOnTab@, @bgTabTexture@,
-                      linear-gradient(@customToolbarColor@, @customToolbarColor@);
+  .tab-background-start[selected=true]:not(:-moz-lwtheme)::before,
+  .tab-background-end[selected=true]:not(:-moz-lwtheme)::before {
+    background-color: @customToolbarColor@;
+    background-image: @fgTabTexture@;
   }
 
-  .tabbrowser-tab:not(:-moz-lwtheme):hover,
-  .tabs-newtab-button:not(:-moz-lwtheme):hover {
-    background-image: @toolbarShadowOnTab@, @bgTabTextureHover@,
-                      linear-gradient(@customToolbarColor@, @customToolbarColor@);
-  }
-
-  .tabbrowser-tab[selected="true"]:not(:-moz-lwtheme) {
-    background-image: linear-gradient(#fff, @toolbarHighlight@ 50%),
-                      linear-gradient(@customToolbarColor@, @customToolbarColor@);
-  }
-
-  #main-window[tabsontop=false]:not([disablechrome]) .tabbrowser-tab[selected=true]:not(:-moz-lwtheme) {
-    background-image: @toolbarShadowOnTab@,
-                      linear-gradient(#fff, @toolbarHighlight@ 50%),
-                      linear-gradient(@customToolbarColor@, @customToolbarColor@);
+  .tab-background-middle[selected=true]:not(:-moz-lwtheme) {
+    background-image: url(chrome://browser/skin/tabbrowser/tab-active-middle.png),
+                      linear-gradient(transparent, transparent 2px, @customToolbarColor@ 2px, @customToolbarColor@);
   }
 
   #navigator-toolbox:not(:-moz-lwtheme)::after {
@@ -90,18 +75,6 @@
   #navigator-toolbox[tabsontop=true] #urlbar:not(:-moz-lwtheme)[focused],
   #navigator-toolbox[tabsontop=true] .searchbar-textbox:not(:-moz-lwtheme)[focused] {
     border-color: hsla(206,100%,60%,.65) hsla(206,100%,55%,.65) hsla(206,100%,50%,.65);
-  }
-
-  #sidebar-header {
-    -moz-appearance: none;
-    color: black;
-    background-color: #EEF3FA;
-    border-bottom: none;
-    text-shadow: none;
-  }
-
-  #sidebar-title {
-    font-weight: bold;
   }
 
   .sidebar-splitter {
@@ -178,11 +151,6 @@
     margin-bottom: -1px; 
   }
 
-  #main-window[sizemode=fullscreen]:not(:-moz-lwtheme) {
-    -moz-appearance: none;
-    background-color: #556;
-  }
-
   #toolbar-menubar:not(:-moz-lwtheme),
   #TabsToolbar[tabsontop=true]:not(:-moz-lwtheme),
   #nav-bar[tabsontop=false]:not(:-moz-lwtheme),
@@ -194,17 +162,13 @@
     border-right-style: none !important;
   }
 
-  :-moz-any(#toolbar-menubar, #nav-bar[tabsontop=false]) :-moz-any(@primaryToolbarButtons@):not(:-moz-any(#alltabs-button,#tabview-button,#sync-button[status])) > .toolbarbutton-icon:not(:-moz-lwtheme),
-  :-moz-any(#toolbar-menubar, #nav-bar[tabsontop=false]) :-moz-any(@primaryToolbarButtons@) > toolbarbutton > .toolbarbutton-icon:not(:-moz-lwtheme),
-  #TabsToolbar[tabsontop=true] :-moz-any(@primaryToolbarButtons@):not(:-moz-any(#alltabs-button,#tabview-button,#new-tab-button,#sync-button[status])) > .toolbarbutton-icon:not(:-moz-lwtheme),
-  #TabsToolbar[tabsontop=true] :-moz-any(@primaryToolbarButtons@) > toolbarbutton > .toolbarbutton-icon:not(:-moz-lwtheme),
-  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child :-moz-any(@primaryToolbarButtons@):not(:-moz-any(#alltabs-button,#tabview-button,#new-tab-button,#sync-button[status])) > .toolbarbutton-icon:not(:-moz-lwtheme),
-  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child :-moz-any(@primaryToolbarButtons@) > toolbarbutton > .toolbarbutton-icon:not(:-moz-lwtheme) {
+  #navigator-toolbox[tabsontop=false] > :-moz-any(#toolbar-menubar, #nav-bar) :-moz-any(@primaryToolbarButtons@):not(:-moz-any(#alltabs-button,#tabview-button,#sync-button[status])) > .toolbarbutton-icon:not(:-moz-lwtheme),
+  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child :-moz-any(@primaryToolbarButtons@):not(:-moz-any(#alltabs-button,#tabview-button,#new-tab-button,#sync-button[status])) > .toolbarbutton-icon:not(:-moz-lwtheme) {
     list-style-image: url("chrome://browser/skin/Toolbar-inverted.png");
   }
 
-  :-moz-any(#toolbar-menubar, #TabsToolbar[tabsontop=true], #nav-bar[tabsontop=false]) .toolbarbutton-1 > .toolbarbutton-menu-dropmarker:not(:-moz-lwtheme),
-  :-moz-any(#toolbar-menubar, #TabsToolbar[tabsontop=true], #nav-bar[tabsontop=false]) .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker:not(:-moz-lwtheme),
+  #navigator-toolbox[tabsontop=false] > :-moz-any(#toolbar-menubar, #nav-bar) .toolbarbutton-1 > .toolbarbutton-menu-dropmarker:not(:-moz-lwtheme),
+  #navigator-toolbox[tabsontop=false] > :-moz-any(#toolbar-menubar, #nav-bar) .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker:not(:-moz-lwtheme),
   #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child .toolbarbutton-1 > .toolbarbutton-menu-dropmarker:not(:-moz-lwtheme),
   #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker:not(:-moz-lwtheme) {
     list-style-image: url("chrome://browser/skin/toolbarbutton-dropdown-arrow-inverted.png");
@@ -239,6 +203,16 @@
   }
 
   
+  #nav-bar[tabsontop=true]:not(:-moz-lwtheme),
+  #main-window[disablechrome] #navigator-toolbox[tabsontop=true]:not(:-moz-lwtheme)::after {
+    border-top: 1px solid @toolbarShadowColor@;
+    background-clip: padding-box;
+  }
+
+  #main-window[disablechrome] #navigator-toolbox[tabsontop=true]:not(:-moz-lwtheme)::after {
+    visibility: visible;
+  }
+
   
 
   #main-window[sizemode=normal] #nav-bar[tabsontop=true]:not(:-moz-lwtheme),
@@ -250,12 +224,9 @@
     border-top-right-radius: 2.5px;
     background-clip: padding-box;
   }
-  #main-window[sizemode=normal] #TabsToolbar[tabsontop=true]:not(:-moz-lwtheme) {
+
+  #TabsToolbar[tabsontop=true]:not(:-moz-lwtheme) {
     margin-bottom: -1px;
-    background-image: none !important;
-  }
-  #main-window[sizemode=normal] #tabbrowser-tabs[tabsontop=true] > .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox > .scrollbox-innerbox:not(:-moz-lwtheme) {
-    position: relative;
   }
 
   #navigator-toolbox[tabsontop=false] > #PersonalToolbar {
@@ -298,7 +269,7 @@
     background-color: -moz-dialog;
   }
 
-  #main-menubar:not(:-moz-lwtheme):not(:-moz-window-inactive) {
+  #navigator-toolbox[tabsontop=false] > #toolbar-menubar > #menubar-items > #main-menubar:not(:-moz-lwtheme):not(:-moz-window-inactive) {
     background-color: rgba(255,255,255,.5);
     border-radius: 4px;
   }
@@ -330,6 +301,12 @@
     text-shadow: none;
   }
 
+  #main-window[sizemode=normal] .statuspanel-inner {
+    
+    padding-left: 1px;
+    padding-right: 1px;
+  }
+
   #ctrlTab-panel {
     background: transparent;
     -moz-appearance: -moz-win-glass;
@@ -346,6 +323,45 @@
     background-attachment: fixed;
   }
 }
+
+@media (-moz-windows-glass) {
+  #main-window[sizemode=fullscreen]:not(:-moz-lwtheme) {
+    -moz-appearance: none;
+    background-color: #556;
+  }
+
+  
+  #main-window[tabsintitlebar] #appmenu-button-container,
+  #main-window[tabsintitlebar] #titlebar-buttonbox {
+    z-index: 1; 
+  }
+
+  #TabsToolbar:not(:-moz-lwtheme) {
+    background-image: none;
+    position: relative;
+  }
+
+  #TabsToolbar:not(:-moz-lwtheme)::before {
+    box-shadow: 0 0 30px 30px rgb(174,189,204);
+    content: "";
+    display: -moz-box;
+    height: 0;
+    margin: 0 60px; 
+    opacity: 0.85;
+    position: absolute;
+    pointer-events: none;
+    top: 50%;
+    width: -moz-available;
+    z-index: -1;
+  }
+
+  #main-window[sizemode=normal] #tabbrowser-tabs[tabsontop=true] > .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox > .scrollbox-innerbox:not(:-moz-lwtheme) {
+    position: relative;
+  }
+
+  
+}
+
 
 @media not all and (-moz-windows-compositor) {
   @media (-moz-windows-default-theme) {
