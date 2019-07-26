@@ -82,9 +82,14 @@ public final class WaitHelper {
 
         
         final EventExpecter contentEventExpecter = sActions.expectGeckoEvent("DOMContentLoaded");
+        final EventExpecter titleEventExpecter = sActions.expectGeckoEvent("DOMTitleChanged");
+
         initiatingAction.run();
+
         contentEventExpecter.blockForEventDataWithTimeout(PAGE_LOAD_WAIT_MS);
         contentEventExpecter.unregisterListener();
+        titleEventExpecter.blockForEventDataWithTimeout(PAGE_LOAD_WAIT_MS);
+        titleEventExpecter.unregisterListener();
 
         
         for (final ChangeVerifier verifier : pageLoadVerifiers) {
