@@ -230,6 +230,10 @@ protected:
   bool     IsReadLocked() const { return IsReadLock(mLock); }
   bool     IsReadWriteLocked() const { return IsReadWriteLock(mLock); }
 
+  
+  
+  void     DidLockGranted();
+
   bool     GetScreenExtInternal(RECT &aScreenExt);
   
   
@@ -264,6 +268,10 @@ protected:
                                ULONG cFilterAttrs,
                                const TS_ATTRID *paFilterAttrs);
   void     SetInputScope(const nsString& aHTMLInputType);
+
+  
+  
+  void     CreateNativeCaret();
 
   
   nsRefPtr<nsWindowBase>       mWidget;
@@ -644,6 +652,8 @@ protected:
   
   
   bool                         mNotifySelectionChange;
+  
+  bool                         mNativeCaretIsCreated;
 
   
   bool mIsIMM_IME;
