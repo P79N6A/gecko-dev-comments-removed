@@ -3150,12 +3150,6 @@ public:
 
 
 
-    JSObject* GetJSObject() const {return xpc_UnmarkGrayObject(mJSObj);}
-
-    
-
-
-
 
 
 

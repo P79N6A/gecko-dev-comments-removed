@@ -290,9 +290,8 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         
         
         
-        JS::Rooted<JSObject*> sandboxObj(cx);
-        rv = sandbox->GetJSObject(sandboxObj.address());
-        NS_ENSURE_SUCCESS(rv, rv);
+        JS::Rooted<JSObject*> sandboxObj(cx, sandbox->GetJSObject());
+        NS_ENSURE_STATE(sandboxObj);
         sandboxObj = js::UncheckedUnwrap(sandboxObj);
         JSAutoCompartment ac(cx, sandboxObj);
 
