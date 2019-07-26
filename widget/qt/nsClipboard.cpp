@@ -176,16 +176,22 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
                 if (!image)  
                    continue;
 
-                nsRefPtr<gfxImageSurface> imageSurface;
-                image->CopyFrame(imgIContainer::FRAME_CURRENT,
-                                 imgIContainer::FLAG_SYNC_DECODE,
-                                 getter_AddRefs(imageSurface));
+                nsRefPtr<gfxASurface> surface;
+                image->GetFrame(imgIContainer::FRAME_CURRENT,
+                                imgIContainer::FLAG_SYNC_DECODE,
+                                getter_AddRefs(surface));
+                if (!surface)
+                  continue;
 
-                QImage qImage(imageSurface->Data(),
-                              imageSurface->Width(),
-                              imageSurface->Height(),
-                              imageSurface->Stride(),
-                              _gfximage_to_qformat(imageSurface->Format()));
+                nsRefPtr<gfxImageSurface> frame(surface->GetAsReadableARGB32ImageSurface());
+                if (!frame)
+                  continue;
+
+                QImage qImage(frame->Data(),
+                              frame->Width(),
+                              frame->Height(),
+                              frame->Stride(),
+                              _gfximage_to_qformat(frame->Format()));
 
                 
                 mimeData->setImageData(qImage);
