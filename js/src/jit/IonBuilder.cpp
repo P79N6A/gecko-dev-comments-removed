@@ -4179,10 +4179,6 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
     types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
     targetType->watchStateChangeForInlinedCall(constraints());
 
-    
-    
-    script()->setHasBeenInlined();
-
     return InliningDecision_Inline;
 }
 
