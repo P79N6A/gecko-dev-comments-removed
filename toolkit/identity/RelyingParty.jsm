@@ -88,7 +88,7 @@ IdentityRelyingParty.prototype = {
 
     log("watch: rpId:", aRpCaller.id,
         "origin:", origin,
-        "loggedInEmail:", aRpCaller.loggedInEmail,
+        "loggedInUser:", aRpCaller.loggedInUser,
         "loggedIn:", state.isLoggedIn,
         "email:", state.email);
 
@@ -99,20 +99,20 @@ IdentityRelyingParty.prototype = {
     
     
     if (state.isLoggedIn) {
-      if (state.email && aRpCaller.loggedInEmail === state.email) {
+      if (state.email && aRpCaller.loggedInUser === state.email) {
         this._notifyLoginStateChanged(aRpCaller.id, state.email);
         return aRpCaller.doReady();
 
-      } else if (aRpCaller.loggedInEmail === null) {
+      } else if (aRpCaller.loggedInUser === null) {
         
-        let options = {loggedInEmail: state.email, origin: origin};
+        let options = {loggedInUser: state.email, origin: origin};
         return this._doLogin(aRpCaller, options);
 
       } else {
         
         
 
-        let options = {loggedInEmail: state.email, origin: origin};
+        let options = {loggedInUser: state.email, origin: origin};
         return this._doLogin(aRpCaller, options);
       }
 
@@ -122,7 +122,7 @@ IdentityRelyingParty.prototype = {
     
 
     } else {
-      if (aRpCaller.loggedInEmail) {
+      if (aRpCaller.loggedInUser) {
         return this._doLogout(aRpCaller, {origin: origin});
 
       } else {
@@ -141,8 +141,8 @@ IdentityRelyingParty.prototype = {
     log("_doLogin: rpId:", aRpCaller.id, "origin:", aOptions.origin);
 
     let loginWithAssertion = function loginWithAssertion(assertion) {
-      this._store.setLoginState(aOptions.origin, true, aOptions.loggedInEmail);
-      this._notifyLoginStateChanged(aRpCaller.id, aOptions.loggedInEmail);
+      this._store.setLoginState(aOptions.origin, true, aOptions.loggedInUser);
+      this._notifyLoginStateChanged(aRpCaller.id, aOptions.loggedInUser);
       aRpCaller.doLogin(assertion);
       aRpCaller.doReady();
     }.bind(this);
@@ -290,7 +290,7 @@ IdentityRelyingParty.prototype = {
 
   _getAssertion: function _getAssertion(aOptions, aCallback) {
     let audience = aOptions.origin;
-    let email = aOptions.loggedInEmail || this.getDefaultEmailForOrigin(audience);
+    let email = aOptions.loggedInUser || this.getDefaultEmailForOrigin(audience);
     log("_getAssertion: audience:", audience, "email:", email);
     if (!audience) {
       throw "audience required for _getAssertion";

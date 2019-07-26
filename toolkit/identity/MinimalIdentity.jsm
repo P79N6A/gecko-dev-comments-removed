@@ -101,12 +101,11 @@ IDService.prototype = {
     log("watch: rpcaller:", aRpCaller);
     
 
-    
-    
     this._rpFlows[aRpCaller.id] = aRpCaller;
+
     let options = {rpId: aRpCaller.id,
                    origin: aRpCaller.origin,
-                   loggedInUser: aRpCaller.loggedInEmail || null};
+                   loggedInUser: aRpCaller.loggedInUser};
     log("sending identity-controller-watch:", options);
     Services.obs.notifyObservers({wrappedJSObject: options},"identity-controller-watch", null);
   },

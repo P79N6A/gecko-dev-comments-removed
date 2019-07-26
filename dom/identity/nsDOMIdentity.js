@@ -16,6 +16,7 @@ const MAX_RP_CALLS = 100;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/IdentityUtils.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
@@ -79,23 +80,29 @@ nsDOMIdentity.prototype = {
     let message = this.DOMIdentityMessage();
 
     
-    message.loggedInEmail = null;
-    let emailType = typeof(aOptions["loggedInEmail"]);
-    if (aOptions["loggedInEmail"] && aOptions["loggedInEmail"] !== "undefined") {
+    
+    
+    
+    
+    checkRenamed(aOptions, "loggedInEmail", "loggedInUser");
+    message["loggedInUser"] = aOptions["loggedInUser"];
+
+    let emailType = typeof(aOptions["loggedInUser"]);
+    if (aOptions["loggedInUser"] && aOptions["loggedInUser"] !== "undefined") {
       if (emailType !== "string") {
-        throw new Error("loggedInEmail must be a String or null");
+        throw new Error("loggedInUser must be a String or null");
       }
 
       
       
-      if (aOptions["loggedInEmail"].indexOf("@") == -1
-          || aOptions["loggedInEmail"].length > MAX_STRING_LENGTH) {
-        throw new Error("loggedInEmail is not valid");
+      if (aOptions["loggedInUser"].indexOf("@") == -1
+          || aOptions["loggedInUser"].length > MAX_STRING_LENGTH) {
+        throw new Error("loggedInUser is not valid");
       }
       
-      message.loggedInEmail = aOptions.loggedInEmail;
+      message.loggedInUser = aOptions.loggedInUser;
     }
-    this._log("loggedInEmail: " + message.loggedInEmail);
+    this._log("loggedInUser: " + message.loggedInUser);
 
     this._rpWatcher = aOptions;
     this._identityInternal._mm.sendAsyncMessage("Identity:RP:Watch", message);
