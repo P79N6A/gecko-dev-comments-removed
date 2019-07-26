@@ -20,7 +20,9 @@ def TemporaryDirectory():
 
 class CPPUnitTests(object):
     
-    TEST_PROC_TIMEOUT = 300
+    TEST_PROC_TIMEOUT = 1200
+    
+    TEST_PROC_NO_OUTPUT_TIMEOUT = 300
 
     def run_one_test(self, prog, env, symbols_path=None):
         """
@@ -42,7 +44,8 @@ class CPPUnitTests(object):
                                              env=env)
             
             
-            proc.run(timeout=CPPUnitTests.TEST_PROC_TIMEOUT)
+            proc.run(timeout=CPPUnitTests.TEST_PROC_TIMEOUT,
+                     outputTimeout=CPPUnitTests.TEST_PROC_NO_OUTPUT_TIMEOUT)
             proc.wait()
             if proc.timedOut:
                 log.testFail("%s | timed out after %d seconds",
