@@ -1611,6 +1611,22 @@ RadioInterfaceLayer.prototype = {
     
     
     this._sendTargetMessage("mobileconnection", "RIL:IccInfoChanged", message);
+
+    
+    if (!oldIcc.spn && message.spn) {
+      let voice = this.rilContext.voice;
+      let data = this.rilContext.data;
+      let voiceRoaming = voice.roaming;
+      let dataRoaming = data.roaming;
+      this.checkRoamingBetweenOperators(voice);
+      this.checkRoamingBetweenOperators(data);
+      if (voiceRoaming != voice.roaming) {
+        this._sendTargetMessage("mobileconnection", "RIL:VoiceInfoChanged", voice);
+      }
+      if (dataRoaming != data.roaming) {
+        this._sendTargetMessage("mobileconnection", "RIL:DataInfoChanged", data);
+      }
+    }
   },
 
   handleICCCardLockResult: function handleICCCardLockResult(message) {
