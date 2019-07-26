@@ -1909,22 +1909,22 @@ StoreAndNotifyEmbedVisit(VisitData& aPlace,
   (void)NS_DispatchToMainThread(event);
 }
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(HistoryLinksHashtableMallocSizeOf)
-
-int64_t GetHistoryObserversSize()
+class HistoryLinksHashtableReporter MOZ_FINAL : public MemoryReporterBase
 {
-  History* history = History::GetService();
-  return history ?
-         history->SizeOfIncludingThis(HistoryLinksHashtableMallocSizeOf) : 0;
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(HistoryService,
-  "explicit/history-links-hashtable",
-  KIND_HEAP,
-  UNITS_BYTES,
-  GetHistoryObserversSize,
-  "Memory used by the hashtable of observers Places uses to notify objects of "
-  "changes to links' visited state.")
+public:
+  HistoryLinksHashtableReporter()
+    : MemoryReporterBase("explicit/history-links-hashtable",
+                         KIND_HEAP, UNITS_BYTES,
+"Memory used by the hashtable that records changes to the visited state of "
+"links.")
+    {}
+private:
+  int64_t Amount() MOZ_OVERRIDE
+  {
+    History* history = History::GetService();
+    return history ? history->SizeOfIncludingThis(MallocSizeOf) : 0;
+  }
+};
 
 } 
 
@@ -1947,12 +1947,15 @@ History::History()
     (void)os->AddObserver(this, TOPIC_PLACES_SHUTDOWN, false);
   }
 
-  NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(HistoryService));
+  mReporter = new HistoryLinksHashtableReporter();
+  NS_RegisterMemoryReporter(mReporter);
 }
 
 History::~History()
 {
-  gService = NULL;
+  NS_UnregisterMemoryReporter(mReporter);
+
+  gService = nullptr;
 
 #ifdef DEBUG
   if (mObservers.IsInitialized()) {

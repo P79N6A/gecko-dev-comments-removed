@@ -3,6 +3,7 @@
 
 
 
+
 #include <algorithm>
 
 #include <fstream>
@@ -254,8 +255,7 @@ public:
                                Telemetry::ProcessedStack &aStack);
 #endif
   static nsresult GetHistogramEnumId(const char *name, Telemetry::ID *id);
-  static int64_t GetTelemetryMemoryUsed();
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
+  static int64_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
   struct Stat {
     uint32_t hitCount;
     uint32_t totalTime;
@@ -267,16 +267,7 @@ public:
   typedef nsBaseHashtableET<nsCStringHashKey, StmtStats> SlowSQLEntryType;
 
 private:
-  
-  
-  template<typename EntryType>
-  struct impl {
-    static size_t SizeOfEntryExcludingThis(EntryType *,
-                                           mozilla::MallocSizeOf,
-                                           void *) {
-      return 0;
-    };
-  };
+  size_t SizeOfIncludingThisHelper(mozilla::MallocSizeOf aMallocSizeOf);
 
   static nsCString SanitizeSQL(const nsACString& sql);
 
@@ -335,7 +326,7 @@ private:
   Mutex mHashMutex;
   HangReports mHangReports;
   Mutex mHangReportsMutex;
-  nsIMemoryReporter *mMemoryReporter;
+  nsCOMPtr<nsIMemoryReporter> mReporter;
 
   CombinedStacks mLateWritesStacks; 
   bool mCachedTelemetryData;
@@ -347,34 +338,26 @@ private:
 
 TelemetryImpl*  TelemetryImpl::sTelemetry = NULL;
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(TelemetryMallocSizeOf)
-
 size_t
-TelemetryImpl::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
+TelemetryImpl::SizeOfIncludingThisHelper(mozilla::MallocSizeOf aMallocSizeOf)
 {
-  size_t n = 0;
-  n += aMallocSizeOf(this);
+  size_t n = aMallocSizeOf(this);
   
-  n += mAddonMap.SizeOfExcludingThis(impl<AddonEntryType>::SizeOfEntryExcludingThis,
-                                     aMallocSizeOf);
-  n += mHistogramMap.SizeOfExcludingThis(impl<CharPtrEntryType>::SizeOfEntryExcludingThis,
-                                         aMallocSizeOf);
-  n += mPrivateSQL.SizeOfExcludingThis(impl<SlowSQLEntryType>::SizeOfEntryExcludingThis,
-                                       aMallocSizeOf);
-  n += mSanitizedSQL.SizeOfExcludingThis(impl<SlowSQLEntryType>::SizeOfEntryExcludingThis,
-                                         aMallocSizeOf);
-  n += mTrackedDBs.SizeOfExcludingThis(impl<nsCStringHashKey>::SizeOfEntryExcludingThis,
-                                       aMallocSizeOf);
+  n += mAddonMap.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+  n += mHistogramMap.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+  n += mPrivateSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+  n += mSanitizedSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+  n += mTrackedDBs.SizeOfExcludingThis(nullptr, aMallocSizeOf);
   n += mHangReports.SizeOfExcludingThis();
   return n;
 }
 
 int64_t
-TelemetryImpl::GetTelemetryMemoryUsed()
+TelemetryImpl::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
 {
   int64_t n = 0;
   if (sTelemetry) {
-    n += sTelemetry->SizeOfIncludingThis(TelemetryMallocSizeOf);
+    n += sTelemetry->SizeOfIncludingThisHelper(aMallocSizeOf);
   }
 
   StatisticsRecorder::Histograms hs;
@@ -382,17 +365,24 @@ TelemetryImpl::GetTelemetryMemoryUsed()
 
   for (HistogramIterator it = hs.begin(); it != hs.end(); ++it) {
     Histogram *h = *it;
-    n += h->SizeOfIncludingThis(TelemetryMallocSizeOf);
+    n += h->SizeOfIncludingThis(aMallocSizeOf);
   }
   return n;
 }
 
-NS_MEMORY_REPORTER_IMPLEMENT(Telemetry,
-  "explicit/telemetry",
-  KIND_HEAP,
-  UNITS_BYTES,
-  TelemetryImpl::GetTelemetryMemoryUsed,
-  "Memory used by the telemetry system.")
+class TelemetryReporter MOZ_FINAL : public MemoryReporterBase
+{
+public:
+  TelemetryReporter()
+    : MemoryReporterBase("explicit/telemetry", KIND_HEAP, UNITS_BYTES,
+                         "Memory used by the telemetry system.")
+  {}
+private:
+  int64_t Amount() MOZ_OVERRIDE
+  {
+    return TelemetryImpl::SizeOfIncludingThis(MallocSizeOf);
+  }
+};
 
 
 StatisticsRecorder gStatisticsRecorder;
@@ -978,13 +968,12 @@ mFailedLockCount(0)
   
   mTrackedDBs.MarkImmutable();
 #endif
-  mMemoryReporter = new NS_MEMORY_REPORTER_NAME(Telemetry);
-  NS_RegisterMemoryReporter(mMemoryReporter);
+  mReporter = new TelemetryReporter();
+  NS_RegisterMemoryReporter(mReporter);
 }
 
 TelemetryImpl::~TelemetryImpl() {
-  NS_UnregisterMemoryReporter(mMemoryReporter);
-  mMemoryReporter = nullptr;
+  NS_UnregisterMemoryReporter(mReporter);
 }
 
 NS_IMETHODIMP
@@ -1859,7 +1848,7 @@ already_AddRefed<nsITelemetry>
 TelemetryImpl::CreateTelemetryInstance()
 {
   NS_ABORT_IF_FALSE(sTelemetry == NULL, "CreateTelemetryInstance may only be called once, via GetService()");
-  sTelemetry = new TelemetryImpl(); 
+  sTelemetry = new TelemetryImpl();
   
   NS_ADDREF(sTelemetry);
   

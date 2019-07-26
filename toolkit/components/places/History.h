@@ -23,6 +23,8 @@
 #include "nsIObserver.h"
 #include "mozIStorageConnection.h"
 
+class nsIMemoryReporter;
+
 namespace mozilla {
 namespace places {
 
@@ -208,6 +210,8 @@ private:
   RecentlyVisitedArray::index_type mRecentlyVisitedURIsNextIndex;
 
   bool IsRecentlyVisitedURI(nsIURI* aURI);
+
+  nsCOMPtr<nsIMemoryReporter> mReporter;
 };
 
 } 
