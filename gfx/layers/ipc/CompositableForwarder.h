@@ -87,6 +87,13 @@ public:
   
 
 
+  virtual void UpdateTextureNoSwap(CompositableClient* aCompositable,
+                                   TextureIdentifier aTextureId,
+                                   SurfaceDescriptor* aDescriptor) = 0;
+
+  
+
+
 
   virtual void UpdateTextureRegion(CompositableClient* aCompositable,
                                    const ThebesBufferData& aThebesBufferData,

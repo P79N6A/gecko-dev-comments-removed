@@ -276,6 +276,13 @@ public:
   
 
 
+  virtual void UpdateTextureNoSwap(CompositableClient* aCompositable,
+                                   TextureIdentifier aTextureId,
+                                   SurfaceDescriptor* aDescriptor) MOZ_OVERRIDE;
+
+  
+
+
 
   virtual void UpdateTextureRegion(CompositableClient* aCompositable,
                                    const ThebesBufferData& aThebesBufferData,
