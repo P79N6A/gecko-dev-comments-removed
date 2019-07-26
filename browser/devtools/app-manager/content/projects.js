@@ -259,23 +259,63 @@ let UI = {
   debug: function(button, location) {
     button.disabled = true;
     let project = AppProjects.get(location);
+
+    let onFailedToStart = (error) => {
+      
+      if (error == "NO_SUCH_APP") {
+        return this.install(project);
+      } else {
+        throw error;
+      }
+    };
+    let onStarted = () => {
+      
+      
+      
+      let deferred = promise.defer();
+      let loop = (count) => {
+        
+        if (count >= 100) {
+          deferred.reject("Unable to connect to the app");
+          return;
+        }
+        
+        
+        this.start(project);
+        getTargetForApp(
+          this.connection.client,
+          this.listTabsResponse.webappsActor,
+          this._getProjectManifestURL(project)).
+            then(deferred.resolve,
+                 (err) => {
+                   if (err == "appNotFound")
+                     setTimeout(loop, 500, count + 1);
+                   else
+                     deferred.reject(err);
+                 });
+      };
+      loop(0);
+      return deferred.promise;
+    };
+    let onTargetReady = (target) => {
+      
+      let deferred = promise.defer();
+      gDevTools.showToolbox(target,
+                            null,
+                            devtools.Toolbox.HostType.WINDOW).then(toolbox => {
+        this.connection.once(Connection.Events.DISCONNECTED, () => {
+          toolbox.destroy();
+        });
+        deferred.resolve(toolbox);
+      });
+      return deferred.promise;
+    };
+
     
     this.start(project)
-        .then(
-         null,
-         (error) => {
-           
-           if (error == "NO_SUCH_APP") {
-             return this.install(project)
-                        .then(() => this.start(project));
-           } else {
-             throw error;
-           }
-         })
-        .then(() => {
-           
-           return this.openToolbox(project)
-        })
+        .then(null, onFailedToStart)
+        .then(onStarted)
+        .then(onTargetReady)
         .then(() => {
            
            button.disabled = false;
@@ -285,24 +325,6 @@ let UI = {
            alert(msg);
            this.connection.log(msg);
          });
-  },
-
-  openToolbox: function(project) {
-    let deferred = promise.defer();
-    let manifest = this._getProjectManifestURL(project);
-    getTargetForApp(this.connection.client,
-                    this.listTabsResponse.webappsActor,
-                    manifest).then((target) => {
-      gDevTools.showToolbox(target,
-                            null,
-                            devtools.Toolbox.HostType.WINDOW).then(toolbox => {
-        this.connection.once(Connection.Events.DISCONNECTED, () => {
-          toolbox.destroy();
-        });
-        deferred.resolve();
-      });
-    }, deferred.reject);
-    return deferred.promise;
   },
 
   reveal: function(location) {
