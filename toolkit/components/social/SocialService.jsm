@@ -126,7 +126,6 @@ let ActiveProviders = {
 function migrateSettings() {
   let activeProviders;
   try {
-    
     activeProviders = Services.prefs.getCharPref("social.activeProviders");
   } catch(e) {
     
@@ -135,11 +134,30 @@ function migrateSettings() {
     
     
     for (let origin in ActiveProviders._providers) {
-      let prefname = getPrefnameFromOrigin(origin);
+      let prefname;
+      try {
+        prefname = getPrefnameFromOrigin(origin);
+      } catch(e) {
+        
+        
+        
+        
+        ActiveProviders.delete(origin);
+        ActiveProviders.flush();
+        continue;
+      }
       if (!Services.prefs.prefHasUserValue(prefname)) {
         
         
-        let manifest = JSON.parse(Services.prefs.getComplexValue(prefname, Ci.nsISupportsString).data);
+        let manifest;
+        try {
+          manifest = JSON.parse(Services.prefs.getComplexValue(prefname, Ci.nsISupportsString).data);
+        } catch(e) {
+          
+          ActiveProviders.delete(origin);
+          ActiveProviders.flush();
+          continue;
+        }
         
         
         delete manifest.builtin;
@@ -167,7 +185,13 @@ function migrateSettings() {
   let prefs = manifestPrefs.getChildList("", []);
   for (let pref of prefs) {
     try {
-      let manifest = JSON.parse(manifestPrefs.getComplexValue(pref, Ci.nsISupportsString).data);
+      let manifest;
+      try {
+        manifest = JSON.parse(manifestPrefs.getComplexValue(pref, Ci.nsISupportsString).data);
+      } catch(e) {
+        
+        continue;
+      }
       if (manifest && typeof(manifest) == "object" && manifest.origin) {
         
         
@@ -196,7 +220,14 @@ function initService() {
     Services.obs.removeObserver(xpcomShutdown, "xpcom-shutdown");
   }, "xpcom-shutdown", false);
 
-  migrateSettings();
+  try {
+    migrateSettings();
+  } catch(e) {
+    
+    
+    
+    Cu.reportError("Error migrating social settings: " + e);
+  }
   
   if (SocialServiceInternal.enabled)
     MozSocialAPI.enabled = true;
