@@ -1,3 +1,7 @@
+
+
+
+
 function testCopyBigArray() {
   
   var a = new Array(1000 * 1000);
