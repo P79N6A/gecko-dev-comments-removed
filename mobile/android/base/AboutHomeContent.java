@@ -1,7 +1,7 @@
-/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 package org.mozilla.gecko;
 
@@ -128,7 +128,7 @@ public class AboutHomeContent extends ScrollView
 
         mAccountManager = AccountManager.get(mContext);
 
-        // The listener will run on the background thread (see 2nd argument)
+        
         mAccountManager.addOnAccountsUpdatedListener(mAccountListener = new OnAccountsUpdateListener() {
             public void onAccountsUpdated(Account[] accounts) {
                 updateLayoutForSync();
@@ -216,19 +216,6 @@ public class AboutHomeContent extends ScrollView
         if (syncIsSetup && type == AboutHomePromoBox.Type.SYNC)
             type = AboutHomePromoBox.Type.APPS;
 
-// Remove the Apps promo from Beta and Release until we get go-ahead from Marketplace team.
-// Two blocks are silly, but the preprocessor does not support complex expressions and I
-// am not trying to make something elegant here. This code should disappear soon or the
-// entire feature should be removed.
-#if MOZ_UPDATE_CHANNEL == beta
-        if (type == AboutHomePromoBox.Type.APPS)
-            type = (syncIsSetup ? AboutHomePromoBox.Type.NONE : AboutHomePromoBox.Type.SYNC);
-#endif
-#if MOZ_UPDATE_CHANNEL == release
-        if (type == AboutHomePromoBox.Type.APPS)
-            type = (syncIsSetup ? AboutHomePromoBox.Type.NONE : AboutHomePromoBox.Type.SYNC);
-#endif
-
         mPromoBox.show(type);
     }
 
@@ -238,9 +225,9 @@ public class AboutHomeContent extends ScrollView
 
         post(new Runnable() {
             public void run() {
-                // The listener might run before the UI is initially updated.
-                // In this case, we should simply wait for the initial setup
-                // to happen.
+                
+                
+                
                 if (mTopSitesAdapter != null)
                     updateLayout(syncIsSetup);
             }
@@ -248,13 +235,13 @@ public class AboutHomeContent extends ScrollView
     }
 
     private void loadTopSites() {
-        // The SyncAccounts.syncAccountsExist method should not be called on
-        // UI thread as it touches disk to access a sqlite DB.
+        
+        
         final boolean syncIsSetup = SyncAccounts.syncAccountsExist(mActivity);
 
         final ContentResolver resolver = mActivity.getContentResolver();
         final Cursor oldCursor = mCursor;
-        // Swap in the new cursor.
+        
         mCursor = BrowserDB.getTopSites(resolver, mNumberOfTopSites);
 
         post(new Runnable() {
@@ -275,13 +262,13 @@ public class AboutHomeContent extends ScrollView
 
                 updateLayout(syncIsSetup);
 
-                // Free the old Cursor in the right thread now.
+                
                 if (oldCursor != null && !oldCursor.isClosed())
                     oldCursor.close();
 
-                // Even if AboutHome isn't necessarily entirely loaded if we
-                // get here, for phones this is the part the user initially sees,
-                // so it's the one we will care about for now.
+                
+                
+                
                 if (mLoadCompleteCallback != null)
                     mLoadCompleteCallback.callback();
             }
@@ -323,17 +310,17 @@ public class AboutHomeContent extends ScrollView
         mNumberOfCols = getResources().getInteger(R.integer.number_of_top_sites_cols);
     }
 
-    /**
-     * Reinflates and updates all components of this view.
-     */
+    
+
+
     public void refresh() {
         if (mTopSitesAdapter != null)
             mTopSitesAdapter.notifyDataSetChanged();
 
-        removeAllViews(); // We must remove the currently inflated view to allow for reinflation.
+        removeAllViews(); 
         inflate();
-        mTopSitesGrid.setAdapter(mTopSitesAdapter); // mTopSitesGrid is a new instance (from loadTopSites()).
-        update(AboutHomeContent.UpdateFlags.ALL); // Refresh all elements.
+        mTopSitesGrid.setAdapter(mTopSitesAdapter); 
+        update(AboutHomeContent.UpdateFlags.ALL); 
     }
 
     private String readFromZipFile(String filename) {
@@ -357,8 +344,8 @@ public class AboutHomeContent extends ScrollView
                 if (zip != null)
                     zip.close();
             } catch (IOException ioe) {
-                // catch this here because we can continue even if the
-                // close failed
+                
+                
                 Log.e(LOGTAG, "error closing zip filestream", ioe);
             }
         }
@@ -381,8 +368,8 @@ public class AboutHomeContent extends ScrollView
                 if (fileStream != null)
                     fileStream.close();
             } catch (IOException ioe) {
-                // catch this here because we can continue even if the
-                // close failed
+                
+                
                 Log.e(LOGTAG, "error closing filestream", ioe);
             }
         }
@@ -390,10 +377,10 @@ public class AboutHomeContent extends ScrollView
     }
 
     private String getPageUrlFromIconUrl(String iconUrl) {
-        // Addon icon URLs come with a query argument that is usually
-        // used for expiration purposes. We want the "page URL" here to be
-        // stable enough to avoid unnecessary duplicate records of the
-        // same addon.
+        
+        
+        
+        
         String pageUrl = iconUrl;
 
         try {
@@ -401,7 +388,7 @@ public class AboutHomeContent extends ScrollView
             URL urlForPage = new URL(urlForIcon.getProtocol(), urlForIcon.getAuthority(), urlForIcon.getPath());
             pageUrl = urlForPage.toString();
         } catch (MalformedURLException e) {
-            // Defaults to pageUrl = iconUrl in case of error
+            
         }
 
         return pageUrl;
@@ -478,7 +465,7 @@ public class AboutHomeContent extends ScrollView
     private void readLastTabs() {
         String jsonString = mActivity.getProfile().readSessionFile(GeckoApp.sIsGeckoReady);
         if (jsonString == null) {
-            // no previous session data
+            
             return;
         }
 
@@ -514,7 +501,7 @@ public class AboutHomeContent extends ScrollView
                 continue;
             }
 
-            // don't show last tabs for about pages
+            
             if (url.startsWith("about:"))
                 continue;
 
@@ -640,8 +627,8 @@ public class AboutHomeContent extends ScrollView
             numRows = (int) Math.round((double) nSites / mNumberOfCols);
             setNumColumns(mNumberOfCols);
 
-            // Just using getWidth() will use incorrect values during onMeasure when rotating the device
-            // Instead we pass in the measuredWidth, which is correct
+            
+            
             int w = getColumnWidth(measuredWidth);
             Tabs.setThumbnailWidth(w);
             heightMeasureSpec = MeasureSpec.makeMeasureSpec((int)(w*Tabs.getThumbnailAspectRatio()*numRows) + getPaddingTop() + getPaddingBottom(),
@@ -663,8 +650,8 @@ public class AboutHomeContent extends ScrollView
 
         @Override
         protected void onContentChanged () {
-            // Don't do anything. We don't want to regenerate every time
-            // our history database is updated.
+            
+            
             return;
         }
 
@@ -703,8 +690,8 @@ public class AboutHomeContent extends ScrollView
             String title = cursor.getString(titleIndex);
             TextView titleView = (TextView) view;
 
-            // Use the URL instead of an empty title for consistency with the normal URL
-            // bar view - this is the equivalent of getDisplayTitle() in Tab.java
+            
+            
             if (title == null || title.length() == 0) {
                 int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
                 title = cursor.getString(urlIndex);
@@ -726,7 +713,7 @@ public class AboutHomeContent extends ScrollView
                 return updateThumbnail(view, cursor, thumbIndex);
             }
 
-            // Other columns are handled automatically
+            
             return false;
         }
     }
