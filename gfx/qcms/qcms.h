@@ -44,12 +44,6 @@ extern "C" {
 
 
 
-
-
-
-
-
-
  
 typedef enum {
     icSigXYZData                        = 0x58595A20L,  
