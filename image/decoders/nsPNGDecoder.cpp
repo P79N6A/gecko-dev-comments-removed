@@ -583,6 +583,8 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
   
   
 
+  
+#if 0
   int32_t alpha_bits = 1;
 
   if (channels == 2 || channels == 4) {
@@ -601,6 +603,7 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
       alpha_bits = 8;
     }
   }
+#endif
 
   if (channels == 1 || channels == 3)
     decoder->format = gfxASurface::ImageFormatRGB24;
