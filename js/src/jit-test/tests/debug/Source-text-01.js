@@ -2,6 +2,7 @@
 
 
 
+
 let g = newGlobal();
 let dbg = new Debugger(g);
 

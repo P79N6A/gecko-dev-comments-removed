@@ -221,6 +221,10 @@ class SourceHook {
     virtual ~SourceHook() { }
 
     
+
+
+
+
     virtual bool load(JSContext *cx, const char *filename, jschar **src, size_t *length) = 0;
 };
 
@@ -228,8 +232,14 @@ class SourceHook {
 
 
 
+
+
 extern JS_FRIEND_API(void)
 SetSourceHook(JSRuntime *rt, SourceHook *hook);
+
+
+extern JS_FRIEND_API(SourceHook *)
+ForgetSourceHook(JSRuntime *rt);
 
 inline JSRuntime *
 GetRuntime(const JSContext *cx)
