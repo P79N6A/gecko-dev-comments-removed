@@ -201,6 +201,7 @@ inline MediaByteRange::MediaByteRange(TimestampedMediaByteRange& aByteRange)
 
 
 
+
 class MediaResource
 {
 public:
