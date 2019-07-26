@@ -216,6 +216,9 @@ const ContentPanning = {
     }
 
     this._finishPanning();
+
+    
+    this.pointerDownTarget = null;
   },
 
   
