@@ -40,6 +40,11 @@ function setDefaultPrefs() {
     branch.setBoolPref("image.high_quality_downscaling.enabled", false);
     
     
+    branch.setBoolPref("security.fileuri.strict_origin_policy", false);
+    
+    branch.setBoolPref("browser.pagethumbnails.capturing_disabled", true);
+    
+    
     
     branch.setBoolPref("layout.testing.overlay-scrollbars.always-visible", true);
 }
