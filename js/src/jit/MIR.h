@@ -5229,11 +5229,11 @@ class MInitializedLength
 };
 
 
+
 class MSetInitializedLength
   : public MAryInstruction<2>
 {
-    MSetInitializedLength(MDefinition *elements, MDefinition *index)
-    {
+    MSetInitializedLength(MDefinition *elements, MDefinition *index) {
         setOperand(0, elements);
         setOperand(1, index);
     }
@@ -5281,6 +5281,34 @@ class MArrayLength
     }
 
     void computeRange();
+};
+
+
+
+class MSetArrayLength
+  : public MAryInstruction<2>
+{
+    MSetArrayLength(MDefinition *elements, MDefinition *index) {
+        setOperand(0, elements);
+        setOperand(1, index);
+    }
+
+  public:
+    INSTRUCTION_HEADER(SetArrayLength)
+
+    static MSetArrayLength *New(TempAllocator &alloc, MDefinition *elements, MDefinition *index) {
+        return new(alloc) MSetArrayLength(elements, index);
+    }
+
+    MDefinition *elements() const {
+        return getOperand(0);
+    }
+    MDefinition *index() const {
+        return getOperand(1);
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::Store(AliasSet::ObjectFields);
+    }
 };
 
 

@@ -5521,6 +5521,8 @@ IonBuilder::jsop_initelem_array()
     current->add(store);
 
     
+    
+    
     MSetInitializedLength *initLength = MSetInitializedLength::New(alloc(), elements, id);
     current->add(initLength);
 
@@ -7765,7 +7767,9 @@ IonBuilder::jsop_rest()
                                       MNewArray::NewArray_Allocating);
     current->add(array);
 
-    if (numActuals <= numFormals) {
+    if (numRest == 0) {
+        
+        
         current->push(array);
         return true;
     }
@@ -7786,10 +7790,18 @@ IonBuilder::jsop_rest()
         current->add(store);
     }
 
+    
+    
+    
+    MSetArrayLength *length = MSetArrayLength::New(alloc(), elements, index);
+    current->add(length);
+
+    
+    
     MSetInitializedLength *initLength = MSetInitializedLength::New(alloc(), elements, index);
     current->add(initLength);
-    current->push(array);
 
+    current->push(array);
     return true;
 }
 

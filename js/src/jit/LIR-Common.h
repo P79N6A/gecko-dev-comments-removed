@@ -3314,6 +3314,7 @@ class LInitializedLength : public LInstructionHelper<1, 1, 0>
 };
 
 
+
 class LSetInitializedLength : public LInstructionHelper<0, 2, 0>
 {
   public:
@@ -3344,6 +3345,26 @@ class LArrayLength : public LInstructionHelper<1, 1, 0>
 
     const LAllocation *elements() {
         return getOperand(0);
+    }
+};
+
+
+
+class LSetArrayLength : public LInstructionHelper<0, 2, 0>
+{
+  public:
+    LIR_HEADER(SetArrayLength)
+
+    LSetArrayLength(const LAllocation &elements, const LAllocation &index) {
+        setOperand(0, elements);
+        setOperand(1, index);
+    }
+
+    const LAllocation *elements() {
+        return getOperand(0);
+    }
+    const LAllocation *index() {
+        return getOperand(1);
     }
 };
 
