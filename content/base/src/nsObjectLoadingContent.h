@@ -151,6 +151,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
                       JS::Handle<jsid> aId,
                       JS::MutableHandle<JS::Value> aValue);
+    
+    void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& ,
+                             mozilla::ErrorResult& aRv);
 
     
     nsIDocument* GetContentDocument();

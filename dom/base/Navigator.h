@@ -243,6 +243,8 @@ public:
 #endif 
   bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
                     JS::Handle<jsid> aId, JS::MutableHandle<JS::Value> aValue);
+  void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
+                           ErrorResult& aRv);
 
   
   static bool HasBatterySupport(JSContext* , JSObject* );

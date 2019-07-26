@@ -3389,6 +3389,19 @@ nsObjectLoadingContent::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObje
   return true;
 }
 
+void
+nsObjectLoadingContent::GetOwnPropertyNames(JSContext* aCx,
+                                            nsTArray<nsString>& ,
+                                            ErrorResult& aRv)
+{
+  
+  
+  
+  nsRefPtr<nsNPAPIPluginInstance> pi;
+  aRv = ScriptRequestPluginInstance(aCx, getter_AddRefs(pi));
+}
+
+
 
 nsObjectLoadingContent::SetupProtoChainRunner::SetupProtoChainRunner(
     nsIScriptContext* scriptContext,
