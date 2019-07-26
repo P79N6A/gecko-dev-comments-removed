@@ -15,8 +15,15 @@ class TestMozUnit(unittest.TestCase):
         with os.fdopen(fd, 'w') as file:
             file.write('foobar');
 
+        self.assertFalse(os.path.exists('file1'))
+        self.assertFalse(os.path.exists('file2'))
+
         with MockedOpen({'file1': 'content1',
                          'file2': 'content2'}):
+            self.assertTrue(os.path.exists('file1'))
+            self.assertTrue(os.path.exists('file2'))
+            self.assertFalse(os.path.exists('foo/file1'))
+
             
             self.assertEqual(open('file1', 'r').read(), 'content1')
             self.assertEqual(open('file2', 'r').read(), 'content2')
@@ -24,6 +31,7 @@ class TestMozUnit(unittest.TestCase):
             
             with open('file1', 'w') as file:
                 file.write('foo')
+            self.assertTrue(os.path.exists('file1'))
             self.assertEqual(open('file1', 'r').read(), 'foo')
 
             
@@ -38,13 +46,17 @@ class TestMozUnit(unittest.TestCase):
                 file.write('bar')
             self.assertEqual(open('file1', 'r').read(), 'foobar')
 
+            self.assertFalse(os.path.exists('file3'))
+
             
             self.assertRaises(IOError, open, 'file3', 'r')
+            self.assertFalse(os.path.exists('file3'))
 
             
             with open('file3', 'w') as file:
                 file.write('baz')
             self.assertEqual(open('file3', 'r').read(), 'baz')
+            self.assertTrue(os.path.exists('file3'))
 
             
             self.assertEqual(open(path, 'r').read(), 'foobar')
