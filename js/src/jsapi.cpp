@@ -5534,6 +5534,8 @@ JS_ExecuteScriptVersion(JSContext *cx, JSObject *objArg, JSScript *script, jsval
     return JS_ExecuteScript(cx, obj, script, rval);
 }
 
+static const unsigned LARGE_SCRIPT_LENGTH = 500*1024;
+
 extern JS_PUBLIC_API(bool)
 JS::Evaluate(JSContext *cx, HandleObject obj, CompileOptions options,
              const jschar *chars, size_t length, jsval *rval)
@@ -5566,6 +5568,18 @@ JS::Evaluate(JSContext *cx, HandleObject obj, CompileOptions options,
     bool result = Execute(cx, script, *obj, rval);
     if (!sct.complete())
         result = false;
+
+    
+    
+    
+    
+    
+    if (script->length > LARGE_SCRIPT_LENGTH) {
+        script = NULL;
+        PrepareZoneForGC(cx->zone());
+        GC(cx->runtime, GC_NORMAL, gcreason::FINISH_LARGE_EVALUTE);
+    }
+
     return result;
 }
 
