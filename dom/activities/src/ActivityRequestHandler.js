@@ -34,8 +34,7 @@ function ActivityRequestHandler() {
   
   
   this._id = null;
-  this._options = Cc["@mozilla.org/dom/activities/options;1"]
-                    .createInstance(Ci.nsIDOMMozActivityOptions);
+  this._options = {name: "", data: null};
 }
 
 ActivityRequestHandler.prototype = {
