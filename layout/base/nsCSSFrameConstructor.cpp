@@ -3518,6 +3518,19 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   
   
   
+  nsIContent* parent = content->GetParent();
+  bool pushInsertionPoint = aState.mTreeMatchContext.mAncestorFilter.HasFilter() &&
+    parent && parent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL);
+  TreeMatchContext::AutoAncestorPusher
+    insertionPointPusher(pushInsertionPoint,
+                         aState.mTreeMatchContext,
+                         parent && parent->IsElement() ? parent->AsElement() : nullptr);
+
+  
+  
+  
+  
+  
   
   
   
@@ -9947,6 +9960,20 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
       
       
+      
+      
+      
+      nsIContent* parent = child->GetParent();
+      MOZ_ASSERT(parent, "Parent must be non-null because we are iterating children.");
+      MOZ_ASSERT(parent->IsElement());
+      bool pushInsertionPoint = parent != aContent &&
+        aState.mTreeMatchContext.mAncestorFilter.HasFilter();
+      TreeMatchContext::AutoAncestorPusher
+        ancestorPusher(pushInsertionPoint, aState.mTreeMatchContext,
+                       parent->AsElement());
+
+      
+      
       if (child->IsElement()) {
         child->UnsetFlags(ELEMENT_ALL_RESTYLE_FLAGS);
       }
@@ -11204,6 +11231,20 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
 
   FlattenedChildIterator iter(parentContent);
   for (nsIContent* content = iter.GetNextChild(); content; content = iter.GetNextChild()) {
+    
+    
+    
+    
+    
+    nsIContent* contentParent = content->GetParent();
+    MOZ_ASSERT(contentParent, "Parent must be non-null because we are iterating children.");
+    MOZ_ASSERT(contentParent->IsElement());
+    bool pushInsertionPoint = contentParent != parentContent &&
+      aState.mTreeMatchContext.mAncestorFilter.HasFilter();
+    TreeMatchContext::AutoAncestorPusher
+      insertionPointPusher(pushInsertionPoint, aState.mTreeMatchContext,
+                           contentParent->AsElement());
+
     
     
     

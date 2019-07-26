@@ -1369,6 +1369,18 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         NS_ASSERTION(!undisplayed->mStyle->GetPseudo(),
                      "Shouldn't have random pseudo style contexts in the "
                      "undisplayed map");
+
+        
+        
+        
+        nsIContent* parent = undisplayed->mContent->GetParent();
+        bool pushInsertionPoint = parent &&
+          parent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL);
+        TreeMatchContext::AutoAncestorPusher
+          insertionPointPusher(pushInsertionPoint,
+                               aTreeMatchContext,
+                               parent && parent->IsElement() ? parent->AsElement() : nullptr);
+
         nsRestyleHint thisChildHint = childRestyleHint;
         RestyleTracker::RestyleData undisplayedRestyleData;
         if (aRestyleTracker.GetRestyleData(undisplayed->mContent->AsElement(),
@@ -1524,6 +1536,19 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         for (; !childFrames.AtEnd(); childFrames.Next()) {
           nsIFrame* child = childFrames.get();
           if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+            
+            
+            
+
+            
+            
+            nsIContent* parent = child->GetContent() ? child->GetContent()->GetParent() : nullptr;
+            bool pushInsertionPoint = parent &&
+              parent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL);
+            TreeMatchContext::AutoAncestorPusher
+              insertionPointPusher(pushInsertionPoint, aTreeMatchContext,
+                                   parent && parent->IsElement() ? parent->AsElement() : nullptr);
+
             
             if (nsGkAtoms::placeholderFrame == child->GetType()) { 
               
