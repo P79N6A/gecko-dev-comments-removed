@@ -98,6 +98,8 @@ class PacketQueue : private nsDeque {
 class nsWebMReader : public nsBuiltinDecoderReader
 {
 public:
+  typedef mozilla::MediaByteRange MediaByteRange;
+
   nsWebMReader(nsBuiltinDecoder* aDecoder);
   ~nsWebMReader();
 
@@ -133,6 +135,19 @@ public:
   virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
   virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+
+  
+  void SetInitByteRange(MediaByteRange &aByteRange) {
+    mInitByteRange = aByteRange;
+  }
+
+  
+  void SetIndexByteRange(MediaByteRange &aByteRange) {
+    mCuesByteRange = aByteRange;
+  }
+
+  
+  nsresult GetIndexByteRanges(nsTArray<MediaByteRange>& aByteRanges);
 
 private:
   
@@ -211,6 +226,15 @@ private:
   
   bool mHasVideo;
   bool mHasAudio;
+
+  
+  MediaByteRange mInitByteRange;
+
+  
+  MediaByteRange mCuesByteRange;
+
+  
+  nsTArray<MediaByteRange> mClusterByteRanges;
 };
 
 #endif

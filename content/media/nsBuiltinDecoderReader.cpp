@@ -307,23 +307,23 @@ VideoData* nsBuiltinDecoderReader::FindStartTime(int64_t& aOutStartTime)
   return videoData;
 }
 
-template<class Data>
-Data* nsBuiltinDecoderReader::DecodeToFirstData(DecodeFn aDecodeFn,
-                                                MediaQueue<Data>& aQueue)
-{
-  bool eof = false;
-  while (!eof && aQueue.GetSize() == 0) {
-    {
-      ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
-      if (mDecoder->GetDecodeState() == nsDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
-        return nullptr;
-      }
-    }
-    eof = !(this->*aDecodeFn)();
-  }
-  Data* d = nullptr;
-  return (d = aQueue.PeekFront()) ? d : nullptr;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
 {

@@ -363,7 +363,14 @@ public:
                         nsIStreamListener** aListener,
                         nsMediaDecoder* aCloneDonor);
 
+  
+  nsresult OpenResource(MediaResource* aResource,
+                        nsIStreamListener** aStreamListener);
+
   virtual nsDecoderStateMachine* CreateStateMachine() = 0;
+
+  
+  nsresult InitializeStateMachine(nsMediaDecoder* aCloneDonor);
 
   
   
@@ -549,16 +556,16 @@ public:
   
   void DurationChanged();
 
-  bool OnStateMachineThread() const;
+  virtual bool OnStateMachineThread() const;
 
-  bool OnDecodeThread() const {
+  virtual bool OnDecodeThread() const {
     return mDecoderStateMachine->OnDecodeThread();
   }
 
   
   
-  ReentrantMonitor& GetReentrantMonitor() { 
-    return mReentrantMonitor; 
+  virtual ReentrantMonitor& GetReentrantMonitor() {
+    return mReentrantMonitor.GetReentrantMonitor();
   }
 
   
@@ -637,6 +644,10 @@ public:
 
   
   
+  virtual void OnReadMetadataCompleted() { }
+
+  
+  
   void MetadataLoaded(uint32_t aChannels,
                       uint32_t aRate,
                       bool aHasAudio,
@@ -693,7 +704,7 @@ public:
   nsDecoderStateMachine::State GetDecodeState() { return mDecoderStateMachine->GetState(); }
 
   
-  void ReleaseStateMachine() { mDecoderStateMachine = nullptr; }
+  virtual void ReleaseStateMachine() { mDecoderStateMachine = nullptr; }
 
    
    
@@ -771,8 +782,39 @@ public:
   
   
   
-  ReentrantMonitor mReentrantMonitor;
+  
+  
+  
+  
+  
+  
+  
+private:
+  class RestrictedAccessMonitor
+  {
+  public:
+    RestrictedAccessMonitor(const char* aName) :
+      mReentrantMonitor(aName)
+    {
+      MOZ_COUNT_CTOR(RestrictedAccessMonitor);
+    }
+    ~RestrictedAccessMonitor()
+    {
+      MOZ_COUNT_DTOR(RestrictedAccessMonitor);
+    }
 
+    
+    ReentrantMonitor& GetReentrantMonitor() {
+      return mReentrantMonitor;
+    }
+  private:
+    ReentrantMonitor mReentrantMonitor;
+  };
+
+  
+  RestrictedAccessMonitor mReentrantMonitor;
+
+public:
   
   nsTArray<OutputStreamData> mOutputStreams;
   

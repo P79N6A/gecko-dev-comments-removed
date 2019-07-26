@@ -362,6 +362,7 @@ public:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::ReentrantMonitorAutoEnter ReentrantMonitorAutoEnter;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
+  typedef mozilla::MediaByteRange MediaByteRange;
 
   nsBuiltinDecoderReader(nsBuiltinDecoder* aDecoder);
   virtual ~nsBuiltinDecoderReader();
@@ -398,7 +399,7 @@ public:
   
   
   
-  VideoData* FindStartTime(int64_t& aOutStartTime);
+  virtual VideoData* FindStartTime(int64_t& aOutStartTime);
 
   
   
@@ -408,6 +409,7 @@ public:
                         int64_t aEndTime,
                         int64_t aCurrentTime) = 0;
 
+protected:
   
   
   MediaQueue<AudioData> mAudioQueue;
@@ -416,6 +418,7 @@ public:
   
   MediaQueue<VideoData> mVideoQueue;
 
+public:
   
   
   
@@ -435,7 +438,7 @@ public:
     int64_t mResult;
   };
 
-  int64_t VideoQueueMemoryInUse() {
+  virtual int64_t VideoQueueMemoryInUse() {
     VideoQueueMemoryFunctor functor;
     mVideoQueue.LockedForEach(functor);
     return functor.mResult;
@@ -454,7 +457,7 @@ public:
     int64_t mResult;
   };
 
-  int64_t AudioQueueMemoryInUse() {
+  virtual int64_t AudioQueueMemoryInUse() {
     AudioQueueMemoryFunctor functor;
     mAudioQueue.LockedForEach(functor);
     return functor.mResult;
@@ -464,11 +467,13 @@ public:
   
   virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {}
 
-protected:
+  virtual MediaQueue<AudioData>& AudioQueue() { return mAudioQueue; }
+  virtual MediaQueue<VideoData>& VideoQueue() { return mVideoQueue; }
 
   
-  
-  nsresult DecodeToTarget(int64_t aTarget);
+  nsBuiltinDecoder* GetDecoder() {
+    return mDecoder;
+  }
 
   
   
@@ -478,7 +483,22 @@ protected:
   
   template<class Data>
   Data* DecodeToFirstData(DecodeFn aDecodeFn,
-                          MediaQueue<Data>& aQueue);
+                          MediaQueue<Data>& aQueue)
+  {
+    bool eof = false;
+    while (!eof && aQueue.GetSize() == 0) {
+      {
+        ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
+        if (mDecoder->GetDecodeState()
+            == nsDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
+          return nullptr;
+        }
+      }
+      eof = !(this->*aDecodeFn)();
+    }
+    Data* d = nullptr;
+    return (d = aQueue.PeekFront()) ? d : nullptr;
+  }
 
   
   
@@ -486,6 +506,22 @@ protected:
     bool f = false;
     return DecodeVideoFrame(f, 0);
   }
+
+  
+  virtual void SetInitByteRange(MediaByteRange &aByteRange) { }
+
+  
+  virtual void SetIndexByteRange(MediaByteRange &aByteRange) { }
+
+  
+  nsresult GetIndexByteRanges(nsTArray<MediaByteRange>& aByteRanges) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+protected:
+  
+  
+  nsresult DecodeToTarget(int64_t aTarget);
 
   
   nsBuiltinDecoder* mDecoder;
