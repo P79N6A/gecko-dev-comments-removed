@@ -20,8 +20,10 @@ public class testAdobeFlash extends PixelTest {
 
     public void testLoad() {
         
-        if (Build.VERSION.SDK_INT < 15)
+        if (Build.VERSION.SDK_INT < 15) {
+            blockForGeckoReady();
             return;
+        }
 
         
         JSONObject jsonPref = new JSONObject();
