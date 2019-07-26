@@ -84,10 +84,21 @@ const PanelUI = {
         updateEditUIVisibility();
       }
 
-      let anchor = aEvent ? aEvent.target : this.menuButton;
+      let anchor;
+      if (aEvent.type == "command") {
+        anchor = this.menuButton;
+      } else {
+        anchor = aEvent.target;
+      }
       let iconAnchor =
         document.getAnonymousElementByAttribute(anchor, "class",
                                                 "toolbarbutton-icon");
+
+      
+      
+      let keyboardOpened = aEvent.sourceEvent &&
+                           aEvent.sourceEvent.target.localName == "key";
+      this.panel.setAttribute("noautofocus", !keyboardOpened);
       this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
     }
   },
