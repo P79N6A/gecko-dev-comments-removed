@@ -132,7 +132,7 @@ DownloadStore.prototype = {
           } finally {
             
             
-            yield this.list.add(download);
+            this.list.add(download);
           }
         } catch (ex) {
           

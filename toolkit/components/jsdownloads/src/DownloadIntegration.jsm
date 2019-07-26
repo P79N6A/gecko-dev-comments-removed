@@ -217,10 +217,7 @@ this.DownloadIntegration = {
       
       
       
-      
-      
-      
-      yield new DownloadAutoSaveView(aList, this._store).initialize();
+      new DownloadAutoSaveView(aList, this._store);
       new DownloadHistoryObserver(aList);
     }.bind(this));
   },
@@ -772,8 +769,7 @@ this.DownloadObserver = {
       }
     };
 
-    
-    aList.addView(downloadsView).then(null, Cu.reportError);
+    aList.addView(downloadsView);
   },
 
   
@@ -832,9 +828,8 @@ this.DownloadObserver = {
           let list = yield Downloads.getList(Downloads.PRIVATE);
           let downloads = yield list.getAll();
 
-          
           for (let download of downloads) {
-            list.remove(download).then(null, Cu.reportError);
+            list.remove(download);
             download.finalize(true).then(null, Cu.reportError);
           }
         });
@@ -919,25 +914,17 @@ DownloadHistoryObserver.prototype = {
 
 
 
-
-
 function DownloadAutoSaveView(aList, aStore) {
-  this._list = aList;
   this._store = aStore;
   this._downloadsMap = new Map();
+
+  
+  
+  aList.addView(this);
+  this._initialized = true;
 }
 
 DownloadAutoSaveView.prototype = {
-  
-
-
-  _list: null,
-
-  
-
-
-  _store: null,
-
   
 
 
@@ -946,16 +933,7 @@ DownloadAutoSaveView.prototype = {
   
 
 
-
-
-
-
-  initialize: function ()
-  {
-    
-    
-    return this._list.addView(this).then(() => this._initialized = true);
-  },
+  _store: null,
 
   
 
