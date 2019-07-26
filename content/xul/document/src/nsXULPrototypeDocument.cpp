@@ -27,6 +27,7 @@
 #include "nsDOMCID.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentUtils.h"
+#include "nsCxPusher.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsDOMJSUtils.h" 
 #include "xpcpublic.h"

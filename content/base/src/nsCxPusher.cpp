@@ -4,8 +4,9 @@
 
 
 
-#include "nsContentUtils.h"
 #include "nsCxPusher.h"
+
+#include "nsContentUtils.h"
 #include "nsIScriptContext.h"
 #include "mozilla/dom/EventTarget.h"
 #include "nsJSUtils.h"

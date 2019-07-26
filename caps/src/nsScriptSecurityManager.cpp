@@ -61,6 +61,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticPtr.h"
 #include "nsContentUtils.h"
+#include "nsCxPusher.h"
 
 
 #define WEBAPPS_PERM_NAME "webapps-manage"

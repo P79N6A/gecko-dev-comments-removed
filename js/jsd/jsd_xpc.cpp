@@ -33,6 +33,7 @@
 #include "SandboxPrivate.h"
 #include "nsJSPrincipals.h"
 #include "nsContentUtils.h"
+#include "nsCxPusher.h"
 
 
 
