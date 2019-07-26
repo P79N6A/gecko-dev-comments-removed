@@ -26,6 +26,7 @@ class ErrorResult;
 
 namespace dom {
 
+class AudioParam;
 struct ThreeDPoint;
 
 template<class T>
@@ -108,6 +109,9 @@ public:
   virtual void Connect(AudioNode& aDestination, uint32_t aOutput,
                        uint32_t aInput, ErrorResult& aRv);
 
+  virtual void Connect(AudioParam& aDestination, uint32_t aOutput,
+                       ErrorResult& aRv);
+
   virtual void Disconnect(uint32_t aOutput, ErrorResult& aRv);
 
   
@@ -153,6 +157,7 @@ public:
     AudioNode* mInputNode;
     nsRefPtr<MediaInputPort> mStreamPort;
     
+    
     uint32_t mInputPort;
     
     uint32_t mOutputPort;
@@ -164,6 +169,8 @@ public:
   {
     return mInputNodes;
   }
+
+  void RemoveOutputParam(AudioParam* aParam);
 
 private:
   
@@ -197,6 +204,12 @@ private:
   
   
   nsTArray<nsRefPtr<AudioNode> > mOutputNodes;
+  
+  
+  
+  
+  
+  nsTArray<nsRefPtr<AudioParam> > mOutputParams;
   uint32_t mChannelCount;
   ChannelCountMode mChannelCountMode;
   ChannelInterpretation mChannelInterpretation;
