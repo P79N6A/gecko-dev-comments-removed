@@ -327,8 +327,14 @@ protected:
   
   
   void IncrementLength(uint32_t n) {
-    MOZ_ASSERT(mHdr != EmptyHdr() || n == 0, "bad data pointer");
-    mHdr->mLength += n;
+    if (mHdr == EmptyHdr()) {
+      if (MOZ_UNLIKELY(n != 0)) {
+        
+        MOZ_CRASH();
+      }
+    } else {
+      mHdr->mLength += n;
+    }
   }
 
   
