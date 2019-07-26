@@ -72,7 +72,8 @@ ContentPermissionPrompt.prototype = {
         
         if (aChecked) {
           Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION);
-        } else {
+        } else if (entityName == "desktopNotification") {
+          
           
           Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION, Ci.nsIPermissionManager.EXPIRE_SESSION);
         }
