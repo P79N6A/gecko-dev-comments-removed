@@ -17,7 +17,6 @@ import org.mozilla.gecko.util.FloatUtils;
 
 import android.content.Context;
 import android.graphics.PointF;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
@@ -137,6 +136,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         
         
         mView.post(new Runnable() {
+            @Override
             public void run() {
                 mView.getGLController().createCompositor();
             }

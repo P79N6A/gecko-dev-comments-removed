@@ -465,21 +465,25 @@ public class LayerView extends FrameLayout {
     }
 
     private class SurfaceTextureListener implements TextureView.SurfaceTextureListener {
+        @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
             
             
             onSizeChanged(width, height);
         }
 
+        @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
             onDestroyed();
             return true; 
         }
 
+        @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
             onSizeChanged(width, height);
         }
 
+        @Override
         public void onSurfaceTextureUpdated(SurfaceTexture surface) {
 
         }
