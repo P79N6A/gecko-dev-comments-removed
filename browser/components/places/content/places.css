@@ -14,3 +14,33 @@ tree[type="places"] {
 menupopup[placespopup="true"] {
   -moz-binding: url("chrome://browser/content/places/menu.xml#places-popup-base");
 }
+
+richlistitem.download {
+	-moz-binding: url('chrome://browser/content/places/download.xml#download');
+}
+
+.download-state:not(          [state="0"]  )
+                                           .downloadPauseMenuItem,
+.download-state:not(          [state="4"]  )
+                                           .downloadResumeMenuItem,
+.download-state:not(:-moz-any([state="2"], 
+                              [state="4"]) )
+                                           .downloadCancelMenuItem,
+.download-state:not(:-moz-any([state="1"], 
+                              [state="2"], 
+                              [state="3"], 
+                              [state="6"], 
+                              [state="8"], 
+                              [state="9"]) )
+                                           .downloadRemoveFromListMenuItem,
+.download-state:not(:-moz-any([state="-1"],
+                              [state="5"], 
+                              [state="0"], 
+                              [state="4"]) )
+                                           .downloadShowMenuItem,
+
+.download-state[state="7"]                 .downloadCommandsSeparator
+
+{
+  display: none;
+}

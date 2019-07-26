@@ -21,6 +21,7 @@ const MOZURISPEC = "http://mozilla.com/";
 
 let gLibrary;
 let PlacesOrganizer;
+let ContentTree;
 
 function test() {
   waitForExplicitFinish();
@@ -33,6 +34,9 @@ function onLibraryReady() {
 
   PlacesOrganizer = gLibrary.PlacesOrganizer;
   ok(PlacesOrganizer, "Places organizer in scope");
+
+  ContentTree = gLibrary.ContentTree;
+  ok(ContentTree, "ContentTree is in scope");
 
   tests.makeHistVisit();
   tests.makeTag();
@@ -101,12 +105,12 @@ let tests = {
     PlacesUtils.asContainer(histContainer);
     histContainer.containerOpen = true;
     PlacesOrganizer._places.selectNode(histContainer.getChild(0));
-    let histNode = PlacesOrganizer._content.view.nodeForTreeIndex(0);
-    PlacesOrganizer._content.selectNode(histNode);
+    let histNode = ContentTree.view.view.nodeForTreeIndex(0);
+    ContentTree.view.selectNode(histNode);
     is(histNode.uri, MOZURISPEC,
        "historyNode exists: " + histNode.uri);
     
-    PlacesOrganizer._content.controller.copy();
+    ContentTree.view.controller.copy();
   },
 
   historyNode: function (){
@@ -116,7 +120,7 @@ let tests = {
     PlacesUtils.asContainer(histContainer);
     histContainer.containerOpen = true;
     PlacesOrganizer._places.selectNode(histContainer.getChild(0));
-    let histNode = PlacesOrganizer._content.view.nodeForTreeIndex(0);
+    let histNode = ContentTree.view.view.nodeForTreeIndex(0);
     ok(histNode, "histNode exists: " + histNode.title);
     
     let tags = PlacesUtils.tagging.getTagsForURI(NetUtil.newURI(MOZURISPEC));
@@ -134,7 +138,7 @@ let tests = {
     
     PlacesOrganizer.selectLeftPaneQuery("UnfiledBookmarks");
     
-    let unsortedNode = PlacesOrganizer._content.view.nodeForTreeIndex(1);
+    let unsortedNode = ContentTree.view.view.nodeForTreeIndex(1);
     ok(unsortedNode, "unsortedNode is not null: " + unsortedNode.uri);
     is(unsortedNode.uri, MOZURISPEC, "node uri's are the same");
   },
