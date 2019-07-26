@@ -280,9 +280,9 @@ nsRect
   return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
 }
 
-nsRect
+nsIntRect
 nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
-                                                      const nsRect& aInvalidRect)
+                                                      const nsIntRect& aInvalidRect)
 {
   
   
@@ -298,22 +298,26 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
     return aInvalidRect;
   }
 
+  int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
+
   nsSVGFilterFrame* filterFrame = prop->GetFilterFrame();
   if (!filterFrame) {
     
     
     
-    return aFrame->GetVisualOverflowRect();
+    nsRect overflow = aFrame->GetVisualOverflowRect();
+    return overflow.ToOutsidePixels(appUnitsPerDevPixel);
   }
 
   
   nsPoint toUserSpace =
     aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
-  nsRect preEffectsRect = aInvalidRect + toUserSpace;
+  nsRect preEffectsRect = aInvalidRect.ToAppUnits(appUnitsPerDevPixel) + toUserSpace;
 
   
-  return filterFrame->GetPostFilterDirtyArea(firstFrame, preEffectsRect) -
+  nsRect result = filterFrame->GetPostFilterDirtyArea(firstFrame, preEffectsRect) -
            toUserSpace;
+  return result.ToOutsidePixels(appUnitsPerDevPixel);
 }
 
 nsRect

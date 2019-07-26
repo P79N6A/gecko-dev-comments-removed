@@ -427,7 +427,7 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
     
     
     if (parentWidget == GetNearestWidget()) {
-      Invalidate(GetContentRectRelativeToSelf());
+      InvalidateFrame();
     }
 #endif
 
@@ -1638,7 +1638,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   r.Round();
   nsRefPtr<Layer> layer =
-    (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aManager, aItem));
+    (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
 
   if (aItem->GetType() == nsDisplayItem::TYPE_PLUGIN) {
     if (!layer) {

@@ -140,10 +140,6 @@ typedef uint64_t nsFrameState;
 
 
 
-#define NS_FRAME_HAS_CONTAINER_LAYER                NS_FRAME_STATE_BIT(3)
-
-
-
 
 #define NS_FRAME_EXTERNAL_REFERENCE                 NS_FRAME_STATE_BIT(4)
 
@@ -254,10 +250,6 @@ typedef uint64_t nsFrameState;
 #define NS_FRAME_DRAWING_AS_PAINTSERVER             NS_FRAME_STATE_BIT(33)
 
 
-
-#define NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT     NS_FRAME_STATE_BIT(34)
-
-
 #define NS_FRAME_HAS_CLIP                           NS_FRAME_STATE_BIT(35)
 
 
@@ -310,6 +302,16 @@ typedef uint64_t nsFrameState;
 
 
 #define NS_FRAME_IS_SVG_TEXT                        NS_FRAME_STATE_BIT(47)
+
+
+#define NS_FRAME_NEEDS_PAINT                        NS_FRAME_STATE_BIT(48)
+
+
+
+#define NS_FRAME_DESCENDANT_NEEDS_PAINT             NS_FRAME_STATE_BIT(49)
+
+
+#define NS_FRAME_IN_POPUP                           NS_FRAME_STATE_BIT(50)
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
@@ -1076,6 +1078,13 @@ public:
   virtual const nsFrameList& GetChildList(ChildListID aListID) const = 0;
   const nsFrameList& PrincipalChildList() { return GetChildList(kPrincipalList); }
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const = 0;
+
+  
+
+
+
+  void GetCrossDocChildLists(nsTArray<ChildList>* aLists);
+
   
   nsIFrame* GetFirstChild(ChildListID aListID) const {
     return GetChildList(aListID).FirstChild();
@@ -1398,6 +1407,16 @@ public:
 
   void AddStateBits(nsFrameState aBits) { mState |= aBits; }
   void RemoveStateBits(nsFrameState aBits) { mState &= ~aBits; }
+
+  
+
+
+  bool HasAllStateBits(nsFrameState aBits) { return (mState & aBits) == aBits; }
+  
+  
+
+
+  bool HasAnyStateBits(nsFrameState aBits) { return mState & aBits; }
 
   
 
@@ -2149,78 +2168,6 @@ public:
   
 
 
-  void InvalidateWithFlags(const nsRect& aDamageRect, uint32_t aFlags);
-
-  
-
-
-
-
-
-
-
-
-
-  void Invalidate(const nsRect& aDamageRect)
-  { return InvalidateWithFlags(aDamageRect, 0); }
-
-  
-
-
-
-
-
-
-
-
-  Layer* InvalidateLayer(const nsRect& aDamageRect, uint32_t aDisplayItemKey);
-
-  
-
-
-
-
-  void InvalidateTransformLayer();
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2228,21 +2175,49 @@ public:
 
 
   enum {
-    INVALIDATE_IMMEDIATE = 0x01,
-    INVALIDATE_CROSS_DOC = 0x02,
-    INVALIDATE_REASON_SCROLL_BLIT = 0x04,
-    INVALIDATE_REASON_SCROLL_REPAINT = 0x08,
-    INVALIDATE_REASON_MASK = INVALIDATE_REASON_SCROLL_BLIT |
-                             INVALIDATE_REASON_SCROLL_REPAINT,
-    INVALIDATE_NO_THEBES_LAYERS = 0x10,
-    INVALIDATE_ONLY_THEBES_LAYERS = 0x20,
-    INVALIDATE_EXCLUDE_CURRENT_PAINT = 0x40,
-    INVALIDATE_NO_UPDATE_LAYER_TREE = 0x80,
-    INVALIDATE_ALREADY_TRANSFORMED = 0x100
+    INVALIDATE_DONT_SCHEDULE_PAINT
   };
-  virtual void InvalidateInternal(const nsRect& aDamageRect,
-                                  nscoord aOffsetX, nscoord aOffsetY,
-                                  nsIFrame* aForChild, uint32_t aFlags);
+  virtual void InvalidateFrame(uint32_t aFlags = 0);
+  
+  
+
+
+
+
+
+
+  void InvalidateFrameSubtree(uint32_t aFlags = 0);
+  
+  
+
+
+
+  bool IsInvalid();
+ 
+  
+
+
+
+  bool HasInvalidFrameInSubtree()
+  {
+    return HasAnyStateBits(NS_FRAME_NEEDS_PAINT | NS_FRAME_DESCENDANT_NEEDS_PAINT);
+  }
+
+  
+
+
+
+  void ClearInvalidationStateBits();
+
+  
+
+
+
+
+
+
+
+  void SchedulePaint();
 
   
 
@@ -2255,33 +2230,7 @@ public:
 
 
 
-  void InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
-                                     nscoord aY, uint32_t aFlags);
-
-  
-
-
-
-
-
-
-
-  void InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2);
-
-  
-
-
-
-
-
-  void InvalidateFrameSubtree();
-
-  
-
-
-
-
-  void InvalidateOverflowRect();
+  Layer* InvalidateLayer(uint32_t aDisplayItemKey, const nsIntRect* aDamageRect = nullptr);
 
   
 
@@ -2743,7 +2692,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   bool IsHorizontal() const { return (mState & NS_STATE_IS_HORIZONTAL) != 0; }
   bool IsNormalDirection() const { return (mState & NS_STATE_IS_DIRECTION_NORMAL) != 0; }
 
-  NS_HIDDEN_(nsresult) Redraw(nsBoxLayoutState& aState, const nsRect* aRect = nullptr);
+  NS_HIDDEN_(nsresult) Redraw(nsBoxLayoutState& aState);
   NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIFrame* aChild)=0;
   
   virtual bool GetMouseThrough() const { return false; }
@@ -2791,17 +2740,6 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
   CaretPosition GetExtremeCaretPosition(bool aStart);
-
-  
-
-
-
-
-
-
-  void CheckInvalidateSizeChange(const nsRect& aOldRect,
-                                 const nsRect& aOldVisualOverflowRect,
-                                 const nsSize& aNewDesiredSize);
 
   
 
@@ -2965,12 +2903,6 @@ protected:
   } mOverflow;
 
   
-  
-
-
-
-  void InvalidateRoot(const nsRect& aDamageRect, uint32_t aFlags);
-
   
 
 

@@ -364,14 +364,7 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
             
             
             
-            if (childRectNoMargin.Intersects(oldRect)) {
-              nsRect u;
-              u.UnionRect(oldRect, childRectNoMargin);
-              aBox->Redraw(aState, &u);
-            } else {
-              aBox->Redraw(aState, &oldRect);
-              aBox->Redraw(aState, &childRectNoMargin);
-            }
+            aBox->Redraw(aState);
           }
        }
 

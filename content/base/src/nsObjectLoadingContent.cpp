@@ -951,7 +951,7 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
 
     
     objFrame->FixupWindow(objFrame->GetContentRectRelativeToSelf().Size());
-    objFrame->Invalidate(objFrame->GetContentRectRelativeToSelf());
+    objFrame->InvalidateFrame();
   }
   return NS_OK;
 }

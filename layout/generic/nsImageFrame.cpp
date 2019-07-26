@@ -588,19 +588,11 @@ nsImageFrame::OnDataAvailable(imgIRequest *aRequest,
   if (!aCurrentFrame)
     return NS_OK;
 
-  
-  
-  nsRect r = aRect->IsEqualInterior(nsIntRect::GetMaxSizedIntRect()) ?
-    GetInnerArea() :
-    SourceRectToDest(*aRect);
-
 #ifdef DEBUG_decode
-  printf("Source rect (%d,%d,%d,%d) -> invalidate dest rect (%d,%d,%d,%d)\n",
-         aRect->x, aRect->y, aRect->width, aRect->height,
-         r.x, r.y, r.width, r.height);
+  printf("Source rect (%d,%d,%d,%d)\n",
+         aRect->x, aRect->y, aRect->width, aRect->height);
 #endif
-
-  Invalidate(r);
+  InvalidateFrame();
   
   return NS_OK;
 }
@@ -659,10 +651,8 @@ nsImageFrame::NotifyNewCurrentRequest(imgIRequest *aRequest,
                                     NS_FRAME_IS_DIRTY);
       }
     } else {
-      nsSize s = GetSize();
-      nsRect r(0, 0, s.width, s.height);
       
-      Invalidate(r);
+      InvalidateFrame();
     }
   }
 }
@@ -681,12 +671,8 @@ nsImageFrame::FrameChanged(imgIRequest *aRequest,
     return NS_OK;
   }
 
-  nsRect r = aDirtyRect->IsEqualInterior(nsIntRect::GetMaxSizedIntRect()) ?
-    GetInnerArea() :
-    SourceRectToDest(*aDirtyRect);
-
   
-  Invalidate(r);
+  InvalidateFrame();
   return NS_OK;
 }
 
@@ -880,15 +866,6 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
 
   aMetrics.SetOverflowAreasToDesiredBounds();
   FinishAndStoreOverflow(&aMetrics);
-
-  
-  
-  
-  
-  
-  if (mRect.width != aMetrics.width || mRect.height != aMetrics.height) {
-    Invalidate(nsRect(0, 0, mRect.width, mRect.height));
-  }
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                   ("exit nsImageFrame::Reflow: size=%d,%d",
@@ -2011,7 +1988,7 @@ nsImageFrame::IconLoad::OnStopRequest(imgIRequest *aRequest,
   nsImageFrame *frame;
   while (iter.HasMore()) {
     frame = iter.GetNext();
-    frame->Invalidate(frame->GetRect());
+    frame->InvalidateFrame();
   }
 
   return NS_OK;
@@ -2032,7 +2009,7 @@ nsImageFrame::IconLoad::FrameChanged(imgIRequest *aRequest,
   nsImageFrame *frame;
   while (iter.HasMore()) {
     frame = iter.GetNext();
-    frame->Invalidate(frame->GetRect());
+    frame->InvalidateFrame();
   }
 
   return NS_OK;

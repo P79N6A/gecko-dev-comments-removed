@@ -1211,10 +1211,7 @@ AnyTablePartHasBorderOrBackground(nsIFrame* aStart, nsIFrame* aEnd)
   for (nsIFrame* f = aStart; f != aEnd; f = f->GetNextSibling()) {
     NS_ASSERTION(IsFrameAllowedInTable(f->GetType()), "unexpected frame type");
 
-    if (f->GetStyleVisibility()->IsVisible() &&
-        (!f->GetStyleBackground()->IsTransparent() ||
-         f->GetStyleDisplay()->mAppearance ||
-         f->GetStyleBorder()->HasBorder()))
+    if (FrameHasBorderOrBackground(f))
       return true;
 
     nsTableCellFrame *cellFrame = do_QueryFrame(f);
@@ -1394,10 +1391,7 @@ nsTableFrame::ProcessRowInserted(nscoord aNewHeight)
         if (rowFrame->IsFirstInserted()) {
           rowFrame->SetFirstInserted(false);
           
-          nscoord damageY = rgFrame->GetPosition().y + rowFrame->GetPosition().y;
-          nsRect damageRect(0, damageY, GetSize().width, aNewHeight - damageY);
-
-          Invalidate(damageRect);
+          InvalidateFrame();
           
           SetRowInserted(false);
           return; 
@@ -1811,13 +1805,6 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*           aPresContext,
     tableRect.Inflate(bcMargin);
   }
   aDesiredSize.mOverflowAreas.UnionAllWith(tableRect);
-
-  if (GetStateBits() & NS_FRAME_FIRST_REFLOW) {
-    
-    Invalidate(aDesiredSize.VisualOverflow());
-  } else {
-    CheckInvalidateSizeChange(aDesiredSize);
-  }
 
   FinishAndStoreOverflow(&aDesiredSize);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
@@ -2504,15 +2491,9 @@ void nsTableFrame::PlaceChild(nsTableReflowState&  aReflowState,
                               const nsRect&        aOriginalKidRect,
                               const nsRect&        aOriginalKidVisualOverflow)
 {
-  bool isFirstReflow =
-    (aKidFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
-
   
   FinishReflowChild(aKidFrame, PresContext(), nullptr, aKidDesiredSize,
                     aReflowState.x, aReflowState.y, 0);
-
-  InvalidateFrame(aKidFrame, aOriginalKidRect, aOriginalKidVisualOverflow,
-                  isFirstReflow);
 
   
   aReflowState.y += aKidDesiredSize.height;
@@ -2948,13 +2929,9 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       aReflowState.y += cellSpacingY;
       nsRect kidRect = kidFrame->GetRect();
       if (kidRect.y != aReflowState.y) {
-        
-        kidFrame->InvalidateFrameSubtree();
         kidRect.y = aReflowState.y;
         kidFrame->SetRect(kidRect);        
         RePositionViews(kidFrame);
-        
-        kidFrame->InvalidateFrameSubtree();
       }
       aReflowState.y += kidRect.height;
 
@@ -3128,17 +3105,13 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
             amountUsedByRG += amountForRow;
             
             nsTableFrame::RePositionViews(rowFrame);
-
-            rgFrame->InvalidateRectDifference(oldRowRect, rowRect);
           }
         }
         else {
           if (amountUsed > 0 && yOriginRow != rowRect.y &&
               !(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-            rowFrame->InvalidateFrameSubtree();
             rowFrame->SetPosition(nsPoint(rowRect.x, yOriginRow));
             nsTableFrame::RePositionViews(rowFrame);
-            rowFrame->InvalidateFrameSubtree();
           }
           yOriginRow += rowRect.height + cellSpacingY;
           yEndRG += rowRect.height + cellSpacingY;
@@ -3146,28 +3119,18 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
         rowFrame = rowFrame->GetNextRow();
       }
       if (amountUsed > 0) {
-        if (rgRect.y != yOriginRG) {
-          rgFrame->InvalidateFrameSubtree();
-        }
-
         nsRect origRgRect = rgRect;
-        nsRect origRgVisualOverflow = rgFrame->GetVisualOverflowRect();
 
         rgRect.y = yOriginRG;
         rgRect.height += amountUsedByRG;
 
         rgFrame->SetRect(rgRect);
-
-        nsTableFrame::InvalidateFrame(rgFrame, origRgRect,
-                                      origRgVisualOverflow, false);
       }
     }
     else if (amountUsed > 0 && yOriginRG != rgRect.y) {
-      rgFrame->InvalidateFrameSubtree();
       rgFrame->SetPosition(nsPoint(rgRect.x, yOriginRG));
       
       nsTableFrame::RePositionViews(rgFrame);
-      rgFrame->InvalidateFrameSubtree();
     }
     yOriginRG = yEndRG;
   }
@@ -3275,10 +3238,6 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
                                  ? aAmount - amountUsed : NSToCoordRound(((float)(heightToDistribute)) * ratio);
           amountForRow = NS_MIN(amountForRow, aAmount - amountUsed);
 
-          if (yOriginRow != rowRect.y) {
-            rowFrame->InvalidateFrameSubtree();
-          }
-
           
           nsRect newRowRect(rowRect.x, yOriginRow, rowRect.width,
                             rowRect.height + amountForRow);
@@ -3292,16 +3251,11 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
           NS_ASSERTION((amountUsed <= aAmount), "invalid row allocation");
           
           nsTableFrame::RePositionViews(rowFrame);
-
-          nsTableFrame::InvalidateFrame(rowFrame, rowRect, rowVisualOverflow,
-                                        false);
         }
         else {
           if (amountUsed > 0 && yOriginRow != rowRect.y) {
-            rowFrame->InvalidateFrameSubtree();
             rowFrame->SetPosition(nsPoint(rowRect.x, yOriginRow));
             nsTableFrame::RePositionViews(rowFrame);
-            rowFrame->InvalidateFrameSubtree();
           }
           yOriginRow += rowRect.height + cellSpacingY;
           yEndRG += rowRect.height + cellSpacingY;
@@ -3309,24 +3263,15 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
         rowFrame = rowFrame->GetNextRow();
       }
       if (amountUsed > 0) {
-        if (rgRect.y != yOriginRG) {
-          rgFrame->InvalidateFrameSubtree();
-        }
-
         rgFrame->SetRect(nsRect(rgRect.x, yOriginRG, rgRect.width,
                                 rgRect.height + amountUsedByRG));
-
-        nsTableFrame::InvalidateFrame(rgFrame, rgRect, rgVisualOverflow,
-                                      false);
       }
       
     }
     else if (amountUsed > 0 && yOriginRG != rgRect.y) {
-      rgFrame->InvalidateFrameSubtree();
       rgFrame->SetPosition(nsPoint(rgRect.x, yOriginRG));
       
       nsTableFrame::RePositionViews(rgFrame);
-      rgFrame->InvalidateFrameSubtree();
     }
     yOriginRG = yEndRG;
   }
@@ -7237,44 +7182,4 @@ bool nsTableFrame::RowIsSpannedInto(int32_t aRowIndex, int32_t aNumEffCols)
     result = cellMap->RowIsSpannedInto(aRowIndex, aNumEffCols);
   }
   return result;
-}
-
-
-void
-nsTableFrame::InvalidateFrame(nsIFrame* aFrame,
-                              const nsRect& aOrigRect,
-                              const nsRect& aOrigVisualOverflow,
-                              bool aIsFirstReflow)
-{
-  nsIFrame* parent = aFrame->GetParent();
-  NS_ASSERTION(parent, "What happened here?");
-
-  if (parent->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
-    
-    
-    return;
-  }
-
-  
-  
-  
-  nsRect visualOverflow = aFrame->GetVisualOverflowRect();
-  if (aIsFirstReflow ||
-      aOrigRect.TopLeft() != aFrame->GetPosition() ||
-      aOrigVisualOverflow.TopLeft() != visualOverflow.TopLeft()) {
-    
-    
-    
-    
-    
-    
-    aFrame->Invalidate(visualOverflow);
-    parent->Invalidate(aOrigVisualOverflow + aOrigRect.TopLeft());
-  } else {
-    nsRect rect = aFrame->GetRect();
-    aFrame->CheckInvalidateSizeChange(aOrigRect, aOrigVisualOverflow,
-                                      rect.Size());
-    aFrame->InvalidateRectDifference(aOrigVisualOverflow, visualOverflow);
-    parent->InvalidateRectDifference(aOrigRect, rect);
-  }
 }

@@ -415,6 +415,14 @@ nsSVGUtils::InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate,
     return;
   }
 
+  aFrame->InvalidateFrameSubtree();
+
+  if ((aFrame->GetType() == nsGkAtoms::svgPathGeometryFrame ||
+      aFrame->GetType() == nsGkAtoms::svgGlyphFrame) &&
+      NS_SVGDisplayListPaintingEnabled()) {
+    return;
+  }
+
   
   
   
@@ -479,8 +487,7 @@ nsSVGUtils::InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate,
   NS_ASSERTION(aFrame->GetStateBits() & NS_STATE_IS_OUTER_SVG,
                "SVG frames must always have an nsSVGOuterSVGFrame ancestor!");
 
-  static_cast<nsSVGOuterSVGFrame*>(aFrame)->InvalidateWithFlags(invalidArea,
-                                                                aFlags);
+  static_cast<nsSVGOuterSVGFrame*>(aFrame)->InvalidateSVG(invalidArea);
 }
 
 void

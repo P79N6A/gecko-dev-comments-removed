@@ -144,6 +144,25 @@ public:
     return mCallingReflowSVG;
   }
 
+  void InvalidateSVG(const nsRegion& aRegion)
+  {
+    if (!aRegion.IsEmpty()) {
+      mInvalidRegion.Or(mInvalidRegion, aRegion);
+      InvalidateFrame();
+    }
+  }
+  
+  void ClearInvalidRegion() { mInvalidRegion.SetEmpty(); }
+
+  const nsRegion& GetInvalidRegion() {
+    if (!IsInvalid()) {
+      mInvalidRegion.SetEmpty();
+    }
+    return mInvalidRegion;
+  }
+
+  nsRegion FindInvalidatedForeignObjectFrameChildren(nsIFrame* aFrame);
+
 protected:
 
   bool mCallingReflowSVG;
@@ -164,9 +183,11 @@ protected:
   
   
   
-  nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
+  nsTHashtable<nsPtrHashKey<nsSVGForeignObjectFrame> > mForeignObjectHash;
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
+
+  nsRegion mInvalidRegion; 
 
   float mFullZoom;
 
