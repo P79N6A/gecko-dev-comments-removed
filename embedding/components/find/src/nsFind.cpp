@@ -36,6 +36,13 @@ using namespace mozilla;
 static NS_DEFINE_CID(kCContentIteratorCID, NS_CONTENTITERATOR_CID);
 static NS_DEFINE_CID(kCPreContentIteratorCID, NS_PRECONTENTITERATOR_CID);
 
+#define CH_QUOTE ((PRUnichar) 0x22)
+#define CH_APOSTROPHE ((PRUnichar) 0x27)
+#define CH_LEFT_SINGLE_QUOTE ((PRUnichar) 0x2018)
+#define CH_RIGHT_SINGLE_QUOTE ((PRUnichar) 0x2019)
+#define CH_LEFT_DOUBLE_QUOTE ((PRUnichar) 0x201C)
+#define CH_RIGHT_DOUBLE_QUOTE ((PRUnichar) 0x201D)
+
 #define CH_SHY ((PRUnichar) 0xAD)
 
 
@@ -1101,9 +1108,32 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
     else if (!inWhitespace && !mCaseSensitive && IsUpperCase(c))
       c = ToLowerCase(c);
 
-    
-    if (c == CH_SHY)
-      continue;
+    switch (c) {
+      
+      case CH_SHY:
+        continue;
+      
+      case CH_LEFT_SINGLE_QUOTE:
+      case CH_RIGHT_SINGLE_QUOTE:
+        c = CH_APOSTROPHE;
+        break;
+      case CH_LEFT_DOUBLE_QUOTE:
+      case CH_RIGHT_DOUBLE_QUOTE:
+        c = CH_QUOTE;
+        break;
+    }
+
+    switch (patc) {
+      
+      case CH_LEFT_SINGLE_QUOTE:
+      case CH_RIGHT_SINGLE_QUOTE:
+        patc = CH_APOSTROPHE;
+        break;
+      case CH_LEFT_DOUBLE_QUOTE:
+      case CH_RIGHT_DOUBLE_QUOTE:
+        patc = CH_QUOTE;
+        break;
+    }
 
     
     if (pindex != (mFindBackward ? patLen : 0) && c != patc && !inWhitespace) {
