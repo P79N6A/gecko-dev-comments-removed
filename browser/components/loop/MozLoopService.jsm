@@ -8,6 +8,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
 
 this.EXPORTED_SYMBOLS = ["MozLoopService"];
 
@@ -335,18 +336,32 @@ let MozLoopServiceInternal = {
       return;
 
     let status = this.loopXhr.status;
-
     if (status != 200) {
       
       Cu.reportError("Failed to register with the loop server. Code: " +
         status + " Text: " + this.loopXhr.statusText);
-    }
-    else {
-      
-      this.registeredLoopServer = true;
+      this.endRegistration(status);
+      return;
     }
 
-    this.endRegistration(status == 200 ? null : status);
+    let sessionToken = this.loopXhr.getResponseHeader("Hawk-Session-Token");
+    if (sessionToken !== null) {
+
+      
+      if (sessionToken.length === 64) {
+
+        Services.prefs.setCharPref("loop.hawk-session-token", sessionToken);
+      } else {
+        
+        console.warn("Loop server sent an invalid session token");
+        this.endRegistration("session-token-wrong-size");
+        return;
+      }
+    }
+
+    
+    this.registeredLoopServer = true;
+    this.endRegistration(null);
   },
 
   

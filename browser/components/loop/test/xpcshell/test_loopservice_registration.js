@@ -53,6 +53,46 @@ add_test(function test_register_websocket_success_loop_server_fail() {
 
 
 
+add_test(function test_registration_returns_hawk_session_token() {
+  var fakeSessionToken = "1bad3e44b12f77a88fe09f016f6a37c42e40f974bc7a8b432bb0d2f0e37e1750";
+  Services.prefs.clearUserPref("loop.hawk-session-token");
+
+  server.registerPathHandler("/registration", (request, response) => {
+    response.setStatusLine(null, 200, "OK");
+    response.setHeader("Hawk-Session-Token", fakeSessionToken, false);
+    response.processAsync();
+    response.finish();
+  });
+
+  MozLoopService.register(function(err) {
+
+    Assert.equal(err, null, "Should not cause an error to be called back on" +
+      " an otherwise valid request");
+
+    var hawkSessionPref;
+    try {
+      hawkSessionPref = Services.prefs.getCharPref("loop.hawk-session-token");
+    } catch (ex) {
+      
+      dump("unexpected exception: " + ex + "\n");
+    }
+    Assert.equal(hawkSessionPref, fakeSessionToken, "Should store" +
+      " Hawk-Session-Token header contents in loop.hawk-session-token pref");
+
+    run_next_test();
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
 add_test(function test_register_success() {
   server.registerPathHandler("/registration", (request, response) => {
     response.setStatusLine(null, 200, "OK");
@@ -84,6 +124,7 @@ function run_test()
 
   do_register_cleanup(function() {
     gMockWebSocketChannelFactory.unregister();
+    Services.prefs.clearUserPref("loop.hawk-session-token");
     server.stop(function() {});
   });
 
