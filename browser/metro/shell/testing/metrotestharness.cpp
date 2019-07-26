@@ -229,6 +229,16 @@ static bool Launch()
   Log(L"Harness process id: %d", GetCurrentProcessId());
 
   
+  int binLen = wcslen(kFirefoxExe);
+  if (sFirefoxPath.GetLength() && sFirefoxPath.Right(binLen) != kFirefoxExe) {
+    Log(L"firefoxpath is missing a valid bin name! Assuming '%s'.", kFirefoxExe);
+    if (sFirefoxPath.Right(1) != L"\\") {
+      sFirefoxPath += L"\\";
+    }
+    sFirefoxPath += kFirefoxExe;
+  }
+
+  
   
   CStringA testFilePath;
   if (sFirefoxPath.GetLength()) {
@@ -254,8 +264,18 @@ static bool Launch()
     *slash = '\0'; 
     testFilePath = path;
     testFilePath += "\\";
+    sFirefoxPath = testFilePath;
+    sFirefoxPath += kFirefoxExe;
     testFilePath += kMetroTestFile;
   }
+
+  
+  if (GetFileAttributesW(sFirefoxPath) == INVALID_FILE_ATTRIBUTES) {
+    Fail(L"Invalid bin path: '%s'", sFirefoxPath);
+    return false;
+  }
+
+  Log(L"Using bin path: '%s'", sFirefoxPath);
 
   Log(L"Writing out tests.ini to: '%s'", CStringW(testFilePath));
   HANDLE hTestFile = CreateFileA(testFilePath, GENERIC_WRITE,
@@ -269,7 +289,13 @@ static bool Launch()
 
   DeleteTestFileHelper dtf(testFilePath);
 
-  CStringA asciiParams = sAppParams;
+  
+  
+  CStringA asciiParams = sFirefoxPath;
+  asciiParams += " ";
+  asciiParams += sAppParams;
+  asciiParams.Trim();
+  Log(L"Browser command line args: '%s'", CString(asciiParams));
   if (!WriteFile(hTestFile, asciiParams, asciiParams.GetLength(), NULL, 0)) {
     CloseHandle(hTestFile);
     Fail(L"WriteFile errorno=%d", GetLastError());
@@ -350,12 +376,7 @@ int wmain(int argc, WCHAR* argv[])
     sAppParams.Append(L" ");
   }
   sAppParams.Trim();
-  if (sFirefoxPath.GetLength()) {
-    Log(L"firefoxpath: '%s'", sFirefoxPath);
-  }
-  Log(L"args: '%s'", sAppParams);
   Launch();
-
   CoUninitialize();
   return 0;
 }
