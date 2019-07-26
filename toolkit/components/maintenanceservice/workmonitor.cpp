@@ -133,6 +133,7 @@ GetInstallationDir(int argcTmp, LPWSTR *argvTmp, WCHAR aResultDir[MAX_PATH])
 BOOL
 StartUpdateProcess(int argc,
                    LPWSTR *argv,
+                   LPCWSTR installDir,
                    BOOL &processStarted)
 {
   LOG(("Starting update process as the service in session 0.\n"));
@@ -248,7 +249,6 @@ StartUpdateProcess(int argc,
 
     
     if (updateWasSuccessful && argc > 2) {
-      LPCWSTR installationDir = argv[2];
       LPCWSTR updateInfoDir = argv[1];
       bool backgroundUpdate = IsUpdateBeingStaged(argc, argv);
 
@@ -264,8 +264,10 @@ StartUpdateProcess(int argc,
       
       if (!backgroundUpdate) {
         LOG(("Launching post update process as the service in session 0.\n"));
-        if (!LaunchWinPostProcess(installationDir, updateInfoDir, true, NULL)) {
-          LOG(("The post update process could not be launched.\n"));
+        if (!LaunchWinPostProcess(installDir, updateInfoDir, true, NULL)) {
+          LOG(("The post update process could not be launched."
+               " installDir: %ls, updateInfoDir: %ls\n",
+               installDir, updateInfoDir));
         }
       }
     }
@@ -419,7 +421,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   
   if (!updaterSignProblem) {
     BOOL updateProcessWasStarted = FALSE;
-    if (StartUpdateProcess(argc, argv,
+    if (StartUpdateProcess(argc, argv, installDir,
                            updateProcessWasStarted)) {
       LOG(("updater.exe was launched and run successfully!\n"));
       LogFlush();
