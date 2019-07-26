@@ -70,7 +70,8 @@ function test() {
         let values = ".variables-view-property .value";
 
         is(jsonScope.querySelector(".name").getAttribute("value"),
-          "JSON", "The json scope doesn't have the correct title.");
+          L10N.getStr("jsonScopeName"),
+          "The json scope doesn't have the correct title.");
 
         is(jsonScope.querySelectorAll(names)[0].getAttribute("value"),
           "0", "The first json property name was incorrect.");
