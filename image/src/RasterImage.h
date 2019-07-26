@@ -390,6 +390,9 @@ private:
     
 
     bool mAllocatedNewFrame;
+
+  private:
+    ~DecodeRequest() {}
   };
 
   
