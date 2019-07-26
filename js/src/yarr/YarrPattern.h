@@ -87,40 +87,28 @@ struct CharacterRange {
     }
 };
 
-struct CharacterClassTable : RefCounted<CharacterClassTable> {
-    const char* m_table;
-    bool m_inverted;
-    static PassRefPtr<CharacterClassTable> create(const char* table, bool inverted)
-    {
-        return adoptRef(js_new<CharacterClassTable>(table, inverted));
-    }
-
-    CharacterClassTable(const char* table, bool inverted)
-        : m_table(table)
-        , m_inverted(inverted)
-    {
-    }
-};
-
 struct CharacterClass {
     WTF_MAKE_FAST_ALLOCATED;
 public:
     
     
     
-    CharacterClass(PassRefPtr<CharacterClassTable> table)
-        : m_table(table)
+    CharacterClass()
+        : m_table(0)
     {
     }
-    ~CharacterClass()
+    CharacterClass(const char* table, bool inverted)
+        : m_table(table)
+        , m_tableInverted(inverted)
     {
-        js_delete(m_table.get());
     }
     Vector<UChar> m_matches;
     Vector<CharacterRange> m_ranges;
     Vector<UChar> m_matchesUnicode;
     Vector<CharacterRange> m_rangesUnicode;
-    RefPtr<CharacterClassTable> m_table;
+
+    const char* m_table;
+    bool m_tableInverted;
 };
 
 enum QuantifierType {
@@ -327,7 +315,7 @@ public:
         , m_hasFixedSize(false)
     {
     }
-    
+
     ~PatternDisjunction()
     {
         deleteAllValues(m_alternatives);
