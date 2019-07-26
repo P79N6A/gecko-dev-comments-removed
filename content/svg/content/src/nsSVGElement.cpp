@@ -1012,6 +1012,13 @@ nsSVGElement::sLightingEffectsMap[] = {
 };
 
 
+ const Element::MappedAttributeEntry
+nsSVGElement::sMaskMap[] = {
+  { &nsGkAtoms::mask_type },
+  { nullptr }
+};
+
+
 
 
 NS_IMETHODIMP
