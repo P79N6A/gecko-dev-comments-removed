@@ -379,8 +379,31 @@ class CodeGenerator : public CodeGeneratorSpecific
     
     
     
-    void testObjectTruthy(Register objreg, Label *ifTruthy, Label *ifFalsy, Register scratch,
-                          OutOfLineTestObject *ool);
+    
+    
+    void testObjectEmulatesUndefinedKernel(Register objreg,
+                                           Label *ifEmulatesUndefined,
+                                           Label *ifDoesntEmulateUndefined,
+                                           Register scratch, OutOfLineTestObject *ool);
+
+    
+    
+    
+    
+    void branchTestObjectEmulatesUndefined(Register objreg,
+                                           Label *ifEmulatesUndefined,
+                                           Label *ifDoesntEmulateUndefined,
+                                           Register scratch, OutOfLineTestObject *ool);
+
+    
+    
+    
+    
+    
+    void testObjectEmulatesUndefined(Register objreg,
+                                     Label *ifEmulatesUndefined,
+                                     Label *ifDoesntEmulateUndefined,
+                                     Register scratch, OutOfLineTestObject *ool);
 
     
     
