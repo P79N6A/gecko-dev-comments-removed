@@ -20,6 +20,10 @@ if (typeof newGlobal === "function") {
     var smith = Symbol("smith");
     g.smith = smith;  
     assertEq(g.smith, smith);  
+
+    
+    assertEq(g.Symbol.for("ponies"), Symbol.for("ponies"));
+    assertEq(g.eval("Symbol.for('rainbows')"), Symbol.for("rainbows"));
 }
 
 if (typeof reportCompare === "function")

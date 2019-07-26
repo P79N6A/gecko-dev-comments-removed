@@ -2,10 +2,14 @@
 
 
 
+assertEq(Symbol.for("q") === Symbol.for("q"), true);
+
+
 var symbols = [
     Symbol(),
     Symbol("Symbol.iterator"),
-    Symbol("Symbol.iterator")   
+    Symbol("Symbol.iterator"),  
+    Symbol.for("Symbol.iterator")
 ];
 
 

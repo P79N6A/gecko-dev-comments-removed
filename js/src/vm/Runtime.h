@@ -39,6 +39,7 @@
 #include "vm/MallocProvider.h"
 #include "vm/SPSProfiler.h"
 #include "vm/Stack.h"
+#include "vm/Symbol.h"
 #include "vm/ThreadPool.h"
 
 #ifdef _MSC_VER
@@ -1161,7 +1162,14 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     
     
+    
     JSCompartment *atomsCompartment_;
+
+    
+    
+    
+    
+    js::SymbolRegistry symbolRegistry_;
 
   public:
     bool initializeAtoms(JSContext *cx);
@@ -1186,6 +1194,11 @@ struct JSRuntime : public JS::shadow::Runtime,
     inline bool isAtomsZone(JS::Zone *zone);
 
     bool activeGCInAtomsZone();
+
+    js::SymbolRegistry &symbolRegistry() {
+        JS_ASSERT(currentThreadHasExclusiveAccess());
+        return symbolRegistry_;
+    }
 
     
     

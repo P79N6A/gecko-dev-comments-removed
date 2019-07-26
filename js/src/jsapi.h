@@ -4374,6 +4374,16 @@ NewSymbol(JSContext *cx, HandleString description);
 
 
 
+
+JS_PUBLIC_API(Symbol *)
+GetSymbolFor(JSContext *cx, HandleString key);
+
+
+
+
+
+
+
 JS_PUBLIC_API(JSString *)
 GetSymbolDescription(HandleSymbol symbol);
 
