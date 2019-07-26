@@ -2337,9 +2337,9 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   
   
   
-  nsCOMPtr<Element> dragTarget = aDataTransfer->GetDragTarget();
+  nsCOMPtr<nsIContent> dragTarget = aDataTransfer->GetDragTarget();
   if (!dragTarget) {
-    dragTarget = do_QueryInterface(aDragTarget);
+    dragTarget = aDragTarget;
     if (!dragTarget)
       return false;
   }
