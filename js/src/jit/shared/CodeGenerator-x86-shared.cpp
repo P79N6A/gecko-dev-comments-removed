@@ -551,19 +551,29 @@ CodeGeneratorX86Shared::visitPowHalfD(LPowHalfD *ins)
 
     Label done, sqrt;
 
-    
-    masm.loadConstantDouble(NegativeInfinity(), ScratchFloatReg);
-    masm.branchDouble(Assembler::DoubleNotEqualOrUnordered, input, ScratchFloatReg, &sqrt);
+    if (!ins->mir()->operandIsNeverNegativeInfinity()) {
+        
+        masm.loadConstantDouble(NegativeInfinity(), ScratchFloatReg);
 
-    
-    masm.xorpd(input, input);
-    masm.subsd(ScratchFloatReg, input);
-    masm.jump(&done);
+        Assembler::DoubleCondition cond = Assembler::DoubleNotEqualOrUnordered;
+        if (ins->mir()->operandIsNeverNaN())
+            cond = Assembler::DoubleNotEqual;
+        masm.branchDouble(cond, input, ScratchFloatReg, &sqrt);
 
-    
-    masm.bind(&sqrt);
-    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
-    masm.addsd(ScratchFloatReg, input);
+        
+        masm.xorpd(input, input);
+        masm.subsd(ScratchFloatReg, input);
+        masm.jump(&done);
+
+        masm.bind(&sqrt);
+    }
+
+    if (!ins->mir()->operandIsNeverNegativeZero()) {
+        
+        masm.xorpd(ScratchFloatReg, ScratchFloatReg);
+        masm.addsd(ScratchFloatReg, input);
+    }
+
     masm.sqrtsd(input, input);
 
     masm.bind(&done);
