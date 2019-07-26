@@ -1664,6 +1664,9 @@ var SelectionHandler = {
           
           
           this.endSelection();
+        } else if (this._activeType == this.TYPE_CURSOR) {
+          
+          this.hideThumb();
         }
         break;
       }
