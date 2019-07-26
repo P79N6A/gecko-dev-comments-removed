@@ -121,7 +121,7 @@ class OpenSlesInput {
     
     
     kNumOpenSlBuffers = 2,
-    kNum10MsToBuffer = 3,
+    kNum10MsToBuffer = 4,
   };
 
   int InitSampleRate();
