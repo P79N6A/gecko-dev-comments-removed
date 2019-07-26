@@ -3,8 +3,8 @@
 
 
 
-#ifndef __NS_SVGMARKERELEMENT_H__
-#define __NS_SVGMARKERELEMENT_H__
+#ifndef mozilla_dom_SVGMarkerElement_h
+#define mozilla_dom_SVGMarkerElement_h
 
 #include "gfxMatrix.h"
 #include "nsIDOMSVGFitToViewBox.h"
@@ -14,8 +14,16 @@
 #include "nsSVGLength2.h"
 #include "nsSVGViewBox.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
-#include "SVGGraphicsElement.h"
+#include "nsSVGElement.h"
 #include "mozilla/Attributes.h"
+
+class nsSVGMarkerFrame;
+
+nsresult NS_NewSVGMarkerElement(nsIContent **aResult,
+                                already_AddRefed<nsINodeInfo> aNodeInfo);
+
+namespace mozilla {
+namespace dom {
 
 class nsSVGOrientType
 {
@@ -68,22 +76,20 @@ private:
   };
 };
 
-typedef mozilla::dom::SVGGraphicsElement nsSVGMarkerElementBase;
+typedef nsSVGElement SVGMarkerElementBase;
 
-class nsSVGMarkerElement : public nsSVGMarkerElementBase,
-                           public nsIDOMSVGMarkerElement,
-                           public nsIDOMSVGFitToViewBox
+class SVGMarkerElement : public SVGMarkerElementBase,
+                         public nsIDOMSVGMarkerElement,
+                         public nsIDOMSVGFitToViewBox
 {
-  friend class nsSVGMarkerFrame;
+  friend class ::nsSVGMarkerFrame;
 
 protected:
-  friend nsresult NS_NewSVGMarkerElement(nsIContent **aResult,
-                                         already_AddRefed<nsINodeInfo> aNodeInfo);
-  nsSVGMarkerElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  friend nsresult (::NS_NewSVGMarkerElement(nsIContent **aResult,
+                                            already_AddRefed<nsINodeInfo> aNodeInfo));
+  SVGMarkerElement(already_AddRefed<nsINodeInfo> aNodeInfo);
 
 public:
-  typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
-
   
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -125,7 +131,7 @@ protected:
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
 
-  void SetParentCoordCtxProvider(mozilla::dom::SVGSVGElement *aContext);
+  void SetParentCoordCtxProvider(SVGSVGElement *aContext);
 
   virtual LengthAttributesInfo GetLengthInfo();
   virtual AngleAttributesInfo GetAngleInfo();
@@ -152,8 +158,11 @@ protected:
   
   nsSVGOrientType                        mOrientType;
 
-  mozilla::dom::SVGSVGElement                       *mCoordCtx;
+  SVGSVGElement                         *mCoordCtx;
   nsAutoPtr<gfxMatrix>                   mViewBoxToViewportTransform;
 };
 
-#endif
+} 
+} 
+
+#endif 

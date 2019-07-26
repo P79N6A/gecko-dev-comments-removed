@@ -9,7 +9,7 @@
 #include "prdtoa.h"
 #include "nsTextFormatter.h"
 #include "nsSVGAttrTearoffTable.h"
-#include "nsSVGMarkerElement.h"
+#include "mozilla/dom/SVGMarkerElement.h"
 #include "nsMathUtils.h"
 #include "nsContentUtils.h" 
 #include "nsSMILValue.h"
@@ -366,7 +366,7 @@ nsISMILAttr*
 nsSVGAngle::ToSMILAttr(nsSVGElement *aSVGElement)
 {
   if (aSVGElement->NodeInfo()->Equals(nsGkAtoms::marker, kNameSpaceID_SVG)) {
-    nsSVGMarkerElement *marker = static_cast<nsSVGMarkerElement*>(aSVGElement);
+    SVGMarkerElement *marker = static_cast<SVGMarkerElement*>(aSVGElement);
     return new SMILOrient(marker->GetOrientType(), this, aSVGElement);
   }
   
