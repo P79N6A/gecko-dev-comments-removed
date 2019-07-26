@@ -13,13 +13,6 @@
 
 #include <gdk/gdk.h>
 
-
-#ifndef GDK_ISO_Level5_Shift
-#define GDK_ISO_Level5_Shift 0xFE11
-#define GDK_ISO_Level5_Latch 0xFE12
-#define GDK_ISO_Level5_Lock  0xFE13
-#endif 
-
 namespace mozilla {
 namespace widget {
 
@@ -41,6 +34,11 @@ public:
 
 
     static uint32_t ComputeDOMKeyCode(const GdkEventKey* aGdkKeyEvent);
+
+    
+
+
+    KeyNameIndex ComputeDOMKeyNameIndex(const GdkEventKey* aGdkKeyEvent);
 
     
 
