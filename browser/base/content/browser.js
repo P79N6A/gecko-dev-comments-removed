@@ -3935,6 +3935,10 @@ var TabsProgressListener = {
       return;
 
     
+    if (!aWebProgress.isTopLevel)
+      return;
+
+    
     
     
     if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
@@ -3942,10 +3946,7 @@ var TabsProgressListener = {
 
     gBrowser.getNotificationBox(aBrowser).removeTransientNotifications();
 
-    
-    if (aWebProgress.isTopLevel) {
-      FullZoom.onLocationChange(aLocationURI, false, aBrowser);
-    }
+    FullZoom.onLocationChange(aLocationURI, false, aBrowser);
   },
 
   onRefreshAttempted: function (aBrowser, aWebProgress, aURI, aDelay, aSameURI) {
