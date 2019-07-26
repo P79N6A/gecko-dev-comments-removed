@@ -42,9 +42,9 @@
      
      
      
-     let gBytesRead = new ctypes.int32_t(-1);
+     let gBytesRead = new ctypes.uint32_t(0);
      let gBytesReadPtr = gBytesRead.address();
-     let gBytesWritten = new ctypes.int32_t(-1);
+     let gBytesWritten = new ctypes.uint32_t(0);
      let gBytesWrittenPtr = gBytesWritten.address();
 
      
@@ -176,9 +176,24 @@
        if (whence === undefined) {
          whence = Const.FILE_BEGIN;
        }
-       return throw_on_negative("setPosition",
-         WinFile.SetFilePointer(this.fd, pos, null, whence),
-         this._path);
+       let pos64 = ctypes.Int64(pos);
+       
+       
+       
+       
+       let posLo = new ctypes.uint32_t(ctypes.Int64.lo(pos64));
+       posLo = ctypes.cast(posLo, ctypes.int32_t);
+       let posHi = new ctypes.int32_t(ctypes.Int64.hi(pos64));
+       let result = WinFile.SetFilePointer(
+         this.fd, posLo.value, posHi.address(), whence);
+       
+       
+       
+       if (result == Const.INVALID_SET_FILE_POINTER && ctypes.winLastError) {
+         throw new File.Error("setPosition", ctypes.winLastError, this._path);
+       }
+       pos64 = ctypes.Int64.join(posHi.value, result);
+       return Type.int64_t.project(pos64);
      };
 
      
