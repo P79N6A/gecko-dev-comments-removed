@@ -1508,10 +1508,14 @@ CERT_UnlockCertTrust(const CERTCertificate *cert);
 
 
 
+
+
+
+
  
 extern SECItem *
-CERT_GetSPKIDigest(PLArenaPool *arena, const CERTCertificate *cert,
-                   SECOidTag digestAlg, SECItem *fill);
+CERT_GetSubjectPublicKeyDigest(PLArenaPool *arena, const CERTCertificate *cert,
+                               SECOidTag digestAlg, SECItem *fill);
 
 
 

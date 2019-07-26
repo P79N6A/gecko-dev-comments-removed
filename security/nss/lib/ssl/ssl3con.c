@@ -83,17 +83,23 @@ static SECStatus ssl3_AESGCMBypass(ssl3KeyMaterial *keys, PRBool doDecrypt,
 
 
 
+
+
+
 static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
    
 
 #ifdef NSS_ENABLE_ECC
  { TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+   
+
+
+ { TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,    SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
- { TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,    SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,     SSL_ALLOWED, PR_FALSE, PR_FALSE},
@@ -1605,7 +1611,7 @@ ssl3_InitPendingContextsBypass(sslSocket *ss)
 
     calg = cipher_def->calg;
 
-    if (calg == calg_aes_gcm) {
+    if (calg == ssl_calg_aes_gcm) {
 	pwSpec->encode = NULL;
 	pwSpec->decode = NULL;
 	pwSpec->destroy = NULL;
@@ -1721,6 +1727,7 @@ ssl3_InitPendingContextsBypass(sslSocket *ss)
     case ssl_calg_rc2:
     case ssl_calg_idea:
     case ssl_calg_fortezza:
+    case ssl_calg_aes_gcm:
         break;
     }
 
@@ -4832,7 +4839,6 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     int              num_suites;
     int              actual_count = 0;
     PRBool           isTLS = PR_FALSE;
-    PRBool           requestingResume = PR_FALSE;
     PRInt32          total_exten_len = 0;
     unsigned         numCompressionMethods;
     PRInt32          flags;
@@ -4849,6 +4855,9 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
     ss->ssl3.hs.sendingSCSV = PR_FALSE; 
     PORT_Assert(IS_DTLS(ss) || !resending);
+
+    SECITEM_FreeItem(&ss->ssl3.hs.newSessionTicket.ticket, PR_FALSE);
+    ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
 
     
 
@@ -4971,13 +4980,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
 
     if (sid) {
-	requestingResume = PR_TRUE;
 	SSL_AtomicIncrementLong(& ssl3stats.sch_sid_cache_hits );
-
-	
-	if (sid->version > SSL_LIBRARY_VERSION_3_0 &&
-	    sid->u.ssl3.sessionTicket.ticket.data)
-	    SSL_AtomicIncrementLong(& ssl3stats.sch_sid_stateless_resumes );
 
 	PRINT_BUF(4, (ss, "client, found session-id:", sid->u.ssl3.sessionID,
 		      sid->u.ssl3.sessionIDLength));
@@ -5047,12 +5050,24 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	ss->ssl3.hs.sendingSCSV = PR_TRUE;
     }
 
+    
+
+
+
+
+
+
+    if (sid->u.ssl3.lock) {
+        PR_RWLock_Rlock(sid->u.ssl3.lock);
+    }
+
     if (isTLS || (ss->firstHsDone && ss->peerRequestedProtection)) {
 	PRUint32 maxBytes = 65535; 
 	PRInt32  extLen;
 
 	extLen = ssl3_CallHelloExtensionSenders(ss, PR_FALSE, maxBytes, NULL);
 	if (extLen < 0) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return SECFailure;
 	}
 	maxBytes        -= extLen;
@@ -5075,8 +5090,10 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
     
     num_suites = count_cipher_suites(ss, ss->ssl3.policy, PR_TRUE);
-    if (!num_suites)
+    if (!num_suites) {
+    	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
     	return SECFailure;	
+    }
     if (ss->ssl3.hs.sendingSCSV) {
 	++num_suites;   
     }
@@ -5098,6 +5115,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
     rv = ssl3_AppendHandshakeHeader(ss, client_hello, length);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	
     }
 
@@ -5116,18 +5134,21 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	rv = ssl3_AppendHandshakeNumber(ss, ss->clientHelloVersion, 2);
     }
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	
     }
 
     if (!resending) { 
 	rv = ssl3_GetNewRandom(&ss->ssl3.hs.client_random);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	
 	}
     }
     rv = ssl3_AppendHandshake(ss, &ss->ssl3.hs.client_random,
                               SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	
     }
 
@@ -5137,6 +5158,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     else
 	rv = ssl3_AppendHandshakeVariable(ss, NULL, 0, 1);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	
     }
 
@@ -5144,12 +5166,14 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	rv = ssl3_AppendHandshakeVariable(
 	    ss, ss->ssl3.hs.cookie, ss->ssl3.hs.cookieLen, 1);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	
 	}
     }
 
     rv = ssl3_AppendHandshakeNumber(ss, num_suites*sizeof(ssl3CipherSuite), 2);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	
     }
 
@@ -5158,6 +5182,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	rv = ssl3_AppendHandshakeNumber(ss, TLS_EMPTY_RENEGOTIATION_INFO_SCSV,
 					sizeof(ssl3CipherSuite));
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	
 	}
 	actual_count++;
@@ -5167,6 +5192,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	if (config_match(suite, ss->ssl3.policy, PR_TRUE, &ss->vrange)) {
 	    actual_count++;
 	    if (actual_count > num_suites) {
+		if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 		
 		PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
 		return SECFailure;
@@ -5174,6 +5200,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	    rv = ssl3_AppendHandshakeNumber(ss, suite->cipher_suite,
 					    sizeof(ssl3CipherSuite));
 	    if (rv != SECSuccess) {
+		if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 		return rv;	
 	    }
 	}
@@ -5184,12 +5211,14 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
     if (actual_count != num_suites) {
 	
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
 	return SECFailure;
     }
 
     rv = ssl3_AppendHandshakeNumber(ss, numCompressionMethods, 1);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	
     }
     for (i = 0; i < compressionMethodsCount; i++) {
@@ -5197,6 +5226,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	    continue;
 	rv = ssl3_AppendHandshakeNumber(ss, compressions[i], 1);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	
 	}
     }
@@ -5207,16 +5237,27 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
 	rv = ssl3_AppendHandshakeNumber(ss, maxBytes, 2);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	
 	}
 
 	extLen = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, maxBytes, NULL);
 	if (extLen < 0) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return SECFailure;
 	}
 	maxBytes -= extLen;
 	PORT_Assert(!maxBytes);
     } 
+
+    if (sid->u.ssl3.lock) {
+        PR_RWLock_Unlock(sid->u.ssl3.lock);
+    }
+
+    if (ss->xtnData.sentSessionTicketInClientHello) {
+        SSL_AtomicIncrementLong(&ssl3stats.sch_sid_stateless_resumes);
+    }
+
     if (ss->ssl3.hs.sendingSCSV) {
 	
 	TLSExtensionData *xtnData = &ss->xtnData;
@@ -6397,8 +6438,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	SSL_AtomicIncrementLong(& ssl3stats.hsh_sid_cache_hits );
 
 	
-	if (sid->version > SSL_LIBRARY_VERSION_3_0 &&
-	    sid->u.ssl3.sessionTicket.ticket.data != NULL)
+	if (ss->xtnData.sentSessionTicketInClientHello)
 	    SSL_AtomicIncrementLong(& ssl3stats.hsh_sid_stateless_resumes );
 
 	if (ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn))
@@ -6743,11 +6783,24 @@ no_memory:
 
 
 
-static PRBool
-ssl3_ClientKeyPrefersSHA1(sslSocket *ss)
+static SECStatus
+ssl3_ExtractClientKeyInfo(sslSocket *ss,
+			  TLSSignatureAlgorithm *sigAlg,
+			  PRBool *preferSha1)
 {
+    SECStatus rv = SECSuccess;
     SECKEYPublicKey *pubk;
-    PRBool preferSha1 = PR_FALSE;
+
+    pubk = CERT_ExtractPublicKey(ss->ssl3.clientCertificate);
+    if (pubk == NULL) {
+	rv = SECFailure;
+	goto done;
+    }
+
+    rv = ssl3_TLSSignatureAlgorithmForKeyType(pubk->keyType, sigAlg);
+    if (rv != SECSuccess) {
+	goto done;
+    }
 
     
 
@@ -6755,22 +6808,31 @@ ssl3_ClientKeyPrefersSHA1(sslSocket *ss)
 
 
 
-    pubk = CERT_ExtractPublicKey(ss->ssl3.clientCertificate);
-    if (pubk == NULL) {
-	return PR_FALSE;
-    }
     if (pubk->keyType == rsaKey || pubk->keyType == dsaKey) {
-	preferSha1 = SECKEY_PublicKeyStrength(pubk) <= 128;
+	*preferSha1 = SECKEY_PublicKeyStrength(pubk) <= 128;
+    } else {
+	*preferSha1 = PR_FALSE;
     }
-    SECKEY_DestroyPublicKey(pubk);
-    return preferSha1;
+
+done:
+    if (pubk)
+	SECKEY_DestroyPublicKey(pubk);
+    return rv;
 }
+
+
+
 
 
 static void
 ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
 					   const SECItem *algorithms)
 {
+    SECStatus rv;
+    TLSSignatureAlgorithm sigAlg;
+    PRBool preferSha1;
+    PRBool supportsSha1 = PR_FALSE;
+    PRBool supportsSha256 = PR_FALSE;
     PRBool needBackupHash = PR_FALSE;
     unsigned int i;
 
@@ -6782,21 +6844,31 @@ ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
     }
 #endif
     PORT_Assert(ss->ssl3.hs.backupHash);
+
     
+    rv = ssl3_ExtractClientKeyInfo(ss, &sigAlg, &preferSha1);
+    if (rv != SECSuccess) {
+	goto done;
+    }
 
-
-
-    if (ssl3_ClientKeyPrefersSHA1(ss)) {
-	
-	for (i = 0; i < algorithms->len; i += 2) {
-	    if (algorithms->data[i] == tls_hash_sha1 &&
-		(algorithms->data[i+1] == tls_sig_rsa ||
-		 algorithms->data[i+1] == tls_sig_dsa)) {
-		needBackupHash = PR_TRUE;
-		break;
+    
+    for (i = 0; i < algorithms->len; i += 2) {
+	if (algorithms->data[i+1] == sigAlg) {
+	    if (algorithms->data[i] == tls_hash_sha1) {
+		supportsSha1 = PR_TRUE;
+	    } else if (algorithms->data[i] == tls_hash_sha256) {
+		supportsSha256 = PR_TRUE;
 	    }
 	}
     }
+
+    
+
+    if (supportsSha1 && (preferSha1 || !supportsSha256)) {
+	needBackupHash = PR_TRUE;
+    }
+
+done:
     if (!needBackupHash) {
 	PK11_DestroyContext(ss->ssl3.hs.backupHash, PR_TRUE);
 	ss->ssl3.hs.backupHash = NULL;
@@ -9282,8 +9354,8 @@ ssl3_SendEmptyCertificate(sslSocket *ss)
 SECStatus
 ssl3_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
-    SECStatus         rv;
-    NewSessionTicket  session_ticket;
+    SECStatus rv;
+    SECItem ticketData;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle session_ticket handshake",
 		SSL_GETPID(), ss->fd));
@@ -9291,35 +9363,41 @@ ssl3_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
+    PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
+    PORT_Assert(!ss->ssl3.hs.receivedNewSessionTicket);
+
     if (ss->ssl3.hs.ws != wait_new_session_ticket) {
 	SSL3_SendAlert(ss, alert_fatal, unexpected_message);
 	PORT_SetError(SSL_ERROR_RX_UNEXPECTED_NEW_SESSION_TICKET);
 	return SECFailure;
     }
 
-    session_ticket.received_timestamp = ssl_Time();
+    
+
+
+
+    ss->ssl3.hs.newSessionTicket.received_timestamp = ssl_Time();
     if (length < 4) {
 	(void)SSL3_SendAlert(ss, alert_fatal, decode_error);
 	PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
 	return SECFailure;
     }
-    session_ticket.ticket_lifetime_hint =
+    ss->ssl3.hs.newSessionTicket.ticket_lifetime_hint =
 	(PRUint32)ssl3_ConsumeHandshakeNumber(ss, 4, &b, &length);
 
-    rv = ssl3_ConsumeHandshakeVariable(ss, &session_ticket.ticket, 2,
-	&b, &length);
+    rv = ssl3_ConsumeHandshakeVariable(ss, &ticketData, 2, &b, &length);
     if (length != 0 || rv != SECSuccess) {
 	(void)SSL3_SendAlert(ss, alert_fatal, decode_error);
 	PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
 	return SECFailure;  
     }
-
-    rv = ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &session_ticket);
+    rv = SECITEM_CopyItem(NULL, &ss->ssl3.hs.newSessionTicket.ticket,
+			  &ticketData);
     if (rv != SECSuccess) {
-	(void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
-	PORT_SetError(SSL_ERROR_INTERNAL_ERROR_ALERT);
-	return SECFailure;
+	return rv;
     }
+    ss->ssl3.hs.receivedNewSessionTicket = PR_TRUE;
+
     ss->ssl3.hs.ws = wait_change_cipher;
     return SECSuccess;
 }
@@ -10407,6 +10485,11 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 
 	if (isServer && !ss->ssl3.hs.isResuming &&
 	    ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn)) {
+	    
+
+
+
+
 	    rv = ssl3_SendNewSessionTicket(ss);
 	    if (rv != SECSuccess) {
 		goto xmit_loser;
@@ -10526,7 +10609,27 @@ ssl3_FinishHandshake(sslSocket * ss)
     
     ss->handshake           = NULL;
 
+    
+
+
+
+
+
+
+
+
+
+
+    if (ss->ssl3.hs.receivedNewSessionTicket) {
+	PORT_Assert(!ss->sec.isServer);
+	ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ss->ssl3.hs.newSessionTicket);
+	
+	PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
+        ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
+    }
+
     if (ss->ssl3.hs.cacheSID) {
+	PORT_Assert(ss->sec.ci.sid->cached == never_cached);
 	(*ss->sec.cache)(ss->sec.ci.sid);
 	ss->ssl3.hs.cacheSID = PR_FALSE;
     }
@@ -11597,6 +11700,10 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.messages.buf = NULL;
     ss->ssl3.hs.messages.space = 0;
 
+    ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
+    PORT_Memset(&ss->ssl3.hs.newSessionTicket, 0,
+		sizeof(ss->ssl3.hs.newSessionTicket));
+
     ss->ssl3.initialized = PR_TRUE;
     return SECSuccess;
 }
@@ -11919,6 +12026,8 @@ ssl3_DestroySSL3Info(sslSocket *ss)
 
     
     PORT_Free(ss->ssl3.hs.msg_body.buf);
+
+    SECITEM_FreeItem(&ss->ssl3.hs.newSessionTicket.ticket, PR_FALSE);
 
     
     ssl3_DestroyCipherSpec(&ss->ssl3.specs[0], PR_TRUE);

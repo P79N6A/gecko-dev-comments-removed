@@ -203,7 +203,7 @@ DH_Derive(SECItem *publicValue,
           SECItem *derivedSecret, 
           unsigned int outBytes)
 {
-    mp_int p, Xa, Yb, ZZ;
+    mp_int p, Xa, Yb, ZZ, psub1;
     mp_err err = MP_OKAY;
     int len = 0;
     unsigned int nb;
@@ -217,13 +217,33 @@ DH_Derive(SECItem *publicValue,
     MP_DIGITS(&Xa) = 0;
     MP_DIGITS(&Yb) = 0;
     MP_DIGITS(&ZZ) = 0;
+    MP_DIGITS(&psub1) = 0;
     CHECK_MPI_OK( mp_init(&p)  );
     CHECK_MPI_OK( mp_init(&Xa) );
     CHECK_MPI_OK( mp_init(&Yb) );
     CHECK_MPI_OK( mp_init(&ZZ) );
+    CHECK_MPI_OK( mp_init(&psub1) );
     SECITEM_TO_MPINT(*publicValue,  &Yb);
     SECITEM_TO_MPINT(*privateValue, &Xa);
     SECITEM_TO_MPINT(*prime,        &p);
+    CHECK_MPI_OK( mp_sub_d(&p, 1, &psub1) );
+
+    
+
+
+
+
+
+
+
+
+
+    if (mp_cmp_d(&Yb, 1) <= 0 ||
+	mp_cmp(&Yb, &psub1) >= 0) {
+	err = MP_BADARG;
+	goto cleanup;
+    }
+
     
     CHECK_MPI_OK( mp_exptmod(&Yb, &Xa, &p, &ZZ) );
     
@@ -260,6 +280,7 @@ cleanup:
     mp_clear(&Xa);
     mp_clear(&Yb);
     mp_clear(&ZZ);
+    mp_clear(&psub1);
     if (secret) {
 	
 	PORT_ZFree(secret, len);

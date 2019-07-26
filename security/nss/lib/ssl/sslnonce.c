@@ -173,7 +173,20 @@ ssl_DestroySID(sslSessionID *sid)
     if (sid->version < SSL_LIBRARY_VERSION_3_0) {
 	SECITEM_ZfreeItem(&sid->u.ssl2.masterKey, PR_FALSE);
 	SECITEM_ZfreeItem(&sid->u.ssl2.cipherArg, PR_FALSE);
+    } else {
+        if (sid->u.ssl3.locked.sessionTicket.ticket.data) {
+            SECITEM_FreeItem(&sid->u.ssl3.locked.sessionTicket.ticket,
+                             PR_FALSE);
+        }
+        if (sid->u.ssl3.srvName.data) {
+            SECITEM_FreeItem(&sid->u.ssl3.srvName, PR_FALSE);
+        }
+
+        if (sid->u.ssl3.lock) {
+            PR_DestroyRWLock(sid->u.ssl3.lock);
+        }
     }
+
     if (sid->peerID != NULL)
 	PORT_Free((void *)sid->peerID);		
 
@@ -189,12 +202,6 @@ ssl_DestroySID(sslSessionID *sid)
 
     if ( sid->localCert ) {
 	CERT_DestroyCertificate(sid->localCert);
-    }
-    if (sid->u.ssl3.sessionTicket.ticket.data) {
-	SECITEM_FreeItem(&sid->u.ssl3.sessionTicket.ticket, PR_FALSE);
-    }
-    if (sid->u.ssl3.srvName.data) {
-	SECITEM_FreeItem(&sid->u.ssl3.srvName, PR_FALSE);
     }
     
     PORT_ZFree(sid, sizeof(sslSessionID));
@@ -307,15 +314,15 @@ static void
 CacheSID(sslSessionID *sid)
 {
     PRUint32  expirationPeriod;
+
+    PORT_Assert(sid->cached == never_cached);
+
     SSL_TRC(8, ("SSL: Cache: sid=0x%x cached=%d addr=0x%08x%08x%08x%08x port=0x%04x "
 		"time=%x cached=%d",
 		sid, sid->cached, sid->addr.pr_s6_addr32[0], 
 		sid->addr.pr_s6_addr32[1], sid->addr.pr_s6_addr32[2],
 		sid->addr.pr_s6_addr32[3],  sid->port, sid->creationTime,
 		sid->cached));
-
-    if (sid->cached == in_client_cache)
-	return;
 
     if (!sid->urlSvrName) {
         
@@ -333,8 +340,9 @@ CacheSID(sslSessionID *sid)
 		  sid->u.ssl2.cipherArg.data, sid->u.ssl2.cipherArg.len));
     } else {
 	if (sid->u.ssl3.sessionIDLength == 0 &&
-	    sid->u.ssl3.sessionTicket.ticket.data == NULL)
+	    sid->u.ssl3.locked.sessionTicket.ticket.data == NULL)
 	    return;
+
 	
 	if (sid->u.ssl3.sessionIDLength == 0) {
 	    SECStatus rv;
@@ -347,6 +355,11 @@ CacheSID(sslSessionID *sid)
 	expirationPeriod = ssl3_sid_timeout;
 	PRINT_BUF(8, (0, "sessionID:",
 		      sid->u.ssl3.sessionID, sid->u.ssl3.sessionIDLength));
+
+	sid->u.ssl3.lock = PR_NewRWLock(PR_RWLOCK_RANK_NONE, NULL);
+	if (!sid->u.ssl3.lock) {
+	    return;
+	}
     }
     PORT_Assert(sid->creationTime != 0 && sid->expirationTime != 0);
     if (!sid->creationTime)
@@ -470,35 +483,38 @@ ssl_Time(void)
     return myTime;
 }
 
-SECStatus
-ssl3_SetSIDSessionTicket(sslSessionID *sid, NewSessionTicket *session_ticket)
+void
+ssl3_SetSIDSessionTicket(sslSessionID *sid,
+                          NewSessionTicket *newSessionTicket)
 {
-    SECStatus rv;
+    PORT_Assert(sid);
+    PORT_Assert(newSessionTicket);
 
     
-    LOCK_CACHE;
-
-    
 
 
-    if (sid->u.ssl3.sessionTicket.ticket.data)
-	SECITEM_FreeItem(&sid->u.ssl3.sessionTicket.ticket, PR_FALSE);
-    if (session_ticket->ticket.len > 0) {
-	rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.sessionTicket.ticket,
-	    &session_ticket->ticket);
-	if (rv != SECSuccess) {
-	    UNLOCK_CACHE;
-	    return rv;
+
+
+    if (sid->u.ssl3.lock) {
+	PR_RWLock_Wlock(sid->u.ssl3.lock);
+
+	
+
+
+	if (sid->u.ssl3.locked.sessionTicket.ticket.data) {
+	    SECITEM_FreeItem(&sid->u.ssl3.locked.sessionTicket.ticket,
+			     PR_FALSE);
 	}
-    } else {
-	sid->u.ssl3.sessionTicket.ticket.data = NULL;
-	sid->u.ssl3.sessionTicket.ticket.len = 0;
     }
-    sid->u.ssl3.sessionTicket.received_timestamp =
-	session_ticket->received_timestamp;
-    sid->u.ssl3.sessionTicket.ticket_lifetime_hint =
-	session_ticket->ticket_lifetime_hint;
 
-    UNLOCK_CACHE;
-    return SECSuccess;
+    PORT_Assert(!sid->u.ssl3.locked.sessionTicket.ticket.data);
+
+    
+    sid->u.ssl3.locked.sessionTicket = *newSessionTicket;
+    newSessionTicket->ticket.data = NULL;
+    newSessionTicket->ticket.len = 0;
+
+    if (sid->u.ssl3.lock) {
+	PR_RWLock_Unlock(sid->u.ssl3.lock);
+    }
 }

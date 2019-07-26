@@ -366,7 +366,7 @@ pkix_pl_OcspResponse_RegisterSelf(void *plContext)
 PKIX_Error *
 pkix_pl_OcspResponse_Create(
         PKIX_PL_OcspRequest *request,
-        const char *httpMechanism,
+        const char *httpMethod,
         void *responder,
         PKIX_PL_VerifyCallback verifyFcn,
         void **pNBIOContext,
@@ -392,7 +392,7 @@ pkix_pl_OcspResponse_Create(
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_Create");
         PKIX_NULLCHECK_TWO(pNBIOContext, pResponse);
 
-	if (!strcmp(httpMechanism, "GET") && !strcmp(httpMechanism, "POST")) {
+	if (!strcmp(httpMethod, "GET") && !strcmp(httpMethod, "POST")) {
 		PKIX_ERROR(PKIX_INVALIDOCSPHTTPMETHOD);
 	}
 
@@ -431,7 +431,7 @@ pkix_pl_OcspResponse_Create(
                 if (httpClient && (httpClient->version == 1)) {
 			char *fullGetPath = NULL;
 			const char *sessionPath = NULL;
-			PRBool usePOST = !strcmp(httpMechanism, "POST");
+			PRBool usePOST = !strcmp(httpMethod, "POST");
 
                         hcv1 = &(httpClient->fcnTable.ftable1);
 
@@ -456,7 +456,7 @@ pkix_pl_OcspResponse_Create(
 			} else {
 				
 				enum { max_get_request_size = 255 }; 
-				unsigned char b64ReqBuf[max_get_request_size+1];
+				char b64ReqBuf[max_get_request_size+1];
 				size_t base64size;
 				size_t slashLengthIfNeeded = 0;
 				size_t pathLength;
@@ -473,7 +473,7 @@ pkix_pl_OcspResponse_Create(
 					PKIX_ERROR(PKIX_OCSPGETREQUESTTOOBIG);
 				}
 				memset(b64ReqBuf, 0, sizeof(b64ReqBuf));
-				PL_Base64Encode(encodedRequest->data, encodedRequest->len, b64ReqBuf);
+				PL_Base64Encode((const char *)encodedRequest->data, encodedRequest->len, b64ReqBuf);
 				urlEncodedBufLength = ocsp_UrlEncodeBase64Buf(b64ReqBuf, NULL);
 				getURLLength = pathLength + urlEncodedBufLength + slashLengthIfNeeded;
 				fullGetPath = (char*)PORT_Alloc(getURLLength);
@@ -491,7 +491,7 @@ pkix_pl_OcspResponse_Create(
 			}
 
                         rv = (*hcv1->createFcn)(serverSession, "http",
-                                                sessionPath, httpMechanism,
+                                                sessionPath, httpMethod,
                                                 PR_SecondsToInterval(timeout),
                                                 &sessionRequest);
 			sessionPath = NULL;

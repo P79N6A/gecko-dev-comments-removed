@@ -587,7 +587,17 @@ typedef enum {	never_cached,
 } Cached;
 
 struct sslSessionIDStr {
+    
+
+
     sslSessionID *        next;   
+    Cached                cached;
+    int                   references;
+    PRUint32              lastAccessTime;	
+
+    
+
+
 
     CERTCertificate *     peerCert;
     SECItemArray          peerCertStatus; 
@@ -601,10 +611,7 @@ struct sslSessionIDStr {
     SSL3ProtocolVersion   version;
 
     PRUint32              creationTime;		
-    PRUint32              lastAccessTime;	
     PRUint32              expirationTime;	
-    Cached                cached;
-    int                   references;
 
     SSLSignType           authAlgorithm;
     PRUint32              authKeyBits;
@@ -670,15 +677,28 @@ struct sslSessionIDStr {
             char              masterValid;
 	    char              clAuthValid;
 
+	    SECItem           srvName;
+
 	    
 
 
-	    NewSessionTicket  sessionTicket;
-            SECItem           srvName;
+
+	    PRRWLock *lock;
+
+	    
+
+
+	    struct {
+		
+
+
+
+
+		NewSessionTicket sessionTicket;
+	    } locked;
 	} ssl3;
     } u;
 };
-
 
 typedef struct ssl3CipherSuiteDefStr {
     ssl3CipherSuite          cipher_suite;
@@ -759,6 +779,7 @@ struct TLSExtensionDataStr {
     
     PRBool ticketTimestampVerified;
     PRBool emptySessionTicket;
+    PRBool sentSessionTicketInClientHello;
 
     
 
@@ -841,6 +862,14 @@ const ssl3CipherSuiteDef *suite_def;
     PRBool                sendingSCSV; 
     sslBuffer             msgState;    
                                        
+
+    
+
+
+
+    PRBool                receivedNewSessionTicket;
+    NewSessionTicket      newSessionTicket;
+
     PRUint16              finishedBytes; 
     union {
 	TLSFinished       tFinished[2]; 
@@ -1746,8 +1775,8 @@ extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss,
 
 
 extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
-extern SECStatus ssl3_SetSIDSessionTicket(sslSessionID *sid,
-			NewSessionTicket *session_ticket);
+extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
+			 NewSessionTicket *session_ticket);
 extern SECStatus ssl3_SendNewSessionTicket(sslSocket *ss);
 extern PRBool ssl_GetSessionTicketKeys(unsigned char *keyName,
 			unsigned char *encKey, unsigned char *macKey);
