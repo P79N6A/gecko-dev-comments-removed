@@ -74,8 +74,16 @@ const KEY_GRED            = "GreD";
 #define USE_UPDROOT
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+#define USE_UPDATE_ARCHIVE_DIR
+#endif
+
 #ifdef USE_UPDROOT
 const KEY_UPDROOT         = "UpdRootD";
+#endif
+
+#ifdef USE_UPDATE_ARCHIVE_DIR
+const KEY_UPDATE_ARCHIVE_DIR = "UpdArchD"
 #endif
 
 #ifdef XP_WIN
@@ -99,7 +107,8 @@ const FILE_UPDATE_ARCHIVE = "update.apk";
 #else
 const FILE_UPDATE_ARCHIVE = "update.mar";
 #endif
-const FILE_UPDATE_LOG     = "update.log"
+const FILE_UPDATE_LINK    = "update.link";
+const FILE_UPDATE_LOG     = "update.log";
 const FILE_UPDATES_DB     = "updates.xml";
 const FILE_UPDATE_ACTIVE  = "active-update.xml";
 const FILE_PERMS_TEST     = "update.test";
@@ -155,6 +164,7 @@ const CERT_ATTR_CHECK_FAILED_NO_UPDATE  = 100;
 const CERT_ATTR_CHECK_FAILED_HAS_UPDATE = 101;
 const BACKGROUNDCHECK_MULTIPLE_FAILURES = 110;
 const NETWORK_ERROR_OFFLINE             = 111;
+const FILE_ERROR_TOO_BIG                = 112;
 
 const DOWNLOAD_CHUNK_SIZE           = 300000; 
 const DOWNLOAD_BACKGROUND_INTERVAL  = 600;    
@@ -174,6 +184,12 @@ const DEFAULT_SOCKET_MAX_ERRORS = 10;
 const DEFAULT_UPDATE_RETRY_TIMEOUT = 2000;
 
 var gLocale     = null;
+#ifdef MOZ_B2G
+var gVolumeMountLock = null;
+XPCOMUtils.defineLazyGetter(this, "gExtStorage", function aus_gExtStorage() {
+    return Services.env.get("EXTERNAL_STORAGE");
+});
+#endif
 
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
@@ -738,6 +754,74 @@ function writeStatusFile(dir, state) {
 
 
 
+function readLinkFile(dir) {
+  var linkFile = dir.clone();
+  linkFile.append(FILE_UPDATE_LINK);
+  var link = readStringFromFile(linkFile) || STATE_NONE;
+  LOG("readLinkFile - link: " + link + ", path: " + linkFile.path);
+  return status;
+}
+
+
+
+
+
+
+
+
+
+
+function writeLinkFile(dir, patchFile) {
+  var linkFile = dir.clone();
+  linkFile.append(FILE_UPDATE_LINK);
+  writeStringToFile(linkFile, patchFile.path);
+#ifdef MOZ_B2G
+  if (patchFile.path.indexOf(gExtStorage) == 0) {
+    
+    
+    
+    acquireSDCardMountLock();
+  }
+#endif
+}
+
+
+
+
+
+
+
+function acquireSDCardMountLock() {
+#ifdef MOZ_B2G
+  let volsvc = Cc["@mozilla.org/telephony/volume-service;1"].
+                    getService(Ci.nsIVolumeService);
+  if (volsvc) {
+    gSDCardMountLock = volsvc.createMountLock("sdcard");
+  }
+#endif
+}
+
+
+
+
+
+
+function releaseSDCardMountLock() {
+#ifdef MOZ_B2G
+  if (gSDCardMountLock) {
+    gSDCardMountLock.unlock();
+    gSDCardMountLock = null;
+  }
+#endif
+}
+
+
+
+
+
+
+
+
 function shouldUseService() {
 #ifdef MOZ_MAINTENANCE_SERVICE
   return getPref("getBoolPref", 
@@ -899,6 +983,7 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
       LOG("cleanUpUpdatesDir - failed to remove file " + f.path);
     }
   }
+  releaseSDCardMountLock();
 }
 
 
@@ -2798,6 +2883,8 @@ UpdateManager.prototype = {
       var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
                      createInstance(Ci.nsIUpdatePrompt);
       prompter.showUpdateDownloaded(update, true);
+    } else {
+      releaseSDCardMountLock();
     }
   },
 
@@ -3146,6 +3233,7 @@ Downloader.prototype = {
     if (this._request && this._request instanceof Ci.nsIRequest) {
       this._request.cancel(cancelError);
     }
+    releaseSDCardMountLock();
   },
 
   
@@ -3319,6 +3407,28 @@ Downloader.prototype = {
   
 
 
+  _getUpdateArchiveFile: function Downloader__getUpdateArchiveFile() {
+    var updateArchive;
+#ifdef USE_UPDATE_ARCHIVE_DIR
+    try {
+      updateArchive = FileUtils.getDir(KEY_UPDATE_ARCHIVE_DIR, [], true);
+    } catch (e) {
+      if (e == Cr.NS_ERROR_FILE_TOO_BIG) {
+        this._update.errorCode = FILE_ERROR_TOO_BIG;
+      }
+      return null;
+    }
+#else
+    updateArchive = getUpdatesDir().clone();
+#endif
+
+    updateArchive.append(FILE_UPDATE_ARCHIVE);
+    return updateArchive;
+  },
+
+  
+
+
 
 
   downloadUpdate: function Downloader_downloadUpdate(update) {
@@ -3339,8 +3449,16 @@ Downloader.prototype = {
     }
     this.isCompleteUpdate = this._patch.type == "complete";
 
-    var patchFile = updateDir.clone();
-    patchFile.append(FILE_UPDATE_ARCHIVE);
+    var patchFile = this._getUpdateArchiveFile();
+    if (!patchFile) {
+      return STATE_NONE;
+    }
+
+    if (patchFile.path.indexOf(updateDir.path) != 0) {
+      
+      
+      writeLinkFile(updateDir, patchFile);
+    }
 
     var uri = Services.io.newURI(this._patch.URL, null, null);
 
