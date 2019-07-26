@@ -328,11 +328,6 @@ class CellIterUnderGC : public CellIterImpl
     }
 };
 
-
-
-
-
-
 class CellIter : public CellIterImpl
 {
     ArenaLists *lists;
