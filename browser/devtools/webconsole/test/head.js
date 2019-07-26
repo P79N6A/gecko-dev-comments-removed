@@ -14,6 +14,7 @@ Cu.import("resource:///modules/devtools/Target.jsm", tempScope);
 let TargetFactory = tempScope.TargetFactory;
 Components.utils.import("resource://gre/modules/devtools/Console.jsm", tempScope);
 let console = tempScope.console;
+let Promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
 
 const WEBCONSOLE_STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let WCU_l10n = new WebConsoleUtils.l10n(WEBCONSOLE_STRINGS_URI);
@@ -143,7 +144,9 @@ function openConsole(aTab, aCallback = function() { })
 {
   let target = TargetFactory.forTab(aTab || tab);
   gDevTools.showToolbox(target, "webconsole").then(function(toolbox) {
-    aCallback(toolbox.getCurrentPanel().hud);
+    let hud = toolbox.getCurrentPanel().hud;
+    hud.jsterm._lazyVariablesView = false;
+    aCallback(hud);
   });
 }
 
@@ -165,9 +168,7 @@ function closeConsole(aTab, aCallback = function() { })
     let panel = toolbox.getPanel("webconsole");
     if (panel) {
       let hudId = panel.hud.hudId;
-      toolbox.destroy().then(function() {
-        executeSoon(aCallback.bind(null, hudId));
-      }).then(null, console.error);
+      toolbox.destroy().then(aCallback.bind(null, hudId)).then(null, console.debug);
     }
     else {
       toolbox.destroy().then(aCallback.bind(null));
@@ -315,3 +316,445 @@ function openInspector(aCallback, aTab = gBrowser.selectedTab)
     aCallback(toolbox.getCurrentPanel());
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function findVariableViewProperties(aView, aRules, aOptions)
+{
+  
+  function init()
+  {
+    
+    
+    let expandRules = [];
+    let rules = aRules.filter((aRule) => {
+      if (typeof aRule.name == "string" && aRule.name.indexOf(".") > -1) {
+        expandRules.push(aRule);
+        return false;
+      }
+      return true;
+    });
+
+    
+    
+    
+    let outstanding = [];
+    finder(rules, aView, outstanding);
+
+    
+    let lastStep = processExpandRules.bind(null, expandRules);
+
+    
+    let returnResults = onAllRulesMatched.bind(null, aRules);
+
+    return Promise.all(outstanding).then(lastStep).then(returnResults);
+  }
+
+  function onMatch(aProp, aRule, aMatched)
+  {
+    if (aMatched && !aRule.matchedProp) {
+      aRule.matchedProp = aProp;
+    }
+  }
+
+  function finder(aRules, aVar, aPromises)
+  {
+    for (let [id, prop] in aVar) {
+      for (let rule of aRules) {
+        let matcher = matchVariablesViewProperty(prop, rule, aOptions);
+        aPromises.push(matcher.then(onMatch.bind(null, prop, rule)));
+      }
+    }
+  }
+
+  function processExpandRules(aRules)
+  {
+    let rule = aRules.shift();
+    if (!rule) {
+      return Promise.resolve(null);
+    }
+
+    let deferred = Promise.defer();
+    let expandOptions = {
+      rootVariable: aView,
+      expandTo: rule.name,
+      webconsole: aOptions.webconsole,
+    };
+
+    variablesViewExpandTo(expandOptions).then(function onSuccess(aProp) {
+      let name = rule.name;
+      let lastName = name.split(".").pop();
+      rule.name = lastName;
+
+      let matched = matchVariablesViewProperty(aProp, rule, aOptions);
+      return matched.then(onMatch.bind(null, aProp, rule)).then(function() {
+        rule.name = name;
+      });
+    }, function onFailure() {
+      return Promise.resolve(null);
+    }).then(processExpandRules.bind(null, aRules)).then(function() {
+      deferred.resolve(null);
+    });
+
+    return deferred.promise;
+  }
+
+  function onAllRulesMatched(aRules)
+  {
+    for (let rule of aRules) {
+      let matched = rule.matchedProp;
+      if (matched && !rule.dontMatch) {
+        ok(true, "rule " + rule.name + " matched for property " + matched.name);
+      }
+      else if (matched && rule.dontMatch) {
+        ok(false, "rule " + rule.name + " should not match property " +
+           matched.name);
+      }
+      else {
+        ok(rule.dontMatch, "rule " + rule.name + " did not match any property");
+      }
+    }
+    return aRules;
+  }
+
+  return init();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function matchVariablesViewProperty(aProp, aRule, aOptions)
+{
+  function resolve(aResult) {
+    return Promise.resolve(aResult);
+  }
+
+  if (aRule.name) {
+    let match = aRule.name instanceof RegExp ?
+                aRule.name.test(aProp.name) :
+                aProp.name == aRule.name;
+    if (!match) {
+      return resolve(false);
+    }
+  }
+
+  if (aRule.value) {
+    let displayValue = aProp.displayValue;
+    if (aProp.displayValueClassName == "token-string") {
+      displayValue = displayValue.substring(1, displayValue.length - 1);
+    }
+
+    let match = aRule.value instanceof RegExp ?
+                aRule.value.test(displayValue) :
+                displayValue == aRule.value;
+    if (!match) {
+      info("rule " + aRule.name + " did not match value, expected '" +
+           aRule.value + "', found '" + displayValue  + "'");
+      return resolve(false);
+    }
+  }
+
+  if ("isGetter" in aRule) {
+    let isGetter = !!(aProp.getter && aProp.get("get"));
+    if (aRule.isGetter != isGetter) {
+      info("rule " + aRule.name + " getter test failed");
+      return resolve(false);
+    }
+  }
+
+  if ("isGenerator" in aRule) {
+    let isGenerator = aProp.displayValue == "[object Generator]";
+    if (aRule.isGenerator != isGenerator) {
+      info("rule " + aRule.name + " generator test failed");
+      return resolve(false);
+    }
+  }
+
+  let outstanding = [];
+
+  if ("isIterator" in aRule) {
+    let isIterator = isVariableViewPropertyIterator(aProp, aOptions.webconsole);
+    outstanding.push(isIterator.then((aResult) => {
+      if (aResult != aRule.isIterator) {
+        info("rule " + aRule.name + " iterator test failed");
+      }
+      return aResult == aRule.isIterator;
+    }));
+  }
+
+  outstanding.push(Promise.resolve(true));
+
+  return Promise.all(outstanding).then(function _onMatchDone(aResults) {
+    let ruleMatched = aResults.indexOf(false) == -1;
+    return resolve(ruleMatched);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function isVariableViewPropertyIterator(aProp, aWebConsole)
+{
+  if (aProp.displayValue == "[object Iterator]") {
+    return Promise.resolve(true);
+  }
+
+  let deferred = Promise.defer();
+
+  variablesViewExpandTo({
+    rootVariable: aProp,
+    expandTo: "__proto__.__iterator__",
+    webconsole: aWebConsole,
+  }).then(function onSuccess(aProp) {
+    deferred.resolve(true);
+  }, function onFailure() {
+    deferred.resolve(false);
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function variablesViewExpandTo(aOptions)
+{
+  let root = aOptions.rootVariable;
+  let expandTo = aOptions.expandTo.split(".");
+  let jsterm = (aOptions.webconsole || {}).jsterm;
+  let lastDeferred = Promise.defer();
+
+  function fetch(aProp)
+  {
+    if (!aProp.onexpand) {
+      ok(false, "property " + aProp.name + " cannot be expanded: !onexpand");
+      return Promise.reject(aProp);
+    }
+
+    let deferred = Promise.defer();
+
+    if (aProp._fetched || !jsterm) {
+      executeSoon(function() {
+        deferred.resolve(aProp);
+      });
+    }
+    else {
+      jsterm.once("variablesview-fetched", function _onFetchProp() {
+        executeSoon(() => deferred.resolve(aProp));
+      });
+    }
+
+    aProp.expand();
+
+    return deferred.promise;
+  }
+
+  function getNext(aProp)
+  {
+    let name = expandTo.shift();
+    let newProp = aProp.get(name);
+
+    if (expandTo.length > 0) {
+      ok(newProp, "found property " + name);
+      if (newProp) {
+        fetch(newProp).then(getNext, fetchError);
+      }
+      else {
+        lastDeferred.reject(aProp);
+      }
+    }
+    else {
+      if (newProp) {
+        lastDeferred.resolve(newProp);
+      }
+      else {
+        lastDeferred.reject(aProp);
+      }
+    }
+  }
+
+  function fetchError(aProp)
+  {
+    lastDeferred.reject(aProp);
+  }
+
+  if (!root._fetched) {
+    fetch(root).then(getNext, fetchError);
+  }
+  else {
+    getNext(root);
+  }
+
+  return lastDeferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function updateVariablesViewProperty(aOptions)
+{
+  let view = aOptions.property._variablesView;
+  view.window.focus();
+  aOptions.property.focus();
+
+  switch (aOptions.field) {
+    case "name":
+      EventUtils.synthesizeKey("VK_ENTER", { shiftKey: true }, view.window);
+      break;
+    case "value":
+      EventUtils.synthesizeKey("VK_ENTER", {}, view.window);
+      break;
+    default:
+      throw new Error("options.field is incorrect");
+      return;
+  }
+
+  executeSoon(() => {
+    EventUtils.synthesizeKey("A", { accelKey: true }, view.window);
+
+    for (let c of aOptions.string) {
+      EventUtils.synthesizeKey(c, {}, gVariablesView.window);
+    }
+
+    if (aOptions.webconsole) {
+      aOptions.webconsole.jsterm.once("variablesview-fetched", aOptions.callback);
+    }
+
+    EventUtils.synthesizeKey("VK_ENTER", {}, view.window);
+
+    if (!aOptions.webconsole) {
+      executeSoon(aOptions.callback);
+    }
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function openDebugger(aOptions = {})
+{
+  if (!aOptions.tab) {
+    aOptions.tab = gBrowser.selectedTab;
+  }
+
+  let deferred = Promise.defer();
+
+  let target = TargetFactory.forTab(aOptions.tab);
+  let toolbox = gDevTools.getToolbox(target);
+  let dbgPanelAlreadyOpen = toolbox.getPanel("jsdebugger");
+
+  gDevTools.showToolbox(target, "jsdebugger").then(function onSuccess(aToolbox) {
+    let panel = aToolbox.getCurrentPanel();
+    let panelWin = panel.panelWin;
+
+    panel._view.Variables.lazyEmpty = false;
+    panel._view.Variables.lazyAppend = false;
+
+    let resolveObject = {
+      target: target,
+      toolbox: aToolbox,
+      panel: panel,
+      panelWin: panelWin,
+    };
+
+    if (dbgPanelAlreadyOpen) {
+      deferred.resolve(resolveObject);
+    }
+    else {
+      panelWin.addEventListener("Debugger:AfterSourcesAdded",
+        function onAfterSourcesAdded() {
+          panelWin.removeEventListener("Debugger:AfterSourcesAdded",
+                                       onAfterSourcesAdded);
+          deferred.resolve(resolveObject);
+        });
+    }
+  }, function onFailure(aReason) {
+    console.debug("failed to open the toolbox for 'jsdebugger'", aReason);
+    deferred.reject(aReason);
+  });
+
+  return deferred.promise;
+}
+

@@ -19,11 +19,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
                                    "@mozilla.org/widget/clipboardhelper;1",
                                    "nsIClipboardHelper");
 
-XPCOMUtils.defineLazyModuleGetter(this, "PropertyPanel",
-                                  "resource:///modules/PropertyPanel.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "PropertyTreeView",
-                                  "resource:///modules/PropertyPanel.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "GripClient",
+                                  "resource://gre/modules/devtools/dbg-client.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetworkPanel",
                                   "resource:///modules/NetworkPanel.jsm");
@@ -37,6 +34,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/sdk/core/promise.js");
 
+XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
+                                  "resource:///modules/devtools/VariablesView.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ToolSidebar",
+                                  "resource:///modules/devtools/Sidebar.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "EventEmitter",
+                                  "resource:///modules/devtools/EventEmitter.jsm");
+
 const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
 
@@ -47,6 +53,12 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const MIXED_CONTENT_LEARN_MORE = "https://developer.mozilla.org/en/Security/MixedContent";
 
 const HELP_URL = "https://developer.mozilla.org/docs/Tools/Web_Console/Helpers";
+
+const VARIABLES_VIEW_URL = "chrome://browser/content/devtools/widgets/VariablesView.xul";
+
+const CONSOLE_DIR_VIEW_HEIGHT = 0.6;
+
+const IGNORED_SOURCE_URLS = ["debugger eval code", "self-hosted"];
 
 
 
@@ -954,19 +966,14 @@ WebConsoleFrame.prototype = {
     let sourceLine = aMessage.lineNumber;
     let level = aMessage.level;
     let args = aMessage.arguments;
-    let objectActors = [];
+    let objectActors = new Set();
 
     
-    args.forEach(function(aValue) {
-      if (aValue && typeof aValue == "object" && aValue.actor) {
-        objectActors.push(aValue.actor);
-        let displayStringIsLong = typeof aValue.displayString == "object" &&
-                                  aValue.displayString.type == "longString";
-        if (displayStringIsLong) {
-          objectActors.push(aValue.displayString.actor);
-        }
+    args.forEach((aValue) => {
+      if (WebConsoleUtils.isActorGrip(aValue)) {
+        objectActors.add(aValue.actor);
       }
-    }, this);
+    });
 
     switch (level) {
       case "log":
@@ -974,25 +981,17 @@ WebConsoleFrame.prototype = {
       case "warn":
       case "error":
       case "debug":
-      case "dir":
-      case "groupEnd": {
+      case "dir": {
         body = { arguments: args };
         let clipboardArray = [];
-        args.forEach(function(aValue) {
-          clipboardArray.push(WebConsoleUtils.objectActorGripToString(aValue));
-          if (aValue && typeof aValue == "object" && aValue.actor) {
-            let displayStringIsLong = typeof aValue.displayString == "object" &&
-                                      aValue.displayString.type == "longString";
-            if (aValue.type == "longString" || displayStringIsLong) {
-              clipboardArray.push(l10n.getStr("longStringEllipsis"));
-            }
+        args.forEach((aValue) => {
+          clipboardArray.push(VariablesView.getString(aValue));
+          if (aValue && typeof aValue == "object" &&
+              aValue.type == "longString") {
+            clipboardArray.push(l10n.getStr("longStringEllipsis"));
           }
-        }, this);
+        });
         clipboardText = clipboardArray.join(" ");
-
-        if (level == "dir") {
-          body.objectProperties = aMessage.objectProperties;
-        }
         break;
       }
 
@@ -1020,6 +1019,12 @@ WebConsoleFrame.prototype = {
       case "groupCollapsed":
         clipboardText = body = aMessage.groupName;
         this.groupDepth++;
+        break;
+
+      case "groupEnd":
+        if (this.groupDepth > 0) {
+          this.groupDepth--;
+        }
         break;
 
       case "time": {
@@ -1060,14 +1065,13 @@ WebConsoleFrame.prototype = {
       case "trace":
       case "time":
       case "timeEnd":
-        objectActors.forEach(this._releaseObject, this);
-        objectActors = [];
+        for (let actor of objectActors) {
+          this._releaseObject(actor);
+        }
+        objectActors.clear();
     }
 
     if (level == "groupEnd") {
-      if (this.groupDepth > 0) {
-        this.groupDepth--;
-      }
       return; 
     }
 
@@ -1075,7 +1079,7 @@ WebConsoleFrame.prototype = {
                                       sourceURL, sourceLine, clipboardText,
                                       level, aMessage.timeStamp);
 
-    if (objectActors.length) {
+    if (objectActors.size > 0) {
       node._objectActors = objectActors;
     }
 
@@ -1084,28 +1088,8 @@ WebConsoleFrame.prototype = {
     if (level == "trace") {
       node._stacktrace = aMessage.stacktrace;
 
-      this.makeOutputMessageLink(node, function _traceNodeClickCallback() {
-        if (node._panelOpen) {
-          return;
-        }
-
-        let options = {
-          anchor: node,
-          data: { object: node._stacktrace },
-        };
-
-        let propPanel = this.jsterm.openPropertyPanel(options);
-        propPanel.panel.setAttribute("hudId", this.hudId);
-      }.bind(this));
-    }
-
-    if (level == "dir") {
-      
-      
-      
-      node._onOutput = function _onMessageOutput() {
-        node.querySelector("tree").view = node.propertyTreeView;
-      };
+      this.makeOutputMessageLink(node, () =>
+        this.jsterm.openVariablesView({ rawObject: node._stacktrace }));
     }
 
     return node;
@@ -1134,43 +1118,13 @@ WebConsoleFrame.prototype = {
 
 
 
-
-
-  _consoleLogClick:
-  function WCF__consoleLogClick(aMessage, aAnchor, aObjectActor)
+  _consoleLogClick: function WCF__consoleLogClick(aAnchor, aObjectActor)
   {
-    if (aAnchor._panelOpen) {
-      return;
-    }
-
     let options = {
-      title: aAnchor.textContent,
-      anchor: aAnchor,
-
-      
-      data: {
-        objectPropertiesProvider: this.objectPropertiesProvider.bind(this),
-        releaseObject: this._releaseObject.bind(this),
-      },
+      label: aAnchor.textContent,
+      objectActor: aObjectActor,
     };
-
-    let propPanel;
-    let onPopupHide = function _onPopupHide() {
-      propPanel.panel.removeEventListener("popuphiding", onPopupHide, false);
-
-      if (!aMessage.parentNode && aMessage._objectActors) {
-        aMessage._objectActors.forEach(this._releaseObject, this);
-        aMessage._objectActors = null;
-      }
-    }.bind(this);
-
-    this.objectPropertiesProvider(aObjectActor.actor,
-      function _onObjectProperties(aProperties) {
-        options.data.objectProperties = aProperties;
-        propPanel = this.jsterm.openPropertyPanel(options);
-        propPanel.panel.setAttribute("hudId", this.hudId);
-        propPanel.panel.addEventListener("popuphiding", onPopupHide, false);
-      }.bind(this));
+    this.jsterm.openVariablesView(options);
   },
 
   
@@ -1908,9 +1862,11 @@ WebConsoleFrame.prototype = {
   _pruneItemFromQueue: function WCF__pruneItemFromQueue(aItem)
   {
     let [category, methodOrNode, args] = aItem;
-    if (typeof methodOrNode != "function" &&
-        methodOrNode._objectActors && !methodOrNode._panelOpen) {
-      methodOrNode._objectActors.forEach(this._releaseObject, this);
+    if (typeof methodOrNode != "function" && methodOrNode._objectActors) {
+      for (let actor of methodOrNode._objectActors) {
+        this._releaseObject(actor);
+      }
+      methodOrNode._objectActors.clear();
     }
 
     if (category == CATEGORY_NETWORK) {
@@ -1928,30 +1884,11 @@ WebConsoleFrame.prototype = {
     }
     else if (category == CATEGORY_WEBDEV &&
              methodOrNode == this.logConsoleAPIMessage) {
-      let level = args[0].level;
-      let releaseObject = function _releaseObject(aValue) {
-        if (aValue && typeof aValue == "object" && aValue.actor) {
+      args[0].arguments.forEach((aValue) => {
+        if (WebConsoleUtils.isActorGrip(aValue)) {
           this._releaseObject(aValue.actor);
         }
-      }.bind(this);
-      switch (level) {
-        case "log":
-        case "info":
-        case "warn":
-        case "error":
-        case "debug":
-        case "dir":
-        case "groupEnd": {
-          args[0].arguments.forEach(releaseObject);
-          if (level == "dir") {
-            args[0].objectProperties.forEach(function(aObject) {
-              ["value", "get", "set"].forEach(function(aProp) {
-                releaseObject(aObject[aProp]);
-              });
-            });
-          }
-        }
-      }
+      });
     }
   },
 
@@ -1984,31 +1921,13 @@ WebConsoleFrame.prototype = {
 
 
 
-
-
-  pruneConsoleDirNode: function WCF_pruneConsoleDirNode(aMessageNode)
-  {
-    if (aMessageNode.parentNode) {
-      aMessageNode.parentNode.removeChild(aMessageNode);
-    }
-
-    let tree = aMessageNode.querySelector("tree");
-    tree.parentNode.removeChild(tree);
-    aMessageNode.propertyTreeView.data = null;
-    aMessageNode.propertyTreeView = null;
-    tree.view = null;
-  },
-
-  
-
-
-
-
-
   removeOutputMessage: function WCF_removeOutputMessage(aNode)
   {
-    if (aNode._objectActors && !aNode._panelOpen) {
-      aNode._objectActors.forEach(this._releaseObject, this);
+    if (aNode._objectActors) {
+      for (let actor of aNode._objectActors) {
+        this._releaseObject(actor);
+      }
+      aNode._objectActors.clear();
     }
 
     if (aNode.classList.contains("webconsole-msg-cssparser")) {
@@ -2023,8 +1942,15 @@ WebConsoleFrame.prototype = {
       this._releaseObject(aNode._connectionId);
     }
     else if (aNode.classList.contains("webconsole-msg-inspector")) {
-      this.pruneConsoleDirNode(aNode);
-      return;
+      let view = aNode._variablesView;
+      let actors = view ?
+                   this.jsterm._objectActorsInVariablesViews.get(view) :
+                   new Set();
+      for (let actor of actors) {
+        this._releaseObject(actor);
+      }
+      actors.clear();
+      aNode._variablesView = null;
     }
 
     if (aNode.parentNode) {
@@ -2116,7 +2042,6 @@ WebConsoleFrame.prototype = {
     bodyNode.classList.add("webconsole-msg-body");
 
     
-    
     let body = aBody;
     
     
@@ -2133,7 +2058,7 @@ WebConsoleFrame.prototype = {
     else {
       let str = undefined;
       if (aLevel == "dir") {
-        str = WebConsoleUtils.objectActorGripToString(aBody.arguments[0]);
+        str = VariablesView.getString(aBody.arguments[0]);
       }
       else if (["log", "info", "warn", "error", "debug"].indexOf(aLevel) > -1 &&
                typeof aBody == "object") {
@@ -2168,7 +2093,7 @@ WebConsoleFrame.prototype = {
     
     
     let locationNode;
-    if (aSourceURL) {
+    if (aSourceURL && IGNORED_SOURCE_URLS.indexOf(aSourceURL) == -1) {
       locationNode = this.createLocationNode(aSourceURL, aSourceLine);
     }
 
@@ -2180,42 +2105,28 @@ WebConsoleFrame.prototype = {
 
     node.appendChild(timestampNode);
     node.appendChild(iconContainer);
+
     
     if (aLevel == "dir") {
-      
-      
+      let viewContainer = this.document.createElement("hbox");
+      viewContainer.flex = 1;
+      viewContainer.height = this.outputNode.clientHeight *
+                             CONSOLE_DIR_VIEW_HEIGHT;
+
+      let options = {
+        objectActor: body.arguments[0],
+        targetElement: viewContainer,
+        hideFilterInput: true,
+      };
+      this.jsterm.openVariablesView(options)
+        .then((aView) => node._variablesView = aView);
+
       let bodyContainer = this.document.createElement("vbox");
       bodyContainer.flex = 1;
       bodyContainer.appendChild(bodyNode);
-      
-      let tree = this.document.createElement("tree");
-      tree.setAttribute("hidecolumnpicker", "true");
-      tree.flex = 1;
-
-      let treecols = this.document.createElement("treecols");
-      let treecol = this.document.createElement("treecol");
-      treecol.setAttribute("primary", "true");
-      treecol.setAttribute("hideheader", "true");
-      treecol.setAttribute("ignoreincolumnpicker", "true");
-      treecol.flex = 1;
-      treecols.appendChild(treecol);
-      tree.appendChild(treecols);
-
-      tree.appendChild(this.document.createElement("treechildren"));
-
-      bodyContainer.appendChild(tree);
+      bodyContainer.appendChild(viewContainer);
       node.appendChild(bodyContainer);
       node.classList.add("webconsole-msg-inspector");
-      
-      let treeView = node.propertyTreeView = new PropertyTreeView();
-
-      treeView.data = {
-        objectPropertiesProvider: this.objectPropertiesProvider.bind(this),
-        releaseObject: this._releaseObject.bind(this),
-        objectProperties: body.objectProperties,
-      };
-
-      tree.setAttribute("rows", treeView.rowCount);
     }
     else {
       node.appendChild(bodyNode);
@@ -2263,29 +2174,22 @@ WebConsoleFrame.prototype = {
         aContainer.appendChild(this.document.createTextNode(" "));
       }
 
-      let text = WebConsoleUtils.objectActorGripToString(aItem);
+      let text = VariablesView.getString(aItem);
+      let inspectable = !VariablesView.isPrimitive({ value: aItem });
 
-      if (aItem && typeof aItem != "object" || !aItem.inspectable) {
+      if (aItem && typeof aItem != "object" || !inspectable) {
         aContainer.appendChild(this.document.createTextNode(text));
 
-        let longString = null;
         if (aItem.type == "longString") {
-          longString = aItem;
-        }
-        else if (!aItem.inspectable &&
-                 typeof aItem.displayString == "object" &&
-                 aItem.displayString.type == "longString") {
-          longString = aItem.displayString;
-        }
-
-        if (longString) {
           let ellipsis = this.document.createElement("description");
           ellipsis.classList.add("hud-clickable");
           ellipsis.classList.add("longStringEllipsis");
           ellipsis.textContent = l10n.getStr("longStringEllipsis");
 
+          let formatter = function(s) '"' + s + '"';
+
           this._addMessageLinkCallback(ellipsis,
-            this._longStringClick.bind(this, aMessage, longString, null));
+            this._longStringClick.bind(this, aMessage, aItem, formatter));
 
           aContainer.appendChild(ellipsis);
         }
@@ -2299,7 +2203,7 @@ WebConsoleFrame.prototype = {
       elem.appendChild(this.document.createTextNode(text));
 
       this._addMessageLinkCallback(elem,
-        this._consoleLogClick.bind(this, aMessage, elem, aItem));
+        this._consoleLogClick.bind(this, elem, aItem));
 
       aContainer.appendChild(elem);
     }, this);
@@ -2682,16 +2586,64 @@ function JSTerm(aWebConsoleFrame)
   this.history = [];
   this.historyIndex = 0;
   this.historyPlaceHolder = 0;  
+  this._objectActorsInVariablesViews = new Map();
+
   this._keyPress = this.keyPress.bind(this);
   this._inputEventHandler = this.inputEventHandler.bind(this);
+  this._fetchVarProperties = this._fetchVarProperties.bind(this);
+  this._fetchVarLongString = this._fetchVarLongString.bind(this);
+
+  EventEmitter.decorate(this);
 }
 
 JSTerm.prototype = {
+  SELECTED_FRAME: -1,
+
   
 
 
 
   lastCompletion: null,
+
+  
+
+
+
+
+  sidebar: null,
+
+  
+
+
+
+
+  _splitter: null,
+
+  
+
+
+
+
+  _variablesView: null,
+
+  
+
+
+
+
+
+
+  _lazyVariablesView: true,
+
+  
+
+
+
+
+
+
+
+  _objectActorsInVariablesViews: null,
 
   
 
@@ -2751,6 +2703,8 @@ JSTerm.prototype = {
     this.inputNode.addEventListener("input", this._inputEventHandler, false);
     this.inputNode.addEventListener("keyup", this._inputEventHandler, false);
 
+    this._splitter = doc.querySelector(".devtools-side-splitter");
+
     this.lastInputValue && this.setInputValue(this.lastInputValue);
   },
 
@@ -2773,15 +2727,20 @@ JSTerm.prototype = {
     if (!this.hud) {
       return;
     }
-
-    let errorMessage = aResponse.errorMessage;
+    if (aResponse.error) {
+      Cu.reportError("Evaluation error " + aResponse.error + ": " +
+                     aResponse.message);
+      return;
+    }
+    let errorMessage = aResponse.exceptionMessage;
     let result = aResponse.result;
-    let inspectable = result && typeof result == "object" && result.inspectable;
+    let inspectable = false;
+    if (result && !VariablesView.isPrimitive({ value: result })) {
+      inspectable = true;
+    }
     let helperResult = aResponse.helperResult;
     let helperHasRawOutput = !!(helperResult || {}).rawOutput;
-    let resultString =
-      WebConsoleUtils.objectActorGripToString(result,
-                                              !helperHasRawOutput);
+    let resultString = VariablesView.getString(result);
 
     if (helperResult && helperResult.type) {
       switch (helperResult.type) {
@@ -2789,7 +2748,16 @@ JSTerm.prototype = {
           this.clearOutput();
           break;
         case "inspectObject":
-          this.handleInspectObject(helperResult.input, helperResult.object);
+          if (aAfterNode) {
+            if (!aAfterNode._objectActors) {
+              aAfterNode._objectActors = new Set();
+            }
+            aAfterNode._objectActors.add(helperResult.object.actor);
+          }
+          this.openVariablesView({
+            label: VariablesView.getString(helperResult.object),
+            objectActor: helperResult.object,
+          });
           break;
         case "error":
           try {
@@ -2838,38 +2806,30 @@ JSTerm.prototype = {
                               aAfterNode, aResponse.timestamp);
     }
 
-    if (result && typeof result == "object" && result.actor) {
-      node._objectActors = [result.actor];
-      if (typeof result.displayString == "object" &&
-          result.displayString.type == "longString") {
-        node._objectActors.push(result.displayString.actor);
-      }
+    node._objectActors = new Set();
 
-      
-      
-      let longString = null;
-      let formatter = null;
+    let error = aResponse.exception;
+    if (WebConsoleUtils.isActorGrip(error)) {
+      node._objectActors.add(error.actor);
+    }
+
+    if (WebConsoleUtils.isActorGrip(result)) {
+      node._objectActors.add(result.actor);
+
       if (result.type == "longString") {
-        longString = result;
-        if (!helperHasRawOutput) {
-          formatter = WebConsoleUtils.formatResultString.bind(WebConsoleUtils);
-        }
-      }
-      else if (!inspectable && !errorMessage &&
-               typeof result.displayString == "object" &&
-               result.displayString.type == "longString") {
-        longString = result.displayString;
-      }
+        
+        
 
-      if (longString) {
         let body = node.querySelector(".webconsole-msg-body");
         let ellipsis = this.hud.document.createElement("description");
         ellipsis.classList.add("hud-clickable");
         ellipsis.classList.add("longStringEllipsis");
         ellipsis.textContent = l10n.getStr("longStringEllipsis");
 
-        this.hud._addMessageLinkCallback(ellipsis,
-          this.hud._longStringClick.bind(this.hud, node, longString, formatter));
+        let formatter = function(s) '"' + s + '"';
+        let onclick = this.hud._longStringClick.bind(this.hud, node, result,
+                                                    formatter);
+        this.hud._addMessageLinkCallback(ellipsis, onclick);
 
         body.appendChild(ellipsis);
 
@@ -2900,7 +2860,8 @@ JSTerm.prototype = {
     let node = this.writeOutput(aExecuteString, CATEGORY_INPUT, SEVERITY_LOG);
     let onResult = this._executeResultCallback.bind(this, node, aCallback);
 
-    this.webConsoleClient.evaluateJS(aExecuteString, onResult);
+    let options = { frame: this.SELECTED_FRAME };
+    this.requestEvaluation(aExecuteString, options).then(onResult, onResult);
 
     this.history.push(aExecuteString);
     this.historyIndex++;
@@ -2930,41 +2891,586 @@ JSTerm.prototype = {
 
 
 
+  requestEvaluation: function JST_requestEvaluation(aString, aOptions = {})
+  {
+    let deferred = Promise.defer();
 
-  openPropertyPanel: function JST_openPropertyPanel(aOptions)
+    function onResult(aResponse) {
+      if (!aResponse.error) {
+        deferred.resolve(aResponse);
+      }
+      else {
+        deferred.reject(aResponse);
+      }
+    }
+
+    let frameActor = null;
+    if ("frame" in aOptions) {
+      frameActor = this.getFrameActor(aOptions.frame);
+    }
+
+    let evalOptions = {
+      bindObjectActor: aOptions.bindObjectActor,
+      frameActor: frameActor,
+    };
+
+    this.webConsoleClient.evaluateJS(aString, onResult, evalOptions);
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+  getFrameActor: function JST_getFrameActor(aFrame)
+  {
+    let state = this.hud.owner.getDebuggerFrames();
+    if (!state) {
+      return null;
+    }
+
+    let grip;
+    if (aFrame == this.SELECTED_FRAME) {
+      grip = state.frames[state.selected];
+    }
+    else {
+      grip = state.frames[aFrame];
+    }
+
+    return grip ? grip.actor : null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  openVariablesView: function JST_openVariablesView(aOptions)
+  {
+    let onContainerReady = (aWindow) => {
+      let container = aWindow.document.querySelector("#variables");
+      let view = this._variablesView;
+      if (!view || aOptions.targetElement) {
+        let viewOptions = {
+          container: container,
+          hideFilterInput: aOptions.hideFilterInput,
+        };
+        view = this._createVariablesView(viewOptions);
+        if (!aOptions.targetElement) {
+          this._variablesView = view;
+        }
+      }
+      aOptions.view = view;
+      this._updateVariablesView(aOptions);
+      this.emit("variablesview-open", view, aOptions);
+      return view;
+    };
+
+    let promise;
+    if (aOptions.targetElement) {
+      let deferred = Promise.defer();
+      promise = deferred.promise;
+      let document = aOptions.targetElement.ownerDocument;
+      let iframe = document.createElement("iframe");
+
+      iframe.addEventListener("load", function onIframeLoad(aEvent) {
+        iframe.removeEventListener("load", onIframeLoad, true);
+        deferred.resolve(iframe.contentWindow);
+      }, true);
+
+      iframe.flex = 1;
+      iframe.setAttribute("src", VARIABLES_VIEW_URL);
+      aOptions.targetElement.appendChild(iframe);
+    }
+    else {
+      this._createSidebar();
+      promise = this._addVariablesViewSidebarTab();
+    }
+
+    return promise.then(onContainerReady);
+  },
+
+  
+
+
+
+
+
+  _createSidebar: function JST__createSidebar()
+  {
+    if (!this.sidebar) {
+      let tabbox = this.hud.document.querySelector("#webconsole-sidebar");
+      this.sidebar = new ToolSidebar(tabbox, this);
+    }
+    this.sidebar.show();
+    this._splitter.setAttribute("state", "open");
+  },
+
+  
+
+
+
+
+
+
+  _addVariablesViewSidebarTab: function JST__addVariablesViewSidebarTab()
+  {
+    let deferred = Promise.defer();
+
+    let onTabReady = () => {
+      let window = this.sidebar.getWindowForTab("variablesview");
+      deferred.resolve(window);
+    };
+
+    let tab = this.sidebar.getTab("variablesview");
+    if (tab) {
+      if (this.sidebar.getCurrentTabID() == "variablesview") {
+        onTabReady();
+      }
+      else {
+        this.sidebar.once("variablesview-selected", onTabReady);
+        this.sidebar.select("variablesview");
+      }
+    }
+    else {
+      this.sidebar.once("variablesview-ready", onTabReady);
+      this.sidebar.addTab("variablesview", VARIABLES_VIEW_URL, true);
+    }
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _createVariablesView: function JST__createVariablesView(aOptions)
+  {
+    let view = new VariablesView(aOptions.container);
+    view.searchPlaceholder = l10n.getStr("propertiesFilterPlaceholder");
+    view.emptyText = l10n.getStr("emptyPropertiesList");
+    view.searchEnabled = !aOptions.hideFilterInput;
+    view.lazyEmpty = this._lazyVariablesView;
+    view.lazyAppend = this._lazyVariablesView;
+    this._objectActorsInVariablesViews.set(view, new Set());
+    return view;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _updateVariablesView: function JST__updateVariablesView(aOptions)
+  {
+    let view = aOptions.view;
+    view.createHierarchy();
+    view.empty();
+
+    let actors = this._objectActorsInVariablesViews.get(view);
+    for (let actor of actors) {
+      
+      
+      if (view._consoleLastObjectActor != actor) {
+        this.hud._releaseObject(actor);
+      }
+    }
+
+    actors.clear();
+
+    if (aOptions.objectActor) {
+      
+      view.eval = this._variablesViewEvaluate.bind(this, aOptions);
+      view.switch = this._variablesViewSwitch.bind(this, aOptions);
+      view.delete = this._variablesViewDelete.bind(this, aOptions);
+    }
+    else {
+      view.eval = null;
+      view.switch = null;
+      view.delete = null;
+    }
+
+    let scope = view.addScope(aOptions.label);
+    scope.expanded = true;
+    scope.locked = true;
+
+    let container = scope.addVar();
+    container.evaluationMacro = this._variablesViewSimpleValueEvalMacro;
+
+    if (aOptions.objectActor) {
+      this._fetchVarProperties(container, aOptions.objectActor);
+      view._consoleLastObjectActor = aOptions.objectActor.actor;
+    }
+    else if (aOptions.rawObject) {
+      container.populate(aOptions.rawObject);
+      view.commitHierarchy();
+      view._consoleLastObjectActor = null;
+    }
+    else {
+      throw new Error("Variables View cannot open without giving it an object " +
+                      "display.");
+    }
+
+    this.emit("variablesview-updated", view, aOptions);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _variablesViewEvaluate: function JST__variablesViewEvaluate(aOptions, aString)
+  {
+    let updater = this._updateVariablesView.bind(this, aOptions);
+    let onEval = this._silentEvalCallback.bind(this, updater);
+
+    let evalOptions = {
+      frame: this.SELECTED_FRAME,
+      bindObjectActor: aOptions.objectActor.actor,
+    };
+
+    this.requestEvaluation(aString, evalOptions).then(onEval, onEval);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _variablesViewSimpleValueEvalMacro:
+  function JST__variablesViewSimpleValueEvalMacro(aItem, aCurrentString)
+  {
+    return "_self" + aItem.symbolicName + "=" + aCurrentString;
+  },
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _variablesViewOverrideValueEvalMacro:
+  function JST__variablesViewOverrideValueEvalMacro(aItem, aCurrentString)
+  {
+    let parent = aItem.ownerView;
+    let symbolicName = parent.symbolicName;
+    if (symbolicName.indexOf("_self") != 0) {
+      parent._symbolicName = "_self" + symbolicName;
+    }
+
+    let result = VariablesView.overrideValueEvalMacro.apply(this, arguments);
+
+    parent._symbolicName = symbolicName;
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _variablesViewGetterOrSetterEvalMacro:
+  function JST__variablesViewGetterOrSetterEvalMacro(aItem, aCurrentString)
+  {
+    let propertyObject = aItem.ownerView;
+    let parentObject = propertyObject.ownerView;
+    let parent = parentObject.symbolicName;
+    parentObject._symbolicName = "_self" + parent;
+
+    let result = VariablesView.getterOrSetterEvalMacro.apply(this, arguments);
+
+    parentObject._symbolicName = parent;
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _variablesViewDelete: function JST__variablesViewDelete(aOptions, aVar)
+  {
+    let onEval = this._silentEvalCallback.bind(this, null);
+
+    let evalOptions = {
+      frame: this.SELECTED_FRAME,
+      bindObjectActor: aOptions.objectActor.actor,
+    };
+
+    this.requestEvaluation("delete _self" + aVar.symbolicName, evalOptions)
+        .then(onEval, onEval);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _variablesViewSwitch:
+  function JST__variablesViewSwitch(aOptions, aVar, aNewName)
+  {
+    let updater = this._updateVariablesView.bind(this, aOptions);
+    let onEval = this._silentEvalCallback.bind(this, updater);
+
+    let evalOptions = {
+      frame: this.SELECTED_FRAME,
+      bindObjectActor: aOptions.objectActor.actor,
+    };
+
+    let newSymbolicName = aVar.ownerView.symbolicName + '["' + aNewName + '"]';
+    if (newSymbolicName == aVar.symbolicName) {
+      return;
+    }
+
+    let code = "_self" + newSymbolicName + " = _self" + aVar.symbolicName + ";" +
+               "delete _self" + aVar.symbolicName;
+
+    this.requestEvaluation(code, evalOptions).then(onEval, onEval);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _silentEvalCallback: function JST__silentEvalCallback(aCallback, aResponse)
+  {
+    if (aResponse.error) {
+      Cu.reportError("Web Console evaluation failed. " + aResponse.error + ":" +
+                     aResponse.message);
+
+      aCallback && aCallback(aResponse);
+      return;
+    }
+
+    let exception = aResponse.exception;
+    if (exception) {
+      let node = this.writeOutput(aResponse.exceptionMessage,
+                                  CATEGORY_OUTPUT, SEVERITY_ERROR,
+                                  null, aResponse.timestamp);
+      node._objectActors = new Set();
+      if (WebConsoleUtils.isActorGrip(exception)) {
+        node._objectActors.add(exception.actor);
+      }
+    }
+
+    let helper = aResponse.helperResult || { type: null };
+    let helperGrip = null;
+    if (helper.type == "inspectObject") {
+      helperGrip = helper.object;
+    }
+
+    let grips = [aResponse.result, helperGrip];
+    for (let grip of grips) {
+      if (WebConsoleUtils.isActorGrip(grip)) {
+        this.hud._releaseObject(grip.actor);
+      }
+    }
+
+    aCallback && aCallback(aResponse);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _fetchVarProperties: function JST__fetchVarProperties(aVar, aGrip)
   {
     
-    
-    
-    let buttons = [];
+    if (aVar._fetched) {
+      return;
+    }
+    aVar._fetched = true;
 
-    if (aOptions.updateButtonCallback) {
-      buttons.push({
-        label: l10n.getStr("update.button"),
-        accesskey: l10n.getStr("update.accesskey"),
-        oncommand: aOptions.updateButtonCallback,
-      });
+    let grip = aGrip || aVar.value;
+    if (!grip) {
+      throw new Error("No object actor grip was given for the variable.");
     }
 
-    let parent = this.hud.popupset;
-    let title = aOptions.title ?
-                l10n.getFormatStr("jsPropertyInspectTitle", [aOptions.title]) :
-                l10n.getStr("jsPropertyTitle");
+    let view = aVar._variablesView;
+    let actors = this._objectActorsInVariablesViews.get(view);
 
-    let propPanel = new PropertyPanel(parent, title, aOptions.data, buttons);
-
-    propPanel.panel.openPopup(aOptions.anchor, "after_pointer", 0, 0, false, false);
-    propPanel.panel.sizeTo(350, 450);
-
-    if (aOptions.anchor) {
-      propPanel.panel.addEventListener("popuphiding", function onPopupHide() {
-        propPanel.panel.removeEventListener("popuphiding", onPopupHide, false);
-        aOptions.anchor._panelOpen = false;
-      }, false);
-      aOptions.anchor._panelOpen = true;
+    function addActorForDescriptor(aGrip) {
+      if (WebConsoleUtils.isActorGrip(aGrip)) {
+        actors.add(aGrip.actor);
+      }
     }
 
-    return propPanel;
+    let onNewProperty = (aProperty) => {
+      if (aProperty.getter || aProperty.setter) {
+        aProperty.evaluationMacro = this._variablesViewOverrideValueEvalMacro;
+        let getter = aProperty.get("get");
+        let setter = aProperty.get("set");
+        if (getter) {
+          getter.evaluationMacro = this._variablesViewGetterOrSetterEvalMacro;
+        }
+        if (setter) {
+          setter.evaluationMacro = this._variablesViewGetterOrSetterEvalMacro;
+        }
+      }
+      else {
+        aProperty.evaluationMacro = this._variablesViewSimpleValueEvalMacro;
+      }
+
+      let grips = [aProperty.value, aProperty.gettter, aProperty.settter];
+      grips.forEach(addActorForDescriptor);
+
+      let inspectable = !VariablesView.isPrimitive({ value: aProperty.value });
+      let longString = WebConsoleUtils.isActorGrip(aProperty.value) &&
+                       aProperty.value.type == "longString";
+      if (inspectable) {
+        aProperty.onexpand = this._fetchVarProperties;
+      }
+      else if (longString) {
+        aProperty.onexpand = this._fetchVarLongString;
+        aProperty.showArrow();
+      }
+    };
+
+    let client = new GripClient(this.hud.proxy.client, grip);
+    client.getPrototypeAndProperties((aResponse) => {
+      let { ownProperties, prototype } = aResponse;
+      let sortable = VariablesView.NON_SORTABLE_CLASSES.indexOf(grip.class) == -1;
+
+      
+      if (ownProperties) {
+        aVar.addProperties(ownProperties, {
+          sorted: sortable,
+          callback: onNewProperty,
+        });
+      }
+
+      
+      if (prototype && prototype.type != "null") {
+        let proto = aVar.addProperty("__proto__", { value: prototype });
+        onNewProperty(proto);
+      }
+
+      aVar._retrieved = true;
+      view.commitHierarchy();
+      this.emit("variablesview-fetched", aVar);
+    });
+  },
+
+  
+
+
+
+
+
+  _fetchVarLongString: function JST__fetchVarLongString(aVar)
+  {
+    if (aVar._fetched) {
+      return;
+    }
+    aVar._fetched = true;
+
+    let grip = aVar.value;
+    if (!grip) {
+      throw new Error("No long string actor grip was given for the variable.");
+    }
+
+    let client = this.webConsoleClient.longString(grip);
+    client.substring(grip.initial.length, grip.length, (aResponse) => {
+      if (aResponse.error) {
+        Cu.reportError("JST__fetchVarLongString substring failure: " +
+                       aResponse.error + ": " + aResponse.message);
+        return;
+      }
+
+      aVar.onexpand = null;
+      aVar.setGrip(grip.initial + aResponse.substring);
+      aVar.hideArrow();
+      aVar._retrieved = true;
+    });
   },
 
   
@@ -3604,148 +4110,12 @@ JSTerm.prototype = {
 
 
 
-
-
-  handleInspectObject: function JST_handleInspectObject(aInput, aActor)
+  _evalOutputClick: function JST__evalOutputClick(aResponse)
   {
-    let options = {
-      title: aInput,
-
-      data: {
-        objectPropertiesProvider: this.hud.objectPropertiesProvider.bind(this.hud),
-        releaseObject: this.hud._releaseObject.bind(this.hud),
-      },
-    };
-
-    let propPanel;
-
-    let onPopupHide = function JST__onPopupHide() {
-      propPanel.panel.removeEventListener("popuphiding", onPopupHide, false);
-      this.hud._releaseObject(aActor.actor);
-    }.bind(this);
-
-    this.hud.objectPropertiesProvider(aActor.actor,
-      function _onObjectProperties(aProperties) {
-        options.data.objectProperties = aProperties;
-        propPanel = this.openPropertyPanel(options);
-        propPanel.panel.setAttribute("hudId", this.hudId);
-        propPanel.panel.addEventListener("popuphiding", onPopupHide, false);
-      }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-
-  _evalOutputClick: function JST__evalOutputClick(aResponse, aLinkNode)
-  {
-    if (aLinkNode._panelOpen) {
-      return;
-    }
-
-    let options = {
-      title: aResponse.input,
-      anchor: aLinkNode,
-
-      
-      data: {
-        objectPropertiesProvider: this.hud.objectPropertiesProvider.bind(this.hud),
-        releaseObject: this.hud._releaseObject.bind(this.hud),
-      },
-    };
-
-    let propPanel;
-
-    options.updateButtonCallback = function JST__evalUpdateButton() {
-      let onResult =
-        this._evalOutputUpdatePanelCallback.bind(this, options, propPanel,
-                                                 aResponse);
-      this.webConsoleClient.evaluateJS(aResponse.input, onResult);
-    }.bind(this);
-
-    let onPopupHide = function JST__evalInspectPopupHide() {
-      propPanel.panel.removeEventListener("popuphiding", onPopupHide, false);
-
-      if (!aLinkNode.parentNode && aLinkNode._objectActors) {
-        aLinkNode._objectActors.forEach(this.hud._releaseObject, this.hud);
-        aLinkNode._objectActors = null;
-      }
-    }.bind(this);
-
-    this.hud.objectPropertiesProvider(aResponse.result.actor,
-      function _onObjectProperties(aProperties) {
-        options.data.objectProperties = aProperties;
-        propPanel = this.openPropertyPanel(options);
-        propPanel.panel.setAttribute("hudId", this.hudId);
-        propPanel.panel.addEventListener("popuphiding", onPopupHide, false);
-      }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _evalOutputUpdatePanelCallback:
-  function JST__updatePanelCallback(aOptions, aPropPanel, aOldResponse,
-                                    aNewResponse)
-  {
-    if (aNewResponse.errorMessage) {
-      this.writeOutput(aNewResponse.errorMessage, CATEGORY_OUTPUT,
-                       SEVERITY_ERROR);
-      return;
-    }
-
-    let result = aNewResponse.result;
-    let inspectable = result && typeof result == "object" && result.inspectable;
-    let newActor = result && typeof result == "object" ? result.actor : null;
-
-    let anchor = aOptions.anchor;
-    if (anchor && newActor) {
-      if (!anchor._objectActors) {
-        anchor._objectActors = [];
-      }
-      if (anchor._objectActors.indexOf(newActor) == -1) {
-        anchor._objectActors.push(newActor);
-      }
-    }
-
-    if (!inspectable) {
-      this.writeOutput(l10n.getStr("JSTerm.updateNotInspectable"), CATEGORY_OUTPUT, SEVERITY_ERROR);
-      return;
-    }
-
-    
-    
-    aOldResponse.result = aNewResponse.result;
-    aOldResponse.error = aNewResponse.error;
-    aOldResponse.errorMessage = aNewResponse.errorMessage;
-    aOldResponse.timestamp = aNewResponse.timestamp;
-
-    this.hud.objectPropertiesProvider(newActor,
-      function _onObjectProperties(aProperties) {
-        aOptions.data.objectProperties = aProperties;
-        
-        
-        
-        aPropPanel.treeView.data = aOptions.data;
-      }.bind(this));
+    this.openVariablesView({
+      label: VariablesView.getString(aResponse.result),
+      objectActor: aResponse.result,
+    });
   },
 
   
@@ -3753,6 +4123,20 @@ JSTerm.prototype = {
 
   destroy: function JST_destroy()
   {
+    if (this._variablesView) {
+      let actors = this._objectActorsInVariablesViews.get(this._variablesView);
+      for (let actor of actors) {
+        this.hud._releaseObject(actor);
+      }
+      actors.clear();
+      this._variablesView = null;
+    }
+
+    if (this.sidebar) {
+      this.sidebar.destroy();
+      this.sidebar = null;
+    }
+
     this.clearCompletion();
     this.clearOutput();
 

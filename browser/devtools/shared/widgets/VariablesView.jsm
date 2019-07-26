@@ -918,6 +918,18 @@ VariablesView.prototype = {
   _emptyTextValue: ""
 };
 
+VariablesView.NON_SORTABLE_CLASSES = [
+  "Array",
+  "Int8Array",
+  "Uint8Array",
+  "Int16Array",
+  "Uint16Array",
+  "Int32Array",
+  "Uint32Array",
+  "Float32Array",
+  "Float64Array"
+];
+
 
 
 
@@ -983,7 +995,8 @@ VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString) {
       
       if ((type == "set" && propertyObject.getter.type == "undefined") ||
           (type == "get" && propertyObject.setter.type == "undefined")) {
-        return VariablesView.overrideValueEvalMacro(propertyObject, "undefined");
+        
+        return propertyObject.evaluationMacro(propertyObject, "undefined");
       }
 
       
@@ -1041,7 +1054,10 @@ VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString) {
 
 VariablesView.getterOrSetterDeleteCallback = function(aItem) {
   aItem._disable();
-  aItem.ownerView.eval(VariablesView.getterOrSetterEvalMacro(aItem, ""));
+
+  
+  aItem.ownerView.eval(aItem.evaluationMacro(aItem, ""));
+
   return true; 
 };
 
@@ -1419,6 +1435,13 @@ Scope.prototype = {
   
 
 
+  focus: function S_focus() {
+    this._variablesView._focusItem(this);
+  },
+
+  
+
+
 
 
 
@@ -1447,6 +1470,18 @@ Scope.prototype = {
 
 
   get name() this._nameString,
+
+  
+
+
+
+  get displayValue() this._valueString,
+
+  
+
+
+
+  get displayValueClassName() this._valueClassName,
 
   
 
@@ -1525,7 +1560,7 @@ Scope.prototype = {
       return;
     }
     this.toggle();
-    this._variablesView._focusItem(this);
+    this.focus();
   },
 
   
@@ -2190,6 +2225,7 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
       
       else {
         this.delete = null;
+        this.evaluationMacro = null;
       }
 
       let getter = this.addProperty("get", { value: descriptor.get });
@@ -2528,11 +2564,11 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
         this._saveNameInput(e);
-        this._variablesView._focusItem(this);
+        this.focus();
         return;
       case e.DOM_VK_ESCAPE:
         this._deactivateNameInput(e);
-        this._variablesView._focusItem(this);
+        this.focus();
         return;
     }
   },
@@ -2547,11 +2583,11 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
         this._saveValueInput(e);
-        this._variablesView._focusItem(this);
+        this.focus();
         return;
       case e.DOM_VK_ESCAPE:
         this._deactivateValueInput(e);
-        this._variablesView._focusItem(this);
+        this.focus();
         return;
     }
   },

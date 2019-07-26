@@ -49,6 +49,8 @@ function tabLoad2(aEvent) {
 function networkPanelShown(aEvent) {
   document.removeEventListener(aEvent.type, networkPanelShown, false);
 
+  info("networkPanelShown");
+
   document.addEventListener("popupshown", networkPanelShowFailure, false);
 
   
@@ -69,6 +71,8 @@ function networkPanelShowFailure(aEvent) {
 
 function networkPanelHidden(aEvent) {
   this.removeEventListener(aEvent.type, networkPanelHidden, false);
+
+  info("networkPanelHidden");
 
   
   
@@ -94,73 +98,25 @@ function networkPanelHidden(aEvent) {
 
     
     
-    HUD.jsterm.setInputValue("document");
-    HUD.jsterm.execute();
+    HUD.jsterm.execute("document", () => {
+      info("jsterm execute 'document' callback");
 
-    waitForSuccess({
-      name: "jsterm output message",
-      validatorFn: function()
-      {
-        return outputNode.querySelector(".webconsole-msg-output .hud-clickable");
-      },
-      successFn: function()
-      {
-        document.addEventListener("popupshown", propertyPanelShown, false);
+      HUD.jsterm.once("variablesview-open", onVariablesViewOpen);
+      let outputItem = outputNode
+                       .querySelector(".webconsole-msg-output .hud-clickable");
+      ok(outputItem, "jsterm output message found");
 
-        
-        EventUtils.sendMouseEvent({type: "mousedown"}, outputItem);
-        EventUtils.sendMouseEvent({type: "click"}, outputItem);
-      },
-      failureFn: finishTest,
+      
+      EventUtils.sendMouseEvent({type: "mousedown"}, outputItem);
+      EventUtils.sendMouseEvent({type: "click"}, outputItem);
     });
   });
 }
 
-function propertyPanelShown(aEvent) {
-  document.removeEventListener(aEvent.type, propertyPanelShown, false);
-
-  document.addEventListener("popupshown", propertyPanelShowFailure, false);
-
-  
-  EventUtils.sendMouseEvent({type: "mousedown"}, outputItem);
-  EventUtils.sendMouseEvent({type: "click"}, outputItem);
+function onVariablesViewOpen() {
+  info("onVariablesViewOpen");
 
   executeSoon(function() {
-    aEvent.target.addEventListener("popuphidden", propertyPanelHidden, false);
-    aEvent.target.hidePopup();
-  });
-}
-
-function propertyPanelShowFailure(aEvent) {
-  document.removeEventListener(aEvent.type, propertyPanelShowFailure, false);
-
-  ok(false, "the property panel should not show");
-}
-
-function propertyPanelHidden(aEvent) {
-  this.removeEventListener(aEvent.type, propertyPanelHidden, false);
-
-  
-  
-  EventUtils.sendMouseEvent({type: "mousedown", clientX: 3, clientY: 4},
-    outputItem);
-  EventUtils.sendMouseEvent({type: "click", clientX: 5, clientY: 6},
-    outputItem);
-
-  
-  EventUtils.sendMouseEvent({type: "mousedown", button: 1},
-    outputItem);
-  EventUtils.sendMouseEvent({type: "click", button: 1},
-    outputItem);
-
-  
-  EventUtils.sendMouseEvent({type: "mousedown", button: 2},
-    outputItem);
-  EventUtils.sendMouseEvent({type: "click", button: 2},
-    outputItem);
-
-  executeSoon(function() {
-    document.removeEventListener("popupshown", propertyPanelShowFailure, false);
     HUD = outputItem = null;
     executeSoon(finishTest);
   });
