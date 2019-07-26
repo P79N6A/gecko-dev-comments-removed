@@ -80,8 +80,8 @@ public:
 
 
 
-    static TabParent* CreateBrowserOrApp(mozIApplication* aOwnOrContainingApp,
-                                         bool aIsBrowserElement);
+    static TabParent* CreateBrowser(mozIApplication* aApp,
+                                    bool aIsBrowserFrame);
 
     static void GetAll(nsTArray<ContentParent*>& aArray);
 
@@ -188,8 +188,8 @@ private:
                                           bool* aIsForBrowser) MOZ_OVERRIDE;
 
     virtual PBrowserParent* AllocPBrowser(const uint32_t& aChromeFlags,
-                                          const AppToken& aOwnOrContainingAppToken,
-                                          const bool& aIsBrowserElement);
+                                          const bool& aIsBrowserElement,
+                                          const AppId& aApp);
     virtual bool DeallocPBrowser(PBrowserParent* frame);
 
     virtual PDeviceStorageRequestParent* AllocPDeviceStorageRequest(const DeviceStorageParams&);

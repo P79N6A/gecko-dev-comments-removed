@@ -3008,7 +3008,7 @@ nsGlobalWindow::GetScriptableParent(nsIDOMWindow** aParent)
     return NS_OK;
   }
 
-  if (mDocShell->GetIsBrowserOrApp()) {
+  if (mDocShell->GetIsContentBoundary()) {
     nsCOMPtr<nsIDOMWindow> parent = static_cast<nsIDOMWindow*>(this);
     parent.swap(*aParent);
     return NS_OK;
@@ -3115,7 +3115,7 @@ nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
 
   
   
-  if (mDocShell && mDocShell->GetIsInBrowserOrApp()) {
+  if (mDocShell && mDocShell->GetIsBelowContentBoundary()) {
     return GetScriptableTop(aContent);
   }
 
@@ -6561,7 +6561,7 @@ nsGlobalWindow::Close()
   FORWARD_TO_OUTER(Close, (), NS_ERROR_NOT_INITIALIZED);
 
   if (!mDocShell || IsInModalState() ||
-      (IsFrame() && !mDocShell->GetIsBrowserOrApp())) {
+      (IsFrame() && !mDocShell->GetIsContentBoundary())) {
     
     
     
@@ -7083,14 +7083,13 @@ nsGlobalWindow::CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
 
 
 
-
 NS_IMETHODIMP
 nsGlobalWindow::GetScriptableFrameElement(nsIDOMElement** aFrameElement)
 {
   FORWARD_TO_OUTER(GetScriptableFrameElement, (aFrameElement), NS_ERROR_NOT_INITIALIZED);
   *aFrameElement = NULL;
 
-  if (!mDocShell || mDocShell->GetIsBrowserOrApp()) {
+  if (!mDocShell || mDocShell->GetIsContentBoundary()) {
     return NS_OK;
   }
 

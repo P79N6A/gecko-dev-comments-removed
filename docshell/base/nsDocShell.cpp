@@ -729,7 +729,6 @@ nsDocShell::nsDocShell():
     mCharsetReloadState(eCharsetReloadInit),
     mChildOffset(0),
     mBusyFlags(BUSY_FLAGS_NONE),
-    mFrameType(eFrameTypeRegular),
     mAppType(nsIDocShell::APP_TYPE_UNKNOWN),
     mLoadType(0),
     mMarginWidth(-1),
@@ -767,7 +766,7 @@ nsDocShell::nsDocShell():
 #ifdef DEBUG
     mInEnsureScriptEnv(false),
 #endif
-    mOwnOrContainingAppId(nsIScriptSecurityManager::UNKNOWN_APP_ID),
+    mAppId(nsIScriptSecurityManager::NO_APP_ID),
     mParentCharsetSource(0)
 {
     mHistoryID = ++gDocshellIDCounter;
@@ -2185,7 +2184,7 @@ nsDocShell::GetFullscreenAllowed(bool* aFullscreenAllowed)
 NS_IMETHODIMP
 nsDocShell::SetFullscreenAllowed(bool aFullscreenAllowed)
 {
-    if (!nsIDocShell::GetIsBrowserOrApp()) {
+    if (!nsIDocShell::GetIsContentBoundary()) {
         
         
         
@@ -2797,7 +2796,7 @@ nsDocShell::GetSameTypeParent(nsIDocShellTreeItem ** aParent)
     NS_ENSURE_ARG_POINTER(aParent);
     *aParent = nullptr;
 
-    if (nsIDocShell::GetIsBrowserOrApp()) {
+    if (mIsBrowserFrame) {
         return NS_OK;
     }
 
@@ -2919,11 +2918,19 @@ nsDocShell::CanAccessItem(nsIDocShellTreeItem* aTargetItem,
         return false;
     }
 
-    if (targetDS && accessingDS &&
-        (targetDS->GetIsInBrowserElement() !=
-           accessingDS->GetIsInBrowserElement() ||
-         targetDS->GetAppId() != accessingDS->GetAppId())) {
-        return false;
+    if (targetDS && accessingDS) {
+        bool targetInBrowser = false, accessingInBrowser = false;
+        targetDS->GetIsInBrowserElement(&targetInBrowser);
+        accessingDS->GetIsInBrowserElement(&accessingInBrowser);
+
+        uint32_t targetAppId = 0, accessingAppId = 0;
+        targetDS->GetAppId(&targetAppId);
+        accessingDS->GetAppId(&accessingAppId);
+
+        if (targetInBrowser != accessingInBrowser ||
+            targetAppId != accessingAppId) {
+            return false;
+        }
     }
 
     nsCOMPtr<nsIDocShellTreeItem> accessingRoot;
@@ -5207,7 +5214,7 @@ nsDocShell::SetIsActive(bool aIsActive)
           continue;
       }
 
-      if (!docshell->GetIsBrowserOrApp()) {
+      if (!docshell->GetIsContentBoundary()) {
           docshell->SetIsActive(aIsActive);
       }
   }
@@ -12283,52 +12290,19 @@ nsDocShell::GetCanExecuteScripts(bool *aResult)
 }
 
 NS_IMETHODIMP
-nsDocShell::SetIsApp(uint32_t aOwnAppId)
+nsDocShell::SetIsBrowserElement()
 {
-    mOwnOrContainingAppId = aOwnAppId;
-    if (aOwnAppId != nsIScriptSecurityManager::NO_APP_ID &&
-        aOwnAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID) {
-        mFrameType = eFrameTypeApp;
-    } else {
-        mFrameType = eFrameTypeRegular;
+    if (mIsBrowserFrame) {
+        NS_ERROR("You should not call SetIsBrowserElement() more than once.");
+        return NS_OK;
     }
 
-    return NS_OK;
-}
+    mIsBrowserFrame = true;
 
-NS_IMETHODIMP
-nsDocShell::SetIsBrowserInsideApp(uint32_t aContainingAppId)
-{
-    mOwnOrContainingAppId = aContainingAppId;
-    mFrameType = eFrameTypeBrowser;
-    return NS_OK;
-}
-
- NS_IMETHODIMP
-nsDocShell::GetIsBrowserElement(bool* aIsBrowser)
-{
-    *aIsBrowser = (mFrameType == eFrameTypeBrowser);
-    return NS_OK;
-}
-
- NS_IMETHODIMP
-nsDocShell::GetIsApp(bool* aIsApp)
-{
-    *aIsApp = (mFrameType == eFrameTypeApp);
-    return NS_OK;
-}
-
- NS_IMETHODIMP
-nsDocShell::GetIsBrowserOrApp(bool* aIsBrowserOrApp)
-{
-    switch (mFrameType) {
-        case eFrameTypeRegular:
-            *aIsBrowserOrApp = false;
-            break;
-        case eFrameTypeBrowser:
-        case eFrameTypeApp:
-            *aIsBrowserOrApp = true;
-            break;
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    if (os) {
+        os->NotifyObservers(GetAsSupports(this),
+                            "docshell-marked-as-browser-frame", NULL);
     }
 
     return NS_OK;
@@ -12337,8 +12311,10 @@ nsDocShell::GetIsBrowserOrApp(bool* aIsBrowserOrApp)
 nsDocShell::FrameType
 nsDocShell::GetInheritedFrameType()
 {
-    if (mFrameType != eFrameTypeRegular) {
-        return mFrameType;
+    FrameType type = GetFrameType();
+
+    if (type != eFrameTypeRegular) {
+        return type;
     }
 
     nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
@@ -12352,6 +12328,46 @@ nsDocShell::GetInheritedFrameType()
     return static_cast<nsDocShell*>(parent.get())->GetInheritedFrameType();
 }
 
+nsDocShell::FrameType
+nsDocShell::GetFrameType()
+{
+    if (mAppId != nsIScriptSecurityManager::NO_APP_ID) {
+        return eFrameTypeApp;
+    }
+
+    return mIsBrowserFrame ? eFrameTypeBrowser : eFrameTypeRegular;
+}
+
+ NS_IMETHODIMP
+nsDocShell::GetIsBrowserElement(bool* aIsBrowser)
+{
+    *aIsBrowser = (GetFrameType() == eFrameTypeBrowser);
+    return NS_OK;
+}
+
+ NS_IMETHODIMP
+nsDocShell::GetIsApp(bool* aIsApp)
+{
+    *aIsApp = (GetFrameType() == eFrameTypeApp);
+    return NS_OK;
+}
+
+ NS_IMETHODIMP
+nsDocShell::GetIsContentBoundary(bool* aIsContentBoundary)
+{
+    switch (GetFrameType()) {
+        case eFrameTypeRegular:
+            *aIsContentBoundary = false;
+            break;
+        case eFrameTypeBrowser:
+        case eFrameTypeApp:
+            *aIsContentBoundary = true;
+            break;
+    }
+
+    return NS_OK;
+}
+
  NS_IMETHODIMP
 nsDocShell::GetIsInBrowserElement(bool* aIsInBrowserElement)
 {
@@ -12360,28 +12376,49 @@ nsDocShell::GetIsInBrowserElement(bool* aIsInBrowserElement)
 }
 
  NS_IMETHODIMP
-nsDocShell::GetIsInBrowserOrApp(bool* aIsInBrowserOrApp)
+nsDocShell::GetIsInApp(bool* aIsInApp)
+{
+    *aIsInApp = (GetInheritedFrameType() == eFrameTypeApp);
+    return NS_OK;
+}
+
+ NS_IMETHODIMP
+nsDocShell::GetIsBelowContentBoundary(bool* aIsInContentBoundary)
 {
     switch (GetInheritedFrameType()) {
         case eFrameTypeRegular:
-            *aIsInBrowserOrApp = false;
+            *aIsInContentBoundary = false;
             break;
         case eFrameTypeBrowser:
         case eFrameTypeApp:
-            *aIsInBrowserOrApp = true;
+            *aIsInContentBoundary = true;
             break;
     }
 
     return NS_OK;
 }
 
+NS_IMETHODIMP
+nsDocShell::SetAppId(uint32_t aAppId)
+{
+    MOZ_ASSERT(mAppId == nsIScriptSecurityManager::NO_APP_ID);
+    MOZ_ASSERT(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID);
+
+    mAppId = aAppId;
+    return NS_OK;
+}
+
  NS_IMETHODIMP
 nsDocShell::GetAppId(uint32_t* aAppId)
 {
-    if (mOwnOrContainingAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID) {
-        *aAppId = mOwnOrContainingAppId;
+    if (mAppId != nsIScriptSecurityManager::NO_APP_ID) {
+        MOZ_ASSERT(GetFrameType() == eFrameTypeApp);
+
+        *aAppId = mAppId;
         return NS_OK;
     }
+
+    MOZ_ASSERT(GetFrameType() != eFrameTypeApp);
 
     nsCOMPtr<nsIDocShell> parent;
     GetSameTypeParentIgnoreBrowserAndAppBoundaries(getter_AddRefs(parent));
