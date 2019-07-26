@@ -1783,6 +1783,16 @@ class MOZ_STACK_CLASS StringRegExpGuard
         return cx->compartment()->regExps.get(cx, patstr, opt, &re_);
     }
 
+    bool zeroLastIndex(JSContext *cx) {
+        if (!regExpIsObject())
+            return true;
+
+        
+        
+        RootedValue zero(cx, Int32Value(0));
+        return JSObject::setProperty(cx, obj_, obj_, cx->names().lastIndex, &zero, true);
+    }
+
     RegExpShared &regExp() { return *re_; }
 
     bool regExpIsObject() { return obj_ != NULL; }
@@ -2727,6 +2737,15 @@ str_replace_regexp(JSContext *cx, CallArgs args, ReplaceData &rdata)
 
     RegExpStatics *res = cx->global()->getRegExpStatics();
     RegExpShared &re = rdata.g.regExp();
+
+    
+    
+    
+    
+    
+    
+    if (re.global() && !rdata.g.zeroLastIndex(cx))
+        return false;
 
     
     if (rdata.repstr && rdata.repstr->length() == 0) {
