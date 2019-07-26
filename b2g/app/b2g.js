@@ -582,7 +582,7 @@ pref("dom.sysmsg.enabled", true);
 pref("media.plugins.enabled", false);
 pref("media.omx.enabled", true);
 pref("media.rtsp.enabled", true);
-pref("media.rtsp.video.enabled", true);
+pref("media.rtsp.video.enabled", false);
 
 
 pref("dom.disable_window_print", true);
@@ -847,9 +847,13 @@ pref("b2g.adb.timeout-hours", 12);
 
 pref("dom.mozInputMethod.enabled", true);
 
+#ifdef MOZ_WIDGET_GONK
 
 
 pref("devtools.debugger.unix-domain-socket", "/data/local/debugger-socket");
+#else
+pref("devtools.debugger.remote-port", 6000);
+#endif
 
 
 

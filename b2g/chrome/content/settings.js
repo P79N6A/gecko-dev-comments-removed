@@ -146,6 +146,7 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
 
   let appInfo = Cc["@mozilla.org/xre/app-info;1"]
                   .getService(Ci.nsIXULAppInfo);
+  let update_channel = Services.prefs.getCharPref('app.update.channel');
 
   
   let hardware_info = null;
@@ -163,6 +164,7 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
     'deviceinfo.software': software,
     'deviceinfo.platform_version': appInfo.platformVersion,
     'deviceinfo.platform_build_id': appInfo.platformBuildID,
+    'deviceinfo.update_channel': update_channel,
     'deviceinfo.hardware': hardware_info,
     'deviceinfo.firmware_revision': firmware_revision,
     'deviceinfo.product_model': product_model
@@ -186,292 +188,6 @@ SettingsListener.observe('devtools.overlay', false, (value) => {
       developerHUD.uninit();
     }
   }
-});
-
-
-
-#ifdef MOZ_WIDGET_GONK
-let AdbController = {
-  DEBUG: false,
-  locked: undefined,
-  remoteDebuggerEnabled: undefined,
-  lockEnabled: undefined,
-  disableAdbTimer: null,
-  disableAdbTimeoutHours: 12,
-  umsActive: false,
-
-  debug: function(str) {
-    dump("AdbController: " + str + "\n");
-  },
-
-  setLockscreenEnabled: function(value) {
-    this.lockEnabled = value;
-    if (this.DEBUG) {
-      this.debug("setLockscreenEnabled = " + this.lockEnabled);
-    }
-    this.updateState();
-  },
-
-  setLockscreenState: function(value) {
-    this.locked = value;
-    if (this.DEBUG) {
-      this.debug("setLockscreenState = " + this.locked);
-    }
-    this.updateState();
-  },
-
-  setRemoteDebuggerState: function(value) {
-    this.remoteDebuggerEnabled = value;
-    if (this.DEBUG) {
-      this.debug("setRemoteDebuggerState = " + this.remoteDebuggerEnabled);
-    }
-    this.updateState();
-  },
-
-  startDisableAdbTimer: function() {
-    if (this.disableAdbTimer) {
-      this.disableAdbTimer.cancel();
-    } else {
-      this.disableAdbTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      try {
-        this.disableAdbTimeoutHours =
-          Services.prefs.getIntPref("b2g.adb.timeout-hours");
-      } catch (e) {
-        
-        
-      }
-    }
-    if (this.disableAdbTimeoutHours <= 0) {
-      if (this.DEBUG) {
-        this.debug("Timer to disable ADB not started due to zero timeout");
-      }
-      return;
-    }
-
-    if (this.DEBUG) {
-      this.debug("Starting timer to disable ADB in " +
-                 this.disableAdbTimeoutHours + " hours");
-    }
-    let timeoutMilliseconds = this.disableAdbTimeoutHours * 60 * 60 * 1000;
-    this.disableAdbTimer.initWithCallback(this, timeoutMilliseconds,
-                                          Ci.nsITimer.TYPE_ONE_SHOT);
-  },
-
-  stopDisableAdbTimer: function() {
-    if (this.DEBUG) {
-      this.debug("Stopping timer to disable ADB");
-    }
-    if (this.disableAdbTimer) {
-      this.disableAdbTimer.cancel();
-      this.disableAdbTimer = null;
-    }
-  },
-
-  notify: function(aTimer) {
-    if (aTimer == this.disableAdbTimer) {
-      this.disableAdbTimer = null;
-      
-      
-      
-      dump("AdbController: ADB timer expired - disabling ADB\n");
-      navigator.mozSettings.createLock().set(
-        {'devtools.debugger.remote-enabled': false});
-    }
-  },
-
-  updateState: function() {
-    this.umsActive = false;
-    this.storages = navigator.getDeviceStorages('sdcard');
-    this.updateStorageState(0);
-  },
-
-  updateStorageState: function(storageIndex) {
-    if (storageIndex >= this.storages.length) {
-      
-      
-      this.updateStateInternal();
-      return;
-    }
-    let storage = this.storages[storageIndex];
-    if (this.DEBUG) {
-      this.debug("Checking availability of storage: '" +
-                 storage.storageName);
-    }
-
-    let req = storage.available();
-    req.onsuccess = function(e) {
-      if (this.DEBUG) {
-        this.debug("Storage: '" + storage.storageName + "' is '" +
-                   e.target.result);
-      }
-      if (e.target.result == 'shared') {
-        
-        
-        this.umsActive = true;
-        this.updateStateInternal();
-        return;
-      }
-      this.updateStorageState(storageIndex + 1);
-    }.bind(this);
-    req.onerror = function(e) {
-      dump("AdbController: error querying storage availability for '" +
-           this.storages[storageIndex].storageName + "' (ignoring)\n");
-      this.updateStorageState(storageIndex + 1);
-    }.bind(this);
-  },
-
-  updateStateInternal: function() {
-    if (this.DEBUG) {
-      this.debug("updateStateInternal: called");
-    }
-
-    if (this.remoteDebuggerEnabled === undefined ||
-        this.lockEnabled === undefined ||
-        this.locked === undefined) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (this.DEBUG) {
-        this.debug("updateState: Waiting for all vars to be initialized");
-      }
-      return;
-    }
-
-    
-    
-    let isDebugging = RemoteDebugger.isDebugging;
-    if (this.DEBUG) {
-      this.debug("isDebugging=" + isDebugging);
-    }
-
-    
-    
-    
-    let sysUsbConfig = libcutils.property_get("sys.usb.config");
-    let rndisActive = (sysUsbConfig.split(",").indexOf("rndis") >= 0);
-    let usbFuncActive = rndisActive || this.umsActive || isDebugging;
-
-    let enableAdb = this.remoteDebuggerEnabled &&
-      (!(this.lockEnabled && this.locked) || usbFuncActive);
-
-    let useDisableAdbTimer = true;
-    try {
-      if (Services.prefs.getBoolPref("marionette.defaultPrefs.enabled")) {
-        
-        
-        
-        
-        enableAdb = true;
-        useDisableAdbTimer = false;
-      }
-    } catch (e) {
-      
-      
-    }
-    if (this.DEBUG) {
-      this.debug("updateState: enableAdb = " + enableAdb +
-                 " remoteDebuggerEnabled = " + this.remoteDebuggerEnabled +
-                 " lockEnabled = " + this.lockEnabled +
-                 " locked = " + this.locked +
-                 " usbFuncActive = " + usbFuncActive);
-    }
-
-    
-    let currentConfig = libcutils.property_get("persist.sys.usb.config");
-    let configFuncs = currentConfig.split(",");
-    let adbIndex = configFuncs.indexOf("adb");
-
-    if (enableAdb) {
-      
-      if (adbIndex < 0) {
-        configFuncs.push("adb");
-      }
-    } else {
-      
-      if (adbIndex >= 0) {
-        configFuncs.splice(adbIndex, 1);
-      }
-    }
-    let newConfig = configFuncs.join(",");
-    if (newConfig != currentConfig) {
-      if (this.DEBUG) {
-        this.debug("updateState: currentConfig = " + currentConfig);
-        this.debug("updateState:     newConfig = " + newConfig);
-      }
-      try {
-        libcutils.property_set("persist.sys.usb.config", newConfig);
-      } catch(e) {
-        dump("Error configuring adb: " + e);
-      }
-    }
-    if (useDisableAdbTimer) {
-      if (enableAdb && !usbFuncActive) {
-        this.startDisableAdbTimer();
-      } else {
-        this.stopDisableAdbTimer();
-      }
-    }
-  }
-};
-
-SettingsListener.observe("lockscreen.locked", false,
-                         AdbController.setLockscreenState.bind(AdbController));
-SettingsListener.observe("lockscreen.enabled", false,
-                         AdbController.setLockscreenEnabled.bind(AdbController));
-#endif
-
-
-
-SettingsListener.observe('devtools.debugger.remote-enabled', false, function(value) {
-  Services.prefs.setBoolPref('devtools.debugger.remote-enabled', value);
-  
-  Services.prefs.savePrefFile(null);
-  try {
-    value ? RemoteDebugger.start() : RemoteDebugger.stop();
-  } catch(e) {
-    dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
-  }
-
-#ifdef MOZ_WIDGET_GONK
-  AdbController.setRemoteDebuggerState(value);
-#endif
-});
-
-SettingsListener.observe('debugger.remote-mode', false, function(value) {
-  if (['disabled', 'adb-only', 'adb-devtools'].indexOf(value) == -1) {
-    dump('Illegal value for debugger.remote-mode: ' + value + '\n');
-    return;
-  }
-
-  Services.prefs.setBoolPref('devtools.debugger.remote-enabled',
-                             value == 'adb-devtools');
-  
-  Services.prefs.savePrefFile(null);
-
-  try {
-    (value == 'adb-devtools') ? RemoteDebugger.start()
-                              : RemoteDebugger.stop();
-  } catch(e) {
-    dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
-  }
-
-#ifdef MOZ_WIDGET_GONK
-  AdbController.setRemoteDebuggerState(value != 'disabled');
-#endif
 });
 
 
@@ -543,7 +259,6 @@ function setUpdateTrackingId() {
   }
 }
 setUpdateTrackingId();
-
 
 
 (function Composer2DSettingToPref() {
@@ -679,12 +394,6 @@ let settingsToObserve = {
   },
   'layers.draw-borders': false,
   'app.update.interval': 86400,
-  'app.update.url': {
-    resetToPref: true
-  },
-  'app.update.channel': {
-    resetToPref: true
-  },
   'debug.log-animations.enabled': {
     prefName: 'layers.offmainthreadcomposition.log-animations',
     defaultValue: false
@@ -695,53 +404,33 @@ for (let key in settingsToObserve) {
   let setting = settingsToObserve[key];
 
   
-  let prefName = setting.prefName || key;
-  let defaultValue = setting.defaultValue;
-  if (defaultValue === undefined) {
-    defaultValue = setting;
-  }
-
-  let prefs = Services.prefs;
+  let prefName = key;
+  let defaultValue = setting;
 
   
-  if (setting.resetToPref) {
-    switch (prefs.getPrefType(prefName)) {
-      case Ci.nsIPrefBranch.PREF_BOOL:
-        defaultValue = prefs.getBoolPref(prefName);
-        break;
-
-      case Ci.nsIPrefBranch.PREF_INT:
-        defaultValue = prefs.getIntPref(prefName);
-        break;
-
-      case Ci.nsIPrefBranch.PREF_STRING:
-        defaultValue = prefs.getCharPref(prefName);
-        break;
-    }
-
-    let setting = {};
-    setting[key] = defaultValue;
-    window.navigator.mozSettings.createLock().set(setting);
+  if (typeof setting == 'object') {
+    prefName = setting.prefName;
+    defaultValue = setting.defaultValue;
   }
 
-  
-  let setPref;
   switch (typeof defaultValue) {
     case 'boolean':
-      setPref = prefs.setBoolPref.bind(prefs);
-      break;
-
-    case 'number':
-      setPref = prefs.setIntPref.bind(prefs);
+      SettingsListener.observe(key, defaultValue, function(value) {
+        Services.prefs.setBoolPref(prefName, value);
+      });
       break;
 
     case 'string':
-      setPref = prefs.setCharPref.bind(prefs);
+      SettingsListener.observe(key, defaultValue, function(value) {
+        Services.prefs.setCharPref(prefName, value);
+      });
+      break;
+
+    case 'number':
+      SettingsListener.observe(key, defaultValue, function(value) {
+        Services.prefs.setIntPref(prefName, value);
+      });
       break;
   }
-
-  SettingsListener.observe(key, defaultValue, function(value) {
-    setPref(prefName, value);
-  });
 };
 

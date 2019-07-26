@@ -52,11 +52,6 @@ XPCOMUtils.defineLazyServiceGetter(Services, 'fm',
                                    '@mozilla.org/focus-manager;1',
                                    'nsIFocusManager');
 
-XPCOMUtils.defineLazyGetter(this, 'DebuggerServer', function() {
-  Cu.import('resource://gre/modules/devtools/dbg-server.jsm');
-  return DebuggerServer;
-});
-
 XPCOMUtils.defineLazyGetter(this, "ppmm", function() {
   return Cc["@mozilla.org/parentprocessmessagemanager;1"]
          .getService(Ci.nsIMessageListenerManager);
@@ -767,9 +762,6 @@ var CustomEventManager = {
       case 'system-message-listener-ready':
         Services.obs.notifyObservers(null, 'system-message-listener-ready', null);
         break;
-      case 'remote-debugger-prompt':
-        RemoteDebugger.handleEvent(detail);
-        break;
       case 'captive-portal-login-cancel':
         CaptivePortalLoginHelper.handleEvent(detail);
         break;
@@ -1074,131 +1066,6 @@ let IndexedDBPromptHelper = {
       observer.observe(null, responseTopic,
                        Ci.nsIPermissionManager.DENY_ACTION);
     }, 0);
-  }
-}
-
-let RemoteDebugger = {
-  _promptDone: false,
-  _promptAnswer: false,
-  _running: false,
-
-  prompt: function debugger_prompt() {
-    this._promptDone = false;
-
-    shell.sendChromeEvent({
-      "type": "remote-debugger-prompt"
-    });
-
-    while(!this._promptDone) {
-      Services.tm.currentThread.processNextEvent(true);
-    }
-
-    return this._promptAnswer;
-  },
-
-  handleEvent: function debugger_handleEvent(detail) {
-    this._promptAnswer = detail.value;
-    this._promptDone = true;
-  },
-
-  get isDebugging() {
-    if (!this._running) {
-      return false;
-    }
-
-    return DebuggerServer._connections &&
-           Object.keys(DebuggerServer._connections).length > 0;
-  },
-
-  
-  start: function debugger_start() {
-    if (this._running) {
-      return;
-    }
-
-    if (!DebuggerServer.initialized) {
-      
-      DebuggerServer.init(this.prompt.bind(this));
-
-      
-      
-
-      
-      
-      let restrictPrivileges = Services.prefs.getBoolPref("devtools.debugger.forbid-certified-apps");
-      DebuggerServer.addBrowserActors("navigator:browser", restrictPrivileges);
-
-      
-
-
-
-
-
-
-
-
-      DebuggerServer.createRootActor = function createRootActor(connection)
-      {
-        let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
-        let parameters = {
-          
-          
-          
-          
-          tabList: {
-            getList: function() {
-              return promise.resolve([]);
-            }
-          },
-          
-          
-          globalActorFactories: restrictPrivileges ? {
-            webappsActor: DebuggerServer.globalActorFactories.webappsActor,
-            deviceActor: DebuggerServer.globalActorFactories.deviceActor,
-          } : DebuggerServer.globalActorFactories
-        };
-        let root = new DebuggerServer.RootActor(connection, parameters);
-        root.applicationType = "operating-system";
-        return root;
-      };
-
-#ifdef MOZ_WIDGET_GONK
-      DebuggerServer.on("connectionchange", function() {
-        AdbController.updateState();
-      });
-#endif
-    }
-
-    let path = Services.prefs.getCharPref("devtools.debugger.unix-domain-socket") ||
-               "/data/local/debugger-socket";
-    try {
-      DebuggerServer.openListener(path);
-      
-      
-      Services.obs.notifyObservers(null, 'debugger-server-started', null);
-      this._running = true;
-    } catch (e) {
-      dump('Unable to start debugger server: ' + e + '\n');
-    }
-  },
-
-  stop: function debugger_stop() {
-    if (!this._running) {
-      return;
-    }
-
-    if (!DebuggerServer.initialized) {
-      
-      this._running = false;
-      return;
-    }
-
-    try {
-      DebuggerServer.closeListener();
-    } catch (e) {
-      dump('Unable to stop debugger server: ' + e + '\n');
-    }
-    this._running = false;
   }
 }
 
