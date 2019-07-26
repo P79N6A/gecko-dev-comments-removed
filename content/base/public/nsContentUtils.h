@@ -1999,13 +1999,6 @@ public:
   
 
 
- 
-  static nsresult JSArrayToAtomArray(JSContext* aCx, const JS::Value& aJSArray,
-                                     nsCOMArray<nsIAtom>& aRetVal);
-
-  
-
-
 
 
 
