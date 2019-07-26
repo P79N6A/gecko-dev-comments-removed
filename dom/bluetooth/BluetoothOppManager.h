@@ -78,6 +78,11 @@ public:
   virtual void GetAddress(nsAString& aDeviceAddress) MOZ_OVERRIDE;
   virtual bool IsConnected() MOZ_OVERRIDE;
 
+  virtual void GetName(nsACString& aName)
+  {
+    aName.AssignLiteral("OPP");
+  }
+
   
 
 

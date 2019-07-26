@@ -44,6 +44,11 @@ public:
   virtual void OnConnect(const nsAString& aErrorStr) MOZ_OVERRIDE;
   virtual void OnDisconnect(const nsAString& aErrorStr) MOZ_OVERRIDE;
 
+  virtual void GetName(nsACString& aName)
+  {
+    aName.AssignLiteral("A2DP");
+  }
+
   
   void HandleSinkPropertyChanged(const BluetoothSignal& aSignal);
 

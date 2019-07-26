@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_dom_bluetooth_bluetoothdbuseventservice_h__
-#define mozilla_dom_bluetooth_bluetoothdbuseventservice_h__
+#ifndef mozilla_dom_bluetooth_bluetoothdbusservice_h__
+#define mozilla_dom_bluetooth_bluetoothdbusservice_h__
 
 #include "mozilla/Attributes.h"
 #include "BluetoothCommon.h"

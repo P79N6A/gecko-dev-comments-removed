@@ -99,10 +99,11 @@ StartStopGonkBluetooth(bool aShouldEnable)
       
       
       
-      NS_WARNING("Bluetooth firmware up, but cannot connect to HCI socket! Check bluetoothd and try stopping/starting bluetooth again.");
+      BT_WARNING("Bluetooth firmware up, but cannot connect to HCI socket! "
+        "Check bluetoothd and try stopping/starting bluetooth again.");
       
       if (sBluedroidFunctions.bt_disable() != 0) {
-        NS_WARNING("Problem shutting down bluetooth after error in bringup!");
+        BT_WARNING("Problem shutting down bluetooth after error in bringup!");
       }
       return NS_ERROR_FAILURE;
     }
@@ -110,7 +111,7 @@ StartStopGonkBluetooth(bool aShouldEnable)
     result = (sBluedroidFunctions.bt_disable() == 0) ? true : false;
   }
   if (!result) {
-    NS_WARNING("Could not set gonk bluetooth firmware!");
+    BT_WARNING("Could not set gonk bluetooth firmware!");
     return NS_ERROR_FAILURE;
   }
   
