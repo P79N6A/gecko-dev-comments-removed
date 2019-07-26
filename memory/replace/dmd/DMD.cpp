@@ -2049,6 +2049,10 @@ SizeOf(Sizes* aSizes)
 MOZ_EXPORT void
 ClearReports()
 {
+  if (!gIsDMDRunning) {
+    return;
+  }
+
   
   
   
