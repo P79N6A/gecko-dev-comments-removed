@@ -114,21 +114,6 @@ class SourceSurface;
 
 
 
-#ifdef IS_BIG_ENDIAN
-#define GFX_ARGB32_OFFSET_A 0
-#define GFX_ARGB32_OFFSET_R 1
-#define GFX_ARGB32_OFFSET_G 2
-#define GFX_ARGB32_OFFSET_B 3
-#else
-#define GFX_ARGB32_OFFSET_A 3
-#define GFX_ARGB32_OFFSET_R 2
-#define GFX_ARGB32_OFFSET_G 1
-#define GFX_ARGB32_OFFSET_B 0
-#endif
-
-
-
-
 
 #define NS_SVG_OFFSCREEN_MAX_DIMENSION 4096
 
@@ -246,55 +231,6 @@ public:
   typedef mozilla::dom::Element Element;
 
   static void Init();
-
-  
-
-
-  static void UnPremultiplyImageDataAlpha(uint8_t *data, 
-                                          int32_t stride, 
-                                          const nsIntRect &rect);
-  
-
-
-  static void PremultiplyImageDataAlpha(uint8_t *data, 
-                                        int32_t stride, 
-                                        const nsIntRect &rect);
-  
-
-
-  static void ConvertImageDataToLinearRGB(uint8_t *data, 
-                                          int32_t stride, 
-                                          const nsIntRect &rect);
-  
-
-
-  static void ConvertImageDataFromLinearRGB(uint8_t *data, 
-                                            int32_t stride, 
-                                            const nsIntRect &rect);
-
-  
-
-
-  static void ComputesRGBLuminanceMask(uint8_t *aData,
-                                       int32_t aStride,
-                                       const nsIntRect &aRect,
-                                       float aOpacity);
-
-  
-
-
-
-  static void ComputeLinearRGBLuminanceMask(uint8_t *aData,
-                                            int32_t aStride,
-                                            const nsIntRect &aRect,
-                                            float aOpacity);
-  
-
-
-  static void ComputeAlphaMask(uint8_t *aData,
-                               int32_t aStride,
-                               const nsIntRect &aRect,
-                               float aOpacity);
 
   
 
