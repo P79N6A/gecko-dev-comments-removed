@@ -241,12 +241,10 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     addLogin : function (login) {
-        let encUsername, encPassword;
-
         
         LoginHelper.checkLoginValues(login);
 
-        [encUsername, encPassword, encType] = this._encryptLogin(login);
+        let [encUsername, encPassword, encType] = this._encryptLogin(login);
 
         
         let loginClone = login.clone();
