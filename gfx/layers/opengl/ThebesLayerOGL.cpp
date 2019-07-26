@@ -3,6 +3,7 @@
 
 
 
+#include "ipc/AutoOpenSurface.h"
 #include "mozilla/layers/PLayers.h"
 #include "TiledLayerBuffer.h"
 
@@ -968,7 +969,7 @@ ShadowThebesLayerOGL::~ShadowThebesLayerOGL()
 bool
 ShadowThebesLayerOGL::ShouldDoubleBuffer()
 {
-#ifdef ANDROID
+#ifdef MOZ_JAVA_COMPOSITOR
   
 
 
@@ -992,7 +993,8 @@ ShadowThebesLayerOGL::EnsureTextureUpdated()
   if (mRegionPendingUpload.IsEmpty() || !IsSurfaceDescriptorValid(mFrontBufferDescriptor))
     return;
 
-  mBuffer->DirectUpdate(mFrontBuffer.Buffer(), mRegionPendingUpload);
+  AutoOpenSurface frontSurface(OPEN_READ_ONLY, mFrontBuffer.Buffer());
+  mBuffer->DirectUpdate(frontSurface.Get(), mRegionPendingUpload);
   mRegionPendingUpload.SetEmpty();
 }
 
@@ -1045,15 +1047,15 @@ ShadowThebesLayerOGL::EnsureTextureUpdated(nsIntRegion& aRegion)
     if (updateRegion.IsEmpty())
       continue;
 
+    AutoOpenSurface surface(OPEN_READ_ONLY, mFrontBuffer.Buffer());
     nsRefPtr<TextureImage> texImage;
     if (!gl()->CanUploadSubTextures()) {
       
       
       
       
-      gfxASurface* surface = mFrontBuffer.Buffer();
-      gfxIntSize size = surface->GetSize();
-      mBuffer->EnsureTexture(size, surface->GetContentType());
+      gfxIntSize size = surface.Size();
+      mBuffer->EnsureTexture(size, surface.ContentType());
       texImage = mBuffer->GetTextureImage().get();
       if (texImage->GetTileCount() > 1)
         texImage->SetIterationCallback(EnsureTextureUpdatedCallback, (void *)&updateRegion);
@@ -1062,7 +1064,7 @@ ShadowThebesLayerOGL::EnsureTextureUpdated(nsIntRegion& aRegion)
     }
 
     
-    mBuffer->DirectUpdate(mFrontBuffer.Buffer(), updateRegion);
+    mBuffer->DirectUpdate(surface.Get(), updateRegion);
 
     if (!gl()->CanUploadSubTextures())
       texImage->SetIterationCallback(nsnull, nsnull);
@@ -1102,8 +1104,9 @@ ShadowThebesLayerOGL::ProgressiveUpload()
 
   
   
-  mBuffer->EnsureTexture(mFrontBuffer.Buffer()->GetSize(),
-                         mFrontBuffer.Buffer()->GetContentType());
+  AutoOpenSurface frontSurface(OPEN_READ_ONLY, mFrontBuffer.Buffer());
+  mBuffer->EnsureTexture(frontSurface.Size(),
+                         frontSurface.ContentType());
   nsRefPtr<gl::TextureImage> tiledImage = mBuffer->GetTextureImage().get();
   if (tiledImage->GetTileCount() > 1)
     tiledImage->SetIterationCallback(ProgressiveUploadCallback, (void *)&mRegionPendingUpload);
@@ -1111,7 +1114,7 @@ ShadowThebesLayerOGL::ProgressiveUpload()
     mRegionPendingUpload.SetEmpty();
 
   
-  mBuffer->DirectUpdate(mFrontBuffer.Buffer(), mRegionPendingUpload);
+  mBuffer->DirectUpdate(frontSurface.Get(), mRegionPendingUpload);
 
   
   tiledImage->SetIterationCallback(nsnull, nsnull);
@@ -1135,13 +1138,11 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
 {
   
   if (ShouldDoubleBuffer()) {
-    nsRefPtr<gfxASurface> newFrontBuffer =
-      ShadowLayerForwarder::OpenDescriptor(aNewFront.buffer());
+    AutoOpenSurface newFrontBuffer(OPEN_READ_ONLY, aNewFront.buffer());
 
     if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
-      nsRefPtr<gfxASurface> currentFront =
-        ShadowLayerForwarder::OpenDescriptor(mFrontBufferDescriptor);
-      if (currentFront->GetSize() != newFrontBuffer->GetSize()) {
+      AutoOpenSurface currentFront(OPEN_READ_ONLY, mFrontBufferDescriptor);
+      if (currentFront.Size() != newFrontBuffer.Size()) {
         
         DestroyFrontBuffer();
       }
@@ -1159,12 +1160,12 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
     
     aNewBackValidRegion->Sub(mOldValidRegion, aUpdatedRegion);
 
-    nsRefPtr<gfxASurface> unused;
+    SurfaceDescriptor unused;
     nsIntRect backRect;
     nsIntPoint backRotation;
     mFrontBuffer.Swap(
-      newFrontBuffer, aNewFront.rect(), aNewFront.rotation(),
-      getter_AddRefs(unused), &backRect, &backRotation);
+      aNewFront.buffer(), aNewFront.rect(), aNewFront.rotation(),
+      &unused, &backRect, &backRotation);
 
     if (aNewBack->type() != OptionalThebesBuffer::Tnull_t) {
       aNewBack->get_ThebesBuffer().rect() = backRect;
@@ -1178,12 +1179,13 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
       if (!mBuffer) {
         mBuffer = new ShadowBufferOGL(this);
       }
-      nsRefPtr<gfxASurface> surf = ShadowLayerForwarder::OpenDescriptor(mFrontBufferDescriptor);
-      mBuffer->Upload(surf, aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), true, mRegionPendingUpload);
+      AutoOpenSurface frontSurface(OPEN_READ_ONLY, mFrontBufferDescriptor);
+      mBuffer->Upload(frontSurface.Get(), aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), true, mRegionPendingUpload);
 
       
       if (!mUploadTask) {
         mUploadTask = NewRunnableMethod(this, &ShadowThebesLayerOGL::ProgressiveUpload);
+        
         MessageLoop::current()->PostDelayedTask(FROM_HERE, mUploadTask, 5);
       }
     }
@@ -1199,8 +1201,8 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
     if (!mBuffer) {
       mBuffer = new ShadowBufferOGL(this);
     }
-    nsRefPtr<gfxASurface> surf = ShadowLayerForwarder::OpenDescriptor(aNewFront.buffer());
-    mBuffer->Upload(surf, aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), false, mRegionPendingUpload);
+    AutoOpenSurface frontSurface(OPEN_READ_ONLY, aNewFront.buffer());
+    mBuffer->Upload(frontSurface.Get(), aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), false, mRegionPendingUpload);
   }
 
   *aNewBack = aNewFront;

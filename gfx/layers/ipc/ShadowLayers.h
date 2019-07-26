@@ -38,6 +38,20 @@ class SharedImage;
 class CanvasSurface;
 class BasicTiledLayerBuffer;
 
+enum BufferCapabilities {
+  DEFAULT_BUFFER_CAPS = 0,
+  
+
+
+
+  MAP_AS_IMAGE_SURFACE = 1 << 0
+};
+
+enum OpenMode {
+  OPEN_READ_ONLY,
+  OPEN_READ_WRITE
+};
+
 
 
 
@@ -81,7 +95,10 @@ class BasicTiledLayerBuffer;
 
 class ShadowLayerForwarder
 {
+  friend class AutoOpenSurface;
+
 public:
+  typedef gfxASurface::gfxContentType gfxContentType;
   typedef LayerManager::LayersBackend LayersBackend;
 
   virtual ~ShadowLayerForwarder();
@@ -258,31 +275,14 @@ public:
 
 
 
-  bool AllocDoubleBuffer(const gfxIntSize& aSize,
-                           gfxASurface::gfxContentType aContent,
-                           gfxSharedImageSurface** aFrontBuffer,
-                           gfxSharedImageSurface** aBackBuffer);
-  void DestroySharedSurface(gfxSharedImageSurface* aSurface);
-
   bool AllocBuffer(const gfxIntSize& aSize,
-                     gfxASurface::gfxContentType aContent,
-                     gfxSharedImageSurface** aBuffer);
+                   gfxASurface::gfxContentType aContent,
+                   SurfaceDescriptor* aBuffer);
 
-  
-
-
-
-  bool AllocDoubleBuffer(const gfxIntSize& aSize,
+  bool AllocBufferWithCaps(const gfxIntSize& aSize,
                            gfxASurface::gfxContentType aContent,
-                           SurfaceDescriptor* aFrontBuffer,
-                           SurfaceDescriptor* aBackBuffer);
-
-  bool AllocBuffer(const gfxIntSize& aSize,
-                     gfxASurface::gfxContentType aContent,
-                     SurfaceDescriptor* aBuffer);
-
-  static already_AddRefed<gfxASurface>
-  OpenDescriptor(const SurfaceDescriptor& aSurface);
+                           uint32_t aCaps,
+                           SurfaceDescriptor* aBuffer);
 
   void DestroySharedSurface(SurfaceDescriptor* aSurface);
 
@@ -311,17 +311,57 @@ protected:
   PLayersChild* mShadowManager;
 
 private:
-  bool PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
-                                   gfxASurface::gfxContentType aContent,
-                                   SurfaceDescriptor* aFrontBuffer,
-                                   SurfaceDescriptor* aBackBuffer);
+  bool AllocBuffer(const gfxIntSize& aSize,
+                   gfxASurface::gfxContentType aContent,
+                   gfxSharedImageSurface** aBuffer);
 
   bool PlatformAllocBuffer(const gfxIntSize& aSize,
-                             gfxASurface::gfxContentType aContent,
-                             SurfaceDescriptor* aBuffer);
+                           gfxASurface::gfxContentType aContent,
+                           uint32_t aCaps,
+                           SurfaceDescriptor* aBuffer);
+
+  
+
+
+
+  static gfxContentType
+  GetDescriptorSurfaceContentType(const SurfaceDescriptor& aDescriptor,
+                                  OpenMode aMode,
+                                  gfxASurface** aSurface);
+  
+
+
+
+
+  static bool
+  PlatformGetDescriptorSurfaceContentType(const SurfaceDescriptor& aDescriptor,
+                                          OpenMode aMode,
+                                          gfxContentType* aContent,
+                                          gfxASurface** aSurface);
+  
+  static gfxIntSize
+  GetDescriptorSurfaceSize(const SurfaceDescriptor& aDescriptor,
+                           OpenMode aMode,
+                           gfxASurface** aSurface);
+  static bool
+  PlatformGetDescriptorSurfaceSize(const SurfaceDescriptor& aDescriptor,
+                                   OpenMode aMode,
+                                   gfxIntSize* aSize,
+                                   gfxASurface** aSurface);
 
   static already_AddRefed<gfxASurface>
-  PlatformOpenDescriptor(const SurfaceDescriptor& aDescriptor);
+  OpenDescriptor(OpenMode aMode, const SurfaceDescriptor& aSurface);
+
+  static already_AddRefed<gfxASurface>
+  PlatformOpenDescriptor(OpenMode aMode, const SurfaceDescriptor& aDescriptor);
+
+  
+
+  static void
+  CloseDescriptor(const SurfaceDescriptor& aDescriptor);
+
+  static bool
+  PlatformCloseDescriptor(const SurfaceDescriptor& aDescriptor);
 
   bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 
@@ -333,7 +373,6 @@ private:
 
   bool mIsFirstPaint;
 };
-
 
 class ShadowLayerManager : public LayerManager
 {

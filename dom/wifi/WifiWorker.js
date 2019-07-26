@@ -236,9 +236,14 @@ var WifiManager = (function() {
 
   function scanCommand(forceActive, callback) {
     if (forceActive && !scanModeActive) {
-      doSetScanModeCommand(true, function(ok) {
-        ok && doBooleanCommand("SCAN", "OK", function(ok) {
-          ok && doSetScanModeCommand(false, callback);
+      
+      doSetScanModeCommand(true, function(ignore) {
+        doBooleanCommand("SCAN", "OK", function(ok) {
+          doSetScanModeCommand(false, function(ignore) {
+            
+            
+            callback(ok);
+          });
         });
       });
       return;
@@ -603,7 +608,7 @@ var WifiManager = (function() {
   }
 
   manager.start = function() {
-    debug("detected SDK version " + sdkVersion);
+    debug("detected SDK version " + sdkVersion + " and device " + device);
 
     
     

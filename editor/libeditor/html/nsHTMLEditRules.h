@@ -293,7 +293,7 @@ protected:
   nsRefPtr<nsRange>       mUtilRange;
   PRUint32                mJoinOffset;  
   nsCOMPtr<nsIDOMNode>    mNewBlock;
-  nsRangeStore            mRangeItem;
+  nsRefPtr<nsRangeStore>  mRangeItem;
   StyleCache              mCachedStyles[SIZE_STYLE_TABLE];
 };
 

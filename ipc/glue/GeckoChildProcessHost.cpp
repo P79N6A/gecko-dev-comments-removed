@@ -44,7 +44,7 @@
 using mozilla::MonitorAutoLock;
 using mozilla::ipc::GeckoChildProcessHost;
 
-#ifdef MOZ_WIDGET_ANDROID
+#ifdef ANDROID
 
 
 
@@ -253,6 +253,10 @@ void GeckoChildProcessHost::InitWindowsGroupID()
 bool
 GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts, int aTimeoutMs, base::ProcessArchitecture arch)
 {
+#ifdef MOZ_CRASHREPORTER
+  CrashReporter::OOPInit();
+#endif
+
 #ifdef XP_WIN
   InitWindowsGroupID();
 #endif
@@ -294,6 +298,10 @@ GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts, int aTime
 bool
 GeckoChildProcessHost::AsyncLaunch(std::vector<std::string> aExtraOpts)
 {
+#ifdef MOZ_CRASHREPORTER
+  CrashReporter::OOPInit();
+#endif
+
 #ifdef XP_WIN
   InitWindowsGroupID();
 #endif
@@ -476,7 +484,9 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   
   if (cacheStr.IsEmpty())
     cacheStr.AppendLiteral("-");
+#endif  
 
+#ifdef ANDROID
   
   
   

@@ -1856,7 +1856,8 @@ TypeCompartment::init(JSContext *cx)
 
 TypeObject *
 TypeCompartment::newTypeObject(JSContext *cx, JSScript *script,
-                               JSProtoKey key, JSObject *proto_, bool unknown)
+                               JSProtoKey key, JSObject *proto_, bool unknown,
+                               bool isDOM)
 {
     RootedObject proto(cx, proto_);
     TypeObject *object = gc::NewGCThing<TypeObject>(cx, gc::FINALIZE_TYPE_OBJECT, sizeof(TypeObject));
@@ -1864,10 +1865,17 @@ TypeCompartment::newTypeObject(JSContext *cx, JSScript *script,
         return NULL;
     new(object) TypeObject(proto, key == JSProto_Function, unknown);
 
-    if (!cx->typeInferenceEnabled())
+    if (!cx->typeInferenceEnabled()) {
         object->flags |= OBJECT_FLAG_UNKNOWN_MASK;
-    else
-        object->setFlagsFromKey(cx, key);
+    } else {
+        if (isDOM) {
+            object->setFlags(cx, OBJECT_FLAG_NON_DENSE_ARRAY
+                               | OBJECT_FLAG_NON_TYPED_ARRAY
+                               | OBJECT_FLAG_NON_PACKED_ARRAY);
+        } else {
+            object->setFlagsFromKey(cx, key);
+        }
+    }
 
     return object;
 }
@@ -1889,7 +1897,7 @@ TypeCompartment::newAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey ke
     JS_ASSERT(!p);
 
     RootedObject proto(cx);
-    RootedObject global(cx, key.script->global());
+    RootedObject global(cx, &key.script->global());
     if (!js_GetClassPrototype(cx, global, key.kind, &proto, NULL))
         return NULL;
 
@@ -1981,7 +1989,7 @@ types::UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc,
 
     AutoEnterTypeInference enter(cx);
 
-    if (!script->ensureRanAnalysis(cx, NULL))
+    if (!script->ensureRanAnalysis(cx))
         return false;
 
     return !script->analysis()->getCode(pc).inLoop;
@@ -1993,7 +2001,7 @@ types::ArrayPrototypeHasIndexedProperty(JSContext *cx, JSScript *script)
     if (!cx->typeInferenceEnabled() || !script->hasGlobal())
         return true;
 
-    JSObject *proto = script->global()->getOrCreateArrayPrototype(cx);
+    JSObject *proto = script->global().getOrCreateArrayPrototype(cx);
     if (!proto)
         return true;
 
@@ -2933,8 +2941,6 @@ TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
         
         JS_ASSERT_IF(flags & OBJECT_FLAG_UNINLINEABLE,
                      interpretedFunction->script()->uninlineable);
-        JS_ASSERT_IF(flags & OBJECT_FLAG_REENTRANT_FUNCTION,
-                     interpretedFunction->script()->reentrantOuterFunction);
         JS_ASSERT_IF(flags & OBJECT_FLAG_ITERATED,
                      singleton->lastProperty()->hasObjectFlag(BaseShape::ITERATED_SINGLETON));
     }
@@ -3187,105 +3193,6 @@ GetInitializerType(JSContext *cx, JSScript *script, jsbytecode *pc)
 }
 
 
-
-
-
-
-
-static void
-DetachNestingParent(JSScript *script)
-{
-    TypeScriptNesting *nesting = script->nesting();
-
-    if (!nesting || !nesting->parent)
-        return;
-
-    
-    JSScript **pscript = &nesting->parent->nesting()->children;
-    while ((*pscript)->nesting() != nesting)
-        pscript = &(*pscript)->nesting()->next;
-    *pscript = nesting->next;
-
-    nesting->parent = NULL;
-
-    
-    if (!script->isOuterFunction)
-        script->clearNesting();
-}
-
-ScriptAnalysis::NameAccess
-ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
-{
-    JS_ASSERT(cx->typeInferenceEnabled());
-
-    NameAccess access;
-    PodZero(&access);
-
-    if (!JSID_IS_ATOM(id))
-        return access;
-    JSAtom *atom = JSID_TO_ATOM(id);
-
-    JSScript *script = this->script;
-    while (script->function() && script->nesting()) {
-        if (!script->ensureRanInference(cx))
-            return access;
-
-        
-
-
-
-
-
-
-
-        if (script->analysis()->addsScopeObjects() || script->isGenerator)
-            return access;
-
-        
-        unsigned index;
-        BindingKind kind = script->bindings.lookup(cx, atom, &index);
-        if (kind == ARGUMENT || kind == VARIABLE) {
-            TypeObject *obj = script->function()->getType(cx);
-
-            if (addDependency) {
-                
-
-
-
-                if (TypeSet::HasObjectFlags(cx, obj, OBJECT_FLAG_REENTRANT_FUNCTION))
-                    return access;
-            }
-
-            if (!script->isOuterFunction)
-                return access;
-
-            access.script = script;
-            access.nesting = script->nesting();
-            access.slot = (kind == ARGUMENT) ? ArgSlot(index) : LocalSlot(script, index);
-            access.arg = (kind == ARGUMENT);
-            access.index = index;
-            return access;
-        } else if (kind != NONE) {
-            return access;
-        }
-
-        
-
-
-
-
-        if (atom == CallObjectLambdaName(*script->function()))
-            return access;
-
-        if (!script->nesting()->parent)
-            return access;
-        script = script->nesting()->parent;
-    }
-
-    return access;
-}
-
-
 bool
 ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
                                      TypeInferenceState &state)
@@ -3511,7 +3418,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
             seen->addType(cx, Type::DoubleType());
 
         
-        PropertyAccess(cx, script, pc, script->global()->getType(cx), false, seen, id);
+        PropertyAccess(cx, script, pc, script->global().getType(cx), false, seen, id);
 
         if (op == JSOP_CALLGNAME)
             pushed[0].addPropagateThis(cx, script, pc, Type::UnknownType());
@@ -3524,24 +3431,8 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       case JSOP_NAME:
       case JSOP_CALLNAME: {
         TypeSet *seen = bytecodeTypes(pc);
+        addTypeBarrier(cx, pc, seen, Type::UnknownType());
         seen->addSubset(cx, &pushed[0]);
-
-        
-
-
-
-
-
-
-        jsid id = GetAtomId(cx, script, pc, 0);
-        NameAccess access = resolveNameAccess(cx, id);
-        if (access.script && !access.script->typesPurged) {
-            TypeSet *types = TypeScript::SlotTypes(access.script, access.slot);
-            types->addSubsetBarrier(cx, script, pc, seen);
-        } else {
-            addTypeBarrier(cx, pc, seen, Type::UnknownType());
-        }
-
         if (op == JSOP_CALLNAME)
             pushed[0].addPropagateThis(cx, script, pc, Type::UnknownType());
         break;
@@ -3553,25 +3444,13 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
 
       case JSOP_SETGNAME: {
         jsid id = GetAtomId(cx, script, pc, 0);
-        PropertyAccess(cx, script, pc, script->global()->getType(cx),
+        PropertyAccess(cx, script, pc, script->global().getType(cx),
                        true, poppedTypes(pc, 0), id);
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
         break;
       }
 
-      case JSOP_SETNAME: {
-        jsid id = GetAtomId(cx, script, pc, 0);
-        NameAccess access = resolveNameAccess(cx, id);
-        if (access.script) {
-            TypeSet *types = TypeScript::SlotTypes(access.script, access.slot);
-            poppedTypes(pc, 0)->addSubset(cx, types);
-        } else {
-            cx->compartment->types.monitorBytecode(cx, script, offset);
-        }
-        poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
-        break;
-      }
-
+      case JSOP_SETNAME:
       case JSOP_SETCONST:
         cx->compartment->types.monitorBytecode(cx, script, offset);
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
@@ -3584,8 +3463,6 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         break;
       }
 
-      case JSOP_GETALIASEDVAR:
-      case JSOP_CALLALIASEDVAR:
       case JSOP_GETARG:
       case JSOP_CALLARG:
       case JSOP_GETLOCAL:
@@ -3605,12 +3482,11 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
             
             pushed[0].addType(cx, Type::UnknownType());
         }
-        if (op == JSOP_CALLARG || op == JSOP_CALLLOCAL || op == JSOP_CALLALIASEDVAR)
+        if (op == JSOP_CALLARG || op == JSOP_CALLLOCAL)
             pushed[0].addPropagateThis(cx, script, pc, Type::UndefinedType());
         break;
       }
 
-      case JSOP_SETALIASEDVAR:
       case JSOP_SETARG:
       case JSOP_SETLOCAL: {
         uint32_t slot = GetBytecodeSlot(script, pc);
@@ -3627,6 +3503,24 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
         break;
       }
+
+      case JSOP_GETALIASEDVAR:
+      case JSOP_CALLALIASEDVAR:
+        
+
+
+
+
+
+
+        bytecodeTypes(pc)->addSubset(cx, &pushed[0]);
+        if (op == JSOP_CALLALIASEDVAR)
+            pushed[0].addPropagateThis(cx, script, pc, Type::UnknownType());
+        break;
+
+      case JSOP_SETALIASEDVAR:
+        poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
+        break;
 
       case JSOP_INCARG:
       case JSOP_DECARG:
@@ -4017,7 +3911,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       case JSOP_GENERATOR:
           if (script->function()) {
             if (script->hasGlobal()) {
-                JSObject *proto = script->global()->getOrCreateGeneratorPrototype(cx);
+                JSObject *proto = script->global().getOrCreateGeneratorPrototype(cx);
                 if (!proto)
                     return false;
                 TypeObject *object = proto->getNewType(cx);
@@ -4119,45 +4013,6 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
     
     for (unsigned i = 0; i < script->nfixed; i++)
         TypeScript::LocalTypes(script, i)->addType(cx, Type::UndefinedType());
-
-    TypeScriptNesting *nesting = script->function() ? script->nesting() : NULL;
-    if (nesting && nesting->parent) {
-        
-
-
-
-
-
-        if (!nesting->parent->ensureRanInference(cx))
-            return;
-
-        bool detached = false;
-
-        
-        if (!usesScopeChain() && !script->isOuterFunction) {
-            DetachNestingParent(script);
-            detached = true;
-        }
-
-        
-
-
-
-        if (!detached && extendsScope()) {
-            DetachNestingParent(script);
-            detached = true;
-        }
-
-
-        if (!detached) {
-            
-
-
-
-            if (nesting->parent->analysis()->addsScopeObjects() || nesting->parent->isGenerator)
-                DetachNestingParent(script);
-        }
-    }
 
     TypeInferenceState state(cx);
 
@@ -4322,9 +4177,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
     }
 
     JSScript *script = fun->script();
-    JS_ASSERT(!script->isInnerFunction);
-
-    if (!script->ensureRanAnalysis(cx, fun) || !script->ensureRanInference(cx)) {
+    if (!script->ensureRanAnalysis(cx) || !script->ensureRanInference(cx)) {
         *pbaseobj = NULL;
         cx->compartment->types.setPendingNukeTypes(cx);
         return false;
@@ -4560,7 +4413,6 @@ AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
             }
 
             JSFunction *function = scriptObj->toFunction();
-            JS_ASSERT(!function->script()->isInnerFunction);
 
             
 
@@ -4611,7 +4463,7 @@ AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
 static void
 CheckNewScriptProperties(JSContext *cx, HandleTypeObject type, JSFunction *fun)
 {
-    if (type->unknownProperties() || fun->script()->isInnerFunction)
+    if (type->unknownProperties())
         return;
 
     
@@ -4653,8 +4505,8 @@ CheckNewScriptProperties(JSContext *cx, HandleTypeObject type, JSFunction *fun)
 
 
 
-    baseobj = NewReshapedObject(cx, type, baseobj->getParent(), kind,
-                                baseobj->lastProperty());
+    RootedShape shape(cx, baseobj->lastProperty());
+    baseobj = NewReshapedObject(cx, type, baseobj->getParent(), kind, shape);
     if (!baseobj ||
         !type->addDefiniteProperties(cx, baseobj) ||
         !initializerList.append(done)) {
@@ -4927,7 +4779,7 @@ TypeDynamicResult(JSContext *cx, JSScript *script, jsbytecode *pc, Type type)
 
     
     if (js_CodeSpec[*pc].format & JOF_TYPESET) {
-        if (!script->ensureRanAnalysis(cx, NULL)) {
+        if (!script->ensureRanAnalysis(cx)) {
             cx->compartment->types.setPendingNukeTypes(cx);
             return;
         }
@@ -5033,7 +4885,7 @@ TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Val
 
     AutoEnterTypeInference enter(cx);
 
-    if (!script->ensureRanAnalysis(cx, NULL)) {
+    if (!script->ensureRanAnalysis(cx)) {
         cx->compartment->types.setPendingNukeTypes(cx);
         return;
     }
@@ -5046,263 +4898,6 @@ TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Val
     InferSpew(ISpewOps, "bytecodeType: #%u:%05u: %s",
               script->id(), pc - script->code, TypeString(type));
     types->addType(cx, type);
-}
-
-bool
-TypeScript::SetScope(JSContext *cx, JSScript *script_, JSObject *scope_)
-{
-    Rooted<JSScript*> script(cx, script_);
-    RootedObject scope(cx, scope_);
-
-    JS_ASSERT(script->types && !script->types->hasScope());
-
-    JSFunction *fun = script->function();
-    bool nullClosure = fun && fun->isNullClosure();
-
-    JS_ASSERT_IF(!fun, !script->isOuterFunction && !script->isInnerFunction);
-    JS_ASSERT_IF(!scope, fun && !script->isInnerFunction);
-
-    
-
-
-
-    JS_ASSERT_IF(scope && scope->isCall() && !scope->asCall().isForEval(),
-                 &scope->asCall().callee() != fun);
-
-    if (!script->compileAndGo) {
-        script->types->global = NULL;
-        return true;
-    }
-
-    JS_ASSERT_IF(fun && scope, fun->global() == scope->global());
-    script->types->global = fun ? &fun->global() : &scope->global();
-
-    
-
-
-
-
-    if (!script->bindings.setParent(cx, script->types->global))
-        return false;
-
-#ifdef JS_ION
-    
-
-
-
-    return true;
-#endif
-
-    if (!cx->typeInferenceEnabled())
-        return true;
-
-    if (!script->isInnerFunction || nullClosure) {
-        
-
-
-
-        if (script->isOuterFunction) {
-            script->types->nesting = cx->new_<TypeScriptNesting>();
-            if (!script->types->nesting)
-                return false;
-        }
-        return true;
-    }
-
-    
-
-
-
-    while (!scope->isCall())
-        scope = &scope->asScope().enclosingScope();
-
-    CallObject &call = scope->asCall();
-
-    
-    JS_ASSERT(!call.isForEval());
-
-    
-    JSFunction *parentFun = &call.callee();
-    if (!parentFun || !parentFun->isHeavyweight())
-        return true;
-    JSScript *parent = parentFun->script();
-    JS_ASSERT(parent->isOuterFunction);
-
-    
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-    if (!parent->ensureHasTypes(cx))
-        return false;
-    if (!parent->types->hasScope()) {
-        if (!SetScope(cx, parent, &call.enclosingScope()))
-            return false;
-        parent->nesting()->activeCall = &call;
-        parent->nesting()->argArray = Valueify(call.argArray());
-        parent->nesting()->varArray = Valueify(call.varArray());
-    }
-
-    JS_ASSERT(!script->types->nesting);
-
-    
-
-    script->types->nesting = cx->new_<TypeScriptNesting>();
-    if (!script->types->nesting)
-        return false;
-
-    script->nesting()->parent = parent;
-    script->nesting()->next = parent->nesting()->children;
-    parent->nesting()->children = script;
-
-    return true;
-}
-
-TypeScriptNesting::~TypeScriptNesting()
-{
-    
-
-
-
-
-    if (parent) {
-        JSScript **pscript = &parent->nesting()->children;
-        while ((*pscript)->nesting() != this)
-            pscript = &(*pscript)->nesting()->next;
-        *pscript = next;
-    }
-
-    while (children) {
-        TypeScriptNesting *child = children->nesting();
-        children = child->next;
-        child->parent = NULL;
-        child->next = NULL;
-    }
-}
-
-bool
-ClearActiveNesting(JSScript *start)
-{
-    
-
-
-
-
-    
-    JSScript *script = start;
-    bool traverseChildren = true;
-    while (true) {
-        TypeScriptNesting *nesting = script->nesting();
-        if (nesting->children && traverseChildren) {
-            script = nesting->children;
-            continue;
-        }
-        if (nesting->activeFrames)
-            return false;
-        if (script->isOuterFunction) {
-            nesting->activeCall = NULL;
-            nesting->argArray = NULL;
-            nesting->varArray = NULL;
-        }
-        if (script == start)
-            break;
-        if (nesting->next) {
-            script = nesting->next;
-            traverseChildren = true;
-        } else {
-            script = nesting->parent;
-            traverseChildren = false;
-        }
-    }
-
-    return true;
-}
-
-
-
-
-
-
-static void
-CheckNestingParent(JSContext *cx, JSObject *scope, JSScript *script)
-{
-  restart:
-    JSScript *parent = script->nesting()->parent;
-    JS_ASSERT(parent);
-
-    while (!scope->isCall() || scope->asCall().callee().script() != parent)
-        scope = &scope->asScope().enclosingScope();
-
-    if (scope != parent->nesting()->activeCall) {
-        parent->reentrantOuterFunction = true;
-        MarkTypeObjectFlags(cx, parent->function(), OBJECT_FLAG_REENTRANT_FUNCTION);
-
-        
-
-
-
-
-
-
-
-        if (parent->nesting()->parent) {
-            scope = &scope->asScope().enclosingScope();
-            script = parent;
-            goto restart;
-        }
-    }
-}
-
-void
-NestingPrologue(JSContext *cx, StackFrame *fp)
-{
-    JSScript *script = fp->fun()->script();
-    TypeScriptNesting *nesting = script->nesting();
-
-    if (nesting->parent)
-        CheckNestingParent(cx, fp->scopeChain(), script);
-
-    if (script->isOuterFunction) {
-        
-
-
-
-
-
-
-        if (!ClearActiveNesting(script) || script->funHasExtensibleScope) {
-            script->reentrantOuterFunction = true;
-            MarkTypeObjectFlags(cx, fp->fun(), OBJECT_FLAG_REENTRANT_FUNCTION);
-        }
-
-        nesting->activeCall = &fp->callObj();
-        nesting->argArray = Valueify(nesting->activeCall->argArray());
-        nesting->varArray = Valueify(nesting->activeCall->varArray());
-    }
-
-    
-    nesting->activeFrames++;
-}
-
-void
-NestingEpilogue(StackFrame *fp)
-{
-    JSScript *script = fp->fun()->script();
-    TypeScriptNesting *nesting = script->nesting();
-
-    JS_ASSERT(nesting->activeFrames != 0);
-    nesting->activeFrames--;
 }
 
 } } 
@@ -5481,13 +5076,15 @@ JSFunction::setTypeForScriptedFunction(JSContext *cx, bool singleton)
         if (!setSingletonType(cx))
             return false;
     } else {
+        RootedFunction self(cx, this);
+
         TypeObject *type = cx->compartment->types.newTypeObject(cx, script(),
                                                                 JSProto_Function, getProto());
         if (!type)
             return false;
 
-        setType(type);
-        type->interpretedFunction = this;
+        self->setType(type);
+        type->interpretedFunction = self;
     }
 
     return true;
@@ -5639,8 +5236,6 @@ JSObject::makeLazyType(JSContext *cx)
         JSScript *script = type->interpretedFunction->script();
         if (script->uninlineable)
             type->flags |= OBJECT_FLAG_UNINLINEABLE;
-        if (script->reentrantOuterFunction)
-            type->flags |= OBJECT_FLAG_REENTRANT_FUNCTION;
     }
 
     if (self->lastProperty()->hasObjectFlag(BaseShape::ITERATED_SINGLETON))
@@ -5663,10 +5258,10 @@ JSObject::makeLazyType(JSContext *cx)
 
 
 
-    if (isSlowArray())
+    if (self->isSlowArray())
         type->flags |= OBJECT_FLAG_NON_DENSE_ARRAY | OBJECT_FLAG_NON_PACKED_ARRAY;
 
-    if (IsTypedArrayProto(this))
+    if (IsTypedArrayProto(self))
         type->flags |= OBJECT_FLAG_NON_TYPED_ARRAY;
 
     self->type_ = type;
@@ -5719,7 +5314,7 @@ JSObject::setNewTypeUnknown(JSContext *cx)
 }
 
 TypeObject *
-JSObject::getNewType(JSContext *cx, JSFunction *fun)
+JSObject::getNewType(JSContext *cx, JSFunction *fun_, bool isDOM)
 {
     TypeObjectSet &table = cx->compartment->newTypeObjects;
 
@@ -5741,13 +5336,17 @@ JSObject::getNewType(JSContext *cx, JSFunction *fun)
 
 
 
-        if (type->newScript && type->newScript->fun != fun)
+        if (type->newScript && type->newScript->fun != fun_)
             type->clearNewScript(cx);
+
+        if (!isDOM && !type->hasAnyFlags(OBJECT_FLAG_NON_DOM))
+            type->setFlags(cx, OBJECT_FLAG_NON_DOM);
 
         return type;
     }
 
     RootedObject self(cx, this);
+    RootedFunction fun(cx, fun_);
 
     if (!setDelegate(cx))
         return NULL;
@@ -5755,7 +5354,8 @@ JSObject::getNewType(JSContext *cx, JSFunction *fun)
     bool markUnknown = self->lastProperty()->hasObjectFlag(BaseShape::NEW_TYPE_UNKNOWN);
 
     RootedTypeObject type(cx);
-    type = cx->compartment->types.newTypeObject(cx, NULL, JSProto_Object, self, markUnknown);
+    type = cx->compartment->types.newTypeObject(cx, NULL, JSProto_Object, self,
+                                                markUnknown, isDOM);
     if (!type)
         return NULL;
 
@@ -6141,15 +5741,6 @@ TypeScript::Sweep(FreeOp *fop, JSScript *script)
             presult = &result->next;
         }
     }
-
-    
-
-
-
-
-
-
-
 }
 
 void
@@ -6160,9 +5751,6 @@ TypeScript::destroy()
         Foreground::delete_(dynamicList);
         dynamicList = next;
     }
-
-    if (nesting)
-        Foreground::delete_(nesting);
 
     Foreground::free_(this);
 }
@@ -6218,8 +5806,6 @@ SizeOfScriptTypeInferenceData(JSScript *script, TypeInferenceSizes *sizes,
         sizes->scripts += mallocSizeOf(typeScript);
         return;
     }
-
-    sizes->scripts += mallocSizeOf(typeScript->nesting);
 
     unsigned count = TypeScript::NumTypeSets(script);
     sizes->scripts += mallocSizeOf(typeScript);

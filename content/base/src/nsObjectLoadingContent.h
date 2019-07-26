@@ -38,7 +38,9 @@ enum PluginSupportState {
   ePluginOutdated,     
   ePluginOtherState,   
   ePluginCrashed,
-  ePluginClickToPlay   
+  ePluginClickToPlay,  
+  ePluginVulnerableUpdatable, 
+  ePluginVulnerableNoUpdate   
 };
 
 
@@ -374,7 +376,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     
-    bool                        mShouldPlay : 1;
+    
+    
+    bool                        mCTPPlayable    : 1;
 
     
     

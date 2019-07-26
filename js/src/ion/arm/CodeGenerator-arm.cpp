@@ -1380,7 +1380,7 @@ CodeGeneratorARM::visitImplicitThis(LImplicitThis *lir)
     
     
     masm.ma_ldr(DTRAddr(callee, DtrOffImm(JSFunction::offsetOfEnvironment())), out.typeReg());
-    masm.ma_cmp(out.typeReg(), ImmGCPtr(gen->info().script()->global()));
+    masm.ma_cmp(out.typeReg(), ImmGCPtr(&gen->info().script()->global()));
 
     
     if (!bailoutIf(Assembler::NotEqual, lir->snapshot()))

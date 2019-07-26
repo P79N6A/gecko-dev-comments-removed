@@ -3114,7 +3114,7 @@ PurgeRuntime(JSTracer *trc)
     rt->newObjectCache.purge();
     rt->nativeIterCache.purge();
     rt->toSourceCache.purge();
-    rt->evalCache.purge();
+    rt->evalCache.clear();
 
     for (ContextIter acx(rt); !acx.done(); acx.next())
         acx->purge();
@@ -4392,6 +4392,18 @@ JS::CheckStackRoots(JSContext *cx)
     
     
     JS_ASSERT(!cx->rootingUnnecessary);
+
+    
+    if (cx->compartment->activeAnalysis)
+        return;
+
+    
+    if (IsAtomsCompartment(cx->compartment)) {
+        for (CompartmentsIter c(rt); !c.done(); c.next()) {
+            if (c.get()->activeAnalysis)
+                return;
+        }
+    }
 
     AutoCopyFreeListToArenas copy(rt);
 

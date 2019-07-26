@@ -94,8 +94,6 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     float prefPercent = 0.0f;
     bool hasSpecifiedWidth = false;
 
-    
-
     const nsStylePosition *stylePos = aFrame->GetStylePosition();
     const nsStyleCoord &width = stylePos->mWidth;
     nsStyleUnit unit = width.GetUnit();
@@ -198,7 +196,32 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
         nsIFrame::IntrinsicWidthOffsetData offsets =
             aFrame->IntrinsicWidthOffsets(aRenderingContext);
         
-        nscoord add = offsets.hPadding + offsets.hBorder;
+
+        
+        
+        
+        
+        
+        
+        
+        nscoord add = 0;
+        if (aFrame->PresContext()->CompatibilityMode() == eCompatibility_NavQuirks) {
+          add = offsets.hPadding + offsets.hBorder;
+        }
+        else
+        {
+          switch (stylePos->mBoxSizing) {
+            case NS_STYLE_BOX_SIZING_CONTENT:
+              add = offsets.hPadding + offsets.hBorder;
+              break;
+            case NS_STYLE_BOX_SIZING_PADDING:
+              add = offsets.hBorder;
+              break;
+            default:
+              
+              break;
+          }
+        }
         minCoord += add;
         prefCoord = NSCoordSaturatingAdd(prefCoord, add);
     }

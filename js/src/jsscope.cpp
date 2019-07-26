@@ -278,35 +278,12 @@ Shape::getChildBinding(JSContext *cx, const StackShape &child)
 {
     JS_ASSERT(!inDictionary());
 
-    Shape *shape = cx->propertyTree().getChild(cx, this, numFixedSlots(), child);
-    if (shape) {
-        
+    
+    uint32_t slots = child.slotSpan();
+    gc::AllocKind kind = gc::GetGCObjectKind(slots);
+    uint32_t nfixed = gc::GetGCKindSlots(kind);
 
-        
-
-
-
-
-
-
-        uint32_t slots = child.slotSpan();
-        gc::AllocKind kind = gc::GetGCObjectKind(slots);
-
-        
-
-
-
-
-
-        uint32_t nfixed = gc::GetGCKindSlots(kind);
-        if (nfixed < slots) {
-            nfixed = CallObject::RESERVED_SLOTS;
-            JS_ASSERT(gc::GetGCKindSlots(gc::GetGCObjectKind(nfixed)) == CallObject::RESERVED_SLOTS);
-        }
-
-        shape->setNumFixedSlots(nfixed);
-    }
-    return shape;
+    return cx->propertyTree().getChild(cx, this, nfixed, child);
 }
 
  Shape *
@@ -1204,31 +1181,6 @@ Bindings::setExtensibleParents(JSContext *cx)
     if (!newShape)
         return false;
     lastBinding = newShape;
-    return true;
-}
-
-bool
-Bindings::setParent(JSContext *cx, JSObject *obj_)
-{
-    RootedObject obj(cx, obj_);
-
-    
-
-
-
-
-
-    Bindings *self = this;
-    SkipRoot root(cx, &self);
-
-    if (!ensureShape(cx))
-        return false;
-
-    
-    Shape *newShape = Shape::setObjectParent(cx, obj, NULL, self->lastBinding);
-    if (!newShape)
-        return false;
-    self->lastBinding = newShape;
     return true;
 }
 

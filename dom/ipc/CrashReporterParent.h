@@ -49,6 +49,10 @@ public:
   bool
   GenerateCrashReport(Toplevel* t, const AnnotationTable* processNotes);
 
+  bool
+  GenerateCrashReportForMinidump(nsIFile* minidump,
+                                 const AnnotationTable* processNotes);
+
   
 
 
@@ -135,7 +139,7 @@ CrashReporterParent::GenerateCrashReport(Toplevel* t,
                                          const AnnotationTable* processNotes)
 {
   nsCOMPtr<nsIFile> crashDump;
-  if (t->TakeMinidump(getter_AddRefs(crashDump)) &&
+  if (t->TakeMinidump(getter_AddRefs(crashDump), NULL) &&
       CrashReporter::GetIDFromMinidump(crashDump, mChildDumpID)) {
     return GenerateChildData(processNotes);
   }

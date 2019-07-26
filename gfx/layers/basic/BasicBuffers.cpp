@@ -47,10 +47,10 @@ BasicThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
 
   
   
-  gfxMatrix maskTransform;
-  if (nsRefPtr<gfxASurface> maskSurface =
-        GetMaskSurfaceAndTransform(aMaskLayer, &maskTransform)) {
-    DrawBufferWithRotation(aTarget, aOpacity, maskSurface, &maskTransform);
+  AutoMaskData mask;
+  if (GetMaskData(aMaskLayer, &mask)) {
+    DrawBufferWithRotation(aTarget, aOpacity,
+                           mask.GetSurface(), &mask.GetTransform());
   } else {
     DrawBufferWithRotation(aTarget, aOpacity);
   }

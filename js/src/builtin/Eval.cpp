@@ -10,6 +10,7 @@
 
 #include "builtin/Eval.h"
 #include "frontend/BytecodeCompiler.h"
+#include "mozilla/HashFunctions.h"
 #include "vm/GlobalObject.h"
 
 #include "jsinterpinlines.h"
@@ -30,110 +31,43 @@ AssertInnerizedScopeChain(JSContext *cx, JSObject &scopeobj)
 #endif
 }
 
-void
-EvalCache::purge()
+static bool
+IsEvalCacheCandidate(JSScript *script)
 {
     
     
     
-    
-    for (size_t i = 0; i < ArrayLength(table_); ++i) {
-        for (JSScript **listHeadp = &table_[i]; *listHeadp; ) {
-            JSScript *script = *listHeadp;
-            JS_ASSERT(GetGCThingTraceKind(script) == JSTRACE_SCRIPT);
-            *listHeadp = script->evalHashLink();
-            script->evalHashLink() = NULL;
-        }
-    }
+    return script->savedCallerFun &&
+           !script->hasSingletons &&
+           script->objects()->length == 1 &&
+           !script->hasRegexps();
 }
 
-JSScript **
-EvalCache::bucket(JSLinearString *str)
+ HashNumber
+EvalCacheHashPolicy::hash(const EvalCacheLookup &l)
 {
-    const jschar *s = str->chars();
-    size_t n = str->length();
-
-    if (n > 100)
-        n = 100;
-    uint32_t h;
-    for (h = 0; n; s++, n--)
-        h = JS_ROTATE_LEFT32(h, 4) ^ *s;
-
-    h *= JS_GOLDEN_RATIO;
-    h >>= 32 - SHIFT;
-    JS_ASSERT(h < ArrayLength(table_));
-    return &table_[h];
+    return AddToHash(HashString(l.str->chars(), l.str->length()),
+                     l.caller,
+                     l.staticLevel,
+                     l.version,
+                     l.compartment);
 }
 
-static JSScript *
-EvalCacheLookup(JSContext *cx, JSLinearString *str, StackFrame *caller, unsigned staticLevel,
-                JSPrincipals *principals, JSObject &scopeobj, JSScript **bucket)
+ bool
+EvalCacheHashPolicy::match(JSScript *script, const EvalCacheLookup &l)
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    unsigned count = 0;
-    JSScript **scriptp = bucket;
+    JS_ASSERT(IsEvalCacheCandidate(script));
 
-    JSVersion version = cx->findVersion();
-    JSScript *script;
-    JSSubsumePrincipalsOp subsume = cx->runtime->securityCallbacks->subsumePrincipals;
-    while ((script = *scriptp) != NULL) {
-        if (script->savedCallerFun &&
-            script->staticLevel == staticLevel &&
-            script->getVersion() == version &&
-            !script->hasSingletons &&
-            (!subsume || script->principals == principals ||
-             (subsume(principals, script->principals) &&
-              subsume(script->principals, principals))))
-        {
-            
-            
-            JSFunction *fun = script->getCallerFunction();
+    
+    
+    JSAtom *keyStr = script->atoms[0];
 
-            if (fun == caller->fun()) {
-                
-
-
-
-                JSAtom *src = script->atoms[0];
-
-                if (src == str || EqualStrings(src, str)) {
-                    
-                    
-                    
-                    
-                    JS_ASSERT(script->objects()->length >= 1);
-                    if (script->objects()->length == 1 &&
-                        !script->hasRegexps()) {
-                        JS_ASSERT(staticLevel == script->staticLevel);
-                        *scriptp = script->evalHashLink();
-                        script->evalHashLink() = NULL;
-                        return script;
-                    }
-                }
-            }
-        }
-
-        static const unsigned EVAL_CACHE_CHAIN_LIMIT = 4;
-        if (++count == EVAL_CACHE_CHAIN_LIMIT)
-            return NULL;
-        scriptp = &script->evalHashLink();
-    }
-    return NULL;
+    return EqualStrings(keyStr, l.str) &&
+           script->getCallerFunction() == l.caller &&
+           script->staticLevel == l.staticLevel &&
+           script->getVersion() == l.version &&
+           script->compartment() == l.compartment;
 }
-
 
 
 
@@ -146,16 +80,17 @@ EvalCacheLookup(JSContext *cx, JSLinearString *str, StackFrame *caller, unsigned
 class EvalScriptGuard
 {
     JSContext *cx_;
-    JSLinearString *str_;
-    JSScript **bucket_;
     Rooted<JSScript*> script_;
 
+    
+    EvalCacheLookup lookup_;
+    EvalCache::AddPtr p_;
+
   public:
-    EvalScriptGuard(JSContext *cx, JSLinearString *str)
-      : cx_(cx),
-        str_(str),
-        script_(cx) {
-        bucket_ = cx->runtime->evalCache.bucket(str);
+    EvalScriptGuard(JSContext *cx)
+      : cx_(cx), script_(cx)
+    {
+        lookup_.str = NULL;
     }
 
     ~EvalScriptGuard() {
@@ -163,17 +98,23 @@ class EvalScriptGuard
             CallDestroyScriptHook(cx_->runtime->defaultFreeOp(), script_);
             script_->isActiveEval = false;
             script_->isCachedEval = true;
-            script_->evalHashLink() = *bucket_;
-            *bucket_ = script_;
+            if (lookup_.str && IsEvalCacheCandidate(script_))
+                cx_->runtime->evalCache.relookupOrAdd(p_, lookup_, script_);
         }
     }
 
-    void lookupInEvalCache(StackFrame *caller, unsigned staticLevel,
-                           JSPrincipals *principals, JSObject &scopeobj) {
-        if (JSScript *found = EvalCacheLookup(cx_, str_, caller, staticLevel,
-                                              principals, scopeobj, bucket_)) {
-            js_CallNewScriptHook(cx_, found, NULL);
-            script_ = found;
+    void lookupInEvalCache(JSLinearString *str, JSFunction *caller, unsigned staticLevel)
+    {
+        lookup_.str = str;
+        lookup_.caller = caller;
+        lookup_.staticLevel = staticLevel;
+        lookup_.version = cx_->findVersion();
+        lookup_.compartment = cx_->compartment;
+        p_ = cx_->runtime->evalCache.lookupForAdd(lookup_);
+        if (p_) {
+            script_ = *p_;
+            cx_->runtime->evalCache.remove(p_);
+            js_CallNewScriptHook(cx_, script_, NULL);
             script_->isCachedEval = false;
             script_->isActiveEval = true;
         }
@@ -247,11 +188,6 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
         if (!ComputeThis(cx, caller))
             return false;
         thisv = caller->thisValue();
-
-#ifdef DEBUG
-        jsbytecode *callerPC = caller->pcQuadratic(cx);
-        JS_ASSERT(callerPC && JSOp(*callerPC) == JSOP_EVAL);
-#endif
     } else {
         JS_ASSERT(args.callee().global() == *scopeobj);
         staticLevel = 0;
@@ -310,12 +246,12 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
         }
     }
 
-    EvalScriptGuard esg(cx, linearStr);
+    EvalScriptGuard esg(cx);
 
     JSPrincipals *principals = PrincipalsForCompiledCode(args, cx);
 
     if (evalType == DIRECT_EVAL && caller->isNonEvalFunctionFrame())
-        esg.lookupInEvalCache(caller, staticLevel, principals, *scopeobj);
+        esg.lookupInEvalCache(linearStr, caller->fun(), staticLevel);
 
     if (!esg.foundScript()) {
         unsigned lineno;
@@ -327,10 +263,9 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
 
         bool compileAndGo = true;
         bool noScriptRval = false;
-        bool needScriptGlobal = false;
         JSScript *compiled = frontend::CompileScript(cx, scopeobj, caller,
                                                      principals, originPrincipals,
-                                                     compileAndGo, noScriptRval, needScriptGlobal,
+                                                     compileAndGo, noScriptRval,
                                                      chars, length, filename,
                                                      lineno, cx->findVersion(), linearStr,
                                                      staticLevel);

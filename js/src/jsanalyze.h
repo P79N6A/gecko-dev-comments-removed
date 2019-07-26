@@ -391,16 +391,6 @@ static inline uint32_t GetBytecodeSlot(JSScript *script, jsbytecode *pc)
       case JSOP_LOCALDEC:
         return LocalSlot(script, GET_SLOTNO(pc));
 
-      case JSOP_GETALIASEDVAR:
-      case JSOP_CALLALIASEDVAR:
-      case JSOP_SETALIASEDVAR:
-      {
-        unsigned index;
-        return ScopeCoordinateToFrameIndex(script, pc, &index) == FrameIndex_Local
-               ? LocalSlot(script, index)
-               : ArgSlot(index);
-      }
-
       case JSOP_THIS:
         return ThisSlot();
 
@@ -875,8 +865,6 @@ class ScriptAnalysis
     bool usesThisValue_:1;
     bool hasFunctionCalls_:1;
     bool modifiesArguments_:1;
-    bool extendsScope_:1;
-    bool addsScopeObjects_:1;
     bool localsAliasStack_:1;
     bool isInlineable:1;
     bool isJaegerCompileable:1;
@@ -935,15 +923,6 @@ class ScriptAnalysis
 
 
     bool modifiesArguments() { return modifiesArguments_; }
-
-    
-
-
-
-    bool extendsScope() { return extendsScope_; }
-
-    
-    bool addsScopeObjects() { return addsScopeObjects_; }
 
     
 
@@ -1152,25 +1131,6 @@ class ScriptAnalysis
         JS_ASSERT(!slotEscapes(slot));
         return lifetimes[slot];
     }
-
-    
-
-
-
-    struct NameAccess {
-        JSScript *script;
-        types::TypeScriptNesting *nesting;
-        uint32_t slot;
-
-        
-        bool arg;
-        uint32_t index;
-
-        const Value **basePointer() const {
-            return arg ? &nesting->argArray : &nesting->varArray;
-        }
-    };
-    NameAccess resolveNameAccess(JSContext *cx, jsid id, bool addDependency = false);
 
     void printSSA(JSContext *cx);
     void printTypes(JSContext *cx);

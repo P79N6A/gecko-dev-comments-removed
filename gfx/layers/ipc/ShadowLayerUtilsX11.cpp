@@ -89,22 +89,18 @@ SurfaceDescriptorX11::OpenForeign() const
 }
 
 bool
-ShadowLayerForwarder::PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
-                                                gfxASurface::gfxContentType aContent,
-                                                SurfaceDescriptor* aFrontBuffer,
-                                                SurfaceDescriptor* aBackBuffer)
-{
-  return (PlatformAllocBuffer(aSize, aContent, aFrontBuffer) &&
-          PlatformAllocBuffer(aSize, aContent, aBackBuffer));
-}
-
-bool
 ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
                                           gfxASurface::gfxContentType aContent,
+                                          uint32_t aCaps,
                                           SurfaceDescriptor* aBuffer)
 {
   if (!UsingXCompositing()) {
     
+    
+    
+    return false;
+  }
+  if (MAP_AS_IMAGE_SURFACE & aCaps) {
     
     
     return false;
@@ -127,12 +123,38 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
 }
 
  already_AddRefed<gfxASurface>
-ShadowLayerForwarder::PlatformOpenDescriptor(const SurfaceDescriptor& aSurface)
+ShadowLayerForwarder::PlatformOpenDescriptor(OpenMode aMode,
+                                             const SurfaceDescriptor& aSurface)
 {
   if (SurfaceDescriptor::TSurfaceDescriptorX11 != aSurface.type()) {
     return nsnull;
   }
   return aSurface.get_SurfaceDescriptorX11().OpenForeign();
+}
+
+ bool
+ShadowLayerForwarder::PlatformCloseDescriptor(const SurfaceDescriptor& aDescriptor)
+{
+  
+  return false;
+}
+
+ bool
+ShadowLayerForwarder::PlatformGetDescriptorSurfaceContentType(
+  const SurfaceDescriptor& aDescriptor, OpenMode aMode,
+  gfxContentType* aContent,
+  gfxASurface** aSurface)
+{
+  return false;
+}
+
+ bool
+ShadowLayerForwarder::PlatformGetDescriptorSurfaceSize(
+  const SurfaceDescriptor& aDescriptor, OpenMode aMode,
+  gfxIntSize* aSize,
+  gfxASurface** aSurface)
+{
+  return false;
 }
 
 bool

@@ -71,9 +71,15 @@ nsresult SetSubmitReports(bool aSubmitReport);
 
 
 
+void OOPInit();
+
+
+
+
 
 bool TakeMinidumpForChild(PRUint32 childPid,
-                          nsIFile** dump NS_OUTPARAM);
+                          nsIFile** dump NS_OUTPARAM,
+                          PRUint32* aSequence = NULL);
 
 #if defined(XP_WIN)
 typedef HANDLE ProcessHandle;
@@ -120,8 +126,16 @@ class InjectorCrashCallback
 public:
   InjectorCrashCallback() { }
 
-  virtual void OnCrash(DWORD processID, const nsAString& aDumpID) = 0;
+  
+
+
+
+
+
+
+  virtual void OnCrash(DWORD processID) = 0;
 };
+
 
 void InjectCrashReporterIntoProcess(DWORD processID, InjectorCrashCallback* cb);
 void UnregisterInjectorCallback(DWORD processID);

@@ -299,7 +299,7 @@ CodeGeneratorX64::visitImplicitThis(LImplicitThis *lir)
 
     
     
-    GlobalObject *global = gen->info().script()->global();
+    GlobalObject *global = &gen->info().script()->global();
     masm.cmpPtr(Operand(callee, JSFunction::offsetOfEnvironment()), ImmGCPtr(global));
 
     

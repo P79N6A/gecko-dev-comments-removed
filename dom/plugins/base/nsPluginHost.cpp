@@ -342,8 +342,10 @@ nsPluginHost::nsPluginHost()
     Preferences::GetBool("plugin.override_internal_types", false);
 
   mPluginsDisabled = Preferences::GetBool("plugin.disable", false);
+  mPluginsClickToPlay = Preferences::GetBool("plugins.click_to_play", false);
 
   Preferences::AddStrongObserver(this, "plugin.disable");
+  Preferences::AddStrongObserver(this, "plugins.click_to_play");
 
   nsCOMPtr<nsIObserverService> obsService =
     mozilla::services::GetObserverService();
@@ -1294,6 +1296,36 @@ nsPluginHost::IsPluginEnabledForType(const char* aMimeType)
 
   return NS_OK;
 }
+ 
+bool
+nsPluginHost::IsPluginClickToPlayForType(const char* aMimeType)
+{
+  nsPluginTag *plugin = FindPluginForType(aMimeType, true);
+  if (plugin && 
+      (plugin->HasFlag(NS_PLUGIN_FLAG_CLICKTOPLAY) || mPluginsClickToPlay)) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+nsresult
+nsPluginHost::GetBlocklistStateForType(const char *aMimeType, PRUint32 *aState) 
+{
+  nsPluginTag *plugin = FindPluginForType(aMimeType, true);
+  if (plugin) {
+    nsCOMPtr<nsIBlocklistService> blocklist = do_GetService("@mozilla.org/extensions/blocklist;1");
+    if (blocklist) {
+      
+      
+      return blocklist->GetPluginBlocklistState(plugin, EmptyString(),
+                                                EmptyString(), aState);
+    }
+  }
+
+  return NS_ERROR_FAILURE;
+}
 
 
 static int CompareExtensions(const char *aExtensionList, const char *aExtension)
@@ -2076,17 +2108,30 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
         if (NS_SUCCEEDED(rv)) {
           
           
-          if (state == nsIBlocklistService::STATE_BLOCKED)
-            pluginTag->Mark(NS_PLUGIN_FLAG_BLOCKLISTED);
-          else if (state == nsIBlocklistService::STATE_SOFTBLOCKED && !seenBefore)
-            enabled = false;
-          else if (state == nsIBlocklistService::STATE_OUTDATED && !seenBefore)
-            warnOutdated = true;
+          
+          
+          
+          
+          
+          if (state == nsIBlocklistService::STATE_BLOCKED) {
+             pluginTag->Mark(NS_PLUGIN_FLAG_BLOCKLISTED);
+          }
+          if (state == nsIBlocklistService::STATE_SOFTBLOCKED && !seenBefore) {
+             enabled = false;
+          }
+          if (state == nsIBlocklistService::STATE_OUTDATED && !seenBefore) {
+             warnOutdated = true;
+          }
+          if (state == nsIBlocklistService::STATE_VULNERABLE_UPDATE_AVAILABLE ||
+              state == nsIBlocklistService::STATE_VULNERABLE_NO_UPDATE) {
+            pluginTag->Mark(NS_PLUGIN_FLAG_CLICKTOPLAY);
+          }
         }
       }
 
-      if (!enabled)
+      if (!enabled) {
         pluginTag->UnMark(NS_PLUGIN_FLAG_ENABLED);
+      }
 
       
       
@@ -3302,6 +3347,7 @@ NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
   }
   if (!nsCRT::strcmp(NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, aTopic)) {
     mPluginsDisabled = Preferences::GetBool("plugin.disable", false);
+    mPluginsClickToPlay = Preferences::GetBool("plugins.click_to_play", false);
     
     if (mPluginsDisabled) {
       UnloadPlugins();

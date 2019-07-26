@@ -175,6 +175,16 @@ protected:
 
 
 
+
+  void SetBuffer(gfxASurface* aBuffer)
+  {
+    mBuffer = aBuffer;
+  }
+
+  
+
+
+
   already_AddRefed<gfxContext>
   GetContextForQuadrantUpdate(const nsIntRect& aBounds);
 
