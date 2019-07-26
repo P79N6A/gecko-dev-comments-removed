@@ -68,7 +68,7 @@ var std_WeakMap_set = WeakMap.prototype.set;
 
 
 function List() {
-    if (IS_UNDEFINED(List.prototype)) {
+    if (List.prototype === undefined) {
         var proto = std_Object_create(null);
         proto.indexOf = std_Array_indexOf;
         proto.join = std_Array_join;
