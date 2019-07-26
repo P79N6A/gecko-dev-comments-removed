@@ -18,7 +18,6 @@
 #include "keyt.h"
 #include "certt.h"
 #include "ocspt.h"
-#include "prerror.h"
 
 
 
@@ -636,31 +635,69 @@ CERT_DestroyOCSPCertID(CERTOCSPCertID* certID);
 
 
 extern CERTOCSPSingleResponse*
-OCSP_CreateSingleResponseGood(PLArenaPool *arena,
-                              CERTOCSPCertID *id, 
-                              PRTime thisUpdate, PRTime *nextUpdate);
+CERT_CreateOCSPSingleResponseGood(PLArenaPool *arena,
+                                  CERTOCSPCertID *id,
+                                  PRTime thisUpdate,
+                                  const PRTime *nextUpdate);
 
 extern CERTOCSPSingleResponse*
-OCSP_CreateSingleResponseUnknown(PLArenaPool *arena,
-                                 CERTOCSPCertID *id, 
-                                 PRTime thisUpdate, PRTime *nextUpdate);
+CERT_CreateOCSPSingleResponseUnknown(PLArenaPool *arena,
+                                     CERTOCSPCertID *id,
+                                     PRTime thisUpdate,
+                                     const PRTime *nextUpdate);
 
 extern CERTOCSPSingleResponse*
-OCSP_CreateSingleResponseRevoked(PLArenaPool *arena,
-                                 CERTOCSPCertID *id,
-                                 PRTime thisUpdate, PRTime *nextUpdate,
-                                 PRTime revocationTime);
+CERT_CreateOCSPSingleResponseRevoked(
+    PLArenaPool *arena,
+    CERTOCSPCertID *id,
+    PRTime thisUpdate,
+    const PRTime *nextUpdate,
+    PRTime revocationTime,
+    const CERTCRLEntryReasonCode* revocationReason);
 
 extern SECItem*
-OCSP_CreateSuccessResponseEncodedBasicV1(PLArenaPool *arena,
-                                         CERTCertificate *responderCert,
-                                         PRBool idByName, 
-                                         PRTime producedAt,
-                                         CERTOCSPSingleResponse **responses,
-                                         void *wincx);
+CERT_CreateEncodedOCSPSuccessResponse(
+    PLArenaPool *arena,
+    CERTCertificate *responderCert,
+    CERTOCSPResponderIDType responderIDType,
+    PRTime producedAt,
+    CERTOCSPSingleResponse **responses,
+    void *wincx);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 extern SECItem*
-OCSP_CreateFailureResponse(PLArenaPool *arena, PRErrorCode reason);
+CERT_CreateEncodedOCSPErrorResponse(PLArenaPool *arena, int error);
 
 
 SEC_END_PROTOS

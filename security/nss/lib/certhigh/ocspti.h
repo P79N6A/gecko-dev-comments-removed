@@ -189,14 +189,14 @@ struct CERTOCSPCertIDStr {
 
 
 typedef enum {
+    ocspResponse_other = -1,		
     ocspResponse_successful = 0,
     ocspResponse_malformedRequest = 1,
     ocspResponse_internalError = 2,
     ocspResponse_tryLater = 3,
     ocspResponse_unused = 4,
     ocspResponse_sigRequired = 5,
-    ocspResponse_unauthorized = 6,
-    ocspResponse_other			
+    ocspResponse_unauthorized = 6
 } ocspResponseStatus;
 
 
@@ -266,28 +266,8 @@ struct ocspResponseDataStr {
     CERTCertExtension **responseExtensions;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef enum {
-    ocspResponderID_byName,
-    ocspResponderID_byKey,
-    ocspResponderID_other		
-} ocspResponderIDType;
-
 struct ocspResponderIDStr {
-    ocspResponderIDType responderIDType;
+    CERTOCSPResponderIDType responderIDType;
     union {
 	CERTName name;			
 	SECItem keyHash;		

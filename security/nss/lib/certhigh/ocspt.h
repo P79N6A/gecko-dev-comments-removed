@@ -280,4 +280,24 @@ typedef enum {
     ocspMode_FailureIsNotAVerificationFailure = 1
 } SEC_OcspFailureMode;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef enum {
+    ocspResponderID_other = -1,		
+    ocspResponderID_byName = 1,
+    ocspResponderID_byKey = 2
+} CERTOCSPResponderIDType;
+
 #endif 
