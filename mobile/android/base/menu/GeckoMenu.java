@@ -217,6 +217,13 @@ public class GeckoMenu extends ListView
         return subMenu;
     }
 
+    private void removeActionBarView() {
+        
+        setAdapter(null);
+        removeHeaderView((DefaultActionItemBar) mActionItemBarPresenter);
+        setAdapter(mAdapter);
+    }
+
     @Override
     public void clear() {
         for (GeckoMenuItem menuItem : mItems) {
@@ -247,6 +254,12 @@ public class GeckoMenu extends ListView
             }
         }
         mActionItems.clear();
+
+        
+        
+        if (mActionItemBarPresenter instanceof DefaultActionItemBar) {
+            removeActionBarView();
+        }
     }
 
     @Override
@@ -341,10 +354,7 @@ public class GeckoMenu extends ListView
 
             if (mActionItems.size() == 0 && 
                 mActionItemBarPresenter instanceof DefaultActionItemBar) {
-                
-                setAdapter(null);
-                removeHeaderView((DefaultActionItemBar) mActionItemBarPresenter);
-                setAdapter(mAdapter);
+                removeActionBarView();
             }
 
             return;
