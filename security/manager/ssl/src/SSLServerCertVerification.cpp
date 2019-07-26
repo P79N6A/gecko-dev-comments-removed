@@ -435,6 +435,35 @@ CertErrorRunnable::RunOnTargetThread()
 
 
 
+
+
+
+
+uint32_t
+PRErrorCodeToOverrideType(PRErrorCode errorCode)
+{
+  switch (errorCode)
+  {
+    case SEC_ERROR_UNKNOWN_ISSUER:
+    case SEC_ERROR_CA_CERT_INVALID:
+    case SEC_ERROR_UNTRUSTED_ISSUER:
+    case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
+    case SEC_ERROR_UNTRUSTED_CERT:
+    case SEC_ERROR_INADEQUATE_KEY_USAGE:
+    case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
+      
+      return nsICertOverrideService::ERROR_UNTRUSTED;
+    case SSL_ERROR_BAD_CERT_DOMAIN:
+      return nsICertOverrideService::ERROR_MISMATCH;
+    case SEC_ERROR_EXPIRED_CERTIFICATE:
+      return nsICertOverrideService::ERROR_TIME;
+    default:
+      return 0;
+  }
+}
+
+
+
 CertErrorRunnable *
 CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
                         TransportSecurityInfo * infoObject,
@@ -447,8 +476,10 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
   MOZ_ASSERT(cert);
   
   
-  if (defaultErrorCodeToReport == SEC_ERROR_REVOKED_CERTIFICATE) {
-    PR_SetError(SEC_ERROR_REVOKED_CERTIFICATE, 0);
+  
+  
+  if (PRErrorCodeToOverrideType(defaultErrorCodeToReport) == 0) {
+    PR_SetError(defaultErrorCodeToReport, 0);
     return nullptr;
   }
 
@@ -518,36 +549,23 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
   CERTVerifyLogNode *i_node;
   for (i_node = verify_log->head; i_node; i_node = i_node->next)
   {
-    switch (i_node->error)
-    {
-      case SEC_ERROR_UNKNOWN_ISSUER:
-      case SEC_ERROR_CA_CERT_INVALID:
-      case SEC_ERROR_UNTRUSTED_ISSUER:
-      case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
-      case SEC_ERROR_UNTRUSTED_CERT:
-      case SEC_ERROR_INADEQUATE_KEY_USAGE:
-      case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
-        
-        collected_errors |= nsICertOverrideService::ERROR_UNTRUSTED;
-        if (errorCodeTrust == SECSuccess) {
-          errorCodeTrust = i_node->error;
-        }
-        break;
-      case SSL_ERROR_BAD_CERT_DOMAIN:
-        collected_errors |= nsICertOverrideService::ERROR_MISMATCH;
-        if (errorCodeMismatch == SECSuccess) {
-          errorCodeMismatch = i_node->error;
-        }
-        break;
-      case SEC_ERROR_EXPIRED_CERTIFICATE:
-        collected_errors |= nsICertOverrideService::ERROR_TIME;
-        if (errorCodeExpired == SECSuccess) {
-          errorCodeExpired = i_node->error;
-        }
-        break;
-      default:
-        PR_SetError(i_node->error, 0);
-        return nullptr;
+    uint32_t overrideType = PRErrorCodeToOverrideType(i_node->error);
+    
+    if (overrideType == 0) {
+      PR_SetError(i_node->error, 0);
+      return nullptr;
+    }
+    collected_errors |= overrideType;
+    if (overrideType == nsICertOverrideService::ERROR_UNTRUSTED) {
+      errorCodeTrust = (errorCodeTrust == 0 ? i_node->error : errorCodeTrust);
+    } else if (overrideType == nsICertOverrideService::ERROR_MISMATCH) {
+      errorCodeMismatch = (errorCodeMismatch == 0 ? i_node->error
+                                                  : errorCodeMismatch);
+    } else if (overrideType == nsICertOverrideService::ERROR_TIME) {
+      errorCodeExpired = (errorCodeExpired == 0 ? i_node->error
+                                                : errorCodeExpired);
+    } else {
+      MOZ_CRASH("unexpected return value from PRErrorCodeToOverrideType");
     }
   }
 
