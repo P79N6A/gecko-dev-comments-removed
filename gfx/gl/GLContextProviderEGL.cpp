@@ -2019,6 +2019,13 @@ GLContextProviderEGL::CreateSharedHandle(GLContext::SharedTextureShareType share
   return 0;
 }
 
+already_AddRefed<gfxASurface>
+GLContextProviderEGL::GetSharedHandleAsSurface(GLContext::SharedTextureShareType shareType,
+                                               SharedTextureHandle sharedHandle)
+{
+  return nullptr;
+}
+
 
 
 

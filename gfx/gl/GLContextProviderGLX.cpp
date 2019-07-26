@@ -1424,6 +1424,13 @@ GLContextProviderGLX::CreateSharedHandle(GLContext::SharedTextureShareType share
   return 0;
 }
 
+already_AddRefed<gfxASurface>
+GLContextProviderGLX::GetSharedHandleAsSurface(GLContext::SharedTextureShareType shareType,
+                                               SharedTextureHandle sharedHandle)
+{
+  return nullptr;
+}
+
 static nsRefPtr<GLContext> gGlobalContext[GLXLibrary::LIBS_MAX];
 
 static bool gUseContextSharing = getenv("MOZ_DISABLE_CONTEXT_SHARING_GLX") == 0;
