@@ -853,6 +853,25 @@ nsCaret::CheckCaretDrawingState()
   }
 }
 
+size_t nsCaret::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  size_t total = aMallocSizeOf(this);
+  if (mPresShell) {
+    
+    
+    total += mPresShell->SizeOfOnlyThis(aMallocSizeOf);
+  }
+  if (mDomSelectionWeak) {
+    
+    
+    total += mDomSelectionWeak->SizeOfOnlyThis(aMallocSizeOf);
+  }
+  if (mBlinkTimer) {
+    total += mBlinkTimer->SizeOfIncludingThis(aMallocSizeOf);
+  }
+  return total;
+}
+
 
 
 
