@@ -147,7 +147,7 @@ protected:
   int32_t         mCurEntry;
   int32_t         mNumEntries;      
     
-  static PLDHashTableOps    sHashOps;
+  static const PLDHashTableOps    sHashOps;
 };
 
 
