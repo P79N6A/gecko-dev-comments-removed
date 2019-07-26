@@ -324,7 +324,9 @@ DocAccessible::Attributes()
   nsCOMPtr<nsIPersistentProperties> attributes =
     HyperTextAccessibleWrap::Attributes();
 
-  if (!mParent)
+  
+  
+  if (!mParent || IsRoot())
     return attributes.forget();
 
   
