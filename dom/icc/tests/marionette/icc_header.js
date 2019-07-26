@@ -3,9 +3,24 @@
 
 SpecialPowers.addPermission("mobileconnection", true, document);
 
-let icc = navigator.mozIccManager;
-ok(icc instanceof MozIccManager,
-   "icc is instanceof " + icc.constructor);
+let iccManager = navigator.mozIccManager;
+ok(iccManager instanceof MozIccManager,
+   "iccManager is instanceof " + iccManager.constructor);
+
+
+
+
+
+
+let iccIds = iccManager.iccIds;
+ok(Array.isArray(iccIds), "iccIds is an array");
+is(iccIds.length, 1, "iccIds.length is " + iccIds.length);
+
+let iccId = iccIds[0];
+is(iccId, "89014103211118510720", "iccId is " + iccId);
+
+let icc = iccManager.getIccById(iccId);
+ok(icc instanceof MozIcc, "icc is instanceof " + icc.constructor);
 
 
 let cleanUp = function () {

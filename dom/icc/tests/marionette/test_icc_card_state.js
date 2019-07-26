@@ -43,12 +43,10 @@ taskHelper.push(function testCardStateChange() {
       icc.removeEventListener("cardstatechange", oncardstatechange);
       
       setRadioEnabled(true);
-      icc.addEventListener("cardstatechange", function oncardstatechange(evt) {
-        log("card state changes to " + icc.cardState);
-        if (icc.cardState === 'ready') {
-          icc.removeEventListener("cardstatechange", oncardstatechange);
-          taskHelper.runNext();
-        }
+      iccManager.addEventListener("iccdetected", function oniccdetected(evt) {
+        log("icc iccdetected: " + evt.iccId);
+        iccManager.removeEventListener("iccdetected", oniccdetected);
+        taskHelper.runNext();
       });
     }
   });
