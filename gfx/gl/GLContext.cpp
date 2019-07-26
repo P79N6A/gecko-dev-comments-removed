@@ -28,6 +28,10 @@
 #include <CoreServices/CoreServices.h>
 #endif
 
+#if defined(MOZ_WIDGET_COCOA)
+#include "nsCocoaFeatures.h"
+#endif
+
 using namespace mozilla::gfx;
 
 namespace mozilla {
@@ -911,8 +915,10 @@ GLContext::InitExtensions()
 #ifdef XP_MACOSX
     
     
+    
     if (WorkAroundDriverBugs() &&
-        Vendor() == gl::GLContext::VendorNVIDIA)
+        Vendor() == gl::GLContext::VendorNVIDIA &&
+        !nsCocoaFeatures::OnMavericksOrLater())
     {
         MarkExtensionUnsupported(gl::GLContext::EXT_packed_depth_stencil);
     }
