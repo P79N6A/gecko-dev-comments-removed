@@ -1395,6 +1395,13 @@ public abstract class GeckoApp
 
 
 
+
+
+
+
+
+
+
     @Override
     public void onLocaleReady(final String locale) {
         if (!ThreadUtils.isOnUiThread()) {
@@ -1403,11 +1410,12 @@ public abstract class GeckoApp
 
         
         TextView urlBar = (TextView) findViewById(R.id.url_bar_title);
-        if (urlBar == null) {
-            return;
+        if (urlBar != null) {
+            final String hint = getResources().getString(R.string.url_bar_default_text);
+            urlBar.setHint(hint);
+        } else {
+            Log.d(LOGTAG, "No URL bar in GeckoApp. Not loading localized hint string.");
         }
-        final String hint = getResources().getString(R.string.url_bar_default_text);
-        urlBar.setHint(hint);
 
         
         onConfigurationChanged(getResources().getConfiguration());
