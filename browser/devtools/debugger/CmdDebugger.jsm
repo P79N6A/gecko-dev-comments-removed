@@ -35,17 +35,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
 function getAllBreakpoints(dbg) {
   let breakpoints = [];
   let sources = dbg.panelWin.DebuggerView.Sources;
-  let { trimUrlLength: tr } = dbg.panelWin.SourceUtils;
+  let { trimUrlLength: trim } = dbg.panelWin.SourceUtils;
 
   for (let source in sources) {
     for (let { attachment: breakpoint } in source) {
       breakpoints.push({
-        id: source.value + ":" + breakpoint.lineNumber,
-        label: source.label + ":" + breakpoint.lineNumber,
         url: source.value,
-        lineNumber: breakpoint.lineNumber,
-        lineText: breakpoint.lineText,
-        truncatedLineText: tr(breakpoint.lineText, MAX_LINE_TEXT_LENGTH, "end")
+        label: source.label + ":" + breakpoint.line,
+        lineNumber: breakpoint.line,
+        lineText: breakpoint.text,
+        truncatedLineText: trim(breakpoint.text, MAX_LINE_TEXT_LENGTH, "end")
       });
     }
   }
@@ -70,10 +69,8 @@ gcli.addCommand({
   description: gcli.lookup("breaklistDesc"),
   returnType: "breakpoints",
   exec: function(args, context) {
-    let dbg = getPanel(context, "jsdebugger", { ensure_opened: true });
-    return dbg.then(function(dbg) {
-      return getAllBreakpoints(dbg);
-    });
+    let dbg = getPanel(context, "jsdebugger", { ensureOpened: true });
+    return dbg.then(getAllBreakpoints);
   }
 });
 
@@ -166,8 +163,6 @@ gcli.addCommand({
   ],
   returnType: "string",
   exec: function(args, context) {
-    args.type = "line";
-
     let dbg = getPanel(context, "jsdebugger");
     if (!dbg) {
       return gcli.lookup("debuggerStopped");
@@ -175,13 +170,13 @@ gcli.addCommand({
 
     let deferred = context.defer();
     let position = { url: args.file, line: args.line };
-    dbg.addBreakpoint(position, function(aBreakpoint, aError) {
-      if (aError) {
-        deferred.resolve(gcli.lookupFormat("breakaddFailed", [aError]));
-        return;
-      }
+
+    dbg.addBreakpoint(position).then(() => {
       deferred.resolve(gcli.lookup("breakaddAdded"));
+    }, aError => {
+      deferred.resolve(gcli.lookupFormat("breakaddFailed", [aError]));
     });
+
     return deferred.promise;
   }
 });
@@ -202,13 +197,11 @@ gcli.addCommand({
           if (dbg == null) {
             return [];
           }
-          return getAllBreakpoints(dbg).map(breakpoint => {
-            return {
-              name: breakpoint.label,
-              value: breakpoint,
-              description: breakpoint.truncatedLineText
-            };
-          });
+          return getAllBreakpoints(dbg).map(breakpoint => ({
+            name: breakpoint.label,
+            value: breakpoint,
+            description: breakpoint.truncatedLineText
+          }));
         }
       },
       description: gcli.lookup("breakdelBreakidDesc")
@@ -221,23 +214,15 @@ gcli.addCommand({
       return gcli.lookup("debuggerStopped");
     }
 
-    let breakpoint = dbg.getBreakpoint(
-      args.breakpoint.url, args.breakpoint.lineNumber);
-
-    if (breakpoint == null) {
-      return gcli.lookup("breakNotFound");
-    }
-
     let deferred = context.defer();
-    try {
-      dbg.removeBreakpoint(breakpoint, function() {
-        deferred.resolve(gcli.lookup("breakdelRemoved"));
-      });
-    } catch (ex) {
-      console.error('Error removing breakpoint, already removed?', ex);
-      
+    let position = { url: args.breakpoint.url, line: args.breakpoint.lineNumber };
+
+    dbg.removeBreakpoint(position).then(() => {
       deferred.resolve(gcli.lookup("breakdelRemoved"));
-    }
+    }, () => {
+      deferred.resolve(gcli.lookup("breakNotFound"));
+    });
+
     return deferred.promise;
   }
 });
@@ -412,6 +397,7 @@ gcli.addCommand({
     let sources = dbg._view.Sources.values;
     let div = createXHTMLElement(doc, "div");
     let ol = createXHTMLElement(doc, "ol");
+
     sources.forEach(function(src) {
       let li = createXHTMLElement(doc, "li");
       li.textContent = src;
@@ -557,12 +543,13 @@ function createXHTMLElement(document, tagname) {
 
 
 function getPanel(context, id, options = {}) {
-  if (context == null) {
+  if (!context) {
     return undefined;
   }
 
   let target = context.environment.target;
-  if (options.ensure_opened) {
+
+  if (options.ensureOpened) {
     return gDevTools.showToolbox(target, id).then(function(toolbox) {
       return toolbox.getPanel(id);
     });
