@@ -633,14 +633,11 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 #endif
 }
 
+
+
 void
-MacroAssembler::newGCThing(const Register &result, gc::AllocKind allocKind, Label *fail,
-                           gc::InitialHeap initialHeap )
+MacroAssembler::checkAllocatorState(Label *fail)
 {
-    
-
-    int thingSize = int(gc::Arena::thingSize(allocKind));
-
 #ifdef JS_GC_ZEAL
     
     branch32(Assembler::NotEqual,
@@ -652,26 +649,70 @@ MacroAssembler::newGCThing(const Register &result, gc::AllocKind allocKind, Labe
     
     if (GetIonContext()->compartment->hasObjectMetadataCallback())
         jump(fail);
+}
+
+
+
+bool
+MacroAssembler::nurseryAllocate(const Register &result, gc::AllocKind allocKind, Label *fail,
+                                size_t nDynamicSlots, gc::InitialHeap initialHeap)
+{
+    JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
 
 #ifdef JSGC_GENERATIONAL
     const Nursery &nursery = GetIonContext()->runtime->gcNursery();
-    if (nursery.isEnabled() &&
-        allocKind <= gc::FINALIZE_OBJECT_LAST &&
-        initialHeap != gc::TenuredHeap)
-    {
-        
-        
-        
-        loadPtr(AbsoluteAddress(nursery.addressOfPosition()), result);
-        addPtr(Imm32(thingSize), result);
-        branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(nursery.addressOfCurrentEnd()), result, fail);
-        storePtr(result, AbsoluteAddress(nursery.addressOfPosition()));
-        subPtr(Imm32(thingSize), result);
-        return;
-    }
-#endif 
 
+    
+    
+    
+    
+    
+    if (!nursery.isEnabled())
+        return false;
+
+    
+    if (initialHeap == gc::TenuredHeap)
+        return false;
+
+    
+    if (nDynamicSlots > Nursery::MaxNurserySlots)
+        return false;
+
+    
+    
+    int thingSize = int(gc::Arena::thingSize(allocKind));
+    int totalSize = thingSize + nDynamicSlots * sizeof(HeapSlot);
+    loadPtr(AbsoluteAddress(nursery.addressOfPosition()), result);
+    addPtr(Imm32(totalSize), result);
+    branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(nursery.addressOfCurrentEnd()), result, fail);
+    storePtr(result, AbsoluteAddress(nursery.addressOfPosition()));
+
+    if (!nDynamicSlots) {
+        JS_ASSERT(thingSize == totalSize);
+        subPtr(Imm32(totalSize), result);
+    } else {
+        
+        subPtr(Imm32(totalSize - thingSize), result);
+        
+        
+        JS_ASSERT(int(JSObject::offsetOfSlots()) - thingSize < 0);
+        storePtr(result, Address(result, int(JSObject::offsetOfSlots()) - thingSize));
+        
+        subPtr(Imm32(thingSize), result);
+    }
+
+    return true;
+#else
+    return false;
+#endif 
+}
+
+
+void
+MacroAssembler::freeSpanAllocate(const Register &result, gc::AllocKind allocKind, Label *fail)
+{
     CompileZone *zone = GetIonContext()->compartment->zone();
+    int thingSize = int(gc::Arena::thingSize(allocKind));
 
     
     
@@ -679,32 +720,93 @@ MacroAssembler::newGCThing(const Register &result, gc::AllocKind allocKind, Labe
     
     loadPtr(AbsoluteAddress(zone->addressOfFreeListFirst(allocKind)), result);
     branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(zone->addressOfFreeListLast(allocKind)), result, fail);
-
     addPtr(Imm32(thingSize), result);
     storePtr(result, AbsoluteAddress(zone->addressOfFreeListFirst(allocKind)));
     subPtr(Imm32(thingSize), result);
 }
 
+
 void
-MacroAssembler::newGCThing(const Register &result, JSObject *templateObject,
-                           Label *fail, gc::InitialHeap initialHeap)
+MacroAssembler::allocateObject(const Register &result, gc::AllocKind allocKind, Label *fallback,
+                               Label *mallocEntry, Label *mallocRejoin, Label *freeEntry,
+                               size_t nDynamicSlots, gc::InitialHeap initialHeap)
+{
+    JS_ASSERT_IF(nDynamicSlots, mallocEntry && mallocRejoin && freeEntry);
+
+    checkAllocatorState(fallback);
+    if (nurseryAllocate(result, allocKind, fallback, nDynamicSlots, initialHeap))
+        return;
+
+    if (!nDynamicSlots) {
+        freeSpanAllocate(result, allocKind, fallback);
+    } else {
+        
+        jump(mallocEntry);
+
+        
+        
+        
+        Label allocFail;
+        bind(&allocFail);
+        pop(result);
+        jump(freeEntry);
+
+        
+        
+        bind(mallocRejoin);
+
+        
+        push(result);
+
+        
+        freeSpanAllocate(result, allocKind, &allocFail);
+        pop(Address(result, JSObject::offsetOfSlots()));
+    }
+}
+
+
+
+
+void
+MacroAssembler::allocateNonObject(const Register &result, gc::AllocKind allocKind, Label *fail)
+{
+    checkAllocatorState(fail);
+    freeSpanAllocate(result, allocKind, fail);
+}
+
+void
+MacroAssembler::newGCObject(const Register &result, JSObject *templateObject, Label *fallback,
+                            gc::InitialHeap initialHeap)
+{
+    gc::AllocKind allocKind = templateObject->tenuredGetAllocKind();
+    JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
+    JS_ASSERT(templateObject->numDynamicSlots() == 0);
+
+    allocateObject(result, allocKind, fallback, nullptr, nullptr, nullptr, 0, initialHeap);
+}
+
+void
+MacroAssembler::newGCObjectAndSlots(const Register &result, JSObject *templateObject, Label *fallback,
+                                    Label *mallocEntry, Label *mallocRejoin, Label *freeEntry,
+                                    gc::InitialHeap initialHeap)
 {
     gc::AllocKind allocKind = templateObject->tenuredGetAllocKind();
     JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
 
-    newGCThing(result, allocKind, fail, initialHeap);
+    allocateObject(result, allocKind, fallback, mallocEntry, mallocRejoin, freeEntry,
+                   templateObject->numDynamicSlots(), initialHeap);
 }
 
 void
 MacroAssembler::newGCString(const Register &result, Label *fail)
 {
-    newGCThing(result, js::gc::FINALIZE_STRING, fail);
+    allocateNonObject(result, js::gc::FINALIZE_STRING, fail);
 }
 
 void
 MacroAssembler::newGCShortString(const Register &result, Label *fail)
 {
-    newGCThing(result, js::gc::FINALIZE_SHORT_STRING, fail);
+    allocateNonObject(result, js::gc::FINALIZE_SHORT_STRING, fail);
 }
 
 void
@@ -753,6 +855,9 @@ MacroAssembler::newGCThingPar(const Register &result, const Register &cx,
     
     
     storePtr(tempReg2, Address(tempReg1, offsetof(gc::FreeSpan, first)));
+
+    
+    storePtr(ImmPtr(nullptr), Address(result, JSObject::offsetOfSlots()));
 }
 
 void
@@ -783,7 +888,31 @@ MacroAssembler::newGCShortStringPar(const Register &result, const Register &cx,
 }
 
 void
-MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
+MacroAssembler::initGCSlots(const Register &obj, JSObject *templateObject)
+{
+    
+    
+    uint32_t nslots = templateObject->lastProperty()->slotSpan(templateObject->getClass());
+    if (nslots == 0)
+        return;
+
+    uint32_t nfixed = Min(templateObject->numFixedSlots(), nslots);
+    for (unsigned i = 0; i < nfixed; i++)
+        storeValue(templateObject->getFixedSlot(i), Address(obj, JSObject::getFixedSlotOffset(i)));
+
+    if (nfixed < nslots) {
+        JS_ASSERT(nslots - nfixed <= templateObject->numDynamicSlots());
+
+        push(obj);
+        loadPtr(Address(obj, JSObject::offsetOfSlots()), obj);
+        for (unsigned i = 0; i < nslots - nfixed; ++i)
+            storeValue(templateObject->getDynamicSlot(i), Address(obj, i * sizeof(HeapSlot)));
+        pop(obj);
+    }
+}
+
+void
+MacroAssembler::initGCObject(const Register &obj, JSObject *templateObject)
 {
     
 
@@ -791,7 +920,9 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 
     storePtr(ImmGCPtr(templateObject->lastProperty()), Address(obj, JSObject::offsetOfShape()));
     storePtr(ImmGCPtr(templateObject->type()), Address(obj, JSObject::offsetOfType()));
-    storePtr(ImmPtr(nullptr), Address(obj, JSObject::offsetOfSlots()));
+    
+    if (!templateObject->hasDynamicSlots())
+        storePtr(ImmPtr(nullptr), Address(obj, JSObject::offsetOfSlots()));
 
     if (templateObject->is<ArrayObject>()) {
         JS_ASSERT(!templateObject->getDenseInitializedLength());
@@ -813,23 +944,15 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
                       ? ObjectElements::CONVERT_DOUBLE_ELEMENTS
                       : 0),
                 Address(obj, elementsOffset + ObjectElements::offsetOfFlags()));
+        JS_ASSERT(!templateObject->hasPrivate());
     } else {
         storePtr(ImmPtr(emptyObjectElements), Address(obj, JSObject::offsetOfElements()));
-
-        
-        
-        size_t nslots = Min(templateObject->numFixedSlots(),
-                            templateObject->lastProperty()->slotSpan(templateObject->getClass()));
-        for (unsigned i = 0; i < nslots; i++) {
-            storeValue(templateObject->getFixedSlot(i),
-                       Address(obj, JSObject::getFixedSlotOffset(i)));
+        initGCSlots(obj, templateObject);
+        if (templateObject->hasPrivate()) {
+            uint32_t nfixed = templateObject->numFixedSlots();
+            storePtr(ImmPtr(templateObject->getPrivate()),
+                     Address(obj, JSObject::getPrivateDataOffset(nfixed)));
         }
-    }
-
-    if (templateObject->hasPrivate()) {
-        uint32_t nfixed = templateObject->numFixedSlots();
-        storePtr(ImmPtr(templateObject->getPrivate()),
-                 Address(obj, JSObject::getPrivateDataOffset(nfixed)));
     }
 }
 
