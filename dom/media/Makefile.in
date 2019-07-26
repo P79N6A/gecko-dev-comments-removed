@@ -26,14 +26,7 @@ EXTRA_COMPONENTS = \
   PeerConnection.manifest \
   $(NULL)
 
-XPIDLSRCS = \
-  nsIDOMMediaStream.idl \
-  nsIDOMRTCPeerConnection.idl \
-  nsIDOMNavigatorUserMedia.idl \
-  nsIMediaManager.idl \
-  $(NULL)
-
-EXPORTS_NAMESPACES = mozilla
+EXPORTS_NAMESPACE = mozilla
 
 EXPORTS_mozilla = \
   MediaManager.h \
