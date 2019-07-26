@@ -105,9 +105,17 @@ protected:
 
 
 
+
 class MediaStreamGraphImpl : public MediaStreamGraph {
 public:
-  MediaStreamGraphImpl();
+  
+
+
+
+
+
+
+  explicit MediaStreamGraphImpl(bool aRealtime);
   ~MediaStreamGraphImpl()
   {
     NS_ASSERTION(IsEmpty(),
@@ -506,6 +514,11 @@ public:
 
 
   bool mPostedRunInStableState;
+  
+
+
+
+  bool mRealtime;
 };
 
 }

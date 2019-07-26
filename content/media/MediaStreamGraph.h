@@ -889,6 +889,7 @@ inline TrackRate IdealAudioRate() { return 48000; }
 
 
 
+
 class MediaStreamGraph {
 public:
   
@@ -898,6 +899,9 @@ public:
 
   
   static MediaStreamGraph* GetInstance();
+  static MediaStreamGraph* CreateNonRealtimeInstance();
+  static void DestroyNonRealtimeInstance(MediaStreamGraph* aGraph);
+
   
   
 
