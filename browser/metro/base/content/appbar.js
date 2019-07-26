@@ -25,6 +25,7 @@ var Appbar = {
 
     
     window.addEventListener("selectionchange", this, false);
+    Services.obs.addObserver(this, "metro_on_async_tile_created", false);
 
     
     try {
@@ -32,6 +33,14 @@ var Appbar = {
                                            this.getAppbarMeasures.bind(this));
     } catch (ex) {
       
+    }
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    switch (aTopic) {
+      case "metro_on_async_tile_created":
+        this._updatePinButton();
+        break;
     }
   },
 
