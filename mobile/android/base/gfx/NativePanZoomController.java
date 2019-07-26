@@ -37,7 +37,8 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
     }
 
     public boolean onTouchEvent(MotionEvent event) {
-        
+        GeckoEvent wrapped = GeckoEvent.createMotionEvent(event, true);
+        handleTouchEvent(wrapped);
         return false;
     }
 
