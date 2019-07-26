@@ -4,6 +4,7 @@
 
 
 
+#include "GonkIOSurfaceImage.h"
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
 #include "nsBuiltinDecoderStateMachine.h"
@@ -237,6 +238,74 @@ VideoData* VideoData::Create(nsVideoInfo& aInfo,
   videoImage->SetData(data);
   return v.forget();
 }
+
+#ifdef MOZ_WIDGET_GONK
+VideoData* VideoData::Create(nsVideoInfo& aInfo,
+                             ImageContainer* aContainer,
+                             int64_t aOffset,
+                             int64_t aTime,
+                             int64_t aEndTime,
+                             mozilla::layers::GraphicBufferLocked *aBuffer,
+                             bool aKeyframe,
+                             int64_t aTimecode,
+                             nsIntRect aPicture)
+{
+  if (!aContainer) {
+    
+    
+    nsAutoPtr<VideoData> v(new VideoData(aOffset,
+                                         aTime,
+                                         aEndTime,
+                                         aKeyframe,
+                                         aTimecode,
+                                         aInfo.mDisplay));
+    return v.forget();
+  }
+
+  
+  if (aPicture.width <= 0 || aPicture.height <= 0) {
+    NS_WARNING("Empty picture rect");
+    return nullptr;
+  }
+
+  
+  
+  CheckedUint32 xLimit = aPicture.x + CheckedUint32(aPicture.width);
+  CheckedUint32 yLimit = aPicture.y + CheckedUint32(aPicture.height);
+  if (!xLimit.isValid() || !yLimit.isValid())
+  {
+    
+    
+    NS_WARNING("Overflowing picture rect");
+    return nullptr;
+  }
+
+  nsAutoPtr<VideoData> v(new VideoData(aOffset,
+                                       aTime,
+                                       aEndTime,
+                                       aKeyframe,
+                                       aTimecode,
+                                       aInfo.mDisplay));
+
+  ImageFormat format = GONK_IO_SURFACE;
+  v->mImage = aContainer->CreateImage(&format, 1);
+  if (!v->mImage) {
+    return nullptr;
+  }
+  NS_ASSERTION(v->mImage->GetFormat() == GONK_IO_SURFACE,
+               "Wrong format?");
+  typedef mozilla::layers::GonkIOSurfaceImage GonkIOSurfaceImage;
+  GonkIOSurfaceImage* videoImage = static_cast<GonkIOSurfaceImage*>(v->mImage.get());
+  GonkIOSurfaceImage::Data data;
+
+  data.mPicSize = gfxIntSize(aPicture.width, aPicture.height);
+  data.mGraphicBuffer = aBuffer;
+
+  videoImage->SetData(data);
+
+  return v.forget();
+}
+#endif  
 
 void* nsBuiltinDecoderReader::VideoQueueMemoryFunctor::operator()(void* anObject) {
   const VideoData* v = static_cast<const VideoData*>(anObject);

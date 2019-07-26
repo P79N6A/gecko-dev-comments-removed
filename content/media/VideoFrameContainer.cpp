@@ -46,6 +46,17 @@ void VideoFrameContainer::SetCurrentFrame(const gfxIntSize& aIntrinsicSize,
   if (!lastPaintTime.IsNull() && !mPaintTarget.IsNull()) {
     mPaintDelay = lastPaintTime - mPaintTarget;
   }
+
+  
+  
+  
+  
+  
+  
+  nsRefPtr<Image> kungFuDeathGrip;
+  kungFuDeathGrip = mImageContainer->LockCurrentImage();
+  mImageContainer->UnlockCurrentImage();
+
   mImageContainer->SetCurrentImage(aImage);
   gfxIntSize newFrameSize = mImageContainer->GetCurrentSize();
   if (oldFrameSize != newFrameSize) {
