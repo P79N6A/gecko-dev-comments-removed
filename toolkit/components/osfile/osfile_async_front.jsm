@@ -268,14 +268,14 @@ File.prototype = {
 
 
 
-  readTo: function readTo(buffer, options = noOptions) {
+  readTo: function readTo(buffer, options) {
     
     
     
     if (isTypedArray(buffer) && (!options || !"bytes" in options)) {
       
       
-      options = clone(options, ["outExecutionDuration"]);
+      options = clone(options || noOptions, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
     }
     
@@ -306,14 +306,14 @@ File.prototype = {
 
 
 
-  write: function write(buffer, options = noOptions) {
+  write: function write(buffer, options) {
     
     
     
     if (isTypedArray(buffer) && (!options || !"bytes" in options)) {
       
       
-      options = clone(options, ["outExecutionDuration"]);
+      options = clone(options || noOptions, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
     }
     
@@ -606,10 +606,10 @@ File.exists = function exists(path) {
 
 
 
-File.writeAtomic = function writeAtomic(path, buffer, options = noOptions) {
+File.writeAtomic = function writeAtomic(path, buffer, options) {
   
   
-  options = clone(options, ["outExecutionDuration"]);
+  options = clone(options || noOptions, ["outExecutionDuration"]);
   
   if ("tmpPath" in options) {
     options.tmpPath = Type.path.toMsg(options.tmpPath);

@@ -216,7 +216,8 @@
 
 
 
-     File.open = function Unix_open(path, mode, options = noOptions) {
+     File.open = function Unix_open(path, mode, options) {
+       options = options || noOptions;
        let omode = options.unixMode || DEFAULT_UNIX_MODE;
        let flags;
        if (options.unixFlags) {
@@ -287,7 +288,8 @@
 
 
 
-     File.removeEmptyDir = function removeEmptyDir(path, options = noOptions) {
+     File.removeEmptyDir = function removeEmptyDir(path, options) {
+       options = options || noOptions;
        let result = UnixFile.rmdir(path);
        if (result == -1) {
          if (options.ignoreAbsent && ctypes.errno == Const.ENOENT) {
@@ -316,7 +318,8 @@
 
 
 
-     File.makeDir = function makeDir(path, options = noOptions) {
+     File.makeDir = function makeDir(path, options) {
+       options = options || noOptions;
        let omode = options.unixMode || DEFAULT_UNIX_MODE_DIR;
        let result = UnixFile.mkdir(path, omode);
        if (result != -1 ||
@@ -383,7 +386,8 @@
        
        
        
-       File.copy = function copyfile(sourcePath, destPath, options = noOptions) {
+       File.copy = function copyfile(sourcePath, destPath, options) {
+         options = options || noOptions;
          let flags = Const.COPYFILE_DATA;
          if (options.noOverwrite) {
            flags |= Const.COPYFILE_EXCL;
@@ -421,7 +425,8 @@
        let pump_buffer = null;
 
        
-       let pump_userland = function pump_userland(source, dest, options = noOptions) {
+       let pump_userland = function pump_userland(source, dest, options) {
+         options = options || noOptions;
          let bufSize = options.bufSize || 4096;
          let nbytes = options.nbytes || Infinity;
          if (!pump_buffer || pump_buffer.length < bufSize) {
@@ -457,7 +462,8 @@
          const BUFSIZE = 1 << 17;
 
          
-         pump = function pump_splice(source, dest, options = noOptions) {
+         pump = function pump_splice(source, dest, options) {
+           options = options || noOptions;
            let nbytes = options.nbytes || Infinity;
            let pipe = [];
            throw_on_negative("pump", UnixFile.pipe(pipe));
@@ -521,7 +527,8 @@
        
        
        
-       File.copy = function copy(sourcePath, destPath, options = noOptions) {
+       File.copy = function copy(sourcePath, destPath, options) {
+         options = options || noOptions;
          let source, dest;
          let result;
          try {
@@ -546,11 +553,13 @@
 
      
      
-     File.move = function move(sourcePath, destPath, options = noOptions) {
+     File.move = function move(sourcePath, destPath, options) {
        
        
        
        
+
+       options = options || noOptions;
 
        
        if (options.noOverwrite) {
@@ -787,7 +796,8 @@
 
 
 
-     File.stat = function stat(path, options = noOptions) {
+     File.stat = function stat(path, options) {
+       options = options || noOptions;
        if (options.unixNoFollowingLinks) {
          throw_on_negative("stat", UnixFile.lstat(path, gStatDataPtr));
        } else {
