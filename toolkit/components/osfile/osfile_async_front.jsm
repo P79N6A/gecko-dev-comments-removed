@@ -128,6 +128,37 @@ Object.defineProperty(OS.Shared, "DEBUG", {
 
 
 
+let webWorkersShutdownObserver = function webWorkersShutdownObserver() {
+  
+  Scheduler.post("System_shutdown").then(function onSuccess(opened) {
+    let msg = "";
+    if (opened.openedFiles.length > 0) {
+      msg += "The following files are still opened:\n" +
+        opened.openedFiles.join("\n");
+    }
+    if (opened.openedDirectoryIterators.length > 0) {
+      msg += "The following directory iterators are still opened:\n" +
+        opened.openedDirectoryIterators.join("\n");
+    }
+    
+    if (msg) {
+      LOG("WARNING: File descriptors leaks detected.\n" + msg);
+    }
+  });
+};
+
+
+Services.obs.addObserver(webWorkersShutdownObserver, "web-workers-shutdown",
+  false);
+
+
+
+Services.obs.addObserver(webWorkersShutdownObserver,
+  "test.osfile.web-workers-shutdown", false);
+
+
+
+
 
 
 

@@ -141,6 +141,7 @@ let test = maketest("Main", function main(test) {
     yield test_iter();
     yield test_exists();
     yield test_debug_test();
+    yield test_system_shutdown();
     info("Test is over");
     SimpleTest.finish();
   });
@@ -690,5 +691,56 @@ let test_debug_test = maketest("debug_test", function debug_test(test) {
     toggleDebugTest(false);
     
     OS.Shared.DEBUG = originalPref;
+  });
+});
+
+
+
+
+let test_system_shutdown = maketest("system_shutdown", function system_shutdown(test) {
+  return Task.spawn(function () {
+    
+    let originalDebug = OS.Shared.DEBUG;
+    
+    function getConsoleListener(resource) {
+      let consoleListener = {
+        observe: function (aMessage) {
+          
+          if (!(aMessage instanceof Components.interfaces.nsIConsoleMessage)) {
+            return;
+          }
+          if (aMessage.message.indexOf("TEST OS Controller WARNING") < 0) {
+            return;
+          }
+          test.ok(aMessage.message.indexOf("WARNING: File descriptors leaks " +
+            "detected.") >= 0, "File descriptors leaks are logged correctly.");
+          test.ok(aMessage.message.indexOf(resource) >= 0,
+            "Leaked resource is correctly listed in the log.");
+          toggleDebugTest(false, resource, consoleListener);
+        }
+      };
+      return consoleListener;
+    }
+    
+    function toggleDebugTest(startDebug, resource, consoleListener) {
+      Services.console[startDebug ? "registerListener" : "unregisterListener"](
+        consoleListener || getConsoleListener(resource));
+      OS.Shared.TEST = startDebug;
+      
+      OS.Shared.DEBUG = startDebug || originalDebug;
+    }
+
+    let currentDir = yield OS.File.getCurrentDirectory();
+    let iterator = new OS.File.DirectoryIterator(currentDir);
+    toggleDebugTest(true, currentDir);
+    Services.obs.notifyObservers(null, "test.osfile.web-workers-shutdown",
+      null);
+    yield iterator.close();
+
+    let openedFile = yield OS.File.open(EXISTING_FILE);
+    toggleDebugTest(true, EXISTING_FILE);
+    Services.obs.notifyObservers(null, "test.osfile.web-workers-shutdown",
+      null);
+    yield openedFile.close();
   });
 });
