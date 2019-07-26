@@ -1958,8 +1958,8 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_QueryInterface(treeOwner));
   if (!treeOwnerAsWin) 
     return;
-    
-  float devPixelsPerCSSPixel = 1.0;
+
+  double openerZoom = 1.0;
   if (aParent) {
     nsCOMPtr<nsIDOMDocument> openerDoc;
     aParent->GetDocument(getter_AddRefs(openerDoc));
@@ -1969,11 +1969,14 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
       if (shell) {
         nsPresContext* presContext = shell->GetPresContext();
         if (presContext) {
-          devPixelsPerCSSPixel = presContext->CSSPixelsToDevPixels(1.0f);
+          openerZoom = presContext->GetFullZoom();
         }
       }
     }
   }
+
+  double scale;
+  treeOwnerAsWin->GetUnscaledDevicePixelsPerCSSPixel(&scale);
 
   
 
@@ -1983,29 +1986,35 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 
 
   treeOwnerAsWin->GetPositionAndSize(&left, &top, &width, &height);
+  left = NSToIntRound(left / scale);
+  top = NSToIntRound(top / scale);
+  width = NSToIntRound(width / scale);
+  height = NSToIntRound(height / scale);
   { 
     nsCOMPtr<nsIBaseWindow> shellWindow(do_QueryInterface(aDocShellItem));
     if (shellWindow) {
       int32_t cox, coy;
+      double shellScale;
       shellWindow->GetSize(&cox, &coy);
-      chromeWidth = width - cox;
-      chromeHeight = height - coy;
+      shellWindow->GetUnscaledDevicePixelsPerCSSPixel(&shellScale);
+      chromeWidth = width - NSToIntRound(cox / shellScale);
+      chromeHeight = height - NSToIntRound(coy / shellScale);
     }
   }
 
   
   if (aSizeSpec.mLeftSpecified) {
-    left = NSToIntRound(aSizeSpec.mLeft * devPixelsPerCSSPixel);
+    left = NSToIntRound(aSizeSpec.mLeft * openerZoom);
   }
 
   if (aSizeSpec.mTopSpecified) {
-    top = NSToIntRound(aSizeSpec.mTop * devPixelsPerCSSPixel);
+    top = NSToIntRound(aSizeSpec.mTop * openerZoom);
   }
 
   
   if (aSizeSpec.mOuterWidthSpecified) {
     if (!aSizeSpec.mUseDefaultWidth) {
-      width = NSToIntRound(aSizeSpec.mOuterWidth * devPixelsPerCSSPixel);
+      width = NSToIntRound(aSizeSpec.mOuterWidth * openerZoom);
     } 
   }
   else if (aSizeSpec.mInnerWidthSpecified) {
@@ -2013,14 +2022,14 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (aSizeSpec.mUseDefaultWidth) {
       width = width - chromeWidth;
     } else {
-      width = NSToIntRound(aSizeSpec.mInnerWidth * devPixelsPerCSSPixel);
+      width = NSToIntRound(aSizeSpec.mInnerWidth * openerZoom);
     }
   }
 
   
   if (aSizeSpec.mOuterHeightSpecified) {
     if (!aSizeSpec.mUseDefaultHeight) {
-      height = NSToIntRound(aSizeSpec.mOuterHeight * devPixelsPerCSSPixel);
+      height = NSToIntRound(aSizeSpec.mOuterHeight * openerZoom);
     } 
   }
   else if (aSizeSpec.mInnerHeightSpecified) {
@@ -2028,7 +2037,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (aSizeSpec.mUseDefaultHeight) {
       height = height - chromeHeight;
     } else {
-      height = NSToIntRound(aSizeSpec.mInnerHeight * devPixelsPerCSSPixel);
+      height = NSToIntRound(aSizeSpec.mInnerHeight * openerZoom);
     }
   }
 
@@ -2079,8 +2088,8 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
       int32_t winWidth = width + (sizeChromeWidth ? 0 : chromeWidth),
               winHeight = height + (sizeChromeHeight ? 0 : chromeHeight);
 
-      screen->GetAvailRect(&screenLeft, &screenTop,
-                           &screenWidth, &screenHeight);
+      screen->GetAvailRectDisplayPix(&screenLeft, &screenTop,
+                                     &screenWidth, &screenHeight);
 
       if (aSizeSpec.SizeSpecified()) {
         
@@ -2096,12 +2105,12 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
           width = screenWidth - (sizeChromeWidth ? 0 : chromeWidth);
       }
 
-      if (left+winWidth > screenLeft+screenWidth)
-        left = screenLeft+screenWidth - winWidth;
+      if (left + winWidth > screenLeft + screenWidth)
+        left = screenLeft + screenWidth - winWidth;
       if (left < screenLeft)
         left = screenLeft;
-      if (top+winHeight > screenTop+screenHeight)
-        top = screenTop+screenHeight - winHeight;
+      if (top + winHeight > screenTop + screenHeight)
+        top = screenTop + screenHeight - winHeight;
       if (top < screenTop)
         top = screenTop;
       if (top != oldTop || left != oldLeft)
@@ -2111,20 +2120,24 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 
   
 
-  if (positionSpecified)
-    treeOwnerAsWin->SetPosition(left, top);
+  if (positionSpecified) {
+    treeOwnerAsWin->SetPosition(left * scale, top * scale);
+    
+    treeOwnerAsWin->GetUnscaledDevicePixelsPerCSSPixel(&scale);
+  }
   if (aSizeSpec.SizeSpecified()) {
     
 
 
-    if (!sizeChromeWidth && !sizeChromeHeight)
-      treeOwner->SizeShellTo(aDocShellItem, width, height);
+    if (!sizeChromeWidth && !sizeChromeHeight) {
+      treeOwner->SizeShellTo(aDocShellItem, width * scale, height * scale);
+    }
     else {
       if (!sizeChromeWidth)
         width += chromeWidth;
       if (!sizeChromeHeight)
         height += chromeHeight;
-      treeOwnerAsWin->SetSize(width, height, false);
+      treeOwnerAsWin->SetSize(width * scale, height * scale, false);
     }
   }
   treeOwnerAsWin->SetVisibility(true);
