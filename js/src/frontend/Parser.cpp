@@ -450,11 +450,34 @@ Parser::newFunctionBox(JSFunction *fun, ParseContext *outerpc, bool strict)
     return funbox;
 }
 
-ModuleBox::ModuleBox(JSContext *cx, ParseContext *pc, Module *module,
-                     ObjectBox *traceListHead)
+ModuleBox::ModuleBox(JSContext *cx, ObjectBox *traceListHead, Module *module, ParseContext *pc)
     : ObjectBox(module, traceListHead),
       SharedContext(cx, true)
 {
+}
+
+ModuleBox *
+Parser::newModuleBox(Module *module, ParseContext *outerpc)
+{
+    JS_ASSERT(module && !IsPoisonedPtr(module));
+
+    
+
+
+
+
+
+
+    ModuleBox *modulebox =
+        context->tempLifoAlloc().new_<ModuleBox>(context, traceListHead, module, outerpc);
+    if (!modulebox) {
+        js_ReportOutOfMemory(context);
+        return NULL;
+    }
+
+    traceListHead = modulebox;
+
+    return modulebox;
 }
 
 void
