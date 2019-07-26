@@ -293,12 +293,8 @@ InitExnPrivate(JSContext *cx, HandleObject exnObject, HandleString message,
     {
         SuppressErrorsGuard seg(cx);
         for (ScriptFrameIter i(cx); !i.done(); ++i) {
-            StackFrame *fp = i.fp();
 
             
-
-
-
             if (checkAccess && i.isNonEvalFunctionFrame()) {
                 Value v = NullValue();
                 jsid callerid = NameToId(cx->runtime->atomState.callerAtom);
@@ -310,7 +306,7 @@ InitExnPrivate(JSContext *cx, HandleObject exnObject, HandleString message,
                 return false;
             JSStackTraceStackElem &frame = frames.back();
             if (i.isNonEvalFunctionFrame())
-                frame.funName = fp->fun()->atom ? fp->fun()->atom : cx->runtime->emptyString;
+                frame.funName = i.callee()->atom ? i.callee()->atom : cx->runtime->emptyString;
             else
                 frame.funName = NULL;
             frame.filename = SaveScriptFilename(cx, i.script()->filename);
