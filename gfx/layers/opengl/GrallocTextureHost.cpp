@@ -37,11 +37,11 @@ SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat,
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED:
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
   case HAL_PIXEL_FORMAT_YV12:
-    return gfx::SurfaceFormat::B8G8R8A8; 
+    return gfx::SurfaceFormat::R8G8B8A8; 
   default:
     if (aFormat >= 0x100 && aFormat <= 0x1FF) {
       
-      return gfx::SurfaceFormat::B8G8R8A8;
+      return gfx::SurfaceFormat::R8G8B8A8;
     } else {
       
       
@@ -66,6 +66,7 @@ TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
   case HAL_PIXEL_FORMAT_YV12:
     return LOCAL_GL_TEXTURE_EXTERNAL;
+  case android::PIXEL_FORMAT_BGRA_8888:
   case android::PIXEL_FORMAT_RGBA_8888:
   case android::PIXEL_FORMAT_RGBX_8888:
   case android::PIXEL_FORMAT_RGB_565:
@@ -88,14 +89,12 @@ TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
 
 GrallocTextureSourceOGL::GrallocTextureSourceOGL(CompositorOGL* aCompositor,
                                                  android::GraphicBuffer* aGraphicBuffer,
-                                                 gfx::SurfaceFormat aFormat,
-                                                 TextureFlags aFlags)
+                                                 gfx::SurfaceFormat aFormat)
   : mCompositor(aCompositor)
   , mGraphicBuffer(aGraphicBuffer)
   , mEGLImage(0)
   , mFormat(aFormat)
   , mNeedsReset(true)
-  , mFlags(aFlags)
 {
   MOZ_ASSERT(mGraphicBuffer.get());
 }
@@ -207,16 +206,6 @@ GrallocTextureSourceOGL::GetTextureTarget() const
   return TextureTargetForAndroidPixelFormat(mGraphicBuffer->getPixelFormat());
 }
 
-gfx::SurfaceFormat
-GrallocTextureSourceOGL::GetFormat() const {
-  MOZ_ASSERT(mGraphicBuffer.get());
-  if (!mGraphicBuffer.get()) {
-    return gfx::SurfaceFormat::UNKNOWN;
-  }
-  return SurfaceFormatForAndroidPixelFormat(mGraphicBuffer->getPixelFormat(),
-                                            mFlags & TEXTURE_RB_SWAPPED);
-}
-
 void
 GrallocTextureSourceOGL::SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
 {
@@ -306,8 +295,7 @@ GrallocTextureHostOGL::GrallocTextureHostOGL(TextureFlags aFlags,
   }
   mTextureSource = new GrallocTextureSourceOGL(nullptr,
                                                graphicBuffer,
-                                               format,
-                                               aFlags);
+                                               format);
 }
 
 GrallocTextureHostOGL::~GrallocTextureHostOGL()
