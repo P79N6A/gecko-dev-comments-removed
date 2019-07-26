@@ -714,3 +714,49 @@ for (let lst = 0; lst < PDU_NL_LOCKING_SHIFT_TABLES.length; lst++) {
 }
 test_receiving_ucs2_alphabets(ucs2str);
 
+
+
+
+add_test(function test_GsmPDUHelper_readAddress() {
+  let worker = newWorker({
+    postRILMessage: function fakePostRILMessage(data) {
+      
+    },
+    postMessage: function fakePostMessage(message) {
+      
+    }
+
+  });
+
+  let helper = worker.GsmPDUHelper;
+  function test_address(addrHex, addrString) {
+    let uint16Array = [];
+    let ix = 0;
+    for (let i = 0; i < addrHex.length; ++i) {
+      uint16Array[i] = addrHex[i].charCodeAt();
+    }
+
+    worker.Buf.readUint16 = function (){
+      if(ix >= uint16Array.length) {
+        do_throw("out of range in uint16Array");
+      }
+      return uint16Array[ix++];
+    }
+    let length = helper.readHexOctet();
+    let parsedAddr = helper.readAddress(length);
+    do_check_eq(parsedAddr, addrString);
+  }
+
+  
+  test_address("04D01100", "_@");
+  test_address("04D01000", "\u0394@");
+
+  
+  test_address("0B914151245584F6", "+14154255486");
+  test_address("0E914151245584B633", "+14154255486#33");
+
+  
+  test_address("0BA14151245584F6", "14154255486");
+
+  run_next_test();
+});
