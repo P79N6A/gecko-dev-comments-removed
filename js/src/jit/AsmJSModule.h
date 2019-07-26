@@ -455,7 +455,7 @@ class AsmJSModule
     StaticLinkData                        staticLinkData_;
     bool                                  dynamicallyLinked_;
     bool                                  loadedFromCache_;
-    HeapPtr<ArrayBufferObject>            maybeHeap_;
+    HeapPtrArrayBufferObject              maybeHeap_;
 
     
     

@@ -602,7 +602,7 @@ class BaseShape : public gc::BarrieredCell<BaseShape>
     };
 
     
-    HeapPtr<UnownedBaseShape> unowned_;
+    HeapPtrUnownedBaseShape unowned_;
 
     
     ShapeTable       *table_;

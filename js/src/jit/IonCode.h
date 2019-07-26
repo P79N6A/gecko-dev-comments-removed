@@ -169,10 +169,10 @@ struct IonScript
 {
   private:
     
-    EncapsulatedPtr<JitCode> method_;
+    EncapsulatedPtrJitCode method_;
 
     
-    EncapsulatedPtr<JitCode> deoptTable_;
+    EncapsulatedPtrJitCode deoptTable_;
 
     
     jsbytecode *osrPc_;

@@ -37,7 +37,7 @@ typedef InlineMap<JSAtom *, DefinitionList, 24> AtomDefnListMap;
 
 
 void
-InitAtomMap(AtomIndexMap *indices, HeapPtr<JSAtom> *atoms);
+InitAtomMap(AtomIndexMap *indices, HeapPtrAtom *atoms);
 
 
 

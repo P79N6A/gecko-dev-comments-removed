@@ -107,7 +107,7 @@ struct BaselineScript
 
   private:
     
-    HeapPtr<JitCode> method_;
+    HeapPtrJitCode method_;
 
     
     

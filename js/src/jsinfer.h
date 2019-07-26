@@ -987,7 +987,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
 
-    HeapPtr<TypeObjectAddendum> addendum;
+    HeapPtrTypeObjectAddendum addendum;
   public:
 
     TypeObjectFlags flags() const {

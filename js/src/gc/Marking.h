@@ -27,7 +27,7 @@ class ScopeObject;
 class Shape;
 class UnownedBaseShape;
 
-template<class, typename> class HeapPtr;
+template<class> class HeapPtr;
 
 namespace jit {
 class JitCode;
@@ -88,16 +88,16 @@ namespace gc {
 
 
 #define DeclMarker(base, type)                                                                    \
-void Mark##base(JSTracer *trc, BarrieredPtr<type> *thing, const char *name);                      \
+void Mark##base(JSTracer *trc, BarrieredPtr<type*> *thing, const char *name);                     \
 void Mark##base##Root(JSTracer *trc, type **thingp, const char *name);                            \
 void Mark##base##Unbarriered(JSTracer *trc, type **thingp, const char *name);                     \
-void Mark##base##Range(JSTracer *trc, size_t len, HeapPtr<type> *thing, const char *name);        \
+void Mark##base##Range(JSTracer *trc, size_t len, HeapPtr<type*> *thing, const char *name);       \
 void Mark##base##RootRange(JSTracer *trc, size_t len, type **thing, const char *name);            \
 bool Is##base##Marked(type **thingp);                                                             \
-bool Is##base##Marked(BarrieredPtr<type> *thingp);                                                \
+bool Is##base##Marked(BarrieredPtr<type*> *thingp);                                               \
 bool Is##base##AboutToBeFinalized(type **thingp);                                                 \
-bool Is##base##AboutToBeFinalized(BarrieredPtr<type> *thingp);                                    \
-type *Update##base##IfRelocated(JSRuntime *rt, BarrieredPtr<type> *thingp);                       \
+bool Is##base##AboutToBeFinalized(BarrieredPtr<type*> *thingp);                                   \
+type *Update##base##IfRelocated(JSRuntime *rt, BarrieredPtr<type*> *thingp);                      \
 type *Update##base##IfRelocated(JSRuntime *rt, type **thingp);
 
 DeclMarker(BaseShape, BaseShape)
@@ -244,13 +244,6 @@ MarkCrossCompartmentSlot(JSTracer *trc, JSObject *src, HeapSlot *dst_slot, const
 
 
 void
-MarkObject(JSTracer *trc, HeapPtr<GlobalObject, JSScript *> *thingp, const char *name);
-
-
-
-
-
-void
 MarkChildren(JSTracer *trc, JSObject *obj);
 
 
@@ -290,7 +283,7 @@ Mark(JSTracer *trc, BarrieredPtrScript *o, const char *name)
 }
 
 inline void
-Mark(JSTracer *trc, HeapPtr<jit::JitCode> *code, const char *name)
+Mark(JSTracer *trc, HeapPtrJitCode *code, const char *name)
 {
     MarkJitCode(trc, code, name);
 }
