@@ -106,6 +106,11 @@ function appUpdater()
   this.bundle = Services.strings.
                 createBundle("chrome://browser/locale/browser.properties");
 
+  this.updateBtn = document.getElementById("updateButton");
+
+  
+  this.setupUpdateButton("update.checkInsideButton");
+
   let manualURL = Services.urlFormatter.formatURLPref("app.update.url.manual");
   let manualLink = document.getElementById("manualLink");
   manualLink.value = manualURL;
@@ -118,7 +123,8 @@ function appUpdater()
   }
 
   if (this.isPending || this.isApplied) {
-    this.selectPanel("apply");
+    this.setupUpdateButton("update.restart." +
+                           (this.isMajor ? "upgradeButton" : "updateButton"));
     return;
   }
 
@@ -129,19 +135,15 @@ function appUpdater()
 
   if (this.isDownloading) {
     this.startDownload();
-    
     return;
   }
 
-  
-  
-  
-  
-  
-  this.selectPanel("checkingForUpdates");
-  this.isChecking = true;
-  this.checker.checkForUpdates(this.updateCheckListener, true);
-  
+  if (this.updateEnabled && this.updateAuto) {
+    this.selectPanel("checkingForUpdates");
+    this.isChecking = true;
+    this.checker.checkForUpdates(this.updateCheckListener, true);
+    return;
+  }
 }
 
 appUpdater.prototype =
@@ -176,6 +178,13 @@ appUpdater.prototype =
       return this.update.state == "downloading";
     return this.um.activeUpdate &&
            this.um.activeUpdate.state == "downloading";
+  },
+
+  
+  get isMajor() {
+    if (this.update)
+      return this.update.type == "major";
+    return this.um.activeUpdate.type == "major";
   },
 
   
@@ -215,49 +224,30 @@ appUpdater.prototype =
 
 
   selectPanel: function(aChildID) {
-    let panel = document.getElementById(aChildID);
-
-    let button = panel.querySelector("button");
-    if (button) {
-      let button = panel.firstChild;
-      if (aChildID == "downloadAndInstall") {
-        let updateVersion = gAppUpdater.update.displayVersion;
-        button.label = this.bundle.formatStringFromName("update.downloadAndInstallButton.label", [updateVersion], 1);
-        button.accessKey = this.bundle.GetStringFromName("update.downloadAndInstallButton.accesskey");
-      }
-      this.updateDeck.selectedPanel = panel;
-      if (!document.commandDispatcher.focusedElement || 
-          document.commandDispatcher.focusedElement.localName == "button") 
-        button.focus();
-
-    } else {
-      this.updateDeck.selectedPanel = panel;
-    }
-  },
-
-  
-
-
-  doUpdate: function() {
-    
-    
-    if (!this.update.appVersion ||
-        Services.vc.compare(gAppUpdater.update.appVersion,
-                            Services.appinfo.version) == 0) {
-      this.startDownload();
-    } else {
-      this.checkAddonCompatibility();
-    }
+    this.updateDeck.selectedPanel = document.getElementById(aChildID);
+    this.updateBtn.disabled = (aChildID != "updateButtonBox");
   },
 
   
 
 
 
-  buttonRestartAfterDownload: function() {
-    if (!this.isPending && !this.isApplied)
-      return;
 
+
+
+  setupUpdateButton: function(aKeyPrefix) {
+    this.updateBtn.label = this.bundle.GetStringFromName(aKeyPrefix + ".label");
+    this.updateBtn.accessKey = this.bundle.GetStringFromName(aKeyPrefix + ".accesskey");
+    if (!document.commandDispatcher.focusedElement ||
+        document.commandDispatcher.focusedElement == this.updateBtn)
+      this.updateBtn.focus();
+  },
+
+  
+
+
+  buttonOnCommand: function() {
+    if (this.isPending || this.isApplied) {
       
       let cancelQuit = Components.classes["@mozilla.org/supports-PRBool;1"].
                        createInstance(Components.interfaces.nsISupportsPRBool);
@@ -278,21 +268,27 @@ appUpdater.prototype =
 
       appStartup.quit(Components.interfaces.nsIAppStartup.eAttemptQuit |
                       Components.interfaces.nsIAppStartup.eRestart);
-    },
+      return;
+    }
 
-  
-
-
-
-  buttonApplyBillboard: function() {
     const URI_UPDATE_PROMPT_DIALOG = "chrome://mozapps/content/update/updates.xul";
-    var ary = null;
-    ary = Components.classes["@mozilla.org/supports-array;1"].
-          createInstance(Components.interfaces.nsISupportsArray);
-    ary.AppendElement(this.update);
-    var openFeatures = "chrome,centerscreen,dialog=no,resizable=no,titlebar,toolbar=no";
-    Services.ww.openWindow(null, URI_UPDATE_PROMPT_DIALOG, "", openFeatures, ary);
-    window.close(); 
+    
+    
+    if (this.update && (this.update.billboardURL || this.update.licenseURL ||
+        this.addons.length != 0)) {
+      var ary = null;
+      ary = Components.classes["@mozilla.org/supports-array;1"].
+            createInstance(Components.interfaces.nsISupportsArray);
+      ary.AppendElement(this.update);
+      var openFeatures = "chrome,centerscreen,dialog=no,resizable=no,titlebar,toolbar=no";
+      Services.ww.openWindow(null, URI_UPDATE_PROMPT_DIALOG, "", openFeatures, ary);
+      window.close();
+      return;
+    }
+
+    this.selectPanel("checkingForUpdates");
+    this.isChecking = true;
+    this.checker.checkForUpdates(this.updateCheckListener, true);
   },
 
   
@@ -330,14 +326,21 @@ appUpdater.prototype =
       
       
       if (gAppUpdater.update.billboardURL || gAppUpdater.update.licenseURL) {
-        gAppUpdater.selectPanel("applyBillboard");
+        gAppUpdater.selectPanel("updateButtonBox");
+        gAppUpdater.setupUpdateButton("update.openUpdateUI." +
+                                      (this.isMajor ? "upgradeButton"
+                                                    : "applyButton"));
         return;
       }
 
-      if (gAppUpdater.updateAuto) 
-        gAppUpdater.doUpdate();
-      else 
-        gAppUpdater.selectPanel("downloadAndInstall");
+      if (!gAppUpdater.update.appVersion ||
+          Services.vc.compare(gAppUpdater.update.appVersion,
+                              Services.appinfo.version) == 0) {
+        gAppUpdater.startDownload();
+        return;
+      }
+
+      gAppUpdater.checkAddonCompatibility();
     },
 
     
@@ -471,7 +474,9 @@ appUpdater.prototype =
       return;
     }
 
-    this.selectPanel("apply");
+    this.selectPanel("updateButtonBox");
+    this.setupUpdateButton("update.openUpdateUI." +
+                           (this.isMajor ? "upgradeButton" : "applyButton"));
   },
 
   
@@ -550,7 +555,9 @@ appUpdater.prototype =
             
             
             
-            self.selectPanel("apply");
+            self.selectPanel("updateButtonBox");
+            self.setupUpdateButton("update.restart." +
+                                   (self.isMajor ? "upgradeButton" : "updateButton"));
           } else if (status == "failed") {
             
             
@@ -565,7 +572,9 @@ appUpdater.prototype =
           Services.obs.removeObserver(arguments.callee, "update-staged");
         }, "update-staged", false);
       } else {
-        this.selectPanel("apply");
+        this.selectPanel("updateButtonBox");
+        this.setupUpdateButton("update.restart." +
+                               (this.isMajor ? "upgradeButton" : "updateButton"));
       }
       break;
     default:
@@ -573,6 +582,7 @@ appUpdater.prototype =
       this.selectPanel("downloadFailed");
       break;
     }
+
   },
 
   
