@@ -29,7 +29,13 @@ function debug(aMsg) {
 function SystemMessageManager() {
   
   
-  this._handlers = {};
+  
+  
+  
+  
+  
+  
+  this._dispatchers = {};
 
   
   this._pendings = {};
@@ -52,7 +58,21 @@ function SystemMessageManager() {
 SystemMessageManager.prototype = {
   __proto__: DOMRequestIpcHelper.prototype,
 
-  _dispatchMessage: function sysMessMgr_dispatchMessage(aType, aHandler, aMessage) {
+  _dispatchMessage: function sysMessMgr_dispatchMessage(aType, aDispatcher, aMessage) {
+    if (aDispatcher.isHandling) {
+      
+      
+      
+      
+      
+      
+      
+      aDispatcher.messages.push(aMessage);
+      return;
+    }
+
+    aDispatcher.isHandling = true;
+
     
     
     
@@ -72,8 +92,22 @@ SystemMessageManager.prototype = {
       }
     }
 
-    aHandler.handleMessage(wrapped ? aMessage
-                                   : ObjectWrapper.wrap(aMessage, this._window));
+    aDispatcher.handler
+      .handleMessage(wrapped ? aMessage
+                             : ObjectWrapper.wrap(aMessage, this._window));
+
+    
+    
+    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessagesDone",
+                          { type: aType,
+                            manifest: this._manifest,
+                            uri: this._uri,
+                            handledCount: 1 });
+
+    aDispatcher.isHandling = false;
+    if (aDispatcher.messages.length > 0) {
+      this._dispatchMessage(aType, aDispatcher, aDispatcher.messages.shift());
+    }
   },
 
   mozSetMessageHandler: function sysMessMgr_setMessageHandler(aType, aHandler) {
@@ -90,16 +124,16 @@ SystemMessageManager.prototype = {
       return;
     }
 
-    let handlers = this._handlers;
+    let dispatchers = this._dispatchers;
     if (!aHandler) {
       
       
-      delete handlers[aType];
+      delete dispatchers[aType];
       return;
     }
 
     
-    handlers[aType] = aHandler;
+    dispatchers[aType] = { handler: aHandler, messages: [], isHandling: false };
 
     
     cpmm.sendAsyncMessage("SystemMessageManager:GetPendingMessages",
@@ -118,7 +152,7 @@ SystemMessageManager.prototype = {
     }
 
     
-    if (aType in this._handlers) {
+    if (aType in this._dispatchers) {
       return false;
     }
 
@@ -129,7 +163,7 @@ SystemMessageManager.prototype = {
   },
 
   uninit: function sysMessMgr_uninit()  {
-    this._handlers = null;
+    this._dispatchers = null;
     this._pendings = null;
 
     if (this._isParentProcess) {
@@ -187,25 +221,28 @@ SystemMessageManager.prototype = {
                    : msg.msgQueue;
 
     
-    let handler = this._handlers[msg.type];
-    if (handler) {
+    let dispatcher = this._dispatchers[msg.type];
+    if (dispatcher) {
       messages.forEach(function(aMsg) {
-        this._dispatchMessage(msg.type, handler, aMsg);
+        this._dispatchMessage(msg.type, dispatcher, aMsg);
       }, this);
+    } else {
+      
+      
+      
+      cpmm.sendAsyncMessage("SystemMessageManager:HandleMessagesDone",
+                            { type: msg.type,
+                              manifest: this._manifest,
+                              uri: this._uri,
+                              handledCount: messages.length });
     }
 
-    
-    
-    
-    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessagesDone",
-                          { type: msg.type,
-                            manifest: this._manifest,
-                            uri: this._uri,
-                            handledCount: messages.length });
-
-    Services.obs.notifyObservers( null,
-                                 "handle-system-messages-done",
-                                  null);
+    if (!dispatcher || !dispatcher.isHandling) {
+      
+      Services.obs.notifyObservers( null,
+                                   "handle-system-messages-done",
+                                    null);
+    }
   },
 
   
@@ -272,11 +309,12 @@ SystemMessageManager.prototype = {
                                          Ci.nsIDOMGlobalPropertyInitializer,
                                          Ci.nsIObserver]),
 
-  classInfo: XPCOMUtils.generateCI({classID: Components.ID("{bc076ea0-609b-4d8f-83d7-5af7cbdc3bb2}"),
-                                    contractID: "@mozilla.org/system-message-manager;1",
-                                    interfaces: [Ci.nsIDOMNavigatorSystemMessages],
-                                    flags: Ci.nsIClassInfo.DOM_OBJECT,
-                                    classDescription: "System Messages"})
+  classInfo: XPCOMUtils.generateCI({
+    classID: Components.ID("{bc076ea0-609b-4d8f-83d7-5af7cbdc3bb2}"),
+    contractID: "@mozilla.org/system-message-manager;1",
+    interfaces: [Ci.nsIDOMNavigatorSystemMessages],
+    flags: Ci.nsIClassInfo.DOM_OBJECT,
+    classDescription: "System Messages"})
 }
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([SystemMessageManager]);
