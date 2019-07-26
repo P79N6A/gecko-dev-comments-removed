@@ -417,6 +417,7 @@ pref("ril.lastKnownMcc", "724");
 
 
 pref("dom.mozSettings.enabled", true);
+pref("dom.navigator-property.disable.mozSettings", false);
 pref("dom.mozPermissionSettings.enabled", true);
 
 
