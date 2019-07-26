@@ -4,6 +4,9 @@
 
 let Cc = Components.classes;
 let Ci = Components.interfaces;
+let Cu = Components.utils;
+
+Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 
 
@@ -42,17 +45,6 @@ SSLExceptions.prototype = {
   
 
 
-  _inPrivateBrowsingMode: function SSLE_inPrivateBrowsingMode() {
-    try {
-      var pb = Cc["@mozilla.org/privatebrowsing;1"].getService(Ci.nsIPrivateBrowsingService);
-      return pb.privateBrowsingEnabled;
-    } catch (ex) {}
-    return false;
-  },
-
-  
-
-
 
   _checkCert: function SSLE_checkCert(aURI) {
     this._sslStatus = null;
@@ -79,14 +71,14 @@ SSLExceptions.prototype = {
   
 
 
-  _addOverride: function SSLE_addOverride(aURI, temporary) {
+  _addOverride: function SSLE_addOverride(aURI, aWindow, temporary) {
     var SSLStatus = this._checkCert(aURI);
     var certificate = SSLStatus.serverCert;
 
     var flags = 0;
 
     
-    if (this._inPrivateBrowsingMode()) {
+    if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       temporary = true;
     }
 
@@ -109,15 +101,15 @@ SSLExceptions.prototype = {
 
 
 
-  addPermanentException: function SSLE_addPermanentException(aURI) {
-    this._addOverride(aURI, false);
+  addPermanentException: function SSLE_addPermanentException(aURI, aWindow) {
+    this._addOverride(aURI, aWindow, false);
   },
 
   
 
 
 
-  addTemporaryException: function SSLE_addTemporaryException(aURI) {
-    this._addOverride(aURI, true);
+  addTemporaryException: function SSLE_addTemporaryException(aURI, aWindow) {
+    this._addOverride(aURI, aWindow, true);
   }
 };
