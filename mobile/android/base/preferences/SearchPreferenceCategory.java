@@ -1,10 +1,9 @@
-
-
-
-
 package org.mozilla.gecko.preferences;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.util.AttributeSet;
@@ -14,34 +13,36 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GeckoEventListener;
 
 public class SearchPreferenceCategory extends PreferenceCategory implements GeckoEventListener {
     public static final String LOGTAG = "SearchPrefCategory";
 
-    private SearchEnginePreference mDefaultEngineReference;
-
-    
-    
+    private static int sIconSize;
 
     public SearchPreferenceCategory(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        init();
     }
-
     public SearchPreferenceCategory(Context context, AttributeSet attrs) {
         super(context, attrs);
+        init();
     }
 
     public SearchPreferenceCategory(Context context) {
         super(context);
+        init();
+    }
+
+    private void init() {
+        sIconSize = getContext().getResources().getDimensionPixelSize(R.dimen.searchpreferences_icon_size);
     }
 
     @Override
     protected void onAttachedToActivity() {
         super.onAttachedToActivity();
-
-        
-        setOrderingAsAdded(false);
 
         
         GeckoAppShell.registerEventListener("SearchEngines:Data", this);
@@ -51,17 +52,9 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
     @Override
     public void handleMessage(String event, final JSONObject data) {
         if (event.equals("SearchEngines:Data")) {
-            
             JSONArray engines;
-            JSONObject defaultEngine;
-            final String defaultEngineName;
             try {
                 engines = data.getJSONArray("searchEngines");
-                if (engines.length() == 0) {
-                    return;
-                }
-                defaultEngine = engines.getJSONObject(0);
-                defaultEngineName = defaultEngine.getString("name");
             } catch (JSONException e) {
                 Log.e(LOGTAG, "Unable to decode search engine data from Gecko.", e);
                 return;
@@ -73,90 +66,24 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
                     JSONObject engineJSON = engines.getJSONObject(i);
                     final String engineName = engineJSON.getString("name");
 
-                    SearchEnginePreference enginePreference = new SearchEnginePreference(getContext(), this);
-                    enginePreference.setSearchEngineFromJSON(engineJSON);
-                    if (engineName.equals(defaultEngineName)) {
-                        
-                        
-                        
-                        enginePreference.setIsDefaultEngine(true);
-                        mDefaultEngineReference = enginePreference;
+                    Preference engine = new Preference(getContext());
+                    engine.setTitle(engineName);
+                    engine.setKey(engineName);
+
+                    
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                        String iconURI = engineJSON.getString("iconURI");
+                        Bitmap iconBitmap = BitmapUtils.getBitmapFromDataURI(iconURI);
+                        Bitmap scaledIconBitmap = Bitmap.createScaledBitmap(iconBitmap, sIconSize, sIconSize, false);
+                        BitmapDrawable drawable = new BitmapDrawable(scaledIconBitmap);
+                        engine.setIcon(drawable);
                     }
-
-                    enginePreference.setOnPreferenceClickListener(new OnPreferenceClickListener() {
-                        @Override
-                        public boolean onPreferenceClick(Preference preference) {
-                            SearchEnginePreference sPref = (SearchEnginePreference) preference;
-                            
-                            sPref.showDialog();
-                            return true;
-                        }
-                    });
-
-                    addPreference(enginePreference);
+                    addPreference(engine);
+                    
                 } catch (JSONException e) {
                     Log.e(LOGTAG, "JSONException parsing engine at index " + i, e);
                 }
             }
         }
-
-        
-        
-        GeckoAppShell.unregisterEventListener("SearchEngines:Data", this);
-    }
-
-    
-
-
-
-    private void setFallbackDefaultEngine() {
-        if (getPreferenceCount() > 0) {
-            SearchEnginePreference aEngine = (SearchEnginePreference) getPreference(0);
-            setDefault(aEngine);
-        }
-    }
-
-    
-
-
-
-
-    private void sendGeckoEngineEvent(String event, SearchEnginePreference engine) {
-        JSONObject json = new JSONObject();
-        try {
-            json.put("engine", engine.getTitle());
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "JSONException creating search engine configuration change message for Gecko.", e);
-            return;
-        }
-        GeckoAppShell.notifyGeckoOfEvent(GeckoEvent.createBroadcastEvent(event, json.toString()));
-    }
-
-    
-
-    
-
-
-
-    public void uninstall(SearchEnginePreference engine) {
-        removePreference(engine);
-        if (engine == mDefaultEngineReference) {
-            
-            setFallbackDefaultEngine();
-        }
-
-        sendGeckoEngineEvent("SearchEngines:Remove", engine);
-    }
-
-    
-
-
-
-    public void setDefault(SearchEnginePreference engine) {
-        engine.setIsDefaultEngine(true);
-        mDefaultEngineReference.setIsDefaultEngine(false);
-        mDefaultEngineReference = engine;
-
-        sendGeckoEngineEvent("SearchEngines:SetDefault", engine);
     }
 }
