@@ -1367,10 +1367,16 @@ DeepCloneObjectLiteral(JSContext *cx, HandleObject obj, NewObjectKind newKind = 
 
 
 
-const unsigned DNP_DONT_PURGE   = 1;   
-const unsigned DNP_UNQUALIFIED  = 2;   
+enum {
+    
+    DNP_DONT_PURGE   = 1,
+
+    
 
 
+
+    DNP_UNQUALIFIED  = 2
+};
 
 
 
@@ -1378,7 +1384,7 @@ const unsigned DNP_UNQUALIFIED  = 2;
 extern bool
 DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
-                     unsigned flags, unsigned defineHow = 0);
+                     unsigned defineHow = 0);
 
 
 
