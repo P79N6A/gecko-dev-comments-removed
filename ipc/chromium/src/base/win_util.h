@@ -36,13 +36,6 @@ WinVersion GetWinVersion();
 void GetServicePackLevel(int* major, int* minor);
 
 
-
-
-
-bool AddAccessToKernelObject(HANDLE handle, WELL_KNOWN_SID_TYPE known_sid,
-                             ACCESS_MASK access);
-
-
 bool IsShiftPressed();
 
 
