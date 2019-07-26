@@ -659,7 +659,6 @@ public final class ElementName
     public static final ElementName ACRONYM = new ElementName("acronym", "acronym", TreeBuilder.OTHER);
     public static final ElementName ADDRESS = new ElementName("address", "address", TreeBuilder.ADDRESS_OR_ARTICLE_OR_ASIDE_OR_DETAILS_OR_DIR_OR_FIGCAPTION_OR_FIGURE_OR_FOOTER_OR_HEADER_OR_HGROUP_OR_MAIN_OR_NAV_OR_SECTION_OR_SUMMARY | SPECIAL);
     public static final ElementName BGSOUND = new ElementName("bgsound", "bgsound", TreeBuilder.LINK_OR_BASEFONT_OR_BGSOUND | SPECIAL);
-    public static final ElementName COMMAND = new ElementName("command", "command", TreeBuilder.COMMAND | SPECIAL);
     public static final ElementName COMPOSE = new ElementName("compose", "compose", TreeBuilder.OTHER);
     public static final ElementName CEILING = new ElementName("ceiling", "ceiling", TreeBuilder.OTHER);
     public static final ElementName CSYMBOL = new ElementName("csymbol", "csymbol", TreeBuilder.OTHER);
@@ -1054,7 +1053,6 @@ public final class ElementName
     ACRONYM,
     ADDRESS,
     BGSOUND,
-    COMMAND,
     COMPOSE,
     CEILING,
     CSYMBOL,
@@ -1450,7 +1448,6 @@ public final class ElementName
     236381647,
     236571826,
     237124271,
-    238172205,
     238210544,
     238270764,
     238435405,
