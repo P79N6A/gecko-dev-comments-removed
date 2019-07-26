@@ -489,7 +489,7 @@ protected:
 
 
   already_AddRefed<nsFrameSelection> FrameSelection() const;
-  Selection* DOMSelection() const;
+  dom::Selection* DOMSelection() const;
 
   
 

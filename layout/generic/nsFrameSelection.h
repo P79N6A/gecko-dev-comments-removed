@@ -7,7 +7,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
-#include "mozilla/Selection.h"
+#include "mozilla/dom/Selection.h"
 #include "mozilla/TextRange.h"
 #include "nsIFrame.h"
 #include "nsIContent.h"
@@ -174,7 +174,9 @@ struct nsPrevNextBidiLevels
 };
 
 namespace mozilla {
+namespace dom {
 class Selection;
+}
 }
 class nsIScrollableFrame;
 
@@ -353,7 +355,7 @@ public:
 
 
 
-  mozilla::Selection* GetSelection(SelectionType aType) const;
+  mozilla::dom::Selection* GetSelection(SelectionType aType) const;
 
   
 
@@ -619,7 +621,7 @@ private:
     return retval;
   }
 
-  friend class mozilla::Selection;
+  friend class mozilla::dom::Selection;
 #ifdef DEBUG
   void printSelection();       
 #endif 
@@ -646,7 +648,7 @@ private:
   
   nsresult     NotifySelectionListeners(SelectionType aType);     
 
-  nsRefPtr<mozilla::Selection> mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
+  nsRefPtr<mozilla::dom::Selection> mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
 
   
   nsITableCellLayout* GetCellLayout(nsIContent *aCellContent) const;

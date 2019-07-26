@@ -234,7 +234,7 @@ public:
   {
     
   }
-  mozilla::Selection* GetSelection(mozilla::ErrorResult& aRv);
+  mozilla::dom::Selection* GetSelection(mozilla::ErrorResult& aRv);
   
   
   

@@ -26,7 +26,7 @@
 #include "mozInlineSpellChecker.h"      
 #include "mozilla/IMEStateManager.h"    
 #include "mozilla/Preferences.h"        
-#include "mozilla/Selection.h"          
+#include "mozilla/dom/Selection.h"      
 #include "mozilla/Services.h"           
 #include "mozilla/TextComposition.h"    
 #include "mozilla/TextEvents.h"

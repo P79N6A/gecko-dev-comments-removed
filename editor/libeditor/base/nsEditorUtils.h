@@ -56,12 +56,12 @@ class MOZ_STACK_CLASS nsAutoSelectionReset
 {
   private:
     
-    nsRefPtr<mozilla::Selection> mSel;
+    nsRefPtr<mozilla::dom::Selection> mSel;
     nsEditor *mEd;  
 
   public:
     
-    nsAutoSelectionReset(mozilla::Selection* aSel, nsEditor* aEd);
+    nsAutoSelectionReset(mozilla::dom::Selection* aSel, nsEditor* aEd);
     
     
     ~nsAutoSelectionReset();

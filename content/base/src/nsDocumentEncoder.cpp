@@ -38,7 +38,7 @@
 #include "nsIScriptContext.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
-#include "mozilla/Selection.h"
+#include "mozilla/dom/Selection.h"
 #include "nsISelectionPrivate.h"
 #include "nsITransferable.h" 
 #include "nsContentUtils.h"

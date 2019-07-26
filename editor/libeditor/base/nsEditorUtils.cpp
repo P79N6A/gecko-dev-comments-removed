@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Selection.h"
+#include "mozilla/dom/Selection.h"
 #include "nsCOMArray.h"
 #include "nsComponentManagerUtils.h"
 #include "nsEditorUtils.h"
@@ -24,6 +24,7 @@ class nsIDOMRange;
 class nsISupports;
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 
 

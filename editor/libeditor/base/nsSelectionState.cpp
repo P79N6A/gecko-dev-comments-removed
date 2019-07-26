@@ -4,7 +4,7 @@
 
 
 #include "mozilla/Assertions.h"         
-#include "mozilla/Selection.h"          
+#include "mozilla/dom/Selection.h"      
 #include "nsAString.h"                  
 #include "nsAutoPtr.h"                  
 #include "nsCycleCollectionParticipant.h"
@@ -21,6 +21,7 @@
 #include "nsSelectionState.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 
 

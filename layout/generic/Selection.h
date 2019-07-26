@@ -44,6 +44,7 @@ struct RangeData
 
 
 namespace mozilla {
+namespace dom {
 
 class Selection : public nsISelectionPrivate,
                   public nsWrapperCache,
@@ -280,6 +281,7 @@ private:
   SelectionType mType;
 };
 
+} 
 } 
 
 #endif 
