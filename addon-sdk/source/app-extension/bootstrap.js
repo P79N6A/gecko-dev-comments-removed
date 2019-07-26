@@ -19,6 +19,13 @@ const resourceHandler = ioService.getProtocolHandler('resource').
 const systemPrincipal = CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')();
 const scriptLoader = Cc['@mozilla.org/moz/jssubscript-loader;1'].
                      getService(Ci.mozIJSSubScriptLoader);
+const prefService = Cc['@mozilla.org/preferences-service;1'].
+                    getService(Ci.nsIPrefService);
+const appInfo = Cc["@mozilla.org/xre/app-info;1"].
+                getService(Ci.nsIXULAppInfo);
+const vc = Cc["@mozilla.org/xpcom/version-comparator;1"].
+           getService(Ci.nsIVersionComparator);
+
 
 const REASON = [ 'unknown', 'startup', 'shutdown', 'enable', 'disable',
                  'install', 'uninstall', 'upgrade', 'downgrade' ];
@@ -121,18 +128,53 @@ function startup(data, reasonCode) {
       paths['tests/'] = prefixURI + name + '/tests/';
 
     
-    paths['sdk/'] = prefixURI + 'addon-sdk/lib/sdk/';
-    paths['toolkit/'] = prefixURI + 'addon-sdk/lib/toolkit/';
     
     
+    if (options['is-sdk-bundled'] &&
+        (vc.compare(appInfo.version, '21.0a1') < 0 ||
+         options['force-use-bundled-sdk'])) {
+      
+      paths[''] = prefixURI + 'addon-sdk/lib/';
+      
+      
+      
+      paths['test'] = prefixURI + 'addon-sdk/lib/sdk/test.js';
+    }
+
     
-    paths['test'] = prefixURI + 'addon-sdk/lib/sdk/test.js';
+    
+    let branch = prefService.getBranch('extensions.modules.' + id + '.path');
+    paths = branch.getChildList('', {}).reduce(function (result, name) {
+      
+      let path = name.substr(1).split('.').join('/');
+      
+      if (path) path += '/';
+      let fileURI = branch.getCharPref(name);
+
+      
+      
+      let resourcesURI = ioService.newURI(fileURI, null, null);
+      let resName = 'extensions.modules.' + domain + '.commonjs.path' + name;
+      resourceHandler.setSubstitution(resName, resourcesURI);
+
+      result[path] = 'resource://' + resName + '/';
+      return result;
+    }, paths);
 
     
     let manifest = options.manifest;
 
     
-    let cuddlefishURI = prefixURI + options.loader;
+    let cuddlefishPath = 'loader/cuddlefish.js';
+    let cuddlefishURI = 'resource://gre/modules/commonjs/sdk/' + cuddlefishPath;
+    if (paths['sdk/']) { 
+                         
+      cuddlefishURI = paths['sdk/'] + cuddlefishPath;
+    }
+    else if (paths['']) { 
+      cuddlefishURI = paths[''] + 'sdk/' + cuddlefishPath;
+    }
+
     cuddlefishSandbox = loadSandbox(cuddlefishURI);
     let cuddlefish = cuddlefishSandbox.exports;
 

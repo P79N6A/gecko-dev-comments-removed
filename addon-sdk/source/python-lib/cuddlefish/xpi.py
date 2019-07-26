@@ -22,7 +22,8 @@ def mkzipdir(zf, path):
     zf.writestr(dirinfo, "")
 
 def build_xpi(template_root_dir, manifest, xpi_path,
-              harness_options, limit_to=None, extra_harness_options={}):
+              harness_options, limit_to=None, extra_harness_options={},
+              bundle_sdk=True):
     zf = zipfile.ZipFile(xpi_path, "w", zipfile.ZIP_DEFLATED)
 
     open('.install.rdf', 'w').write(str(manifest))
@@ -84,6 +85,10 @@ def build_xpi(template_root_dir, manifest, xpi_path,
     
     for packageName in harness_options['packages']:
       base_arcpath = ZIPSEP.join(['resources', packageName])
+      
+      
+      if not bundle_sdk and packageName == 'addon-sdk':
+          continue
       
       
       dirs_to_create.add(base_arcpath)
