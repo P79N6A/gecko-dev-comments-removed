@@ -59,6 +59,10 @@ SandboxBroker::LaunchApp(const wchar_t *aPath,
   mPolicy->SetAlternateDesktop(false);
 
   
+  mPolicy->SetStdoutHandle(::GetStdHandle(STD_OUTPUT_HANDLE));
+  mPolicy->SetStderrHandle(::GetStdHandle(STD_ERROR_HANDLE));
+
+  
   PROCESS_INFORMATION targetInfo;
   sandbox::ResultCode result;
   result = sBrokerService->SpawnTarget(aPath, aArguments, mPolicy, &targetInfo);
