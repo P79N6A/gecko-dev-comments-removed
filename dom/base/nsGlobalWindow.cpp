@@ -11287,41 +11287,47 @@ uint32_t sNestingLevel;
 nsGlobalWindow*
 nsGlobalWindow::InnerForSetTimeoutOrInterval(ErrorResult& aError)
 {
-  
-  
-  
-  
-  
-  
+  nsGlobalWindow* currentInner;
+  nsGlobalWindow* forwardTo;
+  if (IsInnerWindow()) {
+    nsGlobalWindow* outer = GetOuterWindowInternal();
+    currentInner = outer ? outer->GetCurrentInnerWindowInternal() : this;
 
-  if (!IsOuterWindow()) {
-    return this;
+    forwardTo = this;
+  } else {
+    currentInner = GetCurrentInnerWindowInternal();
+
+    
+    
+    
+    
+    
+    
+
+    forwardTo = CallerInnerWindow();
+    if (!forwardTo) {
+      aError.Throw(NS_ERROR_NOT_AVAILABLE);
+      return nullptr;
+    }
+
+    
+    
+    
+    if (forwardTo->GetOuterWindow() != this || !forwardTo->IsInnerWindow()) {
+      if (!currentInner) {
+        NS_WARNING("No inner window available!");
+        aError.Throw(NS_ERROR_NOT_INITIALIZED);
+        return nullptr;
+      }
+
+      return currentInner;
+    }
   }
 
-  nsGlobalWindow* callerInner = CallerInnerWindow();
-  if (!callerInner) {
-    aError.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
   
   
   
-  
-
-  if (callerInner->GetOuterWindow() == this &&
-      callerInner->IsInnerWindow()) {
-    return callerInner;
-  }
-
-  nsGlobalWindow* currentInner = GetCurrentInnerWindowInternal();
-  if (!currentInner) {
-    NS_WARNING("No inner window available!");
-    aError.Throw(NS_ERROR_NOT_INITIALIZED);
-    return nullptr;
-  }
-
-  return currentInner;
+  return forwardTo->HasActiveDocument() ? currentInner : nullptr;
 }
 
 int32_t
@@ -11381,8 +11387,7 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
                                      int32_t interval,
                                      bool aIsInterval, int32_t *aReturn)
 {
-  FORWARD_TO_INNER(SetTimeoutOrInterval, (aHandler, interval, aIsInterval, aReturn),
-                   NS_ERROR_NOT_INITIALIZED);
+  MOZ_ASSERT(IsInnerWindow());
 
   
   
@@ -11565,8 +11570,8 @@ nsGlobalWindow::SetTimeoutOrInterval(Function& aFunction, int32_t aTimeout,
                                      bool aIsInterval, ErrorResult& aError)
 {
   nsGlobalWindow* inner = InnerForSetTimeoutOrInterval(aError);
-  if (aError.Failed()) {
-    return 0;
+  if (!inner) {
+    return -1;
   }
 
   if (inner != this) {
@@ -11591,8 +11596,8 @@ nsGlobalWindow::SetTimeoutOrInterval(JSContext* aCx, const nsAString& aHandler,
                                      ErrorResult& aError)
 {
   nsGlobalWindow* inner = InnerForSetTimeoutOrInterval(aError);
-  if (aError.Failed()) {
-    return 0;
+  if (!inner) {
+    return -1;
   }
 
   if (inner != this) {
