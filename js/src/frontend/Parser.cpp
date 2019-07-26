@@ -316,7 +316,7 @@ ParseContext::generateFunctionBindings(JSContext *cx, InternalHandle<Bindings*> 
         return false;
     }
 
-    if (bindings->hasAnyAliasedBindings() || sc->funHasExtensibleScope())
+    if (bindings->hasAnyAliasedBindings() || sc->funbox()->hasExtensibleScope())
         sc->funbox()->fun()->flags |= JSFUN_HEAVYWEIGHT;
 
     return true;
@@ -410,7 +410,8 @@ FunctionBox::FunctionBox(ObjectBox *traceListHead, JSFunction *fun, ParseContext
     strictModeState(sms),
     inWith(false),                  
     inGenexpLambda(false),
-    cxFlags()                       
+    anyCxFlags(),
+    funCxFlags()                    
 {
     if (!outerpc) {
         inWith = false;
@@ -762,7 +763,7 @@ Parser::functionBody(FunctionBodyType type)
             if (!pn->pn_kid) {
                 pn = NULL;
             } else {
-                if (pc->sc->funIsGenerator()) {
+                if (pc->sc->funbox()->isGenerator()) {
                     ReportBadReturn(context, this, pn, &Parser::reportError,
                                     JSMSG_BAD_GENERATOR_RETURN,
                                     JSMSG_BAD_ANON_GENERATOR_RETURN);
@@ -859,11 +860,12 @@ Parser::functionBody(FunctionBodyType type)
 
 
     if (argumentsHasLocalBinding) {
-        pc->sc->setFunArgumentsHasLocalBinding();
+        FunctionBox *funbox = pc->sc->funbox();
+        funbox->setArgumentsHasLocalBinding();
 
         
         if (pc->sc->bindingsAccessedDynamically())
-            pc->sc->setFunDefinitelyNeedsArgsObj();
+            funbox->setDefinitelyNeedsArgsObj();
 
         
 
@@ -878,7 +880,7 @@ Parser::functionBody(FunctionBodyType type)
                 for (DefinitionList::Range dr = dlist.all(); !dr.empty(); dr.popFront()) {
                     Definition *dn = dr.front();
                     if (dn->kind() == Definition::ARG && dn->isAssigned()) {
-                        pc->sc->setFunDefinitelyNeedsArgsObj();
+                        funbox->setDefinitelyNeedsArgsObj();
                         goto exitLoop;
                     }
                 }
@@ -1152,7 +1154,7 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
     pc->blockidGen = funpc->blockidGen;
 
     FunctionBox *funbox = fn->pn_funbox;
-    funbox->cxFlags = funpc->sc->cxFlags;   
+    funbox->anyCxFlags = funpc->sc->anyCxFlags;   
     funbox->kids = funpc->functionList;
 
     if (!pc->topStmt || pc->topStmt->type == STMT_BLOCK)
@@ -1196,7 +1198,7 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
 
 
 
-            if (funpc->sc->funHasExtensibleScope() || pc->parsingWith)
+            if (funpc->sc->funbox()->hasExtensibleScope() || pc->parsingWith)
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
 
             if (!outer_dn) {
@@ -1598,8 +1600,9 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
             JS_ASSERT(pc->sc->strictModeState != StrictMode::STRICT);
             JS_ASSERT(pn->pn_cookie.isFree());
             if (pc->sc->inFunction()) {
-                pc->sc->setFunMightAliasLocals();
-                pc->sc->setFunHasExtensibleScope();
+                FunctionBox *funbox = pc->sc->funbox();
+                funbox->setMightAliasLocals();
+                funbox->setHasExtensibleScope();
             }
             pn->setOp(JSOP_DEFFUN);
 
@@ -1994,7 +1997,7 @@ Parser::statements(bool *hasFunctionStmt)
 
 
 
-                JS_ASSERT_IF(pc->sc->inFunction(), pc->sc->funHasExtensibleScope());
+                JS_ASSERT_IF(pc->sc->inFunction(), pc->sc->funbox()->hasExtensibleScope());
                 if (hasFunctionStmt)
                     *hasFunctionStmt = true;
             }
@@ -2194,8 +2197,8 @@ BindVarOrConst(JSContext *cx, BindData *data, HandlePropertyName name, Parser *p
 
     if (stmt && stmt->type == STMT_WITH) {
         pn->pn_dflags |= PND_DEOPTIMIZED;
-        if (pc->sc->inFunction()) 
-            pc->sc->setFunMightAliasLocals();
+        if (pc->sc->inFunction())
+            pc->sc->funbox()->setMightAliasLocals();
         return true;
     }
 
@@ -2582,7 +2585,7 @@ Parser::returnOrYield(bool useAssignExpr)
 
 
         if (pc->parenDepth == 0) {
-            pc->sc->setFunIsGenerator();
+            pc->sc->funbox()->setIsGenerator();
         } else {
             pc->yieldCount++;
             pc->yieldNode = pn;
@@ -2619,7 +2622,7 @@ Parser::returnOrYield(bool useAssignExpr)
             pc->funHasReturnVoid = true;
     }
 
-    if (pc->funHasReturnExpr && pc->sc->funIsGenerator()) {
+    if (pc->funHasReturnExpr && pc->sc->funbox()->isGenerator()) {
         
         ReportBadReturn(context, this, pn, &Parser::reportError, JSMSG_BAD_GENERATOR_RETURN,
                         JSMSG_BAD_ANON_GENERATOR_RETURN);
@@ -4859,7 +4862,7 @@ GenexpGuard::maybeNoteGenerator(ParseNode *pn)
             parser->reportError(NULL, JSMSG_BAD_RETURN_OR_YIELD, js_yield_str);
             return false;
         }
-        pc->sc->setFunIsGenerator();
+        pc->sc->funbox()->setIsGenerator();
         if (pc->funHasReturnExpr) {
             
             ReportBadReturn(pc->sc->context, parser, pn, &Parser::reportError,
@@ -5378,9 +5381,11 @@ Parser::generatorExpr(ParseNode *kid)
 
 
 
-        gensc.cxFlags = outerpc->sc->cxFlags;
-        gensc.setFunIsGenerator();
+        gensc.anyCxFlags = outerpc->sc->anyCxFlags;
+        if (outerpc->sc->inFunction())
+            funbox->funCxFlags = outerpc->sc->funbox()->funCxFlags;
 
+        funbox->setIsGenerator();
         funbox->inGenexpLambda = true;
         genfn->pn_funbox = funbox;
         genfn->pn_blockid = genpc.bodyid;
@@ -5704,7 +5709,7 @@ Parser::memberExpr(bool allowCallSyntax)
 
 
                     if (pc->sc->inFunction() && pc->sc->strictModeState != StrictMode::STRICT)
-                        pc->sc->setFunHasExtensibleScope();
+                        pc->sc->funbox()->setHasExtensibleScope();
                 }
             } else if (lhs->isOp(JSOP_GETPROP)) {
                 
