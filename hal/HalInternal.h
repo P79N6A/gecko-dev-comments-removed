@@ -94,7 +94,11 @@ void EnableSystemTimezoneChangeNotifications();
 
 void DisableSystemTimezoneChangeNotifications();
 
-bool IsHalChildLive();
+
+
+
+
+bool HalChildDestroyed();
 } 
 } 
 
