@@ -1717,7 +1717,7 @@ protected:
   
   
   
-  nsAutoArrayBase(const TArrayBase &aOther) {
+  nsAutoArrayBase(const self_type &aOther) {
     Init();
     AppendElements(aOther);
   }
