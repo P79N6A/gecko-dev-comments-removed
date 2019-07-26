@@ -236,6 +236,7 @@ function filterTests(filterFile, runOnly) {
       excludetests = filter;
   }
 
+  var testRoot = config.testRoot || "tests";
   
   
   if (Object.keys(runtests).length) {
@@ -248,7 +249,7 @@ function filterTests(filterFile, runOnly) {
         file = file.replace(/^tests\//, '')
 
         
-        if (tmp_path.match("^tests/" + file) != null) {
+        if (tmp_path.match(testRoot + "/" + file) != null) {
           filteredTests.push(test_path);
           break;
         }
@@ -273,7 +274,7 @@ function filterTests(filterFile, runOnly) {
         file = file.replace(/^tests\//, '')
 
         
-        if (tmp_path.match("^tests/" + file) != null) {
+        if (tmp_path.match(testRoot + "/" + file) != null) {
           found = true;
           break;
         }
