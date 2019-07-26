@@ -30,6 +30,11 @@ NS_ProxyRelease(nsIEventTarget *target, nsISupports *doomed,
 {
     nsresult rv;
 
+    if (!doomed) {
+        
+        return NS_OK;
+    }
+
     if (!target) {
         NS_RELEASE(doomed);
         return NS_OK;
