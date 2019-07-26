@@ -46,10 +46,10 @@ class ColorLayerComposite;
 class CanvasLayerComposite;
 class RefLayerComposite;
 class SurfaceDescriptor;
+class SurfaceDescriptorTiles;
 class ThebesBuffer;
 class TiledLayerComposer;
 class Transaction;
-class SurfaceDescriptor;
 class CanvasSurface;
 class DeprecatedTextureClientShmem;
 class ShmemTextureClient;
@@ -262,7 +262,7 @@ public:
 
 
   virtual void PaintedTiledLayerBuffer(CompositableClient* aCompositable,
-                                       BasicTiledLayerBuffer* aTiledLayerBuffer) MOZ_OVERRIDE;
+                                       const SurfaceDescriptorTiles& aTileLayerDescriptor) MOZ_OVERRIDE;
 
   
 

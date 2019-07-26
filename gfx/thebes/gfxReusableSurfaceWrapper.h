@@ -9,8 +9,9 @@
 #include "nsISupportsImpl.h"
 #include "nsAutoPtr.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/layers/ISurfaceAllocator.h"
 
-class gfxImageSurface;
+class gfxSharedImageSurface;
 
 
 
@@ -35,19 +36,26 @@ public:
 
 
 
-
-  gfxReusableSurfaceWrapper(gfxImageSurface* aSurface);
+  gfxReusableSurfaceWrapper(mozilla::layers::ISurfaceAllocator* aAllocator, gfxSharedImageSurface* aSurface);
 
   ~gfxReusableSurfaceWrapper();
 
-  const unsigned char* GetReadOnlyData() const {
-    NS_ABORT_IF_FALSE(mReadCount > 0, "Should have read lock");
-    return mSurfaceData;
-  }
+  const unsigned char* GetReadOnlyData() const;
 
-  const gfxASurface::gfxImageFormat& Format() { return mFormat; }
+  mozilla::ipc::Shmem& GetShmem();
 
   
+
+
+
+
+  static already_AddRefed<gfxReusableSurfaceWrapper>
+  Open(mozilla::layers::ISurfaceAllocator* aAllocator, const mozilla::ipc::Shmem& aShmem);
+
+  gfxASurface::gfxImageFormat Format();
+
+  
+
 
 
 
@@ -59,15 +67,17 @@ public:
 
 
 
+
+
+
+
   void ReadLock();
   void ReadUnlock();
 
 private:
   NS_DECL_OWNINGTHREAD
-  nsRefPtr<gfxImageSurface>         mSurface;
-  const gfxASurface::gfxImageFormat mFormat;
-  const unsigned char*              mSurfaceData;
-  mozilla::Atomic<int32_t>                           mReadCount;
+  mozilla::layers::ISurfaceAllocator*     mAllocator;
+  nsRefPtr<gfxSharedImageSurface>         mSurface;
 };
 
 #endif 

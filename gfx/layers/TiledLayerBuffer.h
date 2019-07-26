@@ -184,6 +184,8 @@ private:
 };
 
 class BasicTiledLayerBuffer;
+class SurfaceDescriptorTiles;
+class ISurfaceAllocator;
 
 
 
@@ -196,7 +198,9 @@ public:
 
 
 
-  virtual void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* aTiledBuffer) = 0;
+
+  virtual void PaintedTiledLayerBuffer(ISurfaceAllocator* aAllocator,
+                                       const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
 
   
 

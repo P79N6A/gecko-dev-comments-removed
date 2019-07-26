@@ -54,12 +54,6 @@ TiledLayerBufferComposite::ValidateTile(TiledTexture aTile,
   return aTile;
 }
 
-TiledContentHost::~TiledContentHost()
-{
-  mMainMemoryTiledBuffer.ReadUnlock();
-  mLowPrecisionMainMemoryTiledBuffer.ReadUnlock();
-}
-
 void
 TiledContentHost::Attach(Layer* aLayer, Compositor* aCompositor)
 {
@@ -68,25 +62,21 @@ TiledContentHost::Attach(Layer* aLayer, Compositor* aCompositor)
 }
 
 void
-TiledContentHost::PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuffer)
+TiledContentHost::PaintedTiledLayerBuffer(ISurfaceAllocator* aAllocator,
+                                          const SurfaceDescriptorTiles& aTiledDescriptor)
 {
-  if (mTiledBuffer->IsLowPrecision()) {
-    mLowPrecisionMainMemoryTiledBuffer.ReadUnlock();
-    mLowPrecisionMainMemoryTiledBuffer = *mTiledBuffer;
+  if (aTiledDescriptor.resolution() < 1) {
+    mLowPrecisionMainMemoryTiledBuffer = BasicTiledLayerBuffer::OpenDescriptor(aAllocator, aTiledDescriptor);
     mLowPrecisionRegionToUpload.Or(mLowPrecisionRegionToUpload,
                                    mLowPrecisionMainMemoryTiledBuffer.GetPaintedRegion());
     mLowPrecisionMainMemoryTiledBuffer.ClearPaintedRegion();
     mPendingLowPrecisionUpload = true;
   } else {
-    mMainMemoryTiledBuffer.ReadUnlock();
-    mMainMemoryTiledBuffer = *mTiledBuffer;
+    mMainMemoryTiledBuffer = BasicTiledLayerBuffer::OpenDescriptor(aAllocator, aTiledDescriptor);
     mRegionToUpload.Or(mRegionToUpload, mMainMemoryTiledBuffer.GetPaintedRegion());
     mMainMemoryTiledBuffer.ClearPaintedRegion();
     mPendingUpload = true;
   }
-
-  
-  delete mTiledBuffer;
 }
 
 void
@@ -108,8 +98,6 @@ TiledContentHost::ProcessLowPrecisionUploadQueue()
                                  mLowPrecisionRegionToUpload,
                                  mVideoMemoryTiledBuffer.GetFrameResolution());
   nsIntRegion validRegion = mLowPrecisionVideoMemoryTiledBuffer.GetValidRegion();
-
-  mLowPrecisionMainMemoryTiledBuffer.ReadUnlock();
 
   mLowPrecisionMainMemoryTiledBuffer = BasicTiledLayerBuffer();
   mLowPrecisionRegionToUpload = nsIntRegion();
@@ -133,10 +121,6 @@ TiledContentHost::ProcessUploadQueue(nsIntRegion* aNewValidRegion,
 
   *aNewValidRegion = mVideoMemoryTiledBuffer.GetValidRegion();
 
-  mMainMemoryTiledBuffer.ReadUnlock();
-  
-  
-  
   
   
   mMainMemoryTiledBuffer = BasicTiledLayerBuffer();
