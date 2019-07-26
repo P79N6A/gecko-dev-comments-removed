@@ -4235,6 +4235,52 @@ class LMonitorTypes : public LInstructionHelper<0, BOX_PIECES, 1>
 };
 
 
+class LPostWriteBarrierO : public LInstructionHelper<0, 2, 0>
+{
+  public:
+    LIR_HEADER(PostWriteBarrierO)
+
+    LPostWriteBarrierO(const LAllocation &obj, const LAllocation &value) {
+        setOperand(0, obj);
+        setOperand(1, value);
+    }
+
+    const MPostWriteBarrier *mir() const {
+        return mir_->toPostWriteBarrier();
+    }
+    const LAllocation *object() {
+        return getOperand(0);
+    }
+    const LAllocation *value() {
+        return getOperand(1);
+    }
+};
+
+
+class LPostWriteBarrierV : public LInstructionHelper<0, 1 + BOX_PIECES, 1>
+{
+  public:
+    LIR_HEADER(PostWriteBarrierV)
+
+    LPostWriteBarrierV(const LAllocation &obj, const LDefinition &temp) {
+        setOperand(0, obj);
+        setTemp(0, temp);
+    }
+
+    static const size_t Input = 1;
+
+    const MPostWriteBarrier *mir() const {
+        return mir_->toPostWriteBarrier();
+    }
+    const LAllocation *object() {
+        return getOperand(0);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+};
+
+
 class LGuardClass : public LInstructionHelper<0, 1, 1>
 {
   public:

@@ -669,11 +669,15 @@ class AutoEnterParallelSection
         
         
         
+        
+        
 
         if (JS::IsIncrementalGCInProgress(cx->runtime)) {
             JS::PrepareForIncrementalGC(cx->runtime);
             JS::FinishIncrementalGC(cx->runtime, JS::gcreason::API);
         }
+
+        MinorGC(cx->runtime, JS::gcreason::API);
 
         cx->runtime->gcHelperThread.waitBackgroundSweepEnd();
     }
