@@ -1042,6 +1042,8 @@ struct JSRuntime : js::RuntimeFriendFields
 
     js::ThreadPool threadPool;
 
+    js::CTypesActivityCallback  ctypesActivityCallback;
+
   private:
     
     
