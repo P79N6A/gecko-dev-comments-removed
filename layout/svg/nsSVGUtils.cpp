@@ -1217,7 +1217,7 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, uint32_t aFlags)
     
     
     
-    if (NS_SVGTextCSSFramesEnabled()) {
+    if (aFrame->IsSVGText()) {
       nsIFrame* ancestor = GetFirstNonAAncestorFrame(aFrame);
       if (ancestor && ancestor->IsSVGText()) {
         while (ancestor->GetType() != nsGkAtoms::svgTextFrame2) {
