@@ -87,11 +87,6 @@ BaselineCompiler::compile()
     IonSpew(IonSpew_BaselineScripts, "Baseline compiling script %s:%d (%p)",
             script->filename, script->lineno, script.get());
 
-    if (script->needsArgsObj()) {
-        IonSpew(IonSpew_BaselineAbort, "Script needs arguments object");
-        return Method_CantCompile;
-    }
-
     if (function() && function()->isHeavyweight()) {
         IonSpew(IonSpew_BaselineAbort, "FIXME compile heavy weight functions");
         return Method_CantCompile;
@@ -1400,14 +1395,65 @@ BaselineCompiler::emit_JSOP_SETLOCAL()
 }
 
 bool
-BaselineCompiler::emit_JSOP_GETARG()
+BaselineCompiler::emitFormalArgAccess(uint32_t arg, bool get)
 {
     
-    JS_ASSERT(!script->argsObjAliasesFormals());
+    
+    if (!script->argumentsHasVarBinding() || script->strict) {
+        if (get) {
+            frame.pushArg(arg);
+        } else {
+            
+            frame.syncStack(1);
+            storeValue(frame.peek(-1), frame.addressOfArg(arg), R0);
+        }
 
-    uint32_t arg = GET_SLOTNO(pc);
-    frame.pushArg(arg);
+        return true;
+    }
+
+    
+    frame.syncStack(0);
+
+    
+    
+    
+    Label done;
+    if (!script->needsArgsObj()) {
+        Label hasArgsObj;
+        masm.branchTest32(Assembler::NonZero, frame.addressOfFlags(),
+                          Imm32(BaselineFrame::HAS_ARGS_OBJ), &hasArgsObj);
+        if (get)
+            masm.loadValue(frame.addressOfArg(arg), R0);
+        else
+            storeValue(frame.peek(-1), frame.addressOfArg(arg), R0);
+        masm.jump(&done);
+        masm.bind(&hasArgsObj);
+    }
+
+    
+    Register reg = R2.scratchReg();
+    masm.loadPtr(Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfArgsObj()), reg);
+    masm.loadPrivate(Address(reg, ArgumentsObject::getDataSlotOffset()), reg);
+
+    
+    Address argAddr(reg, ArgumentsData::offsetOfArgs() + arg * sizeof(Value));
+    if (get) {
+        masm.loadValue(argAddr, R0);
+        frame.push(R0);
+    } else {
+        masm.patchableCallPreBarrier(argAddr, MIRType_Value);
+        storeValue(frame.peek(-1), argAddr, R0);
+    }
+
+    masm.bind(&done);
     return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_GETARG()
+{
+    uint32_t arg = GET_SLOTNO(pc);
+    return emitFormalArgAccess(arg,  true);
 }
 
 bool
@@ -1419,15 +1465,8 @@ BaselineCompiler::emit_JSOP_CALLARG()
 bool
 BaselineCompiler::emit_JSOP_SETARG()
 {
-    
-    JS_ASSERT(!script->argsObjAliasesFormals());
-
-    
-    frame.syncStack(1);
-
     uint32_t arg = GET_SLOTNO(pc);
-    storeValue(frame.peek(-1), frame.addressOfArg(arg), R0);
-    return true;
+    return emitFormalArgAccess(arg,  false);
 }
 
 bool
@@ -1659,4 +1698,44 @@ bool
 BaselineCompiler::emit_JSOP_POPV()
 {
     return emit_JSOP_SETRVAL();
+}
+
+typedef bool (*NewArgumentsObjectFn)(JSContext *, BaselineFrame *, MutableHandleValue);
+static const VMFunction NewArgumentsObjectInfo =
+    FunctionInfo<NewArgumentsObjectFn>(ion::NewArgumentsObject);
+
+bool
+BaselineCompiler::emit_JSOP_ARGUMENTS()
+{
+    frame.syncStack(0);
+
+    Label done;
+    if (!script->needsArgsObj()) {
+        
+        
+        
+        
+        masm.moveValue(MagicValue(JS_OPTIMIZED_ARGUMENTS), R0);
+
+        
+        Register scratch = R1.scratchReg();
+        masm.movePtr(ImmGCPtr(script), scratch);
+        masm.loadPtr(Address(scratch, offsetof(JSScript, baseline)), scratch);
+
+        
+        masm.branchTest32(Assembler::Zero, Address(scratch, BaselineScript::offsetOfFlags()),
+                          Imm32(BaselineScript::NEEDS_ARGS_OBJ), &done);
+    }
+
+    prepareVMCall();
+
+    masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
+    pushArg(R0.scratchReg());
+
+    if (!callVM(NewArgumentsObjectInfo))
+        return false;
+
+    masm.bind(&done);
+    frame.push(R0);
+    return true;
 }

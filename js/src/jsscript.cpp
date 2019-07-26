@@ -2704,6 +2704,14 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 
     script->needsArgsObj_ = true;
 
+    
+
+
+
+
+    if (script->hasBaselineScript())
+        script->baselineScript()->setNeedsArgsObj();
+
     InternalBindingsHandle bindings(script, &script->bindings);
     const unsigned var = Bindings::argumentsVarIndex(cx, bindings);
 
@@ -2729,7 +2737,7 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 
 
 
-        if (i.isIon())
+        if (i.isIonOptimizedJS())
             continue;
         AbstractFramePtr frame = i.abstractFramePtr();
         if (frame.isFunctionFrame() && frame.script() == script) {

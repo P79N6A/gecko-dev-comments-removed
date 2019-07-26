@@ -50,10 +50,13 @@ class BaselineFrame
         HAS_EVAL_PREV    = 1 << 3,
 
         
-        PREV_UP_TO_DATE  = 1 << 4,
+        HAS_ARGS_OBJ     = 1 << 4,
 
         
-        EVAL             = 1 << 5
+        PREV_UP_TO_DATE  = 1 << 5,
+
+        
+        EVAL             = 1 << 6
     };
 
   protected: 
@@ -61,22 +64,18 @@ class BaselineFrame
     
     uint32_t loScratchValue_;
     uint32_t hiScratchValue_;
-    uint32_t loReturnValue_;
+    uint32_t loReturnValue_;        
     uint32_t hiReturnValue_;
     size_t frameSize_;
-    JSObject *scopeChain_;
-    StaticBlockObject *blockChain_;
-    JSScript *evalScript_;
+    JSObject *scopeChain_;          
+    StaticBlockObject *blockChain_; 
+    JSScript *evalScript_;          
+    ArgumentsObject *argsObj_;      
     uint32_t flags_;
 
     
     
     AbstractFramePtr evalPrev_;
-
-#if JS_BITS_PER_WORD == 32
-    
-    uint32_t padding_;
-#endif
 
   public:
     
@@ -154,6 +153,13 @@ class BaselineFrame
         return formals()[i];
     }
 
+    Value &unaliasedActual(unsigned i, MaybeCheckAliasing checkAliasing) const {
+        JS_ASSERT(i < numActualArgs());
+        JS_ASSERT_IF(checkAliasing, !script()->argsObjAliasesFormals());
+        JS_ASSERT_IF(checkAliasing && i < numFormalArgs(), !script()->formalIsAliased(i));
+        return actuals()[i];
+    }
+
     Value &unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing) const {
 #ifdef DEBUG
         CheckLocalUnaliased(checkAliasing, script(), maybeBlockChain(), i);
@@ -225,6 +231,16 @@ class BaselineFrame
         return flags_ & HAS_CALL_OBJ;
     }
 
+    CallObject &callObj() const {
+        JS_ASSERT(hasCallObj());
+        JS_ASSERT(fun()->isHeavyweight());
+
+        JSObject *obj = scopeChain();
+        while (!obj->isCall())
+            obj = obj->enclosingScope();
+        return obj->asCall();
+    }
+
     void setFlags(uint32_t flags) {
         flags_ = flags;
     }
@@ -236,6 +252,20 @@ class BaselineFrame
     inline void popBlock(JSContext *cx);
 
     bool strictEvalPrologue(JSContext *cx);
+
+    void initArgsObj(ArgumentsObject &argsobj) {
+        JS_ASSERT(script()->needsArgsObj());
+        flags_ |= HAS_ARGS_OBJ;
+        argsObj_ = &argsobj;
+    }
+    bool hasArgsObj() const {
+        return flags_ & HAS_ARGS_OBJ;
+    }
+    ArgumentsObject &argsObj() const {
+        JS_ASSERT(hasArgsObj());
+        JS_ASSERT(script()->needsArgsObj());
+        return *argsObj_;
+    }
 
     bool prevUpToDate() const {
         return flags_ & PREV_UP_TO_DATE;
@@ -332,6 +362,9 @@ class BaselineFrame
     }
     static size_t reverseOffsetOfBlockChain() {
         return -BaselineFrame::Size() + offsetof(BaselineFrame, blockChain_);
+    }
+    static size_t reverseOffsetOfArgsObj() {
+        return -BaselineFrame::Size() + offsetof(BaselineFrame, argsObj_);
     }
     static size_t reverseOffsetOfFlags() {
         return -BaselineFrame::Size() + offsetof(BaselineFrame, flags_);
