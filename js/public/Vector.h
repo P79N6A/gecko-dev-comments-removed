@@ -9,6 +9,7 @@
 #define jsvector_h_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/TypeTraits.h"
 
 #include "TemplateLib.h"
 #include "Utility.h"
@@ -184,7 +185,7 @@ class Vector : private AllocPolicy
 
     
 
-    static const bool sElemIsPod = tl::IsPodType<T>::result;
+    static const bool sElemIsPod = mozilla::IsPod<T>::result;
     typedef VectorImpl<T, N, AllocPolicy, sElemIsPod> Impl;
     friend struct VectorImpl<T, N, AllocPolicy, sElemIsPod>;
 

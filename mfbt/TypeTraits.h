@@ -7,6 +7,14 @@
 #ifndef mozilla_TypeTraits_h_
 #define mozilla_TypeTraits_h_
 
+
+
+
+
+
+
+#include <wchar.h>
+
 namespace mozilla {
 
 namespace detail {
@@ -169,6 +177,75 @@ template<typename T>
 struct EnableIf<true, T>
 {
     typedef T Type;
+};
+
+
+
+
+
+
+
+
+
+
+
+template<typename T, typename U>
+struct IsSame
+{
+    static const bool result = false;
+};
+
+template<typename T>
+struct IsSame<T,T>
+{
+    static const bool result = true;
+};
+
+
+
+
+
+template<typename T>
+struct IsPod
+{
+    static const bool result = false;
+};
+template<> struct IsPod<char>               { static const bool result = true; };
+template<> struct IsPod<signed char>        { static const bool result = true; };
+template<> struct IsPod<unsigned char>      { static const bool result = true; };
+template<> struct IsPod<short>              { static const bool result = true; };
+template<> struct IsPod<unsigned short>     { static const bool result = true; };
+template<> struct IsPod<int>                { static const bool result = true; };
+template<> struct IsPod<unsigned int>       { static const bool result = true; };
+template<> struct IsPod<long>               { static const bool result = true; };
+template<> struct IsPod<unsigned long>      { static const bool result = true; };
+template<> struct IsPod<long long>          { static const bool result = true; };
+template<> struct IsPod<unsigned long long> { static const bool result = true; };
+template<> struct IsPod<bool>               { static const bool result = true; };
+template<> struct IsPod<float>              { static const bool result = true; };
+template<> struct IsPod<double>             { static const bool result = true; };
+template<> struct IsPod<wchar_t>            { static const bool result = true; };
+template<typename T> struct IsPod<T*>       { static const bool result = true; };
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsPointer
+{
+    static const bool result = false;
+};
+template<typename T>
+struct IsPointer<T*>
+{
+    static const bool result = true;
 };
 
 } 
