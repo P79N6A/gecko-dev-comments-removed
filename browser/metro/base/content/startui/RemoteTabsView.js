@@ -68,6 +68,7 @@ RemoteTabsView.prototype = Util.extend(Object.create(View.prototype), {
     let tabsEngine = Weave.Service.engineManager.get("tabs");
     let list = this._set;
     let seenURLs = new Set();
+    let localURLs = tabsEngine.getOpenURLs();
 
     
     
@@ -76,7 +77,7 @@ RemoteTabsView.prototype = Util.extend(Object.create(View.prototype), {
     for (let [guid, client] in Iterator(tabsEngine.getAllClients())) {
       client.tabs.forEach(function({title, urlHistory, icon}) {
         let url = urlHistory[0];
-        if (tabsEngine.locallyOpenTabMatchesURL(url) || seenURLs.has(url)) {
+        if (!url || getOpenURLs.has(url) || seenURLs.has(url)) {
           return;
         }
         seenURLs.add(url);

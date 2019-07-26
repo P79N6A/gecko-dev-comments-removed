@@ -76,16 +76,12 @@ TabEngine.prototype = {
   
 
 
-
-
-
-
-
-
-  locallyOpenTabMatchesURL: function TabEngine_localTabMatches(url) {
-    return this._store.getAllTabs().some(function (tab) {
-      return tab.urlHistory[0] == url;
-    });
+  getOpenURLs: function () {
+    let urls = new Set();
+    for (let entry of this._store.getAllTabs()) {
+      urls.add(entry.urlHistory[0]);
+    }
+    return urls;
   }
 };
 
