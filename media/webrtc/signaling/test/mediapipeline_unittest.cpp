@@ -325,8 +325,7 @@ class MediaPipelineTest : public ::testing::Test {
     PR_Sleep(10000);
 
     ASSERT_GE(p1_.GetAudioRtpCount(), 40);
-
-
+    ASSERT_GE(p2_.GetAudioRtpCount(), 40);
     ASSERT_GE(p1_.GetAudioRtcpCount(), 1);
     ASSERT_GE(p2_.GetAudioRtcpCount(), 1);
 
