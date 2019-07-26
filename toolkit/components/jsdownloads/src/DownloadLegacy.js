@@ -29,7 +29,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
+                                  "resource://gre/modules/Promise.jsm");
 
 
 
@@ -89,9 +89,25 @@ DownloadLegacyTransfer.prototype = {
 
     if ((aStateFlags & Ci.nsIWebProgressListener.STATE_START) &&
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
+
+      
+      
+      let blockedByParentalControls = aRequest instanceof Ci.nsIHttpChannel &&
+                                      aRequest.responseStatus == 450;
+      if (blockedByParentalControls) {
+        aRequest.cancel(Cr.NS_BINDING_ABORTED);
+      }
+
       
       
       this._deferDownload.promise.then(download => {
+        
+        
+        
+        if (blockedByParentalControls) {
+          download._blockedByParentalControls = true;
+        }
+
         download.saver.onTransferStarted(
                          aRequest,
                          this._cancelable instanceof Ci.nsIHelperAppLauncher);
@@ -117,9 +133,9 @@ DownloadLegacyTransfer.prototype = {
       
       
       this._deferDownload.promise.then(download => {
-	
-	
-	if (Components.isSuccessCode(aStatus)) {
+        
+        
+        if (Components.isSuccessCode(aStatus)) {
           download.saver.setSha256Hash(this._sha256Hash);
         }
         download.saver.onTransferFinished(aRequest, aStatus);
