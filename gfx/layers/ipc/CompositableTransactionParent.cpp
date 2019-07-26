@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "CompositableTransactionParent.h"
 #include "ShadowLayers.h"
@@ -24,30 +24,16 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
                                                      EditReplyVector& replyv)
 {
   switch (aEdit.type()) {
-    case CompositableOperation::TOpCreatedSingleBuffer: {
-      MOZ_LAYERS_LOG(("[ParentSide] Created single buffer"));
-      const OpCreatedSingleBuffer& op = aEdit.get_OpCreatedSingleBuffer();
-      CompositableParent* compositableParent = static_cast<CompositableParent*>(op.compositableParent());
-      ContentHostBase* content = static_cast<ContentHostBase*>(compositableParent->GetCompositableHost());
+    case CompositableOperation::TOpCreatedTexture: {
+      MOZ_LAYERS_LOG(("[ParentSide] Created texture"));
+      const OpCreatedTexture& op = aEdit.get_OpCreatedTexture();
+      CompositableParent* compositableParent =
+        static_cast<CompositableParent*>(op.compositableParent());
+      CompositableHost* compositable = compositableParent->GetCompositableHost();
 
-      content->EnsureTextureHost(TextureFront, op.descriptor(),
-                                 compositableParent->GetCompositableManager(),
-                                 op.textureInfo());
-
-      break;
-    }
-    case CompositableOperation::TOpCreatedDoubleBuffer: {
-      MOZ_LAYERS_LOG(("[ParentSide] Created double buffer"));
-      const OpCreatedDoubleBuffer& op = aEdit.get_OpCreatedDoubleBuffer();
-      CompositableParent* compositableParent = static_cast<CompositableParent*>(op.compositableParent());
-      ContentHostBase* content = static_cast<ContentHostBase*>(compositableParent->GetCompositableHost());
-
-      content->EnsureTextureHost(TextureFront, op.frontDescriptor(),
-                                 compositableParent->GetCompositableManager(),
-                                 op.textureInfo());
-      content->EnsureTextureHost(TextureBack, op.backDescriptor(),
-                                 compositableParent->GetCompositableManager(),
-                                 op.textureInfo());
+      compositable->EnsureTextureHost(op.textureId(), op.descriptor(),
+                                      compositableParent->GetCompositableManager(),
+                                      op.textureInfo());
 
       break;
     }
@@ -76,10 +62,10 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
         compositable->SetCompositor(compositor);
         compositable->SetLayer(layer);
       } else {
-        // if we reach this branch, it most likely means that async textures
-        // are coming in before we had time to attach the conmpositable to a
-        // layer. Don't panic, it is okay in this case. it should not be
-        // happening continuously, though.
+        
+        
+        
+        
       }
 
       if (layer) {
@@ -154,6 +140,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
   return true;
 }
 
-} // namespace
-} // namespace
+} 
+} 
 
