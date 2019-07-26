@@ -45,6 +45,36 @@ function promiseStartDownload(aSourceUrl) {
 
 
 
+
+function promiseDownloadMidway(aDownload) {
+  let deferred = Promise.defer();
+
+  
+  let onchange = function () {
+    if (!aDownload.stopped && !aDownload.canceled && aDownload.progress == 50) {
+      aDownload.onchange = null;
+      deferred.resolve();
+    }
+  };
+
+  
+  
+  aDownload.onchange = onchange;
+  onchange();
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
 function promiseDownloadStopped(aDownload) {
   if (!aDownload.stopped) {
     
@@ -58,6 +88,53 @@ function promiseDownloadStopped(aDownload) {
 
   
   return Promise.reject(aDownload.error || new Error("Download canceled."));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseStartDownload_tryToKeepPartialData() {
+  return Task.spawn(function () {
+    mustInterruptResponses();
+
+    
+    let targetFilePath = getTempFile(TEST_TARGET_FILE_NAME).path;
+    let download = yield Downloads.createDownload({
+      source: httpUrl("interruptible_resumable.txt"),
+      target: { path: targetFilePath,
+                partFilePath: targetFilePath + ".part" },
+    });
+    download.tryToKeepPartialData = true;
+    download.start();
+
+    yield promiseDownloadMidway(download);
+
+    
+    
+    
+    
+    
+    try {
+      while (!(yield OS.File.exists(download.target.partFilePath))) {
+        yield promiseTimeout(50);
+      }
+    } catch (ex if ex instanceof OS.File.Error) {
+      
+      
+    }
+
+    throw new Task.Result(download);
+  });
 }
 
 
@@ -116,7 +193,6 @@ add_task(function test_referrer()
   function cleanup() {
     gHttpServer.registerPathHandler(sourcePath, null);
   }
-
   do_register_cleanup(cleanup);
 
   gHttpServer.registerPathHandler(sourcePath, function (aRequest, aResponse) {
@@ -191,7 +267,7 @@ add_task(function test_initial_final_state()
 
 add_task(function test_final_state_notified()
 {
-  let deferResponse = deferNextResponse();
+  mustInterruptResponses();
 
   let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
 
@@ -206,7 +282,7 @@ add_task(function test_final_state_notified()
 
   
   let promiseAttempt = download.start();
-  deferResponse.resolve();
+  continueResponses();
   yield promiseAttempt;
 
   
@@ -220,26 +296,18 @@ add_task(function test_final_state_notified()
 
 add_task(function test_intermediate_progress()
 {
-  let deferResponse = deferNextResponse();
+  mustInterruptResponses();
 
   let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
 
-  let onchange = function () {
-    if (download.progress == 50) {
-      do_check_true(download.hasProgress);
-      do_check_eq(download.currentBytes, TEST_DATA_SHORT.length);
-      do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
+  yield promiseDownloadMidway(download);
 
-      
-      deferResponse.resolve();
-    }
-  };
+  do_check_true(download.hasProgress);
+  do_check_eq(download.currentBytes, TEST_DATA_SHORT.length);
+  do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
 
   
-  
-  download.onchange = onchange;
-  onchange();
-
+  continueResponses();
   yield promiseDownloadStopped(download);
 
   do_check_true(download.stopped);
@@ -271,15 +339,30 @@ add_task(function test_empty_progress()
 
 add_task(function test_empty_noprogress()
 {
-  let deferResponse = deferNextResponse();
-  let promiseEmptyRequestReceived = promiseNextRequestReceived();
+  let sourcePath = "/test_empty_noprogress.txt";
+  let sourceUrl = httpUrl("test_empty_noprogress.txt");
+  let deferRequestReceived = Promise.defer();
 
+  
+  function cleanup() {
+    gHttpServer.registerPathHandler(sourcePath, null);
+  }
+  do_register_cleanup(cleanup);
+
+  registerInterruptibleHandler(sourcePath,
+    function firstPart(aRequest, aResponse) {
+      aResponse.setHeader("Content-Type", "text/plain", false);
+      deferRequestReceived.resolve();
+    }, function secondPart(aRequest, aResponse) { });
+
+  
+  mustInterruptResponses();
   let download;
   if (!gUseLegacySaver) {
     
     
     
-    download = yield promiseNewDownload(httpUrl("empty-noprogress.txt"));
+    download = yield promiseNewDownload(sourceUrl);
 
     download.onchange = function () {
       if (!download.stopped) {
@@ -294,14 +377,13 @@ add_task(function test_empty_noprogress()
     
     
     
-    download = yield promiseStartLegacyDownload(
-                                       httpUrl("empty-noprogress.txt"));
+    download = yield promiseStartLegacyDownload(sourceUrl);
   }
 
   
   
   
-  yield promiseEmptyRequestReceived;
+  yield deferRequestReceived.promise;
   yield promiseExecuteSoon();
 
   
@@ -311,7 +393,7 @@ add_task(function test_empty_noprogress()
   do_check_eq(download.totalBytes, 0);
 
   
-  deferResponse.resolve();
+  continueResponses();
   yield promiseDownloadStopped(download);
 
   
@@ -329,8 +411,7 @@ add_task(function test_empty_noprogress()
 
 add_task(function test_start_twice()
 {
-  
-  let deferResponse = deferNextResponse();
+  mustInterruptResponses();
 
   let download;
   if (!gUseLegacySaver) {
@@ -348,7 +429,7 @@ add_task(function test_start_twice()
   let promiseAttempt2 = download.start();
 
   
-  deferResponse.resolve();
+  continueResponses();
 
   
   yield promiseAttempt1;
@@ -368,7 +449,7 @@ add_task(function test_start_twice()
 
 add_task(function test_cancel_midway()
 {
-  let deferResponse = deferNextResponse();
+  mustInterruptResponses();
 
   
   
@@ -381,83 +462,51 @@ add_task(function test_cancel_midway()
                                                 options);
   }
 
-  try {
-    
-    let deferCancel = Promise.defer();
-    let onchange = function () {
-      if (!download.stopped && !download.canceled && download.progress == 50) {
-        deferCancel.resolve(download.cancel());
-
-        
-        
-        do_check_true(download.canceled);
-      }
-    };
-
-    
-    
-    
-    download.onchange = onchange;
-    onchange();
-
-    let promiseAttempt;
-    if (!gUseLegacySaver) {
-      promiseAttempt = download.start();
-    }
-
-    
-    
-    yield deferCancel.promise;
-
-    if (gUseLegacySaver) {
-      
-      do_check_eq(options.outPersist.result, Cr.NS_ERROR_ABORT);
-    }
-
-    do_check_true(download.stopped);
-    do_check_true(download.canceled);
-    do_check_true(download.error === null);
-
-    do_check_false(yield OS.File.exists(download.target.path));
-
-    
-    do_check_eq(download.progress, 50);
-    do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
-    do_check_eq(download.currentBytes, TEST_DATA_SHORT.length);
-
-    if (!gUseLegacySaver) {
-      
-      try {
-        yield promiseAttempt;
-        do_throw("The download should have been canceled.");
-      } catch (ex if ex instanceof Downloads.Error) {
-        do_check_false(ex.becauseSourceFailed);
-        do_check_false(ex.becauseTargetFailed);
-      }
-    }
-  } finally {
-    deferResponse.resolve();
-  }
-});
-
-
-
-
-add_task(function test_cancel_immediately()
-{
   
-  let deferResponse = deferNextResponse();
-  try {
-    let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+  let deferCancel = Promise.defer();
+  let onchange = function () {
+    if (!download.stopped && !download.canceled && download.progress == 50) {
+      
+      deferCancel.resolve(download.cancel());
 
-    let promiseAttempt = download.start();
-    do_check_false(download.stopped);
+      
+      
+      do_check_true(download.canceled);
+    }
+  };
 
-    let promiseCancel = download.cancel();
-    do_check_true(download.canceled);
+  
+  
+  
+  download.onchange = onchange;
+  onchange();
 
+  let promiseAttempt;
+  if (!gUseLegacySaver) {
+    promiseAttempt = download.start();
+  }
+
+  
+  
+  yield deferCancel.promise;
+
+  if (gUseLegacySaver) {
     
-    
+    do_check_eq(options.outPersist.result, Cr.NS_ERROR_ABORT);
+  }
+
+  do_check_true(download.stopped);
+  do_check_true(download.canceled);
+  do_check_true(download.error === null);
+
+  do_check_false(yield OS.File.exists(download.target.path));
+
+  
+  do_check_eq(download.progress, 50);
+  do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
+  do_check_eq(download.currentBytes, TEST_DATA_SHORT.length);
+
+  if (!gUseLegacySaver) {
     
     try {
       yield promiseAttempt;
@@ -466,26 +515,43 @@ add_task(function test_cancel_immediately()
       do_check_false(ex.becauseSourceFailed);
       do_check_false(ex.becauseTargetFailed);
     }
+  }
+});
 
-    do_check_true(download.stopped);
-    do_check_true(download.canceled);
-    do_check_true(download.error === null);
 
-    do_check_false(yield OS.File.exists(download.target.path));
 
-    
-    yield promiseCancel;
-  } finally {
-    deferResponse.resolve();
+
+add_task(function test_cancel_immediately()
+{
+  mustInterruptResponses();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+
+  let promiseAttempt = download.start();
+  do_check_false(download.stopped);
+
+  let promiseCancel = download.cancel();
+  do_check_true(download.canceled);
+
+  
+  
+  
+  try {
+    yield promiseAttempt;
+    do_throw("The download should have been canceled.");
+  } catch (ex if ex instanceof Downloads.Error) {
+    do_check_false(ex.becauseSourceFailed);
+    do_check_false(ex.becauseTargetFailed);
   }
 
+  do_check_true(download.stopped);
+  do_check_true(download.canceled);
+  do_check_true(download.error === null);
+
+  do_check_false(yield OS.File.exists(download.target.path));
+
   
-  
-  
-  
-  for (let i = 0; i < 5; i++) {
-    yield promiseExecuteSoon();
-  }
+  yield promiseCancel;
 });
 
 
@@ -498,26 +564,18 @@ add_task(function test_cancel_midway_restart()
     return;
   }
 
-  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  mustInterruptResponses();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
 
   
-  let deferResponse = deferNextResponse();
-  try {
-    let deferCancel = Promise.defer();
-    download.onchange = function () {
-      if (!download.stopped && !download.canceled && download.progress == 50) {
-        deferCancel.resolve(download.cancel());
-      }
-    };
-    download.start();
-    yield deferCancel.promise;
-  } finally {
-    deferResponse.resolve();
-  }
+  yield promiseDownloadMidway(download);
+  yield download.cancel();
 
   do_check_true(download.stopped);
 
   
+  continueResponses();
   download.onchange = null;
   let promiseAttempt = download.start();
 
@@ -547,6 +605,115 @@ add_task(function test_cancel_midway_restart()
 
 
 
+add_task(function test_cancel_midway_restart_tryToKeepPartialData()
+{
+  let download = yield promiseStartDownload_tryToKeepPartialData();
+  yield download.cancel();
+
+  do_check_true(download.stopped);
+  do_check_true(download.hasPartialData);
+
+  
+  do_check_false(yield OS.File.exists(download.target.path));
+  yield promiseVerifyContents(download.target.partFilePath, TEST_DATA_SHORT);
+
+  
+  do_check_eq(gMostRecentFirstBytePos, 0);
+
+  
+  continueResponses();
+  yield download.start();
+
+  
+  do_check_eq(gMostRecentFirstBytePos, TEST_DATA_SHORT.length);
+
+  
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+});
+
+
+
+
+
+add_task(function test_cancel_midway_restart_removePartialData()
+{
+  let download = yield promiseStartDownload_tryToKeepPartialData();
+  yield download.cancel();
+
+  do_check_true(download.hasPartialData);
+  yield promiseVerifyContents(download.target.partFilePath, TEST_DATA_SHORT);
+
+  yield download.removePartialData();
+
+  do_check_false(download.hasPartialData);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+
+  
+  continueResponses();
+  yield download.start();
+
+  
+  do_check_eq(gMostRecentFirstBytePos, 0);
+
+  
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+});
+
+
+
+
+
+
+add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
+{
+  let download = yield promiseStartDownload_tryToKeepPartialData();
+  yield download.cancel();
+
+  download.tryToKeepPartialData = false;
+
+  
+  do_check_true(download.hasPartialData);
+  yield promiseVerifyContents(download.target.partFilePath, TEST_DATA_SHORT);
+
+  yield download.removePartialData();
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+
+  
+  mustInterruptResponses();
+  download.start();
+
+  yield promiseDownloadMidway(download);
+
+  
+  do_check_false(download.hasPartialData);
+  do_check_true(yield OS.File.exists(download.target.partFilePath));
+
+  yield download.cancel();
+
+  
+  do_check_false(download.hasPartialData);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+
+  
+  continueResponses();
+  yield download.start();
+
+  
+  do_check_eq(gMostRecentFirstBytePos, 0);
+
+  
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+});
+
+
+
+
 add_task(function test_cancel_immediately_restart_immediately()
 {
   
@@ -554,12 +721,11 @@ add_task(function test_cancel_immediately_restart_immediately()
     return;
   }
 
-  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  mustInterruptResponses();
 
-  
-  let deferResponse = deferNextResponse();
-
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
   let promiseAttempt = download.start();
+
   do_check_false(download.stopped);
 
   download.cancel();
@@ -580,16 +746,7 @@ add_task(function test_cancel_immediately_restart_immediately()
 
   
   
-  
-  
-  for (let i = 0; i < 5; i++) {
-    yield promiseExecuteSoon();
-  }
-
-  
-  
-  deferResponse.resolve();
-
+  continueResponses();
   try {
     yield promiseAttempt;
     do_throw("The download should have been canceled.");
@@ -619,21 +776,13 @@ add_task(function test_cancel_midway_restart_immediately()
     return;
   }
 
-  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  mustInterruptResponses();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+  let promiseAttempt = download.start();
 
   
-  let deferResponse = deferNextResponse();
-
-  let deferMidway = Promise.defer();
-  download.onchange = function () {
-    if (!download.stopped && !download.canceled && download.progress == 50) {
-      do_check_eq(download.progress, 50);
-      deferMidway.resolve();
-    }
-  };
-  let promiseAttempt = download.start();
-  yield deferMidway.promise;
-
+  yield promiseDownloadMidway(download);
   download.cancel();
   do_check_true(download.canceled);
 
@@ -650,9 +799,8 @@ add_task(function test_cancel_midway_restart_immediately()
   do_check_eq(download.totalBytes, 0);
   do_check_eq(download.currentBytes, 0);
 
-  deferResponse.resolve();
-
   
+  continueResponses();
   try {
     yield promiseAttempt;
     do_throw("The download should have been canceled.");
@@ -696,39 +844,84 @@ add_task(function test_cancel_successful()
 
 add_task(function test_cancel_twice()
 {
-  
-  let deferResponse = deferNextResponse();
+  mustInterruptResponses();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+
+  let promiseAttempt = download.start();
+  do_check_false(download.stopped);
+
+  let promiseCancel1 = download.cancel();
+  do_check_true(download.canceled);
+  let promiseCancel2 = download.cancel();
+
   try {
-    let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
-
-    let promiseAttempt = download.start();
-    do_check_false(download.stopped);
-
-    let promiseCancel1 = download.cancel();
-    do_check_true(download.canceled);
-    let promiseCancel2 = download.cancel();
-
-    try {
-      yield promiseAttempt;
-      do_throw("The download should have been canceled.");
-    } catch (ex if ex instanceof Downloads.Error) {
-      do_check_false(ex.becauseSourceFailed);
-      do_check_false(ex.becauseTargetFailed);
-    }
-
-    
-    yield promiseCancel1;
-    yield promiseCancel2;
-
-    do_check_true(download.stopped);
-    do_check_false(download.succeeded);
-    do_check_true(download.canceled);
-    do_check_true(download.error === null);
-
-    do_check_false(yield OS.File.exists(download.target.path));
-  } finally {
-    deferResponse.resolve();
+    yield promiseAttempt;
+    do_throw("The download should have been canceled.");
+  } catch (ex if ex instanceof Downloads.Error) {
+    do_check_false(ex.becauseSourceFailed);
+    do_check_false(ex.becauseTargetFailed);
   }
+
+  
+  yield promiseCancel1;
+  yield promiseCancel2;
+
+  do_check_true(download.stopped);
+  do_check_false(download.succeeded);
+  do_check_true(download.canceled);
+  do_check_true(download.error === null);
+
+  do_check_false(yield OS.File.exists(download.target.path));
+});
+
+
+
+
+add_task(function test_finalize()
+{
+  mustInterruptResponses();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+
+  let promiseFinalized = download.finalize();
+
+  try {
+    yield download.start();
+    do_throw("It should not be possible to restart after finalization.");
+  } catch (ex) { }
+
+  yield promiseFinalized;
+
+  do_check_true(download.stopped);
+  do_check_false(download.succeeded);
+  do_check_true(download.canceled);
+  do_check_true(download.error === null);
+
+  do_check_false(yield OS.File.exists(download.target.path));
+});
+
+
+
+
+add_task(function test_finalize_tryToKeepPartialData()
+{
+  
+  let download = yield promiseStartDownload_tryToKeepPartialData();
+  yield download.finalize();
+
+  do_check_true(download.hasPartialData);
+  do_check_true(yield OS.File.exists(download.target.partFilePath));
+
+  
+  yield download.removePartialData();
+
+  
+  download = yield promiseStartDownload_tryToKeepPartialData();
+  yield download.finalize(true);
+
+  do_check_false(download.hasPartialData);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
 });
 
 
@@ -741,10 +934,9 @@ add_task(function test_whenSucceeded_after_restart()
     return;
   }
 
-  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  mustInterruptResponses();
 
-  
-  let deferResponse = deferNextResponse();
+  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
 
   
   let promiseSucceeded = download.whenSucceeded();
@@ -753,9 +945,8 @@ add_task(function test_whenSucceeded_after_restart()
   download.start();
   yield download.cancel();
 
-  deferResponse.resolve();
-
   
+  continueResponses();
   download.start();
 
   
@@ -1039,26 +1230,23 @@ add_task(function test_cancel_midway_restart_with_content_encoding()
   let download = yield promiseNewDownload(httpUrl("interruptible_gzip.txt"));
 
   
-  let deferResponse = deferNextResponse();
-  try {
-    let deferCancel = Promise.defer();
-    download.onchange = function () {
-      if (!download.stopped && !download.canceled &&
-          download.currentBytes == TEST_DATA_SHORT_GZIP_ENCODED_FIRST.length) {
-        deferCancel.resolve(download.cancel());
-      }
-    };
-    download.start();
-    yield deferCancel.promise;
-  } finally {
-    deferResponse.resolve();
-  }
+  mustInterruptResponses();
+  let deferCancel = Promise.defer();
+  download.onchange = function () {
+    if (!download.stopped && !download.canceled &&
+        download.currentBytes == TEST_DATA_SHORT_GZIP_ENCODED_FIRST.length) {
+      deferCancel.resolve(download.cancel());
+    }
+  };
+  download.start();
+  yield deferCancel.promise;
 
   do_check_true(download.stopped);
 
   
+  continueResponses();
   download.onchange = null;
-  yield download.start()
+  yield download.start();
 
   do_check_eq(download.progress, 100);
   do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);

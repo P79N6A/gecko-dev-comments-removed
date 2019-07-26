@@ -186,6 +186,19 @@ Download.prototype = {
   
 
 
+
+
+
+
+
+
+
+
+  hasPartialData: false,
+
+  
+
+
   onchange: null,
 
   
@@ -267,6 +280,13 @@ Download.prototype = {
     }
 
     
+    
+    if (this._finalized) {
+      return Promise.reject(new DownloadError(Cr.NS_ERROR_FAILURE,
+                                "Cannot start after finalization."));
+    }
+
+    
     this.stopped = false;
     this.canceled = false;
     this.error = null;
@@ -284,10 +304,10 @@ Download.prototype = {
 
     
     
-    function DS_setProgressBytes(aCurrentBytes, aTotalBytes)
+    function DS_setProgressBytes(aCurrentBytes, aTotalBytes, aHasPartialData)
     {
       if (this._currentAttempt == currentAttempt || !this._currentAttempt) {
-        this._setBytes(aCurrentBytes, aTotalBytes);
+        this._setBytes(aCurrentBytes, aTotalBytes, aHasPartialData);
       }
     }
 
@@ -318,6 +338,14 @@ Download.prototype = {
       
       if (this._promiseCanceled) {
         yield this._promiseCanceled;
+      }
+      if (this._promiseRemovePartialData) {
+        try {
+          yield this._promiseRemovePartialData;
+        } catch (ex) {
+          
+          
+        }
       }
 
       
@@ -478,6 +506,83 @@ Download.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+  tryToKeepPartialData: false,
+
+  
+
+
+
+
+  _promiseRemovePartialData: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  removePartialData: function ()
+  {
+    if (!this.canceled && !this.error) {
+      return Promise.resolve();
+    }
+
+    let promiseRemovePartialData = this._promiseRemovePartialData;
+
+    if (!promiseRemovePartialData) {
+      let deferRemovePartialData = Promise.defer();
+      promiseRemovePartialData = deferRemovePartialData.promise;
+      this._promiseRemovePartialData = promiseRemovePartialData;
+
+      deferRemovePartialData.resolve(
+        Task.spawn(function task_D_removePartialData() {
+          try {
+            
+            if (this._promiseCanceled) {
+              yield this._promiseCanceled;
+            }
+            
+            yield this.saver.removePartialData();
+            
+            if (this.currentBytes != 0 || this.hasPartialData) {
+              this.currentBytes = 0;
+              this.hasPartialData = false;
+              this._notifyChange();
+            }
+          } finally {
+            this._promiseRemovePartialData = null;
+          }
+        }.bind(this)));
+    }
+
+    return promiseRemovePartialData;
+  },
+
+  
+
+
+
+
   _deferSucceeded: null,
 
   
@@ -502,12 +607,58 @@ Download.prototype = {
 
 
 
+  _finalized: false,
+
+  
 
 
 
 
-  _setBytes: function D_setBytes(aCurrentBytes, aTotalBytes) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  finalize: function (aRemovePartialData)
+  {
+    
+    this._finalized = true;
+
+    if (aRemovePartialData) {
+      
+      
+      
+      this.cancel();
+      return this.removePartialData();
+    } else {
+      
+      return this.cancel();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _setBytes: function D_setBytes(aCurrentBytes, aTotalBytes, aHasPartialData) {
     this.currentBytes = aCurrentBytes;
+    this.hasPartialData = aHasPartialData;
     if (aTotalBytes != -1) {
       this.hasProgress = true;
       this.totalBytes = aTotalBytes;
@@ -680,11 +831,13 @@ DownloadSource.prototype = {
 DownloadSource.fromSerializable = function (aSerializable) {
   let source = new DownloadSource();
   if (isString(aSerializable)) {
-    source.url = aSerializable;
+    
+    source.url = aSerializable.toString();
   } else if (aSerializable instanceof Ci.nsIURI) {
     source.url = aSerializable.spec;
   } else {
-    source.url = aSerializable.url;
+    
+    source.url = aSerializable.url.toString();
     if ("isPrivate" in aSerializable) {
       source.isPrivate = aSerializable.isPrivate;
     }
@@ -715,10 +868,22 @@ DownloadTarget.prototype = {
 
 
 
+  partFilePath: null,
+
+  
+
+
+
+
   toSerializable: function ()
   {
     
-    return this.path;
+    if (!this.partFilePath) {
+      return this.path;
+    }
+
+    return { path: this.path,
+             partFilePath: this.partFilePath };
   },
 };
 
@@ -738,14 +903,18 @@ DownloadTarget.prototype = {
 DownloadTarget.fromSerializable = function (aSerializable) {
   let target = new DownloadTarget();
   if (isString(aSerializable)) {
-    target.path = aSerializable;
+    
+    target.path = aSerializable.toString();
   } else if (aSerializable instanceof Ci.nsIFile) {
     
     target.path = aSerializable.path;
   } else {
     
     
-    target.path = aSerializable.path;
+    target.path = aSerializable.path.toString();
+    if ("partFilePath" in aSerializable) {
+      target.partFilePath = aSerializable.partFilePath;
+    }
   }
   return target;
 };
@@ -787,6 +956,7 @@ function DownloadError(aResult, aMessage, aInferCause)
     this.becauseSourceFailed = (module == NS_ERROR_MODULE_NETWORK);
     this.becauseTargetFailed = (module == NS_ERROR_MODULE_FILES);
   }
+  this.stack = new Error().stack;
 }
 
 DownloadError.prototype = {
@@ -832,9 +1002,15 @@ DownloadSaver.prototype = {
   
 
 
+
+
+
+
   download: null,
 
   
+
+
 
 
 
@@ -864,6 +1040,22 @@ DownloadSaver.prototype = {
   cancel: function DS_cancel()
   {
     throw new Error("Not implemented.");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  removePartialData: function DS_removePartialData()
+  {
+    return Promise.resolve();
   },
 
   
@@ -923,106 +1115,210 @@ DownloadCopySaver.prototype = {
   
 
 
+
+
+  _canceled: false,
+
+  
+
+
   execute: function DCS_execute(aSetProgressBytesFn, aSetPropertiesFn)
   {
-    let deferred = Promise.defer();
+    let copySaver = this;
+
+    this._canceled = false;
+
     let download = this.download;
+    let targetPath = download.target.path;
+    let partFilePath = download.target.partFilePath;
+    let keepPartialData = download.tryToKeepPartialData;
 
-    
-    let backgroundFileSaver = new BackgroundFileSaverStreamListener();
-    try {
+    return Task.spawn(function task_DCS_execute() {
       
       
-      backgroundFileSaver.observer = {
-        onTargetChange: function () { },
-        onSaveComplete: function DCSE_onSaveComplete(aSaver, aStatus)
-        {
-          
-          backgroundFileSaver.observer = null;
-          this._backgroundFileSaver = null;
-
-          
-          if (Components.isSuccessCode(aStatus)) {
-            deferred.resolve();
-          } else {
-            
-            
-            deferred.reject(new DownloadError(aStatus, null, true));
-          }
-        },
-      };
-
       
-      backgroundFileSaver.setTarget(new FileUtils.File(download.target.path),
-                                    false);
-
       
-      let channel = NetUtil.newChannel(NetUtil.newURI(download.source.url));
-      if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
-        channel.setPrivate(download.source.isPrivate);
-      }
-      if (channel instanceof Ci.nsIHttpChannel && download.source.referrer) {
-        channel.referrer = NetUtil.newURI(download.source.referrer);
+      
+      try {
+        
+        let file = yield OS.File.open(targetPath, { write: true });
+        yield file.close();
+      } catch (ex if ex instanceof OS.File.Error) {
+        
+        
+        
+        let error = new DownloadError(Cr.NS_ERROR_FAILURE, ex.toString());
+        error.becauseTargetFailed = true;
+        throw error;
       }
 
-      channel.notificationCallbacks = {
-        QueryInterface: XPCOMUtils.generateQI([Ci.nsIInterfaceRequestor]),
-        getInterface: XPCOMUtils.generateQI([Ci.nsIProgressEventSink]),
-        onProgress: function DCSE_onProgress(aRequest, aContext, aProgress,
-                                             aProgressMax)
-        {
-          aSetProgressBytesFn(aProgress, aProgressMax);
-        },
-        onStatus: function () { },
-      };
+      try {
+        let deferSaveComplete = Promise.defer();
 
-      
-      backgroundFileSaver.QueryInterface(Ci.nsIStreamListener);
-      channel.asyncOpen({
-        onStartRequest: function DCSE_onStartRequest(aRequest, aContext)
-        {
-          backgroundFileSaver.onStartRequest(aRequest, aContext);
+        if (this._canceled) {
+          
+          
+          throw new DownloadError(Cr.NS_ERROR_FAILURE, "Saver canceled.");
+        }
+
+        
+        let backgroundFileSaver = new BackgroundFileSaverStreamListener();
+        try {
+          
+          
+          backgroundFileSaver.observer = {
+            onTargetChange: function () { },
+            onSaveComplete: function DCSE_onSaveComplete(aSaver, aStatus)
+            {
+              
+              backgroundFileSaver.observer = null;
+              this._backgroundFileSaver = null;
+
+              
+              if (Components.isSuccessCode(aStatus)) {
+                deferSaveComplete.resolve();
+              } else {
+                
+                
+                deferSaveComplete.reject(new DownloadError(aStatus, null,
+                                                           true));
+              }
+            },
+          };
 
           
           
-          if (aRequest instanceof Ci.nsIChannel &&
-              aRequest.contentLength >= 0) {
-            aSetProgressBytesFn(0, aRequest.contentLength);
-            aSetPropertiesFn({ contentType: aRequest.contentType });
+          let channel = NetUtil.newChannel(NetUtil.newURI(download.source.url));
+          if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
+            channel.setPrivate(download.source.isPrivate);
           }
-        },
-        onStopRequest: function DCSE_onStopRequest(aRequest, aContext,
-                                                   aStatusCode)
-        {
-          try {
-            backgroundFileSaver.onStopRequest(aRequest, aContext, aStatusCode);
-          } finally {
-            
-            
-            
-            if (Components.isSuccessCode(aStatusCode)) {
-              backgroundFileSaver.finish(Cr.NS_OK);
-            }
+          if (channel instanceof Ci.nsIHttpChannel &&
+              download.source.referrer) {
+            channel.referrer = NetUtil.newURI(download.source.referrer);
           }
-        },
-        onDataAvailable: function DCSE_onDataAvailable(aRequest, aContext,
-                                                       aInputStream, aOffset,
-                                                       aCount)
-        {
-          backgroundFileSaver.onDataAvailable(aRequest, aContext, aInputStream,
-                                              aOffset, aCount);
-        },
-      }, null);
 
-      
-      this._backgroundFileSaver = backgroundFileSaver;
-    } catch (ex) {
-      
-      
-      deferred.reject(ex);
-      backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
-    }
-    return deferred.promise;
+          
+          
+          let resumeAttempted = false;
+          if (channel instanceof Ci.nsIResumableChannel && this.entityID &&
+              partFilePath && keepPartialData) {
+            try {
+              let stat = yield OS.File.stat(partFilePath);
+              channel.resumeAt(stat.size, this.entityID);
+              resumeAttempted = true;
+            } catch (ex if ex instanceof OS.File.Error &&
+                           ex.becauseNoSuchFile) { }
+          }
+
+          channel.notificationCallbacks = {
+            QueryInterface: XPCOMUtils.generateQI([Ci.nsIInterfaceRequestor]),
+            getInterface: XPCOMUtils.generateQI([Ci.nsIProgressEventSink]),
+            onProgress: function DCSE_onProgress(aRequest, aContext, aProgress,
+                                                 aProgressMax)
+            {
+              aSetProgressBytesFn(aProgress, aProgressMax, aProgress > 0 &&
+                                  partFilePath && keepPartialData);
+            },
+            onStatus: function () { },
+          };
+
+          
+          backgroundFileSaver.QueryInterface(Ci.nsIStreamListener);
+          channel.asyncOpen({
+            onStartRequest: function (aRequest, aContext) {
+              backgroundFileSaver.onStartRequest(aRequest, aContext);
+
+              
+              
+              
+              if (aRequest instanceof Ci.nsIChannel &&
+                  aRequest.contentLength >= 0) {
+                aSetProgressBytesFn(0, aRequest.contentLength);
+                aSetPropertiesFn({ contentType: aRequest.contentType });
+              }
+
+              if (keepPartialData) {
+                
+                
+                if (aRequest instanceof Ci.nsIResumableChannel) {
+                  try {
+                    
+                    this.entityID = aRequest.entityID;
+                  } catch (ex if ex instanceof Components.Exception &&
+                                 ex.result == Cr.NS_ERROR_NOT_RESUMABLE) {
+                    keepPartialData = false;
+                  }
+                } else {
+                  keepPartialData = false;
+                }
+              }
+
+              if (partFilePath) {
+                
+                if (resumeAttempted) {
+                  
+                  backgroundFileSaver.enableAppend();
+                }
+
+                
+                backgroundFileSaver.setTarget(new FileUtils.File(partFilePath),
+                                              keepPartialData);
+              } else {
+                
+                backgroundFileSaver.setTarget(new FileUtils.File(targetPath),
+                                              false);
+              }
+            }.bind(copySaver),
+
+            onStopRequest: function (aRequest, aContext, aStatusCode) {
+              try {
+                backgroundFileSaver.onStopRequest(aRequest, aContext,
+                                                  aStatusCode);
+              } finally {
+                
+                
+                
+                if (Components.isSuccessCode(aStatusCode)) {
+                  if (partFilePath) {
+                    
+                    backgroundFileSaver.setTarget(
+                                        new FileUtils.File(targetPath), false);
+                  }
+                  backgroundFileSaver.finish(Cr.NS_OK);
+                }
+              }
+            }.bind(copySaver),
+
+            onDataAvailable: function (aRequest, aContext, aInputStream,
+                                       aOffset, aCount) {
+              backgroundFileSaver.onDataAvailable(aRequest, aContext,
+                                                  aInputStream, aOffset,
+                                                  aCount);
+            }.bind(copySaver),
+          }, null);
+
+          
+          this._backgroundFileSaver = backgroundFileSaver;
+        } catch (ex) {
+          
+          
+          backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
+          throw ex;
+        }
+
+        
+        
+        yield deferSaveComplete.promise;
+      } catch (ex) {
+        
+        
+        
+        try {
+          yield OS.File.remove(targetPath);
+        } catch (e2 if e2 instanceof OS.File.Error && e2.becauseNoSuchFile) { }
+        throw ex;
+      }
+    }.bind(this));
   },
 
   
@@ -1030,10 +1326,25 @@ DownloadCopySaver.prototype = {
 
   cancel: function DCS_cancel()
   {
+    this._canceled = true;
     if (this._backgroundFileSaver) {
       this._backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
       this._backgroundFileSaver = null;
     }
+  },
+
+  
+
+
+  removePartialData: function ()
+  {
+    return Task.spawn(function task_DCS_removePartialData() {
+      if (this.download.target.partFilePath) {
+        try {
+          yield OS.File.remove(this.download.target.partFilePath);
+        } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) { }
+      }
+    }.bind(this));
   },
 
   

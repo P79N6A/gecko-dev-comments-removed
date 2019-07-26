@@ -390,6 +390,7 @@ function startFakeServer()
 
 
 
+let _gDeferResponses = Promise.defer();
 
 
 
@@ -409,36 +410,26 @@ function startFakeServer()
 
 
 
-
-function deferNextResponse()
+function mustInterruptResponses()
 {
-  do_print("Interruptible request will be controlled.");
-
   
-  if (!deferNextResponse._deferred) {
-    deferNextResponse._deferred = Promise.defer();
-  }
-  return deferNextResponse._deferred;
+  
+  
+  
+  _gDeferResponses.resolve();
+
+  do_print("Interruptible responses will be blocked midway.");
+  _gDeferResponses = Promise.defer();
 }
 
 
 
 
-
-
-
-
-
-
-function promiseNextRequestReceived()
+function continueResponses()
 {
-  do_print("Requested notification when interruptible request is received.");
-
-  
-  promiseNextRequestReceived._deferred = Promise.defer();
-  return promiseNextRequestReceived._deferred.promise;
+  do_print("Interruptible responses are now allowed to continue.");
+  _gDeferResponses.resolve();
 }
-
 
 
 
@@ -455,37 +446,18 @@ function promiseNextRequestReceived()
 function registerInterruptibleHandler(aPath, aFirstPartFn, aSecondPartFn)
 {
   gHttpServer.registerPathHandler(aPath, function (aRequest, aResponse) {
-    
-    
-    let deferResponse = deferNextResponse._deferred;
-    deferNextResponse._deferred = null;
-    if (deferResponse) {
-      do_print("Interruptible request started under control.");
-    } else {
-      do_print("Interruptible request started without being controlled.");
-      deferResponse = Promise.defer();
-      deferResponse.resolve();
-    }
+    do_print("Interruptible request started.");
 
     
     aResponse.processAsync();
     aFirstPartFn(aRequest, aResponse);
 
-    if (promiseNextRequestReceived._deferred) {
-      do_print("Notifying that interruptible request has been received.");
-      promiseNextRequestReceived._deferred.resolve();
-      promiseNextRequestReceived._deferred = null;
-    }
-
     
-    deferResponse.promise.then(function RIH_onSuccess() {
+    _gDeferResponses.promise.then(function RIH_onSuccess() {
       aSecondPartFn(aRequest, aResponse);
       aResponse.finish();
       do_print("Interruptible request finished.");
-    }, function RIH_onFailure() {
-      aResponse.abort();
-      do_print("Interruptible request aborted.");
-    });
+    }).then(null, Cu.reportError);
   });
 }
 
@@ -498,6 +470,12 @@ function registerInterruptibleHandler(aPath, aFirstPartFn, aSecondPartFn)
 function isValidDate(aDate) {
   return aDate && aDate.getTime && !isNaN(aDate.getTime());
 }
+
+
+
+
+
+let gMostRecentFirstBytePos;
 
 
 
@@ -519,11 +497,48 @@ add_task(function test_common_initialize()
       aResponse.write(TEST_DATA_SHORT);
     });
 
-  registerInterruptibleHandler("/empty-noprogress.txt",
+  registerInterruptibleHandler("/interruptible_resumable.txt",
     function firstPart(aRequest, aResponse) {
       aResponse.setHeader("Content-Type", "text/plain", false);
-    }, function secondPart(aRequest, aResponse) { });
 
+      
+      let data = TEST_DATA_SHORT + TEST_DATA_SHORT;
+      if (aRequest.hasHeader("Range")) {
+        var matches = aRequest.getHeader("Range")
+                              .match(/^\s*bytes=(\d+)?-(\d+)?\s*$/);
+        var firstBytePos = (matches[1] === undefined) ? 0 : matches[1];
+        var lastBytePos = (matches[2] === undefined) ? data.length - 1
+                                            : matches[2];
+        if (firstBytePos >= data.length) {
+          aResponse.setStatusLine(aRequest.httpVersion, 416,
+                             "Requested Range Not Satisfiable");
+          aResponse.setHeader("Content-Range", "*/" + data.length, false);
+          aResponse.finish();
+          return;
+        }
+
+        aResponse.setStatusLine(aRequest.httpVersion, 206, "Partial Content");
+        aResponse.setHeader("Content-Range", firstBytePos + "-" +
+                                             lastBytePos + "/" +
+                                             data.length, false);
+
+        data = data.substring(firstBytePos, lastBytePos + 1);
+
+        gMostRecentFirstBytePos = firstBytePos;
+      } else {
+        gMostRecentFirstBytePos = 0;
+      }
+
+      aResponse.setHeader("Content-Length", "" + data.length, false);
+
+      aResponse.write(data.substring(0, data.length / 2));
+
+      
+      
+      aResponse.secondPartData = data.substring(data.length / 2);
+    }, function secondPart(aRequest, aResponse) {
+      aResponse.write(aResponse.secondPartData);
+    });
 
   registerInterruptibleHandler("/interruptible_gzip.txt",
     function firstPart(aRequest, aResponse) {

@@ -107,6 +107,11 @@ DownloadList.prototype = {
 
 
 
+
+
+
+
+
   remove: function DL_remove(aDownload) {
     let index = this._downloads.indexOf(aDownload);
     if (index != -1) {
@@ -208,7 +213,14 @@ DownloadList.prototype = {
         
         if ((download.succeeded || download.canceled || download.error) &&
             aTestFn(download)) {
+          
+          
           this.remove(download);
+          
+          
+          
+          
+          download.finalize(true);
         }
       }
     }.bind(this)).then(null, Cu.reportError);
