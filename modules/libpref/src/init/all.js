@@ -3962,3 +3962,7 @@ pref("wap.UAProf.tagname", "x-wap-profile");
 
 
 pref("ui.touch_activation.delay_ms", 50);
+
+
+
+pref("memory_info_dumper.watch_fifo", false);
