@@ -35,6 +35,8 @@
 USING_BLUETOOTH_NAMESPACE
 using namespace mozilla;
 using namespace mozilla::ipc;
+using mozilla::TimeDuration;
+using mozilla::TimeStamp;
 
 namespace {
 
@@ -52,6 +54,10 @@ static const uint32_t kPutRequestHeaderSize = 6;
 
 
 static const uint32_t kPutRequestAppendHeaderSize = 5;
+
+
+
+static const double kSdpUpdatingTimeoutMs = 3000.0;
 
 StaticRefPtr<BluetoothOppManager> sBluetoothOppManager;
 static bool sInShutdown = false;
@@ -1546,9 +1552,17 @@ BluetoothOppManager::OnGetServiceChannel(const nsAString& aDeviceAddress,
   if (aChannel < 0) {
     if (mNeedsUpdatingSdpRecords) {
       mNeedsUpdatingSdpRecords = false;
+      mLastServiceChannelCheck = TimeStamp::Now();
       bs->UpdateSdpRecords(aDeviceAddress, this);
     } else {
-      OnSocketConnectError(mSocket);
+      TimeDuration duration = TimeStamp::Now() - mLastServiceChannelCheck;
+      
+      
+      if (duration.ToMilliseconds() < kSdpUpdatingTimeoutMs) {
+        bs->UpdateSdpRecords(aDeviceAddress, this);
+      } else {
+        OnSocketConnectError(mSocket);
+      }
     }
 
     return;
