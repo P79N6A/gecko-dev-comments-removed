@@ -193,11 +193,11 @@ class CodeGeneratorShared : public LInstructionVisitor
   protected:
     
     
-    
     size_t allocateCache(const IonCache &, size_t size) {
         size_t dataOffset = allocateData(size);
+        size_t index = cacheList_.length();
         masm.propagateOOM(cacheList_.append(dataOffset));
-        return dataOffset;
+        return index;
     }
 
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -206,31 +206,11 @@ class CodeGeneratorShared : public LInstructionVisitor
 #endif
 
   public:
-
     
     
-    
-    friend class DataPtr;
-    template <typename T>
-    class DataPtr
-    {
-        CodeGeneratorShared *cg_;
-        size_t index_;
-
-        T *lookup() {
-            return reinterpret_cast<T *>(&cg_->runtimeData_[index_]);
-        }
-      public:
-        DataPtr(CodeGeneratorShared *cg, size_t index)
-          : cg_(cg), index_(index) { }
-
-        T * operator ->() {
-            return lookup();
-        }
-        T * operator *() {
-            return lookup();
-        }
-    };
+    IonCache *getCache(size_t index) {
+        return reinterpret_cast<IonCache *>(&runtimeData_[cacheList_[index]]);
+    }
 
   protected:
 
@@ -245,8 +225,7 @@ class CodeGeneratorShared : public LInstructionVisitor
     inline size_t allocateCache(const T &cache) {
         size_t index = allocateCache(cache, sizeof(mozilla::AlignedStorage2<T>));
         
-        JS_ASSERT(index == cacheList_.back());
-        new (&runtimeData_[index]) T(cache);
+        new (&runtimeData_[cacheList_.back()]) T(cache);
         return index;
     }
 
@@ -382,7 +361,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
     bool addCache(LInstruction *lir, size_t cacheIndex);
-    size_t addCacheLocations(const CacheLocationList &locs, size_t *numLocs);
 
   protected:
     bool addOutOfLineCode(OutOfLineCode *code);

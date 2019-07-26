@@ -903,22 +903,5 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock *mir, Assembler::Condition cond)
     }
 }
 
-size_t
-CodeGeneratorShared::addCacheLocations(const CacheLocationList &locs, size_t *numLocs)
-{
-    size_t firstIndex = runtimeData_.length();
-    size_t numLocations = 0;
-    for (CacheLocationList::iterator iter = locs.begin(); iter != locs.end(); iter++) {
-        
-        
-        size_t curIndex = allocateData(sizeof(CacheLocation));
-        new (&runtimeData_[curIndex]) CacheLocation(iter->pc, iter->script);
-        numLocations++;
-    }
-    JS_ASSERT(numLocations != 0);
-    *numLocs = numLocations;
-    return firstIndex;
-}
-
 } 
 } 
