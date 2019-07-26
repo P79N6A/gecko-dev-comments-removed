@@ -274,14 +274,6 @@ public:
   }
 
   
-  bool IsSeekableInBufferedRanges() {
-    if (mReader) {
-      return mReader->IsSeekableInBufferedRanges();
-    }
-    return false;
-  }
-
-  
   
   void SetFrameBufferLength(uint32_t aLength);
 

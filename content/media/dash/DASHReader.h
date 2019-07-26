@@ -116,9 +116,6 @@ public:
   VideoData* FindStartTime(int64_t& aOutStartTime);
 
   
-  bool IsSeekableInBufferedRanges();
-
-  
   
   
   
