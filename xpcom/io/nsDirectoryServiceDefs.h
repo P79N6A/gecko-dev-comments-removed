@@ -122,6 +122,11 @@
     #define NS_WIN_PRINTHOOD                    "PrntHd"
     #define NS_WIN_COOKIES_DIR                  "CookD"
     #define NS_WIN_DEFAULT_DOWNLOAD_DIR         "DfltDwnld"
+    
+    
+    
+    
+    #define NS_WIN_DOCUMENTS_DIR                "Docs"
     #define NS_WIN_PICTURES_DIR                 "Pict"
     #define NS_WIN_MUSIC_DIR                    "Music"
     #define NS_WIN_VIDEOS_DIR                   "Vids"
