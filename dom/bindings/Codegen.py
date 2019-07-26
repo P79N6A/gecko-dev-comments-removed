@@ -507,6 +507,7 @@ class CGHeaders(CGWrapper):
         
         
         bindingHeaders = set()
+        declareIncludes = set(declareIncludes)
         def addHeadersForType(t, descriptor=None, dictionary=None):
             """
             Add the relevant headers for this type.  We use descriptor and
@@ -529,7 +530,19 @@ class CGHeaders(CGWrapper):
                             typeDesc = p.getDescriptor(unrolled.inner.identifier.name)
                         except NoSuchDescriptorError:
                             continue
-                        implementationIncludes.add(typeDesc.headerFile)
+                        if dictionary:
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            declareIncludes.add(typeDesc.headerFile)
+                        else:
+                            implementationIncludes.add(typeDesc.headerFile)
                         bindingHeaders.add(self.getDeclarationFilename(typeDesc.interface))
             elif unrolled.isDictionary():
                 bindingHeaders.add(self.getDeclarationFilename(unrolled.inner))
@@ -556,7 +569,6 @@ class CGHeaders(CGWrapper):
                     
                     bindingHeaders.add("/".join(func.split("::")[:-1]) + ".h")
 
-        declareIncludes = set(declareIncludes)
         for d in dictionaries:
             if d.parent:
                 declareIncludes.add(self.getDeclarationFilename(d.parent))
