@@ -290,7 +290,21 @@ xShmUnmap(sqlite3_file *pFile, int delFlag){
   rc = p->pReal->pMethods->xShmUnmap(p->pReal, delFlag);
   return rc;
 }
- 
+
+int
+xFetch(sqlite3_file *pFile, sqlite3_int64 iOff, int iAmt, void **pp)
+{
+  telemetry_file *p = (telemetry_file *)pFile;
+  return p->pReal->pMethods->xFetch(p->pReal, iOff, iAmt, pp);
+}
+
+int
+xUnfetch(sqlite3_file *pFile, sqlite3_int64 iOff, void *pResOut)
+{
+  telemetry_file *p = (telemetry_file *)pFile;
+  return p->pReal->pMethods->xUnfetch(p->pReal, iOff, pResOut);
+}
+
 int
 xOpen(sqlite3_vfs* vfs, const char *zName, sqlite3_file* pFile,
           int flags, int *pOutFlags)
@@ -337,7 +351,10 @@ xOpen(sqlite3_vfs* vfs, const char *zName, sqlite3_file* pFile,
     sqlite3_io_methods *pNew = new sqlite3_io_methods;
     const sqlite3_io_methods *pSub = p->pReal->pMethods;
     memset(pNew, 0, sizeof(*pNew));
-    pNew->iVersion = pSub->iVersion;
+    
+    
+    pNew->iVersion = 3;
+    MOZ_ASSERT(pNew->iVersion == pSub->iVersion);
     pNew->xClose = xClose;
     pNew->xRead = xRead;
     pNew->xWrite = xWrite;
@@ -350,12 +367,19 @@ xOpen(sqlite3_vfs* vfs, const char *zName, sqlite3_file* pFile,
     pNew->xFileControl = xFileControl;
     pNew->xSectorSize = xSectorSize;
     pNew->xDeviceCharacteristics = xDeviceCharacteristics;
-    if( pNew->iVersion>=2 ){
-      pNew->xShmMap = pSub->xShmMap ? xShmMap : 0;
-      pNew->xShmLock = pSub->xShmLock ? xShmLock : 0;
-      pNew->xShmBarrier = pSub->xShmBarrier ? xShmBarrier : 0;
-      pNew->xShmUnmap = pSub->xShmUnmap ? xShmUnmap : 0;
-    }
+    
+    pNew->xShmMap = pSub->xShmMap ? xShmMap : 0;
+    pNew->xShmLock = pSub->xShmLock ? xShmLock : 0;
+    pNew->xShmBarrier = pSub->xShmBarrier ? xShmBarrier : 0;
+    pNew->xShmUnmap = pSub->xShmUnmap ? xShmUnmap : 0;
+    
+    
+    
+    
+    MOZ_ASSERT(pSub->xFetch);
+    pNew->xFetch = xFetch;
+    MOZ_ASSERT(pSub->xUnfetch);
+    pNew->xUnfetch = xUnfetch;
     pFile->pMethods = pNew;
   }
   return rc;
@@ -499,8 +523,9 @@ sqlite3_vfs* ConstructTelemetryVFS()
 
   sqlite3_vfs *tvfs = new ::sqlite3_vfs;
   memset(tvfs, 0, sizeof(::sqlite3_vfs));
-  tvfs->iVersion = 3;
   
+  
+  tvfs->iVersion = 3;
   MOZ_ASSERT(vfs->iVersion == tvfs->iVersion);
   tvfs->szOsFile = sizeof(telemetry_file) - sizeof(sqlite3_file) + vfs->szOsFile;
   tvfs->mxPathname = vfs->mxPathname;
