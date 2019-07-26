@@ -149,46 +149,45 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
 
     NS_WARN_IF_FALSE(foundAlreadyExistingTouch, "Touch ended, but not in list");
 
-    if (event.mTime - mTapStartTime <= MAX_TAP_TIME) {
-      if (mState == GESTURE_WAITING_DOUBLE_TAP &&
-          event.mTime - mLastTapEndTime > MAX_TAP_TIME) {
+    if (mState == GESTURE_WAITING_DOUBLE_TAP) {
+      CancelDoubleTapTimeoutTask();
+      if (mTapStartTime - mLastTapEndTime > MAX_TAP_TIME ||
+          event.mTime - mTapStartTime > MAX_TAP_TIME) {
         
         
-        CancelDoubleTapTimeoutTask();
         TimeoutDoubleTap();
-
-        
         mState = GESTURE_WAITING_SINGLE_TAP;
-      }
-
-      if (mState == GESTURE_WAITING_DOUBLE_TAP) {
-        CancelDoubleTapTimeoutTask();
+      } else {
         
         HandleDoubleTap(event);
         mState = GESTURE_NONE;
-      } else if (mState == GESTURE_WAITING_SINGLE_TAP) {
-        CancelLongTapTimeoutTask();
-        HandleSingleTapUpEvent(event);
-
-        
-        
-        
-        mState = GESTURE_WAITING_DOUBLE_TAP;
-
-        mDoubleTapTimeoutTask =
-          NewRunnableMethod(this, &GestureEventListener::TimeoutDoubleTap);
-
-        mAsyncPanZoomController->PostDelayedTask(
-          mDoubleTapTimeoutTask,
-          MAX_TAP_TIME);
       }
-
-      mLastTapEndTime = event.mTime;
     }
 
-    if (mState == GESTURE_WAITING_SINGLE_TAP) {
+    if (mState == GESTURE_WAITING_SINGLE_TAP &&
+        event.mTime - mTapStartTime > MAX_TAP_TIME) {
+      
+      CancelLongTapTimeoutTask();
+      HandleSingleTapConfirmedEvent(event);
       mState = GESTURE_NONE;
+    } else if (mState == GESTURE_WAITING_SINGLE_TAP) {
+      CancelLongTapTimeoutTask();
+      HandleSingleTapUpEvent(event);
+
+      
+      
+      
+      mState = GESTURE_WAITING_DOUBLE_TAP;
+
+      mDoubleTapTimeoutTask =
+        NewRunnableMethod(this, &GestureEventListener::TimeoutDoubleTap);
+
+      mAsyncPanZoomController->PostDelayedTask(
+        mDoubleTapTimeoutTask,
+        MAX_TAP_TIME);
     }
+
+    mLastTapEndTime = event.mTime;
 
     if (!mTouches.Length()) {
       mSpanChange = 0.0f;
