@@ -172,20 +172,6 @@ public:
               const BluetoothNamedValue& aValue,
               BluetoothReplyRunnable* aRunnable) = 0;
 
-  
-
-
-
-
-
-
-
-
-  virtual bool
-  GetDevicePath(const nsAString& aAdapterPath,
-                const nsAString& aDeviceAddress,
-                nsAString& aDevicePath) = 0;
-
   virtual nsresult
   CreatePairedDeviceInternal(const nsAString& aAddress,
                              int aTimeout,
@@ -194,12 +180,6 @@ public:
   virtual nsresult
   RemoveDeviceInternal(const nsAString& aObjectPath,
                        BluetoothReplyRunnable* aRunnable) = 0;
-
-  virtual nsresult
-  GetScoSocket(const nsAString& aObjectPath,
-               bool aAuth,
-               bool aEncrypt,
-               mozilla::ipc::UnixSocketConsumer* aConsumer) = 0;
 
   
 

@@ -25,7 +25,7 @@ public:
   }
 
   static BluetoothHidManager* Get();
-  ~BluetoothHidManager();
+  virtual ~BluetoothHidManager();
 
   
   void HandleInputPropertyChanged(const BluetoothSignal& aSignal);
