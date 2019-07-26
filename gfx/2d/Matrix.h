@@ -122,6 +122,12 @@ public:
     return resultMatrix;
   }
 
+  Matrix& operator*=(const Matrix &aMatrix)
+  {
+    Matrix resultMatrix = *this * aMatrix;
+    return *this = resultMatrix;
+  }
+
   
 
 
@@ -157,6 +163,13 @@ public:
     return _11 == 1.0f && _12 == 0.0f &&
            _21 == 0.0f && _22 == 1.0f &&
            _31 == 0.0f && _32 == 0.0f;
+  }
+
+  
+
+  bool IsSingular() const
+  {
+    return Determinant() == 0;
   }
 
   GFX2D_API void NudgeToIntegers();
