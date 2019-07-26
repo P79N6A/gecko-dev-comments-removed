@@ -612,10 +612,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     if (argsObj)
         blFrame->initArgsObjUnchecked(*argsObj);
 
-    
-    
-    blFrame->setBlockChainNull();
-
     if (fun) {
         
         

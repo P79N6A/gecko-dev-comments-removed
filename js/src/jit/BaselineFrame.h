@@ -69,11 +69,13 @@ class BaselineFrame
     uint32_t hiReturnValue_;
     uint32_t frameSize_;
     JSObject *scopeChain_;          
-    StaticBlockObject *blockChain_; 
     JSScript *evalScript_;          
     ArgumentsObject *argsObj_;      
     void *hookData_;                
     uint32_t flags_;
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding_;              
+#endif
 
   public:
     
@@ -207,26 +209,6 @@ class BaselineFrame
     }
     inline Value *addressOfReturnValue() {
         return reinterpret_cast<Value *>(&loReturnValue_);
-    }
-
-    bool hasBlockChain() const {
-        return blockChain_;
-    }
-    StaticBlockObject &blockChain() const {
-        JS_ASSERT(hasBlockChain());
-        return *blockChain_;
-    }
-    StaticBlockObject *maybeBlockChain() const {
-        return hasBlockChain() ? blockChain_ : nullptr;
-    }
-    void setBlockChain(StaticBlockObject &block) {
-        blockChain_ = &block;
-    }
-    void setBlockChainNull() {
-        blockChain_ = nullptr;
-    }
-    StaticBlockObject **addressOfBlockChain() {
-        return &blockChain_;
     }
 
     bool hasCallObj() const {
@@ -377,9 +359,6 @@ class BaselineFrame
     }
     static int reverseOffsetOfScopeChain() {
         return -int(Size()) + offsetof(BaselineFrame, scopeChain_);
-    }
-    static int reverseOffsetOfBlockChain() {
-        return -int(Size()) + offsetof(BaselineFrame, blockChain_);
     }
     static int reverseOffsetOfArgsObj() {
         return -int(Size()) + offsetof(BaselineFrame, argsObj_);
