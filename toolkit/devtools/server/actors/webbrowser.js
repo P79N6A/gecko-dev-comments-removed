@@ -157,15 +157,6 @@ BrowserRootActor.prototype = {
     let tabActorList = [];
 
     
-    let actor = this._chromeDebugger;
-    if (!actor) {
-      actor = new ChromeDebuggerActor(this);
-      actor.parentID = this.actorID;
-      this._chromeDebugger = actor;
-      actorPool.addActor(actor);
-    }
-
-    
     let e = windowMediator.getEnumerator("navigator:browser");
     let top = windowMediator.getMostRecentWindow("navigator:browser");
     let selected;
@@ -207,8 +198,7 @@ BrowserRootActor.prototype = {
     let response = {
       "from": "root",
       "selected": selected,
-      "tabs": [actor.grip() for (actor of tabActorList)],
-      "chromeDebugger": this._chromeDebugger.actorID
+      "tabs": [actor.grip() for (actor of tabActorList)]
     };
     this._appendExtraActors(response);
     return response;
