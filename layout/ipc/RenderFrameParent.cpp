@@ -790,12 +790,11 @@ RenderFrameParent::NotifyInputEvent(const nsInputEvent& aEvent,
 }
 
 void
-RenderFrameParent::NotifyDimensionsChanged(int width, int height)
+RenderFrameParent::NotifyDimensionsChanged(ScreenIntSize size)
 {
   if (mPanZoomController) {
-    
     mPanZoomController->UpdateCompositionBounds(
-      LayerIntRect::FromUnknownRect(gfx::IntRect(0, 0, width, height)));
+      ScreenIntRect(ScreenIntPoint(), size));
   }
 }
 

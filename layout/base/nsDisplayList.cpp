@@ -676,8 +676,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   if (nsIWidget* widget = aForFrame->GetNearestWidget()) {
     nsIntRect bounds;
     widget->GetBounds(bounds);
-    
-    metrics.mCompositionBounds = LayerIntRect::FromUnknownRect(
+    metrics.mCompositionBounds = ScreenIntRect::FromUnknownRect(
       mozilla::gfx::IntRect(bounds.x, bounds.y, bounds.width, bounds.height));
   }
 

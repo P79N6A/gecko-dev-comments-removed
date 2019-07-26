@@ -118,7 +118,7 @@ public:
   
   
   
-  LayerIntRect mCompositionBounds;
+  ScreenIntRect mCompositionBounds;
 
   
   

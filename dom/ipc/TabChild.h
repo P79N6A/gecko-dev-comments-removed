@@ -441,7 +441,7 @@ private:
     nsRefPtr<TabChildGlobal> mTabChildGlobal;
     uint32_t mChromeFlags;
     nsIntRect mOuterRect;
-    nsIntSize mInnerSize;
+    ScreenIntSize mInnerSize;
     
     
     nsIntPoint mGestureDownPoint;

@@ -111,7 +111,7 @@ public:
 
 
 
-  void UpdateCompositionBounds(const LayerIntRect& aCompositionBounds);
+  void UpdateCompositionBounds(const ScreenIntRect& aCompositionBounds);
 
   
 
