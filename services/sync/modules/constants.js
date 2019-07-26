@@ -6,7 +6,6 @@
 
 this.EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
 
-WEAVE_CHANNEL:                         "@weave_channel@",
 WEAVE_VERSION:                         "@weave_version@",
 
 
@@ -18,10 +17,6 @@ MISC_API_VERSION:                      "1.0",
 
 
 STORAGE_VERSION:                       5,
-
-UPDATED_DEV_URL:                       "https://services.mozilla.com/sync/updated/?version=@weave_version@&channel=@weave_channel@",
-UPDATED_REL_URL:                       "http://www.mozilla.com/firefox/sync/updated.html",
-
 PREFS_BRANCH:                          "services.sync.",
 
 
