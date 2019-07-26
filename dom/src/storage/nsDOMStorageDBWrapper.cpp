@@ -203,6 +203,15 @@ nsDOMStorageDBWrapper::RemoveAll()
 }
 
 nsresult
+nsDOMStorageDBWrapper::RemoveAllForApp(uint32_t aAppId, bool aOnlyBrowserElement)
+{
+  
+  
+  
+  return mPersistentDB.RemoveAllForApp(aAppId, aOnlyBrowserElement);
+}
+
+nsresult
 nsDOMStorageDBWrapper::GetUsage(DOMStorageImpl* aStorage, int32_t *aUsage)
 {
   IMPL_FORWARDER(GetUsage(aStorage, aUsage));
