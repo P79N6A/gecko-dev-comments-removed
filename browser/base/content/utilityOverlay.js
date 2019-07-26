@@ -650,41 +650,6 @@ function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup, aR
 }
 
 
-
-
-
-
-
-
-
-
-
- 
-function isValidFeed(aLink, aPrincipal, aIsFeed)
-{
-  if (!aLink || !aPrincipal)
-    return false;
-
-  var type = aLink.type.toLowerCase().replace(/^\s+|\s*(?:;.*)?$/g, "");
-  if (!aIsFeed) {
-    aIsFeed = (type == "application/rss+xml" ||
-               type == "application/atom+xml");
-  }
-
-  if (aIsFeed) {
-    try {
-      urlSecurityCheck(aLink.href, aPrincipal,
-                       Components.interfaces.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL);
-      return type || "application/rss+xml";
-    }
-    catch(ex) {
-    }
-  }
-
-  return null;
-}
-
-
 function openHelpLink(aHelpTopic, aCalledFromModal, aWhere) {
   var url = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
                       .getService(Components.interfaces.nsIURLFormatter)

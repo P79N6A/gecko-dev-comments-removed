@@ -11,6 +11,8 @@ Cu.import("resource://gre/modules/NotificationDB.jsm");
 Cu.import("resource:///modules/RecentWindow.jsm");
 Cu.import("resource://gre/modules/WindowsPrefSync.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Feeds",
+                                  "resource:///modules/Feeds.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
@@ -2837,7 +2839,7 @@ const DOMLinkHandler = {
             if (!rels.feed && rels.alternate && rels.stylesheet)
               break;
 
-            if (isValidFeed(link, link.ownerDocument.nodePrincipal, "feed" in rels)) {
+            if (Feeds.isValidFeed(link, link.ownerDocument.nodePrincipal, "feed" in rels)) {
               FeedHandler.addFeed(link, link.ownerDocument);
               feedAdded = true;
             }
@@ -5281,12 +5283,9 @@ function FoldCharset(charset) {
   
   if (charset == "ISO-8859-8-I") {
     return "windows-1255";
-  }
-
-  if (charset == "gb18030") {
+  } else if (charset == "gb18030") {
     return "gbk";
   }
-
   return charset;
 }
 
