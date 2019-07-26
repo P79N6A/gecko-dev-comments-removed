@@ -156,8 +156,6 @@ class FreeSpan
     uintptr_t   last;
 
   public:
-    FreeSpan() {}
-
     
     
     void initBoundsUnchecked(uintptr_t first, uintptr_t last) {
@@ -236,6 +234,7 @@ class FreeSpan
         return false;
     }
 
+  private:
     
     
     void checkSpan(size_t thingSize = 0) const {
