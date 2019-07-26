@@ -57,7 +57,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   addFrame:
   function DVSF_addFrame(aFrameName, aFrameDetails, aDepth, aOptions = {}) {
     
-    DebuggerView.showPanesIfPreffered();
+    DebuggerView.showPanesSoon();
 
     
     let stackframeItem = this.push(aFrameName, aFrameDetails, {

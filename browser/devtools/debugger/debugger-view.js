@@ -81,7 +81,10 @@ let DebuggerView = {
 
     this._stackframesAndBreakpoints.setAttribute("width", Prefs.stackframesWidth);
     this._variables.setAttribute("width", Prefs.variablesWidth);
-    this.togglePanes({ visible: false, animated: false, silent: true });
+    this.togglePanes({
+      visible: Prefs.panesVisibleOnStartup,
+      animated: false
+    });
   },
 
   
@@ -318,24 +321,9 @@ let DebuggerView = {
 
 
   get panesHidden()
-    this.stackframesAndBreakpointsHidden && this.variablesHidden,
+    this._togglePanesButton.hasAttribute("panesHidden"),
 
   
-
-
-
-  get stackframesAndBreakpointsHidden()
-    !!this._togglePanesButton.getAttribute("stackframesAndBreakpointsHidden"),
-
-  
-
-
-
-  get variablesHidden()
-    !!this._togglePanesButton.getAttribute("variablesHidden"),
-
-  
-
 
 
 
@@ -344,99 +332,55 @@ let DebuggerView = {
 
 
   togglePanes: function DV__togglePanes(aFlags = {}) {
-    this._toggleStackframesAndBreakpointsPane(aFlags);
-    this._toggleVariablesPane(aFlags);
-  },
-
-  
-
-
-
-  showPanesIfPreffered: function DV_showPanesIfPreffered() {
-    let self = this;
-
     
-    window.setTimeout(function() {
-      let target;
-
-      if (Prefs.stackframesPaneVisible && self.stackframesAndBreakpointsHidden) {
-        self._toggleStackframesAndBreakpointsPane({
-          visible: true,
-          animated: true,
-          silent: true
-        });
-        target = self._stackframesAndBreakpoints;
-      }
-      if (Prefs.variablesPaneVisible && self.variablesHidden) {
-        self._toggleVariablesPane({
-          visible: true,
-          animated: true,
-          silent: true
-        });
-        target = self._variables;
-      }
-      
-      
-      
-      if (target) {
-        target.addEventListener("transitionend", function onEvent() {
-          target.removeEventListener("transitionend", onEvent, false);
-          self.updateEditor();
-        }, false);
-      }
-    }, PANES_APPEARANCE_DELAY);
-  },
-
-  
-
-
-
-  _toggleStackframesAndBreakpointsPane:
-  function DV__toggleStackframesAndBreakpointsPane(aFlags) {
-    if (aFlags.animated) {
-      this._stackframesAndBreakpoints.setAttribute("animated", "");
-    } else {
-      this._stackframesAndBreakpoints.removeAttribute("animated");
+    if (aFlags.visible == !this.panesHidden) {
+      return;
     }
+
     if (aFlags.visible) {
       this._stackframesAndBreakpoints.style.marginLeft = "0";
-      this._togglePanesButton.removeAttribute("stackframesAndBreakpointsHidden");
+      this._variables.style.marginRight = "0";
+      this._togglePanesButton.removeAttribute("panesHidden");
       this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("collapsePanes"));
     } else {
-      let margin = parseInt(this._stackframesAndBreakpoints.getAttribute("width")) + 1;
-      this._stackframesAndBreakpoints.style.marginLeft = -margin + "px";
-      this._togglePanesButton.setAttribute("stackframesAndBreakpointsHidden", "true");
+      let marginL = ~~(this._stackframesAndBreakpoints.getAttribute("width")) + 1;
+      let marginR = ~~(this._variables.getAttribute("width")) + 1;
+      this._stackframesAndBreakpoints.style.marginLeft = -marginL + "px";
+      this._variables.style.marginRight = -marginR + "px";
+      this._togglePanesButton.setAttribute("panesHidden", "true");
       this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("expandPanes"));
     }
-    if (!aFlags.silent) {
-      Prefs.stackframesPaneVisible = !!aFlags.visible;
+
+    if (aFlags.animated) {
+      this._stackframesAndBreakpoints.setAttribute("animated", "");
+      this._variables.setAttribute("animated", "");
+
+      
+      
+      
+      let self = this;
+
+      window.addEventListener("transitionend", function onEvent() {
+        window.removeEventListener("transitionend", onEvent, false);
+        self.updateEditor();
+      }, false);
+    } else {
+      this._stackframesAndBreakpoints.removeAttribute("animated");
+      this._variables.removeAttribute("animated");
     }
   },
 
   
 
 
-
-  _toggleVariablesPane:
-  function DV__toggleVariablesPane(aFlags) {
-    if (aFlags.animated) {
-      this._variables.setAttribute("animated", "");
-    } else {
-      this._variables.removeAttribute("animated");
-    }
-    if (aFlags.visible) {
-      this._variables.style.marginRight = "0";
-      this._togglePanesButton.removeAttribute("variablesHidden");
-      this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("collapsePanes"));
-    } else {
-      let margin = parseInt(this._variables.getAttribute("width")) + 1;
-      this._variables.style.marginRight = -margin + "px";
-      this._togglePanesButton.setAttribute("variablesHidden", "true");
-      this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("expandPanes"));
-    }
-    if (!aFlags.silent) {
-      Prefs.variablesPaneVisible = !!aFlags.visible;
-    }
+  showPanesSoon: function DV__showPanesSoon() {
+    
+    window.setTimeout(function() {
+      DebuggerView.togglePanes({
+        visible: true,
+        animated: true
+      });
+    }, PANES_APPEARANCE_DELAY);
   },
 
   

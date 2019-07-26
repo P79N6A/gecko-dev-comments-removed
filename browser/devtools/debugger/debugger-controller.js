@@ -1198,9 +1198,8 @@ XPCOMUtils.defineLazyGetter(L10N, "ellipsis", function() {
 });
 
 const STACKFRAMES_WIDTH = "devtools.debugger.ui.stackframes-width";
-const STACKFRAMES_VISIBLE = "devtools.debugger.ui.stackframes-pane-visible";
 const VARIABLES_WIDTH = "devtools.debugger.ui.variables-width";
-const VARIABLES_PANE_VISIBLE = "devtools.debugger.ui.variables-pane-visible";
+const PANES_VISIBLE_ON_STARTUP = "devtools.debugger.ui.panes-visible-on-startup";
 const NON_ENUM_VISIBLE = "devtools.debugger.ui.non-enum-visible";
 const REMOTE_AUTO_CONNECT = "devtools.debugger.remote-autoconnect";
 const REMOTE_HOST = "devtools.debugger.remote-host";
@@ -1236,26 +1235,6 @@ let Prefs = {
 
 
 
-  get stackframesPaneVisible() {
-    if (this._stackframesVisible === undefined) {
-      this._stackframesVisible = Services.prefs.getBoolPref(STACKFRAMES_VISIBLE);
-    }
-    return this._stackframesVisible;
-  },
-
-  
-
-
-
-  set stackframesPaneVisible(value) {
-    Services.prefs.setBoolPref(STACKFRAMES_VISIBLE, value);
-    this._stackframesVisible = value;
-  },
-
-  
-
-
-
   get variablesWidth() {
     if (this._variablesWidth === undefined) {
       this._variablesWidth = Services.prefs.getIntPref(VARIABLES_WIDTH);
@@ -1270,26 +1249,6 @@ let Prefs = {
   set variablesWidth(value) {
     Services.prefs.setIntPref(VARIABLES_WIDTH, value);
     this._variablesWidth = value;
-  },
-
-  
-
-
-
-  get variablesPaneVisible() {
-    if (this._variablesVisible === undefined) {
-      this._variablesVisible = Services.prefs.getBoolPref(VARIABLES_PANE_VISIBLE);
-    }
-    return this._variablesVisible;
-  },
-
-  
-
-
-
-  set variablesPaneVisible(value) {
-    Services.prefs.setBoolPref(VARIABLES_PANE_VISIBLE, value);
-    this._variablesVisible = value;
   },
 
   
@@ -1312,6 +1271,26 @@ let Prefs = {
   set remoteAutoConnect(value) {
     Services.prefs.setBoolPref(REMOTE_AUTO_CONNECT, value);
     this._autoConnect = value;
+  },
+
+  
+
+
+
+  get panesVisibleOnStartup() {
+    if (this._panesVisible === undefined) {
+      this._panesVisible = Services.prefs.getBoolPref(PANES_VISIBLE_ON_STARTUP);
+    }
+    return this._panesVisible;
+  },
+
+  
+
+
+
+  set panesVisibleOnStartup(value) {
+    Services.prefs.setBoolPref(PANES_VISIBLE_ON_STARTUP, value);
+    this._panesVisible = value;
   },
 
   
