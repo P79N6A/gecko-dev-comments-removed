@@ -33,22 +33,6 @@ static const mozilla::TrackID TRACK_VIDEO = 1;
 
 
 void
-LocalSourceStreamInfo::NotifyQueuedTrackChanges(
-  mozilla::MediaStreamGraph* aGraph,
-  mozilla::TrackID aID,
-  mozilla::TrackRate aTrackRate,
-  mozilla::TrackTicks aTrackOffset,
-  uint32_t aTrackEvents,
-  const mozilla::MediaSegment& aQueuedMedia)
-{
-  
-}
-
-
-
-
-
-void
 LocalSourceStreamInfo::ExpectAudio(const mozilla::TrackID aID)
 {
   mAudioTracks.AppendElement(aID);
@@ -195,13 +179,6 @@ PeerConnectionMedia::AddStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream
 
   if (hints & nsDOMMediaStream::HINT_CONTENTS_VIDEO) {
     localSourceStream->ExpectVideo(TRACK_VIDEO);
-  }
-
-  
-  mozilla::MediaStream *plainMediaStream = stream->GetStream();
-
-  if (plainMediaStream) {
-    plainMediaStream->AddListener(localSourceStream);
   }
 
   mLocalSourceStreams.AppendElement(localSourceStream);

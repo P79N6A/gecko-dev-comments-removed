@@ -157,31 +157,13 @@ class Fake_VideoGenerator {
 };
 #endif
 
-class LocalSourceStreamInfo : public mozilla::MediaStreamListener {
+class LocalSourceStreamInfo {
 public:
   LocalSourceStreamInfo(nsDOMMediaStream* aMediaStream)
     : mMediaStream(aMediaStream) {}
   ~LocalSourceStreamInfo() {
     mMediaStream = NULL;
   }
-
-  
-
-
-
-
-
-  virtual void NotifyQueuedTrackChanges(
-    mozilla::MediaStreamGraph* aGraph,
-    mozilla::TrackID aID,
-    mozilla::TrackRate aTrackRate,
-    mozilla::TrackTicks aTrackOffset,
-    uint32_t aTrackEvents,
-    const mozilla::MediaSegment& aQueuedMedia
-  );
-
-  virtual void NotifyPull(mozilla::MediaStreamGraph* aGraph,
-    mozilla::StreamTime aDesiredTime) {}
 
   nsDOMMediaStream* GetMediaStream() {
     return mMediaStream;
@@ -195,17 +177,15 @@ public:
 
   void Detach() {
     
-    GetMediaStream()->GetStream()->RemoveListener(this);
-
-    
     for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
            mPipelines.begin(); it != mPipelines.end();
          ++it) {
-      it->second->DetachMediaStream();
+      it->second->Shutdown();
     }
     mMediaStream = NULL;
   }
 
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LocalSourceStreamInfo)
 private:
   std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> > mPipelines;
   nsRefPtr<nsDOMMediaStream> mMediaStream;
@@ -229,7 +209,7 @@ class RemoteSourceStreamInfo {
     for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
            mPipelines.begin(); it != mPipelines.end();
          ++it) {
-      it->second->DetachMediaStream();
+      it->second->Shutdown();
     }
     mMediaStream = NULL;
   }
