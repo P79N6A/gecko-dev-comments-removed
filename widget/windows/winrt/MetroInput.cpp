@@ -16,6 +16,8 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TouchEvents.h"
 #include "WinUtils.h"
+#include "nsIPresShell.h"
+#include "nsEventStateManager.h"
 
 
 #include <windows.ui.core.h> 
@@ -966,7 +968,6 @@ MetroInput::HandleTap(const Foundation::Point& aPoint, unsigned int aTapCount)
     return;
   }
 
-  
   WidgetMouseEvent* mouseEvent =
     new WidgetMouseEvent(true, NS_MOUSE_MOVE, mWidget.Get(),
                          WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
@@ -975,7 +976,6 @@ MetroInput::HandleTap(const Foundation::Point& aPoint, unsigned int aTapCount)
   mouseEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
   DispatchAsyncEventIgnoreStatus(mouseEvent);
 
-  
   mouseEvent =
     new WidgetMouseEvent(true, NS_MOUSE_BUTTON_DOWN, mWidget.Get(),
                          WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
@@ -993,22 +993,6 @@ MetroInput::HandleTap(const Foundation::Point& aPoint, unsigned int aTapCount)
   mouseEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
   mouseEvent->button = WidgetMouseEvent::buttonType::eLeftButton;
   DispatchAsyncEventIgnoreStatus(mouseEvent);
-
-  
-  
-  
-  
-  POINT point;
-  if (GetCursorPos(&point)) {
-    ScreenToClient((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW), &point);
-    mouseEvent =
-      new WidgetMouseEvent(true, NS_MOUSE_MOVE, mWidget.Get(),
-                           WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
-    mouseEvent->refPoint = LayoutDeviceIntPoint(point.x, point.y);
-    mouseEvent->clickCount = aTapCount;
-    mouseEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
-    DispatchAsyncEventIgnoreStatus(mouseEvent);
-  }
 }
 
 void
@@ -1048,11 +1032,27 @@ MetroInput::DispatchAsyncEventIgnoreStatus(WidgetInputEvent* aEvent)
 void
 MetroInput::DeliverNextQueuedEventIgnoreStatus()
 {
-  WidgetGUIEvent* event =
+  nsAutoPtr<WidgetGUIEvent> event =
     static_cast<WidgetGUIEvent*>(mInputEventQueue.PopFront());
-  MOZ_ASSERT(event);
-  DispatchEventIgnoreStatus(event);
-  delete event;
+  MOZ_ASSERT(event.get());
+  DispatchEventIgnoreStatus(event.get());
+
+  
+  WidgetMouseEvent* mouseEvent = event.get()->AsMouseEvent();
+  if (!mouseEvent) {
+    return;
+  }
+  if (mouseEvent->message != NS_MOUSE_BUTTON_UP ||
+      mouseEvent->inputSource != nsIDOMMouseEvent::MOZ_SOURCE_TOUCH) {
+    return;
+  }
+  nsCOMPtr<nsIPresShell> presShell = mWidget->GetPresShell();
+  if (presShell) {
+    nsEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
+    if (esm) {
+      esm->SetContentState(nullptr, NS_EVENT_STATE_HOVER);
+    }
+  }
 }
 
 void
