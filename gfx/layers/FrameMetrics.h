@@ -18,6 +18,16 @@ namespace layers {
 
 
 
+struct ParentLayerPixel {};
+
+typedef gfx::ScaleFactor<LayoutDevicePixel, ParentLayerPixel> LayoutDeviceToParentLayerScale;
+typedef gfx::ScaleFactor<ParentLayerPixel, LayerPixel> ParentLayerToLayerScale;
+
+typedef gfx::ScaleFactor<ParentLayerPixel, ScreenPixel> ParentLayerToScreenScale;
+
+
+
+
 
 
 
@@ -39,6 +49,7 @@ public:
     , mScrollId(NULL_SCROLL_ID)
     , mScrollableRect(0, 0, 0, 0)
     , mResolution(1)
+    , mCumulativeResolution(1)
     , mZoom(1)
     , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
@@ -57,6 +68,7 @@ public:
            mScrollId == aOther.mScrollId &&
            mScrollableRect.IsEqualEdges(aOther.mScrollableRect) &&
            mResolution == aOther.mResolution &&
+           mCumulativeResolution == aOther.mCumulativeResolution &&
            mDevPixelsPerCSSPixel == aOther.mDevPixelsPerCSSPixel &&
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
            mPresShellId == aOther.mPresShellId;
@@ -86,12 +98,17 @@ public:
 
   CSSToLayerScale LayersPixelsPerCSSPixel() const
   {
-    return mResolution * mDevPixelsPerCSSPixel;
+    return mCumulativeResolution * mDevPixelsPerCSSPixel;
   }
 
   LayerPoint GetScrollOffsetInLayerPixels() const
   {
     return mScrollOffset * LayersPixelsPerCSSPixel();
+  }
+
+  LayoutDeviceToParentLayerScale GetParentResolution() const
+  {
+    return mCumulativeResolution / mResolution;
   }
 
   
@@ -218,8 +235,11 @@ public:
   
   
   
+  ParentLayerToLayerScale mResolution;
+
   
-  LayoutDeviceToLayerScale mResolution;
+  
+  LayoutDeviceToLayerScale mCumulativeResolution;
 
   
   
