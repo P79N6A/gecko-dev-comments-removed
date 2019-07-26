@@ -2,6 +2,8 @@
 
 
 
+var TIMEOUT_LENGTH = 10000;
+
 
 
 
@@ -12,12 +14,11 @@
 
 
 function MediaStreamPlayback(mediaElement, mediaStream) {
-
-  
   this.mediaElement = mediaElement;
-
-  
   this.mediaStream = mediaStream;
+}
+
+MediaStreamPlayback.prototype = {
 
   
 
@@ -29,15 +30,35 @@ function MediaStreamPlayback(mediaElement, mediaStream) {
 
 
 
-  this.startMedia = function(timeoutLength, onSuccess, onError) {
+
+  playMedia : function MSP_playMedia(isResume, onSuccess, onError) {
+    var self = this;
+
+    this.startMedia(isResume, function() {
+      self.stopMediaElement();
+      onSuccess();
+    }, onError);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  startMedia : function MSP_startMedia(isResume, onSuccess, onError) {
     var self = this;
     var canPlayThroughFired = false;
 
     
-    ok(this.mediaStream instanceof LocalMediaStream,
-      "Stream should be a LocalMediaStream");
-    is(this.mediaStream.currentTime, 0,
-      "Before starting the media element, currentTime = 0");
+    if (!isResume) {
+      is(this.mediaStream.currentTime, 0,
+         "Before starting the media element, currentTime = 0");
+    }
 
     
 
@@ -81,11 +102,11 @@ function MediaStreamPlayback(mediaElement, mediaStream) {
       var timeUpdateFired = false;
 
       var timeUpdateCallback = function() {
-        if(self.mediaStream.currentTime > 0 &&
-           self.mediaElement.currentTime > 0) {
+        if (self.mediaStream.currentTime > 0 &&
+            self.mediaElement.currentTime > 0) {
           timeUpdateFired = true;
-          self.mediaElement.removeEventListener('timeupdate', timeUpdateCallback,
-            false);
+          self.mediaElement.removeEventListener('timeupdate',
+            timeUpdateCallback, false);
           onSuccess();
         }
       };
@@ -97,13 +118,13 @@ function MediaStreamPlayback(mediaElement, mediaStream) {
 
       
       setTimeout(function() {
-        if(!timeUpdateFired) {
+        if (!timeUpdateFired) {
           self.mediaElement.removeEventListener('timeupdate',
             timeUpdateCallback, false);
           ok(false, "timeUpdate event never fired");
           onError();
         }
-      }, timeoutLength);
+      }, TIMEOUT_LENGTH);
     };
 
     
@@ -112,19 +133,19 @@ function MediaStreamPlayback(mediaElement, mediaStream) {
       false);
 
     
-    this.mediaElement.mozSrcObject = mediaStream;
+    this.mediaElement.mozSrcObject = this.mediaStream;
     this.mediaElement.play();
 
     
     setTimeout(function() {
-      if(!canPlayThroughFired) {
+      if (!canPlayThroughFired) {
         self.mediaElement.removeEventListener('canplaythrough',
           canPlayThroughCallback, false);
         ok(false, "canplaythrough event never fired");
         onError();
       }
-    }, timeoutLength);
-  };
+    }, TIMEOUT_LENGTH);
+  },
 
   
 
@@ -132,28 +153,93 @@ function MediaStreamPlayback(mediaElement, mediaStream) {
 
 
 
-  this.stopMedia = function() {
+  stopMediaElement : function MSP_stopMediaElement() {
     this.mediaElement.pause();
     this.mediaElement.mozSrcObject = null;
-  };
+  }
+}
+
+
+
+
+
+
+
+
+
+
+function LocalMediaStreamPlayback(mediaElement, mediaStream) {
+  ok(mediaStream instanceof LocalMediaStream,
+     "Stream should be a LocalMediaStream");
+  MediaStreamPlayback.call(this, mediaElement, mediaStream);
+}
+
+
+LocalMediaStreamPlayback.prototype = new MediaStreamPlayback();
+LocalMediaStreamPlayback.prototype.constructor = LocalMediaStreamPlayback;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+LocalMediaStreamPlayback.prototype.playMediaWithStreamStop = function(
+  isResume, onSuccess, onError) {
+  var self = this;
+
+  this.startMedia(isResume, function() {
+    self.stopStreamInMediaPlayback(function() {
+      self.stopMediaElement();
+      onSuccess();
+    }, onError);
+  }, onError);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+LocalMediaStreamPlayback.prototype.stopStreamInMediaPlayback = function(
+  onSuccess, onError) {
+  var endedFired = false;
+  var self = this;
 
   
 
 
 
-
-
-
-
-
-
-
-  this.playMedia = function(timeoutLength, onSuccess, onError) {
-    var self = this;
-
-    this.startMedia(timeoutLength, function() {
-      self.stopMedia();
-      onSuccess();
-    }, onError);
+  var endedCallback = function() {
+    endedFired = true;
+    self.mediaElement.removeEventListener('ended', endedCallback, false);
+    ok(true, "ended event successfully fired");
+    onSuccess();
   };
+
+  this.mediaElement.addEventListener('ended', endedCallback, false);
+  this.mediaStream.stop();
+
+  
+  setTimeout(function() {
+    if (!endedFired) {
+      ok(false, "ended event never fired");
+      onError();
+    }
+  }, TIMEOUT_LENGTH);
 }

@@ -5,14 +5,14 @@
 
 <head>
   <meta charset="utf-8">
-  <title>mozGetUserMedia Basic Video Test</title>
+  <title>mozGetUserMedia Stop Video Audio Stream</title>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="head.js"></script>
   <script type="application/javascript" src="mediaStreamPlayback.js"></script>
 </head>
 <body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=781534">mozGetUserMedia Basic Video Test</a>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=822109">mozGetUserMedia Stop Video Audio Stream</a>
 <p id="display"></p>
 <div id="content" style="display: none">
   <video id="testVideo"></video>
@@ -21,22 +21,18 @@
 <script type="application/javascript">
 
   /**
-   * Run a test to verify that we can complete a start and stop media playback
-   * cycle for an video LocalMediaStream on a video HTMLMediaElement.
+   * Run a test to verify that we can start a video+audio stream in a
+   * media element, call stop() on the stream, and successfully get an
+   * ended event fired.
    */
   runTest(function () {
-    var testVideo = document.getElementById('testVideo');
+    getUserMedia({video: true, audio: true}, function(stream) {
+      var testVideo = document.getElementById('testVideo');
+      var streamPlayback = new LocalMediaStreamPlayback(testVideo, stream);
 
-    getUserMedia({video: true}, function (aStream) {
-      var playback = new LocalMediaStreamPlayback(testVideo, aStream);
-
-      playback.playMedia(false, function () {
-        aStream.stop();
-        SimpleTest.finish();
-      }, unexpectedCallbackAndFinish);
-
+      streamPlayback.playMediaWithStreamStop(false, SimpleTest.finish,
+        unexpectedCallbackAndFinish);
     }, unexpectedCallbackAndFinish);
-
   }, true);
 
 </script>

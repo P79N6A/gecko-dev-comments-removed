@@ -7,6 +7,9 @@ var Ci = SpecialPowers.Ci;
 var Cr = SpecialPowers.Cr;
 
 
+var FAKE_ENABLED = true;
+
+
 
 
 
@@ -24,7 +27,9 @@ function runTest(aCallback, desktopSupportedOnly) {
     ok(true, navigator.userAgent + ' currently not supported');
     SimpleTest.finish();
   } else {
-    SpecialPowers.pushPrefEnv({'set': [['media.peerconnection.enabled', true]]}, function () {
+    SpecialPowers.pushPrefEnv({'set': [
+      ['media.peerconnection.enabled', true],
+      ['media.navigator.permission.denied', true]]}, function () {
       try {
         aCallback();
       }
@@ -33,6 +38,22 @@ function runTest(aCallback, desktopSupportedOnly) {
       }
     });
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function getUserMedia(constraints, onSuccess, onError) {
+  constraints["fake"] = FAKE_ENABLED;
+  navigator.mozGetUserMedia(constraints, onSuccess, onError);
 }
 
 

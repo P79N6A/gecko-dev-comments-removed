@@ -5,14 +5,14 @@
 
 <head>
   <meta charset="utf-8">
-  <title>mozGetUserMedia Basic Audio Test</title>
+  <title>mozGetUserMedia Play Audio Twice</title>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="head.js"></script>
   <script type="application/javascript" src="mediaStreamPlayback.js"></script>
 </head>
 <body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=781534">mozGetUserMedia Basic Audio Test</a>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=822109">mozGetUserMedia Play Audio Twice</a>
 <p id="display"></p>
 <div id="content" style="display: none">
   <audio id="testAudio"></audio>
@@ -21,22 +21,24 @@
 <script type="application/javascript">
 
   /**
-   * Run a test to verify that we can complete a start and stop media playback
-   * cycle for an audio LocalMediaStream on an audio HTMLMediaElement.
+   * Run a test that we can complete an audio playback cycle twice in a row.
    */
   runTest(function () {
-    var testAudio = document.getElementById('testAudio');
+    getUserMedia({audio: true}, function(audioStream) {
+      var testAudio = document.getElementById('testAudio');
+      var audioStreamPlayback = new LocalMediaStreamPlayback(testAudio,
+        audioStream);
 
-    getUserMedia({audio: true}, function (aStream) {
-      var playback = new LocalMediaStreamPlayback(testAudio, aStream);
+      audioStreamPlayback.playMedia(false, function() {
 
-      playback.playMedia(false, function () {
-        aStream.stop();
-        SimpleTest.finish();
+        audioStreamPlayback.playMedia(true, function() {
+          audioStream.stop();
+          SimpleTest.finish();
+        }, unexpectedCallbackAndFinish);
+
       }, unexpectedCallbackAndFinish);
 
     }, unexpectedCallbackAndFinish);
-
   }, true);
 
 </script>
