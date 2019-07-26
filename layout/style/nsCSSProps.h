@@ -102,6 +102,9 @@ MOZ_STATIC_ASSERT((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 #define CSS_PROPERTY_IS_ALIAS                     (1<<17)
 
 
+#define CSS_PROPERTY_APPLIES_TO_PLACEHOLDER       (1<<18)
+
+
 
 
 enum nsStyleAnimType {

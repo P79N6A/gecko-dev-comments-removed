@@ -126,7 +126,11 @@ textarea::-moz-placeholder {
   overflow: auto;
   border: 0px !important;
   
-  padding: 0px 1px;
+
+
+
+
+  padding: 0px 1px !important;
   margin: 0px;
   text-decoration: inherit;
   -moz-text-decoration-color: inherit;
@@ -147,12 +151,23 @@ input > .anonymous-div.inherit-overflow {
 
 input::-moz-placeholder,
 textarea::-moz-placeholder {
+  
+
+
+  display: inline-block !important;
+
+  
+
+
+  resize: none !important;
+
+  overflow: hidden !important;
+
   color: GrayText;
 }
 
 textarea::-moz-placeholder {
-  resize: none;
-  white-space: pre-wrap;
+  white-space: pre-wrap !important;
 }
 
 input:-moz-read-write,
