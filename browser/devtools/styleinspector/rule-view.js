@@ -667,6 +667,27 @@ Rule.prototype = {
   
 
 
+
+
+
+
+
+
+
+
+  previewPropertyValue: function(aProperty, aValue, aPriority) {
+    let modifications = this.style.startModifyingProperties();
+    modifications.setProperty(aProperty.name, aValue, aPriority);
+    modifications.apply();
+  },
+
+  
+
+
+
+
+
+
   setPropertyEnabled: function(aProperty, aValue) {
     aProperty.enabled = !!aValue;
     let modifications = this.style.startModifyingProperties();
@@ -677,6 +698,9 @@ Rule.prototype = {
   },
 
   
+
+
+
 
 
 
@@ -1119,61 +1143,75 @@ CssRuleView.prototype = {
 
 
 
-  _onTooltipTargetHover: function(target) {
-    let property = target.textProperty, def = promise.defer(), hasTooltip = false;
+
+  _getHoverTooltipTypeForTarget: function(el) {
+    let prop = el.textProperty;
 
     
-    if (property && property.name === "transform") {
-      this.previewTooltip.setCssTransformContent(property.value, this.pageStyle,
-        this._viewedElement).then(def.resolve, def.reject);
-      hasTooltip = true;
+    if (prop && prop.name === "transform") {
+      return "transform";
     }
 
     
-    if (this.inspector.hasUrlToImageDataResolver) {
-      let isImageHref = target.classList.contains("theme-link") &&
-        target.parentNode.classList.contains("ruleview-propertyvalue");
-      if (isImageHref) {
-        property = target.parentNode.textProperty;
-
-        let maxDim = Services.prefs.getIntPref("devtools.inspector.imagePreviewTooltipSize");
-        let uri = CssLogic.getBackgroundImageUriFromProperty(property.value,
-          property.rule.domRule.href);
-        this.previewTooltip.setRelativeImageContent(uri,
-          this.inspector.inspector, maxDim).then(def.resolve);
-        hasTooltip = true;
-      }
+    let isUrl = el.classList.contains("theme-link") &&
+                el.parentNode.classList.contains("ruleview-propertyvalue");
+    if (this.inspector.hasUrlToImageDataResolver && isUrl) {
+      return "image";
     }
 
     
-    
-    let propertyRoot = target.parentNode;
+    let propertyRoot = el.parentNode;
     let propertyNameNode = propertyRoot.querySelector(".ruleview-propertyname");
-
     if (!propertyNameNode) {
       propertyRoot = propertyRoot.parentNode;
       propertyNameNode = propertyRoot.querySelector(".ruleview-propertyname");
     }
-
     let propertyName;
     if (propertyNameNode) {
       propertyName = propertyNameNode.textContent;
     }
+    if (propertyName === "font-family" && el.classList.contains("ruleview-propertyvalue")) {
+      return "font";
+    }
+  },
 
-    if (propertyName === "font-family" &&
-        target.classList.contains("ruleview-propertyvalue")) {
-      this.previewTooltip.setFontFamilyContent(target.textContent).then(def.resolve);
-      hasTooltip = true;
+  
+
+
+
+
+
+
+
+
+
+  _onTooltipTargetHover: function(target) {
+    let tooltipType = this._getHoverTooltipTypeForTarget(target);
+    if (!tooltipType) {
+      return false;
     }
 
-    if (!hasTooltip) {
-      def.reject();
-    } else if (this.colorPicker.tooltip.isShown()) {
+    if (this.colorPicker.tooltip.isShown()) {
       this.colorPicker.revert();
       this.colorPicker.hide();
     }
 
-    return def.promise;
+    if (tooltipType === "transform") {
+      return this.previewTooltip.setCssTransformContent(target.textProperty.value,
+        this.pageStyle, this._viewedElement);
+    }
+    if (tooltipType === "image") {
+      let prop = target.parentNode.textProperty;
+      let dim = Services.prefs.getIntPref("devtools.inspector.imagePreviewTooltipSize");
+      let uri = CssLogic.getBackgroundImageUriFromProperty(prop.value, prop.rule.domRule.href);
+      return this.previewTooltip.setRelativeImageContent(uri, this.inspector.inspector, dim);
+    }
+    if (tooltipType === "font") {
+      this.previewTooltip.setFontFamilyContent(target.textContent);
+      return true;
+    }
+
+    return false;
   },
 
   
@@ -1937,7 +1975,7 @@ function TextPropertyEditor(aRuleEditor, aProperty) {
   this._onStartEditing = this._onStartEditing.bind(this);
   this._onNameDone = this._onNameDone.bind(this);
   this._onValueDone = this._onValueDone.bind(this);
-  this._onValidate = throttle(this._livePreview, 10, this);
+  this._onValidate = throttle(this._previewValue, 10, this);
   this.update = this.update.bind(this);
 
   this._create();
@@ -2188,18 +2226,15 @@ TextPropertyEditor.prototype = {
 
     
     this._swatchSpans = this.valueSpan.querySelectorAll("." + swatchClass);
-    if (this._swatchSpans.length) {
-      for (let span of this._swatchSpans) {
-        
-        let originalValue = this.valueSpan.textContent;
-        
-        
-        this.ruleEditor.ruleView.colorPicker.addSwatch(span, {
-          onPreview: () => this._livePreview(this.valueSpan.textContent),
-          onCommit: () => this._applyNewValue(this.valueSpan.textContent),
-          onRevert: () => this._applyNewValue(originalValue)
-        });
-      }
+    for (let span of this._swatchSpans) {
+      
+      let originalValue = this.valueSpan.textContent;
+      
+      this.ruleEditor.ruleView.colorPicker.addSwatch(span, {
+        onPreview: () => this._previewValue(this.valueSpan.textContent),
+        onCommit: () => this._applyNewValue(this.valueSpan.textContent),
+        onRevert: () => this._applyNewValue(originalValue)
+      });
     }
 
     
@@ -2208,7 +2243,7 @@ TextPropertyEditor.prototype = {
 
   _onStartEditing: function() {
     this.element.classList.remove("ruleview-overridden");
-    this._livePreview(this.prop.value);
+    this._previewValue(this.prop.value);
   },
 
   
@@ -2328,7 +2363,6 @@ TextPropertyEditor.prototype = {
     }
   },
 
-
   
 
 
@@ -2440,34 +2474,25 @@ TextPropertyEditor.prototype = {
 
   _applyNewValue: function(aValue) {
     let val = parseSingleValue(aValue);
-    
-    if (val.value.trim() === "") {
-      this.remove();
-    } else {
-      this.prop.setValue(val.value, val.priority);
-      this.removeOnRevert = false;
-      this.committed.value = this.prop.value;
-      this.committed.priority = this.prop.priority;
-    }
+
+    this.prop.setValue(val.value, val.priority);
+    this.removeOnRevert = false;
+    this.committed.value = this.prop.value;
+    this.committed.priority = this.prop.priority;
   },
 
   
 
 
 
-
-
-  _livePreview: function(aValue) {
+  _previewValue: function(aValue) {
     
     if (!this.editing) {
       return;
     }
 
     let val = parseSingleValue(aValue);
-
-    
-    
-    this.ruleEditor.rule.setPropertyValue(this.prop, val.value, val.priority);
+    this.ruleEditor.rule.previewPropertyValue(this.prop, val.value, val.priority);
   },
 
   

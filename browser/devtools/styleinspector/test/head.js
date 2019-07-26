@@ -260,8 +260,11 @@ function getComputedPropertyValue(aName)
 
 
 
+
+
 function waitForSuccess(aOptions)
 {
+  let def = promise.defer();
   let start = Date.now();
   let timeout = aOptions.timeout || 5000;
 
@@ -270,20 +273,26 @@ function waitForSuccess(aOptions)
     if ((Date.now() - start) > timeout) {
       
       ok(false, "Timed out while waiting for: " + aOptions.name);
-      failureFn(aOptions);
+      if (failureFn) {
+        failureFn(aOptions);
+      }
+      def.reject(aOptions);
       return;
     }
 
     if (validatorFn(aOptions)) {
       ok(true, aOptions.name);
-      successFn();
-    }
-    else {
+      if (successFn) {
+        successFn();
+      }
+      def.resolve();
+    } else {
       setTimeout(function() wait(validatorFn, successFn, failureFn), 100);
     }
   }
 
   wait(aOptions.validatorFn, aOptions.successFn, aOptions.failureFn);
+  return def.promise;
 }
 
 registerCleanupFunction(tearDown);
@@ -316,4 +325,87 @@ function isHoverTooltipTarget(tooltip, target) {
   
   
   return tooltip.isValidHoverTarget(target);
+}
+
+function getRuleViewProperty(name, ruleView) {
+  let prop = null;
+  [].forEach.call(ruleView.doc.querySelectorAll(".ruleview-property"), property => {
+    let nameSpan = property.querySelector(".ruleview-propertyname");
+    let valueSpan = property.querySelector(".ruleview-propertyvalue");
+
+    if (nameSpan.textContent === name) {
+      prop = {nameSpan: nameSpan, valueSpan: valueSpan};
+    }
+  });
+  return prop;
+}
+
+
+
+
+
+
+function getRuleViewSelectorProperty(selectorText, propertyName, ruleView) {
+  let rule, property;
+
+  for (let r of ruleView.doc.querySelectorAll(".ruleview-rule")) {
+    let selector = r.querySelector(".ruleview-selector-matched");
+    if (selector && selector.textContent === selectorText) {
+      rule = r;
+      break;
+    }
+  }
+
+  if (rule) {
+    
+    for (let p of rule.querySelectorAll(".ruleview-property")) {
+      let nameSpan = p.querySelector(".ruleview-propertyname");
+      let valueSpan = p.querySelector(".ruleview-propertyvalue");
+      if (nameSpan.textContent === propertyName) {
+        property = {nameSpan: nameSpan, valueSpan: valueSpan};
+        break;
+      }
+    }
+  }
+
+  return property;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function simulateColorChange(colorPicker, newRgba, expectedChange) {
+  
+  
+  
+  
+  return Task.spawn(function*() {
+    info("Getting the spectrum colorpicker object");
+    let spectrum = yield colorPicker.spectrum;
+    info("Setting the new color");
+    spectrum.rgb = newRgba;
+    info("Applying the change");
+    spectrum.updateUI();
+    spectrum.onChange();
+
+    if (expectedChange) {
+      info("Waiting for the style to be applied on the page");
+      yield waitForSuccess({
+        validatorFn: () => {
+          let {element, name, value} = expectedChange;
+          return content.getComputedStyle(element)[name] === value;
+        },
+        name: "Color picker change applied on the page"
+      });
+    }
+  });
 }
