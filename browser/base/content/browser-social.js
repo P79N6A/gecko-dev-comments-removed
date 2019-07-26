@@ -624,21 +624,57 @@ var SocialToolbar = {
   updateButton: function SocialToolbar_updateButton() {
     this.updateButtonHiddenState();
     let provider = Social.provider;
-    let iconNames = Object.keys(provider.ambientNotificationIcons);
+    let icons = provider.ambientNotificationIcons;
+    let iconNames = Object.keys(icons);
     let iconBox = document.getElementById("social-toolbar-item");
     let notifBox = document.getElementById("social-notification-box");
     let panel = document.getElementById("social-notification-panel");
     panel.hidden = false;
+
+    let command = document.getElementById("Social:ToggleNotifications");
+    command.setAttribute("checked", Services.prefs.getBoolPref("social.toast-notifications.enabled"));
+
+    const CACHE_PREF_NAME = "social.cached.notificationIcons";
+    
+    
+    if (!SocialUI.haveLoggedInUser() && provider.profile !== undefined) {
+      
+      
+      
+      
+      Services.prefs.clearUserPref(CACHE_PREF_NAME);
+      return;
+    }
+    if (Social.provider.profile === undefined) {
+      
+      
+      let cached;
+      try {
+        cached = JSON.parse(Services.prefs.getCharPref(CACHE_PREF_NAME));
+      } catch (ex) {}
+      if (cached && cached.provider == Social.provider.origin && cached.data) {
+        icons = cached.data;
+        iconNames = Object.keys(icons);
+        
+        for each(let name in iconNames) {
+          icons[name].counter = '';
+        }
+      }
+    } else {
+      
+      
+      Services.prefs.setCharPref(CACHE_PREF_NAME,
+                                 JSON.stringify({provider: Social.provider.origin,
+                                                 data: icons}));
+    }
+
     let notificationFrames = document.createDocumentFragment();
     let iconContainers = document.createDocumentFragment();
 
     let createdFrames = [];
 
-    let command = document.getElementById("Social:ToggleNotifications");
-    command.setAttribute("checked", Services.prefs.getBoolPref("social.toast-notifications.enabled"));
-
     for each(let name in iconNames) {
-      let icon = provider.ambientNotificationIcons[name];
+      let icon = icons[name];
 
       let notificationFrameId = "social-status-" + icon.name;
       let notificationFrame = document.getElementById(notificationFrameId);

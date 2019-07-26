@@ -206,7 +206,15 @@ SocialProvider.prototype = {
   
   
   
-  profile: null,
+  
+  
+  
+  
+  
+  
+  
+  
+  profile: undefined,
 
   
   
