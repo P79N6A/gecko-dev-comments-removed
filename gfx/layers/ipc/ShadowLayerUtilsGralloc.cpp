@@ -269,9 +269,18 @@ ISurfaceAllocator::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
     return false;
   }
 
+  
+  
   PGrallocBufferParent* gbp =
     aSurface->get_SurfaceDescriptorGralloc().bufferParent();
-  unused << PGrallocBufferParent::Send__delete__(gbp);
+  if (gbp) {
+    unused << PGrallocBufferParent::Send__delete__(gbp);
+  } else {
+    PGrallocBufferChild* gbc =
+      aSurface->get_SurfaceDescriptorGralloc().bufferChild();
+    unused << PGrallocBufferChild::Send__delete__(gbc);
+  }
+
   *aSurface = SurfaceDescriptor();
   return true;
 }
