@@ -172,6 +172,20 @@ NS_IMETHODIMP imgStatusTrackerObserver::OnStopFrame(imgIRequest *request,
   return NS_OK;
 }
 
+static void
+FireFailureNotification(imgRequest* aRequest)
+{
+  
+  
+
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (os) {
+    nsCOMPtr<nsIURI> uri;
+    aRequest->GetURI(getter_AddRefs(uri));
+    os->NotifyObservers(uri, "net:failed-to-process-uri-content", nullptr);
+  }
+}
+
 
 NS_IMETHODIMP imgStatusTrackerObserver::OnStopDecode(imgIRequest *aRequest,
                                                      nsresult aStatus)
@@ -184,6 +198,8 @@ NS_IMETHODIMP imgStatusTrackerObserver::OnStopDecode(imgIRequest *aRequest,
   
   mTracker->GetRequest()->UpdateCacheEntrySize();
 
+  bool preexistingError = mTracker->GetImageStatus() == imgIRequest::STATUS_ERROR;
+
   mTracker->RecordStopDecode(aStatus);
 
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->mConsumers);
@@ -195,16 +211,8 @@ NS_IMETHODIMP imgStatusTrackerObserver::OnStopDecode(imgIRequest *aRequest,
   
   mTracker->MaybeUnblockOnload();
 
-  if (NS_FAILED(aStatus)) {
-    
-    
-
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (os) {
-      nsCOMPtr<nsIURI> uri;
-      mTracker->GetRequest()->GetURI(getter_AddRefs(uri));
-      os->NotifyObservers(uri, "net:failed-to-process-uri-content", nullptr);
-    }
+  if (NS_FAILED(aStatus) && !preexistingError) {
+    FireFailureNotification(mTracker->GetRequest());
   }
 
   return NS_OK;
@@ -772,6 +780,8 @@ imgStatusTracker::SendStopRequest(imgRequestProxy* aProxy, bool aLastPart, nsres
 void
 imgStatusTracker::OnStopRequest(bool aLastPart, nsresult aStatus)
 {
+  bool preexistingError = mImageStatus == imgIRequest::STATUS_ERROR;
+
   RecordStopRequest(aLastPart, aStatus);
   
   nsTObserverArray<imgRequestProxy*>::ForwardIterator srIter(mConsumers);
@@ -779,16 +789,8 @@ imgStatusTracker::OnStopRequest(bool aLastPart, nsresult aStatus)
     SendStopRequest(srIter.GetNext(), aLastPart, aStatus);
   }
 
-  if (NS_FAILED(aStatus)) {
-    
-    
-
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (os) {
-      nsCOMPtr<nsIURI> uri;
-      GetRequest()->GetURI(getter_AddRefs(uri));
-      os->NotifyObservers(uri, "net:failed-to-process-uri-content", nullptr);
-    }
+  if (NS_FAILED(aStatus) && !preexistingError) {
+    FireFailureNotification(GetRequest());
   }
 }
 
