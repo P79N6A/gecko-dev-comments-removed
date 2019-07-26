@@ -1256,33 +1256,19 @@ var gBrowserInit = {
 
     
     if (!document.documentElement.hasAttribute("width")) {
-      let defaultWidth;
+      let defaultWidth = 994;
       let defaultHeight;
-
-      
-      
-      
-      
-      
       if (screen.availHeight <= 600) {
         document.documentElement.setAttribute("sizemode", "maximized");
         defaultWidth = 610;
         defaultHeight = 450;
       }
       else {
-        if (screen.availWidth <= screen.availHeight) {
-          defaultWidth = screen.availWidth * .9;
-          defaultHeight = screen.availHeight * .75;
-        }
-        else if (screen.availWidth >= 2048) {
+        
+        
+        if (screen.availWidth >= 1600)
           defaultWidth = (screen.availWidth / 2) - 20;
-          defaultHeight = screen.availHeight - 10;
-        }
-        else {
-          defaultWidth = screen.availWidth * .75;
-          defaultHeight = screen.availHeight * .75;
-        }
-
+        defaultHeight = screen.availHeight - 10;
 #ifdef MOZ_WIDGET_GTK2
         
         
