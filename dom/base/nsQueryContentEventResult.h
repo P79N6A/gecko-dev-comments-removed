@@ -3,6 +3,9 @@
 
 
 
+#ifndef mozilla_dom_nsQueryContentEventResult_h
+#define mozilla_dom_nsQueryContentEventResult_h
+
 #include "nsIQueryContentEventResult.h"
 #include "nsString.h"
 #include "nsRect.h"
@@ -32,3 +35,5 @@ protected:
   bool mSucceeded;
   bool mReversed;
 };
+
+#endif 
