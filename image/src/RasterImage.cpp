@@ -78,9 +78,9 @@ static bool gHQDownscaling = false;
 static uint32_t gHQDownscalingMinFactor = 1000;
 static bool gMultithreadedDecoding = true;
 static int32_t gDecodingThreadLimit = -1;
-+
-+
-+static uint32_t gHQUpscalingMaxSize = 20971520;
+
+
+static uint32_t gHQUpscalingMaxSize = 20971520;
 
 
 
