@@ -632,6 +632,18 @@ DirectoryIterator.prototype = {
 
 
 
+  exists: function exists() {
+    return this._itmsg.then(
+      function onSuccess(iterator) {
+        return Scheduler.post("DirectoryIterator_prototype_exists", [iterator]);
+      }
+    );
+  },
+  
+
+
+
+
 
 
   next: function next() {
@@ -728,7 +740,6 @@ DirectoryIterator.prototype = {
 
   _next: function _next(iterator) {
     if (this._isClosed) {
-      LOG("DirectoryIterator._next", "closed");
       return this._itmsg;
     }
     let self = this;
