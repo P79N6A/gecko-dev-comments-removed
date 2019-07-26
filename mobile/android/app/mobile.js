@@ -166,7 +166,7 @@ pref("dom.experimental_forms", true);
 pref("dom.forms.number", true);
 
 
-pref("dom.forms.color", false);
+pref("dom.forms.color", true);
 
 
 pref("xpinstall.whitelist.add", "addons.mozilla.org");
