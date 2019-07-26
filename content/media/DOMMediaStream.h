@@ -21,7 +21,6 @@ class nsXPCClassInfo;
 #undef GetCurrentTime
 #endif
 
-
 #ifdef CurrentTime
 #undef CurrentTime
 #endif

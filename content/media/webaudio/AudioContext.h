@@ -21,12 +21,6 @@
 #include "MediaStreamGraph.h"
 #include "nsIDOMWindow.h"
 
-
-
-#ifdef CurrentTime
-#undef CurrentTime
-#endif
-
 struct JSContext;
 class JSObject;
 class nsIDOMWindow;
@@ -83,8 +77,6 @@ public:
   {
     return float(IdealAudioRate());
   }
-
-  double CurrentTime() const;
 
   AudioListener* Listener();
 
