@@ -17,19 +17,27 @@ function String_repeat(count) {
     var n = ToInteger(count);
 
     
-    if (n < 0 || n === std_Number_POSITIVE_INFINITY)
-        ThrowError(JSMSG_REPEAT_RANGE);
+    if (n < 0)
+        ThrowError(JSMSG_NEGATIVE_REPETITION_COUNT); 
+
+    if (!(n * S.length < (1 << 28)))
+        ThrowError(JSMSG_RESULTING_STRING_TOO_LARGE); 
 
     
-    if (n === 0)
-        return "";
+    n = n & ((1 << 28) - 1);
 
-    var result = S;
-    for (var i = 1; i <= n / 2; i *= 2)
-        result += result;
-    for (; i < n; i++)
-        result += S;
-    return result;
+    
+    var T = '';
+    for (;;) {
+        if (n & 1)
+            T += S;
+        n >>= 1;
+        if (n)
+            S += S;
+        else
+            break;
+    }
+    return T;
 }
 
 
