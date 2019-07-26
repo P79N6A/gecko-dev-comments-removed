@@ -105,6 +105,11 @@ public:
 
     void PrintDiagnostics(nsCString &log);
 
+    
+    void SetPendingTime(bool now = true) { mPendingTime = now ? mozilla::TimeStamp::Now() : mozilla::TimeStamp(); }
+    const mozilla::TimeStamp GetPendingTime() { return mPendingTime; }
+    bool UsesPipelining() const { return mCaps & NS_HTTP_ALLOW_PIPELINING; }
+
 private:
     nsresult Restart();
     nsresult RestartInProgress();
@@ -208,6 +213,9 @@ private:
     
     nsHttpResponseHead             *mForTakeResponseHead;
     bool                            mResponseHeadTaken;
+
+    
+    mozilla::TimeStamp              mPendingTime;
 
     class RestartVerifier 
     {
