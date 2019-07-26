@@ -1231,6 +1231,9 @@ pref("social.toast-notifications.enabled", true);
 pref("dom.identity.enabled", false);
 
 
+pref("security.csp.speccompliant", true);
+
+
 pref("security.mixed_content.block_active_content", true);
 
 
