@@ -14,34 +14,32 @@ richlistitem.download button {
 .download-state:-moz-any(     [state="6"], 
                               [state="8"], 
                               [state="9"]) 
-                                           .downloadTypeIcon:not(.blockedIcon),
+                                           > .downloadTypeIcon:not(.blockedIcon),
 
 .download-state:not(:-moz-any([state="6"], 
                               [state="8"], 
                               [state="9"]) )
-                                           .downloadTypeIcon.blockedIcon,
+                                           > .downloadTypeIcon.blockedIcon,
 
 .download-state:not(:-moz-any([state="-1"],
                               [state="5"], 
                               [state="0"], 
                               [state="4"], 
                               [state="7"]) )
-                                           .downloadProgress,
+                                           > vbox > .downloadProgress,
 
 .download-state:not(:-moz-any([state="-1"],
                               [state="5"], 
                               [state="0"], 
                               [state="4"]) )
-                                           .downloadCancel,
+                                           > .downloadCancel,
 
-.download-state:not(:-moz-any([state="2"], 
-                              [state="3"]) )
-                                           .downloadRetry,
+.download-state[state]:not(:-moz-any([state="2"], 
+                                     [state="3"]) )
+                                                  > .downloadRetry,
 
 .download-state:not(          [state="1"]  )
-                                           .downloadShow,
-
-.download-state:not([state]) > button
+                                           > .downloadShow
 {
   display: none;
 }

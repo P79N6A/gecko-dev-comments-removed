@@ -22,6 +22,8 @@ Cu.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
+                                  "resource:///modules/RecentWindow.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -389,13 +391,12 @@ DownloadElementShell.prototype = {
 
   
   get _progressElement() {
-    let progressElement = document.getAnonymousElementByAttribute(
-      this._element, "anonid", "progressmeter");
-    if (progressElement) {
-      delete this._progressElement;
-      return this._progressElement = progressElement;
+    if (!("__progressElement" in this)) {
+      this.__progressElement =
+        document.getAnonymousElementByAttribute(this._element, "anonid",
+                                                "progressmeter");
     }
-    return null;
+    return this.__progressElement;
   },
 
   
@@ -534,7 +535,7 @@ DownloadElementShell.prototype = {
         return this._dataItem && this._dataItem.inProgress && this._dataItem.resumable;
       case "downloadsCmd_retry":
         
-        return this._dataItem && this._dataItem.canRetry;
+        return !this._dataItem || this._dataItem.canRetry;
       case "downloadsCmd_openReferrer":
         return this._dataItem && !!this._dataItem.referrer;
       case "cmd_delete":
@@ -550,7 +551,15 @@ DownloadElementShell.prototype = {
 
   _retryAsHistoryDownload: function DES__retryAsHistoryDownload() {
     
-    saveURL(this.downloadURI, this._displayName, null, true, true, undefined, document);
+    
+    
+
+    
+    
+    let browserWin = RecentWindow.getMostRecentBrowserWindow();
+    let initiatingDoc = browserWin ? browserWin.document : document;
+    saveURL(this.downloadURI, this._displayName, null, true, true, undefined,
+            initiatingDoc);
   },
 
   
@@ -840,6 +849,10 @@ DownloadsPlacesView.prototype = {
         if (!this._lastSessionDownloadElement) {
           this._lastSessionDownloadElement = newOrUpdatedShell.element;
         }
+        
+        
+        
+        this._richlistbox.ensureElementIsVisible(newOrUpdatedShell.element);
       }
       else if (aDataItem) {
         let before = this._lastSessionDownloadElement ?
@@ -937,13 +950,15 @@ DownloadsPlacesView.prototype = {
 
     this._ensureVisibleTimer = setTimeout(function() {
       delete this._ensureVisibleTimer;
+      if (!this._richlistbox.firstChild)
+        return;
 
       let rlRect = this._richlistbox.getBoundingClientRect();
       let fcRect = this._richlistbox.firstChild.getBoundingClientRect();
       
       
       
-      let offset = fcRect.left - rlRect.left + 1;
+      let offset = (fcRect.left - rlRect.left) + 1;
 
       let firstVisible = document.elementFromPoint(fcRect.left, rlRect.top + offset);
       if (!firstVisible || firstVisible.localName != "richlistitem")
