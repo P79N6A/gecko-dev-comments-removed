@@ -11,6 +11,7 @@
 #include "BluetoothCommon.h"
 #include "mozilla/ipc/RawDBusConnection.h"
 #include "BluetoothService.h"
+#include "nsIThread.h"
 
 class DBusMessage;
 
@@ -43,6 +44,8 @@ public:
 
   BluetoothDBusService();
   ~BluetoothDBusService();
+
+  nsresult DispatchToBtThread(nsIRunnable* aRunnable);
 
   bool IsReady();
 
@@ -199,6 +202,14 @@ private:
                                 const char* aInterface,
                                 const nsAString& aMessage,
                                 mozilla::ipc::DBusReplyCallback aCallback);
+
+  
+
+
+
+
+
+  nsCOMPtr<nsIThread> mBluetoothThread;
 };
 
 END_BLUETOOTH_NAMESPACE

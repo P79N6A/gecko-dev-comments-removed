@@ -14,7 +14,6 @@
 #include "nsClassHashtable.h"
 #include "nsIDOMFile.h"
 #include "nsIObserver.h"
-#include "nsIThread.h"
 #include "nsTObserverArray.h"
 #include "nsThreadUtils.h"
 
@@ -403,14 +402,6 @@ protected:
   bool mEnabled;
 
 private:
-  
-
-
-
-
-
-  nsCOMPtr<nsIThread> mBluetoothThread;
-
   bool mAdapterAddedReceived;
 };
 
