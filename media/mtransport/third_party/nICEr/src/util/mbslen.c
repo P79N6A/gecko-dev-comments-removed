@@ -91,9 +91,11 @@ mbslen(const char *s, size_t *ncharsp)
     if (!strstr(my_locale, "UTF-8"))
         ABORT(R_NOT_FOUND);
 #else
-        
-        if (! strcasestr(setlocale(LC_CTYPE, 0), "UTF-8"))
-            ABORT(R_NOT_FOUND);
+    
+    
+    char *locale = setlocale(LC_CTYPE, 0);
+    if (!locale || !strcasestr(locale, "UTF-8"))
+        ABORT(R_NOT_FOUND);
 #endif
 
 #ifdef DARWIN
