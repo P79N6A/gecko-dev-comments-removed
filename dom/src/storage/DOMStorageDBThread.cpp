@@ -57,6 +57,7 @@ DOMStorageDBThread::DOMStorageDBThread()
 : mThread(nullptr)
 , mMonitor("DOMStorageThreadMonitor")
 , mStopIOThread(false)
+, mWALModeEnabled(false)
 , mDBReady(false)
 , mStatus(NS_OK)
 , mWorkerStatements(mWorkerConnection)
@@ -140,7 +141,7 @@ DOMStorageDBThread::SyncPreload(DOMStorageCacheBridge* aCache, bool aForceSync)
   
   
   
-  if (mWALModeEnabled && mDBReady) {
+  if (mDBReady && mWALModeEnabled) {
     bool pendingTasks;
     {
       MonitorAutoLock monitor(mMonitor);
