@@ -3790,43 +3790,50 @@ var BrowserEventHandler = {
     if (!element) {
       this._zoomOut();
     } else {
-      const margin = 15;
-      let rect = ElementTouchHelper.getBoundingContentRect(element);
+      this._zoomToElement(element, data.y);
+    }
+  },
 
-      let viewport = BrowserApp.selectedTab.getViewport();
-      let bRect = new Rect(Math.max(viewport.cssPageLeft, rect.x - margin),
-                           rect.y,
-                           rect.w + 2 * margin,
-                           rect.h);
-      
-      bRect.width = Math.min(bRect.width, viewport.cssPageRight - bRect.x);
+  
 
-      
-      
-      if (this._isRectZoomedIn(bRect, viewport)) {
-        this._zoomOut();
-        return;
-      }
 
-      rect.type = "Browser:ZoomToRect";
-      rect.x = bRect.x;
-      rect.y = bRect.y;
-      rect.w = bRect.width;
-      rect.h = Math.min(bRect.width * viewport.cssHeight / viewport.cssWidth, bRect.height);
+  _zoomToElement: function(aElement, aClickY = -1) {
+    const margin = 15;
+    let rect = ElementTouchHelper.getBoundingContentRect(aElement);
 
+    let viewport = BrowserApp.selectedTab.getViewport();
+    let bRect = new Rect(Math.max(viewport.cssPageLeft, rect.x - margin),
+                         rect.y,
+                         rect.w + 2 * margin,
+                         rect.h);
+    
+    bRect.width = Math.min(bRect.width, viewport.cssPageRight - bRect.x);
+
+    
+    
+    if (this._isRectZoomedIn(bRect, viewport)) {
+      this._zoomOut();
+      return;
+    }
+
+    rect.type = "Browser:ZoomToRect";
+    rect.x = bRect.x;
+    rect.y = bRect.y;
+    rect.w = bRect.width;
+    rect.h = Math.min(bRect.width * viewport.cssHeight / viewport.cssWidth, bRect.height);
+
+    if (aClickY >= 0) {
       
       
       
       
-      
-      
-      let cssTapY = viewport.cssY + data.y;
+      let cssTapY = viewport.cssY + aClickY;
       if ((bRect.height > rect.h) && (cssTapY > rect.y + (rect.h * 1.2))) {
         rect.y = cssTapY - (rect.h / 2);
       }
-
-      sendMessageToJava({ gecko: rect });
     }
+
+    sendMessageToJava({ gecko: rect });
   },
 
   _zoomInAndSnapToElement: function(aX, aY, aElement) {
