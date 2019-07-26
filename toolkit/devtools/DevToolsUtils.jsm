@@ -24,5 +24,7 @@ this.DevToolsUtils = {
   makeInfallible: makeInfallible,
   yieldingEach: yieldingEach,
   reportingDisabled: false , 
-  defineLazyPrototypeGetter: defineLazyPrototypeGetter
+  defineLazyPrototypeGetter: defineLazyPrototypeGetter,
+  getProperty: getProperty,
+  hasSafeGetter: hasSafeGetter,
 };

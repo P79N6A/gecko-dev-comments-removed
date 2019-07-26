@@ -24,6 +24,7 @@ loader.lazyServiceGetter(this, "gActivityDistributor",
 loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
 loader.lazyImporter(this, "devtools", "resource://gre/modules/devtools/Loader.jsm");
 loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm");
+loader.lazyImporter(this, "DevToolsUtils", "resource://gre/modules/devtools/DevToolsUtils.jsm");
 
 
 
@@ -794,289 +795,249 @@ function JSPropertyProvider(aDbgObject, anEnvironment, aInputValue, aCursor)
     return null;
   }
 
-  let matches = null;
-  let matchProp = "";
-
   let lastDot = completionPart.lastIndexOf(".");
   if (lastDot > 0 &&
       (completionPart[0] == "'" || completionPart[0] == '"') &&
       completionPart[lastDot - 1] == completionPart[0]) {
     
-    let obj = String.prototype;
-    matchProp = completionPart.slice(lastDot + 1);
-    let matches = Object.keys(getMatchedProps(obj, {matchProp:matchProp}));
-
-    return {
-      matchProp: matchProp,
-      matches: matches,
-    };
+    let matchProp = completionPart.slice(lastDot + 1);
+    return getMatchedProps(String.prototype, matchProp);
   }
-  else {
-    
-    let properties = completionPart.split(".");
-    if (properties.length > 1) {
-      matchProp = properties.pop().trimLeft();
-      let obj;
 
-      
-      
-      let prop = properties[0];
-      if (anEnvironment) {
-        obj = getVariableInEnvironment(anEnvironment, prop);
-      }
-      else {
-        obj = getPropertyInDebuggerObject(aDbgObject, prop);
-      }
-      if (obj == null) {
-        return null;
-      }
-
-      
-      
-      for (let i = 1; i < properties.length; i++) {
-        let prop = properties[i].trim();
-        if (!prop) {
-          return null;
-        }
-
-        obj = getPropertyInDebuggerObject(obj, prop);
-
-        
-        
-        if (obj == null) {
-          return null;
-        }
-      }
-
-      
-      if (typeof obj != 'object' || obj === null) {
-        matchProp = completionPart.slice(lastDot + 1);
-        let matches = Object.keys(getMatchedProps(obj, {matchProp:matchProp}));
-
-        return {
-          matchProp: matchProp,
-          matches: matches,
-        };
-      }
-      return getMatchedPropsInDbgObject(obj, matchProp);
-    }
-    else {
-      matchProp = properties[0].trimLeft();
-      if (anEnvironment) {
-        return getMatchedPropsInEnvironment(anEnvironment, matchProp);
-      }
-      else {
-        if (typeof aDbgObject != 'object' || aDbgObject === null) {
-          matchProp = completionPart.slice(lastDot + 1);
-          let matches = Object.keys(getMatchedProps(aDbgObject, {matchProp:matchProp}));
-
-          return {
-            matchProp: matchProp,
-            matches: matches,
-          };
-        }
-        return getMatchedPropsInDbgObject(aDbgObject, matchProp);
-      }
-    }
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-function getVariableInEnvironment(anEnvironment, aProp)
-{
-  for (let env = anEnvironment; env; env = env.parent) {
-    try {
-      let obj = env.getVariable(aProp);
-      if (obj) {
-        return obj;
-      }
-    }
-    catch (ex) {
-      return null;
-    }
-  }
-  return null;
-}
-
-
-
-
-
-
-
-
-
-
-
-function getPropertyInDebuggerObject(aDbgObject, aProp)
-{
-  let dbgObject = aDbgObject;
-  while (dbgObject) {
-    try {
-      let desc = dbgObject.getOwnPropertyDescriptor(aProp)
-      if (desc) {
-        let obj = desc.value;
-        if (obj)
-          return obj;
-        obj = desc.get;
-        if (obj)
-          return obj;
-      }
-      dbgObject = dbgObject.proto;
-    }
-    catch (ex) {
-      return null;
-    }
-  }
-  return null;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function getMatchedPropsInEnvironment(anEnvironment, matchProp)
-{
-  let names = Object.create(null);
-  let c = MAX_COMPLETIONS;
-  for (let env = anEnvironment; env; env = env.parent) {
-    let ownNames = env.names();
-    for (let i = 0; i < ownNames.length; i++) {
-      if (ownNames[i].indexOf(matchProp) != 0 ||
-        ownNames[i] in names) {
-        continue;
-      }
-      c--;
-      if (c < 0) {
-        return {
-          matchProp: matchProp,
-          matches: Object.keys(names)
-        };
-      }
-      names[ownNames[i]] = true;
-    }
-  }
-  return {
-    matchProp: matchProp,
-    matches: Object.keys(names)
-  };
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function getMatchedPropsInDbgObject(aDbgObject, matchProp)
-{
-  let names = Object.create(null);
-  let c = MAX_COMPLETIONS;
-  for (let dbg = aDbgObject; dbg; dbg = dbg.proto) {
-    let raw = dbg.unsafeDereference();
-    if (Cu.isDeadWrapper(raw)) {
-      return null;
-    }
-    let ownNames = dbg.getOwnPropertyNames();
-    for (let i = 0; i < ownNames.length; i++) {
-      if (ownNames[i].indexOf(matchProp) != 0 ||
-        ownNames[i] in names) {
-        continue;
-      }
-      c--;
-      if (c < 0) {
-        return {
-          matchProp: matchProp,
-          matches: Object.keys(names)
-        };
-      }
-      names[ownNames[i]] = true;
-    }
-  }
-  return {
-    matchProp: matchProp,
-    matches: Object.keys(names)
-  };
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function getMatchedProps(aObj, aOptions = {matchProp: ""})
-{
   
-  aOptions.matchProp = aOptions.matchProp || "";
+  let properties = completionPart.split(".");
+  let matchProp = properties.pop().trimLeft();
+  let obj = aDbgObject;
 
-  if (aObj == null) { return {}; }
-  try {
-    Object.getPrototypeOf(aObj);
-  } catch(e) {
+  
+  
+  if (anEnvironment) {
+    if (properties.length == 0) {
+      return getMatchedPropsInEnvironment(anEnvironment, matchProp);
+    }
+    obj = getVariableInEnvironment(anEnvironment, properties.shift());
+  }
+
+  if (!isObjectUsable(obj)) {
+    return null;
+  }
+
+  
+  
+  for (let prop of properties) {
+    prop = prop.trim();
+    if (!prop) {
+      return null;
+    }
+
+    obj = DevToolsUtils.getProperty(obj, prop);
+
+    if (!isObjectUsable(obj)) {
+      return null;
+    }
+  }
+
+  
+  if (typeof obj != "object") {
+    return getMatchedProps(obj, matchProp);
+  }
+
+  return getMatchedPropsInDbgObject(obj, matchProp);
+}
+
+
+
+
+
+
+
+
+
+
+function isObjectUsable(aObject)
+{
+  if (aObject == null) {
+    return false;
+  }
+
+  if (typeof aObject == "object" && aObject.class == "DeadObject") {
+    return false;
+  }
+
+  return true;
+}
+
+
+
+
+function getVariableInEnvironment(anEnvironment, aName)
+{
+  return getExactMatch_impl(anEnvironment, aName, DebuggerEnvironmentSupport);
+}
+
+
+
+
+function getMatchedPropsInEnvironment(anEnvironment, aMatch)
+{
+  return getMatchedProps_impl(anEnvironment, aMatch, DebuggerEnvironmentSupport);
+}
+
+
+
+
+function getMatchedPropsInDbgObject(aDbgObject, aMatch)
+{
+  return getMatchedProps_impl(aDbgObject, aMatch, DebuggerObjectSupport);
+}
+
+
+
+
+function getMatchedProps(aObj, aMatch)
+{
+  if (typeof aObj != "object") {
     aObj = aObj.constructor.prototype;
   }
-  let c = MAX_COMPLETIONS;
-  let names = Object.create(null);   
+  return getMatchedProps_impl(aObj, aMatch, JSObjectSupport);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function getMatchedProps_impl(aObj, aMatch, {chainIterator, getProperties})
+{
+  let matches = new Set();
 
   
-  let ownNames = null;
-  while (aObj !== null) {
-    ownNames = Object.getOwnPropertyNames(aObj);
-    for (let i = 0; i < ownNames.length; i++) {
-      
-      
-      if (ownNames[i].indexOf(aOptions.matchProp) != 0 ||
-          ownNames[i] in names) {
+  let iter = chainIterator(aObj);
+  for (let obj of iter) {
+    let props = getProperties(obj);
+    for (let prop of props) {
+      if (prop.indexOf(aMatch) != 0) {
         continue;
       }
-      c--;
-      if (c < 0) {
-        return names;
+
+      
+      
+      
+      if (+prop != +prop) {
+        matches.add(prop);
       }
-      
-      
-      
-      if (+ownNames[i] != +ownNames[i]) {
-        names[ownNames[i]] = true;
+
+      if (matches.size > MAX_COMPLETIONS) {
+        break;
       }
     }
-    aObj = Object.getPrototypeOf(aObj);
+
+    if (matches.size > MAX_COMPLETIONS) {
+      break;
+    }
   }
 
-  return names;
+  return {
+    matchProp: aMatch,
+    matches: [...matches],
+  };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getExactMatch_impl(aObj, aName, {chainIterator, getProperty})
+{
+  
+  let iter = chainIterator(aObj);
+  for (let obj of iter) {
+    let prop = getProperty(obj, aName, aObj);
+    if (prop) {
+      return prop.value;
+    }
+  }
+  return undefined;
+}
+
+
+let JSObjectSupport = {
+  chainIterator: function(aObj)
+  {
+    while (aObj) {
+      yield aObj;
+      aObj = Object.getPrototypeOf(aObj);
+    }
+  },
+
+  getProperties: function(aObj)
+  {
+    return Object.getOwnPropertyNames(aObj);
+  },
+
+  getProperty: function()
+  {
+    
+    throw "Unimplemented!";
+  },
+};
+
+let DebuggerObjectSupport = {
+  chainIterator: function(aObj)
+  {
+    while (aObj) {
+      yield aObj;
+      aObj = aObj.proto;
+    }
+  },
+
+  getProperties: function(aObj)
+  {
+    return aObj.getOwnPropertyNames();
+  },
+
+  getProperty: function(aObj, aName, aRootObj)
+  {
+    
+    throw "Unimplemented!";
+  },
+};
+
+let DebuggerEnvironmentSupport = {
+  chainIterator: function(aObj)
+  {
+    while (aObj) {
+      yield aObj;
+      aObj = aObj.parent;
+    }
+  },
+
+  getProperties: function(aObj)
+  {
+    return aObj.names();
+  },
+
+  getProperty: function(aObj, aName)
+  {
+    
+    let result = aObj.getVariable(aName);
+    return result === undefined ? null : { value: result };
+  },
+};
 
 
 exports.JSPropertyProvider = JSPropertyProvider;

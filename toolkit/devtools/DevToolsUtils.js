@@ -166,3 +166,48 @@ function defineLazyPrototypeGetter(aObject, aKey, aCallback) {
     }
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+this.getProperty = function getProperty(aObj, aKey) {
+  let root = aObj;
+  try {
+    do {
+      const desc = aObj.getOwnPropertyDescriptor(aKey);
+      if (desc) {
+        if ("value" in desc) {
+          return desc.value;
+        }
+        
+        return hasSafeGetter(desc) ? desc.get.call(root).return : undefined;
+      }
+      aObj = aObj.proto;
+    } while (aObj);
+  } catch (e) {
+    
+    reportException("getProperty", e);
+  }
+  return undefined;
+};
+
+
+
+
+
+
+
+
+
+this.hasSafeGetter = function hasSafeGetter(aDesc) {
+  let fn = aDesc.get;
+  return fn && fn.callable && fn.class == "Function" && fn.script === undefined;
+};
+

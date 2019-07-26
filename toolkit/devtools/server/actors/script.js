@@ -2668,49 +2668,6 @@ function isObject(aValue) {
 
 
 
-function hasSafeGetter(aDesc) {
-  let fn = aDesc.get;
-  return fn && fn.callable && fn.class == "Function" && fn.script === undefined;
-}
-
-
-
-
-
-
-
-
-
-
-
-function getProperty(aObj, aKey) {
-  try {
-    do {
-      const desc = aObj.getOwnPropertyDescriptor(aKey);
-      if (desc) {
-        if ("value" in desc) {
-          return desc.value
-        }
-        
-        return hasSafeGetter(desc) ? desc.get.call(aObj) : undefined;
-      }
-      aObj = aObj.proto;
-    } while (aObj);
-  } catch (e) {
-    
-    DevToolsUtils.reportException("getProperty", e);
-  }
-  return undefined;
-}
-
-
-
-
-
-
-
-
-
 
 function createBuiltinStringifier(aCtor) {
   return aObj => aCtor.prototype.toString.call(aObj.unsafeDereference());
@@ -2725,14 +2682,14 @@ function createBuiltinStringifier(aCtor) {
 
 
 function errorStringify(aObj) {
-  let name = getProperty(aObj, "name");
+  let name = DevToolsUtils.getProperty(aObj, "name");
   if (name === "" || name === undefined) {
     name = aObj.class;
   } else if (isObject(name)) {
     name = stringify(name);
   }
 
-  let message = getProperty(aObj, "message");
+  let message = DevToolsUtils.getProperty(aObj, "message");
   if (isObject(message)) {
     message = stringify(message);
   }
@@ -2790,7 +2747,7 @@ let stringifiers = {
 
     seen.add(obj);
 
-    const len = getProperty(obj, "length");
+    const len = DevToolsUtils.getProperty(obj, "length");
     let string = "";
 
     
@@ -2819,10 +2776,10 @@ let stringifiers = {
     return string;
   },
   DOMException: obj => {
-    const message = getProperty(obj, "message") || "<no message>";
-    const result = (+getProperty(obj, "result")).toString(16);
-    const code = getProperty(obj, "code");
-    const name = getProperty(obj, "name") || "<unknown>";
+    const message = DevToolsUtils.getProperty(obj, "message") || "<no message>";
+    const result = (+DevToolsUtils.getProperty(obj, "result")).toString(16);
+    const code = DevToolsUtils.getProperty(obj, "code");
+    const name = DevToolsUtils.getProperty(obj, "name") || "<unknown>";
 
     return '[Exception... "' + message + '" ' +
            'code: "' + code +'" ' +
@@ -3102,7 +3059,7 @@ ObjectActor.prototype = {
         continue;
       }
 
-      if (hasSafeGetter(desc)) {
+      if (DevToolsUtils.hasSafeGetter(desc)) {
         getters.add(name);
       }
     }
