@@ -1186,10 +1186,9 @@ bool
 TryPreserveWrapper(JSObject* obj);
 
 
-
 bool
-InstanceClassHasProtoAtDepth(JSObject* protoObject, uint32_t protoID,
-                             uint32_t depth);
+InstanceClassHasProtoAtDepth(const js::Class* clasp,
+                             uint32_t protoID, uint32_t depth);
 
 
 

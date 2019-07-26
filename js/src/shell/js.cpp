@@ -5399,7 +5399,7 @@ dom_constructor(JSContext* cx, unsigned argc, JS::Value *vp)
 }
 
 static bool
-InstanceClassHasProtoAtDepth(JSObject *protoObject, uint32_t protoID, uint32_t depth)
+InstanceClassHasProtoAtDepth(const Class *clasp, uint32_t protoID, uint32_t depth)
 {
     
     return true;

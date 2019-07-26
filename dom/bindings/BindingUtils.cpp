@@ -774,14 +774,12 @@ TryPreserveWrapper(JSObject* obj)
 }
 
 
-
 bool
-InstanceClassHasProtoAtDepth(JSObject* protoObject, uint32_t protoID,
-                             uint32_t depth)
+InstanceClassHasProtoAtDepth(const js::Class* clasp,
+                             uint32_t protoID, uint32_t depth)
 {
-  const DOMClass* domClass = static_cast<const DOMClass*>(
-    js::GetReservedSlot(protoObject, DOM_PROTO_INSTANCE_CLASS_SLOT).toPrivate());
-  return (uint32_t)domClass->mInterfaceChain[depth] == protoID;
+  const DOMClass& domClass = DOMJSClass::FromJSClass(clasp)->mClass;
+  return static_cast<uint32_t>(domClass.mInterfaceChain[depth]) == protoID;
 }
 
 
