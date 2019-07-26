@@ -274,6 +274,12 @@ public:
 
   void AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint);
 
+  
+
+
+
+  bool HasScrollgrab() const { return mFrameMetrics.mHasScrollgrab; }
+
 protected:
   
 
@@ -439,12 +445,6 @@ protected:
 
 
   void RequestContentRepaint();
-
-  
-
-
-
-  void ScheduleContentRepaint(FrameMetrics &aFrameMetrics);
 
   
 
