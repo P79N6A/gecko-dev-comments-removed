@@ -25,6 +25,7 @@
 #include "mozilla/StandardInteger.h"
 #include "PlatformMacros.h"
 
+#include "sps_sampler.h"
 #include "platform.h"
 #include <iostream>
 

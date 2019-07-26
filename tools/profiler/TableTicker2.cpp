@@ -16,7 +16,7 @@
 
 
 #include "PlatformMacros.h"
-#include "GeckoProfilerImpl.h"
+#include "sps_sampler.h"
 #include "platform.h"
 #include "nsXULAppAPI.h"
 #include "nsThreadUtils.h"
@@ -961,7 +961,7 @@ bool mozilla_sampler_is_active2()
 
 static double sResponsivenessTimes[100];
 static unsigned int sResponsivenessLoc = 0;
-void mozilla_sampler_responsiveness2(const TimeStamp& aTime)
+void mozilla_sampler_responsiveness2(TimeStamp aTime)
 {
   if (!sLastTracerEvent.IsNull()) {
     if (sResponsivenessLoc == 100) {
