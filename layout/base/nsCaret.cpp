@@ -1071,7 +1071,7 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset)
 
  
       mKeyboardRTL = isCaretRTL;
-      nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
+      nsCOMPtr<nsISelectionPrivate> domSelection = do_QueryReferent(mDomSelectionWeak);
       if (!domSelection ||
           NS_SUCCEEDED(domSelection->SelectionLanguageChange(mKeyboardRTL)))
         return false;
