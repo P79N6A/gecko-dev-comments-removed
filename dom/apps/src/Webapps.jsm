@@ -252,6 +252,12 @@ this.DOMApplicationRegistry = {
       
       this._readManifests(ids, (function readCSPs(aResults) {
         aResults.forEach(function registerManifest(aResult) {
+          if (!aResult.manifest) {
+            
+            
+            delete this.webapps[aResult.id];
+            return;
+          }
           let app = this.webapps[aResult.id];
           app.csp = aResult.manifest.csp || "";
           app.role = aResult.manifest.role || "";
@@ -816,6 +822,12 @@ this.DOMApplicationRegistry = {
       aResults.forEach(function registerManifest(aResult) {
         let app = this.webapps[aResult.id];
         let manifest = aResult.manifest;
+        if (!manifest) {
+          
+          
+          delete this.webapps[aResult.id];
+          return;
+        }
         app.name = manifest.name;
         app.csp = manifest.csp || "";
         app.role = manifest.role || "";
