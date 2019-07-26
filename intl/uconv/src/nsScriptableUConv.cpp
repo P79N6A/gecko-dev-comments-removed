@@ -256,20 +256,47 @@ nsresult
 nsScriptableUnicodeConverter::InitConverter()
 {
   mEncoder = nullptr;
+  mDecoder = nullptr;
 
   nsAutoCString encoding;
   if (mIsInternal) {
-    encoding.Assign(mCharset);
     
     
     
+    nsAutoCString contractId;
+    nsAutoCString label(mCharset);
+    EncodingUtils::TrimSpaceCharacters(label);
     
-    mEncoder = EncodingUtils::EncoderForEncoding(mCharset);
-    mDecoder = EncodingUtils::DecoderForEncoding(mCharset);
-    if (!mEncoder || !mDecoder) {
+    
+    ToLowerCase(label);
+    if (label.EqualsLiteral("replacement")) {
+      
       return NS_ERROR_UCONV_NOCONV;
     }
-  } else {
+    contractId.AssignLiteral(NS_UNICODEENCODER_CONTRACTID_BASE);
+    contractId.Append(label);
+    mEncoder = do_CreateInstance(contractId.get());
+    contractId.AssignLiteral(NS_UNICODEDECODER_CONTRACTID_BASE);
+    contractId.Append(label);
+    mDecoder = do_CreateInstance(contractId.get());
+    if (!mDecoder) {
+      
+      
+      
+      
+      
+      ToUpperCase(label);
+      contractId.AssignLiteral(NS_UNICODEENCODER_CONTRACTID_BASE);
+      contractId.Append(label);
+      mEncoder = do_CreateInstance(contractId.get());
+      contractId.AssignLiteral(NS_UNICODEDECODER_CONTRACTID_BASE);
+      contractId.Append(label);
+      mDecoder = do_CreateInstance(contractId.get());
+      
+    }
+  }
+
+  if (!mDecoder) {
     if (!EncodingUtils::FindEncodingForLabelNoReplacement(mCharset, encoding)) {
       return NS_ERROR_UCONV_NOCONV;
     }
@@ -283,6 +310,10 @@ nsScriptableUnicodeConverter::InitConverter()
   
   if (encoding.EqualsLiteral("UTF-8")) {
     mDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Signal);
+  }
+
+  if (!mEncoder) {
+    return NS_OK;
   }
 
   return mEncoder->SetOutputErrorBehavior(nsIUnicodeEncoder::kOnError_Replace,
