@@ -89,17 +89,10 @@ class MemoryMonitor extends BroadcastReceiver {
             
             increaseMemoryPressure(MEMORY_PRESSURE_CLEANUP);
         } else {
-            if (Build.VERSION.SDK_INT < 16) {
-                
-                
-                increaseMemoryPressure(MEMORY_PRESSURE_LOW);
-            } else if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) {
-                increaseMemoryPressure(MEMORY_PRESSURE_HIGH);
-            } else if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
-                increaseMemoryPressure(MEMORY_PRESSURE_MEDIUM);
-            } else {
-                increaseMemoryPressure(MEMORY_PRESSURE_LOW);
-            }
+            
+            
+            
+            increaseMemoryPressure(MEMORY_PRESSURE_LOW);
         }
     }
 
