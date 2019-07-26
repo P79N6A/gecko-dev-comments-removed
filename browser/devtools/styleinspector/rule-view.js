@@ -942,7 +942,7 @@ CssRuleView.prototype = {
   nodeChanged: function CssRuleView_nodeChanged()
   {
     
-    if (this.isEditing) {
+    if (this.isEditing || !this._elementStyle) {
       return;
     }
 
