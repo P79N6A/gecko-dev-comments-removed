@@ -294,6 +294,17 @@ class Build(MachCommandBase):
                     if make_dir is None and make_target is None:
                         return 1
 
+                    
+                    
+                    
+                    if not make_dir and not make_target:
+                        print("The specified directory doesn't contain a "
+                              "Makefile and the first parent with one is the "
+                              "root of the tree. Please specify a directory "
+                              "with a Makefile or run |mach build| if you "
+                              "want to build the entire tree.")
+                        return 1
+
                     target_pairs.append((make_dir, make_target))
 
                 
