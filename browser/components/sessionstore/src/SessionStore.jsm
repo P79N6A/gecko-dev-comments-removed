@@ -2036,7 +2036,7 @@ let SessionStoreInternal = {
       }
 
       for (let tab of win.gBrowser.tabs) {
-        if (!TabStateCache.has(tab)) {
+        if (!tab.closing && !TabStateCache.has(tab)) {
           countdown++;
           TabState.collect(tab).then(done, fail);
         }
@@ -2625,14 +2625,6 @@ let SessionStoreInternal = {
       TabState.flush(tab.linkedBrowser);
 
       
-      let activeIndex = (tabData.index || tabData.entries.length) - 1;
-      activeIndex = Math.min(activeIndex, tabData.entries.length - 1);
-      activeIndex = Math.max(activeIndex, 0);
-
-      
-      tabData.index = activeIndex + 1;
-
-      
       
       browser.__SS_data = tabData;
       browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
@@ -2646,10 +2638,20 @@ let SessionStoreInternal = {
         pageStyle: tabData.pageStyle || null
       });
 
+      if (tabData.entries.length == 0) {
+        
+        
+        browser.loadURIWithFlags("about:blank",
+                                 Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY,
+                                 null, null, null);
+        continue;
+      }
+
       browser.stop(); 
 
       
       
+      let activeIndex = (tabData.index || tabData.entries.length) - 1;
       let activePageData = tabData.entries[activeIndex] || null;
       let uri = activePageData ? activePageData.url || null : null;
       browser.userTypedValue = uri;
@@ -2798,13 +2800,15 @@ let SessionStoreInternal = {
     
     this._removeSHistoryListener(aTab);
 
-    let activeIndex = tabData.index - 1;
+    let activeIndex = (tabData.index || tabData.entries.length) - 1;
+    if (activeIndex >= tabData.entries.length)
+      activeIndex = tabData.entries.length - 1;
     
     
     
     browser.webNavigation.setCurrentURI(Utils.makeURI("about:blank"));
     
-    if (tabData.entries.length) {
+    if (activeIndex > -1) {
       
       
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
@@ -2822,14 +2826,6 @@ let SessionStoreInternal = {
         
         didStartLoad = false;
       }
-    } else {
-      browser.__SS_restore_data = {};
-      browser.__SS_restore_pageStyle = "";
-      browser.__SS_restore_tab = aTab;
-      browser.loadURIWithFlags("about:blank",
-                               Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY,
-                               null, null, null);
-      didStartLoad = true;
     }
 
     
@@ -2854,8 +2850,8 @@ let SessionStoreInternal = {
     
     
     if (!didStartLoad) {
-      this._resetTabRestoringState(aTab);
       this._sendTabRestoredNotification(aTab);
+      this._resetTabRestoringState(aTab);
     }
 
     return didStartLoad;
@@ -2939,19 +2935,12 @@ let SessionStoreInternal = {
     PageStyle.restore(aBrowser.docShell, frameList, aBrowser.__SS_restore_pageStyle);
     TextAndScrollData.restore(frameList);
 
-    let tab = aBrowser.__SS_restore_tab;
+    
+    this._sendTabRestoredNotification(aBrowser.__SS_restore_tab);
 
-    
-    
-    delete aBrowser.__SS_data;
     delete aBrowser.__SS_restore_data;
     delete aBrowser.__SS_restore_pageStyle;
     delete aBrowser.__SS_restore_tab;
-
-    
-    
-    
-    this._sendTabRestoredNotification(tab);
   },
 
   
