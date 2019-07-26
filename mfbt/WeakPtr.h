@@ -64,10 +64,13 @@
 #ifndef mozilla_WeakPtr_h
 #define mozilla_WeakPtr_h
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/NullPtr.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TypeTraits.h"
+
+#include <string.h>
 
 namespace mozilla {
 
@@ -84,6 +87,20 @@ class WeakReference : public ::mozilla::RefCounted<WeakReference<T> >
     explicit WeakReference(T* p) : ptr(p) {}
     T* get() const {
       return ptr;
+    }
+
+    const char* typeName() const {
+      static char nameBuffer[1024];
+      const char* innerType = ptr->typeName();
+      
+      
+      
+      MOZ_ASSERT(strlen(innerType) + sizeof("WeakReference<>") < ArrayLength(nameBuffer),
+                 "Exceedingly large type name");
+      sprintf(nameBuffer, "WeakReference<%s>", innerType);
+      
+      
+      return nameBuffer;
     }
 
   private:
