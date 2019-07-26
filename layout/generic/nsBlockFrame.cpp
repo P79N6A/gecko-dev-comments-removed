@@ -5507,13 +5507,10 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, uint32_t aFlags)
                visOverflow.width, visOverflow.height);
 #endif
       } else {
-        
-        FrameLines* overflowLines = RemoveOverflowLines();
         line = overflowLines->mLines.erase(line);
-        if (!overflowLines->mLines.empty()) {
-          SetOverflowLines(overflowLines);
-        } else {
-          delete overflowLines;
+        if (overflowLines->mLines.empty()) {
+          DestroyOverflowLines();
+          overflowLines = nullptr;
           
           
           
@@ -5654,13 +5651,10 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
           nsLineBox* lineBox = line;
           if (searchingOverflowList) {
             
-            
-            RemoveOverflowLines();
             line = overflowLines->mLines.erase(line);
-            if (!overflowLines->mLines.empty()) {
-              SetOverflowLines(overflowLines);
-            } else {
-              delete overflowLines;
+            if (overflowLines->mLines.empty()) {
+              DestroyOverflowLines();
+              overflowLines = nullptr;
               
               
               
