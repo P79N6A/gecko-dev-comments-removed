@@ -139,7 +139,11 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
     }
     Throwable error = null;
     try {
-      camera = Camera.open(id);
+      if(android.os.Build.VERSION.SDK_INT>8) {
+        camera = Camera.open(id);
+      } else {
+        camera = Camera.open();
+      }
 
       localPreview = ViERenderer.GetLocalRenderer();
       if (localPreview != null) {
@@ -149,28 +153,43 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
           camera.setPreviewDisplay(localPreview);
         }
       } else {
-        
-        
-        
-        
-        
-        try {
+        if(android.os.Build.VERSION.SDK_INT>10) {
           
-          dummySurfaceTexture = new SurfaceTexture(42);
-          camera.setPreviewTexture(dummySurfaceTexture);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
+          
+          
+          
+          
+          try {
+            
+            dummySurfaceTexture = new SurfaceTexture(42);
+            camera.setPreviewTexture(dummySurfaceTexture);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+          throw new RuntimeException("No preview surface for Camera.");
         }
       }
 
       Camera.Parameters parameters = camera.getParameters();
-      Log.d(TAG, "isVideoStabilizationSupported: " +
-          parameters.isVideoStabilizationSupported());
-      if (parameters.isVideoStabilizationSupported()) {
-        parameters.setVideoStabilization(true);
+      
+      if(android.os.Build.VERSION.SDK_INT>14) {
+        Log.d(TAG, "isVideoStabilizationSupported: " +
+              parameters.isVideoStabilizationSupported());
+        if (parameters.isVideoStabilizationSupported()) {
+          parameters.setVideoStabilization(true);
+        }
+      }
+      List<String> focusModeList = parameters.getSupportedFocusModes();
+      if (focusModeList.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
       }
       parameters.setPreviewSize(width, height);
-      parameters.setPreviewFpsRange(min_mfps, max_mfps);
+      if (android.os.Build.VERSION.SDK_INT>8) {
+          parameters.setPreviewFpsRange(min_mfps, max_mfps);
+      } else {
+          parameters.setPreviewFrameRate(max_mfps / 1000);
+      }
       int format = ImageFormat.NV21;
       parameters.setPreviewFormat(format);
       camera.setParameters(parameters);
@@ -216,7 +235,9 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
         localPreview.removeCallback(this);
         camera.setPreviewDisplay(null);
       } else {
-        camera.setPreviewTexture(null);
+        if(android.os.Build.VERSION.SDK_INT>10) {
+          camera.setPreviewTexture(null);
+        }
       }
       camera.release();
       camera = null;
