@@ -379,7 +379,8 @@ MenuPopup.prototype = {
     let screenHeight = ContentAreaObserver.height;
 
     
-    let leftHand = MetroUtils.handPreference == MetroUtils.handPreferenceLeft;
+    let leftHand =
+          Services.metro.handPreference == Ci.nsIWinMetroUtils.handPreferenceLeft;
     if (aSource && aSource == Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH) {
       this.commands.setAttribute("left-hand", leftHand);
     }
