@@ -1884,9 +1884,9 @@ var XPIProvider = {
     delete this._uriMappings;
 
     if (gLazyObjectsLoaded) {
-      XPIDatabase.shutdown(function shutdownCallback(saveError) {
+      XPIDatabase.shutdown(function shutdownCallback() {
         LOG("Notifying XPI shutdown observers");
-        Services.obs.notifyObservers(null, "xpi-provider-shutdown", saveError);
+        Services.obs.notifyObservers(null, "xpi-provider-shutdown", null);
       });
     }
     else {
@@ -2594,8 +2594,9 @@ var XPIProvider = {
 
       aOldAddon.descriptor = aAddonState.descriptor;
       aOldAddon.visible = !(aOldAddon.id in visibleAddons);
-      XPIDatabase.saveChanges();
 
+      
+      XPIDatabase.setAddonDescriptor(aOldAddon, aAddonState.descriptor);
       if (aOldAddon.visible) {
         visibleAddons[aOldAddon.id] = aOldAddon;
 
@@ -3184,6 +3185,8 @@ var XPIProvider = {
       updateDatabase = cache != JSON.stringify(state);
     }
 
+    
+    
     
     
     
