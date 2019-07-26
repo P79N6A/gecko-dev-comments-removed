@@ -10,6 +10,7 @@
 #include <stdint.h>                     
 #include "base/task.h"                  
 #include "mozilla/TimeStamp.h"          
+#include "mozilla/RollingMean.h"        
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsTArray.h"                   
@@ -56,7 +57,10 @@ public:
 
 
 
-  TimeDuration AverageDuration();
+  TimeDuration AverageDuration()
+  {
+    return mMean.empty() ? TimeDuration() : mMean.mean();
+  }
 
   
 
@@ -71,7 +75,7 @@ public:
   
 
 
-  void ClearHistory() { mDurations.Clear(); }
+  void ClearHistory() { mMean.clear(); }
 
   
 
@@ -79,17 +83,16 @@ public:
 
   void SetMaxDurations(uint32_t aMaxDurations)
   {
-    mMaxDurations = aMaxDurations;
+    if (aMaxDurations != mMean.maxValues()) {
+      mMean = RollingMean<TimeDuration, TimeDuration>(aMaxDurations);
+    }
   }
 
 private:
   bool mOutstanding;
   nsAutoPtr<CancelableTask> mQueuedTask;
   TimeStamp mStartTime;
-
-  
-  nsTArray<TimeDuration> mDurations;
-  uint32_t mMaxDurations;
+  RollingMean<TimeDuration, TimeDuration> mMean;
 };
 
 }
