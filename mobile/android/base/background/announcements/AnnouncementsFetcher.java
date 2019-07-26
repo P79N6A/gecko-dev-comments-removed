@@ -55,12 +55,57 @@ public class AnnouncementsFetcher {
     return GlobalConstants.ANDROID_CPU_ARCH;
   }
 
-  protected static int getIdleDays(final long lastLaunch) {
-    if (lastLaunch == 0) {
+  
+
+
+
+
+
+
+
+
+
+
+  protected static int getIdleDays(final long lastLaunch, final long now) {
+    if (lastLaunch <= 0) {
       return -1;
     }
-    final long idleMillis = System.currentTimeMillis() - lastLaunch;
-    return (int) (idleMillis / MILLISECONDS_PER_DAY);
+
+    if (now < GlobalConstants.BUILD_TIMESTAMP) {
+      Logger.warn(LOG_TAG, "Current time " + now + " earlier than build date. Not calculating idle.");
+      return -1;
+    }
+
+    if (now < lastLaunch) {
+      Logger.warn(LOG_TAG, "Current time " + now + " earlier than last launch! Not calculating idle.");
+      return -1;
+    }
+
+    final long idleMillis = now - lastLaunch;
+    final int idleDays = (int) (idleMillis / MILLISECONDS_PER_DAY);
+
+    if (idleDays > AnnouncementsConstants.MAX_SANE_IDLE_DAYS) {
+      Logger.warn(LOG_TAG, "Idle from " + lastLaunch + " until " + now +
+                           ", which is insane. Not calculating idle.");
+      return -1;
+    }
+
+    return idleDays;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  protected static int getIdleDays(final long lastLaunch) {
+    final long now = System.currentTimeMillis();
+    return getIdleDays(lastLaunch, now);
   }
 
   public static void fetchAnnouncements(URI uri, AnnouncementsFetchDelegate delegate) {
