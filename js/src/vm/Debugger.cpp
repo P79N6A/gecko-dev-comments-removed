@@ -387,6 +387,14 @@ Debugger::~Debugger()
 
 
 
+    scripts.clearWithoutCallingDestructors();
+    objects.clearWithoutCallingDestructors();
+    environments.clearWithoutCallingDestructors();
+
+    
+
+
+
     JS_REMOVE_LINK(&onNewGlobalObjectWatchersLink);
 }
 
@@ -3714,7 +3722,7 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFr
            .setCompileAndGo(true)
            .setNoScriptRval(false)
            .setFileAndLine(filename, lineno);
-    RootedScript script(cx, frontend::CompileScript(cx, env, frame, options, chars, length,
+    RootedScript script(cx, frontend::CompileScript(cx, env, frame, options, chars.get(), length,
                                                      NULL,
                                                      frame ? 1 : 0));
     if (!script)
@@ -4117,7 +4125,8 @@ DebuggerObject_getEnvironment(JSContext *cx, unsigned argc, Value *vp)
     Rooted<Env*> env(cx);
     {
         AutoCompartment ac(cx, obj);
-        env = GetDebugScopeForFunction(cx, obj->toFunction());
+        RootedFunction fun(cx, obj->toFunction());
+        env = GetDebugScopeForFunction(cx, fun);
         if (!env)
             return false;
     }

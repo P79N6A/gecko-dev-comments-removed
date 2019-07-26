@@ -355,6 +355,9 @@ pref("browser.frames.enabled", true);
 
 pref("toolkit.autocomplete.richBoundaryCutoff", 200);
 
+
+pref("toolkit.osfile.log", false);
+
 pref("toolkit.scrollbox.smoothScroll", true);
 pref("toolkit.scrollbox.scrollIncrement", 20);
 pref("toolkit.scrollbox.verticalScrollDistance", 3);
@@ -1408,6 +1411,7 @@ pref("security.checkloaduri", true);
 pref("security.xpconnect.plugin.unrestricted", true);
 
 pref("security.dialog_enable_delay", 2000);
+pref("security.notification_enable_delay", 500);
 
 pref("security.csp.enable", true);
 pref("security.csp.debug", false);

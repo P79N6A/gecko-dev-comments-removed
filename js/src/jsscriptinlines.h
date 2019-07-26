@@ -79,6 +79,18 @@ MarkScriptFilename(JSRuntime *rt, const char *filename)
         ScriptFilenameEntry::fromFilename(filename)->marked = true;
 }
 
+inline void
+MarkScriptBytecode(JSRuntime *rt, const jsbytecode *bytecode)
+{
+    
+
+
+
+
+    if (rt->gcIsFull)
+        SharedScriptData::fromBytecode(bytecode)->marked = true;
+}
+
 } 
 
 inline void

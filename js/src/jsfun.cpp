@@ -566,7 +566,7 @@ FindBody(JSContext *cx, HandleFunction fun, StableCharPtr chars, size_t length,
     CompileOptions options(cx);
     options.setFileAndLine("internal-findBody", 0)
            .setVersion(fun->nonLazyScript()->getVersion());
-    TokenStream ts(cx, options, chars, length, NULL);
+    TokenStream ts(cx, options, chars.get(), length, NULL);
     JS_ASSERT(chars[0] == '(');
     int nest = 0;
     bool onward = true;
@@ -1371,7 +1371,7 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-        TokenStream ts(cx, options, collected_args, args_length,  NULL);
+        TokenStream ts(cx, options, collected_args.get(), args_length,  NULL);
 
         
         TokenKind tt = ts.getToken();
@@ -1431,13 +1431,13 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
         str = ToString<CanGC>(cx, args[args.length() - 1]);
     if (!str)
         return false;
-    JSStableString *stable = str->ensureStable(cx);
-    if (!stable)
+    JSLinearString *linear = str->ensureLinear(cx);
+    if (!linear)
         return false;
 
     JS::Anchor<JSString *> strAnchor(str);
-    StableCharPtr chars = stable->chars();
-    size_t length = stable->length();
+    const jschar *chars = linear->chars();
+    size_t length = linear->length();
 
     
 
@@ -1525,7 +1525,7 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent, 
                                                  allocKind, newKind);
     if (!cloneobj)
         return NULL;
-    JSFunction *clone = cloneobj->toFunction();
+    RootedFunction clone(cx, cloneobj->toFunction());
 
     clone->nargs = fun->nargs;
     clone->flags = fun->flags & ~JSFunction::EXTENDED;
