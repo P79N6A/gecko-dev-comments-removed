@@ -1902,7 +1902,16 @@ ContentPermissionPrompt.prototype = {
                        popupNotificationActions[0] : null;
     var secondaryActions = popupNotificationActions.splice(1);
 
-    if (aRequest.type == "pointerLock") {
+    
+    let types = aRequest.types.QueryInterface(Ci.nsIArray);
+    if (types.length != 1) {
+      aRequest.cancel();
+      return;
+    }
+
+    let perm = types.queryElementAt(0, Ci.nsIContentPermissionType);
+
+    if (perm.type == "pointerLock") {
       
       let autoAllow = !mainAction;
       aOptions = {
@@ -1920,7 +1929,7 @@ ContentPermissionPrompt.prototype = {
 
     var popup = chromeWin.PopupNotifications.show(browser, aNotificationId, aMessage, aAnchorId,
                                                   mainAction, secondaryActions, aOptions);
-    if (aRequest.type == "pointerLock") {
+    if (perm.type == "pointerLock") {
       
       
       
@@ -2058,13 +2067,21 @@ ContentPermissionPrompt.prototype = {
 
   prompt: function CPP_prompt(request) {
 
+    
+    let types = request.types.QueryInterface(Ci.nsIArray);
+    if (types.length != 1) {
+      request.cancel();
+      return;
+    }
+    let perm = types.queryElementAt(0, Ci.nsIContentPermissionType);
+
     const kFeatureKeys = { "geolocation" : "geo",
                            "desktop-notification" : "desktop-notification",
                            "pointerLock" : "pointerLock",
                          };
 
     
-    if (!(request.type in kFeatureKeys)) {
+    if (!(perm.type in kFeatureKeys)) {
         return;
     }
 
@@ -2076,7 +2093,7 @@ ContentPermissionPrompt.prototype = {
       return;
 
     var autoAllow = false;
-    var permissionKey = kFeatureKeys[request.type];
+    var permissionKey = kFeatureKeys[perm.type];
     var result = Services.perms.testExactPermissionFromPrincipal(requestingPrincipal, permissionKey);
 
     if (result == Ci.nsIPermissionManager.DENY_ACTION) {
@@ -2087,7 +2104,7 @@ ContentPermissionPrompt.prototype = {
     if (result == Ci.nsIPermissionManager.ALLOW_ACTION) {
       autoAllow = true;
       
-      if (request.type != "pointerLock") {
+      if (perm.type != "pointerLock") {
         request.allow();
         return;
       }
@@ -2101,7 +2118,7 @@ ContentPermissionPrompt.prototype = {
       return;
 
     
-    switch (request.type) {
+    switch (perm.type) {
     case "geolocation":
       this._promptGeo(request);
       break;

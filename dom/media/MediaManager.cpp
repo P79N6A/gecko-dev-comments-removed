@@ -41,7 +41,7 @@
 #include "MediaEngineWebRTC.h"
 #endif
 
-#ifdef MOZ_WIDGET_GONK
+#ifdef MOZ_B2G
 #include "MediaPermissionGonk.h"
 #endif
 
@@ -780,7 +780,7 @@ public:
     , mListener(aListener)
     , mPrefs(aPrefs)
     , mDeviceChosen(false)
-    , mBackendChosen(false)
+    , mBackend(nullptr)
     , mManager(MediaManager::GetInstance())
   {}
 
@@ -804,15 +804,11 @@ public:
     , mListener(aListener)
     , mPrefs(aPrefs)
     , mDeviceChosen(false)
-    , mBackendChosen(true)
     , mBackend(aBackend)
     , mManager(MediaManager::GetInstance())
   {}
 
   ~GetUserMediaRunnable() {
-    if (mBackendChosen) {
-      delete mBackend;
-    }
   }
 
   
@@ -834,14 +830,15 @@ public:
     MOZ_ASSERT(mSuccess.mRawPtr);
     MOZ_ASSERT(mError.mRawPtr);
 
+    MediaEngine* backend = mBackend;
     
-    if (!mBackendChosen) {
-      mBackend = mManager->GetBackend(mWindowID);
+    if (!backend) {
+      backend = mManager->GetBackend(mWindowID);
     }
 
     
     if (!mDeviceChosen) {
-      nsresult rv = SelectDevice();
+      nsresult rv = SelectDevice(backend);
       if (rv != NS_OK) {
         return rv;
       }
@@ -917,12 +914,12 @@ public:
   }
 
   nsresult
-  SelectDevice()
+  SelectDevice(MediaEngine* backend)
   {
     MOZ_ASSERT(mSuccess.mRawPtr);
     MOZ_ASSERT(mError.mRawPtr);
     if (mConstraints.mPicture || mConstraints.mVideo) {
-      ScopedDeletePtr<SourceSet> sources (GetSources(mBackend,
+      ScopedDeletePtr<SourceSet> sources (GetSources(backend,
           mConstraints.mVideom, &MediaEngine::EnumerateVideoDevices));
 
       if (!sources->Length()) {
@@ -936,7 +933,7 @@ public:
     }
 
     if (mConstraints.mAudio) {
-      ScopedDeletePtr<SourceSet> sources (GetSources(mBackend,
+      ScopedDeletePtr<SourceSet> sources (GetSources(backend,
           mConstraints.mAudiom, &MediaEngine::EnumerateAudioDevices));
 
       if (!sources->Length()) {
@@ -1036,9 +1033,8 @@ private:
   MediaEnginePrefs mPrefs;
 
   bool mDeviceChosen;
-  bool mBackendChosen;
 
-  MediaEngine* mBackend;
+  RefPtr<MediaEngine> mBackend;
   nsRefPtr<MediaManager> mManager; 
 };
 
@@ -1328,7 +1324,7 @@ MediaManager::GetUserMedia(JSContext* aCx, bool aPrivileged,
     
     
     (void) MediaManager::Get();
-#ifdef MOZ_WIDGET_GONK
+#ifdef MOZ_B2G
     
     (void) MediaPermissionManager::GetInstance();
 #endif 
