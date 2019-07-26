@@ -41,6 +41,10 @@
   #include "imgIContainerDebug.h"
 #endif
 
+
+
+
+
 class nsIInputStream;
 class nsIThreadPool;
 
@@ -321,7 +325,23 @@ private:
 
   nsresult OnImageDataCompleteCore(nsIRequest* aRequest, nsISupports*, nsresult aStatus);
 
-  
+#ifndef USE_FRAME_ANIMATOR
+  struct Anim
+  {
+    
+    nsIntRect                  firstFrameRefreshArea;
+    uint32_t                   currentAnimationFrameIndex; 
+
+    
+    TimeStamp                  currentAnimationFrameTime;
+
+    Anim() :
+      currentAnimationFrameIndex(0)
+    {}
+  };
+#endif
+
+
 
 
 
@@ -528,6 +548,35 @@ private:
                      uint32_t aFlags,
                      gfxImageSurface **_retval);
 
+#ifndef USE_FRAME_ANIMATOR
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool AdvanceFrame(mozilla::TimeStamp aTime, nsIntRect* aDirtyRect);
+
+  
+
+
+
+
+
+  uint32_t GetSingleLoopTime() const;
+#endif
+
   
 
 
@@ -543,11 +592,39 @@ private:
   imgFrame* GetDrawableImgFrame(uint32_t framenum);
   imgFrame* GetCurrentImgFrame();
   uint32_t GetCurrentImgFrameIndex() const;
+#ifndef USE_FRAME_ANIMATOR
+  mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
+#endif
 
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation,
                                                  mozilla::MallocSizeOf aMallocSizeOf) const;
 
+#ifdef USE_FRAME_ANIMATOR
   void EnsureAnimExists();
+#else
+  inline void EnsureAnimExists()
+  {
+    if (!mAnim) {
+
+      
+      mAnim = new Anim();
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      LockImage();
+
+      
+      CurrentStatusTracker().RecordImageIsAnimated();
+    }
+  }
+#endif
 
   nsresult InternalAddFrameHelper(uint32_t framenum, imgFrame *frame,
                                   uint8_t **imageData, uint32_t *imageLength,
@@ -605,7 +682,14 @@ private:
   
   
   
+#ifdef USE_FRAME_ANIMATOR
   FrameAnimator* mAnim;
+#else
+  RasterImage::Anim*        mAnim;
+
+  
+  int32_t                    mLoopCount;
+#endif
 
   
   uint32_t                   mLockCount;
@@ -722,6 +806,12 @@ inline NS_IMETHODIMP RasterImage::GetAnimationMode(uint16_t *aAnimationMode) {
   return GetAnimationModeInternal(aAnimationMode);
 }
 
+#ifndef USE_FRAME_ANIMATOR
+inline NS_IMETHODIMP RasterImage::SetAnimationMode(uint16_t aAnimationMode) {
+  return SetAnimationModeInternal(aAnimationMode);
+}
+#endif
+
 
 
 
@@ -747,4 +837,4 @@ class imgDecodeRequestor : public nsRunnable
 } 
 } 
 
-#endif
+#endif 
