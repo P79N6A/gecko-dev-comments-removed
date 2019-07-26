@@ -4139,19 +4139,17 @@ pref("layers.frame-counter", false);
 
 pref("layers.max-active", -1);
 
+
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
-#endif
-
-#ifdef MOZ_WIDGET_GONK
-pref("layers.offmainthreadcomposition.enabled", true);
-#endif
-
-
-#ifdef XP_WIN
-pref("layers.use-deprecated-textures", true);
-#else
 pref("layers.use-deprecated-textures", false);
+#else
+#ifdef MOZ_WIDGET_GONK
+pref("layers.use-deprecated-textures", false);
+#else
+pref("layers.offmainthreadcomposition.enabled", false);
+pref("layers.use-deprecated-textures", true);
+#endif
 #endif
 
 
