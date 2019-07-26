@@ -2366,6 +2366,13 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(int32_t, void *param)
             ConditionallyStopTimeoutTick();
         }
 
+        
+        
+        
+        if (conn->Transaction()) {
+            conn->DontReuse();
+        }
+
         if (conn->CanReuse()) {
             LOG(("  adding connection to idle list\n"));
             

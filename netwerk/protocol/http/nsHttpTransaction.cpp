@@ -1066,7 +1066,10 @@ nsHttpTransaction::Restart()
 
     
     mSecurityInfo = 0;
-    NS_IF_RELEASE(mConnection);
+    if (mConnection) {
+        mConnection->DontReuse();
+        NS_RELEASE(mConnection);
+    }
 
     
     
