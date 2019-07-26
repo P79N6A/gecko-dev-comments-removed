@@ -175,6 +175,10 @@ public:
 
   static void SetTimeAndSampleAnimations(TimeStamp aTime, bool aIsTesting);
 
+  
+
+
+  static bool IsInCompositorThread();
 protected:
   virtual PLayerTransactionParent*
     AllocPLayerTransactionParent(const LayersBackend& aBackendHint,
@@ -193,7 +197,7 @@ private:
   void ResumeCompositionAndResize(int width, int height);
   void ForceComposition();
 
-  inline PlatformThreadId CompositorThreadID();
+  inline static PlatformThreadId CompositorThreadID();
 
   
 

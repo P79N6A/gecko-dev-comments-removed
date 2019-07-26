@@ -47,11 +47,6 @@ public:
   
 
 
-  virtual void Updated() = 0;
-
-  
-
-
 
   virtual void UpdatePictureRect(nsIntRect aPictureRect);
 
@@ -65,6 +60,50 @@ protected:
   int32_t mLastPaintedImageSerial;
   nsIntRect mPictureRect;
 };
+
+
+
+
+class ImageClientSingle : public ImageClient
+{
+public:
+  ImageClientSingle(CompositableForwarder* aFwd,
+                    TextureFlags aFlags,
+                    CompositableType aType);
+
+  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
+
+  virtual void Detach() MOZ_OVERRIDE;
+
+  virtual void AddTextureClient(TextureClient* aTexture) MOZ_OVERRIDE;
+
+  virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE;
+protected:
+  RefPtr<TextureClient> mFrontBuffer;
+  
+  
+  TextureFlags mTextureFlags;
+};
+
+
+
+
+class ImageClientBuffered : public ImageClientSingle
+{
+public:
+  ImageClientBuffered(CompositableForwarder* aFwd,
+                      TextureFlags aFlags,
+                      CompositableType aType);
+
+  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
+
+  virtual void Detach() MOZ_OVERRIDE;
+
+protected:
+  RefPtr<TextureClient> mBackBuffer;
+};
+
+
 
 
 

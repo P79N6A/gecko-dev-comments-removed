@@ -323,6 +323,13 @@ ClientLayerManager::ForwardTransaction()
           ->SetDescriptorFromReply(ots.textureId(), ots.image());
         break;
       }
+      case EditReply::TReplyTextureRemoved: {
+        
+        
+        
+        
+        break;
+      }
 
       default:
         NS_RUNTIMEABORT("not reached");

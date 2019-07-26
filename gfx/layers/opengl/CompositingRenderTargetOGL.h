@@ -23,7 +23,6 @@ namespace layers {
 
 class CompositingRenderTargetOGL : public CompositingRenderTarget
 {
-  typedef gfxASurface::gfxContentType ContentType;
   typedef mozilla::gl::GLContext GLContext;
 
   
@@ -149,6 +148,13 @@ public:
   {
     MOZ_ASSERT(false, "CompositingRenderTargetOGL should not be used as a TextureSource");
     return gfx::IntSize(0, 0);
+  }
+
+  gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE
+  {
+    
+    MOZ_ASSERT(false, "Not implemented");
+    return gfx::FORMAT_UNKNOWN;
   }
 
   const gfxMatrix& GetTransform() {

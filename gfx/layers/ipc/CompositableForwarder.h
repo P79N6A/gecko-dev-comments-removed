@@ -20,6 +20,7 @@ class TextureFactoryIdentifier;
 class SurfaceDescriptor;
 class ThebesBufferData;
 class DeprecatedTextureClient;
+class TextureClient;
 class BasicTiledLayerBuffer;
 
 
@@ -140,6 +141,42 @@ public:
 
 
   virtual void DestroyedThebesBuffer(const SurfaceDescriptor& aBackBufferToDestroy) = 0;
+
+  
+
+
+
+  virtual void AddTexture(CompositableClient* aCompositable,
+                          TextureClient* aClient) = 0;
+
+  
+
+
+
+
+
+
+
+
+
+  virtual void RemoveTexture(CompositableClient* aCompositable,
+                             uint64_t aTextureID,
+                             TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT) = 0;
+
+  
+
+
+
+  virtual void UseTexture(CompositableClient* aCompositable,
+                          TextureClient* aClient) = 0;
+
+  
+
+
+
+  virtual void UpdatedTexture(CompositableClient* aCompositable,
+                              TextureClient* aTexture,
+                              nsIntRegion* aRegion) = 0;
 
   void IdentifyTextureHost(const TextureFactoryIdentifier& aIdentifier);
 

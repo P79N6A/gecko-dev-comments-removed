@@ -8,6 +8,7 @@
 
 #include "mozilla/gfx/Matrix.h"
 #include "mozilla/layers/Compositor.h"
+#include "mozilla/layers/TextureHost.h"
 #include "LayersLogging.h"
 #include "mozilla/RefPtr.h"
 
@@ -29,22 +30,6 @@ namespace layers {
 
 
 
-
-
-enum EffectTypes
-{
-  EFFECT_MASK,
-  EFFECT_MAX_SECONDARY, 
-  EFFECT_BGRX,
-  EFFECT_RGBX,
-  EFFECT_BGRA,
-  EFFECT_RGBA,
-  EFFECT_YCBCR,
-  EFFECT_COMPONENT_ALPHA,
-  EFFECT_SOLID_COLOR,
-  EFFECT_RENDER_TARGET,
-  EFFECT_MAX  
-};
 
 struct Effect : public RefCounted<Effect>
 {

@@ -10,9 +10,8 @@
 #include "mozilla/gfx/Matrix.h"
 #include "gfxMatrix.h"
 #include "Layers.h"
-#include "mozilla/layers/TextureHost.h"
 #include "mozilla/RefPtr.h"
-
+#include "mozilla/layers/CompositorTypes.h"
 
 
 
@@ -113,6 +112,9 @@ struct Effect;
 struct EffectChain;
 class Image;
 class ISurfaceAllocator;
+class NewTextureSource;
+class DataTextureSource;
+class CompositingRenderTarget;
 
 enum SurfaceInitMode
 {
@@ -179,8 +181,18 @@ public:
     MOZ_COUNT_DTOR(Compositor);
   }
 
+  virtual TemporaryRef<DataTextureSource> CreateDataTextureSource(TextureFlags aFlags = 0) = 0;
   virtual bool Initialize() = 0;
   virtual void Destroy() = 0;
+
+  
+
+
+
+
+
+
+  virtual bool SupportsEffect(EffectTypes aEffect) { return true; }
 
   
 

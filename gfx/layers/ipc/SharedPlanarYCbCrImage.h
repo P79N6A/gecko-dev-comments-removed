@@ -15,6 +15,9 @@ namespace mozilla {
 namespace layers {
 
 class ImageClient;
+class TextureClient;
+class BufferTextureClient;
+
 
 class DeprecatedSharedPlanarYCbCrImage : public PlanarYCbCrImage
 {
@@ -80,6 +83,34 @@ private:
   ipc::Shmem mShmem;
   ISurfaceAllocator* mSurfaceAllocator;
   bool mAllocated;
+};
+
+
+class SharedPlanarYCbCrImage : public PlanarYCbCrImage
+                             , public ISharedImage
+{
+public:
+  SharedPlanarYCbCrImage(ImageClient* aCompositable);
+  ~SharedPlanarYCbCrImage();
+
+  virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
+  virtual TextureClient* GetTextureClient() MOZ_OVERRIDE;
+  virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface() MOZ_OVERRIDE;
+  virtual void SetData(const PlanarYCbCrImage::Data& aData) MOZ_OVERRIDE;
+  virtual void SetDataNoCopy(const Data &aData) MOZ_OVERRIDE;
+
+  virtual bool Allocate(PlanarYCbCrImage::Data& aData);
+  virtual uint8_t* AllocateBuffer(uint32_t aSize) MOZ_OVERRIDE;
+  
+  
+  virtual uint8_t* AllocateAndGetNewBuffer(uint32_t aSize) MOZ_OVERRIDE;
+
+  virtual bool IsValid() MOZ_OVERRIDE;
+
+private:
+  RefPtr<BufferTextureClient> mTextureClient;
 };
 
 } 

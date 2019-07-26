@@ -4057,6 +4057,9 @@ pref("layers.async-video.enabled",false);
 pref("layers.acceleration.disabled", false);
 
 
+pref("layers.use-deprecated-textures", true);
+
+
 #ifdef ANDROID
 
 
@@ -4080,6 +4083,8 @@ pref("layers.offmainthreadcomposition.enabled", false);
 pref("layers.offmainthreadcomposition.testing.enabled", false);
 
 pref("layers.offmainthreadcomposition.async-animations", false);
+
+pref("layers.prefer-memory-over-shmem", true);
 
 #ifdef MOZ_X11
 #ifdef MOZ_WIDGET_GTK2

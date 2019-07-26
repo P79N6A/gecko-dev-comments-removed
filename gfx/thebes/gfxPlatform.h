@@ -556,6 +556,14 @@ public:
 
     static bool DrawLayerBorders();
     static bool DrawFrameCounter();
+    
+
+
+
+
+
+    bool PreferMemoryOverShmem() const;
+    bool UseDeprecatedTextures() const { return mLayersUseDeprecated; }
 
 protected:
     gfxPlatform();
@@ -659,6 +667,8 @@ private:
     mozilla::RefPtr<mozilla::gfx::DrawEventRecorder> mRecorder;
     bool mWidgetUpdateFlashing;
     uint32_t mOrientationSyncMillis;
+    bool mLayersPreferMemoryOverShmem;
+    bool mLayersUseDeprecated;
 };
 
 #endif 

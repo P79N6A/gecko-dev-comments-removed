@@ -91,7 +91,7 @@ ClientCanvasLayer::RenderLayer()
     if (isCrossProcess && mGLContext) {
       GLScreenBuffer* screen = mGLContext->Screen();
       if (screen && screen->Stream()) {
-        flags |= OwnByClient;
+        flags |= TEXTURE_DEALLOCATE_CLIENT;
       }
     }
     mCanvasClient = CanvasClient::CreateCanvasClient(GetCompositableClientType(),

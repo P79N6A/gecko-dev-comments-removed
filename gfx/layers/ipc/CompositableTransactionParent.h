@@ -19,8 +19,6 @@ typedef std::vector<mozilla::layers::EditReply> EditReplyVector;
 
 class CompositableParentManager : public ISurfaceAllocator
 {
-public:
-
 protected:
   
 

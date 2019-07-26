@@ -12,6 +12,13 @@
 #include "gfxASurface.h"
 #include "GLContextTypes.h"
 #include "gfxPattern.h"
+#include "mozilla/gfx/Rect.h"
+
+namespace mozilla {
+namespace gfx {
+class DataSourceSurface;
+}
+}
 
 namespace mozilla {
 namespace gl {
@@ -164,6 +171,10 @@ public:
 
 
     virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0)) = 0;
+    
+    bool UpdateFromDataSource(gfx::DataSourceSurface *aSurf,
+                              const nsIntRegion* aDstRegion = nullptr,
+                              const gfx::IntPoint* aSrcOffset = nullptr);
 
     virtual void BindTexture(GLenum aTextureUnit) = 0;
     virtual void ReleaseTexture() {}

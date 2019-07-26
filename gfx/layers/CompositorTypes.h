@@ -20,25 +20,75 @@ const SurfaceDescriptorType SURFACEDESCRIPTOR_UNKNOWN = 0;
 
 
 
+
+
 typedef uint32_t TextureFlags;
 
-const TextureFlags UseNearestFilter   = 0x1;
+const TextureFlags UseNearestFilter           = 1 << 0;
 
-const TextureFlags NeedsYFlip         = 0x2;
+const TextureFlags NeedsYFlip                 = 1 << 1;
 
 
-const TextureFlags ForceSingleTile    = 0x4;
+const TextureFlags ForceSingleTile            = 1 << 2;
 
-const TextureFlags AllowRepeat        = 0x8;
+const TextureFlags AllowRepeat                = 1 << 3;
 
-const TextureFlags NewTile            = 0x10;
+const TextureFlags NewTile                    = 1 << 4;
 
-const TextureFlags HostRelease        = 0x20;
+const TextureFlags ComponentAlpha             = 1 << 5;
 
-const TextureFlags ComponentAlpha     = 0x40;
 
-const TextureFlags OwnByClient        = 0x80;
 
+
+
+
+
+const TextureFlags TEXTURE_RB_SWAPPED         = 1 << 6;
+
+
+const TextureFlags TEXTURE_FRONT              = 1 << 12;
+
+const TextureFlags TEXTURE_ON_WHITE           = 1 << 13;
+ 
+const TextureFlags TEXTURE_ON_BLACK           = 1 << 14;
+
+const TextureFlags TEXTURE_TILE               = 1 << 15;
+
+
+const TextureFlags TEXTURE_COPY_PREVIOUS      = 1 << 24;
+
+
+
+
+
+const TextureFlags TEXTURE_DEALLOCATE_CLIENT  = 1 << 25;
+const TextureFlags TEXTURE_DEALLOCATE_HOST    = 1 << 26;
+
+
+
+const TextureFlags TEXTURE_IMMUTABLE          = 1 << 27;
+
+
+const TextureFlags TEXTURE_FLAGS_DEFAULT = TEXTURE_DEALLOCATE_HOST
+                                         | TEXTURE_FRONT;
+
+
+
+
+enum EffectTypes
+{
+  EFFECT_MASK,
+  EFFECT_MAX_SECONDARY, 
+  EFFECT_BGRX,
+  EFFECT_RGBX,
+  EFFECT_BGRA,
+  EFFECT_RGBA,
+  EFFECT_YCBCR,
+  EFFECT_COMPONENT_ALPHA,
+  EFFECT_SOLID_COLOR,
+  EFFECT_RENDER_TARGET,
+  EFFECT_MAX  
+};
 
 
 
@@ -63,6 +113,7 @@ enum DeprecatedTextureClientType
 enum CompositableType
 {
   BUFFER_UNKNOWN,
+  
   BUFFER_IMAGE_SINGLE,    
   BUFFER_IMAGE_BUFFERED,  
   BUFFER_BRIDGE,          
@@ -71,6 +122,8 @@ enum CompositableType
   BUFFER_CONTENT_INC,     
                           
   BUFFER_TILED,           
+  
+  COMPOSITABLE_IMAGE,     
   BUFFER_COUNT
 };
 
@@ -113,11 +166,16 @@ struct TextureFactoryIdentifier
 
 
 
+
+
 typedef uint32_t TextureIdentifier;
 const TextureIdentifier TextureFront = 1;
 const TextureIdentifier TextureBack = 2;
 const TextureIdentifier TextureOnWhiteFront = 3;
 const TextureIdentifier TextureOnWhiteBack = 4;
+
+
+
 
 
 
@@ -155,8 +213,8 @@ struct TextureInfo
 
 
 enum OpenMode {
-  OPEN_READ_ONLY,
-  OPEN_READ_WRITE
+  OPEN_READ_ONLY  = 0x1,
+  OPEN_READ_WRITE = 0x2
 };
 
 

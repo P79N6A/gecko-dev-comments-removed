@@ -10,6 +10,7 @@
 #include "gfxASurface.h"
 #include "mozilla/layers/CompositorTypes.h" 
 #include "mozilla/RefPtr.h"
+#include "ImageContainer.h" 
 
 class gfxReusableSurfaceWrapper;
 
@@ -25,6 +26,267 @@ class ContentClient;
 class PlanarYCbCrImage;
 class Image;
 class CompositableForwarder;
+class ISurfaceAllocator;
+class CompositableClient;
+
+
+
+
+
+
+
+
+
+
+
+
+class TextureClientSurface
+{
+public:
+  virtual bool UpdateSurface(gfxASurface* aSurface) = 0;
+  virtual bool AllocateForSurface(gfx::IntSize aSize) = 0;
+};
+
+
+
+
+class TextureClientYCbCr
+{
+public:
+  virtual bool UpdateYCbCr(const PlanarYCbCrImage::Data& aData) = 0;
+  virtual bool AllocateForYCbCr(gfx::IntSize aYSize, gfx::IntSize aCbCrSize) = 0;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class TextureClient : public RefCounted<TextureClient>
+{
+public:
+  TextureClient(TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
+  virtual ~TextureClient();
+
+  virtual TextureClientSurface* AsTextureClientSurface() { return nullptr; }
+  virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
+
+  virtual void MarkUnused() {}
+
+  virtual bool Lock(OpenMode aMode)
+  {
+    return true;
+  }
+
+  virtual void Unlock() {}
+
+  void SetID(uint64_t aID)
+  {
+    MOZ_ASSERT(mID == 0 || aID == 0);
+    mID = aID;
+  }
+
+  uint64_t GetID() const
+  {
+    return mID;
+  }
+
+  void SetNextSibling(TextureClient* aNext)
+  {
+    mNextSibling = aNext;
+  }
+
+  TextureClient* GetNextSibling()
+  {
+    return mNextSibling;
+  }
+
+  virtual bool IsAllocated() const = 0;
+
+  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
+
+  void SetFlags(TextureFlags aFlags)
+  {
+    MOZ_ASSERT(!IsSharedWithCompositor());
+    mFlags = aFlags;
+  }
+
+  void AddFlags(TextureFlags  aFlags)
+  {
+    MOZ_ASSERT(!IsSharedWithCompositor());
+    
+    MOZ_ASSERT(!(aFlags & TEXTURE_DEALLOCATE_CLIENT && aFlags & TEXTURE_DEALLOCATE_HOST));
+    if (aFlags & TEXTURE_DEALLOCATE_CLIENT) {
+      mFlags &= ~TEXTURE_DEALLOCATE_HOST;
+    } else if (aFlags & TEXTURE_DEALLOCATE_HOST) {
+      mFlags &= ~TEXTURE_DEALLOCATE_CLIENT;
+    }
+    mFlags |= aFlags;
+  }
+
+  void RemoveFlags(TextureFlags  aFlags)
+  {
+    MOZ_ASSERT(!IsSharedWithCompositor());
+    mFlags &= (~aFlags);
+  }
+
+  TextureFlags GetFlags() const { return mFlags; }
+
+  
+
+
+
+
+  bool IsImmutable() const { return mFlags & TEXTURE_IMMUTABLE; }
+
+  void MarkImmutable() { AddFlags(TEXTURE_IMMUTABLE); }
+
+  bool IsSharedWithCompositor() const { return GetID() != 0; }
+
+  bool ShouldDeallocateInDestructor() const;
+protected:
+  uint64_t mID;
+  RefPtr<TextureClient> mNextSibling;
+  TextureFlags mFlags;
+};
+
+
+
+
+
+
+class BufferTextureClient : public TextureClient
+                          , public TextureClientSurface
+                          , TextureClientYCbCr
+{
+public:
+  BufferTextureClient(CompositableClient* aCompositable, gfx::SurfaceFormat aFormat);
+
+  virtual ~BufferTextureClient();
+
+  virtual bool IsAllocated() const = 0;
+
+  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
+
+  virtual bool Allocate(uint32_t aSize) = 0;
+
+  virtual uint8_t* GetBuffer() const = 0;
+
+  virtual size_t GetBufferSize() const = 0;
+
+  
+
+  virtual TextureClientSurface* AsTextureClientSurface() MOZ_OVERRIDE { return this; }
+
+  virtual bool UpdateSurface(gfxASurface* aSurface) MOZ_OVERRIDE;
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize) MOZ_OVERRIDE;
+
+  
+
+  virtual TextureClientYCbCr* AsTextureClientYCbCr() MOZ_OVERRIDE { return this; }
+
+  virtual bool UpdateYCbCr(const PlanarYCbCrImage::Data& aData) MOZ_OVERRIDE;
+
+  virtual bool AllocateForYCbCr(gfx::IntSize aYSize, gfx::IntSize aCbCrSize) MOZ_OVERRIDE;
+
+  gfx::SurfaceFormat GetFormat() const { return mFormat; }
+
+protected:
+  CompositableClient* mCompositable;
+  gfx::SurfaceFormat mFormat;
+};
+
+
+
+
+
+class ShmemTextureClient : public BufferTextureClient
+{
+public:
+  ShmemTextureClient(CompositableClient* aCompositable, gfx::SurfaceFormat aFormat);
+
+  ~ShmemTextureClient();
+
+  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE;
+
+  virtual bool Allocate(uint32_t aSize) MOZ_OVERRIDE;
+
+  virtual uint8_t* GetBuffer() const MOZ_OVERRIDE;
+
+  virtual size_t GetBufferSize() const MOZ_OVERRIDE;
+
+  virtual bool IsAllocated() const MOZ_OVERRIDE { return mAllocated; }
+
+  ISurfaceAllocator* GetAllocator() const;
+
+  ipc::Shmem& GetShmem() { return mShmem; }
+
+protected:
+  ipc::Shmem mShmem;
+  ISurfaceAllocator* mAllocator;
+  bool mAllocated;
+};
+
+
+
+
+
+
+class MemoryTextureClient : public BufferTextureClient
+{
+public:
+  MemoryTextureClient(CompositableClient* aCompositable, gfx::SurfaceFormat aFormat);
+
+  ~MemoryTextureClient();
+
+  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE;
+
+  virtual bool Allocate(uint32_t aSize) MOZ_OVERRIDE;
+
+  virtual uint8_t* GetBuffer() const MOZ_OVERRIDE { return mBuffer; }
+
+  virtual size_t GetBufferSize() const MOZ_OVERRIDE { return mBufSize; }
+
+  virtual bool IsAllocated() const MOZ_OVERRIDE { return mBuffer != nullptr; }
+
+protected:
+  uint8_t* mBuffer;
+  size_t mBufSize;
+};
+
+
+struct TextureClientAutoUnlock
+{
+  TextureClient* mTexture;
+
+  TextureClientAutoUnlock(TextureClient* aTexture)
+  : mTexture(aTexture) {}
+
+  ~TextureClientAutoUnlock()
+  {
+    mTexture->Unlock();
+  }
+};
 
 
 
@@ -185,6 +447,7 @@ private:
   friend class CompositingFactory;
 };
 
+
 class DeprecatedTextureClientShmemYCbCr : public DeprecatedTextureClient
 {
 public:
@@ -238,6 +501,7 @@ private:
 
 
 
+
 class AutoLockDeprecatedTextureClient
 {
 public:
@@ -264,6 +528,7 @@ protected:
 
 
 
+
 class AutoLockYCbCrClient : public AutoLockDeprecatedTextureClient
 {
 public:
@@ -272,6 +537,7 @@ public:
 protected:
   bool EnsureDeprecatedTextureClient(PlanarYCbCrImage* aImage);
 };
+
 
 
 

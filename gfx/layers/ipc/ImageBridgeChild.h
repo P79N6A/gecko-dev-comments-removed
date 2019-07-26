@@ -28,7 +28,7 @@ class CompositableClient;
 class CompositableTransaction;
 class ShadowableLayer;
 class Image;
-
+class TextureClient;
 
 
 
@@ -231,6 +231,32 @@ public:
   
 
   virtual void Connect(CompositableClient* aCompositable) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void AddTexture(CompositableClient* aCompositable,
+                          TextureClient* aClient) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void RemoveTexture(CompositableClient* aCompositable,
+                             uint64_t aTextureID,
+                             TextureFlags aFlags) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void UpdatedTexture(CompositableClient* aCompositable,
+                              TextureClient* aTexture,
+                              nsIntRegion* aRegion) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void UseTexture(CompositableClient* aCompositable,
+                          TextureClient* aClient) MOZ_OVERRIDE;
 
   virtual void PaintedTiledLayerBuffer(CompositableClient* aCompositable,
                                        BasicTiledLayerBuffer* aTiledLayerBuffer) MOZ_OVERRIDE

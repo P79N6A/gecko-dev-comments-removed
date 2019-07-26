@@ -52,11 +52,13 @@ class Transaction;
 class SurfaceDescriptor;
 class CanvasSurface;
 class DeprecatedTextureClientShmem;
+class ShmemTextureClient;
 class ContentClientRemote;
 class CompositableChild;
 class ImageClient;
 class CanvasClient;
 class ContentClient;
+class TextureClient;
 
 
 
@@ -302,6 +304,32 @@ public:
 
   void UpdatePictureRect(CompositableClient* aCompositable,
                          const nsIntRect& aRect);
+
+  
+
+
+  virtual void AddTexture(CompositableClient* aCompositable,
+                          TextureClient* aClient) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void RemoveTexture(CompositableClient* aCompositable,
+                             uint64_t aTextureID,
+                             TextureFlags aFlags) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void UpdatedTexture(CompositableClient* aCompositable,
+                              TextureClient* aTexture,
+                              nsIntRegion* aRegion) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void UseTexture(CompositableClient* aCompositable,
+                          TextureClient* aClient) MOZ_OVERRIDE;
 
   
 
