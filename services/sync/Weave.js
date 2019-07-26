@@ -68,24 +68,6 @@ WeaveService.prototype = {
   get fxAccountsEnabled() {
     
     
-    
-    
-    
-    
-    let fxAccountsAvailable;
-    try {
-      fxAccountsAvailable = Services.prefs.getBoolPref("identity.fxaccounts.enabled");
-    } catch (_) {
-    }
-    if (!fxAccountsAvailable) {
-      
-      
-      delete this.fxAccountsEnabled;
-      this.fxAccountsEnabled = false;
-      return false;
-    }
-    
-    
     let fxAccountsEnabled;
     try {
       fxAccountsEnabled = Services.prefs.getBoolPref("services.sync.fxaccounts.enabled");
