@@ -106,11 +106,6 @@ private:
   
 
 
-  mozilla::ipc::SocketConnectionStatus mPrevSocketStatus;
-
-  
-
-
 
   bool mConnected;
   nsString mConnectedDeviceAddress;
@@ -188,7 +183,18 @@ private:
 
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
   nsRefPtr<DeviceStorageFile> mDsFile;
+
+  
+  
+  
+  
   nsRefPtr<BluetoothSocket> mSocket;
+
+  
+  
+  
+  nsRefPtr<BluetoothSocket> mRfcommSocket;
+  nsRefPtr<BluetoothSocket> mL2capSocket;
 };
 
 END_BLUETOOTH_NAMESPACE
