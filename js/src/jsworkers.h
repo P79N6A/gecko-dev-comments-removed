@@ -70,6 +70,9 @@ class WorkerThreadState
     
     Vector<ParseTask*, 0, SystemAllocPolicy> parseWorklist, parseFinishedList;
 
+    
+    Vector<SourceCompressionTask *, 0, SystemAllocPolicy> compressionWorklist;
+
     WorkerThreadState() { mozilla::PodZero(this); }
     ~WorkerThreadState();
 
@@ -90,6 +93,7 @@ class WorkerThreadState
     bool canStartAsmJSCompile();
     bool canStartIonCompile();
     bool canStartParseTask();
+    bool canStartCompressionTask();
 
     uint32_t harvestFailedAsmJSJobs() {
         JS_ASSERT(isLocked());
@@ -116,6 +120,8 @@ class WorkerThreadState
     }
 
     void finishParseTaskForScript(JSRuntime *rt, JSScript *script);
+    bool compressionInProgress(SourceCompressionTask *task);
+    SourceCompressionTask *compressionTaskForSource(ScriptSource *ss);
 
   private:
 
@@ -168,9 +174,14 @@ struct WorkerThread
     
     ParseTask *parseTask;
 
+    
+    SourceCompressionTask *compressionTask;
+
     bool idle() const {
-        return !ionBuilder && !asmData && !parseTask;
+        return !ionBuilder && !asmData && !parseTask && !compressionTask;
     }
+
+    inline void maybePause();
 
     void pause();
     void destroy();
@@ -178,6 +189,7 @@ struct WorkerThread
     void handleAsmJSWorkload(WorkerThreadState &state);
     void handleIonWorkload(WorkerThreadState &state);
     void handleParseWorkload(WorkerThreadState &state);
+    void handleCompressionWorkload(WorkerThreadState &state);
 
     static void ThreadMain(void *arg);
     void threadLoop();
@@ -233,6 +245,10 @@ StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
 
 void
 WaitForOffThreadParsingToFinish(JSRuntime *rt);
+
+
+bool
+StartOffThreadCompression(ExclusiveContext *cx, SourceCompressionTask *task);
 
 class AutoLockWorkerThreadState
 {
@@ -290,6 +306,19 @@ class AutoUnlockWorkerThreadState
 #endif
     }
 };
+
+#ifdef JS_WORKER_THREADS
+
+inline void
+WorkerThread::maybePause()
+{
+    if (runtime->workerThreadState->shouldPause) {
+        AutoLockWorkerThreadState lock(*runtime->workerThreadState);
+        pause();
+    }
+}
+
+#endif 
 
 
 class AutoPauseWorkersForGC
@@ -363,6 +392,63 @@ struct ParseTask
               JS::OffThreadCompileCallback callback, void *callbackData);
 
     ~ParseTask();
+};
+
+
+
+
+struct SourceCompressionTask
+{
+    friend class ScriptSource;
+
+#ifdef JS_WORKER_THREADS
+    
+    WorkerThread *workerThread;
+#endif
+
+  private:
+    
+    ExclusiveContext *cx;
+
+    ScriptSource *ss;
+    const jschar *chars;
+    bool oom;
+
+    
+    
+#ifdef JS_THREADSAFE
+    mozilla::Atomic<int32_t, mozilla::Relaxed> abort_;
+#else
+    int32_t abort_;
+#endif
+
+  public:
+    explicit SourceCompressionTask(ExclusiveContext *cx)
+      : cx(cx), ss(NULL), chars(NULL), oom(false), abort_(0)
+    {
+#ifdef JS_WORKER_THREADS
+        workerThread = NULL;
+#endif
+    }
+
+    ~SourceCompressionTask()
+    {
+        complete();
+    }
+
+    void maybePause() { 
+#ifdef JS_WORKER_THREADS
+        workerThread->maybePause();
+#endif
+    }
+
+    bool compress();
+    bool complete();
+    void abort() { abort_ = 1; }
+    bool active() const { return !!ss; }
+    ScriptSource *source() { return ss; }
+    const jschar *uncompressedChars() { return chars; }
+    void setOOM() { oom = true; }
 };
 
 } 

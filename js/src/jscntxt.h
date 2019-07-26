@@ -264,6 +264,8 @@ struct ThreadSafeContext : ContextFriendFields,
     StaticStrings &staticStrings() { return runtime_->staticStrings; }
     PropertyName *emptyString() { return runtime_->emptyString; }
     FreeOp *defaultFreeOp() { return runtime_->defaultFreeOp(); }
+    bool useHelperThreads() { return runtime_->useHelperThreads(); }
+    size_t helperThreadCount() { return runtime_->helperThreadCount(); }
 
     
     uint64_t gcNumber() { return runtime_->gcNumber; }

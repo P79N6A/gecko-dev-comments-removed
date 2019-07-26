@@ -322,7 +322,9 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     
     ParseContext<ParseHandler> *pc;
 
-    SourceCompressionToken *sct;        
+    
+    SourceCompressionTask *sct;
+
     ScriptSource        *ss;
 
     

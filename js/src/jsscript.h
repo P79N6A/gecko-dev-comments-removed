@@ -38,7 +38,7 @@ namespace jit {
 class BreakpointSite;
 class BindingIter;
 class RegExpObject;
-struct SourceCompressionToken;
+struct SourceCompressionTask;
 class Shape;
 class WatchpointMap;
 
@@ -285,7 +285,8 @@ typedef HashMap<JSScript *,
 
 class ScriptSource
 {
-    friend class SourceCompressorThread;
+    friend class SourceCompressionTask;
+
     union {
         
         
@@ -334,11 +335,11 @@ class ScriptSource
         if (--refs == 0)
             destroy();
     }
-    bool setSourceCopy(JSContext *cx,
+    bool setSourceCopy(ExclusiveContext *cx,
                        const jschar *src,
                        uint32_t length,
                        bool argumentsNotIncluded,
-                       SourceCompressionToken *tok);
+                       SourceCompressionTask *tok);
     void setSource(const jschar *src, uint32_t length);
     bool ready() const { return ready_; }
     void setSourceRetrievable() { sourceRetrievable_ = true; }
@@ -379,6 +380,7 @@ class ScriptSource
         return compressed() ? compressedLength_ : sizeof(jschar) * length_;
     }
     bool adjustDataSize(size_t nbytes);
+    const jschar *getOffThreadCompressionChars(ExclusiveContext *cx);
 };
 
 class ScriptSourceHolder
@@ -1137,8 +1139,6 @@ class AliasedFormalIter
     unsigned scopeSlot() const { JS_ASSERT(!done()); return slot_; }
 };
 
-struct SourceCompressionToken;
-
 
 
 class LazyScript : public js::gc::Cell
@@ -1330,87 +1330,6 @@ class LazyScript : public js::gc::Cell
 
 
 JS_STATIC_ASSERT(sizeof(LazyScript) % js::gc::CellSize == 0);
-
-#ifdef JS_THREADSAFE
-
-
-
-
-
-
-
-
-
-
-
-
-class SourceCompressorThread
-{
-  private:
-    enum {
-        
-        COMPRESSING,
-        
-        
-        IDLE,
-        
-        SHUTDOWN
-    } state;
-    SourceCompressionToken *tok;
-    PRThread *thread;
-    
-    PRLock *lock;
-    
-    
-    
-    PRCondVar *wakeup;
-    
-    PRCondVar *done;
-    
-    volatile bool stop;
-
-    bool internalCompress();
-    void threadLoop();
-    static void compressorThread(void *arg);
-
-  public:
-    explicit SourceCompressorThread()
-    : state(IDLE),
-      tok(NULL),
-      thread(NULL),
-      lock(NULL),
-      wakeup(NULL),
-      done(NULL) {}
-    void finish();
-    bool init();
-    void compress(SourceCompressionToken *tok);
-    void waitOnCompression(SourceCompressionToken *userTok);
-    void abort(SourceCompressionToken *userTok);
-    const jschar *currentChars() const;
-};
-#endif
-
-struct SourceCompressionToken
-{
-    friend class ScriptSource;
-    friend class SourceCompressorThread;
-  private:
-    JSContext *cx;
-    ScriptSource *ss;
-    const jschar *chars;
-    bool oom;
-  public:
-    explicit SourceCompressionToken(JSContext *cx)
-       : cx(cx), ss(NULL), chars(NULL), oom(false) {}
-    ~SourceCompressionToken()
-    {
-        complete();
-    }
-
-    bool complete();
-    void abort();
-    bool active() const { return !!ss; }
-};
 
 
 
