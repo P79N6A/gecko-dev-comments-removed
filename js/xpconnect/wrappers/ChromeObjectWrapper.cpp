@@ -65,7 +65,7 @@ ChromeObjectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
     
     JSObject *wrapperProto;
     if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
-	return false;
+        return false;
     if (*bp || !wrapperProto)
         return true;
 
@@ -106,7 +106,7 @@ ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
     
     JSObject *wrapperProto;
     if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
-	return false;
+        return false;
     if (!wrapperProto)
         return true;
 
