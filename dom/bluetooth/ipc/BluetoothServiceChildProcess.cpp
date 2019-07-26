@@ -326,6 +326,17 @@ BluetoothServiceChildProcess::DisconnectObjectPush(
   SendRequest(aRunnable, DisconnectObjectPushRequest());
 }
 
+bool
+BluetoothServiceChildProcess::SendFile(
+  const nsAString& aDeviceAddress,
+  BlobParent* aBlobParent,
+  BlobChild* aBlobChild,
+  BluetoothReplyRunnable* aRunnable)
+{
+  
+  return true;
+}
+
 nsresult
 BluetoothServiceChildProcess::HandleStartup()
 {
