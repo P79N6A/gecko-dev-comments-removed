@@ -105,6 +105,10 @@ public class SearchEnginePreference extends Preference {
             
             String iconURI = geckoEngineJSON.getString("iconURI");
             Bitmap iconBitmap = BitmapUtils.getBitmapFromDataURI(iconURI);
+            
+            if (iconBitmap == null) {
+                return;
+            }
             Bitmap scaledIconBitmap = Bitmap.createScaledBitmap(iconBitmap, sIconSize, sIconSize, false);
             BitmapDrawable drawable = new BitmapDrawable(scaledIconBitmap);
             setIcon(drawable);
