@@ -576,7 +576,7 @@ struct JSScript : public js::gc::Cell
 
     JSFlatString *sourceData(JSContext *cx);
 
-    bool loadSource(JSContext *cx, bool *worked);
+    static bool loadSource(JSContext *cx, js::HandleScript scr, bool *worked);
 
     js::ScriptSource *scriptSource() {
         return scriptSource_;
@@ -1062,7 +1062,10 @@ struct ScriptSource
 
   private:
     void destroy(JSRuntime *rt);
-    bool compressed() { return compressedLength_ != 0; }
+    bool compressed() const { return compressedLength_ != 0; }
+    size_t computedSizeOfData() const {
+        return compressed() ? compressedLength_ : sizeof(jschar) * length_;
+    }
 };
 
 class ScriptSourceHolder
@@ -1083,6 +1086,8 @@ class ScriptSourceHolder
 };
 
 #ifdef JS_THREADSAFE
+
+
 
 
 
@@ -1118,6 +1123,7 @@ class SourceCompressorThread
     
     volatile bool stop;
 
+    bool internalCompress();
     void threadLoop();
     static void compressorThread(void *arg);
 
@@ -1145,17 +1151,16 @@ struct SourceCompressionToken
     JSContext *cx;
     ScriptSource *ss;
     const jschar *chars;
+    bool oom;
   public:
     explicit SourceCompressionToken(JSContext *cx)
-      : cx(cx), ss(NULL), chars(NULL) {}
+       : cx(cx), ss(NULL), chars(NULL), oom(false) {}
     ~SourceCompressionToken()
     {
-        JS_ASSERT_IF(!ss, !chars);
-        if (ss)
-            ensureReady();
+        complete();
     }
 
-    void ensureReady();
+    bool complete();
     void abort();
 };
 

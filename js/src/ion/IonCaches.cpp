@@ -297,7 +297,7 @@ struct GetNativePropertyStub
     bool generateCallGetter(JSContext *cx, MacroAssembler &masm, JSObject *obj,
                             PropertyName *propName, JSObject *holder, const Shape *shape,
                             RegisterSet &liveRegs, Register object, TypedOrValueRegister output,
-                            types::TypeSet *outputTypes, void *returnAddr, jsbytecode *pc,
+                            void *returnAddr, jsbytecode *pc,
                             RepatchLabel *failures, Label *nonRepatchFailures = NULL)
     {
         
@@ -609,13 +609,9 @@ IonCacheGetProperty::attachCallGetter(JSContext *cx, IonScript *ion, JSObject *o
     
     masm.setFramePushed(ion->frameSize());
 
-    
-    types::StackTypeSet *outputTypes = script->analysis()->pushedTypes(pc, 0);
-
     GetNativePropertyStub getprop;
     if (!getprop.generateCallGetter(cx, masm, obj, name(), holder, shape, liveRegs,
-                                    object(), output(), outputTypes, returnAddr, pc,
-                                    &failures))
+                                    object(), output(), returnAddr, pc, &failures))
     {
          return false;
     }
