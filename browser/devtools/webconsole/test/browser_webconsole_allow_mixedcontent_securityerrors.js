@@ -10,7 +10,7 @@
 
 
 const TEST_URI = "https://example.com/browser/browser/devtools/webconsole/test/test-mixedcontent-securityerrors.html";
-const LEARN_MORE_URI = "https://developer.mozilla.org/en/Security/MixedContent";
+const LEARN_MORE_URI = "https://developer.mozilla.org/Security/MixedContent";
 
 function test()
 {
