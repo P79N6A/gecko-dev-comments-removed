@@ -2327,21 +2327,19 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-    noteIndex = NewSrcNote3(cx, bce, SRC_SWITCH, 0, 0);
-    if (noteIndex < 0)
-        return false;
-
     if (switchOp == JSOP_CONDSWITCH) {
         
-
-
         switchSize = 0;
+        noteIndex = NewSrcNote3(cx, bce, SRC_CONDSWITCH, 0, 0);
     } else {
         JS_ASSERT(switchOp == JSOP_TABLESWITCH);
 
         
         switchSize = (size_t)(JUMP_OFFSET_LEN * (3 + tableLength));
+        noteIndex = NewSrcNote2(cx, bce, SRC_TABLESWITCH, 0);
     }
+    if (noteIndex < 0)
+        return false;
 
     
     if (EmitN(cx, bce, switchOp, switchSize) < 0)
@@ -6365,7 +6363,8 @@ JS_FRIEND_DATA(JSSrcNoteSpec) js_SrcNoteSpec[] = {
  {"break2label",    0},
  {"switchbreak",    0},
 
- {"switch",         2},
+ {"tableswitch",    1},
+ {"condswitch",     2},
 
  {"pcdelta",        1},
 
@@ -6379,7 +6378,6 @@ JS_FRIEND_DATA(JSSrcNoteSpec) js_SrcNoteSpec[] = {
  {"newline",        0},
  {"setline",        1},
 
- {"unused19",       0},
  {"unused20",       0},
  {"unused21",       0},
  {"unused22",       0},
