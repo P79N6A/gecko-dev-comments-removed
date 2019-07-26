@@ -2345,6 +2345,10 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     }
     if (checkUndisplayed &&
         
+        
+        
+        
+        
         !(mHintsHandled & nsChangeHint_ReconstructFrame)) {
       UndisplayedNode* undisplayed =
         frameConstructor->GetAllUndisplayedContentIn(undisplayedParent);
@@ -2382,11 +2386,12 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         if (thisChildHint) {
           undisplayedContext =
             styleSet->ResolveStyleFor(undisplayed->mContent->AsElement(),
-                                      newContext,
+                                      mFrame->StyleContext(),
                                       mTreeMatchContext);
         } else {
           undisplayedContext =
-            styleSet->ReparentStyleContext(undisplayed->mStyle, newContext,
+            styleSet->ReparentStyleContext(undisplayed->mStyle,
+                                           mFrame->StyleContext(),
                                            undisplayed->mContent->AsElement());
         }
         if (undisplayedContext) {
@@ -2409,6 +2414,10 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
     
+    
+    
+    
+    
     if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
         childRestyleHint) {
       
@@ -2425,7 +2434,8 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
           
           
           if (!nsLayoutUtils::GetBeforeFrame(mFrame) &&
-              nsLayoutUtils::HasPseudoStyle(mFrame->GetContent(), newContext,
+              nsLayoutUtils::HasPseudoStyle(mFrame->GetContent(),
+                                            mFrame->StyleContext(),
                                             nsCSSPseudoElements::ePseudo_before,
                                             mPresContext)) {
             
@@ -2437,7 +2447,6 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
       }
     }
 
-    
     
     
     if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
@@ -2456,7 +2465,8 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         if (!nextContinuation) {
           
           
-          if (nsLayoutUtils::HasPseudoStyle(mFrame->GetContent(), newContext,
+          if (nsLayoutUtils::HasPseudoStyle(mFrame->GetContent(),
+                                            mFrame->StyleContext(),
                                             nsCSSPseudoElements::ePseudo_after,
                                             mPresContext) &&
               !nsLayoutUtils::GetAfterFrame(mFrame)) {
@@ -2474,6 +2484,10 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
     
+    
+    
+    
+    
     if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
 
 #ifdef ACCESSIBILITY
@@ -2484,7 +2498,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
           !mFrame->GetPrevContinuation() &&
           !nsLayoutUtils::FrameIsNonFirstInIBSplit(mFrame)) {
         if (mDesiredA11yNotifications == eSendAllNotifications) {
-          bool isFrameVisible = newContext->StyleVisibility()->IsVisible();
+          bool isFrameVisible = mFrame->StyleVisibility()->IsVisible();
           if (isFrameVisible != mWasFrameVisible) {
             if (isFrameVisible) {
               
@@ -2503,7 +2517,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
             }
           }
         } else if (mDesiredA11yNotifications == eNotifyIfShown &&
-                   newContext->StyleVisibility()->IsVisible()) {
+                   mFrame->StyleVisibility()->IsVisible()) {
           
           
           mVisibleKidsOfHiddenElement.AppendElement(mFrame->GetContent());
