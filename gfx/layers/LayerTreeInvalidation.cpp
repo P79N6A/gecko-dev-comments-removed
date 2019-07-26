@@ -70,14 +70,6 @@ AddRegion(nsIntRegion& aDest, const nsIntRegion& aSource)
 }
 
 
-static nsIntRegion
-TransformRegion(nsIntRegion& aRegion, const gfx3DMatrix& aTransform)
-{
-  aRegion.Transform(aTransform);
-  return aRegion;
-}
-
-
 
 
 
@@ -325,7 +317,8 @@ struct ContainerLayerProperties : public LayerPropertiesBase
 
     gfx3DMatrix transform;
     gfx::To3DMatrix(mLayer->GetTransform(), transform);
-    return TransformRegion(result, transform);
+    result.Transform(transform);
+    return result;
   }
 
   
