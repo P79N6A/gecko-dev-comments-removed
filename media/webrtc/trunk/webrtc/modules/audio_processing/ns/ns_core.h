@@ -50,7 +50,7 @@ typedef struct NSParaExtract_t_ {
 
 typedef struct NSinst_t_ {
 
-  uint32_t        fs;
+  WebRtc_UWord32  fs;
   int             blockLen;
   int             blockLen10ms;
   int             windShift;
@@ -80,7 +80,7 @@ typedef struct NSinst_t_ {
   float           wfft[W_LENGTH];
 
   
-  int32_t         blockInd;                           
+  WebRtc_Word32   blockInd;                           
   int             modelUpdatePars[4];                 
   
   float           priorModelPars[7];                  
@@ -127,7 +127,7 @@ extern "C" {
 
 
 
-int WebRtcNs_InitCore(NSinst_t* inst, uint32_t fs);
+int WebRtcNs_InitCore(NSinst_t* inst, WebRtc_UWord32 fs);
 
 
 

@@ -18,20 +18,20 @@ ACMDTMFDetection::ACMDTMFDetection() {}
 
 ACMDTMFDetection::~ACMDTMFDetection() {}
 
-int16_t ACMDTMFDetection::Enable(ACMCountries ) {
+WebRtc_Word16 ACMDTMFDetection::Enable(ACMCountries ) {
   return -1;
 }
 
-int16_t ACMDTMFDetection::Disable() {
+WebRtc_Word16 ACMDTMFDetection::Disable() {
   return -1;
 }
 
-int16_t ACMDTMFDetection::Detect(
-    const int16_t* ,
-    const uint16_t ,
-    const int32_t ,
+WebRtc_Word16 ACMDTMFDetection::Detect(
+    const WebRtc_Word16* ,
+    const WebRtc_UWord16 ,
+    const WebRtc_Word32 ,
     bool& ,
-    int16_t& ) {
+    WebRtc_Word16& ) {
   return -1;
 }
 

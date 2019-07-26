@@ -22,13 +22,13 @@
 #include "defines.h"
 
 void WebRtcIlbcfix_HpInput(
-    int16_t *signal,     
-    int16_t *ba,      
+    WebRtc_Word16 *signal,     
+    WebRtc_Word16 *ba,      
 
 
-    int16_t *y,      
+    WebRtc_Word16 *y,      
 
-    int16_t *x,      
-    int16_t len);     
+    WebRtc_Word16 *x,      
+    WebRtc_Word16 len);     
 
 #endif

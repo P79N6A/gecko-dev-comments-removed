@@ -8,56 +8,54 @@
 
 
 
+
+
+
+
 #include "gtest/gtest.h"
-#include "webrtc/test/testsupport/gtest_disable.h"
-#include "webrtc/video_engine/test/auto_test/automated/legacy_fixture.h"
-#include "webrtc/video_engine/test/auto_test/interface/vie_autotest.h"
+#include "legacy_fixture.h"
+#include "vie_autotest.h"
 
 namespace {
 
-
-
-class DISABLED_ON_MAC(ViEExtendedIntegrationTest) : public LegacyFixture {
+class ViEExtendedIntegrationTest : public LegacyFixture {
 };
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest), RunsBaseTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, RunsBaseTestWithoutErrors) {
   tests_->ViEBaseExtendedTest();
 }
 
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
-       DISABLED_RunsCaptureTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, DISABLED_RunsCaptureTestWithoutErrors) {
   tests_->ViECaptureExtendedTest();
 }
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
-       RunsCodecTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, RunsCodecTestWithoutErrors) {
   tests_->ViECodecExtendedTest();
 }
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
-       RunsEncryptionTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, RunsEncryptionTestWithoutErrors) {
   tests_->ViEEncryptionExtendedTest();
 }
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
-       RunsFileTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, RunsFileTestWithoutErrors) {
   tests_->ViEFileExtendedTest();
 }
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
-       RunsImageProcessTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, RunsImageProcessTestWithoutErrors) {
   tests_->ViEImageProcessExtendedTest();
 }
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
-       RunsRenderTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, RunsNetworkTestWithoutErrors) {
+  tests_->ViENetworkExtendedTest();
+}
+
+TEST_F(ViEExtendedIntegrationTest, RunsRenderTestWithoutErrors) {
   tests_->ViERenderExtendedTest();
 }
 
-TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
-       RunsRtpRtcpTestWithoutErrors) {
+TEST_F(ViEExtendedIntegrationTest, RunsRtpRtcpTestWithoutErrors) {
   tests_->ViERtpRtcpExtendedTest();
 }
 
-}  
+} 

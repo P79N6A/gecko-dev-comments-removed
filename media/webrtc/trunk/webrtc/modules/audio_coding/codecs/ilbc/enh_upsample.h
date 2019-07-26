@@ -26,8 +26,8 @@
 
 
 void WebRtcIlbcfix_EnhUpsample(
-    int32_t *useq1, 
-    int16_t *seq1 
+    WebRtc_Word32 *useq1, 
+    WebRtc_Word16 *seq1 
                                 );
 
 #endif

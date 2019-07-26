@@ -23,7 +23,7 @@ namespace webrtc {
 
 #ifndef WEBRTC_CODEC_ILBC
 
-ACMILBC::ACMILBC(int16_t )
+ACMILBC::ACMILBC(WebRtc_Word16 )
     : encoder_inst_ptr_(NULL),
       decoder_inst_ptr_(NULL) {
   return;
@@ -33,32 +33,32 @@ ACMILBC::~ACMILBC() {
   return;
 }
 
-int16_t ACMILBC::InternalEncode(
-    uint8_t* ,
-    int16_t* ) {
+WebRtc_Word16 ACMILBC::InternalEncode(
+    WebRtc_UWord8* ,
+    WebRtc_Word16* ) {
   return -1;
 }
 
-int16_t ACMILBC::DecodeSafe(uint8_t* ,
-                            int16_t ,
-                            int16_t* ,
-                            int16_t* ,
-                            int8_t* ) {
+WebRtc_Word16 ACMILBC::DecodeSafe(WebRtc_UWord8* ,
+                                  WebRtc_Word16 ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word8* ) {
   return -1;
 }
 
-int16_t ACMILBC::InternalInitEncoder(
+WebRtc_Word16 ACMILBC::InternalInitEncoder(
     WebRtcACMCodecParams* ) {
   return -1;
 }
 
-int16_t ACMILBC::InternalInitDecoder(
+WebRtc_Word16 ACMILBC::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   return -1;
 }
 
-int32_t ACMILBC::CodecDef(WebRtcNetEQ_CodecDef& ,
-                          const CodecInst& ) {
+WebRtc_Word32 ACMILBC::CodecDef(WebRtcNetEQ_CodecDef& ,
+                                const CodecInst& ) {
   return -1;
 }
 
@@ -66,7 +66,7 @@ ACMGenericCodec* ACMILBC::CreateInstance(void) {
   return NULL;
 }
 
-int16_t ACMILBC::InternalCreateEncoder() {
+WebRtc_Word16 ACMILBC::InternalCreateEncoder() {
   return -1;
 }
 
@@ -74,7 +74,7 @@ void ACMILBC::DestructEncoderSafe() {
   return;
 }
 
-int16_t ACMILBC::InternalCreateDecoder() {
+WebRtc_Word16 ACMILBC::InternalCreateDecoder() {
   return -1;
 }
 
@@ -86,13 +86,13 @@ void ACMILBC::InternalDestructEncoderInst(void* ) {
   return;
 }
 
-int16_t ACMILBC::SetBitRateSafe(const int32_t ) {
+WebRtc_Word16 ACMILBC::SetBitRateSafe(const WebRtc_Word32 ) {
   return -1;
 }
 
 #else  
 
-ACMILBC::ACMILBC(int16_t codec_id)
+ACMILBC::ACMILBC(WebRtc_Word16 codec_id)
     : encoder_inst_ptr_(NULL),
       decoder_inst_ptr_(NULL) {
   codec_id_ = codec_id;
@@ -111,12 +111,12 @@ ACMILBC::~ACMILBC() {
   return;
 }
 
-int16_t ACMILBC::InternalEncode(uint8_t* bitstream,
-                                int16_t* bitstream_len_byte) {
+WebRtc_Word16 ACMILBC::InternalEncode(WebRtc_UWord8* bitstream,
+                                      WebRtc_Word16* bitstream_len_byte) {
   *bitstream_len_byte = WebRtcIlbcfix_Encode(encoder_inst_ptr_,
                                              &in_audio_[in_audio_ix_read_],
                                              frame_len_smpl_,
-                                             (int16_t*)bitstream);
+                                             (WebRtc_Word16*)bitstream);
   if (*bitstream_len_byte < 0) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "InternalEncode: error in encode for ILBC");
@@ -128,15 +128,15 @@ int16_t ACMILBC::InternalEncode(uint8_t* bitstream,
   return *bitstream_len_byte;
 }
 
-int16_t ACMILBC::DecodeSafe(uint8_t* ,
-                            int16_t ,
-                            int16_t* ,
-                            int16_t* ,
-                            int8_t* ) {
+WebRtc_Word16 ACMILBC::DecodeSafe(WebRtc_UWord8* ,
+                                  WebRtc_Word16 ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word8* ) {
   return 0;
 }
 
-int16_t ACMILBC::InternalInitEncoder(WebRtcACMCodecParams* codec_params) {
+WebRtc_Word16 ACMILBC::InternalInitEncoder(WebRtcACMCodecParams* codec_params) {
   
   if ((160 == (codec_params->codec_inst).pacsize) ||
       (320 == (codec_params->codec_inst).pacsize)) {
@@ -153,7 +153,7 @@ int16_t ACMILBC::InternalInitEncoder(WebRtcACMCodecParams* codec_params) {
   }
 }
 
-int16_t ACMILBC::InternalInitDecoder(WebRtcACMCodecParams* codec_params) {
+WebRtc_Word16 ACMILBC::InternalInitDecoder(WebRtcACMCodecParams* codec_params) {
   
   if ((160 == (codec_params->codec_inst).pacsize) ||
       (320 == (codec_params->codec_inst).pacsize)) {
@@ -170,8 +170,8 @@ int16_t ACMILBC::InternalInitDecoder(WebRtcACMCodecParams* codec_params) {
   }
 }
 
-int32_t ACMILBC::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
-                          const CodecInst& codec_inst) {
+WebRtc_Word32 ACMILBC::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
+                                const CodecInst& codec_inst) {
   if (!decoder_initialized_) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "CodeDef: decoder not initialized for ILBC");
@@ -191,7 +191,7 @@ ACMGenericCodec* ACMILBC::CreateInstance(void) {
   return NULL;
 }
 
-int16_t ACMILBC::InternalCreateEncoder() {
+WebRtc_Word16 ACMILBC::InternalCreateEncoder() {
   if (WebRtcIlbcfix_EncoderCreate(&encoder_inst_ptr_) < 0) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "InternalCreateEncoder: cannot create instance for ILBC "
@@ -210,7 +210,7 @@ void ACMILBC::DestructEncoderSafe() {
   }
 }
 
-int16_t ACMILBC::InternalCreateDecoder() {
+WebRtc_Word16 ACMILBC::InternalCreateDecoder() {
   if (WebRtcIlbcfix_DecoderCreate(&decoder_inst_ptr_) < 0) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "InternalCreateDecoder: cannot create instance for ILBC "
@@ -236,7 +236,7 @@ void ACMILBC::InternalDestructEncoderInst(void* ptr_inst) {
   return;
 }
 
-int16_t ACMILBC::SetBitRateSafe(const int32_t rate) {
+WebRtc_Word16 ACMILBC::SetBitRateSafe(const WebRtc_Word32 rate) {
   
   if (rate == 13300) {
     WebRtcIlbcfix_EncoderInit(encoder_inst_ptr_, 30);

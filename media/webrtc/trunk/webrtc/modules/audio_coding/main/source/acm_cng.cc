@@ -20,7 +20,7 @@
 
 namespace webrtc {
 
-ACMCNG::ACMCNG(int16_t codec_id) {
+ACMCNG::ACMCNG(WebRtc_Word16 codec_id) {
   encoder_inst_ptr_ = NULL;
   decoder_inst_ptr_ = NULL;
   codec_id_ = codec_id;
@@ -44,16 +44,16 @@ ACMCNG::~ACMCNG() {
 
 
 
-int16_t ACMCNG::InternalEncode(uint8_t* ,
-                               int16_t* ) {
+WebRtc_Word16 ACMCNG::InternalEncode(WebRtc_UWord8* ,
+                                     WebRtc_Word16* ) {
   return -1;
 }
 
-int16_t ACMCNG::DecodeSafe(uint8_t* ,
-                           int16_t ,
-                           int16_t* ,
-                           int16_t* ,
-                           int8_t* ) {
+WebRtc_Word16 ACMCNG::DecodeSafe(WebRtc_UWord8* ,
+                                 WebRtc_Word16 ,
+                                 WebRtc_Word16* ,
+                                 WebRtc_Word16* ,
+                                 WebRtc_Word8* ) {
   return 0;
 }
 
@@ -61,18 +61,18 @@ int16_t ACMCNG::DecodeSafe(uint8_t* ,
 
 
 
-int16_t ACMCNG::InternalInitEncoder(
+WebRtc_Word16 ACMCNG::InternalInitEncoder(
     WebRtcACMCodecParams* ) {
   return -1;
 }
 
-int16_t ACMCNG::InternalInitDecoder(
+WebRtc_Word16 ACMCNG::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   return WebRtcCng_InitDec(decoder_inst_ptr_);
 }
 
-int32_t ACMCNG::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
-                         const CodecInst& codec_inst) {
+WebRtc_Word32 ACMCNG::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
+                               const CodecInst& codec_inst) {
   if (!decoder_initialized_) {
     
     return -1;
@@ -97,7 +97,7 @@ ACMGenericCodec* ACMCNG::CreateInstance(void) {
   return NULL;
 }
 
-int16_t ACMCNG::InternalCreateEncoder() {
+WebRtc_Word16 ACMCNG::InternalCreateEncoder() {
   if (WebRtcCng_CreateEnc(&encoder_inst_ptr_) < 0) {
     encoder_inst_ptr_ = NULL;
     return -1;
@@ -115,7 +115,7 @@ void ACMCNG::DestructEncoderSafe() {
   encoder_initialized_ = false;
 }
 
-int16_t ACMCNG::InternalCreateDecoder() {
+WebRtc_Word16 ACMCNG::InternalCreateDecoder() {
   if (WebRtcCng_CreateDec(&decoder_inst_ptr_) < 0) {
     decoder_inst_ptr_ = NULL;
     return -1;

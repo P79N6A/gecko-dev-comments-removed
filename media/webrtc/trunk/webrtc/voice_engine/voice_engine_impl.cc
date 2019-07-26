@@ -22,7 +22,7 @@ namespace webrtc
 
 
 
-static int32_t gVoiceEngineInstanceCounter = 0;
+static WebRtc_Word32 gVoiceEngineInstanceCounter = 0;
 
 extern "C"
 {
@@ -31,12 +31,13 @@ WEBRTC_DLLEXPORT VoiceEngine* GetVoiceEngine();
 VoiceEngine* GetVoiceEngine()
 {
     VoiceEngineImpl* self = new VoiceEngineImpl();
-    if (self != NULL)
+    VoiceEngine* ve = reinterpret_cast<VoiceEngine*>(self);
+    if (ve != NULL)
     {
         self->AddRef();  
         gVoiceEngineInstanceCounter++;
     }
-    return self;
+    return ve;
 }
 } 
 
@@ -87,11 +88,11 @@ int VoiceEngine::SetTraceFilter(const unsigned int filter)
                  "SetTraceFilter(filter=0x%x)", filter);
 
     
-    uint32_t oldFilter = 0;
+    WebRtc_UWord32 oldFilter = 0;
     Trace::LevelFilter(oldFilter);
 
     
-    int32_t ret = Trace::SetLevelFilter(filter);
+    WebRtc_Word32 ret = Trace::SetLevelFilter(filter);
 
     
     if (kTraceNone == oldFilter)
@@ -127,7 +128,7 @@ bool VoiceEngine::Delete(VoiceEngine*& voiceEngine)
     if (voiceEngine == NULL)
         return false;
 
-    VoiceEngineImpl* s = static_cast<VoiceEngineImpl*>(voiceEngine);
+    VoiceEngineImpl* s = reinterpret_cast<VoiceEngineImpl*>(voiceEngine);
     
     int ref = s->Release();
     voiceEngine = NULL;
@@ -143,13 +144,9 @@ bool VoiceEngine::Delete(VoiceEngine*& voiceEngine)
 
 int VoiceEngine::SetAndroidObjects(void* javaVM, void* context)
 {
-#ifdef WEBRTC_ANDROID
-#ifdef WEBRTC_ANDROID_OPENSLES
-  return 0;
-#else
-  return AudioDeviceAndroidJni::SetAndroidAudioDeviceObjects(
-      javaVM, context);
-#endif
+#if defined(ANDROID) && !defined(MOZ_WIDGET_GONK)
+    return AudioDeviceAndroidJni::SetAndroidAudioDeviceObjects(
+         javaVM, context);
 #else
   return -1;
 #endif

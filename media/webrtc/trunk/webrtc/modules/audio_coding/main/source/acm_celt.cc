@@ -49,7 +49,7 @@ int16_t ACMCELT::DecodeSafe(uint8_t* ,
                             int16_t ,
                             int16_t* ,
                             int16_t* ,
-                            int8_t* ) {
+                            WebRtc_Word8* ) {
   return -1;
 }
 
@@ -156,7 +156,7 @@ int16_t ACMCELT::DecodeSafe(uint8_t* ,
                             int16_t ,
                             int16_t* ,
                             int16_t* ,
-                            int8_t* ) {
+                            WebRtc_Word8* ) {
   return 0;
 }
 

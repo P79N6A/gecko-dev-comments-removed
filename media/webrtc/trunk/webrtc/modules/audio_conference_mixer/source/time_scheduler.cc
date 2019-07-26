@@ -12,7 +12,7 @@
 #include "time_scheduler.h"
 
 namespace webrtc {
-TimeScheduler::TimeScheduler(const uint32_t periodicityInMs)
+TimeScheduler::TimeScheduler(const WebRtc_UWord32 periodicityInMs)
     : _crit(CriticalSectionWrapper::CreateCriticalSection()),
       _isStarted(false),
       _lastPeriodMark(),
@@ -27,7 +27,7 @@ TimeScheduler::~TimeScheduler()
     delete _crit;
 }
 
-int32_t TimeScheduler::UpdateScheduler()
+WebRtc_Word32 TimeScheduler::UpdateScheduler()
 {
     CriticalSectionScoped cs(_crit);
     if(!_isStarted)
@@ -47,11 +47,11 @@ int32_t TimeScheduler::UpdateScheduler()
     
     TickTime tickNow = TickTime::Now();
     TickInterval amassedTicks = tickNow - _lastPeriodMark;
-    int64_t amassedMs = amassedTicks.Milliseconds();
+    WebRtc_Word64 amassedMs = amassedTicks.Milliseconds();
 
     
-    int32_t periodsToClaim = static_cast<int32_t>(amassedMs /
-        static_cast<int32_t>(_periodicityInMs));
+    WebRtc_Word32 periodsToClaim = (WebRtc_Word32)amassedMs /
+        ((WebRtc_Word32)_periodicityInMs);
 
     
     
@@ -65,7 +65,7 @@ int32_t TimeScheduler::UpdateScheduler()
     
     
     
-    for(int32_t i = 0; i < periodsToClaim; i++)
+    for(WebRtc_Word32 i = 0; i < periodsToClaim; i++)
     {
         _lastPeriodMark += _periodicityInTicks;
     }
@@ -76,8 +76,8 @@ int32_t TimeScheduler::UpdateScheduler()
     return 0;
 }
 
-int32_t TimeScheduler::TimeToNextUpdate(
-    int32_t& updateTimeInMS) const
+WebRtc_Word32 TimeScheduler::TimeToNextUpdate(
+    WebRtc_Word32& updateTimeInMS) const
 {
     CriticalSectionScoped cs(_crit);
     
@@ -92,8 +92,8 @@ int32_t TimeScheduler::TimeToNextUpdate(
     
     TickTime tickNow = TickTime::Now();
     TickInterval ticksSinceLastUpdate = tickNow - _lastPeriodMark;
-    const int32_t millisecondsSinceLastUpdate =
-        static_cast<int32_t>(ticksSinceLastUpdate.Milliseconds());
+    const WebRtc_Word32 millisecondsSinceLastUpdate =
+        (WebRtc_Word32) ticksSinceLastUpdate.Milliseconds();
 
     updateTimeInMS = _periodicityInMs - millisecondsSinceLastUpdate;
     updateTimeInMS =  (updateTimeInMS < 0) ? 0 : updateTimeInMS;

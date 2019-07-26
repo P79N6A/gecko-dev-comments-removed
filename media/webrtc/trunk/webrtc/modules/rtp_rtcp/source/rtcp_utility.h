@@ -26,177 +26,177 @@ namespace RTCPUtility {
     };
     struct RTCPPacketRR
     {
-        uint32_t SenderSSRC;
-        uint8_t  NumberOfReportBlocks;
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord8  NumberOfReportBlocks;
     };
     struct RTCPPacketSR
     {
-        uint32_t SenderSSRC;
-        uint8_t  NumberOfReportBlocks;
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord8  NumberOfReportBlocks;
 
         
-        uint32_t NTPMostSignificant;
-        uint32_t NTPLeastSignificant;
-        uint32_t RTPTimestamp;
-        uint32_t SenderPacketCount;
-        uint32_t SenderOctetCount;
+        WebRtc_UWord32 NTPMostSignificant;
+        WebRtc_UWord32 NTPLeastSignificant;
+        WebRtc_UWord32 RTPTimestamp;
+        WebRtc_UWord32 SenderPacketCount;
+        WebRtc_UWord32 SenderOctetCount;
     };
     struct RTCPPacketReportBlockItem
     {
         
-        uint32_t SSRC;
-        uint8_t  FractionLost;
-        uint32_t CumulativeNumOfPacketsLost;
-        uint32_t ExtendedHighestSequenceNumber;
-        uint32_t Jitter;
-        uint32_t LastSR;
-        uint32_t DelayLastSR;
+        WebRtc_UWord32 SSRC;
+        WebRtc_UWord8  FractionLost;
+        WebRtc_UWord32 CumulativeNumOfPacketsLost;
+        WebRtc_UWord32 ExtendedHighestSequenceNumber;
+        WebRtc_UWord32 Jitter;
+        WebRtc_UWord32 LastSR;
+        WebRtc_UWord32 DelayLastSR;
     };
     struct RTCPPacketSDESCName
     {
         
-        uint32_t SenderSSRC;
+        WebRtc_UWord32 SenderSSRC;
         char CName[RTCP_CNAME_SIZE];
     };
 
     struct RTCPPacketExtendedJitterReportItem
     {
         
-        uint32_t Jitter;
+        WebRtc_UWord32 Jitter;
     };
 
     struct RTCPPacketBYE
     {
-        uint32_t SenderSSRC;
+        WebRtc_UWord32 SenderSSRC;
     };
     struct RTCPPacketXR
     {
         
-        uint32_t OriginatorSSRC;
+        WebRtc_UWord32 OriginatorSSRC;
     };
     struct RTCPPacketXRVOIPMetricItem
     {
         
-        uint32_t    SSRC;
-        uint8_t     lossRate;
-        uint8_t     discardRate;
-        uint8_t     burstDensity;
-        uint8_t     gapDensity;
-        uint16_t    burstDuration;
-        uint16_t    gapDuration;
-        uint16_t    roundTripDelay;
-        uint16_t    endSystemDelay;
-        uint8_t     signalLevel;
-        uint8_t     noiseLevel;
-        uint8_t     RERL;
-        uint8_t     Gmin;
-        uint8_t     Rfactor;
-        uint8_t     extRfactor;
-        uint8_t     MOSLQ;
-        uint8_t     MOSCQ;
-        uint8_t     RXconfig;
-        uint16_t    JBnominal;
-        uint16_t    JBmax;
-        uint16_t    JBabsMax;
+        WebRtc_UWord32    SSRC;
+        WebRtc_UWord8     lossRate;
+        WebRtc_UWord8     discardRate;
+        WebRtc_UWord8     burstDensity;
+        WebRtc_UWord8     gapDensity;
+        WebRtc_UWord16    burstDuration;
+        WebRtc_UWord16    gapDuration;
+        WebRtc_UWord16    roundTripDelay;
+        WebRtc_UWord16    endSystemDelay;
+        WebRtc_UWord8     signalLevel;
+        WebRtc_UWord8     noiseLevel;
+        WebRtc_UWord8     RERL;
+        WebRtc_UWord8     Gmin;
+        WebRtc_UWord8     Rfactor;
+        WebRtc_UWord8     extRfactor;
+        WebRtc_UWord8     MOSLQ;
+        WebRtc_UWord8     MOSCQ;
+        WebRtc_UWord8     RXconfig;
+        WebRtc_UWord16    JBnominal;
+        WebRtc_UWord16    JBmax;
+        WebRtc_UWord16    JBabsMax;
     };
 
     struct RTCPPacketRTPFBNACK
     {
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC;
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC;
     };
     struct RTCPPacketRTPFBNACKItem
     {
         
-        uint16_t PacketID;
-        uint16_t BitMask;
+        WebRtc_UWord16 PacketID;
+        WebRtc_UWord16 BitMask;
     };
 
     struct RTCPPacketRTPFBTMMBR
     {
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC; 
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC; 
     };
     struct RTCPPacketRTPFBTMMBRItem
     {
         
-        uint32_t SSRC;
-        uint32_t MaxTotalMediaBitRate; 
-        uint32_t MeasuredOverhead;
+        WebRtc_UWord32 SSRC;
+        WebRtc_UWord32 MaxTotalMediaBitRate; 
+        WebRtc_UWord32 MeasuredOverhead;
     };
 
     struct RTCPPacketRTPFBTMMBN
     {
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC; 
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC; 
     };
     struct RTCPPacketRTPFBTMMBNItem
     {
         
-        uint32_t SSRC; 
-        uint32_t MaxTotalMediaBitRate;
-        uint32_t MeasuredOverhead;
+        WebRtc_UWord32 SSRC; 
+        WebRtc_UWord32 MaxTotalMediaBitRate;
+        WebRtc_UWord32 MeasuredOverhead;
     };
 
     struct RTCPPacketPSFBFIR
     {
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC; 
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC; 
     };
     struct RTCPPacketPSFBFIRItem
     {
         
-        uint32_t SSRC;
-        uint8_t  CommandSequenceNumber;
+        WebRtc_UWord32 SSRC;
+        WebRtc_UWord8  CommandSequenceNumber;
     };
 
     struct RTCPPacketPSFBPLI
     {
         
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC;
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC;
     };
 
     struct RTCPPacketPSFBSLI
     {
         
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC;
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC;
     };
     struct RTCPPacketPSFBSLIItem
     {
         
-        uint16_t FirstMB;
-        uint16_t NumberOfMB;
-        uint8_t PictureId;
+        WebRtc_UWord16 FirstMB;
+        WebRtc_UWord16 NumberOfMB;
+        WebRtc_UWord8 PictureId;
     };
     struct RTCPPacketPSFBRPSI
     {
         
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC;
-        uint8_t  PayloadType;
-        uint16_t NumberOfValidBits;
-        uint8_t  NativeBitString[RTCP_RPSI_DATA_SIZE];
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC;
+        WebRtc_UWord8  PayloadType;
+        WebRtc_UWord16 NumberOfValidBits;
+        WebRtc_UWord8  NativeBitString[RTCP_RPSI_DATA_SIZE];
     };
     struct RTCPPacketPSFBAPP
     {
-        uint32_t SenderSSRC;
-        uint32_t MediaSSRC;
+        WebRtc_UWord32 SenderSSRC;
+        WebRtc_UWord32 MediaSSRC;
     };
     struct RTCPPacketPSFBREMBItem
     {
-        uint32_t BitRate;
-        uint8_t NumberOfSSRCs;
-        uint32_t SSRCs[MAX_NUMBER_OF_REMB_FEEDBACK_SSRCS];
+        WebRtc_UWord32 BitRate;
+        WebRtc_UWord8 NumberOfSSRCs;
+        WebRtc_UWord32 SSRCs[MAX_NUMBER_OF_REMB_FEEDBACK_SSRCS];
     };
     
     struct RTCPPacketAPP
     {
-        uint8_t     SubType;
-        uint32_t    Name;
-        uint8_t     Data[kRtcpAppCode_DATA_SIZE];
-        uint16_t    Size;
+        WebRtc_UWord8     SubType;
+        WebRtc_UWord32    Name;
+        WebRtc_UWord8     Data[kRtcpAppCode_DATA_SIZE];
+        WebRtc_UWord16    Size;
     };
 
     union RTCPPacket
@@ -282,23 +282,23 @@ namespace RTCPUtility {
 
     struct RTCPRawPacket
     {
-        const uint8_t* _ptrPacketBegin;
-        const uint8_t* _ptrPacketEnd;
+        const WebRtc_UWord8* _ptrPacketBegin;
+        const WebRtc_UWord8* _ptrPacketEnd;
     };
 
     struct RTCPModRawPacket
     {
-        uint8_t* _ptrPacketBegin;
-        uint8_t* _ptrPacketEnd;
+        WebRtc_UWord8* _ptrPacketBegin;
+        WebRtc_UWord8* _ptrPacketEnd;
     };
 
     struct RTCPCommonHeader
     {
-        uint8_t  V;  
+        WebRtc_UWord8  V;  
         bool           P;  
-        uint8_t  IC; 
-        uint8_t  PT; 
-        uint16_t LengthInOctets;
+        WebRtc_UWord8  IC; 
+        WebRtc_UWord8  PT; 
+        WebRtc_UWord16 LengthInOctets;
     };
 
     enum RTCPPT
@@ -314,14 +314,14 @@ namespace RTCPUtility {
         PT_XR    = 207
     };
 
-    bool RTCPParseCommonHeader( const uint8_t* ptrDataBegin,
-                                const uint8_t* ptrDataEnd,
+    bool RTCPParseCommonHeader( const WebRtc_UWord8* ptrDataBegin,
+                                const WebRtc_UWord8* ptrDataEnd,
                                 RTCPCommonHeader& parsedHeader);
 
     class RTCPParserV2
     {
     public:
-        RTCPParserV2(const uint8_t* rtcpData,
+        RTCPParserV2(const WebRtc_UWord8* rtcpData,
                      size_t rtcpDataLength,
                      bool rtcpReducedSizeEnable); 
         ~RTCPParserV2();
@@ -407,16 +407,16 @@ namespace RTCPUtility {
         bool ParseAPPItem();
 
     private:
-        const uint8_t* const _ptrRTCPDataBegin;
+        const WebRtc_UWord8* const _ptrRTCPDataBegin;
         const bool                 _RTCPReducedSizeEnable;
-        const uint8_t* const _ptrRTCPDataEnd;
+        const WebRtc_UWord8* const _ptrRTCPDataEnd;
 
         bool                     _validPacket;
-        const uint8_t*     _ptrRTCPData;
-        const uint8_t*     _ptrRTCPBlockEnd;
+        const WebRtc_UWord8*     _ptrRTCPData;
+        const WebRtc_UWord8*     _ptrRTCPBlockEnd;
 
         ParseState               _state;
-        uint8_t            _numberOfBlocks;
+        WebRtc_UWord8            _numberOfBlocks;
 
         RTCPPacketTypes          _packetType;
         RTCPPacket               _packet;
@@ -425,7 +425,7 @@ namespace RTCPUtility {
     class RTCPPacketIterator
     {
     public:
-        RTCPPacketIterator(uint8_t* rtcpData,
+        RTCPPacketIterator(WebRtc_UWord8* rtcpData,
                             size_t rtcpDataLength);
         ~RTCPPacketIterator();
 
@@ -434,10 +434,10 @@ namespace RTCPUtility {
         const RTCPCommonHeader* Current();
 
     private:
-        uint8_t* const     _ptrBegin;
-        uint8_t* const     _ptrEnd;
+        WebRtc_UWord8* const     _ptrBegin;
+        WebRtc_UWord8* const     _ptrEnd;
 
-        uint8_t*           _ptrBlock;
+        WebRtc_UWord8*           _ptrBlock;
 
         RTCPCommonHeader         _header;
     };

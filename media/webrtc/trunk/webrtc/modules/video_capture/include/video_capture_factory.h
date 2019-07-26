@@ -24,20 +24,20 @@ class VideoCaptureFactory {
   
   
   
-  static VideoCaptureModule* Create(const int32_t id,
+  static VideoCaptureModule* Create(const WebRtc_Word32 id,
                                     const char* deviceUniqueIdUTF8);
 
   
   
   
-  static VideoCaptureModule* Create(const int32_t id,
+  static VideoCaptureModule* Create(const WebRtc_Word32 id,
                                     VideoCaptureExternal*& externalCapture);
 
   static VideoCaptureModule::DeviceInfo* CreateDeviceInfo(
-      const int32_t id);
+      const WebRtc_Word32 id);
 
 #ifdef WEBRTC_ANDROID
-  static int32_t SetAndroidObjects(void* javaVM, void* javaContext);
+  static WebRtc_Word32 SetAndroidObjects(void* javaVM, void* javaContext);
 #endif
 
  private:

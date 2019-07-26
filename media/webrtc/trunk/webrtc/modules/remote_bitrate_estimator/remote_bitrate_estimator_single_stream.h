@@ -15,25 +15,20 @@
 
 #include <map>
 
-#include "webrtc/modules/remote_bitrate_estimator/bitrate_estimator.h"
-#include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
-#include "webrtc/modules/remote_bitrate_estimator/overuse_detector.h"
-#include "webrtc/modules/remote_bitrate_estimator/remote_rate_control.h"
-#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
-#include "webrtc/typedefs.h"
+#include "modules/remote_bitrate_estimator/bitrate_estimator.h"
+#include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
+#include "modules/remote_bitrate_estimator/overuse_detector.h"
+#include "modules/remote_bitrate_estimator/remote_rate_control.h"
+#include "system_wrappers/interface/critical_section_wrapper.h"
+#include "system_wrappers/interface/scoped_ptr.h"
+#include "typedefs.h"
 
 namespace webrtc {
 
-class Clock;
-
 class RemoteBitrateEstimatorSingleStream : public RemoteBitrateEstimator {
  public:
-  RemoteBitrateEstimatorSingleStream(const OverUseDetectorOptions& options,
-                                     RemoteBitrateObserver* observer,
-                                     Clock* clock);
-
-  virtual ~RemoteBitrateEstimatorSingleStream() {}
+  RemoteBitrateEstimatorSingleStream(RemoteBitrateObserver* observer,
+                                     const OverUseDetectorOptions& options);
 
   void IncomingRtcp(unsigned int ssrc, uint32_t ntp_secs, uint32_t ntp_frac,
                     uint32_t rtp_timestamp) {}
@@ -49,12 +44,11 @@ class RemoteBitrateEstimatorSingleStream : public RemoteBitrateEstimator {
                       uint32_t rtp_timestamp);
 
   
+  void UpdateEstimate(unsigned int ssrc, int64_t time_now);
+
   
-  virtual int32_t Process();
-  virtual int32_t TimeUntilNextProcess();
   
-  
-  virtual void OnRttUpdate(uint32_t rtt);
+  void SetRtt(unsigned int ssrc);
 
   
   void RemoveStream(unsigned int ssrc);
@@ -68,19 +62,14 @@ class RemoteBitrateEstimatorSingleStream : public RemoteBitrateEstimator {
  private:
   typedef std::map<unsigned int, OveruseDetector> SsrcOveruseDetectorMap;
 
-  
-  void UpdateEstimate(int64_t time_now);
-
   void GetSsrcs(std::vector<unsigned int>* ssrcs) const;
 
   const OverUseDetectorOptions& options_;
-  Clock* clock_;
   SsrcOveruseDetectorMap overuse_detectors_;
   BitRateStats incoming_bitrate_;
   RemoteRateControl remote_rate_;
   RemoteBitrateObserver* observer_;
   scoped_ptr<CriticalSectionWrapper> crit_sect_;
-  int64_t last_process_time_;
 };
 
 }  

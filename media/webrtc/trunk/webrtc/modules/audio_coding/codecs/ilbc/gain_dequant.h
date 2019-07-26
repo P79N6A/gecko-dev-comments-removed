@@ -26,11 +26,11 @@
 
 
 
-int16_t WebRtcIlbcfix_GainDequant(
+WebRtc_Word16 WebRtcIlbcfix_GainDequant(
     
-    int16_t index, 
-    int16_t maxIn, 
-    int16_t stage 
+    WebRtc_Word16 index, 
+    WebRtc_Word16 maxIn, 
+    WebRtc_Word16 stage 
                                          );
 
 #endif

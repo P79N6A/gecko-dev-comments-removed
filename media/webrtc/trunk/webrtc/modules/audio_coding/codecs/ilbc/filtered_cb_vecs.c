@@ -26,11 +26,11 @@
 
 
 void WebRtcIlbcfix_FilteredCbVecs(
-    int16_t *cbvectors, 
-    int16_t *CBmem,  
+    WebRtc_Word16 *cbvectors, 
+    WebRtc_Word16 *CBmem,  
 
     int lMem,  
-    int16_t samples    
+    WebRtc_Word16 samples    
                                   ) {
 
   
@@ -42,7 +42,7 @@ void WebRtcIlbcfix_FilteredCbVecs(
 
   WebRtcSpl_FilterMAFastQ12(
       CBmem+CB_HALFFILTERLEN+lMem-samples, cbvectors+lMem-samples,
-      (int16_t*)WebRtcIlbcfix_kCbFiltersRev, CB_FILTERLEN, samples);
+      (WebRtc_Word16*)WebRtcIlbcfix_kCbFiltersRev, CB_FILTERLEN, samples);
 
   return;
 }

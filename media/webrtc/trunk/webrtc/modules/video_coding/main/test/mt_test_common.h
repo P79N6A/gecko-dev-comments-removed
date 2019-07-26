@@ -38,8 +38,8 @@ public:
     webrtc::RtpRtcp&            _rtp;
     CmdArgs                     _args;
     FILE*                       _sourceFile;
-    int32_t               _frameCnt;
-    int32_t               _timestamp;
+    WebRtc_Word32               _frameCnt;
+    WebRtc_Word32               _timestamp;
 };
 
 
@@ -47,7 +47,7 @@ class TransportCallback:public RTPSendCompleteCallback
 {
  public:
     
-    TransportCallback(Clock* clock, const char* filename = NULL);
+    TransportCallback(TickTimeBase* clock, const char* filename = NULL);
     virtual ~TransportCallback();
     
     

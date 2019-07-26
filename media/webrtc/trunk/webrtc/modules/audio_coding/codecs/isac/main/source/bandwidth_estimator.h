@@ -75,7 +75,7 @@ extern "C" {
 
 
 
-  int32_t WebRtcIsac_InitBandwidthEstimator(
+  WebRtc_Word32 WebRtcIsac_InitBandwidthEstimator(
       BwEstimatorstr*           bwest_str,
       enum IsacSamplingRate encoderSampRate,
       enum IsacSamplingRate decoderSampRate);
@@ -89,42 +89,42 @@ extern "C" {
   
   
   
-  int16_t WebRtcIsac_UpdateBandwidthEstimator(
+  WebRtc_Word16 WebRtcIsac_UpdateBandwidthEstimator(
       BwEstimatorstr*    bwest_str,
-      const uint16_t rtp_number,
-      const int32_t  frame_length,
-      const uint32_t send_ts,
-      const uint32_t arr_ts,
-      const int32_t  pksize);
+      const WebRtc_UWord16 rtp_number,
+      const WebRtc_Word32  frame_length,
+      const WebRtc_UWord32 send_ts,
+      const WebRtc_UWord32 arr_ts,
+      const WebRtc_Word32  pksize);
 
   
-  int16_t WebRtcIsac_UpdateUplinkBwImpl(
+  WebRtc_Word16 WebRtcIsac_UpdateUplinkBwImpl(
       BwEstimatorstr*           bwest_str,
-      int16_t               Index,
+      WebRtc_Word16               Index,
       enum IsacSamplingRate encoderSamplingFreq);
 
   
-  uint16_t WebRtcIsac_GetDownlinkBwJitIndexImpl(
+  WebRtc_UWord16 WebRtcIsac_GetDownlinkBwJitIndexImpl(
       BwEstimatorstr*           bwest_str,
-      int16_t*              bottleneckIndex,
-      int16_t*              jitterInfo,
+      WebRtc_Word16*              bottleneckIndex,
+      WebRtc_Word16*              jitterInfo,
       enum IsacSamplingRate decoderSamplingFreq);
 
   
-  int32_t WebRtcIsac_GetDownlinkBandwidth(
+  WebRtc_Word32 WebRtcIsac_GetDownlinkBandwidth(
       const BwEstimatorstr *bwest_str);
 
   
-  int32_t WebRtcIsac_GetDownlinkMaxDelay(
+  WebRtc_Word32 WebRtcIsac_GetDownlinkMaxDelay(
       const BwEstimatorstr *bwest_str);
 
   
   void WebRtcIsac_GetUplinkBandwidth(
       const BwEstimatorstr* bwest_str,
-      int32_t*          bitRate);
+      WebRtc_Word32*          bitRate);
 
   
-  int32_t WebRtcIsac_GetUplinkMaxDelay(
+  WebRtc_Word32 WebRtcIsac_GetUplinkMaxDelay(
       const BwEstimatorstr *bwest_str);
 
 
@@ -165,9 +165,9 @@ extern "C" {
       int    new_framelength);
 
 
-  int16_t WebRtcIsac_UpdateUplinkJitter(
+  WebRtc_Word16 WebRtcIsac_UpdateUplinkJitter(
       BwEstimatorstr*              bwest_str,
-      int32_t                  index);
+      WebRtc_Word32                  index);
 
 #if defined(__cplusplus)
 }

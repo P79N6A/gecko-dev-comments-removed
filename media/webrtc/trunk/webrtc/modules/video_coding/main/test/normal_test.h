@@ -14,7 +14,6 @@
 #include "video_coding.h"
 #include "test_util.h"
 
-#include <fstream>
 #include <map>
 
 class NormalTest;
@@ -31,13 +30,13 @@ class VCMNTEncodeCompleteCallback : public webrtc::VCMPacketizationCallback
   void RegisterTransportCallback(webrtc::VCMPacketizationCallback* transport);
   
   
-  int32_t
+  WebRtc_Word32
   SendData(const webrtc::FrameType frameType,
-           const uint8_t payloadType,
-           const uint32_t timeStamp,
+           const WebRtc_UWord8 payloadType,
+           const WebRtc_UWord32 timeStamp,
            int64_t capture_time_ms,
-           const uint8_t* payloadData,
-           const uint32_t payloadSize,
+           const WebRtc_UWord8* payloadData,
+           const WebRtc_UWord32 payloadSize,
            const webrtc::RTPFragmentationHeader& fragmentationHeader,
            const webrtc::RTPVideoHeader* videoHdr);
 
@@ -45,19 +44,19 @@ class VCMNTEncodeCompleteCallback : public webrtc::VCMPacketizationCallback
   
   void RegisterReceiverVCM(webrtc::VideoCodingModule *vcm);
   
-  int32_t EncodedBytes();
+  WebRtc_Word32 EncodedBytes();
   
-  uint32_t SkipCnt();;
+  WebRtc_UWord32 SkipCnt();;
   
 
 
  private:
   FILE*                       _encodedFile;
-  uint32_t              _encodedBytes;
-  uint32_t              _skipCnt;
+  WebRtc_UWord32              _encodedBytes;
+  WebRtc_UWord32              _skipCnt;
   webrtc::VideoCodingModule*  _VCMReceiver;
   webrtc::FrameType           _frameType;
-  uint16_t              _seqNo;
+  WebRtc_UWord16              _seqNo;
   NormalTest&                 _test;
 }; 
 
@@ -73,8 +72,8 @@ public:
     virtual ~VCMNTDecodeCompleCallback();
     void SetUserReceiveCallback(webrtc::VCMReceiveCallback* receiveCallback);
     
-    int32_t FrameToRender(webrtc::I420VideoFrame& videoFrame);
-    int32_t DecodedBytes();
+    WebRtc_Word32 FrameToRender(webrtc::I420VideoFrame& videoFrame);
+    WebRtc_Word32 DecodedBytes();
 private:
     FILE*             _decodedFile;
     std::string       _outname;
@@ -87,10 +86,10 @@ class NormalTest
 {
 public:
     NormalTest(webrtc::VideoCodingModule* vcm,
-               webrtc::Clock* clock);
+               webrtc::TickTimeBase* clock);
     ~NormalTest();
     static int RunTest(const CmdArgs& args);
-    int32_t    Perform(const CmdArgs& args);
+    WebRtc_Word32    Perform(const CmdArgs& args);
     
     int   Width() const { return _width; };
     int   Height() const { return _height; };
@@ -105,18 +104,18 @@ protected:
     
     void            Print();
     
-    void            FrameEncoded(uint32_t timeStamp);
+    void            FrameEncoded(WebRtc_UWord32 timeStamp);
     
-    void            FrameDecoded(uint32_t timeStamp);
+    void            FrameDecoded(WebRtc_UWord32 timeStamp);
 
-    webrtc::Clock*                   _clock;
+    webrtc::TickTimeBase*            _clock;
     webrtc::VideoCodingModule*       _vcm;
     webrtc::VideoCodec               _sendCodec;
     webrtc::VideoCodec               _receiveCodec;
     std::string                      _inname;
     std::string                      _outname;
     std::string                      _encodedName;
-    int32_t                    _sumEncBytes;
+    WebRtc_Word32                    _sumEncBytes;
     FILE*                            _sourceFile;
     FILE*                            _decodedFile;
     FILE*                            _encodedFile;
@@ -125,8 +124,8 @@ protected:
     int                              _height;
     float                            _frameRate;
     float                            _bitRate;
-    uint32_t                   _lengthSourceFrame;
-    uint32_t                   _timeStamp;
+    WebRtc_UWord32                   _lengthSourceFrame;
+    WebRtc_UWord32                   _timeStamp;
     webrtc::VideoCodecType           _videoType;
     double                           _totalEncodeTime;
     double                           _totalDecodeTime;
@@ -137,9 +136,9 @@ protected:
     double                           _testTotalTime;
     std::map<int, double>            _encodeTimes;
     std::map<int, double>            _decodeTimes;
-    int32_t                    _frameCnt;
-    int32_t                    _encFrameCnt;
-    int32_t                    _decFrameCnt;
+    WebRtc_Word32                    _frameCnt;
+    WebRtc_Word32                    _encFrameCnt;
+    WebRtc_Word32                    _decFrameCnt;
 
 }; 
 

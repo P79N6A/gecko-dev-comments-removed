@@ -23,41 +23,41 @@
 
 int WebRtcIsac_EncLogisticMulti2(
     Bitstr *streamdata,              
-    int16_t *dataQ7,           
-    const uint16_t *env,       
+    WebRtc_Word16 *dataQ7,           
+    const WebRtc_UWord16 *env,       
     const int N,                     
-    const int16_t isSWB12kHz); 
+    const WebRtc_Word16 isSWB12kHz); 
 
 
 int WebRtcIsac_EncTerminate(Bitstr *streamdata); 
 
 
 int WebRtcIsac_DecLogisticMulti2(
-    int16_t *data,             
+    WebRtc_Word16 *data,             
     Bitstr *streamdata,              
-    const uint16_t *env,       
-    const int16_t *dither,     
+    const WebRtc_UWord16 *env,       
+    const WebRtc_Word16 *dither,     
     const int N,                     
-    const int16_t isSWB12kHz); 
+    const WebRtc_Word16 isSWB12kHz); 
 
 void WebRtcIsac_EncHistMulti(
     Bitstr *streamdata,         
     const int *data,            
-    const uint16_t **cdf, 
+    const WebRtc_UWord16 **cdf, 
     const int N);               
 
 int WebRtcIsac_DecHistBisectMulti(
     int *data,                      
     Bitstr *streamdata,             
-    const uint16_t **cdf,     
-    const uint16_t *cdf_size, 
+    const WebRtc_UWord16 **cdf,     
+    const WebRtc_UWord16 *cdf_size, 
     const int N);                   
 
 int WebRtcIsac_DecHistOneStepMulti(
     int *data,                       
     Bitstr *streamdata,              
-    const uint16_t **cdf,      
-    const uint16_t *init_index,
+    const WebRtc_UWord16 **cdf,      
+    const WebRtc_UWord16 *init_index,
     const int N);                    
 
 #endif 

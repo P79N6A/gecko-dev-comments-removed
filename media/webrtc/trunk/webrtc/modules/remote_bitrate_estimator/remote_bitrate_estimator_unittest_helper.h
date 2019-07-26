@@ -17,10 +17,9 @@
 #include <map>
 #include <utility>
 
-#include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
-#include "webrtc/system_wrappers/interface/clock.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
+#include "system_wrappers/interface/constructor_magic.h"
+#include "system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
@@ -75,7 +74,7 @@ class RtpStream {
 
   typedef std::list<RtpPacket*> PacketList;
 
-  enum { kSendSideOffsetUs = 1000000 };
+  enum { kSendSideOffsetMs = 1000 };
 
   RtpStream(int fps, int bitrate_bps, unsigned int ssrc, unsigned int frequency,
       uint32_t timestamp_offset, int64_t rtcp_receive_time);
@@ -84,13 +83,13 @@ class RtpStream {
   
   
   
-  int64_t GenerateFrame(int64_t time_now_us, PacketList* packets);
+  int64_t GenerateFrame(double time_now, PacketList* packets);
 
   
   double next_rtp_time() const;
 
   
-  RtcpPacket* Rtcp(int64_t time_now_us);
+  RtcpPacket* Rtcp(double time_now);
 
   void set_bitrate_bps(int bitrate_bps);
 
@@ -102,14 +101,14 @@ class RtpStream {
                       const std::pair<unsigned int, RtpStream*>& right);
 
  private:
-  enum { kRtcpIntervalUs = 1000000 };
+  enum { kRtcpIntervalMs = 1000 };
 
   int fps_;
   int bitrate_bps_;
   unsigned int ssrc_;
   unsigned int frequency_;
-  int64_t next_rtp_time_;
-  int64_t next_rtcp_time_;
+  double next_rtp_time_;
+  double next_rtcp_time_;
   uint32_t rtp_timestamp_offset_;
   const double kNtpFracPerMs;
 
@@ -139,9 +138,9 @@ class StreamGenerator {
 
   
   
-  int64_t GenerateFrame(RtpStream::PacketList* packets, int64_t time_now_us);
+  double GenerateFrame(RtpStream::PacketList* packets, double time_now);
 
-  void Rtcps(RtcpList* rtcps, int64_t time_now_us) const;
+  void Rtcps(RtcpList* rtcps, double time_now) const;
 
  private:
   typedef std::map<unsigned int, RtpStream*> StreamMap;
@@ -149,7 +148,7 @@ class StreamGenerator {
   
   int capacity_;
   
-  int64_t prev_arrival_time_us_;
+  double prev_arrival_time_;
   
   StreamMap streams_;
 
@@ -178,18 +177,16 @@ class RemoteBitrateEstimatorTest : public ::testing::Test {
   
   
   
-  
   unsigned int SteadyStateRun(unsigned int ssrc,
                               int number_of_frames,
                               unsigned int start_bitrate,
                               unsigned int min_bitrate,
-                              unsigned int max_bitrate,
-                              unsigned int target_bitrate);
+                              unsigned int max_bitrate);
 
   enum { kDefaultSsrc = 1 };
 
-  SimulatedClock clock_;  
-  OverUseDetectorOptions overuse_detector_options_;
+  double time_now_;  
+  OverUseDetectorOptions over_use_detector_options_;
   scoped_ptr<RemoteBitrateEstimator> bitrate_estimator_;
   scoped_ptr<testing::TestBitrateObserver> bitrate_observer_;
   scoped_ptr<testing::StreamGenerator> stream_generator_;

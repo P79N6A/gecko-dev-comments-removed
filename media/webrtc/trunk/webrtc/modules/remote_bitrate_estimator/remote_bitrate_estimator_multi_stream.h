@@ -27,13 +27,10 @@
 
 namespace webrtc {
 
-class Clock;
-
 class RemoteBitrateEstimatorMultiStream : public RemoteBitrateEstimator {
  public:
-  RemoteBitrateEstimatorMultiStream(const OverUseDetectorOptions& options,
-                                    RemoteBitrateObserver* observer,
-                                    Clock* clock);
+  RemoteBitrateEstimatorMultiStream(RemoteBitrateObserver* observer,
+                                    const OverUseDetectorOptions& options);
 
   ~RemoteBitrateEstimatorMultiStream() {}
 
@@ -55,12 +52,11 @@ class RemoteBitrateEstimatorMultiStream : public RemoteBitrateEstimator {
                       uint32_t rtp_timestamp);
 
   
+  void UpdateEstimate(unsigned int ssrc, int64_t time_now);
+
   
-  virtual int32_t Process();
-  virtual int32_t TimeUntilNextProcess();
   
-  
-  virtual void OnRttUpdate(uint32_t rtt);
+  void SetRtt(unsigned int rtt);
 
   
   void RemoveStream(unsigned int ssrc);
@@ -74,12 +70,8 @@ class RemoteBitrateEstimatorMultiStream : public RemoteBitrateEstimator {
  private:
   typedef std::map<unsigned int, synchronization::RtcpList> StreamMap;
 
-  
-  void UpdateEstimate(int64_t time_now);
-
   void GetSsrcs(std::vector<unsigned int>* ssrcs) const;
 
-  Clock* clock_;
   RemoteRateControl remote_rate_;
   OveruseDetector overuse_detector_;
   BitRateStats incoming_bitrate_;
@@ -88,7 +80,6 @@ class RemoteBitrateEstimatorMultiStream : public RemoteBitrateEstimator {
   scoped_ptr<CriticalSectionWrapper> crit_sect_;
   unsigned int initial_ssrc_;
   bool multi_stream_;
-  int32_t last_process_time_;
 
   DISALLOW_COPY_AND_ASSIGN(RemoteBitrateEstimatorMultiStream);
 };

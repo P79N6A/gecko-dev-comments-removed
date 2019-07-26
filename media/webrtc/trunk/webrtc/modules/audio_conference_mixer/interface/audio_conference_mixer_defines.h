@@ -26,14 +26,15 @@ public:
     
     
     
-    virtual int32_t GetAudioFrame(const int32_t id, AudioFrame& audioFrame) = 0;
+    virtual WebRtc_Word32 GetAudioFrame(const WebRtc_Word32 id,
+                                        AudioFrame& audioFrame) = 0;
 
     
-    int32_t IsMixed(bool& mixed) const;
+    WebRtc_Word32 IsMixed(bool& mixed) const;
 
     
     
-    virtual int32_t NeededFrequency(const int32_t id) = 0;
+    virtual WebRtc_Word32 NeededFrequency(const WebRtc_Word32 id) = 0;
 
     MixHistory* _mixHistory;
 protected:
@@ -44,8 +45,8 @@ protected:
 
 struct ParticipantStatistics
 {
-    int32_t participant;
-    int32_t level;
+    WebRtc_Word32 participant;
+    WebRtc_Word32 level;
 };
 
 class AudioMixerStatusReceiver
@@ -54,20 +55,20 @@ public:
     
     
     virtual void MixedParticipants(
-        const int32_t id,
+        const WebRtc_Word32 id,
         const ParticipantStatistics* participantStatistics,
-        const uint32_t size) = 0;
+        const WebRtc_UWord32 size) = 0;
     
     
     virtual void VADPositiveParticipants(
-        const int32_t id,
+        const WebRtc_Word32 id,
         const ParticipantStatistics* participantStatistics,
-        const uint32_t size) = 0;
+        const WebRtc_UWord32 size) = 0;
     
     
     virtual void MixedAudioLevel(
-        const int32_t  id,
-        const uint32_t level) = 0;
+        const WebRtc_Word32  id,
+        const WebRtc_UWord32 level) = 0;
 protected:
     AudioMixerStatusReceiver() {}
     virtual ~AudioMixerStatusReceiver() {}
@@ -79,10 +80,10 @@ public:
     
     
     
-    virtual void NewMixedAudio(const int32_t id,
+    virtual void NewMixedAudio(const WebRtc_Word32 id,
                                const AudioFrame& generalAudioFrame,
                                const AudioFrame** uniqueAudioFrames,
-                               const uint32_t size) = 0;
+                               const WebRtc_UWord32 size) = 0;
 protected:
     AudioMixerOutputReceiver() {}
     virtual ~AudioMixerOutputReceiver() {}
@@ -94,7 +95,7 @@ public:
     
     
     
-    virtual void NewAudioToRelay(const int32_t id,
+    virtual void NewAudioToRelay(const WebRtc_Word32 id,
                                  const MapWrapper& mixerList) = 0;
 protected:
     AudioRelayReceiver() {}

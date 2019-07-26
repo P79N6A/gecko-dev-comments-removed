@@ -31,29 +31,28 @@ public:
     virtual void Reset();
 
     VCMFrameBufferEnum InsertPacket(const VCMPacket& packet,
-                                    int64_t timeInMs,
+                                    WebRtc_Word64 timeInMs,
                                     bool enableDecodableState,
-                                    uint32_t rttMs);
+                                    WebRtc_UWord32 rttMs);
 
     
     
     VCMFrameBufferStateEnum GetState() const;
     
-    VCMFrameBufferStateEnum GetState(uint32_t& timeStamp) const;
+    VCMFrameBufferStateEnum GetState(WebRtc_UWord32& timeStamp) const;
     void SetState(VCMFrameBufferStateEnum state); 
 
     bool IsRetransmitted() const;
     bool IsSessionComplete() const;
-    bool HaveFirstPacket() const;
     bool HaveLastPacket() const;
     
     void MakeSessionDecodable();
 
     
     
-    int32_t GetLowSeqNum() const;
+    WebRtc_Word32 GetLowSeqNum() const;
     
-    int32_t GetHighSeqNum() const;
+    WebRtc_Word32 GetHighSeqNum() const;
 
     int PictureId() const;
     int TemporalId() const;
@@ -67,17 +66,20 @@ public:
 
     
     
+    
+    int BuildHardNackList(int* list, int num);
+    
+    
+    int BuildSoftNackList(int* list, int num, int rttMs);
     void IncrementNackCount();
-    
-    
-    int16_t GetNackCount() const;
+    WebRtc_Word16 GetNackCount() const;
 
-    int64_t LatestPacketTimeMs() const;
+    WebRtc_Word64 LatestPacketTimeMs() const;
 
     webrtc::FrameType FrameType() const;
     void SetPreviousFrameLoss();
 
-    int32_t ExtractFromStorage(const EncodedVideoData& frameFromStorage);
+    WebRtc_Word32 ExtractFromStorage(const EncodedVideoData& frameFromStorage);
 
     
     
@@ -91,8 +93,8 @@ private:
     VCMFrameBufferStateEnum    _state;         
     bool                       _frameCounted;  
     VCMSessionInfo             _sessionInfo;
-    uint16_t             _nackCount;
-    int64_t              _latestPacketTimeMs;
+    WebRtc_UWord16             _nackCount;
+    WebRtc_Word64              _latestPacketTimeMs;
 };
 
 } 

@@ -25,10 +25,10 @@
 
 typedef struct Bitstreamstruct {
 
-  uint8_t   stream[STREAM_SIZE_MAX];
-  uint32_t  W_upper;
-  uint32_t  streamval;
-  uint32_t  stream_index;
+  WebRtc_UWord8   stream[STREAM_SIZE_MAX];
+  WebRtc_UWord32  W_upper;
+  WebRtc_UWord32  streamval;
+  WebRtc_UWord32  stream_index;
 
 } Bitstr;
 
@@ -149,32 +149,32 @@ typedef struct {
 typedef struct {
 
   
-  int32_t    prev_frame_length;
+  WebRtc_Word32    prev_frame_length;
 
   
 
-  int32_t    prev_rec_rtp_number;
+  WebRtc_Word32    prev_rec_rtp_number;
 
   
-  uint32_t    prev_rec_send_ts;
+  WebRtc_UWord32    prev_rec_send_ts;
 
   
-  uint32_t    prev_rec_arr_ts;
+  WebRtc_UWord32    prev_rec_arr_ts;
 
   
   float   prev_rec_rtp_rate;
 
   
-  uint32_t    last_update_ts;
+  WebRtc_UWord32    last_update_ts;
 
   
-  uint32_t    last_reduction_ts;
+  WebRtc_UWord32    last_reduction_ts;
 
   
-  int32_t    count_tot_updates_rec;
+  WebRtc_Word32    count_tot_updates_rec;
 
   
-  int32_t  rec_bw;
+  WebRtc_Word32  rec_bw;
   float   rec_bw_inv;
   float   rec_bw_avg;
   float   rec_bw_avg_Q;
@@ -212,18 +212,18 @@ typedef struct {
   
   int hsn_detect_snd;
 
-  uint32_t start_wait_period;
+  WebRtc_UWord32 start_wait_period;
 
   int in_wait_period;
 
   int change_to_WB;
 
-  uint32_t                 senderTimestamp;
-  uint32_t                 receiverTimestamp;
+  WebRtc_UWord32                 senderTimestamp;
+  WebRtc_UWord32                 receiverTimestamp;
   
-  uint16_t                 numConsecLatePkts;
+  WebRtc_UWord16                 numConsecLatePkts;
   float                        consecLatency;
-  int16_t                  inWaitLatePkts;
+  WebRtc_Word16                  inWaitLatePkts;
 } BwEstimatorstr;
 
 
@@ -268,7 +268,7 @@ typedef struct {
   int         startIdx;
 
   
-  int16_t framelength;
+  WebRtc_Word16 framelength;
 
   
   int         pitchGain_index[2];
@@ -284,9 +284,9 @@ typedef struct {
   double      LPCcoeffs_hi[(ORDERHI+1)*SUBFRAMES*2];
 
   
-  int16_t fre[FRAMESAMPLES];
-  int16_t fim[FRAMESAMPLES];
-  int16_t AvgPitchGain[2];
+  WebRtc_Word16 fre[FRAMESAMPLES];
+  WebRtc_Word16 fim[FRAMESAMPLES];
+  WebRtc_Word16 AvgPitchGain[2];
 
   
   int         minBytes;
@@ -302,8 +302,8 @@ typedef struct {
 
   Bitstr      bitStreamObj;
 
-  int16_t realFFT[FRAMESAMPLES_HALF];
-  int16_t imagFFT[FRAMESAMPLES_HALF];
+  WebRtc_Word16 realFFT[FRAMESAMPLES_HALF];
+  WebRtc_Word16 imagFFT[FRAMESAMPLES_HALF];
 } ISACUBSaveEncDataStruct;
 
 
@@ -319,38 +319,38 @@ typedef struct {
   ISAC_SaveEncData_t  SaveEnc_obj;
 
   int                 buffer_index;
-  int16_t         current_framesamples;
+  WebRtc_Word16         current_framesamples;
 
   float               data_buffer_float[FRAMESAMPLES_30ms];
 
   int                 frame_nb;
   double              bottleneck;
-  int16_t         new_framelength;
+  WebRtc_Word16         new_framelength;
   double              s2nr;
 
   
-  int16_t         payloadLimitBytes30;
+  WebRtc_Word16         payloadLimitBytes30;
   
-  int16_t         payloadLimitBytes60;
+  WebRtc_Word16         payloadLimitBytes60;
   
-  int16_t         maxPayloadBytes;
+  WebRtc_Word16         maxPayloadBytes;
   
-  int16_t         maxRateInBytes;
-
-  
-
-
-
-  int16_t         enforceFrameSize;
+  WebRtc_Word16         maxRateInBytes;
 
   
 
 
 
+  WebRtc_Word16         enforceFrameSize;
+
+  
 
 
 
-  int16_t         lastBWIdx;
+
+
+
+  WebRtc_Word16         lastBWIdx;
 } ISACLBEncStruct;
 
 typedef struct {
@@ -369,11 +369,11 @@ typedef struct {
   
   
   
-  int16_t             maxPayloadSizeBytes;
+  WebRtc_Word16             maxPayloadSizeBytes;
 
   double                  lastLPCVec[UB_LPC_ORDER];
-  int16_t             numBytesUsed;
-  int16_t             lastJitterInfo;
+  WebRtc_Word16             numBytesUsed;
+  WebRtc_Word16             lastJitterInfo;
 } ISACUBEncStruct;
 
 
@@ -422,11 +422,11 @@ typedef struct {
   double       loFiltGain[SUBFRAMES];
   double       hiFiltGain[SUBFRAMES];
   
-  uint32_t W_upper;
-  uint32_t streamval;
+  WebRtc_UWord32 W_upper;
+  WebRtc_UWord32 streamval;
   
-  uint32_t stream_index;
-  uint8_t  stream[3];
+  WebRtc_UWord32 stream_index;
+  WebRtc_UWord8  stream[3];
 } transcode_obj;
 
 
@@ -442,19 +442,19 @@ typedef struct {
   double                    MaxDelay;
 
   
-  int16_t               codingMode;
+  WebRtc_Word16               codingMode;
 
   
-  int32_t               bottleneck;
+  WebRtc_Word32               bottleneck;
 
   
-  int32_t               analysisFBState1[FB_STATE_SIZE_WORD32];
-  int32_t               analysisFBState2[FB_STATE_SIZE_WORD32];
-  int32_t               synthesisFBState1[FB_STATE_SIZE_WORD32];
-  int32_t               synthesisFBState2[FB_STATE_SIZE_WORD32];
+  WebRtc_Word32               analysisFBState1[FB_STATE_SIZE_WORD32];
+  WebRtc_Word32               analysisFBState2[FB_STATE_SIZE_WORD32];
+  WebRtc_Word32               synthesisFBState1[FB_STATE_SIZE_WORD32];
+  WebRtc_Word32               synthesisFBState2[FB_STATE_SIZE_WORD32];
 
   
-  int16_t               errorCode;
+  WebRtc_Word16               errorCode;
 
   
   enum ISACBandwidth        bandwidthKHz;
@@ -463,19 +463,19 @@ typedef struct {
   enum IsacSamplingRate decoderSamplingRateKHz;
   
   
-  int16_t               initFlag;
+  WebRtc_Word16               initFlag;
 
   
-  int16_t               resetFlag_8kHz;
+  WebRtc_Word16               resetFlag_8kHz;
 
   
-  int16_t               maxRateBytesPer30Ms;
+  WebRtc_Word16               maxRateBytesPer30Ms;
   
-  int16_t               maxPayloadSizeBytes;
+  WebRtc_Word16               maxPayloadSizeBytes;
   
 
 
-  uint16_t in_sample_rate_hz;
+  WebRtc_UWord16 in_sample_rate_hz;
   
   int16_t state_in_resampler[SIZE_RESAMPLER_STATE];
 } ISACMainStruct;

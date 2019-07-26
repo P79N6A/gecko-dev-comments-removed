@@ -22,14 +22,14 @@
 
 
 
-int16_t WebRtcIlbcfix_UnpackBits( 
-    const uint16_t *bitstream,    
+WebRtc_Word16 WebRtcIlbcfix_UnpackBits( 
+    const WebRtc_UWord16 *bitstream,    
     iLBC_bits *enc_bits,  
-    int16_t mode     
+    WebRtc_Word16 mode     
                                         ) {
-  const uint16_t *bitstreamPtr;
+  const WebRtc_UWord16 *bitstreamPtr;
   int i, k;
-  int16_t *tmpPtr;
+  WebRtc_Word16 *tmpPtr;
 
   bitstreamPtr=bitstream;
 

@@ -28,10 +28,10 @@
 
 
 
-int16_t WebRtcIlbcfix_Chebyshev(
+WebRtc_Word16 WebRtcIlbcfix_Chebyshev(
     
-    int16_t x,  
-    int16_t *f  
+    WebRtc_Word16 x,  
+    WebRtc_Word16 *f  
                                       );
 
 #endif

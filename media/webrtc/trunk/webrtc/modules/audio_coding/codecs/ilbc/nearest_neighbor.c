@@ -25,15 +25,15 @@
 
 
 void WebRtcIlbcfix_NearestNeighbor(
-    int16_t *index, 
-    int16_t *array, 
-    int16_t value, 
-    int16_t arlength 
+    WebRtc_Word16 *index, 
+    WebRtc_Word16 *array, 
+    WebRtc_Word16 value, 
+    WebRtc_Word16 arlength 
                                    ){
   int i;
-  int16_t diff;
+  WebRtc_Word16 diff;
   
-  int32_t crit[8];
+  WebRtc_Word32 crit[8];
 
   
   for(i=0;i<arlength;i++){
@@ -42,5 +42,5 @@ void WebRtcIlbcfix_NearestNeighbor(
   }
 
   
-  *index=WebRtcSpl_MinIndexW32(crit, (int16_t)arlength);
+  *index=WebRtcSpl_MinIndexW32(crit, (WebRtc_Word16)arlength);
 }

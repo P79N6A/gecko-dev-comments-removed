@@ -26,7 +26,7 @@ class VideoFramesQueue {
   ~VideoFramesQueue();
 
   
-  int32_t AddFrame(const I420VideoFrame& newFrame);
+  WebRtc_Word32 AddFrame(const I420VideoFrame& newFrame);
 
   
   
@@ -34,12 +34,12 @@ class VideoFramesQueue {
   I420VideoFrame* FrameToRecord();
 
   
-  int32_t SetRenderDelay(uint32_t renderDelay);
+  WebRtc_Word32 SetRenderDelay(WebRtc_UWord32 renderDelay);
 
  protected:
   
   
-  int32_t ReturnFrame(I420VideoFrame* ptrOldFrame);
+  WebRtc_Word32 ReturnFrame(I420VideoFrame* ptrOldFrame);
 
  private:
   
@@ -54,7 +54,7 @@ class VideoFramesQueue {
   ListWrapper    _emptyFrames;
 
   
-  uint32_t _renderDelayMs;
+  WebRtc_UWord32 _renderDelayMs;
 };
 } 
 #endif

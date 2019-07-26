@@ -26,11 +26,11 @@
 
 
 void WebRtcIlbcfix_DecodeImpl(
-    int16_t *decblock,    
-    const uint16_t *bytes, 
+    WebRtc_Word16 *decblock,    
+    const WebRtc_UWord16 *bytes, 
     iLBC_Dec_Inst_t *iLBCdec_inst, 
 
-    int16_t mode      
+    WebRtc_Word16 mode      
 
                            );
 

@@ -90,6 +90,9 @@
 #ifndef WEBRTC_VOICE_ENGINE_EXTERNAL_MEDIA_API
 #undef _TEST_XMEDIA_
 #endif
+#ifndef WEBRTC_VOICE_ENGINE_NETWORK_API
+#undef _TEST_NETWORK_
+#endif
 #ifndef WEBRTC_VOICE_ENGINE_NETEQ_STATS_API
 #undef _TEST_NETEQ_STATS_
 #endif
@@ -100,6 +103,7 @@
 
 #ifdef __INSURE__
 #define _INSTRUMENTATION_TESTING_
+#undef WEBRTC_SRTP
 #endif
 
 

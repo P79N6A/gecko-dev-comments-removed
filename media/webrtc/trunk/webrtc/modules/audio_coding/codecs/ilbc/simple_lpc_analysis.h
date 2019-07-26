@@ -26,8 +26,8 @@
 
 
 void WebRtcIlbcfix_SimpleLpcAnalysis(
-    int16_t *lsf,   
-    int16_t *data,   
+    WebRtc_Word16 *lsf,   
+    WebRtc_Word16 *data,   
     iLBC_Enc_Inst_t *iLBCenc_inst
     
                                      );

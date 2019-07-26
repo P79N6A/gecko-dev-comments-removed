@@ -30,20 +30,21 @@
 
 
 
+
 void WebRtcIlbcfix_DecodeResidual(
     iLBC_Dec_Inst_t *iLBCdec_inst,
     
     iLBC_bits *iLBC_encbits, 
 
-    int16_t *decresidual,  
-    int16_t *syntdenum   
+    WebRtc_Word16 *decresidual,  
+    WebRtc_Word16 *syntdenum   
 
                                   ) {
-  int16_t meml_gotten, Nfor, Nback, diff, start_pos;
-  int16_t subcount, subframe;
-  int16_t *reverseDecresidual = iLBCdec_inst->enh_buf; 
-  int16_t *memVec = iLBCdec_inst->prevResidual;  
-  int16_t *mem = &memVec[CB_HALFFILTERLEN];   
+  WebRtc_Word16 meml_gotten, Nfor, Nback, diff, start_pos;
+  WebRtc_Word16 subcount, subframe;
+  WebRtc_Word16 *reverseDecresidual = iLBCdec_inst->enh_buf; 
+  WebRtc_Word16 *memVec = iLBCdec_inst->prevResidual;  
+  WebRtc_Word16 *mem = &memVec[CB_HALFFILTERLEN];   
 
   diff = STATE_LEN - iLBCdec_inst->state_short_len;
 
@@ -64,7 +65,7 @@ void WebRtcIlbcfix_DecodeResidual(
 
     
 
-    WebRtcSpl_MemSetW16(mem, 0, (int16_t)(CB_MEML-iLBCdec_inst->state_short_len));
+    WebRtcSpl_MemSetW16(mem, 0, (WebRtc_Word16)(CB_MEML-iLBCdec_inst->state_short_len));
     WEBRTC_SPL_MEMCPY_W16(mem+CB_MEML-iLBCdec_inst->state_short_len, decresidual+start_pos,
                           iLBCdec_inst->state_short_len);
 
@@ -74,7 +75,7 @@ void WebRtcIlbcfix_DecodeResidual(
         &decresidual[start_pos+iLBCdec_inst->state_short_len],
         iLBC_encbits->cb_index, iLBC_encbits->gain_index,
         mem+CB_MEML-ST_MEM_L_TBL,
-        ST_MEM_L_TBL, (int16_t)diff
+        ST_MEM_L_TBL, (WebRtc_Word16)diff
                               );
 
   }
@@ -82,10 +83,15 @@ void WebRtcIlbcfix_DecodeResidual(
 
     
 
+    WebRtcSpl_MemCpyReversedOrder(reverseDecresidual+diff,
+                                  &decresidual[(iLBC_encbits->startIdx+1)*SUBL-1-STATE_LEN], diff);
+
+    
+
     meml_gotten = iLBCdec_inst->state_short_len;
     WebRtcSpl_MemCpyReversedOrder(mem+CB_MEML-1,
                                   decresidual+start_pos, meml_gotten);
-    WebRtcSpl_MemSetW16(mem, 0, (int16_t)(CB_MEML-meml_gotten));
+    WebRtcSpl_MemSetW16(mem, 0, (WebRtc_Word16)(CB_MEML-meml_gotten));
 
     
 
@@ -154,7 +160,7 @@ void WebRtcIlbcfix_DecodeResidual(
 
     WebRtcSpl_MemCpyReversedOrder(mem+CB_MEML-1,
                                   decresidual+(iLBC_encbits->startIdx-1)*SUBL, meml_gotten);
-    WebRtcSpl_MemSetW16(mem, 0, (int16_t)(CB_MEML-meml_gotten));
+    WebRtcSpl_MemSetW16(mem, 0, (WebRtc_Word16)(CB_MEML-meml_gotten));
 
     
 

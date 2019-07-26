@@ -17,7 +17,7 @@
 #include "typedefs.h"
 
 
-int16_t WebRtcG722_CreateEncoder(G722EncInst **G722enc_inst)
+WebRtc_Word16 WebRtcG722_CreateEncoder(G722EncInst **G722enc_inst)
 {
     *G722enc_inst=(G722EncInst*)malloc(sizeof(g722_encode_state_t));
     if (*G722enc_inst!=NULL) {
@@ -27,7 +27,7 @@ int16_t WebRtcG722_CreateEncoder(G722EncInst **G722enc_inst)
     }
 }
 
-int16_t WebRtcG722_EncoderInit(G722EncInst *G722enc_inst)
+WebRtc_Word16 WebRtcG722_EncoderInit(G722EncInst *G722enc_inst)
 {
     
     
@@ -40,16 +40,16 @@ int16_t WebRtcG722_EncoderInit(G722EncInst *G722enc_inst)
     }
 }
 
-int16_t WebRtcG722_FreeEncoder(G722EncInst *G722enc_inst)
+WebRtc_Word16 WebRtcG722_FreeEncoder(G722EncInst *G722enc_inst)
 {
     
     return WebRtc_g722_encode_release((g722_encode_state_t*) G722enc_inst);
 }
 
-int16_t WebRtcG722_Encode(G722EncInst *G722enc_inst,
-                          int16_t *speechIn,
-                          int16_t len,
-                          int16_t *encoded)
+WebRtc_Word16 WebRtcG722_Encode(G722EncInst *G722enc_inst,
+                                WebRtc_Word16 *speechIn,
+                                WebRtc_Word16 len,
+                                WebRtc_Word16 *encoded)
 {
     unsigned char *codechar = (unsigned char*) encoded;
     
@@ -57,7 +57,7 @@ int16_t WebRtcG722_Encode(G722EncInst *G722enc_inst,
                        codechar, speechIn, len);
 }
 
-int16_t WebRtcG722_CreateDecoder(G722DecInst **G722dec_inst)
+WebRtc_Word16 WebRtcG722_CreateDecoder(G722DecInst **G722dec_inst)
 {
     *G722dec_inst=(G722DecInst*)malloc(sizeof(g722_decode_state_t));
     if (*G722dec_inst!=NULL) {
@@ -67,7 +67,7 @@ int16_t WebRtcG722_CreateDecoder(G722DecInst **G722dec_inst)
     }
 }
 
-int16_t WebRtcG722_DecoderInit(G722DecInst *G722dec_inst)
+WebRtc_Word16 WebRtcG722_DecoderInit(G722DecInst *G722dec_inst)
 {
     
     
@@ -80,25 +80,25 @@ int16_t WebRtcG722_DecoderInit(G722DecInst *G722dec_inst)
     }
 }
 
-int16_t WebRtcG722_FreeDecoder(G722DecInst *G722dec_inst)
+WebRtc_Word16 WebRtcG722_FreeDecoder(G722DecInst *G722dec_inst)
 {
     
     return WebRtc_g722_decode_release((g722_decode_state_t*) G722dec_inst);
 }
 
-int16_t WebRtcG722_Decode(G722DecInst *G722dec_inst,
-                          int16_t *encoded,
-                          int16_t len,
-                          int16_t *decoded,
-                          int16_t *speechType)
+WebRtc_Word16 WebRtcG722_Decode(G722DecInst *G722dec_inst,
+                                WebRtc_Word16 *encoded,
+                                WebRtc_Word16 len,
+                                WebRtc_Word16 *decoded,
+                                WebRtc_Word16 *speechType)
 {
     
     *speechType=G722_WEBRTC_SPEECH;
     return WebRtc_g722_decode((g722_decode_state_t*) G722dec_inst,
-                              decoded, (uint8_t*) encoded, len);
+                              decoded, (WebRtc_UWord8*) encoded, len);
 }
 
-int16_t WebRtcG722_Version(char *versionStr, short len)
+WebRtc_Word16 WebRtcG722_Version(char *versionStr, short len)
 {
     
     char version[30] = "2.0.0\n";

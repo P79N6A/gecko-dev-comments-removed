@@ -21,7 +21,7 @@
 
 namespace webrtc {
 
-ACMPCMU::ACMPCMU(int16_t codec_id) {
+ACMPCMU::ACMPCMU(WebRtc_Word16 codec_id) {
   codec_id_ = codec_id;
 }
 
@@ -29,39 +29,39 @@ ACMPCMU::~ACMPCMU() {
   return;
 }
 
-int16_t ACMPCMU::InternalEncode(uint8_t* bitstream,
-                                int16_t* bitstream_len_byte) {
+WebRtc_Word16 ACMPCMU::InternalEncode(WebRtc_UWord8* bitstream,
+                                      WebRtc_Word16* bitstream_len_byte) {
   *bitstream_len_byte = WebRtcG711_EncodeU(NULL, &in_audio_[in_audio_ix_read_],
                                            frame_len_smpl_ * num_channels_,
-                                           (int16_t*)bitstream);
+                                           (WebRtc_Word16*)bitstream);
   
   
   in_audio_ix_read_ += frame_len_smpl_ * num_channels_;
   return *bitstream_len_byte;
 }
 
-int16_t ACMPCMU::DecodeSafe(uint8_t* ,
-                            int16_t ,
-                            int16_t* ,
-                            int16_t* ,
-                            int8_t* ) {
+WebRtc_Word16 ACMPCMU::DecodeSafe(WebRtc_UWord8* ,
+                                  WebRtc_Word16 ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word8* ) {
   return 0;
 }
 
-int16_t ACMPCMU::InternalInitEncoder(
+WebRtc_Word16 ACMPCMU::InternalInitEncoder(
     WebRtcACMCodecParams* ) {
   
   return 0;
 }
 
-int16_t ACMPCMU::InternalInitDecoder(
+WebRtc_Word16 ACMPCMU::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   
   return 0;
 }
 
-int32_t ACMPCMU::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
-                          const CodecInst& codec_inst) {
+WebRtc_Word32 ACMPCMU::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
+                                const CodecInst& codec_inst) {
   
   
   
@@ -80,12 +80,12 @@ ACMGenericCodec* ACMPCMU::CreateInstance(void) {
   return NULL;
 }
 
-int16_t ACMPCMU::InternalCreateEncoder() {
+WebRtc_Word16 ACMPCMU::InternalCreateEncoder() {
   
   return 0;
 }
 
-int16_t ACMPCMU::InternalCreateDecoder() {
+WebRtc_Word16 ACMPCMU::InternalCreateDecoder() {
   
   return 0;
 }

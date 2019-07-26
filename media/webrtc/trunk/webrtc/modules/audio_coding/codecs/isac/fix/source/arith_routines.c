@@ -30,10 +30,10 @@
 
 
 
-int16_t WebRtcIsacfix_EncTerminate(Bitstr_enc *streamData)
+WebRtc_Word16 WebRtcIsacfix_EncTerminate(Bitstr_enc *streamData)
 {
-  uint16_t *streamPtr;
-  uint16_t negCarry;
+  WebRtc_UWord16 *streamPtr;
+  WebRtc_UWord16 negCarry;
 
   
   streamPtr = streamData->stream + streamData->stream_index;
@@ -72,10 +72,10 @@ int16_t WebRtcIsacfix_EncTerminate(Bitstr_enc *streamData)
     }
     
     if (streamData->full == 0) {
-      *streamPtr++ += (uint16_t) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 24);
+      *streamPtr++ += (WebRtc_UWord16) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 24);
       streamData->full = 1;
     } else {
-      *streamPtr = (uint16_t) WEBRTC_SPL_LSHIFT_W32(
+      *streamPtr = (WebRtc_UWord16) WEBRTC_SPL_LSHIFT_W32(
           WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 24), 8);
       streamData->full = 0;
     }
@@ -111,10 +111,10 @@ int16_t WebRtcIsacfix_EncTerminate(Bitstr_enc *streamData)
     }
     
     if (streamData->full) {
-      *streamPtr++ = (uint16_t) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 16);
+      *streamPtr++ = (WebRtc_UWord16) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 16);
     } else {
-      *streamPtr++ |= (uint16_t) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 24);
-      *streamPtr = (uint16_t) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 8)
+      *streamPtr++ |= (WebRtc_UWord16) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 24);
+      *streamPtr = (WebRtc_UWord16) WEBRTC_SPL_RSHIFT_W32(streamData->streamval, 8)
           & 0xFF00;
     }
   }

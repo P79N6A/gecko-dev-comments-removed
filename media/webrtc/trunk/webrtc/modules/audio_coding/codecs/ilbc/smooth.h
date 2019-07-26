@@ -26,10 +26,10 @@
 
 
 void WebRtcIlbcfix_Smooth(
-    int16_t *odata,   
-    int16_t *current,  
+    WebRtc_Word16 *odata,   
+    WebRtc_Word16 *current,  
 
-    int16_t *surround  
+    WebRtc_Word16 *surround  
 
                           );
 

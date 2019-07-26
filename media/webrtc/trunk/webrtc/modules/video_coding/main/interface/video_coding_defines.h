@@ -38,8 +38,12 @@ namespace webrtc {
 
 #define VCM_RED_PAYLOAD_TYPE        96
 #define VCM_ULPFEC_PAYLOAD_TYPE     97
-#define VCM_VP8_PAYLOAD_TYPE       100
+#define VCM_VP8_PAYLOAD_TYPE       120
 #define VCM_I420_PAYLOAD_TYPE      124
+
+enum VCMNackProperties {
+  kNackHistoryLength = 450
+};
 
 enum VCMVideoProtection {
   kProtectionNack,                
@@ -58,20 +62,20 @@ enum VCMTemporalDecimation {
 };
 
 struct VCMFrameCount {
-  uint32_t numKeyFrames;
-  uint32_t numDeltaFrames;
+  WebRtc_UWord32 numKeyFrames;
+  WebRtc_UWord32 numDeltaFrames;
 };
 
 
 class VCMPacketizationCallback {
  public:
-  virtual int32_t SendData(
+  virtual WebRtc_Word32 SendData(
       FrameType frameType,
-      uint8_t payloadType,
-      uint32_t timeStamp,
+      WebRtc_UWord8 payloadType,
+      WebRtc_UWord32 timeStamp,
       int64_t capture_time_ms,
-      const uint8_t* payloadData,
-      uint32_t payloadSize,
+      const WebRtc_UWord8* payloadData,
+      WebRtc_UWord32 payloadSize,
       const RTPFragmentationHeader& fragmentationHeader,
       const RTPVideoHeader* rtpVideoHdr) = 0;
  protected:
@@ -82,7 +86,7 @@ class VCMPacketizationCallback {
 
 class VCMFrameStorageCallback {
  public:
-  virtual int32_t StoreReceivedFrame(
+  virtual WebRtc_Word32 StoreReceivedFrame(
       const EncodedVideoData& frameToStore) = 0;
 
  protected:
@@ -93,9 +97,9 @@ class VCMFrameStorageCallback {
 
 class VCMReceiveCallback {
  public:
-  virtual int32_t FrameToRender(I420VideoFrame& videoFrame) = 0;
-  virtual int32_t ReceivedDecodedReferenceFrame(
-      const uint64_t pictureId) {
+  virtual WebRtc_Word32 FrameToRender(I420VideoFrame& videoFrame) = 0;
+  virtual WebRtc_Word32 ReceivedDecodedReferenceFrame(
+      const WebRtc_UWord64 pictureId) {
     return -1;
   }
 
@@ -108,8 +112,8 @@ class VCMReceiveCallback {
 
 class VCMSendStatisticsCallback {
  public:
-  virtual int32_t SendStatistics(const uint32_t bitRate,
-                                       const uint32_t frameRate) = 0;
+  virtual WebRtc_Word32 SendStatistics(const WebRtc_UWord32 bitRate,
+                                       const WebRtc_UWord32 frameRate) = 0;
 
  protected:
   virtual ~VCMSendStatisticsCallback() {
@@ -119,8 +123,8 @@ class VCMSendStatisticsCallback {
 
 class VCMReceiveStatisticsCallback {
  public:
-  virtual int32_t ReceiveStatistics(const uint32_t bitRate,
-                                          const uint32_t frameRate) = 0;
+  virtual WebRtc_Word32 ReceiveStatistics(const WebRtc_UWord32 bitRate,
+                                          const WebRtc_UWord32 frameRate) = 0;
 
  protected:
   virtual ~VCMReceiveStatisticsCallback() {
@@ -146,9 +150,9 @@ class VCMProtectionCallback {
 
 class VCMFrameTypeCallback {
  public:
-  virtual int32_t RequestKeyFrame() = 0;
-  virtual int32_t SliceLossIndicationRequest(
-      const uint64_t pictureId) {
+  virtual WebRtc_Word32 RequestKeyFrame() = 0;
+  virtual WebRtc_Word32 SliceLossIndicationRequest(
+      const WebRtc_UWord64 pictureId) {
     return -1;
   }
 
@@ -161,8 +165,8 @@ class VCMFrameTypeCallback {
 
 class VCMPacketRequestCallback {
  public:
-  virtual int32_t ResendPackets(const uint16_t* sequenceNumbers,
-                                      uint16_t length) = 0;
+  virtual WebRtc_Word32 ResendPackets(const WebRtc_UWord16* sequenceNumbers,
+                                      WebRtc_UWord16 length) = 0;
 
  protected:
   virtual ~VCMPacketRequestCallback() {
@@ -173,23 +177,12 @@ class VCMPacketRequestCallback {
 
 class VCMQMSettingsCallback {
  public:
-  virtual int32_t SetVideoQMSettings(const uint32_t frameRate,
-                                           const uint32_t width,
-                                           const uint32_t height) = 0;
+  virtual WebRtc_Word32 SetVideoQMSettings(const WebRtc_UWord32 frameRate,
+                                           const WebRtc_UWord32 width,
+                                           const WebRtc_UWord32 height) = 0;
 
  protected:
   virtual ~VCMQMSettingsCallback() {
-  }
-};
-
-
-
-class VCMRenderBufferSizeCallback {
- public:
-  virtual void RenderBufferSizeMs(int buffer_size_ms) = 0;
-
- protected:
-  virtual ~VCMRenderBufferSizeCallback() {
   }
 };
 

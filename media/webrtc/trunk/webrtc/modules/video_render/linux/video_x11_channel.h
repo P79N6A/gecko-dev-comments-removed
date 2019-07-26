@@ -29,24 +29,24 @@ class CriticalSectionWrapper;
 class VideoX11Channel: public VideoRenderCallback
 {
 public:
-    VideoX11Channel(int32_t id);
+    VideoX11Channel(WebRtc_Word32 id);
 
     virtual ~VideoX11Channel();
 
-    virtual int32_t RenderFrame(const uint32_t streamId,
-                                I420VideoFrame& videoFrame);
+    virtual WebRtc_Word32 RenderFrame(const WebRtc_UWord32 streamId,
+                                      I420VideoFrame& videoFrame);
 
-    int32_t FrameSizeChange(int32_t width, int32_t height,
-                            int32_t numberOfStreams);
-    int32_t DeliverFrame(const I420VideoFrame& videoFrame);
-    int32_t GetFrameSize(int32_t& width, int32_t& height);
-    int32_t Init(Window window, float left, float top, float right,
-                 float bottom);
-    int32_t ChangeWindow(Window window);
-    int32_t
-            GetStreamProperties(uint32_t& zOrder, float& left,
+    WebRtc_Word32 FrameSizeChange(WebRtc_Word32 width, WebRtc_Word32 height,
+                                  WebRtc_Word32 numberOfStreams);
+    WebRtc_Word32 DeliverFrame(const I420VideoFrame& videoFrame);
+    WebRtc_Word32 GetFrameSize(WebRtc_Word32& width, WebRtc_Word32& height);
+    WebRtc_Word32 Init(Window window, float left, float top, float right,
+                       float bottom);
+    WebRtc_Word32 ChangeWindow(Window window);
+    WebRtc_Word32
+            GetStreamProperties(WebRtc_UWord32& zOrder, float& left,
                                 float& top, float& right, float& bottom) const;
-    int32_t ReleaseWindow();
+    WebRtc_Word32 ReleaseWindow();
 
     bool IsPrepared()
     {
@@ -55,9 +55,9 @@ public:
 
 private:
 
-    int32_t
-            CreateLocalRenderer(int32_t width, int32_t height);
-    int32_t RemoveRenderer();
+    WebRtc_Word32
+            CreateLocalRenderer(WebRtc_Word32 width, WebRtc_Word32 height);
+    WebRtc_Word32 RemoveRenderer();
 
     
     
@@ -71,14 +71,14 @@ private:
     XImage* _image;
     Window _window;
     GC _gc;
-    int32_t _width; 
-    int32_t _height; 
-    int32_t _outWidth; 
-    int32_t _outHeight; 
-    int32_t _xPos; 
-    int32_t _yPos;
+    WebRtc_Word32 _width; 
+    WebRtc_Word32 _height; 
+    WebRtc_Word32 _outWidth; 
+    WebRtc_Word32 _outHeight; 
+    WebRtc_Word32 _xPos; 
+    WebRtc_Word32 _yPos;
     bool _prepared; 
-    int32_t _dispCount;
+    WebRtc_Word32 _dispCount;
 
     unsigned char* _buffer;
     float _top;
@@ -86,7 +86,7 @@ private:
     float _right;
     float _bottom;
 
-    int32_t _Id;
+    WebRtc_Word32 _Id;
 
 };
 

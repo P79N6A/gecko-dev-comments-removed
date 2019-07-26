@@ -23,22 +23,22 @@ class VideoRenderFrames {
   ~VideoRenderFrames();
 
   
-  int32_t AddFrame(I420VideoFrame* new_frame);
+  WebRtc_Word32 AddFrame(I420VideoFrame* new_frame);
 
   
   I420VideoFrame* FrameToRender();
 
   
-  int32_t ReturnFrame(I420VideoFrame* old_frame);
+  WebRtc_Word32 ReturnFrame(I420VideoFrame* old_frame);
 
   
-  int32_t ReleaseAllFrames();
+  WebRtc_Word32 ReleaseAllFrames();
 
   
-  uint32_t TimeToNextFrameRelease();
+  WebRtc_UWord32 TimeToNextFrameRelease();
 
   
-  int32_t SetRenderDelay(const uint32_t render_delay);
+  WebRtc_Word32 SetRenderDelay(const WebRtc_UWord32 render_delay);
 
  private:
   
@@ -54,7 +54,7 @@ class VideoRenderFrames {
   ListWrapper empty_frames_;
 
   
-  uint32_t render_delay_ms_;
+  WebRtc_UWord32 render_delay_ms_;
 };
 
 }  

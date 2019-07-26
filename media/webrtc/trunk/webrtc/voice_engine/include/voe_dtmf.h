@@ -33,11 +33,34 @@
 #ifndef WEBRTC_VOICE_ENGINE_VOE_DTMF_H
 #define WEBRTC_VOICE_ENGINE_VOE_DTMF_H
 
-#include "webrtc/common_types.h"
+#include "common_types.h"
 
 namespace webrtc {
 
 class VoiceEngine;
+
+
+class WEBRTC_DLLEXPORT VoETelephoneEventObserver
+{
+public:
+    
+    
+    
+    virtual void OnReceivedTelephoneEventInband(int channel,
+                                                int eventCode,
+                                                bool endOfEvent) = 0;
+
+    
+    
+    
+    virtual void OnReceivedTelephoneEventOutOfBand(
+        int channel,
+        int eventCode,
+        bool endOfEvent) = 0;
+
+protected:
+    virtual ~VoETelephoneEventObserver() {}
+};
 
 
 class WEBRTC_DLLEXPORT VoEDtmf
@@ -98,6 +121,22 @@ public:
 
     
     virtual int StopPlayingDtmfTone() = 0;
+
+    
+    
+    virtual int RegisterTelephoneEventDetection(
+        int channel, TelephoneEventDetectionMethods detectionMethod,
+        VoETelephoneEventObserver& observer) = 0;
+
+    
+    
+    virtual int DeRegisterTelephoneEventDetection(int channel) = 0;
+
+    
+    
+    virtual int GetTelephoneEventDetectionStatus(
+        int channel, bool& enabled,
+        TelephoneEventDetectionMethods& detectionMethod) = 0;
 
 protected:
     VoEDtmf() {}

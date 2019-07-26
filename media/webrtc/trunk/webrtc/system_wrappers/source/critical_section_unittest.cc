@@ -10,6 +10,14 @@
 
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 
+#ifdef _WIN32
+
+#include <windows.h>
+#else
+
+#include <time.h>
+#endif
+
 #include "gtest/gtest.h"
 #include "webrtc/system_wrappers/interface/sleep.h"
 #include "webrtc/system_wrappers/interface/thread_wrapper.h"
@@ -138,7 +146,7 @@ TEST_F(CritSectTest, ThreadWakesTwice) {
 
   thread->SetNotAlive();  
   SwitchProcess();
-  EXPECT_TRUE(WaitForCount(count_before + 1, &count));
+  EXPECT_LT(count_before, count.Count());
   EXPECT_TRUE(thread->Stop());
   delete thread;
   delete crit_sect;

@@ -37,12 +37,12 @@ public:
     
 
 
-    void SetRenderTime(const int64_t renderTimeMs) {_renderTimeMs = renderTimeMs;}
+    void SetRenderTime(const WebRtc_Word64 renderTimeMs) {_renderTimeMs = renderTimeMs;}
 
     
 
 
-    void SetEncodedSize(uint32_t width, uint32_t height)
+    void SetEncodedSize(WebRtc_UWord32 width, WebRtc_UWord32 height)
                        { _encodedWidth  = width; _encodedHeight = height; }
     
 
@@ -52,19 +52,19 @@ public:
     
 
 
-    const uint8_t* Buffer() const {return _buffer;}
+    const WebRtc_UWord8* Buffer() const {return _buffer;}
     
 
 
-    uint32_t Length() const {return _length;}
+    WebRtc_UWord32 Length() const {return _length;}
     
 
 
-    uint32_t TimeStamp() const {return _timeStamp;}
+    WebRtc_UWord32 TimeStamp() const {return _timeStamp;}
     
 
 
-    int64_t RenderTimeMs() const {return _renderTimeMs;}
+    WebRtc_Word64 RenderTimeMs() const {return _renderTimeMs;}
     
 
 
@@ -80,7 +80,7 @@ public:
     
 
 
-    uint8_t PayloadType() const { return _payloadType; }
+    WebRtc_UWord8 PayloadType() const { return _payloadType; }
     
 
 
@@ -91,7 +91,7 @@ public:
 
     const RTPFragmentationHeader* FragmentationHeader() const;
 
-    int32_t Store(VCMFrameStorageCallback& storeCallback) const;
+    WebRtc_Word32 Store(VCMFrameStorageCallback& storeCallback) const;
 
     static webrtc::FrameType ConvertFrameType(VideoFrameType frameType);
     static VideoFrameType ConvertFrameType(webrtc::FrameType frameType);
@@ -106,14 +106,14 @@ protected:
 
 
 
-    int32_t VerifyAndAllocate(const uint32_t minimumSize);
+    WebRtc_Word32 VerifyAndAllocate(const WebRtc_UWord32 minimumSize);
 
     void Reset();
 
     void CopyCodecSpecific(const RTPVideoHeader* header);
 
-    int64_t                 _renderTimeMs;
-    uint8_t                 _payloadType;
+    WebRtc_Word64                 _renderTimeMs;
+    WebRtc_UWord8                 _payloadType;
     bool                          _missingFrame;
     CodecSpecificInfo             _codecSpecificInfo;
     webrtc::VideoCodecType        _codec;

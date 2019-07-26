@@ -17,12 +17,12 @@ namespace videocapturemodule {
 
 
 VideoCaptureModule::DeviceInfo* VideoCaptureImpl::CreateDeviceInfo(
-    const int32_t id) {
+    const WebRtc_Word32 id) {
   
   return DeviceInfoDS::Create(id);
 }
 
-VideoCaptureModule* VideoCaptureImpl::Create(const int32_t id,
+VideoCaptureModule* VideoCaptureImpl::Create(const WebRtc_Word32 id,
                                              const char* device_id) {
   if (device_id == NULL)
     return NULL;

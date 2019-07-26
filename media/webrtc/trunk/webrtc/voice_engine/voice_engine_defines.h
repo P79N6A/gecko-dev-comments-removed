@@ -16,19 +16,15 @@
 #ifndef WEBRTC_VOICE_ENGINE_VOICE_ENGINE_DEFINES_H
 #define WEBRTC_VOICE_ENGINE_VOICE_ENGINE_DEFINES_H
 
-#include "webrtc/common_types.h"
-#include "webrtc/engine_configurations.h"
-#include "webrtc/modules/audio_processing/include/audio_processing.h"
-#include "webrtc/system_wrappers/interface/logging.h"
+#include "common_types.h"
+#include "engine_configurations.h"
 
 
 
 
 
-namespace webrtc {
-
-
-enum { kVoiceEngineMaxNumChannels = 100 };
+namespace webrtc
+{
 
 
 enum { kMinVolumeLevel = 0 };
@@ -61,19 +57,24 @@ enum { kVoiceEngineMaxModuleVersionSize = 960 };
 enum { kVoiceEngineVersionMaxMessageSize = 1024 };
 
 
-const NoiseSuppression::Level kDefaultNsMode = NoiseSuppression::kModerate;
-const GainControl::Mode kDefaultAgcMode =
-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS)
-  GainControl::kAdaptiveDigital;
-#else
-  GainControl::kAdaptiveAnalog;
-#endif
-const bool kDefaultAgcState =
-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS)
-  false;
-#else
-  true;
-#endif
+
+enum { kVoiceEngineMaxSrtpKeyLength = 30 };
+
+enum { kVoiceEngineMinSrtpEncryptLength = 16 };
+
+enum { kVoiceEngineMaxSrtpEncryptLength = 256 };
+
+
+enum { kVoiceEngineMaxSrtpAuthSha1Length = 20 };
+
+
+enum { kVoiceEngineMaxSrtpTagAuthNullLength = 12 };
+
+
+enum { kVoiceEngineMaxSrtpKeyAuthNullLength = 256 };
+
+
+enum { kVoiceEngineAudioProcessingDeviceSampleRateHz = 48000 };
 
 
 
@@ -105,7 +106,7 @@ enum { kVoiceEngineMaxIsacMaxPayloadSizeBytesSwb = 600 };
 
 enum { kVoiceEngineMinMinPlayoutDelayMs = 0 };
 
-enum { kVoiceEngineMaxMinPlayoutDelayMs = 10000 };
+enum { kVoiceEngineMaxMinPlayoutDelayMs = 1000 };
 
 
 
@@ -127,13 +128,29 @@ enum { kVoiceEngineMaxRtpExtensionId = 14 };
 
 
 
-#define WEBRTC_VOICE_ENGINE_RX_AGC_DEFAULT_STATE false
+#define WEBRTC_AUDIO_PROCESSING_OFF false
+
+#define WEBRTC_VOICE_ENGINE_HP_DEFAULT_STATE true
     
-#define WEBRTC_VOICE_ENGINE_RX_NS_DEFAULT_STATE false
+#define WEBRTC_VOICE_ENGINE_NS_DEFAULT_STATE  WEBRTC_AUDIO_PROCESSING_OFF
     
-#define WEBRTC_VOICE_ENGINE_RX_HP_DEFAULT_STATE false
+#define WEBRTC_VOICE_ENGINE_AGC_DEFAULT_STATE true
+    
+#define WEBRTC_VOICE_ENGINE_EC_DEFAULT_STATE  WEBRTC_AUDIO_PROCESSING_OFF
+    
+#define WEBRTC_VOICE_ENGINE_VAD_DEFAULT_STATE WEBRTC_AUDIO_PROCESSING_OFF
+    
+#define WEBRTC_VOICE_ENGINE_RX_AGC_DEFAULT_STATE WEBRTC_AUDIO_PROCESSING_OFF
+    
+#define WEBRTC_VOICE_ENGINE_RX_NS_DEFAULT_STATE WEBRTC_AUDIO_PROCESSING_OFF
+    
+#define WEBRTC_VOICE_ENGINE_RX_HP_DEFAULT_STATE WEBRTC_AUDIO_PROCESSING_OFF
     
 
+#define WEBRTC_VOICE_ENGINE_NS_DEFAULT_MODE NoiseSuppression::kModerate
+    
+#define WEBRTC_VOICE_ENGINE_AGC_DEFAULT_MODE GainControl::kAdaptiveAnalog
+    
 #define WEBRTC_VOICE_ENGINE_RX_AGC_DEFAULT_MODE GainControl::kAdaptiveDigital
     
 #define WEBRTC_VOICE_ENGINE_RX_NS_DEFAULT_MODE NoiseSuppression::kModerate
@@ -169,11 +186,6 @@ enum { kVoiceEngineMaxRtpExtensionId = 14 };
 
 
 
-#define NOT_SUPPORTED(stat)                  \
-  LOG_F(LS_ERROR) << "not supported";        \
-  stat.SetLastError(VE_FUNC_NOT_SUPPORTED);  \
-  return -1;
-
 #if (defined(_DEBUG) && defined(_WIN32) && (_MSC_VER >= 1400))
   #include <windows.h>
   #include <stdio.h>
@@ -189,6 +201,14 @@ enum { kVoiceEngineMaxRtpExtensionId = 14 };
 #endif  
 
 #define CHECK_CHANNEL(channel)  if (CheckChannel(channel) == -1) return -1;
+
+
+
+
+
+#define WEBRTC_VOICE_ENGINE_DEFAULT_TRACE_FILTER \
+    kTraceStateInfo | kTraceWarning | kTraceError | kTraceCritical | \
+    kTraceApiCall
 
 
 
@@ -233,6 +253,18 @@ inline int VoEChannelId(const int moduleId)
   #ifndef WEBRTC_EXTERNAL_TRANSPORT
     #pragma comment( lib, "ws2_32.lib" )
   #endif
+
+
+
+
+
+namespace webrtc
+{
+
+enum { kVoiceEngineMaxNumOfChannels = 32 };
+
+enum { kVoiceEngineMaxNumOfActiveChannels = 16 };
+} 
 
 
 
@@ -312,6 +344,18 @@ inline int VoEChannelId(const int moduleId)
 
 
 
+namespace webrtc
+{
+  
+  enum { kVoiceEngineMaxNumOfChannels = 32 };
+  
+  enum { kVoiceEngineMaxNumOfActiveChannels = 16 };
+} 
+
+
+
+
+
   
   #undef WEBRTC_CODEC_ISAC
   
@@ -322,12 +366,38 @@ inline int VoEChannelId(const int moduleId)
   #undef WEBRTC_TYPING_DETECTION
 
   
+  #undef  WEBRTC_VOICE_ENGINE_NS_DEFAULT_STATE
+  #undef  WEBRTC_VOICE_ENGINE_AGC_DEFAULT_STATE
+  #undef  WEBRTC_VOICE_ENGINE_EC_DEFAULT_STATE
+  #define WEBRTC_VOICE_ENGINE_NS_DEFAULT_STATE  WEBRTC_AUDIO_PROCESSING_OFF
+  #define WEBRTC_VOICE_ENGINE_AGC_DEFAULT_STATE WEBRTC_AUDIO_PROCESSING_OFF
+  #define WEBRTC_VOICE_ENGINE_EC_DEFAULT_STATE  WEBRTC_AUDIO_PROCESSING_OFF
+
+  
+  #undef  WEBRTC_VOICE_ENGINE_NS_DEFAULT_MODE
+  #undef  WEBRTC_VOICE_ENGINE_AGC_DEFAULT_MODE
+  #define WEBRTC_VOICE_ENGINE_NS_DEFAULT_MODE  \
+      NoiseSuppression::kModerate
+  #define WEBRTC_VOICE_ENGINE_AGC_DEFAULT_MODE \
+      GainControl::kAdaptiveDigital
+
+  
   
   
   #define ANDROID_NOT_SUPPORTED(stat)
 
-
 #else 
+
+
+
+
+namespace webrtc
+{
+  
+  enum { kVoiceEngineMaxNumOfChannels = 32 };
+  
+  enum { kVoiceEngineMaxNumOfActiveChannels = 16 };
+} 
 
 
 
@@ -403,17 +473,54 @@ inline int VoEChannelId(const int moduleId)
 
 
 
+namespace webrtc
+{
+  
+  enum { kVoiceEngineMaxNumOfChannels = 2 };
+  
+  enum { kVoiceEngineMaxNumOfActiveChannels = 2 };
+} 
+
+
+
+
+
   
   #undef WEBRTC_CODEC_ISAC
   #undef WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
 
-  #define IPHONE_NOT_SUPPORTED(stat) NOT_SUPPORTED(stat)
+  #undef  WEBRTC_VOICE_ENGINE_NS_DEFAULT_STATE
+  #undef  WEBRTC_VOICE_ENGINE_AGC_DEFAULT_STATE
+  #undef  WEBRTC_VOICE_ENGINE_EC_DEFAULT_STATE
+  #define WEBRTC_VOICE_ENGINE_NS_DEFAULT_STATE  WEBRTC_AUDIO_PROCESSING_OFF
+  #define WEBRTC_VOICE_ENGINE_AGC_DEFAULT_STATE WEBRTC_AUDIO_PROCESSING_OFF
+  #define WEBRTC_VOICE_ENGINE_EC_DEFAULT_STATE  WEBRTC_AUDIO_PROCESSING_OFF
+
+  #undef  WEBRTC_VOICE_ENGINE_NS_DEFAULT_MODE
+  #undef  WEBRTC_VOICE_ENGINE_AGC_DEFAULT_MODE
+  #define WEBRTC_VOICE_ENGINE_NS_DEFAULT_MODE \
+      NoiseSuppression::kModerate
+  #define WEBRTC_VOICE_ENGINE_AGC_DEFAULT_MODE \
+      GainControl::kAdaptiveDigital
+
+  #define IPHONE_NOT_SUPPORTED(stat) \
+    stat.SetLastError(VE_FUNC_NOT_SUPPORTED, kTraceError, \
+                      "API call not supported"); \
+    return -1;
 
 #else 
 
 
 
 
+
+namespace webrtc
+{
+  
+  enum { kVoiceEngineMaxNumOfChannels = 32 };
+  
+  enum { kVoiceEngineMaxNumOfActiveChannels = 16 };
+} 
 
 
 
@@ -425,5 +532,7 @@ inline int VoEChannelId(const int moduleId)
 #else
 #define IPHONE_NOT_SUPPORTED(stat)
 #endif  
+
+
 
 #endif 

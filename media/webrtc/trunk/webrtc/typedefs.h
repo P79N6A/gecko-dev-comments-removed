@@ -16,6 +16,10 @@
 
 
 
+#define G_CONST const
+
+
+
 #if defined(WEBRTC_MAC) || defined(WEBRTC_LINUX) || \
     defined(WEBRTC_ANDROID)
 #define WEBRTC_POSIX
@@ -145,18 +149,5 @@ typedef uint8_t             WebRtc_UWord8;
 typedef uint16_t            WebRtc_UWord16;
 typedef uint32_t            WebRtc_UWord32;
 typedef uint64_t            WebRtc_UWord64;
-
-
-
-
-
-
-#if defined(_MSC_VER)
-#define OVERRIDE override
-#elif defined(__clang__)
-#define OVERRIDE override
-#else
-#define OVERRIDE
-#endif
 
 #endif  

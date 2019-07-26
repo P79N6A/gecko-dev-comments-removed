@@ -36,15 +36,15 @@ class VideoCaptureMacQuickTimeInfo: public DeviceInfoImpl
 {
 public:
 
-    static DeviceInfo* Create(const int32_t id);
+    static DeviceInfo* Create(const WebRtc_Word32 id);
     static void Destroy(DeviceInfo* deviceInfo);
 
-    VideoCaptureMacQuickTimeInfo(const int32_t id);
+    VideoCaptureMacQuickTimeInfo(const WebRtc_Word32 id);
     virtual ~VideoCaptureMacQuickTimeInfo();
 
-    int32_t Init();
+    WebRtc_Word32 Init();
 
-    virtual uint32_t NumberOfDevices();
+    virtual WebRtc_UWord32 NumberOfDevices();
 
     
 
@@ -55,12 +55,12 @@ public:
 
 
 
-    virtual int32_t GetDeviceName(
-        uint32_t deviceNumber, char* deviceNameUTF8,
-        uint32_t deviceNameLength, char* deviceUniqueIdUTF8,
-        uint32_t deviceUniqueIdUTF8Length,
+    virtual WebRtc_Word32 GetDeviceName(
+        WebRtc_UWord32 deviceNumber, char* deviceNameUTF8,
+        WebRtc_UWord32 deviceNameLength, char* deviceUniqueIdUTF8,
+        WebRtc_UWord32 deviceUniqueIdUTF8Length,
         char* productUniqueIdUTF8 = 0,
-        uint32_t productUniqueIdUTF8Length = 0);
+        WebRtc_UWord32 productUniqueIdUTF8Length = 0);
 
 
     
@@ -68,21 +68,21 @@ public:
     
 
 
-    virtual int32_t NumberOfCapabilities(const char* deviceUniqueIdUTF8);
+    virtual WebRtc_Word32 NumberOfCapabilities(const char* deviceUniqueIdUTF8);
 
     
 
 
-    virtual int32_t GetCapability(
+    virtual WebRtc_Word32 GetCapability(
         const char* deviceUniqueIdUTF8,
-        const uint32_t deviceCapabilityNumber,
+        const WebRtc_UWord32 deviceCapabilityNumber,
         VideoCaptureCapability& capability);
 
     
 
 
 
-    virtual int32_t GetBestMatchedCapability(
+    virtual WebRtc_Word32 GetBestMatchedCapability(
         const char* deviceUniqueIdUTF8,
         const VideoCaptureCapability& requested,
         VideoCaptureCapability& resulting);
@@ -90,13 +90,13 @@ public:
     
 
 
-    virtual int32_t DisplayCaptureSettingsDialogBox(
+    virtual WebRtc_Word32 DisplayCaptureSettingsDialogBox(
         const char* deviceUniqueIdUTF8,
         const char* dialogTitleUTF8, void* parentWindow,
-        uint32_t positionX, uint32_t positionY);
+        WebRtc_UWord32 positionX, WebRtc_UWord32 positionY);
 
 protected:
-    virtual int32_t CreateCapabilityMap(
+    virtual WebRtc_Word32 CreateCapabilityMap(
         const char* deviceUniqueIdUTF8);
 
 private:
@@ -125,13 +125,13 @@ private:
 private:
     
 
-    int GetCaptureDevices(uint32_t deviceNumber,
+    int GetCaptureDevices(WebRtc_UWord32 deviceNumber,
                           char* deviceNameUTF8,
-                          uint32_t deviceNameUTF8Length,
+                          WebRtc_UWord32 deviceNameUTF8Length,
                           char* deviceUniqueIdUTF8,
-                          uint32_t deviceUniqueIdUTF8Length,
+                          WebRtc_UWord32 deviceUniqueIdUTF8Length,
                           char* productUniqueIdUTF8,
-                          uint32_t productUniqueIdUTF8Length,
+                          WebRtc_UWord32 productUniqueIdUTF8Length,
                           int& numberOfDevices);
 
     static CFIndex PascalStringToCString(const unsigned char* pascalString,
@@ -139,7 +139,7 @@ private:
 
 private:
     
-    int32_t _id;
+    WebRtc_Word32 _id;
     bool _terminated;
     CriticalSectionWrapper* _grabberCritsect;
     webrtc::Trace* _trace;
@@ -159,7 +159,7 @@ private:
     int _trueCaptureWidth;
     int _trueCaptureHeight;
     ListWrapper _captureDeviceList;
-    int64_t _captureDeviceListTime;
+    WebRtc_Word64 _captureDeviceListTime;
     ListWrapper _captureCapabilityList;
 };
 }  

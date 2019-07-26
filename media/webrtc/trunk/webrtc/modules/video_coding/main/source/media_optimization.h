@@ -17,40 +17,33 @@
 #include "media_opt_util.h"
 #include "qm_select.h"
 
-#include <list>
-
-namespace webrtc {
-
-class Clock;
-class FrameDropper;
-class VCMContentMetricsProcessing;
-
-namespace media_optimization {
+namespace webrtc
+{
 
 enum { kBitrateMaxFrameSamples = 60 };
 enum { kBitrateAverageWinMs    = 1000 };
 
-struct VCMEncodedFrameSample {
-  VCMEncodedFrameSample(int size_bytes, uint32_t timestamp,
-                        int64_t time_complete_ms)
-      : size_bytes(size_bytes),
-        timestamp(timestamp),
-        time_complete_ms(time_complete_ms) {}
+class TickTimeBase;
+class VCMContentMetricsProcessing;
+class VCMFrameDropper;
 
-  uint32_t size_bytes;
-  uint32_t timestamp;
-  int64_t time_complete_ms;
+struct VCMEncodedFrameSample
+{
+    VCMEncodedFrameSample() : _sizeBytes(-1), _timeCompleteMs(-1) {}
+
+    WebRtc_Word64     _sizeBytes;
+    WebRtc_Word64     _timeCompleteMs;
 };
 
 class VCMMediaOptimization
 {
 public:
-    VCMMediaOptimization(int32_t id, Clock* clock);
+    VCMMediaOptimization(WebRtc_Word32 id, TickTimeBase* clock);
     ~VCMMediaOptimization(void);
     
 
 
-    int32_t Reset();
+    WebRtc_Word32 Reset();
     
 
 
@@ -59,19 +52,20 @@ public:
 
 
 
-    uint32_t SetTargetRates(uint32_t target_bitrate,
-                                  uint8_t &fractionLost,
-                                  uint32_t roundTripTimeMs);
+
+    WebRtc_UWord32 SetTargetRates(WebRtc_UWord32 bitRate,
+                                  WebRtc_UWord8 &fractionLost,
+                                  WebRtc_UWord32 roundTripTimeMs);
 
     
 
 
-    int32_t SetEncodingData(VideoCodecType sendCodecType,
-                                  int32_t maxBitRate,
-                                  uint32_t frameRate,
-                                  uint32_t bitRate,
-                                  uint16_t width,
-                                  uint16_t height,
+    WebRtc_Word32 SetEncodingData(VideoCodecType sendCodecType,
+                                  WebRtc_Word32 maxBitRate,
+                                  WebRtc_UWord32 frameRate,
+                                  WebRtc_UWord32 bitRate,
+                                  WebRtc_UWord16 width,
+                                  WebRtc_UWord16 height,
                                   int numTemporalLayers);
     
 
@@ -84,40 +78,39 @@ public:
     
 
 
-    void SetMtu(int32_t mtu);
+    void SetMtu(WebRtc_Word32 mtu);
     
 
 
-    uint32_t InputFrameRate();
+    WebRtc_UWord32 InputFrameRate();
 
     
 
 
-    uint32_t SentFrameRate();
+    float SentFrameRate();
     
 
 
-    uint32_t SentBitRate();
+    float SentBitRate();
     
 
 
-    int32_t MaxBitRate();
+    WebRtc_Word32 MaxBitRate();
     
 
 
-    int32_t UpdateWithEncodedData(int encodedLength,
-                                        uint32_t timestamp,
+    WebRtc_Word32 UpdateWithEncodedData(WebRtc_Word32 encodedLength,
                                         FrameType encodedFrameType);
     
 
 
 
-    int32_t RegisterProtectionCallback(VCMProtectionCallback*
+    WebRtc_Word32 RegisterProtectionCallback(VCMProtectionCallback*
                                              protectionCallback);
     
 
 
-    int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings);
+    WebRtc_Word32 RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings);
     void EnableFrameDropper(bool enable);
 
     bool DropFrame();
@@ -125,7 +118,7 @@ public:
       
 
 
-    int32_t SentFrameCount(VCMFrameCount &frameCount) const;
+    WebRtc_Word32 SentFrameCount(VCMFrameCount &frameCount) const;
 
     
 
@@ -135,15 +128,14 @@ public:
     
 
 
-    void UpdateContentData(const VideoContentMetrics* contentMetrics);
+    void updateContentData(const VideoContentMetrics* contentMetrics);
 
     
 
 
-    int32_t SelectQuality();
+    WebRtc_Word32 SelectQuality();
 
 private:
-    typedef std::list<VCMEncodedFrameSample> FrameSampleList;
 
     
 
@@ -153,10 +145,7 @@ private:
                                  uint32_t* nack_overhead_rate_bps,
                                  uint32_t* fec_overhead_rate_bps);
 
-    void PurgeOldFrameSamples(int64_t now_ms);
-    void UpdateSentBitrate(int64_t nowMs);
-    void UpdateSentFramerate();
-
+    void UpdateBitRateEstimate(WebRtc_Word64 encodedLength, WebRtc_Word64 nowMs);
     
 
 
@@ -166,57 +155,55 @@ private:
 
 
 
-    bool CheckStatusForQMchange();
+    bool checkStatusForQMchange();
 
-    void ProcessIncomingFrameRate(int64_t now);
+    void ProcessIncomingFrameRate(WebRtc_Word64 now);
 
     enum { kFrameCountHistorySize = 90};
     enum { kFrameHistoryWinMs = 2000};
 
-    int32_t                     _id;
-    Clock*                            _clock;
-    int32_t                     _maxBitRate;
+    WebRtc_Word32                     _id;
+    TickTimeBase*                     _clock;
+    WebRtc_Word32                     _maxBitRate;
     VideoCodecType                    _sendCodecType;
-    uint16_t                    _codecWidth;
-    uint16_t                    _codecHeight;
+    WebRtc_UWord16                    _codecWidth;
+    WebRtc_UWord16                    _codecHeight;
     float                             _userFrameRate;
 
-    FrameDropper*                     _frameDropper;
+    VCMFrameDropper*                  _frameDropper;
     VCMLossProtectionLogic*           _lossProtLogic;
-    uint8_t                     _fractionLost;
+    WebRtc_UWord8                     _fractionLost;
 
 
-    uint32_t                    _sendStatistics[4];
-    uint32_t                    _sendStatisticsZeroEncode;
-    int32_t                     _maxPayloadSize;
-    uint32_t                    _targetBitRate;
+    WebRtc_UWord32                    _sendStatistics[4];
+    WebRtc_UWord32                    _sendStatisticsZeroEncode;
+    WebRtc_Word32                     _maxPayloadSize;
+    WebRtc_UWord32                    _targetBitRate;
 
     float                             _incomingFrameRate;
-    int64_t                     _incomingFrameTimes[kFrameCountHistorySize];
+    WebRtc_Word64                     _incomingFrameTimes[kFrameCountHistorySize];
 
     bool                              _enableQm;
 
     VCMProtectionCallback*            _videoProtectionCallback;
     VCMQMSettingsCallback*            _videoQMSettingsCallback;
 
-    std::list<VCMEncodedFrameSample>  _encodedFrameSamples;
-    uint32_t                          _avgSentBitRateBps;
-    uint32_t                          _avgSentFramerate;
+    VCMEncodedFrameSample             _encodedFrameSamples[kBitrateMaxFrameSamples];
+    float                             _avgSentBitRateBps;
 
-    uint32_t                    _keyFrameCnt;
-    uint32_t                    _deltaFrameCnt;
+    WebRtc_UWord32                    _keyFrameCnt;
+    WebRtc_UWord32                    _deltaFrameCnt;
 
     VCMContentMetricsProcessing*      _content;
     VCMQmResolution*                  _qmResolution;
 
-    int64_t                     _lastQMUpdateTime;
-    int64_t                     _lastChangeTime; 
+    WebRtc_Word64                     _lastQMUpdateTime;
+    WebRtc_Word64                     _lastChangeTime; 
     int                               _numLayers;
 
 
 }; 
 
-}  
-}  
+} 
 
 #endif 

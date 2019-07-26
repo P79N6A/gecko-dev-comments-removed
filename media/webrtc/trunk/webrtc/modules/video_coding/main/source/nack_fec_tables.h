@@ -18,7 +18,7 @@ namespace webrtc
 
 
 
-const uint16_t VCMNackFecTable[100] = {
+const WebRtc_UWord16 VCMNackFecTable[100] = {
 0,
 0,
 0,

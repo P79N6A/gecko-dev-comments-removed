@@ -35,7 +35,7 @@ _description(description)
 }
 
 CodecTest::CodecTest(std::string name, std::string description,
-                     uint32_t bitRate)
+                     WebRtc_UWord32 bitRate)
 :
 _bitRate(bitRate),
 _inname(""),
@@ -88,8 +88,8 @@ CodecTest::Setup()
 
 void
 CodecTest::CodecSettings(int width, int height,
-                         uint32_t frameRate ,
-                         uint32_t bitRate )
+                         WebRtc_UWord32 frameRate ,
+                         WebRtc_UWord32 bitRate )
 {
     if (bitRate > 0)
     {

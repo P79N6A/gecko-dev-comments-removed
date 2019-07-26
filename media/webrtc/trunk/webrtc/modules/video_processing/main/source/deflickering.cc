@@ -36,14 +36,14 @@ enum { kLog2OfDownsamplingFactor = 3 };
 
 
 
-const uint16_t VPMDeflickering::_probUW16[kNumProbs] =
+const WebRtc_UWord16 VPMDeflickering::_probUW16[kNumProbs] =
     {102, 205, 410, 614, 819, 1024, 1229, 1434, 1638, 1843, 1946, 1987}; 
 
 
 
 
 
-const uint16_t VPMDeflickering::_weightUW16[kNumQuants - kMaxOnlyLength] =
+const WebRtc_UWord16 VPMDeflickering::_weightUW16[kNumQuants - kMaxOnlyLength] =
     {16384, 18432, 20480, 22528, 24576, 26624, 28672, 30720, 32768}; 
  
 VPMDeflickering::VPMDeflickering() :
@@ -56,8 +56,8 @@ VPMDeflickering::~VPMDeflickering()
 {
 }
 
-int32_t
-VPMDeflickering::ChangeUniqueId(const int32_t id)
+WebRtc_Word32
+VPMDeflickering::ChangeUniqueId(const WebRtc_Word32 id)
 {
     _id = id;
     return 0;
@@ -70,39 +70,39 @@ VPMDeflickering::Reset()
     _detectionState = 0;
     _frameRate = 0;
 
-    memset(_meanBuffer, 0, sizeof(int32_t) * kMeanBufferLength);
-    memset(_timestampBuffer, 0, sizeof(int32_t) * kMeanBufferLength);
+    memset(_meanBuffer, 0, sizeof(WebRtc_Word32) * kMeanBufferLength);
+    memset(_timestampBuffer, 0, sizeof(WebRtc_Word32) * kMeanBufferLength);
 
     
     _quantHistUW8[0][0] = 0;
     _quantHistUW8[0][kNumQuants - 1] = 255;
-    for (int32_t i = 0; i < kNumProbs; i++)
+    for (WebRtc_Word32 i = 0; i < kNumProbs; i++)
     {
-        _quantHistUW8[0][i + 1] = static_cast<uint8_t>((WEBRTC_SPL_UMUL_16_16(
+        _quantHistUW8[0][i + 1] = static_cast<WebRtc_UWord8>((WEBRTC_SPL_UMUL_16_16(
             _probUW16[i], 255) + (1 << 10)) >> 11); 
     }
     
-    for (int32_t i = 1; i < kFrameHistorySize; i++)
+    for (WebRtc_Word32 i = 1; i < kFrameHistorySize; i++)
     {
-        memcpy(_quantHistUW8[i], _quantHistUW8[0], sizeof(uint8_t) * kNumQuants);
+        memcpy(_quantHistUW8[i], _quantHistUW8[0], sizeof(WebRtc_UWord8) * kNumQuants);
     }
 }
 
-int32_t
+WebRtc_Word32
 VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
                               VideoProcessingModule::FrameStats* stats)
 {
     assert(frame);
-    uint32_t frameMemory;
-    uint8_t quantUW8[kNumQuants];
-    uint8_t maxQuantUW8[kNumQuants];
-    uint8_t minQuantUW8[kNumQuants];
-    uint16_t targetQuantUW16[kNumQuants];
-    uint16_t incrementUW16;
-    uint8_t mapUW8[256];
+    WebRtc_UWord32 frameMemory;
+    WebRtc_UWord8 quantUW8[kNumQuants];
+    WebRtc_UWord8 maxQuantUW8[kNumQuants];
+    WebRtc_UWord8 minQuantUW8[kNumQuants];
+    WebRtc_UWord16 targetQuantUW16[kNumQuants];
+    WebRtc_UWord16 incrementUW16;
+    WebRtc_UWord8 mapUW8[256];
 
-    uint16_t tmpUW16;
-    uint32_t tmpUW32;
+    WebRtc_UWord16 tmpUW16;
+    WebRtc_UWord32 tmpUW32;
     int width = frame->width();
     int height = frame->height();
 
@@ -134,7 +134,7 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
     }
 
     
-    int32_t detFlicker = DetectFlicker();
+    WebRtc_Word32 detFlicker = DetectFlicker();
     if (detFlicker < 0)
     { 
         return VPM_GENERAL_ERROR;
@@ -145,12 +145,12 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
     }
 
     
-    const uint32_t ySize = height * width;
+    const WebRtc_UWord32 ySize = height * width;
 
-    const uint32_t ySubSize = width * (((height - 1) >>
+    const WebRtc_UWord32 ySubSize = width * (((height - 1) >>
         kLog2OfDownsamplingFactor) + 1);
-    uint8_t* ySorted = new uint8_t[ySubSize];
-    uint32_t sortRowIdx = 0;
+    WebRtc_UWord8* ySorted = new WebRtc_UWord8[ySubSize];
+    WebRtc_UWord32 sortRowIdx = 0;
     for (int i = 0; i < height; i += kDownsamplingFactor)
     {
         memcpy(ySorted + sortRowIdx * width,
@@ -160,7 +160,7 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
     
     webrtc::Sort(ySorted, ySubSize, webrtc::TYPE_UWord8);
 
-    uint32_t probIdxUW32 = 0;
+    WebRtc_UWord32 probIdxUW32 = 0;
     quantUW8[0] = 0;
     quantUW8[kNumQuants - 1] = 255;
 
@@ -173,7 +173,7 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
         return -1;
     }
 
-    for (int32_t i = 0; i < kNumProbs; i++)
+    for (WebRtc_Word32 i = 0; i < kNumProbs; i++)
     {
         probIdxUW32 = WEBRTC_SPL_UMUL_32_16(ySubSize, _probUW16[i]) >> 11; 
         quantUW8[i + 1] = ySorted[probIdxUW32];
@@ -184,9 +184,9 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
 
     
     memmove(_quantHistUW8[1], _quantHistUW8[0], (kFrameHistorySize - 1) * kNumQuants *
-        sizeof(uint8_t));
+        sizeof(WebRtc_UWord8));
     
-    memcpy(_quantHistUW8[0], quantUW8, kNumQuants * sizeof(uint8_t));
+    memcpy(_quantHistUW8[0], quantUW8, kNumQuants * sizeof(WebRtc_UWord8));
 
     
     
@@ -198,11 +198,11 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
     }
 
     
-    for (int32_t i = 0; i < kNumQuants; i++)
+    for (WebRtc_Word32 i = 0; i < kNumQuants; i++)
     {
         maxQuantUW8[i] = 0;
         minQuantUW8[i] = 255;
-        for (uint32_t j = 0; j < frameMemory; j++)
+        for (WebRtc_UWord32 j = 0; j < frameMemory; j++)
         {
             if (_quantHistUW8[j][i] > maxQuantUW8[i])
             {
@@ -217,30 +217,30 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
     }
     
     
-    for (int32_t i = 0; i < kNumQuants - kMaxOnlyLength; i++)
+    for (WebRtc_Word32 i = 0; i < kNumQuants - kMaxOnlyLength; i++)
     {
-        targetQuantUW16[i] = static_cast<uint16_t>((WEBRTC_SPL_UMUL_16_16(
+        targetQuantUW16[i] = static_cast<WebRtc_UWord16>((WEBRTC_SPL_UMUL_16_16(
             _weightUW16[i], maxQuantUW8[i]) + WEBRTC_SPL_UMUL_16_16((1 << 15) -
             _weightUW16[i], minQuantUW8[i])) >> 8); 
     }
 
-    for (int32_t i = kNumQuants - kMaxOnlyLength; i < kNumQuants; i++)
+    for (WebRtc_Word32 i = kNumQuants - kMaxOnlyLength; i < kNumQuants; i++)
     {
-        targetQuantUW16[i] = ((uint16_t)maxQuantUW8[i]) << 7;
+        targetQuantUW16[i] = ((WebRtc_UWord16)maxQuantUW8[i]) << 7;
     }
 
     
-    uint16_t mapUW16; 
-    for (int32_t i = 1; i < kNumQuants; i++)
+    WebRtc_UWord16 mapUW16; 
+    for (WebRtc_Word32 i = 1; i < kNumQuants; i++)
     {
         
-        tmpUW32 = static_cast<uint32_t>(targetQuantUW16[i] -
+        tmpUW32 = static_cast<WebRtc_UWord32>(targetQuantUW16[i] -
             targetQuantUW16[i - 1]); 
-        tmpUW16 = static_cast<uint16_t>(quantUW8[i] - quantUW8[i - 1]); 
+        tmpUW16 = static_cast<WebRtc_UWord16>(quantUW8[i] - quantUW8[i - 1]); 
 
         if (tmpUW16 > 0)
         {
-            incrementUW16 = static_cast<uint16_t>(WebRtcSpl_DivU32U16(tmpUW32,
+            incrementUW16 = static_cast<WebRtc_UWord16>(WebRtcSpl_DivU32U16(tmpUW32,
                 tmpUW16)); 
          }
         else
@@ -250,16 +250,16 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
         }
 
         mapUW16 = targetQuantUW16[i - 1];
-        for (uint32_t j = quantUW8[i - 1]; j < (uint32_t)(quantUW8[i] + 1); j++)
+        for (WebRtc_UWord32 j = quantUW8[i - 1]; j < (WebRtc_UWord32)(quantUW8[i] + 1); j++)
         {
-            mapUW8[j] = (uint8_t)((mapUW16 + (1 << 6)) >> 7); 
+            mapUW8[j] = (WebRtc_UWord8)((mapUW16 + (1 << 6)) >> 7); 
             mapUW16 += incrementUW16;
         }
     }
 
     
     uint8_t* buffer = frame->buffer(kYPlane);
-    for (uint32_t i = 0; i < ySize; i++)
+    for (WebRtc_UWord32 i = 0; i < ySize; i++)
     {
       buffer[i] = mapUW8[buffer[i]];
     }
@@ -282,26 +282,26 @@ VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
 
 
 
-int32_t
-VPMDeflickering::PreDetection(const uint32_t timestamp,
+WebRtc_Word32
+VPMDeflickering::PreDetection(const WebRtc_UWord32 timestamp,
                               const VideoProcessingModule::FrameStats& stats)
 {
-    int32_t meanVal; 
-    uint32_t frameRate = 0;
-    int32_t meanBufferLength; 
+    WebRtc_Word32 meanVal; 
+    WebRtc_UWord32 frameRate = 0;
+    WebRtc_Word32 meanBufferLength; 
 
     meanVal = ((stats.sum << kMeanValueScaling) / stats.numPixels);
     
 
 
-    memmove(_meanBuffer + 1, _meanBuffer, (kMeanBufferLength - 1) * sizeof(int32_t));
+    memmove(_meanBuffer + 1, _meanBuffer, (kMeanBufferLength - 1) * sizeof(WebRtc_Word32));
     _meanBuffer[0] = meanVal;
 
     
 
 
     memmove(_timestampBuffer + 1, _timestampBuffer, (kMeanBufferLength - 1) *
-        sizeof(uint32_t));
+        sizeof(WebRtc_UWord32));
     _timestampBuffer[0] = timestamp;
 
     
@@ -354,12 +354,12 @@ VPMDeflickering::PreDetection(const uint32_t timestamp,
 
 
 
-int32_t VPMDeflickering::DetectFlicker()
+WebRtc_Word32 VPMDeflickering::DetectFlicker()
 {
     
-    uint32_t  i;
-    int32_t  freqEst;       
-    int32_t  retVal = -1;
+    WebRtc_UWord32  i;
+    WebRtc_Word32  freqEst;       
+    WebRtc_Word32  retVal = -1;
 
     
     if (_meanBufferLength < 2)
@@ -370,11 +370,11 @@ int32_t VPMDeflickering::DetectFlicker()
     
 
 
-    int32_t deadzone = (kZeroCrossingDeadzone << kMeanValueScaling); 
-    int32_t meanOfBuffer = 0; 
-    int32_t numZeros     = 0; 
-    int32_t cntState     = 0; 
-    int32_t cntStateOld  = 0; 
+    WebRtc_Word32 deadzone = (kZeroCrossingDeadzone << kMeanValueScaling); 
+    WebRtc_Word32 meanOfBuffer = 0; 
+    WebRtc_Word32 numZeros     = 0; 
+    WebRtc_Word32 cntState     = 0; 
+    WebRtc_Word32 cntStateOld  = 0; 
 
     for (i = 0; i < _meanBufferLength; i++)
     {
@@ -411,14 +411,14 @@ int32_t VPMDeflickering::DetectFlicker()
     freqEst /= (_timestampBuffer[0] - _timestampBuffer[_meanBufferLength - 1]);
 
     
-    uint8_t freqState = 0; 
+    WebRtc_UWord8 freqState = 0; 
                                
                                
                                
-    int32_t freqAlias = freqEst;
+    WebRtc_Word32 freqAlias = freqEst;
     if (freqEst > kMinFrequencyToDetect)
     {
-        uint8_t aliasState = 1;
+        WebRtc_UWord8 aliasState = 1;
         while(freqState == 0)
         {
             

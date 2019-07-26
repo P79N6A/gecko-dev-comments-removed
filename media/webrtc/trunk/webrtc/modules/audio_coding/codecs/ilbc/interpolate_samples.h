@@ -26,9 +26,9 @@
 
 
 void WebRtcIlbcfix_InterpolateSamples(
-    int16_t *interpSamples, 
-    int16_t *CBmem,   
-    int16_t lMem    
+    WebRtc_Word16 *interpSamples, 
+    WebRtc_Word16 *CBmem,   
+    WebRtc_Word16 lMem    
                                       );
 
 #endif

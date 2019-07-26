@@ -41,7 +41,7 @@
 
 
 void WebRtcIlbcfix_GetLspPoly(
-    int16_t *lsp, 
-    int32_t *f);  
+    WebRtc_Word16 *lsp, 
+    WebRtc_Word32 *f);  
 
 #endif

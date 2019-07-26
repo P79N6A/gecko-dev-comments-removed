@@ -18,7 +18,7 @@
 namespace webrtc
 {
 
-class Clock;
+class TickTimeBase;
 class VCMTimestampExtrapolator;
 
 class VCMTiming
@@ -26,88 +26,84 @@ class VCMTiming
 public:
     
     
-    VCMTiming(Clock* clock,
-              int32_t vcmId = 0,
-              int32_t timingId = 0,
+    VCMTiming(TickTimeBase* clock,
+              WebRtc_Word32 vcmId = 0,
+              WebRtc_Word32 timingId = 0,
               VCMTiming* masterTiming = NULL);
     ~VCMTiming();
 
     
-    void Reset(int64_t nowMs = -1);
+    void Reset(WebRtc_Word64 nowMs = -1);
     void ResetDecodeTime();
 
     
-    void SetRenderDelay(uint32_t renderDelayMs);
+    void SetRenderDelay(WebRtc_UWord32 renderDelayMs);
 
     
     
-    void SetRequiredDelay(uint32_t requiredDelayMs);
+    void SetRequiredDelay(WebRtc_UWord32 requiredDelayMs);
 
     
-    void SetMinimumTotalDelay(uint32_t minTotalDelayMs);
-
-    
-    
-    
-    void UpdateCurrentDelay(uint32_t frameTimestamp);
+    void SetMinimumTotalDelay(WebRtc_UWord32 minTotalDelayMs);
 
     
     
     
-    void UpdateCurrentDelay(int64_t renderTimeMs, int64_t actualDecodeTimeMs);
+    void UpdateCurrentDelay(WebRtc_UWord32 frameTimestamp);
 
     
     
-    int32_t StopDecodeTimer(uint32_t timeStamp,
-                                  int64_t startTimeMs,
-                                  int64_t nowMs);
+    
+    void UpdateCurrentDelay(WebRtc_Word64 renderTimeMs, WebRtc_Word64 actualDecodeTimeMs);
 
     
     
-    void IncomingTimestamp(uint32_t timeStamp, int64_t lastPacketTimeMs);
+    WebRtc_Word32 StopDecodeTimer(WebRtc_UWord32 timeStamp,
+                                  WebRtc_Word64 startTimeMs,
+                                  WebRtc_Word64 nowMs);
 
     
     
-    int64_t RenderTimeMs(uint32_t frameTimestamp, int64_t nowMs) const;
+    void IncomingTimestamp(WebRtc_UWord32 timeStamp, WebRtc_Word64 lastPacketTimeMs);
 
     
     
-    uint32_t MaxWaitingTime(int64_t renderTimeMs, int64_t nowMs) const;
+    WebRtc_Word64 RenderTimeMs(WebRtc_UWord32 frameTimestamp, WebRtc_Word64 nowMs) const;
 
     
     
-    uint32_t TargetVideoDelay() const;
+    WebRtc_UWord32 MaxWaitingTime(WebRtc_Word64 renderTimeMs, WebRtc_Word64 nowMs) const;
 
     
     
-    bool EnoughTimeToDecode(uint32_t availableProcessingTimeMs) const;
+    WebRtc_UWord32 TargetVideoDelay() const;
 
     
-    void SetMaxVideoDelay(int maxVideoDelayMs);
+    
+    bool EnoughTimeToDecode(WebRtc_UWord32 availableProcessingTimeMs) const;
 
     enum { kDefaultRenderDelayMs = 10 };
     enum { kDelayMaxChangeMsPerS = 100 };
 
 protected:
-    int32_t MaxDecodeTimeMs(FrameType frameType = kVideoFrameDelta) const;
-    int64_t RenderTimeMsInternal(uint32_t frameTimestamp,
-                                       int64_t nowMs) const;
-    uint32_t TargetDelayInternal() const;
+    WebRtc_Word32 MaxDecodeTimeMs(FrameType frameType = kVideoFrameDelta) const;
+    WebRtc_Word64 RenderTimeMsInternal(WebRtc_UWord32 frameTimestamp,
+                                       WebRtc_Word64 nowMs) const;
+    WebRtc_UWord32 TargetDelayInternal() const;
 
 private:
-    CriticalSectionWrapper* _critSect;
-    int32_t _vcmId;
-    Clock* _clock;
-    int32_t _timingId;
-    bool _master;
-    VCMTimestampExtrapolator* _tsExtrapolator;
-    VCMCodecTimer _codecTimer;
-    uint32_t _renderDelayMs;
-    uint32_t _minTotalDelayMs;
-    uint32_t _requiredDelayMs;
-    uint32_t _currentDelayMs;
-    uint32_t _prevFrameTimestamp;
-    int _maxVideoDelayMs;
+    CriticalSectionWrapper*       _critSect;
+    WebRtc_Word32                 _vcmId;
+    TickTimeBase*                 _clock;
+    WebRtc_Word32                 _timingId;
+    bool                          _master;
+    VCMTimestampExtrapolator*     _tsExtrapolator;
+    VCMCodecTimer                 _codecTimer;
+    WebRtc_UWord32                _renderDelayMs;
+    WebRtc_UWord32                _minTotalDelayMs;
+    WebRtc_UWord32                _requiredDelayMs;
+    WebRtc_UWord32                _currentDelayMs;
+    WebRtc_UWord32                _prevFrameTimestamp;
 };
 
 } 

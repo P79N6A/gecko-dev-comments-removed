@@ -8,21 +8,21 @@
 
 
 
-#include "webrtc/modules/video_coding/main/test/jitter_estimate_test.h"
-
 #include <math.h>
+#include <stdio.h>
 
-#include "webrtc/common_types.h"
-#include "webrtc/modules/video_coding/main/interface/video_coding.h"
-#include "webrtc/modules/video_coding/main/source/frame_buffer.h"
-#include "webrtc/modules/video_coding/main/source/inter_frame_delay.h"
-#include "webrtc/modules/video_coding/main/source/jitter_buffer.h"
-#include "webrtc/modules/video_coding/main/source/jitter_estimator.h"
-#include "webrtc/modules/video_coding/main/source/media_opt_util.h"
-#include "webrtc/modules/video_coding/main/source/packet.h"
-#include "webrtc/modules/video_coding/main/test/test_util.h"
-#include "webrtc/modules/video_coding/main/test/test_macros.h"
-#include "webrtc/system_wrappers/interface/clock.h"
+#include "common_types.h"
+#include "../source/event.h"
+#include "frame_buffer.h"
+#include "inter_frame_delay.h"
+#include "jitter_buffer.h"
+#include "jitter_estimate_test.h"
+#include "jitter_estimator.h"
+#include "media_opt_util.h"
+#include "modules/video_coding/main/source/tick_time_base.h"
+#include "packet.h"
+#include "test_util.h"
+#include "test_macros.h"
 
 
 using namespace webrtc;
@@ -36,7 +36,7 @@ int CheckOutFrame(VCMEncodedFrame* frameOut, unsigned int size, bool startCode)
         return -1;
     }
 
-    const uint8_t* outData = frameOut->Buffer();
+    const WebRtc_UWord8* outData = frameOut->Buffer();
 
     unsigned int i = 0;
 
@@ -93,23 +93,26 @@ int CheckOutFrame(VCMEncodedFrame* frameOut, unsigned int size, bool startCode)
 
 int JitterBufferTest(CmdArgs& args)
 {
-    Clock* clock = Clock::GetRealTimeClock();
+    
+#if defined(EVENT_DEBUG)
+    return -1;
+#endif
+    TickTimeBase clock;
 
     
-    uint16_t seqNum = 1234;
-    uint32_t timeStamp = 0;
+    WebRtc_UWord16 seqNum = 1234;
+    WebRtc_UWord32 timeStamp = 0;
     int size = 1400;
-    uint8_t data[1500];
+    WebRtc_UWord8 data[1500];
     VCMPacket packet(data, size, seqNum, timeStamp, true);
 
-    NullEventFactory event_factory;
-    VCMJitterBuffer jb(clock, &event_factory, -1, -1, true);
+    VCMJitterBuffer jb(&clock);
 
     seqNum = 1234;
     timeStamp = 123*90;
     FrameType incomingFrameType(kVideoFrameKey);
     VCMEncodedFrame* frameOut=NULL;
-    int64_t renderTimeMs = 0;
+    WebRtc_Word64 renderTimeMs = 0;
     packet.timestamp = timeStamp;
     packet.seqNum = seqNum;
 
@@ -136,13 +139,10 @@ int JitterBufferTest(CmdArgs& args)
     TEST(0 == jb.GetFrame(packet));
     TEST(-1 == jb.NextTimestamp(10, &incomingFrameType, &renderTimeMs));
     TEST(0 == jb.GetCompleteFrameForDecoding(10));
-    TEST(0 == jb.MaybeGetIncompleteFrameForDecoding());
+    TEST(0 == jb.GetFrameForDecoding());
 
     
     jb.Start();
-
-    
-    jb.DecodeWithErrors(true);
 
     
     VCMEncodedFrame* frameIn = jb.GetFrame(packet);
@@ -719,6 +719,24 @@ int JitterBufferTest(CmdArgs& args)
     packet.insertStartCode = false;
     
 
+    
+    
+    
+    WebRtc_UWord32 numDeltaFrames = 0;
+    WebRtc_UWord32 numKeyFrames = 0;
+    jb.FrameStatistics(&numDeltaFrames, &numKeyFrames);
+
+    TEST(numDeltaFrames == 8);
+    TEST(numKeyFrames == 1);
+
+    WebRtc_UWord32 frameRate;
+    WebRtc_UWord32 bitRate;
+    jb.IncomingRateStatistics(&frameRate, &bitRate);
+
+    
+    TEST(frameRate > 30);
+    TEST(bitRate > 10000000);
+
 
     jb.Flush();
 
@@ -811,7 +829,7 @@ int JitterBufferTest(CmdArgs& args)
       TEST(kIncomplete == jb.InsertPacket(frameIn, packet));
 
       
-      frameOut = jb.MaybeGetIncompleteFrameForDecoding();
+      frameOut = jb.GetFrameForDecoding();
 
       
       
@@ -1571,8 +1589,8 @@ int JitterBufferTest(CmdArgs& args)
 
     loop = 0;
     seqNum = 65485;
-    uint32_t timeStampStart = timeStamp +  33*90;
-    uint32_t timeStampFirstKey = 0;
+    WebRtc_UWord32 timeStampStart = timeStamp +  33*90;
+    WebRtc_UWord32 timeStampFirstKey = 0;
     VCMEncodedFrame* ptrLastDeltaFrame = NULL;
     VCMEncodedFrame* ptrFirstKeyFrame = NULL;
     
@@ -1668,7 +1686,7 @@ int JitterBufferTest(CmdArgs& args)
         packet.seqNum = seqNum;
         packet.timestamp = timeStamp;
         packet.frameType = kFrameEmpty;
-        VCMEncodedFrame* testFrame = jb.MaybeGetIncompleteFrameForDecoding();
+        VCMEncodedFrame* testFrame = jb.GetFrameForDecoding();
         
         if (testFrame != NULL)
         {
@@ -1747,7 +1765,7 @@ int JitterBufferTest(CmdArgs& args)
     
     TEST(timeStamp == jb.NextTimestamp(10, &incomingFrameType,
                                        &renderTimeMs));
-    frameOut = jb.MaybeGetIncompleteFrameForDecoding();
+    frameOut = jb.GetFrameForDecoding();
 
     
     
@@ -1813,7 +1831,7 @@ int JitterBufferTest(CmdArgs& args)
     
     
 
-    frameOut = jb.MaybeGetIncompleteFrameForDecoding();
+    frameOut = jb.GetFrameForDecoding();
     
     TEST(CheckOutFrame(frameOut, insertedLength, false) == 0);
     jb.ReleaseFrame(frameOut);
@@ -1837,7 +1855,7 @@ int JitterBufferTest(CmdArgs& args)
 
     
     
-    frameOut = jb.MaybeGetIncompleteFrameForDecoding();
+    frameOut = jb.GetFrameForDecoding();
 
 
     
@@ -1883,7 +1901,7 @@ int JitterBufferTest(CmdArgs& args)
     TEST(frameIn = jb.GetFrame(packet));
     TEST(kFirstPacket == jb.InsertPacket(frameIn, packet));
 
-    frameOut = jb.MaybeGetIncompleteFrameForDecoding();
+    frameOut = jb.GetFrameForDecoding();
     TEST(frameOut == NULL);
 
     packet.seqNum += 2;
@@ -1892,7 +1910,7 @@ int JitterBufferTest(CmdArgs& args)
     TEST(frameIn = jb.GetFrame(packet));
     TEST(kFirstPacket == jb.InsertPacket(frameIn, packet));
 
-    frameOut = jb.MaybeGetIncompleteFrameForDecoding();
+    frameOut = jb.GetFrameForDecoding();
 
     TEST(frameOut != NULL);
     TEST(CheckOutFrame(frameOut, packet.sizeBytes, false) == 0);

@@ -26,7 +26,7 @@
 
 
 void WebRtcIlbcfix_IndexConvEnc(
-    int16_t *index   
+    WebRtc_Word16 *index   
                                 );
 
 #endif

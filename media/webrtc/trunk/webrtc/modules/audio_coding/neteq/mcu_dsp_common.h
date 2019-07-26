@@ -31,39 +31,31 @@
     #define SHARED_MEM_SIZE 640
 #endif
 
-#define  SYNC_PAYLOAD_LEN_BYTES  7
-static const uint8_t kSyncPayload[SYNC_PAYLOAD_LEN_BYTES] = {
-    'a', 'v', 's', 'y', 'n', 'c', '\0' };
-
 
 typedef struct
 {
     DSPInst_t DSPinst; 
     MCUInst_t MCUinst; 
-    int16_t ErrorCode; 
+    WebRtc_Word16 ErrorCode; 
 #ifdef NETEQ_STEREO
-    int16_t masterSlave; 
+    WebRtc_Word16 masterSlave; 
 #endif 
 } MainInst_t;
 
 
 typedef struct
 {
-    uint32_t playedOutTS; 
-    uint16_t samplesLeft; 
-    int16_t MD; 
-    int16_t lastMode; 
-    int16_t frameLen; 
+    WebRtc_UWord32 playedOutTS; 
+    WebRtc_UWord16 samplesLeft; 
+    WebRtc_Word16 MD; 
+    WebRtc_Word16 lastMode; 
+    WebRtc_Word16 frameLen; 
 } DSP2MCU_info_t;
 
 
 int WebRtcNetEQ_DSPinit(MainInst_t *inst);
 
 
-int WebRtcNetEQ_DSP2MCUinterrupt(MainInst_t *inst, int16_t *pw16_shared_mem);
-
-
-
-int WebRtcNetEQ_IsSyncPayload(const void* payload, int payload_len_bytes);
+int WebRtcNetEQ_DSP2MCUinterrupt(MainInst_t *inst, WebRtc_Word16 *pw16_shared_mem);
 
 #endif

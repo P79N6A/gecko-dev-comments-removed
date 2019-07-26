@@ -70,15 +70,15 @@
 
 
 
-static const int16_t kLowerBandBitRate12[7] = {
+static const WebRtc_Word16 kLowerBandBitRate12[7] = {
     29000, 30000, 30000, 31000, 31000, 32000, 32000 };
-static const int16_t kUpperBandBitRate12[7] = {
+static const WebRtc_Word16 kUpperBandBitRate12[7] = {
     25000, 25000, 27000, 27000, 29000, 29000, 32000 };
 
 
-static const int16_t kLowerBandBitRate16[6] = {
+static const WebRtc_Word16 kLowerBandBitRate16[6] = {
     31000, 31000, 32000, 32000, 32000, 32000 };
-static const int16_t kUpperBandBitRate16[6] = {
+static const WebRtc_Word16 kUpperBandBitRate16[6] = {
     28000, 29000, 29000, 30000, 31000, 32000 };
 
 
@@ -99,18 +99,18 @@ static const int16_t kUpperBandBitRate16[6] = {
 
 
 
-int16_t WebRtcIsac_RateAllocation(int32_t inRateBitPerSec,
+WebRtc_Word16 WebRtcIsac_RateAllocation(WebRtc_Word32 inRateBitPerSec,
                                         double* rateLBBitPerSec,
                                         double* rateUBBitPerSec,
                                         enum ISACBandwidth* bandwidthKHz) {
-  int16_t idx;
+  WebRtc_Word16 idx;
   double idxD;
   double idxErr;
   if (inRateBitPerSec < 38000) {
     
 
 
-    *rateLBBitPerSec = (int16_t)((inRateBitPerSec > 32000) ?
+    *rateLBBitPerSec = (WebRtc_Word16)((inRateBitPerSec > 32000) ?
         32000 : inRateBitPerSec);
     *rateUBBitPerSec = 0;
     *bandwidthKHz = isac8kHz;
@@ -123,15 +123,15 @@ int16_t WebRtcIsac_RateAllocation(int32_t inRateBitPerSec,
 
     const double stepSizeInv = 8.5714286e-4;
     idxD = (inRateBitPerSec - 38000) * stepSizeInv;
-    idx = (idxD >= 6) ? 6 : ((int16_t)idxD);
+    idx = (idxD >= 6) ? 6 : ((WebRtc_Word16)idxD);
     idxErr = idxD - idx;
     *rateLBBitPerSec = kLowerBandBitRate12[idx];
     *rateUBBitPerSec = kUpperBandBitRate12[idx];
 
     if (idx < 6) {
-      *rateLBBitPerSec += (int16_t)(
+      *rateLBBitPerSec += (WebRtc_Word16)(
           idxErr * (kLowerBandBitRate12[idx + 1] - kLowerBandBitRate12[idx]));
-      *rateUBBitPerSec += (int16_t)(
+      *rateUBBitPerSec += (WebRtc_Word16)(
           idxErr * (kUpperBandBitRate12[idx + 1] - kUpperBandBitRate12[idx]));
     }
     *bandwidthKHz = isac12kHz;
@@ -144,17 +144,17 @@ int16_t WebRtcIsac_RateAllocation(int32_t inRateBitPerSec,
 
     const double stepSizeInv = 8.3333333e-4;
     idxD = (inRateBitPerSec - 50000) * stepSizeInv;
-    idx = (idxD >= 5) ? 5 : ((int16_t)idxD);
+    idx = (idxD >= 5) ? 5 : ((WebRtc_Word16)idxD);
     idxErr = idxD - idx;
     *rateLBBitPerSec = kLowerBandBitRate16[idx];
     *rateUBBitPerSec  = kUpperBandBitRate16[idx];
 
     if (idx < 5) {
-      *rateLBBitPerSec += (int16_t)(idxErr *
+      *rateLBBitPerSec += (WebRtc_Word16)(idxErr *
           (kLowerBandBitRate16[idx + 1] -
               kLowerBandBitRate16[idx]));
 
-      *rateUBBitPerSec += (int16_t)(idxErr *
+      *rateUBBitPerSec += (WebRtc_Word16)(idxErr *
           (kUpperBandBitRate16[idx + 1] -
               kUpperBandBitRate16[idx]));
     }
@@ -178,8 +178,8 @@ void WebRtcIsac_ResetBitstream(Bitstr* bit_stream) {
 }
 
 int WebRtcIsac_EncodeLb(float* in, ISACLBEncStruct* ISACencLB_obj,
-                        int16_t codingMode,
-                        int16_t bottleneckIndex) {
+                        WebRtc_Word16 codingMode,
+                        WebRtc_Word16 bottleneckIndex) {
   int stream_length = 0;
   int err;
   int k;
@@ -197,20 +197,20 @@ int WebRtcIsac_EncodeLb(float* in, ISACLBEncStruct* ISACencLB_obj,
 
   double HPw[FRAMESAMPLES_HALF];
   double LPw_pf[FRAMESAMPLES_HALF];
-  int16_t fre[FRAMESAMPLES_HALF];   
-  int16_t fim[FRAMESAMPLES_HALF];   
+  WebRtc_Word16 fre[FRAMESAMPLES_HALF];   
+  WebRtc_Word16 fim[FRAMESAMPLES_HALF];   
 
   double PitchLags[4];
   double PitchGains[4];
-  int16_t PitchGains_Q12[4];
-  int16_t AvgPitchGain_Q12;
+  WebRtc_Word16 PitchGains_Q12[4];
+  WebRtc_Word16 AvgPitchGain_Q12;
 
   int frame_mode; 
   int status = 0;
   int my_index;
   transcode_obj transcodingParam;
   double bytesLeftSpecCoding;
-  uint16_t payloadLimitBytes;
+  WebRtc_UWord16 payloadLimitBytes;
 
   
   if (ISACencLB_obj->buffer_index == 0) {
@@ -292,7 +292,7 @@ int WebRtcIsac_EncodeLb(float* in, ISACLBEncStruct* ISACencLB_obj,
 
   
   for (k = 0; k < PITCH_SUBFRAMES; k++) {
-    PitchGains_Q12[k] = (int16_t)(PitchGains[k] * 4096.0);
+    PitchGains_Q12[k] = (WebRtc_Word16)(PitchGains[k] * 4096.0);
   }
 
   
@@ -458,8 +458,8 @@ int WebRtcIsac_EncodeLb(float* in, ISACLBEncStruct* ISACencLB_obj,
 
     
     for (k = 0; k < FRAMESAMPLES_HALF; k++) {
-      fre[k] = (int16_t)(fre[k] * transcodeScale);
-      fim[k] = (int16_t)(fim[k] * transcodeScale);
+      fre[k] = (WebRtc_Word16)(fre[k] * transcodeScale);
+      fim[k] = (WebRtc_Word16)(fim[k] * transcodeScale);
     }
 
     
@@ -531,17 +531,17 @@ int WebRtcIsac_EncodeLb(float* in, ISACLBEncStruct* ISACencLB_obj,
 
 
 static int LimitPayloadUb(ISACUBEncStruct* ISACencUB_obj,
-                          uint16_t payloadLimitBytes,
+                          WebRtc_UWord16 payloadLimitBytes,
                           double bytesLeftSpecCoding,
                           transcode_obj* transcodingParam,
-                          int16_t* fre, int16_t* fim,
+                          WebRtc_Word16* fre, WebRtc_Word16* fim,
                           double* lpcGains, enum ISACBand band, int status) {
 
   int iterCntr = 0;
   int k;
   double bytesSpecCoderUsed;
   double transcodeScale;
-  const int16_t kAveragePitchGain = 0.0;
+  const WebRtc_Word16 kAveragePitchGain = 0.0;
 
   do {
     if (iterCntr >= MAX_PAYLOAD_LIMIT_ITERATION) {
@@ -580,8 +580,8 @@ static int LimitPayloadUb(ISACUBEncStruct* ISACencUB_obj,
 
     
     for (k = 0; k < FRAMESAMPLES_HALF; k++) {
-      fre[k] = (int16_t)(fre[k] * transcodeScale + 0.5);
-      fim[k] = (int16_t)(fim[k] * transcodeScale + 0.5);
+      fre[k] = (WebRtc_Word16)(fre[k] * transcodeScale + 0.5);
+      fim[k] = (WebRtc_Word16)(fim[k] * transcodeScale + 0.5);
     }
     
     memcpy(ISACencUB_obj->SaveEnc_obj.realFFT, fre,
@@ -642,7 +642,7 @@ static int LimitPayloadUb(ISACUBEncStruct* ISACencUB_obj,
 }
 
 int WebRtcIsac_EncodeUb16(float* in, ISACUBEncStruct* ISACencUB_obj,
-                          int32_t jitterInfo) {
+                          WebRtc_Word32 jitterInfo) {
   int err;
   int k;
 
@@ -651,8 +651,8 @@ int WebRtcIsac_EncodeUb16(float* in, ISACUBEncStruct* ISACencUB_obj,
                             (1 + UB_LPC_ORDER)];
 
   double LP_lookahead[FRAMESAMPLES];
-  int16_t fre[FRAMESAMPLES_HALF];   
-  int16_t fim[FRAMESAMPLES_HALF];   
+  WebRtc_Word16 fre[FRAMESAMPLES_HALF];   
+  WebRtc_Word16 fim[FRAMESAMPLES_HALF];   
 
   int status = 0;
 
@@ -660,9 +660,9 @@ int WebRtcIsac_EncodeUb16(float* in, ISACUBEncStruct* ISACencUB_obj,
   double corr[SUBFRAMES << 1][UB_LPC_ORDER + 1];
   double lpcGains[SUBFRAMES << 1];
   transcode_obj transcodingParam;
-  uint16_t payloadLimitBytes;
+  WebRtc_UWord16 payloadLimitBytes;
   double s2nr;
-  const int16_t kAveragePitchGain = 0.0;
+  const WebRtc_Word16 kAveragePitchGain = 0.0;
   int bytesLeftSpecCoding;
 
   
@@ -827,7 +827,7 @@ int WebRtcIsac_EncodeUb16(float* in, ISACUBEncStruct* ISACencUB_obj,
 
 
 int WebRtcIsac_EncodeUb12(float* in, ISACUBEncStruct* ISACencUB_obj,
-                          int32_t jitterInfo) {
+                          WebRtc_Word32 jitterInfo) {
   int err;
   int k;
 
@@ -842,8 +842,8 @@ int WebRtcIsac_EncodeUb12(float* in, ISACUBEncStruct* ISACencUB_obj,
   double LPw[FRAMESAMPLES_HALF];
 
   double HPw[FRAMESAMPLES_HALF];
-  int16_t fre[FRAMESAMPLES_HALF];   
-  int16_t fim[FRAMESAMPLES_HALF];   
+  WebRtc_Word16 fre[FRAMESAMPLES_HALF];   
+  WebRtc_Word16 fim[FRAMESAMPLES_HALF];   
 
   int status = 0;
 
@@ -852,9 +852,9 @@ int WebRtcIsac_EncodeUb12(float* in, ISACUBEncStruct* ISACencUB_obj,
   double corr[UB_LPC_GAIN_DIM][UB_LPC_ORDER + 1];
   double lpcGains[SUBFRAMES];
   transcode_obj transcodingParam;
-  uint16_t payloadLimitBytes;
+  WebRtc_UWord16 payloadLimitBytes;
   double s2nr;
-  const int16_t kAveragePitchGain = 0.0;
+  const WebRtc_Word16 kAveragePitchGain = 0.0;
   double bytesLeftSpecCoding;
 
   
@@ -1011,13 +1011,13 @@ int WebRtcIsac_EncodeStoredDataLb(const ISAC_SaveEncData_t* ISACSavedEnc_obj,
   int status;
   int BWno = BWnumber;
 
-  const uint16_t* WebRtcIsac_kQPitchGainCdf_ptr[1];
-  const uint16_t** cdf;
+  const WebRtc_UWord16* WebRtcIsac_kQPitchGainCdf_ptr[1];
+  const WebRtc_UWord16** cdf;
 
   double tmpLPCcoeffs_lo[(ORDERLO + 1)*SUBFRAMES * 2];
   double tmpLPCcoeffs_hi[(ORDERHI + 1)*SUBFRAMES * 2];
   int tmpLPCindex_g[12 * 2];
-  int16_t tmp_fre[FRAMESAMPLES], tmp_fim[FRAMESAMPLES];
+  WebRtc_Word16 tmp_fre[FRAMESAMPLES], tmp_fim[FRAMESAMPLES];
   const int kModel = 0;
 
   
@@ -1053,8 +1053,8 @@ int WebRtcIsac_EncodeStoredDataLb(const ISAC_SaveEncData_t* ISACSavedEnc_obj,
     for (ii = 0;
         ii < (FRAMESAMPLES_HALF * (1 + ISACSavedEnc_obj->startIdx));
         ii++) {
-      tmp_fre[ii] = (int16_t)((scale) * (float)ISACSavedEnc_obj->fre[ii]);
-      tmp_fim[ii] = (int16_t)((scale) * (float)ISACSavedEnc_obj->fim[ii]);
+      tmp_fre[ii] = (WebRtc_Word16)((scale) * (float)ISACSavedEnc_obj->fre[ii]);
+      tmp_fim[ii] = (WebRtc_Word16)((scale) * (float)ISACSavedEnc_obj->fim[ii]);
     }
   } else {
     for (ii = 0;
@@ -1134,17 +1134,17 @@ int WebRtcIsac_EncodeStoredDataLb(const ISAC_SaveEncData_t* ISACSavedEnc_obj,
 int WebRtcIsac_EncodeStoredDataUb(
     const ISACUBSaveEncDataStruct* ISACSavedEnc_obj,
     Bitstr* bitStream,
-    int32_t jitterInfo,
+    WebRtc_Word32 jitterInfo,
     float scale,
     enum ISACBandwidth bandwidth) {
   int n;
   int err;
   double lpcGain[SUBFRAMES];
-  int16_t realFFT[FRAMESAMPLES_HALF];
-  int16_t imagFFT[FRAMESAMPLES_HALF];
-  const uint16_t** shape_cdf;
+  WebRtc_Word16 realFFT[FRAMESAMPLES_HALF];
+  WebRtc_Word16 imagFFT[FRAMESAMPLES_HALF];
+  const WebRtc_UWord16** shape_cdf;
   int shape_len;
-  const int16_t kAveragePitchGain = 0.0;
+  const WebRtc_Word16 kAveragePitchGain = 0.0;
   enum ISACBand band;
   
   WebRtcIsac_ResetBitstream(bitStream);
@@ -1201,9 +1201,9 @@ int WebRtcIsac_EncodeStoredDataUb(
     }
 
     for (n = 0; n < FRAMESAMPLES_HALF; n++) {
-      realFFT[n] = (int16_t)(scale * (float)ISACSavedEnc_obj->realFFT[n] +
+      realFFT[n] = (WebRtc_Word16)(scale * (float)ISACSavedEnc_obj->realFFT[n] +
           0.5f);
-      imagFFT[n] = (int16_t)(scale * (float)ISACSavedEnc_obj->imagFFT[n] +
+      imagFFT[n] = (WebRtc_Word16)(scale * (float)ISACSavedEnc_obj->imagFFT[n] +
           0.5f);
     }
     
@@ -1219,24 +1219,24 @@ int WebRtcIsac_EncodeStoredDataUb(
   return WebRtcIsac_EncTerminate(bitStream);
 }
 
-int16_t WebRtcIsac_GetRedPayloadUb(
+WebRtc_Word16 WebRtcIsac_GetRedPayloadUb(
     const ISACUBSaveEncDataStruct* ISACSavedEncObj,
     Bitstr*                        bitStreamObj,
     enum ISACBandwidth             bandwidth) {
   int n;
-  int16_t status;
-  int16_t realFFT[FRAMESAMPLES_HALF];
-  int16_t imagFFT[FRAMESAMPLES_HALF];
+  WebRtc_Word16 status;
+  WebRtc_Word16 realFFT[FRAMESAMPLES_HALF];
+  WebRtc_Word16 imagFFT[FRAMESAMPLES_HALF];
   enum ISACBand band;
-  const int16_t kAveragePitchGain = 0.0;
+  const WebRtc_Word16 kAveragePitchGain = 0.0;
   
   memcpy(bitStreamObj, &ISACSavedEncObj->bitStreamObj, sizeof(Bitstr));
 
   
   for (n = 0; n < FRAMESAMPLES_HALF; n++) {
-    realFFT[n] = (int16_t)((float)ISACSavedEncObj->realFFT[n] *
+    realFFT[n] = (WebRtc_Word16)((float)ISACSavedEncObj->realFFT[n] *
         RCU_TRANSCODING_SCALE_UB + 0.5);
-    imagFFT[n] = (int16_t)((float)ISACSavedEncObj->imagFFT[n] *
+    imagFFT[n] = (WebRtc_Word16)((float)ISACSavedEncObj->imagFFT[n] *
         RCU_TRANSCODING_SCALE_UB + 0.5);
   }
 

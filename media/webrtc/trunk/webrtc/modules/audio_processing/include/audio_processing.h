@@ -16,8 +16,6 @@
 #include "webrtc/modules/interface/module.h"
 #include "webrtc/typedefs.h"
 
-struct AecCore;
-
 namespace webrtc {
 
 class AudioFrame;
@@ -253,8 +251,8 @@ class AudioProcessing : public Module {
   };
 
   
-  virtual int32_t TimeUntilNextProcess() { return -1; }
-  virtual int32_t Process() { return -1; }
+  virtual WebRtc_Word32 TimeUntilNextProcess() { return -1; }
+  virtual WebRtc_Word32 Process() { return -1; }
 };
 
 
@@ -288,7 +286,7 @@ class EchoCancellation {
   
   
   
-  virtual void set_stream_drift_samples(int drift) = 0;
+  virtual int set_stream_drift_samples(int drift) = 0;
   virtual int stream_drift_samples() const = 0;
 
   enum SuppressionLevel {
@@ -343,12 +341,6 @@ class EchoCancellation {
   
   
   virtual int GetDelayMetrics(int* median, int* std) = 0;
-
-  
-  
-  
-  
-  virtual struct AecCore* aec_core() const = 0;
 
  protected:
   virtual ~EchoCancellation() {}

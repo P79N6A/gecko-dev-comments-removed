@@ -27,13 +27,13 @@
 
 
 void WebRtcIlbcfix_DoThePlc(
-    int16_t *PLCresidual,  
-    int16_t *PLClpc,    
-    int16_t PLI,     
+    WebRtc_Word16 *PLCresidual,  
+    WebRtc_Word16 *PLClpc,    
+    WebRtc_Word16 PLI,     
 
-    int16_t *decresidual,  
-    int16_t *lpc,    
-    int16_t inlag,    
+    WebRtc_Word16 *decresidual,  
+    WebRtc_Word16 *lpc,    
+    WebRtc_Word16 inlag,    
     iLBC_Dec_Inst_t *iLBCdec_inst
     
                             );

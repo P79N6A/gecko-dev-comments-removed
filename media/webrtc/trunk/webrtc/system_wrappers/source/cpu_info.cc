@@ -8,7 +8,7 @@
 
 
 
-#include "webrtc/system_wrappers/interface/cpu_info.h"
+#include "system_wrappers/interface/cpu_info.h"
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -18,22 +18,21 @@
 #elif defined(WEBRTC_ANDROID)
 
 #else 
-#include <unistd.h>  
 #include <sys/sysinfo.h>
 #endif
 
-#include "system_wrappers/interface/trace.h"
+#include "trace.h"
 
 namespace webrtc {
 
-uint32_t CpuInfo::number_of_cores_ = 0;
+WebRtc_UWord32 CpuInfo::number_of_cores_ = 0;
 
-uint32_t CpuInfo::DetectNumberOfCores() {
+WebRtc_UWord32 CpuInfo::DetectNumberOfCores() {
   if (!number_of_cores_) {
 #if defined(_WIN32)
     SYSTEM_INFO si;
     GetSystemInfo(&si);
-    number_of_cores_ = static_cast<uint32_t>(si.dwNumberOfProcessors);
+    number_of_cores_ = static_cast<WebRtc_UWord32>(si.dwNumberOfProcessors);
     WEBRTC_TRACE(kTraceStateInfo, kTraceUtility, -1,
                  "Available number of cores:%d", number_of_cores_);
 
@@ -47,7 +46,7 @@ uint32_t CpuInfo::DetectNumberOfCores() {
     int ncpu;
     size_t size = sizeof(ncpu);
     if (0 == sysctl(name, 2, &ncpu, &size, NULL, 0)) {
-      number_of_cores_ = static_cast<uint32_t>(ncpu);
+      number_of_cores_ = static_cast<WebRtc_UWord32>(ncpu);
       WEBRTC_TRACE(kTraceStateInfo, kTraceUtility, -1,
                    "Available number of cores:%d", number_of_cores_);
     } else {

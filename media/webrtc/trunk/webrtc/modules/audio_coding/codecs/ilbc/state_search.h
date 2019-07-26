@@ -30,9 +30,9 @@ void WebRtcIlbcfix_StateSearch(
     
     iLBC_bits *iLBC_encbits,
 
-    int16_t *residual,   
-    int16_t *syntDenum,  
-    int16_t *weightDenum  
+    WebRtc_Word16 *residual,   
+    WebRtc_Word16 *syntDenum,  
+    WebRtc_Word16 *weightDenum  
                                );
 
 #endif

@@ -28,40 +28,40 @@ public:
 
     
     
-    static FileRecorder* CreateFileRecorder(const uint32_t instanceID,
+    static FileRecorder* CreateFileRecorder(const WebRtc_UWord32 instanceID,
                                             const FileFormats fileFormat);
 
     static void DestroyFileRecorder(FileRecorder* recorder);
 
-    virtual int32_t RegisterModuleFileCallback(
+    virtual WebRtc_Word32 RegisterModuleFileCallback(
         FileCallback* callback) = 0;
 
     virtual FileFormats RecordingFileFormat() const = 0;
 
-    virtual int32_t StartRecordingAudioFile(
+    virtual WebRtc_Word32 StartRecordingAudioFile(
         const char* fileName,
         const CodecInst& codecInst,
-        uint32_t notification,
+        WebRtc_UWord32 notification,
         ACMAMRPackingFormat amrFormat = AMRFileStorage) = 0;
 
-    virtual int32_t StartRecordingAudioFile(
+    virtual WebRtc_Word32 StartRecordingAudioFile(
         OutStream& destStream,
         const CodecInst& codecInst,
-        uint32_t notification,
+        WebRtc_UWord32 notification,
         ACMAMRPackingFormat amrFormat = AMRFileStorage) = 0;
 
     
     
-    virtual int32_t StopRecording() = 0;
+    virtual WebRtc_Word32 StopRecording() = 0;
 
     
     
     virtual bool IsRecording() const = 0;
 
-    virtual int32_t codec_info(CodecInst& codecInst) const = 0;
+    virtual WebRtc_Word32 codec_info(CodecInst& codecInst) const = 0;
 
     
-    virtual int32_t RecordAudioToFile(
+    virtual WebRtc_Word32 RecordAudioToFile(
         const AudioFrame& frame,
         const TickTime* playoutTS = NULL) = 0;
 
@@ -71,7 +71,7 @@ public:
     
     
     
-    virtual int32_t StartRecordingVideoFile(
+    virtual WebRtc_Word32 StartRecordingVideoFile(
         const char* fileName,
         const CodecInst& audioCodecInst,
         const VideoCodec& videoCodecInst,
@@ -79,7 +79,7 @@ public:
         bool videoOnly = false) = 0;
 
     
-    virtual int32_t RecordVideoToFile(
+    virtual WebRtc_Word32 RecordVideoToFile(
         const I420VideoFrame& videoFrame) = 0;
 
 protected:

@@ -16,14 +16,10 @@
 #include <map>
 #include <vector>
 
-#include "webrtc/common_types.h"
-#include "webrtc/modules/interface/module.h"
-#include "webrtc/modules/interface/module_common_types.h"
-#include "webrtc/typedefs.h"
+#include "common_types.h"
+#include "typedefs.h"
 
 namespace webrtc {
-
-class Clock;
 
 
 
@@ -37,7 +33,7 @@ class RemoteBitrateObserver {
   virtual ~RemoteBitrateObserver() {}
 };
 
-class RemoteBitrateEstimator : public CallStatsObserver, public Module {
+class RemoteBitrateEstimator {
  public:
   enum EstimationMode {
     kMultiStreamEstimation,
@@ -46,10 +42,9 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
 
   virtual ~RemoteBitrateEstimator() {}
 
-  static RemoteBitrateEstimator* Create(const OverUseDetectorOptions& options,
-                                        EstimationMode mode,
-                                        RemoteBitrateObserver* observer,
-                                        Clock* clock);
+  static RemoteBitrateEstimator* Create(RemoteBitrateObserver* observer,
+                                        const OverUseDetectorOptions& options,
+                                        EstimationMode mode);
 
   
   
@@ -67,6 +62,13 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
                               uint32_t rtp_timestamp) = 0;
 
   
+  virtual void UpdateEstimate(unsigned int ssrc, int64_t time_now) = 0;
+
+  
+  
+  virtual void SetRtt(unsigned int rtt) = 0;
+
+  
   virtual void RemoveStream(unsigned int ssrc) = 0;
 
   
@@ -74,10 +76,6 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
   
   virtual bool LatestEstimate(std::vector<unsigned int>* ssrcs,
                               unsigned int* bitrate_bps) const = 0;
-
- protected:
-  static const int kProcessIntervalMs = 1000;
-  static const int kStreamTimeOutMs = 2000;
 };
 
 }  
