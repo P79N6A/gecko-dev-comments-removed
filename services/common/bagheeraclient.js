@@ -161,12 +161,16 @@ BagheeraClient.prototype = Object.freeze({
     request.loadFlags = this._loadFlags;
     request.timeout = this.DEFAULT_TIMEOUT_MSEC;
 
-    let deleteID;
+    
+    if ("deleteID" in options) {
+      throw new Error("API has changed, use (array) deleteIDs instead");
+    }
 
-    if (options.deleteID) {
-      deleteID = options.deleteID;
-      this._log.debug("Will delete " + deleteID);
-      request.setHeader("X-Obsolete-Document", options.deleteID);
+    let deleteIDs;
+    if (options.deleteIDs && options.deleteIDs.length > 0) {
+      deleteIDs = options.deleteIDs;
+      this._log.debug("Will delete " + deleteIDs.join(", "));
+      request.setHeader("X-Obsolete-Document", deleteIDs.join(","));
     }
 
     let deferred = Promise.defer();
@@ -190,7 +194,7 @@ BagheeraClient.prototype = Object.freeze({
     let result = new BagheeraClientRequestResult();
     result.namespace = namespace;
     result.id = id;
-    result.deleteID = deleteID;
+    result.deleteIDs = deleteIDs ? deleteIDs.slice(0) : null;
 
     request.onComplete = this._onComplete.bind(this, request, deferred, result);
     request.post(data);
