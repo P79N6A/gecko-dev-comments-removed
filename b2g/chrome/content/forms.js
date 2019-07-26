@@ -382,6 +382,10 @@ let FormAssistant = {
         break;
 
       case "keydown":
+        if (!this.focusedElement) {
+          break;
+        }
+
         
         this._ignoreEditActionOnce = true;
 
@@ -393,6 +397,10 @@ let FormAssistant = {
         break;
 
       case "keyup":
+        if (!this.focusedElement) {
+          break;
+        }
+
         this._ignoreEditActionOnce = false;
         break;
     }
