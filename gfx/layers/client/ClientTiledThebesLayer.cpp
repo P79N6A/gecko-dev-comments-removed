@@ -57,7 +57,8 @@ ClientTiledThebesLayer::BeginPaint()
 
   
   mPaintData.mLayerCriticalDisplayPort.SetEmpty();
-  const gfx::Rect& criticalDisplayPort = GetParent()->GetFrameMetrics().mCriticalDisplayPort;
+  const gfx::Rect& criticalDisplayPort =
+    GetParent()->GetFrameMetrics().mCriticalDisplayPort.ToUnknownRect();
   if (!criticalDisplayPort.IsEmpty()) {
     gfxRect transformedCriticalDisplayPort =
       mPaintData.mTransformScreenToLayer.TransformBounds(

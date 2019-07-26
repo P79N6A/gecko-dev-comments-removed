@@ -223,7 +223,7 @@ public:
 
 
 
-  static const gfx::Rect CalculatePendingDisplayPort(
+  static const CSSRect CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
     const gfx::Point& aVelocity,
     const gfx::Point& aAcceleration,

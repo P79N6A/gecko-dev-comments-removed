@@ -155,7 +155,7 @@ public:
   
   
   
-  gfx::Rect mDisplayPort;
+  CSSRect mDisplayPort;
 
   
   
@@ -163,7 +163,7 @@ public:
   
   
   
-  gfx::Rect mCriticalDisplayPort;
+  CSSRect mCriticalDisplayPort;
 
   
   
