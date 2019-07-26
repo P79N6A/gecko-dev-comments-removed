@@ -62,7 +62,7 @@ private:
   int32_t         mActionType;
   int32_t         mChildCount;
   int32_t         mSelection;
-  nsCOMPtr<MouseListener> mListener;
+  nsRefPtr<MouseListener> mListener;
 
   
   nsIFrame* 
