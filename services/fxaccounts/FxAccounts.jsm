@@ -385,15 +385,6 @@ InternalMethods.prototype = {
     Services.obs.notifyObservers(null, topic, null);
   },
 
-  
-
-
-
-
-  now: function() {
-    return Date.now();
-  },
-
   pollEmailStatus: function pollEmailStatus(sessionToken, why) {
     let myGenerationCount = this.generationCount;
     log.debug("entering pollEmailStatus: " + why + " " + myGenerationCount);
@@ -488,6 +479,20 @@ this.FxAccounts = function(mockInternal) {
 }
 this.FxAccounts.prototype = Object.freeze({
   version: DATA_FORMAT_VERSION,
+
+  now: function() {
+    if (this.internal) {
+      return this.internal.now();
+    }
+    return internal.now();
+  },
+
+  get localtimeOffsetMsec() {
+    if (this.internal) {
+      return this.internal.localtimeOffsetMsec;
+    }
+    return internal.localtimeOffsetMsec;
+  },
 
   
   
@@ -620,7 +625,6 @@ this.FxAccounts.prototype = Object.freeze({
     return internal.whenVerified(userData);
   },
 
-
   
 
 
@@ -656,7 +660,7 @@ this.FxAccounts.prototype = Object.freeze({
       newQueryPortion += "email=" + encodeURIComponent(accountData.email);
       return url + newQueryPortion;
     });
-  },
+  }
 
 });
 
