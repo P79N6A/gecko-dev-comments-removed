@@ -115,19 +115,9 @@ class IonFrameIterator
     }
 
     
-    bool isFakeExitFrame() const {
-        bool res = (prevType() == IonFrame_Unwound_Rectifier ||
-                    prevType() == IonFrame_Unwound_OptimizedJS ||
-                    prevType() == IonFrame_Unwound_BaselineStub);
-        JS_ASSERT_IF(res, type() == IonFrame_Exit || type() == IonFrame_BaselineJS);
-        return res;
-    }
+    inline bool isFakeExitFrame() const;
 
-    IonExitFrameLayout *exitFrame() const {
-        JS_ASSERT(type() == IonFrame_Exit);
-        JS_ASSERT(!isFakeExitFrame());
-        return (IonExitFrameLayout *) fp();
-    }
+    inline IonExitFrameLayout *exitFrame() const;
 
     
     
