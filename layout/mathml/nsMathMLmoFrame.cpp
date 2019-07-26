@@ -167,12 +167,6 @@ nsMathMLmoFrame::ProcessTextData()
   mFlags |= allFlags & NS_MATHML_OPERATOR_ACCENT;
   mFlags |= allFlags & NS_MATHML_OPERATOR_MOVABLELIMITS;
 
-  bool isMutable =
-    NS_MATHML_OPERATOR_IS_STRETCHY(allFlags) ||
-    NS_MATHML_OPERATOR_IS_LARGEOP(allFlags);
-  if (isMutable)
-    mFlags |= NS_MATHML_OPERATOR_MUTABLE;
-
   
   
   if (1 == length) {
@@ -187,12 +181,19 @@ nsMathMLmoFrame::ProcessTextData()
 
   
   mMathMLChar.SetData(presContext, data);
-  ResolveMathMLCharStyle(presContext, mContent, mStyleContext, &mMathMLChar, isMutable);
 
   
   
   
   mEmbellishData.direction = mMathMLChar.GetStretchDirection();
+
+  bool isMutable =
+    NS_MATHML_OPERATOR_IS_LARGEOP(allFlags) ||
+    (mEmbellishData.direction != NS_STRETCH_DIRECTION_UNSUPPORTED);
+  if (isMutable)
+    mFlags |= NS_MATHML_OPERATOR_MUTABLE;
+
+  ResolveMathMLCharStyle(presContext, mContent, mStyleContext, &mMathMLChar, isMutable);
 }
 
 
