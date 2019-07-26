@@ -404,6 +404,20 @@
 # define MOZ_NONHEAP_CLASS
 #endif 
 
+
+
+
+
+#ifdef _MSC_VER
+#  define MOZ_THIS_IN_INITIALIZER_LIST() \
+     __pragma(warning(push)) \
+     __pragma(warning(disable:4355)) \
+     this \
+     __pragma(warning(pop))
+#else
+#  define MOZ_THIS_IN_INITIALIZER_LIST() this
+#endif
+
 #endif 
 
 #endif  
