@@ -1209,24 +1209,38 @@ MArgumentsLength::computeRange()
 
 
 
-void
-RangeAnalysis::markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *current)
+bool
+RangeAnalysis::markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *backedge)
 {
+    Vector<MBasicBlock *, 16, IonAllocPolicy> worklist;
+
     
-    current->mark();
+    header->mark();
+
+    backedge->mark();
+    if (!worklist.append(backedge))
+        return false;
 
     
     
-    if (current != header) {
+    while (!worklist.empty()) {
+        MBasicBlock *current = worklist.popCopy();
         for (size_t i = 0; i < current->numPredecessors(); i++) {
-            if (current->getPredecessor(i)->isMarked())
+            MBasicBlock *pred = current->getPredecessor(i);
+
+            if (pred->isMarked())
                 continue;
-            markBlocksInLoopBody(header, current->getPredecessor(i));
+
+            pred->mark();
+            if (!worklist.append(pred))
+                return false;
         }
     }
+
+    return true;
 }
 
-void
+bool
 RangeAnalysis::analyzeLoop(MBasicBlock *header)
 {
     JS_ASSERT(header->hasUniqueBackedge());
@@ -1238,9 +1252,10 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
 
     
     if (backedge == header)
-        return;
+        return true;
 
-    markBlocksInLoopBody(header, backedge);
+    if (!markBlocksInLoopBody(header, backedge))
+        return false;
 
     LoopIterationBound *iterationBound = NULL;
 
@@ -1268,7 +1283,7 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
 
     if (!iterationBound) {
         graph_.unmarkBlocks();
-        return;
+        return true;
     }
 
 #ifdef DEBUG
@@ -1300,8 +1315,10 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
             for (MDefinitionIterator iter(block); iter; iter++) {
                 MDefinition *def = *iter;
                 if (def->isBoundsCheck() && def->isMovable()) {
-                    if (tryHoistBoundsCheck(header, def->toBoundsCheck()))
-                        hoistedChecks.append(def->toBoundsCheck());
+                    if (tryHoistBoundsCheck(header, def->toBoundsCheck())) {
+                        if (!hoistedChecks.append(def->toBoundsCheck()))
+                            return false;
+                    }
                 }
             }
         }
@@ -1319,6 +1336,7 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
     }
 
     graph_.unmarkBlocks();
+    return true;
 }
 
 LoopIterationBound *
@@ -1668,8 +1686,10 @@ RangeAnalysis::analyze()
             SpewRange(def);
         }
 
-        if (block->isLoopHeader())
-            analyzeLoop(block);
+        if (block->isLoopHeader()) {
+            if (!analyzeLoop(block))
+                return false;
+        }
 
         if (mir->compilingAsmJS()) {
             for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
