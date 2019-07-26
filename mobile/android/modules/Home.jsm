@@ -159,10 +159,72 @@ let HomeBanner = (function () {
 
 
 
-let handlePanelsGet;
-let handlePanelsAuthenticate;
+let HomePanelsMessageHandlers;
 
 let HomePanels = (function () {
+  
+  HomePanelsMessageHandlers = {
+
+    "HomePanels:Get": function handlePanelsGet(data) {
+      data = JSON.parse(data);
+
+      let requestId = data.requestId;
+      let ids = data.ids || null;
+
+      let panels = [];
+      for (let id in _registeredPanels) {
+        
+        if (ids == null || ids.indexOf(id) >= 0) {
+          try {
+            panels.push(_generatePanel(id));
+          } catch(e) {
+            Cu.reportError("Home.panels: Invalid options, panel.id = " + id + ": " + e);
+          }
+        }
+      }
+
+      sendMessageToJava({
+        type: "HomePanels:Data",
+        panels: panels,
+        requestId: requestId
+      });
+    },
+
+    "HomePanels:Authenticate": function handlePanelsAuthenticate(id) {
+      
+      let options = _registeredPanels[id]();
+      if (!options.authHandler) {
+        throw "Home.panels: Invalid authHandler for panel.id = " + id;
+      }
+      if (!options.authHandler.authenticate || typeof options.authHandler.authenticate !== "function") {
+        throw "Home.panels: Invalid authHandler authenticate function: panel.id = " + this.id;
+      }
+      options.authHandler.authenticate();
+    },
+
+    "HomePanels:Installed": function handlePanelsInstalled(id) {
+      let options = _registeredPanels[id]();
+      if (!options.oninstall) {
+        return;
+      }
+      if (typeof options.oninstall !== "function") {
+        throw "Home.panels: Invalid oninstall function: panel.id = " + this.id;
+      }
+      options.oninstall();
+    },
+
+    "HomePanels:Uninstalled": function handlePanelsUninstalled(id) {
+      let options = _registeredPanels[id]();
+      if (!options.onuninstall) {
+        return;
+      }
+      if (typeof options.onuninstall !== "function") {
+        throw "Home.panels: Invalid onuninstall function: panel.id = " + this.id;
+      }
+      options.onuninstall();
+    }
+  };
+
   
   
   
@@ -265,41 +327,6 @@ let HomePanels = (function () {
     return new Panel(id, options);
   };
 
-  handlePanelsGet = function(data) {
-    let requestId = data.requestId;
-    let ids = data.ids || null;
-
-    let panels = [];
-    for (let id in _registeredPanels) {
-      
-      if (ids == null || ids.indexOf(id) >= 0) {
-        try {
-          panels.push(_generatePanel(id));
-        } catch(e) {
-          Cu.reportError("Home.panels: Invalid options, panel.id = " + id + ": " + e);
-        }
-      }
-    }
-
-    sendMessageToJava({
-      type: "HomePanels:Data",
-      panels: panels,
-      requestId: requestId
-    });
-  };
-
-  handlePanelsAuthenticate = function(id) {
-    
-    let options = _registeredPanels[id]();
-    if (!options.authHandler) {
-      throw "Home.panels: Invalid authHandler for panel.id = " + id;
-    }
-    if (!options.authHandler.authenticate || typeof options.authHandler.authenticate !== "function") {
-      throw "Home.panels: Invalid authHandler authenticate function: panel.id = " + this.id;
-    }
-    options.authHandler.authenticate();
-  };
-
   
   let _valueExists = function(obj, value) {
     for (let key in obj) {
@@ -385,13 +412,10 @@ this.Home = Object.freeze({
 
   
   observe: function(subject, topic, data) {
-    switch(topic) {
-      case "HomePanels:Get":
-        handlePanelsGet(JSON.parse(data));
-        break;
-      case "HomePanels:Authenticate":
-        handlePanelsAuthenticate(data);
-        break;
+    if (topic in HomePanelsMessageHandlers) {
+      HomePanelsMessageHandlers[topic](data);
+    } else {
+      Cu.reportError("Home.observe: message handler not found for topic: " + topic);
     }
   }
 });
