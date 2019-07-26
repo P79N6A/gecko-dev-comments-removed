@@ -26,10 +26,21 @@
 #include "mozilla/HangMonitor.h"
 #include "mozilla/Services.h"
 #include "nsXPCOMPrivate.h"
+#include "mozilla/ChaosMode.h"
+
+#ifdef XP_LINUX
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <sched.h>
+#endif
 
 #define HAVE_UALARM _BSD_SOURCE || (_XOPEN_SOURCE >= 500 ||                 \
                       _XOPEN_SOURCE && _XOPEN_SOURCE_EXTENDED) &&           \
                       !(_POSIX_C_SOURCE >= 200809L || _XOPEN_SOURCE >= 700)
+
+#if defined(XP_LINUX) && !defined(ANDROID) && defined(_GNU_SOURCE)
+#define HAVE_SCHED_SETAFFINITY
+#endif
 
 #ifdef MOZ_CANARY
 # include <unistd.h>
@@ -232,11 +243,50 @@ private:
 
 
 
+static void
+SetupCurrentThreadForChaosMode()
+{
+  if (!ChaosMode::isActive()) {
+    return;
+  }
+
+#ifdef XP_LINUX
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  setpriority(PRIO_PROCESS, 0, ChaosMode::randomUint32LessThan(4));
+#else
+  
+  PR_SetThreadPriority(PR_GetCurrentThread(),
+    PRThreadPriority(ChaosMode::randomUint32LessThan(PR_PRIORITY_LAST + 1)));
+#endif
+
+#ifdef HAVE_SCHED_SETAFFINITY
+  
+  if (ChaosMode::randomUint32LessThan(2)) {
+    cpu_set_t cpus;
+    CPU_ZERO(&cpus);
+    CPU_SET(0, &cpus);
+    sched_setaffinity(0, sizeof(cpus), &cpus);
+  }
+#endif
+}
+
  void
 nsThread::ThreadFunc(void *arg)
 {
   nsThread *self = static_cast<nsThread *>(arg);  
   self->mThread = PR_GetCurrentThread();
+  SetupCurrentThreadForChaosMode();
 
   
   nsThreadManager::get()->RegisterCurrentThread(self);
@@ -352,6 +402,7 @@ nsresult
 nsThread::InitCurrentThread()
 {
   mThread = PR_GetCurrentThread();
+  SetupCurrentThreadForChaosMode();
 
   nsThreadManager::get()->RegisterCurrentThread(this);
   return NS_OK;
@@ -697,7 +748,10 @@ nsThread::SetPriority(int32_t priority)
   } else {
     pri = PR_PRIORITY_NORMAL;
   }
-  PR_SetThreadPriority(mThread, pri);
+  
+  if (!ChaosMode::isActive()) {
+    PR_SetThreadPriority(mThread, pri);
+  }
 
   return NS_OK;
 }
