@@ -59,8 +59,8 @@ ProfileEntry::ProfileEntry(char aTagName, Address aTagAddress)
   , mTagName(aTagName)
 { }
 
-ProfileEntry::ProfileEntry(char aTagName, int aTagLine)
-  : mTagLine(aTagLine)
+ProfileEntry::ProfileEntry(char aTagName, int aTagInt)
+  : mTagInt(aTagInt)
   , mTagName(aTagName)
 { }
 
@@ -104,8 +104,8 @@ void ProfileEntry::log()
       LOGF("%c \"%s\"", mTagName, mTagData); break;
     case 'd': case 'l': case 'L': case 'B': case 'S':
       LOGF("%c %p", mTagName, mTagPtr); break;
-    case 'n': case 'f':
-      LOGF("%c %d", mTagName, mTagLine); break;
+    case 'n': case 'f': case 'y':
+      LOGF("%c %d", mTagName, mTagInt); break;
     case 'h':
       LOGF("%c \'%c\'", mTagName, mTagChar); break;
     case 'r': case 't': case 'p': case 'R':
@@ -362,7 +362,7 @@ void ThreadProfile::StreamJSObject(JSStreamWriter& b)
           case 'f':
             {
               if (sample) {
-                b.NameValue("frameNumber", entry.mTagLine);
+                b.NameValue("frameNumber", entry.mTagInt);
               }
             }
             break;
@@ -399,6 +399,7 @@ void ThreadProfile::StreamJSObject(JSStreamWriter& b)
                 while (framePos != mLastFlushPos && frame.mTagName != 's') {
                   int incBy = 1;
                   frame = mEntries[framePos];
+
                   
                   const char* tagStringData = frame.mTagData;
                   int readAheadPos = (framePos + 1) % mEntrySize;
@@ -411,6 +412,7 @@ void ThreadProfile::StreamJSObject(JSStreamWriter& b)
                     tagStringData = processDynamicTag(framePos, &incBy, tagBuff);
                   }
 
+                  
                   
                   
                   
@@ -429,7 +431,13 @@ void ThreadProfile::StreamJSObject(JSStreamWriter& b)
                       readAheadPos = (framePos + incBy) % mEntrySize;
                       if (readAheadPos != mLastFlushPos &&
                           mEntries[readAheadPos].mTagName == 'n') {
-                        b.NameValue("line", mEntries[readAheadPos].mTagLine);
+                        b.NameValue("line", mEntries[readAheadPos].mTagInt);
+                        incBy++;
+                      }
+                      readAheadPos = (framePos + incBy) % mEntrySize;
+                      if (readAheadPos != mLastFlushPos &&
+                          mEntries[readAheadPos].mTagName == 'y') {
+                        b.NameValue("category", mEntries[readAheadPos].mTagInt);
                         incBy++;
                       }
                     b.EndObject();
