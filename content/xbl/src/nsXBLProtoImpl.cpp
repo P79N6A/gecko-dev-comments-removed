@@ -53,12 +53,11 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   
   
   
-  nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
   JS::Rooted<JSObject*> targetClassObject(cx, nullptr);
   bool targetObjectIsNew = false;
   nsresult rv = InitTargetObjects(aPrototypeBinding,
                                   aBinding->GetBoundElement(),
-                                  getter_AddRefs(holder), &targetClassObject,
+                                  &targetClassObject,
                                   &targetObjectIsNew);
   NS_ENSURE_SUCCESS(rv, rv); 
   MOZ_ASSERT(targetClassObject);
@@ -69,8 +68,6 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   
   if (!targetObjectIsNew)
     return NS_OK;
-
-  JS::Rooted<JSObject*> targetScriptObject(cx, holder->GetJSObject());
 
   
   
@@ -147,13 +144,11 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
 nsresult 
 nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
                                   nsIContent* aBoundElement, 
-                                  nsIXPConnectJSObjectHolder** aScriptObjectHolder, 
                                   JS::MutableHandle<JSObject*> aTargetClassObject,
                                   bool* aTargetIsNew)
 {
   nsresult rv = NS_OK;
-  *aScriptObjectHolder = nullptr;
-  
+
   if (!mClassObject) {
     rv = CompilePrototypeMembers(aBinding); 
                                  
@@ -175,7 +170,6 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   
   AutoJSContext cx;
   JS::Rooted<JSObject*> global(cx, sgo->GetGlobalJSObject());
-  nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
   JS::Rooted<JS::Value> v(cx);
 
   {
@@ -186,8 +180,7 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
     dom::XULElementBinding::GetConstructorObject(cx, global, defineOnGlobal);
   }
 
-  rv = nsContentUtils::WrapNative(cx, global, aBoundElement, &v,
-                                  getter_AddRefs(wrapper));
+  rv = nsContentUtils::WrapNative(cx, global, aBoundElement, &v);
   NS_ENSURE_SUCCESS(rv, rv);
 
   JS::Rooted<JSObject*> value(cx, &v.toObject());
@@ -203,8 +196,6 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
 
   aBoundElement->PreserveWrapper(aBoundElement);
 
-  wrapper.swap(*aScriptObjectHolder);
-  
   return rv;
 }
 
