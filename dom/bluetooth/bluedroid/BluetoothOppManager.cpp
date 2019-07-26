@@ -850,8 +850,6 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     ExtractPacketHeaders(pktHeaders);
     ValidateFileName();
 
-    mPutPacketReceivedLength = 0;
-
     
     if (mAbortFlag) {
       ReplyToPut(mPutFinalFlag, false);
