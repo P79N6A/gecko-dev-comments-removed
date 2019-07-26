@@ -383,6 +383,7 @@ const CustomizableWidgets = [{
 
       let node = aDocument.createElementNS(kNSXUL, "toolbaritem");
       node.setAttribute("id", "zoom-controls");
+      node.setAttribute("label", CustomizableUI.getLocalizedProperty(this, "label"));
       node.setAttribute("title", CustomizableUI.getLocalizedProperty(this, "tooltiptext"));
       
       node.setAttribute("removable", "true");
@@ -541,6 +542,7 @@ const CustomizableWidgets = [{
 
       let node = aDocument.createElementNS(kNSXUL, "toolbaritem");
       node.setAttribute("id", "edit-controls");
+      node.setAttribute("label", CustomizableUI.getLocalizedProperty(this, "label"));
       node.setAttribute("title", CustomizableUI.getLocalizedProperty(this, "tooltiptext"));
       
       node.setAttribute("removable", "true");
