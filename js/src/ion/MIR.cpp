@@ -993,8 +993,8 @@ NeedNegativeZeroCheck(MDefinition *def)
             
             
             
-            MDefinition *first = use_def->getOperand(0);
-            MDefinition *second = use_def->getOperand(1);
+            MDefinition *first = use_def->toAdd()->getOperand(0);
+            MDefinition *second = use_def->toAdd()->getOperand(1);
             if (first->id() > second->id()) {
                 MDefinition *temp = first;
                 first = second;
@@ -1055,7 +1055,7 @@ NeedNegativeZeroCheck(MDefinition *def)
             break;
           case MDefinition::Op_BoundsCheck:
             
-            if (use_def->getOperand(1) == def)
+            if (use_def->toBoundsCheck()->getOperand(1) == def)
                 return true;
             break;
           case MDefinition::Op_ToString:
@@ -1701,8 +1701,8 @@ MBitNot::foldsTo(bool useValueNumbers)
     }
 
     if (input->isBitNot() && input->toBitNot()->specialization_ == MIRType_Int32) {
-        JS_ASSERT(input->getOperand(0)->type() == MIRType_Int32);
-        return input->getOperand(0); 
+        JS_ASSERT(input->toBitNot()->getOperand(0)->type() == MIRType_Int32);
+        return input->toBitNot()->getOperand(0); 
     }
 
     return this;
