@@ -923,12 +923,6 @@ bool OpusState::DecodeHeader(ogg_packet* aPacket)
         LOG(PR_LOG_DEBUG, ("Invalid Opus file: Number of channels %d", mChannels));
         return false;
       }
-#ifndef MOZ_SAMPLE_TYPE_FLOAT32
-      
-      
-      if (mChannels>2)
-        return false;
-#endif
       mPreSkip = LEUint16(aPacket->packet + 10);
       mNominalRate = LEUint32(aPacket->packet + 12);
       double gain_dB = LEInt16(aPacket->packet + 16) / 256.0;
