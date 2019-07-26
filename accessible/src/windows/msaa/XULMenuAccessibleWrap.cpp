@@ -4,7 +4,7 @@
 
 
 #include "XULMenuAccessibleWrap.h"
-#include "nsINameSpaceManager.h"
+#include "nsNameSpaceManager.h"
 
 using namespace mozilla::a11y;
 

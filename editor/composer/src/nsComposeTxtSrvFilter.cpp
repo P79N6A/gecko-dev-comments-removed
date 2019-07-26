@@ -7,7 +7,7 @@
 #include "nsError.h"                    
 #include "nsIContent.h"                 
 #include "nsIDOMNode.h"                 
-#include "nsINameSpaceManager.h"        
+#include "nsNameSpaceManager.h"        
 #include "nsLiteralString.h"            
 #include "nscore.h"                     
 

@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsINameSpaceManager_h___
-#define nsINameSpaceManager_h___
+#ifndef nsNameSpaceManager_h___
+#define nsNameSpaceManager_h___
 
 #include "nsDataHashtable.h"
 #include "nsTArray.h"

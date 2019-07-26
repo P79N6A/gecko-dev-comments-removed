@@ -11,7 +11,7 @@
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
 #include "nsCSSRendering.h"
-#include "nsINameSpaceManager.h"
+#include "nsNameSpaceManager.h"
 #include "nsViewManager.h"
 #include "nsWidgetsCID.h"
 #include "nsMenuFrame.h"
@@ -400,10 +400,8 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
     
     
     shouldPosition = (mPopupState == ePopupShowing);
-    if (!shouldPosition && !aSizedToPopup) {
-      RemoveStateBits(NS_FRAME_FIRST_REFLOW);
+    if (!shouldPosition && !aSizedToPopup)
       return;
-    }
   }
 
   

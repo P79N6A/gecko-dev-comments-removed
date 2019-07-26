@@ -8,8 +8,9 @@
 
 
 
+#include "nsNameSpaceManager.h"
+
 #include "nscore.h"
-#include "nsINameSpaceManager.h"
 #include "nsAutoPtr.h"
 #include "nsINodeInfo.h"
 #include "nsCOMArray.h"

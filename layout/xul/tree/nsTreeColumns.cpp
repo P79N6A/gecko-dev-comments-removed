@@ -3,7 +3,7 @@
 
 
 
-#include "nsINameSpaceManager.h"
+#include "nsNameSpaceManager.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMElement.h"
 #include "nsIBoxObject.h"

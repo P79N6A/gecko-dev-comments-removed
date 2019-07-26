@@ -9,7 +9,7 @@
 #include "mozilla/Attributes.h"
 #include "nsMappedAttributeElement.h"
 #include "nsIDOMHTMLElement.h"
-#include "nsINameSpaceManager.h"  
+#include "nsNameSpaceManager.h"  
 #include "nsIFormControl.h"
 #include "nsGkAtoms.h"
 #include "nsContentCreatorFunctions.h"

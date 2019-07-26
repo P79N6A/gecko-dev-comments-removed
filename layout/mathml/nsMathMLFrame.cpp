@@ -4,7 +4,7 @@
 
 
 #include "nsMathMLFrame.h"
-#include "nsINameSpaceManager.h"
+#include "nsNameSpaceManager.h"
 #include "nsMathMLChar.h"
 #include "nsCSSPseudoElements.h"
 #include "nsMathMLElement.h"

@@ -19,7 +19,7 @@
 #include "nsIAtom.h"                    
 #include "nsIDOMHTMLAnchorElement.h"    
 #include "nsIDOMNode.h"                 
-#include "nsINameSpaceManager.h"        
+#include "nsNameSpaceManager.h"        
 #include "nsLiteralString.h"            
 #include "nsString.h"                   
 #include "nsTextEditUtils.h"            

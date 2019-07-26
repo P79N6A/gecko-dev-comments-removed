@@ -6,7 +6,7 @@
 #include "nsMathMLmactionFrame.h"
 #include "nsCOMPtr.h"
 #include "nsPresContext.h"
-#include "nsINameSpaceManager.h"
+#include "nsNameSpaceManager.h"
 #include "prprf.h"         
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeOwner.h"

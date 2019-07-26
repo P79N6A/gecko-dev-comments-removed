@@ -26,8 +26,8 @@
 
 #include "nsCOMPtr.h"            
 #include "nsIAtom.h"             
-#include "nsINameSpaceManager.h" 
 #include "nsISupports.h"         
+#include "nsNameSpaceManager.h"  
 
 #ifdef MOZILLA_INTERNAL_API
 #include "nsDOMString.h"
