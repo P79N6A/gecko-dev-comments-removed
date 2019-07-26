@@ -565,15 +565,8 @@ function checkUpdateFinished() {
   do_check_false(log.exists());
 
   updatesDir.append("0");
-  if (IS_WIN) {
-    
-    
-    logTestInfo("testing " + updatesDir.path + " should exist");
-    do_check_true(updatesDir.exists());
-  } else {
-    logTestInfo("testing " + updatesDir.path + " shouldn't exist");
-    do_check_false(updatesDir.exists());
-  }
+  logTestInfo("testing " + updatesDir.path + " should exist");
+  do_check_true(updatesDir.exists());
 
   removeCallbackCopy();
 }
