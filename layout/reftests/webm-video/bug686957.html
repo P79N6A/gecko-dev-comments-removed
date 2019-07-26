@@ -2,11 +2,17 @@
 <html class="reftest-wait">
 <body style="background:white;">
 
+
+
+
+
+
+
 <video src="frames.webm"
        preload="auto"
        id="v"
        onloadedmetadata="document.getElementById('v').currentTime=document.getElementById('v').duration"
-       onseeked="setTimeout(function(){document.documentElement.className = '';}, 0);"
+       onseeked="setTimeout(function(){document.documentElement.className = '';}, 15);"
 </video>
 </body>
 </html>
