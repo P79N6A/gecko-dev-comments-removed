@@ -100,6 +100,7 @@ public:
                                    const TargetConfig& aTargetConfig,
                                    bool aIsFirstPaint,
                                    bool aScheduleComposite) MOZ_OVERRIDE;
+  virtual AsyncCompositionManager* GetCompositionManager() MOZ_OVERRIDE { return mCompositionManager; }
   
 
 
