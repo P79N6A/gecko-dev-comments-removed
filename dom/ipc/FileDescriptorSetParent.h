@@ -2,12 +2,12 @@
 
 
 
-#ifndef mozilla_dom_FileDescriptorSetChild_h__
-#define mozilla_dom_FileDescriptorSetChild_h__
+#ifndef mozilla_dom_FileDescriptorSetParent_h__
+#define mozilla_dom_FileDescriptorSetParent_h__
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/PFileDescriptorSetChild.h"
+#include "mozilla/dom/PFileDescriptorSetParent.h"
 #include "nsTArray.h"
 
 namespace mozilla {
@@ -20,11 +20,11 @@ class FileDescriptor;
 
 namespace dom {
 
-class ContentChild;
+class ContentParent;
 
-class FileDescriptorSetChild MOZ_FINAL: public PFileDescriptorSetChild
+class FileDescriptorSetParent MOZ_FINAL: public PFileDescriptorSetParent
 {
-  friend class ContentChild;
+  friend class ContentParent;
 
 public:
   typedef mozilla::ipc::FileDescriptor FileDescriptor;
@@ -33,8 +33,8 @@ public:
   ForgetFileDescriptors(nsTArray<FileDescriptor>& aFileDescriptors);
 
 private:
-  FileDescriptorSetChild(const FileDescriptor& aFileDescriptor);
-  ~FileDescriptorSetChild();
+  FileDescriptorSetParent(const FileDescriptor& aFileDescriptor);
+  ~FileDescriptorSetParent();
 
   virtual bool
   RecvAddFileDescriptor(const FileDescriptor& aFileDescriptor) MOZ_OVERRIDE;

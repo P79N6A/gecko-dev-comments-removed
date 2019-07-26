@@ -52,6 +52,8 @@ public:
   FileDescriptor();
 
   FileDescriptor(const FileDescriptor& aOther)
+    : mHandleCreatedByOtherProcess(false),
+      mHandleCreatedByOtherProcessWasUsed(false)
   {
     
     
