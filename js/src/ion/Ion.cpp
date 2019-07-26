@@ -1254,9 +1254,9 @@ TestIonCompile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecod
 }
 
 static bool
-CheckFrame(StackFrame *fp)
+CheckFrame(AbstractFramePtr fp)
 {
-    if (fp->isEvalFrame()) {
+    if (fp.isEvalFrame()) {
         
         
         
@@ -1264,22 +1264,22 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->isGeneratorFrame()) {
+    if (fp.isGeneratorFrame()) {
         
         IonSpew(IonSpew_Abort, "generator frame");
         return false;
     }
 
-    if (fp->isDebuggerFrame()) {
+    if (fp.isDebuggerFrame()) {
         IonSpew(IonSpew_Abort, "debugger frame");
         return false;
     }
 
     
     
-    if (fp->isFunctionFrame() &&
-        (fp->numActualArgs() >= SNAPSHOT_MAX_NARGS ||
-         fp->numActualArgs() > js_IonOptions.maxStackArgs))
+    if (fp.isFunctionFrame() &&
+        (fp.numActualArgs() >= SNAPSHOT_MAX_NARGS ||
+         fp.numActualArgs() > js_IonOptions.maxStackArgs))
     {
         IonSpew(IonSpew_Abort, "too many actual args");
         return false;
@@ -1402,7 +1402,8 @@ Compile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrP
 
 
 MethodStatus
-ion::CanEnterAtBranch(JSContext *cx, HandleScript script, StackFrame *fp, jsbytecode *pc)
+ion::CanEnterAtBranch(JSContext *cx, HandleScript script, AbstractFramePtr fp,
+                      jsbytecode *pc, bool isConstructing)
 {
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT((JSOp)*pc == JSOP_LOOPENTRY);
@@ -1430,8 +1431,8 @@ ion::CanEnterAtBranch(JSContext *cx, HandleScript script, StackFrame *fp, jsbyte
     }
 
     
-    RootedFunction fun(cx, fp->isFunctionFrame() ? fp->fun() : NULL);
-    MethodStatus status = Compile(cx, script, fun, pc, fp->isConstructing());
+    RootedFunction fun(cx, fp.isFunctionFrame() ? fp.fun() : NULL);
+    MethodStatus status = Compile(cx, script, fun, pc, isConstructing);
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(cx, script);
@@ -1445,7 +1446,8 @@ ion::CanEnterAtBranch(JSContext *cx, HandleScript script, StackFrame *fp, jsbyte
 }
 
 MethodStatus
-ion::CanEnter(JSContext *cx, HandleScript script, StackFrame *fp, bool newType)
+ion::CanEnter(JSContext *cx, HandleScript script, AbstractFramePtr fp,
+              bool isConstructing, bool newType)
 {
     JS_ASSERT(ion::IsEnabled(cx));
 
@@ -1464,12 +1466,12 @@ ion::CanEnter(JSContext *cx, HandleScript script, StackFrame *fp, bool newType)
     
     
     
-    if (fp->isConstructing() && fp->functionThis().isPrimitive()) {
-        RootedObject callee(cx, &fp->callee());
+    if (isConstructing && fp.thisValue().isPrimitive()) {
+        RootedObject callee(cx, &fp.callee());
         RootedObject obj(cx, js_CreateThisForFunction(cx, callee, newType));
         if (!obj)
             return Method_Skipped;
-        fp->functionThis().setObject(*obj);
+        fp.thisValue().setObject(*obj);
     }
 
     
@@ -1479,8 +1481,8 @@ ion::CanEnter(JSContext *cx, HandleScript script, StackFrame *fp, bool newType)
     }
 
     
-    RootedFunction fun(cx, fp->isFunctionFrame() ? fp->fun() : NULL);
-    MethodStatus status = Compile(cx, script, fun, NULL, fp->isConstructing());
+    RootedFunction fun(cx, fp.isFunctionFrame() ? fp.fun() : NULL);
+    MethodStatus status = Compile(cx, script, fun, NULL, isConstructing);
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(cx, script);
