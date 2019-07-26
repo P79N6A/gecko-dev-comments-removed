@@ -198,6 +198,8 @@ int main(int argc, char *argv[])
         return 5;
     }
 
+    int result = 0;
+
     
     {
         strcpy(lastslash, "\\xulrunner");
@@ -220,7 +222,6 @@ int main(int argc, char *argv[])
         if (NS_FAILED(rv))
             return 9;
 
-        int result = 0;
         if (NS_FAILED(StartupProfile())) {
             result = 8;
         }
@@ -235,12 +236,12 @@ int main(int argc, char *argv[])
             
             bool runCondition = true;
 
-            rv = AppCallbacks::RunEventLoop(runCondition);
+            result = AppCallbacks::RunEventLoop(runCondition);
         }
     }
     XRE_TermEmbedding();
 
-    return rv;
+    return result;
 }
 
 
