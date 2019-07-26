@@ -1811,11 +1811,6 @@ pref("layout.word_select.stop_at_punctuation", true);
 pref("layout.selection.caret_style", 0);
 
 
-
-
-pref("layout.enable_japanese_specific_transform", false);
-
-
 pref("layout.frames.force_resizability", false);
 
 
