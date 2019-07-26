@@ -3973,16 +3973,6 @@ var XULBrowserWindow = {
         }
       } else
         disableFindCommands(false);
-
-      if (gFindBarInitialized) {
-        if (gFindBar.findMode != gFindBar.FIND_NORMAL) {
-          
-          gFindBar.close();
-        }
-
-        
-        gFindBar.getElement("highlight").checked = false;
-      }
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);
 
