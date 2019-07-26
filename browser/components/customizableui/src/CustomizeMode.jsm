@@ -793,27 +793,39 @@ CustomizeMode.prototype = {
 
     
     
-    let dragOverItem;
-    let atEnd = false;
+    let dragOverItem, dragValue;
     if (targetNode == targetArea.customizationTarget) {
       dragOverItem = targetNode.lastChild;
-      atEnd = true;
+      dragValue = "end";
     } else {
       let position = Array.indexOf(targetParent.children, targetNode);
       if (position == -1) {
         dragOverItem = targetParent.lastChild;
+        dragValue = "end";
       } else {
         dragOverItem = targetParent.children[position];
         
         let window = dragOverItem.ownerDocument.defaultView;
+        let direction = window.getComputedStyle(dragOverItem, null).direction;
+        let itemRect = dragOverItem.getBoundingClientRect();
+        let dropTargetCenter = itemRect.left + (itemRect.width / 2);
         if (targetParent == window.PanelUI.contents) {
-          let direction = window.getComputedStyle(dragOverItem, null).direction;
-          let dropTargetCenter = dragOverItem.boxObject.x + (dragOverItem.boxObject.width / 2);
-          if (direction == "ltr" && aEvent.clientX > dropTargetCenter)
+          dragValue = "true";
+          if (direction == "ltr" && aEvent.clientX > dropTargetCenter) {
             position++;
-          else if (direction == "rtl" && aEvent.clientX < dropTargetCenter)
+          } else if (direction == "rtl" && aEvent.clientX < dropTargetCenter) {
             position--;
+          }
           dragOverItem = position == -1 ? targetParent.firstChild : targetParent.children[position];
+        } else {
+          let existingDir = dragOverItem.getAttribute("dragover");
+          if ((existingDir == "before") == (direction == "ltr")) {
+            dropTargetCenter += (parseInt(dragOverItem.style.borderLeftWidth) || 0) / 2;
+          } else {
+            dropTargetCenter -= (parseInt(dragOverItem.style.borderRightWidth) || 0) / 2;
+          }
+          let before = direction == "ltr" ? aEvent.clientX < dropTargetCenter : aEvent.clientX > dropTargetCenter;
+          dragValue = before ? "before" : "after";
         }
       }
     }
@@ -822,8 +834,8 @@ CustomizeMode.prototype = {
       this._setDragActive(this._dragOverItem, false);
     }
 
-    if (dragOverItem != this._dragOverItem) {
-      this._setDragActive(dragOverItem, true, draggedItemId, atEnd);
+    if (dragOverItem != this._dragOverItem || dragValue != dragOverItem.getAttribute("dragover")) {
+      this._setDragActive(dragOverItem, dragValue, draggedItemId);
       this._dragOverItem = dragOverItem;
     }
 
@@ -852,7 +864,16 @@ CustomizeMode.prototype = {
     if (!targetArea || !originArea) {
       return;
     }
-    let targetNode = this._getDragOverNode(aEvent.target, targetArea);
+    let targetNode = this._dragOverItem;
+    let dropDir = targetNode.getAttribute("dragover");
+    
+    if (targetNode != targetArea && dropDir == "after") {
+      if (targetNode.nextSibling) {
+        targetNode = targetNode.nextSibling;
+      } else {
+        targetNode = targetArea;
+      }
+    }
     
     while (targetNode.classList.contains(kPlaceholderClass) && targetNode.nextSibling) {
       targetNode = targetNode.nextSibling;
@@ -1031,48 +1052,46 @@ CustomizeMode.prototype = {
            mozSourceNode.ownerDocument.defaultView != this.window;
   },
 
-  _setDragActive: function(aItem, aValue, aDraggedItemId, aAtEnd) {
+  _setDragActive: function(aItem, aValue, aDraggedItemId) {
     if (!aItem) {
-      return;
-    }
-    let node = aItem;
-    let window = aItem.ownerDocument.defaultView;
-    let direction = window.getComputedStyle(aItem, null).direction;
-    let value = direction == "ltr" ? "left" : "right";
-    if (aItem.localName == "toolbar" || aAtEnd) {
-      value = direction == "ltr" ? "right" : "left";
-      if (aItem.localName == "toolbar") {
-        node = aItem.lastChild;
-      }
-    }
-
-    if (!node) {
       return;
     }
 
     if (aValue) {
-      if (!node.hasAttribute("dragover")) {
-        node.setAttribute("dragover", value);
+      if (aItem.hasAttribute("dragover") != aValue) {
+        aItem.setAttribute("dragover", aValue);
 
         
+        let window = aItem.ownerDocument.defaultView;
         let draggedItem = window.document.getElementById(aDraggedItemId);
-        let width = this._getDragItemWidth(node, draggedItem);
+        let width = this._getDragItemWidth(aItem, draggedItem);
         if (width) {
           let panelContents = window.PanelUI.contents;
-          if (node.parentNode == panelContents) {
-            this._setPanelDragActive(node, draggedItem, width);
+          if (aItem.parentNode == panelContents) {
+            this._setPanelDragActive(aItem, draggedItem, width);
           } else {
-            let prop = value == "left" ? "borderLeftWidth" : "borderRightWidth";
-            node.style[prop] = width;
+            let direction = window.getComputedStyle(aItem).direction;
+            let prop, otherProp;
+            
+            if ((aValue == "before") == (direction == "ltr")) {
+              prop = "borderLeftWidth";
+              otherProp = "border-right-width";
+            } else {
+              
+              prop = "borderRightWidth";
+              otherProp = "border-left-width";
+            }
+            aItem.style[prop] = width;
+            aItem.style.removeProperty(otherProp);
           }
         }
       }
     } else {
-      node.removeAttribute("dragover");
+      aItem.removeAttribute("dragover");
       
       
-      node.style.removeProperty("border-left-width");
-      node.style.removeProperty("border-right-width");
+      aItem.style.removeProperty("border-left-width");
+      aItem.style.removeProperty("border-right-width");
     }
   },
 
