@@ -230,7 +230,8 @@
 
 
 #tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-tab[pinned]::before {
-  position: fixed;
+  height: 100%;
+  position: absolute;
 }
 
 .tabbrowser-tab[pinned][titlechanged]:not([selected="true"]) > .tab-stack > .tab-content {
