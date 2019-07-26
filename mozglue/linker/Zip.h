@@ -26,7 +26,7 @@ class ZipCollection;
 
 
 
-class Zip: public mozilla::RefCounted<Zip>
+class Zip: public mozilla::AtomicRefCounted<Zip>
 {
 public:
   
