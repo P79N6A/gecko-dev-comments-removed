@@ -51,10 +51,13 @@ namespace analyze {
 
 
 
+
+
 typedef enum JSTryNoteKind {
     JSTRY_CATCH,
     JSTRY_FINALLY,
-    JSTRY_ITER
+    JSTRY_ITER,
+    JSTRY_LOOP
 } JSTryNoteKind;
 
 
