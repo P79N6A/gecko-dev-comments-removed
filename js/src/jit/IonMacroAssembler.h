@@ -352,13 +352,13 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
-    void branchIfFalseBool(const Register &reg, Label *label) {
+    void branchIfFalseBool(Register reg, Label *label) {
         
         branchTest32(Assembler::Zero, reg, Imm32(0xFF), label);
     }
 
     
-    void branchIfTrueBool(const Register &reg, Label *label) {
+    void branchIfTrueBool(Register reg, Label *label) {
         
         branchTest32(Assembler::NonZero, reg, Imm32(0xFF), label);
     }
@@ -381,10 +381,10 @@ class MacroAssembler : public MacroAssemblerSpecific
         loadPtr(Address(worker, ThreadPoolWorker::offsetOfSliceBounds()), dest);
     }
 
-    void loadJSContext(const Register &dest) {
+    void loadJSContext(Register dest) {
         loadPtr(AbsoluteAddress(GetIonContext()->runtime->addressOfJSContext()), dest);
     }
-    void loadJitActivation(const Register &dest) {
+    void loadJitActivation(Register dest) {
         loadPtr(AbsoluteAddress(GetIonContext()->runtime->addressOfActivation()), dest);
     }
 
@@ -634,7 +634,7 @@ class MacroAssembler : public MacroAssemblerSpecific
             branch32(cond, length, Imm32(key.constant()), label);
     }
 
-    void branchTestNeedsBarrier(Condition cond, const Register &scratch, Label *label) {
+    void branchTestNeedsBarrier(Condition cond, Register scratch, Label *label) {
         JS_ASSERT(cond == Zero || cond == NonZero);
         CompileZone *zone = GetIonContext()->compartment->zone();
         movePtr(ImmPtr(zone->addressOfNeedsBarrier()), scratch);
@@ -690,7 +690,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void branchNurseryPtr(Condition cond, const Address &ptr1, const ImmMaybeNurseryPtr &ptr2,
                           Label *label);
-    void moveNurseryPtr(const ImmMaybeNurseryPtr &ptr, const Register &reg);
+    void moveNurseryPtr(const ImmMaybeNurseryPtr &ptr, Register reg);
 
     void canonicalizeDouble(FloatRegister reg) {
         Label notNaN;
@@ -783,30 +783,31 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    void branchEqualTypeIfNeeded(MIRType type, MDefinition *maybeDef, const Register &tag,
-                                 Label *label);
+    void branchEqualTypeIfNeeded(MIRType type, MDefinition *maybeDef, Register tag, Label *label);
 
     
-    void newGCThing(const Register &result, gc::AllocKind allocKind, Label *fail,
+    void newGCThing(Register result, Register temp, gc::AllocKind allocKind, Label *fail,
                     gc::InitialHeap initialHeap = gc::DefaultHeap);
-    void newGCThing(const Register &result, JSObject *templateObject, Label *fail,
+    void newGCThing(Register result, Register temp, JSObject *templateObject, Label *fail,
                     gc::InitialHeap initialHeap);
-    void newGCString(const Register &result, Label *fail);
-    void newGCShortString(const Register &result, Label *fail);
+    void newGCString(Register result, Register temp, Label *fail);
+    void newGCShortString(Register result, Register temp, Label *fail);
 
-    void newGCThingPar(const Register &result, const Register &cx,
-                       const Register &tempReg1, const Register &tempReg2,
+    void newGCThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                        gc::AllocKind allocKind, Label *fail);
-    void newGCThingPar(const Register &result, const Register &cx,
-                       const Register &tempReg1, const Register &tempReg2,
+    void newGCThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                        JSObject *templateObject, Label *fail);
-    void newGCStringPar(const Register &result, const Register &cx,
-                        const Register &tempReg1, const Register &tempReg2,
+    void newGCStringPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                         Label *fail);
-    void newGCShortStringPar(const Register &result, const Register &cx,
-                             const Register &tempReg1, const Register &tempReg2,
+    void newGCShortStringPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                              Label *fail);
-    void initGCThing(const Register &obj, JSObject *templateObject);
+
+    void copySlotsFromTemplate(Register obj, Register temp, const JSObject *templateObj,
+                               uint32_t start, uint32_t end);
+    void fillSlotsWithUndefined(Register obj, Register temp, const JSObject *templateObj,
+                                uint32_t start, uint32_t end);
+    void initGCSlots(Register obj, Register temp, JSObject *templateObj);
+    void initGCThing(Register obj, Register temp, JSObject *templateObj);
 
     
     
@@ -815,7 +816,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    void checkInterruptFlagPar(const Register &tempReg, Label *fail);
+    void checkInterruptFlagPar(Register tempReg, Label *fail);
 
     
     
@@ -903,7 +904,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
-    uint32_t callIon(const Register &callee) {
+    uint32_t callIon(Register callee) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callIon(callee);
         uint32_t ret = currentOffset();

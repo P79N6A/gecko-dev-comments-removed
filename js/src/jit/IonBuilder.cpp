@@ -7928,7 +7928,7 @@ IonBuilder::jsop_rest()
 
     
     
-    MConstant *index;
+    MConstant *index = nullptr;
     for (unsigned i = numFormals; i < numActuals; i++) {
         index = MConstant::New(alloc(), Int32Value(i - numFormals));
         current->add(index);
