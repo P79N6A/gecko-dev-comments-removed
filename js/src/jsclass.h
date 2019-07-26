@@ -24,7 +24,7 @@ class PropertyId;
 
 
 
-extern JS_FRIEND_DATA(js::Class*) FunctionClassPtr;
+extern JS_FRIEND_DATA(js::Class* const) FunctionClassPtr;
 
 static JS_ALWAYS_INLINE jsid
 SPECIALID_TO_JSID(const SpecialId &sid);

@@ -380,13 +380,13 @@ struct Atom {
 
 
 
-extern JS_FRIEND_DATA(js::Class*) FunctionProxyClassPtr;
-extern JS_FRIEND_DATA(js::Class*) ObjectProxyClassPtr;
-extern JS_FRIEND_DATA(js::Class*) OuterWindowProxyClassPtr;
+extern JS_FRIEND_DATA(js::Class* const) FunctionProxyClassPtr;
+extern JS_FRIEND_DATA(js::Class* const) ObjectProxyClassPtr;
+extern JS_FRIEND_DATA(js::Class* const) OuterWindowProxyClassPtr;
 
 
 
-extern JS_FRIEND_DATA(js::Class*) ObjectClassPtr;
+extern JS_FRIEND_DATA(js::Class* const) ObjectClassPtr;
 
 inline js::Class *
 GetObjectClass(JSObject *obj)

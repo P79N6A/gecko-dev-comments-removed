@@ -1126,7 +1126,7 @@ class ObjectElements
 };
 
 
-extern HeapSlot *emptyObjectElements;
+extern HeapSlot *const emptyObjectElements;
 
 struct Class;
 struct GCMarker;

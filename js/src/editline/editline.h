@@ -53,14 +53,7 @@ typedef unsigned char	CHAR;
 #define STATIC
 #endif	
 
-#if	!defined(CONST)
-#if	defined(__STDC__)
 #define CONST	const
-#else
-#define CONST
-#endif	
-#endif	
-
 
 #define MEM_INC		64
 #define SCREEN_INC	256
