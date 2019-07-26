@@ -48,22 +48,28 @@ InputPort.prototype.constructor = InputPort;
 
 
 InputPort.start = input => {
-  addObserver(input, input.topic, false);
+  input.addListener(input);
   
   
   addObserver(input, addonUnloadTopic, false);
 };
 InputPort.prototype[start] = InputPort.start;
 
+InputPort.addListener = input => addObserver(input, input.topic, false);
+InputPort.prototype.addListener = InputPort.addListener;
+
 
 
 
 
 InputPort.stop = input => {
-  removeObserver(input, input.topic);
+  input.removeListener(input);
   removeObserver(input, addonUnloadTopic);
 };
 InputPort.prototype[stop] = InputPort.stop;
+
+InputPort.removeListener = input => removeObserver(input, input.topic);
+InputPort.prototype.removeListener = InputPort.removeListener;
 
 
 
