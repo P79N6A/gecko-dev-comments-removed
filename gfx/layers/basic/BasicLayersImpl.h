@@ -94,7 +94,6 @@ void
 PaintWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
 
 
-void FillWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
 void
 FillRectWithMask(gfx::DrawTarget* aDT,
                  const gfx::Rect& aRect,
