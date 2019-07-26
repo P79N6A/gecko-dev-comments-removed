@@ -1746,12 +1746,19 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
   }
   NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
 
+  
+  
+  
+  
+  nsCxPusher pusher;
+  if (!pusher.PushNull())
+    return NS_ERROR_FAILURE;
   nsCOMPtr<nsIXULWindow> newWindow;
   appShell->CreateTopLevelWindow(this, uri,
                                  aChromeFlags, 615, 480,
                                  getter_AddRefs(newWindow));
-
   NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
+  pusher.Pop();
 
   
   nsXULWindow *xulWin = static_cast<nsXULWindow*>
