@@ -34,6 +34,9 @@
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
 #endif
+#ifdef XP_MACOSX
+#include "mozilla/gfx/MacIOSurface.h"
+#endif
 
 class gfxImageSurface;
 class gfxReusableSurfaceWrapper;
@@ -347,6 +350,108 @@ protected:
 
   RefPtr<SharedTextureSourceOGL> mTextureSource;
 };
+
+#ifdef XP_MACOSX
+
+
+
+
+
+
+class MacIOSurfaceTextureSourceOGL : public NewTextureSource
+                                   , public TextureSourceOGL
+{
+public:
+  MacIOSurfaceTextureSourceOGL(CompositorOGL* aCompositor,
+                               MacIOSurface* aSurface)
+    : mCompositor(aCompositor)
+    , mSurface(aSurface)
+  {}
+
+  virtual TextureSourceOGL* AsSourceOGL() { return this; }
+
+  virtual void BindTexture(GLenum activetex) MOZ_OVERRIDE;
+
+  virtual bool IsValid() const MOZ_OVERRIDE { return !!gl(); }
+
+  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE {
+    return gfx::IntSize(mSurface->GetDevicePixelWidth(),
+                        mSurface->GetDevicePixelHeight());
+  }
+
+  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE {
+    return mSurface->HasAlpha() ? gfx::FORMAT_R8G8B8A8 : gfx::FORMAT_B8G8R8X8; }
+
+  virtual GLenum GetTextureTarget() const { return LOCAL_GL_TEXTURE_RECTANGLE_ARB; }
+
+  virtual GLenum GetWrapMode() const MOZ_OVERRIDE { return LOCAL_GL_CLAMP_TO_EDGE; }
+
+  virtual void UnbindTexture() MOZ_OVERRIDE {}
+
+  
+  virtual void DeallocateDeviceData() {}
+
+  void SetCompositor(CompositorOGL* aCompositor) {
+    mCompositor = aCompositor;
+  }
+
+  gl::GLContext* gl() const;
+
+protected:
+  CompositorOGL* mCompositor;
+  RefPtr<MacIOSurface> mSurface;
+};
+
+
+
+
+
+
+class MacIOSurfaceTextureHostOGL : public TextureHost
+{
+public:
+  MacIOSurfaceTextureHostOGL(uint64_t aID,
+                             TextureFlags aFlags,
+                             const SurfaceDescriptorMacIOSurface& aDescriptor);
+
+  
+  virtual void DeallocateDeviceData() MOZ_OVERRIDE {}
+
+  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+
+  virtual bool Lock() MOZ_OVERRIDE;
+
+  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE {
+    return mSurface->HasAlpha() ? gfx::FORMAT_R8G8B8A8 : gfx::FORMAT_B8G8R8X8;
+  }
+
+  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
+  {
+    return mTextureSource;
+  }
+
+  virtual already_AddRefed<gfxImageSurface> GetAsSurface() MOZ_OVERRIDE
+  {
+    return nullptr; 
+  }
+
+  gl::GLContext* gl() const;
+
+  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE {
+    return gfx::IntSize(mSurface->GetDevicePixelWidth(),
+                        mSurface->GetDevicePixelHeight());
+  }
+
+#ifdef MOZ_LAYERS_HAVE_LOG
+  virtual const char* Name() { return "MacIOSurfaceTextureHostOGL"; }
+#endif
+
+protected:
+  CompositorOGL* mCompositor;
+  RefPtr<MacIOSurfaceTextureSourceOGL> mTextureSource;
+  RefPtr<MacIOSurface> mSurface;
+};
+#endif
 
 
 
