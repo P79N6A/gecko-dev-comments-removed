@@ -457,6 +457,7 @@ let SocialFlyout = {
     iframe.setAttribute("type", "content");
     iframe.setAttribute("class", "social-panel-frame");
     iframe.setAttribute("flex", "1");
+    iframe.setAttribute("tooltip", "aHTMLTooltip");
     iframe.setAttribute("origin", Social.provider.origin);
     panel.appendChild(iframe);
   },
@@ -897,6 +898,7 @@ var SocialToolbar = {
             "mozbrowser": "true",
             "class": "social-panel-frame",
             "id": notificationFrameId,
+            "tooltip": "aHTMLTooltip",
 
             
             
