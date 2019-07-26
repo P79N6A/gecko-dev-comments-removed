@@ -75,4 +75,15 @@ public class ReaderModeUtils {
 
         return aboutReaderUrl;
     }
+
+    
+
+
+    public static String getUrlForAboutReader(String aboutReaderUrl) {
+        String query = Uri.parse(aboutReaderUrl).getQuery();
+
+        
+        
+        return query.substring(4, query.indexOf("&readingList="));
+    }
 }
