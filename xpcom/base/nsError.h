@@ -6,11 +6,12 @@
 #ifndef nsError_h__
 #define nsError_h__
 
+#include "mozilla/Likely.h"
+#include "mozilla/TypedEnum.h"
+
 #ifndef nscore_h___
 #include "nscore.h"  
 #endif
-#include "mozilla/Attributes.h"
-#include "mozilla/Likely.h"
 
 
 
