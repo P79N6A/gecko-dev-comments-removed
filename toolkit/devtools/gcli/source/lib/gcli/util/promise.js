@@ -18,7 +18,7 @@
 
 var Cu = require('chrome').Cu;
 module.exports = exports =
-    Cu.import('resource://gre/modules/commonjs/sdk/core/promise.js', {}).Promise;
+    Cu.import('resource://gre/modules/devtools/deprecated-sync-thenables.js', {}).Promise;
 
 
 

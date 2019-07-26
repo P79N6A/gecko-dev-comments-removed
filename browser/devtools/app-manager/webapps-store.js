@@ -3,7 +3,7 @@
 
 
 const ObservableObject = require("devtools/shared/observable-object");
-const promise = require("sdk/core/promise");
+const promise = require("devtools/toolkit/deprecated-sync-thenables");
 const {Connection} = require("devtools/client/connection-manager");
 
 const {Cu} = require("chrome");
