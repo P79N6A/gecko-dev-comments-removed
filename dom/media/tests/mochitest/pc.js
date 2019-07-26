@@ -236,6 +236,89 @@ CommandChain.prototype = {
 
 
 
+function MediaElementChecker(element) {
+  this.element = element;
+  this.canPlayThroughFired = false;
+  this.timeUpdateFired = false;
+  this.timePassed = false;
+
+  var self = this;
+  var elementId = self.element.getAttribute('id');
+
+  
+  
+  var canPlayThroughCallback = function() {
+    info('canplaythrough fired for media element ' + elementId);
+    self.canPlayThroughFired = true;
+    self.element.removeEventListener('canplaythrough', canPlayThroughCallback,
+                                     false);
+  };
+
+  
+  
+  var timeUpdateCallback = function() {
+    self.timeUpdateFired = true;
+    info('timeupdate fired for media element ' + elementId);
+
+    
+    
+    if(element.mozSrcObject && element.mozSrcObject.currentTime > 0 &&
+       element.currentTime > 0) {
+      info('time passed for media element ' + elementId);
+      self.timePassed = true;
+      self.element.removeEventListener('timeupdate', timeUpdateCallback,
+                                       false);
+    }
+  };
+
+  element.addEventListener('canplaythrough', canPlayThroughCallback, false);
+  element.addEventListener('timeupdate', timeUpdateCallback, false);
+}
+
+MediaElementChecker.prototype = {
+
+  
+
+
+
+
+
+
+  waitForMediaFlow : function MEC_WaitForMediaFlow(onSuccess) {
+    var self = this;
+    var elementId = self.element.getAttribute('id');
+    info('Analyzing element: ' + elementId);
+
+    if(self.canPlayThroughFired && self.timeUpdateFired && self.timePassed) {
+      ok(true, 'Media flowing for ' + elementId);
+      onSuccess();
+    } else {
+      setTimeout(function() {
+        self.waitForMediaFlow(onSuccess);
+      }, 100);
+    }
+  },
+
+  
+
+
+
+  checkForNoMediaFlow : function MEC_CheckForNoMediaFlow() {
+    ok(this.element.readyState === HTMLMediaElement.HAVE_METADATA,
+       'Media element has a ready state of HAVE_METADATA');
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -797,6 +880,7 @@ function PeerConnectionWrapper(label, configuration) {
   this.constraints = [ ];
   this.offerConstraints = {};
   this.streams = [ ];
+  this.mediaCheckers = [ ];
 
   this.dataChannels = [ ];
 
@@ -932,7 +1016,8 @@ PeerConnectionWrapper.prototype = {
       this._pc.addStream(stream);
     }
 
-    var element = createMediaElement(type, this._label + '_' + side);
+    var element = createMediaElement(type, this.label + '_' + side);
+    this.mediaCheckers.push(new MediaElementChecker(element));
     element.mozSrcObject = stream;
     element.play();
   },
@@ -951,7 +1036,7 @@ PeerConnectionWrapper.prototype = {
         var constraints = constraintsList[index];
 
         getUserMedia(constraints, function (stream) {
-          var type = constraints;
+          var type = '';
 
           if (constraints.audio) {
             type = 'audio';
@@ -1145,13 +1230,37 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  checkMedia : function PCW_checkMedia(constraintsRemote) {
+  checkMediaStreams : function PCW_checkMediaStreams(constraintsRemote) {
     is(this._pc.localStreams.length, this.constraints.length,
        this + ' has ' + this.constraints.length + ' local streams');
 
     
     is(this._pc.remoteStreams.length, 1,
        this + ' has ' + 1 + ' remote streams');
+  },
+
+  
+
+
+
+
+
+
+  checkMediaFlowPresent : function PCW_checkMediaFlowPresent(onSuccess) {
+    var self = this;
+
+    function _checkMediaFlowPresent(index, onSuccess) {
+      if(index >= self.mediaCheckers.length) {
+        onSuccess();
+      } else {
+        var mediaChecker = self.mediaCheckers[index];
+        mediaChecker.waitForMediaFlow(function() {
+          _checkMediaFlowPresent(index + 1, onSuccess);
+        });
+      }
+    }
+
+    _checkMediaFlowPresent(0, onSuccess);
   },
 
   
