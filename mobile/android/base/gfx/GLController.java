@@ -36,7 +36,7 @@ public class GLController {
     private static GLController sInstance;
 
     private LayerView mView;
-    private boolean mSurfaceValid;
+    private boolean mServerSurfaceValid;
     private int mWidth, mHeight;
 
     
@@ -83,7 +83,7 @@ public class GLController {
         ThreadUtils.assertOnUiThread();
         Log.w(LOGTAG, "GLController::surfaceDestroyed() with mCompositorCreated=" + mCompositorCreated);
 
-        mSurfaceValid = false;
+        mServerSurfaceValid = false;
         mEGLSurface = null;
 
         
@@ -102,12 +102,12 @@ public class GLController {
 
     synchronized void surfaceChanged(int newWidth, int newHeight) {
         ThreadUtils.assertOnUiThread();
-        Log.w(LOGTAG, "GLController::surfaceChanged(" + newWidth + ", " + newHeight + ") with mSurfaceValid=" + mSurfaceValid);
+        Log.w(LOGTAG, "GLController::surfaceChanged(" + newWidth + ", " + newHeight + ") with mServerSurfaceValid=" + mServerSurfaceValid);
 
         mWidth = newWidth;
         mHeight = newHeight;
 
-        if (mSurfaceValid) {
+        if (mServerSurfaceValid) {
             
             
             
@@ -115,7 +115,7 @@ public class GLController {
             Log.w(LOGTAG, "done GLController::surfaceChanged with compositor resume");
             return;
         }
-        mSurfaceValid = true;
+        mServerSurfaceValid = true;
 
         
         
@@ -130,7 +130,7 @@ public class GLController {
         mView.post(new Runnable() {
             @Override
             public void run() {
-                Log.w(LOGTAG, "GLController::surfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mSurfaceValid=" + mSurfaceValid);
+                Log.w(LOGTAG, "GLController::surfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mServerSurfaceValid=" + mServerSurfaceValid);
                 try {
                     
                     
@@ -138,7 +138,7 @@ public class GLController {
                     
                     
                     
-                    if (mSurfaceValid) {
+                    if (mServerSurfaceValid) {
                         if (mEGL == null) {
                             initEGL();
                         }
@@ -149,7 +149,7 @@ public class GLController {
                     Log.e(LOGTAG, "Unable to create window surface", e);
                 }
                 if (mEGLSurface == null || mEGLSurface == EGL10.EGL_NO_SURFACE) {
-                    mSurfaceValid = false;
+                    mServerSurfaceValid = false;
                     mEGLSurface = null; 
                     Log.e(LOGTAG, "EGL window surface could not be created: " + getEGLError());
                     return;
@@ -192,7 +192,7 @@ public class GLController {
     }
 
     public boolean hasValidSurface() {
-        return mSurfaceValid;
+        return mServerSurfaceValid;
     }
 
     private void initEGL() {
