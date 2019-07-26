@@ -374,6 +374,8 @@ StackFrames.prototype = {
   get activeThread() DebuggerController.activeThread,
   autoScopeExpand: false,
   currentFrame: null,
+  syncedWatchExpressions: null,
+  currentWatchExpressions: null,
   currentBreakpointLocation: null,
   currentEvaluation: null,
   currentException: null,
@@ -428,7 +430,7 @@ StackFrames.prototype = {
         break;
       
       case "clientEvaluated":
-        this.currentEvaluation = aPacket.why.frameFinished.return;
+        this.currentEvaluation = aPacket.why.frameFinished;
         break;
       
       case "exception":
@@ -445,6 +447,11 @@ StackFrames.prototype = {
 
   _onResumed: function SF__onResumed() {
     DebuggerView.editor.setDebugLocation(-1);
+
+    
+    if (!this._isWatchExpressionsEvaluation) {
+      this.currentWatchExpressions = this.syncedWatchExpressions;
+    }
   },
 
   
@@ -455,7 +462,6 @@ StackFrames.prototype = {
     if (!this.activeThread.cachedFrames.length) {
       return;
     }
-    DebuggerView.StackFrames.empty();
 
     
     
@@ -468,28 +474,56 @@ StackFrames.prototype = {
         
         
         
-        this.evaluate("(" + conditionalExpression + ")", 0);
+        this.evaluate(conditionalExpression, 0);
         this._isConditionalBreakpointEvaluation = true;
         return;
       }
     }
-
     
     if (this._isConditionalBreakpointEvaluation) {
       this._isConditionalBreakpointEvaluation = false;
-
       
       
-      if (VariablesView.isFalsy({ value: this.currentEvaluation })) {
+      if (VariablesView.isFalsy({ value: this.currentEvaluation.return })) {
         this.activeThread.resume();
         return;
       }
     }
 
+
+    
+    
+    if (this.currentWatchExpressions) {
+      
+      
+      this.evaluate(this.currentWatchExpressions, 0);
+      this._isWatchExpressionsEvaluation = true;
+      return;
+    }
+    
+    if (this._isWatchExpressionsEvaluation) {
+      this._isWatchExpressionsEvaluation = false;
+      
+      
+      if (this.currentEvaluation.throw) {
+        DebuggerView.WatchExpressions.removeExpression(0);
+        DebuggerController.StackFrames.syncWatchExpressions();
+        return;
+      }
+      
+      
+      let topmostFrame = this.activeThread.cachedFrames[0];
+      topmostFrame.watchExpressionsEvaluation = this.currentEvaluation.return;
+    }
+
+
+    
+    DebuggerView.StackFrames.empty();
+
     for (let frame of this.activeThread.cachedFrames) {
       this._addFrame(frame);
     }
-    if (!this.currentFrame) {
+    if (this.currentFrame == null) {
       this.selectFrame(0);
     }
     if (this.activeThread.moreFrames) {
@@ -502,6 +536,7 @@ StackFrames.prototype = {
 
   _onFramesCleared: function SF__onFramesCleared() {
     this.currentFrame = null;
+    this.currentWatchExpressions = null;
     this.currentBreakpointLocation = null;
     this.currentEvaluation = null;
     this.currentException = null;
@@ -523,6 +558,7 @@ StackFrames.prototype = {
     DebuggerView.StackFrames.empty();
     DebuggerView.Variables.empty(0);
     DebuggerView.Breakpoints.unhighlightBreakpoint();
+    DebuggerView.WatchExpressions.toggleContents(true);
     window.dispatchEvent("Debugger:AfterFramesCleared");
   },
 
@@ -538,7 +574,7 @@ StackFrames.prototype = {
     if (!frame) {
       return;
     }
-    let environment = frame.environment;
+    let { environment, watchExpressionsEvaluation } = frame;
     let { url, line } = frame.where;
 
     
@@ -553,9 +589,25 @@ StackFrames.prototype = {
     
     DebuggerView.Breakpoints.highlightBreakpoint(url, line);
     
+    DebuggerView.WatchExpressions.toggleContents(false);
+    
     DebuggerView.Variables.createHierarchy();
     
     DebuggerView.Variables.empty();
+
+    
+    
+    if (watchExpressionsEvaluation) {
+      let label = L10N.getStr("watchExpressionsScopeLabel");
+      let arrow = L10N.getStr("watchExpressionsSeparatorLabel");
+      let scope = DebuggerView.Variables.addScope(label);
+      scope.separator = arrow;
+
+      
+      
+      this._fetchWatchExpressions(scope, watchExpressionsEvaluation);
+      scope.expand();
+    }
 
     do {
       
@@ -622,6 +674,39 @@ StackFrames.prototype = {
     }
     
     aVar.onexpand = callback;
+  },
+
+  
+
+
+
+
+
+
+
+  _fetchWatchExpressions: function SF__fetchWatchExpressions(aScope, aExp) {
+    
+    if (aScope.fetched) {
+      return;
+    }
+    aScope.fetched = true;
+
+    
+    this.activeThread.pauseGrip(aExp).getPrototypeAndProperties(function(aResponse) {
+      let ownProperties = aResponse.ownProperties;
+      let totalExpressions = DebuggerView.WatchExpressions.totalItems;
+
+      for (let i = 0; i < totalExpressions; i++) {
+        let name = DebuggerView.WatchExpressions.getExpression(i);
+        let expVal = ownProperties[i].value;
+        let expRef = aScope.addVar(name, ownProperties[i]);
+        this._addVarExpander(expRef, expVal);
+      }
+
+      
+      window.dispatchEvent("Debugger:FetchedWatchExpressions");
+      DebuggerView.Variables.commitHierarchy();
+    }.bind(this));
   },
 
   
@@ -760,7 +845,7 @@ StackFrames.prototype = {
       }
 
       
-      if (prototype.type != "null") {
+      if (prototype && prototype.type != "null") {
         aVar.addProperty("__proto__", { value: prototype });
         
         this._addVarExpander(aVar.get("__proto__"), prototype);
@@ -833,13 +918,34 @@ StackFrames.prototype = {
   
 
 
+  syncWatchExpressions: function SF_syncWatchExpressions() {
+    let list = DebuggerView.WatchExpressions.getExpressions();
+
+    if (list.length) {
+      this.syncedWatchExpressions =
+        this.currentWatchExpressions = "[" + list.map(function(str)
+          "(function() {" +
+            "try { return eval(\"" + str.replace(/"/g, "\\$&") + "\"); }" +
+            "catch(e) { return e.name + ': ' + e.message; }" +
+          "})()"
+        ).join(",") + "]";
+    } else {
+      this.syncedWatchExpressions =
+        this.currentWatchExpressions = null;
+    }
+    this._onFrames();
+  },
+
+  
 
 
 
 
 
 
-  evaluate: function SF_evaluate(aExpression, aFrame = this.currentFrame) {
+
+
+  evaluate: function SF_evaluate(aExpression, aFrame = this.currentFrame || 0) {
     let frame = this.activeThread.cachedFrames[aFrame];
     this.activeThread.eval(frame.actor, aExpression);
   }
@@ -958,6 +1064,10 @@ SourceScripts.prototype = {
   _onScriptsAdded: function SS__onScriptsAdded(aResponse) {
     
     for (let script of aResponse.scripts) {
+      
+      if (script.url == "debugger eval code") {
+        continue;
+      }
       this._addSource(script);
     }
 

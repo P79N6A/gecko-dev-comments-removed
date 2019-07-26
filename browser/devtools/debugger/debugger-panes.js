@@ -36,7 +36,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
   destroy: function DVSF_destroy() {
     dumpn("Destroying the StackFramesView");
-    this._container.removeEventListener("click", this._onClick, true);
+    this._container.removeEventListener("click", this._onClick, false);
     this._container.removeEventListener("scroll", this._onScroll, true);
     window.removeEventListener("resize", this._onScroll, true);
   },
@@ -911,6 +911,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
+
   _key: function DVB__key(aSourceLocation, aLineNumber) {
     return aSourceLocation + aLineNumber;
   },
@@ -922,6 +923,247 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   _popupShown: false,
   _cache: null,
   _editorContextMenuLineNumber: -1
+});
+
+
+
+
+function WatchExpressionsView() {
+  dumpn("WatchExpressionsView was instantiated");
+  MenuContainer.call(this);
+  this._createItemView = this._createItemView.bind(this);
+  this._onClick = this._onClick.bind(this);
+  this._onClose = this._onClose.bind(this);
+  this._onBlur = this._onBlur.bind(this);
+  this._onKeyPress = this._onKeyPress.bind(this);
+  this._onMouseOver = this._onMouseOver.bind(this);
+  this._onMouseOut = this._onMouseOut.bind(this);
+}
+
+create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
+  
+
+
+  initialize: function DVWE_initialize() {
+    dumpn("Initializing the WatchExpressionsView");
+    this._container = new StackList(document.getElementById("expressions"));
+    this._variables = document.getElementById("variables");
+
+    this._container.permaText = L10N.getStr("addWatchExpressionText");
+    this._container.itemFactory = this._createItemView;
+    this._container.addEventListener("click", this._onClick, false);
+
+    this._cache = [];
+  },
+
+  
+
+
+  destroy: function DVWE_destroy() {
+    dumpn("Destroying the WatchExpressionsView");
+    this._container.removeEventListener("click", this._onClick, false);
+  },
+
+  
+
+
+
+
+
+  addExpression: function DVWE_addExpression(aExpression = "") {
+    
+    DebuggerView.showPanesSoon();
+
+    
+    let expressionItem = this.push("", aExpression, {
+      forced: { atIndex: 0 },
+      unsorted: true,
+      relaxed: true,
+      attachment: {
+        expression: "",
+        initialExpression: aExpression,
+        id: this._generateId()
+      }
+    });
+
+    
+    if (!expressionItem) {
+      return;
+    }
+
+    let element = expressionItem.target;
+    element.id = "expression-" + expressionItem.attachment.id;
+    element.className = "dbg-expression list-item";
+    element.arrowNode.className = "dbg-expression-arrow";
+    element.inputNode.className = "dbg-expression-input plain";
+    element.closeNode.className = "dbg-expression-delete plain devtools-closebutton";
+
+    
+    
+    element.inputNode.value = aExpression;
+    element.inputNode.select();
+    element.inputNode.focus();
+    this._variables.scrollTop = 0;
+
+    this._cache.splice(0, 0, expressionItem);
+  },
+
+  
+
+
+
+
+
+  removeExpression: function DVWE_removeExpression(aIndex) {
+    this.remove(this._cache[aIndex]);
+    this._cache.splice(aIndex, 1);
+  },
+
+  
+
+
+
+
+
+
+
+  getExpression: function DVWE_getExpression(aIndex) {
+    return this._cache[aIndex].attachment.expression;
+  },
+
+  
+
+
+
+
+
+  getExpressions: function DVWE_getExpressions() {
+    return [item.attachment.expression for (item of this._cache)];
+  },
+
+  
+
+
+
+
+
+
+
+  _createItemView: function DVWE__createItemView(aElementNode, aExpression) {
+    let arrowNode = document.createElement("box");
+    let inputNode = document.createElement("textbox");
+    let closeNode = document.createElement("toolbarbutton");
+
+    inputNode.setAttribute("value", aExpression);
+    inputNode.setAttribute("flex", "1");
+
+    closeNode.addEventListener("click", this._onClose, false);
+    inputNode.addEventListener("blur", this._onBlur, false);
+    inputNode.addEventListener("keypress", this._onKeyPress, false);
+    aElementNode.addEventListener("mouseover", this._onMouseOver, false);
+    aElementNode.addEventListener("mouseout", this._onMouseOut, false);
+
+    aElementNode.appendChild(arrowNode);
+    aElementNode.appendChild(inputNode);
+    aElementNode.appendChild(closeNode);
+    aElementNode.arrowNode = arrowNode;
+    aElementNode.inputNode = inputNode;
+    aElementNode.closeNode = closeNode;
+  },
+
+  
+
+
+  _onClick: function DVWE__onClick(e) {
+    let expressionItem = this.getItemForElement(e.target);
+    if (!expressionItem) {
+      
+      this.addExpression();
+    }
+  },
+
+  
+
+
+  _onClose: function DVWE__onClose(e) {
+    let expressionItem = this.getItemForElement(e.target);
+    this.removeExpression(this._cache.indexOf(expressionItem));
+
+    
+    DebuggerController.StackFrames.syncWatchExpressions();
+
+    e.preventDefault();
+    e.stopPropagation();
+  },
+
+  
+
+
+  _onBlur: function DVWE__onBlur({ target: textbox }) {
+    let expressionItem = this.getItemForElement(textbox);
+    let oldExpression = expressionItem.attachment.expression;
+    let newExpression = textbox.value;
+
+    
+    if (!newExpression) {
+      this.removeExpression(this._cache.indexOf(expressionItem));
+    }
+    
+    else if (!oldExpression && this.getExpressions().indexOf(newExpression) != -1) {
+      this.removeExpression(this._cache.indexOf(expressionItem));
+    }
+    
+    else {
+      
+      expressionItem.attachment.expression = newExpression;
+      
+      expressionItem.target.closeNode.hidden = true;
+    }
+
+    
+    DebuggerController.StackFrames.syncWatchExpressions();
+  },
+
+  
+
+
+  _onKeyPress: function DVWE__onKeyPress(e) {
+    switch(e.keyCode) {
+      case e.DOM_VK_RETURN:
+      case e.DOM_VK_ENTER:
+      case e.DOM_VK_ESCAPE:
+        DebuggerView.editor.focus();
+        return;
+    }
+  },
+
+  
+
+
+  _onMouseOver: function DVWE__onMouseOver({ target: element }) {
+    this.getItemForElement(element).target.closeNode.hidden = false;
+  },
+
+  
+
+
+  _onMouseOut: function DVWE__onMouseOut({ target: element }) {
+    this.getItemForElement(element).target.closeNode.hidden = true;
+  },
+
+  
+
+
+
+  _generateId: (function() {
+    let count = 0;
+    return function DVWE__generateId() {
+      return (++count) + "";
+    };
+  })(),
+
+  _variables: null,
+  _cache: null
 });
 
 
@@ -1778,4 +2020,5 @@ LineResults.size = function DVGS_size() {
 
 DebuggerView.StackFrames = new StackFramesView();
 DebuggerView.Breakpoints = new BreakpointsView();
+DebuggerView.WatchExpressions = new WatchExpressionsView();
 DebuggerView.GlobalSearch = new GlobalSearchView();

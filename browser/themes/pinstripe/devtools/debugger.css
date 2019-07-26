@@ -37,7 +37,7 @@
 
 .list-item.empty {
   color: GrayText;
-  padding: 4px;
+  padding: 2px;
 }
 
 
@@ -136,6 +136,19 @@
 
 
 
+#variables\+expressions {
+  background-color: white;
+  min-width: 50px;
+}
+
+#variables\+expressions[animated] {
+  transition: margin 0.25s ease-in-out;
+}
+
+
+
+
+
 #stackframes {
   background-color: white;
   min-height: 10px;
@@ -188,13 +201,41 @@
 
 
 
-#variables {
+#expressions {
   background-color: white;
-  min-width: 50px;
+  min-height: 10px;
 }
 
-#variables[animated] {
-  transition: margin 0.25s ease-in-out;
+.dbg-expression {
+  height: 20px;
+  -moz-padding-start: 8px;
+}
+
+.dbg-expression:last-child {
+  margin-bottom: 4px;
+}
+
+.dbg-expression-arrow {
+  width: 10px;
+  height: auto;
+  background: url("chrome://browser/skin/devtools/commandline.png") 0px 4px no-repeat;
+}
+
+.dbg-expression-input {
+  font: 9pt monospace;
+}
+
+.dbg-expression-delete {
+  -moz-image-region: rect(0, 32px, 16px, 16px);
+}
+
+
+
+
+
+#variables {
+  background-color: white;
+  min-height: 10px;
 }
 
 
