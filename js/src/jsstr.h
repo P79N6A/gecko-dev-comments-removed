@@ -165,7 +165,15 @@ namespace js {
 
 
 extern JSString *
-ValueToSource(JSContext *cx, const js::Value &v);
+ValueToSource(JSContext *cx, HandleValue v);
+
+
+
+
+
+
+extern JSString *
+StringToSource(JSContext *cx, JSString *str);
 
 
 
