@@ -490,4 +490,14 @@ Register(nsScriptNameSpaceManager* aNameSpaceManager);
 } 
 } 
 
+
+
+typedef void* (*DeferredFinalizeStartFunction)();
+
+
+
+
+
+typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
+
 #endif
