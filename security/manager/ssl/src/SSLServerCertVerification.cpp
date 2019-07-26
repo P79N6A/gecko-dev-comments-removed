@@ -144,6 +144,9 @@ nsIThreadPool * gCertVerificationThreadPool = nullptr;
 
 Mutex *gSSLVerificationTelemetryMutex = nullptr;
 
+
+Mutex *gSSLVerificationPK11Mutex = nullptr;
+
 } 
 
 
@@ -160,6 +163,7 @@ void
 InitializeSSLServerCertVerificationThreads()
 {
   gSSLVerificationTelemetryMutex = new Mutex("SSLVerificationTelemetryMutex");
+  gSSLVerificationPK11Mutex = new Mutex("SSLVerificationPK11Mutex");
   
   
   
@@ -195,6 +199,10 @@ void StopSSLServerCertVerificationThreads()
   if (gSSLVerificationTelemetryMutex) {
     delete gSSLVerificationTelemetryMutex;
     gSSLVerificationTelemetryMutex = nullptr;
+  }
+  if (gSSLVerificationPK11Mutex) {
+    delete gSSLVerificationPK11Mutex;
+    gSSLVerificationPK11Mutex = nullptr;
   }
 }
 
@@ -979,6 +987,10 @@ AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert,
         
         char* nickname = nsNSSCertificate::defaultServerNickname(node->cert);
         if (nickname && *nickname) {
+          
+          
+          
+          MutexAutoLock PK11Mutex(*gSSLVerificationPK11Mutex);
           ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
           if (slot) {
             PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
