@@ -221,6 +221,7 @@ public:
     eUnit_CSSValueTriplet, 
     eUnit_CSSRect, 
     eUnit_Dasharray, 
+    eUnit_Filter, 
     eUnit_Shadow, 
     eUnit_Transform, 
     eUnit_BackgroundPosition, 
@@ -380,8 +381,9 @@ public:
       return aUnit == eUnit_CSSRect;
     }
     static bool IsCSSValueListUnit(Unit aUnit) {
-      return aUnit == eUnit_Dasharray || aUnit == eUnit_Shadow ||
-             aUnit == eUnit_Transform || aUnit == eUnit_BackgroundPosition;
+      return aUnit == eUnit_Dasharray || aUnit == eUnit_Filter ||
+             aUnit == eUnit_Shadow || aUnit == eUnit_Transform ||
+             aUnit == eUnit_BackgroundPosition;
     }
     static bool IsCSSValuePairListUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValuePairList;
