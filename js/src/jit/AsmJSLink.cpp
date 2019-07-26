@@ -773,8 +773,20 @@ LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp)
     
     
     
-    if (moduleObj->module().isDynamicallyLinked() && !CloneModule(cx, &moduleObj))
-        return false;
+    AutoFlushICache afc("LinkAsmJS");
+
+    
+    
+    
+    
+    if (moduleObj->module().isDynamicallyLinked()) {
+        if (!CloneModule(cx, &moduleObj))
+            return false;
+    } else {
+        
+        
+        moduleObj->module().setAutoFlushICacheRange();
+    }
 
     AsmJSModule &module = moduleObj->module();
 

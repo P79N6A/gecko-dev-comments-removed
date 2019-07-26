@@ -540,7 +540,7 @@ struct IonScript
         return (CacheLocation *) &runtimeData()[locIndex];
     }
     void toggleBarriers(bool enabled);
-    void purgeCaches(JS::Zone *zone);
+    void purgeCaches();
     void destroyCaches();
     void unlinkFromRuntime(FreeOp *fop);
     void copySnapshots(const SnapshotWriter *writer);
@@ -774,40 +774,23 @@ struct VMFunction;
 class JitCompartment;
 class JitRuntime;
 
-struct AutoFlushCache
+struct AutoFlushICache
 {
   private:
     uintptr_t start_;
     uintptr_t stop_;
     const char *name_;
-    JitRuntime *runtime_;
-    bool used_;
+    bool inhibit_;
+    AutoFlushICache *prev_;
 
   public:
-    void update(uintptr_t p, size_t len);
-    static void updateTop(uintptr_t p, size_t len);
-    ~AutoFlushCache();
-    AutoFlushCache(const char *nonce, JitRuntime *rt);
-    void flushAnyway();
+    static void setRange(uintptr_t p, size_t len);
+    static void flush(uintptr_t p, size_t len);
+    static void setInhibit();
+    ~AutoFlushICache();
+    AutoFlushICache(const char *nonce, bool inhibit=false);
 };
 
-
-
-
-
-
-
-
-
-struct AutoFlushInhibitor
-{
-  private:
-    JitRuntime *runtime_;
-    AutoFlushCache *afc;
-  public:
-    AutoFlushInhibitor(JitRuntime *rt);
-    ~AutoFlushInhibitor();
-};
 } 
 
 namespace gc {

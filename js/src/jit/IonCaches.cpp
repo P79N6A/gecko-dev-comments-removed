@@ -403,6 +403,7 @@ IonCache::linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &a
                             IonScript *ion, const char *attachKind)
 {
     Rooted<JitCode *> code(cx);
+    AutoFlushICache afc("IonCache");
     LinkStatus status = linkCode(cx, masm, ion, code.address());
     if (status != LINK_GOOD)
         return status != LINK_ERROR;
@@ -1692,8 +1693,6 @@ GetPropertyIC::update(JSContext *cx, size_t cacheIndex,
     GetPropertyIC &cache = ion->getCache(cacheIndex).toGetProperty();
     RootedPropertyName name(cx, cache.name());
 
-    AutoFlushCache afc ("GetPropertyCache", cx->runtime()->jitRuntime());
-
     
     AutoDetectInvalidation adi(cx, vp.address(), ion);
 
@@ -1867,9 +1866,6 @@ GetPropertyParIC::update(ForkJoinContext *cx, size_t cacheIndex,
         
         
         LockedJSContext ncx(cx);
-
-        
-        AutoFlushCache afc("GetPropertyParCache", cx->runtime()->jitRuntime());
 
         if (cache.canAttachStub()) {
             bool alreadyStubbed;
@@ -2748,8 +2744,6 @@ bool
 SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
                       HandleValue value)
 {
-    AutoFlushCache afc ("SetPropertyCache", cx->runtime()->jitRuntime());
-
     void *returnAddr;
     RootedScript script(cx, GetTopIonJSScript(cx, &returnAddr));
     IonScript *ion = script->ionScript();
@@ -2865,7 +2859,6 @@ SetPropertyParIC::update(ForkJoinContext *cx, size_t cacheIndex, HandleObject ob
     {
         
         LockedJSContext ncx(cx);
-        AutoFlushCache afc("SetPropertyParCache", cx->runtime()->jitRuntime());
 
         if (cache.canAttachStub()) {
             bool alreadyStubbed;
@@ -3425,8 +3418,6 @@ GetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
         return true;
     }
 
-    AutoFlushCache afc("GetElementCache", cx->runtime()->jitRuntime());
-
     RootedId id(cx);
     if (!ValueToId<CanGC>(cx, idval, &id))
         return false;
@@ -3968,7 +3959,6 @@ GetElementParIC::update(ForkJoinContext *cx, size_t cacheIndex, HandleObject obj
     {
         
         LockedJSContext ncx(cx);
-        AutoFlushCache afc("GetElementParCache", cx->runtime()->jitRuntime());
 
         if (cache.canAttachStub()) {
             bool alreadyStubbed;
@@ -4159,8 +4149,6 @@ IsCacheableScopeChain(JSObject *scopeChain, JSObject *holder)
 JSObject *
 BindNameIC::update(JSContext *cx, size_t cacheIndex, HandleObject scopeChain)
 {
-    AutoFlushCache afc ("BindNameCache", cx->runtime()->jitRuntime());
-
     RootedScript outerScript(cx, GetTopIonJSScript(cx));
     IonScript *ion = outerScript->ionScript();
     BindNameIC &cache = ion->getCache(cacheIndex).toBindName();
@@ -4290,8 +4278,6 @@ bool
 NameIC::update(JSContext *cx, size_t cacheIndex, HandleObject scopeChain,
                MutableHandleValue vp)
 {
-    AutoFlushCache afc ("GetNameCache", cx->runtime()->jitRuntime());
-
     void *returnAddr;
     RootedScript outerScript(cx, GetTopIonJSScript(cx, &returnAddr));
     IonScript *ion = outerScript->ionScript();
@@ -4354,8 +4340,6 @@ CallsiteCloneIC::attach(JSContext *cx, HandleScript outerScript, IonScript *ion,
 JSObject *
 CallsiteCloneIC::update(JSContext *cx, size_t cacheIndex, HandleObject callee)
 {
-    AutoFlushCache afc ("CallsiteCloneCache", cx->runtime()->jitRuntime());
-
     
     
     RootedFunction fun(cx, &callee->as<JSFunction>());

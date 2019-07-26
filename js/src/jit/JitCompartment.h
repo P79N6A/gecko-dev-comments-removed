@@ -210,9 +210,6 @@ class JitRuntime
     uint8_t *osrTempData_;
 
     
-    AutoFlushCache *flusher_;
-
-    
     
     bool ionCodeProtected_;
 
@@ -261,14 +258,6 @@ class JitRuntime
     void freeOsrTempData();
 
     static void Mark(JSTracer *trc);
-
-    AutoFlushCache *flusher() {
-        return flusher_;
-    }
-    void setFlusher(AutoFlushCache *fl) {
-        if (!flusher_ || !fl)
-            flusher_ = fl;
-    }
 
     JSC::ExecutableAllocator *execAlloc() const {
         return execAlloc_;

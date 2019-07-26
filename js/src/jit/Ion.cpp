@@ -162,7 +162,6 @@ JitRuntime::JitRuntime()
     baselineDebugModeOSRHandler_(nullptr),
     functionWrappers_(nullptr),
     osrTempData_(nullptr),
-    flusher_(nullptr),
     ionCodeProtected_(false),
     ionReturnOverride_(MagicValue(JS_ARG_POISON))
 {
@@ -187,7 +186,6 @@ JitRuntime::initialize(JSContext *cx)
     AutoCompartment ac(cx, cx->atomsCompartment());
 
     IonContext ictx(cx, nullptr);
-    AutoFlushCache afc("JitRuntime::initialize", this);
 
     execAlloc_ = cx->runtime()->getExecAlloc(cx);
     if (!execAlloc_)
@@ -1176,7 +1174,7 @@ IonScript::toggleBarriers(bool enabled)
 }
 
 void
-IonScript::purgeCaches(Zone *zone)
+IonScript::purgeCaches()
 {
     
     
@@ -1186,9 +1184,6 @@ IonScript::purgeCaches(Zone *zone)
     if (invalidated())
         return;
 
-    JSRuntime *rt = zone->runtimeFromMainThread();
-    IonContext ictx(CompileRuntime::get(rt));
-    AutoFlushCache afc("purgeCaches", rt->jitRuntime());
     for (size_t i = 0; i < numCaches(); i++)
         getCacheFromIndex(i).reset();
 }
@@ -1248,8 +1243,6 @@ jit::ToggleBarriers(JS::Zone *zone, bool needs)
     if (!rt->hasJitRuntime())
         return;
 
-    IonContext ictx(CompileRuntime::get(rt));
-    AutoFlushCache afc("ToggleBarriers", rt->jitRuntime());
     for (gc::ZoneCellIterUnderGC i(zone, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
         if (script->hasIonScript())
@@ -1734,7 +1727,6 @@ AttachFinishedCompilations(JSContext *cx)
                 
                 AutoTempAllocatorRooter root(cx, &builder->alloc());
                 AutoUnlockWorkerThreadState unlock;
-                AutoFlushCache afc("AttachFinishedCompilations", cx->runtime()->jitRuntime());
                 success = codegen->link(cx, builder->constraints());
             }
 
@@ -1879,8 +1871,6 @@ IonCompile(JSContext *cx, JSScript *script,
         if (!baselineFrameInspector)
             return AbortReason_Alloc;
     }
-
-    AutoFlushCache afc("IonCompile", cx->runtime()->jitRuntime());
 
     AutoTempAllocatorRooter root(cx, temp);
     types::CompilerConstraintList *constraints = types::NewCompilerConstraintList(*temp);
@@ -2417,7 +2407,6 @@ EnterIon(JSContext *cx, EnterJitData &data)
     {
         AssertCompartmentUnchanged pcc(cx);
         JitActivation activation(cx, data.constructing);
-        AutoFlushInhibitor afi(cx->runtime()->jitRuntime());
 
         CALL_GENERATED_CODE(enter, data.jitcode, data.maxArgc, data.maxArgv, nullptr, data.calleeToken,
                              nullptr, 0, data.result.address());
@@ -2601,7 +2590,7 @@ InvalidateActivation(FreeOp *fop, uint8_t *jitTop, bool invalidateAll)
         
         
         
-        ionScript->purgeCaches(script->zone());
+        ionScript->purgeCaches();
 
         
         
@@ -2682,8 +2671,6 @@ jit::InvalidateAll(FreeOp *fop, Zone *zone)
 
     for (JitActivationIterator iter(fop->runtime()); !iter.done(); ++iter) {
         if (iter->compartment()->zone() == zone) {
-            IonContext ictx(CompileRuntime::get(fop->runtime()));
-            AutoFlushCache afc("InvalidateAll", fop->runtime()->jitRuntime());
             IonSpew(IonSpew_Invalidate, "Invalidating all frames for GC");
             InvalidateActivation(fop, iter.jitTop(), true);
         }
@@ -2697,7 +2684,6 @@ jit::Invalidate(types::TypeZone &types, FreeOp *fop,
                 bool cancelOffThread)
 {
     IonSpew(IonSpew_Invalidate, "Start invalidation.");
-    AutoFlushCache afc ("Invalidate", fop->runtime()->jitRuntime());
 
     
     
@@ -2939,66 +2925,149 @@ jit::ForbidCompilation(JSContext *cx, JSScript *script, ExecutionMode mode)
     MOZ_ASSUME_UNREACHABLE("No such execution mode");
 }
 
-void
-AutoFlushCache::updateTop(uintptr_t p, size_t len)
+AutoFlushICache *
+PerThreadData::autoFlushICache() const
 {
-    IonContext *ictx = MaybeGetIonContext();
-    JitRuntime *jrt = (ictx != nullptr) ? const_cast<JitRuntime *>(ictx->runtime->jitRuntime()) : nullptr;
-    if (!jrt || !jrt->flusher())
-        JSC::ExecutableAllocator::cacheFlush((void*)p, len);
-    else
-        jrt->flusher()->update(p, len);
+    return autoFlushICache_;
 }
 
-AutoFlushCache::AutoFlushCache(const char *nonce, JitRuntime *rt)
+void
+PerThreadData::setAutoFlushICache(AutoFlushICache *afc)
+{
+    autoFlushICache_ = afc;
+}
+
+
+
+
+
+
+void
+AutoFlushICache::setRange(uintptr_t start, size_t len)
+{
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+    AutoFlushICache *afc = TlsPerThreadData.get()->PerThreadData::autoFlushICache();
+    JS_ASSERT(afc);
+    JS_ASSERT(!afc->start_);
+    IonSpewCont(IonSpew_CacheFlush, "(%x %x):", start, len);
+
+    uintptr_t stop = start + len;
+    afc->start_ = start;
+    afc->stop_ = stop;
+#endif
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+AutoFlushICache::flush(uintptr_t start, size_t len)
+{
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+    AutoFlushICache *afc = TlsPerThreadData.get()->PerThreadData::autoFlushICache();
+    if (!afc) {
+        IonSpewCont(IonSpew_CacheFlush, "#");
+        JSC::ExecutableAllocator::cacheFlush((void*)start, len);
+        JS_ASSERT(len <= 16);
+        return;
+    }
+
+    uintptr_t stop = start + len;
+    if (start >= afc->start_ && stop <= afc->stop_) {
+        
+        IonSpewCont(IonSpew_CacheFlush, afc->inhibit_ ? "-" : "=");
+        return;
+    }
+
+    IonSpewCont(IonSpew_CacheFlush, afc->inhibit_ ? "x" : "*");
+    JSC::ExecutableAllocator::cacheFlush((void *)start, len);
+#endif
+}
+
+
+
+void
+AutoFlushICache::setInhibit()
+{
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+    AutoFlushICache *afc = TlsPerThreadData.get()->PerThreadData::autoFlushICache();
+    JS_ASSERT(afc);
+    JS_ASSERT(afc->start_);
+    IonSpewCont(IonSpew_CacheFlush, "I");
+    afc->inhibit_ = true;
+#endif
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AutoFlushICache::AutoFlushICache(const char *nonce, bool inhibit)
   : start_(0),
     stop_(0),
     name_(nonce),
-    runtime_(rt),
-    used_(false)
+    inhibit_(inhibit)
 {
-    if (rt->flusher())
-        IonSpew(IonSpew_CacheFlush, "<%s ", nonce);
-    else
-        IonSpewCont(IonSpew_CacheFlush, "<%s ", nonce);
-
-    rt->setFlusher(this);
-}
-
-AutoFlushInhibitor::AutoFlushInhibitor(JitRuntime *rt)
-  : runtime_(rt),
-    afc(nullptr)
-{
-    afc = rt->flusher();
-
-    
-    rt->setFlusher(nullptr);
-
-    
-    if (afc) {
-        afc->flushAnyway();
-        IonSpewCont(IonSpew_CacheFlush, "}");
-    }
-}
-AutoFlushInhibitor::~AutoFlushInhibitor()
-{
-    JS_ASSERT(runtime_->flusher() == nullptr);
-
-    
-    runtime_->setFlusher(afc);
-
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+    PerThreadData *pt = TlsPerThreadData.get();
+    AutoFlushICache *afc = pt->PerThreadData::autoFlushICache();
     if (afc)
-        IonSpewCont(IonSpew_CacheFlush, "{");
+        IonSpew(IonSpew_CacheFlush, "<%s,%s%s ", nonce, afc->name_, inhibit ? " I" : "");
+    else
+        IonSpewCont(IonSpew_CacheFlush, "<%s%s ", nonce, inhibit ? " I" : "");
+
+    prev_ = afc;
+    pt->PerThreadData::setAutoFlushICache(this);
+#endif
+}
+
+AutoFlushICache::~AutoFlushICache()
+{
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+    PerThreadData *pt = TlsPerThreadData.get();
+    JS_ASSERT(pt->PerThreadData::autoFlushICache() == this);
+
+    if (!inhibit_ && start_)
+        JSC::ExecutableAllocator::cacheFlush((void *)start_, size_t(stop_ - start_));
+
+    IonSpewCont(IonSpew_CacheFlush, "%s%s>", name_, start_ ? "" : " U");
+    IonSpewFin(IonSpew_CacheFlush);
+    pt->PerThreadData::setAutoFlushICache(prev_);
+#endif
 }
 
 void
-jit::PurgeCaches(JSScript *script, Zone *zone)
+jit::PurgeCaches(JSScript *script)
 {
     if (script->hasIonScript())
-        script->ionScript()->purgeCaches(zone);
+        script->ionScript()->purgeCaches();
 
     if (script->hasParallelIonScript())
-        script->parallelIonScript()->purgeCaches(zone);
+        script->parallelIonScript()->purgeCaches();
 }
 
 size_t
@@ -3105,7 +3174,6 @@ AutoDebugModeInvalidation::~AutoDebugModeInvalidation()
         JSCompartment *comp = iter->compartment();
         if (comp_ == comp || zone_ == comp->zone()) {
             IonContext ictx(CompileRuntime::get(rt));
-            AutoFlushCache afc("AutoDebugModeInvalidation", rt->jitRuntime());
             IonSpew(IonSpew_Invalidate, "Invalidating frames for debug mode toggle");
             InvalidateActivation(fop, iter.jitTop(), true);
         }
