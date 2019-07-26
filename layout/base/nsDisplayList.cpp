@@ -625,15 +625,6 @@ static void UnmarkFrameForDisplay(nsIFrame* aFrame) {
   }
 }
 
-static void AdjustForScrollBars(ScreenIntRect& aToAdjust, nsIScrollableFrame* aScrollableFrame) {
-  if (aScrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
-    nsMargin sizes = aScrollableFrame->GetActualScrollbarSizes();
-    
-    ScreenIntMargin boundMargins = RoundedToInt(CSSMargin::FromAppUnits(sizes) * CSSToScreenScale(1.0f));
-    aToAdjust.Deflate(boundMargins);
-  }
-}
-
 static bool gPrintApzcTree = false;
 
 static bool GetApzcTreePrintPref() {
@@ -759,33 +750,41 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
                            frameForCompositionBoundsCalculation->GetSize());
   metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
-                             * metrics.mCumulativeResolution
-                             * layerToScreenScale);
+                             * metrics.GetParentResolution());
 
   
   
   
   
-  bool useWidgetBounds = false;
+  
+  
+  
+  
   bool isRootContentDocRootScrollFrame = presContext->IsRootContentDocument()
                                       && aScrollFrame == presShell->GetRootScrollFrame();
   if (isRootContentDocRootScrollFrame) {
-    if (nsIWidget* widget = aForFrame->GetNearestWidget()) {
-      nsIntRect bounds;
-      widget->GetBounds(bounds);
-      ScreenIntRect screenBounds = ScreenIntRect::FromUnknownRect(mozilla::gfx::IntRect(
-          bounds.x, bounds.y, bounds.width, bounds.height));
-      AdjustForScrollBars(screenBounds, scrollableFrame);
-      metrics.mCompositionBounds = metrics.mCompositionBounds.ForceInside(screenBounds);
-      useWidgetBounds = true;
+    if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
+      if (nsView* view = rootFrame->GetView()) {
+        nsIWidget* widget = view->GetWidget();
+        if (widget) {
+          nsIntRect bounds;
+          widget->GetBounds(bounds);
+          metrics.mCompositionBounds = ParentLayerIntRect::FromUnknownRect(mozilla::gfx::IntRect(
+              bounds.x, bounds.y, bounds.width, bounds.height));
+        } else {
+          metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(view->GetBounds(), auPerDevPixel)
+                                     * metrics.GetParentResolution());
+        }
+      }
     }
   }
 
   
-  
-  
-  if (!useWidgetBounds) {
-    AdjustForScrollBars(metrics.mCompositionBounds, scrollableFrame);
+  if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+    nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
+    
+    ParentLayerIntMargin boundMargins = RoundedToInt(CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f));
+    metrics.mCompositionBounds.Deflate(boundMargins);
   }
 
   if (GetApzcTreePrintPref()) {

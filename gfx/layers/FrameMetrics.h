@@ -19,17 +19,37 @@ template <typename T> struct ParamTraits;
 } 
 
 namespace mozilla {
-namespace layers {
+
+
+
+
+
+
+
 
 
 
 
 struct ParentLayerPixel {};
 
-typedef gfx::ScaleFactor<LayoutDevicePixel, ParentLayerPixel> LayoutDeviceToParentLayerScale;
-typedef gfx::ScaleFactor<ParentLayerPixel, LayerPixel> ParentLayerToLayerScale;
+typedef gfx::PointTyped<ParentLayerPixel> ParentLayerPoint;
+typedef gfx::RectTyped<ParentLayerPixel> ParentLayerRect;
+typedef gfx::SizeTyped<ParentLayerPixel> ParentLayerSize;
 
+typedef gfx::IntMarginTyped<ParentLayerPixel> ParentLayerIntMargin;
+typedef gfx::IntPointTyped<ParentLayerPixel> ParentLayerIntPoint;
+typedef gfx::IntRectTyped<ParentLayerPixel> ParentLayerIntRect;
+typedef gfx::IntSizeTyped<ParentLayerPixel> ParentLayerIntSize;
+
+typedef gfx::ScaleFactor<CSSPixel, ParentLayerPixel> CSSToParentLayerScale;
+typedef gfx::ScaleFactor<LayoutDevicePixel, ParentLayerPixel> LayoutDeviceToParentLayerScale;
+typedef gfx::ScaleFactor<ScreenPixel, ParentLayerPixel> ScreenToParentLayerScale;
+
+typedef gfx::ScaleFactor<ParentLayerPixel, LayerPixel> ParentLayerToLayerScale;
 typedef gfx::ScaleFactor<ParentLayerPixel, ScreenPixel> ParentLayerToScreenScale;
+
+
+namespace layers {
 
 
 
@@ -57,6 +77,7 @@ public:
     , mResolution(1)
     , mCumulativeResolution(1)
     , mZoom(1)
+    , mTransformScale(1)
     , mDevPixelsPerCSSPixel(1)
     , mPresShellId(-1)
     , mMayHaveTouchListeners(false)
@@ -135,7 +156,7 @@ public:
   CSSRect GetExpandedScrollableRect() const
   {
     CSSRect scrollableRect = mScrollableRect;
-    CSSRect compBounds = CalculateCompositedRectInCssPixels();
+    CSSRect compBounds = CSSRect(CalculateCompositedRectInCssPixels());
     if (scrollableRect.width < compBounds.width) {
       scrollableRect.x = std::max(0.f,
                                   scrollableRect.x - (compBounds.width - scrollableRect.width));
@@ -152,17 +173,25 @@ public:
   }
 
   
-
-
-
+  
   CSSToScreenScale CalculateIntrinsicScale() const
   {
     return CSSToScreenScale(float(mCompositionBounds.width) / float(mViewport.width));
   }
 
-  CSSRect CalculateCompositedRectInCssPixels() const
+  
+  
+  
+  
+  
+  CSSToParentLayerScale GetZoomToParent() const
   {
-    return CSSRect(gfx::RoundedIn(mCompositionBounds / mZoom));
+    return mZoom * mTransformScale;
+  }
+
+  CSSIntRect CalculateCompositedRectInCssPixels() const
+  {
+    return gfx::RoundedIn(mCompositionBounds / GetZoomToParent());
   }
 
   
@@ -184,7 +213,7 @@ public:
   
   
   
-  ScreenIntRect mCompositionBounds;
+  ParentLayerIntRect mCompositionBounds;
 
   
   
@@ -281,6 +310,17 @@ public:
   
   
   CSSToScreenScale mZoom;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ScreenToParentLayerScale mTransformScale;
 
   
   

@@ -20,6 +20,8 @@
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
 #include "nsThreadUtils.h"              
+#include "mozilla/gfx/Logging.h"        
+#include "UnitTransforms.h"             
 
 #include <algorithm>                    
 
@@ -155,7 +157,8 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   AsyncPanZoomController* apzc = nullptr;
   mApzcTreeLog << aLayer->Name() << '\t';
   if (container) {
-    if (container->GetFrameMetrics().IsScrollable()) {
+    const FrameMetrics& metrics = container->GetFrameMetrics();
+    if (metrics.IsScrollable()) {
       const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
       if (state && state->mController.get()) {
         
@@ -168,7 +171,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         
-        ScrollableLayerGuid guid(aLayersId, container->GetFrameMetrics());
+        ScrollableLayerGuid guid(aLayersId, metrics);
         if (apzc && !apzc->Matches(guid)) {
           apzc = nullptr;
         }
@@ -210,19 +213,22 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         }
         APZC_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, container->GetFrameMetrics().mScrollId);
 
-        apzc->NotifyLayersUpdated(container->GetFrameMetrics(),
+        apzc->NotifyLayersUpdated(metrics,
                                   aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
 
         
         
         
         
-        ScreenRect visible(container->GetFrameMetrics().mCompositionBounds);
+        ParentLayerRect visible(metrics.mCompositionBounds);
         CSSRect touchSensitiveRegion;
         if (state->mController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
+          
+          
+          
           visible = visible.Intersect(touchSensitiveRegion
-                                      * container->GetFrameMetrics().LayersPixelsPerCSSPixel()
-                                      * LayerToScreenScale(1.0));
+                                      * metrics.mDevPixelsPerCSSPixel
+                                      * metrics.GetParentResolution());
         }
         gfx3DMatrix transform;
         gfx::To3DMatrix(aLayer->GetTransform(), transform);
@@ -877,11 +883,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
   
   
   
-  
-  gfx3DMatrix hitTestTransform = ancestorUntransform
-                               * aApzc->GetCSSTransform().Inverse()
-                               * aApzc->GetNontransientAsyncTransform().Inverse();
-  gfxPoint hitTestPointForThisLayer = hitTestTransform.ProjectPoint(aHitTestPoint);
+  gfxPoint hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
   APZC_LOG("Untransformed %f %f to transient coordinates %f %f for hit-testing APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
            hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
@@ -906,7 +908,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
       return match;
     }
   }
-  if (aApzc->VisibleRegionContains(ScreenPoint(hitTestPointForThisLayer.x, hitTestPointForThisLayer.y))) {
+  if (aApzc->VisibleRegionContains(ViewAs<ParentLayerPixel>(hitTestPointForThisLayer))) {
     APZC_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n",
              hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
     return aApzc;

@@ -615,6 +615,16 @@ private:
 
   static AxisLockMode GetAxisLockMode();
 
+  
+  
+  
+  ParentLayerPoint ToParentLayerCoords(const ScreenPoint& aPoint);
+
+  
+  
+  
+  void UpdateTransformScale();
+
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
   PCompositorParent* mCrossProcessCompositorParent;
@@ -690,7 +700,7 @@ private:
 
   
   
-  ScreenPoint mLastZoomFocus;
+  ParentLayerPoint mLastZoomFocus;
 
   
   
@@ -790,11 +800,12 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const ScreenRect& aRect, const gfx3DMatrix& aTransformToLayer,
+  void SetLayerHitTestData(const ParentLayerRect& aRect, const gfx3DMatrix& aTransformToLayer,
                            const gfx3DMatrix& aTransformForLayer) {
     mVisibleRect = aRect;
     mAncestorTransform = aTransformToLayer;
     mCSSTransform = aTransformForLayer;
+    UpdateTransformScale();
   }
 
   gfx3DMatrix GetAncestorTransform() const {
@@ -805,7 +816,7 @@ public:
     return mCSSTransform;
   }
 
-  bool VisibleRegionContains(const ScreenPoint& aPoint) const {
+  bool VisibleRegionContains(const ParentLayerPoint& aPoint) const {
     return mVisibleRect.Contains(aPoint);
   }
 
@@ -816,7 +827,7 @@ private:
   
 
 
-  ScreenRect mVisibleRect;
+  ParentLayerRect mVisibleRect;
   
 
   gfx3DMatrix mAncestorTransform;

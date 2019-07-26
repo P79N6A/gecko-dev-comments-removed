@@ -246,7 +246,7 @@ struct BasicTiledLayerPaintData {
 
 
 
-  gfx3DMatrix mTransformScreenToLayout;
+  gfx3DMatrix mTransformParentLayerToLayout;
 
   
 
@@ -307,8 +307,8 @@ public:
   bool UpdateFromCompositorFrameMetrics(ContainerLayer* aLayer,
                                         bool aHasPendingNewThebesContent,
                                         bool aLowPrecision,
-                                        ScreenRect& aCompositionBounds,
-                                        CSSToScreenScale& aZoom);
+                                        ParentLayerRect& aCompositionBounds,
+                                        CSSToParentLayerScale& aZoom);
 
   
 
@@ -316,8 +316,8 @@ public:
 
 
   void FindFallbackContentFrameMetrics(ContainerLayer* aLayer,
-                                       ScreenRect& aCompositionBounds,
-                                       CSSToScreenScale& aZoom);
+                                       ParentLayerRect& aCompositionBounds,
+                                       CSSToParentLayerScale& aZoom);
   
 
 

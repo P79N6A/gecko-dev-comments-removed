@@ -72,6 +72,7 @@
 #include "nsILoadContext.h"
 #include "ipc/nsGUIEventIPC.h"
 #include "mozilla/gfx/Matrix.h"
+#include "UnitTransforms.h"
 
 #include "nsColorPickerProxy.h"
 
@@ -316,7 +317,9 @@ TabChild::InitializeRootMetrics()
   
   
   mLastRootMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
-  mLastRootMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
+  mLastRootMetrics.mCompositionBounds = ParentLayerIntRect(
+      ParentLayerIntPoint(),
+      ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot));
   mLastRootMetrics.mZoom = mLastRootMetrics.CalculateIntrinsicScale();
   mLastRootMetrics.mDevPixelsPerCSSPixel = mWidget->GetDefaultScale();
   
@@ -588,7 +591,9 @@ TabChild::HandlePossibleViewportChange()
 
   FrameMetrics metrics(mLastRootMetrics);
   metrics.mViewport = CSSRect(CSSPoint(), viewport);
-  metrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
+  metrics.mCompositionBounds = ParentLayerIntRect(
+      ParentLayerIntPoint(),
+      ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot));
 
   
   
@@ -631,7 +636,7 @@ TabChild::HandlePossibleViewportChange()
   metrics.mResolution = metrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
   utils->SetResolution(metrics.mResolution.scale, metrics.mResolution.scale);
 
-  CSSSize scrollPort = metrics.CalculateCompositedRectInCssPixels().Size();
+  CSSSize scrollPort = CSSSize(metrics.CalculateCompositedRectInCssPixels().Size());
   utils->SetScrollPositionClampingScrollPortSize(scrollPort.width, scrollPort.height);
 
   
@@ -1511,7 +1516,7 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
     FrameMetrics newMetrics = aFrameMetrics;
     APZCCallbackHelper::UpdateRootFrame(utils, newMetrics);
 
-    CSSRect cssCompositedRect = newMetrics.CalculateCompositedRectInCssPixels();
+    CSSRect cssCompositedRect = CSSRect(newMetrics.CalculateCompositedRectInCssPixels());
     
     
     
@@ -1523,22 +1528,6 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
         data.AppendFloat(newMetrics.mViewport.width);
         data.AppendLiteral(", \"height\" : ");
         data.AppendFloat(newMetrics.mViewport.height);
-        data.AppendLiteral(" }");
-    data.AppendLiteral(", \"displayPort\" : ");
-        data.AppendLiteral("{ \"x\" : ");
-        data.AppendFloat(newMetrics.mDisplayPort.x);
-        data.AppendLiteral(", \"y\" : ");
-        data.AppendFloat(newMetrics.mDisplayPort.y);
-        data.AppendLiteral(", \"width\" : ");
-        data.AppendFloat(newMetrics.mDisplayPort.width);
-        data.AppendLiteral(", \"height\" : ");
-        data.AppendFloat(newMetrics.mDisplayPort.height);
-        data.AppendLiteral(" }");
-    data.AppendLiteral(", \"compositionBounds\" : ");
-        data.AppendPrintf("{ \"x\" : %d", newMetrics.mCompositionBounds.x);
-        data.AppendPrintf(", \"y\" : %d", newMetrics.mCompositionBounds.y);
-        data.AppendPrintf(", \"width\" : %d", newMetrics.mCompositionBounds.width);
-        data.AppendPrintf(", \"height\" : %d", newMetrics.mCompositionBounds.height);
         data.AppendLiteral(" }");
     data.AppendLiteral(", \"cssPageRect\" : ");
         data.AppendLiteral("{ \"x\" : ");

@@ -147,8 +147,8 @@ public:
 
 
   bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
-                                 ScreenRect& aCompositionBounds,
-                                 CSSToScreenScale& aZoom,
+                                 ParentLayerRect& aCompositionBounds,
+                                 CSSToParentLayerScale& aZoom,
                                  bool aDrawingCritical);
 
   bool InConstruction() { return mPhase == PHASE_CONSTRUCTION; }

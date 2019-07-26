@@ -91,7 +91,7 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
 static void
 RecenterDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics)
 {
-    CSSRect compositionBounds = aFrameMetrics.CalculateCompositedRectInCssPixels();
+    CSSRect compositionBounds(aFrameMetrics.CalculateCompositedRectInCssPixels());
     aFrameMetrics.mDisplayPort.x = (compositionBounds.width - aFrameMetrics.mDisplayPort.width) / 2;
     aFrameMetrics.mDisplayPort.y = (compositionBounds.height - aFrameMetrics.mDisplayPort.height) / 2;
 }
@@ -156,7 +156,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     
     
     
-    CSSSize scrollPort = aMetrics.CalculateCompositedRectInCssPixels().Size();
+    CSSSize scrollPort = CSSSize(aMetrics.CalculateCompositedRectInCssPixels().Size());
     aUtils->SetScrollPositionClampingScrollPortSize(scrollPort.width, scrollPort.height);
 
     
@@ -189,7 +189,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     
     
     
-    mozilla::layers::ParentLayerToLayerScale presShellResolution =
+    ParentLayerToLayerScale presShellResolution =
         aMetrics.mZoom
         / aMetrics.mDevPixelsPerCSSPixel
         / aMetrics.GetParentResolution()
