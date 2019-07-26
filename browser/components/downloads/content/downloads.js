@@ -1190,12 +1190,6 @@ DownloadsViewItemController.prototype = {
   
   
 
-  get kPrefBdmAlertOnExeOpen() "browser.download.manager.alertOnEXEOpen",
-  get kPrefBdmScanWhenDone() "browser.download.manager.scanWhenDone",
-
-  
-  
-
   
 
 
@@ -1244,87 +1238,17 @@ DownloadsViewItemController.prototype = {
   commands: {
     cmd_delete: function DVIC_cmd_delete()
     {
-      this.dataItem.getDownload(function (aDownload) {
-        if (this.dataItem.inProgress) {
-          aDownload.cancel();
-          this._ensureLocalFileRemoved();
-        }
-        aDownload.remove();
-      }.bind(this));
+      this.dataItem.remove();
     },
 
     downloadsCmd_cancel: function DVIC_downloadsCmd_cancel()
     {
-      if (this.dataItem.inProgress) {
-        this.dataItem.getDownload(function (aDownload) {
-          aDownload.cancel();
-          this._ensureLocalFileRemoved();
-        }.bind(this));
-      }
+      this.dataItem.cancel();
     },
 
     downloadsCmd_open: function DVIC_downloadsCmd_open()
     {
-      
-      let localFile = this.dataItem.localFile;
-      if (localFile.isExecutable()) {
-        let showAlert = true;
-        try {
-          showAlert = Services.prefs.getBoolPref(this.kPrefBdmAlertOnExeOpen);
-        } catch (ex) { }
-
-        
-        
-        if (DownloadsCommon.isWinVistaOrHigher) {
-          try {
-            if (Services.prefs.getBoolPref(this.kPrefBdmScanWhenDone)) {
-              showAlert = false;
-            }
-          } catch (ex) { }
-        }
-
-        if (showAlert) {
-          let name = this.dataItem.target;
-          let message =
-              DownloadsCommon.strings.fileExecutableSecurityWarning(name, name);
-          let title =
-              DownloadsCommon.strings.fileExecutableSecurityWarningTitle;
-          let dontAsk =
-              DownloadsCommon.strings.fileExecutableSecurityWarningDontAsk;
-
-          let checkbox = { value: false };
-          let open = Services.prompt.confirmCheck(window, title, message,
-                                                  dontAsk, checkbox);
-          if (!open) {
-            return;
-          }
-
-          Services.prefs.setBoolPref(this.kPrefBdmAlertOnExeOpen,
-                                     !checkbox.value);
-        }
-      }
-
-      
-      this.dataItem.getDownload(function (aDownload) {
-        try {
-          let launched = false;
-          try {
-            let mimeInfo = aDownload.MIMEInfo;
-            if (mimeInfo.preferredAction == mimeInfo.useHelperApp) {
-              mimeInfo.launchWithFile(localFile);
-              launched = true;
-            }
-          } catch (ex) { }
-          if (!launched) {
-            localFile.launch();
-          }
-        } catch (ex) {
-          
-          
-          this._openExternal(localFile);
-        }
-      }.bind(this));
-
+      this.dataItem.openLocalFile();
       
       
       
@@ -1335,26 +1259,7 @@ DownloadsViewItemController.prototype = {
 
     downloadsCmd_show: function DVIC_downloadsCmd_show()
     {
-      let localFile = this.dataItem.localFile;
-
-      try {
-        
-        localFile.reveal();
-      } catch (ex) {
-        
-        
-        let parent = localFile.parent.QueryInterface(Ci.nsILocalFile);
-        if (parent) {
-          try {
-            
-            parent.launch();
-          } catch (ex) {
-            
-            
-            this._openExternal(parent);
-          }
-        }
-      }
+      this.dataItem.showLocalFile();
 
       
       
@@ -1366,20 +1271,12 @@ DownloadsViewItemController.prototype = {
 
     downloadsCmd_pauseResume: function DVIC_downloadsCmd_pauseResume()
     {
-      this.dataItem.getDownload(function (aDownload) {
-        if (this.dataItem.paused) {
-          aDownload.resume();
-        } else {
-          aDownload.pause();
-        }
-      }.bind(this));
+      this.dataItem.togglePauseResume();
     },
 
     downloadsCmd_retry: function DVIC_downloadsCmd_retry()
     {
-      this.dataItem.getDownload(function (aDownload) {
-        aDownload.retry();
-      });
+      this.dataItem.retry();
     },
 
     downloadsCmd_openReferrer: function DVIC_downloadsCmd_openReferrer()
@@ -1418,31 +1315,6 @@ DownloadsViewItemController.prototype = {
       
       this.doCommand(defaultCommand);
     }
-  },
-
-  
-
-
-  _openExternal: function DVIC_openExternal(aFile)
-  {
-    let protocolSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"]
-                      .getService(Ci.nsIExternalProtocolService);
-    protocolSvc.loadUrl(makeFileURI(aFile));
-  },
-
-  
-
-
-
-
-  _ensureLocalFileRemoved: function DVIC_ensureLocalFileRemoved()
-  {
-    try {
-      let localFile = this.dataItem.localFile;
-      if (localFile.exists()) {
-        localFile.remove(false);
-      }
-    } catch (ex) { }
   }
 };
 

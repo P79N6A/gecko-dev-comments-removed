@@ -63,6 +63,9 @@ const nsIDM = Ci.nsIDownloadManager;
 const kDownloadsStringBundleUrl =
   "chrome://browser/locale/downloads/downloads.properties";
 
+const kPrefBdmScanWhenDone =   "browser.download.manager.scanWhenDone";
+const kPrefBdmAlertOnExeOpen = "browser.download.manager.alertOnEXEOpen";
+
 const kDownloadsStringsRequiringFormatting = {
   sizeWithUnits: true,
   shortTimeLeftSeconds: true,
@@ -396,6 +399,117 @@ this.DownloadsCommon = {
     
     
     return aLastSeconds = Math.max(aSeconds, 1);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  openDownloadedFile: function DC_openDownloadedFile(aFile, aMimeInfo, aOwnerWindow) {
+    if (!(aFile instanceof Ci.nsIFile))
+      throw new Error("aFile must be a nsIFile object");
+    if (aMimeInfo && !(aMimeInfo instanceof Ci.nsIMIMEInfo))
+      throw new Error("Invalid value passed for aMimeInfo");
+    if (!(aOwnerWindow instanceof Ci.nsIDOMWindow))
+      throw new Error("aOwnerWindow must be a dom-window object");
+
+    
+    if (aFile.isExecutable()) {
+      let showAlert = true;
+      try {
+        showAlert = Services.prefs.getBoolPref(kPrefBdmAlertOnExeOpen);
+      } catch (ex) { }
+
+      
+      
+      if (DownloadsCommon.isWinVistaOrHigher) {
+        try {
+          if (Services.prefs.getBoolPref(kPrefBdmScanWhenDone)) {
+            showAlert = false;
+          }
+        } catch (ex) { }
+      }
+
+      if (showAlert) {
+        let name = this.dataItem.target;
+        let message =
+          DownloadsCommon.strings.fileExecutableSecurityWarning(name, name);
+        let title =
+          DownloadsCommon.strings.fileExecutableSecurityWarningTitle;
+        let dontAsk =
+          DownloadsCommon.strings.fileExecutableSecurityWarningDontAsk;
+
+        let checkbox = { value: false };
+        let open = Services.prompt.confirmCheck(aOwnerWindow, title, message,
+                                                dontAsk, checkbox);
+        if (!open) {
+          return;
+        }
+
+        Services.prefs.setBoolPref(kPrefBdmAlertOnExeOpen,
+                                   !checkbox.value);
+      }
+    }
+
+    
+    try {
+      if (aMimeInfo && aMimeInfo.preferredAction == aMimeInfo.useHelperApp) {
+        aMimeInfo.launchWithFile(aFile);
+        return;
+      }
+    }
+    catch(ex) { }
+
+    
+    
+    try {
+      aFile.launch();
+    }
+    catch(ex) {
+      
+      
+      Cc["@mozilla.org/uriloader/external-protocol-service;1"]
+        .getService(Ci.nsIExternalProtocolService)
+        .loadUrl(NetUtil.newURI(aFile));
+    }
+  },
+
+  
+
+
+
+
+
+
+  showDownloadedFile: function DC_showDownloadedFile(aFile) {
+    if (!(aFile instanceof Ci.nsIFile))
+      throw new Error("aFile must be a nsIFile object");
+    try {
+      
+      aFile.reveal();
+    } catch (ex) {
+      
+      
+      let parent = aFile.parent;
+      if (parent) {
+        try {
+          
+          parent.launch();
+        } catch (ex) {
+          
+          
+          Cc["@mozilla.org/uriloader/external-protocol-service;1"]
+            .getService(Ci.nsIExternalProtocolService)
+            .loadUrl(NetUtil.newURI(parent));
+        }
+      }
+    }
   }
 };
 
@@ -1212,6 +1326,101 @@ DownloadsDataItem.prototype = {
       
       return new DownloadsLocalFileCtor(aFilename);
     }
+  },
+
+  
+
+
+
+
+
+
+  openLocalFile: function DDI_openLocalFile(aOwnerWindow) {
+    this.getDownload(function(aDownload) {
+      DownloadsCommon.openDownloadedFile(this.localFile,
+                                         aDownload.MIMEInfo,
+                                         aOwnerWindow);
+    }.bind(this));
+  },
+
+  
+
+
+  showLocalFile: function DDI_showLocalFile() {
+    DownloadsCommon.showDownloadedFile(this.localFile);
+  },
+
+  
+
+
+
+  togglePauseResume: function DDI_togglePauseResume() {
+    if (!this.inProgress || !this.resumable)
+      throw new Error("The given download cannot be paused or resumed");
+
+    this.getDownload(function(aDownload) {
+      if (this.inProgress) {
+        if (this.paused)
+          aDownload.resume();
+        else
+          aDownload.pause();
+      }
+    }.bind(this));
+  },
+
+  
+
+
+
+  retry: function DDI_retry() {
+    if (!this.canRetry)
+      throw new Error("Cannot rerty this download");
+
+    this.getDownload(function(aDownload) {
+      aDownload.retry();
+    });
+  },
+
+  
+
+
+
+
+  _ensureLocalFileRemoved: function DDI__ensureLocalFileRemoved()
+  {
+    try {
+      let localFile = this.localFile;
+      if (localFile.exists()) {
+        localFile.remove(false);
+      }
+    } catch (ex) { }
+  },
+
+  
+
+
+
+  cancel: function() {
+    if (!this.inProgress)
+      throw new Error("Cannot cancel this download");
+
+    this.getDownload(function (aDownload) {
+      aDownload.cancel();
+      this._ensureLocalFileRemoved();
+    }.bind(this));
+  },
+
+  
+
+
+  remove: function DDI_remove() {
+    this.getDownload(function (aDownload) {
+      if (this.inProgress) {
+        aDownload.cancel();
+        this._ensureLocalFileRemoved();
+      }
+      aDownload.remove();
+    }.bind(this));
   }
 };
 
