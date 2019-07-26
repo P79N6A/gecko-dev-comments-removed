@@ -335,7 +335,11 @@ public:
 
   static bool PrefEnabled()
   {
-    return mozilla::Preferences::GetBool("layout.css.font-features.enabled");
+    
+    bool fontFeaturesEnabled =
+      nsCSSProps::IsEnabled(eCSSProperty_font_variant_alternates);
+
+    return fontFeaturesEnabled;
   }
 
 protected:

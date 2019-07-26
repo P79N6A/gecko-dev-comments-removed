@@ -568,8 +568,9 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
 
       
       
+      
       bool fontFeaturesEnabled =
-        mozilla::Preferences::GetBool("layout.css.font-features.enabled");
+        nsCSSProps::IsEnabled(eCSSProperty_font_variant_alternates);
 
       if (systemFont &&
           systemFont->GetUnit() != eCSSUnit_None &&
