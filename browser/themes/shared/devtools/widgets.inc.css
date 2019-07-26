@@ -221,13 +221,11 @@
   color: #f5f7fa; 
 }
 
-.theme-dark .breadcrumbs-widget-item,
-.theme-dark .breadcrumbs-widget-item-classes {
+.theme-dark .breadcrumbs-widget-item {
   color: #f5f7fa; 
 }
 
-.theme-light .breadcrumbs-widget-item,
-.theme-light .breadcrumbs-widget-item-classes {
+.theme-light .breadcrumbs-widget-item {
   color: #18191a; 
 }
 
@@ -237,6 +235,14 @@
 
 .theme-light .breadcrumbs-widget-item-id {
   color: #585959; 
+}
+
+.theme-dark .breadcrumbs-widget-item-classes {
+  color: #b8c8d9; 
+}
+
+.theme-light .breadcrumbs-widget-item-classes {
+  color: #667380; 
 }
 
 .theme-dark .breadcrumbs-widget-item-pseudo-classes {
