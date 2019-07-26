@@ -3584,11 +3584,37 @@ WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow,
       
       JS::RootedScript script(aCx);
       if (JS_DescribeScriptedCaller(aCx, &script, nullptr)) {
-        rv = NS_NewURI(getter_AddRefs(loadInfo.mBaseURI),
-                       JS_GetScriptFilename(aCx, script));
-        NS_ENSURE_SUCCESS(rv, rv);
+        const char* fileName = JS_GetScriptFilename(aCx, script);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        nsCOMPtr<nsIFile> scriptFile =
+          do_CreateInstance("@mozilla.org/file/local;1", &rv);
+        if (NS_FAILED(rv)) {
+          return rv;
         }
 
+        rv = scriptFile->InitWithPath(NS_ConvertUTF8toUTF16(fileName));
+        if (NS_SUCCEEDED(rv)) {
+          rv = NS_NewFileURI(getter_AddRefs(loadInfo.mBaseURI),
+                             scriptFile);
+        }
+        if (NS_FAILED(rv)) {
+          
+          
+          rv = NS_NewURI(getter_AddRefs(loadInfo.mBaseURI),
+                         fileName);
+        }
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
+      }
       loadInfo.mXHRParamsAllowed = true;
     }
 
