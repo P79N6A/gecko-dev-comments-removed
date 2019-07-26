@@ -5,6 +5,7 @@
 
 
 const {Cc, Cu, Ci} = require("chrome");
+const promise = require("sdk/core/promise");
 
 let ToolDefinitions = require("main").Tools;
 
@@ -15,6 +16,8 @@ loader.lazyGetter(this, "RuleView", () => require("devtools/styleinspector/rule-
 loader.lazyGetter(this, "ComputedView", () => require("devtools/styleinspector/computed-view"));
 loader.lazyGetter(this, "_strings", () => Services.strings
   .createBundle("chrome://global/locale/devtools/styleinspector.properties"));
+
+const PREF_ORIG_SOURCES = "devtools.styleeditor.source-maps-enabled";
 
 
 
@@ -42,29 +45,30 @@ function RuleViewTool(aInspector, aWindow, aIFrame)
 
   this._cssLinkHandler = (aEvent) => {
     let rule = aEvent.detail.rule;
-    let line = rule.line || 0;
+    let sheet = rule.parentStyleSheet;
 
     
     
-    
-    
-    
-    
-    let href = rule.href;
-    let sheet = rule.parentStyleSheet;
-    if (sheet && href && !sheet.isSystem) {
-      let target = this.inspector.target;
-      if (ToolDefinitions.styleEditor.isTargetSupported(target)) {
-        gDevTools.showToolbox(target, "styleeditor").then(function(toolbox) {
-          toolbox.getCurrentPanel().selectStyleSheet(href, line);
-        });
-      }
+    if (!sheet || !rule.href || sheet.isSystem) {
+      let contentDoc = this.inspector.selection.document;
+      let viewSourceUtils = this.inspector.viewSourceUtils;
+      viewSourceUtils.viewSource(rule.href, null, contentDoc, rule.line || 0);
       return;
     }
 
-    let contentDoc = this.inspector.selection.document;
-    let viewSourceUtils = this.inspector.viewSourceUtils;
-    viewSourceUtils.viewSource(href, null, contentDoc, line);
+    let location = promise.resolve(rule.location);
+    if (Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
+      location = rule.getOriginalLocation();
+    }
+    location.then(({ href, line, column }) => {
+      let target = this.inspector.target;
+      if (ToolDefinitions.styleEditor.isTargetSupported(target)) {
+        gDevTools.showToolbox(target, "styleeditor").then(function(toolbox) {
+          toolbox.getCurrentPanel().selectStyleSheet(href, line, column);
+        });
+      }
+      return;
+    })
   }
 
   this.view.element.addEventListener("CssRuleViewCSSLinkClicked",
