@@ -243,8 +243,9 @@ TimerThread::Run()
           
           
 
-          NS_ADDREF(timer);
+          nsRefPtr<nsTimerImpl> timerRef(timer);
           RemoveTimerInternal(timer);
+          timer = nullptr;
 
           {
             
@@ -254,16 +255,21 @@ TimerThread::Run()
             if (PR_LOG_TEST(GetTimerLog(), PR_LOG_DEBUG)) {
               PR_LOG(GetTimerLog(), PR_LOG_DEBUG,
                      ("Timer thread woke up %fms from when it was supposed to\n",
-                      fabs((now - timer->mTimeout).ToMilliseconds())));
+                      fabs((now - timerRef->mTimeout).ToMilliseconds())));
             }
 #endif
 
             
             
             
-            if (NS_FAILED(timer->PostTimerEvent())) {
-              nsrefcnt rc;
-              NS_RELEASE2(timer, rc);
+            timerRef = nsTimerImpl::PostTimerEvent(timerRef.forget());
+
+            if (timerRef) {
+              
+              
+              
+              nsrefcnt rc = timerRef.forget().take()->Release();
+              (void)rc;
 
               
               
@@ -278,7 +284,6 @@ TimerThread::Run()
               
               MOZ_ASSERT(rc != 0, "destroyed timer off its target thread!");
             }
-            timer = nullptr;
           }
 
           if (mShutdown) {

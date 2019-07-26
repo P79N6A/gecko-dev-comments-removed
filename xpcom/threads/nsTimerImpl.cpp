@@ -112,11 +112,10 @@ class nsTimerEvent : public nsRunnable
 public:
   NS_IMETHOD Run();
 
-  nsTimerEvent(nsTimerImpl* aTimer, int32_t aGeneration)
-    : mTimer(dont_AddRef(aTimer))
-    , mGeneration(aGeneration)
+  nsTimerEvent()
+    : mTimer()
+    , mGeneration(0)
   {
-    
     MOZ_COUNT_CTOR(nsTimerEvent);
 
     MOZ_ASSERT(gThread->IsOnTimerThread(),
@@ -143,8 +142,18 @@ public:
     DeleteAllocatorIfNeeded();
   }
 
+  already_AddRefed<nsTimerImpl> ForgetTimer()
+  {
+    return mTimer.forget();
+  }
+
+  void SetTimer(already_AddRefed<nsTimerImpl> aTimer)
+  {
+    mTimer = aTimer;
+    mGeneration = mTimer->GetGeneration();
+  }
+
 private:
-  nsTimerEvent(); 
   ~nsTimerEvent()
   {
     MOZ_COUNT_DTOR(nsTimerEvent);
@@ -704,12 +713,13 @@ nsTimerEvent::Run()
   return NS_OK;
 }
 
-nsresult
-nsTimerImpl::PostTimerEvent()
+already_AddRefed<nsTimerImpl>
+nsTimerImpl::PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef)
 {
-  if (!mEventTarget) {
+  nsRefPtr<nsTimerImpl> timer(aTimerRef);
+  if (!timer->mEventTarget) {
     NS_ERROR("Attempt to post timer event to NULL event target");
-    return NS_ERROR_NOT_INITIALIZED;
+    return timer.forget();
   }
 
   
@@ -718,10 +728,13 @@ nsTimerImpl::PostTimerEvent()
   
   
   
+  
 
-  nsRefPtr<nsTimerEvent> event = new nsTimerEvent(this, mGeneration);
+  
+  
+  nsRefPtr<nsTimerEvent> event = new nsTimerEvent;
   if (!event) {
-    return NS_ERROR_OUT_OF_MEMORY;
+    return timer.forget();
   }
 
 #ifdef DEBUG_TIMERS
@@ -732,23 +745,31 @@ nsTimerImpl::PostTimerEvent()
 
   
   
-  if (IsRepeatingPrecisely()) {
-    SetDelayInternal(mDelay);
+  if (timer->IsRepeatingPrecisely()) {
+    timer->SetDelayInternal(timer->mDelay);
 
     
-    if (gThread && mType == TYPE_REPEATING_PRECISE) {
-      nsresult rv = gThread->AddTimer(this);
+    if (gThread && timer->mType == TYPE_REPEATING_PRECISE) {
+      nsresult rv = gThread->AddTimer(timer);
       if (NS_FAILED(rv)) {
-        return rv;
+        return timer.forget();
       }
     }
   }
 
-  nsresult rv = mEventTarget->Dispatch(event, NS_DISPATCH_NORMAL);
-  if (NS_FAILED(rv) && gThread) {
-    gThread->RemoveTimer(this);
+  nsIEventTarget* target = timer->mEventTarget;
+  event->SetTimer(timer.forget());
+
+  nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
+  if (NS_FAILED(rv)) {
+    timer = event->ForgetTimer();
+    if (gThread) {
+      gThread->RemoveTimer(timer);
+    }
+    return timer.forget();
   }
-  return rv;
+
+  return nullptr;
 }
 
 void

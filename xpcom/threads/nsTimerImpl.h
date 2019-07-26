@@ -59,7 +59,9 @@ public:
   friend struct TimerAdditionComparator;
 
   void Fire();
-  nsresult PostTimerEvent();
+  
+  static already_AddRefed<nsTimerImpl> PostTimerEvent(
+      already_AddRefed<nsTimerImpl> aTimerRef);
   void SetDelayInternal(uint32_t aDelay);
 
   NS_DECL_THREADSAFE_ISUPPORTS
