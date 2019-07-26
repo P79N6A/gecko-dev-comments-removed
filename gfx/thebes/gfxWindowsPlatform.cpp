@@ -385,13 +385,16 @@ gfxWindowsPlatform::gfxWindowsPlatform()
 
     UpdateRenderMode();
 
-    mGPUAdapterReporter = new GPUAdapterReporter();
-    NS_RegisterMemoryReporter(mGPUAdapterReporter);
+    
+    
+    
+    
+    mGPUAdapterReporter = nullptr;
 }
 
 gfxWindowsPlatform::~gfxWindowsPlatform()
 {
-    NS_UnregisterMemoryReporter(mGPUAdapterReporter);
+    
 
     mDeviceManager = nullptr;
 

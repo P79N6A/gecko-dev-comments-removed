@@ -8,6 +8,9 @@
 
 
 
+
+
+
 typedef struct _D3DKMTQS_COUNTER
 {
     ULONG Count;
