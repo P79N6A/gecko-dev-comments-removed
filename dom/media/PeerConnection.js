@@ -765,28 +765,9 @@ RTCPeerConnection.prototype = {
                                                     sdp: sdp });
   },
 
+  get signalingState()     { return "stable"; }, 
   get iceGatheringState()  { return this._iceGatheringState; },
   get iceConnectionState() { return this._iceConnectionState; },
-
-  
-  _signalingStateMap: [
-    'invalid',
-    'stable',
-    'have-local-offer',
-    'have-remote-offer',
-    'have-local-pranswer',
-    'have-remote-pranswer',
-    'closed'
-  ],
-
-  get signalingState() {
-    
-    
-    if(this._closed) {
-      return "closed";
-    }
-    return this._signalingStateMap[this._getPC().signalingState];
-  },
 
   changeIceGatheringState: function(state) {
     this._iceGatheringState = state;
@@ -1009,10 +990,14 @@ PeerConnectionObserver.prototype = {
     this._dompc._executeNext();
   },
 
-  handleIceStateChanges: function(iceState) {
-    switch (iceState) {
+  onStateChange: function(state) {
+    if (state != Ci.IPeerConnectionObserver.kIceState) {
+      return;
+    }
+
+    switch (this._dompc._pc.iceState) {
       case Ci.IPeerConnection.kIceWaiting:
-        this._dompc.changeIceConnectionState("new");
+        this._dompc.changeIceConnectionState("completed");
         this.callCB(this._dompc.ongatheringchange, "complete");
         this.callCB(this._onicechange, "starting");
         
@@ -1037,32 +1022,6 @@ PeerConnectionObserver.prototype = {
         break;
       default:
         
-        this._dompc.reportWarning("Unhandled ice state: " + iceState, null, 0);
-        break;
-    }
-  },
-
-  onStateChange: function(state) {
-    switch (state) {
-      case Ci.IPeerConnectionObserver.kSignalingState:
-        this.callCB(this._dompc.onsignalingstatechange,
-                    this._dompc.signalingState);
-        break;
-
-      case Ci.IPeerConnectionObserver.kIceState:
-        this.handleIceStateChanges(this._dompc._pc.iceState);
-        break;
-
-      case Ci.IPeerConnectionObserver.kSdpState:
-        
-        break;
-
-      case Ci.IPeerConnectionObserver.kSipccState:
-        
-        break;
-
-      default:
-        this._dompc.reportWarning("Unhandled state type: " + state, null, 0);
         break;
     }
   },

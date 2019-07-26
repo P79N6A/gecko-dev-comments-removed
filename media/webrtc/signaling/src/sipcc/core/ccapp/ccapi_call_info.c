@@ -52,25 +52,6 @@ cc_call_state_t CCAPI_CallInfo_getCallState(cc_callinfo_ref_t handle){
 
 
 
-fsmdef_states_t CCAPI_CallInfo_getFsmState(cc_callinfo_ref_t handle){
-  session_data_t *data = (session_data_t *)handle;
-  CCAPP_DEBUG(DEB_F_PREFIX"Entering",
-              DEB_F_PREFIX_ARGS(SIP_CC_PROV, __FUNCTION__));
-
-  if ( data ){
-     CCAPP_DEBUG(DEB_F_PREFIX"returned %02X",
-                 DEB_F_PREFIX_ARGS(SIP_CC_PROV, __FUNCTION__), data->state);
-     return data->fsm_state;
-  }
-
-  return FSMDEF_S_IDLE;
-}
-
-
-
-
-
-
 cc_call_attr_t CCAPI_CallInfo_getCallAttr(cc_callinfo_ref_t handle){
   static const char *fname="CCAPI_CallInfo_getCallAttr";
   session_data_t *data = (session_data_t *)handle;
