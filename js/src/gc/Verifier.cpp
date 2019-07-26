@@ -454,6 +454,15 @@ gc::StartVerifyPreBarriers(JSRuntime *rt)
     if (rt->gcVerifyPreData || rt->gcIncrementalState != NO_INCREMENTAL)
         return;
 
+    
+
+
+
+
+
+    if (rt->gcVerifyPostData)
+        return;
+
     MinorGC(rt, JS::gcreason::EVICT_NURSERY);
 
     AutoPrepareForTracing prep(rt, WithAtoms);
