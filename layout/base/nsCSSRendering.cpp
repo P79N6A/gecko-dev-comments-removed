@@ -614,15 +614,10 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
       false
 #endif
      ) {
-    
-    
-    
-    
-    innerRect = aForFrame->GetVisualOverflowRect();
+    innerRect = aBorderArea;
   } else {
-    innerRect = GetOutlineInnerRect(aForFrame);
+    innerRect = GetOutlineInnerRect(aForFrame) + aBorderArea.TopLeft();
   }
-  innerRect += aBorderArea.TopLeft();
   nscoord offset = ourOutline->mOutlineOffset;
   innerRect.Inflate(offset, offset);
   
