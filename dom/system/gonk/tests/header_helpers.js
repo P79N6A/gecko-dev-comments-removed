@@ -43,14 +43,10 @@ function newWorker(custom_ns) {
     onmessage: undefined,
     onerror: undefined,
 
-    CLIENT_ID: 0,
     DEBUG: true
   };
   
   worker_ns.self = worker_ns;
-
-  
-  Cu.import("resource://gre/modules/ctypes.jsm", worker_ns);
 
   
   for (let key in custom_ns) {
@@ -75,6 +71,9 @@ function newWorker(custom_ns) {
 
   
   worker_ns.importScripts("ril_worker.js");
+
+  
+  worker_ns.ContextPool.registerClient({ clientId: 0 });
 
   return worker_ns;
 }
