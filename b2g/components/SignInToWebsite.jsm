@@ -86,6 +86,18 @@ XPCOMUtils.defineLazyModuleGetter(this, "Logger",
 
 
 
+
+
+
+let kPersonaUri = "https://firefoxos.persona.org";
+try {
+  kPersonaUri = Services.prefs.getCharPref("toolkit.identity.uri");
+} catch(noSuchPref) {
+  
+}
+
+
+
 const kIdentityShimFile = "chrome://browser/content/identity.js";
 
 
@@ -106,6 +118,8 @@ function log(...aMessageArgs) {
   Logger.log.apply(Logger, ["SignInToWebsiteController"].concat(aMessageArgs));
 }
 
+log("persona uri =", kPersonaUri);
+
 
 
 
@@ -122,6 +136,7 @@ let ContentInterface = {
   },
 
   sendChromeEvent: function SignInToWebsiteController_sendChromeEvent(detail) {
+    detail.uri = kPersonaUri;
     this._getBrowser().shell.sendChromeEvent(detail);
   }
 };
@@ -271,9 +286,9 @@ Pipe.prototype = {
             mm = frameLoader.messageManager;
             try {
               mm.loadFrameScript(kIdentityShimFile, true);
-              log("Loaded shim " + kIdentityShimFile + "\n");
+              log("Loaded shim", kIdentityShimFile);
             } catch (e) {
-              log("Error loading ", kIdentityShimFile, " as a frame script: ", e);
+              log("Error loading", kIdentityShimFile, "as a frame script:", e);
             }
 
             
