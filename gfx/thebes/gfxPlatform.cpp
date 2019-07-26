@@ -104,7 +104,10 @@ static qcms_transform *gCMSRGBATransform = nullptr;
 
 static bool gCMSInitialized = false;
 static eCMSMode gCMSMode = eCMSMode_Off;
-static int gCMSIntent = -2;
+
+static bool gCMSIntentInitialized = false;
+static int gCMSIntent = QCMS_INTENT_DEFAULT;
+
 
 static void ShutdownCMS();
 
@@ -138,12 +141,7 @@ NS_IMPL_ISUPPORTS2(SRGBOverrideObserver, nsIObserver, nsISupportsWeakReference)
 
 #define BIDI_NUMERAL_PREF "bidi.numeral"
 
-#define GFX_PREF_CMS_RENDERING_INTENT "gfx.color_management.rendering_intent"
-#define GFX_PREF_CMS_DISPLAY_PROFILE "gfx.color_management.display_profile"
-#define GFX_PREF_CMS_ENABLED_OBSOLETE "gfx.color_management.enabled"
 #define GFX_PREF_CMS_FORCE_SRGB "gfx.color_management.force_srgb"
-#define GFX_PREF_CMS_ENABLEV4 "gfx.color_management.enablev4"
-#define GFX_PREF_CMS_MODE "gfx.color_management.mode"
 
 NS_IMETHODIMP
 SRGBOverrideObserver::Observe(nsISupports *aSubject,
@@ -1500,17 +1498,14 @@ gfxPlatform::GetCMSMode()
 {
     if (gCMSInitialized == false) {
         gCMSInitialized = true;
-        nsresult rv;
 
-        int32_t mode;
-        rv = Preferences::GetInt(GFX_PREF_CMS_MODE, &mode);
-        if (NS_SUCCEEDED(rv) && (mode >= 0) && (mode < eCMSMode_AllCount)) {
+        int32_t mode = gfxPrefs::CMSMode();
+        if (mode >= 0 && mode < eCMSMode_AllCount) {
             gCMSMode = static_cast<eCMSMode>(mode);
         }
 
-        bool enableV4;
-        rv = Preferences::GetBool(GFX_PREF_CMS_ENABLEV4, &enableV4);
-        if (NS_SUCCEEDED(rv) && enableV4) {
+        bool enableV4 = gfxPrefs::CMSEnableV4();
+        if (enableV4) {
             qcms_enable_iccv4();
         }
     }
@@ -1520,23 +1515,22 @@ gfxPlatform::GetCMSMode()
 int
 gfxPlatform::GetRenderingIntent()
 {
-    if (gCMSIntent == -2) {
+    if (!gCMSIntentInitialized) {
+        gCMSIntentInitialized = true;
 
         
-        int32_t pIntent;
-        if (NS_SUCCEEDED(Preferences::GetInt(GFX_PREF_CMS_RENDERING_INTENT, &pIntent))) {
-            
-            if ((pIntent >= QCMS_INTENT_MIN) && (pIntent <= QCMS_INTENT_MAX)) {
-                gCMSIntent = pIntent;
-            }
-            
-            else {
-                gCMSIntent = -1;
-            }
-        }
         
-        else {
-            gCMSIntent = QCMS_INTENT_DEFAULT;
+        
+        
+        MOZ_ASSERT(QCMS_INTENT_DEFAULT == 0);
+
+        
+        int32_t pIntent = gfxPrefs::CMSRenderingIntent();
+        if ((pIntent >= QCMS_INTENT_MIN) && (pIntent <= QCMS_INTENT_MAX)) {
+            gCMSIntent = pIntent;
+        } else {
+            
+            gCMSIntent = -1;
         }
     }
     return gCMSIntent;
