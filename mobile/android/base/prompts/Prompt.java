@@ -36,6 +36,8 @@ import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+
 public class Prompt implements OnClickListener, OnCancelListener, OnItemClickListener {
     private static final String LOGTAG = "GeckoPromptService";
 
@@ -47,6 +49,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
     private final Context mContext;
     private PromptCallback mCallback;
     private String mGuid;
+    private PromptListAdapter mAdapter;
 
     private static boolean mInitialized = false;
     private static int mGroupPaddingSize;
@@ -56,7 +59,6 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
     private static int mIconSize;
     private static int mInputPaddingSize;
     private static int mMinRowSize;
-    private PromptListAdapter mAdapter;
 
     public Prompt(Context context, PromptCallback callback) {
         this(context);
@@ -84,7 +86,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         
         if (input.canApplyInputStyle()) {
             view.setPadding(mInputPaddingSize, 0, mInputPaddingSize, 0);
-        }
+	}
         return view;
     }
 
@@ -93,11 +95,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
     }
 
 
-    public void show(String title, String text, PromptListItem[] listItems, boolean multipleSelection) {
-        show(title, text, listItems, multipleSelection, null);
-    }
-
-    public void show(String title, String text, PromptListItem[] listItems, boolean multipleSelection, boolean[] selected) {
+    public void show(String title, String text, PromptListItem[] listItems, int choiceMode) {
         ThreadUtils.assertOnUiThread();
 
         GeckoAppShell.getLayerView().abortPanning();
@@ -114,7 +112,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         
         
         if (listItems != null && listItems.length > 0) {
-            addListItems(builder, listItems, multipleSelection, selected);
+            addListItems(builder, listItems, choiceMode);
         } else if (!addInputs(builder)) {
             
             return;
@@ -151,23 +149,25 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
 
     private void addListResult(final JSONObject result, int which) {
         try {
-            boolean[] selectedItems = mAdapter.getSelected();
-            if (selectedItems != null) {
-                JSONArray selected = new JSONArray();
-                for (int i = 0; i < selectedItems.length; i++) {
-                    if (selectedItems[i]) {
-                        selected.put(i);
-                    }
+            JSONArray selected = new JSONArray();
+
+            
+            ArrayList<Integer> selectedItems = mAdapter.getSelected();
+            for (Integer item : selectedItems) {
+                selected.put(item);
+            }
+
+            
+            
+            if (!result.has("button") || result.optInt("button") == -1) {
+                if (!selectedItems.contains(which)) {
+                    selected.put(which);
                 }
-                result.put("list", selected);
-            } else {
-                
-                JSONArray selected = new JSONArray();
-                selected.put(which);
-                result.put("list", selected);
-                
+
                 result.put("button", which);
             }
+
+            result.put("list", selected);
         } catch(JSONException ex) { }
     }
 
@@ -205,11 +205,10 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         ThreadUtils.assertOnUiThread();
         JSONObject ret = new JSONObject();
         try {
-            ListView list = mDialog.getListView();
             addButtonResult(ret, which);
             addInputValues(ret);
 
-            if (list != null || mAdapter.getSelected() != null) {
+            if (mAdapter != null) {
                 addListResult(ret, which);
             }
         } catch(Exception ex) {
@@ -233,19 +232,18 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
 
 
 
-
-
-
-
-    private void addListItems(AlertDialog.Builder builder, PromptListItem[] listItems, boolean multipleSelection, boolean[] selected) {
-        if (selected != null && selected.length > 0) {
-            if (multipleSelection) {
-                addMultiSelectList(builder, listItems, selected);
-            } else {
-                addSingleSelectList(builder, listItems, selected);
-            }
-        } else {
-            addMenuList(builder, listItems);
+    private void addListItems(AlertDialog.Builder builder, PromptListItem[] listItems, int choiceMode) {
+        switch(choiceMode) {
+            case ListView.CHOICE_MODE_MULTIPLE_MODAL:
+            case ListView.CHOICE_MODE_MULTIPLE:
+                addMultiSelectList(builder, listItems);
+                break;
+            case ListView.CHOICE_MODE_SINGLE:
+                addSingleSelectList(builder, listItems);
+                break;
+            case ListView.CHOICE_MODE_NONE:
+            default:
+                addMenuList(builder, listItems);
         }
     }
 
@@ -258,16 +256,13 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
 
 
 
-    private void addMultiSelectList(AlertDialog.Builder builder, PromptListItem[] listItems, boolean[] selected) {
-        mAdapter = new PromptListAdapter(mContext, R.layout.select_dialog_multichoice, listItems);
-        mAdapter.setSelected(selected);
-
+    private void addMultiSelectList(AlertDialog.Builder builder, PromptListItem[] listItems) {
         ListView listView = (ListView) mInflater.inflate(R.layout.select_dialog_list, null);
         listView.setOnItemClickListener(this);
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        listView.setAdapter(mAdapter);
 
-        builder.setInverseBackgroundForced(true);
+        mAdapter = new PromptListAdapter(mContext, R.layout.select_dialog_multichoice, listItems);
+        listView.setAdapter(mAdapter);
         builder.setView(listView);
     }
 
@@ -278,18 +273,9 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
 
 
 
-    private void addSingleSelectList(AlertDialog.Builder builder, PromptListItem[] listItems, boolean[] selected) {
+    private void addSingleSelectList(AlertDialog.Builder builder, PromptListItem[] listItems) {
         mAdapter = new PromptListAdapter(mContext, R.layout.select_dialog_singlechoice, listItems);
-        
-        int selectedIndex = -1;
-        for (int i = 0; i < selected.length; i++) {
-            if (selected[i]) {
-                selectedIndex = i;
-                break;
-            }
-        }
-
-        builder.setSingleChoiceItems(mAdapter, selectedIndex, this);
+        builder.setSingleChoiceItems(mAdapter, mAdapter.getSelectedIndex(), this);
     }
 
     
@@ -303,7 +289,6 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         mAdapter = new PromptListAdapter(mContext, android.R.layout.simple_list_item_1, listItems);
         builder.setAdapter(mAdapter, this);
     }
-
 
     
 
@@ -342,13 +327,11 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
             } else if (length > 1) {
                 LinearLayout linearLayout = new LinearLayout(mContext);
                 linearLayout.setOrientation(LinearLayout.VERTICAL);
-
                 for (int i = 0; i < length; i++) {
                     View content = wrapInput(mInputs[i]);
                     linearLayout.addView(content);
                     scrollable |= mInputs[i].getScrollable();
                 }
-
                 root = linearLayout;
             }
 
@@ -442,8 +425,16 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         }
 
         PromptListItem[] menuitems = PromptListItem.getArray(geckoObject.optJSONArray("listitems"));
-        boolean multiple = geckoObject.optBoolean("multiple");
-        show(title, text, menuitems, multiple, getBooleanArray(geckoObject, "selected"));
+        String selected = geckoObject.optString("choiceMode");
+
+        int choiceMode = ListView.CHOICE_MODE_NONE;
+        if ("single".equals(selected)) {
+            choiceMode = ListView.CHOICE_MODE_SINGLE;
+        } else if ("multiple".equals(selected)) {
+            choiceMode = ListView.CHOICE_MODE_MULTIPLE;
+        }
+
+        show(title, text, menuitems, choiceMode);
     }
 
     private static JSONArray getSafeArray(JSONObject json, String key) {
