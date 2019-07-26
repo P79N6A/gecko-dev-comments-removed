@@ -25,9 +25,9 @@
     
     cdnURL: 'loop/otcdn',
     
-    loggingURL: 'http://hlg.tokbox.com/prod',
+    loggingURL: 'https://hlg.tokbox.com/prod',
     
-    apiURL: 'http://anvil.opentok.com',
+    apiURL: 'https://anvil.opentok.com',
 
     
     messagingProtocol: 'wss',
