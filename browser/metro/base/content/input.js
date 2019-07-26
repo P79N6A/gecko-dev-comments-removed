@@ -449,8 +449,7 @@ var ScrollUtils = {
     let qinterface = null;
 
     
-    if (!BrowserUI.isStartTabVisible &&
-        elem.ownerDocument == Browser.selectedBrowser.contentDocument) {
+    if (elem.ownerDocument == Browser.selectedBrowser.contentDocument) {
       elem = Browser.selectedBrowser;
     }
     for (; elem; elem = elem.parentNode) {
@@ -989,11 +988,6 @@ var GestureModule = {
 
   init: function init() {
     window.addEventListener("MozSwipeGesture", this, true);
-    
-
-
-
-
     window.addEventListener("CancelTouchSequence", this, true);
   },
 
@@ -1027,21 +1021,6 @@ var GestureModule = {
             aEvent.target.dispatchEvent(event);
           }
           break;
-
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
 
         case "CancelTouchSequence":
           this.cancelPending();
