@@ -60,7 +60,7 @@ public:
 
 
 
-    nsresult CreateRenderingContext(nsRenderingContext *&aContext);
+    already_AddRefed<nsRenderingContext> CreateRenderingContext();
 
     
 
