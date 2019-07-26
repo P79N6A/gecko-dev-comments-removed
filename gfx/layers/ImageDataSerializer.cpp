@@ -63,7 +63,6 @@ ImageDataSerializer::ComputeMinBufferSize(gfx::IntSize aSize,
 {
   
   
-  gfxIntSize gfxSize = gfxIntSize(aSize.width, aSize.height);
   uint32_t bufsize = aSize.height * gfx::BytesPerPixel(aFormat) * aSize.width;
   return SurfaceBufferInfo::GetOffset()
        + gfx::GetAlignedStride<16>(bufsize);
