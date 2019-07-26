@@ -937,9 +937,11 @@ this.DOMApplicationRegistry = {
       }
 
       let manifest = new ManifestHelper(aJSON, app.installOrigin);
-      this.downloadPackage(manifest, { manifestURL: aManifestURL,
-                                       origin: app.origin }, isUpdate,
-        function(aId, aManifest) {
+      this.downloadPackage(manifest, {
+          manifestURL: aManifestURL,
+          origin: app.origin,
+          downloadSize: app.downloadSize
+        }, isUpdate, function(aId, aManifest) {
           
           
           let tmpDir = FileUtils.getDir("TmpD", ["webapps", aId], true, true);
