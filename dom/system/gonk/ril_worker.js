@@ -2466,6 +2466,27 @@ let RIL = {
         return;
 
       
+      case MMI_SC_CLIR:
+        options.mmiServiceCode = MMI_KS_SC_CLIR;
+        options.procedure = mmi.procedure;
+        switch (options.procedure) {
+          case MMI_PROCEDURE_INTERROGATION:
+            this.getCLIR(options);
+            return;
+          case MMI_PROCEDURE_ACTIVATION:
+            options.clirMode = CLIR_INVOCATION;
+            break;
+          case MMI_PROCEDURE_DEACTIVATION:
+            options.clirMode = CLIR_SUPPRESSION;
+            break;
+          default:
+            _sendMMIError(MMI_ERROR_KS_ERROR);
+            return;
+        }
+        this.setCLIR(options);
+        return;
+
+      
       case MMI_SC_BAOC:
       case MMI_SC_BAOIC:
       case MMI_SC_BAOICxH:
@@ -2476,8 +2497,6 @@ let RIL = {
       case MMI_SC_BA_MT:
       
       case MMI_SC_CALL_WAITING:
-      
-      case MMI_SC_CLIR:
         _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED);
         return;
     }
@@ -4983,12 +5002,86 @@ RIL[REQUEST_GET_CLIR] = function REQUEST_GET_CLIR(length, options) {
 
   options.n = Buf.readUint32(); 
   options.m = Buf.readUint32(); 
+
+  if (options.rilMessageType === "sendMMI") {
+    
+    switch (options.m) {
+      
+      case 0:
+        options.statusMessage = MMI_SM_KS_SERVICE_NOT_PROVISIONED;
+        break;
+      
+      case 1:
+        options.statusMessage = MMI_SM_KS_CLIR_PERMANENT;
+        break;
+      
+      case 2:
+        options.success = false;
+        options.errorMsg = MMI_ERROR_KS_ERROR;
+        break;
+      
+      case 3:
+        
+        switch (options.n) {
+          
+          case 0:
+          
+          case 1:
+            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_ON_NEXT_CALL_ON;
+            break;
+          
+          case 2:
+            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_ON_NEXT_CALL_OFF;
+            break;
+          default:
+            options.success = false;
+            options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+            break;
+        }
+        break;
+      
+      case 4:
+        
+        switch (options.n) {
+          
+          case 0:
+          
+          case 2:
+            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_OFF_NEXT_CALL_OFF;
+            break;
+          
+          case 1:
+            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_OFF_NEXT_CALL_ON;
+            break;
+          default:
+            options.success = false;
+            options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+            break;
+        }
+        break;
+      default:
+        options.success = false;
+        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+        break;
+    }
+  }
+
   this.sendDOMMessage(options);
 };
 RIL[REQUEST_SET_CLIR] = function REQUEST_SET_CLIR(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  if (options.success && (options.rilMessageType === "sendMMI")) {
+    switch (options.procedure) {
+      case MMI_PROCEDURE_ACTIVATION:
+        options.statusMessage = MMI_SM_KS_SERVICE_ENABLED;
+        break;
+      case MMI_PROCEDURE_DEACTIVATION:
+        options.statusMessage = MMI_SM_KS_SERVICE_DISABLED;
+        break;
+    }
   }
   this.sendDOMMessage(options);
 };
