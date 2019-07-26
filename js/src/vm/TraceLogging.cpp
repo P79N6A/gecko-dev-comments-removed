@@ -4,16 +4,17 @@
 
 
 
-#include "TraceLogging.h"
+#include "vm/TraceLogging.h"
+
+#include "mozilla/DebugOnly.h"
 
 #include <string.h>
 
 #include "jsapi.h"
 #include "jsscript.h"
 
-#include "mozilla/DebugOnly.h"
-#include "vm/Runtime.h"
 #include "jit/CompileWrappers.h"
+#include "vm/Runtime.h"
 
 using namespace js;
 
