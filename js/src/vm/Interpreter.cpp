@@ -2910,10 +2910,10 @@ CASE(JSOP_DEFVAR)
 {
     
     unsigned attrs = JSPROP_ENUMERATE;
-    if (!REGS.fp()->isEvalFrame())
-        attrs |= JSPROP_PERMANENT;
     if (*REGS.pc == JSOP_DEFCONST)
         attrs |= JSPROP_READONLY;
+    else if (!REGS.fp()->isEvalFrame())
+        attrs |= JSPROP_PERMANENT;
 
     
     RootedObject &obj = rootObject0;

@@ -1147,6 +1147,7 @@
 
 
 
+
  \
     macro(JSOP_DEFCONST,  128,"defconst",   NULL,         5,  0,  0,  JOF_ATOM) \
     
