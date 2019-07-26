@@ -1308,6 +1308,13 @@ public:
 
   void LogSelf(const char* aPrefix="");
 
+  
+  
+  
+  
+  
+  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+
   static bool IsLogEnabled() { return LayerManager::IsLogEnabled(); }
 
   
@@ -1350,13 +1357,6 @@ public:
 
 protected:
   Layer(LayerManager* aManager, void* aImplData);
-
-  
-  
-  
-  
-  
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
   
 

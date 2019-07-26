@@ -31,6 +31,7 @@
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
+#include "TextRenderer.h"               
 #include <vector>
 
 namespace mozilla {
@@ -118,6 +119,32 @@ static gfx::Point GetScrollData(Layer* aLayer) {
 
   gfx::Point origin;
   return origin;
+}
+
+static void DrawLayerInfo(const nsIntRect& aClipRect,
+                          LayerManagerComposite* aManager,
+                          Layer* aLayer)
+{
+
+  if (aLayer->GetType() == Layer::LayerType::TYPE_CONTAINER) {
+    
+    
+    
+    return;
+  }
+
+  nsAutoCString layerInfo;
+  aLayer->PrintInfo(layerInfo, "");
+
+  nsIntRegion visibleRegion = aLayer->GetVisibleRegion();
+
+  uint32_t maxWidth = visibleRegion.GetBounds().width < 500 ? visibleRegion.GetBounds().width : 500;
+
+  nsIntPoint topLeft = visibleRegion.GetBounds().TopLeft();
+  aManager->GetTextRenderer()->RenderText(layerInfo.get(), gfx::IntPoint(topLeft.x, topLeft.y),
+                                          aLayer->GetEffectiveTransform(), 16,
+                                          maxWidth);
+
 }
 
 static LayerVelocityUserData* GetVelocityData(Layer* aLayer) {
@@ -360,6 +387,10 @@ ContainerRender(ContainerT* aContainer,
 
     if (gfxPrefs::LayersScrollGraph()) {
       DrawVelGraph(clipRect, aManager, layerToRender->GetLayer());
+    }
+
+    if (gfxPrefs::DrawLayerInfo()) {
+      DrawLayerInfo(clipRect, aManager, layerToRender->GetLayer());
     }
     
     

@@ -51,7 +51,7 @@
 #include <android/log.h>
 #endif
 #include "GeckoProfiler.h"
-#include "TextRenderer.h"
+#include "TextRenderer.h"               
 
 class gfxASurface;
 class gfxContext;
