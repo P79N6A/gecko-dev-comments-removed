@@ -520,7 +520,7 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
             
             
             
-            if (iter.pcOffset() != 0) {
+            if (iter.pcOffset() != 0 || iter.resumeAfter()) {
                 if (fun)
                     scopeChain = fun->environment();
                 else
