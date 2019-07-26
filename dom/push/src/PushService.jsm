@@ -827,28 +827,6 @@ this.PushService = {
   
 
 
-  _handleUnregisterReply: function(reply) {
-    debug("handleUnregisterReply()");
-    if (typeof reply.channelID !== "string" ||
-        typeof this._pendingRequests[reply.channelID] !== "object")
-      return;
-
-    let tmp = this._pendingRequests[reply.channelID];
-    delete this._pendingRequests[reply.channelID];
-    if (Object.keys(this._pendingRequests).length == 0 &&
-        this._requestTimeoutTimer)
-      this._requestTimeoutTimer.cancel();
-
-    if (reply.status == 200) {
-      tmp.deferred.resolve(reply);
-    } else {
-      tmp.deferred.reject(reply);
-    }
-  },
-
-  
-
-
   _handleNotificationReply: function(reply) {
     debug("handleNotificationReply()");
     if (typeof reply.updates !== 'object') {
@@ -1157,7 +1135,7 @@ this.PushService = {
         },
         function(error) {
           
-          this._sendRequest("unregister", {channelID: record.channelID});
+          this._send("unregister", {channelID: record.channelID});
           message["error"] = error;
           deferred.reject(message);
         }
@@ -1372,7 +1350,7 @@ this.PushService = {
 
     
     
-    let handlers = ["Hello", "Register", "Unregister", "Notification"];
+    let handlers = ["Hello", "Register", "Notification"];
 
     
     
