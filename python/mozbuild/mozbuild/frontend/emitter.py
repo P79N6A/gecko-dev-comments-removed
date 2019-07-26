@@ -390,6 +390,17 @@ class TreeMetadataEmitter(LoggingMixin):
         for path in jar_manifests:
             yield JARManifest(sandbox, mozpath.join(sandbox['SRCDIR'], path))
 
+        
+        
+        
+        
+        if os.path.exists(os.path.join(sandbox['SRCDIR'], 'jar.mn')):
+            if 'jar.mn' not in jar_manifests:
+                raise SandboxValidationError('A jar.mn exists in %s but it '
+                    'is not referenced in the corresponding moz.build file. '
+                    'Please define JAR_MANIFESTS in the moz.build file.' %
+                    sandbox['SRCDIR'])
+
         for name, jar in sandbox.get('JAVA_JAR_TARGETS', {}).items():
             yield SandboxWrapped(sandbox, jar)
 

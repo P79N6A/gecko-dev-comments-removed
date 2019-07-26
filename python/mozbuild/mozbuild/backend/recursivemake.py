@@ -687,11 +687,6 @@ class RecursiveMakeBackend(CommonBackend):
                     self.log(logging.DEBUG, 'stub_makefile',
                         {'path': makefile}, 'Creating stub Makefile: {path}')
 
-                
-                if bf.relobjdir in self._may_skip['libs'] and \
-                        os.path.exists(mozpath.join(srcdir, 'jar.mn')):
-                    self._may_skip['libs'].remove(bf.relobjdir)
-
                 obj = self.Substitution()
                 obj.output_path = makefile
                 obj.input_path = makefile_in
