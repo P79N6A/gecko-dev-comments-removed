@@ -11,6 +11,10 @@ ok(connection instanceof MozMobileConnection,
 
 
 
+is(connection.iccInfo.iccid, 89014103211118510720);
+
+
+
 is(connection.iccInfo.mcc, 310);
 is(connection.iccInfo.mnc, 260);
 
