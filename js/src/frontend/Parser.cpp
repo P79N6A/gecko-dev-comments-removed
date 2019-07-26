@@ -1642,7 +1642,7 @@ Parser<ParseHandler>::functionArguments(FunctionSyntaxKind kind, Node *listp, No
 #endif 
 
               case TOK_YIELD:
-                if (!checkYieldNameValidity(JSMSG_MISSING_FORMAL))
+                if (!checkYieldNameValidity())
                     return false;
                 goto TOK_NAME;
 
@@ -1720,20 +1720,6 @@ Parser<ParseHandler>::functionArguments(FunctionSyntaxKind kind, Node *listp, No
     return true;
 }
 
-template <typename ParseHandler>
-bool
-Parser<ParseHandler>::checkFunctionName(HandlePropertyName funName)
-{
-    if (pc->isStarGenerator() && funName == context->names().yield) {
-        
-        
-        
-        report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
-        return false;
-    }
-    return true;
-}
-
 template <>
 bool
 Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
@@ -1745,9 +1731,6 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
 
     
     bool bodyLevel = pc->atBodyLevel();
-
-    if (!checkFunctionName(funName))
-        return false;
 
     if (kind == Statement) {
         
@@ -1939,9 +1922,6 @@ Parser<SyntaxParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
 
     
     bool bodyLevel = pc->atBodyLevel();
-
-    if (!checkFunctionName(funName))
-        return false;
 
     if (kind == Statement) {
         
@@ -2419,15 +2399,11 @@ Parser<SyntaxParseHandler>::moduleDecl()
 
 template <typename ParseHandler>
 bool
-Parser<ParseHandler>::checkYieldNameValidity(unsigned errorNumber)
+Parser<ParseHandler>::checkYieldNameValidity()
 {
     
-    if (pc->isStarGenerator() || versionNumber() >= JSVERSION_1_7) {
-        report(ParseError, false, null(), errorNumber);
-        return false;
-    }
     
-    if (pc->sc->strict) {
+    if (pc->isStarGenerator() || versionNumber() >= JSVERSION_1_7 || pc->sc->strict) {
         report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
         return false;
     }
@@ -2445,15 +2421,19 @@ Parser<ParseHandler>::functionStmt()
 
     RootedPropertyName name(context);
     GeneratorKind generatorKind = NotGenerator;
-    TokenKind tt = tokenStream.getToken(TokenStream::KeywordIsName);
+    TokenKind tt = tokenStream.getToken();
 
     if (tt == TOK_MUL) {
         tokenStream.tell(&start);
-        tt = tokenStream.getToken(TokenStream::KeywordIsName);
+        tt = tokenStream.getToken();
         generatorKind = StarGenerator;
     }
 
     if (tt == TOK_NAME) {
+        name = tokenStream.currentName();
+    } else if (tt == TOK_YIELD) {
+        if (!checkYieldNameValidity())
+            return null();
         name = tokenStream.currentName();
     } else {
         
@@ -2478,20 +2458,25 @@ Parser<ParseHandler>::functionExpr()
     TokenStream::Position start(keepAtoms);
     tokenStream.tell(&start);
 
-    RootedPropertyName name(context);
     GeneratorKind generatorKind = NotGenerator;
-    TokenKind tt = tokenStream.getToken(TokenStream::KeywordIsName);
+    TokenKind tt = tokenStream.getToken();
 
     if (tt == TOK_MUL) {
         tokenStream.tell(&start);
-        tt = tokenStream.getToken(TokenStream::KeywordIsName);
+        tt = tokenStream.getToken();
         generatorKind = StarGenerator;
     }
 
-    if (tt == TOK_NAME)
+    RootedPropertyName name(context);
+    if (tt == TOK_NAME) {
         name = tokenStream.currentName();
-    else
+    } else if (tt == TOK_YIELD) {
+        if (!checkYieldNameValidity())
+            return null();
+        name = tokenStream.currentName();
+    } else {
         tokenStream.ungetToken();
+    }
 
     return functionDef(name, start, Normal, Expression, generatorKind);
 }
@@ -3570,7 +3555,7 @@ Parser<ParseHandler>::variables(ParseNodeKind kind, bool *psimple,
 
         if (tt != TOK_NAME) {
             if (tt == TOK_YIELD) {
-                if (!checkYieldNameValidity(JSMSG_NO_VARIABLE_NAME))
+                if (!checkYieldNameValidity())
                     return null();
             } else {
                 if (tt != TOK_ERROR)
@@ -4882,7 +4867,7 @@ Parser<ParseHandler>::tryStatement()
 #endif
 
               case TOK_YIELD:
-                if (!checkYieldNameValidity(JSMSG_CATCH_IDENTIFIER))
+                if (!checkYieldNameValidity())
                     return null();
                 
               case TOK_NAME:
