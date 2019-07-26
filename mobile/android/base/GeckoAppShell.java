@@ -1130,6 +1130,9 @@ public class GeckoAppShell
 
 
 
+
+
+
     @WrapElementForJNI
     public static boolean openUriExternal(String targetURI,
                                           String mimeType,
@@ -1145,8 +1148,13 @@ public class GeckoAppShell
             return false;
         }
 
-        if (packageName.length() > 0 && className.length() > 0) {
-            intent.setClassName(packageName, className);
+        if (!TextUtils.isEmpty(className)) {
+            if (!TextUtils.isEmpty(packageName)) {
+                intent.setClassName(packageName, className);
+            } else {
+                
+                intent.setClassName(context, className);
+            }
         }
 
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
