@@ -69,6 +69,7 @@ class nsTransactionManager;
 
 namespace mozilla {
 class Selection;
+class TextComposition;
 
 namespace dom {
 class Element;
@@ -242,9 +243,8 @@ public:
                              mozilla::dom::Element** aContent);
 
   
-  virtual nsresult BeginIMEComposition();
-  virtual nsresult UpdateIMEComposition(const nsAString &aCompositionString,
-                                        nsIPrivateTextRangeList *aTextRange)=0;
+  virtual nsresult BeginIMEComposition(mozilla::WidgetCompositionEvent* aEvent);
+  virtual nsresult UpdateIMEComposition(nsIDOMEvent* aDOMTextEvent) = 0;
   void EndIMEComposition();
 
   void SwitchTextDirectionTo(uint32_t aDirection);
@@ -412,6 +412,13 @@ protected:
     
     return !IsPasswordEditor() && !IsReadonly() && !IsDisabled() && !ShouldSkipSpellCheck();
   }
+
+  
+
+
+
+
+  void EnsureComposition(mozilla::WidgetGUIEvent* aEvent);
 
 public:
 
@@ -830,6 +837,9 @@ protected:
   nsIAtom          *mPlaceHolderName;    
   nsSelectionState *mSelState;           
   nsString         *mPhonetic;
+  
+  
+  nsRefPtr<mozilla::TextComposition> mComposition;
 
   
   nsCOMArray<nsIEditActionListener> mActionListeners;  

@@ -98,7 +98,17 @@ public:
   
 
 
-  static mozilla::TextComposition* GetTextCompositionFor(nsIWidget* aWidget);
+  static already_AddRefed<mozilla::TextComposition>
+    GetTextCompositionFor(nsIWidget* aWidget);
+
+  
+
+
+
+
+
+  static already_AddRefed<mozilla::TextComposition>
+    GetTextCompositionFor(mozilla::WidgetGUIEvent* aEvent);
 
   
 

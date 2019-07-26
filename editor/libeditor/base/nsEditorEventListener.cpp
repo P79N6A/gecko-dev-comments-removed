@@ -5,6 +5,7 @@
 
 #include "mozilla/Assertions.h"         
 #include "mozilla/Preferences.h"        
+#include "mozilla/TextEvents.h"         
 #include "mozilla/dom/Element.h"        
 #include "mozilla/dom/EventTarget.h"    
 #include "nsAString.h"
@@ -42,8 +43,6 @@
 #include "nsINode.h"                    
 #include "nsIPlaintextEditor.h"         
 #include "nsIPresShell.h"               
-#include "nsIPrivateTextEvent.h"        
-#include "nsIPrivateTextRange.h"        
 #include "nsISelection.h"               
 #include "nsISelectionController.h"     
 #include "nsISelectionPrivate.h"        
@@ -661,24 +660,12 @@ nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIPrivateTextEvent> textEvent = do_QueryInterface(aTextEvent);
-  if (!textEvent) {
-     
-     return NS_OK;
-  }
-
-  nsAutoString                      composedText;
-  nsCOMPtr<nsIPrivateTextRangeList> textRangeList;
-
-  textEvent->GetText(composedText);
-  textRangeList = textEvent->GetInputRange();
-
   
   if (mEditor->IsReadonly() || mEditor->IsDisabled()) {
     return NS_OK;
   }
 
-  return mEditor->UpdateIMEComposition(composedText, textRangeList);
+  return mEditor->UpdateIMEComposition(aTextEvent);
 }
 
 
@@ -905,7 +892,9 @@ nsEditorEventListener::HandleStartComposition(nsIDOMEvent* aCompositionEvent)
   if (!mEditor->IsAcceptableInputEvent(aCompositionEvent)) {
     return NS_OK;
   }
-  return mEditor->BeginIMEComposition();
+  WidgetCompositionEvent* compositionStart =
+    aCompositionEvent->GetInternalNSEvent()->AsCompositionEvent();
+  return mEditor->BeginIMEComposition(compositionStart);
 }
 
 void
