@@ -459,7 +459,14 @@ already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(bool aMemoryOnly,
   newEntry->TransferCallbacks(*this);
   mCallbacks.Clear();
 
-  return handle.forget();
+  
+  
+  
+  
+  
+  nsRefPtr<CacheEntryHandle> writeHandle =
+    newEntry->NewWriteHandle();
+  return writeHandle.forget();
 }
 
 void CacheEntry::TransferCallbacks(CacheEntry & aFromEntry)
@@ -770,7 +777,7 @@ CacheEntryHandle* CacheEntry::NewWriteHandle()
   mozilla::MutexAutoLock lock(mLock);
 
   BackgroundOp(Ops::FRECENCYUPDATE);
-  return (mWriter = new CacheEntryHandle(this));
+  return (mWriter = NewHandle());
 }
 
 void CacheEntry::OnHandleClosed(CacheEntryHandle const* aHandle)
