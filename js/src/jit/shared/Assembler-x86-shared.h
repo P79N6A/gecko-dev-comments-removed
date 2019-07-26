@@ -295,13 +295,16 @@ class AssemblerX86Shared
 
     void movsd(const FloatRegister &src, const FloatRegister &dest) {
         JS_ASSERT(HasSSE2());
-        masm.movsd_rr(src.code(), dest.code());
+        
+        
+        masm.movapd_rr(src.code(), dest.code());
     }
     void movsd(const Operand &src, const FloatRegister &dest) {
         JS_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::FPREG:
-            masm.movsd_rr(src.fpu(), dest.code());
+            
+            masm.movapd_rr(src.fpu(), dest.code());
             break;
           case Operand::MEM_REG_DISP:
             masm.movsd_mr(src.disp(), src.base(), dest.code());
@@ -317,7 +320,8 @@ class AssemblerX86Shared
         JS_ASSERT(HasSSE2());
         switch (dest.kind()) {
           case Operand::FPREG:
-            masm.movsd_rr(src.code(), dest.fpu());
+            
+            masm.movapd_rr(src.code(), dest.fpu());
             break;
           case Operand::MEM_REG_DISP:
             masm.movsd_rm(src.code(), dest.disp(), dest.base());
@@ -331,13 +335,15 @@ class AssemblerX86Shared
     }
     void movss(const FloatRegister &src, const FloatRegister &dest) {
         JS_ASSERT(HasSSE2());
-        masm.movss_rr(src.code(), dest.code());
+        
+        masm.movaps_rr(src.code(), dest.code());
     }
     void movss(const Operand &src, const FloatRegister &dest) {
         JS_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::FPREG:
-            masm.movss_rr(src.fpu(), dest.code());
+            
+            masm.movaps_rr(src.fpu(), dest.code());
             break;
           case Operand::MEM_REG_DISP:
             masm.movss_mr(src.disp(), src.base(), dest.code());
@@ -353,7 +359,8 @@ class AssemblerX86Shared
         JS_ASSERT(HasSSE2());
         switch (dest.kind()) {
           case Operand::FPREG:
-            masm.movss_rr(src.code(), dest.fpu());
+            
+            masm.movaps_rr(src.code(), dest.fpu());
             break;
           case Operand::MEM_REG_DISP:
             masm.movss_rm(src.code(), dest.disp(), dest.base());
