@@ -86,6 +86,11 @@
 
 #include <limits>
 
+#ifdef MOZ_WIDGET_GONK
+#include "nsINetworkManager.h"
+#include "nsThreadUtils.h" 
+#endif
+
 #ifdef MOZILLA_INTERNAL_API
 
 #include "nsReadableUtils.h"
@@ -2359,5 +2364,29 @@ NS_IsSrcdocChannel(nsIChannel *aChannel)
   }
   return false;
 }
+
+
+const static uint64_t NETWORK_STATS_THRESHOLD = 65536;
+
+#ifdef MOZ_WIDGET_GONK
+inline nsresult
+NS_GetActiveNetworkInterface(nsCOMPtr<nsINetworkInterface> &aNetworkInterface)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsresult rv;
+  nsCOMPtr<nsINetworkManager> networkManager =
+    do_GetService("@mozilla.org/network/manager;1", &rv);
+
+  if (NS_FAILED(rv) || !networkManager) {
+    aNetworkInterface = nullptr;
+    return rv;
+  }
+
+  networkManager->GetActive(getter_AddRefs(aNetworkInterface));
+
+  return NS_OK;
+}
+#endif
 
 #endif 
