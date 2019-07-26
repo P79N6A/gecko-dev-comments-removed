@@ -235,6 +235,9 @@ function runTest() {
 
   
   pbWin.close();
+  
+  executeSoon(moveAlong);
+  yield;
   let pbWin = yield createWindow({private: true});
   let pbDownloadLastDir = new DownloadLastDir(pbWin);
 

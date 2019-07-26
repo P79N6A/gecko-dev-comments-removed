@@ -343,15 +343,18 @@ function newWindowWithState(state, callback) {
   whenDelayedStartupFinished(win, function () {
     ss.setWindowState(win, JSON.stringify(state), true);
     win.close();
-    win = ss.undoCloseWindow(0);
+    
+    executeSoon(function() {
+      win = ss.undoCloseWindow(0);
 
-    whenWindowLoaded(win, function () {
-      whenWindowStateReady(win, function () {
-        afterAllTabsLoaded(check, win);
+      whenWindowLoaded(win, function () {
+        whenWindowStateReady(win, function () {
+          afterAllTabsLoaded(check, win);
+        });
       });
-    });
 
-    whenDelayedStartupFinished(win, check);
+      whenDelayedStartupFinished(win, check);
+    });
   });
 }
 
