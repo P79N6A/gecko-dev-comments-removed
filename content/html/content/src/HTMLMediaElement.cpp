@@ -1566,9 +1566,9 @@ HTMLMediaElement::GetMozSampleRate(uint32_t* aMozSampleRate)
 }
 
 
-typedef struct {
+typedef struct MOZ_STACK_CLASS {
   JSContext* cx;
-  JSObject*  tags;
+  JS::HandleObject  tags;
   bool error;
 } MetadataIterCx;
 
