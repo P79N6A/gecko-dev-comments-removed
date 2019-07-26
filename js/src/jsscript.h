@@ -504,8 +504,10 @@ class JSScript : public js::gc::Cell
 #endif
 #ifdef JS_ION
     bool            failedShapeGuard:1; 
+    bool            hadFrequentBailouts:1;
 #else
     bool            failedShapeGuardPad:1;
+    bool            hadFrequentBailoutsPad:1;
 #endif
     bool            invalidatedIdempotentCache:1; 
     bool            isGenerator:1;    

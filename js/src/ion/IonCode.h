@@ -171,7 +171,7 @@ struct IonScript
     uint32_t invalidateEpilogueDataOffset_;
 
     
-    uint32_t bailoutExpected_;
+    uint32_t numBailouts_;
 
     
     
@@ -302,9 +302,6 @@ struct IonScript
     static inline size_t offsetOfOsrEntryOffset() {
         return offsetof(IonScript, osrEntryOffset_);
     }
-    static size_t offsetOfBailoutExpected() {
-        return offsetof(IonScript, bailoutExpected_);
-    }
 
   public:
     IonCode *method() const {
@@ -354,11 +351,14 @@ struct IonScript
         JS_ASSERT(invalidateEpilogueDataOffset_);
         return invalidateEpilogueDataOffset_;
     }
-    void setBailoutExpected() {
-        bailoutExpected_ = 1;
+    void incNumBailouts() {
+        numBailouts_++;
+    }
+    uint32_t numBailouts() const {
+        return numBailouts_;
     }
     bool bailoutExpected() const {
-        return bailoutExpected_ ? true : false;
+        return numBailouts_ > 0;
     }
     void setHasInvalidatedCallTarget() {
         hasInvalidatedCallTarget_ = true;

@@ -123,6 +123,12 @@ struct IonOptions
     
     
     
+    
+    uint32_t frequentBailoutThreshold;
+
+    
+    
+    
     uint32_t maxStackArgs;
 
     
@@ -201,6 +207,7 @@ struct IonOptions
         usesBeforeCompileNoJaeger(40),
         usesBeforeInliningFactor(.125),
         osrPcMismatchesBeforeRecompile(6000),
+        frequentBailoutThreshold(10),
         maxStackArgs(4096),
         maxInlineDepth(3),
         smallFunctionMaxInlineDepth(10),

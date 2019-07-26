@@ -244,7 +244,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
 
     
     
-    it.ionScript()->setBailoutExpected();
+    it.ionScript()->incNumBailouts();
     it.script()->updateBaselineOrIonRaw();
 
     
@@ -686,3 +686,22 @@ ion::ThunkToInterpreter(Value *vp)
     return status;
 }
 
+bool
+ion::CheckFrequentBailouts(JSContext *cx, JSScript *script)
+{
+    
+    
+
+    if (script->hasIonScript() &&
+        script->ionScript()->numBailouts() >= js_IonOptions.frequentBailoutThreshold)
+    {
+        script->hadFrequentBailouts = true;
+
+        IonSpew(IonSpew_Invalidate, "Invalidating due to too many bailouts");
+
+        if (!Invalidate(cx, script))
+            return false;
+    }
+
+    return true;
+}
