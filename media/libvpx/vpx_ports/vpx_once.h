@@ -7,6 +7,9 @@
 
 
 
+#ifndef VPX_ONCE_H
+#define VPX_ONCE_H
+
 #include "vpx_config.h"
 
 #if CONFIG_MULTITHREAD && defined(_WIN32)
@@ -94,4 +97,6 @@ static void once(void (*func)(void))
         done = 1;
     }
 }
+#endif
+
 #endif

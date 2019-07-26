@@ -444,6 +444,7 @@ def update_and_remove_files(prefix, libvpx_files, files):
 def apply_patches():
     
     os.system("patch -p3 < stdint.patch")
+    os.system("patch -p3 < unified.patch")
 
 def update_readme(commit):
     with open('README_MOZILLA') as f:
