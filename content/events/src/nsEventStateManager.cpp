@@ -3072,7 +3072,9 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
   NS_ENSURE_ARG(aPresContext);
   NS_ENSURE_ARG_POINTER(aStatus);
 
-  HandleCrossProcessEvent(aEvent, aTargetFrame, aStatus);
+  bool dispatchedToContentProcess = HandleCrossProcessEvent(aEvent,
+                                                            aTargetFrame,
+                                                            aStatus);
 
   mCurrentTarget = aTargetFrame;
   mCurrentTargetContent = nullptr;
@@ -3519,6 +3521,13 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         switch(keyEvent->keyCode) {
           case NS_VK_TAB:
           case NS_VK_F6:
+            
+            
+            
+            
+            if (dispatchedToContentProcess)
+              break;
+
             EnsureDocument(mPresContext);
             nsIFocusManager* fm = nsFocusManager::GetFocusManager();
             if (fm && mDocument) {
