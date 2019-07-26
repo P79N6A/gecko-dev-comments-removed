@@ -640,6 +640,10 @@ protected:
 
   nsRefPtr<gfxASurface> mTempThebesSurface;
 
+  
+  
+  mozilla::Mutex mViewTearDownLock;
+
   mozilla::Mutex mEffectsLock;
 
   
