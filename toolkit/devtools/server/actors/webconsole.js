@@ -626,7 +626,8 @@ WebConsoleActor.prototype =
   {
     
     
-    let result = JSPropertyProvider(this.window, aRequest.text) || {};
+    let result = JSPropertyProvider(this.window, aRequest.text,
+                                    aRequest.cursor) || {};
     return {
       from: this.actorID,
       matches: result.matches || [],

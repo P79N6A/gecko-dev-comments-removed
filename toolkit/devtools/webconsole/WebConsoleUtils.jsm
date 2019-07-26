@@ -740,13 +740,20 @@ function findCompletionBeginning(aStr)
 
 
 
-function JSPropertyProvider(aScope, aInputValue)
+
+
+function JSPropertyProvider(aScope, aInputValue, aCursor)
 {
+  if (aCursor === undefined) {
+    aCursor = aInputValue.length;
+  }
+
+  let inputValue = aInputValue.substring(0, aCursor);
   let obj = WCU.unwrap(aScope);
 
   
   
-  let beginning = findCompletionBeginning(aInputValue);
+  let beginning = findCompletionBeginning(inputValue);
 
   
   if (beginning.err) {
@@ -759,7 +766,7 @@ function JSPropertyProvider(aScope, aInputValue)
     return null;
   }
 
-  let completionPart = aInputValue.substring(beginning.startPos);
+  let completionPart = inputValue.substring(beginning.startPos);
 
   
   if (completionPart.trim() == "") {
