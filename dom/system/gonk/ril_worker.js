@@ -10170,10 +10170,7 @@ let ICCRecordHelper = {
               ", spnDisplayCondition = " + spnDisplayCondition);
       }
 
-      RIL.iccInfoPrivate.SPN = {
-        spn : spn,
-        spnDisplayCondition : spnDisplayCondition,
-      };
+      RIL.iccInfoPrivate.spnDisplayCondition = spnDisplayCondition;
       RIL.iccInfo.spn = spn;
       ICCUtilsHelper.updateDisplayCondition();
       ICCUtilsHelper.handleICCInfoChange();
@@ -11138,11 +11135,11 @@ let ICCUtilsHelper = {
     
     let iccInfo = RIL.iccInfo;
     let iccInfoPriv = RIL.iccInfoPrivate;
-    let iccSpn = iccInfoPriv.SPN;
+    let displayCondition = iccInfoPriv.spnDisplayCondition;
     let origIsDisplayNetworkNameRequired = iccInfo.isDisplayNetworkNameRequired;
     let origIsDisplaySPNRequired = iccInfo.isDisplaySpnRequired;
 
-    if (!iccSpn) {
+    if (displayCondition === undefined) {
       iccInfo.isDisplayNetworkNameRequired = true;
       iccInfo.isDisplaySpnRequired = false;
     } else if (RIL._isCdma) {
@@ -11155,7 +11152,7 @@ let ICCUtilsHelper = {
 
       
       
-      if (iccSpn.spnDisplayCondition == false) {
+      if (displayCondition == 0x0) {
         iccInfo.isDisplaySpnRequired = false;
       } else {
         
@@ -11227,11 +11224,7 @@ let ICCUtilsHelper = {
         
         
         iccInfo.isDisplaySpnRequired = true;
-        if (iccSpn.spnDisplayCondition & 0x01) {
-          iccInfo.isDisplayNetworkNameRequired = true;
-        } else {
-          iccInfo.isDisplayNetworkNameRequired = false;
-        }
+        iccInfo.isDisplayNetworkNameRequired = (displayCondition & 0x01) != 0;
       } else {
         
         
@@ -11240,13 +11233,8 @@ let ICCUtilsHelper = {
         
         
         
-        if (iccSpn.spnDisplayCondition & 0x02) {
-          iccInfo.isDisplayNetworkNameRequired = false;
-          iccInfo.isDisplaySpnRequired = false;
-        } else {
-          iccInfo.isDisplayNetworkNameRequired = false;
-          iccInfo.isDisplaySpnRequired = true;
-        }
+        iccInfo.isDisplayNetworkNameRequired = false;
+        iccInfo.isDisplaySpnRequired = (displayCondition & 0x02) == 0;
       }
     }
 
@@ -12069,9 +12057,7 @@ let RuimRecordHelper = {
         debug("CDMA SPN: " + RIL.iccInfo.spn +
               ", Display condition: " + displayCondition);
       }
-      RIL.iccInfoPrivate.SPN = {
-        spnDisplayCondition: displayCondition
-      };
+      RIL.iccInfoPrivate.spnDisplayCondition = displayCondition;
       Buf.seekIncoming((octetLen - readLen) * PDU_HEX_OCTET_SIZE);
       Buf.readStringDelimiter(strLen);
     }
