@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include "shlobj.h"
 #include "updatehelper.h"
+#include "uachelper.h"
 #include "pathhash.h"
 
 
@@ -692,6 +693,10 @@ GetDWORDValue(HKEY key, LPCWSTR valueName, DWORD &retValue)
 BOOL
 IsUnpromptedElevation(BOOL &isUnpromptedElevation)
 {
+  if (!UACHelper::CanUserElevate()) {
+    return FALSE;
+  }
+
   LPCWSTR UACBaseRegKey =
     L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
   HKEY baseKey;
@@ -702,13 +707,12 @@ IsUnpromptedElevation(BOOL &isUnpromptedElevation)
     return FALSE;
   }
 
-  DWORD enabled, consent, secureDesktop;
-  BOOL success = GetDWORDValue(baseKey, L"EnableLUA", enabled);
-  success = success &&
-            GetDWORDValue(baseKey, L"ConsentPromptBehaviorAdmin", consent);
+  DWORD consent, secureDesktop;
+  BOOL success = GetDWORDValue(baseKey, L"ConsentPromptBehaviorAdmin",
+                               consent);
   success = success &&
             GetDWORDValue(baseKey, L"PromptOnSecureDesktop", secureDesktop);
-  isUnpromptedElevation = enabled && !consent && !secureDesktop;
+  isUnpromptedElevation = !consent && !secureDesktop;
 
   RegCloseKey(baseKey);
   return success;

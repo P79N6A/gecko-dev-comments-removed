@@ -195,3 +195,28 @@ UACHelper::DisablePrivileges(HANDLE token)
   return DisableUnneededPrivileges(token, UACHelper::PrivsToDisable, 
                                    PrivsToDisableSize);
 }
+
+
+
+
+
+
+
+bool
+UACHelper::CanUserElevate()
+{
+  HANDLE token;
+  if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+    return false;
+  }
+
+  TOKEN_ELEVATION_TYPE elevationType;
+  DWORD len;
+  bool canElevate = GetTokenInformation(token, TokenElevationType,
+                                        &elevationType,
+                                        sizeof(elevationType), &len) &&
+                    (elevationType == TokenElevationTypeLimited);
+  CloseHandle(token);
+
+  return canElevate;
+}
