@@ -4326,6 +4326,7 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
     
     if (HasTextContent(aContent)) {
       mPositions[aIndex].mPosition = gfxPoint();
+      mPositions[aIndex].mStartOfChunk = true;
     }
   } else if (aContent->Tag() != nsGkAtoms::a) {
     
