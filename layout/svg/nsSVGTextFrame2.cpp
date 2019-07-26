@@ -4856,6 +4856,14 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor(bool aForceGlobalTransform)
   gfxPoint p = m.Transform(gfxPoint(1, 1)) - m.Transform(gfxPoint(0, 0));
   double contextScale = SVGContentUtils::ComputeNormalizedHypotenuse(p.x, p.y);
 
+  
+  
+  
+  
+  float cssPxPerDevPx =
+    presContext->AppUnitsToFloatCSSPixels(presContext->AppUnitsPerDevPixel());
+  contextScale *= cssPxPerDevPx;
+
   double minTextRunSize = minSize * contextScale;
   double maxTextRunSize = maxSize * contextScale;
 
