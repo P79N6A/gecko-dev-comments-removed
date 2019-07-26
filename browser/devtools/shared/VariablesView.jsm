@@ -792,6 +792,18 @@ Scope.prototype = {
 
 
 
+  get locked() this._locked,
+
+  
+
+
+
+  set locked(aFlag) this._locked = aFlag,
+
+  
+
+
+
 
 
   addEventListener: function S_addEventListener(aName, aCallback, aCapture) {
@@ -1997,7 +2009,7 @@ VariablesView.isPrimitive = function VV_isPrimitive(aDescriptor) {
 
   
   let type = grip.type;
-  if (type == "undefined" || type == "null") {
+  if (type == "undefined" || type == "null" || type == "longString") {
     return true;
   }
 
@@ -2092,6 +2104,8 @@ VariablesView.getString = function VV_getString(aGrip, aConciseFlag) {
         return "undefined";
       case "null":
         return "null";
+      case "longString":
+        return "\"" + aGrip.initial + "\"";
       default:
         if (!aConciseFlag) {
           return "[" + aGrip.type + " " + aGrip.class + "]";
