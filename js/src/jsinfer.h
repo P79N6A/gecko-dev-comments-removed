@@ -1161,7 +1161,7 @@ struct TypeCompartment
                               bool unknown = false, bool isDOM = false);
 
     
-    TypeObject *newAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
+    TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
 
     void nukeTypes(FreeOp *fop);
     void processPendingRecompiles(FreeOp *fop);

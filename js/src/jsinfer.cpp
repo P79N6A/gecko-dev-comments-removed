@@ -1884,8 +1884,97 @@ TypeCompartment::newTypeObject(JSContext *cx, JSScript *script,
     return object;
 }
 
+static inline jsbytecode *
+PreviousOpcode(JSScript *script, jsbytecode *pc)
+{
+    ScriptAnalysis *analysis = script->analysis();
+    JS_ASSERT(analysis->maybeCode(pc));
+
+    if (pc == script->code)
+        return NULL;
+
+    for (pc--;; pc--) {
+        if (analysis->maybeCode(pc))
+            break;
+    }
+
+    return pc;
+}
+
+
+
+
+
+static inline jsbytecode *
+FindPreviousInnerInitializer(JSScript *script, jsbytecode *initpc)
+{
+    if (!script->hasAnalysis())
+        return NULL;
+
+    
+
+
+
+
+
+
+
+
+
+    if (*initpc != JSOP_NEWARRAY)
+        return NULL;
+
+    jsbytecode *last = PreviousOpcode(script, initpc);
+    if (!last)
+        return NULL;
+
+    switch (*last) {
+      case JSOP_ZERO:
+      case JSOP_ONE:
+      case JSOP_INT8:
+      case JSOP_INT32:
+      case JSOP_UINT16:
+      case JSOP_UINT24:
+        break;
+      default:
+        return NULL;
+    }
+
+    last = PreviousOpcode(script, last);
+    if (!last || *last != JSOP_INITELEM)
+        return NULL;
+
+    last = PreviousOpcode(script, last);
+    if (!last || *last != JSOP_ENDINIT)
+        return NULL;
+
+    
+
+
+
+
+    size_t initDepth = 0;
+    jsbytecode *previnit;
+    for (previnit = last; previnit; previnit = PreviousOpcode(script, previnit)) {
+        if (*previnit == JSOP_ENDINIT)
+            initDepth++;
+        if (*previnit == JSOP_NEWINIT ||
+            *previnit == JSOP_NEWARRAY ||
+            *previnit == JSOP_NEWOBJECT)
+        {
+            if (--initDepth == 0)
+                break;
+        }
+    }
+
+    if (!previnit || *previnit != JSOP_NEWARRAY)
+        return NULL;
+
+    return previnit;
+}
+
 TypeObject *
-TypeCompartment::newAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key)
+TypeCompartment::addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key)
 {
     AutoEnterTypeInference enter(cx);
 
@@ -1900,20 +1989,40 @@ TypeCompartment::newAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey ke
     AllocationSiteTable::AddPtr p = allocationSiteTable->lookupForAdd(key);
     JS_ASSERT(!p);
 
-    RootedObject proto(cx);
-    RootedObject global(cx, &key.script->global());
-    if (!js_GetClassPrototype(cx, global, key.kind, &proto, NULL))
-        return NULL;
+    TypeObject *res = NULL;
 
-    RootedScript keyScript(cx, key.script);
-    TypeObject *res = newTypeObject(cx, key.script, key.kind, proto);
-    if (!res) {
-        cx->compartment->types.setPendingNukeTypes(cx);
-        return NULL;
-    }
-    key.script = keyScript;
+    
+
+
+
 
     jsbytecode *pc = key.script->code + key.offset;
+    jsbytecode *prev = FindPreviousInnerInitializer(key.script, pc);
+    if (prev) {
+        AllocationSiteKey nkey;
+        nkey.script = key.script;
+        nkey.offset = prev - key.script->code;
+        nkey.kind = JSProto_Array;
+
+        AllocationSiteTable::Ptr p = cx->compartment->types.allocationSiteTable->lookup(nkey);
+        if (p)
+            res = p->value;
+    }
+
+    if (!res) {
+        RootedObject proto(cx);
+        RootedObject global(cx, &key.script->global());
+        if (!js_GetClassPrototype(cx, global, key.kind, &proto, NULL))
+            return NULL;
+
+        RootedScript keyScript(cx, key.script);
+        res = newTypeObject(cx, key.script, key.kind, proto);
+        if (!res) {
+            cx->compartment->types.setPendingNukeTypes(cx);
+            return NULL;
+        }
+        key.script = keyScript;
+    }
 
     if (JSOp(*pc) == JSOP_NEWOBJECT) {
         
