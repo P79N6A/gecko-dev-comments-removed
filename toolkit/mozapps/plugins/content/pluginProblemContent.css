@@ -42,9 +42,6 @@ html|applet:not([height]), html|applet[height=""] {
 .mainBox {
   width: inherit;
   height: inherit;
-  
-
-  visibility: hidden;
   overflow: hidden;
   direction: ltr;
   unicode-bidi: embed;
