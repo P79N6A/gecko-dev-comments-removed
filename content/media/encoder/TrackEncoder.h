@@ -10,6 +10,8 @@
 
 #include "AudioSegment.h"
 #include "StreamBuffer.h"
+#include "TrackMetadataBase.h"
+#include "EncodedFrameContainer.h"
 
 namespace mozilla {
 
@@ -50,15 +52,12 @@ public:
   
 
 
-
-  virtual nsresult GetHeader(nsTArray<uint8_t>* aOutput) = 0;
+  virtual nsRefPtr<TrackMetadataBase> GetMetadata() = 0;
 
   
 
 
-
-  virtual nsresult GetEncodedTrack(nsTArray<uint8_t>* aOutput,
-                                   int &aOutputDuration) = 0;
+  virtual nsresult GetEncodedTrack(EncodedFrameContainer& aData) = 0;
 };
 
 class AudioTrackEncoder : public TrackEncoder

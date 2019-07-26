@@ -5,6 +5,7 @@
 #include "MediaEncoder.h"
 #include "MediaDecoder.h"
 #include "nsIPrincipal.h"
+
 #ifdef MOZ_OGG
 #include "OggWriter.h"
 #endif
@@ -150,8 +151,6 @@ MediaEncoder::CreateEncoder(const nsAString& aMIMEType)
 
 
 
-
-
 void
 MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
                              nsAString& aMIMEType)
@@ -163,48 +162,36 @@ MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
   bool reloop = true;
   while (reloop) {
     switch (mState) {
-    case ENCODE_HEADER: {
-      nsTArray<uint8_t> buffer;
-      nsresult rv = mAudioEncoder->GetHeader(&buffer);
+    case ENCODE_METADDATA: {
+      nsRefPtr<TrackMetadataBase> meta = mAudioEncoder->GetMetadata();
+      MOZ_ASSERT(meta);
+      nsresult rv = mWriter->SetMetadata(meta);
       if (NS_FAILED(rv)) {
-        
-        mState = ENCODE_DONE;
-        break;
+       mState = ENCODE_DONE;
+       break;
       }
 
-      if (!buffer.IsEmpty()) {
-        rv = mWriter->WriteEncodedTrack(buffer, 0);
-        if (NS_FAILED(rv)) {
-          LOG("ERROR! Fail to write header to the media container.");
-          mState = ENCODE_DONE;
-          break;
-        }
-
-        rv = mWriter->GetContainerData(aOutputBufs,
-                                       ContainerWriter::FLUSH_NEEDED);
-        if (NS_SUCCEEDED(rv)) {
-          
-          reloop = false;
-        }
-      } else {
-        
-        mState = ENCODE_TRACK;
+      rv = mWriter->GetContainerData(aOutputBufs,
+                                     ContainerWriter::GET_HEADER);
+      if (NS_FAILED(rv)) {
+       mState = ENCODE_DONE;
+       break;
       }
+
+      mState = ENCODE_TRACK;
       break;
     }
 
     case ENCODE_TRACK: {
-      nsTArray<uint8_t> buffer;
-      int encodedDuration = 0;
-      nsresult rv = mAudioEncoder->GetEncodedTrack(&buffer, encodedDuration);
+      EncodedFrameContainer encodedData;
+      nsresult rv = mAudioEncoder->GetEncodedTrack(encodedData);
       if (NS_FAILED(rv)) {
         
         LOG("ERROR! Fail to get encoded data from encoder.");
         mState = ENCODE_DONE;
         break;
       }
-
-      rv = mWriter->WriteEncodedTrack(buffer, encodedDuration,
+      rv = mWriter->WriteEncodedTrack(encodedData,
                                       mAudioEncoder->IsEncodingComplete() ?
                                       ContainerWriter::END_OF_STREAM : 0);
       if (NS_FAILED(rv)) {

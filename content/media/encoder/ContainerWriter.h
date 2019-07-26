@@ -8,6 +8,8 @@
 
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
+#include "EncodedFrameContainer.h"
+#include "TrackMetadataBase.h"
 
 namespace mozilla {
 
@@ -31,11 +33,20 @@ public:
 
 
 
-  virtual nsresult WriteEncodedTrack(const nsTArray<uint8_t>& aBuffer,
-                                     int aDuration, uint32_t aFlags = 0) = 0;
+  virtual nsresult WriteEncodedTrack(const EncodedFrameContainer& aData,
+                                     uint32_t aFlags = 0) = 0;
+
+  
+
+
+
+
+
+  virtual nsresult SetMetadata(nsRefPtr<TrackMetadataBase> aMetadata) = 0;
 
   enum {
-    FLUSH_NEEDED = 1 << 0
+    FLUSH_NEEDED = 1 << 0,
+    GET_HEADER = 1 << 1
   };
 
   
@@ -50,6 +61,7 @@ public:
                                     uint32_t aFlags = 0) = 0;
 
 protected:
+  nsRefPtr<TrackMetadataBase> mMetadata;
   bool mInitialized;
 };
 }
