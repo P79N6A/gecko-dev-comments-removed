@@ -245,6 +245,7 @@ WebGLContext::BindTexture(WebGLenum target, WebGLTexture *tex)
         return ErrorInvalidEnumInfo("bindTexture: target", target);
     }
 
+    SetDontKnowIfNeedFakeBlack();
     MakeContextCurrent();
 
     if (tex)
@@ -1349,23 +1350,22 @@ WebGLContext::NeedFakeBlack()
     if (mFakeBlackStatus == DoNotNeedFakeBlack)
         return false;
 
-    if (mFakeBlackStatus == DontKnowIfNeedFakeBlack) {
-        for (int32_t i = 0; i < mGLMaxTextureUnits; ++i) {
-            if ((mBound2DTextures[i] && mBound2DTextures[i]->NeedFakeBlack()) ||
-                (mBoundCubeMapTextures[i] && mBoundCubeMapTextures[i]->NeedFakeBlack()))
-            {
-                mFakeBlackStatus = DoNeedFakeBlack;
-                break;
-            }
-        }
+    if (mFakeBlackStatus == DoNeedFakeBlack)
+        return true;
 
-        
-        
-        if (mFakeBlackStatus == DontKnowIfNeedFakeBlack)
-            mFakeBlackStatus = DoNotNeedFakeBlack;
+    for (int32_t i = 0; i < mGLMaxTextureUnits; ++i) {
+        if ((mBound2DTextures[i] && mBound2DTextures[i]->NeedFakeBlack()) ||
+            (mBoundCubeMapTextures[i] && mBoundCubeMapTextures[i]->NeedFakeBlack()))
+        {
+            mFakeBlackStatus = DoNeedFakeBlack;
+            return true;
+        }
     }
 
-    return mFakeBlackStatus == DoNeedFakeBlack;
+    
+    
+    mFakeBlackStatus = DoNotNeedFakeBlack;
+    return false;
 }
 
 void
