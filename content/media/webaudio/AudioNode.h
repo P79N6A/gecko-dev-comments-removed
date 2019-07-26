@@ -173,6 +173,7 @@ public:
   void RemoveOutputParam(AudioParam* aParam);
 
 private:
+  friend class AudioBufferSourceNode;
   
   void DisconnectFromGraph();
 
