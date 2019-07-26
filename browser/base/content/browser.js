@@ -1462,7 +1462,7 @@ var gBrowserInit = {
     }
 
     
-    gDevToolsBrowser.registerBrowserWindow(window);
+    gDevTools.registerBrowserWindow(window);
 
     let appMenuButton = document.getElementById("appmenu-button");
     let appMenuPopup = document.getElementById("appmenu-popup");
@@ -1506,7 +1506,7 @@ var gBrowserInit = {
     if (!this._loadHandled)
       return;
 
-    gDevToolsBrowser.forgetBrowserWindow(window);
+    gDevTools.forgetBrowserWindow(window);
 
     
     
@@ -3494,17 +3494,16 @@ function OpenBrowserWindow(options)
   var wintype = document.documentElement.getAttribute('windowtype');
 
   var extraFeatures = "";
-  var forcePrivate = false;
 #ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  forcePrivate = typeof options == "object" && "private" in options && options.private;
+  if (typeof options == "object" && options.private) {
 #else
-  forcePrivate = gPrivateBrowsingUI.privateBrowsingEnabled;
+  if (gPrivateBrowsingUI.privateBrowsingEnabled) {
 #endif
-
-  if (forcePrivate) {
     extraFeatures = ",private";
     
     defaultArgs = "about:privatebrowsing";
+  } else {
+    extraFeatures = ",non-private";
   }
 
   
@@ -7298,7 +7297,7 @@ var TabContextMenu = {
 XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
                                   "resource:///modules/devtools/gDevTools.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "gDevToolsBrowser",
+XPCOMUtils.defineLazyModuleGetter(this, "DevToolsXULCommands",
                                   "resource:///modules/devtools/gDevTools.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
