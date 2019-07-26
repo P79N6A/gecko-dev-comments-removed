@@ -1140,6 +1140,10 @@ mjit::Compiler::generatePrologue()
         
         masm.storePtr(ImmPtr(script_->function()),
                       Address(JSFrameReg, StackFrame::offsetOfExec()));
+        if (script_->isCallsiteClone) {
+            masm.storeValue(ObjectValue(*script_->function()),
+                            Address(JSFrameReg, StackFrame::offsetOfCallee(script_->function())));
+        }
 
         {
             
