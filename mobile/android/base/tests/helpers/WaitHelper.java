@@ -103,9 +103,8 @@ public final class WaitHelper {
                 }
             }, CHANGE_WAIT_MS);
 
-            if (hasTimedOut) {
-                sContext.dumpLog(verifier.getClass().getName() + " timed out.");
-            }
+            sContext.dumpLog(verifier.getLogTag() +
+                    (hasTimedOut ? "timed out." : "was satisfied."));
         }
     }
 
@@ -115,6 +114,8 @@ public final class WaitHelper {
 
 
     private static interface ChangeVerifier {
+        public String getLogTag();
+
         
 
 
@@ -126,14 +127,23 @@ public final class WaitHelper {
     }
 
     private static class ToolbarTitleTextChangeVerifier implements ChangeVerifier {
+        private static final String LOGTAG =
+                ToolbarTitleTextChangeVerifier.class.getSimpleName() + ": ";
+
         
         private static final String LOADING_REGEX = "^[A-Za-z]{3,9}://";
 
-        private CharSequence oldTitleText;
+        private CharSequence mOldTitleText;
+
+        @Override
+        public String getLogTag() {
+            return LOGTAG;
+        }
 
         @Override
         public void storeState() {
-            oldTitleText = sToolbar.getPotentiallyInconsistentTitle();
+            mOldTitleText = sToolbar.getPotentiallyInconsistentTitle();
+            sContext.dumpLog(LOGTAG + "stored title, \"" + mOldTitleText + "\".");
         }
 
         @Override
@@ -148,7 +158,12 @@ public final class WaitHelper {
             
             
             final boolean isLoading = title.toString().matches(LOADING_REGEX);
-            return !isLoading && !oldTitleText.equals(title);
+            final boolean hasStateChanged = !isLoading && !mOldTitleText.equals(title);
+
+            if (hasStateChanged) {
+                sContext.dumpLog(LOGTAG + "state changed to title, \"" + title + "\".");
+            }
+            return hasStateChanged;
         }
     }
 }
