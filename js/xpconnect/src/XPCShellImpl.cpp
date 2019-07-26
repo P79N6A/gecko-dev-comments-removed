@@ -1244,9 +1244,6 @@ nsXPCFunctionThisTranslator::nsXPCFunctionThisTranslator()
 nsXPCFunctionThisTranslator::~nsXPCFunctionThisTranslator()
 {
   
-#ifdef DEBUG_jband
-    printf("destroying nsXPCFunctionThisTranslator\n");
-#endif
 }
 
 

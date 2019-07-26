@@ -178,16 +178,8 @@
 
 
 
-#if defined(DEBUG_jband) || defined(DEBUG_jst) || defined(DEBUG_dbradley) || defined(DEBUG_shaver_no) || defined(DEBUG_timeless)
+#if defined(DEBUG_jst) || defined(DEBUG_timeless)
 #define DEBUG_xpc_hacker
-#endif
-
-#if defined(DEBUG_brendan)
-#define DEBUG_XPCNativeWrapper 1
-#endif
-
-#ifdef DEBUG
-#define XPC_DETECT_LEADING_UPPERCASE_ACCESS_ERRORS
 #endif
 
 #if defined(DEBUG_xpc_hacker)
@@ -195,15 +187,12 @@
 #define XPC_TRACK_WRAPPER_STATS
 #define XPC_TRACK_SCOPE_STATS
 #define XPC_TRACK_PROTO_STATS
-#define XPC_TRACK_DEFERRED_RELEASES
 #define XPC_CHECK_WRAPPERS_AT_SHUTDOWN
 #define XPC_REPORT_SHADOWED_WRAPPED_NATIVE_MEMBERS
 #define XPC_CHECK_CLASSINFO_CLAIMS
 #if defined(DEBUG_jst)
 #define XPC_ASSERT_CLASSINFO_CLAIMS
 #endif
-
-
 
 
 #endif
