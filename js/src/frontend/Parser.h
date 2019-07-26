@@ -155,7 +155,7 @@ struct ParseContext
     bool generateFunctionBindings(JSContext *cx, InternalHandle<Bindings*> bindings) const;
 
   public:
-    Node             yieldNode;     
+    uint32_t         yieldOffset;   
 
 
 
@@ -296,7 +296,13 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
     
     ParseHandler handler;
 
+  private:
+    bool reportHelper(ParseReportKind kind, bool strict, uint32_t offset,
+                      unsigned errorNumber, va_list args);
+  public:
     bool report(ParseReportKind kind, bool strict, Node pn, unsigned errorNumber, ...);
+    bool reportWithOffset(ParseReportKind kind, bool strict, uint32_t offset, unsigned errorNumber,
+                          ...);
 
     Parser(JSContext *cx, const CompileOptions &options,
            const jschar *chars, size_t length, bool foldConstants);
