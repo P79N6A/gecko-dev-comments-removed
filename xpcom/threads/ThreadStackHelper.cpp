@@ -84,7 +84,7 @@ ThreadStackHelper::GetStack(Stack& aStack)
 {
   
   if (!PrepareStackBuffer(aStack)) {
-    MOZ_ASSERT(false);
+    
     return;
   }
 
@@ -149,13 +149,23 @@ ThreadStackHelper::SigAction(int aSignal, siginfo_t* aInfo, void* aContext)
 
 bool
 ThreadStackHelper::PrepareStackBuffer(Stack& aStack) {
+  
   aStack.clear();
 #ifdef MOZ_ENABLE_PROFILER_SPS
+  
+
+
+
+
+#ifdef MOZ_WIDGET_GONK
   if (!mPseudoStack) {
     return false;
   }
+#endif
+  MOZ_ASSERT(mPseudoStack);
   mStackBuffer.clear();
-  return mStackBuffer.reserve(mMaxStackSize);
+  MOZ_ALWAYS_TRUE(mStackBuffer.reserve(mMaxStackSize));
+  return true;
 #else
   return false;
 #endif
