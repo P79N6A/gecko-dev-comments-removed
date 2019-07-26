@@ -112,12 +112,50 @@ public:
 
 
 
+  virtual void UpdateIncremental(TextureIdentifier aTextureId,
+                                 SurfaceDescriptor& aSurface,
+                                 const nsIntRegion& aUpdated,
+                                 const nsIntRect& aBufferRect,
+                                 const nsIntPoint& aBufferRotation)
+  {
+    MOZ_ASSERT(false, "should be implemented or not used");
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   virtual void EnsureTextureHost(TextureIdentifier aTextureId,
                                  const SurfaceDescriptor& aSurface,
                                  ISurfaceAllocator* aAllocator,
                                  const TextureInfo& aTextureInfo) = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual void EnsureTextureHost(ISurfaceAllocator* aAllocator,
+                                 const TextureInfo& aTextureInfo,
+                                 const nsIntRect& aBufferRect)
+  {
+    MOZ_ASSERT(false, "should be implemented or not used");
+  }
 
   virtual TextureHost* GetTextureHost() { return nullptr; }
 

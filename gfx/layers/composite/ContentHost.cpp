@@ -6,6 +6,7 @@
 #include "mozilla/layers/ContentHost.h"
 #include "mozilla/layers/Effects.h"
 #include "nsPrintfCString.h"
+#include "gfx2DGlue.h"
 
 namespace mozilla {
 using namespace gfx;
@@ -430,6 +431,220 @@ ContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
   
   
   mValidRegionForNextBackBuffer = aOldValidRegionBack;
+}
+
+void
+ContentHostIncremental::EnsureTextureHost(ISurfaceAllocator* aAllocator,
+                                          const TextureInfo& aTextureInfo,
+                                          const nsIntRect& aBufferRect)
+{
+  mUpdateList.AppendElement(new TextureCreationRequest(aTextureInfo,
+                                                       aBufferRect));
+  mDeAllocator = aAllocator;
+}
+
+void
+ContentHostIncremental::UpdateIncremental(TextureIdentifier aTextureId,
+                                          SurfaceDescriptor& aSurface,
+                                          const nsIntRegion& aUpdated,
+                                          const nsIntRect& aBufferRect,
+                                          const nsIntPoint& aBufferRotation)
+{
+  mUpdateList.AppendElement(new TextureUpdateRequest(aTextureId,
+                                                     aSurface,
+                                                     aUpdated,
+                                                     aBufferRect,
+                                                     aBufferRotation));
+}
+
+void
+ContentHostIncremental::ProcessTextureUpdates()
+{
+  for (uint32_t i = 0; i < mUpdateList.Length(); i++) {
+    mUpdateList[i]->Execute(this);
+  }
+  mUpdateList.Clear();
+}
+
+void
+ContentHostIncremental::TextureCreationRequest::Execute(ContentHostIncremental* aHost)
+{
+  RefPtr<TextureHost> newHost =
+    TextureHost::CreateTextureHost(SurfaceDescriptor::TShmem,
+                                   mTextureInfo.mTextureHostFlags,
+                                   mTextureInfo.mTextureFlags);
+  Compositor* compositor = aHost->GetCompositor();
+  if (compositor) {
+    newHost->SetCompositor(compositor);
+  }
+  RefPtr<TextureHost> newHostOnWhite;
+  if (mTextureInfo.mTextureFlags & ComponentAlpha) {
+    newHostOnWhite =
+      TextureHost::CreateTextureHost(SurfaceDescriptor::TShmem,
+                                     mTextureInfo.mTextureHostFlags,
+                                     mTextureInfo.mTextureFlags);
+    Compositor* compositor = aHost->GetCompositor();
+    if (compositor) {
+      newHostOnWhite->SetCompositor(compositor);
+    }
+  }
+
+  if (mTextureInfo.mTextureHostFlags & TEXTURE_HOST_COPY_PREVIOUS) {
+    nsIntRect bufferRect = aHost->mBufferRect;
+    nsIntPoint bufferRotation = aHost->mBufferRotation;
+    nsIntRect overlap;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+
+    nsIntRect srcBufferSpaceBottomRight(bufferRotation.x, bufferRotation.y, bufferRect.width - bufferRotation.x, bufferRect.height - bufferRotation.y);
+    nsIntRect srcBufferSpaceTopRight(bufferRotation.x, 0, bufferRect.width - bufferRotation.x, bufferRotation.y);
+    nsIntRect srcBufferSpaceTopLeft(0, 0, bufferRotation.x, bufferRotation.y);
+    nsIntRect srcBufferSpaceBottomLeft(0, bufferRotation.y, bufferRotation.x, bufferRect.height - bufferRotation.y);
+
+    overlap.IntersectRect(bufferRect, mBufferRect);
+
+    nsIntRect srcRect(overlap), dstRect(overlap);
+    srcRect.MoveBy(- bufferRect.TopLeft() + bufferRotation);
+
+    nsIntRect srcRectDrawTopRight(srcRect);
+    nsIntRect srcRectDrawTopLeft(srcRect);
+    nsIntRect srcRectDrawBottomLeft(srcRect);
+    
+    srcRectDrawTopRight  .MoveBy(-nsIntPoint(0, bufferRect.height));
+    srcRectDrawTopLeft   .MoveBy(-nsIntPoint(bufferRect.width, bufferRect.height));
+    srcRectDrawBottomLeft.MoveBy(-nsIntPoint(bufferRect.width, 0));
+
+    
+    srcRect               = srcRect              .Intersect(srcBufferSpaceBottomRight);
+    srcRectDrawTopRight   = srcRectDrawTopRight  .Intersect(srcBufferSpaceTopRight);
+    srcRectDrawTopLeft    = srcRectDrawTopLeft   .Intersect(srcBufferSpaceTopLeft);
+    srcRectDrawBottomLeft = srcRectDrawBottomLeft.Intersect(srcBufferSpaceBottomLeft);
+
+    dstRect = srcRect;
+    nsIntRect dstRectDrawTopRight(srcRectDrawTopRight);
+    nsIntRect dstRectDrawTopLeft(srcRectDrawTopLeft);
+    nsIntRect dstRectDrawBottomLeft(srcRectDrawBottomLeft);
+
+    
+    dstRect              .MoveBy(-bufferRotation);
+    dstRectDrawTopRight  .MoveBy(-bufferRotation + nsIntPoint(0, bufferRect.height));
+    dstRectDrawTopLeft   .MoveBy(-bufferRotation + nsIntPoint(bufferRect.width, bufferRect.height));
+    dstRectDrawBottomLeft.MoveBy(-bufferRotation + nsIntPoint(bufferRect.width, 0));
+
+    
+    dstRect              .MoveBy(bufferRect.TopLeft());
+    dstRectDrawTopRight  .MoveBy(bufferRect.TopLeft());
+    dstRectDrawTopLeft   .MoveBy(bufferRect.TopLeft());
+    dstRectDrawBottomLeft.MoveBy(bufferRect.TopLeft());
+
+    
+    dstRect              .MoveBy(-mBufferRect.TopLeft());
+    dstRectDrawTopRight  .MoveBy(-mBufferRect.TopLeft());
+    dstRectDrawTopLeft   .MoveBy(-mBufferRect.TopLeft());
+    dstRectDrawBottomLeft.MoveBy(-mBufferRect.TopLeft());
+
+    newHost->EnsureBuffer(mBufferRect.Size(),
+                          ContentForFormat(aHost->mTextureHost->GetFormat()));
+
+    aHost->mTextureHost->CopyTo(srcRect, newHost, dstRect);
+    if (bufferRotation != nsIntPoint(0, 0)) {
+      
+      
+      
+
+      if (!srcRectDrawTopRight.IsEmpty())
+        aHost->mTextureHost->CopyTo(srcRectDrawTopRight,
+                                          newHost, dstRectDrawTopRight);
+      if (!srcRectDrawTopLeft.IsEmpty())
+        aHost->mTextureHost->CopyTo(srcRectDrawTopLeft,
+                                          newHost, dstRectDrawTopLeft);
+      if (!srcRectDrawBottomLeft.IsEmpty())
+        aHost->mTextureHost->CopyTo(srcRectDrawBottomLeft,
+                                          newHost, dstRectDrawBottomLeft);
+    }
+
+    if (newHostOnWhite) {
+      newHostOnWhite->EnsureBuffer(mBufferRect.Size(),
+                                   ContentForFormat(aHost->mTextureHostOnWhite->GetFormat()));
+      aHost->mTextureHostOnWhite->CopyTo(srcRect, newHostOnWhite, dstRect);
+      if (bufferRotation != nsIntPoint(0, 0)) {
+        
+        if (!srcRectDrawTopRight.IsEmpty())
+          aHost->mTextureHostOnWhite->CopyTo(srcRectDrawTopRight,
+                                                   newHostOnWhite, dstRectDrawTopRight);
+        if (!srcRectDrawTopLeft.IsEmpty())
+          aHost->mTextureHostOnWhite->CopyTo(srcRectDrawTopLeft,
+                                                   newHostOnWhite, dstRectDrawTopLeft);
+        if (!srcRectDrawBottomLeft.IsEmpty())
+          aHost->mTextureHostOnWhite->CopyTo(srcRectDrawBottomLeft,
+                                                   newHostOnWhite, dstRectDrawBottomLeft);
+      }
+    }
+  }
+
+  aHost->mTextureHost = newHost;
+  aHost->mTextureHostOnWhite = newHostOnWhite;
+
+  aHost->mBufferRect = mBufferRect;
+  aHost->mBufferRotation = nsIntPoint();
+}
+
+nsIntRect
+ContentHostIncremental::TextureUpdateRequest::GetQuadrantRectangle(XSide aXSide,
+                                                                   YSide aYSide) const
+{
+  
+  
+  nsIntPoint quadrantTranslation = -mBufferRotation;
+  quadrantTranslation.x += aXSide == LEFT ? mBufferRect.width : 0;
+  quadrantTranslation.y += aYSide == TOP ? mBufferRect.height : 0;
+  return mBufferRect + quadrantTranslation;
+}
+
+void
+ContentHostIncremental::TextureUpdateRequest::Execute(ContentHostIncremental* aHost)
+{
+  nsIntRect drawBounds = mUpdated.GetBounds();
+
+  aHost->mBufferRect = mBufferRect;
+  aHost->mBufferRotation = mBufferRotation;
+
+  
+  int32_t xBoundary = mBufferRect.XMost() - mBufferRotation.x;
+  int32_t yBoundary = mBufferRect.YMost() - mBufferRotation.y;
+  XSide sideX = drawBounds.XMost() <= xBoundary ? RIGHT : LEFT;
+  YSide sideY = drawBounds.YMost() <= yBoundary ? BOTTOM : TOP;
+  nsIntRect quadrantRect = GetQuadrantRectangle(sideX, sideY);
+  NS_ASSERTION(quadrantRect.Contains(drawBounds), "Messed up quadrants");
+
+  mUpdated.MoveBy(-nsIntPoint(quadrantRect.x, quadrantRect.y));
+
+  nsIntPoint offset = -mUpdated.GetBounds().TopLeft();
+
+  if (mTextureId == TextureFront) {
+    aHost->mTextureHost->Update(mDescriptor, &mUpdated, &offset);
+  } else {
+    aHost->mTextureHostOnWhite->Update(mDescriptor, &mUpdated, &offset);
+  }
+
+  
+  aHost->mDeAllocator->DestroySharedSurface(&mDescriptor);
 }
 
 #ifdef MOZ_LAYERS_HAVE_LOG

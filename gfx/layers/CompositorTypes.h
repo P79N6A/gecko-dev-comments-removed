@@ -65,6 +65,8 @@ enum CompositableType
   BUFFER_BRIDGE,          
   BUFFER_CONTENT,         
   BUFFER_CONTENT_DIRECT,  
+  BUFFER_CONTENT_INC,     
+                          
   BUFFER_TILED,           
   BUFFER_COUNT
 };
@@ -76,7 +78,9 @@ enum TextureHostFlags
 {
   TEXTURE_HOST_DEFAULT = 0,       
                                   
-  TEXTURE_HOST_TILED = 1 << 0     
+  TEXTURE_HOST_TILED = 1 << 0,    
+  TEXTURE_HOST_COPY_PREVIOUS = 1 << 1 
+                                      
 };
 
 
