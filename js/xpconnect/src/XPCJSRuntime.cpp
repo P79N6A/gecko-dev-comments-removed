@@ -48,7 +48,6 @@ const char* XPCJSRuntime::mStrings[] = {
     "constructor",          
     "toString",             
     "toSource",             
-    "valueOf",              
     "lastResult",           
     "returnCode",           
     "value",                
