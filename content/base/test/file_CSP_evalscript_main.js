@@ -30,7 +30,6 @@ var onevalblocked = (function(window) {
 
 
 addEventListener('load', function() {
-
   
   
   {

@@ -28,7 +28,6 @@ var onevalblocked = (function(window) {
 
 
 addEventListener('load', function() {
-
   
   try {
     setTimeout('onevalexecuted(true, "setTimeout(String)", "setTimeout with a string was enabled.");', 10);
