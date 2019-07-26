@@ -163,6 +163,13 @@ EnsureSharedSurfaceSize(gfxIntSize size)
   return (sSharedSurfaceData != nullptr);
 }
 
+nsIWidgetListener* nsWindow::GetPaintListener()
+{
+  if (mDestroyCalled)
+    return nullptr;
+  return mAttachedWidgetListener ? mAttachedWidgetListener : mWidgetListener;
+}
+
 bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
 {
   
@@ -205,10 +212,14 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
     return true;
   }
 
-  nsIWidgetListener* listener = mAttachedWidgetListener ? mAttachedWidgetListener : mWidgetListener;
+  nsIWidgetListener* listener = GetPaintListener();
   if (listener) {
     listener->WillPaintWindow(this, true);
   }
+  
+  listener = GetPaintListener();
+  if (!listener)
+    return false;
 
   bool result = true;
   PAINTSTRUCT ps;
