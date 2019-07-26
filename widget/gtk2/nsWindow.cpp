@@ -2008,7 +2008,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     
     
     {
-        listener->WillPaintWindow(this, true);
+        listener->WillPaintWindow(this);
 
         
         

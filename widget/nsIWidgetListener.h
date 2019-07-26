@@ -117,7 +117,7 @@ public:
 
 
 
-  virtual void WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint) { }
+  virtual void WillPaintWindow(nsIWidget* aWidget) { }
 
   
 

@@ -214,7 +214,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
 
   nsIWidgetListener* listener = GetPaintListener();
   if (listener) {
-    listener->WillPaintWindow(this, true);
+    listener->WillPaintWindow(this);
   }
   
   listener = GetPaintListener();
