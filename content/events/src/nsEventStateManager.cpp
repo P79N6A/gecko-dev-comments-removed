@@ -122,6 +122,7 @@ nsIDocument* nsEventStateManager::sMouseOverDocument = nullptr;
 nsWeakFrame nsEventStateManager::sLastDragOverFrame = nullptr;
 nsIntPoint nsEventStateManager::sLastRefPoint = nsIntPoint(0,0);
 nsIntPoint nsEventStateManager::sLastScreenPoint = nsIntPoint(0,0);
+nsIntPoint nsEventStateManager::sSynthCenteringPoint = nsIntPoint(-1,-1);
 nsIntPoint nsEventStateManager::sLastClientPoint = nsIntPoint(0,0);
 bool nsEventStateManager::sIsPointerLocked = false;
 
@@ -4132,7 +4133,14 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
   switch(aEvent->message) {
   case NS_MOUSE_MOVE:
     {
+      
+      
+      
       if (sIsPointerLocked && aEvent->widget) {
+        
+        
+        
+        
         
         
         nsIntPoint center = GetWindowInnerRectCenter(mDocument->GetWindow(),
@@ -4143,8 +4151,18 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
           
           
           
+          
+          
+          sSynthCenteringPoint = center;
           aEvent->widget->SynthesizeNativeMouseMove(
             center + aEvent->widget->WidgetToScreenOffset());
+        } else if (aEvent->refPoint == sSynthCenteringPoint) {
+          
+          
+          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
+          
+          
+          sSynthCenteringPoint = nsIntPoint(-1,-1);
         }
       } else {
         aEvent->lastRefPoint = sLastRefPoint;

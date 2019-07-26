@@ -697,6 +697,13 @@ private:
   
   nsIntPoint  mPreLockPoint;
 
+  
+  
+  
+  
+  
+  static nsIntPoint sSynthCenteringPoint;
+
   nsWeakFrame mCurrentTarget;
   nsCOMPtr<nsIContent> mCurrentTargetContent;
   nsWeakFrame mLastMouseOverFrame;
