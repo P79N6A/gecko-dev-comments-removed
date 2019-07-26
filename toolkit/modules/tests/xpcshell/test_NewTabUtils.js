@@ -51,12 +51,7 @@ add_test(function changeLinks() {
   do_check_links(NewTabUtils.links.getLinks(), expectedLinks);
 
   
-  let newLink = {
-    url: "http://example.com/19",
-    title: "My frecency is 19",
-    frecency: 19,
-    lastVisitDate: 0,
-  };
+  let newLink = makeLink(19);
   expectedLinks.splice(1, 0, newLink);
   provider.notifyLinkChanged(newLink);
   do_check_links(NewTabUtils.links.getLinks(), expectedLinks);
@@ -81,11 +76,7 @@ add_test(function changeLinks() {
 
   
   provider.maxNumLinks = expectedLinks.length;
-  newLink = {
-    url: "http://example.com/21",
-    frecency: 21,
-    lastVisitDate: 0,
-  };
+  newLink = makeLink(21);
   expectedLinks.unshift(newLink);
   expectedLinks.pop();
   do_check_eq(expectedLinks.length, provider.maxNumLinks); 
@@ -123,6 +114,34 @@ add_task(function oneProviderAlreadyCached() {
 
   NewTabUtils.links.removeProvider(provider1);
   NewTabUtils.links.removeProvider(provider2);
+});
+
+add_task(function newLowRankedLink() {
+  
+  let links = makeLinks(0, 10, 1);
+  let provider = new TestProvider(done => done(links));
+  provider.maxNumLinks = links.length;
+
+  NewTabUtils.initWithoutProviders();
+  NewTabUtils.links.addProvider(provider);
+
+  
+  NewTabUtils.links.populateCache(function () {}, false);
+  do_check_links(NewTabUtils.links.getLinks(), links);
+
+  
+  let newLink = makeLink(0);
+  provider.notifyLinkChanged(newLink);
+  do_check_links(NewTabUtils.links.getLinks(), links);
+
+  
+  provider.notifyLinkChanged({
+    url: newLink.url,
+    title: "a new title",
+  });
+  do_check_links(NewTabUtils.links.getLinks(), links);
+
+  NewTabUtils.links.removeProvider(provider);
 });
 
 function TestProvider(getLinksFn) {
@@ -165,12 +184,16 @@ function makeLinks(frecRangeStart, frecRangeEnd, step) {
   let links = [];
   
   for (let i = frecRangeEnd; i > frecRangeStart; i -= step) {
-    links.push({
-      url: "http://example.com/" + i,
-      title: "My frecency is " + i,
-      frecency: i,
-      lastVisitDate: 0,
-    });
+    links.push(makeLink(i));
   }
   return links;
+}
+
+function makeLink(frecency) {
+  return {
+    url: "http://example.com/" + frecency,
+    title: "My frecency is " + frecency,
+    frecency: frecency,
+    lastVisitDate: 0,
+  };
 }
