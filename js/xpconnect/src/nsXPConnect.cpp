@@ -1158,14 +1158,14 @@ nsXPConnect::GetRuntime(JSRuntime **runtime)
 
 
 NS_IMETHODIMP_(void)
-nsXPConnect::RegisterGCCallback(JSGCCallback func)
+nsXPConnect::RegisterGCCallback(xpcGCCallback func)
 {
     mRuntime->AddGCCallback(func);
 }
 
 
 NS_IMETHODIMP_(void)
-nsXPConnect::UnregisterGCCallback(JSGCCallback func)
+nsXPConnect::UnregisterGCCallback(xpcGCCallback func)
 {
     mRuntime->RemoveGCCallback(func);
 }
@@ -1317,7 +1317,8 @@ namespace xpc {
 bool
 DeferredRelease(nsISupports *obj)
 {
-    return nsXPConnect::GetRuntimeInstance()->DeferredRelease(obj);
+    nsContentUtils::DeferredFinalize(obj);
+    return true;
 }
 
 NS_EXPORT_(bool)

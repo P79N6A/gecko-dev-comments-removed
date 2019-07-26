@@ -572,149 +572,6 @@ DoDeferredRelease(nsTArray<T> &array)
     }
 }
 
-struct DeferredFinalizeFunctionHolder
-{
-    DeferredFinalizeFunction run;
-    void *data;
-};
-
-class XPCIncrementalReleaseRunnable : public nsRunnable
-{
-    XPCJSRuntime *runtime;
-    nsTArray<nsISupports *> items;
-    nsAutoTArray<DeferredFinalizeFunctionHolder, 16> deferredFinalizeFunctions;
-    uint32_t finalizeFunctionToRun;
-
-    static const PRTime SliceMillis = 10; 
-
-  public:
-    XPCIncrementalReleaseRunnable(XPCJSRuntime *rt, nsTArray<nsISupports *> &items);
-    virtual ~XPCIncrementalReleaseRunnable();
-
-    void ReleaseNow(bool limited);
-
-    NS_DECL_NSIRUNNABLE
-};
-
-bool
-ReleaseSliceNow(uint32_t slice, void *data)
-{
-    MOZ_ASSERT(slice > 0, "nonsensical/useless call with slice == 0");
-    nsTArray<nsISupports *> *items = static_cast<nsTArray<nsISupports *>*>(data);
-
-    slice = std::min(slice, items->Length());
-    for (uint32_t i = 0; i < slice; ++i) {
-        
-        uint32_t lastItemIdx = items->Length() - 1;
-
-        nsISupports *wrapper = items->ElementAt(lastItemIdx);
-        items->RemoveElementAt(lastItemIdx);
-        NS_RELEASE(wrapper);
-    }
-
-    return items->IsEmpty();
-}
-
-
-XPCIncrementalReleaseRunnable::XPCIncrementalReleaseRunnable(XPCJSRuntime *rt,
-                                                             nsTArray<nsISupports *> &items)
-  : runtime(rt),
-    finalizeFunctionToRun(0)
-{
-    nsLayoutStatics::AddRef();
-    this->items.SwapElements(items);
-    DeferredFinalizeFunctionHolder *function = deferredFinalizeFunctions.AppendElement();
-    function->run = ReleaseSliceNow;
-    function->data = &this->items;
-    for (uint32_t i = 0; i < rt->mDeferredFinalizeFunctions.Length(); ++i) {
-        void *data = (rt->mDeferredFinalizeFunctions[i].start)();
-        if (data) {
-            function = deferredFinalizeFunctions.AppendElement();
-            function->run = rt->mDeferredFinalizeFunctions[i].run;
-            function->data = data;
-        }
-    }
-}
-
-XPCIncrementalReleaseRunnable::~XPCIncrementalReleaseRunnable()
-{
-    MOZ_ASSERT(this != runtime->mReleaseRunnable);
-    nsLayoutStatics::Release();
-}
-
-void
-XPCIncrementalReleaseRunnable::ReleaseNow(bool limited)
-{
-    MOZ_ASSERT(NS_IsMainThread());
-    MOZ_ASSERT(deferredFinalizeFunctions.Length() != 0,
-               "We should have at least ReleaseSliceNow to run");
-    MOZ_ASSERT(finalizeFunctionToRun < deferredFinalizeFunctions.Length(),
-               "No more finalizers to run?");
-
-    TimeDuration sliceTime = TimeDuration::FromMilliseconds(SliceMillis);
-    TimeStamp started = TimeStamp::Now();
-    bool timeout = false;
-    do {
-        const DeferredFinalizeFunctionHolder &function =
-            deferredFinalizeFunctions[finalizeFunctionToRun];
-        if (limited) {
-            bool done = false;
-            while (!timeout && !done) {
-                
-
-
-
-                done = function.run(100, function.data);
-                timeout = TimeStamp::Now() - started >= sliceTime;
-            }
-            if (done)
-                ++finalizeFunctionToRun;
-            if (timeout)
-                break;
-        } else {
-            function.run(UINT32_MAX, function.data);
-            MOZ_ASSERT(!items.Length());
-            ++finalizeFunctionToRun;
-        }
-    } while (finalizeFunctionToRun < deferredFinalizeFunctions.Length());
-
-    if (finalizeFunctionToRun == deferredFinalizeFunctions.Length()) {
-        MOZ_ASSERT(runtime->mReleaseRunnable == this);
-        runtime->mReleaseRunnable = nullptr;
-    }
-}
-
-NS_IMETHODIMP
-XPCIncrementalReleaseRunnable::Run()
-{
-    if (runtime->mReleaseRunnable != this) {
-        
-        MOZ_ASSERT(!items.Length());
-        return NS_OK;
-    }
-
-    ReleaseNow(true);
-
-    if (items.Length()) {
-        nsresult rv = NS_DispatchToMainThread(this);
-        if (NS_FAILED(rv))
-            ReleaseNow(false);
-    }
-
-    return NS_OK;
-}
-
-void
-XPCJSRuntime::ReleaseIncrementally(nsTArray<nsISupports *> &array)
-{
-    MOZ_ASSERT(!mReleaseRunnable);
-    mReleaseRunnable = new XPCIncrementalReleaseRunnable(this, array);
-
-    nsresult rv = NS_DispatchToMainThread(mReleaseRunnable);
-    if (NS_FAILED(rv))
-        mReleaseRunnable->ReleaseNow(false);
-}
-
  void
 XPCJSRuntime::GCSliceCallback(JSRuntime *rt,
                               JS::GCProgress progress,
@@ -733,20 +590,16 @@ XPCJSRuntime::GCSliceCallback(JSRuntime *rt,
         (*self->mPrevGCSliceCallback)(rt, progress, desc);
 }
 
- void
-XPCJSRuntime::GCCallback(JSRuntime *rt, JSGCStatus status)
+void
+XPCJSRuntime::CustomGCCallback(JSGCStatus status)
 {
-    XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
-    if (!self)
-        return;
-
     switch (status) {
         case JSGC_BEGIN:
         {
             
             
             JSContext *iter = nullptr;
-            while (JSContext *acx = JS_ContextIterator(rt, &iter)) {
+            while (JSContext *acx = JS_ContextIterator(Runtime(), &iter)) {
                 if (!js::HasUnrootedGlobal(acx))
                     JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
             }
@@ -754,33 +607,13 @@ XPCJSRuntime::GCCallback(JSRuntime *rt, JSGCStatus status)
         }
         case JSGC_END:
         {
-            
-
-
-
-
-
-
-            if (self->mReleaseRunnable)
-                self->mReleaseRunnable->ReleaseNow(false);
-
-            
-            if (JS::WasIncrementalGC(rt)) {
-                self->ReleaseIncrementally(self->mNativesToReleaseArray);
-            } else {
-                DoDeferredRelease(self->mNativesToReleaseArray);
-                for (uint32_t i = 0; i < self->mDeferredFinalizeFunctions.Length(); ++i) {
-                    if (void *data = self->mDeferredFinalizeFunctions[i].start())
-                        self->mDeferredFinalizeFunctions[i].run(UINT32_MAX, data);
-                }
-            }
             break;
         }
     }
 
-    nsTArray<JSGCCallback> callbacks(self->extraGCCallbacks);
+    nsTArray<xpcGCCallback> callbacks(extraGCCallbacks);
     for (uint32_t i = 0; i < callbacks.Length(); ++i)
-        callbacks[i](rt, status);
+        callbacks[i](status);
 }
 
  void
@@ -1215,8 +1048,6 @@ void XPCJSRuntime::SystemIsBeingShutDown()
 
 XPCJSRuntime::~XPCJSRuntime()
 {
-    MOZ_ASSERT(!mReleaseRunnable);
-
     JS::SetGCSliceCallback(Runtime(), mPrevGCSliceCallback);
 
     xpc_DelocalizeRuntime(Runtime());
@@ -2689,7 +2520,6 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     JS_SetContextCallback(runtime, ContextCallback);
     JS_SetDestroyCompartmentCallback(runtime, CompartmentDestroyedCallback);
     JS_SetCompartmentNameCallback(runtime, CompartmentNameCallback);
-    JS_SetGCCallback(runtime, GCCallback);
     mPrevGCSliceCallback = JS::SetGCSliceCallback(runtime, GCSliceCallback);
     JS_SetFinalizeCallback(runtime, FinalizeCallback);
     JS_SetWrapObjectCallbacks(runtime,
@@ -2871,20 +2701,6 @@ XPCJSRuntime::NoteCustomGCThingXPCOMChildren(js::Class* clasp, JSObject* obj,
     return true;
 }
 
-bool
-XPCJSRuntime::DeferredRelease(nsISupports *obj)
-{
-    MOZ_ASSERT(obj);
-
-    if (mNativesToReleaseArray.IsEmpty()) {
-        
-        
-        
-        mNativesToReleaseArray.SetCapacity(256);
-    }
-    return mNativesToReleaseArray.AppendElement(obj) != nullptr;
-}
-
 
 
 #ifdef DEBUG
@@ -3017,14 +2833,14 @@ XPCRootSetElem::RemoveFromRootSet(XPCLock *lock)
 }
 
 void
-XPCJSRuntime::AddGCCallback(JSGCCallback cb)
+XPCJSRuntime::AddGCCallback(xpcGCCallback cb)
 {
     NS_ASSERTION(cb, "null callback");
     extraGCCallbacks.AppendElement(cb);
 }
 
 void
-XPCJSRuntime::RemoveGCCallback(JSGCCallback cb)
+XPCJSRuntime::RemoveGCCallback(xpcGCCallback cb)
 {
     NS_ASSERTION(cb, "null callback");
     bool found = extraGCCallbacks.RemoveElement(cb);

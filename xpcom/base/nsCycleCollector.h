@@ -10,8 +10,17 @@ class nsICycleCollectorListener;
 class nsISupports;
 class nsScriptObjectTracer;
 
+#include "nsError.h"
+#include "nsID.h"
+
 namespace mozilla {
+
 class CycleCollectedJSRuntime;
+
+
+typedef void* (*DeferredFinalizeAppendFunction)(void* pointers, void* thing);
+typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
+
 }
 
 
@@ -75,6 +84,12 @@ void RemoveJSHolder(void* aHolder);
 #ifdef DEBUG
 bool TestJSHolder(void* aHolder);
 #endif
+
+void DeferredFinalize(DeferredFinalizeAppendFunction aAppendFunc,
+                      DeferredFinalizeFunction aFunc,
+                      void* aThing);
+void DeferredFinalize(nsISupports* aSupports);
+
 
 } 
 } 

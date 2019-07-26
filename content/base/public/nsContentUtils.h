@@ -125,6 +125,16 @@ namespace layers {
 class LayerManager;
 } 
 
+
+
+
+typedef void* (*DeferredFinalizeAppendFunction)(void* pointers, void* thing);
+
+
+
+
+typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
+
 } 
 
 #ifdef IBMBIDI
@@ -1262,6 +1272,11 @@ public:
 #ifdef DEBUG
   static bool AreJSObjectsHeld(void* aScriptObjectHolder); 
 #endif
+
+  static void DeferredFinalize(nsISupports* aSupports);
+  static void DeferredFinalize(mozilla::DeferredFinalizeAppendFunction aAppendFunc,
+                               mozilla::DeferredFinalizeFunction aFunc,
+                               void* aThing);
 
   static void ReleaseWrapper(void* aScriptObjectHolder,
                              nsWrapperCache* aCache);

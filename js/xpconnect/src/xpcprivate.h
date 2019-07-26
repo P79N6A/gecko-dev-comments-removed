@@ -596,7 +596,6 @@ public:
 
 
 class XPCJSContextStack;
-class XPCIncrementalReleaseRunnable;
 class XPCJSRuntime : public mozilla::CycleCollectedJSRuntime
 {
 public:
@@ -663,37 +662,13 @@ public:
     NoteCustomGCThingXPCOMChildren(js::Class* aClasp, JSObject* aObj,
                                    nsCycleCollectionTraversalCallback& aCb) const;
 
-    bool DeferredRelease(nsISupports* obj);
-
-
     
 
 
 
 
-
-private:
-    struct DeferredFinalizeFunctions
-    {
-        DeferredFinalizeStartFunction start;
-        DeferredFinalizeFunction run;
-    };
-    nsAutoTArray<DeferredFinalizeFunctions, 16> mDeferredFinalizeFunctions;
 
 public:
-    
-    
-    bool RegisterDeferredFinalize(DeferredFinalizeStartFunction start,
-                                  DeferredFinalizeFunction run)
-    {
-        DeferredFinalizeFunctions* item =
-            mDeferredFinalizeFunctions.AppendElement();
-        item->start = start;
-        item->run = run;
-        return true;
-    }
-
-
     JSBool GetDoingFinalization() const {return mDoingFinalization;}
 
     
@@ -744,7 +719,7 @@ public:
     void PrepareForForgetSkippable() MOZ_OVERRIDE;
     void PrepareForCollection() MOZ_OVERRIDE;
 
-    static void GCCallback(JSRuntime *rt, JSGCStatus status);
+    void CustomGCCallback(JSGCStatus status) MOZ_OVERRIDE;
     static void GCSliceCallback(JSRuntime *rt,
                                 JS::GCProgress progress,
                                 const JS::GCDescription &desc);
@@ -829,8 +804,8 @@ private:
 public:
 #endif
 
-    void AddGCCallback(JSGCCallback cb);
-    void RemoveGCCallback(JSGCCallback cb);
+    void AddGCCallback(xpcGCCallback cb);
+    void RemoveGCCallback(xpcGCCallback cb);
 
     static void ActivityCallback(void *arg, JSBool active);
     static void CTypesActivityCallback(JSContext *cx,
@@ -884,11 +859,10 @@ private:
     PRLock *mWatchdogLock;
     PRCondVar *mWatchdogWakeup;
     PRThread *mWatchdogThread;
-    nsTArray<JSGCCallback> extraGCCallbacks;
+    nsTArray<xpcGCCallback> extraGCCallbacks;
     bool mWatchdogHibernating;
     enum { RUNTIME_ACTIVE, RUNTIME_INACTIVE } mRuntimeState;
     PRTime mTimeAtLastRuntimeStateChange;
-    nsRefPtr<XPCIncrementalReleaseRunnable> mReleaseRunnable;
     JS::GCSliceCallback mPrevGCSliceCallback;
     JSObject* mJunkScope;
 

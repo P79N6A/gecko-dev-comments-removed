@@ -240,8 +240,6 @@ private:
 
 namespace xpc {
 
-bool DeferredRelease(nsISupports *obj);
-
 
 NS_EXPORT_(bool) Base64Encode(JSContext *cx, JS::Value val, JS::Value *out);
 NS_EXPORT_(bool) Base64Decode(JSContext *cx, JS::Value val, JS::Value *out);
@@ -458,15 +456,5 @@ Register(nsScriptNameSpaceManager* aNameSpaceManager);
 
 } 
 } 
-
-
-
-typedef void* (*DeferredFinalizeStartFunction)();
-
-
-
-
-
-typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
 
 #endif
