@@ -400,8 +400,10 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
     
     
     shouldPosition = (mPopupState == ePopupShowing);
-    if (!shouldPosition && !aSizedToPopup)
+    if (!shouldPosition && !aSizedToPopup) {
+      RemoveStateBits(NS_FRAME_FIRST_REFLOW);
       return;
+    }
   }
 
   
