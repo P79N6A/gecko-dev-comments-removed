@@ -4,7 +4,6 @@
 
 "use strict";
 
-Services.prefs.setBoolPref("browser.uiCustomization.skipSourceNodeCheck", true);
 requestLongerTimeout(5);
 
 
@@ -462,6 +461,5 @@ add_task(function() {
 
 add_task(function asyncCleanup() {
   yield endCustomizing();
-  Services.prefs.clearUserPref("browser.uiCustomization.skipSourceNodeCheck");
   yield resetCustomization();
 });
