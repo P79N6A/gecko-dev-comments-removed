@@ -188,8 +188,7 @@ public class HomePager extends ViewPager {
             
             
             
-            requestFocusFromTouch();
-            clearFocus();
+            requestFocus();
         }
 
         return super.onInterceptTouchEvent(event);
