@@ -446,6 +446,7 @@ class LDefinition
         GENERAL,    
         OBJECT,     
         SLOTS,      
+        FLOAT32,    
         DOUBLE,     
 #ifdef JS_NUNBOX32
         
@@ -540,8 +541,9 @@ class LDefinition
           case MIRType_Object:
             return LDefinition::OBJECT;
           case MIRType_Double:
-          case MIRType_Float32:
             return LDefinition::DOUBLE;
+          case MIRType_Float32:
+            return LDefinition::FLOAT32;
 #if defined(JS_PUNBOX64)
           case MIRType_Value:
             return LDefinition::BOX;
