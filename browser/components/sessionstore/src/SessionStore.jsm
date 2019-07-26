@@ -384,15 +384,14 @@ let SessionStoreInternal = {
 
 
   initSession: function () {
+    TelemetryStopwatch.start("FX_SESSION_RESTORE_STARTUP_INIT_SESSION_MS");
     let state;
     let ss = gSessionStartup;
 
-    try {
-      if (ss.doRestore() ||
-          ss.sessionType == Ci.nsISessionStartup.DEFER_SESSION)
-        state = ss.state;
+    if (ss.doRestore() ||
+        ss.sessionType == Ci.nsISessionStartup.DEFER_SESSION) {
+      state = ss.state;
     }
-    catch(ex) { dump(ex + "\n"); } 
 
     if (state) {
       try {
@@ -466,6 +465,7 @@ let SessionStoreInternal = {
 
     this._performUpgradeBackup();
 
+    TelemetryStopwatch.finish("FX_SESSION_RESTORE_STARTUP_INIT_SESSION_MS");
     return state;
   },
 
@@ -966,7 +966,10 @@ let SessionStoreInternal = {
       } else {
         let initialState = this.initSession();
         this._sessionInitialized = true;
+
+        TelemetryStopwatch.start("FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS");
         this.onLoad(aWindow, initialState);
+        TelemetryStopwatch.finish("FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS");
 
         
         this._deferredInitialized.resolve();
