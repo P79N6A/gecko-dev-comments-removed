@@ -1575,6 +1575,7 @@ PlacesToolbar.prototype = {
       
       
       let ind = this._dropIndicator;
+      ind.parentNode.collapsed = false;
       let halfInd = ind.clientWidth / 2;
       let translateX;
       if (this.isRTL) {
