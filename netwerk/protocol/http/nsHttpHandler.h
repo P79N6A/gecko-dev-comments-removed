@@ -378,7 +378,8 @@ private:
 
     
     bool           mDoNotTrackEnabled;
-    
+    PRUint8        mDoNotTrackValue;
+
     
     bool           mTelemetryEnabled;
 

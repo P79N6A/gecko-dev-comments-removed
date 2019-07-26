@@ -713,6 +713,9 @@ pref("privacy.popups.disable_from_plugins", 2);
 
 pref("privacy.donottrackheader.enabled",    false);
 
+
+pref("privacy.donottrackheader.value",      1);
+
 pref("dom.event.contextmenu.enabled",       true);
 pref("dom.event.clipboardevents.enabled",   true);
 
