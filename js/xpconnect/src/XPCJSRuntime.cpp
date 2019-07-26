@@ -1078,6 +1078,18 @@ class AutoLockWatchdog {
     }
 };
 
+bool
+XPCJSRuntime::IsRuntimeActive()
+{
+    return mRuntimeState == RUNTIME_ACTIVE;
+}
+
+PRTime
+XPCJSRuntime::TimeSinceLastRuntimeStateChange()
+{
+    return PR_Now() - mTimeAtLastRuntimeStateChange;
+}
+
 
 void
 XPCJSRuntime::WatchdogMain(void *arg)
@@ -1092,14 +1104,19 @@ XPCJSRuntime::WatchdogMain(void *arg)
     PRIntervalTime sleepInterval;
     while (self->mWatchdogThread) {
         
-        if (self->mLastActiveTime == -1 || PR_Now() - self->mLastActiveTime <= PRTime(2*PR_USEC_PER_SEC))
+        if (self->IsRuntimeActive() || self->TimeSinceLastRuntimeStateChange() <= PRTime(2*PR_USEC_PER_SEC))
             sleepInterval = PR_TicksPerSecond();
         else {
             sleepInterval = PR_INTERVAL_NO_TIMEOUT;
             self->mWatchdogHibernating = true;
         }
         MOZ_ALWAYS_TRUE(PR_WaitCondVar(self->mWatchdogWakeup, sleepInterval) == PR_SUCCESS);
-        JS_TriggerOperationCallback(self->mJSRuntime);
+
+        
+        
+        
+        if (self->IsRuntimeActive() && self->TimeSinceLastRuntimeStateChange() >= PRTime(PR_USEC_PER_SEC))
+            JS_TriggerOperationCallback(self->mJSRuntime);
     }
 
     
@@ -1113,15 +1130,14 @@ XPCJSRuntime::ActivityCallback(void *arg, JSBool active)
     XPCJSRuntime* self = static_cast<XPCJSRuntime*>(arg);
 
     AutoLockWatchdog lock(self);
+
+    self->mTimeAtLastRuntimeStateChange = PR_Now();
+    self->mRuntimeState = active ? RUNTIME_ACTIVE : RUNTIME_INACTIVE;
+
     
-    if (active) {
-        self->mLastActiveTime = -1;
-        if (self->mWatchdogHibernating) {
-            self->mWatchdogHibernating = false;
-            PR_NotifyCondVar(self->mWatchdogWakeup);
-        }
-    } else {
-        self->mLastActiveTime = PR_Now();
+    if (active && self->mWatchdogHibernating) {
+        self->mWatchdogHibernating = false;
+        PR_NotifyCondVar(self->mWatchdogWakeup);
     }
 }
 
@@ -2653,7 +2669,8 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
    mWatchdogWakeup(nullptr),
    mWatchdogThread(nullptr),
    mWatchdogHibernating(false),
-   mLastActiveTime(-1),
+   mRuntimeState(RUNTIME_INACTIVE),
+   mTimeAtLastRuntimeStateChange(PR_Now()),
    mJunkScope(nullptr),
    mExceptionManagerNotAvailable(false)
 #ifdef DEBUG
