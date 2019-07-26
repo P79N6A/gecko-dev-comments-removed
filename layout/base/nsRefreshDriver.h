@@ -355,7 +355,7 @@ private:
   
   
   
-  bool mSkippedPaint;
+  uint32_t mSkippedPaints;
 
   int64_t mMostRecentRefreshEpochTime;
   mozilla::TimeStamp mMostRecentRefresh;
