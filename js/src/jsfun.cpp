@@ -877,7 +877,7 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
         
         
         
-        if (fp->runningInIon()) {
+        if (fp->beginsIonActivation()) {
             ion::IonActivationIterator activations(cx);
             ion::IonFrameIterator frame(activations);
             JS_ASSERT(frame.isNative());

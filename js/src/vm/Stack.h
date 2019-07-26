@@ -1082,11 +1082,17 @@ class StackFrame
   public:
     void mark(JSTracer *trc);
 
+    
     bool runningInIon() const {
         return !!(flags_ & RUNNING_IN_ION);
     }
+    
     bool callingIntoIon() const {
         return !!(flags_ & CALLING_INTO_ION);
+    }
+    
+    bool beginsIonActivation() const {
+        return !!(flags_ & (RUNNING_IN_ION | CALLING_INTO_ION));
     }
     void setRunningInIon() {
         flags_ |= RUNNING_IN_ION;
