@@ -282,7 +282,6 @@ pref("layers.offmainthreadcomposition.async-animations", true);
 pref("layers.async-video.enabled", true);
 pref("layers.async-pan-zoom.enabled", true);
 pref("gfx.content.azure.backends", "cairo");
-pref("layers.composer2d.enabled", true);
 #endif
 
 
@@ -621,8 +620,10 @@ pref("ui.useOverlayScrollbars", 1);
 
 
 
+
 pref("dom.ipc.processPriorityManager.enabled", true);
 pref("dom.ipc.processPriorityManager.backgroundGracePeriodMS", 1000);
+pref("dom.ipc.processPriorityManager.backgroundPerceivableGracePeriodMS", 5000);
 pref("dom.ipc.processPriorityManager.temporaryPriorityLockMS", 5000);
 
 
