@@ -2440,7 +2440,10 @@ class IDLValue(IDLObject):
         
         
         if type.isUnion():
-            for subtype in type.unroll().memberTypes:
+            
+            
+            
+            for subtype in type.unroll().flatMemberTypes:
                 try:
                     coercedValue = self.coerceToType(subtype, location)
                     
@@ -2513,6 +2516,13 @@ class IDLNullValue(IDLObject):
                               [location])
 
         nullValue = IDLNullValue(self.location)
+        if type.isUnion() and not type.nullable() and type.hasDictionaryType:
+            
+            
+            for t in type.flatMemberTypes:
+                if t.isDictionary():
+                    nullValue.type = t
+                    return nullValue
         nullValue.type = type
         return nullValue
 
