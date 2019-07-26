@@ -1158,7 +1158,7 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTim
           aStream->mAudioOutputStreams.AppendElement();
         audioOutputStream->mAudioPlaybackStartTime = aAudioOutputStartTime;
         audioOutputStream->mBlockedAudioTime = 0;
-        audioOutputStream->mStream = nsAudioStream::AllocateStream();
+        audioOutputStream->mStream = AudioStream::AllocateStream();
         audioOutputStream->mStream->Init(audio->GetChannels(),
                                          tracks->GetRate());
         audioOutputStream->mTrackID = tracks->GetID();

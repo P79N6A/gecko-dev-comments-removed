@@ -16,7 +16,7 @@
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
-#include "nsMediaCache.h"
+#include "MediaCache.h"
 #include "mozilla/Attributes.h"
 
 
@@ -28,7 +28,7 @@ static const uint32_t HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE = 416;
 
 namespace mozilla {
 
-class nsBuiltinDecoder;
+class MediaDecoder;
 
 
 
@@ -177,11 +177,11 @@ public:
   
   
   
-  virtual MediaResource* CloneData(nsBuiltinDecoder* aDecoder) = 0;
+  virtual MediaResource* CloneData(MediaDecoder* aDecoder) = 0;
 
   
   
-  virtual void SetReadMode(nsMediaCacheStream::ReadMode aMode) = 0;
+  virtual void SetReadMode(MediaCacheStream::ReadMode aMode) = 0;
   
   
   
@@ -282,7 +282,7 @@ public:
 
 
 
-  static MediaResource* Create(nsBuiltinDecoder* aDecoder, nsIChannel* aChannel);
+  static MediaResource* Create(MediaDecoder* aDecoder, nsIChannel* aChannel);
 
   
 
@@ -309,7 +309,7 @@ public:
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
 
 protected:
-  MediaResource(nsBuiltinDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
+  MediaResource(MediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
@@ -326,7 +326,7 @@ protected:
   
   
   
-  nsBuiltinDecoder* mDecoder;
+  MediaDecoder* mDecoder;
 
   
   
@@ -352,7 +352,7 @@ protected:
 class ChannelMediaResource : public MediaResource
 {
 public:
-  ChannelMediaResource(nsBuiltinDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
+  ChannelMediaResource(MediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
   ~ChannelMediaResource();
 
   
@@ -392,12 +392,12 @@ public:
   
   bool IsClosed() const { return mCacheStream.IsClosed(); }
   virtual bool     CanClone();
-  virtual MediaResource* CloneData(nsBuiltinDecoder* aDecoder);
+  virtual MediaResource* CloneData(MediaDecoder* aDecoder);
   virtual nsresult ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount);
   virtual void     EnsureCacheUpToDate();
 
   
-  virtual void     SetReadMode(nsMediaCacheStream::ReadMode aMode);
+  virtual void     SetReadMode(MediaCacheStream::ReadMode aMode);
   virtual void     SetPlaybackRate(uint32_t aBytesPerSecond);
   virtual nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
   virtual nsresult Seek(int32_t aWhence, int64_t aOffset);
@@ -496,7 +496,7 @@ protected:
   bool               mIgnoreClose;
 
   
-  nsMediaCacheStream mCacheStream;
+  MediaCacheStream mCacheStream;
 
   
   Mutex               mLock;

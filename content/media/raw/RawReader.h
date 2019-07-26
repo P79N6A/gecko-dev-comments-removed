@@ -1,0 +1,59 @@
+
+
+
+
+
+#if !defined(RawReader_h_)
+#define RawReader_h_
+
+#include "MediaDecoderReader.h"
+#include "RawStructs.h"
+
+namespace mozilla {
+
+class RawReader : public MediaDecoderReader
+{
+public:
+  RawReader(MediaDecoder* aDecoder);
+  ~RawReader();
+
+  virtual nsresult Init(MediaDecoderReader* aCloneDonor);
+  virtual nsresult ResetDecode();
+  virtual bool DecodeAudioData();
+
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
+                                  int64_t aTimeThreshold);
+
+  virtual bool HasAudio()
+  {
+    return false;
+  }
+
+  virtual bool HasVideo()
+  {
+    return true;
+  }
+
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
+                                MetadataTags** aTags);
+  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
+
+  
+  bool IsSeekableInBufferedRanges() {
+    return true;
+  }
+
+private:
+  bool ReadFromResource(MediaResource *aResource, uint8_t *aBuf, uint32_t aLength);
+
+  RawVideoHeader mMetadata;
+  uint32_t mCurrentFrame;
+  double mFrameRate;
+  uint32_t mFrameSize;
+  nsIntRect mPicture;
+};
+
+} 
+
+#endif

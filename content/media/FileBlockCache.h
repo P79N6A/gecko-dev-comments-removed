@@ -10,7 +10,7 @@
 #include "mozilla/Monitor.h"
 #include "prio.h"
 #include "nsTArray.h"
-#include "nsMediaCache.h"
+#include "MediaCache.h"
 #include "nsDeque.h"
 
 namespace mozilla {
@@ -48,7 +48,7 @@ namespace mozilla {
 class FileBlockCache : public nsRunnable {
 public:
   enum {
-    BLOCK_SIZE = nsMediaCacheStream::BLOCK_SIZE
+    BLOCK_SIZE = MediaCacheStream::BLOCK_SIZE
   };
 
   FileBlockCache();
@@ -150,7 +150,7 @@ private:
   
   
   
-  mozilla::Monitor mFileMonitor;
+  Monitor mFileMonitor;
   
   nsresult MoveBlockInFile(int32_t aSourceBlockIndex,
                            int32_t aDestBlockIndex);
@@ -172,7 +172,7 @@ private:
   
   
   
-  mozilla::Monitor mDataMonitor;
+  Monitor mDataMonitor;
   
   
   

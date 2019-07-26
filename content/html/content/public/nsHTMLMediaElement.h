@@ -16,7 +16,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsILoadGroup.h"
 #include "nsIObserver.h"
-#include "nsAudioStream.h"
+#include "AudioStream.h"
 #include "VideoFrameContainer.h"
 #include "mozilla/CORSMode.h"
 #include "nsDOMMediaStream.h"
@@ -32,9 +32,9 @@ typedef uint16_t nsMediaReadyState;
 
 namespace mozilla {
 class MediaResource;
-class nsBuiltinDecoder;
+class MediaDecoder;
 #ifdef MOZ_DASH
-class nsDASHDecoder;
+class DASHDecoder;
 #endif
 }
 
@@ -50,11 +50,11 @@ public:
   typedef mozilla::MediaResource MediaResource;
   typedef mozilla::MediaDecoderOwner MediaDecoderOwner;
   typedef mozilla::MetadataTags MetadataTags;
-  typedef mozilla::nsAudioStream nsAudioStream;
-  typedef mozilla::nsBuiltinDecoder nsBuiltinDecoder;
+  typedef mozilla::AudioStream AudioStream;
+  typedef mozilla::MediaDecoder MediaDecoder;
 
 #ifdef MOZ_DASH
-  friend class nsDASHDecoder;
+  friend class DASHDecoder;
 #endif
 
   enum CanPlayStatus {
@@ -442,14 +442,14 @@ protected:
 
 
 
-  already_AddRefed<nsBuiltinDecoder> CreateDecoder(const nsACString& aMIMEType);
+  already_AddRefed<MediaDecoder> CreateDecoder(const nsACString& aMIMEType);
 
   
 
 
 
 
-  nsresult InitializeDecoderAsClone(nsBuiltinDecoder* aOriginal);
+  nsresult InitializeDecoderAsClone(MediaDecoder* aOriginal);
 
   
 
@@ -463,10 +463,10 @@ protected:
 
 
 
-  nsresult FinishDecoderSetup(nsBuiltinDecoder* aDecoder,
+  nsresult FinishDecoderSetup(MediaDecoder* aDecoder,
                               MediaResource* aStream,
                               nsIStreamListener **aListener,
-                              nsBuiltinDecoder* aCloneDonor);
+                              MediaDecoder* aCloneDonor);
 
   
 
@@ -659,7 +659,7 @@ protected:
 
   
   
-  nsRefPtr<nsBuiltinDecoder> mDecoder;
+  nsRefPtr<MediaDecoder> mDecoder;
 
   
   
@@ -792,7 +792,7 @@ protected:
   nsCOMPtr<nsIContent> mSourceLoadCandidate;
 
   
-  nsRefPtr<nsAudioStream> mAudioStream;
+  nsRefPtr<AudioStream> mAudioStream;
 
   
   nsTimeRanges mPlayed;

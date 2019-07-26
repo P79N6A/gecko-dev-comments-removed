@@ -13,7 +13,7 @@
 
 namespace mozilla {
 
-class nsAudioStream;
+class AudioStream;
 
 struct AudioChunk {
   typedef mozilla::AudioSampleFormat SampleFormat;
@@ -99,7 +99,7 @@ public:
 
 
 
-  void WriteTo(nsAudioStream* aOutput);
+  void WriteTo(AudioStream* aOutput);
 
   
   void InitFrom(const AudioSegment& aOther)

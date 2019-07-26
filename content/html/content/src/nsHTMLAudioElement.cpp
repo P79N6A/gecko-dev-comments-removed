@@ -127,7 +127,7 @@ nsHTMLAudioElement::MozSetup(uint32_t aChannels, uint32_t aRate)
     mAudioStream->Shutdown();
   }
 
-  mAudioStream = nsAudioStream::AllocateStream();
+  mAudioStream = AudioStream::AllocateStream();
   nsresult rv = mAudioStream->Init(aChannels, aRate);
   if (NS_FAILED(rv)) {
     mAudioStream->Shutdown();
