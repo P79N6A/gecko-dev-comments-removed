@@ -248,6 +248,7 @@
    \
   SECCOMP_WHITELIST_ARCH_TOREMOVE \
   ALLOW_SYSCALL(open), \
+  ALLOW_SYSCALL(readlink),  \
   ALLOW_SYSCALL(prctl), \
   ALLOW_SYSCALL(access), \
   ALLOW_SYSCALL(unlink), \
