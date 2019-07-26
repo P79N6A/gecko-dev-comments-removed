@@ -496,6 +496,8 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
     mRecognizerWantsEvents = true;
     mCancelable = true;
     mCanceledIds.Clear();
+  } else {
+    mCancelable = false;
   }
 
   InitTouchEventTouchList(touchEvent);
@@ -1141,7 +1143,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
   
   
   
-  if (mCancelable && event->message == NS_TOUCH_START && mTouches.Count() == 1) {
+  if (mCancelable && event->message == NS_TOUCH_START) {
     nsRefPtr<Touch> touch = event->touches[0];
     LayoutDeviceIntPoint pt = LayoutDeviceIntPoint::FromUntyped(touch->mRefPoint);
     bool apzIntersect = mWidget->ApzHitTest(mozilla::ScreenIntPoint(pt.x, pt.y));
@@ -1153,6 +1155,17 @@ MetroInput::DeliverNextQueuedTouchEvent()
   if (mChromeHitTestCacheForTouch) {
     DUMP_TOUCH_IDS("DOM(1)", event);
     mWidget->DispatchEvent(event, status);
+    if (mCancelable) {
+      
+      
+      if (nsEventStatus_eConsumeNoDefault == status) {
+        mRecognizerWantsEvents = false;
+        mGestureRecognizer->CompleteGesture();
+      }
+      if (event->message == NS_TOUCH_MOVE) {
+        mCancelable = false;
+      }
+    }
     return;
   }
 
