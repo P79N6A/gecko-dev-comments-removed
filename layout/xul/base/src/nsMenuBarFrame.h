@@ -116,7 +116,7 @@ protected:
   
   nsMenuFrame* mCurrentMenu;
 
-  nsIDOMEventTarget* mTarget;
+  mozilla::dom::EventTarget* mTarget;
 
 }; 
 

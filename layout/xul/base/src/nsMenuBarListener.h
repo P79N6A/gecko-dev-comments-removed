@@ -6,7 +6,6 @@
 #define nsMenuBarListener_h__
 
 #include "nsIDOMEventListener.h"
-#include "nsIDOMEventTarget.h"
 
 
 #ifdef KeyPress
