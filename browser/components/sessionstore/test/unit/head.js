@@ -17,6 +17,13 @@ let afterSessionStartupInitialization =
         do_throw(ex);
       }
     };
+
+    
+    
+    Components.utils.import("resource://gre/modules/CrashMonitor.jsm");
+    CrashMonitor.init();
+
+    
     let startup = Cc["@mozilla.org/browser/sessionstartup;1"].
       getService(Ci.nsIObserver);
     Services.obs.addObserver(startup, "final-ui-startup", false);

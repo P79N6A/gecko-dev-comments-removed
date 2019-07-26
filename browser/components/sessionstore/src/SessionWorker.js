@@ -55,13 +55,6 @@ self.onmessage = function (msg) {
 
 let Agent = {
   
-  initialState: null,
-
-  
-  
-  hasWrittenLoadStateOnce: false,
-
-  
   
   
   
@@ -83,10 +76,9 @@ let Agent = {
         let durationMs = Date.now();
         let bytes = File.read(path);
         durationMs = Date.now() - durationMs;
-        this.initialState = Decoder.decode(bytes);
 
         return {
-          result: this.initialState,
+          result: Decoder.decode(bytes),
           telemetry: {FX_SESSION_RESTORE_READ_FILE_MS: durationMs,
                       FX_SESSION_RESTORE_FILE_SIZE_BYTES: bytes.byteLength}
         };
@@ -138,37 +130,6 @@ let Agent = {
 
   gatherTelemetry: function (stateString) {
     return Statistics.collect(stateString);
-  },
-
-  
-
-
-
-
-  writeLoadStateOnceAfterStartup: function (loadState) {
-    if (this.hasWrittenLoadStateOnce) {
-      throw new Error("writeLoadStateOnceAfterStartup() must only be called once.");
-    }
-
-    if (!this.initialState) {
-      throw new Error("writeLoadStateOnceAfterStartup() must not be called " +
-                      "without a valid session state or before it has been " +
-                      "read from disk.");
-    }
-
-    
-    this.hasWrittenLoadStateOnce = true;
-
-    let state;
-    try {
-      state = JSON.parse(this.initialState);
-    } finally {
-      this.initialState = null;
-    }
-
-    state.session = state.session || {};
-    state.session.state = loadState;
-    return this._write(JSON.stringify(state));
   },
 
   

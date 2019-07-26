@@ -9,8 +9,12 @@
 
 function run_test() {
   let profd = do_get_profile();
-  let source = do_get_file("data/sessionstore_valid.js");
-  source.copyTo(profd, "sessionstore.js");
+
+  let sourceSession = do_get_file("data/sessionstore_valid.js");
+  sourceSession.copyTo(profd, "sessionstore.js");
+
+  let sourceCheckpoints = do_get_file("data/sessionCheckpoints_all.json");
+  sourceCheckpoints.copyTo(profd, "sessionCheckpoints.json");
 
   do_test_pending();
   let startup = Cc["@mozilla.org/browser/sessionstartup;1"].

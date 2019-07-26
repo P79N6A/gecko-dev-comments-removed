@@ -78,13 +78,6 @@ this.SessionFile = {
 
 
 
-  writeLoadStateOnceAfterStartup: function (aLoadState) {
-    SessionFileInternal.writeLoadStateOnceAfterStartup(aLoadState);
-  },
-  
-
-
-
   createBackupCopy: function (ext) {
     return SessionFileInternal.createBackupCopy(ext);
   },
@@ -179,13 +172,6 @@ let SessionFileInternal = {
         Services.obs.notifyObservers(null, "sessionstore-final-state-write-complete", "");
       }
     }.bind(this));
-  },
-
-  writeLoadStateOnceAfterStartup: function (aLoadState) {
-    SessionWorker.post("writeLoadStateOnceAfterStartup", [aLoadState]).then(msg => {
-      this._recordTelemetry(msg.telemetry);
-      return msg;
-    }, console.error);
   },
 
   createBackupCopy: function (ext) {

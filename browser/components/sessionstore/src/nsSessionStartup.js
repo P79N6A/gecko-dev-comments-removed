@@ -31,8 +31,6 @@
 
 
 
-
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -47,6 +45,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
   "resource:///modules/sessionstore/SessionFile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "CrashMonitor",
+  "resource://gre/modules/CrashMonitor.jsm");
 
 const STATE_RUNNING_STR = "running";
 
@@ -71,6 +71,9 @@ SessionStartup.prototype = {
   _initialState: null,
   _sessionType: Ci.nsISessionStartup.NO_SESSION,
   _initialized: false,
+
+  
+  _previousSessionCrashed: null,
 
 
 
@@ -99,71 +102,78 @@ SessionStartup.prototype = {
     return string;
   },
 
-  _onSessionFileRead: function sss_onSessionFileRead(aStateString) {
-    if (this._initialized) {
-      
+  
+
+
+
+
+
+  _onSessionFileRead: function (stateString) {
+    this._initialized = true;
+
+    
+    let supportsStateString = this._createSupportsString(stateString);
+    Services.obs.notifyObservers(supportsStateString, "sessionstore-state-read", "");
+    stateString = supportsStateString.data;
+
+    
+    if (!stateString) {
+      this._sessionType = Ci.nsISessionStartup.NO_SESSION;
+      Services.obs.notifyObservers(null, "sessionstore-state-finalized", "");
+      gOnceInitializedDeferred.resolve();
       return;
     }
-    try {
-      this._initialized = true;
 
-      
-      let supportsStateString = this._createSupportsString(aStateString);
-      Services.obs.notifyObservers(supportsStateString, "sessionstore-state-read", "");
-      aStateString = supportsStateString.data;
+    this._initialState =  this._parseStateString(stateString);
 
-      
-      if (!aStateString) {
-        this._sessionType = Ci.nsISessionStartup.NO_SESSION;
-        return;
+    let shouldResumeSessionOnce = Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
+    let shouldResumeSession = shouldResumeSessionOnce ||
+          Services.prefs.getIntPref("browser.startup.page") == BROWSER_STARTUP_RESUME_SESSION;
+
+    
+    if (!shouldResumeSessionOnce)
+      delete this._initialState.lastSessionState;
+
+    let resumeFromCrash = Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash");
+
+    CrashMonitor.previousCheckpoints.then(checkpoints => {
+      if (checkpoints) {
+        
+        
+        this._previousSessionCrashed = !checkpoints["sessionstore-final-state-write-complete"];
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        let stateFlagPresent = (this._initialState &&
+                                this._initialState.session &&
+                                this._initialState.session.state);
+
+
+        this._previousSessionCrashed = !stateFlagPresent ||
+                                       (this._initialState.session.state == STATE_RUNNING_STR);
       }
 
       
       
-      if (aStateString.charAt(0) == '(')
-        aStateString = aStateString.slice(1, -1);
-      let corruptFile = false;
-      try {
-        this._initialState = JSON.parse(aStateString);
-      }
-      catch (ex) {
-        debug("The session file contained un-parse-able JSON: " + ex);
-        
-        
-        
-        try {
-          var s = new Cu.Sandbox("about:blank", {sandboxName: 'nsSessionStartup'});
-          this._initialState = Cu.evalInSandbox("(" + aStateString + ")", s);
-        } catch(ex) {
-          debug("The session file contained un-eval-able JSON: " + ex);
-          corruptFile = true;
-        }
-      }
-      Services.telemetry.getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE").add(corruptFile);
-
-      let doResumeSessionOnce = Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
-      let doResumeSession = doResumeSessionOnce ||
-            Services.prefs.getIntPref("browser.startup.page") == BROWSER_STARTUP_RESUME_SESSION;
+      
+      Services.telemetry.getHistogramById("SHUTDOWN_OK").add(!this._previousSessionCrashed);
 
       
-      if (!doResumeSessionOnce)
-        delete this._initialState.lastSessionState;
-
-      let resumeFromCrash = Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash");
-      let lastSessionCrashed =
-        this._initialState && this._initialState.session &&
-        this._initialState.session.state &&
-        this._initialState.session.state == STATE_RUNNING_STR;
-
-      
-      
-      
-      Services.telemetry.getHistogramById("SHUTDOWN_OK").add(!lastSessionCrashed);
-
-      
-      if (lastSessionCrashed && resumeFromCrash)
+      if (this._previousSessionCrashed && resumeFromCrash)
         this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
-      else if (!lastSessionCrashed && doResumeSession)
+      else if (!this._previousSessionCrashed && shouldResumeSession)
         this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
       else if (this._initialState)
         this._sessionType = Ci.nsISessionStartup.DEFER_SESSION;
@@ -175,11 +185,33 @@ SessionStartup.prototype = {
       if (this._sessionType != Ci.nsISessionStartup.NO_SESSION)
         Services.obs.addObserver(this, "browser:purge-session-history", true);
 
-    } finally {
       
       Services.obs.notifyObservers(null, "sessionstore-state-finalized", "");
       gOnceInitializedDeferred.resolve();
+    });
+  },
+
+
+  
+
+
+
+
+
+
+  _parseStateString: function (stateString) {
+    let state = null;
+    let corruptFile = false;
+
+    try {
+      state = JSON.parse(stateString);
+    } catch (ex) {
+      debug("The session file contained un-parse-able JSON: " + ex);
+      corruptFile = true;
     }
+    Services.telemetry.getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE").add(corruptFile);
+
+    return state;
   },
 
   
@@ -290,6 +322,14 @@ SessionStartup.prototype = {
   get sessionType() {
     this._ensureInitialized();
     return this._sessionType;
+  },
+
+  
+
+
+  get previousSessionCrashed() {
+    this._ensureInitialized();
+    return this._previousSessionCrashed;
   },
 
   
