@@ -2,8 +2,10 @@
 
 
 
+import datetime
 import socket
 import sys
+import time
 import traceback
 
 from client import MarionetteClient
@@ -127,7 +129,7 @@ class Marionette(object):
             self.instance = GeckoInstance(host=self.host, port=self.port,
                                           bin=self.bin, profile=self.profile)
             self.instance.start()
-            assert(self.instance.wait_for_port())
+            assert(self.wait_for_port())
 
         if emulator:
             self.emulator = Emulator(homedir=homedir,
@@ -195,6 +197,22 @@ class Marionette(object):
             
             
             sys.exit()
+
+    def wait_for_port(self, timeout=3000):
+        starttime = datetime.datetime.now()
+        while datetime.datetime.now() - starttime < datetime.timedelta(seconds=timeout):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((self.host, self.port))
+                data = sock.recv(16)
+                sock.close()
+                if '"from"' in data:
+                    time.sleep(5)
+                    return True
+            except socket.error:
+                pass
+            time.sleep(1)
+        return False
 
     def _send_message(self, command, response_key, **kwargs):
         if not self.session and command not in ('newSession', 'getStatus'):
