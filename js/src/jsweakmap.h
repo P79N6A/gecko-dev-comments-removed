@@ -85,7 +85,8 @@ class WeakMapBase {
     
     static void traceAllMappings(WeakMapTracer *tracer);
 
-    void check() { JS_ASSERT(next == WeakMapNotInList); }
+    bool isInList() { return next != WeakMapNotInList; }
+    void check() { JS_ASSERT(!isInList()); }
 
     
     static void resetCompartmentWeakMapList(JSCompartment *c);
