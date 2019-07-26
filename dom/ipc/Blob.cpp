@@ -91,7 +91,6 @@ public:
     
     
     MOZ_CRASH("RemoteInputStream should never be deserialized");
-    return false;
   }
 
   void

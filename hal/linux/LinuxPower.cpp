@@ -67,9 +67,7 @@ QuitHard(hal::ShutdownMode aMode)
       break;
     default:
       MOZ_CRASH();
-      break;
   }
-  MOZ_CRASH();
 }
 
 

@@ -72,7 +72,6 @@ ScriptAnalysis::getValueTypes(const SSAValue &v)
       default:
         
         MOZ_ASSUME_NOT_REACHED("Bad SSA value");
-        return NULL;
     }
 }
 

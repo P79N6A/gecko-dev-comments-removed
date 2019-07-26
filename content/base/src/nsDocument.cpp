@@ -8474,7 +8474,6 @@ nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr)
     loadFlags |= imgILoader::LOAD_CORS_USE_CREDENTIALS;
     break;
   default:
-    
     MOZ_CRASH("Unknown CORS mode!");
   }
 
@@ -11148,8 +11147,7 @@ nsDocument::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   
   
   
-  MOZ_CRASH("nsDocument::SizeOfExcludingThis");
-  return 0;
+  MOZ_CRASH();
 }
 
 void

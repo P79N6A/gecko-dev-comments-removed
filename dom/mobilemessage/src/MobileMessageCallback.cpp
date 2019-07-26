@@ -93,7 +93,6 @@ MobileMessageCallback::NotifyError(int32_t aError)
       break;
     default: 
       MOZ_CRASH("Should never get here!");
-      return NS_ERROR_FAILURE;
   }
 
   return NS_OK;
