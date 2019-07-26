@@ -80,6 +80,7 @@ class TreeMetadataEmitter(object):
         varmap = dict(
             
             ASFILES='ASFILES',
+            CSRCS='CSRCS',
             MODULE='MODULE',
             XPIDL_FLAGS='XPIDL_FLAGS',
             XPIDL_MODULE='XPIDL_MODULE',
