@@ -71,6 +71,9 @@ typedef struct _nsCocoaWindowList {
   BOOL mScheduledShadowInvalidation;
 
   
+  BOOL mDisabledNeedsDisplay;
+
+  
   
   
   float mDPI;
@@ -107,6 +110,9 @@ typedef struct _nsCocoaWindowList {
 
 - (void)setWantsTitleDrawn:(BOOL)aDrawTitle;
 - (BOOL)wantsTitleDrawn;
+
+- (void)disableSetNeedsDisplay;
+- (void)enableSetNeedsDisplay;
 
 @end
 
