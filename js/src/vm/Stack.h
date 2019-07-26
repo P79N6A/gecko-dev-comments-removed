@@ -75,6 +75,7 @@ CheckLocalUnaliased(MaybeCheckAliasing checkAliasing, JSScript *script, uint32_t
 
 namespace jit {
     class BaselineFrame;
+    class RematerializedFrame;
 }
 
 
@@ -106,6 +107,7 @@ class AbstractFramePtr
         Tag_ScriptFrameIterData = 0x0,
         Tag_InterpreterFrame = 0x1,
         Tag_BaselineFrame = 0x2,
+        Tag_RematerializedFrame = 0x3,
         TagMask = 0x3
     };
 
@@ -117,13 +119,19 @@ class AbstractFramePtr
     AbstractFramePtr(InterpreterFrame *fp)
       : ptr_(fp ? uintptr_t(fp) | Tag_InterpreterFrame : 0)
     {
-        MOZ_ASSERT(asInterpreterFrame() == fp);
+        MOZ_ASSERT_IF(fp, asInterpreterFrame() == fp);
     }
 
     AbstractFramePtr(jit::BaselineFrame *fp)
       : ptr_(fp ? uintptr_t(fp) | Tag_BaselineFrame : 0)
     {
-        MOZ_ASSERT(asBaselineFrame() == fp);
+        MOZ_ASSERT_IF(fp, asBaselineFrame() == fp);
+    }
+
+    AbstractFramePtr(jit::RematerializedFrame *fp)
+      : ptr_(fp ? uintptr_t(fp) | Tag_RematerializedFrame : 0)
+    {
+        MOZ_ASSERT_IF(fp, asRematerializedFrame() == fp);
     }
 
     explicit AbstractFramePtr(JSAbstractFramePtr frame)
@@ -141,7 +149,7 @@ class AbstractFramePtr
         return !!ptr_ && (ptr_ & TagMask) == Tag_ScriptFrameIterData;
     }
     bool isInterpreterFrame() const {
-        return ptr_ & Tag_InterpreterFrame;
+        return (ptr_ & TagMask) == Tag_InterpreterFrame;
     }
     InterpreterFrame *asInterpreterFrame() const {
         JS_ASSERT(isInterpreterFrame());
@@ -150,11 +158,20 @@ class AbstractFramePtr
         return res;
     }
     bool isBaselineFrame() const {
-        return ptr_ & Tag_BaselineFrame;
+        return (ptr_ & TagMask) == Tag_BaselineFrame;
     }
     jit::BaselineFrame *asBaselineFrame() const {
         JS_ASSERT(isBaselineFrame());
         jit::BaselineFrame *res = (jit::BaselineFrame *)(ptr_ & ~TagMask);
+        JS_ASSERT(res);
+        return res;
+    }
+    bool isRematerializedFrame() const {
+        return (ptr_ & TagMask) == Tag_RematerializedFrame;
+    }
+    jit::RematerializedFrame *asRematerializedFrame() const {
+        JS_ASSERT(isRematerializedFrame());
+        jit::RematerializedFrame *res = (jit::RematerializedFrame *)(ptr_ & ~TagMask);
         JS_ASSERT(res);
         return res;
     }
@@ -1309,6 +1326,20 @@ class JitActivation : public Activation
     bool firstFrameIsConstructing_;
     bool active_;
 
+#ifdef JS_ION
+    
+    
+    
+    
+    
+    typedef Vector<RematerializedFrame *, 1> RematerializedFrameVector;
+    typedef HashMap<uint8_t *, RematerializedFrameVector> RematerializedFrameTable;
+    RematerializedFrameTable rematerializedFrames_;
+
+    void freeRematerializedFramesInVector(RematerializedFrameVector &frames);
+    void clearRematerializedFrames();
+#endif
+
 #ifdef CHECK_OSIPOINT_REGISTERS
   protected:
     
@@ -1356,6 +1387,25 @@ class JitActivation : public Activation
     static size_t offsetOfRegs() {
         return offsetof(JitActivation, regs_);
     }
+#endif
+
+#ifdef JS_ION
+    
+    
+    
+    
+    
+    
+    RematerializedFrame *getRematerializedFrame(JSContext *cx, JitFrameIterator &iter,
+                                                size_t inlineDepth = 0);
+
+    
+    RematerializedFrame *lookupRematerializedFrame(uint8_t *top, size_t inlineDepth = 0);
+
+    
+    void removeRematerializedFrame(uint8_t *top);
+
+    void markRematerializedFrames(JSTracer *trc);
 #endif
 };
 
@@ -1516,6 +1566,7 @@ class FrameIter
 
 #ifdef JS_ION
         jit::JitFrameIterator jitFrames_;
+        unsigned ionInlineFrameNo_;
 #endif
 
         Data(JSContext *cx, SavedOption savedOption, ContextOption contextOption,
@@ -1553,6 +1604,10 @@ class FrameIter
     bool isGeneratorFrame() const;
     bool hasArgs() const { return isNonEvalFunctionFrame(); }
 
+    
+
+
+
     ScriptSource *scriptSource() const;
     const char *scriptFilename() const;
     unsigned computeLine(uint32_t *column = nullptr) const;
@@ -1585,6 +1640,14 @@ class FrameIter
 
     
     bool        computeThis(JSContext *cx) const;
+    
+    
+    
+    
+    
+    
+    
+    Value       computedThisValue() const;
     Value       thisv() const;
 
     Value       returnValue() const;

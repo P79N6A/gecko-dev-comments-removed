@@ -118,6 +118,9 @@ class JitFrameIterator
     uint8_t *fp() const {
         return current_;
     }
+    const JitActivation *activation() const {
+        return activation_;
+    }
 
     IonCommonFrameLayout *current() const {
         return (IonCommonFrameLayout *)current_;
@@ -367,21 +370,32 @@ class SnapshotIterator
         return UndefinedValue();
     }
 
-    template <class Op>
-    void readFrameArgs(Op &op, Value *scopeChain, Value *thisv,
-                       unsigned start, unsigned end, JSScript *script)
-    {
+    void readCommonFrameSlots(Value *scopeChain, Value *rval) {
         if (scopeChain)
             *scopeChain = read();
         else
             skip();
 
-        
-        skip();
-
-        
-        if (script->argumentsHasVarBinding())
+        if (rval)
+            *rval = read();
+        else
             skip();
+    }
+
+    template <class Op>
+    void readFunctionFrameArgs(Op &op, ArgumentsObject **argsObj, Value *thisv,
+                               unsigned start, unsigned end, JSScript *script)
+    {
+        
+        if (script->argumentsHasVarBinding()) {
+            if (argsObj) {
+                Value v = read();
+                if (v.isObject())
+                    *argsObj = &v.toObject().as<ArgumentsObject>();
+            } else {
+                skip();
+            }
+        }
 
         if (thisv)
             *thisv = read();
@@ -446,6 +460,22 @@ class InlineFrameIteratorMaybeGC
   private:
     void findNextFrame();
 
+    JSObject *computeScopeChain(Value scopeChainValue) const {
+        if (scopeChainValue.isObject())
+            return &scopeChainValue.toObject();
+
+        if (isFunctionFrame()) {
+            
+            MOZ_ASSERT(!callee()->isHeavyweight());
+            return callee()->environment();
+        }
+
+        
+        MOZ_ASSERT(!script()->isForEval());
+        MOZ_ASSERT(script()->compileAndGo());
+        return &script()->global();
+    }
+
   public:
     InlineFrameIteratorMaybeGC(JSContext *cx, const JitFrameIterator *iter)
       : callee_(cx),
@@ -504,50 +534,64 @@ class InlineFrameIteratorMaybeGC
 
     template <class ArgOp, class LocalOp>
     void readFrameArgsAndLocals(JSContext *cx, ArgOp &argOp, LocalOp &localOp,
-                                Value *scopeChain, Value *thisv,
+                                JSObject **scopeChain, Value *rval,
+                                ArgumentsObject **argsObj, Value *thisv,
                                 ReadFrameArgsBehavior behavior) const
     {
-        unsigned nactual = numActualArgs();
-        unsigned nformal = callee()->nargs();
-
-        
-        
-        
         SnapshotIterator s(si_);
-        if (behavior != ReadFrame_Overflown)
-            s.readFrameArgs(argOp, scopeChain, thisv, 0, nformal, script());
 
-        if (behavior != ReadFrame_Formals) {
-            if (more()) {
-                
-                
-                
-                
+        
+        Value scopeChainValue;
+        s.readCommonFrameSlots(&scopeChainValue, rval);
 
-                
-                
-                
-                InlineFrameIteratorMaybeGC it(cx, this);
-                ++it;
-                unsigned argsObjAdj = it.script()->argumentsHasVarBinding() ? 1 : 0;
-                SnapshotIterator parent_s(it.snapshotIterator());
+        if (scopeChain)
+            *scopeChain = computeScopeChain(scopeChainValue);
 
-                
-                
-                
-                JS_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj);
-                unsigned skip = parent_s.numAllocations() - nactual - 3 - argsObjAdj;
-                for (unsigned j = 0; j < skip; j++)
-                    parent_s.skip();
+        
+        if (isFunctionFrame()) {
+            unsigned nactual = numActualArgs();
+            unsigned nformal = callee()->nargs();
 
-                
-                parent_s.readFrameArgs(argOp, nullptr, nullptr, nformal, nactual, it.script());
-            } else {
-                
-                
-                Value *argv = frame_->actualArgs();
-                for (unsigned i = nformal; i < nactual; i++)
-                    argOp(argv[i]);
+            
+            
+            
+            if (behavior != ReadFrame_Overflown)
+                s.readFunctionFrameArgs(argOp, argsObj, thisv, 0, nformal, script());
+
+            if (behavior != ReadFrame_Formals) {
+                if (more()) {
+                    
+                    
+                    
+                    
+
+                    
+                    
+                    
+                    InlineFrameIteratorMaybeGC it(cx, this);
+                    ++it;
+                    unsigned argsObjAdj = it.script()->argumentsHasVarBinding() ? 1 : 0;
+                    SnapshotIterator parent_s(it.snapshotIterator());
+
+                    
+                    
+                    
+                    JS_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj);
+                    unsigned skip = parent_s.numAllocations() - nactual - 3 - argsObjAdj;
+                    for (unsigned j = 0; j < skip; j++)
+                        parent_s.skip();
+
+                    
+                    parent_s.readCommonFrameSlots(nullptr, nullptr);
+                    parent_s.readFunctionFrameArgs(argOp, nullptr, nullptr,
+                                                   nformal, nactual, it.script());
+                } else {
+                    
+                    
+                    Value *argv = frame_->actualArgs();
+                    for (unsigned i = nformal; i < nactual; i++)
+                        argOp(argv[i]);
+                }
             }
         }
 
@@ -560,7 +604,7 @@ class InlineFrameIteratorMaybeGC
     template <class Op>
     void unaliasedForEachActual(JSContext *cx, Op op, ReadFrameArgsBehavior behavior) const {
         Nop nop;
-        readFrameArgsAndLocals(cx, op, nop, nullptr, nullptr, behavior);
+        readFrameArgsAndLocals(cx, op, nop, nullptr, nullptr, nullptr, nullptr, behavior);
     }
 
     JSScript *script() const {
@@ -580,13 +624,18 @@ class InlineFrameIteratorMaybeGC
 
         
         Value v = s.read();
-        if (v.isObject())
-            return &v.toObject();
-
-        return callee()->environment();
+        return computeScopeChain(v);
     }
 
     JSObject *thisObject() const {
+        
+        
+        Value v = thisValue();
+        JS_ASSERT(v.isObject());
+        return &v.toObject();
+    }
+
+    Value thisValue() const {
         
         SnapshotIterator s(si_);
 
@@ -600,11 +649,7 @@ class InlineFrameIteratorMaybeGC
         if (script()->argumentsHasVarBinding())
             s.skip();
 
-        
-        
-        Value v = s.read();
-        JS_ASSERT(v.isObject());
-        return &v.toObject();
+        return s.read();
     }
 
     InlineFrameIteratorMaybeGC &operator++() {
@@ -622,8 +667,11 @@ class InlineFrameIteratorMaybeGC
 
     
     size_t frameNo() const {
+        return frameCount() - framesRead_;
+    }
+    size_t frameCount() const {
         MOZ_ASSERT(frameCount_ != UINT32_MAX);
-        return frameCount_ - framesRead_;
+        return frameCount_;
     }
 
   private:
