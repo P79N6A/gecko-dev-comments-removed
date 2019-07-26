@@ -535,6 +535,7 @@ public class FxAccountLoginPolicy {
   public class EnsureAssertionStage implements LoginStage {
     @Override
     public void execute(final LoginStageDelegate delegate) throws Exception {
+      final long now = System.currentTimeMillis();
       BrowserIDKeyPair keyPair = fxAccount.getAssertionKeyPair();
       if (keyPair == null) {
         throw new IllegalStateException("keyPair must not be null");
@@ -545,9 +546,12 @@ public class FxAccountLoginPolicy {
       }
       String assertion;
       try {
-        long now = System.currentTimeMillis();
+        
+        
+        
+        SkewHandler skewHandler = SkewHandler.getSkewHandlerFromEndpointString(delegate.audience);
         assertion = JSONWebTokenUtils.createAssertion(keyPair.getPrivate(), certificate, delegate.audience,
-            JSONWebTokenUtils.DEFAULT_ASSERTION_ISSUER, now, getAssertionDurationInMilliseconds());
+            JSONWebTokenUtils.DEFAULT_ASSERTION_ISSUER, now + skewHandler.getSkewInMillis(), getAssertionDurationInMilliseconds());
       } catch (Exception e) {
         
         
