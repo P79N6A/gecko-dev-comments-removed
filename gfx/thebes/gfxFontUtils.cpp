@@ -16,7 +16,6 @@
 
 #include "mozilla/Preferences.h"
 
-#include "nsIStreamBufferAccess.h"
 #include "nsIUUIDGenerator.h"
 #include "nsMemory.h"
 #include "nsICharsetConverterManager.h"
@@ -1113,13 +1112,10 @@ gfxFontUtils::RenameFont(const nsAString& aName, const uint8_t *aFontData,
     
     PRUnichar *strData = reinterpret_cast<PRUnichar*>(nameRecord);
 
-    const PRUnichar *nameStr = aName.BeginReading();
-    const PRUnichar *nameStrEnd = aName.EndReading();
-    while (nameStr < nameStrEnd) {
-        PRUnichar ch = *nameStr++;
-        *strData++ = NS_SWAP16(ch);
-    }
-    *strData = 0; 
+    mozilla::NativeEndian::copyAndSwapToBigEndian(strData,
+                                                  aName.BeginReading(),
+                                                  aName.Length());
+    strData[aName.Length()] = 0; 
     
     
     SFNTHeader *sfntHeader = reinterpret_cast<SFNTHeader*>(newFontData);

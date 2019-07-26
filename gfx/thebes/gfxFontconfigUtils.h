@@ -12,6 +12,7 @@
 #include "nsTArray.h"
 #include "nsTHashtable.h"
 #include "nsISupportsImpl.h"
+#include "prbit.h" 
 
 #include <fontconfig/fontconfig.h>
 

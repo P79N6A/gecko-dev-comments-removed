@@ -18,6 +18,7 @@
 #include "mozilla/X11Util.h"
 
 #include "prenv.h"
+#include "prbit.h" 
 #include "GLContextProvider.h"
 #include "GLLibraryLoader.h"
 #include "nsDebug.h"
