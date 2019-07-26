@@ -249,6 +249,18 @@ public:
 
 
 
+  bool SetIsDisabled(bool aIsDisabled);
+
+  
+
+
+
+
+
+
+
+
+
 
 
 
@@ -422,6 +434,28 @@ protected:
 
 
   void Reset();
+
+  
+
+
+
+
+
+
+
+
+
+  void ClearTimingState(RemovalTestFunction aRemove);
+
+  
+
+
+
+
+
+
+
+  void RebuildTimingState(RemovalTestFunction aRemove);
 
   
 
@@ -616,6 +650,7 @@ protected:
   bool mDeferIntervalUpdates;
   bool mDoDeferredUpdate; 
                           
+  bool mIsDisabled;
 
   
   class AutoIntervalUpdater;
