@@ -40,7 +40,7 @@ let listenerId = null;
 let activeFrame = null;
 let curWindow = content;
 let elementManager = new ElementManager([]);
-let importedScripts = FileUtils.getFile('TmpD', ['marionettescript']);
+let importedScripts = null;
 
 
 
@@ -65,7 +65,8 @@ function registerSelf() {
   let register = sendSyncMessage("Marionette:register", msg);
 
   if (register[0]) {
-    listenerId = register[0];
+    listenerId = register[0].id;
+    importedScripts = FileUtils.File(register[0].importedScripts);
     startListeners();
   }
 }
@@ -215,11 +216,6 @@ function deleteSession(msg) {
   
   curWindow = content;
   curWindow.focus();
-  try {
-    importedScripts.remove(false);
-  }
-  catch (e) {
-  }
 }
 
 
