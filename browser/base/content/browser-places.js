@@ -502,20 +502,6 @@ HistoryMenu.prototype = {
   
 
 
-
-
-
-  _undoCloseMiddleClick: function PHM__undoCloseMiddleClick(aEvent) {
-    if (aEvent.button != 1)
-      return;
-
-    undoCloseTab(aEvent.originalTarget.value);
-    gBrowser.moveTabToEnd();
-  },
-
-  
-
-
   populateUndoSubmenu: function PHM_populateUndoSubmenu() {
     var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedTabsMenu")[0];
     var undoPopup = undoMenu.firstChild;
