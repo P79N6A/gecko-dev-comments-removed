@@ -95,7 +95,6 @@ protected:
   
 
 
-
   virtual int GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
 
 #ifdef DEBUG

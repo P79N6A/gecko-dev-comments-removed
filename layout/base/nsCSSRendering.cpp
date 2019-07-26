@@ -62,19 +62,6 @@ using mozilla::CSSSizeOrRatio;
 
 static int gFrameTreeLockCount = 0;
 
-static void
-ApplySkipSides(int aSkipSides, nsMargin* aMargin)
-{
-  if (aSkipSides & SIDE_BIT_LEFT)
-    aMargin->left = 0;
-  if (aSkipSides & SIDE_BIT_TOP)
-    aMargin->top = 0;
-  if (aSkipSides & SIDE_BIT_RIGHT)
-    aMargin->right = 0;
-  if (aSkipSides & SIDE_BIT_BOTTOM)
-    aMargin->bottom = 0;
-}
-
 
 
 
@@ -679,7 +666,7 @@ nsCSSRendering::PaintBorderWithStyleBorder(nsPresContext* aPresContext,
       joinedBorderArea = aBorderArea;
     } else if (joinedBorderArea.IsEqualEdges(aBorderArea)) {
       
-      ::ApplySkipSides(aSkipSides, &border);
+      border.ApplySkipSides(aSkipSides);
     } else {
       
       
@@ -1758,7 +1745,7 @@ GetBackgroundClip(gfxContext *aCtx, uint8_t aBackgroundClip,
       
       
       padding.bottom = 0;
-      aForFrame->ApplySkipSides(padding);
+      padding.ApplySkipSides(aForFrame->GetSkipSides());
       aClipState->mAdditionalBGClipArea.Deflate(padding);
     }
 
@@ -1782,7 +1769,7 @@ GetBackgroundClip(gfxContext *aCtx, uint8_t aBackgroundClip,
                    "unexpected background-clip");
       border += aForFrame->GetUsedPadding();
     }
-    aForFrame->ApplySkipSides(border);
+    border.ApplySkipSides(aForFrame->GetSkipSides());
     aClipState->mBGClipArea.Deflate(border);
 
     if (aHaveRoundedCorners) {
@@ -2996,12 +2983,12 @@ nsCSSRendering::ComputeBackgroundPositioningArea(nsPresContext* aPresContext,
     
     if (aLayer.mOrigin == NS_STYLE_BG_ORIGIN_BORDER) {
       nsMargin border = geometryFrame->GetUsedBorder();
-      geometryFrame->ApplySkipSides(border);
+      border.ApplySkipSides(geometryFrame->GetSkipSides());
       bgPositioningArea.Inflate(border);
       bgPositioningArea.Inflate(scrollableFrame->GetActualScrollbarSizes());
     } else if (aLayer.mOrigin != NS_STYLE_BG_ORIGIN_PADDING) {
       nsMargin padding = geometryFrame->GetUsedPadding();
-      geometryFrame->ApplySkipSides(padding);
+      padding.ApplySkipSides(geometryFrame->GetSkipSides());
       bgPositioningArea.Deflate(padding);
       NS_ASSERTION(aLayer.mOrigin == NS_STYLE_BG_ORIGIN_CONTENT,
                    "unknown background-origin value");
@@ -3345,14 +3332,14 @@ DrawBorderImage(nsPresContext*       aPresContext,
       ::BoxDecorationRectForBorder(aForFrame, aBorderArea, &aStyleBorder);
     if (borderImgArea.IsEqualEdges(aBorderArea)) {
       
-      ::ApplySkipSides(aSkipSides, &borderWidths);
-      ::ApplySkipSides(aSkipSides, &imageOutset);
+      borderWidths.ApplySkipSides(aSkipSides);
+      imageOutset.ApplySkipSides(aSkipSides);
       borderImgArea.Inflate(imageOutset);
     } else {
       
       
       borderImgArea.Inflate(imageOutset);
-      ::ApplySkipSides(aSkipSides, &imageOutset);
+      imageOutset.ApplySkipSides(aSkipSides);
       nsRect clip = aBorderArea;
       clip.Inflate(imageOutset);
       autoSR.EnsureSaved(aRenderingContext.ThebesContext());

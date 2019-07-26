@@ -885,27 +885,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-  void ApplySkipSides(nsMargin& aMargin,
-                      const nsHTMLReflowState* aReflowState = nullptr) const;
-  void ApplyLogicalSkipSides(mozilla::LogicalMargin& aMargin,
-                             const nsHTMLReflowState* aReflowState = nullptr) const;
-
-  
-
-
-
   nsRect GetPaddingRect() const;
   nsRect GetPaddingRectRelativeToSelf() const;
   nsRect GetContentRect() const;

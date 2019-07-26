@@ -3303,7 +3303,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   
   
   nsMargin containerBorderPadding(aReflowState.ComputedPhysicalBorderPadding());
-  ApplySkipSides(containerBorderPadding, &aReflowState);
+  containerBorderPadding.ApplySkipSides(GetSkipSides(&aReflowState));
   const nsPoint containerContentBoxOrigin(containerBorderPadding.left,
                                           containerBorderPadding.top);
 
