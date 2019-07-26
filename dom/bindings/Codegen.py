@@ -6038,8 +6038,8 @@ class CGMemberJITInfo(CGThing):
         reason (e.g. we have overloads or we're not a method) and
         otherwise an iterable of the arguments for this method.
         """
-        assert(not constant or pure) 
-        assert(not hasSlot or pure) 
+        assert(not movable or aliasSet != "AliasEverything") 
+        assert(not hasSlot or movable) 
         protoID = "prototypes::id::%s" % self.descriptor.name
         depth = "PrototypeTraits<%s>::Depth" % protoID
         failstr = toStringBool(infallible)
