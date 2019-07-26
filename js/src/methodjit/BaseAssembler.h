@@ -536,6 +536,9 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
     
     
     void setupABICall(Registers::CallConvention convention, uint32_t generalArgs) {
+        if (sps && sps->enabled())
+            leaveBeforeCall();
+
         JS_ASSERT(!callIsAligned);
 
         uint32_t numArgRegs = Registers::numArgRegs(convention);
@@ -679,6 +682,33 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         }
     }
 
+  private:
+    
+    
+    
+    void leaveBeforeCall() {
+        if (availInCall.empty()) {
+            RegisterID reg = Registers(Registers::TempRegs).peekReg().reg();
+            saveReg(reg);
+            sps->leave(*pc_, *this, reg);
+            restoreReg(reg);
+        } else {
+            sps->leave(*this, availInCall.peekReg().reg());
+        }
+    }
+
+    void reenterAfterCall() {
+        if (availInCall.empty()) {
+            RegisterID reg = Registers(Registers::TempRegs).peekReg().reg();
+            saveReg(reg);
+            sps->reenter(*this, reg);
+            restoreReg(reg);
+        } else {
+            sps->reenter(*this, availInCall.peekReg().reg());
+        }
+    }
+
+  public:
     
     
     
@@ -707,20 +737,13 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
 
         JS_ASSERT(callIsAligned);
 
-        Call cl;
-        if (sps && sps->enabled()) {
-            RegisterID reg = availInCall.takeAnyReg().reg();
-            sps->leave(*this, reg);
-            cl = callAddress(fun);
-            sps->reenter(*this, reg);
-            availInCall.putReg(reg);
-        } else {
-            cl = callAddress(fun);
-        }
+        Call cl = callAddress(fun);
 
 #ifdef JS_CPU_ARM
         JS_ASSERT(initFlushCount == flushCount());
 #endif
+        if (sps && sps->enabled())
+            reenterAfterCall();
         if (stackAdjust)
             addPtr(Imm32(stackAdjust), stackPointerRegister);
 
