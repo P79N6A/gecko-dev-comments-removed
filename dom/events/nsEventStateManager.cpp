@@ -334,7 +334,7 @@ nsEventStateManager::~nsEventStateManager()
 
   --sESMInstanceCount;
   if(sESMInstanceCount == 0) {
-    nsMouseWheelTransaction::Shutdown();
+    WheelTransaction::Shutdown();
     if (gUserInteractionTimerCallback) {
       gUserInteractionTimerCallback->Notify(nullptr);
       NS_RELEASE(gUserInteractionTimerCallback);
@@ -475,7 +475,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
   *aStatus = nsEventStatus_eIgnore;
 
-  nsMouseWheelTransaction::OnEvent(aEvent);
+  WheelTransaction::OnEvent(aEvent);
 
   switch (aEvent->message) {
   case NS_MOUSE_BUTTON_DOWN: {
@@ -2203,7 +2203,7 @@ nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
     
     
     
-    nsIFrame* lastScrollFrame = nsMouseWheelTransaction::GetTargetFrame();
+    nsIFrame* lastScrollFrame = WheelTransaction::GetTargetFrame();
     if (lastScrollFrame) {
       nsIScrollableFrame* frameToScroll =
         lastScrollFrame->GetScrollTargetFrame();
@@ -2328,14 +2328,14 @@ nsEventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
   MOZ_ASSERT(scrollFrame);
   nsWeakFrame scrollFrameWeak(scrollFrame);
 
-  nsIFrame* lastScrollFrame = nsMouseWheelTransaction::GetTargetFrame();
+  nsIFrame* lastScrollFrame = WheelTransaction::GetTargetFrame();
   if (!lastScrollFrame) {
-    nsMouseWheelTransaction::BeginTransaction(scrollFrame, aEvent);
+    WheelTransaction::BeginTransaction(scrollFrame, aEvent);
   } else if (lastScrollFrame != scrollFrame) {
-    nsMouseWheelTransaction::EndTransaction();
-    nsMouseWheelTransaction::BeginTransaction(scrollFrame, aEvent);
+    WheelTransaction::EndTransaction();
+    WheelTransaction::BeginTransaction(scrollFrame, aEvent);
   } else {
-    nsMouseWheelTransaction::UpdateTransaction(aEvent);
+    WheelTransaction::UpdateTransaction(aEvent);
   }
 
   
@@ -2343,7 +2343,7 @@ nsEventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
   
   
   if (!scrollFrameWeak.IsAlive()) {
-    nsMouseWheelTransaction::EndTransaction();
+    WheelTransaction::EndTransaction();
     return;
   }
 
@@ -2891,7 +2891,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           if (scrollTarget) {
             DoScrollText(scrollTarget, wheelEvent);
           } else {
-            nsMouseWheelTransaction::EndTransaction();
+            WheelTransaction::EndTransaction();
             ScrollbarsForWheel::Inactivate();
           }
           break;
@@ -3930,7 +3930,7 @@ nsEventStateManager::SetPointerLock(nsIWidget* aWidget,
   }
 
   
-  nsMouseWheelTransaction::EndTransaction();
+  WheelTransaction::EndTransaction();
 
   
   nsCOMPtr<nsIDragService> dragService =
@@ -4898,7 +4898,7 @@ nsEventStateManager::DeltaAccumulator::InitLineOrPageDelta(
   
   if (!mLastTime.IsNull()) {
     TimeDuration duration = TimeStamp::Now() - mLastTime;
-    if (duration.ToMilliseconds() > nsMouseWheelTransaction::GetTimeoutTime()) {
+    if (duration.ToMilliseconds() > WheelTransaction::GetTimeoutTime()) {
       Reset();
     }
   }
@@ -5004,8 +5004,7 @@ nsEventStateManager::DeltaAccumulator::ComputeScrollAmountForDefaultAction(
     (!aEvent->customizedByUserPrefs &&
      aEvent->deltaMode == nsIDOMWheelEvent::DOM_DELTA_LINE);
   DeltaValues acceleratedDelta =
-    nsMouseWheelTransaction::AccelerateWheelDelta(aEvent,
-                                                  allowScrollSpeedOverride);
+    WheelTransaction::AccelerateWheelDelta(aEvent, allowScrollSpeedOverride);
 
   nsIntPoint result(0, 0);
   if (aEvent->deltaMode == nsIDOMWheelEvent::DOM_DELTA_PIXEL) {
