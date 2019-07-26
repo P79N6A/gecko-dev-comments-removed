@@ -398,8 +398,19 @@ uint32_t GetARMFlags();
 bool HasMOVWT();
 bool HasVFPv3();
 bool HasVFP();
-bool Has16DP();
+bool Has32DP();
 bool HasIDIV();
+
+
+
+static bool hasUnaliasedDouble() {
+    return Has32DP();
+}
+
+
+static bool hasMultiAlias() {
+    return true;
+}
 
 bool ParseARMHwCapFlags(const char *armHwCap);
 

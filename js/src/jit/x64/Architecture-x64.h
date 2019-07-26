@@ -191,6 +191,17 @@ struct FloatRegister {
     bool aliases(FloatRegister const &other) const;
 };
 
+
+
+static bool hasUnaliasedDouble() {
+    return false;
+}
+
+
+static bool hasMultiAlias() {
+    return false;
+}
+
 } 
 } 
 
