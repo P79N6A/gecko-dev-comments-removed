@@ -1895,6 +1895,7 @@ EmitPropLHS(JSContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce)
 
         do {
             
+            JS_ASSERT(pndot->getOp() == JSOP_GETPROP);
             if (!EmitAtomOp(cx, pndot, JSOP_GETPROP, bce))
                 return false;
 
@@ -3436,6 +3437,7 @@ EmitAssignment(JSContext *cx, BytecodeEmitter *bce, ParseNode *lhs, JSOp op, Par
         }
         break;
       case PNK_DOT:
+        JS_ASSERT(lhs->getOp() == JSOP_SETPROP);
         if (!EmitIndexOp(cx, JSOP_SETPROP, atomIndex, bce))
             return false;
         break;
@@ -5031,10 +5033,12 @@ EmitCallOrNew(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
         break;
       case PNK_DOT:
+        JS_ASSERT(pn2->getOp() == JSOP_GETPROP);
         if (!EmitPropOp(cx, pn2, callop ? JSOP_CALLPROP : JSOP_GETPROP, bce))
             return false;
         break;
       case PNK_ELEM:
+        JS_ASSERT(pn2->isOp(JSOP_GETELEM));
         if (!EmitElemOp(cx, pn2, callop ? JSOP_CALLELEM : JSOP_GETELEM, bce))
             return false;
         break;
@@ -5916,10 +5920,23 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_DOT:
+        
+
+
+
+
+        JS_ASSERT(pn->getOp() == JSOP_GETPROP);
         ok = EmitPropOp(cx, pn, JSOP_GETPROP, bce);
         break;
 
       case PNK_ELEM:
+        
+
+
+
+
+
+        JS_ASSERT(pn->getOp() == JSOP_GETELEM);
         ok = EmitElemOp(cx, pn, JSOP_GETELEM, bce);
         break;
 
