@@ -40,10 +40,6 @@ AppendAndRemoveThread(PRThread *key, nsRefPtr<nsThread> &thread, void *arg)
 }
 
 
-
-nsThreadManager nsThreadManager::sInstance;
-
-
 NS_IMETHODIMP_(nsrefcnt) nsThreadManager::AddRef() { return 2; }
 NS_IMETHODIMP_(nsrefcnt) nsThreadManager::Release() { return 1; }
 NS_IMPL_CLASSINFO(nsThreadManager, NULL,
