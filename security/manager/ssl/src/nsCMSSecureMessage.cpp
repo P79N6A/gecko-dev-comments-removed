@@ -167,10 +167,6 @@ SendMessage(const char *msg, const char *base64Cert, char ** _retval)
     goto done;
   }
 
-#if 0
-  cert->dbhandle = CERT_GetDefaultCertDB();  
-#endif
-
   
 
   

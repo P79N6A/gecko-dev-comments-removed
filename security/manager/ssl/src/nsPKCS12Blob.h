@@ -39,10 +39,6 @@ public:
   nsresult ImportFromFile(nsIFile *file);
 
   
-#if 0
-  
-  nsresult LoadCerts(nsIX509Cert **certs, int numCerts);
-#endif
   nsresult ExportToFile(nsIFile *file, nsIX509Cert **certs, int numCerts);
 
 private:

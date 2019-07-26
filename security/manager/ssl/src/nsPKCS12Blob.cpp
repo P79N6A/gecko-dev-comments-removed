@@ -237,46 +237,6 @@ finish:
   return NS_OK;
 }
 
-#if 0
-
-
-
-
-nsresult
-nsPKCS12Blob::LoadCerts(const char16_t **certNames, int numCerts)
-{
-  nsresult rv;
-  char namecpy[256];
-  
-  if (!mCertArray) {
-    rv = NS_NewISupportsArray(getter_AddRefs(mCertArray));
-    if (NS_FAILED(rv)) {
-      if (!handleError())
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-  
-  for (int i=0; i<numCerts; i++) {
-    strcpy(namecpy, NS_ConvertUTF16toUTF8(certNames[i]));
-    CERTCertificate *nssCert = PK11_FindCertFromNickname(namecpy, nullptr);
-    if (!nssCert) {
-      if (!handleError())
-        return NS_ERROR_FAILURE;
-      else continue; 
-    }
-    nsCOMPtr<nsIX509Cert> cert = nsNSSCertificate::Create(nssCert);
-    CERT_DestroyCertificate(nssCert);
-    if (!cert) {
-      if (!handleError())
-        return NS_ERROR_OUT_OF_MEMORY;
-    } else {
-      mCertArray->AppendElement(cert);
-    }
-  }
-  return NS_OK;
-}
-#endif
-
 static bool
 isExtractable(SECKEYPrivateKey *privKey)
 {
@@ -344,18 +304,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
   
   srv = SEC_PKCS12AddPasswordIntegrity(ecx, &unicodePw, SEC_OID_SHA1);
   if (srv) goto finish;
-#if 0
-  
-  nrv = mCertArray->Count(&numCerts);
-  if (NS_FAILED(nrv)) goto finish;
-  
   for (i=0; i<numCerts; i++) {
-    nsCOMPtr<nsIX509Cert> cert;
-    nrv = mCertArray->GetElementAt(i, getter_AddRefs(cert));
-    if (NS_FAILED(nrv)) goto finish;
-#endif
-  for (i=0; i<numCerts; i++) {
-
     nsNSSCertificate *cert = (nsNSSCertificate *)certs[i];
     
     insanity::pkix::ScopedCERTCertificate nssCert(cert->GetCert());
@@ -802,15 +751,6 @@ nsPKCS12Blob::handleError(int myerr)
       
       
       
-#if 0
-      
-      
-      
-    case SEC_ERROR_PKCS12_PRIVACY_PASSWORD_INCORRECT:
-      msgID = "PKCS12PasswordInvalid";
-      break;
-#endif
-
     case SEC_ERROR_BAD_PASSWORD: msgID = "PK11BadPassword"; break;
 
     case SEC_ERROR_BAD_DER:
