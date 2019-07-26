@@ -265,8 +265,6 @@ js::NewContext(JSRuntime *rt, size_t stackChunkSize)
     bool first = rt->contextList.isEmpty();
     rt->contextList.insertBack(cx);
 
-    js_InitRandom(cx);
-
     
 
 
@@ -1117,7 +1115,6 @@ JSContext::JSContext(JSRuntime *rt)
     outstandingRequests(0),
 #endif
     resolveFlags(0),
-    rngSeed(0),
     iterValue(MagicValue(JS_NO_ITER_VALUE)),
 #ifdef JS_METHODJIT
     methodJitEnabled(false),

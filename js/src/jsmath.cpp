@@ -517,22 +517,22 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
 # pragma optimize("", on)
 #endif
 
-static const int64_t RNG_MULTIPLIER = 0x5DEECE66DLL;
-static const int64_t RNG_ADDEND = 0xBLL;
-static const int64_t RNG_MASK = (1LL << 48) - 1;
+static const uint64_t RNG_MULTIPLIER = 0x5DEECE66DLL;
+static const uint64_t RNG_ADDEND = 0xBLL;
+static const uint64_t RNG_MASK = (1LL << 48) - 1;
 static const double RNG_DSCALE = double(1LL << 53);
 
 
 
 
 extern void
-random_setSeed(int64_t *rngSeed, int64_t seed)
+random_setSeed(uint64_t *rngState, uint64_t seed)
 {
-    *rngSeed = (seed ^ RNG_MULTIPLIER) & RNG_MASK;
+    *rngState = (seed ^ RNG_MULTIPLIER) & RNG_MASK;
 }
 
 void
-js_InitRandom(JSContext *cx)
+js::InitRandom(JSRuntime *rt, uint64_t *rngState)
 {
     
 
@@ -540,24 +540,25 @@ js_InitRandom(JSContext *cx)
 
 
 
-    random_setSeed(&cx->rngSeed, (PRMJ_Now() / 1000) ^ int64_t(cx) ^ int64_t(cx->getNext()));
+
+    random_setSeed(rngState, (uint64_t(PRMJ_Now()) << 8) ^ rt->nextRNGNonce());
 }
 
 extern uint64_t
-random_next(int64_t *rngSeed, int bits)
+random_next(uint64_t *rngState, int bits)
 {
-    uint64_t nextseed = *rngSeed * RNG_MULTIPLIER;
-    nextseed += RNG_ADDEND;
-    nextseed &= RNG_MASK;
-    *rngSeed = nextseed;
-    return nextseed >> (48 - bits);
+    uint64_t nextstate = *rngState * RNG_MULTIPLIER;
+    nextstate += RNG_ADDEND;
+    nextstate &= RNG_MASK;
+    *rngState = nextstate;
+    return nextstate >> (48 - bits);
 }
 
 static inline double
 random_nextDouble(JSContext *cx)
 {
-    return double((random_next(&cx->rngSeed, 26) << 27) + random_next(&cx->rngSeed, 27)) /
-           RNG_DSCALE;
+    uint64_t *rng = &cx->compartment->rngState;
+    return double((random_next(rng, 26) << 27) + random_next(rng, 27)) / RNG_DSCALE;
 }
 
 double
