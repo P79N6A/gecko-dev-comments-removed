@@ -413,10 +413,26 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
     Animation& animation = animations[i];
     AnimData& animData = animationData[i];
 
+    activeAnimations = true;
+
+    TimeDuration elapsedDuration = aPoint - animation.startTime();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (elapsedDuration.ToSeconds() < 0) {
+      continue;
+    }
+
     double numIterations = animation.numIterations() != -1 ?
       animation.numIterations() : NS_IEEEPositiveInfinity();
     double positionInIteration =
-      ElementAnimations::GetPositionInIteration(aPoint - animation.startTime(),
+      ElementAnimations::GetPositionInIteration(elapsedDuration,
                                                 animation.duration(),
                                                 numIterations,
                                                 animation.direction());
@@ -436,8 +452,6 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
                                  (segment->endPortion() - segment->startPortion());
 
     double portion = animData.mFunctions[segmentIndex]->GetValue(positionInSegment);
-
-    activeAnimations = true;
 
     
     Animatable interpolatedValue;
