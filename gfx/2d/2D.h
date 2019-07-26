@@ -711,21 +711,6 @@ public:
 
 
 
-
-
-
-
-
-  virtual void MaskSurface(const Pattern &aSource,
-                           SourceSurface *aMask,
-                           Point aOffset,
-                           const DrawOptions &aOptions = DrawOptions()) { MOZ_ASSERT(0); };
-
-  
-
-
-
-
   virtual void PushClip(const Path *aPath) = 0;
 
   
