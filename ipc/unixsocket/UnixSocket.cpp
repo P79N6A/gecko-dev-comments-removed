@@ -76,11 +76,6 @@ public:
 
   void CancelTask()
   {
-    if (!mTask) {
-      return;
-    }
-    mTask->Cancel();
-    mTask = nullptr;
     MutexAutoLock lock(mLock);
     mCurrentTaskIsCanceled = true;
   }
@@ -142,6 +137,11 @@ public:
 
 
   void Accept();
+
+  
+
+
+  void Close();
 
   
 
@@ -378,7 +378,7 @@ private:
   UnixSocketRawData* mData;
 };
 
-class SocketCloseTask : public nsRunnable
+class SocketCloseTask : public Task
 {
 public:
   SocketCloseTask(UnixSocketImpl* aImpl)
@@ -387,11 +387,12 @@ public:
     MOZ_ASSERT(aImpl);
   }
 
-  NS_IMETHOD
-  Run()
+  void Run()
   {
-    mImpl->mConsumer->CloseSocket();
-    return NS_OK;
+    NS_ENSURE_TRUE_VOID(mImpl);
+
+    mImpl->UnsetTask();
+    mImpl->Close();
   }
 
 private:
@@ -449,6 +450,19 @@ void SocketConnectTask::Run() {
     return;
   }
   mImpl->Connect();
+}
+
+void
+UnixSocketImpl::Close()
+{
+  mReadWatcher.StopWatchingFileDescriptor();
+  mWriteWatcher.StopWatchingFileDescriptor();
+
+  nsRefPtr<nsIRunnable> t(new DeleteInstanceRunnable<UnixSocketImpl>(this));
+  NS_ENSURE_TRUE_VOID(t);
+
+  nsresult rv = NS_DispatchToMainThread(t);
+  NS_ENSURE_SUCCESS_VOID(rv);
 }
 
 void
@@ -611,18 +625,9 @@ UnixSocketConsumer::CloseSocket()
   mImpl = nullptr;
   
   impl->mConsumer.forget();
-  impl->StopTask();
 
-  
-  
-  
-  
-  
-  nsRefPtr<nsIRunnable> t(new DeleteInstanceRunnable<UnixSocketImpl>(impl));
-  NS_ENSURE_TRUE_VOID(t);
-  nsresult rv = NS_DispatchToMainThread(t);
-  NS_ENSURE_SUCCESS_VOID(rv);
-  t.forget();
+  impl->CancelTask();
+  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketCloseTask(impl));
 
   NotifyDisconnect();
 }
@@ -663,8 +668,7 @@ UnixSocketImpl::OnFileCanReadWithoutBlocking(int aFd)
           
           mReadWatcher.StopWatchingFileDescriptor();
           mWriteWatcher.StopWatchingFileDescriptor();
-          nsRefPtr<SocketCloseTask> t = new SocketCloseTask(this);
-          NS_DispatchToMainThread(t);
+          XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketCloseTask(this));
           return;
         }
         if (ret) {
@@ -838,7 +842,7 @@ UnixSocketConsumer::CancelSocketTask()
     NS_WARNING("No socket implementation to cancel task on!");
     return;
   }
-  mImpl->CancelTask();
+  mImpl->StopTask();
 }
 
 } 
