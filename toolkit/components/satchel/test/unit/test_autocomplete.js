@@ -243,11 +243,10 @@ add_test(function test_token_limit_DB() {
         do_log_info("Check that the number of tokens used in a search is not capped to " +
                     "MAX_SEARCH_TOKENS when using a previousResult");
         
-        let changes = [ ];
         
         
         fac.autoCompleteSearchAsync("field_token_cap",
-                                    "a b c d e f g h i j k l m n o p q r s t u v w x y z 1 2 3 4 .",
+                                    "a b c d e f g h i j .",
                                     null, previousResult, {
                                         onSearchCompletion : function(aResults) {
                                             do_check_eq(aResults.matchCount, 0,
@@ -263,13 +262,13 @@ add_test(function test_token_limit_DB() {
     let changes = [ ];
     changes.push({ op : "add", fieldname: "field_token_cap",
                    
-                   value: "a b c d e f g h i j k l m n o p q r s t u v w x y z 1 2 3 4 5 6 7 8 9 0",
+                   value: "a b c d e f g h i j k l m n o",
                    timesUsed: 1, firstUsed: 0, lastUsed: 0 });
     updateFormHistory(changes, () => {
         
         
         fac.autoCompleteSearchAsync("field_token_cap",
-                                    "a b c d e f g h i j k l m n o p q r s t u v w x y z 1 2 3 4 .",
+                                    "a b c d e f g h i j .",
                                     null, null, {
                                         onSearchCompletion : function(aResults) {
                                             do_check_eq(aResults.matchCount, 1,
