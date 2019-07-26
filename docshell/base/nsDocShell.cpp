@@ -11452,7 +11452,7 @@ nsDocShell::EnsureScriptEnvironment()
     browserChrome->GetChromeFlags(&chromeFlags);
 
     bool isModalContentWindow = (mItemType == typeContent) &&
-        (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL);
+        (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL_CONTENT_WINDOW);
     
     
     
