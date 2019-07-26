@@ -792,6 +792,26 @@ description > html|a {
   background-color: #FBFBFB;
 }
 
+#weavePrefsDeck {
+  -moz-margin-start: 60px;
+}
+
+#noFxaAccount {
+  
+
+  margin: 0;
+}
+
+#weavePrefsDeck > vbox > label,
+#weavePrefsDeck > vbox > groupbox,
+#weavePrefsDeck > vbox > description,
+#weavePrefsDeck > vbox > #pairDevice > label,
+#weavePrefsDeck > #needsUpdate > hbox > #loginError,
+#weavePrefsDeck > #hasFxaAccount > hbox:not(#tosPP) > label {
+  
+  -moz-margin-start: 0;
+}
+
 #advancedPrefs {
   padding-bottom: 0; 
 }
