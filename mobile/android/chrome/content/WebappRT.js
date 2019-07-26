@@ -50,14 +50,14 @@ let WebappRT = {
       this.getDefaultPrefs().forEach(this.addPref);
 
       
-      
-      let uri = Services.io.newURI(aUrl, null, null);
-
-      
       let blocklist = Services.prefs.getCharPref("extensions.blocklist.url");
       blocklist = blocklist.replace(/%APP_ID%/g, "webapprt-mobile@mozilla.org");
       Services.prefs.setCharPref("extensions.blocklist.url", blocklist);
+    }
 
+    
+    
+    if (aStatus == "new" || aStatus == "upgrade") {
       this.getManifestFor(aUrl, function (aManifest, aApp) {
         if (aManifest) {
           PermissionsInstaller.installPermissions(aApp, true);
