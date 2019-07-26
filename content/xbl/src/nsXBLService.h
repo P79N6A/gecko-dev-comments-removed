@@ -13,7 +13,6 @@
 #include "nsWeakReference.h"
 #include "jsapi.h"              
 #include "jsclist.h"            
-#include "nsFixedSizeAllocator.h"
 #include "nsTArray.h"
 
 class nsXBLBinding;
@@ -126,8 +125,6 @@ public:
   static bool     gAllowDataURIs;            
                                              
                                              
-
-  nsFixedSizeAllocator mPool;
 };
 
 class nsXBLJSClass : public JSCList, public JSClass
