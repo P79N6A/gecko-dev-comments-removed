@@ -17,6 +17,8 @@ from mozbuild.base import BuildConfig
 from mozbuild.config import ConfigSettings
 from mozbuild.logger import LoggingManager
 
+from mach.registrar import populate_argument_parser
+
 
 
 
@@ -25,13 +27,6 @@ from mach.settings import Settings
 from mach.testing import Testing
 from mach.warnings import Warnings
 
-
-HANDLERS = [
-    Build,
-    Settings,
-    Testing,
-    Warnings,
-]
 
 
 
@@ -284,8 +279,6 @@ To see more help for a specific command, run:
                 'than relative time. Note that this is NOT execution time '
                 'if there are parallel operations.')
 
-        
-        for cls in HANDLERS:
-            cls.populate_argparse(subparser)
+        populate_argument_parser(subparser)
 
         return parser
