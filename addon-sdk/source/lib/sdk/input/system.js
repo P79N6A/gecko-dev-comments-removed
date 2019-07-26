@@ -3,7 +3,7 @@
 
 "use strict";
 
-const { Cc, Ci, Cr } = require("chrome");
+const { Cc, Ci, Cr, Cu } = require("chrome");
 const { Input, start, stop, end, receive, outputs } = require("../event/utils");
 const { once, off } = require("../event/core");
 const { id: addonID } = require("../self");
@@ -14,6 +14,7 @@ const { addObserver, removeObserver } = Cc['@mozilla.org/observer-service;1'].
 
 const addonUnloadTopic = "sdk:loader:destroy";
 
+const isXrayWrapper = Cu.isXrayWrapper;
 
 
 
@@ -48,22 +49,28 @@ InputPort.prototype.constructor = InputPort;
 
 
 InputPort.start = input => {
-  addObserver(input, input.topic, false);
+  input.addListener(input);
   
   
   addObserver(input, addonUnloadTopic, false);
 };
 InputPort.prototype[start] = InputPort.start;
 
+InputPort.addListener = input => addObserver(input, input.topic, false);
+InputPort.prototype.addListener = InputPort.addListener;
+
 
 
 
 
 InputPort.stop = input => {
-  removeObserver(input, input.topic);
+  input.removeListener(input);
   removeObserver(input, addonUnloadTopic);
 };
 InputPort.prototype[stop] = InputPort.stop;
+
+InputPort.removeListener = input => removeObserver(input, input.topic);
+InputPort.prototype.removeListener = InputPort.removeListener;
 
 
 
@@ -81,8 +88,10 @@ InputPort.prototype.observe = function(subject, topic, data) {
   
   
   
+  
   const message = subject === null ? null :
         isLegacyWrapper(subject) ? unwrapLegacy(subject) :
+        isXrayWrapper(subject) ? subject :
         subject.wrappedJSObject ? subject.wrappedJSObject :
         subject;
 
