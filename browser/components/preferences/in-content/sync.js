@@ -3,26 +3,10 @@
 
 
 Components.utils.import("resource://services-sync/main.js");
-Components.utils.import("resource://gre/modules/Services.jsm");
-
-XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function () {
-  return Components.utils.import("resource://gre/modules/FxAccountsCommon.js", {});
-});
 
 const PAGE_NO_ACCOUNT = 0;
 const PAGE_HAS_ACCOUNT = 1;
 const PAGE_NEEDS_UPDATE = 2;
-const PAGE_PLEASE_WAIT = 3;
-const FXA_PAGE_LOGGED_OUT = 4;
-const FXA_PAGE_LOGGED_IN = 5;
-
-
-
-const FXA_LOGIN_VERIFIED = 0;
-
-const FXA_LOGIN_UNVERIFIED = 1;
-
-const FXA_LOGIN_FAILED = 2;
 
 let gSyncPane = {
   _stringBundle: null,
@@ -59,10 +43,6 @@ let gSyncPane = {
       return;
     }
 
-    
-    
-    this.page = PAGE_PLEASE_WAIT;
-
     let onUnload = function () {
       window.removeEventListener("unload", onUnload, false);
       try {
@@ -76,6 +56,7 @@ let gSyncPane = {
       this._init();
     }.bind(this);
 
+
     Services.obs.addObserver(onReady, "weave:service:ready", false);
     window.addEventListener("unload", onUnload, false);
 
@@ -85,10 +66,9 @@ let gSyncPane = {
   _init: function () {
     let topics = ["weave:service:login:error",
                   "weave:service:login:finish",
-                  "weave:service:start-over:finish",
+                  "weave:service:start-over",
                   "weave:service:setup-complete",
-                  "weave:service:logout:finish",
-                  FxAccountsCommon.ONVERIFIED_NOTIFICATION];
+                  "weave:service:logout:finish"];
 
     
     
@@ -108,73 +88,16 @@ let gSyncPane = {
   },
 
   updateWeavePrefs: function () {
-    let service = Components.classes["@mozilla.org/weave/service;1"]
-                  .getService(Components.interfaces.nsISupports)
-                  .wrappedJSObject;
-    
-    
-    if (service.fxAccountsEnabled) {
-      
-      this.page = PAGE_PLEASE_WAIT;
-      Components.utils.import("resource://gre/modules/FxAccounts.jsm");
-      fxAccounts.getSignedInUser().then(data => {
-        if (!data) {
-          this.page = FXA_PAGE_LOGGED_OUT;
-          return;
-        }
-        this.page = FXA_PAGE_LOGGED_IN;
-        
-        
-        let fxaLoginStatus = document.getElementById("fxaLoginStatus");
-        let enginesListDisabled;
-        
-        if (!data.verified) {
-          fxaLoginStatus.selectedIndex = FXA_LOGIN_UNVERIFIED;
-          enginesListDisabled = true;
-        
-        
-        
-        
-        
-        
-        } else if (Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED) {
-          fxaLoginStatus.selectedIndex = FXA_LOGIN_FAILED;
-          enginesListDisabled = true;
-        
-        
-        } else {
-          fxaLoginStatus.selectedIndex = FXA_LOGIN_VERIFIED;
-          enginesListDisabled = false;
-        }
-        document.getElementById("fxaEmailAddress1").textContent = data.email;
-        document.getElementById("fxaEmailAddress2").textContent = data.email;
-        document.getElementById("fxaEmailAddress3").textContent = data.email;
-        document.getElementById("fxaSyncComputerName").value = Weave.Service.clientsEngine.localName;
-        let engines = document.getElementById("fxaSyncEngines")
-        for (let checkbox of engines.querySelectorAll("checkbox")) {
-          checkbox.disabled = enginesListDisabled;
-        }
-
-        let checkbox = document.getElementById("fxa-pweng-chk");
-        let help = document.getElementById("fxa-pweng-help");
-        let allowPasswordsEngine = service.allowPasswordsEngine;
-
-        if (!allowPasswordsEngine) {
-          checkbox.checked = false;
-        }
-
-        checkbox.disabled = !allowPasswordsEngine;
-        help.hidden = allowPasswordsEngine;
-      });
-    
-    
-    
-    
-    } else if (Weave.Status.service == Weave.CLIENT_NOT_CONFIGURED ||
-               Weave.Svc.Prefs.get("firstSync", "") == "notReady") {
+    if (Weave.Status.service == Weave.CLIENT_NOT_CONFIGURED ||
+        Weave.Svc.Prefs.get("firstSync", "") == "notReady") {
       this.page = PAGE_NO_ACCOUNT;
-    
-    
+      let service = Components.classes["@mozilla.org/weave/service;1"]
+                    .getService(Components.interfaces.nsISupports)
+                    .wrappedJSObject;
+      
+      if (service.fxAccountsEnabled) {
+        document.getElementById("pairDevice").hidden = true;
+      }
     } else if (Weave.Status.login == Weave.LOGIN_FAILED_INVALID_PASSPHRASE ||
                Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED) {
       this.needsUpdate();
@@ -237,7 +160,8 @@ let gSyncPane = {
                   .wrappedJSObject;
 
     if (service.fxAccountsEnabled) {
-      this.openContentInBrowser("about:accounts");
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+      win.switchToTabHavingURI("about:accounts", true);
     } else {
       let win = Services.wm.getMostRecentWindow("Weave:AccountSetup");
       if (win)
@@ -248,85 +172,6 @@ let gSyncPane = {
                           wizardType);
       }
     }
-  },
-
-  openContentInBrowser: function(url) {
-    let win = Services.wm.getMostRecentWindow("navigator:browser");
-    if (!win) {
-      
-      
-      
-      gSyncUtils._openLink(url);
-      return;
-    }
-    win.switchToTabHavingURI(url, true);
-    
-    window.close();
-  },
-
-  signUp: function() {
-    this.openContentInBrowser("about:accounts?action=signup");
-  },
-
-  signIn: function() {
-    this.openContentInBrowser("about:accounts?action=signin");
-  },
-
-  reSignIn: function() {
-    this.openContentInBrowser("about:accounts?action=reauth");
-  },
-
-  manageFirefoxAccount: function() {
-    let url = Services.prefs.getCharPref("identity.fxaccounts.settings.uri");
-    this.openContentInBrowser(url);
-  },
-
-  verifyFirefoxAccount: function() {
-    Components.utils.import("resource://gre/modules/FxAccounts.jsm");
-    fxAccounts.resendVerificationEmail().then(() => {
-      fxAccounts.getSignedInUser().then(data => {
-        let sb = this._stringBundle;
-        let title = sb.GetStringFromName("firefoxAccountsVerificationSentTitle");
-        let heading = sb.formatStringFromName("firefoxAccountsVerificationSentHeading",
-                                              [data.email], 1);
-        let description = sb.GetStringFromName("firefoxAccountVerificationSentDescription");
-
-        Services.prompt.alert(window, title, heading + "\n\n" + description);
-      });
-    });
-  },
-
-  openOldSyncSupportPage: function() {
-    let url = Services.urlFormatter.formatURLPref('app.support.baseURL') + "old-sync"
-    this.openContentInBrowser(url);
-  },
-
-  unlinkFirefoxAccount: function(confirm) {
-    if (confirm) {
-      
-      let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
-      let continueLabel = sb.GetStringFromName("continue.label");
-      let title = sb.GetStringFromName("disconnect.verify.title");
-      let brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
-      let brandShortName = brandBundle.GetStringFromName("brandShortName");
-      let body = sb.GetStringFromName("disconnect.verify.heading") +
-                 "\n\n" +
-                 sb.formatStringFromName("disconnect.verify.description",
-                                         [brandShortName], 1);
-      let ps = Services.prompt;
-      let buttonFlags = (ps.BUTTON_POS_0 * ps.BUTTON_TITLE_IS_STRING) +
-                        (ps.BUTTON_POS_1 * ps.BUTTON_TITLE_CANCEL) +
-                        ps.BUTTON_POS_1_DEFAULT;
-      let pressed = Services.prompt.confirmEx(window, title, body, buttonFlags,
-                                              continueLabel, null, null, null, {});
-      if (pressed != 0) { 
-        return;
-      }
-    }
-    Components.utils.import('resource://gre/modules/FxAccounts.jsm');
-    fxAccounts.signOut().then(() => {
-      this.updateWeavePrefs();
-    });
   },
 
   openQuotaDialog: function () {
