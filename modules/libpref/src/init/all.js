@@ -147,6 +147,13 @@ pref("browser.helperApps.alwaysAsk.force",  false);
 pref("browser.helperApps.neverAsk.saveToDisk", "");
 pref("browser.helperApps.neverAsk.openFile", "");
 
+#ifdef XP_WIN
+
+
+
+pref("browser.download.saveZoneInformation", true);
+#endif
+
 
 pref("browser.chrome.toolbar_tips",         true);
 
@@ -284,6 +291,12 @@ pref("gfx.font_loader.interval", 50);
 
 
 pref("gfx.font_rendering.fallback.always_use_cmaps", false);
+
+
+pref("gfx.font_rendering.wordcache.charlimit", 32);
+
+
+pref("gfx.font_rendering.wordcache.maxentries", 10000);
 
 pref("gfx.font_rendering.graphite.enabled", true);
 
