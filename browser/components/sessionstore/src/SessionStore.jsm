@@ -123,6 +123,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionCookies",
   "resource:///modules/sessionstore/SessionCookies.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
   "resource:///modules/sessionstore/SessionHistory.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
+  "resource:///modules/sessionstore/TextAndScrollData.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "_SessionFile",
   "resource:///modules/sessionstore/_SessionFile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabStateCache",
@@ -2988,74 +2990,9 @@ let SessionStoreInternal = {
       return;
     }
 
-    
-    function hasExpectedURL(aDocument, aURL)
-      !aURL || aURL.replace(/#.*/, "") == aDocument.location.href.replace(/#.*/, "");
-
-    function restoreTextDataAndScrolling(aContent, aData, aPrefix) {
-      if (aData.formdata && hasExpectedURL(aContent.document, aData.url)) {
-        let formdata = aData.formdata;
-
-        
-        
-        if (!("xpath" in formdata || "id" in formdata)) {
-          formdata = { xpath: {}, id: {} };
-
-          for each (let [key, value] in Iterator(aData.formdata)) {
-            if (key.charAt(0) == "#") {
-              formdata.id[key.slice(1)] = value;
-            } else {
-              formdata.xpath[key] = value;
-            }
-          }
-        }
-
-        
-        
-        
-        if ((aData.url == "about:sessionrestore" || aData.url == "about:welcomeback") &&
-            "sessionData" in formdata.id &&
-            typeof formdata.id["sessionData"] == "object") {
-          formdata.id["sessionData"] =
-            JSON.stringify(formdata.id["sessionData"]);
-        }
-
-        
-        aData.formdata = formdata;
-        
-        DocumentUtils.mergeFormData(aContent.document, formdata);
-      }
-
-      if (aData.innerHTML) {
-        aWindow.setTimeout(function() {
-          if (aContent.document.designMode == "on" &&
-              hasExpectedURL(aContent.document, aData.url) &&
-              aContent.document.body) {
-            aContent.document.body.innerHTML = aData.innerHTML;
-          }
-        }, 0);
-      }
-      var match;
-      if (aData.scroll && (match = /(\d+),(\d+)/.exec(aData.scroll)) != null) {
-        aContent.scrollTo(match[1], match[2]);
-      }
-      for (var i = 0; i < aContent.frames.length; i++) {
-        if (aData.children && aData.children[i] &&
-          hasExpectedURL(aContent.document, aData.url)) {
-          restoreTextDataAndScrolling(aContent.frames[i], aData.children[i], aPrefix + i + "|");
-        }
-      }
-    }
-
-    
-    
-    if (hasExpectedURL(aEvent.originalTarget, aBrowser.__SS_restore_data.url)) {
-      var content = aEvent.originalTarget.defaultView;
-      restoreTextDataAndScrolling(content, aBrowser.__SS_restore_data, "");
-    }
-
     let frameList = this.getFramesToRestore(aBrowser);
     PageStyle.restore(aBrowser.docShell, frameList, aBrowser.__SS_restore_pageStyle);
+    TextAndScrollData.restore(frameList);
 
     
     this._sendTabRestoredNotification(aBrowser.__SS_restore_tab);
@@ -4567,79 +4504,11 @@ let TabState = {
       tabData.pageStyle = selectedPageStyle;
     }
 
-    this._updateTextAndScrollDataForFrame(window, browser.contentWindow,
-                                          tabData.entries[tabIndex],
-                                          includePrivateData,
-                                          !!tabData.pinned);
-    if (browser.currentURI.spec == "about:config") {
-      tabData.entries[tabIndex].formdata = {
-        id: {
-          "textbox": browser.contentDocument.getElementById("textbox").value
-        },
-        xpath: {}
-      };
-    }
+    TextAndScrollData.updateFrame(tabData.entries[tabIndex],
+                                  browser.contentWindow,
+                                  !!tabData.pinned,
+                                  {includePrivateData: includePrivateData});
 
     return true;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _updateTextAndScrollDataForFrame:
-    function (window, content, data, includePrivateData, isPinned) {
-
-    for (let i = 0; i < content.frames.length; i++) {
-      if (data.children && data.children[i])
-        this._updateTextAndScrollDataForFrame(window, content.frames[i],
-                                              data.children[i],
-                                              includePrivateData, isPinned);
-    }
-    let href = (content.parent || content).document.location.href;
-    let isHttps = makeURI(href).schemeIs("https");
-    let topURL = content.top.document.location.href;
-    let isAboutSR = topURL == "about:sessionrestore" || topURL == "about:welcomeback";
-    if (includePrivateData || isAboutSR ||
-        PrivacyLevel.canSave({isHttps: isHttps, isPinned: isPinned})) {
-      let formData = DocumentUtils.getFormData(content.document);
-
-      
-      
-      
-      if (formData && isAboutSR) {
-        formData.id["sessionData"] = JSON.parse(formData.id["sessionData"]);
-      }
-
-      if (Object.keys(formData.id).length ||
-          Object.keys(formData.xpath).length) {
-        data.formdata = formData;
-      } else if (data.formdata) {
-        delete data.formdata;
-      }
-
-      
-      if ((content.document.designMode || "") == "on" && content.document.body)
-        data.innerHTML = content.document.body.innerHTML;
-    }
-
-    
-    
-    let domWindowUtils = content.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIDOMWindowUtils);
-    let scrollX = {}, scrollY = {};
-    domWindowUtils.getScrollXY(false, scrollX, scrollY);
-    data.scroll = scrollX.value + "," + scrollY.value;
   },
 };
