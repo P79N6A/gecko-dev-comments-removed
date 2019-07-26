@@ -6,15 +6,11 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
                                   "resource:///modules/DownloadsCommon.jsm");
 
 var gMainPane = {
-  _pane: null,
-
   
 
 
   init: function ()
   {
-    this._pane = document.getElementById("paneMain");
-
     
     this._updateUseCurrentButton();
     window.addEventListener("focus", this._updateUseCurrentButton.bind(this), false);
@@ -27,6 +23,20 @@ var gMainPane = {
     Components.classes["@mozilla.org/observer-service;1"]
               .getService(Components.interfaces.nsIObserverService)
               .notifyObservers(window, "main-pane-loaded", null);
+
+    
+
+#ifdef XP_WIN
+    try {
+      let sysInfo = Cc["@mozilla.org/system-info;1"].
+                    getService(Ci.nsIPropertyBag2);
+      let ver = parseFloat(sysInfo.getProperty("version"));
+      let showTabsInTaskbar = document.getElementById("showTabsInTaskbar");
+      showTabsInTaskbar.hidden = ver < 6.1 || (ver >= 6.1 && history.state != "tabs");
+    } catch (ex) {}
+
+#endif
+
   },
 
   setupDownloadsWindowOptions: function ()
@@ -475,5 +485,28 @@ var gMainPane = {
       option.removeAttribute("disabled");
       startupPref.updateElements(); 
     }
+  },
+  
+
+
+  
+
+
+
+
+  readLinkTarget: function() {
+    var openNewWindow = document.getElementById("browser.link.open_newwindow");
+    return openNewWindow.value != 2;
+  },
+
+  
+
+
+
+
+
+  writeLinkTarget: function() {
+    var linkTargeting = document.getElementById("linkTargeting");
+    return linkTargeting.checked ? 3 : 2;
   }
 };
