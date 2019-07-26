@@ -3,8 +3,7 @@
 
 
 
-%include ../shared.inc
-%filter substitution
+%ifdef XP_MACOSX
 
 #inspector-toolbar {
   padding-top: 4px;
@@ -20,6 +19,8 @@
   padding-left: 4px;
   padding-right: 18px; 
 }
+
+%endif
 
 #inspector-searchbox {
   transition-property: max-width, -moz-padding-end, -moz-padding-start;
