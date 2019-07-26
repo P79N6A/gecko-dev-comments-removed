@@ -2,26 +2,17 @@
 
 
 
-
-import os
 from setuptools import setup
 
-PACKAGE_VERSION = '0.1'
+PACKAGE_VERSION = '0.3'
 
 
-try:
-    here = os.path.dirname(os.path.abspath(__file__))
-    description = file(os.path.join(here, 'README.md')).read()
-except (OSError, IOError):
-    description = ''
-
-
-deps = ['']
+deps = []
 
 setup(name='mozcrash',
       version=PACKAGE_VERSION,
-      description="Package for printing stack traces from minidumps left behind by crashed processes.",
-      long_description=description,
+      description="Library for printing stack traces from minidumps left behind by crashed processes",
+      long_description="see http://mozbase.readthedocs.org/",
       classifiers=[], 
       keywords='mozilla',
       author='Mozilla Automation and Tools team',
