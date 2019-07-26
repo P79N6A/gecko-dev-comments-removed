@@ -678,18 +678,27 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
                "Shouldn't happen");
 
   
-  nsresult rv = nsLeafFrame::DoReflow(aPresContext, aDesiredSize, aReflowState,
-                                      aStatus);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsPoint offset(0, 0);
+  
+  if (IsInline()) {
+    
+    nsresult rv = nsLeafFrame::DoReflow(aPresContext, aDesiredSize, aReflowState,
+                                        aStatus);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  nsPoint offset = nsPoint(aReflowState.mComputedBorderPadding.left,
-                           aReflowState.mComputedBorderPadding.top);
+    offset = nsPoint(aReflowState.mComputedBorderPadding.left,
+                     aReflowState.mComputedBorderPadding.top);
+  } else {
+    
+    SizeToAvailSize(aReflowState, aDesiredSize);
+  }
 
   nsSize innerSize(aDesiredSize.width, aDesiredSize.height);
-  innerSize.width  -= aReflowState.mComputedBorderPadding.LeftRight();
-  innerSize.height -= aReflowState.mComputedBorderPadding.TopBottom();
+  if (IsInline()) {
+    innerSize.width  -= aReflowState.mComputedBorderPadding.LeftRight();
+    innerSize.height -= aReflowState.mComputedBorderPadding.TopBottom();
+  }
 
   if (mInnerView) {
     nsViewManager* vm = mInnerView->GetViewManager();
