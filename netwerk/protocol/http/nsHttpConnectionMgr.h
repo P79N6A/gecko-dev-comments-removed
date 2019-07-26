@@ -130,6 +130,9 @@ public:
     nsresult UpdateRequestTokenBucket(EventTokenBucket *aBucket);
 
     
+    nsresult ClearConnectionHistory();
+
+    
 
     const static uint32_t kPipelineInfoTypeMask = 0xffff0000;
     const static uint32_t kPipelineInfoIDMask   = ~kPipelineInfoTypeMask;
@@ -661,6 +664,9 @@ private:
     static PLDHashOperator ReadConnectionEntry(const nsACString &key,
                                                nsAutoPtr<nsConnectionEntry> &ent,
                                                void *aArg);
+    static PLDHashOperator RemoveDeadConnections(const nsACString &key,
+        nsAutoPtr<nsConnectionEntry> &ent,
+        void *aArg);
 
     
     void ActivateTimeoutTick();
