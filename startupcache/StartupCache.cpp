@@ -536,7 +536,15 @@ void
 StartupCache::ThreadedWrite(void *aClosure)
 {
   PR_SetCurrentThreadName("StartupCache");
-  gStartupCache->WriteToDisk();
+  
+
+
+
+
+
+
+  StartupCache* startupCacheObj = static_cast<StartupCache*>(aClosure);
+  startupCacheObj->WriteToDisk();
 }
 
 
@@ -547,13 +555,21 @@ StartupCache::ThreadedWrite(void *aClosure)
 void
 StartupCache::WriteTimeout(nsITimer *aTimer, void *aClosure)
 {
-  gStartupCache->mWriteThread = PR_CreateThread(PR_USER_THREAD,
-                                                StartupCache::ThreadedWrite,
-                                                nullptr,
-                                                PR_PRIORITY_NORMAL,
-                                                PR_LOCAL_THREAD,
-                                                PR_JOINABLE_THREAD,
-                                                0);
+  
+
+
+
+
+
+
+  StartupCache* startupCacheObj = static_cast<StartupCache*>(aClosure);
+  startupCacheObj->mWriteThread = PR_CreateThread(PR_USER_THREAD,
+                                                  StartupCache::ThreadedWrite,
+                                                  startupCacheObj,
+                                                  PR_PRIORITY_NORMAL,
+                                                  PR_LOCAL_THREAD,
+                                                  PR_JOINABLE_THREAD,
+                                                  0);
 }
 
 
