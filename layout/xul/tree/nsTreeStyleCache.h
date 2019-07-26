@@ -11,6 +11,7 @@
 #include "nsIAtom.h"
 #include "nsCOMArray.h"
 #include "nsICSSPseudoComparator.h"
+#include "nsRefPtrHashtable.h"
 #include "nsStyleContext.h"
 
 typedef nsCOMArray<nsIAtom> AtomArray;
@@ -92,8 +93,6 @@ public:
 
   static bool DeleteDFAState(nsHashKey *aKey, void *aData, void *closure);
 
-  static bool ReleaseStyleContext(nsHashKey *aKey, void *aData, void *closure);
-
 protected:
   
   
@@ -113,7 +112,8 @@ protected:
 
   
   
-  nsAutoPtr<nsObjectHashtable> mCache;
+  typedef nsRefPtrHashtable<nsUint32HashKey, nsStyleContext> StyleContextCache;
+  nsAutoPtr<StyleContextCache> mCache;
 
   
   
