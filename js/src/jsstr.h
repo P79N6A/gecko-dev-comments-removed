@@ -248,10 +248,6 @@ InflateUTF8StringToBuffer(JSContext *cx, const char *bytes, size_t length,
                           jschar *chars, size_t *charsLength);
 
 
-extern size_t
-GetDeflatedStringLength(JSContext *cx, const jschar *chars, size_t charsLength);
-
-
 
 
 
