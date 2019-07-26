@@ -1445,6 +1445,7 @@ abstract public class BrowserApp extends GeckoApp
                 final String keywordUrl = BrowserDB.getUrlForKeyword(getContentResolver(), keyword);
 
                 
+                
                 if (TextUtils.isEmpty(keywordUrl)) {
                     Tabs.getInstance().loadUrl(url, Tabs.LOADURL_USER_ENTERED);
                     return;
