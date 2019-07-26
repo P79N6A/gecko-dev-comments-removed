@@ -221,8 +221,7 @@ public:
         mUVSOffset(0), mUVSData(nullptr),
         mUserFontData(nullptr),
         mSVGGlyphs(nullptr),
-        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
-        mFamily(aFamily)
+        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE)
     { }
 
     virtual ~gfxFontEntry();
@@ -233,9 +232,16 @@ public:
 
     
     
+    
+    
+
+    
+    
     virtual nsString RealFaceName();
 
-    gfxFontFamily* Family() const { return mFamily; }
+    
+    
+    virtual nsString FamilyName();
 
     uint16_t Weight() const { return mWeight; }
     int16_t Stretch() const { return mStretch; }
@@ -298,12 +304,6 @@ public:
     virtual nsresult GetFontTable(uint32_t aTableTag, FallibleTArray<uint8_t>& aBuffer) {
         return NS_ERROR_FAILURE; 
     }
-
-    void SetFamily(gfxFontFamily* aFamily) {
-        mFamily = aFamily;
-    }
-
-    virtual nsString FamilyName() const;
 
     already_AddRefed<gfxFont> FindOrMakeFont(const gfxFontStyle *aStyle,
                                              bool aNeedsBold);
@@ -390,8 +390,7 @@ protected:
         mUVSOffset(0), mUVSData(nullptr),
         mUserFontData(nullptr),
         mSVGGlyphs(nullptr),
-        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
-        mFamily(nullptr)
+        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE)
     { }
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold) {
@@ -402,8 +401,6 @@ protected:
 #ifdef MOZ_GRAPHITE
     virtual void CheckForGraphiteTables();
 #endif
-
-    gfxFontFamily *mFamily;
 
 private:
 
@@ -525,6 +522,7 @@ struct GlobalFontMatch {
     const gfxFontStyle*    mStyle;       
     int32_t                mMatchRank;   
     nsRefPtr<gfxFontEntry> mBestMatch;   
+    nsRefPtr<gfxFontFamily> mMatchedFamily; 
     uint32_t               mCount;       
     uint32_t               mCmapsTested; 
 };
@@ -544,18 +542,7 @@ public:
         mFamilyCharacterMapInitialized(false)
         { }
 
-    virtual ~gfxFontFamily() {
-        
-        
-        
-        uint32_t i = mAvailableFonts.Length();
-        while (i) {
-             gfxFontEntry *fe = mAvailableFonts[--i];
-             if (fe) {
-                 fe->SetFamily(nullptr);
-             }
-        }
-    }
+    virtual ~gfxFontFamily() { }
 
     const nsString& Name() { return mName; }
 
@@ -573,7 +560,6 @@ public:
             aFontEntry->mIgnoreGDEF = true;
         }
         mAvailableFonts.AppendElement(aFontEntry);
-        aFontEntry->SetFamily(this);
     }
 
     
@@ -665,6 +651,17 @@ public:
                                      FontListSizes*    aSizes) const;
     virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                      FontListSizes*    aSizes) const;
+
+    
+    bool ContainsFace(gfxFontEntry* aFontEntry) {
+        uint32_t i, numFonts = mAvailableFonts.Length();
+        for (i = 0; i < numFonts; i++) {
+            if (mAvailableFonts[i] == aFontEntry) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 protected:
     
@@ -3000,6 +2997,27 @@ private:
 
 class THEBES_API gfxFontGroup : public gfxTextRunFactory {
 public:
+    class FamilyFace {
+    public:
+        FamilyFace() { }
+
+        FamilyFace(gfxFontFamily* aFamily, gfxFont* aFont)
+            : mFamily(aFamily), mFont(aFont)
+        {
+            NS_ASSERTION(aFont, "font pointer must not be null");
+            NS_ASSERTION(!aFamily ||
+                         aFamily->ContainsFace(aFont->GetFontEntry()),
+                         "font is not a member of the given family");
+        }
+
+        gfxFontFamily* Family() const { return mFamily.get(); }
+        gfxFont* Font() const { return mFont.get(); }
+
+    private:
+        nsRefPtr<gfxFontFamily> mFamily;
+        nsRefPtr<gfxFont>       mFont;
+    };
+
     static void Shutdown(); 
 
     gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle, gfxUserFontSet *aUserFontSet = nullptr);
@@ -3014,10 +3032,23 @@ public:
         NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
                      "Whoever was caching this font group should have "
                      "called UpdateFontList on it");
-        NS_ASSERTION(mFonts.Length() > uint32_t(i), 
+        NS_ASSERTION(mFonts.Length() > uint32_t(i) && mFonts[i].Font(), 
                      "Requesting a font index that doesn't exist");
 
-        return static_cast<gfxFont*>(mFonts[i]);
+        return mFonts[i].Font();
+    }
+
+    
+    
+    
+    virtual nsString GetFamilyNameAt(int32_t i) {
+        NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
+                     "Whoever was caching this font group should have "
+                     "called UpdateFontList on it");
+        NS_ASSERTION(mFonts.Length() > uint32_t(i) && mFonts[i].Family(),
+                     "No fonts in the group!");
+
+        return mFonts[i].Family()->Name();
     }
 
     uint32_t FontListLength() const {
@@ -3141,7 +3172,7 @@ public:
 protected:
     nsString mFamilies;
     gfxFontStyle mStyle;
-    nsTArray< nsRefPtr<gfxFont> > mFonts;
+    nsTArray<FamilyFace> mFonts;
     gfxFloat mUnderlineOffset;
 
     gfxUserFontSet* mUserFontSet;
@@ -3218,8 +3249,8 @@ protected:
     
     
     
-    already_AddRefed<gfxFont> TryOtherFamilyMembers(gfxFont* aFont,
-                                                    uint32_t aCh);
+    already_AddRefed<gfxFont> TryAllFamilyMembers(gfxFontFamily* aFamily,
+                                                  uint32_t aCh);
 
     static bool FontResolverProc(const nsAString& aName, void *aClosure);
 

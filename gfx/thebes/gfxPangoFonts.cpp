@@ -172,12 +172,10 @@ public:
 
     
     
-    virtual nsString FamilyName() const;
-
-    
-    
     
     virtual nsString RealFaceName();
+
+    virtual nsString FamilyName();
 
     
     virtual bool TestCharacterMap(uint32_t aCh)
@@ -213,23 +211,6 @@ protected:
 cairo_user_data_key_t gfxFcFontEntry::sFontEntryKey;
 
 nsString
-gfxFcFontEntry::FamilyName() const
-{
-    if (mIsUserFont) {
-        
-        
-        return gfxFontEntry::FamilyName();
-    }
-    FcChar8 *familyname;
-    if (!mPatterns.IsEmpty() &&
-        FcPatternGetString(mPatterns[0],
-                           FC_FAMILY, 0, &familyname) == FcResultMatch) {
-        return NS_ConvertUTF8toUTF16((const char*)familyname);
-    }
-    return gfxFontEntry::FamilyName();
-}
-
-nsString
 gfxFcFontEntry::RealFaceName()
 {
     FcChar8 *name;
@@ -249,7 +230,22 @@ gfxFcFontEntry::RealFaceName()
             return result;
         }
     }
+    
     return gfxFontEntry::RealFaceName();
+}
+
+nsString
+gfxFcFontEntry::FamilyName()
+{
+    FcChar8 *name;
+    if (!mPatterns.IsEmpty()) {
+        if (FcPatternGetString(mPatterns[0],
+                               FC_FAMILY, 0, &name) == FcResultMatch) {
+            return NS_ConvertUTF8toUTF16((const char*)name);
+        }
+    }
+    
+    return gfxFontEntry::FamilyName();
 }
 
 #ifdef MOZ_GRAPHITE
@@ -400,8 +396,7 @@ private:
 class gfxUserFcFontEntry : public gfxFcFontEntry {
 protected:
     gfxUserFcFontEntry(const gfxProxyFontEntry &aProxyEntry)
-        
-        : gfxFcFontEntry(aProxyEntry.mFamily->Name())
+        : gfxFcFontEntry(aProxyEntry.Name())
     {
         mItalic = aProxyEntry.mItalic;
         mWeight = aProxyEntry.mWeight;
@@ -796,6 +791,16 @@ public:
             MakePangoFont();
         }
         return mPangoFont;
+    }
+
+    nsString GetFamilyName() {
+        PangoFontDescription *desc = pango_font_describe(GetPangoFont());
+        const char *name = pango_font_description_get_family(desc);
+        if (name) {
+            return NS_ConvertUTF8toUTF16(name);
+        } else {
+            return GetFontEntry()->FamilyName();
+        }
     }
 
 protected:
@@ -1272,7 +1277,7 @@ static const nsTArray< nsCountedRef<FcPattern> >*
 FindFontPatterns(gfxUserFontSet *mUserFontSet,
                  const nsACString &aFamily, uint8_t aStyle,
                  uint16_t aWeight, int16_t aStretch,
-                 bool& aFoundFamily, bool& aWaitForUserFont)
+                 bool& aWaitForUserFont)
 {
     
     NS_ConvertUTF8toUTF16 utf16Family(aFamily);
@@ -1287,20 +1292,25 @@ FindFontPatterns(gfxUserFontSet *mUserFontSet,
     style.weight = aWeight;
     style.stretch = aStretch;
 
-    gfxUserFcFontEntry *fontEntry = static_cast<gfxUserFcFontEntry*>
-        (mUserFontSet->FindFontEntry(utf16Family, style, aFoundFamily,
-                                     needsBold, aWaitForUserFont));
-
-    
-    if (!fontEntry && aStyle != NS_FONT_STYLE_NORMAL) {
-        style.style = NS_FONT_STYLE_NORMAL;
+    gfxUserFcFontEntry *fontEntry = nullptr;
+    gfxFontFamily *family = mUserFontSet->GetFamily(utf16Family);
+    if (family) {
         fontEntry = static_cast<gfxUserFcFontEntry*>
-            (mUserFontSet->FindFontEntry(utf16Family, style, aFoundFamily,
-                                         needsBold, aWaitForUserFont));
+            (mUserFontSet->FindFontEntry(family, style, needsBold,
+                                         aWaitForUserFont));
+
+        
+        if (!fontEntry && aStyle != NS_FONT_STYLE_NORMAL) {
+            style.style = NS_FONT_STYLE_NORMAL;
+            fontEntry = static_cast<gfxUserFcFontEntry*>
+                (mUserFontSet->FindFontEntry(family, style, needsBold,
+                                             aWaitForUserFont));
+        }
     }
 
-    if (!fontEntry)
-        return NULL;
+    if (!fontEntry) {
+        return nullptr;
+    }
 
     return &fontEntry->GetPatterns();
 }
@@ -1456,16 +1466,14 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
                 int16_t thebesStretch =
                     gfxFontconfigUtils::GetThebesStretch(mSortPattern);
 
-                bool foundFamily, waitForUserFont;
+                bool waitForUserFont;
                 familyFonts = FindFontPatterns(mUserFontSet, cssFamily,
                                                thebesStyle,
                                                thebesWeight, thebesStretch,
-                                               foundFamily, waitForUserFont);
+                                               waitForUserFont);
                 if (waitForUserFont) {
                     aWaitForUserFont = true;
                 }
-                NS_ASSERTION(foundFamily,
-                             "expected to find a user font, but it's missing!");
             }
         }
 
@@ -1918,7 +1926,8 @@ gfxPangoFontGroup::gfxPangoFontGroup (const nsAString& families,
         mStyle.language = do_GetAtom(pango_language_to_string(mPangoLanguage));
     }
 
-    mFonts.AppendElements(1);
+    
+    mFonts.AppendElement(FamilyFace());
 }
 
 gfxPangoFontGroup::~gfxPangoFontGroup()
@@ -1946,15 +1955,17 @@ gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
 gfxFcFont *
 gfxPangoFontGroup::GetBaseFont()
 {
-    if (!mFonts[0]) {
-        mFonts[0] = GetBaseFontSet()->GetFontAt(0, GetStyle());
+    if (mFonts[0].Font() == nullptr) {
+        gfxFont* font = GetBaseFontSet()->GetFontAt(0, GetStyle());
+        mFonts[0] = FamilyFace(nullptr, font);
     }
 
-    return static_cast<gfxFcFont*>(mFonts[0].get());
+    return static_cast<gfxFcFont*>(mFonts[0].Font());
 }
 
 gfxFont *
-gfxPangoFontGroup::GetFontAt(int32_t i) {
+gfxPangoFontGroup::GetFontAt(int32_t i)
+{
     
     
     
@@ -1968,6 +1979,13 @@ gfxPangoFontGroup::GetFontAt(int32_t i) {
     return GetBaseFont();
 }
 
+nsString
+gfxPangoFontGroup::GetFamilyNameAt(int32_t i)
+{
+    gfxFcFont* font = static_cast<gfxFcFont*>(GetFontAt(i));
+    return font->GetFamilyName();
+}
+
 void
 gfxPangoFontGroup::UpdateFontList()
 {
@@ -1978,7 +1996,7 @@ gfxPangoFontGroup::UpdateFontList()
     if (newGeneration == mCurrGeneration)
         return;
 
-    mFonts[0] = NULL;
+    mFonts[0] = FamilyFace();
     mFontSets.Clear();
     mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
     mCurrGeneration = newGeneration;

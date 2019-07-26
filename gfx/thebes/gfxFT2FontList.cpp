@@ -733,26 +733,24 @@ AppendToFaceList(nsCString& aFaceList,
 }
 
 void
-FT2FontEntry::CheckForBrokenFont()
+FT2FontEntry::CheckForBrokenFont(gfxFontFamily *aFamily)
 {
-    NS_ASSERTION(mFamily != nullptr, "font entry must belong to a family");
-
     
-    if (mFamily->IsBadUnderlineFamily()) {
+    if (aFamily->IsBadUnderlineFamily()) {
         mIsBadUnderlineFont = true;
     }
 
     
     
     
-    if (mFamily->Name().EqualsLiteral("roboto")) {
+    if (aFamily->Name().EqualsLiteral("roboto")) {
         mIgnoreGSUB = true;
     }
 
     
     
     
-    else if (mFamily->Name().EqualsLiteral("droid sans arabic")) {
+    else if (aFamily->Name().EqualsLiteral("droid sans arabic")) {
         const TT_Header *head = static_cast<const TT_Header*>
             (FT_Get_Sfnt_Table(mFTFace, ft_sfnt_head));
         if (head && head->CheckSum_Adjust == 0xe445242) {
@@ -818,8 +816,7 @@ gfxFT2FontList::AppendFacesFromFontFile(nsCString& aFileName,
                 fe->mStandardFace = aStdFile;
                 family->AddFontEntry(fe);
 
-                
-                fe->CheckForBrokenFont();
+                fe->CheckForBrokenFont(family);
 
                 AppendToFaceList(faceList, name, fe);
 #ifdef PR_LOGGING
@@ -1189,8 +1186,7 @@ gfxFT2FontList::AppendFaceFromFontListEntry(const FontListEntry& aFLE,
         }
         family->AddFontEntry(fe);
 
-        
-        fe->CheckForBrokenFont();
+        fe->CheckForBrokenFont(family);
     }
 }
 
@@ -1276,8 +1272,8 @@ gfxFT2FontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
     return data.mFontEntry;
 }
 
-gfxFontEntry*
-gfxFT2FontList::GetDefaultFont(const gfxFontStyle* aStyle, bool& aNeedsBold)
+gfxFontFamily*
+gfxFT2FontList::GetDefaultFont(const gfxFontStyle* aStyle)
 {
 #ifdef XP_WIN
     HGDIOBJ hGDI = ::GetStockObject(SYSTEM_FONT);
@@ -1285,14 +1281,14 @@ gfxFT2FontList::GetDefaultFont(const gfxFontStyle* aStyle, bool& aNeedsBold)
     if (hGDI && ::GetObjectW(hGDI, sizeof(logFont), &logFont)) {
         nsAutoString resolvedName;
         if (ResolveFontName(nsDependentString(logFont.lfFaceName), resolvedName)) {
-            return FindFontForFamily(resolvedName, aStyle, aNeedsBold);
+            return FindFamily(resolvedName);
         }
     }
 #elif defined(ANDROID)
     nsAutoString resolvedName;
     if (ResolveFontName(NS_LITERAL_STRING("Roboto"), resolvedName) ||
         ResolveFontName(NS_LITERAL_STRING("Droid Sans"), resolvedName)) {
-        return FindFontForFamily(resolvedName, aStyle, aNeedsBold);
+        return FindFamily(resolvedName);
     }
 #endif
     

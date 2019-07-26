@@ -925,12 +925,12 @@ SetFontFamily(nsStyleContext*      aStyleContext,
     
     
     if (aGlyphTable == &gGlyphTableList->mUnicodeTable ||
-        fm->GetThebesFontGroup()->GetFontAt(0)->GetFontEntry()->
-        FamilyName() == family) {
+        fm->GetThebesFontGroup()->GetFamilyNameAt(0) == family) {
       aFont.name = family;
       aRenderingContext.SetFont(fm);
-    } else
-        return false; 
+    } else {
+      return false; 
+    }
   }
   return true;
 }

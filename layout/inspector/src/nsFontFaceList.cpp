@@ -87,15 +87,9 @@ nsFontFaceList::AddFontsFromTextRun(gfxTextRun* aTextRun,
       existingFace->AddMatchType(iter.GetGlyphRun()->mMatchType);
     } else {
       
-      
-      nsRefPtr<nsCSSFontFaceRule> rule;
-      nsUserFontSet* fontSet =
-        static_cast<nsUserFontSet*>(aFrame->PresContext()->GetUserFontSet());
-      if (fontSet) {
-        rule = fontSet->FindRuleForEntry(fe);
-      }
       nsCOMPtr<nsFontFace> ff =
-        new nsFontFace(fe, iter.GetGlyphRun()->mMatchType, rule);
+        new nsFontFace(fe, aTextRun->GetFontGroup(),
+                       iter.GetGlyphRun()->mMatchType);
       mFontFaces.Put(fe, ff);
     }
   }

@@ -145,8 +145,7 @@ public:
     
 
     
-    virtual gfxFontEntry* GetDefaultFont(const gfxFontStyle* aStyle,
-                                         bool& aNeedsBold) = 0;
+    virtual gfxFontFamily* GetDefaultFont(const gfxFontStyle* aStyle) = 0;
 
     
     virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
@@ -195,15 +194,17 @@ protected:
                                                void* userArg);
 
     
-    virtual gfxFontEntry* CommonFontFallback(const uint32_t aCh,
-                                             int32_t aRunScript,
-                                             const gfxFontStyle* aMatchStyle);
+    gfxFontEntry* CommonFontFallback(const uint32_t aCh,
+                                     int32_t aRunScript,
+                                     const gfxFontStyle* aMatchStyle,
+                                     gfxFontFamily** aMatchedFamily);
 
     
     virtual gfxFontEntry* GlobalFontFallback(const uint32_t aCh,
                                              int32_t aRunScript,
                                              const gfxFontStyle* aMatchStyle,
-                                             uint32_t& aCmapCount);
+                                             uint32_t& aCmapCount,
+                                             gfxFontFamily** aMatchedFamily);
 
     
     
@@ -282,7 +283,7 @@ protected:
 
     
     
-    nsString mReplacementCharFallbackFamily;
+    nsRefPtr<gfxFontFamily> mReplacementCharFallbackFamily;
 
     nsTHashtable<nsStringHashKey> mBadUnderlineFamilyNames;
 

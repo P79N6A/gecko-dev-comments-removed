@@ -155,6 +155,8 @@ gfxPlatformFontList::gfxPlatformFontList(bool aNeedFullnamePostscriptNames)
     Preferences::AddStrongObservers(gFontListPrefObserver, kObservedPrefs);
 
     mSharedCmaps.Init(16);
+
+    NS_RegisterMemoryMultiReporter(new MemoryReporter);
 }
 
 gfxPlatformFontList::~gfxPlatformFontList()
@@ -177,14 +179,13 @@ gfxPlatformFontList::InitFontList()
     }
     mFaceNamesInitialized = false;
     mPrefFonts.Clear();
+    mReplacementCharFallbackFamily = nullptr;
     CancelLoader();
 
     
     mCodepointsWithNoFonts.reset();
     mCodepointsWithNoFonts.SetRange(0,0x1f);     
     mCodepointsWithNoFonts.SetRange(0x7f,0x9f);  
-
-    NS_RegisterMemoryMultiReporter(new MemoryReporter);
 
     sPlatformFontList = this;
 
@@ -394,28 +395,33 @@ gfxPlatformFontList::SystemFindFontForChar(const uint32_t aCh,
     
     
     
-    
-    if (aCh == 0xFFFD && mReplacementCharFallbackFamily.Length() > 0) {
+    if (aCh == 0xFFFD && mReplacementCharFallbackFamily) {
         bool needsBold;  
 
-        fontEntry = FindFontForFamily(mReplacementCharFallbackFamily,
-                                      aStyle, needsBold);
+        fontEntry =
+            mReplacementCharFallbackFamily->FindFontForStyle(*aStyle,
+                                                             needsBold);
 
-        if (fontEntry && fontEntry->TestCharacterMap(aCh))
+        
+        
+        if (fontEntry && fontEntry->TestCharacterMap(aCh)) {
             return fontEntry;
+        }
     }
 
     TimeStamp start = TimeStamp::Now();
 
     
     bool common = true;
-    fontEntry = CommonFontFallback(aCh, aRunScript, aStyle);
+    gfxFontFamily *fallbackFamily = nullptr;
+    fontEntry = CommonFontFallback(aCh, aRunScript, aStyle, &fallbackFamily);
  
     
     uint32_t cmapCount = 0;
     if (!fontEntry) {
         common = false;
-        fontEntry = GlobalFontFallback(aCh, aRunScript, aStyle, cmapCount);
+        fontEntry = GlobalFontFallback(aCh, aRunScript, aStyle, cmapCount,
+                                       &fallbackFamily);
     }
     TimeDuration elapsed = TimeStamp::Now() - start;
 
@@ -441,10 +447,10 @@ gfxPlatformFontList::SystemFindFontForChar(const uint32_t aCh,
 
     
     if (!fontEntry) {
-         mCodepointsWithNoFonts.set(aCh);
-    } else if (aCh == 0xFFFD && fontEntry) {
-        mReplacementCharFallbackFamily = fontEntry->FamilyName();
-     }
+        mCodepointsWithNoFonts.set(aCh);
+    } else if (aCh == 0xFFFD && fontEntry && fallbackFamily) {
+        mReplacementCharFallbackFamily = fallbackFamily;
+    }
  
     
     static bool first = true;
@@ -467,11 +473,11 @@ gfxPlatformFontList::FindFontForCharProc(nsStringHashKey::KeyType aKey, nsRefPtr
      void *userArg)
 {
     GlobalFontMatch *data = static_cast<GlobalFontMatch*>(userArg);
- 
-     
-     aFamilyEntry->FindFontForChar(data);
 
-     return PL_DHASH_NEXT;
+    
+    aFamilyEntry->FindFontForChar(data);
+
+    return PL_DHASH_NEXT;
 }
 
 #define NUM_FALLBACK_FONTS        8
@@ -479,7 +485,8 @@ gfxPlatformFontList::FindFontForCharProc(nsStringHashKey::KeyType aKey, nsRefPtr
 gfxFontEntry*
 gfxPlatformFontList::CommonFontFallback(const uint32_t aCh,
                                         int32_t aRunScript,
-                                        const gfxFontStyle* aMatchStyle)
+                                        const gfxFontStyle* aMatchStyle,
+                                        gfxFontFamily** aMatchedFamily)
 {
     nsAutoTArray<const char*,NUM_FALLBACK_FONTS> defaultFallbacks;
     uint32_t i, numFallbacks;
@@ -503,6 +510,7 @@ gfxPlatformFontList::CommonFontFallback(const uint32_t aCh,
         
         fontEntry = fallback->FindFontForStyle(*aMatchStyle, needsBold);
         if (fontEntry && fontEntry->TestCharacterMap(aCh)) {
+            *aMatchedFamily = fallback;
             return fontEntry;
         }
     }
@@ -514,7 +522,8 @@ gfxFontEntry*
 gfxPlatformFontList::GlobalFontFallback(const uint32_t aCh,
                                         int32_t aRunScript,
                                         const gfxFontStyle* aMatchStyle,
-                                        uint32_t& aCmapCount)
+                                        uint32_t& aCmapCount,
+                                        gfxFontFamily** aMatchedFamily)
 {
     
     GlobalFontMatch data(aCh, aRunScript, aMatchStyle);
@@ -523,6 +532,7 @@ gfxPlatformFontList::GlobalFontFallback(const uint32_t aCh,
     mFontFamilies.Enumerate(gfxPlatformFontList::FindFontForCharProc, &data);
 
     aCmapCount = data.mCmapsTested;
+    *aMatchedFamily = data.mMatchedFamily;
 
     return data.mBestMatch;
 }
@@ -846,8 +856,6 @@ gfxPlatformFontList::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
 
     aSizes->mFontListSize +=
         mCodepointsWithNoFonts.SizeOfExcludingThis(aMallocSizeOf);
-    aSizes->mFontListSize +=
-        mReplacementCharFallbackFamily.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
     aSizes->mFontListSize +=
         mFontFamiliesToLoad.SizeOfExcludingThis(aMallocSizeOf);
 

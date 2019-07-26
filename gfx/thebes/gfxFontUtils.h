@@ -767,9 +767,15 @@ public:
                         nsAString& aFullName);
 
     
+    
     static nsresult
     GetFullNameFromTable(FallibleTArray<uint8_t>& aNameTable,
                          nsAString& aFullName);
+
+    
+    static nsresult
+    GetFamilyNameFromTable(FallibleTArray<uint8_t>& aNameTable,
+                           nsAString& aFamilyName);
 
     
     

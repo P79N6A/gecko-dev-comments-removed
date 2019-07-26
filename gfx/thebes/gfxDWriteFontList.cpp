@@ -554,15 +554,14 @@ gfxDWriteFontList::gfxDWriteFontList()
 
 
 
-gfxFontEntry *
-gfxDWriteFontList::GetDefaultFont(const gfxFontStyle *aStyle,
-                                  bool &aNeedsBold)
+gfxFontFamily *
+gfxDWriteFontList::GetDefaultFont(const gfxFontStyle *aStyle)
 {
     nsAutoString resolvedName;
 
     
     if (ResolveFontName(NS_LITERAL_STRING("Arial"), resolvedName)) {
-        return FindFontForFamily(resolvedName, aStyle, aNeedsBold);
+        return FindFamily(resolvedName);
     }
 
     
@@ -573,7 +572,7 @@ gfxDWriteFontList::GetDefaultFont(const gfxFontStyle *aStyle,
     if (status) {
         if (ResolveFontName(nsDependentString(ncm.lfMessageFont.lfFaceName),
                             resolvedName)) {
-            return FindFontForFamily(resolvedName, aStyle, aNeedsBold);
+            return FindFamily(resolvedName);
         }
     }
 
@@ -1313,7 +1312,8 @@ gfxFontEntry*
 gfxDWriteFontList::GlobalFontFallback(const uint32_t aCh,
                                       int32_t aRunScript,
                                       const gfxFontStyle* aMatchStyle,
-                                      uint32_t& aCmapCount)
+                                      uint32_t& aCmapCount,
+                                      gfxFontFamily** aMatchedFamily)
 {
     bool useCmaps = gfxPlatform::GetPlatform()->UseCmapsDuringSystemFallback();
 
@@ -1321,7 +1321,8 @@ gfxDWriteFontList::GlobalFontFallback(const uint32_t aCh,
         return gfxPlatformFontList::GlobalFontFallback(aCh,
                                                        aRunScript,
                                                        aMatchStyle,
-                                                       aCmapCount);
+                                                       aCmapCount,
+                                                       aMatchedFamily);
     }
 
     HRESULT hr;
@@ -1382,13 +1383,17 @@ gfxDWriteFontList::GlobalFontFallback(const uint32_t aCh,
         return nullptr;
     }
 
-    gfxFontEntry *fontEntry = nullptr;
-    bool needsBold;  
-    fontEntry = FindFontForFamily(mFallbackRenderer->FallbackFamilyName(),
-                                  aMatchStyle, needsBold);
-    if (fontEntry && !fontEntry->TestCharacterMap(aCh)) {
-        fontEntry = nullptr;
+    gfxFontFamily *family = FindFamily(mFallbackRenderer->FallbackFamilyName());
+    if (family) {
+        gfxFontEntry *fontEntry;
+        bool needsBold;  
+        fontEntry = family->FindFontForStyle(*aMatchStyle, needsBold);
+        if (fontEntry && fontEntry->TestCharacterMap(aCh)) {
+            *aMatchedFamily = family;
+            return fontEntry;
+        }
         Telemetry::Accumulate(Telemetry::BAD_FALLBACK_FONT, true);
     }
-    return fontEntry;
+
+    return nullptr;
 }
