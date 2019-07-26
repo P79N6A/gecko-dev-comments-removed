@@ -1072,7 +1072,8 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle,
     
     if (mAvailableFonts.Length() == 1) {
         gfxFontEntry *fe = mAvailableFonts[0];
-        aNeedsSyntheticBold = wantBold && !fe->IsBold();
+        aNeedsSyntheticBold =
+            wantBold && !fe->IsBold() && aFontStyle.allowSyntheticWeight;
         return fe;
     }
 
@@ -1113,7 +1114,9 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle,
             
             fe = mAvailableFonts[order[trial]];
             if (fe) {
-                aNeedsSyntheticBold = wantBold && !fe->IsBold();
+                aNeedsSyntheticBold =
+                    wantBold && !fe->IsBold() &&
+                    aFontStyle.allowSyntheticWeight;
                 return fe;
             }
         }
@@ -1168,7 +1171,8 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle,
     NS_ASSERTION(matchFE,
                  "weight mapping should always find at least one font in a family");
 
-    if (!matchFE->IsBold() && baseWeight >= 6)
+    if (!matchFE->IsBold() && baseWeight >= 6 &&
+        aFontStyle.allowSyntheticWeight)
     {
         aNeedsSyntheticBold = true;
     }

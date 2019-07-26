@@ -176,7 +176,8 @@ gfxDWriteFontFamily::FindStyleVariations(FontInfoData *aFontInfoData)
             continue;
         }
 
-        if (font->GetSimulations() & DWRITE_FONT_SIMULATIONS_OBLIQUE) {
+        if (font->GetSimulations() != DWRITE_FONT_SIMULATIONS_NONE) {
+            
             
             continue;
         }
@@ -1642,7 +1643,8 @@ DirectWriteFontInfo::LoadFontFamilyData(const nsAString& aFamilyName)
             continue;
         }
 
-        if (dwFont->GetSimulations() & DWRITE_FONT_SIMULATIONS_OBLIQUE) {
+        if (dwFont->GetSimulations() != DWRITE_FONT_SIMULATIONS_NONE) {
+            
             
             continue;
         }
