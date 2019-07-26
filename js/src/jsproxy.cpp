@@ -2486,6 +2486,26 @@ Proxy::get(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
 }
 
 bool
+Proxy::callProp(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id,
+                MutableHandleValue vp)
+{
+    
+    
+    if (!Proxy::get(cx, proxy, receiver, id, vp))
+        return false;
+
+#if JS_HAS_NO_SUCH_METHOD
+    if (JS_UNLIKELY(vp.isPrimitive())) {
+        if (!OnUnknownMethod(cx, proxy, IdToValue(id), vp))
+            return false;
+    }
+#endif
+
+    return true;
+}
+
+
+bool
 Proxy::getElementIfPresent(JSContext *cx, HandleObject proxy, HandleObject receiver, uint32_t index,
                            MutableHandleValue vp, bool *present)
 {
