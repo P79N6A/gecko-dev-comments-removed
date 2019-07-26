@@ -147,7 +147,7 @@ ContainerComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface,
   }
 
   aContainer->mEffectiveTransform =
-    aContainer->SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), &residual);
+    aContainer->SnapTransformTranslation(idealTransform, &residual);
   
   
   aContainer->ComputeEffectiveTransformsForChildren(idealTransform);
