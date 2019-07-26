@@ -361,3 +361,23 @@ function executeSoon(aFunc) {
     run: DevToolsUtils.makeInfallible(aFunc)
   }, Ci.nsIThread.DISPATCH_NORMAL);
 }
+
+
+
+
+const Async = target => new Proxy(target, Async);
+Async.get = (target, name) =>
+  typeof(target[name]) === "function" ? asyncall.bind(null, target[name], target) :
+  target[name];
+
+
+
+const asyncall = (fn, self, ...args) =>
+  new Promise((...etc) => fn.call(self, ...args, ...etc));
+
+const Test = task => () => {
+  add_task(task);
+  run_next_test();
+};
+
+const assert = do_check_true;
