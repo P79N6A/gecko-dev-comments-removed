@@ -707,9 +707,6 @@ obj_create(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    MarkTypeObjectUnknownProperties(cx, obj->type());
-
-    
     if (args.hasDefined(1)) {
         if (args[1].isPrimitive()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
