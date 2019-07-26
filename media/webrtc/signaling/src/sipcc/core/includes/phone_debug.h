@@ -108,8 +108,18 @@ extern int32_t nbuginf(const char *_format, ...);
 #define PHN_DEBUG_SNTP_PACKET if (DebugSNTPPacket)
 
 
+
+
+
+
+
+
+
+
+
+
 #define TNP_DEBUG(format,...) if (TNPDebug) \
-        CSFLogDebug("tnp", format, ## __VA_ARGS__)
+        CSFLogNotice("tnp", format, ## __VA_ARGS__)
 
 
 #define DEF_DISPLAY_BUF          128
