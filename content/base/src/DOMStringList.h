@@ -7,18 +7,21 @@
 
 
 
-#ifndef nsDOMLists_h___
-#define nsDOMLists_h___
+#ifndef mozilla_dom_DOMStringList_h
+#define mozilla_dom_DOMStringList_h
 
 #include "nsIDOMDOMStringList.h"
 #include "nsTArray.h"
 #include "nsString.h"
 
-class nsDOMStringList : public nsIDOMDOMStringList
+namespace mozilla {
+namespace dom {
+
+class DOMStringList : public nsIDOMDOMStringList
 {
 public:
-  nsDOMStringList();
-  virtual ~nsDOMStringList();
+  DOMStringList();
+  virtual ~DOMStringList();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMDOMSTRINGLIST
@@ -41,5 +44,8 @@ public:
 private:
   nsTArray<nsString> mNames;
 };
+
+} 
+} 
 
 #endif 
