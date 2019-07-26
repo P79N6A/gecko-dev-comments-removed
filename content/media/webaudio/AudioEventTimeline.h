@@ -153,7 +153,19 @@ public:
 
   void CancelScheduledValues(float aStartTime)
   {
-    
+    for (unsigned i = 0; i < mEvents.Length(); ++i) {
+      if (mEvents[i].mTime >= aStartTime) {
+#ifdef DEBUG
+        
+        
+        for (unsigned j = i + 1; j < mEvents.Length(); ++j) {
+          MOZ_ASSERT(mEvents[j].mTime >= aStartTime);
+        }
+#endif
+        mEvents.TruncateLength(i);
+        break;
+      }
+    }
   }
 
   
