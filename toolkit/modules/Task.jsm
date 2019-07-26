@@ -136,24 +136,53 @@ this.Task = {
 
 
   spawn: function Task_spawn(aTask) {
-    if (aTask && typeof(aTask) == "function") {
-      try {
-        
-        aTask = aTask();
-      } catch (ex if ex instanceof Task.Result) {
-        return Promise.resolve(ex.value);
-      } catch (ex) {
-        return Promise.reject(ex);
-      }
+    return createAsyncFunction(aTask).call(undefined);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  async: function Task_async(aTask) {
+    if (typeof(aTask) != "function") {
+      throw new TypeError("aTask argument must be a function");
     }
 
-    if (isGenerator(aTask)) {
-      
-      return new TaskImpl(aTask).deferred.promise;
-    }
-
-    
-    return Promise.resolve(aTask);
+    return createAsyncFunction(aTask);
   },
 
   
@@ -167,6 +196,42 @@ this.Task = {
     this.value = aValue;
   }
 };
+
+function createAsyncFunction(aTask) {
+  let asyncFunction = function () {
+    let result = aTask;
+    if (aTask && typeof(aTask) == "function") {
+      if (aTask.isAsyncFunction) {
+        throw new TypeError(
+          "Cannot use an async function in place of a promise. " +
+          "You should either invoke the async function first " +
+          "or use 'Task.spawn' instead of 'Task.async' to start " +
+          "the Task and return its promise.");
+      }
+
+      try {
+        
+        result = aTask.apply(this, arguments);
+      } catch (ex if ex instanceof Task.Result) {
+        return Promise.resolve(ex.value);
+      } catch (ex) {
+        return Promise.reject(ex);
+      }
+    }
+
+    if (isGenerator(result)) {
+      
+      return new TaskImpl(result).deferred.promise;
+    }
+
+    
+    return Promise.resolve(result);
+  };
+
+  asyncFunction.isAsyncFunction = true;
+
+  return asyncFunction;
+}
 
 
 
