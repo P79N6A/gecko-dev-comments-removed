@@ -220,10 +220,9 @@ private:
   
   
   
-  nsEventStatus mTouchEventStatus;
   nsTouchEvent mTouchEvent;
-  void DispatchPendingTouchEvent(bool aDispatchToAPZC);
-  void DispatchPendingTouchEvent(nsEventStatus& status, bool aDispatchToAPZC);
+  void DispatchPendingTouchEvent();
+  void DispatchPendingTouchEvent(nsEventStatus& status);
   nsBaseHashtable<nsUint32HashKey,
                   nsRefPtr<mozilla::dom::Touch>,
                   nsRefPtr<mozilla::dom::Touch> > mTouches;

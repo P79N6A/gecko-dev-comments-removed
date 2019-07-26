@@ -385,7 +385,7 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
   
   if (mTouches.Count() == 1) {
     nsEventStatus status;
-    DispatchPendingTouchEvent(status, true);
+    DispatchPendingTouchEvent(status);
     mTouchStartDefaultPrevented = (nsEventStatus_eConsumeNoDefault == status);
     
     
@@ -441,7 +441,7 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   
   
   if (touch->mChanged) {
-    DispatchPendingTouchEvent(true);
+    DispatchPendingTouchEvent();
   }
   mTouches.Remove(pointerId);
 
@@ -526,7 +526,7 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   
   
   if (touch->mChanged) {
-    DispatchPendingTouchEvent(true);
+    DispatchPendingTouchEvent();
   }
 
   touch = CreateDOMTouch(currentPoint.Get());
@@ -537,7 +537,7 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   
   if (mIsFirstTouchMove) {
     nsEventStatus status;
-    DispatchPendingTouchEvent(status, true);
+    DispatchPendingTouchEvent(status);
     mTouchMoveDefaultPrevented = (nsEventStatus_eConsumeNoDefault == status);
     mIsFirstTouchMove = false;
   }
@@ -1019,7 +1019,7 @@ MetroInput::DispatchEventIgnoreStatus(nsGUIEvent *aEvent) {
 }
 
 void
-MetroInput::DispatchPendingTouchEvent(nsEventStatus& aStatus, bool aDispatchToAPZC) {
+MetroInput::DispatchPendingTouchEvent(nsEventStatus& aStatus) {
   mTouchEvent.touches.Clear();
   mTouches.Enumerate(&AppendToTouchList,
                      static_cast<void*>(&mTouchEvent.touches));
@@ -1028,7 +1028,7 @@ MetroInput::DispatchPendingTouchEvent(nsEventStatus& aStatus, bool aDispatchToAP
   mModifierKeyState.InitInputEvent(mTouchEvent);
 
   mWidget->DispatchEvent(&mTouchEvent, aStatus);
-  if (aStatus != nsEventStatus_eConsumeNoDefault && aDispatchToAPZC && MetroWidget::sAPZC) {
+  if (aStatus != nsEventStatus_eConsumeNoDefault && MetroWidget::sAPZC) {
     MultiTouchInput inputData(mTouchEvent);
     aStatus = MetroWidget::sAPZC->ReceiveInputEvent(inputData);
   }
@@ -1038,8 +1038,8 @@ MetroInput::DispatchPendingTouchEvent(nsEventStatus& aStatus, bool aDispatchToAP
 }
 
 void
-MetroInput::DispatchPendingTouchEvent(bool aDispatchToAPZC) {
-  DispatchPendingTouchEvent(sThrowawayStatus, aDispatchToAPZC);
+MetroInput::DispatchPendingTouchEvent() {
+  DispatchPendingTouchEvent(sThrowawayStatus);
 }
 
 void
