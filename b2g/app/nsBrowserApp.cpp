@@ -12,6 +12,7 @@
 #elif defined(XP_UNIX)
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <unistd.h>
 #endif
 
 #include <stdio.h>
@@ -168,6 +169,15 @@ int main(int argc, char* argv[])
     return 255;
 
   strcpy(++lastSlash, XPCOM_DLL);
+
+#if defined(XP_UNIX)
+  
+  
+  
+  
+  
+  (void)setsid();
+#endif
 
   int gotCounters;
 #if defined(XP_UNIX)
