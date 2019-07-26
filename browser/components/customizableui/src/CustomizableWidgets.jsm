@@ -376,6 +376,7 @@ const CustomizableWidgets = [{
       
       Services.obs.addObserver(updateZoomResetButton, "browser-fullZoom:zoomChange", false);
       Services.obs.addObserver(updateZoomResetButton, "browser-fullZoom:zoomReset", false);
+      Services.obs.addObserver(updateZoomResetButton, "browser-fullZoom:location-change", false);
 
       if (inPanel) {
         let panel = aDocument.getElementById(kPanelId);
