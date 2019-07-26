@@ -18,41 +18,41 @@
 
 #define kNotFound -1
 
-  
+
 #include "string-template-def-unichar.h"
 #include "nsTSubstring.h"
 #include "string-template-undef.h"
 
-  
+
 #include "string-template-def-char.h"
 #include "nsTSubstring.h"
 #include "string-template-undef.h"
 
 
-  
+
 
 
 
 class nsCaseInsensitiveCStringComparator
-    : public nsCStringComparator
-  {
-    public:
-      nsCaseInsensitiveCStringComparator() {}
-      typedef char char_type;
+  : public nsCStringComparator
+{
+public:
+  nsCaseInsensitiveCStringComparator() {}
+  typedef char char_type;
 
-      virtual int operator()( const char_type*, const char_type*, uint32_t, uint32_t ) const;
-  };
+  virtual int operator()( const char_type*, const char_type*, uint32_t, uint32_t ) const;
+};
 
 class nsCaseInsensitiveCStringArrayComparator
-  {
-    public:
-      template<class A, class B>
-      bool Equals(const A& a, const B& b) const {
-        return a.Equals(b, nsCaseInsensitiveCStringComparator());
-      }
-  };
+{
+public:
+  template<class A, class B>
+  bool Equals(const A& a, const B& b) const {
+    return a.Equals(b, nsCaseInsensitiveCStringComparator());
+  }
+};
 
-  
+
 #ifndef nsSubstringTuple_h___
 #include "nsSubstringTuple.h"
 #endif

@@ -3,18 +3,19 @@
 
 
 
+
 #ifndef nsLiteralString_h___
 #define nsLiteralString_h___
 
 #include "nscore.h"
 #include "nsString.h"
 
-  
+
 #include "string-template-def-unichar.h"
 #include "nsTLiteralString.h"
 #include "string-template-undef.h"
 
-  
+
 #include "string-template-def-char.h"
 #include "nsTLiteralString.h"
 #include "string-template-undef.h"

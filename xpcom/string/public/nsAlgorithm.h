@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsAlgorithm_h___
 #define nsAlgorithm_h___
 
@@ -12,9 +13,9 @@ template <class T>
 inline
 T
 NS_ROUNDUP( const T& a, const T& b )
-  {
-    return ((a + (b - 1)) / b) * b;
-  }
+{
+  return ((a + (b - 1)) / b) * b;
+}
 
 
 
@@ -23,18 +24,18 @@ template <class T>
 inline
 const T&
 XPCOM_MIN( const T& a, const T& b )
-  {
-    return b < a ? b : a;
-  }
+{
+  return b < a ? b : a;
+}
 
 
 template <class T>
 inline
 const T&
 XPCOM_MAX( const T& a, const T& b )
-  {
-    return a > b ? a : b;
-  }
+{
+  return a > b ? a : b;
+}
 
 namespace mozilla {
 
@@ -42,10 +43,10 @@ template <class T>
 inline
 const T&
 clamped( const T& a, const T& min, const T& max )
-  {
-    NS_ABORT_IF_FALSE(max >= min, "clamped(): max must be greater than or equal to min");
-    return XPCOM_MIN(XPCOM_MAX(a, min), max);
-  }
+{
+  NS_ABORT_IF_FALSE(max >= min, "clamped(): max must be greater than or equal to min");
+  return XPCOM_MIN(XPCOM_MAX(a, min), max);
+}
 
 }
 
@@ -53,24 +54,24 @@ template <class InputIterator, class T>
 inline
 uint32_t
 NS_COUNT( InputIterator& first, const InputIterator& last, const T& value )
-  {
-    uint32_t result = 0;
-    for ( ; first != last; ++first )
-      if ( *first == value )
-        ++result;
-    return result;
-  }
+{
+  uint32_t result = 0;
+  for ( ; first != last; ++first )
+    if ( *first == value )
+      ++result;
+  return result;
+}
 
 template <class InputIterator, class OutputIterator>
 inline
 OutputIterator&
 copy_string( const InputIterator& first, const InputIterator& last, OutputIterator& result )
-  {
-    typedef nsCharSourceTraits<InputIterator> source_traits;
-    typedef nsCharSinkTraits<OutputIterator>  sink_traits;
+{
+  typedef nsCharSourceTraits<InputIterator> source_traits;
+  typedef nsCharSinkTraits<OutputIterator>  sink_traits;
 
-    sink_traits::write(result, source_traits::read(first), source_traits::readable_distance(first, last));
-    return result;
-  }
+  sink_traits::write(result, source_traits::read(first), source_traits::readable_distance(first, last));
+  return result;
+}
 
 #endif 

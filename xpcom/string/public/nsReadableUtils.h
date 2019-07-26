@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef nsReadableUtils_h___
 #define nsReadableUtils_h___
 
@@ -17,13 +18,13 @@
 #include "nsTArrayForwardDeclare.h"
 
 inline size_t Distance( const nsReadingIterator<char16_t>& start, const nsReadingIterator<char16_t>& end )
-  {
-    return end.get() - start.get();
-  }
+{
+  return end.get() - start.get();
+}
 inline size_t Distance( const nsReadingIterator<char>& start, const nsReadingIterator<char>& end )
-  {
-    return end.get() - start.get();
-  }
+{
+  return end.get() - start.get();
+}
 
 void LossyCopyUTF16toASCII( const nsAString& aSource, nsACString& aDest );
 void CopyASCIItoUTF16( const nsACString& aSource, nsAString& aDest );
@@ -57,12 +58,12 @@ void AppendUTF8toUTF16( const char* aSource, nsAString& aDest );
 
 #ifdef MOZ_USE_CHAR16_WRAPPER
 inline void AppendUTF16toUTF8( char16ptr_t aSource, nsACString& aDest )
-  {
-    return AppendUTF16toUTF8(static_cast<const char16_t*>(aSource), aDest);
-  }
+{
+  return AppendUTF16toUTF8(static_cast<const char16_t*>(aSource), aDest);
+}
 #endif
 
-  
+
 
 
 
@@ -76,7 +77,7 @@ inline void AppendUTF16toUTF8( char16ptr_t aSource, nsACString& aDest )
 char* ToNewCString( const nsAString& aSource );
 
 
-  
+
 
 
 
@@ -87,7 +88,7 @@ char* ToNewCString( const nsAString& aSource );
 
 char* ToNewCString( const nsACString& aSource );
 
-  
+
 
 
 
@@ -105,7 +106,7 @@ char* ToNewCString( const nsACString& aSource );
 char* ToNewUTF8String( const nsAString& aSource, uint32_t *aUTF8Count = nullptr );
 
 
-  
+
 
 
 
@@ -120,7 +121,7 @@ char* ToNewUTF8String( const nsAString& aSource, uint32_t *aUTF8Count = nullptr 
 char16_t* ToNewUnicode( const nsAString& aSource );
 
 
-  
+
 
 
 
@@ -133,7 +134,7 @@ char16_t* ToNewUnicode( const nsAString& aSource );
 
 char16_t* ToNewUnicode( const nsACString& aSource );
 
-  
+
 
 
 
@@ -143,7 +144,7 @@ char16_t* ToNewUnicode( const nsACString& aSource );
 
 uint32_t CalcUTF8ToUnicodeLength( const nsACString& aSource );
 
-  
+
 
 
 
@@ -162,10 +163,10 @@ uint32_t CalcUTF8ToUnicodeLength( const nsACString& aSource );
 
 
 char16_t* UTF8ToUnicodeBuffer( const nsACString& aSource,
-                                char16_t *aBuffer,
-                                uint32_t *aUTF16Count = nullptr );
+                               char16_t *aBuffer,
+                               uint32_t *aUTF16Count = nullptr );
 
-  
+
 
 
 
@@ -182,7 +183,7 @@ char16_t* UTF8ToUnicodeBuffer( const nsACString& aSource,
 
 char16_t* UTF8ToNewUnicode( const nsACString& aSource, uint32_t *aUTF16Count = nullptr );
 
-  
+
 
 
 
@@ -195,12 +196,12 @@ char16_t* UTF8ToNewUnicode( const nsACString& aSource, uint32_t *aUTF16Count = n
 
 
 char16_t* CopyUnicodeTo( const nsAString& aSource,
-                                 uint32_t aSrcOffset,
-                                 char16_t* aDest,
-                                 uint32_t aLength );
+                         uint32_t aSrcOffset,
+                         char16_t* aDest,
+                         uint32_t aLength );
 
 
-  
+
 
 
 
@@ -212,10 +213,10 @@ char16_t* CopyUnicodeTo( const nsAString& aSource,
 
 
 void CopyUnicodeTo( const nsAString::const_iterator& aSrcStart,
-                           const nsAString::const_iterator& aSrcEnd,
-                           nsAString& aDest );
+                    const nsAString::const_iterator& aSrcEnd,
+                    nsAString& aDest );
 
-  
+
 
 
 
@@ -226,24 +227,24 @@ void CopyUnicodeTo( const nsAString::const_iterator& aSrcStart,
 
 
 void AppendUnicodeTo( const nsAString::const_iterator& aSrcStart,
-                             const nsAString::const_iterator& aSrcEnd,
-                             nsAString& aDest );
+                      const nsAString::const_iterator& aSrcEnd,
+                      nsAString& aDest );
 
-  
+
 
 
 
 
 bool IsASCII( const nsAString& aString );
 
-  
+
 
 
 
 
 bool IsASCII( const nsACString& aString );
 
-  
+
 
 
 
@@ -276,10 +277,10 @@ bool IsASCII( const nsACString& aString );
 
 bool IsUTF8( const nsACString& aString, bool aRejectNonChar = true );
 
-bool ParseString(const nsACString& aAstring, char aDelimiter, 
-                          nsTArray<nsCString>& aArray);
+bool ParseString(const nsACString& aAstring, char aDelimiter,
+                 nsTArray<nsCString>& aArray);
 
-  
+
 
 
 void ToUpperCase( nsACString& );
@@ -290,14 +291,14 @@ void ToUpperCase( nsCSubstring& );
 
 void ToLowerCase( nsCSubstring& );
 
-  
+
 
 
 void ToUpperCase( const nsACString& aSource, nsACString& aDest );
 
 void ToLowerCase( const nsACString& aSource, nsACString& aDest );
 
-  
+
 
 
 
@@ -331,7 +332,7 @@ inline bool FindInReadable( const nsACString& aPattern, const nsACString& aSourc
 
 bool CaseInsensitiveFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator& );
 
-  
+
 
 
 
@@ -340,7 +341,7 @@ bool CaseInsensitiveFindInReadable( const nsACString& aPattern, nsACString::cons
 bool RFindInReadable( const nsAString& aPattern, nsAString::const_iterator&, nsAString::const_iterator&, const nsStringComparator& = nsDefaultStringComparator() );
 bool RFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator&, const nsCStringComparator& = nsDefaultCStringComparator() );
 
-   
+
 
 
 
@@ -351,30 +352,30 @@ bool RFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, n
 bool FindCharInReadable( char16_t aChar, nsAString::const_iterator& aSearchStart, const nsAString::const_iterator& aSearchEnd );
 bool FindCharInReadable( char aChar, nsACString::const_iterator& aSearchStart, const nsACString::const_iterator& aSearchEnd );
 
-    
+
 
 
 uint32_t CountCharInReadable( const nsAString& aStr,
-                                     char16_t aChar );
+                              char16_t aChar );
 uint32_t CountCharInReadable( const nsACString& aStr,
-                                     char aChar );
+                              char aChar );
 
 bool
 StringBeginsWith( const nsAString& aSource, const nsAString& aSubstring,
                   const nsStringComparator& aComparator =
-                                              nsDefaultStringComparator() );
+                    nsDefaultStringComparator() );
 bool
 StringBeginsWith( const nsACString& aSource, const nsACString& aSubstring,
                   const nsCStringComparator& aComparator =
-                                               nsDefaultCStringComparator() );
+                    nsDefaultCStringComparator() );
 bool
 StringEndsWith( const nsAString& aSource, const nsAString& aSubstring,
                 const nsStringComparator& aComparator =
-                                            nsDefaultStringComparator() );
+                  nsDefaultStringComparator() );
 bool
 StringEndsWith( const nsACString& aSource, const nsACString& aSubstring,
                 const nsCStringComparator& aComparator =
-                                             nsDefaultCStringComparator() );
+                  nsDefaultCStringComparator() );
 
 const nsAFlatString& EmptyString();
 const nsAFlatCString& EmptyCString();
@@ -382,7 +383,7 @@ const nsAFlatCString& EmptyCString();
 const nsAFlatString& NullString();
 const nsAFlatCString& NullCString();
 
-   
+
 
 
 
@@ -400,8 +401,8 @@ AppendUCS4ToUTF16(const uint32_t aSource, nsAString& aDest);
 template<class T>
 inline bool EnsureStringLength(T& aStr, uint32_t aLen)
 {
-    aStr.SetLength(aLen);
-    return (aStr.Length() == aLen);
+  aStr.SetLength(aLen);
+  return (aStr.Length() == aLen);
 }
 
 #endif 

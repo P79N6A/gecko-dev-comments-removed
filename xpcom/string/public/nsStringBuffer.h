@@ -22,33 +22,97 @@ template<class T> struct already_AddRefed;
 
 
 class nsStringBuffer
+{
+private:
+  friend class CheckStaticAtomSizes;
+
+  mozilla::Atomic<int32_t> mRefCount;
+  uint32_t mStorageSize;
+
+public:
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static already_AddRefed<nsStringBuffer> Alloc(size_t storageSize);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsStringBuffer* Realloc(nsStringBuffer* buf, size_t storageSize);
+
+  
+
+
+  void NS_FASTCALL AddRef();
+
+  
+
+
+
+  void NS_FASTCALL Release();
+
+  
+
+
+
+
+  static nsStringBuffer* FromData(void* data)
   {
-    private:
-      friend class CheckStaticAtomSizes;
+    return reinterpret_cast<nsStringBuffer*> (data) - 1;
+  }
 
-      mozilla::Atomic<int32_t> mRefCount;
-      uint32_t mStorageSize;
+  
 
-    public:
-      
-      
 
+  void* Data() const
+  {
+    return const_cast<char*> (reinterpret_cast<const char*> (this + 1));
+  }
 
+  
 
 
 
 
+  uint32_t StorageSize() const
+  {
+    return mStorageSize;
+  }
 
+  
 
 
 
 
 
 
-      static already_AddRefed<nsStringBuffer> Alloc(size_t storageSize);
 
-      
+  bool IsReadonly() const
+  {
+    return mRefCount > 1;
+  }
 
+  
 
 
 
@@ -56,50 +120,41 @@ class nsStringBuffer
 
 
 
+  static nsStringBuffer* FromString(const nsAString &str);
+  static nsStringBuffer* FromString(const nsACString &str);
 
+  
 
-      static nsStringBuffer* Realloc(nsStringBuffer* buf, size_t storageSize);
 
-      
 
 
-      void NS_FASTCALL AddRef();
 
-      
 
 
 
-      void NS_FASTCALL Release();
 
-      
 
 
 
 
-      static nsStringBuffer* FromData(void* data)
-        {
-          return reinterpret_cast<nsStringBuffer*> (data) - 1;
-        }
+  void ToString(uint32_t len, nsAString &str,
+                bool aMoveOwnership = false);
+  void ToString(uint32_t len, nsACString &str,
+                bool aMoveOwnership = false);
 
-      
+  
 
 
-      void* Data() const
-        {
-          return const_cast<char*> (reinterpret_cast<const char*> (this + 1));
-        }
 
-      
+  size_t SizeOfIncludingThisMustBeUnshared(mozilla::MallocSizeOf aMallocSizeOf) const;
 
+  
 
 
+  size_t SizeOfIncludingThisIfUnshared(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-      uint32_t StorageSize() const
-        {
-          return mStorageSize;
-        }
+  
 
-      
 
 
 
@@ -107,62 +162,7 @@ class nsStringBuffer
 
 
 
-      bool IsReadonly() const
-        {
-          return mRefCount > 1;
-        }
-
-      
-
-
-
-
-
-
-
-      static nsStringBuffer* FromString(const nsAString &str);
-      static nsStringBuffer* FromString(const nsACString &str);
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-      void ToString(uint32_t len, nsAString &str,
-                           bool aMoveOwnership = false);
-      void ToString(uint32_t len, nsACString &str,
-                           bool aMoveOwnership = false);
-
-      
-
-
-
-      size_t SizeOfIncludingThisMustBeUnshared(mozilla::MallocSizeOf aMallocSizeOf) const;
-
-      
-
-
-      size_t SizeOfIncludingThisIfUnshared(mozilla::MallocSizeOf aMallocSizeOf) const;
-
-      
-
-
-
-
-
-
-
-
-      size_t SizeOfIncludingThisEvenIfShared(mozilla::MallocSizeOf aMallocSizeOf) const;
-  };
+  size_t SizeOfIncludingThisEvenIfShared(mozilla::MallocSizeOf aMallocSizeOf) const;
+};
 
 #endif 

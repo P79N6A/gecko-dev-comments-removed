@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXPCOMStrings_h__
 #define nsXPCOMStrings_h__
 
@@ -640,7 +641,7 @@ NS_CStringCopy
 
 inline NS_HIDDEN_(nsresult)
 NS_CStringAppendData(nsACString &aStr, const char *aData,
-                    uint32_t aDataLength = UINT32_MAX)
+                     uint32_t aDataLength = UINT32_MAX)
 {
   return NS_CStringSetDataRange(aStr, UINT32_MAX, 0, aData, aDataLength);
 }
@@ -665,7 +666,7 @@ NS_CStringAppendData(nsACString &aStr, const char *aData,
 
 inline NS_HIDDEN_(nsresult)
 NS_CStringInsertData(nsACString &aStr, uint32_t aOffset, const char *aData,
-                    uint32_t aDataLength = UINT32_MAX)
+                     uint32_t aDataLength = UINT32_MAX)
 {
   return NS_CStringSetDataRange(aStr, aOffset, 0, aData, aDataLength);
 }

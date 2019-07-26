@@ -9,12 +9,12 @@
 #include "plstr.h"
 
 
-  
+
 #include "string-template-def-unichar.h"
 #include "nsTStringComparator.cpp"
 #include "string-template-undef.h"
 
-  
+
 #include "string-template-def-char.h"
 #include "nsTStringComparator.cpp"
 #include "string-template-undef.h"
@@ -25,13 +25,13 @@ nsCaseInsensitiveCStringComparator::operator()( const char_type* lhs,
                                                 const char_type* rhs,
                                                 uint32_t lLength,
                                                 uint32_t rLength ) const
-  {
-    if (lLength != rLength)
-      return (lLength > rLength) ? 1 : -1;
-    int32_t result=int32_t(PL_strncasecmp(lhs, rhs, lLength));
-    
-    
-    if (result<0) 
-      result=-1;
-    return result;
-  }
+{
+  if (lLength != rLength)
+    return (lLength > rLength) ? 1 : -1;
+  int32_t result=int32_t(PL_strncasecmp(lhs, rhs, lLength));
+  
+  
+  if (result<0)
+    result=-1;
+  return result;
+}

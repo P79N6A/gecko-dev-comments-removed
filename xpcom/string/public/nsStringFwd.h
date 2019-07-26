@@ -5,6 +5,7 @@
 
 
 
+
 #ifndef nsStringFwd_h___
 #define nsStringFwd_h___
 
@@ -14,7 +15,7 @@
 #error Internal string headers are not available from external-linkage code.
 #endif
 
-  
+
 
 
 
@@ -30,7 +31,7 @@ class nsDefaultStringComparator;
 class nsXPIDLString;
 
 
-  
+
 
 
 
@@ -46,7 +47,7 @@ class nsDefaultCStringComparator;
 class nsXPIDLCString;
 
 
-  
+
 
 
 
@@ -59,5 +60,5 @@ typedef nsSubstring           nsASingleFragmentString;
 typedef nsCString             nsAFlatCString;
 typedef nsCSubstring          nsASingleFragmentCString;
 
-  
+
 #endif 
