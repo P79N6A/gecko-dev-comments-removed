@@ -376,6 +376,12 @@ def check_output(out, err, rc, timed_out, test):
     if rc != test.expect_status:
         
         
+        
+        if sys.platform in ['win32', 'cygwin'] and rc == 0:
+            return True
+
+        
+        
         return test.allow_oom and 'out of memory' in err and 'Assertion failure' not in err
 
     return True
