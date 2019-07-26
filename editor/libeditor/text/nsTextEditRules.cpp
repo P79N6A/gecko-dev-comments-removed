@@ -449,7 +449,8 @@ GetTextNode(nsISelection *selection, nsEditor *editor) {
     
     NS_ENSURE_TRUE(node, nullptr);
     
-    nsNodeIterator iter(node, nsIDOMNodeFilter::SHOW_TEXT, nullptr);
+    mozilla::dom::NodeFilterHolder filter;
+    nsNodeIterator iter(node, nsIDOMNodeFilter::SHOW_TEXT, filter);
     while (!editor->IsTextNode(selNode)) {
       if (NS_FAILED(res = iter.NextNode(getter_AddRefs(selNode))) || !selNode) {
         return nullptr;
