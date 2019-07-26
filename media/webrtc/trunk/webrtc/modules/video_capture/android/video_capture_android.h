@@ -57,7 +57,6 @@ class VideoCaptureAndroid : public VideoCaptureImpl {
   static jclass g_javaCmDevInfoClass;
   
   static jobject g_javaCmDevInfoObject;
-  static jobject g_javaContext; 
 };
 
 }  

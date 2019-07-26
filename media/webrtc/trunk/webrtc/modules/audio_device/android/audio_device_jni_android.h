@@ -20,18 +20,11 @@
 
 #include <jni.h> 
 
+#define AudioCaptureClass "org/webrtc/voiceengine/WebRTCAudioDevice"
+
 namespace webrtc
 {
 class EventWrapper;
-
-const uint32_t N_REC_SAMPLES_PER_SEC = 16000; 
-const uint32_t N_PLAY_SAMPLES_PER_SEC = 16000; 
-
-const uint32_t N_REC_CHANNELS = 1; 
-const uint32_t N_PLAY_CHANNELS = 1; 
-
-const uint32_t REC_BUF_SIZE_IN_SAMPLES = 480; 
-
 
 class ThreadWrapper;
 
@@ -41,7 +34,6 @@ class AudioDeviceAndroidJni : public AudioDeviceGeneric {
   ~AudioDeviceAndroidJni();
 
   static int32_t SetAndroidAudioDeviceObjects(void* javaVM,
-                                              void* env,
                                               void* context);
 
   virtual int32_t ActiveAudioLayer(
@@ -157,6 +149,14 @@ class AudioDeviceAndroidJni : public AudioDeviceGeneric {
 
   virtual int32_t SetLoudspeakerStatus(bool enable);
   virtual int32_t GetLoudspeakerStatus(bool& enable) const;
+
+  static const uint32_t N_REC_SAMPLES_PER_SEC = 16000; 
+  static const uint32_t N_PLAY_SAMPLES_PER_SEC = 16000; 
+
+  static const uint32_t N_REC_CHANNELS = 1; 
+  static const uint32_t N_PLAY_CHANNELS = 1; 
+
+  static const uint32_t REC_BUF_SIZE_IN_SAMPLES = 480; 
 
  private:
   
