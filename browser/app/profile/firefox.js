@@ -767,7 +767,7 @@ pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
 pref("urlclassifier.max-complete-age", 2700);
 #endif
 
-pref("browser.geolocation.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/geolocation/");
+pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
 pref("browser.mixedcontent.warning.infoURL", "http://support.mozilla.org/1/%APP%/%VERSION%/%OS%/%LOCALE%/mixed-content/");
 
 pref("browser.EULA.version", 3);
@@ -882,7 +882,7 @@ pref("toolkit.crashreporter.pluginHangSubmitURL",
 
 
 pref("toolkit.crashreporter.infoURL",
-     "https://www.mozilla.org/legal/privacy/firefox.html#crash-reporter");
+     "http://www.mozilla.com/legal/privacy/firefox.html#crash-reporter");
 
 
 pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
@@ -1056,6 +1056,8 @@ pref("devtools.responsiveUI.enabled", true);
 
 pref("devtools.debugger.enabled", true);
 pref("devtools.debugger.chrome-enabled", true);
+pref("devtools.debugger.chrome-debugging-host", "localhost");
+pref("devtools.debugger.chrome-debugging-port", 6080);
 pref("devtools.debugger.remote-host", "localhost");
 pref("devtools.debugger.remote-autoconnect", false);
 pref("devtools.debugger.remote-connection-retries", 3);
