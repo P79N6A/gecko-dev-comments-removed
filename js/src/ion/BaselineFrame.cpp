@@ -6,6 +6,7 @@
 
 
 #include "BaselineFrame.h"
+#include "BaselineFrame-inl.h"
 #include "vm/ScopeObject.h"
 
 using namespace js;
