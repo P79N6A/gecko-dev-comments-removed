@@ -90,6 +90,7 @@ SocialUI = {
     if (!this._initialized) {
       return;
     }
+    SocialSidebar.saveWindowState();
 
     Services.obs.removeObserver(this, "social:ambient-notification-changed");
     Services.obs.removeObserver(this, "social:profile-changed");
@@ -710,6 +711,11 @@ SocialSidebar = {
   },
 
   restoreWindowState: function() {
+    
+    
+    
+    
+    
     this._initialized = true;
     if (!this.canShow)
       return;
@@ -737,13 +743,22 @@ SocialSidebar = {
     let data = SessionStore.getWindowValue(window, "socialSidebar");
     
     if (!data && window.opener && !window.opener.closed) {
-      data = SessionStore.getWindowValue(window.opener, "socialSidebar");
+      try {
+        data = SessionStore.getWindowValue(window.opener, "socialSidebar");
+      } catch(e) {
+        
+        
+        
+      }
     }
     if (data) {
       data = JSON.parse(data);
       document.getElementById("social-sidebar-browser").setAttribute("origin", data.origin);
       if (!data.hidden)
         this.show(data.origin);
+    } else if (Services.prefs.prefHasUserValue("social.sidebar.provider")) {
+      
+      this.show(Services.prefs.getCharPref("social.sidebar.provider"));
     }
   },
 
@@ -754,7 +769,18 @@ SocialSidebar = {
       "hidden": broadcaster.hidden,
       "origin": sidebarOrigin
     };
-    SessionStore.setWindowValue(window, "socialSidebar", JSON.stringify(data));
+
+    
+    if (broadcaster.hidden)
+      Services.prefs.clearUserPref("social.sidebar.provider");
+    else
+      Services.prefs.setCharPref("social.sidebar.provider", sidebarOrigin);
+
+    try {
+      SessionStore.setWindowValue(window, "socialSidebar", JSON.stringify(data));
+    } catch(e) {
+      
+    }
   },
 
   setSidebarVisibilityState: function(aEnabled) {
