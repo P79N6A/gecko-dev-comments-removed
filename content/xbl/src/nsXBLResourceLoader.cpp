@@ -167,7 +167,8 @@ nsXBLResourceLoader::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
     
     mResources->mRuleProcessor =
       new nsCSSRuleProcessor(mResources->mStyleSheetList, 
-                             nsStyleSet::eDocSheet);
+                             nsStyleSet::eDocSheet,
+                             nullptr);
 
     
     if (!mInLoadResourcesFunc)
