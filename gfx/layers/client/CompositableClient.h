@@ -84,15 +84,22 @@ public:
   CreateDeprecatedTextureClient(DeprecatedTextureClientType aDeprecatedTextureClientType,
                                 gfxContentType aContentType = gfxContentType::SENTINEL);
 
+  
+  
+  
+  
   virtual TemporaryRef<BufferTextureClient>
   CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
-                            TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
+                            TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT,
+                            gfx::BackendType aMoz2DBackend = gfx::BackendType::NONE);
 
+  
   
   
   TemporaryRef<TextureClient>
   CreateTextureClientForDrawing(gfx::SurfaceFormat aFormat,
-                                TextureFlags aTextureFlags);
+                                TextureFlags aTextureFlags,
+                                gfx::BackendType aMoz2DBackend = gfx::BackendType::NONE);
 
   virtual void SetDescriptorFromReply(TextureIdentifier aTextureId,
                                       const SurfaceDescriptor& aDescriptor)
