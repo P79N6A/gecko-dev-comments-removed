@@ -1138,7 +1138,7 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
         registerWithRuntime(rt);
     }
 
-    PersistentRooted(PersistentRooted &rhs)
+    PersistentRooted(const PersistentRooted &rhs)
       : mozilla::LinkedListElement<PersistentRooted<T> >(),
         ptr(rhs.ptr)
     {
@@ -1147,7 +1147,10 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
 
 
 
-        rhs.setNext(this);
+
+
+
+        const_cast<PersistentRooted &>(rhs).setNext(this);
     }
 
     
