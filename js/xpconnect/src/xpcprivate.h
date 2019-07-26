@@ -3744,6 +3744,8 @@ public:
     CompartmentPrivate()
         : wantXrays(false)
         , universalXPConnectEnabled(false)
+        , adoptedNode(false)
+        , donatedNode(false)
         , scope(nullptr)
         , locationWasParsed(false)
     {
@@ -3759,6 +3761,10 @@ public:
     
     
     bool universalXPConnectEnabled;
+
+    
+    bool adoptedNode;
+    bool donatedNode;
 
     
     
