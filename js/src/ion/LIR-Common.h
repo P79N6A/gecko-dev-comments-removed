@@ -2633,6 +2633,21 @@ class LArgumentsLength : public LInstructionHelper<1, 0, 0>
 };
 
 
+class LGetArgument : public LInstructionHelper<BOX_PIECES, 1, 0>
+{
+  public:
+    LIR_HEADER(GetArgument);
+    BOX_OUTPUT_ACCESSORS();
+
+    LGetArgument(const LAllocation &index) {
+        setOperand(0, index);
+    }
+    const LAllocation *index() {
+        return getOperand(0);
+    }
+};
+
+
 class LTypeBarrier : public LInstructionHelper<BOX_PIECES, BOX_PIECES, 1>
 {
   public:

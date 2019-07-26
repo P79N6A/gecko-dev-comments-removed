@@ -4404,19 +4404,52 @@ class MArgumentsLength
         return new MArgumentsLength(arguments);
     }
 
-    TypePolicy *typePolicy() {
-        return this;
-    }
-
     MDefinition *arguments() const {
         return getOperand(0);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
     }
     bool congruentTo(MDefinition *const &ins) const {
         return congruentIfOperandsEqual(ins);
     }
     AliasSet getAliasSet() const {
         
-        
+        return AliasSet::None();
+   }
+};
+
+
+class MGetArgument
+  : public MUnaryInstruction,
+    public IntPolicy<0>
+{
+    MGetArgument(MDefinition *idx)
+      : MUnaryInstruction(idx)
+    {
+        setResultType(MIRType_Value);
+        setMovable();
+    }
+
+  public:
+    INSTRUCTION_HEADER(GetArgument);
+
+    static MGetArgument *New(MDefinition *idx) {
+        return new MGetArgument(idx);
+    }
+
+    MDefinition *index() const {
+        return getOperand(0);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+    bool congruentTo(MDefinition *const &ins) const {
+        return congruentIfOperandsEqual(ins);
+    }
+    AliasSet getAliasSet() const {
         return AliasSet::None();
    }
 };
