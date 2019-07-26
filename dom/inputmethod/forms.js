@@ -224,7 +224,6 @@ let FormAssistant = {
   _documentEncoder: null,
   _editor: null,
   _editing: false,
-  _ignoreEditActionOnce: false,
 
   get focusedElement() {
     if (this._focusedElement && Cu.isDeadWrapper(this._focusedElement))
@@ -319,9 +318,6 @@ let FormAssistant = {
   
   EditAction: function fa_editAction() {
     if (this._editing) {
-      return;
-    } else if (this._ignoreEditActionOnce) {
-      this._ignoreEditActionOnce = false;
       return;
     }
     this.sendKeyboardState(this.focusedElement);
@@ -442,9 +438,6 @@ let FormAssistant = {
         CompositionManager.endComposition('');
 
         
-        this._ignoreEditActionOnce = true;
-
-        
         
         content.setTimeout(function() {
           this.updateSelection();
@@ -458,7 +451,6 @@ let FormAssistant = {
 
         CompositionManager.endComposition('');
 
-        this._ignoreEditActionOnce = false;
         break;
 
       case "compositionend":
