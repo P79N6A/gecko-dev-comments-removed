@@ -52,6 +52,7 @@ static struct _PT_Bookeeping
     PRInt32 system, user;       
     PRUintn this_many;          
     pthread_key_t key;          
+    PRBool keyCreated;          
     PRThread *first, *last;     
 #if defined(_PR_DCETHREADS) || defined(_POSIX_THREAD_PRIORITY_SCHEDULING)
     PRInt32 minPrio, maxPrio;   
@@ -979,9 +980,10 @@ void _PR_InitThreads(
 
 
     rv = _PT_PTHREAD_KEY_CREATE(&pt_book.key, _pt_thread_death);
-    PR_ASSERT(0 == rv);
+    if (0 != rv) PR_Abort();
+    pt_book.keyCreated = PR_TRUE;
     rv = pthread_setspecific(pt_book.key, thred);
-    PR_ASSERT(0 == rv);    
+    if (0 != rv) PR_Abort();
 }  
 
 #ifdef __GNUC__
@@ -1041,7 +1043,16 @@ void _PR_Fini(void)
     void *thred;
     int rv;
 
-    if (!_pr_initialized) return;
+    if (!_pr_initialized) {
+        
+
+        if (pt_book.keyCreated)
+        {
+            pthread_key_delete(pt_book.key);
+            pt_book.keyCreated = PR_FALSE;
+        }
+        return;
+    }
 
     _PT_PTHREAD_GETSPECIFIC(pt_book.key, thred);
     if (NULL != thred)
