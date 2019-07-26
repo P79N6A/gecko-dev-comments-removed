@@ -1759,14 +1759,16 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
     PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
            (" available free space = %d\n", availableFreeSpace));
 
-    
-    
-    
-    
-    
-    if ((availableFreeSpace > 0 && isUsingFlexGrow) ||
-        (availableFreeSpace < 0 && !isUsingFlexGrow)) {
+    MOZ_ASSERT((isUsingFlexGrow && availableFreeSpace >= 0) ||
+               (!isUsingFlexGrow && availableFreeSpace <= 0),
+               "The sign of our free space should never disagree with the "
+               "type of flexing (grow/shrink) that we're doing. Any potential "
+               "disagreement should've made us use the other type of flexing, "
+               "or should've been resolved in FreezeItemsEarly");
 
+    
+    
+    if (availableFreeSpace != 0) {
       
       if (!isOrigAvailFreeSpaceInitialized) {
         origAvailableFreeSpace = availableFreeSpace;
