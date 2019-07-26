@@ -726,6 +726,9 @@ protected:
   
   
   
+  
+  
+  
   nsresult DoInsertHTMLWithContext(const nsAString& aInputString,
                                    const nsAString& aContextStr,
                                    const nsAString& aInfoStr,
@@ -734,7 +737,8 @@ protected:
                                    nsIDOMNode* aDestNode,
                                    int32_t aDestOffset,
                                    bool aDeleteSelection,
-                                   bool aTrustedInput);
+                                   bool aTrustedInput,
+                                   bool aClearStyle = true);
 
   nsresult ClearStyle(nsCOMPtr<nsIDOMNode>* aNode, int32_t* aOffset,
                       nsIAtom* aProperty, const nsAString* aAttribute);
