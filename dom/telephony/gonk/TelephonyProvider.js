@@ -451,6 +451,29 @@ TelephonyProvider.prototype = {
     }
 
     
+    function numCallsOnLine(aClientId) {
+      let numCalls = 0;
+      let hasConference = false;
+
+      for (let cid in this._currentCalls[aClientId]) {
+        let call = this._currentCalls[aClientId][cid];
+        if (call.isConference) {
+          hasConference = true;
+        } else {
+          numCalls++;
+        }
+      }
+
+      return hasConference ? numCalls + 1 : numCalls;
+    }
+
+    if (numCallsOnLine.call(this, aClientId) >= 2) {
+      if (DEBUG) debug("Has more than 2 calls on line. Drop.");
+      aTelephonyCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
+      return;
+    }
+
+    
     
     if (!aIsEmergency) {
       aNumber = gPhoneNumberUtils.normalize(aNumber);
