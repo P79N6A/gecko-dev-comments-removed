@@ -26,9 +26,12 @@
 
 
 
-struct gfxMatrix;
-
 namespace mozilla {
+
+namespace gfx {
+struct Matrix;
+}
+
 namespace layers {
 
 class Layer;
@@ -53,7 +56,7 @@ public:
 
 
 
-  virtual bool TryRender(Layer* aRoot, const gfxMatrix& aWorldTransform) = 0;
+  virtual bool TryRender(Layer* aRoot, const gfx::Matrix& aWorldTransform) = 0;
 };
 
 } 

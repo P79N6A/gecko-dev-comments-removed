@@ -110,6 +110,7 @@ class nsIntRegion;
 
 namespace mozilla {
 namespace gfx {
+class Matrix;
 class Matrix4x4;
 class DrawTarget;
 }
@@ -324,7 +325,7 @@ public:
 
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
                           const gfx::Rect* aClipRectIn,
-                          const gfxMatrix& aTransform,
+                          const gfx::Matrix& aTransform,
                           const gfx::Rect& aRenderBounds,
                           gfx::Rect* aClipRectOut = nullptr,
                           gfx::Rect* aRenderBoundsOut = nullptr) = 0;
@@ -339,7 +340,7 @@ public:
 
 
 
-  virtual void EndFrameForExternalComposition(const gfxMatrix& aTransform) = 0;
+  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) = 0;
 
   
 

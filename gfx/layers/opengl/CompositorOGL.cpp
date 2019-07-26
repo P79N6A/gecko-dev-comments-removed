@@ -770,7 +770,7 @@ CalculatePOTSize(const IntSize& aSize, GLContext* gl)
 void
 CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
                           const Rect *aClipRectIn,
-                          const gfxMatrix& aTransform,
+                          const gfx::Matrix& aTransform,
                           const Rect& aRenderBounds,
                           Rect *aClipRectOut,
                           Rect *aRenderBoundsOut)
@@ -783,11 +783,11 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   mVBOs.Reset();
 
   mFrameInProgress = true;
-  gfxRect rect;
+  gfx::Rect rect;
   if (mUseExternalSurfaceSize) {
-    rect = gfxRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
+    rect = gfx::Rect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
   } else {
-    rect = gfxRect(aRenderBounds.x, aRenderBounds.y, aRenderBounds.width, aRenderBounds.height);
+    rect = gfx::Rect(aRenderBounds.x, aRenderBounds.y, aRenderBounds.width, aRenderBounds.height);
     
     if (rect.width == 0 || rect.height == 0) {
       
@@ -795,13 +795,13 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
       
       nsIntRect intRect;
       mWidget->GetClientBounds(intRect);
-      rect = gfxRect(0, 0, intRect.width, intRect.height);
+      rect = gfx::Rect(0, 0, intRect.width, intRect.height);
     }
   }
 
   rect = aTransform.TransformBounds(rect);
   if (aRenderBoundsOut) {
-    *aRenderBoundsOut = Rect(rect.x, rect.y, rect.width, rect.height);
+    *aRenderBoundsOut = rect;
   }
 
   GLint width = rect.width;
@@ -834,7 +834,7 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
 
   mCurrentRenderTarget = CompositingRenderTargetOGL::RenderTargetForWindow(this,
                             IntSize(width, height),
-                            aTransform);
+                            ThebesMatrix(aTransform));
   mCurrentRenderTarget->BindRenderTarget();
 #ifdef DEBUG
   mWindowRenderTarget = mCurrentRenderTarget;
@@ -1427,7 +1427,7 @@ CompositorOGL::EndFrame()
 }
 
 void
-CompositorOGL::EndFrameForExternalComposition(const gfxMatrix& aTransform)
+CompositorOGL::EndFrameForExternalComposition(const gfx::Matrix& aTransform)
 {
   if (sDrawFPS) {
     if (!mFPS) {
@@ -1440,7 +1440,7 @@ CompositorOGL::EndFrameForExternalComposition(const gfxMatrix& aTransform)
   
   if (mTarget) {
     MakeCurrent();
-    CopyToTarget(mTarget, aTransform);
+    CopyToTarget(mTarget, ThebesMatrix(aTransform));
     mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
   }
 }

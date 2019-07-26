@@ -10,7 +10,6 @@
 #include "GLDefs.h"                     
 #include "Layers.h"
 #include "gfx3DMatrix.h"                
-#include "gfxMatrix.h"                  
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -162,8 +161,8 @@ public:
 
 
 
-  void SetWorldTransform(const gfxMatrix& aMatrix);
-  gfxMatrix& GetWorldTransform(void);
+  void SetWorldTransform(const gfx::Matrix& aMatrix);
+  gfx::Matrix& GetWorldTransform(void);
 
   
 
@@ -259,7 +258,7 @@ private:
 
   RefPtr<Compositor> mCompositor;
 
-  gfxMatrix mWorldMatrix;
+  gfx::Matrix mWorldMatrix;
 
   bool mInTransaction;
   bool mIsCompositorReady;
