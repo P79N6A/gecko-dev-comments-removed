@@ -1435,6 +1435,66 @@ PeerConnectionWrapper.prototype = {
   
 
 
+
+
+  getStats : function PCW_getStats(selector, onSuccess) {
+    var self = this;
+
+    this._pc.getStats(selector, function(stats) {
+      info(self + ": Got stats: " + JSON.stringify(stats));
+      self._last_stats = stats;
+      onSuccess(stats);
+    }, unexpectedCallbackAndFinish());
+  },
+
+  
+
+
+
+
+
+  checkStats : function PCW_checkStats(stats) {
+    function toNum(obj) {
+      return obj? obj : 0;
+    }
+    function numTracks(streams) {
+      var n = 0;
+      streams.forEach(function(stream) {
+          n += stream.getAudioTracks().length + stream.getVideoTracks().length;
+        });
+      return n;
+    }
+
+    
+    var counters = {};
+    for (var key in stats) {
+      if (stats.hasOwnProperty(key)) {
+        var res = stats[key];
+        counters[res.type] = toNum(counters[res.type]) + 1;
+      }
+    }
+    
+    var counters2 = {};
+    stats.forEach(function(res) {
+        counters2[res.type] = toNum(counters2[res.type]) + 1;
+      });
+    is(JSON.stringify(counters), JSON.stringify(counters2),
+       "Spec and MapClass variant of RTCStatsReport enumeration agree");
+    var nin = numTracks(this._pc.getRemoteStreams());
+    var nout = numTracks(this._pc.getLocalStreams());
+
+    
+    
+    ok(toNum(counters["inboundrtp"]) >= nin, "Have at least " + nin + " inboundrtp stat(s) *");
+
+    is(toNum(counters["outboundrtp"]), nout, "Have " + nout + " outboundrtp stat(s)");
+    ok(toNum(counters["localcandidate"]), "Have localcandidate stat(s)");
+    ok(toNum(counters["remotecandidate"]), "Have remotecandidate stat(s)");
+  },
+
+  
+
+
   close : function PCW_close() {
     
     
