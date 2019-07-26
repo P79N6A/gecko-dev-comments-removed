@@ -37,7 +37,7 @@ namespace mozilla {
 
 class ContainerState;
 
-FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, uint32_t aKey, 
+FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, uint32_t aKey,
                                                     Layer* aLayer, LayerState aLayerState, uint32_t aGeneration)
 
   : mParent(aParent)
@@ -71,7 +71,7 @@ FrameLayerBuilder::DisplayItemData::AddFrame(nsIFrame* aFrame)
 {
   mFrameList.AppendElement(aFrame);
 
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
   if (!array) {
     array = new nsTArray<DisplayItemData*>();
@@ -86,14 +86,14 @@ FrameLayerBuilder::DisplayItemData::RemoveFrame(nsIFrame* aFrame)
   DebugOnly<bool> result = mFrameList.RemoveElement(aFrame);
   NS_ASSERTION(result, "Can't remove a frame that wasn't added!");
 
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
   NS_ASSERTION(array, "Must be already stored on the frame!");
   array->RemoveElement(this);
 }
 
 void
-FrameLayerBuilder::DisplayItemData::UpdateContents(Layer* aLayer, LayerState aState, 
+FrameLayerBuilder::DisplayItemData::UpdateContents(Layer* aLayer, LayerState aState,
                                                    uint32_t aContainerLayerGeneration,
                                                    nsDisplayItem* aItem )
 {
@@ -124,7 +124,7 @@ FrameLayerBuilder::DisplayItemData::UpdateContents(Layer* aLayer, LayerState aSt
   }
 
   for (uint32_t i = 0; i < copy.Length(); i++) {
-    RemoveFrame(copy[i]); 
+    RemoveFrame(copy[i]);
   }
 }
 
@@ -136,14 +136,14 @@ FrameLayerBuilder::DisplayItemData::~DisplayItemData()
     if (frame == sDestroyedFrame) {
       continue;
     }
-    nsTArray<DisplayItemData*> *array = 
+    nsTArray<DisplayItemData*> *array =
       reinterpret_cast<nsTArray<DisplayItemData*>*>(frame->Properties().Get(LayerManagerDataProperty()));
     array->RemoveElement(this);
   }
 }
 
 void
-FrameLayerBuilder::DisplayItemData::GetFrameListChanges(nsDisplayItem* aOther, 
+FrameLayerBuilder::DisplayItemData::GetFrameListChanges(nsDisplayItem* aOther,
                                                         nsTArray<nsIFrame*>& aOut)
 {
   aOut = mFrameList;
@@ -160,7 +160,7 @@ FrameLayerBuilder::DisplayItemData::GetFrameListChanges(nsDisplayItem* aOther,
     }
   }
 
-  aOut.AppendElements(added); 
+  aOut.AppendElements(added);
 }
 
 
@@ -180,7 +180,7 @@ public:
   ~LayerManagerData() {
     MOZ_COUNT_DTOR(LayerManagerData);
   }
- 
+
 #ifdef DEBUG_DISPLAY_ITEM_DATA
   void Dump(const char *aPrefix = "") {
     printf_stderr("%sLayerManagerData %p\n", aPrefix, this);
@@ -585,8 +585,8 @@ protected:
 
 
 
-  already_AddRefed<ThebesLayer> CreateOrRecycleThebesLayer(const nsIFrame* aAnimatedGeometryRoot, 
-                                                           const nsIFrame *aReferenceFrame, 
+  already_AddRefed<ThebesLayer> CreateOrRecycleThebesLayer(const nsIFrame* aAnimatedGeometryRoot,
+                                                           const nsIFrame *aReferenceFrame,
                                                            const nsPoint& aTopLeft);
   
 
@@ -614,7 +614,7 @@ protected:
 
 
 
-  void InvalidateForLayerChange(nsDisplayItem* aItem, 
+  void InvalidateForLayerChange(nsDisplayItem* aItem,
                                 Layer* aNewLayer,
                                 const DisplayItemClip& aClip,
                                 const nsPoint& aTopLeft,
@@ -912,7 +912,7 @@ FrameLayerBuilder::FlashPaint(gfxContext *aContext)
 FrameLayerBuilder::DisplayItemData*
 FrameLayerBuilder::GetDisplayItemData(nsIFrame* aFrame, uint32_t aKey)
 {
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
   if (array) {
     for (uint32_t i = 0; i < array->Length(); i++) {
@@ -978,7 +978,7 @@ InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsIntRegion& aRegion,
 }
 
 static void
-InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsRect& aRect, 
+InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsRect& aRect,
                               const DisplayItemClip& aClip,
                               const nsIntPoint& aTranslation)
 {
@@ -995,7 +995,7 @@ InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsRect& aRect,
 static nsIntPoint
 GetTranslationForThebesLayer(ThebesLayer* aLayer)
 {
-  ThebesDisplayItemLayerUserData* data = 
+  ThebesDisplayItemLayerUserData* data =
     static_cast<ThebesDisplayItemLayerUserData*>
       (aLayer->GetUserData(&gThebesDisplayItemLayerUserData));
   NS_ASSERTION(data, "Must be a tracked thebes layer!");
@@ -1024,7 +1024,7 @@ FrameLayerBuilder::RemoveFrameFromLayerManager(nsIFrame* aFrame,
                                                void* aPropertyValue)
 {
   sDestroyedFrame = aFrame;
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aPropertyValue);
 
   
@@ -1145,8 +1145,8 @@ FrameLayerBuilder::ProcessRemovedDisplayItems(nsRefPtrHashKey<DisplayItemData>* 
   data->mIsInvalid = false;
   return PL_DHASH_NEXT;
 }
-  
- PLDHashOperator 
+
+ PLDHashOperator
 FrameLayerBuilder::DumpDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>* aEntry,
                                                void* aClosure)
 {
@@ -1155,7 +1155,7 @@ FrameLayerBuilder::DumpDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>*
 
   nsAutoCString prefix;
   prefix += static_cast<const char*>(aClosure);
-  
+
   const char *layerState;
   switch (data->mLayerState) {
     case LAYER_NONE:
@@ -1190,7 +1190,7 @@ FrameLayerBuilder::DumpDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>*
   str += "\n";
 
   printf_stderr("%s", str.get());
-    
+
   if (data->mInactiveManager) {
     prefix += "  ";
     printf_stderr("%sDumping inactive layer info:\n", prefix.get());
@@ -1203,10 +1203,10 @@ FrameLayerBuilder::DumpDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>*
 }
 
  FrameLayerBuilder::DisplayItemData*
-FrameLayerBuilder::GetDisplayItemDataForManager(nsDisplayItem* aItem, 
+FrameLayerBuilder::GetDisplayItemDataForManager(nsDisplayItem* aItem,
                                                 LayerManager* aManager)
 {
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aItem->Frame()->Properties().Get(LayerManagerDataProperty()));
   if (array) {
     for (uint32_t i = 0; i < array->Length(); i++) {
@@ -1223,7 +1223,7 @@ FrameLayerBuilder::GetDisplayItemDataForManager(nsDisplayItem* aItem,
 bool
 FrameLayerBuilder::HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey)
 {
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
   if (array) {
     for (uint32_t i = 0; i < array->Length(); i++) {
@@ -1238,12 +1238,12 @@ FrameLayerBuilder::HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey
 void
 FrameLayerBuilder::IterateRetainedDataFor(nsIFrame* aFrame, DisplayItemDataCallback aCallback)
 {
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
   if (!array) {
     return;
   }
-  
+
   for (uint32_t i = 0; i < array->Length(); i++) {
     DisplayItemData* data = array->ElementAt(i);
     if (data->mDisplayItemKey != nsDisplayItem::TYPE_ZERO) {
@@ -1269,8 +1269,8 @@ FrameLayerBuilder::GetOldLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKe
 }
 
 Layer*
-FrameLayerBuilder::GetOldLayerFor(nsDisplayItem* aItem, 
-                                  nsDisplayItemGeometry** aOldGeometry, 
+FrameLayerBuilder::GetOldLayerFor(nsDisplayItem* aItem,
+                                  nsDisplayItemGeometry** aOldGeometry,
                                   DisplayItemClip** aOldClip,
                                   nsTArray<nsIFrame*>* aChangedFrames,
                                   bool *aIsInvalid)
@@ -1296,12 +1296,12 @@ FrameLayerBuilder::GetOldLayerFor(nsDisplayItem* aItem,
   }
 
   return nullptr;
-} 
+}
 
  Layer*
 FrameLayerBuilder::GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey)
 {
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
 
   if (!array) {
@@ -1312,7 +1312,7 @@ FrameLayerBuilder::GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKe
     DisplayItemData *data = array->ElementAt(i);
 
     if (data->mDisplayItemKey == aDisplayItemKey) {
-      return data->mLayer; 
+      return data->mLayer;
     }
   }
   return nullptr;
@@ -1321,7 +1321,7 @@ FrameLayerBuilder::GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKe
 already_AddRefed<ColorLayer>
 ContainerState::CreateOrRecycleColorLayer(ThebesLayer *aThebes)
 {
-  ThebesDisplayItemLayerUserData* data = 
+  ThebesDisplayItemLayerUserData* data =
       static_cast<ThebesDisplayItemLayerUserData*>(aThebes->GetUserData(&gThebesDisplayItemLayerUserData));
   nsRefPtr<ColorLayer> layer = data->mColorLayer;
   if (layer) {
@@ -1334,7 +1334,7 @@ ContainerState::CreateOrRecycleColorLayer(ThebesLayer *aThebes)
     
     data->mColorLayer = layer;
     layer->SetUserData(&gColorLayerUserData, nullptr);
-    
+
     
     data->mImageLayer = nullptr;
   }
@@ -1344,7 +1344,7 @@ ContainerState::CreateOrRecycleColorLayer(ThebesLayer *aThebes)
 already_AddRefed<ImageLayer>
 ContainerState::CreateOrRecycleImageLayer(ThebesLayer *aThebes)
 {
-  ThebesDisplayItemLayerUserData* data = 
+  ThebesDisplayItemLayerUserData* data =
       static_cast<ThebesDisplayItemLayerUserData*>(aThebes->GetUserData(&gThebesDisplayItemLayerUserData));
   nsRefPtr<ImageLayer> layer = data->mImageLayer;
   if (layer) {
@@ -1379,7 +1379,7 @@ ContainerState::CreateOrRecycleMaskImageLayerFor(Layer* aLayer)
     result->SetUserData(&gMaskLayerUserData, new MaskLayerUserData());
     result->SetDisallowBigImage(true);
   }
-  
+
   return result.forget();
 }
 
@@ -2565,7 +2565,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 
 
       nsAutoPtr<nsDisplayItemGeometry> dummy;
-      mLayerBuilder->AddLayerDisplayItem(ownLayer, item, 
+      mLayerBuilder->AddLayerDisplayItem(ownLayer, item,
                                          itemClip, layerState,
                                          topLeft, nullptr,
                                          dummy);
@@ -2599,7 +2599,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 }
 
 void
-ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, 
+ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
                                          Layer* aNewLayer,
                                          const DisplayItemClip& aClip,
                                          const nsPoint& aTopLeft,
@@ -2641,7 +2641,7 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
     }
     aItem->NotifyRenderingChanged();
     return;
-  } 
+  }
   if (!aNewLayer) {
     return;
   }
@@ -2689,10 +2689,10 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
 
     
     combined.Or(combined, invalid);
- 
+
     for (uint32_t i = 0; i < changedFrames.Length(); i++) {
       combined.Or(combined, changedFrames[i]->GetVisualOverflowRect());
-    } 
+    }
 
     
     nsRegion clip;
@@ -2749,8 +2749,8 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayerData* aLayerData,
                                          &clip);
 
     if (hasClip) {
-      intClip = clip.GetBounds().ScaleToOutsidePixels(thebesData->mXScale, 
-                                                      thebesData->mYScale, 
+      intClip = clip.GetBounds().ScaleToOutsidePixels(thebesData->mXScale,
+                                                      thebesData->mYScale,
                                                       thebesData->mAppUnitsPerDevPixel);
     }
   }
@@ -2771,7 +2771,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayerData* aLayerData,
       if (mRetainingManager) {
         layerBuilder->DidBeginRetainedLayerTransaction(tempManager);
       }
-  
+
       nsAutoPtr<LayerProperties> props(LayerProperties::CloneFrom(tempManager->GetRoot()));
       nsRefPtr<Layer> tmpLayer =
         aItem->BuildLayer(mDisplayListBuilder, tempManager, ContainerLayerParameters());
@@ -2840,11 +2840,11 @@ FrameLayerBuilder::StoreDataForFrame(nsDisplayItem* aItem, Layer* aLayer, LayerS
     }
     return oldData;
   }
-  
+
   LayerManagerData* lmd = static_cast<LayerManagerData*>
     (mRetainingManager->GetUserData(&gLayerManagerUserData));
-  
-  nsRefPtr<DisplayItemData> data = 
+
+  nsRefPtr<DisplayItemData> data =
     new DisplayItemData(lmd, aItem->GetPerFrameKey(),
                         aLayer, aState, mContainerLayerGeneration);
 
@@ -2872,7 +2872,7 @@ FrameLayerBuilder::StoreDataForFrame(nsIFrame* aFrame,
     oldData->UpdateContents(aLayer, aState, mContainerLayerGeneration);
     return;
   }
-  
+
   LayerManagerData* lmd = static_cast<LayerManagerData*>
     (mRetainingManager->GetUserData(&gLayerManagerUserData));
 
@@ -2945,7 +2945,7 @@ bool
 FrameLayerBuilder::CheckInLayerTreeCompressionMode()
 {
   if (mInLayerTreeCompressionMode) {
-    return true; 
+    return true;
   }
 
   
@@ -2981,7 +2981,7 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData)
   while (!mThebesLayerDataStack.IsEmpty()) {
     PopThebesLayerData();
   }
-    
+
   uint32_t textContentFlags = 0;
 
   
@@ -2990,7 +2990,7 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData)
   for (uint32_t i = 0; i < mNewChildLayers.Length(); ++i) {
     Layer* prevChild = i == 0 ? nullptr : mNewChildLayers[i - 1].get();
     layer = mNewChildLayers[i];
-  
+
     if (!layer->GetVisibleRegion().IsEmpty()) {
       textContentFlags |= layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA;
     }
@@ -3274,7 +3274,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
       StoreDataForFrame(aContainerFrame, containerDisplayItemKey, containerLayer, LAYER_ACTIVE);
     }
   }
-  
+
   LayerManagerData* data = static_cast<LayerManagerData*>
     (aManager->GetUserData(&gLayerManagerUserData));
 
@@ -3291,7 +3291,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     ContainerState state(aBuilder, aManager, aManager->GetLayerBuilder(),
                          aContainerFrame, aContainerItem,
                          containerLayer, scaleParameters);
-    
+
     state.ProcessDisplayItems(aChildren, stateFlags);
 
     
@@ -3376,7 +3376,7 @@ FrameLayerBuilder::InvalidateAllLayers(LayerManager* aManager)
  void
 FrameLayerBuilder::InvalidateAllLayersForFrame(nsIFrame *aFrame)
 {
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
   if (array) {
     for (uint32_t i = 0; i < array->Length(); i++) {
@@ -3393,7 +3393,7 @@ FrameLayerBuilder::GetDedicatedLayer(nsIFrame* aFrame, uint32_t aDisplayItemKey)
   
   
 
-  nsTArray<DisplayItemData*> *array = 
+  nsTArray<DisplayItemData*> *array =
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
   if (array) {
     for (uint32_t i = 0; i < array->Length(); i++) {
@@ -3448,8 +3448,8 @@ FrameLayerBuilder::GetThebesLayerScaleForFrame(nsIFrame* aFrame)
       
       break;
     }
-  
-    nsTArray<DisplayItemData*> *array = 
+
+    nsTArray<DisplayItemData*> *array =
       reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
     if (!array) {
       continue;
