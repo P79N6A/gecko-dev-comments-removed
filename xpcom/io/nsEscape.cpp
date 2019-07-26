@@ -192,7 +192,7 @@ nsEscapeHTML(const char * string)
 {
     char *rv = nullptr;
     
-    uint32_t len = PL_strlen(string);
+    uint32_t len = strlen(string);
     if (len >= (UINT32_MAX / 6))
       return nullptr;
 

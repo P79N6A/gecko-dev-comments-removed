@@ -127,7 +127,7 @@ nsresult
 xptiInterfaceEntry::GetName(char **name)
 {
     
-    *name = (char*) nsMemory::Clone(mName, PL_strlen(mName)+1);
+    *name = (char*) nsMemory::Clone(mName, strlen(mName)+1);
     return *name ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 

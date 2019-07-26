@@ -203,7 +203,7 @@ nsresult nsReadConfig::readConfigFile()
     
     if (NS_SUCCEEDED(rv)) {
 
-        fileNameLen = PL_strlen(lockFileName);
+        fileNameLen = strlen(lockFileName);
     
         
         

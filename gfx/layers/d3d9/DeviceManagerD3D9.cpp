@@ -237,7 +237,7 @@ DeviceManagerD3D9::Init()
     return false;
   }
 
-  if (!PL_strncasecmp(ident.Driver, "nvumdshim.dll", PL_strlen(ident.Driver))) {
+  if (!PL_strncasecmp(ident.Driver, "nvumdshim.dll", strlen(ident.Driver))) {
     
     
     return false;

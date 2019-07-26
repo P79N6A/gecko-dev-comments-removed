@@ -204,7 +204,7 @@ ReadLine( const char* & nextLineStart,  nsCString & line,
     const char* eol = PL_strpbrk(nextLineStart, "\r\n");
 
     if (!eol) { 
-      eol = nextLineStart + PL_strlen(nextLineStart);
+      eol = nextLineStart + strlen(nextLineStart);
     }
 
     line.Append(nextLineStart, eol - nextLineStart);

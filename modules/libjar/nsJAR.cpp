@@ -455,7 +455,7 @@ nsJAR::ReadLine(const char** src)
 
   if (eol == nullptr) 
   {
-    length = PL_strlen(*src);
+    length = strlen(*src);
     if (length == 0) 
       *src = nullptr;
     else             

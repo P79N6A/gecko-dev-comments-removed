@@ -61,7 +61,7 @@ static void SearchForSoname(const char* name, char** soname)
     if (!fdDir)
         return;       
 
-    int n = PL_strlen(name);
+    int n = strlen(name);
     PRDirEntry *dirEntry;
     while ((dirEntry = PR_ReadDir(fdDir, PR_SKIP_BOTH))) {
         if (!PL_strncmp(dirEntry->name, name, n)) {
@@ -175,7 +175,7 @@ static void LoadExtraSharedLibs()
                     
                     p = soname ? soname : arrayOfLibs[i];
                     int n = PLUGIN_MAX_LEN_OF_TMP_ARR -
-                        (PL_strlen(sonameListToSave) + PL_strlen(p));
+                        (strlen(sonameListToSave) + strlen(p));
                     if (n > 0) {
                         PL_strcat(sonameListToSave, p);
                         PL_strcat(sonameListToSave,":");
@@ -184,13 +184,13 @@ static void LoadExtraSharedLibs()
                         PL_strfree(soname); 
                     }
                     if (numOfLibs > 1)
-                        arrayOfLibs[i][PL_strlen(arrayOfLibs[i])] = ':'; 
+                        arrayOfLibs[i][strlen(arrayOfLibs[i])] = ':'; 
                 }
             }
 
             
             if (sonameListToSave[0]) 
-                for (p = &sonameListToSave[PL_strlen(sonameListToSave) - 1]; *p == ':'; p--)
+                for (p = &sonameListToSave[strlen(sonameListToSave) - 1]; *p == ':'; p--)
                     *p = 0; 
 
             if (!prefSonameListIsSet || PL_strcmp(sonameList, sonameListToSave)) {
