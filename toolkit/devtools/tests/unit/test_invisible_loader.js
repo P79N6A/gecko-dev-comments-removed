@@ -1,8 +1,6 @@
 
 
 
-const { DevToolsLoader } =
-  Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 Cu.import("resource://gre/modules/jsdebugger.jsm");
 addDebuggerToGlobal(this);
 

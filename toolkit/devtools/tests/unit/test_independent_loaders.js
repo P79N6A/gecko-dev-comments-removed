@@ -1,9 +1,6 @@
 
 
 
-const { DevToolsLoader } =
-  Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-
 
 
 
