@@ -161,7 +161,6 @@ public:
 
 
 
-
   virtual void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
                                         TrackRate aTrackRate,
                                         TrackTicks aTrackOffset,
@@ -303,20 +302,23 @@ public:
   
   
   
-  virtual void AddAudioOutput(void* aKey);
-  virtual void SetAudioOutputVolume(void* aKey, float aVolume);
-  virtual void RemoveAudioOutput(void* aKey);
+  void AddAudioOutput(void* aKey);
+  void SetAudioOutputVolume(void* aKey, float aVolume);
+  void RemoveAudioOutput(void* aKey);
   
   
   
-  virtual void AddVideoOutput(VideoFrameContainer* aContainer);
-  virtual void RemoveVideoOutput(VideoFrameContainer* aContainer);
+  void AddVideoOutput(VideoFrameContainer* aContainer);
+  void RemoveVideoOutput(VideoFrameContainer* aContainer);
   
   
-  virtual void ChangeExplicitBlockerCount(int32_t aDelta);
+  void ChangeExplicitBlockerCount(int32_t aDelta);
   
-  virtual void AddListener(MediaStreamListener* aListener);
-  virtual void RemoveListener(MediaStreamListener* aListener);
+  void AddListener(MediaStreamListener* aListener);
+  void RemoveListener(MediaStreamListener* aListener);
+  
+  
+  void SetTrackEnabled(TrackID aTrackID, bool aEnabled);
   
   
   void AddMainThreadListener(MainThreadMediaStreamListener* aListener)
@@ -393,6 +395,7 @@ public:
   void AddListenerImpl(already_AddRefed<MediaStreamListener> aListener);
   void RemoveListenerImpl(MediaStreamListener* aListener);
   void RemoveAllListenersImpl();
+  void SetTrackEnabledImpl(TrackID aTrackID, bool aEnabled);
 
   void AddConsumer(MediaInputPort* aPort)
   {
@@ -426,6 +429,8 @@ public:
   void FinishOnGraphThread();
 
   bool HasCurrentData() { return mHasCurrentData; }
+
+  void ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment);
 
   DOMMediaStream* GetWrapper()
   {
@@ -472,6 +477,7 @@ protected:
   TimeVarying<GraphTime,uint32_t,0> mExplicitBlockerCount;
   nsTArray<nsRefPtr<MediaStreamListener> > mListeners;
   nsTArray<MainThreadMediaStreamListener*> mMainThreadListeners;
+  nsTArray<TrackID> mDisabledTrackIDs;
 
   
   
