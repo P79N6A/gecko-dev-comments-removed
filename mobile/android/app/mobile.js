@@ -584,6 +584,8 @@ pref("image.mem.min_discard_timeout_ms", 10000);
 #ifdef NIGHTLY_BUILD
 
 pref("shumway.disabled", true);
+
+pref("dom.sysmsg.enabled", true);
 #endif
 
 
