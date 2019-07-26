@@ -4,10 +4,10 @@
 
 
 #include "mozilla/dom/HTMLBRElement.h"
+#include "mozilla/dom/HTMLBRElementBinding.h"
 #include "mozilla/Util.h"
 
 #include "nsAttrValueInlines.h"
-#include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
@@ -23,6 +23,7 @@ namespace dom {
 HTMLBRElement::HTMLBRElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
+  SetIsDOMBinding();
 }
 
 HTMLBRElement::~HTMLBRElement()
@@ -104,6 +105,13 @@ nsMapRuleToAttributesFunc
 HTMLBRElement::GetAttributeMappingFunction() const
 {
   return &MapAttributesIntoRule;
+}
+
+JSObject*
+HTMLBRElement::WrapNode(JSContext *aCx, JSObject *aScope,
+                        bool* aTriedToWrap)
+{
+  return HTMLBRElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
