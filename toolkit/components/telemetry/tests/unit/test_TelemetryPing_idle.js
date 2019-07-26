@@ -3,7 +3,10 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/TelemetryPing.jsm");
 
 function run_test() {
   do_test_pending();
@@ -13,7 +16,5 @@ function run_test() {
     do_test_finished();
   }, "gather-telemetry", false);
 
-  Components.classes["@mozilla.org/base/telemetry-ping;1"]
-    .getService(Components.interfaces.nsITelemetryPing)
-    .observe(null, "idle-daily", null);
+  TelemetryPing.observe(null, "idle-daily", null);
 }
