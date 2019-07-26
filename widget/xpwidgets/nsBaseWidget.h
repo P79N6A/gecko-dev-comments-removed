@@ -363,6 +363,11 @@ protected:
 
   virtual mozilla::layers::LayersBackend GetPreferredCompositorBackend();
 
+  
+
+
+  virtual void WindowUsesOMTC() {}
+
 protected:
   
 
