@@ -214,7 +214,7 @@ let UI = {
       });
 
       
-      gWindow.addEventListener("SSWindowClosing", function onWindowClosing() {
+      let onWindowClosing = function () {
         gWindow.removeEventListener("SSWindowClosing", onWindowClosing, false);
 
         
@@ -226,7 +226,12 @@ let UI = {
         TabItems.saveAll();
 
         self._save();
-      }, false);
+      };
+
+      gWindow.addEventListener("SSWindowClosing", onWindowClosing);
+      this._cleanupFunctions.push(function () {
+        gWindow.removeEventListener("SSWindowClosing", onWindowClosing);
+      });
 
       
       let frameScript = "chrome://browser/content/tabview-content.js";
