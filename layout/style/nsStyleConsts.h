@@ -555,6 +555,10 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_MATHML_MATHVARIANT_STRETCHED               18
 
 
+#define NS_MATHML_DISPLAYSTYLE_INLINE           0
+#define NS_MATHML_DISPLAYSTYLE_BLOCK            1
+
+
 #define NS_STYLE_WIDTH_MAX_CONTENT              0
 #define NS_STYLE_WIDTH_MIN_CONTENT              1
 #define NS_STYLE_WIDTH_FIT_CONTENT              2

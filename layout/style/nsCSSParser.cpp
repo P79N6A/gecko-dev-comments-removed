@@ -7934,7 +7934,10 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
   
   
   
-  if (aPropID == eCSSProperty_script_level && !mUnsafeRulesEnabled)
+  
+  if (!mUnsafeRulesEnabled &&
+      (aPropID == eCSSProperty_script_level ||
+       aPropID == eCSSProperty_math_display))
     return false;
 
   const int32_t *kwtable = nsCSSProps::kKeywordTableTable[aPropID];

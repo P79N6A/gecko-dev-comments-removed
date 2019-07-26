@@ -1861,7 +1861,8 @@ AreAllMathMLPropertiesUndefined(const nsRuleData* aRuleData)
     aRuleData->ValueForScriptLevel()->GetUnit() == eCSSUnit_Null &&
     aRuleData->ValueForScriptSizeMultiplier()->GetUnit() == eCSSUnit_Null &&
     aRuleData->ValueForScriptMinSize()->GetUnit() == eCSSUnit_Null &&
-    aRuleData->ValueForMathVariant()->GetUnit() == eCSSUnit_Null;
+    aRuleData->ValueForMathVariant()->GetUnit() == eCSSUnit_Null &&
+    aRuleData->ValueForMathDisplay()->GetUnit() == eCSSUnit_Null;
 }
 #endif
 
@@ -1917,7 +1918,7 @@ nsRuleNode::CheckSpecifiedProperties(const nsStyleStructID aSID,
            
            
            
-           || (aSID == eStyleStruct_Font && specified + 4 == total &&
+           || (aSID == eStyleStruct_Font && specified + 5 == total &&
                !mPresContext->Document()->GetMathMLEnabled())
           ) {
     if (inherited == 0)
@@ -3340,6 +3341,13 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
               0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForMathDisplay(), aFont->mMathDisplay,
+              aCanStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
+              aParentFont->mMathDisplay, NS_MATHML_DISPLAYSTYLE_INLINE,
+              0, 0, 0, 0);
+
+  
   SetDiscrete(*aRuleData->ValueForOSXFontSmoothing(),
               aFont->mFont.smoothing, aCanStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
@@ -3448,11 +3456,19 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   const nsCSSValue* scriptLevelValue = aRuleData->ValueForScriptLevel();
   if (eCSSUnit_Integer == scriptLevelValue->GetUnit()) {
     
+    aCanStoreInRuleTree = false;
     aFont->mScriptLevel = ClampTo8Bit(aParentFont->mScriptLevel + scriptLevelValue->GetIntValue());
   }
   else if (eCSSUnit_Number == scriptLevelValue->GetUnit()) {
     
     aFont->mScriptLevel = ClampTo8Bit(int32_t(scriptLevelValue->GetFloatValue()));
+  }
+  else if (eCSSUnit_Auto == scriptLevelValue->GetUnit()) {
+    
+    aCanStoreInRuleTree = false;
+    aFont->mScriptLevel = ClampTo8Bit(aParentFont->mScriptLevel +
+                                      (aParentFont->mMathDisplay ==
+                                       NS_MATHML_DISPLAYSTYLE_INLINE ? 1 : 0));
   }
   else if (eCSSUnit_Inherit == scriptLevelValue->GetUnit() ||
            eCSSUnit_Unset == scriptLevelValue->GetUnit()) {

@@ -3358,7 +3358,8 @@ CSS_PROP_FONT(
     "",
     
     
-    VARIANT_HI,
+    
+    VARIANT_AHI,
     nullptr,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -3392,6 +3393,18 @@ CSS_PROP_FONT(
     "",
     VARIANT_HK,
     kMathVariantKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_FONT(
+    -moz-math-display,
+    math_display,
+    MathDisplay,
+    
+    
+    CSS_PROPERTY_PARSE_VALUE,
+    "",
+    VARIANT_HK,
+    kMathDisplayKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 #endif 
