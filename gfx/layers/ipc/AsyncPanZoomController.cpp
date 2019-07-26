@@ -1348,72 +1348,79 @@ void AsyncPanZoomController::ZoomToRect(const gfxRect& aRect) {
     gfx::Rect cssPageRect = mFrameMetrics.mScrollableRect;
     gfx::Point scrollOffset = mFrameMetrics.mScrollOffset;
     gfxSize resolution = CalculateResolution(mFrameMetrics);
+    gfxSize currentZoom = mFrameMetrics.mZoom;
+    float targetZoom;
+    gfxFloat targetResolution;
 
     
     
-    if (zoomToRect.IsEmpty()) {
+    
+    
+    
+    float localMinZoom;
+    gfx::Rect compositedRect = CalculateCompositedRectInCssPixels(mFrameMetrics);
+    localMinZoom =
+      std::max(currentZoom.width / (cssPageRect.width / compositedRect.width),
+               currentZoom.height / (cssPageRect.height / compositedRect.height));
+    localMinZoom = std::max(localMinZoom, mMinZoom);
+
+    if (!zoomToRect.IsEmpty()) {
       
-      nsIntRect cssCompositionBounds = compositionBounds;
-      cssCompositionBounds.ScaleInverseRoundIn(resolution.width,
-                                               resolution.height);
-      cssCompositionBounds.MoveBy(scrollOffset.x, scrollOffset.y);
-
-      float y = mFrameMetrics.mScrollOffset.y;
-      float newHeight =
-        cssCompositionBounds.height * cssPageRect.width / cssCompositionBounds.width;
-      float dh = cssCompositionBounds.height - newHeight;
-
-      zoomToRect = gfx::Rect(0.0f,
-                             y + dh/2,
-                             cssPageRect.width,
-                             y + dh/2 + newHeight);
-    }
-
-    gfxFloat targetResolution =
-      std::min(compositionBounds.width / zoomToRect.width,
-             compositionBounds.height / zoomToRect.height);
-
-    
-    zoomToRect.width = compositionBounds.width / targetResolution;
-    zoomToRect.height = compositionBounds.height / targetResolution;
-
-    
-    zoomToRect = zoomToRect.Intersect(cssPageRect);
-
-    
-    targetResolution = std::max(compositionBounds.width / zoomToRect.width,
-                              compositionBounds.height / zoomToRect.height);
-    float targetZoom = float(targetResolution / resolution.width) * mFrameMetrics.mZoom.width;
-
-    
-    
-    if (mFrameMetrics.mZoom.width == mMaxZoom && targetZoom >= mMaxZoom) {
-      nsIntRect cssCompositionBounds = compositionBounds;
-      cssCompositionBounds.ScaleInverseRoundIn(resolution.width,
-                                               resolution.height);
-      cssCompositionBounds.MoveBy(scrollOffset.x, scrollOffset.y);
-
-      float y = mFrameMetrics.mScrollOffset.y;
-      float newHeight =
-        cssCompositionBounds.height * cssPageRect.width / cssCompositionBounds.width;
-      float dh = cssCompositionBounds.height - newHeight;
-
-      zoomToRect = gfx::Rect(0.0f,
-                             y + dh/2,
-                             cssPageRect.width,
-                             y + dh/2 + newHeight);
-
       zoomToRect = zoomToRect.Intersect(cssPageRect);
-      
-      targetZoom = 1;
+      targetResolution =
+        std::min(compositionBounds.width / zoomToRect.width,
+                 compositionBounds.height / zoomToRect.height);
+      targetZoom = float(targetResolution / resolution.width) * currentZoom.width;
+    }
+    
+    
+    
+    
+    if (zoomToRect.IsEmpty() ||
+        (currentZoom.width == mMaxZoom && targetZoom >= mMaxZoom) ||
+        (currentZoom.width == localMinZoom && targetZoom <= localMinZoom)) {
+      nsIntRect cssCompositionBounds = compositionBounds;
+      cssCompositionBounds.ScaleInverseRoundIn(resolution.width,
+                                               resolution.height);
+
+      float y = scrollOffset.y;
+      float newHeight =
+        cssCompositionBounds.height * cssPageRect.width / cssCompositionBounds.width;
+      float dh = cssCompositionBounds.height - newHeight;
+
+      zoomToRect = gfx::Rect(0.0f,
+                             y + dh/2,
+                             cssPageRect.width,
+                             newHeight);
+      zoomToRect = zoomToRect.Intersect(cssPageRect);
+      targetResolution =
+        std::min(compositionBounds.width / zoomToRect.width,
+                 compositionBounds.height / zoomToRect.height);
+      targetZoom = float(targetResolution / resolution.width) * currentZoom.width;
     }
 
-    gfxFloat targetFinalZoom = clamped(targetZoom, mMinZoom, mMaxZoom);
-    mEndZoomToMetrics.mZoom = gfxSize(targetFinalZoom, targetFinalZoom);
+    targetZoom = clamped(targetZoom, localMinZoom, mMaxZoom);
+    mEndZoomToMetrics.mZoom = gfxSize(targetZoom, targetZoom);
+
+    
+    FrameMetrics metricsAfterZoom = mFrameMetrics;
+    metricsAfterZoom.mZoom = mEndZoomToMetrics.mZoom;
+    gfx::Rect rectAfterZoom
+      = CalculateCompositedRectInCssPixels(metricsAfterZoom);
+
+    
+    
+    if (zoomToRect.y + rectAfterZoom.height > cssPageRect.height) {
+      zoomToRect.y = cssPageRect.height - rectAfterZoom.height;
+      zoomToRect.y = zoomToRect.y > 0 ? zoomToRect.y : 0;
+    }
+    if (zoomToRect.x + rectAfterZoom.width > cssPageRect.width) {
+      zoomToRect.x = cssPageRect.width - rectAfterZoom.width;
+      zoomToRect.x = zoomToRect.x > 0 ? zoomToRect.x : 0;
+    }
 
     mStartZoomToMetrics = mFrameMetrics;
-    mEndZoomToMetrics.mScrollOffset =
-      gfx::Point(zoomToRect.x, zoomToRect.y);
+    mEndZoomToMetrics.mScrollOffset = gfx::Point(zoomToRect.x, zoomToRect.y);
 
     mAnimationStartTime = TimeStamp::Now();
 
