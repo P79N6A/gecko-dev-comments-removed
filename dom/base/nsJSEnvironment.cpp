@@ -3342,7 +3342,6 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       if (ShouldTriggerCC(nsCycleCollector_suspectedCount())) {
         
         
-        MOZ_ASSERT(!sCCLockedOut);
         return;
       }
     } else {
@@ -3355,10 +3354,6 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       
       FireForgetSkippable(suspected, false);
   }
-
-  
-  
-  MOZ_ASSERT(!sCCLockedOut);
 
   if (isLateTimerFire) {
     ccDelay = NS_CC_DELAY;
