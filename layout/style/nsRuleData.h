@@ -25,7 +25,7 @@ struct nsRuleData
   const uint32_t mSIDs;
   bool mCanStoreInRuleTree;
   bool mIsImportantRule;
-  uint8_t mLevel; 
+  uint16_t mLevel; 
   nsPresContext* const mPresContext;
   nsStyleContext* const mStyleContext;
   const nsPostResolveFunc mPostResolveCallback;

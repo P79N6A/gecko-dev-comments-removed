@@ -378,7 +378,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     
     rv = doc->CSSLoader()->
       LoadInlineStyle(thisContent, text, mLineNumber, title, media,
-                      aObserver, &doneLoading, &isAlternate);
+                      scopeElement, aObserver, &doneLoading, &isAlternate);
   }
   else {
     

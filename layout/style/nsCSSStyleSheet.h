@@ -10,6 +10,7 @@
 #define nsCSSStyleSheet_h_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/Element.h"
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
@@ -247,6 +248,12 @@ public:
   
   mozilla::CORSMode GetCORSMode() const { return mInner->mCORSMode; }
 
+  mozilla::dom::Element* GetScopeElement() const { return mScopeElement; }
+  void SetScopeElement(mozilla::dom::Element* aScopeElement)
+  {
+    mScopeElement = aScopeElement;
+  }
+
 private:
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy,
                   nsCSSStyleSheet* aParentToUse,
@@ -297,6 +304,7 @@ protected:
   nsIDOMNode*           mOwningNode; 
   bool                  mDisabled;
   bool                  mDirty; 
+  nsRefPtr<mozilla::dom::Element> mScopeElement;
 
   nsCSSStyleSheetInner* mInner;
 
