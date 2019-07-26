@@ -357,8 +357,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
 
       
       
-      
-      boundingMetrics.width = bmBase.width + italicCorrection;
+      boundingMetrics.width = bmBase.width;
       boundingMetrics.rightBearing = bmBase.rightBearing;
       boundingMetrics.leftBearing = bmBase.leftBearing; 
     } else {
@@ -425,9 +424,10 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
 
         if (bmSupScript.width)
           width = std::max(width, bmSupScript.width + aScriptSpace);
-        rightBearing = std::max(rightBearing, bmSupScript.rightBearing);
 
         if (!prescriptsFrame) { 
+          rightBearing = std::max(rightBearing,
+                                  italicCorrection + bmSupScript.rightBearing);
           boundingMetrics.rightBearing = boundingMetrics.width + rightBearing;
           boundingMetrics.width += width;
         } else {
@@ -570,7 +570,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
                                                baseSize.Width(),
                                                dx),
                            dy, 0);
-        dx += bmBase.width + italicCorrection;
+        dx += bmBase.width;
       } else if (prescriptsFrame != childFrame) {
         
         if (0 == count) {
@@ -608,8 +608,12 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
 
           if (supScriptFrame) {
             nscoord x = dx;
-            if (isPreScript)
+            if (isPreScript) {
               x += width - supScriptSize.Width();
+            } else {
+              
+              x += italicCorrection;
+            }
             dy = aDesiredSize.TopAscent() - supScriptSize.TopAscent() -
               maxSupScriptShift;
             FinishReflowChild (supScriptFrame, aPresContext, supScriptSize,
