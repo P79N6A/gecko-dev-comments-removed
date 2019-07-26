@@ -50,6 +50,7 @@ struct MSGResult;
 
 class nsTextStore MOZ_FINAL : public ITextStoreACP,
                               public ITfContextOwnerCompositionSink,
+                              public ITfActiveLanguageProfileNotifySink,
                               public ITfInputProcessorProfileActivationSink
 {
 public: 
@@ -94,6 +95,10 @@ public:
   STDMETHODIMP OnStartComposition(ITfCompositionView*, BOOL*);
   STDMETHODIMP OnUpdateComposition(ITfCompositionView*, ITfRange*);
   STDMETHODIMP OnEndComposition(ITfCompositionView*);
+
+public: 
+  STDMETHODIMP OnActivated(REFCLSID clsid, REFGUID guidProfile,
+                           BOOL fActivated);
 
 public: 
   STDMETHODIMP OnActivated(DWORD, LANGID, REFCLSID, REFGUID, REFGUID,
@@ -195,8 +200,10 @@ public:
 
   static bool     IsIMM_IME()
   {
-    return sTsfTextStore ? sTsfTextStore->mIsIMM_IME :
-                           IsIMM_IME(::GetKeyboardLayout(0));
+    if (!sTsfTextStore || !sTsfTextStore->EnsureInitActiveTIPKeyboard()) {
+      return IsIMM_IME(::GetKeyboardLayout(0));
+    }
+    return sTsfTextStore->mIsIMM_IME;
   }
 
   static bool     IsIMM_IME(HKL aHKL)
@@ -213,8 +220,15 @@ protected:
   nsTextStore();
   ~nsTextStore();
 
+  bool Init(ITfThreadMgr* aThreadMgr);
+
   static void MarkContextAsKeyboardDisabled(ITfContext* aContext);
   static void MarkContextAsEmpty(ITfContext* aContext);
+
+  static bool IsTIPCategoryKeyboard(REFCLSID aTextService, LANGID aLangID,
+                                    REFGUID aProfile);
+  static void GetTIPDescription(REFCLSID aTextService, LANGID aLangID,
+                                REFGUID aProfile, nsAString& aDescription);
 
   bool     Create(nsWindowBase* aWidget);
   bool     Destroy(void);
@@ -273,6 +287,8 @@ protected:
   
   void     CreateNativeCaret();
 
+  bool     EnsureInitActiveTIPKeyboard();
+
   
   nsRefPtr<nsWindowBase>       mWidget;
   
@@ -281,6 +297,8 @@ protected:
   DWORD                        mEditCookie;
   
   DWORD                        mIPProfileCookie;
+  
+  DWORD                        mLangProfileCookie;
   
   nsRefPtr<ITfContext>         mContext;
   
@@ -291,6 +309,9 @@ protected:
   DWORD                        mLock;
   
   DWORD                        mLockQueued;
+  
+  
+  nsString                     mActiveTIPKeyboardDescription;
 
   class Composition MOZ_FINAL
   {
@@ -656,7 +677,9 @@ protected:
   bool                         mNativeCaretIsCreated;
 
   
-  bool mIsIMM_IME;
+  bool                         mIsIMM_IME;
+  
+  bool                         mOnActivatedCalled;
 
   
   static ITfThreadMgr*  sTsfThreadMgr;
@@ -681,6 +704,9 @@ protected:
   static ITfContext* sTsfDisabledContext;
 
   static ITfInputProcessorProfiles* sInputProcessorProfiles;
+
+  
+  static bool sCreateNativeCaretForATOK;
 
   
   
