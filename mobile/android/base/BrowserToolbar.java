@@ -387,6 +387,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 }
 
                 if (keyCode == KeyEvent.KEYCODE_BACK) {
+                    
                     clearFocus();
                     return true;
                 }
