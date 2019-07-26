@@ -61,7 +61,8 @@ function activateTab(tab, window) {
 exports.activateTab = activateTab;
 
 function getTabBrowser(window) {
-  return window.gBrowser;
+  
+  return window.gBrowser || window.getBrowser();
 }
 exports.getTabBrowser = getTabBrowser;
 
@@ -240,62 +241,9 @@ exports.getAllTabContentWindows = getAllTabContentWindows;
 
 
 function getTabForContentWindow(window) {
-  
-  
-  let browser;
-  try {
-    browser = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIWebNavigation)
-                    .QueryInterface(Ci.nsIDocShell)
-                    .chromeEventHandler;
-  } catch(e) {
-    
-    
-  }
-
-  
-  if (!browser) {
-    return null;
-  }
-
-  
-  let chromeWindow = browser.ownerDocument.defaultView;
-
-  
-  
-  
-  if ('gBrowser' in chromeWindow && chromeWindow.gBrowser &&
-      'browsers' in chromeWindow.gBrowser) {
-    
-    
-    let browsers = chromeWindow.gBrowser.browsers;
-    let i = browsers.indexOf(browser);
-    if (i !== -1)
-      return chromeWindow.gBrowser.tabs[i];
-    return null;
-  }
-  
-  else if ('BrowserApp' in chromeWindow) {
-    return getTabForWindow(window);
-  }
-
-  return null;
+  return getTabs().find(tab => getTabContentWindow(tab) === window.top) || null;
 }
 exports.getTabForContentWindow = getTabForContentWindow;
-
-
-function getTabForWindow(window) {
-  for each (let { BrowserApp } in getWindows()) {
-    if (!BrowserApp)
-      continue;
-
-    for each (let tab in BrowserApp.tabs) {
-      if (tab.browser.contentWindow == window.top)
-        return tab;
-    }
-  }
-  return null;
-}
 
 function getTabURL(tab) {
   if (tab.browser) 

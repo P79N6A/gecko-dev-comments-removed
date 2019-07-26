@@ -540,3 +540,6 @@ exports.testFork = function (assert) {
 after(exports, cleanUp);
 
 require("test").run(exports);
+
+
+module.exports = {};

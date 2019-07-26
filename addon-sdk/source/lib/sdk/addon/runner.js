@@ -12,11 +12,12 @@ const { once } = require('../system/events');
 const { exit, env, staticArgs } = require('../system');
 const { when: unload } = require('../system/unload');
 const { loadReason } = require('../self');
-const { rootURI, metadata: { preferences } } = require("@loader/options");
+const { rootURI, metadata } = require("@loader/options");
 const globals = require('../system/globals');
 const xulApp = require('../system/xul-app');
 const appShellService = Cc['@mozilla.org/appshell/appShellService;1'].
                         getService(Ci.nsIAppShellService);
+const { preferences } = metadata;
 
 const NAME2TOPIC = {
   'Firefox': 'sessionstore-windows-restored',
@@ -134,11 +135,11 @@ function run(options) {
     if (preferences && preferences.length > 0) {
       try {
         require('../preferences/native-options').enable(preferences);
-      } 
-      catch (error) {
-        console.exception(error); 
       }
-    } 
+      catch (error) {
+        console.exception(error);
+      }
+    }
     else {
       
       
@@ -158,7 +159,7 @@ function run(options) {
         
         try {
           setDefaultPrefs(options.prefsURI);
-        } 
+        }
         catch (err) {
           
         }

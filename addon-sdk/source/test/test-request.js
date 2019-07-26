@@ -43,6 +43,23 @@ exports.testOptionsValidator = function(assert) {
   }, /The option "url" is invalid/);
   
   assert.equal(req.url, "http://playground.zpao.com/jetpack/request/text.php");
+
+  
+  assert.equal(req.anonymous, false);
+  
+  req = Request({
+    url: "http://playground.zpao.com/jetpack/request/text.php",
+    anonymous: true,
+    onComplete: function () {}
+  });
+  assert.equal(req.anonymous, true);
+  
+  assert.throws(function() {
+    Request({
+      url: "http://playground.zpao.com/jetpack/request/text.php",
+      anonymous: "invalidvalue"
+    });
+  }, /The option "anonymous" must be one of the following types/);
 };
 
 exports.testContentValidator = function(assert, done) {
@@ -180,6 +197,60 @@ exports.test3rdPartyCookies = function (assert, done) {
         }
       }).get();
     }
+  }).get();
+};
+
+
+exports.testAnonymousRequest = function(assert, done) {
+  let srv = startServerAsync(port, basePath);
+  let basename = "test-anonymous-request.sjs";
+  let testUrl = "http://localhost:" + port + "/" + basename;
+  
+  let content = function handleRequest(request, response) {
+    
+    response.setHeader("Set-Cookie", "anonymousKey=anonymousValue;", "true");
+    
+    response.setHeader("Content-Type", "application/json");
+    
+    var cookiePresent = request.hasHeader("Cookie");
+    
+    response.write(JSON.stringify({ "hasCookie": cookiePresent }));
+  }.toString();
+  prepareFile(basename, content);
+  
+  var checkCookieCreated = function (response) {
+    
+    assert.equal(response.headers['Set-Cookie'], 'anonymousKey=anonymousValue;');
+    
+    Request({
+      url: testUrl,
+      onComplete: checkCookieSend
+    }).get();
+  },
+  checkCookieSend = function (response) {
+    
+    assert.equal(response.anonymous, false);
+    
+    assert.equal(response.json.hasCookie, true);
+    
+    Request({
+      url: testUrl,
+      anonymous: true,
+      onComplete: checkCookieNotSend
+    }).get();
+  },
+  checkCookieNotSend = function (response) {
+    
+    assert.equal(response.anonymous, true);
+    
+    assert.equal(response.json.hasCookie, false);
+    
+    srv.stop(done);
+  };
+  
+  Request({
+    url: testUrl,
+    onComplete: checkCookieCreated
   }).get();
 };
 

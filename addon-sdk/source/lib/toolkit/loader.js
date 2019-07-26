@@ -384,13 +384,12 @@ exports.resolve = resolve;
 
 
 
-const nodeResolve = iced(function nodeResolve(id, requirer, { manifest, rootURI }) {
+const nodeResolve = iced(function nodeResolve(id, requirer, { rootURI }) {
   
   id = exports.resolve(id, requirer);
 
   
   
-
   let fullId = join(rootURI, id);
 
   let resolvedPath;
@@ -400,7 +399,7 @@ const nodeResolve = iced(function nodeResolve(id, requirer, { manifest, rootURI 
     return stripBase(rootURI, resolvedPath);
   
   
-  else if (manifest.dependencies) {
+  else {
     let dirs = getNodeModulePaths(dirname(join(rootURI, requirer))).map(dir => join(dir, id));
     for (let i = 0; i < dirs.length; i++) {
       if (resolvedPath = loadAsFile(dirs[i]))
@@ -533,7 +532,6 @@ const Require = iced(function Require(loader, requirer) {
 
     
     
-
     if (isNative) {
       
       
@@ -693,7 +691,8 @@ const Loader = iced(function Loader(options) {
   });
 
   let {
-    modules, globals, resolve, paths, rootURI, manifest, requireMap, isNative
+    modules, globals, resolve, paths, rootURI,
+    manifest, requireMap, isNative, metadata
   } = override({
     paths: {},
     modules: {},
@@ -748,6 +747,7 @@ const Loader = iced(function Loader(options) {
     mapping: { enumerable: false, value: mapping },
     
     modules: { enumerable: false, value: modules },
+    metadata: { enumerable: false, value: metadata },
     
     sandboxes: { enumerable: false, value: {} },
     resolve: { enumerable: false, value: resolve },
