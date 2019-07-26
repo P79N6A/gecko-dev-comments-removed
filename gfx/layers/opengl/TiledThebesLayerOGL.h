@@ -114,6 +114,9 @@ public:
   virtual ~TiledThebesLayerOGL();
 
   
+  const nsIntRegion& GetValidLowPrecisionRegion() const { return mLowPrecisionVideoMemoryTiledBuffer.GetValidRegion(); }
+
+  
   void Destroy() {}
   Layer* GetLayer() { return this; }
   virtual void RenderLayer(int aPreviousFrameBuffer,
