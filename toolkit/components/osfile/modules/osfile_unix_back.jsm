@@ -95,15 +95,6 @@
        
 
 
-       if (OS.Constants.Sys.Name == "NetBSD") {
-         Type.stat_size_t = Type.off_t.withName("stat_size_t");
-       } else {
-         Type.stat_size_t = Type.size_t.withName("stat_size_t");
-       }
-
-       
-
-
        Type.time_t =
          Type.intn_t(Const.OSFILE_SIZEOF_TIME_T).withName("time_t");
 
@@ -174,7 +165,7 @@
          }
 
          stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_SIZE,
-                        "st_size", Type.stat_size_t.implementation);
+                        "st_size", Type.off_t.implementation);
          Type.stat = stat.getType();
        }
 
