@@ -365,6 +365,12 @@ nsresult OggReader::ReadMetadata(VideoInfo* aInfo,
         LOG(PR_LOG_DEBUG, ("Got Ogg duration from seeking to end %lld", endTime));
       }
       mDecoder->GetResource()->EndSeekingForMetadata();
+    } else if (mDecoder->GetMediaDuration() == -1) {
+      
+      
+      
+      
+      mDecoder->SetTransportSeekable(false);
     }
   } else {
     return NS_ERROR_FAILURE;
