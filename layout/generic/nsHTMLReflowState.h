@@ -12,6 +12,7 @@
 #include "nsStyleCoord.h"
 #include "nsStyleStructInlines.h"
 #include "nsIFrame.h"
+#include "mozilla/Assertions.h"
 #include <algorithm>
 
 class nsPresContext;
@@ -144,12 +145,19 @@ public:
   {
   }
 
+  
+  
+  
+  
   nsCSSOffsetState(nsIFrame *aFrame, nsRenderingContext *aRenderingContext,
                    nscoord aContainingBlockWidth)
     : frame(aFrame)
     , rendContext(aRenderingContext)
   {
-    InitOffsets(aContainingBlockWidth, frame->GetType());
+    MOZ_ASSERT(!aFrame->IsFlexItem(),
+               "We're about to resolve vertical percent margin & padding "
+               "values against CB width, which is incorrect for flex items");
+    InitOffsets(aContainingBlockWidth, aContainingBlockWidth, frame->GetType());
   }
 
 #ifdef DEBUG
@@ -171,18 +179,37 @@ private:
 
 
 
-  bool ComputeMargin(nscoord aContainingBlockWidth);
+
+
+
+
+
+
+
+
+  bool ComputeMargin(nscoord aHorizontalPercentBasis,
+                     nscoord aVerticalPercentBasis);
   
   
 
 
 
 
-   bool ComputePadding(nscoord aContainingBlockWidth, nsIAtom* aFrameType);
+
+
+
+
+
+
+
+
+   bool ComputePadding(nscoord aHorizontalPercentBasis,
+                       nscoord aVerticalPercentBasis, nsIAtom* aFrameType);
 
 protected:
 
-  void InitOffsets(nscoord aContainingBlockWidth,
+  void InitOffsets(nscoord aHorizontalPercentBasis,
+                   nscoord aVerticalPercentBasis,
                    nsIAtom* aFrameType,
                    const nsMargin *aBorder = nullptr,
                    const nsMargin *aPadding = nullptr);
