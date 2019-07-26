@@ -60,8 +60,9 @@
 
 
 
-     let File = function File(fd) {
-       exports.OS.Shared.AbstractFile.call(this, fd);
+
+     let File = function File(fd, path) {
+       exports.OS.Shared.AbstractFile.call(this, fd, path);
        this._closeResult = null;
      };
      File.prototype = Object.create(exports.OS.Shared.AbstractFile.prototype);
@@ -88,7 +89,7 @@
            fd.forget();
          }
          if (result == -1) {
-           this._closeResult = new File.Error("close");
+           this._closeResult = new File.Error("close", ctypes.winLastError, this._path);
          }
        }
        if (this._closeResult) {
@@ -115,7 +116,8 @@
      File.prototype._read = function _read(buffer, nbytes, options) {
        
        throw_on_zero("read",
-         WinFile.ReadFile(this.fd, buffer, nbytes, gBytesReadPtr, null)
+         WinFile.ReadFile(this.fd, buffer, nbytes, gBytesReadPtr, null),
+         this._path
        );
        return gBytesRead.value;
      };
@@ -141,7 +143,8 @@
        }
        
        throw_on_zero("write",
-         WinFile.WriteFile(this.fd, buffer, nbytes, gBytesWrittenPtr, null)
+         WinFile.WriteFile(this.fd, buffer, nbytes, gBytesWrittenPtr, null),
+         this._path
        );
        return gBytesWritten.value;
      };
@@ -174,7 +177,8 @@
          whence = Const.FILE_BEGIN;
        }
        return throw_on_negative("setPosition",
-         WinFile.SetFilePointer(this.fd, pos, null, whence));
+         WinFile.SetFilePointer(this.fd, pos, null, whence),
+         this._path);
      };
 
      
@@ -184,8 +188,9 @@
 
      File.prototype.stat = function stat() {
        throw_on_zero("stat",
-         WinFile.GetFileInformationByHandle(this.fd, gFileInfoPtr));
-       return new File.Info(gFileInfo);
+         WinFile.GetFileInformationByHandle(this.fd, gFileInfoPtr),
+         this._path);
+       return new File.Info(gFileInfo, this._path);
      };
 
      
@@ -204,12 +209,14 @@
 
 
      File.prototype.setDates = function setDates(accessDate, modificationDate) {
-       accessDate = Date_to_FILETIME("File.prototype.setDates", accessDate);
+       accessDate = Date_to_FILETIME("File.prototype.setDates", accessDate, this._path);
        modificationDate = Date_to_FILETIME("File.prototype.setDates",
-                                           modificationDate);
+                                           modificationDate,
+                                           this._path);
        throw_on_zero("setDates",
                      WinFile.SetFileTime(this.fd, null, accessDate.address(),
-                                         modificationDate.address()));
+                                         modificationDate.address()),
+                     this._path);
      };
 
      
@@ -224,7 +231,7 @@
 
 
      File.prototype.flush = function flush() {
-       throw_on_zero("flush", WinFile.FlushFileBuffers(this.fd));
+       throw_on_zero("flush", WinFile.FlushFileBuffers(this.fd), this._path);
      };
 
      
@@ -340,7 +347,7 @@
        }
 
        let file = error_or_file(WinFile.CreateFile(path,
-         access, share, security, disposition, flags, template));
+         access, share, security, disposition, flags, template), path);
 
        file._appendMode = !!mode.append;
 
@@ -350,7 +357,8 @@
        
        file.setPosition(0, File.POS_START);
        throw_on_zero("open",
-         WinFile.SetEndOfFile(file.fd));
+         WinFile.SetEndOfFile(file.fd),
+         path);
        return file;
      };
 
@@ -402,7 +410,7 @@
          }
        }
 
-       throw new File.Error("remove");
+       throw new File.Error("remove", ctypes.winLastError, path);
      };
 
      
@@ -420,7 +428,7 @@
              ctypes.winLastError == Const.ERROR_FILE_NOT_FOUND) {
            return;
          }
-         throw new File.Error("removeEmptyDir");
+         throw new File.Error("removeEmptyDir", ctypes.winLastError, path);
        }
      };
 
@@ -447,7 +455,7 @@
        }
 
        if (("ignoreExisting" in options) && !options.ignoreExisting) {
-         throw new File.Error("makeDir");
+         throw new File.Error("makeDir", ctypes.winLastError, path);
        }
 
        if (ctypes.winLastError == Const.ERROR_ALREADY_EXISTS) {
@@ -464,12 +472,12 @@
        }
        
        if (ctypes.winLastError == Const.ERROR_ACCESS_DENIED &&
-           splitPath.winDrive &&
+           splitPath.absolute &&
            splitPath.components.length === 1 ) {
          return;
        }
 
-       throw new File.Error("makeDir");
+       throw new File.Error("makeDir", ctypes.winLastError, path);
      };
 
      
@@ -497,7 +505,8 @@
 
      File.copy = function copy(sourcePath, destPath, options = {}) {
        throw_on_zero("copy",
-         WinFile.CopyFile(sourcePath, destPath, options.noOverwrite || false)
+         WinFile.CopyFile(sourcePath, destPath, options.noOverwrite || false),
+         sourcePath
        );
      };
 
@@ -536,7 +545,8 @@
          flags = flags | Const.MOVEFILE_REPLACE_EXISTING;
        }
        throw_on_zero("move",
-         WinFile.MoveFileEx(sourcePath, destPath, flags)
+         WinFile.MoveFileEx(sourcePath, destPath, flags),
+         sourcePath
        );
 
        
@@ -600,13 +610,14 @@
      
 
 
-     let FILETIME_to_Date = function FILETIME_to_Date(fileTime) {
+     let FILETIME_to_Date = function FILETIME_to_Date(fileTime, path) {
        if (fileTime == null) {
          throw new TypeError("Expecting a non-null filetime");
        }
        throw_on_zero("FILETIME_to_Date",
                      WinFile.FileTimeToSystemTime(fileTime.address(),
-                                                  gSystemTimePtr));
+                                                  gSystemTimePtr),
+                     path);
        
        
        let utc = Date.UTC(gSystemTime.wYear,
@@ -626,7 +637,7 @@
 
 
 
-     let Date_to_FILETIME = function Date_to_FILETIME(fn, date) {
+     let Date_to_FILETIME = function Date_to_FILETIME(fn, date, path) {
        if (typeof date === "number") {
          date = new Date(date);
        } else if (!date) {
@@ -646,7 +657,8 @@
        let result = new OS.Shared.Type.FILETIME.implementation();
        throw_on_zero("Date_to_FILETIME",
                      WinFile.SystemTimeToFileTime(gSystemTimePtr,
-                                                  result.address()));
+                                                  result.address()),
+                     path);
        return result;
      };
 
@@ -693,7 +705,7 @@
            this._closed = true;
            this._exists = false;
          } else {
-           throw new File.Error("DirectoryIterator", error);
+           throw new File.Error("DirectoryIterator", error, this._path);
          }
        } else {
          this._closed = false;
@@ -712,7 +724,7 @@
      File.DirectoryIterator.prototype._next = function _next() {
        
        if (!this._exists) {
-         throw File.Error.noSuchFile("DirectoryIterator.prototype.next");
+         throw File.Error.noSuchFile("DirectoryIterator.prototype.next", this._path);
        }
        
        if (this._closed) {
@@ -733,7 +745,7 @@
          if (error == Const.ERROR_NO_MORE_FILES) {
             return null;
          } else {
-            throw new File.Error("iter (FindNextFile)", error);
+            throw new File.Error("iter (FindNextFile)", error, this._path);
          }
        }
      },
@@ -771,7 +783,8 @@
          
          
          throw_on_zero("FindClose",
-           WinFile.FindClose(this._handle));
+           WinFile.FindClose(this._handle),
+           this._path);
          this._handle = null;
        }
      };
@@ -795,9 +808,9 @@
        let isDir = !!(win_entry.dwFileAttributes & Const.FILE_ATTRIBUTE_DIRECTORY);
        let isSymLink = !!(win_entry.dwFileAttributes & Const.FILE_ATTRIBUTE_REPARSE_POINT);
 
-       let winCreationDate = FILETIME_to_Date(win_entry.ftCreationTime);
-       let winLastWriteDate = FILETIME_to_Date(win_entry.ftLastWriteTime);
-       let winLastAccessDate = FILETIME_to_Date(win_entry.ftLastAccessTime);
+       let winCreationDate = FILETIME_to_Date(win_entry.ftCreationTime, this._path);
+       let winLastWriteDate = FILETIME_to_Date(win_entry.ftLastWriteTime, this._path);
+       let winLastAccessDate = FILETIME_to_Date(win_entry.ftLastAccessTime, this._path);
 
        let name = win_entry.cFileName.readString();
        if (!name) {
@@ -847,20 +860,19 @@
 
 
 
-     File.Info = function Info(stat) {
+     File.Info = function Info(stat, path) {
        let isDir = !!(stat.dwFileAttributes & Const.FILE_ATTRIBUTE_DIRECTORY);
        let isSymLink = !!(stat.dwFileAttributes & Const.FILE_ATTRIBUTE_REPARSE_POINT);
-       
-       let winBirthDate = FILETIME_to_Date(stat.ftCreationTime);
-       let lastAccessDate = FILETIME_to_Date(stat.ftLastAccessTime);
-       let lastWriteDate = FILETIME_to_Date(stat.ftLastWriteTime);
+
+       let winBirthDate = FILETIME_to_Date(stat.ftCreationTime, this._path);
+       let lastAccessDate = FILETIME_to_Date(stat.ftLastAccessTime, this._path);
+       let lastWriteDate = FILETIME_to_Date(stat.ftLastWriteTime, this._path);
 
        let value = ctypes.UInt64.join(stat.nFileSizeHigh, stat.nFileSizeLow);
        let size = Type.uint64_t.importFromC(value);
 
-       SysAll.AbstractInfo.call(this, isDir, isSymLink, size,
-         winBirthDate, lastAccessDate,
-         lastWriteDate);
+       SysAll.AbstractInfo.call(this, path, isDir, isSymLink, size,
+         winBirthDate, lastAccessDate, lastWriteDate);
      };
      File.Info.prototype = Object.create(SysAll.AbstractInfo.prototype);
 
@@ -1004,7 +1016,8 @@
 
      File.setCurrentDirectory = function setCurrentDirectory(path) {
        throw_on_zero("setCurrentDirectory",
-         WinFile.SetCurrentDirectory(path));
+         WinFile.SetCurrentDirectory(path),
+         path);
      };
 
      
@@ -1021,27 +1034,68 @@
      );
 
      
-     function error_or_file(maybe) {
+
+     
+
+
+
+
+
+
+     function error_or_file(maybe, path) {
        if (maybe == Const.INVALID_HANDLE_VALUE) {
-         throw new File.Error("open");
+         throw new File.Error("open", ctypes.winLastError, path);
        }
-       return new File(maybe);
+       return new File(maybe, path);
      }
-     function throw_on_zero(operation, result) {
+
+     
+
+
+
+
+
+
+
+
+
+     function throw_on_zero(operation, result, path) {
        if (result == 0) {
-         throw new File.Error(operation);
+         throw new File.Error(operation, ctypes.winLastError, path);
        }
        return result;
      }
-     function throw_on_negative(operation, result) {
+
+     
+
+
+
+
+
+
+
+
+
+     function throw_on_negative(operation, result, path) {
        if (result < 0) {
-         throw new File.Error(operation);
+         throw new File.Error(operation, ctypes.winLastError, path);
        }
        return result;
      }
-     function throw_on_null(operation, result) {
+
+     
+
+
+
+
+
+
+
+
+
+     function throw_on_null(operation, result, path) {
        if (result == null || (result.isNull && result.isNull())) {
-         throw new File.Error(operation);
+         throw new File.Error(operation, ctypes.winLastError, path);
        }
        return result;
      }

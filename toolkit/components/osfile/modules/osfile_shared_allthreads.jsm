@@ -1241,9 +1241,12 @@ exports.normalizeToPointer = normalizeToPointer;
 
 
 
-function OSError(operation) {
+
+
+function OSError(operation, path = "") {
   Error.call(this);
   this.operation = operation;
+  this.path = path;
 }
 exports.OSError = OSError;
 
