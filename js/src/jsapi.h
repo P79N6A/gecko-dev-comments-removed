@@ -1952,8 +1952,13 @@ typedef JSBool
 
 
 
+
+
+
+
 typedef JSObject *
-(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
+(* JSWrapObjectCallback)(JSContext *cx, JSObject *existing, JSObject *obj,
+                         JSObject *proto, JSObject *parent,
                          unsigned flags);
 
 

@@ -56,6 +56,21 @@ Wrapper::New(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
                           obj->isCallable() ? obj : NULL, NULL);
 }
 
+JSObject *
+Wrapper::Renew(JSContext *cx, JSObject *existing, JSObject *obj, Wrapper *handler)
+{
+#if JS_HAS_XML_SUPPORT
+    if (obj->isXML()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                             JSMSG_CANT_WRAP_XML_OBJECT);
+        return NULL;
+    }
+#endif
+
+    JS_ASSERT(!obj->isCallable());
+    return RenewProxyObject(cx, existing, handler, ObjectValue(*obj));
+}
+
 Wrapper *
 Wrapper::wrapperHandler(RawObject wrapper)
 {
@@ -357,7 +372,8 @@ Wrapper Wrapper::singletonWithPrototype((unsigned)0, true);
 
 
 extern JSObject *
-js::TransparentObjectWrapper(JSContext *cx, JSObject *objArg, JSObject *wrappedProtoArg, JSObject *parentArg,
+js::TransparentObjectWrapper(JSContext *cx, JSObject *existing, JSObject *objArg,
+                             JSObject *wrappedProtoArg, JSObject *parentArg,
                              unsigned flags)
 {
     RootedObject obj(cx, objArg);
@@ -967,6 +983,12 @@ js::NewDeadProxyObject(JSContext *cx, JSObject *parent)
                           NULL, parent, NULL, NULL);
 }
 
+bool
+js::IsDeadProxyObject(RawObject obj)
+{
+    return IsProxy(obj) && GetProxyHandler(obj) == &DeadObjectProxy::singleton;
+}
+
 void
 js::NukeCrossCompartmentWrapper(JSContext *cx, JSObject *wrapper)
 {
@@ -1065,23 +1087,30 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
 
     
     
+    
     JSObject *tobj = newTarget;
     AutoCompartment ac(cx, wobj);
-    if (!wcompartment->wrap(cx, &tobj))
+    if (!wcompartment->wrap(cx, &tobj, wobj))
         return false;
 
     
     
     
     
-    JS_ASSERT(tobj != wobj);
-    if (!wobj->swap(cx, tobj))
-        return false;
+    if (tobj != wobj) {
+        
+        
+        
+        if (!wobj->swap(cx, tobj))
+            return false;
+    }
 
     
     
     JS_ASSERT(Wrapper::wrappedObject(wobj) == newTarget);
 
+    
+    
     pmap.put(ObjectValue(*newTarget), ObjectValue(*wobj));
     return true;
 }

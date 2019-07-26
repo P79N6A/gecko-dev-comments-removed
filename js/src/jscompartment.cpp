@@ -193,9 +193,12 @@ WrapForSameCompartment(JSContext *cx, HandleObject obj, Value *vp)
 }
 
 bool
-JSCompartment::wrap(JSContext *cx, Value *vp)
+JSCompartment::wrap(JSContext *cx, Value *vp, JSObject *existing)
 {
     JS_ASSERT(cx->compartment == this);
+    JS_ASSERT_IF(existing, existing->compartment() == cx->compartment);
+    JS_ASSERT_IF(existing, vp->isObject());
+    JS_ASSERT_IF(existing, IsDeadProxyObject(existing));
 
     unsigned flags = 0;
 
@@ -304,14 +307,25 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
     RootedObject obj(cx, &vp->toObject());
 
+    
     JSObject *proto = Proxy::LazyProto;
+    if (existing) {
+        if (!existing->getTaggedProto().isLazy() ||
+            existing->getClass() != &ObjectProxyClass ||
+            existing->getParent() != global ||
+            obj->isCallable())
+        {
+            existing = NULL;
+        }
+    }
 
     
 
 
 
 
-    RootedObject wrapper(cx, cx->runtime->wrapObjectCallback(cx, obj, proto, global, flags));
+    RootedObject wrapper(cx);
+    wrapper = cx->runtime->wrapObjectCallback(cx, existing, obj, proto, global, flags);
     if (!wrapper)
         return false;
 
@@ -348,12 +362,12 @@ JSCompartment::wrap(JSContext *cx, HeapPtrString *strp)
 }
 
 bool
-JSCompartment::wrap(JSContext *cx, JSObject **objp)
+JSCompartment::wrap(JSContext *cx, JSObject **objp, JSObject *existing)
 {
     if (!*objp)
         return true;
     RootedValue value(cx, ObjectValue(**objp));
-    if (!wrap(cx, value.address()))
+    if (!wrap(cx, value.address(), existing))
         return false;
     *objp = &value.get().toObject();
     return true;
