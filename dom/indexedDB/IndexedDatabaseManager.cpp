@@ -608,7 +608,9 @@ IndexedDatabaseManager::AsyncDeleteFile(FileManager* aFileManager,
 
   
   
-  if (quotaManager->IsClearOriginPending(aFileManager->Origin())) {
+  if (quotaManager->IsClearOriginPending(
+                             aFileManager->Origin(),
+                             Nullable<PersistenceType>(aFileManager->Type()))) {
     return NS_OK;
   }
 
