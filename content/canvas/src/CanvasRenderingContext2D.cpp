@@ -59,6 +59,7 @@
 #include "gfxFont.h"
 #include "gfxBlur.h"
 #include "gfxUtils.h"
+#include "gfxFontMissingGlyphs.h"
 
 #include "nsFrameManager.h"
 #include "nsFrameLoader.h"
@@ -792,7 +793,10 @@ CanvasRenderingContext2D::Redraw(const mgfx::Rect &r)
 
   nsSVGEffects::InvalidateDirectRenderingObservers(mCanvasElement);
 
-  mCanvasElement->InvalidateCanvasContent(&r);
+  gfxRect tmpR = ThebesRect(r);
+  mCanvasElement->InvalidateCanvasContent(&tmpR);
+
+  return;
 }
 
 void
@@ -3035,6 +3039,55 @@ struct NS_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcesso
         gfxTextRun::DetailedGlyph *detailedGlyphs =
           mTextRun->GetDetailedGlyphs(i);
 
+        if (glyphs[i].IsMissing()) {
+          float xpos;
+          float advance = detailedGlyphs[0].mAdvance * devUnitsPerAppUnit;
+          if (mTextRun->IsRightToLeft()) {
+            xpos = baselineOrigin.x - advanceSum - advance;
+          } else {
+            xpos = baselineOrigin.x + advanceSum;
+          }
+          advanceSum += advance;
+
+          
+          
+          if (advance > 0) {
+            
+            
+
+            
+            
+            Matrix matrix = mCtx->mTarget->GetTransform();
+            nsRefPtr<gfxContext> thebes;
+            if (gfxPlatform::GetPlatform()->SupportsAzureContent()) {
+              
+              
+              
+              
+              
+              
+              
+              
+              thebes = new gfxContext(mCtx->mTarget);
+            } else {
+              nsRefPtr<gfxASurface> drawSurf;
+              mCtx->GetThebesSurface(getter_AddRefs(drawSurf));
+              thebes = new gfxContext(drawSurf);
+            }
+            thebes->SetMatrix(gfxMatrix(matrix._11, matrix._12, matrix._21,
+                                        matrix._22, matrix._31, matrix._32));
+
+            gfxFloat height = font->GetMetrics().maxAscent;
+            gfxRect glyphRect(xpos, baselineOrigin.y - height,
+                              advance, height);
+            gfxFontMissingGlyphs::DrawMissingGlyph(thebes, glyphRect,
+                                                   detailedGlyphs[0].mGlyphID);
+
+            mCtx->mTarget->SetTransform(matrix);
+          }
+          continue;
+        }
+
         for (uint32_t c = 0; c < glyphs[i].GetGlyphCount(); c++) {
           newGlyph.mIndex = detailedGlyphs[c].mGlyphID;
           if (mTextRun->IsRightToLeft()) {
@@ -3720,11 +3773,6 @@ CanvasRenderingContext2D::DrawImage(const HTMLImageOrCanvasOrVideoElement& image
     sx = sy = 0.0;
     sw = (double) imgSize.width;
     sh = (double) imgSize.height;
-  }
-
-  if (sw == 0.0 || sh == 0.0) {
-    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
-    return;
   }
 
   if (dw == 0.0 || dh == 0.0) {
