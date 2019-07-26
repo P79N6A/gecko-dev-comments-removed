@@ -255,6 +255,72 @@ public:
   uint32_t mPresShellId;
 };
 
+
+
+
+
+
+
+
+
+struct ScrollableLayerGuid {
+  uint64_t mLayersId;
+  uint32_t mPresShellId;
+  FrameMetrics::ViewID mScrollId;
+
+  ScrollableLayerGuid()
+    : mLayersId(0)
+    , mPresShellId(0)
+    , mScrollId(0)
+  {
+    MOZ_COUNT_CTOR(ScrollableLayerGuid);
+  }
+
+  ScrollableLayerGuid(uint64_t aLayersId, uint32_t aPresShellId,
+                      FrameMetrics::ViewID aScrollId)
+    : mLayersId(aLayersId)
+    , mPresShellId(aPresShellId)
+    , mScrollId(aScrollId)
+  {
+    MOZ_COUNT_CTOR(ScrollableLayerGuid);
+  }
+
+  ScrollableLayerGuid(uint64_t aLayersId, const FrameMetrics& aMetrics)
+    : mLayersId(aLayersId)
+    , mPresShellId(aMetrics.mPresShellId)
+    , mScrollId(aMetrics.mScrollId)
+  {
+    MOZ_COUNT_CTOR(ScrollableLayerGuid);
+  }
+
+  ScrollableLayerGuid(uint64_t aLayersId)
+    : mLayersId(aLayersId)
+    , mPresShellId(0)
+    , mScrollId(FrameMetrics::ROOT_SCROLL_ID)
+  {
+    MOZ_COUNT_CTOR(ScrollableLayerGuid);
+    
+    
+  }
+
+  ~ScrollableLayerGuid()
+  {
+    MOZ_COUNT_DTOR(ScrollableLayerGuid);
+  }
+
+  bool operator==(const ScrollableLayerGuid& other) const
+  {
+    return mLayersId == other.mLayersId
+        && mPresShellId == other.mPresShellId
+        && mScrollId == other.mScrollId;
+  }
+
+  bool operator!=(const ScrollableLayerGuid& other) const
+  {
+    return !(*this == other);
+  }
+};
+
 }
 }
 
