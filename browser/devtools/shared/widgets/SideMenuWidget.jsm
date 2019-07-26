@@ -246,8 +246,14 @@ SideMenuWidget.prototype = {
 
     
     let boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-    boxObject.ensureElementIsVisible(aElement);
-    boxObject.scrollBy(-aElement.clientWidth, 0);
+
+    
+    
+    
+    if (boxObject.ensureElementIsVisible && boxObject.scrollBy) {
+      boxObject.ensureElementIsVisible(aElement);
+      boxObject.scrollBy(-aElement.clientWidth, 0);
+    }
   },
 
   

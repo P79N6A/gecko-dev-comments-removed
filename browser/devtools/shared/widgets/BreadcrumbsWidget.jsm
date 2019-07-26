@@ -137,7 +137,11 @@ BreadcrumbsWidget.prototype = {
     
     
     setNamedTimeout("breadcrumb-select", ENSURE_SELECTION_VISIBLE_DELAY, () => {
-      if (this._selectedItem) {
+      if (this._selectedItem &&
+        
+        
+        
+        this._list.ensureElementIsVisible) {
         this._list.ensureElementIsVisible(this._selectedItem);
       }
     });
