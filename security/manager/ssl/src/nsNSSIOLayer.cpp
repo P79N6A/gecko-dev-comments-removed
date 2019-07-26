@@ -147,7 +147,7 @@ static void
 getSecureBrowserUI(nsIInterfaceRequestor * callbacks,
                    nsISecureBrowserUI ** result)
 {
-  NS_ASSERTION(result != nullptr, "result parameter to getSecureBrowserUI is null");
+  NS_ASSERTION(result, "result parameter to getSecureBrowserUI is null");
   *result = nullptr;
 
   NS_ASSERTION(NS_IsMainThread(),
@@ -373,7 +373,7 @@ void nsNSSSocketInfo::GetPreviousCert(nsIX509Cert** _result)
   NS_ASSERTION(_result, "_result parameter to GetPreviousCert is null");
   *_result = nullptr;
 
-  nsRefPtr<PreviousCertRunnable> runnable = new PreviousCertRunnable(mCallbacks);
+  RefPtr<PreviousCertRunnable> runnable(new PreviousCertRunnable(mCallbacks));
   nsresult rv = runnable->DispatchToMainThreadAndWait();
   NS_ASSERTION(NS_SUCCEEDED(rv), "runnable->DispatchToMainThreadAndWait() failed");
   runnable->mPreviousCert.forget(_result);
@@ -834,7 +834,7 @@ class SSLErrorRunnable : public SyncRunnableBase
     nsHandleSSLError(mInfoObject, mErrType, mErrorCode);
   }
   
-  nsRefPtr<nsNSSSocketInfo> mInfoObject;
+  RefPtr<nsNSSSocketInfo> mInfoObject;
   ::mozilla::psm::SSLErrorMessageType mErrType;
   const PRErrorCode mErrorCode;
 };
@@ -908,9 +908,9 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
     
     if (!wantRetry && (IS_SSL_ERROR(err) || IS_SEC_ERROR(err)) &&
         !socketInfo->GetErrorCode()) {
-      nsRefPtr<SyncRunnableBase> runnable = new SSLErrorRunnable(socketInfo,
-                                                                 PlainErrorMessage,
-                                                                 err);
+      RefPtr<SyncRunnableBase> runnable(new SSLErrorRunnable(socketInfo,
+                                                             PlainErrorMessage,
+                                                             err));
       (void) runnable->DispatchToMainThreadAndWait();
     }
   }
@@ -1042,7 +1042,7 @@ static PRFileDesc *_PSM_InvalidDesc(void)
 {
     PR_ASSERT(!"I/O method is invalid");
     PR_SetError(PR_INVALID_METHOD_ERROR, 0);
-    return NULL;
+    return nullptr;
 }
 
 static PRStatus PSMGetsockname(PRFileDesc *fd, PRNetAddr *addr)
@@ -1212,24 +1212,15 @@ nsresult nsSSLIOLayerHelpers::Init()
   mutex = new Mutex("nsSSLIOLayerHelpers.mutex");
 
   mTLSIntolerantSites = new nsTHashtable<nsCStringHashKey>();
-  if (!mTLSIntolerantSites)
-    return NS_ERROR_OUT_OF_MEMORY;
-
   mTLSIntolerantSites->Init(1);
 
   mTLSTolerantSites = new nsTHashtable<nsCStringHashKey>();
-  if (!mTLSTolerantSites)
-    return NS_ERROR_OUT_OF_MEMORY;
-
   
   
   
   mTLSTolerantSites->Init(16);
 
   mRenegoUnrestrictedSites = new nsTHashtable<nsCStringHashKey>();
-  if (!mRenegoUnrestrictedSites)
-    return NS_ERROR_OUT_OF_MEMORY;
-
   mRenegoUnrestrictedSites->Init(1);
 
   mTreatUnsafeNegotiationAsBroken = false;
@@ -1362,7 +1353,7 @@ SECStatus nsConvertCANamesToStrings(PLArenaPool* arena, char** caNameStrings,
     char* namestring;
 
     for (n = 0; n < caNames->nnames; n++) {
-        newitem.data = NULL;
+        newitem.data = nullptr;
         dername = &caNames->names[n];
 
         rv = DER_Lengths(dername, &headerlen, &contentlen);
@@ -1379,7 +1370,7 @@ SECStatus nsConvertCANamesToStrings(PLArenaPool* arena, char** caNameStrings,
 
             if (dername->len <= 127) {
                 newitem.data = (unsigned char *) PR_Malloc(dername->len + 2);
-                if (newitem.data == NULL) {
+                if (!newitem.data) {
                     goto loser;
                 }
                 newitem.data[0] = (unsigned char)0x30;
@@ -1388,7 +1379,7 @@ SECStatus nsConvertCANamesToStrings(PLArenaPool* arena, char** caNameStrings,
             }
             else if (dername->len <= 255) {
                 newitem.data = (unsigned char *) PR_Malloc(dername->len + 3);
-                if (newitem.data == NULL) {
+                if (!newitem.data) {
                     goto loser;
                 }
                 newitem.data[0] = (unsigned char)0x30;
@@ -1399,7 +1390,7 @@ SECStatus nsConvertCANamesToStrings(PLArenaPool* arena, char** caNameStrings,
             else {
                 
                 newitem.data = (unsigned char *) PR_Malloc(dername->len + 4);
-                if (newitem.data == NULL) {
+                if (!newitem.data) {
                     goto loser;
                 }
                 newitem.data[0] = (unsigned char)0x30;
@@ -1412,26 +1403,26 @@ SECStatus nsConvertCANamesToStrings(PLArenaPool* arena, char** caNameStrings,
         }
 
         namestring = CERT_DerNameToAscii(dername);
-        if (namestring == NULL) {
+        if (!namestring) {
             
             caNameStrings[n] = const_cast<char*>("");
         }
         else {
             caNameStrings[n] = PORT_ArenaStrdup(arena, namestring);
             PR_Free(namestring);
-            if (caNameStrings[n] == NULL) {
+            if (!caNameStrings[n]) {
                 goto loser;
             }
         }
 
-        if (newitem.data != NULL) {
+        if (newitem.data) {
             PR_Free(newitem.data);
         }
     }
 
     return SECSuccess;
 loser:
-    if (newitem.data != NULL) {
+    if (newitem.data) {
         PR_Free(newitem.data);
     }
     return SECFailure;
@@ -1465,7 +1456,7 @@ typedef struct {
 
 static const SEC_ASN1Template cert_CertificateScopeEntryTemplate[] = {
     { SEC_ASN1_SEQUENCE, 
-      0, NULL, sizeof(CERTCertificateScopeEntry) },
+      0, nullptr, sizeof(CERTCertificateScopeEntry) },
     { SEC_ASN1_ANY,
       offsetof(CERTCertificateScopeEntry, derConstraint) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_INTEGER,
@@ -1487,16 +1478,16 @@ SECStatus cert_DecodeScopeOfUseEntries(PRArenaPool* arena, SECItem* extData,
                                        CERTCertificateScopeEntry*** entries,
                                        int* numEntries)
 {
-    certCertificateScopeOfUse* scope = NULL;
+    certCertificateScopeOfUse* scope = nullptr;
     SECStatus rv = SECSuccess;
     int i;
 
-    *entries = NULL; 
+    *entries = nullptr; 
     *numEntries = 0; 
 
     scope = (certCertificateScopeOfUse*)
         PORT_ArenaZAlloc(arena, sizeof(certCertificateScopeOfUse));
-    if (scope == NULL) {
+    if (!scope) {
         goto loser;
     }
 
@@ -1507,10 +1498,10 @@ SECStatus cert_DecodeScopeOfUseEntries(PRArenaPool* arena, SECItem* extData,
     }
 
     *entries = scope->entries;
-    PR_ASSERT(*entries != NULL);
+    PR_ASSERT(*entries);
 
     
-    for (i = 0; (*entries)[i] != NULL; i++) ;
+    for (i = 0; (*entries)[i]; i++) ;
     *numEntries = i;
 
     
@@ -1519,8 +1510,8 @@ SECStatus cert_DecodeScopeOfUseEntries(PRArenaPool* arena, SECItem* extData,
     for (i = 0; i < *numEntries; i++) {
         (*entries)[i]->constraint = 
             CERT_DecodeGeneralName(arena, &((*entries)[i]->derConstraint), 
-                                   NULL);
-        if ((*entries)[i]->derPort.data != NULL) {
+                                   nullptr);
+        if ((*entries)[i]->derPort.data) {
             (*entries)[i]->port = 
                 (int)DER_GetInteger(&((*entries)[i]->derPort));
         }
@@ -1545,8 +1536,8 @@ static SECStatus cert_DecodeCertIPAddress(SECItem* genname,
     *constraint = 0;
     *mask = 0;
 
-    PR_ASSERT(genname->data != NULL);
-    if (genname->data == NULL) {
+    PR_ASSERT(genname->data);
+    if (!genname->data) {
         return SECFailure;
     }
     if (genname->len != 8) {
@@ -1586,15 +1577,15 @@ static bool CERT_MatchesScopeOfUse(CERTCertificate* cert, char* hostname,
     bool rv = true; 
     SECStatus srv;
     SECItem extData;
-    PLArenaPool* arena = NULL;
-    CERTCertificateScopeEntry** entries = NULL;
+    PLArenaPool* arena = nullptr;
+    CERTCertificateScopeEntry** entries = nullptr;
     
     int numEntries = 0;
     int i;
-    char* hostLower = NULL;
+    char* hostLower = nullptr;
     uint32_t hostIPAddr = 0;
 
-    PR_ASSERT((cert != NULL) && (hostname != NULL) && (hostIP != NULL));
+    PR_ASSERT(cert && hostname && hostIP);
 
     
     srv = CERT_FindCertExtension(cert, SEC_OID_NS_CERT_EXT_SCOPE_OF_USE,
@@ -1608,7 +1599,7 @@ static bool CERT_MatchesScopeOfUse(CERTCertificate* cert, char* hostname,
     }
 
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) {
+    if (!arena) {
         goto done;
     }
 
@@ -1634,7 +1625,7 @@ static bool CERT_MatchesScopeOfUse(CERTCertificate* cert, char* hostname,
         CERTGeneralName* genname = entries[i]->constraint;
 
         
-        if (genname == NULL) {
+        if (!genname) {
             
             continue;
         }
@@ -1644,20 +1635,20 @@ static bool CERT_MatchesScopeOfUse(CERTCertificate* cert, char* hostname,
             
 
 
-            char* pattern = NULL;
-            char* substring = NULL;
+            char* pattern = nullptr;
+            char* substring = nullptr;
 
             
             genname->name.other.data[genname->name.other.len] = '\0';
             pattern = _str_to_lower((char*)genname->name.other.data);
 
-            if (hostLower == NULL) {
+            if (!hostLower) {
                 
                 hostLower = _str_to_lower(PL_strdup(hostname));
             }
 
             
-            if (((substring = strstr(hostLower, pattern)) != NULL) &&
+            if (((substring = strstr(hostLower, pattern)) != nullptr) &&
                 
                 (strlen(substring) == strlen(pattern)) &&
                 
@@ -1719,10 +1710,10 @@ static bool CERT_MatchesScopeOfUse(CERTCertificate* cert, char* hostname,
     }
 done:
     
-    if (arena != NULL) {
+    if (arena) {
         PORT_FreeArena(arena, false);
     }
-    if (hostLower != NULL) {
+    if (hostLower) {
         PR_Free(hostLower);
     }
     return rv;
@@ -1747,7 +1738,7 @@ done:
 
 nsresult nsGetUserCertChoice(SSM_UserCertChoice* certChoice)
 {
-	char *mode=NULL;
+	char *mode = nullptr;
 	nsresult ret;
 
 	NS_ENSURE_ARG_POINTER(certChoice);
@@ -1786,7 +1777,7 @@ static bool hasExplicitKeyUsageNonRepudiation(CERTCertificate *cert)
 
   SECStatus srv;
   SECItem keyUsageItem;
-  keyUsageItem.data = NULL;
+  keyUsageItem.data = nullptr;
 
   srv = CERT_FindKeyUsageExtension(cert, &keyUsageItem);
   if (srv == SECFailure)
@@ -1855,8 +1846,8 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
     return SECFailure;
   }
 
-  nsRefPtr<nsNSSSocketInfo> info
-        = reinterpret_cast<nsNSSSocketInfo*>(socket->higher->secret);
+  RefPtr<nsNSSSocketInfo> info(
+    reinterpret_cast<nsNSSSocketInfo*>(socket->higher->secret));
 
   CERTCertificate* serverCert = SSL_PeerCertificate(socket);
   if (!serverCert) {
@@ -1879,8 +1870,8 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
   }
 
   
-  nsRefPtr<ClientAuthDataRunnable> runnable =
-    new ClientAuthDataRunnable(caNames, pRetCert, pRetKey, info, serverCert);
+  RefPtr<ClientAuthDataRunnable> runnable(
+    new ClientAuthDataRunnable(caNames, pRetCert, pRetKey, info, serverCert));
   nsresult rv = runnable->DispatchToMainThreadAndWait();
   if (NS_FAILED(rv)) {
     PR_SetError(SEC_ERROR_NO_MEMORY, 0);
@@ -1899,14 +1890,14 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
 
 void ClientAuthDataRunnable::RunOnTargetThread()
 {
-  PLArenaPool* arena = NULL;
+  PLArenaPool* arena = nullptr;
   char** caNameStrings;
-  CERTCertificate* cert = NULL;
-  SECKEYPrivateKey* privKey = NULL;
-  CERTCertList* certList = NULL;
+  CERTCertificate* cert = nullptr;
+  SECKEYPrivateKey* privKey = nullptr;
+  CERTCertList* certList = nullptr;
   CERTCertListNode* node;
-  CERTCertNicknames* nicknames = NULL;
-  char* extracted = NULL;
+  CERTCertNicknames* nicknames = nullptr;
+  char* extracted = nullptr;
   int keyError = 0; 
   SSM_UserCertChoice certChoice;
   int32_t NumberOfCerts = 0;
@@ -1914,13 +1905,13 @@ void ClientAuthDataRunnable::RunOnTargetThread()
 
   
   arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-  if (arena == NULL) {
+  if (!arena) {
     goto loser;
   }
 
   caNameStrings = (char**)PORT_ArenaAlloc(arena, 
                                           sizeof(char*)*(mCANames->nnames));
-  if (caNameStrings == NULL) {
+  if (!caNameStrings) {
     goto loser;
   }
 
@@ -1942,7 +1933,7 @@ void ClientAuthDataRunnable::RunOnTargetThread()
     certList = CERT_FindUserCertsByUsage(CERT_GetDefaultCertDB(), 
                                          certUsageSSLClient, false,
                                          true, wincx);
-    if (certList == NULL) {
+    if (!certList) {
       goto noCert;
     }
 
@@ -1959,7 +1950,7 @@ void ClientAuthDataRunnable::RunOnTargetThread()
       goto noCert;
     }
 
-    CERTCertificate* low_prio_nonrep_cert = NULL;
+    CERTCertificate* low_prio_nonrep_cert = nullptr;
     CERTCertificateCleaner low_prio_cleaner(low_prio_nonrep_cert);
 
     
@@ -1976,10 +1967,10 @@ void ClientAuthDataRunnable::RunOnTargetThread()
 #endif
 
       privKey = PK11_FindKeyByAnyCert(node->cert, wincx);
-      if (privKey != NULL) {
+      if (privKey) {
         if (hasExplicitKeyUsageNonRepudiation(node->cert)) {
           SECKEY_DestroyPrivateKey(privKey);
-          privKey = NULL;
+          privKey = nullptr;
           
           if (!low_prio_nonrep_cert) 
             low_prio_nonrep_cert = CERT_DupCertificate(node->cert);
@@ -2001,11 +1992,11 @@ void ClientAuthDataRunnable::RunOnTargetThread()
 
     if (!cert && low_prio_nonrep_cert) {
       cert = low_prio_nonrep_cert;
-      low_prio_nonrep_cert = NULL; 
+      low_prio_nonrep_cert = nullptr; 
       privKey = PK11_FindKeyByAnyCert(cert, wincx);
     }
 
-    if (cert == NULL) {
+    if (!cert) {
         goto noCert;
     }
   }
@@ -2018,9 +2009,9 @@ void ClientAuthDataRunnable::RunOnTargetThread()
     nsresult rv;
     NS_DEFINE_CID(nssComponentCID, NS_NSSCOMPONENT_CID);
     nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(nssComponentCID, &rv));
-    nsRefPtr<nsClientAuthRememberService> cars;
+    RefPtr<nsClientAuthRememberService> cars;
     if (nssComponent) {
-      nssComponent->GetClientAuthRememberService(getter_AddRefs(cars));
+      nssComponent->GetClientAuthRememberService(byRef(cars));
     }
 
     bool hasRemembered = false;
@@ -2080,17 +2071,17 @@ if (hasRemembered)
 if (!hasRemembered)
 {
     
-    nsIClientAuthDialogs *dialogs = NULL;
+    nsIClientAuthDialogs *dialogs = nullptr;
     int32_t selectedIndex = -1;
-    PRUnichar **certNicknameList = NULL;
-    PRUnichar **certDetailsList = NULL;
+    PRUnichar **certNicknameList = nullptr;
+    PRUnichar **certDetailsList = nullptr;
 
     
     
     certList = CERT_FindUserCertsByUsage(CERT_GetDefaultCertDB(), 
                                          certUsageSSLClient, false, 
                                          false, wincx);
-    if (certList == NULL) {
+    if (!certList) {
       goto noCert;
     }
 
@@ -2134,7 +2125,7 @@ if (!hasRemembered)
 
     nicknames = getNSSCertNicknamesFromCertList(certList);
 
-    if (nicknames == NULL) {
+    if (!nicknames) {
       goto loser;
     }
 
@@ -2186,7 +2177,7 @@ if (!hasRemembered)
          node = CERT_LIST_NEXT(node)
         )
     {
-      nsRefPtr<nsNSSCertificate> tempCert = nsNSSCertificate::Create(node->cert);
+      RefPtr<nsNSSCertificate> tempCert(nsNSSCertificate::Create(node->cert));
 
       if (!tempCert)
         continue;
@@ -2263,13 +2254,13 @@ if (!hasRemembered)
 
     if (canceled) { rv = NS_ERROR_NOT_AVAILABLE; goto loser; }
 
-    if (cert == NULL) {
+    if (!cert) {
       goto loser;
     }
 
     
     privKey = PK11_FindKeyByAnyCert(cert, wincx);
-    if (privKey == NULL) {
+    if (!privKey) {
       keyError = PR_GetError();
       if (keyError == SEC_ERROR_BAD_PASSWORD) {
           
@@ -2287,23 +2278,23 @@ loser:
   if (mRV == SECSuccess) {
     mRV = SECFailure;
   }
-  if (cert != NULL) {
+  if (cert) {
     CERT_DestroyCertificate(cert);
-    cert = NULL;
+    cert = nullptr;
   }
 done:
   int error = PR_GetError();
 
-  if (extracted != NULL) {
+  if (extracted) {
     PR_Free(extracted);
   }
-  if (nicknames != NULL) {
+  if (nicknames) {
     CERT_FreeNicknames(nicknames);
   }
-  if (certList != NULL) {
+  if (certList) {
     CERT_DestroyCertList(certList);
   }
-  if (arena != NULL) {
+  if (arena) {
     PORT_FreeArena(arena, false);
   }
 
@@ -2332,7 +2323,7 @@ nsSSLIOLayerImportFD(PRFileDesc *fd,
 
   
   if (anonymousLoad) {
-      SSL_GetClientAuthDataHook(sslSock, NULL, infoObject);
+      SSL_GetClientAuthDataHook(sslSock, nullptr, infoObject);
   } else {
       SSL_GetClientAuthDataHook(sslSock, 
                             (SSLGetClientAuthData)nsNSS_SSLGetClientAuthData,
