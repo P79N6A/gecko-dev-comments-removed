@@ -111,6 +111,11 @@ const browserElementTestHelpers = {
 
 
 
+
+
+
+
+
 (function() {
   var oop = location.pathname.indexOf('_inproc_') == -1;
 
@@ -118,7 +123,8 @@ const browserElementTestHelpers = {
   SpecialPowers.setBoolPref("network.disable.ipc.security", true);
   SpecialPowers.pushPrefEnv({set: [["browser.pageThumbs.enabled", false],
                                    ["dom.ipc.browser_frames.oop_by_default", oop],
-                                   ["dom.ipc.tabs.disabled", false]]},
+                                   ["dom.ipc.tabs.disabled", false],
+                                   ["security.mixed_content.block_active_content", false]]},
                             browserElementTestHelpers.unlockTestReady.bind(browserElementTestHelpers));
 })();
 
