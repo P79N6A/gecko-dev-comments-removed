@@ -235,16 +235,6 @@ MacPowerInformationService::HandleChange(void* aContext) {
       continue;
     }
 
-    if (sIOPSGetTimeRemainingEstimate) {
-      
-      CFTimeInterval estimate = sIOPSGetTimeRemainingEstimate();
-      if (estimate == kIOPSTimeRemainingUnlimited || estimate == kIOPSTimeRemainingUnknown) {
-        remainingTime = kUnknownRemainingTime;
-      } else {
-        remainingTime = estimate;
-      }
-    }
-
     
     int currentCapacity = 0;
     const void* cfRef = ::CFDictionaryGetValue(currPowerSourceDesc, CFSTR(kIOPSCurrentCapacityKey));
@@ -264,6 +254,31 @@ MacPowerInformationService::HandleChange(void* aContext) {
     
     if(::CFDictionaryGetValueIfPresent(currPowerSourceDesc, CFSTR(kIOPSIsChargingKey), &cfRef)) {
       charging = ::CFBooleanGetValue((CFBooleanRef)cfRef);
+
+      
+      
+      if (charging) {
+        
+        
+        remainingTime = level == 1.0 ? kDefaultRemainingTime : kUnknownRemainingTime;
+
+        if (::CFDictionaryGetValueIfPresent(currPowerSourceDesc,
+                CFSTR(kIOPSTimeToFullChargeKey), &cfRef)) {
+          int timeToCharge;
+          ::CFNumberGetValue((CFNumberRef)cfRef, kCFNumberIntType, &timeToCharge);
+          if (timeToCharge != kIOPSTimeRemainingUnknown) {
+            remainingTime = timeToCharge*60;
+          }
+        }
+      } else if (sIOPSGetTimeRemainingEstimate) { 
+        
+        CFTimeInterval estimate = sIOPSGetTimeRemainingEstimate();
+        if (estimate == kIOPSTimeRemainingUnlimited || estimate == kIOPSTimeRemainingUnknown) {
+          remainingTime = kUnknownRemainingTime;
+        } else {
+          remainingTime = estimate;
+        }
+      }
     }
 
     break;
