@@ -31,6 +31,11 @@ class OverflowChangedTracker
 {
 public:
 
+  ~OverflowChangedTracker()
+  {
+    NS_ASSERTION(mEntryList.empty(), "Need to flush before destroying!");
+  }
+
   
 
 
@@ -247,8 +252,7 @@ private:
 
   inline void ProcessOneRestyle(Element* aElement,
                                 nsRestyleHint aRestyleHint,
-                                nsChangeHint aChangeHint,
-                                OverflowChangedTracker& aTracker);
+                                nsChangeHint aChangeHint);
 
   
 

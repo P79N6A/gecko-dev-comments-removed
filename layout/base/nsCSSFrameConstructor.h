@@ -241,8 +241,7 @@ public:
   
   
   
-  nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray,
-                                 OverflowChangedTracker& aTracker);
+  nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray);
 
 private:
 
@@ -307,13 +306,9 @@ public:
     PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, true);
   }
 
-  OverflowChangedTracker *GetOverflowChangedTracker() const 
-  { 
-    return mOverflowChangedTracker; 
-  }
-  void SetOverflowChangedTracker(OverflowChangedTracker *aTracker)
+  void FlushOverflowChangedTracker() 
   {
-    mOverflowChangedTracker = aTracker;    
+    mOverflowChangedTracker.Flush();
   }
 
 private:
@@ -406,8 +401,7 @@ private:
                       nsIFrame*       aPrimaryFrame,
                       nsChangeHint    aMinHint,
                       RestyleTracker& aRestyleTracker,
-                      bool            aRestyleDescendants,
-                      OverflowChangedTracker& aTracker);
+                      bool            aRestyleDescendants);
 
   nsresult InitAndRestoreFrame (const nsFrameConstructorState& aState,
                                 nsIContent*                    aContent,
@@ -1914,7 +1908,7 @@ private:
 
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
 
-  OverflowChangedTracker *mOverflowChangedTracker;
+  OverflowChangedTracker mOverflowChangedTracker;
 
   
   
