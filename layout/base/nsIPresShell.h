@@ -116,8 +116,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xebc1bbe4, 0x5456, 0x4c62, \
-  { 0xba, 0x1f, 0xc2, 0xef, 0x73, 0x87, 0x96, 0x3e } }
+{ 0xf50f99bc, 0xe178, 0x4e67, \
+  { 0x89, 0xea, 0xf2, 0xae, 0xe5, 0x92, 0x3f, 0x6d } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1228,19 +1228,24 @@ public:
 
   virtual void SynthesizeMouseMove(bool aFromScroll) = 0;
 
-  enum PaintType {
-    PaintType_Composite, 
-    PaintType_NoComposite, 
-    PaintType_Full 
+  enum PaintFlags {
+    
+
+
+    PAINT_LAYERS = 0x01,
+    
+    PAINT_COMPOSITE = 0x02,
+    PAINT_WILL_SEND_DID_PAINT = 0x80
   };
   virtual void Paint(nsIView* aViewToPaint, const nsRegion& aDirtyRegion,
-                     PaintType aType, bool aWillSendDidPaint) = 0;
+                     uint32_t aFlags) = 0;
   virtual nsresult HandleEvent(nsIFrame*       aFrame,
                                nsGUIEvent*     aEvent,
                                bool            aDontRetargetEvents,
                                nsEventStatus*  aEventStatus) = 0;
   virtual bool ShouldIgnoreInvalidation() = 0;
   
+
 
 
 
@@ -1260,6 +1265,7 @@ public:
 
   virtual void WillPaintWindow(bool aWillSendDidPaint) = 0;
   
+
 
 
 
