@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef __NSTARRAYHELPERS_H__
 #define __NSTARRAYHELPERS_H__
@@ -19,7 +19,7 @@ nsTArrayToJSArray(JSContext* aCx, const nsTArray<T>& aSourceArray,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
+  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   MOZ_ASSERT(global);
 
   for (uint32_t index = 0; index < aSourceArray.Length(); index++) {
@@ -88,4 +88,4 @@ nsTArrayToJSArray<nsString>(JSContext* aCx,
   return NS_OK;
 }
 
-#endif 
+#endif /* __NSTARRAYHELPERS_H__ */

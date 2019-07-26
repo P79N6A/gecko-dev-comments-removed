@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <limits>
 #include <math.h>
@@ -57,7 +57,7 @@ struct LooseEqualityData
         i42 = INT_TO_JSVAL(42);
         undef = JSVAL_VOID;
         null = JSVAL_NULL;
-        obj = OBJECT_TO_JSVAL(JS_GetGlobalForScopeChain(cx));
+        obj = OBJECT_TO_JSVAL(JS::CurrentGlobalOrNull(cx));
         poszero = DOUBLE_TO_JSVAL(0.0);
         negzero = DOUBLE_TO_JSVAL(-0.0);
 #ifdef XP_WIN
@@ -71,7 +71,7 @@ struct LooseEqualityData
     }
 };
 
-
+// 11.9.3 1a
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_undef_leq_undef)
 {
     LooseEqualityData d(cx);
@@ -80,7 +80,7 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_undef_leq_undef)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_undef_leq_undef)
 
-
+// 11.9.3 1b
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_null_leq_null)
 {
     LooseEqualityData d(cx);
@@ -89,7 +89,7 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_null_leq_null)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_null_leq_null)
 
-
+// 11.9.3 1ci
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_nan_nleq_all)
 {
     LooseEqualityData d(cx);
@@ -115,7 +115,7 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_nan_nleq_all)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_nan_nleq_all)
 
-
+// 11.9.3 1cii
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_all_nleq_nan)
 {
     LooseEqualityData d(cx);
@@ -141,7 +141,7 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_all_nleq_nan)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_all_nleq_nan)
 
-
+// 11.9.3 1ciii
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_leq_same_nums)
 {
     LooseEqualityData d(cx);
@@ -154,7 +154,7 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_leq_same_nums)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_leq_same_nums)
 
-
+// 11.9.3 1civ
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_pz_leq_nz)
 {
     LooseEqualityData d(cx);
@@ -163,7 +163,7 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_pz_leq_nz)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_pz_leq_nz)
 
-
+// 11.9.3 1cv
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_nz_leq_pz)
 {
     LooseEqualityData d(cx);
@@ -172,9 +172,9 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_nz_leq_pz)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_nz_leq_pz)
 
+// 1cvi onwards NOT TESTED
 
-
-
+// 11.9.3 2
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_null_leq_undef)
 {
     LooseEqualityData d(cx);
@@ -183,7 +183,7 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_null_leq_undef)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_null_leq_undef)
 
-
+// 11.9.3 3
 BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_undef_leq_null)
 {
     LooseEqualityData d(cx);
@@ -192,4 +192,4 @@ BEGIN_FIXTURE_TEST(LooseEqualityFixture, test_undef_leq_null)
 }
 END_FIXTURE_TEST(LooseEqualityFixture, test_undef_leq_null)
 
-
+// 4 onwards NOT TESTED

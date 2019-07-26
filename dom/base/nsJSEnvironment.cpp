@@ -736,7 +736,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   
   
-  JSObject* global = ::JS_GetGlobalForScopeChain(cx);
+  JSObject* global = ::JS::CurrentGlobalOrNull(cx);
   bool isTrackingChromeCodeTime =
     global && xpc::AccessCheck::isChrome(js::GetObjectCompartment(global));
   if (duration < (isTrackingChromeCodeTime ?
@@ -3300,7 +3300,7 @@ NS_DOMReadStructuredClone(JSContext* cx,
     nsRefPtr<ImageData> imageData = new ImageData(width, height,
                                                   dataArray.toObject());
     
-    JS::Rooted<JSObject*> global(cx, JS_GetGlobalForScopeChain(cx));
+    JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
     if (!global) {
       return nullptr;
     }

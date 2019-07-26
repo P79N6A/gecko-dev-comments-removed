@@ -309,7 +309,7 @@ struct MainThreadWorkerStructuredCloneCallbacks
         
         
         JS::Rooted<JS::Value> wrappedFile(aCx);
-        JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
+        JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
         nsresult rv = nsContentUtils::WrapNative(aCx, global, file,
                                                  &NS_GET_IID(nsIDOMFile),
                                                  wrappedFile.address());
@@ -343,7 +343,7 @@ struct MainThreadWorkerStructuredCloneCallbacks
         
         
         JS::Rooted<JS::Value> wrappedBlob(aCx);
-        JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
+        JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
         nsresult rv = nsContentUtils::WrapNative(aCx, global, blob,
                                                  &NS_GET_IID(nsIDOMBlob),
                                                  wrappedBlob.address());
@@ -734,7 +734,7 @@ public:
   bool
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   {
-    JS::Rooted<JSObject*> target(aCx, JS_GetGlobalForScopeChain(aCx));
+    JS::Rooted<JSObject*> target(aCx, JS::CurrentGlobalOrNull(aCx));
     NS_ASSERTION(target, "This must never be null!");
 
     aWorkerPrivate->CloseHandlerStarted();
@@ -814,7 +814,7 @@ public:
       NS_ASSERTION(aWorkerPrivate == GetWorkerPrivateFromContext(aCx),
                    "Badness!");
       mainRuntime = false;
-      target = JS_GetGlobalForScopeChain(aCx);
+      target = JS::CurrentGlobalOrNull(aCx);
     }
 
     NS_ASSERTION(target, "This should never be null!");
@@ -1035,7 +1035,7 @@ public:
       
       
       if (aFireAtScope && (aTarget || aErrorNumber != JSMSG_OVER_RECURSED)) {
-        aTarget = JS_GetGlobalForScopeChain(aCx);
+        aTarget = JS::CurrentGlobalOrNull(aCx);
         NS_ASSERTION(aTarget, "This should never be null!");
 
         bool preventDefaultCalled;
@@ -1580,7 +1580,7 @@ WorkerRunnable::Dispatch(JSContext* aCx)
 
   JSAutoRequest ar(aCx);
 
-  JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
+  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
 
   Maybe<JSAutoCompartment> ac;
   if (global) {
@@ -1677,7 +1677,7 @@ WorkerRunnable::Run()
   JS::Rooted<JSObject*> targetCompartmentObject(cx);
 
   if (mTarget == WorkerThread) {
-    targetCompartmentObject = JS_GetGlobalForScopeChain(cx);
+    targetCompartmentObject = JS::CurrentGlobalOrNull(cx);
   } else {
     targetCompartmentObject = mWorkerPrivate->GetJSObject();
   }
@@ -2610,7 +2610,7 @@ WorkerPrivate::Create(JSContext* aCx, JS::Handle<JSObject*> aObj, WorkerPrivate*
 
     
     nsCOMPtr<nsIScriptGlobalObject> scriptGlobal =
-      nsJSUtils::GetStaticScriptGlobal(JS_GetGlobalForScopeChain(aCx));
+      nsJSUtils::GetStaticScriptGlobal(JS::CurrentGlobalOrNull(aCx));
     if (scriptGlobal) {
       
       nsCOMPtr<nsPIDOMWindow> globalWindow = do_QueryInterface(scriptGlobal);
@@ -2902,7 +2902,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
       scheduleIdleGC = mControlQueue.IsEmpty() &&
                        mQueue.IsEmpty() &&
                        eventIsNotIdleGCEvent &&
-                       JS_GetGlobalForScopeChain(aCx);
+                       JS::CurrentGlobalOrNull(aCx);
     }
 
     
@@ -2918,10 +2918,10 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
     }
 
     if (scheduleIdleGC) {
-      NS_ASSERTION(JS_GetGlobalForScopeChain(aCx), "Should have global here!");
+      NS_ASSERTION(JS::CurrentGlobalOrNull(aCx), "Should have global here!");
 
       
-      JSAutoCompartment ac(aCx, JS_GetGlobalForScopeChain(aCx));
+      JSAutoCompartment ac(aCx, JS::CurrentGlobalOrNull(aCx));
       JS_MaybeGC(aCx);
 
       if (NS_SUCCEEDED(gcTimer->SetTarget(idleGCEventTarget)) &&
@@ -3726,7 +3726,7 @@ WorkerPrivate::NotifyInternal(JSContext* aCx, Status aStatus)
 
   
   
-  if (!JS_GetGlobalForScopeChain(aCx)) {
+  if (!JS::CurrentGlobalOrNull(aCx)) {
     mCloseHandlerStarted = true;
     mCloseHandlerFinished = true;
     return true;
@@ -4054,7 +4054,7 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
   bool retval = true;
 
   AutoPtrComparator<TimeoutInfo> comparator = GetAutoPtrComparator(mTimeouts);
-  JS::RootedObject global(aCx, JS_GetGlobalForScopeChain(aCx));
+  JS::RootedObject global(aCx, JS::CurrentGlobalOrNull(aCx));
   JSPrincipals* principal = GetWorkerPrincipal();
 
   

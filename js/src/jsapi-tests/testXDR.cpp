@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsfriendapi.h"
 #include "jsscript.h"
@@ -39,13 +39,13 @@ CompileScriptForPrincipalsVersionOrigin(JSContext *cx, JS::HandleObject obj,
 JSScript *
 FreezeThaw(JSContext *cx, JS::HandleScript script)
 {
-    
+    // freeze
     uint32_t nbytes;
     void *memory = JS_EncodeScript(cx, script, &nbytes);
     if (!memory)
         return NULL;
 
-    
+    // thaw
     JSScript *script2 = JS_DecodeScript(cx, memory, nbytes,
                                         script->principals(), script->originPrincipals);
     js_free(memory);
@@ -61,13 +61,13 @@ GetScript(JSContext *cx, JS::HandleObject funobj)
 JSObject *
 FreezeThaw(JSContext *cx, JS::HandleObject funobj)
 {
-    
+    // freeze
     uint32_t nbytes;
     void *memory = JS_EncodeInterpretedFunction(cx, funobj, &nbytes);
     if (!memory)
         return NULL;
 
-    
+    // thaw
     JSScript *script = GetScript(cx, funobj);
     JSObject *funobj2 = JS_DecodeInterpretedFunction(cx, memory, nbytes,
                                                      script->principals(),
@@ -86,8 +86,8 @@ BEGIN_TEST(testXDR_principals)
     JSScript *script;
     JSCompartment *compartment = js::GetContextCompartment(cx);
     for (int i = TEST_FIRST; i != TEST_END; ++i) {
-        
-        
+        // Appease the new JSAPI assertions. The stuff being tested here is
+        // going away anyway.
         JS_SetCompartmentPrincipals(compartment, &testPrincipals[0]);
         script = createScriptViaXDR(&testPrincipals[0], NULL, i);
         CHECK(script);
@@ -122,7 +122,7 @@ JSScript *createScriptViaXDR(JSPrincipals *prin, JSPrincipals *orig, int testCas
         "function f() { return 1; }\n"
         "f;\n";
 
-    JS::RootedObject global(cx, JS_GetGlobalForScopeChain(cx));
+    JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
     JS::RootedScript script(cx, CompileScriptForPrincipalsVersionOrigin(cx, global, prin, orig,
                                                                         src, strlen(src), "test", 1,
                                                                         JSVERSION_DEFAULT));
@@ -162,21 +162,21 @@ BEGIN_TEST(testXDR_bug506491)
         "}\n"
         "var f = makeClosure('0;', 'status', 'ok');\n";
 
-    
+    // compile
     JS::RootedScript script(cx, JS_CompileScript(cx, global, s, strlen(s), __FILE__, __LINE__));
     CHECK(script);
 
     script = FreezeThaw(cx, script);
     CHECK(script);
 
-    
+    // execute
     JS::RootedValue v2(cx);
     CHECK(JS_ExecuteScript(cx, global, script, v2.address()));
 
-    
+    // try to break the Block object that is the parent of f
     JS_GC(rt);
 
-    
+    // confirm
     EVAL("f() === 'ok';\n", v2.address());
     JS::RootedValue trueval(cx, JSVAL_TRUE);
     CHECK_SAME(v2, trueval);
@@ -186,14 +186,14 @@ END_TEST(testXDR_bug506491)
 
 BEGIN_TEST(testXDR_bug516827)
 {
-    
+    // compile an empty script
     JS::RootedScript script(cx, JS_CompileScript(cx, global, "", 0, __FILE__, __LINE__));
     CHECK(script);
 
     script = FreezeThaw(cx, script);
     CHECK(script);
 
-    
+    // execute with null result meaning no result wanted
     CHECK(JS_ExecuteScript(cx, global, script, NULL));
     return true;
 }
@@ -202,7 +202,7 @@ END_TEST(testXDR_bug516827)
 BEGIN_TEST(testXDR_source)
 {
     const char *samples[] = {
-        
+        // This can't possibly fail to compress well, can it?
         "function f(x) { return x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x + x }",
         "short",
         NULL
@@ -238,7 +238,7 @@ BEGIN_TEST(testXDR_sourceMap)
         jschar *expected = js::InflateString(cx, *sm, &len);
         CHECK(expected);
 
-        
+        // The script source takes responsibility of free'ing |expected|.
         CHECK(script->scriptSource()->setSourceMap(cx, expected));
         script = FreezeThaw(cx, script);
         CHECK(script);

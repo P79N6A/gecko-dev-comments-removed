@@ -1,10 +1,10 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TestShellParent.h"
 
-
+/* This must occur *after* TestShellParent.h to avoid typedefs conflicts. */
 #include "mozilla/Util.h"
 
 #include "mozilla/dom/ContentParent.h"
@@ -34,8 +34,8 @@ bool
 TestShellParent::CommandDone(TestShellCommandParent* command,
                              const nsString& aResponse)
 {
-  
-  command->RunCallback(aResponse);
+  // XXX what should happen if the callback fails?
+  /*JSBool ok = */command->RunCallback(aResponse);
   command->ReleaseCallback();
 
   return true;
@@ -63,7 +63,7 @@ TestShellCommandParent::RunCallback(const nsString& aResponse)
   JSAutoRequest ar(mCx);
   NS_ENSURE_TRUE(mCallback.ToJSObject(), JS_FALSE);
   JSAutoCompartment ac(mCx, mCallback.ToJSObject());
-  JS::Rooted<JSObject*> global(mCx, JS_GetGlobalForScopeChain(mCx));
+  JS::Rooted<JSObject*> global(mCx, JS::CurrentGlobalOrNull(mCx));
 
   JSString* str = JS_NewUCStringCopyN(mCx, aResponse.get(), aResponse.Length());
   NS_ENSURE_TRUE(str, JS_FALSE);

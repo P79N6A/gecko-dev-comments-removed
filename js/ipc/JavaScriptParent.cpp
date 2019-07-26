@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=80:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "JavaScriptParent.h"
 #include "mozilla/dom/ContentParent.h"
@@ -393,7 +393,7 @@ JavaScriptParent::call(JSContext *cx, HandleObject proxy, const CallArgs &args)
         if (v.isObject()) {
             JSObject *obj = &v.toObject();
             if (xpc::IsOutObject(cx, obj)) {
-                
+                // Make sure it is not an in-out object.
                 JSBool found;
                 if (!JS_HasProperty(cx, obj, "value", &found))
                     return false;
@@ -426,12 +426,12 @@ JavaScriptParent::call(JSContext *cx, HandleObject proxy, const CallArgs &args)
         return ipcfail(cx);
 
     for (size_t i = 0; i < outparams.Length(); i++) {
-        
+        // Don't bother doing anything for outparams that weren't set.
         if (outparams[i].type() == JSParam::Tvoid_t)
             continue;
 
-        
-        
+        // Take the value the child process returned, and set it on the XPC
+        // object.
         if (!toValue(cx, outparams[i], &v))
             return false;
 
@@ -458,8 +458,8 @@ JavaScriptParent::objectClassIs(JSContext *cx, HandleObject proxy, js::ESClassVa
 {
     ObjectId objId = idOf(proxy);
 
-    
-    
+    // This function is assumed infallible, so we just return false if the IPC
+    // channel fails.
     bool result;
     if (!CallObjectClassIs(objId, classValue, &result))
         return false;
@@ -562,7 +562,7 @@ JavaScriptParent::unwrap(JSContext *cx, ObjectId objId)
 
     bool callable = !!(objId & OBJECT_IS_CALLABLE);
 
-    RootedObject global(cx, JS_GetGlobalForScopeChain(cx));
+    RootedObject global(cx, JS::DefaultObjectForContextOrNull(cx));
 
     RootedValue v(cx, UndefinedValue());
     JSObject *obj = NewProxyObject(cx,
@@ -577,7 +577,7 @@ JavaScriptParent::unwrap(JSContext *cx, ObjectId objId)
     if (!objects_.add(objId, obj))
         return NULL;
 
-    
+    // Incref once we know the decref will be called.
     incref();
 
     SetProxyExtra(obj, 0, PrivateValue(this));
@@ -627,13 +627,13 @@ JavaScriptParent::destroyFromContent()
     decref();
 }
 
- bool
+/* static */ bool
 JavaScriptParent::IsCPOW(JSObject *obj)
 {
     return IsProxy(obj) && GetProxyHandler(obj) == &CPOWProxyHandler::singleton;
 }
 
- nsresult
+/* static */ nsresult
 JavaScriptParent::InstanceOf(JSObject *obj, const nsID *id, bool *bp)
 {
     return ParentOf(obj)->instanceOf(obj, id, bp);

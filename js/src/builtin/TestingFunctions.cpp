@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "builtin/TestingFunctions.h"
 
@@ -192,12 +192,12 @@ GetBuildConfiguration(JSContext *cx, unsigned argc, jsval *vp)
 static JSBool
 GC(JSContext *cx, unsigned argc, jsval *vp)
 {
-    
-
-
-
-
-
+    /*
+     * If the first argument is 'compartment', we collect any compartments
+     * previously scheduled for GC via schedulegc. If the first argument is an
+     * object, we collect the object's compartment (and any other compartments
+     * scheduled for GC). Otherwise, we collect all compartments.
+     */
     JSBool compartment = false;
     if (argc == 1) {
         Value arg = vp[2];
@@ -419,14 +419,14 @@ ScheduleGC(JSContext *cx, unsigned argc, jsval *vp)
     }
 
     if (args[0].isInt32()) {
-        
+        /* Schedule a GC to happen after |arg| allocations. */
         JS_ScheduleGC(cx, args[0].toInt32());
     } else if (args[0].isObject()) {
-        
+        /* Ensure that |zone| is collected during the next GC. */
         Zone *zone = UncheckedUnwrap(&args[0].toObject())->zone();
         PrepareZoneForGC(zone);
     } else if (args[0].isString()) {
-        
+        /* This allows us to schedule atomsCompartment for GC. */
         PrepareZoneForGC(args[0].toString()->zone());
     }
 
@@ -523,7 +523,7 @@ DeterministicGC(JSContext *cx, unsigned argc, jsval *vp)
     *vp = JSVAL_VOID;
     return JS_TRUE;
 }
-#endif 
+#endif /* JS_GC_ZEAL */
 
 static JSBool
 GCSlice(JSContext *cx, unsigned argc, jsval *vp)
@@ -787,10 +787,10 @@ finalize_counter_finalize(JSFreeOp *fop, JSObject *obj)
 
 static JSClass FinalizeCounterClass = {
     "FinalizeCounter", JSCLASS_IS_ANONYMOUS,
-    JS_PropertyStub,       
-    JS_DeletePropertyStub, 
-    JS_PropertyStub,       
-    JS_StrictPropertyStub, 
+    JS_PropertyStub,       /* addProperty */
+    JS_DeletePropertyStub, /* delProperty */
+    JS_PropertyStub,       /* getProperty */
+    JS_StrictPropertyStub, /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
@@ -800,7 +800,7 @@ static JSClass FinalizeCounterClass = {
 static JSBool
 MakeFinalizeObserver(JSContext *cx, unsigned argc, jsval *vp)
 {
-    RootedObject scope(cx, JS_GetGlobalForScopeChain(cx));
+    RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
     if (!scope)
         return false;
 
@@ -908,8 +908,8 @@ DisplayName(JSContext *cx, unsigned argc, jsval *vp)
 JSBool
 js::testingFunc_inParallelSection(JSContext *cx, unsigned argc, jsval *vp)
 {
-    
-    
+    // If we were actually *in* a parallel section, then this function
+    // would be inlined to TRUE in ion-generated code.
     JS_ASSERT(!InParallelSection());
     JS_SET_RVAL(cx, vp, JSVAL_FALSE);
     return true;

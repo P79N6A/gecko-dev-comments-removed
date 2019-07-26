@@ -1,15 +1,15 @@
-
-
-
-
+/* vim: set ts=8 sts=4 et sw=4 tw=80:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <stdlib.h>
 #include <errno.h>
 #ifdef HAVE_IO_H
-#include <io.h>     
+#include <io.h>     /* for isatty() */
 #endif
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>     
+#include <unistd.h>     /* for isatty() */
 #endif
 
 #include "base/basictypes.h"
@@ -177,7 +177,7 @@ Load(JSContext *cx,
         JS::CompileOptions options(cx);
         options.setUTF8(true)
                .setFileAndLine(filename.ptr(), 1)
-               .setPrincipals(Environment(JS_GetGlobalForScopeChain(cx))->GetPrincipal());
+               .setPrincipals(Environment(JS::CurrentGlobalOrNull(cx))->GetPrincipal());
         JS::RootedObject rootedObj(cx, obj);
         JSScript *script = JS::Compile(cx, rootedObj, options, file);
         fclose(file);
@@ -217,7 +217,7 @@ Quit(JSContext *cx,
      unsigned argc,
      JS::Value *vp)
 {
-    XPCShellEnvironment* env = Environment(JS_GetGlobalForScopeChain(cx));
+    XPCShellEnvironment* env = Environment(JS::CurrentGlobalOrNull(cx));
     env->SetIsQuitting();
 
     return JS_FALSE;
@@ -361,7 +361,7 @@ DumpHeap(JSContext *cx,
     return JS_FALSE;
 }
 
-#endif 
+#endif /* DEBUG */
 
 const JSFunctionSpec gGlobalFunctions[] =
 {
@@ -392,7 +392,7 @@ typedef enum JSShellErrNum
 #undef MSGDEF
 } JSShellErrNum;
 
-} 
+} /* anonymous namespace */
 
 void
 XPCShellEnvironment::ProcessFile(JSContext *cx,
@@ -418,14 +418,14 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
     if (!isatty(fileno(file)))
 #endif
     {
-        
-
-
-
-
-
-
-
+        /*
+         * It's not interactive - just execute it.
+         *
+         * Support the UNIX #! shell hack; gobble the first line if it starts
+         * with '#'.  TODO - this isn't quite compatible with sharp variables,
+         * as a legal js program (using sharp variables) might start with '#'.
+         * But that would require multi-character lookahead.
+         */
         int ch = fgetc(file);
         if (ch == '#') {
             while((ch = fgetc(file)) != EOF) {
@@ -449,7 +449,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
         return;
     }
 
-    
+    /* It's an interactive filehandle; drop into read-eval-print loop. */
     lineno = 1;
     hitEOF = JS_FALSE;
     do {
@@ -459,12 +459,12 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
         JSAutoRequest ar(cx);
         JSAutoCompartment ac(cx, obj);
 
-        
-
-
-
-
-
+        /*
+         * Accumulate lines until we get a 'compilable unit' - one that either
+         * generates an error (before running out of source) or that compiles
+         * cleanly.  This should be whenever we get a complete statement that
+         * coincides with the end of a line.
+         */
         startline = lineno;
         do {
             if (!GetLine(bufp, file, startline == lineno ? "js> " : "")) {
@@ -475,7 +475,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
             lineno++;
         } while (!JS_BufferIsCompilableUnit(cx, obj, buffer, strlen(buffer)));
 
-        
+        /* Clear any pending exception from previous failed compiles.  */
         JS_ClearPendingException(cx);
         script =
             JS_CompileScriptForPrincipals(cx, obj, env->GetPrincipal(), buffer,
@@ -485,7 +485,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
 
             ok = JS_ExecuteScript(cx, obj, script, result.address());
             if (ok && result != JSVAL_VOID) {
-                
+                /* Suppress error reports from JS_ValueToString(). */
                 older = JS_SetErrorReporter(cx, NULL);
                 str = JS_ValueToString(cx, result);
                 JSAutoByteString bytes;
@@ -539,7 +539,7 @@ XPCShellDirProvider::GetFile(const char *prop,
     return NS_ERROR_FAILURE;
 }
 
-
+// static
 XPCShellEnvironment*
 XPCShellEnvironment::CreateEnvironment()
 {
@@ -579,8 +579,8 @@ XPCShellEnvironment::Init()
     nsresult rv;
 
 #ifdef HAVE_SETBUF
-    
-    
+    // unbuffer stdout so that output is in the correct order; note that stderr
+    // is unbuffered by default
     setbuf(stdout, 0);
 #endif
 
