@@ -23,6 +23,24 @@ import android.view.View;
 
 
 public class AboutHomeComponent extends BaseComponent {
+    
+    
+    
+    private enum PhonePage {
+        HISTORY,
+        TOP_SITES,
+        BOOKMARKS,
+        READING_LIST
+    }
+
+    
+    private enum TabletPage {
+        TOP_SITES,
+        BOOKMARKS,
+        READING_LIST,
+        HISTORY
+    }
+
     public AboutHomeComponent(final UITestContext testContext) {
         super(testContext);
     }
@@ -34,17 +52,7 @@ public class AboutHomeComponent extends BaseComponent {
     public AboutHomeComponent assertCurrentPage(final Page expectedPage) {
         assertVisible();
 
-        
-        
-        
-        int expectedPageIndex = expectedPage.ordinal();
-        if (DeviceHelper.isTablet()) {
-            
-            expectedPageIndex -= 1;
-            expectedPageIndex =
-                    (expectedPageIndex >= 0) ? expectedPageIndex : Page.values().length - 1;
-        }
-
+        final int expectedPageIndex = getPageIndexForDevice(expectedPage.ordinal());
         assertEquals("The current HomePager page is " + expectedPage,
                      expectedPageIndex, getHomePagerView().getCurrentItem());
         return this;
@@ -64,11 +72,13 @@ public class AboutHomeComponent extends BaseComponent {
 
     
     public AboutHomeComponent swipeToPageOnRight() {
+        mTestContext.dumpLog("Swiping to the page on the right.");
         swipe(Solo.LEFT);
         return this;
     }
 
     public AboutHomeComponent swipeToPageOnLeft() {
+        mTestContext.dumpLog("Swiping to the page on the left.");
         swipe(Solo.RIGHT);
         return this;
     }
@@ -94,12 +104,29 @@ public class AboutHomeComponent extends BaseComponent {
     }
 
     private void waitForPageIndex(final int expectedIndex) {
-        final String pageName = Page.values()[expectedIndex].toString();
+        final String pageName;
+        if (DeviceHelper.isTablet()) {
+            pageName = TabletPage.values()[expectedIndex].name();
+        } else {
+            pageName = PhonePage.values()[expectedIndex].name();
+        }
+
         WaitHelper.waitFor("HomePager " + pageName + " page", new Condition() {
             @Override
             public boolean isSatisfied() {
                 return (getHomePagerView().getCurrentItem() == expectedIndex);
             }
         });
+    }
+
+    
+
+
+
+    private int getPageIndexForDevice(final int pageIndex) {
+        final String pageName = Page.values()[pageIndex].name();
+        final Class devicePageEnum =
+                DeviceHelper.isTablet() ? TabletPage.class : PhonePage.class;
+        return Enum.valueOf(devicePageEnum, pageName).ordinal();
     }
 }
