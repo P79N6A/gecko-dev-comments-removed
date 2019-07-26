@@ -24,9 +24,12 @@ BEGIN_TEST(testGCStoreBufferRemoval)
     JS::RootedObject tenuredObject(cx, obj);
 
     
+    typedef JSObject *ObjectPtr;
+
+    
     {
-        JSObject *badObject = reinterpret_cast<JSObject*>(1);
-        JSObject *punnedPtr = nullptr;
+        ObjectPtr badObject = reinterpret_cast<JSObject*>(1);
+        ObjectPtr punnedPtr = nullptr;
         RelocatablePtrObject* relocPtr =
             reinterpret_cast<RelocatablePtrObject*>(&punnedPtr);
         new (relocPtr) RelocatablePtrObject;
@@ -77,8 +80,8 @@ BEGIN_TEST(testGCStoreBufferRemoval)
 
     
     {
-        JSObject *badObject = reinterpret_cast<JSObject*>(1);
-        JSObject *punnedPtr = nullptr;
+        ObjectPtr badObject = reinterpret_cast<JSObject*>(1);
+        ObjectPtr punnedPtr = nullptr;
         Heap<JSObject*>* heapPtr =
             reinterpret_cast<Heap<JSObject*>*>(&punnedPtr);
         new (heapPtr) Heap<JSObject*>;
