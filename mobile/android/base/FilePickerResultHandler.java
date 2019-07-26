@@ -246,12 +246,7 @@ class FilePickerResultHandler implements ActivityResultHandler {
 
                 
                 
-                ThreadUtils.postToUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Tabs.unregisterOnTabsChangedListener(FileLoaderCallbacks.this);
-                    }
-                });
+                Tabs.unregisterOnTabsChangedListener(this);
             }
         }
     }

@@ -104,12 +104,7 @@ public class TwoLinePageRow extends LinearLayout
     protected void onDetachedFromWindow() {
         
         
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Tabs.unregisterOnTabsChangedListener(TwoLinePageRow.this);
-            }
-        });
+        Tabs.unregisterOnTabsChangedListener(this);
     }
 
     @Override
