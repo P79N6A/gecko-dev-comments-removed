@@ -43,11 +43,13 @@ double
 ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
                                           TimeDuration aIterationDuration,
                                           double aIterationCount,
-                                          uint32_t aDirection, bool aIsForElement,
+                                          uint32_t aDirection,
                                           ElementAnimation* aAnimation,
                                           ElementAnimations* aEa,
                                           EventArray* aEventsToDispatch)
 {
+  MOZ_ASSERT(!aAnimation == !aEa && !aAnimation == !aEventsToDispatch);
+
   
   
   double currentIterationCount = aElapsedDuration / aIterationDuration;
@@ -55,12 +57,11 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
   if (currentIterationCount >= aIterationCount) {
     if (aAnimation) {
       
-      if (aIsForElement &&
-          aAnimation->mLastNotification !=
+      if (aAnimation->mLastNotification !=
             ElementAnimation::LAST_NOTIFICATION_END) {
         aAnimation->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
         AnimationEventInfo ei(aEa->mElement, aAnimation->mName, NS_ANIMATION_END,
-                              aElapsedDuration);
+                              aElapsedDuration, aEa->PseudoElement());
         aEventsToDispatch->AppendElement(ei);
       }
 
@@ -129,7 +130,7 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
   }
 
   
-  if (aAnimation && aIsForElement && dispatchStartOrIteration &&
+  if (aAnimation && dispatchStartOrIteration &&
       whichIteration != aAnimation->mLastNotification) {
     
     
@@ -143,7 +144,7 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
 
     aAnimation->mLastNotification = whichIteration;
     AnimationEventInfo ei(aEa->mElement, aAnimation->mName, message,
-                          aElapsedDuration);
+                          aElapsedDuration, aEa->PseudoElement());
     aEventsToDispatch->AppendElement(ei);
   }
 
@@ -183,8 +184,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       GetPositionInIteration(anim.ElapsedDurationAt(aRefreshTime),
                              anim.mIterationDuration, anim.mIterationCount,
-                             anim.mDirection, IsForElement(),
-                             &anim, this, &aEventsToDispatch);
+                             anim.mDirection, &anim, this, &aEventsToDispatch);
 
       
       
@@ -233,8 +233,8 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       double positionInIteration =
         GetPositionInIteration(anim.ElapsedDurationAt(aRefreshTime),
                                anim.mIterationDuration, anim.mIterationCount,
-                               anim.mDirection, IsForElement(),
-                               &anim, this, &aEventsToDispatch);
+                               anim.mDirection, &anim, this,
+                               &aEventsToDispatch);
 
       
       
