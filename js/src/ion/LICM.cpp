@@ -87,12 +87,15 @@ Loop::init()
         
         
         
-        if (block->immediateDominator() == block)
+        if (block->immediateDominator() == block) {
+            while (!worklist_.empty())
+                popFromWorklist();
             return LoopReturn_Skip;
+        }
 
         
         if (block != header_) {
-            for (size_t i = 0; i < block->numPredecessors(); i--) {
+            for (size_t i = 0; i < block->numPredecessors(); i++) {
                 MBasicBlock *pred = block->getPredecessor(i);
                 if (pred->isMarked())
                     continue;
@@ -111,7 +114,7 @@ Loop::init()
         for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
             MInstruction *ins = *i;
 
-            if (ins->isMovable() && !ins->isEffectful()) {
+            if (isHoistable(ins)) {
                 if (!insertInWorklist(ins))
                     return LoopReturn_Error;
             }
