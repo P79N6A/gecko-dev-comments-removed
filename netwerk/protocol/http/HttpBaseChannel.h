@@ -193,6 +193,9 @@ protected:
   void     DoNotifyListener();
   virtual void DoNotifyListenerCleanup() = 0;
 
+  
+  void ReleaseListeners();
+
   nsresult ApplyContentConversions();
 
   void AddCookiesToRequest();

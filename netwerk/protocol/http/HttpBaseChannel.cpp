@@ -1421,6 +1421,15 @@ HttpBaseChannel::SetNewListener(nsIStreamListener *aListener, nsIStreamListener 
 
 
 void
+HttpBaseChannel::ReleaseListeners()
+{
+  mListener = nullptr;
+  mListenerContext = nullptr;
+  mCallbacks = nullptr;
+  mProgressSink = nullptr;
+}
+
+void
 HttpBaseChannel::DoNotifyListener()
 {
   
@@ -1430,14 +1439,12 @@ HttpBaseChannel::DoNotifyListener()
     mListener->OnStartRequest(this, mListenerContext);
     mIsPending = false;
     mListener->OnStopRequest(this, mListenerContext, mStatus);
-    mListener = 0;
-    mListenerContext = 0;
   } else {
     mIsPending = false;
   }
   
-  mCallbacks = nullptr;
-  mProgressSink = nullptr;
+  
+  ReleaseListeners();
 
   DoNotifyListenerCleanup();
 }
