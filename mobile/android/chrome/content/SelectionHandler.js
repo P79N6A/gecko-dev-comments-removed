@@ -111,26 +111,19 @@ var SelectionHandler = {
       }
       case "TextSelection:Position": {
         if (this._activeType == this.TYPE_SELECTION) {
-          let data = JSON.parse(aData);
-
           
-          let selectionReversed = this._updateCacheForSelection(data.handleType == this.HANDLE_TYPE_START);
+          let isStartHandle = JSON.parse(aData).handleType == this.HANDLE_TYPE_START;
+          let selectionReversed = this._updateCacheForSelection(isStartHandle);
           if (selectionReversed) {
             
-            if (this._isRTL) {
-              this._sendMouseEvents(this._cache.end.x, this._cache.end.y, false);
-              this._sendMouseEvents(this._cache.start.x, this._cache.start.y, true);
-            } else {
-              this._sendMouseEvents(this._cache.start.x, this._cache.start.y, false);
-              this._sendMouseEvents(this._cache.end.x, this._cache.end.y, true);
-            }
+            let selection = this._getSelection();
+            let anchorNode = selection.anchorNode;
+            let anchorOffset = selection.anchorOffset;
+            selection.collapse(selection.focusNode, selection.focusOffset);
+            selection.extend(anchorNode, anchorOffset);
           }
-
-          
-          this._positionHandles();
-        } else if (this._activeType == this.TYPE_CURSOR) {
-          this._positionHandles();
         }
+        this._positionHandles();
         break;
       }
     }
@@ -151,28 +144,6 @@ var SelectionHandler = {
         }
         break;
     }
-  },
-
-  _ignoreCollapsedSelection: false,
-
-  notifySelectionChanged: function sh_notifySelectionChanged(aDoc, aSel, aReason) {
-    if (aSel.isCollapsed) {
-      
-      if (this._ignoreCollapsedSelection)
-        return;
-
-      
-      
-      if (aReason & Ci.nsISelectionListener.MOUSEDOWN_REASON) {
-        this._ignoreCollapsedSelection = true;
-        return;
-      }
-
-      
-      this._closeSelection();
-    }
-
-    this._ignoreCollapsedSelection = false;
   },
 
   
@@ -211,9 +182,6 @@ var SelectionHandler = {
       this._onFail("no selection was present");
       return;
     }
-
-    
-    selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
 
     
     this._cache = { start: {}, end: {}};
@@ -303,8 +271,23 @@ var SelectionHandler = {
   },
 
   
-  
+
+
+
+
+
   _moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
+    
+    
+    let viewOffset = this._getViewOffset();
+    let caretPos = this._contentWindow.document.caretPositionFromPoint(aX - viewOffset.x, aY - viewOffset.y);
+
+    
+    let targetIsEditable = this._targetElement instanceof Ci.nsIDOMNSEditableElement;
+    if (targetIsEditable && (caretPos.offsetNode != this._targetElement)) {
+      return;
+    }
+
     
     if (aIsStartHandle) {
       this._cache.start.x = aX;
@@ -314,22 +297,27 @@ var SelectionHandler = {
       this._cache.end.y = aY;
     }
 
-    
-    
-    if (this._isRTL) {
-      
-      if (!aIsStartHandle)
-        this._sendMouseEvents(this._cache.end.x, this._cache.end.y, false);
+    let selection = this._getSelection();
 
-      
-      this._sendMouseEvents(this._cache.start.x, this._cache.start.y, true);
+    
+    
+    if ((aIsStartHandle && !this._isRTL) || (!aIsStartHandle && this._isRTL)) {
+      if (targetIsEditable) {
+        
+        this._targetElement.selectionStart = caretPos.offset;
+      } else {
+        let focusNode = selection.focusNode;
+        let focusOffset = selection.focusOffset;
+        selection.collapse(caretPos.offsetNode, caretPos.offset);
+        selection.extend(focusNode, focusOffset);
+      }
     } else {
-      
-      if (aIsStartHandle)
-        this._sendMouseEvents(this._cache.start.x, this._cache.start.y, false);
-
-      
-      this._sendMouseEvents( this._cache.end.x, this._cache.end.y, true);
+      if (targetIsEditable) {
+        
+        this._targetElement.selectionEnd = caretPos.offset;
+      } else {
+        selection.extend(caretPos.offsetNode, caretPos.offset);
+      }
     }
   },
 
@@ -421,9 +409,6 @@ var SelectionHandler = {
     if (this._activeType == this.TYPE_SELECTION) {
       let selection = this._getSelection();
       if (selection) {
-        
-        
-        selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
         selection.removeAllRanges();
       }
     }
