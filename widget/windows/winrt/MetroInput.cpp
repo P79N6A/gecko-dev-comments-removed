@@ -221,8 +221,6 @@ MetroInput::MetroInput(MetroWidget* aWidget,
   mTokenEdgeStarted.value = 0;
   mTokenEdgeCanceled.value = 0;
   mTokenEdgeCompleted.value = 0;
-  mTokenManipulationStarted.value = 0;
-  mTokenManipulationUpdated.value = 0;
   mTokenManipulationCompleted.value = 0;
   mTokenTapped.value = 0;
   mTokenRightTapped.value = 0;
@@ -490,7 +488,6 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
     new WidgetTouchEvent(true, NS_TOUCH_START, mWidget.Get());
 
   if (mTouches.Count() == 1) {
-    
     
     
     mContentConsumingTouch = false;
@@ -811,108 +808,6 @@ MetroInput::OnPointerExited(UI::Core::ICoreWindow* aSender,
 
 
 
-
-
-
-void
-MetroInput::ProcessManipulationDelta(
-                            UI::Input::ManipulationDelta const& aDelta,
-                            Foundation::Point const& aPosition,
-                            uint32_t aMagEventType,
-                            uint32_t aRotEventType) {
-  
-  
-  
-  
-  if ((aDelta.Translation.X != 0.0f
-    || aDelta.Translation.Y != 0.0f)
-   && (aDelta.Rotation == 0.0f
-    && aDelta.Expansion == 0.0f)) {
-    return;
-  }
-
-  
-  WidgetSimpleGestureEvent* magEvent =
-    new WidgetSimpleGestureEvent(true, aMagEventType, mWidget.Get(), 0, 0.0);
-
-  magEvent->delta = aDelta.Expansion;
-  magEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
-  magEvent->refPoint = LayoutDeviceIntPoint::FromUntyped(MetroUtils::LogToPhys(aPosition));
-  DispatchAsyncEventIgnoreStatus(magEvent);
-
-  
-  WidgetSimpleGestureEvent* rotEvent =
-    new WidgetSimpleGestureEvent(true, aRotEventType, mWidget.Get(), 0, 0.0);
-
-  rotEvent->delta = aDelta.Rotation;
-  rotEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
-  rotEvent->refPoint = LayoutDeviceIntPoint::FromUntyped(MetroUtils::LogToPhys(aPosition));
-  if (rotEvent->delta >= 0) {
-    rotEvent->direction = nsIDOMSimpleGestureEvent::ROTATION_COUNTERCLOCKWISE;
-  } else {
-    rotEvent->direction = nsIDOMSimpleGestureEvent::ROTATION_CLOCKWISE;
-  }
-  DispatchAsyncEventIgnoreStatus(rotEvent);
-}
-
-
-
-
-
-HRESULT
-MetroInput::OnManipulationStarted(
-                      UI::Input::IGestureRecognizer* aSender,
-                      UI::Input::IManipulationStartedEventArgs* aArgs)
-{
-#ifdef DEBUG_INPUT
-  LogFunction();
-#endif
-  UI::Input::ManipulationDelta delta;
-  Foundation::Point position;
-
-  aArgs->get_Cumulative(&delta);
-  aArgs->get_Position(&position);
-
-  ProcessManipulationDelta(delta,
-                           position,
-                           NS_SIMPLE_GESTURE_MAGNIFY_START,
-                           NS_SIMPLE_GESTURE_ROTATE_START);
-  return S_OK;
-}
-
-
-
-
-
-HRESULT
-MetroInput::OnManipulationUpdated(
-                        UI::Input::IGestureRecognizer* aSender,
-                        UI::Input::IManipulationUpdatedEventArgs* aArgs)
-{
-#ifdef DEBUG_INPUT
-  LogFunction();
-#endif
-  UI::Input::ManipulationDelta delta;
-  Foundation::Point position;
-
-  aArgs->get_Delta(&delta);
-  aArgs->get_Position(&position);
-
-  ProcessManipulationDelta(delta,
-                           position,
-                           NS_SIMPLE_GESTURE_MAGNIFY_UPDATE,
-                           NS_SIMPLE_GESTURE_ROTATE_UPDATE);
-  return S_OK;
-}
-
-
-
-
-
-
-
-
-
 HRESULT
 MetroInput::OnManipulationCompleted(
                         UI::Input::IGestureRecognizer* aSender,
@@ -922,35 +817,19 @@ MetroInput::OnManipulationCompleted(
   LogFunction();
 #endif
 
-  UI::Input::ManipulationDelta delta;
-  Foundation::Point position;
   Devices::Input::PointerDeviceType deviceType;
-
-  aArgs->get_Position(&position);
-  aArgs->get_Cumulative(&delta);
   aArgs->get_PointerDeviceType(&deviceType);
-
-  
-  
-  ProcessManipulationDelta(delta,
-                           position,
-                           NS_SIMPLE_GESTURE_MAGNIFY,
-                           NS_SIMPLE_GESTURE_ROTATE);
-
-  
-  
-  
-  
-  
-  
-  if (delta.Rotation != 0.0f
-   || delta.Expansion != 0.0f
-   || deviceType ==
+  if (deviceType ==
               Devices::Input::PointerDeviceType::PointerDeviceType_Mouse) {
     return S_OK;
   }
 
-  
+  UI::Input::ManipulationDelta delta;
+  Foundation::Point position;
+
+  aArgs->get_Position(&position);
+  aArgs->get_Cumulative(&delta);
+
   
   
   
@@ -1377,8 +1256,6 @@ MetroInput::UnregisterInputEvents() {
   
   
   
-  mGestureRecognizer->remove_ManipulationStarted(mTokenManipulationStarted);
-  mGestureRecognizer->remove_ManipulationUpdated(mTokenManipulationUpdated);
   mGestureRecognizer->remove_ManipulationCompleted(
                                         mTokenManipulationCompleted);
   mGestureRecognizer->remove_Tapped(mTokenTapped);
@@ -1427,9 +1304,7 @@ MetroInput::RegisterInputEvents()
           | UI::Input::GestureSettings::GestureSettings_RightTap
           | UI::Input::GestureSettings::GestureSettings_Hold
           | UI::Input::GestureSettings::GestureSettings_ManipulationTranslateX
-          | UI::Input::GestureSettings::GestureSettings_ManipulationTranslateY
-          | UI::Input::GestureSettings::GestureSettings_ManipulationScale
-          | UI::Input::GestureSettings::GestureSettings_ManipulationRotate);
+          | UI::Input::GestureSettings::GestureSettings_ManipulationTranslateY);
 
   
   mWindow->add_PointerPressed(
@@ -1474,18 +1349,6 @@ MetroInput::RegisterInputEvents()
         this,
         &MetroInput::OnRightTapped).Get(),
       &mTokenRightTapped);
-
-  mGestureRecognizer->add_ManipulationStarted(
-      WRL::Callback<ManipulationStartedEventHandler>(
-       this,
-       &MetroInput::OnManipulationStarted).Get(),
-     &mTokenManipulationStarted);
-
-  mGestureRecognizer->add_ManipulationUpdated(
-      WRL::Callback<ManipulationUpdatedEventHandler>(
-        this,
-        &MetroInput::OnManipulationUpdated).Get(),
-      &mTokenManipulationUpdated);
 
   mGestureRecognizer->add_ManipulationCompleted(
       WRL::Callback<ManipulationCompletedEventHandler>(

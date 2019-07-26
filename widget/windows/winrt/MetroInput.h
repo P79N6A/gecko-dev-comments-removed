@@ -131,16 +131,10 @@ public:
                                  IEdgeGestureEventArgs* aArgs);
 
   
-  
-  
-  
-  
-  HRESULT OnManipulationStarted(IGestureRecognizer* aSender,
-                                IManipulationStartedEventArgs* aArgs);
-  HRESULT OnManipulationUpdated(IGestureRecognizer* aSender,
-                                IManipulationUpdatedEventArgs* aArgs);
   HRESULT OnManipulationCompleted(IGestureRecognizer* aSender,
                                   IManipulationCompletedEventArgs* aArgs);
+
+  
   HRESULT OnTapped(IGestureRecognizer* aSender, ITappedEventArgs* aArgs);
   HRESULT OnRightTapped(IGestureRecognizer* aSender,
                         IRightTappedEventArgs* aArgs);
@@ -258,8 +252,6 @@ private:
   
   
   
-  EventRegistrationToken mTokenManipulationStarted;
-  EventRegistrationToken mTokenManipulationUpdated;
   EventRegistrationToken mTokenManipulationCompleted;
   EventRegistrationToken mTokenTapped;
   EventRegistrationToken mTokenRightTapped;
