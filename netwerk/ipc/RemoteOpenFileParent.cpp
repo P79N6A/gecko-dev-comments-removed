@@ -50,7 +50,7 @@ RemoteOpenFileParent::RecvAsyncOpenFile()
   if (NS_SUCCEEDED(rv)) {
     int fd = open(path.get(), O_RDONLY);
     if (fd != -1) {
-      unused << SendFileOpened(FileDescriptor(fd), NS_OK);
+      unused << SendFileOpened(FileDescriptor(fd));
       
       
       mFd = fd;
@@ -60,7 +60,8 @@ RemoteOpenFileParent::RecvAsyncOpenFile()
 
   
   
-  unused << SendFileOpened(FileDescriptor(mFd), NS_ERROR_NOT_AVAILABLE);
+  printf_stderr("RemoteOpenFileParent: file '%s' was not found!\n", path.get());
+  unused << SendFileDidNotOpen();
 #endif 
 
   return true;
