@@ -28,6 +28,7 @@
 #include "mozilla/Atomics.h"
 #include "nsThreadUtils.h"
 #include "mozilla/gfx/2D.h"
+#include "nsDataHashtable.h"
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
@@ -146,6 +147,8 @@ class ImageClient;
 class SharedPlanarYCbCrImage;
 class DeprecatedSharedPlanarYCbCrImage;
 class TextureClient;
+class CompositableClient;
+class CompositableForwarder;
 class SurfaceDescriptor;
 
 struct ImageBackendData
@@ -165,7 +168,7 @@ public:
 
 
 
-    virtual TextureClient* GetTextureClient() = 0;
+    virtual TextureClient* GetTextureClient(CompositableClient* aClient) = 0;
 };
 
 
@@ -905,7 +908,8 @@ protected:
 
 
 
-class CairoImage : public Image {
+class CairoImage : public Image,
+                   public ISharedImage {
 public:
   struct Data {
     gfxASurface* mDeprecatedSurface;
@@ -939,9 +943,14 @@ public:
     return surface.forget();
   }
 
+  virtual ISharedImage* AsSharedImage() { return this; }
+  virtual uint8_t* GetBuffer() { return nullptr; }
+  virtual TextureClient* GetTextureClient(CompositableClient* aClient);
+
   gfx::IntSize GetSize() { return mSize; }
 
-  CairoImage() : Image(nullptr, ImageFormat::CAIRO_SURFACE) {}
+  CairoImage();
+  ~CairoImage();
 
   nsCountedRef<nsMainThreadSurfaceRef> mDeprecatedSurface;
   gfx::IntSize mSize;
@@ -949,6 +958,7 @@ public:
   
   
   nsCountedRef<nsMainThreadSourceSurfaceRef> mSourceSurface;
+  nsDataHashtable<nsUint32HashKey, RefPtr<TextureClient> >  mTextureClients;
 };
 
 class RemoteBitmapImage : public Image {
