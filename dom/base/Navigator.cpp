@@ -703,7 +703,7 @@ VibrateWindowListener::RemoveListener()
 
 
 bool
-GetVibrationDurationFromJsval(const jsval& aJSVal, JSContext* cx,
+GetVibrationDurationFromJsval(const JS::Value& aJSVal, JSContext* cx,
                               int32_t* aOut)
 {
   return JS_ValueToInt32(cx, aJSVal, aOut) &&
@@ -755,7 +755,7 @@ Navigator::RemoveIdleObserver(nsIIdleObserver* aIdleObserver)
 }
 
 NS_IMETHODIMP
-Navigator::Vibrate(const jsval& aPattern, JSContext* cx)
+Navigator::Vibrate(const JS::Value& aPattern, JSContext* cx)
 {
   nsCOMPtr<nsPIDOMWindow> win = do_QueryReferent(mWindow);
   NS_ENSURE_TRUE(win, NS_OK);
@@ -795,7 +795,7 @@ Navigator::Vibrate(const jsval& aPattern, JSContext* cx)
     pattern.SetLength(length);
 
     for (uint32_t i = 0; i < length; ++i) {
-      jsval v;
+      JS::Value v;
       int32_t pv;
       if (JS_GetElement(cx, obj, i, &v) &&
           GetVibrationDurationFromJsval(v, cx, &pv)) {
@@ -1441,7 +1441,7 @@ Navigator::EnsureMessagesManager()
   NS_ENSURE_TRUE(gpi, NS_ERROR_FAILURE);
 
   
-  jsval prop_val = JSVAL_VOID;
+  JS::Value prop_val = JSVAL_VOID;
   rv = gpi->Init(window, &prop_val);
   NS_ENSURE_SUCCESS(rv, rv);
 

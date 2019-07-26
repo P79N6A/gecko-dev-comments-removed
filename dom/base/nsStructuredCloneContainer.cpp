@@ -46,7 +46,7 @@ nsStructuredCloneContainer::InitFromVariant(nsIVariant *aData, JSContext *aCx)
 
   
   
-  jsval jsData;
+  JS::Value jsData;
   nsresult rv = aData->GetAsJSVal(&jsData);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_UNEXPECTED);
 
@@ -114,7 +114,7 @@ nsStructuredCloneContainer::DeserializeToVariant(JSContext *aCx,
   *aData = nullptr;
 
   
-  jsval jsStateObj;
+  JS::Value jsStateObj;
   JSBool hasTransferable = false;
   bool success = JS_ReadStructuredClone(aCx, mData, mSize, mVersion,
                                           &jsStateObj, nullptr, nullptr) &&

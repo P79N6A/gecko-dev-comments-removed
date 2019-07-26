@@ -163,10 +163,10 @@ protected:
   nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
                                    JSObject *aScope,
                                    uint32_t *aArgc,
-                                   jsval **aArgv,
+                                   JS::Value **aArgv,
                                    mozilla::Maybe<nsRootedJSValueArray> &aPoolRelease);
 
-  nsresult AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv);
+  nsresult AddSupportsPrimitiveTojsvals(nsISupports *aArg, JS::Value *aArgv);
 
   
   
