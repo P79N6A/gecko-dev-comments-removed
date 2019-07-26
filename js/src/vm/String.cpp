@@ -21,7 +21,10 @@ using namespace js;
 bool
 JSString::isShort() const
 {
-    bool is_short = (getAllocKind() == gc::FINALIZE_SHORT_STRING);
+    
+    
+    
+    bool is_short = (getAllocKind() == gc::FINALIZE_SHORT_STRING) && isInline();
     JS_ASSERT_IF(is_short, isFlat());
     return is_short;
 }
