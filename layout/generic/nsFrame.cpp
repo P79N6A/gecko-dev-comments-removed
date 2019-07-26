@@ -7715,7 +7715,7 @@ nsFrame::DoLayout(nsBoxLayoutState& aState)
 
       
       
-      SetSize(nsSize(ourRect.width, ourRect.height));
+      SetSize(ourRect.Size());
     }
   }
 

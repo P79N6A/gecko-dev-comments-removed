@@ -830,8 +830,8 @@ public:
 
 
   nsRect GetRect() const { return mRect; }
-  nsPoint GetPosition() const { return nsPoint(mRect.x, mRect.y); }
-  nsSize GetSize() const { return nsSize(mRect.width, mRect.height); }
+  nsPoint GetPosition() const { return mRect.TopLeft(); }
+  nsSize GetSize() const { return mRect.Size(); }
 
   
 
