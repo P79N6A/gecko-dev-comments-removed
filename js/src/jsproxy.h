@@ -249,8 +249,14 @@ inline bool IsProxy(RawObject obj)
 }
 
 
-const uint32_t JSSLOT_PROXY_HANDLER = 0;
-const uint32_t JSSLOT_PROXY_PRIVATE = 1;
+
+
+
+
+
+
+const uint32_t JSSLOT_PROXY_PRIVATE = 0;
+const uint32_t JSSLOT_PROXY_HANDLER = 1;
 const uint32_t JSSLOT_PROXY_EXTRA   = 2;
 
 const uint32_t JSSLOT_PROXY_CALL = 4;
