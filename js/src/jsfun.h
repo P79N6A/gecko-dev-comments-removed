@@ -409,6 +409,10 @@ DefineFunction(JSContext *cx, HandleObject obj, HandleId id, JSNative native,
                gc::AllocKind allocKind = JSFunction::FinalizeKind,
                NewObjectKind newKind = GenericObject);
 
+extern JSBool
+fun_resolve(JSContext *cx, js::HandleObject obj, js::HandleId id,
+            unsigned flags, js::MutableHandleObject objp);
+
 
 bool IsConstructor(const Value &v);
 
