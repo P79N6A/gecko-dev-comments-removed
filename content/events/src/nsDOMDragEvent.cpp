@@ -26,6 +26,7 @@ nsDOMDragEvent::nsDOMDragEvent(mozilla::dom::EventTarget* aOwner,
     mEvent->refPoint.x = mEvent->refPoint.y = 0;
     static_cast<nsMouseEvent*>(mEvent)->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
   }
+  SetIsDOMBinding();
 }
 
 nsDOMDragEvent::~nsDOMDragEvent()
@@ -75,26 +76,30 @@ nsDOMDragEvent::InitDragEvent(const nsAString & aType,
 NS_IMETHODIMP
 nsDOMDragEvent::GetDataTransfer(nsIDOMDataTransfer** aDataTransfer)
 {
-  
-  
-  
-  
-  *aDataTransfer = nullptr;
+  NS_IF_ADDREF(*aDataTransfer = GetDataTransfer());
+  return NS_OK;
+}
 
+nsIDOMDataTransfer*
+nsDOMDragEvent::GetDataTransfer()
+{
+  
+  
+  
+  
   if (!mEvent || mEvent->eventStructType != NS_DRAG_EVENT) {
     NS_WARNING("Tried to get dataTransfer from non-drag event!");
-    return NS_OK;
+    return nullptr;
   }
 
   nsDragEvent* dragEvent = static_cast<nsDragEvent*>(mEvent);
   
   if (!mEventIsInternal) {
     nsresult rv = nsContentUtils::SetDataTransferInEvent(dragEvent);
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, nullptr);
   }
 
-  NS_IF_ADDREF(*aDataTransfer = dragEvent->dataTransfer);
-  return NS_OK;
+  return dragEvent->dataTransfer;
 }
 
 nsresult NS_NewDOMDragEvent(nsIDOMEvent** aInstancePtrResult,
