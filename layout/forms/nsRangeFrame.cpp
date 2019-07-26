@@ -242,63 +242,26 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
   nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
 
   if (thumbFrame) { 
-
-    
-    
-    
-    
-    
-    
-    
-    
-
-    nsSize frameSizeOverride(aDesiredSize.width, aDesiredSize.height);
-    bool isHorizontal = IsHorizontal(&frameSizeOverride);
-
-    double valueAsFraction = GetValueAsFractionOfRange();
-    MOZ_ASSERT(valueAsFraction >= 0.0 && valueAsFraction <= 1.0);
-
     nsHTMLReflowState thumbReflowState(aPresContext, aReflowState, thumbFrame,
                                        nsSize(aReflowState.ComputedWidth(),
                                               NS_UNCONSTRAINEDSIZE));
 
     
     
-    
-    nscoord thumbX, thumbY;
-
-    if (isHorizontal) {
-      thumbX = NSToCoordRound(rangeFrameContentBoxWidth * valueAsFraction);
-      if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-        thumbX = rangeFrameContentBoxWidth - thumbX;
-      }
-      thumbY = rangeFrameContentBoxHeight / 2;
-    } else {
-      thumbX = rangeFrameContentBoxWidth / 2;
-      
-      thumbY = rangeFrameContentBoxHeight -
-                 NSToCoordRound(rangeFrameContentBoxHeight * valueAsFraction);
-    }
-
-    thumbX -= thumbReflowState.mComputedBorderPadding.left +
-                thumbReflowState.ComputedWidth() / 2;
-    thumbY -= thumbReflowState.mComputedBorderPadding.top +
-                thumbReflowState.ComputedHeight() / 2;
-
-    
-    thumbX += aReflowState.mComputedBorderPadding.left;
-    thumbY += aReflowState.mComputedBorderPadding.top;
 
     nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
     nsHTMLReflowMetrics thumbDesiredSize;
     nsresult rv = ReflowChild(thumbFrame, aPresContext, thumbDesiredSize,
-                              thumbReflowState, thumbX, thumbY, 0, frameStatus);
+                              thumbReflowState, 0, 0, 0, frameStatus);
     NS_ENSURE_SUCCESS(rv, rv);
     MOZ_ASSERT(NS_FRAME_IS_FULLY_COMPLETE(frameStatus),
                "We gave our child unconstrained height, so it should be complete");
     rv = FinishReflowChild(thumbFrame, aPresContext, &thumbReflowState,
-                           thumbDesiredSize, thumbX, thumbY, 0);
+                           thumbDesiredSize, 0, 0, 0);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    DoUpdateThumbPosition(thumbFrame, nsSize(aDesiredSize.width,
+                                             aDesiredSize.height));
   }
 
   return NS_OK;
@@ -348,34 +311,57 @@ nsRangeFrame::GetValueAtEventPoint(nsGUIEvent* aEvent)
   MOZ_ASSERT(MOZ_DOUBLE_IS_FINITE(minimum) &&
              MOZ_DOUBLE_IS_FINITE(maximum),
              "type=range should have a default maximum/minimum");
-  nsRect contentRect = GetContentRectRelativeToSelf();
-  if (maximum <= minimum ||
-      (IsHorizontal() && contentRect.width <= 0) ||
-      (!IsHorizontal() && contentRect.height <= 0)) {
+  if (maximum <= minimum) {
     return minimum;
   }
-
   double range = maximum - minimum;
 
-  nsIntPoint point;
+  nsIntPoint absPoint;
   if (aEvent->eventStructType == NS_TOUCH_EVENT) {
     MOZ_ASSERT(static_cast<nsTouchEvent*>(aEvent)->touches.Length() == 1,
                "Unexpected number of touches");
-    point = static_cast<nsTouchEvent*>(aEvent)->touches[0]->mRefPoint;
+    absPoint = static_cast<nsTouchEvent*>(aEvent)->touches[0]->mRefPoint;
   } else {
-    point = aEvent->refPoint;
+    absPoint = aEvent->refPoint;
+  }
+  nsPoint point =
+    nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, absPoint, this);
+
+  nsRect rangeContentRect = GetContentRectRelativeToSelf();
+  nsSize thumbSize;
+  nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
+  if (thumbFrame) { 
+    thumbSize = thumbFrame->GetSize();
   }
 
-  nsMargin borderAndPadding = GetUsedBorderAndPadding();
-  nsPoint contentPoint =
-    nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, point, this) -
-      nsPoint(borderAndPadding.left, borderAndPadding.top);
-  contentPoint.x = mozilla::clamped(contentPoint.x, 0, contentRect.width);
-  contentPoint.y = mozilla::clamped(contentPoint.y, 0, contentRect.height);
-  if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-    return maximum - (double(contentPoint.x) / double(contentRect.width)) * range;
+  double fraction;
+  if (IsHorizontal()) {
+    nscoord traversableDistance = rangeContentRect.width - thumbSize.width;
+    if (traversableDistance <= 0) {
+      return minimum;
+    }
+    nscoord posAtStart = rangeContentRect.x + thumbSize.width/2;
+    nscoord posAtEnd = posAtStart + traversableDistance;
+    nscoord posOfPoint = mozilla::clamped(point.x, posAtStart, posAtEnd);
+    fraction = (posOfPoint - posAtStart) / double(traversableDistance);
+    if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+      fraction = 1.0 - fraction;
+    }
+  } else {
+    nscoord traversableDistance = rangeContentRect.height - thumbSize.height;
+    if (traversableDistance <= 0) {
+      return minimum;
+    }
+    nscoord posAtStart = rangeContentRect.y + thumbSize.height/2;
+    nscoord posAtEnd = posAtStart + traversableDistance;
+    nscoord posOfPoint = mozilla::clamped(point.y, posAtStart, posAtEnd);
+    
+    
+    fraction = 1.0 - (posOfPoint - posAtStart) / double(traversableDistance);
   }
-  return minimum + (double(contentPoint.x) / double(contentRect.width)) * range;
+
+  MOZ_ASSERT(fraction >= 0.0 && fraction <= 1.0);
+  return minimum + fraction * range;
 }
 
 void
@@ -388,23 +374,57 @@ nsRangeFrame::UpdateThumbPositionForValueChange()
   if (!thumbFrame) {
     return; 
   }
-  
-  double fraction = GetValueAsFractionOfRange();
-  nsRect contentRect = GetContentRectRelativeToSelf();
-  nsMargin borderAndPadding = GetUsedBorderAndPadding();
-  nsSize thumbSize = thumbFrame->GetSize();
-  nsPoint newPosition(borderAndPadding.left, borderAndPadding.top);
-  if (IsHorizontal()) {
-    newPosition += nsPoint(NSToCoordRound(fraction * contentRect.width) -
-                             thumbSize.width/2,
-                           (contentRect.height - thumbSize.height)/2);
-  } else {
-    newPosition += nsPoint((contentRect.width - thumbSize.width)/2,
-                           NSToCoordRound(fraction * contentRect.height) -
-                             thumbSize.height/2);
-  }
-  thumbFrame->SetPosition(newPosition);
+  DoUpdateThumbPosition(thumbFrame, GetSize());
   SchedulePaint();
+}
+
+void
+nsRangeFrame::DoUpdateThumbPosition(nsIFrame* aThumbFrame,
+                                    const nsSize& aRangeSize)
+{
+  MOZ_ASSERT(aThumbFrame);
+
+  
+  
+  
+  
+  
+  
+  
+
+  nsMargin borderAndPadding = GetUsedBorderAndPadding();
+  nsPoint newPosition(borderAndPadding.left, borderAndPadding.top);
+
+  nsSize rangeContentBoxSize(aRangeSize);
+  rangeContentBoxSize.width -= borderAndPadding.LeftRight();
+  rangeContentBoxSize.height -= borderAndPadding.TopBottom();
+
+  nsSize thumbSize = aThumbFrame->GetSize();
+  double fraction = GetValueAsFractionOfRange();
+  MOZ_ASSERT(fraction >= 0.0 && fraction <= 1.0);
+
+  
+  nsSize frameSizeOverride(aRangeSize.width, aRangeSize.height);
+  if (IsHorizontal(&frameSizeOverride)) {
+    if (thumbSize.width < rangeContentBoxSize.width) {
+      nscoord traversableDistance =
+        rangeContentBoxSize.width - thumbSize.width;
+      if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+        newPosition.x += NSToCoordRound((1.0 - fraction) * traversableDistance);
+      } else {
+        newPosition.x += NSToCoordRound(fraction * traversableDistance);
+      }
+      newPosition.y += (rangeContentBoxSize.height - thumbSize.height)/2;
+    }
+  } else {
+    if (thumbSize.height < rangeContentBoxSize.height) {
+      nscoord traversableDistance =
+        rangeContentBoxSize.height - thumbSize.height;
+      newPosition.x += (rangeContentBoxSize.width - thumbSize.width)/2;
+      newPosition.y += NSToCoordRound((1.0 - fraction) * traversableDistance);
+    }
+  }
+  aThumbFrame->SetPosition(newPosition);
 }
 
 NS_IMETHODIMP
