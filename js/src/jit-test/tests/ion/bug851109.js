@@ -7,3 +7,6 @@ f();
 
 
 Object.getOwnPropertyDescriptor(this, "customNative");
+
+
+this.__defineSetter__("customNative", unescape);
