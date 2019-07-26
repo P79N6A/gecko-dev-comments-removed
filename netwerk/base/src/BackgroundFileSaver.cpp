@@ -27,7 +27,7 @@ namespace net {
 
 
 
-#define BUFFERED_OUTPUT_SIZE (1024 * 32)
+#define BUFFERED_IO_SIZE (1024 * 32)
 
 
 
@@ -82,6 +82,7 @@ BackgroundFileSaver::BackgroundFileSaver()
 , mFinishRequested(false)
 , mComplete(false)
 , mStatus(NS_OK)
+, mAppend(false)
 , mAssignedTarget(nullptr)
 , mAssignedTargetKeepPartial(false)
 , mAsyncCopyContext(nullptr)
@@ -159,6 +160,18 @@ NS_IMETHODIMP
 BackgroundFileSaver::SetObserver(nsIBackgroundFileSaverObserver *aObserver)
 {
   mObserver = aObserver;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+BackgroundFileSaver::EnableAppend()
+{
+  MOZ_ASSERT(NS_IsMainThread(), "This should be called on the main thread");
+
+  MutexAutoLock lock(mLock);
+  mAppend = true;
+
   return NS_OK;
 }
 
@@ -364,16 +377,17 @@ BackgroundFileSaver::ProcessStateChange()
   nsCOMPtr<nsIFile> target;
   bool targetKeepPartial;
   bool sha256Enabled = false;
+  bool append = false;
   {
     MutexAutoLock lock(mLock);
 
     target = mAssignedTarget;
     targetKeepPartial = mAssignedTargetKeepPartial;
+    sha256Enabled = mSha256Enabled;
+    append = mAppend;
 
     
     mWorkerThreadAttentionRequested = false;
-
-    sha256Enabled = mSha256Enabled;
   }
 
   
@@ -382,13 +396,20 @@ BackgroundFileSaver::ProcessStateChange()
     return NS_OK;
   }
 
+  bool isContinuation = !!mActualTarget;
+
+  
+  
+  int32_t creationIoFlags;
+  if (isContinuation) {
+    creationIoFlags = PR_APPEND;
+  } else {
+    creationIoFlags = (append ? PR_APPEND : PR_TRUNCATE) | PR_CREATE_FILE;
+  }
+
   
   bool equalToCurrent = false;
-  int32_t creationIoFlags = PR_CREATE_FILE | PR_TRUNCATE;
-  if (mActualTarget) {
-    creationIoFlags = PR_APPEND;
-
-    
+  if (isContinuation) {
     rv = mActualTarget->Equals(target, &equalToCurrent);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!equalToCurrent)
@@ -440,22 +461,71 @@ BackgroundFileSaver::ProcessStateChange()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
-  if (CheckCompletion()) {
-    return NS_OK;
-  }
+  if (isContinuation) {
+    
+    
+    if (CheckCompletion()) {
+      return NS_OK;
+    }
 
-  
-  
-  
-  
-  
-  
-  if (creationIoFlags == PR_APPEND) {
+    
+    
+    
+    
+    
+    
+    
     uint64_t available;
     rv = mPipeInputStream->Available(&available);
     if (NS_FAILED(rv)) {
       return NS_OK;
+    }
+  }
+
+  
+  if (sha256Enabled && !mDigestContext) {
+    nsNSSShutDownPreventionLock lock;
+    if (!isAlreadyShutDown()) {
+      mDigestContext =
+        PK11_CreateDigestContext(static_cast<SECOidTag>(SEC_OID_SHA256));
+      NS_ENSURE_TRUE(mDigestContext, NS_ERROR_OUT_OF_MEMORY);
+    }
+  }
+
+  
+  
+  if (append && !isContinuation) {
+    nsCOMPtr<nsIInputStream> inputStream;
+    rv = NS_NewLocalFileInputStream(getter_AddRefs(inputStream),
+                                    mActualTarget,
+                                    PR_RDONLY | nsIFile::OS_READAHEAD);
+    if (rv != NS_ERROR_FILE_NOT_FOUND) {
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      char buffer[BUFFERED_IO_SIZE];
+      while (true) {
+        uint32_t count;
+        rv = inputStream->Read(buffer, BUFFERED_IO_SIZE, &count);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (count == 0) {
+          
+          break;
+        }
+
+        nsNSSShutDownPreventionLock lock;
+        if (isAlreadyShutDown()) {
+          return NS_ERROR_NOT_AVAILABLE;
+        }
+
+        nsresult rv = MapSECStatus(PK11_DigestOp(mDigestContext,
+                                                 uint8_t_ptr_cast(buffer),
+                                                 count));
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      rv = inputStream->Close();
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 
@@ -466,24 +536,12 @@ BackgroundFileSaver::ProcessStateChange()
                                    PR_WRONLY | creationIoFlags, 0600);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  outputStream = NS_BufferOutputStream(outputStream, BUFFERED_OUTPUT_SIZE);
+  outputStream = NS_BufferOutputStream(outputStream, BUFFERED_IO_SIZE);
   if (!outputStream) {
     return NS_ERROR_FAILURE;
   }
 
   
-  
-  bool isShutDown = false;
-  if (sha256Enabled && !mDigestContext) {
-    nsNSSShutDownPreventionLock lock;
-    if (!(isShutDown = isAlreadyShutDown())) {
-      mDigestContext =
-        PK11_CreateDigestContext(static_cast<SECOidTag>(SEC_OID_SHA256));
-      NS_ENSURE_TRUE(mDigestContext, NS_ERROR_OUT_OF_MEMORY);
-    }
-  }
-  MOZ_ASSERT(!sha256Enabled || mDigestContext || isShutDown,
-             "Hashing enabled but creating digest context didn't work");
   if (mDigestContext) {
     
     

@@ -48,9 +48,13 @@ const TEST_FILE_NAME_3 = "test-backgroundfilesaver-3.txt";
 
 const EXPECTED_HASHES = {
   
+  0 : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  
   40 : "f37176b690e8744ee990a206c086cba54d1502aa2456c3b0c84ef6345d72a192",
   
   80 : "780c0e91f50bb7ec922cc11e16859e6d5df283c0d9470f61772e3d79f41eeb58",
+  
+  8388608 : "e3611a47714c42bdf326acfb2eb6ed9fa4cca65cb7d7be55217770a5bf5e7ff0",
   
   16777216 : "03a0db69a30140f307587ee746a539247c181bafd85b85c8516a3533c7d9ea1d"
 };
@@ -408,18 +412,18 @@ add_task(function test_setTarget_after_close_stream()
     let saver = new BackgroundFileSaverOutputStream();
     saver.enableSha256();
     let completionPromise = promiseSaverComplete(saver);
-  
+
     
     
     
     
     yield promiseCopyToSaver(TEST_DATA_SHORT, saver, true);
-  
+
     
     saver.setTarget(destFile, false);
     saver.finish(Cr.NS_OK);
     yield completionPromise;
-  
+
     
     yield promiseVerifyContents(destFile, TEST_DATA_SHORT);
     do_check_eq(EXPECTED_HASHES[TEST_DATA_SHORT.length],
@@ -455,6 +459,38 @@ add_task(function test_setTarget_multiple()
   destFile.remove(false);
 });
 
+add_task(function test_enableAppend_hash()
+{
+  
+  
+  let destFile = getTempFile(TEST_FILE_NAME_1);
+
+  
+  
+  for (let i = 0; i < 2; i++) {
+    let saver = new BackgroundFileSaverOutputStream();
+    saver.enableAppend();
+    saver.enableSha256();
+    let completionPromise = promiseSaverComplete(saver);
+
+    saver.setTarget(destFile, false);
+    yield promiseCopyToSaver(TEST_DATA_LONG, saver, true);
+
+    saver.finish(Cr.NS_OK);
+    yield completionPromise;
+
+    
+    let expectedContents = (i == 0 ? TEST_DATA_LONG
+                                   : TEST_DATA_LONG + TEST_DATA_LONG);
+    yield promiseVerifyContents(destFile, expectedContents);
+    do_check_eq(EXPECTED_HASHES[expectedContents.length],
+                toHex(saver.sha256Hash));
+  }
+
+  
+  destFile.remove(false);
+});
+
 add_task(function test_finish_only()
 {
   
@@ -466,6 +502,57 @@ add_task(function test_finish_only()
   let completionPromise = promiseSaverComplete(saver, onTargetChange);
   saver.finish(Cr.NS_OK);
   yield completionPromise;
+});
+
+add_task(function test_empty()
+{
+  
+  let destFile = getTempFile(TEST_FILE_NAME_1);
+
+  let saver = new BackgroundFileSaverOutputStream();
+  let completionPromise = promiseSaverComplete(saver);
+
+  saver.setTarget(destFile, false);
+  yield promiseCopyToSaver("", saver, true);
+
+  saver.finish(Cr.NS_OK);
+  yield completionPromise;
+
+  
+  do_check_true(destFile.exists());
+  do_check_eq(destFile.fileSize, 0);
+
+  
+  destFile.remove(false);
+});
+
+add_task(function test_empty_hash()
+{
+  
+  let destFile = getTempFile(TEST_FILE_NAME_1);
+
+  
+  for (let i = 0; i < 2; i++) {
+    let saver = new BackgroundFileSaverOutputStream();
+    if (i == 1) {
+      saver.enableAppend();
+    }
+    saver.enableSha256();
+    let completionPromise = promiseSaverComplete(saver);
+
+    saver.setTarget(destFile, false);
+    yield promiseCopyToSaver("", saver, true);
+
+    saver.finish(Cr.NS_OK);
+    yield completionPromise;
+
+    
+    do_check_eq(destFile.fileSize, 0);
+    do_check_eq(EXPECTED_HASHES[0], toHex(saver.sha256Hash));
+  }
+
+  
+  destFile.remove(false);
 });
 
 add_task(function test_invalid_hash()

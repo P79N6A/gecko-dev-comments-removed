@@ -158,6 +158,12 @@ private:
 
 
 
+  bool mAppend;
+
+  
+
+
+
 
   nsCOMPtr<nsIFile> mAssignedTarget;
 
