@@ -607,7 +607,6 @@ protected:
   
   bool ParseFilter();
   bool ParseSingleFilter(nsCSSValue* aValue);
-  bool ParseDropShadow(nsCSSValue* aValue);
 
   
 
@@ -10056,32 +10055,6 @@ bool CSSParserImpl::ParseTransformOrigin(bool aPerspective)
 
 
 
-
-bool
-CSSParserImpl::ParseDropShadow(nsCSSValue* aValue)
-{
-  
-  
-  nsCSSValue shadow;
-  nsCSSValueList* cur = shadow.SetListValue();
-  if (!ParseShadowItem(cur->mValue, false))
-    return false;
-
-  if (!ExpectSymbol(')', true))
-    return false;
-
-  nsCSSValue::Array* dropShadow = aValue->InitFunction(eCSSKeyword_drop_shadow, 1);
-
-  
-  dropShadow->Item(1) = shadow;
-
-  return true;
-}
-
-
-
-
-
 bool
 CSSParserImpl::ParseSingleFilter(nsCSSValue* aValue)
 {
@@ -10105,24 +10078,11 @@ CSSParserImpl::ParseSingleFilter(nsCSSValue* aValue)
     return false;
   }
 
-  nsCSSKeyword functionName = nsCSSKeywords::LookupKeyword(mToken.mIdent);
-  
-  
-  if (functionName == eCSSKeyword_drop_shadow) {
-    if (ParseDropShadow(aValue)) {
-      return true;
-    } else {
-      
-      REPORT_UNEXPECTED_TOKEN(PEExpectedNoneOrURLOrFilterFunction);
-      SkipUntil(')');
-      return false;
-    }
-  }
-
   
   int32_t variantMask = VARIANT_PN;
   bool rejectNegativeArgument = true;
   bool clampArgumentToOne = false;
+  nsCSSKeyword functionName = nsCSSKeywords::LookupKeyword(mToken.mIdent);
   switch (functionName) {
     case eCSSKeyword_blur:
       variantMask = VARIANT_LCALC | VARIANT_NONNEGATIVE_DIMENSION;
