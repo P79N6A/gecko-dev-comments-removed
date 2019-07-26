@@ -1,0 +1,11 @@
+
+
+
+
+#downloadsListEmptyDescription {
+  display: none;
+}
+
+#downloadsRichListBox:empty + #downloadsListEmptyDescription {
+  display: -moz-box;
+}
