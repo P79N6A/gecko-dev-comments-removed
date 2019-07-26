@@ -15,6 +15,7 @@
 #include "nsMenuPopupFrame.h"
 #include "nsClientRect.h"
 #include "nsView.h"
+#include "mozilla/AppUnits.h"
 
 class nsPopupBoxObject : public nsBoxObject,
                          public nsIPopupBoxObject
@@ -363,7 +364,7 @@ nsPopupBoxObject::GetAlignmentOffset(int32_t *aAlignmentOffset)
   if (!menuPopupFrame)
     return NS_OK;
 
-  int32_t pp = nsDeviceContext::AppUnitsPerCSSPixel();
+  int32_t pp = mozilla::AppUnitsPerCSSPixel();
   
   
   
