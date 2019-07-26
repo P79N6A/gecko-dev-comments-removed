@@ -228,6 +228,7 @@ CheckPermission(PContentParent* aActor,
   uint32_t appPerm = nsIPermissionManager::UNKNOWN_ACTION;
   nsresult rv = pm->TestExactPermissionFromPrincipal(appPrincipal, aPermission, &appPerm);
   NS_ENSURE_SUCCESS(rv, nsIPermissionManager::UNKNOWN_ACTION);
+  
   if (appPerm == nsIPermissionManager::UNKNOWN_ACTION ||
       appPerm == nsIPermissionManager::DENY_ACTION) {
     return appPerm;
@@ -241,6 +242,15 @@ CheckPermission(PContentParent* aActor,
     return permission;
   }
 
+  
+  
+  if (appPerm == nsIPermissionManager::PROMPT_ACTION &&
+      aPrincipal->GetIsInBrowserElement()) {
+    return permission;
+  }
+
+  
+  
   if (appPerm == nsIPermissionManager::PROMPT_ACTION ||
       permission == nsIPermissionManager::PROMPT_ACTION) {
     return nsIPermissionManager::PROMPT_ACTION;
