@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/Move.h"
+
 #include "jsmath.h"
 #include "jsworkers.h"
 #include "prmjtime.h"

@@ -10,6 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Compiler.h"
+#include "mozilla/Move.h"
 #include "mozilla/Scoped.h"
 
 #include <stdlib.h>
@@ -564,124 +565,6 @@ SCOPED_TEMPLATE(ScopedReleasePtr, ScopedReleasePtrTraits)
 namespace js {
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename T>
-class MoveRef {
-  public:
-    typedef T Referent;
-    explicit MoveRef(T &t) : pointer(&t) { }
-    T &operator*()  const { return *pointer; }
-    T *operator->() const { return  pointer; }
-    operator T& ()   const { return *pointer; }
-  private:
-    T *pointer;
-};
-
-template<typename T>
-MoveRef<T> Move(T &t) { return MoveRef<T>(t); }
-
-template<typename T>
-MoveRef<T> Move(const T &t) { return MoveRef<T>(const_cast<T &>(t)); }
-
-
 class ReentrancyGuard
 {
     
@@ -717,9 +600,9 @@ template <class T>
 JS_ALWAYS_INLINE static void
 Swap(T &t, T &u)
 {
-    T tmp(Move(t));
-    t = Move(u);
-    u = Move(tmp);
+    T tmp(mozilla::Move(t));
+    t = mozilla::Move(u);
+    u = mozilla::Move(tmp);
 }
 
 
