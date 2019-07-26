@@ -4774,6 +4774,28 @@ static JSBool
 ContentComponentsGetterOp(JSContext *cx, JSHandleObject obj, JSHandleId id,
                           JSMutableHandleValue vp)
 {
+    
+    MOZ_ASSERT(nsContentUtils::GetCurrentJSContext() == cx);
+    if (nsContentUtils::IsCallerChrome())
+        return true;
+
+    
+    if (AccessCheck::callerIsXBL(cx))
+        return true;
+
+    
+    
+    MOZ_ASSERT(JS_GetGlobalForObject(cx, obj) == JS_ObjectToInnerObject(cx, obj));
+    JSAutoCompartment ac(cx, obj);
+    nsCOMPtr<nsPIDOMWindow> win =
+        do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, obj));
+    if (win) {
+        nsCOMPtr<nsIDocument> doc =
+            do_QueryInterface(win->GetExtantDocument());
+        if (doc)
+            doc->WarnOnceAbout(nsIDocument::eComponents,  true);
+    }
+
     return true;
 }
 
