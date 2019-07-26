@@ -2742,7 +2742,8 @@ var XPIProvider = {
 
           
           
-          if (sameVersion)
+          
+          if (sameVersion || !isNewInstall)
             return false;
 
           installReason = Services.vc.compare(oldBootstrap.version, newAddon.version) < 0 ?
@@ -2937,8 +2938,12 @@ var XPIProvider = {
 
     
     
-    this.bootstrappedAddons = JSON.parse(Prefs.getCharPref(PREF_BOOTSTRAP_ADDONS,
-                                         "{}"));
+    try {
+      this.bootstrappedAddons = JSON.parse(Prefs.getCharPref(PREF_BOOTSTRAP_ADDONS,
+                                           "{}"));
+    } catch (e) {
+      WARN("Error parsing enabled bootstrapped extensions cache", e);
+    }
 
     
     
