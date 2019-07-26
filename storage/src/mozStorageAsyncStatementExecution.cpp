@@ -133,12 +133,10 @@ public:
 
 
   CompletionNotifier(mozIStorageStatementCallback *aCallback,
-                     ExecutionState aReason,
-                     StatementDataArray &aStatementData)
+                     ExecutionState aReason)
     : mCallback(aCallback)
     , mReason(aReason)
   {
-    mStatementData.SwapElements(aStatementData);
   }
 
   NS_IMETHOD Run()
@@ -148,16 +146,10 @@ public:
       NS_RELEASE(mCallback);
     }
 
-    
-    
-    
-    mStatementData.Clear();
-
     return NS_OK;
   }
 
 private:
-  StatementDataArray mStatementData;
   mozIStorageStatementCallback *mCallback;
   ExecutionState mReason;
 };
@@ -432,7 +424,13 @@ AsyncExecuteStatements::notifyComplete()
   
   
   for (uint32_t i = 0; i < mStatements.Length(); i++)
-    mStatements[i].finalize();
+    mStatements[i].reset();
+
+  
+  
+  
+  
+  mStatements.Clear();
 
   
   if (mTransactionManager) {
@@ -454,9 +452,7 @@ AsyncExecuteStatements::notifyComplete()
   
   
   nsRefPtr<CompletionNotifier> completionEvent =
-    new CompletionNotifier(mCallback, mState, mStatements);
-  NS_ASSERTION(mStatements.IsEmpty(),
-               "Should have given up ownership of mStatements!");
+    new CompletionNotifier(mCallback, mState);
 
   
   mCallback = nullptr;

@@ -117,21 +117,20 @@ void
 StorageBaseStatementInternal::asyncFinalize()
 {
   nsIEventTarget *target = mDBConnection->getAsyncExecutionTarget();
-  if (!target) {
+  if (target) {
     
-    
-    
-    destructorAsyncFinalize();
-  }
-  else {
     nsCOMPtr<nsIRunnable> event =
       new AsyncStatementFinalizer(this, mDBConnection);
 
     
-    if (NS_FAILED(target->Dispatch(event, NS_DISPATCH_NORMAL))) {
-      destructorAsyncFinalize();
-    }
+    
+    
+    (void)target->Dispatch(event, NS_DISPATCH_NORMAL);
   }
+  
+  
+  
+  
 }
 
 void
@@ -140,17 +139,28 @@ StorageBaseStatementInternal::destructorAsyncFinalize()
   if (!mAsyncStatement)
     return;
 
+  
+  
+  
   nsIEventTarget *target = mDBConnection->getAsyncExecutionTarget();
   if (target) {
+    
+    
+    bool isAsyncThread = false;
+    (void)target->IsOnCurrentThread(&isAsyncThread);
+
     nsCOMPtr<nsIRunnable> event =
       new LastDitchSqliteStatementFinalizer(mDBConnection, mAsyncStatement);
-    if (NS_SUCCEEDED(target->Dispatch(event, NS_DISPATCH_NORMAL))) {
-      mAsyncStatement = nullptr;
-      return;
+    if (isAsyncThread) {
+      (void)event->Run();
+    } else {
+      (void)target->Dispatch(event, NS_DISPATCH_NORMAL);
     }
   }
+
   
-  (void)::sqlite3_finalize(mAsyncStatement);
+  
+  
   mAsyncStatement = nullptr;
 }
 

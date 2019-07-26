@@ -228,9 +228,13 @@ function test_double_asyncClose_throws()
   try {
     conn.asyncClose();
     do_throw("should have thrown");
-  }
-  catch (e) {
-    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
+    
+    
+  } catch (e if "result" in e && e.result == Cr.NS_ERROR_NOT_INITIALIZED) {
+    do_print("NS_ERROR_NOT_INITIALIZED");
+  } catch (e if "result" in e && e.result == Cr.NS_ERROR_UNEXPECTED) {
+    do_print("NS_ERROR_UNEXPECTED");
+  } catch (e) {
   }
 
   

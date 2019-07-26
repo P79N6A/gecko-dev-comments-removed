@@ -289,7 +289,6 @@ add_task(function test_asyncClose_succeeds_with_finalized_async_statement()
   stmt.executeAsync();
   stmt.finalize();
 
-  let deferred = Promise.defer();
   yield asyncClose(getOpenedDatabase());
   
   gDBConn = null;
@@ -359,7 +358,7 @@ function standardAsyncTest(promisedDB, name, shouldInit = false) {
   }
 
   
-  let name = "worker bee " + Math.random() + " (" + name + ")";
+  name = "worker bee " + Math.random() + " (" + name + ")";
 
   let stmt = adb.createAsyncStatement("INSERT INTO test (name) VALUES (:name)");
   stmt.params.name = name;

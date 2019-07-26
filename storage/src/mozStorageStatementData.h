@@ -47,6 +47,14 @@ public:
   StatementData()
   {
   }
+  ~StatementData()
+  {
+    
+    
+    
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    (void)NS_ProxyRelease(mainThread, mParamsArray);
+  }
 
   
 
@@ -77,7 +85,7 @@ public:
 
 
 
-  inline void finalize()
+  inline void reset()
   {
     NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");
 #ifdef DEBUG

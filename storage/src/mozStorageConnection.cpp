@@ -329,15 +329,13 @@ WaitForUnlockNotify(sqlite3* aDatabase)
 
 namespace {
 
-class AsyncCloseConnection : public nsRunnable
+class AsyncCloseConnection MOZ_FINAL: public nsRunnable
 {
 public:
   AsyncCloseConnection(Connection *aConnection,
-                       nsIEventTarget *aCallingThread,
                        nsIRunnable *aCallbackEvent,
                        already_AddRefed<nsIThread> aAsyncExecutionThread)
   : mConnection(aConnection)
-  , mCallingThread(aCallingThread)
   , mCallbackEvent(aCallbackEvent)
   , mAsyncExecutionThread(aAsyncExecutionThread)
   {
@@ -345,46 +343,39 @@ public:
 
   NS_METHOD Run()
   {
-    
-    
-    
-    bool onCallingThread = false;
-    (void)mCallingThread->IsOnCurrentThread(&onCallingThread);
-    if (!onCallingThread) {
 #ifdef DEBUG
-      {
-        bool onAsyncThread = false;
-        (void)mAsyncExecutionThread->IsOnCurrentThread(&onAsyncThread);
-        MOZ_ASSERT(onAsyncThread);
-      }
-#endif
-      (void)mCallingThread->Dispatch(this, NS_DISPATCH_NORMAL);
-      return NS_OK;
-    }
+    
+    bool onAsyncThread = false;
+    (void)mAsyncExecutionThread->IsOnCurrentThread(&onAsyncThread);
+    MOZ_ASSERT(onAsyncThread);
+#endif 
 
+    
     (void)mConnection->internalClose();
-    if (mCallbackEvent)
-      (void)mCallingThread->Dispatch(mCallbackEvent, NS_DISPATCH_NORMAL);
-
-    (void)mAsyncExecutionThread->Shutdown();
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    mConnection = nullptr;
-    mCallbackEvent = nullptr;
+    if (mCallbackEvent) {
+      nsCOMPtr<nsIThread> thread;
+      (void)NS_GetMainThread(getter_AddRefs(thread));
+      (void)thread->Dispatch(mCallbackEvent, NS_DISPATCH_NORMAL);
+    }
 
     return NS_OK;
   }
+
+  ~AsyncCloseConnection() {
+    nsCOMPtr<nsIThread> thread;
+    (void)NS_GetMainThread(getter_AddRefs(thread));
+    
+    Connection *rawConnection = nullptr;
+    mConnection.swap(rawConnection);
+    (void)NS_ProxyRelease(thread,
+                          NS_ISUPPORTS_CAST(mozIStorageConnection *,
+                                            rawConnection));
+    (void)NS_ProxyRelease(thread, mCallbackEvent);
+  }
 private:
   nsRefPtr<Connection> mConnection;
-  nsCOMPtr<nsIEventTarget> mCallingThread;
   nsCOMPtr<nsIRunnable> mCallbackEvent;
   nsCOMPtr<nsIThread> mAsyncExecutionThread;
 };
@@ -819,13 +810,9 @@ Connection::internalClose()
                  "Did not call setClosedState!");
   }
 
-  { 
-    bool onOpenedThread = false;
-    (void)threadOpenedOn->IsOnCurrentThread(&onOpenedThread);
-    NS_ASSERTION(onOpenedThread,
-                 "Not called on the thread the database was opened on!");
-  }
-#endif
+  bool onOpeningThread = false;
+  (void)threadOpenedOn->IsOnCurrentThread(&onOpeningThread);
+#endif 
 
 #ifdef PR_LOGGING
   nsAutoCString leafName(":memory");
@@ -835,20 +822,62 @@ Connection::internalClose()
                                       leafName.get()));
 #endif
 
-#ifdef DEBUG
   
-  sqlite3_stmt *stmt = nullptr;
-  while ((stmt = ::sqlite3_next_stmt(mDBConn, stmt))) {
-    char *msg = ::PR_smprintf("SQL statement '%s' was not finalized",
-                              ::sqlite3_sql(stmt));
-    NS_WARNING(msg);
-    ::PR_smprintf_free(msg);
-  }
-#endif
+  
+  
+  
+  
+  
 
-  int srv = ::sqlite3_close(mDBConn);
-  NS_ASSERTION(srv == SQLITE_OK,
+  int srv = sqlite3_close(mDBConn);
+
+  if (srv == SQLITE_BUSY) {
+    
+
+    sqlite3_stmt *stmt = NULL;
+    while ((stmt = ::sqlite3_next_stmt(mDBConn, stmt))) {
+      PR_LOG(gStorageLog, PR_LOG_NOTICE,
+             ("Auto-finalizing SQL statement '%s' (%x)",
+              ::sqlite3_sql(stmt),
+              stmt));
+
+#ifdef DEBUG
+      char *msg = ::PR_smprintf("SQL statement '%s' (%x) should have been finalized",
+                                ::sqlite3_sql(stmt),
+                                stmt);
+      NS_WARNING(msg);
+      ::PR_smprintf_free(msg);
+#endif 
+
+      srv = ::sqlite3_finalize(stmt);
+
+#ifdef DEBUG
+      if (srv != SQLITE_OK) {
+        char *msg = ::PR_smprintf("Could not finalize SQL statement '%s' (%x)",
+                                  ::sqlite3_sql(stmt),
+                                  stmt);
+        NS_WARNING(msg);
+        ::PR_smprintf_free(msg);
+      }
+#endif 
+
+      
+      
+      if (srv == SQLITE_OK) {
+        stmt = NULL;
+      }
+    }
+
+    
+    
+    srv = ::sqlite3_close(mDBConn);
+
+  }
+
+  if (srv != SQLITE_OK) {
+    MOZ_ASSERT(srv == SQLITE_OK,
                "sqlite3_close failed. There are probably outstanding statements that are listed above!");
+  }
 
   mDBConn = nullptr;
   return convertResultCode(srv);
@@ -1047,7 +1076,7 @@ Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
     return NS_ERROR_NOT_INITIALIZED;
 
   nsIEventTarget *asyncThread = getAsyncExecutionTarget();
-  NS_ENSURE_TRUE(asyncThread, NS_ERROR_UNEXPECTED);
+  NS_ENSURE_TRUE(asyncThread, NS_ERROR_NOT_INITIALIZED);
 
   nsresult rv = setClosedState();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1063,7 +1092,7 @@ Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
   {
     
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
-    closeEvent = new AsyncCloseConnection(this, NS_GetCurrentThread(),
+    closeEvent = new AsyncCloseConnection(this,
                                           completeEvent,
                                           mAsyncExecutionThread.forget());
   }
