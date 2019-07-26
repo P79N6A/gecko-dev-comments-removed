@@ -96,7 +96,7 @@ SideMenuWidget.prototype = {
 
 
 
-  insertItemAt: function SMW_insertItemAt(aIndex, aContents, aTooltip = "", aGroup = "") {
+  insertItemAt: function(aIndex, aContents, aTooltip = "", aGroup = "") {
     
     this.removeAttribute("notice");
 
@@ -105,8 +105,8 @@ SideMenuWidget.prototype = {
       (aIndex < 0 || aIndex >= this._orderedMenuElementsArray.length) &&
       (this._list.scrollTop + this._list.clientHeight >= this._list.scrollHeight);
 
-    let group = this._getGroupForName(aGroup);
-    let item = this._getItemForGroup(group, aContents, aTooltip);
+    let group = this._getMenuGroupForName(aGroup);
+    let item = this._getMenuItemForGroup(group, aContents, aTooltip);
     let element = item.insertSelfAt(aIndex);
 
     if (this.maintainSelectionVisible) {
@@ -127,7 +127,7 @@ SideMenuWidget.prototype = {
 
 
 
-  getItemAtIndex: function SMW_getItemAtIndex(aIndex) {
+  getItemAtIndex: function(aIndex) {
     return this._orderedMenuElementsArray[aIndex];
   },
 
@@ -137,7 +137,7 @@ SideMenuWidget.prototype = {
 
 
 
-  removeChild: function SMW_removeChild(aChild) {
+  removeChild: function(aChild) {
     if (aChild.className == "side-menu-widget-item-contents") {
       
       aChild.parentNode.remove();
@@ -157,7 +157,7 @@ SideMenuWidget.prototype = {
   
 
 
-  removeAllItems: function SMW_removeAllItems() {
+  removeAllItems: function() {
     let parent = this._parent;
     let list = this._list;
 
@@ -208,7 +208,7 @@ SideMenuWidget.prototype = {
 
 
 
-  ensureSelectionIsVisible: function SMW_ensureSelectionIsVisible(aFlags) {
+  ensureSelectionIsVisible: function(aFlags) {
     this.ensureElementIsVisible(this.selectedItem, aFlags);
   },
 
@@ -222,7 +222,7 @@ SideMenuWidget.prototype = {
 
 
 
-  ensureElementIsVisible: function SMW_ensureElementIsVisible(aElement, aFlags = {}) {
+  ensureElementIsVisible: function(aElement, aFlags = {}) {
     if (!aElement) {
       return;
     }
@@ -248,7 +248,7 @@ SideMenuWidget.prototype = {
   
 
 
-  showEmptyGroups: function SMW_showEmptyGroups() {
+  showEmptyGroups: function() {
     for (let group of this._orderedGroupElementsArray) {
       group.hidden = false;
     }
@@ -257,7 +257,7 @@ SideMenuWidget.prototype = {
   
 
 
-  hideEmptyGroups: function SMW_hideEmptyGroups() {
+  hideEmptyGroups: function() {
     let visibleChildNodes = ".side-menu-widget-item-contents:not([hidden=true])";
 
     for (let group of this._orderedGroupElementsArray) {
@@ -276,7 +276,7 @@ SideMenuWidget.prototype = {
 
 
 
-  getAttribute: function SMW_getAttribute(aName) {
+  getAttribute: function(aName) {
     return this._parent.getAttribute(aName);
   },
 
@@ -288,7 +288,7 @@ SideMenuWidget.prototype = {
 
 
 
-  setAttribute: function SMW_setAttribute(aName, aValue) {
+  setAttribute: function(aName, aValue) {
     this._parent.setAttribute(aName, aValue);
 
     if (aName == "notice") {
@@ -302,7 +302,7 @@ SideMenuWidget.prototype = {
 
 
 
-  removeAttribute: function SMW_removeAttribute(aName) {
+  removeAttribute: function(aName) {
     this._parent.removeAttribute(aName);
 
     if (aName == "notice") {
@@ -325,7 +325,7 @@ SideMenuWidget.prototype = {
   
 
 
-  _appendNotice: function DVSL__appendNotice() {
+  _appendNotice: function() {
     if (this._noticeTextNode || !this._noticeTextValue) {
       return;
     }
@@ -347,7 +347,7 @@ SideMenuWidget.prototype = {
   
 
 
-  _removeNotice: function DVSL__removeNotice() {
+  _removeNotice: function() {
     if (!this._noticeTextNode) {
       return;
     }
@@ -366,7 +366,7 @@ SideMenuWidget.prototype = {
 
 
 
-  _getGroupForName: function SMW__getGroupForName(aName) {
+  _getMenuGroupForName: function(aName) {
     let cachedGroup = this._groupsByName.get(aName);
     if (cachedGroup) {
       return cachedGroup;
@@ -389,7 +389,7 @@ SideMenuWidget.prototype = {
 
 
 
-  _getItemForGroup: function SMW__getItemForGroup(aGroup, aContents, aTooltip) {
+  _getMenuItemForGroup: function(aGroup, aContents, aTooltip) {
     return new SideMenuItem(aGroup, aContents, aTooltip, this._showArrows);
   },
 
@@ -464,7 +464,7 @@ SideMenuGroup.prototype = {
 
 
 
-  insertSelfAt: function SMG_insertSelfAt(aIndex) {
+  insertSelfAt: function(aIndex) {
     let ownerList = this.ownerView._list;
     let groupsArray = this._orderedGroupElementsArray;
 
@@ -483,7 +483,7 @@ SideMenuGroup.prototype = {
 
 
 
-  findExpectedIndexForSelf: function SMG_findExpectedIndexForSelf() {
+  findExpectedIndexForSelf: function() {
     let identifier = this.identifier;
     let groupsArray = this._orderedGroupElementsArray;
 
@@ -561,7 +561,7 @@ SideMenuItem.prototype = {
 
 
 
-  insertSelfAt: function SMI_insertSelfAt(aIndex) {
+  insertSelfAt: function(aIndex) {
     let ownerList = this.ownerView._list;
     let menuArray = this._orderedMenuElementsArray;
 

@@ -66,7 +66,7 @@ let NetMonitorView = {
 
 
 
-  initialize: function NV_initialize(aCallback) {
+  initialize: function(aCallback) {
     dumpn("Initializing the NetMonitorView");
 
     this._initializePanes();
@@ -84,7 +84,7 @@ let NetMonitorView = {
 
 
 
-  destroy: function NV_destroy(aCallback) {
+  destroy: function(aCallback) {
     dumpn("Destroying the NetMonitorView");
 
     this.Toolbar.destroy();
@@ -99,7 +99,7 @@ let NetMonitorView = {
   
 
 
-  _initializePanes: function DV__initializePanes() {
+  _initializePanes: function() {
     dumpn("Initializing the NetMonitorView panes");
 
     this._detailsPane = $("#details-pane");
@@ -116,7 +116,7 @@ let NetMonitorView = {
   
 
 
-  _destroyPanes: function DV__destroyPanes() {
+  _destroyPanes: function() {
     dumpn("Destroying the NetMonitorView panes");
 
     Prefs.networkDetailsWidth = this._detailsPane.getAttribute("width");
@@ -145,7 +145,7 @@ let NetMonitorView = {
 
 
 
-  toggleDetailsPane: function DV__toggleDetailsPane(aFlags, aTabIndex) {
+  toggleDetailsPane: function(aFlags, aTabIndex) {
     let pane = this._detailsPane;
     let button = this._detailsPaneToggleButton;
 
@@ -172,7 +172,7 @@ let NetMonitorView = {
 
 
 
-  editor: function NV_editor(aId) {
+  editor: function(aId) {
     dumpn("Getting a NetMonitorView editor: " + aId);
 
     if (this._editorPromises.has(aId)) {
@@ -209,7 +209,7 @@ ToolbarView.prototype = {
   
 
 
-  initialize: function NVT_initialize() {
+  initialize: function() {
     dumpn("Initializing the ToolbarView");
 
     this._detailsPaneToggleButton = $("#details-pane-toggle");
@@ -219,7 +219,7 @@ ToolbarView.prototype = {
   
 
 
-  destroy: function NVT_destroy() {
+  destroy: function() {
     dumpn("Destroying the ToolbarView");
 
     this._detailsPaneToggleButton.removeEventListener("mousedown", this._onTogglePanesPressed, false);
@@ -228,7 +228,7 @@ ToolbarView.prototype = {
   
 
 
-  _onTogglePanesPressed: function NVT__onTogglePanesPressed() {
+  _onTogglePanesPressed: function() {
     let requestsMenu = NetMonitorView.RequestsMenu;
     let networkDetails = NetMonitorView.NetworkDetails;
 
@@ -266,7 +266,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  initialize: function NVRM_initialize() {
+  initialize: function() {
     dumpn("Initializing the RequestsMenuView");
 
     this.node = new SideMenuWidget($("#requests-menu-contents"), false);
@@ -281,7 +281,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  destroy: function NVRM_destroy() {
+  destroy: function() {
     dumpn("Destroying the SourcesView");
 
     this.node.removeEventListener("mousedown", this._onMouseDown, false);
@@ -292,7 +292,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  reset: function NVRM_reset() {
+  reset: function() {
     this.empty();
     this._firstRequestStartedMillis = -1;
     this._lastRequestEndedMillis = -1;
@@ -316,7 +316,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  addRequest: function NVRM_addRequest(aId, aStartedDateTime, aMethod, aUrl) {
+  addRequest: function(aId, aStartedDateTime, aMethod, aUrl) {
     
     let unixTime = Date.parse(aStartedDateTime);
 
@@ -351,7 +351,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  sortBy: function NVRM_sortBy(aType) {
+  sortBy: function(aType) {
     let target = $("#requests-menu-" + aType + "-button");
     let headers = document.querySelectorAll(".requests-menu-header-button");
 
@@ -475,7 +475,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  updateRequest: function NVRM_updateRequest(aId, aData) {
+  updateRequest: function(aId, aData) {
     
     if (NetMonitorView._isDestroyed) {
       return;
@@ -493,7 +493,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _flushRequests: function NVRM__flushRequests() {
+  _flushRequests: function() {
     
     
     for (let [id, data] of this._updateQueue) {
@@ -592,7 +592,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _createMenuView: function NVRM__createMenuView(aMethod, aUrl) {
+  _createMenuView: function(aMethod, aUrl) {
     let uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
     let name = NetworkHelper.convertToUnicode(unescape(uri.fileName)) || "/";
     let query = NetworkHelper.convertToUnicode(unescape(uri.query));
@@ -629,7 +629,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _updateMenuView: function NVRM__updateMenuView(aItem, aKey, aValue) {
+  _updateMenuView: function(aItem, aKey, aValue) {
     switch (aKey) {
       case "status": {
         let node = $(".requests-menu-status", aItem.target);
@@ -676,7 +676,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _createWaterfallView: function NVRM__createWaterfallView(aItem, aTimings) {
+  _createWaterfallView: function(aItem, aTimings) {
     let { target, attachment } = aItem;
     let sections = ["dns", "connect", "send", "wait", "receive"];
     
@@ -723,7 +723,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _flushWaterfallViews: function NVRM__flushWaterfallViews(aReset) {
+  _flushWaterfallViews: function(aReset) {
     
     
     
@@ -777,7 +777,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _showWaterfallDivisionLabels: function NVRM__showWaterfallDivisionLabels(aScale) {
+  _showWaterfallDivisionLabels: function(aScale) {
     let container = $("#requests-menu-waterfall-header-box");
     let availableWidth = this._waterfallWidth - REQUESTS_WATERFALL_SAFE_BOUNDS;
 
@@ -824,7 +824,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _drawWaterfallBackground: function NVRM__drawWaterfallBackground(aScale) {
+  _drawWaterfallBackground: function(aScale) {
     if (!this._canvas || !this._ctx) {
       this._canvas = document.createElementNS(HTML_NS, "canvas");
       this._ctx = this._canvas.getContext("2d");
@@ -877,7 +877,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _flushWaterfallBackgrounds: function NVRM__flushWaterfallBackgrounds() {
+  _flushWaterfallBackgrounds: function() {
     for (let [, { target }] of this._cache) {
       let waterfallNode = $(".requests-menu-waterfall", target);
       waterfallNode.style.backgroundImage = this._cachedWaterfallBackground;
@@ -887,7 +887,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _hideOverflowingColumns: function NVRM__hideOverflowingColumns() {
+  _hideOverflowingColumns: function() {
     let table = $("#network-table");
     let toolbar = $("#requests-menu-toolbar");
     let columns = [
@@ -916,7 +916,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _onRequestItemRemoved: function NVRM__onRequestItemRemoved(aItem) {
+  _onRequestItemRemoved: function(aItem) {
     dumpn("Finalizing network request item: " + aItem);
     this._cache.delete(aItem.attachment.id);
   },
@@ -924,7 +924,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _onMouseDown: function NVRM__onMouseDown(e) {
+  _onMouseDown: function(e) {
     let item = this.getItemForElement(e.target);
     if (item) {
       
@@ -935,7 +935,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _onSelect: function NVRM__onSelect(e) {
+  _onSelect: function(e) {
     NetMonitorView.NetworkDetails.populate(this.selectedItem.attachment);
     NetMonitorView.NetworkDetails.toggle(true);
   },
@@ -943,7 +943,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _onResize: function NVRM__onResize(e) {
+  _onResize: function(e) {
     
     drain("resize-events", RESIZE_REFRESH_RATE, () => this._flushWaterfallViews(true));
   },
@@ -955,7 +955,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _registerFirstRequestStart: function NVRM__registerFirstRequestStart(aUnixTime) {
+  _registerFirstRequestStart: function(aUnixTime) {
     if (this._firstRequestStartedMillis == -1) {
       this._firstRequestStartedMillis = aUnixTime;
     }
@@ -968,7 +968,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  _registerLastRequestEnd: function NVRM__registerLastRequestEnd(aUnixTime) {
+  _registerLastRequestEnd: function(aUnixTime) {
     if (this._lastRequestEndedMillis < aUnixTime) {
       this._lastRequestEndedMillis = aUnixTime;
     }
@@ -1012,7 +1012,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
   
 
 
-  initialize: function NVND_initialize() {
+  initialize: function() {
     dumpn("Initializing the RequestsMenuView");
 
     this.node = $("#details-pane");
@@ -1049,7 +1049,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
   
 
 
-  destroy: function NVND_destroy() {
+  destroy: function() {
     dumpn("Destroying the SourcesView");
   },
 
@@ -1059,7 +1059,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  toggle: function NVND_toggle(aVisibleFlag) {
+  toggle: function(aVisibleFlag) {
     NetMonitorView.toggleDetailsPane({ visible: aVisibleFlag });
     NetMonitorView.RequestsMenu._flushWaterfallViews(true);
   },
@@ -1070,7 +1070,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  populate: function NVND_populate(aData) {
+  populate: function(aData) {
     $("#request-params-box").setAttribute("flex", "1");
     $("#request-params-box").hidden = false;
     $("#request-post-data-textarea-box").hidden = true;
@@ -1102,7 +1102,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setSummary: function NVND__setSummary(aData) {
+  _setSummary: function(aData) {
     if (aData.url) {
       let unicodeUrl = NetworkHelper.convertToUnicode(unescape(aData.url));
       $("#headers-summary-url-value").setAttribute("value", unicodeUrl);
@@ -1141,7 +1141,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setRequestHeaders: function NVND__setRequestHeaders(aResponse) {
+  _setRequestHeaders: function(aResponse) {
     if (aResponse && aResponse.headers.length) {
       this._addHeaders(this._requestHeaders, aResponse);
     }
@@ -1153,7 +1153,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setResponseHeaders: function NVND__setResponseHeaders(aResponse) {
+  _setResponseHeaders: function(aResponse) {
     if (aResponse && aResponse.headers.length) {
       aResponse.headers.sort((a, b) => a.name > b.name);
       this._addHeaders(this._responseHeaders, aResponse);
@@ -1168,7 +1168,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _addHeaders: function NVND__addHeaders(aName, aResponse) {
+  _addHeaders: function(aName, aResponse) {
     let kb = aResponse.headersSize / 1024;
     let size = L10N.numberWithDecimals(kb, HEADERS_SIZE_DECIMALS);
     let text = L10N.getFormatStr("networkMenu.sizeKB", size);
@@ -1187,7 +1187,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setRequestCookies: function NVND__setRequestCookies(aResponse) {
+  _setRequestCookies: function(aResponse) {
     if (aResponse && aResponse.cookies.length) {
       aResponse.cookies.sort((a, b) => a.name > b.name);
       this._addCookies(this._requestCookies, aResponse);
@@ -1200,7 +1200,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setResponseCookies: function NVND__setResponseCookies(aResponse) {
+  _setResponseCookies: function(aResponse) {
     if (aResponse && aResponse.cookies.length) {
       this._addCookies(this._responseCookies, aResponse);
     }
@@ -1214,7 +1214,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _addCookies: function NVND__addCookies(aName, aResponse) {
+  _addCookies: function(aName, aResponse) {
     let cookiesScope = this._cookies.addScope(aName);
     cookiesScope.expanded = true;
 
@@ -1248,7 +1248,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setRequestGetParams: function NVND__setRequestGetParams(aUrl) {
+  _setRequestGetParams: function(aUrl) {
     let uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
     let query = uri.query;
     if (query) {
@@ -1264,7 +1264,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setRequestPostParams: function NVND__setRequestPostParams(aHeadersResponse, aPostResponse) {
+  _setRequestPostParams: function(aHeadersResponse, aPostResponse) {
     if (!aHeadersResponse || !aPostResponse) {
       return;
     }
@@ -1303,7 +1303,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _addParams: function NVND__addParams(aName, aParams) {
+  _addParams: function(aName, aParams) {
     
     let paramsArray = aParams.replace(/^[?&]/, "").split("&").map((e) =>
       let (param = e.split("=")) {
@@ -1328,7 +1328,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setResponseBody: function NVND__setresponseBody(aUrl, aResponse) {
+  _setResponseBody: function(aUrl, aResponse) {
     if (!aResponse) {
       return;
     }
@@ -1401,7 +1401,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
 
-  _setTimingsInformation: function NVND__setTimingsInformation(aResponse) {
+  _setTimingsInformation: function(aResponse) {
     if (!aResponse) {
       return;
     }

@@ -38,7 +38,7 @@ let DebuggerView = {
 
 
 
-  initialize: function DV_initialize(aCallback) {
+  initialize: function(aCallback) {
     dumpn("Initializing the DebuggerView");
 
     this._initializeWindow();
@@ -72,7 +72,7 @@ let DebuggerView = {
 
 
 
-  destroy: function DV_destroy(aCallback) {
+  destroy: function(aCallback) {
     dumpn("Destroying the DebuggerView");
 
     this.Toolbar.destroy();
@@ -95,7 +95,7 @@ let DebuggerView = {
   
 
 
-  _initializeWindow: function DV__initializeWindow() {
+  _initializeWindow: function() {
     dumpn("Initializing the DebuggerView window");
 
     let isRemote = window._isRemoteDebugger;
@@ -116,7 +116,7 @@ let DebuggerView = {
   
 
 
-  _destroyWindow: function DV__destroyWindow() {
+  _destroyWindow: function() {
     dumpn("Destroying the DebuggerView window");
 
     if (window._isRemoteDebugger || window._isChromeDebugger) {
@@ -130,7 +130,7 @@ let DebuggerView = {
   
 
 
-  _initializePanes: function DV__initializePanes() {
+  _initializePanes: function() {
     dumpn("Initializing the DebuggerView panes");
 
     this._sourcesPane = document.getElementById("sources-pane");
@@ -148,7 +148,7 @@ let DebuggerView = {
   
 
 
-  _destroyPanes: function DV__destroyPanes() {
+  _destroyPanes: function() {
     dumpn("Destroying the DebuggerView panes");
 
     Prefs.sourcesWidth = this._sourcesPane.getAttribute("width");
@@ -165,7 +165,7 @@ let DebuggerView = {
 
 
 
-  _initializeEditor: function DV__initializeEditor(aCallback) {
+  _initializeEditor: function(aCallback) {
     dumpn("Initializing the DebuggerView editor");
 
     let placeholder = document.getElementById("editor");
@@ -178,18 +178,18 @@ let DebuggerView = {
     };
 
     this.editor = new SourceEditor();
-    this.editor.init(placeholder, config, function() {
+    this.editor.init(placeholder, config, () => {
       this._loadingText = L10N.getStr("loadingText");
       this._onEditorLoad();
       aCallback();
-    }.bind(this));
+    });
   },
 
   
 
 
 
-  _onEditorLoad: function DV__onEditorLoad() {
+  _onEditorLoad: function() {
     dumpn("Finished loading the DebuggerView editor");
 
     DebuggerController.Breakpoints.initialize();
@@ -201,7 +201,7 @@ let DebuggerView = {
 
 
 
-  _destroyEditor: function DV__destroyEditor() {
+  _destroyEditor: function() {
     dumpn("Destroying the DebuggerView editor");
 
     DebuggerController.Breakpoints.destroy();
@@ -219,7 +219,7 @@ let DebuggerView = {
 
 
 
-  setEditorMode: function DV_setEditorMode(aUrl, aContentType = "", aTextContent = "") {
+  setEditorMode: function(aUrl, aContentType = "", aTextContent = "") {
     if (aContentType) {
       if (/javascript/.test(aContentType)) {
         this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
@@ -328,7 +328,7 @@ let DebuggerView = {
 
 
 
-  updateEditor: function DV_updateEditor(aUrl, aLine, aFlags = {}) {
+  updateEditor: function(aUrl, aLine, aFlags = {}) {
     if (!this._isInitialized || this._isDestroyed) {
       return;
     }
@@ -392,7 +392,7 @@ let DebuggerView = {
 
 
 
-  getEditorLine: function DV_getEditorLine(aLine) {
+  getEditorLine: function(aLine) {
     let line = aLine || this.editor.getCaretPosition().line;
     let start = this.editor.getLineStart(line);
     let end = this.editor.getLineEnd(line);
@@ -405,7 +405,7 @@ let DebuggerView = {
 
 
 
-  getEditorSelection: function DV_getEditorSelection() {
+  getEditorSelection: function() {
     let selection = this.editor.getSelection();
     return this.editor.getText(selection.start, selection.end);
   },
@@ -427,7 +427,7 @@ let DebuggerView = {
 
 
 
-  toggleInstrumentsPane: function DV__toggleInstrumentsPane(aFlags) {
+  toggleInstrumentsPane: function(aFlags) {
     let pane = this._instrumentsPane;
     let button = this._instrumentsPaneToggleButton;
 
@@ -448,7 +448,7 @@ let DebuggerView = {
 
 
 
-  showInstrumentsPane: function DV__showInstrumentsPane(aCallback) {
+  showInstrumentsPane: function(aCallback) {
     DebuggerView.toggleInstrumentsPane({
       visible: true,
       animated: true,
@@ -460,7 +460,7 @@ let DebuggerView = {
   
 
 
-  _handleTabNavigation: function DV__handleTabNavigation() {
+  _handleTabNavigation: function() {
     dumpn("Handling tab navigation in the DebuggerView");
 
     this.Filtering.clearSearch();
@@ -565,8 +565,7 @@ ListWidget.prototype = {
 
 
 
-  insertItemAt:
-  function DVSL_insertItemAt(aIndex, aLabel, aValue, aDescription, aAttachment) {
+  insertItemAt: function(aIndex, aLabel, aValue, aDescription, aAttachment) {
     let list = this._list;
     let childNodes = list.childNodes;
 
@@ -586,7 +585,7 @@ ListWidget.prototype = {
 
 
 
-  getItemAtIndex: function DVSL_getItemAtIndex(aIndex) {
+  getItemAtIndex: function(aIndex) {
     return this._list.childNodes[aIndex];
   },
 
@@ -596,7 +595,7 @@ ListWidget.prototype = {
 
 
 
-  removeChild: function DVSL__removeChild(aChild) {
+  removeChild: function(aChild) {
     this._list.removeChild(aChild);
 
     if (this._selectedItem == aChild) {
@@ -610,7 +609,7 @@ ListWidget.prototype = {
   
 
 
-  removeAllItems: function DVSL_removeAllItems() {
+  removeAllItems: function() {
     let parent = this._parent;
     let list = this._list;
     let firstChild;
@@ -678,7 +677,7 @@ ListWidget.prototype = {
   
 
 
-  _appendPermaNotice: function DVSL__appendPermaNotice() {
+  _appendPermaNotice: function() {
     if (this._permaTextNode || !this._permaTextValue) {
       return;
     }
@@ -694,7 +693,7 @@ ListWidget.prototype = {
   
 
 
-  _appendEmptyNotice: function DVSL__appendEmptyNotice() {
+  _appendEmptyNotice: function() {
     if (this._emptyTextNode || !this._emptyTextValue) {
       return;
     }
@@ -710,7 +709,7 @@ ListWidget.prototype = {
   
 
 
-  _removeEmptyNotice: function DVSL__removeEmptyNotice() {
+  _removeEmptyNotice: function() {
     if (!this._emptyTextNode) {
       return;
     }
@@ -827,7 +826,7 @@ create({ constructor: ResultsPanelContainer, proto: MenuContainer.prototype }, {
   
 
 
-  clearView: function RPC_clearView() {
+  clearView: function() {
     this.hidden = true;
     this.empty();
     window.dispatchEvent(document, "Debugger:ResultsPanelContainer:ViewCleared");
@@ -836,7 +835,7 @@ create({ constructor: ResultsPanelContainer, proto: MenuContainer.prototype }, {
   
 
 
-  focusNext: function RPC_focusNext() {
+  focusNext: function() {
     let nextIndex = this.selectedIndex + 1;
     if (nextIndex >= this.itemCount) {
       nextIndex = 0;
@@ -847,7 +846,7 @@ create({ constructor: ResultsPanelContainer, proto: MenuContainer.prototype }, {
   
 
 
-  focusPrev: function RPC_focusPrev() {
+  focusPrev: function() {
     let prevIndex = this.selectedIndex - 1;
     if (prevIndex < 0) {
       prevIndex = this.itemCount - 1;
@@ -861,7 +860,7 @@ create({ constructor: ResultsPanelContainer, proto: MenuContainer.prototype }, {
 
 
 
-  select: function RPC_select(aItem) {
+  select: function(aItem) {
     if (typeof aItem == "number") {
       this.select(this.getItemAtIndex(aItem));
       return;
@@ -938,7 +937,7 @@ RemoteDebuggerPrompt.prototype = {
 
 
 
-  show: function RDP_show(aIsReconnectingFlag) {
+  show: function(aIsReconnectingFlag) {
     let check = { value: Prefs.remoteAutoConnect };
     let input = { value: Prefs.remoteHost + ":" + Prefs.remotePort };
     let parts;

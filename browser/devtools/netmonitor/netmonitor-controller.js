@@ -5,9 +5,7 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -461,7 +459,7 @@ NetworkEventsHandler.prototype = {
 
 
 
-  _onEventTimings: function NEH__onEventTimings(aResponse) {
+  _onEventTimings: function(aResponse) {
     NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
       eventTimings: aResponse
     });
@@ -479,7 +477,7 @@ NetworkEventsHandler.prototype = {
 
 
 
-  getString: function NEH_getString(aStringGrip) {
+  getString: function(aStringGrip) {
     
     if (typeof aStringGrip != "object" || aStringGrip.type != "longString") {
       return Promise.resolve(aStringGrip); 

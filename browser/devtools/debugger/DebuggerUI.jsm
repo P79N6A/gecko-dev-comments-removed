@@ -39,7 +39,7 @@ DebuggerUI.prototype = {
 
 
 
-  listenToTabs: function DUI_listenToTabs() {
+  listenToTabs: function() {
     let win = this.chromeWindow;
     let tabs = win.gBrowser.tabContainer;
 
@@ -56,7 +56,7 @@ DebuggerUI.prototype = {
 
 
 
-  refreshCommand: function DUI_refreshCommand() {
+  refreshCommand: function() {
     let scriptDebugger = this.getDebugger();
     let command = this.chromeWindow.document.getElementById("Tools:Debugger");
     let selectedTab = this.chromeWindow.gBrowser.selectedTab;
@@ -74,7 +74,7 @@ DebuggerUI.prototype = {
 
 
 
-  toggleDebugger: function DUI_toggleDebugger() {
+  toggleDebugger: function() {
     let scriptDebugger = this.findDebugger();
     let selectedTab = this.chromeWindow.gBrowser.selectedTab;
 
@@ -91,7 +91,7 @@ DebuggerUI.prototype = {
 
 
 
-  toggleRemoteDebugger: function DUI_toggleRemoteDebugger() {
+  toggleRemoteDebugger: function() {
     let remoteDebugger = this.getRemoteDebugger();
 
     if (remoteDebugger) {
@@ -107,7 +107,7 @@ DebuggerUI.prototype = {
 
 
 
-  toggleChromeDebugger: function DUI_toggleChromeDebugger(aOnClose, aOnRun) {
+  toggleChromeDebugger: function(aOnClose, aOnRun) {
     let chromeDebugger = this.getChromeDebugger();
 
     if (chromeDebugger) {
@@ -123,7 +123,7 @@ DebuggerUI.prototype = {
 
 
 
-  findDebugger: function DUI_findDebugger() {
+  findDebugger: function() {
     let enumerator = Services.wm.getEnumerator("navigator:browser");
     while (enumerator.hasMoreElements()) {
       let chromeWindow = enumerator.getNext().QueryInterface(Ci.nsIDOMWindow);
@@ -141,7 +141,7 @@ DebuggerUI.prototype = {
 
 
 
-  getDebugger: function DUI_getDebugger() {
+  getDebugger: function() {
     return '_scriptDebugger' in this ? this._scriptDebugger : null;
   },
 
@@ -151,7 +151,7 @@ DebuggerUI.prototype = {
 
 
 
-  getRemoteDebugger: function DUI_getRemoteDebugger() {
+  getRemoteDebugger: function() {
     return '_remoteDebugger' in this ? this._remoteDebugger : null;
   },
 
@@ -161,7 +161,7 @@ DebuggerUI.prototype = {
 
 
 
-  getChromeDebugger: function DUI_getChromeDebugger() {
+  getChromeDebugger: function() {
     return '_chromeDebugger' in this ? this._chromeDebugger : null;
   }
 };
@@ -174,7 +174,7 @@ DebuggerUI.prototype = {
 
 
 
-function DebuggerPane(aDebuggerUI, aTab) {
+this.DebuggerPane = function DebuggerPane(aDebuggerUI, aTab) {
   this.globalUI = aDebuggerUI;
   this._win = aDebuggerUI.chromeWindow;
   this._tab = aTab;
@@ -188,7 +188,7 @@ DebuggerPane.prototype = {
   
 
 
-  _initServer: function DP__initServer() {
+  _initServer: function() {
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
       DebuggerServer.addBrowserActors();
@@ -198,7 +198,7 @@ DebuggerPane.prototype = {
   
 
 
-  _create: function DP__create() {
+  _create: function() {
     this.globalUI._scriptDebugger = this;
 
     let gBrowser = this._win.gBrowser;
@@ -238,7 +238,7 @@ DebuggerPane.prototype = {
 
 
 
-  close: function DP_close(aCloseCallback) {
+  close: function(aCloseCallback) {
     if (!this.globalUI) {
       return;
     }
@@ -305,7 +305,7 @@ DebuggerPane.prototype = {
 
 
 
-function RemoteDebuggerWindow(aDebuggerUI) {
+this.RemoteDebuggerWindow = function RemoteDebuggerWindow(aDebuggerUI) {
   this.globalUI = aDebuggerUI;
   this._win = aDebuggerUI.chromeWindow;
 
@@ -317,7 +317,7 @@ RemoteDebuggerWindow.prototype = {
   
 
 
-  _create: function DP__create() {
+  _create: function() {
     this.globalUI._remoteDebugger = this;
 
     this._dbgwin = this.globalUI.chromeWindow.open(DBG_XUL,
@@ -343,7 +343,7 @@ RemoteDebuggerWindow.prototype = {
   
 
 
-  close: function DP_close() {
+  close: function() {
     if (!this.globalUI) {
       return;
     }
@@ -390,7 +390,7 @@ RemoteDebuggerWindow.prototype = {
 
 
 
-function ChromeDebuggerProcess(aDebuggerUI, aOnClose, aOnRun) {
+this.ChromeDebuggerProcess = function ChromeDebuggerProcess(aDebuggerUI, aOnClose, aOnRun) {
   this.globalUI = aDebuggerUI;
   this._win = aDebuggerUI.chromeWindow;
   this._closeCallback = aOnClose;
@@ -405,7 +405,7 @@ ChromeDebuggerProcess.prototype = {
   
 
 
-  _initServer: function RDP__initServer() {
+  _initServer: function() {
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
       DebuggerServer.addBrowserActors();
@@ -416,7 +416,7 @@ ChromeDebuggerProcess.prototype = {
   
 
 
-  _initProfile: function RDP__initProfile() {
+  _initProfile: function() {
     let profileService = Cc["@mozilla.org/toolkit/profile-service;1"]
       .createInstance(Ci.nsIToolkitProfileService);
 
@@ -460,7 +460,7 @@ ChromeDebuggerProcess.prototype = {
   
 
 
-  _create: function RDP__create() {
+  _create: function() {
     this.globalUI._chromeDebugger = this;
 
     let file = Services.dirsvc.get("XREExeF", Ci.nsIFile);
@@ -485,7 +485,7 @@ ChromeDebuggerProcess.prototype = {
   
 
 
-  close: function RDP_close() {
+  close: function() {
     dumpn("Closing chrome debugging process");
     if (!this.globalUI) {
       dumpn("globalUI is missing");
@@ -520,7 +520,7 @@ let L10N = {
 
 
 
-  getStr: function L10N_getStr(aName) {
+  getStr: function(aName) {
     return this.stringBundle.GetStringFromName(aName);
   }
 };

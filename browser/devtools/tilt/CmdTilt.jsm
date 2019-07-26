@@ -3,6 +3,8 @@
 
 
 
+"use strict";
+
 this.EXPORTED_SYMBOLS = [ ];
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');

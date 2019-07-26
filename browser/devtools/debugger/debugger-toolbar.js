@@ -23,7 +23,7 @@ ToolbarView.prototype = {
   
 
 
-  initialize: function DVT_initialize() {
+  initialize: function() {
     dumpn("Initializing the ToolbarView");
 
     this._instrumentsPaneToggleButton = document.getElementById("instruments-pane-toggle");
@@ -61,7 +61,7 @@ ToolbarView.prototype = {
   
 
 
-  destroy: function DVT_destroy() {
+  destroy: function() {
     dumpn("Destroying the ToolbarView");
 
     this._instrumentsPaneToggleButton.removeEventListener("mousedown", this._onTogglePanesPressed, false);
@@ -77,7 +77,7 @@ ToolbarView.prototype = {
 
 
 
-  toggleResumeButtonState: function DVT_toggleResumeButtonState(aState) {
+  toggleResumeButtonState: function(aState) {
     
     if (aState == "paused") {
       this._resumeButton.setAttribute("checked", "true");
@@ -97,7 +97,7 @@ ToolbarView.prototype = {
 
 
 
-  showResumeWarning: function DVT_showResumeWarning(aPausedUrl) {
+  showResumeWarning: function(aPausedUrl) {
     let label = L10N.getFormatStr("resumptionOrderPanelTitle", [aPausedUrl]);
     document.getElementById("resumption-panel-desc").textContent = label;
     this._resumeOrderPanel.openPopup(this._resumeButton);
@@ -109,14 +109,14 @@ ToolbarView.prototype = {
 
 
 
-  toggleChromeGlobalsContainer: function DVT_toggleChromeGlobalsContainer(aVisibleFlag) {
+  toggleChromeGlobalsContainer: function(aVisibleFlag) {
     this._chromeGlobals.setAttribute("hidden", !aVisibleFlag);
   },
 
   
 
 
-  _onTogglePanesPressed: function DVT__onTogglePanesPressed() {
+  _onTogglePanesPressed: function() {
     DebuggerView.toggleInstrumentsPane({
       visible: DebuggerView.instrumentsPaneHidden,
       animated: true,
@@ -127,7 +127,7 @@ ToolbarView.prototype = {
   
 
 
-  _onResumePressed: function DVT__onResumePressed() {
+  _onResumePressed: function() {
     if (DebuggerController.activeThread.paused) {
       let warn = DebuggerController._ensureResumptionOrder;
       DebuggerController.activeThread.resume(warn);
@@ -139,7 +139,7 @@ ToolbarView.prototype = {
   
 
 
-  _onStepOverPressed: function DVT__onStepOverPressed() {
+  _onStepOverPressed: function() {
     if (DebuggerController.activeThread.paused) {
       DebuggerController.activeThread.stepOver();
     }
@@ -148,7 +148,7 @@ ToolbarView.prototype = {
   
 
 
-  _onStepInPressed: function DVT__onStepInPressed() {
+  _onStepInPressed: function() {
     if (DebuggerController.activeThread.paused) {
       DebuggerController.activeThread.stepIn();
     }
@@ -157,7 +157,7 @@ ToolbarView.prototype = {
   
 
 
-  _onStepOutPressed: function DVT__onStepOutPressed() {
+  _onStepOutPressed: function() {
     if (DebuggerController.activeThread.paused) {
       DebuggerController.activeThread.stepOut();
     }
@@ -194,7 +194,7 @@ OptionsView.prototype = {
   
 
 
-  initialize: function DVO_initialize() {
+  initialize: function() {
     dumpn("Initializing the OptionsView");
 
     this._button = document.getElementById("debugger-options");
@@ -214,7 +214,7 @@ OptionsView.prototype = {
   
 
 
-  destroy: function DVO_destroy() {
+  destroy: function() {
     dumpn("Destroying the OptionsView");
     
   },
@@ -222,21 +222,21 @@ OptionsView.prototype = {
   
 
 
-  _onPopupShowing: function DVO__onPopupShowing() {
+  _onPopupShowing: function() {
     this._button.setAttribute("open", "true");
   },
 
   
 
 
-  _onPopupHiding: function DVO__onPopupHiding() {
+  _onPopupHiding: function() {
     this._button.removeAttribute("open");
   },
 
   
 
 
-  _togglePauseOnExceptions: function DVO__togglePauseOnExceptions() {
+  _togglePauseOnExceptions: function() {
     DebuggerController.activeThread.pauseOnExceptions(Prefs.pauseOnExceptions =
       this._pauseOnExceptionsItem.getAttribute("checked") == "true");
   },
@@ -244,7 +244,7 @@ OptionsView.prototype = {
   
 
 
-  _toggleShowPanesOnStartup: function DVO__toggleShowPanesOnStartup() {
+  _toggleShowPanesOnStartup: function() {
     Prefs.panesVisibleOnStartup =
       this._showPanesOnStartupItem.getAttribute("checked") == "true";
   },
@@ -252,7 +252,7 @@ OptionsView.prototype = {
   
 
 
-  _toggleShowVariablesOnlyEnum: function DVO__toggleShowVariablesOnlyEnum() {
+  _toggleShowVariablesOnlyEnum: function() {
     DebuggerView.Variables.onlyEnumVisible = Prefs.variablesOnlyEnumVisible =
       this._showVariablesOnlyEnumItem.getAttribute("checked") == "true";
   },
@@ -260,7 +260,7 @@ OptionsView.prototype = {
   
 
 
-  _toggleShowVariablesFilterBox: function DVO__toggleShowVariablesFilterBox() {
+  _toggleShowVariablesFilterBox: function() {
     DebuggerView.Variables.searchEnabled = Prefs.variablesSearchboxVisible =
       this._showVariablesFilterBoxItem.getAttribute("checked") == "true";
   },
@@ -268,7 +268,7 @@ OptionsView.prototype = {
   
 
 
-  _toggleShowOriginalSource: function DVO__toggleShowOriginalSource() {
+  _toggleShowOriginalSource: function() {
     let pref = Prefs.sourceMapsEnabled =
       this._showOriginalSourceItem.getAttribute("checked") == "true";
 
@@ -297,7 +297,7 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
   
 
 
-  initialize: function DVCG_initialize() {
+  initialize: function() {
     dumpn("Initializing the ChromeGlobalsView");
 
     this.node = document.getElementById("chrome-globals");
@@ -314,7 +314,7 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
   
 
 
-  destroy: function DVT_destroy() {
+  destroy: function() {
     dumpn("Destroying the ChromeGlobalsView");
 
     this.node.removeEventListener("select", this._onSelect, false);
@@ -324,7 +324,7 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onSelect: function DVCG__onSelect() {
+  _onSelect: function() {
     if (!this.refresh()) {
       return;
     }
@@ -334,7 +334,7 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onClick: function DVCG__onClick() {
+  _onClick: function() {
     
     DebuggerView.Filtering.target = this;
   }
@@ -358,7 +358,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   
 
 
-  initialize: function DVSF_initialize() {
+  initialize: function() {
     dumpn("Initializing the StackFramesView");
 
     let commandset = this._commandset = document.createElement("commandset");
@@ -378,7 +378,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   
 
 
-  destroy: function DVSF_destroy() {
+  destroy: function() {
     dumpn("Destroying the StackFramesView");
 
     this.node.removeEventListener("mousedown", this._onClick, false);
@@ -398,7 +398,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  addFrame: function DVSF_addFrame(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
+  addFrame: function(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
     
     let frameView = this._createFrameView.apply(this, arguments);
     let menuEntry = this._createMenuEntry.apply(this, arguments);
@@ -428,7 +428,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  highlightFrame: function DVSF_highlightFrame(aDepth) {
+  highlightFrame: function(aDepth) {
     let selectedItem = this.selectedItem = this._framesCache.get(aDepth);
 
     for (let item in this) {
@@ -459,8 +459,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  _createFrameView:
-  function DVSF__createFrameView(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
+  _createFrameView: function(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
     let frameDetails =
       SourceUtils.trimUrlLength(
         SourceUtils.getSourceLabel(aSourceLocation),
@@ -499,8 +498,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  _createMenuEntry:
-  function DVSF__createMenuEntry(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
+  _createMenuEntry: function(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
     let frameDescription =
       SourceUtils.trimUrlLength(
         SourceUtils.getSourceLabel(aSourceLocation),
@@ -549,7 +547,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  _destroyMenuEntry: function DVSF__destroyMenuEntry(aMenuEntry) {
+  _destroyMenuEntry: function(aMenuEntry) {
     dumpn("Destroying context menu: " +
       aMenuEntry.command.id + " & " + aMenuEntry.menuitem.id);
 
@@ -565,7 +563,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  _onStackframeRemoved: function DVSF__onStackframeRemoved(aItem) {
+  _onStackframeRemoved: function(aItem) {
     dumpn("Finalizing stackframe item: " + aItem);
 
     let { popup, depth } = aItem.attachment;
@@ -576,7 +574,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   
 
 
-  _onClick: function DVSF__onClick(e) {
+  _onClick: function(e) {
     if (e && e.button != 0) {
       
       return;
@@ -591,7 +589,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   
 
 
-  _onScroll: function DVSF__onScroll() {
+  _onScroll: function() {
     
     if (!this.dirty) {
       return;
@@ -603,7 +601,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   
 
 
-  _afterScroll: function DVSF__afterScroll() {
+  _afterScroll: function() {
     let list = this.node._list;
     let scrollPosition = list.scrollPosition;
     let scrollWidth = list.scrollWidth;
@@ -625,7 +623,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  _selectFrame: function DVSF__selectFrame(aDepth) {
+  _selectFrame: function(aDepth) {
     DebuggerController.StackFrames.selectFrame(aDepth);
   },
 
@@ -646,7 +644,7 @@ let StackFrameUtils = {
 
 
 
-  getFrameTitle: function SFU_getFrameTitle(aFrame) {
+  getFrameTitle: function(aFrame) {
     if (aFrame.type == "call") {
       let c = aFrame.callee;
       return (c.name || c.userDisplayName || c.displayName || "(anonymous)");
@@ -662,7 +660,7 @@ let StackFrameUtils = {
 
 
 
-  getScopeLabel: function SFU_getScopeLabel(aEnv) {
+  getScopeLabel: function(aEnv) {
     let name = "";
 
     
@@ -707,7 +705,7 @@ FilterView.prototype = {
   
 
 
-  initialize: function DVF_initialize() {
+  initialize: function() {
     dumpn("Initializing the FilterView");
 
     this._searchbox = document.getElementById("searchbox");
@@ -764,7 +762,7 @@ FilterView.prototype = {
   
 
 
-  destroy: function DVF_destroy() {
+  destroy: function() {
     dumpn("Destroying the FilterView");
 
     this._searchbox.removeEventListener("click", this._onClick, false);
@@ -880,7 +878,7 @@ FilterView.prototype = {
   
 
 
-  clearSearch: function DVF_clearSearch() {
+  clearSearch: function() {
     this._searchbox.value = "";
     this._searchboxHelpPanel.hidePopup();
   },
@@ -891,7 +889,7 @@ FilterView.prototype = {
 
 
 
-  _performFileSearch: function DVF__performFileSearch(aFile) {
+  _performFileSearch: function(aFile) {
     
     if (this._prevSearchedFile == aFile) {
       return;
@@ -958,7 +956,7 @@ FilterView.prototype = {
 
 
 
-  _performLineSearch: function DVF__performLineSearch(aLine) {
+  _performLineSearch: function(aLine) {
     
     if (this._prevSearchedLine != aLine && aLine) {
       DebuggerView.editor.setCaretPosition(aLine - 1);
@@ -979,7 +977,7 @@ FilterView.prototype = {
 
 
 
-  _performTokenSearch: function DVF__performTokenSearch(aToken) {
+  _performTokenSearch: function(aToken) {
     
     if (this._prevSearchedToken != aToken && aToken) {
       let editor = DebuggerView.editor;
@@ -1000,14 +998,14 @@ FilterView.prototype = {
   
 
 
-  _onClick: function DVF__onClick() {
+  _onClick: function() {
     this._searchboxHelpPanel.openPopup(this._searchbox);
   },
 
   
 
 
-  _onSearch: function DVF__onScriptsSearch() {
+  _onSearch: function() {
     this._searchboxHelpPanel.hidePopup();
     let [operator, file, line, token] = this.searchboxInfo;
 
@@ -1046,7 +1044,7 @@ FilterView.prototype = {
   
 
 
-  _onKeyPress: function DVF__onScriptsKeyPress(e) {
+  _onKeyPress: function(e) {
     
     e.char = String.fromCharCode(e.charCode);
 
@@ -1175,7 +1173,7 @@ FilterView.prototype = {
   
 
 
-  _onBlur: function DVF__onBlur() {
+  _onBlur: function() {
     DebuggerView.GlobalSearch.clearView();
     DebuggerView.FilteredSources.clearView();
     DebuggerView.FilteredFunctions.clearView();
@@ -1189,7 +1187,7 @@ FilterView.prototype = {
 
 
 
-  _doSearch: function DVF__doSearch(aOperator = "") {
+  _doSearch: function(aOperator = "") {
     this._searchbox.focus();
     this._searchbox.value = ""; 
     this._searchbox.value = aOperator;
@@ -1198,7 +1196,7 @@ FilterView.prototype = {
   
 
 
-  _doFileSearch: function DVF__doFileSearch() {
+  _doFileSearch: function() {
     this._doSearch();
     this._searchboxHelpPanel.openPopup(this._searchbox);
   },
@@ -1206,7 +1204,7 @@ FilterView.prototype = {
   
 
 
-  _doGlobalSearch: function DVF__doGlobalSearch() {
+  _doGlobalSearch: function() {
     this._doSearch(SEARCH_GLOBAL_FLAG);
     this._searchboxHelpPanel.hidePopup();
   },
@@ -1214,7 +1212,7 @@ FilterView.prototype = {
   
 
 
-  _doFunctionSearch: function DVF__doFunctionSearch() {
+  _doFunctionSearch: function() {
     this._doSearch(SEARCH_FUNCTION_FLAG);
     this._searchboxHelpPanel.hidePopup();
   },
@@ -1222,7 +1220,7 @@ FilterView.prototype = {
   
 
 
-  _doTokenSearch: function DVF__doTokenSearch() {
+  _doTokenSearch: function() {
     this._doSearch(SEARCH_TOKEN_FLAG);
     this._searchboxHelpPanel.hidePopup();
   },
@@ -1230,7 +1228,7 @@ FilterView.prototype = {
   
 
 
-  _doLineSearch: function DVF__doLineSearch() {
+  _doLineSearch: function() {
     this._doSearch(SEARCH_LINE_FLAG);
     this._searchboxHelpPanel.hidePopup();
   },
@@ -1238,7 +1236,7 @@ FilterView.prototype = {
   
 
 
-  _doVariableSearch: function DVF__doVariableSearch() {
+  _doVariableSearch: function() {
     DebuggerView.Variables.performSearch("");
     this._doSearch(SEARCH_VARIABLE_FLAG);
     this._searchboxHelpPanel.hidePopup();
@@ -1247,7 +1245,7 @@ FilterView.prototype = {
   
 
 
-  _doVariablesFocus: function DVG__doVariablesFocus() {
+  _doVariablesFocus: function() {
     DebuggerView.showInstrumentsPane();
     DebuggerView.Variables.focusFirstVisibleNode();
   },
@@ -1291,7 +1289,7 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
   
 
 
-  initialize: function DVFS_initialize() {
+  initialize: function() {
     dumpn("Initializing the FilteredSourcesView");
 
     this.anchor = document.getElementById("searchbox");
@@ -1300,7 +1298,7 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
   
 
 
-  destroy: function DVFS_destroy() {
+  destroy: function() {
     dumpn("Destroying the FilteredSourcesView");
 
     this.anchor = null;
@@ -1309,7 +1307,7 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
   
 
 
-  syncFileSearch: function DVFS_syncFileSearch() {
+  syncFileSearch: function() {
     this.empty();
 
     
@@ -1347,7 +1345,7 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
   
 
 
-  onClick: function DVFS_onClick(e) {
+  onClick: function(e) {
     let locationItem = this.getItemForElement(e.target);
     if (locationItem) {
       this.select(locationItem);
@@ -1361,7 +1359,7 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
 
 
 
-  onSelect: function DVFS_onSelect(e) {
+  onSelect: function(e) {
     let locationItem = this.getItemForElement(e.target);
     if (locationItem) {
       DebuggerView.Sources.selectedValue = locationItem.attachment.fullValue;
@@ -1385,7 +1383,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
   
 
 
-  initialize: function DVFF_initialize() {
+  initialize: function() {
     dumpn("Initializing the FilteredFunctionsView");
 
     this.anchor = document.getElementById("searchbox");
@@ -1394,7 +1392,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
   
 
 
-  destroy: function DVFF_destroy() {
+  destroy: function() {
     dumpn("Destroying the FilteredFunctionsView");
 
     this.anchor = null;
@@ -1411,7 +1409,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
 
 
 
-  scheduleSearch: function DVFF_scheduleSearch(aQuery) {
+  scheduleSearch: function(aQuery) {
     if (!this.delayedSearch) {
       this.performSearch(aQuery);
       return;
@@ -1429,7 +1427,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
 
 
 
-  performSearch: function DVFF_performSearch(aQuery) {
+  performSearch: function(aQuery) {
     window.clearTimeout(this._searchTimeout);
     this._searchFunction = null;
     this._startSearch(aQuery);
@@ -1441,7 +1439,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
 
 
 
-  _startSearch: function DVFF__startSearch(aQuery) {
+  _startSearch: function(aQuery) {
     this._searchedToken = aQuery;
 
     DebuggerController.SourceScripts.fetchSources(DebuggerView.Sources.values, {
@@ -1453,7 +1451,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
 
 
 
-  _performFunctionSearch: function DVFF__performFunctionSearch() {
+  _performFunctionSearch: function() {
     
     
     
@@ -1509,7 +1507,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
 
 
 
-  _syncFunctionSearch: function DVFF__syncFunctionSearch(aSearchResults) {
+  _syncFunctionSearch: function(aSearchResults) {
     this.empty();
 
     
@@ -1565,7 +1563,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
   
 
 
-  onClick: function DVFF_onClick(e) {
+  onClick: function(e) {
     let functionItem = this.getItemForElement(e.target);
     if (functionItem) {
       this.select(functionItem);
@@ -1576,7 +1574,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
   
 
 
-  onSelect: function DVFF_onSelect(e) {
+  onSelect: function(e) {
     let functionItem = this.getItemForElement(e.target);
     if (functionItem) {
       let sourceUrl = functionItem.attachment.sourceUrl;

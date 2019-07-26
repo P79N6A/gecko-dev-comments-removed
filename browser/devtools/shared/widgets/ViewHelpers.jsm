@@ -31,7 +31,7 @@ this.ViewHelpers = {
 
 
 
-  create: function VH_create({ constructor, proto }, aProperties = {}) {
+  create: function({ constructor, proto }, aProperties = {}) {
     let descriptors = {
       constructor: { value: constructor }
     };
@@ -54,7 +54,7 @@ this.ViewHelpers = {
 
 
 
-  dispatchEvent: function VH_dispatchEvent(aTarget, aType, aDetail) {
+  dispatchEvent: function(aTarget, aType, aDetail) {
     if (!aTarget) {
       return true; 
     }
@@ -75,7 +75,7 @@ this.ViewHelpers = {
 
 
 
-  delegateWidgetAttributeMethods: function VH_delegateWidgetAttributeMethods(aWidget, aNode) {
+  delegateWidgetAttributeMethods: function(aWidget, aNode) {
     aWidget.getAttribute = aNode.getAttribute.bind(aNode);
     aWidget.setAttribute = aNode.setAttribute.bind(aNode);
     aWidget.removeAttribute = aNode.removeAttribute.bind(aNode);
@@ -90,7 +90,7 @@ this.ViewHelpers = {
 
 
 
-  delegateWidgetEventMethods: function VH_delegateWidgetEventMethods(aWidget, aNode) {
+  delegateWidgetEventMethods: function(aWidget, aNode) {
     aWidget.addEventListener = aNode.addEventListener.bind(aNode);
     aWidget.removeEventListener = aNode.removeEventListener.bind(aNode);
   },
@@ -107,7 +107,7 @@ this.ViewHelpers = {
 
 
 
-  togglePane: function VH_togglePane(aFlags, aPane) {
+  togglePane: function(aFlags, aPane) {
     
     aPane.removeAttribute("hidden");
 
@@ -171,7 +171,7 @@ this.ViewHelpers = {
 
 
 
-ViewHelpers.L10N = function L10N(aStringBundleName) {
+ViewHelpers.L10N = function(aStringBundleName) {
   XPCOMUtils.defineLazyGetter(this, "stringBundle", () =>
     Services.strings.createBundle(aStringBundleName));
 
@@ -188,7 +188,7 @@ ViewHelpers.L10N.prototype = {
 
 
 
-  getStr: function L10N_getStr(aName) {
+  getStr: function(aName) {
     return this.stringBundle.GetStringFromName(aName);
   },
 
@@ -199,7 +199,7 @@ ViewHelpers.L10N.prototype = {
 
 
 
-  getFormatStr: function L10N_getFormatStr(aName, ...aArgs) {
+  getFormatStr: function(aName, ...aArgs) {
     return this.stringBundle.formatStringFromName(aName, aArgs, aArgs.length);
   },
 
@@ -214,7 +214,7 @@ ViewHelpers.L10N.prototype = {
 
 
 
-  numberWithDecimals: function L10N__numberWithDecimals(aNumber, aDecimals = 0) {
+  numberWithDecimals: function(aNumber, aDecimals = 0) {
     
     if (aNumber == (aNumber | 0)) {
       return aNumber;
@@ -247,7 +247,7 @@ ViewHelpers.L10N.prototype = {
 
 
 
-ViewHelpers.Prefs = function Prefs(aPrefsRoot = "", aPrefsObject = {}) {
+ViewHelpers.Prefs = function(aPrefsRoot = "", aPrefsObject = {}) {
   this.root = aPrefsRoot;
 
   for (let accessorName in aPrefsObject) {
@@ -264,7 +264,7 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-  _get: function P__get(aType, aPrefName) {
+  _get: function(aType, aPrefName) {
     if (this[aPrefName] === undefined) {
       this[aPrefName] = Services.prefs["get" + aType + "Pref"](aPrefName);
     }
@@ -278,7 +278,7 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-  _set: function P__set(aType, aPrefName, aValue) {
+  _set: function(aType, aPrefName, aValue) {
     Services.prefs["set" + aType + "Pref"](aPrefName, aValue);
     this[aPrefName] = aValue;
   },
@@ -290,7 +290,7 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-  map: function P_map(aAccessorName, aType, aPrefName) {
+  map: function(aAccessorName, aType, aPrefName) {
     Object.defineProperty(this, aAccessorName, {
       get: () => this._get(aType, [this.root, aPrefName].join(".")),
       set: (aValue) => this._set(aType, [this.root, aPrefName].join("."), aValue)
@@ -347,7 +347,7 @@ MenuItem.prototype = {
 
 
 
-  append: function MI_append(aElement, aOptions = {}) {
+  append: function(aElement, aOptions = {}) {
     let item = new MenuItem(aOptions.attachment);
 
     
@@ -371,7 +371,7 @@ MenuItem.prototype = {
 
 
 
-  remove: function MI_remove(aItem) {
+  remove: function(aItem) {
     if (!aItem) {
       return;
     }
@@ -382,7 +382,7 @@ MenuItem.prototype = {
   
 
 
-  markSelected: function MI_markSelected() {
+  markSelected: function() {
     if (!this._target) {
       return;
     }
@@ -392,7 +392,7 @@ MenuItem.prototype = {
   
 
 
-  markDeselected: function MI_markDeselected() {
+  markDeselected: function() {
     if (!this._target) {
       return;
     }
@@ -407,7 +407,7 @@ MenuItem.prototype = {
 
 
 
-  setAttributes: function MI_setAttributes(aAttributes, aElement = this._target) {
+  setAttributes: function(aAttributes, aElement = this._target) {
     for (let [name, value] of aAttributes) {
       aElement.setAttribute(name, value);
     }
@@ -421,7 +421,7 @@ MenuItem.prototype = {
 
 
 
-  _entangleItem: function MI__entangleItem(aItem, aElement) {
+  _entangleItem: function(aItem, aElement) {
     if (!this._itemsByElement) {
       this._itemsByElement = new Map(); 
     }
@@ -436,7 +436,7 @@ MenuItem.prototype = {
 
 
 
-  _untangleItem: function MI__untangleItem(aItem) {
+  _untangleItem: function(aItem) {
     if (aItem.finalize) {
       aItem.finalize(aItem);
     }
@@ -455,7 +455,7 @@ MenuItem.prototype = {
 
 
 
-  _unlinkItem: function MC__unlinkItem(aItem) {
+  _unlinkItem: function(aItem) {
     this._itemsByElement.delete(aItem._target);
   },
 
@@ -463,7 +463,7 @@ MenuItem.prototype = {
 
 
 
-  toString: function MI_toString() {
+  toString: function() {
     if (this._label && this._value) {
       return this._label + " -> " + this._value;
     }
@@ -562,7 +562,7 @@ MenuContainer.prototype = {
 
 
 
-  push: function MC_push(aContents, aOptions = {}) {
+  push: function(aContents, aOptions = {}) {
     let item = new MenuItem(aOptions.attachment, aContents);
 
     
@@ -588,7 +588,7 @@ MenuContainer.prototype = {
 
 
 
-  commit: function MC_commit(aOptions = {}) {
+  commit: function(aOptions = {}) {
     let stagedItems = this._stagedItems;
 
     
@@ -610,7 +610,7 @@ MenuContainer.prototype = {
 
 
 
-  refresh: function MC_refresh() {
+  refresh: function() {
     let selectedValue = this.selectedValue;
     if (!selectedValue) {
       return false;
@@ -628,7 +628,7 @@ MenuContainer.prototype = {
 
 
 
-  remove: function MC_remove(aItem) {
+  remove: function(aItem) {
     if (!aItem) {
       return;
     }
@@ -639,7 +639,7 @@ MenuContainer.prototype = {
   
 
 
-  empty: function MC_empty() {
+  empty: function() {
     this._preferredValue = this.selectedValue;
     this._container.selectedItem = null;
     this._container.removeAllItems();
@@ -661,7 +661,7 @@ MenuContainer.prototype = {
 
 
 
-  setUnavailable: function MC_setUnavailable() {
+  setUnavailable: function() {
     this._container.setAttribute("notice", this.unavailableText);
     this._container.setAttribute("label", this.unavailableText);
     this._container.removeAttribute("tooltiptext");
@@ -684,7 +684,7 @@ MenuContainer.prototype = {
 
 
 
-  toggleContents: function MC_toggleContents(aVisibleFlag) {
+  toggleContents: function(aVisibleFlag) {
     for (let [, item] of this._itemsByElement) {
       item._target.hidden = !aVisibleFlag;
     }
@@ -698,7 +698,7 @@ MenuContainer.prototype = {
 
 
 
-  sortContents: function MC_sortContents(aPredicate = this._sortPredicate) {
+  sortContents: function(aPredicate = this._sortPredicate) {
     let sortedItems = this.allItems.sort(this._sortPredicate = aPredicate);
 
     for (let i = 0, len = sortedItems.length; i < len; i++) {
@@ -714,7 +714,7 @@ MenuContainer.prototype = {
 
 
 
-  swapItems: function MC_swapItems(aFirst, aSecond) {
+  swapItems: function(aFirst, aSecond) {
     if (aFirst == aSecond) { 
       return;
     }
@@ -773,7 +773,7 @@ MenuContainer.prototype = {
 
 
 
-  swapItemsAtIndices: function MC_swapItemsAtIndices(aFirst, aSecond) {
+  swapItemsAtIndices: function(aFirst, aSecond) {
     this.swapItems(this.getItemAtIndex(aFirst), this.getItemAtIndex(aSecond));
   },
 
@@ -786,7 +786,7 @@ MenuContainer.prototype = {
 
 
 
-  containsLabel: function MC_containsLabel(aLabel) {
+  containsLabel: function(aLabel) {
     return this._itemsByLabel.has(aLabel) ||
            this._stagedItems.some(function({item}) item._label == aLabel);
   },
@@ -800,7 +800,7 @@ MenuContainer.prototype = {
 
 
 
-  containsValue: function MC_containsValue(aValue) {
+  containsValue: function(aValue) {
     return this._itemsByValue.has(aValue) ||
            this._stagedItems.some(function({item}) item._value == aValue);
   },
@@ -911,7 +911,7 @@ MenuContainer.prototype = {
 
 
 
-  getItemAtIndex: function MC_getItemAtIndex(aIndex) {
+  getItemAtIndex: function(aIndex) {
     return this.getItemForElement(this._container.getItemAtIndex(aIndex));
   },
 
@@ -923,7 +923,7 @@ MenuContainer.prototype = {
 
 
 
-  getItemByLabel: function MC_getItemByLabel(aLabel) {
+  getItemByLabel: function(aLabel) {
     return this._itemsByLabel.get(aLabel);
   },
 
@@ -935,7 +935,7 @@ MenuContainer.prototype = {
 
 
 
-  getItemByValue: function MC_getItemByValue(aValue) {
+  getItemByValue: function(aValue) {
     return this._itemsByValue.get(aValue);
   },
 
@@ -947,7 +947,7 @@ MenuContainer.prototype = {
 
 
 
-  getItemForElement: function MC_getItemForElement(aElement) {
+  getItemForElement: function(aElement) {
     while (aElement) {
       let item = this._itemsByElement.get(aElement);
       if (item) {
@@ -966,7 +966,7 @@ MenuContainer.prototype = {
 
 
 
-  indexOfItem: function MC_indexOfItem(aItem) {
+  indexOfItem: function(aItem) {
     return this._indexOfElement(aItem._target);
   },
 
@@ -978,7 +978,7 @@ MenuContainer.prototype = {
 
 
 
-  _indexOfElement: function MC__indexOfElement(aElement) {
+  _indexOfElement: function(aElement) {
     let container = this._container;
     let itemCount = this._itemsByElement.size;
 
@@ -1065,7 +1065,7 @@ MenuContainer.prototype = {
 
 
 
-  isUnique: function MC_isUnique(aItem) {
+  isUnique: function(aItem) {
     switch (this.uniquenessQualifier) {
       case 1:
         return !this._itemsByLabel.has(aItem._label) &&
@@ -1089,7 +1089,7 @@ MenuContainer.prototype = {
 
 
 
-  isEligible: function MC_isEligible(aItem) {
+  isEligible: function(aItem) {
     return aItem._prebuiltTarget || (this.isUnique(aItem) &&
            aItem._label != "undefined" && aItem._label != "null" &&
            aItem._value != "undefined" && aItem._value != "null");
@@ -1104,7 +1104,7 @@ MenuContainer.prototype = {
 
 
 
-  _findExpectedIndex: function MC__findExpectedIndex(aItem) {
+  _findExpectedIndex: function(aItem) {
     let container = this._container;
     let itemCount = this.itemCount;
 
@@ -1132,7 +1132,7 @@ MenuContainer.prototype = {
 
 
 
-  _insertItemAt: function MC__insertItemAt(aIndex, aItem, aOptions = {}) {
+  _insertItemAt: function(aIndex, aItem, aOptions = {}) {
     
     if (!aOptions.relaxed && !this.isEligible(aItem)) {
       return null;
@@ -1165,7 +1165,7 @@ MenuContainer.prototype = {
 
 
 
-  _entangleItem: function MC__entangleItem(aItem, aElement) {
+  _entangleItem: function(aItem, aElement) {
     this._itemsByLabel.set(aItem._label, aItem);
     this._itemsByValue.set(aItem._value, aItem);
     this._itemsByElement.set(aElement, aItem);
@@ -1178,7 +1178,7 @@ MenuContainer.prototype = {
 
 
 
-  _untangleItem: function MC__untangleItem(aItem) {
+  _untangleItem: function(aItem) {
     if (aItem.finalize) {
       aItem.finalize(aItem);
     }
@@ -1197,7 +1197,7 @@ MenuContainer.prototype = {
 
 
 
-  _unlinkItem: function MI__unlinkItem(aItem) {
+  _unlinkItem: function(aItem) {
     this._itemsByLabel.delete(aItem._label);
     this._itemsByValue.delete(aItem._value);
     this._itemsByElement.delete(aItem._target);
@@ -1216,7 +1216,7 @@ MenuContainer.prototype = {
 
 
 
-  _sortPredicate: function MC__sortPredicate(aFirst, aSecond) {
+  _sortPredicate: function(aFirst, aSecond) {
     return +(aFirst._label.toLowerCase() > aSecond._label.toLowerCase());
   },
 
@@ -1232,7 +1232,7 @@ MenuContainer.prototype = {
 
 
 MenuItem.prototype.__iterator__ =
-MenuContainer.prototype.__iterator__ = function VH_iterator() {
+MenuContainer.prototype.__iterator__ = function() {
   if (!this._itemsByElement) {
     return;
   }

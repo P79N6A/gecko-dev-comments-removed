@@ -5,9 +5,7 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const NEW_SOURCE_IGNORED_URLS = ["debugger eval code", "self-hosted"];
@@ -41,7 +39,7 @@ let DebuggerController = {
   
 
 
-  initialize: function DC_initialize() {
+  initialize: function() {
     dumpn("Initializing the DebuggerController");
 
     this.startupDebugger = this.startupDebugger.bind(this);
@@ -63,7 +61,7 @@ let DebuggerController = {
 
 
 
-  startupDebugger: function DC_startupDebugger() {
+  startupDebugger: function() {
     if (this._isInitialized) {
       return this._startup.promise;
     }
@@ -92,7 +90,7 @@ let DebuggerController = {
 
 
 
-  shutdownDebugger: function DC__shutdownDebugger() {
+  shutdownDebugger: function() {
     if (this._isDestroyed) {
       return this._shutdown.promise;
     }
@@ -128,7 +126,7 @@ let DebuggerController = {
 
 
 
-  connect: function DC_connect() {
+  connect: function() {
     if (this._connection) {
       return this._connection.promise;
     }
@@ -171,7 +169,7 @@ let DebuggerController = {
   
 
 
-  disconnect: function DC_disconnect() {
+  disconnect: function() {
     
     if (!this.client) {
       return;
@@ -198,7 +196,7 @@ let DebuggerController = {
 
 
 
-  _onTabNavigated: function DC__onTabNavigated(aType, aPacket) {
+  _onTabNavigated: function(aType, aPacket) {
     if (aType == "will-navigate") {
       DebuggerView._handleTabNavigation();
 
@@ -217,7 +215,7 @@ let DebuggerController = {
   
 
 
-  _onTabDetached: function DC__onTabDetached() {
+  _onTabDetached: function() {
     this.shutdownDebugger();
   },
 
@@ -231,7 +229,7 @@ let DebuggerController = {
 
 
 
-  _startDebuggingTab: function DC__startDebuggingTab(aClient, aThreadActor, aCallback) {
+  _startDebuggingTab: function(aClient, aThreadActor, aCallback) {
     if (!aClient) {
       Cu.reportError("No client found!");
       return;
@@ -259,7 +257,7 @@ let DebuggerController = {
   
 
 
-  _ensureResumptionOrder: function DC__ensureResumptionOrder(aResponse) {
+  _ensureResumptionOrder: function(aResponse) {
     if (aResponse.error == "wrongOrder") {
       DebuggerView.Toolbar.showResumeWarning(aResponse.lastPausedUrl);
     }
@@ -275,7 +273,7 @@ let DebuggerController = {
 
 
 
-  _startChromeDebugging: function DC__startChromeDebugging(aClient, aChromeDebugger, aCallback) {
+  _startChromeDebugging: function(aClient, aChromeDebugger, aCallback) {
     if (!aClient) {
       Cu.reportError("No client found!");
       return;
@@ -304,7 +302,7 @@ let DebuggerController = {
 
 
 
-  reconfigureThread: function DC_reconfigureThread(aUseSourceMaps) {
+  reconfigureThread: function(aUseSourceMaps) {
     this.client.reconfigureThread(aUseSourceMaps, (aResponse) => {
       if (aResponse.error) {
         let msg = "Couldn't reconfigure thread: " + aResponse.message;
@@ -326,7 +324,7 @@ let DebuggerController = {
   
 
 
-  _quitApp: function DC__quitApp() {
+  _quitApp: function() {
     let canceled = Cc["@mozilla.org/supports-PRBool;1"]
       .createInstance(Ci.nsISupportsPRBool);
 
@@ -362,7 +360,7 @@ ThreadState.prototype = {
   
 
 
-  connect: function TS_connect() {
+  connect: function() {
     dumpn("ThreadState is connecting...");
     this.activeThread.addListener("paused", this._update);
     this.activeThread.addListener("resumed", this._update);
@@ -373,7 +371,7 @@ ThreadState.prototype = {
   
 
 
-  disconnect: function TS_disconnect() {
+  disconnect: function() {
     if (!this.activeThread) {
       return;
     }
@@ -385,7 +383,7 @@ ThreadState.prototype = {
   
 
 
-  _handleTabNavigation: function TS__handleTabNavigation() {
+  _handleTabNavigation: function() {
     if (!this.activeThread) {
       return;
     }
@@ -396,7 +394,7 @@ ThreadState.prototype = {
   
 
 
-  _update: function TS__update(aEvent) {
+  _update: function(aEvent) {
     DebuggerView.Toolbar.toggleResumeButtonState(this.activeThread.state);
 
     if (DebuggerController._target && (aEvent == "paused" || aEvent == "resumed")) {
@@ -434,7 +432,7 @@ StackFrames.prototype = {
   
 
 
-  connect: function SF_connect() {
+  connect: function() {
     dumpn("StackFrames is connecting...");
     this.activeThread.addListener("paused", this._onPaused);
     this.activeThread.addListener("resumed", this._onResumed);
@@ -446,7 +444,7 @@ StackFrames.prototype = {
   
 
 
-  disconnect: function SF_disconnect() {
+  disconnect: function() {
     if (!this.activeThread) {
       return;
     }
@@ -460,7 +458,7 @@ StackFrames.prototype = {
   
 
 
-  _handleTabNavigation: function SF__handleTabNavigation() {
+  _handleTabNavigation: function() {
     dumpn("Handling tab navigation in the StackFrames");
     
   },
@@ -473,7 +471,7 @@ StackFrames.prototype = {
 
 
 
-  _onPaused: function SF__onPaused(aEvent, aPacket) {
+  _onPaused: function(aEvent, aPacket) {
     switch (aPacket.why.type) {
       
       case "breakpoint":
@@ -496,7 +494,7 @@ StackFrames.prototype = {
   
 
 
-  _onResumed: function SF__onResumed() {
+  _onResumed: function() {
     DebuggerView.editor.setDebugLocation(-1);
 
     
@@ -508,7 +506,7 @@ StackFrames.prototype = {
   
 
 
-  _onFrames: function SF__onFrames() {
+  _onFrames: function() {
     
     if (!this.activeThread.cachedFrames.length) {
       return;
@@ -591,7 +589,7 @@ StackFrames.prototype = {
   
 
 
-  _onFramesCleared: function SF__onFramesCleared() {
+  _onFramesCleared: function() {
     this.currentFrame = null;
     this.currentWatchExpressions = null;
     this.currentBreakpointLocation = null;
@@ -607,7 +605,7 @@ StackFrames.prototype = {
   
 
 
-  _afterFramesCleared: function SF__afterFramesCleared() {
+  _afterFramesCleared: function() {
     
     if (this.activeThread.cachedFrames.length) {
       return;
@@ -626,7 +624,7 @@ StackFrames.prototype = {
 
 
 
-  selectFrame: function SF_selectFrame(aDepth) {
+  selectFrame: function(aDepth) {
     let frame = this.activeThread.cachedFrames[this.currentFrame = aDepth];
     if (!frame) {
       return;
@@ -704,7 +702,7 @@ StackFrames.prototype = {
 
 
 
-  _addScopeExpander: function SF__addScopeExpander(aScope, aEnv) {
+  _addScopeExpander: function(aScope, aEnv) {
     aScope._sourceEnvironment = aEnv;
 
     
@@ -722,7 +720,7 @@ StackFrames.prototype = {
 
 
 
-  _addVarExpander: function SF__addVarExpander(aVar, aGrip) {
+  _addVarExpander: function(aVar, aGrip) {
     
     if (VariablesView.isPrimitive({ value: aGrip })) {
       return;
@@ -746,7 +744,7 @@ StackFrames.prototype = {
 
 
 
-  _fetchWatchExpressions: function SF__fetchWatchExpressions(aScope, aExp) {
+  _fetchWatchExpressions: function(aScope, aExp) {
     
     if (aScope._fetched) {
       return;
@@ -754,7 +752,7 @@ StackFrames.prototype = {
     aScope._fetched = true;
 
     
-    this.activeThread.pauseGrip(aExp).getPrototypeAndProperties(function(aResponse) {
+    this.activeThread.pauseGrip(aExp).getPrototypeAndProperties((aResponse) => {
       let ownProperties = aResponse.ownProperties;
       let totalExpressions = DebuggerView.WatchExpressions.itemCount;
 
@@ -774,7 +772,7 @@ StackFrames.prototype = {
       
       window.dispatchEvent(document, "Debugger:FetchedWatchExpressions");
       DebuggerView.Variables.commitHierarchy();
-    }.bind(this));
+    });
   },
 
   
@@ -784,7 +782,7 @@ StackFrames.prototype = {
 
 
 
-  _fetchScopeVariables: function SF__fetchScopeVariables(aScope) {
+  _fetchScopeVariables: function(aScope) {
     
     if (aScope._fetched) {
       return;
@@ -796,7 +794,7 @@ StackFrames.prototype = {
       case "with":
       case "object":
         
-        this.activeThread.pauseGrip(env.object).getPrototypeAndProperties(function(aResponse) {
+        this.activeThread.pauseGrip(env.object).getPrototypeAndProperties((aResponse) => {
           let { ownProperties, safeGetterValues } = aResponse;
           this._mergeSafeGetterValues(ownProperties, safeGetterValues);
           this._insertScopeVariables(ownProperties, aScope);
@@ -804,7 +802,7 @@ StackFrames.prototype = {
           
           window.dispatchEvent(document, "Debugger:FetchedVariables");
           DebuggerView.Variables.commitHierarchy();
-        }.bind(this));
+        });
         break;
       case "block":
       case "function":
@@ -830,7 +828,7 @@ StackFrames.prototype = {
 
 
 
-  _insertScopeFrameReferences: function SF__insertScopeFrameReferences(aScope, aFrame) {
+  _insertScopeFrameReferences: function(aScope, aFrame) {
     
     if (this.currentException) {
       let excRef = aScope.addVar("<exception>", { value: this.currentException });
@@ -851,7 +849,7 @@ StackFrames.prototype = {
 
 
 
-  _insertScopeArguments: function SF__insertScopeArguments(aArguments, aScope) {
+  _insertScopeArguments: function(aArguments, aScope) {
     if (!aArguments) {
       return;
     }
@@ -871,7 +869,7 @@ StackFrames.prototype = {
 
 
 
-  _insertScopeVariables: function SF__insertScopeVariables(aVariables, aScope) {
+  _insertScopeVariables: function(aVariables, aScope) {
     if (!aVariables) {
       return;
     }
@@ -896,7 +894,7 @@ StackFrames.prototype = {
 
 
 
-  _fetchVarProperties: function SF__fetchVarProperties(aVar) {
+  _fetchVarProperties: function(aVar) {
     
     if (aVar._fetched) {
       return;
@@ -904,7 +902,7 @@ StackFrames.prototype = {
     aVar._fetched = true;
     let grip = aVar._sourceGrip;
 
-    this.activeThread.pauseGrip(grip).getPrototypeAndProperties(function(aResponse) {
+    this.activeThread.pauseGrip(grip).getPrototypeAndProperties((aResponse) => {
       let { ownProperties, prototype, safeGetterValues } = aResponse;
       let sortable = VariablesView.NON_SORTABLE_CLASSES.indexOf(grip.class) == -1;
 
@@ -933,7 +931,7 @@ StackFrames.prototype = {
       
       window.dispatchEvent(document, "Debugger:FetchedProperties");
       DebuggerView.Variables.commitHierarchy();
-    }.bind(this));
+    });
   },
 
   
@@ -947,17 +945,15 @@ StackFrames.prototype = {
 
 
 
-  _mergeSafeGetterValues:
-  function SF__mergeSafeGetterValues(aOwnProperties, aSafeGetterValues) {
+  _mergeSafeGetterValues: function(aOwnProperties, aSafeGetterValues) {
     
     
     for (let name of Object.keys(aSafeGetterValues)) {
       if (name in aOwnProperties) {
         aOwnProperties[name].getterValue = aSafeGetterValues[name].getterValue;
-        aOwnProperties[name].getterPrototypeLevel = aSafeGetterValues[name]
-                                                    .getterPrototypeLevel;
-      }
-      else {
+        aOwnProperties[name].getterPrototypeLevel =
+          aSafeGetterValues[name].getterPrototypeLevel;
+      } else {
         aOwnProperties[name] = aSafeGetterValues[name];
       }
     }
@@ -969,7 +965,7 @@ StackFrames.prototype = {
 
 
 
-  _addFrame: function SF__addFrame(aFrame) {
+  _addFrame: function(aFrame) {
     let depth = aFrame.depth;
     let { url, line } = aFrame.where;
     let frameLocation = NetworkHelper.convertToUnicode(unescape(url));
@@ -981,7 +977,7 @@ StackFrames.prototype = {
   
 
 
-  addMoreFrames: function SF_addMoreFrames() {
+  addMoreFrames: function() {
     this.activeThread.fillFrames(
       this.activeThread.cachedFrames.length + CALL_STACK_PAGE_SIZE);
   },
@@ -989,7 +985,7 @@ StackFrames.prototype = {
   
 
 
-  syncWatchExpressions: function SF_syncWatchExpressions() {
+  syncWatchExpressions: function() {
     let list = DebuggerView.WatchExpressions.getExpressions();
 
     
@@ -1040,7 +1036,7 @@ StackFrames.prototype = {
 
 
 
-  evaluate: function SF_evaluate(aExpression, aFrame = this.currentFrame || 0) {
+  evaluate: function(aExpression, aFrame = this.currentFrame || 0) {
     let frame = this.activeThread.cachedFrames[aFrame];
     this.activeThread.eval(frame.actor, aExpression);
   }
@@ -1068,7 +1064,7 @@ SourceScripts.prototype = {
   
 
 
-  connect: function SS_connect() {
+  connect: function() {
     dumpn("SourceScripts is connecting...");
     this.debuggerClient.addListener("newGlobal", this._onNewGlobal);
     this.debuggerClient.addListener("newSource", this._onNewSource);
@@ -1078,7 +1074,7 @@ SourceScripts.prototype = {
   
 
 
-  disconnect: function SS_disconnect() {
+  disconnect: function() {
     if (!this.activeThread) {
       return;
     }
@@ -1091,7 +1087,7 @@ SourceScripts.prototype = {
   
 
 
-  _handleTabNavigation: function SS__handleTabNavigation() {
+  _handleTabNavigation: function() {
     if (!this.activeThread) {
       return;
     }
@@ -1106,7 +1102,7 @@ SourceScripts.prototype = {
   
 
 
-  _onNewGlobal: function SS__onNewGlobal(aNotification, aPacket) {
+  _onNewGlobal: function(aNotification, aPacket) {
     
     
   },
@@ -1114,7 +1110,7 @@ SourceScripts.prototype = {
   
 
 
-  _onNewSource: function SS__onNewSource(aNotification, aPacket) {
+  _onNewSource: function(aNotification, aPacket) {
     
     if (NEW_SOURCE_IGNORED_URLS.indexOf(aPacket.source.url) != -1) {
       return;
@@ -1154,7 +1150,7 @@ SourceScripts.prototype = {
   
 
 
-  _onSourcesAdded: function SS__onSourcesAdded(aResponse) {
+  _onSourcesAdded: function(aResponse) {
     if (aResponse.error) {
       Cu.reportError(new Error("Error getting sources: " + aResponse.message));
       return;
@@ -1203,7 +1199,7 @@ SourceScripts.prototype = {
 
 
 
-  getText: function SS_getText(aSource, aCallback, aTimeout) {
+  getText: function(aSource, aCallback, aTimeout) {
     
     if (aSource.loaded) {
       aCallback(aSource);
@@ -1240,7 +1236,7 @@ SourceScripts.prototype = {
 
 
 
-  getCache: function SS_getCache() {
+  getCache: function() {
     let sources = [];
     for (let source of this._cache) {
       sources.push(source);
@@ -1251,7 +1247,7 @@ SourceScripts.prototype = {
   
 
 
-  clearCache: function SS_clearCache() {
+  clearCache: function() {
     this._cache.clear();
   },
 
@@ -1266,7 +1262,7 @@ SourceScripts.prototype = {
 
 
 
-  fetchSources: function SS_fetchSources(aUrls, aCallbacks = {}) {
+  fetchSources: function(aUrls, aCallbacks = {}) {
     this._fetchQueue = new Set();
     this._fetchCallbacks = aCallbacks;
 
@@ -1297,7 +1293,7 @@ SourceScripts.prototype = {
 
 
 
-  _onFetch: function SS__onFetch(aSource) {
+  _onFetch: function(aSource) {
     
     this._cache.set(aSource.url, aSource.text);
 
@@ -1327,7 +1323,7 @@ SourceScripts.prototype = {
 
 
 
-  _onTimeout: function SS__onTimeout(aSource) {
+  _onTimeout: function(aSource) {
     
     this._fetchQueue.delete(aSource.url);
 
@@ -1345,7 +1341,7 @@ SourceScripts.prototype = {
   
 
 
-  _onFinished: function SS__onFinished() {
+  _onFinished: function() {
     
     if (this._fetchCallbacks.onFinished) {
       this._fetchCallbacks.onFinished();
@@ -1398,7 +1394,7 @@ Breakpoints.prototype = {
   
 
 
-  initialize: function BP_initialize() {
+  initialize: function() {
     this.editor.addEventListener(
       SourceEditor.EVENTS.BREAKPOINT_CHANGE, this._onEditorBreakpointChange);
   },
@@ -1406,7 +1402,7 @@ Breakpoints.prototype = {
   
 
 
-  destroy: function BP_destroy() {
+  destroy: function() {
     this.editor.removeEventListener(
       SourceEditor.EVENTS.BREAKPOINT_CHANGE, this._onEditorBreakpointChange);
 
@@ -1422,7 +1418,7 @@ Breakpoints.prototype = {
 
 
 
-  _onEditorBreakpointChange: function BP__onEditorBreakpointChange(aEvent) {
+  _onEditorBreakpointChange: function(aEvent) {
     if (this._skipEditorBreakpointCallbacks) {
       return;
     }
@@ -1438,11 +1434,11 @@ Breakpoints.prototype = {
 
 
 
-  _onEditorBreakpointAdd: function BP__onEditorBreakpointAdd(aEditorBreakpoint) {
+  _onEditorBreakpointAdd: function(aEditorBreakpoint) {
     let url = DebuggerView.Sources.selectedValue;
     let line = aEditorBreakpoint.line + 1;
 
-    this.addBreakpoint({ url: url, line: line }, function(aBreakpointClient) {
+    this.addBreakpoint({ url: url, line: line }, (aBreakpointClient) => {
       
       
       
@@ -1450,7 +1446,7 @@ Breakpoints.prototype = {
         this.editor.removeBreakpoint(line - 1);
         this.editor.addBreakpoint(aBreakpointClient.actualLocation.line - 1);
       }
-    }.bind(this));
+    });
   },
 
   
@@ -1459,7 +1455,7 @@ Breakpoints.prototype = {
 
 
 
-  _onEditorBreakpointRemove: function BP__onEditorBreakpointRemove(aEditorBreakpoint) {
+  _onEditorBreakpointRemove: function(aEditorBreakpoint) {
     let url = DebuggerView.Sources.selectedValue;
     let line = aEditorBreakpoint.line + 1;
 
@@ -1471,7 +1467,7 @@ Breakpoints.prototype = {
 
 
 
-  updateEditorBreakpoints: function BP_updateEditorBreakpoints() {
+  updateEditorBreakpoints: function() {
     for each (let breakpointClient in this.store) {
       if (DebuggerView.Sources.selectedValue == breakpointClient.location.url) {
         this._showBreakpoint(breakpointClient, {
@@ -1487,7 +1483,7 @@ Breakpoints.prototype = {
 
 
 
-  updatePaneBreakpoints: function BP_updatePaneBreakpoints() {
+  updatePaneBreakpoints: function() {
     for each (let breakpointClient in this.store) {
       if (DebuggerView.Sources.containsValue(breakpointClient.location.url)) {
         this._showBreakpoint(breakpointClient, {
@@ -1519,8 +1515,7 @@ Breakpoints.prototype = {
 
 
 
-  addBreakpoint:
-  function BP_addBreakpoint(aLocation, aCallback, aFlags = {}) {
+  addBreakpoint: function(aLocation, aCallback, aFlags = {}) {
     let breakpointClient = this.getBreakpoint(aLocation.url, aLocation.line);
 
     
@@ -1529,7 +1524,7 @@ Breakpoints.prototype = {
       return;
     }
 
-    this.activeThread.setBreakpoint(aLocation, function(aResponse, aBreakpointClient) {
+    this.activeThread.setBreakpoint(aLocation, (aResponse, aBreakpointClient) => {
       let { url, line } = aResponse.actualLocation || aLocation;
 
       
@@ -1569,7 +1564,7 @@ Breakpoints.prototype = {
 
       
       aCallback && aCallback(aBreakpointClient, aResponse.error);
-    }.bind(this));
+    });
   },
 
   
@@ -1584,8 +1579,7 @@ Breakpoints.prototype = {
 
 
 
-  removeBreakpoint:
-  function BP_removeBreakpoint(aBreakpointClient, aCallback, aFlags = {}) {
+  removeBreakpoint: function(aBreakpointClient, aCallback, aFlags = {}) {
     let breakpointActor = (aBreakpointClient || {}).actor;
 
     
@@ -1594,7 +1588,7 @@ Breakpoints.prototype = {
       return;
     }
 
-    aBreakpointClient.remove(function() {
+    aBreakpointClient.remove(() => {
       
       delete this.store[breakpointActor];
 
@@ -1603,7 +1597,7 @@ Breakpoints.prototype = {
 
       
       aCallback && aCallback(aBreakpointClient.location);
-    }.bind(this));
+    });
   },
 
   
@@ -1614,7 +1608,7 @@ Breakpoints.prototype = {
 
 
 
-  _showBreakpoint: function BP__showBreakpoint(aBreakpointClient, aFlags = {}) {
+  _showBreakpoint: function(aBreakpointClient, aFlags = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
     let { url, line } = aBreakpointClient.location;
 
@@ -1650,7 +1644,7 @@ Breakpoints.prototype = {
 
 
 
-  _hideBreakpoint: function BP__hideBreakpoint(aBreakpointClient, aFlags = {}) {
+  _hideBreakpoint: function(aBreakpointClient, aFlags = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
     let { url, line } = aBreakpointClient.location;
 
@@ -1678,7 +1672,7 @@ Breakpoints.prototype = {
 
 
 
-  getBreakpoint: function BP_getBreakpoint(aUrl, aLine) {
+  getBreakpoint: function(aUrl, aLine) {
     for each (let breakpointClient in this.store) {
       if (breakpointClient.location.url == aUrl &&
           breakpointClient.location.line == aLine) {
