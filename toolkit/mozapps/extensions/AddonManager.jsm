@@ -2234,6 +2234,9 @@ this.AddonManager = {
   OPTIONS_TYPE_INLINE: 2,
   
   OPTIONS_TYPE_TAB: 3,
+  
+  
+  OPTIONS_TYPE_INLINE_INFO: 4,
 
   
   
