@@ -729,7 +729,10 @@ private:
   
   
   
-  nsTArray<imgFrame *>       mFrames;
+  nsTArray<imgFrame*>        mFrames;
+
+  
+  imgFrame*                  mMultipartDecodedFrame;
 
   nsCOMPtr<nsIProperties>    mProperties;
 

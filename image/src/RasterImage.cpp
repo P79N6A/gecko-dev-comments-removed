@@ -385,6 +385,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   ImageResource(aStatusTracker, aURI), 
   mSize(0,0),
   mFrameDecodeFlags(DECODE_FLAGS_DEFAULT),
+  mMultipartDecodedFrame(nullptr),
   mAnim(nullptr),
   mLoopCount(-1),
   mLockCount(0),
@@ -457,6 +458,8 @@ RasterImage::~RasterImage()
 
   for (unsigned int i = 0; i < mFrames.Length(); ++i)
     delete mFrames[i];
+
+  delete mMultipartDecodedFrame;
 
   
   num_containers--;
@@ -1571,6 +1574,25 @@ RasterImage::DecodingComplete()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  
+  
+  if (mMultipart) {
+    if (mFrames.Length() == 1) {
+      imgFrame* swapFrame = mMultipartDecodedFrame;
+      mMultipartDecodedFrame = GetImgFrameNoDecode(GetCurrentFrameIndex());
+      mFrames.Clear();
+      if (swapFrame) {
+        mFrames.AppendElement(swapFrame);
+      }
+    } else {
+      
+      
+      
+      
+      delete mMultipartDecodedFrame;
+    }
+  }
+
   return NS_OK;
 }
 
@@ -2474,6 +2496,10 @@ RasterImage::Discard(bool force)
   mScaleResult.frame = nullptr;
 
   
+  delete mMultipartDecodedFrame;
+  mMultipartDecodedFrame = nullptr;
+
+  
   mDecoded = false;
 
   
@@ -3193,9 +3219,19 @@ RasterImage::Draw(gfxContext *aContext,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
-                                                   : GetCurrentImgFrameIndex();
-  imgFrame *frame = GetDrawableImgFrame(frameIndex);
+  imgFrame* frame = nullptr;
+
+  if (mMultipart) {
+    
+    
+    
+    frame = mMultipartDecodedFrame;
+  }
+  if (!frame) {
+    uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
+                                                     : GetCurrentImgFrameIndex();
+    frame = GetDrawableImgFrame(frameIndex);
+  }
   if (!frame) {
     return NS_OK; 
   }
