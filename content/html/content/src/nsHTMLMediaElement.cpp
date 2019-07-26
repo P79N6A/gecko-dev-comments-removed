@@ -733,18 +733,8 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
   AbortExistingLoads();
   SetPlaybackRate(mDefaultPlaybackRate);
   QueueSelectResourceTask();
-  ResetState();
   mIsRunningLoadMethod = false;
   return NS_OK;
-}
-
-void nsHTMLMediaElement::ResetState()
-{
-  mMediaSize = nsIntSize(-1, -1);
-  VideoFrameContainer* container = GetVideoFrameContainer();
-  if (container) {
-    container->Reset();
-  }
 }
 
 static bool HasSourceChildren(nsIContent *aElement)
@@ -2607,7 +2597,6 @@ void nsHTMLMediaElement::ProcessMediaFragmentURI()
 void nsHTMLMediaElement::MetadataLoaded(int aChannels,
                                         int aRate,
                                         bool aHasAudio,
-                                        bool aHasVideo,
                                         const MetadataTags* aTags)
 {
   mChannels = aChannels;
@@ -2620,13 +2609,6 @@ void nsHTMLMediaElement::MetadataLoaded(int aChannels,
   if (mDecoder && mDecoder->IsTransportSeekable() && mDecoder->IsMediaSeekable()) {
     ProcessMediaFragmentURI();
     mDecoder->SetFragmentEndTime(mFragmentEnd);
-  }
-
-  
-  
-  
-  if (!aHasVideo) {
-    mVideoFrameContainer = nullptr;
   }
 }
 
@@ -2971,14 +2953,6 @@ void nsHTMLMediaElement::NotifyAutoplayDataReady()
 
 VideoFrameContainer* nsHTMLMediaElement::GetVideoFrameContainer()
 {
-  
-  
-  
-  if (mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA &&
-      mMediaSize == nsIntSize(-1, -1)) {
-    return nullptr;
-  }
-
   if (mVideoFrameContainer)
     return mVideoFrameContainer;
 

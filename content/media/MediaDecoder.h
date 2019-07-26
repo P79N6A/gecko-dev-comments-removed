@@ -658,7 +658,6 @@ public:
                      int aChannels,
                      int aRate,
                      bool aHasAudio,
-                     bool aHasVideo,
                      MetadataTags* aTags);
 
   
@@ -677,7 +676,7 @@ public:
 
   
   
-  void MetadataLoaded(int aChannels, int aRate, bool aHasAudio, bool aHasVideo, MetadataTags* aTags);
+  void MetadataLoaded(int aChannels, int aRate, bool aHasAudio, MetadataTags* aTags);
 
   
   
