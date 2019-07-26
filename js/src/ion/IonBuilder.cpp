@@ -4235,7 +4235,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
         
         
         
-        dispatch->addCase(&originals[i]->as<JSFunction>(), inlineBlock);
+        dispatch->addCase(original, inlineBlock);
 
         MDefinition *retVal = inlineReturnBlock->peek(-1);
         retPhi->addInput(retVal);
@@ -4245,11 +4245,13 @@ IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
     }
 
     
+    
+    
     if (maybeCache) {
         maybeCache->object()->setResultTypeSet(cacheObjectTypeSet);
 
         InlinePropertyTable *propTable = maybeCache->propTable();
-        propTable->trimTo(targets, choiceSet);
+        propTable->trimTo(originals, choiceSet);
 
         
         if (propTable->numEntries() == 0) {
