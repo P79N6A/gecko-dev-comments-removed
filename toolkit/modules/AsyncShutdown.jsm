@@ -107,15 +107,15 @@ function err(msg, error = null) {
 
 
 
-function safeGetState(state) {
-  if (!state) {
+function safeGetState(fetchState) {
+  if (!fetchState) {
     return "(none)";
   }
   let data, string;
   try {
     
     
-    string = JSON.stringify(state());
+    string = JSON.stringify(fetchState());
     data = JSON.parse(string);
     
     
@@ -241,8 +241,8 @@ function getPhase(topic) {
 
 
 
-    addBlocker: function(name, condition, state = null) {
-      spinner.addBlocker(name, condition, state);
+    addBlocker: function(name, condition, fetchState = null) {
+      spinner.addBlocker(name, condition, fetchState);
     },
     
 
@@ -306,8 +306,8 @@ Spinner.prototype = {
 
 
 
-  addBlocker: function(name, condition, state) {
-    this._barrier.client.addBlocker(name, condition, state);
+  addBlocker: function(name, condition, fetchState) {
+    this._barrier.client.addBlocker(name, condition, fetchState);
   },
   
 
@@ -416,11 +416,11 @@ function Barrier(name) {
 
 
 
-    addBlocker: function(name, condition, state) {
+    addBlocker: function(name, condition, fetchState) {
       if (typeof name != "string") {
         throw new TypeError("Expected a human-readable name as first argument");
       }
-      if (state && typeof state != "function") {
+      if (fetchState && typeof fetchState != "function") {
         throw new TypeError("Expected nothing or a function as third argument");
       }
       if (!this._conditions) {
@@ -433,7 +433,7 @@ function Barrier(name) {
         set = [];
         this._conditions.set(condition, set);
       }
-      set.push({name: name, state: state});
+      set.push({name: name, fetchState: fetchState});
     }.bind(this),
 
     
@@ -480,9 +480,9 @@ Barrier.prototype = Object.freeze({
       return "Complete";
     }
     let frozen = [];
-    for (let {name, isComplete, state} of this._monitors) {
+    for (let {name, isComplete, fetchState} of this._monitors) {
       if (!isComplete) {
-        frozen.push({name: name, state: safeGetState(state)});
+        frozen.push({name: name, state: safeGetState(fetchState)});
       }
     }
     return frozen;
@@ -536,7 +536,7 @@ Barrier.prototype = Object.freeze({
     for (let _condition of conditions.keys()) {
       for (let current of conditions.get(_condition)) {
         let condition = _condition; 
-        let {name, state} = current;
+        let {name, fetchState} = current;
 
         
         
@@ -565,7 +565,7 @@ Barrier.prototype = Object.freeze({
           let monitor = {
             isComplete: false,
             name: name,
-            state: state
+            fetchState: fetchState
           };
 
 	  condition = condition.then(null, function onError(error) {
@@ -573,7 +573,7 @@ Barrier.prototype = Object.freeze({
               " while we were spinning the event loop." +
 	      " Condition: " + name +
               " Phase: " + topic +
-              " State: " + safeGetState(state);
+              " State: " + safeGetState(fetchState);
 	    warn(msg, error);
 	  });
           condition.then(() => indirection.resolve());
@@ -587,7 +587,7 @@ Barrier.prototype = Object.freeze({
                   " while we were initializing the phase." +
                   " Condition: " + name +
                   " Phase: " + topic +
-                  " State: " + safeGetState(state);
+                  " State: " + safeGetState(fetchState);
             warn(msg, error);
         }
 
