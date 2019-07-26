@@ -253,7 +253,7 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     fun->setArgCount(formals.length());
 
     
-    ParseNode *fn = FunctionNode::create(PNK_FUNCTION, &parser);
+    ParseNode *fn = CodeNode::create(PNK_FUNCTION, &parser);
     if (!fn)
         return false;
 
