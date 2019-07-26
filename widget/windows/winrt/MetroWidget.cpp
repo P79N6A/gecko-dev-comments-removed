@@ -3,6 +3,7 @@
 
 
 
+
 #include "LayerManagerD3D10.h"
 #include "MetroWidget.h"
 #include "MetroApp.h"

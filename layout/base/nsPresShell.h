@@ -690,7 +690,7 @@ protected:
   
   void GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
                                            nsIContent **aTargetToUse,
-                                           nsIntPoint& aTargetPt,
+                                           mozilla::LayoutDeviceIntPoint& aTargetPt,
                                            nsIWidget *aRootWidget);
 
   void FireResizeEvent();

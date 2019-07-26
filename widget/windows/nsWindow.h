@@ -227,7 +227,6 @@ public:
 
 
   virtual bool            AutoErase(HDC dc);
-  nsIntPoint*             GetLastPoint() { return &mLastPoint; }
   bool                    IsTopLevelWidget() { return mIsTopWidgetWindow; }
   
 

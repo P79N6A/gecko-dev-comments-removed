@@ -31,6 +31,7 @@
 #include "nsAutoPtr.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/Touch.h"
+#include "Units.h"
 
 namespace mozilla {
 namespace dom {
@@ -677,9 +678,9 @@ public:
   uint32_t    message;
   
   
-  nsIntPoint  refPoint;
+  mozilla::LayoutDeviceIntPoint refPoint;
   
-  nsIntPoint  lastRefPoint;
+  mozilla::LayoutDeviceIntPoint lastRefPoint;
   
   
   uint64_t    time;
@@ -1509,7 +1510,7 @@ public:
     mInput.mLength = aLength;
   }
 
-  void InitForQueryDOMWidgetHittest(nsIntPoint& aPoint)
+  void InitForQueryDOMWidgetHittest(const mozilla::LayoutDeviceIntPoint& aPoint)
   {
     NS_ASSERTION(message == NS_QUERY_DOM_WIDGET_HITTEST,
                  "wrong initializer is called");

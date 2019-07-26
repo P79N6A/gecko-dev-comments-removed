@@ -713,14 +713,14 @@ private:
   
   
   
-  nsIntPoint  mPreLockPoint;
+  mozilla::LayoutDeviceIntPoint mPreLockPoint;
 
   
   
   
   
   
-  static nsIntPoint sSynthCenteringPoint;
+  static mozilla::LayoutDeviceIntPoint sSynthCenteringPoint;
 
   nsWeakFrame mCurrentTarget;
   nsCOMPtr<nsIContent> mCurrentTargetContent;
@@ -730,10 +730,10 @@ private:
 
   
   
-  static nsIntPoint sLastRefPoint;
+  static mozilla::LayoutDeviceIntPoint sLastRefPoint;
 
   
-  nsIntPoint mGestureDownPoint; 
+  mozilla::LayoutDeviceIntPoint mGestureDownPoint; 
   
   nsCOMPtr<nsIContent> mGestureDownContent;
   
