@@ -315,6 +315,12 @@ MDefinition::replaceAllUsesWith(MDefinition *dom)
     }
 }
 
+bool
+MDefinition::emptyResultTypeSet() const
+{
+    return resultTypeSet() && resultTypeSet()->empty();
+}
+
 static inline bool
 IsPowerOfTwo(uint32_t n)
 {
@@ -1337,6 +1343,16 @@ MBinaryArithInstruction::inferFallback(BaselineInspector *inspector,
         specialization_ = MIRType_Double;
         setResultType(MIRType_Double);
         return;
+    }
+
+    
+    
+    
+    if (getOperand(0)->emptyResultTypeSet() || getOperand(1)->emptyResultTypeSet()) {
+        LifoAlloc *alloc = GetIonContext()->temp->lifoAlloc();
+        types::StackTypeSet *types = alloc->new_<types::StackTypeSet>();
+        if (types)
+            setResultTypeSet(types);
     }
 }
 
