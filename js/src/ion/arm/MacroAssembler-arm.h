@@ -420,7 +420,12 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     bool dynamicAlignment_;
 
     bool enoughMemory_;
-    VFPRegister floatArgsInGPR[2];
+
+    
+    
+    MoveResolver::MoveOperand floatArgsInGPR[2];
+    bool floatArgsInGPRValid[2];
+
     
     
     
