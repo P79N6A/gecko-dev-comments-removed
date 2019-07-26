@@ -124,7 +124,17 @@ bool GetScreenEnabled();
 
 
 
-void SetScreenEnabled(bool enabled);
+void SetScreenEnabled(bool aEnabled);
+
+
+
+
+bool GetKeyLightEnabled();
+
+
+
+
+void SetKeyLightEnabled(bool aEnabled);
 
 
 
@@ -145,7 +155,7 @@ double GetScreenBrightness();
 
 
 
-void SetScreenBrightness(double brightness);
+void SetScreenBrightness(double aBrightness);
 
 
 
@@ -156,7 +166,7 @@ bool GetCpuSleepAllowed();
 
 
 
-void SetCpuSleepAllowed(bool allowed);
+void SetCpuSleepAllowed(bool aAllowed);
 
 
 
