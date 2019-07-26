@@ -68,12 +68,10 @@ public:
 
   
   double CurrentTime();
-
   void GetAudioTracks(nsTArray<nsRefPtr<AudioStreamTrack> >& aTracks);
   void GetVideoTracks(nsTArray<nsRefPtr<VideoStreamTrack> >& aTracks);
 
-  MediaStream* GetStream() const { return mStream; }
-
+  MediaStream* GetStream() { return mStream; }
   bool IsFinished();
   
 
