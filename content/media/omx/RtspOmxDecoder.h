@@ -32,10 +32,6 @@ public:
 
   virtual MediaDecoder* Clone() MOZ_OVERRIDE;
   virtual MediaDecoderStateMachine* CreateStateMachine() MOZ_OVERRIDE;
-  
-  
-  
-  virtual void ApplyStateToStateMachine(PlayState aState) MOZ_OVERRIDE;
 };
 
 } 

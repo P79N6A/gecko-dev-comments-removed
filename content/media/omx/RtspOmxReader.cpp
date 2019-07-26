@@ -289,4 +289,44 @@ nsresult RtspOmxReader::Seek(int64_t aTime, int64_t aStartTime,
   return MediaOmxReader::Seek(aTime, aStartTime, aEndTime, aCurrentTime);
 }
 
+void RtspOmxReader::OnDecodeThreadStart() {
+  
+  
+  if (mRtspResource) {
+    nsIStreamingProtocolController* controller =
+        mRtspResource->GetMediaStreamController();
+    if (controller) {
+      controller->Play();
+    }
+  }
+
+  
+  MediaOmxReader::OnDecodeThreadStart();
+}
+
+void RtspOmxReader::OnDecodeThreadFinish() {
+  
+  MediaOmxReader::OnDecodeThreadFinish();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mRtspResource) {
+    nsIStreamingProtocolController* controller =
+        mRtspResource->GetMediaStreamController();
+    if (controller) {
+      controller->Pause();
+    }
+  }
+}
+
 } 
