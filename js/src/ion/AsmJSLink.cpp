@@ -332,6 +332,8 @@ js::CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
 
     {
         AsmJSActivation activation(cx, module);
+        ion::IonContext ictx(cx, NULL);
+        JitActivation jitActivation(cx,  false,  false);
 
         
 #ifdef JS_CPU_ARM

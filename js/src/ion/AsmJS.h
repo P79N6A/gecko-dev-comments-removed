@@ -79,6 +79,7 @@ class AsmJSActivation
     AsmJSActivation(JSContext *cx, const AsmJSModule &module);
     ~AsmJSActivation();
 
+    JSContext *cx() { return cx_; }
     const AsmJSModule &module() const { return module_; }
 
     
@@ -121,6 +122,17 @@ class AsmJSMachExceptionHandler
     void setCurrentThread();
 };
 #endif
+
+struct DependentAsmJSModuleExit
+{
+    const AsmJSModule *module;
+    size_t exitIndex;
+
+    DependentAsmJSModuleExit(const AsmJSModule *module, size_t exitIndex)
+      : module(module),
+        exitIndex(exitIndex)
+    { }
+};
 
 
 
@@ -176,4 +188,4 @@ IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp);
 
 } 
 
-#endif 
+#endif
