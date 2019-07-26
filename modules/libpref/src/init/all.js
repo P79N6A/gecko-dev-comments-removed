@@ -454,6 +454,7 @@ pref("devtools.debugger.remote-port", 6000);
 
 pref("devtools.debugger.force-local", true);
 
+pref("devtools.debugger.prompt-connection", true);
 
 pref("devtools.debugger.enable-content-actors", false);
 
@@ -1775,9 +1776,6 @@ pref("layout.css.masking.enabled", false);
 #else
 pref("layout.css.masking.enabled", true);
 #endif
-
-
-pref("layout.css.mix-blend-mode.enabled", false);
 
 
 pref("layout.css.supports-rule.enabled", true);
@@ -4079,8 +4077,6 @@ pref("layers.draw-borders", false);
 pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
 pref("layers.frame-counter", false);
-
-pref("layers.max-active", -1);
 
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
