@@ -254,6 +254,18 @@ this.SessionStore = {
     SessionStoreInternal.deleteTabValue(aTab, aKey);
   },
 
+  getGlobalValue: function ss_getGlobalValue(aKey) {
+    return SessionStoreInternal.getGlobalValue(aKey);
+  },
+
+  setGlobalValue: function ss_setGlobalValue(aKey, aStringValue) {
+    SessionStoreInternal.setGlobalValue(aKey, aStringValue);
+  },
+
+  deleteGlobalValue: function ss_deleteGlobalValue(aKey) {
+    SessionStoreInternal.deleteGlobalValue(aKey);
+  },
+
   persistTabAttribute: function ss_persistTabAttribute(aName) {
     SessionStoreInternal.persistTabAttribute(aName);
   },
@@ -732,6 +744,10 @@ let SessionStoreInternal = {
           TelemetryTimestamps.add("sessionRestoreRestoring");
           this._restoreCount = aInitialState.windows ? aInitialState.windows.length : 0;
 
+          
+          
+          GlobalState.setFromState(aInitialState);
+
           let overwrite = this._isCmdLineEmpty(aWindow, aInitialState);
           let options = {firstWindow: true, overwriteTabs: overwrite};
           this.restoreWindow(aWindow, aInitialState, options);
@@ -761,6 +777,10 @@ let SessionStoreInternal = {
     
     else if (this._deferredInitialState && !isPrivateWindow &&
              aWindow.toolbar.visible) {
+
+      
+      
+      GlobalState.setFromState(this._deferredInitialState);
 
       this._restoreCount = this._deferredInitialState.windows ?
         this._deferredInitialState.windows.length : 0;
@@ -1443,6 +1463,10 @@ let SessionStoreInternal = {
     this._restoreCount = state.windows ? state.windows.length : 0;
 
     
+    
+    GlobalState.setFromState(state);
+
+    
     this.restoreWindow(window, state, {overwriteTabs: true});
   },
 
@@ -1761,6 +1785,20 @@ let SessionStoreInternal = {
     }
   },
 
+  getGlobalValue: function ssi_getGlobalValue(aKey) {
+    return GlobalState.get(aKey);
+  },
+
+  setGlobalValue: function ssi_setGlobalValue(aKey, aStringValue) {
+    GlobalState.set(aKey, aStringValue);
+    this.saveStateDelayed();
+  },
+
+  deleteGlobalValue: function ssi_deleteGlobalValue(aKey) {
+    GlobalState.delete(aKey);
+    this.saveStateDelayed();
+  },
+
   persistTabAttribute: function ssi_persistTabAttribute(aName) {
     if (TabAttributes.persist(aName)) {
       TabStateCache.clear();
@@ -1805,6 +1843,10 @@ let SessionStoreInternal = {
     let lastWindow = this._getMostRecentBrowserWindow();
     let canUseLastWindow = lastWindow &&
                            !lastWindow.__SS_lastSessionWindowID;
+
+    
+    
+    GlobalState.setFromState(lastSessionState);
 
     
     for (let i = 0; i < lastSessionState.windows.length; i++) {
@@ -2123,7 +2165,8 @@ let SessionStoreInternal = {
       selectedWindow: ix + 1,
       _closedWindows: lastClosedWindowsCopy,
       session: session,
-      scratchpads: scratchpads
+      scratchpads: scratchpads,
+      global: GlobalState.state
     };
 
     
@@ -4011,3 +4054,62 @@ let LastSession = {
     }
   }
 };
+
+
+
+
+let GlobalState = {
+
+  
+  state: {},
+
+  
+
+
+  clear: function() {
+    this.state = {};
+  },
+
+  
+
+
+
+
+
+
+  get: function(aKey) {
+    return this.state[aKey] || "";
+  },
+
+  
+
+
+
+
+
+  set: function(aKey, aStringValue) {
+    this.state[aKey] = aStringValue;
+  },
+
+  
+
+
+
+
+
+  delete: function(aKey) {
+    delete this.state[aKey];
+  },
+
+  
+
+
+
+
+
+
+
+  setFromState: function (aState) {
+    this.state = (aState && aState.global) || {};
+  }
+}
