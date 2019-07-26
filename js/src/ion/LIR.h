@@ -441,6 +441,7 @@ class LDefinition
     enum Type {
         GENERAL,    
         OBJECT,     
+        SLOTS,      
         DOUBLE,     
 #ifdef JS_NUNBOX32
         
@@ -542,9 +543,7 @@ class LDefinition
 #endif
           case MIRType_Slots:
           case MIRType_Elements:
-            
-            
-            return LDefinition::GENERAL;
+            return LDefinition::SLOTS;
           case MIRType_Pointer:
             return LDefinition::GENERAL;
           case MIRType_ForkJoinSlice:
@@ -1006,6 +1005,12 @@ class LSafepoint : public TempObject
     GeneralRegisterSet valueRegs_;
 #endif
 
+    
+    GeneralRegisterSet slotsOrElementsRegs_;
+
+    
+    SlotList slotsOrElementsSlots_;
+
   public:
     LSafepoint()
       : safepointOffset_(INVALID_SAFEPOINT_OFFSET)
@@ -1031,6 +1036,38 @@ class LSafepoint : public TempObject
     }
     SlotList &gcSlots() {
         return gcSlots_;
+    }
+
+    SlotList &slotsOrElementsSlots() {
+        return slotsOrElementsSlots_;
+    }
+    GeneralRegisterSet slotsOrElementsRegs() const {
+        return slotsOrElementsRegs_;
+    }
+    void addSlotsOrElementsRegister(Register reg) {
+        slotsOrElementsRegs_.addUnchecked(reg);
+    }
+    bool addSlotsOrElementsSlot(uint32_t slot) {
+        return slotsOrElementsSlots_.append(slot);
+    }
+    bool addSlotsOrElementsPointer(LAllocation alloc) {
+        if (alloc.isStackSlot())
+            return addSlotsOrElementsSlot(alloc.toStackSlot()->slot());
+        JS_ASSERT(alloc.isRegister());
+        addSlotsOrElementsRegister(alloc.toRegister().gpr());
+        return true;
+    }
+    bool hasSlotsOrElementsPointer(LAllocation alloc) {
+        if (alloc.isRegister())
+            return slotsOrElementsRegs().has(alloc.toRegister().gpr());
+        if (alloc.isStackSlot()) {
+            for (size_t i = 0; i < slotsOrElementsSlots_.length(); i++) {
+                if (slotsOrElementsSlots_[i] == alloc.toStackSlot()->slot())
+                    return true;
+            }
+            return false;
+        }
+        return false;
     }
 
     bool addGcPointer(LAllocation alloc) {

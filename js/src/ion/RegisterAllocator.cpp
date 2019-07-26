@@ -286,6 +286,15 @@ AllocationIntegrityState::checkSafepointAllocation(LInstruction *ins,
         }
         JS_ASSERT(safepoint->hasGcPointer(alloc));
         break;
+      case LDefinition::SLOTS:
+        if (populateSafepoints) {
+            IonSpew(IonSpew_RegAlloc, "Safepoint slots v%u i%u %s",
+                    vreg, ins->id(), alloc.toString());
+            if (!safepoint->addSlotsOrElementsPointer(alloc))
+                return false;
+        }
+        JS_ASSERT(safepoint->hasSlotsOrElementsPointer(alloc));
+        break;
 #ifdef JS_NUNBOX32
       
       

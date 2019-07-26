@@ -325,6 +325,10 @@ void
 js::Nursery::forwardBufferPointer(HeapSlot **pSlotsElems)
 {
     HeapSlot *old = *pSlotsElems;
+
+    if (!isInside(old))
+        return;
+
     
 
 
@@ -333,18 +337,8 @@ js::Nursery::forwardBufferPointer(HeapSlot **pSlotsElems)
 
 
 
-    JS_ASSERT(isInside(old));
     *pSlotsElems = *reinterpret_cast<HeapSlot **>(old);
     JS_ASSERT(!isInside(*pSlotsElems));
-}
-
-void
-js::Nursery::forwardMovedBuffers(JSRuntime *rt)
-{
-    
-
-
-
 }
 
 void *
@@ -603,9 +597,6 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason)
         JSObject *obj = static_cast<JSObject*>(p->forwardingAddress());
         JS_TraceChildren(&trc, obj, MapAllocToTraceKind(obj->tenuredGetAllocKind()));
     }
-
-    
-    forwardMovedBuffers(rt);
 
     
     double promotionRate = trc.tenuredSize / double(allocationEnd() - start());

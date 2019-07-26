@@ -93,6 +93,9 @@ class Nursery
     template <typename T>
     JS_ALWAYS_INLINE bool getForwardedPointer(T **ref);
 
+    
+    void forwardBufferPointer(HeapSlot **pSlotsElems);
+
   private:
     
 
@@ -212,8 +215,6 @@ class Nursery
     void setSlotsForwardingPointer(HeapSlot *oldSlots, HeapSlot *newSlots, uint32_t nslots);
     void setElementsForwardingPointer(ObjectElements *oldHeader, ObjectElements *newHeader,
                                       uint32_t nelems);
-    void forwardBufferPointer(HeapSlot **pSlotsElems);
-    void forwardMovedBuffers(JSRuntime *rt);
 
     
     void markFallback(gc::Cell *cell);
