@@ -531,6 +531,9 @@ pref("javascript.options.mem.high_water_mark", 6);
 pref("javascript.options.mem.gc_allocation_threshold_mb", 3);
 
 
+pref("dom.workers.mem.gc_allocation_threshold_mb", 3);
+
+
 pref("ui.showHideScrollbars", 1);
 
 
