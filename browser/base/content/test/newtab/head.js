@@ -456,6 +456,15 @@ function synthesizeNativeMouseLUp(aElement) {
 
 
 
+function synthesizeNativeMouseClick(aElement) {
+  synthesizeNativeMouseLDown(aElement);
+  synthesizeNativeMouseLUp(aElement);
+}
+
+
+
+
+
 
 function synthesizeNativeMouseDrag(aElement, aOffsetX) {
   let msg = isMac ? 6 : 1;
