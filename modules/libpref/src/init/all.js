@@ -4102,9 +4102,12 @@ pref("layers.scroll-graph", false);
 pref("layers.offmainthreadcomposition.enabled", false);
 
 pref("layers.use-deprecated-textures", true);
+#ifndef XP_WIN
+
 
 
 pref("layers.async-video.enabled",false);
+#endif
 
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
