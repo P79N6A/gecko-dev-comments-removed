@@ -15,7 +15,7 @@ function test()
   
 
   addTabAndOpenStyleEditor(function(panel) {
-    panel.UI.once("document-load", testDocumentLoad);
+    panel.UI.once("stylesheets-reset", testDocumentLoad);
 
     content.location = TESTCASE_URI;
   });

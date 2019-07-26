@@ -3,6 +3,9 @@
 
 
 
+const TEST_BASE_HTTP = "http://example.com/browser/browser/devtools/styleinspector/test/";
+const TEST_BASE_HTTPS = "https://example.com/browser/browser/devtools/styleinspector/test/";
+
 Services.prefs.setBoolPref("devtools.debugger.log", true);
 SimpleTest.registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.debugger.log");
@@ -185,6 +188,53 @@ function getComputedPropertyValue(aName)
       return value.textContent;
     }
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForSuccess(aOptions)
+{
+  let start = Date.now();
+  let timeout = aOptions.timeout || 5000;
+
+  function wait(validatorFn, successFn, failureFn)
+  {
+    if ((Date.now() - start) > timeout) {
+      
+      ok(false, "Timed out while waiting for: " + aOptions.name);
+      failureFn(aOptions);
+      return;
+    }
+
+    if (validatorFn(aOptions)) {
+      ok(true, aOptions.name);
+      successFn();
+    }
+    else {
+      setTimeout(function() wait(validatorFn, successFn, failureFn), 100);
+    }
+  }
+
+  wait(aOptions.validatorFn, aOptions.successFn, aOptions.failureFn);
 }
 
 registerCleanupFunction(tearDown);
