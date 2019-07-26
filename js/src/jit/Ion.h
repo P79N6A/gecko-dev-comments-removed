@@ -94,7 +94,7 @@ struct IonOptions
     
     
     
-    bool assertGraphConsistency;
+    bool checkGraphConsistency;
 
     
     
@@ -228,7 +228,7 @@ struct IonOptions
         rangeAnalysis(true),
         checkRangeAnalysis(false),
         checkThreadSafety(false),
-        assertGraphConsistency(true),
+        checkGraphConsistency(true),
         uce(true),
         eaa(true),
 #ifdef CHECK_OSIPOINT_REGISTERS

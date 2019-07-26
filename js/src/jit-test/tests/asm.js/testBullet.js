@@ -9,9 +9,9 @@ if (!isAsmJSCompilationAvailable())
 
 
 
-var code = "setIonAssertGraphCoherency(false); load('" + libdir + "bullet.js'); runBullet()";
+var code = "setIonCheckGraphCoherency(false); load('" + libdir + "bullet.js'); runBullet()";
 nestedShell("--js-cache", "--execute=" + code);
-setIonAssertGraphCoherency(false);
+setIonCheckGraphCoherency(false);
 load(libdir + 'bullet.js');
 var results = runBullet();
 assertEq(results.asmJSValidated, true);
