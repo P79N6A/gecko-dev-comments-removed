@@ -17,6 +17,7 @@ var _passedChecks = 0, _falsePassedChecks = 0;
 var _todoChecks = 0;
 var _cleanupFunctions = [];
 var _pendingTimers = [];
+var _profileInitialized = false;
 
 function _dump(str) {
   let start = /^TEST-/.test(str) ? "\n" : "";
@@ -728,15 +729,17 @@ function do_register_cleanup(aFunction)
 
 
 function do_get_profile() {
-  
-  
-  do_register_cleanup(function() {
-    let obsSvc = Components.classes["@mozilla.org/observer-service;1"].
-                 getService(Components.interfaces.nsIObserverService);
-    obsSvc.notifyObservers(null, "profile-change-net-teardown", null);
-    obsSvc.notifyObservers(null, "profile-change-teardown", null);
-    obsSvc.notifyObservers(null, "profile-before-change", null);
-  });
+  if (!_profileInitialized) {
+    
+    
+    do_register_cleanup(function() {
+      let obsSvc = Components.classes["@mozilla.org/observer-service;1"].
+                   getService(Components.interfaces.nsIObserverService);
+      obsSvc.notifyObservers(null, "profile-change-net-teardown", null);
+      obsSvc.notifyObservers(null, "profile-change-teardown", null);
+      obsSvc.notifyObservers(null, "profile-before-change", null);
+    });
+  }
 
   let env = Components.classes["@mozilla.org/process/environment;1"]
                       .getService(Components.interfaces.nsIEnvironment);
@@ -768,12 +771,21 @@ function do_get_profile() {
   dirSvc.QueryInterface(Components.interfaces.nsIDirectoryService)
         .registerProvider(provider);
 
+  let obsSvc = Components.classes["@mozilla.org/observer-service;1"].
+        getService(Components.interfaces.nsIObserverService);
+
+  if (!_profileInitialized) {
+    obsSvc.notifyObservers(null, "profile-do-change", "xpcshell-do-get-profile");
+    _profileInitialized = true;
+  }
+
   
   
   env = null;
   profd = null;
   dirSvc = null;
   provider = null;
+  obsSvc = null;
   return file.clone();
 }
 
