@@ -145,8 +145,8 @@ Accessible::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 
 Accessible::Accessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsAccessNodeWrap(aContent, aDoc),
-  mParent(nullptr), mIndexInParent(-1), mFlags(eChildrenUninitialized),
-  mIndexOfEmbeddedChild(-1), mRoleMapEntry(nullptr)
+  mParent(nullptr), mIndexInParent(-1), mChildrenFlags(eChildrenUninitialized),
+  mStateFlags(0), mFlags(0), mIndexOfEmbeddedChild(-1), mRoleMapEntry(nullptr)
 {
 #ifdef NS_DEBUG_X
    {
@@ -2430,7 +2430,7 @@ Accessible::Shutdown()
 {
   
   
-  mFlags |= eIsDefunct;
+  mStateFlags |= eIsDefunct;
 
   InvalidateChildren();
   if (mParent)

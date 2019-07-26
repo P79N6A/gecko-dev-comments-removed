@@ -678,23 +678,24 @@ public:
   
 
 
-  bool IsDefunct() const { return mFlags & eIsDefunct; }
+  bool IsDefunct() const { return mStateFlags & eIsDefunct; }
 
   
 
 
-  bool IsInDocument() const { return !(mFlags & eIsNotInDocument); }
+  bool IsInDocument() const { return !(mStateFlags & eIsNotInDocument); }
 
   
 
 
   bool IsNodeMapEntry() const
-    { return HasOwnContent() && !(mFlags & eNotNodeMapEntry); }
+    { return HasOwnContent() && !(mStateFlags & eNotNodeMapEntry); }
 
   
 
 
-  bool HasOwnContent() const { return mContent && !(mFlags & eSharedNode); }
+  bool HasOwnContent() const
+    { return mContent && !(mStateFlags & eSharedNode); }
 
   
 
@@ -752,25 +753,24 @@ protected:
   
 
 
-  inline bool IsChildrenFlag(ChildrenFlags aFlag) const
-    { return static_cast<ChildrenFlags> (mFlags & kChildrenFlagsMask) == aFlag; }
+  bool IsChildrenFlag(ChildrenFlags aFlag) const
+    { return static_cast<ChildrenFlags>(mChildrenFlags) == aFlag; }
 
   
 
 
-  inline void SetChildrenFlag(ChildrenFlags aFlag)
-    { mFlags = (mFlags & ~kChildrenFlagsMask) | aFlag; }
+  void SetChildrenFlag(ChildrenFlags aFlag) { mChildrenFlags = aFlag; }
 
   
 
 
 
   enum StateFlags {
-    eIsDefunct = 1 << 2, 
-    eIsNotInDocument = 1 << 3, 
-    eSharedNode = 1 << 4, 
-    eNotNodeMapEntry = 1 << 5, 
-    eHasNumericValue = 1 << 6 
+    eIsDefunct = 1 << 0, 
+    eIsNotInDocument = 1 << 1, 
+    eSharedNode = 1 << 2, 
+    eNotNodeMapEntry = 1 << 3, 
+    eHasNumericValue = 1 << 4 
   };
 
 public: 
@@ -779,30 +779,30 @@ public:
 
 
   enum AccessibleTypes {
-    eApplicationAccessible = 1 << 7,
-    eAutoCompleteAccessible = 1 << 8,
-    eAutoCompletePopupAccessible = 1 << 9,
-    eComboboxAccessible = 1 << 10,
-    eDocAccessible = 1 << 11,
-    eHyperTextAccessible = 1 << 12,
-    eHTMLFileInputAccessible = 1 << 13,
-    eHTMLListItemAccessible = 1 << 14,
-    eHTMLTableRowAccessible = 1 << 15,
-    eImageAccessible = 1 << 16,
-    eImageMapAccessible = 1 << 17,
-    eListAccessible = 1 << 18,
-    eListControlAccessible = 1 << 19,
-    eMenuButtonAccessible = 1 << 20,
-    eMenuPopupAccessible = 1 << 21,
-    eProgressAccessible = 1 << 22,
-    eRootAccessible = 1 << 23,
-    eSelectAccessible = 1 << 24,
-    eTableAccessible = 1 << 25,
-    eTableCellAccessible = 1 << 26,
-    eTableRowAccessible = 1 << 27,
-    eTextLeafAccessible = 1 << 28,
-    eXULDeckAccessible = 1 << 29,
-    eXULTreeAccessible = 1 << 30
+    eApplicationAccessible = 1 << 0,
+    eAutoCompleteAccessible = 1 << 1,
+    eAutoCompletePopupAccessible = 1 << 2,
+    eComboboxAccessible = 1 << 3,
+    eDocAccessible = 1 << 4,
+    eHyperTextAccessible = 1 << 5,
+    eHTMLFileInputAccessible = 1 << 6,
+    eHTMLListItemAccessible = 1 << 7,
+    eHTMLTableRowAccessible = 1 << 8,
+    eImageAccessible = 1 << 9,
+    eImageMapAccessible = 1 << 10,
+    eListAccessible = 1 << 11,
+    eListControlAccessible = 1 << 12,
+    eMenuButtonAccessible = 1 << 13,
+    eMenuPopupAccessible = 1 << 14,
+    eProgressAccessible = 1 << 15,
+    eRootAccessible = 1 << 16,
+    eSelectAccessible = 1 << 17,
+    eTableAccessible = 1 << 18,
+    eTableCellAccessible = 1 << 19,
+    eTableRowAccessible = 1 << 20,
+    eTextLeafAccessible = 1 << 21,
+    eXULDeckAccessible = 1 << 22,
+    eXULTreeAccessible = 1 << 23
   };
 
 protected:
@@ -909,10 +909,13 @@ protected:
   nsTArray<nsRefPtr<Accessible> > mChildren;
   int32_t mIndexInParent;
 
-  static const uint32_t kChildrenFlagsMask =
-    eChildrenUninitialized | eMixedChildren | eEmbeddedChildren;
+  
 
-  uint32_t mFlags;
+
+  uint32_t mChildrenFlags : 2;
+  uint32_t mStateFlags : 5;
+  uint32_t mFlags : 25;
+
   friend class DocAccessible;
 
   nsAutoPtr<mozilla::a11y::EmbeddedObjCollector> mEmbeddedObjCollector;

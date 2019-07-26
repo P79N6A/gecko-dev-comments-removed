@@ -153,7 +153,7 @@ HTMLAreaAccessible::
 {
   
   
-  mFlags |= eNotNodeMapEntry;
+  mStateFlags |= eNotNodeMapEntry;
 }
 
 
