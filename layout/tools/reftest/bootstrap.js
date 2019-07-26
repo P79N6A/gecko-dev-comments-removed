@@ -44,6 +44,13 @@ function setDefaultPrefs() {
     
     branch.setBoolPref("browser.pagethumbnails.capturing_disabled", true);
     
+    branch.setBoolPref("layers.async-pan-zoom.enabled", true);
+    
+    
+    
+    
+    branch.setIntPref("browser.viewport.desktopWidth", 800);
+    
     
     
     branch.setBoolPref("layout.testing.overlay-scrollbars.always-visible", true);
