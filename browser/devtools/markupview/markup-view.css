@@ -2,9 +2,18 @@
 
 
 
-#root-wrapper {
-  overflow: hidden;
-  min-width: 250px;
+
+
+
+#root {
+  float: left;
+  min-width: 100%;
+}
+
+#root-wrapper:after {
+   content: "";
+   display: block;
+   clear: both;
 }
 
 .children {
@@ -28,12 +37,11 @@
 
 
 .tag-line .highlighter {
-    content: "";
-    position: absolute;
-    left: -1000em;
-    right: 0;
-    height: 100%;
-    z-index: -1;
+  position: absolute;
+  left: -1000em;
+  right: 0;
+  height: 100%;
+  z-index: -1;
 }
 
 .expander {
@@ -60,6 +68,10 @@
 
 .child.collapsed .close {
   display: inline;
+}
+
+.closing-bracket {
+  pointer-events: none;
 }
 
 .newattr {
