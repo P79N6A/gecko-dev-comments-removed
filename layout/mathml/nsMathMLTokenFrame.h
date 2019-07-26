@@ -72,8 +72,6 @@ protected:
   nsMathMLTokenFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLTokenFrame();
 
-  virtual int GetSkipSides() const { return 0; }
-
   
   virtual void ProcessTextData();
 

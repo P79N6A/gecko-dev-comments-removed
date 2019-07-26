@@ -66,8 +66,6 @@ protected:
   nsMathMLmoFrame(nsStyleContext* aContext) : nsMathMLTokenFrame(aContext) {}
   virtual ~nsMathMLmoFrame();
   
-  virtual int GetSkipSides() const MOZ_OVERRIDE { return 0; }
-
   nsMathMLChar     mMathMLChar; 
   nsOperatorFlags  mFlags;
   float            mMinSize;

@@ -218,11 +218,6 @@ protected:
   void InitChildReflowState(nsPresContext&    aPresContext,                     
                             nsHTMLReflowState& aReflowState);
 
-  
-
-
-  virtual int GetSkipSides() const;
-
   uint8_t GetCaptionSide(); 
 
   bool HasSideCaption() {
@@ -289,8 +284,5 @@ protected:
 private:
   nsFrameList   mCaptionFrames;
 };
-
-inline int nsTableOuterFrame::GetSkipSides() const
-{ return 0; }
 
 #endif
