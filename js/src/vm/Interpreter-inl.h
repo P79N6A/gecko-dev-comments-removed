@@ -268,7 +268,7 @@ FetchNameNoGC(JSObject *pobj, Shape *shape, MutableHandleValue vp)
 inline bool
 GetIntrinsicOperation(JSContext *cx, jsbytecode *pc, MutableHandleValue vp)
 {
-    RootedPropertyName name(cx, cx->stack.currentScript()->getName(pc));
+    RootedPropertyName name(cx, cx->currentScript()->getName(pc));
     return cx->global()->getIntrinsicValue(cx, name, vp);
 }
 
@@ -277,45 +277,6 @@ SetIntrinsicOperation(JSContext *cx, JSScript *script, jsbytecode *pc, HandleVal
 {
     RootedPropertyName name(cx, script->getName(pc));
     return cx->global()->setIntrinsicValue(cx, name, val);
-}
-
-inline bool
-NameOperation(JSContext *cx, jsbytecode *pc, MutableHandleValue vp)
-{
-    JSObject *obj = cx->stack.currentScriptedScopeChain();
-    PropertyName *name = cx->stack.currentScript()->getName(pc);
-
-    
-
-
-
-
-
-
-
-
-    if (IsGlobalOp(JSOp(*pc)))
-        obj = &obj->global();
-
-    Shape *shape = NULL;
-    JSObject *scope = NULL, *pobj = NULL;
-    if (LookupNameNoGC(cx, name, obj, &scope, &pobj, &shape)) {
-        if (FetchNameNoGC(pobj, shape, vp))
-            return true;
-    }
-
-    RootedObject objRoot(cx, obj), scopeRoot(cx), pobjRoot(cx);
-    RootedPropertyName nameRoot(cx, name);
-    RootedShape shapeRoot(cx);
-
-    if (!LookupName(cx, nameRoot, objRoot, &scopeRoot, &pobjRoot, &shapeRoot))
-        return false;
-
-    
-    JSOp op2 = JSOp(pc[JSOP_NAME_LENGTH]);
-    if (op2 == JSOP_TYPEOF)
-        return FetchName<true>(cx, scopeRoot, pobjRoot, nameRoot, shapeRoot, vp);
-    return FetchName<false>(cx, scopeRoot, pobjRoot, nameRoot, shapeRoot, vp);
 }
 
 inline bool
@@ -955,7 +916,7 @@ ReportIfNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO
 
 class FastInvokeGuard
 {
-    InvokeArgsGuard args_;
+    InvokeArgs args_;
     RootedFunction fun_;
     RootedScript script_;
 #ifdef JS_ION
@@ -967,7 +928,8 @@ class FastInvokeGuard
 
   public:
     FastInvokeGuard(JSContext *cx, const Value &fval)
-      : fun_(cx)
+      : args_(cx)
+      , fun_(cx)
       , script_(cx)
 #ifdef JS_ION
       , useIon_(ion::IsEnabled(cx))
@@ -985,7 +947,7 @@ class FastInvokeGuard
         }
     }
 
-    InvokeArgsGuard &args() {
+    InvokeArgs &args() {
         return args_;
     }
 

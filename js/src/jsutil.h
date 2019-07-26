@@ -208,15 +208,6 @@ UnsignedPtrDiff(const void *bigger, const void *smaller)
 
 
 
-
-
-
-enum MaybeReportError { REPORT_ERROR = true, DONT_REPORT_ERROR = false };
-
-
-
-
-
 static inline unsigned
 NumWordsForBitArrayOfLength(size_t length)
 {

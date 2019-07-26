@@ -727,9 +727,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 #endif
 
     
-    js::StackSpace stackSpace;
-
-    
     static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 4 * 1024;
     js::LifoAlloc tempLifoAlloc;
 
@@ -749,6 +746,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::ion::IonRuntime *ionRuntime_;
 
     JSObject *selfHostingGlobal_;
+
+    
+    js::InterpreterStack interpreterStack_;
 
     JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
     WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
@@ -776,6 +776,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
     bool hasIonRuntime() const {
         return !!ionRuntime_;
+    }
+    js::InterpreterStack &interpreterStack() {
+        return interpreterStack_;
     }
 
     
@@ -1687,9 +1690,6 @@ struct JSContext : js::ThreadSafeContext,
     JSObject *maybeDefaultCompartmentObject() const { return defaultCompartmentObject_; }
 
     
-    js::ContextStack    stack;
-
-    
 
 
 
@@ -1748,8 +1748,7 @@ struct JSContext : js::ThreadSafeContext,
 
 
     void maybeMigrateVersionOverride() {
-        JS_ASSERT(stack.empty());
-        if (JS_UNLIKELY(isVersionOverridden())) {
+        if (JS_UNLIKELY(isVersionOverridden()) && !currentlyRunning()) {
             defaultVersion = versionOverride;
             clearVersionOverride();
         }
@@ -1819,6 +1818,19 @@ struct JSContext : js::ThreadSafeContext,
     js::FrameRegs &interpreterRegs() const {
         return mainThread().activation()->asInterpreter()->regs();
     }
+
+    
+
+
+
+
+
+    enum MaybeAllowCrossCompartment {
+        DONT_ALLOW_CROSS_COMPARTMENT = false,
+        ALLOW_CROSS_COMPARTMENT = true
+    };
+    inline JSScript *currentScript(jsbytecode **pc = NULL,
+                                   MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
 
 #ifdef MOZ_TRACE_JSCALLS
     
@@ -2014,6 +2026,12 @@ class MOZ_STACK_CLASS AutoKeepAtoms
     }
     ~AutoKeepAtoms() { JS_UNKEEP_ATOMS(rt); }
 };
+
+
+
+
+
+static const unsigned ARGS_LENGTH_MAX = 500 * 1000;
 
 } 
 

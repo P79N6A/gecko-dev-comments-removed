@@ -5426,7 +5426,7 @@ types::MarkIteratorUnknownSlow(JSContext *cx)
     
 
     jsbytecode *pc;
-    RootedScript script(cx, cx->stack.currentScript(&pc));
+    RootedScript script(cx, cx->currentScript(&pc));
     if (!script || !pc)
         return;
 

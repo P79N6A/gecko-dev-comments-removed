@@ -19,17 +19,12 @@ namespace js {
 
 class StackFrame;
 class FrameRegs;
-class StackSegment;
-class StackSpace;
-class ContextStack;
 
-class InvokeArgsGuard;
 class InvokeFrameGuard;
 class FrameGuard;
 class ExecuteFrameGuard;
 class GeneratorFrameGuard;
 
-class CallIter;
 class ScriptFrameIter;
 class AllFramesIter;
 
@@ -38,48 +33,6 @@ class ScopeObject;
 class StaticBlockObject;
 
 struct ScopeCoordinate;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -282,17 +235,25 @@ class StackFrame
         CONSTRUCTING       =       0x20,  
 
         
+
+
+
+
+
+
+
+
         YIELDING           =       0x40,  
+        SUSPENDED          =       0x80,  
 
         
-        HAS_CALL_OBJ       =       0x80,  
-        HAS_ARGS_OBJ       =      0x100,  
+        HAS_CALL_OBJ       =      0x100,  
+        HAS_ARGS_OBJ       =      0x200,  
 
         
-        HAS_HOOK_DATA      =      0x200,  
-        HAS_RVAL           =      0x400,  
-        HAS_SCOPECHAIN     =      0x800,  
-        HAS_PREVPC         =     0x1000,  
+        HAS_HOOK_DATA      =      0x400,  
+        HAS_RVAL           =      0x800,  
+        HAS_SCOPECHAIN     =     0x1000,  
         HAS_BLOCKCHAIN     =     0x2000,  
 
         
@@ -322,20 +283,28 @@ class StackFrame
         JSScript        *evalScript;    
     } u;
     mutable JSObject    *scopeChain_;   
-    StackFrame          *prev_;         
     Value               rval_;          
     StaticBlockObject   *blockChain_;   
     ArgumentsObject     *argsObj_;      
-    jsbytecode          *prevpc_;       
+
+    
+
+
+
+    StackFrame          *prev_;
+    jsbytecode          *prevpc_;
+    Value               *prevsp_;
+
     void                *hookData_;     
     AbstractFramePtr    evalInFramePrev_; 
+    Value               *argv_;         
+    LifoAlloc::Mark     mark_;          
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(StackFrame, rval_) % sizeof(Value) == 0);
         JS_STATIC_ASSERT(sizeof(StackFrame) % sizeof(Value) == 0);
     }
 
-    inline void initPrev(JSContext *cx);
     void writeBarrierPost();
 
     
@@ -348,12 +317,11 @@ class StackFrame
   public:
     Value *slots() const { return (Value *)(this + 1); }
     Value *base() const { return slots() + script()->nfixed; }
-    Value *argv() const { return (Value *)this - Max(numActualArgs(), numFormalArgs()); }
+    Value *argv() const { return argv_; }
 
   private:
     friend class FrameRegs;
-    friend class ContextStack;
-    friend class StackSpace;
+    friend class InterpreterStack;
     friend class ScriptFrameIter;
     friend class CallObject;
     friend class ClonedBlockObject;
@@ -365,13 +333,12 @@ class StackFrame
 
 
     
-    void initCallFrame(JSContext *cx, JSFunction &callee,
-                       JSScript *script, uint32_t nactual, StackFrame::Flags flags);
+    void initCallFrame(JSContext *cx, StackFrame *prev, jsbytecode *prevpc, Value *prevsp, JSFunction &callee,
+                       JSScript *script, Value *argv, uint32_t nactual, StackFrame::Flags flags);
 
     
-    void initExecuteFrame(JSScript *script, StackFrame *prevLink, AbstractFramePtr prev,
-                          FrameRegs *regs, const Value &thisv, JSObject &scopeChain,
-                          ExecuteType type);
+    void initExecuteFrame(JSContext *cx, JSScript *script, AbstractFramePtr prev,
+                          const Value &thisv, JSObject &scopeChain, ExecuteType type);
 
   public:
     
@@ -480,8 +447,6 @@ class StackFrame
         JS_ASSERT(isEvalFrame());
         return evalInFramePrev_;
     }
-
-    inline void resetGeneratorPrev(JSContext *cx);
 
     
 
@@ -624,26 +589,15 @@ class StackFrame
     }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    jsbytecode *pcQuadratic(const ContextStack &stack, size_t maxDepth = SIZE_MAX);
+    jsbytecode *prevpc() {
+        JS_ASSERT(prev_);
+        return prevpc_;
+    }
 
     
-    jsbytecode *prevpc() {
-        JS_ASSERT(flags_ & HAS_PREVPC);
-        return prevpc_;
+    Value *prevsp() {
+        JS_ASSERT(prev_);
+        return prevsp_;
     }
 
     
@@ -830,7 +784,7 @@ class StackFrame
 
     Value *generatorArgsSnapshotEnd() const {
         JS_ASSERT(isGeneratorFrame());
-        return (Value *)this;
+        return argv() + js::Max(numActualArgs(), numFormalArgs());
     }
 
     Value *generatorSlotsSnapshotBegin() const {
@@ -934,6 +888,21 @@ class StackFrame
         flags_ &= ~YIELDING;
     }
 
+    bool isSuspended() const {
+        JS_ASSERT(isGeneratorFrame());
+        return flags_ & SUSPENDED;
+    }
+
+    void setSuspended() {
+        JS_ASSERT(isGeneratorFrame());
+        flags_ |= SUSPENDED;
+    }
+
+    void clearSuspended() {
+        JS_ASSERT(isGeneratorFrame());
+        flags_ &= ~SUSPENDED;
+    }
+
   public:
     static size_t offsetOfFlags() {
         return offsetof(StackFrame, flags_);
@@ -968,6 +937,7 @@ class StackFrame
 
   public:
     void mark(JSTracer *trc);
+    void markValues(JSTracer *trc, Value *sp);
 
     
     bool runningInJit() const {
@@ -1034,15 +1004,12 @@ class FrameRegs
         JS_ASSERT(fp_);
     }
 
-    
-    void popFrame(Value *newsp) {
+    void popInlineFrame() {
         pc = fp_->prevpc();
-        sp = newsp;
+        sp = fp_->prevsp() - fp_->numActualArgs() - 1;
         fp_ = fp_->prev();
         JS_ASSERT(fp_);
     }
-
-    
     void prepareToRun(StackFrame &fp, JSScript *script) {
         pc = script->code;
         sp = fp.slots() + script->nfixed;
@@ -1059,415 +1026,104 @@ class FrameRegs
 
 
 
-class StackSegment
+class InterpreterStack
 {
-    JSContext *cx_;
+    friend class FrameGuard;
+    friend class InterpreterActivation;
+
+    const static size_t DEFAULT_CHUNK_SIZE = 4 * 1024;
+    LifoAlloc allocator_;
 
     
-    StackSegment *const prevInContext_;
+    static const size_t MAX_FRAMES = 50 * 1000;
+    size_t frameCount_;
 
-    
-    StackSegment *const prevInMemory_;
-
-    
-    FrameRegs *regs_;
-
-    
-    Value *invokeArgsEnd_;
-
-#if JS_BITS_PER_WORD == 32
-    
-
-
-
-  protected:
-    uint32_t padding_;
-#endif
-
-  public:
-    StackSegment(JSContext *cx,
-                 StackSegment *prevInContext,
-                 StackSegment *prevInMemory,
-                 FrameRegs *regs)
-      : cx_(cx),
-        prevInContext_(prevInContext),
-        prevInMemory_(prevInMemory),
-        regs_(regs),
-        invokeArgsEnd_(NULL)
-    {}
-
-    
-
-    Value *slotsBegin() const {
-        return (Value *)(this + 1);
-    }
-
-    
-
-    FrameRegs &regs() const {
-        JS_ASSERT(regs_);
-        return *regs_;
-    }
-
-    FrameRegs *maybeRegs() const {
-        return regs_;
-    }
-
-    StackFrame *fp() const {
-        return regs_->fp();
-    }
-
-    StackFrame *maybefp() const {
-        return regs_ ? regs_->fp() : NULL;
-    }
-
-    jsbytecode *maybepc() const {
-        return regs_ ? regs_->pc : NULL;
-    }
-
-    JSContext *cx() const {
-        return cx_;
-    }
-
-    StackSegment *prevInContext() const {
-        return prevInContext_;
-    }
-
-    StackSegment *prevInMemory() const {
-        return prevInMemory_;
-    }
-
-    void repointRegs(FrameRegs *regs) {
-        regs_ = regs;
-    }
-
-    bool isEmpty() const {
-        return !regs_;
-    }
-
-    bool contains(const StackFrame *fp) const;
-    bool contains(const FrameRegs *regs) const;
-
-    StackFrame *computeNextFrame(const StackFrame *fp, size_t maxDepth) const;
-
-    Value *end() const;
-
-    FrameRegs *pushRegs(FrameRegs &regs);
-    void popRegs(FrameRegs *regs);
-
-    Value *invokeArgsEnd() const {
-        return invokeArgsEnd_;
-    }
-    void pushInvokeArgsEnd(Value *end, Value **prev) {
-        *prev = invokeArgsEnd_;
-        invokeArgsEnd_ = end;
-    }
-    void popInvokeArgsEnd(Value *prev) {
-        invokeArgsEnd_ = prev;
-    }
-};
-
-static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
-JS_STATIC_ASSERT(sizeof(StackSegment) % sizeof(Value) == 0);
-
-
-
-class StackSpace
-{
-    StackSegment  *seg_;
-    Value         *base_;
-    mutable Value *conservativeEnd_;
-#ifdef XP_WIN
-    mutable Value *commitEnd_;
-#endif
-    Value         *defaultEnd_;
-    Value         *trustedEnd_;
-
-    void assertInvariants() const {
-        JS_ASSERT(base_ <= conservativeEnd_);
-#ifdef XP_WIN
-        JS_ASSERT(conservativeEnd_ <= commitEnd_);
-        JS_ASSERT(commitEnd_ <= trustedEnd_);
-#endif
-        JS_ASSERT(conservativeEnd_ <= defaultEnd_);
-        JS_ASSERT(defaultEnd_ <= trustedEnd_);
-    }
-
-    
-    static const size_t CAPACITY_VALS  = 512 * 1024;
-    static const size_t CAPACITY_BYTES = CAPACITY_VALS * sizeof(Value);
-
-    
-    static const size_t COMMIT_VALS    = 16 * 1024;
-    static const size_t COMMIT_BYTES   = COMMIT_VALS * sizeof(Value);
-
-    
-    static const size_t BUFFER_VALS    = 16 * 1024;
-    static const size_t BUFFER_BYTES   = BUFFER_VALS * sizeof(Value);
-
-    static void staticAsserts() {
-        JS_STATIC_ASSERT(CAPACITY_VALS % COMMIT_VALS == 0);
-    }
-
-    friend class AllFramesIter;
-    friend class ContextStack;
-    friend class StackFrame;
-
-    inline bool ensureSpace(JSContext *cx, MaybeReportError report,
-                            Value *from, ptrdiff_t nvals) const;
-    JS_FRIEND_API(bool) ensureSpaceSlow(JSContext *cx, MaybeReportError report,
-                                        Value *from, ptrdiff_t nvals) const;
-
-    StackSegment &findContainingSegment(const StackFrame *target) const;
-
-    bool containsFast(StackFrame *fp) {
-        return (Value *)fp >= base_ && (Value *)fp <= trustedEnd_;
-    }
-
-    void markFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd);
-
-  public:
-    StackSpace();
-    bool init();
-    ~StackSpace();
-
-    
-
-
-
-
-
-
-
-
-
-
-    static const unsigned ARGS_LENGTH_MAX = CAPACITY_VALS - (2 * BUFFER_VALS);
-
-    
-    inline Value *firstUnused() const { return seg_ ? seg_->end() : base_; }
-
-    StackSegment &containingSegment(const StackFrame *target) const;
-
-    
-    void mark(JSTracer *trc);
-
-    
-    void markActiveCompartments();
-
-    
-
-
-
-
-    JS_FRIEND_API(size_t) sizeOf();
-
-#ifdef DEBUG
-    
-    bool containsSlow(StackFrame *fp);
-#endif
-};
-
-
-
-class ContextStack
-{
-    StackSegment *seg_;
-    StackSpace *const space_;
-    JSContext *cx_;
-
-    
-
-
-
-
-
-
-
-    bool onTop() const;
-
-#ifdef DEBUG
-    void assertSpaceInSync() const;
-#else
-    void assertSpaceInSync() const {}
-#endif
-
-    
-    StackSegment *pushSegment(JSContext *cx);
-    enum MaybeExtend { CAN_EXTEND = true, CANT_EXTEND = false };
-    Value *ensureOnTop(JSContext *cx, MaybeReportError report, unsigned nvars,
-                       MaybeExtend extend, bool *pushedSeg);
+    inline uint8_t *allocateFrame(JSContext *cx, size_t size);
 
     inline StackFrame *
-    getCallFrame(JSContext *cx, MaybeReportError report, const CallArgs &args,
-                 JSFunction *fun, HandleScript script, StackFrame::Flags *pflags) const;
+    getCallFrame(JSContext *cx, const CallArgs &args, HandleScript script,
+                 StackFrame::Flags *pflags, Value **pargv);
 
-    
-    void popSegment();
-    friend class InvokeArgsGuard;
-    void popInvokeArgs(const InvokeArgsGuard &iag);
-    friend class FrameGuard;
-    void popFrame(const FrameGuard &fg);
-    friend class GeneratorFrameGuard;
-    void popGeneratorFrame(const GeneratorFrameGuard &gfg);
-
-    friend class ScriptFrameIter;
+    void releaseFrame(StackFrame *fp) {
+        frameCount_--;
+        allocator_.release(fp->mark_);
+    }
 
   public:
-    ContextStack(JSContext *cx);
-    ~ContextStack();
+    InterpreterStack()
+      : allocator_(DEFAULT_CHUNK_SIZE),
+        frameCount_(0)
+    { }
+
+    ~InterpreterStack() {
+        JS_ASSERT(frameCount_ == 0);
+    }
 
     
+    StackFrame *pushExecuteFrame(JSContext *cx, HandleScript script, const Value &thisv,
+                                 HandleObject scopeChain, ExecuteType type,
+                                 AbstractFramePtr evalInFrame, FrameGuard *fg);
 
     
-
-
-
-    bool empty() const                { return !seg_; }
+    StackFrame *pushInvokeFrame(JSContext *cx, const CallArgs &args, InitialFrameFlags initial,
+                                FrameGuard *fg);
 
     
-
-
-
-
-    inline bool hasfp() const { return seg_ && seg_->maybeRegs(); }
-
     
-
-
-
-    inline FrameRegs *maybeRegs() const { return seg_ ? seg_->maybeRegs() : NULL; }
-    inline StackFrame *maybefp() const { return seg_ ? seg_->maybefp() : NULL; }
-
-    
-    inline FrameRegs &regs() const { JS_ASSERT(hasfp()); return seg_->regs(); }
-    inline StackFrame *fp() const { JS_ASSERT(hasfp()); return seg_->fp(); }
-
-    
-    StackSpace &space() const { return *space_; }
-
-    
-
-    
-
-
-
-
-
-    bool pushInvokeArgs(JSContext *cx, unsigned argc, InvokeArgsGuard *ag,
-                        MaybeReportError report = REPORT_ERROR);
-
-    StackFrame *pushInvokeFrame(JSContext *cx, MaybeReportError report,
-                                const CallArgs &args, JSFunction *fun,
-                                InitialFrameFlags initial, FrameGuard *fg);
-
-    
-    bool pushInvokeFrame(JSContext *cx, const CallArgs &args,
-                         InitialFrameFlags initial, InvokeFrameGuard *ifg);
-
-    
-    bool pushExecuteFrame(JSContext *cx, HandleScript script, const Value &thisv,
-                          HandleObject scopeChain, ExecuteType type,
-                          AbstractFramePtr evalInFrame, ExecuteFrameGuard *efg);
-
-    
-
-
-
-
-
-    bool pushGeneratorFrame(JSContext *cx, JSGenerator *gen, GeneratorFrameGuard *gfg);
-
-    
-
-
-
-
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         HandleFunction callee, HandleScript script,
-                         InitialFrameFlags initial,
-                         MaybeReportError report = REPORT_ERROR);
-    bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         HandleFunction callee, HandleScript script,
-                         InitialFrameFlags initial, Value **stackLimit);
+                         HandleScript script, InitialFrameFlags initial);
+
     void popInlineFrame(FrameRegs &regs);
 
-    
+    inline void purge(JSRuntime *rt);
 
-
-
-
-
-    enum MaybeAllowCrossCompartment {
-        DONT_ALLOW_CROSS_COMPARTMENT = false,
-        ALLOW_CROSS_COMPARTMENT = true
-    };
-    inline JSScript *currentScript(jsbytecode **pc = NULL,
-                                   MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
-
-    
-    inline HandleObject currentScriptedScopeChain() const;
-
-    bool saveFrameChain();
-    void restoreFrameChain();
-
-    
-
-
-
-    inline void repointRegs(FrameRegs *regs) { JS_ASSERT(hasfp()); seg_->repointRegs(regs); }
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return allocator_.sizeOfExcludingThis(mallocSizeOf);
+    }
 };
 
+void MarkInterpreterActivations(JSRuntime *rt, JSTracer *trc);
 
 
-class InvokeArgsGuard : public JS::CallArgs
+
+class InvokeArgs : public JS::CallArgs
 {
-    friend class ContextStack;
-    ContextStack *stack_;
-    Value *prevInvokeArgsEnd_;
-    bool pushedSeg_;
-    void setPushed(ContextStack &stack) { JS_ASSERT(!pushed()); stack_ = &stack; }
+    AutoValueVector v_;
+
   public:
-    InvokeArgsGuard() : CallArgs(), stack_(NULL), prevInvokeArgsEnd_(NULL), pushedSeg_(false) {}
-    ~InvokeArgsGuard() { if (pushed()) stack_->popInvokeArgs(*this); }
-    bool pushed() const { return !!stack_; }
-    void pop() { stack_->popInvokeArgs(*this); stack_ = NULL; }
+    InvokeArgs(JSContext *cx) : v_(cx) {}
+
+    bool init(unsigned argc) {
+        if (!v_.resize(2 + argc))
+            return false;
+        ImplicitCast<CallArgs>(*this) = CallArgsFromVp(argc, v_.begin());
+        return true;
+    }
 };
+
+class RunState;
 
 class FrameGuard
 {
-  protected:
-    friend class ContextStack;
-    ContextStack *stack_;
-    bool pushedSeg_;
-    FrameRegs regs_;
-    FrameRegs *prevRegs_;
-    void setPushed(ContextStack &stack) { stack_ = &stack; }
+    friend class InterpreterStack;
+    RunState &state_;
+    FrameRegs &regs_;
+    InterpreterStack *stack_;
+    StackFrame *fp_;
+
+    void setPushed(InterpreterStack &stack, StackFrame *fp) {
+        stack_ = &stack;
+        fp_ = fp;
+    }
+
   public:
-    FrameGuard() : stack_(NULL), pushedSeg_(false) {}
-    ~FrameGuard() { if (pushed()) stack_->popFrame(*this); }
-    bool pushed() const { return !!stack_; }
-    void pop() { stack_->popFrame(*this); stack_ = NULL; }
+    FrameGuard(RunState &state, FrameRegs &regs);
+    ~FrameGuard();
 
-    StackFrame *fp() const { return regs_.fp(); }
-};
-
-class InvokeFrameGuard : public FrameGuard
-{};
-
-class ExecuteFrameGuard : public FrameGuard
-{};
-
-class DummyFrameGuard : public FrameGuard
-{};
-
-class GeneratorFrameGuard : public FrameGuard
-{
-    friend class ContextStack;
-    JSGenerator *gen_;
-    Value *stackvp_;
-  public:
-    ~GeneratorFrameGuard() { if (pushed()) stack_->popGeneratorFrame(*this); }
+    StackFrame *fp() const {
+        JS_ASSERT(fp_);
+        return fp_;
+    }
 };
 
 template <>
@@ -1490,15 +1146,6 @@ class InterpreterActivation;
 namespace ion {
     class JitActivation;
 };
-
-
-
-
-
-
-
-
-
 
 class Activation
 {
@@ -1579,21 +1226,18 @@ class InterpreterActivation : public Activation
     StackFrame *current_;     
     FrameRegs &regs_;
 
+#ifdef DEBUG
+    size_t oldFrameCount_;
+#endif
+
   public:
     inline InterpreterActivation(JSContext *cx, StackFrame *entry, FrameRegs &regs);
     inline ~InterpreterActivation();
 
-    void pushFrame(StackFrame *frame) {
-        JS_ASSERT(frame->script()->compartment() == compartment_);
-        current_ = frame;
-    }
-    void popFrame(StackFrame *frame) {
-        JS_ASSERT(current_ == frame);
-        JS_ASSERT(current_ != entry_);
+    inline bool pushInlineFrame(const CallArgs &args, HandleScript script,
+                                InitialFrameFlags initial);
+    inline void popInlineFrame(StackFrame *frame);
 
-        current_ = frame->prev();
-        JS_ASSERT(current_);
-    }
     StackFrame *current() const {
         JS_ASSERT(current_);
         return current_;
@@ -1688,16 +1332,19 @@ class InterpreterFrameIterator
     InterpreterActivation *activation_;
     StackFrame *fp_;
     jsbytecode *pc_;
+    Value *sp_;
 
   public:
     explicit InterpreterFrameIterator(InterpreterActivation *activation)
       : activation_(activation),
         fp_(NULL),
-        pc_(NULL)
+        pc_(NULL),
+        sp_(NULL)
     {
         if (activation) {
             fp_ = activation->current();
             pc_ = activation->regs_.pc;
+            sp_ = activation->regs_.sp;
         }
     }
 
@@ -1708,6 +1355,10 @@ class InterpreterFrameIterator
     jsbytecode *pc() const {
         JS_ASSERT(!done());
         return pc_;
+    }
+    Value *sp() const {
+        JS_ASSERT(!done());
+        return sp_;
     }
 
     InterpreterFrameIterator &operator++();
@@ -1769,7 +1420,6 @@ class ScriptFrameIter
         Data(const Data &other);
     };
 
-    friend class ContextStack;
     friend class ::JSBrokenFrameIterator;
   private:
     Data data_;
@@ -1921,4 +1571,4 @@ class AllFramesIter : public ScriptFrameIter
 };
 
 }  
-#endif 
+#endif

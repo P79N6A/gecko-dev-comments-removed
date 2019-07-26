@@ -2558,6 +2558,7 @@ PurgeRuntime(JSRuntime *rt)
         comp->purge();
 
     rt->freeLifoAlloc.transferUnusedFrom(&rt->tempLifoAlloc);
+    rt->interpreterStack().purge(rt);
 
     rt->gsnCache.purge();
     rt->newObjectCache.purge();
@@ -4131,8 +4132,6 @@ AutoGCSlice::AutoGCSlice(JSRuntime *rt)
 
 
 
-
-    rt->stackSpace.markActiveCompartments();
 
     for (ActivationIterator iter(rt); !iter.done(); ++iter)
         iter.activation()->compartment()->zone()->active = true;

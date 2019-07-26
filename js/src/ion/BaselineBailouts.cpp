@@ -1204,7 +1204,7 @@ ion::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
     
 #ifdef DEBUG
     jsbytecode *pc;
-    cx->stack.currentScript(&pc);
+    cx->currentScript(&pc);
     IonSpew(IonSpew_BaselineBailouts, "  Got pc=%p", pc);
 #endif
 
