@@ -1715,6 +1715,28 @@ var gApplicationsPane = {
     aEvent.stopPropagation();
 
     var handlerApp;
+    let chooseAppCallback = function(aHandlerApp) {
+      
+      
+      
+      this.rebuildActionsMenu();
+
+      
+      if (aHandlerApp) {
+        let typeItem = this._list.selectedItem;
+        let actionsMenu =
+          document.getAnonymousElementByAttribute(typeItem, "class", "actionsMenu");
+        let menuItems = actionsMenu.menupopup.childNodes;
+        for (let i = 0; i < menuItems.length; i++) {
+          let menuItem = menuItems[i];
+          if (menuItem.handlerApp && menuItem.handlerApp.equals(aHandlerApp)) {
+            actionsMenu.selectedIndex = i;
+            this.onSelectAction(menuItem);
+            break;
+          }
+        }
+      }
+    }.bind(this);
 
 #ifdef XP_WIN
     var params = {};
@@ -1743,47 +1765,33 @@ var gApplicationsPane = {
       
       handlerInfo.addPossibleApplicationHandler(handlerApp);
     }
+
+    chooseAppCallback(handlerApp);
 #else
-    var fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-    var winTitle = this._prefsBundle.getString("fpTitleChooseApp");
+    let winTitle = this._prefsBundle.getString("fpTitleChooseApp");
+    let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    let fpCallback = function fpCallback_done(aResult) {
+      if (aResult == Ci.nsIFilePicker.returnOK && fp.file &&
+          this._isValidHandlerExecutable(fp.file)) {
+        handlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"].
+                     createInstance(Ci.nsILocalHandlerApp);
+        handlerApp.name = getFileDisplayName(fp.file);
+        handlerApp.executable = fp.file;
+
+        
+        let handlerInfo = this._handledTypes[this._list.selectedItem.type];
+        handlerInfo.addPossibleApplicationHandler(handlerApp);
+
+        chooseAppCallback(handlerApp);
+      }
+    }.bind(this);
+
+    
+    
     fp.init(window, winTitle, Ci.nsIFilePicker.modeOpen);
     fp.appendFilters(Ci.nsIFilePicker.filterApps);
-
-    
-    
-    if (fp.show() == Ci.nsIFilePicker.returnOK && fp.file &&
-        this._isValidHandlerExecutable(fp.file)) {
-      handlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"].
-                   createInstance(Ci.nsILocalHandlerApp);
-      handlerApp.name = getFileDisplayName(fp.file);
-      handlerApp.executable = fp.file;
-
-      
-      let handlerInfo = this._handledTypes[this._list.selectedItem.type];
-      handlerInfo.addPossibleApplicationHandler(handlerApp);
-    }
+    fp.open(fpCallback);
 #endif
-
-    
-    
-    
-    this.rebuildActionsMenu();
-
-    
-    if (handlerApp) {
-      let typeItem = this._list.selectedItem;
-      let actionsMenu =
-        document.getAnonymousElementByAttribute(typeItem, "class", "actionsMenu");
-      let menuItems = actionsMenu.menupopup.childNodes;
-      for (let i = 0; i < menuItems.length; i++) {
-        let menuItem = menuItems[i];
-        if (menuItem.handlerApp && menuItem.handlerApp.equals(handlerApp)) {
-          actionsMenu.selectedIndex = i;
-          this.onSelectAction(menuItem);
-          break;
-        }
-      }
-    }
   },
 
   

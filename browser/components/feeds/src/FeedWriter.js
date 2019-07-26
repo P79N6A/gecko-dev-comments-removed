@@ -710,44 +710,51 @@ FeedWriter.prototype = {
 
 
 
-  _chooseClientApp: function FW__chooseClientApp() {
-    try {
-      var fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-      fp.init(this._window,
-              this._getString("chooseApplicationDialogTitle"),
-              Ci.nsIFilePicker.modeOpen);
-      fp.appendFilters(Ci.nsIFilePicker.filterApps);
 
-      if (fp.show() == Ci.nsIFilePicker.returnOK) {
-        this._selectedApp = fp.file;
-        if (this._selectedApp) {
-          
-          
-          
+  _chooseClientApp: function FW__chooseClientApp(aCallback) {
+    try {
+      let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+      let fpCallback = function fpCallback_done(aResult) {
+        if (aResult == Ci.nsIFilePicker.returnOK) {
+          this._selectedApp = fp.file;
+          if (this._selectedApp) {
+            
+            
+            
 #ifdef XP_WIN
-#expand           if (fp.file.leafName != "__MOZ_APP_NAME__.exe") {
+#expand             if (fp.file.leafName != "__MOZ_APP_NAME__.exe") {
 #else
 #ifdef XP_MACOSX
-#expand           if (fp.file.leafName != "__MOZ_MACBUNDLE_NAME__") {
+#expand             if (fp.file.leafName != "__MOZ_MACBUNDLE_NAME__") {
 #else
-#expand           if (fp.file.leafName != "__MOZ_APP_NAME__-bin") {
+#expand             if (fp.file.leafName != "__MOZ_APP_NAME__-bin") {
 #endif
 #endif
-            this._initMenuItemWithFile(this._contentSandbox.selectedAppMenuItem,
-                                       this._selectedApp);
+              this._initMenuItemWithFile(this._contentSandbox.selectedAppMenuItem,
+                                         this._selectedApp);
 
-            
-            var codeStr = "selectedAppMenuItem.hidden = false;" +
-                          "selectedAppMenuItem.doCommand();"
-            Cu.evalInSandbox(codeStr, this._contentSandbox);
-            return true;
+              
+              let codeStr = "selectedAppMenuItem.hidden = false;" +
+                            "selectedAppMenuItem.doCommand();"
+              Cu.evalInSandbox(codeStr, this._contentSandbox);
+              if (aCallback) {
+                aCallback(true);
+                return;
+              }
+            }
           }
         }
-      }
-    }
-    catch(ex) { }
+        if (aCallback) {
+          aCallback(false);
+        }
+      }.bind(this);
 
-    return false;
+      fp.init(this._window, this._getString("chooseApplicationDialogTitle"),
+              Ci.nsIFilePicker.modeOpen);
+      fp.appendFilters(Ci.nsIFilePicker.filterApps);
+      fp.open(fpCallback);
+    } catch(ex) {
+    }
   },
 
   _setAlwaysUseCheckedState: function FW__setAlwaysUseCheckedState(feedType) {
@@ -833,10 +840,14 @@ FeedWriter.prototype = {
 
           var popupbox = this._handlersMenuList.firstChild.boxObject;
           popupbox.QueryInterface(Components.interfaces.nsIPopupBoxObject);
-          if (popupbox.popupState == "hiding" && !this._chooseClientApp()) {
-            
-            
-            this._setSelectedHandler(this._getFeedType());
+          if (popupbox.popupState == "hiding") {
+            this._chooseClientApp(function(aResult) {
+              if (!aResult) {
+                
+                
+                this._setSelectedHandler(this._getFeedType());
+              }
+            }.bind(this));
           }
           break;
         default:
@@ -1210,70 +1221,77 @@ FeedWriter.prototype = {
     var useAsDefault = this._getUIElement("alwaysUse").getAttribute("checked");
 
     var selectedItem = this._getSelectedItemFromMenulist(this._handlersMenuList);
+    let subscribeCallback = function() {
+      if (selectedItem.hasAttribute("webhandlerurl")) {
+        var webURI = selectedItem.getAttribute("webhandlerurl");
+        prefs.setCharPref(getPrefReaderForType(feedType), "web");
+
+        var supportsString = Cc["@mozilla.org/supports-string;1"].
+                             createInstance(Ci.nsISupportsString);
+        supportsString.data = webURI;
+        prefs.setComplexValue(getPrefWebForType(feedType), Ci.nsISupportsString,
+                              supportsString);
+
+        var wccr = Cc["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"].
+                   getService(Ci.nsIWebContentConverterService);
+        var handler = wccr.getWebContentHandlerByURI(this._getMimeTypeForFeedType(feedType), webURI);
+        if (handler) {
+          if (useAsDefault) {
+            wccr.setAutoHandler(this._getMimeTypeForFeedType(feedType), handler);
+          }
+
+          this._window.location.href = handler.getHandlerURI(this._window.location.href);
+        }
+      } else {
+        switch (selectedItem.getAttribute("anonid")) {
+          case "selectedAppMenuItem":
+            prefs.setComplexValue(getPrefAppForType(feedType), Ci.nsILocalFile, 
+                                  this._selectedApp);
+            prefs.setCharPref(getPrefReaderForType(feedType), "client");
+            break;
+          case "defaultHandlerMenuItem":
+            prefs.setComplexValue(getPrefAppForType(feedType), Ci.nsILocalFile, 
+                                  this._defaultSystemReader);
+            prefs.setCharPref(getPrefReaderForType(feedType), "client");
+            break;
+          case "liveBookmarksMenuItem":
+            defaultHandler = "bookmarks";
+            prefs.setCharPref(getPrefReaderForType(feedType), "bookmarks");
+            break;
+        }
+        var feedService = Cc["@mozilla.org/browser/feeds/result-service;1"].
+                          getService(Ci.nsIFeedResultService);
+
+        
+        var feedTitle = this._document.getElementById(TITLE_ID).textContent;
+        var feedSubtitle = this._document.getElementById(SUBTITLE_ID).textContent;
+        feedService.addToClientReader(this._window.location.href, feedTitle, feedSubtitle, feedType);
+      }
+
+      
+      
+      
+      
+      if (useAsDefault) {
+        prefs.setCharPref(getPrefActionForType(feedType), defaultHandler);
+      } else {
+        prefs.setCharPref(getPrefActionForType(feedType), "ask");
+      }
+    }.bind(this);
 
     
     
     if (selectedItem.getAttribute("anonid") == "chooseApplicationMenuItem") {
-      if (!this._chooseClientApp())
-        return;
-      
-      selectedItem = this._getSelectedItemFromMenulist(this._handlersMenuList);
+      this._chooseClientApp(function(aResult) {
+        if (aResult) {
+          selectedItem =
+            this._getSelectedItemFromMenulist(this._handlersMenuList);
+          subscribeCallback();
+        }
+      }.bind(this));
+    } else {
+      subscribeCallback();
     }
-
-    if (selectedItem.hasAttribute("webhandlerurl")) {
-      var webURI = selectedItem.getAttribute("webhandlerurl");
-      prefs.setCharPref(getPrefReaderForType(feedType), "web");
-
-      var supportsString = Cc["@mozilla.org/supports-string;1"].
-                           createInstance(Ci.nsISupportsString);
-      supportsString.data = webURI;
-      prefs.setComplexValue(getPrefWebForType(feedType), Ci.nsISupportsString,
-                            supportsString);
-
-      var wccr = Cc["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"].
-                 getService(Ci.nsIWebContentConverterService);
-      var handler = wccr.getWebContentHandlerByURI(this._getMimeTypeForFeedType(feedType), webURI);
-      if (handler) {
-        if (useAsDefault)
-          wccr.setAutoHandler(this._getMimeTypeForFeedType(feedType), handler);
-
-        this._window.location.href = handler.getHandlerURI(this._window.location.href);
-      }
-    }
-    else {
-      switch (selectedItem.getAttribute("anonid")) {
-        case "selectedAppMenuItem":
-          prefs.setComplexValue(getPrefAppForType(feedType), Ci.nsILocalFile, 
-                                this._selectedApp);
-          prefs.setCharPref(getPrefReaderForType(feedType), "client");
-          break;
-        case "defaultHandlerMenuItem":
-          prefs.setComplexValue(getPrefAppForType(feedType), Ci.nsILocalFile, 
-                                this._defaultSystemReader);
-          prefs.setCharPref(getPrefReaderForType(feedType), "client");
-          break;
-        case "liveBookmarksMenuItem":
-          defaultHandler = "bookmarks";
-          prefs.setCharPref(getPrefReaderForType(feedType), "bookmarks");
-          break;
-      }
-      var feedService = Cc["@mozilla.org/browser/feeds/result-service;1"].
-                        getService(Ci.nsIFeedResultService);
-
-      
-      var feedTitle = this._document.getElementById(TITLE_ID).textContent;
-      var feedSubtitle = this._document.getElementById(SUBTITLE_ID).textContent;
-      feedService.addToClientReader(this._window.location.href, feedTitle, feedSubtitle, feedType);
-    }
-
-    
-    
-    
-    
-    if (useAsDefault)
-      prefs.setCharPref(getPrefActionForType(feedType), defaultHandler);
-    else
-      prefs.setCharPref(getPrefActionForType(feedType), "ask");
   },
 
   
