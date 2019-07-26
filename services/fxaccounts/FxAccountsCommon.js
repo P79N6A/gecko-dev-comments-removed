@@ -84,6 +84,8 @@ this.ONLOGIN_NOTIFICATION = "fxaccounts:onlogin";
 this.ONVERIFIED_NOTIFICATION = "fxaccounts:onverified";
 this.ONLOGOUT_NOTIFICATION = "fxaccounts:onlogout";
 
+this.ON_FXA_UPDATE_NOTIFICATION = "fxaccounts:update";
+
 
 this.UI_REQUEST_SIGN_IN_FLOW = "signInFlow";
 this.UI_REQUEST_REFRESH_AUTH = "refreshAuthentication";

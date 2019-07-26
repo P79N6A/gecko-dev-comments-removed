@@ -758,9 +758,9 @@ FxAccountsInternal.prototype = {
     );
   },
 
-  notifyObservers: function(topic) {
+  notifyObservers: function(topic, data) {
     log.debug("Notifying observers of " + topic);
-    Services.obs.notifyObservers(null, topic, null);
+    Services.obs.notifyObservers(null, topic, data);
   },
 
   
@@ -800,6 +800,8 @@ FxAccountsInternal.prototype = {
                 currentState.whenVerifiedDeferred.resolve(data);
                 delete currentState.whenVerifiedDeferred;
               }
+              
+              this.notifyObservers(ON_FXA_UPDATE_NOTIFICATION, ONVERIFIED_NOTIFICATION);
             });
         } else {
           log.debug("polling with step = " + this.POLL_STEP);
