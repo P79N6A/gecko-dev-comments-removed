@@ -18,24 +18,21 @@ const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 
 
 
-function readSync(uri, charset) {
-  let { promise, resolve, reject } = defer();
-
-  try {
-    resolve(readURISync(uri, charset));
-  }
-  catch (e) {
-    reject("Failed to read: '" + uri + "' (Error Code: " + e.result + ")");
-  }
-
-  return promise;
-}
 
 
 
 
 
-function readAsync(uri, charset) {
+
+
+
+
+
+
+function readURI(uri, options) {
+  options = options || {};
+  let charset = options.charset || 'UTF-8';
+
   let channel = NetUtil.newChannel(uri, charset, null);
 
   let { promise, resolve, reject } = defer();
@@ -57,34 +54,6 @@ function readAsync(uri, charset) {
   }
 
   return promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function readURI(uri, options) {
-  options = merge({
-    charset: "UTF-8",
-    sync: false
-  }, options);
-
-  return options.sync
-    ? readSync(uri, options.charset)
-    : readAsync(uri, options.charset);
 }
 
 exports.readURI = readURI;

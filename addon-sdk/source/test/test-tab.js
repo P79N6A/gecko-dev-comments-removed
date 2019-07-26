@@ -2,13 +2,15 @@
 
 
 
+"use strict";
 
 const tabs = require("sdk/tabs"); 
 const windowUtils = require("sdk/deprecated/window-utils");
 const { getTabForWindow } = require('sdk/tabs/helpers');
 const app = require("sdk/system/xul-app");
 const { viewFor } = require("sdk/view/core");
-const { getTabId } = require("sdk/tabs/utils");
+const { modelFor } = require("sdk/model/core");
+const { getTabId, isTab } = require("sdk/tabs/utils");
 const { defer } = require("sdk/lang/functional");
 
 
@@ -152,6 +154,22 @@ exports["test viewFor(tab)"] = (assert, done) => {
   }));
 
   tabs.open({ url: "about:mozilla" });
-}
+};
+
+
+exports["test modelFor(xulTab)"] = (assert, done) => {
+  tabs.open({
+    url: "about:mozilla",
+    onReady: tab => {
+      const view = viewFor(tab);
+      assert.ok(view, "view is returned");
+      assert.ok(isTab(view), "view is underlaying tab");
+      assert.equal(getTabId(view), tab.id, "tab has a same id");
+      assert.equal(modelFor(view), tab, "modelFor(view) is SDK tab");
+
+      tab.close(defer(done));
+    }
+  });
+};
 
 require("test").run(exports);

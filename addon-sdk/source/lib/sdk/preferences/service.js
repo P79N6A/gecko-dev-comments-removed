@@ -137,7 +137,8 @@ exports.isSet = isSet;
 function reset(name) {
   try {
     prefSvc.clearUserPref(name);
-  } catch (e if e.result == Cr.NS_ERROR_UNEXPECTED) {
+  }
+  catch (e) {
     
     
     
@@ -145,6 +146,9 @@ function reset(name) {
     
     
     
+    if (e.result != Cr.NS_ERROR_UNEXPECTED) {
+      throw e;
+    }
   }
 }
 exports.reset = reset;

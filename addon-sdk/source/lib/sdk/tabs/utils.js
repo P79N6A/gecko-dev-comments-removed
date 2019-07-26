@@ -20,6 +20,31 @@ const { isGlobalPBSupported } = require('../private-browsing/utils');
 
 function getWindows() windows(null, { includePrivate: isPrivateBrowsingSupported || isGlobalPBSupported });
 
+const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
+
+
+
+
+const isXULTab = tab =>
+  tab instanceof Ci.nsIDOMNode &&
+  tab.nodeName === "tab" &&
+  tab.namespaceURI === XUL_NS;
+exports.isXULTab = isXULTab;
+
+
+
+
+const isFennecTab = tab =>
+  tab &&
+  tab.QueryInterface &&
+  Ci.nsIBrowserTab &&
+  tab.QueryInterface(Ci.nsIBrowserTab) === tab;
+exports.isFennecTab = isFennecTab;
+
+const isTab = x => isXULTab(x) || isFennecTab(x);
+exports.isTab = isTab;
+
 function activateTab(tab, window) {
   let gBrowser = getTabBrowserForTab(tab);
 

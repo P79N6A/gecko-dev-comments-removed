@@ -19,6 +19,7 @@ const { sandbox, evaluate, load } = require('../loader/sandbox');
 const { merge } = require('../util/object');
 const { getTabForContentWindow } = require('../tabs/utils');
 const { getInnerId } = require('../window/utils');
+const { PlainTextConsole } = require('../console/plain-text');
 
 
 const sandboxes = new WeakMap();
@@ -197,8 +198,10 @@ const WorkerSandbox = Class({
     
     merge(model, result);
 
+    let console = new PlainTextConsole(null, getInnerId(window));
+
     
-    setListeners(this);
+    setListeners(this, console);
 
     
     
@@ -304,7 +307,7 @@ function importScripts (workerSandbox, ...urls) {
   }
 }
 
-function setListeners (workerSandbox) {
+function setListeners (workerSandbox, console) {
   let { worker } = modelFor(workerSandbox);
   
   workerSandbox.on('console', function consoleListener (kind, ...args) {

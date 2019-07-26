@@ -1,243 +1,29 @@
-;(function(id, factory) { 
-  if (typeof(define) === 'function') { 
-    define(factory);
-  } else if (typeof(require) === 'function') { 
-    factory.call(this, require, exports, module);
-  } else if (String(this).indexOf('BackstagePass') >= 0) { 
-    this[factory.name] = {};
-    try {
-      this.console = this['Components'].utils
-          .import('resource://gre/modules/devtools/Console.jsm', {}).console;
-    }
-    catch (ex) {
-      
-    }
-    factory(function require(uri) {
-      var imports = {};
-      this['Components'].utils.import(uri, imports);
-      return imports;
-    }, this[factory.name], { uri: __URI__, id: id });
-    this.EXPORTED_SYMBOLS = [factory.name];
-  } else if (~String(this).indexOf('Sandbox')) { 
-    factory(function require(uri) {}, this, { id: id });
-  } else {  
-    var globals = this;
-    factory(function require(id) {
-      return globals[id];
-    }, (globals[id] = {}), { uri: document.location.href + '#' + id, id: id });
-  }
-}).call(this, 'promise/core', function Promise(require, exports, module) {
+
+
+
+
 
 'use strict';
 
+
+
+
+
+
+
+
+
+const PROMISE_URI = 'resource://gre/modules/Promise.jsm';
+
+getEnvironment.call(this, function ({ require, exports, module, Cu }) {
+
+const { defer, resolve, all, reject, race } = Cu.import(PROMISE_URI, {}).Promise;
+
 module.metadata = {
-  "stability": "unstable"
+  'stability': 'unstable'
 };
 
-
-
-
-
-
-function fulfilled(value) {
-  return { then: function then(fulfill) { fulfill(value); } };
-}
-
-
-
-
-
-
-function rejected(reason) {
-  return { then: function then(fulfill, reject) { reject(reason); } };
-}
-
-
-
-
-
-function isPromise(value) {
-  return value && typeof(value.then) === 'function';
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function defer(prototype) {
-  
-  
-  var observers = [];
-
-  
-  
-  
-  
-  var result = null;
-
-  prototype = (prototype || prototype === null) ? prototype : Object.prototype;
-
-  
-  var promise = Object.create(prototype, {
-    then: { value: function then(onFulfill, onError) {
-      var deferred = defer(prototype);
-
-      function resolve(value) {
-        
-        
-        
-        try {
-          deferred.resolve(onFulfill ? onFulfill(value) : value);
-        }
-        
-        
-        catch(error) {
-          if (exports._reportErrors && typeof(console) === 'object')
-            console.error(error);
-          
-          
-          deferred.resolve(rejected(error));
-        }
-      }
-
-      function reject(reason) {
-        try {
-          if (onError) deferred.resolve(onError(reason));
-          else deferred.resolve(rejected(reason));
-        }
-        catch(error) {
-          if (exports._reportErrors && typeof(console) === 'object')
-            console.error(error);
-          deferred.resolve(rejected(error));
-        }
-      }
-
-      
-      
-      
-      
-      
-      if (observers) {
-        observers.push({ resolve: resolve, reject: reject });
-      }
-      
-      else {
-        result.then(resolve, reject);
-      }
-
-      return deferred.promise;
-    }}
-  })
-
-  var deferred = {
-    promise: promise,
-    
-
-
-
-
-
-
-    resolve: function resolve(value) {
-      if (!result) {
-        
-        
-        
-        
-        result = isPromise(value) ? value : fulfilled(value);
-
-        
-        
-        
-        
-        
-        
-        while (observers.length) {
-          var observer = observers.shift();
-          result.then(observer.resolve, observer.reject);
-        }
-
-        
-        
-        observers = null;
-      }
-    },
-    
-
-
-
-
-    reject: function reject(reason) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      deferred.resolve(rejected(reason));
-    }
-  };
-
-  return deferred;
-}
-exports.defer = defer;
-
-
-
-
-
-
-function resolve(value, prototype) {
-  var deferred = defer(prototype);
-  deferred.resolve(value);
-  return deferred.promise;
-}
-exports.resolve = resolve;
-
-
-
-
-
-
-function reject(reason, prototype) {
-  var deferred = defer(prototype);
-  deferred.reject(reason);
-  return deferred.promise;
-}
-exports.reject = reject;
-
-var promised = (function() {
+let promised = (function() {
   
   
   
@@ -247,15 +33,14 @@ var promised = (function() {
 
   
   
-  function execute(args) { return call.apply(call, args) }
+  function execute (args) call.apply(call, args)
 
   
   
   function promisedConcat(promises, unknown) {
-    return promises.then(function(values) {
-      return resolve(unknown).then(function(value) {
-        return values.concat([ value ]);
-      });
+    return promises.then(function (values) {
+      return resolve(unknown)
+        .then(function (value) values.concat([value]));
     });
   }
 
@@ -280,11 +65,53 @@ var promised = (function() {
         
         then(execute);
     };
-  }
+  };
 })();
-exports.promised = promised;
 
-var all = promised(Array);
+exports.promised = promised;
 exports.all = all;
+exports.defer = defer;
+exports.resolve = resolve;
+exports.reject = reject;
+exports.race = race;
+exports.Promise = Promise;
 
 });
+
+function getEnvironment (callback) {
+  let Cu, _exports, _module, _require;
+
+  
+  if (typeof(require) === 'function') {
+    Cu = require('chrome').Cu;
+    _exports = exports;
+    _module = module;
+    _require = require;
+  }
+  
+  else if (String(this).indexOf('BackstagePass') >= 0) {
+    Cu = this['Components'].utils;
+    _exports = this.Promise = {};
+    _module = { uri: __URI__, id: 'promise/core' };
+    _require = uri => {
+      let imports = {};
+      Cu.import(uri, imports);
+      return imports;
+    };
+    this.EXPORTED_SYMBOLS = ['Promise'];
+  
+  } else if (~String(this).indexOf('Sandbox')) {
+    Cu = this['Components'].utils;
+    _exports = this;
+    _module = { id: 'promise/core' };
+    _require = uri => {};
+  }
+
+  callback({
+    Cu: Cu,
+    exports: _exports,
+    module: _module,
+    require: _require
+  });
+}
+

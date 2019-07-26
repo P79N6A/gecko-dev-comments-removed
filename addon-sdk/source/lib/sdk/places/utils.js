@@ -52,6 +52,7 @@ exports.TreeNode = TreeNode;
 
 
 
+
 function walk (curr, fn) {
   return promised(fn)(curr).then(val => {
     return all(curr.children.map(child => walk(child, fn)));
