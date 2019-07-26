@@ -41,12 +41,6 @@ private:
 
   nsresult mStatus;
   uint32_t mCaps;
-  
-  
-  
-  
-  
-  uint32_t mCapsToClear;
   nsRefPtr<nsAHttpConnection> mConnection;
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsRefPtr<nsHttpConnectionInfo> mConnectionInfo;

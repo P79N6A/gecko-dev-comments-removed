@@ -210,12 +210,6 @@ private:
 
     uint16_t                        mRestartCount;        
     uint32_t                        mCaps;
-    
-    
-    
-    
-    
-    uint32_t                        mCapsToClear;
     enum Classifier                 mClassification;
     int32_t                         mPipelinePosition;
     int64_t                         mMaxPipelineObjectSize;
