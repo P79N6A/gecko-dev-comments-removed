@@ -237,4 +237,74 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
   }
 }
 
+
+
+
+
+ void
+WidgetKeyboardEvent::GetDOMKeyName(KeyNameIndex aKeyNameIndex,
+                                   nsAString& aKeyName)
+{
+  
+  
+  
+  
+  
+  
+#define KEY_STR_NUM_INTERNAL(line) key##line
+#define KEY_STR_NUM(line) KEY_STR_NUM_INTERNAL(line)
+
+  
+#define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName)                      \
+  static_assert(sizeof(aDOMKeyName) == MOZ_ARRAY_LENGTH(aDOMKeyName), \
+                "Invalid DOM key name");
+#include "nsDOMKeyNameList.h"
+#undef NS_DEFINE_KEYNAME
+
+  struct KeyNameTable
+  {
+#define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName)          \
+    char16_t KEY_STR_NUM(__LINE__)[sizeof(aDOMKeyName)];
+#include "nsDOMKeyNameList.h"
+#undef NS_DEFINE_KEYNAME
+  };
+
+  static const KeyNameTable kKeyNameTable = {
+#define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName) MOZ_UTF16(aDOMKeyName),
+#include "nsDOMKeyNameList.h"
+#undef NS_DEFINE_KEYNAME
+  };
+
+  static const uint16_t kKeyNameOffsets[] = {
+#define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName)          \
+    offsetof(struct KeyNameTable, KEY_STR_NUM(__LINE__)),
+#include "nsDOMKeyNameList.h"
+#undef NS_DEFINE_KEYNAME
+    
+    sizeof(kKeyNameTable)
+  };
+
+  
+  
+  
+  static_assert(KEY_NAME_INDEX_USE_STRING ==
+                (sizeof(kKeyNameOffsets)/sizeof(kKeyNameOffsets[0])) - 1,
+                "Invalid enumeration values!");
+
+  if (aKeyNameIndex >= KEY_NAME_INDEX_USE_STRING) {
+    aKeyName.Truncate();
+    return;
+  }
+
+  uint16_t offset = kKeyNameOffsets[aKeyNameIndex];
+  uint16_t nextOffset = kKeyNameOffsets[aKeyNameIndex + 1];
+  const char16_t* table = reinterpret_cast<const char16_t*>(&kKeyNameTable);
+
+  
+  aKeyName.Assign(table + offset, nextOffset - offset - 1);
+
+#undef KEY_STR_NUM
+#undef KEY_STR_NUM_INTERNAL
+}
+
 } 
