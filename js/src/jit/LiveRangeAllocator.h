@@ -553,7 +553,12 @@ IsTraceable(VirtualRegister *reg)
 typedef InlineList<LiveInterval>::iterator IntervalIterator;
 typedef InlineList<LiveInterval>::reverse_iterator IntervalReverseIterator;
 
-template <typename VREG>
+
+
+
+
+
+template <typename VREG, bool forLSRA>
 class LiveRangeAllocator : protected RegisterAllocator
 {
   protected:
@@ -567,20 +572,12 @@ class LiveRangeAllocator : protected RegisterAllocator
     LiveInterval *fixedIntervalsUnion;
 
     
-    
-    
-    
-    
-    bool forLSRA;
-
-    
     StackSlotAllocator stackSlotAllocator;
 
-    LiveRangeAllocator(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph, bool forLSRA)
+    LiveRangeAllocator(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph)
       : RegisterAllocator(mir, lir, graph),
         liveIn(nullptr),
-        fixedIntervalsUnion(nullptr),
-        forLSRA(forLSRA)
+        fixedIntervalsUnion(nullptr)
     {
     }
 

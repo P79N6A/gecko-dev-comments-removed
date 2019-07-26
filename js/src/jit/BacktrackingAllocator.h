@@ -108,7 +108,8 @@ class BacktrackingVirtualRegister : public VirtualRegister
 
 typedef js::Vector<CodePosition, 4, SystemAllocPolicy> SplitPositionVector;
 
-class BacktrackingAllocator : private LiveRangeAllocator<BacktrackingVirtualRegister>
+class BacktrackingAllocator
+  : private LiveRangeAllocator<BacktrackingVirtualRegister,  false>
 {
     
     
@@ -177,7 +178,7 @@ class BacktrackingAllocator : private LiveRangeAllocator<BacktrackingVirtualRegi
 
   public:
     BacktrackingAllocator(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph)
-      : LiveRangeAllocator<BacktrackingVirtualRegister>(mir, lir, graph,  false)
+      : LiveRangeAllocator<BacktrackingVirtualRegister,  false>(mir, lir, graph)
     { }
 
     bool go();

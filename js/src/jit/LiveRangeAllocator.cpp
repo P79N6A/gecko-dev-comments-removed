@@ -355,8 +355,8 @@ VirtualRegister::getFirstInterval()
 }
 
 
-template bool LiveRangeAllocator<LinearScanVirtualRegister>::buildLivenessInfo();
-template bool LiveRangeAllocator<BacktrackingVirtualRegister>::buildLivenessInfo();
+template bool LiveRangeAllocator<LinearScanVirtualRegister, true>::buildLivenessInfo();
+template bool LiveRangeAllocator<BacktrackingVirtualRegister, false>::buildLivenessInfo();
 
 #ifdef DEBUG
 static inline bool
@@ -399,9 +399,9 @@ IsInputReused(LInstruction *ins, LUse *use)
 
 
 
-template <typename VREG>
+template <typename VREG, bool forLSRA>
 bool
-LiveRangeAllocator<VREG>::init()
+LiveRangeAllocator<VREG, forLSRA>::init()
 {
     if (!RegisterAllocator::init())
         return false;
@@ -490,9 +490,9 @@ AddRegisterToSafepoint(LSafepoint *safepoint, AnyRegister reg, const LDefinition
 
 
 
-template <typename VREG>
+template <typename VREG, bool forLSRA>
 bool
-LiveRangeAllocator<VREG>::buildLivenessInfo()
+LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
 {
     if (!init())
         return false;
