@@ -35,9 +35,6 @@ HTMLPreElement::ParseAttribute(int32_t aNamespaceID,
                                nsAttrValue& aResult)
 {
   if (aNamespaceID == kNameSpaceID_None) {
-    if (aAttribute == nsGkAtoms::cols) {
-      return aResult.ParseIntWithBounds(aValue, 0);
-    }
     if (aAttribute == nsGkAtoms::width) {
       return aResult.ParseIntWithBounds(aValue, 0);
     }
@@ -56,11 +53,6 @@ HTMLPreElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     if (width->GetUnit() == eCSSUnit_Null) {
       
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
-      if (!value || value->Type() != nsAttrValue::eInteger) {
-        
-        value = aAttributes->GetAttr(nsGkAtoms::cols);
-      }
-
       if (value && value->Type() == nsAttrValue::eInteger)
         width->SetFloatValue((float)value->GetIntegerValue(), eCSSUnit_Char);
     }
@@ -74,11 +66,6 @@ HTMLPreElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 
       
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
-      if (!value || value->Type() != nsAttrValue::eInteger) {
-        
-        value = aAttributes->GetAttr(nsGkAtoms::cols);
-      }
-
       if (value && value->Type() == nsAttrValue::eInteger) {
         
         
@@ -95,7 +82,6 @@ HTMLPreElement::IsAttributeMapped(const nsIAtom* aAttribute) const
 {
   static const MappedAttributeEntry attributes[] = {
     { &nsGkAtoms::wrap },
-    { &nsGkAtoms::cols },
     { &nsGkAtoms::width },
     { nullptr },
   };
