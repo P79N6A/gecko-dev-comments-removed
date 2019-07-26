@@ -1540,13 +1540,19 @@ nsContainerFrame::MoveOverflowToChildList(nsPresContext* aPresContext)
   }
 
   
+  return DrainSelfOverflowList() || result;
+}
+
+bool
+nsContainerFrame::DrainSelfOverflowList()
+{
   nsAutoPtr<nsFrameList> overflowFrames(StealOverflowFrames());
   if (overflowFrames) {
     NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
     mFrames.AppendFrames(nullptr, *overflowFrames);
-    result = true;
+    return true;
   }
-  return result;
+  return false;
 }
 
 nsOverflowContinuationTracker::nsOverflowContinuationTracker(nsPresContext*    aPresContext,

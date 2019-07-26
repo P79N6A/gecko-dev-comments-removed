@@ -268,6 +268,12 @@ public:
                               nsIAtom*        aAttribute,
                               int32_t         aModType);
 
+  
+
+
+
+  virtual bool DrainSelfOverflowList();
+
   virtual nsresult StealFrame(nsPresContext* aPresContext,
                               nsIFrame*      aChild,
                               bool           aForceNormal = false);

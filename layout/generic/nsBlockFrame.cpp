@@ -4471,17 +4471,14 @@ nsBlockFrame::DrainOverflowLines()
 #ifdef DEBUG
   VerifyOverflowSituation();
 #endif
-  FrameLines* overflowLines = nullptr;
-  FrameLines* ourOverflowLines = nullptr;
 
   
-  nsBlockFrame* prevBlock = (nsBlockFrame*) GetPrevInFlow();
+  bool didFindOverflow = false;
+  nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
   if (prevBlock) {
     prevBlock->ClearLineCursor();
-    overflowLines = prevBlock->RemoveOverflowLines();
+    FrameLines* overflowLines = prevBlock->RemoveOverflowLines();
     if (overflowLines) {
-      NS_ASSERTION(!overflowLines->mLines.empty(),
-                   "overflow lines should never be set and empty");
       
       ReparentFrames(overflowLines->mFrames, prevBlock, this);
 
@@ -4491,55 +4488,49 @@ nsBlockFrame::DrainOverflowLines()
         ReparentFrames(oofs.mList, prevBlock, this);
         mFloats.InsertFrames(nullptr, nullptr, oofs.mList);
       }
+
+      if (!mLines.empty()) {
+        
+        
+        mLines.front()->MarkPreviousMarginDirty();
+      }
+      
+      
+      
+      
+      mFrames.InsertFrames(nullptr, nullptr, overflowLines->mFrames);
+      mLines.splice(mLines.begin(), overflowLines->mLines);
+      NS_ASSERTION(overflowLines->mLines.empty(), "splice should empty list");
+      delete overflowLines;
+      didFindOverflow = true;
     }
-    
-    
-    
   }
 
   
+  return DrainSelfOverflowList() || didFindOverflow;
+}
+
+bool
+nsBlockFrame::DrainSelfOverflowList()
+{
   
-  ourOverflowLines = RemoveOverflowLines();
+  
+  FrameLines* ourOverflowLines = RemoveOverflowLines();
   if (ourOverflowLines) {
     nsAutoOOFFrameList oofs(this);
     if (oofs.mList.NotEmpty()) {
       
       mFloats.AppendFrames(nullptr, oofs.mList);
     }
-  }
-
-  if (!overflowLines && !ourOverflowLines) {
-    
+  } else {
     return false;
   }
 
-  
-  if (overflowLines) {
-    if (!overflowLines->mLines.empty()) {
-      
-      if (!mLines.empty()) {
-          
-          
-          mLines.front()->MarkPreviousMarginDirty();
-      }
-      
-      
-      mFrames.InsertFrames(nullptr, nullptr, overflowLines->mFrames);
-
-      
-      mLines.splice(mLines.begin(), overflowLines->mLines);
-      NS_ASSERTION(overflowLines->mLines.empty(), "splice should empty list");
-    }
-    delete overflowLines;
+  if (!ourOverflowLines->mLines.empty()) {
+    mFrames.AppendFrames(nullptr, ourOverflowLines->mFrames);
+    mLines.splice(mLines.end(), ourOverflowLines->mLines);
   }
-  if (ourOverflowLines) {
-    if (!ourOverflowLines->mLines.empty()) {
-      mFrames.AppendFrames(nullptr, ourOverflowLines->mFrames);
-      mLines.splice(mLines.end(), ourOverflowLines->mLines);
-    }
-    delete ourOverflowLines;
-  }
-
+  delete ourOverflowLines;
   return true;
 }
 

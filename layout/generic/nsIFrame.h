@@ -705,6 +705,12 @@ public:
 
 
 
+  virtual bool DrainSelfOverflowList() { return false; }
+
+  
+
+
+
 
 
 
