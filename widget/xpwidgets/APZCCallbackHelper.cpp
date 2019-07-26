@@ -104,9 +104,9 @@ static void
 RecenterDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics)
 {
     if (!aFrameMetrics.GetUseDisplayPortMargins()) {
-        CSSRect compositionBounds(aFrameMetrics.CalculateCompositedRectInCssPixels());
-        aFrameMetrics.mDisplayPort.x = (compositionBounds.width - aFrameMetrics.mDisplayPort.width) / 2;
-        aFrameMetrics.mDisplayPort.y = (compositionBounds.height - aFrameMetrics.mDisplayPort.height) / 2;
+        CSSSize compositionSize = aFrameMetrics.CalculateCompositedSizeInCssPixels();
+        aFrameMetrics.mDisplayPort.x = (compositionSize.width - aFrameMetrics.mDisplayPort.width) / 2;
+        aFrameMetrics.mDisplayPort.y = (compositionSize.height - aFrameMetrics.mDisplayPort.height) / 2;
     } else {
         LayerMargin margins = aFrameMetrics.GetDisplayPortMargins();
         margins.right = margins.left = margins.LeftRight() / 2;
@@ -175,7 +175,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     
     
     
-    CSSSize scrollPort = CSSSize(aMetrics.CalculateCompositedRectInCssPixels().Size());
+    CSSSize scrollPort = aMetrics.CalculateCompositedSizeInCssPixels();
     aUtils->SetScrollPositionClampingScrollPortSize(scrollPort.width, scrollPort.height);
 
     
