@@ -8,6 +8,7 @@
 
 #include "MediaStreamGraph.h"
 #include "AudioNodeStream.h"
+#include "mozilla/Atomics.h"
 
 
 typedef struct SpeexResamplerState_ SpeexResamplerState;
@@ -94,6 +95,13 @@ private:
 
   size_t GetTrackMapEntry(const StreamBuffer::Track& aTrack,
                           GraphTime aFrom);
+
+  
+
+
+
+
+  bool IsEnabled();
 };
 
 }

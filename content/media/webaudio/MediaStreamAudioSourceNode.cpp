@@ -8,7 +8,7 @@
 #include "mozilla/dom/MediaStreamAudioSourceNodeBinding.h"
 #include "AudioNodeEngine.h"
 #include "AudioNodeExternalInputStream.h"
-#include "DOMMediaStream.h"
+#include "nsIDocument.h"
 
 namespace mozilla {
 namespace dom {
@@ -37,16 +37,52 @@ MediaStreamAudioSourceNode::MediaStreamAudioSourceNode(AudioContext* aContext,
               ChannelInterpretation::Speakers),
     mInputStream(aMediaStream)
 {
-  AudioNodeEngine* engine = new AudioNodeEngine(this);
+  AudioNodeEngine* engine = new MediaStreamAudioSourceNodeEngine(this);
   mStream = aContext->Graph()->CreateAudioNodeExternalInputStream(engine);
   ProcessedMediaStream* outputStream = static_cast<ProcessedMediaStream*>(mStream.get());
   mInputPort = outputStream->AllocateInputPort(aMediaStream->GetStream(),
                                                MediaInputPort::FLAG_BLOCK_INPUT);
   mInputStream->AddConsumerToKeepAlive(this);
+
+  PrincipalChanged(mInputStream); 
+  mInputStream->AddPrincipalChangeObserver(this);
 }
 
 MediaStreamAudioSourceNode::~MediaStreamAudioSourceNode()
 {
+  if (mInputStream) {
+    mInputStream->RemovePrincipalChangeObserver(this);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+MediaStreamAudioSourceNode::PrincipalChanged(DOMMediaStream* ms)
+{
+  bool subsumes = false;
+  nsIDocument* doc = Context()->GetParentObject()->GetExtantDoc();
+  if (doc) {
+    nsIPrincipal* docPrincipal = doc->NodePrincipal();
+    nsIPrincipal* streamPrincipal = mInputStream->GetPrincipal();
+    if (NS_FAILED(docPrincipal->Subsumes(streamPrincipal, &subsumes))) {
+      subsumes = false;
+    }
+  }
+  auto stream = static_cast<AudioNodeExternalInputStream*>(mStream.get());
+  stream->SetInt32Parameter(MediaStreamAudioSourceNodeEngine::ENABLE, subsumes);
 }
 
 size_t
@@ -83,4 +119,3 @@ MediaStreamAudioSourceNode::WrapObject(JSContext* aCx)
 
 }
 }
-
