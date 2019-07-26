@@ -17,7 +17,6 @@
 #include "nsAttrAndChildArray.h"          
 #include "nsCycleCollectionParticipant.h" 
 #include "nsIContent.h"                   
-#include "nsIDOMTouchEvent.h"             
 #include "nsIDOMXPathNSResolver.h"        
 #include "nsIInlineEventHandlers.h"       
 #include "nsINodeList.h"                  
@@ -403,26 +402,6 @@ protected:
 
 } 
 } 
-
-
-
-
-class nsTouchEventReceiverTearoff MOZ_FINAL : public nsITouchEventReceiver
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_FORWARD_NSITOUCHEVENTRECEIVER(mElement->)
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsTouchEventReceiverTearoff)
-
-  nsTouchEventReceiverTearoff(mozilla::dom::FragmentOrElement *aElement) : mElement(aElement)
-  {
-  }
-
-private:
-  nsRefPtr<mozilla::dom::FragmentOrElement> mElement;
-};
 
 
 
