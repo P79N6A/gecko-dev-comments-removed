@@ -955,6 +955,15 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool isHeapMinorCollecting() { return gc.isHeapMinorCollecting(); }
     bool isHeapCollecting() { return gc.isHeapCollecting(); }
 
+    
+    
+    
+    
+    
+    bool isFJMinorCollecting() { return gc.fjCollectionCounter > 0; }
+    void incFJMinorCollecting() { gc.fjCollectionCounter++; }
+    void decFJMinorCollecting() { gc.fjCollectionCounter--; }
+
     int gcZeal() { return gc.zeal(); }
 
     void lockGC() {

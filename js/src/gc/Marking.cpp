@@ -171,6 +171,16 @@ CheckMarkedThing(JSTracer *trc, T **thingp)
     JS_ASSERT(*thingp);
 
 #ifdef DEBUG
+#ifdef JSGC_FJGENERATIONAL
+    
+
+
+
+
+    if (ForkJoinContext::current())
+        return;
+#endif
+
     
     if (IsInsideNursery(thing))
         return;
@@ -229,6 +239,16 @@ MarkInternal(JSTracer *trc, T **thingp)
     T *thing = *thingp;
 
     if (!trc->callback) {
+#ifdef JSGC_FJGENERATIONAL
+        
+
+
+
+
+        JS_ASSERT(!ForkJoinContext::current());
+        JS_ASSERT(!trc->runtime()->isFJMinorCollecting());
+#endif
+
         
 
 
@@ -357,11 +377,25 @@ IsMarked(T **thingp)
     JS_ASSERT(thingp);
     JS_ASSERT(*thingp);
 #ifdef JSGC_GENERATIONAL
-    if (IsInsideNursery(*thingp)) {
-        Nursery &nursery = (*thingp)->runtimeFromMainThread()->gc.nursery;
-        return nursery.getForwardedPointer(thingp);
+    JSRuntime* rt = (*thingp)->runtimeFromAnyThread();
+#ifdef JSGC_FJGENERATIONAL
+    
+    
+    if (rt->isFJMinorCollecting()) {
+        ForkJoinContext *ctx = ForkJoinContext::current();
+        ForkJoinNursery &fjNursery = ctx->fjNursery();
+        if (fjNursery.isInsideFromspace(*thingp))
+            return fjNursery.getForwardedPointer(thingp);
     }
+    else
 #endif
+    {
+        if (IsInsideNursery(*thingp)) {
+            Nursery &nursery = rt->gc.nursery;
+            return nursery.getForwardedPointer(thingp);
+        }
+    }
+#endif  
     Zone *zone = (*thingp)->tenuredZone();
     if (!zone->isCollecting() || zone->isGCFinished())
         return true;
@@ -383,14 +417,25 @@ IsAboutToBeFinalized(T **thingp)
         return false;
 
 #ifdef JSGC_GENERATIONAL
-    Nursery &nursery = rt->gc.nursery;
-    JS_ASSERT_IF(!rt->isHeapMinorCollecting(), !IsInsideNursery(thing));
-    if (rt->isHeapMinorCollecting()) {
-        if (IsInsideNursery(thing))
-            return !nursery.getForwardedPointer(thingp);
-        return false;
+#ifdef JSGC_FJGENERATIONAL
+    if (rt->isFJMinorCollecting()) {
+        ForkJoinContext *ctx = ForkJoinContext::current();
+        ForkJoinNursery &fjNursery = ctx->fjNursery();
+        if (fjNursery.isInsideFromspace(thing))
+            return !fjNursery.getForwardedPointer(thingp);
     }
+    else
 #endif
+    {
+        Nursery &nursery = rt->gc.nursery;
+        JS_ASSERT_IF(!rt->isHeapMinorCollecting(), !IsInsideNursery(thing));
+        if (rt->isHeapMinorCollecting()) {
+            if (IsInsideNursery(thing))
+                return !nursery.getForwardedPointer(thingp);
+            return false;
+        }
+    }
+#endif  
 
     if (!thing->tenuredZone()->isGCSweeping())
         return false;
@@ -413,9 +458,20 @@ UpdateIfRelocated(JSRuntime *rt, T **thingp)
 {
     JS_ASSERT(thingp);
 #ifdef JSGC_GENERATIONAL
-    if (*thingp && rt->isHeapMinorCollecting() && IsInsideNursery(*thingp))
-        rt->gc.nursery.getForwardedPointer(thingp);
+#ifdef JSGC_FJGENERATIONAL
+    if (*thingp && rt->isFJMinorCollecting()) {
+        ForkJoinContext *ctx = ForkJoinContext::current();
+        ForkJoinNursery &fjNursery = ctx->fjNursery();
+        if (fjNursery.isInsideFromspace(*thingp))
+            fjNursery.getForwardedPointer(thingp);
+    }
+    else
 #endif
+    {
+        if (*thingp && rt->isHeapMinorCollecting() && IsInsideNursery(*thingp))
+            rt->gc.nursery.getForwardedPointer(thingp);
+    }
+#endif  
     return *thingp;
 }
 

@@ -768,7 +768,7 @@ function ArrayMapPar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode));
+    ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode), buffer);
     return buffer;
   }
 
@@ -817,7 +817,7 @@ function ArrayReducePar(func, mode) {
     var numSlices = slicesInfo.count;
     var subreductions = NewDenseArray(numSlices);
 
-    ForkJoin(reduceThread, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(reduceThread, 0, numSlices, ForkJoinMode(mode), null);
 
     var accumulator = subreductions[0];
     for (var i = 1; i < numSlices; i++)
@@ -876,7 +876,7 @@ function ArrayScanPar(func, mode) {
     var numSlices = slicesInfo.count;
 
     
-    ForkJoin(phase1, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(phase1, 0, numSlices, ForkJoinMode(mode), buffer);
 
     
     var intermediates = [];
@@ -892,7 +892,7 @@ function ArrayScanPar(func, mode) {
     
     
     if (numSlices > 1)
-      ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode));
+      ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode), buffer);
     return buffer;
   }
 
@@ -1106,7 +1106,7 @@ function ArrayFilterPar(func, mode) {
       UnsafePutElements(counts, i, 0);
 
     var survivors = new Uint8Array(length);
-    ForkJoin(findSurvivorsThread, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(findSurvivorsThread, 0, numSlices, ForkJoinMode(mode), survivors);
 
     
     var count = 0;
@@ -1114,7 +1114,7 @@ function ArrayFilterPar(func, mode) {
       count += counts[i];
     var buffer = NewDenseArray(count);
     if (count > 0)
-      ForkJoin(copySurvivorsThread, 0, numSlices, ForkJoinMode(mode));
+      ForkJoin(copySurvivorsThread, 0, numSlices, ForkJoinMode(mode), buffer);
 
     return buffer;
   }
@@ -1224,7 +1224,7 @@ function ArrayStaticBuildPar(length, func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(constructThread, 0, slicesInfo.count, ForkJoinMode(mode));
+    ForkJoin(constructThread, 0, slicesInfo.count, ForkJoinMode(mode), buffer);
     return buffer;
   }
 

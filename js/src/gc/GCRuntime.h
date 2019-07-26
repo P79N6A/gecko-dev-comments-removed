@@ -484,6 +484,16 @@ class GCRuntime
     js::gc::StoreBuffer   storeBuffer;
 #endif
 
+    
+
+
+
+
+
+
+
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> fjCollectionCounter;
+
   private:
     
 

@@ -771,7 +771,7 @@ Chunk::init(JSRuntime *rt)
     
     info.age = 0;
     info.trailer.storeBuffer = nullptr;
-    info.trailer.location = ChunkLocationTenuredHeap;
+    info.trailer.location = ChunkLocationBitTenuredHeap;
     info.trailer.runtime = rt;
 
     
@@ -880,8 +880,17 @@ Chunk::allocateArena(Zone *zone, AllocKind thingKind)
     JS_ASSERT(hasAvailableArenas());
 
     JSRuntime *rt = zone->runtimeFromAnyThread();
-    if (!rt->isHeapMinorCollecting() && rt->gc.bytes >= rt->gc.maxBytes)
+    if (!rt->isHeapMinorCollecting() && rt->gc.bytes >= rt->gc.maxBytes) {
+#ifdef JSGC_FJGENERATIONAL
+        
+        
+        
+        if (!rt->isFJMinorCollecting())
+            return nullptr;
+#else
         return nullptr;
+#endif
+    }
 
     ArenaHeader *aheader = MOZ_LIKELY(info.numArenasFreeCommitted > 0)
                            ? fetchNextFreeArena(rt)
@@ -2154,7 +2163,7 @@ GCRuntime::triggerGC(JS::gcreason::Reason reason)
 bool
 js::TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
 {
-    return zone->runtimeFromAnyThread()->gc.triggerZoneGC(zone,reason);
+    return zone->runtimeFromAnyThread()->gc.triggerZoneGC(zone, reason);
 }
 
 bool
@@ -2374,6 +2383,10 @@ DecommitArenas(JSRuntime *rt)
 static void
 ExpireChunksAndArenas(JSRuntime *rt, bool shouldShrink)
 {
+#ifdef JSGC_FJGENERATIONAL
+    rt->threadPool.pruneChunkCache();
+#endif
+
     if (Chunk *toFree = rt->gc.chunkPool.expire(rt, shouldShrink)) {
         AutoUnlockGC unlock(rt);
         FreeChunkList(rt, toFree);

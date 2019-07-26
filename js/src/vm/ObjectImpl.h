@@ -30,6 +30,10 @@ class ObjectImpl;
 class Nursery;
 class Shape;
 
+namespace gc {
+class ForkJoinNursery;
+}
+
 
 
 
@@ -177,6 +181,7 @@ class ObjectElements
     friend class ObjectImpl;
     friend class ArrayObject;
     friend class Nursery;
+    friend class gc::ForkJoinNursery;
 
     template <ExecutionMode mode>
     friend bool
@@ -445,6 +450,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
   private:
     friend class Nursery;
+    friend class gc::ForkJoinNursery;
 
     
 

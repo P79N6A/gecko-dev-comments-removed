@@ -308,6 +308,10 @@ JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(intrinsic_ParallelSpew_jitInfo, intrinsic_
 
 
 
+
+
+
+
 static bool
 intrinsic_ForkJoin(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -786,7 +790,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("NewStringIterator",       intrinsic_NewStringIterator,       0,0),
     JS_FN("IsStringIterator",        intrinsic_IsStringIterator,        1,0),
 
-    JS_FN("ForkJoin",                intrinsic_ForkJoin,                2,0),
+    JS_FN("ForkJoin",                intrinsic_ForkJoin,                5,0),
     JS_FN("ForkJoinNumWorkers",      intrinsic_ForkJoinNumWorkers,      0,0),
     JS_FN("NewDenseArray",           intrinsic_NewDenseArray,           1,0),
     JS_FN("ShouldForceSequential",   intrinsic_ShouldForceSequential,   0,0),
