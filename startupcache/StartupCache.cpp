@@ -181,6 +181,20 @@ StartupCache::Init()
       return rv;
     }
 
+    nsCOMPtr<nsIFile> profDir;
+    NS_GetSpecialDirectory("ProfDS", getter_AddRefs(profDir));
+    if (profDir) {
+      bool same;
+      if (NS_SUCCEEDED(profDir->Equals(file, &same)) && !same) {
+        
+        
+        if (NS_SUCCEEDED(
+              profDir->AppendNative(NS_LITERAL_CSTRING("startupCache")))) {
+          profDir->Remove(true);
+        }
+      }
+    }
+
     rv = file->AppendNative(NS_LITERAL_CSTRING("startupCache"));
     NS_ENSURE_SUCCESS(rv, rv);
 

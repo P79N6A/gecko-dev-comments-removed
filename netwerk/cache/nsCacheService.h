@@ -196,6 +196,10 @@ public:
     
     static nsresult  SetDiskSmartSize();
 
+    static void      MoveOrRemoveDiskCache(nsIFile *aOldCacheDir,
+                                           nsIFile *aNewCacheDir,
+                                           const char *aCacheSubdir);
+
     nsresult         Init();
     void             Shutdown();
 
