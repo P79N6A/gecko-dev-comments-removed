@@ -4,8 +4,9 @@
 
 
 
-
 #include "nsCookiePermission.h"
+
+#include "mozIThirdPartyUtil.h"
 #include "nsICookie2.h"
 #include "nsIServiceManager.h"
 #include "nsICookiePromptService.h"
@@ -63,6 +64,8 @@ nsCookiePermission::Init()
   
   nsresult rv;
   mPermMgr = do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
+  if (NS_FAILED(rv)) return false;
+  mThirdPartyUtil = do_GetService(THIRDPARTYUTIL_CONTRACTID, &rv);
   if (NS_FAILED(rv)) return false;
 
   
@@ -167,29 +170,15 @@ nsCookiePermission::CanAccess(nsIURI         *aURI,
   
   rv = mPermMgr->TestPermission(aURI, kPermissionType, (uint32_t *) aResult);
   if (NS_SUCCEEDED(rv)) {
-    switch (*aResult) {
-    
-    case nsIPermissionManager::UNKNOWN_ACTION: 
-    case nsIPermissionManager::ALLOW_ACTION:   
-    case nsIPermissionManager::DENY_ACTION:    
-      break;
-
-    
-    
-    case nsICookiePermission::ACCESS_SESSION:
-      *aResult = ACCESS_ALLOW;
-      break;
-
-    
-    default:
-      *aResult = ACCESS_DEFAULT;
+    if (*aResult == nsICookiePermission::ACCESS_SESSION) {
+      *aResult = nsICookiePermission::ACCESS_ALLOW;
     }
   }
 
   return rv;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsCookiePermission::CanSetCookie(nsIURI     *aURI,
                                  nsIChannel *aChannel,
                                  nsICookie2 *aCookie,
@@ -207,34 +196,42 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
 
   uint32_t perm;
   mPermMgr->TestPermission(aURI, kPermissionType, &perm);
+  bool isThirdParty = false;
   switch (perm) {
   case nsICookiePermission::ACCESS_SESSION:
     *aIsSession = true;
 
-  case nsIPermissionManager::ALLOW_ACTION: 
+  case nsICookiePermission::ACCESS_ALLOW:
     *aResult = true;
     break;
 
-  case nsIPermissionManager::DENY_ACTION:  
+  case nsICookiePermission::ACCESS_DENY:
     *aResult = false;
+    break;
+
+  case nsICookiePermission::ACCESS_ALLOW_FIRST_PARTY_ONLY:
+    mThirdPartyUtil->IsThirdPartyChannel(aChannel, aURI, &isThirdParty);
+    
+    if (isThirdParty)
+      *aResult = false;
     break;
 
   default:
     
     
     NS_ASSERTION(perm == nsIPermissionManager::UNKNOWN_ACTION, "unknown permission");
-    
+
     
     
     if (mCookiesLifetimePolicy == ACCEPT_NORMALLY) {
       *aResult = true;
       return NS_OK;
     }
-    
+
     
     int64_t currentTime = PR_Now() / PR_USEC_PER_SEC;
     int64_t delta = *aExpiry - currentTime;
-    
+
     
     if (mCookiesLifetimePolicy == ASK_BEFORE_ACCEPT) {
       
@@ -245,7 +242,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
         *aResult = true;
         return NS_OK;
       }
-      
+
       
       *aResult = false;
 
