@@ -1622,7 +1622,7 @@ pref("layout.css.devPixelsPerPx", "-1.0");
 pref("layout.css.supports-rule.enabled", true);
 
 
-pref("layout.css.flexbox.enabled", true);
+pref("layout.css.flexbox.enabled", false);
 
 
 pref("layout.css.prefixes.border-image", true);
