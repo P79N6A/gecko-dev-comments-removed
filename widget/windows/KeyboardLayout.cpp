@@ -388,31 +388,30 @@ VirtualKey::FillKbdState(PBYTE aKbdState,
 NativeKey::NativeKey(nsWindowBase* aWidget,
                      const MSG& aKeyOrCharMessage,
                      const ModifierKeyState& aModKeyState) :
-  mWidget(aWidget), mDOMKeyCode(0), mMessage(aKeyOrCharMessage.message),
+  mWidget(aWidget), mMsg(aKeyOrCharMessage), mDOMKeyCode(0),
   mModKeyState(aModKeyState), mVirtualKeyCode(0), mOriginalVirtualKeyCode(0)
 {
   MOZ_ASSERT(aWidget);
   KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
   mKeyboardLayout = keyboardLayout->GetLayout();
-  mScanCode = WinUtils::GetScanCode(aKeyOrCharMessage.lParam);
-  mIsExtended = WinUtils::IsExtendedScanCode(aKeyOrCharMessage.lParam);
+  mScanCode = WinUtils::GetScanCode(mMsg.lParam);
+  mIsExtended = WinUtils::IsExtendedScanCode(mMsg.lParam);
   
   
   bool canComputeVirtualKeyCodeFromScanCode =
     (!mIsExtended || WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION);
-  switch (mMessage) {
+  switch (mMsg.message) {
     case WM_KEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYDOWN:
     case WM_SYSKEYUP: {
       
       
-      if (aKeyOrCharMessage.wParam == VK_PROCESSKEY) {
-        mOriginalVirtualKeyCode = static_cast<uint8_t>(
-          ::ImmGetVirtualKey(mWidget->GetWindowHandle()));
-      } else {
+      if (mMsg.wParam == VK_PROCESSKEY) {
         mOriginalVirtualKeyCode =
-          static_cast<uint8_t>(aKeyOrCharMessage.wParam);
+          static_cast<uint8_t>(::ImmGetVirtualKey(mMsg.hwnd));
+      } else {
+        mOriginalVirtualKeyCode = static_cast<uint8_t>(mMsg.wParam);
       }
 
       
@@ -664,6 +663,27 @@ NativeKey::InitKeyEvent(nsKeyEvent& aKeyEvent,
 {
   nsIntPoint point(0, 0);
   mWidget->InitEvent(aKeyEvent, &point);
+
+  switch (aKeyEvent.message) {
+    case NS_KEY_DOWN:
+      break;
+    case NS_KEY_UP:
+      aKeyEvent.keyCode = mDOMKeyCode;
+      
+      
+      
+      
+      
+      aKeyEvent.mFlags.mDefaultPrevented =
+        (mOriginalVirtualKeyCode == VK_MENU && mMsg.message != WM_SYSKEYUP);
+      break;
+    case NS_KEY_PRESS:
+      break;
+    default:
+      MOZ_NOT_REACHED("Invalid event message");
+      break;
+  }
+
   aKeyEvent.mKeyNameIndex = mKeyNameIndex;
   aKeyEvent.location = GetKeyLocation();
   aModKeyState.InitInputEvent(aKeyEvent);
@@ -685,6 +705,29 @@ NativeKey::DispatchKeyEvent(nsKeyEvent& aKeyEvent,
   }
 
   return mWidget->DispatchWindowEvent(&aKeyEvent);
+}
+
+bool
+NativeKey::HandleKeyUpMessage(bool* aEventDispatched) const
+{
+  MOZ_ASSERT(mMsg.message == WM_KEYUP || mMsg.message == WM_SYSKEYUP);
+
+  if (aEventDispatched) {
+    *aEventDispatched = false;
+  }
+
+  
+  if (mModKeyState.IsAlt() && !mModKeyState.IsControl() &&
+      mVirtualKeyCode == VK_SPACE) {
+    return false;
+  }
+
+  nsKeyEvent keyupEvent(true, NS_KEY_UP, mWidget);
+  InitKeyEvent(keyupEvent, mModKeyState);
+  if (aEventDispatched) {
+    *aEventDispatched = true;
+  }
+  return DispatchKeyEvent(keyupEvent, &mMsg);
 }
 
 

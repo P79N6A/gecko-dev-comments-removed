@@ -5634,34 +5634,13 @@ LRESULT nsWindow::ProcessCharMessage(const MSG &aMsg, bool *aEventDispatched)
 
 LRESULT nsWindow::ProcessKeyUpMessage(const MSG &aMsg, bool *aEventDispatched)
 {
-  NS_PRECONDITION(aMsg.message == WM_KEYUP || aMsg.message == WM_SYSKEYUP,
-                  "message is not keydown event");
-  PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
-         ("%s VK=%d\n", aMsg.message == WM_SYSKEYDOWN ?
-                        "WM_SYSKEYUP" : "WM_KEYUP", aMsg.wParam));
+  if (IMEHandler::IsComposingOn(this)) {
+    return 0;
+  }
 
   ModifierKeyState modKeyState;
-
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  if (modKeyState.IsAlt() && !modKeyState.IsControl() &&
-      IS_VK_DOWN(NS_VK_SPACE)) {
-    return FALSE;
-  }
-
-  if (!IMEHandler::IsComposingOn(this)) {
-    return OnKeyUp(aMsg, modKeyState, aEventDispatched);
-  }
-
-  return 0;
+  NativeKey nativeKey(this, aMsg, modKeyState);
+  return static_cast<LRESULT>(nativeKey.HandleKeyUpMessage(aEventDispatched));
 }
 
 LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
@@ -5890,7 +5869,8 @@ nsWindow::SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
       lParam |= 0x1000000;
     }
     MSG msg = WinUtils::InitMSG(WM_KEYUP, key, lParam);
-    OnKeyUp(msg, modKeyState, nullptr);
+    NativeKey nativeKey(this, msg, modKeyState);
+    nativeKey.HandleKeyUpMessage();
   }
 
   
@@ -6778,31 +6758,6 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   }
 
   return noDefault;
-}
-
-
-LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
-                          const ModifierKeyState &aModKeyState,
-                          bool *aEventDispatched)
-{
-  
-  PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
-         ("nsWindow::OnKeyUp wParam(VK)=%d\n", aMsg.wParam));
-
-  if (aEventDispatched)
-    *aEventDispatched = true;
-  nsKeyEvent keyupEvent(true, NS_KEY_UP, this);
-  NativeKey nativeKey(this, aMsg, aModKeyState);
-  keyupEvent.keyCode = nativeKey.GetDOMKeyCode();
-  nativeKey.InitKeyEvent(keyupEvent);
-  
-  
-  
-  
-  
-  keyupEvent.mFlags.mDefaultPrevented =
-    (aMsg.wParam == VK_MENU && aMsg.message != WM_SYSKEYUP);
-  return nativeKey.DispatchKeyEvent(keyupEvent, &aMsg);
 }
 
 
