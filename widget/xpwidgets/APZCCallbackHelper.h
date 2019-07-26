@@ -48,6 +48,12 @@ public:
     
 
     static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIContent* aContent);
+
+    
+
+    static bool GetScrollIdentifiers(nsIContent* aContent,
+                                     uint32_t* aPresShellIdOut,
+                                     FrameMetrics::ViewID* aViewIdOut);
 };
 
 }
