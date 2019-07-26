@@ -232,13 +232,11 @@ class XPCShellTestThread(Thread):
 
         return proc.communicate()
 
-    def launchProcess(self, cmd, stdout, stderr, env, cwd, timeout=None):
+    def launchProcess(self, cmd, stdout, stderr, env, cwd):
         """
           Simple wrapper to launch a process.
           On a remote system, this is more complex and we need to overload this function.
         """
-        
-        
         if HAVE_PSUTIL:
             popen_func = psutil.Popen
         else:
@@ -625,7 +623,7 @@ class XPCShellTestThread(Thread):
 
             startTime = time.time()
             proc = self.launchProcess(completeCmd,
-                stdout=self.pStdout, stderr=self.pStderr, env=self.env, cwd=test_dir, timeout=testTimeoutInterval)
+                stdout=self.pStdout, stderr=self.pStderr, env=self.env, cwd=test_dir)
 
             if self.interactive:
                 self.log.info("TEST-INFO | %s | Process ID: %d" % (name, proc.pid))

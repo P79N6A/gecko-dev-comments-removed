@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase, skip_if_b2g
-from errors import JavascriptException, MarionetteException, ScriptTimeoutException
+from marionette import JavascriptException, MarionetteException, ScriptTimeoutException
 
 class TestExecuteIsolationContent(MarionetteTestCase):
     def setUp(self):

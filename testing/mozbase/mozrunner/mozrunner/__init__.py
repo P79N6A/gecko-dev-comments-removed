@@ -1,10 +1,11 @@
 
 
 
-from .errors import *
-from runners import *
 
-import base
-import cli
-import devices
-import utils
+from .errors import *
+from .local import *
+from .local import LocalRunner as Runner
+from .remote import *
+
+runners = local_runners
+runners.update(remote_runners)

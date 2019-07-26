@@ -29,12 +29,11 @@ class DeviceManagerADB(DeviceManager):
     _pollingInterval = 0.01
     _packageName = None
     _tempDir = None
-    connected = False
     default_timeout = 300
 
     def __init__(self, host=None, port=5555, retryLimit=5, packageName='fennec',
                  adbPath='adb', deviceSerial=None, deviceRoot=None,
-                 logLevel=mozlog.ERROR, autoconnect=True, **kwargs):
+                 logLevel=mozlog.ERROR, **kwargs):
         DeviceManager.__init__(self, logLevel)
         self.host = host
         self.port = port
@@ -59,33 +58,28 @@ class DeviceManagerADB(DeviceManager):
         
         self._verifyADB()
 
-        if autoconnect:
-            self.connect()
+        
+        if self.host:
+            self._connectRemoteADB()
 
-    def connect(self):
-        if not self.connected:
-            
-            if self.host:
-                self._connectRemoteADB()
+        
+        self._verifyDevice()
 
-            
-            self._verifyDevice()
+        
+        self._setupDeviceRoot()
 
-            
-            self._setupDeviceRoot()
+        
+        
+        
+        
+        self._checkForRoot()
 
-            
-            
-            
-            
-            self._checkForRoot()
-
-            
-            
-            try:
-                self._verifyZip()
-            except DMError:
-                pass
+        
+        
+        try:
+            self._verifyZip()
+        except DMError:
+            pass
 
     def __del__(self):
         if self.host:

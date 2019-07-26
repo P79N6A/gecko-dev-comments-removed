@@ -693,7 +693,7 @@ falling back to not using job objects for managing child processes"""
             return self.wait()
         except AttributeError:
             
-            if not hasattr(self, 'proc'):
+            if not self.proc:
                 print >> sys.stderr, "Unable to kill Process because call to ProcessHandler constructor failed."
             else:
                 raise
