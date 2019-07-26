@@ -221,8 +221,8 @@ CertVerifier::VerifyCert(CERTCertificate * cert,
     
     uint64_t revMethodFlags =
       CERT_REV_M_TEST_USING_THIS_METHOD
-      | ((mOCSPDownloadEnabled && !localOnly) ?
-          CERT_REV_M_ALLOW_NETWORK_FETCHING : CERT_REV_M_FORBID_NETWORK_FETCHING)
+      | (mOCSPDownloadEnabled ? CERT_REV_M_ALLOW_NETWORK_FETCHING
+                              : CERT_REV_M_FORBID_NETWORK_FETCHING)
       | CERT_REV_M_ALLOW_IMPLICIT_DEFAULT_SOURCE
       | CERT_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE
       | CERT_REV_M_IGNORE_MISSING_FRESH_INFO
@@ -371,7 +371,6 @@ pkix_done:
 
     if (rv == SECSuccess) {
       if (! cvout[validationChainLocation].value.pointer.chain) {
-        PR_SetError(PR_UNKNOWN_ERROR, 0);
         return SECFailure;
       }
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("VerifyCert: I have a chain\n"));
@@ -383,8 +382,8 @@ pkix_done:
         if (!CERT_CompareCerts(trustAnchor, cert)) {
           PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("VerifyCert:  adding issuer to tail for display\n"));
           
-          ScopedCERTCertificate tempCert(CERT_DupCertificate(trustAnchor));
-          rv = CERT_AddCertToListTail(*validationChain, tempCert);
+          rv = CERT_AddCertToListTail(*validationChain,
+                                      CERT_DupCertificate(trustAnchor));
           if (rv != SECSuccess) {
             CERT_DestroyCertList(*validationChain);
             *validationChain = nullptr;
@@ -398,7 +397,6 @@ pkix_done:
       }
     }
   }
-
   return rv;
 }
 

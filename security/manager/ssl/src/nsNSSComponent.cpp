@@ -2048,13 +2048,9 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
                                 GetDecryptKeyCallback, nullptr,
                                 DecryptionAllowedCallback);
 
-  if (!p7_info) {
-    return NS_ERROR_FAILURE;
-  }
-
   
   
-
+  
   
   SECItem digest;
   digest.data = nullptr;
