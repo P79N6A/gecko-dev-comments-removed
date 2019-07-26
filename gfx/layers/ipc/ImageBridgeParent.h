@@ -3,6 +3,9 @@
 
 
 
+#ifndef gfx_layers_ipc_ImageBridgeParent_h_
+#define gfx_layers_ipc_ImageBridgeParent_h_
+
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "CompositableTransactionParent.h"
@@ -107,3 +110,4 @@ private:
 } 
 } 
 
+#endif 

@@ -3,6 +3,9 @@
 
 
 
+#ifndef mozilla_layers_opengl_FPSCounter_h_
+#define mozilla_layers_opengl_FPSCounter_h_
+
 #include <stddef.h>                     
 #include <algorithm>                    
 #include "GLDefs.h"                     
@@ -84,3 +87,5 @@ struct FPSState {
 
 }
 }
+
+#endif 
