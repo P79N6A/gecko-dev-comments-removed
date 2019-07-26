@@ -39,8 +39,7 @@ MoveEmitterX86::characterizeCycle(const MoveResolver &moves, size_t i,
             return -1;
 
         
-        
-        if (j != i && move.inCycle())
+        if (j != i && move.isCycleEnd())
             break;
 
         
@@ -103,14 +102,15 @@ MoveEmitterX86::emit(const MoveResolver &moves)
         const MoveOperand &from = move.from();
         const MoveOperand &to = move.to();
 
-        if (move.inCycle()) {
-            
-            
-            if (inCycle_) {
-                completeCycle(to, move.type());
-                inCycle_ = false;
-                continue;
-            }
+        if (move.isCycleEnd()) {
+            JS_ASSERT(inCycle_);
+            completeCycle(to, move.type());
+            inCycle_ = false;
+            continue;
+        }
+
+        if (move.isCycleBegin()) {
+            JS_ASSERT(!inCycle_);
 
             
             bool allGeneralRegs = true, allFloatRegs = true;
@@ -123,7 +123,7 @@ MoveEmitterX86::emit(const MoveResolver &moves)
             }
 
             
-            breakCycle(to, move.type());
+            breakCycle(to, move.endCycleType());
             inCycle_ = true;
         }
 
@@ -256,7 +256,9 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Type type)
       case MoveOp::INT32:
 #endif
       case MoveOp::GENERAL:
+        JS_ASSERT(pushedAtCycle_ == -1);
         masm.Push(toOperand(to));
+        pushedAtCycle_ = masm.framePushed();
         break;
       default:
         MOZ_ASSUME_UNREACHABLE("Unexpected move type");
@@ -266,6 +268,8 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Type type)
 void
 MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
 {
+    JS_ASSERT(pushedAtCycle_ != -1);
+
     
     
     
@@ -274,6 +278,7 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
     
     switch (type) {
       case MoveOp::FLOAT32:
+        JS_ASSERT(pushedAtCycle_ - pushedAtStart_ >= sizeof(float));
         if (to.isMemory()) {
             masm.loadFloat32(cycleSlot(), ScratchFloatReg);
             masm.storeFloat32(ScratchFloatReg, toAddress(to));
@@ -282,6 +287,7 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
         }
         break;
       case MoveOp::DOUBLE:
+        JS_ASSERT(pushedAtCycle_ - pushedAtStart_ >= sizeof(double));
         if (to.isMemory()) {
             masm.loadDouble(cycleSlot(), ScratchFloatReg);
             masm.storeDouble(ScratchFloatReg, toAddress(to));
@@ -291,6 +297,7 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
         break;
 #ifdef JS_CPU_X64
       case MoveOp::INT32:
+        JS_ASSERT(pushedAtCycle_ - pushedAtStart_ >= sizeof(int32_t));
         
         if (to.isMemory()) {
             masm.load32(cycleSlot(), ScratchReg);
@@ -304,11 +311,13 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
       case MoveOp::INT32:
 #endif
       case MoveOp::GENERAL:
+        JS_ASSERT(pushedAtCycle_ - pushedAtStart_ >= sizeof(intptr_t));
         if (to.isMemory()) {
             masm.Pop(toPopOperand(to));
         } else {
             masm.Pop(to.reg());
         }
+        pushedAtCycle_ = -1;
         break;
       default:
         MOZ_ASSUME_UNREACHABLE("Unexpected move type");

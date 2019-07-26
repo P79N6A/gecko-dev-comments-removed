@@ -113,8 +113,8 @@ MoveResolver::resolve()
                     
                     
                     
-                    pm->setInCycle();
-                    blocking->setInCycle();
+                    pm->setCycleEnd();
+                    blocking->setCycleBegin(pm->type());
                     hasCycles_ = true;
                     pending_.remove(blocking);
                     stack.pushBack(blocking);
