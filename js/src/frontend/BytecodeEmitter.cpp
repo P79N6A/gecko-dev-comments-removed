@@ -6027,6 +6027,11 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         JS_ASSERT(pn->getArity() == PN_NULLARY);
         break;
 
+      case PNK_MODULE:
+        
+        bce->reportError(NULL, JSMSG_SYNTAX_ERROR);
+        return false;
+
       default:
         JS_ASSERT(0);
     }
