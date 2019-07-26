@@ -113,7 +113,7 @@ public:
 
 
   explicit MediaStreamGraphImpl(bool aRealtime);
-  ~MediaStreamGraphImpl();
+  virtual ~MediaStreamGraphImpl();
 
   
   
