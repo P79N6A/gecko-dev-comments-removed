@@ -67,6 +67,34 @@ struct IsPointer<T*> : TrueType {};
 
 
 
+template<typename T>
+struct IsPod : public FalseType {};
+
+template<> struct IsPod<char>               : TrueType {};
+template<> struct IsPod<signed char>        : TrueType {};
+template<> struct IsPod<unsigned char>      : TrueType {};
+template<> struct IsPod<short>              : TrueType {};
+template<> struct IsPod<unsigned short>     : TrueType {};
+template<> struct IsPod<int>                : TrueType {};
+template<> struct IsPod<unsigned int>       : TrueType {};
+template<> struct IsPod<long>               : TrueType {};
+template<> struct IsPod<unsigned long>      : TrueType {};
+template<> struct IsPod<long long>          : TrueType {};
+template<> struct IsPod<unsigned long long> : TrueType {};
+template<> struct IsPod<bool>               : TrueType {};
+template<> struct IsPod<float>              : TrueType {};
+template<> struct IsPod<double>             : TrueType {};
+template<> struct IsPod<wchar_t>            : TrueType {};
+template<typename T> struct IsPod<T*>       : TrueType {};
+
+
+
+
+
+
+
+
+
 
 
 
@@ -257,34 +285,6 @@ struct Conditional<false, A, B>
 {
     typedef B Type;
 };
-
-
-
-
-
-
-
-
-
-template<typename T>
-struct IsPod : public FalseType {};
-
-template<> struct IsPod<char>               : TrueType {};
-template<> struct IsPod<signed char>        : TrueType {};
-template<> struct IsPod<unsigned char>      : TrueType {};
-template<> struct IsPod<short>              : TrueType {};
-template<> struct IsPod<unsigned short>     : TrueType {};
-template<> struct IsPod<int>                : TrueType {};
-template<> struct IsPod<unsigned int>       : TrueType {};
-template<> struct IsPod<long>               : TrueType {};
-template<> struct IsPod<unsigned long>      : TrueType {};
-template<> struct IsPod<long long>          : TrueType {};
-template<> struct IsPod<unsigned long long> : TrueType {};
-template<> struct IsPod<bool>               : TrueType {};
-template<> struct IsPod<float>              : TrueType {};
-template<> struct IsPod<double>             : TrueType {};
-template<> struct IsPod<wchar_t>            : TrueType {};
-template<typename T> struct IsPod<T*>       : TrueType {};
 
 } 
 
