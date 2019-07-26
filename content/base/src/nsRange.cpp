@@ -500,7 +500,27 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
         newRoot = IsValidBoundary(newEndNode);
       }
     }
+    
+    
+    
+    
+    
+    
+    nsINode* parentNode = aContent->GetParentNode();
+    if (parentNode == mStartParent && mStartOffset > 0 &&
+        mStartOffset < parentNode->GetChildCount() &&
+        removed == parentNode->GetChildAt(mStartOffset)) {
+      newStartNode = aContent;
+      newStartOffset = aInfo->mChangeStart;
+    }
+    if (parentNode == mEndParent && mEndOffset > 0 &&
+        mEndOffset < parentNode->GetChildCount() &&
+        removed == parentNode->GetChildAt(mEndOffset)) {
+      newEndNode = aContent;
+      newEndOffset = aInfo->mChangeEnd;
+    }
   }
+
   if (newStartNode || newEndNode) {
     if (!newStartNode) {
       newStartNode = mStartParent;
