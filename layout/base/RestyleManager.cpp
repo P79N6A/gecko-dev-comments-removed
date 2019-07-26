@@ -849,7 +849,7 @@ RestyleManager::RestyleElement(Element*        aElement,
                                nsIFrame*       aPrimaryFrame,
                                nsChangeHint    aMinHint,
                                RestyleTracker& aRestyleTracker,
-                               bool            aRestyleDescendants)
+                               nsRestyleHint   aRestyleHint)
 {
   NS_ASSERTION(aPrimaryFrame == aElement->GetPrimaryFrame(),
                "frame/content mismatch");
@@ -886,7 +886,7 @@ RestyleManager::RestyleElement(Element*        aElement,
   } else if (aPrimaryFrame) {
     nsStyleChangeList changeList;
     ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint,
-                          aRestyleTracker, aRestyleDescendants);
+                          aRestyleTracker, aRestyleHint);
     ProcessRestyledFrames(changeList);
   } else {
     
@@ -1422,7 +1422,7 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
   
   ComputeStyleChangeFor(mPresContext->PresShell()->GetRootFrame(),
                         &changeList, aExtraHint,
-                        aRestyleTracker, true);
+                        aRestyleTracker, eRestyle_Subtree);
   
   ProcessRestyledFrames(changeList);
   FlushOverflowChangedTracker();
@@ -2301,6 +2301,9 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   NS_ASSERTION(!GetPrevContinuationWithSameStyle(mFrame),
                "should not be trying to restyle this frame separately");
 
+  MOZ_ASSERT(!(aRestyleHint & eRestyle_LaterSiblings),
+             "eRestyle_LaterSiblings must not be part of aRestyleHint");
+
   if (mContent && mContent->IsElement()) {
     mContent->OwnerDoc()->FlushPendingLinkUpdates();
     RestyleTracker::RestyleData restyleData;
@@ -2336,6 +2339,9 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
 void
 ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
 {
+  MOZ_ASSERT(!(aRestyleHint & eRestyle_LaterSiblings),
+             "eRestyle_LaterSiblings must not be part of aRestyleHint");
+
   
   
   
@@ -2929,7 +2935,7 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
                                       nsStyleChangeList* aChangeList,
                                       nsChangeHint       aMinChange,
                                       RestyleTracker&    aRestyleTracker,
-                                      bool               aRestyleDescendants)
+                                      nsRestyleHint      aRestyleHint)
 {
   PROFILER_LABEL("RestyleManager", "ComputeStyleChangeFor",
     js::ProfileEntry::Category::CSS);
@@ -2978,7 +2984,7 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
                                treeMatchContext,
                                visibleKidsOfHiddenElement);
 
-      restyler.Restyle(aRestyleDescendants ? eRestyle_Subtree : eRestyle_Self);
+      restyler.Restyle(aRestyleHint);
 
       if (restyler.HintsHandledForFrame() & nsChangeHint_ReconstructFrame) {
         
