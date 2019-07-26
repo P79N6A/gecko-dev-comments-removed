@@ -33,7 +33,7 @@ let run_promise_tests = function run_promise_tests(tests, cb) {
 
 let make_promise_test = function(test) {
   return function runtest() {
-    do_print("Test starting: " + test);
+    do_print("Test starting: " + test.name);
     try {
       let result = test();
       if (result && "promise" in result) {
@@ -42,7 +42,7 @@ let make_promise_test = function(test) {
       if (!result || !("then" in result)) {
         let exn;
         try {
-          do_throw("Test " + test + " did not return a promise: " + result);
+          do_throw("Test " + test.name + " did not return a promise: " + result);
         } catch (x) {
           exn = x;
         }
@@ -52,7 +52,7 @@ let make_promise_test = function(test) {
       result = result.then(
         
         function onResolve() {
-          do_print("Test complete: " + test);
+          do_print("Test complete: " + test.name);
         },
         
         function onReject(err) {
@@ -62,13 +62,13 @@ let make_promise_test = function(test) {
           } else {
             detail = "(no stack)";
           }
-          do_throw("Test " + test + " rejected with the following reason: "
+          do_throw("Test " + test.name + " rejected with the following reason: "
               + err + detail);
       });
       return result;
     } catch (x) {
       
-      do_throw("Error in body of test " + test + ": " + x + " at " + x.stack);
+      do_throw("Error in body of test " + test.name + ": " + x + " at " + x.stack);
       return Promise.reject();
     }
   };
@@ -714,6 +714,124 @@ tests.push(
       });
   }));
 
+function wait_for_uncaught(aMustAppear, aTimeout = undefined) {
+  let remaining = new Set();
+  for (let k of aMustAppear) {
+    remaining.add(k);
+  }
+  let deferred = Promise.defer();
+  let print = do_print;
+  let execute_soon = do_execute_soon;
+  let observer = function(aMessage) {
+    execute_soon(function() {
+      let message = aMessage.message;
+      print("Observing " + message);
+      for (let expected of remaining) {
+        if (message.indexOf(expected) != -1) {
+          print("I found " + expected);
+          remaining.delete(expected);
+        }
+      }
+      if (remaining.size == 0 && observer) {
+        Services.console.unregisterListener(observer);
+        observer = null;
+        deferred.resolve();
+      }
+    });
+  };
+  Services.console.registerListener(observer);
+  if (aTimeout) {
+    do_timeout(aTimeout, function timeout() {
+      if (observer) {
+        Services.console.unregisterListener(observer);
+        observer = null;
+      }
+      deferred.reject(new Error("Timeout"));
+    });
+  }
+  return deferred.promise;
+}
+
+
+(function() {
+  let make_string_rejection = function make_string_rejection() {
+    let salt = (Math.random() * ( Math.pow(2, 24) - 1 ));
+    let string = "This is an uncaught rejection " + salt;
+    return {mustFind: [string], error: string};
+  };
+  let make_num_rejection = function make_num_rejection() {
+    let salt = (Math.random() * ( Math.pow(2, 24) - 1 ));
+    return {mustFind: [salt], error: salt};
+  };
+  let make_undefined_rejection = function make_undefined_rejection() {
+    return {mustFind: [], error: undefined};
+  };
+  let make_error_rejection = function make_error_rejection() {
+    let salt = (Math.random() * ( Math.pow(2, 24) - 1 ));
+    let error = new Error("This is an uncaught error " + salt);
+    return {
+      mustFind: [error.message, error.fileName, error.lineNumber, error.stack],
+      error: error
+    };
+  };
+  for (let make_rejection of [make_string_rejection,
+    make_num_rejection,
+    make_undefined_rejection,
+    make_error_rejection]) {
+      let {mustFind, error} = make_rejection();
+      let name = make_rejection.name;
+      tests.push(make_promise_test(function test_uncaught_is_reported() {
+        do_print("Testing with rejection " + name);
+        let promise = wait_for_uncaught(mustFind);
+        (function() {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          for (let i = 0; i < 100; ++i) {
+            Promise.reject(error);
+          }
+        })();
+        Components.utils.forceGC();
+        Components.utils.forceCC();
+        Components.utils.forceShrinkingGC();
+        return promise;
+      }));
+  }
+})();
+
+
+
+tests.push(
+make_promise_test(function test_caught_is_not_reported() {
+  let salt = (Math.random() * ( Math.pow(2, 24) - 1 ));
+  let promise = wait_for_uncaught([salt], 500);
+  (function() {
+    let uncaught = Promise.reject("This error, on the other hand, is caught " + salt);
+    uncaught.then(null, function() { });
+    uncaught = null;
+  })();
+  
+  
+  Components.utils.forceGC();
+
+  return promise.then(function onSuccess() {
+    throw new Error("This error was caught and should not have been reported");
+  }, function onError() {
+    do_print("The caught error was not reported, all is fine");
+  }
+  );
+}));
 
 function run_test()
 {

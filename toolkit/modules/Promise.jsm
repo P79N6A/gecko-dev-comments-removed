@@ -98,6 +98,7 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const STATUS_PENDING = 0;
 const STATUS_RESOLVED = 1;
@@ -113,6 +114,127 @@ const Name = (n) => "{private:" + n + ":" + salt + "}";
 const N_STATUS = Name("status");
 const N_VALUE = Name("value");
 const N_HANDLERS = Name("handlers");
+const N_WITNESS = Name("witness");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
+                                   "@mozilla.org/toolkit/finalizationwitness;1",
+                                   "nsIFinalizationWitnessService");
+
+let PendingErrors = {
+  _counter: 0,
+  _map: new Map(),
+  register: function(error) {
+    let id = "pending-error-" + (this._counter++);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let value = {
+      date: new Date(),
+      message: "" + error,
+      fileName: null,
+      stack: null,
+      lineNumber: null
+    };
+    try { 
+      if (typeof error == "object" && error) {
+        for (let k of ["fileName", "stack", "lineNumber"]) {
+          try { 
+            let v = error[k];
+            value[k] = v ? ("" + v):null;
+          } catch (ex) {
+            
+          }
+        }
+      }
+    } catch (ex) {
+      
+    }
+    this._map.set(id, value);
+    return id;
+  },
+  extract: function(id) {
+    let value = this._map.get(id);
+    this._map.delete(id);
+    return value;
+  },
+  unregister: function(id) {
+    this._map.delete(id);
+  }
+};
+
+
+Services.obs.addObserver(function observe(aSubject, aTopic, aValue) {
+  let error = PendingErrors.extract(aValue);
+  let {message, date, fileName, stack, lineNumber} = error;
+  let error = Cc['@mozilla.org/scripterror;1'].createInstance(Ci.nsIScriptError);
+  if (!error || !Services.console) {
+    
+    dump("*************************\n");
+    dump("A promise chain failed to handle a rejection\n\n");
+    dump("On: " + date + "\n");
+    dump("Full message: " + message + "\n");
+    dump("See https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n");
+    dump("Full stack: " + (stack||"not available") + "\n");
+    dump("*************************\n");
+    return;
+  }
+  if (stack) {
+    message += " at " + stack;
+  }
+  error.init(
+             "A promise chain failed to handle a rejection: on " +
+               date + ", " + message,
+              fileName,
+              lineNumber?("" + lineNumber):0,
+              lineNumber || 0,
+              0,
+              Ci.nsIScriptError.errorFlag,
+              "chrome javascript");
+  Services.console.logMessage(error);
+}, "promise-finalization-witness", false);
+
+
 
 
 
@@ -283,6 +405,13 @@ this.PromiseWalker = {
     aPromise[N_VALUE] = aValue;
     if (aPromise[N_HANDLERS].length > 0) {
       this.schedulePromise(aPromise);
+    } else if (aStatus == STATUS_REJECTED) {
+      
+      
+      let id = PendingErrors.register(aValue);
+      let witness =
+          FinalizationWitnessService.make("promise-finalization-witness", id);
+      aPromise[N_WITNESS] = [id, witness];
     }
   },
 
@@ -456,6 +585,15 @@ function PromiseImpl()
 
   Object.defineProperty(this, N_HANDLERS, { value: [] });
 
+  
+
+
+
+
+
+
+  Object.defineProperty(this, N_WITNESS, { writable: true });
+
   Object.seal(this);
 }
 
@@ -511,6 +649,15 @@ PromiseImpl.prototype = {
     
     
     if (this[N_STATUS] != STATUS_PENDING) {
+
+      
+      if (this[N_WITNESS] != null) {
+        let [id, witness] = this[N_WITNESS];
+        this[N_WITNESS] = null;
+        witness.forget();
+        PendingErrors.unregister(id);
+      }
+
       PromiseWalker.schedulePromise(this);
     }
 
@@ -588,12 +735,15 @@ Handler.prototype = {
         
         
 
+        dump("*************************\n");
         dump("A coding exception was thrown in a Promise " +
              ((nextStatus == STATUS_RESOLVED) ? "resolution":"rejection") +
-             " callback.\n");
+             " callback.\n\n");
         dump("Full message: " + ex + "\n");
         dump("See https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n");
         dump("Full stack: " + (("stack" in ex)?ex.stack:"not available") + "\n");
+        dump("*************************\n");
+
       }
 
       
