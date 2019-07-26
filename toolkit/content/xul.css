@@ -815,12 +815,7 @@ textbox[type="number"] {
 
 
 
-
-%ifdef MOZ_THUNDERBIRD
-%define AUTOCOMPLETE_OLD_STYLE
-%elifdef MOZ_STANDALONE_COMPOSER
-%define AUTOCOMPLETE_OLD_STYLE
-%elifdef MOZ_SUITE
+%ifdef MOZ_SUITE
 %define AUTOCOMPLETE_OLD_STYLE
 %endif
 
