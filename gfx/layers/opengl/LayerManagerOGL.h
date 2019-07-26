@@ -361,6 +361,15 @@ public:
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat);
 
+  
+
+
+
+
+
+
+  float ComputeRenderIntegrity();
+
 private:
   
   nsIWidget *mWidget;
@@ -439,6 +448,15 @@ private:
 
 
   void AddPrograms(gl::ShaderProgramType aType);
+
+  
+
+
+
+
+  static void ComputeRenderIntegrityInternal(Layer* aLayer,
+                                             nsIntRegion& aScreenRegion,
+                                             const gfx3DMatrix& aTransform);
 
   
 

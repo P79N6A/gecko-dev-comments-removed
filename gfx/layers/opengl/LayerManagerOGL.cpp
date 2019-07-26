@@ -1453,5 +1453,87 @@ LayerManagerOGL::CreateDrawTarget(const IntSize &aSize,
   return LayerManager::CreateDrawTarget(aSize, aFormat);
 }
 
+ void
+LayerManagerOGL::ComputeRenderIntegrityInternal(Layer* aLayer,
+                                                nsIntRegion& aScreenRegion,
+                                                const gfx3DMatrix& aTransform)
+{
+  if (aScreenRegion.IsEmpty() || aLayer->GetOpacity() <= 0.f) {
+    return;
+  }
+
+  
+  ContainerLayer* container = aLayer->AsContainerLayer();
+  if (container) {
+    
+    gfx3DMatrix transform = aTransform;
+    if (container->UseIntermediateSurface()) {
+      transform = aLayer->GetEffectiveTransform();
+      transform.PreMultiply(aTransform);
+    }
+    for (Layer* child = aLayer->GetFirstChild(); child;
+         child = child->GetNextSibling()) {
+      ComputeRenderIntegrityInternal(child, aScreenRegion, transform);
+    }
+    return;
+  }
+
+  
+  ThebesLayer* thebesLayer = aLayer->AsThebesLayer();
+  if (!thebesLayer) {
+    return;
+  }
+
+  
+  nsIntRegion incompleteRegion = aLayer->GetEffectiveVisibleRegion();
+  incompleteRegion.Sub(incompleteRegion, thebesLayer->GetValidRegion());
+
+  if (!incompleteRegion.IsEmpty()) {
+    
+    gfx3DMatrix transformToScreen = aLayer->GetEffectiveTransform();
+    transformToScreen.PreMultiply(aTransform);
+
+    
+    
+    nsIntRegionRectIterator it(incompleteRegion);
+    while (const nsIntRect* rect = it.Next()) {
+      gfxRect incompleteRect = transformToScreen.TransformBounds(gfxRect(*rect));
+      aScreenRegion.Sub(aScreenRegion, nsIntRect(incompleteRect.x,
+                                                 incompleteRect.y,
+                                                 incompleteRect.width,
+                                                 incompleteRect.height));
+    }
+  }
+}
+
+float
+LayerManagerOGL::ComputeRenderIntegrity()
+{
+  
+  if (!gfxPlatform::UseProgressiveTilePainting() || !GetRoot()) {
+    return 1.f;
+  }
+
+  
+  gfx3DMatrix transform;
+  nsIntRect screenRect(0, 0, mWidgetSize.width, mWidgetSize.height);
+  nsIntRegion screenRegion(screenRect);
+  ComputeRenderIntegrityInternal(GetRoot(), screenRegion, transform);
+
+  if (!screenRegion.IsEqual(screenRect)) {
+    
+    
+    int area = 0;
+    nsIntRegionRectIterator it(screenRegion);
+    while (const nsIntRect* rect = it.Next()) {
+      area += rect->width * rect->height;
+    }
+
+    return area / (float)(screenRect.width * screenRect.height);
+  }
+
+  return 1.f;
+}
+
 } 
 } 
