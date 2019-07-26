@@ -508,6 +508,11 @@ MediaDecodeTask::Decode()
 
   mBufferDecoder->BeginDecoding(NS_GetCurrentThread());
 
+  
+  
+  
+  mDecoderReader->SetIgnoreAudioOutputFormat();
+
   mDecoderReader->OnDecodeThreadStart();
 
   VideoInfo videoInfo;
