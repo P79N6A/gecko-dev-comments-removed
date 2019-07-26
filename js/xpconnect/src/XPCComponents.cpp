@@ -4721,7 +4721,10 @@ nsXPCComponents::GetProperty(nsIXPConnectWrappedNative *wrapper,
 
     nsresult rv = NS_OK;
     if (doResult) {
-        *vp = JS_NumberValue((double) res);
+        
+        
+        
+        *vp = JS_NumberValue((double)(uint32_t) res);
         rv = NS_SUCCESS_I_DID_SOMETHING;
     }
 
