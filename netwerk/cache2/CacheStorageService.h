@@ -103,6 +103,7 @@ private:
 private:
   
   friend class CacheStorage;
+  friend class CacheFileIOManager;
 
   
 
@@ -136,6 +137,14 @@ private:
   nsresult WalkStorageEntries(CacheStorage const* aStorage,
                               bool aVisitEntries,
                               nsICacheStorageVisitor* aVisitor);
+
+  
+
+
+
+
+  nsresult CacheFileDoomed(nsILoadContextInfo* aLoadContextInfo,
+                           const nsACString & aURL);
 
 private:
   friend class CacheMemoryConsumer;

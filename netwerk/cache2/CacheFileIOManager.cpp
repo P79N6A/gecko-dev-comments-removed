@@ -9,8 +9,10 @@
 #include "CacheHashUtils.h"
 #include "CacheStorageService.h"
 #include "CacheIndex.h"
+#include "CacheFileUtils.h"
 #include "nsThreadUtils.h"
 #include "CacheFile.h"
+#include "CacheObserver.h"
 #include "nsIFile.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/DebugOnly.h"
@@ -36,6 +38,7 @@ namespace net {
 
 #define kOpenHandlesLimit   64
 #define kMetadataWriteDelay 5000
+#define kEvictionLoopLimit  40       // in milliseconds
 
 bool
 CacheFileHandle::DispatchRelease()
@@ -480,32 +483,7 @@ public:
     if (mTarget) {
       mRV = NS_OK;
 
-      if (mFlags & CacheFileIOManager::SPECIAL_FILE) {
-      }
-      else if (mFlags & CacheFileIOManager::NOHASH) {
-        nsACString::const_char_iterator begin, end;
-        begin = mKey.BeginReading();
-        end = mKey.EndReading();
-        uint32_t i = 0;
-        while (begin != end && i < (SHA1Sum::HashSize << 1)) {
-          if (!(i & 1))
-            mHash[i >> 1] = 0;
-          uint8_t shift = (i & 1) ? 0 : 4;
-          if (*begin >= '0' && *begin <= '9')
-            mHash[i >> 1] |= (*begin - '0') << shift;
-          else if (*begin >= 'A' && *begin <= 'F')
-            mHash[i >> 1] |= (*begin - 'A' + 10) << shift;
-          else
-            break;
-
-          ++i;
-          ++begin;
-        }
-
-        if (i != (SHA1Sum::HashSize << 1) || begin != end)
-          mRV = NS_ERROR_INVALID_ARG;
-      }
-      else {
+      if (!(mFlags & CacheFileIOManager::SPECIAL_FILE)) {
         SHA1Sum sum;
         sum.update(mKey.BeginReading(), mKey.Length());
         sum.finish(mHash);
@@ -1043,6 +1021,7 @@ NS_IMPL_ISUPPORTS1(CacheFileIOManager, nsITimerCallback)
 CacheFileIOManager::CacheFileIOManager()
   : mShuttingDown(false)
   , mTreeCreated(false)
+  , mOverLimitEvicting(false)
 {
   LOG(("CacheFileIOManager::CacheFileIOManager [this=%p]", this));
   MOZ_COUNT_CTOR(CacheFileIOManager);
@@ -1781,6 +1760,7 @@ CacheFileIOManager::WriteInternal(CacheFileHandle *aHandle, int64_t aOffset,
     if (!aHandle->IsDoomed() && !aHandle->IsSpecialFile()) {
       uint32_t size = aHandle->FileSizeInK();
       CacheIndex::UpdateEntry(aHandle->Hash(), nullptr, nullptr, &size);
+      EvictIfOverLimitInternal();
     }
   }
 
@@ -1861,6 +1841,20 @@ CacheFileIOManager::DoomFileInternal(CacheFileHandle *aHandle)
     CacheIndex::RemoveEntry(aHandle->Hash());
 
   aHandle->mIsDoomed = true;
+
+  if (!aHandle->IsSpecialFile()) {
+    nsRefPtr<CacheStorageService> storageService = CacheStorageService::Self();
+    if (storageService) {
+      nsAutoCString url;
+      nsCOMPtr<nsILoadContextInfo> info;
+      rv = CacheFileUtils::ParseKey(aHandle->Key(), getter_AddRefs(info), &url);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      if (NS_SUCCEEDED(rv)) {
+        storageService->CacheFileDoomed(info, url);
+      }
+    }
+  }
+
   return NS_OK;
 }
 
@@ -2155,6 +2149,181 @@ CacheFileIOManager::RenameFileInternal(CacheFileHandle *aHandle,
   NS_ENSURE_SUCCESS(rv, rv);
 
   aHandle->mKey = aNewName;
+  return NS_OK;
+}
+
+nsresult
+CacheFileIOManager::EvictIfOverLimit()
+{
+  LOG(("CacheFileIOManager::EvictIfOverLimit()"));
+
+  nsresult rv;
+  nsRefPtr<CacheFileIOManager> ioMan = gInstance;
+
+  if (!ioMan)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  nsCOMPtr<nsIRunnable> ev;
+  ev = NS_NewRunnableMethod(ioMan,
+                            &CacheFileIOManager::EvictIfOverLimitInternal);
+
+  rv = ioMan->mIOThread->Dispatch(ev, CacheIOThread::EVICT);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+CacheFileIOManager::EvictIfOverLimitInternal()
+{
+  LOG(("CacheFileIOManager::EvictIfOverLimitInternal()"));
+
+  nsresult rv;
+
+  MOZ_ASSERT(mIOThread->IsCurrentThread());
+
+  if (mShuttingDown)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  if (mOverLimitEvicting) {
+    LOG(("CacheFileIOManager::EvictIfOverLimitInternal() - Eviction already "
+         "running."));
+    return NS_OK;
+  }
+
+  uint32_t cacheUsage;
+  rv = CacheIndex::GetCacheSize(&cacheUsage);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  uint32_t cacheLimit = CacheObserver::DiskCacheCapacity() >> 10;
+  if (cacheUsage <= cacheLimit) {
+    LOG(("CacheFileIOManager::EvictIfOverLimitInternal() - Cache size under "
+         "limit. [cacheSize=%u, limit=%u]", cacheUsage, cacheLimit));
+    return NS_OK;
+  }
+
+  LOG(("CacheFileIOManager::EvictIfOverLimitInternal() - Cache size exceeded "
+       "limit. Starting overlimit eviction. [cacheSize=%u, limit=%u]",
+       cacheUsage, cacheLimit));
+
+  nsCOMPtr<nsIRunnable> ev;
+  ev = NS_NewRunnableMethod(this,
+                            &CacheFileIOManager::OverLimitEvictionInternal);
+
+  rv = mIOThread->Dispatch(ev, CacheIOThread::EVICT);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mOverLimitEvicting = true;
+  return NS_OK;
+}
+
+nsresult
+CacheFileIOManager::OverLimitEvictionInternal()
+{
+  LOG(("CacheFileIOManager::OverLimitEvictionInternal()"));
+
+  nsresult rv;
+
+  
+  
+  
+  
+  
+  mOverLimitEvicting = false;
+
+  if (mShuttingDown)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  TimeStamp start;
+
+  while (true) {
+    uint32_t cacheUsage;
+    rv = CacheIndex::GetCacheSize(&cacheUsage);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    uint32_t cacheLimit = CacheObserver::DiskCacheCapacity() >> 10;
+    if (cacheUsage <= cacheLimit) {
+      LOG(("CacheFileIOManager::OverLimitEvictionInternal() - Cache size under "
+           "limit. [cacheSize=%u, limit=%u]", cacheUsage, cacheLimit));
+      return NS_OK;
+    }
+
+    LOG(("CacheFileIOManager::OverLimitEvictionInternal() - Cache size over "
+         "limit. [cacheSize=%u, limit=%u]", cacheUsage, cacheLimit));
+
+    if (start.IsNull()) {
+      start = TimeStamp::NowLoRes();
+    } else {
+      TimeDuration elapsed = TimeStamp::NowLoRes() - start;
+      if (elapsed.ToMilliseconds() >= kEvictionLoopLimit) {
+        LOG(("CacheFileIOManager::OverLimitEvictionInternal() - Breaking loop "
+             "after %u ms.", static_cast<uint32_t>(elapsed.ToMilliseconds())));
+        break;
+      }
+    }
+
+    SHA1Sum::Hash hash;
+    uint32_t cnt;
+    static uint32_t consecutiveFailures = 0;
+    rv = CacheIndex::GetEntryForEviction(&hash, &cnt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = DoomFileByKeyInternal(&hash);
+    if (NS_SUCCEEDED(rv)) {
+      consecutiveFailures = 0;
+    }
+    else if (rv == NS_ERROR_NOT_AVAILABLE) {
+      LOG(("CacheFileIOManager::OverLimitEvictionInternal() - "
+           "DoomFileByKeyInternal() failed. [rv=0x%08x]", rv));
+      
+
+      
+      CacheIndex::RemoveEntry(&hash);
+      consecutiveFailures = 0;
+    }
+    else {
+      
+      
+      NS_WARNING("CacheFileIOManager::OverLimitEvictionInternal() - Unexpected "
+                 "failure of DoomFileByKeyInternal()");
+
+      LOG(("CacheFileIOManager::OverLimitEvictionInternal() - "
+           "DoomFileByKeyInternal() failed. [rv=0x%08x]", rv));
+
+      
+      
+      
+      
+      
+      rv = CacheIndex::EnsureEntryExists(&hash);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      uint32_t frecency = 0;
+      uint32_t expTime = nsICacheEntry::NO_EXPIRATION_TIME;
+      rv = CacheIndex::UpdateEntry(&hash, &frecency, &expTime, nullptr);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      consecutiveFailures++;
+      if (consecutiveFailures >= cnt) {
+        
+        
+        
+        
+        return NS_OK;
+      }
+    }
+  }
+
+  nsCOMPtr<nsIRunnable> ev;
+  ev = NS_NewRunnableMethod(this,
+                            &CacheFileIOManager::OverLimitEvictionInternal);
+
+  rv = mIOThread->Dispatch(ev, CacheIOThread::EVICT);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mOverLimitEvicting = true;
   return NS_OK;
 }
 

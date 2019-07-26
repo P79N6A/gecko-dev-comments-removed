@@ -70,6 +70,7 @@ public:
   bool UsingDisk() const;
   bool SetUsingDisk(bool aUsingDisk);
   bool IsReferenced() const;
+  bool IsFileDoomed();
 
   
   
