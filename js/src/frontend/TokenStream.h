@@ -395,6 +395,46 @@ class StrictModeGetter {
     virtual bool strictMode() = 0;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TokenStream
 {
     
@@ -535,7 +575,7 @@ class TokenStream
 
 
     void ungetToken() {
-        JS_ASSERT(lookahead < ntokensMask);
+        JS_ASSERT(lookahead < maxLookahead);
         lookahead++;
         cursor = (cursor - 1) & ntokensMask;
     }
