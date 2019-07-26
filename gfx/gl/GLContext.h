@@ -505,17 +505,22 @@ protected:
 
 
 public:
-    bool IsSupported(GLFeature::Enum feature) const;
+    bool IsSupported(GLFeature::Enum feature) const {
+        return mAvailableFeatures[feature];
+    }
 
     static const char* GetFeatureName(GLFeature::Enum feature);
 
 
 private:
+    ExtensionBitset<GLFeature::EnumMax> mAvailableFeatures;
 
     
 
 
+    void InitFeatures();
 
+    
 
 
     bool MarkUnsupported(GLFeature::Enum feature);
