@@ -92,19 +92,8 @@ nsHttpChannelAuthProvider::ProcessAuthentication(uint32_t httpStatus,
         if (!mProxyInfo) return NS_ERROR_NO_INTERFACE;
     }
 
-    uint32_t loadFlags;
-    rv = mAuthChannel->GetLoadFlags(&loadFlags);
-    if (NS_FAILED(rv)) return rv;
-
     nsAutoCString challenges;
     mProxyAuth = (httpStatus == 407);
-
-    
-    if ((loadFlags & nsIRequest::LOAD_ANONYMOUS) &&
-        (!mProxyAuth || !UsingHttpProxy())) {
-        LOG(("Skipping authentication for anonymous non-proxy request\n"));
-        return NS_ERROR_NOT_AVAILABLE;
-    }
 
     rv = PrepareForAuthentication(mProxyAuth);
     if (NS_FAILED(rv))
@@ -676,6 +665,10 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
                                  path, ident, continuationState);
     if (NS_FAILED(rv)) return rv;
 
+    uint32_t loadFlags;
+    rv = mAuthChannel->GetLoadFlags(&loadFlags);
+    if (NS_FAILED(rv)) return rv;
+
     if (!proxyAuth) {
         
         
@@ -683,6 +676,18 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
             GetIdentityFromURI(authFlags, mIdent);
             identFromURI = !mIdent.IsEmpty();
         }
+
+        if ((loadFlags & nsIRequest::LOAD_ANONYMOUS) && !identFromURI) {
+            LOG(("Skipping authentication for anonymous non-proxy request\n"));
+            return NS_ERROR_NOT_AVAILABLE;
+        }
+
+        
+        
+    }
+    else if ((loadFlags & nsIRequest::LOAD_ANONYMOUS) && !UsingHttpProxy()) {
+        LOG(("Skipping authentication for anonymous non-proxy request\n"));
+        return NS_ERROR_NOT_AVAILABLE;
     }
 
     
@@ -729,8 +734,9 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
                 }
             }
             else if (!identFromURI ||
-                     nsCRT::strcmp(ident->User(),
-                                   entry->Identity().User()) == 0) {
+                     (nsCRT::strcmp(ident->User(),
+                                    entry->Identity().User()) == 0 &&
+                     !(loadFlags & nsIChannel::LOAD_ANONYMOUS))) {
                 LOG(("  taking identity from auth cache\n"));
                 
                 
