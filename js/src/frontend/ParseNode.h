@@ -523,8 +523,7 @@ class ParseNode
         } binary;
         struct {                        
             ParseNode   *kid;
-            bool        hidden;         
-
+            bool        prologue;       
 
         } unary;
         struct {                        
@@ -575,8 +574,7 @@ class ParseNode
 #define pn_pval         pn_u.binary.pval
 #define pn_iflags       pn_u.binary.iflags
 #define pn_kid          pn_u.unary.kid
-#define pn_hidden       pn_u.unary.hidden
-#define pn_prologue     pn_u.unary.hidden
+#define pn_prologue     pn_u.unary.prologue
 #define pn_atom         pn_u.name.atom
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr

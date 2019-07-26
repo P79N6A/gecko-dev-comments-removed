@@ -6302,7 +6302,6 @@ Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
     pn->setInParens(true);
     pn->pn_pos = kid->pn_pos;
     pn->pn_kid = kid;
-    pn->pn_hidden = true;
 
     
     ParseNode *genfn = CodeNode::create(PNK_FUNCTION, &handler);
