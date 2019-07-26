@@ -4,7 +4,7 @@
 
 
 
-#include "nsSVGTextFrame.h"
+#include "nsSVGTextFrame2.h"
 
 
 #include "DOMSVGPoint.h"
@@ -30,7 +30,7 @@
 #include "nsSVGPaintServerFrame.h"
 #include "nsSVGRect.h"
 #include "nsSVGIntegrationUtils.h"
-#include "nsSVGTextFrame2.h"
+#include "nsSVGTextFrame.h"
 #include "nsSVGTextPathFrame.h"
 #include "nsSVGUtils.h"
 #include "nsTArray.h"
