@@ -4114,6 +4114,12 @@ pref("wap.UAProf.tagname", "x-wap-profile");
 
 
 
+pref("dom.mms.retrieval_mode", "manual");
+
+
+
+
+
 pref("ui.touch_activation.delay_ms", 100);
 
 

@@ -34,6 +34,12 @@ const CONFIG_SEND_REPORT_ALWAYS      = 3;
 const TIME_TO_BUFFER_MMS_REQUESTS    = 30000;
 const TIME_TO_RELEASE_MMS_CONNECTION = 30000;
 
+
+const PREF_RETRIEVAL_MODE = 'dom.mms.retrieval_mode';
+const RETRIEVAL_MODE_MANUAL = "manual";
+const RETRIEVAL_MODE_AUTOMATIC = "automatic";
+const RETRIEVAL_MODE_NEVER = "never";
+
 XPCOMUtils.defineLazyServiceGetter(this, "gpps",
                                    "@mozilla.org/network/protocol-proxy-service;1",
                                    "nsIProtocolProxyService");
@@ -686,6 +692,48 @@ SendTransaction.prototype = {
 
 
 
+
+
+
+
+
+
+
+function AcknowledgeTransaction(transactionId, reportAllowed) {
+  let headers = {};
+
+  
+  headers["x-mms-message-type"] = MMS.MMS_PDU_TYPE_ACKNOWLEDGE_IND;
+  headers["x-mms-transaction-id"] = transactionId;
+  headers["x-mms-mms-version"] = MMS.MMS_VERSION;
+  
+  headers["x-mms-report-allowed"] = reportAllowed;
+
+  this.istream = MMS.PduHelper.compose(null, {headers: headers});
+}
+AcknowledgeTransaction.prototype = {
+  
+
+
+
+  run: function run(callback) {
+    let requestCallback;
+    if (callback) {
+      requestCallback = function (httpStatus, data) {
+        
+        
+        
+        callback(httpStatus);
+      };
+    }
+    gMmsTransactionHelper.sendRequest("POST", gMmsConnection.mmsc,
+                                      this.istream, requestCallback);
+  }
+};
+
+
+
+
 function MmsService() {
   
 }
@@ -755,34 +803,53 @@ MmsService.prototype = {
 
   handleNotificationIndication: function handleNotificationIndication(notification) {
     
-    
 
     let url = notification.headers["x-mms-content-location"].uri;
     
     
-    this.retrieveMessage(url, (function (mmsStatus, retrievedMsg) {
-      debug("retrievedMsg = " + JSON.stringify(retrievedMsg));
-      if (this.isTransientError(mmsStatus)) {
+
+    let retrievalMode = RETRIEVAL_MODE_MANUAL;
+    try {
+      retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
+    } catch (e) {}
+
+    if (RETRIEVAL_MODE_AUTOMATIC === retrievalMode) {
+      this.retrieveMessage(url, (function responseNotify(mmsStatus, retrievedMsg) {
+        debug("retrievedMsg = " + JSON.stringify(retrievedMsg));
+        if (this.isTransientError(mmsStatus)) {
+          
+          return;
+        }
+
+        let transactionId = notification.headers["x-mms-transaction-id"];
+
         
-        return;
-      }
+        let wish = notification.headers["x-mms-delivery-report"];
+        
+        
+        if ((wish == null) && retrievedMsg) {
+          wish = retrievedMsg.headers["x-mms-delivery-report"];
+        }
+        let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport, wish);
 
-      let transactionId = notification.headers["x-mms-transaction-id"];
+        let transaction =
+          new NotifyResponseTransaction(transactionId, mmsStatus, reportAllowed);
+        transaction.run();
+      }).bind(this));
+      return;
+    }
 
-      
-      let wish = notification.headers["x-mms-delivery-report"];
-      
-      
-      if ((wish == null) && retrievedMsg) {
-        wish = retrievedMsg.headers["x-mms-delivery-report"];
-      }
-      let reportAllowed =
-        this.getReportAllowed(this.confSendDeliveryReport, wish);
+    let transactionId = notification.headers["x-mms-transaction-id"];
+    let mmsStatus = RETRIEVAL_MODE_NEVER === retrievalMode ?
+        MMS.MMS_PDU_STATUS_REJECTED : MMS.MMS_PDU_STATUS_DEFERRED;
+    
+    let wish = notification.headers["x-mms-delivery-report"];
+    let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport, wish);
 
-      let transaction =
-        new NotifyResponseTransaction(transactionId, mmsStatus, reportAllowed);
-      transaction.run();
-    }).bind(this));
+    let transaction = new NotifyResponseTransaction(transactionId,
+                                                    mmsStatus,
+                                                    reportAllowed);
+    transaction.run();
   },
 
   
