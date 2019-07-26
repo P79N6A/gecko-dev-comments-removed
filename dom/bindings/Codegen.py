@@ -3874,19 +3874,25 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                           "${declName}.SetNull();\n",
                                           notMozMap)
 
+        declType = typeName
+        declArgs = None
+        holderType = None
+        holderArgs = None
         
         
-        if not isMember and typeNeedsRooting(valueType):
+        if not isMember and isCallbackReturnValue:
+            
+            declType = CGWrapper(declType, post="&")
+            declArgs = "aRetVal"
+        elif not isMember and typeNeedsRooting(valueType):
             holderType = CGTemplatedType("MozMapRooter", valueInfo.declType)
             
             
             
             holderArgs = "cx, &%s" % mozMapRef
-        else:
-            holderType = None
-            holderArgs = None
 
-        return JSToNativeConversionInfo(templateBody, declType=typeName,
+        return JSToNativeConversionInfo(templateBody, declType=declType,
+                                        declArgs=declArgs,
                                         holderType=holderType,
                                         dealWithOptional=isOptional,
                                         holderArgs=holderArgs)
@@ -11534,6 +11540,13 @@ class CGNativeMember(ClassMethod):
             else:
                 returnCode = "aRetVal.SwapElements(${declName});\n"
             return "void", "", returnCode
+        if type.isMozMap():
+            
+            
+            
+            assert not isMember
+            
+            return "void", "", ""
         if type.isDate():
             result = CGGeneric("Date")
             if type.nullable():
@@ -11628,7 +11641,8 @@ class CGNativeMember(ClassMethod):
         is a const ref, as well as whether the type should be wrapped in
         Nullable as needed.
 
-        isMember can be false or one of the strings "Sequence" or "Variadic"
+        isMember can be false or one of the strings "Sequence", "Variadic",
+                 "MozMap"
         """
         if type.isArray():
             raise TypeError("Can't handle array arguments yet")
@@ -11640,6 +11654,15 @@ class CGNativeMember(ClassMethod):
             elementType = type.inner
             argType = self.getArgType(elementType, False, "Sequence")[0]
             decl = CGTemplatedType("Sequence", argType)
+            return decl.define(), True, True
+
+        if type.isMozMap():
+            nullable = type.nullable()
+            if nullable:
+                type = type.inner
+            elementType = type.inner
+            argType = self.getArgType(elementType, False, "MozMap")[0]
+            decl = CGTemplatedType("MozMap", argType)
             return decl.define(), True, True
 
         if type.isUnion():
