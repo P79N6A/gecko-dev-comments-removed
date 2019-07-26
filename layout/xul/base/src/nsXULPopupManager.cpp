@@ -1634,6 +1634,9 @@ nsXULPopupManager::UpdateMenuItems(nsIContent* aPopup)
 
           if (commandContent->GetAttr(kNameSpaceID_None, nsGkAtoms::checked, commandValue))
             grandChild->SetAttr(kNameSpaceID_None, nsGkAtoms::checked, commandValue, true);
+
+          if (commandContent->GetAttr(kNameSpaceID_None, nsGkAtoms::hidden, commandValue))
+            grandChild->SetAttr(kNameSpaceID_None, nsGkAtoms::hidden, commandValue, true);
         }
       }
     }
