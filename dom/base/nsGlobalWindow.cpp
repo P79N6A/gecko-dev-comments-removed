@@ -36,6 +36,7 @@
 #include "nsIController.h"
 #include "nsScriptNameSpaceManager.h"
 #include "nsWindowMemoryReporter.h"
+#include "WindowNamedPropertiesHandler.h"
 
 
 #include "nsJSUtils.h"
@@ -1119,6 +1120,11 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
   
   PR_INIT_CLIST(this);
 
+  if (Preferences::GetBool("dom.window_experimental_bindings") ||
+      !aOuterWindow) {
+    SetIsDOMBinding();
+  }
+
   if (aOuterWindow) {
     
     
@@ -1148,7 +1154,6 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     Freeze();
 
     mObserver = nullptr;
-    SetIsDOMBinding();
   }
 
   
@@ -2208,26 +2213,34 @@ CreateNativeGlobalForInner(JSContext* aCx,
     }
   }
 
-  nsIXPConnect* xpc = nsContentUtils::XPConnect();
-
   
   bool needComponents = nsContentUtils::IsSystemPrincipal(aPrincipal) ||
                         TreatAsRemoteXUL(aPrincipal);
   uint32_t flags = needComponents ? 0 : nsIXPConnect::OMIT_COMPONENTS_OBJECT;
   flags |= nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK;
 
-  nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  nsresult rv = xpc->InitClassesWithNewWrappedGlobal(
-    aCx, ToSupports(aNewInner),
-    aPrincipal, flags, options, getter_AddRefs(holder));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  aGlobal.set(holder->GetJSObject());
-
+  if (aNewInner->IsDOMBinding()) {
+    aGlobal.set(WindowBinding::Wrap(aCx, aNewInner, aNewInner, options,
+                                    nsJSPrincipals::get(aPrincipal)));
+    if (!aGlobal || !xpc::InitGlobalObject(aCx, aGlobal, flags)) {
+      return NS_ERROR_FAILURE;
+    }
+  } else {
+    nsIXPConnect* xpc = nsContentUtils::XPConnect();
+    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+    nsresult rv = xpc->InitClassesWithNewWrappedGlobal(
+      aCx, ToSupports(aNewInner),
+      aPrincipal, flags, options, getter_AddRefs(holder));
+    NS_ENSURE_SUCCESS(rv, rv);
   
-  
-  MOZ_ASSERT(aGlobal);
+    aGlobal.set(holder->GetJSObject());
+    MOZ_ASSERT(aGlobal);
+  }
+
   MOZ_ASSERT(aNewInner->GetWrapperPreserveColor() == aGlobal);
+
+  
+  
   xpc::SetLocationForGlobal(aGlobal, aURI);
 
   return NS_OK;
@@ -2536,14 +2549,21 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     if (createdInnerWindow) {
-      nsIXPConnect *xpc = nsContentUtils::XPConnect();
-      nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-      nsresult rv = xpc->GetWrappedNativeOfJSObject(cx, newInnerGlobal,
-                                                    getter_AddRefs(wrapper));
-      NS_ENSURE_SUCCESS(rv, rv);
-      NS_ABORT_IF_FALSE(wrapper, "bad wrapper");
-      rv = wrapper->FinishInitForWrappedGlobal();
-      NS_ENSURE_SUCCESS(rv, rv);
+      if (newInnerWindow->IsDOMBinding()) {
+        JS::Rooted<JSObject*> global(cx, newInnerGlobal);
+        JS::Rooted<JSObject*> proto(cx);
+        JS_GetPrototype(cx, global, &proto);
+        WindowNamedPropertiesHandler::Install(cx, proto);
+      } else {
+        nsIXPConnect *xpc = nsContentUtils::XPConnect();
+        nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+        nsresult rv = xpc->GetWrappedNativeOfJSObject(cx, newInnerGlobal,
+                                                      getter_AddRefs(wrapper));
+        NS_ENSURE_SUCCESS(rv, rv);
+        NS_ABORT_IF_FALSE(wrapper, "bad wrapper");
+        rv = wrapper->FinishInitForWrappedGlobal();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
     }
 
     if (!aState) {
