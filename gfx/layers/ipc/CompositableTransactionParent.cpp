@@ -318,6 +318,11 @@ CompositableParentManager::ReturnTextureDataIfNecessary(CompositableHost* aCompo
         aCompositable->GetCompositableBackendSpecificData()->GetPendingReleaseFenceTextureList();
   
   for (size_t i = 0; i < textureList.size(); i++) {
+    
+    
+    if (mPrevFenceHandles.size() >= 4) {
+      break;
+    }
     TextureHostOGL* hostOGL = textureList[i]->AsHostOGL();
     PTextureParent* actor = textureList[i]->GetIPDLActor();
     if (!hostOGL || !actor) {
