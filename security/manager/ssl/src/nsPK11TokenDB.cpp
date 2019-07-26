@@ -4,6 +4,7 @@
 
 
 #include "nsISupports.h"
+#include "nsISupportsArray.h"
 #include "nsIPK11TokenDB.h"
 #include "prerror.h"
 #include "secerr.h"
