@@ -441,7 +441,6 @@ class JSScript : public js::gc::Cell
 
     bool            hasFreezeConstraints:1; 
 
-    bool            userBit:1; 
 
   private:
     
