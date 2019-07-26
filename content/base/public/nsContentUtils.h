@@ -2110,6 +2110,17 @@ public:
 
   static bool DOMWindowDumpEnabled();
 
+  
+
+
+
+
+
+
+
+
+  static bool IsContentInsertionPoint(const nsIContent* aContent);
+
 private:
   static bool InitializeEventTable();
 

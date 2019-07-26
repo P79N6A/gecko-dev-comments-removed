@@ -39,6 +39,24 @@ public:
 
   nsIContent* GetNextChild();
 
+  
+  
+  
+  
+  bool Seek(nsIContent* aChildToFind, nsIContent* aBound = nullptr)
+  {
+    
+    
+    
+
+    nsIContent* child;
+    do {
+      child = GetNextChild();
+    } while (child && child != aChildToFind && child != aBound);
+
+    return child == aChildToFind;
+  }
+
 protected:
   
   
@@ -83,19 +101,6 @@ public:
   
   
   nsIContent* GetPreviousChild();
-
-  
-  void Seek(nsIContent* aChildToFind)
-  {
-    
-    
-    
-
-    nsIContent* child;
-    do {
-      child = GetNextChild();
-    } while (child && child != aChildToFind);
-  }
 
   bool XBLInvolved() { return mXBLInvolved; }
 

@@ -5,10 +5,58 @@
 
 
 #include "ChildIterator.h"
+#include "nsContentUtils.h"
 #include "mozilla/dom/XBLChildrenElement.h"
+#include "mozilla/dom/HTMLContentElement.h"
 
 namespace mozilla {
 namespace dom {
+
+class MatchedNodes {
+public:
+  MatchedNodes(HTMLContentElement* aInsertionPoint)
+    : mIsContentElement(true), mContentElement(aInsertionPoint) {}
+
+  MatchedNodes(XBLChildrenElement* aInsertionPoint)
+    : mIsContentElement(false), mChildrenElement(aInsertionPoint) {}
+
+  uint32_t Length() const
+  {
+    return mIsContentElement ? mContentElement->MatchedNodes().Length()
+                             : mChildrenElement->mInsertedChildren.Length();
+  }
+
+  nsIContent* operator[](int32_t aIndex) const
+  {
+    return mIsContentElement ? mContentElement->MatchedNodes()[aIndex]
+                             : mChildrenElement->mInsertedChildren[aIndex];
+  }
+
+  bool IsEmpty() const
+  {
+    return mIsContentElement ? mContentElement->MatchedNodes().IsEmpty()
+                             : mChildrenElement->mInsertedChildren.IsEmpty();
+  }
+protected:
+  bool mIsContentElement;
+  union {
+    HTMLContentElement* mContentElement;
+    XBLChildrenElement* mChildrenElement;
+  };
+};
+
+static inline MatchedNodes
+GetMatchedNodesForPoint(nsIContent* aContent)
+{
+  if (aContent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+    
+    return MatchedNodes(static_cast<XBLChildrenElement*>(aContent));
+  }
+
+  
+  MOZ_ASSERT(aContent->IsHTML(nsGkAtoms::content));
+  return MatchedNodes(static_cast<HTMLContentElement*>(aContent));
+}
 
 nsIContent*
 ExplicitChildIterator::GetNextChild()
@@ -16,19 +64,19 @@ ExplicitChildIterator::GetNextChild()
   
   if (mIndexInInserted) {
     MOZ_ASSERT(mChild);
-    MOZ_ASSERT(mChild->IsActiveChildrenElement());
+    MOZ_ASSERT(nsContentUtils::IsContentInsertionPoint(mChild));
     MOZ_ASSERT(!mDefaultChild);
 
-    XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
-    if (mIndexInInserted < point->mInsertedChildren.Length()) {
-      return point->mInsertedChildren[mIndexInInserted++];
+    MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
+    if (mIndexInInserted < assignedChildren.Length()) {
+      return assignedChildren[mIndexInInserted++];
     }
     mIndexInInserted = 0;
     mChild = mChild->GetNextSibling();
   } else if (mDefaultChild) {
     
     MOZ_ASSERT(mChild);
-    MOZ_ASSERT(mChild->IsActiveChildrenElement());
+    MOZ_ASSERT(nsContentUtils::IsContentInsertionPoint(mChild));
 
     mDefaultChild = mDefaultChild->GetNextSibling();
     if (mDefaultChild) {
@@ -44,18 +92,24 @@ ExplicitChildIterator::GetNextChild()
   }
 
   
-  while (mChild && mChild->IsActiveChildrenElement()) {
-    XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
-    if (!point->mInsertedChildren.IsEmpty()) {
+  
+  while (mChild && nsContentUtils::IsContentInsertionPoint(mChild)) {
+    MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
+    if (!assignedChildren.IsEmpty()) {
+      
       mIndexInInserted = 1;
-      return point->mInsertedChildren[0];
+      return assignedChildren[0];
     }
 
+    
+    
     mDefaultChild = mChild->GetFirstChild();
     if (mDefaultChild) {
       return mDefaultChild;
     }
 
+    
+    
     mChild = mChild->GetNextSibling();
   }
 
@@ -109,9 +163,9 @@ nsIContent* FlattenedChildIterator::GetPreviousChild()
   if (mIndexInInserted) {
     
     
-    XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
+    MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
     if (--mIndexInInserted) {
-      return point->mInsertedChildren[mIndexInInserted - 1];
+      return assignedChildren[mIndexInInserted - 1];
     }
     mChild = mChild->GetPreviousSibling();
   } else if (mDefaultChild) {
@@ -131,11 +185,12 @@ nsIContent* FlattenedChildIterator::GetPreviousChild()
   }
 
   
-  while (mChild && mChild->IsActiveChildrenElement()) {
-    XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
-    if (!point->mInsertedChildren.IsEmpty()) {
-      mIndexInInserted = point->InsertedChildrenLength();
-      return point->mInsertedChildren[mIndexInInserted - 1];
+  
+  while (mChild && nsContentUtils::IsContentInsertionPoint(mChild)) {
+    MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
+    if (!assignedChildren.IsEmpty()) {
+      mIndexInInserted = assignedChildren.Length();
+      return assignedChildren[mIndexInInserted - 1];
     }
 
     mDefaultChild = mChild->GetLastChild();
