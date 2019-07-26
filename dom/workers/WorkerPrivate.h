@@ -278,9 +278,6 @@ private:
   nsTArray<nsRefPtr<WorkerRunnable> > mQueuedRunnables;
 
   
-  nsTArray<nsCString> mHostObjectURIs;
-
-  
   JSSettings mJSSettings;
 
   uint64_t mBusyCount;
@@ -618,10 +615,6 @@ public:
   AssertInnerWindowIsCorrect() const
   { }
 #endif
-
-  void RegisterHostObjectURI(const nsACString& aURI);
-  void UnregisterHostObjectURI(const nsACString& aURI);
-  void StealHostObjectURIs(nsTArray<nsCString>& aArray);
 };
 
 class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
