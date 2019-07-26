@@ -1103,6 +1103,8 @@ nsGlobalWindow::FreeInnerObjects()
 
     
     mDocumentPrincipal = mDoc->NodePrincipal();
+    mDocumentURI = mDoc->GetDocumentURI();
+    mDocBaseURI = mDoc->GetDocBaseURI();
   }
 
 #ifdef DEBUG
@@ -2279,6 +2281,8 @@ nsGlobalWindow::DetachFromDocShell()
     
     
     mDocumentPrincipal = mDoc->NodePrincipal();
+    mDocumentURI = mDoc->GetDocumentURI();
+    mDocBaseURI = mDoc->GetDocBaseURI();
 
     
     mDocument = nullptr;
@@ -2797,6 +2801,18 @@ nsGlobalWindow::GetPrincipal()
 
 
 
+
+nsIURI*
+nsPIDOMWindow::GetDocumentURI() const
+{
+  return mDoc ? mDoc->GetDocumentURI() : mDocumentURI.get();
+}
+
+nsIURI*
+nsPIDOMWindow::GetDocBaseURI() const
+{
+  return mDoc ? mDoc->GetDocBaseURI() : mDocBaseURI.get();
+}
 
 void
 nsPIDOMWindow::MaybeCreateDoc()

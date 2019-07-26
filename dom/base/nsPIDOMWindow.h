@@ -180,6 +180,8 @@ public:
   {
     return mDoc;
   }
+  nsIURI* GetDocumentURI() const;
+  nsIURI* GetDocBaseURI() const;
 
   nsIDocument* GetDoc()
   {
@@ -669,6 +671,9 @@ protected:
   nsCOMPtr<nsIDOMEventTarget> mChromeEventHandler; 
   nsCOMPtr<nsIDOMDocument> mDocument; 
   nsCOMPtr<nsIDocument> mDoc; 
+  
+  nsCOMPtr<nsIURI> mDocumentURI; 
+  nsCOMPtr<nsIURI> mDocBaseURI; 
 
   nsCOMPtr<nsIDOMEventTarget> mParentTarget; 
 
