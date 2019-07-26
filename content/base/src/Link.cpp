@@ -91,13 +91,13 @@ Link::LinkState() const
     }
 
     
+    self->mLinkState = eLinkState_Unvisited;
+
+    
     if (mHistory) {
       nsresult rv = mHistory->RegisterVisitedCallback(hrefURI, self);
       if (NS_SUCCEEDED(rv)) {
         self->mRegistered = true;
-
-        
-        self->mLinkState = eLinkState_Unvisited;
 
         
         nsIDocument *doc = element->GetCurrentDoc();
