@@ -6,10 +6,13 @@
 #include "nsPaintRequest.h"
 
 #include "nsDOMClassInfoID.h"
-#include "nsClientRect.h"
 #include "nsIFrame.h"
 #include "nsContentUtils.h"
+#include "mozilla/dom/PaintRequestBinding.h"
 #include "mozilla/dom/PaintRequestListBinding.h"
+
+using namespace mozilla;
+using namespace mozilla::dom;
 
 DOMCI_DATA(PaintRequest, nsPaintRequest)
 
@@ -28,25 +31,29 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsPaintRequest)
  JSObject*
 nsPaintRequest::WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap)
 {
-  *aTriedToWrap = false;
-  return nullptr;
+  return PaintRequestBinding::Wrap(aCx, aScope, this, aTriedToWrap);
+}
+
+already_AddRefed<nsClientRect>
+nsPaintRequest::ClientRect()
+{
+  nsRefPtr<nsClientRect> clientRect = new nsClientRect();
+  clientRect->SetLayoutRect(mRequest.mRect);
+  return clientRect.forget();
 }
 
 NS_IMETHODIMP
 nsPaintRequest::GetClientRect(nsIDOMClientRect** aResult)
 {
-  nsRefPtr<nsClientRect> clientRect = new nsClientRect();
-  if (!clientRect)
-    return NS_ERROR_OUT_OF_MEMORY;
-  clientRect->SetLayoutRect(mRequest.mRect);
+  nsRefPtr<nsClientRect> clientRect = ClientRect();
   clientRect.forget(aResult);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsPaintRequest::GetReason(nsAString& aResult)
+nsPaintRequest::GetXPCOMReason(nsAString& aResult)
 {
-  aResult.AssignLiteral("repaint");
+  GetReason(aResult);
   return NS_OK;
 }
 
