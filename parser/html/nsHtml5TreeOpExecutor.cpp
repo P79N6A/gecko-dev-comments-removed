@@ -95,14 +95,14 @@ nsHtml5TreeOpExecutor::WillParse()
 NS_IMETHODIMP
 nsHtml5TreeOpExecutor::WillBuildModel(nsDTDMode aDTDMode)
 {
+  mDocument->AddObserver(this);
+  WillBuildModelImpl();
+  GetDocument()->BeginLoad();
   if (mDocShell && !GetDocument()->GetWindow() &&
       !IsExternalViewSource()) {
     
     return MarkAsBroken(NS_ERROR_DOM_INVALID_STATE_ERR);
   }
-  mDocument->AddObserver(this);
-  WillBuildModelImpl();
-  GetDocument()->BeginLoad();
   return NS_OK;
 }
 
@@ -111,8 +111,6 @@ nsHtml5TreeOpExecutor::WillBuildModel(nsDTDMode aDTDMode)
 NS_IMETHODIMP
 nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated)
 {
-  NS_PRECONDITION(mStarted, "Bad life cycle.");
-
   if (!aTerminated) {
     
     
@@ -162,7 +160,12 @@ nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated)
     
     return NS_OK;
   }
-  mDocument->EndLoad();
+
+  
+  
+  if (mStarted) {
+    mDocument->EndLoad();
+  }
   DropParserAndPerfHint();
 #ifdef GATHER_DOCWRITE_STATISTICS
   printf("UNSAFE SCRIPTS: %d\n", sUnsafeDocWrites);
