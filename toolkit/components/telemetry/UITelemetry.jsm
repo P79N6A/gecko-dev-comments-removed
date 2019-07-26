@@ -89,6 +89,15 @@ this.UITelemetry = {
 
 
 
+  uptimeMillis: function() {
+    return Date.now() - Services.startup.getStartupInfo().process;
+  },
+
+  
+
+
+
+
 
 
 
@@ -104,7 +113,7 @@ this.UITelemetry = {
       action: aAction,
       method: aMethod,
       sessions: sessions,
-      timestamp: aTimestamp,
+      timestamp: (aTimestamp == undefined) ? this.uptimeMillis() : aTimestamp,
     };
 
     if (aExtras) {
@@ -126,7 +135,7 @@ this.UITelemetry = {
       
       return;
     }
-    this._activeSessions[aName] = aTimestamp;
+    this._activeSessions[aName] = (aTimestamp == undefined) ? this.uptimeMillis() : aTimestamp;
   },
 
   
@@ -149,7 +158,7 @@ this.UITelemetry = {
       name: aName,
       reason: aReason,
       start: sessionStart,
-      end: aTimestamp,
+      end: (aTimestamp == undefined) ? this.uptimeMillis() : aTimestamp,
     };
 
     this._recordEvent(aEvent);
