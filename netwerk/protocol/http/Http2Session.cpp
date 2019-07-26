@@ -2850,16 +2850,23 @@ Http2Session::ConfirmTLSProfile()
     RETURN_SESSION_ERROR(this, INADEQUATE_SECURITY);
   }
 
-#if 0
   uint16_t kea = ssl->GetKEAUsed();
   if (kea != ssl_kea_dh && kea != ssl_kea_ecdh) {
     LOG3(("Http2Session::ConfirmTLSProfile %p FAILED due to invalid KEA %d\n",
           this, kea));
     RETURN_SESSION_ERROR(this, INADEQUATE_SECURITY);
   }
-#endif
 
-  
+  uint32_t keybits = ssl->GetKEAKeyBits();
+  if (kea == ssl_kea_dh && keybits < 2048) {
+    LOG3(("Http2Session::ConfirmTLSProfile %p FAILED due to DH %d < 2048\n",
+          this, keybits));
+    RETURN_SESSION_ERROR(this, INADEQUATE_SECURITY);
+  } else if (kea == ssl_kea_ecdh && keybits < 256) { 
+    LOG3(("Http2Session::ConfirmTLSProfile %p FAILED due to ECDH %d < 256\n",
+          this, keybits));
+    RETURN_SESSION_ERROR(this, INADEQUATE_SECURITY);
+  }
 
   
 
