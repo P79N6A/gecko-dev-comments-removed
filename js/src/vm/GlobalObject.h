@@ -164,6 +164,7 @@ class GlobalObject : public JSObject
         JS_ASSERT(key <= JSProto_LIMIT);
         return getSlotForCompilation(APPLICATION_SLOTS + key);
     }
+    bool ensureConstructor(JSContext *cx, JSProtoKey key);
 
     void setConstructor(JSProtoKey key, const Value &v) {
         JS_ASSERT(key <= JSProto_LIMIT);
@@ -215,13 +216,16 @@ class GlobalObject : public JSObject
 
 
 
-    bool isStandardClassResolved(const js::Class *clasp) const {
-        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
-
+    bool isStandardClassResolved(JSProtoKey key) const {
         
         MOZ_ASSERT(getConstructor(key).isUndefined() ||
                    getConstructor(key).isObject());
         return !getConstructor(key).isUndefined();
+    }
+
+    bool isStandardClassResolved(const js::Class *clasp) const {
+        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
+        return isStandardClassResolved(key);
     }
 
   private:
