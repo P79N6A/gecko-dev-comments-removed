@@ -1873,6 +1873,19 @@ XrayResolveNativeProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
 
 
 
+bool
+XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper, 
+                   JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
+                   JSPropertyDescriptor* desc, bool* defined);
+
+
+
+
+
+
+
+
+
 
 bool
 XrayEnumerateProperties(JSContext* cx, JS::Handle<JSObject*> wrapper,
