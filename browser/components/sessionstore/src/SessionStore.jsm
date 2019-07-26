@@ -2561,6 +2561,10 @@ let SessionStoreInternal = {
         Object.keys(tabData.attributes).forEach(a => TabAttributes.persist(a));
       }
 
+      
+      
+      TabState.dropPendingCollections(tab);
+
       browser.__SS_tabStillLoading = true;
 
       
@@ -4374,9 +4378,21 @@ let TabState = {
     
     
     
-    this._pendingCollections.delete(tab);
+    this.dropPendingCollections(tab);
 
     return tabData;
+  },
+
+  
+
+
+
+
+
+
+
+  dropPendingCollections: function (tab) {
+    this._pendingCollections.delete(tab);
   },
 
   
