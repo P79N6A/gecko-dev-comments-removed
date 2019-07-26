@@ -293,7 +293,6 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
     js::LifoAlloc                typeLifoAlloc;
 
     bool                         activeAnalysis;
-    bool                         activeInference;
 
     
     js::types::TypeCompartment   types;

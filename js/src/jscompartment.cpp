@@ -121,7 +121,7 @@ JSCompartment::init(JSContext *cx)
     if (cx)
         cx->runtime->dateTimeInfo.updateTimeZoneAdjustment();
 
-    activeAnalysis = activeInference = false;
+    activeAnalysis = false;
     types.init(cx);
 
     if (!crossCompartmentWrappers.init())
@@ -564,7 +564,8 @@ JSCompartment::markTypes(JSTracer *trc)
 
 
 
-    JS_ASSERT(activeAnalysis || isPreservingCode());
+    JS_ASSERT(!activeAnalysis);
+    JS_ASSERT(isPreservingCode());
 
     for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
@@ -640,9 +641,11 @@ JSCompartment::isDiscardingJitCode(JSTracer *trc)
 void
 JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
 {
+    JS_ASSERT(!activeAnalysis);
+
     {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_DISCARD_CODE);
-        discardJitCode(fop, !activeAnalysis && !gcPreserveCode);
+        discardJitCode(fop, !gcPreserveCode);
     }
 
     
@@ -682,7 +685,7 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
         WeakMapBase::sweepCompartment(this);
     }
 
-    if (!activeAnalysis && !gcPreserveCode) {
+    if (!gcPreserveCode) {
         JS_ASSERT(!types.constrainedOutputs);
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_DISCARD_ANALYSIS);
 

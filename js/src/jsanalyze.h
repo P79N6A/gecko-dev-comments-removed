@@ -1205,39 +1205,6 @@ class ScriptAnalysis
 };
 
 
-class AutoEnterAnalysis
-{
-    JSCompartment *compartment;
-    bool oldActiveAnalysis;
-    bool left;
-
-    void construct(JSCompartment *compartment)
-    {
-        this->compartment = compartment;
-        oldActiveAnalysis = compartment->activeAnalysis;
-        compartment->activeAnalysis = true;
-        left = false;
-    }
-
-  public:
-    AutoEnterAnalysis(JSContext *cx) { construct(cx->compartment); }
-    AutoEnterAnalysis(JSCompartment *compartment) { construct(compartment); }
-
-    void leave()
-    {
-        if (!left) {
-            left = true;
-            compartment->activeAnalysis = oldActiveAnalysis;
-        }
-    }
-
-    ~AutoEnterAnalysis()
-    {
-        leave();
-    }
-};
-
-
 struct CrossSSAValue
 {
     unsigned frame;
