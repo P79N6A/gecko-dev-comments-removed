@@ -1797,7 +1797,12 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
     return;
   container->SetIsNativeAnonymousRoot();
 
-  rv = container->BindToTree(mDocument, aParentContent, aParentContent, true);
+  
+  
+  
+  nsIDocument* bindDocument =
+    aParentContent->HasFlag(NODE_IS_IN_SHADOW_TREE) ? nullptr : mDocument;
+  rv = container->BindToTree(bindDocument, aParentContent, aParentContent, true);
   if (NS_FAILED(rv)) {
     container->UnbindFromTree();
     return;
@@ -4050,7 +4055,13 @@ nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
     ConnectAnonymousTreeDescendants(content, aContent[i].mChildren);
 
     bool anonContentIsEditable = content->HasFlag(NODE_IS_EDITABLE);
-    rv = content->BindToTree(mDocument, aParent, aParent, true);
+
+    
+    
+    
+    nsIDocument* bindDocument =
+      aParent->HasFlag(NODE_IS_IN_SHADOW_TREE) ? nullptr : mDocument;
+    rv = content->BindToTree(bindDocument, aParent, aParent, true);
     
     
     
