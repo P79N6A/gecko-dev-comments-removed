@@ -922,15 +922,17 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     status->mCipherName.Assign(cipherName);
 
     
-    
-    
     SSLNextProtoState state;
     unsigned char npnbuf[256];
     unsigned int npnlen;
     
-    if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen, 256) == SECSuccess &&
-        state == SSL_NEXT_PROTO_NEGOTIATED)
-      infoObject->SetNegotiatedNPN(reinterpret_cast<char *>(npnbuf), npnlen);
+    if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen, 256) == SECSuccess) {
+      if (state == SSL_NEXT_PROTO_NEGOTIATED)
+        infoObject->SetNegotiatedNPN(reinterpret_cast<char *>(npnbuf), npnlen);
+      else
+        infoObject->SetNegotiatedNPN(nullptr, 0);
+      mozilla::Telemetry::Accumulate(Telemetry::SSL_NPN_TYPE, state);
+    }
     else
       infoObject->SetNegotiatedNPN(nullptr, 0);
 
