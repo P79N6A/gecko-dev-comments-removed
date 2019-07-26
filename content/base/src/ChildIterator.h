@@ -4,6 +4,9 @@
 
 
 
+#ifndef ChildIterator_h
+#define ChildIterator_h
+
 
 
 
@@ -104,3 +107,5 @@ private:
 
 } 
 } 
+
+#endif
