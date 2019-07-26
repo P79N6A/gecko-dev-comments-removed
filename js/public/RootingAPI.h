@@ -849,6 +849,24 @@ namespace js {
 
 
 
+
+
+
+
+template <>
+class RootedBase<JSObject*>
+{
+  public:
+    template <class U>
+    JS::Handle<U*> as() const;
+};
+
+
+
+
+
+
+
 class SkipRoot
 {
 #if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)

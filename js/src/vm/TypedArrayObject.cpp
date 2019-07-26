@@ -263,39 +263,6 @@ AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes, void *oldptr = 
     return newheader;
 }
 
-bool
-ArrayBufferObject::allocateSlots(JSContext *cx, uint32_t bytes, bool clear)
-{
-    
-
-
-
-
-    JS_ASSERT(!hasDynamicSlots() && !hasDynamicElements());
-
-    size_t usableSlots = ARRAYBUFFER_RESERVED_SLOTS - ObjectElements::VALUES_PER_HEADER;
-
-    if (bytes > sizeof(Value) * usableSlots) {
-        ObjectElements *header = AllocateArrayBufferContents(cx, bytes);
-        if (!header)
-            return false;
-        elements = header->elements();
-
-#ifdef JSGC_GENERATIONAL
-        JSRuntime *rt = runtimeFromMainThread();
-        rt->gcNursery.notifyNewElements(this, header);
-#endif
-    } else {
-        setFixedElements();
-        if (clear)
-            memset(dataPointer(), 0, bytes);
-    }
-
-    initElementsHeader(getElementsHeader(), bytes);
-
-    return true;
-}
-
 static inline void
 PostBarrierTypedArrayObject(JSObject *obj)
 {
@@ -645,7 +612,7 @@ ArrayBufferObject::addView(ArrayBufferViewObject *view)
     SetViewList(this, view);
 }
 
-JSObject *
+ArrayBufferObject *
 ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, bool clear )
 {
     RootedObject obj(cx, NewBuiltinClassInstance(cx, &class_));
@@ -662,13 +629,36 @@ ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, bool clear )
     obj->setLastPropertyInfallible(empty);
 
     
+    
+    
+    JS_ASSERT(!obj->hasDynamicSlots());
+    JS_ASSERT(!obj->hasDynamicElements());
 
+    
+    
+    size_t usableSlots = ARRAYBUFFER_RESERVED_SLOTS - ObjectElements::VALUES_PER_HEADER;
 
+    Handle<ArrayBufferObject*> buffer = obj.as<ArrayBufferObject>();
 
-    if (!obj->as<ArrayBufferObject>().allocateSlots(cx, nbytes, clear))
-        return nullptr;
+    if (nbytes > sizeof(Value) * usableSlots) {
+        ObjectElements *header = AllocateArrayBufferContents(cx, nbytes);
+        if (!header)
+            return nullptr;
+        buffer->elements = header->elements();
 
-    return obj;
+#ifdef JSGC_GENERATIONAL
+        JSRuntime *rt = buffer->runtimeFromMainThread();
+        rt->gcNursery.notifyNewElements(buffer, header);
+#endif
+    } else {
+        buffer->setFixedElements();
+        if (clear)
+            memset(buffer->dataPointer(), 0, nbytes);
+    }
+
+    buffer->initElementsHeader(buffer->getElementsHeader(), nbytes);
+
+    return buffer;
 }
 
 JSObject *
