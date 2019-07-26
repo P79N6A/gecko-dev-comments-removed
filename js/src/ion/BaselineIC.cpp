@@ -687,11 +687,6 @@ DoBinaryArithFallback(JSContext *cx, ICBinaryArith_Fallback *stub, HandleValue l
     if (!lhs.isInt32() || !rhs.isInt32())
         return true;
 
-#if defined(JS_CPU_ARM)
-    if (op == JSOP_DIV || op == JSOP_MOD)
-        return true;
-#endif
-
     
     
     bool allowDouble = ret.isDouble();
