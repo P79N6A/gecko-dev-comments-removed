@@ -465,6 +465,9 @@ public:
     MarginComponentForSide(mMargin, aSide) = aLength;
   }
 
+  void ResolveStretchedCrossSize(nscoord aLineCrossSize,
+                                 const FlexboxAxisTracker& aAxisTracker);
+
   uint32_t GetNumAutoMarginsInAxis(AxisOrientationType aAxis) const;
 
 protected:
@@ -1083,7 +1086,6 @@ public:
     mLineCrossSize = aNewLineCrossSize;
   }
 
-  void ResolveStretchedCrossSize(FlexItem& aItem);
   void ResolveAutoMarginsInCrossAxis(FlexItem& aItem);
 
   void EnterAlignPackingSpace(const FlexItem& aItem);
@@ -1758,32 +1760,36 @@ SingleLineCrossAxisPositionTracker::
 }
 
 void
-SingleLineCrossAxisPositionTracker::
-  ResolveStretchedCrossSize(FlexItem& aItem)
+FlexItem::ResolveStretchedCrossSize(nscoord aLineCrossSize,
+                                    const FlexboxAxisTracker& aAxisTracker)
 {
+  AxisOrientationType crossAxis = aAxisTracker.GetCrossAxis();
   
   
   
-  if (aItem.GetAlignSelf() != NS_STYLE_ALIGN_ITEMS_STRETCH ||
-      aItem.GetNumAutoMarginsInAxis(mAxis) != 0 ||
-      GetSizePropertyForAxis(aItem.Frame(), mAxis).GetUnit() !=
-        eStyleUnit_Auto) {
+  if (mAlignSelf != NS_STYLE_ALIGN_ITEMS_STRETCH ||
+      GetNumAutoMarginsInAxis(crossAxis) != 0 ||
+      eStyleUnit_Auto != GetSizePropertyForAxis(mFrame, crossAxis).GetUnit()) {
     return;
   }
 
   
   
-  nscoord stretchedSize = mLineCrossSize -
-    aItem.GetMarginBorderPaddingSizeInAxis(mAxis);
-
-  stretchedSize = NS_CSS_MINMAX(stretchedSize,
-                                aItem.GetCrossMinSize(),
-                                aItem.GetCrossMaxSize());
+  if (mIsStretched) {
+    return;
+  }
 
   
   
-  aItem.SetCrossSize(stretchedSize);
-  aItem.SetIsStretched();
+  nscoord stretchedSize = aLineCrossSize -
+    GetMarginBorderPaddingSizeInAxis(crossAxis);
+
+  stretchedSize = NS_CSS_MINMAX(stretchedSize, mCrossMinSize, mCrossMaxSize);
+
+  
+  
+  SetCrossSize(stretchedSize);
+  mIsStretched = true;
 }
 
 void
@@ -2141,8 +2147,6 @@ nsFlexContainerFrame::PositionItemInCrossAxis(
   MOZ_ASSERT(aLineCrossAxisPosnTracker.GetPosition() == 0,
              "per-line cross-axis position tracker wasn't correctly reset");
 
-  
-  aLineCrossAxisPosnTracker.ResolveStretchedCrossSize(aItem);
   aLineCrossAxisPosnTracker.ResolveAutoMarginsInCrossAxis(aItem);
 
   
@@ -2321,6 +2325,11 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   for (uint32_t i = 0; i < items.Length(); ++i) {
+    
+    nscoord lineCrossSize = lineCrossAxisPosnTracker.GetLineCrossSize();
+    items[i].ResolveStretchedCrossSize(lineCrossSize, axisTracker);
+
+    
     PositionItemInCrossAxis(crossAxisPosnTracker.GetPosition(),
                             lineCrossAxisPosnTracker, items[i]);
   }
