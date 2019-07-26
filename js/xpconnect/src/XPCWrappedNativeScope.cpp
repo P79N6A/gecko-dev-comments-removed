@@ -113,7 +113,6 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
         mGlobalJSObject(nullptr),
         mPrototypeJSObject(nullptr),
         mPrototypeNoHelper(nullptr),
-        mScriptObjectPrincipal(nullptr),
         mExperimentalBindingsEnabled(XPCJSRuntime::Get()->ExperimentalBindingsEnabled())
 {
     
@@ -218,36 +217,7 @@ XPCWrappedNativeScope::SetGlobal(JSContext *cx, JSObject* aGlobal,
 {
     
     
-
     mGlobalJSObject = aGlobal;
-    mScriptObjectPrincipal = nullptr;
-
-    
-    
-    nsISupports *native;
-    if (aNative) {
-        native = aNative;
-    } else {
-        const JSClass *jsClass = js::GetObjectJSClass(aGlobal);
-        if (!(~jsClass->flags & (JSCLASS_HAS_PRIVATE |
-                                 JSCLASS_PRIVATE_IS_NSISUPPORTS))) {
-            
-            
-            nsISupports *priv =
-                static_cast<nsISupports*>(xpc_GetJSPrivate(aGlobal));
-            nsCOMPtr<nsIXPConnectWrappedNative> wn = do_QueryInterface(priv);
-            if (wn)
-                native = static_cast<XPCWrappedNative*>(wn.get())->GetIdentityObject();
-            else
-                native = nullptr;
-        } else if (!mozilla::dom::UnwrapDOMObjectToISupports(aGlobal, native)) {
-            native = nullptr;
-        }
-    }
-
-    
-    nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(native);
-    mScriptObjectPrincipal = sop;
 
     
     JSObject *objectPrototype =
@@ -398,7 +368,6 @@ XPCWrappedNativeScope::StartFinalizationPhaseOfGC(JSFreeOp *fop, XPCJSRuntime* r
         if (cur->mGlobalJSObject &&
             JS_IsAboutToBeFinalized(cur->mGlobalJSObject)) {
             cur->mGlobalJSObject.finalize(fop->runtime());
-            cur->mScriptObjectPrincipal = nullptr;
             if (cur->GetCachedDOMPrototypes().IsInitialized())
                  cur->GetCachedDOMPrototypes().Clear();
             

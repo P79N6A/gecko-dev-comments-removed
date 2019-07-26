@@ -170,8 +170,9 @@
 
 #include "nsIXPCScriptNotify.h"  
 
-#include "nsIScriptObjectPrincipal.h"
 #include "nsIPrincipal.h"
+#include "nsJSPrincipals.h"
+#include "nsIScriptObjectPrincipal.h"
 #include "nsISecurityCheckedComponent.h"
 #include "xpcObjectHelper.h"
 #include "nsIThreadInternal.h"
@@ -1643,9 +1644,12 @@ public:
     GetPrototypeNoHelper(XPCCallContext& ccx);
 
     nsIPrincipal*
-    GetPrincipal() const
-    {return mScriptObjectPrincipal ?
-         mScriptObjectPrincipal->GetPrincipal() : nullptr;}
+    GetPrincipal() const {
+        if (!mGlobalJSObject)
+            return nullptr;
+        JSCompartment *c = js::GetObjectCompartment(mGlobalJSObject);
+        return nsJSPrincipals::get(JS_GetCompartmentPrincipals(c));
+    }
 
     void RemoveWrappedNativeProtos();
 
@@ -1778,13 +1782,6 @@ private:
     JSObject*                        mPrototypeNoHelper;
 
     XPCContext*                      mContext;
-
-    
-    
-    
-    
-    
-    nsIScriptObjectPrincipal* mScriptObjectPrincipal;
 
     nsDataHashtable<nsDepCharHashKey, JSObject*> mCachedDOMPrototypes;
 
