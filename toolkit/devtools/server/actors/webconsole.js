@@ -59,10 +59,10 @@ function WebConsoleActor(aConnection, aParentActor)
 
   this.dbg = new Debugger();
 
-  this._protoChains = new Map();
   this._netEvents = new Map();
   this._gripDepth = 0;
 
+  this._onWillNavigate = this._onWillNavigate.bind(this);
   this._onObserverNotification = this._onObserverNotification.bind(this);
   if (this.parentActor.isRootActor) {
     Services.obs.addObserver(this._onObserverNotification,
@@ -111,16 +111,6 @@ WebConsoleActor.prototype =
 
 
   _netEvents: null,
-
-  
-
-
-
-
-
-
-
-  _protoChains: null,
 
   
 
@@ -210,6 +200,31 @@ WebConsoleActor.prototype =
   _lastChromeWindow: null,
 
   
+  _evalWindow: null,
+  get evalWindow() {
+    return this._evalWindow || this.window;
+  },
+
+  set evalWindow(aWindow) {
+    this._evalWindow = aWindow;
+
+    if (!this._progressListenerActive && this.parentActor._progressListener) {
+      this.parentActor._progressListener.once("will-navigate", this._onWillNavigate);
+      this._progressListenerActive = true;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _progressListenerActive: false,
+
+  
 
 
 
@@ -295,8 +310,9 @@ WebConsoleActor.prototype =
     }
     this._actorPool = null;
 
+    this._jstermHelpersCache = null;
+    this._evalWindow = null;
     this._netEvents.clear();
-    this._protoChains.clear();
     this.dbg.enabled = false;
     this.dbg = null;
     this.conn = null;
@@ -725,7 +741,7 @@ WebConsoleActor.prototype =
     }
     
     else {
-      dbgObject = this.dbg.makeGlobalObjectReference(this.window);
+      dbgObject = this.dbg.makeGlobalObjectReference(this.evalWindow);
     }
 
     let result = JSPropertyProvider(dbgObject, environment, aRequest.text,
@@ -822,12 +838,13 @@ WebConsoleActor.prototype =
   _getJSTermHelpers: function WCA__getJSTermHelpers(aDebuggerGlobal)
   {
     let helpers = {
-      window: this.window,
+      window: this.evalWindow,
       chromeWindow: this.chromeWindow.bind(this),
       makeDebuggeeValue: aDebuggerGlobal.makeDebuggeeValue.bind(aDebuggerGlobal),
       createValueGrip: this.createValueGrip.bind(this),
       sandbox: Object.create(null),
       helperResult: null,
+      consoleActor: this,
     };
     JSTermHelpers(helpers);
 
@@ -924,12 +941,12 @@ WebConsoleActor.prototype =
     
     
     let dbg = frame ? frameActor.threadActor.dbg : this.dbg;
-    let dbgWindow = dbg.makeGlobalObjectReference(this.window);
+    let dbgWindow = dbg.makeGlobalObjectReference(this.evalWindow);
 
     
     
     let bindSelf = null;
-    let dbgWindow = dbg.makeGlobalObjectReference(this.window);
+    let dbgWindow = dbg.makeGlobalObjectReference(this.evalWindow);
     if (aOptions.bindObjectActor) {
       let objActor = this.getActorByID(aOptions.bindObjectActor);
       if (objActor) {
@@ -1289,7 +1306,17 @@ WebConsoleActor.prototype =
         });
         break;
     }
-  }
+  },
+
+  
+
+
+
+  _onWillNavigate: function WCA__onWillNavigate()
+  {
+    this._evalWindow = null;
+    this._progressListenerActive = false;
+  },
 };
 
 WebConsoleActor.prototype.requestTypes =

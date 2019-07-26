@@ -1518,6 +1518,40 @@ function JSTermHelpers(aOwner)
 
 
 
+
+
+
+
+
+  aOwner.sandbox.cd = function JSTH_cd(aWindow)
+  {
+    if (!aWindow) {
+      aOwner.consoleActor.evalWindow = null;
+      aOwner.helperResult = { type: "cd" };
+      return;
+    }
+
+    if (typeof aWindow == "string") {
+      aWindow = aOwner.window.document.querySelector(aWindow);
+    }
+    if (aWindow instanceof Ci.nsIDOMElement && aWindow.contentWindow) {
+      aWindow = aWindow.contentWindow;
+    }
+    if (!(aWindow instanceof Ci.nsIDOMWindow)) {
+      aOwner.helperResult = { type: "error", message: "cdFunctionInvalidArgument" };
+      return;
+    }
+
+    aOwner.consoleActor.evalWindow = aWindow;
+    aOwner.helperResult = { type: "cd" };
+  };
+
+  
+
+
+
+
+
   aOwner.sandbox.inspect = function JSTH_inspect(aObject)
   {
     let dbgObj = aOwner.makeDebuggeeValue(aObject);
