@@ -105,6 +105,7 @@
 #include "nsIDOMJSWindow.h"
 #include "nsSandboxFlags.h"
 #include "mozilla/dom/HTMLBodyElement.h"
+#include "nsCharsetSource.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -341,7 +342,7 @@ nsHTMLDocument::TryHintCharset(nsIMarkupDocumentViewer* aMarkupDV,
 }
 
 
-bool
+void
 nsHTMLDocument::TryUserForcedCharset(nsIMarkupDocumentViewer* aMarkupDV,
                                      nsIDocShell*  aDocShell,
                                      int32_t& aCharsetSource,
@@ -350,34 +351,45 @@ nsHTMLDocument::TryUserForcedCharset(nsIMarkupDocumentViewer* aMarkupDV,
   nsresult rv = NS_OK;
 
   if(kCharsetFromUserForced <= aCharsetSource)
-    return true;
+    return;
+
+  
+  if (WillIgnoreCharsetOverride() || !IsAsciiCompatible(aCharset)) {
+    return;
+  }
 
   nsAutoCString forceCharsetFromDocShell;
   if (aMarkupDV) {
+    
     rv = aMarkupDV->GetForceCharacterSet(forceCharsetFromDocShell);
   }
 
-  
-  
-  if(NS_SUCCEEDED(rv) && !forceCharsetFromDocShell.IsEmpty()) {
+  if(NS_SUCCEEDED(rv) &&
+     !forceCharsetFromDocShell.IsEmpty() &&
+     IsAsciiCompatible(forceCharsetFromDocShell)) {
     aCharset = forceCharsetFromDocShell;
-    
     aCharsetSource = kCharsetFromUserForced;
-  } else if (aDocShell) {
+    return;
+  }
+
+  if (aDocShell) {
+    
     nsCOMPtr<nsIAtom> csAtom;
     aDocShell->GetForcedCharset(getter_AddRefs(csAtom));
     if (csAtom) {
-      csAtom->ToUTF8String(aCharset);
+      nsAutoCString charset;
+      csAtom->ToUTF8String(charset);
+      if (!IsAsciiCompatible(charset)) {
+        return;
+      }
+      aCharset = charset;
       aCharsetSource = kCharsetFromUserForced;
       aDocShell->SetForcedCharset(nullptr);
-      return true;
     }
   }
-
-  return false;
 }
 
-bool
+void
 nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
                                 int32_t& aCharsetSource,
                                 nsACString& aCharset)
@@ -385,7 +397,7 @@ nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
   nsresult rv;
 
   if (kCharsetFromCache <= aCharsetSource) {
-    return true;
+    return;
   }
 
   nsCString cachedCharset;
@@ -399,11 +411,7 @@ nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
   {
     aCharset = cachedCharset;
     aCharsetSource = kCharsetFromCache;
-
-    return true;
   }
-
-  return false;
 }
 
 static bool
@@ -438,7 +446,10 @@ nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
   if (!aDocShell) {
     return;
   }
-  int32_t source;
+  if (aCharsetSource >= kCharsetFromParentForced) {
+    return;
+  }
+
   nsCOMPtr<nsIAtom> csAtom;
   int32_t parentSource;
   nsAutoCString parentCharset;
@@ -448,9 +459,23 @@ nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
   }
   aDocShell->GetParentCharsetSource(&parentSource);
   csAtom->ToUTF8String(parentCharset);
-  if (kCharsetFromParentForced <= parentSource) {
-    source = kCharsetFromParentForced;
-  } else if (kCharsetFromHintPrevDoc == parentSource) {
+  if (kCharsetFromParentForced == parentSource ||
+      kCharsetFromUserForced == parentSource) {
+    if (WillIgnoreCharsetOverride() ||
+        !IsAsciiCompatible(aCharset) || 
+        !IsAsciiCompatible(parentCharset)) {
+      return;
+    }
+    aCharset.Assign(parentCharset);
+    aCharsetSource = kCharsetFromParentForced;
+    return;
+  }
+
+  if (aCharsetSource >= kCharsetFromHintPrevDoc) {
+    return;
+  }
+
+  if (kCharsetFromHintPrevDoc == parentSource) {
     
     if (!aParentDocument ||
         !CheckSameOrigin(this, aParentDocument) ||
@@ -460,8 +485,16 @@ nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
 
     
     
-    source = kCharsetFromHintPrevDoc;
-  } else if (kCharsetFromCache <= parentSource) {
+    aCharset.Assign(parentCharset);
+    aCharsetSource = kCharsetFromHintPrevDoc;
+    return;
+  }
+
+  if (aCharsetSource >= kCharsetFromParentFrame) {
+    return;
+  }
+
+  if (kCharsetFromCache <= parentSource) {
     
     if (!aParentDocument ||
         !CheckSameOrigin(this, aParentDocument) ||
@@ -469,21 +502,13 @@ nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
       return;
     }
 
-    source = kCharsetFromParentFrame;
-  } else {
-    return;
+    aCharset.Assign(parentCharset);
+    aCharsetSource = kCharsetFromParentFrame;
   }
-
-  if (source < aCharsetSource) {
-    return;
-  }
-
-  aCharset.Assign(parentCharset);
-  aCharsetSource = source;
 }
 
 void
-nsHTMLDocument::UseWeakDocTypeDefault(int32_t& aCharsetSource,
+nsHTMLDocument::TryWeakDocTypeDefault(int32_t& aCharsetSource,
                                       nsACString& aCharset)
 {
   if (kCharsetFromWeakDocTypeDefault <= aCharsetSource)
@@ -503,28 +528,23 @@ nsHTMLDocument::UseWeakDocTypeDefault(int32_t& aCharsetSource,
   return;
 }
 
-bool
+void
 nsHTMLDocument::TryDefaultCharset( nsIMarkupDocumentViewer* aMarkupDV,
                                    int32_t& aCharsetSource,
                                    nsACString& aCharset)
 {
   if(kCharsetFromUserDefault <= aCharsetSource)
-    return true;
+    return;
 
   nsAutoCString defaultCharsetFromDocShell;
   if (aMarkupDV) {
     nsresult rv =
       aMarkupDV->GetDefaultCharacterSet(defaultCharsetFromDocShell);
-    
-    
-    if(NS_SUCCEEDED(rv)) {
+    if(NS_SUCCEEDED(rv) && IsAsciiCompatible(defaultCharsetFromDocShell)) {
       aCharset = defaultCharsetFromDocShell;
-
       aCharsetSource = kCharsetFromUserDefault;
-      return true;
     }
   }
-  return false;
 }
 
 void
@@ -742,30 +762,32 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     
     
     
-    if (!TryUserForcedCharset(muCV, docShell, charsetSource, charset)) {
-      TryHintCharset(muCV, charsetSource, charset);
-      TryParentCharset(docShell, parentDocument, charsetSource, charset);
 
+    
+    
+    if (!wyciwygChannel) {
       
       
-      if (!wyciwygChannel &&
-          TryChannelCharset(aChannel, charsetSource, charset, executor)) {
-        
-        
-      }
-      else if (cachingChan && !urlSpec.IsEmpty() &&
-               TryCacheCharset(cachingChan, charsetSource, charset)) {
-        
-      }
-      else if (TryDefaultCharset(muCV, charsetSource, charset)) {
-        
-        
-      }
-      else {
-        
-        UseWeakDocTypeDefault(charsetSource, charset);
-      }
+      
+      
+      
+      
+      
+      TryChannelCharset(aChannel, charsetSource, charset, executor);
     }
+
+    TryUserForcedCharset(muCV, docShell, charsetSource, charset);
+
+    TryHintCharset(muCV, charsetSource, charset); 
+    TryParentCharset(docShell, parentDocument, charsetSource, charset);
+
+    if (cachingChan && !urlSpec.IsEmpty()) {
+      TryCacheCharset(cachingChan, charsetSource, charset);
+    }
+
+    TryDefaultCharset(muCV, charsetSource, charset);
+
+    TryWeakDocTypeDefault(charsetSource, charset);
 
     bool isPostPage = false;
     
@@ -3778,4 +3800,38 @@ nsHTMLDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
   
   
   
+}
+
+bool
+nsHTMLDocument::WillIgnoreCharsetOverride()
+{
+  if (!mIsRegularHTML) {
+    return true;
+  }
+  if (mCharacterSetSource == kCharsetFromByteOrderMark) {
+    return true;
+  }
+  if (!IsAsciiCompatible(mCharacterSet)) {
+    return true;
+  }
+  nsCOMPtr<nsIWyciwygChannel> wyciwyg = do_QueryInterface(mChannel);
+  if (wyciwyg) {
+    return true;
+  }
+  nsIURI* uri = GetOriginalURI();
+  if (uri) {
+    bool schemeIs = false;
+    uri->SchemeIs("about", &schemeIs);
+    if (schemeIs) {
+      return true;
+    }
+    bool isResource;
+    nsresult rv = NS_URIChainHasFlags(uri,
+                                      nsIProtocolHandler::URI_IS_UI_RESOURCE,
+                                      &isResource);
+    if (NS_FAILED(rv) || isResource) {
+      return true;
+    }
+  }
+  return false;
 }

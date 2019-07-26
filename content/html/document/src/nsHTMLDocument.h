@@ -173,6 +173,8 @@ public:
   virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
   
 
+  virtual bool WillIgnoreCharsetOverride();
+
   
   void GetDomain(nsAString& aDomain, mozilla::ErrorResult& rv);
   void SetDomain(const nsAString& aDomain, mozilla::ErrorResult& rv);
@@ -296,24 +298,24 @@ protected:
   static bool IsAsciiCompatible(const nsACString& aPreferredName);
 
   static void TryHintCharset(nsIMarkupDocumentViewer* aMarkupDV,
-                               int32_t& aCharsetSource,
-                               nsACString& aCharset);
-  static bool TryUserForcedCharset(nsIMarkupDocumentViewer* aMarkupDV,
-                                     nsIDocShell*  aDocShell,
-                                     int32_t& aCharsetSource,
-                                     nsACString& aCharset);
-  static bool TryCacheCharset(nsICachingChannel* aCachingChannel,
+                             int32_t& aCharsetSource,
+                             nsACString& aCharset);
+  void TryUserForcedCharset(nsIMarkupDocumentViewer* aMarkupDV,
+                            nsIDocShell*  aDocShell,
+                            int32_t& aCharsetSource,
+                            nsACString& aCharset);
+  static void TryCacheCharset(nsICachingChannel* aCachingChannel,
                                 int32_t& aCharsetSource,
                                 nsACString& aCharset);
   
   void TryParentCharset(nsIDocShell*  aDocShell,
-                          nsIDocument* aParentDocument,
-                          int32_t& charsetSource, nsACString& aCharset);
-  static void UseWeakDocTypeDefault(int32_t& aCharsetSource,
-                                      nsACString& aCharset);
-  static bool TryDefaultCharset(nsIMarkupDocumentViewer* aMarkupDV,
-                                  int32_t& aCharsetSource,
-                                  nsACString& aCharset);
+                        nsIDocument* aParentDocument,
+                        int32_t& charsetSource, nsACString& aCharset);
+  static void TryWeakDocTypeDefault(int32_t& aCharsetSource,
+                                    nsACString& aCharset);
+  static void TryDefaultCharset(nsIMarkupDocumentViewer* aMarkupDV,
+                                int32_t& aCharsetSource,
+                                nsACString& aCharset);
 
   
   virtual void SetDocumentCharacterSet(const nsACString& aCharSetID);
