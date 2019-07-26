@@ -679,7 +679,7 @@ BluetoothHfpManager::ReceiveSocketData(UnixSocketRawData* aMessage)
   
   
   if (msg.Find("AT+BRSF=") != -1) {
-    SendCommand("+BRSF: ", 33);
+    SendCommand("+BRSF: ", 97);
   } else if (msg.Find("AT+CIND=?") != -1) {
     
     SendCommand("+CIND: ", 0);
