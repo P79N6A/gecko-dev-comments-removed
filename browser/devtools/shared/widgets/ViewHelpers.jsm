@@ -109,6 +109,14 @@ this.ViewHelpers = {
 
   togglePane: function VH_togglePane(aFlags, aPane) {
     
+    aPane.removeAttribute("hidden");
+
+    
+    if (!aPane.classList.contains("generic-toggled-side-pane")) {
+      aPane.classList.add("generic-toggled-side-pane");
+    }
+
+    
     if (aFlags.visible == !aPane.hasAttribute("pane-collapsed")) {
       if (aFlags.callback) aFlags.callback();
       return;
@@ -139,14 +147,6 @@ this.ViewHelpers = {
         if (aFlags.callback) aFlags.callback();
       }
     }
-
-    
-    if (!aPane.classList.contains("generic-toggled-side-pane")) {
-      aPane.classList.add("generic-toggled-side-pane");
-    }
-
-    
-    aPane.removeAttribute("hidden");
 
     
     if (aFlags.animated) {
