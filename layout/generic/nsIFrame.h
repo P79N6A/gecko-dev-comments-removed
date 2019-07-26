@@ -869,6 +869,13 @@ public:
   
 
 
+
+
+  void MovePositionBy(const nsPoint& aTranslation);
+
+  
+
+
   nsPoint GetNormalPosition() const;
 
   virtual nsPoint GetPositionOfChildIgnoringScrolling(nsIFrame* aChild)

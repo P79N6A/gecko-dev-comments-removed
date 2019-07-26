@@ -2582,9 +2582,7 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
 
   if (aLine->IsBlock()) {
     if (aDY) {
-      nsPoint p = kid->GetPosition();
-      p.y += aDY;
-      kid->SetPosition(p);
+      kid->MovePositionBy(nsPoint(0, aDY));
     }
 
     
@@ -2598,9 +2596,7 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
     int32_t n = aLine->GetChildCount();
     while (--n >= 0) {
       if (aDY) {
-        nsPoint p = kid->GetPosition();
-        p.y += aDY;
-        kid->SetPosition(p);
+        kid->MovePositionBy(nsPoint(0, aDY));
       }
       
       ::PlaceFrameView(kid);
