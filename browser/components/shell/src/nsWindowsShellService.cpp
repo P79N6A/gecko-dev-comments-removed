@@ -319,6 +319,41 @@ IsWin8OrLater()
          osInfo.dwMajorVersion >= 6 && osInfo.dwMinorVersion >= 2;
 }
 
+static bool
+IsAARDefaultHTTP(IApplicationAssociationRegistration* pAAR,
+                 bool* aIsDefaultBrowser)
+{
+  
+  LPWSTR registeredApp;
+  HRESULT hr = pAAR->QueryCurrentDefault(L"http", AT_URLPROTOCOL, AL_EFFECTIVE,
+                                         &registeredApp);
+  if (SUCCEEDED(hr)) {
+    LPCWSTR firefoxHTTPProgID = L"FirefoxURL";
+    *aIsDefaultBrowser = !wcsicmp(registeredApp, firefoxHTTPProgID);
+    CoTaskMemFree(registeredApp);
+  } else {
+    *aIsDefaultBrowser = false;
+  }
+  return SUCCEEDED(hr);
+}
+
+static bool
+IsAARDefaultHTML(IApplicationAssociationRegistration* pAAR,
+                 bool* aIsDefaultBrowser)
+{
+  LPWSTR registeredApp;
+  HRESULT hr = pAAR->QueryCurrentDefault(L".html", AT_FILEEXTENSION, AL_EFFECTIVE,
+                                         &registeredApp);
+  if (SUCCEEDED(hr)) {
+    LPCWSTR firefoxHTMLProgID = L"FirefoxHTML";
+    *aIsDefaultBrowser = !wcsicmp(registeredApp, firefoxHTMLProgID);
+    CoTaskMemFree(registeredApp);
+  } else {
+    *aIsDefaultBrowser = false;
+  }
+  return SUCCEEDED(hr);
+}
+
 bool
 nsWindowsShellService::IsDefaultBrowserVista(bool aCheckAllTypes,
                                              bool* aIsDefaultBrowser)
@@ -331,40 +366,23 @@ nsWindowsShellService::IsDefaultBrowserVista(bool aCheckAllTypes,
                                 (void**)&pAAR);
 
   if (SUCCEEDED(hr)) {
-    BOOL res;
-    hr = pAAR->QueryAppIsDefaultAll(AL_EFFECTIVE,
-                                    APP_REG_NAME,
-                                    &res);
-    *aIsDefaultBrowser = res;
+    if (aCheckAllTypes) {
+      BOOL res;
+      hr = pAAR->QueryAppIsDefaultAll(AL_EFFECTIVE,
+                                      APP_REG_NAME,
+                                      &res);
+      *aIsDefaultBrowser = res;
 
-    if (*aIsDefaultBrowser && IsWin8OrLater()) {
-      
-      LPWSTR registeredApp;
-      hr = pAAR->QueryCurrentDefault(L"http", AT_URLPROTOCOL, AL_EFFECTIVE,
-                                     &registeredApp);
-      if (SUCCEEDED(hr)) {
-        LPCWSTR firefoxHTTPProgID = L"FirefoxURL";
-        *aIsDefaultBrowser = !wcsicmp(registeredApp, firefoxHTTPProgID);
-        CoTaskMemFree(registeredApp);
-      } else {
-        *aIsDefaultBrowser = false;
-      }
       
       
-      
-      
-      
-      if (aCheckAllTypes && *aIsDefaultBrowser) {
-        hr = pAAR->QueryCurrentDefault(L".html", AT_FILEEXTENSION, AL_EFFECTIVE,
-                                       &registeredApp);
-        if (SUCCEEDED(hr)) {
-          LPCWSTR firefoxHTMLProgID = L"FirefoxHTML";
-          *aIsDefaultBrowser = !wcsicmp(registeredApp, firefoxHTMLProgID);
-          CoTaskMemFree(registeredApp);
-        } else {
-          *aIsDefaultBrowser = false;
+      if (*aIsDefaultBrowser && IsWin8OrLater()) {
+        IsAARDefaultHTTP(pAAR, aIsDefaultBrowser);
+        if (*aIsDefaultBrowser) {
+          IsAARDefaultHTML(pAAR, aIsDefaultBrowser);
         }
       }
+    } else {
+      IsAARDefaultHTTP(pAAR, aIsDefaultBrowser);
     }
 
     pAAR->Release();
@@ -383,6 +401,13 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
   
   if (aStartupCheck)
     mCheckedThisSession = true;
+
+  
+  
+  if (!aForAllTypes && IsWin8OrLater()) {
+    return IsDefaultBrowserVista(false,
+                                 aIsDefaultBrowser) ? NS_OK : NS_ERROR_FAILURE;
+  }
 
   
   
@@ -463,7 +488,7 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
   
   
   if (*aIsDefaultBrowser) {
-    IsDefaultBrowserVista(aForAllTypes, aIsDefaultBrowser);
+    IsDefaultBrowserVista(true, aIsDefaultBrowser);
   }
 
   
