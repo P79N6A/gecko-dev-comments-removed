@@ -75,7 +75,7 @@ public:
   
 
 
-  already_AddRefed<nsINodeInfo> GetDocumentNodeInfo();     
+  already_AddRefed<nsINodeInfo> GetDocumentNodeInfo();
 
   
 
