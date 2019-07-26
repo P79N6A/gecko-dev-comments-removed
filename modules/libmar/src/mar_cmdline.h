@@ -6,6 +6,7 @@
 #define MAR_CMDLINE_H__
 
 
+#include "prtypes.h"
 
 #ifdef __cplusplus
 extern "C" {
