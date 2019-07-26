@@ -1177,11 +1177,18 @@ class CGClassConstructor(CGAbstractStaticMethod):
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JS::Rooted<JSObject*> obj(cx, &args.callee());
 """
+        
+        
+        
+        
         if isChromeOnly(self._ctor):
-            preamble += """  if (!nsContentUtils::ThreadsafeIsCallerChrome()) {
+            mayInvokeCtor = "nsContentUtils::ThreadsafeIsCallerChrome()"
+        else:
+            mayInvokeCtor = "(args.isConstructing() || nsContentUtils::ThreadsafeIsCallerChrome())"
+        preamble += """  if (!%s) {
     return ThrowingConstructor(cx, argc, vp);
   }
-"""
+""" % mayInvokeCtor
         name = self._ctor.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
         callGenerator = CGMethodCall(nativeName, True, self.descriptor,
