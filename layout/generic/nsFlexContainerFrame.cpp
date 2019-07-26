@@ -525,9 +525,25 @@ protected:
 class FlexLine {
 public:
   FlexLine()
-  : mLineCrossSize(0),
+  : mTotalInnerHypotheticalMainSize(0),
+    mTotalOuterHypotheticalMainSize(0),
+    mLineCrossSize(0),
     mBaselineOffsetFromCrossStart(nscoord_MIN)
   {}
+
+  
+  
+  nscoord GetTotalOuterHypotheticalMainSize() const {
+    return mTotalOuterHypotheticalMainSize;
+  }
+
+  
+  
+  void AddToMainSizeTotals(nscoord aItemInnerHypotheticalMainSize,
+                           nscoord aItemOuterHypotheticalMainSize) {
+    mTotalInnerHypotheticalMainSize += aItemInnerHypotheticalMainSize;
+    mTotalOuterHypotheticalMainSize += aItemOuterHypotheticalMainSize;
+  }
 
   
   
@@ -565,24 +581,11 @@ public:
   nsTArray<FlexItem> mItems; 
 
 private:
+  nscoord mTotalInnerHypotheticalMainSize;
+  nscoord mTotalOuterHypotheticalMainSize;
   nscoord mLineCrossSize;
   nscoord mBaselineOffsetFromCrossStart;
 };
-
-
-
-static nscoord
-SumFlexItemMarginBoxMainSizes(const FlexboxAxisTracker& aAxisTracker,
-                              const nsTArray<FlexItem>& aItems)
-{
-  nscoord sum = 0;
-  for (uint32_t i = 0; i < aItems.Length(); ++i) {
-    const FlexItem& item = aItems[i];
-    sum += item.GetMainSize() +
-      item.GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
-  }
-  return sum;
-}
 
 
 static nsIFrame*
@@ -2028,6 +2031,16 @@ nsFlexContainerFrame::GenerateFlexItems(
     nsresult rv = ResolveFlexItemMaxContentSizing(aPresContext, *item,
                                                   aReflowState, aAxisTracker);
     NS_ENSURE_SUCCESS(rv,rv);
+    nscoord itemInnerHypotheticalMainSize = item->GetMainSize();
+    nscoord itemOuterHypotheticalMainSize = item->GetMainSize() +
+      item->GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
+
+    
+    
+    
+
+    aFlexLine.AddToMainSizeTotals(itemInnerHypotheticalMainSize,
+                                  itemOuterHypotheticalMainSize);
   }
 
   return NS_OK;
@@ -2068,8 +2081,7 @@ nsFlexContainerFrame::ComputeFlexContainerMainSize(
     
     
     NS_FRAME_SET_INCOMPLETE(aStatus);
-    nscoord sumOfChildHeights =
-      SumFlexItemMarginBoxMainSizes(aAxisTracker, aLine.mItems);
+    nscoord sumOfChildHeights = aLine.GetTotalOuterHypotheticalMainSize();
     if (sumOfChildHeights <= aAvailableHeightForContent) {
       return aAvailableHeightForContent;
     }
@@ -2081,8 +2093,7 @@ nsFlexContainerFrame::ComputeFlexContainerMainSize(
   
   
   
-  nscoord sumOfChildHeights =
-    SumFlexItemMarginBoxMainSizes(aAxisTracker, aLine.mItems);
+  nscoord sumOfChildHeights = aLine.GetTotalOuterHypotheticalMainSize();
   return NS_CSS_MINMAX(sumOfChildHeights,
                        aReflowState.mComputedMinHeight,
                        aReflowState.mComputedMaxHeight);
