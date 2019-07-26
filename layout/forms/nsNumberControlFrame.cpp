@@ -156,7 +156,8 @@ nsNumberControlFrame::AttributeChanged(int32_t  aNameSpaceID,
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::placeholder ||
-        aAttribute == nsGkAtoms::readonly) {
+        aAttribute == nsGkAtoms::readonly ||
+        aAttribute == nsGkAtoms::tabindex) {
       if (aModType == nsIDOMMutationEvent::REMOVAL) {
         mTextField->UnsetAttr(aNameSpaceID, aAttribute, true);
       } else {
@@ -252,9 +253,12 @@ nsNumberControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   mTextField->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
                       NS_LITERAL_STRING("text"), PR_FALSE);
 
+  HTMLInputElement* content = HTMLInputElement::FromContent(mContent);
+  HTMLInputElement* textField = HTMLInputElement::FromContent(mTextField);
+
   
   nsAutoString value;
-  HTMLInputElement::FromContent(mContent)->GetValue(value);
+  content->GetValue(value);
   mTextField->SetAttr(kNameSpaceID_None, nsGkAtoms::value, value, false);
 
   
@@ -262,6 +266,11 @@ nsNumberControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::readonly, readonly)) {
     mTextField->SetAttr(kNameSpaceID_None, nsGkAtoms::readonly, readonly, false);
   }
+
+  
+  int32_t tabIndex;
+  content->GetTabIndex(&tabIndex);
+  textField->SetTabIndex(tabIndex);
 
   
   nsAutoString placeholder;
@@ -329,6 +338,15 @@ nsNumberControlFrame::GetSpinButtonForPointerEvent(WidgetGUIEvent* aEvent) const
     return eSpinButtonDown;
   }
   return eSpinButtonNone;
+}
+
+void
+nsNumberControlFrame::HandleFocusEvent(WidgetEvent* aEvent)
+{
+  if (aEvent->originalTarget != mTextField) {
+    
+    HTMLInputElement::FromContent(mTextField)->Focus();
+  }
 }
 
 void
