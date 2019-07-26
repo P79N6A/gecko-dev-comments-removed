@@ -404,7 +404,7 @@ DecoderTraits::CreateDecoder(const nsACString& aType, MediaDecoderOwner* aOwner)
   if (IsOmxSupportedType(aType)) {
     
     
-    if (aType.EqualsASCII("audio/amr") || aType.EqualsASCII("video/3gpp")) {
+    if (aType.EqualsASCII("audio/amr")) {
       HTMLMediaElement* element = aOwner->GetMediaElement();
       if (!element) {
         return nullptr;
