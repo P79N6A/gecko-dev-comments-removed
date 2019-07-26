@@ -1554,17 +1554,19 @@ GetPropertyIC::tryAttachProxy(JSContext *cx, IonScript *ion, HandleObject obj,
 
 static void
 GenerateProxyClassGuards(MacroAssembler &masm, Register object, Register scratchReg,
-                         Label *failures, Label *success)
+                         Label *failures)
 {
+    Label success;
     
     
     
     masm.branchTestObjClass(Assembler::Equal, object, scratchReg,
-                            CallableProxyClassPtr, success);
+                            CallableProxyClassPtr, &success);
     masm.branchTestObjClass(Assembler::Equal, object, scratchReg,
-                            UncallableProxyClassPtr, success);
+                            UncallableProxyClassPtr, &success);
     masm.branchTestObjClass(Assembler::NotEqual, object, scratchReg,
                             OuterWindowProxyClassPtr, failures);
+    masm.bind(&success);
 }
 
 bool
@@ -1592,9 +1594,7 @@ GetPropertyIC::tryAttachGenericProxy(JSContext *cx, IonScript *ion, HandleObject
 
     masm.setFramePushed(ion->frameSize());
 
-    Label proxySuccess;
-    GenerateProxyClassGuards(masm, object(), scratchReg, &failures, &proxySuccess);
-    masm.bind(&proxySuccess);
+    GenerateProxyClassGuards(masm, object(), scratchReg, &failures);
 
     
     
@@ -2179,12 +2179,12 @@ SetPropertyIC::attachGenericProxy(JSContext *cx, IonScript *ion, void *returnAdd
         Register scratch = regSet.takeGeneral();
         masm.push(scratch);
 
-        GenerateProxyClassGuards(masm, object(), scratch, &proxyFailures, &proxySuccess);
+        GenerateProxyClassGuards(masm, object(), scratch, &proxyFailures);
 
         
         
-        masm.branchTestProxyHandlerFamily(Assembler::Equal, object(), scratch,
-                                          GetDOMProxyHandlerFamily(), &proxyFailures);
+        masm.branchTestProxyHandlerFamily(Assembler::NotEqual, object(), scratch,
+                                          GetDOMProxyHandlerFamily(), &proxySuccess);
 
         masm.bind(&proxyFailures);
         masm.pop(scratch);
