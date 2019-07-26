@@ -10,6 +10,7 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.util.HardwareUtils;
 
 import android.graphics.drawable.BitmapDrawable;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,24 +20,32 @@ import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 
 public class ArrowPopup extends PopupWindow {
-    protected GeckoApp mActivity;
-    protected boolean mInflated;
+    protected final GeckoApp mActivity;
+
+    private View mAnchor;
+    private ImageView mArrow;
+
+    private int mArrowWidth;
+    private int mYOffset;
 
     protected LinearLayout mContent;
-    protected ImageView mArrow;
+    protected boolean mInflated;
 
-    protected int mArrowWidth;
-    protected int mYOffset;
-
-    public ArrowPopup(GeckoApp aActivity) {
+    public ArrowPopup(GeckoApp aActivity, View aAnchor) {
         super(aActivity);
         mActivity = aActivity;
+        mAnchor = aAnchor;
 
         mInflated = false;
+
         mArrowWidth = aActivity.getResources().getDimensionPixelSize(R.dimen.menu_popup_arrow_width);
         mYOffset = aActivity.getResources().getDimensionPixelSize(R.dimen.menu_popup_offset);
 
         setAnimationStyle(R.style.PopupAnimation);
+    }
+
+    public void setAnchor(View aAnchor) {
+        mAnchor = aAnchor;
     }
 
     protected void init() {
@@ -54,5 +63,47 @@ public class ArrowPopup extends PopupWindow {
         mContent = (LinearLayout) layout.findViewById(R.id.content);
 
         mInflated = true;
+    }
+
+    
+
+
+
+    public void show() {
+        int[] anchorLocation = new int[2];
+        if (mAnchor != null)
+            mAnchor.getLocationInWindow(anchorLocation);
+
+        
+        
+        if (mAnchor == null || anchorLocation[1] < 0) {
+            showAtLocation(mActivity.getView(), Gravity.TOP, 0, 0);
+            return;
+        }
+
+        
+        int anchorWidth = mAnchor.getWidth() - mAnchor.getPaddingLeft() - mAnchor.getPaddingRight();
+        
+        
+        int arrowOffset = (anchorWidth - mArrowWidth)/2 + mAnchor.getPaddingLeft();
+
+        
+        int offset = 0;
+
+        RelativeLayout.LayoutParams arrowLayoutParams = (RelativeLayout.LayoutParams) mArrow.getLayoutParams();
+
+        if (HardwareUtils.isTablet()) {
+            
+            
+            
+            offset = arrowOffset - arrowLayoutParams.leftMargin;
+        } else {
+            
+            
+            int leftMargin = anchorLocation[0] + arrowOffset;
+            arrowLayoutParams.setMargins(leftMargin, 0, 0, 0);
+        }
+
+        showAsDropDown(mAnchor, offset, -mYOffset);
     }
 }

@@ -6,7 +6,6 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.util.GeckoEventListener;
-import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.widget.ArrowPopup;
 
 import org.json.JSONArray;
@@ -14,9 +13,7 @@ import org.json.JSONObject;
 
 import android.os.Build;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.RelativeLayout;
 
 import java.util.HashSet;
 
@@ -24,15 +21,12 @@ public class DoorHangerPopup extends ArrowPopup
                              implements GeckoEventListener, Tabs.OnTabsChangedListener {
     private static final String LOGTAG = "GeckoDoorHangerPopup";
 
-    private View mAnchor;
-
     
     
     private HashSet<DoorHanger> mDoorHangers;
 
     DoorHangerPopup(GeckoApp aActivity, View aAnchor) {
-        super(aActivity);
-        mAnchor = aAnchor;
+        super(aActivity, aAnchor);
 
         mDoorHangers = new HashSet<DoorHanger>();
 
@@ -45,10 +39,6 @@ public class DoorHangerPopup extends ArrowPopup
         unregisterEventListener("Doorhanger:Add");
         unregisterEventListener("Doorhanger:Remove");
         Tabs.unregisterOnTabsChangedListener(this);
-    }
-
-    void setAnchor(View aAnchor) {
-        mAnchor = aAnchor;
     }
 
     @Override
@@ -236,10 +226,6 @@ public class DoorHangerPopup extends ArrowPopup
             return;
         }
 
-        int[] anchorLocation = new int[2];
-        if (mAnchor != null)
-            mAnchor.getLocationInWindow(anchorLocation);
-
         
         
         
@@ -247,18 +233,7 @@ public class DoorHangerPopup extends ArrowPopup
             setFocusable(true);
         }
 
-        
-        
-        if (mAnchor == null || anchorLocation[1] < 0) {
-            showAtLocation(mActivity.getView(), Gravity.TOP, 0, 0);
-        } else {
-            
-            
-            
-            int offset = HardwareUtils.isTablet() ? mAnchor.getWidth()/2 - mArrowWidth/2 -
-                         ((RelativeLayout.LayoutParams) mArrow.getLayoutParams()).leftMargin : 0;
-            showAsDropDown(mAnchor, offset, -mYOffset);
-        }
+        show();
 
         if (Build.VERSION.SDK_INT < 14) {
             
