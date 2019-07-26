@@ -1063,7 +1063,9 @@ pref("network.IDN_show_punycode", false);
 
 
 
+
 pref("network.IDN.restriction_profile", "moderate");
+pref("network.IDN.use_whitelist", true);
 
 
 pref("network.IDN.whitelist.ac", true);
