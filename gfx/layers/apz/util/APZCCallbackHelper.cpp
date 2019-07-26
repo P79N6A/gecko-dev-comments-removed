@@ -180,20 +180,20 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     bool scrollUpdated = false;
     CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.GetScrollOffset(), scrollUpdated);
 
-    if (!scrollUpdated) {
-      
-      
-      
-      
-      
-      
-      RecenterDisplayPort(aMetrics);
+    if (scrollUpdated) {
+        
+        
+        
+        MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+    } else {
+        
+        
+        
+        
+        
+        
+        RecenterDisplayPort(aMetrics);
     }
-
-    
-    
-    
-    MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
 
     aMetrics.SetScrollOffset(actualScrollOffset);
 
@@ -272,10 +272,11 @@ APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
 
     nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
     if (element) {
-        if (!scrollUpdated) {
+        if (scrollUpdated) {
+            MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+        } else {
             RecenterDisplayPort(aMetrics);
         }
-        MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
         if (!aMetrics.GetUseDisplayPortMargins()) {
             utils->SetDisplayPortForElement(aMetrics.mDisplayPort.x,
                                             aMetrics.mDisplayPort.y,
