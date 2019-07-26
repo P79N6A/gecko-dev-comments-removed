@@ -755,7 +755,7 @@ class Shape : public js::gc::Cell
 
 
 
-    inline bool getUserId(JSContext *cx, jsid *idp) const;
+    inline bool getUserId(JSContext *cx, MutableHandleId idp) const;
 
     uint8_t attributes() const { return attrs; }
     bool configurable() const { return (attrs & JSPROP_PERMANENT) == 0; }
