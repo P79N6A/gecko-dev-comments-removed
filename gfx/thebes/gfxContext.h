@@ -831,14 +831,12 @@ public:
     mContext->Save();    
   }
 
-  void Reset(gfxContext *aContext) {
-    
-    NS_PRECONDITION(aContext, "must provide a context");
-    if (mContext) {
-      mContext->Restore();
+  void EnsureSaved(gfxContext *aContext) {
+    MOZ_ASSERT(!mContext || mContext == aContext, "wrong context");
+    if (!mContext) {
+        mContext = aContext;
+        mContext->Save();
     }
-    mContext = aContext;
-    mContext->Save();
   }
 
 private:
