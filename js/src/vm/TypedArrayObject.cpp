@@ -1357,6 +1357,14 @@ js::ToDoubleForTypedArray(JSContext *cx, JS::HandleValue vp, double *d)
         *d = js_NaN;
     }
 
+#ifdef JS_MORE_DETERMINISTIC
+    
+    
+    
+    
+    *d = JS_CANONICALIZE_NAN(*d);
+#endif
+
     return true;
 }
 
