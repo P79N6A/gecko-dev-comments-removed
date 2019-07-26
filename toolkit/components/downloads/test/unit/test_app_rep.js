@@ -19,6 +19,13 @@ function run_test() {
   
   Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
                              "http://localhost:4444/download");
+  
+  
+  Services.prefs.setBoolPref("browser.safebrowsing.malware.enabled", true);
+  do_register_cleanup(function() {
+    Services.prefs.clearUserPref("browser.safebrowsing.malware.enabled");
+  });
+
   gHttpServ = new HttpServer();
   gHttpServ.registerDirectory("/", do_get_cwd());
 
