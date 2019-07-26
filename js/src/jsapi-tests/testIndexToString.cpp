@@ -5,13 +5,12 @@
 
 
 
-
-#include "jsapi-tests/tests.h"
-
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsnum.h"
 #include "jsstr.h"
+
+#include "jsapi-tests/tests.h"
 
 #include "vm/String-inl.h"
 

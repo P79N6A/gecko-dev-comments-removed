@@ -5,10 +5,9 @@
 
 
 
+#include "jsfriendapi.h"
 
 #include "jsapi-tests/tests.h"
-
-#include "jsfriendapi.h"
 
 const size_t N = 1000;
 static jsval argv[N];

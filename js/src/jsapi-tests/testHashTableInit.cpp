@@ -2,9 +2,8 @@
 
 
 
-#include "jsapi-tests/tests.h"
-
 #include "js/HashTable.h"
+#include "jsapi-tests/tests.h"
 
 typedef js::HashSet<uint32_t, js::DefaultHasher<uint32_t>, js::SystemAllocPolicy> IntSet;
 

@@ -7,9 +7,10 @@
 
 
 
-#include "jsapi-tests/tests.h"
-#include "jsfriendapi.h"
 #include "jsdbgapi.h"
+#include "jsfriendapi.h"
+
+#include "jsapi-tests/tests.h"
 
 using namespace js;
 

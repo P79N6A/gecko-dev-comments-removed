@@ -7,9 +7,10 @@
 
 
 
-#include "jsapi-tests/tests.h"
 #include "jsobj.h"
 #include "jswrapper.h"
+
+#include "jsapi-tests/tests.h"
 
 #include "jsobjinlines.h"
 

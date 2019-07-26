@@ -2,9 +2,9 @@
 
 
 
-#include "jsapi-tests/tests.h"
-
 #include "jsclass.h"
+
+#include "jsapi-tests/tests.h"
 
 int count = 0;
 

@@ -7,7 +7,6 @@
 
 
 
-
 #include "jsapi-tests/tests.h"
 
 int called_test_fn;

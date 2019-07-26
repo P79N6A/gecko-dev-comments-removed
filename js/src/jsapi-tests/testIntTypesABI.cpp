@@ -2,7 +2,6 @@
 
 
 
-#include "jsapi-tests/tests.h"
 
 
 
@@ -10,7 +9,6 @@
 
 
 
-#include "js-config.h"
 #include "jsapi.h"
 #include "jsclass.h"
 #include "jscpucfg.h"
@@ -29,6 +27,7 @@
 #include "js/Utility.h"
 #include "js/Value.h"
 #include "js/Vector.h"
+#include "jsapi-tests/tests.h"
 
 
 

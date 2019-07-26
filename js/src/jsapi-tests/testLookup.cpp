@@ -5,9 +5,9 @@
 
 
 
+#include "jsfun.h"  
 
 #include "jsapi-tests/tests.h"
-#include "jsfun.h"  
 
 #include "jsobjinlines.h"
 

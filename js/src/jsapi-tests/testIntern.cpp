@@ -2,10 +2,10 @@
 
 
 
-#include "jsapi-tests/tests.h"
 #include "jsatom.h"
 
 #include "gc/Marking.h"
+#include "jsapi-tests/tests.h"
 #include "vm/String.h"
 
 using mozilla::ArrayLength;

@@ -5,11 +5,9 @@
 
 
 
-
-#include "jsapi-tests/tests.h"
-
 #include <math.h>
 
+#include "jsapi-tests/tests.h"
 #include "vm/NumericConversions.h"
 
 using js::detail::ToIntWidth;

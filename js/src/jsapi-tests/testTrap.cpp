@@ -5,9 +5,9 @@
 
 
 
+#include "jsdbgapi.h"
 
 #include "jsapi-tests/tests.h"
-#include "jsdbgapi.h"
 
 static int emptyTrapCallCount = 0;
 

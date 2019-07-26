@@ -5,12 +5,10 @@
 
 
 
-
-#include "jsapi-tests/tests.h"
-
 #include "jscompartment.h"
 #include "jsgc.h"
 
+#include "jsapi-tests/tests.h"
 #include "vm/Shape.h"
 
 #include "vm/Shape-inl.h"

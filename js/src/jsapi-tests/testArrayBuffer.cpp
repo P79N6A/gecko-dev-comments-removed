@@ -2,8 +2,9 @@
 
 
 
-#include "jsapi-tests/tests.h"
 #include "jsfriendapi.h"
+
+#include "jsapi-tests/tests.h"
 
 #define NUM_TEST_BUFFERS 2
 #define MAGIC_VALUE_1 3

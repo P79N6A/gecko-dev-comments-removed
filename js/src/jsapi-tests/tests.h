@@ -9,20 +9,18 @@
 
 #include "mozilla/Util.h"
 
-#include "jsapi.h"
-#include "jscntxt.h"
-#include "jsprvtd.h"
-#include "jsalloc.h"
-
-
-#include "jsgc.h"
-
-#include "js/Vector.h"
-
 #include <errno.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "jsalloc.h"
+#include "jsapi.h"
+#include "jscntxt.h"
+#include "jsgc.h"
+#include "jsprvtd.h"
+
+#include "js/Vector.h"
 
 
 class JSAPITestString {

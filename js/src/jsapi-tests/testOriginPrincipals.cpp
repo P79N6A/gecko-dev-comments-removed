@@ -2,8 +2,9 @@
 
 
 
-#include "jsapi-tests/tests.h"
 #include "jsdbgapi.h"
+
+#include "jsapi-tests/tests.h"
 
 JSPrincipals *sOriginPrincipalsInErrorReporter = NULL;
 

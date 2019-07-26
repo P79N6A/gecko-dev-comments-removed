@@ -5,9 +5,9 @@
 
 
 
+#include "jsdbgapi.h"
 
 #include "jsapi-tests/tests.h"
-#include "jsdbgapi.h"
 
 const char code[] =
     "xx = 1;       \n\

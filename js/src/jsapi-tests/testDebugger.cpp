@@ -5,10 +5,10 @@
 
 
 
+#include "jscntxt.h"
+#include "jsdbgapi.h"
 
 #include "jsapi-tests/tests.h"
-#include "jsdbgapi.h"
-#include "jscntxt.h"
 
 static int callCount[2] = {0, 0};
 

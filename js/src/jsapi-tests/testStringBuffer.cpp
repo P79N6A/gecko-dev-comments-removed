@@ -5,11 +5,9 @@
 
 
 
-
-#include "jsapi-tests/tests.h"
-
 #include "jsatom.h"
 
+#include "jsapi-tests/tests.h"
 #include "vm/StringBuffer.h"
 
 BEGIN_TEST(testStringBuffer_finishString)

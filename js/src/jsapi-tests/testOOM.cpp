@@ -2,9 +2,9 @@
 
 
 
-#include "jsapi-tests/tests.h"
-
 #include "mozilla/DebugOnly.h"
+
+#include "jsapi-tests/tests.h"
 
 BEGIN_TEST(testOOM)
 {

@@ -2,12 +2,12 @@
 
 
 
-#include "jsapi-tests/tests.h"
-
 #include <stdarg.h>
 
-#include "jsfriendapi.h"
 #include "jscntxt.h"
+#include "jsfriendapi.h"
+
+#include "jsapi-tests/tests.h"
 
 #include "vm/ObjectImpl-inl.h"
 

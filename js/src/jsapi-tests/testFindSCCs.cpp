@@ -5,16 +5,14 @@
 
 
 
-
-#include "jsapi-tests/tests.h"
-
-#include <string.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "jscntxt.h"
 #include "jsgc.h"
 
 #include "gc/FindSCCs.h"
+#include "jsapi-tests/tests.h"
 
 static const unsigned MaxVertices = 10;
 

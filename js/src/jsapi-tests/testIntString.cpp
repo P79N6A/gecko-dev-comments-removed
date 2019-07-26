@@ -5,7 +5,6 @@
 
 
 
-
 #include "jsapi-tests/tests.h"
 #include "vm/String.h"
 

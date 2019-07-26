@@ -7,10 +7,9 @@
 
 
 
+#include "jscntxt.h"
 
 #include "jsapi-tests/tests.h"
-
-#include "jscntxt.h"
 
 static js::ProfileEntry pstack[10];
 static uint32_t psize = 0;
