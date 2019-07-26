@@ -715,7 +715,6 @@ let TabItems = {
   _lastUpdateTime: Date.now(),
   _eventListeners: [],
   _pauseUpdateForTest: false,
-  tempCanvas: null,
   _reconnectingPaused: false,
   tabItemPadding: {},
   _mozAfterPaintHandler: null,
@@ -744,11 +743,6 @@ let TabItems = {
       .attr('moz-opaque', '');
     $canvas.appendTo(iQ("body"));
     $canvas.hide();
-    this.tempCanvas = $canvas[0];
-    
-    
-    this.tempCanvas.width = 150;
-    this.tempCanvas.height = 112;
 
     let mm = gWindow.messageManager;
     this._mozAfterPaintHandler = this.onMozAfterPaint.bind(this);
@@ -1386,92 +1380,10 @@ TabCanvas.prototype = Utils.extend(new Subscribable(), {
       return;
     }
 
-    let ctx = this.canvas.getContext("2d");
-    let tempCanvas = TabItems.tempCanvas;
-    let bgColor = '#fff';
-
-    if (w < tempCanvas.width) {
-      
-      
-      
-      let tempCtx = tempCanvas.getContext("2d");
-      this._drawWindow(tempCtx, tempCanvas.width, tempCanvas.height, bgColor);
-
-      
-      try {
-        this._fillCanvasBackground(ctx, w, h, bgColor);
-        ctx.drawImage(tempCanvas, 0, 0, w, h);
-      } catch (e) {
-        Utils.error('paint', e);
-      }
-    } else {
-      
-      
-      this._drawWindow(ctx, w, h, bgColor);
-    }
+    let win = this.tab.linkedBrowser.contentWindow;
+    gPageThumbnails.captureToCanvas(win, this.canvas);
 
     this._sendToSubscribers("painted");
-  },
-
-  
-  
-  
-  
-  _fillCanvasBackground: function TabCanvas__fillCanvasBackground(ctx, width, height, bgColor) {
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, width, height);
-  },
-
-  
-  
-  
-  _drawWindow: function TabCanvas__drawWindow(ctx, width, height, bgColor) {
-    this._fillCanvasBackground(ctx, width, height, bgColor);
-
-    let rect = this._calculateClippingRect(width, height);
-    let scaler = width / rect.width;
-
-    ctx.save();
-    ctx.scale(scaler, scaler);
-
-    try {
-      let win = this.tab.linkedBrowser.contentWindow;
-      ctx.drawWindow(win, rect.left, rect.top, rect.width, rect.height,
-                     bgColor, ctx.DRAWWINDOW_DO_NOT_FLUSH);
-    } catch (e) {
-      Utils.error('paint', e);
-    }
-
-    ctx.restore();
-  },
-
-  
-  
-  
-  
-  _calculateClippingRect: function TabCanvas__calculateClippingRect(origWidth, origHeight) {
-    let win = this.tab.linkedBrowser.contentWindow;
-
-    
-    
-    let maxWidth = Math.max(1, win.innerWidth - 25);
-    let maxHeight = win.innerHeight;
-
-    let height = Math.min(maxHeight, Math.floor(origHeight * maxWidth / origWidth));
-    let width = Math.floor(origWidth * height / origHeight);
-
-    
-    
-    let factor = 0.7;
-    if (width < maxWidth * factor) {
-      width = maxWidth * factor;
-      height = Math.floor(origHeight * width / origWidth);
-    }
-
-    let left = win.scrollX + Math.max(0, Math.round((maxWidth - width) / 2));
-    let top = win.scrollY;
-
-    return new Rect(left, top, width, height);
   },
 
   

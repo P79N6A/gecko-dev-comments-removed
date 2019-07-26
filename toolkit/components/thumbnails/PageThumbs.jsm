@@ -145,6 +145,7 @@ this.PageThumbs = {
     let ctx = aCanvas.getContext("2d");
 
     
+    ctx.save();
     ctx.scale(scale, scale);
 
     try {
@@ -154,6 +155,8 @@ this.PageThumbs = {
     } catch (e) {
       
     }
+
+    ctx.restore();
 
     let telemetry = Services.telemetry;
     telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
