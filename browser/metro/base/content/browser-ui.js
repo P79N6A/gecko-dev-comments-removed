@@ -143,6 +143,15 @@ var BrowserUI = {
     });
 
     
+    try {
+      UITelemetry.addSimpleMeasureFunction("metro-ui",
+                                           BrowserUI._getMeasures.bind(BrowserUI));
+    } catch (ex) {
+      
+      dump("Failed to addSimpleMeasureFunction in browser-ui: " + ex.message + "\n");
+    }
+
+    
     window.addEventListener("UIReadyDelayed", function delayedInit(aEvent) {
       Util.dumpLn("* delay load started...");
       window.removeEventListener("UIReadyDelayed",  delayedInit, false);
@@ -379,7 +388,7 @@ var BrowserUI = {
 
       
       
-      let fixupFlags = Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP | 
+      let fixupFlags = Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP |
                        Ci.nsIURIFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS;
       let uri = gURIFixup.createFixupURI(aURI, fixupFlags);
       gHistSvc.markPageAsTyped(uri);
@@ -744,6 +753,14 @@ var BrowserUI = {
       StyleSheetSvc.loadAndRegisterSheet(uri,
                                          Ci.nsIStyleSheetService.AGENT_SHEET);
     }
+  },
+
+  _getMeasures: function() {
+    let dimensions = {
+      "window-width": ContentAreaObserver.width,
+      "window-height": ContentAreaObserver.height
+    };
+    return dimensions;
   },
 
   
@@ -1131,7 +1148,7 @@ var BrowserUI = {
     let clearbutton = bundle.GetStringFromName("clearPrivateData.clearButton");
 
     let prefsClearButton = document.getElementById("prefs-clear-data");
-    prefsClearButton.disabled = true; 
+    prefsClearButton.disabled = true;
 
     let buttonPressed = Services.prompt.confirmEx(
                           null,
