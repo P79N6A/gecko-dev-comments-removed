@@ -307,6 +307,21 @@ struct RuntimeFriendFields {
     
     uintptr_t           nativeStackLimit;
 
+    RuntimeFriendFields()
+      : interrupt(0),
+        nativeStackLimit(0) { }
+
+    static const RuntimeFriendFields *get(const JSRuntime *rt) {
+        return reinterpret_cast<const RuntimeFriendFields *>(rt);
+    }
+};
+
+class PerThreadData;
+
+struct PerThreadDataFriendFields
+{
+    PerThreadDataFriendFields();
+
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
     
 
@@ -315,12 +330,15 @@ struct RuntimeFriendFields {
     Rooted<void*> *thingGCRooters[THING_ROOT_LIMIT];
 #endif
 
-    RuntimeFriendFields()
-      : interrupt(0),
-        nativeStackLimit(0) { }
+    static PerThreadDataFriendFields *get(js::PerThreadData *pt) {
+        return reinterpret_cast<PerThreadDataFriendFields *>(pt);
+    }
 
-    static const RuntimeFriendFields *get(const JSRuntime *rt) {
-        return reinterpret_cast<const RuntimeFriendFields *>(rt);
+    static PerThreadDataFriendFields *getMainThread(JSRuntime *rt) {
+        
+        
+        return reinterpret_cast<PerThreadDataFriendFields *>(
+            reinterpret_cast<char*>(rt) + sizeof(RuntimeFriendFields));
     }
 };
 

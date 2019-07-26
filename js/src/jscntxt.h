@@ -389,8 +389,70 @@ struct JSAtomState
 #define NAME_OFFSET(name)       offsetof(JSAtomState, name)
 #define OFFSET_TO_NAME(rt,off)  (*(js::FixedHeapPtr<js::PropertyName>*)((char*)&(rt)->atomState + (off)))
 
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+class PerThreadData : public js::PerThreadDataFriendFields
+{
+    
+
+
+
+
+
+
+    JSRuntime *runtime_;
+
+  public:
+    
+
+
+
+
+
+#ifdef DEBUG
+    struct SavedGCRoot {
+        void *thing;
+        JSGCTraceKind kind;
+
+        SavedGCRoot(void *thing, JSGCTraceKind kind) : thing(thing), kind(kind) {}
+    };
+    js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
+
+    bool                gcRelaxRootChecks;
+    int                 gcAssertNoGCDepth;
+#endif
+
+    PerThreadData(JSRuntime *runtime);
+
+    bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
+};
+
+} 
+
 struct JSRuntime : js::RuntimeFriendFields
 {
+    
+
+
+
+
+
+
+
+
+    js::PerThreadData mainThread;
+
     
     JSCompartment       *atomsCompartment;
 
@@ -653,25 +715,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     bool                gcExactScanningEnabled;
-
-    
-
-
-
-
-
-#ifdef DEBUG
-    struct SavedGCRoot {
-        void *thing;
-        JSGCTraceKind kind;
-
-        SavedGCRoot(void *thing, JSGCTraceKind kind) : thing(thing), kind(kind) {}
-    };
-    js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
-
-    bool                gcRelaxRootChecks;
-    int                 gcAssertNoGCDepth;
-#endif
 
     bool                gcPoke;
 
