@@ -17,6 +17,8 @@ import org.json.JSONObject;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.text.Html;
+import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -88,7 +90,8 @@ public class HomeBanner extends LinearLayout
             
             setTag(message.getString("id"));
 
-            final String text = message.getString("text");
+            
+            final Spanned text = Html.fromHtml(message.getString("text"));
             final TextView textView = (TextView) findViewById(R.id.text);
 
             
