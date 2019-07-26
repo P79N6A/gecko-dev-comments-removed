@@ -10,6 +10,7 @@
 #include "imgIContainer.h"
 #include "imgStatusTracker.h"
 #include "nsIURI.h"
+#include "nsProxyRelease.h" 
 
 class nsIRequest;
 class nsIInputStream;
@@ -157,7 +158,8 @@ public:
   
 
 
-  virtual nsIURI* GetURI() MOZ_OVERRIDE { return mURI; }
+
+  virtual nsIURI* GetURI() MOZ_OVERRIDE { return mURI.get(); }
 
 protected:
   ImageResource(imgStatusTracker* aStatusTracker, nsIURI* aURI);
@@ -185,14 +187,14 @@ protected:
   virtual nsresult StopAnimation() = 0;
 
   
-  nsRefPtr<imgStatusTracker>  mStatusTracker;
-  nsCOMPtr<nsIURI>            mURI;
-  uint64_t                    mInnerWindowId;
-  uint32_t                    mAnimationConsumers;
-  uint16_t                    mAnimationMode;   
-  bool                        mInitialized:1;   
-  bool                        mAnimating:1;     
-  bool                        mError:1;         
+  nsRefPtr<imgStatusTracker>    mStatusTracker;
+  nsMainThreadPtrHandle<nsIURI> mURI;
+  uint64_t                      mInnerWindowId;
+  uint32_t                      mAnimationConsumers;
+  uint16_t                      mAnimationMode; 
+  bool                          mInitialized:1; 
+  bool                          mAnimating:1;   
+  bool                          mError:1;       
 };
 
 } 
