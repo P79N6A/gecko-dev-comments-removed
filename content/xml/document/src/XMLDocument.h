@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsXMLDocument_h___
-#define nsXMLDocument_h___
+#ifndef mozilla_dom_XMLDocument_h
+#define mozilla_dom_XMLDocument_h
 
 #include "nsDocument.h"
 #include "nsIDOMXMLDocument.h"
@@ -15,11 +15,14 @@ class nsIDOMNode;
 class nsIURI;
 class nsIChannel;
 
-class nsXMLDocument : public nsDocument
+namespace mozilla {
+namespace dom {
+
+class XMLDocument : public nsDocument
 {
 public:
-  nsXMLDocument(const char* aContentType = "application/xml");
-  virtual ~nsXMLDocument();
+  XMLDocument(const char* aContentType = "application/xml");
+  virtual ~XMLDocument();
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -60,5 +63,7 @@ protected:
   bool mLoopingForSyncLoad;
 };
 
+} 
+} 
 
 #endif 

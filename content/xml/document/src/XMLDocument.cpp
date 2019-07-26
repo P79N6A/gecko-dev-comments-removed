@@ -4,7 +4,7 @@
 
 
 
-#include "nsXMLDocument.h"
+#include "mozilla/dom/XMLDocument.h"
 #include "nsParserCIID.h"
 #include "nsCharsetSource.h"
 #include "nsIXMLContentSink.h"
@@ -52,6 +52,9 @@
 #include "nsIScriptError.h"
 #include "nsIHTMLDocument.h"
 #include "mozilla/dom/Element.h" 
+
+using namespace mozilla;
+using namespace mozilla::dom;
 
 
 
@@ -170,7 +173,7 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
 nsresult
 NS_NewXMLDocument(nsIDocument** aInstancePtrResult, bool aLoadedAsData)
 {
-  nsXMLDocument* doc = new nsXMLDocument();
+  XMLDocument* doc = new XMLDocument();
   NS_ENSURE_TRUE(doc, NS_ERROR_OUT_OF_MEMORY);
 
   NS_ADDREF(doc);
@@ -207,10 +210,12 @@ NS_NewXBLDocument(nsIDOMDocument** aInstancePtrResult,
   return NS_OK;
 }
 
-  
-  
+DOMCI_NODE_DATA(XMLDocument, XMLDocument)
 
-nsXMLDocument::nsXMLDocument(const char* aContentType)
+namespace mozilla {
+namespace dom {
+
+XMLDocument::XMLDocument(const char* aContentType)
   : nsDocument(aContentType),
     mAsync(true)
 {
@@ -219,30 +224,28 @@ nsXMLDocument::nsXMLDocument(const char* aContentType)
   
 }
 
-nsXMLDocument::~nsXMLDocument()
+XMLDocument::~XMLDocument()
 {
   
   mLoopingForSyncLoad = false;
 }
 
-DOMCI_NODE_DATA(XMLDocument, nsXMLDocument)
 
-
-NS_INTERFACE_TABLE_HEAD(nsXMLDocument)
-  NS_DOCUMENT_INTERFACE_TABLE_BEGIN(nsXMLDocument)
-    NS_INTERFACE_TABLE_ENTRY(nsXMLDocument, nsIDOMXMLDocument)
+NS_INTERFACE_TABLE_HEAD(XMLDocument)
+  NS_DOCUMENT_INTERFACE_TABLE_BEGIN(XMLDocument)
+    NS_INTERFACE_TABLE_ENTRY(XMLDocument, nsIDOMXMLDocument)
   NS_OFFSET_AND_INTERFACE_TABLE_END
   NS_OFFSET_AND_INTERFACE_TABLE_TO_MAP_SEGUE
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(XMLDocument)
 NS_INTERFACE_MAP_END_INHERITING(nsDocument)
 
 
-NS_IMPL_ADDREF_INHERITED(nsXMLDocument, nsDocument)
-NS_IMPL_RELEASE_INHERITED(nsXMLDocument, nsDocument)
+NS_IMPL_ADDREF_INHERITED(XMLDocument, nsDocument)
+NS_IMPL_RELEASE_INHERITED(XMLDocument, nsDocument)
 
 
 nsresult
-nsXMLDocument::Init()
+XMLDocument::Init()
 {
   nsresult rv = nsDocument::Init();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -251,14 +254,14 @@ nsXMLDocument::Init()
 }
 
 void
-nsXMLDocument::Reset(nsIChannel* aChannel, nsILoadGroup* aLoadGroup)
+XMLDocument::Reset(nsIChannel* aChannel, nsILoadGroup* aLoadGroup)
 {
   nsDocument::Reset(aChannel, aLoadGroup);
 }
 
 void
-nsXMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
-                          nsIPrincipal* aPrincipal)
+XMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
+                        nsIPrincipal* aPrincipal)
 {
   if (mChannelIsPending) {
     StopDocumentLoad();
@@ -270,7 +273,7 @@ nsXMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
 }
 
 NS_IMETHODIMP
-nsXMLDocument::GetAsync(bool *aAsync)
+XMLDocument::GetAsync(bool *aAsync)
 {
   NS_ENSURE_ARG_POINTER(aAsync);
   *aAsync = mAsync;
@@ -278,7 +281,7 @@ nsXMLDocument::GetAsync(bool *aAsync)
 }
 
 NS_IMETHODIMP
-nsXMLDocument::SetAsync(bool aAsync)
+XMLDocument::SetAsync(bool aAsync)
 {
   mAsync = aAsync;
   return NS_OK;
@@ -294,7 +297,7 @@ ReportUseOfDeprecatedMethod(nsIDocument *aDoc, const char* aWarning)
 }
 
 NS_IMETHODIMP
-nsXMLDocument::Load(const nsAString& aUrl, bool *aReturn)
+XMLDocument::Load(const nsAString& aUrl, bool *aReturn)
 {
   bool hasHadScriptObject = true;
   nsIScriptGlobalObject* scriptObject =
@@ -440,7 +443,7 @@ nsXMLDocument::Load(const nsAString& aUrl, bool *aReturn)
                                        loadGroup, nullptr, 
                                        getter_AddRefs(listener),
                                        false))) {
-    NS_ERROR("nsXMLDocument::Load: Failed to start the document load.");
+    NS_ERROR("XMLDocument::Load: Failed to start the document load.");
     return rv;
   }
 
@@ -485,13 +488,13 @@ nsXMLDocument::Load(const nsAString& aUrl, bool *aReturn)
 }
 
 nsresult
-nsXMLDocument::StartDocumentLoad(const char* aCommand,
-                                 nsIChannel* aChannel,
-                                 nsILoadGroup* aLoadGroup,
-                                 nsISupports* aContainer,
-                                 nsIStreamListener **aDocListener,
-                                 bool aReset,
-                                 nsIContentSink* aSink)
+XMLDocument::StartDocumentLoad(const char* aCommand,
+                               nsIChannel* aChannel,
+                               nsILoadGroup* aLoadGroup,
+                               nsISupports* aContainer,
+                               nsIStreamListener **aDocListener,
+                               bool aReset,
+                               nsIContentSink* aSink)
 {
   nsresult rv = nsDocument::StartDocumentLoad(aCommand,
                                               aChannel, aLoadGroup,
@@ -551,7 +554,7 @@ nsXMLDocument::StartDocumentLoad(const char* aCommand,
 }
 
 void
-nsXMLDocument::EndLoad()
+XMLDocument::EndLoad()
 {
   mChannelIsPending = false;
   mLoopingForSyncLoad = false;
@@ -571,7 +574,7 @@ nsXMLDocument::EndLoad()
 }
  
  void
-nsXMLDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
+XMLDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
 {
   nsDocument::DocSizeOfExcludingThis(aWindowSizes);
 }
@@ -579,12 +582,12 @@ nsXMLDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
 
 
 nsresult
-nsXMLDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
+XMLDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {
   NS_ASSERTION(aNodeInfo->NodeInfoManager() == mNodeInfoManager,
                "Can't import this document into another document!");
 
-  nsRefPtr<nsXMLDocument> clone = new nsXMLDocument();
+  nsRefPtr<XMLDocument> clone = new XMLDocument();
   NS_ENSURE_TRUE(clone, NS_ERROR_OUT_OF_MEMORY);
   nsresult rv = CloneDocHelper(clone);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -594,3 +597,6 @@ nsXMLDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 
   return CallQueryInterface(clone.get(), aResult);
 }
+
+} 
+} 
