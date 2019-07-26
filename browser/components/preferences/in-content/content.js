@@ -36,9 +36,7 @@ var gContentPane = {
 
   _exceptionsParams: {
     popup:   { blockVisible: false, sessionVisible: false, allowVisible: true, 
-               prefilledHost: "", permissionType: "popup" },
-    image:   { blockVisible: true,  sessionVisible: false, allowVisible: true, 
-               prefilledHost: "", permissionType: "image" }
+               prefilledHost: "", permissionType: "popup" }
   },
 
   
@@ -67,13 +65,6 @@ var gContentPane = {
 
 
 
-
-
-
-
-
-
-
   
 
   
@@ -83,37 +74,6 @@ var gContentPane = {
   showPopupExceptions: function ()
   {
     this._showExceptions("popup");
-  },
-
-  
-
-  
-
-
-
-
-  readLoadImages: function ()
-  {
-    var pref = document.getElementById("permissions.default.image");
-    return (pref.value == 1 || pref.value == 3);
-  },
-
-  
-
-
-
-  writeLoadImages: function ()
-  { 
-    return (document.getElementById("loadImages").checked) ? 1 : 2;
-  },
-
-  
-
-
-
-  showImageExceptions: function ()
-  {
-    this._showExceptions("image");
   },
 
   
