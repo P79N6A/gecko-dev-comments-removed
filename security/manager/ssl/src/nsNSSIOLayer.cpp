@@ -77,6 +77,37 @@ getSiteKey(const nsACString & hostName, uint16_t port,
 
 typedef enum {ASK, AUTO} SSM_UserCertChoice;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const bool FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT = true;
+
+
+
+
+
+
+static const bool FALSE_START_REQUIRE_NPN_DEFAULT = true;
+
 } 
 
 #ifdef PR_LOGGING
@@ -93,6 +124,8 @@ nsNSSSocketInfo::nsNSSSocketInfo(SharedSSLState& aState, uint32_t providerFlags)
     mRememberClientAuthCertificate(false),
     mPreliminaryHandshakeDone(false),
     mNPNCompleted(false),
+    mFalseStartCallbackCalled(false),
+    mFalseStarted(false),
     mIsFullHandshake(false),
     mHandshakeCompleted(false),
     mJoined(false),
@@ -256,16 +289,32 @@ nsNSSSocketInfo::NoteTimeUntilReady()
 }
 
 void
-nsNSSSocketInfo::SetHandshakeCompleted(bool aResumedSession)
+nsNSSSocketInfo::SetHandshakeCompleted()
 {
   if (!mHandshakeCompleted) {
+    enum HandshakeType {
+      Resumption = 1,
+      FalseStarted = 2,
+      ChoseNotToFalseStart = 3,
+      NotAllowedToFalseStart = 4,
+    };
+
+    HandshakeType handshakeType = !IsFullHandshake() ? Resumption
+                                : mFalseStarted ? FalseStarted
+                                : mFalseStartCallbackCalled ? ChoseNotToFalseStart
+                                : NotAllowedToFalseStart;
+
     
     Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_HANDSHAKE_FINISHED,
                                    mSocketCreationTimestamp, TimeStamp::Now());
 
     
     
-    Telemetry::Accumulate(Telemetry::SSL_RESUMED_SESSION, aResumedSession);
+    Telemetry::Accumulate(Telemetry::SSL_RESUMED_SESSION,
+                          handshakeType == Resumption);
+    Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_TYPE, handshakeType);
+  }
+
 
     
     
@@ -283,7 +332,6 @@ nsNSSSocketInfo::SetHandshakeCompleted(bool aResumedSession)
            ("[%p] nsNSSSocketInfo::SetHandshakeCompleted\n", (void*)mFd));
 
     mIsFullHandshake = false; 
-  }
 }
 
 void
@@ -1344,11 +1392,13 @@ PrefObserver::Observe(nsISupports *aSubject, const char *aTopic,
       Preferences::GetInt("security.ssl.warn_missing_rfc5746", &warnLevel);
       mOwner->setWarnLevelMissingRFC5746(warnLevel);
     } else if (prefName.Equals("security.ssl.false_start.require-npn")) {
-      Preferences::GetBool("security.ssl.false_start.require-npn",
-                           &mOwner->mFalseStartRequireNPN);
+      mOwner->mFalseStartRequireNPN =
+        Preferences::GetBool("security.ssl.false_start.require-npn",
+                             FALSE_START_REQUIRE_NPN_DEFAULT);
     } else if (prefName.Equals("security.ssl.false_start.require-forward-secrecy")) {
-      Preferences::GetBool("security.ssl.false_start.require-forward-secrecy",
-                           &mOwner->mFalseStartRequireForwardSecrecy);
+      mOwner->mFalseStartRequireForwardSecrecy =
+        Preferences::GetBool("security.ssl.false_start.require-forward-secrecy",
+                             FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT);
     }
   }
   return NS_OK;
@@ -1449,10 +1499,12 @@ nsresult nsSSLIOLayerHelpers::Init()
   Preferences::GetInt("security.ssl.warn_missing_rfc5746", &warnLevel);
   setWarnLevelMissingRFC5746(warnLevel);
 
-  Preferences::GetBool("security.ssl.false_start.require-npn",
-                       &mFalseStartRequireNPN);
-  Preferences::GetBool("security.ssl.false_start.require-forward-secrecy",
-                       &mFalseStartRequireForwardSecrecy);
+  mFalseStartRequireNPN =
+    Preferences::GetBool("security.ssl.false_start.require-npn",
+                         FALSE_START_REQUIRE_NPN_DEFAULT);
+  mFalseStartRequireForwardSecrecy =
+    Preferences::GetBool("security.ssl.false_start.require-forward-secrecy",
+                         FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT);
 
   mPrefObserver = new PrefObserver(this);
   Preferences::AddStrongObserver(mPrefObserver,
