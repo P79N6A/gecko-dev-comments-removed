@@ -1185,7 +1185,7 @@ public:
     
     if (!JSREPORT_IS_WARNING(aFlags)) {
       
-      ErrorEventInit init;
+      RootedDictionary<ErrorEventInit> init(aCx);
       init.mMessage = aMessage;
       init.mFilename = aFilename;
       init.mLineno = aLineNumber;
@@ -3135,7 +3135,7 @@ WorkerPrivateParent<Derived>::BroadcastErrorToSharedWorkers(
       continue;
     }
 
-    ErrorEventInit errorInit;
+    RootedDictionary<ErrorEventInit> errorInit(aCx);
     errorInit.mBubbles = false;
     errorInit.mCancelable = true;
     errorInit.mMessage = aMessage;
@@ -3201,7 +3201,7 @@ WorkerPrivateParent<Derived>::BroadcastErrorToSharedWorkers(
     MOZ_ASSERT(sgo);
 
     MOZ_ASSERT(NS_IsMainThread());
-    ErrorEventInit init;
+    RootedDictionary<ErrorEventInit> init(aCx);
     init.mLineno = aLineNumber;
     init.mFilename = aFilename;
     init.mMessage = aMessage;
