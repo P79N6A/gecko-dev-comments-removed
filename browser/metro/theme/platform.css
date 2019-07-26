@@ -491,6 +491,11 @@ richgriditem[selected] .richgrid-item-content::after {
     border: @metro_border_xthick@ solid @selected_color@;
 }
 
+richgriditem[crosssliding] {
+  z-index: 1;
+}
+
+
 richgriditem:not([crosssliding]) {
   transition: transform ease-out 0.2s;
 }
