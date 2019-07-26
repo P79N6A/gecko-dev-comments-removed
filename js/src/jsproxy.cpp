@@ -746,6 +746,8 @@ FunctionProxyObject::constructOrUndefined() const
     return getSlot(CONSTRUCT_SLOT);
 }
 
+namespace {
+
 
 class ScriptedIndirectProxyHandler : public BaseProxyHandler
 {
@@ -790,6 +792,8 @@ class ScriptedIndirectProxyHandler : public BaseProxyHandler
 
     static ScriptedIndirectProxyHandler singleton;
 };
+
+} 
 
 static int sScriptedIndirectProxyHandlerFamily = 0;
 

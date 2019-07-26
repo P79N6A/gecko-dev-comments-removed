@@ -85,6 +85,8 @@ ComputeAccurateDecimalInteger(ThreadSafeContext *cx,
     return true;
 }
 
+namespace {
+
 class BinaryDigitReader
 {
     const int base;      
@@ -121,6 +123,8 @@ class BinaryDigitReader
         return bit;
     }
 };
+
+} 
 
 
 

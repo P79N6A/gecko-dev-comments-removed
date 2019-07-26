@@ -70,6 +70,8 @@ ParseNodeAllocator::freeNode(ParseNode *pn)
     freelist = pn;
 }
 
+namespace {
+
 
 
 
@@ -103,6 +105,8 @@ class NodeStack {
   private:
     ParseNode *top;
 };
+
+} 
 
 
 
