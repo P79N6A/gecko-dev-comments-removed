@@ -352,7 +352,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     JSTrapStatus fireDebuggerStatement(JSContext *cx, MutableHandleValue vp);
     JSTrapStatus fireExceptionUnwind(JSContext *cx, MutableHandleValue vp);
-    JSTrapStatus fireEnterFrame(JSContext *cx, MutableHandleValue vp);
+    JSTrapStatus fireEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp);
     JSTrapStatus fireNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global, MutableHandleValue vp);
 
     
@@ -481,7 +481,28 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     bool unwrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
 
     
-    bool getScriptFrame(JSContext *cx, const ScriptFrameIter &iter, MutableHandleValue vp);
+
+
+
+
+
+    bool getScriptFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp);
+
+    
+
+
+
+
+
+
+
+    bool getScriptFrame(JSContext *cx, const ScriptFrameIter &iter, MutableHandleValue vp) {
+        AbstractFramePtr data = iter.copyDataAsAbstractFramePtr();
+        if (!data || !getScriptFrame(cx, iter.abstractFramePtr(), vp))
+            return false;
+        vp.toObject().setPrivate(data.raw());
+        return true;
+    }
 
     
 
