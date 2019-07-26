@@ -73,6 +73,28 @@ protected:
 
 
 
+
+
+
+
+
+  nsresult DoFlexLayout(nsPresContext*           aPresContext,
+                        nsHTMLReflowMetrics&     aDesiredSize,
+                        const nsHTMLReflowState& aReflowState,
+                        nsReflowStatus&          aStatus,
+                        nscoord aContentBoxMainSize,
+                        nscoord aAvailableHeightForContent,
+                        const FlexboxAxisTracker& aAxisTracker);
+
+  
+
+
+
+
+
+
+
+
   template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
   bool SortChildrenIfNeeded();
 
