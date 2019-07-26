@@ -44,6 +44,14 @@ struct ScrollableLayerGuid {
   uint32_t mPresShellId;
   FrameMetrics::ViewID mScrollId;
 
+  ScrollableLayerGuid()
+    : mLayersId(0)
+    , mPresShellId(0)
+    , mScrollId(0)
+  {
+    MOZ_COUNT_CTOR(ScrollableLayerGuid);
+  }
+
   ScrollableLayerGuid(uint64_t aLayersId, uint32_t aPresShellId,
                       FrameMetrics::ViewID aScrollId)
     : mLayersId(aLayersId)
@@ -143,9 +151,16 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(const InputData& aEvent);
+
+
+
+
+  nsEventStatus ReceiveInputEvent(const InputData& aEvent,
+                                  ScrollableLayerGuid* aOutTargetGuid);
 
   
+
+
 
 
 
@@ -161,6 +176,7 @@ public:
 
 
   nsEventStatus ReceiveInputEvent(const WidgetInputEvent& aEvent,
+                                  ScrollableLayerGuid* aOutTargetGuid,
                                   WidgetInputEvent* aOutEvent);
 
   
@@ -169,7 +185,10 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(WidgetInputEvent& aEvent);
+
+
+  nsEventStatus ReceiveInputEvent(WidgetInputEvent& aEvent,
+                                  ScrollableLayerGuid* aOutTargetGuid);
 
   
 
@@ -285,9 +304,9 @@ private:
   AsyncPanZoomController* CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2);
   AsyncPanZoomController* RootAPZCForLayersId(AsyncPanZoomController* aApzc);
   AsyncPanZoomController* GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent, ScreenPoint aPoint);
-  nsEventStatus ProcessTouchEvent(const WidgetTouchEvent& touchEvent, WidgetTouchEvent* aOutEvent);
-  nsEventStatus ProcessMouseEvent(const WidgetMouseEvent& mouseEvent, WidgetMouseEvent* aOutEvent);
-  nsEventStatus ProcessEvent(const WidgetInputEvent& inputEvent, WidgetInputEvent* aOutEvent);
+  nsEventStatus ProcessTouchEvent(const WidgetTouchEvent& touchEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetTouchEvent* aOutEvent);
+  nsEventStatus ProcessMouseEvent(const WidgetMouseEvent& mouseEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetMouseEvent* aOutEvent);
+  nsEventStatus ProcessEvent(const WidgetInputEvent& inputEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetInputEvent* aOutEvent);
 
   
 

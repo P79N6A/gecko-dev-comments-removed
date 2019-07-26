@@ -234,6 +234,11 @@ public:
   
 
 
+  void GetGuid(ScrollableLayerGuid* aGuidOut);
+
+  
+
+
   bool Matches(const ScrollableLayerGuid& aGuid);
 
   
