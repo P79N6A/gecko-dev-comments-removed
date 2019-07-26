@@ -726,13 +726,15 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   nsPresContext *presContext = aNewStyleContext->PresContext();
 
   if (!shouldAnimate) {
-    nsTArray<ElementPropertyTransition> &pts =
-      aElementTransitions->mPropertyTransitions;
     if (haveCurrentTransition) {
       
       
       
       
+      
+      
+      nsTArray<ElementPropertyTransition> &pts =
+        aElementTransitions->mPropertyTransitions;
       pts.RemoveElementAt(currentIndex);
       aElementTransitions->UpdateAnimationGeneration(mPresContext);
 
