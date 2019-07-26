@@ -348,6 +348,9 @@ ParallelSafetyAnalysis::analyze()
 
         if (block->isMarked()) {
             
+            marked++;
+
+            
             
             
             
@@ -372,9 +375,6 @@ ParallelSafetyAnalysis::analyze()
 
             if (!visitor.unsafe()) {
                 
-                marked++;
-
-                
                 for (uint32_t i = 0; i < block->numSuccessors(); i++)
                     block->getSuccessor(i)->mark();
             } else {
@@ -393,8 +393,6 @@ ParallelSafetyAnalysis::analyze()
                 
                 if (!visitor.convertToBailout(*block, instr))
                     return false;
-
-                JS_ASSERT(!block->isMarked());
             }
         }
     }
@@ -471,50 +469,16 @@ ParallelSafetyVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
     JS_ASSERT(block->isMarked()); 
 
     
+    
+    
+    
+    
+    for (size_t i = 0, e = block->numSuccessors(); i < e; i++)
+        block->getSuccessor(i)->removePredecessor(block);
     clearUnsafe();
-
-    
-    block->unmark();
-
-    
-    
-    
-    
-    
-    
-    
-    for (size_t i = 0; i < block->numPredecessors(); i++) {
-        MBasicBlock *pred = block->getPredecessor(i);
-
-        
-        if (!pred->isMarked())
-            continue;
-
-        
-        MBasicBlock *bailBlock = MBasicBlock::NewAbortPar(graph_, block->info(), pred,
-                                                          BytecodeSite(block->trackedTree(),
-                                                                       block->pc()),
-                                                          block->entryResumePoint());
-        if (!bailBlock)
-            return false;
-
-        
-        if (pred->successorWithPhis() == block)
-            pred->setSuccessorWithPhis(nullptr, 0);
-
-        
-        uint32_t succIdx = pred->getSuccessorIndex(block);
-        pred->replaceSuccessor(succIdx, bailBlock);
-
-        
-        
-        
-        
-        
-        graph_.insertBlockAfter(block, bailBlock);
-        bailBlock->mark();
-    }
-
+    block->discardAllPhis();
+    block->discardAllInstructions();
+    block->end(MAbortPar::New(graph_.alloc()));
     return true;
 }
 

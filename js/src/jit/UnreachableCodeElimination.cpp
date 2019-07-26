@@ -243,33 +243,6 @@ UnreachableCodeElimination::removeUnmarkedBlocksAndClearDominators()
             for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++)
                 checkDependencyAndRemoveUsesFromUnmarkedBlocks(*iter);
         } else {
-            if (block->numPredecessors() > 1) {
-                
-                
-                
-                for (size_t i = 0; i < block->numPredecessors(); i++)
-                    block->getPredecessor(i)->setSuccessorWithPhis(nullptr, 0);
-            }
-
-            if (block->isLoopBackedge()) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                block->loopHeaderOfBackedge()->clearLoopHeader();
-            }
-
             for (size_t i = 0, c = block->numSuccessors(); i < c; i++) {
                 MBasicBlock *succ = block->getSuccessor(i);
                 if (succ->isMarked()) {
