@@ -17,6 +17,7 @@ registerCleanupFunction(function() {
   Services.prefs.clearUserPref("network.cookie.lifetimePolicy");
   Services.prefs.clearUserPref("browser.rights.override");
   Services.prefs.clearUserPref("browser.rights." + gRightsVersion + ".shown");
+  Services.prefs.clearUserPref("browser.aboutHomeSnippets.updateUrl");
 });
 
 let gTests = [
@@ -338,20 +339,25 @@ function test()
     for (let test of gTests) {
       info(test.desc);
 
+      
+      Services.prefs.setCharPref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
+
       if (test.beforeRun)
         yield test.beforeRun();
 
-      let tab = yield promiseNewTabLoadEvent("about:home", "DOMContentLoaded");
+      
+      let tab = gBrowser.selectedTab = gBrowser.addTab("about:blank");
+
+      
+      let snippetsPromise = promiseSetupSnippetsMap(tab, test.setup);
+
+      
+      yield promiseTabLoadEvent(tab, "about:home", "AboutHomeLoadSnippetsSucceeded");
 
       
       
-      
-      
-      let promise = promiseBrowserAttributes(tab);
-      
-      let snippetsMap = yield promiseSetupSnippetsMap(tab, test.setup);
-      
-      yield promise;
+      let snippetsMap = yield snippetsPromise;
+
       info("Running test");
       yield test.run(snippetsMap);
       info("Cleanup");
@@ -372,21 +378,23 @@ function test()
 
 
 
-function promiseNewTabLoadEvent(aUrl, aEventType="load")
+
+
+function promiseTabLoadEvent(aTab, aURL, aEventType="load")
 {
   let deferred = Promise.defer();
-  let tab = gBrowser.selectedTab = gBrowser.addTab(aUrl);
   info("Wait tab event: " + aEventType);
-  tab.linkedBrowser.addEventListener(aEventType, function load(event) {
-    if (event.originalTarget != tab.linkedBrowser.contentDocument ||
+  aTab.linkedBrowser.addEventListener(aEventType, function load(event) {
+    if (event.originalTarget != aTab.linkedBrowser.contentDocument ||
         event.target.location.href == "about:blank") {
       info("skipping spurious load event");
       return;
     }
-    tab.linkedBrowser.removeEventListener(aEventType, load, true);
+    aTab.linkedBrowser.removeEventListener(aEventType, load, true);
     info("Tab event received: " + aEventType);
-    deferred.resolve(tab);
-  }, true);
+    deferred.resolve();
+  }, true, true);
+  aTab.linkedBrowser.loadURI(aURL);
   return deferred.promise;
 }
 
@@ -403,25 +411,29 @@ function promiseNewTabLoadEvent(aUrl, aEventType="load")
 function promiseSetupSnippetsMap(aTab, aSetupFn)
 {
   let deferred = Promise.defer();
-  let cw = aTab.linkedBrowser.contentWindow.wrappedJSObject;
   info("Waiting for snippets map");
-  cw.ensureSnippetsMapThen(function (aSnippetsMap) {
-    info("Got snippets map: " +
-         "{ last-update: " + aSnippetsMap.get("snippets-last-update") +
-         ", cached-version: " + aSnippetsMap.get("snippets-cached-version") +
-         " }");
+  aTab.linkedBrowser.addEventListener("AboutHomeLoadSnippets", function load(event) {
+    aTab.linkedBrowser.removeEventListener("AboutHomeLoadSnippets", load, true);
+
+    let cw = aTab.linkedBrowser.contentWindow.wrappedJSObject;
     
-    aSnippetsMap.set("snippets-last-update", Date.now());
-    aSnippetsMap.set("snippets-cached-version", AboutHomeUtils.snippetsVersion);
     
-    aSnippetsMap.delete("snippets");
-    aSetupFn(aSnippetsMap);
-    
-    executeSoon(function() deferred.resolve(aSnippetsMap));
-  });
+    cw.ensureSnippetsMapThen(function (aSnippetsMap) {
+      info("Got snippets map: " +
+           "{ last-update: " + aSnippetsMap.get("snippets-last-update") +
+           ", cached-version: " + aSnippetsMap.get("snippets-cached-version") +
+           " }");
+      
+      aSnippetsMap.set("snippets-last-update", Date.now());
+      aSnippetsMap.set("snippets-cached-version", AboutHomeUtils.snippetsVersion);
+      
+      aSnippetsMap.delete("snippets");
+      aSetupFn(aSnippetsMap);
+      deferred.resolve(aSnippetsMap);
+    });
+  }, true, true);
   return deferred.promise;
 }
-
 
 
 
@@ -435,16 +447,10 @@ function promiseBrowserAttributes(aTab)
   let deferred = Promise.defer();
 
   let docElt = aTab.linkedBrowser.contentDocument.documentElement;
-  
   let observer = new MutationObserver(function (mutations) {
     for (let mutation of mutations) {
       info("Got attribute mutation: " + mutation.attributeName +
                                     " from " + mutation.oldValue); 
-      if (mutation.attributeName == "snippetsURL" &&
-          docElt.getAttribute("snippetsURL") != "nonexistent://test") {
-        docElt.setAttribute("snippetsURL", "nonexistent://test");
-      }
-
       
       if (mutation.attributeName == "searchEngineName") {
         info("Remove attributes observer");

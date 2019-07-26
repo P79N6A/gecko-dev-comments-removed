@@ -344,11 +344,24 @@ function setupSearchEngine()
 
 
 
+function loadSucceeded()
+{
+  var event = new CustomEvent("AboutHomeLoadSnippetsSucceeded", {bubbles:true});
+  document.dispatchEvent(event);
+}
+
+
+
+
 
 function loadSnippets()
 {
   if (!gSnippetsMap)
     throw new Error("Snippets map has not properly been initialized");
+
+  
+  var event = new CustomEvent("AboutHomeLoadSnippets", {bubbles:true});
+  document.dispatchEvent(event);
 
   
   let cachedVersion = gSnippetsMap.get("snippets-cached-version") || 0;
@@ -370,6 +383,7 @@ function loadSnippets()
       xhr.open("GET", updateURL, true);
     } catch (ex) {
       showSnippets();
+      loadSucceeded();
       return;
     }
     
@@ -385,10 +399,12 @@ function loadSnippets()
         gSnippetsMap.set("snippets-cached-version", currentVersion);
       }
       showSnippets();
+      loadSucceeded();
     };
     xhr.send(null);
   } else {
     showSnippets();
+    loadSucceeded();
   }
 }
 
