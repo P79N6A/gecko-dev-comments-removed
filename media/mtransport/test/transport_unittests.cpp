@@ -237,8 +237,8 @@ class TransportTestPeer : public sigslot::has_slots<> {
     nsresult res;
 
     
-    ice_ctx_->SignalGatheringCompleted.
-        connect(this, &TransportTestPeer::GatheringComplete);
+    ice_ctx_->SignalGatheringStateChange.
+        connect(this, &TransportTestPeer::GatheringStateChange);
 
     char name[100];
     snprintf(name, sizeof(name), "%s:stream%d", name_.c_str(),
@@ -285,7 +285,7 @@ class TransportTestPeer : public sigslot::has_slots<> {
 
     
     if (gathering_complete_)
-      GatheringComplete(ice_ctx_);
+      GatheringComplete();
   }
 
   
@@ -294,9 +294,17 @@ class TransportTestPeer : public sigslot::has_slots<> {
     candidates_[stream->name()].push_back(candidate);
   }
 
+  void GatheringStateChange(NrIceCtx* ctx,
+                            NrIceCtx::GatheringState state) {
+    (void)ctx;
+    if (state == NrIceCtx::ICE_CTX_GATHER_COMPLETE) {
+      GatheringComplete();
+    }
+  }
+
   
   
-  void GatheringComplete(NrIceCtx *ctx) {
+  void GatheringComplete() {
     nsresult res;
 
     

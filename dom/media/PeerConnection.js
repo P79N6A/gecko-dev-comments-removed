@@ -1050,50 +1050,39 @@ PeerConnectionObserver.prototype = {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
-  handleIceStateChanges: function(iceState) {
+  handleIceConnectionStateChange: function(iceState) {
     var histogram = Services.telemetry.getHistogramById("WEBRTC_ICE_SUCCESS_RATE");
 
-    const STATE_MAP = {
-      IceGathering:
-        { gathering: "gathering" },
-      IceWaiting:
-        { connection: "new",  gathering: "complete" },
-      IceChecking:
-        { connection: "checking" },
-      IceConnected:
-        { connection: "connected", success: true },
-      IceFailed:
-        { connection: "failed", success: false }
-    };
-    
-
-    let transitions = STATE_MAP[iceState];
-
-    if ("connection" in transitions) {
-        this._dompc.changeIceConnectionState(transitions.connection);
+    if (iceState === 'failed') {
+      histogram.add(false);
     }
-    if ("gathering" in transitions) {
-      this._dompc.changeIceGatheringState(transitions.gathering);
+    if (this._dompc.iceConnectionState === 'checking' &&
+        (iceState === 'completed' || iceState === 'connected')) {
+          histogram.add(true);
     }
-    if ("success" in transitions) {
-      histogram.add(transitions.success);
-    }
+    this._dompc.changeIceConnectionState(iceState);
+  },
 
-    if (iceState == "IceWaiting") {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  handleIceGatheringStateChange: function(gatheringState) {
+    this._dompc.changeIceGatheringState(gatheringState);
+
+    if (gatheringState === "complete") {
       if (!this._dompc._trickleIce) {
         
         
@@ -1115,8 +1104,12 @@ PeerConnectionObserver.prototype = {
                     this._dompc.signalingState);
         break;
 
-      case "IceState":
-        this.handleIceStateChanges(this._dompc._pc.iceState);
+      case "IceConnectionState":
+        this.handleIceConnectionStateChange(this._dompc._pc.iceState);
+        break;
+
+      case "IceGatheringState":
+        this.handleIceGatheringStateChange(this._dompc._pc.iceGatheringState);
         break;
 
       case "SdpState":

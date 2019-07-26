@@ -334,9 +334,10 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   }
 
   
-  sigslot::signal1<mozilla::NrIceCtx *> SignalIceGatheringCompleted;  
-  sigslot::signal1<mozilla::NrIceCtx *> SignalIceCompleted;  
-  sigslot::signal1<mozilla::NrIceCtx *> SignalIceFailed;  
+  sigslot::signal2<mozilla::NrIceCtx*, mozilla::NrIceCtx::GatheringState>
+      SignalIceGatheringStateChange;
+  sigslot::signal2<mozilla::NrIceCtx*, mozilla::NrIceCtx::ConnectionState>
+      SignalIceConnectionStateChange;
 
  private:
   
@@ -347,9 +348,10 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   void SelfDestruct_m();
 
   
-  void IceGatheringCompleted(mozilla::NrIceCtx *aCtx);
-  void IceCompleted(mozilla::NrIceCtx *aCtx);
-  void IceFailed(mozilla::NrIceCtx *aCtx);
+  void IceGatheringStateChange(mozilla::NrIceCtx* ctx,
+                               mozilla::NrIceCtx::GatheringState state);
+  void IceConnectionStateChange(mozilla::NrIceCtx* ctx,
+                                mozilla::NrIceCtx::ConnectionState state);
   void IceStreamReady(mozilla::NrIceMediaStream *aStream);
 
   
