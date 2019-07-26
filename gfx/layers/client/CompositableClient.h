@@ -105,7 +105,7 @@ public:
 
   void Destroy();
 
-  CompositableChild* GetIPDLActor() const;
+  PCompositableChild* GetIPDLActor() const;
 
   
   virtual void SetIPDLActor(CompositableChild* aChild);
@@ -146,6 +146,22 @@ public:
 
   virtual void ClearCachedResources() {}
 
+  static CompositableClient* FromIPDLActor(PCompositableChild* aActor);
+
+  
+
+
+
+
+
+
+
+  static PCompositableChild* CreateIPDLActor();
+
+  static bool DestroyIPDLActor(PCompositableChild* actor);
+
+  void InitIPDLActor(PCompositableChild* aActor, uint64_t aAsyncID = 0);
+
 protected:
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
@@ -154,53 +170,6 @@ protected:
   TextureFlags mTextureFlags;
 
   friend class CompositableChild;
-};
-
-
-
-
-
-
-
-class CompositableChild : public PCompositableChild
-{
-public:
-  CompositableChild()
-  : mCompositableClient(nullptr), mID(0)
-  {
-    MOZ_COUNT_CTOR(CompositableChild);
-  }
-  ~CompositableChild()
-  {
-    MOZ_COUNT_DTOR(CompositableChild);
-  }
-
-  void Destroy();
-
-  void SetClient(CompositableClient* aClient)
-  {
-    mCompositableClient = aClient;
-  }
-
-  CompositableClient* GetCompositableClient() const
-  {
-    return mCompositableClient;
-  }
-
-  virtual void ActorDestroy(ActorDestroyReason) MOZ_OVERRIDE {
-    if (mCompositableClient) {
-      mCompositableClient->mCompositableChild = nullptr;
-    }
-  }
-
-  void SetAsyncID(uint64_t aID) { mID = aID; }
-  uint64_t GetAsyncID() const
-  {
-    return mID;
-  }
-private:
-  CompositableClient* mCompositableClient;
-  uint64_t mID;
 };
 
 } 
