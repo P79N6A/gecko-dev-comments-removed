@@ -40,11 +40,14 @@
 #define PREF_FORCE_DATABASE_REPLACEMENT "places.database.replaceOnStartup"
 
 
+#define PREF_GROWTH_INCREMENT_KIB "places.database.growthIncrementKiB"
+
+
 
 
 #define DATABASE_MAX_WAL_SIZE_IN_KIBIBYTES 512
 
-#define BYTES_PER_MEBIBYTE 1048576
+#define BYTES_PER_KIBIBYTE 1024
 
 
 #define SYNCGUID_ANNO NS_LITERAL_CSTRING("sync/guid")
@@ -593,7 +596,12 @@ Database::InitSchema(bool* aDatabaseMigrated)
   (void)mMainConn->ExecuteSimpleSQL(journalSizePragma);
 
   
-  (void)mMainConn->SetGrowthIncrement(10 * BYTES_PER_MEBIBYTE, EmptyCString());
+  
+  int32_t growthIncrementKiB =
+    Preferences::GetInt(PREF_GROWTH_INCREMENT_KIB, 10 * BYTES_PER_KIBIBYTE * BYTES_PER_KIBIBYTE);
+  if (growthIncrementKiB > 0) {
+    (void)mMainConn->SetGrowthIncrement(growthIncrementKiB * BYTES_PER_KIBIBYTE, EmptyCString());
+  }
 
   
   rv = InitFunctions();
