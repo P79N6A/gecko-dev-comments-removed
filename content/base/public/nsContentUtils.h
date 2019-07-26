@@ -2266,40 +2266,6 @@ typedef nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace>
   nsContentUtils::DropJSObjects(NS_CYCLE_COLLECTION_UPCAST(obj, clazz))
 
 
-class MOZ_STACK_CLASS nsCxPusher
-{
-public:
-  nsCxPusher();
-  ~nsCxPusher(); 
-
-  
-  bool Push(mozilla::dom::EventTarget *aCurrentTarget);
-  
-  
-  bool RePush(mozilla::dom::EventTarget *aCurrentTarget);
-  
-  
-  void Push(JSContext *cx);
-  
-  void PushNull();
-
-  
-  void Pop();
-
-  nsIScriptContext* GetCurrentScriptContext() { return mScx; }
-private:
-  
-  void DoPush(JSContext* cx);
-
-  nsCOMPtr<nsIScriptContext> mScx;
-  bool mScriptIsRunning;
-  bool mPushedSomething;
-#ifdef DEBUG
-  JSContext* mPushedContext;
-  unsigned mCompartmentDepthOnEntry;
-#endif
-};
-
 class MOZ_STACK_CLASS nsAutoScriptBlocker {
 public:
   nsAutoScriptBlocker(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
@@ -2340,70 +2306,6 @@ public:
     nsContentUtils::LeaveMicroTask();
   }
 };
-
-namespace mozilla {
-
-
-
-
-
-
-class MOZ_STACK_CLASS AutoJSContext {
-public:
-  AutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
-  operator JSContext*();
-
-protected:
-  AutoJSContext(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-
-private:
-  
-  
-  
-  void Init(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-
-  JSContext* mCx;
-  nsCxPusher mPusher;
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-
-
-
-
-class MOZ_STACK_CLASS AutoSafeJSContext : public AutoJSContext {
-public:
-  AutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class MOZ_STACK_CLASS AutoPushJSContext {
-  nsCxPusher mPusher;
-  JSContext* mCx;
-
-public:
-    AutoPushJSContext(JSContext* aCx) : mCx(aCx) {
-      if (mCx && mCx != nsContentUtils::GetCurrentJSContext()) {
-        mPusher.Push(mCx);
-      }
-    }
-    operator JSContext*() { return mCx; }
-};
-
-} 
 
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
@@ -2472,5 +2374,7 @@ private:
   NS_ConvertUTF16toUTF8 mString;
   nsIMIMEHeaderParam*   mService;
 };
+
+#include "nsCxPusher.h"
 
 #endif
