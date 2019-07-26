@@ -2105,7 +2105,7 @@ JS_ResolveStandardClass(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
                         JSBool *resolved);
 
 extern JS_PUBLIC_API(JSBool)
-JS_EnumerateStandardClasses(JSContext *cx, JSObject *obj);
+JS_EnumerateStandardClasses(JSContext *cx, JS::HandleObject obj);
 
 
 
