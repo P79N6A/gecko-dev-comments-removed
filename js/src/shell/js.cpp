@@ -4834,12 +4834,12 @@ static const JSJitInfo dom_x_getterinfo = {
     0,        
     0,        
     JSJitInfo::Getter,
+    JSVAL_TYPE_UNKNOWN, 
     true,     
     true,     
     false,    
-    JSVAL_TYPE_UNKNOWN, 
-    JSJitInfo::AliasNone, 
     0,        
+    JSJitInfo::AliasNone, 
     nullptr,  
     nullptr   
 };
@@ -4849,12 +4849,12 @@ static const JSJitInfo dom_x_setterinfo = {
     0,        
     0,        
     JSJitInfo::Setter,
-    false,    
-    false,    
-    false,    
     JSVAL_TYPE_UNKNOWN, 
-    JSJitInfo::AliasEverything, 
+    false,    
+    false,    
+    false,    
     0,        
+    JSJitInfo::AliasEverything, 
     nullptr,  
     nullptr   
 };
@@ -4864,12 +4864,12 @@ static const JSJitInfo doFoo_methodinfo = {
     0,        
     0,        
     JSJitInfo::Method,
-    false,    
-    false,    
-    false,    
     JSVAL_TYPE_UNKNOWN, 
-    JSJitInfo::AliasEverything, 
+    false,    
+    false,    
+    false,    
     0,        
+    JSJitInfo::AliasEverything, 
     nullptr,  
     nullptr   
 };
