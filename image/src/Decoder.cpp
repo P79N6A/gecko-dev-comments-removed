@@ -282,13 +282,11 @@ Decoder::PostDecodeDone(int32_t aLoopCount )
   mDecodeDone = true;
 
   
-  int frames = GetFrameCount();
-  bool isNonPremult = GetDecodeFlags() & DECODER_NO_PREMULTIPLY_ALPHA;
-  for (int i = 0; i < frames; i++) {
-    mImage.SetFrameAsNonPremult(i, isNonPremult);
-  }
+  mImageMetadata.SetLoopCount(aLoopCount);
+  mImageMetadata.SetIsNonPremultiplied(GetDecodeFlags() & DECODER_NO_PREMULTIPLY_ALPHA);
 
-  mImage.SetLoopCount(aLoopCount);
+  
+  mImageMetadata.SetOnImage(&mImage);
 
   
   mImage.DecodingComplete();
