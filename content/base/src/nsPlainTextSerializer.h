@@ -108,7 +108,9 @@ protected:
   void SetLastBool(nsTArray<bool>& aStack, bool aValue);
   void PushBool(nsTArray<bool>& aStack, bool aValue);
   bool PopBool(nsTArray<bool>& aStack);
-  
+
+  bool ShouldReplaceContainerWithPlaceholder(nsIAtom* aTag);
+
 protected:
   nsString         mCurrentLine;
   uint32_t         mHeadLevel;
@@ -208,6 +210,15 @@ protected:
   
   
   const nsString          kSpace;
+
+  
+  
+  
+  
+  
+  
+  
+  uint32_t mIgnoredChildNodeLevel;
 };
 
 nsresult
