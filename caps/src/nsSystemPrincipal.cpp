@@ -205,6 +205,13 @@ nsSystemPrincipal::GetIsNullPrincipal(bool* aIsNullPrincipal)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsSystemPrincipal::GetBaseDomain(nsACString& aBaseDomain)
+{
+  
+  return NS_OK;
+}
+
 
 
 

@@ -298,6 +298,13 @@ nsNullPrincipal::GetIsNullPrincipal(bool* aIsNullPrincipal)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsNullPrincipal::GetBaseDomain(nsACString& aBaseDomain)
+{
+  
+  return mURI->GetPath(aBaseDomain);
+}
+
 
 
 
