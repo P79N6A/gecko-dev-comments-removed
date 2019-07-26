@@ -115,7 +115,7 @@ class JS_FRIEND_API(PerfMeasurement)
 
 
 extern JS_FRIEND_API(JSObject*)
-    RegisterPerfMeasurement(JSContext *cx, JSRawObject global);
+    RegisterPerfMeasurement(JSContext *cx, JSObject *global);
 
 
 

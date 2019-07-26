@@ -14,7 +14,7 @@ namespace IPC {
 
 
 extern bool
-DeserializeArrayBuffer(JSRawObject aObj,
+DeserializeArrayBuffer(JSObject* aObj,
                        const InfallibleTArray<uint8_t>& aBuffer,
                        JS::Value* aVal);
 
