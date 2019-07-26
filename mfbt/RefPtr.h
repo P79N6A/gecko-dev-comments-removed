@@ -43,6 +43,10 @@ template<typename T> OutParamRef<T> byRef(RefPtr<T>&);
 
 
 
+
+
+
+
 namespace detail {
 #ifdef DEBUG
 static const int DEAD = 0xffffdead;
@@ -95,6 +99,9 @@ class RefCounted
   private:
     mutable typename Conditional<Atomicity == AtomicRefCount, Atomic<int>, int>::Type refCnt;
 };
+
+#define MOZ_DECLARE_REFCOUNTED_TYPENAME(T) \
+  const char* typeName() const { return #T; }
 
 }
 
@@ -301,6 +308,7 @@ using namespace mozilla;
 
 struct Foo : public RefCounted<Foo>
 {
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(Foo)
   Foo() : dead(false) { }
   ~Foo() {
     MOZ_ASSERT(!dead);

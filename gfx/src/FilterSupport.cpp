@@ -233,6 +233,7 @@ namespace FilterWrappers {
 class FilterCachedColorModels : public RefCounted<FilterCachedColorModels>
 {
 public:
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(FilterCachedColorModels)
   
   
   FilterCachedColorModels(DrawTarget* aDT,
