@@ -1325,6 +1325,9 @@ var gCSSProperties = {
 				"url(404.png) green padding-box",
 				"url(404.png) border-box transparent",
 				"content-box url(404.png) blue",
+				"url(404.png) green padding-box padding-box",
+				"url(404.png) green padding-box border-box",
+				"content-box border-box url(404.png) blue",
 		],
 		invalid_values: [
 			
@@ -1351,6 +1354,11 @@ var gCSSProperties = {
 			
 			"-moz-radial-gradient(10% bottom, 30px, 20px 20px, 10px, from(#ffffff), to(black)) scroll no-repeat",
 			"-moz-linear-gradient(10px 10px, 20px 20px, from(red), to(blue)) repeat",
+			
+			"url(404.png) padding-box green border-box",
+			"url(404.png) padding-box green padding-box",
+			"transparent padding-box url(404.png) border-box",
+			"transparent padding-box url(404.png) padding-box",
 		]
 	},
 	"background-attachment": {

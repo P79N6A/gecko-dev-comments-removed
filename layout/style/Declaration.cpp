@@ -461,9 +461,12 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
 
         if (clip->mValue.GetIntValue() != NS_STYLE_BG_CLIP_BORDER ||
             origin->mValue.GetIntValue() != NS_STYLE_BG_ORIGIN_PADDING) {
-          
-          
-          
+          MOZ_ASSERT(nsCSSProps::kKeywordTableTable[
+                       eCSSProperty_background_origin] ==
+                     nsCSSProps::kBackgroundOriginKTable);
+          MOZ_ASSERT(nsCSSProps::kKeywordTableTable[
+                       eCSSProperty_background_clip] ==
+                     nsCSSProps::kBackgroundOriginKTable);
           MOZ_STATIC_ASSERT(NS_STYLE_BG_CLIP_BORDER ==
                             NS_STYLE_BG_ORIGIN_BORDER &&
                             NS_STYLE_BG_CLIP_PADDING ==
@@ -471,13 +474,13 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
                             NS_STYLE_BG_CLIP_CONTENT ==
                             NS_STYLE_BG_ORIGIN_CONTENT,
                             "bg-clip and bg-origin style constants must agree");
-          if (clip->mValue != origin->mValue) {
-            aValue.Truncate();
-            return;
-          }
-
           aValue.Append(PRUnichar(' '));
-          clip->mValue.AppendToString(eCSSProperty_background_clip, aValue);
+          origin->mValue.AppendToString(eCSSProperty_background_origin, aValue);
+
+          if (clip->mValue != origin->mValue) {
+            aValue.Append(PRUnichar(' '));
+            clip->mValue.AppendToString(eCSSProperty_background_clip, aValue);
+          }
         }
 
         image = image->mNext;

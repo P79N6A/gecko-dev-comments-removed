@@ -6618,12 +6618,12 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
   aState.mSize->mYValue.SetAutoValue();
 
   bool haveColor = false,
-         haveImage = false,
-         haveRepeat = false,
-         haveAttach = false,
-         havePositionAndSize = false,
-         haveOrigin = false,
-         haveSomething = false;
+       haveImage = false,
+       haveRepeat = false,
+       haveAttach = false,
+       havePositionAndSize = false,
+       haveOrigin = false,
+       haveSomething = false;
 
   while (GetToken(true)) {
     nsCSSTokenType tt = mToken.mType;
@@ -6698,6 +6698,17 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
           NS_NOTREACHED("should be able to parse");
           return false;
         }
+
+        
+        
+
+        
+        MOZ_ASSERT(nsCSSProps::kKeywordTableTable[
+                     eCSSProperty_background_origin] ==
+                   nsCSSProps::kBackgroundOriginKTable);
+        MOZ_ASSERT(nsCSSProps::kKeywordTableTable[
+                     eCSSProperty_background_clip] ==
+                   nsCSSProps::kBackgroundOriginKTable);
         MOZ_STATIC_ASSERT(NS_STYLE_BG_CLIP_BORDER ==
                           NS_STYLE_BG_ORIGIN_BORDER &&
                           NS_STYLE_BG_CLIP_PADDING ==
@@ -6706,7 +6717,13 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
                           NS_STYLE_BG_ORIGIN_CONTENT,
                           "bg-clip and bg-origin style constants must agree");
 
-        aState.mClip->mValue = aState.mOrigin->mValue;
+        if (!ParseSingleValueProperty(aState.mClip->mValue,
+                                      eCSSProperty_background_clip)) {
+          
+          
+          
+          aState.mClip->mValue = aState.mOrigin->mValue;
+        }
       } else {
         if (haveColor)
           return false;
