@@ -236,6 +236,7 @@ protected:
                                         ITfRange* aRange,
                                         bool aPreserveSelection);
   HRESULT  RecordCompositionUpdateAction();
+  HRESULT  RecordCompositionEndAction();
 
   
   
