@@ -31,6 +31,61 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(WEBRTC_CHROMIUM_BUILD) && defined(WEBRTC_MAC)
+#define WEBRTC_UNTRUSTED_DELAY
+#endif
+
+#if defined(WEBRTC_MAC)
+static const int kFixedDelayMs = 20;
+static const int kDelayDiffOffsetSamples = -160;
+#elif defined(WEBRTC_WIN)
+static const int kFixedDelayMs = 50;
+static const int kDelayDiffOffsetSamples = 0;
+#else
+
+static const int kFixedDelayMs = 50;
+static const int kDelayDiffOffsetSamples = 0;
+#endif
+static const int kMinTrustedDelayMs = 20;
+static const int kMaxTrustedDelayMs = 500;
+
+
+
+
+
 #define MAX_RESAMP_LEN (5 * FRAME_LEN)
 
 static const int kMaxBufSizeStart = 62;  
@@ -43,7 +98,14 @@ int webrtc_aec_instance_count = 0;
 
 
 
-static int EstBufDelay(aecpc_t *aecInst);
+static void EstBufDelayNormal(aecpc_t *aecInst);
+static void EstBufDelayExtended(aecpc_t *aecInst);
+static int ProcessNormal(aecpc_t* self, const int16_t* near,
+    const int16_t* near_high, int16_t* out, int16_t* out_high,
+    int16_t num_samples, int16_t reported_delay_ms, int32_t skew);
+static void ProcessExtended(aecpc_t* self, const int16_t* near,
+    const int16_t* near_high, int16_t* out, int16_t* out_high,
+    int16_t num_samples, int16_t reported_delay_ms, int32_t skew);
 
 int32_t WebRtcAec_Create(void **aecInst)
 {
@@ -135,10 +197,6 @@ int32_t WebRtcAec_Init(void *aecInst, int32_t sampFreq, int32_t scSampFreq)
     aecpc_t *aecpc = aecInst;
     AecConfig aecConfig;
 
-    if (aecpc == NULL) {
-        return -1;
-    }
-
     if (sampFreq != 8000 && sampFreq != 16000  && sampFreq != 32000) {
         aecpc->lastError = AEC_BAD_PARAMETER_ERROR;
         return -1;
@@ -177,31 +235,31 @@ int32_t WebRtcAec_Init(void *aecInst, int32_t sampFreq, int32_t scSampFreq)
         aecpc->splitSampFreq = sampFreq;
     }
 
-    aecpc->skewFrCtr = 0;
-    aecpc->activity = 0;
-
     aecpc->delayCtr = 0;
+    aecpc->sampFactor = (aecpc->scSampFreq * 1.0f) / aecpc->splitSampFreq;
+    
+    aecpc->rate_factor = aecpc->splitSampFreq / 8000;
 
     aecpc->sum = 0;
     aecpc->counter = 0;
     aecpc->checkBuffSize = 1;
     aecpc->firstVal = 0;
 
-    aecpc->ECstartup = 1;
+    aecpc->startup_phase = 1;
     aecpc->bufSizeStart = 0;
     aecpc->checkBufSizeCtr = 0;
-    aecpc->filtDelay = 0;
+    aecpc->msInSndCardBuf = 0;
+    aecpc->filtDelay = -1;  
     aecpc->timeForDelayChange = 0;
     aecpc->knownDelay = 0;
     aecpc->lastDelayDiff = 0;
 
-    aecpc->skew = 0;
+    aecpc->skewFrCtr = 0;
     aecpc->resample = kAecFalse;
     aecpc->highSkewCtr = 0;
-    aecpc->sampFactor = (aecpc->scSampFreq * 1.0f) / aecpc->splitSampFreq;
+    aecpc->skew = 0;
 
-    
-    aecpc->rate_factor = aecpc->splitSampFreq / 8000;
+    aecpc->farend_started = 0;
 
     
     aecConfig.nlpMode = kAecNlpModerate;
@@ -239,10 +297,6 @@ int32_t WebRtcAec_BufferFarend(void *aecInst, const int16_t *farend,
     float skew;
     int i = 0;
 
-    if (aecpc == NULL) {
-        return -1;
-    }
-
     if (farend == NULL) {
         aecpc->lastError = AEC_NULL_POINTER_ERROR;
         return -1;
@@ -268,6 +322,7 @@ int32_t WebRtcAec_BufferFarend(void *aecInst, const int16_t *farend,
         farend_ptr = (const int16_t*) newFarend;
     }
 
+    aecpc->farend_started = 1;
     WebRtcAec_SetSystemDelay(aecpc->aec, WebRtcAec_system_delay(aecpc->aec) +
                              newNrOfSamples);
 
@@ -311,17 +366,6 @@ int32_t WebRtcAec_Process(void *aecInst, const int16_t *nearend,
 {
     aecpc_t *aecpc = aecInst;
     int32_t retVal = 0;
-    short i;
-    short nBlocks10ms;
-    short nFrames;
-    
-    const float minSkewEst = -0.5f;
-    const float maxSkewEst = 1.0f;
-
-    if (aecpc == NULL) {
-        return -1;
-    }
-
     if (nearend == NULL) {
         aecpc->lastError = AEC_NULL_POINTER_ERROR;
         return -1;
@@ -354,144 +398,21 @@ int32_t WebRtcAec_Process(void *aecInst, const int16_t *nearend,
         aecpc->lastError = AEC_BAD_PARAMETER_WARNING;
         retVal = -1;
     }
-    else if (msInSndCardBuf > 500) {
-        msInSndCardBuf = 500;
+    else if (msInSndCardBuf > kMaxTrustedDelayMs) {
+        
         aecpc->lastError = AEC_BAD_PARAMETER_WARNING;
         retVal = -1;
     }
+
     
-    msInSndCardBuf += 10;
-    aecpc->msInSndCardBuf = msInSndCardBuf;
-
-    if (aecpc->skewMode == kAecTrue) {
-        if (aecpc->skewFrCtr < 25) {
-            aecpc->skewFrCtr++;
-        }
-        else {
-            retVal = WebRtcAec_GetSkew(aecpc->resampler, skew, &aecpc->skew);
-            if (retVal == -1) {
-                aecpc->skew = 0;
-                aecpc->lastError = AEC_BAD_PARAMETER_WARNING;
-            }
-
-            aecpc->skew /= aecpc->sampFactor*nrOfSamples;
-
-            if (aecpc->skew < 1.0e-3 && aecpc->skew > -1.0e-3) {
-                aecpc->resample = kAecFalse;
-            }
-            else {
-                aecpc->resample = kAecTrue;
-            }
-
-            if (aecpc->skew < minSkewEst) {
-                aecpc->skew = minSkewEst;
-            }
-            else if (aecpc->skew > maxSkewEst) {
-                aecpc->skew = maxSkewEst;
-            }
-
-#ifdef WEBRTC_AEC_DEBUG_DUMP
-            (void)fwrite(&aecpc->skew, sizeof(aecpc->skew), 1, aecpc->skewFile);
-#endif
-        }
-    }
-
-    nFrames = nrOfSamples / FRAME_LEN;
-    nBlocks10ms = nFrames / aecpc->rate_factor;
-
-    if (aecpc->ECstartup) {
-        if (nearend != out) {
-            
-            memcpy(out, nearend, sizeof(short) * nrOfSamples);
-        }
-
-        
-        
-
-        
-        if (aecpc->checkBuffSize) {
-            aecpc->checkBufSizeCtr++;
-            
-            
-            
-            
-            
-            if (aecpc->counter == 0) {
-                aecpc->firstVal = aecpc->msInSndCardBuf;
-                aecpc->sum = 0;
-            }
-
-            if (abs(aecpc->firstVal - aecpc->msInSndCardBuf) <
-                WEBRTC_SPL_MAX(0.2 * aecpc->msInSndCardBuf, sampMsNb)) {
-                aecpc->sum += aecpc->msInSndCardBuf;
-                aecpc->counter++;
-            }
-            else {
-                aecpc->counter = 0;
-            }
-
-            if (aecpc->counter * nBlocks10ms >= 6) {
-                
-                
-                
-                aecpc->bufSizeStart = WEBRTC_SPL_MIN((3 * aecpc->sum *
-                  aecpc->rate_factor * 8) / (4 * aecpc->counter * PART_LEN),
-                  kMaxBufSizeStart);
-                
-                aecpc->checkBuffSize = 0;
-            }
-
-            if (aecpc->checkBufSizeCtr * nBlocks10ms > 50) {
-                
-                
-                aecpc->bufSizeStart = WEBRTC_SPL_MIN((aecpc->msInSndCardBuf *
-                    aecpc->rate_factor * 3) / 40, kMaxBufSizeStart);
-                aecpc->checkBuffSize = 0;
-            }
-        }
-
-        
-        if (!aecpc->checkBuffSize) {
-            
-            
-            
-            
-            int overhead_elements =
-                WebRtcAec_system_delay(aecpc->aec) / PART_LEN -
-                aecpc->bufSizeStart;
-            if (overhead_elements == 0) {
-                
-                aecpc->ECstartup = 0;
-            } else if (overhead_elements > 0) {
-                
-                
-                
-                
-                
-                WebRtcAec_MoveFarReadPtr(aecpc->aec, overhead_elements);
-
-                
-                aecpc->ECstartup = 0;
-            }
-        }
+    if (WebRtcAec_delay_correction_enabled(aecpc->aec)) {
+      ProcessExtended(aecpc, nearend, nearendH, out, outH, nrOfSamples,
+                      msInSndCardBuf, skew);
     } else {
-        
-
-        EstBufDelay(aecpc);
-
-        
-        for (i = 0; i < nFrames; i++) {
-            
-            WebRtcAec_ProcessFrame(aecpc->aec,
-                                   &nearend[FRAME_LEN * i],
-                                   &nearendH[FRAME_LEN * i],
-                                   aecpc->knownDelay,
-                                   &out[FRAME_LEN * i],
-                                   &outH[FRAME_LEN * i]);
-            
-            
-            
-        }
+      if (ProcessNormal(aecpc, nearend, nearendH, out, outH, nrOfSamples,
+                        msInSndCardBuf, skew) != 0) {
+        retVal = -1;
+      }
     }
 
 #ifdef WEBRTC_AEC_DEBUG_DUMP
@@ -509,11 +430,6 @@ int32_t WebRtcAec_Process(void *aecInst, const int16_t *nearend,
 
 int WebRtcAec_set_config(void* handle, AecConfig config) {
   aecpc_t* self = (aecpc_t*)handle;
-
-  if (handle == NULL ) {
-    return -1;
-  }
-
   if (self->initFlag != initCheck) {
     self->lastError = AEC_UNINITIALIZED_ERROR;
     return -1;
@@ -548,10 +464,6 @@ int WebRtcAec_set_config(void* handle, AecConfig config) {
 
 int WebRtcAec_get_echo_status(void* handle, int* status) {
   aecpc_t* self = (aecpc_t*)handle;
-
-  if (handle == NULL ) {
-    return -1;
-  }
   if (status == NULL ) {
     self->lastError = AEC_NULL_POINTER_ERROR;
     return -1;
@@ -665,10 +577,6 @@ int WebRtcAec_GetMetrics(void* handle, AecMetrics* metrics) {
 
 int WebRtcAec_GetDelayMetrics(void* handle, int* median, int* std) {
   aecpc_t* self = handle;
-
-  if (handle == NULL) {
-    return -1;
-  }
   if (median == NULL) {
     self->lastError = AEC_NULL_POINTER_ERROR;
     return -1;
@@ -693,11 +601,6 @@ int WebRtcAec_GetDelayMetrics(void* handle, int* median, int* std) {
 int32_t WebRtcAec_get_error_code(void *aecInst)
 {
     aecpc_t *aecpc = aecInst;
-
-    if (aecpc == NULL) {
-        return -1;
-    }
-
     return aecpc->lastError;
 }
 
@@ -708,7 +611,220 @@ AecCore* WebRtcAec_aec_core(void* handle) {
   return ((aecpc_t*) handle)->aec;
 }
 
-static int EstBufDelay(aecpc_t* aecpc) {
+static int ProcessNormal(aecpc_t *aecpc, const int16_t *nearend,
+                         const int16_t *nearendH, int16_t *out, int16_t *outH,
+                         int16_t nrOfSamples, int16_t msInSndCardBuf,
+                         int32_t skew) {
+  int retVal = 0;
+  short i;
+  short nBlocks10ms;
+  short nFrames;
+  
+  const float minSkewEst = -0.5f;
+  const float maxSkewEst = 1.0f;
+
+  msInSndCardBuf = msInSndCardBuf > kMaxTrustedDelayMs ?
+      kMaxTrustedDelayMs : msInSndCardBuf;
+  
+  msInSndCardBuf += 10;
+  aecpc->msInSndCardBuf = msInSndCardBuf;
+
+  if (aecpc->skewMode == kAecTrue) {
+    if (aecpc->skewFrCtr < 25) {
+      aecpc->skewFrCtr++;
+    }
+    else {
+      retVal = WebRtcAec_GetSkew(aecpc->resampler, skew, &aecpc->skew);
+      if (retVal == -1) {
+        aecpc->skew = 0;
+        aecpc->lastError = AEC_BAD_PARAMETER_WARNING;
+      }
+
+      aecpc->skew /= aecpc->sampFactor*nrOfSamples;
+
+      if (aecpc->skew < 1.0e-3 && aecpc->skew > -1.0e-3) {
+        aecpc->resample = kAecFalse;
+      }
+      else {
+        aecpc->resample = kAecTrue;
+      }
+
+      if (aecpc->skew < minSkewEst) {
+        aecpc->skew = minSkewEst;
+      }
+      else if (aecpc->skew > maxSkewEst) {
+        aecpc->skew = maxSkewEst;
+      }
+
+#ifdef WEBRTC_AEC_DEBUG_DUMP
+      (void)fwrite(&aecpc->skew, sizeof(aecpc->skew), 1, aecpc->skewFile);
+#endif
+    }
+  }
+
+  nFrames = nrOfSamples / FRAME_LEN;
+  nBlocks10ms = nFrames / aecpc->rate_factor;
+
+  if (aecpc->startup_phase) {
+    
+    if (nearend != out) {
+      memcpy(out, nearend, sizeof(short) * nrOfSamples);
+    }
+    if (nearendH != outH) {
+      memcpy(outH, nearendH, sizeof(short) * nrOfSamples);
+    }
+
+    
+    
+
+    
+    if (aecpc->checkBuffSize) {
+      aecpc->checkBufSizeCtr++;
+      
+      
+      
+      
+      
+      if (aecpc->counter == 0) {
+        aecpc->firstVal = aecpc->msInSndCardBuf;
+        aecpc->sum = 0;
+      }
+
+      if (abs(aecpc->firstVal - aecpc->msInSndCardBuf) <
+        WEBRTC_SPL_MAX(0.2 * aecpc->msInSndCardBuf, sampMsNb)) {
+        aecpc->sum += aecpc->msInSndCardBuf;
+        aecpc->counter++;
+      }
+      else {
+        aecpc->counter = 0;
+      }
+
+      if (aecpc->counter * nBlocks10ms >= 6) {
+        
+        
+        
+        aecpc->bufSizeStart = WEBRTC_SPL_MIN((3 * aecpc->sum *
+            aecpc->rate_factor * 8) / (4 * aecpc->counter * PART_LEN),
+            kMaxBufSizeStart);
+        
+        aecpc->checkBuffSize = 0;
+      }
+
+      if (aecpc->checkBufSizeCtr * nBlocks10ms > 50) {
+        
+        
+        aecpc->bufSizeStart = WEBRTC_SPL_MIN((aecpc->msInSndCardBuf *
+            aecpc->rate_factor * 3) / 40, kMaxBufSizeStart);
+        aecpc->checkBuffSize = 0;
+      }
+    }
+
+    
+    if (!aecpc->checkBuffSize) {
+      
+      
+      
+      
+      int overhead_elements =
+          WebRtcAec_system_delay(aecpc->aec) / PART_LEN - aecpc->bufSizeStart;
+      if (overhead_elements == 0) {
+        
+        aecpc->startup_phase = 0;
+      } else if (overhead_elements > 0) {
+        
+        
+        
+        
+        
+        WebRtcAec_MoveFarReadPtr(aecpc->aec, overhead_elements);
+
+        
+        aecpc->startup_phase = 0;
+      }
+    }
+  } else {
+    
+    EstBufDelayNormal(aecpc);
+
+    
+    for (i = 0; i < nFrames; i++) {
+      
+      WebRtcAec_ProcessFrame(aecpc->aec,
+                             &nearend[FRAME_LEN * i],
+                             &nearendH[FRAME_LEN * i],
+                             aecpc->knownDelay,
+                             &out[FRAME_LEN * i],
+                             &outH[FRAME_LEN * i]);
+      
+      
+      
+    }
+  }
+
+  return retVal;
+}
+
+static void ProcessExtended(aecpc_t* self, const int16_t* near,
+    const int16_t* near_high, int16_t* out, int16_t* out_high,
+    int16_t num_samples, int16_t reported_delay_ms, int32_t skew) {
+  int i;
+  const int num_frames = num_samples / FRAME_LEN;
+#if defined(WEBRTC_UNTRUSTED_DELAY)
+  const int delay_diff_offset = kDelayDiffOffsetSamples;
+  reported_delay_ms = kFixedDelayMs;
+#else
+  
+  const int delay_diff_offset = 0;
+  
+  
+  
+  reported_delay_ms = reported_delay_ms < kMinTrustedDelayMs ?
+      kMinTrustedDelayMs : reported_delay_ms;
+  
+  
+  
+  
+  reported_delay_ms = reported_delay_ms >= kMaxTrustedDelayMs ?
+      kFixedDelayMs : reported_delay_ms;
+#endif
+  self->msInSndCardBuf = reported_delay_ms;
+
+  if (!self->farend_started) {
+    
+    if (near != out) {
+      memcpy(out, near, sizeof(short) * num_samples);
+    }
+    if (near_high != out_high) {
+      memcpy(out_high, near_high, sizeof(short) * num_samples);
+    }
+    return;
+  }
+  if (self->startup_phase) {
+    
+    
+    
+    
+    int startup_size_ms = reported_delay_ms < kFixedDelayMs ?
+        kFixedDelayMs : reported_delay_ms;
+    int overhead_elements = (WebRtcAec_system_delay(self->aec) -
+        startup_size_ms / 2 * self->rate_factor * 8) / PART_LEN;
+    WebRtcAec_MoveFarReadPtr(self->aec, overhead_elements);
+    self->startup_phase = 0;
+  }
+
+  EstBufDelayExtended(self);
+
+  for (i = 0; i < num_frames; ++i) {
+    
+    
+    
+    WebRtcAec_ProcessFrame(self->aec, &near[FRAME_LEN * i],
+        &near_high[FRAME_LEN * i], self->knownDelay + delay_diff_offset,
+        &out[FRAME_LEN * i], &out_high[FRAME_LEN * i]);
+  }
+}
+
+static void EstBufDelayNormal(aecpc_t* aecpc) {
   int nSampSndCard = aecpc->msInSndCardBuf * sampMsNb * aecpc->rate_factor;
   int current_delay = nSampSndCard - WebRtcAec_system_delay(aecpc->aec);
   int delay_difference = 0;
@@ -732,8 +848,11 @@ static int EstBufDelay(aecpc_t* aecpc) {
     current_delay += WebRtcAec_MoveFarReadPtr(aecpc->aec, 1) * PART_LEN;
   }
 
+  
+  
+  aecpc->filtDelay = aecpc->filtDelay < 0 ? 0 : aecpc->filtDelay;
   aecpc->filtDelay = WEBRTC_SPL_MAX(0, (short) (0.8 * aecpc->filtDelay +
-          0.2 * current_delay));
+      0.2 * current_delay));
 
   delay_difference = aecpc->filtDelay - aecpc->knownDelay;
   if (delay_difference > 224) {
@@ -756,6 +875,58 @@ static int EstBufDelay(aecpc_t* aecpc) {
   if (aecpc->timeForDelayChange > 25) {
     aecpc->knownDelay = WEBRTC_SPL_MAX((int) aecpc->filtDelay - 160, 0);
   }
+}
 
-  return 0;
+static void EstBufDelayExtended(aecpc_t* self) {
+  int reported_delay = self->msInSndCardBuf * sampMsNb * self->rate_factor;
+  int current_delay = reported_delay - WebRtcAec_system_delay(self->aec);
+  int delay_difference = 0;
+
+  
+  
+  
+  
+  
+
+  
+  current_delay += FRAME_LEN * self->rate_factor;
+
+  
+  if (self->skewMode == kAecTrue && self->resample == kAecTrue) {
+    current_delay -= kResamplingDelay;
+  }
+
+  
+  if (current_delay < PART_LEN) {
+    current_delay += WebRtcAec_MoveFarReadPtr(self->aec, 2) * PART_LEN;
+  }
+
+  if (self->filtDelay == -1) {
+    self->filtDelay = WEBRTC_SPL_MAX(0, 0.5 * current_delay);
+  } else {
+    self->filtDelay = WEBRTC_SPL_MAX(0, (short) (0.95 * self->filtDelay +
+        0.05 * current_delay));
+  }
+
+  delay_difference = self->filtDelay - self->knownDelay;
+  if (delay_difference > 384) {
+    if (self->lastDelayDiff < 128) {
+      self->timeForDelayChange = 0;
+    } else {
+      self->timeForDelayChange++;
+    }
+  } else if (delay_difference < 128 && self->knownDelay > 0) {
+    if (self->lastDelayDiff > 384) {
+      self->timeForDelayChange = 0;
+    } else {
+      self->timeForDelayChange++;
+    }
+  } else {
+    self->timeForDelayChange = 0;
+  }
+  self->lastDelayDiff = delay_difference;
+
+  if (self->timeForDelayChange > 25) {
+    self->knownDelay = WEBRTC_SPL_MAX((int) self->filtDelay - 256, 0);
+  }
 }
