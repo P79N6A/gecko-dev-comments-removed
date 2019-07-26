@@ -82,7 +82,7 @@ TypeRepresentationSetBuilder::insert(TypeRepresentation *typeRepr)
 
         if (entryiaddr < typeReprAddr) {
             
-            min = i;
+            min = i + 1;
         } else {
             
             max = i;
