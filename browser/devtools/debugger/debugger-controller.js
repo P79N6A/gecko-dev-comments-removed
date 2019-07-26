@@ -11,6 +11,7 @@ const Cu = Components.utils;
 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const NEW_SCRIPT_DISPLAY_DELAY = 200; 
+const FETCH_SOURCE_RESPONSE_DELAY = 50; 
 const FRAME_STEP_CLEAR_DELAY = 100; 
 const CALL_STACK_PAGE_SIZE = 25; 
 
@@ -1179,7 +1180,9 @@ SourceScripts.prototype = {
 
 
 
-  getText: function SS_getText(aSource, aCallback) {
+
+
+  getText: function SS_getText(aSource, aCallback, aOnTimeout) {
     
     if (aSource.loaded) {
       aCallback(aSource.url, aSource.text);
@@ -1187,7 +1190,15 @@ SourceScripts.prototype = {
     }
 
     
+    
+    if (aOnTimeout) {
+      var fetchTimeout = window.setTimeout(aOnTimeout, FETCH_SOURCE_RESPONSE_DELAY);
+    }
+
+    
     this.activeThread.source(aSource.source).source(function(aResponse) {
+      window.clearTimeout(fetchTimeout);
+
       if (aResponse.error) {
         Cu.reportError("Error loading " + aSource.url + "\n" + aResponse.error);
         aCallback(aSource.url, "");

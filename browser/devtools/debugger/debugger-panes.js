@@ -1260,6 +1260,7 @@ function GlobalSearchView() {
   MenuContainer.call(this);
   this._startSearch = this._startSearch.bind(this);
   this._onFetchSourceFinished = this._onFetchSourceFinished.bind(this);
+  this._onFetchSourceTimeout = this._onFetchSourceTimeout.bind(this);
   this._onFetchSourcesFinished = this._onFetchSourcesFinished.bind(this);
   this._createItemView = this._createItemView.bind(this);
   this._onScroll = this._onScroll.bind(this);
@@ -1402,9 +1403,11 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
     this._sourcesCount = locations.length;
     this._searchedToken = aQuery;
 
-    this._fetchSources(
-      this._onFetchSourceFinished,
-      this._onFetchSourcesFinished, locations);
+    this._fetchSources(locations, {
+      onFetch: this._onFetchSourceFinished,
+      onTimeout: this._onFetchSourceTimeout,
+      onFinished: this._onFetchSourcesFinished
+    });
   },
 
   
@@ -1417,10 +1420,12 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
 
 
-  _fetchSources: function DVGS__fetchSources(aFetchCallback, aFetchedCallback, aLocations) {
+
+  _fetchSources:
+  function DVGS__fetchSources(aLocations, { onFetch, onTimeout, onFinished }) {
     
     if (this._cache.size == aLocations.length) {
-      aFetchedCallback();
+      onFinished();
       return;
     }
 
@@ -1430,7 +1435,8 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
         continue;
       }
       let sourceItem = DebuggerView.Sources.getItemByValue(location);
-      DebuggerController.SourceScripts.getText(sourceItem.attachment, aFetchCallback);
+      let sourceObject = sourceItem.attachment;
+      DebuggerController.SourceScripts.getText(sourceObject, onFetch, onTimeout);
     }
   },
 
@@ -1455,7 +1461,21 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   
 
 
+  _onFetchSourceTimeout: function DVGS__onFetchSourceTimeout() {
+    
+    this._sourcesCount--;
+
+    
+    if (this._cache.size == this._sourcesCount) {
+      this._onFetchSourcesFinished();
+    }
+  },
+
+  
+
+
   _onFetchSourcesFinished: function DVGS__onFetchSourcesFinished() {
+    
     if (!this._sourcesCount) {
       return;
     }
