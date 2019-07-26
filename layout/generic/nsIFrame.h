@@ -93,6 +93,10 @@ namespace mozilla {
 namespace layers {
 class Layer;
 }
+
+namespace gfx {
+class Matrix;
+}
 }
 
 
@@ -614,6 +618,7 @@ public:
   typedef mozilla::layout::FrameChildListIDs ChildListIDs;
   typedef mozilla::layout::FrameChildListIterator ChildListIterator;
   typedef mozilla::layout::FrameChildListArrayIterator ChildListArrayIterator;
+  typedef mozilla::gfx::Matrix Matrix;
 
   NS_DECL_QUERYFRAME_TARGET(nsIFrame)
 
@@ -1337,8 +1342,8 @@ public:
 
 
 
-  virtual bool IsSVGTransformed(mozilla::gfx::Matrix *aOwnTransforms = nullptr,
-                                mozilla::gfx::Matrix *aFromParentTransforms = nullptr) const;
+  virtual bool IsSVGTransformed(Matrix *aOwnTransforms = nullptr,
+                                Matrix *aFromParentTransforms = nullptr) const;
 
   
 
