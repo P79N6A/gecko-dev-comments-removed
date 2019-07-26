@@ -90,7 +90,7 @@ nsClipboardPrivacyHandler::Observe(nsISupports *aSubject, char const *aTopic, PR
     
     
     
-    NS_ENSURE_TRUE(SUCCEEDED(::OleSetClipboard(NULL)), NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(SUCCEEDED(::OleSetClipboard(nullptr)), NS_ERROR_FAILURE);
 #else
     
     nsCOMPtr<nsITransferable> nullData =
