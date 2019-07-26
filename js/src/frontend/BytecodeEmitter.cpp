@@ -643,21 +643,15 @@ static const jsatomid INVALID_ATOMID = -1;
 
 static ptrdiff_t
 EmitGoto(JSContext *cx, BytecodeEmitter *bce, StmtInfoBCE *toStmt, ptrdiff_t *lastp,
-         jsatomid labelIndex = INVALID_ATOMID, SrcNoteType noteType = SRC_NULL)
+         SrcNoteType noteType = SRC_NULL)
 {
-    int index;
-
     if (!EmitNonLocalJumpFixup(cx, bce, toStmt))
         return -1;
 
-    if (labelIndex != INVALID_ATOMID)
-        index = NewSrcNote2(cx, bce, noteType, ptrdiff_t(labelIndex));
-    else if (noteType != SRC_NULL)
-        index = NewSrcNote(cx, bce, noteType);
-    else
-        index = 0;
-    if (index < 0)
-        return -1;
+    if (noteType != SRC_NULL) {
+        if (NewSrcNote(cx, bce, noteType) < 0)
+            return -1;
+    }
 
     return EmitBackPatchOp(cx, bce, lastp);
 }
@@ -4196,7 +4190,6 @@ EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
     if (!EmitAssignment(cx, bce, forHead->pn_kid2, JSOP_NOP, NULL))
         return false;
 
-    ptrdiff_t tmp2 = bce->offset();
     if (Emit1(cx, bce, JSOP_POP) < 0)
         return false;
 
@@ -4226,10 +4219,7 @@ EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
         return false;
 
     
-    if (!SetSrcNoteOffset(cx, bce, (unsigned)noteIndex, 0, tmp2 - jmp))
-        return false;
-    
-    if (!SetSrcNoteOffset(cx, bce, (unsigned)noteIndex, 1, beq - jmp))
+    if (!SetSrcNoteOffset(cx, bce, (unsigned)noteIndex, 0, beq - jmp))
         return false;
 
     
@@ -4619,34 +4609,24 @@ EmitBreak(JSContext *cx, BytecodeEmitter *bce, PropertyName *label)
 {
     StmtInfoBCE *stmt = bce->topStmt;
     SrcNoteType noteType;
-    jsatomid labelIndex;
     if (label) {
-        if (!bce->makeAtomIndex(label, &labelIndex))
-            return false;
-
         while (stmt->type != STMT_LABEL || stmt->label != label)
             stmt = stmt->down;
         noteType = SRC_BREAK2LABEL;
     } else {
-        labelIndex = INVALID_ATOMID;
         while (!stmt->isLoop() && stmt->type != STMT_SWITCH)
             stmt = stmt->down;
         noteType = (stmt->type == STMT_SWITCH) ? SRC_SWITCHBREAK : SRC_BREAK;
     }
 
-    return EmitGoto(cx, bce, stmt, &stmt->breaks, labelIndex, noteType) >= 0;
+    return EmitGoto(cx, bce, stmt, &stmt->breaks, noteType) >= 0;
 }
 
 static bool
 EmitContinue(JSContext *cx, BytecodeEmitter *bce, PropertyName *label)
 {
     StmtInfoBCE *stmt = bce->topStmt;
-    SrcNoteType noteType;
-    jsatomid labelIndex;
     if (label) {
-        if (!bce->makeAtomIndex(label, &labelIndex))
-            return false;
-
         
         StmtInfoBCE *loop = NULL;
         while (stmt->type != STMT_LABEL || stmt->label != label) {
@@ -4655,15 +4635,12 @@ EmitContinue(JSContext *cx, BytecodeEmitter *bce, PropertyName *label)
             stmt = stmt->down;
         }
         stmt = loop;
-        noteType = SRC_CONT2LABEL;
     } else {
-        labelIndex = INVALID_ATOMID;
         while (!stmt->isLoop())
             stmt = stmt->down;
-        noteType = SRC_CONTINUE;
     }
 
-    return EmitGoto(cx, bce, stmt, &stmt->continues, labelIndex, noteType) >= 0;
+    return EmitGoto(cx, bce, stmt, &stmt->continues, SRC_CONTINUE) >= 0;
 }
 
 static bool
@@ -5557,7 +5534,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             
             
             
-             
+            
             
             
             for (ParseNode *pn2 = pnchild; pn2; pn2 = pn2->pn_next) {
@@ -6382,13 +6359,11 @@ JS_FRIEND_DATA(JSSrcNoteSpec) js_SrcNoteSpec[] = {
  {"for",            3},
 
  {"while",          1},
-
- {"for-in",         2},
+ {"for-in",         1},
  {"continue",       0},
- {"cont2label",     1},
  {"break",          0},
- {"break2label",    1},
- {"switchbreak",    2},
+ {"break2label",    0},
+ {"switchbreak",    0},
 
  {"switch",         2},
 
@@ -6404,6 +6379,7 @@ JS_FRIEND_DATA(JSSrcNoteSpec) js_SrcNoteSpec[] = {
  {"newline",        0},
  {"setline",        1},
 
+ {"unused19",       0},
  {"unused20",       0},
  {"unused21",       0},
  {"unused22",       0},

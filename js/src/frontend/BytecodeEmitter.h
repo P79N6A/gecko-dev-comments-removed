@@ -265,31 +265,31 @@ enum SrcNoteType {
     SRC_FOR_IN      = 6,        
 
     SRC_CONTINUE    = 7,        
-    SRC_CONT2LABEL  = 8,        
-    SRC_BREAK       = 9,        
-    SRC_BREAK2LABEL = 10,       
-    SRC_SWITCHBREAK = 11,       
+    SRC_BREAK       = 8,        
+    SRC_BREAK2LABEL = 9,        
+    SRC_SWITCHBREAK = 10,       
 
-    SRC_SWITCH      = 12,       
-
-
-    SRC_PCDELTA     = 13,       
+    SRC_SWITCH      = 11,       
 
 
+    SRC_PCDELTA     = 12,       
 
-    SRC_ASSIGNOP    = 14,       
 
-    SRC_HIDDEN      = 15,       
 
-    SRC_CATCH       = 16,       
+    SRC_ASSIGNOP    = 13,       
+
+    SRC_HIDDEN      = 14,       
+
+    SRC_CATCH       = 15,       
 
     
     SRC_LAST_GETTABLE = SRC_CATCH,
 
-    SRC_COLSPAN     = 17,       
-    SRC_NEWLINE     = 18,       
-    SRC_SETLINE     = 19,       
+    SRC_COLSPAN     = 16,       
+    SRC_NEWLINE     = 17,       
+    SRC_SETLINE     = 18,       
 
+    SRC_UNUSED19    = 19,
     SRC_UNUSED20    = 20,
     SRC_UNUSED21    = 21,
     SRC_UNUSED22    = 22,
