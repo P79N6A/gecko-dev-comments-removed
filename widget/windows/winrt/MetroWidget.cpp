@@ -29,6 +29,7 @@
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
+#include "UIABridgePrivate.h"
 
 using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;
@@ -54,7 +55,17 @@ extern PRLogModuleInfo* gWindowsLog;
 
 static uint32_t gInstanceCount = 0;
 const PRUnichar* kMetroSubclassThisProp = L"MetroSubclassThisProp";
+HWND MetroWidget::sICoreHwnd = NULL;
 static const UINT sDefaultBrowserMsgID = RegisterWindowMessageW(L"DefaultBrowserClosing");
+
+
+#define UiaRootObjectId -25
+
+namespace mozilla {
+namespace widget {
+namespace winrt {
+extern ComPtr<IUIABridge> gProviderRoot;
+} } }
 
 namespace {
 
@@ -675,6 +686,30 @@ MetroWidget::WindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLPara
       break;
     }
 
+    case WM_GETOBJECT:
+    {
+      DWORD dwObjId = (LPARAM)(DWORD) aLParam;
+      
+      
+      
+      
+      
+      
+      
+      if (dwObjId == UiaRootObjectId) {
+        NS_ASSERTION(gProviderRoot.Get(), "gProviderRoot is null??");
+        ComPtr<IRawElementProviderSimple> simple;
+        gProviderRoot.As(&simple);
+        LRESULT res = UiaReturnRawElementProvider(aWnd, aWParam, aLParam, simple.Get());
+        if (res) {
+          return res;
+        }
+        NS_ASSERTION(res, "UiaReturnRawElementProvider failed!");
+        Log("UiaReturnRawElementProvider failed! GetLastError=%X", GetLastError());
+      }
+      break;
+    }
+
     default:
     {
       if (aWParam == WM_USER_TSF_TEXTCHANGE) {
@@ -717,6 +752,7 @@ MetroWidget::FindMetroWindow()
 
   
   SetSubclass();
+  sICoreHwnd = mWnd;
   return;
 }
 

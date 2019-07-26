@@ -10,6 +10,7 @@
 #include "nsTArray.h" 
 #include "nsIDOMSimpleGestureEvent.h" 
 #include "InputData.h"
+#include "UIABridgePrivate.h"
 
 
 #include <windows.ui.core.h> 

@@ -124,11 +124,13 @@ ProcessNativeEvents(CoreProcessEventsOption eventOption)
   dispatcher->ProcessEvents(eventOption);
 }
 
+
 void
 MetroAppShell::ProcessOneNativeEventIfPresent()
 {
   ProcessNativeEvents(CoreProcessEventsOption::CoreProcessEventsOption_ProcessOneIfPresent);
 }
+
 
 void
 MetroAppShell::ProcessAllNativeEventsPresent()
