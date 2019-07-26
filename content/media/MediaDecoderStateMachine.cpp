@@ -245,14 +245,9 @@ MediaDecoderStateMachine::~MediaDecoderStateMachine()
   NS_ASSERTION(!mPendingWakeDecoder.get(),
                "WakeDecoder should have been revoked already");
 
-  if (mDecodeTaskQueue) {
-    mDecodeTaskQueue->Shutdown();
-    mDecodeTaskQueue = nullptr;
-  }
-
+  MOZ_ASSERT(!mDecodeTaskQueue, "Should be released in SHUTDOWN");
   
-  
-  mTimer = nullptr;
+  MOZ_ASSERT(!mTimer, "Should be released in SHUTDOWN");
   mReader = nullptr;
 
 #ifdef XP_WIN
@@ -1584,13 +1579,13 @@ MediaDecoderStateMachine::DispatchDecodeTasksIfNeeded()
     return;
   }
   mIsReaderIdle = needIdle;
-  nsRefPtr<nsIRunnable> event;
+  RefPtr<nsIRunnable> event;
   if (mIsReaderIdle) {
     event = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::SetReaderIdle);
   } else {
     event = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::SetReaderActive);
   }
-  if (NS_FAILED(mDecodeTaskQueue->Dispatch(event)) &&
+  if (NS_FAILED(mDecodeTaskQueue->Dispatch(event.forget())) &&
       mState != DECODER_STATE_SHUTDOWN) {
     NS_WARNING("Failed to dispatch event to set decoder idle state");
   }
@@ -2149,6 +2144,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
         
         mDecodeTaskQueue->Shutdown();
+        mDecodeTaskQueue = nullptr;
         mReader->ReleaseMediaResources();
       }
       
@@ -2172,6 +2168,9 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       
       GetStateMachineThread()->Dispatch(
         new nsDispatchDisposeEvent(mDecoder, this), NS_DISPATCH_NORMAL);
+
+      mTimer->Cancel();
+      mTimer = nullptr;
       return NS_OK;
     }
 
