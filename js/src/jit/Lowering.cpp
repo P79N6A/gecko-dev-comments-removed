@@ -2943,6 +2943,25 @@ LIRGenerator::visitInstruction(MInstruction *ins)
             return false;
     }
 
+    
+    
+    
+    
+    if (js_IonOptions.checkRangeAnalysis) {
+        if (Range *r = ins->range()) {
+           switch (ins->type()) {
+           case MIRType_Int32:
+               add(new LRangeAssert(useRegisterAtStart(ins), *r));
+               break;
+           case MIRType_Double:
+               add(new LDoubleRangeAssert(useRegister(ins), tempFloat(), *r));
+               break;
+           default:
+               break;
+           }
+        }
+    }
+
     return true;
 }
 

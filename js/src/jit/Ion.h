@@ -80,6 +80,12 @@ struct IonOptions
     
     
     
+    
+    bool checkRangeAnalysis;
+
+    
+    
+    
     bool uce;
 
     
@@ -212,6 +218,7 @@ struct IonOptions
         inlining(true),
         edgeCaseAnalysis(true),
         rangeAnalysis(true),
+        checkRangeAnalysis(false),
         uce(true),
         eaa(true),
         parallelCompilation(false),
