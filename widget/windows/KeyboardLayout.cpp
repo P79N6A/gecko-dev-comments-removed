@@ -17,8 +17,12 @@
 #include "WidgetUtils.h"
 #include "WinUtils.h"
 #include "nsWindowDbg.h"
+#include "nsServiceManagerUtils.h"
 
 #include "nsIDOMKeyEvent.h"
+#include "nsIIdleServiceInternal.h"
+
+#include "npapi.h"
 
 #include <windows.h>
 #include <winuser.h>
@@ -665,11 +669,30 @@ NativeKey::InitKeyEvent(nsKeyEvent& aKeyEvent,
   aModKeyState.InitInputEvent(aKeyEvent);
 }
 
+bool
+NativeKey::DispatchKeyEvent(nsKeyEvent& aKeyEvent,
+                            const MSG* aMsgSentToPlugin) const
+{
+  KeyboardLayout::NotifyIdleServiceOfUserActivity();
+
+  NPEvent pluginEvent;
+  if (aMsgSentToPlugin &&
+      mWidget->GetInputContext().mIMEState.mEnabled == IMEState::PLUGIN) {
+    pluginEvent.event = aMsgSentToPlugin->message;
+    pluginEvent.wParam = aMsgSentToPlugin->wParam;
+    pluginEvent.lParam = aMsgSentToPlugin->lParam;
+    aKeyEvent.pluginEvent = static_cast<void*>(&pluginEvent);
+  }
+
+  return mWidget->DispatchWindowEvent(&aKeyEvent);
+}
+
 
 
 
 
 KeyboardLayout* KeyboardLayout::sInstance = nullptr;
+nsIIdleServiceInternal* KeyboardLayout::sIdleService = nullptr;
 
 
 KeyboardLayout*
@@ -677,6 +700,10 @@ KeyboardLayout::GetInstance()
 {
   if (!sInstance) {
     sInstance = new KeyboardLayout();
+    nsCOMPtr<nsIIdleServiceInternal> idleService =
+      do_GetService("@mozilla.org/widget/idleservice;1");
+    
+    sIdleService = idleService.forget().get();
   }
   return sInstance;
 }
@@ -687,6 +714,14 @@ KeyboardLayout::Shutdown()
 {
   delete sInstance;
   sInstance = nullptr;
+  NS_IF_RELEASE(sIdleService);
+}
+
+
+void
+KeyboardLayout::NotifyIdleServiceOfUserActivity()
+{
+  sIdleService->ResetIdleTimeOut(0);
 }
 
 KeyboardLayout::KeyboardLayout() :
