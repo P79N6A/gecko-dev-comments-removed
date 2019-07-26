@@ -183,6 +183,13 @@ protected:
 
 
 
+  uint64_t mLastTapEndTime;
+
+  
+
+
+
+
 
 
   MultiTouchInput mLastTouchInput;
