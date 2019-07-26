@@ -2656,8 +2656,7 @@ nsXULPrototypeScript::Compile(const char16_t* aText,
     
     
     
-    options.setSourcePolicy(mOutOfLine ? JS::CompileOptions::LAZY_SOURCE
-                                       : JS::CompileOptions::SAVE_SOURCE);
+    options.setSourceIsLazy(mOutOfLine);
     JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
     if (scope) {
       JS::ExposeObjectToActiveJS(scope);
