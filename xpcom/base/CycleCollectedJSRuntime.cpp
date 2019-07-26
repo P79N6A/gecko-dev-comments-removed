@@ -4,6 +4,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMJSClass.h"
@@ -413,6 +463,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(uint32_t aMaxbytes,
     MOZ_CRASH();
   }
 
+  JS_SetExtraGCRootsTracer(mJSRuntime, TraceBlackJS, this);
   JS_SetGrayGCRootsTracer(mJSRuntime, TraceGrayJS, this);
 
   mJSHolders.Init(512);
@@ -656,12 +707,20 @@ CycleCollectedJSRuntime::TraverseNativeRoots(nsCycleCollectionNoteRootCallback& 
 }
 
  void
+CycleCollectedJSRuntime::TraceBlackJS(JSTracer* aTracer, void* aData)
+{
+  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
+
+  self->TraceNativeBlackRoots(aTracer);
+}
+
+ void
 CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer, void* aData)
 {
   CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
 
   
-  self->TraceNativeRoots(aTracer);
+  self->TraceNativeGrayRoots(aTracer);
 }
 
 struct JsGcTracer : public TraceCallbacks
@@ -692,13 +751,13 @@ TraceJSHolder(void* aHolder, nsScriptObjectTracer*& aTracer, void* aArg)
 }
 
 void
-CycleCollectedJSRuntime::TraceNativeRoots(JSTracer* aTracer)
+CycleCollectedJSRuntime::TraceNativeGrayRoots(JSTracer* aTracer)
 {
   MaybeTraceGlobals(aTracer);
 
   
   
-  TraceAdditionalNativeRoots(aTracer);
+  TraceAdditionalNativeGrayRoots(aTracer);
 
   mJSHolders.Enumerate(TraceJSHolder, aTracer);
 }
@@ -874,49 +933,6 @@ CycleCollectedJSRuntime::NeedCollect() const
 void
 CycleCollectedJSRuntime::Collect(uint32_t aReason) const
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
   MOZ_ASSERT(aReason < JS::gcreason::NUM_REASONS);
   JS::gcreason::Reason gcreason = static_cast<JS::gcreason::Reason>(aReason);
 
