@@ -14,6 +14,7 @@
 #else
 #include "DOMMediaStream.h"
 #include "MediaStreamGraph.h"
+#include "VideoUtils.h"
 #endif
 #include "MediaConduitInterface.h"
 #include "AudioSegment.h"
@@ -226,6 +227,66 @@ class MediaPipeline : public sigslot::has_slots<> {
   bool IsRtp(const unsigned char *data, size_t len);
 };
 
+class GenericReceiveListener : public MediaStreamListener
+{
+ public:
+  GenericReceiveListener(SourceMediaStream *source, TrackID track_id,
+                         TrackRate track_rate)
+    : source_(source),
+      track_id_(track_id),
+      track_rate_(track_rate),
+      played_ticks_(0) {}
+
+  virtual ~GenericReceiveListener() {}
+
+  void AddSelf(MediaSegment* segment);
+
+  void SetPlayedTicks(TrackTicks time) {
+    played_ticks_ = time;
+  }
+
+  void EndTrack() {
+    source_->EndTrack(track_id_);
+  }
+
+ protected:
+  SourceMediaStream *source_;
+  TrackID track_id_;
+  TrackRate track_rate_;
+  TrackTicks played_ticks_;
+};
+
+class TrackAddedCallback {
+ public:
+  virtual void TrackAdded(TrackTicks current_ticks) = 0;
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackAddedCallback);
+
+ protected:
+  virtual ~TrackAddedCallback() {}
+};
+
+class GenericReceiveListener;
+
+class GenericReceiveCallback : public TrackAddedCallback
+{
+ public:
+  GenericReceiveCallback(GenericReceiveListener* listener)
+    : listener_(listener) {}
+
+  void TrackAdded(TrackTicks time) {
+    listener_->SetPlayedTicks(time);
+  }
+
+ private:
+  RefPtr<GenericReceiveListener> listener_;
+};
+
+
+static void AddTrackAndListener(MediaStream* source,
+                                TrackID track_id, TrackRate track_rate,
+                                MediaStreamListener* listener, MediaSegment* segment,
+                                const RefPtr<TrackAddedCallback>& completed);
 
 class ConduitDeleteEvent: public nsRunnable
 {
@@ -320,8 +381,7 @@ class MediaPipelineTransmit : public MediaPipeline {
   };
 
  private:
-RefPtr<PipelineListener> listener_;
-
+  RefPtr<PipelineListener> listener_;
 };
 
 
@@ -373,6 +433,7 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
 
   virtual void DetachMediaStream() {
     ASSERT_ON_THREAD(main_thread_);
+    listener_->EndTrack();
     stream_->RemoveListener(listener_);
     
     
@@ -384,7 +445,7 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
 
  private:
   
-  class PipelineListener : public MediaStreamListener {
+  class PipelineListener : public GenericReceiveListener {
    public:
     PipelineListener(SourceMediaStream * source, TrackID track_id,
                      const RefPtr<MediaSessionConduit>& conduit);
@@ -401,13 +462,10 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
                                           TrackTicks offset,
                                           uint32_t events,
                                           const MediaSegment& queued_media) MOZ_OVERRIDE {}
-    virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) MOZ_OVERRIDE;
+    virtual void NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) MOZ_OVERRIDE;
 
    private:
-    SourceMediaStream *source_;
-    TrackID track_id_;
     RefPtr<MediaSessionConduit> conduit_;
-    uint64_t played_;  
   };
 
   RefPtr<PipelineListener> listener_;
@@ -436,6 +494,8 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
   
   virtual void DetachMediaStream() {
     ASSERT_ON_THREAD(main_thread_);
+
+    listener_->EndTrack();
 
     conduit_ = nullptr;  
                          
@@ -478,7 +538,7 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
   };
 
   
-  class PipelineListener : public MediaStreamListener {
+  class PipelineListener : public GenericReceiveListener {
    public:
     PipelineListener(SourceMediaStream * source, TrackID track_id);
 
@@ -487,8 +547,8 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
                                           TrackRate rate,
                                           TrackTicks offset,
                                           uint32_t events,
-                                          const MediaSegment& queued_media) {}
-    virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime);
+                                          const MediaSegment& queued_media) MOZ_OVERRIDE {}
+    virtual void NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) MOZ_OVERRIDE;
 
     
     void FrameSizeChange(unsigned int width,
@@ -507,11 +567,6 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
 
 
    private:
-    SourceMediaStream *source_;
-    TrackID track_id_;
-#ifdef MOZILLA_INTERNAL_API
-    TrackTicks played_;  
-#endif
     int width_;
     int height_;
 #ifdef MOZILLA_INTERNAL_API

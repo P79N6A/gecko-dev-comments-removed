@@ -4,9 +4,11 @@
 
 
 
-#include "CSFLog.h"
-
 #include "MediaPipeline.h"
+
+#ifndef USE_FAKE_MEDIA_STREAMS
+#include "MediaStreamGraphImpl.h"
+#endif
 
 #include <math.h>
 
@@ -59,7 +61,7 @@ nsresult MediaPipeline::Init() {
                     nsRefPtr<MediaPipeline>(this),
                     &MediaPipeline::Init_s),
                 NS_DISPATCH_NORMAL);
-  
+
   return NS_OK;
 }
 
@@ -842,22 +844,89 @@ nsresult MediaPipelineReceiveAudio::Init() {
   description_ += track_id_string;
   description_ += "]";
 
-  stream_->AddListener(listener_);
+  listener_->AddSelf(new AudioSegment());
 
   return MediaPipelineReceive::Init();
 }
 
 
+void GenericReceiveListener::AddSelf(MediaSegment* segment) {
+  RefPtr<TrackAddedCallback> callback = new GenericReceiveCallback(this);
+  AddTrackAndListener(source_, track_id_, track_rate_, this, segment, callback);
+}
+
+
+static void AddTrackAndListener(MediaStream* source,
+                                TrackID track_id, TrackRate track_rate,
+                                MediaStreamListener* listener, MediaSegment* segment,
+                                const RefPtr<TrackAddedCallback>& completed) {
+  
+#ifdef MOZILLA_INTERNAL_API
+  class Message : public ControlMessage {
+   public:
+    Message(MediaStream* stream, TrackID track, TrackRate rate,
+            MediaSegment* segment, MediaStreamListener* listener,
+            const RefPtr<TrackAddedCallback>& completed)
+      : ControlMessage(stream),
+        track_id_(track),
+        track_rate_(rate),
+        segment_(segment),
+        listener_(listener),
+        completed_(completed) {}
+
+    virtual void Run() MOZ_OVERRIDE {
+      StreamTime current_end = mStream->GetBufferEnd();
+      TrackTicks current_ticks = TimeToTicksRoundUp(track_rate_, current_end);
+
+      mStream->AddListenerImpl(listener_.forget());
+
+      
+      
+
+      if (current_end != 0L) {
+        MOZ_MTLOG(MP_LOG_INFO, "added track @ " << current_end <<
+                  " -> " << MediaTimeToSeconds(current_end));
+      }
+
+      
+      
+      segment_->AppendNullData(current_ticks);
+      mStream->AsSourceStream()->AddTrack(track_id_, track_rate_,
+                                          current_ticks, segment_);
+      
+      
+      
+      
+      
+      mStream->AsSourceStream()->AdvanceKnownTracksTime(STREAM_TIME_MAX);
+
+      
+      
+      completed_->TrackAdded(current_ticks);
+    }
+   private:
+    TrackID track_id_;
+    TrackRate track_rate_;
+    MediaSegment* segment_;
+    nsRefPtr<MediaStreamListener> listener_;
+    const RefPtr<TrackAddedCallback> completed_;
+  };
+
+  MOZ_ASSERT(listener);
+
+  source->GraphImpl()->AppendMessage(new Message(source, track_id, track_rate, segment, listener, completed));
+#else
+  source->AsSourceStream()->AddTrack(track_id, track_rate, 0, segment);
+#endif
+}
+
 MediaPipelineReceiveAudio::PipelineListener::PipelineListener(
     SourceMediaStream * source, TrackID track_id,
     const RefPtr<MediaSessionConduit>& conduit)
-    : source_(source),
-      track_id_(track_id),
-      conduit_(conduit),
-      played_(0) {
-  mozilla::AudioSegment *segment = new mozilla::AudioSegment();
-  source_->AddTrack(track_id_, 16000, 0, segment);
-  source_->AdvanceKnownTracksTime(STREAM_TIME_MAX);
+  : GenericReceiveListener(source, track_id, 16000), 
+    conduit_(conduit)
+{
+  MOZ_ASSERT(track_rate_%100 == 0);
 }
 
 void MediaPipelineReceiveAudio::PipelineListener::
@@ -869,21 +938,33 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
   }
 
   
-  while (MillisecondsToMediaTime(played_) < desired_time) {
+  while (TicksToTimeRoundDown(track_rate_, played_ticks_) < desired_time) {
     
-    nsRefPtr<SharedBuffer> samples = SharedBuffer::Create(1000);
+    
+#define AUDIO_SAMPLE_BUFFER_MAX 1000
+    MOZ_ASSERT((track_rate_/100)*sizeof(uint16_t) <= AUDIO_SAMPLE_BUFFER_MAX);
+
+    nsRefPtr<SharedBuffer> samples = SharedBuffer::Create(AUDIO_SAMPLE_BUFFER_MAX);
     int16_t *samples_data = static_cast<int16_t *>(samples->Data());
     int samples_length;
 
+    
     MediaConduitErrorCode err =
         static_cast<AudioSessionConduit*>(conduit_.get())->GetAudioFrame(
             samples_data,
-            16000,  
+            track_rate_,
             0,  
             samples_length);
+    MOZ_ASSERT(samples_length < AUDIO_SAMPLE_BUFFER_MAX);
 
-    if (err != kMediaConduitNoError)
-      return;
+    if (err != kMediaConduitNoError) {
+      
+      MOZ_MTLOG(PR_LOG_ERROR, "Audio conduit failed (" << err << ") to return data @ " << played_ticks_ <<
+                " (desired " << desired_time << " -> " << MediaTimeToSeconds(desired_time) << ")");
+      MOZ_ASSERT(err == kMediaConduitNoError);
+      samples_length = (track_rate_/100)*sizeof(uint16_t); 
+      memset(samples_data, '\0', samples_length);
+    }
 
     MOZ_MTLOG(PR_LOG_DEBUG, "Audio conduit returned buffer of length " << samples_length);
 
@@ -892,9 +973,15 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
     channels.AppendElement(samples_data);
     segment.AppendFrames(samples.forget(), channels, samples_length);
 
-    source_->AppendToTrack(track_id_, &segment);
-
-    played_ += 10;
+    
+    if (source_->AppendToTrack(track_id_, &segment)) {
+      played_ticks_ += track_rate_/100; 
+    } else {
+      MOZ_MTLOG(PR_LOG_ERROR, "AppendToTrack failed");
+      
+      
+      return;
+    }
   }
 }
 
@@ -910,7 +997,9 @@ nsresult MediaPipelineReceiveVideo::Init() {
   description_ += track_id_string;
   description_ += "]";
 
-  stream_->AddListener(listener_);
+#ifdef MOZILLA_INTERNAL_API
+  listener_->AddSelf(new VideoSegment());
+#endif
 
   static_cast<VideoSessionConduit *>(conduit_.get())->
       AttachRenderer(renderer_);
@@ -920,22 +1009,16 @@ nsresult MediaPipelineReceiveVideo::Init() {
 
 MediaPipelineReceiveVideo::PipelineListener::PipelineListener(
   SourceMediaStream* source, TrackID track_id)
-    : source_(source),
-      track_id_(track_id),
+  : GenericReceiveListener(source, track_id, USECS_PER_S),
+    width_(640),
+    height_(480),
 #ifdef MOZILLA_INTERNAL_API
-      played_(0),
+    image_container_(),
+    image_(),
 #endif
-      width_(640),
-      height_(480),
-#ifdef MOZILLA_INTERNAL_API
-      image_container_(),
-      image_(),
-#endif
-      monitor_("Video PipelineListener") {
+    monitor_("Video PipelineListener") {
 #ifdef MOZILLA_INTERNAL_API
   image_container_ = layers::LayerManager::CreateImageContainer();
-  source_->AddTrack(track_id_, USECS_PER_S, 0, new VideoSegment());
-  source_->AdvanceKnownTracksTime(STREAM_TIME_MAX);
 #endif
 }
 
@@ -982,7 +1065,7 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
 #ifdef MOZILLA_INTERNAL_API
   nsRefPtr<layers::Image> image = image_;
   TrackTicks target = TimeToTicksRoundUp(USECS_PER_S, desired_time);
-  TrackTicks delta = target - played_;
+  TrackTicks delta = target - played_ticks_;
 
   
   
@@ -991,9 +1074,13 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
     VideoSegment segment;
     segment.AppendFrame(image ? image.forget() : nullptr, delta,
                         gfxIntSize(width_, height_));
-    source_->AppendToTrack(track_id_, &(segment));
-
-    played_ = target;
+    
+    if (source_->AppendToTrack(track_id_, &segment)) {
+      played_ticks_ = target;
+    } else {
+      MOZ_MTLOG(PR_LOG_ERROR, "AppendToTrack failed");
+      return;
+    }
   }
 #endif
 }
