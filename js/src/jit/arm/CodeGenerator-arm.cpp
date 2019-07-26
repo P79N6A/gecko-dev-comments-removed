@@ -53,7 +53,7 @@ CodeGeneratorARM::generateAsmJSPrologue(Label *stackOverflowLabel)
 {
     JS_ASSERT(gen->compilingAsmJS());
 
-    masm.Push(lr);
+    masm.push(lr);
 
     
     
@@ -85,18 +85,12 @@ CodeGeneratorARM::generateEpilogue()
     }
 #endif
 
-    if (gen->compilingAsmJS()) {
-        
+    if (gen->compilingAsmJS())
         masm.freeStack(frameDepth_);
-        masm.Pop(pc);
-        JS_ASSERT(masm.framePushed() == 0);
-        
-    } else {
-        
+    else
         masm.freeStack(frameSize());
-        JS_ASSERT(masm.framePushed() == 0);
-        masm.ma_pop(pc);
-    }
+    JS_ASSERT(masm.framePushed() == 0);
+    masm.pop(pc);
     masm.dumpPool();
     return true;
 }
@@ -1047,14 +1041,8 @@ CodeGeneratorARM::toMoveOperand(const LAllocation *a) const
         return MoveOperand(ToRegister(a));
     if (a->isFloatReg())
         return MoveOperand(ToFloatRegister(a));
-    JS_ASSERT((ToStackOffset(a) & 3) == 0);
     int32_t offset = ToStackOffset(a);
-
-    
-    
-    if (gen->compilingAsmJS())
-        offset -= AlignmentMidPrologue;
-
+    JS_ASSERT((offset & 3) == 0);
     return MoveOperand(StackPointer, offset);
 }
 

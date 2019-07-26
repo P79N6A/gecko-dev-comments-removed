@@ -5990,9 +5990,11 @@ static const RegisterSet AllRegsExceptSP =
                 FloatRegisterSet(FloatRegisters::AllMask));
 #if defined(JS_CODEGEN_ARM)
 
+
 static const RegisterSet NonVolatileRegs =
-    RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
-                    FloatRegisterSet(FloatRegisters::NonVolatileMask | (1 << FloatRegisters::d15)));
+    RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask &
+                                   ~(uint32_t(1) << Registers::lr)),
+                FloatRegisterSet(FloatRegisters::NonVolatileMask | (1 << FloatRegisters::d15)));
 #else
 static const RegisterSet NonVolatileRegs =
     RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
@@ -6078,6 +6080,14 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     
     
     masm.setFramePushed(0);
+
+#if defined(JS_CODEGEN_ARM)
+    
+    
+    
+    masm.push(lr);
+#endif 
+
     masm.PushRegsInMask(NonVolatileRegs);
     JS_ASSERT(masm.framePushed() == FramePushedAfterSave);
 
@@ -6174,7 +6184,7 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     JS_ASSERT(masm.framePushed() == 0);
 
     masm.move32(Imm32(true), ReturnReg);
-    masm.abiret();
+    masm.ret();
     return true;
 }
 
@@ -6328,8 +6338,12 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     masm.align(CodeAlignment);
     m.setInterpExitOffset(exitIndex);
     masm.setFramePushed(0);
+
 #if defined(JS_CODEGEN_ARM)
-    masm.Push(lr);
+    
+    
+    
+    masm.push(lr);
 #endif
 
     MIRType typeArray[] = { MIRType_Pointer,   
@@ -6502,11 +6516,13 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     
     
     
+    masm.push(lr);
+
     
-    masm.PushRegsInMask(RegisterSet(GeneralRegisterSet((1<<GlobalReg.code()) |
-                                                       (1<<HeapReg.code()) |
-                                                       (1<<lr.code())),
-                                    FloatRegisterSet(uint32_t(0))));
+    
+    
+    
+    masm.PushRegsInMask(GeneralRegisterSet((1<<GlobalReg.code()) | (1<<HeapReg.code())));
 #endif
 
     
@@ -6700,18 +6716,14 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
 
     masm.bind(&done);
     masm.freeStack(stackDec);
+#if defined(JS_CODEGEN_X64)
+    masm.Pop(HeapReg);
+#endif
 #if defined(JS_CODEGEN_ARM)
     masm.ma_vimm(GenericNaN(), NANReg);
-    masm.PopRegsInMask(RegisterSet(GeneralRegisterSet((1<<GlobalReg.code()) |
-                                                      (1<<HeapReg.code()) |
-                                                      (1<<pc.code())),
-                                   FloatRegisterSet(uint32_t(0))));
-#else
-# if defined(JS_CODEGEN_X64)
-    masm.Pop(HeapReg);
-# endif
-    masm.ret();
+    masm.PopRegsInMask(GeneralRegisterSet((1<<GlobalReg.code()) | (1<<HeapReg.code())));
 #endif
+    masm.ret();
     JS_ASSERT(masm.framePushed() == 0);
 
     
@@ -6750,10 +6762,6 @@ GenerateStackOverflowExit(ModuleCompiler &m, Label *throwLabel)
     MacroAssembler &masm = m.masm();
     masm.align(CodeAlignment);
     masm.bind(&m.stackOverflowLabel());
-
-    
-    
-    masm.setFramePushed(AlignmentMidPrologue - AlignmentAtPrologue);
 
     MIRTypeVector argTypes(m.cx());
     argTypes.infallibleAppend(MIRType_Pointer); 
@@ -6924,7 +6932,7 @@ GenerateThrowExit(ModuleCompiler &m, Label *throwLabel)
     JS_ASSERT(masm.framePushed() == 0);
 
     masm.mov(ImmWord(0), ReturnReg);
-    masm.abiret();
+    masm.ret();
 
     return !masm.oom();
 }
