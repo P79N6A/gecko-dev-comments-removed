@@ -532,6 +532,7 @@ SpecialPowersAPI.prototype = {
       destroy: () => {
         listeners = [];
         this._removeMessageListener("SPChromeScriptMessage", chromeScript);
+        this._removeMessageListener("SPChromeScriptAssert", chromeScript);
       },
 
       receiveMessage: (aMessage) => {
@@ -542,11 +543,59 @@ SpecialPowersAPI.prototype = {
         if (messageId != id)
           return;
 
-        listeners.filter(o => (o.name == name))
-                 .forEach(o => o.listener(this.wrap(message)));
+        if (aMessage.name == "SPChromeScriptMessage") {
+          listeners.filter(o => (o.name == name))
+                   .forEach(o => o.listener(this.wrap(message)));
+        } else if (aMessage.name == "SPChromeScriptAssert") {
+          assert(aMessage.json);
+        }
       }
     };
     this._addMessageListener("SPChromeScriptMessage", chromeScript);
+    this._addMessageListener("SPChromeScriptAssert", chromeScript);
+
+    let assert = json => {
+      
+      let {url, err, message, stack} = json;
+
+      
+      
+      
+      let window = this.window.get();
+      let parentRunner, repr = function (o) o;
+      if (window) {
+        window = window.wrappedJSObject;
+        parentRunner = window.TestRunner;
+        if (window.repr) {
+          repr = window.repr;
+        }
+      }
+
+      
+      var resultString = err ? "TEST-UNEXPECTED-FAIL" : "TEST-PASS";
+      var diagnostic =
+        message ? message :
+                  ("assertion @ " + stack.filename + ":" + stack.lineNumber);
+      if (err) {
+        diagnostic +=
+          " - got " + repr(err.actual) +
+          ", expected " + repr(err.expected) +
+          " (operator " + err.operator + ")";
+      }
+      var msg = [resultString, url, diagnostic].join(" | ");
+      if (parentRunner) {
+        if (err) {
+          parentRunner.addFailedTest(url);
+          parentRunner.error(msg);
+        } else {
+          parentRunner.log(msg);
+        }
+      } else {
+        
+        dump(msg + "\n");
+      }
+    };
+
     return this.wrap(chromeScript);
   },
 
