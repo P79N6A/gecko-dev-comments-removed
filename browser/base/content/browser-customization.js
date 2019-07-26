@@ -77,6 +77,7 @@ let CustomizationHandler = {
     
     CombinedStopReload.init();
     UpdateUrlbarSearchSplitterState();
+    setUrlAndSearchBarWidthForConditionalForwardButton();
 
     
     if (gURLBar) {
