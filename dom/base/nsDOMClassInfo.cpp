@@ -517,6 +517,10 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "StkCommandEvent.h"
 #endif
 
+#ifdef MOZ_B2G_FM
+#include "FMRadio.h"
+#endif
+
 #ifdef MOZ_B2G_BT
 #include "BluetoothManager.h"
 #include "BluetoothAdapter.h"
@@ -1430,6 +1434,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(MozURLProperty, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(MozBlobBuilder, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(DOMStringMap, nsDOMStringMapSH,
                            DOMSTRINGMAP_SCRIPTABLE_FLAGS)
@@ -1548,6 +1554,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA_WITH_NAME(MathMLElement, Element, nsElementSH,
                                      ELEMENT_SCRIPTABLE_FLAGS)
 
+  NS_DEFINE_CLASSINFO_DATA(WebGLRenderingContext, nsWebGLViewportHandlerSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(WebGLBuffer, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(WebGLTexture, nsDOMGenericSH,
@@ -1681,6 +1689,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 #endif
 
+#ifdef MOZ_B2G_FM
+  NS_DEFINE_CLASSINFO_DATA(FMRadio, nsEventTargetSH,
+                           EVENTTARGET_SCRIPTABLE_FLAGS)
+#endif
+
 #ifdef MOZ_B2G_BT
   NS_DEFINE_CLASSINFO_DATA(BluetoothManager, nsEventTargetSH,
                            EVENTTARGET_SCRIPTABLE_FLAGS)
@@ -1799,6 +1812,7 @@ static const nsConstructorFuncMapData kConstructorFuncMap[] =
 {
   NS_DEFINE_CONSTRUCTOR_FUNC_DATA(Blob, nsDOMMultipartFile::NewBlob)
   NS_DEFINE_CONSTRUCTOR_FUNC_DATA(File, nsDOMFileFile::NewFile)
+  NS_DEFINE_CONSTRUCTOR_FUNC_DATA(MozBlobBuilder, NS_NewBlobBuilder)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(Event)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(UIEvent)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(MouseEvent)
@@ -4038,6 +4052,10 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozURLProperty)
   DOM_CLASSINFO_MAP_END
 
+  DOM_CLASSINFO_MAP_BEGIN(MozBlobBuilder, nsIDOMMozBlobBuilder)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozBlobBuilder)
+  DOM_CLASSINFO_MAP_END
+
   DOM_CLASSINFO_MAP_BEGIN(DOMStringMap, nsIDOMDOMStringMap)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDOMStringMap)
   DOM_CLASSINFO_MAP_END
@@ -4221,6 +4239,10 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)
     DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsITouchEventReceiver,
                                         nsDOMTouchEvent::PrefEnabled())
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(WebGLRenderingContext, nsIDOMWebGLRenderingContext)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMWebGLRenderingContext)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(WebGLBuffer, nsIWebGLBuffer)
@@ -4480,6 +4502,13 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
+#endif
+
+#ifdef MOZ_B2G_FM
+  DOM_CLASSINFO_MAP_BEGIN(FMRadio, nsIFMRadio)
+    DOM_CLASSINFO_MAP_ENTRY(nsIFMRadio)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
+  DOM_CLASSINFO_MAP_END
 #endif
 
 #ifdef MOZ_B2G_BT
