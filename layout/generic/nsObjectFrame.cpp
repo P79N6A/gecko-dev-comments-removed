@@ -380,7 +380,8 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
   viewMan->ResizeView(view, r);
   viewMan->MoveViewTo(view, origin.x, origin.y);
 
-  nsRootPresContext* rpc = PresContext()->GetRootPresContext();
+  nsPresContext* presContext = PresContext();
+  nsRootPresContext* rpc = presContext->GetRootPresContext();
   if (!rpc) {
     return NS_ERROR_FAILURE;
   }
@@ -409,13 +410,13 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
     
     
     
-    
-    nsAutoTArray<nsIWidget::Configuration,1> configuration;
-    GetEmptyClipConfiguration(&configuration);
-    NS_ASSERTION(configuration.Length() > 0, "Empty widget configuration array!");
-    configuration[0].mBounds.width = mRect.width;
-    configuration[0].mBounds.height = mRect.height;
-    parentWidget->ConfigureChildren(configuration);
+    nsAutoTArray<nsIWidget::Configuration,1> configurations;
+    nsIWidget::Configuration* configuration = configurations.AppendElement();
+    nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+    configuration->mChild = mWidget;
+    configuration->mBounds.width = NSAppUnitsToIntPixels(mRect.width, appUnitsPerDevPixel);
+    configuration->mBounds.height = NSAppUnitsToIntPixels(mRect.height, appUnitsPerDevPixel);
+    parentWidget->ConfigureChildren(configurations);
 
     nsRefPtr<nsDeviceContext> dx;
     viewMan->GetDeviceContext(*getter_AddRefs(dx));
@@ -761,7 +762,6 @@ nsObjectFrame::RegisterPluginForGeometryUpdates()
   }
   mRootPresContextRegisteredWith = rpc;
   mRootPresContextRegisteredWith->RegisterPluginForGeometryUpdates(mContent);
-  mRootPresContextRegisteredWith->RequestUpdatePluginGeometry();
 }
 
 void
@@ -790,7 +790,8 @@ nsObjectFrame::SetInstanceOwner(nsPluginInstanceOwner* aOwner)
     nsIWidget* parent = mWidget->GetParent();
     if (parent) {
       nsTArray<nsIWidget::Configuration> configurations;
-      this->GetEmptyClipConfiguration(&configurations);
+      nsIWidget::Configuration* configuration = configurations.AppendElement();
+      configuration->mChild = mWidget;
       parent->ConfigureChildren(configurations);
 
       mWidget->Show(false);
@@ -1048,8 +1049,44 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    const nsRect& aAllowVisibleRegionExpansion)
 {
-  bool snap;
-  mVisibleRegion.And(*aVisibleRegion, GetBounds(aBuilder, &snap));
+  if (aBuilder->IsForPluginGeometry()) {
+    nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
+    if (!aBuilder->IsInTransform() || f->IsPaintedByGecko()) {
+      
+      
+      nsRect rAncestor = nsLayoutUtils::TransformFrameRectToAncestor(f,
+          f->GetContentRectRelativeToSelf(), ReferenceFrame());
+      nscoord appUnitsPerDevPixel =
+        ReferenceFrame()->PresContext()->AppUnitsPerDevPixel();
+      f->mNextConfigurationBounds = rAncestor.ToNearestPixels(appUnitsPerDevPixel);
+
+      bool snap;
+      nsRegion visibleRegion;
+      visibleRegion.And(*aVisibleRegion, GetBounds(aBuilder, &snap));
+      
+      visibleRegion.MoveBy(-ToReferenceFrame());
+
+      f->mNextConfigurationClipRegion.Clear();
+      nsRegionRectIterator iter(visibleRegion);
+      for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
+        nsRect rAncestor =
+          nsLayoutUtils::TransformFrameRectToAncestor(f, *r, ReferenceFrame());
+        nsIntRect rPixels = rAncestor.ToNearestPixels(appUnitsPerDevPixel)
+            - f->mNextConfigurationBounds.TopLeft();
+        if (!rPixels.IsEmpty()) {
+          f->mNextConfigurationClipRegion.AppendElement(rPixels);
+        }
+      }
+    }
+
+    if (f->mInnerView) {
+      
+      
+      
+      f->mInnerView->CalcWidgetBounds(eWindowType_plugin);
+    }
+  }
+
   return nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
                                           aAllowVisibleRegionExpansion);
 }
@@ -1064,19 +1101,18 @@ nsDisplayPlugin::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   if (!aBuilder->IsForPluginGeometry()) {
     nsIWidget* widget = f->GetWidget();
     if (widget) {
-      nsTArray<nsIntRect> clip;
-      widget->GetWindowClipRegion(&clip);
-      nsTArray<nsIWidget::Configuration> configuration;
-      GetWidgetConfiguration(aBuilder, &configuration);
-      NS_ASSERTION(configuration.Length() == 1, "No configuration found");
-      if (clip != configuration[0].mClipRegion) {
-        
-        
-        
-    	return result;
-      }
+      
+      
+      
+      
+      
+      
+      
+      
+  	  return result;
     }
   }
+
   if (f->IsOpaque()) {
     nsRect bounds = GetBounds(aBuilder, aSnap);
     if (aBuilder->IsForPluginGeometry() ||
@@ -1085,70 +1121,8 @@ nsDisplayPlugin::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
       result = bounds;
     }
   }
+
   return result;
-}
-
-void
-nsDisplayPlugin::GetWidgetConfiguration(nsDisplayListBuilder* aBuilder,
-                                        nsTArray<nsIWidget::Configuration>* aConfigurations)
-{
-  nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
-  nsPoint pluginOrigin = mFrame->GetContentRectRelativeToSelf().TopLeft() +
-    ToReferenceFrame();
-  f->ComputeWidgetGeometry(mVisibleRegion, pluginOrigin, aConfigurations);
-}
-
-void
-nsObjectFrame::ComputeWidgetGeometry(const nsRegion& aRegion,
-                                     const nsPoint& aPluginOrigin,
-                                     nsTArray<nsIWidget::Configuration>* aConfigurations)
-{
-  if (!mWidget) {
-#ifndef XP_MACOSX
-    if (mInstanceOwner) {
-      
-      
-      mInstanceOwner->UpdateWindowVisibility(!aRegion.IsEmpty());
-    }
-#endif
-    return;
-  }
-
-  if (!mInnerView) {
-    return;
-  }
-
-  nsPresContext* presContext = PresContext();
-  nsRootPresContext* rootPC = presContext->GetRootPresContext();
-  if (!rootPC)
-    return;
-
-  nsIWidget::Configuration* configuration = aConfigurations->AppendElement();
-  if (!configuration)
-    return;
-  configuration->mChild = mWidget;
-
-  int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-  nsIFrame* rootFrame = rootPC->PresShell()->FrameManager()->GetRootFrame();
-  nsRect bounds = GetContentRectRelativeToSelf() + GetOffsetToCrossDoc(rootFrame);
-  configuration->mBounds = bounds.ToNearestPixels(appUnitsPerDevPixel);
-
-  
-  
-  
-  mInnerView->CalcWidgetBounds(eWindowType_plugin);
-
-  nsRegionRectIterator iter(aRegion);
-  nsIntPoint pluginOrigin = aPluginOrigin.ToNearestPixels(appUnitsPerDevPixel);
-  for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
-    
-    
-    nsIntRect pixRect =
-      r->ToNearestPixels(appUnitsPerDevPixel) - pluginOrigin;
-    if (!pixRect.IsEmpty()) {
-      configuration->mClipRegion.AppendElement(pixRect);
-    }
-  }
 }
 
 nsresult
@@ -1171,6 +1145,12 @@ nsObjectFrame::DidSetWidgetGeometry()
 #if defined(XP_MACOSX)
   if (mInstanceOwner) {
     mInstanceOwner->FixUpPluginWindow(nsPluginInstanceOwner::ePluginPaintEnable);
+  }
+#else
+  if (!mWidget && mInstanceOwner) {
+    
+    
+    mInstanceOwner->UpdateWindowVisibility(!mNextConfigurationBounds.IsEmpty());
   }
 #endif
 }
@@ -2284,7 +2264,7 @@ NS_NewObjectFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 bool
-nsObjectFrame::PaintedByGecko()
+nsObjectFrame::IsPaintedByGecko() const
 {
 #ifdef XP_MACOSX
   return true;

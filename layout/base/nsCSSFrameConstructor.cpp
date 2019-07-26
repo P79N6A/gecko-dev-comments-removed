@@ -8052,8 +8052,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   }
 
   index = count;
-  bool didInvalidate = false;
-  bool didReflow = false;
 
   while (0 <= --index) {
     nsIFrame* frame;
@@ -8110,19 +8108,16 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       }
       if (hint & nsChangeHint_NeedReflow) {
         StyleChangeReflow(frame, hint);
-        didReflow = true;
         didReflowThisFrame = true;
       }
       if (hint & (nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView |
                   nsChangeHint_UpdateOpacityLayer | nsChangeHint_UpdateTransformLayer |
                   nsChangeHint_ChildrenOnlyTransform)) {
         ApplyRenderingChangeToTree(presContext, frame, hint);
-        didInvalidate = true;
       }
       if ((hint & nsChangeHint_RecomputePosition) && !didReflowThisFrame) {
         
         if (!RecomputePosition(frame)) {
-          didReflow = true;
           didReflowThisFrame = true;
         }
       }
@@ -8194,16 +8189,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   }
 
   EndUpdate();
-
-  if (didInvalidate && !didReflow) {
-    
-    
-    
-    nsRootPresContext* rootPC = presContext->GetRootPresContext();
-    if (rootPC) {
-      rootPC->RequestUpdatePluginGeometry();
-    }
-  }
 
   
   

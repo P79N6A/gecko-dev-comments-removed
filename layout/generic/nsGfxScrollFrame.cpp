@@ -1783,13 +1783,6 @@ void nsGfxScrollFrameInner::MarkActive()
 
 void nsGfxScrollFrameInner::ScrollVisual(nsPoint aOldScrolledFramePos)
 {
-  nsRootPresContext* rootPresContext = mOuter->PresContext()->GetRootPresContext();
-  if (!rootPresContext) {
-    return;
-  }
-
-  rootPresContext->RequestUpdatePluginGeometry();
-
   AdjustViews(mScrolledFrame);
   
   

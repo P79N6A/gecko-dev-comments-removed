@@ -1839,7 +1839,10 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   const nsStyleDisplay* disp = GetStyleDisplay();
   
   
+  
+  
   if (disp->mOpacity == 0.0 && aBuilder->IsForPainting() &&
+      !aBuilder->WillComputePluginGeometry() &&
       !nsLayoutUtils::HasAnimationsForCompositor(mContent,
                                                  eCSSProperty_opacity)) {
     return NS_OK;

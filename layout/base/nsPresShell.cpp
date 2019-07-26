@@ -3575,11 +3575,6 @@ PresShell::UnsuppressAndInvalidate()
     if (mCaretEnabled && mCaret) {
       mCaret->CheckCaretDrawingState();
     }
-
-    nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
-    if (rootPC) {
-      rootPC->RequestUpdatePluginGeometry();
-    }
   }
 
   
@@ -3885,14 +3880,6 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     }
 
     if (aType >= Flush_Layout) {
-      
-      
-      
-      nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-      if (rootPresContext) {
-        rootPresContext->UpdatePluginGeometry();
-      }
-
       if (!mIsDestroying) {
         mViewManager->UpdateWidgetGeometry();
       }
@@ -7005,7 +6992,7 @@ PresShell::WillPaint(bool aWillSendDidPaint)
   }
 
   if (!aWillSendDidPaint && rootPresContext == mPresContext) {
-    rootPresContext->UpdatePluginGeometry();
+    rootPresContext->ApplyPluginGeometryUpdates();
   }
   rootPresContext->FlushWillPaintObservers();
   if (mIsDestroying)
@@ -7031,7 +7018,7 @@ PresShell::DidPaint()
   
   
   if (rootPresContext == mPresContext) {
-    rootPresContext->UpdatePluginGeometry();
+    rootPresContext->ApplyPluginGeometryUpdates();
   }
 
   if (nsContentUtils::XPConnect()) {
@@ -7488,11 +7475,6 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     
     mSuppressInterruptibleReflows = true;
     MaybeScheduleReflow();
-  }
-
-  nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
-  if (rootPC) {
-    rootPC->RequestUpdatePluginGeometry();
   }
 
   return !interrupted;

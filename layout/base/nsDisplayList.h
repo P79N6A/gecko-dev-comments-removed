@@ -129,6 +129,17 @@ public:
   nsDisplayListBuilder(nsIFrame* aReferenceFrame, Mode aMode, bool aBuildCaret);
   ~nsDisplayListBuilder();
 
+  void SetWillComputePluginGeometry(bool aWillComputePluginGeometry)
+  {
+    mWillComputePluginGeometry = aWillComputePluginGeometry;
+  }
+  void SetForPluginGeometry()
+  {
+    NS_ASSERTION(mMode == PAINTING, "Can only switch from PAINTING to PLUGIN_GEOMETRY");
+    NS_ASSERTION(mWillComputePluginGeometry, "Should have signalled this in advance");
+    mMode = PLUGIN_GEOMETRY;
+  }
+
   
 
 
@@ -138,11 +149,15 @@ public:
 
 
 
+
+
+
   bool IsForPluginGeometry() { return mMode == PLUGIN_GEOMETRY; }
   
 
 
   bool IsForPainting() { return mMode == PAINTING; }
+  bool WillComputePluginGeometry() { return mWillComputePluginGeometry; }
   
 
 
@@ -262,6 +277,13 @@ public:
 
   void SetPaintingToWindow(bool aToWindow) { mIsPaintingToWindow = aToWindow; }
   bool IsPaintingToWindow() const { return mIsPaintingToWindow; }
+
+  
+
+
+
+  bool AllowMergingAndFlattening() { return mAllowMergingAndFlattening; }
+  void SetAllowMergingAndFlattening(bool aAllow) { mAllowMergingAndFlattening = aAllow; }
 
   
 
@@ -602,6 +624,8 @@ private:
   bool                           mIncludeAllOutOfFlows;
   bool                           mSelectedFramesOnly;
   bool                           mAccurateVisibleRegions;
+  bool                           mAllowMergingAndFlattening;
+  bool                           mWillComputePluginGeometry;
   
   
   bool                           mInTransform;
@@ -946,6 +970,7 @@ public:
 
 
 
+
   virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    const nsRect& aAllowVisibleRegionExpansion)
@@ -1261,10 +1286,11 @@ public:
 
 
 
+
   bool ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
-                                     nsRegion* aVisibleRegion,
-                                     const nsRect& aListVisibleBounds,
-                                     const nsRect& aAllowVisibleRegionExpansion);
+                                   nsRegion* aVisibleRegion,
+                                   const nsRect& aListVisibleBounds,
+                                   const nsRect& aAllowVisibleRegionExpansion);
 
   
 
@@ -1272,8 +1298,9 @@ public:
 
 
 
+
   bool ComputeVisibilityForRoot(nsDisplayListBuilder* aBuilder,
-                                  nsRegion* aVisibleRegion);
+                                nsRegion* aVisibleRegion);
 
   
 

@@ -105,14 +105,33 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  void GetEmptyClipConfiguration(nsTArray<nsIWidget::Configuration>* aConfigurations) {
-    ComputeWidgetGeometry(nsRegion(), nsPoint(0,0), aConfigurations);
+
+
+
+
+
+
+
+  void SetEmptyWidgetConfiguration()
+  {
+    mNextConfigurationBounds = nsIntRect(0,0,0,0);
+    mNextConfigurationClipRegion.Clear();
   }
+  
+
+
+  void GetWidgetConfiguration(nsTArray<nsIWidget::Configuration>* aConfigurations)
+  {
+    if (mWidget) {
+      nsIWidget::Configuration* configuration = aConfigurations->AppendElement();
+      configuration->mChild = mWidget;
+      configuration->mBounds = mNextConfigurationBounds;
+      configuration->mClipRegion = mNextConfigurationClipRegion;
+    }
+  }
+  
+
+
 
   void DidSetWidgetGeometry();
 
@@ -170,8 +189,6 @@ public:
 
   static void EndSwapDocShells(nsIContent* aContent, void*);
 
-  bool PaintedByGecko();
-
   nsIWidget* GetWidget() MOZ_OVERRIDE { return mInnerView ? mWidget : nullptr; }
 
   
@@ -204,6 +221,7 @@ protected:
 
   bool IsOpaque() const;
   bool IsTransparentMode() const;
+  bool IsPaintedByGecko() const;
 
   nsIntPoint GetWindowOriginInPixels(bool aWindowless);
 
@@ -215,19 +233,6 @@ protected:
   void PaintPlugin(nsDisplayListBuilder* aBuilder,
                    nsRenderingContext& aRenderingContext,
                    const nsRect& aDirtyRect, const nsRect& aPluginRect);
-
-  
-
-
-
-
-
-
-
-
-  void ComputeWidgetGeometry(const nsRegion& aRegion,
-                             const nsPoint& aPluginOrigin,
-                             nsTArray<nsIWidget::Configuration>* aConfigurations);
 
   void NotifyPluginReflowObservers();
 
@@ -266,6 +271,18 @@ private:
 
   PluginBackgroundSink*           mBackgroundSink;
 
+  
+
+
+
+
+  nsIntRect                       mNextConfigurationBounds;
+  
+
+
+
+  nsTArray<nsIntRect>             mNextConfigurationClipRegion;
+
   bool mReflowCallbackPosted;
 
   
@@ -303,16 +320,6 @@ public:
 
   NS_DISPLAY_DECL_NAME("Plugin", TYPE_PLUGIN)
 
-  
-  
-  
-  
-  
-  
-  
-  void GetWidgetConfiguration(nsDisplayListBuilder* aBuilder,
-                              nsTArray<nsIWidget::Configuration>* aConfigurations);
-
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
                                              const ContainerParameters& aContainerParameters) MOZ_OVERRIDE
@@ -330,9 +337,6 @@ public:
     return static_cast<nsObjectFrame*>(mFrame)->GetLayerState(aBuilder,
                                                               aManager);
   }
-
-private:
-  nsRegion mVisibleRegion;
 };
 
 #endif 

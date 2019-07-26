@@ -1265,38 +1265,31 @@ public:
 
   void UnregisterPluginForGeometryUpdates(nsIContent* aPlugin);
 
+  bool NeedToComputePluginGeometryUpdates()
+  {
+    return mRegisteredPlugins.Count() > 0;
+  }
   
 
 
 
 
-  void UpdatePluginGeometry();
+
+
+
+
+  void ComputePluginGeometryUpdates(nsIFrame* aFrame,
+                                    nsDisplayListBuilder* aBuilder,
+                                    nsDisplayList* aList);
 
   
 
 
 
 
-
-
-  void GetPluginGeometryUpdates(nsIFrame* aChangedRoot,
-                                nsTArray<nsIWidget::Configuration>* aConfigurations);
-
-  
-
-
-
-
-  void DidApplyPluginGeometryUpdates();
+  void ApplyPluginGeometryUpdates();
 
   virtual bool IsRoot() MOZ_OVERRIDE { return true; }
-
-  
-
-
-
-
-  void RequestUpdatePluginGeometry();
 
   
 
@@ -1328,6 +1321,15 @@ public:
   virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
 
 protected:
+  
+
+
+  void InitApplyPluginGeometryTimer();
+  
+
+
+  void CancelApplyPluginGeometryTimer();
+
   class RunWillPaintObservers : public nsRunnable {
   public:
     RunWillPaintObservers(nsRootPresContext* aPresContext) : mPresContext(aPresContext) {}
@@ -1343,24 +1345,13 @@ protected:
   };
 
   friend class nsPresContext;
-  void CancelUpdatePluginGeometryTimer()
-  {
-    if (mUpdatePluginGeometryTimer) {
-      mUpdatePluginGeometryTimer->Cancel();
-      mUpdatePluginGeometryTimer = nullptr;
-    }
-  }
 
   nsCOMPtr<nsITimer> mNotifyDidPaintTimer;
-  nsCOMPtr<nsITimer> mUpdatePluginGeometryTimer;
+  nsCOMPtr<nsITimer> mApplyPluginGeometryTimer;
   nsTHashtable<nsRefPtrHashKey<nsIContent> > mRegisteredPlugins;
-  
-  
-  
   nsTArray<nsCOMPtr<nsIRunnable> > mWillPaintObservers;
   nsRevocableEventPtr<RunWillPaintObservers> mWillPaintFallbackEvent;
   uint32_t mDOMGeneration;
-  bool mNeedsToUpdatePluginGeometry;
 };
 
 #ifdef MOZ_REFLOW_PERF
