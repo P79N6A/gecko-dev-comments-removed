@@ -91,13 +91,11 @@
 #include "nsIWidget.h"
 #include "nsIDocShell.h"
 #include "nsAppShellCID.h"
-#include "mozilla/scache/StartupCache.h"
 
 #include "mozilla/unused.h"
 
 using namespace mozilla;
 using mozilla::unused;
-using mozilla::scache::StartupCache;
 
 #ifdef XP_WIN
 #include "nsIWinAppHelper.h"
@@ -2407,7 +2405,7 @@ static void BuildVersion(nsCString &aBuf)
 static void
 WriteVersion(nsIFile* aProfileDir, const nsCString& aVersion,
              const nsCString& aOSABI, nsIFile* aXULRunnerDir,
-             nsIFile* aAppDir, bool invalidateCache)
+             nsIFile* aAppDir)
 {
   nsCOMPtr<nsIFile> file;
   aProfileDir->Clone(getter_AddRefs(file));
@@ -2450,30 +2448,19 @@ WriteVersion(nsIFile* aProfileDir, const nsCString& aVersion,
     PR_Write(fd, appDir.get(), appDir.Length());
   }
 
-  static const char kInvalidationHeader[] = "InvalidateCaches=1" NS_LINEBREAK;
-  if (invalidateCache)
-    PR_Write(fd, kInvalidationHeader, sizeof(kInvalidationHeader) - 1);
-
   static const char kNL[] = NS_LINEBREAK;
   PR_Write(fd, kNL, sizeof(kNL) - 1);
 
   PR_Close(fd);
 }
 
-
-
-
-
-
-
-static bool
-RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfileDir,
+static void RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfileDir,
                                       bool aRemoveEMFiles)
 {
   nsCOMPtr<nsIFile> file;
   aProfileDir->Clone(getter_AddRefs(file));
   if (!file)
-    return false;
+    return;
 
   if (aRemoveEMFiles) {
     file->SetNativeLeafName(NS_LITERAL_CSTRING("extensions.ini"));
@@ -2482,7 +2469,7 @@ RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfileDir,
 
   aLocalProfileDir->Clone(getter_AddRefs(file));
   if (!file)
-    return false;
+    return;
 
 #if defined(XP_UNIX) || defined(XP_BEOS)
 #define PLATFORM_FASL_SUFFIX ".mfasl"
@@ -2497,8 +2484,7 @@ RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfileDir,
   file->Remove(false);
 
   file->SetNativeLeafName(NS_LITERAL_CSTRING("startupCache"));
-  nsresult rv = file->Remove(true);
-  return NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST;
+  file->Remove(true);
 }
 
 
@@ -3546,22 +3532,21 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   
   
   
-  bool invalidateStartupCache = false;
   if (gSafeMode) {
-    invalidateStartupCache = RemoveComponentRegistries(mProfD, mProfLD, false);
+    RemoveComponentRegistries(mProfD, mProfLD, false);
     WriteVersion(mProfD, NS_LITERAL_CSTRING("Safe Mode"), osABI,
-                 mDirProvider.GetGREDir(), mAppData->directory, invalidateStartupCache);
+                 mDirProvider.GetGREDir(), mAppData->directory);
   }
   else if (versionOK) {
     if (!cachesOK) {
       
       
       
-      invalidateStartupCache = RemoveComponentRegistries(mProfD, mProfLD, false);
+      RemoveComponentRegistries(mProfD, mProfLD, false);
         
       
       WriteVersion(mProfD, version, osABI,
-                   mDirProvider.GetGREDir(), mAppData->directory, invalidateStartupCache);
+                   mDirProvider.GetGREDir(), mAppData->directory);
     }
     
   }
@@ -3569,15 +3554,12 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     
     
     
-    invalidateStartupCache = RemoveComponentRegistries(mProfD, mProfLD, true);
+    RemoveComponentRegistries(mProfD, mProfLD, true);
 
     
     WriteVersion(mProfD, version, osABI,
-                 mDirProvider.GetGREDir(), mAppData->directory, invalidateStartupCache);
+                 mDirProvider.GetGREDir(), mAppData->directory);
   }
-
-  if (invalidateStartupCache)
-    StartupCache::IgnoreDiskCache();
 
   if (flagFile) {
     flagFile->Remove(true);
