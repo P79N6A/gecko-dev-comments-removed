@@ -29,10 +29,19 @@ function test_isTextMimeType () {
 
   
   do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0+json"), true);
+  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0-json"), true);
   
   do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0+xml"), true);
+  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0-xml"), false);
   
   do_check_eq(NetworkHelper.isTextMimeType("application/vnd.BIG-CORP+json"), true);
   
   do_check_eq(NetworkHelper.isTextMimeType("image/png"), false);
+  
+  do_check_eq(NetworkHelper.isTextMimeType("application/foo-+json"), false);
+  do_check_eq(NetworkHelper.isTextMimeType("application/-foo+json"), false);
+  do_check_eq(NetworkHelper.isTextMimeType("application/foo--bar+json"), false);
+
+  
+  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.google.safebrowsing-chunk"), false);
 }
