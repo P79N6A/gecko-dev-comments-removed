@@ -119,6 +119,7 @@ public:
     nsresult ResumeSend();
     nsresult ResumeRecv();
     int64_t  MaxBytesRead() {return mMaxBytesRead;}
+    uint8_t GetLastHttpResponseVersion() { return mLastHttpResponseVersion; }
 
     friend class nsHttpConnectionForceRecv;
     nsresult ForceRecv();
@@ -134,6 +135,7 @@ public:
     void EndIdleMonitoring();
 
     bool UsingSpdy() { return !!mUsingSpdyVersion; }
+    uint8_t GetSpdyVersion() { return mUsingSpdyVersion; }
     bool EverUsedSpdy() { return mEverUsedSpdy; }
     PRIntervalTime Rtt() { return mRtt; }
 
@@ -252,6 +254,9 @@ private:
 
     
     bool                            mEverUsedSpdy;
+
+    
+    uint8_t                         mLastHttpResponseVersion;
 
     
     uint32_t                        mTransactionCaps;
