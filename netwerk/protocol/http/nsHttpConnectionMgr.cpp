@@ -2838,6 +2838,19 @@ nsHttpConnectionMgr::nsHalfOpenSocket::Abandon()
 
     nsRefPtr<nsHalfOpenSocket> deleteProtector(this);
 
+    
+    if (mSocketTransport) {
+        mSocketTransport->SetEventSink(nullptr, nullptr);
+        mSocketTransport->SetSecurityCallbacks(nullptr);
+        mSocketTransport = nullptr;
+    }
+    if (mBackupTransport) {
+        mBackupTransport->SetEventSink(nullptr, nullptr);
+        mBackupTransport->SetSecurityCallbacks(nullptr);
+        mBackupTransport = nullptr;
+    }
+
+    
     if (mStreamOut) {
         gHttpHandler->ConnMgr()->RecvdConnect();
         mStreamOut->AsyncWait(nullptr, 0, 0, nullptr);
@@ -2849,8 +2862,13 @@ nsHttpConnectionMgr::nsHalfOpenSocket::Abandon()
         mBackupStreamOut = nullptr;
     }
 
+    
+    mStreamIn = mBackupStreamIn = nullptr;
+
+    
     CancelBackupTimer();
 
+    
     if (mEnt)
         mEnt->RemoveHalfOpen(this);
     mEnt = nullptr;
