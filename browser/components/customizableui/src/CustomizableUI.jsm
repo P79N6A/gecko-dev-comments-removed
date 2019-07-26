@@ -391,7 +391,8 @@ let CustomizableUIInternal = {
     if (!areaProperties) {
       
       
-      if (!aToolbar.hasAttribute("defaultset")) {
+      if (!aToolbar.hasAttribute("defaultset") &&
+          !aToolbar.hasAttribute("customindex")) {
         if (!gPendingBuildAreas.has(area)) {
           gPendingBuildAreas.set(area, new Map());
         }
@@ -400,7 +401,7 @@ let CustomizableUIInternal = {
         return;
       }
       let props = {type: CustomizableUI.TYPE_TOOLBAR, legacy: true};
-      let defaultsetAttribute = aToolbar.getAttribute("defaultset");
+      let defaultsetAttribute = aToolbar.getAttribute("defaultset") || "";
       props.defaultPlacements = defaultsetAttribute.split(',').filter(s => s);
       this.registerArea(area, props);
       areaProperties = gAreas.get(area);
@@ -2105,6 +2106,8 @@ let CustomizableUIInternal = {
       gUIStateBeforeReset.uiCustomizationState = Services.prefs.getCharPref(kPrefCustomizationState);
     } catch(e) { }
 
+    this._resetExtraToolbars();
+
     Services.prefs.clearUserPref(kPrefCustomizationState);
     Services.prefs.clearUserPref(kPrefDrawInTitlebar);
     LOG("State reset");
@@ -2118,6 +2121,28 @@ let CustomizableUIInternal = {
     
     for (let [areaId,] of gAreas) {
       this.restoreStateForArea(areaId);
+    }
+  },
+
+  _resetExtraToolbars: function(aFilter = null) {
+    let firstWindow = true; 
+    for (let [win, ] of gBuildWindows) {
+      let toolbox = win.gNavToolbox;
+      for (let child of toolbox.children) {
+        let matchesFilter = !aFilter || aFilter == child.id;
+        if (child.hasAttribute("customindex") && matchesFilter) {
+          if (firstWindow) {
+            let toolbarId = "toolbar" + child.getAttribute("customindex");
+            toolbox.toolbarset.removeAttribute(toolbarId);
+            win.document.persist(toolbox.toolbarset.id, toolbarId);
+            
+            
+            this.unregisterArea(child.id, true);
+          }
+          child.remove();
+        }
+      }
+      firstWindow = false;
     }
   },
 
@@ -2172,6 +2197,10 @@ let CustomizableUIInternal = {
     Object.getOwnPropertyNames(gUIStateBeforeReset).forEach((prop) => {
       gUIStateBeforeReset[prop] = null;
     });
+  },
+
+  removeExtraToolbar: function(aToolbarId) {
+    this._resetExtraToolbars(aToolbarId);
   },
 
   
@@ -2281,7 +2310,8 @@ let CustomizableUIInternal = {
         
         
         if (props.get("type") == CustomizableUI.TYPE_TOOLBAR) {
-          currentPlacements = container.currentSet.split(',');
+          let currentSet = container.currentSet;
+          currentPlacements = currentSet ? currentSet.split(',') : [];
           currentPlacements = currentPlacements.filter(removableOrDefault);
         } else {
           
@@ -2940,6 +2970,17 @@ this.CustomizableUI = {
 
   undoReset: function() {
     CustomizableUIInternal.undoReset();
+  },
+
+  
+
+
+
+
+
+
+  removeExtraToolbar: function(aToolbarId) {
+    CustomizableUIInternal.removeExtraToolbar(aToolbarId);
   },
 
   
