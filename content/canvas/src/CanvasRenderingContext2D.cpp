@@ -2459,12 +2459,14 @@ CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorRes
     return;
   }
 
+#ifdef ACCESSIBILITY
   
   HTMLCanvasElement* canvas = GetCanvas();
   bool isDescendant = true;
   if (!canvas || !nsContentUtils::ContentIsDescendantOf(options.mControl, canvas)) {
     isDescendant = false;
   }
+#endif
 
   
   EnsureUserSpacePath(CanvasWindingRule::Nonzero);
