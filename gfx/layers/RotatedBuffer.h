@@ -277,7 +277,7 @@ public:
 
 
 
-  gfx::DrawTarget* BorrowDrawTargetForPainting(const PaintState& aPaintState,
+  gfx::DrawTarget* BorrowDrawTargetForPainting(PaintState& aPaintState,
                                                DrawIterator* aIter = nullptr);
 
   enum {
