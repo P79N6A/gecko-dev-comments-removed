@@ -120,7 +120,11 @@ private:
   void QueueAsyncSimpleEvent(const char* aName);
 
   
+  
   bool InitNewDecoder();
+
+  
+  void DiscardDecoder();
 
   
   void StartUpdating();
@@ -150,7 +154,7 @@ private:
   SourceBufferAppendMode mAppendMode;
   bool mUpdating;
 
-  bool mDecoderInit;
+  bool mDecoderInitialized;
 };
 
 } 
