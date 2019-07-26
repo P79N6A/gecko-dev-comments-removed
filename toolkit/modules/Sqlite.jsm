@@ -173,28 +173,8 @@ function openConnection(options) {
 
 
 function OpenedConnection(connection, basename, number, options) {
-  let log = Log.repository.getLogger("Sqlite.Connection." + basename);
-
-  
-  
-  
-  
-  
-  let logProxy = {__proto__: log};
-
-  
-  for (let level in Log.Level) {
-    if (level == "Desc") {
-      continue;
-    }
-
-    let lc = level.toLowerCase();
-    logProxy[lc] = function (msg) {
-      return log[lc].call(log, "Conn #" + number + ": " + msg);
-    };
-  }
-
-  this._log = logProxy;
+  this._log = Log.repository.getLoggerWithMessagePrefix("Sqlite.Connection." + basename,
+                                                        "Conn #" + number + ": ");
 
   this._log.info("Opened");
 

@@ -69,6 +69,7 @@ this.Log = {
 
   Formatter: Formatter,
   BasicFormatter: BasicFormatter,
+  MessageOnlyFormatter: MessageOnlyFormatter,
   StructuredFormatter: StructuredFormatter,
 
   Appender: Appender,
@@ -359,13 +360,58 @@ LoggerRepository.prototype = {
     }
   },
 
-  getLogger: function LogRep_getLogger(name) {
+  
+
+
+
+
+
+
+
+
+  getLogger: function (name) {
     if (name in this._loggers)
       return this._loggers[name];
     this._loggers[name] = new Logger(name, this);
     this._updateParents(name);
     return this._loggers[name];
-  }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getLoggerWithMessagePrefix: function (name, prefix) {
+    let log = this.getLogger(name);
+
+    let proxy = {__proto__: log};
+
+    for (let level in Log.Level) {
+      if (level == "Desc") {
+        continue;
+      }
+
+      let lc = level.toLowerCase();
+      proxy[lc] = function (msg, ...args) {
+        return log[lc].apply(log, [prefix + msg, ...args]);
+      };
+    }
+
+    return proxy;
+  },
 };
 
 
@@ -395,6 +441,19 @@ BasicFormatter.prototype = {
       message.message + "\n";
   }
 };
+
+
+
+
+function MessageOnlyFormatter() {
+}
+MessageOnlyFormatter.prototype = Object.freeze({
+  __proto__: Formatter.prototype,
+
+  format: function (message) {
+    return message.message + "\n";
+  },
+});
 
 
 
