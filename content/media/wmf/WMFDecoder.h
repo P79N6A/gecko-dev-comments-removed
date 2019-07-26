@@ -28,14 +28,6 @@ public:
 
   
   
-  
-  
-  
-  static bool GetSupportedCodecs(const nsACString& aType,
-                                 char const *const ** aCodecList);
-
-  
-  
   static nsresult LoadDLLs();
   static void UnloadDLLs();
 
@@ -46,6 +38,12 @@ public:
   
   
   static bool IsMP3Supported();
+
+  
+  
+  static bool CanPlayType(const nsACString& aType,
+                          const nsAString& aCodecs);
+
 };
 
 } 

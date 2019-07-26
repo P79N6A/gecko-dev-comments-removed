@@ -11,6 +11,7 @@
 #include "MediaDecoderStateMachine.h"
 #include "mozilla/Preferences.h"
 #include "WinUtils.h"
+#include "nsCharSeparatedTokenizer.h"
 
 #ifdef MOZ_DIRECTSHOW
 #include "DirectShowDecoder.h"
@@ -54,62 +55,95 @@ WMFDecoder::IsMP3Supported()
   return spMajorVer != 0;
 }
 
-bool
-WMFDecoder::GetSupportedCodecs(const nsACString& aType,
-                               char const *const ** aCodecList)
+static bool
+IsSupportedH264Codec(const nsAString& aCodec)
 {
-  if (!MediaDecoder::IsWMFEnabled() ||
-      NS_FAILED(LoadDLLs()))
-    return false;
+  
+  
+  
+  
+  
+  
 
   
   
-  static char const *const mp3AudioCodecs[] = {
-    "mp3",
-    nullptr
-  };
+  
+  
+  
+  
+  if (aCodec.Length() != strlen("avc1.PPCCLL")) {
+    return false;
+  }
+
+  
+  const nsAString& sample = Substring(aCodec, 0, 5);
+  if (!sample.EqualsASCII("avc1.")) {
+    return false;
+  }
+
+  
+  
+  
+  nsresult rv = NS_OK;
+  const int32_t profile = PromiseFlatString(Substring(aCodec, 5, 2)).ToInteger(&rv, 16);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  const int32_t level = PromiseFlatString(Substring(aCodec, 9, 2)).ToInteger(&rv, 16);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  return level >= eAVEncH264VLevel1 &&
+         level <= eAVEncH264VLevel5_1 &&
+         (profile == eAVEncH264VProfile_Base ||
+          profile == eAVEncH264VProfile_Main ||
+          profile == eAVEncH264VProfile_Extended ||
+          profile == eAVEncH264VProfile_High);
+}
+
+bool
+WMFDecoder::CanPlayType(const nsACString& aType,
+                        const nsAString& aCodecs)
+{
+  if (!MediaDecoder::IsWMFEnabled() ||
+      NS_FAILED(LoadDLLs())) {
+    return false;
+  }
+
+  
+  
   if ((aType.EqualsASCII("audio/mpeg") || aType.EqualsASCII("audio/mp3")) &&
       IsMP3Supported()) {
     
     
-    if (aCodecList) {
-      *aCodecList = mp3AudioCodecs;
-    }
-    return true;
+    return !aCodecs.Length() || aCodecs.EqualsASCII("mp3");
   }
 
   
-  static char const *const aacAudioCodecs[] = {
-    "mp4a.40.2",    
-    nullptr
-  };
-  if (aType.EqualsASCII("audio/mp4") ||
-      aType.EqualsASCII("audio/x-m4a")) {
-    if (aCodecList) {
-      *aCodecList = aacAudioCodecs;
-    }
-    return true;
+  if (aType.EqualsASCII("audio/mp4") || aType.EqualsASCII("audio/x-m4a")) {
+    return !aCodecs.Length() || aCodecs.EqualsASCII("mp4a.40.2");
+  }
+
+  if (!aType.EqualsASCII("video/mp4")) {
+    return false;
   }
 
   
-  static char const *const H264Codecs[] = {
-    "avc1.42E01E",  
-    "avc1.42001E",  
-    "avc1.58A01E",  
-    "avc1.4D401E",  
-    "avc1.64001E",  
-    "avc1.64001F",  
-    "mp4a.40.2",    
-    nullptr
-  };
-  if (aType.EqualsASCII("video/mp4")) {
-    if (aCodecList) {
-      *aCodecList = H264Codecs;
+  
+  nsCharSeparatedTokenizer tokenizer(aCodecs, ',');
+  bool expectMoreTokens = false;
+  while (tokenizer.hasMoreTokens()) {
+    const nsSubstring& token = tokenizer.nextToken();
+    expectMoreTokens = tokenizer.separatorAfterCurrentToken();
+    if (token.EqualsASCII("mp4a.40.2") || 
+        IsSupportedH264Codec(token)) {
+      continue;
     }
-    return true;
+    return false;
   }
-
-  return false;
+  if (expectMoreTokens) {
+    
+    return false;
+  }
+  return true;
 }
 
 nsresult

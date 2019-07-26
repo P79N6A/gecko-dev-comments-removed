@@ -32,6 +32,7 @@ which makes Windows Media Foundation unavailable.
 #include <d3d9.h>
 #include <dxva2api.h>
 #include <wmcodecdsp.h>
+#include <codecapi.h>
 
 
 #ifndef CLSID_CMSAACDecMFT
