@@ -265,11 +265,6 @@ public:
     return mImpl.ref();
   }
 
-  Optional& AsMutable() const
-  {
-    return *const_cast<Optional*>(this);
-  }
-
   
   
   
