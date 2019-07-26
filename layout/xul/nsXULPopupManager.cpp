@@ -393,28 +393,32 @@ nsXULPopupManager::PopupMoved(nsIFrame* aFrame, nsIntPoint aPnt)
   if (!menuPopupFrame)
     return;
 
-  
-  nsPresContext* presContext = menuPopupFrame->PresContext();
-  aPnt.x = presContext->DevPixelsToIntCSSPixels(aPnt.x);
-  aPnt.y = presContext->DevPixelsToIntCSSPixels(aPnt.y);
+  nsView* view = menuPopupFrame->GetView();
+  if (!view)
+    return;
 
   
   
-  nsIntPoint currentPnt = menuPopupFrame->ScreenPosition();
+  nsIntRect curDevSize = view->CalcWidgetBounds(eWindowType_popup);
   nsIWidget* widget = menuPopupFrame->GetWidget();
-  if ((aPnt.x != currentPnt.x || aPnt.y != currentPnt.y) || (widget &&
-      widget->GetClientOffset() != menuPopupFrame->GetLastClientOffset())) {
-    
-    
-    
-    
-    if (menuPopupFrame->IsAnchored() &&
-        menuPopupFrame->PopupLevel() == ePopupLevelParent) {
-      menuPopupFrame->SetPopupPosition(nullptr, true, false);
-    }
-    else {
-      menuPopupFrame->MoveTo(aPnt.x, aPnt.y, false);
-    }
+  if (curDevSize.x == aPnt.x && curDevSize.y == aPnt.y &&
+      (!widget || widget->GetClientOffset() == menuPopupFrame->GetLastClientOffset())) {
+    return;
+  }
+
+  
+  
+  
+  
+  if (menuPopupFrame->IsAnchored() &&
+      menuPopupFrame->PopupLevel() == ePopupLevelParent) {
+    menuPopupFrame->SetPopupPosition(nullptr, true, false);
+  }
+  else {
+    nsPresContext* presContext = menuPopupFrame->PresContext();
+    aPnt.x = presContext->DevPixelsToIntCSSPixels(aPnt.x);
+    aPnt.y = presContext->DevPixelsToIntCSSPixels(aPnt.y);
+    menuPopupFrame->MoveTo(aPnt.x, aPnt.y, false);
   }
 }
 
