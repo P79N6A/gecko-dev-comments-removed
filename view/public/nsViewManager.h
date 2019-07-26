@@ -8,11 +8,11 @@
 
 #include "nscore.h"
 #include "nsView.h"
+#include "nsEvent.h"
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
 #include "nsVoidArray.h"
 #include "nsDeviceContext.h"
-#include "mozilla/EventForwards.h"
 
 class nsIWidget;
 struct nsRect;
@@ -121,9 +121,8 @@ public:
 
 
 
-  void DispatchEvent(mozilla::WidgetGUIEvent *aEvent,
-                     nsView* aViewTarget,
-                     nsEventStatus* aStatus);
+  void DispatchEvent(nsGUIEvent *aEvent,
+      nsView* aViewTarget, nsEventStatus* aStatus);
 
   
 
@@ -205,7 +204,11 @@ public:
 
 
 
-  void SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZindex);
+
+
+
+
+  void SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZindex, bool aTopMost = false);
 
   
 
@@ -340,6 +343,10 @@ private:
 
   
   void Refresh(nsView *aView, const nsIntRegion& aRegion);
+
+  void InvalidateRectDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut);
+  void InvalidateHorizontalBandDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut,
+                                          nscoord aY1, nscoord aY2, bool aInCutOut);
 
   
 

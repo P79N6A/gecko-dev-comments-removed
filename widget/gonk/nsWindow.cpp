@@ -23,13 +23,11 @@
 #include "mozilla/Hal.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/FileUtils.h"
-#include "mozilla/ClearOnShutdown.h"
 #include "Framebuffer.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "GLContextProvider.h"
-#include "GLContext.h"
 #include "LayerManagerOGL.h"
 #include "nsAutoPtr.h"
 #include "nsAppShell.h"
@@ -43,9 +41,10 @@
 #include "BasicLayers.h"
 #include "libdisplay/GonkDisplay.h"
 #include "pixelflinger/format.h"
-#include "mozilla/BasicEvents.h"
 
+#if ANDROID_VERSION == 15
 #include "HwcComposer2D.h"
+#endif
 
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk" , ## args)
 #define LOGW(args...) __android_log_print(ANDROID_LOG_WARN, "Gonk", ## args)
@@ -75,6 +74,7 @@ static bool sUsingOMTC;
 static bool sUsingHwc;
 static bool sScreenInitialized;
 static nsRefPtr<gfxASurface> sOMTCSurface;
+static pthread_t sFramebufferWatchThread;
 
 namespace {
 
@@ -99,15 +99,6 @@ public:
             }
         }
 
-        
-        nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
-        if (observerService) {
-          observerService->NotifyObservers(
-            nullptr, "screen-state-changed",
-            mIsOn ? NS_LITERAL_STRING("on").get() : NS_LITERAL_STRING("off").get()
-          );
-        }
-
         return NS_OK;
     }
 
@@ -115,13 +106,30 @@ private:
     bool mIsOn;
 };
 
-static StaticRefPtr<ScreenOnOffEvent> sScreenOnEvent;
-static StaticRefPtr<ScreenOnOffEvent> sScreenOffEvent;
+static const char* kSleepFile = "/sys/power/wait_for_fb_sleep";
+static const char* kWakeFile = "/sys/power/wait_for_fb_wake";
 
-static void
-displayEnabledCallback(bool enabled)
-{
-    NS_DispatchToMainThread(enabled ? sScreenOnEvent : sScreenOffEvent);
+static void *frameBufferWatcher(void *) {
+
+    char buf;
+    bool ret;
+
+    nsRefPtr<ScreenOnOffEvent> mScreenOnEvent = new ScreenOnOffEvent(true);
+    nsRefPtr<ScreenOnOffEvent> mScreenOffEvent = new ScreenOnOffEvent(false);
+
+    while (true) {
+        
+        
+        ret = ReadSysFile(kSleepFile, &buf, sizeof(buf));
+        NS_WARN_IF_FALSE(ret, "WAIT_FOR_FB_SLEEP failed");
+        NS_DispatchToMainThread(mScreenOffEvent);
+
+        ret = ReadSysFile(kWakeFile, &buf, sizeof(buf));
+        NS_WARN_IF_FALSE(ret, "WAIT_FOR_FB_WAKE failed");
+        NS_DispatchToMainThread(mScreenOnEvent);
+    }
+
+    return NULL;
 }
 
 } 
@@ -129,11 +137,11 @@ displayEnabledCallback(bool enabled)
 nsWindow::nsWindow()
 {
     if (!sScreenInitialized) {
-        sScreenOnEvent = new ScreenOnOffEvent(true);
-        ClearOnShutdown(&sScreenOnEvent);
-        sScreenOffEvent = new ScreenOnOffEvent(false);
-        ClearOnShutdown(&sScreenOffEvent);
-        GetGonkDisplay()->OnEnabled(displayEnabledCallback);
+        
+        
+        if (pthread_create(&sFramebufferWatchThread, NULL, frameBufferWatcher, NULL)) {
+            NS_RUNTIMEABORT("Failed to create framebufferWatcherThread, aborting...");
+        }
 
         nsIntSize screenSize;
         bool gotFB = Framebuffer::GetSize(&screenSize);
@@ -157,7 +165,8 @@ nsWindow::nsWindow()
             sRotationMatrix.Rotate(M_PI);
             break;
         default:
-            MOZ_CRASH("Unknown rotation");
+            MOZ_NOT_REACHED("Unknown rotation");
+            break;
         }
         sVirtualBounds = gScreenBounds;
 
@@ -180,7 +189,7 @@ nsWindow::nsWindow()
 
         if (sUsingOMTC) {
           sOMTCSurface = new gfxImageSurface(gfxIntSize(1, 1),
-                                             gfxImageFormatRGB24);
+                                             gfxASurface::ImageFormatRGB24);
         }
     }
 }
@@ -262,7 +271,7 @@ nsWindow::DoDraw(void)
 }
 
 nsEventStatus
-nsWindow::DispatchInputEvent(WidgetGUIEvent& aEvent, bool* aWasCaptured)
+nsWindow::DispatchInputEvent(nsGUIEvent &aEvent, bool* aWasCaptured)
 {
     if (aWasCaptured) {
         *aWasCaptured = false;
@@ -479,7 +488,7 @@ nsWindow::GetNativeData(uint32_t aDataType)
 }
 
 NS_IMETHODIMP
-nsWindow::DispatchEvent(WidgetGUIEvent* aEvent, nsEventStatus& aStatus)
+nsWindow::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus &aStatus)
 {
     if (mWidgetListener)
       aStatus = mWidgetListener->HandleEvent(aEvent, mUseAttachedEvents);
@@ -538,17 +547,12 @@ nsWindow::GetDPI()
 double
 nsWindow::GetDefaultScaleInternal()
 {
-    float dpi = GetDPI();
-    
-    
-    
-    if (dpi < 200.0) {
-        return 1.0; 
-    }
-    if (dpi < 280.0) {
-        return 1.5; 
-    }
-    return 2.0; 
+    double rawscale = GetDPI() / 192.0;
+    if (rawscale < 1.25)
+        return 1;
+    else if (rawscale < 1.75)
+        return 1.5;
+    return 2;
 }
 
 LayerManager *
@@ -637,7 +641,7 @@ nsWindow::GetThebesSurface()
 
     
     
-    return new gfxImageSurface(gfxIntSize(5,5), gfxImageFormatRGB24);
+    return new gfxImageSurface(gfxIntSize(5,5), gfxImageSurface::ImageFormatRGB24);
 }
 
 void
@@ -702,9 +706,11 @@ nsWindow::GetComposer2D()
         return nullptr;
     }
 
+#if ANDROID_VERSION == 15
     if (HwcComposer2D* hwc = HwcComposer2D::GetInstance()) {
         return hwc->Initialized() ? hwc : nullptr;
     }
+#endif
 
     return nullptr;
 }
@@ -827,7 +833,8 @@ ComputeOrientation(uint32_t aRotation, const nsIntSize& aScreenSize)
         return (naturallyPortrait ? eScreenOrientation_LandscapeSecondary : 
                 eScreenOrientation_PortraitSecondary);
     default:
-        MOZ_CRASH("Gonk screen must always have a known rotation");
+        MOZ_NOT_REACHED("Gonk screen must always have a known rotation");
+        return eScreenOrientation_None;
     }
 }
 

@@ -6,13 +6,13 @@
 #include "nsView.h"
 
 #include "mozilla/Attributes.h"
-#include "mozilla/BasicEvents.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Poison.h"
 #include "nsIWidget.h"
 #include "nsViewManager.h"
 #include "nsIFrame.h"
+#include "nsGUIEvent.h"
 #include "nsPresArena.h"
 #include "nsXULPopupManager.h"
 #include "nsIWidgetListener.h"
@@ -94,24 +94,6 @@ nsView::~nsView()
   delete mDirtyRegion;
 }
 
-class DestroyWidgetRunnable : public nsRunnable {
-public:
-  NS_DECL_NSIRUNNABLE
-
-  explicit DestroyWidgetRunnable(nsIWidget* aWidget) : mWidget(aWidget) {}
-
-private:
-  nsCOMPtr<nsIWidget> mWidget;
-};
-
-NS_IMETHODIMP DestroyWidgetRunnable::Run()
-{
-  mWidget->Destroy();
-  mWidget = nullptr;
-  return NS_OK;
-}
-
-
 void nsView::DestroyWidget()
 {
   if (mWindow)
@@ -125,11 +107,7 @@ void nsView::DestroyWidget()
     }
     else {
       mWindow->SetWidgetListener(nullptr);
-
-      nsCOMPtr<nsIRunnable> widgetDestroyer =
-        new DestroyWidgetRunnable(mWindow);
-
-      NS_DispatchToMainThread(widgetDestroyer);
+      mWindow->Destroy();
     }
 
     NS_RELEASE(mWindow);
@@ -153,6 +131,14 @@ nsView* nsView::GetViewFor(nsIWidget* aWidget)
 
 void nsView::Destroy()
 {
+#if 1 
+  if (mFrame) {
+    if (uintptr_t(mFrame) == mozPoisonValue()) {
+      NS_RUNTIMEABORT("bug 850571: poisoned frame");
+    }
+    NS_RUNTIMEABORT("bug 850571: have frame");
+  }
+#endif
   this->~nsView();
   mozWritePoison(this, sizeof(*this));
   nsView::operator delete(this);
@@ -208,10 +194,9 @@ nsIntRect nsView::CalcWidgetBounds(nsWindowType aType)
   nsRect viewBounds(mDimBounds);
 
   nsView* parent = GetParent();
-  nsIWidget* parentWidget = nullptr;
   if (parent) {
     nsPoint offset;
-    parentWidget = parent->GetNearestWidget(&offset, p2a);
+    nsIWidget* parentWidget = parent->GetNearestWidget(&offset, p2a);
     
     viewBounds += offset;
 
@@ -226,33 +211,6 @@ nsIntRect nsView::CalcWidgetBounds(nsWindowType aType)
 
   
   nsIntRect newBounds = viewBounds.ToNearestPixels(p2a);
-
-#ifdef XP_MACOSX
-  
-  
-  
-  nsIWidget* widget = parentWidget ? parentWidget : mWindow;
-  uint32_t round;
-  if (aType == eWindowType_popup && widget &&
-      ((round = widget->RoundsWidgetCoordinatesTo()) > 1)) {
-    nsIntSize pixelRoundedSize = newBounds.Size();
-    
-    newBounds.x = NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.x, p2a) / round) * round;
-    newBounds.y = NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.y, p2a) / round) * round;
-    newBounds.width =
-      NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.XMost(), p2a) / round) * round - newBounds.x;
-    newBounds.height =
-      NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.YMost(), p2a) / round) * round - newBounds.y;
-    
-    
-    if (newBounds.width > pixelRoundedSize.width) {
-      newBounds.width -= round;
-    }
-    if (newBounds.height > pixelRoundedSize.height) {
-      newBounds.height -= round;
-    }
-  }
-#endif
 
   
   
@@ -339,9 +297,9 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   
   
   
-  CSSToLayoutDeviceScale scale = widget->GetDefaultScale();
-  if (NSToIntRound(60.0 / scale.scale) == dx->UnscaledAppUnitsPerDevPixel()) {
-    invScale = 1.0 / scale.scale;
+  double scale = widget->GetDefaultScale();
+  if (NSToIntRound(60.0 / scale) == dx->UnscaledAppUnitsPerDevPixel()) {
+    invScale = 1.0 / scale;
   } else {
     invScale = dx->UnscaledAppUnitsPerDevPixel() / 60.0;
   }
@@ -735,11 +693,12 @@ nsresult nsView::DetachFromTopLevelWidget()
   return NS_OK;
 }
 
-void nsView::SetZIndex(bool aAuto, int32_t aZIndex)
+void nsView::SetZIndex(bool aAuto, int32_t aZIndex, bool aTopMost)
 {
   bool oldIsAuto = GetZIndexIsAuto();
   mVFlags = (mVFlags & ~NS_VIEW_FLAG_AUTO_ZINDEX) | (aAuto ? NS_VIEW_FLAG_AUTO_ZINDEX : 0);
   mZIndex = aZIndex;
+  SetTopMost(aTopMost);
   
   if (HasWidget() || !oldIsAuto || !aAuto) {
     UpdateNativeWidgetZIndexes(this, FindNonAutoZIndex(this));
@@ -1064,8 +1023,7 @@ nsView::RequestRepaint()
 }
 
 nsEventStatus
-nsView::HandleEvent(WidgetGUIEvent* aEvent,
-                    bool aUseAttachedEvents)
+nsView::HandleEvent(nsGUIEvent* aEvent, bool aUseAttachedEvents)
 {
   NS_PRECONDITION(nullptr != aEvent->widget, "null widget ptr");
 

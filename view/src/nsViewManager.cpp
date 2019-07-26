@@ -11,7 +11,7 @@
 #include "nsGfxCIID.h"
 #include "nsView.h"
 #include "nsCOMPtr.h"
-#include "mozilla/MouseEvents.h"
+#include "nsGUIEvent.h"
 #include "nsRegion.h"
 #include "nsCOMArray.h"
 #include "nsIPluginWidget.h"
@@ -23,11 +23,8 @@
 #include "GeckoProfiler.h"
 #include "nsRefreshDriver.h"
 #include "mozilla/Preferences.h"
-#include "nsContentUtils.h" 
+#include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
-#include "Layers.h"
-#include "gfxPlatform.h"
-#include "nsIDocument.h"
 
 
 
@@ -44,9 +41,6 @@
 
 
 
-
-using namespace mozilla;
-using namespace mozilla::layers;
 
 #define NSCOORD_NONE      INT32_MIN
 
@@ -163,7 +157,7 @@ nsViewManager::SetRootView(nsView *aView)
       InvalidateHierarchy();
     }
 
-    mRootView->SetZIndex(false, 0);
+    mRootView->SetZIndex(false, 0, false);
   }
   
 }
@@ -296,10 +290,6 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion)
 {
   NS_ASSERTION(aView->GetViewManager() == this, "wrong view manager");
 
-  if (mPresShell && mPresShell->IsNeverPainting()) {
-    return;
-  }
-
   
   nsRegion damageRegion = aRegion.ToAppUnits(AppUnitsPerDevPixel());
   
@@ -340,14 +330,8 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion)
         printf("--COMPOSITE-- %p\n", mPresShell);
       }
 #endif
-      uint32_t paintFlags = nsIPresShell::PAINT_COMPOSITE;
-      LayerManager *manager = widget->GetLayerManager();
-      if (!manager->NeedsWidgetInvalidation()) {
-        manager->FlushRendering();
-      } else {
-        mPresShell->Paint(aView, damageRegion,
-                          paintFlags);
-      }
+      mPresShell->Paint(aView, damageRegion,
+                        nsIPresShell::PAINT_COMPOSITE);
 #ifdef MOZ_DUMP_PAINTING
       if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
         printf("--ENDCOMPOSITE--\n");
@@ -372,10 +356,6 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
 
   
   if (!aView) {
-    return;
-  }
-
-  if (mPresShell && mPresShell->IsNeverPainting()) {
     return;
   }
 
@@ -404,6 +384,7 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
             vm->mRootView->IsEffectivelyVisible() &&
             mPresShell && mPresShell->IsVisible()) {
           vm->FlushDelayedResize(true);
+          vm->InvalidateView(vm->mRootView);
         }
       }
 
@@ -424,13 +405,10 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
         printf("---- PAINT END ----\n");
       }
 #endif
-
       aView->SetForcedRepaint(false);
       SetPainting(false);
-      FlushDirtyRegionToWidget(aView);
-    } else {
-      FlushDirtyRegionToWidget(aView);
     }
+    FlushDirtyRegionToWidget(aView);
   }
 }
 
@@ -447,14 +425,6 @@ void nsViewManager::FlushDirtyRegionToWidget(nsView* aView)
   }
   nsRegion r =
     ConvertRegionBetweenViews(*dirtyRegion, aView, nearestViewWithWidget);
-
-  
-  
-  if (gfxPlatform::DrawFrameCounter()) {
-    nsRect counterBounds = gfxPlatform::FrameCounterBounds().ToAppUnits(AppUnitsPerDevPixel());
-    r = r.Or(r, counterBounds);
-  }
-
   nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
   widgetVM->InvalidateWidgetArea(nearestViewWithWidget, r);
   dirtyRegion->SetEmpty();
@@ -651,9 +621,7 @@ void nsViewManager::WillPaintWindow(nsIWidget* aWidget)
 {
   if (aWidget) {
     nsView* view = nsView::GetViewFor(aWidget);
-    LayerManager *manager = aWidget->GetLayerManager();
-    if (view &&
-        (view->ForcedRepaint() || !manager->NeedsWidgetInvalidation())) {
+    if (view && view->ForcedRepaint()) {
       ProcessPendingUpdates();
       
       
@@ -697,30 +665,27 @@ void nsViewManager::DidPaintWindow()
 }
 
 void
-nsViewManager::DispatchEvent(WidgetGUIEvent *aEvent,
-                             nsView* aView,
-                             nsEventStatus* aStatus)
+nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsView* aView, nsEventStatus* aStatus)
 {
   PROFILER_LABEL("event", "nsViewManager::DispatchEvent");
 
-  WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
-  if ((mouseEvent &&
+  if ((NS_IS_MOUSE_EVENT(aEvent) &&
        
-       mouseEvent->reason == WidgetMouseEvent::eReal &&
-       
+       static_cast<nsMouseEvent*>(aEvent)->reason == nsMouseEvent::eReal &&
        
        
-       mouseEvent->message != NS_MOUSE_EXIT &&
-       mouseEvent->message != NS_MOUSE_ENTER) ||
-      aEvent->HasKeyEventMessage() ||
-      aEvent->HasIMEEventMessage() ||
+       
+       aEvent->message != NS_MOUSE_EXIT &&
+       aEvent->message != NS_MOUSE_ENTER) ||
+      NS_IS_KEY_EVENT(aEvent) ||
+      NS_IS_IME_EVENT(aEvent) ||
       aEvent->message == NS_PLUGIN_INPUT_EVENT) {
     gLastUserEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
   }
 
   
   nsView* view = aView;
-  bool dispatchUsingCoordinates = aEvent->IsUsingCoordinates();
+  bool dispatchUsingCoordinates = NS_IsEventUsingCoordinates(aEvent);
   if (dispatchUsingCoordinates) {
     
     
@@ -730,10 +695,11 @@ nsViewManager::DispatchEvent(WidgetGUIEvent *aEvent,
   
   nsIFrame* frame = view->GetFrame();
   if (!frame &&
-      (dispatchUsingCoordinates || aEvent->HasKeyEventMessage() ||
-       aEvent->IsIMERelatedEvent() ||
-       aEvent->IsNonRetargetedNativeEventDelivererForPlugin() ||
-       aEvent->HasPluginActivationEventMessage() ||
+      (dispatchUsingCoordinates || NS_IS_KEY_EVENT(aEvent) ||
+       NS_IS_IME_RELATED_EVENT(aEvent) ||
+       NS_IS_NON_RETARGETED_PLUGIN_EVENT(aEvent) ||
+       aEvent->message == NS_PLUGIN_ACTIVATE ||
+       aEvent->message == NS_PLUGIN_FOCUS ||
        aEvent->message == NS_PLUGIN_RESOLUTION_CHANGED)) {
     while (view && !view->GetFrame()) {
       view = view->GetParent();
@@ -876,6 +842,11 @@ nsViewManager::InsertChild(nsView *aParent, nsView *aChild, nsView *aSibling,
       
       if (aParent->GetFloating())
         aChild->SetFloating(true);
+
+      
+
+      if (nsViewVisibility_kHide != aChild->GetVisibility())
+        aChild->GetViewManager()->InvalidateView(aChild);
     }
 }
 
@@ -884,7 +855,7 @@ nsViewManager::InsertChild(nsView *aParent, nsView *aChild, int32_t aZIndex)
 {
   
   
-  SetViewZIndex(aChild, false, aZIndex);
+  SetViewZIndex(aChild, false, aZIndex, false);
   InsertChild(aParent, aChild, nullptr, true);
 }
 
@@ -898,6 +869,7 @@ nsViewManager::RemoveChild(nsView *aChild)
   if (nullptr != parent) {
     NS_ASSERTION(aChild->GetViewManager() == this ||
                  parent->GetViewManager() == this, "wrong view manager");
+    aChild->GetViewManager()->InvalidateView(aChild);
     parent->RemoveChild(aChild);
   }
 }
@@ -906,7 +878,53 @@ void
 nsViewManager::MoveViewTo(nsView *aView, nscoord aX, nscoord aY)
 {
   NS_ASSERTION(aView->GetViewManager() == this, "wrong view manager");
+  nsPoint oldPt = aView->GetPosition();
+  nsRect oldBounds = aView->GetBoundsInParentUnits();
   aView->SetPosition(aX, aY);
+
+  
+
+  if ((aX != oldPt.x) || (aY != oldPt.y)) {
+    if (aView->GetVisibility() != nsViewVisibility_kHide) {
+      nsView* parentView = aView->GetParent();
+      if (parentView) {
+        nsViewManager* parentVM = parentView->GetViewManager();
+        parentVM->InvalidateView(parentView, oldBounds);
+        parentVM->InvalidateView(parentView, aView->GetBoundsInParentUnits());
+      }
+    }
+  }
+}
+
+void nsViewManager::InvalidateHorizontalBandDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut,
+  nscoord aY1, nscoord aY2, bool aInCutOut) {
+  nscoord height = aY2 - aY1;
+  if (aRect.x < aCutOut.x) {
+    nsRect r(aRect.x, aY1, aCutOut.x - aRect.x, height);
+    InvalidateView(aView, r);
+  }
+  if (!aInCutOut && aCutOut.x < aCutOut.XMost()) {
+    nsRect r(aCutOut.x, aY1, aCutOut.width, height);
+    InvalidateView(aView, r);
+  }
+  if (aCutOut.XMost() < aRect.XMost()) {
+    nsRect r(aCutOut.XMost(), aY1, aRect.XMost() - aCutOut.XMost(), height);
+    InvalidateView(aView, r);
+  }
+}
+
+void nsViewManager::InvalidateRectDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut) {
+  NS_ASSERTION(aView->GetViewManager() == this,
+               "InvalidateRectDifference called on view we don't own");
+  if (aRect.y < aCutOut.y) {
+    InvalidateHorizontalBandDifference(aView, aRect, aCutOut, aRect.y, aCutOut.y, false);
+  }
+  if (aCutOut.y < aCutOut.YMost()) {
+    InvalidateHorizontalBandDifference(aView, aRect, aCutOut, aCutOut.y, aCutOut.YMost(), true);
+  }
+  if (aCutOut.YMost() < aRect.YMost()) {
+    InvalidateHorizontalBandDifference(aView, aRect, aCutOut, aCutOut.YMost(), aRect.YMost(), false);
+  }
 }
 
 void
@@ -916,7 +934,28 @@ nsViewManager::ResizeView(nsView *aView, const nsRect &aRect, bool aRepaintExpos
 
   nsRect oldDimensions = aView->GetDimensions();
   if (!oldDimensions.IsEqualEdges(aRect)) {
-    aView->SetDimensions(aRect, true);
+    
+    
+    if (aView->GetVisibility() == nsViewVisibility_kHide) {
+      aView->SetDimensions(aRect, false);
+    } else {
+      nsView* parentView = aView->GetParent();
+      if (!parentView) {
+        parentView = aView;
+      }
+      nsRect oldBounds = aView->GetBoundsInParentUnits();
+      aView->SetDimensions(aRect, true);
+      nsViewManager* parentVM = parentView->GetViewManager();
+      if (!aRepaintExposedAreaOnly) {
+        
+        InvalidateView(aView, aRect);
+        parentVM->InvalidateView(parentView, oldBounds);
+      } else {
+        InvalidateRectDifference(aView, aRect, oldDimensions);
+        nsRect newBounds = aView->GetBoundsInParentUnits();
+        parentVM->InvalidateRectDifference(parentView, oldBounds, newBounds);
+      } 
+    }
   }
 
   
@@ -941,6 +980,21 @@ nsViewManager::SetViewVisibility(nsView *aView, nsViewVisibility aVisible)
 
   if (aVisible != aView->GetVisibility()) {
     aView->SetVisibility(aVisible);
+
+    if (IsViewInserted(aView)) {
+      if (!aView->HasWidget()) {
+        if (nsViewVisibility_kHide == aVisible) {
+          nsView* parentView = aView->GetParent();
+          if (parentView) {
+            parentView->GetViewManager()->
+              InvalidateView(parentView, aView->GetBoundsInParentUnits());
+          }
+        }
+        else {
+          InvalidateView(aView);
+        }
+      }
+    }
   }
 }
 
@@ -963,7 +1017,7 @@ bool nsViewManager::IsViewInserted(nsView *aView)
 }
 
 void
-nsViewManager::SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZIndex)
+nsViewManager::SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZIndex, bool aTopMost)
 {
   NS_ASSERTION((aView != nullptr), "no view");
 
@@ -973,11 +1027,20 @@ nsViewManager::SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZIndex)
     return;
   }
 
+  bool oldTopMost = aView->IsTopMost();
+  bool oldIsAuto = aView->GetZIndexIsAuto();
+
   if (aAutoZIndex) {
     aZIndex = 0;
   }
 
-  aView->SetZIndex(aAutoZIndex, aZIndex);
+  int32_t oldidx = aView->GetZIndex();
+  aView->SetZIndex(aAutoZIndex, aZIndex, aTopMost);
+
+  if (oldidx != aZIndex || oldTopMost != aTopMost ||
+      oldIsAuto != aAutoZIndex) {
+    InvalidateView(aView);
+  }
 }
 
 nsViewManager*

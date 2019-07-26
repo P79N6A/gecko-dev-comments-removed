@@ -11,9 +11,8 @@
 #include "nsPoint.h"
 #include "nsRegion.h"
 #include "nsCRT.h"
-#include "nsWidgetInitData.h" 
+#include "nsEvent.h"
 #include "nsIWidgetListener.h"
-#include "mozilla/EventForwards.h"
 
 class nsViewManager;
 class nsIWidget;
@@ -35,6 +34,11 @@ enum nsViewVisibility {
 
 
 #define NS_VIEW_FLAG_FLOATING             0x0008
+
+
+
+
+#define NS_VIEW_FLAG_TOPMOST              0x0010
 
 
 
@@ -340,7 +344,7 @@ public:
 
 
 
-  void SetZIndex(bool aAuto, int32_t aZIndex);
+  void SetZIndex(bool aAuto, int32_t aZIndex, bool aTopMost);
   bool GetZIndexIsAuto() const { return (mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0; }
   int32_t GetZIndex() const { return mZIndex; }
 
@@ -371,8 +375,7 @@ public:
   virtual bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion) MOZ_OVERRIDE;
   virtual void DidPaintWindow() MOZ_OVERRIDE;
   virtual void RequestRepaint() MOZ_OVERRIDE;
-  virtual nsEventStatus HandleEvent(mozilla::WidgetGUIEvent* aEvent,
-                                    bool aUseAttachedEvents) MOZ_OVERRIDE;
+  virtual nsEventStatus HandleEvent(nsGUIEvent* aEvent, bool aUseAttachedEvents) MOZ_OVERRIDE;
 
   virtual ~nsView();
 
@@ -431,6 +434,9 @@ private:
 
   void InsertChild(nsView *aChild, nsView *aSibling);
   void RemoveChild(nsView *aChild);
+
+  void SetTopMost(bool aTopMost) { aTopMost ? mVFlags |= NS_VIEW_FLAG_TOPMOST : mVFlags &= ~NS_VIEW_FLAG_TOPMOST; }
+  bool IsTopMost() { return((mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
 
   void ResetWidgetBounds(bool aRecurse, bool aForceSync);
   void AssertNoWindow();
