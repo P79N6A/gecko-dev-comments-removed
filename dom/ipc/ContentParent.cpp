@@ -501,6 +501,11 @@ nsTArray<ContentParent*>* ContentParent::sNonAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sPrivateContent;
 StaticAutoPtr<LinkedList<ContentParent> > ContentParent::sContentParents;
 
+#ifdef MOZ_NUWA_PROCESS
+
+static nsTArray<PrefSetting>* sNuwaPrefUpdates;
+#endif
+
 
 
 static bool sCanLaunchSubprocesses;
@@ -1325,6 +1330,14 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     
     Preferences::RemoveObserver(this, "");
 
+#ifdef MOZ_NUWA_PROCESS
+    
+    if (IsNuwaProcess() && sNuwaPrefUpdates) {
+        delete sNuwaPrefUpdates;
+        sNuwaPrefUpdates = nullptr;
+    }
+#endif
+
     RecvRemoveGeolocationListener();
 
     mConsoleService = nullptr;
@@ -2115,6 +2128,13 @@ ContentParent::RecvAddNewProcess(const uint32_t& aPid,
                                 aPid,
                                 aFds);
     content->Init();
+
+    size_t numNuwaPrefUpdates = sNuwaPrefUpdates ?
+                                sNuwaPrefUpdates->Length() : 0;
+    
+    for (int i = 0; i < numNuwaPrefUpdates; i++) {
+        content->SendPreferenceUpdate(sNuwaPrefUpdates->ElementAt(i));
+    }
     PreallocatedProcessManager::PublishSpareProcess(content);
     return true;
 #else
@@ -2162,9 +2182,22 @@ ContentParent::Observe(nsISupports* aSubject,
 
         PrefSetting pref(strData, null_t(), null_t());
         Preferences::GetPreference(&pref);
+#ifdef MOZ_NUWA_PROCESS
+        if (IsNuwaProcess() && PreallocatedProcessManager::IsNuwaReady()) {
+            
+            
+            if (!sNuwaPrefUpdates) {
+                sNuwaPrefUpdates = new nsTArray<PrefSetting>();
+            }
+            sNuwaPrefUpdates->AppendElement(pref);
+        } else if (!SendPreferenceUpdate(pref)) {
+            return NS_ERROR_NOT_AVAILABLE;
+        }
+#else
         if (!SendPreferenceUpdate(pref)) {
             return NS_ERROR_NOT_AVAILABLE;
         }
+#endif
     }
     else if (!strcmp(aTopic, NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC)) {
       NS_ConvertUTF16toUTF8 dataStr(aData);
