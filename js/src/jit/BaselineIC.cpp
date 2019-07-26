@@ -5374,10 +5374,6 @@ TryAttachScopeNameStub(JSContext *cx, HandleScript script, ICGetName_Fallback *s
     if (!IsCacheableGetPropReadSlot(scopeChain, scopeChain, shape))
         return true;
 
-    
-    if (scopeChain->hasSingletonType() && IsIonEnabled(cx))
-        types::EnsureTrackPropertyTypes(cx, scopeChain, NameToId(name));
-
     bool isFixedSlot;
     uint32_t offset;
     GetFixedOrDynamicSlotOffset(scopeChain, shape->slot(), &isFixedSlot, &offset);
