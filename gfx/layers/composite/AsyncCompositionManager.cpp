@@ -610,6 +610,12 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
                                          Layer* aContent, bool aScrollbarIsChild)
 {
   ContainerLayer* content = aContent->AsContainerLayer();
+
+  
+  
+  
+  
+  
   if (!LayerHasNonContainerDescendants(content)) {
     return;
   }
@@ -683,6 +689,32 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
   aScrollbar->AsLayerComposite()->SetShadowTransform(transform);
 }
 
+static Layer*
+FindScrolledLayerForScrollbar(ContainerLayer* aLayer, bool* aOutIsAncestor)
+{
+  
+  for (Layer* ancestor = aLayer; ancestor; ancestor = ancestor->GetParent()) {
+    for (Layer* scrollTarget = ancestor;
+         scrollTarget;
+         scrollTarget = scrollTarget->GetPrevSibling()) {
+      if (scrollTarget != aLayer &&
+          LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
+        *aOutIsAncestor = (scrollTarget == ancestor);
+        return scrollTarget;
+      }
+    }
+    for (Layer* scrollTarget = ancestor->GetNextSibling();
+         scrollTarget;
+         scrollTarget = scrollTarget->GetNextSibling()) {
+      if (LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
+        *aOutIsAncestor = false;
+        return scrollTarget;
+      }
+    }
+  }
+  return nullptr;
+}
+
 void
 AsyncCompositionManager::ApplyAsyncTransformToScrollbar(TimeStamp aCurrentFrame, ContainerLayer* aLayer)
 {
@@ -693,25 +725,11 @@ AsyncCompositionManager::ApplyAsyncTransformToScrollbar(TimeStamp aCurrentFrame,
   
   
   
-  
-  
-  
-  
-  
-  for (Layer* scrollTarget = aLayer->GetPrevSibling();
-       scrollTarget;
-       scrollTarget = scrollTarget->GetPrevSibling()) {
-    if (LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
-      
-      ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget, false);
-      return;
-    }
-  }
-
-  
-  Layer* scrollTarget = aLayer->GetParent();
-  if (scrollTarget && LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
-    ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget, true);
+  bool isAncestor = false;
+  Layer* scrollTarget = FindScrolledLayerForScrollbar(aLayer, &isAncestor);
+  if (scrollTarget) {
+    ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget,
+                                             isAncestor);
   }
 }
 
