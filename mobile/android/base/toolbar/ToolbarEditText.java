@@ -61,6 +61,8 @@ public class ToolbarEditText extends CustomEditText
     private boolean mSettingAutoComplete;
     
     private Object[] mAutoCompleteSpans;
+    
+    private boolean mDiscardAutoCompleteResult;
 
     public ToolbarEditText(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -226,6 +228,12 @@ public class ToolbarEditText extends CustomEditText
 
     @Override
     public final void onAutocomplete(final String result) {
+        
+        
+        if (mDiscardAutoCompleteResult) {
+            return;
+        }
+
         if (!isEnabled() || result == null) {
             mAutoCompleteResult = "";
             return;
@@ -436,6 +444,10 @@ public class ToolbarEditText extends CustomEditText
             }
 
             mAutoCompletePrefixLength = textLength;
+
+            
+            
+            mDiscardAutoCompleteResult = !doAutocomplete;
 
             if (doAutocomplete && mAutoCompleteResult.startsWith(text)) {
                 
