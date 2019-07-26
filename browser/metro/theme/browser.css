@@ -444,6 +444,16 @@ documenttab[selected] .documenttab-selection {
 
 
 
+
+
+
+#navbar {
+  visibility: visible;
+}
+#navbar:not([hiding]):not([visible]) > #toolbar-overlay {
+  visibility: hidden;
+}
+
 .circularprogressindicator-progressRing {
   margin: 0 @toolbar_horizontal_spacing@;
   pointer-events:none;
