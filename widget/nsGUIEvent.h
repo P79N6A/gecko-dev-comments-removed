@@ -116,11 +116,6 @@ enum nsEventStructType {
 #define NS_EVENT_FLAG_SYSTEM_EVENT        0x0200
 
 
-
-
-#define NS_EVENT_FLAG_SYNTHETIC_TEST_EVENT 0x1000
-
-
 #define NS_EVENT_FLAG_ONLY_CHROME_DISPATCH 0x2000
 
 #define NS_PRIV_EVENT_UNTRUSTED_PERMITTED 0x8000
@@ -541,6 +536,9 @@ public:
   
   
   bool    mDispatchedAtLeastOnce : 1;
+  
+  
+  bool    mIsSynthesizedForTests : 1;
 
   
   bool InTargetPhase() const
