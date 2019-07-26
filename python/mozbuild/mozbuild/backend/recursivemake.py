@@ -554,7 +554,8 @@ class RecursiveMakeBackend(CommonBackend):
                 if dirs:
                     
                     
-                    root_mk.add_statement('%s_dirs := %s' % (tier, ' '.join(dirs)))
+                    all_dirs = self._traversal.traverse('', filter)
+                    root_mk.add_statement('%s_dirs := %s' % (tier, ' '.join(all_dirs)))
                     continue
                 if subtiers:
                     
