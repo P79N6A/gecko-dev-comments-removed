@@ -250,13 +250,9 @@ struct nsPresentationData {
   
   nsIFrame* baseFrame;
 
-  
-  nsIFrame* mstyle;
-
   nsPresentationData() {
     flags = 0;
     baseFrame = nullptr;
-    mstyle = nullptr;
   }
 };
 
