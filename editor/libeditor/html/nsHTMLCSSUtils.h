@@ -83,8 +83,17 @@ public:
 
 
 
-  bool IsCSSEditableProperty(nsIContent* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
-  bool IsCSSEditableProperty(nsIDOMNode* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
+
+
+
+
+
+  bool IsCSSEditableProperty(nsIContent* aNode, nsIAtom* aProperty,
+                             const nsAString* aAttribute,
+                             const nsAString* aValue = nullptr);
+  bool IsCSSEditableProperty(nsIDOMNode* aNode, nsIAtom* aProperty,
+                             const nsAString* aAttribute,
+                             const nsAString* aValue = nullptr);
 
   
 
