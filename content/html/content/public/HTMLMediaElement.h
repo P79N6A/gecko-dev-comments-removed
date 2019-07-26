@@ -17,7 +17,7 @@
 #include "DecoderTraits.h"
 #include "nsIAudioChannelAgent.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/TextTrackList.h"
+#include "mozilla/dom/TextTrackManager.h"
 
 
 
@@ -50,6 +50,7 @@ namespace dom {
 
 class MediaError;
 class MediaSource;
+class TextTrackList;
 
 class HTMLMediaElement : public nsGenericHTMLElement,
                          public nsIObserver,
@@ -526,12 +527,14 @@ public:
                                            const nsAString& aLanguage);
 
   void AddTextTrack(TextTrack* aTextTrack) {
-    mTextTracks->AddTextTrack(aTextTrack);
+    if (mTextTrackManager) {
+      mTextTrackManager->AddTextTrack(aTextTrack);
+    }
   }
 
   void RemoveTextTrack(TextTrack* aTextTrack) {
-    if (mTextTracks) {
-      mTextTracks->RemoveTextTrack(*aTextTrack);
+    if (mTextTrackManager) {
+      mTextTrackManager->RemoveTextTrack(aTextTrack);
     }
   }
 
@@ -1148,8 +1151,7 @@ protected:
   
   nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 
-  
-  nsRefPtr<TextTrackList> mTextTracks;
+  nsRefPtr<TextTrackManager> mTextTrackManager;
 };
 
 } 
