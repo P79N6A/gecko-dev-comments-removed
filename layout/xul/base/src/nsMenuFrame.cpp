@@ -425,10 +425,8 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     }
 #endif
   }
-  else if (aEvent->eventStructType == NS_MOUSE_EVENT &&
-           aEvent->message == NS_MOUSE_BUTTON_DOWN &&
-           static_cast<WidgetMouseEvent*>(aEvent)->button ==
-             WidgetMouseEvent::eLeftButton &&
+  else if (aEvent->message == NS_MOUSE_BUTTON_DOWN &&
+           aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
            !IsDisabled() && IsMenu()) {
     
     
@@ -445,14 +443,12 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
   }
   else if (
 #ifndef NSCONTEXTMENUISMOUSEUP
-           (aEvent->eventStructType == NS_MOUSE_EVENT &&
-            aEvent->message == NS_MOUSE_BUTTON_UP &&
-            static_cast<WidgetMouseEvent*>(aEvent)->button ==
-              WidgetMouseEvent::eRightButton) &&
+           (aEvent->message == NS_MOUSE_BUTTON_UP &&
+            aEvent->AsMouseEvent()->button == WidgetMouseEvent::eRightButton) &&
 #else
-            aEvent->message == NS_CONTEXTMENU &&
+           aEvent->message == NS_CONTEXTMENU &&
 #endif
-            onmenu && !IsMenu() && !IsDisabled()) {
+           onmenu && !IsMenu() && !IsDisabled()) {
     
     
     
@@ -468,10 +464,8 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
       Execute(aEvent);
     }
   }
-  else if (aEvent->eventStructType == NS_MOUSE_EVENT &&
-           aEvent->message == NS_MOUSE_BUTTON_UP &&
-           static_cast<WidgetMouseEvent*>(aEvent)->button ==
-             WidgetMouseEvent::eLeftButton &&
+  else if (aEvent->message == NS_MOUSE_BUTTON_UP &&
+           aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
            !IsMenu() && !IsDisabled()) {
     
     *aEventStatus = nsEventStatus_eConsumeNoDefault;

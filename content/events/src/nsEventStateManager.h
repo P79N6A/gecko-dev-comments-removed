@@ -256,7 +256,7 @@ protected:
 
 
 
-  nsIFrame* DispatchMouseEvent(mozilla::WidgetGUIEvent* aEvent,
+  nsIFrame* DispatchMouseEvent(mozilla::WidgetMouseEvent* aMouseEvent,
                                uint32_t aMessage,
                                nsIContent* aTargetContent,
                                nsIContent* aRelatedContent);
@@ -264,12 +264,13 @@ protected:
 
 
 
-  void GenerateMouseEnterExit(mozilla::WidgetGUIEvent* aEvent);
+  void GenerateMouseEnterExit(mozilla::WidgetMouseEvent* aMouseEvent);
   
 
 
 
-  void NotifyMouseOver(mozilla::WidgetGUIEvent* aEvent, nsIContent* aContent);
+  void NotifyMouseOver(mozilla::WidgetMouseEvent* aMouseEvent,
+                       nsIContent* aContent);
   
 
 
@@ -279,9 +280,10 @@ protected:
 
 
 
-  void NotifyMouseOut(mozilla::WidgetGUIEvent* aEvent, nsIContent* aMovingInto);
+  void NotifyMouseOut(mozilla::WidgetMouseEvent* aMouseEvent,
+                      nsIContent* aMovingInto);
   void GenerateDragDropEnterExit(nsPresContext* aPresContext,
-                                 mozilla::WidgetGUIEvent* aEvent);
+                                 mozilla::WidgetDragEvent* aDragEvent);
   
 
 
@@ -291,7 +293,7 @@ protected:
 
 
   void FireDragEnterOrExit(nsPresContext* aPresContext,
-                           mozilla::WidgetGUIEvent* aEvent,
+                           mozilla::WidgetDragEvent* aDragEvent,
                            uint32_t aMsg,
                            nsIContent* aRelatedTarget,
                            nsIContent* aTargetContent,

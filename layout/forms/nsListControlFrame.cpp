@@ -1608,7 +1608,7 @@ nsListControlFrame::MouseUp(nsIDOMEvent* aMouseEvent)
     
     
     WidgetMouseEvent* mouseEvent =
-      static_cast<WidgetMouseEvent*>(aMouseEvent->GetInternalNSEvent());
+      aMouseEvent->GetInternalNSEvent()->AsMouseEvent();
 
     int32_t selectedIndex;
     if (NS_SUCCEEDED(GetIndexFromDOMEvent(aMouseEvent, selectedIndex))) {

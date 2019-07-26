@@ -86,7 +86,7 @@ nsScrollbarButtonFrame::HandleButtonPress(nsPresContext* aPresContext,
 {
   
   LookAndFeel::IntID tmpAction;
-  uint16_t button = static_cast<WidgetMouseEvent*>(aEvent)->button;
+  uint16_t button = aEvent->AsMouseEvent()->button;
   if (button == WidgetMouseEvent::eLeftButton) {
     tmpAction = LookAndFeel::eIntID_ScrollButtonLeftMouseButtonAction;
   } else if (button == WidgetMouseEvent::eMiddleButton) {

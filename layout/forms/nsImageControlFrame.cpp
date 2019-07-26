@@ -169,10 +169,8 @@ nsImageControlFrame::HandleEvent(nsPresContext* aPresContext,
 
   *aEventStatus = nsEventStatus_eIgnore;
 
-  if (aEvent->eventStructType == NS_MOUSE_EVENT &&
-      aEvent->message == NS_MOUSE_BUTTON_UP &&
-      static_cast<WidgetMouseEvent*>(aEvent)->button ==
-        WidgetMouseEvent::eLeftButton) {
+  if (aEvent->message == NS_MOUSE_BUTTON_UP &&
+      aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
     
     
     nsIntPoint* lastClickPoint =

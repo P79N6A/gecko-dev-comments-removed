@@ -1864,10 +1864,11 @@ nsPluginInstanceOwner::ProcessMouseDown(nsIDOMEvent* aMouseEvent)
     }
   }
 
-  WidgetEvent* event = aMouseEvent->GetInternalNSEvent();
-  if (event && event->eventStructType == NS_MOUSE_EVENT) {
-    mLastMouseDownButtonType = static_cast<WidgetMouseEvent*>(event)->button;
-    nsEventStatus rv = ProcessEvent(*static_cast<WidgetGUIEvent*>(event));
+  WidgetMouseEvent* mouseEvent =
+    aMouseEvent->GetInternalNSEvent()->AsMouseEvent();
+  if (mouseEvent && mouseEvent->eventStructType == NS_MOUSE_EVENT) {
+    mLastMouseDownButtonType = mouseEvent->button;
+    nsEventStatus rv = ProcessEvent(*mouseEvent);
     if (nsEventStatus_eConsumeNoDefault == rv) {
       return aMouseEvent->PreventDefault(); 
     }
@@ -1926,9 +1927,9 @@ nsPluginInstanceOwner::HandleEvent(nsIDOMEvent* aEvent)
     
     
     
-    WidgetMouseEvent *event =
-      static_cast<WidgetMouseEvent*>(aEvent->GetInternalNSEvent());
-    if (event && ((int) event->button != mLastMouseDownButtonType)) {
+    WidgetMouseEvent* mouseEvent = aEvent->GetInternalNSEvent()->AsMouseEvent();
+    if (mouseEvent &&
+        static_cast<int>(mouseEvent->button) != mLastMouseDownButtonType) {
       aEvent->PreventDefault();
       return NS_OK;
     }
@@ -2038,8 +2039,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
         
         
         
-        if ((static_cast<const WidgetMouseEvent&>(anEvent).button ==
-               WidgetMouseEvent::eLeftButton) &&
+        if (anEvent.AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
             (nsIPresShell::GetCapturingContent() != mObjectFrame->GetContent())) {
           synthCocoaEvent.type = NPCocoaEventMouseEntered;
           synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
@@ -2074,12 +2074,11 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
   }
 
   if ((response == kNPEventHandled || response == kNPEventStartIME) &&
-      !(anEvent.eventStructType == NS_MOUSE_EVENT &&
-        anEvent.message == NS_MOUSE_BUTTON_DOWN &&
-        static_cast<const WidgetMouseEvent&>(anEvent).button ==
-          WidgetMouseEvent::eLeftButton &&
-        !mContentFocused))
+      !(anEvent.message == NS_MOUSE_BUTTON_DOWN &&
+        anEvent.AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
+        !mContentFocused)) {
     rv = nsEventStatus_eConsumeNoDefault;
+  }
 
   pluginWidget->EndDrawPlugin();
 #endif
@@ -2095,8 +2094,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
       
       
       pluginEvent.event = 0;
-      const WidgetMouseEvent* mouseEvent =
-        static_cast<const WidgetMouseEvent*>(&anEvent);
+      const WidgetMouseEvent* mouseEvent = anEvent.AsMouseEvent();
       switch (anEvent.message) {
       case NS_MOUSE_MOVE:
         pluginEvent.event = WM_MOUSEMOVE;
@@ -2215,8 +2213,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
           mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
         nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
                                presContext->AppUnitsToDevPixels(appPoint.y));
-        const WidgetMouseEvent& mouseEvent =
-          static_cast<const WidgetMouseEvent&>(anEvent);
+        const WidgetMouseEvent& mouseEvent = *anEvent.AsMouseEvent();
         
         LayoutDeviceIntPoint rootPoint(-1, -1);
         if (widget)

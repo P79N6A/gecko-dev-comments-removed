@@ -704,8 +704,7 @@ nsViewManager::DispatchEvent(WidgetGUIEvent *aEvent,
 
   if ((aEvent->HasMouseEventMessage() &&
        
-       static_cast<WidgetMouseEvent*>(aEvent)->reason ==
-         WidgetMouseEvent::eReal &&
+       aEvent->AsMouseEvent()->reason == WidgetMouseEvent::eReal &&
        
        
        

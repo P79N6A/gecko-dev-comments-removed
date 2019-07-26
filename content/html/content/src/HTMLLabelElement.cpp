@@ -131,9 +131,7 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     mHandlingEvent = true;
     switch (aVisitor.mEvent->message) {
       case NS_MOUSE_BUTTON_DOWN:
-        NS_ASSERTION(aVisitor.mEvent->eventStructType == NS_MOUSE_EVENT,
-                     "wrong event struct for event");
-        if (static_cast<WidgetMouseEvent*>(aVisitor.mEvent)->button ==
+        if (aVisitor.mEvent->AsMouseEvent()->button ==
               WidgetMouseEvent::eLeftButton) {
           
           
@@ -147,8 +145,7 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
       case NS_MOUSE_CLICK:
         if (aVisitor.mEvent->IsLeftClickEvent()) {
-          const WidgetMouseEvent* event =
-            static_cast<const WidgetMouseEvent*>(aVisitor.mEvent);
+          WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
           LayoutDeviceIntPoint* mouseDownPoint =
             static_cast<LayoutDeviceIntPoint*>(
               GetProperty(nsGkAtoms::labelMouseDownPtProperty));
@@ -158,7 +155,7 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             LayoutDeviceIntPoint dragDistance = *mouseDownPoint;
             DeleteProperty(nsGkAtoms::labelMouseDownPtProperty);
 
-            dragDistance -= aVisitor.mEvent->refPoint;
+            dragDistance -= mouseEvent->refPoint;
             const int CLICK_DISTANCE = 2;
             dragSelect = dragDistance.x > CLICK_DISTANCE ||
                          dragDistance.x < -CLICK_DISTANCE ||
@@ -167,13 +164,13 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           }
           
           
-          if (dragSelect || event->IsShift() || event->IsControl() ||
-              event->IsAlt() || event->IsMeta()) {
+          if (dragSelect || mouseEvent->IsShift() || mouseEvent->IsControl() ||
+              mouseEvent->IsAlt() || mouseEvent->IsMeta()) {
             break;
           }
           
           
-          if (event->clickCount <= 1) {
+          if (mouseEvent->clickCount <= 1) {
             nsIFocusManager* fm = nsFocusManager::GetFocusManager();
             if (fm) {
               
@@ -196,12 +193,11 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           EventFlags eventFlags;
           eventFlags.mMultipleActionsPrevented = true;
-          DispatchClickEvent(aVisitor.mPresContext,
-                             aVisitor.mEvent->AsInputEvent(),
+          DispatchClickEvent(aVisitor.mPresContext, mouseEvent,
                              content, false, &eventFlags, &status);
           
           
-          aVisitor.mEvent->mFlags.mMultipleActionsPrevented = true;
+          mouseEvent->mFlags.mMultipleActionsPrevented = true;
         }
         break;
     }
