@@ -35,6 +35,14 @@ public interface TelemetryContract {
 
         
         public static final String SANITIZE = "sanitize.1";
+
+        
+        
+        public static final String SAVE = "save.1";
+
+        
+        
+        public static final String UNSAVE = "unsave.1";
     }
 
     
@@ -63,6 +71,10 @@ public interface TelemetryContract {
         
         
         public static final String HOME_PANEL = "homepanel.1:";
+
+        
+        
+        public static final String READER = "reader.1";
     }
 
     
