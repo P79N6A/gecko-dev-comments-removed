@@ -503,8 +503,16 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   
   FinalizeFrame(result.mRegionToDraw);
 
-  if (result.mRegionToDraw.IsEmpty())
+  
+  
+  
+  
+  if (result.mRegionToDraw.IsEmpty() && canReuseBuffer) {
+    if (neededRegion.IsEmpty()) {
+      Clear();
+    }
     return result;
+  }
 
   nsIntRect drawBounds = result.mRegionToDraw.GetBounds();
   RefPtr<DrawTarget> destDTBuffer;
