@@ -161,7 +161,6 @@ ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cx,
 
 
 
-
 class ObjectElements
 {
   public:
@@ -826,6 +825,13 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     inline bool hasEmptyElements() const {
         return elements == emptyObjectElements;
     }
+
+    
+
+
+
+
+    inline void *fixedData(size_t nslots) const;
 
     
     static ThingRootKind rootKind() { return THING_ROOT_OBJECT; }
