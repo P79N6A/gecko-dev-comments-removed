@@ -58,8 +58,8 @@ static const uint32_t GRAY = 1;
 
 
 
-const uintptr_t ChunkLocationNursery = 0;
-const uintptr_t ChunkLocationTenuredHeap = 1;
+const uint32_t ChunkLocationNursery = 0;
+const uint32_t ChunkLocationTenuredHeap = 1;
 
 #ifdef JS_DEBUG
 
