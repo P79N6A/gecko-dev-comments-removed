@@ -6,6 +6,7 @@
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/Move.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/ThreadHangStats.h"
@@ -13,6 +14,7 @@
 
 #include "prinrval.h"
 #include "prthread.h"
+#include "ThreadStackHelper.h"
 
 #include <algorithm>
 
@@ -118,6 +120,10 @@ public:
   
   bool mWaiting;
   
+  ThreadStackHelper mStackHelper;
+  
+  Telemetry::HangHistogram::Stack mHangStack;
+  
   Telemetry::ThreadHangStats mStats;
 
   BackgroundHangThread(const char* aName,
@@ -126,7 +132,7 @@ public:
   ~BackgroundHangThread();
 
   
-  void ReportHang(PRIntervalTime aHangTime) const;
+  void ReportHang(PRIntervalTime aHangTime);
   
   void ReportPermaHang() const;
   
@@ -253,6 +259,7 @@ BackgroundHangManager::RunMonitorThread()
       if (MOZ_LIKELY(!currentThread->mHanging)) {
         if (MOZ_UNLIKELY(hangTime >= currentThread->mTimeout)) {
           
+          currentThread->mStackHelper.GetStack(currentThread->mHangStack);
           currentThread->mHangStart = interval;
           currentThread->mHanging = true;
         }
@@ -332,12 +339,23 @@ BackgroundHangThread::~BackgroundHangThread()
 }
 
 void
-BackgroundHangThread::ReportHang(PRIntervalTime aHangTime) const
+BackgroundHangThread::ReportHang(PRIntervalTime aHangTime)
 {
   
   
 
+  Telemetry::HangHistogram newHistogram(Move(mHangStack));
+  for (Telemetry::HangHistogram* oldHistogram = mStats.mHangs.begin();
+       oldHistogram != mStats.mHangs.end(); oldHistogram++) {
+    if (newHistogram == *oldHistogram) {
+      
+      oldHistogram->Add(aHangTime);
+      return;
+    }
+  }
   
+  newHistogram.Add(aHangTime);
+  mStats.mHangs.append(Move(newHistogram));
 }
 
 void
@@ -361,6 +379,7 @@ BackgroundHangThread::NotifyActivity()
     mManager->Wakeup();
   } else {
     PRIntervalTime duration = intervalNow - mInterval;
+    mStats.mActivity.Add(duration);
     if (MOZ_UNLIKELY(duration >= mTimeout)) {
       
       mManager->Wakeup();
@@ -398,6 +417,7 @@ void
 BackgroundHangMonitor::Startup()
 {
   MOZ_ASSERT(!BackgroundHangManager::sInstance, "Already initialized");
+  ThreadStackHelper::Startup();
   BackgroundHangThread::Startup();
   BackgroundHangManager::sInstance = new BackgroundHangManager();
 }
@@ -411,6 +431,7 @@ BackgroundHangMonitor::Shutdown()
 
   BackgroundHangManager::sInstance->Shutdown();
   BackgroundHangManager::sInstance = nullptr;
+  ThreadStackHelper::Shutdown();
 }
 
 BackgroundHangMonitor::BackgroundHangMonitor(const char* aName,
