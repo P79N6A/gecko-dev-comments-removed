@@ -46,6 +46,7 @@
       return this.QueryInterface(aIID);
     }
   };
+  mockAlertsService = SpecialPowers.wrapCallbackObject(mockAlertsService);
 
   var notificationsCreated = [];
   function checkNotifications() {
