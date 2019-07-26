@@ -2198,6 +2198,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
         if (IsAxisHorizontal(axisTracker.GetCrossAxis())) {
           childReflowState.SetComputedWidth(curItem.GetCrossSize());
         } else {
+          
+          curItem.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
           childReflowState.SetComputedHeight(curItem.GetCrossSize());
         }
       }
