@@ -50,6 +50,8 @@ private:
 template<typename T,
          JSObject* UnboxArray(JSObject*, uint32_t*, T**)>
 struct TypedArray_base : public TypedArrayObjectStorage {
+  typedef T element_type;
+
   TypedArray_base(JSObject* obj)
   {
     DoInit(obj);
@@ -194,6 +196,29 @@ typedef TypedArray_base<uint8_t, JS_GetObjectAsArrayBufferView>
 typedef TypedArray<uint8_t, JS_GetArrayBufferData,
                    JS_GetObjectAsArrayBuffer, JS_NewArrayBuffer>
         ArrayBuffer;
+
+
+
+
+
+template<typename TypedArrayType>
+class TypedArrayCreator
+{
+  typedef nsTArray<typename TypedArrayType::element_type> ArrayType;
+
+  public:
+    TypedArrayCreator(const ArrayType& aArray)
+      : mArray(aArray)
+    {}
+
+    JSObject* Create(JSContext* aCx, JS::Handle<JSObject*> aCreator) const
+    {
+      return TypedArrayType::Create(aCx, aCreator, mArray.Length(), mArray.Elements());
+    }
+
+  private:
+    const ArrayType& mArray;
+};
 
 
 template<typename ArrayType>
