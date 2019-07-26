@@ -1781,7 +1781,7 @@ GetPropertyIC::update(JSContext *cx, size_t cacheIndex,
 
 #if JS_HAS_NO_SUCH_METHOD
         
-        if (JSOp(*pc) == JSOP_CALLPROP && JS_UNLIKELY(vp.isUndefined())) {
+        if (JSOp(*pc) == JSOP_CALLPROP && JS_UNLIKELY(vp.isPrimitive())) {
             if (!OnUnknownMethod(cx, obj, IdToValue(id), vp))
                 return false;
         }
