@@ -38,9 +38,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
     
-    masm.unboxNonDouble(R0, rdx);
-    masm.unboxNonDouble(R1, ScratchReg);
-    masm.cmpq(rdx, ScratchReg);
+    masm.cmpl(R0.valueReg(), R1.valueReg());
     masm.setCC(cond, ScratchReg);
     masm.movzxbl(ScratchReg, ScratchReg);
 
