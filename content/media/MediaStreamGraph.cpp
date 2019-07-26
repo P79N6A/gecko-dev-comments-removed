@@ -1786,6 +1786,9 @@ MediaStream::DestroyImpl()
 void
 MediaStream::Destroy()
 {
+  
+  nsRefPtr<MediaStream> kungFuDeathGrip = this;
+
   class Message : public ControlMessage {
   public:
     Message(MediaStream* aStream) : ControlMessage(aStream) {}
@@ -1799,6 +1802,9 @@ MediaStream::Destroy()
   };
   mWrapper = nullptr;
   GraphImpl()->AppendMessage(new Message(this));
+  
+  
+  
   mMainThreadDestroyed = true;
 }
 
