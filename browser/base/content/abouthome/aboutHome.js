@@ -86,7 +86,7 @@ let gObserver = new MutationObserver(function (mutations) {
     if (mutation.attributeName == "searchEngineURL") {
       gObserver.disconnect();
       setupSearchEngine();
-      ensureSnippetsMapThen(loadSnippets);
+      loadSnippets();
       return;
     }
   }
@@ -99,70 +99,6 @@ window.addEventListener("load", function () {
   fitToWidth();
   window.addEventListener("resize", fitToWidth);
 });
-
-
-
-
-let gSnippetsMap;
-let gSnippetsMapCallbacks = [];
-
-
-
-
-
-
-
-
-
-function ensureSnippetsMapThen(aCallback)
-{
-  if (gSnippetsMap) {
-    aCallback(gSnippetsMap);
-    return;
-  }
-
-  
-  gSnippetsMapCallbacks.push(aCallback);
-  if (gSnippetsMapCallbacks.length > 1) {
-    
-    return;
-  }
-
-  
-  
-  setTimeout(function() {
-    
-    let cache = new Map();
-    for (let key of [ "snippets-last-update",
-                      "snippets-cached-version",
-                      "snippets" ]) {
-      cache.set(key, localStorage[key]);
-    }
-
-    gSnippetsMap = Object.freeze({
-      get: function (aKey) cache.get(aKey),
-      set: function (aKey, aValue) {
-        localStorage[aKey] = aValue;
-        return cache.set(aKey, aValue);
-      },
-      has: function(aKey) cache.has(aKey),
-      delete: function(aKey) {
-        delete localStorage[aKey];
-        return cache.delete(aKey);
-      },
-      clear: function() {
-        localStorage.clear();
-        return cache.clear();
-      },
-      get size() cache.size
-    });
-
-    for (let callback of gSnippetsMapCallbacks) {
-      callback(gSnippetsMap);
-    }
-    gSnippetsMapCallbacks.length = 0;
-  }, 0);
-}
 
 function onSearchSubmit(aEvent)
 {
@@ -221,29 +157,13 @@ function setupSearchEngine()
 
 }
 
-
-
-
-
 function loadSnippets()
 {
-  if (!gSnippetsMap)
-    throw new Error("Snippets map has not properly been initialized");
-
   
-  let cachedVersion = gSnippetsMap.get("snippets-cached-version") || 0;
-  let currentVersion = document.documentElement.getAttribute("snippetsVersion");
-  if (cachedVersion < currentVersion) {
-    
-    gSnippetsMap.clear();
-  }
-
-  
-  let lastUpdate = gSnippetsMap.get("snippets-last-update");
+  let lastUpdate = localStorage["snippets-last-update"];
   let updateURL = document.documentElement.getAttribute("snippetsURL");
-  let shouldUpdate = !lastUpdate ||
-                     Date.now() - lastUpdate > SNIPPETS_UPDATE_INTERVAL_MS;
-  if (updateURL && shouldUpdate) {
+  if (updateURL && (!lastUpdate ||
+                    Date.now() - lastUpdate > SNIPPETS_UPDATE_INTERVAL_MS)) {
     
     let xhr = new XMLHttpRequest();
     try {
@@ -254,15 +174,14 @@ function loadSnippets()
     }
     
     
-    gSnippetsMap.set("snippets-last-update", Date.now());
+    localStorage["snippets-last-update"] = Date.now();
     xhr.onerror = function (event) {
       showSnippets();
     };
     xhr.onload = function (event)
     {
       if (xhr.status == 200) {
-        gSnippetsMap.set("snippets", xhr.responseText);
-        gSnippetsMap.set("snippets-cached-version", currentVersion);
+        localStorage["snippets"] = xhr.responseText;
       }
       showSnippets();
     };
@@ -272,27 +191,10 @@ function loadSnippets()
   }
 }
 
-
-
-
-
-
-
-let _snippetsShown = false;
 function showSnippets()
 {
-  if (!gSnippetsMap)
-    throw new Error("Snippets map has not properly been initialized");
-  if (_snippetsShown) {
-    
-    
-    showDefaultSnippets();
-    throw new Error("showSnippets should never be invoked multiple times");
-  }
-  _snippetsShown = true;
-
   let snippetsElt = document.getElementById("snippets");
-  let snippets = gSnippetsMap.get("snippets");
+  let snippets = localStorage["snippets"];
   
   if (snippets) {
     
@@ -311,18 +213,6 @@ function showSnippets()
       
     }
   }
-
-  showDefaultSnippets();
-}
-
-
-
-
-function showDefaultSnippets()
-{
-  
-  let snippetsElt = document.getElementById("snippets");
-  snippetsElt.innerHTML = "";
 
   
   let defaultSnippetsElt = document.getElementById("defaultSnippets");

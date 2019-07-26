@@ -2635,7 +2635,6 @@ function BrowserOnAboutPageLoad(doc) {
     
     let docElt = doc.documentElement;
     docElt.setAttribute("snippetsURL", AboutHomeUtils.snippetsURL);
-    docElt.setAttribute("snippetsVersion", AboutHomeUtils.snippetsVersion);
     docElt.setAttribute("searchEngineName",
                         AboutHomeUtils.defaultSearchEngine.name);
     docElt.setAttribute("searchEngineURL",

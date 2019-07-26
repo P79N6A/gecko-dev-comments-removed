@@ -13,11 +13,9 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 const SNIPPETS_URL_PREF = "browser.aboutHomeSnippets.updateUrl";
 
 
-const STARTPAGE_VERSION = 4;
+const STARTPAGE_VERSION = 3;
 
-this.AboutHomeUtils = {
-  get snippetsVersion() STARTPAGE_VERSION
-};
+this.AboutHomeUtils = new Object();
 
 
 
