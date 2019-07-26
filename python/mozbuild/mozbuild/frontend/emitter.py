@@ -7,8 +7,9 @@ from __future__ import unicode_literals
 import os
 
 from .data import (
-    DirectoryTraversal,
     ConfigFileSubstitution,
+    DirectoryTraversal,
+    VariablePassthru,
     ReaderSummary,
 )
 
@@ -68,6 +69,14 @@ class TreeMetadataEmitter(object):
             sub.output_path = os.path.join(sandbox['OBJDIR'], path)
             sub.relpath = path
             yield sub
+
+        
+        
+        
+        passthru = VariablePassthru(sandbox)
+
+        if passthru.variables:
+            yield passthru
 
     def _emit_directory_traversal_from_sandbox(self, sandbox):
         o = DirectoryTraversal(sandbox)
