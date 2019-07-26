@@ -583,10 +583,177 @@ File.Info.fromMsg = function fromMsg(value) {
 };
 
 
+
+
+
+
+let DirectoryIterator = function DirectoryIterator(path, options) {
+  
+
+
+
+
+
+
+
+
+  this._itmsg = Scheduler.post(
+    "new_DirectoryIterator", [Type.path.toMsg(path), options],
+    path
+  );
+  this._isClosed = false;
+};
+DirectoryIterator.prototype = {
+  
+
+
+
+
+
+
+  next: function next() {
+    let self = this;
+    let promise = this._itmsg;
+
+    
+    promise = promise.then(
+      function withIterator(iterator) {
+        return self._next(iterator);
+      });
+
+    return promise;
+  },
+  
+
+
+
+
+
+
+
+  nextBatch: function nextBatch(size) {
+    if (this._isClosed) {
+      return Promise.resolve([]);
+    }
+    let promise = this._itmsg;
+    promise = promise.then(
+      function withIterator(iterator) {
+        return Scheduler.post("DirectoryIterator_prototype_nextBatch", [iterator, size]);
+      });
+    promise = promise.then(
+      function withEntries(array) {
+        return array.map(DirectoryIterator.Entry.fromMsg);
+      });
+    return promise;
+  },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  forEach: function forEach(cb, options) {
+    if (this._isClosed) {
+      return Promise.resolve();
+    }
+
+    let self = this;
+    let position = 0;
+    let iterator;
+
+    
+    let promise = this._itmsg.then(
+      function(aIterator) {
+        iterator = aIterator;
+      }
+    );
+
+    
+    let loop = function loop() {
+      if (self._isClosed) {
+        return Promise.resolve();
+      }
+      return self._next(iterator).then(
+        function onSuccess(value) {
+          return Promise.resolve(cb(value, position++, self)).then(loop);
+        },
+        function onFailure(reason) {
+          if (reason == StopIteration) {
+            return;
+          }
+          throw reason;
+        }
+      );
+    };
+
+    return promise.then(loop);
+  },
+  
+
+
+
+
+
+  _next: function _next(iterator) {
+    if (this._isClosed) {
+      LOG("DirectoryIterator._next", "closed");
+      return this._itmsg;
+    }
+    let self = this;
+    let promise = Scheduler.post("DirectoryIterator_prototype_next", [iterator]);
+    promise = promise.then(
+      DirectoryIterator.Entry.fromMsg,
+      function onReject(reason) {
+        
+        
+        if (!(reason instanceof WorkerErrorEvent && reason.message == "uncaught exception: [object StopIteration]")) {
+          
+          throw reason;
+        }
+        self.close();
+        throw StopIteration;
+      });
+    return promise;
+  },
+  
+
+
+  close: function close() {
+    if (this._isClosed) {
+      return;
+    }
+    this._isClosed = true;
+    let self = this;
+    this._itmsg.then(
+      function withIterator(iterator) {
+        self._itmsg = Promise.reject(StopIteration);
+        return Scheduler.post("DirectoryIterator_prototype_close", [iterator]);
+      }
+    );
+  }
+};
+
+DirectoryIterator.Entry = function Entry(value) {
+  return value;
+};
+DirectoryIterator.Entry.fromMsg = function fromMsg(value) {
+  return new DirectoryIterator.Entry(value);
+};
+
+
 Object.defineProperty(File, "POS_START", {value: OS.Shared.POS_START});
 Object.defineProperty(File, "POS_CURRENT", {value: OS.Shared.POS_CURRENT});
 Object.defineProperty(File, "POS_END", {value: OS.Shared.POS_END});
 
 OS.File = File;
 OS.File.Error = OSError;
-
+OS.File.DirectoryIterator = DirectoryIterator;
