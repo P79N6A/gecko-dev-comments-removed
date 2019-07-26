@@ -184,7 +184,17 @@ this.BrowserUITelemetry = {
     }
   },
 
+  _firstWindowMeasurements: null,
   _registerWindow: function(aWindow) {
+    
+    
+    
+    
+    
+    if (!this._firstWindowMeasurements && aWindow.toolbar.visible) {
+      this._firstWindowMeasurements = this._getWindowMeasurements(aWindow);
+    }
+
     aWindow.addEventListener("unload", this);
     let document = aWindow.document;
 
@@ -311,20 +321,8 @@ this.BrowserUITelemetry = {
     }
   },
 
-  getToolbarMeasures: function() {
-    
-    
-    let win = RecentWindow.getMostRecentBrowserWindow({
-      private: false,
-      allowPopups: false
-    });
-
-    
-    if (!win) {
-      return {};
-    }
-
-    let document = win.document;
+  _getWindowMeasurements: function(aWindow) {
+    let document = aWindow.document;
     let result = {};
 
     
@@ -364,7 +362,7 @@ this.BrowserUITelemetry = {
     
     
     let paletteItems =
-      CustomizableUI.getUnusedWidgets(win.gNavToolbox.palette);
+      CustomizableUI.getUnusedWidgets(aWindow.gNavToolbox.palette);
     let defaultRemoved = [item.id for (item of paletteItems)
                           if (DEFAULT_ITEMS.indexOf(item.id) != -1)];
 
@@ -373,8 +371,12 @@ this.BrowserUITelemetry = {
     result.nondefaultAdded = nondefaultAdded;
     result.defaultRemoved = defaultRemoved;
 
-    result.countableEvents = this._countableEvents;
+    return result;
+  },
 
+  getToolbarMeasures: function() {
+    let result = this._firstWindowMeasurements || {};
+    result.countableEvents = this._countableEvents;
     return result;
   },
 };
