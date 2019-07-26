@@ -24,6 +24,7 @@
 #include "nsPluginHost.h"
 #include "nsPluginInstanceOwner.h"
 #include "nsJSNPRuntime.h"
+#include "nsINestedURI.h"
 #include "nsIPresShell.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsScriptSecurityManager.h"
@@ -2022,6 +2023,31 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
       } else {
         fallbackType = eFallbackSuppressed;
       }
+    }
+  }
+
+  
+  
+  
+  
+  
+  if (mType != eType_Null) {
+    nsCOMPtr<nsIURI> tempURI = mURI;
+    nsCOMPtr<nsINestedURI> nestedURI = do_QueryInterface(tempURI);
+    while (nestedURI) {
+      
+      
+      bool isViewSource = false;
+      rv = tempURI->SchemeIs("view-source", &isViewSource);
+      if (NS_FAILED(rv) || isViewSource) {
+        LOG(("OBJLC [%p]: Blocking as effective URI has view-source scheme",
+             this));
+        mType = eType_Null;
+        break;
+      }
+
+      nestedURI->GetInnerURI(getter_AddRefs(tempURI));
+      nestedURI = do_QueryInterface(tempURI);
     }
   }
 
