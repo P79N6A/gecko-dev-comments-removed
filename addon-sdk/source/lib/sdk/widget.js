@@ -447,7 +447,25 @@ const WidgetViewTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
       
       
       
-      this.panel.show(null, getNodeView.implement({}, () => domNode));
+      
+
+      let anchor = domNode;
+      let { CustomizableUI, window } = domNode.ownerDocument.defaultView;
+
+      if (CustomizableUI) {
+        ({anchor}) = CustomizableUI.getWidget(domNode.id).forWindow(window);
+
+        
+        
+        
+        if (anchor !== domNode)
+          CustomizableUI.hidePanelForNode(domNode);
+      }
+
+      
+      
+      
+      this.panel.show(null, getNodeView.implement({}, () => anchor));
     }
   },
 
@@ -777,10 +795,8 @@ WidgetChrome.prototype._createNode = function WC__createNode() {
 
 
 WidgetChrome.prototype.fill = function WC_fill() {
-  let { node, _doc: document } = this;
-
   
-  let iframe = document.createElement("iframe");
+  var iframe = this._doc.createElement("iframe");
   iframe.setAttribute("type", "content");
   iframe.setAttribute("transparent", "transparent");
   iframe.style.overflow = "hidden";
@@ -793,23 +809,14 @@ WidgetChrome.prototype.fill = function WC_fill() {
 
   
   
-  node.appendChild(iframe);
+  this.node.appendChild(iframe);
 
-  let label = document.createElement("label");
+  var label = this._doc.createElement("label");
   label.setAttribute("value", this._widget.label);
   label.className = "toolbarbutton-text";
   label.setAttribute("crop", "right");
   label.setAttribute("flex", "1");
-  node.appendChild(label);
-
-  
-  
-  
-  let button = document.createElement("toolbarbutton");
-  button.setAttribute("label", this._widget.label);
-  button.setAttribute("crop", "right");
-  button.className = "toolbarbutton-1 chromeclass-toolbar-additional";
-  node.appendChild(button);
+  this.node.appendChild(label);
 
   
   this.addEventHandlers();

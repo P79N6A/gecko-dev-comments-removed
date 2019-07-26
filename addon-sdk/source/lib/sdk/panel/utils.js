@@ -23,8 +23,6 @@ const events = require("../system/events");
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 function calculateRegion({ position, width, height, defaultWidth, defaultHeight }, rect) {
-  position = position || {};
-
   let x, y;
 
   let hasTop = !isNil(position.top);
@@ -129,31 +127,13 @@ function display(panel, options, anchor) {
     ({x, y, width, height}) = calculateRegion(options, viewportRect);
   }
   else {
-    
-    
-    panel.style.margin = "";
-    let { CustomizableUI, window } = anchor.ownerDocument.defaultView;
-
-    
-    
-    
-    
-    if (CustomizableUI) {
-      let node = anchor;
-      ({anchor}) = CustomizableUI.getWidget(anchor.id).forWindow(window);
-
-      
-      
-      
-      if (node !== anchor)
-        CustomizableUI.hidePanelForNode(anchor);
-    }
-
     width = width || defaultWidth;
     height = height || defaultHeight;
 
     
     let rect = anchor.getBoundingClientRect();
+
+    let window = anchor.ownerDocument.defaultView;
 
     let zoom = getScreenPixelsPerCSSPixel(window);
     let screenX = rect.left + window.mozInnerScreenX * zoom;
