@@ -73,8 +73,7 @@ private:
   nsCSSFrameConstructor& operator=(const nsCSSFrameConstructor& aCopy) MOZ_DELETE;
 
 public:
-  
-  nsresult ConstructRootFrame(nsIFrame** aNewFrame);
+  nsIFrame* ConstructRootFrame();
 
   nsresult ReconstructDocElementHierarchy();
 
