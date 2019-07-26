@@ -10,10 +10,12 @@
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIStreamListener.h"
+#include "nsIThreadRetargetableStreamListener.h"
 #include "nsIPrincipal.h"
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
+#include "nsProxyRelease.h"
 #include "nsStringGlue.h"
 #include "nsError.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
@@ -34,19 +36,22 @@ class nsIURI;
 namespace mozilla {
 namespace image {
 class Image;
+class ImageURL;
 } 
 } 
 
 class imgRequest : public nsIStreamListener,
+                   public nsIThreadRetargetableStreamListener,
                    public nsIChannelEventSink,
                    public nsIInterfaceRequestor,
                    public nsIAsyncVerifyRedirectCallback
 {
 public:
+  typedef mozilla::image::ImageURL ImageURL;
   imgRequest(imgLoader* aLoader);
   virtual ~imgRequest();
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
 
   nsresult Init(nsIURI *aURI,
                 nsIURI *aCurrentURI,
@@ -121,7 +126,8 @@ public:
   
   void UpdateCacheEntrySize();
 
-  nsresult GetURI(nsIURI **aURI);
+  
+  nsresult GetURI(ImageURL **aURI);
 
 private:
   friend class imgCacheEntry;
@@ -176,10 +182,14 @@ private:
 
 public:
   NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSICHANNELEVENTSINK
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
+
+  
+  void SetProperties(nsIChannel* aChan);
 
 private:
   friend class imgMemoryReporter;
@@ -189,7 +199,8 @@ private:
   nsCOMPtr<nsIRequest> mRequest;
   
   
-  nsCOMPtr<nsIURI> mURI;
+  
+  nsRefPtr<ImageURL> mURI;
   
   nsCOMPtr<nsIURI> mCurrentURI;
   

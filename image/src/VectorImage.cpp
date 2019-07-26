@@ -302,7 +302,7 @@ NS_IMPL_ISUPPORTS3(VectorImage,
 
 
 VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
-                         nsIURI* aURI ) :
+                         ImageURL* aURI ) :
   ImageResource(aStatusTracker, aURI), 
   mIsInitialized(false),
   mIsFullyLoaded(false),

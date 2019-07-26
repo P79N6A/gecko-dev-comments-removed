@@ -36,6 +36,9 @@ public:
   nsMediaFragmentURIParser(nsIURI* aURI);
 
   
+  nsMediaFragmentURIParser(nsCString& aRef);
+
+  
   bool HasStartTime() const { return !mStart.empty(); }
 
   

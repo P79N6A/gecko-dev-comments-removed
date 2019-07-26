@@ -246,6 +246,10 @@ public:
                                        bool aLastPart) MOZ_OVERRIDE;
   virtual nsresult OnNewSourceData() MOZ_OVERRIDE;
 
+  static already_AddRefed<nsIEventTarget> GetEventTarget() {
+    return DecodePool::Singleton()->GetEventTarget();
+  }
+
   
 
 
@@ -413,6 +417,14 @@ private:
 
 
     nsresult DecodeUntilSizeAvailable(RasterImage* aImg);
+
+    
+
+
+
+
+
+    already_AddRefed<nsIEventTarget> GetEventTarget();
 
     virtual ~DecodePool();
 
@@ -732,7 +744,8 @@ private:
   bool StoringSourceData() const;
 
 protected:
-  RasterImage(imgStatusTracker* aStatusTracker = nullptr, nsIURI* aURI = nullptr);
+  RasterImage(imgStatusTracker* aStatusTracker = nullptr,
+              ImageURL* aURI = nullptr);
 
   bool ShouldAnimate();
 

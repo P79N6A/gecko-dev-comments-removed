@@ -11,6 +11,7 @@
 #include "imgDecoderObserver.h"
 #include "Image.h"
 #include "ImageLogging.h"
+#include "nsNetUtil.h"
 #include "nsIObserverService.h"
 
 #include "mozilla/Assertions.h"
@@ -391,7 +392,7 @@ imgStatusTracker::Notify(imgRequestProxy* proxy)
 {
 #ifdef PR_LOGGING
   if (GetImage() && GetImage()->GetURI()) {
-    nsCOMPtr<nsIURI> uri(GetImage()->GetURI());
+    nsRefPtr<ImageURL> uri(GetImage()->GetURI());
     nsAutoCString spec;
     uri->GetSpec(spec);
     LOG_FUNC_WITH_PARAM(GetImgLog(), "imgStatusTracker::Notify async", "uri", spec.get());
@@ -444,7 +445,7 @@ void
 imgStatusTracker::NotifyCurrentState(imgRequestProxy* proxy)
 {
 #ifdef PR_LOGGING
-  nsCOMPtr<nsIURI> uri;
+  nsRefPtr<ImageURL> uri;
   proxy->GetURI(getter_AddRefs(uri));
   nsAutoCString spec;
   uri->GetSpec(spec);
@@ -632,7 +633,7 @@ void
 imgStatusTracker::SyncNotify(imgRequestProxy* proxy)
 {
 #ifdef PR_LOGGING
-  nsCOMPtr<nsIURI> uri;
+  nsRefPtr<ImageURL> uri;
   proxy->GetURI(getter_AddRefs(uri));
   nsAutoCString spec;
   uri->GetSpec(spec);
@@ -1071,7 +1072,12 @@ imgStatusTracker::FireFailureNotification()
   
   
   if (GetImage()) {
-    nsCOMPtr<nsIURI> uri = GetImage()->GetURI();
+    
+    nsCOMPtr<nsIURI> uri;
+    {
+      nsRefPtr<ImageURL> threadsafeUriData = GetImage()->GetURI();
+      uri = threadsafeUriData ? threadsafeUriData->ToIURI() : nullptr;
+    }
     if (uri) {
       nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
       if (os) {

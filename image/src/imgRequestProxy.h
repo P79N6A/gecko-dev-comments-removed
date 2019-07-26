@@ -36,6 +36,7 @@ class ProxyBehaviour;
 namespace mozilla {
 namespace image {
 class Image;
+class ImageURL;
 } 
 } 
 
@@ -45,6 +46,7 @@ class imgRequestProxy : public imgIRequest,
                         public nsITimedChannel
 {
 public:
+  typedef mozilla::image::ImageURL ImageURL;
   NS_DECL_ISUPPORTS
   NS_DECL_IMGIREQUEST
   NS_DECL_NSIREQUEST
@@ -59,7 +61,7 @@ public:
   
   nsresult Init(imgRequest* aOwner,
                 nsILoadGroup *aLoadGroup,
-                nsIURI* aURI,
+                ImageURL* aURI,
                 imgINotificationObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
@@ -105,6 +107,8 @@ public:
 
   virtual nsresult Clone(imgINotificationObserver* aObserver, imgRequestProxy** aClone);
   nsresult GetStaticRequest(imgRequestProxy** aReturn);
+
+  nsresult GetURI(ImageURL **aURI);
 
 protected:
   friend class imgStatusTracker;
@@ -194,7 +198,7 @@ private:
   friend imgRequestProxy* NewStaticProxy(imgRequestProxy* aThis);
 
   
-  nsCOMPtr<nsIURI> mURI;
+  nsRefPtr<ImageURL> mURI;
 
   
   
