@@ -1059,6 +1059,19 @@ var WifiManager = (function() {
     }
   }
 
+  var wifiHotspotStatusTimer = null;
+  function cancelWifiHotspotStatusTimer() {
+    if (wifiHotspotStatusTimer) {
+      wifiHotspotStatusTimer.cancel();
+      wifiHotspotStatusTimer = null;
+    }
+  }
+
+  function createWifiHotspotStatusTimer(onTimeout) {
+    wifiHotspotStatusTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    wifiHotspotStatusTimer.init(onTimeout, 5000, Ci.nsITimer.TYPE_REPEATING_SLACK);
+  }
+
   
   manager.setWifiApEnabled = function(enabled, configuration, callback) {
     if (enabled === manager.isWifiTetheringEnabled(manager.tetheringState)) {
@@ -1072,7 +1085,18 @@ var WifiManager = (function() {
         if (status < 0) {
           callback();
           manager.tetheringState = "UNINITIALIZED";
+          if (wifiHotspotStatusTimer) {
+            cancelWifiHotspotStatusTimer();
+            wifiCommand.closeHostapdConnection(function(result) {
+            });
+          }
           return;
+        }
+
+        function getWifiHotspotStatus() {
+          wifiCommand.hostapdGetStations(function(result) {
+            notify("stationInfoUpdate", {station: result});
+          });
         }
 
         function doStartWifiTethering() {
@@ -1084,6 +1108,13 @@ var WifiManager = (function() {
               manager.tetheringState = "UNINITIALIZED";
             } else {
               manager.tetheringState = "COMPLETED";
+              wifiCommand.connectToHostapd(function(result) {
+                if (result) {
+                  return;
+                }
+                
+                createWifiHotspotStatusTimer(getWifiHotspotStatus);
+              });
             }
             
             callback();
@@ -2280,6 +2311,10 @@ function WifiWorker() {
       self.wantScanResults.forEach(function(callback) { callback(self.networksArray) });
       self.wantScanResults = [];
     });
+  };
+
+  WifiManager.onstationInfoUpdate = function() {
+    self._fireEvent("stationInfoUpdate", { station: this.station });
   };
 
   
