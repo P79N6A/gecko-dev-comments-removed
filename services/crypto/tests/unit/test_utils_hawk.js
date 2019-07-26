@@ -188,16 +188,6 @@ add_test(function test_hawk() {
   do_check_eq(result.artifacts.hash, undefined);
   do_check_eq(result.artifacts.mac, "S3f8E4hAURAqJxOlsYugkPZxLoRYrClgbSQ/3FmKMbY=");
 
-  
-  result = compute(makeURI("http://example.net/path"), method,
-                   { credentials: credentials_sha256,
-                     ts: 1353809207,
-                     nonce: "Ygvqdz",
-                     payload: null,
-                   });
-  do_check_eq(result.artifacts.hash, undefined);
-  do_check_eq(result.artifacts.mac, "S3f8E4hAURAqJxOlsYugkPZxLoRYrClgbSQ/3FmKMbY=");
-
   result = compute(makeURI("http://example.net/path"), method,
                    { credentials: credentials_sha256,
                      ts: 1353809207,
@@ -227,16 +217,6 @@ add_test(function test_hawk() {
                    });
   do_check_eq(result.artifacts.hash, "66DiyapJ0oGgj09IXWdMv8VCg9xk0PL5RqX7bNnQW2k=");
   do_check_eq(result.artifacts.mac, "2B++3x5xfHEZbPZGDiK3IwfPZctkV4DUr2ORg1vIHvk=");
-
-  
-  result = compute(makeURI("http://example.net/path"), method,
-                   { credentials: credentials_sha256,
-                     ts: 1353809207,
-                     nonce: "Ygvqdz",
-                     payload: "something else",
-                   });
-  do_check_eq(result.artifacts.hash, "lERFXr/IKOaAoYw+eBseDUSwmqZTX0uKZpcWLxsdzt8=");
-  do_check_eq(result.artifacts.mac, "jiZuhsac35oD7IdcblhFncBr8tJFHcwWLr8NIYWr9PQ=");
 
   
 
