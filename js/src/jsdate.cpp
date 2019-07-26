@@ -925,21 +925,20 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
     int hour = -1;
     int min = -1;
     int sec = -1;
-    int tzoffset = -1;
+    int tzOffset = -1;
 
     int prevc = 0;
 
-    bool seenplusminus = false;
-    bool seenmonthname = false;
+    bool seenPlusMinus = false;
+    bool seenMonthName = false;
 
     size_t i = 0;
     while (i < limit) {
         int c = s[i];
         i++;
         if (c <= ' ' || c == ',' || c == '-') {
-            if (c == '-' && '0' <= s[i] && s[i] <= '9') {
-              prevc = c;
-            }
+            if (c == '-' && '0' <= s[i] && s[i] <= '9')
+                prevc = c;
             continue;
         }
         if (c == '(') { 
@@ -947,10 +946,12 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
             while (i < limit) {
                 c = s[i];
                 i++;
-                if (c == '(') depth++;
-                else if (c == ')')
+                if (c == '(') {
+                    depth++;
+                } else if (c == ')') {
                     if (--depth <= 0)
                         break;
+                }
             }
             continue;
         }
@@ -965,24 +966,27 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
 
 
 
-            
+
 
 
 
             if ((prevc == '+' || prevc == '-')) {
                 
-                seenplusminus = true;
+                seenPlusMinus = true;
 
                 
                 if (n < 24)
                     n = n * 60; 
                 else
                     n = n % 100 + n / 100 * 60; 
+
                 if (prevc == '+')       
                     n = -n;
-                if (tzoffset != 0 && tzoffset != -1)
+
+                if (tzOffset != 0 && tzOffset != -1)
                     return false;
-                tzoffset = n;
+
+                tzOffset = n;
             } else if (prevc == '/' && mon >= 0 && mday >= 0 && year < 0) {
                 if (c <= ' ' || c == ',' || c == '/' || i >= limit)
                     year = n;
@@ -998,6 +1002,8 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
             } else if (c == '/') {
                 
 
+
+
                 if (mon < 0)
                     mon =  n;
                 else if (mday < 0)
@@ -1006,11 +1012,11 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
                     return false;
             } else if (i < limit && c != ',' && c > ' ' && c != '-' && c != '(') {
                 return false;
-            } else if (seenplusminus && n < 60) {  
-                if (tzoffset < 0)
-                    tzoffset -= n;
+            } else if (seenPlusMinus && n < 60) {  
+                if (tzOffset < 0)
+                    tzOffset -= n;
                 else
-                    tzoffset += n;
+                    tzOffset += n;
             } else if (hour >= 0 && min < 0) {
                 min =  n;
             } else if (prevc == ':' && min >= 0 && sec < 0) {
@@ -1036,8 +1042,10 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
                     break;
                 i++;
             }
+
             if (i <= st + 1)
                 return false;
+
             for (k = ArrayLength(wtb); --k >= 0;) {
                 if (date_regionMatches(wtb[k], 0, s, st, i-st, 1)) {
                     int action = ttb[k];
@@ -1058,10 +1066,12 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
                         } else if (action <= 13) { 
                             
 
-                            if (seenmonthname)
+
+
+                            if (seenMonthName)
                                 return false;
 
-                            seenmonthname = true;
+                            seenMonthName = true;
                             int temp =  (action - 2) + 1;
 
                             if (mon < 0) {
@@ -1076,14 +1086,16 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
                                 return false;
                             }
                         } else {
-                            tzoffset = action - 10000;
+                            tzOffset = action - 10000;
                         }
                     }
                     break;
                 }
             }
+
             if (k < 0)
                 return false;
+
             prevc = 0;
         }
     }
@@ -1117,7 +1129,7 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
 
 
 
-    if (seenmonthname) {
+    if (seenMonthName) {
         if ((mday >= 70 && year >= 70) || (mday < 70 && year < 70))
             return false;
 
@@ -1163,10 +1175,10 @@ date_parseString(JSLinearString *str, double *result, DateTimeInfo *dtInfo)
 
     double msec = date_msecFromDate(year, mon, mday, hour, min, sec, 0);
 
-    if (tzoffset == -1) 
+    if (tzOffset == -1) 
         msec = UTC(msec, dtInfo);
     else
-        msec += tzoffset * msPerMinute;
+        msec += tzOffset * msPerMinute;
 
     *result = msec;
     return true;
