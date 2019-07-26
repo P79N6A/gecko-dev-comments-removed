@@ -444,12 +444,8 @@ class TreeMetadataEmitter(LoggingMixin):
                         else:
                             full = mozpath.normpath(mozpath.join(manifest_dir,
                                 pattern))
-                            
-                            
-                            if not full.startswith(manifest_dir):
-                                continue
-
-                            obj.installs[full] = mozpath.join(out_dir, pattern)
+                            obj.installs[full] = mozpath.normpath(
+                                mozpath.join(out_dir, pattern))
 
             
             out_path = mozpath.join(out_dir, os.path.basename(manifest_path))
