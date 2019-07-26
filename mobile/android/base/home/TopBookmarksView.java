@@ -43,6 +43,9 @@ public class TopBookmarksView extends GridView {
     private final int mNumColumns;
 
     
+    private final int mHorizontalSpacing;
+
+    
     private final int mVerticalSpacing;
 
     
@@ -69,6 +72,7 @@ public class TopBookmarksView extends GridView {
         setNumColumns(mNumColumns);
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TopBookmarksView, defStyle, 0);
+        mHorizontalSpacing = a.getDimensionPixelOffset(R.styleable.TopBookmarksView_android_horizontalSpacing, 0x00);
         mVerticalSpacing = a.getDimensionPixelOffset(R.styleable.TopBookmarksView_android_verticalSpacing, 0x00);
         a.recycle();
     }
@@ -128,7 +132,8 @@ public class TopBookmarksView extends GridView {
     public int getColumnWidth() {
         
         
-        return (getMeasuredWidth() - getPaddingLeft() - getPaddingRight()) / mNumColumns;
+        final int totalHorizontalSpacing = mNumColumns > 0 ? (mNumColumns - 1) * mHorizontalSpacing : 0;
+        return (getMeasuredWidth() - getPaddingLeft() - getPaddingRight() - totalHorizontalSpacing) / mNumColumns;
     }
 
     
