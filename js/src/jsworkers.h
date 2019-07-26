@@ -26,14 +26,6 @@ namespace ion {
   class IonBuilder;
 }
 
-inline bool
-OffThreadCompilationEnabled(JSContext *cx)
-{
-    return ion::js_IonOptions.parallelCompilation
-        && cx->runtime->useHelperThreads()
-        && cx->runtime->helperThreadCount() != 0;
-}
-
 #if defined(JS_THREADSAFE) && defined(JS_ION)
 # define JS_PARALLEL_COMPILATION
 
@@ -167,6 +159,18 @@ struct WorkerThread
 };
 
 #endif 
+
+inline bool
+OffThreadCompilationEnabled(JSContext *cx)
+{
+#ifdef JS_PARALLEL_COMPILATION
+    return ion::js_IonOptions.parallelCompilation
+        && cx->runtime->useHelperThreads()
+        && cx->runtime->helperThreadCount() != 0;
+#else
+    return false;
+#endif
+}
 
 
 
