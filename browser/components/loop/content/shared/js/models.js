@@ -16,6 +16,10 @@ loop.shared.models = (function() {
     defaults: {
       callerId:     undefined, 
       loopToken:    undefined, 
+      loopVersion:  undefined, 
+                               
+                               
+                               
       sessionId:    undefined, 
       sessionToken: undefined, 
       apiKey:       undefined  
@@ -36,38 +40,46 @@ loop.shared.models = (function() {
 
 
 
-    initiate: function(baseServerUrl) {
-      if (!baseServerUrl) {
-        throw new Error("baseServerUrl arg must be passed to initiate()");
-      }
 
-      if (!this.get("loopToken")) {
-        throw new Error("missing required attribute loopToken");
-      }
 
+
+
+    initiate: function(options) {
       
       if (this.isSessionReady()) {
         return this.trigger("session:ready", this);
       }
 
-      var request = $.ajax({
-        url:         baseServerUrl + "/calls/" + this.get("loopToken"),
-        method:      "POST",
-        contentType: "application/json",
-        data:        JSON.stringify({}),
-        dataType:    "json"
+      var client = new loop.shared.Client({
+        baseServerUrl: options.baseServerUrl
       });
 
-      request.done(this.setReady.bind(this));
-
-      request.fail(function(xhr, _, statusText) {
-        var serverError = xhr.status + " " + statusText;
-        if (typeof xhr.responseJSON === "object" && xhr.responseJSON.error) {
-          serverError += "; " + xhr.responseJSON.error;
+      function handleResult(err, sessionData) {
+        
+        if (err) {
+          this.trigger("session:error", new Error(
+            "Retrieval of session information failed: HTTP " + err));
+          return;
         }
-        this.trigger("session:error", new Error(
-          "Retrieval of session information failed: HTTP " + serverError));
-      }.bind(this));
+
+        
+        
+        
+        
+        
+        if (!options.outgoing)
+          sessionData = sessionData[0];
+
+        this.setReady(sessionData);
+      }
+
+      if (options.outgoing) {
+        client.requestCallInfo(this.get("loopToken"), handleResult.bind(this));
+      }
+      else {
+        client.requestCallsInfo(this.get("loopVersion"),
+          handleResult.bind(this));
+      }
     },
 
     
