@@ -10,6 +10,10 @@
 
 
 
+function fail(err) {
+  ok(false, err)
+}
+
 function test() {
   waitForExplicitFinish();
 
@@ -45,10 +49,13 @@ function test() {
   
   function checkMarkup()
   {
-    markup.expandAll();
+    return markup.expandAll().then(checkMarkup2);
+  }
 
+  function checkMarkup2()
+  {
     let contentNode = doc.querySelector("body");
-    let panelNode = markup._containers.get(contentNode).elt;
+    let panelNode = getContainerForRawNode(markup, contentNode).elt;
     let parseNode = parseDoc.querySelector("body");
 
     
@@ -154,8 +161,9 @@ function test() {
 
   function startTests() {
     markup = inspector.markup;
-    checkMarkup();
-    nextStep(0);
+    checkMarkup().then(() => {
+      nextStep(0);
+    }).then(null, fail);
   }
 
   function nextStep(cursor) {
@@ -166,8 +174,9 @@ function test() {
     mutations[cursor]();
     inspector.once("markupmutation", function() {
       executeSoon(function() {
-        checkMarkup();
-        nextStep(cursor + 1);
+        checkMarkup().then(() => {
+          nextStep(cursor + 1);
+        }).then(null, fail);
       });
     });
   }
