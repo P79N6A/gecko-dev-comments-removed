@@ -1245,13 +1245,23 @@ let RIL = {
     Buf.writeUint32(options.p1);
     Buf.writeUint32(options.p2);
     Buf.writeUint32(options.p3);
+
+    
     if (options.command == ICC_COMMAND_UPDATE_RECORD &&
         options.dataWriter) {
       options.dataWriter(options.p3);
     } else {
       Buf.writeString(null);
     }
-    Buf.writeString(options.pin2 || null);
+
+    
+    if (options.command == ICC_COMMAND_UPDATE_RECORD &&
+        options.p2) {
+      Buf.writeString(options.pin2);
+    } else {
+      Buf.writeString(null);
+    }
+
     if (!RILQUIRKS_V5_LEGACY) {
       Buf.writeString(options.aid || this.aid);
     }
@@ -1313,6 +1323,7 @@ let RIL = {
 
 
 
+
   updateICCContact: function updateICCContact(options) {
     let onsuccess = function onsuccess() {
       
@@ -1335,10 +1346,10 @@ let RIL = {
     
     if (options.contact.recordId) {
       ICCContactHelper.updateICCContact(
-        this.appType, options.contactType, options.contact, onsuccess, onerror);
+        this.appType, options.contactType, options.contact, options.pin2, onsuccess, onerror);
     } else {
       ICCContactHelper.addICCContact(
-        this.appType, options.contactType, options.contact, onsuccess, onerror);
+        this.appType, options.contactType, options.contact, options.pin2, onsuccess, onerror);
     }
   },
 
@@ -9714,6 +9725,8 @@ let ICCIOHelper = {
 
 
 
+
+
   updateLinearFixedEF: function updateLinearFixedEF(options) {
     if (!options.fileId || !options.recordNumber) {
       throw new Error("Unexpected fileId " + options.fileId +
@@ -10112,36 +10125,8 @@ let ICCRecordHelper = {
 
 
 
-  readFDN: function readFDN(onsuccess, onerror) {
-    function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
-      if (contact) {
-        contacts.push(contact);
-      }
 
-      if (options.p1 < options.totalRecords) {
-        ICCIOHelper.loadNextRecord(options);
-      } else {
-        if (onsuccess) {
-          onsuccess(contacts);
-        }
-      }
-    }
-
-    let contacts = [];
-    ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_FDN,
-                                   callback: callback.bind(this),
-                                   onerror: onerror});
-  },
-
-  
-
-
-
-
-
-
-  readADN: function readADN(fileId, onsuccess, onerror) {
+  readADNLike: function readADNLike(fileId, onsuccess, onerror) {
     function callback(options) {
       let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (contact) {
@@ -10154,7 +10139,7 @@ let ICCRecordHelper = {
       } else {
         if (DEBUG) {
           for (let i = 0; i < contacts.length; i++) {
-            debug("ADN[" + i + "] " + JSON.stringify(contacts[i]));
+            debug("contact [" + i + "] " + JSON.stringify(contacts[i]));
           }
         }
         if (onsuccess) {
@@ -10177,7 +10162,8 @@ let ICCRecordHelper = {
 
 
 
-  updateADN: function updateADN(fileId, contact, onsuccess, onerror) {
+
+  updateADNLike: function updateADNLike(fileId, contact, pin2, onsuccess, onerror) {
     function dataWriter(recordSize) {
       GsmPDUHelper.writeAlphaIdDiallingNumber(recordSize,
                                               contact.alphaId,
@@ -10200,6 +10186,7 @@ let ICCRecordHelper = {
     ICCIOHelper.updateLinearFixedEF({fileId: fileId,
                                      recordNumber: contact.recordId,
                                      dataWriter: dataWriter.bind(this),
+                                     pin2: pin2,
                                      callback: callback.bind(this),
                                      onerror: onerror});
   },
@@ -11131,7 +11118,7 @@ let ICCContactHelper = {
       case "ADN":
         switch (appType) {
           case CARD_APPTYPE_SIM:
-            this.readSimContacts(onsuccess, onerror);
+            ICCRecordHelper.readADNLike(ICC_EF_ADN, onsuccess, onerror);
             break;
           case CARD_APPTYPE_USIM:
             this.readUSimContacts(onsuccess, onerror);
@@ -11139,7 +11126,7 @@ let ICCContactHelper = {
         }
         break;
       case "FDN":
-        ICCRecordHelper.readFDN(onsuccess, onerror);
+        ICCRecordHelper.readADNLike(ICC_EF_FDN, onsuccess, onerror);
         break;
     }
   },
@@ -11187,10 +11174,11 @@ let ICCContactHelper = {
 
 
 
-  addICCContact: function addICCContact(appType, contactType, contact, onsuccess, onerror) {
+
+  addICCContact: function addICCContact(appType, contactType, contact, pin2, onsuccess, onerror) {
     let foundFreeCb = function foundFreeCb(recordId) {
       contact.recordId = recordId;
-      ICCContactHelper.updateICCContact(appType, contactType, contact, onsuccess, onerror);
+      ICCContactHelper.updateICCContact(appType, contactType, contact, pin2, onsuccess, onerror);
     }.bind(this);
 
     
@@ -11206,17 +11194,21 @@ let ICCContactHelper = {
 
 
 
-  updateICCContact: function updateICCContact(appType, contactType, contact, onsuccess, onerror) {
+
+  updateICCContact: function updateICCContact(appType, contactType, contact, pin2, onsuccess, onerror) {
     switch (contactType) {
       case "ADN":
         switch (appType) {
           case CARD_APPTYPE_SIM:
-            this.updateSimContact(contact, onsuccess, onerror);
+            ICCRecordHelper.updateADNLike(ICC_EF_ADN, contact, null, onsuccess, onerror);
             break;
           case CARD_APPTYPE_USIM:
             this.updateUSimContact(contact, onsuccess, onerror);
             break;
         }
+        break;
+      case "FDN":
+        ICCRecordHelper.updateADNLike(ICC_EF_FDN, contact, pin2, onsuccess, onerror);
         break;
       default:
         if (onerror) {
@@ -11240,7 +11232,7 @@ let ICCContactHelper = {
         }.bind(this);
 
         let fileId = pbr.adn.fileId;
-        ICCRecordHelper.readADN(fileId, gotAdnCb, onerror);
+        ICCRecordHelper.readADNLike(fileId, gotAdnCb, onerror);
       } else {
         let error = onerror || debug;
         error("Cannot access ADN.");
@@ -11405,21 +11397,11 @@ let ICCContactHelper = {
 
 
 
-  readSimContacts: function readSimContacts(onsuccess, onerror) {
-    ICCRecordHelper.readADN(ICC_EF_ADN, onsuccess, onerror);
-  },
-
-  
-
-
-
-
-
 
   updateUSimContact: function updateUSimContact(contact, onsuccess, onerror) {
     let gotPbrCb = function gotPbrCb(pbr) {
       if (pbr.adn) {
-        ICCRecordHelper.updateADN(pbr.adn.fileId, contact, onsuccess, onerror);
+        ICCRecordHelper.updateADNLike(pbr.adn.fileId, contact, null, onsuccess, onerror);
       } else {
         if (onerror) {
           onerror("Cannot access ADN.");
@@ -11428,17 +11410,6 @@ let ICCContactHelper = {
     }.bind(this);
 
     ICCRecordHelper.readPBR(gotPbrCb, onerror);
-  },
-
-  
-
-
-
-
-
-
-  updateSimContact: function updateSimContact(contact, onsuccess, onerror) {
-    ICCRecordHelper.updateADN(ICC_EF_ADN, contact, onsuccess, onerror);
   },
 };
 
