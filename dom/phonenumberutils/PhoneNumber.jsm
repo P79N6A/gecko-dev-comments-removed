@@ -365,14 +365,14 @@ this.PhoneNumber = (function (dataBase) {
 
     
     
-    if (md.possiblePattern.test(number))
-      return new NationalNumber(md, number);
-
-    
-    
     ret = ParseInternationalNumber(number)
     if (ret)
       return ret;
+
+    
+    
+    if (md.possiblePattern.test(number))
+      return new NationalNumber(md, number);
 
     
     return null;
