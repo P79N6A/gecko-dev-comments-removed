@@ -2908,7 +2908,12 @@ nsFlexContainerFrame::GetMinWidth(nsRenderingContext* aRenderingContext)
     nscoord childMinWidth =
       nsLayoutUtils::IntrinsicForContainer(aRenderingContext, e.get(),
                                            nsLayoutUtils::MIN_WIDTH);
-    if (IsAxisHorizontal(axisTracker.GetMainAxis())) {
+    
+    
+    
+    
+    if (IsAxisHorizontal(axisTracker.GetMainAxis()) &&
+        NS_STYLE_FLEX_WRAP_NOWRAP == StylePosition()->mFlexWrap) {
       minWidth += childMinWidth;
     } else {
       minWidth = std::max(minWidth, childMinWidth);
