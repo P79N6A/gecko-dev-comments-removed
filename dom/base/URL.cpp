@@ -347,6 +347,8 @@ URL::GetHostname(nsString& aHostname) const
 void
 URL::SetHostname(const nsAString& aHostname)
 {
+  
+  
   mURI->SetHost(NS_ConvertUTF16toUTF8(aHostname));
 }
 

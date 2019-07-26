@@ -1464,6 +1464,12 @@ nsStandardURL::SetHost(const nsACString &input)
             return NS_OK;
         NS_WARNING("cannot set host on no-auth url");
         return NS_ERROR_UNEXPECTED;
+    } else {
+        if (flat.IsEmpty()) {
+            
+            
+            return NS_ERROR_UNEXPECTED;
+        }
     }
 
     if (strlen(host) < flat.Length())
