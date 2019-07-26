@@ -2661,9 +2661,15 @@ ObjectActor.prototype = {
 
       
       
-      let desc = this.obj.getOwnPropertyDescriptor("displayName");
-      if (desc && desc.value && typeof desc.value == "string") {
-        g.userDisplayName = this.threadActor.createValueGrip(desc.value);
+      try {
+        let desc = this.obj.getOwnPropertyDescriptor("displayName");
+        if (desc && desc.value && typeof desc.value == "string") {
+          g.userDisplayName = this.threadActor.createValueGrip(desc.value);
+        }
+      } catch (e) {
+        
+        
+        dumpn(e);
       }
 
       
