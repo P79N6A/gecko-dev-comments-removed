@@ -187,3 +187,89 @@ add_task(function test_notifications_change()
   yield downloadTwo.start();
   do_check_false(receivedOnDownloadChanged);
 });
+
+
+
+
+add_task(function test_history_expiration()
+{
+  function cleanup() {
+    Services.prefs.clearUserPref("places.history.expiration.max_pages");
+  }
+  do_register_cleanup(cleanup);
+
+  
+  Services.prefs.setIntPref("places.history.expiration.max_pages", 0);
+
+  
+  yield promiseAddDownloadToHistory();
+  yield promiseAddDownloadToHistory(TEST_INTERRUPTIBLE_URI);
+
+  let list = yield promiseNewDownloadList();
+  let downloadOne = yield promiseSimpleDownload();
+  let downloadTwo = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
+  list.add(downloadOne);
+  list.add(downloadTwo);
+
+  let deferred = Promise.defer();
+  let removeNotifications = 0;
+  let downloadView = {
+    onDownloadRemoved: function (aDownload) {
+      if (++removeNotifications == 2) {
+        deferred.resolve();
+      }
+    },
+  };
+  list.addView(downloadView);
+
+  
+  yield downloadOne.start();
+
+  
+  downloadTwo.start();
+  let promiseCanceled = downloadTwo.cancel();
+
+  
+  let expire = Cc["@mozilla.org/places/expiration;1"]
+                 .getService(Ci.nsIObserver);
+  expire.observe(null, "places-debug-start-expiration", -1);
+
+  yield deferred.promise;
+  yield promiseCanceled;
+
+  cleanup();
+});
+
+
+
+
+add_task(function test_history_clear()
+{
+  
+  yield promiseAddDownloadToHistory();
+  yield promiseAddDownloadToHistory();
+
+  let list = yield promiseNewDownloadList();
+  let downloadOne = yield promiseSimpleDownload();
+  let downloadTwo = yield promiseSimpleDownload();
+  list.add(downloadOne);
+  list.add(downloadTwo);
+
+  let deferred = Promise.defer();
+  let removeNotifications = 0;
+  let downloadView = {
+    onDownloadRemoved: function (aDownload) {
+      if (++removeNotifications == 2) {
+        deferred.resolve();
+      }
+    },
+  };
+  list.addView(downloadView);
+
+  yield downloadOne.start();
+  yield downloadTwo.start();
+
+  PlacesUtils.history.removeAllPages();
+
+  yield deferred.promise;
+});

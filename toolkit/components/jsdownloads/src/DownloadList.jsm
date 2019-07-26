@@ -25,8 +25,12 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/sdk/core/promise.js");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
 
 
@@ -35,9 +39,17 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 
 
 
-function DownloadList() {
+
+
+
+function DownloadList(aIsPublic) {
   this._downloads = [];
   this._views = new Set();
+  
+  
+  if (aIsPublic) {
+    PlacesUtils.history.addObserver(this, false);
+  }
 }
 
 DownloadList.prototype = {
@@ -179,4 +191,61 @@ DownloadList.prototype = {
   {
     this._views.delete(aView);
   },
+
+  
+
+
+
+
+
+  _removeWhere: function DL__removeWhere(aTestFn) {
+    Task.spawn(function() {
+      let list = yield this.getAll();
+      for (let download of list) {
+        
+        
+        if ((download.succeeded || download.canceled || download.error) &&
+            aTestFn(download)) {
+          this.remove(download);
+        }
+      }
+    }.bind(this)).then(null, Cu.reportError);
+  },
+
+  
+
+
+
+
+
+
+
+  removeByTimeframe: function DL_removeByTimeframe(aStartTime, aEndTime) {
+    this._removeWhere(download => download.startTime >= aStartTime &&
+                                  download.startTime <= aEndTime);
+  },
+
+  
+  
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver]),
+
+  
+  
+
+  onDeleteURI: function DL_onDeleteURI(aURI, aGUID) {
+    this._removeWhere(download => aURI.equals(download.source.uri));
+  },
+
+  onClearHistory: function DL_onClearHistory() {
+    this._removeWhere(() => true);
+  },
+
+  onTitleChanged: function () {},
+  onBeginUpdateBatch: function () {},
+  onEndUpdateBatch: function () {},
+  onVisit: function () {},
+  onPageChanged: function () {},
+  onDeleteVisits: function () {},
 };
+
