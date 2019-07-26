@@ -364,10 +364,52 @@ var tests = {
       todo(!chatbar.nub.hasAttribute("activity"), "Bug 806266 - nub should no longer have activity");
       
       
-      closeAllChats();
-      port.close();
-      next();
+      
+      
+      
+      ok(!second.hasAttribute("activity"), "second chat should have no activity");
+      let subiframe = iframe2.contentDocument.getElementById("iframe");
+      subiframe.contentWindow.addEventListener("unload", function subunload() {
+        subiframe.contentWindow.removeEventListener("unload", subunload);
+        
+        executeSoon(function() {
+          let evt = iframe2.contentDocument.createEvent("CustomEvent");
+          evt.initCustomEvent("socialChatActivity", true, true, {});
+          iframe2.contentDocument.documentElement.dispatchEvent(evt);
+          ok(second.hasAttribute("activity"), "second chat still has activity after unloading sub-iframe");
+          closeAllChats();
+          port.close();
+          next();
+        })
+      })
+      subiframe.setAttribute("src", "data:text/plain:new location for iframe");
     });
+  },
+
+  testOnlyOneCallback: function(next) {
+    let chats = document.getElementById("pinnedchats");
+    let port = Social.provider.getWorkerPort();
+    let numOpened = 0;
+    port.onmessage = function (e) {
+      let topic = e.data.topic;
+      switch (topic) {
+        case "test-init-done":
+          port.postMessage({topic: "test-chatbox-open"});
+          break;
+        case "chatbox-opened":
+          numOpened += 1;
+          port.postMessage({topic: "ping"});
+          break;
+        case "pong":
+          executeSoon(function() {
+            is(numOpened, 1, "only got one open message");
+            chats.removeAll();
+            port.close();
+            next();
+          });
+      }
+    }
+    port.postMessage({topic: "test-init", data: { id: 1 }});
   },
 
   
