@@ -996,6 +996,34 @@ class MCallee : public MNullaryInstruction
     }
 };
 
+
+
+
+class MForceUse : public MUnaryInstruction
+{
+  public:
+    MForceUse(MDefinition *input)
+      : MUnaryInstruction(input)
+    {
+        setGuard();
+        setResultType(MIRType_None);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ForceUse)
+
+    bool congruentTo(MDefinition * const &ins) const {
+        return false;
+    }
+
+    static MForceUse *New(MDefinition *input) {
+        return new MForceUse(input);
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
 class MControlInstruction : public MInstruction
 {
   public:

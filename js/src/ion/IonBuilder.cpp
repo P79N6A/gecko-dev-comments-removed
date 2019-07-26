@@ -194,10 +194,6 @@ IonBuilder::getPolyCallTargets(types::StackTypeSet *calleeTypes,
             DebugOnly<bool> appendOk = targets.append(obj);
             JS_ASSERT(appendOk);
         } else {
-            
-            targets.clear();
-            return true;
-#if 0
             types::TypeObject *typeObj = calleeTypes->getTypeObject(i);
             JS_ASSERT(typeObj);
             if (!typeObj->isFunction() || !typeObj->interpretedFunction) {
@@ -210,7 +206,6 @@ IonBuilder::getPolyCallTargets(types::StackTypeSet *calleeTypes,
             JS_ASSERT(appendOk);
 
             *gotLambda = true;
-#endif
         }
     }
 
@@ -3526,6 +3521,11 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     
     returnBlock->inheritSlots(current);
     returnBlock->pop();
+
+    
+    
+    if (!callInfo.fun()->isConstant())
+        returnBlock->add(MForceUse::New(callInfo.fun()));
 
     
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
