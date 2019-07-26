@@ -1110,6 +1110,12 @@ AndroidBridge::SetLayerClient(JNIEnv* env, jobject jobj)
 
     if (resetting) {
         RegisterCompositor(env, true);
+#ifdef MOZ_ANDROID_OMTC
+        
+        
+        
+        nsWindow::ForceIsFirstPaint();
+#endif
     }
 }
 

@@ -75,6 +75,14 @@ public:
   virtual void ShadowLayersUpdated(ShadowLayersParent* aLayerTree,
                                    const TargetConfig& aTargetConfig,
                                    bool isFirstPaint) MOZ_OVERRIDE;
+  
+
+
+
+
+
+
+  void ForceIsFirstPaint() { mIsFirstPaint = true; }
   void Destroy();
 
   LayerManager* GetLayerManager() { return mLayerManager; }
