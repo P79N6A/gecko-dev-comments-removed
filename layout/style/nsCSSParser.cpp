@@ -3661,6 +3661,18 @@ CSSParserImpl::ParsePseudoSelector(int32_t&       aDataMask,
   nsCSSPseudoClasses::Type pseudoClassType =
     nsCSSPseudoClasses::GetPseudoType(pseudo);
 
+  if (!mUnsafeRulesEnabled &&
+      (pseudoElementType == nsCSSPseudoElements::ePseudo_mozNumberWrapper ||
+       pseudoElementType == nsCSSPseudoElements::ePseudo_mozNumberText ||
+       pseudoElementType == nsCSSPseudoElements::ePseudo_mozNumberSpinBox ||
+       pseudoElementType == nsCSSPseudoElements::ePseudo_mozNumberSpinUp ||
+       pseudoElementType == nsCSSPseudoElements::ePseudo_mozNumberSpinDown)) {
+    
+    REPORT_UNEXPECTED_TOKEN(PEPseudoSelUnknown);
+    UngetToken();
+    return eSelectorParsingStatus_Error;
+  }
+
   
   
   if (pseudoElementType == nsCSSPseudoElements::ePseudo_mozPlaceholder &&
