@@ -960,7 +960,7 @@ protected:
 };
 
 
-inline TrackRate IdealAudioRate() { return 48000; }
+inline TrackRate IdealAudioRate() { return AudioStream::PreferredSampleRate(); }
 
 
 
