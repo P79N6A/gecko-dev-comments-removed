@@ -153,6 +153,8 @@ nsSVGPathDataParser::ParseMoveto()
     return true;
   }
 
+  SkipCommaWsp();
+
   
   
   
