@@ -285,7 +285,7 @@ DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
         MOZ_ASSERT(!handler->isSafeToUnwrap());
     } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
         
-        MOZ_ASSERT(handler->isSafeToUnwrap() == nsContentUtils::CanAccessNativeAnon());
+        
     } else {
         
         MOZ_ASSERT(handler->isSafeToUnwrap() == AccessCheck::subsumes(target, origin));
@@ -499,7 +499,8 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
 
     
     JSObject *wrapper = wn->GetSameCompartmentSecurityWrapper(cx);
-    MOZ_ASSERT_IF(wrapper != obj, !Wrapper::wrapperHandler(wrapper)->isSafeToUnwrap());
+    MOZ_ASSERT_IF(wrapper != obj && IsComponentsObject(js::UnwrapObject(obj)),
+                  !Wrapper::wrapperHandler(wrapper)->isSafeToUnwrap());
     return wrapper;
 }
 

@@ -10,9 +10,7 @@
 #include "AccessCheck.h"
 
 #include "nsJSPrincipals.h"
-#include "nsIDocument.h"
 #include "nsIDOMWindow.h"
-#include "nsPIDOMWindow.h"
 #include "nsIDOMWindowCollection.h"
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
@@ -269,6 +267,19 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
     return false;
 }
 
+bool
+OnlyIfSubjectIsSystem::isSafeToUnwrap()
+{
+    if (XPCJSRuntime::Get()->XBLScopesEnabled())
+        return false;
+    
+    
+    JSContext *cx = nsContentUtils::GetCurrentJSContext();
+    if (!cx)
+        return true;
+    return AccessCheck::isSystemOnlyAccessPermitted(cx);
+}
+
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };
 
 static bool
@@ -327,7 +338,8 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
             nsCOMPtr<nsPIDOMWindow> win =
                 do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(wrapper));
             if (win) {
-                nsCOMPtr<nsIDocument> doc = win->GetExtantDoc();
+                nsCOMPtr<nsIDocument> doc =
+                    do_QueryInterface(win->GetExtantDocument());
                 if (doc) {
                     doc->WarnOnceAbout(nsIDocument::eNoExposedProps,
                                         true);
