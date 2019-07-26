@@ -648,8 +648,9 @@ public:
   
 
 
-  static void SetupCairoStrokeHitGeometry(nsIFrame* aFrame, gfxContext *aContext,
-                                          gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  static void SetupCairoStrokeGeometry(nsIFrame* aFrame, gfxContext *aContext,
+                                       gfxTextObjectPaint *aObjectPaint = nullptr);
 
   
 
