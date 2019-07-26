@@ -40,7 +40,7 @@ public class PanelManager implements GeckoEventListener {
         mContext = context;
 
         
-        GeckoAppShell.getEventDispatcher().registerEventListener("HomeLists:Added", this);
+        GeckoAppShell.getEventDispatcher().registerEventListener("HomePanels:Added", this);
     }
 
     
