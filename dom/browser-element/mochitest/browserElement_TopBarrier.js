@@ -17,7 +17,7 @@ function runTest() {
       dump("Got error: " + e + '\n');
     }
   });
-  iframe.mozbrowser = true;
+  SpecialPowers.wrap(iframe).mozbrowser = true;
   iframe.src = 'data:text/html,Outer iframe <iframe id="inner-iframe"></iframe>';
   
   

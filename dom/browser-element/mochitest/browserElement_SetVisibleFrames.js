@@ -24,7 +24,7 @@ function runTest() {
                                                  isInBrowserElement: true });
 
   iframe = document.createElement('iframe');
-  iframe.mozbrowser = true;
+  SpecialPowers.wrap(iframe).mozbrowser = true;
 
   
   

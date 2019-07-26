@@ -14,10 +14,10 @@ SimpleTest.waitForExplicitFinish();
 
 function runTest() {
   browserElementTestHelpers.setEnabledPref(true);
-  browserElementTestHelpers.addToWhitelist();
+  browserElementTestHelpers.addPermission();
 
   var iframe = document.createElement('iframe');
-  iframe.mozbrowser = true;
+  SpecialPowers.wrap(iframe).mozbrowser = true;
 
   var gotPopup = false;
   iframe.addEventListener('mozbrowseropenwindow', function(e) {
@@ -29,7 +29,7 @@ function runTest() {
     ok(/file_browserElement_Open2\.html$/.test(e.detail.url),
        "Popup's URL (got " + e.detail.url + ")");
     is(e.detail.name, "name");
-    is(e.detail.features, "features");
+    is(e.detail.features, "dialog=1");
   });
 
   iframe.addEventListener('mozbrowsershowmodalprompt', function(e) {

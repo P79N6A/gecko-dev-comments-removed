@@ -11,14 +11,14 @@ function runTest() {
   browserElementTestHelpers.addPermission();
 
   var iframe1 = document.createElement('iframe');
-  iframe1.mozbrowser = true;
+  SpecialPowers.wrap(iframe1).mozbrowser = true;
   document.body.appendChild(iframe1);
 
   
   
   
   var iframe2 = document.createElement('iframe');
-  iframe2.mozbrowser = true;
+  SpecialPowers.wrap(iframe2).mozbrowser = true;
   document.body.appendChild(iframe2);
 
   

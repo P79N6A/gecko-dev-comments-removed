@@ -23,7 +23,7 @@ browserElementTestHelpers.addPermission();
 browserElementTestHelpers.setOOPDisabledPref(true); 
 
 var iframe = document.createElement('iframe');
-iframe.mozbrowser = true;
+SpecialPowers.wrap(iframe).mozbrowser = true;
 iframe.src = browserElementTestHelpers.focusPage;
 document.body.appendChild(iframe);
 
