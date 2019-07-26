@@ -7,7 +7,6 @@
 #include "nsSVGOuterSVGFrame.h"
 
 
-#include "DOMSVGTests.h"
 #include "gfxMatrix.h"
 #include "nsDisplayList.h"
 #include "nsIDocument.h"
