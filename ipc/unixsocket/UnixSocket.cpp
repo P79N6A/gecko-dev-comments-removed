@@ -491,28 +491,7 @@ UnixSocketImpl::Accept()
 
   }
 
-  int client_fd;
-  client_fd = accept(mFd.get(), &mAddr, &mAddrSize);
-  if (client_fd < 0) {
-    EnqueueTask(SOCKET_RETRY_TIME_MS, new SocketAcceptTask(this));
-    return;
-  }
-
-  if (!mConnector->SetUp(client_fd)) {
-    NS_WARNING("Could not set up socket!");
-    return;
-  }
-  mFd.reset(client_fd);
-
-  nsRefPtr<OnSocketEventTask> t =
-    new OnSocketEventTask(this, OnSocketEventTask::CONNECT_SUCCESS);
-  NS_DispatchToMainThread(t);
-
-  
-  
-  
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                   new StartImplReadingTask(this));
+  SetUpIO();
 }
 
 void
@@ -574,11 +553,6 @@ UnixSocketImpl::SetNonblockFlags()
 
   flags |= FD_CLOEXEC;
   if (-1 == fcntl(mFd, F_SETFD, flags)) {
-    return false;
-  }
-
-  
-  if (-1 == fcntl(mFd, F_SETFL, O_NONBLOCK)) {
     return false;
   }
 
@@ -656,50 +630,82 @@ UnixSocketConsumer::CloseSocket()
 void
 UnixSocketImpl::OnFileCanReadWithoutBlocking(int aFd)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  while (true) {
-    if (!mIncoming) {
-      uint8_t data[MAX_READ_SIZE];
-      ssize_t ret = read(aFd, data, MAX_READ_SIZE);
-      if (ret < 0) {
-        if (ret == -1) {
-          if (errno == EINTR) {
-            continue; 
+  enum SocketConnectionStatus status = mConsumer->GetConnectionStatus();
+
+  if (status == SOCKET_CONNECTED) {
+
+    
+    
+    
+    
+    
+    
+    
+    
+    while (true) {
+      if (!mIncoming) {
+        uint8_t data[MAX_READ_SIZE];
+        ssize_t ret = read(aFd, data, MAX_READ_SIZE);
+        if (ret < 0) {
+          if (ret == -1) {
+            if (errno == EINTR) {
+              continue; 
+            }
+            else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+              return; 
+            }
+            
           }
-          else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return; 
-          }
-          
-        }
 #ifdef DEBUG
-        NS_WARNING("Cannot read from network");
+          NS_WARNING("Cannot read from network");
 #endif
-        
-        
-        mReadWatcher.StopWatchingFileDescriptor();
-        mWriteWatcher.StopWatchingFileDescriptor();
-        nsRefPtr<SocketCloseTask> t = new SocketCloseTask(this);
-        NS_DispatchToMainThread(t);
-        return;
-      }
-      if (ret) {
-        mIncoming = new UnixSocketRawData(ret);
-        memcpy(mIncoming->mData, data, ret);
-        nsRefPtr<SocketReceiveTask> t =
-          new SocketReceiveTask(this, mIncoming.forget());
-        NS_DispatchToMainThread(t);
-      }
-      if (ret < ssize_t(MAX_READ_SIZE)) {
-        return;
+          
+          
+          mReadWatcher.StopWatchingFileDescriptor();
+          mWriteWatcher.StopWatchingFileDescriptor();
+          nsRefPtr<SocketCloseTask> t = new SocketCloseTask(this);
+          NS_DispatchToMainThread(t);
+          return;
+        }
+        if (ret) {
+          mIncoming = new UnixSocketRawData(ret);
+          memcpy(mIncoming->mData, data, ret);
+          nsRefPtr<SocketReceiveTask> t =
+            new SocketReceiveTask(this, mIncoming.forget());
+          NS_DispatchToMainThread(t);
+        }
+        if (ret < ssize_t(MAX_READ_SIZE)) {
+          return;
+        }
       }
     }
+  } else if (status == SOCKET_LISTENING) {
+
+    int client_fd = accept(mFd.get(), &mAddr, &mAddrSize);
+
+    if (client_fd < 0) {
+      return;
+    }
+
+    if (!mConnector->SetUp(client_fd)) {
+      NS_WARNING("Could not set up socket!");
+      return;
+    }
+
+    mReadWatcher.StopWatchingFileDescriptor();
+    mWriteWatcher.StopWatchingFileDescriptor();
+
+    mFd.reset(client_fd);
+
+    nsRefPtr<OnSocketEventTask> t =
+      new OnSocketEventTask(this, OnSocketEventTask::CONNECT_SUCCESS);
+    NS_DispatchToMainThread(t);
+
+    
+    
+    
+    XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
+                                     new StartImplReadingTask(this));
   }
 }
 
@@ -798,12 +804,12 @@ UnixSocketConsumer::ConnectSocket(UnixSocketConnector* aConnector,
   addr.Assign(aAddress);
   mImpl = new UnixSocketImpl(this, aConnector, addr);
   MessageLoop* ioLoop = XRE_GetIOMessageLoop();
+  mConnectionStatus = SOCKET_CONNECTING;
   if (aDelayMs > 0) {
     ioLoop->PostDelayedTask(FROM_HERE, new SocketConnectTask(mImpl), aDelayMs);
   } else {
     ioLoop->PostTask(FROM_HERE, new SocketConnectTask(mImpl));
   }
-  mConnectionStatus = SOCKET_CONNECTING;
   return true;
 }
 
@@ -818,9 +824,9 @@ UnixSocketConsumer::ListenSocket(UnixSocketConnector* aConnector)
   }
   nsCString addr;
   mImpl = new UnixSocketImpl(this, aConnector, addr);
+  mConnectionStatus = SOCKET_LISTENING;
   XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
                                    new SocketAcceptTask(mImpl));
-  mConnectionStatus = SOCKET_LISTENING;
   return true;
 }
 
