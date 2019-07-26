@@ -72,17 +72,17 @@ struct PK11SlotInfoStr {
 
     int authTransact;   
 
-    int64 authTime;     
+    PRTime authTime;	
     int minPassword;	
     int maxPassword;	
-    uint16 series;	
+    PRUint16 series;	
 
 
-    uint16 flagSeries;	
+    PRUint16 flagSeries;
 
     PRBool flagState;	
 
-    uint16 wrapKey;	
+    PRUint16 wrapKey;	
     CK_MECHANISM_TYPE wrapMechanism;
 			
     CK_OBJECT_HANDLE refKeys[1]; 
@@ -128,7 +128,7 @@ struct PK11SymKeyStr {
     PK11Origin	      origin;	
 
     PK11SymKey        *parent;  
-    uint16 series;		
+    PRUint16 series;		
 
 
     void *userData;		

@@ -272,8 +272,8 @@ typedef struct sec_asn1d_state_struct {
 
 
 struct sec_DecoderContext_struct {
-    PRArenaPool *our_pool;		
-    PRArenaPool *their_pool;		
+    PLArenaPool *our_pool;		
+    PLArenaPool *their_pool;		
 #ifdef SEC_ASN1D_FREE_ON_ERROR		
 
 
@@ -304,7 +304,7 @@ struct sec_DecoderContext_struct {
 
 
 static void *
-sec_asn1d_alloc (PRArenaPool *poolp, unsigned long len)
+sec_asn1d_alloc (PLArenaPool *poolp, unsigned long len)
 {
     void *thing;
 
@@ -328,7 +328,7 @@ sec_asn1d_alloc (PRArenaPool *poolp, unsigned long len)
 
 
 static void *
-sec_asn1d_zalloc (PRArenaPool *poolp, unsigned long len)
+sec_asn1d_zalloc (PLArenaPool *poolp, unsigned long len)
 {
     void *thing;
 
@@ -956,7 +956,7 @@ static void
 sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 {
     SECItem *item;
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     unsigned long alloc_len;
 
 #ifdef DEBUG_ASN1D_STATES
@@ -2819,10 +2819,10 @@ SEC_ASN1DecoderFinish (SEC_ASN1DecoderContext *cx)
 
 
 SEC_ASN1DecoderContext *
-SEC_ASN1DecoderStart (PRArenaPool *their_pool, void *dest,
+SEC_ASN1DecoderStart (PLArenaPool *their_pool, void *dest,
 		      const SEC_ASN1Template *theTemplate)
 {
-    PRArenaPool *our_pool;
+    PLArenaPool *our_pool;
     SEC_ASN1DecoderContext *cx;
 
     our_pool = PORT_NewArena (SEC_ASN1_DEFAULT_ARENA_SIZE);
@@ -2911,7 +2911,7 @@ SEC_ASN1DecoderAbort(SEC_ASN1DecoderContext *cx, int error)
 
 
 SECStatus
-SEC_ASN1Decode (PRArenaPool *poolp, void *dest,
+SEC_ASN1Decode (PLArenaPool *poolp, void *dest,
 		const SEC_ASN1Template *theTemplate,
 		const char *buf, long len)
 {
@@ -2933,7 +2933,7 @@ SEC_ASN1Decode (PRArenaPool *poolp, void *dest,
 
 
 SECStatus
-SEC_ASN1DecodeItem (PRArenaPool *poolp, void *dest,
+SEC_ASN1DecodeItem (PLArenaPool *poolp, void *dest,
 		    const SEC_ASN1Template *theTemplate,
 		    const SECItem *src)
 {

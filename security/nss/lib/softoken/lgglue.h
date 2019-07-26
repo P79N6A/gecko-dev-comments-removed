@@ -10,7 +10,7 @@
 
 
 
-typedef SECStatus (*LGEncryptFunc)(PRArenaPool *arena, SDB *sdb, 
+typedef SECStatus (*LGEncryptFunc)(PLArenaPool *arena, SDB *sdb,
 				  SECItem *plainText, SECItem **cipherText);
 typedef SECStatus (*LGDecryptFunc)(SDB *sdb, SECItem *cipherText, 
 				   SECItem **plainText);

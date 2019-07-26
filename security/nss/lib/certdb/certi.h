@@ -43,7 +43,7 @@ struct PreAllocatorStr
     PRSize len;
     void* data;
     PRSize used;
-    PRArenaPool* arena;
+    PLArenaPool* arena;
     PRSize extra;
 };
 
@@ -232,11 +232,11 @@ cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID);
 extern int cert_AVAOidTagToMaxLen(SECOidTag tag);
 
 
-extern CERTAVA * CERT_CreateAVAFromRaw(PRArenaPool *pool, 
+extern CERTAVA * CERT_CreateAVAFromRaw(PLArenaPool *pool, 
                                const SECItem * OID, const SECItem * value);
 
 
-extern CERTAVA * CERT_CreateAVAFromSECItem(PRArenaPool *arena, SECOidTag kind, 
+extern CERTAVA * CERT_CreateAVAFromSECItem(PLArenaPool *arena, SECOidTag kind, 
                                            int valueType, SECItem *value);
 
 
@@ -244,7 +244,7 @@ extern CERTAVA * CERT_CreateAVAFromSECItem(PRArenaPool *arena, SECOidTag kind,
 
 
 SECStatus AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
-                         const SECItem* dp, int64 t, void* wincx,
+                         const SECItem* dp, PRTime t, void* wincx,
                          CRLDPCache** dpcache, PRBool* writeLocked);
 
 
@@ -357,7 +357,7 @@ SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc);
 
 
 CERTGeneralName *
-cert_GetSubjectAltNameList(const CERTCertificate *cert, PRArenaPool *arena);
+cert_GetSubjectAltNameList(const CERTCertificate *cert, PLArenaPool *arena);
 
 
 PRUint32

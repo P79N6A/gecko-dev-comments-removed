@@ -533,7 +533,7 @@ cleanup:
 
 static PKIX_Error *
 pkix_pl_InfoAccess_ParseTokens(
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         char **startPos, 
         char ***tokens,
         char separator,
@@ -698,7 +698,7 @@ pkix_pl_UnescapeURL(
 PKIX_Error *
 pkix_pl_InfoAccess_ParseLocation(
         PKIX_PL_GeneralName *generalName,
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         LDAPRequestParams *request,
         char **pDomainName,
         void *plContext)

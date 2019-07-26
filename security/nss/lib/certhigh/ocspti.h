@@ -72,7 +72,7 @@ typedef struct ocspTBSRequestStr ocspTBSRequest;
 
 
 struct CERTOCSPRequestStr {
-    PRArenaPool *arena;			
+    PLArenaPool *arena;			
     ocspTBSRequest *tbsRequest;
     ocspSignature *optionalSignature;
 };
@@ -144,7 +144,7 @@ struct ocspSignatureStr {
 
 
 struct ocspSingleRequestStr {
-    PRArenaPool *arena;			
+    PLArenaPool *arena;			
 
 
     CERTOCSPCertID *reqCert;
@@ -169,7 +169,7 @@ struct CERTOCSPCertIDStr {
     SECItem issuerSHA1KeyHash;		
     SECItem issuerMD5KeyHash;              
     SECItem issuerMD2KeyHash;
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
 };
 
 
@@ -209,7 +209,7 @@ typedef enum {
 
 
 struct CERTOCSPResponseStr {
-    PRArenaPool *arena;			
+    PLArenaPool *arena;			
     SECItem responseStatus;		
     ocspResponseStatus statusValue;	
     ocspResponseBytes *responseBytes;	
@@ -284,7 +284,7 @@ struct ocspResponderIDStr {
 
 
 struct CERTOCSPSingleResponseStr {
-    PRArenaPool *arena;			
+    PLArenaPool *arena;			
 
 
     CERTOCSPCertID *certID;

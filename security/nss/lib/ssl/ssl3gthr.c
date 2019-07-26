@@ -281,14 +281,16 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     do {
+	PRBool handleRecordNow = PR_FALSE;
+
+	ssl_GetSSL3HandshakeLock(ss);
+
 	
 
 
 
-	ssl_GetSSL3HandshakeLock(ss);
-	rv = ss->ssl3.hs.restartTarget == NULL ? SECSuccess : SECFailure;
-	ssl_ReleaseSSL3HandshakeLock(ss);
-	if (rv != SECSuccess) {
+	if (ss->ssl3.hs.restartTarget) {
+	    ssl_ReleaseSSL3HandshakeLock(ss);
 	    PORT_SetError(PR_WOULD_BLOCK_ERROR);
 	    return (int) SECFailure;
 	}
@@ -298,13 +300,17 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
 
 
-	if (ss->ssl3.hs.msgState.buf != NULL) {
+	if (ss->ssl3.hs.msgState.buf) {
 	    if (ss->ssl3.hs.msgState.len == 0) {
 		ss->ssl3.hs.msgState.buf = NULL;
+	    } else {
+		handleRecordNow = PR_TRUE;
 	    }
 	}
 
-	if (ss->ssl3.hs.msgState.buf != NULL) {
+	ssl_ReleaseSSL3HandshakeLock(ss);
+
+	if (handleRecordNow) {
 	    
 
 

@@ -140,11 +140,11 @@ nsslowkey_FindKeyNicknameByPublicKey(NSSLOWKEYDBHandle *handle,
 
 
 
-SECStatus LGEC_FillParams(PRArenaPool *arena, const SECItem *encodedParams, 
+SECStatus LGEC_FillParams(PLArenaPool *arena, const SECItem *encodedParams,
     ECParams *params);
 
 
-SECStatus LGEC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
+SECStatus LGEC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
 	      const ECParams *srcParams);
 #endif
 SEC_END_PROTOS

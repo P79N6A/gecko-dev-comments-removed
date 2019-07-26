@@ -22,7 +22,7 @@ static  SECMODModule *
 secmod_NewModule(void)
 {
     SECMODModule *newMod;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
 
 
     
@@ -730,7 +730,7 @@ secmod_mkTokenChild(char **next, int *length, char *child, CK_SLOT_ID id)
 #define TOKEN_STRING " tokens=["
 
 char *
-secmod_MkAppendTokensList(PRArenaPool *arena, char *oldParam, char *newToken, 
+secmod_MkAppendTokensList(PLArenaPool *arena, char *oldParam, char *newToken,
 			CK_SLOT_ID newID, char **children, CK_SLOT_ID *ids)
 {
     char *rawParam = NULL;	

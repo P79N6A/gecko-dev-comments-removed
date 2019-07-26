@@ -712,7 +712,7 @@ NSSBase64Decoder_Destroy (NSSBase64Decoder *data, PRBool abort_p)
 
 
 SECItem *
-NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
+NSSBase64_DecodeBuffer (PLArenaPool *arenaOpt, SECItem *outItemOpt,
 			const char *inStr, unsigned int inLen)
 {
     SECItem *out_item = NULL;

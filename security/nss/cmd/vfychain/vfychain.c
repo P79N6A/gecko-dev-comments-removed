@@ -1,13 +1,13 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/****************************************************************************
- *  Read in a cert chain from one or more files, and verify the chain for
- *  some usage.
- *                                                                          *
- *  This code was modified from other code also kept in the NSS directory.
- ****************************************************************************/ 
+
+
+
+
+
+
+
+
+ 
 
 #include <stdio.h>
 #include <string.h>
@@ -27,17 +27,17 @@
 #include "ocsp.h"
 
 
-/* #include <stdlib.h> */
-/* #include <errno.h> */
-/* #include <fcntl.h> */
-/* #include <stdarg.h> */
+
+
+
+
 
 #include "nspr.h"
 #include "plgetopt.h"
 #include "prio.h"
 #include "nss.h"
 
-/* #include "vfyutil.h" */
+
 
 #define RD_BUF_SIZE (60 * 1024)
 
@@ -91,11 +91,11 @@ Usage(const char *progName)
     exit(1);
 }
 
-/**************************************************************************
-** 
-** Error and information routines.
-**
-**************************************************************************/
+
+
+
+
+
 
 void
 errWarn(char *function)
@@ -108,8 +108,8 @@ void
 exitErr(char *function)
 {
     errWarn(function);
-    /* Exit gracefully. */
-    /* ignoring return value of NSS_Shutdown as code exits with 1 anyway*/
+    
+    
     (void) NSS_Shutdown();
     PR_Cleanup();
     exit(1);
@@ -168,14 +168,14 @@ getCert(const char *name, PRBool isAscii, const char * progName)
 
     defaultDB = CERT_GetDefaultCertDB();
 
-    /* First, let's try to find the cert in existing DB. */
+    
     cert = CERT_FindCertByNicknameOrEmailAddr(defaultDB, name);
     if (cert) {
         return cert;
     }
 
-    /* Don't have a cert with name "name" in the DB. Try to
-     * open a file with such name and get the cert from there.*/
+    
+
     fd = PR_Open(name, PR_RDONLY, 0777); 
     if (!fd) {
 	PRErrorCode err = PR_GetError();
@@ -191,15 +191,15 @@ getCert(const char *name, PRBool isAscii, const char * progName)
 	return cert;
     }
 
-    if (!item.len) { /* file was empty */
+    if (!item.len) { 
 	fprintf(stderr, "cert file %s was empty.\n", name);
 	return cert;
     }
 
     cert = CERT_NewTempCertificate(defaultDB, &item, 
-                                   NULL     /* nickname */, 
-                                   PR_FALSE /* isPerm */, 
-				   PR_TRUE  /* copyDER */);
+                                   NULL     , 
+                                   PR_FALSE , 
+				   PR_TRUE  );
     if (!cert) {
 	PRErrorCode err = PR_GetError();
 	fprintf(stderr, "couldn't import %s, %d = %s\n",
@@ -232,13 +232,13 @@ getCert(const char *name, PRBool isAscii, const char * progName)
 #define REV_METHOD_INDEX_MAX  4
 
 typedef struct RevMethodsStruct {
-    uint testType;
+    unsigned int testType;
     char *testTypeStr;
-    uint testFlags;
+    unsigned int testFlags;
     char *testFlagsStr;
-    uint methodType;
+    unsigned int methodType;
     char *methodTypeStr;
-    uint methodFlags;
+    unsigned int methodFlags;
     char *methodFlagsStr;
 } RevMethods;
 
@@ -248,10 +248,10 @@ SECStatus
 parseRevMethodsAndFlags()
 {
     int i;
-    uint testType = 0;
+    unsigned int testType = 0;
 
     for(i = 0;i < REV_METHOD_INDEX_MAX;i++) {
-        /* testType */
+        
         if (revMethodsData[i].testTypeStr) {
             char *typeStr = revMethodsData[i].testTypeStr;
 
@@ -266,10 +266,10 @@ parseRevMethodsAndFlags()
             return SECFailure;
         }
         revMethodsData[i].testType = testType;
-        /* testFlags */
+        
         if (revMethodsData[i].testFlagsStr) {
             char *flagStr = revMethodsData[i].testFlagsStr;
-            uint testFlags = 0;
+            unsigned int testFlags = 0;
 
             if (PORT_Strstr(flagStr, REVCONFIG_TEST_TESTLOCALINFOFIRST_STR)) {
                 testFlags |= CERT_REV_MI_TEST_ALL_LOCAL_INFORMATION_FIRST;
@@ -279,10 +279,10 @@ parseRevMethodsAndFlags()
             }
             revMethodsData[i].testFlags = testFlags;
         }
-        /* method type */
+        
         if (revMethodsData[i].methodTypeStr) {
             char *methodStr = revMethodsData[i].methodTypeStr;
-            uint methodType = 0;
+            unsigned int methodType = 0;
             
             if (!PORT_Strcmp(methodStr, REVCONFIG_METHOD_CRL_STR)) {
                 methodType = REVCONFIG_METHOD_CRL;
@@ -298,10 +298,10 @@ parseRevMethodsAndFlags()
             revMethodsData[i].testType = REVCONFIG_TEST_UNDEFINED;
             continue;
         }
-        /* method flags */
+        
         if (revMethodsData[i].methodFlagsStr) {
             char *flagStr = revMethodsData[i].methodFlagsStr;
-            uint methodFlags = 0;
+            unsigned int methodFlags = 0;
 
             if (!PORT_Strstr(flagStr, REVCONFIG_METHOD_DONOTUSEMETHOD_STR)) {
                 methodFlags |= CERT_REV_M_TEST_USING_THIS_METHOD;
@@ -331,7 +331,7 @@ SECStatus
 configureRevocationParams(CERTRevocationFlags *flags)
 {
    int i;
-   uint testType = REVCONFIG_TEST_UNDEFINED;
+   unsigned int testType = REVCONFIG_TEST_UNDEFINED;
    static CERTRevocationTests *revTests = NULL;
    PRUint64 *revFlags;
 
@@ -350,9 +350,9 @@ configureRevocationParams(CERTRevocationFlags *flags)
            revTests->preferred_methods = 0;
            revFlags = revTests->cert_rev_flags_per_method;
        }
-       /* Set the number of the methods independently to the max number of
-        * methods. If method flags are not set it will be ignored due to
-        * default DO_NOT_USE flag. */
+       
+
+
        revTests->number_of_defined_methods = cert_revocation_method_count;
        revTests->cert_rev_method_independent_flags |=
            revMethodsData[i].testFlags;
@@ -436,7 +436,7 @@ main(int argc, char *argv[], char *envp[])
     optstate = PL_CreateOptState(argc, argv, "ab:c:d:efg:h:i:m:o:prs:tTu:vw:W:");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
-	case  0  : /* positional parameter */  goto breakout;
+	case  0  :   goto breakout;
 	case 'a' : isAscii  = PR_TRUE;                        break;
 	case 'b' : secStatus = DER_AsciiToTime(&time, optstate->value);
 	           if (secStatus != SECSuccess) Usage(progName); break;
@@ -528,16 +528,16 @@ breakout:
         goto punt;
     }
 
-    /* Set our password function callback. */
+    
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-    /* Initialize the NSS libraries. */
+    
     if (certDir) {
 	secStatus = NSS_Init(certDir);
     } else {
 	secStatus = NSS_NoDB_Init(NULL);
 
-	/* load the builtins */
+	
 	SECMOD_AddNewModule("Builtins", DLL_PREFIX"nssckbi."DLL_SUFFIX, 0, 0);
     }
     if (secStatus != SECSuccess) {
@@ -558,7 +558,7 @@ breakout:
 	case 'a' : isAscii  = PR_TRUE;                        break;
 	case 'r' : isAscii  = PR_FALSE;                       break;
 	case 't' : trusted  = PR_TRUE;                       break;
-	case  0  : /* positional parameter */
+	case  0  : 
             if (usePkix < 2 && trusted) {
                 fprintf(stderr, "Cert trust flag can be used only with"
                         " CERT_PKIXVerifyCert(-pp) function.\n");
@@ -578,16 +578,16 @@ breakout:
     if (status == PL_OPT_BAD || !firstCert)
 	Usage(progName);
 
-    /* Initialize log structure */
+    
     log.arena = PORT_NewArena(512);
     log.head = log.tail = NULL;
     log.count = 0;
 
     do {
         if (usePkix < 2) {
-            /* NOW, verify the cert chain. */
+            
             if (usePkix) {
-                /* Use old API with libpkix validation lib */
+                
                 CERT_SetUsePKIXForValidation(PR_TRUE);
             }
             if (!time)
@@ -595,12 +595,12 @@ breakout:
 
             defaultDB = CERT_GetDefaultCertDB();
             secStatus = CERT_VerifyCertificate(defaultDB, firstCert, 
-                                               PR_TRUE /* check sig */,
+                                               PR_TRUE ,
                                                certUsage, 
                                                time,
-                                               &pwdata, /* wincx  */
-                                               &log, /* error log */
-                                           NULL);/* returned usages */
+                                               &pwdata, 
+                                               &log, 
+                                           NULL);
         } else do {
                 static CERTValOutParam cvout[4];
                 static CERTValInParam cvin[7];
@@ -611,7 +611,7 @@ breakout:
                 static CERTRevocationFlags rev;
                 
                 if (oidStr) {
-                    PRArenaPool *arena;
+                    PLArenaPool *arena;
                     SECOidData od;
                     memset(&od, 0, sizeof od);
                     od.offset = SEC_OID_UNKNOWN;
@@ -691,8 +691,8 @@ breakout:
                 cvout[1].type = cert_po_certList;
                 cvout[1].value.pointer.chain = NULL;
                 
-                /* setting pointer to CERTVerifyLog. Initialized structure
-                 * will be used CERT_PKIXVerifyCert */
+                
+
                 cvout[2].type = cert_po_errorLog;
                 cvout[2].value.pointer.log = &log;
                 
@@ -707,14 +707,14 @@ breakout:
                 builtChain = cvout[1].value.pointer.chain;
             } while (0);
         
-        /* Display validation results */
+        
         if (secStatus != SECSuccess || log.count > 0) {
             CERTVerifyLogNode *node = NULL;
             fprintf(stderr, "Chain is bad!\n");
             
             SECU_displayVerifyLog(stderr, &log, verbose); 
-            /* Have cert refs in the log only in case of failure.
-             * Destroy them. */
+            
+
             for (node = log.head; node; node = node->next) {
                 if (node->cert)
                     CERT_DestroyCertificate(node->cert);
@@ -753,7 +753,7 @@ breakout:
         }
     } while (--vfyCounts > 0);
 
-    /* Need to destroy CERTVerifyLog arena at the end */
+    
     PORT_FreeArena(log.arena, PR_FALSE);
 
 punt:

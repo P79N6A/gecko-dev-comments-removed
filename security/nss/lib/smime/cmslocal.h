@@ -56,7 +56,7 @@ NSS_CMSCipherContext_StartDecrypt(PK11SymKey *key, SECAlgorithmID *algid);
 
 
 extern NSSCMSCipherContext *
-NSS_CMSCipherContext_StartEncrypt(PRArenaPool *poolp, PK11SymKey *key, SECAlgorithmID *algid);
+NSS_CMSCipherContext_StartEncrypt(PLArenaPool *poolp, PK11SymKey *key, SECAlgorithmID *algid);
 
 extern void
 NSS_CMSCipherContext_Destroy(NSSCMSCipherContext *cc);
@@ -188,13 +188,13 @@ extern NSSCMSRecipientEncryptedKey *NSS_CMSRecipientEncryptedKey_Create(PLArenaP
 
 
 extern void **
-NSS_CMSArray_Alloc(PRArenaPool *poolp, int n);
+NSS_CMSArray_Alloc(PLArenaPool *poolp, int n);
 
 
 
 
 extern SECStatus
-NSS_CMSArray_Add(PRArenaPool *poolp, void ***array, void *obj);
+NSS_CMSArray_Add(PLArenaPool *poolp, void ***array, void *obj);
 
 
 
@@ -231,7 +231,7 @@ NSS_CMSArray_Sort(void **primary, int (*compare)(void *,void *), void **secondar
 
 
 extern NSSCMSAttribute *
-NSS_CMSAttribute_Create(PRArenaPool *poolp, SECOidTag oidtag, SECItem *value, PRBool encoded);
+NSS_CMSAttribute_Create(PLArenaPool *poolp, SECOidTag oidtag, SECItem *value, PRBool encoded);
 
 
 
@@ -271,7 +271,7 @@ NSS_CMSAttribute_CompareValue(NSSCMSAttribute *attr, SECItem *av);
 
 
 extern SECItem *
-NSS_CMSAttributeArray_Encode(PRArenaPool *poolp, NSSCMSAttribute ***attrs, SECItem *dest);
+NSS_CMSAttributeArray_Encode(PLArenaPool *poolp, NSSCMSAttribute ***attrs, SECItem *dest);
 
 
 

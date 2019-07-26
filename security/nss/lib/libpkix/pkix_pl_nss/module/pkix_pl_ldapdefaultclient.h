@@ -56,7 +56,7 @@ struct PKIX_PL_LdapDefaultClientStruct {
         PRPollDesc pollDesc;
         void *callbackList; 
         LDAPBindAPI *bindAPI;
-        PRArenaPool *arena;
+        PLArenaPool *arena;
         PRTime lastIO;
         void *sendBuf;
         PKIX_UInt32 bytesToWrite;

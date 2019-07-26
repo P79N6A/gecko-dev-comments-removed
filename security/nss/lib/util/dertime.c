@@ -26,7 +26,7 @@ static const PRTime January1st10000 = LL_INIT(0x0384440c, 0xcc736000);
 
 
 SECStatus
-DER_TimeToUTCTimeArena(PRArenaPool* arenaOpt, SECItem *dst, int64 gmttime)
+DER_TimeToUTCTimeArena(PLArenaPool* arenaOpt, SECItem *dst, PRTime gmttime)
 {
     PRExplodedTime printableTime;
     unsigned char *d;
@@ -74,7 +74,7 @@ DER_TimeToUTCTimeArena(PRArenaPool* arenaOpt, SECItem *dst, int64 gmttime)
 }
 
 SECStatus
-DER_TimeToUTCTime(SECItem *dst, int64 gmttime)
+DER_TimeToUTCTime(SECItem *dst, PRTime gmttime)
 {
     return DER_TimeToUTCTimeArena(NULL, dst, gmttime);
 }
@@ -95,13 +95,13 @@ der_TimeStringToTime(PRTime *dst, const char *string, int generalized,
 
 
 SECStatus
-DER_AsciiToTime(int64 *dst, const char *string)
+DER_AsciiToTime(PRTime *dst, const char *string)
 {
     return der_TimeStringToTime(dst, string, UTC_STRING, NULL);
 }
 
 SECStatus
-DER_UTCTimeToTime(int64 *dst, const SECItem *time)
+DER_UTCTimeToTime(PRTime *dst, const SECItem *time)
 {
     
 
@@ -143,7 +143,7 @@ DER_UTCTimeToTime(int64 *dst, const SECItem *time)
 
 
 SECStatus
-DER_TimeToGeneralizedTimeArena(PRArenaPool* arenaOpt, SECItem *dst, int64 gmttime)
+DER_TimeToGeneralizedTimeArena(PLArenaPool* arenaOpt, SECItem *dst, PRTime gmttime)
 {
     PRExplodedTime printableTime;
     unsigned char *d;
@@ -188,14 +188,14 @@ DER_TimeToGeneralizedTimeArena(PRArenaPool* arenaOpt, SECItem *dst, int64 gmttim
 }
 
 SECStatus
-DER_TimeToGeneralizedTime(SECItem *dst, int64 gmttime)
+DER_TimeToGeneralizedTime(SECItem *dst, PRTime gmttime)
 {
     return DER_TimeToGeneralizedTimeArena(NULL, dst, gmttime);
 }
 
 
 SECStatus
-DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time)
+DER_GeneralizedTimeToTime(PRTime *dst, const SECItem *time)
 {
     
 
@@ -234,7 +234,7 @@ der_TimeStringToTime(PRTime *dst, const char *string, int generalized,
 {
     PRExplodedTime genTime;
     long hourOff = 0, minOff = 0;
-    uint16 century;
+    PRUint16 century;
     char signum;
 
     if (string == NULL || dst == NULL) {

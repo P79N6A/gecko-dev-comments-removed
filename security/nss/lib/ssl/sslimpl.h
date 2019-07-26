@@ -608,7 +608,7 @@ struct sslSessionIDStr {
 	} ssl2;
 	struct {
 	    
-	    uint8                 sessionIDLength;
+	    PRUint8               sessionIDLength;
 	    SSL3Opaque            sessionID[SSL3_SESSIONID_BYTES];
 
 	    ssl3CipherSuite       cipherSuite;
@@ -865,7 +865,7 @@ struct ssl3StateStr {
 			
 
 
-    PRArenaPool *        peerCertArena;  
+    PLArenaPool *        peerCertArena;
 			    
     void *               peerCertChain;     
 			    
@@ -919,26 +919,26 @@ typedef struct SSLWrappedSymWrappingKeyStr {
 } SSLWrappedSymWrappingKey;
 
 typedef struct SessionTicketStr {
-    uint16                ticket_version;
+    PRUint16              ticket_version;
     SSL3ProtocolVersion   ssl_version;
     ssl3CipherSuite       cipher_suite;
     SSLCompressionMethod  compression_method;
     SSLSignType           authAlgorithm;
-    uint32                authKeyBits;
+    PRUint32              authKeyBits;
     SSLKEAType            keaType;
-    uint32                keaKeyBits;
+    PRUint32              keaKeyBits;
     
 
 
 
-    uint8                 ms_is_wrapped;
+    PRUint8               ms_is_wrapped;
     SSLKEAType            exchKeyType; 
     CK_MECHANISM_TYPE     msWrapMech;
-    uint16                ms_length;
+    PRUint16              ms_length;
     SSL3Opaque            master_secret[48];
     ClientIdentity        client_identity;
     SECItem               peer_cert;
-    uint32                timestamp;
+    PRUint32              timestamp;
     SECItem               srvName; 
 }  SessionTicket;
 
@@ -1535,7 +1535,7 @@ typedef enum { ec_noName     = 0,
 	       ec_pastLastName
 } ECName;
 
-extern SECStatus ssl3_ECName2Params(PRArenaPool *arena, ECName curve,
+extern SECStatus ssl3_ECName2Params(PLArenaPool *arena, ECName curve,
 				   SECKEYECParams *params);
 ECName	ssl3_GetCurveWithECKeyStrength(PRUint32 curvemsk, int requiredECCbits);
 

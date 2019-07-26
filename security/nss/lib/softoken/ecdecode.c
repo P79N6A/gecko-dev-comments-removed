@@ -21,7 +21,7 @@
 
 
 static SECItem *
-hexString2SECItem(PRArenaPool *arena, SECItem *item, const char *str)
+hexString2SECItem(PLArenaPool *arena, SECItem *item, const char *str)
 {
     int i = 0;
     int byteval = 0;
@@ -63,7 +63,7 @@ hexString2SECItem(PRArenaPool *arena, SECItem *item, const char *str)
 
 
 SECStatus
-EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
+EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
 	      const ECParams *srcParams)
 {
     SECStatus rv = SECFailure;
@@ -147,7 +147,7 @@ cleanup:
 }
 
 SECStatus
-EC_FillParams(PRArenaPool *arena, const SECItem *encodedParams, 
+EC_FillParams(PLArenaPool *arena, const SECItem *encodedParams,
     ECParams *params)
 {
     SECStatus rv = SECFailure;
@@ -571,7 +571,7 @@ cleanup:
 SECStatus
 EC_DecodeParams(const SECItem *encodedParams, ECParams **ecparams)
 {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     ECParams *params;
     SECStatus rv = SECFailure;
 

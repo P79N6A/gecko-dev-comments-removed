@@ -57,7 +57,7 @@
 
 static PKIX_Error *
 pkix_pl_LdapDefaultClient_MakeBind(
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         PKIX_Int32 versionData,
         LDAPBindAPI *bindAPI,
         PKIX_UInt32 msgNum,
@@ -154,7 +154,7 @@ cleanup:
 
 static PKIX_Error *
 pkix_pl_LdapDefaultClient_MakeUnbind(
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         PKIX_UInt32 msgNum,
         SECItem **pUnbindMsg,
         void *plContext)
@@ -221,7 +221,7 @@ cleanup:
 
 static PKIX_Error *
 pkix_pl_LdapDefaultClient_MakeAbandon(
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         PKIX_UInt32 msgNum,
         SECItem **pAbandonMsg,
         void *plContext)
@@ -289,7 +289,7 @@ cleanup:
 
 static PKIX_Error *
 pkix_pl_LdapDefaultClient_DecodeBindResponse(
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         SECItem *src,
         LDAPMessage *pBindResponse,
         SECStatus *pStatus,
@@ -576,7 +576,7 @@ pkix_pl_LdapDefaultClient_CreateHelper(
         PKIX_PL_LdapDefaultClient *ldapDefaultClient = NULL;
         PKIX_PL_Socket_Callback *callbackList;
         PRFileDesc *fileDesc = NULL;
-        PRArenaPool *arena = NULL;
+        PLArenaPool *arena = NULL;
 
         PKIX_ENTER(LDAPDEFAULTCLIENT, "pkix_pl_LdapDefaultClient_CreateHelper");
         PKIX_NULLCHECK_TWO(socket, pClient);
@@ -2167,7 +2167,7 @@ cleanup:
 
 static PKIX_Error *
 pkix_pl_LdapDefaultClient_MakeAndFilter(
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         LDAPNameComponent **nameComponents,
         LDAPFilter **pFilter,
         void *plContext)

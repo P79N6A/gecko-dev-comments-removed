@@ -292,7 +292,7 @@ pkix_pl_X500Name_CreateFromUtf8(
         void *plContext)
 {
         PKIX_PL_X500Name *x500Name = NULL;
-        PRArenaPool *arena = NULL;
+        PLArenaPool *arena = NULL;
         CERTName *nssDN = NULL;
         SECItem *resultSecItem = NULL;
         
@@ -396,7 +396,7 @@ PKIX_PL_X500Name_CreateFromCERTName(
         PKIX_PL_X500Name **pName,
         void *plContext)
 {
-        PRArenaPool *arena = NULL;
+        PLArenaPool *arena = NULL;
         SECStatus rv = SECFailure;
         PKIX_PL_X500Name *x500Name = NULL;
 
@@ -574,7 +574,7 @@ cleanup:
 PKIX_Error *
 pkix_pl_X500Name_GetDERName(
         PKIX_PL_X500Name *xname,
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         SECItem **pDERName,
         void *plContext)
 {

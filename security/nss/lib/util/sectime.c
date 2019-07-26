@@ -53,7 +53,7 @@ DER_TimeChoiceDayToAscii(SECItem *timechoice)
 }
 
 char *
-CERT_UTCTime2FormattedAscii (int64 utcTime, char *format)
+CERT_UTCTime2FormattedAscii(PRTime utcTime, char *format)
 {
     PRExplodedTime printableTime; 
     char *timeString;
@@ -73,7 +73,7 @@ CERT_UTCTime2FormattedAscii (int64 utcTime, char *format)
     return (timeString);
 }
 
-char *CERT_GenTime2FormattedAscii (int64 genTime, char *format)
+char *CERT_GenTime2FormattedAscii(PRTime genTime, char *format)
 {
     PRExplodedTime printableTime; 
     char *timeString;
@@ -101,7 +101,7 @@ char *CERT_GenTime2FormattedAscii (int64 genTime, char *format)
 static char *
 DecodeUTCTime2FormattedAscii (SECItem *utcTimeDER,  char *format)
 {
-    int64 utcTime;
+    PRTime utcTime;
     int rv;
    
     rv = DER_UTCTimeToTime(&utcTime, utcTimeDER);
@@ -149,7 +149,7 @@ SECStatus DER_DecodeTimeChoice(PRTime* output, const SECItem* input)
 
 
 
-SECStatus DER_EncodeTimeChoice(PRArenaPool* arena, SECItem* output, PRTime input)
+SECStatus DER_EncodeTimeChoice(PLArenaPool* arena, SECItem* output, PRTime input)
 {
     SECStatus rv;
 

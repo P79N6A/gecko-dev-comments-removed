@@ -1254,11 +1254,6 @@ int main(int argc, char **argv)
 		    FPRINTF(stderr, "%s: PR_Poll returned zero!\n", progName);
 		    return 1;
 		}
-		
-
-
-
-		milliPause(1);
 		status = PR_GetConnectStatus(pollset);
 		if (status == PR_SUCCESS) {
 		    break;

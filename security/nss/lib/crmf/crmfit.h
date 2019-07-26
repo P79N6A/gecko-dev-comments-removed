@@ -9,7 +9,7 @@
 
 struct CRMFCertReqMessagesStr {
     CRMFCertReqMsg **messages;
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
 };
 
 struct CRMFCertExtensionStr {
@@ -107,7 +107,7 @@ struct CRMFCertRequestStr {
     
 
 
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     PRUint32     requestID; 
 
 
@@ -125,7 +125,7 @@ struct CRMFCertReqMsgStr {
     SECItem                     derPOP;
     
 
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     PRBool       isDecoded;
 };
 

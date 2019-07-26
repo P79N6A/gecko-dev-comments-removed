@@ -40,7 +40,7 @@ static PRLock *nsscmstypeHashLock;
 
 static PLHashTable *nsscmstypeHash;
 
-static PRArenaPool *nsscmstypeArena;
+static PLArenaPool *nsscmstypeArena;
 
 
 

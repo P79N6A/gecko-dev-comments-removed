@@ -18,7 +18,7 @@ ocspSignature *
 ocsp_GetResponseSignature(CERTOCSPResponse *response);
 
 SECItem *
-ocsp_DigestValue(PRArenaPool *arena, SECOidTag digestAlg,
+ocsp_DigestValue(PLArenaPool *arena, SECOidTag digestAlg,
                  SECItem *fill, const SECItem *src);
 
 PRBool
@@ -37,13 +37,13 @@ ocsp_VerifyResponseSignature(CERTCertificate *signerCert,
 CERTOCSPRequest *
 cert_CreateSingleCertOCSPRequest(CERTOCSPCertID *certID, 
                                  CERTCertificate *singleCert, 
-                                 int64 time, 
+                                 PRTime time,
                                  PRBool addServiceLocator,
                                  CERTCertificate *signerCert);
 
 SECStatus
 ocsp_GetCachedOCSPResponseStatusIfFresh(CERTOCSPCertID *certID, 
-                                        int64 time, 
+                                        PRTime time,
                                         PRBool ignoreOcspFailureMode,
                                         SECStatus *rvOcsp,
                                         SECErrorCodes *missingResponseError);
@@ -85,7 +85,7 @@ cert_ProcessOCSPResponse(CERTCertDBHandle *handle,
                          CERTOCSPResponse *response, 
                          CERTOCSPCertID   *certID,
                          CERTCertificate  *signerCert,
-                         int64             time,
+                         PRTime            time,
                          PRBool           *certIDWasConsumed,
                          SECStatus        *cacheUpdateStatus);
 

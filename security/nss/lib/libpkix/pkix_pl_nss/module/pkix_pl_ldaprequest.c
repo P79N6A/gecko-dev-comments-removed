@@ -615,7 +615,7 @@ pkix_pl_LdapRequest_RegisterSelf(void *plContext)
 
 PKIX_Error *
 pkix_pl_LdapRequest_Create(
-        PRArenaPool *arena,
+        PLArenaPool *arena,
         PKIX_UInt32 msgnum,
         char *issuerDN,
         ScopeType scope,

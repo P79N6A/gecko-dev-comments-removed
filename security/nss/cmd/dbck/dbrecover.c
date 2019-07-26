@@ -174,7 +174,7 @@ userSaysDeleteCert(CERTCertificate **certs, int nCerts,
                    int errtype, dbRestoreInfo *info, int *certNums)
 {
     char response[32];
-    int32 nb;
+    PRInt32 nb;
     int i;
     
     if (info->promptUser[errtype] == PR_FALSE)

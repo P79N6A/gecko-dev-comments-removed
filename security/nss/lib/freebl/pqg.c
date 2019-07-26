@@ -228,8 +228,8 @@ PQG_Check(const PQGParams *params)
 	return SECFailure;
     }
 
-    L = PQG_GetLength(&params->prime)*BITS_PER_BYTE;
-    N = PQG_GetLength(&params->subPrime)*BITS_PER_BYTE;
+    L = PQG_GetLength(&params->prime)*PR_BITS_PER_BYTE;
+    N = PQG_GetLength(&params->subPrime)*PR_BITS_PER_BYTE;
 
     if (L < 1024) {
 	int j;
@@ -261,8 +261,8 @@ PQG_GetHashType(const PQGParams *params)
 	return HASH_AlgNULL;
     }
 
-    L = PQG_GetLength(&params->prime)*BITS_PER_BYTE;
-    N = PQG_GetLength(&params->subPrime)*BITS_PER_BYTE;
+    L = PQG_GetLength(&params->prime)*PR_BITS_PER_BYTE;
+    N = PQG_GetLength(&params->subPrime)*PR_BITS_PER_BYTE;
     return getFirstHash(L, N);
 }
 
@@ -271,7 +271,7 @@ PQG_GetHashType(const PQGParams *params)
 
 
 static SECStatus
-getPQseed(SECItem *seed, PRArenaPool* arena)
+getPQseed(SECItem *seed, PLArenaPool* arena)
 {
     SECStatus rv;
 
@@ -443,7 +443,7 @@ const SECItem   *   seed,
     unsigned char U[HASH_LENGTH_MAX];
     SECStatus rv  = SECSuccess;
     mp_err    err = MP_OKAY;
-    int N_bytes = N/BITS_PER_BYTE; 
+    int N_bytes = N/PR_BITS_PER_BYTE; 
     int hashLen = HASH_ResultLen(hashtype);
     int offset = 0;
 
@@ -485,7 +485,7 @@ cleanup:
 
 
 
-#define MAX_ST_SEED_BITS HASH_LENGTH_MAX*BITS_PER_BYTE
+#define MAX_ST_SEED_BITS (HASH_LENGTH_MAX*PR_BITS_PER_BYTE)
 SECStatus
 makePrimefromPrimesShaweTaylor(
       HASH_HashType hashtype,	
@@ -504,7 +504,7 @@ makePrimefromPrimesShaweTaylor(
     mp_int two_length_minus_1;
     SECStatus rv = SECFailure;
     int hashlen = HASH_ResultLen(hashtype);
-    int outlen = hashlen*BITS_PER_BYTE;
+    int outlen = hashlen*PR_BITS_PER_BYTE;
     int offset;
     unsigned char bit, mask;
     
@@ -580,7 +580,7 @@ makePrimefromPrimesShaweTaylor(
 
 
 
-    offset = (outlen*iterations - length)/BITS_PER_BYTE;
+    offset = (outlen*iterations - length)/PR_BITS_PER_BYTE;
     
 
     bit = 1 << ((length-1) & 0x7); 
@@ -734,7 +734,7 @@ const SECItem   *   input_seed,
     mp_int one;
     SECStatus rv = SECFailure;
     int hashlen = HASH_ResultLen(hashtype);
-    int outlen = hashlen*BITS_PER_BYTE;
+    int outlen = hashlen*PR_BITS_PER_BYTE;
     int offset;
     unsigned char bit, mask;
     unsigned char x[HASH_LENGTH_MAX*2];
@@ -795,7 +795,7 @@ step_5:
 
 
 
-    offset = (outlen - length)/BITS_PER_BYTE;
+    offset = (outlen - length)/PR_BITS_PER_BYTE;
     
 
     bit = 1 << ((length-1) & 0x7); 
@@ -1009,7 +1009,7 @@ const mp_int    *   Q,
     CHECK_MPI_OK( mp_init(&V_n)  );
 
     hashlen = HASH_ResultLen(hashtype);
-    outlen = hashlen*BITS_PER_BYTE; 
+    outlen = hashlen*PR_BITS_PER_BYTE;
 
     
     n = (L - 1) / outlen;
@@ -1237,7 +1237,7 @@ pqg_ParamGen(unsigned int L, unsigned int N, pqgGenType type,
     unsigned int  maxCount;
     HASH_HashType hashtype;
     SECItem      *seed;     
-    PRArenaPool  *arena  = NULL;
+    PLArenaPool  *arena  = NULL;
     PQGParams    *params = NULL;
     PQGVerify    *verify = NULL;
     PRBool passed;
@@ -1253,7 +1253,7 @@ pqg_ParamGen(unsigned int L, unsigned int N, pqgGenType type,
 
     
     
-    if (seedBytes < N/BITS_PER_BYTE || !pParams || !pVfy) {
+    if (seedBytes < N/PR_BITS_PER_BYTE || !pParams || !pVfy) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
@@ -1305,13 +1305,13 @@ pqg_ParamGen(unsigned int L, unsigned int N, pqgGenType type,
     
 
     hashtype = getFirstHash(L,N);
-    outlen = HASH_ResultLen(hashtype)*BITS_PER_BYTE;
+    outlen = HASH_ResultLen(hashtype)*PR_BITS_PER_BYTE;
 
     
     n = (L - 1) / outlen; 
     
     b = (L - 1) % outlen;
-    seedlen = seedBytes * BITS_PER_BYTE;    
+    seedlen = seedBytes * PR_BITS_PER_BYTE;    
 step_5:
     
 
@@ -1737,7 +1737,7 @@ PQG_VerifyParams(const PQGParams *params,
     } else {
 	
 
-	outlen = HASH_ResultLen(hashtype)*BITS_PER_BYTE;
+	outlen = HASH_ResultLen(hashtype)*PR_BITS_PER_BYTE;
 	n = (L - 1) / outlen;
 	offset = vfy->counter * (n + 1) + ((type == FIPS186_1_TYPE) ? 2 : 1);
 	CHECK_SEC_OK( makePfromQandSeed(hashtype, L, N, offset, g, &vfy->seed, 

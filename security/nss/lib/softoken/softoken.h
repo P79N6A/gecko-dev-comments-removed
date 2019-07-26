@@ -137,11 +137,11 @@ SECStatus RSA_DecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
 
 
 
-extern SECStatus EC_FillParams(PRArenaPool *arena,
+extern SECStatus EC_FillParams(PLArenaPool *arena,
                                const SECItem *encodedParams, ECParams *params);
 extern SECStatus EC_DecodeParams(const SECItem *encodedParams, 
 				ECParams **ecparams);
-extern SECStatus EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
+extern SECStatus EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
               			const ECParams *srcParams);
 #endif
 
@@ -159,7 +159,7 @@ extern SECStatus EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
 
 
 
-extern unsigned char * CBC_PadBuffer(PRArenaPool *arena, unsigned char *inbuf, 
+extern unsigned char * CBC_PadBuffer(PLArenaPool *arena, unsigned char *inbuf,
                                      unsigned int inlen, unsigned int *outlen,
 				     int blockSize);
 

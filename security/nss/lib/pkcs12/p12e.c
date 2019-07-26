@@ -62,7 +62,7 @@ typedef struct sec_pkcs12OutputBufferStr sec_pkcs12OutputBuffer;
 
 
 struct SEC_PKCS12SafeInfoStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
 
     
     SECItem pwitem;
@@ -85,7 +85,7 @@ struct SEC_PKCS12SafeInfoStr {
 
 
 struct SEC_PKCS12ExportContextStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     PK11SlotInfo *slot;
     void *wincx;
 
@@ -130,7 +130,7 @@ struct sec_pkcs12_hmac_and_output_info {
 
 
 typedef struct sec_PKCS12EncoderContextStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SEC_PKCS12ExportContext *p12exp;
 
     
@@ -178,7 +178,7 @@ SEC_PKCS12ExportContext *
 SEC_PKCS12CreateExportContext(SECKEYGetPasswordKey pwfn, void *pwfnarg,  
 			      PK11SlotInfo *slot, void *wincx)
 {
-    PRArenaPool *arena = NULL;
+    PLArenaPool *arena = NULL;
     SEC_PKCS12ExportContext *p12ctxt = NULL;
 
     
@@ -583,7 +583,7 @@ loser:
 
 
 sec_PKCS12SafeContents *
-sec_PKCS12CreateSafeContents(PRArenaPool *arena)
+sec_PKCS12CreateSafeContents(PLArenaPool *arena)
 {
     sec_PKCS12SafeContents *safeContents;
 
@@ -613,7 +613,7 @@ loser:
 
 
 SECStatus
-sec_pkcs12_append_bag_to_safe_contents(PRArenaPool *arena, 
+sec_pkcs12_append_bag_to_safe_contents(PLArenaPool *arena,
 				       sec_PKCS12SafeContents *safeContents,
 				       sec_PKCS12SafeBag *safeBag)
 {
@@ -774,7 +774,7 @@ loser:
 
 
 sec_PKCS12CertBag *
-sec_PKCS12NewCertBag(PRArenaPool *arena, SECOidTag certType)
+sec_PKCS12NewCertBag(PLArenaPool *arena, SECOidTag certType)
 {
     sec_PKCS12CertBag *certBag = NULL;
     SECOidData *bagType = NULL;
@@ -818,7 +818,7 @@ loser:
 
 
 sec_PKCS12CRLBag *
-sec_PKCS12NewCRLBag(PRArenaPool *arena, SECOidTag crlType)
+sec_PKCS12NewCRLBag(PLArenaPool *arena, SECOidTag crlType)
 {
     sec_PKCS12CRLBag *crlBag = NULL;
     SECOidData *bagType = NULL;

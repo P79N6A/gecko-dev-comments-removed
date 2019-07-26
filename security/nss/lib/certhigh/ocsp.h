@@ -420,7 +420,7 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
 
 
 extern char *
-CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert);
+CERT_GetOCSPAuthorityInfoAccessLocation(const CERTCertificate *cert);
 
 
 
@@ -696,6 +696,20 @@ CERT_CreateEncodedOCSPSuccessResponse(
 
 extern SECItem*
 CERT_CreateEncodedOCSPErrorResponse(PLArenaPool *arena, int error);
+
+
+
+
+
+
+
+
+
+
+
+
+SECItem* CERT_PostOCSPRequest(PLArenaPool *arena, const char *location,
+                              const SECItem *encodedRequest);
 
 
 SEC_END_PROTOS
