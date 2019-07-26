@@ -1131,6 +1131,8 @@ public:
     
     void RemoveObjectFromGraph(void *aPtr);
 
+    void PrepareForGarbageCollection();
+
     bool Collect(ccType aCCType,
                  SliceBudget &aBudget,
                  nsICycleCollectorListener *aManualListener);
@@ -2896,6 +2898,24 @@ nsCycleCollector::Collect(ccType aCCType,
 
 
 
+
+
+void nsCycleCollector::PrepareForGarbageCollection()
+{
+    if (mIncrementalPhase == IdlePhase) {
+        MOZ_ASSERT(mGraph.IsEmpty(), "Non-empty graph when idle");
+        MOZ_ASSERT(!mBuilder, "Non-null builder when idle");
+        return;
+    }
+
+    SliceBudget unlimitedBudget;
+    PrintPhase("PrepareForGarbageCollection");
+    Collect(ScheduledCC, unlimitedBudget, nullptr);
+    MOZ_ASSERT(mIncrementalPhase == IdlePhase);
+}
+
+
+
 static const uint32_t kMinConsecutiveUnmerged = 3;
 static const uint32_t kMaxConsecutiveMerged = 3;
 
@@ -3386,6 +3406,20 @@ nsCycleCollector_scheduledCollect()
     PROFILER_LABEL("CC", "nsCycleCollector_scheduledCollect");
     SliceBudget unlimitedBudget;
     data->mCollector->Collect(ScheduledCC, unlimitedBudget, nullptr);
+}
+
+void
+nsCycleCollector_prepareForGarbageCollection()
+{
+    CollectorData *data = sCollectorData.get();
+
+    MOZ_ASSERT(data);
+
+    if (!data->mCollector) {
+        return;
+    }
+
+    data->mCollector->PrepareForGarbageCollection();
 }
 
 void
