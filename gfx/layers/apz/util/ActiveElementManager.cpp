@@ -14,6 +14,9 @@
 #include "base/message_loop.h"
 #include "base/task.h"
 
+#define AEM_LOG(...)
+
+
 namespace mozilla {
 namespace layers {
 
@@ -41,6 +44,7 @@ ActiveElementManager::SetTargetElement(nsIDOMEventTarget* aTarget)
 {
   if (mTarget) {
     
+    AEM_LOG("Multiple fingers on-screen, clearing target element\n");
     CancelTask();
     ResetActive();
     ResetTouchBlockState();
@@ -48,14 +52,17 @@ ActiveElementManager::SetTargetElement(nsIDOMEventTarget* aTarget)
   }
 
   mTarget = do_QueryInterface(aTarget);
+  AEM_LOG("Setting target element to %p\n", mTarget.get());
   TriggerElementActivation();
 }
 
 void
 ActiveElementManager::HandleTouchStart(bool aCanBePan)
 {
+  AEM_LOG("Touch start, aCanBePan: %d\n", aCanBePan);
   if (mCanBePanSet) {
     
+    AEM_LOG("Multiple fingers on-screen, clearing touch block state\n");
     CancelTask();
     ResetActive();
     ResetTouchBlockState();
@@ -87,12 +94,15 @@ ActiveElementManager::TriggerElementActivation()
         this, &ActiveElementManager::SetActiveTask, mTarget);
     MessageLoop::current()->PostDelayedTask(
         FROM_HERE, mSetActiveTask, sActivationDelayMs);
+    AEM_LOG("Scheduling mSetActiveTask %p\n", mSetActiveTask);
   }
 }
 
 void
 ActiveElementManager::HandlePanStart()
 {
+  AEM_LOG("Handle pan start\n");
+
   
   
   CancelTask();
@@ -102,6 +112,8 @@ ActiveElementManager::HandlePanStart()
 void
 ActiveElementManager::HandleTouchEnd(bool aWasClick)
 {
+  AEM_LOG("Touch end, aWasClick: %d\n", aWasClick);
+
   
   
   
@@ -116,14 +128,17 @@ ActiveElementManager::HandleTouchEnd(bool aWasClick)
 void
 ActiveElementManager::SetActive(nsIDOMElement* aTarget)
 {
+  AEM_LOG("Setting active %p\n", aTarget);
   if (mDomUtils) {
-    mDomUtils->SetContentState(aTarget, NS_EVENT_STATE_ACTIVE.GetInternalValue());;
+    mDomUtils->SetContentState(aTarget, NS_EVENT_STATE_ACTIVE.GetInternalValue());
   }
 }
 
 void
 ActiveElementManager::ResetActive()
 {
+  AEM_LOG("Resetting active from %p\n", mTarget.get());
+
   
   if (mTarget) {
     nsCOMPtr<nsIDOMDocument> doc;
@@ -132,6 +147,7 @@ ActiveElementManager::ResetActive()
       nsCOMPtr<nsIDOMElement> root;
       doc->GetDocumentElement(getter_AddRefs(root));
       if (root) {
+        AEM_LOG("Found root %p, making active\n", root.get());
         SetActive(root);
       }
     }
@@ -148,6 +164,8 @@ ActiveElementManager::ResetTouchBlockState()
 void
 ActiveElementManager::SetActiveTask(nsIDOMElement* aTarget)
 {
+  AEM_LOG("mSetActiveTask %p running\n", mSetActiveTask);
+
   
   
   
@@ -158,6 +176,8 @@ ActiveElementManager::SetActiveTask(nsIDOMElement* aTarget)
 void
 ActiveElementManager::CancelTask()
 {
+  AEM_LOG("Cancelling task %p\n", mSetActiveTask);
+
   if (mSetActiveTask) {
     mSetActiveTask->Cancel();
     mSetActiveTask = nullptr;
