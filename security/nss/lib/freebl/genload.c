@@ -1,32 +1,42 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * This file is meant to be included by other .c files.
- * This file takes a "parameter", the scope which includes this
- * code shall declare this variable:
- *   const char *NameOfThisSharedLib;
- *
- * NameOfThisSharedLib:
- *   The file name of the shared library that shall be used as the 
- *   "reference library". The loader will attempt to load the requested
- *   library from the same directory as the reference library.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef XP_UNIX
 #include <unistd.h>
 #define BL_MAXSYMLINKS 20
 
-/*
- * If 'link' is a symbolic link, this function follows the symbolic links
- * and returns the pathname of the ultimate source of the symbolic links.
- * If 'link' is not a symbolic link, this function returns NULL.
- * The caller should call PR_Free to free the string returned by this
- * function.
- */
+
+
+
+
+
+
+
 static char* loader_GetOriginalPathname(const char* link)
 {
+#ifdef __GLIBC__
+    char* tmp = realpath(link, NULL);
+    char* resolved;
+    if (! tmp)
+    	return NULL;
+    resolved = PR_Malloc(strlen(tmp) + 1);
+    strcpy(resolved, tmp); 
+    free(tmp);
+    return resolved;
+#else
     char* resolved = NULL;
     char* input = NULL;
     PRUint32 iterations = 0;
@@ -51,7 +61,7 @@ static char* loader_GetOriginalPathname(const char* link)
     while ( (iterations++ < BL_MAXSYMLINKS) &&
             ( (retlen = readlink(input, resolved, len - 1)) > 0) ) {
         char* tmp = input;
-        resolved[retlen] = '\0'; /* NULL termination */
+        resolved[retlen] = '\0'; 
         input = resolved;
         resolved = tmp;
     }
@@ -61,13 +71,14 @@ static char* loader_GetOriginalPathname(const char* link)
         input = NULL;
     }
     return input;
+#endif
 }
-#endif /* XP_UNIX */
+#endif 
 
-/*
- * Load the library with the file name 'name' residing in the same
- * directory as the reference library, whose pathname is 'referencePath'.
- */
+
+
+
+
 static PRLibrary *
 loader_LoadLibInReferenceDir(const char *referencePath, const char *name)
 {
@@ -76,7 +87,7 @@ loader_LoadLibInReferenceDir(const char *referencePath, const char *name)
     char* c;
     PRLibSpec libSpec;
 
-    /* Remove the trailing filename from referencePath and add the new one */
+    
     c = strrchr(referencePath, PR_GetDirectorySeparator());
     if (c) {
         size_t referencePathSize = 1 + c - referencePath;
@@ -97,11 +108,11 @@ loader_LoadLibInReferenceDir(const char *referencePath, const char *name)
     return dlh;
 }
 
-/*
- * We use PR_GetLibraryFilePathname to get the pathname of the loaded 
- * shared lib that contains this function, and then do a PR_LoadLibrary
- * with an absolute pathname for the softoken shared library.
- */
+
+
+
+
+
 
 static PRLibrary *
 loader_LoadLibrary(const char *nameToLoad)
@@ -110,13 +121,13 @@ loader_LoadLibrary(const char *nameToLoad)
     char* fullPath = NULL;
     PRLibSpec libSpec;
 
-    /* Get the pathname for nameOfAlreadyLoadedLib, i.e. /usr/lib/libnss3.so
-     * PR_GetLibraryFilePathname works with either the base library name or a
-     * function pointer, depending on the platform. We can't query an exported
-     * symbol such as NSC_GetFunctionList, because on some platforms we can't
-     * find symbols in loaded implicit dependencies.
-     * But we can just get the address of this function !
-     */
+    
+
+
+
+
+
+
     fullPath = PR_GetLibraryFilePathname(NameOfThisSharedLib,
                                          (PRFuncPtr)&loader_LoadLibrary);
 
@@ -124,10 +135,10 @@ loader_LoadLibrary(const char *nameToLoad)
         lib = loader_LoadLibInReferenceDir(fullPath, nameToLoad);
 #ifdef XP_UNIX
         if (!lib) {
-            /*
-             * If fullPath is a symbolic link, resolve the symbolic
-             * link and try again.
-             */
+            
+
+
+
             char* originalfullPath = loader_GetOriginalPathname(fullPath);
             if (originalfullPath) {
                 PR_Free(fullPath);

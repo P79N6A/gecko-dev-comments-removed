@@ -24,7 +24,6 @@ typedef struct CERTOCSPResponseStr CERTOCSPResponse;
 
 
 typedef struct CERTOCSPCertIDStr CERTOCSPCertID;
-typedef struct CERTOCSPCertStatusStr CERTOCSPCertStatus;
 typedef struct CERTOCSPSingleResponseStr CERTOCSPSingleResponse;
 
 

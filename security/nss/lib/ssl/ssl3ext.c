@@ -535,6 +535,12 @@ ssl3_ServerHandleNextProtoNegoXtn(sslSocket * ss, PRUint16 ex_type, SECItem *dat
 	return SECFailure;
     }
 
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+
+    
+
+
+
     return SECSuccess;
 }
 
@@ -602,6 +608,8 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
+
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
 
     SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
     return SECITEM_CopyItem(NULL, &ss->ssl3.nextProto, &result);
@@ -1076,7 +1084,7 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 		&mac_key, &mac_key_length);
 	} else 
 #endif
-    {
+	{
 	    rv = ssl3_GetSessionTicketKeysPKCS11(ss, &aes_key_pkcs11,
 		&mac_key_pkcs11);
 	}
@@ -1114,7 +1122,7 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 		goto no_ticket;
 	} else 
 #endif
-    {
+	{
 	    SECItem macParam;
 	    macParam.data = NULL;
 	    macParam.len = 0;
@@ -1178,7 +1186,7 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 		goto no_ticket;
 	} else 
 #endif
-    {
+	{
 	    SECItem ivItem;
 	    ivItem.data = enc_session_ticket.iv;
 	    ivItem.len = AES_BLOCK_SIZE;

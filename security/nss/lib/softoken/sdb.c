@@ -1684,9 +1684,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 
     if (create) {
 	
-#ifndef WINCE
 	chmod (dbname, 0600);
-#endif
     }
 
     if (flags != SDB_RDONLY) {
@@ -1823,6 +1821,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 	enableCache = PR_TRUE;
      } else {
 	char *tempDir = NULL;
+        PRBool mustFreeTempDir = PR_TRUE;
 	PRUint32 tempOps = 0;
 	
 
@@ -1830,14 +1829,37 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 
 
 	tempDir = sdb_getTempDir(sqlDB);
+
+        if (!tempDir) {
+            mustFreeTempDir = PR_FALSE; 
+            tempDir = getenv("TEMP");
+            if (!tempDir)
+                tempDir = getenv("TMP");
+            if (!tempDir) {
+                tempDir = tempnam(NULL, NULL);
+                if (tempDir) {
+                    char dirsep = PR_GetDirectorySeparator();
+                    char *end = PORT_Strrchr(tempDir, dirsep);
+                    mustFreeTempDir = PR_TRUE;
+                    if (end) {
+                        
+
+
+                        *end = 0;
+                    }
+                }
+            }
+        }
+        
 	if (tempDir) {
 	    tempOps = sdb_measureAccess(tempDir);
-	    PORT_Free(tempDir);
 
 	    
 
 	    enableCache = (PRBool)(tempOps > accessOps * 10);
 	}
+	if (mustFreeTempDir)
+            PORT_Free(tempDir);
     }
 
     if (enableCache) {

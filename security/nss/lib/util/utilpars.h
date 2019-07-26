@@ -6,6 +6,7 @@
 #define _UTILPARS_H_ 1
 
 #include "utilparst.h"
+#include "plarena.h"
 
 
 char ** NSSUTIL_DoModuleDBFunction(unsigned long function,char *parameters, void *args);
