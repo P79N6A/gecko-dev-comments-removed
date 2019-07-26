@@ -32,6 +32,7 @@
 
 #include "nsXPIDLString.h"
 #include "nsJSUtils.h"
+#include "prmem.h"
 #include "jsapi.h"              
 #include "jsdbgapi.h"           
 #include "jsfriendapi.h"        
