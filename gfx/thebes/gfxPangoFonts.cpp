@@ -410,14 +410,14 @@ void
 gfxSystemFcFontEntry::ForgetHBFace()
 {
     gfxFontEntry::ForgetHBFace();
-    MaybeReleaseFTFace();        
+    MaybeReleaseFTFace();
 }
 
 void
 gfxSystemFcFontEntry::ReleaseGrFace(gr_face* aFace)
 {
     gfxFontEntry::ReleaseGrFace(aFace);
-    MaybeReleaseFTFace();        
+    MaybeReleaseFTFace();
 }
 
 

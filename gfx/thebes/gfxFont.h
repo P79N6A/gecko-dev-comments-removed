@@ -310,6 +310,13 @@ public:
     virtual bool TestCharacterMap(uint32_t aCh);
     nsresult InitializeUVSMap();
     uint16_t GetUVSGlyph(uint32_t aCh, uint32_t aVS);
+
+    
+    
+    
+    
+    
+    
     virtual nsresult ReadCMAP();
 
     bool TryGetSVGData();
