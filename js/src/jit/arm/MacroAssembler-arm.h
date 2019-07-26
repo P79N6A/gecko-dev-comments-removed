@@ -1264,13 +1264,12 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_vstr(VFPRegister(src).singleOverlay(), addr.base, addr.index, scale);
     }
 
-    void clampIntToUint8(Register src, Register dest) {
+    void clampIntToUint8(Register reg) {
         
         
-        as_mov(ScratchRegister, asr(src, 8), SetCond);
-        ma_mov(src, dest);
-        ma_mov(Imm32(0xff), dest, NoSetCond, NotEqual);
-        ma_mov(Imm32(0), dest, NoSetCond, Signed);
+        as_mov(ScratchRegister, asr(reg, 8), SetCond);
+        ma_mov(Imm32(0xff), reg, NoSetCond, NotEqual);
+        ma_mov(Imm32(0), reg, NoSetCond, Signed);
     }
 
     void cmp32(const Register &lhs, const Imm32 &rhs);
