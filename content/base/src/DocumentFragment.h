@@ -41,6 +41,9 @@ public:
   {
   }
 
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
+                             bool *aTriedToWrap);
+
   
   virtual already_AddRefed<nsINodeInfo>
     GetExistingAttrNameFromQName(const nsAString& aStr) const
