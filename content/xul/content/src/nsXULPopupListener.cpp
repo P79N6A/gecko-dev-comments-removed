@@ -296,7 +296,7 @@ nsXULPopupListener::ClosePopup()
     
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm)
-      pm->HidePopup(mPopupContent, false, true, true, false);
+      pm->HidePopup(mPopupContent, false, true, true);
     mPopupContent = nullptr;  
   }
 } 

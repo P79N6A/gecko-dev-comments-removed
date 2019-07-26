@@ -713,7 +713,7 @@ nsMenuFrame::CloseMenu(bool aDeselectMenu)
   
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm && HasPopup())
-    pm->HidePopup(GetPopup()->GetContent(), false, aDeselectMenu, true, false);
+    pm->HidePopup(GetPopup()->GetContent(), false, aDeselectMenu, true);
 }
 
 bool
@@ -807,7 +807,7 @@ nsMenuFrame::Enter(WidgetGUIEvent* aEvent)
       if (pm) {
         nsIFrame* popup = pm->GetTopPopup(ePopupTypeAny);
         if (popup)
-          pm->HidePopup(popup->GetContent(), true, true, true, false);
+          pm->HidePopup(popup->GetContent(), true, true, true);
       }
     }
 #endif   
