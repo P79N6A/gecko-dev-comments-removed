@@ -349,7 +349,7 @@ struct BaselineStackBuilder
         JS_ASSERT(BaselineFrameReg == FramePointer);
         priorOffset -= sizeof(void *);
         return virtualPointerAtStackOffset(priorOffset);
-#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM)
+#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
         
         
         BufferPointer<IonRectifierFrameLayout> priorFrame =

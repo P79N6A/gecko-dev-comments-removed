@@ -442,6 +442,8 @@ BaselineCompiler::emitOutOfLinePostBarrierSlot()
     
     
     masm.push(lr);
+#elif defined(JS_CODEGEN_MIPS)
+    masm.push(ra);
 #endif
 
     masm.setupUnalignedABICall(2, scratch);
