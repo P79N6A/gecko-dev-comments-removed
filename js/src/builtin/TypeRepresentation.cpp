@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "builtin/TypeRepresentation.h"
 
@@ -22,30 +22,30 @@
 using namespace js;
 using namespace mozilla;
 
-///////////////////////////////////////////////////////////////////////////
-// Class def'n for the owner object
+
+
 
 const Class TypeRepresentation::class_ = {
     "TypeRepresentation",
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_PRIVATE,
-    JS_PropertyStub,         /* addProperty */
-    JS_DeletePropertyStub,   /* delProperty */
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
+    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
     obj_finalize,
-    NULL,           /* checkAccess */
-    NULL,           /* call        */
-    NULL,           /* hasInstance */
-    NULL,           /* construct   */
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
     obj_trace,
 };
 
-///////////////////////////////////////////////////////////////////////////
-// Hashing
+
+
 
 bool
 TypeRepresentationHasher::match(TypeRepresentation *key1,
@@ -97,7 +97,7 @@ bool
 TypeRepresentationHasher::matchArrays(ArrayTypeRepresentation *key1,
                                       ArrayTypeRepresentation *key2)
 {
-    // We assume that these pointers have been canonicalized:
+    
     return key1->element() == key2->element() &&
            key1->length() == key2->length();
 }
@@ -141,8 +141,8 @@ TypeRepresentationHasher::hashArray(ArrayTypeRepresentation *key)
     return HashGeneric(key->kind(), key->element(), key->length());
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Constructors
+
+
 
 TypeRepresentation::TypeRepresentation(Kind kind, size_t size, size_t align)
   : size_(size),
@@ -203,7 +203,7 @@ StructField::StructField(size_t index,
 
 StructTypeRepresentation::StructTypeRepresentation()
   : TypeRepresentation(Struct, 0, 1),
-    fieldCount_(0) // see ::init() below!
+    fieldCount_(0) 
 {
 }
 
@@ -215,10 +215,10 @@ StructTypeRepresentation::init(JSContext *cx,
     JS_ASSERT(ids.length() == typeReprOwners.length());
     fieldCount_ = ids.length();
 
-    // We compute alignment into the field `align_` directly in the
-    // loop below, but not `size_` because we have to very careful
-    // about overflow. For now, we always use a uint32_t for
-    // consistency across build environments.
+    
+    
+    
+    
     uint32_t totalSize = 0;
 
     for (size_t i = 0; i < ids.length(); i++) {
@@ -255,12 +255,12 @@ StructTypeRepresentation::init(JSContext *cx,
     return true;
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Interning
+
+
 
 JSObject *
 TypeRepresentation::addToTableOrFree(JSContext *cx,
-                                     TypeRepresentationSet::AddPtr &p)
+                                     TypeRepresentationHash::AddPtr &p)
 {
     JS_ASSERT(!ownerObject_);
 
@@ -268,14 +268,14 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
 
     if (!comp->typeReprs.add(p, this)) {
         js_ReportOutOfMemory(cx);
-        js_free(this); // do not finalize, not present in the table
+        js_free(this); 
         return NULL;
     }
 
-    // Now that the object is in the table, try to make the owner
-    // object. If this succeeds, then the owner will remove from the
-    // table once it is finalized. Otherwise, if this fails, we must
-    // remove ourselves from the table ourselves and report an error.
+    
+    
+    
+    
     RootedObject ownerObject(cx,
         NewBuiltinClassInstance(cx,
                                 &class_,
@@ -290,7 +290,7 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
     return &*ownerObject;
 }
 
-/*static*/
+
 JSObject *
 ScalarTypeRepresentation::Create(JSContext *cx,
                                  ScalarTypeRepresentation::Type type)
@@ -298,11 +298,11 @@ ScalarTypeRepresentation::Create(JSContext *cx,
     JSCompartment *comp = cx->compartment();
 
     ScalarTypeRepresentation sample(type);
-    TypeRepresentationSet::AddPtr p = comp->typeReprs.lookupForAdd(&sample);
+    TypeRepresentationHash::AddPtr p = comp->typeReprs.lookupForAdd(&sample);
     if (p)
         return (*p)->ownerObject();
 
-    // Note: cannot use cx->new_ because constructor is private.
+    
     ScalarTypeRepresentation *ptr =
         (ScalarTypeRepresentation *) cx->malloc_(
             sizeof(ScalarTypeRepresentation));
@@ -313,7 +313,7 @@ ScalarTypeRepresentation::Create(JSContext *cx,
     return ptr->addToTableOrFree(cx, p);
 }
 
-/*static*/
+
 JSObject *
 ArrayTypeRepresentation::Create(JSContext *cx,
                                 TypeRepresentation *element,
@@ -321,9 +321,9 @@ ArrayTypeRepresentation::Create(JSContext *cx,
 {
     JSCompartment *comp = cx->compartment();
 
-    // Overly conservative, since we are using `size_t` to represent
-    // size, but `SafeMul` operators on `int32_t` types. Still, it
-    // should be good enough for now.
+    
+    
+    
     int32_t temp;
     if (!SafeMul(element->size(), length, &temp)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
@@ -332,11 +332,11 @@ ArrayTypeRepresentation::Create(JSContext *cx,
     }
 
     ArrayTypeRepresentation sample(element, length);
-    TypeRepresentationSet::AddPtr p = comp->typeReprs.lookupForAdd(&sample);
+    TypeRepresentationHash::AddPtr p = comp->typeReprs.lookupForAdd(&sample);
     if (p)
         return (*p)->ownerObject();
 
-    // Note: cannot use cx->new_ because constructor is private.
+    
     ArrayTypeRepresentation *ptr =
         (ArrayTypeRepresentation *) cx->malloc_(
             sizeof(ArrayTypeRepresentation));
@@ -347,7 +347,7 @@ ArrayTypeRepresentation::Create(JSContext *cx,
     return ptr->addToTableOrFree(cx, p);
 }
 
-/*static*/
+
 JSObject *
 StructTypeRepresentation::Create(JSContext *cx,
                                  AutoIdVector &ids,
@@ -356,7 +356,7 @@ StructTypeRepresentation::Create(JSContext *cx,
     size_t count = ids.length();
     JSCompartment *comp = cx->compartment();
 
-    // Note: cannot use cx->new_ because constructor is private.
+    
     size_t size = sizeof(StructTypeRepresentation) + count * sizeof(StructField);
     StructTypeRepresentation *ptr =
         (StructTypeRepresentation *) cx->malloc_(size);
@@ -364,29 +364,29 @@ StructTypeRepresentation::Create(JSContext *cx,
     if (!ptr->init(cx, ids, typeReprOwners))
         return NULL;
 
-    TypeRepresentationSet::AddPtr p = comp->typeReprs.lookupForAdd(ptr);
+    TypeRepresentationHash::AddPtr p = comp->typeReprs.lookupForAdd(ptr);
     if (p) {
-        js_free(ptr); // do not finalize, not present in the table
+        js_free(ptr); 
         return (*p)->ownerObject();
     }
 
     return ptr->addToTableOrFree(cx, p);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Tracing
+
+
 
 void
 TypeRepresentation::mark(JSTracer *trace)
 {
-    // Push our owner object onto the mark stack. When our owner
-    // object's trace callback is called, we will trace its
-    // contents. This is the typical scheme for marking objects.  See
-    // gc/Marking.cpp for more details.
+    
+    
+    
+    
     gc::MarkObject(trace, &ownerObject_, "typeRepresentation_ownerObject");
 }
 
-/*static*/ void
+ void
 TypeRepresentation::obj_trace(JSTracer *trace, JSObject *object)
 {
     fromOwnerObject(object)->traceFields(trace);
@@ -395,7 +395,7 @@ TypeRepresentation::obj_trace(JSTracer *trace, JSObject *object)
 void
 TypeRepresentation::traceFields(JSTracer *trace)
 {
-    mark(trace); // don't forget to mark the self-reference here!
+    mark(trace); 
 
     switch (kind()) {
       case Scalar:
@@ -427,10 +427,10 @@ ArrayTypeRepresentation::traceArrayFields(JSTracer *trace)
     element_->mark(trace);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Finalization
 
-/*static*/ void
+
+
+ void
 TypeRepresentation::obj_finalize(js::FreeOp *fop, JSObject *object)
 {
     JSCompartment *comp = object->compartment();
@@ -439,8 +439,8 @@ TypeRepresentation::obj_finalize(js::FreeOp *fop, JSObject *object)
     js_free(typeRepr);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// To string
+
+
 
 bool
 TypeRepresentation::appendString(JSContext *cx, StringBuffer &contents)
@@ -460,7 +460,7 @@ TypeRepresentation::appendString(JSContext *cx, StringBuffer &contents)
     return false;
 }
 
-/*static*/ const char *
+ const char *
 ScalarTypeRepresentation::typeName(Type type)
 {
     switch (type) {
@@ -536,26 +536,26 @@ StructTypeRepresentation::appendStringStruct(JSContext *cx, StringBuffer &conten
     return true;
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Misc
+
+
 
 const StructField *
-StructTypeRepresentation::fieldNamed(HandleId id) const
+StructTypeRepresentation::fieldNamed(jsid id) const
 {
     for (size_t i = 0; i < fieldCount(); i++) {
-        if (field(i).id.get() == id.get())
+        if (field(i).id.get() == id)
             return &field(i);
     }
     return NULL;
 }
 
-/*static*/ bool
+ bool
 TypeRepresentation::isTypeRepresentationOwnerObject(JSObject *obj)
 {
     return obj->getClass() == &class_;
 }
 
-/*static*/ TypeRepresentation *
+ TypeRepresentation *
 TypeRepresentation::fromOwnerObject(JSObject *obj)
 {
     JS_ASSERT(obj->getClass() == &class_);

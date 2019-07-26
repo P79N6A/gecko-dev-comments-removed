@@ -204,7 +204,7 @@ struct JSCompartment
     js::RegExpCompartment        regExps;
 
     
-    js::TypeRepresentationSet    typeReprs;
+    js::TypeRepresentationHash   typeReprs;
 
   private:
     void sizeOfTypeInferenceData(JS::TypeInferenceSizes *stats, mozilla::MallocSizeOf mallocSizeOf);
