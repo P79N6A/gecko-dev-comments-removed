@@ -112,9 +112,9 @@ loop.webapp = (function($, OT, webl10n) {
 
   var WebappRouter = loop.shared.router.BaseConversationRouter.extend({
     routes: {
-      "": "home",
-      "call/ongoing": "conversation",
-      "call/:token": "initiate"
+      "":                    "home",
+      "call/ongoing/:token": "conversation",
+      "call/:token":         "initiate"
     },
 
     initialize: function() {
@@ -126,7 +126,14 @@ loop.webapp = (function($, OT, webl10n) {
 
 
     startCall: function() {
-      this.navigate("call/ongoing", {trigger: true});
+      var route;
+      if (this._conversation.get("loopToken")) {
+        route = "call/ongoing/" + this._conversation.get("loopToken");
+      } else {
+        route = "home";
+        this._notifier.error(__("missing_conversation_info"));
+      }
+      this.navigate(route, {trigger: true});
     },
 
     
@@ -165,15 +172,10 @@ loop.webapp = (function($, OT, webl10n) {
 
 
 
-    conversation: function() {
+    conversation: function(loopToken) {
       if (!this._conversation.isSessionReady()) {
-        var loopToken = this._conversation.get("loopToken");
-        if (loopToken) {
-          return this.navigate("call/" + loopToken, {trigger: true});
-        } else {
-          this._notifier.error(__("missing_conversation_info"));
-          return this.navigate("home", {trigger: true});
-        }
+        
+        return this.navigate("call/" + loopToken, {trigger: true});
       }
       this.loadView(new sharedViews.ConversationView({
         sdk: OT,
