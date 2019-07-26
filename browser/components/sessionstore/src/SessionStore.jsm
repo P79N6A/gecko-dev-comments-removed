@@ -98,23 +98,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "gScreenManager",
 
 
 
-let gDocShellCapabilities = (function () {
-  let caps;
-
-  return docShell => {
-    if (!caps) {
-      let keys = Object.keys(docShell);
-      caps = keys.filter(k => k.startsWith("allow")).map(k => k.slice(5));
-    }
-
-    return caps;
-  };
-})();
-
-
-
-
-
 
 function makeURI(aString) {
   return Services.io.newURI(aString, null, null);
@@ -122,6 +105,8 @@ function makeURI(aString) {
 
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
   "resource:///modules/devtools/scratchpad-manager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DocShellCapabilities",
+  "resource:///modules/sessionstore/DocShellCapabilities.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DocumentUtils",
   "resource:///modules/sessionstore/DocumentUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
@@ -2584,7 +2569,8 @@ let SessionStoreInternal = {
 
   restoreHistory:
     function ssi_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
-                                aRestoreImmediately) {
+                                aRestoreImmediately)
+  {
     
     while (aTabs.length > 0 && !(this._canRestoreTabHistory(aTabs[0]))) {
       aTabs.shift();
@@ -2631,8 +2617,7 @@ let SessionStoreInternal = {
 
     
     let disallow = new Set(tabData.disallow && tabData.disallow.split(","));
-    for (let cap of gDocShellCapabilities(browser.docShell))
-      browser.docShell["allow" + cap] = !disallow.has(cap);
+    DocShellCapabilities.restore(browser.docShell, disallow);
 
     
     if ("attributes" in tabData) {
@@ -4503,10 +4488,7 @@ let TabState = {
       delete tabData.pinned;
     tabData.hidden = tab.hidden;
 
-    let disallow = [];
-    for (let cap of gDocShellCapabilities(browser.docShell))
-      if (!browser.docShell["allow" + cap])
-        disallow.push(cap);
+    let disallow = DocShellCapabilities.collect(browser.docShell);
     if (disallow.length > 0)
       tabData.disallow = disallow.join(",");
     else if (tabData.disallow)
