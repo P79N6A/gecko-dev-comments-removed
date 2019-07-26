@@ -71,12 +71,9 @@ NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, JSObjec
                     NewObjectKind newKind = GenericObject);
 
 
-
-
-
 extern ArrayObject *
-NewDenseCopiedArrayWithTemplate(JSContext *cx, uint32_t length, const Value *values,
-                                JSObject *templateObject);
+NewDenseAllocatedArrayWithTemplate(JSContext *cx, uint32_t length, JSObject *templateObject);
+
 
 
 
