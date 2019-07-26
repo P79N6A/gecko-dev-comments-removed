@@ -152,7 +152,7 @@ nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
   
   
   const nsStyleSVGReset *style = aFrame->StyleSVGReset();
-  return (style->SingleFilter() || style->mClipPath || style->mMask);
+  return (style->HasFilters() || style->mClipPath || style->mMask);
 }
 
  nsPoint
@@ -302,7 +302,7 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
     return aInvalidRect;
 
   nsSVGFilterProperty *prop = nsSVGEffects::GetFilterProperty(firstFrame);
-  if (!prop || !prop->IsInObserverList()) {
+  if (!prop || !prop->IsInObserverLists()) {
     return aInvalidRect;
   }
 

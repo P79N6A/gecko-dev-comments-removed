@@ -150,12 +150,25 @@ protected:
   nsIPresShell *mFramePresShell;
 };
 
-class nsSVGFilterProperty :
-  public nsSVGIDRenderingObserver, public nsISVGFilterProperty {
+
+
+
+
+
+
+
+
+
+
+
+
+class nsSVGFilterReference :
+  public nsSVGIDRenderingObserver, public nsISVGFilterReference {
 public:
-  nsSVGFilterProperty(nsIURI *aURI, nsIFrame *aFilteredFrame,
-                      bool aReferenceImage)
-    : nsSVGIDRenderingObserver(aURI, aFilteredFrame, aReferenceImage) {}
+  nsSVGFilterReference(nsIURI *aURI, nsIFrame *aFilteredFrame)
+    : nsSVGIDRenderingObserver(aURI, aFilteredFrame, false) {}
+
+  bool ReferencesValidResource() { return GetFilterFrame(); }
 
   
 
@@ -166,11 +179,45 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  virtual void Invalidate() MOZ_OVERRIDE { DoUpdate(); }
+  virtual void Invalidate() MOZ_OVERRIDE { DoUpdate(); };
 
 private:
   
   virtual void DoUpdate() MOZ_OVERRIDE;
+};
+
+
+
+
+
+
+
+
+
+
+
+class nsSVGFilterProperty : public nsISupports {
+public:
+  nsSVGFilterProperty(const nsTArray<nsStyleFilter> &aFilters,
+                      nsIFrame *aFilteredFrame);
+  virtual ~nsSVGFilterProperty();
+
+  const nsTArray<nsStyleFilter>& GetFilters() { return mFilters; }
+  bool ReferencesValidResources();
+  bool IsInObserverLists() const;
+  void Invalidate();
+
+  
+
+
+  nsSVGFilterFrame *GetFilterFrame();
+
+  
+  NS_DECL_ISUPPORTS
+
+private:
+  nsTArray<nsSVGFilterReference*> mReferences;
+  nsTArray<nsStyleFilter> mFilters;
 };
 
 class nsSVGMarkerProperty : public nsSVGIDRenderingObserver {

@@ -2626,13 +2626,8 @@ struct nsStyleSVGReset {
                           nsChangeHint_ClearAncestorIntrinsics);
   }
 
-  
-  
-  
-  nsIURI* SingleFilter() const {
-    return (mFilters.Length() == 1 &&
-            mFilters[0].GetType() == NS_STYLE_FILTER_URL) ?
-            mFilters[0].GetURL() : nullptr;
+  bool HasFilters() const {
+    return mFilters.Length() > 0;
   }
 
   nsCOMPtr<nsIURI> mClipPath;         

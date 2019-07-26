@@ -930,7 +930,7 @@ nsSVGUtils::CanOptimizeOpacity(nsIFrame *aFrame)
       type != nsGkAtoms::svgPathGeometryFrame) {
     return false;
   }
-  if (aFrame->StyleSVGReset()->SingleFilter()) {
+  if (aFrame->StyleSVGReset()->HasFilters()) {
     return false;
   }
   
