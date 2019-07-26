@@ -1503,6 +1503,8 @@ var XPIProvider = {
   enabledAddons: null,
   
   inactiveAddonIDs: [],
+  
+  unpackedAddons: 0,
 
   
 
@@ -1525,6 +1527,8 @@ var XPIProvider = {
     this.installs = [];
     this.installLocations = [];
     this.installLocationsByName = {};
+
+    AddonManagerPrivate.recordTimestamp("XPI_startup_begin");
 
     function addDirectoryInstallLocation(aName, aKey, aPaths, aScope, aLocked) {
       try {
@@ -1663,6 +1667,7 @@ var XPIProvider = {
       this.addAddonsToCrashReporter();
     }
 
+    AddonManagerPrivate.recordTimestamp("XPI_bootstrap_addons_begin");
     for (let id in this.bootstrappedAddons) {
       let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
       file.persistentDescriptor = this.bootstrappedAddons[id].descriptor;
@@ -1670,6 +1675,7 @@ var XPIProvider = {
                                this.bootstrappedAddons[id].type, file,
                                "startup", BOOTSTRAP_REASONS.APP_STARTUP);
     }
+    AddonManagerPrivate.recordTimestamp("XPI_bootstrap_addons_end");
 
     
     
@@ -1687,6 +1693,8 @@ var XPIProvider = {
         Services.obs.removeObserver(this, "quit-application-granted");
       }
     }, "quit-application-granted", false);
+
+    AddonManagerPrivate.recordTimestamp("XPI_startup_end");
 
     this.extensionsActive = true;
   },
@@ -1828,7 +1836,15 @@ var XPIProvider = {
         descriptor: file.persistentDescriptor,
         mtime: recursiveLastModifiedTime(file)
       };
-    });
+      try {
+        
+        file.append(FILE_INSTALL_MANIFEST);
+        let rdfTime = file.lastModifiedTime;
+        addonStates[id].rdfTime = rdfTime;
+        this.unpackedAddons += 1;
+      }
+      catch (e) { }
+    }, this);
 
     return addonStates;
   },
@@ -1844,6 +1860,7 @@ var XPIProvider = {
 
   getInstallLocationStates: function XPI_getInstallLocationStates() {
     let states = [];
+    this.unpackedAddons = 0;
     this.installLocations.forEach(function(aLocation) {
       let addons = aLocation.addonLocations;
       if (addons.length == 0)
@@ -2809,6 +2826,11 @@ var XPIProvider = {
     let knownLocations = XPIDatabase.getInstallLocations();
 
     
+    let modifiedUnpacked = 0;
+    let modifiedExManifest = 0;
+    let modifiedXPI = 0;
+
+    
     
     
     aState.reverse().forEach(function(aSt) {
@@ -2842,6 +2864,17 @@ var XPIProvider = {
             
             if (aOldAddon.visible && !aOldAddon.active)
               XPIProvider.inactiveAddonIDs.push(aOldAddon.id);
+
+            
+            
+            if ((addonState.rdfTime) && (aOldAddon.updateDate != addonState.mtime)) {
+              modifiedUnpacked += 1;
+              if (aOldAddon.updateDate >= addonState.rdfTime)
+                modifiedExManifest += 1;
+            }
+            else if (aOldAddon.updateDate != addonState.mtime) {
+              modifiedXPI += 1;
+            }
 
             
             
@@ -2893,6 +2926,12 @@ var XPIProvider = {
         changed = removeMetadata(aLocation, aOldAddon) || changed;
       }, this);
     }, this);
+
+    
+    AddonManagerPrivate.recordSimpleMeasure("modifiedUnpacked", modifiedUnpacked);
+    if (modifiedUnpacked > 0)
+      AddonManagerPrivate.recordSimpleMeasure("modifiedExceptInstallRDF", modifiedExManifest);
+    AddonManagerPrivate.recordSimpleMeasure("modifiedXPI", modifiedXPI);
 
     
     let cache = JSON.stringify(this.getInstallLocationStates());
@@ -3049,6 +3088,7 @@ var XPIProvider = {
           ERROR("Error processing file changes", e);
         }
       }
+      AddonManagerPrivate.recordSimpleMeasure("installedUnpacked", this.unpackedAddons);
 
       if (aAppChanged) {
         
