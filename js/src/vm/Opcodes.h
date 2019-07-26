@@ -480,6 +480,9 @@
 
 
 
+
+
+
  \
     macro(JSOP_LOOPENTRY,     227, "loopentry",    NULL,  2,  0,  0,  JOF_UINT8)
 

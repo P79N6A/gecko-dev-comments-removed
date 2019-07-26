@@ -86,7 +86,7 @@ OptimizationInfo::usesBeforeCompile(JSScript *script, jsbytecode *pc) const
     
     
     
-    uint32_t loopDepth = GET_UINT8(pc);
+    uint32_t loopDepth = LoopEntryDepthHint(pc);
     JS_ASSERT(loopDepth > 0);
     return minUses + loopDepth * 100;
 }

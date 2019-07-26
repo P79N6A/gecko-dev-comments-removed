@@ -612,7 +612,7 @@ BaselineCompiler::emitInterruptCheck()
 }
 
 bool
-BaselineCompiler::emitUseCountIncrement()
+BaselineCompiler::emitUseCountIncrement(bool allowOsr)
 {
     
     
@@ -632,6 +632,12 @@ BaselineCompiler::emitUseCountIncrement()
     
     
     if (analysis_.info(pc).loopEntryInCatchOrFinally) {
+        JS_ASSERT(JSOp(*pc) == JSOP_LOOPENTRY);
+        return true;
+    }
+
+    
+    if (!allowOsr) {
         JS_ASSERT(JSOp(*pc) == JSOP_LOOPENTRY);
         return true;
     }
@@ -1064,7 +1070,7 @@ bool
 BaselineCompiler::emit_JSOP_LOOPENTRY()
 {
     frame.syncStack(0);
-    return emitUseCountIncrement();
+    return emitUseCountIncrement(LoopEntryCanIonOsr(pc));
 }
 
 bool
