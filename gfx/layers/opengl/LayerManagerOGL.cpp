@@ -521,6 +521,9 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
 
   
   if (!mPrograms[gl::RGBALayerProgramType].mVariations[MaskNone]->Initialize()) {
+#ifdef MOZ_WIDGET_ANDROID
+    NS_RUNTIMEABORT("Shader initialization failed");
+#endif
     return false;
   }
 
@@ -591,6 +594,9 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
 
     if (mFBOTextureTarget == LOCAL_GL_NONE) {
       
+#ifdef MOZ_WIDGET_ANDROID
+      NS_RUNTIMEABORT("No texture target");
+#endif
       return false;
     }
   } else {
@@ -608,6 +614,9 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
 
 
     if (!mGLContext->IsExtensionSupported(gl::GLContext::ARB_texture_rectangle))
+#ifdef MOZ_WIDGET_ANDROID
+      NS_RUNTIMEABORT("No texture rectangle");
+#endif
       return false;
   }
 
