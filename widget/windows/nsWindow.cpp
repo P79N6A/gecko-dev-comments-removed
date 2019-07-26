@@ -66,6 +66,7 @@
 
 #include <shellapi.h>
 #include <windows.h>
+#include <wtsapi32.h>
 #include <process.h>
 #include <commctrl.h>
 #include <unknwn.h>
@@ -605,6 +606,14 @@ nsWindow::Create(nsIWidget *aParent,
   }
 
   SubclassWindow(TRUE);
+
+  
+  
+  
+  
+  DebugOnly<BOOL> wtsRegistered = ::WTSRegisterSessionNotification(mWnd,
+                                                       NOTIFY_FOR_THIS_SESSION);
+  NS_ASSERTION(wtsRegistered, "WTSRegisterSessionNotification failed!\n");
 
   IMEHandler::InitInputContext(this, mInputContext);
 
@@ -4569,6 +4578,21 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
     }
     break;
 
+    case WM_WTSSESSION_CHANGE:
+    {
+      switch (wParam) {
+        case WTS_CONSOLE_CONNECT:
+        case WTS_REMOTE_CONNECT:
+        case WTS_SESSION_UNLOCK:
+          
+          Invalidate(true, true, true);
+          break;
+        default:
+          break;
+      }
+    }
+    break;
+
     case WM_FONTCHANGE:
     {
       
@@ -6400,6 +6424,9 @@ void nsWindow::OnDestroy()
   
   mWidgetListener = nullptr;
   mAttachedWidgetListener = nullptr;
+
+  
+  ::WTSUnRegisterSessionNotification(mWnd);
 
   
   
