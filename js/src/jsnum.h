@@ -132,9 +132,10 @@ ParseDecimalNumber(const JS::TwoByteChars chars);
 
 
 
+template <typename CharT>
 extern bool
-GetPrefixInteger(ThreadSafeContext *cx, const jschar *start, const jschar *end, int base,
-                 const jschar **endp, double *dp);
+GetPrefixInteger(ThreadSafeContext *cx, const CharT *start, const CharT *end, int base,
+                 const CharT **endp, double *dp);
 
 
 

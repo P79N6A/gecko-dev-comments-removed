@@ -53,12 +53,13 @@ using JS::GenericNaN;
 
 
 
+template <typename CharT>
 static bool
-ComputeAccurateDecimalInteger(ThreadSafeContext *cx,
-                              const jschar *start, const jschar *end, double *dp)
+ComputeAccurateDecimalInteger(ThreadSafeContext *cx, const CharT *start, const CharT *end,
+                              double *dp)
 {
     size_t length = end - start;
-    char *cstr = cx->pod_malloc<char>(length + 1);
+    ScopedJSFreePtr<char> cstr(cx->pod_malloc<char>(length + 1));
     if (!cstr)
         return false;
 
@@ -74,25 +75,25 @@ ComputeAccurateDecimalInteger(ThreadSafeContext *cx,
     *dp = js_strtod_harder(cx->dtoaState(), cstr, &estr, &err);
     if (err == JS_DTOA_ENOMEM) {
         js_ReportOutOfMemory(cx);
-        js_free(cstr);
         return false;
     }
-    js_free(cstr);
+
     return true;
 }
 
 namespace {
 
+template <typename CharT>
 class BinaryDigitReader
 {
     const int base;      
     int digit;           
     int digitMask;       
-    const jschar *start; 
-    const jschar *end;   
+    const CharT *start;  
+    const CharT *end;    
 
   public:
-    BinaryDigitReader(int base, const jschar *start, const jschar *end)
+    BinaryDigitReader(int base, const CharT *start, const CharT *end)
       : base(base), digit(0), digitMask(0), start(start), end(end)
     {
     }
@@ -131,10 +132,11 @@ class BinaryDigitReader
 
 
 
+template <typename CharT>
 static double
-ComputeAccurateBinaryBaseInteger(const jschar *start, const jschar *end, int base)
+ComputeAccurateBinaryBaseInteger(const CharT *start, const CharT *end, int base)
 {
-    BinaryDigitReader bdr(base, start, end);
+    BinaryDigitReader<CharT> bdr(base, start, end);
 
     
     int bit;
@@ -189,18 +191,19 @@ js::ParseDecimalNumber(const JS::TwoByteChars chars)
     return static_cast<double>(dec);
 }
 
+template <typename CharT>
 bool
-js::GetPrefixInteger(ThreadSafeContext *cx, const jschar *start, const jschar *end, int base,
-                     const jschar **endp, double *dp)
+js::GetPrefixInteger(ThreadSafeContext *cx, const CharT *start, const CharT *end, int base,
+                     const CharT **endp, double *dp)
 {
     JS_ASSERT(start <= end);
     JS_ASSERT(2 <= base && base <= 36);
 
-    const jschar *s = start;
+    const CharT *s = start;
     double d = 0.0;
     for (; s < end; s++) {
         int digit;
-        jschar c = *s;
+        CharT c = *s;
         if ('0' <= c && c <= '9')
             digit = c - '0';
         else if ('a' <= c && c <= 'z')
@@ -228,6 +231,7 @@ js::GetPrefixInteger(ThreadSafeContext *cx, const jschar *start, const jschar *e
 
     if (base == 10)
         return ComputeAccurateDecimalInteger(cx, start, s, dp);
+
     if ((base & (base - 1)) == 0)
         *dp = ComputeAccurateBinaryBaseInteger(start, s, base);
 
@@ -322,6 +326,46 @@ num_parseFloat(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+template <typename CharT>
+static bool
+ParseIntImpl(JSContext *cx, const CharT *chars, size_t length, bool stripPrefix, int32_t radix,
+             double *res)
+{
+    
+    const CharT *end = chars + length;
+    const CharT *s = SkipSpace(chars, end);
+
+    MOZ_ASSERT(chars <= s);
+    MOZ_ASSERT(s <= end);
+
+    
+    bool negative = (s != end && s[0] == '-');
+
+    
+    if (s != end && (s[0] == '-' || s[0] == '+'))
+        s++;
+
+    
+    if (stripPrefix) {
+        if (end - s >= 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
+            s += 2;
+            radix = 16;
+        }
+    }
+
+    
+    const CharT *actualEnd;
+    double d;
+    if (!GetPrefixInteger(cx, s, end, radix, &actualEnd, &d))
+        return false;
+
+    if (s == actualEnd)
+        *res = GenericNaN();
+    else
+        *res = negative ? -d : d;
+    return true;
+}
+
 
 bool
 js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
@@ -395,44 +439,22 @@ js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
         }
     }
 
-    
-    const jschar *s;
-    const jschar *end;
-    {
-        const jschar *ws = inputString->getChars(cx);
-        if (!ws)
-            return false;
-        end = ws + inputString->length();
-        s = SkipSpace(ws, end);
-
-        MOZ_ASSERT(ws <= s);
-        MOZ_ASSERT(s <= end);
-    }
-
-    
-    bool negative = (s != end && s[0] == '-');
-
-    
-    if (s != end && (s[0] == '-' || s[0] == '+'))
-        s++;
-
-    
-    if (stripPrefix) {
-        if (end - s >= 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
-            s += 2;
-            radix = 16;
-        }
-    }
-
-    
-    const jschar *actualEnd;
-    double number;
-    if (!GetPrefixInteger(cx, s, end, radix, &actualEnd, &number))
+    JSLinearString *linear = inputString->ensureLinear(cx);
+    if (!linear)
         return false;
-    if (s == actualEnd)
-        args.rval().setNaN();
-    else
-        args.rval().setNumber(negative ? -number : number);
+
+    AutoCheckCannotGC nogc;
+    size_t length = inputString->length();
+    double number;
+    if (linear->hasLatin1Chars()) {
+        if (!ParseIntImpl(cx, linear->latin1Chars(nogc), length, stripPrefix, radix, &number))
+            return false;
+    } else {
+        if (!ParseIntImpl(cx, linear->twoByteChars(nogc), length, stripPrefix, radix, &number))
+            return false;
+    }
+
+    args.rval().setNumber(number);
     return true;
 }
 
