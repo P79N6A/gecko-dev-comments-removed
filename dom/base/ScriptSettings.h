@@ -30,6 +30,11 @@ void DestroyScriptSettings();
 
 
 
+nsIGlobalObject* BrokenGetEntryGlobal();
+
+
+
+
 
 nsIGlobalObject* GetIncumbentGlobal();
 
