@@ -252,13 +252,15 @@ CloneExpandoChain(JSContext *cx, JSObject *dst, JSObject *src)
 }
 
 JSObject *
-createHolder(JSContext *cx, JSObject *wrappedNative, JSObject *parent)
+createHolder(JSContext *cx, JSObject *wrapper)
 {
-    JSObject *holder = JS_NewObjectWithGivenProto(cx, &HolderClass, nullptr, parent);
+    JSObject *global = JS_GetGlobalForObject(cx, wrapper);
+    JSObject *holder = JS_NewObjectWithGivenProto(cx, &HolderClass, nullptr,
+                                                  global);
     if (!holder)
         return nullptr;
 
-    JSObject *inner = JS_ObjectToInnerObject(cx, wrappedNative);
+    JSObject *inner = js::UnwrapObject(wrapper,  false);
     XPCWrappedNative *wn = GetWrappedNative(inner);
 
     
@@ -269,8 +271,7 @@ createHolder(JSContext *cx, JSObject *wrappedNative, JSObject *parent)
     
     
     
-    MOZ_ASSERT(IS_WN_WRAPPER(wrappedNative) ||
-               js::GetObjectClass(wrappedNative)->ext.innerObject);
+    MOZ_ASSERT(IS_WN_WRAPPER(inner));
     js::SetReservedSlot(holder, JSSLOT_WN, PrivateValue(wn));
     js::SetReservedSlot(holder, JSSLOT_RESOLVING, PrivateValue(NULL));
     return holder;
