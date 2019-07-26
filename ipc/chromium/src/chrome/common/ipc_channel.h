@@ -125,11 +125,21 @@ class Channel : public Message::Sender {
   class ChannelImpl;
   ChannelImpl *channel_impl_;
 
-  
-  
-  
-  
   enum {
+#if defined(OS_MACOSX)
+    
+    
+    
+    
+    
+    
+    RECEIVED_FDS_MESSAGE_TYPE = kuint16max - 1,
+#endif
+
+    
+    
+    
+    
     HELLO_MESSAGE_TYPE = kuint16max  
                                      
                                      

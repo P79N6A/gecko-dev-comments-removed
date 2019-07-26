@@ -12,6 +12,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <list>
 
 #include "base/message_loop.h"
 #include "chrome/common/file_descriptor_set_posix.h"
@@ -51,6 +52,10 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   
   virtual void OnFileCanReadWithoutBlocking(int fd);
   virtual void OnFileCanWriteWithoutBlocking(int fd);
+
+#if defined(OS_MACOSX)
+  void CloseDescriptors(uint32_t pending_fd_id);
+#endif
 
   Mode mode_;
 
@@ -117,6 +122,24 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   
   bool processing_incoming_;
 
+#if defined(OS_MACOSX)
+  struct PendingDescriptors {
+    uint32_t id;
+    scoped_refptr<FileDescriptorSet> fds;
+
+    PendingDescriptors() : id(0) { }
+    PendingDescriptors(uint32_t id, FileDescriptorSet *fds)
+      : id(id),
+        fds(fds)
+    { }
+  };
+
+  std::list<PendingDescriptors> pending_fds_;
+
+  
+  uint32_t last_pending_fd_id_;
+#endif
+
   ScopedRunnableMethodFactory<ChannelImpl> factory_;
 
   DISALLOW_COPY_AND_ASSIGN(ChannelImpl);
@@ -124,4 +147,4 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
 
 }  
 
-#endif  
+#endif

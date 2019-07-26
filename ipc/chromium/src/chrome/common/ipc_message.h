@@ -227,6 +227,15 @@ class Message : public Pickle {
   
   
   bool ReadFileDescriptor(void** iter, base::FileDescriptor* descriptor) const;
+
+#if defined(OS_MACOSX)
+  void set_fd_cookie(uint32_t cookie) {
+    header()->cookie = cookie;
+  }
+  uint32_t fd_cookie() const {
+    return header()->cookie;
+  }
+#endif
 #endif
 
 #ifdef IPC_MESSAGE_LOG_ENABLED
@@ -285,6 +294,9 @@ class Message : public Pickle {
     uint32_t flags;   
 #if defined(OS_POSIX)
     uint32_t num_fds; 
+# if defined(OS_MACOSX)
+    uint32_t cookie;  
+# endif
 #endif
     
     uint32_t rpc_remote_stack_depth_guess;
