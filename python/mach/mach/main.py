@@ -20,10 +20,12 @@ from mozbuild.logger import LoggingManager
 
 
 from mach.settings import Settings
+from mach.testing import Testing
 
 
 HANDLERS = [
     Settings,
+    Testing,
 ]
 
 
@@ -56,6 +58,7 @@ an action/sub-command and it performs it.
 Some common actions are:
 
     %(prog)s help      Show full help, including the list of all commands.
+    %(prog)s test      Run tests.
 
 To see more help for a specific action, run:
 
