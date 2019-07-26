@@ -153,8 +153,6 @@ function checkThread(bodies, lastBody, unreadCount, participants,
        "thread.participants[" + i + "]");
   }
 
-  ok(thread.timestamp instanceof Date, "thread.timestamp");
-
   
   let filter = new MozSmsFilter;
   filter.threadId = thread.id;
