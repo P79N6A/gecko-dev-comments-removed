@@ -18,6 +18,7 @@ var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gContextMenu = null; 
+var gMultiProcessBrowser = false;
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -746,6 +747,8 @@ var gBrowserInit = {
     if ("arguments" in window && window.arguments[0])
       var uriToLoad = window.arguments[0];
 
+    gMultiProcessBrowser = gPrefService.getBoolPref("browser.tabs.remote");
+
     var mustLoadSidebar = false;
 
     Cc["@mozilla.org/eventlistenerservice;1"]
@@ -767,6 +770,7 @@ var gBrowserInit = {
     window.addEventListener("AppCommand", HandleAppCommandEvent, true);
 
     messageManager.loadFrameScript("chrome://browser/content/content.js", true);
+    messageManager.loadFrameScript("chrome://browser/content/content-sessionStore.js", true);
 
     
     
@@ -807,18 +811,18 @@ var gBrowserInit = {
 
     
     try {
-      gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
+      if (!gMultiProcessBrowser)
+        gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
     } catch(ex) {
       Cu.reportError("Places database may be locked: " + ex);
     }
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
-    
-    gBrowser.addProgressListener(window.XULBrowserWindow);
-    gBrowser.addTabsProgressListener(window.TabsProgressListener);
-#endif
+    if (!gMultiProcessBrowser) {
+      
+      gBrowser.addProgressListener(window.XULBrowserWindow);
+      gBrowser.addTabsProgressListener(window.TabsProgressListener);
+    }
 
     
     gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
@@ -949,7 +953,6 @@ var gBrowserInit = {
     
     CombinedStopReload.init();
     TabsOnTop.init();
-    BookmarksMenuButton.init();
     gPrivateBrowsingUI.init();
     TabsInTitlebar.init();
     retrieveToolbarIconsizesFromTheme();
@@ -981,7 +984,7 @@ var gBrowserInit = {
     gBrowser.addEventListener("pageshow", function(event) {
       
       if (content && event.target == content.document)
-        setTimeout(pageShowEventHandlers, 0, event);
+        setTimeout(pageShowEventHandlers, 0, event.persisted);
     }, true);
 
     if (uriToLoad && uriToLoad != "about:blank") {
@@ -1040,6 +1043,7 @@ var gBrowserInit = {
     gFormSubmitObserver.init();
     PanelUI.init();
     SocialUI.init();
+    LightweightThemeListener.init();
     AddonManager.addAddonListener(AddonsMgrListener);
     WebrtcIndicator.init();
 
@@ -1091,13 +1095,12 @@ var gBrowserInit = {
     
     FullZoom.init();
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
-    let NP = {};
-    Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
-    NP.trackBrowserWindow(window);
-#endif
+    if (!gMultiProcessBrowser) {
+      let NP = {};
+      Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
+      NP.trackBrowserWindow(window);
+    }
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
@@ -1141,12 +1144,11 @@ var gBrowserInit = {
     gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
     gBrowser.mPanelContainer.addEventListener("ResetBrowserThemePreview", LightWeightThemeWebInstaller, false, true);
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
-    if (Win7Features)
-      Win7Features.onOpenWindow();
-#endif
+    if (!gMultiProcessBrowser) {
+      if (Win7Features)
+        Win7Features.onOpenWindow();
+    }
 
    
     window.addEventListener("fullscreen", onFullScreen, true);
@@ -1328,7 +1330,7 @@ var gBrowserInit = {
     } catch (ex) {
     }
 
-    PlacesStarButton.uninit();
+    BookmarksMenuButton.uninit();
 
     TabsOnTop.uninit();
 
@@ -1376,6 +1378,7 @@ var gBrowserInit = {
       IndexedDBPromptHelper.uninit();
       AddonManager.removeAddonListener(AddonsMgrListener);
       SocialUI.uninit();
+      LightweightThemeListener.uninit();
       gCustomizeMode.uninit();
       PanelUI.uninit();
     }
@@ -2146,8 +2149,9 @@ function URLBarSetURI(aURI) {
 
     
     
+    
     if (gInitialPages.indexOf(uri.spec) != -1)
-      value = content.opener ? uri.spec : "";
+      value = !gMultiProcessBrowser && content.opener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
 
@@ -2247,6 +2251,8 @@ function UpdatePageProxyState()
 
 function SetPageProxyState(aState)
 {
+  BookmarksMenuButton.onPageProxyStateChanged(aState);
+
   if (!gURLBar)
     return;
 
@@ -3537,15 +3543,15 @@ var XULBrowserWindow = {
   init: function () {
     this.throbberElement = document.getElementById("navigator-throbber");
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
+    if (gMultiProcessBrowser)
+      return;
+
     
     
     var securityUI = gBrowser.securityUI;
     this._hostChanged = true;
     this.onSecurityChange(null, null, securityUI.state);
-#endif
   },
 
   destroy: function () {
@@ -3712,7 +3718,7 @@ var XULBrowserWindow = {
         this.setDefaultStatus(msg);
 
         
-        if (content.document && mimeTypeIsTextBased(content.document.contentType))
+        if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
           this.isImage.removeAttribute('disabled');
         else
           this.isImage.setAttribute('disabled', 'true');
@@ -3762,7 +3768,7 @@ var XULBrowserWindow = {
     }
 
     
-    if (content.document && mimeTypeIsTextBased(content.document.contentType))
+    if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
       this.isImage.removeAttribute('disabled');
     else
       this.isImage.setAttribute('disabled', 'true');
@@ -3778,7 +3784,7 @@ var XULBrowserWindow = {
 
     var browser = gBrowser.selectedBrowser;
     if (aWebProgress.DOMWindow == content) {
-      if ((location == "about:blank" && !content.opener) ||
+      if ((location == "about:blank" && (gMultiProcessBrowser || !content.opener)) ||
           location == "") {  
                              
         this.reloadCommand.setAttribute("disabled", "true");
@@ -3790,7 +3796,7 @@ var XULBrowserWindow = {
         URLBarSetURI(aLocationURI);
 
         
-        PlacesStarButton.updateState();
+        BookmarksMenuButton.updateStarState();
         SocialShareButton.updateShareState();
       }
 
@@ -3832,7 +3838,7 @@ var XULBrowserWindow = {
       }
 
       
-      if (aLocationURI &&
+      if (!gMultiProcessBrowser && aLocationURI &&
           (aLocationURI.schemeIs("about") || aLocationURI.schemeIs("chrome"))) {
         
         
@@ -3944,6 +3950,9 @@ var XULBrowserWindow = {
       if (gURLBar)
         gURLBar.removeAttribute("level");
     }
+
+    if (gMultiProcessBrowser)
+      return;
 
     
     
@@ -4165,8 +4174,9 @@ var TabsProgressListener = {
     
     
 
-    let doc = aWebProgress.DOMWindow.document;
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+    let doc = gMultiProcessBrowser ? null : aWebProgress.DOMWindow.document;
+    if (!gMultiProcessBrowser &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         Components.isSuccessCode(aStatus) &&
         doc.documentURI.startsWith("about:") &&
         !doc.documentURI.toLowerCase().startsWith("about:blank") &&
@@ -4404,7 +4414,7 @@ function setToolbarVisibility(toolbar, isVisible) {
   document.persist(toolbar.id, hidingAttribute);
 
   PlacesToolbarHelper.init();
-  BookmarksMenuButton.updatePosition();
+  BookmarksMenuButton.onToolbarVisibilityChange();
   gBrowser.updateWindowResizers();
 
 #ifdef MENUBAR_CAN_AUTOHIDE
@@ -4577,7 +4587,7 @@ var TabsInTitlebar = {
     
     titlebarContent.style.marginBottom = "";
     titlebar.style.marginBottom = "";
-    menubar.style.marginBottom = "";
+    menubar.style.paddingBottom = "";
 
     if (allowed) {
       
@@ -4600,7 +4610,7 @@ var TabsInTitlebar = {
       
       if (menuHeight && titlebarContentHeight > menuHeight) {
         let menuTitlebarDelta = titlebarContentHeight - menuHeight;
-        menubar.style.marginBottom = menuTitlebarDelta + "px";
+        menubar.style.paddingBottom = menuTitlebarDelta + "px";
         menuHeight += menuTitlebarDelta;
       }
 
@@ -6149,7 +6159,12 @@ function AddKeywordForSearchField() {
 }
 
 function SwitchDocumentDirection(aWindow) {
-  aWindow.document.dir = (aWindow.document.dir == "ltr" ? "rtl" : "ltr");
+  
+  if (aWindow.document.dir == "ltr" || aWindow.document.dir == "") {
+    aWindow.document.dir = "rtl";
+  } else if (aWindow.document.dir == "rtl") {
+    aWindow.document.dir = "ltr";
+  }
   for (var run = 0; run < aWindow.frames.length; run++)
     SwitchDocumentDirection(aWindow.frames[run]);
 }
@@ -6223,7 +6238,8 @@ function isTabEmpty(aTab) {
   if (!isBlankPageURL(browser.currentURI.spec))
     return false;
 
-  if (browser.contentWindow.opener)
+  
+  if (!gMultiProcessBrowser && browser.contentWindow.opener)
     return false;
 
   if (browser.sessionHistory && browser.sessionHistory.count >= 2)
@@ -6764,7 +6780,9 @@ let gPrivateBrowsingUI = {
       }
     }
 
-    if (gURLBar) {
+    if (gURLBar &&
+        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      
       
       gURLBar.setAttribute("autocompletesearchparam", "");
     }
@@ -6789,8 +6807,9 @@ function switchToTabHavingURI(aURI, aOpenNew) {
   function switchIfURIInWindow(aWindow) {
     
     
-    if (PrivateBrowsingUtils.isWindowPrivate(window) ||
-        PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
+    if ((PrivateBrowsingUtils.isWindowPrivate(window) ||
+        PrivateBrowsingUtils.isWindowPrivate(aWindow)) &&
+        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
       return false;
     }
 
