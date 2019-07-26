@@ -781,6 +781,7 @@ class XPCShellTests(object):
 
       completeCmd = cmdH + cmdT + args
 
+      proc = None
       try:
         self.log.info("TEST-INFO | %s | running test ..." % name)
         if verbose:
@@ -876,7 +877,7 @@ class XPCShellTests(object):
       finally:
         
         
-        if self.poll(proc) is None:
+        if proc and self.poll(proc) is None:
           message = "TEST-UNEXPECTED-FAIL | %s | Process still running after test!" % name
           self.log.error(message)
           print_stdout(stdout)
