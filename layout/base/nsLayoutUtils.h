@@ -150,6 +150,12 @@ public:
 
   static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult = nullptr);
 
+ 
+
+
+
+ static void SetDisplayPortBase(nsIContent* aContent, const nsRect& aBase);
+
   
 
 

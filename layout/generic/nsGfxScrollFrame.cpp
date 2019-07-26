@@ -2458,10 +2458,21 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsRect dirtyRect = aDirtyRect.Intersect(mScrollPort);
 
   
-  nsRect displayPort;
   bool usingDisplayport =
-    nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort) &&
+    nsLayoutUtils::GetDisplayPort(mOuter->GetContent()) &&
     !aBuilder->IsForEventDelivery();
+
+  
+  
+  
+  
+  if (usingDisplayport && !mIsRoot) {
+    nsLayoutUtils::SetDisplayPortBase(mOuter->GetContent(), dirtyRect);
+  }
+
+  
+  nsRect displayPort;
+  nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort);
   if (usingDisplayport && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), displayPort)) {
     usingDisplayport = false;
   }

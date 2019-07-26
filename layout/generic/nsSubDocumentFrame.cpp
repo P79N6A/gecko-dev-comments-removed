@@ -376,18 +376,24 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   bool ignoreViewportScrolling = false;
   nsIFrame* savedIgnoreScrollFrame = nullptr;
   if (subdocRootFrame) {
-    nsRect displayPort;
-    if (nsLayoutUtils::ViewportHasDisplayPort(presContext, &displayPort)) {
-      haveDisplayPort = true;
-      dirty = displayPort;
-    } else {
-      
-      dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
-      
-      dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
-    }
+    
+    dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
+    
+    dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
 
     nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
+    if (nsLayoutUtils::ViewportHasDisplayPort(presContext)) {
+      haveDisplayPort = true;
+      
+      nsLayoutUtils::SetDisplayPortBase(rootScrollFrame->GetContent(),
+        presContext->IsRootContentDocument() ?
+          nsRect(nsPoint(0,0), nsLayoutUtils::CalculateCompositionSizeForFrame(rootScrollFrame)) :
+          dirty);
+      nsRect displayPort;
+      nsLayoutUtils::ViewportHasDisplayPort(presContext, &displayPort);
+      dirty = displayPort;
+    }
+
     ignoreViewportScrolling =
       rootScrollFrame && presShell->IgnoringViewportScrolling();
     if (ignoreViewportScrolling) {
