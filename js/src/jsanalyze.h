@@ -82,15 +82,6 @@ class Bytecode
 
 
 
-    bool monitoredTypes : 1;
-
-    
-    bool monitoredTypesReturn : 1;
-
-    
-
-
-
     bool arrayWriteHole: 1;     
     bool accessGetter: 1;       
 
@@ -129,14 +120,6 @@ class Bytecode
 
         Vector<SlotValue> *pendingValues;
     };
-
-    
-
-    
-    types::StackTypeSet *pushedTypes;
-
-    
-    types::TypeBarrier *typeBarriers;
 };
 
 
@@ -471,7 +454,6 @@ class SSAValue
     uint32_t phiSlot() const;
     uint32_t phiLength() const;
     const SSAValue &phiValue(uint32_t i) const;
-    types::TypeSet *phiTypes() const;
 
     
     uint32_t phiOffset() const {
@@ -571,7 +553,6 @@ class SSAValue
 
 struct SSAPhiNode
 {
-    types::StackTypeSet types;
     uint32_t slot;
     uint32_t length;
     SSAValue *options;
@@ -597,13 +578,6 @@ SSAValue::phiValue(uint32_t i) const
 {
     JS_ASSERT(kind() == PHI && i < phiLength());
     return u.phi.node->options[i];
-}
-
-inline types::TypeSet *
-SSAValue::phiTypes() const
-{
-    JS_ASSERT(kind() == PHI);
-    return &u.phi.node->types;
 }
 
 class SSAUseChain
@@ -654,7 +628,6 @@ class ScriptAnalysis
     bool ranBytecode_;
     bool ranSSA_;
     bool ranLifetimes_;
-    bool ranInference_;
 
 #ifdef DEBUG
     
@@ -689,15 +662,10 @@ class ScriptAnalysis
     bool ranBytecode() { return ranBytecode_; }
     bool ranSSA() { return ranSSA_; }
     bool ranLifetimes() { return ranLifetimes_; }
-    bool ranInference() { return ranInference_; }
 
     void analyzeBytecode(JSContext *cx);
     void analyzeSSA(JSContext *cx);
     void analyzeLifetimes(JSContext *cx);
-    void analyzeTypes(JSContext *cx);
-
-    
-    void analyzeTypesNew(JSContext *cx);
 
     bool OOM() const { return outOfMemory; }
     bool failed() const { return hadFailure; }
@@ -759,45 +727,6 @@ class ScriptAnalysis
         return getCode(offset).newValues;
     }
     const SlotValue *newValues(const jsbytecode *pc) { return newValues(pc - script_->code); }
-
-    inline types::StackTypeSet *pushedTypes(uint32_t offset, uint32_t which = 0);
-    inline types::StackTypeSet *pushedTypes(const jsbytecode *pc, uint32_t which);
-
-    bool hasPushedTypes(const jsbytecode *pc) { return getCode(pc).pushedTypes != NULL; }
-
-    types::TypeBarrier *typeBarriers(JSContext *cx, uint32_t offset) {
-        if (getCode(offset).typeBarriers)
-            pruneTypeBarriers(cx, offset);
-        return getCode(offset).typeBarriers;
-    }
-    types::TypeBarrier *typeBarriers(JSContext *cx, const jsbytecode *pc) {
-        return typeBarriers(cx, pc - script_->code);
-    }
-    void addTypeBarrier(JSContext *cx, const jsbytecode *pc,
-                        types::TypeSet *target, types::Type type);
-    void addSingletonTypeBarrier(JSContext *cx, const jsbytecode *pc,
-                                 types::TypeSet *target,
-                                 HandleObject singleton, HandleId singletonId);
-
-    
-    void pruneTypeBarriers(JSContext *cx, uint32_t offset);
-
-    
-
-
-
-
-    void breakTypeBarriers(JSContext *cx, uint32_t offset, bool all);
-
-    
-    void breakTypeBarriersSSA(JSContext *cx, const SSAValue &v);
-
-    inline void addPushedType(JSContext *cx, uint32_t offset, uint32_t which, types::Type type);
-
-    inline types::StackTypeSet *getValueTypes(const SSAValue &v);
-
-    inline types::StackTypeSet *poppedTypes(uint32_t offset, uint32_t which);
-    inline types::StackTypeSet *poppedTypes(const jsbytecode *pc, uint32_t which);
 
     bool trackUseChain(const SSAValue &v) {
         JS_ASSERT_IF(v.kind() == SSAValue::VAR, trackSlot(v.varSlot()));
@@ -912,9 +841,6 @@ class ScriptAnalysis
         {}
     };
 
-    
-    bool analyzeTypesBytecode(JSContext *cx, unsigned offset, TypeInferenceState &state);
-
     typedef Vector<SSAValue, 16> SeenVector;
     bool needsArgsObj(JSContext *cx, SeenVector &seen, const SSAValue &v);
     bool needsArgsObj(JSContext *cx, SeenVector &seen, SSAUseChain *use);
@@ -926,84 +852,6 @@ class ScriptAnalysis
 #else
     void assertMatchingDebugMode() { }
 #endif
-};
-
-
-struct CrossSSAValue
-{
-    unsigned frame;
-    SSAValue v;
-    CrossSSAValue(unsigned frame, const SSAValue &v) : frame(frame), v(v) {}
-};
-
-
-
-
-
-
-class CrossScriptSSA
-{
-  public:
-
-    static const uint32_t OUTER_FRAME = UINT32_MAX;
-    static const unsigned INVALID_FRAME = uint32_t(-2);
-
-    struct Frame {
-        uint32_t index;
-        JSScript *script;
-        uint32_t depth;  
-        uint32_t parent;
-        jsbytecode *parentpc;
-
-        Frame(uint32_t index, JSScript *script, uint32_t depth, uint32_t parent,
-              jsbytecode *parentpc)
-          : index(index), script(script), depth(depth), parent(parent), parentpc(parentpc)
-        {}
-    };
-
-    const Frame &getFrame(uint32_t index) {
-        if (index == OUTER_FRAME)
-            return outerFrame;
-        return inlineFrames[index];
-    }
-
-    unsigned numFrames() { return 1 + inlineFrames.length(); }
-    const Frame &iterFrame(unsigned i) {
-        if (i == 0)
-            return outerFrame;
-        return inlineFrames[i - 1];
-    }
-
-    JSScript *outerScript() { return outerFrame.script; }
-
-    
-    size_t frameLength(uint32_t index) {
-        if (index == OUTER_FRAME)
-            return 0;
-        size_t res = outerFrame.script->length;
-        for (unsigned i = 0; i < index; i++)
-            res += inlineFrames[i].script->length;
-        return res;
-    }
-
-    inline types::StackTypeSet *getValueTypes(const CrossSSAValue &cv);
-
-    bool addInlineFrame(JSScript *script, uint32_t depth, uint32_t parent,
-                        jsbytecode *parentpc)
-    {
-        uint32_t index = inlineFrames.length();
-        return inlineFrames.append(Frame(index, script, depth, parent, parentpc));
-    }
-
-    CrossScriptSSA(JSContext *cx, JSScript *outer)
-        : outerFrame(OUTER_FRAME, outer, 0, INVALID_FRAME, NULL), inlineFrames(cx)
-    {}
-
-    CrossSSAValue foldValue(const CrossSSAValue &cv);
-
-  private:
-    Frame outerFrame;
-    Vector<Frame> inlineFrames;
 };
 
 #ifdef DEBUG

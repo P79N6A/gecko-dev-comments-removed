@@ -572,21 +572,7 @@ class StackTypeSet : public TypeSet
     static StackTypeSet *make(JSContext *cx, const char *name);
 
     
-
-    void addSubset(JSContext *cx, TypeSet *target);
-    void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
-    void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
-    void addSetElement(JSContext *cx, JSScript *script, jsbytecode *pc,
-                       StackTypeSet *objectTypes, StackTypeSet *valueTypes);
-    void addCall(JSContext *cx, TypeCallsite *site);
-    void addArith(JSContext *cx, JSScript *script, jsbytecode *pc,
-                  TypeSet *target, TypeSet *other = NULL);
-    void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
-    void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc,
-                          Type type, StackTypeSet *types = NULL);
-    void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
+    void addSubset(JSContext *cx, StackTypeSet *target);
 
     
 
@@ -680,15 +666,7 @@ class HeapTypeSet : public TypeSet
   public:
 
     
-
-    void addSubset(JSContext *cx, TypeSet *target);
-    void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
-    void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
-    void addFilterPrimitives(JSContext *cx, TypeSet *target);
-    void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
-
-    
+    void addSubset(JSContext *cx, HeapTypeSet *target);
 
     
     void addFreeze(JSContext *cx);
@@ -1152,7 +1130,7 @@ struct TypeObject : gc::Cell
     void clearAddendum(ExclusiveContext *cx);
     void clearNewScriptAddendum(ExclusiveContext *cx);
     void clearBinaryDataAddendum(ExclusiveContext *cx);
-    void getFromPrototypes(JSContext *cx, jsid id, TypeSet *types, bool force = false);
+    void getFromPrototypes(JSContext *cx, jsid id, HeapTypeSet *types, bool force = false);
 
     void print();
 
@@ -1499,10 +1477,6 @@ struct TypeCompartment
     
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
     void addPendingRecompile(JSContext *cx, JSScript *script);
-
-    
-    void monitorBytecode(JSContext *cx, JSScript *script, uint32_t offset,
-                         bool returnOnly = false);
 
     
     void markSetsUnknown(JSContext *cx, TypeObject *obj);
