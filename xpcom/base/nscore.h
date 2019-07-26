@@ -328,18 +328,9 @@ typedef uint32_t nsrefcnt;
 
 
 
-  
-#if defined(_MSC_VER)
-  #define HAVE_CPP_2BYTE_WCHAR_T
-#endif
-
 #ifndef __PRUNICHAR__
 #define __PRUNICHAR__
-
-
-
-
-  #if defined(HAVE_CPP_2BYTE_WCHAR_T) && defined(XP_WIN)
+  #if defined(WIN32)
     typedef wchar_t PRUnichar;
   #else
     typedef uint16_t PRUnichar;

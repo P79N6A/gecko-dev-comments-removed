@@ -376,7 +376,7 @@ nsHTMLTags::AddRefTable(void)
 
 
 
-#if defined(DEBUG) && defined(NS_STATIC_ATOM_USE_WIDE_STRINGS)
+#if defined(DEBUG)
     {
       
       for (i = 0; i < NS_HTML_TAG_MAX; ++i) {
