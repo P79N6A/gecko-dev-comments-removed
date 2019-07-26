@@ -374,7 +374,7 @@ class Build(MachCommandBase):
         if high_finder:
             print(FINDER_SLOW_MESSAGE % finder_percent)
 
-        if monitor.elasped > 300:
+        if monitor.elapsed > 300:
             
             
             
