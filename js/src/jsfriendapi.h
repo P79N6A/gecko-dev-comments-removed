@@ -1514,6 +1514,10 @@ struct JSJitInfo {
     bool isMovable;         
 
 
+    bool isInSlot;          
+
+    JSValueType returnType; 
+
     AliasSet aliasSet;      
 
 
@@ -1521,11 +1525,7 @@ struct JSJitInfo {
 
     
     
-    bool isInSlot;          
-
     size_t slotIndex;       
-
-    JSValueType returnType; 
 
     const ArgType* const argTypes; 
 
@@ -1550,7 +1550,7 @@ private:
 };
 
 #define JS_JITINFO_NATIVE_PARALLEL(op)                                         \
-    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,JSJitInfo::AliasEverything,false,0,JSVAL_TYPE_MISSING,nullptr,op}
+    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,false,JSVAL_TYPE_MISSING,JSJitInfo::AliasEverything,0,nullptr,op}
 
 static JS_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
