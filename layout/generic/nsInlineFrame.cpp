@@ -487,23 +487,21 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   nsLineLayout* lineLayout = aReflowState.mLineLayout;
   bool inFirstLine = aReflowState.mLineLayout->GetInFirstLine();
   RestyleManager* restyleManager = aPresContext->RestyleManager();
-  bool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
-  nscoord leftEdge = 0;
+  WritingMode wm = aReflowState.GetWritingMode();
+  nscoord startEdge = 0;
   
   
   if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
-    leftEdge = ltr ? aReflowState.ComputedPhysicalBorderPadding().left
-                   : aReflowState.ComputedPhysicalBorderPadding().right;
+    startEdge = aReflowState.ComputedLogicalBorderPadding().IStart(wm);
   }
-  nscoord availableWidth = aReflowState.AvailableWidth();
-  NS_ASSERTION(availableWidth != NS_UNCONSTRAINEDSIZE,
+  nscoord availableISize = aReflowState.AvailableISize();
+  NS_ASSERTION(availableISize != NS_UNCONSTRAINEDSIZE,
                "should no longer use available widths");
   
-  availableWidth -= leftEdge;
-  availableWidth -= ltr ? aReflowState.ComputedPhysicalBorderPadding().right
-                        : aReflowState.ComputedPhysicalBorderPadding().left;
-  lineLayout->BeginSpan(this, &aReflowState, leftEdge,
-                        leftEdge + availableWidth, &mBaseline);
+  availableISize -= startEdge;
+  availableISize -= aReflowState.ComputedLogicalBorderPadding().IEnd(wm);
+  lineLayout->BeginSpan(this, &aReflowState, startEdge,
+                        startEdge + availableISize, &mBaseline);
 
   
   nsIFrame* frame = mFrames.FirstChild();
@@ -646,7 +644,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   
-  aMetrics.Width() = lineLayout->EndSpan(this);
+  aMetrics.ISize() = lineLayout->EndSpan(this);
 
   
 
@@ -654,8 +652,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
-    aMetrics.Width() += ltr ? aReflowState.ComputedPhysicalBorderPadding().left
-                          : aReflowState.ComputedPhysicalBorderPadding().right;
+    aMetrics.ISize() += aReflowState.ComputedLogicalBorderPadding().IStart(wm);
   }
 
   
@@ -668,8 +665,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   if (NS_FRAME_IS_COMPLETE(aStatus) &&
       !LastInFlow()->GetNextContinuation() &&
       !FrameIsNonLastInIBSplit()) {
-    aMetrics.Width() += ltr ? aReflowState.ComputedPhysicalBorderPadding().right
-                          : aReflowState.ComputedPhysicalBorderPadding().left;
+    aMetrics.Width() += aReflowState.ComputedLogicalBorderPadding().IEnd(wm);
   }
 
   nsRefPtr<nsFontMetrics> fm;

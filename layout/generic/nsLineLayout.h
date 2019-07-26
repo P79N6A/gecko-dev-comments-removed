@@ -21,6 +21,7 @@
 #include "nsBlockReflowState.h"
 #include "plarena.h"
 #include "gfxTypes.h"
+#include "WritingModes.h"
 
 class nsFloatManager;
 struct nsStyleText;
@@ -33,10 +34,10 @@ public:
                const nsLineList::iterator* aLine);
   ~nsLineLayout();
 
-  void Init(nsBlockReflowState* aState, nscoord aMinLineHeight,
+  void Init(nsBlockReflowState* aState, nscoord aMinLineBSize,
             int32_t aLineNumber) {
     mBlockRS = aState;
-    mMinLineHeight = aMinLineHeight;
+    mMinLineBSize = aMinLineBSize;
     mLineNumber = aLineNumber;
   }
 
@@ -44,11 +45,12 @@ public:
     return mLineNumber;
   }
 
-  void BeginLineReflow(nscoord aX, nscoord aY,
-                       nscoord aWidth, nscoord aHeight,
+  void BeginLineReflow(nscoord aICoord, nscoord aBCoord,
+                       nscoord aISize, nscoord aBSize,
                        bool aImpactedByFloats,
                        bool aIsTopOfPage,
-                       uint8_t aDirection);
+                       mozilla::WritingMode aWritingMode,
+                       nscoord aContainerWidth);
 
   void EndLineReflow();
 
@@ -73,7 +75,7 @@ public:
 
   void SplitLineTo(int32_t aNewCount);
 
-  bool IsZeroHeight();
+  bool IsZeroBSize();
 
   
   
@@ -88,11 +90,12 @@ public:
     PushFrame(aFrame);
   }
 
-  void VerticalAlignLine();
+  void BlockDirAlignLine();
 
   bool TrimTrailingWhiteSpace();
 
-  void HorizontalAlignFrames(nsRect& aLineBounds, bool aIsLastLine);
+  void InlineDirAlignFrames(nsRect& aLineBounds, bool aIsLastLine,
+                             int32_t aFrameCount);
 
   
 
@@ -306,7 +309,7 @@ public:
 
 
 
-  nscoord GetCurrentFrameXDistanceFromBlock();
+  nscoord GetCurrentFrameInlineDistanceFromBlock();
 
 protected:
   
@@ -333,7 +336,15 @@ protected:
   struct PerFrameData;
   friend struct PerSpanData;
   friend struct PerFrameData;
-  struct PerFrameData {
+  struct PerFrameData
+  {
+    PerFrameData(mozilla::WritingMode aWritingMode)
+      : mBounds(aWritingMode)
+      , mMargin(aWritingMode)
+      , mBorderPadding(aWritingMode)
+      , mOffsets(aWritingMode)
+    {}
+
     
     PerFrameData* mNext;
     PerFrameData* mPrev;
@@ -346,20 +357,23 @@ protected:
 
     
     nscoord mAscent;
-    nsRect mBounds;
+    
+    
+    
+    mozilla::LogicalRect mBounds;
     nsOverflowAreas mOverflowAreas;
 
     
-    nsMargin mMargin;
-    nsMargin mBorderPadding;
-    nsMargin mOffsets;
+    mozilla::LogicalMargin mMargin;
+    mozilla::LogicalMargin mBorderPadding;
+    mozilla::LogicalMargin mOffsets;
 
     
     int32_t mJustificationNumSpaces;
     int32_t mJustificationNumLetters;
     
     
-    uint8_t mVerticalAlign;
+    uint8_t mBlockDirAlign;
 
 
 #define PFD_RELATIVEPOS                 0x00000001
@@ -414,19 +428,18 @@ protected:
 
     const nsHTMLReflowState* mReflowState;
     bool mNoWrap;
-    uint8_t mDirection;
-    bool mChangedFrameDirection;
+    mozilla::WritingMode mWritingMode;
     bool mZeroEffectiveSpanBox;
     bool mContainsFloat;
     bool mHasNonemptyContent;
 
-    nscoord mLeftEdge;
-    nscoord mX;
-    nscoord mRightEdge;
+    nscoord mIStart;
+    nscoord mICoord;
+    nscoord mIEnd;
 
-    nscoord mTopLeading, mBottomLeading;
-    nscoord mLogicalHeight;
-    nscoord mMinY, mMaxY;
+    nscoord mBStartLeading, mBEndLeading;
+    nscoord mLogicalBSize;
+    nscoord mMinBCoord, mMaxBCoord;
     nscoord* mBaseline;
 
     void AppendFrame(PerFrameData* pfd) {
@@ -448,7 +461,7 @@ protected:
   int32_t     mLastOptionalBreakContentOffset;
   int32_t     mForceBreakContentOffset;
 
-  nscoord mMinLineHeight;
+  nscoord mMinLineBSize;
   
   
   
@@ -462,18 +475,20 @@ protected:
 
   int32_t mTotalPlacedFrames;
 
-  nscoord mTopEdge;
-  nscoord mMaxTopBoxHeight;
-  nscoord mMaxBottomBoxHeight;
+  nscoord mBStartEdge;
+  nscoord mMaxStartBoxBSize;
+  nscoord mMaxEndBoxBSize;
 
   nscoord mInflationMinFontSize;
 
   
   
-  nscoord mFinalLineHeight;
+  nscoord mFinalLineBSize;
   
   
   nscoord mTrimmableWidth;
+
+  nscoord mContainerWidth;
 
   bool mFirstLetterStyleOK      : 1;
   bool mIsTopOfPage             : 1;
@@ -499,7 +514,7 @@ protected:
   
 
 
-  PerFrameData* NewPerFrameData();
+  PerFrameData* NewPerFrameData(nsIFrame* aFrame);
 
   
 
@@ -518,7 +533,6 @@ protected:
                         nsHTMLReflowState& aReflowState);
 
   bool CanPlaceFrame(PerFrameData* pfd,
-                       uint8_t aFrameDirection,
                        bool aNotSafeToBreak,
                        bool aFrameCanContinueTextRun,
                        bool aCanRollBackBeforeFrame,
@@ -529,15 +543,15 @@ protected:
   void PlaceFrame(PerFrameData* pfd,
                   nsHTMLReflowMetrics& aMetrics);
 
-  void VerticalAlignFrames(PerSpanData* psd);
+  void BlockDirAlignFrames(PerSpanData* psd);
 
-  void PlaceTopBottomFrames(PerSpanData* psd,
-                            nscoord aDistanceFromTop,
-                            nscoord aLineHeight);
+  void PlaceStartEndFrames(PerSpanData* psd,
+                           nscoord aDistanceFromStart,
+                           nscoord aLineBSize);
 
   void RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflowAreas);
 
-  bool TrimTrailingWhiteSpaceIn(PerSpanData* psd, nscoord* aDeltaWidth);
+  bool TrimTrailingWhiteSpaceIn(PerSpanData* psd, nscoord* aDeltaISize);
 
   void ComputeJustificationWeights(PerSpanData* psd, int32_t* numSpaces, int32_t* numLetters);
 
