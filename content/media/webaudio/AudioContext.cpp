@@ -164,6 +164,12 @@ AudioContext::CreateBuffer(JSContext* aJSContext, ArrayBuffer& aBuffer,
                           bool aMixToMono, ErrorResult& aRv)
 {
   
+  if (!Preferences::GetBool("media.webaudio.legacy.AudioContext")) {
+    aRv.ThrowNotEnoughArgsError();
+    return nullptr;
+  }
+
+  
   
   nsAutoCString contentType;
   NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, nullptr,
