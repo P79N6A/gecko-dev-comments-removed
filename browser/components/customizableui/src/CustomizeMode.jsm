@@ -1688,7 +1688,15 @@ CustomizeMode.prototype = {
     let dragY = aEvent.clientY - this._dragOffset.y;
 
     
-    let bounds = expectedParent.getBoundingClientRect();
+    let boundsContainer = expectedParent;
+    
+    
+    
+    
+    if (boundsContainer == this.panelUIContents) {
+      boundsContainer = boundsContainer.parentNode;
+    }
+    let bounds = boundsContainer.getBoundingClientRect();
     dragX = Math.min(bounds.right, Math.max(dragX, bounds.left));
     dragY = Math.min(bounds.bottom, Math.max(dragY, bounds.top));
 
@@ -1700,6 +1708,16 @@ CustomizeMode.prototype = {
       }
     } else {
       let positionManager = DragPositionManager.getManagerForArea(aAreaElement);
+      
+      dragX -= bounds.left;
+      
+      
+      
+      if (expectedParent == this.panelUIContents) {
+        dragY -= this.panelUIContents.getBoundingClientRect().top;
+      } else {
+        dragY -= bounds.top;
+      }
       
       targetNode = positionManager.find(aAreaElement, dragX, dragY, aDraggedItemId);
     }
