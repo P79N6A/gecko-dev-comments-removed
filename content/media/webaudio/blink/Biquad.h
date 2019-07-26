@@ -29,15 +29,11 @@
 #ifndef Biquad_h
 #define Biquad_h
 
-#include "AudioArray.h"
-#include <sys/types.h>
-#include <wtf/Complex.h>
- 
-#if USE(WEBAUDIO_IPP)
-#include <ipps.h>
-#endif 
+#include <complex>
 
 namespace WebCore {
+
+typedef std::complex<double> Complex;
 
 
 
@@ -45,9 +41,9 @@ namespace WebCore {
 
 
 class Biquad {
-public:   
+public:
     Biquad();
-    virtual ~Biquad();
+    ~Biquad();
 
     void process(const float* sourceP, float* destP, size_t framesToProcess);
 
@@ -82,7 +78,7 @@ public:
                               float* phaseResponse);
 private:
     void setNormalizedCoefficients(double b0, double b1, double b2, double a0, double a1, double a2);
-    
+
     
     
     
@@ -92,24 +88,11 @@ private:
     double m_a1;
     double m_a2;
 
-#if OS(DARWIN)
-    void processFast(const float* sourceP, float* destP, size_t framesToProcess);
-    void processSliceFast(double* sourceP, double* destP, double* coefficientsP, size_t framesToProcess);
-
-    AudioDoubleArray m_inputBuffer;
-    AudioDoubleArray m_outputBuffer;
-
-#elif USE(WEBAUDIO_IPP)
-    IppsIIRState64f_32f* m_biquadState;
-    Ipp8u* m_ippInternalBuffer;
-
-#else
     
     double m_x1; 
     double m_x2; 
     double m_y1; 
     double m_y2; 
-#endif
 };
 
 } 
