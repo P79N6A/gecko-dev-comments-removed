@@ -100,7 +100,26 @@
  \
     macro(JSOP_UNDEFINED, 1,  js_undefined_str, "",       1,  0,  1, JOF_BYTE) \
     macro(JSOP_UNUSED2,   2,  "unused2",    NULL,         1,  1,  0, JOF_BYTE) \
+    
+
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_ENTERWITH, 3,  "enterwith",  NULL,         5,  1,  0, JOF_OBJECT) \
+    
+
+
+
+
+
+ \
     macro(JSOP_LEAVEWITH, 4,  "leavewith",  NULL,         1,  0,  0, JOF_BYTE) \
     
 
@@ -111,8 +130,35 @@
 
  \
     macro(JSOP_RETURN,    5,  "return",     NULL,         1,  1,  0, JOF_BYTE) \
+    
+
+
+
+
+
+ \
     macro(JSOP_GOTO,      6,  "goto",       NULL,         5,  0,  0, JOF_JUMP) \
+    
+
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_IFEQ,      7,  "ifeq",       NULL,         5,  1,  0, JOF_JUMP|JOF_DETECTING) \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_IFNE,      8,  "ifne",       NULL,         5,  1,  0, JOF_JUMP) \
     \
     
@@ -491,10 +537,38 @@
  \
     macro(JSOP_FALSE,     66, js_false_str, js_false_str, 1,  0,  1, JOF_BYTE) \
     macro(JSOP_TRUE,      67, js_true_str,  js_true_str,  1,  0,  1, JOF_BYTE) \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_OR,        68, "or",         NULL,         5,  1,  1, JOF_JUMP|JOF_DETECTING|JOF_LEFTASSOC) \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_AND,       69, "and",        NULL,         5,  1,  1, JOF_JUMP|JOF_DETECTING|JOF_LEFTASSOC) \
     \
-     \
+    
+
+
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_TABLESWITCH, 70, "tableswitch", NULL,     -1,  1,  0,  JOF_TABLESWITCH|JOF_DETECTING) \
     \
     
@@ -538,13 +612,41 @@
 
 
 
+ \
+    macro(JSOP_ITER,      75, "iter",       NULL,         2,  1,  1,  JOF_UINT8) \
+    
+
+
+
+
+
+
+
 
 
 
  \
-    macro(JSOP_ITER,      75, "iter",       NULL,         2,  1,  1,  JOF_UINT8) \
     macro(JSOP_MOREITER,  76, "moreiter",   NULL,         1,  1,  2,  JOF_BYTE) \
+    
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_ITERNEXT,  77, "iternext",   "<next>",     1,  0,  1,  JOF_BYTE) \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_ENDITER,   78, "enditer",    NULL,         1,  1,  0,  JOF_BYTE) \
     \
     
@@ -799,7 +901,16 @@
     macro(JSOP_UNUSED104,  104, "unused104",   NULL,         1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED105,  105, "unused105",   NULL,         1,  0,  0,  JOF_BYTE) \
     \
-     \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_LABEL,     106,"label",     NULL,          5,  0,  0,  JOF_JUMP) \
     \
     macro(JSOP_UNUSED107, 107,"unused107",  NULL,         1,  0,  0,  JOF_BYTE) \
@@ -822,7 +933,15 @@
  \
     macro(JSOP_FUNCALL,   108,"funcall",    NULL,         3, -1,  1, JOF_UINT16|JOF_INVOKE|JOF_TYPESET) \
     \
-     \
+    
+
+
+
+
+
+
+
+ \
     macro(JSOP_LOOPHEAD,  109,"loophead",   NULL,         1,  0,  0,  JOF_BYTE) \
     \
      \
@@ -847,6 +966,14 @@
     macro(JSOP_SETNAME,   111,"setname",    NULL,         5,  2,  1,  JOF_ATOM|JOF_NAME|JOF_SET|JOF_DETECTING) \
     \
      \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_THROW,     112,js_throw_str, NULL,         1,  1,  0,  JOF_BYTE) \
     \
     
@@ -880,11 +1007,41 @@
  \
     macro(JSOP_DEBUGGER,  115,"debugger",   NULL,         1,  0,  0, JOF_BYTE) \
     \
-     \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_GOSUB,     116,"gosub",      NULL,         5,  0,  0,  JOF_JUMP) \
+    
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_RETSUB,    117,"retsub",     NULL,         1,  2,  0,  JOF_BYTE) \
     \
      \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_EXCEPTION, 118,"exception",  NULL,         1,  0,  1,  JOF_BYTE) \
     \
     
@@ -899,9 +1056,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  \
     macro(JSOP_CONDSWITCH,120,"condswitch", NULL,         1,  0,  0,  JOF_BYTE) \
+    
+
+
+
+
+
+
+
+ \
     macro(JSOP_CASE,      121,"case",       NULL,         5,  2,  1,  JOF_JUMP) \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_DEFAULT,   122,"default",    NULL,         5,  1,  0,  JOF_JUMP) \
     \
      \
@@ -1002,8 +1205,22 @@
     
 
 
+
+
+
+
+
+
  \
     macro(JSOP_TRY,         134,"try",        NULL,       1,  0,  0,  JOF_BYTE) \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_FINALLY,     135,"finally",    NULL,       1,  0,  2,  JOF_BYTE) \
     \
     
@@ -1080,11 +1297,27 @@
     macro(JSOP_UNUSED147,     147,"unused147", NULL,      1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED148,     148,"unused148", NULL,      1,  0,  0,  JOF_BYTE) \
     \
-     \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_BACKPATCH,     149,"backpatch", NULL,      5,  0,  0,  JOF_JUMP) \
     macro(JSOP_UNUSED150,     150,"unused150", NULL,      1,  0,  0,  JOF_BYTE) \
     \
-     \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_THROWING,      151,"throwing", NULL,       1,  1,  0,  JOF_BYTE) \
     \
     
@@ -1405,6 +1638,10 @@
     macro(JSOP_IMPLICITTHIS,  226, "implicitthis", "",    5,  0,  1,  JOF_ATOM) \
     \
     
+
+
+
+
 
 
 
