@@ -43,8 +43,6 @@ const FILE_XPI_ADDONS_LIST            = "extensions.ini";
 
 #expand const DB_SCHEMA                       = __MOZ_EXTENSIONS_DB_SCHEMA__;
 
-
-const LAST_SQLITE_DB_SCHEMA           = 14;
 const PREF_DB_SCHEMA                  = "extensions.databaseSchema";
 const PREF_PENDING_OPERATIONS         = "extensions.pendingOperations";
 const PREF_EM_ENABLED_ADDONS          = "extensions.enabledAddons";
@@ -471,21 +469,26 @@ this.XPIDatabase = {
 
 
 
-  getMigrateDataFromSQLITE: function XPIDB_getMigrateDataFromSQLITE() {
+  loadSqliteData: function XPIDB_loadSqliteData() {
     let connection = null;
     let dbfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
+    if (!dbfile.exists()) {
+      return false;
+    }
     
     try {
       connection = Services.storage.openUnsharedDatabase(dbfile);
     }
     catch (e) {
+      
       WARN("Failed to open sqlite database " + dbfile.path + " for upgrade", e);
-      return null;
+      this.migrateData = null;
+      return true;
     }
     LOG("Migrating data from sqlite");
-    let migrateData = this.getMigrateDataFromDatabase(connection);
+    this.migrateData = this.getMigrateDataFromDatabase(connection);
     connection.close();
-    return migrateData;
+    return true;
   },
 
   
@@ -575,17 +578,12 @@ this.XPIDatabase = {
     }
     catch (e) {
       if (e.result == Cr.NS_ERROR_FILE_NOT_FOUND) {
-        try {
-          let schemaVersion = Services.prefs.getIntPref(PREF_DB_SCHEMA);
-          if (schemaVersion <= LAST_SQLITE_DB_SCHEMA) {
-            
-            this.migrateData = this.getMigrateDataFromSQLITE();
-          }
-          
-          
-        }
-        catch(e) {
-          
+        
+        
+        
+        WARN("Extensions database not found; attempting to upgrade");
+        
+        if (!this.loadSqliteData()) {
           
           this.migrateData = this.getMigrateDataFromRDF();
         }
@@ -595,7 +593,6 @@ this.XPIDatabase = {
       else {
         WARN("Extensions database " + this.jsonFile.path +
             " exists but is not readable; rebuilding in memory", e);
-        
         
         
         this.lockedDatabase = true;
