@@ -209,7 +209,9 @@ bool CrossCompartmentWrapper::finalizeInBackground(Value priv)
 
 
 
-    return IsBackgroundFinalized(priv.toObject().getAllocKind());
+    if (IsInsideNursery(priv.toObject().runtime(), &priv.toObject()))
+        return false;
+    return IsBackgroundFinalized(priv.toObject().tenuredGetAllocKind());
 }
 
 #define PIERCE(cx, wrapper, pre, op, post)                      \
