@@ -11,8 +11,6 @@ function test() {
   
   waitForExplicitFinish();
   
-  ignoreAllUncaughtExceptions();
-  
   
   requestLongerTimeout(4);
   runNextTest();
