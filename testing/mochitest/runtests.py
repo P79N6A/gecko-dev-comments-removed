@@ -1061,7 +1061,7 @@ class Mochitest(MochitestUtilsMixin):
       self.cleanup(manifest, options)
     return status
 
-  def handleTimeout(self, timeout, proc, utilityPath, debuggerInfo, browserProcesssId):
+  def handleTimeout(self, timeout, proc, utilityPath, debuggerInfo, browserProcessId):
     """handle process output timeout"""
     
     log.info("TEST-UNEXPECTED-FAIL | %s | application timed out after %d seconds with no output", self.lastTestSeen, int(timeout))
