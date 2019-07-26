@@ -663,6 +663,72 @@ class CodeLocationLabel
     }
 };
 
+
+
+
+
+
+class AsmJSHeapAccess
+{
+    uint32_t offset_;
+#if defined(JS_CODEGEN_X86)
+    uint8_t cmpDelta_;  
+#endif
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+    uint8_t opLength_;  
+    uint8_t isFloat32Load_;
+    AnyRegister::Code loadedReg_ : 8;
+#endif
+
+    JS_STATIC_ASSERT(AnyRegister::Total < UINT8_MAX);
+
+  public:
+    AsmJSHeapAccess() {}
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+    
+    
+    AsmJSHeapAccess(uint32_t offset, uint32_t after, ArrayBufferView::ViewType vt,
+                    AnyRegister loadedReg, uint32_t cmp = UINT32_MAX)
+      : offset_(offset),
+# if defined(JS_CODEGEN_X86)
+        cmpDelta_(cmp == UINT32_MAX ? 0 : offset - cmp),
+# endif
+        opLength_(after - offset),
+        isFloat32Load_(vt == ArrayBufferView::TYPE_FLOAT32),
+        loadedReg_(loadedReg.code())
+    {}
+    AsmJSHeapAccess(uint32_t offset, uint8_t after, uint32_t cmp = UINT32_MAX)
+      : offset_(offset),
+# if defined(JS_CODEGEN_X86)
+        cmpDelta_(cmp == UINT32_MAX ? 0 : offset - cmp),
+# endif
+        opLength_(after - offset),
+        isFloat32Load_(false),
+        loadedReg_(UINT8_MAX)
+    {}
+#elif defined(JS_CODEGEN_ARM)
+    explicit AsmJSHeapAccess(uint32_t offset)
+      : offset_(offset)
+    {}
+#endif
+
+    uint32_t offset() const { return offset_; }
+    void setOffset(uint32_t offset) { offset_ = offset; }
+#if defined(JS_CODEGEN_X86)
+    bool hasLengthCheck() const { return cmpDelta_ > 0; }
+    void *patchLengthAt(uint8_t *code) const { return code + (offset_ - cmpDelta_); }
+    void *patchOffsetAt(uint8_t *code) const { return code + (offset_ + opLength_); }
+#endif
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+    unsigned opLength() const { return opLength_; }
+    bool isLoad() const { return loadedReg_ != UINT8_MAX; }
+    bool isFloat32Load() const { return isFloat32Load_; }
+    AnyRegister loadedReg() const { return AnyRegister::FromCode(loadedReg_); }
+#endif
+};
+
+typedef Vector<AsmJSHeapAccess, 0, SystemAllocPolicy> AsmJSHeapAccessVector;
+
 struct AsmJSGlobalAccess
 {
     CodeOffsetLabel patchAt;
@@ -672,8 +738,6 @@ struct AsmJSGlobalAccess
       : patchAt(patchAt), globalDataOffset(globalDataOffset)
     {}
 };
-
-typedef Vector<AsmJSGlobalAccess, 0, IonAllocPolicy> AsmJSGlobalAccessVector;
 
 
 
@@ -747,7 +811,25 @@ struct AsmJSAbsoluteLink
     AsmJSImmKind target;
 };
 
-typedef Vector<AsmJSAbsoluteLink, 0, SystemAllocPolicy> AsmJSAbsoluteLinkVector;
+
+class AssemblerShared
+{
+    Vector<AsmJSHeapAccess, 0, SystemAllocPolicy> asmJSHeapAccesses_;
+    Vector<AsmJSGlobalAccess, 0, SystemAllocPolicy> asmJSGlobalAccesses_;
+    Vector<AsmJSAbsoluteLink, 0, SystemAllocPolicy> asmJSAbsoluteLinks_;
+
+  public:
+    bool append(AsmJSHeapAccess access) { return asmJSHeapAccesses_.append(access); }
+    AsmJSHeapAccessVector &&extractAsmJSHeapAccesses() { return Move(asmJSHeapAccesses_); }
+
+    bool append(AsmJSGlobalAccess access) { return asmJSGlobalAccesses_.append(access); }
+    size_t numAsmJSGlobalAccesses() const { return asmJSGlobalAccesses_.length(); }
+    AsmJSGlobalAccess asmJSGlobalAccess(size_t i) const { return asmJSGlobalAccesses_[i]; }
+
+    bool append(AsmJSAbsoluteLink link) { return asmJSAbsoluteLinks_.append(link); }
+    size_t numAsmJSAbsoluteLinks() const { return asmJSAbsoluteLinks_.length(); }
+    AsmJSAbsoluteLink asmJSAbsoluteLink(size_t i) const { return asmJSAbsoluteLinks_[i]; }
+};
 
 } 
 } 
