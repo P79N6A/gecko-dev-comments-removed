@@ -244,7 +244,14 @@ this.PageThumbs = {
     let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                        .getInterface(Ci.nsIDOMWindowUtils);
     let sbWidth = {}, sbHeight = {};
-    utils.getScrollbarSize(false, sbWidth, sbHeight);
+
+    try {
+      utils.getScrollbarSize(false, sbWidth, sbHeight);
+    } catch (e) {
+      
+      Cu.reportError("Unable to get scrollbar size in _determineCropSize.");
+      sbWidth.value = sbHeight.value = 0;
+    }
 
     
     
