@@ -130,6 +130,10 @@ ErrorResult::ThrowJSException(JSContext* cx, JS::Value exn)
     delete mMessage;
   }
 
+  
+  
+  
+  mJSException = JS::UndefinedValue();
   if (!JS_AddNamedValueRoot(cx, &mJSException, "ErrorResult::mJSException")) {
     
     
