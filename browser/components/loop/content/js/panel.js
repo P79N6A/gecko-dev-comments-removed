@@ -3,13 +3,13 @@
 
 
 
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 var loop = loop || {};
 loop.panel = (function(_, __) {
   "use strict";
 
-  
-  var baseApiUrl = "http://localhost:5000",
+  var baseServerUrl = Services.prefs.getCharPref("loop.server"),
       panelView;
 
   
@@ -98,8 +98,8 @@ loop.panel = (function(_, __) {
     },
 
     initialize: function() {
-      this.client = new loop.Client({
-        baseApiUrl: baseApiUrl
+      this.client = new loop.shared.Client({
+        baseServerUrl: baseServerUrl
       });
       this.notificationCollection = new NotificationCollection();
       this.notificationListView = new NotificationListView({
