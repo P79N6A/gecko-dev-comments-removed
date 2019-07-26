@@ -6,12 +6,11 @@
 #include "mpi.h"
 #include "mplogic.h"
 #include "mpi-priv.h"
-#include <stdlib.h>
 
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp384_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -219,7 +218,7 @@ ec_GFp_nistp384_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp384_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -233,7 +232,7 @@ ec_GFp_nistp384_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp384_mul(const mp_int *a, const mp_int *b, mp_int *r,
 					const GFMethod *meth)
 {

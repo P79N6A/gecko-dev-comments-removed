@@ -6,14 +6,13 @@
 #include "mpi.h"
 #include "mplogic.h"
 #include "mpi-priv.h"
-#include <stdlib.h>
 
 #define ECP192_DIGITS ECL_CURVE_DIGITS(192)
 
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp192_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -254,7 +253,7 @@ ec_GFp_nistp192_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp192_add(const mp_int *a, const mp_int *b, mp_int *r, 
 			const GFMethod *meth)
 {
@@ -335,7 +334,7 @@ ec_GFp_nistp192_add(const mp_int *a, const mp_int *b, mp_int *r,
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp192_sub(const mp_int *a, const mp_int *b, mp_int *r, 
 			const GFMethod *meth)
 {
@@ -414,7 +413,7 @@ ec_GFp_nistp192_sub(const mp_int *a, const mp_int *b, mp_int *r,
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp192_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -428,7 +427,7 @@ ec_GFp_nistp192_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp192_mul(const mp_int *a, const mp_int *b, mp_int *r,
 					const GFMethod *meth)
 {
@@ -442,7 +441,7 @@ ec_GFp_nistp192_mul(const mp_int *a, const mp_int *b, mp_int *r,
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp192_div(const mp_int *a, const mp_int *b, mp_int *r,
 		   const GFMethod *meth)
 {

@@ -960,7 +960,16 @@ PRBool
 ssl3_IsECCEnabled(sslSocket * ss)
 {
     const ssl3CipherSuite * suite;
+    PK11SlotInfo *slot;
 
+    
+    slot = PK11_GetBestSlot(CKM_ECDH1_DERIVE,  ss->pkcs11PinArg);
+    if (!slot) {
+	return PR_FALSE;
+    }
+    PK11_FreeSlot(slot);
+
+    
     for (suite = ecSuites; *suite; ++suite) {
 	PRBool    enabled = PR_FALSE;
 	SECStatus rv      = ssl3_CipherPrefGet(ss, *suite, &enabled);
@@ -974,21 +983,20 @@ ssl3_IsECCEnabled(sslSocket * ss)
 
 #define BE(n) 0, n
 
-#ifndef NSS_ECC_MORE_THAN_SUITE_B
 
 
 
-static const PRUint8 EClist[12] = {
+static const PRUint8 suiteBECList[12] = {
     BE(10),         
     BE( 8),         
     BE( 6),         
     BE(23), BE(24), BE(25)
 };
-#else
 
 
 
-static const PRUint8 EClist[56] = {
+
+static const PRUint8 tlsECList[56] = {
     BE(10),         
     BE(52),         
     BE(50),         
@@ -997,7 +1005,6 @@ static const PRUint8 EClist[56] = {
     BE(16), BE(17), BE(18), BE(19), BE(20), BE(21), BE(22), BE(23), 
     BE(24), BE(25)
 };
-#endif
 
 static const PRUint8 ECPtFmt[6] = {
     BE(11),         
@@ -1009,16 +1016,51 @@ static const PRUint8 ECPtFmt[6] = {
 
 
 
+
+
+
+static PRBool
+ssl3_SuiteBOnly(sslSocket *ss)
+{
+    
+    PK11SlotInfo *slot =
+	PK11_GetBestSlotWithAttributes(CKM_ECDH1_DERIVE, 0, 163,
+					ss ? ss->pkcs11PinArg : NULL);
+
+    if (!slot) {
+	
+	return PR_TRUE;
+    }
+    
+    PK11_FreeSlot(slot);
+    return PR_FALSE;
+}
+
+
+
+
 PRInt32
 ssl3_SendSupportedCurvesXtn(
 			sslSocket * ss,
 			PRBool      append,
 			PRUint32    maxBytes)
 {
+    int ECListSize = 0;
+    const PRUint8 *ECList = NULL;
+
     if (!ss || !ssl3_IsECCEnabled(ss))
     	return 0;
-    if (append && maxBytes >= (sizeof EClist)) {
-	SECStatus rv = ssl3_AppendHandshake(ss, EClist, (sizeof EClist));
+
+    if (ssl3_SuiteBOnly(ss)) {
+	ECListSize = sizeof (suiteBECList);
+	ECList = suiteBECList;
+    } else {
+	ECListSize = sizeof (tlsECList);
+	ECList = tlsECList;
+    }
+ 
+    if (append && maxBytes >= ECListSize) {
+	SECStatus rv = ssl3_AppendHandshake(ss, ECList, ECListSize);
 	if (rv != SECSuccess)
 	    return -1;
 	if (!ss->sec.isServer) {
@@ -1027,7 +1069,16 @@ ssl3_SendSupportedCurvesXtn(
 		ssl_elliptic_curves_xtn;
 	}
     }
-    return (sizeof EClist);
+    return ECListSize;
+}
+
+PRInt32
+ssl3_GetSupportedECCCurveMask(sslSocket *ss)
+{
+    if (ssl3_SuiteBOnly(ss)) {
+	return SSL3_SUITE_B_SUPPORTED_CURVES_MASK;
+    }
+    return SSL3_ALL_SUPPORTED_CURVES_MASK;
 }
 
 

@@ -6,14 +6,13 @@
 #include "mpi.h"
 #include "mplogic.h"
 #include "mpi-priv.h"
-#include <stdlib.h>
 
 #define ECP224_DIGITS ECL_CURVE_DIGITS(224)
 
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp224_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -275,7 +274,7 @@ ec_GFp_nistp224_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp224_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -289,7 +288,7 @@ ec_GFp_nistp224_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp224_mul(const mp_int *a, const mp_int *b, mp_int *r,
 					const GFMethod *meth)
 {
@@ -303,7 +302,7 @@ ec_GFp_nistp224_mul(const mp_int *a, const mp_int *b, mp_int *r,
 
 
 
-mp_err
+static mp_err
 ec_GFp_nistp224_div(const mp_int *a, const mp_int *b, mp_int *r,
 		   const GFMethod *meth)
 {
