@@ -1,3 +1,7 @@
+
+
+
+
 from __future__ import print_function
 import unittest
 
@@ -8,7 +12,9 @@ from shutil import rmtree, copy2
 from StringIO import StringIO
 from zipfile import ZipFile
 import mozunit
-from JarMaker import JarMaker
+
+from mozbuild.jar import JarMaker
+
 
 if sys.platform == "win32":
     import ctypes
