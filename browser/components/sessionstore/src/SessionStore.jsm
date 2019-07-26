@@ -968,7 +968,7 @@ let SessionStoreInternal = {
     }
 
     
-    aWindow.__SS_dyingCache = winData;
+    DyingWindowCache.set(aWindow, winData);
 
     delete aWindow.__SSi;
   },
@@ -1445,12 +1445,16 @@ let SessionStoreInternal = {
   },
 
   getWindowState: function ssi_getWindowState(aWindow) {
-    if (!aWindow.__SSi && !aWindow.__SS_dyingCache)
-      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    if ("__SSi" in aWindow) {
+      return this._toJSONString(this._getWindowState(aWindow));
+    }
 
-    if (!aWindow.__SSi)
-      return this._toJSONString({ windows: [aWindow.__SS_dyingCache] });
-    return this._toJSONString(this._getWindowState(aWindow));
+    if (DyingWindowCache.has(aWindow)) {
+      let data = DyingWindowCache.get(aWindow);
+      return this._toJSONString({ windows: [data] });
+    }
+
+    throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
 
   setWindowState: function ssi_setWindowState(aWindow, aState, aOverwrite) {
@@ -1506,22 +1510,28 @@ let SessionStoreInternal = {
   },
 
   getClosedTabCount: function ssi_getClosedTabCount(aWindow) {
-    if (!aWindow.__SSi && aWindow.__SS_dyingCache)
-      return aWindow.__SS_dyingCache._closedTabs.length;
-    if (!aWindow.__SSi)
-      
-      return 0; 
+    if ("__SSi" in aWindow) {
+      return this._windows[aWindow.__SSi]._closedTabs.length;
+    }
 
-    return this._windows[aWindow.__SSi]._closedTabs.length;
+    if (DyingWindowCache.has(aWindow)) {
+      return DyingWindowCache.get(aWindow)._closedTabs.length;
+    }
+
+    throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
 
   getClosedTabData: function ssi_getClosedTabDataAt(aWindow) {
-    if (!aWindow.__SSi && !aWindow.__SS_dyingCache)
-      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    if ("__SSi" in aWindow) {
+      return this._toJSONString(this._windows[aWindow.__SSi]._closedTabs);
+    }
 
-    if (!aWindow.__SSi)
-      return this._toJSONString(aWindow.__SS_dyingCache._closedTabs);
-    return this._toJSONString(this._windows[aWindow.__SSi]._closedTabs);
+    if (DyingWindowCache.has(aWindow)) {
+      let data = DyingWindowCache.get(aWindow);
+      return this._toJSONString(data._closedTabs);
+    }
+
+    throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
 
   undoCloseTab: function ssi_undoCloseTab(aWindow, aIndex) {
@@ -1601,14 +1611,16 @@ let SessionStoreInternal = {
   },
 
   getWindowValue: function ssi_getWindowValue(aWindow, aKey) {
-    if (aWindow.__SSi) {
+    if ("__SSi" in aWindow) {
       var data = this._windows[aWindow.__SSi].extData || {};
       return data[aKey] || "";
     }
-    if (aWindow.__SS_dyingCache) {
-      data = aWindow.__SS_dyingCache.extData || {};
+
+    if (DyingWindowCache.has(aWindow)) {
+      let data = DyingWindowCache.get(aWindow).extData || {};
       return data[aKey] || "";
     }
+
     throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
 
@@ -4584,6 +4596,29 @@ let RestoringTabsData = {
 
   remove: function (browser) {
     this._data.delete(browser);
+  }
+};
+
+
+
+
+let DyingWindowCache = {
+  _data: new WeakMap(),
+
+  has: function (window) {
+    return this._data.has(window);
+  },
+
+  get: function (window) {
+    return this._data.get(window);
+  },
+
+  set: function (window, data) {
+    this._data.set(window, data);
+  },
+
+  remove: function (window) {
+    this._data.delete(window);
   }
 };
 
