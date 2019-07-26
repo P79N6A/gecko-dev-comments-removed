@@ -57,11 +57,6 @@ struct HttpRetParams
     bool      ssl;
 };
 
-struct ConnStatus
-{
-    nsString creationSts;
-};
-
 } }
 
 #endif 
