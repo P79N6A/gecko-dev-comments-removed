@@ -1078,7 +1078,11 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
                      MutableHandleValue vp) MOZ_OVERRIDE;
     virtual bool set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id,
                      bool strict, MutableHandleValue vp) MOZ_OVERRIDE;
-    virtual bool keys(JSContext *cx, HandleObject proxy, AutoIdVector &props) MOZ_OVERRIDE;
+    
+    
+    virtual bool keys(JSContext *cx, HandleObject proxy, AutoIdVector &props) MOZ_OVERRIDE {
+        return BaseProxyHandler::keys(cx, proxy, props);
+    }
     virtual bool iterate(JSContext *cx, HandleObject proxy, unsigned flags,
                          MutableHandleValue vp) MOZ_OVERRIDE;
 
@@ -1644,6 +1648,8 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
     return true;
 }
 
+
+
 bool
 ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, HandleObject proxy,
                                                 AutoIdVector &props)
@@ -1652,11 +1658,13 @@ ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, HandleObject prox
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
 
     
+
+    
     RootedObject target(cx, proxy->as<ProxyObject>().target());
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().getOwnPropertyNames, &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().ownKeys, &trap))
         return false;
 
     
@@ -1673,10 +1681,11 @@ ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, HandleObject prox
 
     
     if (trapResult.isPrimitive()) {
-        ReportInvalidTrapResult(cx, proxy, cx->names().getOwnPropertyNames);
+        ReportInvalidTrapResult(cx, proxy, cx->names().ownKeys);
         return false;
     }
 
+    
     
     return ArrayToIdVector(cx, proxy, target, trapResult, props, JSITER_OWNONLY | JSITER_HIDDEN,
                            cx->names().getOwnPropertyNames);
@@ -1970,48 +1979,6 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
     
     vp.set(BooleanValue(success));
     return true;
-}
-
-
-bool
-ScriptedDirectProxyHandler::keys(JSContext *cx, HandleObject proxy, AutoIdVector &props)
-{
-    
-    RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
-
-    
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
-
-    
-    RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().keys, &trap))
-        return false;
-
-    
-    if (trap.isUndefined())
-        return DirectProxyHandler::keys(cx, proxy, props);
-
-    
-    Value argv[] = {
-        ObjectOrNullValue(target)
-    };
-    RootedValue trapResult(cx);
-    if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
-        return false;
-
-    
-    if (trapResult.isPrimitive()) {
-        JSAutoByteString bytes;
-        if (!AtomToPrintableString(cx, cx->names().keys, &bytes))
-            return false;
-        RootedValue v(cx, ObjectOrNullValue(proxy));
-        js_ReportValueError2(cx, JSMSG_INVALID_TRAP_RESULT, JSDVG_IGNORE_STACK,
-                             v, js::NullPtr(), bytes.ptr());
-        return false;
-    }
-
-    
-    return ArrayToIdVector(cx, proxy, target, trapResult, props, JSITER_OWNONLY, cx->names().keys);
 }
 
 

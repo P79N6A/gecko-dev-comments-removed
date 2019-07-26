@@ -3,7 +3,7 @@ load(libdir + "asserts.js");
 
 assertThrowsInstanceOf(function () {
     Object.keys(new Proxy({}, {
-        keys: function (target) {
+        ownKeys: function (target) {
             return [ 'foo', 'foo' ];
         }
     }));
