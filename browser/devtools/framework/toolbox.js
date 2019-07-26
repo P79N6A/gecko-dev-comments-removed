@@ -185,6 +185,13 @@ Toolbox.prototype = {
   
 
 
+  get splitConsole() {
+    return this._splitConsole;
+  },
+
+  
+
+
   open: function() {
     let deferred = promise.defer();
 
