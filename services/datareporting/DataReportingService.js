@@ -258,14 +258,13 @@ DataReportingService.prototype = Object.freeze({
       }
     }
 
-    
     this._healthReporter = new ns.HealthReporter(HEALTHREPORT_BRANCH,
                                                  this.policy,
                                                  this.sessionRecorder);
 
     
     
-    this._healthReporter.onInit().then(function onInit() {
+    this._healthReporter.init().then(function onInit() {
       this._prefs.set("service.firstRun", true);
     }.bind(this));
   },

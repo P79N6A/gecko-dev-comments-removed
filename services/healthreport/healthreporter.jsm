@@ -59,6 +59,188 @@ const TELEMETRY_COLLECT_CHECKPOINT = "HEALTHREPORT_POST_COLLECT_CHECKPOINT_MS";
 
 
 
+
+
+
+
+
+
+
+function HealthReporterState(reporter) {
+  this._reporter = reporter;
+
+  let profD = OS.Constants.Path.profileDir;
+
+  if (!profD || !profD.length) {
+    throw new Error("Could not obtain profile directory. OS.File not " +
+                    "initialized properly?");
+  }
+
+  this._log = reporter._log;
+
+  this._stateDir = OS.Path.join(profD, "healthreport");
+
+  
+  let leaf = reporter._stateLeaf || "state.json";
+
+  this._filename = OS.Path.join(this._stateDir, leaf);
+  this._log.debug("Storing state in " + this._filename);
+  this._s = null;
+}
+
+HealthReporterState.prototype = Object.freeze({
+  get lastPingDate() {
+    return new Date(this._s.lastPingTime);
+  },
+
+  get lastSubmitID() {
+    return this._s.remoteIDs[0];
+  },
+
+  get remoteIDs() {
+    return this._s.remoteIDs;
+  },
+
+  init: function () {
+    return Task.spawn(function init() {
+      try {
+        OS.File.makeDir(this._stateDir);
+      } catch (ex if ex instanceof OS.FileError) {
+        if (!ex.becauseExists) {
+          throw ex;
+        }
+      }
+
+      let resetObjectState = function () {
+        this._s = {
+          v: 1,
+          remoteIDs: [],
+          lastPingTime: 0,
+        };
+      }.bind(this);
+
+      try {
+        this._s = yield CommonUtils.readJSON(this._filename);
+      } catch (ex if ex instanceof OS.File.Error) {
+        if (!ex.becauseNoSuchFile) {
+          throw ex;
+        }
+
+        this._log.warn("Saved state file does not exist.");
+        resetObjectState();
+      } catch (ex) {
+        this._log.error("Exception when reading state from disk: " +
+                        CommonUtils.exceptionStr(ex));
+        resetObjectState();
+
+        
+      }
+
+      if (typeof(this._s) != "object") {
+        this._log.warn("Read state is not an object. Resetting state.");
+        this._s = {
+          v: 1,
+          remoteIDs: [],
+          lastPingTime: 0,
+        };
+        yield this.save();
+      }
+
+      if (this._s.v != 1) {
+        this._log.warn("Unknown version in state file: " + this._s.v);
+        this._s = {
+          v: 1,
+          remoteIDs: [],
+          lastPingTime: 0,
+        };
+        
+        
+      }
+
+      
+      
+      for (let promise of this._migratePrefs()) {
+        yield promise;
+      }
+    }.bind(this));
+  },
+
+  save: function () {
+    this._log.info("Writing state file: " + this._filename);
+    return CommonUtils.writeJSON(this._s, this._filename);
+  },
+
+  addRemoteID: function (id) {
+    this._log.warn("Recording new remote ID: " + id);
+    this._s.remoteIDs.push(id);
+    return this.save();
+  },
+
+  removeRemoteID: function (id) {
+    this._log.warn("Removing document from remote ID list: " + id);
+    let filtered = this._s.remoteIDs.filter((x) => x != id);
+
+    if (filtered.length == this._s.remoteIDs.length) {
+      return Promise.resolve();
+    }
+
+    this._s.remoteIDs = filtered;
+    return this.save();
+  },
+
+  setLastPingDate: function (date) {
+    this._s.lastPingTime = date.getTime();
+
+    return this.save();
+  },
+
+  updateLastPingAndRemoveRemoteID: function (date, id) {
+    if (!id) {
+      return this.setLastPingDate(date);
+    }
+
+    this._log.info("Recording last ping time and deleted remote document.");
+    this._s.lastPingTime = date.getTime();
+    return this.removeRemoteID(id);
+  },
+
+  _migratePrefs: function () {
+    let prefs = this._reporter._prefs;
+
+    let lastID = prefs.get("lastSubmitID", null);
+    let lastPingDate = CommonUtils.getDatePref(prefs, "lastPingTime",
+                                               0, this._log, OLDEST_ALLOWED_YEAR);
+
+    
+    
+    if (lastID || (lastPingDate && lastPingDate.getTime() > 0)) {
+      this._log.warn("Migrating saved state from preferences.");
+
+      if (lastID) {
+        this._log.info("Migrating last saved ID: " + lastID);
+        this._s.remoteIDs.push(lastID);
+      }
+
+      let ourLast = this.lastPingDate;
+
+      if (lastPingDate && lastPingDate.getTime() > ourLast.getTime()) {
+        this._log.info("Migrating last ping time: " + lastPingDate);
+        this._s.lastPingTime = lastPingDate.getTime();
+      }
+
+      yield this.save();
+      prefs.reset(["lastSubmitID", "lastPingTime"]);
+    } else {
+      this._log.warn("No prefs data found.");
+    }
+  },
+});
+
+
+
+
+
+
 function AbstractHealthReporter(branch, policy, sessionRecorder) {
   if (!branch.endsWith(".")) {
     throw new Error("Branch must end with a period (.): " + branch);
@@ -83,6 +265,7 @@ function AbstractHealthReporter(branch, policy, sessionRecorder) {
   this._storageInProgress = false;
   this._providerManager = null;
   this._providerManagerInProgress = false;
+  this._initializeStarted = false;
   this._initialized = false;
   this._initializeHadError = false;
   this._initializedDeferred = Promise.defer();
@@ -99,18 +282,6 @@ function AbstractHealthReporter(branch, policy, sessionRecorder) {
   let hasFirstRun = this._prefs.get("service.firstRun", false);
   this._initHistogram = hasFirstRun ? TELEMETRY_INIT : TELEMETRY_INIT_FIRSTRUN;
   this._dbOpenHistogram = hasFirstRun ? TELEMETRY_DB_OPEN : TELEMETRY_DB_OPEN_FIRSTRUN;
-
-  TelemetryStopwatch.start(this._initHistogram, this);
-
-  
-  
-  Services.obs.addObserver(this, "quit-application", false);
-  Services.obs.addObserver(this, "profile-before-change", false);
-
-  this._storageInProgress = true;
-  TelemetryStopwatch.start(this._dbOpenHistogram, this);
-  Metrics.Storage(this._dbName).then(this._onStorageCreated.bind(this),
-                                     this._onInitError.bind(this));
 }
 
 AbstractHealthReporter.prototype = Object.freeze({
@@ -123,6 +294,27 @@ AbstractHealthReporter.prototype = Object.freeze({
 
   get initialized() {
     return this._initialized;
+  },
+
+  
+
+
+
+
+
+  init: function () {
+    if (this._initializeStarted) {
+      throw new Error("We have already started initialization.");
+    }
+
+    this._initializeStarted = true;
+
+    TelemetryStopwatch.start(this._initHistogram, this);
+
+    this._initializeState().then(this._onStateInitialized.bind(this),
+                                 this._onInitError.bind(this));
+
+    return this.onInit();
   },
 
   
@@ -144,6 +336,23 @@ AbstractHealthReporter.prototype = Object.freeze({
 
     
     
+  },
+
+  _initializeState: function () {
+    return Promise.resolve();
+  },
+
+  _onStateInitialized: function () {
+    
+    
+    Services.obs.addObserver(this, "quit-application", false);
+    Services.obs.addObserver(this, "profile-before-change", false);
+
+    this._storageInProgress = true;
+    TelemetryStopwatch.start(this._dbOpenHistogram, this);
+
+    Metrics.Storage(this._dbName).then(this._onStorageCreated.bind(this),
+                                       this._onInitError.bind(this));
   },
 
   
@@ -775,38 +984,6 @@ AbstractHealthReporter.prototype = Object.freeze({
     throw new Task.Result(o);
   },
 
-  get _stateDir() {
-    let profD = OS.Constants.Path.profileDir;
-
-    
-    if (!profD || !profD.length) {
-      throw new Error("Could not obtain profile directory. OS.File not " +
-                      "initialized properly?");
-    }
-
-    return OS.Path.join(profD, "healthreport");
-  },
-
-  _ensureDirectoryExists: function (path) {
-    let deferred = Promise.defer();
-
-    OS.File.makeDir(path).then(
-      function onResult() {
-        deferred.resolve(true);
-      },
-      function onError(error) {
-        if (error.becauseExists) {
-          deferred.resolve(true);
-          return;
-        }
-
-        deferred.reject(error);
-      }
-    );
-
-    return deferred.promise;
-  },
-
   _now: function _now() {
     return new Date();
   },
@@ -919,7 +1096,9 @@ AbstractHealthReporter.prototype = Object.freeze({
 
 
 
-function HealthReporter(branch, policy, sessionRecorder) {
+function HealthReporter(branch, policy, sessionRecorder, stateLeaf=null) {
+  this._stateLeaf = stateLeaf;
+
   AbstractHealthReporter.call(this, branch, policy, sessionRecorder);
 
   if (!this.serverURI) {
@@ -929,12 +1108,18 @@ function HealthReporter(branch, policy, sessionRecorder) {
   if (!this.serverNamespace) {
     throw new Error("No server namespace defined. Did you forget a pref?");
   }
+
+  this._state = new HealthReporterState(this);
 }
 
 HealthReporter.prototype = Object.freeze({
   __proto__: AbstractHealthReporter.prototype,
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
+
+  get lastSubmitID() {
+    return this._state.lastSubmitID;
+  },
 
   
 
@@ -944,13 +1129,7 @@ HealthReporter.prototype = Object.freeze({
 
 
   get lastPingDate() {
-    return CommonUtils.getDatePref(this._prefs, "lastPingTime", 0, this._log,
-                                   OLDEST_ALLOWED_YEAR);
-  },
-
-  set lastPingDate(value) {
-    CommonUtils.setDatePref(this._prefs, "lastPingTime", value,
-                            OLDEST_ALLOWED_YEAR);
+    return this._state.lastPingDate;
   },
 
   
@@ -997,23 +1176,6 @@ HealthReporter.prototype = Object.freeze({
   
 
 
-
-
-
-
-
-
-  get lastSubmitID() {
-    return this._prefs.get("lastSubmitID", null) || null;
-  },
-
-  set lastSubmitID(value) {
-    this._prefs.set("lastSubmitID", value || "");
-  },
-
-  
-
-
   get willUploadData() {
     return this._policy.dataSubmissionPolicyAccepted &&
            this._policy.healthReportUploadEnabled;
@@ -1025,7 +1187,7 @@ HealthReporter.prototype = Object.freeze({
 
 
   haveRemoteData: function () {
-    return !!this.lastSubmitID;
+    return !!this._state.lastSubmitID;
   },
 
   
@@ -1062,11 +1224,15 @@ HealthReporter.prototype = Object.freeze({
 
 
   requestDeleteRemoteData: function (reason) {
-    if (!this.lastSubmitID) {
+    if (!this.haveRemoteData()) {
       return;
     }
 
     return this._policy.deleteRemoteData(reason);
+  },
+
+  _initializeState: function() {
+    return this._state.init();
   },
 
   
@@ -1110,53 +1276,45 @@ HealthReporter.prototype = Object.freeze({
   _onBagheeraResult: function (request, isDelete, date, result) {
     this._log.debug("Received Bagheera result.");
 
-    let promise = CommonUtils.laterTickResolvingPromise(null);
-    let hrProvider = this.getProvider("org.mozilla.healthreport");
+    return Task.spawn(function onBagheeraResult() {
+      let hrProvider = this.getProvider("org.mozilla.healthreport");
 
-    if (!result.transportSuccess) {
-      
-      
-      if (hrProvider && !isDelete) {
-        hrProvider.recordEvent("uploadTransportFailure", date);
+      if (!result.transportSuccess) {
+        
+        
+        if (hrProvider && !isDelete) {
+          hrProvider.recordEvent("uploadTransportFailure", date);
+        }
+
+        request.onSubmissionFailureSoft("Network transport error.");
+        throw new Task.Result(false);
       }
 
-      request.onSubmissionFailureSoft("Network transport error.");
-      return promise;
-    }
+      if (!result.serverSuccess) {
+        if (hrProvider && !isDelete) {
+          hrProvider.recordEvent("uploadServerFailure", date);
+        }
 
-    if (!result.serverSuccess) {
-      if (hrProvider && !isDelete) {
-        hrProvider.recordEvent("uploadServerFailure", date);
+        request.onSubmissionFailureHard("Server failure.");
+        throw new Task.Result(false);
       }
 
-      request.onSubmissionFailureHard("Server failure.");
-      return promise;
-    }
+      if (hrProvider && !isDelete) {
+        hrProvider.recordEvent("uploadSuccess", date);
+      }
 
-    if (hrProvider && !isDelete) {
-      hrProvider.recordEvent("uploadSuccess", date);
-    }
+      if (isDelete) {
+        this._log.warn("Marking delete as successful.");
+        yield this._state.removeRemoteID(result.id);
+      } else {
+        this._log.warn("Marking upload as successful.");
+        yield this._state.updateLastPingAndRemoveRemoteID(date, result.deleteID);
+      }
 
-    if (isDelete) {
-      this.lastSubmitID = null;
-    } else {
-      this.lastSubmitID = result.id;
-      this.lastPingDate = date;
-    }
+      request.onSubmissionSuccess(this._now());
 
-    request.onSubmissionSuccess(this._now());
-
-#ifndef RELEASE_BUILD
-    
-    
-    try {
-      Services.prefs.savePrefFile(null);
-    } catch (ex) {
-      this._log.warn("Error forcing prefs save: " + CommonUtils.exceptionStr(ex));
-    }
-#endif
-
-    return promise;
+      throw new Task.Result(true);
+    }.bind(this));
   },
 
   _onSubmitDataRequestFailure: function (error) {
@@ -1183,10 +1341,13 @@ HealthReporter.prototype = Object.freeze({
       let histogram = Services.telemetry.getHistogramById(TELEMETRY_PAYLOAD_SIZE_UNCOMPRESSED);
       histogram.add(payload.length);
 
+      let lastID = this.lastSubmitID;
+      yield this._state.addRemoteID(id);
+
       let hrProvider = this.getProvider("org.mozilla.healthreport");
       if (hrProvider) {
-        let event = this.lastSubmitID ? "continuationUploadAttempt"
-                                      : "firstDocumentUploadAttempt";
+        let event = lastID ? "continuationUploadAttempt"
+                           : "firstDocumentUploadAttempt";
         hrProvider.recordEvent(event, now);
       }
 
@@ -1194,7 +1355,7 @@ HealthReporter.prototype = Object.freeze({
       let result;
       try {
         let options = {
-          deleteID: this.lastSubmitID,
+          deleteID: lastID,
           telemetryCompressed: TELEMETRY_PAYLOAD_SIZE_COMPRESSED,
         };
         result = yield client.uploadJSON(this.serverNamespace, id, payload,
@@ -1219,7 +1380,7 @@ HealthReporter.prototype = Object.freeze({
 
 
   deleteRemoteData: function (request) {
-    if (!this.lastSubmitID) {
+    if (!this._state.lastSubmitID) {
       this._log.info("Received request to delete remote data but no data stored.");
       request.onNoDataAvailable();
       return;
