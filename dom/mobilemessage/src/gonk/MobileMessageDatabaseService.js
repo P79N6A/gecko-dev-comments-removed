@@ -1209,6 +1209,12 @@ MobileMessageDatabaseService.prototype = {
         delete messageRecord.transactionId;
       }
 
+      
+      
+      if (messageRecord.envelopeIdIndex === "undefined") {
+        delete messageRecord.envelopeIdIndex;
+      }
+
       cursor.update(messageRecord);
       cursor.continue();
     };
