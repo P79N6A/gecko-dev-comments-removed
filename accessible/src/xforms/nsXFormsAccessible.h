@@ -47,9 +47,6 @@ public:
   virtual void Value(nsString& aValue);
 
   
-  virtual nsresult GetNameInternal(nsAString& aName);
-
-  
   
   virtual uint64_t NativeState();
   virtual bool NativelyUnavailable() const;
@@ -58,7 +55,12 @@ public:
   
   virtual bool CanHaveAnonChildren();
 
+
 protected:
+  
+  
+  virtual mozilla::a11y::ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+
   
   
   nsresult GetBoundChildElementValue(const nsAString& aTagName,

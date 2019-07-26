@@ -3,81 +3,48 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsXFormsWidgetsAccessible_H_
 #define _nsXFormsWidgetsAccessible_H_
 
+#include "BaseAccessibles.h"
 #include "nsXFormsAccessible.h"
-#include "nsBaseWidgetAccessible.h"
 
 
 
 
 
 
-class nsXFormsDropmarkerWidgetAccessible : public nsLeafAccessible,
+class nsXFormsDropmarkerWidgetAccessible : public mozilla::a11y::LeafAccessible,
                                            public nsXFormsAccessibleBase
 {
 public:
-  nsXFormsDropmarkerWidgetAccessible(nsIContent *aContent,
-                                     nsIWeakReference *aShell);
+  nsXFormsDropmarkerWidgetAccessible(nsIContent* aContent,
+                                     DocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(PRUint8 aIndex);
+  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(uint8_t aIndex);
 
   
-  virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual mozilla::a11y::role NativeRole();
+  virtual uint64_t NativeState();
 
   
-  virtual PRUint8 ActionCount();
+  virtual uint8_t ActionCount();
 };
 
 
 
 
 
-class nsXFormsCalendarWidgetAccessible : public nsAccessibleWrap
+class nsXFormsCalendarWidgetAccessible : public AccessibleWrap
 {
 public:
-  nsXFormsCalendarWidgetAccessible(nsIContent *aContent,
-                                   nsIWeakReference *aShell);
+  nsXFormsCalendarWidgetAccessible(nsIContent* aContent,
+                                   DocAccessible* aDoc);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
 };
 
 
@@ -88,20 +55,19 @@ public:
 class nsXFormsComboboxPopupWidgetAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsComboboxPopupWidgetAccessible(nsIContent *aContent,
-                                        nsIWeakReference *aShell);
-
-  
-  NS_IMETHOD GetValue(nsAString& aValue);
+  nsXFormsComboboxPopupWidgetAccessible(nsIContent* aContent,
+                                        DocAccessible* aDoc);
 
   
   virtual void Description(nsString& aDescription);
-  virtual nsresult GetNameInternal(nsAString& aName);
-  virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual void Value(nsString& aValue);
+  virtual mozilla::a11y::role NativeRole();
+  virtual uint64_t NativeState();
+  virtual uint64_t NativeInteractiveState() const;
 
 protected:
   
+  virtual mozilla::a11y::ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
   virtual void CacheChildren();
 };
 

@@ -185,34 +185,24 @@ HTMLSelectOptionAccessible::NativeRole()
   return roles::OPTION;
 }
 
-nsresult
-HTMLSelectOptionAccessible::GetNameInternal(nsAString& aName)
+ENameValueFlag
+HTMLSelectOptionAccessible::NativeName(nsString& aName)
 {
   
   
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::label, aName);
   if (!aName.IsEmpty())
-    return NS_OK;
+    return eNameOK;
 
   
   
   nsIContent* text = mContent->GetFirstChild();
-  if (!text)
-    return NS_OK;
-
-  if (text->IsNodeOfType(nsINode::eTEXT)) {
-    nsAutoString txtValue;
-    nsresult rv = nsTextEquivUtils::
-      AppendTextEquivFromTextContent(text, &txtValue);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    txtValue.CompressWhitespace();
-    aName.Assign(txtValue);
-    return NS_OK;
+  if (text && text->IsNodeOfType(nsINode::eTEXT)) {
+    nsTextEquivUtils::AppendTextEquivFromTextContent(text, &aName);
+    aName.CompressWhitespace();
   }
 
-  return NS_OK;
+  return eNameOK;
 }
 
 uint64_t

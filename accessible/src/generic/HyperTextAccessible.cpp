@@ -1949,23 +1949,20 @@ HyperTextAccessible::ScrollSubstringToPoint(int32_t aStartIndex,
 
 
 
-nsresult
-HyperTextAccessible::GetNameInternal(nsAString& aName)
+
+ENameValueFlag
+HyperTextAccessible::NativeName(nsString& aName)
 {
-  nsresult rv = AccessibleWrap::GetNameInternal(aName);
-  NS_ENSURE_SUCCESS(rv, rv);
+  AccessibleWrap::NativeName(aName);
 
   
   
   
-  if (aName.IsEmpty() && IsAbbreviation()) {
-    nsAutoString name;
-    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::title, name)) {
-      name.CompressWhitespace();
-      aName = name;
-    }
-  }
-  return NS_OK;
+  if (aName.IsEmpty() && IsAbbreviation() &&
+      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::title, aName))
+    aName.CompressWhitespace();
+
+  return eNameOK;
 }
 
 void

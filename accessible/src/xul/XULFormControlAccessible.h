@@ -117,8 +117,11 @@ public:
 
   
   virtual mozilla::a11y::role NativeRole();
-  virtual nsresult GetNameInternal(nsAString& aName);
   virtual Relation RelationByType(uint32_t aRelationType);
+
+protected:
+  
+  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
 };
 
 
@@ -194,7 +197,10 @@ public:
 
   
   virtual mozilla::a11y::role NativeRole();
-  virtual nsresult GetNameInternal(nsAString& aName);
+
+protected:
+  
+  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
 };
 
 

@@ -50,9 +50,18 @@ enum ENameValueFlag {
 
 
 
-
  eNameOK,
- eNameFromTooltip 
+
+ 
+
+
+
+ eNoNameOnPurpose,
+
+ 
+
+
+ eNameFromTooltip
 };
 
 
@@ -133,6 +142,9 @@ public:
   
 
 
+
+
+
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
 
   
@@ -154,18 +166,6 @@ public:
 
 
   virtual void ApplyARIAState(uint64_t* aState) const;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual nsresult GetNameInternal(nsAString& aName);
 
   
 
@@ -796,17 +796,19 @@ protected:
   
 
 
+
+  virtual mozilla::a11y::ENameValueFlag NativeName(nsString& aName);
+
+  
+
+
   void ARIAName(nsAString& aName);
 
   
 
 
-  nsresult GetHTMLName(nsAString& aName);
-
-  
-
-
-  nsresult GetXULName(nsAString& aName);
+  void GetHTMLName(nsString& aName);
+  void GetXULName(nsString& aName);
 
   
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);
