@@ -824,9 +824,7 @@ let CustomizableUIInternal = {
     
     if (nodeType == aId) {
       
-      
-      
-      return kSpecialWidgetPfx + aId + Date.now() + (++gNewElementCount);
+      return kSpecialWidgetPfx + aId + (++gNewElementCount);
     }
     return aId;
   },
@@ -1401,6 +1399,7 @@ let CustomizableUIInternal = {
 
     gSeenWidgets = new Set(gSavedState.seen || []);
     gDirtyAreaCache = new Set(gSavedState.dirtyAreaCache || []);
+    gNewElementCount = gSavedState.newElementCount || 0;
   },
 
   restoreStateForArea: function(aArea, aLegacyState) {
@@ -1463,7 +1462,8 @@ let CustomizableUIInternal = {
     }
     let state = { placements: gPlacements,
                   seen: gSeenWidgets,
-                  dirtyAreaCache: gDirtyAreaCache };
+                  dirtyAreaCache: gDirtyAreaCache,
+                  newElementCount: gNewElementCount };
 
     LOG("Saving state.");
     let serialized = JSON.stringify(state, this.serializerHelper);
