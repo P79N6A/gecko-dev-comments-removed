@@ -932,8 +932,9 @@ RasterImage::FrameRect(uint32_t aWhichFrame)
   }
 
   
-  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrame(0)
-                                               : GetCurrentImgFrame();
+  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrameNoDecode(0)
+                                               : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
+
 
   
   if (frame) {
