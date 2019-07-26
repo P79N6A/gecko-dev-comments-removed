@@ -975,14 +975,34 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             IonSpew(IonSpew_BaselineBailouts, "      Set resumeAddr=%p", opReturnAddr);
         }
 
-        if (cx->runtime()->spsProfiler.enabled() && blFrame->hasPushedSPSFrame()) {
+        if (cx->runtime()->spsProfiler.enabled()) {
+            if (blFrame->hasPushedSPSFrame()) {
+                
+                
+                
+                
+                
+                IonSpew(IonSpew_BaselineBailouts, "      Setting PCidx for last frame to 0");
+                cx->runtime()->spsProfiler.updatePC(script, script->code());
+            }
+
             
-            
-            
-            
-            
-            IonSpew(IonSpew_BaselineBailouts, "      Setting PCidx for last frame to 0");
-            cx->runtime()->spsProfiler.updatePC(script, script->code());
+            const char *filename = script->filename();
+            if (filename == nullptr)
+                filename = "<unknown>";
+            unsigned len = strlen(filename) + 200;
+            char *buf = js_pod_malloc<char>(len);
+            if (buf == nullptr)
+                return false;
+            JS_snprintf(buf, len, "%s %s %s on line %d of %s:%d",
+                                  BailoutKindString(bailoutKind),
+                                  resumeAfter ? "after" : "at",
+                                  js_CodeName[op],
+                                  int(PCToLineNumber(script, pc)),
+                                  filename,
+                                  int(script->lineno()));
+            cx->runtime()->spsProfiler.markEvent(buf);
+            js_free(buf);
         }
 
         return true;
