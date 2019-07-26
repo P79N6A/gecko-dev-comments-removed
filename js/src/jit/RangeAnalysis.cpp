@@ -2004,9 +2004,15 @@ RangeAnalysis::analyze()
 
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
         MBasicBlock *block = *iter;
+        JS_ASSERT(!block->unreachable());
 
-        if (block->unreachable())
+        
+        
+        
+        if (block->immediateDominator()->unreachable()) {
+            block->setUnreachable();
             continue;
+        }
 
         for (MDefinitionIterator iter(block); iter; iter++) {
             MDefinition *def = *iter;
@@ -2015,6 +2021,11 @@ RangeAnalysis::analyze()
             IonSpew(IonSpew_Range, "computing range on %d", def->id());
             SpewRange(def);
         }
+
+        
+        
+        if (block->unreachable())
+            continue;
 
         if (block->isLoopHeader()) {
             if (!analyzeLoop(block))
