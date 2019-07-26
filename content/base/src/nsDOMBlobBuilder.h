@@ -32,7 +32,6 @@ public:
       mBlobs(aBlobs),
       mIsFromNsiFile(false)
   {
-    SetLengthAndModifiedDate();
   }
 
   
@@ -42,7 +41,6 @@ public:
       mBlobs(aBlobs),
       mIsFromNsiFile(false)
   {
-    SetLengthAndModifiedDate();
   }
 
   
@@ -111,8 +109,6 @@ protected:
   nsresult ParseBlobArrayArgument(JSContext* aCx, JS::Value& aValue,
                                   bool aNativeEOL, UnwrapFuncPtr aUnwrapFunc);
 
-  void SetLengthAndModifiedDate();
-
   nsTArray<nsCOMPtr<nsIDOMBlob> > mBlobs;
   bool mIsFromNsiFile;
 };
@@ -174,7 +170,7 @@ protected:
       
 
       nsCOMPtr<nsIDOMBlob> blob =
-        new nsDOMMemoryFile(mData, mDataLen, EmptyString());
+        new nsDOMMemoryFile(mData, mDataLen, EmptyString(), EmptyString());
       mBlobs.AppendElement(blob);
       mData = nullptr; 
       mDataLen = 0;
