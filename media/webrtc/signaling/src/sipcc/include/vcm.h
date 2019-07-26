@@ -593,6 +593,7 @@ int vcmRxStart(cc_mcapid_t mcap_id,
 
 
 
+
 int vcmRxStartICE(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
@@ -603,6 +604,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
         const char *peerconnection,
         int num_payloads,
         const vcm_payload_info_t* payloads,
+        sdp_setup_type_e setup_type,
         const char *fingerprint_alg,
         const char *fingerprint,
         vcm_mediaAttrs_t *attrs);
@@ -671,6 +673,7 @@ int vcmTxStart(cc_mcapid_t mcap_id,
 
 
 
+
   int vcmTxStartICE(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
@@ -681,6 +684,7 @@ int vcmTxStart(cc_mcapid_t mcap_id,
         const char *peerconnection,
         const vcm_payload_info_t *payload,
         short tos,
+        sdp_setup_type_e setup_type,
         const char *fingerprint_alg,
         const char *fingerprint,
         vcm_mediaAttrs_t *attrs);

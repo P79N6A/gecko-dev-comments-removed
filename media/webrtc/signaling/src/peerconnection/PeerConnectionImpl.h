@@ -165,12 +165,6 @@ public:
     kIceFailed
   };
 
-  enum Role {
-    kRoleUnknown,
-    kRoleOfferer,
-    kRoleAnswerer
-  };
-
   enum Error {
     kNoError                          = 0,
     kInvalidConstraintsType           = 1,
@@ -194,11 +188,6 @@ public:
     const JS::Value& aConstraints, MediaConstraints* aObj, JSContext* aCx);
   static already_AddRefed<DOMMediaStream> MakeMediaStream(nsPIDOMWindow* aWindow,
                                                           uint32_t aHint);
-
-  Role GetRole() const {
-    PC_AUTO_ENTER_API_CALL_NO_CHECK();
-    return mRole;
-  }
 
   nsresult CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>* aInfo);
 
@@ -338,9 +327,6 @@ private:
   
   
   Timecard *mTimeCard;
-
-  
-  Role mRole;
 
   
   CSF::CC_CallPtr mCall;

@@ -69,11 +69,13 @@ int VcmSIPCCBinding::gAudioCodecMask = 0;
 int VcmSIPCCBinding::gVideoCodecMask = 0;
 nsIThread *VcmSIPCCBinding::gMainThread = NULL;
 
-static mozilla::RefPtr<TransportFlow> vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc,
-                                                             int level, bool rtcp,
-                                                             const char *fingerprint_alg,
-                                                             const char *fingerprint
-                                                             );
+static mozilla::RefPtr<TransportFlow> vcmCreateTransportFlow(
+    sipcc::PeerConnectionImpl *pc,
+    int level,
+    bool rtcp,
+    sdp_setup_type_e setup_type,
+    const char *fingerprint_alg,
+    const char *fingerprint);
 
 
 
@@ -1356,6 +1358,7 @@ int vcmRxStart(cc_mcapid_t mcap_id,
 
 
 
+
 static int vcmRxStartICE_m(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
@@ -1366,6 +1369,7 @@ static int vcmRxStartICE_m(cc_mcapid_t mcap_id,
         const char *peerconnection,
         int num_payloads,
         const vcm_payload_info_t* payloads,
+        sdp_setup_type_e setup_type,
         const char *fingerprint_alg,
         const char *fingerprint,
         vcm_mediaAttrs_t *attrs)
@@ -1378,7 +1382,7 @@ static int vcmRxStartICE_m(cc_mcapid_t mcap_id,
 
   
   mozilla::RefPtr<TransportFlow> rtp_flow =
-    vcmCreateTransportFlow(pc.impl(), level, false,
+    vcmCreateTransportFlow(pc.impl(), level, false, setup_type,
                            fingerprint_alg, fingerprint);
   if (!rtp_flow) {
     CSFLogError( logTag, "Could not create RTP flow");
@@ -1407,7 +1411,7 @@ static int vcmRxStartICE_m(cc_mcapid_t mcap_id,
 
   mozilla::RefPtr<TransportFlow> rtcp_flow = nullptr;
   if(!attrs->rtcp_mux) {
-    rtcp_flow = vcmCreateTransportFlow(pc.impl(), level, true,
+    rtcp_flow = vcmCreateTransportFlow(pc.impl(), level, true, setup_type,
                                        fingerprint_alg, fingerprint);
     if (!rtcp_flow) {
       CSFLogError( logTag, "Could not create RTCP flow");
@@ -1542,6 +1546,7 @@ static int vcmRxStartICE_m(cc_mcapid_t mcap_id,
 
 
 
+
 int vcmRxStartICE(cc_mcapid_t mcap_id,
                   cc_groupid_t group_id,
                   cc_streamid_t stream_id,
@@ -1552,6 +1557,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
                   const char *peerconnection,
                   int num_payloads,
                   const vcm_payload_info_t* payloads,
+                  sdp_setup_type_e setup_type,
                   const char *fingerprint_alg,
                   const char *fingerprint,
                   vcm_mediaAttrs_t *attrs)
@@ -1570,6 +1576,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
                         peerconnection,
                         num_payloads,
                         payloads,
+                        setup_type,
                         fingerprint_alg,
                         fingerprint,
                         attrs,
@@ -2016,6 +2023,7 @@ int vcmTxStart(cc_mcapid_t mcap_id,
 
 
 
+
 #define EXTRACT_DYNAMIC_PAYLOAD_TYPE(PTYPE) ((PTYPE)>>16)
 
 static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
@@ -2028,6 +2036,7 @@ static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
         const char *peerconnection,
         const vcm_payload_info_t *payload,
         short tos,
+        sdp_setup_type_e setup_type,
         const char *fingerprint_alg,
         const char *fingerprint,
         vcm_mediaAttrs_t *attrs)
@@ -2042,7 +2051,7 @@ static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
 
   
   mozilla::RefPtr<TransportFlow> rtp_flow =
-      vcmCreateTransportFlow(pc.impl(), level, false,
+      vcmCreateTransportFlow(pc.impl(), level, false, setup_type,
                              fingerprint_alg, fingerprint);
   if (!rtp_flow) {
       CSFLogError( logTag, "Could not create RTP flow");
@@ -2050,7 +2059,7 @@ static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
   }
   mozilla::RefPtr<TransportFlow> rtcp_flow = nullptr;
   if(!attrs->rtcp_mux) {
-    rtcp_flow = vcmCreateTransportFlow(pc.impl(), level, true,
+    rtcp_flow = vcmCreateTransportFlow(pc.impl(), level, true, setup_type,
                                        fingerprint_alg, fingerprint);
     if (!rtcp_flow) {
       CSFLogError( logTag, "Could not create RTCP flow");
@@ -2173,6 +2182,7 @@ static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
 
 
 
+
 #define EXTRACT_DYNAMIC_PAYLOAD_TYPE(PTYPE) ((PTYPE)>>16)
 
 int vcmTxStartICE(cc_mcapid_t mcap_id,
@@ -2185,6 +2195,7 @@ int vcmTxStartICE(cc_mcapid_t mcap_id,
                   const char *peerconnection,
                   const vcm_payload_info_t *payload,
                   short tos,
+                  sdp_setup_type_e setup_type,
                   const char *fingerprint_alg,
                   const char *fingerprint,
                   vcm_mediaAttrs_t *attrs)
@@ -2203,6 +2214,7 @@ int vcmTxStartICE(cc_mcapid_t mcap_id,
                         peerconnection,
                         payload,
                         tos,
+                        setup_type,
                         fingerprint_alg,
                         fingerprint,
                         attrs,
@@ -2700,8 +2712,8 @@ int vcmGetILBCMode()
 
 static mozilla::RefPtr<TransportFlow>
 vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
-                       const char *fingerprint_alg,
-                       const char *fingerprint) {
+  sdp_setup_type_e setup_type, const char *fingerprint_alg,
+  const char *fingerprint) {
 
   
   
@@ -2743,13 +2755,14 @@ vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
     
     
     
+
     
     
-    
-    
-    
-    dtls->SetRole(pc->GetRole() == sipcc::PeerConnectionImpl::kRoleOfferer ?
-                  TransportLayerDtls::SERVER : TransportLayerDtls::CLIENT);
+    MOZ_ASSERT(setup_type == SDP_SETUP_PASSIVE ||
+               setup_type == SDP_SETUP_ACTIVE);
+    dtls->SetRole(
+      setup_type == SDP_SETUP_PASSIVE ?
+      TransportLayerDtls::SERVER : TransportLayerDtls::CLIENT);
     mozilla::RefPtr<DtlsIdentity> pcid = pc->GetIdentity();
     if (!pcid) {
       return nullptr;
