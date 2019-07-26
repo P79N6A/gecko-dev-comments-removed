@@ -76,14 +76,15 @@ input::-moz-placeholder {
   line-height: -moz-block-height;
 }
 
-
-
-
-
 @-moz-document url-prefix(chrome://) {
-  input.uri-element-right-align:-moz-locale-dir(rtl) > .anonymous-div {
+  input.uri-element-right-align:-moz-locale-dir(rtl) {
+    direction: ltr !important;
     text-align: right !important;
   }
+
+  
+
+
 
   input.uri-element-right-align:-moz-locale-dir(rtl) > .anonymous-div[dir=ltr] {
     text-align: left !important;
