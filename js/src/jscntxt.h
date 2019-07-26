@@ -13,7 +13,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/LinkedList.h"
-#include "mozilla/PodOperations.h"
 
 #include <string.h>
 
@@ -34,7 +33,6 @@
 #include "gc/StoreBuffer.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
-#include "ion/AsmJS.h"
 #include "vm/DateTime.h"
 #include "vm/SPSProfiler.h"
 #include "vm/Stack.h"
@@ -59,8 +57,6 @@ js_ReportAllocationOverflow(JSContext *cx);
 
 namespace js {
 
-typedef Rooted<JSLinearString*> RootedLinearString;
-
 struct CallsiteCloneKey {
     
     JSFunction *original;
@@ -71,7 +67,7 @@ struct CallsiteCloneKey {
     
     uint32_t offset;
 
-    CallsiteCloneKey() { mozilla::PodZero(this); }
+    CallsiteCloneKey() { PodZero(this); }
 
     typedef CallsiteCloneKey Lookup;
 
@@ -186,7 +182,7 @@ struct ConservativeGCData
     } registerSnapshot;
 
     ConservativeGCData() {
-        mozilla::PodZero(this);
+        PodZero(this);
     }
 
     ~ConservativeGCData() {
@@ -227,20 +223,13 @@ class SourceDataCache
     void purge();
 };
 
-struct EvalCacheEntry
-{
-    JSScript *script;
-    JSScript *callerScript;
-    jsbytecode *pc;
-};
-
 struct EvalCacheLookup
 {
-    EvalCacheLookup(JSContext *cx) : str(cx), callerScript(cx) {}
-    RootedLinearString str;
-    RootedScript callerScript;
+    JSLinearString *str;
+    JSFunction *caller;
+    unsigned staticLevel;
     JSVersion version;
-    jsbytecode *pc;
+    JSCompartment *compartment;
 };
 
 struct EvalCacheHashPolicy
@@ -248,10 +237,10 @@ struct EvalCacheHashPolicy
     typedef EvalCacheLookup Lookup;
 
     static HashNumber hash(const Lookup &l);
-    static bool match(const EvalCacheEntry &entry, const EvalCacheLookup &l);
+    static bool match(UnrootedScript script, const EvalCacheLookup &l);
 };
 
-typedef HashSet<EvalCacheEntry, EvalCacheHashPolicy, SystemAllocPolicy> EvalCache;
+typedef HashSet<RawScript, EvalCacheHashPolicy, SystemAllocPolicy> EvalCache;
 
 class NativeIterCache
 {
@@ -269,14 +258,13 @@ class NativeIterCache
     PropertyIteratorObject *last;
 
     NativeIterCache()
-      : last(NULL)
-    {
-        mozilla::PodArrayZero(data);
+      : last(NULL) {
+        PodArrayZero(data);
     }
 
     void purge() {
         last = NULL;
-        mozilla::PodArrayZero(data);
+        PodArrayZero(data);
     }
 
     PropertyIteratorObject *get(uint32_t key) const {
@@ -338,8 +326,8 @@ class NewObjectCache
 
     typedef int EntryIndex;
 
-    NewObjectCache() { mozilla::PodZero(this); }
-    void purge() { mozilla::PodZero(this); }
+    NewObjectCache() { PodZero(this); }
+    void purge() { PodZero(this); }
 
     
 
@@ -367,7 +355,7 @@ class NewObjectCache
   private:
     inline bool lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, EntryIndex *pentry);
     inline void fill(EntryIndex entry, Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj);
-    static inline void copyCachedToObject(JSObject *dst, JSObject *src, gc::AllocKind kind);
+    static inline void copyCachedToObject(JSObject *dst, JSObject *src);
 };
 
 
@@ -475,6 +463,9 @@ class PerThreadData : public js::PerThreadDataFriendFields
         SavedGCRoot(void *thing, JSGCTraceKind kind) : thing(thing), kind(kind) {}
     };
     js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
+
+    bool                gcRelaxRootChecks;
+    int                 gcAssertNoGCDepth;
 #endif
 
 
@@ -498,58 +489,9 @@ class PerThreadData : public js::PerThreadDataFriendFields
 
 
 
-  private:
-    friend class js::AsmJSActivation;
-
-    
-    js::AsmJSActivation *asmJSActivationStack_;
-
-# ifdef JS_THREADSAFE
-    
-    PRLock *asmJSActivationStackLock_;
-# endif
-
-  public:
-    static unsigned offsetOfAsmJSActivationStackReadOnly() {
-        return offsetof(PerThreadData, asmJSActivationStack_);
-    }
-
-    class AsmJSActivationStackLock {
-# ifdef JS_THREADSAFE
-        PerThreadData &data_;
-      public:
-        AsmJSActivationStackLock(PerThreadData &data) : data_(data) {
-            PR_Lock(data_.asmJSActivationStackLock_);
-        }
-        ~AsmJSActivationStackLock() {
-            PR_Unlock(data_.asmJSActivationStackLock_);
-        }
-# else
-      public:
-        AsmJSActivationStackLock(PerThreadData &) {}
-# endif
-    };
-
-    js::AsmJSActivation *asmJSActivationStackFromAnyThread() const {
-        return asmJSActivationStack_;
-    }
-    js::AsmJSActivation *asmJSActivationStackFromOwnerThread() const {
-        return asmJSActivationStack_;
-    }
-
-    
-
-
-
-
-
-
-
     int32_t             suppressGC;
 
     PerThreadData(JSRuntime *runtime);
-    ~PerThreadData();
-    bool init();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
 };
@@ -628,13 +570,9 @@ namespace gc {
 class MarkingValidator;
 } 
 
-class JS_FRIEND_API(AutoEnterPolicy);
-
-typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
-
 } 
 
-struct JSRuntime : private JS::shadow::Runtime,
+struct JSRuntime : js::RuntimeFriendFields,
                    public js::MallocProvider<JSRuntime>
 {
     
@@ -650,28 +588,10 @@ struct JSRuntime : private JS::shadow::Runtime,
     js::PerThreadData   mainThread;
 
     
-
-
-
-    volatile int32_t    interrupt;
-
-    
     JSCompartment       *atomsCompartment;
 
     
-    JS::Zone            *systemZone;
-
-    
-    js::ZoneVector      zones;
-
-    
-    size_t              numCompartments;
-
-    
-    JSLocaleCallbacks *localeCallbacks;
-
-    
-    char *defaultLocale;
+    js::CompartmentVector compartments;
 
     
 #ifdef JS_THREADSAFE
@@ -755,19 +675,8 @@ struct JSRuntime : private JS::shadow::Runtime,
     js::ion::IonRuntime *getIonRuntime(JSContext *cx) {
         return ionRuntime_ ? ionRuntime_ : createIonRuntime(cx);
     }
-    js::ion::IonRuntime *ionRuntime() {
-        return ionRuntime_;
-    }
-    bool hasIonRuntime() const {
-        return !!ionRuntime_;
-    }
-
-    
-    
-    
 
     bool initSelfHosting(JSContext *cx);
-    void finishSelfHosting();
     void markSelfHostingGlobal(JSTracer *trc);
     bool isSelfHostingGlobal(js::HandleObject global) {
         return global == selfHostingGlobal_;
@@ -776,25 +685,6 @@ struct JSRuntime : private JS::shadow::Runtime,
                                        js::Handle<JSFunction*> targetFun);
     bool cloneSelfHostedValue(JSContext *cx, js::Handle<js::PropertyName*> name,
                               js::MutableHandleValue vp);
-
-    
-    
-    
-
-    
-
-
-
-
-
-
-    bool setDefaultLocale(const char *locale);
-
-    
-    void resetDefaultLocale();
-
-    
-    const char *getDefaultLocale();
 
     
     uintptr_t           nativeStackBase;
@@ -850,8 +740,9 @@ struct JSRuntime : private JS::shadow::Runtime,
     js::gc::ChunkPool   gcChunkPool;
 
     js::RootedValueMap  gcRootsHash;
+    js::GCLocks         gcLocksHash;
     unsigned            gcKeepAtoms;
-    volatile size_t     gcBytes;
+    size_t              gcBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
 
@@ -911,7 +802,7 @@ struct JSRuntime : private JS::shadow::Runtime,
     bool                gcIsFull;
 
     
-    JS::gcreason::Reason gcTriggerReason;
+    js::gcreason::Reason gcTriggerReason;
 
     
 
@@ -1007,16 +898,14 @@ struct JSRuntime : private JS::shadow::Runtime,
 
     bool                gcPoke;
 
-    volatile js::HeapState heapState;
+    js::HeapState       heapState;
 
     bool isHeapBusy() { return heapState != js::Idle; }
 
     bool isHeapCollecting() { return heapState == js::Collecting; }
 
 #ifdef JSGC_GENERATIONAL
-# ifdef JS_GC_ZEAL
-    js::gc::VerifierNursery      gcVerifierNursery;
-# endif
+    js::gc::Nursery              gcNursery;
     js::gc::StoreBuffer          gcStoreBuffer;
 #endif
 
@@ -1074,10 +963,9 @@ struct JSRuntime : private JS::shadow::Runtime,
 #endif
 
     bool                gcValidate;
-    bool                gcFullCompartmentChecks;
 
     JSGCCallback        gcCallback;
-    JS::GCSliceCallback gcSliceCallback;
+    js::GCSliceCallback gcSliceCallback;
     JSFinalizeCallback  gcFinalizeCallback;
 
     js::AnalysisPurgeCallback analysisPurgeCallback;
@@ -1091,14 +979,6 @@ struct JSRuntime : private JS::shadow::Runtime,
     volatile ptrdiff_t  gcMallocBytes;
 
   public:
-    void setNeedsBarrier(bool needs) {
-        needsBarrier_ = needs;
-    }
-
-    bool needsBarrier() const {
-        return needsBarrier_;
-    }
-
     
 
 
@@ -1167,12 +1047,6 @@ struct JSRuntime : private JS::shadow::Runtime,
 
     js::GCHelperThread  gcHelperThread;
 
-#ifdef XP_MACOSX
-    js::AsmJSMachExceptionHandler asmJSMachExceptionHandler;
-#endif
-
-    size_t              sizeOfNonHeapAsmJSArrays_;
-
 #ifdef JS_THREADSAFE
 # ifdef JS_ION
     js::WorkerThreadState *workerThreadState;
@@ -1208,12 +1082,10 @@ struct JSRuntime : private JS::shadow::Runtime,
 
     uint32_t            propertyRemovals;
 
-#if !ENABLE_INTL_API
     
     const char          *thousandsSeparator;
     const char          *decimalSeparator;
     const char          *numGrouping;
-#endif
 
   private:
     js::MathCache *mathCache_;
@@ -1264,7 +1136,7 @@ struct JSRuntime : private JS::shadow::Runtime,
     JSPreWrapCallback                      preWrapObjectCallback;
     js::PreserveWrapperCallback            preserveWrapperCallback;
 
-    js::ScriptDataTable scriptDataTable;
+    js::ScriptFilenameTable scriptFilenameTable;
 
 #ifdef DEBUG
     size_t              noGCOrAllocationCheck;
@@ -1400,11 +1272,6 @@ struct JSRuntime : private JS::shadow::Runtime,
 #endif
     }
 
-#ifdef DEBUG
-  public:
-    js::AutoEnterPolicy *enteredPolicy;
-#endif
-
   private:
     
 
@@ -1486,7 +1353,7 @@ struct JSContext : js::ContextFriendFields,
     JSContext *thisDuringConstruction() { return this; }
     ~JSContext();
 
-    inline JS::Zone *zone() const;
+    inline JS::Zone *zone();
     js::PerThreadData &mainThread() { return runtime->mainThread; }
 
   private:
@@ -1502,15 +1369,36 @@ struct JSContext : js::ContextFriendFields,
     
     unsigned            options_;            
 
+    
+    char                *defaultLocale;
+
   public:
     int32_t             reportGranularity;  
+
+    
+
+
+
+
+
+
+    bool setDefaultLocale(const char *locale);
+
+    
+    void resetDefaultLocale();
+
+    
+    const char *getDefaultLocale();
+
+    
+    JSLocaleCallbacks   *localeCallbacks;
 
     js::AutoResolving   *resolvingList;
 
     
     bool                generatingError;
 
-    inline void setCompartment(JSCompartment *comp);
+    inline void setCompartment(JSCompartment *c) { compartment = c; }
 
     
 
@@ -1680,6 +1568,7 @@ struct JSContext : js::ContextFriendFields,
 
     bool hasStrictOption() const { return hasOption(JSOPTION_STRICT); }
     bool hasWErrorOption() const { return hasOption(JSOPTION_WERROR); }
+    bool hasAtLineOption() const { return hasOption(JSOPTION_ATLINE); }
 
     js::LifoAlloc &tempLifoAlloc() { return runtime->tempLifoAlloc; }
     inline js::LifoAlloc &analysisLifoAlloc();
@@ -2091,9 +1980,6 @@ js_InvokeOperationCallback(JSContext *cx);
 extern JSBool
 js_HandleExecutionInterrupt(JSContext *cx);
 
-extern jsbytecode*
-js_GetCurrentBytecodePC(JSContext* cx);
-
 
 
 
@@ -2110,7 +1996,7 @@ namespace js {
 
 #ifdef JS_METHODJIT
 namespace mjit {
-void ExpandInlineFrames(JS::Zone *zone);
+    void ExpandInlineFrames(JSCompartment *compartment);
 }
 #endif
 
@@ -2123,13 +2009,13 @@ namespace js {
 static JS_ALWAYS_INLINE void
 MakeRangeGCSafe(Value *vec, size_t len)
 {
-    mozilla::PodZero(vec, len);
+    PodZero(vec, len);
 }
 
 static JS_ALWAYS_INLINE void
 MakeRangeGCSafe(Value *beg, Value *end)
 {
-    mozilla::PodZero(beg, end - beg);
+    PodZero(beg, end - beg);
 }
 
 static JS_ALWAYS_INLINE void
@@ -2148,13 +2034,13 @@ MakeRangeGCSafe(jsid *vec, size_t len)
 static JS_ALWAYS_INLINE void
 MakeRangeGCSafe(Shape **beg, Shape **end)
 {
-    mozilla::PodZero(beg, end - beg);
+    PodZero(beg, end - beg);
 }
 
 static JS_ALWAYS_INLINE void
 MakeRangeGCSafe(Shape **vec, size_t len)
 {
-    mozilla::PodZero(vec, len);
+    PodZero(vec, len);
 }
 
 static JS_ALWAYS_INLINE void
@@ -2292,7 +2178,7 @@ class AutoObjectHashSet : public AutoHashSetRooter<RawObject>
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class AutoAssertNoException
+class AutoAssertNoGCOrException : public AutoAssertNoGC
 {
 #ifdef DEBUG
     JSContext *cx;
@@ -2300,7 +2186,7 @@ class AutoAssertNoException
 #endif
 
   public:
-    AutoAssertNoException(JSContext *cx)
+    AutoAssertNoGCOrException(JSContext *cx)
 #ifdef DEBUG
       : cx(cx),
         hadException(cx->isExceptionPending())
@@ -2308,7 +2194,7 @@ class AutoAssertNoException
     {
     }
 
-    ~AutoAssertNoException()
+    ~AutoAssertNoGCOrException()
     {
         JS_ASSERT_IF(!hadException, !cx->isExceptionPending());
     }
@@ -2344,22 +2230,22 @@ class RuntimeAllocPolicy
 
 class ContextAllocPolicy
 {
-    JSContext *const cx_;
+    JSContext *const cx;
 
   public:
-    ContextAllocPolicy(JSContext *cx) : cx_(cx) {}
-    JSContext *context() const { return cx_; }
-    void *malloc_(size_t bytes) { return cx_->malloc_(bytes); }
-    void *calloc_(size_t bytes) { return cx_->calloc_(bytes); }
-    void *realloc_(void *p, size_t oldBytes, size_t bytes) { return cx_->realloc_(p, oldBytes, bytes); }
+    ContextAllocPolicy(JSContext *cx) : cx(cx) {}
+    JSContext *context() const { return cx; }
+    void *malloc_(size_t bytes) { return cx->malloc_(bytes); }
+    void *calloc_(size_t bytes) { return cx->calloc_(bytes); }
+    void *realloc_(void *p, size_t oldBytes, size_t bytes) { return cx->realloc_(p, oldBytes, bytes); }
     void free_(void *p) { js_free(p); }
-    void reportAllocOverflow() const { js_ReportAllocationOverflow(cx_); }
+    void reportAllocOverflow() const { js_ReportAllocationOverflow(cx); }
 };
 
 JSBool intrinsic_ThrowError(JSContext *cx, unsigned argc, Value *vp);
 JSBool intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp);
 JSBool intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp);
-JSBool intrinsic_ShouldForceSequential(JSContext *cx, unsigned argc, Value *vp);
+JSBool intrinsic_ForceSequential(JSContext *cx, unsigned argc, Value *vp);
 JSBool intrinsic_NewParallelArray(JSContext *cx, unsigned argc, Value *vp);
 
 #ifdef DEBUG
