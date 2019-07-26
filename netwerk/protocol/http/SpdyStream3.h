@@ -39,13 +39,10 @@ public:
     return static_cast<bool>(mRequestBlockedOnRead);
   }
 
+  bool GetFullyOpen();
   
-  bool GetFullyOpen() {return mFullyOpen;}
-  void SetFullyOpen()
-  {
-    MOZ_ASSERT(!mFullyOpen);
-    mFullyOpen = 1;
-  }
+  
+  nsresult SetFullyOpen();
 
   bool HasRegisteredID() { return mStreamID != 0; }
 
@@ -221,6 +218,7 @@ private:
   
   
   
+  
   int64_t                      mRequestBodyLenRemaining;
 
   
@@ -253,6 +251,15 @@ private:
 
   
   SpdyPushedStream3 *mPushSource;
+
+
+public:
+  bool IsTunnel() { return mIsTunnel; }
+private:
+  void ClearTransactionsBlockedOnTunnel();
+  void MapStreamToHttpConnection();
+
+  bool mIsTunnel;
 };
 
 }} 

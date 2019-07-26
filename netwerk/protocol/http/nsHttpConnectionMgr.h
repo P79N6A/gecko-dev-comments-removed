@@ -84,6 +84,7 @@ public:
 
     
     nsresult CancelTransaction(nsHttpTransaction *, nsresult reason);
+    nsresult CancelTransactions(nsHttpConnectionInfo *, nsresult reason);
 
     
     
@@ -204,6 +205,12 @@ public:
 
     
     
+    void MoveToWildCardConnEntry(nsHttpConnectionInfo *specificCI,
+                                 nsHttpConnectionInfo *wildcardCI,
+                                 nsHttpConnection *conn);
+
+    
+    
     nsresult ProcessPendingQ(nsHttpConnectionInfo *);
     bool     ProcessPendingQForEntry(nsHttpConnectionInfo *);
 
@@ -230,6 +237,8 @@ public:
     bool GetConnectionData(nsTArray<HttpRetParams> *);
 
     void ResetIPFamilyPreference(nsHttpConnectionInfo *);
+
+    uint16_t MaxRequestDelay() { return mMaxRequestDelay; }
 
 private:
     virtual ~nsHttpConnectionMgr();
@@ -270,6 +279,8 @@ private:
         nsTArray<nsHttpConnection*>  mActiveConns; 
         nsTArray<nsHttpConnection*>  mIdleConns;   
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;   
+
+        bool AvailableForDispatchNow();
 
         
         
@@ -525,7 +536,8 @@ private:
     void     StartedConnect();
     void     RecvdConnect();
 
-    nsConnectionEntry *GetOrCreateConnectionEntry(nsHttpConnectionInfo *);
+    nsConnectionEntry *GetOrCreateConnectionEntry(nsHttpConnectionInfo *,
+                                                  bool allowWildCard);
 
     nsresult MakeNewConnection(nsConnectionEntry *ent,
                                nsHttpTransaction *trans);
@@ -601,6 +613,7 @@ private:
     void OnMsgNewTransaction       (int32_t, void *);
     void OnMsgReschedTransaction   (int32_t, void *);
     void OnMsgCancelTransaction    (int32_t, void *);
+    void OnMsgCancelTransactions   (int32_t, void *);
     void OnMsgProcessPendingQ      (int32_t, void *);
     void OnMsgPruneDeadConnections (int32_t, void *);
     void OnMsgSpeculativeConnect   (int32_t, void *);
