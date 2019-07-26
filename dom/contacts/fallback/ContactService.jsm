@@ -22,7 +22,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "nsIMessageListenerManager");
 
 XPCOMUtils.defineLazyGetter(this, "mRIL", function () {
-  let telephony = Cc["@mozilla.org/telephony/system-worker-manager;1"];
+  let telephony = Cc["@mozilla.org/ril;1"];
   if (!telephony) {
     
     return {
@@ -31,9 +31,7 @@ XPCOMUtils.defineLazyGetter(this, "mRIL", function () {
       }
     };
   }
-  return telephony.
-         getService(Ci.nsIInterfaceRequestor).
-         getInterface(Ci.nsIRadioInterfaceLayer);
+  return telephony.getService(Ci.nsIRadioInterfaceLayer);
 });
 
 let myGlobal = this;
