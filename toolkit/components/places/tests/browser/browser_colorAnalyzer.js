@@ -322,7 +322,7 @@ tests.push(function test_perfBigImage() {
 
 
 
-const filePrefix = getRootDirectory(gTestPath);
+const filePrefix = getRootDirectory(gTestPath) + "colorAnalyzer/";
 
 tests.push(function test_categoryDiscover() {
   frcTest(filePrefix + "category-discover.png", 0xB28D3A,
