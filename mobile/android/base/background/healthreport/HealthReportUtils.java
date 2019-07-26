@@ -94,31 +94,6 @@ public class HealthReportUtils {
 
 
 
-
-
-
-
-
-
-  public static JSONObject shallowCopyObject(JSONObject o) throws JSONException {
-    if (o == null) {
-      return null;
-    }
-
-    JSONObject out = new JSONObject();
-    @SuppressWarnings("unchecked")
-    Iterator<String> keys = out.keys();
-    while (keys.hasNext()) {
-      final String key = keys.next();
-      out.put(key, o.get(key));
-    }
-    return out;
-  }
-
-  
-
-
-
   public static void append(JSONObject o, String key, Object value) throws JSONException {
     if (!o.has(key)) {
       JSONArray arr = new JSONArray();
