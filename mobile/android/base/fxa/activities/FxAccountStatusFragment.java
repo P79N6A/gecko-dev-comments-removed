@@ -57,7 +57,17 @@ public class FxAccountStatusFragment
   
   private static final long DELAY_IN_MILLISECONDS_BEFORE_REQUESTING_SYNC = 5 * 1000;
 
+  
+  
+  private static boolean ALWAYS_SHOW_AUTH_SERVER = false;
+
+  
+  
+  private static boolean ALWAYS_SHOW_SYNC_SERVER = false;
+
+  protected PreferenceCategory accountCategory;
   protected Preference emailPreference;
+  protected Preference authServerPreference;
 
   protected Preference needsPasswordPreference;
   protected Preference needsUpgradePreference;
@@ -73,6 +83,7 @@ public class FxAccountStatusFragment
   protected CheckBoxPreference passwordsPreference;
 
   protected EditTextPreference deviceNamePreference;
+  protected Preference syncServerPreference;
 
   protected volatile AndroidFxAccount fxAccount;
   
@@ -106,7 +117,9 @@ public class FxAccountStatusFragment
   protected void addPreferences() {
     addPreferencesFromResource(R.xml.fxaccount_status_prefscreen);
 
+    accountCategory = (PreferenceCategory) ensureFindPreference("signed_in_as_category");
     emailPreference = ensureFindPreference("email");
+    authServerPreference = ensureFindPreference("auth_server");
 
     needsPasswordPreference = ensureFindPreference("needs_credentials");
     needsUpgradePreference = ensureFindPreference("needs_upgrade");
@@ -125,6 +138,8 @@ public class FxAccountStatusFragment
       removeDebugButtons();
     } else {
       connectDebugButtons();
+      ALWAYS_SHOW_AUTH_SERVER = true;
+      ALWAYS_SHOW_SYNC_SERVER = true;
     }
 
     needsPasswordPreference.setOnPreferenceClickListener(this);
@@ -138,6 +153,8 @@ public class FxAccountStatusFragment
 
     deviceNamePreference = (EditTextPreference) ensureFindPreference("device_name");
     deviceNamePreference.setOnPreferenceChangeListener(this);
+
+    syncServerPreference = ensureFindPreference("sync_server");
   }
 
   
@@ -383,6 +400,8 @@ public class FxAccountStatusFragment
     }
 
     emailPreference.setTitle(fxAccount.getEmail());
+    updateAuthServerPreference();
+    updateSyncServerPreference();
 
     try {
       
@@ -431,6 +450,38 @@ public class FxAccountStatusFragment
     final String clientName = clientsDataDelegate.getClientName();
     deviceNamePreference.setSummary(clientName);
     deviceNamePreference.setText(clientName);
+  }
+
+  protected void updateAuthServerPreference() {
+    final String authServer = fxAccount.getAccountServerURI();
+    final boolean shouldBeShown = ALWAYS_SHOW_AUTH_SERVER || !FxAccountConstants.DEFAULT_AUTH_SERVER_ENDPOINT.equals(authServer);
+    final boolean currentlyShown = null != findPreference(authServerPreference.getKey());
+    if (currentlyShown != shouldBeShown) {
+      if (shouldBeShown) {
+        accountCategory.addPreference(authServerPreference);
+      } else {
+        accountCategory.removePreference(authServerPreference);
+      }
+    }
+    
+    
+    authServerPreference.setSummary(authServer);
+  }
+
+  protected void updateSyncServerPreference() {
+    final String syncServer = fxAccount.getTokenServerURI();
+    final boolean shouldBeShown = ALWAYS_SHOW_SYNC_SERVER || !FxAccountConstants.DEFAULT_TOKEN_SERVER_ENDPOINT.equals(syncServer);
+    final boolean currentlyShown = null != findPreference(syncServerPreference.getKey());
+    if (currentlyShown != shouldBeShown) {
+      if (shouldBeShown) {
+        syncCategory.addPreference(syncServerPreference);
+      } else {
+        syncCategory.removePreference(syncServerPreference);
+      }
+    }
+    
+    
+    syncServerPreference.setSummary(syncServer);
   }
 
   
