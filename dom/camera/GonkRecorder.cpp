@@ -29,7 +29,7 @@
 #include <media/stagefright/MediaDebug.h>
 #include <media/stagefright/MediaDefs.h>
 #include <media/stagefright/MetaData.h>
-#include <OMX.h>
+#include <media/stagefright/OMXClient.h>
 #include <media/stagefright/OMXCodec.h>
 #include <media/MediaProfiles.h>
 #include <utils/String8.h>
@@ -47,14 +47,6 @@
 #include "GonkCameraSource.h"
 
 namespace android {
-
-static sp<IOMX> sOMX = NULL;
-static sp<IOMX> GetOMX() {
-  if(sOMX.get() == NULL) {
-    sOMX = new OMX;
-    }
-  return sOMX;
-}
 
 GonkRecorder::GonkRecorder()
     : mWriter(NULL),
@@ -767,8 +759,12 @@ sp<MediaSource> GonkRecorder::createAudioSource() {
 
     
     
+    OMXClient client;
+    
+    CHECK_EQ(client.connect(), OK);
+
     sp<MediaSource> audioEncoder =
-        OMXCodec::Create(GetOMX(), encMeta,
+        OMXCodec::Create(client.interface(), encMeta,
                          true , audioSource);
     mAudioSourceNode = audioSource;
 
@@ -1273,9 +1269,14 @@ status_t GonkRecorder::setupVideoEncoder(
         encoder_flags |= OMXCodec::kOnlySubmitOneInputBufferAtOneTime;
     }
 
+    
+    
+    OMXClient client;
+    
+    CHECK_EQ(client.connect(), OK);
+
     sp<MediaSource> encoder = OMXCodec::Create(
-            GetOMX(),
-            enc_meta,
+            client.interface(), enc_meta,
             true , cameraSource,
             NULL, encoder_flags);
     if (encoder == NULL) {
