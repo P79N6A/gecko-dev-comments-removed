@@ -7,7 +7,6 @@
 #define ISOCOMPOSITOR_H_
 
 #include "mozilla/Endian.h"
-#include "TrackMetadataBase.h"
 #include "nsTArray.h"
 #include "ISOTrackMetadata.h"
 #include "EncodedFrameContainer.h"
@@ -130,6 +129,9 @@ public:
   nsresult GenerateMoov();
   nsresult GenerateMoof(uint32_t aTrackType);
 
+  
+  uint32_t WriteAVData(nsTArray<uint8_t>& aArray);
+
   uint32_t Write(uint8_t* aBuf, uint32_t aSize);
 
   uint32_t Write(uint8_t aData);
@@ -161,7 +163,7 @@ public:
   uint32_t WriteBits(uint64_t aBits, size_t aNumBits);
 
   
-  nsresult GetBuf(nsTArray<uint8_t>& aOutBuf);
+  nsresult GetBufs(nsTArray<nsTArray<uint8_t>>* aOutputBufs);
 
   
   uint32_t GetTime();
@@ -184,7 +186,7 @@ public:
   bool HasVideoTrack();
 
 private:
-  uint32_t GetBufPos() { return mOutBuffer.Length(); }
+  uint32_t GetBufPos();
   nsresult FlushBuf();
 
   
@@ -202,8 +204,18 @@ private:
   
   
   
-  nsTArray<uint8_t> mOutBuffer;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsTArray<nsTArray<uint8_t>> mOutBuffers;
 
+  
   
   uint32_t mLastWrittenBoxPos;
 
