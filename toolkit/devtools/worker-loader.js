@@ -104,7 +104,6 @@ function createModule(id) {
 let chromeWhitelist = [
   "devtools/toolkit/DevToolsUtils",
   "devtools/toolkit/event-emitter",
-  "devtools/styleinspector/css-logic",
 ];
 
 
