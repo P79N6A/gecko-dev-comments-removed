@@ -56,7 +56,7 @@ const EXPECTED_REFLOWS = [
 ];
 
 const PREF_PRELOAD = "browser.newtab.preload";
-const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directorySource";
+const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directory.source";
 
 
 
@@ -64,26 +64,47 @@ const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directorySource";
 
 function test() {
   waitForExplicitFinish();
+  let DirectoryLinksProvider = Cu.import("resource://gre/modules/DirectoryLinksProvider.jsm", {}).DirectoryLinksProvider;
+  let Promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 
-  Services.prefs.setBoolPref(PREF_PRELOAD, false);
-  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
+  
+  function watchLinksChangeOnce() {
+    let deferred = Promise.defer();
+    let observer = {
+      onManyLinksChanged: () => {
+        DirectoryLinksProvider.removeObserver(observer);
+        deferred.resolve();
+      }
+    };
+    observer.onDownloadFail = observer.onManyLinksChanged;
+    DirectoryLinksProvider.addObserver(observer);
+    return deferred.promise;
+  };
+
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref(PREF_PRELOAD);
     Services.prefs.clearUserPref(PREF_NEWTAB_DIRECTORYSOURCE);
+    return watchLinksChangeOnce();
   });
 
   
-  docShell.addWeakReflowObserver(observer);
-  BrowserOpenTab();
-
-  
-  waitForTransitionEnd(function () {
+  watchLinksChangeOnce().then(() => {
     
-    docShell.removeWeakReflowObserver(observer);
-    gBrowser.removeCurrentTab();
+    docShell.addWeakReflowObserver(observer);
+    BrowserOpenTab();
 
-    finish();
+    
+    waitForTransitionEnd(function () {
+      
+      docShell.removeWeakReflowObserver(observer);
+      gBrowser.removeCurrentTab();
+      finish();
+    });
   });
+
+  Services.prefs.setBoolPref(PREF_PRELOAD, false);
+  
+  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
 }
 
 let observer = {

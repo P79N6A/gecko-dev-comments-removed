@@ -14,7 +14,9 @@ Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Http.jsm");
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/osfile.jsm")
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
 
@@ -28,6 +30,10 @@ const kTestURL = 'data:application/json,' + JSON.stringify(kURLData);
 
 const kLocalePref = DirectoryLinksProvider._observedPrefs.prefSelectedLocale;
 const kSourceUrlPref = DirectoryLinksProvider._observedPrefs.linksURL;
+
+
+Services.prefs.setCharPref(kLocalePref, "en-US");
+Services.prefs.setCharPref(kSourceUrlPref, kTestURL);
 
 
 var server;
@@ -103,19 +109,44 @@ function cleanJsonFile(jsonFile = DIRECTORY_LINKS_FILE) {
   return OS.File.remove(directoryLinksFilePath);
 }
 
-
-function setupDirectoryLinksProvider(options = {}) {
-  let linksURL = options.linksURL || kTestURL;
-  DirectoryLinksProvider.init();
-  Services.prefs.setCharPref(kLocalePref, options.locale || "en-US");
-  Services.prefs.setCharPref(kSourceUrlPref, linksURL);
-  do_check_eq(DirectoryLinksProvider._linksURL, linksURL);
+function LinksChangeObserver() {
+  this.deferred = Promise.defer();
+  this.onManyLinksChanged = () => this.deferred.resolve();
+  this.onDownloadFail = this.onManyLinksChanged;
 }
 
-function cleanDirectoryLinksProvider() {
-  DirectoryLinksProvider.reset();
-  Services.prefs.clearUserPref(kLocalePref);
-  Services.prefs.clearUserPref(kSourceUrlPref);
+function promiseDirectoryDownloadOnPrefChange(pref, newValue) {
+  let oldValue = Services.prefs.getCharPref(pref);
+  if (oldValue != newValue) {
+    
+    
+    
+    let observer = new LinksChangeObserver();
+    DirectoryLinksProvider.addObserver(observer);
+    Services.prefs.setCharPref(pref, newValue);
+    return observer.deferred.promise;
+  }
+  return Promise.resolve();
+}
+
+function promiseSetupDirectoryLinksProvider(options = {}) {
+  return Task.spawn(function() {
+    let linksURL = options.linksURL || kTestURL;
+    yield DirectoryLinksProvider.init();
+    yield promiseDirectoryDownloadOnPrefChange(kLocalePref, options.locale || "en-US");
+    yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, linksURL);
+    do_check_eq(DirectoryLinksProvider._linksURL, linksURL);
+    DirectoryLinksProvider._lastDownloadMS = options.lastDownloadMS || 0;
+  });
+}
+
+function promiseCleanDirectoryLinksProvider() {
+  return Task.spawn(function() {
+    yield promiseDirectoryDownloadOnPrefChange(kLocalePref, "en-US");
+    yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, kTestURL);
+    DirectoryLinksProvider._lastDownloadMS  = 0;
+    DirectoryLinksProvider.reset();
+  });
 }
 
 function run_test() {
@@ -130,10 +161,14 @@ function run_test() {
   
   do_register_cleanup(function() {
     server.stop(function() { });
+    DirectoryLinksProvider.reset();
+    Services.prefs.clearUserPref(kLocalePref);
+    Services.prefs.clearUserPref(kSourceUrlPref);
   });
 }
 
 add_task(function test_fetchAndCacheLinks_local() {
+  yield DirectoryLinksProvider.init();
   yield cleanJsonFile();
   
   yield DirectoryLinksProvider._fetchAndCacheLinks(kTestURL);
@@ -142,6 +177,7 @@ add_task(function test_fetchAndCacheLinks_local() {
 });
 
 add_task(function test_fetchAndCacheLinks_remote() {
+  yield DirectoryLinksProvider.init();
   yield cleanJsonFile();
   
   yield DirectoryLinksProvider._fetchAndCacheLinks(kExampleURL);
@@ -150,6 +186,7 @@ add_task(function test_fetchAndCacheLinks_remote() {
 });
 
 add_task(function test_fetchAndCacheLinks_malformedURI() {
+  yield DirectoryLinksProvider.init();
   yield cleanJsonFile();
   let someJunk = "some junk";
   try {
@@ -165,6 +202,7 @@ add_task(function test_fetchAndCacheLinks_malformedURI() {
 });
 
 add_task(function test_fetchAndCacheLinks_unknownHost() {
+  yield DirectoryLinksProvider.init();
   yield cleanJsonFile();
   let nonExistentServer = "http://nosuchhost";
   try {
@@ -180,6 +218,7 @@ add_task(function test_fetchAndCacheLinks_unknownHost() {
 });
 
 add_task(function test_fetchAndCacheLinks_non200Status() {
+  yield DirectoryLinksProvider.init();
   yield cleanJsonFile();
   yield DirectoryLinksProvider._fetchAndCacheLinks(kFailURL);
   let data = yield readJsonFile();
@@ -187,24 +226,19 @@ add_task(function test_fetchAndCacheLinks_non200Status() {
 });
 
 
-add_task(function test_linkObservers() {
-  let deferred = Promise.defer();
-  let testObserver = {
-    onManyLinksChanged: function() {
-      deferred.resolve();
-    }
-  }
+add_task(function test_DirectoryLinksProvider__linkObservers() {
+  yield DirectoryLinksProvider.init();
 
-  DirectoryLinksProvider.init();
+  let testObserver = new LinksChangeObserver();
   DirectoryLinksProvider.addObserver(testObserver);
-  do_check_eq(DirectoryLinksProvider._observers.length, 1);
-  DirectoryLinksProvider._fetchAndCacheLinks(kTestURL);
+  do_check_eq(DirectoryLinksProvider._observers.size, 1);
+  DirectoryLinksProvider._fetchAndCacheLinksIfNecessary(true);
 
-  yield deferred.promise;
+  yield testObserver.deferred.promise;
   DirectoryLinksProvider._removeObservers();
-  do_check_eq(DirectoryLinksProvider._observers.length, 0);
+  do_check_eq(DirectoryLinksProvider._observers.size, 0);
 
-  cleanDirectoryLinksProvider();
+  yield promiseCleanDirectoryLinksProvider();
 });
 
 add_task(function test_linksURL_locale() {
@@ -217,7 +251,7 @@ add_task(function test_linksURL_locale() {
   };
   let dataURI = 'data:application/json,' + JSON.stringify(data);
 
-  setupDirectoryLinksProvider({linksURL: dataURI});
+  yield promiseSetupDirectoryLinksProvider({linksURL: dataURI});
 
   let links;
   let expected_data;
@@ -227,7 +261,7 @@ add_task(function test_linksURL_locale() {
   expected_data = [{url: "http://example.com", title: "US", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1}];
   isIdentical(links, expected_data);
 
-  Services.prefs.setCharPref('general.useragent.locale', 'zh-CN');
+  yield promiseDirectoryDownloadOnPrefChange("general.useragent.locale", "zh-CN");
 
   links = yield fetchData();
   do_check_eq(links.length, 2)
@@ -237,11 +271,11 @@ add_task(function test_linksURL_locale() {
   ];
   isIdentical(links, expected_data);
 
-  cleanDirectoryLinksProvider();
+  yield promiseCleanDirectoryLinksProvider();
 });
 
-add_task(function test_prefObserver_url() {
-  setupDirectoryLinksProvider({linksURL: kTestURL});
+add_task(function test_DirectoryLinksProvider__prefObserver_url() {
+  yield promiseSetupDirectoryLinksProvider({linksURL: kTestURL});
 
   let links = yield fetchData();
   do_check_eq(links.length, 1);
@@ -252,18 +286,126 @@ add_task(function test_prefObserver_url() {
   
   
   let exampleUrl = 'http://nosuchhost/bad';
-  Services.prefs.setCharPref(kSourceUrlPref, exampleUrl);
+  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, exampleUrl);
   do_check_eq(DirectoryLinksProvider._linksURL, exampleUrl);
 
   let newLinks = yield fetchData();
   isIdentical(newLinks, []);
 
-  cleanDirectoryLinksProvider();
+  yield promiseCleanDirectoryLinksProvider();
 });
 
-add_task(function test_getLinks_noLocaleData() {
-  setupDirectoryLinksProvider({locale: 'zh-CN'});
+add_task(function test_DirectoryLinksProvider_getLinks_noLocaleData() {
+  yield promiseSetupDirectoryLinksProvider({locale: 'zh-CN'});
   let links = yield fetchData();
   do_check_eq(links.length, 0);
-  cleanDirectoryLinksProvider();
+  yield promiseCleanDirectoryLinksProvider();
+});
+
+add_task(function test_DirectoryLinksProvider_needsDownload() {
+  
+  DirectoryLinksProvider._lastDownloadMS = 0;
+  do_check_true(DirectoryLinksProvider._needsDownload);
+  DirectoryLinksProvider._lastDownloadMS = Date.now();
+  do_check_false(DirectoryLinksProvider._needsDownload);
+  DirectoryLinksProvider._lastDownloadMS = Date.now() - (60*60*24 + 1)*1000;
+  do_check_true(DirectoryLinksProvider._needsDownload);
+  DirectoryLinksProvider._lastDownloadMS = 0;
+});
+
+add_task(function test_DirectoryLinksProvider_fetchAndCacheLinksIfNecessary() {
+  yield DirectoryLinksProvider.init();
+  yield cleanJsonFile();
+  
+  yield promiseSetupDirectoryLinksProvider({linksURL: kTestURL+" "});
+  yield DirectoryLinksProvider._fetchAndCacheLinksIfNecessary();
+
+  
+  let lastDownloadMS = DirectoryLinksProvider._lastDownloadMS;
+  do_check_true((Date.now() - lastDownloadMS) < 5000);
+
+  
+  let data = yield readJsonFile();
+  isIdentical(data, kURLData);
+
+  
+  yield DirectoryLinksProvider._fetchAndCacheLinksIfNecessary();
+  do_check_eq(DirectoryLinksProvider._lastDownloadMS, lastDownloadMS);
+
+  
+  yield cleanJsonFile();
+  yield DirectoryLinksProvider._fetchAndCacheLinksIfNecessary(true);
+  data = yield readJsonFile();
+  isIdentical(data, kURLData);
+
+  
+  lastDownloadMS = DirectoryLinksProvider._lastDownloadMS;
+  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, "http://");
+  yield DirectoryLinksProvider._fetchAndCacheLinksIfNecessary(true);
+  data = yield readJsonFile();
+  isIdentical(data, kURLData);
+  do_check_eq(DirectoryLinksProvider._lastDownloadMS, lastDownloadMS);
+
+  
+  let downloadPromise = DirectoryLinksProvider._fetchAndCacheLinksIfNecessary(true);
+  let anotherPromise = DirectoryLinksProvider._fetchAndCacheLinksIfNecessary(true);
+  do_check_true(downloadPromise === anotherPromise);
+  yield downloadPromise;
+
+  yield promiseCleanDirectoryLinksProvider();
+});
+
+add_task(function test_DirectoryLinksProvider_fetchDirectoryOnPrefChange() {
+  yield DirectoryLinksProvider.init();
+
+  let testObserver = new LinksChangeObserver();
+  DirectoryLinksProvider.addObserver(testObserver);
+
+  yield cleanJsonFile();
+  
+  do_check_false(DirectoryLinksProvider._needsDownload);
+
+  
+  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, kExampleURL);
+  
+  yield testObserver.deferred.promise;
+  let data = yield readJsonFile();
+  isIdentical(data, kHttpHandlerData[kExamplePath]);
+
+  yield promiseCleanDirectoryLinksProvider();
+});
+
+add_task(function test_DirectoryLinksProvider_fetchDirectoryOnShowCount() {
+  yield promiseSetupDirectoryLinksProvider();
+
+  
+  DirectoryLinksProvider._lastDownloadMS = 0;
+  do_check_true(DirectoryLinksProvider._needsDownload);
+
+  
+  let directoryCount = {sponsored: 0};
+  yield DirectoryLinksProvider.reportShownCount(directoryCount);
+  
+  do_check_eq(DirectoryLinksProvider._lastDownloadMS, 0);
+
+  
+  directoryCount.sponsored = 1;
+  yield DirectoryLinksProvider.reportShownCount(directoryCount);
+  do_check_true(DirectoryLinksProvider._lastDownloadMS != 0);
+
+  yield promiseCleanDirectoryLinksProvider();
+});
+
+add_task(function test_DirectoryLinksProvider_fetchDirectoryOnInit() {
+  
+  yield promiseSetupDirectoryLinksProvider();
+  
+  yield promiseCleanDirectoryLinksProvider();
+
+  yield cleanJsonFile();
+  yield DirectoryLinksProvider.init();
+  let data = yield readJsonFile();
+  isIdentical(data, kURLData);
+
+  yield promiseCleanDirectoryLinksProvider();
 });
