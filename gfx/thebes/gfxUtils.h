@@ -159,9 +159,6 @@ namespace gfx {
 
 
 
-
-
-
 static inline bool
 IsPowerOfTwo(int aNumber)
 {
