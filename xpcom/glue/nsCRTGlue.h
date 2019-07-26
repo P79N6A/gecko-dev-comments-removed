@@ -110,17 +110,22 @@ NS_COM_GLUE void NS_MakeRandomString(char *buf, int32_t bufLen);
 #define LFSTR "\012"
 #define CRLF "\015\012"     /* A CR LF equivalent string */
 
+
+
+#define OS_FILE_ILLEGAL_CHARACTERS "/:*?\"<>|"
+
+
+
+#define KNOWN_PATH_SEPARATORS "\\/"
+
 #if defined(XP_MACOSX)
   #define FILE_PATH_SEPARATOR        "/"
-  #define OS_FILE_ILLEGAL_CHARACTERS ":"
 #elif defined(XP_WIN)
   #define FILE_PATH_SEPARATOR        "\\"
-  #define OS_FILE_ILLEGAL_CHARACTERS "/:*?\"<>|"
 #elif defined(XP_UNIX)
   #define FILE_PATH_SEPARATOR        "/"
-  #define OS_FILE_ILLEGAL_CHARACTERS ""
 #else
-  #error need_to_define_your_file_path_separator_and_illegal_characters
+  #error need_to_define_your_file_path_separator_and_maybe_illegal_characters
 #endif
 
 
