@@ -368,6 +368,13 @@ protected:
 
     bool NeedToComputeLineOrPageDelta(mozilla::widget::WheelEvent* aEvent);
 
+    
+
+
+
+    bool IsOverOnePageScrollAllowedX(mozilla::widget::WheelEvent* aEvent);
+    bool IsOverOnePageScrollAllowedY(mozilla::widget::WheelEvent* aEvent);
+
   private:
     WheelPrefs();
     ~WheelPrefs();
@@ -408,6 +415,15 @@ protected:
     void Init(Index aIndex);
 
     void Reset();
+
+    
+
+
+
+
+    enum {
+      MIN_MULTIPLIER_VALUE_ALLOWING_OVER_ONE_PAGE_SCROLL = 1000
+    };
 
     bool mInit[COUNT_OF_MULTIPLIERS];
     double mMultiplierX[COUNT_OF_MULTIPLIERS];
