@@ -68,10 +68,6 @@
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
 
-#if defined(MOZ_PLATFORM_MAEMO) || defined(ANDROID) || defined(MOZ_EGL_XRENDER_COMPOSITE)
-#define USE_GLES2 1
-#endif
-
 typedef char realGLboolean;
 
 #include "GLContextSymbols.h"
@@ -531,11 +527,7 @@ public:
         mOffscreenFBOsDirty(false),
         mInitialized(false),
         mIsOffscreen(aIsOffscreen),
-#ifdef USE_GLES2
-        mIsGLES2(true),
-#else
         mIsGLES2(false),
-#endif
         mIsGlobalSharedContext(false),
         mHasRobustness(false),
         mContextLost(false),
@@ -555,12 +547,14 @@ public:
         mMaxTextureSize(0),
         mMaxCubeMapTextureSize(0),
         mMaxTextureImageSize(0),
-        mMaxRenderbufferSize(0)
+        mMaxRenderbufferSize(0),
+        mWorkAroundDriverBugs(true)
 #ifdef DEBUG
         , mGLError(LOCAL_GL_NO_ERROR)
 #endif
     {
         mUserData.Init();
+        mOwningThread = NS_GetCurrentThread();
     }
 
     virtual ~GLContext() {
@@ -646,6 +640,23 @@ public:
 
     bool IsGlobalSharedContext() { return mIsGlobalSharedContext; }
     void SetIsGlobalSharedContext(bool aIsOne) { mIsGlobalSharedContext = aIsOne; }
+
+    
+
+
+
+    bool IsOwningThreadCurrent() { return NS_GetCurrentThread() == mOwningThread; }
+
+    void DispatchToOwningThread(nsIRunnable *event) {
+        
+        
+        
+        
+        nsCOMPtr<nsIThread> mainThread;
+        if (NS_SUCCEEDED(NS_GetMainThread(getter_AddRefs(mainThread)))) {
+            mOwningThread->Dispatch(event, NS_DISPATCH_NORMAL);
+        }
+    }
 
     const ContextFormat& CreationFormat() { return mCreationFormat; }
     const ContextFormat& ActualFormat() { return mActualFormat; }
@@ -1588,6 +1599,9 @@ protected:
     ContextFormat mCreationFormat;
     nsRefPtr<GLContext> mSharedContext;
 
+    
+    nsCOMPtr<nsIThread> mOwningThread;
+
     GLContextSymbols mSymbols;
 
 #ifdef DEBUG
@@ -1654,6 +1668,8 @@ protected:
 public:
     void ClearSafely();
 
+    bool WorkAroundDriverBugs() const { return mWorkAroundDriverBugs; }
+
 protected:
 
     nsDataHashtable<nsPtrHashKey<void>, void*> mUserData;
@@ -1685,7 +1701,6 @@ protected:
         return biggerDimension <= maxAllowed;
     }
 
-protected:
     nsTArray<nsIntRect> mViewportStack;
     nsTArray<nsIntRect> mScissorStack;
 
@@ -1693,10 +1708,12 @@ protected:
     GLint mMaxCubeMapTextureSize;
     GLint mMaxTextureImageSize;
     GLint mMaxRenderbufferSize;
+    bool mWorkAroundDriverBugs;
 
     bool IsTextureSizeSafeToPassToDriver(GLenum target, GLsizei width, GLsizei height) const {
 #ifdef XP_MACOSX
-        if (mVendor == VendorIntel) {
+        if (mWorkAroundDriverBugs &&
+            mVendor == VendorIntel) {
             
             
             

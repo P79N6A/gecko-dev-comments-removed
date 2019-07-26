@@ -56,6 +56,8 @@
 
 namespace js {
 
+typedef HashSet<JSAtom *> FuncStmtSet;
+
 
 
 
@@ -179,34 +181,22 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     TCF_IN_FOR_INIT =                         0x10,
 
     
-    TCF_FUN_PARAM_ARGUMENTS =                 0x20,
+    TCF_FUN_HEAVYWEIGHT =                     0x20,
 
     
-    TCF_FUN_LOCAL_ARGUMENTS =                 0x40,
+    TCF_FUN_IS_GENERATOR =                    0x40,
 
     
-    TCF_FUN_USES_ARGUMENTS =                  0x80,
+    TCF_HAS_FUNCTION_STMT =                   0x80,
 
     
-    TCF_FUN_HEAVYWEIGHT =                    0x100,
+    TCF_GENEXP_LAMBDA =                      0x100,
 
     
-    TCF_FUN_IS_GENERATOR =                   0x200,
+    TCF_COMPILE_N_GO =                       0x200,
 
     
-    TCF_FUN_USES_OWN_NAME =                  0x400,
-
-    
-    TCF_HAS_FUNCTION_STMT =                  0x800,
-
-    
-    TCF_GENEXP_LAMBDA =                     0x1000,
-
-    
-    TCF_COMPILE_N_GO =                      0x2000,
-
-    
-    TCF_NO_SCRIPT_RVAL =                    0x4000,
+    TCF_NO_SCRIPT_RVAL =                     0x400,
 
     
 
@@ -219,7 +209,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
-    TCF_DECL_DESTRUCTURING =                0x8000,
+    TCF_DECL_DESTRUCTURING =                 0x800,
 
     
 
@@ -227,28 +217,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
-    TCF_STRICT_MODE_CODE =                 0x10000,
-
-    
-    TCF_FUN_CALLS_EVAL =                   0x20000,
-
-    
-    TCF_FUN_MUTATES_PARAMETER =            0x40000,
-
-    
-    TCF_COMPILE_FOR_EVAL =                0x100000,
-
-    
-
-
-
-    TCF_FUN_MIGHT_ALIAS_LOCALS =          0x200000,
-
-    
-    TCF_HAS_SINGLETONS =                  0x400000,
-
-    
-    TCF_IN_WITH =                         0x800000,
+    TCF_STRICT_MODE_CODE =                  0x1000,
 
     
 
@@ -258,10 +227,85 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
-    TCF_FUN_EXTENSIBLE_SCOPE =           0x1000000,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    TCF_BINDINGS_ACCESSED_DYNAMICALLY =     0x2000,
 
     
-    TCF_NEED_SCRIPT_GLOBAL =             0x2000000
+    TCF_COMPILE_FOR_EVAL =                  0x4000,
+
+    
+
+
+
+    TCF_FUN_MIGHT_ALIAS_LOCALS =            0x8000,
+
+    
+    TCF_HAS_SINGLETONS =                   0x10000,
+
+    
+    TCF_IN_WITH =                          0x20000,
+
+    
+
+
+
+
+
+
+
+    TCF_FUN_EXTENSIBLE_SCOPE =             0x40000,
+
+    
+    TCF_NEED_SCRIPT_GLOBAL =               0x80000,
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    TCF_ARGUMENTS_HAS_LOCAL_BINDING =     0x100000,
+
+    
+
+
+
+
+
+
+
+
+
+    TCF_DEFINITELY_NEEDS_ARGS_OBJ =       0x200000
 
 } JS_ENUM_FOOTER(TreeContextFlags);
 
@@ -271,17 +315,14 @@ static const uint32_t TCF_RETURN_FLAGS = TCF_RETURN_EXPR | TCF_RETURN_VOID;
 
 
 
-static const uint32_t TCF_FUN_FLAGS = TCF_FUN_USES_ARGUMENTS |
-                                      TCF_FUN_PARAM_ARGUMENTS |
-                                      TCF_FUN_LOCAL_ARGUMENTS |
-                                      TCF_FUN_HEAVYWEIGHT |
+static const uint32_t TCF_FUN_FLAGS = TCF_FUN_HEAVYWEIGHT |
                                       TCF_FUN_IS_GENERATOR |
-                                      TCF_FUN_USES_OWN_NAME |
-                                      TCF_FUN_CALLS_EVAL |
+                                      TCF_BINDINGS_ACCESSED_DYNAMICALLY |
                                       TCF_FUN_MIGHT_ALIAS_LOCALS |
-                                      TCF_FUN_MUTATES_PARAMETER |
                                       TCF_STRICT_MODE_CODE |
-                                      TCF_FUN_EXTENSIBLE_SCOPE;
+                                      TCF_FUN_EXTENSIBLE_SCOPE |
+                                      TCF_ARGUMENTS_HAS_LOCAL_BINDING |
+                                      TCF_DEFINITELY_NEEDS_ARGS_OBJ;
 
 struct BytecodeEmitter;
 
@@ -292,8 +333,6 @@ struct TreeContext {
     uint32_t        parenDepth;     
 
     uint32_t        yieldCount;     
-
-    uint32_t        argumentsCount; 
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
@@ -351,6 +390,10 @@ struct TreeContext {
 
     Bindings::StackRoot bindingsRoot; 
 
+    FuncStmtSet *funcStmts;         
+
+
+
     void trace(JSTracer *trc);
 
     inline TreeContext(Parser *prs);
@@ -405,16 +448,12 @@ struct TreeContext {
     bool compiling() const { return flags & TCF_COMPILING; }
     inline BytecodeEmitter *asBytecodeEmitter();
 
-    bool usesArguments() const {
-        return flags & TCF_FUN_USES_ARGUMENTS;
+    void noteBindingsAccessedDynamically() {
+        flags |= TCF_BINDINGS_ACCESSED_DYNAMICALLY;
     }
 
-    void noteCallsEval() {
-        flags |= TCF_FUN_CALLS_EVAL;
-    }
-
-    bool callsEval() const {
-        return flags & TCF_FUN_CALLS_EVAL;
+    bool bindingsAccessedDynamically() const {
+        return flags & TCF_BINDINGS_ACCESSED_DYNAMICALLY;
     }
 
     void noteMightAliasLocals() {
@@ -425,51 +464,29 @@ struct TreeContext {
         return flags & TCF_FUN_MIGHT_ALIAS_LOCALS;
     }
 
-    void noteParameterMutation() {
-        JS_ASSERT(inFunction());
-        flags |= TCF_FUN_MUTATES_PARAMETER;
+    void noteArgumentsHasLocalBinding() {
+        flags |= TCF_ARGUMENTS_HAS_LOCAL_BINDING;
     }
 
-    bool mutatesParameter() const {
-        JS_ASSERT(inFunction());
-        return flags & TCF_FUN_MUTATES_PARAMETER;
+    bool argumentsHasLocalBinding() const {
+        return flags & TCF_ARGUMENTS_HAS_LOCAL_BINDING;
     }
 
-    bool mayOverwriteArguments() const {
-        JS_ASSERT(inFunction());
-        JS_ASSERT_IF(inStrictMode(),
-                     !(flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_LOCAL_ARGUMENTS)));
-        return !inStrictMode() &&
-               (callsEval() ||
-                flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_LOCAL_ARGUMENTS));
+    unsigned argumentsLocalSlot() const {
+        PropertyName *arguments = parser->context->runtime->atomState.argumentsAtom;
+        unsigned slot;
+        DebugOnly<BindingKind> kind = bindings.lookup(parser->context, arguments, &slot);
+        JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
+        return slot;
     }
 
-    void noteLocalOverwritesArguments() {
-        flags |= TCF_FUN_LOCAL_ARGUMENTS;
+    void noteDefinitelyNeedsArgsObj() {
+        JS_ASSERT(argumentsHasLocalBinding());
+        flags |= TCF_DEFINITELY_NEEDS_ARGS_OBJ;
     }
 
-    void noteArgumentsNameUse(ParseNode *node) {
-        JS_ASSERT(inFunction());
-        JS_ASSERT(node->isKind(PNK_NAME));
-        JS_ASSERT(node->pn_atom == parser->context->runtime->atomState.argumentsAtom);
-        countArgumentsUse(node);
-        flags |= TCF_FUN_USES_ARGUMENTS;
-    }
-
-    
-
-
-
-
-    void countArgumentsUse(ParseNode *node) {
-        JS_ASSERT(node->isKind(PNK_NAME));
-        JS_ASSERT(node->pn_atom == parser->context->runtime->atomState.argumentsAtom);
-        argumentsCount++;
-        argumentsNode = node;
-    }
-
-    bool needsEagerArguments() const {
-        return inStrictMode() && ((usesArguments() && mutatesParameter()) || callsEval());
+    bool definitelyNeedsArgsObj() const {
+        return flags & TCF_DEFINITELY_NEEDS_ARGS_OBJ;
     }
 
     void noteHasExtensibleScope() {
@@ -563,25 +580,25 @@ struct BytecodeEmitter : public TreeContext
         jsbytecode  *limit;         
         jsbytecode  *next;          
         jssrcnote   *notes;         
-        unsigned       noteCount;      
-        unsigned       noteLimit;      
+        unsigned    noteCount;      
+        unsigned    noteLimit;      
         ptrdiff_t   lastNoteOffset; 
-        unsigned       currentLine;    
+        unsigned    currentLine;    
     } prolog, main, *current;
 
     OwnedAtomIndexMapPtr atomIndices; 
     AtomDefnMapPtr  roLexdeps;
-    unsigned           firstLine;      
+    unsigned        firstLine;      
 
-    int            stackDepth;     
-    unsigned           maxStackDepth;  
+    int             stackDepth;     
+    unsigned        maxStackDepth;  
 
-    unsigned           ntrynotes;      
+    unsigned        ntrynotes;      
     TryNode         *lastTryNode;   
 
-    unsigned           arrayCompDepth; 
+    unsigned        arrayCompDepth; 
 
-    unsigned           emitLevel;      
+    unsigned        emitLevel;      
 
     typedef HashMap<JSAtom *, Value> ConstMap;
     ConstMap        constMap;       
@@ -640,7 +657,10 @@ struct BytecodeEmitter : public TreeContext
     bool compilingForEval() const { return !!(flags & TCF_COMPILE_FOR_EVAL); }
     JSVersion version() const { return parser->versionWithFlags(); }
 
+    bool isAliasedName(ParseNode *pn);
     bool shouldNoteClosedName(ParseNode *pn);
+    bool noteClosedVar(ParseNode *pn);
+    bool noteClosedArg(ParseNode *pn);
 
     JS_ALWAYS_INLINE
     bool makeAtomIndex(JSAtom *atom, jsatomid *indexp) {

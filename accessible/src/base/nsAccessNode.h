@@ -152,25 +152,22 @@ public:
 
 
   void Language(nsAString& aLocale);
-  void ScrollTo(PRUint32 aType);
 
 protected:
-    nsPresContext* GetPresContext();
-
-    void LastRelease();
+  void LastRelease();
 
   nsCOMPtr<nsIContent> mContent;
   nsDocAccessible* mDoc;
 
-    
+  
 
 
-    static void NotifyA11yInitOrShutdown(bool aIsInit);
+  static void NotifyA11yInitOrShutdown(bool aIsInit);
 
-    
-    static nsIStringBundle *gStringBundle;
+  
+  static nsIStringBundle* gStringBundle;
 
-    static bool gIsFormFillEnabled;
+  static bool gIsFormFillEnabled;
 
 private:
   nsAccessNode() MOZ_DELETE;

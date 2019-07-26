@@ -210,17 +210,18 @@ nsXULListboxAccessible::NativeState()
 
 
 
-NS_IMETHODIMP nsXULListboxAccessible::GetValue(nsAString& _retval)
+void
+nsXULListboxAccessible::Value(nsString& aValue)
 {
-  _retval.Truncate();
+  aValue.Truncate();
+
   nsCOMPtr<nsIDOMXULSelectControlElement> select(do_QueryInterface(mContent));
   if (select) {
     nsCOMPtr<nsIDOMXULSelectControlItemElement> selectedItem;
     select->GetSelectedItem(getter_AddRefs(selectedItem));
     if (selectedItem)
-      return selectedItem->GetLabel(_retval);
+      selectedItem->GetLabel(aValue);
   }
-  return NS_ERROR_FAILURE;
 }
 
 role

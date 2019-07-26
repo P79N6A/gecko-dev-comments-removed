@@ -797,7 +797,7 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->hasArgsObj() || fp->script()->mayNeedArgsObj()) {
+    if (fp->hasArgsObj() || fp->script()->argumentsHasLocalBinding()) {
         
         
         IonSpew(IonSpew_Abort, "frame has argsobj");

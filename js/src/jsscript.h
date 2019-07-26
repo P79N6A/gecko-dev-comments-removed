@@ -144,12 +144,20 @@ class Bindings
 
     inline void clone(JSContext *cx, Bindings *bindings);
 
-    uint16_t countArgs() const { return nargs; }
-    uint16_t countVars() const { return nvars; }
+    uint16_t numArgs() const { return nargs; }
+    uint16_t numVars() const { return nvars; }
+    unsigned count() const { return nargs + nvars; }
 
-    unsigned countLocalNames() const { return nargs + nvars; }
+    
 
-    bool hasLocalNames() const { return countLocalNames() > 0; }
+
+
+    bool bindingIsArg(uint16_t i) const { return i < nargs; }
+    bool bindingIsLocal(uint16_t i) const { return i >= nargs; }
+    uint16_t argToBinding(uint16_t i) { JS_ASSERT(i < nargs); return i; }
+    uint16_t localToBinding(uint16_t i) { return i + nargs; }
+    uint16_t bindingToArg(uint16_t i) { JS_ASSERT(bindingIsArg(i)); return i; }
+    uint16_t bindingToLocal(uint16_t i) { JS_ASSERT(bindingIsLocal(i)); return i - nargs; }
 
     
     inline bool ensureShape(JSContext *cx);
@@ -306,22 +314,19 @@ class ScriptCounts
     PCCounts *pcCountsVector;
 
  public:
-
-    ScriptCounts() : pcCountsVector(NULL) {
-    }
+    ScriptCounts() : pcCountsVector(NULL) { }
 
     inline void destroy(FreeOp *fop);
 
-    void steal(ScriptCounts &other) {
-        *this = other;
-        js::PodZero(&other);
-    }
-
-    
-    operator void*() const {
-        return pcCountsVector;
+    void set(js::ScriptCounts counts) {
+        pcCountsVector = counts.pcCountsVector;
     }
 };
+
+typedef HashMap<JSScript *,
+                ScriptCounts,
+                DefaultHasher<JSScript *>,
+                SystemAllocPolicy> ScriptCountsMap;
 
 class DebugScript
 {
@@ -357,6 +362,7 @@ struct JSScript : public js::gc::Cell
     static const uint32_t stepCountMask = 0x7fffffffU;
 
   public:
+#ifdef JS_METHODJIT
     
     
     
@@ -398,6 +404,7 @@ struct JSScript : public js::gc::Cell
 
         static void staticAsserts();
     };
+#endif  
 
     
     
@@ -439,9 +446,6 @@ struct JSScript : public js::gc::Cell
     js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
 
     
-    js::ScriptCounts scriptCounts;
-
-    
     js::types::TypeScript *types;
 
   public:
@@ -474,9 +478,13 @@ struct JSScript : public js::gc::Cell
     
     
     uint32_t        id_;
+ #if JS_BITS_PER_WORD == 64
   private:
-    uint32_t        idpad;
-  public:
+    uint32_t        idpad64;
+ #endif
+#elif JS_BITS_PER_WORD == 32
+  private:
+    uint32_t        pad32;
 #endif
 
     
@@ -493,6 +501,9 @@ struct JSScript : public js::gc::Cell
 
     uint16_t        nslots;     
     uint16_t        staticLevel;
+
+  private:
+    uint16_t        argsSlot_;  
 
     
 
@@ -518,7 +529,7 @@ struct JSScript : public js::gc::Cell
     bool            savedCallerFun:1; 
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
-    bool            usesEval:1;       
+    bool            bindingsAccessedDynamically:1; 
     bool            warnedAboutTwoArgumentEval:1; 
 
 
@@ -539,22 +550,14 @@ struct JSScript : public js::gc::Cell
     bool            failedBoundsCheck:1; 
 #endif
     bool            callDestroyHook:1;
-
-    
-
-
-
-
-
-
-
-
-
+    bool            isGenerator:1;    
+    bool            hasScriptCounts:1;
 
 
   private:
-    bool            mayNeedArgsObj_:1;
-    bool            analyzedArgsUsage_:1;
+    
+    bool            argsHasLocalBinding_:1;
+    bool            needsArgsAnalysis_:1;
     bool            needsArgsObj_:1;
 
     
@@ -580,20 +583,35 @@ struct JSScript : public js::gc::Cell
                                JSVersion version);
     static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
 
-    bool mayNeedArgsObj() const { return mayNeedArgsObj_; }
-    bool analyzedArgsUsage() const { return analyzedArgsUsage_; }
+    
+    bool argumentsHasLocalBinding() const { return argsHasLocalBinding_; }
+    jsbytecode *argumentsBytecode() const { JS_ASSERT(code[0] == JSOP_ARGUMENTS); return code; }
+    unsigned argumentsLocalSlot() const { JS_ASSERT(argsHasLocalBinding_); return argsSlot_; }
+    void setArgumentsHasLocalBinding(uint16_t slot);
+
+    
+
+
+
+
+
+
+
+
+
+    bool analyzedArgsUsage() const { return !needsArgsAnalysis_; }
     bool needsArgsObj() const { JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_; }
     void setNeedsArgsObj(bool needsArgsObj);
     bool applySpeculationFailed(JSContext *cx);
-
-    void setMayNeedArgsObj() {
-        mayNeedArgsObj_ = true;
-    }
 
     
     JSScript *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
 
     js::ion::IonScript *ion;          
+
+#if JS_BITS_PER_WORD == 32
+    void *padding_;
+#endif
 
     bool hasIonScript() const {
         return ion && ion != ION_DISABLED_SCRIPT;
@@ -703,12 +721,10 @@ struct JSScript : public js::gc::Cell
 #endif
 
   public:
-    js::PCCounts getPCCounts(jsbytecode *pc) {
-        JS_ASSERT(size_t(pc - code) < length);
-        return scriptCounts.pcCountsVector[pc - code];
-    }
+    js::PCCounts getPCCounts(jsbytecode *pc);
 
     bool initScriptCounts(JSContext *cx);
+    js::ScriptCounts releaseScriptCounts();
     void destroyScriptCounts(js::FreeOp *fop);
 
     jsbytecode *main() {
@@ -766,11 +782,11 @@ struct JSScript : public js::gc::Cell
         return reinterpret_cast<js::ClosedSlotArray *>(data + closedVarsOffset);
     }
 
-    uint32_t nClosedArgs() {
+    uint32_t numClosedArgs() {
         return isValidOffset(closedArgsOffset) ? closedArgs()->length : 0;
     }
 
-    uint32_t nClosedVars() {
+    uint32_t numClosedVars() {
         return isValidOffset(closedVarsOffset) ? closedVars()->length : 0;
     }
 
@@ -823,6 +839,13 @@ struct JSScript : public js::gc::Cell
         return arr->vector[index];
     }
 
+
+#ifdef DEBUG
+    bool varIsAliased(unsigned varSlot);
+    bool argIsAliased(unsigned argSlot);
+    bool argLivesInArgumentsObject(unsigned argSlot);
+    bool argLivesInCallObject(unsigned argSlot);
+#endif
   private:
     
 
@@ -998,4 +1021,4 @@ XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript);
 
 } 
 
-#endif 
+#endif

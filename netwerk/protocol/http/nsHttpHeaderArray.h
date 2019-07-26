@@ -114,8 +114,6 @@ private:
     
     bool    IsSingletonHeader(nsHttpAtom header);
     
-    bool    HeaderMustHaveValue(nsHttpAtom header);
-    
     
     bool    TrackEmptyHeader(nsHttpAtom header);
 
@@ -162,15 +160,10 @@ nsHttpHeaderArray::IsSingletonHeader(nsHttpAtom header)
 }
 
 inline bool
-nsHttpHeaderArray::HeaderMustHaveValue(nsHttpAtom header)
-{
-    return header == nsHttp::Location;
-}
-
-inline bool
 nsHttpHeaderArray::TrackEmptyHeader(nsHttpAtom header)
 {
-    return header == nsHttp::Content_Length;
+    return header == nsHttp::Content_Length ||
+           header == nsHttp::Location;
 }
 
 inline void

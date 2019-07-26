@@ -734,6 +734,8 @@ struct ParseNode {
     newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
                       TreeContext *tc);
 
+    inline PropertyName *atom() const;
+
     
 
 
@@ -754,6 +756,8 @@ struct ParseNode {
 
     ParseNode  *maybeExpr()   { return pn_used ? NULL : expr(); }
     Definition *maybeLexDef() { return pn_used ? lexdef() : NULL; }
+
+    Definition *resolve();
 
 
 #define PND_LET         0x01            /* let (block-scoped) binding */
@@ -1431,27 +1435,6 @@ void DumpParseTree(ParseNode *pn, int indent = 0);
 
 struct Definition : public ParseNode
 {
-    
-
-
-
-
-
-
-
-
-    Definition *resolve() {
-        ParseNode *pn = this;
-        while (!pn->isDefn()) {
-            if (pn->isAssignment()) {
-                pn = pn->pn_left;
-                continue;
-            }
-            pn = pn->lexdef();
-        }
-        return (Definition *) pn;
-    }
-
     bool isFreeVar() const {
         JS_ASSERT(isDefn());
         return pn_cookie.isFree() || test(PND_GVAR);
@@ -1511,6 +1494,29 @@ ParseNode::test(unsigned flag) const
     }
 #endif
     return !!(pn_dflags & flag);
+}
+
+
+
+
+
+
+
+
+
+
+inline Definition *
+ParseNode::resolve()
+{
+    ParseNode *pn = this;
+    while (!pn->isDefn()) {
+        if (pn->isAssignment()) {
+            pn = pn->pn_left;
+            continue;
+        }
+        pn = pn->lexdef();
+    }
+    return (Definition *) pn;
 }
 
 inline void

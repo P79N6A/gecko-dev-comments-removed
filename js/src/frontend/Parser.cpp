@@ -522,12 +522,12 @@ ReportBadParameter(JSContext *cx, TreeContext *tc, JSAtom *name, unsigned errorN
 
 
 
-bool
-js::CheckStrictParameters(JSContext *cx, TreeContext *tc)
+static bool
+CheckStrictParameters(JSContext *cx, TreeContext *tc)
 {
     JS_ASSERT(tc->inFunction());
 
-    if (!tc->needStrictChecks() || tc->bindings.countArgs() == 0)
+    if (!tc->needStrictChecks() || tc->bindings.numArgs() == 0)
         return true;
 
     JSAtom *argumentsAtom = cx->runtime->atomState.argumentsAtom;
@@ -535,7 +535,7 @@ js::CheckStrictParameters(JSContext *cx, TreeContext *tc)
 
     
     HashMap<JSAtom *, bool> parameters(cx);
-    if (!parameters.init(tc->bindings.countArgs()))
+    if (!parameters.init(tc->bindings.numArgs()))
         return false;
 
     
@@ -574,6 +574,20 @@ js::CheckStrictParameters(JSContext *cx, TreeContext *tc)
         }
     }
 
+    return true;
+}
+
+static bool
+BindLocalVariable(JSContext *cx, TreeContext *tc, ParseNode *pn, BindingKind kind)
+{
+    JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
+
+    unsigned index = tc->bindings.numVars();
+    if (!tc->bindings.add(cx, pn->pn_atom, kind))
+        return false;
+
+    pn->pn_cookie.set(tc->staticLevel, index);
+    pn->pn_dflags |= PND_BOUND;
     return true;
 }
 
@@ -622,6 +636,98 @@ Parser::functionBody(FunctionBodyType type)
         if (context->hasStrictOption() && (tc->flags & TCF_RETURN_EXPR) &&
             !CheckFinalReturn(context, tc, pn)) {
             pn = NULL;
+        }
+    }
+
+    
+
+
+
+    if (!CheckStrictParameters(context, tc))
+        return NULL;
+
+    PropertyName * const arguments = context->runtime->atomState.argumentsAtom;
+
+    
+
+
+
+
+
+
+
+    if (FuncStmtSet *set = tc->funcStmts) {
+        for (FuncStmtSet::Range r = set->all(); !r.empty(); r.popFront()) {
+            PropertyName *name = r.front()->asPropertyName();
+            if (name == arguments)
+                tc->noteBindingsAccessedDynamically();
+            else if (Definition *dn = tc->decls.lookupFirst(name))
+                dn->pn_dflags |= PND_CLOSED;
+        }
+    }
+
+    
+
+
+
+
+    for (AtomDefnRange r = tc->lexdeps->all(); !r.empty(); r.popFront()) {
+        JSAtom *atom = r.front().key();
+        Definition *dn = r.front().value();
+        JS_ASSERT(dn->isPlaceholder());
+        if (atom == arguments) {
+            
+
+
+
+            if (!BindLocalVariable(context, tc, dn, VARIABLE))
+                return NULL;
+            dn->setOp(JSOP_GETLOCAL);
+            dn->pn_dflags &= ~PND_PLACEHOLDER;
+
+            
+            tc->lexdeps->remove(arguments);
+            break;
+        }
+    }
+
+    
+
+
+
+    if (tc->bindingsAccessedDynamically() && !tc->bindings.hasBinding(context, arguments)) {
+        if (!tc->bindings.addVariable(context, arguments))
+            return NULL;
+    }
+
+    
+
+
+
+
+    BindingKind bindKind = tc->bindings.lookup(context, arguments, NULL);
+    if (bindKind == VARIABLE || bindKind == CONSTANT) {
+        tc->noteArgumentsHasLocalBinding();
+
+        
+        if (tc->bindingsAccessedDynamically())
+            tc->noteDefinitelyNeedsArgsObj();
+
+        
+
+
+
+
+
+
+        if (tc->inStrictMode()) {
+            AtomDeclsIter iter(&tc->decls);
+            while (Definition *dn = iter.next()) {
+                if (dn->kind() == Definition::ARG && dn->isAssigned()) {
+                    tc->noteDefinitelyNeedsArgsObj();
+                    break;
+                }
+             }
         }
     }
 
@@ -793,10 +899,6 @@ bool
 js::DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, TreeContext *tc)
 {
     
-    if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
-        tc->flags |= TCF_FUN_PARAM_ARGUMENTS;
-
-    
 
 
 
@@ -875,31 +977,10 @@ struct BindData {
     }
 };
 
-static bool
-BindLocalVariable(JSContext *cx, TreeContext *tc, ParseNode *pn, BindingKind kind)
-{
-    JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
-
-    
-    JS_ASSERT_IF(pn->pn_atom == cx->runtime->atomState.argumentsAtom, kind == VARIABLE);
-
-    unsigned index = tc->bindings.countVars();
-    if (!tc->bindings.add(cx, pn->pn_atom, kind))
-        return false;
-
-    pn->pn_cookie.set(tc->staticLevel, index);
-    pn->pn_dflags |= PND_BOUND;
-    return true;
-}
-
 #if JS_HAS_DESTRUCTURING
 static JSBool
 BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, TreeContext *tc)
 {
-    
-    if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
-        tc->flags |= TCF_FUN_PARAM_ARGUMENTS;
-
     JS_ASSERT(tc->inFunction());
 
     
@@ -1032,6 +1113,12 @@ DeoptimizeUsesWithin(Definition *dn, const TokenPos &pos)
     return ndeoptimized != 0;
 }
 
+
+
+
+
+
+
 static bool
 LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
               FunctionSyntaxKind kind = Expression)
@@ -1075,7 +1162,8 @@ LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
 
 
 
-            if (funtc->callsEval() ||
+
+            if (funtc->bindingsAccessedDynamically() ||
                 (outer_dn && tc->innermostWith &&
                  outer_dn->pn_pos < tc->innermostWith->pn_pos)) {
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
@@ -1173,25 +1261,6 @@ LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
 
     }
 
-    
-
-
-
-
-
-
-    if (funtc->inStrictMode() && funbox->object->toFunction()->nargs > 0) {
-        AtomDeclsIter iter(&funtc->decls);
-        Definition *dn;
-
-        while ((dn = iter()) != NULL) {
-            if (dn->kind() == Definition::ARG && dn->isAssigned()) {
-                funbox->tcflags |= TCF_FUN_MUTATES_PARAMETER;
-                break;
-            }
-        }
-    }
-
     funbox->bindings.transfer(funtc->parser->context, &funtc->bindings);
 
     return true;
@@ -1266,6 +1335,7 @@ Parser::functionArguments(TreeContext &funtc, FunctionBox *funbox, ParseNode **l
                 rhs->setOp(JSOP_GETARG);
                 rhs->pn_cookie.set(funtc.staticLevel, slot);
                 rhs->pn_dflags |= PND_BOUND;
+                rhs->setDefn(true);
 
                 ParseNode *item = new_<BinaryNode>(PNK_ASSIGN, JSOP_NOP, lhs->pn_pos, lhs, rhs);
                 if (!item)
@@ -1441,7 +1511,7 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
             switch (tc->bindings.lookup(context, funName, &index)) {
               case NONE:
               case ARGUMENT:
-                index = tc->bindings.countVars();
+                index = tc->bindings.numVars();
                 if (!tc->bindings.addVariable(context, funName))
                     return NULL;
                 
@@ -1474,7 +1544,7 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
     if (!functionArguments(funtc, funbox, &prelude))
         return NULL;
 
-    fun->setArgCount(funtc.bindings.countArgs());
+    fun->setArgCount(funtc.bindings.numArgs());
 
 #if JS_HAS_DESTRUCTURING
     
@@ -1487,8 +1557,7 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
 
     if (prelude) {
         AtomDeclsIter iter(&funtc.decls);
-
-        while (Definition *apn = iter()) {
+        while (Definition *apn = iter.next()) {
             
             if (!apn->isOp(JSOP_SETLOCAL))
                 continue;
@@ -1528,9 +1597,6 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
     if (funName && !CheckStrictBinding(context, &funtc, funName, pn))
         return NULL;
 
-    if (!CheckStrictParameters(context, &funtc))
-        return NULL;
-
 #if JS_HAS_EXPR_CLOSURES
     if (bodyType == StatementListBody)
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
@@ -1547,15 +1613,8 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
 
 
 
-
-
-
-
-
-
-
-    if (funtc.callsEval())
-        outertc->noteCallsEval();
+    if (funtc.bindingsAccessedDynamically())
+        outertc->noteBindingsAccessedDynamically();
 
 #if JS_HAS_DESTRUCTURING
     
@@ -1619,8 +1678,20 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
             outertc->noteMightAliasLocals();
             outertc->noteHasExtensibleScope();
             outertc->flags |= TCF_FUN_HEAVYWEIGHT;
-            if (fun->atom == context->runtime->atomState.argumentsAtom)
-                outertc->noteLocalOverwritesArguments();
+
+            
+
+
+
+
+
+            if (!outertc->funcStmts) {
+                outertc->funcStmts = context->new_<FuncStmtSet>(context);
+                if (!outertc->funcStmts || !outertc->funcStmts->init())
+                    return NULL;
+            }
+            if (!outertc->funcStmts->put(funName))
+                return NULL;
         }
     }
 
@@ -2148,18 +2219,6 @@ BindFunctionLocal(JSContext *cx, BindData *data, MultiDeclRange &mdl, TreeContex
     ParseNode *pn = data->pn;
     JSAtom *name = pn->pn_atom;
 
-    
-
-
-
-
-
-    if (name == cx->runtime->atomState.argumentsAtom) {
-        pn->setOp(JSOP_ARGUMENTS);
-        pn->pn_dflags |= PND_BOUND;
-        return true;
-    }
-
     BindingKind kind = tc->bindings.lookup(cx, name, NULL);
     if (kind == NONE) {
         
@@ -2386,15 +2445,8 @@ NoteLValue(JSContext *cx, ParseNode *pn, TreeContext *tc, unsigned dflag = PND_A
 
 
 
-
-    JSAtom *lname = pn->pn_atom;
-    if (lname == cx->runtime->atomState.argumentsAtom) {
+    if (tc->inFunction() && pn->pn_atom == tc->fun()->atom)
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        tc->noteLocalOverwritesArguments();
-        tc->countArgumentsUse(pn);
-    } else if (tc->inFunction() && lname == tc->fun()->atom) {
-        tc->flags |= TCF_FUN_HEAVYWEIGHT;
-    }
 }
 
 #if JS_HAS_DESTRUCTURING
@@ -2402,22 +2454,10 @@ NoteLValue(JSContext *cx, ParseNode *pn, TreeContext *tc, unsigned dflag = PND_A
 static JSBool
 BindDestructuringVar(JSContext *cx, BindData *data, ParseNode *pn, TreeContext *tc)
 {
-    JSAtom *atom;
-
-    
-
-
-
-
     JS_ASSERT(pn->isKind(PNK_NAME));
-    atom = pn->pn_atom;
-    if (atom == cx->runtime->atomState.argumentsAtom) {
-        tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        tc->noteLocalOverwritesArguments();
-    }
 
     data->pn = pn;
-    if (!data->binder(cx, data, atom, tc))
+    if (!data->binder(cx, data, pn->pn_atom, tc))
         return JS_FALSE;
 
     
@@ -2426,7 +2466,7 @@ BindDestructuringVar(JSContext *cx, BindData *data, ParseNode *pn, TreeContext *
 
     if (pn->pn_dflags & PND_BOUND) {
         JS_ASSERT(!(pn->pn_dflags & PND_GVAR));
-        pn->setOp(pn->isOp(JSOP_ARGUMENTS) ? JSOP_SETNAME : JSOP_SETLOCAL);
+        pn->setOp(JSOP_SETLOCAL);
     } else {
         pn->setOp((data->op == JSOP_DEFCONST) ? JSOP_SETCONST : JSOP_SETNAME);
     }
@@ -2973,14 +3013,7 @@ NewBindingNode(JSAtom *atom, TreeContext *tc, StaticBlockObject *blockObj = NULL
 
     
     JS_ASSERT(tc->parser->tokenStream.currentToken().type == TOK_NAME);
-    ParseNode *pn = NameNode::create(PNK_NAME, atom, tc);
-    if (!pn)
-        return NULL;
-
-    if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
-        tc->countArgumentsUse(pn);
-
-    return pn;
+    return NameNode::create(PNK_NAME, atom, tc);
 }
 
 ParseNode *
@@ -3695,6 +3728,8 @@ Parser::withStatement()
 
     pn->pn_pos.end = pn2->pn_pos.end;
     pn->pn_right = pn2;
+
+    tc->noteBindingsAccessedDynamically();
     tc->flags |= TCF_FUN_HEAVYWEIGHT;
     tc->innermostWith = oldWith;
 
@@ -4356,9 +4391,7 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
 
             JS_ASSERT_IF(pn2->pn_dflags & PND_GVAR, !(pn2->pn_dflags & PND_BOUND));
 
-            pn2->setOp(pn2->isOp(JSOP_ARGUMENTS)
-                       ? JSOP_SETNAME
-                       : (pn2->pn_dflags & PND_BOUND)
+            pn2->setOp((pn2->pn_dflags & PND_BOUND)
                        ? JSOP_SETLOCAL
                        : (data.op == JSOP_DEFCONST)
                        ? JSOP_SETCONST
@@ -4368,14 +4401,6 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
 
             
             pn2->pn_pos.end = init->pn_pos.end;
-
-            if (tc->inFunction() && name == context->runtime->atomState.argumentsAtom) {
-                tc->noteArgumentsNameUse(pn2);
-                if (!blockObj) {
-                    tc->flags |= TCF_FUN_HEAVYWEIGHT;
-                    tc->noteLocalOverwritesArguments();
-                }
-            }
         }
     } while (tokenStream.matchToken(TOK_COMMA));
 
@@ -4902,10 +4927,6 @@ Parser::unaryExpr()
                 return NULL;
             }
             pn2->setOp(JSOP_DELNAME);
-            if (pn2->pn_atom == context->runtime->atomState.argumentsAtom) {
-                tc->flags |= TCF_FUN_HEAVYWEIGHT;
-                tc->countArgumentsUse(pn2);
-            }
             break;
           default:;
         }
@@ -4999,18 +5020,16 @@ class CompExprTransplanter {
 class GenexpGuard {
     TreeContext     *tc;
     uint32_t        startYieldCount;
-    uint32_t        startArgumentsCount;
 
   public:
     explicit GenexpGuard(TreeContext *tc)
       : tc(tc)
     {
         if (tc->parenDepth == 0) {
-            tc->yieldCount = tc->argumentsCount = 0;
+            tc->yieldCount = 0;
             tc->yieldNode = tc->argumentsNode = NULL;
         }
         startYieldCount = tc->yieldCount;
-        startArgumentsCount = tc->argumentsCount;
         tc->parenDepth++;
     }
 
@@ -5040,14 +5059,6 @@ GenexpGuard::checkValidBody(ParseNode *pn)
         if (!errorNode)
             errorNode = pn;
         tc->parser->reportErrorNumber(errorNode, JSREPORT_ERROR, JSMSG_BAD_GENEXP_BODY, js_yield_str);
-        return false;
-    }
-
-    if (tc->argumentsCount > startArgumentsCount) {
-        ParseNode *errorNode = tc->argumentsNode;
-        if (!errorNode)
-            errorNode = pn;
-        tc->parser->reportErrorNumber(errorNode, JSREPORT_ERROR, JSMSG_BAD_GENEXP_BODY, js_arguments_str);
         return false;
     }
 
@@ -5570,9 +5581,8 @@ Parser::generatorExpr(ParseNode *kid)
 
 
 
-
         gentc.flags |= TCF_FUN_IS_GENERATOR | TCF_GENEXP_LAMBDA |
-                       (outertc->flags & (TCF_FUN_FLAGS & ~TCF_FUN_PARAM_ARGUMENTS));
+                       (outertc->flags & TCF_FUN_FLAGS);
         funbox->tcflags |= gentc.flags;
         genfn->pn_funbox = funbox;
         genfn->pn_blockid = gentc.bodyid;
@@ -5584,6 +5594,15 @@ Parser::generatorExpr(ParseNode *kid)
         genfn->pn_body = body;
         genfn->pn_pos.begin = body->pn_pos.begin = kid->pn_pos.begin;
         genfn->pn_pos.end = body->pn_pos.end = tokenStream.currentToken().pos.end;
+
+        JSAtom *arguments = gentc.parser->context->runtime->atomState.argumentsAtom;
+        if (AtomDefnPtr p = gentc.lexdeps->lookup(arguments)) {
+            Definition *dn = p.value();
+            ParseNode *errorNode = dn->dn_uses ? dn->dn_uses : body;
+            gentc.parser->reportErrorNumber(errorNode, JSREPORT_ERROR, JSMSG_BAD_GENEXP_BODY,
+                                             js_arguments_str);
+            return false;
+        }
 
         if (!LeaveFunction(genfn, &gentc))
             return NULL;
@@ -5736,6 +5755,7 @@ Parser::memberExpr(JSBool allowCallSyntax)
                 if (tt == TOK_LP) {
                     
                     tc->flags |= TCF_FUN_HEAVYWEIGHT;
+                    tc->noteBindingsAccessedDynamically();
 
                     StmtInfo stmtInfo;
                     ParseNode *oldWith = tc->innermostWith;
@@ -5854,7 +5874,7 @@ Parser::memberExpr(JSBool allowCallSyntax)
                 if (lhs->pn_atom == context->runtime->atomState.evalAtom) {
                     
                     nextMember->setOp(JSOP_EVAL);
-                    tc->noteCallsEval();
+                    tc->noteBindingsAccessedDynamically();
                     tc->flags |= TCF_FUN_HEAVYWEIGHT;
                     
 
@@ -6013,9 +6033,8 @@ Parser::qualifiedSuffix(ParseNode *pn)
     if (!pn2)
         return NULL;
 
-    
     tc->flags |= TCF_FUN_HEAVYWEIGHT;
-    tc->noteLocalOverwritesArguments();
+    tc->noteBindingsAccessedDynamically();
 
     
     if (pn->isOp(JSOP_QNAMEPART))
@@ -6062,7 +6081,7 @@ Parser::qualifiedIdentifier()
     if (tokenStream.matchToken(TOK_DBLCOLON)) {
         
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        tc->noteLocalOverwritesArguments();
+        tc->noteBindingsAccessedDynamically();
         pn = qualifiedSuffix(pn);
     }
     return pn;
@@ -6578,7 +6597,7 @@ Parser::propertyQualifiedIdentifier()
 
     
     tc->flags |= TCF_FUN_HEAVYWEIGHT;
-    tc->noteLocalOverwritesArguments();
+    tc->noteBindingsAccessedDynamically();
 
     PropertyName *name = tokenStream.currentToken().name();
     ParseNode *node = NameNode::create(PNK_NAME, name, tc);
@@ -6607,35 +6626,12 @@ Parser::identifierName(bool afterDoubleDot)
     JS_ASSERT(tokenStream.currentToken().t_op == JSOP_NAME);
     node->setOp(JSOP_NAME);
 
-    if ((tc->flags & (TCF_IN_FUNCTION | TCF_FUN_PARAM_ARGUMENTS)) == TCF_IN_FUNCTION &&
-        name == context->runtime->atomState.argumentsAtom)
-    {
-        
-
-
-
-        if (!afterDoubleDot) {
-            
-
-
-
-            tc->noteArgumentsNameUse(node);
-
-            if (!(tc->flags & TCF_DECL_DESTRUCTURING) && !tc->inStatement(STMT_WITH)) {
-                node->setOp(JSOP_ARGUMENTS);
-                node->pn_dflags |= PND_BOUND;
-            }
-        }
-    } else if ((!afterDoubleDot
+    if ((!afterDoubleDot
 #if JS_HAS_XML_SUPPORT
                 || (!tc->inStrictMode() && tokenStream.peekToken() == TOK_DBLCOLON)
 #endif
                ) && !(tc->flags & TCF_DECL_DESTRUCTURING))
     {
-        
-        if (!tc->inFunction() && name == context->runtime->atomState.argumentsAtom)
-            tc->countArgumentsUse(node);
-
         StmtInfo *stmt = LexicalLookup(tc, name, NULL);
 
         MultiDeclRange mdl = tc->decls.lookupMulti(name);

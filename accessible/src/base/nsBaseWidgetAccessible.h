@@ -89,13 +89,13 @@ public:
   
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
-  NS_IMETHOD GetValue(nsAString& _retval);
   NS_IMETHOD TakeFocus();
 
   
   virtual void Shutdown();
 
   
+  virtual void Value(nsString& aValue);
   virtual PRUint64 NativeState();
 
   

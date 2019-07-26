@@ -3,16 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_A11Y_ARIAGridAccessible_h_
 #define MOZILLA_A11Y_ARIAGridAccessible_h_
 
 #include "nsIAccessibleTable.h"
 
-#include "HyperTextAccessibleWrap.h"
+#include "nsHyperTextAccessibleWrap.h"
 #include "TableAccessible.h"
-#include "TableCellAccessible.h"
 #include "xpcAccessibleTable.h"
-#include "xpcAccessibleTableCell.h"
 
 namespace mozilla {
 namespace a11y {
@@ -20,67 +51,51 @@ namespace a11y {
 
 
 
-class ARIAGridAccessible : public AccessibleWrap,
+class ARIAGridAccessible : public nsAccessibleWrap,
                            public xpcAccessibleTable,
                            public nsIAccessibleTable,
                            public TableAccessible
 {
 public:
-  ARIAGridAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  ARIAGridAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIACCESSIBLETABLE(xpcAccessibleTable::)
+  NS_DECL_OR_FORWARD_NSIACCESSIBLETABLE_WITH_XPCACCESSIBLETABLE
 
   
-  virtual TableAccessible* AsTable() { return this; }
+  virtual mozilla::a11y::TableAccessible* AsTable() { return this; }
 
   
   virtual void Shutdown();
 
-  
-  virtual uint32_t ColCount();
-  virtual uint32_t RowCount();
-  virtual Accessible* CellAt(uint32_t aRowIndex, uint32_t aColumnIndex);
-  virtual bool IsColSelected(uint32_t aColIdx);
-  virtual bool IsRowSelected(uint32_t aRowIdx);
-  virtual bool IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual uint32_t SelectedCellCount();
-  virtual uint32_t SelectedColCount();
-  virtual uint32_t SelectedRowCount();
-  virtual void SelectedCells(nsTArray<Accessible*>* aCells);
-  virtual void SelectedCellIndices(nsTArray<uint32_t>* aCells);
-  virtual void SelectedColIndices(nsTArray<uint32_t>* aCols);
-  virtual void SelectedRowIndices(nsTArray<uint32_t>* aRows);
-  virtual void SelectCol(uint32_t aColIdx);
-  virtual void SelectRow(uint32_t aRowIdx);
-  virtual void UnselectCol(uint32_t aColIdx);
-  virtual void UnselectRow(uint32_t aRowIdx);
-  virtual Accessible* AsAccessible() { return this; }
-
 protected:
+  
+
+
+  bool IsValidRow(PRInt32 aRow);
 
   
 
 
-  bool IsValidRow(int32_t aRow);
+  bool IsValidColumn(PRInt32 aColumn);
 
   
 
 
-  bool IsValidColumn(int32_t aColumn);
+  bool IsValidRowNColumn(PRInt32 aRow, PRInt32 aColumn);
 
   
 
 
-  Accessible* GetRowAt(int32_t aRow);
+  nsAccessible *GetRowAt(PRInt32 aRow);
 
   
 
 
-  Accessible* GetCellInRowAt(Accessible* aRow, int32_t aColumn);
+  nsAccessible *GetCellInRowAt(nsAccessible *aRow, PRInt32 aColumn);
 
   
 
@@ -90,60 +105,35 @@ protected:
 
 
 
-  nsresult SetARIASelected(Accessible* aAccessible, bool aIsSelected,
+  nsresult SetARIASelected(nsAccessible *aAccessible, bool aIsSelected,
                            bool aNotify = true);
+
+  
+
+
+  nsresult GetSelectedColumnsArray(PRUint32 *acolumnCount,
+                                   PRInt32 **aColumns = nsnull);
 };
 
 
 
 
 
-class ARIAGridCellAccessible : public HyperTextAccessibleWrap,
-                               public nsIAccessibleTableCell,
-                               public TableCellAccessible,
-                               public xpcAccessibleTableCell
+class ARIAGridCellAccessible : public nsHyperTextAccessibleWrap,
+                               public nsIAccessibleTableCell
 {
 public:
-  ARIAGridCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  ARIAGridCellAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
+  NS_DECL_NSIACCESSIBLETABLECELL
 
   
-  virtual TableCellAccessible* AsTableCell() { return this; }
-  virtual void Shutdown();
-  virtual void ApplyARIAState(uint64_t* aState) const;
+  virtual void ApplyARIAState(PRUint64* aState);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-
-protected:
-
-  
-
-
-  Accessible* Row() const
-  {
-    Accessible* row = Parent();
-    return row && row->Role() == roles::ROW ? row : nullptr;
-  }
-
-  
-
-
-  Accessible* TableFor(Accessible* aRow) const;
-
-  
-
-
-  int32_t RowIndexFor(Accessible* aRow) const;
-
-  
-  virtual TableAccessible* Table() const MOZ_OVERRIDE;
-  virtual uint32_t ColIdx() const MOZ_OVERRIDE;
-  virtual uint32_t RowIdx() const MOZ_OVERRIDE;
-  virtual bool Selected() MOZ_OVERRIDE;
 };
 
 } 

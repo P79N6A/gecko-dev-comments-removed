@@ -1661,17 +1661,25 @@ nsAccessible::ApplyARIAState(PRUint64* aState)
     aria::MapToState(mRoleMapEntry->attributeMap3, element, aState);
 }
 
-
 NS_IMETHODIMP
 nsAccessible::GetValue(nsAString& aValue)
 {
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
+  nsAutoString value;
+  Value(value);
+  aValue.Assign(value);
+
+  return NS_OK;
+}
+
+void
+nsAccessible::Value(nsString& aValue)
+{
   if (mRoleMapEntry) {
-    if (mRoleMapEntry->valueRule == eNoValue) {
-      return NS_OK;
-    }
+    if (mRoleMapEntry->valueRule == eNoValue)
+      return;
 
     
     
@@ -1683,18 +1691,16 @@ nsAccessible::GetValue(nsAString& aValue)
   }
 
   if (!aValue.IsEmpty())
-    return NS_OK;
+    return;
 
   
   if (nsCoreUtils::IsXLink(mContent)) {
     nsIPresShell* presShell = mDoc->PresShell();
     if (presShell) {
       nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
-      return presShell->GetLinkLocation(DOMNode, aValue);
+      presShell->GetLinkLocation(DOMNode, aValue);
     }
   }
-
-  return NS_OK;
 }
 
 
@@ -2234,7 +2240,7 @@ nsAccessible::DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex)
 NS_IMETHODIMP
 nsAccessible::ScrollTo(PRUint32 aHow)
 {
-  nsAccessNode::ScrollTo(aHow);
+  nsCoreUtils::ScrollTo(mDoc->PresShell(), mContent, aHow);
   return NS_OK;
 }
 

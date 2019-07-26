@@ -2437,7 +2437,7 @@ IonBuilder::inlineScriptedCall(JSFunction *target, uint32 argc)
 
     
     
-    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(target->script().get(),
+    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(target->script(),
                                                               target, (jsbytecode *)NULL);
     if (!info)
         return false;

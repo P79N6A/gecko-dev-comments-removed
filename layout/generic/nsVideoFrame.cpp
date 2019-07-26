@@ -195,6 +195,8 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nsnull;
 
   nsRefPtr<ImageContainer> container = element->GetImageContainer();
+  if (!container)
+    return nsnull;
   
   
   
@@ -343,8 +345,9 @@ public:
   
   
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder)
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
   {
+    *aSnap = false;
     nsIFrame* f = GetUnderlyingFrame();
     return f->GetContentRect() - f->GetPosition() + ToReferenceFrame();
   }

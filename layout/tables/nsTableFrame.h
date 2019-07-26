@@ -78,7 +78,7 @@ public:
   
   
   
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap);
 
   void UpdateForFrameBackground(nsIFrame* aFrame);
 

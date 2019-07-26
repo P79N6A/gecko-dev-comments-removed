@@ -2139,7 +2139,6 @@ TypeCompartment::processPendingRecompiles(FreeOp *fop)
 void
 TypeCompartment::setPendingNukeTypes(JSContext *cx)
 {
-    JS_ASSERT(compartment()->activeInference);
     if (!pendingNukeTypes) {
         if (cx->compartment)
             js_ReportOutOfMemory(cx);
@@ -2758,13 +2757,13 @@ TypeObject::getFromPrototypes(JSContext *cx, jsid id, TypeSet *types, bool force
         return;
     }
 
-    TypeSet *protoTypes = proto->type()->getProperty(cx, id, false);
+    TypeSet *protoTypes = proto->getType(cx)->getProperty(cx, id, false);
     if (!protoTypes)
         return;
 
     protoTypes->addSubset(cx, types);
 
-    proto->type()->getFromPrototypes(cx, id, protoTypes);
+    proto->getType(cx)->getFromPrototypes(cx, id, protoTypes);
 }
 
 static inline void
@@ -3288,10 +3287,8 @@ ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
 
 
 
-        if (script->analysis()->addsScopeObjects() ||
-            JSOp(*script->code) == JSOP_GENERATOR) {
+        if (script->analysis()->addsScopeObjects() || script->isGenerator)
             return access;
-        }
 
         
         unsigned index;
@@ -3635,6 +3632,8 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         break;
       }
 
+      case JSOP_GETALIASEDVAR:
+      case JSOP_CALLALIASEDVAR:
       case JSOP_GETARG:
       case JSOP_CALLARG:
       case JSOP_GETLOCAL:
@@ -3654,11 +3653,12 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
             
             pushed[0].addType(cx, Type::UnknownType());
         }
-        if (op == JSOP_CALLARG || op == JSOP_CALLLOCAL)
+        if (op == JSOP_CALLARG || op == JSOP_CALLLOCAL || op == JSOP_CALLALIASEDVAR)
             pushed[0].addPropagateThis(cx, script, pc, Type::UndefinedType());
         break;
       }
 
+      case JSOP_SETALIASEDVAR:
       case JSOP_SETARG:
       case JSOP_SETLOCAL: {
         uint32_t slot = GetBytecodeSlot(script, pc);
@@ -3702,7 +3702,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         if (script->needsArgsObj())
             pushed[0].addType(cx, Type::UnknownType());
         else
-            pushed[0].addType(cx, Type::LazyArgsType());
+            pushed[0].addType(cx, Type::MagicArgType());
         break;
 
       case JSOP_SETPROP: {
@@ -4072,16 +4072,10 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       case JSOP_QNAME:
       case JSOP_ANYNAME:
       case JSOP_GETFUNNS:
-        pushed[0].addType(cx, Type::UnknownType());
-        break;
-
       case JSOP_FILTER:
         
-        poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
-        break;
-
       case JSOP_ENDFILTER:
-        poppedTypes(pc, 1)->addSubset(cx, &pushed[0]);
+        pushed[0].addType(cx, Type::UnknownType());
         break;
 
       case JSOP_CALLEE:
@@ -4171,11 +4165,8 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
 
 
 
-            if (nesting->parent->analysis()->addsScopeObjects() || 
-                JSOp(*nesting->parent->code) == JSOP_GENERATOR)
-            {
+            if (nesting->parent->analysis()->addsScopeObjects() || nesting->parent->isGenerator)
                 DetachNestingParent(script);
-            }
         }
     }
 
@@ -5350,8 +5341,10 @@ JSScript::makeTypes(JSContext *cx)
 
     if (!cx->typeInferenceEnabled()) {
         types = (TypeScript *) cx->calloc_(sizeof(TypeScript));
-        if (!types)
+        if (!types) {
+            js_ReportOutOfMemory(cx);
             return false;
+        }
         new(types) TypeScript();
         return true;
     }
@@ -5560,15 +5553,23 @@ JSObject::splicePrototype(JSContext *cx, JSObject *proto)
 void
 JSObject::makeLazyType(JSContext *cx)
 {
-    JS_ASSERT(cx->typeInferenceEnabled() && hasLazyType());
-    AutoEnterTypeInference enter(cx);
+    JS_ASSERT(hasLazyType());
 
     TypeObject *type = cx->compartment->types.newTypeObject(cx, NULL,
                                                             JSProto_Object, getProto());
     if (!type) {
-        cx->compartment->types.setPendingNukeTypes(cx);
+        if (cx->typeInferenceEnabled())
+            cx->compartment->types.setPendingNukeTypes(cx);
         return;
     }
+
+    if (!cx->typeInferenceEnabled()) {
+        
+        type_ = type;
+        return;
+    }
+
+    AutoEnterTypeInference enter(cx);
 
     
 
