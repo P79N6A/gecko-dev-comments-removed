@@ -385,9 +385,6 @@ pref("privacy.item.siteSettings", true);
 pref("privacy.item.syncAccount", true);
 
 
-pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
-
-
 pref("geo.enabled", true);
 
 
