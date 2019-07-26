@@ -6925,6 +6925,14 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
 #endif
     }
 
+    if (aFrameState) {
+      
+      nsIFrame* rootScrollFrame = mPresShell->GetRootScrollFrame();
+      if (rootScrollFrame) {
+        RestoreFrameStateFor(rootScrollFrame, aFrameState);
+      }
+    }
+
 #ifdef ACCESSIBILITY
     nsAccessibilityService* accService = nsIPresShell::AccService();
     if (accService) {

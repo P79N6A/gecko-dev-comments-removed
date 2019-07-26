@@ -3864,12 +3864,6 @@ nsGfxScrollFrameInner::GetCoordAttribute(nsIFrame* aBox, nsIAtom* aAtom,
 nsPresState*
 nsGfxScrollFrameInner::SaveState(nsIStatefulFrame::SpecialStateID aStateID)
 {
-  
-  
-  if (mIsRoot && aStateID == nsIStatefulFrame::eNoID) {
-    return nullptr;
-  }
-
   nsIScrollbarMediator* mediator = do_QueryFrame(GetScrolledFrame());
   if (mediator) {
     
