@@ -769,12 +769,7 @@ IsUnpromptedElevation(BOOL &isUnpromptedElevation)
 
     
     
-    hr = CoAllowSetForegroundWindow(activateMgr, NULL);
-    if (FAILED(hr)) {
-      activateMgr->Release();
-      CoUninitialize();
-      return hr;
-    }
+    CoAllowSetForegroundWindow(activateMgr, NULL);
 
     
     DWORD processID;
