@@ -29,9 +29,6 @@
 #ifndef ReverbConvolverStage_h
 #define ReverbConvolverStage_h
 
-#include "DirectConvolver.h"
-#include "FFTConvolver.h"
-
 #include "nsTArray.h"
 #include "mozilla/FFTBlock.h"
 
@@ -41,6 +38,8 @@ using mozilla::FFTBlock;
 
 class ReverbAccumulationBuffer;
 class ReverbConvolver;
+class FFTConvolver;
+class DirectConvolver;
 
 
 

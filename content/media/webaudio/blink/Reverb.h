@@ -32,16 +32,12 @@
 #include "ReverbConvolver.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
-#include "AudioSegment.h"
 
 namespace mozilla {
 class ThreadSharedFloatArrayBufferList;
 }
 
 namespace WebCore {
-
-class DirectConvolver;
-class FFTConvolver;
 
 
 
