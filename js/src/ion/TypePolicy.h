@@ -229,6 +229,12 @@ class StoreTypedArrayHolePolicy : public StoreTypedArrayPolicy
     bool adjustInputs(MInstruction *ins);
 };
 
+class StoreTypedArrayElementStaticPolicy : public StoreTypedArrayPolicy
+{
+  public:
+    bool adjustInputs(MInstruction *ins);
+};
+
 
 class ClampPolicy : public BoxInputsPolicy
 {

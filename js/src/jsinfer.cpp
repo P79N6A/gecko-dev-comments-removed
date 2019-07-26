@@ -2754,7 +2754,10 @@ types::TypeCanHaveExtraIndexedProperties(JSContext *cx, StackTypeSet *types)
 {
     Class *clasp = types->getKnownClass();
 
-    if (!clasp || ClassCanHaveExtraProperties(clasp))
+    
+    
+    
+    if (!clasp || (ClassCanHaveExtraProperties(clasp) && !IsTypedArrayClass(clasp)))
         return true;
 
     if (types->hasObjectFlags(cx, types::OBJECT_FLAG_SPARSE_INDEXES))

@@ -175,6 +175,11 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     static bool allowTypedElementHoleCheck() {
         return false;
     }
+
+    
+    static bool allowStaticTypedArrayAccesses() {
+        return false;
+    }
 };
 
 } 
