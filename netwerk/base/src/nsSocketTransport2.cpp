@@ -1804,8 +1804,14 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
 
     
     
-    if (NS_SUCCEEDED(mCondition))
-        mCondition = NS_ERROR_ABORT;
+    if (NS_SUCCEEDED(mCondition)) {
+        if (gIOService->IsOffline()) {
+          mCondition = NS_ERROR_OFFLINE;
+        }
+        else {
+          mCondition = NS_ERROR_ABORT;
+        }
+    }
 
     if (RecoverFromError())
         mCondition = NS_OK;
