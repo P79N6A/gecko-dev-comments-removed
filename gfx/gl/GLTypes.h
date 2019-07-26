@@ -8,6 +8,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifndef GLAPIENTRY
+# ifdef WIN32
+#  include <windef.h>
+#  define GLAPIENTRY APIENTRY
+#  define GLAPI
+# else
+#  define GLAPIENTRY
+#  define GLAPI
+# endif
+#endif
+
 typedef int8_t realGLboolean;
 
 #if !defined(__gltypes_h_) && !defined(__gl_h_)
@@ -50,6 +61,15 @@ typedef uint64_t GLuint64;
 typedef void* GLeglImage;
 
 
+typedef void (GLAPIENTRY *GLDEBUGPROC)(GLenum source,
+                                       GLenum type,
+                                       GLuint id,
+                                       GLenum severity,
+                                       GLsizei length,
+                                       const GLchar* message,
+                                       const GLvoid* userParam);
+
+
 typedef void* EGLImage;
 typedef int EGLint;
 typedef unsigned int EGLBoolean;
@@ -70,15 +90,5 @@ typedef uint64_t EGLTime;
 #define EGL_NO_CONFIG        ((EGLConfig)nullptr)
 #define EGL_NO_SYNC          ((EGLSync)0)
 #define EGL_NO_IMAGE         ((EGLImage)0)
-
-#ifndef GLAPIENTRY
-# ifdef WIN32
-#  define GLAPIENTRY APIENTRY
-#  define GLAPI
-# else
-#  define GLAPIENTRY
-#  define GLAPI
-# endif
-#endif
 
 #endif
