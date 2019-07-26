@@ -852,13 +852,69 @@ ElementsHeader::asArrayBufferElements()
     return *static_cast<ArrayBufferElementsHeader *>(this);
 }
 
-
-
-
-
-
-
 class ArrayBufferObject;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ObjectElements
 {
     friend struct ::JSObject;
@@ -971,7 +1027,6 @@ ObjectValue(ObjectImpl &obj);
 
 
 
-
 class ObjectImpl : public gc::Cell
 {
   protected:
@@ -1021,17 +1076,10 @@ class ObjectImpl : public gc::Cell
 
     inline bool isExtensible() const;
 
-    
-
-
-
-    inline bool isDenseArray() const;
-    inline bool isSlowArray() const;
-    inline bool isArray() const;
-
-    inline HeapSlotArray getDenseArrayElements();
-    inline const Value & getDenseArrayElement(uint32_t idx);
-    inline uint32_t getDenseArrayInitializedLength();
+    inline HeapSlotArray getDenseElements();
+    inline const Value & getDenseElement(uint32_t idx);
+    inline bool containsDenseElement(uint32_t idx);
+    inline uint32_t getDenseInitializedLength();
 
     bool makeElementsSparse(JSContext *cx) {
         NEW_OBJECT_REPRESENTATION_ONLY();
@@ -1290,6 +1338,10 @@ class ObjectImpl : public gc::Cell
 
 
         return elements != emptyObjectElements && elements != fixedElements();
+    }
+
+    inline bool hasEmptyElements() const {
+        return elements == emptyObjectElements;
     }
 
     

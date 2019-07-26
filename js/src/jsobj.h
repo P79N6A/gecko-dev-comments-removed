@@ -224,7 +224,6 @@ extern Class ProxyClass;
 extern Class RegExpClass;
 extern Class RegExpStaticsClass;
 extern Class SetIteratorClass;
-extern Class SlowArrayClass;
 extern Class StopIterationClass;
 extern Class StringClass;
 extern Class StrictArgumentsObjectClass;
@@ -298,11 +297,11 @@ struct JSObject : public js::ObjectImpl
                                    js::HeapSlot *slots);
 
     
-    static inline JSObject *createDenseArray(JSContext *cx,
-                                             js::gc::AllocKind kind,
-                                             js::HandleShape shape,
-                                             js::HandleTypeObject type,
-                                             uint32_t length);
+    static inline JSObject *createArray(JSContext *cx,
+                                        js::gc::AllocKind kind,
+                                        js::HandleShape shape,
+                                        js::HandleTypeObject type,
+                                        uint32_t length);
 
     
 
@@ -366,6 +365,9 @@ struct JSObject : public js::ObjectImpl
     bool shadowingShapeChange(JSContext *cx, const js::Shape &shape);
 
     
+
+
+
     inline bool isIndexed() const;
 
     inline uint32_t propertyCount() const;
@@ -573,33 +575,25 @@ struct JSObject : public js::ObjectImpl
     void shrinkElements(JSContext *cx, unsigned cap);
     inline void setDynamicElements(js::ObjectElements *header);
 
-    
-
-
-
-    bool allocateSlowArrayElements(JSContext *cx);
-
-    inline uint32_t getArrayLength() const;
-    static inline void setArrayLength(JSContext *cx, js::HandleObject obj, uint32_t length);
-
-    inline uint32_t getDenseArrayCapacity();
-    inline void setDenseArrayLength(uint32_t length);
-    inline void setDenseArrayInitializedLength(uint32_t length);
-    inline void ensureDenseArrayInitializedLength(JSContext *cx, unsigned index, unsigned extra);
-    inline void setDenseArrayElement(unsigned idx, const js::Value &val);
-    inline void initDenseArrayElement(unsigned idx, const js::Value &val);
-    static inline void setDenseArrayElementWithType(JSContext *cx, js::HandleObject obj,
-                                                    unsigned idx, const js::Value &val);
-    static inline void initDenseArrayElementWithType(JSContext *cx, js::HandleObject obj,
-                                                     unsigned idx, const js::Value &val);
-    inline void copyDenseArrayElements(unsigned dstStart, const js::Value *src, unsigned count);
-    inline void initDenseArrayElements(unsigned dstStart, const js::Value *src, unsigned count);
-    inline void moveDenseArrayElements(unsigned dstStart, unsigned srcStart, unsigned count);
-    inline void moveDenseArrayElementsUnbarriered(unsigned dstStart, unsigned srcStart, unsigned count);
-    inline bool denseArrayHasInlineSlots() const;
+    inline uint32_t getDenseCapacity();
+    inline void setDenseInitializedLength(uint32_t length);
+    inline void ensureDenseInitializedLength(JSContext *cx, unsigned index, unsigned extra);
+    inline void setDenseElement(unsigned idx, const js::Value &val);
+    inline void initDenseElement(unsigned idx, const js::Value &val);
+    static inline void setDenseElementWithType(JSContext *cx, js::HandleObject obj,
+                                               unsigned idx, const js::Value &val);
+    static inline void initDenseElementWithType(JSContext *cx, js::HandleObject obj,
+                                                unsigned idx, const js::Value &val);
+    static inline void setDenseElementHole(JSContext *cx, js::HandleObject obj, unsigned idx);
+    static inline void removeDenseElementForSparseIndex(JSContext *cx, js::HandleObject obj,
+                                                        unsigned idx);
+    inline void copyDenseElements(unsigned dstStart, const js::Value *src, unsigned count);
+    inline void initDenseElements(unsigned dstStart, const js::Value *src, unsigned count);
+    inline void moveDenseElements(unsigned dstStart, unsigned srcStart, unsigned count);
+    inline void moveDenseElementsUnbarriered(unsigned dstStart, unsigned srcStart, unsigned count);
 
     
-    inline void markDenseArrayNotPacked(JSContext *cx);
+    inline void markDenseElementsNotPacked(JSContext *cx);
 
     
 
@@ -609,22 +603,24 @@ struct JSObject : public js::ObjectImpl
 
 
     enum EnsureDenseResult { ED_OK, ED_FAILED, ED_SPARSE };
-    inline EnsureDenseResult ensureDenseArrayElements(JSContext *cx, unsigned index, unsigned extra);
+    inline EnsureDenseResult ensureDenseElements(JSContext *cx, unsigned index, unsigned extra);
+
+    
+    static bool sparsifyDenseElement(JSContext *cx, js::HandleObject obj, unsigned index);
+
+    
+    static bool sparsifyDenseElements(JSContext *cx, js::HandleObject obj);
 
     
 
 
 
-    bool willBeSparseDenseArray(unsigned requiredCapacity, unsigned newElementsHint);
-
-    static bool makeDenseArraySlow(JSContext *cx, js::HandleObject obj);
+    bool willBeSparseElements(unsigned requiredCapacity, unsigned newElementsHint);
 
     
-
-
-
-
-    bool arrayGetOwnDataElement(JSContext *cx, size_t i, js::Value *vp);
+    inline uint32_t getArrayLength() const;
+    static inline void setArrayLength(JSContext *cx, js::HandleObject obj, uint32_t length);
+    inline void setArrayLengthInt32(uint32_t length);
 
   public:
     
@@ -961,6 +957,7 @@ struct JSObject : public js::ObjectImpl
 
 
     
+    inline bool isArray() const;
     inline bool isArguments() const;
     inline bool isArrayBuffer() const;
     inline bool isDataView() const;

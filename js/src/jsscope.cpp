@@ -1048,8 +1048,14 @@ JSObject::preventExtensions(JSContext *cx)
     if (!js::GetPropertyNames(cx, self, JSITER_HIDDEN | JSITER_OWNONLY, &props))
         return false;
 
-    if (self->isDenseArray())
-        self->makeDenseArraySlow(cx, self);
+    
+
+
+
+
+
+    if (isNative() && !JSObject::sparsifyDenseElements(cx, self))
+        return false;
 
     return self->setFlag(cx, BaseShape::NOT_EXTENSIBLE, GENERATE_SHAPE);
 }
@@ -1332,17 +1338,5 @@ JSCompartment::sweepInitialShapeTable()
             }
         }
     }
-}
-
-
-
-
-
-
-
-void
-js::MarkNonNativePropertyFound(HandleObject obj, MutableHandleShape propp)
-{
-    propp.set(obj->lastProperty());
 }
 

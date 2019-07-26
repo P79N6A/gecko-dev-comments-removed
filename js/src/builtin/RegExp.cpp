@@ -65,7 +65,7 @@ js::CreateRegExpMatchResult(JSContext *cx, JSString *input_, StableCharPtr chars
 
 
 
-    RootedObject array(cx, NewSlowEmptyArray(cx));
+    RootedObject array(cx, NewDenseEmptyArray(cx));
     if (!array)
         return false;
 

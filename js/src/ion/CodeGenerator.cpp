@@ -3365,6 +3365,13 @@ CodeGenerator::visitIteratorStart(LIteratorStart *lir)
 
     
     
+    masm.branchPtr(Assembler::NotEqual,
+                   Address(obj, JSObject::offsetOfElements()),
+                   ImmWord(js::emptyObjectElements),
+                   ool->entry());
+
+    
+    
     {
         Label noBarrier;
         masm.branchTestNeedsBarrier(Assembler::Zero, temp1, &noBarrier);

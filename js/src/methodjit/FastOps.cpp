@@ -864,6 +864,8 @@ mjit::Compiler::jsop_setelem_dense()
     FrameEntry *id = frame.peek(-2);
     FrameEntry *value = frame.peek(-1);
 
+    frame.forgetMismatchedObject(obj);
+
     
     
     if (!obj->isTypeKnown()) {
@@ -1562,6 +1564,8 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
 {
     FrameEntry *obj = frame.peek(-2);
     FrameEntry *id = frame.peek(-1);
+
+    frame.forgetMismatchedObject(obj);
 
     
     

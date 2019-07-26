@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef jsscopeinlines_h___
 #define jsscopeinlines_h___
 
@@ -265,7 +266,7 @@ Shape::matchesParamsAfterId(UnrootedBaseShape base, uint32_t aslot,
 }
 
 inline bool
-Shape::getUserId(JSContext *cx, MutableHandleId idp) const
+Shape::getUserId(JSContext *cx, jsid *idp) const
 {
     AssertCanGC();
     const Shape *self = this;
@@ -279,9 +280,9 @@ Shape::getUserId(JSContext *cx, MutableHandleId idp) const
         int16_t id = self->shortid();
         if (id < 0)
             return ValueToId(cx, Int32Value(id), idp);
-        idp.set(INT_TO_JSID(id));
+        *idp = INT_TO_JSID(id);
     } else {
-        idp.set(self->propid());
+        *idp = self->propid();
     }
     return true;
 }
@@ -298,7 +299,7 @@ Shape::get(JSContext* cx, HandleObject receiver, JSObject* obj, JSObject *pobj, 
 
     Rooted<Shape *> self(cx, this);
     RootedId id(cx);
-    if (!self->getUserId(cx, &id))
+    if (!self->getUserId(cx, id.address()))
         return false;
 
     return CallJSPropertyOp(cx, self->getterOp(), receiver, id, vp);
@@ -319,7 +320,7 @@ Shape::set(JSContext* cx, HandleObject obj, HandleObject receiver, bool strict, 
 
     Rooted<Shape *> self(cx, this);
     RootedId id(cx);
-    if (!self->getUserId(cx, &id))
+    if (!self->getUserId(cx, id.address()))
         return false;
 
     
@@ -491,6 +492,24 @@ BaseShape::markChildren(JSTracer *trc)
 
     if (parent)
         MarkObject(trc, &parent, "parent");
+}
+
+
+
+
+
+
+
+static inline void
+MarkImplicitPropertyFound(MutableHandleShape propp)
+{
+    propp.set(reinterpret_cast<Shape*>(1));
+}
+
+static inline bool
+IsImplicitProperty(HandleShape prop)
+{
+    return prop.get() == reinterpret_cast<Shape*>(1);
 }
 
 } 

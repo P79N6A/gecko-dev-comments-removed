@@ -494,7 +494,7 @@ GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx)
 
 
         JSCSPEvalChecker allows = cx->runtime->securityCallbacks->contentSecurityPolicyAllows;
-        v.set(this, RUNTIME_CODEGEN_ENABLED, BooleanValue(!allows || allows(cx)));
+        v.set(this, HeapSlot::Slot, RUNTIME_CODEGEN_ENABLED, BooleanValue(!allows || allows(cx)));
     }
     return !v.isFalse();
 }

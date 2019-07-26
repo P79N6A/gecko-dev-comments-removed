@@ -627,8 +627,8 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
             
             uint32_t len;
             JS_ALWAYS_TRUE(GetLengthProperty(cx, replacer, &len));
-            if (replacer->isDenseArray())
-                len = Min(len, replacer->getDenseArrayCapacity());
+            if (replacer->isArray() && !replacer->isIndexed())
+                len = Min(len, replacer->getDenseInitializedLength());
 
             HashSet<jsid, JsidHasher> idSet(cx);
             if (!idSet.init(len))
@@ -644,7 +644,7 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
                 if (!JSObject::getElement(cx, replacer, replacer, i, &v))
                     return false;
 
-                RootedId id(cx);
+                jsid id;
                 if (v.isNumber()) {
                     
                     int32_t n;
@@ -769,31 +769,24 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
             RootedId id(cx);
             RootedValue newElement(cx);
             for (uint32_t i = 0; i < length; i++) {
-                if (!IndexToId(cx, i, &id))
+                if (!IndexToId(cx, i, id.address()))
                     return false;
 
                 
                 if (!Walk(cx, obj, id, reviver, &newElement))
                     return false;
 
-                
-
-
-
-
-
-
-
-
-
-
                 if (newElement.isUndefined()) {
                     
-                    JS_ALWAYS_TRUE(array_deleteElement(cx, obj, i, &newElement, false));
+                    if (!JSObject::deleteByValue(cx, obj, IdToValue(id), &newElement, false))
+                        return false;
                 } else {
                     
-                    JS_ALWAYS_TRUE(array_defineElement(cx, obj, i, newElement, JS_PropertyStub,
-                                                       JS_StrictPropertyStub, JSPROP_ENUMERATE));
+                    if (!DefineNativeProperty(cx, obj, id, newElement, JS_PropertyStub,
+                                              JS_StrictPropertyStub, JSPROP_ENUMERATE, 0, 0))
+                    {
+                        return false;
+                    }
                 }
             }
         } else {

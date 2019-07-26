@@ -195,20 +195,11 @@ GetGCKindSlots(AllocKind thingKind, Class *clasp)
 }
 
 static inline void
-GCPoke(JSRuntime *rt, Value oldval)
+GCPoke(JSRuntime *rt)
 {
     AutoAssertNoGC nogc;
 
-    
-
-
-
-
-#if 1
     rt->gcPoke = true;
-#else
-    rt->gcPoke = oldval.isGCThing();
-#endif
 
 #ifdef JS_GC_ZEAL
     

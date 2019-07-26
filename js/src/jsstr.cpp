@@ -1775,7 +1775,7 @@ BuildFlatMatchArray(JSContext *cx, HandleString textstr, const FlatMatch &fm, Ca
     }
 
     
-    RootedObject obj(cx, NewSlowEmptyArray(cx));
+    RootedObject obj(cx, NewDenseEmptyArray(cx));
     if (!obj)
         return false;
 

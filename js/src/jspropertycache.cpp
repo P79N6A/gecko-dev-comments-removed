@@ -25,6 +25,14 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, JSObject *pobj, Shape *shape)
 
 
 
+    if (JSID_IS_INT(shape->propid()))
+        return JS_NO_PROP_CACHE_FILL;
+
+    
+
+
+
+
 
 
     JSObject *tmp = obj;
