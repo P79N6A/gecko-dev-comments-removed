@@ -28,6 +28,10 @@ var FullZoom = {
   
   _browserTokenMap: new WeakMap(),
 
+  
+  
+  _initialLocations: new WeakMap(),
+
   get siteSpecific() {
     return this._siteSpecificPref;
   },
@@ -60,6 +64,18 @@ var FullZoom = {
     
     
     gPrefService.addObserver("browser.zoom.", this, true);
+
+    
+    
+    for (let browser of gBrowser.browsers) {
+      if (this._initialLocations.has(browser)) {
+        this.onLocationChange(...this._initialLocations.get(browser), browser);
+      }
+    }
+
+    
+    this._initialLocations.clear();
+    this._initialLocations = null;
   },
 
   destroy: function FullZoom_destroy() {
@@ -217,10 +233,18 @@ var FullZoom = {
 
 
   onLocationChange: function FullZoom_onLocationChange(aURI, aIsTabSwitch, aBrowser) {
-    
-    
-    
     let browser = aBrowser || gBrowser.selectedBrowser;
+
+    
+    
+    if (this._initialLocations) {
+      this._initialLocations.set(browser, [aURI, aIsTabSwitch]);
+      return;
+    }
+
+    
+    
+    
     this._ignorePendingZoomAccesses(browser);
 
     if (!aURI || (aIsTabSwitch && !this.siteSpecific)) {
