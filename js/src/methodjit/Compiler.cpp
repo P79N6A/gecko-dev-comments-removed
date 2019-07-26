@@ -25,6 +25,7 @@
 #include "InlineFrameAssembler.h"
 #include "jscompartment.h"
 #include "jsopcodeinlines.h"
+#include "jsworkers.h"
 
 #include "builtin/RegExp.h"
 #include "vm/RegExpStatics.h"
@@ -34,7 +35,6 @@
 #include "jstypedarrayinlines.h"
 #include "vm/RegExpObject-inl.h"
 
-#include "ion/BaselineJIT.h"
 #include "ion/Ion.h"
 
 #if JS_TRACE_LOGGING
@@ -966,7 +966,7 @@ IonGetsFirstChance(JSContext *cx, JSScript *script, jsbytecode *pc, CompileReque
     
     
     
-    if (ion::js_IonOptions.parallelCompilation && script->hasIonScript() &&
+    if (OffThreadCompilationEnabled(cx) && script->hasIonScript() &&
         pc && script->ionScript()->osrPc() && script->ionScript()->osrPc() != pc &&
         script->getUseCount() >= ion::js_IonOptions.usesBeforeCompile * 2)
     {
@@ -991,11 +991,6 @@ mjit::CanMethodJIT(JSContext *cx, JSScript *script, jsbytecode *pc,
   checkOutput:
     if (!cx->methodJitEnabled)
         return Compile_Abort;
-
-#ifdef JS_ION
-    if (ion::IsBaselineEnabled(cx))
-        return Compile_Abort;
-#endif
 
     
 
@@ -4070,7 +4065,7 @@ mjit::Compiler::ionCompileHelper()
 #endif
 
     stubcc.linkExitDirect(trigger.inlineJump,
-                          ion::js_IonOptions.parallelCompilation
+                          OffThreadCompilationEnabled(cx)
                           ? secondTest
                           : trigger.stubLabel);
 
