@@ -22,6 +22,9 @@ if (typeof Components != "undefined") {
   this.EXPORTED_SYMBOLS = ["OS"];
   Components.utils.import("resource://gre/modules/ctypes.jsm");
   Components.utils.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm", this);
+} else {
+  
+  importScripts("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
 }
 
 (function(exports) {
