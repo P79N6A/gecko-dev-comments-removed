@@ -328,6 +328,9 @@ function jsTestDriverBrowserInit()
     
     
     
+    
+    
+    
     if (properties.test.match(/^js1_6/))
     {
       properties.version = '1.6';
