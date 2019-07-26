@@ -80,7 +80,7 @@ function testWriteNoBackup() {
 
   
   
-  yield _SessionFile.createBackupCopy();
+  yield _SessionFile.moveToBackupPath();
 
   nextTest(testWriteBackup);
 }

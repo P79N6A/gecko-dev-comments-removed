@@ -460,7 +460,11 @@ let SessionStoreInternal = {
 
     
     XPCOMUtils.defineLazyGetter(this, "_backupSessionFileOnce", function () {
-      return _SessionFile.createBackupCopy();
+      
+      
+      
+      
+      return _SessionFile.moveToBackupPath();
     });
 
     
@@ -504,12 +508,12 @@ let SessionStoreInternal = {
     return Task.spawn(function task() {
       try {
         
-        yield _SessionFile.createUpgradeBackupCopy("-" + buildID);
+        yield _SessionFile.createBackupCopy("-" + buildID);
 
         this._prefBranch.setCharPref(PREF_UPGRADE, buildID);
 
         
-        yield _SessionFile.removeUpgradeBackup("-" + latestBackup);
+        yield _SessionFile.removeBackupCopy("-" + latestBackup);
       } catch (ex) {
         debug("Could not perform upgrade backup " + ex);
         debug(ex.stack);
@@ -772,12 +776,12 @@ let SessionStoreInternal = {
           this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
           this.restoreWindow(aWindow, this._initialState,
                              this._isCmdLineEmpty(aWindow, this._initialState));
+          this._initialState = null;
 
           
           
-          this._initialState.session.state = STATE_RUNNING_STR;
-          this._saveStateObject(this._initialState);
-          this._initialState = null;
+          
+          _SessionFile.writeLoadStateOnceAfterStartup(STATE_RUNNING_STR);
         }
       }
       else {
