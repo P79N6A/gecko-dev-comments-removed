@@ -27,8 +27,8 @@ class JSONParser
     
 
     JSContext * const cx;
-    JS::StableCharPtr current;
-    const JS::StableCharPtr end;
+    mozilla::RangedPtr<const jschar> current;
+    const mozilla::RangedPtr<const jschar> end;
 
     js::Value v;
 
@@ -55,12 +55,12 @@ class JSONParser
 
 
 
-    JSONParser(JSContext *cx, JS::StableCharPtr data, size_t length,
+    JSONParser(JSContext *cx, const jschar *data, size_t length,
                ParsingMode parsingMode = StrictJSON,
                ErrorHandling errorHandling = RaiseError)
       : cx(cx),
-        current(data),
-        end((data + length).get(), data.get(), length),
+        current(data, length),
+        end(data + length, data, length),
         parsingMode(parsingMode),
         errorHandling(errorHandling)
 #ifdef DEBUG
