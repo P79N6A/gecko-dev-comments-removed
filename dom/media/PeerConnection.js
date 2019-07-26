@@ -682,10 +682,18 @@ PeerConnection.prototype = {
 
   createDataChannel: function(label, dict) {
     this._checkClosed();
-    if (dict &&
-        dict.maxRetransmitTime != undefined &&
+    if (dict == undefined) {
+	dict = {};
+    }
+    if (dict.maxRetransmitTime != undefined &&
         dict.maxRetransmitNum != undefined) {
       throw new Components.Exception("Both maxRetransmitTime and maxRetransmitNum cannot be provided");
+    }
+    let protocol;
+    if (dict.protocol == undefined) {
+      protocol = "";
+    } else {
+      protocol = dict.protocol;
     }
 
     
@@ -699,11 +707,10 @@ PeerConnection.prototype = {
     }
 
     
-    
-    
     let channel = this._pc.createDataChannel(
-      label, type, dict.outOfOrderAllowed, dict.maxRetransmitTime,
-      dict.maxRetransmitNum
+      label, protocol, type, dict.outOfOrderAllowed, dict.maxRetransmitTime,
+      dict.maxRetransmitNum, dict.preset ? true : false,
+      dict.stream != undefined ? dict.stream : 0xFFFF
     );
     return channel;
   },
