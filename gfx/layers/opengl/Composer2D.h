@@ -26,7 +26,7 @@
 
 
 
-class gfxMatrix;
+struct gfxMatrix;
 
 namespace mozilla {
 namespace layers {
