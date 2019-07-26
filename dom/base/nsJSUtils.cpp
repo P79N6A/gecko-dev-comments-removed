@@ -25,6 +25,9 @@
 
 #include "nsDOMJSUtils.h" 
 
+#include "nsContentUtils.h"
+#include "nsJSPrincipals.h"
+
 #include "mozilla/dom/BindingUtils.h"
 
 JSBool
@@ -143,4 +146,40 @@ nsJSUtils::ReportPendingException(JSContext *aContext)
       JS_RestoreFrameChain(aContext);
     }
   }
+}
+
+nsresult
+nsJSUtils::CompileFunction(JSContext* aCx,
+                           JS::HandleObject aTarget,
+                           JS::CompileOptions& aOptions,
+                           const nsACString& aName,
+                           uint32_t aArgCount,
+                           const char** aArgArray,
+                           const nsAString& aBody,
+                           JSObject** aFunctionObject)
+{
+  MOZ_ASSERT(js::GetEnterCompartmentDepth(aCx) > 0);
+  MOZ_ASSERT(!aTarget || js::IsObjectInContextCompartment(aTarget, aCx));
+  MOZ_ASSERT_IF(aOptions.versionSet, aOptions.version != JSVERSION_UNKNOWN);
+
+  
+  
+  
+  JSPrincipals *p = JS_GetCompartmentPrincipals(js::GetContextCompartment(aCx));
+  aOptions.setPrincipals(p);
+
+  
+  xpc_UnmarkGrayObject(aTarget);
+
+  
+  JSFunction* fun = JS::CompileFunction(aCx, aTarget, aOptions,
+                                        PromiseFlatCString(aName).get(),
+                                        aArgCount, aArgArray,
+                                        PromiseFlatString(aBody).get(),
+                                        aBody.Length());
+  if (!fun)
+    return NS_ERROR_FAILURE;
+
+  *aFunctionObject = JS_GetFunctionObject(fun);
+  return NS_OK;
 }
