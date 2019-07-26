@@ -223,6 +223,7 @@ static char **gQtOnlyArgv;
 #include <gdk/gdkx.h>
 #endif 
 #include "nsGTKToolkit.h"
+#include <fontconfig/fontconfig.h>
 #endif
 #include "BinaryPath.h"
 
@@ -2616,14 +2617,8 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
 
 #if CLEANUP_MEMORY
   
-  PangoFontMap *fontmap = pango_context_get_font_map(pangoContext);
   
   
-  
-  
-  if (PANGO_IS_FC_FONT_MAP(fontmap))
-      pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(fontmap));
-  g_object_unref(pangoContext);
   
   
   
@@ -2632,11 +2627,26 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
   
 
   
+  PangoFontMap *fontmap = pango_context_get_font_map(pangoContext);
+  
+  
+  
+  
+  if (PANGO_IS_FC_FONT_MAP(fontmap))
+      pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(fontmap));
+  g_object_unref(pangoContext);
+
+  
+  pango_cairo_font_map_set_default(nullptr);
+
+  
   
 #ifdef cairo_debug_reset_static_data
 #error "Looks like we're including Mozilla's cairo instead of system cairo"
 #endif
   cairo_debug_reset_static_data();
+  
+  FcFini();
 #endif 
 
   if (buggyCairoShutdown) {

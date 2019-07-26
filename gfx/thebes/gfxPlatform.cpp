@@ -534,14 +534,6 @@ gfxPlatform::~gfxPlatform()
     cairo_debug_reset_static_data();
 #endif
 #endif
-
-#if 0
-    
-    
-    
-    
-    FcFini();
-#endif
 }
 
 bool

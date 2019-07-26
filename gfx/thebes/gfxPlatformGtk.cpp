@@ -75,14 +75,6 @@ gfxPlatformGtk::~gfxPlatformGtk()
     sFontconfigUtils = nullptr;
 
     gfxPangoFontGroup::Shutdown();
-
-#if 0
-    
-    
-    
-    
-    FcFini();
-#endif
 }
 
 already_AddRefed<gfxASurface>
