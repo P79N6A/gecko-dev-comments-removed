@@ -108,7 +108,9 @@ var FindHelperUI = {
     
     SelectionHelperUI.closeEditSession();
 
+    
     this._container.show(this);
+
     this.search(this._textbox.value);
     this._textbox.select();
     this._textbox.focus();

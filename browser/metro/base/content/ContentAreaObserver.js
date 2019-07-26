@@ -162,8 +162,10 @@ var ContentAreaObserver = {
 
     
     let appBar = document.getElementById("appbar");
+    let findBar = document.getElementById("content-navigator");
     let keyboardHeight = MetroUtils.keyboardHeight;
     appBar.style.bottom = keyboardHeight + "px";
+    findBar.style.bottom = keyboardHeight + "px";
 
     this._disatchBrowserEvent("ViewableSizeChanged");
   },
