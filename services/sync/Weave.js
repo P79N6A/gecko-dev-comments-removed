@@ -89,13 +89,12 @@ WeaveService.prototype = {
       (accountData) => {
         if (accountData) {
           Cu.import("resource://services-sync/browserid_identity.js");
-          Cu.import("resource://services-common/tokenserverclient.js");
           
           
           
           
           
-          Weave.Service.identity = Weave.Status._authManager = new BrowserIDManager(fxAccounts, new TokenServerClient()),
+          Weave.Service.identity = Weave.Status._authManager = new BrowserIDManager(),
           
           
           
