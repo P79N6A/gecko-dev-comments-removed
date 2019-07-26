@@ -391,22 +391,18 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
 }
 
 already_AddRefed<AsyncPanZoomController>
-APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent,
-                                        ScreenPoint aPoint)
+APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent)
 {
-  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aPoint);
+  ScreenPoint point = ScreenPoint(aEvent.touches[0]->mRefPoint.x, aEvent.touches[0]->mRefPoint.y);
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(point);
   if (aEvent.touches.Length() == 1) {
     
     
     BuildOverscrollHandoffChain(apzc);
   }
-  if (!apzc) {
-    return apzc.forget();
-  }
   for (size_t i = 1; i < aEvent.touches.Length(); i++) {
-    nsIntPoint point = aEvent.touches[i]->mRefPoint;
-    nsRefPtr<AsyncPanZoomController> apzc2 =
-      GetTargetAPZC(ScreenPoint(point.x, point.y));
+    point = ScreenPoint(aEvent.touches[i]->mRefPoint.x, aEvent.touches[i]->mRefPoint.y);
+    nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(point);
     apzc = CommonAncestor(apzc.get(), apzc2.get());
     APZC_LOG("Using APZC %p as the common ancestor\n", apzc.get());
     
@@ -430,8 +426,7 @@ APZCTreeManager::ProcessTouchEvent(const WidgetTouchEvent& aEvent,
   }
   if (aEvent.message == NS_TOUCH_START) {
     mTouchCount++;
-    ScreenPoint point = ScreenPoint(aEvent.touches[0]->mRefPoint.x, aEvent.touches[0]->mRefPoint.y);
-    mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent, point);
+    mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent);
     if (mApzcForInputBlock) {
       
       gfx3DMatrix transformToGecko;
