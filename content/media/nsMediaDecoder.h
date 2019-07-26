@@ -22,6 +22,7 @@ class nsITimer;
 namespace mozilla {
 class MediaResource;
 class MediaByteRange;
+class MediaDecoderOwner;
 }
 
 
@@ -62,7 +63,7 @@ public:
   
   
   
-  virtual bool Init(nsHTMLMediaElement* aElement);
+  virtual bool Init(mozilla::MediaDecoderOwner* aOwner);
 
   
   
@@ -354,7 +355,7 @@ public:
 
   
   
-  nsHTMLMediaElement* GetMediaElement();
+  mozilla::MediaDecoderOwner* GetMediaOwner() const;
 
   
   
@@ -454,7 +455,7 @@ protected:
   
   
   
-  nsHTMLMediaElement* mElement;
+  mozilla::MediaDecoderOwner* mOwner;
 
   
   FrameStatistics mFrameStats;

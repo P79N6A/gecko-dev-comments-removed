@@ -192,7 +192,6 @@
 #include "gfxRect.h"
 #include "MediaResource.h"
 #include "nsMediaDecoder.h"
-#include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
 
 namespace mozilla {
@@ -233,7 +232,7 @@ public:
   nsBuiltinDecoder();
   ~nsBuiltinDecoder();
 
-  virtual bool Init(nsHTMLMediaElement* aElement);
+  virtual bool Init(mozilla::MediaDecoderOwner* aOwner);
 
   
   

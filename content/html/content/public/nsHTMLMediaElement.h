@@ -8,7 +8,7 @@
 
 #include "nsIDOMHTMLMediaElement.h"
 #include "nsGenericHTMLElement.h"
-#include "nsMediaDecoder.h"
+#include "MediaDecoderOwner.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsThreadUtils.h"
@@ -37,7 +37,8 @@ class nsDASHDecoder;
 #endif
 
 class nsHTMLMediaElement : public nsGenericHTMLElement,
-                           public nsIObserver
+                           public nsIObserver,
+                           public mozilla::MediaDecoderOwner
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -116,66 +117,66 @@ public:
   
   
   
-  void MetadataLoaded(uint32_t aChannels,
-                      uint32_t aRate,
-                      bool aHasAudio,
-                      const MetadataTags* aTags);
+  virtual void MetadataLoaded(uint32_t aChannels,
+                              uint32_t aRate,
+                              bool aHasAudio,
+                              const MetadataTags* aTags) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
   
   
-  void FirstFrameLoaded(bool aResourceFullyLoaded);
+  virtual void FirstFrameLoaded(bool aResourceFullyLoaded) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void ResourceLoaded();
+  virtual void ResourceLoaded() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void NetworkError();
+  virtual void NetworkError() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void DecodeError();
+  virtual void DecodeError() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void LoadAborted();
+  virtual void LoadAborted() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void PlaybackEnded();
+  virtual void PlaybackEnded() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void SeekStarted();
+  virtual void SeekStarted() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void SeekCompleted();
-
-  
-  
-  
-  void DownloadSuspended();
+  virtual void SeekCompleted() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
   
-  
-  
-  
-  
-  void DownloadResumed(bool aForceNetworkLoading = false);
+  virtual void DownloadSuspended() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void DownloadStalled();
+  
+  
+  
+  
+  
+  virtual void DownloadResumed(bool aForceNetworkLoading = false) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
-  void NotifySuspendedByCache(bool aIsSuspended);
+  virtual void DownloadStalled() MOZ_FINAL MOZ_OVERRIDE;
+
+  
+  
+  virtual void NotifySuspendedByCache(bool aIsSuspended) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -186,7 +187,7 @@ public:
 
   
   
-  VideoFrameContainer* GetVideoFrameContainer();
+  virtual VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE;
   ImageContainer* GetImageContainer()
   {
     VideoFrameContainer* container = GetVideoFrameContainer();
@@ -199,8 +200,8 @@ public:
 
   
   using nsGenericHTMLElement::DispatchEvent;
-  nsresult DispatchEvent(const nsAString& aName);
-  nsresult DispatchAsyncEvent(const nsAString& aName);
+  virtual nsresult DispatchEvent(const nsAString& aName) MOZ_FINAL MOZ_OVERRIDE;
+  virtual nsresult DispatchAsyncEvent(const nsAString& aName) MOZ_FINAL MOZ_OVERRIDE;
   nsresult DispatchAudioAvailableEvent(float* aFrameBuffer,
                                        uint32_t aFrameBufferLength,
                                        float aTime);
@@ -213,7 +214,7 @@ public:
   
   
   
-  void UpdateReadyStateForData(nsMediaDecoder::NextFrameStatus aNextFrame);
+  virtual void UpdateReadyStateForData(nsMediaDecoder::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -225,7 +226,7 @@ public:
   
   
   
-  void NotifyAutoplayDataReady();
+  virtual void NotifyAutoplayDataReady() MOZ_FINAL MOZ_OVERRIDE;
 
   
   bool ShouldCheckAllowOrigin();
@@ -244,7 +245,7 @@ public:
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   
-  void NotifyDecoderPrincipalChanged();
+  virtual void NotifyDecoderPrincipalChanged() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -331,8 +332,8 @@ public:
   
 
 
-  void NotifyAudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength,
-                            float aTime);
+  virtual void NotifyAudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength,
+                                    float aTime) MOZ_FINAL MOZ_OVERRIDE;
 
   virtual bool IsNodeOfType(uint32_t aFlags) const;
 
@@ -375,7 +376,7 @@ public:
 
 
 
-  void FireTimeUpdate(bool aPeriodic);
+  virtual void FireTimeUpdate(bool aPeriodic) MOZ_FINAL MOZ_OVERRIDE;
 
   MediaStream* GetSrcMediaStream()
   {
@@ -625,6 +626,21 @@ protected:
 
 
   void ProcessMediaFragmentURI();
+
+  
+  
+  virtual nsHTMLMediaElement* GetMediaElement() MOZ_FINAL MOZ_OVERRIDE
+  {
+    return this;
+  }
+
+  
+  virtual bool GetPaused() MOZ_FINAL MOZ_OVERRIDE
+  {
+    bool isPaused = false;
+    GetPaused(&isPaused);
+    return isPaused;
+  }
 
   
   

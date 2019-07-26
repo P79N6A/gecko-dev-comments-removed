@@ -145,7 +145,9 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
 {
   NS_ASSERTION(mChannel.get() == aRequest, "Wrong channel!");
 
-  nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+  MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+  NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
+  nsHTMLMediaElement* element = owner->GetMediaElement();
   NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
   nsresult status;
   nsresult rv = aRequest->GetStatus(&status);
@@ -589,7 +591,9 @@ nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
 
     
     
-    nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+    MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+    NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
+    nsHTMLMediaElement* element = owner->GetMediaElement();
     NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
     if (element->ShouldCheckAllowOrigin()) {
       nsRefPtr<nsCORSListenerProxy> crossSiteListener =
@@ -644,7 +648,11 @@ void ChannelMediaResource::SetupChannelHeaders()
 
     
     NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
-    nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+    MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+    if (!owner) {
+      return;
+    }
+    nsHTMLMediaElement* element = owner->GetMediaElement();
     if (!element) {
       return;
     }
@@ -783,7 +791,12 @@ void ChannelMediaResource::Suspend(bool aCloseImmediately)
 {
   NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
 
-  nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+  MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+  if (!owner) {
+    
+    return;
+  }
+  nsHTMLMediaElement* element = owner->GetMediaElement();
   if (!element) {
     
     return;
@@ -813,7 +826,12 @@ void ChannelMediaResource::Resume()
   NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
   NS_ASSERTION(mSuspendCount > 0, "Too many resumes!");
 
-  nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+  MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+  if (!owner) {
+    
+    return;
+  }
+  nsHTMLMediaElement* element = owner->GetMediaElement();
   if (!element) {
     
     return;
@@ -857,7 +875,12 @@ ChannelMediaResource::RecreateChannel()
     nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE_IF_BUSY |
     (mLoadInBackground ? nsIRequest::LOAD_BACKGROUND : 0);
 
-  nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+  MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+  if (!owner) {
+    
+    return NS_OK;
+  }
+  nsHTMLMediaElement* element = owner->GetMediaElement();
   if (!element) {
     
     return NS_OK;
@@ -1322,7 +1345,9 @@ nsresult FileMediaResource::Open(nsIStreamListener** aStreamListener)
   } else {
     
     
-    nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+    MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+    NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
+    nsHTMLMediaElement* element = owner->GetMediaElement();
     NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
 
     rv = nsContentUtils::GetSecurityManager()->
@@ -1383,7 +1408,12 @@ MediaResource* FileMediaResource::CloneData(nsMediaDecoder* aDecoder)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
 
-  nsHTMLMediaElement* element = aDecoder->GetMediaElement();
+  MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+  if (!owner) {
+    
+    return nullptr;
+  }
+  nsHTMLMediaElement* element = owner->GetMediaElement();
   if (!element) {
     
     return nullptr;
@@ -1492,7 +1522,12 @@ void MediaResource::MoveLoadsToBackground() {
     return;
   }
 
-  nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+  MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
+  if (!owner) {
+    NS_WARNING("Null owner in MediaResource::MoveLoadsToBackground()");
+    return;
+  }
+  nsHTMLMediaElement* element = owner->GetMediaElement();
   if (!element) {
     NS_WARNING("Null element in MediaResource::MoveLoadsToBackground()");
     return;
