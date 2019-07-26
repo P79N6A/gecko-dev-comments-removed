@@ -35,14 +35,15 @@ template<class T>
 class StaticAutoPtr
 {
   public:
+    
+    
+    
+#ifdef DEBUG
     StaticAutoPtr()
     {
-      
-      
       MOZ_ASSERT(!mRawPtr);
     }
-
-    ~StaticAutoPtr() {}
+#endif
 
     StaticAutoPtr<T>& operator=(T* rhs)
     {
@@ -73,7 +74,12 @@ class StaticAutoPtr
 
   private:
     
+    
+    
+    
+#ifdef DEBUG
     StaticAutoPtr(StaticAutoPtr<T> &other);
+#endif
 
     void Assign(T* newPtr)
     {
@@ -90,14 +96,15 @@ template<class T>
 class StaticRefPtr
 {
 public:
+  
+  
+  
+#ifdef DEBUG
   StaticRefPtr()
   {
     MOZ_ASSERT(!mRawPtr);
   }
-
-  ~StaticRefPtr()
-  {
-  }
+#endif
 
   StaticRefPtr<T>& operator=(T* rhs)
   {
