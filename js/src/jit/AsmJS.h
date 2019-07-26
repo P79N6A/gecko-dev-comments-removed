@@ -7,7 +7,11 @@
 #ifndef jit_AsmJS_h
 #define jit_AsmJS_h
 
+#include "mozilla/MathAlgorithms.h"
+
 #include <stddef.h>
+
+#include "jsutil.h"
 
 #include "js/TypeDecls.h"
 #include "vm/ObjectImpl.h"
@@ -92,73 +96,29 @@ IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+inline bool
+IsValidAsmJSHeapLength(uint32_t length)
+{
+    if (length < 4096)
+        return false;
 
+    if (IsPowerOfTwo(length))
+        return true;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return (length & 0x00ffffff) == 0;
+}
 
 inline uint32_t
 RoundUpToNextValidAsmJSHeapLength(uint32_t length)
 {
-    if (length < 0x00001000u) 
-        return 0x1000u;
-    if (length < 0x00100000u) 
-        return (length + 0x00000fff) & ~0x00000fff;
-    if (length < 0x00400000u) 
-        return (length + 0x00003fff) & ~0x00003fff;
-    if (length < 0x01000000u) 
-        return (length + 0x0000ffff) & ~0x0000ffff;
-    if (length < 0x04000000u) 
-        return (length + 0x0003ffff) & ~0x0003ffff;
-    if (length < 0x10000000u) 
-        return (length + 0x000fffff) & ~0x000fffff;
-    if (length < 0x40000000u) 
-        return (length + 0x003fffff) & ~0x003fffff;
-    
-    
+    if (length < 4096)
+        return 4096;
+
+    if (length < 16 * 1024 * 1024)
+        return mozilla::RoundUpPow2(length);
+
     JS_ASSERT(length <= 0xff000000);
     return (length + 0x00ffffff) & ~0x00ffffff;
-}
-
-inline bool
-IsValidAsmJSHeapLength(uint32_t length)
-{
-    if (length <  AsmJSAllocationGranularity)
-        return false;
-    if (length <= 0x00100000u)
-        return (length & 0x00000fff) == 0;
-    if (length <= 0x00400000u)
-        return (length & 0x00003fff) == 0;
-    if (length <= 0x01000000u)
-        return (length & 0x0000ffff) == 0;
-    if (length <= 0x04000000u)
-        return (length & 0x0003ffff) == 0;
-    if (length <= 0x10000000u)
-        return (length & 0x000fffff) == 0;
-    if (length <= 0x40000000u)
-        return (length & 0x003fffff) == 0;
-    if (length <= 0xff000000u)
-        return (length & 0x00ffffff) == 0;
-    return false;
 }
 
 } 
