@@ -4788,8 +4788,6 @@ ContentComponentsGetterOp(JSContext *cx, JSHandleObject obj, JSHandleId id,
     Telemetry::Accumulate(Telemetry::COMPONENTS_OBJECT_ACCESSED_BY_CONTENT, true);
 
     
-    
-    MOZ_ASSERT(JS_GetGlobalForObject(cx, obj) == JS_ObjectToInnerObject(cx, obj));
     JSAutoCompartment ac(cx, obj);
     nsCOMPtr<nsPIDOMWindow> win =
         do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, obj));
