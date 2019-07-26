@@ -1168,46 +1168,16 @@ nsWindow::GetNativeData(uint32_t aDataType)
 void
 nsWindow::OnMouseEvent(AndroidGeckoEvent *ae)
 {
-    uint32_t msg;
-    switch (ae->Action()) {
-        case AndroidMotionEvent::ACTION_HOVER_MOVE:
-            msg = NS_MOUSE_MOVE;
-            break;
-
-        case AndroidMotionEvent::ACTION_HOVER_ENTER:
-            msg = NS_MOUSEENTER;
-            break;
-
-        case AndroidMotionEvent::ACTION_HOVER_EXIT:
-            msg = NS_MOUSELEAVE;
-            break;
-
-        default:
-            return;
-    }
-
     nsRefPtr<nsWindow> kungFuDeathGrip(this);
 
-send_again:
-
-    WidgetMouseEvent event(true, msg, this,
-                           WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
-    
-    event.button = WidgetMouseEvent::eLeftButton;
-
-    if (msg != NS_MOUSE_MOVE)
-        event.clickCount = 1;
-
-    
-    if (ae->Points().Length() > 0)
-        DispatchMotionEvent(event, ae, ae->Points()[0]);
-    if (Destroyed())
+    WidgetMouseEvent event = ae->MakeMouseEvent(this);
+    if (event.message == NS_EVENT_NULL) {
+        
         return;
-
-    if (msg == NS_MOUSE_BUTTON_DOWN) {
-        msg = NS_MOUSE_MOVE;
-        goto send_again;
     }
+
+    
+    DispatchEvent(&event);
 }
 
 bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
