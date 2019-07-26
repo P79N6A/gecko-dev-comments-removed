@@ -412,44 +412,8 @@ class MDefinition : public MNode
     virtual void analyzeEdgeCasesForward();
     virtual void analyzeEdgeCasesBackward();
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    enum TruncateKind {
-        
-        NoTruncate = 0,
-        
-        TruncateAfterBailouts = 1,
-        
-        IndirectTruncate = 2,
-        
-        Truncate = 3
-    };
-
-    
-    virtual bool truncate(TruncateKind kind);
-
-    
-    
-    virtual TruncateKind operandTruncateKind(size_t index) const;
+    virtual bool truncate();
+    virtual bool isOperandTruncated(size_t index) const;
 
     
     virtual void computeRange(TempAllocator &alloc) {
@@ -1013,7 +977,7 @@ class MConstant : public MNullaryInstruction
     }
 
     void computeRange(TempAllocator &alloc);
-    bool truncate(TruncateKind kind);
+    bool truncate();
 
     bool canProduceFloat32() const;
 };
@@ -2411,8 +2375,8 @@ class MCompare
 
     void trySpecializeFloat32(TempAllocator &alloc);
     bool isFloat32Commutative() const { return true; }
-    bool truncate(TruncateKind kind);
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 
 # ifdef DEBUG
     bool isConsistentFloat32Use(MUse *use) const {
@@ -2941,10 +2905,8 @@ class MToDouble
   private:
     ConversionKind conversion_;
 
-    TruncateKind implicitTruncate_;
-
     MToDouble(MDefinition *def, ConversionKind conversion = NonStringPrimitives)
-      : MUnaryInstruction(def), conversion_(conversion), implicitTruncate_(NoTruncate)
+      : MUnaryInstruction(def), conversion_(conversion)
     {
         setResultType(MIRType_Double);
         setMovable();
@@ -2984,19 +2946,12 @@ class MToDouble
     }
 
     void computeRange(TempAllocator &alloc);
-    bool truncate(TruncateKind kind);
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 
 #ifdef DEBUG
     bool isConsistentFloat32Use(MUse *use) const { return true; }
 #endif
-
-    TruncateKind truncateKind() const {
-        return implicitTruncate_;
-    }
-    void setTruncateKind(TruncateKind kind) {
-        implicitTruncate_ = Max(implicitTruncate_, kind);
-    }
 };
 
 
@@ -3216,7 +3171,7 @@ class MTruncateToInt32 : public MUnaryInstruction
     }
 
     void computeRange(TempAllocator &alloc);
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool isOperandTruncated(size_t index) const;
 # ifdef DEBUG
     bool isConsistentFloat32Use(MUse *use) const {
         return true;
@@ -3394,7 +3349,7 @@ class MBinaryBitwiseInstruction
         return AliasSet::None();
     }
 
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool isOperandTruncated(size_t index) const;
 };
 
 class MBitAnd : public MBinaryBitwiseInstruction
@@ -3569,14 +3524,14 @@ class MBinaryArithInstruction
     
     
     
-    TruncateKind implicitTruncate_;
+    bool implicitTruncate_;
 
     void inferFallback(BaselineInspector *inspector, jsbytecode *pc);
 
   public:
     MBinaryArithInstruction(MDefinition *left, MDefinition *right)
       : MBinaryInstruction(left, right),
-        implicitTruncate_(NoTruncate)
+        implicitTruncate_(false)
     {
         setMovable();
     }
@@ -3611,13 +3566,10 @@ class MBinaryArithInstruction
     }
 
     bool isTruncated() const {
-        return implicitTruncate_ == Truncate;
-    }
-    TruncateKind truncateKind() const {
         return implicitTruncate_;
     }
-    void setTruncateKind(TruncateKind kind) {
-        implicitTruncate_ = Max(implicitTruncate_, kind);
+    void setTruncated(bool truncate) {
+        implicitTruncate_ = truncate;
     }
 };
 
@@ -4065,7 +4017,7 @@ class MAdd : public MBinaryArithInstruction
         add->specialization_ = type;
         add->setResultType(type);
         if (type == MIRType_Int32) {
-            add->setTruncateKind(Truncate);
+            add->setTruncated(true);
             add->setCommutative();
         }
         return add;
@@ -4079,8 +4031,8 @@ class MAdd : public MBinaryArithInstruction
 
     bool fallible() const;
     void computeRange(TempAllocator &alloc);
-    bool truncate(TruncateKind kind);
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 
     bool writeRecoverData(CompactBufferWriter &writer) const;
     bool canRecoverOnBailout() const {
@@ -4108,7 +4060,7 @@ class MSub : public MBinaryArithInstruction
         sub->specialization_ = type;
         sub->setResultType(type);
         if (type == MIRType_Int32)
-            sub->setTruncateKind(Truncate);
+            sub->setTruncated(true);
         return sub;
     }
 
@@ -4120,8 +4072,8 @@ class MSub : public MBinaryArithInstruction
 
     bool fallible() const;
     void computeRange(TempAllocator &alloc);
-    bool truncate(TruncateKind kind);
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 };
 
 class MMul : public MBinaryArithInstruction
@@ -4148,7 +4100,7 @@ class MMul : public MBinaryArithInstruction
             
             
             canBeNegativeZero_ = false;
-            setTruncateKind(Truncate);
+            setTruncated(true);
             setCommutative();
         }
         JS_ASSERT_IF(mode != Integer, mode == Normal);
@@ -4213,8 +4165,8 @@ class MMul : public MBinaryArithInstruction
     bool isFloat32Commutative() const { return true; }
 
     void computeRange(TempAllocator &alloc);
-    bool truncate(TruncateKind kind);
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 
     Mode mode() const { return mode_; }
 };
@@ -4227,13 +4179,32 @@ class MDiv : public MBinaryArithInstruction
     bool canBeNegativeDividend_;
     bool unsigned_;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool isTruncatedIndirectly_;
+
     MDiv(MDefinition *left, MDefinition *right, MIRType type)
       : MBinaryArithInstruction(left, right),
         canBeNegativeZero_(true),
         canBeNegativeOverflow_(true),
         canBeDivideByZero_(true),
         canBeNegativeDividend_(true),
-        unsigned_(false)
+        unsigned_(false),
+        isTruncatedIndirectly_(false)
     {
         if (type != MIRType_Value)
             specialization_ = type;
@@ -4254,7 +4225,7 @@ class MDiv : public MBinaryArithInstruction
         MDiv *div = new(alloc) MDiv(left, right, type);
         div->unsigned_ = unsignd;
         if (type == MIRType_Int32)
-            div->setTruncateKind(Truncate);
+            div->setTruncated(true);
         return div;
     }
 
@@ -4290,7 +4261,10 @@ class MDiv : public MBinaryArithInstruction
     }
 
     bool isTruncatedIndirectly() const {
-        return truncateKind() >= IndirectTruncate;
+        return isTruncatedIndirectly_;
+    }
+    void setTruncatedIndirectly(bool truncate) {
+        isTruncatedIndirectly_ = truncate;
     }
 
     bool canTruncateInfinities() const {
@@ -4310,7 +4284,7 @@ class MDiv : public MBinaryArithInstruction
 
     void computeRange(TempAllocator &alloc);
     bool fallible() const;
-    bool truncate(TruncateKind kind);
+    bool truncate();
     void collectRangeInfoPreTrunc();
 };
 
@@ -4340,7 +4314,7 @@ class MMod : public MBinaryArithInstruction
         MMod *mod = new(alloc) MMod(left, right, type);
         mod->unsigned_ = unsignd;
         if (type == MIRType_Int32)
-            mod->setTruncateKind(Truncate);
+            mod->setTruncated(true);
         return mod;
     }
 
@@ -4364,7 +4338,7 @@ class MMod : public MBinaryArithInstruction
     bool fallible() const;
 
     void computeRange(TempAllocator &alloc);
-    bool truncate(TruncateKind kind);
+    bool truncate();
     void collectRangeInfoPreTrunc();
 };
 
@@ -6569,7 +6543,7 @@ class MLoadTypedArrayElementStatic
     }
 
     void computeRange(TempAllocator &alloc);
-    bool truncate(TruncateKind kind);
+    bool truncate();
     bool canProduceFloat32() const { return typedArray_->type() == ScalarTypeDescr::TYPE_FLOAT32; }
 };
 
@@ -6634,7 +6608,7 @@ class MStoreTypedArrayElement
     void setRacy() {
         racy_ = true;
     }
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool isOperandTruncated(size_t index) const;
 
     bool canConsumeFloat32(MUse *use) const {
         return use->index() == 2 && arrayType_ == ScalarTypeDescr::TYPE_FLOAT32;
@@ -6702,7 +6676,7 @@ class MStoreTypedArrayElementHole
     AliasSet getAliasSet() const {
         return AliasSet::Store(AliasSet::TypedArrayElement);
     }
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool isOperandTruncated(size_t index) const;
 
     bool canConsumeFloat32(MUse *use) const {
         return use->index() == 3 && arrayType_ == ScalarTypeDescr::TYPE_FLOAT32;
@@ -6749,7 +6723,7 @@ class MStoreTypedArrayElementStatic :
     AliasSet getAliasSet() const {
         return AliasSet::Store(AliasSet::TypedArrayElement);
     }
-    TruncateKind operandTruncateKind(size_t index) const;
+    bool isOperandTruncated(size_t index) const;
 
     bool canConsumeFloat32(MUse *use) const {
         return use->index() == 1 && typedArray_->type() == ScalarTypeDescr::TYPE_FLOAT32;

@@ -2136,14 +2136,14 @@ Range::wrapAroundToBoolean()
 }
 
 bool
-MDefinition::truncate(TruncateKind kind)
+MDefinition::truncate()
 {
     
     return false;
 }
 
 bool
-MConstant::truncate(TruncateKind kind)
+MConstant::truncate()
 {
     if (!value_.isDouble())
         return false;
@@ -2158,15 +2158,15 @@ MConstant::truncate(TruncateKind kind)
 }
 
 bool
-MAdd::truncate(TruncateKind kind)
+MAdd::truncate()
 {
     
-    setTruncateKind(kind);
+    setTruncated(true);
 
     if (type() == MIRType_Double || type() == MIRType_Int32) {
         specialization_ = MIRType_Int32;
         setResultType(MIRType_Int32);
-        if (kind >= IndirectTruncate && range())
+        if (range())
             range()->wrapAroundToInt32();
         return true;
     }
@@ -2175,15 +2175,15 @@ MAdd::truncate(TruncateKind kind)
 }
 
 bool
-MSub::truncate(TruncateKind kind)
+MSub::truncate()
 {
     
-    setTruncateKind(kind);
+    setTruncated(true);
 
     if (type() == MIRType_Double || type() == MIRType_Int32) {
         specialization_ = MIRType_Int32;
         setResultType(MIRType_Int32);
-        if (kind >= IndirectTruncate && range())
+        if (range())
             range()->wrapAroundToInt32();
         return true;
     }
@@ -2192,39 +2192,54 @@ MSub::truncate(TruncateKind kind)
 }
 
 bool
-MMul::truncate(TruncateKind kind)
+MMul::truncate()
 {
     
-    setTruncateKind(kind);
+    setTruncated(true);
 
     if (type() == MIRType_Double || type() == MIRType_Int32) {
         specialization_ = MIRType_Int32;
         setResultType(MIRType_Int32);
-        if (kind >= IndirectTruncate) {
-            setCanBeNegativeZero(false);
-            if (range())
-                range()->wrapAroundToInt32();
+        setCanBeNegativeZero(false);
+        if (range())
+            range()->wrapAroundToInt32();
+        return true;
+    }
+
+    return false;
+}
+
+bool
+MDiv::truncate()
+{
+    
+    setTruncatedIndirectly(true);
+
+    
+    if (!isTruncated()) {
+        bool allUsesExplictlyTruncate = true;
+        for (MUseDefIterator use(this); allUsesExplictlyTruncate && use; use++) {
+            switch (use.def()->op()) {
+              case MDefinition::Op_BitAnd:
+              case MDefinition::Op_BitOr:
+              case MDefinition::Op_BitXor:
+              case MDefinition::Op_Lsh:
+              case MDefinition::Op_Rsh:
+              case MDefinition::Op_Ursh:
+                break;
+              default:
+                allUsesExplictlyTruncate = false;
+            }
         }
-        return true;
+
+        if (allUsesExplictlyTruncate)
+            setTruncated(true);
     }
 
-    return false;
-}
-
-bool
-MDiv::truncate(TruncateKind kind)
-{
-    setTruncateKind(kind);
-
-    if (type() == MIRType_Double || type() == MIRType_Int32) {
-        specialization_ = MIRType_Int32;
-        setResultType(MIRType_Int32);
-
-        
-        
-        if (tryUseUnsignedOperands())
-            unsigned_ = true;
-
+    
+    
+    if (specialization() == MIRType_Int32 && tryUseUnsignedOperands()) {
+        unsigned_ = true;
         return true;
     }
 
@@ -2233,19 +2248,14 @@ MDiv::truncate(TruncateKind kind)
 }
 
 bool
-MMod::truncate(TruncateKind kind)
+MMod::truncate()
 {
     
-    setTruncateKind(kind);
+    setTruncated(true);
 
     
-    if (type() == MIRType_Double || type() == MIRType_Int32) {
-        specialization_ = MIRType_Int32;
-        setResultType(MIRType_Int32);
-
-        if (tryUseUnsignedOperands())
-            unsigned_ = true;
-
+    if (specialization() == MIRType_Int32 && tryUseUnsignedOperands()) {
+        unsigned_ = true;
         return true;
     }
 
@@ -2254,103 +2264,90 @@ MMod::truncate(TruncateKind kind)
 }
 
 bool
-MToDouble::truncate(TruncateKind kind)
+MToDouble::truncate()
 {
     JS_ASSERT(type() == MIRType_Double);
-
-    setTruncateKind(kind);
 
     
     
     setResultType(MIRType_Int32);
-    if (kind >= IndirectTruncate) {
-        if (range())
-            range()->wrapAroundToInt32();
-    }
+    if (range())
+        range()->wrapAroundToInt32();
 
     return true;
 }
 
 bool
-MLoadTypedArrayElementStatic::truncate(TruncateKind kind)
+MLoadTypedArrayElementStatic::truncate()
 {
     setInfallible();
     return false;
 }
 
-MDefinition::TruncateKind
-MDefinition::operandTruncateKind(size_t index) const
+bool
+MDefinition::isOperandTruncated(size_t index) const
 {
-    
-    return NoTruncate;
-}
-
-MDefinition::TruncateKind
-MTruncateToInt32::operandTruncateKind(size_t index) const
-{
-    
-    return Truncate;
-}
-
-MDefinition::TruncateKind
-MBinaryBitwiseInstruction::operandTruncateKind(size_t index) const
-{
-    
-    return Truncate;
-}
-
-MDefinition::TruncateKind
-MAdd::operandTruncateKind(size_t index) const
-{
-    
-    
-    return Min(truncateKind(), IndirectTruncate);
-}
-
-MDefinition::TruncateKind
-MSub::operandTruncateKind(size_t index) const
-{
-    
-    return Min(truncateKind(), IndirectTruncate);
-}
-
-MDefinition::TruncateKind
-MMul::operandTruncateKind(size_t index) const
-{
-    
-    return Min(truncateKind(), IndirectTruncate);
-}
-
-MDefinition::TruncateKind
-MToDouble::operandTruncateKind(size_t index) const
-{
-    
-    return truncateKind();
-}
-
-MDefinition::TruncateKind
-MStoreTypedArrayElement::operandTruncateKind(size_t index) const
-{
-    
-    return index == 2 && !isFloatArray() ? Truncate : NoTruncate;
-}
-
-MDefinition::TruncateKind
-MStoreTypedArrayElementHole::operandTruncateKind(size_t index) const
-{
-    
-    return index == 3 && !isFloatArray() ? Truncate : NoTruncate;
-}
-
-MDefinition::TruncateKind
-MStoreTypedArrayElementStatic::operandTruncateKind(size_t index) const
-{
-    
-    return index == 1 && !isFloatArray() ? Truncate : NoTruncate;
+    return false;
 }
 
 bool
-MCompare::truncate(TruncateKind kind)
+MTruncateToInt32::isOperandTruncated(size_t index) const
+{
+    return true;
+}
+
+bool
+MBinaryBitwiseInstruction::isOperandTruncated(size_t index) const
+{
+    return true;
+}
+
+bool
+MAdd::isOperandTruncated(size_t index) const
+{
+    return isTruncated();
+}
+
+bool
+MSub::isOperandTruncated(size_t index) const
+{
+    return isTruncated();
+}
+
+bool
+MMul::isOperandTruncated(size_t index) const
+{
+    return isTruncated();
+}
+
+bool
+MToDouble::isOperandTruncated(size_t index) const
+{
+    
+    
+    return type() == MIRType_Int32;
+}
+
+bool
+MStoreTypedArrayElement::isOperandTruncated(size_t index) const
+{
+    return index == 2 && !isFloatArray();
+}
+
+bool
+MStoreTypedArrayElementHole::isOperandTruncated(size_t index) const
+{
+    return index == 3 && !isFloatArray();
+}
+
+bool
+MStoreTypedArrayElementStatic::isOperandTruncated(size_t index) const
+{
+    return index == 1 && !isFloatArray();
+}
+
+bool
+MCompare::truncate()
 {
     if (!isDoubleComparison())
         return false;
@@ -2364,32 +2361,30 @@ MCompare::truncate(TruncateKind kind)
 
     
     
-    
     truncateOperands_ = true;
 
     return true;
 }
 
-MDefinition::TruncateKind
-MCompare::operandTruncateKind(size_t index) const
+bool
+MCompare::isOperandTruncated(size_t index) const
 {
     
     
     JS_ASSERT_IF(truncateOperands_, isInt32Comparison());
-    return truncateOperands_ ? TruncateAfterBailouts : NoTruncate;
+    return truncateOperands_;
 }
 
 
 
-static MDefinition::TruncateKind
-ComputeRequestedTruncateKind(MInstruction *candidate)
+static bool
+AllUsesTruncate(MInstruction *candidate)
 {
     
     
     
     bool needsConversion = !candidate->range() || !candidate->range()->isInt32();
 
-    MDefinition::TruncateKind kind = MDefinition::Truncate;
     for (MUseIterator use(candidate->usesBegin()); use != candidate->usesEnd(); use++) {
         if (!use->consumer()->isDefinition()) {
             
@@ -2398,27 +2393,24 @@ ComputeRequestedTruncateKind(MInstruction *candidate)
             
             
             if (candidate->isUseRemoved() && needsConversion)
-                kind = Min(kind, MDefinition::TruncateAfterBailouts);
+                return false;
             continue;
         }
 
-        MDefinition *consumer = use->consumer()->toDefinition();
-        MDefinition::TruncateKind consumerKind = consumer->operandTruncateKind(use->index());
-        kind = Min(kind, consumerKind);
-        if (kind == MDefinition::NoTruncate)
-            break;
+        if (!use->consumer()->toDefinition()->isOperandTruncated(use->index()))
+            return false;
     }
 
-    return kind;
+    return true;
 }
 
-static MDefinition::TruncateKind
-ComputeTruncateKind(MInstruction *candidate)
+static bool
+CanTruncate(MInstruction *candidate)
 {
     
     
     if (candidate->isCompare())
-        return MDefinition::TruncateAfterBailouts;
+        return true;
 
     
     
@@ -2433,10 +2425,10 @@ ComputeTruncateKind(MInstruction *candidate)
         canHaveRoundingErrors = false;
 
     if (canHaveRoundingErrors)
-        return MDefinition::NoTruncate;
+        return false;
 
     
-    return ComputeRequestedTruncateKind(candidate);
+    return AllUsesTruncate(candidate);
 }
 
 static void
@@ -2463,7 +2455,7 @@ AdjustTruncatedInputs(TempAllocator &alloc, MInstruction *truncated)
 {
     MBasicBlock *block = truncated->block();
     for (size_t i = 0, e = truncated->numOperands(); i < e; i++) {
-        if (truncated->operandTruncateKind(i) == MDefinition::NoTruncate)
+        if (!truncated->isOperandTruncated(i))
             continue;
 
         MDefinition *input = truncated->getOperand(i);
@@ -2523,12 +2515,11 @@ RangeAnalysis::truncate()
               default:;
             }
 
-            MDefinition::TruncateKind kind = ComputeTruncateKind(*iter);
-            if (kind == MDefinition::NoTruncate)
+            if (!CanTruncate(*iter))
                 continue;
 
             
-            if (!iter->truncate(kind))
+            if (!iter->truncate())
                 continue;
 
             
