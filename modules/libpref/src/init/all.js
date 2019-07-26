@@ -264,27 +264,33 @@ pref("media.peerconnection.identity.timeout", 5000);
 
 
 pref("media.peerconnection.turn.disable", false);
-pref("media.peerconnection.aec_enabled", true);
-pref("media.peerconnection.aec", 1);
-pref("media.peerconnection.agc_enabled", false);
-pref("media.peerconnection.agc", 1);
-pref("media.peerconnection.noise_enabled", false);
-pref("media.peerconnection.noise", 1);
+pref("media.getusermedia.aec_enabled", true);
+pref("media.getusermedia.aec", 1);
+pref("media.getusermedia.agc_enabled", false);
+pref("media.getusermedia.agc", 1);
+pref("media.getusermedia.noise_enabled", true);
+pref("media.getusermedia.noise", 1);
+
 
 #if defined(XP_MACOSX)
 pref("media.peerconnection.capture_delay", 50);
+pref("media.getusermedia.playout_delay", 10);
 #elif defined(XP_WIN)
 pref("media.peerconnection.capture_delay", 50);
+pref("media.getusermedia.playout_delay", 40);
 #elif defined(ANDROID)
 pref("media.peerconnection.capture_delay", 100);
+pref("media.getusermedia.playout_delay", 100);
 
 pref("media.navigator.hardware.vp8_encode.acceleration_enabled", false);
 pref("media.navigator.hardware.vp8_decode.acceleration_enabled", false);
 #elif defined(XP_LINUX)
 pref("media.peerconnection.capture_delay", 70);
+pref("media.getusermedia.playout_delay", 50);
 #else
 
 pref("media.peerconnection.capture_delay", 50);
+pref("media.getusermedia.playout_delay", 50);
 #endif
 #else
 #ifdef ANDROID
@@ -3183,13 +3189,16 @@ pref("print.print_paper_size", 0);
 
 pref("print.print_extra_margin", 0); 
 
+# ANDROID
+#endif
+
+#if defined(ANDROID) || defined(FXOS_SIMULATOR)
 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");
 
 
-
-#ifdef MOZ_WIDGET_GONK
+#if defined(MOZ_WIDGET_GONK) || defined(FXOS_SIMULATOR)
 
 
 
@@ -3256,6 +3265,7 @@ pref("font.name.sans-serif.zh-TW", "Fira Sans OT");
 pref("font.name.monospace.zh-TW", "Fira Mono OT");
 
 #else
+
 
 
 
@@ -3476,6 +3486,10 @@ pref("font.default.x-tibt", "serif");
 pref("font.size.variable.x-tibt", 16);
 pref("font.size.fixed.x-tibt", 13);
 
+# ANDROID || FXOS_SIMUALTOR
+#endif
+
+#ifdef ANDROID
 
 
 pref("print.postscript.paper_size",    "letter");
