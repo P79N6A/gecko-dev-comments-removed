@@ -247,10 +247,6 @@ jit::BaselineCompile(JSContext *cx, HandleScript script)
 static MethodStatus
 CanEnterBaselineJIT(JSContext *cx, HandleScript script, bool osr)
 {
-    
-    
-    JS_ASSERT(script->nslots() <= UINT16_MAX);
-
     JS_ASSERT(jit::IsBaselineEnabled(cx));
 
     
@@ -258,6 +254,9 @@ CanEnterBaselineJIT(JSContext *cx, HandleScript script, bool osr)
         return Method_Skipped;
 
     if (script->length() > BaselineScript::MAX_JSSCRIPT_LENGTH)
+        return Method_CantCompile;
+
+    if (script->nslots() > BaselineScript::MAX_JSSCRIPT_SLOTS)
         return Method_CantCompile;
 
     if (!cx->compartment()->ensureJitCompartmentExists(cx))
