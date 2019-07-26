@@ -94,15 +94,15 @@ Assembler::writeRelocation(JmpSrc src, Relocation::Kind reloc)
 }
 
 void
-Assembler::addPendingJump(JmpSrc src, void *target, Relocation::Kind reloc)
+Assembler::addPendingJump(JmpSrc src, ImmPtr target, Relocation::Kind reloc)
 {
-    JS_ASSERT(target);
+    JS_ASSERT(target.value != NULL);
 
     
     
     if (reloc == Relocation::IONCODE)
         writeRelocation(src, reloc);
-    enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), target, reloc));
+    enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), target.value, reloc));
 }
 
 size_t
