@@ -64,4 +64,27 @@ this.BrowserUtils = {
     return Services.io.newFileURI(aFile);
   },
 
+  
+
+
+
+
+
+  getElementBoundingScreenRect: function(aElement) {
+    let rect = aElement.getBoundingClientRect();
+    let window = aElement.ownerDocument.defaultView;
+
+    
+    
+    let fullZoom = window.getInterface(Ci.nsIDOMWindowUtils).fullZoom;
+    rect = {
+      left: (rect.left + window.mozInnerScreenX) * fullZoom,
+      top: (rect.top + window.mozInnerScreenY) * fullZoom,
+      width: rect.width * fullZoom,
+      height: rect.height * fullZoom
+    };
+
+    return rect;
+  },
+
 };
