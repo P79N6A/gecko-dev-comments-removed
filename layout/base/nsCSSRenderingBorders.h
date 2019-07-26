@@ -11,6 +11,7 @@
 #include "nsStyleStruct.h"
 
 #include "gfxContext.h"
+#include "mozilla/gfx/2D.h"
 
 
 #undef DEBUG_NEW_BORDERS
@@ -73,6 +74,9 @@ struct nsCSSBorderRenderer {
                       nsBorderColors* const* aCompositeColors,
                       int aSkipSides,
                       nscolor aBackgroundColor);
+
+  static void Init();
+  static void Shutdown();
 
   gfxCornerSizes mBorderCornerDimensions;
 
@@ -186,11 +190,23 @@ struct nsCSSBorderRenderer {
                                                     const gfxRGBA &aSecondColor);
 
   
+  mozilla::TemporaryRef<mozilla::gfx::GradientStops>
+  nsCSSBorderRenderer::CreateCornerGradient(mozilla::css::Corner aCorner,
+                                            const gfxRGBA &aFirstColor,
+                                            const gfxRGBA &aSecondColor,
+                                            mozilla::gfx::DrawTarget *aDT,
+                                            mozilla::gfx::Point &aPoint1,
+                                            mozilla::gfx::Point &aPoint2);
+
+  
   void DrawSingleWidthSolidBorder();
 
   
   
   void DrawNoCompositeColorSolidBorder();
+  
+  
+  void DrawNoCompositeColorSolidBorderAzure();
 
   
   
