@@ -141,7 +141,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         apzc->NotifyLayersUpdated(container->GetFrameMetrics(),
                                         aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
 
-        LayerRect visible = ScreenRect(container->GetFrameMetrics().mCompositionBounds) * ScreenToLayerScale(1.0);
+        ScreenRect visible(container->GetFrameMetrics().mCompositionBounds);
         apzc->SetLayerHitTestData(visible, aTransform, aLayer->GetTransform());
         APZC_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
                                                                               visible.width, visible.height,
@@ -631,28 +631,40 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
 
   
   
+  
+  
   gfx3DMatrix ancestorUntransform = aApzc->GetAncestorTransform().Inverse();
+
+  
+  gfxPoint hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
+  APZC_LOG("Untransformed %f %f to screen coordinates %f %f for hit-testing APZC %p\n",
+           aHitTestPoint.x, aHitTestPoint.y,
+           hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
+
   
   
-  gfx3DMatrix asyncUntransform = gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
   
   
-  gfx3DMatrix untransformSinceLastApzc = ancestorUntransform * asyncUntransform * aApzc->GetCSSTransform().Inverse();
+  gfx3DMatrix myUntransform = gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse()
+                            * aApzc->GetCSSTransform().Inverse();
+
   
-  
-  gfxPoint untransformed = untransformSinceLastApzc.ProjectPoint(aHitTestPoint);
-  APZC_LOG("Untransformed %f %f to %f %f for APZC %p\n", aHitTestPoint.x, aHitTestPoint.y, untransformed.x, untransformed.y, aApzc);
+  gfxPoint hitTestPointForChildLayers = myUntransform.ProjectPoint(hitTestPointForThisLayer);
+  APZC_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
+           aHitTestPoint.x, aHitTestPoint.y,
+           hitTestPointForChildLayers.x, hitTestPointForChildLayers.y, aApzc);
 
   
   
   for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
-    AsyncPanZoomController* match = GetAPZCAtPoint(child, untransformed);
+    AsyncPanZoomController* match = GetAPZCAtPoint(child, hitTestPointForChildLayers);
     if (match) {
       return match;
     }
   }
-  if (aApzc->VisibleRegionContains(LayerPoint(untransformed.x, untransformed.y))) {
-    APZC_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n", untransformed.x, untransformed.y, aApzc);
+  if (aApzc->VisibleRegionContains(ScreenPoint(hitTestPointForThisLayer.x, hitTestPointForThisLayer.y))) {
+    APZC_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n",
+             hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
     return aApzc;
   }
   return nullptr;

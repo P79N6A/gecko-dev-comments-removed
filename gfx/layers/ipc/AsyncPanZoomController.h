@@ -655,7 +655,7 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const LayerRect& aRect, const gfx3DMatrix& aTransformToLayer,
+  void SetLayerHitTestData(const ScreenRect& aRect, const gfx3DMatrix& aTransformToLayer,
                            const gfx3DMatrix& aTransformForLayer) {
     mVisibleRect = aRect;
     mAncestorTransform = aTransformToLayer;
@@ -670,7 +670,7 @@ public:
     return mCSSTransform;
   }
 
-  bool VisibleRegionContains(const LayerPoint& aPoint) const {
+  bool VisibleRegionContains(const ScreenPoint& aPoint) const {
     return mVisibleRect.Contains(aPoint);
   }
 
@@ -678,8 +678,7 @@ private:
   
 
 
-
-  LayerRect mVisibleRect;
+  ScreenRect mVisibleRect;
   
 
   gfx3DMatrix mAncestorTransform;
