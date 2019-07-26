@@ -14,12 +14,12 @@ function run_test() {
   }
 
   
-  var queue = prefetch.enumerateQueue(true, false);
+  var queue = prefetch.enumerateQueue();
   do_check_true(queue.hasMoreElements());
 
   
   prefs.setBoolPref("network.prefetch-next", false);
-  queue = prefetch.enumerateQueue(true, false);
+  queue = prefetch.enumerateQueue();
   do_check_false(queue.hasMoreElements());
 
   
@@ -28,7 +28,7 @@ function run_test() {
     var uri = ios.newURI("http://localhost/" + i, null, null);
     prefetch.prefetchURI(uri, uri, null, true);
   }
-  queue = prefetch.enumerateQueue(true, false);
+  queue = prefetch.enumerateQueue();
   do_check_true(queue.hasMoreElements());
 }
 
