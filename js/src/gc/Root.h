@@ -394,6 +394,8 @@ template <typename T>
 class Return
 {
     friend class Rooted<T>;
+    typedef void (Return<T>::* ConvertibleToBool)();
+    void nonNull() {}
 
     const T ptr_;
 
@@ -478,6 +480,7 @@ class Return
 
 
 
+    operator ConvertibleToBool() const { return ptr_ ? &Return<T>::nonNull : 0; }
     bool operator==(const T &other) { return ptr_ == other; }
     bool operator!=(const T &other) { return ptr_ != other; }
     bool operator==(const Return<T> &other) { return ptr_ == other.ptr_; }
