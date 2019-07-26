@@ -435,8 +435,6 @@ class MozbuildObject(ProcessExecutionMixin):
 
         
         
-        
-        
         if print_directory:
             args.append('-w')
 
