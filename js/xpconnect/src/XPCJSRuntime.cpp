@@ -231,18 +231,8 @@ CompartmentDestroyedCallback(JSFreeOp *fop, JSCompartment *compartment)
     nsAutoPtr<CompartmentPrivate> priv(GetCompartmentPrivate(compartment));
     JS_SetCompartmentPrivate(compartment, nullptr);
 
-    
-    
-    
-    
-    if (!priv) {
-        MOZ_ASSERT(!set.has(compartment));
-        return;
-    }
-
-    
-    MOZ_ASSERT(set.has(compartment));
-    set.remove(compartment);
+    if (set.has(compartment))
+        set.remove(compartment);
     return;
 }
 
