@@ -3253,7 +3253,7 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
 
     
     if (mInlineSpellChecker) {
-      nsRefPtr<nsRange> range = new nsRange();
+      nsRefPtr<nsRange> range = new nsRange(aChild);
       nsresult res = range->Set(aContainer, aIndexInContainer,
                                 aContainer, aIndexInContainer + 1);
       if (NS_SUCCEEDED(res)) {
