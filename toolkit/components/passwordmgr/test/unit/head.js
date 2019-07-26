@@ -17,14 +17,12 @@ const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadPaths",
-                                  "resource://gre/modules/DownloadPaths.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
+                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
 
 const LoginInfo =
       Components.Constructor("@mozilla.org/login-manager/loginInfo;1",
@@ -44,46 +42,6 @@ function run_test()
 
 
 
-
-
-
-
-
-let gFileCounter = Math.floor(Math.random() * 1000000);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function getTempFile(aLeafName)
-{
-  
-  let [base, ext] = DownloadPaths.splitBaseNameAndExtension(aLeafName);
-  let leafName = base + "-" + gFileCounter + ext;
-  gFileCounter++;
-
-  
-  let file = FileUtils.getFile("TmpD", [leafName]);
-  do_check_false(file.exists());
-
-  do_register_cleanup(function () {
-    if (file.exists()) {
-      file.remove(false);
-    }
-  });
-
-  return file;
-}
 
 
 

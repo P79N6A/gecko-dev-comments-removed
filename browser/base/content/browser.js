@@ -1132,18 +1132,6 @@ var gBrowserInit = {
     
     
     
-    
-    setTimeout(function() {
-      try {
-        Services.logins;
-      } catch (ex) {
-        Cu.reportError(ex);
-      }
-    }, 3000);
-
-    
-    
-    
     DownloadsButton.initializeIndicator();
 
 #ifndef XP_MACOSX
