@@ -159,6 +159,9 @@ class TreeMetadataEmitter(LoggingMixin):
                         'doesn\'t exist in %s (%s) in %s'
                         % (symbol, src, sandbox['RELATIVEDIR']))
 
+        if sandbox.get('LIBXUL_LIBRARY') and sandbox.get('FORCE_STATIC_LIB'):
+            raise SandboxValidationError('LIBXUL_LIBRARY implies FORCE_STATIC_LIB')
+
         
         
         
@@ -238,9 +241,6 @@ class TreeMetadataEmitter(LoggingMixin):
                     l = passthru.variables.setdefault('GARBAGE', [])
                     l.append(f)
 
-        if passthru.variables:
-            yield passthru
-
         exports = sandbox.get('EXPORTS')
         if exports:
             yield Exports(sandbox, exports,
@@ -293,7 +293,10 @@ class TreeMetadataEmitter(LoggingMixin):
             if not libname:
                 
                 raise SandboxValidationError('FINAL_LIBRARY requires LIBRARY_NAME')
+            if sandbox.get('FORCE_STATIC_LIB'):
+                raise SandboxValidationError('FINAL_LIBRARY implies FORCE_STATIC_LIB')
             self._final_libs.append((sandbox['RELATIVEDIR'], libname, final_lib))
+            passthru.variables['FORCE_STATIC_LIB'] = True
 
         
         
@@ -332,6 +335,9 @@ class TreeMetadataEmitter(LoggingMixin):
 
         for name, jar in sandbox.get('JAVA_JAR_TARGETS', {}).items():
             yield SandboxWrapped(sandbox, jar)
+
+        if passthru.variables:
+            yield passthru
 
     def _create_substitution(self, cls, sandbox, path):
         if os.path.isabs(path):
