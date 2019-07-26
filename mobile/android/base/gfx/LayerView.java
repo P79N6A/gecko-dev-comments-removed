@@ -514,7 +514,7 @@ public class LayerView extends FrameLayout implements Tabs.OnTabsChangedListener
 
 
     private void onSizeChanged(int width, int height) {
-        if (!mGLController.isServerSurfaceValid() || mSurfaceView == null) {
+        if (mSurfaceView == null) {
             surfaceChanged(width, height);
             return;
         }
