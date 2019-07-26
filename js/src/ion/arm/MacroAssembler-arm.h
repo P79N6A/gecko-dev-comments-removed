@@ -330,6 +330,14 @@ class MacroAssemblerARM : public Assembler
     void ma_callIonHalfPush(const Register reg);
 
     void ma_call(void *dest);
+
+    
+    
+    
+    
+    
+    int32_t transferMultipleByRuns(FloatRegisterSet set, LoadStore ls,
+                                   Register rm, DTMMode mode);
 };
 
 class MacroAssemblerARMCompat : public MacroAssemblerARM
