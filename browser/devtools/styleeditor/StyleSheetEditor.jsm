@@ -36,6 +36,13 @@ const AUTOCOMPLETION_PREF = "devtools.styleeditor.autocompletion-enabled";
 
 
 
+const CHECK_LINKED_SHEET_DELAY=500;
+
+
+const MAX_CHECK_COUNT=10;
+
+
+
 
 
 
@@ -59,19 +66,10 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
 
   this.styleSheet = styleSheet;
   this._inputElement = null;
-  this._sourceEditor = null;
+  this.sourceEditor = null;
   this._window = win;
   this._isNew = isNew;
-  this.savedFile = file;
   this.walker = walker;
-
-  this.errorMessage = null;
-
-  let readOnly = false;
-  if (styleSheet.isOriginalSource) {
-    
-    readOnly = true;
-  }
 
   this._state = {   
     text: "",
@@ -79,8 +77,7 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
       start: {line: 0, ch: 0},
       end: {line: 0, ch: 0}
     },
-    readOnly: readOnly,
-    topIndex: 0,              
+    topIndex: 0              
   };
 
   this._styleSheetFilePath = null;
@@ -91,11 +88,20 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
 
   this._onPropertyChange = this._onPropertyChange.bind(this);
   this._onError = this._onError.bind(this);
+  this.checkLinkedFileForChanges = this.checkLinkedFileForChanges.bind(this);
+  this.markLinkedFileBroken = this.markLinkedFileBroken.bind(this);
 
   this._focusOnSourceEditorReady = false;
 
+  let relatedSheet = this.styleSheet.relatedStyleSheet;
+  if (relatedSheet) {
+    relatedSheet.on("property-change", this._onPropertyChange);
+  }
   this.styleSheet.on("property-change", this._onPropertyChange);
   this.styleSheet.on("error", this._onError);
+
+  this.savedFile = file;
+  this.linkCSSFile();
 }
 
 StyleSheetEditor.prototype = {
@@ -112,6 +118,16 @@ StyleSheetEditor.prototype = {
 
   get isNew() {
     return this._isNew;
+  },
+
+  get savedFile() {
+    return this._savedFile;
+  },
+
+  set savedFile(name) {
+    this._savedFile = name;
+
+    this.linkCSSFile();
   },
 
   
@@ -143,6 +159,48 @@ StyleSheetEditor.prototype = {
       }
     }
     return this._friendlyName;
+  },
+
+  
+
+
+  linkCSSFile: function() {
+    if (!this.styleSheet.isOriginalSource) {
+      return;
+    }
+
+    let relatedSheet = this.styleSheet.relatedStyleSheet;
+
+    let path;
+    var uri = NetUtil.newURI(relatedSheet.href);
+
+    if (uri.scheme == "file") {
+      var file = uri.QueryInterface(Ci.nsIFileURL).file;
+      path = file.path;
+    }
+    else if (this.savedFile) {
+      let origUri = NetUtil.newURI(this.styleSheet.href);
+      path = findLinkedFilePath(uri, origUri, this.savedFile);
+    }
+    else {
+      
+      return;
+    }
+
+    if (this.linkedCSSFile == path) {
+      return;
+    }
+
+    this.linkedCSSFile = path;
+
+    this.linkedCSSFileError = null;
+
+    
+    OS.File.stat(path).then((info) => {
+      this._fileModDate = info.lastModificationDate.getTime();
+    }, this.markLinkedFileBroken);
+
+    this.emit("linked-css-file");
   },
 
   
@@ -196,7 +254,7 @@ StyleSheetEditor.prototype = {
       value: this._state.text,
       lineNumbers: true,
       mode: Editor.modes.css,
-      readOnly: this._state.readOnly,
+      readOnly: false,
       autoCloseBrackets: "{}()[]",
       extraKeys: this._getKeyBindings(),
       contextMenu: "sourceEditorContextMenu"
@@ -212,9 +270,11 @@ StyleSheetEditor.prototype = {
         this.saveToFile();
       });
 
-      sourceEditor.on("change", () => {
-        this.updateStyleSheet();
-      });
+      if (this.styleSheet.update) {
+        sourceEditor.on("change", () => {
+          this.updateStyleSheet();
+        });
+      }
 
       this.sourceEditor = sourceEditor;
 
@@ -255,8 +315,8 @@ StyleSheetEditor.prototype = {
 
 
   focus: function() {
-    if (this._sourceEditor) {
-      this._sourceEditor.focus();
+    if (this.sourceEditor) {
+      this.sourceEditor.focus();
     } else {
       this._focusOnSourceEditorReady = true;
     }
@@ -266,8 +326,8 @@ StyleSheetEditor.prototype = {
 
 
   onShow: function() {
-    if (this._sourceEditor) {
-      this._sourceEditor.setFirstVisibleLine(this._state.topIndex);
+    if (this.sourceEditor) {
+      this.sourceEditor.setFirstVisibleLine(this._state.topIndex);
     }
     this.focus();
   },
@@ -343,8 +403,8 @@ StyleSheetEditor.prototype = {
         return;
       }
 
-      if (this._sourceEditor) {
-        this._state.text = this._sourceEditor.getText();
+      if (this.sourceEditor) {
+        this._state.text = this.sourceEditor.getText();
       }
 
       let ostream = FileUtils.openSafeFileOutputStream(returnFile);
@@ -362,16 +422,12 @@ StyleSheetEditor.prototype = {
           return;
         }
         FileUtils.closeSafeFileOutputStream(ostream);
-        
-        this._friendlyName = null;
-        this.savedFile = returnFile;
+
+        this.onFileSaved(returnFile);
 
         if (callback) {
           callback(returnFile);
         }
-        this.sourceEditor.setClean();
-
-        this.emit("property-change");
       }.bind(this));
     };
 
@@ -381,7 +437,81 @@ StyleSheetEditor.prototype = {
     }
     showFilePicker(file || this._styleSheetFilePath, true, this._window,
                    onFile, defaultName);
- },
+  },
+
+  
+
+
+  onFileSaved: function(returnFile) {
+    this._friendlyName = null;
+    this.savedFile = returnFile;
+
+    this.sourceEditor.setClean();
+
+    this.emit("property-change");
+
+    
+    this._modCheckCount = 0;
+    this._window.clearTimeout(this._timeout);
+
+    if (this.linkedCSSFile && !this.linkedCSSFileError) {
+      this._timeout = this._window.setTimeout(this.checkLinkedFileForChanges,
+                                              CHECK_LINKED_SHEET_DELAY);
+    }
+  },
+
+  
+
+
+
+  checkLinkedFileForChanges: function() {
+    OS.File.stat(this.linkedCSSFile).then((info) => {
+      let lastChange = info.lastModificationDate.getTime();
+
+      if (this._fileModDate && lastChange != this._fileModDate) {
+        this._fileModDate = lastChange;
+        this._modCheckCount = 0;
+
+        this.updateLinkedStyleSheet();
+        return;
+      }
+
+      if (++this._modCheckCount > MAX_CHECK_COUNT) {
+        this.updateLinkedStyleSheet();
+        return;
+      }
+
+      
+      this._timeout = this._window.setTimeout(this.checkLinkedFileForChanges,
+                                              CHECK_LINKED_SHEET_DELAY);
+    }, this.markLinkedFileBroken);
+  },
+
+  
+
+
+
+
+
+
+  markLinkedFileBroken: function(error) {
+    this.linkedCSSFileError = error || true;
+    this.emit("linked-css-file-error");
+  },
+
+  
+
+
+
+  updateLinkedStyleSheet: function() {
+    OS.File.read(this.linkedCSSFile).then((array) => {
+      let decoder = new TextDecoder();
+      let text = decoder.decode(array);
+
+      let relatedSheet = this.styleSheet.relatedStyleSheet;
+      relatedSheet.update(text, true);
+    }, this.markLinkedFileBroken);
+  },
 
   
 
@@ -482,3 +612,73 @@ function prettifyCSS(text)
   return parts.join(LINE_SEPARATOR);
 }
 
+
+
+
+
+
+function findLinkedFilePath(uri, origUri, file) {
+  let project = findProjectPath(origUri, file);
+  let branch = findUnsharedBranch(origUri, uri);
+
+  let parts = project.concat(branch);
+  let path = OS.Path.join.apply(this, parts);
+
+  return path;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function findProjectPath(uri, file) {
+  let uri = OS.Path.split(uri.path).components;
+  let path = OS.Path.split(file.path).components;
+
+  
+  uri.pop();
+  path.pop();
+
+  let dir = path.pop();
+  while(dir) {
+    let serverDir = uri.pop();
+    if (serverDir != dir) {
+      return path.concat([dir]);
+    }
+    dir = path.pop();
+  }
+  return [];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function findUnsharedBranch(origUri, uri) {
+  origUri = OS.Path.split(origUri.path).components;
+  uri = OS.Path.split(uri.path).components;
+
+  for (var i = 0; i < uri.length - 1; i++) {
+    if (uri[i] != origUri[i]) {
+      return uri.slice(i);
+    }
+  }
+  return uri;
+}
