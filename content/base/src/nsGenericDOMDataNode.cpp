@@ -492,6 +492,7 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
       SetFlags(NODE_CHROME_ONLY_ACCESS);
     }
     if (aParent->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+      ClearSubtreeRootPointer();
       SetFlags(NODE_IS_IN_SHADOW_TREE);
     }
     ShadowRoot* parentContainingShadow = aParent->GetContainingShadow();
@@ -527,7 +528,8 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     }
     
     UnsetFlags(NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES);
-  } else {
+  } else if (!HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+    
     
     SetSubtreeRootPointer(aParent->SubtreeRoot());
   }
@@ -549,10 +551,7 @@ nsGenericDOMDataNode::UnbindFromTree(bool aDeep, bool aNullParent)
 {
   
   UnsetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE |
-             NS_REFRAME_IF_WHITESPACE |
-             
-             
-             NODE_IS_IN_SHADOW_TREE);
+             NS_REFRAME_IF_WHITESPACE);
   
   nsIDocument *document = GetCurrentDoc();
   if (document) {
@@ -571,6 +570,7 @@ nsGenericDOMDataNode::UnbindFromTree(bool aDeep, bool aNullParent)
     SetParentIsContent(false);
   }
   ClearInDocument();
+  UnsetFlags(NODE_IS_IN_SHADOW_TREE);
 
   
   SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());

@@ -831,7 +831,7 @@ Element::CreateShadowRoot(ErrorResult& aError)
 
   
   
-  nsIDocument* doc = GetCurrentDoc();
+  nsIDocument* doc = GetCrossShadowCurrentDoc();
   if (doc) {
     nsIPresShell *shell = doc->GetShell();
     if (shell) {
@@ -1231,6 +1231,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
       SetFlags(NODE_CHROME_ONLY_ACCESS);
     }
     if (aParent->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+      ClearSubtreeRootPointer();
       SetFlags(NODE_IS_IN_SHADOW_TREE);
     }
     ShadowRoot* parentContainingShadow = aParent->GetContainingShadow();
@@ -1291,7 +1292,8 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
     
     SetIsElementInStyleScope(mParent->IsElementInStyleScope());
-  } else {
+  } else if (!HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+    
     
     SetSubtreeRootPointer(aParent->SubtreeRoot());
   }
@@ -1435,6 +1437,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
     SetParentIsContent(false);
   }
   ClearInDocument();
+  UnsetFlags(NODE_IS_IN_SHADOW_TREE);
 
   
   SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
@@ -1470,7 +1473,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   }
 
   
-  UnsetFlags(NODE_FORCE_XBL_BINDINGS | NODE_IS_IN_SHADOW_TREE);
+  UnsetFlags(NODE_FORCE_XBL_BINDINGS);
   
 #ifdef MOZ_XUL
   nsXULElement* xulElem = nsXULElement::FromContent(this);

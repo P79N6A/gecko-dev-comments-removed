@@ -529,6 +529,19 @@ public:
 
 
 
+
+
+
+  nsIDocument* GetCrossShadowCurrentDoc() const
+  {
+    return HasFlag(NODE_IS_IN_SHADOW_TREE) ?
+      GetCrossShadowCurrentDocInternal() : GetCurrentDoc();
+  }
+
+  
+
+
+
   uint16_t NodeType() const
   {
     return mNodeInfo->NodeType();
@@ -808,29 +821,7 @@ public:
 
 
 
-  nsINode* SubtreeRoot() const
-  {
-    
-    
-    
-    
-    
-    
-    nsINode* node = IsInDoc() ? OwnerDocAsNode() : mSubtreeRoot;
-    NS_ASSERTION(node, "Should always have a node here!");
-#ifdef DEBUG
-    {
-      const nsINode* slowNode = this;
-      const nsINode* iter = slowNode;
-      while ((iter = iter->GetParentNode())) {
-        slowNode = iter;
-      }
-
-      NS_ASSERTION(slowNode == node, "These should always be in sync!");
-    }
-#endif
-    return node;
-  }
+  nsINode* SubtreeRoot() const;
 
   
 
@@ -1205,6 +1196,8 @@ public:
 
 private:
 
+  nsIDocument* GetCrossShadowCurrentDocInternal() const;
+
   nsIContent* GetNextNodeImpl(const nsINode* aRoot,
                               const bool aSkipChildren) const
   {
@@ -1520,7 +1513,8 @@ protected:
   void SetSubtreeRootPointer(nsINode* aSubtreeRoot)
   {
     NS_ASSERTION(aSubtreeRoot, "aSubtreeRoot can never be null!");
-    NS_ASSERTION(!(IsNodeOfType(eCONTENT) && IsInDoc()), "Shouldn't be here!");
+    NS_ASSERTION(!(IsNodeOfType(eCONTENT) && IsInDoc()) &&
+                 !HasFlag(NODE_IS_IN_SHADOW_TREE), "Shouldn't be here!");
     mSubtreeRoot = aSubtreeRoot;
   }
 

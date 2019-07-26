@@ -72,9 +72,14 @@ ShadowRoot::ShadowRoot(nsIContent* aContent,
     mInsertionPointChanged(false)
 {
   SetHost(aContent);
-  SetFlags(NODE_IS_IN_SHADOW_TREE);
+
   
-  SetInDocument();
+  
+  
+  ClearSubtreeRootPointer();
+
+  SetFlags(NODE_IS_IN_SHADOW_TREE);
+
   DOMSlots()->mBindingParent = aContent;
   DOMSlots()->mContainingShadow = this;
 
@@ -92,7 +97,11 @@ ShadowRoot::~ShadowRoot()
     mPoolHost->RemoveMutationObserver(this);
   }
 
-  ClearInDocument();
+  UnsetFlags(NODE_IS_IN_SHADOW_TREE);
+
+  
+  SetSubtreeRootPointer(this);
+
   SetHost(nullptr);
 }
 
