@@ -22,32 +22,68 @@
 #ifndef PNGCONF_H
 #define PNGCONF_H
 
-#ifndef PNG_BUILDING_SYMBOL_TABLE
 
-
-
-
-#  ifndef PNG_NO_LIMITS_H
-#    include <limits.h>
+#ifdef PNG_SAFE_LIMITS_SUPPORTED
+#  ifdef PNG_USER_WIDTH_MAX
+#    undef PNG_USER_WIDTH_MAX
+#    define PNG_USER_WIDTH_MAX 1000000L
 #  endif
-
-
-
-
-
-#  ifdef BSD
-#    include <strings.h>
-#  else
-#    include <string.h>
+#  ifdef PNG_USER_HEIGHT_MAX
+#    undef PNG_USER_HEIGHT_MAX
+#    define PNG_USER_HEIGHT_MAX 1000000L
 #  endif
-
-
-
-
-#  ifdef PNG_STDIO_SUPPORTED
-#    include <stdio.h>
+#  ifdef PNG_USER_CHUNK_MALLOC_MAX
+#    undef PNG_USER_CHUNK_MALLOC_MAX
+#    define PNG_USER_CHUNK_MALLOC_MAX 4000000L
+#  endif
+#  ifdef PNG_USER_CHUNK_CACHE_MAX
+#    undef PNG_USER_CHUNK_CACHE_MAX
+#    define PNG_USER_CHUNK_CACHE_MAX 128
 #  endif
 #endif
+
+#ifndef PNG_BUILDING_SYMBOL_TABLE 
+
+
+
+
+
+
+#include <limits.h>
+#include <stddef.h>
+
+
+
+
+
+
+
+
+
+
+
+#ifdef PNG_STDIO_SUPPORTED
+   
+#  include <stdio.h>
+#endif
+
+#ifdef PNG_SETJMP_SUPPORTED
+   
+#  include <setjmp.h>
+#endif
+
+#ifdef PNG_CONVERT_tIME_SUPPORTED
+   
+#  include <time.h>
+#endif
+
+#endif 
+
+
+
+
+
+#define PNG_CONST const /* backward compatibility only */
 
 
 
@@ -76,24 +112,9 @@
 
 
 
-
-
-
 #ifndef PNGARG
-
-#  ifdef OF 
-#    define PNGARG(arglist) OF(arglist)
-#  else
-
-#    ifdef _NO_PROTO
-#      define PNGARG(arglist) ()
-#    else
-#      define PNGARG(arglist) arglist
-#    endif 
-
-#  endif 
-
-#endif 
+#  define PNGARG(arglist) arglist
+#endif
 
 
 
@@ -217,10 +238,11 @@
 #      define PNGAPI _stdcall
 #    endif
 #  endif 
+
   
 
 #  if defined(PNGAPI) && !defined(PNG_USER_PRIVATEBUILD)
-   ERROR: PNG_USER_PRIVATEBUILD must be defined if PNGAPI is changed
+#     error "PNG_USER_PRIVATEBUILD must be defined if PNGAPI is changed"
 #  endif
 
 #  if (defined(_MSC_VER) && _MSC_VER < 800) ||\
@@ -338,6 +360,7 @@
 
 
 
+
 #  if defined(__GNUC__)
 #    ifndef PNG_USE_RESULT
 #      define PNG_USE_RESULT __attribute__((__warn_unused_result__))
@@ -361,15 +384,19 @@
             __attribute__((__deprecated__))
 #        endif
 #      endif
+#      if ((__GNUC__ != 3) || !defined(__GNUC_MINOR__) || (__GNUC_MINOR__ >= 1))
+#        ifndef PNG_RESTRICT
+#          define PNG_RESTRICT __restrict
+#        endif
+#      endif 
 #    endif 
-#  endif 
 
-#  if defined(_MSC_VER)  && (_MSC_VER >= 1300)
+#  elif defined(_MSC_VER)  && (_MSC_VER >= 1300)
 #    ifndef PNG_USE_RESULT
 #      define PNG_USE_RESULT
 #    endif
 #    ifndef PNG_NORETURN
-#      define PNG_NORETURN __declspec(noreturn)
+#      define PNG_NORETURN   __declspec(noreturn)
 #    endif
 #    ifndef PNG_ALLOCATED
 #      if (_MSC_VER >= 1400)
@@ -381,6 +408,16 @@
 #    endif
 #    ifndef PNG_PRIVATE
 #      define PNG_PRIVATE __declspec(deprecated)
+#    endif
+#    ifndef PNG_RESTRICT
+#      if (_MSC_VER >= 1400)
+#        define PNG_RESTRICT __restrict
+#      endif
+#    endif
+
+#  elif defined(__WATCOMC__)
+#    ifndef PNG_RESTRICT
+#      define PNG_RESTRICT __restrict
 #    endif
 #  endif 
 #endif 
@@ -400,6 +437,9 @@
 #ifndef PNG_PRIVATE
 #  define PNG_PRIVATE
 #endif
+#ifndef PNG_RESTRICT
+#  define PNG_RESTRICT
+#endif
 #ifndef PNG_FP_EXPORT     
 #  ifdef PNG_FLOATING_POINT_SUPPORTED
 #     define PNG_FP_EXPORT(ordinal, type, name, args)\
@@ -417,6 +457,7 @@
 #  endif
 #endif
 
+#ifndef PNG_BUILDING_SYMBOL_TABLE
 
 
 
@@ -424,99 +465,102 @@
 
 
 
-#ifndef PNG_CONST
-#  ifndef PNG_NO_CONST
-#    define PNG_CONST const
-#  else
-#    define PNG_CONST
-#  endif
+
+
+
+
+
+
+
+#if CHAR_BIT == 8 && UCHAR_MAX == 255
+   typedef unsigned char png_byte;
+#else
+#  error "libpng requires 8 bit bytes"
+#endif
+
+#if INT_MIN == -32768 && INT_MAX == 32767
+   typedef int png_int_16;
+#elif SHRT_MIN == -32768 && SHRT_MAX == 32767
+   typedef short png_int_16;
+#else
+#  error "libpng requires a signed 16 bit type"
+#endif
+
+#if UINT_MAX == 65535
+   typedef unsigned int png_uint_16;
+#elif USHRT_MAX == 65535
+   typedef unsigned short png_uint_16;
+#else
+#  error "libpng requires an unsigned 16 bit type"
+#endif
+
+#if INT_MIN < -2147483646 && INT_MAX > 2147483646
+   typedef int png_int_32;
+#elif LONG_MIN < -2147483646 && LONG_MAX > 2147483646
+   typedef long int png_int_32;
+#else
+#  error "libpng requires a signed 32 bit (or more) type"
+#endif
+
+#if UINT_MAX > 4294967294
+   typedef unsigned int png_uint_32;
+#elif ULONG_MAX > 4294967294
+   typedef unsigned long int png_uint_32;
+#else
+#  error "libpng requires an unsigned 32 bit (or more) type"
 #endif
 
 
 
 
-
-
-
-
-
-#if defined(INT_MAX) && (INT_MAX > 0x7ffffffeL)
-typedef unsigned int png_uint_32;
-typedef int png_int_32;
-#else
-typedef unsigned long png_uint_32;
-typedef long png_int_32;
-#endif
-typedef unsigned short png_uint_16;
-typedef short png_int_16;
-typedef unsigned char png_byte;
-
-#ifdef PNG_NO_SIZE_T
-typedef unsigned int png_size_t;
-#else
 typedef size_t png_size_t;
-#endif
-#define png_sizeof(x) (sizeof (x))
+typedef ptrdiff_t png_ptrdiff_t;
 
 
 
 
 
 
+#ifndef PNG_SMALL_SIZE_T
+   
 
 
 
-
-
-
-
-#ifdef __BORLANDC__
-#  if defined(__LARGE__) || defined(__HUGE__) || defined(__COMPACT__)
-#    define LDATA 1
-#  else
-#    define LDATA 0
-#  endif
-  
-#  if !defined(__WIN32__) && !defined(__FLAT__) && !defined(__CYGWIN__)
-#    define PNG_MAX_MALLOC_64K
-#    if (LDATA != 1)
-#      ifndef FAR
-#        define FAR __far
-#      endif
-#      define USE_FAR_KEYWORD
-#    endif   
-         
-
-
-
-
-#  endif  
-#endif   
-
-
-
-
-
-
-
-
-#ifdef FAR
-#  ifdef M_I86MM
-#    define USE_FAR_KEYWORD
-#    define FARDATA FAR
-#    include <dos.h>
+#  if (defined(__TURBOC__) && !defined(__FLAT__)) ||\
+   (defined(_MSC_VER) && defined(MAXSEG_64K))
+#     define PNG_SMALL_SIZE_T
 #  endif
 #endif
 
 
-#ifndef FAR
-#  define FAR
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef PNG_SMALL_SIZE_T
+   typedef png_uint_32 png_alloc_size_t;
+#else
+   typedef png_size_t png_alloc_size_t;
 #endif
 
 
-#ifndef FARDATA
-#  define FARDATA
-#endif
+
+
+
+
+
+
+
+
+
 
 
 
@@ -524,76 +568,50 @@ typedef size_t png_size_t;
 typedef png_int_32 png_fixed_point;
 
 
-typedef void                      FAR * png_voidp;
-typedef PNG_CONST void            FAR * png_const_voidp;
-typedef png_byte                  FAR * png_bytep;
-typedef PNG_CONST png_byte        FAR * png_const_bytep;
-typedef png_uint_32               FAR * png_uint_32p;
-typedef PNG_CONST png_uint_32     FAR * png_const_uint_32p;
-typedef png_int_32                FAR * png_int_32p;
-typedef PNG_CONST png_int_32      FAR * png_const_int_32p;
-typedef png_uint_16               FAR * png_uint_16p;
-typedef PNG_CONST png_uint_16     FAR * png_const_uint_16p;
-typedef png_int_16                FAR * png_int_16p;
-typedef PNG_CONST png_int_16      FAR * png_const_int_16p;
-typedef char                      FAR * png_charp;
-typedef PNG_CONST char            FAR * png_const_charp;
-typedef png_fixed_point           FAR * png_fixed_point_p;
-typedef PNG_CONST png_fixed_point FAR * png_const_fixed_point_p;
-typedef png_size_t                FAR * png_size_tp;
-typedef PNG_CONST png_size_t      FAR * png_const_size_tp;
+typedef void                  * png_voidp;
+typedef const void            * png_const_voidp;
+typedef png_byte              * png_bytep;
+typedef const png_byte        * png_const_bytep;
+typedef png_uint_32           * png_uint_32p;
+typedef const png_uint_32     * png_const_uint_32p;
+typedef png_int_32            * png_int_32p;
+typedef const png_int_32      * png_const_int_32p;
+typedef png_uint_16           * png_uint_16p;
+typedef const png_uint_16     * png_const_uint_16p;
+typedef png_int_16            * png_int_16p;
+typedef const png_int_16      * png_const_int_16p;
+typedef char                  * png_charp;
+typedef const char            * png_const_charp;
+typedef png_fixed_point       * png_fixed_point_p;
+typedef const png_fixed_point * png_const_fixed_point_p;
+typedef png_size_t            * png_size_tp;
+typedef const png_size_t      * png_const_size_tp;
 
 #ifdef PNG_STDIO_SUPPORTED
 typedef FILE            * png_FILE_p;
 #endif
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-typedef double           FAR * png_doublep;
-typedef PNG_CONST double FAR * png_const_doublep;
+typedef double       * png_doublep;
+typedef const double * png_const_doublep;
 #endif
 
 
-typedef png_byte        FAR * FAR * png_bytepp;
-typedef png_uint_32     FAR * FAR * png_uint_32pp;
-typedef png_int_32      FAR * FAR * png_int_32pp;
-typedef png_uint_16     FAR * FAR * png_uint_16pp;
-typedef png_int_16      FAR * FAR * png_int_16pp;
-typedef PNG_CONST char  FAR * FAR * png_const_charpp;
-typedef char            FAR * FAR * png_charpp;
-typedef png_fixed_point FAR * FAR * png_fixed_point_pp;
+typedef png_byte        * * png_bytepp;
+typedef png_uint_32     * * png_uint_32pp;
+typedef png_int_32      * * png_int_32pp;
+typedef png_uint_16     * * png_uint_16pp;
+typedef png_int_16      * * png_int_16pp;
+typedef const char      * * png_const_charpp;
+typedef char            * * png_charpp;
+typedef png_fixed_point * * png_fixed_point_pp;
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-typedef double          FAR * FAR * png_doublepp;
+typedef double          * * png_doublepp;
 #endif
 
 
-typedef char            FAR * FAR * FAR * png_charppp;
+typedef char            * * * png_charppp;
 
-
-
-
-
-
-
-
-
-
-#if defined(__TURBOC__) && !defined(__FLAT__)
-   typedef unsigned long png_alloc_size_t;
-#else
-#  if defined(_MSC_VER) && defined(MAXSEG_64K)
-     typedef unsigned long    png_alloc_size_t;
-#  else
-     
-
-
-
-#    if (defined(_Windows) || defined(_WINDOWS) || defined(_WINDOWS_)) && \
-        (!defined(INT_MAX) || INT_MAX <= 0x7ffffffeL)
-       typedef DWORD         png_alloc_size_t;
-#    else
-       typedef png_size_t    png_alloc_size_t;
-#    endif
-#  endif
-#endif
+#endif 
 
 #endif 

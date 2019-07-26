@@ -71,29 +71,42 @@ struct png_info_def
    png_byte interlace_type; 
 
    
+
+
    png_byte channels;       
    png_byte pixel_depth;    
    png_byte spare_byte;     
+
+#ifdef PNG_READ_SUPPORTED
+   
    png_byte signature[8];   
-
-   
-
-
-
-
-
-#if defined(PNG_gAMA_SUPPORTED)
-   
-
-
-
-   png_fixed_point gamma;
 #endif
 
-#ifdef PNG_sRGB_SUPPORTED
-    
-    
-   png_byte srgb_intent; 
+   
+
+
+
+
+
+#if defined(PNG_COLORSPACE_SUPPORTED) || defined(PNG_GAMMA_SUPPORTED)
+   
+
+
+
+
+
+
+
+
+
+   png_colorspace colorspace;
+#endif
+
+#ifdef PNG_iCCP_SUPPORTED
+   
+   png_charp iccp_name;     
+   png_bytep iccp_profile;  
+   png_uint_32 iccp_proflen;  
 #endif
 
 #ifdef PNG_TEXT_SUPPORTED
@@ -183,23 +196,6 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
    png_uint_16p hist;
 #endif
 
-#ifdef PNG_cHRM_SUPPORTED
-   
-
-
-
-
-
-   png_fixed_point x_white;
-   png_fixed_point y_white;
-   png_fixed_point x_red;
-   png_fixed_point y_red;
-   png_fixed_point x_green;
-   png_fixed_point y_green;
-   png_fixed_point x_blue;
-   png_fixed_point y_blue;
-#endif
-
 #ifdef PNG_pCAL_SUPPORTED
    
 
@@ -224,25 +220,20 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
 
    png_uint_32 free_me;     
 
-#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED) || \
- defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
+#ifdef PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED
    
    png_unknown_chunkp unknown_chunks;
-   int unknown_chunks_num;
-#endif
 
-#ifdef PNG_iCCP_SUPPORTED
    
-   png_charp iccp_name;     
-   png_bytep iccp_profile;  
-   png_uint_32 iccp_proflen;  
-   png_byte iccp_compression; 
+
+
+   int                unknown_chunks_num;
 #endif
 
 #ifdef PNG_sPLT_SUPPORTED
    
    png_sPLT_tp splt_palettes;
-   int splt_palettes_num;
+   int         splt_palettes_num; 
 #endif
 
 #ifdef PNG_sCAL_SUPPORTED

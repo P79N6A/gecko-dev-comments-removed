@@ -15,6 +15,9 @@
 
 
 #include "pngpriv.h"
+#if defined(PNG_SIMPLIFIED_READ_SUPPORTED) && defined(PNG_STDIO_SUPPORTED)
+#  include <errno.h>
+#endif
 
 #ifdef PNG_READ_SUPPORTED
 
@@ -23,10 +26,12 @@ PNG_FUNCTION(png_structp,PNGAPI
 png_create_read_struct,(png_const_charp user_png_ver, png_voidp error_ptr,
     png_error_ptr error_fn, png_error_ptr warn_fn),PNG_ALLOCATED)
 {
-
-#ifdef PNG_USER_MEM_SUPPORTED
-   return (png_create_read_struct_2(user_png_ver, error_ptr, error_fn,
-       warn_fn, NULL, NULL, NULL));
+#ifndef PNG_USER_MEM_SUPPORTED
+   png_structp png_ptr = png_create_png_struct(user_png_ver, error_ptr,
+      error_fn, warn_fn, NULL, NULL, NULL);
+#else
+   return png_create_read_struct_2(user_png_ver, error_ptr, error_fn,
+       warn_fn, NULL, NULL, NULL);
 }
 
 
@@ -37,131 +42,40 @@ png_create_read_struct_2,(png_const_charp user_png_ver, png_voidp error_ptr,
     png_error_ptr error_fn, png_error_ptr warn_fn, png_voidp mem_ptr,
     png_malloc_ptr malloc_fn, png_free_ptr free_fn),PNG_ALLOCATED)
 {
+   png_structp png_ptr = png_create_png_struct(user_png_ver, error_ptr,
+      error_fn, warn_fn, mem_ptr, malloc_fn, free_fn);
 #endif
 
-#ifdef PNG_SETJMP_SUPPORTED
-   volatile
-#endif
-   png_structp png_ptr;
-   volatile int png_cleanup_needed = 0;
-
-#ifdef PNG_SETJMP_SUPPORTED
-#ifdef USE_FAR_KEYWORD
-   jmp_buf tmp_jmpbuf;
-#endif
-#endif
-
-   png_debug(1, "in png_create_read_struct");
-
-#ifdef PNG_USER_MEM_SUPPORTED
-   png_ptr = (png_structp)png_create_struct_2(PNG_STRUCT_PNG,
-       malloc_fn, mem_ptr);
-#else
-   png_ptr = (png_structp)png_create_struct(PNG_STRUCT_PNG);
-#endif
-   if (png_ptr == NULL)
-      return (NULL);
-
-   
-#ifdef PNG_USER_LIMITS_SUPPORTED
-   png_ptr->user_width_max = PNG_USER_WIDTH_MAX;
-   png_ptr->user_height_max = PNG_USER_HEIGHT_MAX;
-
-   
-   png_ptr->user_chunk_cache_max = PNG_USER_CHUNK_CACHE_MAX;
-
-   
-   png_ptr->user_chunk_malloc_max = PNG_USER_CHUNK_MALLOC_MAX;
-#endif
-
-#ifdef PNG_SETJMP_SUPPORTED
-
-
-
-
-#ifdef USE_FAR_KEYWORD
-   if (setjmp(tmp_jmpbuf))
-#else
-   if (setjmp(png_jmpbuf(png_ptr))) 
-#endif
-      PNG_ABORT();
-#ifdef USE_FAR_KEYWORD
-   png_memcpy(png_jmpbuf(png_ptr), tmp_jmpbuf, png_sizeof(jmp_buf));
-#endif
-#endif 
-
-#ifdef PNG_USER_MEM_SUPPORTED
-   png_set_mem_fn(png_ptr, mem_ptr, malloc_fn, free_fn);
-#endif
-
-   png_set_error_fn(png_ptr, error_ptr, error_fn, warn_fn);
-
-   
-   if (!png_user_version_check(png_ptr, user_png_ver))
-      png_cleanup_needed = 1;
-
-   if (!png_cleanup_needed)
+   if (png_ptr != NULL)
    {
-   
-   png_ptr->zbuf_size = PNG_ZBUF_SIZE;
-   png_ptr->zbuf = (png_bytep)png_malloc_warn(png_ptr, png_ptr->zbuf_size);
+      png_ptr->mode = PNG_IS_READ_STRUCT;
 
-   if (png_ptr->zbuf == NULL)
-      png_cleanup_needed = 1;
-   }
-
-   png_ptr->zstream.zalloc = png_zalloc;
-   png_ptr->zstream.zfree = png_zfree;
-   png_ptr->zstream.opaque = (voidpf)png_ptr;
-
-   if (!png_cleanup_needed)
-   {
-      switch (inflateInit(&png_ptr->zstream))
-      {
-         case Z_OK:
-            break; 
-
-         case Z_MEM_ERROR:
-            png_warning(png_ptr, "zlib memory error");
-            png_cleanup_needed = 1;
-            break;
-
-         case Z_STREAM_ERROR:
-            png_warning(png_ptr, "zlib stream error");
-            png_cleanup_needed = 1;
-            break;
-
-         case Z_VERSION_ERROR:
-            png_warning(png_ptr, "zlib version error");
-            png_cleanup_needed = 1;
-            break;
-
-         default: png_warning(png_ptr, "Unknown zlib error");
-            png_cleanup_needed = 1;
-      }
-   }
-
-   if (png_cleanup_needed)
-   {
       
-      png_free(png_ptr, png_ptr->zbuf);
-      png_ptr->zbuf = NULL;
-#ifdef PNG_USER_MEM_SUPPORTED
-      png_destroy_struct_2((png_voidp)png_ptr,
-          (png_free_ptr)free_fn, (png_voidp)mem_ptr);
-#else
-      png_destroy_struct((png_voidp)png_ptr);
-#endif
-      return (NULL);
+
+
+#     ifdef PNG_SEQUENTIAL_READ_SUPPORTED
+         png_ptr->IDAT_read_size = PNG_IDAT_READ_SIZE;
+#     endif
+
+#     ifdef PNG_BENIGN_READ_ERRORS_SUPPORTED
+         png_ptr->flags |= PNG_FLAG_BENIGN_ERRORS_WARN;
+
+         
+
+
+#        if PNG_LIBPNG_BUILD_BASE_TYPE >= PNG_LIBPNG_BUILD_RC
+            png_ptr->flags |= PNG_FLAG_APP_WARNINGS_WARN;
+#        endif
+#     endif
+
+      
+
+
+
+      png_set_read_fn(png_ptr, NULL, NULL);
    }
 
-   png_ptr->zstream.next_out = png_ptr->zbuf;
-   png_ptr->zstream.avail_out = (uInt)png_ptr->zbuf_size;
-
-   png_set_read_fn(png_ptr, NULL, NULL);
-
-
-   return (png_ptr);
+   return png_ptr;
 }
 
 
@@ -175,8 +89,12 @@ png_create_read_struct_2,(png_const_charp user_png_ver, png_voidp error_ptr,
 
 
 void PNGAPI
-png_read_info(png_structp png_ptr, png_infop info_ptr)
+png_read_info(png_structrp png_ptr, png_inforp info_ptr)
 {
+#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+   int keep;
+#endif
+
    png_debug(1, "in png_read_info");
 
    if (png_ptr == NULL || info_ptr == NULL)
@@ -194,8 +112,25 @@ png_read_info(png_structp png_ptr, png_infop info_ptr)
 
 
       if (chunk_name == png_IDAT)
-         if (png_ptr->mode & PNG_AFTER_IDAT)
-            png_ptr->mode |= PNG_HAVE_CHUNK_AFTER_IDAT;
+      {
+         if (!(png_ptr->mode & PNG_HAVE_IHDR))
+            png_chunk_error(png_ptr, "Missing IHDR before IDAT");
+
+         else if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
+             !(png_ptr->mode & PNG_HAVE_PLTE))
+            png_chunk_error(png_ptr, "Missing PLTE before IDAT");
+
+         else if (png_ptr->mode & PNG_AFTER_IDAT)
+            png_chunk_benign_error(png_ptr, "Too many IDATs found");
+
+         png_ptr->mode |= PNG_HAVE_IDAT;
+      }
+
+      else if (png_ptr->mode & PNG_HAVE_IDAT)
+         png_ptr->mode |= PNG_AFTER_IDAT;
+
+      
+
 
       if (chunk_name == png_IHDR)
          png_handle_IHDR(png_ptr, info_ptr, length);
@@ -204,26 +139,16 @@ png_read_info(png_structp png_ptr, png_infop info_ptr)
          png_handle_IEND(png_ptr, info_ptr, length);
 
 #ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-      else if (png_chunk_unknown_handling(png_ptr, chunk_name) !=
-         PNG_HANDLE_CHUNK_AS_DEFAULT)
+      else if ((keep = png_chunk_unknown_handling(png_ptr, chunk_name)) != 0)
       {
-         if (chunk_name == png_IDAT)
-            png_ptr->mode |= PNG_HAVE_IDAT;
-
-         png_handle_unknown(png_ptr, info_ptr, length);
+         png_handle_unknown(png_ptr, info_ptr, length, keep);
 
          if (chunk_name == png_PLTE)
             png_ptr->mode |= PNG_HAVE_PLTE;
 
          else if (chunk_name == png_IDAT)
          {
-            if (!(png_ptr->mode & PNG_HAVE_IHDR))
-               png_error(png_ptr, "Missing IHDR before IDAT");
-
-            else if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
-                !(png_ptr->mode & PNG_HAVE_PLTE))
-               png_error(png_ptr, "Missing PLTE before IDAT");
-
+            png_ptr->idat_size = 0; 
             break;
          }
       }
@@ -233,18 +158,10 @@ png_read_info(png_structp png_ptr, png_infop info_ptr)
 
       else if (chunk_name == png_IDAT)
       {
-         if (!(png_ptr->mode & PNG_HAVE_IHDR))
-            png_error(png_ptr, "Missing IHDR before IDAT");
-
-         else if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
-             !(png_ptr->mode & PNG_HAVE_PLTE))
-            png_error(png_ptr, "Missing PLTE before IDAT");
-
 #ifdef PNG_READ_APNG_SUPPORTED
          png_have_info(png_ptr, info_ptr);
 #endif
          png_ptr->idat_size = length;
-         png_ptr->mode |= PNG_HAVE_IDAT;
          break;
       }
 
@@ -345,7 +262,8 @@ png_read_info(png_structp png_ptr, png_infop info_ptr)
 #endif
 
       else
-         png_handle_unknown(png_ptr, info_ptr, length);
+         png_handle_unknown(png_ptr, info_ptr, length,
+            PNG_HANDLE_CHUNK_AS_DEFAULT);
    }
 }
 #endif 
@@ -365,8 +283,6 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
     
     if (png_ptr->num_frames_read == 0)
         return;
-
-    png_crc_finish(png_ptr, 0); 
 
     png_read_reset(png_ptr);
     png_ptr->flags &= ~PNG_FLAG_ROW_INIT;
@@ -420,20 +336,28 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
 
 
 void PNGAPI
-png_read_update_info(png_structp png_ptr, png_infop info_ptr)
+png_read_update_info(png_structrp png_ptr, png_inforp info_ptr)
 {
    png_debug(1, "in png_read_update_info");
 
-   if (png_ptr == NULL)
-      return;
+   if (png_ptr != NULL)
+   {
+      if ((png_ptr->flags & PNG_FLAG_ROW_INIT) == 0)
+      {
+         png_read_start_row(png_ptr);
 
-   png_read_start_row(png_ptr);
+#        ifdef PNG_READ_TRANSFORMS_SUPPORTED
+            png_read_transform_info(png_ptr, info_ptr);
+#        else
+            PNG_UNUSED(info_ptr)
+#        endif
+      }
 
-#ifdef PNG_READ_TRANSFORMS_SUPPORTED
-   png_read_transform_info(png_ptr, info_ptr);
-#else
-   PNG_UNUSED(info_ptr)
-#endif
+      
+      else
+         png_app_error(png_ptr,
+            "png_read_update_info/png_start_read_image: duplicate call");
+   }
 }
 
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
@@ -443,21 +367,27 @@ png_read_update_info(png_structp png_ptr, png_infop info_ptr)
 
 
 void PNGAPI
-png_start_read_image(png_structp png_ptr)
+png_start_read_image(png_structrp png_ptr)
 {
    png_debug(1, "in png_start_read_image");
 
    if (png_ptr != NULL)
-     png_read_start_row(png_ptr);
+   {
+      if ((png_ptr->flags & PNG_FLAG_ROW_INIT) == 0)
+         png_read_start_row(png_ptr);
+
+      
+      else
+         png_app_error(png_ptr,
+            "png_start_read_image/png_read_update_info: duplicate call");
+   }
 }
 #endif 
 
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 void PNGAPI
-png_read_row(png_structp png_ptr, png_bytep row, png_bytep dsp_row)
+png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
 {
-   int ret;
-
    png_row_info row_info;
 
    if (png_ptr == NULL)
@@ -584,6 +514,7 @@ png_read_row(png_structp png_ptr, png_bytep row, png_bytep dsp_row)
                return;
             }
             break;
+
          case 5:
             if ((png_ptr->row_number & 1) || png_ptr->width < 2)
             {
@@ -610,85 +541,8 @@ png_read_row(png_structp png_ptr, png_bytep row, png_bytep dsp_row)
    if (!(png_ptr->mode & PNG_HAVE_IDAT))
       png_error(png_ptr, "Invalid attempt to read row data");
 
-   png_ptr->zstream.next_out = png_ptr->row_buf;
-   png_ptr->zstream.avail_out =
-       (uInt)(PNG_ROWBYTES(png_ptr->pixel_depth,
-       png_ptr->iwidth) + 1);
-
-   do
-   {
-      if (!(png_ptr->zstream.avail_in))
-      {
-#ifdef PNG_READ_APNG_SUPPORTED
-         png_uint_32 bytes_to_skip = 0;
-
-         while (!png_ptr->idat_size || bytes_to_skip != 0)
-         {
-            png_crc_finish(png_ptr, bytes_to_skip);
-            bytes_to_skip = 0;
-
-            png_ptr->idat_size = png_read_chunk_header(png_ptr);
-            if (png_ptr->num_frames_read == 0)
-            {
-               if (png_ptr->chunk_name != png_IDAT)
-                  png_error(png_ptr, "Not enough image data");
-            }
-            else
-            {
-               if (png_ptr->chunk_name == png_IEND)
-                  png_error(png_ptr, "Not enough image data");
-               if (png_ptr->chunk_name != png_fdAT)
-               {
-                  png_warning(png_ptr, "Skipped (ignored) a chunk "
-                                       "between APNG chunks");
-                  bytes_to_skip = png_ptr->idat_size;
-                  continue;
-               }
-
-               png_ensure_sequence_number(png_ptr, png_ptr->idat_size);
-
-               png_ptr->idat_size -= 4;
-            }
-         }
-#else
-         while (!png_ptr->idat_size)
-         {
-            png_crc_finish(png_ptr, 0);
-
-            png_ptr->idat_size = png_read_chunk_header(png_ptr);
-            if (png_ptr->chunk_name != png_IDAT)
-               png_error(png_ptr, "Not enough image data");
-         }
-#endif
-         png_ptr->zstream.avail_in = (uInt)png_ptr->zbuf_size;
-         png_ptr->zstream.next_in = png_ptr->zbuf;
-         if (png_ptr->zbuf_size > png_ptr->idat_size)
-            png_ptr->zstream.avail_in = (uInt)png_ptr->idat_size;
-         png_crc_read(png_ptr, png_ptr->zbuf,
-             (png_size_t)png_ptr->zstream.avail_in);
-         png_ptr->idat_size -= png_ptr->zstream.avail_in;
-      }
-
-      ret = inflate(&png_ptr->zstream, Z_PARTIAL_FLUSH);
-
-      if (ret == Z_STREAM_END)
-      {
-         if (png_ptr->zstream.avail_out || png_ptr->zstream.avail_in ||
-            png_ptr->idat_size)
-            png_benign_error(png_ptr, "Extra compressed data");
-         png_ptr->mode |= PNG_AFTER_IDAT;
-         png_ptr->flags |= PNG_FLAG_ZLIB_FINISHED;
-#ifdef PNG_READ_APNG_SUPPORTED
-         png_ptr->num_frames_read++;
-#endif
-         break;
-      }
-
-      if (ret != Z_OK)
-         png_error(png_ptr, png_ptr->zstream.msg ? png_ptr->zstream.msg :
-             "Decompression error");
-
-   } while (png_ptr->zstream.avail_out);
+   
+   png_read_IDAT_data(png_ptr, png_ptr->row_buf, row_info.rowbytes + 1);
 
    if (png_ptr->row_buf[0] > PNG_FILTER_VALUE_NONE)
    {
@@ -704,7 +558,7 @@ png_read_row(png_structp png_ptr, png_bytep row, png_bytep dsp_row)
 
 
 
-   png_memcpy(png_ptr->prev_row, png_ptr->row_buf, row_info.rowbytes + 1);
+   memcpy(png_ptr->prev_row, png_ptr->row_buf, row_info.rowbytes + 1);
 
 #ifdef PNG_MNG_FEATURES_SUPPORTED
    if ((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) &&
@@ -761,6 +615,7 @@ png_read_row(png_structp png_ptr, png_bytep row, png_bytep dsp_row)
 
    if (png_ptr->read_row_fn != NULL)
       (*(png_ptr->read_row_fn))(png_ptr, png_ptr->row_number, png_ptr->pass);
+
 }
 #endif 
 
@@ -790,7 +645,7 @@ png_read_row(png_structp png_ptr, png_bytep row, png_bytep dsp_row)
 
 
 void PNGAPI
-png_read_rows(png_structp png_ptr, png_bytepp row,
+png_read_rows(png_structrp png_ptr, png_bytepp row,
     png_bytepp display_row, png_uint_32 num_rows)
 {
    png_uint_32 i;
@@ -845,7 +700,7 @@ png_read_rows(png_structp png_ptr, png_bytepp row,
 
 
 void PNGAPI
-png_read_image(png_structp png_ptr, png_bytepp image)
+png_read_image(png_structrp png_ptr, png_bytepp image)
 {
    png_uint_32 i, image_height;
    int pass, j;
@@ -910,14 +765,24 @@ png_read_image(png_structp png_ptr, png_bytepp image)
 
 
 void PNGAPI
-png_read_end(png_structp png_ptr, png_infop info_ptr)
+png_read_end(png_structrp png_ptr, png_inforp info_ptr)
 {
+#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+   int keep;
+#endif
+
    png_debug(1, "in png_read_end");
 
    if (png_ptr == NULL)
       return;
 
-   png_crc_finish(png_ptr, 0); 
+   
+
+
+#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+   if (!png_chunk_unknown_handling(png_ptr, png_IDAT))
+#endif
+      png_read_finish_IDAT(png_ptr);
 
 #ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
    
@@ -938,15 +803,14 @@ png_read_end(png_structp png_ptr, png_infop info_ptr)
          png_handle_IEND(png_ptr, info_ptr, length);
 
 #ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-      else if (png_chunk_unknown_handling(png_ptr, chunk_name) !=
-         PNG_HANDLE_CHUNK_AS_DEFAULT)
+      else if ((keep = png_chunk_unknown_handling(png_ptr, chunk_name)) != 0)
       {
          if (chunk_name == png_IDAT)
          {
             if ((length > 0) || (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT))
                png_benign_error(png_ptr, "Too many IDATs found");
          }
-         png_handle_unknown(png_ptr, info_ptr, length);
+         png_handle_unknown(png_ptr, info_ptr, length, keep);
          if (chunk_name == png_PLTE)
             png_ptr->mode |= PNG_HAVE_PLTE;
       }
@@ -1051,117 +915,25 @@ png_read_end(png_structp png_ptr, png_infop info_ptr)
 #endif
 
       else
-         png_handle_unknown(png_ptr, info_ptr, length);
+         png_handle_unknown(png_ptr, info_ptr, length,
+            PNG_HANDLE_CHUNK_AS_DEFAULT);
    } while (!(png_ptr->mode & PNG_HAVE_IEND));
 }
 #endif 
 
 
-void PNGAPI
-png_destroy_read_struct(png_structpp png_ptr_ptr, png_infopp info_ptr_ptr,
-    png_infopp end_info_ptr_ptr)
+static void
+png_read_destroy(png_structrp png_ptr)
 {
-   png_structp png_ptr = NULL;
-   png_infop info_ptr = NULL, end_info_ptr = NULL;
-#ifdef PNG_USER_MEM_SUPPORTED
-   png_free_ptr free_fn = NULL;
-   png_voidp mem_ptr = NULL;
-#endif
-
-   png_debug(1, "in png_destroy_read_struct");
-
-   if (png_ptr_ptr != NULL)
-      png_ptr = *png_ptr_ptr;
-   if (png_ptr == NULL)
-      return;
-
-#ifdef PNG_USER_MEM_SUPPORTED
-   free_fn = png_ptr->free_fn;
-   mem_ptr = png_ptr->mem_ptr;
-#endif
-
-   if (info_ptr_ptr != NULL)
-      info_ptr = *info_ptr_ptr;
-
-   if (end_info_ptr_ptr != NULL)
-      end_info_ptr = *end_info_ptr_ptr;
-
-   png_read_destroy(png_ptr, info_ptr, end_info_ptr);
-
-   if (info_ptr != NULL)
-   {
-#ifdef PNG_TEXT_SUPPORTED
-      png_free_data(png_ptr, info_ptr, PNG_FREE_TEXT, -1);
-#endif
-
-#ifdef PNG_USER_MEM_SUPPORTED
-      png_destroy_struct_2((png_voidp)info_ptr, (png_free_ptr)free_fn,
-          (png_voidp)mem_ptr);
-#else
-      png_destroy_struct((png_voidp)info_ptr);
-#endif
-      *info_ptr_ptr = NULL;
-   }
-
-   if (end_info_ptr != NULL)
-   {
-#ifdef PNG_READ_TEXT_SUPPORTED
-      png_free_data(png_ptr, end_info_ptr, PNG_FREE_TEXT, -1);
-#endif
-#ifdef PNG_USER_MEM_SUPPORTED
-      png_destroy_struct_2((png_voidp)end_info_ptr, (png_free_ptr)free_fn,
-          (png_voidp)mem_ptr);
-#else
-      png_destroy_struct((png_voidp)end_info_ptr);
-#endif
-      *end_info_ptr_ptr = NULL;
-   }
-
-   if (png_ptr != NULL)
-   {
-#ifdef PNG_USER_MEM_SUPPORTED
-      png_destroy_struct_2((png_voidp)png_ptr, (png_free_ptr)free_fn,
-          (png_voidp)mem_ptr);
-#else
-      png_destroy_struct((png_voidp)png_ptr);
-#endif
-      *png_ptr_ptr = NULL;
-   }
-}
-
-
-void 
-png_read_destroy(png_structp png_ptr, png_infop info_ptr,
-    png_infop end_info_ptr)
-{
-#ifdef PNG_SETJMP_SUPPORTED
-   jmp_buf tmp_jmp;
-#endif
-   png_error_ptr error_fn;
-#ifdef PNG_WARNINGS_SUPPORTED
-   png_error_ptr warning_fn;
-#endif
-   png_voidp error_ptr;
-#ifdef PNG_USER_MEM_SUPPORTED
-   png_free_ptr free_fn;
-#endif
-
    png_debug(1, "in png_read_destroy");
-
-   if (info_ptr != NULL)
-      png_info_destroy(png_ptr, info_ptr);
-
-   if (end_info_ptr != NULL)
-      png_info_destroy(png_ptr, end_info_ptr);
 
 #ifdef PNG_READ_GAMMA_SUPPORTED
    png_destroy_gamma_table(png_ptr);
 #endif
 
-   png_free(png_ptr, png_ptr->zbuf);
    png_free(png_ptr, png_ptr->big_row_buf);
    png_free(png_ptr, png_ptr->big_prev_row);
-   png_free(png_ptr, png_ptr->chunkdata);
+   png_free(png_ptr, png_ptr->read_buffer);
 
 #ifdef PNG_READ_QUANTIZE_SUPPORTED
    png_free(png_ptr, png_ptr->palette_lookup);
@@ -1179,53 +951,56 @@ png_read_destroy(png_structp png_ptr, png_infop info_ptr,
    png_ptr->free_me &= ~PNG_FREE_TRNS;
 #endif
 
-#ifdef PNG_READ_hIST_SUPPORTED
-   if (png_ptr->free_me & PNG_FREE_HIST)
-      png_free(png_ptr, png_ptr->hist);
-   png_ptr->free_me &= ~PNG_FREE_HIST;
-#endif
-
    inflateEnd(&png_ptr->zstream);
 
 #ifdef PNG_PROGRESSIVE_READ_SUPPORTED
    png_free(png_ptr, png_ptr->save_buffer);
 #endif
 
+#if defined(PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED) &&\
+   defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED)
+   png_free(png_ptr, png_ptr->unknown_chunk.data);
+#endif
+
+#ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
+   png_free(png_ptr, png_ptr->chunk_list);
+#endif
+
    
 
 
-#ifdef PNG_SETJMP_SUPPORTED
-   png_memcpy(tmp_jmp, png_ptr->longjmp_buffer, png_sizeof(jmp_buf));
-#endif
-
-   error_fn = png_ptr->error_fn;
-#ifdef PNG_WARNINGS_SUPPORTED
-   warning_fn = png_ptr->warning_fn;
-#endif
-   error_ptr = png_ptr->error_ptr;
-#ifdef PNG_USER_MEM_SUPPORTED
-   free_fn = png_ptr->free_fn;
-#endif
-
-   png_memset(png_ptr, 0, png_sizeof(png_struct));
-
-   png_ptr->error_fn = error_fn;
-#ifdef PNG_WARNINGS_SUPPORTED
-   png_ptr->warning_fn = warning_fn;
-#endif
-   png_ptr->error_ptr = error_ptr;
-#ifdef PNG_USER_MEM_SUPPORTED
-   png_ptr->free_fn = free_fn;
-#endif
-
-#ifdef PNG_SETJMP_SUPPORTED
-   png_memcpy(png_ptr->longjmp_buffer, tmp_jmp, png_sizeof(jmp_buf));
-#endif
 
 }
 
+
 void PNGAPI
-png_set_read_status_fn(png_structp png_ptr, png_read_status_ptr read_row_fn)
+png_destroy_read_struct(png_structpp png_ptr_ptr, png_infopp info_ptr_ptr,
+    png_infopp end_info_ptr_ptr)
+{
+   png_structrp png_ptr = NULL;
+
+   png_debug(1, "in png_destroy_read_struct");
+
+   if (png_ptr_ptr != NULL)
+      png_ptr = *png_ptr_ptr;
+
+   if (png_ptr == NULL)
+      return;
+
+   
+
+
+
+   png_destroy_info_struct(png_ptr, end_info_ptr_ptr);
+   png_destroy_info_struct(png_ptr, info_ptr_ptr);
+
+   *png_ptr_ptr = NULL;
+   png_read_destroy(png_ptr);
+   png_destroy_png_struct(png_ptr);
+}
+
+void PNGAPI
+png_set_read_status_fn(png_structrp png_ptr, png_read_status_ptr read_row_fn)
 {
    if (png_ptr == NULL)
       return;
@@ -1237,7 +1012,7 @@ png_set_read_status_fn(png_structp png_ptr, png_read_status_ptr read_row_fn)
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 #ifdef PNG_INFO_IMAGE_SUPPORTED
 void PNGAPI
-png_read_png(png_structp png_ptr, png_infop info_ptr,
+png_read_png(png_structrp png_ptr, png_inforp info_ptr,
                            int transforms,
                            voidp params)
 {
@@ -1250,7 +1025,7 @@ png_read_png(png_structp png_ptr, png_infop info_ptr,
 
 
    png_read_info(png_ptr, info_ptr);
-   if (info_ptr->height > PNG_UINT_32_MAX/png_sizeof(png_bytep))
+   if (info_ptr->height > PNG_UINT_32_MAX/(sizeof (png_bytep)))
       png_error(png_ptr, "Image is too high to process with png_read_png()");
 
    
@@ -1397,7 +1172,7 @@ png_read_png(png_structp png_ptr, png_infop info_ptr,
       png_uint_32 iptr;
 
       info_ptr->row_pointers = (png_bytepp)png_malloc(png_ptr,
-          info_ptr->height * png_sizeof(png_bytep));
+          info_ptr->height * (sizeof (png_bytep)));
       for (iptr=0; iptr<info_ptr->height; iptr++)
          info_ptr->row_pointers[iptr] = NULL;
 
@@ -1420,4 +1195,2886 @@ png_read_png(png_structp png_ptr, png_infop info_ptr,
 }
 #endif 
 #endif 
+
+#ifdef PNG_SIMPLIFIED_READ_SUPPORTED
+
+
+
+
+
+
+
+
+
+#  define E_NOTSET  0 /* File encoding not yet known */
+#  define E_sRGB    1 /* 8-bit encoded to sRGB gamma */
+#  define E_LINEAR  2 /* 16-bit linear: not encoded, NOT pre-multiplied! */
+#  define E_FILE    3 /* 8-bit encoded to file gamma, not sRGB or linear */
+#  define E_LINEAR8 4 /* 8-bit linear: only from a file value */
+
+
+
+
+#define PNG_CMAP_NONE      0
+#define PNG_CMAP_GA        1 /* Process GA data to a color-map with alpha */
+#define PNG_CMAP_TRANS     2 /* Process GA data to a background index */
+#define PNG_CMAP_RGB       3 /* Process RGB data */
+#define PNG_CMAP_RGB_ALPHA 4 /* Process RGBA data */
+
+
+#define PNG_CMAP_NONE_BACKGROUND      256
+#define PNG_CMAP_GA_BACKGROUND        231
+#define PNG_CMAP_TRANS_BACKGROUND     254
+#define PNG_CMAP_RGB_BACKGROUND       256
+#define PNG_CMAP_RGB_ALPHA_BACKGROUND 216
+
+typedef struct
+{
+   
+   png_imagep image;
+   png_voidp  buffer;
+   png_int_32 row_stride;
+   png_voidp  colormap;
+   png_const_colorp background;
+   
+   png_voidp       local_row;
+   png_voidp       first_row;
+   ptrdiff_t       row_bytes;           
+   int             file_encoding;       
+   png_fixed_point gamma_to_linear;     
+   int             colormap_processing; 
+} png_image_read_control;
+
+
+
+
+
+
+static int
+png_image_read_init(png_imagep image)
+{
+   if (image->opaque == NULL)
+   {
+      png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, image,
+          png_safe_error, png_safe_warning);
+
+      
+
+
+      memset(image, 0, (sizeof *image));
+      image->version = PNG_IMAGE_VERSION;
+
+      if (png_ptr != NULL)
+      {
+         png_infop info_ptr = png_create_info_struct(png_ptr);
+
+         if (info_ptr != NULL)
+         {
+            png_controlp control = png_voidcast(png_controlp,
+               png_malloc_warn(png_ptr, (sizeof *control)));
+
+            if (control != NULL)
+            {
+               memset(control, 0, (sizeof *control));
+
+               control->png_ptr = png_ptr;
+               control->info_ptr = info_ptr;
+               control->for_write = 0;
+
+               image->opaque = control;
+               return 1;
+            }
+
+            
+            png_destroy_info_struct(png_ptr, &info_ptr);
+         }
+
+         png_destroy_read_struct(&png_ptr, NULL, NULL);
+      }
+
+      return png_image_error(image, "png_image_read: out of memory");
+   }
+
+   return png_image_error(image, "png_image_read: opaque pointer not NULL");
+}
+
+
+static png_uint_32
+png_image_format(png_structrp png_ptr)
+{
+   png_uint_32 format = 0;
+
+   if (png_ptr->color_type & PNG_COLOR_MASK_COLOR)
+      format |= PNG_FORMAT_FLAG_COLOR;
+
+   if (png_ptr->color_type & PNG_COLOR_MASK_ALPHA)
+      format |= PNG_FORMAT_FLAG_ALPHA;
+
+   
+
+
+
+
+   else if (png_ptr->num_trans > 0)
+      format |= PNG_FORMAT_FLAG_ALPHA;
+
+   if (png_ptr->bit_depth == 16)
+      format |= PNG_FORMAT_FLAG_LINEAR;
+
+   if (png_ptr->color_type & PNG_COLOR_MASK_PALETTE)
+      format |= PNG_FORMAT_FLAG_COLORMAP;
+
+   return format;
+}
+
+
+
+
+
+
+static int
+png_gamma_not_sRGB(png_fixed_point g)
+{
+   if (g < PNG_FP_1)
+   {
+      
+      if (g == 0)
+         return 0;
+
+      return png_gamma_significant((g * 11 + 2)/5 );
+   }
+
+   return 1;
+}
+
+
+
+
+
+static int
+png_image_read_header(png_voidp argument)
+{
+   png_imagep image = png_voidcast(png_imagep, argument);
+   png_structrp png_ptr = image->opaque->png_ptr;
+   png_inforp info_ptr = image->opaque->info_ptr;
+
+   png_set_benign_errors(png_ptr, 1);
+   png_read_info(png_ptr, info_ptr);
+
+   
+   image->width = png_ptr->width;
+   image->height = png_ptr->height;
+
+   {
+      png_uint_32 format = png_image_format(png_ptr);
+
+      image->format = format;
+
+#ifdef PNG_COLORSPACE_SUPPORTED
+      
+
+
+
+
+      if ((format & PNG_FORMAT_FLAG_COLOR) != 0 && ((png_ptr->colorspace.flags
+         & (PNG_COLORSPACE_HAVE_ENDPOINTS|PNG_COLORSPACE_ENDPOINTS_MATCH_sRGB|
+            PNG_COLORSPACE_INVALID)) == PNG_COLORSPACE_HAVE_ENDPOINTS))
+         image->flags |= PNG_IMAGE_FLAG_COLORSPACE_NOT_sRGB;
+#endif
+   }
+
+   
+
+
+   {
+      png_uint_32 cmap_entries;
+
+      switch (png_ptr->color_type)
+      {
+         case PNG_COLOR_TYPE_GRAY:
+            cmap_entries = 1U << png_ptr->bit_depth;
+            break;
+
+         case PNG_COLOR_TYPE_PALETTE:
+            cmap_entries = png_ptr->num_palette;
+            break;
+
+         default:
+            cmap_entries = 256;
+            break;
+      }
+
+      if (cmap_entries > 256)
+         cmap_entries = 256;
+
+      image->colormap_entries = cmap_entries;
+   }
+
+   return 1;
+}
+
+#ifdef PNG_STDIO_SUPPORTED
+int PNGAPI
+png_image_begin_read_from_stdio(png_imagep image, FILE* file)
+{
+   if (image != NULL && image->version == PNG_IMAGE_VERSION)
+   {
+      if (file != NULL)
+      {
+         if (png_image_read_init(image))
+         {
+            
+
+
+
+            image->opaque->png_ptr->io_ptr = file;
+            return png_safe_execute(image, png_image_read_header, image);
+         }
+      }
+
+      else
+         return png_image_error(image,
+            "png_image_begin_read_from_stdio: invalid argument");
+   }
+
+   else if (image != NULL)
+      return png_image_error(image,
+         "png_image_begin_read_from_stdio: incorrect PNG_IMAGE_VERSION");
+
+   return 0;
+}
+
+int PNGAPI
+png_image_begin_read_from_file(png_imagep image, const char *file_name)
+{
+   if (image != NULL && image->version == PNG_IMAGE_VERSION)
+   {
+      if (file_name != NULL)
+      {
+         FILE *fp = fopen(file_name, "rb");
+
+         if (fp != NULL)
+         {
+            if (png_image_read_init(image))
+            {
+               image->opaque->png_ptr->io_ptr = fp;
+               image->opaque->owned_file = 1;
+               return png_safe_execute(image, png_image_read_header, image);
+            }
+
+            
+            (void)fclose(fp);
+         }
+
+         else
+            return png_image_error(image, strerror(errno));
+      }
+
+      else
+         return png_image_error(image,
+            "png_image_begin_read_from_file: invalid argument");
+   }
+
+   else if (image != NULL)
+      return png_image_error(image,
+         "png_image_begin_read_from_file: incorrect PNG_IMAGE_VERSION");
+
+   return 0;
+}
 #endif 
+
+static void PNGCBAPI
+png_image_memory_read(png_structp png_ptr, png_bytep out, png_size_t need)
+{
+   if (png_ptr != NULL)
+   {
+      png_imagep image = png_voidcast(png_imagep, png_ptr->io_ptr);
+      if (image != NULL)
+      {
+         png_controlp cp = image->opaque;
+         if (cp != NULL)
+         {
+            png_const_bytep memory = cp->memory;
+            png_size_t size = cp->size;
+
+            if (memory != NULL && size >= need)
+            {
+               memcpy(out, memory, need);
+               cp->memory = memory + need;
+               cp->size = size - need;
+               return;
+            }
+
+            png_error(png_ptr, "read beyond end of data");
+         }
+      }
+
+      png_error(png_ptr, "invalid memory read");
+   }
+}
+
+int PNGAPI png_image_begin_read_from_memory(png_imagep image,
+   png_const_voidp memory, png_size_t size)
+{
+   if (image != NULL && image->version == PNG_IMAGE_VERSION)
+   {
+      if (memory != NULL && size > 0)
+      {
+         if (png_image_read_init(image))
+         {
+            
+
+
+
+            image->opaque->memory = png_voidcast(png_const_bytep, memory);
+            image->opaque->size = size;
+            image->opaque->png_ptr->io_ptr = image;
+            image->opaque->png_ptr->read_data_fn = png_image_memory_read;
+
+            return png_safe_execute(image, png_image_read_header, image);
+         }
+      }
+
+      else
+         return png_image_error(image,
+            "png_image_begin_read_from_memory: invalid argument");
+   }
+
+   else if (image != NULL)
+      return png_image_error(image,
+         "png_image_begin_read_from_memory: incorrect PNG_IMAGE_VERSION");
+
+   return 0;
+}
+
+
+
+
+#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+static void
+png_image_skip_unused_chunks(png_structrp png_ptr)
+{
+   
+
+
+
+
+
+
+
+
+
+
+
+
+   {
+         static PNG_CONST png_byte chunks_to_process[] = {
+            98,  75,  71,  68, '\0',  
+            99,  72,  82,  77, '\0',  
+           103,  65,  77,  65, '\0',  
+           105,  67,  67,  80, '\0',  
+           115,  66,  73,  84, '\0',  
+           115,  82,  71,  66, '\0',  
+           };
+
+       
+
+
+       png_set_keep_unknown_chunks(png_ptr, PNG_HANDLE_CHUNK_NEVER,
+         NULL, -1);
+
+       
+       png_set_keep_unknown_chunks(png_ptr, PNG_HANDLE_CHUNK_AS_DEFAULT,
+         chunks_to_process, (sizeof chunks_to_process)/5);
+    }
+}
+
+#  define PNG_SKIP_CHUNKS(p) png_image_skip_unused_chunks(p)
+#else
+#  define PNG_SKIP_CHUNKS(p) ((void)0)
+#endif 
+
+
+
+
+
+#define PNG_DIV51(v8) (((v8) * 5 + 130) >> 8)
+
+
+static void
+set_file_encoding(png_image_read_control *display)
+{
+   png_fixed_point g = display->image->opaque->png_ptr->colorspace.gamma;
+   if (png_gamma_significant(g))
+   {
+      if (png_gamma_not_sRGB(g))
+      {
+         display->file_encoding = E_FILE;
+         display->gamma_to_linear = png_reciprocal(g);
+      }
+
+      else
+         display->file_encoding = E_sRGB;
+   }
+
+   else
+      display->file_encoding = E_LINEAR8;
+}
+
+static unsigned int
+decode_gamma(png_image_read_control *display, png_uint_32 value, int encoding)
+{
+   if (encoding == E_FILE) 
+      encoding = display->file_encoding;
+
+   if (encoding == E_NOTSET) 
+   {
+      set_file_encoding(display);
+      encoding = display->file_encoding;
+   }
+
+   switch (encoding)
+   {
+      case E_FILE:
+         value = png_gamma_16bit_correct(value*257, display->gamma_to_linear);
+         break;
+
+      case E_sRGB:
+         value = png_sRGB_table[value];
+         break;
+
+      case E_LINEAR:
+         break;
+
+      case E_LINEAR8:
+         value *= 257;
+         break;
+
+      default:
+         png_error(display->image->opaque->png_ptr,
+            "unexpected encoding (internal error)");
+         break;
+   }
+
+   return value;
+}
+
+static png_uint_32
+png_colormap_compose(png_image_read_control *display,
+   png_uint_32 foreground, int foreground_encoding, png_uint_32 alpha,
+   png_uint_32 background, int encoding)
+{
+   
+
+
+
+
+   png_uint_32 f = decode_gamma(display, foreground, foreground_encoding);
+   png_uint_32 b = decode_gamma(display, background, encoding);
+
+   
+
+
+   f = f * alpha + b * (255-alpha);
+
+   if (encoding == E_LINEAR)
+   {
+      
+
+
+      f *= 257; 
+      f += f >> 16;
+      f = (f+32768) >> 16;
+   }
+
+   else 
+      f = PNG_sRGB_FROM_LINEAR(f);
+
+   return f;
+}
+
+
+
+
+static void
+png_create_colormap_entry(png_image_read_control *display,
+   png_uint_32 ip, png_uint_32 red, png_uint_32 green, png_uint_32 blue,
+   png_uint_32 alpha, int encoding)
+{
+   png_imagep image = display->image;
+   const int output_encoding = (image->format & PNG_FORMAT_FLAG_LINEAR) ?
+      E_LINEAR : E_sRGB;
+   const int convert_to_Y = (image->format & PNG_FORMAT_FLAG_COLOR) == 0 &&
+      (red != green || green != blue);
+
+   if (ip > 255)
+      png_error(image->opaque->png_ptr, "color-map index out of range");
+
+   
+
+
+   if (encoding == E_FILE)
+   {
+      if (display->file_encoding == E_NOTSET)
+         set_file_encoding(display);
+
+      
+
+
+      encoding = display->file_encoding;
+   }
+
+   if (encoding == E_FILE)
+   {
+      png_fixed_point g = display->gamma_to_linear;
+
+      red = png_gamma_16bit_correct(red*257, g);
+      green = png_gamma_16bit_correct(green*257, g);
+      blue = png_gamma_16bit_correct(blue*257, g);
+
+      if (convert_to_Y || output_encoding == E_LINEAR)
+      {
+         alpha *= 257;
+         encoding = E_LINEAR;
+      }
+
+      else
+      {
+         red = PNG_sRGB_FROM_LINEAR(red * 255);
+         green = PNG_sRGB_FROM_LINEAR(green * 255);
+         blue = PNG_sRGB_FROM_LINEAR(blue * 255);
+         encoding = E_sRGB;
+      }
+   }
+
+   else if (encoding == E_LINEAR8)
+   {
+      
+
+
+      red *= 257;
+      green *= 257;
+      blue *= 257;
+      alpha *= 257;
+      encoding = E_LINEAR;
+   }
+
+   else if (encoding == E_sRGB && (convert_to_Y || output_encoding == E_LINEAR))
+   {
+      
+
+
+      red = png_sRGB_table[red];
+      green = png_sRGB_table[green];
+      blue = png_sRGB_table[blue];
+      alpha *= 257;
+      encoding = E_LINEAR;
+   }
+
+   
+   if (encoding == E_LINEAR)
+   {
+      if (convert_to_Y)
+      {
+         
+         png_uint_32 y = (png_uint_32)6968 * red  + (png_uint_32)23434 * green +
+            (png_uint_32)2366 * blue;
+
+         if (output_encoding == E_LINEAR)
+            y = (y + 16384) >> 15;
+
+         else
+         {
+            
+            y = (y + 128) >> 8;
+            y *= 255;
+            y = PNG_sRGB_FROM_LINEAR((y + 64) >> 7);
+            encoding = E_sRGB;
+         }
+
+         blue = red = green = y;
+      }
+
+      else if (output_encoding == E_sRGB)
+      {
+         red = PNG_sRGB_FROM_LINEAR(red * 255);
+         green = PNG_sRGB_FROM_LINEAR(green * 255);
+         blue = PNG_sRGB_FROM_LINEAR(blue * 255);
+         alpha = PNG_DIV257(alpha);
+         encoding = E_sRGB;
+      }
+   }
+
+   if (encoding != output_encoding)
+      png_error(image->opaque->png_ptr, "bad encoding (internal error)");
+
+   
+   {
+#     ifdef PNG_FORMAT_BGR_SUPPORTED
+         const int afirst = (image->format & PNG_FORMAT_FLAG_AFIRST) != 0 &&
+            (image->format & PNG_FORMAT_FLAG_ALPHA) != 0;
+#     else
+#        define afirst 0
+#     endif
+#     ifdef PNG_FORMAT_BGR_SUPPORTED
+         const int bgr = (image->format & PNG_FORMAT_FLAG_BGR) ? 2 : 0;
+#     else
+#        define bgr 0
+#     endif
+
+      if (output_encoding == E_LINEAR)
+      {
+         png_uint_16p entry = png_voidcast(png_uint_16p, display->colormap);
+
+         entry += ip * PNG_IMAGE_SAMPLE_CHANNELS(image->format);
+
+         
+
+
+
+         switch (PNG_IMAGE_SAMPLE_CHANNELS(image->format))
+         {
+            case 4:
+               entry[afirst ? 0 : 3] = (png_uint_16)alpha;
+               
+
+            case 3:
+               if (alpha < 65535)
+               {
+                  if (alpha > 0)
+                  {
+                     blue = (blue * alpha + 32767U)/65535U;
+                     green = (green * alpha + 32767U)/65535U;
+                     red = (red * alpha + 32767U)/65535U;
+                  }
+
+                  else
+                     red = green = blue = 0;
+               }
+               entry[afirst + (2 ^ bgr)] = (png_uint_16)blue;
+               entry[afirst + 1] = (png_uint_16)green;
+               entry[afirst + bgr] = (png_uint_16)red;
+               break;
+
+            case 2:
+               entry[1 ^ afirst] = (png_uint_16)alpha;
+               
+
+            case 1:
+               if (alpha < 65535)
+               {
+                  if (alpha > 0)
+                     green = (green * alpha + 32767U)/65535U;
+
+                  else
+                     green = 0;
+               }
+               entry[afirst] = (png_uint_16)green;
+               break;
+
+            default:
+               break;
+         }
+      }
+
+      else 
+      {
+         png_bytep entry = png_voidcast(png_bytep, display->colormap);
+
+         entry += ip * PNG_IMAGE_SAMPLE_CHANNELS(image->format);
+
+         switch (PNG_IMAGE_SAMPLE_CHANNELS(image->format))
+         {
+            case 4:
+               entry[afirst ? 0 : 3] = (png_byte)alpha;
+            case 3:
+               entry[afirst + (2 ^ bgr)] = (png_byte)blue;
+               entry[afirst + 1] = (png_byte)green;
+               entry[afirst + bgr] = (png_byte)red;
+               break;
+
+            case 2:
+               entry[1 ^ afirst] = (png_byte)alpha;
+            case 1:
+               entry[afirst] = (png_byte)green;
+               break;
+
+            default:
+               break;
+         }
+      }
+
+#     ifdef afirst
+#        undef afirst
+#     endif
+#     ifdef bgr
+#        undef bgr
+#     endif
+   }
+}
+
+static int
+make_gray_file_colormap(png_image_read_control *display)
+{
+   unsigned int i;
+
+   for (i=0; i<256; ++i)
+      png_create_colormap_entry(display, i, i, i, i, 255, E_FILE);
+
+   return i;
+}
+
+static int
+make_gray_colormap(png_image_read_control *display)
+{
+   unsigned int i;
+
+   for (i=0; i<256; ++i)
+      png_create_colormap_entry(display, i, i, i, i, 255, E_sRGB);
+
+   return i;
+}
+#define PNG_GRAY_COLORMAP_ENTRIES 256
+
+static int
+make_ga_colormap(png_image_read_control *display)
+{
+   unsigned int i, a;
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   i = 0;
+   while (i < 231)
+   {
+      unsigned int gray = (i * 256 + 115) / 231;
+      png_create_colormap_entry(display, i++, gray, gray, gray, 255, E_sRGB);
+   }
+
+   
+
+
+   png_create_colormap_entry(display, i++, 255, 255, 255, 0, E_sRGB);
+
+   for (a=1; a<5; ++a)
+   {
+      unsigned int g;
+
+      for (g=0; g<6; ++g)
+         png_create_colormap_entry(display, i++, g*51, g*51, g*51, a*51,
+            E_sRGB);
+   }
+
+   return i;
+}
+
+#define PNG_GA_COLORMAP_ENTRIES 256
+
+static int
+make_rgb_colormap(png_image_read_control *display)
+{
+   unsigned int i, r;
+
+   
+   for (i=r=0; r<6; ++r)
+   {
+      unsigned int g;
+
+      for (g=0; g<6; ++g)
+      {
+         unsigned int b;
+
+         for (b=0; b<6; ++b)
+            png_create_colormap_entry(display, i++, r*51, g*51, b*51, 255,
+               E_sRGB);
+      }
+   }
+
+   return i;
+}
+
+#define PNG_RGB_COLORMAP_ENTRIES 216
+
+
+#define PNG_RGB_INDEX(r,g,b) \
+   ((png_byte)(6 * (6 * PNG_DIV51(r) + PNG_DIV51(g)) + PNG_DIV51(b)))
+
+static int
+png_image_read_colormap(png_voidp argument)
+{
+   png_image_read_control *display =
+      png_voidcast(png_image_read_control*, argument);
+   const png_imagep image = display->image;
+
+   const png_structrp png_ptr = image->opaque->png_ptr;
+   const png_uint_32 output_format = image->format;
+   const int output_encoding = (output_format & PNG_FORMAT_FLAG_LINEAR) ?
+      E_LINEAR : E_sRGB;
+
+   unsigned int cmap_entries;
+   unsigned int output_processing;        
+   unsigned int data_encoding = E_NOTSET; 
+
+   
+
+
+   unsigned int background_index = 256;
+   png_uint_32 back_r, back_g, back_b;
+
+   
+   int expand_tRNS = 0;
+
+   
+
+
+
+
+   if (((png_ptr->color_type & PNG_COLOR_MASK_ALPHA) != 0 ||
+         png_ptr->num_trans > 0)  &&
+      ((output_format & PNG_FORMAT_FLAG_ALPHA) == 0) )
+   {
+      if (output_encoding == E_LINEAR) 
+         back_b = back_g = back_r = 0;
+
+      else if (display->background == NULL )
+         png_error(png_ptr,
+            "a background color must be supplied to remove alpha/transparency");
+
+      
+
+
+
+      else
+      {
+         back_g = display->background->green;
+         if (output_format & PNG_FORMAT_FLAG_COLOR)
+         {
+            back_r = display->background->red;
+            back_b = display->background->blue;
+         }
+         else
+            back_b = back_r = back_g;
+      }
+   }
+
+   else if (output_encoding == E_LINEAR)
+      back_b = back_r = back_g = 65535;
+
+   else
+      back_b = back_r = back_g = 255;
+
+   
+
+
+
+
+   if ((png_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_GAMMA) == 0)
+   {
+      
+
+
+
+
+      if (png_ptr->bit_depth == 16 &&
+         (image->flags & PNG_IMAGE_FLAG_16BIT_sRGB) == 0)
+         png_ptr->colorspace.gamma = PNG_GAMMA_LINEAR;
+
+      else
+         png_ptr->colorspace.gamma = PNG_GAMMA_sRGB_INVERSE;
+
+      png_ptr->colorspace.flags |= PNG_COLORSPACE_HAVE_GAMMA;
+   }
+
+   
+
+
+
+
+   switch (png_ptr->color_type)
+   {
+      case PNG_COLOR_TYPE_GRAY:
+         if (png_ptr->bit_depth <= 8)
+         {
+            
+
+
+            unsigned int step, i, val, trans = 256, back_alpha = 0;
+
+            cmap_entries = 1U << png_ptr->bit_depth;
+            if (cmap_entries > image->colormap_entries)
+               png_error(png_ptr, "gray[8] color-map: too few entries");
+
+            step = 255 / (cmap_entries - 1);
+            output_processing = PNG_CMAP_NONE;
+
+            
+
+
+            if (png_ptr->num_trans > 0)
+            {
+               trans = png_ptr->trans_color.gray;
+
+               if ((output_format & PNG_FORMAT_FLAG_ALPHA) == 0)
+                  back_alpha = output_encoding == E_LINEAR ? 65535 : 255;
+            }
+
+            
+
+
+
+
+
+
+            for (i=val=0; i<cmap_entries; ++i, val += step)
+            {
+               
+
+
+
+               if (i != trans)
+                  png_create_colormap_entry(display, i, val, val, val, 255,
+                     E_FILE);
+
+               
+
+
+
+
+
+
+
+               else
+                  png_create_colormap_entry(display, i, back_r, back_g, back_b,
+                     back_alpha, output_encoding);
+            }
+
+            
+            data_encoding = E_FILE;
+
+            
+
+
+
+
+            if (png_ptr->bit_depth < 8)
+               png_set_packing(png_ptr);
+         }
+
+         else 
+         {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            data_encoding = E_sRGB;
+
+            if (PNG_GRAY_COLORMAP_ENTRIES > image->colormap_entries)
+               png_error(png_ptr, "gray[16] color-map: too few entries");
+
+            cmap_entries = make_gray_colormap(display);
+
+            if (png_ptr->num_trans > 0)
+            {
+               unsigned int back_alpha;
+
+               if (output_format & PNG_FORMAT_FLAG_ALPHA)
+                  back_alpha = 0;
+
+               else
+               {
+                  if (back_r == back_g && back_g == back_b)
+                  {
+                     
+
+
+                     png_color_16 c;
+                     png_uint_32 gray = back_g;
+
+                     if (output_encoding == E_LINEAR)
+                     {
+                        gray = PNG_sRGB_FROM_LINEAR(gray * 255);
+
+                        
+
+
+                        png_create_colormap_entry(display, gray, back_g, back_g,
+                           back_g, 65535, E_LINEAR);
+                     }
+
+                     
+
+
+                     c.index = 0; 
+                     c.gray = c.red = c.green = c.blue = (png_uint_16)gray;
+
+                     
+
+
+
+                     png_set_background_fixed(png_ptr, &c,
+                        PNG_BACKGROUND_GAMMA_SCREEN, 0,
+                        0);
+
+                     output_processing = PNG_CMAP_NONE;
+                     break;
+                  }
+
+                  back_alpha = output_encoding == E_LINEAR ? 65535 : 255;
+               }
+
+               
+
+
+
+
+
+
+               expand_tRNS = 1;
+               output_processing = PNG_CMAP_TRANS;
+               background_index = 254;
+
+               
+
+
+               png_create_colormap_entry(display, 254, back_r, back_g, back_b,
+                  back_alpha, output_encoding);
+            }
+
+            else
+               output_processing = PNG_CMAP_NONE;
+         }
+         break;
+
+      case PNG_COLOR_TYPE_GRAY_ALPHA:
+         
+
+
+
+
+
+
+
+
+
+         data_encoding = E_sRGB;
+
+         if (output_format & PNG_FORMAT_FLAG_ALPHA)
+         {
+            if (PNG_GA_COLORMAP_ENTRIES > image->colormap_entries)
+               png_error(png_ptr, "gray+alpha color-map: too few entries");
+
+            cmap_entries = make_ga_colormap(display);
+
+            background_index = PNG_CMAP_GA_BACKGROUND;
+            output_processing = PNG_CMAP_GA;
+         }
+
+         else 
+         {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            if ((output_format & PNG_FORMAT_FLAG_COLOR) == 0 ||
+               (back_r == back_g && back_g == back_b))
+            {
+               
+               png_color_16 c;
+               png_uint_32 gray = back_g;
+
+               if (PNG_GRAY_COLORMAP_ENTRIES > image->colormap_entries)
+                  png_error(png_ptr, "gray-alpha color-map: too few entries");
+
+               cmap_entries = make_gray_colormap(display);
+
+               if (output_encoding == E_LINEAR)
+               {
+                  gray = PNG_sRGB_FROM_LINEAR(gray * 255);
+
+                  
+                  png_create_colormap_entry(display, gray, back_g, back_g,
+                     back_g, 65535, E_LINEAR);
+               }
+
+               
+
+
+               c.index = 0; 
+               c.gray = c.red = c.green = c.blue = (png_uint_16)gray;
+
+               png_set_background_fixed(png_ptr, &c,
+                  PNG_BACKGROUND_GAMMA_SCREEN, 0,
+                  0);
+
+               output_processing = PNG_CMAP_NONE;
+            }
+
+            else
+            {
+               png_uint_32 i, a;
+
+               
+
+
+               if (PNG_GA_COLORMAP_ENTRIES > image->colormap_entries)
+                  png_error(png_ptr, "ga-alpha color-map: too few entries");
+
+               i = 0;
+               while (i < 231)
+               {
+                  png_uint_32 gray = (i * 256 + 115) / 231;
+                  png_create_colormap_entry(display, i++, gray, gray, gray,
+                     255, E_sRGB);
+               }
+
+               
+
+
+               background_index = i;
+               png_create_colormap_entry(display, i++, back_r, back_g, back_b,
+                  output_encoding == E_LINEAR ? 65535U : 255U, output_encoding);
+
+               
+
+
+
+
+
+
+
+               if (output_encoding == E_sRGB) 
+               {
+                  
+
+
+
+                  back_r = png_sRGB_table[back_r];
+                  back_g = png_sRGB_table[back_g];
+                  back_b = png_sRGB_table[back_b];
+               }
+
+               for (a=1; a<5; ++a)
+               {
+                  unsigned int g;
+
+                  
+
+
+                  png_uint_32 alpha = 51 * a;
+                  png_uint_32 back_rx = (255-alpha) * back_r;
+                  png_uint_32 back_gx = (255-alpha) * back_g;
+                  png_uint_32 back_bx = (255-alpha) * back_b;
+
+                  for (g=0; g<6; ++g)
+                  {
+                     png_uint_32 gray = png_sRGB_table[g*51] * alpha;
+
+                     png_create_colormap_entry(display, i++,
+                        PNG_sRGB_FROM_LINEAR(gray + back_rx),
+                        PNG_sRGB_FROM_LINEAR(gray + back_gx),
+                        PNG_sRGB_FROM_LINEAR(gray + back_bx), 255, E_sRGB);
+                  }
+               }
+
+               cmap_entries = i;
+               output_processing = PNG_CMAP_GA;
+            }
+         }
+         break;
+
+      case PNG_COLOR_TYPE_RGB:
+      case PNG_COLOR_TYPE_RGB_ALPHA:
+         
+
+
+         if ((output_format & PNG_FORMAT_FLAG_COLOR) == 0)
+         {
+            
+
+
+
+
+
+
+
+            png_set_rgb_to_gray_fixed(png_ptr, PNG_ERROR_ACTION_NONE, -1,
+               -1);
+            data_encoding = E_sRGB;
+
+            
+
+
+            if ((png_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+               png_ptr->num_trans > 0) &&
+               (output_format & PNG_FORMAT_FLAG_ALPHA) != 0)
+            {
+               
+
+
+
+               expand_tRNS = 1;
+
+               if (PNG_GA_COLORMAP_ENTRIES > image->colormap_entries)
+                  png_error(png_ptr, "rgb[ga] color-map: too few entries");
+
+               cmap_entries = make_ga_colormap(display);
+               background_index = PNG_CMAP_GA_BACKGROUND;
+               output_processing = PNG_CMAP_GA;
+            }
+
+            else
+            {
+               
+
+
+
+               if (PNG_GRAY_COLORMAP_ENTRIES > image->colormap_entries)
+                  png_error(png_ptr, "rgb[gray] color-map: too few entries");
+
+               
+
+
+
+
+
+
+
+               if ((png_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+                  png_ptr->num_trans > 0) &&
+                  png_gamma_not_sRGB(png_ptr->colorspace.gamma))
+               {
+                  cmap_entries = make_gray_file_colormap(display);
+                  data_encoding = E_FILE;
+               }
+
+               else
+                  cmap_entries = make_gray_colormap(display);
+
+               
+
+               if (png_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+                  png_ptr->num_trans > 0)
+               {
+                  png_color_16 c;
+                  png_uint_32 gray = back_g;
+
+                  
+
+
+
+
+                  if (data_encoding == E_FILE) 
+                  {
+                     
+
+
+
+
+                     if (output_encoding == E_sRGB)
+                        gray = png_sRGB_table[gray]; 
+
+                     gray = PNG_DIV257(png_gamma_16bit_correct(gray,
+                        png_ptr->colorspace.gamma)); 
+
+                     
+
+
+                     png_create_colormap_entry(display, gray, back_g, back_g,
+                        back_g, 0, output_encoding);
+                  }
+
+                  else if (output_encoding == E_LINEAR)
+                  {
+                     gray = PNG_sRGB_FROM_LINEAR(gray * 255);
+
+                     
+
+                     png_create_colormap_entry(display, gray, back_g, back_g,
+                        back_g, 0, E_LINEAR);
+                  }
+
+                  
+
+
+                  c.index = 0; 
+                  c.gray = c.red = c.green = c.blue = (png_uint_16)gray;
+
+                  
+
+
+
+                  expand_tRNS = 1;
+                  png_set_background_fixed(png_ptr, &c,
+                     PNG_BACKGROUND_GAMMA_SCREEN, 0,
+                     0);
+               }
+
+               output_processing = PNG_CMAP_NONE;
+            }
+         }
+
+         else 
+         {
+            
+
+
+
+
+            data_encoding = E_sRGB;
+
+            
+            if (png_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+               png_ptr->num_trans > 0)
+            {
+               
+
+
+               if (output_format & PNG_FORMAT_FLAG_ALPHA)
+               {
+                  png_uint_32 r;
+
+                  if (PNG_RGB_COLORMAP_ENTRIES+1+27 > image->colormap_entries)
+                     png_error(png_ptr, "rgb+alpha color-map: too few entries");
+
+                  cmap_entries = make_rgb_colormap(display);
+
+                  
+                  png_create_colormap_entry(display, cmap_entries, 255, 255,
+                     255, 0, E_sRGB);
+
+                  
+
+
+                  background_index = cmap_entries++;
+
+                  
+                  for (r=0; r<256; r = (r << 1) | 0x7f)
+                  {
+                     png_uint_32 g;
+
+                     for (g=0; g<256; g = (g << 1) | 0x7f)
+                     {
+                        png_uint_32 b;
+
+                        
+
+
+                        for (b=0; b<256; b = (b << 1) | 0x7f)
+                           png_create_colormap_entry(display, cmap_entries++,
+                              r, g, b, 128, E_sRGB);
+                     }
+                  }
+
+                  expand_tRNS = 1;
+                  output_processing = PNG_CMAP_RGB_ALPHA;
+               }
+
+               else
+               {
+                  
+
+
+
+
+
+
+                  unsigned int sample_size =
+                     PNG_IMAGE_SAMPLE_SIZE(output_format);
+                  png_uint_32 r, g, b; 
+
+                  if (PNG_RGB_COLORMAP_ENTRIES+1+27 > image->colormap_entries)
+                     png_error(png_ptr, "rgb-alpha color-map: too few entries");
+
+                  cmap_entries = make_rgb_colormap(display);
+
+                  png_create_colormap_entry(display, cmap_entries, back_r,
+                        back_g, back_b, 0, output_encoding);
+
+                  if (output_encoding == E_LINEAR)
+                  {
+                     r = PNG_sRGB_FROM_LINEAR(back_r * 255);
+                     g = PNG_sRGB_FROM_LINEAR(back_g * 255);
+                     b = PNG_sRGB_FROM_LINEAR(back_b * 255);
+                  }
+
+                  else
+                  {
+                     r = back_r;
+                     g = back_g;
+                     b = back_g;
+                  }
+
+                  
+
+
+
+
+                  if (memcmp((png_const_bytep)display->colormap +
+                        sample_size * cmap_entries,
+                     (png_const_bytep)display->colormap +
+                        sample_size * PNG_RGB_INDEX(r,g,b),
+                     sample_size) != 0)
+                  {
+                     
+                     background_index = cmap_entries++;
+
+                     
+
+
+                     for (r=0; r<256; r = (r << 1) | 0x7f)
+                     {
+                        for (g=0; g<256; g = (g << 1) | 0x7f)
+                        {
+                           
+
+
+                           for (b=0; b<256; b = (b << 1) | 0x7f)
+                              png_create_colormap_entry(display, cmap_entries++,
+                                 png_colormap_compose(display, r, E_sRGB, 128,
+                                    back_r, output_encoding),
+                                 png_colormap_compose(display, g, E_sRGB, 128,
+                                    back_g, output_encoding),
+                                 png_colormap_compose(display, b, E_sRGB, 128,
+                                    back_b, output_encoding),
+                                 0, output_encoding);
+                        }
+                     }
+
+                     expand_tRNS = 1;
+                     output_processing = PNG_CMAP_RGB_ALPHA;
+                  }
+
+                  else 
+                  {
+                     png_color_16 c;
+
+                     c.index = 0; 
+                     c.red = (png_uint_16)back_r;
+                     c.gray = c.green = (png_uint_16)back_g;
+                     c.blue = (png_uint_16)back_b;
+
+                     png_set_background_fixed(png_ptr, &c,
+                        PNG_BACKGROUND_GAMMA_SCREEN, 0,
+                        0);
+
+                     output_processing = PNG_CMAP_RGB;
+                  }
+               }
+            }
+
+            else 
+            {
+               
+
+
+               if (PNG_RGB_COLORMAP_ENTRIES > image->colormap_entries)
+                  png_error(png_ptr, "rgb color-map: too few entries");
+
+               cmap_entries = make_rgb_colormap(display);
+               output_processing = PNG_CMAP_RGB;
+            }
+         }
+         break;
+
+      case PNG_COLOR_TYPE_PALETTE:
+         
+
+
+         {
+            unsigned int num_trans = png_ptr->num_trans;
+            png_const_bytep trans = num_trans > 0 ? png_ptr->trans_alpha : NULL;
+            png_const_colorp colormap = png_ptr->palette;
+            const int do_background = trans != NULL &&
+               (output_format & PNG_FORMAT_FLAG_ALPHA) == 0;
+            unsigned int i;
+
+            
+            if (trans == NULL)
+               num_trans = 0;
+
+            output_processing = PNG_CMAP_NONE;
+            data_encoding = E_FILE; 
+            cmap_entries = png_ptr->num_palette;
+            if (cmap_entries > 256)
+               cmap_entries = 256;
+
+            if (cmap_entries > image->colormap_entries)
+               png_error(png_ptr, "palette color-map: too few entries");
+
+            for (i=0; i < cmap_entries; ++i)
+            {
+               if (do_background && i < num_trans && trans[i] < 255)
+               {
+                  if (trans[i] == 0)
+                     png_create_colormap_entry(display, i, back_r, back_g,
+                        back_b, 0, output_encoding);
+
+                  else
+                  {
+                     
+
+
+                     png_create_colormap_entry(display, i,
+                        png_colormap_compose(display, colormap[i].red, E_FILE,
+                           trans[i], back_r, output_encoding),
+                        png_colormap_compose(display, colormap[i].green, E_FILE,
+                           trans[i], back_g, output_encoding),
+                        png_colormap_compose(display, colormap[i].blue, E_FILE,
+                           trans[i], back_b, output_encoding),
+                        output_encoding == E_LINEAR ? trans[i] * 257U :
+                           trans[i],
+                        output_encoding);
+                  }
+               }
+
+               else
+                  png_create_colormap_entry(display, i, colormap[i].red,
+                     colormap[i].green, colormap[i].blue,
+                     i < num_trans ? trans[i] : 255U, E_FILE);
+            }
+
+            
+
+
+            if (png_ptr->bit_depth < 8)
+               png_set_packing(png_ptr);
+         }
+         break;
+
+      default:
+         png_error(png_ptr, "invalid PNG color type");
+         
+         break;
+   }
+
+   
+   if (expand_tRNS && png_ptr->num_trans > 0 &&
+      (png_ptr->color_type & PNG_COLOR_MASK_ALPHA) == 0)
+      png_set_tRNS_to_alpha(png_ptr);
+
+   switch (data_encoding)
+   {
+      default:
+         png_error(png_ptr, "bad data option (internal error)");
+         break;
+
+      case E_sRGB:
+         
+         png_set_alpha_mode_fixed(png_ptr, PNG_ALPHA_PNG, PNG_GAMMA_sRGB);
+         
+
+      case E_FILE:
+         if (png_ptr->bit_depth > 8)
+            png_set_scale_16(png_ptr);
+         break;
+   }
+
+   if (cmap_entries > 256 || cmap_entries > image->colormap_entries)
+      png_error(png_ptr, "color map overflow (BAD internal error)");
+
+   image->colormap_entries = cmap_entries;
+
+   
+   switch (output_processing)
+   {
+      case PNG_CMAP_NONE:
+         if (background_index != PNG_CMAP_NONE_BACKGROUND)
+            goto bad_background;
+         break;
+
+      case PNG_CMAP_GA:
+         if (background_index != PNG_CMAP_GA_BACKGROUND)
+            goto bad_background;
+         break;
+
+      case PNG_CMAP_TRANS:
+         if (background_index >= cmap_entries ||
+            background_index != PNG_CMAP_TRANS_BACKGROUND)
+            goto bad_background;
+         break;
+
+      case PNG_CMAP_RGB:
+         if (background_index != PNG_CMAP_RGB_BACKGROUND)
+            goto bad_background;
+         break;
+
+      case PNG_CMAP_RGB_ALPHA:
+         if (background_index != PNG_CMAP_RGB_ALPHA_BACKGROUND)
+            goto bad_background;
+         break;
+
+      default:
+         png_error(png_ptr, "bad processing option (internal error)");
+
+      bad_background:
+         png_error(png_ptr, "bad background index (internal error)");
+   }
+
+   display->colormap_processing = output_processing;
+
+   return 1;
+}
+
+
+static int
+png_image_read_and_map(png_voidp argument)
+{
+   png_image_read_control *display = png_voidcast(png_image_read_control*,
+      argument);
+   png_imagep image = display->image;
+   png_structrp png_ptr = image->opaque->png_ptr;
+   int passes;
+
+   
+
+
+
+   switch (png_ptr->interlaced)
+   {
+      case PNG_INTERLACE_NONE:
+         passes = 1;
+         break;
+
+      case PNG_INTERLACE_ADAM7:
+         passes = PNG_INTERLACE_ADAM7_PASSES;
+         break;
+
+      default:
+         passes = 0;
+         png_error(png_ptr, "unknown interlace type");
+   }
+
+   {
+      png_uint_32  height = image->height;
+      png_uint_32  width = image->width;
+      int          proc = display->colormap_processing;
+      png_bytep    first_row = png_voidcast(png_bytep, display->first_row);
+      ptrdiff_t    step_row = display->row_bytes;
+      int pass;
+
+      for (pass = 0; pass < passes; ++pass)
+      {
+         unsigned int     startx, stepx, stepy;
+         png_uint_32      y;
+
+         if (png_ptr->interlaced == PNG_INTERLACE_ADAM7)
+         {
+            
+            if (PNG_PASS_COLS(width, pass) == 0)
+               continue;
+
+            startx = PNG_PASS_START_COL(pass);
+            stepx = PNG_PASS_COL_OFFSET(pass);
+            y = PNG_PASS_START_ROW(pass);
+            stepy = PNG_PASS_ROW_OFFSET(pass);
+         }
+
+         else
+         {
+            y = 0;
+            startx = 0;
+            stepx = stepy = 1;
+         }
+
+         for (; y<height; y += stepy)
+         {
+            png_bytep inrow = png_voidcast(png_bytep, display->local_row);
+            png_bytep outrow = first_row + y * step_row;
+            png_const_bytep end_row = outrow + width;
+
+            
+            png_read_row(png_ptr, inrow, NULL);
+
+            
+
+
+
+            outrow += startx;
+            switch (proc)
+            {
+               case PNG_CMAP_GA:
+                  for (; outrow < end_row; outrow += stepx)
+                  {
+                     
+                     unsigned int gray = *inrow++;
+                     unsigned int alpha = *inrow++;
+                     unsigned int entry;
+
+                     
+
+
+
+                     if (alpha > 229) 
+                     {
+                        entry = (231 * gray + 128) >> 8;
+                     }
+                     else if (alpha < 26) 
+                     {
+                        entry = 231;
+                     }
+                     else 
+                     {
+                        entry = 226 + 6 * PNG_DIV51(alpha) + PNG_DIV51(gray);
+                     }
+
+                     *outrow = (png_byte)entry;
+                  }
+                  break;
+
+               case PNG_CMAP_TRANS:
+                  for (; outrow < end_row; outrow += stepx)
+                  {
+                     png_byte gray = *inrow++;
+                     png_byte alpha = *inrow++;
+
+                     if (alpha == 0)
+                        *outrow = PNG_CMAP_TRANS_BACKGROUND;
+
+                     else if (gray != PNG_CMAP_TRANS_BACKGROUND)
+                        *outrow = gray;
+
+                     else
+                        *outrow = (png_byte)(PNG_CMAP_TRANS_BACKGROUND+1);
+                  }
+                  break;
+
+               case PNG_CMAP_RGB:
+                  for (; outrow < end_row; outrow += stepx)
+                  {
+                     *outrow = PNG_RGB_INDEX(inrow[0], inrow[1], inrow[2]);
+                     inrow += 3;
+                  }
+                  break;
+
+               case PNG_CMAP_RGB_ALPHA:
+                  for (; outrow < end_row; outrow += stepx)
+                  {
+                     unsigned int alpha = inrow[3];
+
+                     
+
+
+
+
+                     if (alpha >= 196)
+                        *outrow = PNG_RGB_INDEX(inrow[0], inrow[1],
+                           inrow[2]);
+
+                     else if (alpha < 64)
+                        *outrow = PNG_CMAP_RGB_ALPHA_BACKGROUND;
+
+                     else
+                     {
+                        
+
+
+
+
+
+                        unsigned int back_i = PNG_CMAP_RGB_ALPHA_BACKGROUND+1;
+
+                        
+
+
+
+
+
+
+
+
+                        if (inrow[0] & 0x80) back_i += 9; 
+                        if (inrow[0] & 0x40) back_i += 9;
+                        if (inrow[0] & 0x80) back_i += 3; 
+                        if (inrow[0] & 0x40) back_i += 3;
+                        if (inrow[0] & 0x80) back_i += 1; 
+                        if (inrow[0] & 0x40) back_i += 1;
+
+                        *outrow = (png_byte)back_i;
+                     }
+
+                     inrow += 4;
+                  }
+                  break;
+
+               default:
+                  break;
+            }
+         }
+      }
+   }
+
+   return 1;
+}
+
+static int
+png_image_read_colormapped(png_voidp argument)
+{
+   png_image_read_control *display = png_voidcast(png_image_read_control*,
+      argument);
+   png_imagep image = display->image;
+   png_controlp control = image->opaque;
+   png_structrp png_ptr = control->png_ptr;
+   png_inforp info_ptr = control->info_ptr;
+
+   int passes = 0; 
+
+   PNG_SKIP_CHUNKS(png_ptr);
+
+   
+
+
+
+   if (display->colormap_processing == PNG_CMAP_NONE)
+      passes = png_set_interlace_handling(png_ptr);
+
+   png_read_update_info(png_ptr, info_ptr);
+
+   
+   switch (display->colormap_processing)
+   {
+      case PNG_CMAP_NONE:
+         
+
+
+         if ((info_ptr->color_type == PNG_COLOR_TYPE_PALETTE ||
+            info_ptr->color_type == PNG_COLOR_TYPE_GRAY) &&
+            info_ptr->bit_depth == 8)
+            break;
+
+         goto bad_output;
+
+      case PNG_CMAP_TRANS:
+      case PNG_CMAP_GA:
+         
+
+
+
+         if (info_ptr->color_type == PNG_COLOR_TYPE_GRAY_ALPHA &&
+            info_ptr->bit_depth == 8 &&
+            png_ptr->screen_gamma == PNG_GAMMA_sRGB &&
+            image->colormap_entries == 256)
+            break;
+
+         goto bad_output;
+
+      case PNG_CMAP_RGB:
+         
+         if (info_ptr->color_type == PNG_COLOR_TYPE_RGB &&
+            info_ptr->bit_depth == 8 &&
+            png_ptr->screen_gamma == PNG_GAMMA_sRGB &&
+            image->colormap_entries == 216)
+            break;
+
+         goto bad_output;
+
+      case PNG_CMAP_RGB_ALPHA:
+         
+         if (info_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA &&
+            info_ptr->bit_depth == 8 &&
+            png_ptr->screen_gamma == PNG_GAMMA_sRGB &&
+            image->colormap_entries == 244 )
+            break;
+
+         
+         
+
+      default:
+      bad_output:
+         png_error(png_ptr, "bad color-map processing (internal error)");
+   }
+
+   
+
+
+
+   {
+      png_voidp first_row = display->buffer;
+      ptrdiff_t row_bytes = display->row_stride;
+
+      
+
+
+      if (row_bytes < 0)
+      {
+         char *ptr = png_voidcast(char*, first_row);
+         ptr += (image->height-1) * (-row_bytes);
+         first_row = png_voidcast(png_voidp, ptr);
+      }
+
+      display->first_row = first_row;
+      display->row_bytes = row_bytes;
+   }
+
+   if (passes == 0)
+   {
+      int result;
+      png_voidp row = png_malloc(png_ptr, png_get_rowbytes(png_ptr, info_ptr));
+
+      display->local_row = row;
+      result = png_safe_execute(image, png_image_read_and_map, display);
+      display->local_row = NULL;
+      png_free(png_ptr, row);
+
+      return result;
+   }
+
+   else
+   {
+      png_alloc_size_t row_bytes = display->row_bytes;
+
+      while (--passes >= 0)
+      {
+         png_uint_32      y = image->height;
+         png_bytep        row = png_voidcast(png_bytep, display->first_row);
+
+         while (y-- > 0)
+         {
+            png_read_row(png_ptr, row, NULL);
+            row += row_bytes;
+         }
+      }
+
+      return 1;
+   }
+}
+
+
+static int
+png_image_read_composite(png_voidp argument)
+{
+   png_image_read_control *display = png_voidcast(png_image_read_control*,
+      argument);
+   png_imagep image = display->image;
+   png_structrp png_ptr = image->opaque->png_ptr;
+   int passes;
+
+   switch (png_ptr->interlaced)
+   {
+      case PNG_INTERLACE_NONE:
+         passes = 1;
+         break;
+
+      case PNG_INTERLACE_ADAM7:
+         passes = PNG_INTERLACE_ADAM7_PASSES;
+         break;
+
+      default:
+         passes = 0;
+         png_error(png_ptr, "unknown interlace type");
+   }
+
+   {
+      png_uint_32  height = image->height;
+      png_uint_32  width = image->width;
+      ptrdiff_t    step_row = display->row_bytes;
+      unsigned int channels = (image->format & PNG_FORMAT_FLAG_COLOR) ? 3 : 1;
+      int pass;
+
+      for (pass = 0; pass < passes; ++pass)
+      {
+         unsigned int     startx, stepx, stepy;
+         png_uint_32      y;
+
+         if (png_ptr->interlaced == PNG_INTERLACE_ADAM7)
+         {
+            
+            if (PNG_PASS_COLS(width, pass) == 0)
+               continue;
+
+            startx = PNG_PASS_START_COL(pass) * channels;
+            stepx = PNG_PASS_COL_OFFSET(pass) * channels;
+            y = PNG_PASS_START_ROW(pass);
+            stepy = PNG_PASS_ROW_OFFSET(pass);
+         }
+
+         else
+         {
+            y = 0;
+            startx = 0;
+            stepx = channels;
+            stepy = 1;
+         }
+
+         for (; y<height; y += stepy)
+         {
+            png_bytep inrow = png_voidcast(png_bytep, display->local_row);
+            png_bytep outrow;
+            png_const_bytep end_row;
+
+            
+            png_read_row(png_ptr, inrow, NULL);
+
+            outrow = png_voidcast(png_bytep, display->first_row);
+            outrow += y * step_row;
+            end_row = outrow + width * channels;
+
+            
+            outrow += startx;
+            for (; outrow < end_row; outrow += stepx)
+            {
+               png_byte alpha = inrow[channels];
+
+               if (alpha > 0) 
+               {
+                  unsigned int c;
+
+                  for (c=0; c<channels; ++c)
+                  {
+                     png_uint_32 component = inrow[c];
+
+                     if (alpha < 255) 
+                     {
+                        
+
+
+
+
+
+                        component *= 257*255; 
+                        component += (255-alpha)*png_sRGB_table[outrow[c]];
+
+                        
+
+
+
+                        component = PNG_sRGB_FROM_LINEAR(component);
+                     }
+
+                     outrow[c] = (png_byte)component;
+                  }
+               }
+
+               inrow += channels+1; 
+            }
+         }
+      }
+   }
+
+   return 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int
+png_image_read_background(png_voidp argument)
+{
+   png_image_read_control *display = png_voidcast(png_image_read_control*,
+      argument);
+   png_imagep image = display->image;
+   png_structrp png_ptr = image->opaque->png_ptr;
+   png_inforp info_ptr = image->opaque->info_ptr;
+   png_uint_32 height = image->height;
+   png_uint_32 width = image->width;
+   int pass, passes;
+
+   
+
+
+
+
+   if ((png_ptr->transformations & PNG_RGB_TO_GRAY) == 0)
+      png_error(png_ptr, "lost rgb to gray");
+
+   if ((png_ptr->transformations & PNG_COMPOSE) != 0)
+      png_error(png_ptr, "unexpected compose");
+
+   if (png_get_channels(png_ptr, info_ptr) != 2)
+      png_error(png_ptr, "lost/gained channels");
+
+   
+   if ((image->format & PNG_FORMAT_FLAG_LINEAR) == 0 &&
+      (image->format & PNG_FORMAT_FLAG_ALPHA) != 0)
+      png_error(png_ptr, "unexpected 8-bit transformation");
+
+   switch (png_ptr->interlaced)
+   {
+      case PNG_INTERLACE_NONE:
+         passes = 1;
+         break;
+
+      case PNG_INTERLACE_ADAM7:
+         passes = PNG_INTERLACE_ADAM7_PASSES;
+         break;
+
+      default:
+         passes = 0;
+         png_error(png_ptr, "unknown interlace type");
+   }
+
+   switch (png_get_bit_depth(png_ptr, info_ptr))
+   {
+      default:
+         png_error(png_ptr, "unexpected bit depth");
+         break;
+
+      case 8:
+         
+
+
+
+
+         {
+            png_bytep first_row = png_voidcast(png_bytep, display->first_row);
+            ptrdiff_t step_row = display->row_bytes;
+
+            for (pass = 0; pass < passes; ++pass)
+            {
+               png_bytep        row = png_voidcast(png_bytep,
+                                                   display->first_row);
+               unsigned int     startx, stepx, stepy;
+               png_uint_32      y;
+
+               if (png_ptr->interlaced == PNG_INTERLACE_ADAM7)
+               {
+                  
+                  if (PNG_PASS_COLS(width, pass) == 0)
+                     continue;
+
+                  startx = PNG_PASS_START_COL(pass);
+                  stepx = PNG_PASS_COL_OFFSET(pass);
+                  y = PNG_PASS_START_ROW(pass);
+                  stepy = PNG_PASS_ROW_OFFSET(pass);
+               }
+
+               else
+               {
+                  y = 0;
+                  startx = 0;
+                  stepx = stepy = 1;
+               }
+
+               if (display->background == NULL)
+               {
+                  for (; y<height; y += stepy)
+                  {
+                     png_bytep inrow = png_voidcast(png_bytep,
+                        display->local_row);
+                     png_bytep outrow = first_row + y * step_row;
+                     png_const_bytep end_row = outrow + width;
+
+                     
+                     png_read_row(png_ptr, inrow, NULL);
+
+                     
+                     outrow += startx;
+                     for (; outrow < end_row; outrow += stepx)
+                     {
+                        png_byte alpha = inrow[1];
+
+                        if (alpha > 0) 
+                        {
+                           png_uint_32 component = inrow[0];
+
+                           if (alpha < 255) 
+                           {
+                              
+
+
+
+                              component = png_sRGB_table[component] * alpha;
+                              component += png_sRGB_table[outrow[0]] *
+                                 (255-alpha);
+                              component = PNG_sRGB_FROM_LINEAR(component);
+                           }
+
+                           outrow[0] = (png_byte)component;
+                        }
+
+                        inrow += 2; 
+                     }
+                  }
+               }
+
+               else 
+               {
+                  png_byte background8 = display->background->green;
+                  png_uint_16 background = png_sRGB_table[background8];
+
+                  for (; y<height; y += stepy)
+                  {
+                     png_bytep inrow = png_voidcast(png_bytep,
+                        display->local_row);
+                     png_bytep outrow = first_row + y * step_row;
+                     png_const_bytep end_row = outrow + width;
+
+                     
+                     png_read_row(png_ptr, inrow, NULL);
+
+                     
+                     outrow += startx;
+                     for (; outrow < end_row; outrow += stepx)
+                     {
+                        png_byte alpha = inrow[1];
+
+                        if (alpha > 0) 
+                        {
+                           png_uint_32 component = inrow[0];
+
+                           if (alpha < 255) 
+                           {
+                              component = png_sRGB_table[component] * alpha;
+                              component += background * (255-alpha);
+                              component = PNG_sRGB_FROM_LINEAR(component);
+                           }
+
+                           outrow[0] = (png_byte)component;
+                        }
+
+                        else
+                           outrow[0] = background8;
+
+                        inrow += 2; 
+                     }
+
+                     row += display->row_bytes;
+                  }
+               }
+            }
+         }
+         break;
+
+      case 16:
+         
+
+
+
+         {
+            png_uint_16p first_row = png_voidcast(png_uint_16p,
+               display->first_row);
+            
+
+
+            ptrdiff_t    step_row = display->row_bytes / 2;
+            int preserve_alpha = (image->format & PNG_FORMAT_FLAG_ALPHA) != 0;
+            unsigned int outchannels = 1+preserve_alpha;
+            int swap_alpha = 0;
+
+            if (preserve_alpha && (image->format & PNG_FORMAT_FLAG_AFIRST))
+               swap_alpha = 1;
+
+            for (pass = 0; pass < passes; ++pass)
+            {
+               unsigned int     startx, stepx, stepy;
+               png_uint_32      y;
+
+               
+
+               if (png_ptr->interlaced == PNG_INTERLACE_ADAM7)
+               {
+                  
+                  if (PNG_PASS_COLS(width, pass) == 0)
+                     continue;
+
+                  startx = PNG_PASS_START_COL(pass) * outchannels;
+                  stepx = PNG_PASS_COL_OFFSET(pass) * outchannels;
+                  y = PNG_PASS_START_ROW(pass);
+                  stepy = PNG_PASS_ROW_OFFSET(pass);
+               }
+
+               else
+               {
+                  y = 0;
+                  startx = 0;
+                  stepx = outchannels;
+                  stepy = 1;
+               }
+
+               for (; y<height; y += stepy)
+               {
+                  png_const_uint_16p inrow;
+                  png_uint_16p outrow = first_row + y*step_row;
+                  png_uint_16p end_row = outrow + width * outchannels;
+
+                  
+                  png_read_row(png_ptr, png_voidcast(png_bytep,
+                     display->local_row), NULL);
+                  inrow = png_voidcast(png_const_uint_16p, display->local_row);
+
+                  
+
+                  outrow += startx;
+                  for (; outrow < end_row; outrow += stepx)
+                  {
+                     png_uint_32 component = inrow[0];
+                     png_uint_16 alpha = inrow[1];
+
+                     if (alpha > 0) 
+                     {
+                        if (alpha < 65535) 
+                        {
+                           component *= alpha;
+                           component += 32767;
+                           component /= 65535;
+                        }
+                     }
+
+                     else
+                        component = 0;
+
+                     outrow[swap_alpha] = (png_uint_16)component;
+                     if (preserve_alpha)
+                        outrow[1 ^ swap_alpha] = alpha;
+
+                     inrow += 2; 
+                  }
+               }
+            }
+         }
+         break;
+   }
+
+   return 1;
+}
+
+
+static int
+png_image_read_direct(png_voidp argument)
+{
+   png_image_read_control *display = png_voidcast(png_image_read_control*,
+      argument);
+   png_imagep image = display->image;
+   png_structrp png_ptr = image->opaque->png_ptr;
+   png_inforp info_ptr = image->opaque->info_ptr;
+
+   png_uint_32 format = image->format;
+   int linear = (format & PNG_FORMAT_FLAG_LINEAR) != 0;
+   int do_local_compose = 0;
+   int do_local_background = 0; 
+   int passes = 0;
+
+   
+
+
+
+   png_set_expand(png_ptr);
+
+   
+   {
+      png_uint_32 base_format = png_image_format(png_ptr) &
+         ~PNG_FORMAT_FLAG_COLORMAP ;
+      png_uint_32 change = format ^ base_format;
+      png_fixed_point output_gamma;
+      int mode; 
+
+      
+      if (change & PNG_FORMAT_FLAG_COLOR)
+      {
+         
+         if (format & PNG_FORMAT_FLAG_COLOR)
+            png_set_gray_to_rgb(png_ptr);
+
+         else
+         {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+            if (base_format & PNG_FORMAT_FLAG_ALPHA)
+               do_local_background = 1;
+
+            png_set_rgb_to_gray_fixed(png_ptr, PNG_ERROR_ACTION_NONE,
+               PNG_RGB_TO_GRAY_DEFAULT, PNG_RGB_TO_GRAY_DEFAULT);
+         }
+
+         change &= ~PNG_FORMAT_FLAG_COLOR;
+      }
+
+      
+
+      {
+         png_fixed_point input_gamma_default;
+
+         if ((base_format & PNG_FORMAT_FLAG_LINEAR) &&
+            (image->flags & PNG_IMAGE_FLAG_16BIT_sRGB) == 0)
+            input_gamma_default = PNG_GAMMA_LINEAR;
+         else
+            input_gamma_default = PNG_DEFAULT_sRGB;
+
+         
+
+
+         png_set_alpha_mode_fixed(png_ptr, PNG_ALPHA_PNG, input_gamma_default);
+      }
+
+      if (linear)
+      {
+         
+
+
+         if (base_format & PNG_FORMAT_FLAG_ALPHA)
+            mode = PNG_ALPHA_STANDARD; 
+
+         else
+            mode = PNG_ALPHA_PNG;
+
+         output_gamma = PNG_GAMMA_LINEAR;
+      }
+
+      else
+      {
+         mode = PNG_ALPHA_PNG;
+         output_gamma = PNG_DEFAULT_sRGB;
+      }
+
+      
+
+
+
+
+
+      if (do_local_background)
+      {
+         png_fixed_point gtest;
+
+         
+
+
+
+
+         if (png_muldiv(&gtest, output_gamma, png_ptr->colorspace.gamma,
+               PNG_FP_1) && !png_gamma_significant(gtest))
+            do_local_background = 0;
+
+         else if (mode == PNG_ALPHA_STANDARD)
+         {
+            do_local_background = 2;
+            mode = PNG_ALPHA_PNG; 
+         }
+
+         
+      }
+
+      
+      if (change & PNG_FORMAT_FLAG_LINEAR)
+      {
+         if (linear )
+            png_set_expand_16(png_ptr);
+
+         else 
+            png_set_scale_16(png_ptr);
+
+         change &= ~PNG_FORMAT_FLAG_LINEAR;
+      }
+
+      
+      if (change & PNG_FORMAT_FLAG_ALPHA)
+      {
+         
+
+
+
+         if (base_format & PNG_FORMAT_FLAG_ALPHA)
+         {
+            
+
+
+
+
+            if (do_local_background)
+               do_local_background = 2;
+
+            
+            else if (linear) 
+               png_set_strip_alpha(png_ptr);
+
+            
+            else if (display->background != NULL)
+            {
+               png_color_16 c;
+
+               c.index = 0; 
+               c.red = display->background->red;
+               c.green = display->background->green;
+               c.blue = display->background->blue;
+               c.gray = display->background->green;
+
+               
+
+
+
+
+
+               png_set_background_fixed(png_ptr, &c,
+                  PNG_BACKGROUND_GAMMA_SCREEN, 0,
+                  0);
+            }
+
+            else 
+            {
+               do_local_compose = 1;
+               
+
+
+
+
+               mode = PNG_ALPHA_OPTIMIZED;
+            }
+         }
+
+         else 
+         {
+            
+
+
+
+
+            png_uint_32 filler; 
+            int where;
+
+            if (linear)
+               filler = 65535;
+
+            else
+               filler = 255;
+
+#           ifdef PNG_FORMAT_AFIRST_SUPPORTED
+               if (format & PNG_FORMAT_FLAG_AFIRST)
+               {
+                  where = PNG_FILLER_BEFORE;
+                  change &= ~PNG_FORMAT_FLAG_AFIRST;
+               }
+
+               else
+#           endif
+               where = PNG_FILLER_AFTER;
+
+            png_set_add_alpha(png_ptr, filler, where);
+         }
+
+         
+         change &= ~PNG_FORMAT_FLAG_ALPHA;
+      }
+
+      
+
+
+
+      png_set_alpha_mode_fixed(png_ptr, mode, output_gamma);
+
+#     ifdef PNG_FORMAT_BGR_SUPPORTED
+         if (change & PNG_FORMAT_FLAG_BGR)
+         {
+            
+
+
+            if (format & PNG_FORMAT_FLAG_COLOR)
+               png_set_bgr(png_ptr);
+
+            else
+               format &= ~PNG_FORMAT_FLAG_BGR;
+
+            change &= ~PNG_FORMAT_FLAG_BGR;
+         }
+#     endif
+
+#     ifdef PNG_FORMAT_AFIRST_SUPPORTED
+         if (change & PNG_FORMAT_FLAG_AFIRST)
+         {
+            
+
+
+
+
+            if (format & PNG_FORMAT_FLAG_ALPHA)
+            {
+               
+
+
+               if (do_local_background != 2)
+                  png_set_swap_alpha(png_ptr);
+            }
+
+            else
+               format &= ~PNG_FORMAT_FLAG_AFIRST;
+
+            change &= ~PNG_FORMAT_FLAG_AFIRST;
+         }
+#     endif
+
+      
+
+
+      if (linear)
+      {
+         PNG_CONST png_uint_16 le = 0x0001;
+
+         if (*(png_const_bytep)&le)
+            png_set_swap(png_ptr);
+      }
+
+      
+      if (change)
+         png_error(png_ptr, "png_read_image: unsupported transformation");
+   }
+
+   PNG_SKIP_CHUNKS(png_ptr);
+
+   
+
+
+
+
+
+   if (!do_local_compose && do_local_background != 2)
+      passes = png_set_interlace_handling(png_ptr);
+
+   png_read_update_info(png_ptr, info_ptr);
+
+   {
+      png_uint_32 info_format = 0;
+
+      if (info_ptr->color_type & PNG_COLOR_MASK_COLOR)
+         info_format |= PNG_FORMAT_FLAG_COLOR;
+
+      if (info_ptr->color_type & PNG_COLOR_MASK_ALPHA)
+      {
+         
+         if (!do_local_compose)
+         {
+            
+            if (do_local_background != 2 ||
+               (format & PNG_FORMAT_FLAG_ALPHA) != 0)
+               info_format |= PNG_FORMAT_FLAG_ALPHA;
+         }
+      }
+
+      else if (do_local_compose) 
+         png_error(png_ptr, "png_image_read: alpha channel lost");
+
+      if (info_ptr->bit_depth == 16)
+         info_format |= PNG_FORMAT_FLAG_LINEAR;
+
+#     ifdef PNG_FORMAT_BGR_SUPPORTED
+         if (png_ptr->transformations & PNG_BGR)
+            info_format |= PNG_FORMAT_FLAG_BGR;
+#     endif
+
+#     ifdef PNG_FORMAT_AFIRST_SUPPORTED
+         if (do_local_background == 2)
+         {
+            if (format & PNG_FORMAT_FLAG_AFIRST)
+               info_format |= PNG_FORMAT_FLAG_AFIRST;
+         }
+
+         if ((png_ptr->transformations & PNG_SWAP_ALPHA) != 0 ||
+            ((png_ptr->transformations & PNG_ADD_ALPHA) != 0 &&
+            (png_ptr->flags & PNG_FLAG_FILLER_AFTER) == 0))
+         {
+            if (do_local_background == 2)
+               png_error(png_ptr, "unexpected alpha swap transformation");
+
+            info_format |= PNG_FORMAT_FLAG_AFIRST;
+         }
+#     endif
+
+      
+      if (info_format != format)
+         png_error(png_ptr, "png_read_image: invalid transformations");
+   }
+
+   
+
+
+
+
+   {
+      png_voidp first_row = display->buffer;
+      ptrdiff_t row_bytes = display->row_stride;
+
+      if (linear)
+         row_bytes *= 2;
+
+      
+
+
+      if (row_bytes < 0)
+      {
+         char *ptr = png_voidcast(char*, first_row);
+         ptr += (image->height-1) * (-row_bytes);
+         first_row = png_voidcast(png_voidp, ptr);
+      }
+
+      display->first_row = first_row;
+      display->row_bytes = row_bytes;
+   }
+
+   if (do_local_compose)
+   {
+      int result;
+      png_voidp row = png_malloc(png_ptr, png_get_rowbytes(png_ptr, info_ptr));
+
+      display->local_row = row;
+      result = png_safe_execute(image, png_image_read_composite, display);
+      display->local_row = NULL;
+      png_free(png_ptr, row);
+
+      return result;
+   }
+
+   else if (do_local_background == 2)
+   {
+      int result;
+      png_voidp row = png_malloc(png_ptr, png_get_rowbytes(png_ptr, info_ptr));
+
+      display->local_row = row;
+      result = png_safe_execute(image, png_image_read_background, display);
+      display->local_row = NULL;
+      png_free(png_ptr, row);
+
+      return result;
+   }
+
+   else
+   {
+      png_alloc_size_t row_bytes = display->row_bytes;
+
+      while (--passes >= 0)
+      {
+         png_uint_32      y = image->height;
+         png_bytep        row = png_voidcast(png_bytep, display->first_row);
+
+         while (y-- > 0)
+         {
+            png_read_row(png_ptr, row, NULL);
+            row += row_bytes;
+         }
+      }
+
+      return 1;
+   }
+}
+
+int PNGAPI
+png_image_finish_read(png_imagep image, png_const_colorp background,
+   void *buffer, png_int_32 row_stride, void *colormap)
+{
+   if (image != NULL && image->version == PNG_IMAGE_VERSION)
+   {
+      png_uint_32 check;
+
+      if (row_stride == 0)
+         row_stride = PNG_IMAGE_ROW_STRIDE(*image);
+
+      if (row_stride < 0)
+         check = -row_stride;
+
+      else
+         check = row_stride;
+
+      if (image->opaque != NULL && buffer != NULL &&
+         check >= PNG_IMAGE_ROW_STRIDE(*image))
+      {
+         if ((image->format & PNG_FORMAT_FLAG_COLORMAP) == 0 ||
+            (image->colormap_entries > 0 && colormap != NULL))
+         {
+            int result;
+            png_image_read_control display;
+
+            memset(&display, 0, (sizeof display));
+            display.image = image;
+            display.buffer = buffer;
+            display.row_stride = row_stride;
+            display.colormap = colormap;
+            display.background = background;
+            display.local_row = NULL;
+
+            
+
+
+            if (image->format & PNG_FORMAT_FLAG_COLORMAP)
+               result =
+                  png_safe_execute(image, png_image_read_colormap, &display) &&
+                  png_safe_execute(image, png_image_read_colormapped, &display);
+
+            else
+               result =
+                  png_safe_execute(image, png_image_read_direct, &display);
+
+            png_image_free(image);
+            return result;
+         }
+
+         else
+            return png_image_error(image,
+               "png_image_finish_read[color-map]: no color-map");
+      }
+
+      else
+         return png_image_error(image,
+            "png_image_finish_read: invalid argument");
+   }
+
+   else if (image != NULL)
+      return png_image_error(image,
+         "png_image_finish_read: damaged PNG_IMAGE_VERSION");
+
+   return 0;
+}
+
+#endif 
+#endif

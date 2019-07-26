@@ -24,13 +24,130 @@
 
 
 
+#ifndef ZLIB_CONST
+   
+#  define ZLIB_CONST
+#endif
 #include "zlib.h"
+#ifdef const
+   
+#  undef const
+#endif
+
+
+
+
+#if ZLIB_VERNUM < 0x1260
+#  define PNGZ_MSG_CAST(s) png_constcast(char*,s)
+#  define PNGZ_INPUT_CAST(b) png_constcast(png_bytep,b)
+#else
+#  define PNGZ_MSG_CAST(s) (s)
+#  define PNGZ_INPUT_CAST(b) (b)
+#endif
+
+
+
+
+
+
+
+
+
+#ifndef ZLIB_IO_MAX
+#  define ZLIB_IO_MAX ((uInt)-1)
+#endif
+
+#ifdef PNG_WRITE_SUPPORTED
+
+typedef struct png_compression_buffer
+{
+   struct png_compression_buffer *next;
+   png_byte                       output[1]; 
+} png_compression_buffer, *png_compression_bufferp;
+
+#define PNG_COMPRESSION_BUFFER_SIZE(pp)\
+   (offsetof(png_compression_buffer, output) + (pp)->zbuffer_size)
+#endif
+
+
+
+
+
+
+
+
+
+#ifdef PNG_COLORSPACE_SUPPORTED
+
+
+
+typedef struct png_xy
+{
+   png_fixed_point redx, redy;
+   png_fixed_point greenx, greeny;
+   png_fixed_point bluex, bluey;
+   png_fixed_point whitex, whitey;
+} png_xy;
+
+
+
+
+typedef struct png_XYZ
+{
+   png_fixed_point red_X, red_Y, red_Z;
+   png_fixed_point green_X, green_Y, green_Z;
+   png_fixed_point blue_X, blue_Y, blue_Z;
+} png_XYZ;
+#endif 
+
+#if defined(PNG_COLORSPACE_SUPPORTED) || defined(PNG_GAMMA_SUPPORTED)
+
+
+
+
+
+
+
+
+
+typedef struct png_colorspace
+{
+#ifdef PNG_GAMMA_SUPPORTED
+   png_fixed_point gamma;        
+#endif
+
+#ifdef PNG_COLORSPACE_SUPPORTED
+   png_xy      end_points_xy;    
+   png_XYZ     end_points_XYZ;   
+   png_uint_16 rendering_intent; 
+#endif
+
+   
+   png_uint_16 flags;            
+} png_colorspace, * PNG_RESTRICT png_colorspacerp;
+
+typedef const png_colorspace * PNG_RESTRICT png_const_colorspacerp;
+
+
+#define PNG_COLORSPACE_HAVE_GAMMA           0x0001
+#define PNG_COLORSPACE_HAVE_ENDPOINTS       0x0002
+#define PNG_COLORSPACE_HAVE_INTENT          0x0004
+#define PNG_COLORSPACE_FROM_gAMA            0x0008
+#define PNG_COLORSPACE_FROM_cHRM            0x0010
+#define PNG_COLORSPACE_FROM_sRGB            0x0020
+#define PNG_COLORSPACE_ENDPOINTS_MATCH_sRGB 0x0040
+#define PNG_COLORSPACE_MATCHES_sRGB         0x0080 /* exact match on profile */
+#define PNG_COLORSPACE_INVALID              0x8000
+#define PNG_COLORSPACE_CANCEL(flags)        (0xffff ^ (flags))
+#endif 
 
 struct png_struct_def
 {
 #ifdef PNG_SETJMP_SUPPORTED
-   jmp_buf longjmp_buffer;    
+   jmp_buf jmp_buf_local;     
    png_longjmp_ptr longjmp_fn;
+   jmp_buf *jmp_buf_ptr;      
+   size_t jmp_buf_size;       
 #endif
    png_error_ptr error_fn;    
 #ifdef PNG_WARNINGS_SUPPORTED
@@ -63,22 +180,12 @@ struct png_struct_def
    png_uint_32 flags;         
    png_uint_32 transformations; 
 
-   z_stream zstream;          
-   png_bytep zbuf;            
-   uInt zbuf_size;            
+   png_uint_32 zowner;        
+   z_stream    zstream;       
+
 #ifdef PNG_WRITE_SUPPORTED
-
-
-
-
-#define PNG_ZLIB_UNINITIALIZED 0
-#define PNG_ZLIB_FOR_IDAT      1
-#define PNG_ZLIB_FOR_TEXT      2 /* anything other than IDAT */
-#define PNG_ZLIB_USE_MASK      3 /* bottom two bits */
-#define PNG_ZLIB_IN_USE        4 /* a flag value */
-
-   png_uint_32 zlib_state;       
-
+   png_compression_bufferp zbuffer_list; 
+   uInt                    zbuffer_size; 
 
    int zlib_level;            
    int zlib_method;           
@@ -87,8 +194,7 @@ struct png_struct_def
    int zlib_strategy;         
 #endif
 
-#if defined(PNG_WRITE_COMPRESSED_TEXT_SUPPORTED) || \
-    defined(PNG_WRITE_CUSTOMIZE_ZTXT_COMPRESSION_SUPPORTED)
+#ifdef PNG_WRITE_CUSTOMIZE_ZTXT_COMPRESSION_SUPPORTED
    int zlib_text_level;            
    int zlib_text_method;           
    int zlib_text_window_bits;      
@@ -96,6 +202,14 @@ struct png_struct_def
    int zlib_text_strategy;         
 #endif
 
+
+#ifdef PNG_WRITE_SUPPORTED
+   int zlib_set_level;        
+   int zlib_set_method;
+   int zlib_set_window_bits;
+   int zlib_set_mem_level;
+   int zlib_set_strategy;
+#endif
 
    png_uint_32 width;         
    png_uint_32 height;        
@@ -111,10 +225,12 @@ struct png_struct_def
    png_bytep row_buf;         
 
 
+#ifdef PNG_WRITE_SUPPORTED
    png_bytep sub_row;         
    png_bytep up_row;          
    png_bytep avg_row;         
    png_bytep paeth_row;       
+#endif
    png_size_t info_rowbytes;  
 
    png_uint_32 idat_size;     
@@ -138,15 +254,14 @@ struct png_struct_def
    png_byte usr_bit_depth;    
    png_byte pixel_depth;      
    png_byte channels;         
+#ifdef PNG_WRITE_SUPPORTED
    png_byte usr_channels;     
+#endif
    png_byte sig_bytes;        
    png_byte maximum_pixel_depth;
                               
    png_byte transformed_pixel_depth;
                               
-   png_byte io_chunk_string[5];
-                              
-
 #if defined(PNG_READ_FILLER_SUPPORTED) || defined(PNG_WRITE_FILLER_SUPPORTED)
    png_uint_16 filler;           
 #endif
@@ -169,7 +284,6 @@ struct png_struct_def
 
 #ifdef PNG_READ_GAMMA_SUPPORTED
    int gamma_shift;      
-   png_fixed_point gamma;        
    png_fixed_point screen_gamma; 
 
    png_bytep gamma_table;     
@@ -233,10 +347,6 @@ struct png_struct_def
    png_bytep quantize_index; 
 #endif
 
-#if defined(PNG_READ_QUANTIZE_SUPPORTED) || defined(PNG_hIST_SUPPORTED)
-   png_uint_16p hist;                
-#endif
-
 #ifdef PNG_WRITE_WEIGHTED_FILTER_SUPPORTED
    png_byte heuristic_method;        
    png_byte num_prev_filters;        
@@ -247,9 +357,16 @@ struct png_struct_def
    png_uint_16p inv_filter_costs;    
 #endif
 
-#ifdef PNG_TIME_RFC1123_SUPPORTED
    
+#ifdef PNG_SET_OPTION_SUPPORTED
+   png_byte options;           
+#endif
+
+#if PNG_LIBPNG_VER < 10700
+
+#ifdef PNG_TIME_RFC1123_SUPPORTED
    char time_buffer[29]; 
+#endif
 #endif
 
 
@@ -258,17 +375,16 @@ struct png_struct_def
 
 #ifdef PNG_USER_CHUNKS_SUPPORTED
    png_voidp user_chunk_ptr;
+#ifdef PNG_READ_USER_CHUNKS_SUPPORTED
    png_user_chunk_ptr read_user_chunk_fn; 
 #endif
-
-#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-   int num_chunk_list;
-   png_bytep chunk_list;
 #endif
 
-#ifdef PNG_READ_sRGB_SUPPORTED
-   
-   png_byte is_sRGB;
+#ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
+   int          unknown_default; 
+   unsigned int num_chunk_list;  
+   png_bytep    chunk_list;      
+
 #endif
 
 
@@ -354,16 +470,24 @@ struct png_struct_def
 #endif
 
 
-#ifdef PNG_UNKNOWN_CHUNKS_SUPPORTED
+#ifdef PNG_READ_UNKNOWN_CHUNKS_SUPPORTED
    
+
+
    png_unknown_chunk unknown_chunk;
 #endif
 
 
   png_size_t old_big_row_buf_size;
 
+#ifdef PNG_READ_SUPPORTED
 
-  png_charp chunkdata;  
+  png_bytep        read_buffer;      
+  png_alloc_size_t read_buffer_size; 
+#endif
+#ifdef PNG_SEQUENTIAL_READ_SUPPORTED
+  uInt             IDAT_read_size;   
+#endif
 
 #ifdef PNG_IO_STATE_SUPPORTED
 
@@ -377,9 +501,10 @@ struct png_struct_def
    void (*read_filter[PNG_FILTER_VALUE_LAST-1])(png_row_infop row_info,
       png_bytep row, png_const_bytep prev_row);
 
-   
-#ifdef PNG_SET_OPTION_SUPPORTED
-   png_byte options;           
+#ifdef PNG_READ_SUPPORTED
+#if defined(PNG_COLORSPACE_SUPPORTED) || defined(PNG_GAMMA_SUPPORTED)
+   png_colorspace   colorspace;
+#endif
 #endif
 };
 #endif 

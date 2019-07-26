@@ -20,12 +20,12 @@
 
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
 
-static PNG_FUNCTION(void, png_default_error,PNGARG((png_structp png_ptr,
+static PNG_FUNCTION(void, png_default_error,PNGARG((png_const_structrp png_ptr,
     png_const_charp error_message)),PNG_NORETURN);
 
 #ifdef PNG_WARNINGS_SUPPORTED
 static void 
-png_default_warning PNGARG((png_structp png_ptr,
+png_default_warning PNGARG((png_const_structrp png_ptr,
    png_const_charp warning_message));
 #endif 
 
@@ -36,7 +36,8 @@ png_default_warning PNGARG((png_structp png_ptr,
 
 #ifdef PNG_ERROR_TEXT_SUPPORTED
 PNG_FUNCTION(void,PNGAPI
-png_error,(png_structp png_ptr, png_const_charp error_message),PNG_NORETURN)
+png_error,(png_const_structrp png_ptr, png_const_charp error_message),
+   PNG_NORETURN)
 {
 #ifdef PNG_ERROR_NUMBERS_SUPPORTED
    char msg[16];
@@ -79,7 +80,8 @@ png_error,(png_structp png_ptr, png_const_charp error_message),PNG_NORETURN)
    }
 #endif
    if (png_ptr != NULL && png_ptr->error_fn != NULL)
-      (*(png_ptr->error_fn))(png_ptr, error_message);
+      (*(png_ptr->error_fn))(png_constcast(png_structrp,png_ptr),
+          error_message);
 
    
 
@@ -87,7 +89,7 @@ png_error,(png_structp png_ptr, png_const_charp error_message),PNG_NORETURN)
 }
 #else
 PNG_FUNCTION(void,PNGAPI
-png_err,(png_structp png_ptr),PNG_NORETURN)
+png_err,(png_const_structrp png_ptr),PNG_NORETURN)
 {
    
 
@@ -95,7 +97,7 @@ png_err,(png_structp png_ptr),PNG_NORETURN)
 
 
    if (png_ptr != NULL && png_ptr->error_fn != NULL)
-      (*(png_ptr->error_fn))(png_ptr, "");
+      (*(png_ptr->error_fn))(png_constcast(png_structrp,png_ptr), "");
 
    
 
@@ -211,7 +213,7 @@ png_format_number(png_const_charp start, png_charp end, int format,
 
 
 void PNGAPI
-png_warning(png_structp png_ptr, png_const_charp warning_message)
+png_warning(png_const_structrp png_ptr, png_const_charp warning_message)
 {
    int offset = 0;
    if (png_ptr != NULL)
@@ -230,7 +232,8 @@ png_warning(png_structp png_ptr, png_const_charp warning_message)
       }
    }
    if (png_ptr != NULL && png_ptr->warning_fn != NULL)
-      (*(png_ptr->warning_fn))(png_ptr, warning_message + offset);
+      (*(png_ptr->warning_fn))(png_constcast(png_structrp,png_ptr),
+         warning_message + offset);
    else
       png_default_warning(png_ptr, warning_message + offset);
 }
@@ -278,7 +281,7 @@ png_warning_parameter_signed(png_warning_parameters p, int number, int format,
 }
 
 void
-png_formatted_warning(png_structp png_ptr, png_warning_parameters p,
+png_formatted_warning(png_const_structrp png_ptr, png_warning_parameters p,
    png_const_charp message)
 {
    
@@ -356,14 +359,49 @@ png_formatted_warning(png_structp png_ptr, png_warning_parameters p,
 
 #ifdef PNG_BENIGN_ERRORS_SUPPORTED
 void PNGAPI
-png_benign_error(png_structp png_ptr, png_const_charp error_message)
+png_benign_error(png_const_structrp png_ptr, png_const_charp error_message)
 {
-  if (png_ptr->flags & PNG_FLAG_BENIGN_ERRORS_WARN)
+   if (png_ptr->flags & PNG_FLAG_BENIGN_ERRORS_WARN)
+   {
+#     ifdef PNG_READ_SUPPORTED
+         if ((png_ptr->mode & PNG_IS_READ_STRUCT) != 0 &&
+            png_ptr->chunk_name != 0)
+            png_chunk_warning(png_ptr, error_message);
+         else
+#     endif
+      png_warning(png_ptr, error_message);
+   }
+
+   else
+   {
+#     ifdef PNG_READ_SUPPORTED
+         if ((png_ptr->mode & PNG_IS_READ_STRUCT) != 0 &&
+            png_ptr->chunk_name != 0)
+            png_chunk_error(png_ptr, error_message);
+         else
+#     endif
+      png_error(png_ptr, error_message);
+   }
+}
+
+void 
+png_app_warning(png_const_structrp png_ptr, png_const_charp error_message)
+{
+  if (png_ptr->flags & PNG_FLAG_APP_WARNINGS_WARN)
      png_warning(png_ptr, error_message);
   else
      png_error(png_ptr, error_message);
 }
-#endif
+
+void 
+png_app_error(png_const_structrp png_ptr, png_const_charp error_message)
+{
+  if (png_ptr->flags & PNG_FLAG_APP_ERRORS_WARN)
+     png_warning(png_ptr, error_message);
+  else
+     png_error(png_ptr, error_message);
+}
+#endif 
 
 
 
@@ -377,10 +415,10 @@ static PNG_CONST char png_digit[16] = {
    'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-#define PNG_MAX_ERROR_TEXT 64
+#define PNG_MAX_ERROR_TEXT 196 /* Currently limited be profile_error in png.c */
 #if defined(PNG_WARNINGS_SUPPORTED) || defined(PNG_ERROR_TEXT_SUPPORTED)
 static void 
-png_format_buffer(png_structp png_ptr, png_charp buffer, png_const_charp
+png_format_buffer(png_const_structrp png_ptr, png_charp buffer, png_const_charp
     error_message)
 {
    png_uint_32 chunk_name = png_ptr->chunk_name;
@@ -426,7 +464,7 @@ png_format_buffer(png_structp png_ptr, png_charp buffer, png_const_charp
 
 #if defined(PNG_READ_SUPPORTED) && defined(PNG_ERROR_TEXT_SUPPORTED)
 PNG_FUNCTION(void,PNGAPI
-png_chunk_error,(png_structp png_ptr, png_const_charp error_message),
+png_chunk_error,(png_const_structrp png_ptr, png_const_charp error_message),
    PNG_NORETURN)
 {
    char msg[18+PNG_MAX_ERROR_TEXT];
@@ -443,7 +481,7 @@ png_chunk_error,(png_structp png_ptr, png_const_charp error_message),
 
 #ifdef PNG_WARNINGS_SUPPORTED
 void PNGAPI
-png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
+png_chunk_warning(png_const_structrp png_ptr, png_const_charp warning_message)
 {
    char msg[18+PNG_MAX_ERROR_TEXT];
    if (png_ptr == NULL)
@@ -460,7 +498,8 @@ png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
 #ifdef PNG_READ_SUPPORTED
 #ifdef PNG_BENIGN_ERRORS_SUPPORTED
 void PNGAPI
-png_chunk_benign_error(png_structp png_ptr, png_const_charp error_message)
+png_chunk_benign_error(png_const_structrp png_ptr, png_const_charp
+    error_message)
 {
    if (png_ptr->flags & PNG_FLAG_BENIGN_ERRORS_WARN)
       png_chunk_warning(png_ptr, error_message);
@@ -471,16 +510,51 @@ png_chunk_benign_error(png_structp png_ptr, png_const_charp error_message)
 #endif
 #endif 
 
+void 
+png_chunk_report(png_const_structrp png_ptr, png_const_charp message, int error)
+{
+   
+
+
+#  if defined(PNG_READ_SUPPORTED) && defined(PNG_WRITE_SUPPORTED)
+      if (png_ptr->mode & PNG_IS_READ_STRUCT)
+#  endif
+
+#  ifdef PNG_READ_SUPPORTED
+      {
+         if (error < PNG_CHUNK_ERROR)
+            png_chunk_warning(png_ptr, message);
+
+         else
+            png_chunk_benign_error(png_ptr, message);
+      }
+#  endif
+
+#  if defined(PNG_READ_SUPPORTED) && defined(PNG_WRITE_SUPPORTED)
+      else if (!(png_ptr->mode & PNG_IS_READ_STRUCT))
+#  endif
+
+#  ifdef PNG_WRITE_SUPPORTED
+      {
+         if (error < PNG_CHUNK_WRITE_ERROR)
+            png_app_warning(png_ptr, message);
+
+         else
+            png_app_error(png_ptr, message);
+      }
+#  endif
+}
+
 #ifdef PNG_ERROR_TEXT_SUPPORTED
 #ifdef PNG_FLOATING_POINT_SUPPORTED
 PNG_FUNCTION(void,
-png_fixed_error,(png_structp png_ptr, png_const_charp name),PNG_NORETURN)
+png_fixed_error,(png_const_structrp png_ptr, png_const_charp name),PNG_NORETURN)
 {
 #  define fixed_message "fixed point overflow in "
 #  define fixed_message_ln ((sizeof fixed_message)-1)
    int  iin;
    char msg[fixed_message_ln+PNG_MAX_ERROR_TEXT];
-   png_memcpy(msg, fixed_message, fixed_message_ln);
+   memcpy(msg, fixed_message, fixed_message_ln);
    iin = 0;
    if (name != NULL) while (iin < (PNG_MAX_ERROR_TEXT-1) && name[iin] != 0)
    {
@@ -498,14 +572,111 @@ png_fixed_error,(png_structp png_ptr, png_const_charp name),PNG_NORETURN)
 
 
 jmp_buf* PNGAPI
-png_set_longjmp_fn(png_structp png_ptr, png_longjmp_ptr longjmp_fn,
+png_set_longjmp_fn(png_structrp png_ptr, png_longjmp_ptr longjmp_fn,
     size_t jmp_buf_size)
 {
-   if (png_ptr == NULL || jmp_buf_size != png_sizeof(jmp_buf))
+   
+
+
+
+
+
+
+
+
+
+   if (png_ptr == NULL)
       return NULL;
 
+   if (png_ptr->jmp_buf_ptr == NULL)
+   {
+      png_ptr->jmp_buf_size = 0; 
+
+      if (jmp_buf_size <= (sizeof png_ptr->jmp_buf_local))
+         png_ptr->jmp_buf_ptr = &png_ptr->jmp_buf_local;
+
+      else
+      {
+         png_ptr->jmp_buf_ptr = png_voidcast(jmp_buf *,
+            png_malloc_warn(png_ptr, jmp_buf_size));
+
+         if (png_ptr->jmp_buf_ptr == NULL)
+            return NULL; 
+
+         png_ptr->jmp_buf_size = jmp_buf_size;
+      }
+   }
+
+   else 
+   {
+      size_t size = png_ptr->jmp_buf_size;
+
+      if (size == 0)
+      {
+         size = (sizeof png_ptr->jmp_buf_local);
+         if (png_ptr->jmp_buf_ptr != &png_ptr->jmp_buf_local)
+         {
+            
+
+
+
+
+            png_error(png_ptr, "Libpng jmp_buf still allocated");
+            
+         }
+      }
+
+      if (size != jmp_buf_size)
+      {
+         png_warning(png_ptr, "Application jmp_buf size changed");
+         return NULL; 
+      }
+   }
+
+   
+
+
    png_ptr->longjmp_fn = longjmp_fn;
-   return &png_ptr->longjmp_buffer;
+   return png_ptr->jmp_buf_ptr;
+}
+
+void 
+png_free_jmpbuf(png_structrp png_ptr)
+{
+   if (png_ptr != NULL)
+   {
+      jmp_buf *jb = png_ptr->jmp_buf_ptr;
+
+      
+
+
+      if (jb != NULL && png_ptr->jmp_buf_size > 0)
+      {
+
+         
+
+
+
+         if (jb != &png_ptr->jmp_buf_local)
+         {
+            
+            jmp_buf free_jmp_buf;
+
+            if (!setjmp(free_jmp_buf))
+            {
+               png_ptr->jmp_buf_ptr = &free_jmp_buf; 
+               png_ptr->jmp_buf_size = 0; 
+               png_ptr->longjmp_fn = longjmp;
+               png_free(png_ptr, jb); 
+            }
+         }
+      }
+
+      
+      png_ptr->jmp_buf_size = 0;
+      png_ptr->jmp_buf_ptr = NULL;
+      png_ptr->longjmp_fn = 0;
+   }
 }
 #endif
 
@@ -515,7 +686,7 @@ png_set_longjmp_fn(png_structp png_ptr, png_longjmp_ptr longjmp_fn,
 
 
 static PNG_FUNCTION(void ,
-png_default_error,(png_structp png_ptr, png_const_charp error_message),
+png_default_error,(png_const_structrp png_ptr, png_const_charp error_message),
    PNG_NORETURN)
 {
 #ifdef PNG_CONSOLE_IO_SUPPORTED
@@ -562,23 +733,13 @@ png_default_error,(png_structp png_ptr, png_const_charp error_message),
 }
 
 PNG_FUNCTION(void,PNGAPI
-png_longjmp,(png_structp png_ptr, int val),PNG_NORETURN)
+png_longjmp,(png_const_structrp png_ptr, int val),PNG_NORETURN)
 {
 #ifdef PNG_SETJMP_SUPPORTED
-   if (png_ptr && png_ptr->longjmp_fn)
-   {
-#  ifdef USE_FAR_KEYWORD
-      {
-         jmp_buf tmp_jmpbuf;
-         png_memcpy(tmp_jmpbuf, png_ptr->longjmp_buffer, png_sizeof(jmp_buf));
-         png_ptr->longjmp_fn(tmp_jmpbuf, val);
-      }
-
-#  else
-   png_ptr->longjmp_fn(png_ptr->longjmp_buffer, val);
-#  endif
-   }
+   if (png_ptr && png_ptr->longjmp_fn && png_ptr->jmp_buf_ptr)
+      png_ptr->longjmp_fn(*png_ptr->jmp_buf_ptr, val);
 #endif
+
    
    PNG_ABORT();
 }
@@ -590,7 +751,7 @@ png_longjmp,(png_structp png_ptr, int val),PNG_NORETURN)
 
 
 static void 
-png_default_warning(png_structp png_ptr, png_const_charp warning_message)
+png_default_warning(png_const_structrp png_ptr, png_const_charp warning_message)
 {
 #ifdef PNG_CONSOLE_IO_SUPPORTED
 #  ifdef PNG_ERROR_NUMBERS_SUPPORTED
@@ -640,7 +801,7 @@ png_default_warning(png_structp png_ptr, png_const_charp warning_message)
 
 
 void PNGAPI
-png_set_error_fn(png_structp png_ptr, png_voidp error_ptr,
+png_set_error_fn(png_structrp png_ptr, png_voidp error_ptr,
     png_error_ptr error_fn, png_error_ptr warning_fn)
 {
    if (png_ptr == NULL)
@@ -661,7 +822,7 @@ png_set_error_fn(png_structp png_ptr, png_voidp error_ptr,
 
 
 png_voidp PNGAPI
-png_get_error_ptr(png_const_structp png_ptr)
+png_get_error_ptr(png_const_structrp png_ptr)
 {
    if (png_ptr == NULL)
       return NULL;
@@ -672,7 +833,7 @@ png_get_error_ptr(png_const_structp png_ptr)
 
 #ifdef PNG_ERROR_NUMBERS_SUPPORTED
 void PNGAPI
-png_set_strip_error_numbers(png_structp png_ptr, png_uint_32 strip_mode)
+png_set_strip_error_numbers(png_structrp png_ptr, png_uint_32 strip_mode)
 {
    if (png_ptr != NULL)
    {
@@ -682,4 +843,90 @@ png_set_strip_error_numbers(png_structp png_ptr, png_uint_32 strip_mode)
    }
 }
 #endif
+
+#if defined(PNG_SIMPLIFIED_READ_SUPPORTED) ||\
+   defined(PNG_SIMPLIFIED_WRITE_SUPPORTED)
+   
+
+
+
+PNG_FUNCTION(void ,
+png_safe_error,(png_structp png_nonconst_ptr, png_const_charp error_message),
+   PNG_NORETURN)
+{
+   const png_const_structrp png_ptr = png_nonconst_ptr;
+   png_imagep image = png_voidcast(png_imagep, png_ptr->error_ptr);
+
+   
+
+
+   if (image != NULL)
+   {
+      png_safecat(image->message, (sizeof image->message), 0, error_message);
+      image->warning_or_error |= PNG_IMAGE_ERROR;
+
+      
+
+
+
+      if (image->opaque != NULL && image->opaque->error_buf != NULL)
+         longjmp(png_control_jmp_buf(image->opaque), 1);
+
+      
+      {
+         size_t pos = png_safecat(image->message, (sizeof image->message), 0,
+            "bad longjmp: ");
+         png_safecat(image->message, (sizeof image->message), pos,
+             error_message);
+      }
+   }
+
+   
+   abort();
+}
+
+#ifdef PNG_WARNINGS_SUPPORTED
+void 
+png_safe_warning(png_structp png_nonconst_ptr, png_const_charp warning_message)
+{
+   const png_const_structrp png_ptr = png_nonconst_ptr;
+   png_imagep image = png_voidcast(png_imagep, png_ptr->error_ptr);
+
+   
+   if (image->warning_or_error == 0)
+   {
+      png_safecat(image->message, (sizeof image->message), 0, warning_message);
+      image->warning_or_error |= PNG_IMAGE_WARNING;
+   }
+}
+#endif
+
+int 
+png_safe_execute(png_imagep image_in, int (*function)(png_voidp), png_voidp arg)
+{
+   volatile png_imagep image = image_in;
+   volatile int result;
+   volatile png_voidp saved_error_buf;
+   jmp_buf safe_jmpbuf;
+
+   
+   saved_error_buf = image->opaque->error_buf;
+   result = setjmp(safe_jmpbuf) == 0;
+
+   if (result)
+   {
+
+      image->opaque->error_buf = safe_jmpbuf;
+      result = function(arg);
+   }
+
+   image->opaque->error_buf = saved_error_buf;
+
+   
+   if (!result)
+      png_image_free(image);
+
+   return result;
+}
+#endif 
 #endif 
