@@ -53,12 +53,6 @@ class ArithPolicy : public BoxInputsPolicy
     bool adjustInputs(TempAllocator &alloc, MInstruction *def);
 };
 
-class BinaryStringPolicy : public BoxInputsPolicy
-{
-  public:
-    bool adjustInputs(TempAllocator &alloc, MInstruction *def);
-};
-
 class BitwisePolicy : public BoxInputsPolicy
 {
   protected:
@@ -116,6 +110,17 @@ class PowPolicy : public BoxInputsPolicy
 
 template <unsigned Op>
 class StringPolicy : public BoxInputsPolicy
+{
+  public:
+    static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+    bool adjustInputs(TempAllocator &alloc, MInstruction *def) {
+        return staticAdjustInputs(alloc, def);
+    }
+};
+
+
+template <unsigned Op>
+class ConvertToStringPolicy : public BoxInputsPolicy
 {
   public:
     static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
