@@ -4214,6 +4214,122 @@ CodeGenerator::visitInArray(LInArray *lir)
 }
 
 bool
+CodeGenerator::visitInstanceOfTypedO(LInstanceOfTypedO *ins)
+{
+    return emitInstanceOfTyped(ins, ins->mir()->prototypeObject());
+}
+
+bool
+CodeGenerator::visitInstanceOfTypedV(LInstanceOfTypedV *ins)
+{
+    return emitInstanceOfTyped(ins, ins->mir()->prototypeObject());
+}
+
+
+static bool
+IsDelegateObject(JSContext *cx, HandleObject protoObj, HandleObject obj, JSBool *res)
+{
+    bool nres;
+    if (!IsDelegate(cx, protoObj, ObjectValue(*obj), &nres))
+        return false;
+    *res = nres;
+    return true;
+}
+
+typedef bool (*IsDelegateObjectFn)(JSContext *, HandleObject, HandleObject, JSBool *);
+static const VMFunction IsDelegateObjectInfo = FunctionInfo<IsDelegateObjectFn>(IsDelegateObject);
+
+bool
+CodeGenerator::emitInstanceOfTyped(LInstruction *ins, RawObject prototypeObject)
+{
+    
+    
+
+    Label done;
+    Register output = ToRegister(ins->getDef(0));
+
+    
+    Register objReg;
+    if (ins->isInstanceOfTypedV()) {
+        Label isObject;
+        ValueOperand lhsValue = ToValue(ins, LInstanceOfTypedV::LHS);
+        masm.branchTestObject(Assembler::Equal, lhsValue, &isObject);
+        masm.mov(Imm32(0), output);
+        masm.jump(&done);
+        masm.bind(&isObject);
+        objReg = masm.extractObject(lhsValue, output);
+    } else {
+        objReg = ToRegister(ins->toInstanceOfTypedO()->lhs());
+    }
+
+    
+    
+    
+
+    
+    masm.loadPtr(Address(objReg, JSObject::offsetOfType()), output);
+    masm.loadPtr(Address(output, offsetof(types::TypeObject, proto)), output);
+
+    Label testLazy;
+    {
+        Label loopPrototypeChain;
+        masm.bind(&loopPrototypeChain);
+
+        
+        Label notPrototypeObject;
+        masm.branchPtr(Assembler::NotEqual, output, ImmGCPtr(prototypeObject), &notPrototypeObject);
+        masm.mov(Imm32(1), output);
+        masm.jump(&done);
+        masm.bind(&notPrototypeObject);
+
+        JS_ASSERT(uintptr_t(Proxy::LazyProto) == 1);
+
+        
+        masm.branchPtr(Assembler::BelowOrEqual, output, ImmWord(1), &testLazy);
+
+        
+        masm.loadPtr(Address(output, JSObject::offsetOfType()), output);
+        masm.loadPtr(Address(output, offsetof(types::TypeObject, proto)), output);
+
+        masm.jump(&loopPrototypeChain);
+    }
+
+    
+    
+    
+    
+    
+
+    OutOfLineCode *ool = oolCallVM(IsDelegateObjectInfo, ins,
+                                   (ArgList(), ImmGCPtr(prototypeObject), objReg),
+                                   StoreRegisterTo(output));
+
+    
+    Label regenerate, *lazyEntry;
+    if (objReg != output) {
+        lazyEntry = ool->entry();
+    } else {
+        masm.bind(&regenerate);
+        lazyEntry = &regenerate;
+        if (ins->isInstanceOfTypedV()) {
+            ValueOperand lhsValue = ToValue(ins, LInstanceOfTypedV::LHS);
+            objReg = masm.extractObject(lhsValue, output);
+        } else {
+            objReg = ToRegister(ins->toInstanceOfTypedO()->lhs());
+        }
+        JS_ASSERT(objReg == output);
+        masm.jump(ool->entry());
+    }
+
+    masm.bind(&testLazy);
+    masm.branchPtr(Assembler::Equal, output, ImmWord(1), lazyEntry);
+
+    masm.bind(&done);
+    masm.bind(ool->rejoin());
+    return true;
+}
+
+bool
 CodeGenerator::visitInstanceOfO(LInstanceOfO *ins)
 {
     Register rhs = ToRegister(ins->getOperand(1));

@@ -5246,6 +5246,32 @@ class MInArray
 };
 
 
+class MInstanceOfTyped
+  : public MUnaryInstruction,
+    public InstanceOfPolicy
+{
+    CompilerRootObject protoObj_;
+
+  public:
+    MInstanceOfTyped(MDefinition *obj, RawObject proto)
+      : MUnaryInstruction(obj)
+    {
+        protoObj_ = proto;
+        setResultType(MIRType_Boolean);
+    }
+
+    INSTRUCTION_HEADER(InstanceOfTyped);
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+
+    RawObject prototypeObject() {
+        return protoObj_;
+    }
+};
+
+
 class MInstanceOf
   : public MBinaryInstruction,
     public InstanceOfPolicy
