@@ -1908,7 +1908,7 @@ CodeGeneratorARM::generateInvalidateEpilogue()
 
     
     
-    masm.breakpoint();
+    masm.assume_unreachable("Should have returned directly to its caller instead of here.");
     return true;
 }
 
