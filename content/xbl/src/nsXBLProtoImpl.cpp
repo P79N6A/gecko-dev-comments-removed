@@ -22,6 +22,8 @@
 #include "xpcpublic.h"
 
 using namespace mozilla;
+using js::GetGlobalForObjectCrossCompartment;
+using js::AssertSameCompartment;
 
 nsresult
 nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
@@ -69,49 +71,58 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
 
   JS::Rooted<JSObject*> targetScriptObject(cx, holder->GetJSObject());
 
-  JSAutoCompartment ac(cx, targetClassObject);
-
   
-  for (nsXBLProtoImplMember* curr = mMembers;
-       curr;
-       curr = curr->GetNext())
-    curr->InstallMember(cx, targetClassObject);
-
   
+  
+  
+  
+  
+
   
   
   JS::Rooted<JSObject*> globalObject(cx,
-    JS_GetGlobalForObject(cx, targetClassObject));
+    GetGlobalForObjectCrossCompartment(targetClassObject));
   JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScope(cx, globalObject));
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
+  JSAutoCompartment ac(cx, scopeObject);
+
+  
+  JS::RootedObject propertyHolder(cx);
   if (scopeObject != globalObject) {
-    JSAutoCompartment ac2(cx, scopeObject);
 
     
-    
-    JS::Rooted<JSObject*> shadowProto(cx,
-      JS_NewObjectWithGivenProto(cx, nullptr, nullptr, scopeObject));
-    NS_ENSURE_TRUE(shadowProto, NS_ERROR_OUT_OF_MEMORY);
+    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr, scopeObject);
+    NS_ENSURE_TRUE(propertyHolder, NS_ERROR_OUT_OF_MEMORY);
 
     
     
     bool ok = JS_DefineProperty(cx, scopeObject,
                                 js::GetObjectClass(targetClassObject)->name,
-                                JS::ObjectValue(*shadowProto), JS_PropertyStub,
+                                JS::ObjectValue(*propertyHolder), JS_PropertyStub,
                                 JS_StrictPropertyStub,
                                 JSPROP_PERMANENT | JSPROP_READONLY);
     NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+  } else {
+    propertyHolder = targetClassObject;
+  }
 
-    
-    
-    
-    
-    ok = JS_CopyPropertiesFrom(cx, shadowProto, targetClassObject);
-    NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+  
+  for (nsXBLProtoImplMember* curr = mMembers;
+       curr;
+       curr = curr->GetNext())
+    curr->InstallMember(cx, propertyHolder);
 
-    
-    
-    ok = JS_FreezeObject(cx, shadowProto);
+  
+  JSAutoCompartment ac2(cx, targetClassObject);
+
+  
+  
+  
+  
+  if (propertyHolder != targetClassObject) {
+    AssertSameCompartment(propertyHolder, scopeObject);
+    AssertSameCompartment(targetClassObject, globalObject);
+    bool ok = JS_CopyPropertiesFrom(cx, targetClassObject, propertyHolder);
     NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
   }
 
