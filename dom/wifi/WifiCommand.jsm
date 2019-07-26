@@ -16,7 +16,7 @@ const SUPP_PROP = "init.svc.wpa_supplicant";
 const WPA_SUPPLICANT = "wpa_supplicant";
 const DEBUG = false;
 
-this.WifiCommand = function(aControlMessage, aInterface) {
+this.WifiCommand = function(aControlMessage, aInterface, aSdkVersion) {
   function debug(msg) {
     if (DEBUG) {
       dump('-------------- WifiCommand: ' + msg);
@@ -142,17 +142,36 @@ this.WifiCommand = function(aControlMessage, aInterface) {
     doStringCommand("LOG_LEVEL", callback);
   };
 
-  command.wpsPbc = function (iface, callback) {
-    doBooleanCommand("WPS_PBC" + (iface ? (" interface=" + iface) : ""),
-                     "OK", callback);
+  command.wpsPbc = function (callback, iface) {
+    let cmd = 'WPS_PBC';
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (iface && isJellybean()) {
+      cmd += (' inferface=' + iface);
+    }
+
+    doBooleanCommand(cmd, "OK", callback);
   };
 
   command.wpsPin = function (detail, callback) {
-    doStringCommand("WPS_PIN " +
-                    (detail.bssid === undefined ? "any" : detail.bssid) +
-                    (detail.pin === undefined ? "" : (" " + detail.pin)) +
-                    (detail.iface ? (" interface=" + detail.iface) : ""),
-                    callback);
+    let cmd = 'WPS_PIN ';
+
+    
+    if (detail.iface && isJellybean()) {
+      cmd += ('inferface=' + iface + ' ');
+    }
+
+    cmd += (detail.bssid === undefined ? "any" : detail.bssid);
+    cmd += (detail.pin === undefined ? "" : (" " + detail.pin));
+
+    doStringCommand(cmd, callback);
   };
 
   command.wpsCancel = function (callback) {
@@ -518,6 +537,18 @@ this.WifiCommand = function(aControlMessage, aInterface) {
       ok = false;
     }
     callback(ok);
+  }
+
+  function isJellybean() {
+    
+    
+    
+    
+    
+    
+    
+    
+    return aSdkVersion === 16 || aSdkVersion === 17 || aSdkVersion === 18;
   }
 
   return command;
