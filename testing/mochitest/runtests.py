@@ -503,6 +503,7 @@ class MochitestUtilsMixin(object):
     if options.webServer != '127.0.0.1':
       return
 
+    log.info('Stopping web socket server')
     self.wsserver.stop()
 
   def startWebServer(self, options):
@@ -527,6 +528,7 @@ class MochitestUtilsMixin(object):
     if options.webServer != '127.0.0.1':
       return
 
+    log.info('Stopping web server')
     self.server.stop()
 
   def copyExtraFilesToProfile(self, options):
@@ -908,151 +910,148 @@ class Mochitest(MochitestUtilsMixin):
     env = env.copy()
 
     
-    try:
-      
-      tmpfd, processLog = tempfile.mkstemp(suffix='pidlog')
-      os.close(tmpfd)
-      env["MOZ_PROCESS_LOG"] = processLog
+    tmpfd, processLog = tempfile.mkstemp(suffix='pidlog')
+    os.close(tmpfd)
+    env["MOZ_PROCESS_LOG"] = processLog
 
-      if self.runSSLTunnel:
-
-        
-        
-        certificateStatus = self.fillCertificateDB(self.profile.profile,
-                                                   certPath,
-                                                   utilityPath,
-                                                   xrePath)
-        if certificateStatus:
-          log.info("TEST-UNEXPECTED-FAIL | runtests.py | Certificate integration failed")
-          return certificateStatus
-
-        
-        ssltunnel = os.path.join(utilityPath, "ssltunnel" + bin_suffix)
-        ssltunnel_cfg = os.path.join(self.profile.profile, "ssltunnel.cfg")
-        ssltunnelProcess = mozprocess.ProcessHandler([ssltunnel, ssltunnel_cfg],
-                                                      env=environment(xrePath=xrePath))
-        ssltunnelProcess.run()
-        log.info("INFO | runtests.py | SSL tunnel pid: %d", ssltunnelProcess.pid)
-      else:
-        ssltunnelProcess = None
-
-      if interactive:
-        
-        
-        timeout = None
-        signal.signal(signal.SIGINT, lambda sigid, frame: None)
-
-      
-      cmd = os.path.abspath(app)
-      args = list(extraArgs)
-      
-      
-      args.append('-foreground')
-      if testUrl:
-        if debuggerInfo and debuggerInfo['requiresEscapedArgs']:
-          testUrl = testUrl.replace("&", "\\&")
-        args.append(testUrl)
-
-      if mozinfo.info["debug"] and not webapprtChrome:
-        shutdownLeaks = ShutdownLeaks(log.info)
-      else:
-        shutdownLeaks = None
-
-      
-      outputHandler = self.OutputHandler(harness=self,
-                                         utilityPath=utilityPath,
-                                         symbolsPath=symbolsPath,
-                                         dump_screen_on_timeout=not debuggerInfo,
-                                         hide_subtests=hide_subtests,
-                                         shutdownLeaks=shutdownLeaks,
-        )
-
-      def timeoutHandler():
-        outputHandler.log_output_buffer()
-        browserProcessId = outputHandler.browserProcessId
-        self.handleTimeout(timeout, proc, utilityPath, debuggerInfo, browserProcessId)
-      kp_kwargs = {'kill_on_timeout': False,
-                   'onTimeout': [timeoutHandler]}
-      kp_kwargs['processOutputLine'] = [outputHandler]
-
-      
-      self.lastTestSeen = self.test_name
-      startTime = datetime.now()
-
-      
-      if mozinfo.info.get('appname') == 'b2g' and mozinfo.info.get('toolkit') != 'gonk':
-          runner_cls = mozrunner.FirefoxRunner
-      else:
-          runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
-                                             mozrunner.Runner)
-      runner = runner_cls(profile=self.profile,
-                          binary=cmd,
-                          cmdargs=args,
-                          env=env,
-                          process_class=mozprocess.ProcessHandlerMixin,
-                          kp_kwargs=kp_kwargs,
-                          )
+    if self.runSSLTunnel:
 
       
       
-      runner.kp_kwargs = kp_kwargs
+      certificateStatus = self.fillCertificateDB(self.profile.profile,
+                                                 certPath,
+                                                 utilityPath,
+                                                 xrePath)
+      if certificateStatus:
+        log.info("TEST-UNEXPECTED-FAIL | runtests.py | Certificate integration failed")
+        return certificateStatus
 
       
-      runner.start(debug_args=debug_args,
-                   interactive=interactive,
-                   outputTimeout=timeout)
-      proc = runner.process_handler
-      log.info("INFO | runtests.py | Application pid: %d", proc.pid)
+      ssltunnel = os.path.join(utilityPath, "ssltunnel" + bin_suffix)
+      ssltunnel_cfg = os.path.join(self.profile.profile, "ssltunnel.cfg")
+      ssltunnelProcess = mozprocess.ProcessHandler([ssltunnel, ssltunnel_cfg],
+                                                    env=environment(xrePath=xrePath))
+      ssltunnelProcess.run()
+      log.info("INFO | runtests.py | SSL tunnel pid: %d", ssltunnelProcess.pid)
+    else:
+      ssltunnelProcess = None
 
-      if onLaunch is not None:
-        
-        
-        
-        
-        onLaunch()
+    if interactive:
+      
+      
+      timeout = None
+      signal.signal(signal.SIGINT, lambda sigid, frame: None)
 
+    
+    cmd = os.path.abspath(app)
+    args = list(extraArgs)
+    
+    
+    args.append('-foreground')
+    if testUrl:
+      if debuggerInfo and debuggerInfo['requiresEscapedArgs']:
+        testUrl = testUrl.replace("&", "\\&")
+      args.append(testUrl)
+
+    if mozinfo.info["debug"] and not webapprtChrome:
+      shutdownLeaks = ShutdownLeaks(log.info)
+    else:
+      shutdownLeaks = None
+
+    
+    outputHandler = self.OutputHandler(harness=self,
+                                       utilityPath=utilityPath,
+                                       symbolsPath=symbolsPath,
+                                       dump_screen_on_timeout=not debuggerInfo,
+                                       hide_subtests=hide_subtests,
+                                       shutdownLeaks=shutdownLeaks,
+      )
+
+    def timeoutHandler():
+      outputHandler.log_output_buffer()
+      browserProcessId = outputHandler.browserProcessId
+      self.handleTimeout(timeout, proc, utilityPath, debuggerInfo, browserProcessId)
+    kp_kwargs = {'kill_on_timeout': False,
+                 'onTimeout': [timeoutHandler]}
+    kp_kwargs['processOutputLine'] = [outputHandler]
+
+    
+    self.lastTestSeen = self.test_name
+    startTime = datetime.now()
+
+    
+    if mozinfo.info.get('appname') == 'b2g' and mozinfo.info.get('toolkit') != 'gonk':
+        runner_cls = mozrunner.FirefoxRunner
+    else:
+        runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
+                                           mozrunner.Runner)
+    runner = runner_cls(profile=self.profile,
+                        binary=cmd,
+                        cmdargs=args,
+                        env=env,
+                        process_class=mozprocess.ProcessHandlerMixin,
+                        kp_kwargs=kp_kwargs,
+                        )
+
+    
+    
+    runner.kp_kwargs = kp_kwargs
+
+    
+    runner.start(debug_args=debug_args,
+                 interactive=interactive,
+                 outputTimeout=timeout)
+    proc = runner.process_handler
+    log.info("INFO | runtests.py | Application pid: %d", proc.pid)
+
+    if onLaunch is not None:
       
       
       
       
-      
-      status = proc.wait()
-      runner.process_handler = None
+      onLaunch()
 
-      if timeout is None:
-        didTimeout = False
-      else:
-        didTimeout = proc.didTimeout
+    
+    
+    
+    
+    
+    status = proc.wait()
+    runner.process_handler = None
 
-      
-      outputHandler.finish(didTimeout)
+    if timeout is None:
+      didTimeout = False
+    else:
+      didTimeout = proc.didTimeout
 
-      
-      if status:
-        log.info("TEST-UNEXPECTED-FAIL | %s | application terminated with exit code %s", self.lastTestSeen, status)
-      else:
-        self.lastTestSeen = 'Main app process exited normally'
+    
+    outputHandler.finish(didTimeout)
 
-      log.info("INFO | runtests.py | Application ran for: %s", str(datetime.now() - startTime))
+    
+    if status:
+      log.info("TEST-UNEXPECTED-FAIL | %s | application terminated with exit code %s", self.lastTestSeen, status)
+    else:
+      self.lastTestSeen = 'Main app process exited normally'
 
-      
-      zombieProcesses = self.checkForZombies(processLog, utilityPath, debuggerInfo)
+    log.info("INFO | runtests.py | Application ran for: %s", str(datetime.now() - startTime))
 
-      
-      minidump_path = os.path.join(self.profile.profile, "minidumps")
-      crashed = mozcrash.check_for_crashes(minidump_path,
-                                           symbolsPath,
-                                           test_name=self.lastTestSeen)
+    
+    zombieProcesses = self.checkForZombies(processLog, utilityPath, debuggerInfo)
 
-      if crashed or zombieProcesses:
-        status = 1
+    
+    minidump_path = os.path.join(self.profile.profile, "minidumps")
+    crashed = mozcrash.check_for_crashes(minidump_path,
+                                         symbolsPath,
+                                         test_name=self.lastTestSeen)
 
-    finally:
-      
-      if os.path.exists(processLog):
-        os.remove(processLog)
-      if ssltunnelProcess:
-        ssltunnelProcess.kill()
+    if crashed or zombieProcesses:
+      status = 1
+
+    
+    if os.path.exists(processLog):
+      os.remove(processLog)
+    if ssltunnelProcess:
+      ssltunnelProcess.kill()
 
     return status
 
@@ -1089,83 +1088,98 @@ class Mochitest(MochitestUtilsMixin):
     self.httpPort = options.httpPort
     self.sslPort = options.sslPort
     self.webSocketPort = options.webSocketPort
-    self.startWebServer(options)
-    self.startWebSocketServer(options, debuggerInfo)
 
-    testURL = self.buildTestPath(options)
-    self.buildURLOptions(options, browserEnv)
-    if self.urlOpts:
-      testURL += "?" + "&".join(self.urlOpts)
-
-    if options.webapprtContent:
-      options.browserArgs.extend(('-test-mode', testURL))
-      testURL = None
-
-    if options.immersiveMode:
-      options.browserArgs.extend(('-firefoxpath', options.app))
-      options.app = self.immersiveHelperPath
-
-    if options.jsdebugger:
-      options.browserArgs.extend(['-jsdebugger'])
-
-    
-    
-    if os.path.exists(self.leak_report_file):
-      os.remove(self.leak_report_file)
-
-    
-    if options.timeout:
-      timeout = options.timeout + 30
-    elif options.debugger or not options.autorun:
-      timeout = None
-    else:
-      timeout = 330.0 
-
-    if options.vmwareRecording:
-      self.startVMwareRecording(options);
-
-    log.info("runtests.py | Running tests: start.\n")
     try:
-      status = self.runApp(testURL,
-                           browserEnv,
-                           options.app,
-                           profile=self.profile,
-                           extraArgs=options.browserArgs,
-                           utilityPath=options.utilityPath,
-                           xrePath=options.xrePath,
-                           certPath=options.certPath,
-                           debuggerInfo=debuggerInfo,
-                           symbolsPath=options.symbolsPath,
-                           timeout=timeout,
-                           onLaunch=onLaunch,
-                           webapprtChrome=options.webapprtChrome,
-                           hide_subtests=options.hide_subtests
-                           )
-    except KeyboardInterrupt:
-      log.info("runtests.py | Received keyboard interrupt.\n");
-      status = -1
-    except:
-      traceback.print_exc()
-      log.error("Automation Error: Received unexpected exception while running application\n")
-      status = 1
+        self.startWebServer(options)
+        self.startWebSocketServer(options, debuggerInfo)
 
-    if options.vmwareRecording:
-      self.stopVMwareRecording();
+        testURL = self.buildTestPath(options)
+        self.buildURLOptions(options, browserEnv)
+        if self.urlOpts:
+          testURL += "?" + "&".join(self.urlOpts)
 
-    self.stopWebServer(options)
-    self.stopWebSocketServer(options)
-    processLeakLog(self.leak_report_file, options.leakThreshold)
+        if options.webapprtContent:
+          options.browserArgs.extend(('-test-mode', testURL))
+          testURL = None
 
-    if self.nsprLogs:
-      with zipfile.ZipFile("%s/nsprlog.zip" % browserEnv["MOZ_UPLOAD_DIR"], "w", zipfile.ZIP_DEFLATED) as logzip:
-        for logfile in glob.glob("%s/nspr*.log*" % tempfile.gettempdir()):
-          logzip.write(logfile)
-          os.remove(logfile)
+        if options.immersiveMode:
+          options.browserArgs.extend(('-firefoxpath', options.app))
+          options.app = self.immersiveHelperPath
 
-    log.info("runtests.py | Running tests: end.")
+        if options.jsdebugger:
+          options.browserArgs.extend(['-jsdebugger'])
 
-    if manifest is not None:
-      self.cleanup(manifest, options)
+        
+        
+        if os.path.exists(self.leak_report_file):
+          os.remove(self.leak_report_file)
+
+        
+        if options.timeout:
+          timeout = options.timeout + 30
+        elif options.debugger or not options.autorun:
+          timeout = None
+        else:
+          timeout = 330.0 
+
+        if options.vmwareRecording:
+          self.startVMwareRecording(options);
+
+        log.info("runtests.py | Running tests: start.\n")
+        try:
+          status = self.runApp(testURL,
+                               browserEnv,
+                               options.app,
+                               profile=self.profile,
+                               extraArgs=options.browserArgs,
+                               utilityPath=options.utilityPath,
+                               xrePath=options.xrePath,
+                               certPath=options.certPath,
+                               debuggerInfo=debuggerInfo,
+                               symbolsPath=options.symbolsPath,
+                               timeout=timeout,
+                               onLaunch=onLaunch,
+                               webapprtChrome=options.webapprtChrome,
+                               hide_subtests=options.hide_subtests
+                               )
+        except KeyboardInterrupt:
+          log.info("runtests.py | Received keyboard interrupt.\n");
+          status = -1
+        except:
+          traceback.print_exc()
+          log.error("Automation Error: Received unexpected exception while running application\n")
+          status = 1
+
+    finally:
+        if options.vmwareRecording:
+            try:
+              self.stopVMwareRecording();
+            except Exception:
+                log.exception('Error stopping VMWare recording')
+
+        try:
+            self.stopWebServer(options)
+        except Exception:
+            log.exception('Exception when stopping web server')
+
+        try:
+            self.stopWebSocketServer(options)
+        except Exception:
+            log.exception('Exception when stopping websocket server')
+
+        processLeakLog(self.leak_report_file, options.leakThreshold)
+
+        if self.nsprLogs:
+            with zipfile.ZipFile("%s/nsprlog.zip" % browserEnv["MOZ_UPLOAD_DIR"], "w", zipfile.ZIP_DEFLATED) as logzip:
+                for logfile in glob.glob("%s/nspr*.log*" % tempfile.gettempdir()):
+                    logzip.write(logfile)
+                    os.remove(logfile)
+
+        log.info("runtests.py | Running tests: end.")
+
+        if manifest is not None:
+            self.cleanup(manifest, options)
+
     return status
 
   def handleTimeout(self, timeout, proc, utilityPath, debuggerInfo, browserProcessId):
