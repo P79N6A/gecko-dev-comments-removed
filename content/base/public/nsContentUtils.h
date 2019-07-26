@@ -90,6 +90,9 @@ class nsIWidget;
 class nsIDragSession;
 class nsIPresShell;
 class nsIXPConnectJSObjectHolder;
+#ifdef MOZ_XTF
+class nsIXTFService;
+#endif
 #ifdef IBMBIDI
 class nsIBidiKeyboard;
 #endif
@@ -126,7 +129,7 @@ enum EventNameType {
   EventNameType_XUL = 0x0002,
   EventNameType_SVGGraphic = 0x0004, 
   EventNameType_SVGSVG = 0x0008, 
-  EventNameType_SMIL = 0x0016, 
+  EventNameType_SMIL = 0x0010, 
   EventNameType_HTMLBodyOrFramesetOnly = 0x0020,
 
   EventNameType_HTMLXUL = 0x0003,
@@ -454,6 +457,10 @@ public:
   {
     return sIOService;
   }
+
+#ifdef MOZ_XTF
+  static nsIXTFService* GetXTFService();
+#endif
 
 #ifdef IBMBIDI
   static nsIBidiKeyboard* GetBidiKeyboard();
@@ -2214,6 +2221,10 @@ private:
   static nsINameSpaceManager *sNameSpaceManager;
 
   static nsIIOService *sIOService;
+
+#ifdef MOZ_XTF
+  static nsIXTFService *sXTFService;
+#endif
 
   static bool sImgLoaderInitialized;
   static void InitImgLoader();
