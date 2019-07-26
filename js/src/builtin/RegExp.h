@@ -22,9 +22,13 @@ js_InitRegExpClass(JSContext *cx, js::HandleObject obj);
 
 namespace js {
 
+
+
+enum RegExpStaticsUpdate { UpdateRegExpStatics, DontUpdateRegExpStatics };
+
 RegExpRunStatus
 ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string,
-              MatchConduit &matches);
+              MatchConduit &matches, RegExpStaticsUpdate staticsUpdate);
 
 
 
@@ -55,6 +59,26 @@ regexp_test_raw(JSContext *cx, HandleObject regexp, HandleString input, JSBool *
 
 extern JSBool
 regexp_test(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+
+
+
+extern JSBool
+regexp_exec_no_statics(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+extern JSBool
+regexp_test_no_statics(JSContext *cx, unsigned argc, Value *vp);
 
 } 
 
