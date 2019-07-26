@@ -410,10 +410,7 @@ nsSocketInputStream::AsyncWait(nsIInputStreamCallback *callback,
 {
     SOCKET_LOG(("nsSocketInputStream::AsyncWait [this=%p]\n", this));
 
-    
-    
-    
-    nsCOMPtr<nsIInputStreamCallback> directCallback;
+    bool hasError = false;
     {
         MutexAutoLock lock(mTransport->mLock);
 
@@ -425,16 +422,20 @@ nsSocketInputStream::AsyncWait(nsIInputStreamCallback *callback,
         }
         else
             mCallback = callback;
+        mCallbackFlags = flags;
 
-        if (NS_FAILED(mCondition))
-            directCallback.swap(mCallback);
-        else
-            mCallbackFlags = flags;
-    }
-    if (directCallback)
-        directCallback->OnInputStreamReady(this);
-    else
+        hasError = NS_FAILED(mCondition);
+    } 
+
+    if (hasError) {
+        
+        
+        
+        
+        mTransport->PostEvent(nsSocketTransport::MSG_INPUT_PENDING);
+    } else {
         mTransport->OnInputPending();
+    }
 
     return NS_OK;
 }
