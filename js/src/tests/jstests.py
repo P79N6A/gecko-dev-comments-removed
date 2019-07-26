@@ -189,9 +189,7 @@ def parse_args():
     options.show = options.show_cmd or options.show_output
 
     
-    options.hide_progress = ((options.show and
-                              options.output_fp == sys.stdout) or
-                             options.tinderbox or
+    options.hide_progress = (options.tinderbox or
                              ProgressBar.conservative_isatty() or
                              options.hide_progress)
 
