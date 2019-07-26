@@ -3,33 +3,22 @@
 
 
 
-#include "mozilla/dom/TabChild.h"
+
+#include "DocAccessibleWrap.h"
 
 #include "Compatibility.h"
-#include "DocAccessibleWrap.h"
-#include "ISimpleDOMDocument_i.c"
-#include "nsCoreUtils.h"
-#include "nsIAccessibilityService.h"
 #include "nsWinUtils.h"
+#include "mozilla/dom/TabChild.h"
 #include "Role.h"
 #include "RootAccessible.h"
+#include "sdnDocAccessible.h"
 #include "Statistics.h"
 
 #include "nsIDocShell.h"
-#include "nsIDocShellTreeNode.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsISelectionController.h"
-#include "nsIServiceManager.h"
-#include "nsIURI.h"
-#include "nsViewManager.h"
-#include "nsIWebNavigation.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
-
-
-
-
 
 
 
@@ -46,196 +35,45 @@ DocAccessibleWrap::~DocAccessibleWrap()
 {
 }
 
-
-
-
-STDMETHODIMP_(ULONG)
-DocAccessibleWrap::AddRef()
-{
-  return nsAccessNode::AddRef();
-}
-
-STDMETHODIMP_(ULONG) DocAccessibleWrap::Release()
-{
-  return nsAccessNode::Release();
-}
-
+IMPL_IUNKNOWN_QUERY_HEAD(DocAccessibleWrap)
+  if (aIID == IID_ISimpleDOMDocument) {
+    statistics::ISimpleDOMUsed();
+    *aInstancePtr = static_cast<ISimpleDOMDocument*>(new sdnDocAccessible(this));
+    static_cast<IUnknown*>(*aInstancePtr)->AddRef();
+    return S_OK;
+  }
+IMPL_IUNKNOWN_QUERY_TAIL_INHERITED(HyperTextAccessibleWrap)
 
 STDMETHODIMP
-DocAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
-{
-  if (!ppv)
-    return E_INVALIDARG;
-
-  *ppv = nullptr;
-
-  if (IID_ISimpleDOMDocument != iid)
-    return HyperTextAccessibleWrap::QueryInterface(iid, ppv);
-
-  statistics::ISimpleDOMUsed();
-  *ppv = static_cast<ISimpleDOMDocument*>(this);
-  (reinterpret_cast<IUnknown*>(*ppv))->AddRef();
-  return S_OK;
-}
-
-STDMETHODIMP
-DocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
+DocAccessibleWrap::get_accValue(VARIANT aVarChild, BSTR __RPC_FAR* aValue)
 {
   A11Y_TRYBLOCK_BEGIN
 
-  if (!aURL)
+  if (!aValue)
     return E_INVALIDARG;
-
-  *aURL = nullptr;
-
-  nsAutoString URL;
-  nsresult rv = GetURL(URL);
-  if (NS_FAILED(rv))
-    return E_FAIL;
-
-  if (URL.IsEmpty())
-    return S_FALSE;
-
-  *aURL = ::SysAllocStringLen(URL.get(), URL.Length());
-  return *aURL ? S_OK : E_OUTOFMEMORY;
-
-  A11Y_TRYBLOCK_END
-}
-
-STDMETHODIMP
-DocAccessibleWrap::get_title(  BSTR __RPC_FAR *aTitle)
-{
-  A11Y_TRYBLOCK_BEGIN
-
-  if (!aTitle)
-    return E_INVALIDARG;
-
-  *aTitle = nullptr;
-
-  nsAutoString title;
-  nsresult rv = GetTitle(title);
-  if (NS_FAILED(rv))
-    return E_FAIL;
-
-  *aTitle = ::SysAllocStringLen(title.get(), title.Length());
-  return *aTitle ? S_OK : E_OUTOFMEMORY;
-
-  A11Y_TRYBLOCK_END
-}
-
-STDMETHODIMP
-DocAccessibleWrap::get_mimeType( BSTR __RPC_FAR *aMimeType)
-{
-  A11Y_TRYBLOCK_BEGIN
-
-  if (!aMimeType)
-    return E_INVALIDARG;
-
-  *aMimeType = nullptr;
-
-  nsAutoString mimeType;
-  nsresult rv = GetMimeType(mimeType);
-  if (NS_FAILED(rv))
-    return E_FAIL;
-
-  if (mimeType.IsEmpty())
-    return S_FALSE;
-
-  *aMimeType = ::SysAllocStringLen(mimeType.get(), mimeType.Length());
-  return *aMimeType ? S_OK : E_OUTOFMEMORY;
-
-  A11Y_TRYBLOCK_END
-}
-
-STDMETHODIMP
-DocAccessibleWrap::get_docType( BSTR __RPC_FAR *aDocType)
-{
-  A11Y_TRYBLOCK_BEGIN
-
-  if (!aDocType)
-    return E_INVALIDARG;
-
-  *aDocType = nullptr;
-
-  nsAutoString docType;
-  nsresult rv = GetDocType(docType);
-  if (NS_FAILED(rv))
-    return E_FAIL;
-
-  if (docType.IsEmpty())
-    return S_FALSE;
-
-  *aDocType = ::SysAllocStringLen(docType.get(), docType.Length());
-  return *aDocType ? S_OK : E_OUTOFMEMORY;
-
-  A11Y_TRYBLOCK_END
-}
-
-STDMETHODIMP
-DocAccessibleWrap::get_nameSpaceURIForID(  short aNameSpaceID,
-   BSTR __RPC_FAR *aNameSpaceURI)
-{
-  A11Y_TRYBLOCK_BEGIN
-
-  if (!aNameSpaceURI)
-    return E_INVALIDARG;
-
-  *aNameSpaceURI = nullptr;
-
-  if (aNameSpaceID < 0)
-    return E_INVALIDARG;  
-
-  nsAutoString nameSpaceURI;
-  nsresult rv = GetNameSpaceURIForID(aNameSpaceID, nameSpaceURI);
-  if (NS_FAILED(rv))
-    return E_FAIL;
-
-  if (nameSpaceURI.IsEmpty())
-    return S_FALSE;
-
-  *aNameSpaceURI = ::SysAllocStringLen(nameSpaceURI.get(),
-                                       nameSpaceURI.Length());
-
-  return *aNameSpaceURI ? S_OK : E_OUTOFMEMORY;
-
-  A11Y_TRYBLOCK_END
-}
-
-STDMETHODIMP
-DocAccessibleWrap::put_alternateViewMediaTypes(  BSTR __RPC_FAR *aCommaSeparatedMediaTypes)
-{
-  A11Y_TRYBLOCK_BEGIN
-
-  if (!aCommaSeparatedMediaTypes)
-    return E_INVALIDARG;
-
-  *aCommaSeparatedMediaTypes = nullptr;
-  return E_NOTIMPL;
-
-  A11Y_TRYBLOCK_END
-}
-
-STDMETHODIMP
-DocAccessibleWrap::get_accValue(
-       VARIANT varChild,
-       BSTR __RPC_FAR *pszValue)
-{
-  if (!pszValue)
-    return E_INVALIDARG;
+  *aValue = nullptr;
 
   
-  *pszValue = nullptr;
   
-  HRESULT hr = AccessibleWrap::get_accValue(varChild, pszValue);
-  if (FAILED(hr) || *pszValue || varChild.lVal != CHILDID_SELF)
+  HRESULT hr = AccessibleWrap::get_accValue(aVarChild, aValue);
+  if (FAILED(hr) || *aValue || aVarChild.lVal != CHILDID_SELF)
     return hr;
+
   
   roles::Role role = Role();
   if (role != roles::DOCUMENT && role != roles::APPLICATION && 
       role != roles::DIALOG && role != roles::ALERT) 
     return hr;
 
-  return get_URL(pszValue);
+  nsAutoString URL;
+  nsresult rv = GetURL(URL);
+  if (URL.IsEmpty())
+    return S_FALSE;
+
+  *aValue = ::SysAllocStringLen(URL.get(), URL.Length());
+  return *aValue ? S_OK : E_OUTOFMEMORY;
+
+  A11Y_TRYBLOCK_END
 }
 
 
