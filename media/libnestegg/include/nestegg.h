@@ -325,6 +325,15 @@ int nestegg_packet_data(nestegg_packet * packet, unsigned int item,
 
 int nestegg_has_cues(nestegg * context);
 
+
+
+
+
+
+
+
+int nestegg_sniff(unsigned char const * buffer, size_t length);
+
 #ifdef __cplusplus
 }
 #endif
