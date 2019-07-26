@@ -815,11 +815,6 @@ inline bool IsPoisonedPtr(T *v)
 }
 
 
-
-
-typedef size_t(*JSMallocSizeOfFun)(const void *p);
-
-
 #ifndef HAVE_STATIC_ANNOTATIONS
 # define HAVE_STATIC_ANNOTATIONS
 # ifdef XGILL_PLUGIN

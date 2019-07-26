@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
+
 #include "BaselineCompiler.h"
 #include "BaselineIC.h"
 #include "BaselineJIT.h"
@@ -843,7 +845,7 @@ ion::IonCompartment::toggleBaselineStubBarriers(bool enabled)
 }
 
 void
-ion::SizeOfBaselineData(JSScript *script, JSMallocSizeOfFun mallocSizeOf, size_t *data,
+ion::SizeOfBaselineData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf, size_t *data,
                         size_t *fallbackStubs)
 {
     *data = 0;

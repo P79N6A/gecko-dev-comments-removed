@@ -12,6 +12,7 @@
 
 #include <string.h>
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
 
 #include "jstypes.h"
@@ -1356,7 +1357,7 @@ ScriptSource::destroy()
 }
 
 size_t
-ScriptSource::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf)
+ScriptSource::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
 {
     
     
@@ -1953,7 +1954,7 @@ JSScript::computedSizeOfData()
 }
 
 size_t
-JSScript::sizeOfData(JSMallocSizeOfFun mallocSizeOf)
+JSScript::sizeOfData(mozilla::MallocSizeOf mallocSizeOf)
 {
     return mallocSizeOf(data);
 }
