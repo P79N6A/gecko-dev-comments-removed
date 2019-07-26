@@ -9,7 +9,12 @@ Cu.import("resource://services-sync/util.js");
 const logsdir            = FileUtils.getDir("ProfD", ["weave", "logs"], true);
 const LOG_PREFIX_SUCCESS = "success-";
 const LOG_PREFIX_ERROR   = "error-";
-const CLEANUP_DELAY      = 1000; 
+
+
+
+
+
+const CLEANUP_DELAY      = 2000;
 const DELAY_BUFFER       = 500;  
 
 const PROLONGED_ERROR_DURATION =
