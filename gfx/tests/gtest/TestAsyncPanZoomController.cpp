@@ -211,6 +211,7 @@ TEST(AsyncPanZoomController, Pinch) {
   fm.mScrollOffset = CSSPoint(300, 300);
   fm.mZoom = CSSToScreenScale(2.0);
   apzc->SetFrameMetrics(fm);
+  apzc->UpdateZoomConstraints(ZoomConstraints(true, CSSToScreenScale(0.25), CSSToScreenScale(4.0)));
   
 
   EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
@@ -251,6 +252,7 @@ TEST(AsyncPanZoomController, Overzoom) {
   fm.mScrollOffset = CSSPoint(10, 0);
   fm.mZoom = CSSToScreenScale(1.0);
   apzc->SetFrameMetrics(fm);
+  apzc->UpdateZoomConstraints(ZoomConstraints(true, CSSToScreenScale(0.25), CSSToScreenScale(4.0)));
   
 
   EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
