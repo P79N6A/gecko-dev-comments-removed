@@ -2656,10 +2656,14 @@ public:
   enum {
     GENERATE_SUBDOC_INVALIDATIONS = 0x01,
     VERTICAL_SCROLLBAR = 0x02,
-    HORIZONTAL_SCROLLBAR = 0x04
+    HORIZONTAL_SCROLLBAR = 0x04,
+    GENERATE_SCROLLABLE_LAYER = 0x08
   };
 
   
+
+
+
 
 
 
@@ -2690,7 +2694,7 @@ public:
   }
   uint32_t GetFlags() { return mFlags; }
   NS_DISPLAY_DECL_NAME("OwnLayer", TYPE_OWN_LAYER)
-private:
+protected:
   uint32_t mFlags;
   ViewID mScrollTarget;
 };
@@ -2700,10 +2704,29 @@ private:
 
 
 
-class nsDisplayResolution : public nsDisplayOwnLayer {
+class nsDisplaySubDocument : public nsDisplayOwnLayer {
+public:
+  nsDisplaySubDocument(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                       nsDisplayList* aList, uint32_t aFlags);
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplaySubDocument();
+#endif
+
+  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                             LayerManager* aManager,
+                                             const ContainerLayerParameters& aContainerParameters) MOZ_OVERRIDE;
+  NS_DISPLAY_DECL_NAME("SubDocument", TYPE_SUBDOCUMENT)
+};
+
+
+
+
+
+
+class nsDisplayResolution : public nsDisplaySubDocument {
 public:
   nsDisplayResolution(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                     nsDisplayList* aList, uint32_t aFlags);
+                      nsDisplayList* aList, uint32_t aFlags);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayResolution();
 #endif
@@ -2867,7 +2890,7 @@ public:
 
 
 
-class nsDisplayZoom : public nsDisplayOwnLayer {
+class nsDisplayZoom : public nsDisplaySubDocument {
 public:
   
 
