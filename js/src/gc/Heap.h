@@ -379,22 +379,6 @@ class FreeList
         JS_EXTRA_POISON(reinterpret_cast<void *>(thing), JS_ALLOCATED_TENURED_PATTERN, thingSize);
         return reinterpret_cast<void *>(thing);
     }
-
-    
-
-
-
-
-
-    MOZ_ALWAYS_INLINE void *allocateFromNewArena(uintptr_t arenaAddr, size_t firstThingOffset,
-                                                 size_t thingSize) {
-        JS_ASSERT(isEmpty());
-        JS_ASSERT(!(arenaAddr & ArenaMask));
-        uintptr_t thing = arenaAddr + firstThingOffset;
-        head.initFinal(thing + thingSize, arenaAddr + ArenaSize - thingSize, thingSize);
-        JS_EXTRA_POISON(reinterpret_cast<void *>(thing), JS_ALLOCATED_TENURED_PATTERN, thingSize);
-        return reinterpret_cast<void *>(thing);
-    }
 };
 
 
