@@ -75,22 +75,18 @@ struct NativeFont {
 
 
 
-
 struct DrawOptions {
   DrawOptions(Float aAlpha = 1.0f,
               CompositionOp aCompositionOp = OP_OVER,
-              AntialiasMode aAntialiasMode = AA_DEFAULT,
-              Snapping aSnapping = SNAP_NONE)
+              AntialiasMode aAntialiasMode = AA_DEFAULT)
     : mAlpha(aAlpha)
     , mCompositionOp(aCompositionOp)
     , mAntialiasMode(aAntialiasMode)
-    , mSnapping(aSnapping)
   {}
 
   Float mAlpha;
   CompositionOp mCompositionOp : 8;
   AntialiasMode mAntialiasMode : 3;
-  Snapping mSnapping : 1;
 };
 
 

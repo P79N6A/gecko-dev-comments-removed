@@ -296,8 +296,6 @@ struct AutoPaintSetup {
       mPaint.setAntiAlias(false);
     }
 
-    MOZ_ASSERT(aOptions.mSnapping == SNAP_NONE, "Pixel snapping not supported yet!");
-    
     
     
     
