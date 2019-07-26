@@ -1222,7 +1222,7 @@ const char* gfxFontUtils::gMSFontNameCharsets[] =
              nullptr      ,
             "Big5"      ,
          nullptr      ,
-           "x-johab"   ,
+           nullptr      ,
                               nullptr      ,
                               nullptr      ,
                               nullptr      ,
