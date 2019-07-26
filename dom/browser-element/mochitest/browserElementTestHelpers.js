@@ -4,6 +4,12 @@
 
 "use strict";
 
+function _getPath() {
+  return window.location.pathname
+               .substring(0, window.location.pathname.lastIndexOf('/'))
+               .replace("/priority", "");
+}
+
 const browserElementTestHelpers = {
   _getBoolPref: function(pref) {
     try {
@@ -14,71 +20,40 @@ const browserElementTestHelpers = {
     }
   },
 
-  _setBoolPref: function(pref, value) {
-    if (value !== undefined) {
-      SpecialPowers.setBoolPref(pref, value);
-    }
-    else {
-      SpecialPowers.clearUserPref(pref);
-    }
-  },
-
-  _getCharPref: function(pref) {
-    try {
-      return SpecialPowers.getCharPref(pref);
-    }
-    catch (e) {
-      return undefined;
+  _setPref: function(pref, value) {
+    this.lockTestReady();
+    if (value !== undefined && value !== null) {
+      SpecialPowers.pushPrefEnv({'set': [[pref, value]]}, this.unlockTestReady.bind(this));
+    } else {
+      SpecialPowers.pushPrefEnv({'clear': [[pref]]}, this.unlockTestReady.bind(this));
     }
   },
 
-  _setCharPref: function(pref, value) {
-    if (value !== undefined) {
-      SpecialPowers.setCharPref(pref, value);
-    }
-    else {
-      SpecialPowers.clearUserPref(pref);
+  _testReadyLockCount: 0,
+  _firedTestReady: false,
+  lockTestReady: function() {
+    this._testReadyLockCount++;
+  },
+
+  unlockTestReady: function() {
+    this._testReadyLockCount--;
+    if (this._testReadyLockCount == 0 && !this._firedTestReady) {
+      this._firedTestReady = true;
+      dispatchEvent(new Event("testready"));
     }
   },
 
-  getEnabledPref: function() {
-    return this._getBoolPref('dom.mozBrowserFramesEnabled');
+  enableProcessPriorityManager: function() {
+    this._setPref('dom.ipc.processPriorityManager.testMode', true);
+    this._setPref('dom.ipc.processPriorityManager.enabled', true);
   },
 
   setEnabledPref: function(value) {
-    this._setBoolPref('dom.mozBrowserFramesEnabled', value);
-  },
-
-  getOOPDisabledPref: function() {
-    return this._getBoolPref('dom.ipc.tabs.disabled');
-  },
-
-  setOOPDisabledPref: function(value) {
-    this._setBoolPref('dom.ipc.tabs.disabled', value);
+    this._setPref('dom.mozBrowserFramesEnabled', value);
   },
 
   getOOPByDefaultPref: function() {
     return this._getBoolPref("dom.ipc.browser_frames.oop_by_default");
-  },
-
-  setOOPByDefaultPref: function(value) {
-    return this._setBoolPref("dom.ipc.browser_frames.oop_by_default", value);
-  },
-
-  getIPCSecurityDisabledPref: function() {
-    return this._getBoolPref("network.disable.ipc.security");
-  },
-
-  setIPCSecurityDisabledPref: function(value) {
-    return this._setBoolPref("network.disable.ipc.security", value);
-  },
-
-  getPageThumbsEnabledPref: function() {
-    return this._getBoolPref('browser.pageThumbs.enabled');
-  },
-
-  setPageThumbsEnabledPref: function(value) {
-    this._setBoolPref('browser.pageThumbs.enabled', value);
   },
 
   addPermission: function() {
@@ -97,57 +72,62 @@ const browserElementTestHelpers = {
     this.tempPermissions.push(url);
   },
 
-  restoreOriginalPrefs: function() {
-    this.setEnabledPref(this.origEnabledPref);
-    this.setOOPDisabledPref(this.origOOPDisabledPref);
-    this.setOOPByDefaultPref(this.origOOPByDefaultPref);
-    this.setPageThumbsEnabledPref(this.origPageThumbsEnabledPref);
-    this.setIPCSecurityDisabledPref(this.origIPCSecurityPref);
-    this.removeAllTempPermissions();
-  },
-
-  'origEnabledPref': null,
-  'origOOPDisabledPref': null,
-  'origOOPByDefaultPref': null,
-  'origPageThumbsEnabledPref': null,
-  'origIPCSecurityPref': null,
   'tempPermissions': [],
 
   
-  'emptyPage1': 'http://example.com' +
-                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
-                '/file_empty.html',
-  'emptyPage2': 'http://example.org' +
-                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
-                '/file_empty.html',
-  'emptyPage3': 'http://test1.example.org' +
-                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
-                '/file_empty.html',
-  'focusPage': 'http://example.org' +
-                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
-                '/file_focus.html',
+  'emptyPage1': 'http://example.com' + _getPath() + '/file_empty.html',
+  'emptyPage2': 'http://example.org' + _getPath() + '/file_empty.html',
+  'emptyPage3': 'http://test1.example.org' + _getPath() + '/file_empty.html',
+  'focusPage': 'http://example.org' + _getPath() + '/file_focus.html',
 };
 
-browserElementTestHelpers.origEnabledPref = browserElementTestHelpers.getEnabledPref();
-browserElementTestHelpers.origOOPDisabledPref = browserElementTestHelpers.getOOPDisabledPref();
-browserElementTestHelpers.origOOPByDefaultPref = browserElementTestHelpers.getOOPByDefaultPref();
-browserElementTestHelpers.origPageThumbsEnabledPref = browserElementTestHelpers.getPageThumbsEnabledPref();
-browserElementTestHelpers.origIPCSecurityPref = browserElementTestHelpers.getIPCSecurityDisabledPref();
-
-
-browserElementTestHelpers.setPageThumbsEnabledPref(false);
 
 
 
 
-var oop = location.pathname.indexOf('_inproc_') == -1;
-browserElementTestHelpers.setOOPByDefaultPref(oop);
-browserElementTestHelpers.setOOPDisabledPref(false);
 
 
 
-browserElementTestHelpers.setIPCSecurityDisabledPref(true);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function() {
+  var oop = location.pathname.indexOf('_inproc_') == -1;
+
+  browserElementTestHelpers.lockTestReady();
+  SpecialPowers.setBoolPref("network.disable.ipc.security", true);
+  SpecialPowers.pushPrefEnv({set: [["browser.pageThumbs.enabled", false],
+                                   ["dom.ipc.browser_frames.oop_by_default", oop],
+                                   ["dom.ipc.tabs.disabled", false]]},
+                            browserElementTestHelpers.unlockTestReady.bind(browserElementTestHelpers));
+})();
 
 addEventListener('unload', function() {
-  browserElementTestHelpers.restoreOriginalPrefs();
+  browserElementTestHelpers.removeAllTempPermissions();
+});
+
+
+browserElementTestHelpers.lockTestReady();
+addEventListener('load', function() {
+  SimpleTest.executeSoon(browserElementTestHelpers.unlockTestReady.bind(browserElementTestHelpers));
 });

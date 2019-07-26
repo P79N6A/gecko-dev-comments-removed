@@ -4,6 +4,7 @@
 
 "use strict";
 
+SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
 
@@ -23,8 +24,6 @@ function runTest() {
   
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
-
-  SimpleTest.waitForExplicitFinish();
 }
 
 var numMsgReceived = 0;
@@ -76,4 +75,4 @@ function waitForMessages(num) {
   SimpleTest.finish();
 }
 
-runTest();
+addEventListener('testready', runTest);

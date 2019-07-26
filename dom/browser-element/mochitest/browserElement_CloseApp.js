@@ -6,16 +6,15 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
+browserElementTestHelpers.setEnabledPref(true);
+browserElementTestHelpers.addPermission();
+SpecialPowers.addPermission("embed-apps", true, window.document);
+
+addEventListener('unload', function() {
+  SpecialPowers.removePermission("embed-apps", window.document);
+});
 
 function runTest() {
-  browserElementTestHelpers.setEnabledPref(true);
-  browserElementTestHelpers.addPermission();
-  SpecialPowers.addPermission("embed-apps", true, window.document);
-
-  addEventListener('unload', function() {
-    SpecialPowers.removePermission("embed-apps", window.document);
-  });
-
   
   
   
@@ -68,4 +67,6 @@ function runTest() {
 
 
 
-SpecialPowers.pushPrefEnv({'set': [['dom.allow_scripts_to_close_windows', false]]}, runTest);
+addEventListener('testready', function() {
+  SpecialPowers.pushPrefEnv({'set': [['dom.allow_scripts_to_close_windows', false]]}, runTest);
+});

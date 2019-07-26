@@ -19,11 +19,10 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
+browserElementTestHelpers.setEnabledPref(true);
+browserElementTestHelpers.addPermission();
 
 function runTest() {
-  browserElementTestHelpers.setEnabledPref(true);
-  browserElementTestHelpers.addPermission();
-
   
   
   var remote = !browserElementTestHelpers.getOOPByDefaultPref();
@@ -104,4 +103,4 @@ function test2(popup, blankScreenshotArrayBuffer) {
   };
 }
 
-runTest();
+addEventListener('testready', runTest);
