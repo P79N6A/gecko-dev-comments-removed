@@ -147,7 +147,10 @@ this.TranslationDocument.prototype = {
       }
 
       let objInMap = this.itemsMap.get(child);
-      if (objInMap) {
+      if (objInMap && !objInMap.isRoot) {
+        
+        
+        
         
         
         
