@@ -993,6 +993,11 @@ struct ScriptSource
         
         
         
+        
+        
+        
+        
+        
         jschar *source;
         unsigned char *compressed;
     } data;
@@ -1068,6 +1073,7 @@ struct ScriptSource
     size_t computedSizeOfData() const {
         return compressed() ? compressedLength_ : sizeof(jschar) * length_;
     }
+    bool adjustDataSize(size_t nbytes);
 };
 
 class ScriptSourceHolder
