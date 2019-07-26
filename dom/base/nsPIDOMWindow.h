@@ -483,6 +483,25 @@ public:
     mMayHaveMouseEnterLeaveEventListener = true;
   }
 
+  
+
+
+
+  bool HasPointerEnterLeaveEventListeners()
+  {
+    return mMayHavePointerEnterLeaveEventListener;
+  }
+
+  
+
+
+
+  void SetHasPointerEnterLeaveEventListeners()
+  {
+    mMayHavePointerEnterLeaveEventListener = true;
+  }
+
+
   virtual JSObject* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;
   virtual void CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
                                         JS::Handle<JSObject*> aHandler) = 0;
@@ -733,6 +752,7 @@ protected:
   bool                   mMayHavePaintEventListener;
   bool                   mMayHaveTouchEventListener;
   bool                   mMayHaveMouseEnterLeaveEventListener;
+  bool                   mMayHavePointerEnterLeaveEventListener;
 
   
   
