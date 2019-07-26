@@ -106,12 +106,12 @@ private:
                                           
                                           
 
-  bool           mIsInitialized:1;        
-  bool           mIsFullyLoaded:1;        
-  bool           mIsDrawing:1;            
-  bool           mHaveAnimations:1;       
+  bool           mIsInitialized;          
+  bool           mIsFullyLoaded;          
+  bool           mIsDrawing;              
+  bool           mHaveAnimations;         
                                           
-  bool           mHaveRestrictedRegion:1; 
+  bool           mHaveRestrictedRegion;   
                                           
 
   friend class ImageFactory;
