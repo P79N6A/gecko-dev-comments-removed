@@ -19,6 +19,8 @@
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/ipc/Shmem.h"
 #include "mozilla/ipc/Transport.h"
+#include "mozilla/ipc/MessageLink.h"
+#include "mozilla/LinkedList.h"
 
 
 
@@ -40,9 +42,18 @@ enum {
 }
 
 namespace mozilla {
+namespace dom {
+class ContentParent;
+}
+
+namespace net {
+class NeckoParent;
+}
+
 namespace ipc {
 
-class MessageChannel;
+class ProtocolFdMapping;
+class ProtocolCloneContext;
 
 
 
@@ -68,6 +79,35 @@ struct Trigger
 
     Action mAction;
     int32_t mMsg;
+};
+
+class ProtocolCloneContext
+{
+  typedef mozilla::dom::ContentParent ContentParent;
+  typedef mozilla::net::NeckoParent NeckoParent;
+
+  ContentParent* mContentParent;
+  NeckoParent* mNeckoParent;
+
+public:
+  ProtocolCloneContext()
+    : mContentParent(nullptr)
+    , mNeckoParent(nullptr)
+  {}
+
+  void SetContentParent(ContentParent* aContentParent)
+  {
+    mContentParent = aContentParent;
+  }
+
+  ContentParent* GetContentParent() { return mContentParent; }
+
+  void SetNeckoParent(NeckoParent* aNeckoParent)
+  {
+    mNeckoParent = aNeckoParent;
+  }
+
+  NeckoParent* GetNeckoParent() { return mNeckoParent; }
 };
 
 template<class ListenerT>
@@ -100,6 +140,90 @@ public:
     
     virtual ProcessHandle OtherProcess() const = 0;
     virtual MessageChannel* GetIPCChannel() = 0;
+
+    
+    virtual void CloneManagees(ListenerT* aSource,
+                               ProtocolCloneContext* aCtx) = 0;
+};
+
+typedef IPCMessageStart ProtocolId;
+
+
+
+
+class IProtocol : protected MessageListener
+{
+public:
+    
+
+
+
+
+    virtual IProtocol*
+    CloneProtocol(MessageChannel* aChannel,
+                  ProtocolCloneContext* aCtx) = 0;
+};
+
+
+
+
+
+
+
+class IToplevelProtocol : public LinkedListElement<IToplevelProtocol>
+{
+protected:
+    IToplevelProtocol(ProtocolId aProtoId)
+        : mProtocolId(aProtoId)
+        , mTrans(nullptr)
+    {
+    }
+
+    ~IToplevelProtocol();
+
+    
+
+
+
+    void AddOpenedActor(IToplevelProtocol* aActor);
+
+public:
+    void SetTransport(Transport* aTrans)
+    {
+        mTrans = aTrans;
+    }
+
+    Transport* GetTransport() const { return mTrans; }
+
+    ProtocolId GetProtocolId() const { return mProtocolId; }
+
+    
+
+
+    IToplevelProtocol* GetFirstOpenedActors()
+    {
+        return mOpenActors.getFirst();
+    }
+    const IToplevelProtocol* GetFirstOpenedActors() const
+    {
+        return mOpenActors.getFirst();
+    }
+
+    virtual IToplevelProtocol*
+    CloneToplevel(const InfallibleTArray<ProtocolFdMapping>& aFds,
+                  base::ProcessHandle aPeerProcess,
+                  ProtocolCloneContext* aCtx);
+
+    void CloneOpenedToplevels(IToplevelProtocol* aTemplate,
+                              const InfallibleTArray<ProtocolFdMapping>& aFds,
+                              base::ProcessHandle aPeerProcess,
+                              ProtocolCloneContext* aCtx);
+
+private:
+    LinkedList<IToplevelProtocol> mOpenActors; 
+
+    ProtocolId mProtocolId;
+    Transport* mTrans;
 };
 
 
@@ -119,8 +243,6 @@ ProtocolErrorBreakpoint(const char* aMsg);
 MOZ_NEVER_INLINE void
 FatalError(const char* aProtocolName, const char* aMsg,
            base::ProcessHandle aHandle, bool aIsParent);
-
-typedef IPCMessageStart ProtocolId;
 
 struct PrivateIPDLInterface {};
 
