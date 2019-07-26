@@ -16,6 +16,7 @@
 #include "gfxASurface.h"                
 #include "gfxPlatform.h"                
 #include "gfxXlibSurface.h"             
+#include "gfx2DGlue.h"                  
 #include "mozilla/X11Util.h"            
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/CompositableForwarder.h"
@@ -101,7 +102,7 @@ SurfaceDescriptorX11::OpenForeign() const
   nsRefPtr<gfxXlibSurface> surf;
   XRenderPictFormat* pictFormat = GetXRenderPictFormatFromId(display, mFormat);
   if (pictFormat) {
-    surf = new gfxXlibSurface(screen, mId, pictFormat, mSize);
+    surf = new gfxXlibSurface(screen, mId, pictFormat, gfx::ThebesIntSize(mSize));
   } else {
     Visual* visual;
     int depth;
@@ -109,7 +110,7 @@ SurfaceDescriptorX11::OpenForeign() const
     if (!visual)
       return nullptr;
 
-    surf = new gfxXlibSurface(display, mId, visual, mSize);
+    surf = new gfxXlibSurface(display, mId, visual, gfx::ThebesIntSize(mSize));
   }
   return surf->CairoStatus() ? nullptr : surf.forget();
 }
@@ -133,7 +134,8 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,
   }
 
   gfxPlatform* platform = gfxPlatform::GetPlatform();
-  nsRefPtr<gfxASurface> buffer = platform->CreateOffscreenSurface(aSize, aContent);
+  nsRefPtr<gfxASurface> buffer =
+    platform->CreateOffscreenSurface(gfx::ThebesIntSize(aSize), aContent);
   if (!buffer ||
       buffer->GetType() != gfxSurfaceTypeXlib) {
     NS_ERROR("creating Xlib front/back surfaces failed!");
