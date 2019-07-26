@@ -1616,6 +1616,11 @@ public:
   
 
 
+  static bool AnimatedImageLayersEnabled();
+
+  
+
+
 
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
@@ -1717,7 +1722,7 @@ public:
 
 
   static bool InvalidationDebuggingIsEnabled() {
-    return sInvalidationDebuggingIsEnabled;
+    return sInvalidationDebuggingIsEnabled || getenv("MOZ_DUMP_INVALIDATION") != 0;
   }
 
   static void Initialize();
