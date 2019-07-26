@@ -279,15 +279,18 @@ let CustomizableUIInternal = {
 
     
     this.beginBatchUpdate();
-    let placements = gPlacements.get(aName);
-    placements.forEach(this.removeWidgetFromArea, this);
+    try {
+      let placements = gPlacements.get(aName);
+      placements.forEach(this.removeWidgetFromArea, this);
 
-    
-    gAreas.delete(aName);
-    gPlacements.delete(aName);
-    gFuturePlacements.delete(aName);
-    gBuildAreas.delete(aName);
-    this.endBatchUpdate(true);
+      
+      gAreas.delete(aName);
+      gPlacements.delete(aName);
+      gFuturePlacements.delete(aName);
+      gBuildAreas.delete(aName);
+    } finally {
+      this.endBatchUpdate(true);
+    }
   },
 
   registerToolbarNode: function(aToolbar, aExistingChildren) {
@@ -303,44 +306,47 @@ let CustomizableUIInternal = {
     }
 
     this.beginBatchUpdate();
-    let placements = gPlacements.get(area);
-    if (!placements && areaProperties.has("legacy")) {
-      let legacyState = aToolbar.getAttribute("currentset");
-      if (legacyState) {
-        legacyState = legacyState.split(",").filter(s => s);
+    try {
+      let placements = gPlacements.get(area);
+      if (!placements && areaProperties.has("legacy")) {
+        let legacyState = aToolbar.getAttribute("currentset");
+        if (legacyState) {
+          legacyState = legacyState.split(",").filter(s => s);
+        }
+
+        
+        this.restoreStateForArea(area, legacyState);
+        placements = gPlacements.get(area);
       }
 
       
-      this.restoreStateForArea(area, legacyState);
-      placements = gPlacements.get(area);
-    }
+      
+      if (aExistingChildren.length != placements.length ||
+          aExistingChildren.every((id, i) => id == placements[i])) {
+        gDirtyAreaCache.add(area);
+      }
 
-    
-    
-    if (aExistingChildren.length != placements.length ||
-        aExistingChildren.every((id, i) => id == placements[i])) {
-      gDirtyAreaCache.add(area);
-    }
+      if (areaProperties.has("overflowable")) {
+        aToolbar.overflowable = new OverflowableToolbar(aToolbar);
+      }
 
-    if (areaProperties.has("overflowable")) {
-      aToolbar.overflowable = new OverflowableToolbar(aToolbar);
-    }
+      this.registerBuildArea(area, aToolbar);
 
-    this.registerBuildArea(area, aToolbar);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    if (gDirtyAreaCache.has(area)) {
-      this.buildArea(area, placements, aToolbar);
+      
+      
+      
+      
+      
+      
+      
+      
+      if (gDirtyAreaCache.has(area)) {
+        this.buildArea(area, placements, aToolbar);
+      }
+      aToolbar.setAttribute("currentset", placements.join(","));
+    } finally {
+      this.endBatchUpdate();
     }
-    aToolbar.setAttribute("currentset", placements.join(","));
-    this.endBatchUpdate();
   },
 
   buildArea: function(aArea, aPlacements, aAreaNode) {
@@ -354,110 +360,112 @@ let CustomizableUIInternal = {
                       + " to have a customizationTarget attribute.");
     }
 
-    this.beginBatchUpdate();
-
     
     
     if (aArea == CustomizableUI.AREA_NAVBAR) {
       aAreaNode.collapsed = false;
     }
 
-    let currentNode = container.firstChild;
-    let placementsToRemove = new Set();
-    for (let id of aPlacements) {
-      while (currentNode && currentNode.getAttribute("skipintoolbarset") == "true") {
-        currentNode = currentNode.nextSibling;
-      }
+    this.beginBatchUpdate();
 
-      if (currentNode && currentNode.id == id) {
-        currentNode = currentNode.nextSibling;
-        continue;
-      }
+    try {
+      let currentNode = container.firstChild;
+      let placementsToRemove = new Set();
+      for (let id of aPlacements) {
+        while (currentNode && currentNode.getAttribute("skipintoolbarset") == "true") {
+          currentNode = currentNode.nextSibling;
+        }
 
-      let [provider, node] = this.getWidgetNode(id, window);
-      if (!node) {
-        LOG("Unknown widget: " + id);
-        continue;
-      }
-
-      
-      
-      if (node.parentNode != container && !this.isWidgetRemovable(node)) {
-        placementsToRemove.add(id);
-        continue;
-      }
-
-      if (inPrivateWindow && provider == CustomizableUI.PROVIDER_API) {
-        let widget = gPalette.get(id);
-        if (!widget.showInPrivateBrowsing && inPrivateWindow) {
+        if (currentNode && currentNode.id == id) {
+          currentNode = currentNode.nextSibling;
           continue;
         }
-      }
 
-      this.ensureButtonContextMenu(node, aAreaNode);
-      if (node.localName == "toolbarbutton" && aArea == CustomizableUI.AREA_PANEL) {
-        node.setAttribute("tabindex", "0");
-        if (!node.hasAttribute("type")) {
-          node.setAttribute("type", "wrap");
+        let [provider, node] = this.getWidgetNode(id, window);
+        if (!node) {
+          LOG("Unknown widget: " + id);
+          continue;
         }
-      }
 
-      this.insertWidgetBefore(node, currentNode, container, aArea);
-      if (gResetting) {
-        this.notifyListeners("onWidgetReset", id, aArea);
-      }
-    }
+        
+        
+        if (node.parentNode != container && !this.isWidgetRemovable(node)) {
+          placementsToRemove.add(id);
+          continue;
+        }
 
-    if (currentNode) {
-      let palette = aAreaNode.toolbox ? aAreaNode.toolbox.palette : null;
-      let limit = currentNode.previousSibling;
-      let node = container.lastChild;
-      while (node && node != limit) {
-        let previousSibling = node.previousSibling;
-        
-        
-        
-        
-        
-        
-        
-        if (node.id && node.getAttribute("skipintoolbarset") != "true") {
-          if (this.isWidgetRemovable(node)) {
-            if (palette && !this.isSpecialWidget(node.id)) {
-              palette.appendChild(node);
-              this.removeLocationAttributes(node);
-            } else {
-              container.removeChild(node);
-            }
-          } else {
-            this.setLocationAttributes(currentNode, aArea);
-            node.setAttribute("removable", false);
-            LOG("Adding non-removable widget to placements of " + aArea + ": " +
-                node.id);
-            gPlacements.get(aArea).push(node.id);
-            gDirty = true;
+        if (inPrivateWindow && provider == CustomizableUI.PROVIDER_API) {
+          let widget = gPalette.get(id);
+          if (!widget.showInPrivateBrowsing && inPrivateWindow) {
+            continue;
           }
         }
-        node = previousSibling;
+
+        this.ensureButtonContextMenu(node, aAreaNode);
+        if (node.localName == "toolbarbutton" && aArea == CustomizableUI.AREA_PANEL) {
+          node.setAttribute("tabindex", "0");
+          if (!node.hasAttribute("type")) {
+            node.setAttribute("type", "wrap");
+          }
+        }
+
+        this.insertWidgetBefore(node, currentNode, container, aArea);
+        if (gResetting) {
+          this.notifyListeners("onWidgetReset", id, aArea);
+        }
       }
-    }
 
-    
-    
-    
-    if (placementsToRemove.size) {
-      let placementAry = gPlacements.get(aArea);
-      for (let id of placementsToRemove) {
-        let index = placementAry.indexOf(id);
-        placementAry.splice(index, 1);
+      if (currentNode) {
+        let palette = aAreaNode.toolbox ? aAreaNode.toolbox.palette : null;
+        let limit = currentNode.previousSibling;
+        let node = container.lastChild;
+        while (node && node != limit) {
+          let previousSibling = node.previousSibling;
+          
+          
+          
+          
+          
+          
+          
+          if (node.id && node.getAttribute("skipintoolbarset") != "true") {
+            if (this.isWidgetRemovable(node)) {
+              if (palette && !this.isSpecialWidget(node.id)) {
+                palette.appendChild(node);
+                this.removeLocationAttributes(node);
+              } else {
+                container.removeChild(node);
+              }
+            } else {
+              this.setLocationAttributes(currentNode, aArea);
+              node.setAttribute("removable", false);
+              LOG("Adding non-removable widget to placements of " + aArea + ": " +
+                  node.id);
+              gPlacements.get(aArea).push(node.id);
+              gDirty = true;
+            }
+          }
+          node = previousSibling;
+        }
       }
-    }
 
-    if (gResetting) {
-      this.notifyListeners("onAreaReset", aArea);
-    }
+      
+      
+      
+      if (placementsToRemove.size) {
+        let placementAry = gPlacements.get(aArea);
+        for (let id of placementsToRemove) {
+          let index = placementAry.indexOf(id);
+          placementAry.splice(index, 1);
+        }
+      }
 
-    this.endBatchUpdate();
+      if (gResetting) {
+        this.notifyListeners("onAreaReset", aArea);
+      }
+    } finally {
+      this.endBatchUpdate();
+    }
   },
 
   addPanelCloseListeners: function(aPanel) {
@@ -1382,51 +1390,54 @@ let CustomizableUIInternal = {
     }
 
     this.beginBatchUpdate();
-    gRestoring = true;
+    try {
+      gRestoring = true;
 
-    let restored = false;
-    gPlacements.set(aArea, []);
+      let restored = false;
+      gPlacements.set(aArea, []);
 
-    if (gSavedState && aArea in gSavedState.placements) {
-      LOG("Restoring " + aArea + " from saved state");
-      let placements = gSavedState.placements[aArea];
-      for (let id of placements)
-        this.addWidgetToArea(id, aArea);
-      gDirty = false;
-      restored = true;
-    }
-
-    if (!restored && aLegacyState) {
-      LOG("Restoring " + aArea + " from legacy state");
-      for (let id of aLegacyState)
-        this.addWidgetToArea(id, aArea);
-      
-      
-      restored = true;
-    }
-
-    if (!restored) {
-      LOG("Restoring " + aArea + " from default state");
-      let defaults = gAreas.get(aArea).get("defaultPlacements");
-      if (defaults) {
-        for (let id of defaults)
-          this.addWidgetToArea(id, aArea, null, true);
+      if (gSavedState && aArea in gSavedState.placements) {
+        LOG("Restoring " + aArea + " from saved state");
+        let placements = gSavedState.placements[aArea];
+        for (let id of placements)
+          this.addWidgetToArea(id, aArea);
+        gDirty = false;
+        restored = true;
       }
-      gDirty = false;
+
+      if (!restored && aLegacyState) {
+        LOG("Restoring " + aArea + " from legacy state");
+        for (let id of aLegacyState)
+          this.addWidgetToArea(id, aArea);
+        
+        
+        restored = true;
+      }
+
+      if (!restored) {
+        LOG("Restoring " + aArea + " from default state");
+        let defaults = gAreas.get(aArea).get("defaultPlacements");
+        if (defaults) {
+          for (let id of defaults)
+            this.addWidgetToArea(id, aArea, null, true);
+        }
+        gDirty = false;
+      }
+
+      
+      
+      
+      if (gFuturePlacements.has(aArea)) {
+        for (let id of gFuturePlacements.get(aArea))
+          this.addWidgetToArea(id, aArea);
+      }
+
+      LOG("Placements for " + aArea + ":\n\t" + gPlacements.get(aArea).join("\n\t"));
+
+      gRestoring = false;
+    } finally {
+      this.endBatchUpdate();
     }
-
-    
-    
-    
-    if (gFuturePlacements.has(aArea)) {
-      for (let id of gFuturePlacements.get(aArea))
-        this.addWidgetToArea(id, aArea);
-    }
-
-    LOG("Placements for " + aArea + ":\n\t" + gPlacements.get(aArea).join("\n\t"));
-
-    gRestoring = false;
-    this.endBatchUpdate();
   },
 
   saveState: function() {
@@ -1581,17 +1592,19 @@ let CustomizableUIInternal = {
       
       if (autoAdd && !widget.currentArea && !gSeenWidgets.has(widget.id)) {
         this.beginBatchUpdate();
-        gSeenWidgets.add(widget.id);
+        try {
+          gSeenWidgets.add(widget.id);
 
-        if (widget.defaultArea) {
-          if (this.isAreaLazy(widget.defaultArea)) {
-            gFuturePlacements.get(widget.defaultArea).add(widget.id);
-          } else {
-            this.addWidgetToArea(widget.id, widget.defaultArea);
+          if (widget.defaultArea) {
+            if (this.isAreaLazy(widget.defaultArea)) {
+              gFuturePlacements.get(widget.defaultArea).add(widget.id);
+            } else {
+              this.addWidgetToArea(widget.id, widget.defaultArea);
+            }
           }
+        } finally {
+          this.endBatchUpdate(true);
         }
-
-        this.endBatchUpdate(true);
       }
     }
 

@@ -93,6 +93,9 @@ CustomizeMode.prototype = {
       return;
     }
 
+    let window = this.window;
+    let document = this.document;
+
     Task.spawn(function() {
       
       if (!this.window.gBrowserInit.delayedStartupFinished) {
@@ -114,9 +117,6 @@ CustomizeMode.prototype = {
 
       this.dispatchToolboxEvent("beforecustomization");
       CustomizableUI.notifyStartCustomizing(this.window);
-
-      let window = this.window;
-      let document = this.document;
 
       
       
@@ -159,7 +159,6 @@ CustomizeMode.prototype = {
       }
 
       this._showPanelCustomizationPlaceholders();
-      CustomizableUI.addListener(this);
 
       yield this._wrapToolbarItems();
       yield this.populatePalette();
@@ -184,11 +183,16 @@ CustomizeMode.prototype = {
       for (let toolbar of customizableToolbars)
         toolbar.setAttribute("customizing", true);
 
+      CustomizableUI.addListener(this);
       window.PanelUI.endBatchUpdate();
       this._customizing = true;
       this._transitioning = false;
       this.dispatchToolboxEvent("customizationready");
-    }.bind(this)).then(null, ERROR);
+    }.bind(this)).then(null, function(e) {
+      ERROR(e);
+      
+      window.PanelUI.endBatchUpdate();
+    });
   },
 
   exit: function() {
@@ -298,7 +302,11 @@ CustomizeMode.prototype = {
       this._transitioning = false;
       this.dispatchToolboxEvent("aftercustomization");
       CustomizableUI.notifyEndCustomizing(this.window);
-    }.bind(this)).then(null, ERROR);
+    }.bind(this)).then(null, function(e) {
+      ERROR(e);
+      
+      window.PanelUI.endBatchUpdate();
+    });
   },
 
   
