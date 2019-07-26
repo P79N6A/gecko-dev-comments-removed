@@ -812,8 +812,7 @@ PresShell::Init(nsIDocument* aDocument,
   aPresContext->SetShell(this);
 
   
-  result = aStyleSet->Init(aPresContext);
-  NS_ENSURE_SUCCESS(result, result);
+  aStyleSet->Init(aPresContext);
 
   
   

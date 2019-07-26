@@ -62,10 +62,7 @@ class nsStyleSet
 
   size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
-  
-  
-
-  nsresult Init(nsPresContext *aPresContext);
+  void Init(nsPresContext *aPresContext);
 
   nsRuleNode* GetRuleTree() { return mRuleTree; }
 
