@@ -3005,7 +3005,7 @@ RadioInterface.prototype = {
                                            context.sms.delivery,
                                            response.deliveryStatus,
                                            null,
-                                           function notifyResult(rv, domMessage) {
+                                           (function notifyResult(rv, domMessage) {
             
 
             let topic = (response.deliveryStatus ==
@@ -3020,7 +3020,7 @@ RadioInterface.prototype = {
 
             
             Services.obs.notifyObservers(domMessage, topic, null);
-          });
+          }).bind(this));
 
           
           return false;

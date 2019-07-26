@@ -1707,7 +1707,7 @@ MmsService.prototype = {
                                       address,
                                       null,
                                       deliveryStatus,
-                                      function notifySetDeliveryResult(aRv, aDomMessage) {
+                                      (function notifySetDeliveryResult(aRv, aDomMessage) {
       if (DEBUG) debug("Marking the delivery status is done.");
       
 
@@ -1726,7 +1726,7 @@ MmsService.prototype = {
 
       
       Services.obs.notifyObservers(aDomMessage, topic, null);
-    });
+    }).bind(this));
   },
 
   
