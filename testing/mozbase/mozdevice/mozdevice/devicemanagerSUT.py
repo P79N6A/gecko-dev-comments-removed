@@ -508,7 +508,15 @@ class DeviceManagerSUT(DeviceManager):
         cmdline = '%s %s' % (self._formatEnvString(env), cmdline)
 
         
-        self.fireProcess(cmdline, failIfRunning)
+        if cmd[0] == "am":
+            
+            
+            
+            
+            
+            self.fireProcess(cmdline, failIfRunning, 0)
+        else:
+            self.fireProcess(cmdline, failIfRunning)
         return outputFile
 
     def killProcess(self, appname, forceKill=False):
