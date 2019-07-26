@@ -159,7 +159,8 @@ let HomePanels = {
 
   
   View: {
-    LIST: "list"
+    LIST: "list",
+    GRID: "grid"
   },
 
   
