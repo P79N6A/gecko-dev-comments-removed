@@ -1123,7 +1123,7 @@ BacktrackingAllocator::populateSafepoints()
 
             
             
-            if (end < inputOf(ins))
+            if (end < outputOf(ins))
                 break;
 
             
@@ -1140,7 +1140,7 @@ BacktrackingAllocator::populateSafepoints()
 
             for (size_t k = 0; k < reg->numIntervals(); k++) {
                 LiveInterval *interval = reg->getInterval(k);
-                if (!interval->covers(outputOf(ins)))
+                if (!interval->covers(inputOf(ins)))
                     continue;
 
                 LAllocation *a = interval->getAllocation();
