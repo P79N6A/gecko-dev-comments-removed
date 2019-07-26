@@ -202,7 +202,7 @@ public:
     void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) {
       aObj.DefineProperty("AzureCanvasBackend", GetBackendName(mPreferredCanvasBackend));
       aObj.DefineProperty("AzureFallbackCanvasBackend", GetBackendName(mFallbackCanvasBackend));
-      aObj.DefineProperty("AzureContentBackend", GetBackendName(GetContentBackend()));
+      aObj.DefineProperty("AzureContentBackend", GetBackendName(mContentBackend));
     }
 
     mozilla::gfx::BackendType GetPreferredCanvasBackend() {
@@ -478,17 +478,35 @@ protected:
 
 
 
-    void InitCanvasBackend(uint32_t aBackendBitmask);
+    void InitBackendPrefs(uint32_t aCanvasBitmask, uint32_t aContentBitmask);
+
     
 
 
 
     static mozilla::gfx::BackendType GetCanvasBackendPref(uint32_t aBackendBitmask);
+
+    
+
+
+
+    static mozilla::gfx::BackendType GetContentBackendPref(uint32_t aBackendBitmask);
+
+    
+
+
+
+
+    static mozilla::gfx::BackendType GetBackendPref(const char* aEnabledPrefName,
+                                                    const char* aBackendPrefName,
+                                                    uint32_t aBackendBitmask);
+    
+
+
     static mozilla::gfx::BackendType BackendTypeForName(const nsCString& aName);
 
-    virtual mozilla::gfx::BackendType GetContentBackend()
-    {
-      return mozilla::gfx::BACKEND_NONE;
+    mozilla::gfx::BackendType GetContentBackend() {
+      return mContentBackend;
     }
 
     int8_t  mAllowDownloadableFonts;
@@ -523,6 +541,8 @@ private:
     mozilla::gfx::BackendType mPreferredCanvasBackend;
     
     mozilla::gfx::BackendType mFallbackCanvasBackend;
+    
+    mozilla::gfx::BackendType mContentBackend;
 
     mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
     bool mWorkAroundDriverBugs;
