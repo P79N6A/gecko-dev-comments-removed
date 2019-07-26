@@ -45,6 +45,7 @@ public:
     
   }
 
+  bool Destroyed() const { return !mPresContext; }
   nsPresContext* GetPresContext() const { return mPresContext; }
   nsINode* GetEventTargetNode() const { return mNode; }
   
@@ -61,6 +62,11 @@ public:
   bool IsSynthesizedForTests() const { return mIsSynthesizedForTests; }
 
   bool MatchesNativeContext(nsIWidget* aWidget) const;
+
+  
+
+
+  void Destroy();
 
   
 

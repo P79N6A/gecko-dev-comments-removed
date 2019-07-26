@@ -35,6 +35,15 @@ TextComposition::TextComposition(nsPresContext* aPresContext,
 {
 }
 
+void
+TextComposition::Destroy()
+{
+  mPresContext = nullptr;
+  mNode = nullptr;
+  
+  
+}
+
 bool
 TextComposition::MatchesNativeContext(nsIWidget* aWidget) const
 {
@@ -52,6 +61,10 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
 
   nsEventDispatcher::Dispatch(mNode, mPresContext,
                               aEvent, nullptr, aStatus, aCallBack);
+
+  if (!mPresContext) {
+    return;
+  }
 
   
   
