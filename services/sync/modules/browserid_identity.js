@@ -46,6 +46,15 @@ function deriveKeyBundle(kB) {
   return bundle;
 }
 
+
+
+
+
+
+function AuthenticationError(message) {
+  this.message = message || "";
+}
+
 this.BrowserIDManager = function BrowserIDManager() {
   this._fxaService = fxAccounts;
   this._tokenServerClient = new TokenServerClient();
@@ -86,6 +95,7 @@ this.BrowserIDManager.prototype = {
   initialize: function() {
     Services.obs.addObserver(this, fxAccountsCommon.ONLOGIN_NOTIFICATION, false);
     Services.obs.addObserver(this, fxAccountsCommon.ONLOGOUT_NOTIFICATION, false);
+    Services.obs.addObserver(this, "weave:service:logout:finish", false);
     return this.initializeWithCurrentIdentity();
   },
 
@@ -145,8 +155,7 @@ this.BrowserIDManager.prototype = {
         this._shouldHaveSyncKeyBundle = true; 
         this.whenReadyToAuthenticate.reject(err);
         
-        this._log.error("Background fetch for key bundle failed: " + err);
-        throw err;
+        this._log.error("Background fetch for key bundle failed: " + err.message);
       });
       
     }).then(null, err => {
@@ -167,6 +176,14 @@ this.BrowserIDManager.prototype = {
       this.username = "";
       this._account = null;
       Weave.Service.logout();
+      break;
+
+    case "weave:service:logout:finish":
+      
+      
+      
+      
+      this._token = null;
       break;
     }
   },
@@ -366,8 +383,10 @@ this.BrowserIDManager.prototype = {
     return this._fxaService.getKeys().then(userData => {
       
       
-      if (!userData || userData.email !== this.account) {
-        throw new Error("The currently logged-in user has changed.");
+      if (!userData) {
+        throw new AuthenticationError("No userData in _fetchSyncKeyBundle");
+      } else if (userData.email !== this.account) {
+        throw new AuthenticationError("Unexpected user change in _fetchSyncKeyBundle");
       }
       return this._fetchTokenForUser(userData).then(token => {
         this._token = token;
@@ -397,7 +416,7 @@ this.BrowserIDManager.prototype = {
       let cb = function (err, token) {
         if (err) {
           log.info("TokenServerClient.getTokenFromBrowserIDAssertion() failed with: " + err.message);
-          return deferred.reject(err);
+          return deferred.reject(new AuthenticationError(err.message));
         } else {
           return deferred.resolve(token);
         }
@@ -407,19 +426,44 @@ this.BrowserIDManager.prototype = {
       return deferred.promise;
     }
 
-    let audience = Services.io.newURI(tokenServerURI, null, null).prePath;
+    function getAssertion() {
+      let audience = Services.io.newURI(tokenServerURI, null, null).prePath;
+      return fxAccounts.getAssertion(audience).then(null, err => {
+        if (err.code === 401) {
+          throw new AuthenticationError("Unable to get assertion for user");
+        } else {
+          throw err;
+        }
+      });
+    };
+
     
     
     return this._fxaService.whenVerified(userData)
-      .then(() => this._fxaService.getAssertion(audience))
+      .then(() => getAssertion())
       .then(assertion => getToken(tokenServerURI, assertion))
       .then(token => {
-        token.expiration = this._now() + (token.duration * 1000);
+        
+        
+        
+        token.expiration = this._now() + (token.duration * 1000) * 0.80;
         return token;
       })
       .then(null, err => {
-        Cu.reportError("Failed to fetch token: " + err);
         
+        
+        
+        if (err instanceof AuthenticationError) {
+          this._log.error("Authentication error in _fetchTokenForUser: " + err.message);
+          
+          
+          
+          this._shouldHaveSyncKeyBundle = true;
+          this._syncKeyBundle = null;
+          Weave.Status.login = this.currentAuthState;
+          Services.obs.notifyObservers(null, "weave:service:login:error", null);
+        }
+        throw err;
       });
   },
 
