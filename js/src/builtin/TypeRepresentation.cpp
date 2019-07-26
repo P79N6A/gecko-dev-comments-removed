@@ -386,14 +386,17 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
         return nullptr;
     }
 
+    RootedObject objectProto(cx, global->getOrCreateObjectPrototype(cx));
+    if (!objectProto)
+        return nullptr;
+
     
     
     
     
-    RootedObject ownerObject(cx,
-        NewBuiltinClassInstance(cx,
-                                &class_,
-                                gc::GetGCObjectKind(&class_)));
+    RootedObject ownerObject(cx);
+    ownerObject = NewObjectWithGivenProto(cx, &class_, objectProto,
+                                          cx->global());
     if (!ownerObject) {
         comp->typeReprs.remove(this);
         js_free(this);
