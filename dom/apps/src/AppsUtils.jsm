@@ -164,7 +164,7 @@ this.AppsUtils = {
 
 
 
-  checkManifest: function(aManifest) {
+  checkManifest: function(aManifest, app) {
     if (aManifest.name == undefined)
       return false;
 
@@ -219,6 +219,9 @@ this.AppsUtils = {
       }
     }
 
+    
+    AppsUtils.normalizeManifest(aManifest, app);
+
     return true;
   },
 
@@ -232,6 +235,43 @@ this.AppsUtils = {
       return false;
     }
     return true;
+  },
+
+  
+
+
+
+  normalizeManifest: function normalizeManifest(aManifest, aApp) {
+    
+    
+    if (aApp.installState != "installed" &&
+        aApp.installState != "updating") {
+      return;
+    }
+
+    let previousManifest = aApp.manifest;
+
+    
+    aManifest.name = aApp.name;
+
+    
+    if ('locales' in aManifest) {
+      let defaultName = new ManifestHelper(aManifest, aApp.origin).name;
+      for (let locale in aManifest.locales) {
+        let entry = aManifest.locales[locale];
+        if (!entry.name) {
+          continue;
+        }
+        
+        
+        let localizedName = defaultName;
+        if (previousManifest && 'locales' in previousManifest &&
+            locale in previousManifest.locales) {
+          localizedName = previousManifest.locales[locale].name;
+        }
+        entry.name = localizedName;
+      }
+    }
   },
 
   
