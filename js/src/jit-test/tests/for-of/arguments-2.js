@@ -1,14 +1,12 @@
 
 
-load(libdir + "iteration.js");
-
 function f() {
     return arguments;
 }
 
 var s = '';
 var args = f('a', 'b', 'c');
-Object.prototype[std_iterator] = Array.prototype[std_iterator];
+Object.prototype.iterator = Array.prototype.iterator;
 for (var v of args)
     s += v;
 assertEq(s, 'abc');

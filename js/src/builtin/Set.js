@@ -24,10 +24,13 @@ function SetForEach(callbackfn, thisArg = undefined) {
     
     var values = std_Set_iterator.call(S);
     while (true) {
-        var result = std_Set_iterator_next.call(values);
-        if (result.done)
-            break;
-        var value = result.value;
-        callFunction(callbackfn, thisArg, value, value, S);
+        try {
+            var entry = std_Set_iterator_next.call(values);
+        } catch (err) {
+            if (err instanceof StopIteration)
+                break;
+            throw err;
+        }
+        callFunction(callbackfn, thisArg, entry, entry, S);
     }
 }

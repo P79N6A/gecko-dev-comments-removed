@@ -1,7 +1,5 @@
 
 
-load(libdir + "iteration.js");
-
 function range(n) {
     for (var i = 0; i < n; i++)
         yield i;
@@ -17,4 +15,4 @@ for (var x of r) {
 s += '/';
 for (var y of r)
     s += y;
-assertEq(s, '01234/56789');
+assertEq(s, '01234/');

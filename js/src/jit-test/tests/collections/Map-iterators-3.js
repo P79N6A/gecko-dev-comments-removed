@@ -1,10 +1,10 @@
 
 
-load(libdir + "iteration.js");
+load(libdir + "asserts.js");
 
 var m = Map();
-var it = m[std_iterator]();
-assertIteratorResult(it.next(), undefined, true);  
+var it = m.iterator();
+assertThrowsValue(it.next.bind(it), StopIteration);  
 m.clear();
 m.set("a", 1);
-assertIteratorResult(it.next(), undefined, true);  
+assertThrowsValue(it.next.bind(it), StopIteration);

@@ -1,9 +1,7 @@
 
 
-load(libdir + "iteration.js");
-
 var map = Map([['a', 0], ['b', 1], ['c', 2], ['d', 3]]);
-var iter = map[std_iterator]();
+var iter = map.iterator();
 var log = '';
 for (let [k, v] of iter) {
     log += k + v;

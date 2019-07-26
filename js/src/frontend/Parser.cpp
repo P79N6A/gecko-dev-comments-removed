@@ -3993,7 +3993,7 @@ Parser<FullParseHandler>::forStatement()
 
 
 
-        forStmt.type = isForOf ? STMT_FOR_OF_LOOP : STMT_FOR_IN_LOOP;
+        forStmt.type = STMT_FOR_IN_LOOP;
 
         
         if (isForOf && isForEach) {
@@ -4275,7 +4275,7 @@ Parser<SyntaxParseHandler>::forStatement()
     bool isForOf;
     if (lhsNode && matchInOrOf(&isForOf)) {
         
-        forStmt.type = isForOf ? STMT_FOR_OF_LOOP : STMT_FOR_IN_LOOP;
+        forStmt.type = STMT_FOR_IN_LOOP;
 
         
         if (!isForDecl &&

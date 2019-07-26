@@ -37,9 +37,6 @@ namespace js {
 
 
 
-
-
-
 enum SrcNoteType {
     SRC_NULL        = 0,        
 
@@ -54,37 +51,36 @@ enum SrcNoteType {
 
     SRC_FOR_IN      = 6,        
 
-    SRC_FOR_OF      = 7,        
+    SRC_CONTINUE    = 7,        
+    SRC_BREAK       = 8,        
+    SRC_BREAK2LABEL = 9,        
+    SRC_SWITCHBREAK = 10,       
 
-    SRC_CONTINUE    = 8,        
-    SRC_BREAK       = 9,        
-    SRC_BREAK2LABEL = 10,       
-    SRC_SWITCHBREAK = 11,       
+    SRC_TABLESWITCH = 11,       
 
-    SRC_TABLESWITCH = 12,       
-
-    SRC_CONDSWITCH  = 13,       
+    SRC_CONDSWITCH  = 12,       
 
 
-    SRC_NEXTCASE    = 14,       
+    SRC_NEXTCASE    = 13,       
 
 
-    SRC_ASSIGNOP    = 15,       
+    SRC_ASSIGNOP    = 14,       
 
-    SRC_HIDDEN      = 16,       
+    SRC_HIDDEN      = 15,       
 
-    SRC_CATCH       = 17,       
+    SRC_CATCH       = 16,       
 
-    SRC_TRY         = 18,       
+    SRC_TRY         = 17,       
 
 
     
     SRC_LAST_GETTABLE = SRC_TRY,
 
-    SRC_COLSPAN     = 19,       
-    SRC_NEWLINE     = 20,       
-    SRC_SETLINE     = 21,       
+    SRC_COLSPAN     = 18,       
+    SRC_NEWLINE     = 19,       
+    SRC_SETLINE     = 20,       
 
+    SRC_UNUSED21    = 21,
     SRC_UNUSED22    = 22,
     SRC_UNUSED23    = 23,
 

@@ -1,6 +1,6 @@
 
 
-load(libdir + "iteration.js");
+load(libdir + "asserts.js");
 
 
 var set = Set();
@@ -12,9 +12,9 @@ for (var j = 0; j < SIZE; j++)
 var NITERS = 5;
 var iters = [];
 for (var i = 0; i < NITERS; i++) {
-    var iter = set[std_iterator]();
-    assertIteratorResult(iter.next(), 0, false);
-    assertIteratorResult(iter.next(), 1, false);
+    var iter = set.iterator();
+    assertEq(iter.next(), 0);
+    assertEq(iter.next(), 1);
     iters[i] = iter;
 }
 
@@ -26,6 +26,6 @@ for (var j = 0; j < SIZE; j += 2)
 for (var i = 0; i < NITERS; i++) {
     var iter = iters[i];
     for (var j = 3; j < SIZE; j += 2)
-        assertIteratorResult(iter.next(), j, false);
-    assertIteratorResult(iter.next(), undefined, true);
+        assertEq(iter.next(), j);
+    assertThrowsValue(function () { iter.next(); }, StopIteration);
 }

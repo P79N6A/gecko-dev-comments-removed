@@ -1,8 +1,6 @@
 
 
-load(libdir + "iteration.js");
-
-Array.prototype[std_iterator] = function* () {
+Array.prototype.iterator = function () {
     for (var i = this.length; --i >= 0; )
         yield this[i];
 };
