@@ -4810,7 +4810,7 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
 
 
 
-        if (media_type == SDP_MEDIA_VIDEO) {
+        if (media && media_type == SDP_MEDIA_VIDEO) {
             gsmsdp_set_rtcp_fb_nack_attribute(media->level, sdp_p->src_sdp,
                                               SDP_ALL_PAYLOADS,
                                               SDP_RTCP_FB_NACK_UNSPECIFIED);
