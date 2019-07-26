@@ -119,6 +119,12 @@ public class AnnouncementsBroadcastService extends BackgroundService {
   @Override
   protected void onHandleIntent(Intent intent) {
     Logger.setThreadLogTag(AnnouncementsConstants.GLOBAL_LOG_TAG);
+
+    
+    if (intent == null) {
+        Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+    }
+
     final String action = intent.getAction();
     Logger.debug(LOG_TAG, "Broadcast onReceive. Intent is " + action);
 
@@ -144,7 +150,9 @@ public class AnnouncementsBroadcastService extends BackgroundService {
 
 
 
-  protected void handlePrefIntent(Intent intent) {
+
+
+  private void handlePrefIntent(Intent intent) {
     if (!intent.hasExtra("enabled")) {
       Logger.warn(LOG_TAG, "Got ANNOUNCEMENTS_PREF intent without enabled. Ignoring.");
       return;

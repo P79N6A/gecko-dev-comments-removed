@@ -32,6 +32,11 @@ public class SyncAccountDeletedService extends IntentService {
 
   @Override
   protected void onHandleIntent(Intent intent) {
+    
+    if (intent == null) {
+      Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+    }
+
     final Context context = this;
 
     long intentVersion = intent.getLongExtra(Constants.JSON_KEY_VERSION, 0);

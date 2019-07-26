@@ -101,6 +101,11 @@ public class HealthReportBroadcastService extends BackgroundService {
     Logger.setThreadLogTag(HealthReportConstants.GLOBAL_LOG_TAG);
 
     
+    if (intent == null) {
+        Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+    }
+
+    
     boolean handled = attemptHandleIntentForUpload(intent);
     handled = attemptHandleIntentForPrune(intent) ? true : handled;
 
@@ -112,7 +117,9 @@ public class HealthReportBroadcastService extends BackgroundService {
   
 
 
-  protected boolean attemptHandleIntentForUpload(final Intent intent) {
+
+
+  private boolean attemptHandleIntentForUpload(final Intent intent) {
     if (HealthReportConstants.UPLOAD_FEATURE_DISABLED) {
       Logger.debug(LOG_TAG, "Health report upload feature is compile-time disabled; not handling intent.");
       return false;
@@ -143,7 +150,9 @@ public class HealthReportBroadcastService extends BackgroundService {
 
 
 
-  protected void handleUploadPrefIntent(Intent intent) {
+
+
+  private void handleUploadPrefIntent(Intent intent) {
     if (!intent.hasExtra("enabled")) {
       Logger.warn(LOG_TAG, "Got " + HealthReportConstants.ACTION_HEALTHREPORT_UPLOAD_PREF + " intent without enabled. Ignoring.");
       return;
@@ -195,7 +204,9 @@ public class HealthReportBroadcastService extends BackgroundService {
   
 
 
-  protected boolean attemptHandleIntentForPrune(final Intent intent) {
+
+
+  private boolean attemptHandleIntentForPrune(final Intent intent) {
     final String action = intent.getAction();
     Logger.debug(LOG_TAG, "Prune: Attempting to handle intent with action, " + action + ".");
 
@@ -215,7 +226,10 @@ public class HealthReportBroadcastService extends BackgroundService {
     return false;
   }
 
-  protected void handlePruneIntent(final Intent intent) {
+  
+
+
+  private void handlePruneIntent(final Intent intent) {
     final String profileName = intent.getStringExtra("profileName");
     final String profilePath = intent.getStringExtra("profilePath");
 
