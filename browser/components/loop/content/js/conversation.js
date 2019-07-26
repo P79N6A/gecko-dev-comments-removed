@@ -8,9 +8,7 @@ var loop = loop || {};
 loop.conversation = (function(OT, mozL10n) {
   "use strict";
 
-  var sharedViews = loop.shared.views,
-      
-      __ = mozL10n.get;
+  var sharedViews = loop.shared.views;
 
   
 
@@ -173,6 +171,8 @@ loop.conversation = (function(OT, mozL10n) {
     
     
     mozL10n.initialize(window.navigator.mozLoop);
+
+    document.title = mozL10n.get("incoming_call_title");
 
     router = new ConversationRouter({
       conversation: new loop.shared.models.ConversationModel({}, {sdk: OT}),
