@@ -375,6 +375,12 @@ let SessionStoreInternal = {
       throw new Error("SessionStore.init() must be called with a valid window.");
     }
 
+    this._disabledForMultiProcess = Services.prefs.getBoolPref("browser.tabs.remote");
+    if (this._disabledForMultiProcess) {
+      this._deferredInitialized.resolve();
+      return;
+    }
+
     TelemetryTimestamps.add("sessionRestoreInitialized");
     OBSERVING.forEach(function(aTopic) {
       Services.obs.addObserver(this, aTopic, true);
@@ -382,7 +388,6 @@ let SessionStoreInternal = {
 
     this._initPrefs();
     this._initialized = true;
-    this._disabledForMultiProcess = this._prefBranch.getBoolPref("tabs.remote");
 
     
     this._sessionhistory_max_entries =
@@ -567,9 +572,6 @@ let SessionStoreInternal = {
 
 
   observe: function ssi_observe(aSubject, aTopic, aData) {
-    if (this._disabledForMultiProcess)
-      return;
-
     switch (aTopic) {
       case "domwindowopened": 
         this.onOpen(aSubject);
@@ -1487,6 +1489,9 @@ let SessionStoreInternal = {
   },
 
   setNumberOfTabsClosedLast: function ssi_setNumberOfTabsClosedLast(aWindow, aNumber) {
+    if (this._disabledForMultiProcess)
+      return;
+
     if ("__SSi" in aWindow) {
       return NumberOfTabsClosedLastPerWindow.set(aWindow, aNumber);
     }
@@ -1496,6 +1501,9 @@ let SessionStoreInternal = {
 
   
   getNumberOfTabsClosedLast: function ssi_getNumberOfTabsClosedLast(aWindow) {
+    if (this._disabledForMultiProcess)
+      return 0;
+
     if ("__SSi" in aWindow) {
       
       
