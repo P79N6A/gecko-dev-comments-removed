@@ -15,9 +15,21 @@
 
 namespace mozilla {
 
+#define SYSCALL_EXISTS(name) defined(__NR_##name)
+
 static struct sock_filter seccomp_filter[] = {
   VALIDATE_ARCHITECTURE,
   EXAMINE_SYSCALL,
+
+  
+  
+  
+  
+#if SYSCALL_EXISTS(stat64)
+#define ALLOW_SYSCALL_LARGEFILE(plain, versioned) ALLOW_SYSCALL(versioned)
+#else
+#define ALLOW_SYSCALL_LARGEFILE(plain, versioned) ALLOW_SYSCALL(plain)
+#endif
 
   
 
@@ -37,18 +49,22 @@ static struct sock_filter seccomp_filter[] = {
 
 
   ALLOW_SYSCALL(futex),
+  
+  
+#if SYSCALL_EXISTS(socketcall)
+  ALLOW_SYSCALL(socketcall),
+#else
+  ALLOW_SYSCALL(recvmsg),
+  ALLOW_SYSCALL(sendmsg),
+#endif
 
   
-#if defined(__arm__)
-  ALLOW_SYSCALL(recvmsg),
-  ALLOW_SYSCALL(sendmsg),
+  
+  
+#if SYSCALL_EXISTS(mmap2)
   ALLOW_SYSCALL(mmap2),
-#elif defined(__i386__)
-  ALLOW_SYSCALL(ipc),
-  ALLOW_SYSCALL(mmap2),
-#elif defined(__x86_64__)
-  ALLOW_SYSCALL(recvmsg),
-  ALLOW_SYSCALL(sendmsg),
+#else
+  ALLOW_SYSCALL(mmap),
 #endif
 
   
@@ -59,6 +75,10 @@ static struct sock_filter seccomp_filter[] = {
 #endif
   ALLOW_SYSCALL(read),
   ALLOW_SYSCALL(write),
+  
+#if SYSCALL_EXISTS(_llseek)
+  ALLOW_SYSCALL(_llseek),
+#endif
   ALLOW_SYSCALL(lseek),
 
   
@@ -72,53 +92,44 @@ static struct sock_filter seccomp_filter[] = {
   ALLOW_SYSCALL(clone),
   ALLOW_SYSCALL(brk),
 
-  
-#ifdef MOZ_WIDGET_GONK
   ALLOW_SYSCALL(getpid),
-  ALLOW_SYSCALL(rt_sigreturn),
-#endif
-  ALLOW_SYSCALL(poll),
   ALLOW_SYSCALL(gettid),
   ALLOW_SYSCALL(getrusage),
   ALLOW_SYSCALL(madvise),
   ALLOW_SYSCALL(dup),
   ALLOW_SYSCALL(nanosleep),
-
+  ALLOW_SYSCALL(poll),
   
-#if defined(__arm__)
+#if SYSCALL_EXISTS(_newselect)
   ALLOW_SYSCALL(_newselect),
-  ALLOW_SYSCALL(_llseek),
-  ALLOW_SYSCALL(getuid32),
-  ALLOW_SYSCALL(geteuid32),
-  ALLOW_SYSCALL(sigreturn),
-  ALLOW_SYSCALL(fcntl64),
-#elif defined(__i386__)
-  ALLOW_SYSCALL(_newselect),
-  ALLOW_SYSCALL(_llseek),
-  ALLOW_SYSCALL(getuid32),
-  ALLOW_SYSCALL(geteuid32),
-  ALLOW_SYSCALL(sigreturn),
-  ALLOW_SYSCALL(fcntl64),
 #else
   ALLOW_SYSCALL(select),
 #endif
+  
+#if SYSCALL_EXISTS(getuid32)
+  ALLOW_SYSCALL(getuid32),
+  ALLOW_SYSCALL(geteuid32),
+#else
+  ALLOW_SYSCALL(getuid),
+  ALLOW_SYSCALL(geteuid),
+#endif
+  
+  
+  
+#if SYSCALL_EXISTS(sigreturn)
+  ALLOW_SYSCALL(sigreturn),
+#endif
+  ALLOW_SYSCALL(rt_sigreturn),
+  ALLOW_SYSCALL_LARGEFILE(fcntl, fcntl64),
 
   
   
   
-#if defined(__arm__)
-  ALLOW_SYSCALL(fstat64),
-  ALLOW_SYSCALL(stat64),
-  ALLOW_SYSCALL(lstat64),
-  ALLOW_SYSCALL(socketpair),
-  ALLOW_SYSCALL(sigprocmask),
-  DENY_SYSCALL(socket, EACCES),
-#elif defined(__i386__)
-  ALLOW_SYSCALL(fstat64),
-  ALLOW_SYSCALL(stat64),
-  ALLOW_SYSCALL(lstat64),
-  ALLOW_SYSCALL(sigprocmask),
-#else
+  ALLOW_SYSCALL_LARGEFILE(fstat, fstat64),
+  ALLOW_SYSCALL_LARGEFILE(stat, stat64),
+  ALLOW_SYSCALL_LARGEFILE(lstat, lstat64),
+  
+#if !SYSCALL_EXISTS(socketcall)
   ALLOW_SYSCALL(socketpair),
   DENY_SYSCALL(socket, EACCES),
 #endif
@@ -135,6 +146,12 @@ static struct sock_filter seccomp_filter[] = {
   ALLOW_SYSCALL(sched_get_priority_min),
   ALLOW_SYSCALL(sched_get_priority_max),
   ALLOW_SYSCALL(setpriority),
+  
+  
+#if SYSCALL_EXISTS(sigprocmask)
+  ALLOW_SYSCALL(sigprocmask),
+#endif
+  ALLOW_SYSCALL(rt_sigprocmask),
 
   
 #ifdef MOZ_PROFILING
@@ -143,11 +160,11 @@ static struct sock_filter seccomp_filter[] = {
 
   
 #ifdef MOZ_WIDGET_GONK
-#if !defined(__i386__)
+#if !SYSCALL_EXISTS(socketcall)
   ALLOW_SYSCALL(sendto),
   ALLOW_SYSCALL(recvfrom),
 #endif
-  ALLOW_SYSCALL(getdents64),
+  ALLOW_SYSCALL_LARGEFILE(getdents, getdents64),
   ALLOW_SYSCALL(epoll_ctl),
   ALLOW_SYSCALL(sched_yield),
   ALLOW_SYSCALL(sched_getscheduler),
@@ -156,19 +173,16 @@ static struct sock_filter seccomp_filter[] = {
 
   
   
-#if defined(__arm__)
+#if SYSCALL_EXISTS(sigaction)
   ALLOW_SYSCALL(sigaction),
+#endif
   ALLOW_SYSCALL(rt_sigaction),
+#ifdef ALLOW_ARM_SYSCALL
   ALLOW_ARM_SYSCALL(breakpoint),
   ALLOW_ARM_SYSCALL(cacheflush),
   ALLOW_ARM_SYSCALL(usr26),
   ALLOW_ARM_SYSCALL(usr32),
   ALLOW_ARM_SYSCALL(set_tls),
-#elif defined(__i386__)
-  ALLOW_SYSCALL(sigaction),
-  ALLOW_SYSCALL(rt_sigaction),
-#elif defined(__x86_64__)
-  ALLOW_SYSCALL(rt_sigaction),
 #endif
 
   
@@ -186,8 +200,6 @@ static struct sock_filter seccomp_filter[] = {
   ALLOW_SYSCALL(fstat),
   ALLOW_SYSCALL(readlink),
   ALLOW_SYSCALL(getsockname),
-  
-  ALLOW_SYSCALL(rt_sigaction),
   ALLOW_SYSCALL(getuid),
   ALLOW_SYSCALL(geteuid),
   ALLOW_SYSCALL(mkdir),
