@@ -1163,6 +1163,44 @@ MMod::computeRange()
 }
 
 void
+MDiv::computeRange()
+{
+    if (specialization() != MIRType_Int32 && specialization() != MIRType_Double)
+        return;
+    Range lhs(getOperand(0));
+    Range rhs(getOperand(1));
+
+    
+    
+    if (!lhs.hasInt32Bounds() || !rhs.hasInt32Bounds())
+        return;
+
+    
+    
+    if (rhs.lower() > 0 && lhs.lower() >= 0)
+        setRange(new Range(0, lhs.upper(), true, lhs.exponent()));
+}
+
+void
+MSqrt::computeRange()
+{
+    Range input(getOperand(0));
+
+    
+    
+    if (!input.hasInt32Bounds())
+        return;
+
+    
+    if (input.lower() < 0)
+        return;
+
+    
+    
+    setRange(new Range(0, input.upper(), true, input.exponent()));
+}
+
+void
 MToDouble::computeRange()
 {
     setRange(new Range(getOperand(0)));
