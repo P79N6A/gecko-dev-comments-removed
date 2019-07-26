@@ -119,6 +119,8 @@ public class Tab {
         
         
         mBackgroundColor = DEFAULT_BACKGROUND_COLOR;
+
+        updateBookmark();
     }
 
     private ContentResolver getContentResolver() {
@@ -259,7 +261,6 @@ public class Tab {
     public synchronized void updateURL(String url) {
         if (url != null && url.length() > 0) {
             mUrl = url;
-            updateBookmark();
         }
     }
 
@@ -405,17 +406,20 @@ public class Tab {
     }
 
     void updateBookmark() {
+        if (getURL() == null) {
+            return;
+        }
+
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
                 final String url = getURL();
-                if (url == null)
+                if (url == null) {
                     return;
-
-                if (url.equals(getURL())) {
-                    mBookmark = BrowserDB.isBookmark(getContentResolver(), url);
-                    mReadingListItem = BrowserDB.isReadingListItem(getContentResolver(), url);
                 }
+
+                mBookmark = BrowserDB.isBookmark(getContentResolver(), url);
+                mReadingListItem = BrowserDB.isReadingListItem(getContentResolver(), url);
 
                 Tabs.getInstance().notifyListeners(Tab.this, Tabs.TabEvents.MENU_UPDATED);
             }
@@ -607,18 +611,23 @@ public class Tab {
     void handleLocationChange(JSONObject message) throws JSONException {
         final String uri = message.getString("uri");
         final String oldUrl = getURL();
+        final boolean sameDocument = message.getBoolean("sameDocument");
         mEnteringReaderMode = ReaderModeUtils.isEnteringReaderMode(oldUrl, uri);
 
-        if (TextUtils.equals(oldUrl, uri)) {
-            Log.d(LOGTAG, "Ignoring location change event: URIs are the same.");
-            return;
+        if (!TextUtils.equals(oldUrl, uri)) {
+            updateURL(uri);
+            updateBookmark();
+            if (!sameDocument) {
+                
+                
+                
+                
+                clearFavicon();
+                updateTitle(null);
+            }
         }
 
-        updateURL(uri);
-        updateUserSearch(message.getString("userSearch"));
-
-        mBaseDomain = message.optString("baseDomain");
-        if (message.getBoolean("sameDocument")) {
+        if (sameDocument) {
             
             
             Tabs.getInstance().notifyListeners(this, Tabs.TabEvents.LOCATION_CHANGE, oldUrl);
@@ -626,16 +635,11 @@ public class Tab {
         }
 
         setContentType(message.getString("contentType"));
-
-        
-        
-        
-        
-        clearFavicon();
+        updateUserSearch(message.getString("userSearch"));
+        mBaseDomain = message.optString("baseDomain");
 
         setHasFeeds(false);
         setHasOpenSearch(false);
-        updateTitle(null);
         updateIdentityData(null);
         setReaderEnabled(false);
         setZoomConstraints(new ZoomConstraints(true));

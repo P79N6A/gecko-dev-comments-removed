@@ -410,7 +410,6 @@ public class Tabs implements GeckoEventListener {
                         
                         return;
                     }
-                    tab.updateURL(url);
                 } else {
                     tab = addTab(id, url, message.getBoolean("external"),
                                           message.getInt("parentId"),
