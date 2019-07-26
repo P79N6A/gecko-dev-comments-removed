@@ -36,7 +36,7 @@ public class TopSitesGridView extends GridView {
 
     
     public static interface OnEditPinnedSiteListener {
-        public void onEditPinnedSite(int position);
+        public void onEditPinnedSite(int position, String searchTerm);
     }
 
     
@@ -116,7 +116,7 @@ public class TopSitesGridView extends GridView {
                     }
                 } else {
                     if (mEditPinnedSiteListener != null) {
-                        mEditPinnedSiteListener.onEditPinnedSite(position);
+                        mEditPinnedSiteListener.onEditPinnedSite(position, "");
                     }
                 }
             }
