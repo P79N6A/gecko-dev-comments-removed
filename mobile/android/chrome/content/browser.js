@@ -3924,77 +3924,102 @@ var BrowserEventHandler = {
   },
 
   handleUserEvent: function(aTopic, aData) {
-    if (aTopic == "Gesture:Scroll") {
-      
-      
-      
-      if (this._scrollableElement == null)
-        return;
+    switch (aTopic) {
 
-      
-      
-      
-      let data = JSON.parse(aData);
-
-      
-      
-      
-      let zoom = BrowserApp.selectedTab._zoom;
-      data.x = Math.round(data.x / zoom);
-      data.y = Math.round(data.y / zoom);
-
-      if (this._firstScrollEvent) {
-        while (this._scrollableElement != null && !this._elementCanScroll(this._scrollableElement, data.x, data.y))
-          this._scrollableElement = this._findScrollableElement(this._scrollableElement, false);
-
-        let doc = BrowserApp.selectedBrowser.contentDocument;
-        if (this._scrollableElement == null || this._scrollableElement == doc.body || this._scrollableElement == doc.documentElement) {
-          sendMessageToJava({ gecko: { type: "Panning:CancelOverride" } });
+      case "Gesture:Scroll": {
+        
+        
+        
+        if (this._scrollableElement == null)
           return;
-        }
 
-        this._firstScrollEvent = false;
-      }
+        
+        
+        
+        let data = JSON.parse(aData);
 
-      
-      if (this._elementCanScroll(this._scrollableElement, data.x, data.y)) {
-        this._scrollElementBy(this._scrollableElement, data.x, data.y);
-        sendMessageToJava({ gecko: { type: "Gesture:ScrollAck", scrolled: true } });
-        SelectionHandler.subdocumentScrolled(this._scrollableElement);
-      } else {
-        sendMessageToJava({ gecko: { type: "Gesture:ScrollAck", scrolled: false } });
-      }
-    } else if (aTopic == "Gesture:CancelTouch") {
-      this._cancelTapHighlight();
-    } else if (aTopic == "Gesture:SingleTap") {
-      let element = this._highlightElement;
-      if (element) {
-        try {
-          let data = JSON.parse(aData);
-          if (ElementTouchHelper.isElementClickable(element)) {
-            [data.x, data.y] = this._moveClickPoint(element, data.x, data.y);
-            element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
+        
+        
+        
+        let zoom = BrowserApp.selectedTab._zoom;
+        data.x = Math.round(data.x / zoom);
+        data.y = Math.round(data.y / zoom);
+
+        if (this._firstScrollEvent) {
+          while (this._scrollableElement != null &&
+                 !this._elementCanScroll(this._scrollableElement, data.x, data.y))
+            this._scrollableElement = this._findScrollableElement(this._scrollableElement, false);
+
+          let doc = BrowserApp.selectedBrowser.contentDocument;
+          if (this._scrollableElement == null ||
+              this._scrollableElement == doc.body ||
+              this._scrollableElement == doc.documentElement) {
+            sendMessageToJava({ gecko: { type: "Panning:CancelOverride" } });
+            return;
           }
 
-          this._sendMouseEvent("mousemove", element, data.x, data.y);
-          this._sendMouseEvent("mousedown", element, data.x, data.y);
-          this._sendMouseEvent("mouseup",   element, data.x, data.y);
-
-          
-          if ((element instanceof HTMLInputElement && element.mozIsTextField(false)) || (element instanceof HTMLTextAreaElement))
-             SelectionHandler.showThumb(element);
-        } catch(e) {
-          Cu.reportError(e);
+          this._firstScrollEvent = false;
         }
+
+        
+        if (this._elementCanScroll(this._scrollableElement, data.x, data.y)) {
+          this._scrollElementBy(this._scrollableElement, data.x, data.y);
+          sendMessageToJava({ gecko: { type: "Gesture:ScrollAck", scrolled: true } });
+          SelectionHandler.subdocumentScrolled(this._scrollableElement);
+        } else {
+          sendMessageToJava({ gecko: { type: "Gesture:ScrollAck", scrolled: false } });
+        }
+
+        break;
       }
-      this._cancelTapHighlight();
-    } else if (aTopic == "Gesture:DoubleTap") {
-      this._cancelTapHighlight();
-      this.onDoubleTap(aData);
-    } else if (aTopic == "MozMagnifyGestureStart" || aTopic == "MozMagnifyGestureUpdate") {
-      this.onPinch(aData);
-    } else if (aTopic == "MozMagnifyGesture") {
-      this.onPinchFinish(aData, this._mLastPinchPoint.x, this._mLastPinchPoint.y);
+
+      case "Gesture:CancelTouch":
+        this._cancelTapHighlight();
+        break;
+
+      case "Gesture:SingleTap": {
+        let element = this._highlightElement;
+        if (element) {
+          try {
+            let data = JSON.parse(aData);
+            if (ElementTouchHelper.isElementClickable(element)) {
+              [data.x, data.y] = this._moveClickPoint(element, data.x, data.y);
+              element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
+            }
+
+            this._sendMouseEvent("mousemove", element, data.x, data.y);
+            this._sendMouseEvent("mousedown", element, data.x, data.y);
+            this._sendMouseEvent("mouseup",   element, data.x, data.y);
+
+            
+            if ((element instanceof HTMLInputElement && element.mozIsTextField(false)) ||
+                (element instanceof HTMLTextAreaElement))
+               SelectionHandler.showThumb(element);
+          } catch(e) {
+            Cu.reportError(e);
+          }
+        }
+        this._cancelTapHighlight();
+        break;
+      }
+
+      case"Gesture:DoubleTap":
+        this._cancelTapHighlight();
+        this.onDoubleTap(aData);
+        break;
+
+      case "MozMagnifyGestureStart":
+      case "MozMagnifyGestureUpdate":
+        this.onPinch(aData);
+        break;
+
+      case "MozMagnifyGesture":
+        this.onPinchFinish(aData, this._mLastPinchPoint.x, this._mLastPinchPoint.y);
+        break;
+
+      default:
+        dump('BrowserEventHandler.handleUserEvent: unexpected topic "' + aTopic + '"');
+        break;
     }
   },
 
