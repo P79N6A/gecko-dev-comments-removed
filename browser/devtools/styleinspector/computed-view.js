@@ -13,6 +13,7 @@ let promise = require("sdk/core/promise");
 let {EventEmitter} = require("devtools/shared/event-emitter");
 const {OutputParser} = require("devtools/output-parser");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
+const {PrefObserver, PREF_ORIG_SOURCES} = require("devtools/styleeditor/utils");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PluralForm.jsm");
@@ -26,7 +27,6 @@ const FILTER_CHANGED_TIMEOUT = 300;
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
-const PREF_ORIG_SOURCES = "devtools.styleeditor.source-maps-enabled";
 
 
 
@@ -170,6 +170,11 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._handlePrefChange = this._handlePrefChange.bind(this);
   gDevTools.on("pref-changed", this._handlePrefChange);
 
+  
+  this._updateSourceLinks = this._updateSourceLinks.bind(this);
+  this._prefObserver = new PrefObserver("devtools.");
+  this._prefObserver.on(PREF_ORIG_SOURCES, this._updateSourceLinks);
+
   CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
   
@@ -270,7 +275,8 @@ CssHtmlTree.prototype = {
   },
 
   _handlePrefChange: function(event, data) {
-    if (data.pref == "devtools.defaultColorUnit" && this._computed) {
+    if (this._computed && (data.pref == "devtools.defaultColorUnit" ||
+        data.pref == PREF_ORIG_SOURCES)) {
       this.refreshPanel();
     }
   },
@@ -448,6 +454,13 @@ CssHtmlTree.prototype = {
                                  CssLogic.FILTER.USER;
   },
 
+  _updateSourceLinks: function CssHtmlTree__updateSourceLinks()
+  {
+    for (let propView of this.propertyViews) {
+      propView.updateSourceLinks();
+    }
+  },
+
   
 
 
@@ -554,6 +567,13 @@ CssHtmlTree.prototype = {
       command: this._onCopy
     });
 
+    
+    this.menuitemSources= createMenuItem(this._contextmenu, {
+      label: "ruleView.contextmenu.showOrigSources",
+      accesskey: "ruleView.contextmenu.showOrigSources.accessKey",
+      command: this._onToggleOrigSources
+    });
+
     let popupset = doc.documentElement.querySelector("popupset");
     if (!popupset) {
       popupset = doc.createElementNS(XUL_NS, "popupset");
@@ -571,6 +591,17 @@ CssHtmlTree.prototype = {
     let win = this.styleDocument.defaultView;
     let disable = win.getSelection().isCollapsed;
     this.menuitemCopy.disabled = disable;
+
+    let label = "ruleView.contextmenu.showOrigSources";
+    if (Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
+      label = "ruleView.contextmenu.showCSSSources";
+    }
+    this.menuitemSources.setAttribute("label",
+                                      CssHtmlTree.l10n(label));
+
+    let accessKey = label + ".accessKey";
+    this.menuitemSources.setAttribute("accesskey",
+                                      CssHtmlTree.l10n(accessKey));
   },
 
   
@@ -660,6 +691,15 @@ CssHtmlTree.prototype = {
   
 
 
+  _onToggleOrigSources: function()
+  {
+    let isEnabled = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
+    Services.prefs.setBoolPref(PREF_ORIG_SOURCES, !isEnabled);
+  },
+
+  
+
+
   destroy: function CssHtmlTree_destroy()
   {
     delete this.viewedElement;
@@ -670,6 +710,9 @@ CssHtmlTree.prototype = {
       this.includeBrowserStylesChanged);
     this.searchField.removeEventListener("command", this.filterChanged);
     gDevTools.off("pref-changed", this._handlePrefChange);
+
+    this._prefObserver.off(PREF_ORIG_SOURCES, this._updateSourceLinks);
+    this._prefObserver.destroy();
 
     
     if (this._createViewsProcess) {
@@ -1046,6 +1089,20 @@ PropertyView.prototype = {
 
 
 
+  updateSourceLinks: function PropertyView_updateSourceLinks()
+  {
+    if (!this._matchedSelectorViews) {
+      return;
+    }
+    for (let view of this._matchedSelectorViews) {
+      view.updateSourceLink();
+    }
+  },
+
+  
+
+
+
 
 
   onMatchedToggle: function PropertyView_onMatchedToggle(aEvent)
@@ -1099,33 +1156,7 @@ function SelectorView(aTree, aSelectorInfo)
   this.selectorInfo = aSelectorInfo;
   this._cacheStatusNames();
 
-  let rule = this.selectorInfo.rule;
-  if (rule && rule.parentStyleSheet) {
-    this.sheet = rule.parentStyleSheet;
-    this.source = CssLogic.shortSource(this.sheet) + ":" + rule.line;
-
-    let showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
-    if (showOrig && rule.type != ELEMENT_STYLE) {
-      rule.getOriginalLocation().then(({href, line, column}) => {
-        let newSource = CssLogic.shortSource({href: href}) + ":" + line;
-
-        
-        
-        
-        if (newSource != this.source && this.tree.propertyContainer) {
-          let selector = '[sourcelocation="' + this.source + '"]';
-          let link = this.tree.propertyContainer.querySelector(selector);
-          if (link) {
-            link.textContent = newSource;
-          }
-        }
-        this.source = newSource;
-      });
-    }
-  } else {
-    this.source = CssLogic.l10n("rule.sourceElement");
-    this.href = "#";
-  }
+  this.updateSourceLink();
 }
 
 
@@ -1220,6 +1251,64 @@ SelectorView.prototype = {
     });
     return frag;
   },
+
+  
+
+
+
+  updateSourceLink: function()
+  {
+    this.updateSource().then((oldSource) => {
+      if (oldSource != this.source && this.tree.propertyContainer) {
+        let selector = '[sourcelocation="' + oldSource + '"]';
+        let link = this.tree.propertyContainer.querySelector(selector);
+        if (link) {
+          link.textContent = this.source;
+          link.setAttribute("sourcelocation", this.source);
+        }
+      }
+    });
+  },
+
+  
+
+
+  updateSource: function()
+  {
+    let rule = this.selectorInfo.rule;
+    this.sheet = rule.parentStyleSheet;
+
+    if (!rule || !this.sheet) {
+      let oldSource = this.source;
+      this.source = CssLogic.l10n("rule.sourceElement");
+      this.href = "#";
+      return promise.resolve(oldSource);
+    }
+
+    let showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
+
+    if (showOrig && rule.type != ELEMENT_STYLE) {
+      let deferred = promise.defer();
+
+      
+      this.source = CssLogic.shortSource(this.sheet) + ":" + rule.line;
+
+      rule.getOriginalLocation().then(({href, line, column}) => {
+        let oldSource = this.source;
+        this.source = CssLogic.shortSource({href: href}) + ":" + line;
+        deferred.resolve(oldSource);
+      });
+
+      return deferred.promise;
+    }
+
+    let oldSource = this.source;
+    this.source = CssLogic.shortSource(this.sheet) + ":" + rule.line;
+    return promise.resolve(oldSource);
+  },
+
+  
+
 
   maybeOpenStyleEditor: function(aEvent)
   {
