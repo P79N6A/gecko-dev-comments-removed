@@ -18,6 +18,7 @@ Cu.import("resource://gre/modules/devtools/Console.jsm");
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {InplaceEditor, editableItem} = devtools.require("devtools/shared/inplace-editor");
 const {parseDeclarations} = devtools.require("devtools/styleinspector/css-parsing-utils");
+const {ReflowFront} = devtools.require("devtools/server/actors/layout");
 
 const NUMERIC = /^-?[\d\.]+$/;
 const LONG_TEXT_ROTATE_LIMIT = 3;
@@ -90,13 +91,16 @@ EditingSession.prototype = {
     let modifications = this._rules[0].startModifyingProperties();
 
     for (let property of properties) {
-      if (!this._modifications.has(property.name))
-        this._modifications.set(property.name, this.getPropertyFromRule(this._rules[0], property.name));
+      if (!this._modifications.has(property.name)) {
+        this._modifications.set(property.name,
+          this.getPropertyFromRule(this._rules[0], property.name));
+      }
 
-      if (property.value == "")
+      if (property.value == "") {
         modifications.removeProperty(property.name);
-      else
+      } else {
         modifications.setProperty(property.name, property.value, "");
+      }
     }
 
     return modifications.apply().then(null, console.error);
@@ -110,26 +114,33 @@ EditingSession.prototype = {
     let modifications = this._rules[0].startModifyingProperties();
 
     for (let [property, value] of this._modifications) {
-      if (value != "")
+      if (value != "") {
         modifications.setProperty(property, value, "");
-      else
+      } else {
         modifications.removeProperty(property);
+      }
     }
 
     return modifications.apply().then(null, console.error);
+  },
+
+  destroy: function() {
+    this._doc = null;
+    this._rules = null;
+    this._modifications.clear();
   }
 };
 
-function LayoutView(aInspector, aWindow)
-{
-  this.inspector = aInspector;
 
-  
-  if (this.inspector.target.tab) {
-    this.browser = aInspector.target.tab.linkedBrowser;
-  }
 
-  this.doc = aWindow.document;
+
+
+
+
+function LayoutView(inspector, win) {
+  this.inspector = inspector;
+
+  this.doc = win.document;
   this.sizeLabel = this.doc.querySelector(".size > span");
   this.sizeHeadingLabel = this.doc.getElementById("element-size");
 
@@ -137,12 +148,17 @@ function LayoutView(aInspector, aWindow)
 }
 
 LayoutView.prototype = {
-  init: function LV_init() {
+  init: function() {
     this.update = this.update.bind(this);
-    this.onNewNode = this.onNewNode.bind(this);
+
     this.onNewSelection = this.onNewSelection.bind(this);
     this.inspector.selection.on("new-node-front", this.onNewSelection);
+
+    this.onNewNode = this.onNewNode.bind(this);
     this.inspector.sidebar.on("layoutview-selected", this.onNewNode);
+
+    this.onSidebarSelect = this.onSidebarSelect.bind(this);
+    this.inspector.sidebar.on("select", this.onSidebarSelect);
 
     
     
@@ -206,7 +222,9 @@ LayoutView.prototype = {
         continue;
 
       let dimension = this.map[i];
-      editableItem({ element: this.doc.querySelector(dimension.selector) }, (element, event) => {
+      editableItem({
+        element: this.doc.querySelector(dimension.selector)
+      }, (element, event) => {
         this.initEditor(element, event, dimension);
       });
     }
@@ -217,7 +235,36 @@ LayoutView.prototype = {
   
 
 
-  initEditor: function LV_initEditor(element, event, dimension) {
+  trackReflows: function() {
+    if (!this.reflowFront) {
+      let toolbox = this.inspector.toolbox;
+      if (toolbox.target.form.reflowActor) {
+        this.reflowFront = ReflowFront(toolbox.target.client, toolbox.target.form);
+      } else {
+        return;
+      }
+    }
+
+    this.reflowFront.on("reflows", this.update);
+    this.reflowFront.start();
+  },
+
+  
+
+
+  untrackReflows: function() {
+    if (!this.reflowFront) {
+      return;
+    }
+
+    this.reflowFront.off("reflows", this.update);
+    this.reflowFront.stop();
+  },
+
+  
+
+
+  initEditor: function(element, event, dimension) {
     let { property, realProperty } = dimension;
     if (!realProperty)
       realProperty = property;
@@ -233,17 +280,20 @@ LayoutView.prototype = {
       },
 
       change: (value) => {
-        if (NUMERIC.test(value))
+        if (NUMERIC.test(value)) {
           value += "px";
+        }
+
         let properties = [
           { name: property, value: value }
-        ]
+        ];
 
         if (property.substring(0, 7) == "border-") {
           let bprop = property.substring(0, property.length - 5) + "style";
           let style = session.getProperty(bprop);
-          if (!style || style == "none" || style == "hidden")
+          if (!style || style == "none" || style == "hidden") {
             properties.push({ name: bprop, value: "solid" });
+          }
         }
 
         session.setProperties(properties);
@@ -251,8 +301,10 @@ LayoutView.prototype = {
 
       done: (value, commit) => {
         editor.elt.parentNode.classList.remove("editing");
-        if (!commit)
+        if (!commit) {
           session.revert();
+          session.destroy();
+        }
       }
     }, event);
   },
@@ -260,23 +312,35 @@ LayoutView.prototype = {
   
 
 
-  isActive: function LV_isActive() {
-    return this.inspector.sidebar.getCurrentTabID() == "layoutview";
+  isActive: function() {
+    return this.inspector &&
+           this.inspector.sidebar.getCurrentTabID() == "layoutview";
   },
 
   
 
 
-  destroy: function LV_destroy() {
+  destroy: function() {
     this.inspector.sidebar.off("layoutview-selected", this.onNewNode);
     this.inspector.selection.off("new-node-front", this.onNewSelection);
-    if (this.browser) {
-      this.browser.removeEventListener("MozAfterPaint", this.update, true);
-    }
+    this.inspector.sidebar.off("select", this.onSidebarSelect);
+
     this.sizeHeadingLabel = null;
     this.sizeLabel = null;
     this.inspector = null;
     this.doc = null;
+
+    if (this.reflowFront) {
+      this.untrackReflows();
+      this.reflowFront.destroy();
+      this.reflowFront = null;
+    }
+  },
+
+  onSidebarSelect: function(e, sidebar) {
+    if (sidebar !== "layoutview") {
+      this.dim();
+    }
   },
 
   
@@ -287,7 +351,10 @@ LayoutView.prototype = {
     this.onNewNode().then(done, (err) => { console.error(err); done() });
   },
 
-  onNewNode: function LV_onNewNode() {
+  
+
+
+  onNewNode: function() {
     if (this.isActive() &&
         this.inspector.selection.isConnected() &&
         this.inspector.selection.isElementNode()) {
@@ -295,17 +362,16 @@ LayoutView.prototype = {
     } else {
       this.dim();
     }
+
     return this.update();
   },
 
   
 
 
-  dim: function LV_dim() {
-    if (this.browser) {
-      this.browser.removeEventListener("MozAfterPaint", this.update, true);
-    }
-    this.trackingPaint = false;
+
+  dim: function() {
+    this.untrackReflows();
     this.doc.body.classList.add("dim");
     this.dimmed = true;
   },
@@ -313,13 +379,9 @@ LayoutView.prototype = {
   
 
 
-  undim: function LV_undim() {
-    if (!this.trackingPaint) {
-      if (this.browser) {
-        this.browser.addEventListener("MozAfterPaint", this.update, true);
-      }
-      this.trackingPaint = true;
-    }
+
+  undim: function() {
+    this.trackReflows();
     this.doc.body.classList.remove("dim");
     this.dimmed = false;
   },
@@ -329,7 +391,7 @@ LayoutView.prototype = {
 
 
 
-  update: function LV_update() {
+  update: function() {
     let lastRequest = Task.spawn((function*() {
       if (!this.isActive() ||
           !this.inspector.selection.isConnected() ||
@@ -415,12 +477,19 @@ LayoutView.prototype = {
     return this._lastRequest = lastRequest;
   },
 
+  
+
+
+
   showBoxModel: function(options={}) {
     let toolbox = this.inspector.toolbox;
     let nodeFront = this.inspector.selection.nodeFront;
 
     toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
   },
+
+  
+
 
   hideBoxModel: function() {
     let toolbox = this.inspector.toolbox;
