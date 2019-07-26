@@ -6,6 +6,7 @@
 #include "nsFontMetrics.h"
 #include <math.h>                       
 #include <algorithm>                    
+#include "gfxFontConstants.h"           
 #include "gfxPlatform.h"                
 #include "gfxPoint.h"                   
 #include "gfxRect.h"                    
@@ -123,6 +124,8 @@ nsFontMetrics::Init(const nsFont& aFont, nsIAtom* aLanguage,
                        aFont.systemFont,
                        mDeviceContext->IsPrinterSurface(),
                        aFont.variant == NS_STYLE_FONT_VARIANT_SMALL_CAPS,
+                       aFont.synthesis & NS_FONT_SYNTHESIS_WEIGHT,
+                       aFont.synthesis & NS_FONT_SYNTHESIS_STYLE,
                        aFont.languageOverride);
 
     aFont.AddFontFeaturesToStyle(&style);
