@@ -50,6 +50,30 @@ class JS_PUBLIC_API(AutoEnterFrameCompartment) : public AutoEnterScriptCompartme
     bool enter(JSContext *cx, JSStackFrame *target);
 };
 
+struct FrameDescription
+{
+    JSScript *script;
+    unsigned lineno;
+    JSFunction *fun;
+};
+
+struct StackDescription
+{
+    unsigned nframes;
+    FrameDescription *frames;
+};
+
+extern JS_PUBLIC_API(StackDescription *)
+DescribeStack(JSContext *cx, unsigned maxFrames);
+
+extern JS_PUBLIC_API(void)
+FreeStackDescription(JSContext *cx, StackDescription *desc);
+
+extern JS_PUBLIC_API(char *)
+FormatStackDump(JSContext *cx, char *buf,
+                    JSBool showArgs, JSBool showLocals,
+                    JSBool showThisProps);
+
 } 
 
 #ifdef DEBUG
@@ -206,8 +230,10 @@ JS_GetScriptOriginPrincipals(JSScript *script);
 
 
 
+
+
 extern JS_PUBLIC_API(JSStackFrame *)
-JS_FrameIterator(JSContext *cx, JSStackFrame **iteratorp);
+JS_BrokenFrameIterator(JSContext *cx, JSStackFrame **iteratorp);
 
 extern JS_PUBLIC_API(JSScript *)
 JS_GetFrameScript(JSContext *cx, JSStackFrame *fp);

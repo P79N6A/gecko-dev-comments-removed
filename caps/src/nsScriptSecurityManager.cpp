@@ -2258,7 +2258,7 @@ nsScriptSecurityManager::GetPrincipalAndFrame(JSContext *cx,
     {
         
         JSStackFrame *fp = nullptr; 
-        for (fp = JS_FrameIterator(cx, &fp); fp; fp = JS_FrameIterator(cx, &fp))
+        for (fp = JS_BrokenFrameIterator(cx, &fp); fp; fp = JS_BrokenFrameIterator(cx, &fp))
         {
             nsIPrincipal* result = GetFramePrincipal(cx, fp, rv);
             if (result)
@@ -2286,7 +2286,7 @@ nsScriptSecurityManager::GetPrincipalAndFrame(JSContext *cx,
             if (result)
             {
                 JSStackFrame *inner = nullptr;
-                *frameResult = JS_FrameIterator(cx, &inner);
+                *frameResult = JS_BrokenFrameIterator(cx, &inner);
                 return result;
             }
         }
@@ -2451,7 +2451,7 @@ nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
     nsresult rv;
     JSStackFrame *fp = nullptr;
     JSContext *cx = GetCurrentJSContext();
-    fp = cx ? JS_FrameIterator(cx, &fp) : nullptr;
+    fp = cx ? JS_BrokenFrameIterator(cx, &fp) : nullptr;
 
     if (!fp)
     {
@@ -2502,7 +2502,7 @@ nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
         
         if (JS_IsGlobalFrame(cx, fp))
             break;
-    } while ((fp = JS_FrameIterator(cx, &fp)) != nullptr);
+    } while ((fp = JS_BrokenFrameIterator(cx, &fp)) != nullptr);
 
     if (!previousPrincipal)
     {
