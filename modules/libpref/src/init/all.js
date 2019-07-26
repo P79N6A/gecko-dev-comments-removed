@@ -4094,6 +4094,11 @@ pref("layers.scroll-graph", false);
 
 pref("layers.offmainthreadcomposition.enabled", false);
 
+
+
+
+pref("layers.offmainthreadcomposition.frame-rate", -1);
+
 pref("layers.use-deprecated-textures", true);
 #ifndef XP_WIN
 

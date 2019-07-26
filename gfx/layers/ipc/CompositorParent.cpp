@@ -526,10 +526,27 @@ CompositorParent::NotifyShadowTreeTransaction(uint64_t aId, bool aIsFirstPaint, 
 
 static const int32_t kDefaultFrameRate = 60;
 
+static int32_t
+CalculateCompositionFrameRate()
+{
+  int32_t compositionFrameRatePref = gfxPlatform::GetPrefLayersCompositionFrameRate();
+  if (compositionFrameRatePref < 0) {
+    
+    int32_t layoutFrameRatePref = gfxPlatform::GetPrefLayoutFrameRate();
+    if (layoutFrameRatePref < 0) {
+      
+      
+      return kDefaultFrameRate;
+    }
+    return layoutFrameRatePref;
+  }
+  return compositionFrameRatePref;
+}
+
 void
 CompositorParent::ScheduleComposition()
 {
-  if (mCurrentCompositeTask) {
+  if (mCurrentCompositeTask || mPaused) {
     return;
   }
 
@@ -538,12 +555,7 @@ CompositorParent::ScheduleComposition()
   if (!initialComposition)
     delta = TimeStamp::Now() - mLastCompose;
 
-  int32_t rate = gfxPlatform::GetPrefLayoutFrameRate();
-  if (rate < 0) {
-    
-    
-    rate = kDefaultFrameRate;
-  }
+  int32_t rate = CalculateCompositionFrameRate();
 
   
   TimeDuration minFrameDelta = TimeDuration::FromMilliseconds(
@@ -630,6 +642,13 @@ CompositorParent::CompositeInTransaction()
                   15 + (int)(TimeStamp::Now() - mExpectedComposeTime).ToMilliseconds());
   }
 #endif
+
+  
+  if (gfxPlatform::GetPrefLayersCompositionFrameRate() == 0) {
+    
+    ScheduleComposition();
+  }
+
   profiler_tracing("Paint", "Composite", TRACING_INTERVAL_END);
 }
 
