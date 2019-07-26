@@ -4758,6 +4758,25 @@ class LRound : public LInstructionHelper<1, 1, 1>
 };
 
 
+class LRoundF : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(RoundF)
+
+    LRoundF(const LAllocation &num, const LDefinition &temp) {
+        setOperand(0, num);
+        setTemp(0, temp);
+    }
+
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+    MRound *mir() const {
+        return mir_->toRound();
+    }
+};
+
+
 class LFunctionEnvironment : public LInstructionHelper<1, 1, 0>
 {
   public:

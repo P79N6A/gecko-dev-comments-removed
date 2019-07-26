@@ -4144,6 +4144,69 @@ MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail
     bind(&fin);
 }
 
+void
+MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bail, FloatRegister tmp)
+{
+    Label handleZero;
+    Label handleNeg;
+    Label fin;
+    
+    
+    ma_vcmpz_f32(input);
+    
+    
+    ma_vimm_f32(0.5f, ScratchFloatReg);
+    
+    ma_vabs_f32(input, tmp);
+    
+    ma_vadd_f32(ScratchFloatReg, tmp, tmp);
+    as_vmrs(pc);
+    ma_b(&handleZero, Assembler::Equal);
+    ma_b(&handleNeg, Assembler::Signed);
+    
+    ma_b(bail, Assembler::Overflow);
+
+    
+    
+    
+    
+    ma_vcvt_F32_U32(tmp, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+    ma_mov(output, output, SetCond);
+    ma_b(bail, Signed);
+    ma_b(&fin);
+
+    bind(&handleZero);
+    
+    
+    as_vxfer(output, InvalidReg, input, FloatToCore, Always, 1);
+    ma_cmp(output, Imm32(0));
+    ma_b(bail, NonZero);
+    ma_b(&fin);
+
+    bind(&handleNeg);
+    
+    ma_vcvt_F32_U32(tmp, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+
+    
+    
+    
+    ma_vcvt_U32_F32(ScratchFloatReg, ScratchFloatReg);
+    compareFloat(ScratchFloatReg, tmp);
+    ma_sub(output, Imm32(1), output, NoSetCond, Equal);
+    
+    
+    ma_rsb(output, Imm32(0), output, SetCond);
+
+    
+    
+    
+    ma_b(bail, NotSigned);
+
+    bind(&fin);
+}
+
 CodeOffsetJump
 MacroAssemblerARMCompat::jumpWithPatch(RepatchLabel *label, Condition cond)
 {

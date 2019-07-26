@@ -1667,6 +1667,93 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 }
 
 bool
+CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister temp = ToFloatRegister(lir->temp());
+    FloatRegister scratch = ScratchFloatReg;
+    Register output = ToRegister(lir->output());
+
+    Label negative, end;
+
+    
+    masm.loadConstantFloat32(0.5f, temp);
+
+    
+    masm.xorps(scratch, scratch);
+    masm.branchFloat(Assembler::DoubleLessThan, input, scratch, &negative);
+
+    
+    Assembler::Condition bailCond = masm.testNegativeZeroFloat32(input, output);
+    if (!bailoutIf(bailCond, lir->snapshot()))
+        return false;
+
+    
+    
+    
+    masm.addss(input, temp);
+
+    masm.cvttss2si(temp, output);
+    masm.cmp32(output, Imm32(INT_MIN));
+    if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        return false;
+
+    masm.jump(&end);
+
+
+    
+    masm.bind(&negative);
+
+    if (AssemblerX86Shared::HasSSE41()) {
+        
+        
+        masm.addss(input, temp);
+        masm.roundss(temp, scratch, JSC::X86Assembler::RoundDown);
+
+        
+        masm.cvttss2si(scratch, output);
+        masm.cmp32(output, Imm32(INT_MIN));
+        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            return false;
+
+        
+        
+        masm.testl(output, output);
+        if (!bailoutIf(Assembler::Zero, lir->snapshot()))
+            return false;
+
+    } else {
+        masm.addss(input, temp);
+        
+        {
+            
+            masm.compareFloat(Assembler::DoubleGreaterThanOrEqual, temp, scratch);
+            if (!bailoutIf(Assembler::DoubleGreaterThanOrEqual, lir->snapshot()))
+                return false;
+
+            
+            
+            masm.cvttss2si(temp, output);
+            masm.cmp32(output, Imm32(INT_MIN));
+            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+                return false;
+
+            
+            masm.convertInt32ToFloat32(output, scratch);
+            masm.branchFloat(Assembler::DoubleEqualOrUnordered, temp, scratch, &end);
+
+            
+            
+            masm.subl(Imm32(1), output);
+            
+        }
+    }
+
+    masm.bind(&end);
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitGuardShape(LGuardShape *guard)
 {
     Register obj = ToRegister(guard->input());
