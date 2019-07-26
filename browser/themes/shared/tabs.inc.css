@@ -234,10 +234,6 @@
   pointer-events: none;
 }
 
-
-
-.tab-background-start[selected=true]::before,
-.tab-background-end[selected=true]::before,
 .tab-background-middle,
 .tabs-newtab-button,
 .tab-close-button {
