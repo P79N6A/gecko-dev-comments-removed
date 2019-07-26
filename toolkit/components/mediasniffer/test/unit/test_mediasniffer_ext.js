@@ -18,15 +18,23 @@ var httpserver = new HttpServer();
 var testRan = 0;
 
 
-
 const tests = [
+  
   { path: "data/file.webm", expected: "video/webm" },
   { path: "data/file.mkv", expected: "application/octet-stream" },
+  
+  
+  
+  { path: "data/id3tags.mp3", expected: "audio/mpeg" },
+  { path: "data/notags.mp3", expected: "audio/mpeg" },
+  
+  { path: "data/notags-bad.mp3", expected: "application/octet-stream" },
 ];
 
 
 var listener = {
   onStartRequest: function(request, context) {
+    do_print("Sniffing " + tests[testRan].path);
     do_check_eq(request.QueryInterface(Ci.nsIChannel).contentType, tests[testRan].expected);
   },
 
