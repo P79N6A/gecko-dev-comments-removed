@@ -89,7 +89,24 @@ loop.shared.Client = (function($) {
 
 
 
-    requestCallUrl: function(nickname, cb) {
+
+    _ensureRegistered: function(cb) {
+      navigator.mozLoop.ensureRegistered(function(err) {
+        cb(err);
+      }.bind(this));
+    },
+
+    
+
+
+
+
+
+
+
+
+
+    _requestCallUrlInternal: function(nickname, cb) {
       var endpoint = this.settings.baseServerUrl + "/call-url/",
           reqData  = {callerId: nickname};
 
@@ -103,6 +120,29 @@ loop.shared.Client = (function($) {
       }.bind(this), "json");
 
       req.fail(this._failureHandler.bind(this, cb));
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+    requestCallUrl: function(nickname, cb) {
+      this._ensureRegistered(function(err) {
+        if (err) {
+          console.log("Error registering with Loop server, code: " + err);
+          cb(err);
+          return;
+        }
+
+        this._requestCallUrlInternal(nickname, cb);
+      }.bind(this));
     },
 
     
