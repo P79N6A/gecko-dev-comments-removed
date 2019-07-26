@@ -8,7 +8,7 @@
 
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/Element.h"
-#include "nsDOMEvent.h"
+#include "mozilla/dom/Event.h" 
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMElement.h"

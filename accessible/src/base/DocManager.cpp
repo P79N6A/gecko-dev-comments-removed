@@ -15,9 +15,9 @@
 #include "Logging.h"
 #endif
 
+#include "mozilla/dom/Event.h" 
 #include "nsCURILoader.h"
 #include "nsDocShellLoadTypes.h"
-#include "nsDOMEvent.h"
 #include "nsIChannel.h"
 #include "nsIDOMDocument.h"
 #include "nsEventListenerManager.h"

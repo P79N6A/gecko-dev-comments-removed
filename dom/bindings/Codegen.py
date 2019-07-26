@@ -12072,7 +12072,7 @@ class CGEventClass(CGBindingImplClass):
             dropJS += "  mozilla::DropJSObjects(this);\n"
         
         nativeType = self.descriptor.nativeType.split('::')[-1]
-        ctorParams = ("aOwner, nullptr, nullptr" if self.parentType == "nsDOMEvent"
+        ctorParams = ("aOwner, nullptr, nullptr" if self.parentType == "Event"
                  else "aOwner")
         classImpl = """
 NS_IMPL_CYCLE_COLLECTION_CLASS(${nativeType})

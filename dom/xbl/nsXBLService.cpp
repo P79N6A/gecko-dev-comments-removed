@@ -45,16 +45,16 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIScriptError.h"
 #include "nsXBLSerialize.h"
-#include "nsDOMEvent.h"
 #include "nsEventListenerManager.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPrototypeCache.h"
 #endif
 #include "nsIDOMEventListener.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/dom/Element.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/dom/Event.h"
+#include "mozilla/dom/Element.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -287,7 +287,7 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
 
   
   
-  nsDOMEvent* event = aEvent->InternalDOMEvent();
+  Event* event = aEvent->InternalDOMEvent();
   EventTarget* target = event->GetCurrentTarget();
   nsCOMPtr<nsIDocument> bindingDocument = do_QueryInterface(target);
   NS_ASSERTION(bindingDocument, "Event not targeted at document?!");

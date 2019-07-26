@@ -4,13 +4,13 @@
 
 
 #include "nsCOMPtr.h"
-#include "nsDOMEvent.h"
 #include "nsIAtom.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsXBLPrototypeHandler.h"
 #include "nsContentUtils.h"
+#include "mozilla/dom/Event.h" 
 #include "mozilla/dom/EventTarget.h"
 
 using namespace mozilla::dom;
