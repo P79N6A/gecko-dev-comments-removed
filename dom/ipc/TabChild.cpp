@@ -332,28 +332,37 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
     if (!nsLayoutUtils::FindIDFor(content, &viewId))
       return NS_ERROR_UNEXPECTED;
 
-    scrollFrame = nsLayoutUtils::FindScrollableFrameFor(viewId);
-    if (scrollFrame) {
-      CSSIntPoint scrollOffset = scrollFrame->GetScrollPositionCSSPixels();
+    
+    
+    
+    
+    
 
+    CSSIntPoint scrollOffset;
+    if (viewId != FrameMetrics::ROOT_SCROLL_ID) {
+      scrollFrame = nsLayoutUtils::FindScrollableFrameFor(viewId);
+      if (!scrollFrame) {
+        return NS_OK;
+      }
+      scrollOffset = scrollFrame->GetScrollPositionCSSPixels();
+    } else {
       
       
       
       
       
       
-      if (viewId == FrameMetrics::ROOT_SCROLL_ID) {
-        if (RoundedToInt(mLastMetrics.mScrollOffset) == scrollOffset)
-          return NS_OK;
-        else
-          
-          
-          
-          mLastMetrics.mScrollOffset = scrollOffset;
+      utils->GetScrollXY(false, &scrollOffset.x, &scrollOffset.y);
+      if (RoundedToInt(mLastMetrics.mScrollOffset) == scrollOffset) {
+        return NS_OK;
       }
 
-      SendUpdateScrollOffset(presShellId, viewId, scrollOffset);
+      
+      
+      
+      mLastMetrics.mScrollOffset = scrollOffset;
     }
+    SendUpdateScrollOffset(presShellId, viewId, scrollOffset);
   }
 
   return NS_OK;
