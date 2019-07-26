@@ -8,6 +8,9 @@ const {Cc, Ci, Cu} = require("chrome");
 
 let ToolDefinitions = require("main").Tools;
 let {CssLogic} = require("devtools/styleinspector/css-logic");
+let {ELEMENT_STYLE} = require("devtools/server/actors/styles");
+let promise = require("sdk/core/promise");
+let {EventEmitter} = require("devtools/shared/event-emitter");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PluralForm.jsm");
@@ -90,6 +93,7 @@ UpdateProcess.prototype = {
         this.onDone();
         return;
       }
+      console.error(e);
       throw e;
     }
   },
@@ -117,12 +121,16 @@ UpdateProcess.prototype = {
 
 
 
-function CssHtmlTree(aStyleInspector)
+
+
+
+
+function CssHtmlTree(aStyleInspector, aPageStyle)
 {
   this.styleWindow = aStyleInspector.window;
   this.styleDocument = aStyleInspector.window.document;
   this.styleInspector = aStyleInspector;
-  this.cssLogic = aStyleInspector.cssLogic;
+  this.pageStyle = aPageStyle;
   this.propertyViews = [];
 
   let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"].
@@ -143,6 +151,8 @@ function CssHtmlTree(aStyleInspector)
 
   
   this.noResults = this.styleDocument.getElementById("noResults");
+
+  CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
   
   this.viewedElement = null;
@@ -207,8 +217,6 @@ CssHtmlTree.prototype = {
   
   _matchedProperties: null,
 
-  htmlComplete: false,
-
   
   _filterChangedTimeout: null,
 
@@ -227,6 +235,10 @@ CssHtmlTree.prototype = {
   
   numVisibleProperties: 0,
 
+  setPageStyle: function(pageStyle) {
+    this.pageStyle = pageStyle;
+  },
+
   get includeBrowserStyles()
   {
     return this.includeBrowserStylesCheckbox.checked;
@@ -237,64 +249,64 @@ CssHtmlTree.prototype = {
 
 
 
-  highlight: function CssHtmlTree_highlight(aElement)
-  {
-    this.viewedElement = aElement;
-    this._matchedProperties = null;
 
+
+  highlight: function(aElement) {
     if (!aElement) {
       if (this._refreshProcess) {
         this._refreshProcess.cancel();
       }
-      return;
+      return promise.resolve(undefined)
     }
 
-    if (this.htmlComplete) {
-      this.refreshSourceFilter();
-      this.refreshPanel();
-    } else {
-      if (this._refreshProcess) {
-        this._refreshProcess.cancel();
+    if (aElement === this.viewedElement) {
+      return promise.resolve(undefined);
+    }
+
+    this.viewedElement = aElement;
+
+    this.refreshSourceFilter();
+    return this.refreshPanel();
+  },
+
+  _createPropertyViews: function()
+  {
+    if (this._createViewsPromise) {
+      return this._createViewsPromise;
+    }
+
+    let deferred = promise.defer();
+    this._createViewsPromise = deferred.promise;
+
+    this.refreshSourceFilter();
+    this.numVisibleProperties = 0;
+    let fragment = this.styleDocument.createDocumentFragment();
+
+    this._createViewsProcess = new UpdateProcess(this.styleWindow, CssHtmlTree.propertyNames, {
+      onItem: (aPropertyName) => {
+        
+        let propView = new PropertyView(this, aPropertyName);
+        fragment.appendChild(propView.buildMain());
+        fragment.appendChild(propView.buildSelectorContainer());
+
+        if (propView.visible) {
+          this.numVisibleProperties++;
+        }
+        this.propertyViews.push(propView);
+      },
+      onCancel: () => {
+        deferred.reject("_createPropertyViews cancelled");
+      },
+      onDone: () => {
+        
+        this.propertyContainer.appendChild(fragment);
+        this.noResults.hidden = this.numVisibleProperties > 0;
+        deferred.resolve(undefined);
       }
+    });
 
-      CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
-
-      
-      
-      this.refreshSourceFilter();
-      this.numVisibleProperties = 0;
-      let fragment = this.styleDocument.createDocumentFragment();
-      this._refreshProcess = new UpdateProcess(this.styleWindow, CssHtmlTree.propertyNames, {
-        onItem: function(aPropertyName) {
-          
-          let propView = new PropertyView(this, aPropertyName);
-          fragment.appendChild(propView.buildMain());
-          fragment.appendChild(propView.buildSelectorContainer());
-
-          if (propView.visible) {
-            this.numVisibleProperties++;
-          }
-          propView.refreshMatchedSelectors();
-          this.propertyViews.push(propView);
-        }.bind(this),
-        onDone: function() {
-          
-          this.htmlComplete = true;
-          this.propertyContainer.appendChild(fragment);
-          this.noResults.hidden = this.numVisibleProperties > 0;
-          this._refreshProcess = null;
-
-          
-          if (this._needsRefresh) {
-            delete this._needsRefresh;
-            this.refreshPanel();
-          } else {
-            Services.obs.notifyObservers(null, "StyleInspector-populated", null);
-          }
-        }.bind(this)});
-
-      this._refreshProcess.schedule();
-    }
+    this._createViewsProcess.schedule();
+    return deferred.promise;
   },
 
   
@@ -302,39 +314,54 @@ CssHtmlTree.prototype = {
 
   refreshPanel: function CssHtmlTree_refreshPanel()
   {
-    
-    
-    if (!this.htmlComplete) {
-      if (this._refreshProcess) {
-        this._needsRefresh = true;
+    return promise.all([
+      this._createPropertyViews(),
+      this.pageStyle.getComputed(this.viewedElement, {
+        filter: this._sourceFilter,
+        onlyMatched: !this.includeBrowserStyles,
+        markMatched: true
+      })
+    ]).then(([createViews, computed]) => {
+      this._matchedProperties = new Set;
+      for (let name in computed) {
+        if (computed[name].matched) {
+          this._matchedProperties.add(name);
+        }
       }
-      return;
-    }
+      this._computed = computed;
 
-    if (this._refreshProcess) {
-      this._refreshProcess.cancel();
-    }
+      if (this._refreshProcess) {
+        this._refreshProcess.cancel();
+      }
 
-    this.noResults.hidden = true;
+      this.noResults.hidden = true;
 
-    
-    this.numVisibleProperties = 0;
+      
+      this.numVisibleProperties = 0;
 
-    
-    this._darkStripe = true;
+      
+      this._darkStripe = true;
 
-    let display = this.propertyContainer.style.display;
-    this._refreshProcess = new UpdateProcess(this.styleWindow, this.propertyViews, {
-      onItem: function(aPropView) {
-        aPropView.refresh();
-      }.bind(this),
-      onDone: function() {
-        this._refreshProcess = null;
-        this.noResults.hidden = this.numVisibleProperties > 0;
-        Services.obs.notifyObservers(null, "StyleInspector-populated", null);
-      }.bind(this)
-    });
-    this._refreshProcess.schedule();
+      let display = this.propertyContainer.style.display;
+
+      let deferred = promise.defer();
+      this._refreshProcess = new UpdateProcess(this.styleWindow, this.propertyViews, {
+        onItem: (aPropView) => {
+          aPropView.refresh();
+        },
+        onCancel: () => {
+          deferred.reject("refresh cancelled");
+        },
+        onDone: () => {
+          this._refreshProcess = null;
+          this.noResults.hidden = this.numVisibleProperties > 0;
+          this.styleInspector.inspector.emit("computed-view-refreshed");
+          deferred.resolve(undefined);
+        }
+      });
+      this._refreshProcess.schedule();
+      return deferred.promise;
+    }).then(null, (err) => console.error(err));
   },
 
   
@@ -377,7 +404,7 @@ CssHtmlTree.prototype = {
   refreshSourceFilter: function CssHtmlTree_setSourceFilter()
   {
     this._matchedProperties = null;
-    this.cssLogic.sourceFilter = this.includeBrowserStyles ?
+    this._sourceFilter = this.includeBrowserStyles ?
                                  CssLogic.FILTER.UA :
                                  CssLogic.FILTER.USER;
   },
@@ -409,6 +436,8 @@ CssHtmlTree.prototype = {
     CssHtmlTree.propertyNames.sort();
     CssHtmlTree.propertyNames.push.apply(CssHtmlTree.propertyNames,
       mozProps.sort());
+
+    this._createPropertyViews();
   },
 
   
@@ -416,14 +445,9 @@ CssHtmlTree.prototype = {
 
 
 
-
   get matchedProperties()
   {
-    if (!this._matchedProperties) {
-      this._matchedProperties =
-        this.cssLogic.hasMatchedSelectors(CssHtmlTree.propertyNames);
-    }
-    return this._matchedProperties;
+    return this._matchedProperties || new Set;
   },
 
   
@@ -473,6 +497,9 @@ CssHtmlTree.prototype = {
     this.searchField.removeEventListener("command", this.filterChanged);
 
     
+    if (this._createViewsProcess) {
+      this._createViewsProcess.cancel();
+    }
     if (this._refreshProcess) {
       this._refreshProcess.cancel();
     }
@@ -517,10 +544,17 @@ CssHtmlTree.prototype = {
     delete this.propertyViews;
     delete this.styleWindow;
     delete this.styleDocument;
-    delete this.cssLogic;
     delete this.styleInspector;
   },
 };
+
+function PropertyInfo(aTree, aName) {
+  this.tree = aTree;
+  this.name = aName;
+}
+PropertyInfo.prototype = {
+  get value() this.tree._computed ? this.tree._computed[this.name].value : ""
+}
 
 
 
@@ -539,6 +573,7 @@ function PropertyView(aTree, aName)
   this.link = "https://developer.mozilla.org/CSS/" + aName;
 
   this.templateMatchedSelectors = aTree.styleDocument.getElementById("templateMatchedSelectors");
+  this._propertyInfo = new PropertyInfo(aTree, aName);
 }
 
 PropertyView.prototype = {
@@ -585,7 +620,7 @@ PropertyView.prototype = {
 
   get propertyInfo()
   {
-    return this.tree.cssLogic.getPropertyInfo(this.name);
+    return this._propertyInfo;
   },
 
   
@@ -593,7 +628,7 @@ PropertyView.prototype = {
 
   get hasMatchedSelectors()
   {
-    return this.name in this.tree.matchedProperties;
+    return this.tree.matchedProperties.has(this.name);
   },
 
   
@@ -738,13 +773,27 @@ PropertyView.prototype = {
     }
 
     if (this.matchedExpanded && hasMatchedSelectors) {
-      CssHtmlTree.processTemplate(this.templateMatchedSelectors,
-        this.matchedSelectorsContainer, this);
-      this.matchedExpander.setAttribute("open", "");
+      return this.tree.pageStyle.getMatchedSelectors(this.tree.viewedElement, this.name).then(matched => {
+        if (!this.matchedExpanded) {
+          return;
+        }
+
+        this._matchedSelectorResponse = matched;
+        CssHtmlTree.processTemplate(this.templateMatchedSelectors,
+          this.matchedSelectorsContainer, this);
+        this.matchedExpander.setAttribute("open", "");
+        this.tree.styleInspector.inspector.emit("computed-view-property-expanded");
+      }).then(null, console.error);
     } else {
       this.matchedSelectorsContainer.innerHTML = "";
       this.matchedExpander.removeAttribute("open");
+      return promise.resolve(undefined);
     }
+  },
+
+  get matchedSelectors()
+  {
+    return this._matchedSelectorResponse;
   },
 
   
@@ -755,7 +804,7 @@ PropertyView.prototype = {
   {
     if (!this._matchedSelectorViews) {
       this._matchedSelectorViews = [];
-      this.propertyInfo.matchedSelectors.forEach(
+      this._matchedSelectorResponse.forEach(
         function matchedSelectorViews_convert(aSelectorInfo) {
           this._matchedSelectorViews.push(new SelectorView(this.tree, aSelectorInfo));
         }, this);
@@ -802,6 +851,15 @@ function SelectorView(aTree, aSelectorInfo)
   this.tree = aTree;
   this.selectorInfo = aSelectorInfo;
   this._cacheStatusNames();
+
+  let rule = this.selectorInfo.rule;
+  if (rule && rule.parentStyleSheet) {
+    this.sheet = rule.parentStyleSheet;
+    this.source = CssLogic.shortSource(this.sheet) + ":" + rule.line;
+  } else {
+    this.source = CssLogic.l10n("rule.sourceElement");
+    this.href = "#";
+  }
 }
 
 
@@ -859,24 +917,25 @@ SelectorView.prototype = {
     return SelectorView.CLASS_NAMES[this.selectorInfo.status - 1];
   },
 
-  
-
-
-  text: function SelectorView_text(aElement) {
-    let result = this.selectorInfo.selector.text;
-    if (this.selectorInfo.elementStyle) {
-      let source = this.selectorInfo.sourceElement;
-      let inspector = this.tree.styleInspector.inspector;
-
-      if (inspector.selection.node == source) {
-        result = "this";
-      } else {
-        result = CssLogic.getShortName(source);
-      }
-      result += ".style";
+  get href()
+  {
+    if (this._href) {
+      return this._href;
     }
+    let sheet = this.selectorInfo.rule.parentStyleSheet;
+    this._href = sheet ? sheet.href : "#";
+    return this._href;
+  },
 
-    return result;
+  get sourceText()
+  {
+    return this.selectorInfo.sourceText;
+  },
+
+
+  get value()
+  {
+    return this.selectorInfo.value;
   },
 
   maybeOpenStyleEditor: function(aEvent)
@@ -900,12 +959,8 @@ SelectorView.prototype = {
   openStyleEditor: function(aEvent)
   {
     let inspector = this.tree.styleInspector.inspector;
-    let contentDoc = inspector.selection.document;
-    let cssSheet = this.selectorInfo.selector.cssRule._cssSheet;
-    let line = this.selectorInfo.ruleLine || 0;
-    let contentSheet = false;
-    let styleSheet;
-    let styleSheets;
+    let rule = this.selectorInfo.rule;
+    let line = rule.line || 0;
 
     
     
@@ -913,40 +968,28 @@ SelectorView.prototype = {
     
     
     
-    
-    
-    if (cssSheet) {
-      styleSheet = cssSheet.domSheet;
-      styleSheets = contentDoc.styleSheets;
 
-      
-      
-      for each (let sheet in styleSheets) {
-        if (sheet == styleSheet) {
-          contentSheet = true;
-          break;
-        }
-      }
-    }
-
-    if (contentSheet) {
+    let href = rule.href;
+    let sheet = rule.parentStyleSheet;
+    if (sheet && href && !sheet.isSystem) {
       let target = inspector.target;
-
       if (ToolDefinitions.styleEditor.isTargetSupported(target)) {
         gDevTools.showToolbox(target, "styleeditor").then(function(toolbox) {
-          toolbox.getCurrentPanel().selectStyleSheet(styleSheet.href, line);
+          toolbox.getCurrentPanel().selectStyleSheet(href, line);
         });
       }
-    } else {
-      let href = styleSheet ? styleSheet.href : "";
-      let viewSourceUtils = inspector.viewSourceUtils;
-
-      if (this.selectorInfo.sourceElement) {
-        href = this.selectorInfo.sourceElement.ownerDocument.location.href;
-      }
-      viewSourceUtils.viewSource(href, null, contentDoc, line);
+      return;
     }
-  },
+
+    let contentDoc = null;
+    let rawNode = this.tree.viewedElement.rawNode();
+    if (rawNode) {
+      contentDoc = rawNode.ownerDocument;
+    }
+
+    let viewSourceUtils = inspector.viewSourceUtils;
+    viewSourceUtils.viewSource(href, null, contentDoc, line);
+  }
 };
 
 exports.CssHtmlTree = CssHtmlTree;
