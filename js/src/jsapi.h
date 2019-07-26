@@ -112,7 +112,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
     ptrdiff_t tag_;
 
     enum {
-        JSVAL =        -1, 
         VALARRAY =     -2, 
         PARSER =       -3, 
         SHAPEVECTOR =  -4, 
@@ -146,61 +145,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
     
     AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
     void operator=(AutoGCRooter &ida) MOZ_DELETE;
-};
-
-class AutoValueRooter : private AutoGCRooter
-{
-  public:
-    explicit AutoValueRooter(JSContext *cx
-                             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, JSVAL), val(NullValue())
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    AutoValueRooter(JSContext *cx, const Value &v
-                    MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, JSVAL), val(v)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    
-
-
-
-
-
-    void set(Value v) {
-        JS_ASSERT(tag_ == JSVAL);
-        val = v;
-    }
-
-    const Value &value() const {
-        JS_ASSERT(tag_ == JSVAL);
-        return val;
-    }
-
-    Value *addr() {
-        JS_ASSERT(tag_ == JSVAL);
-        return &val;
-    }
-
-    const Value &jsval_value() const {
-        JS_ASSERT(tag_ == JSVAL);
-        return val;
-    }
-
-    Value *jsval_addr() {
-        JS_ASSERT(tag_ == JSVAL);
-        return &val;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    Value val;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class AutoObjectRooter : private AutoGCRooter
@@ -5111,7 +5055,6 @@ using JS::AutoScriptVector;
 using JS::AutoIdArray;
 
 using JS::AutoGCRooter;
-using JS::AutoValueRooter;
 using JS::AutoObjectRooter;
 using JS::AutoArrayRooter;
 using JS::AutoVectorRooter;
