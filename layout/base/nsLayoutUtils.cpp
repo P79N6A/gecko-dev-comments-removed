@@ -1204,14 +1204,13 @@ nsLayoutUtils::SetFixedPositionLayerData(Layer* aLayer,
                                          const nsIFrame* aViewportFrame,
                                          nsSize aViewportSize,
                                          const nsIFrame* aFixedPosFrame,
-                                         const nsIFrame* aReferenceFrame,
                                          nsPresContext* aPresContext,
                                          const ContainerLayerParameters& aContainerParameters) {
   
   
   
   float factor = aPresContext->AppUnitsPerDevPixel();
-  nsPoint origin = aViewportFrame->GetOffsetToCrossDoc(aReferenceFrame);
+  nsPoint origin = aViewportFrame->GetOffsetToCrossDoc(aFixedPosFrame);
   LayerRect anchorRect(NSAppUnitsToFloatPixels(origin.x, factor) *
                          aContainerParameters.mXScale,
                        NSAppUnitsToFloatPixels(origin.y, factor) *
