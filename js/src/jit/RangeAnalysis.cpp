@@ -696,7 +696,7 @@ Range *
 Range::min(const Range *lhs, const Range *rhs)
 {
     
-    if (lhs->isInfinite() || rhs->isInfinite())
+    if (!lhs->isInt32() || !rhs->isInt32())
         return new Range();
 
     return new Range(Min(lhs->lower(), rhs->lower()),
@@ -709,7 +709,7 @@ Range *
 Range::max(const Range *lhs, const Range *rhs)
 {
     
-    if (lhs->isInfinite() || rhs->isInfinite())
+    if (!lhs->isInt32() || !rhs->isInt32())
         return new Range();
 
     return new Range(Max(lhs->lower(), rhs->lower()),
@@ -1061,7 +1061,7 @@ MMod::computeRange()
 
     
     
-    if (lhs.isInfinite() || rhs.isInfinite())
+    if (!lhs.isInt32() || !rhs.isInt32())
         return;
 
     
