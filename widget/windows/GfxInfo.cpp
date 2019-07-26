@@ -247,6 +247,13 @@ GfxInfo::Init()
   displayDevice.cb = sizeof(displayDevice);
   int deviceIndex = 0;
 
+  const char *spoofedWindowsVersion = PR_GetEnv("MOZ_GFX_SPOOF_WINDOWS_VERSION");
+  if (spoofedWindowsVersion) {
+    PR_sscanf(spoofedWindowsVersion, "%x", &mWindowsVersion);
+  } else {
+    mWindowsVersion = gfxWindowsPlatform::WindowsOSVersion();
+  }
+
   mDeviceKeyDebug = NS_LITERAL_STRING("PrimarySearch");
 
   while (EnumDisplayDevicesW(NULL, deviceIndex, &displayDevice, 0)) {
@@ -277,6 +284,31 @@ GfxInfo::Init()
 
   mDeviceID = displayDevice.DeviceID;
   mDeviceString = displayDevice.DeviceString;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mWindowsVersion == gfxWindowsPlatform::kWindows8 &&
+      mDeviceID.Length() == 0 &&
+      mDeviceString.EqualsLiteral("RDPUDD Chained DD"))
+  {
+    WCHAR sysdir[255];
+    UINT len = GetSystemDirectory(sysdir, sizeof(sysdir));
+    if (len < sizeof(sysdir)) {
+      nsString rdpudd(sysdir);
+      rdpudd.AppendLiteral("\\rdpudd.dll");
+      gfxWindowsPlatform::GetDLLVersion(rdpudd.BeginReading(), mDriverVersion);
+      mDriverDate.AssignLiteral("01-01-1970");
+
+      
+      mDeviceID.AssignLiteral("PCI\\VEN_1414&DEV_FEFE&SUBSYS_00000000");
+    }
+  }
 
   
   HDEVINFO devinfo = SetupDiGetClassDevsW(NULL, mDeviceID.get(), NULL,
@@ -484,13 +516,6 @@ GfxInfo::Init()
   const char *spoofedDevice = PR_GetEnv("MOZ_GFX_SPOOF_DEVICE_ID");
   if (spoofedDevice) {
     mAdapterDeviceID.AssignASCII(spoofedDevice);
-  }
-
-  const char *spoofedWindowsVersion = PR_GetEnv("MOZ_GFX_SPOOF_WINDOWS_VERSION");
-  if (spoofedWindowsVersion) {
-    PR_sscanf(spoofedWindowsVersion, "%x", &mWindowsVersion);
-  } else {
-    mWindowsVersion = gfxWindowsPlatform::WindowsOSVersion();
   }
 
   AddCrashReportAnnotations();
@@ -909,6 +934,12 @@ GfxInfo::GetGfxDriverInfo()
       (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), (GfxDeviceFamily*) GfxDriverInfo::GetDeviceFamily(NvidiaBlockD3D9Layers),
       nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
       DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions );
+
+    
+    APPEND_TO_DRIVER_BLOCKLIST( DRIVER_OS_ALL,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorMicrosoft), GfxDriverInfo::allDevices,
+      GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_LESS_THAN, V(6,2,0,0), "< 6.2.0.0" );
   }
   return *mDriverInfo;
 }
@@ -943,6 +974,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), nsCaseInsensitiveStringComparator()) &&
         !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorAMD), nsCaseInsensitiveStringComparator()) &&
         !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorATI), nsCaseInsensitiveStringComparator()) &&
+        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorMicrosoft), nsCaseInsensitiveStringComparator()) &&
         
         
         
