@@ -546,12 +546,6 @@ pref("media.preload.default", 1);
 pref("media.preload.auto", 2);    
 
 
-
-
-pref("widget.ime.android.landscape_fullscreen", 1);
-pref("widget.ime.android.fullscreen_threshold", 250); 
-
-
 pref("image.mem.decodeondraw", true);
 pref("content.image.allow_locking", false);
 pref("image.mem.min_discard_timeout_ms", 10000);
