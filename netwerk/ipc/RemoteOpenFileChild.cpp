@@ -187,10 +187,6 @@ RemoteOpenFileChild::AsyncRemoteFileOpen(int32_t aFlags,
   gNeckoChild->SendPRemoteOpenFileConstructor(this, uri, mTabChild);
 
   
-  
-  SendAsyncOpenFile();
-
-  
   AddIPDLReference();
 
   mListener = aListener;
@@ -222,7 +218,7 @@ RemoteOpenFileChild::OnCachedFileDescriptor(const nsAString& aPath,
 void
 RemoteOpenFileChild::HandleFileDescriptorAndNotifyListener(
                                                       const FileDescriptor& aFD,
-                                                      bool aFromRecvFileOpened)
+                                                      bool aFromRecvDelete)
 {
 #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
   MOZ_NOT_REACHED("OS X and Windows shouldn't be doing IPDL here");
@@ -245,7 +241,9 @@ RemoteOpenFileChild::HandleFileDescriptorAndNotifyListener(
 
   
   
-  if (tabChild && aFromRecvFileOpened) {
+  
+  
+  if (tabChild && aFromRecvDelete) {
     nsString path;
     if (NS_FAILED(mFile->GetPath(path))) {
       MOZ_NOT_REACHED("Couldn't get path from file!");
@@ -285,33 +283,12 @@ RemoteOpenFileChild::NotifyListener(nsresult aResult)
 
 
 bool
-RemoteOpenFileChild::RecvFileOpened(const FileDescriptor& aFD)
+RemoteOpenFileChild::Recv__delete__(const FileDescriptor& aFD)
 {
 #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
   NS_NOTREACHED("OS X and Windows shouldn't be doing IPDL here");
 #else
   HandleFileDescriptorAndNotifyListener(aFD,  true);
-
-  
-  
-  Send__delete__(this);
-#endif
-
-  return true;
-}
-
-bool
-RemoteOpenFileChild::RecvFileDidNotOpen()
-{
-#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
-  NS_NOTREACHED("OS X and Windows shouldn't be doing IPDL here");
-#else
-  HandleFileDescriptorAndNotifyListener(FileDescriptor(),
-                                         true);
-
-  
-  
-  Send__delete__(this);
 #endif
 
   return true;
