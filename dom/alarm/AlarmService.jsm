@@ -331,16 +331,23 @@ this.AlarmService = {
   },
 
   _getAlarmTime: function _getAlarmTime(aAlarm) {
-    let alarmTime = (new Date(aAlarm.date)).getTime();
+    
+    
+    let alarmTime;
+    if (aAlarm.date instanceof Date) {
+      alarmTime = aAlarm.date.getTime();
+    } else {
+      alarmTime = (new Date(aAlarm.date)).getTime();
+    }
 
     
     
     
     
     
-    if (aAlarm.ignoreTimezone)
+    if (aAlarm.ignoreTimezone) {
        alarmTime += (this._currentTimezoneOffset - aAlarm.timezoneOffset) * 60000;
-
+    }
     return alarmTime;
   },
 
