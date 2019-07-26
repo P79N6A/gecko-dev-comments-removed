@@ -1448,26 +1448,6 @@ class LTypeObjectDispatch : public LInstructionHelper<0, 1, 1>
     }
 };
 
-class LPolyInlineDispatch : public LInstructionHelper<0, 1, 1>
-{
-  
-  public:
-    LIR_HEADER(PolyInlineDispatch)
-
-    LPolyInlineDispatch(const LAllocation &in, const LDefinition &temp) {
-        setOperand(0, in);
-        setTemp(0, temp);
-    }
- 
-    const LDefinition *temp() {
-        return getTemp(0);
-    }
-
-    MPolyInlineDispatch *mir() {
-        return mir_->toPolyInlineDispatch();
-    }
-};
-
 
 
 class LCompare : public LInstructionHelper<1, 2, 0>
