@@ -6586,18 +6586,12 @@ IonBuilder::jsop_getgname(PropertyName *name)
         return true;
 
     types::TemporaryTypeSet *types = bytecodeTypes(pc);
-    
-    
-    if (!current->ensureHasSlots(1))
-        return false;
-    pushConstant(ObjectValue(*obj));
-    if (!getPropTryCommonGetter(&succeeded, name, types))
+    MDefinition *globalObj = constant(ObjectValue(*obj));
+    if (!getPropTryCommonGetter(&succeeded, globalObj, name, types))
         return false;
     if (succeeded)
         return true;
 
-    
-    current->pop();
     return jsop_getname(name);
 }
 
@@ -8163,25 +8157,6 @@ IonBuilder::jsop_arguments()
 }
 
 bool
-IonBuilder::jsop_arguments_length()
-{
-    
-    MDefinition *args = current->pop();
-    args->setImplicitlyUsedUnchecked();
-
-    
-    if (inliningDepth_ == 0) {
-        MInstruction *ins = MArgumentsLength::New(alloc());
-        current->add(ins);
-        current->push(ins);
-        return true;
-    }
-
-    
-    return pushConstant(Int32Value(inlineCallInfo_->argv().length()));
-}
-
-bool
 IonBuilder::jsop_rest()
 {
     JSObject *templateObject = inspector->getTemplateObject(pc);
@@ -8579,20 +8554,19 @@ IonBuilder::jsop_getprop(PropertyName *name)
 {
     bool emitted = false;
 
+    MDefinition *obj = current->pop();
+
     
-    if (!getPropTryArgumentsLength(&emitted) || emitted)
+    if (!getPropTryArgumentsLength(&emitted, obj) || emitted)
         return emitted;
 
     types::TemporaryTypeSet *types = bytecodeTypes(pc);
-    BarrierKind barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(),
-                                                       current->peek(-1), name, types);
 
     
     
     
     
     if (info().executionModeIsAnalysis() || types->empty()) {
-        MDefinition *obj = current->peek(-1);
         MCallGetProperty *call = MCallGetProperty::New(alloc(), obj, name, *pc == JSOP_CALLPROP);
         current->add(call);
 
@@ -8601,41 +8575,42 @@ IonBuilder::jsop_getprop(PropertyName *name)
         
         
         if (info().executionModeIsAnalysis()) {
-            if (!getPropTryConstant(&emitted, name, types) || emitted)
+            if (!getPropTryConstant(&emitted, obj, name, types) || emitted)
                 return emitted;
         }
 
-        current->pop();
         current->push(call);
         return resumeAfter(call) && pushTypeBarrier(call, types, BarrierKind::TypeSet);
     }
 
+    BarrierKind barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(),
+                                                       obj, name, types);
+
     
-    if (!getPropTryConstant(&emitted, name, types) || emitted)
+    if (!getPropTryConstant(&emitted, obj, name, types) || emitted)
         return emitted;
 
     
-    if (!getPropTryTypedObject(&emitted, name, types) || emitted)
+    if (!getPropTryTypedObject(&emitted, obj, name, types) || emitted)
         return emitted;
 
     
-    if (!getPropTryDefiniteSlot(&emitted, name, barrier, types) || emitted)
+    if (!getPropTryDefiniteSlot(&emitted, obj, name, barrier, types) || emitted)
         return emitted;
 
     
-    if (!getPropTryCommonGetter(&emitted, name, types) || emitted)
+    if (!getPropTryCommonGetter(&emitted, obj, name, types) || emitted)
         return emitted;
 
     
-    if (!getPropTryInlineAccess(&emitted, name, barrier, types) || emitted)
+    if (!getPropTryInlineAccess(&emitted, obj, name, barrier, types) || emitted)
         return emitted;
 
     
-    if (!getPropTryCache(&emitted, name, barrier, types) || emitted)
+    if (!getPropTryCache(&emitted, obj, name, barrier, types) || emitted)
         return emitted;
 
     
-    MDefinition *obj = current->pop();
     MCallGetProperty *call = MCallGetProperty::New(alloc(), obj, name, *pc == JSOP_CALLPROP);
     current->add(call);
     current->push(call);
@@ -8646,12 +8621,12 @@ IonBuilder::jsop_getprop(PropertyName *name)
 }
 
 bool
-IonBuilder::getPropTryArgumentsLength(bool *emitted)
+IonBuilder::getPropTryArgumentsLength(bool *emitted, MDefinition *obj)
 {
     JS_ASSERT(*emitted == false);
-    if (current->peek(-1)->type() != MIRType_MagicOptimizedArguments) {
+    if (obj->type() != MIRType_MagicOptimizedArguments) {
         if (script()->argumentsHasVarBinding() &&
-            current->peek(-1)->mightBeType(MIRType_MagicOptimizedArguments))
+            obj->mightBeType(MIRType_MagicOptimizedArguments))
         {
             return abort("Type is not definitely lazy arguments.");
         }
@@ -8661,11 +8636,23 @@ IonBuilder::getPropTryArgumentsLength(bool *emitted)
         return true;
 
     *emitted = true;
-    return jsop_arguments_length();
+
+    obj->setImplicitlyUsedUnchecked();
+
+    
+    if (inliningDepth_ == 0) {
+        MInstruction *ins = MArgumentsLength::New(alloc());
+        current->add(ins);
+        current->push(ins);
+        return true;
+    }
+
+    
+    return pushConstant(Int32Value(inlineCallInfo_->argv().length()));
 }
 
 bool
-IonBuilder::getPropTryConstant(bool *emitted, PropertyName *name,
+IonBuilder::getPropTryConstant(bool *emitted, MDefinition *obj, PropertyName *name,
                                types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
@@ -8674,10 +8661,8 @@ IonBuilder::getPropTryConstant(bool *emitted, PropertyName *name,
         return true;
 
     bool testObject, testString;
-    if (!testSingletonPropertyTypes(current->peek(-1), singleton, name, &testObject, &testString))
+    if (!testSingletonPropertyTypes(obj, singleton, name, &testObject, &testString))
         return true;
-
-    MDefinition *obj = current->pop();
 
     
     JS_ASSERT(!testString || !testObject);
@@ -8695,14 +8680,13 @@ IonBuilder::getPropTryConstant(bool *emitted, PropertyName *name,
 }
 
 bool
-IonBuilder::getPropTryTypedObject(bool *emitted, PropertyName *name,
+IonBuilder::getPropTryTypedObject(bool *emitted, MDefinition *obj, PropertyName *name,
                                   types::TemporaryTypeSet *resultTypes)
 {
     TypeDescrSet fieldDescrs;
     int32_t fieldOffset;
     size_t fieldIndex;
-    if (!lookupTypedObjectField(current->peek(-1), name, &fieldOffset,
-                                &fieldDescrs, &fieldIndex))
+    if (!lookupTypedObjectField(obj, name, &fieldOffset, &fieldDescrs, &fieldIndex))
         return false;
     if (fieldDescrs.empty())
         return true;
@@ -8718,6 +8702,7 @@ IonBuilder::getPropTryTypedObject(bool *emitted, PropertyName *name,
       case TypeDescr::Struct:
       case TypeDescr::SizedArray:
         return getPropTryComplexPropOfTypedObject(emitted,
+                                                  obj,
                                                   fieldOffset,
                                                   fieldDescrs,
                                                   fieldIndex,
@@ -8725,6 +8710,7 @@ IonBuilder::getPropTryTypedObject(bool *emitted, PropertyName *name,
 
       case TypeDescr::Scalar:
         return getPropTryScalarPropOfTypedObject(emitted,
+                                                 obj,
                                                  fieldOffset,
                                                  fieldDescrs,
                                                  resultTypes);
@@ -8737,7 +8723,7 @@ IonBuilder::getPropTryTypedObject(bool *emitted, PropertyName *name,
 }
 
 bool
-IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted,
+IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted, MDefinition *typedObj,
                                               int32_t fieldOffset,
                                               TypeDescrSet fieldDescrs,
                                               types::TemporaryTypeSet *resultTypes)
@@ -8748,15 +8734,12 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted,
         return true;
 
     
-
-    MDefinition *typedObj = current->pop();
-
     return pushScalarLoadFromTypedObject(emitted, typedObj, constantInt(fieldOffset),
                                          fieldType, true);
 }
 
 bool
-IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
+IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted, MDefinition *typedObj,
                                                int32_t fieldOffset,
                                                TypeDescrSet fieldDescrs,
                                                size_t fieldIndex,
@@ -8769,8 +8752,6 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
 
     
 
-    MDefinition *typedObj = current->pop();
-
     
     MDefinition *type = loadTypedObjectType(typedObj);
     MDefinition *fieldTypeObj = typeObjectForFieldFromStructType(type, fieldIndex);
@@ -8780,15 +8761,14 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
 }
 
 bool
-IonBuilder::getPropTryDefiniteSlot(bool *emitted, PropertyName *name,
+IonBuilder::getPropTryDefiniteSlot(bool *emitted, MDefinition *obj, PropertyName *name,
                                    BarrierKind barrier, types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
     types::HeapTypeSetKey property;
-    if (!getDefiniteSlot(current->peek(-1)->resultTypeSet(), name, &property))
+    if (!getDefiniteSlot(obj->resultTypeSet(), name, &property))
         return true;
 
-    MDefinition *obj = current->pop();
     MDefinition *useObj = obj;
     if (obj->type() != MIRType_Object) {
         MGuardObject *guard = MGuardObject::New(alloc(), obj);
@@ -8811,7 +8791,7 @@ IonBuilder::getPropTryDefiniteSlot(bool *emitted, PropertyName *name,
 }
 
 bool
-IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
+IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName *name,
                                    types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
@@ -8822,15 +8802,13 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
     if (!foundProto)
         return true;
 
-    types::TemporaryTypeSet *objTypes = current->peek(-1)->resultTypeSet();
+    types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
     MDefinition *guard = testCommonGetterSetter(objTypes, name,  true,
                                                 foundProto, lastProperty);
     if (!guard)
         return true;
 
     bool isDOM = objTypes->isDOMClass();
-
-    MDefinition *obj = current->pop();
 
     if (isDOM && testShouldDOMCall(objTypes, commonGetter, JSJitInfo::Getter)) {
         const JSJitInfo *jitinfo = commonGetter->jitInfo();
@@ -8947,11 +8925,11 @@ GetPropertyShapes(jsid id, const BaselineInspector::ShapeVector &shapes,
 }
 
 bool
-IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name,
+IonBuilder::getPropTryInlineAccess(bool *emitted, MDefinition *obj, PropertyName *name,
                                    BarrierKind barrier, types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
-    if (current->peek(-1)->type() != MIRType_Object)
+    if (obj->type() != MIRType_Object)
         return true;
 
     BaselineInspector::ShapeVector shapes(alloc());
@@ -8965,7 +8943,6 @@ IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name,
     if (barrier != BarrierKind::NoBarrier || IsNullOrUndefined(rvalType))
         rvalType = MIRType_Value;
 
-    MDefinition *obj = current->pop();
     if (shapes.length() == 1) {
         
         
@@ -9033,12 +9010,10 @@ IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name,
 }
 
 bool
-IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
+IonBuilder::getPropTryCache(bool *emitted, MDefinition *obj, PropertyName *name,
                             BarrierKind barrier, types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
-
-    MDefinition *obj = current->peek(-1);
 
     
     
@@ -9061,7 +9036,6 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
     if (barrier == BarrierKind::NoBarrier)
         barrier = PropertyReadOnPrototypeNeedsTypeBarrier(constraints(), obj, name, types);
 
-    current->pop();
     MGetPropertyCache *load = MGetPropertyCache::New(alloc(), obj, name,
                                                      barrier != BarrierKind::NoBarrier);
 
