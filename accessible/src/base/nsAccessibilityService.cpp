@@ -901,26 +901,9 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
       newAcc = CreateHTMLAccessibleByMarkup(frame, content, aDoc,
                                             legalPartOfHTMLTable);
 
-      if (!newAcc && (!partOfHTMLTable || legalPartOfHTMLTable)) {
-        
-        
-        
-        
-        
-        
-        if (frame->GetType() == nsGkAtoms::tableCaptionFrame &&
-            frame->GetRect().IsEmpty()) {
-          
-          
-          if (aIsSubtreeHidden)
-            *aIsSubtreeHidden = true;
-
-          return nullptr;
-        }
-
-        
+      
+      if (!newAcc && (!partOfHTMLTable || legalPartOfHTMLTable))
         newAcc = CreateAccessibleByFrameType(frame, content, aDoc);
-      }
     }
   }
 
