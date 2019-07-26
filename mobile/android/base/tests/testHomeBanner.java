@@ -1,37 +1,71 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.*;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
 
-public class testHomeBanner extends BaseTest {
+import org.mozilla.gecko.Actions;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.tests.helpers.*;
+
+import android.view.View;
+
+public class testHomeBanner extends UITest {
 
     private static final String TEST_URL = "chrome://roboextender/content/robocop_home_banner.html";
     private static final String TEXT = "The quick brown fox jumps over the lazy dog.";
 
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
+    public void testHomeBanner() {
+        GeckoHelper.blockForReady();
+
+        
+        mAboutHome.assertVisible()
+                  .assertBannerNotVisible();
+
+        addBannerMessage();
+
+        
+        Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageShown");
+        NavigationHelper.enterAndLoadUrl("about:home");
+        eventExpecter.blockForEvent();
+
+        
+        mAboutHome.assertBannerText(TEXT);
+
+        
+        eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageClicked");
+        mAboutHome.clickOnBanner();
+        eventExpecter.blockForEvent();
+
+        
+        NavigationHelper.enterAndLoadUrl("about:firefox");
+
+        
+        
+        final View banner = getActivity().findViewById(R.id.home_banner);
+        assertTrue("The HomeBanner is not visible", banner == null || banner.getVisibility() != View.VISIBLE);
+
+        removeBannerMessage();
+
+        
+        NavigationHelper.enterAndLoadUrl("about:home");
+        mAboutHome.assertVisible()
+                  .assertBannerNotVisible();
     }
 
-    public void testHomeBanner() {
-        blockForGeckoReady();
+    
 
-        Actions.EventExpecter eventExpecter = mActions.expectGeckoEvent("TestHomeBanner:MessageAdded");
 
-        
-        inputAndLoadUrl(TEST_URL + "#addMessage");
+    private void addBannerMessage() {
+        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageAdded");
+        NavigationHelper.enterAndLoadUrl(TEST_URL + "#addMessage");
         eventExpecter.blockForEvent();
+    }
 
-        
-        eventExpecter = mActions.expectGeckoEvent("TestHomeBanner:MessageShown");
-        inputAndLoadUrl("about:home");
-        eventExpecter.blockForEvent();
+    
 
-        
-        mAsserter.ok(waitForText(TEXT), "banner text", "correct text appeared in the home banner");
 
-        
-        eventExpecter = mActions.expectGeckoEvent("TestHomeBanner:MessageClicked");
-        mSolo.clickOnText(TEXT);
+    private void removeBannerMessage() {
+        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageRemoved");
+        NavigationHelper.enterAndLoadUrl(TEST_URL + "#removeMessage");
         eventExpecter.blockForEvent();
     }
 }
