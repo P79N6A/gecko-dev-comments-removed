@@ -26,6 +26,9 @@ const kTabThumbnailDelayCapture = 500;
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
+var _richgridTileSizes = {};
+
+
 window.sizeToContent = function() {
   Cu.reportError("window.sizeToContent is not allowed in this window");
 }
