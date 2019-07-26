@@ -23,7 +23,10 @@ let gSyncUI = {
   init: function SUI_init() {
     
     
-    if (Weave.Status.ready) {
+    let xps = Components.classes["@mozilla.org/weave/service;1"]
+                                .getService(Components.interfaces.nsISupports)
+                                .wrappedJSObject;
+    if (xps.ready) {
       this.initUI();
       return;
     }

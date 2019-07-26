@@ -10,8 +10,46 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 
+const SYNC_PREFS_BRANCH = "services.sync.";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function WeaveService() {
   this.wrappedJSObject = this;
+  this.ready = false;
 }
 WeaveService.prototype = {
   classID: Components.ID("{74b89fb0-f200-4ae8-a3ec-dd164117f6de}"),
@@ -19,7 +57,14 @@ WeaveService.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
 
-  observe: function BSS__observe(subject, topic, data) {
+  ensureLoaded: function () {
+    Components.utils.import("resource://services-sync/main.js");
+
+    
+    Weave.Service;
+  },
+
+  observe: function (subject, topic, data) {
     switch (topic) {
     case "app-startup":
       let os = Cc["@mozilla.org/observer-service;1"].
@@ -32,9 +77,21 @@ WeaveService.prototype = {
       this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       this.timer.initWithCallback({
         notify: function() {
-          Cu.import("resource://services-sync/main.js");
-          if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED)
-            Weave.Service;
+          
+          let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
+
+          if (!prefs.prefHasUserValue("username")) {
+            return;
+          }
+
+          
+          
+          
+          
+          
+          if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
+            this.ensureLoaded();
+          }
         }
       }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
       break;

@@ -362,6 +362,14 @@ Sync11Service.prototype = {
     
     Utils.nextTick(function onNextTick() {
       this.status.ready = true;
+
+      
+      
+      let xps = Cc["@mozilla.org/weave/service;1"]
+                  .getService(Ci.nsISupports)
+                  .wrappedJSObject;
+      xps.ready = true;
+
       Svc.Obs.notify("weave:service:ready");
     }.bind(this));
   },
