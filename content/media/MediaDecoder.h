@@ -183,11 +183,11 @@
 #include "nsIObserver.h"
 #include "nsAutoPtr.h"
 #include "MediaResource.h"
+#include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "MediaStreamGraph.h"
-#include "AudioChannelCommon.h"
 #include "AbstractMediaDecoder.h"
 #include "necko-config.h"
 
@@ -739,8 +739,8 @@ public:
   
   void UpdatePlaybackPosition(int64_t aTime) MOZ_FINAL MOZ_OVERRIDE;
 
-  void SetAudioChannelType(dom::AudioChannelType aType) { mAudioChannelType = aType; }
-  dom::AudioChannelType GetAudioChannelType() { return mAudioChannelType; }
+  void SetAudioChannel(dom::AudioChannel aChannel) { mAudioChannel = aChannel; }
+  dom::AudioChannel GetAudioChannel() { return mAudioChannel; }
 
   
   
@@ -1205,7 +1205,7 @@ protected:
 
   
   
-  dom::AudioChannelType mAudioChannelType;
+  dom::AudioChannel mAudioChannel;
 
   
   
