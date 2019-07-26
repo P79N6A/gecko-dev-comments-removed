@@ -718,19 +718,8 @@ function SendTransaction(msg) {
     if (DEBUG) debug("Check max values parameters fail.");
     throw new Error("Check max values parameters fail.");
   }
-  let messageSize = 0;
 
-  if (msg.content) {
-    messageSize = msg.content.length;
-  } else if (msg.parts) {
-    for (let i = 0; i < msg.parts.length; i++) {
-      if (msg.parts[i].content.size) {
-        messageSize += msg.parts[i].content.size;
-      } else {
-        messageSize += msg.parts[i].content.length;
-      }
-    }
-
+  if (msg.parts) {
     let contentType = {
       params: {
         
@@ -756,10 +745,6 @@ function SendTransaction(msg) {
     
     msg.headers["content-type"] = contentType;
   }
-
-  
-  msg.headers["x-mms-message-size"] = messageSize;
-  
 
   if (DEBUG) debug("msg: " + JSON.stringify(msg));
 
