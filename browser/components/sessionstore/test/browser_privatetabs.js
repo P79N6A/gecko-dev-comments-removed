@@ -69,6 +69,11 @@ add_task(function () {
     "docShell.QueryInterface%28Ci.nsILoadContext%29.usePrivateBrowsing%3Dtrue";
 
   
+  while (ss.getClosedWindowCount()) {
+    ss.forgetClosedWindow(0);
+  }
+
+  
   let win = yield promiseNewWindowLoaded();
   win.messageManager.loadFrameScript(FRAME_SCRIPT, true);
 
@@ -83,7 +88,51 @@ add_task(function () {
   ok(state.isPrivate, "tab considered private");
 
   
+  win.gBrowser.removeTab(tab);
+  is(ss.getClosedTabCount(win), 0, "no tabs to restore");
+
+  
+  let tab = win.gBrowser.addTab("about:mozilla");
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
+  SyncHandlers.get(browser).flush();
+
+  
+  let state = JSON.parse(ss.getTabState(tab));
+  ok(state.isPrivate, "tab considered private");
+
+  
+  
   yield promiseWindowClosed(win);
+  is(ss.getClosedWindowCount(), 0, "no windows to restore");
+});
+
+add_task(function () {
+  
+  while (ss.getClosedWindowCount()) {
+    ss.forgetClosedWindow(0);
+  }
+
+  
+  let win = yield promiseNewWindowLoaded({private: true});
+
+  
+  let tab = win.gBrowser.addTab("about:mozilla");
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
+  SyncHandlers.get(browser).flush();
+
+  
+  let state = JSON.parse(ss.getTabState(tab));
+  ok(state.isPrivate, "tab considered private");
+
+  
+  win.gBrowser.removeTab(tab);
+  is(ss.getClosedTabCount(win), 1, "there is a single tab to restore");
+
+  
+  yield promiseWindowClosed(win);
+  is(ss.getClosedWindowCount(), 0, "no windows to restore");
 });
 
 function setUsePrivateBrowsing(browser, val) {

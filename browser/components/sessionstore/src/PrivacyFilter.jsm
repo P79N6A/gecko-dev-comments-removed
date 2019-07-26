@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["PrivacyLevelFilter"];
+this.EXPORTED_SYMBOLS = ["PrivacyFilter"];
 
 const Cu = Components.utils;
 
@@ -30,7 +30,7 @@ function checkPrivacyLevel(url, isPinned) {
 
 
 
-this.PrivacyLevelFilter = Object.freeze({
+this.PrivacyFilter = Object.freeze({
   
 
 
@@ -87,5 +87,64 @@ this.PrivacyLevelFilter = Object.freeze({
     }
 
     return Object.keys(retval).length ? retval : null;
+  },
+
+  
+
+
+
+
+
+
+  filterPrivateWindowsAndTabs: function (browserState) {
+    
+    for (let i = browserState.windows.length - 1; i >= 0; i--) {
+      let win = browserState.windows[i];
+
+      if (win.isPrivate) {
+        browserState.windows.splice(i, 1);
+
+        if (browserState.selectedWindow >= i) {
+          browserState.selectedWindow--;
+        }
+      } else {
+        
+        this.filterPrivateTabs(win);
+      }
+    }
+
+    
+    browserState._closedWindows =
+      browserState._closedWindows.filter(win => !win.isPrivate);
+
+    
+    browserState._closedWindows.forEach(win => this.filterPrivateTabs(win));
+  },
+
+  
+
+
+
+
+
+
+  filterPrivateTabs: function (winState) {
+    
+    for (let i = winState.tabs.length - 1; i >= 0 ; i--) {
+      let tab = winState.tabs[i];
+
+      if (tab.isPrivate) {
+        winState.tabs.splice(i, 1);
+
+        if (winState.selected >= i) {
+          winState.selected--;
+        }
+      }
+    }
+
+    
+    
+    
+    
   }
 });
