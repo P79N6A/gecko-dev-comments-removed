@@ -213,7 +213,6 @@ let gFxAccounts = {
   },
 
   openSignInAgainPage: function () {
-    
-    switchToTabHavingURI("about:accounts?signin=true", true);
+    switchToTabHavingURI("about:accounts?action=reauth", true);
   }
 };
