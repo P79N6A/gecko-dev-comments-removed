@@ -38,6 +38,17 @@ const BackgroundPageThumbs = {
 
 
   capture: function (url, options={}) {
+    if (isPrivateBrowsingActive()) {
+      
+      
+      
+      
+      
+      
+      if (options.onDone)
+        Services.tm.mainThread.dispatch(options.onDone.bind(options, url), 0);
+      return;
+    }
     let cap = new Capture(url, this._onCaptureOrTimeout.bind(this), options);
     this._captureQueue = this._captureQueue || [];
     this._captureQueue.push(cap);
@@ -296,4 +307,15 @@ function canHostBrowser(win) {
   let permResult = Services.perms.testPermissionFromPrincipal(principal,
                                                               "allowXULXBL");
   return permResult == Ci.nsIPermissionManager.ALLOW_ACTION;
+}
+
+
+
+
+function isPrivateBrowsingActive() {
+  let wins = Services.ww.getWindowEnumerator();
+  while (wins.hasMoreElements())
+    if (PrivateBrowsingUtils.isWindowPrivate(wins.getNext()))
+      return true;
+  return false;
 }
