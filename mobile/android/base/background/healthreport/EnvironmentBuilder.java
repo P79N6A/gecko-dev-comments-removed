@@ -159,8 +159,8 @@ public class EnvironmentBuilder {
   
 
 
-  public static int registerCurrentEnvironment(HealthReportDatabaseStorage storage,
-                                               ProfileInformationProvider info) {
+  public static int registerCurrentEnvironment(final HealthReportStorage storage,
+                                               final ProfileInformationProvider info) {
     Environment e = storage.getEnvironment();
     populateEnvironment(e, info);
     e.register();
