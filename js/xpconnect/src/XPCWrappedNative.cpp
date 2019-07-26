@@ -1706,17 +1706,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
     return NS_OK;
 }
 
-XPCWrappedNative*
-XPCWrappedNative::GetParentWrapper()
-{
-    XPCWrappedNative *wrapper = nullptr;
-    JSObject *parent = js::GetObjectParent(mFlatJSObject);
-    if (parent && IS_WN_WRAPPER(parent)) {
-        wrapper = static_cast<XPCWrappedNative*>(js::GetObjectPrivate(parent));
-    }
-    return wrapper;
-}
-
 
 
 
@@ -1756,12 +1745,33 @@ XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
 {
     
     
+    
+    
+
+    
+    
+    
+    
+    
+    
     nsresult rv;
-    XPCWrappedNative *parentWrapper = GetParentWrapper();
-    if (parentWrapper && parentWrapper->IsOrphan()) {
-        rv = parentWrapper->RescueOrphans(ccx);
-        NS_ENSURE_SUCCESS(rv, rv);
+    JSObject *parentObj = js::GetObjectParent(mFlatJSObject);
+    if (!parentObj)
+        return NS_OK; 
+    parentObj = js::UnwrapObject(parentObj,  false);
+
+    
+    MOZ_ASSERT(IS_WRAPPER_CLASS(js::GetObjectClass(parentObj)));
+    if (IS_SLIM_WRAPPER_OBJECT(parentObj)) {
+        bool ok = MorphSlimWrapper(ccx, parentObj);
+        NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
     }
+
+    
+    XPCWrappedNative *parentWrapper =
+      static_cast<XPCWrappedNative*>(js::GetObjectPrivate(parentObj));
+    rv = parentWrapper->RescueOrphans(ccx);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     
