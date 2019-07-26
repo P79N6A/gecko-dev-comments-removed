@@ -2685,7 +2685,12 @@ Proxy::objectClassIs(HandleObject proxy, ESClassValue classValue, JSContext *cx)
 const char *
 Proxy::className(JSContext *cx, HandleObject proxy)
 {
-    JS_CHECK_RECURSION(cx, return NULL);
+    
+    
+    int stackDummy;
+    if (!JS_CHECK_STACK_SIZE(cx->mainThread().nativeStackLimit, &stackDummy))
+        return "too much recursion";
+
     BaseProxyHandler *handler = proxy->as<ProxyObject>().handler();
     AutoEnterPolicy policy(cx, handler, proxy, JS::JSID_VOIDHANDLE,
                            BaseProxyHandler::GET,  false);
