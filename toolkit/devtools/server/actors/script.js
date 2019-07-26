@@ -497,8 +497,8 @@ ThreadActor.prototype = {
     return this._prettyPrintWorker;
   },
 
-  _onPrettyPrintError: function ({ message, filename, lineno }) {
-    reportError(new Error(message + " @ " + filename + ":" + lineno));
+  _onPrettyPrintError: function (error) {
+    reportError(new Error(error));
   },
 
   _onPrettyPrintMsg: function ({ data }) {
@@ -2459,6 +2459,7 @@ SourceActor.prototype = {
   onPrettyPrint: function ({ indent }) {
     this.threadActor.sources.prettyPrint(this._url, indent);
     return this._getSourceText()
+      .then(this._parseAST)
       .then(this._sendToPrettyPrintWorker(indent))
       .then(this._invertSourceMap)
       .then(this._saveMap)
@@ -2482,6 +2483,13 @@ SourceActor.prototype = {
   
 
 
+  _parseAST: function SA__parseAST({ content}) {
+    return Reflect.parse(content);
+  },
+
+  
+
+
 
 
 
@@ -2492,7 +2500,7 @@ SourceActor.prototype = {
 
 
   _sendToPrettyPrintWorker: function SA__sendToPrettyPrintWorker(aIndent) {
-    return ({ content }) => {
+    return aAST => {
       const deferred = promise.defer();
       const id = Math.random();
 
@@ -2514,7 +2522,7 @@ SourceActor.prototype = {
         id: id,
         url: this._url,
         indent: aIndent,
-        source: content
+        ast: aAST
       });
 
       return deferred.promise;
