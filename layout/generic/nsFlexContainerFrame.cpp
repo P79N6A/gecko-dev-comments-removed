@@ -2475,21 +2475,10 @@ ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
                        aReflowState.ComputedMaxHeight());
 }
 
-
-static nscoord
-SumLineCrossSizes(const nsTArray<FlexLine>& aLines)
-{
-  nscoord sum = 0;
-  for (uint32_t lineIdx = 0; lineIdx < aLines.Length(); lineIdx++) {
-    sum += aLines[lineIdx].GetLineCrossSize();
-  }
-  return sum;
-}
-
 nscoord
 nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
                                        const FlexboxAxisTracker& aAxisTracker,
-                                       const nsTArray<FlexLine>& aLines,
+                                       nscoord aSumLineCrossSizes,
                                        nscoord aAvailableHeightForContent,
                                        bool* aIsDefinite,
                                        nsReflowStatus& aStatus)
@@ -2524,18 +2513,17 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
     
     
     NS_FRAME_SET_INCOMPLETE(aStatus);
-    nscoord sumOfLineCrossSizes = SumLineCrossSizes(aLines);
-    if (sumOfLineCrossSizes <= aAvailableHeightForContent) {
+    if (aSumLineCrossSizes <= aAvailableHeightForContent) {
       return aAvailableHeightForContent;
     }
-    return std::min(effectiveComputedHeight, sumOfLineCrossSizes);
+    return std::min(effectiveComputedHeight, aSumLineCrossSizes);
   }
 
   
   
   
   *aIsDefinite = false;
-  return NS_CSS_MINMAX(SumLineCrossSizes(aLines),
+  return NS_CSS_MINMAX(aSumLineCrossSizes,
                        aReflowState.ComputedMinHeight(),
                        aReflowState.ComputedMaxHeight());
 }
@@ -2819,6 +2807,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   
   
   
+  nscoord sumLineCrossSizes = 0;
   for (uint32_t lineIdx = 0; lineIdx < lines.Length(); ++lineIdx) {
     FlexLine& line = lines[lineIdx];
     for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
@@ -2843,17 +2832,14 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
-  }
-
-  
-  
-  for (uint32_t lineIdx = 0; lineIdx < lines.Length(); ++lineIdx) {
-    lines[lineIdx].ComputeCrossSizeAndBaseline(aAxisTracker);
+    
+    line.ComputeCrossSizeAndBaseline(aAxisTracker);
+    sumLineCrossSizes += line.GetLineCrossSize();
   }
 
   bool isCrossSizeDefinite;
   const nscoord contentBoxCrossSize =
-    ComputeCrossSize(aReflowState, aAxisTracker, lines,
+    ComputeCrossSize(aReflowState, aAxisTracker, sumLineCrossSizes,
                      aAvailableHeightForContent, &isCrossSizeDefinite, aStatus);
 
   
