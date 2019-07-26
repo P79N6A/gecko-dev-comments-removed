@@ -128,7 +128,6 @@ DOMCI_CLASS(CSSGroupRuleRuleList)
 DOMCI_CLASS(MediaList)
 DOMCI_CLASS(StyleSheetList)
 DOMCI_CLASS(CSSStyleSheet)
-DOMCI_CLASS(ROCSSPrimitiveValue)
 
 
 DOMCI_CLASS(Range)
@@ -162,10 +161,6 @@ DOMCI_CLASS(ChromeWindow)
 
 
 DOMCI_CLASS(CSSRGBColor)
-
-
-
-DOMCI_CLASS(CSSValueList)
 
 
 DOMCI_CLASS(ContentList)
