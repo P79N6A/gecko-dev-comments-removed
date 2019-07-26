@@ -1,0 +1,33 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef HEXDUMP_H_
+
+#define HEXDUMP_H_
+
+#include <sys/types.h>
+
+namespace android {
+
+struct AString;
+
+void hexdump(
+        const void *_data, size_t size,
+        size_t indent = 0, AString *appendTo = NULL);
+
+}  
+
+#endif  
