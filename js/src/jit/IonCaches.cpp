@@ -1946,8 +1946,8 @@ IonCache::destroy()
 }
 
 bool
-SetPropertyIC::attachNativeExisting(JSContext *cx, IonScript *ion,
-                                    HandleObject obj, HandleShape shape)
+SetPropertyIC::attachNativeExisting(JSContext *cx, IonScript *ion, HandleObject obj,
+                                    HandleShape shape, bool checkTypeset)
 {
     JS_ASSERT(obj->isNative());
 
@@ -1961,7 +1961,7 @@ SetPropertyIC::attachNativeExisting(JSContext *cx, IonScript *ion,
 
     
     
-    if (needsTypeBarrier() && !value().constant()) {
+    if (needsTypeBarrier()) {
         
         
 
@@ -1971,29 +1971,28 @@ SetPropertyIC::attachNativeExisting(JSContext *cx, IonScript *ion,
                        Address(object(), JSObject::offsetOfType()),
                        ImmGCPtr(type), &failures);
 
-        if (!type->unknownProperties()) {
+        if (checkTypeset) {
             TypedOrValueRegister valReg = value().reg();
             RootedId id(cx, types::IdToTypeId(AtomToId(name())));
             types::HeapTypeSet *propTypes = type->maybeGetProperty(cx, id);
             JS_ASSERT(propTypes);
+            JS_ASSERT(!propTypes->unknown());
 
-            if (!propTypes->unknown()) {
-                Label barrierSuccess;
-                Label barrierFailure;
+            Label barrierSuccess;
+            Label barrierFailure;
 
-                Register scratchReg = object();
-                masm.push(scratchReg);
+            Register scratchReg = object();
+            masm.push(scratchReg);
 
-                masm.guardTypeSet(valReg, propTypes, scratchReg,
-                                  &barrierSuccess, &barrierFailure);
+            masm.guardTypeSet(valReg, propTypes, scratchReg,
+                                &barrierSuccess, &barrierFailure);
 
-                masm.bind(&barrierFailure);
-                masm.pop(object());
-                masm.jump(&failures);
+            masm.bind(&barrierFailure);
+            masm.pop(object());
+            masm.jump(&failures);
 
-                masm.bind(&barrierSuccess);
-                masm.pop(object());
-            }
+            masm.bind(&barrierSuccess);
+            masm.pop(object());
         }
     }
 
@@ -2605,7 +2604,7 @@ SetPropertyIC::attachNativeAdding(JSContext *cx, IonScript *ion, JSObject *obj,
 
 static bool
 IsPropertySetInlineable(JSContext *cx, const SetPropertyIC &cache, HandleObject obj,
-                        HandleId id, MutableHandleShape pshape)
+                        HandleId id, MutableHandleShape pshape, bool *checkTypeset)
 {
     if (!obj->isNative())
         return false;
@@ -2624,20 +2623,39 @@ IsPropertySetInlineable(JSContext *cx, const SetPropertyIC &cache, HandleObject 
     if (!shape->writable())
         return false;
 
+    bool shouldCheck = false;
     types::TypeObject *type = obj->getType(cx);
     if (cache.needsTypeBarrier() && !type->unknownProperties()) {
         RootedId typeId(cx, types::IdToTypeId(id));
         types::HeapTypeSet *propTypes = type->maybeGetProperty(cx, typeId);
         if (!propTypes)
             return false;
-        if (cache.value().constant() && !propTypes->unknown()) {
-            
-            if (!propTypes->hasType(types::GetValueType(cache.value().value())))
-                return false;
+        if (!propTypes->unknown()) {
+            shouldCheck = true;
+            ConstantOrRegister val = cache.value();
+            if (val.constant()) {
+                
+                if (!propTypes->hasType(types::GetValueType(cache.value().value())))
+                    return false;
+                shouldCheck = false;
+            } else {
+                TypedOrValueRegister reg = val.reg();
+                
+                
+                
+                
+                if (reg.hasTyped() && reg.type() != MIRType_Object) {
+                    JSValueType valType = ValueTypeFromMIRType(reg.type());
+                    if (!propTypes->hasType(types::Type::PrimitiveType(valType)))
+                        return false;
+                    shouldCheck = false;
+                }
+            }
         }
     }
 
     pshape.set(shape);
+    *checkTypeset = shouldCheck;
 
     return true;
 }
@@ -2744,8 +2762,9 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
             }
         }
         RootedShape shape(cx);
-        if (!addedSetterStub && IsPropertySetInlineable(cx, cache, obj, id, &shape)) {
-            if (!cache.attachNativeExisting(cx, ion, obj, shape))
+        bool checkTypeset;
+        if (!addedSetterStub && IsPropertySetInlineable(cx, cache, obj, id, &shape, &checkTypeset)) {
+            if (!cache.attachNativeExisting(cx, ion, obj, shape, checkTypeset))
                 return false;
             addedSetterStub = true;
         } else if (!addedSetterStub) {
