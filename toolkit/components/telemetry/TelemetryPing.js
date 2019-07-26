@@ -42,33 +42,6 @@ const TELEMETRY_DELAY = 60000;
 
 
 
-
-
-
-
-
-
-
-
-const MEM_HISTOGRAMS = {
-  "js-main-runtime-gc-heap": "MEMORY_JS_GC_HEAP",
-  "js-main-runtime-temporary-peak": "MEMORY_JS_MAIN_RUNTIME_TEMPORARY_PEAK",
-  "vsize": "MEMORY_VSIZE",
-  "storage-sqlite": "MEMORY_STORAGE_SQLITE",
-  "images-content-used-uncompressed":
-    "MEMORY_IMAGES_CONTENT_USED_UNCOMPRESSED",
-  "heap-allocated": "MEMORY_HEAP_ALLOCATED",
-  "heap-overhead": "MEMORY_HEAP_COMMITTED_UNUSED",
-  "heap-overhead-ratio": "MEMORY_HEAP_COMMITTED_UNUSED_RATIO",
-  "page-faults-hard": "PAGE_FAULTS_HARD",
-  "low-memory-events/virtual": "LOW_MEMORY_EVENTS_VIRTUAL",
-  "low-memory-events/physical": "LOW_MEMORY_EVENTS_PHYSICAL",
-  "ghost-windows": "GHOST_WINDOWS"
-};
-
-
-
-
 const IDLE_TIMEOUT_SECONDS = 5 * 60;
 
 var gLastMemoryPoll = null;
@@ -443,49 +416,54 @@ TelemetryPing.prototype = {
     let startTime = new Date();
 
     
-    let e = mgr.enumerateReporters();
-    while (e.hasMoreElements()) {
-      let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-      let id = MEM_HISTOGRAMS[mr.name];
-      if (!id) {
-        continue;
-      }
-
-      
-      
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let boundHandleMemoryReport = this.handleMemoryReport.bind(this);
+    function h(id, units, amountName) {
       try {
         
         
-        let boundHandleMemoryReport = this.handleMemoryReport.bind(this);
-
         
         
-        let hasReported = false;
-
-        function h(process, path, kind, units, amount, desc) {
-          if (!hasReported) {
-            boundHandleMemoryReport(id, units, amount);
-            hasReported = true;
-          } else {
-            NS_ASSERT(false,
-                      "reporter " + mr.name + " has made more than one report");
-          }
-        }
-        mr.collectReports(h, null);
-      }
-      catch (e) {
-      }
+        let amount = mgr[amountName];
+        NS_ASSERT(amount !== undefined,
+                  "telemetry accessed an unknown distinguished amount");
+        boundHandleMemoryReport(id, units, amount);
+      } catch (e) {
+      };
     }
-
-    
-    let h = this.handleMemoryReport.bind(this);
     let b = (id, n) => h(id, Ci.nsIMemoryReporter.UNITS_BYTES, n);
     let c = (id, n) => h(id, Ci.nsIMemoryReporter.UNITS_COUNT, n);
+    let cc= (id, n) => h(id, Ci.nsIMemoryReporter.UNITS_COUNT_CUMULATIVE, n);
     let p = (id, n) => h(id, Ci.nsIMemoryReporter.UNITS_PERCENTAGE, n);
 
-    try { b("MEMORY_RESIDENT", mgr.residentFast); } catch (e) {}
-    try { c("MEMORY_JS_COMPARTMENTS_SYSTEM", mgr.JSMainRuntimeCompartmentsSystem); } catch (e) {}
-    try { c("MEMORY_JS_COMPARTMENTS_USER", mgr.JSMainRuntimeCompartmentsUser); } catch (e) {}
+    b("MEMORY_VSIZE", "vsize");
+    b("MEMORY_RESIDENT", "residentFast");
+    b("MEMORY_HEAP_ALLOCATED", "heapAllocated");
+    p("MEMORY_HEAP_COMMITTED_UNUSED_RATIO", "heapOverheadRatio");
+    b("MEMORY_JS_GC_HEAP", "JSMainRuntimeGCHeap");
+    b("MEMORY_JS_MAIN_RUNTIME_TEMPORARY_PEAK", "JSMainRuntimeTemporaryPeak");
+    c("MEMORY_JS_COMPARTMENTS_SYSTEM", "JSMainRuntimeCompartmentsSystem");
+    c("MEMORY_JS_COMPARTMENTS_USER", "JSMainRuntimeCompartmentsUser");
+    b("MEMORY_IMAGES_CONTENT_USED_UNCOMPRESSED", "imagesContentUsedUncompressed");
+    b("MEMORY_STORAGE_SQLITE", "storageSQLite");
+    cc("MEMORY_EVENTS_VIRTUAL", "lowMemoryEventsVirtual");
+    cc("MEMORY_EVENTS_PHYSICAL", "lowMemoryEventsPhysical");
+    c("GHOST_WINDOWS", "ghostWindows");
+    cc("PAGE_FAULTS_HARD", "pageFaultsHard");
 
     histogram.add(new Date() - startTime);
   },
