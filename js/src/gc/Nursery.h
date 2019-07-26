@@ -109,6 +109,17 @@ class Nursery
     
     void forwardBufferPointer(HeapSlot **pSlotsElems);
 
+#ifdef JS_GC_ZEAL
+    
+
+
+
+    static const uint8_t FreshNursery = 0x2a;
+    static const uint8_t SweptNursery = 0x2b;
+    static const uint8_t AllocatedThing = 0x2c;
+    void enterZealMode() { numActiveChunks_ = NumNurseryChunks; }
+#endif
+
   private:
     
 
@@ -136,16 +147,6 @@ class Nursery
 
     typedef HashSet<HeapSlot *, PointerHasher<HeapSlot *, 3>, SystemAllocPolicy> HugeSlotsSet;
     HugeSlotsSet hugeSlots;
-
-#ifdef DEBUG
-    
-
-
-
-    static const uint8_t FreshNursery = 0x2a;
-    static const uint8_t SweptNursery = 0x2b;
-    static const uint8_t AllocatedThing = 0x2c;
-#endif
 
     
     static const size_t MaxNurserySlots = 100;
@@ -238,7 +239,7 @@ class Nursery
 
 
 
-    void sweep(FreeOp *fop);
+    void sweep(JSRuntime *rt);
 
     
     void growAllocableSpace();
