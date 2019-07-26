@@ -666,9 +666,12 @@ static nsresult
 StartStopGonkBluetooth(bool aShouldEnable)
 {
   MOZ_ASSERT(!NS_IsMainThread());
-
   NS_ENSURE_TRUE(sBtInterface, NS_ERROR_FAILURE);
-  NS_ENSURE_TRUE(sIsBtEnabled != aShouldEnable, NS_OK);
+
+  if (sIsBtEnabled == aShouldEnable) {
+    
+    return NS_OK;
+  }
 
   int ret = aShouldEnable ? sBtInterface->enable() : sBtInterface->disable();
   NS_ENSURE_TRUE(ret == BT_STATUS_SUCCESS, NS_ERROR_FAILURE);
@@ -1220,13 +1223,6 @@ BluetoothServiceBluedroid::SendFile(const nsAString& aDeviceAddress,
                                     BluetoothReplyRunnable* aRunnable)
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  
-  if (!IsReady() || BT_STATUS_SUCCESS != sBtInterface->cancel_discovery()) {
-    NS_NAMED_LITERAL_STRING(errorStr, "Calling cancel_discovery() failed");
-    DispatchBluetoothReply(aRunnable, BluetoothValue(true), errorStr);
-    return;
-  }
 
   
   
