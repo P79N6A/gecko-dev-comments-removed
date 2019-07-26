@@ -889,6 +889,18 @@ _composite_alpha_blend (cairo_win32_surface_t *dst,
     return CAIRO_STATUS_SUCCESS;
 }
 
+
+static void
+make_opaque (cairo_image_surface_t *image, cairo_rectangle_int_t src_r)
+{
+    int x; int y;
+    for (y = src_r.y; y < src_r.height; y++) {
+        for (x = src_r.x; x < src_r.width; x++) {
+            image->data[y * image->stride + x*4 + 3] = 0xff;
+        }
+    }
+}
+
 static cairo_int_status_t
 _cairo_win32_surface_composite_inner (cairo_win32_surface_t *src,
 				      cairo_image_surface_t *src_image,
@@ -940,6 +952,14 @@ _cairo_win32_surface_composite_inner (cairo_win32_surface_t *src,
 		return _cairo_win32_print_gdi_error ("_cairo_win32_surface_composite(StretchDIBits)");
 	}
     } else if (!needs_alpha) {
+	if (src->format == CAIRO_FORMAT_RGB24 && dst->format == CAIRO_FORMAT_ARGB32) {
+	    
+
+
+
+	    GdiFlush();
+	    make_opaque(src->image, src_r);
+	}
 	
 	if (!needs_scale && (dst->flags & CAIRO_WIN32_SURFACE_CAN_BITBLT)) {
             if (!BitBlt (dst->dc,
@@ -1210,6 +1230,14 @@ _cairo_win32_surface_composite (cairo_operator_t	op,
 
 
 
+
+
+
+
+
+
+
+
     
 
 
@@ -1227,12 +1255,22 @@ _cairo_win32_surface_composite (cairo_operator_t	op,
 		   dst->format == CAIRO_FORMAT_RGB24)
 	{
 	    needs_alpha = TRUE;
+	} else if (src_format == CAIRO_FORMAT_RGB24 &&
+		   dst->format == CAIRO_FORMAT_ARGB32 &&
+		   src->image)
+	{
+	    if (alpha == 255) {
+		needs_alpha = FALSE;
+	    } else {
+		needs_alpha = TRUE;
+	    }
 	} else {
 	    goto UNSUPPORTED;
 	}
     } else if (alpha == 255 && op == CAIRO_OPERATOR_SOURCE) {
 	if ((src_format == dst->format) ||
-	    (src_format == CAIRO_FORMAT_ARGB32 && dst->format == CAIRO_FORMAT_RGB24))
+	    (src_format == CAIRO_FORMAT_ARGB32 && dst->format == CAIRO_FORMAT_RGB24) ||
+	    (src_format == CAIRO_FORMAT_RGB24  && dst->format == CAIRO_FORMAT_ARGB32 && src->image))
 	{
 	    needs_alpha = FALSE;
 	} else {
