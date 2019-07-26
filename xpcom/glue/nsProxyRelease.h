@@ -106,10 +106,14 @@ class nsMainThreadPtrHolder MOZ_FINAL
 {
 public:
   
-  nsMainThreadPtrHolder(T* ptr) : mRawPtr(NULL) {
+  
+  
+  
+  
+  nsMainThreadPtrHolder(T* ptr, bool strict = true) : mRawPtr(NULL), mStrict(strict) {
     
     
-    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!mStrict || NS_IsMainThread());
     NS_IF_ADDREF(mRawPtr = ptr);
   }
 
@@ -129,7 +133,7 @@ public:
 
   T* get() {
     
-    if (MOZ_UNLIKELY(!NS_IsMainThread())) {
+    if (mStrict && MOZ_UNLIKELY(!NS_IsMainThread())) {
       NS_ERROR("Can't dereference nsMainThreadPtrHolder off main thread");
       MOZ_CRASH();
     }
@@ -147,6 +151,9 @@ private:
 
   
   T* mRawPtr;
+
+  
+  bool mStrict;
 
   
   
@@ -180,7 +187,6 @@ class nsMainThreadPtrHandle
   
   T* get()
   {
-    MOZ_ASSERT(NS_IsMainThread());
     if (mPtr) {
       return mPtr.get()->get();
     }
@@ -188,7 +194,6 @@ class nsMainThreadPtrHandle
   }
   const T* get() const
   {
-    MOZ_ASSERT(NS_IsMainThread());
     if (mPtr) {
       return mPtr.get()->get();
     }
