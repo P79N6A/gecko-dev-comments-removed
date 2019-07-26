@@ -91,16 +91,21 @@ DownloadLegacyTransfer.prototype = {
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
       
       
-      this._deferDownload.promise.then(function (aDownload) {
-        aDownload.saver.onTransferStarted(aRequest);
+      this._deferDownload.promise.then(download => {
+        download.saver.onTransferStarted(
+                         aRequest,
+                         this._cancelable instanceof Ci.nsIHelperAppLauncher);
       }).then(null, Cu.reportError);
     } else if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
       
       
-      this._deferDownload.promise.then(function DLT_OSC_onDownload(aDownload) {
-        aDownload.saver.onTransferFinished(aRequest, aStatus);
+      this._deferDownload.promise.then(download => {
+        download.saver.onTransferFinished(aRequest, aStatus);
       }).then(null, Cu.reportError);
+
+      
+      this._cancelable = null;
     }
   },
 
@@ -164,6 +169,8 @@ DownloadLegacyTransfer.prototype = {
   init: function DLT_init(aSource, aTarget, aDisplayName, aMIMEInfo, aStartTime,
                           aTempFile, aCancelable, aIsPrivate)
   {
+    this._cancelable = aCancelable;
+
     let launchWhenSucceeded = false, contentType = null, launcherPath = null;
 
     if (aMIMEInfo instanceof Ci.nsIMIMEInfo) {
@@ -232,6 +239,12 @@ DownloadLegacyTransfer.prototype = {
 
 
   _deferDownload: null,
+
+  
+
+
+
+  _cancelable: null,
 
   
 
