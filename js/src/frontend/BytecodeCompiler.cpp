@@ -47,7 +47,8 @@ SetSourceMap(JSContext *cx, TokenStream &tokenStream, ScriptSource *ss, Unrooted
 }
 
 UnrootedScript
-frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr callerFrame,
+frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
+                        HandleScript evalCaller,
                         const CompileOptions &options,
                         const jschar *chars, size_t length,
                         JSString *source_ ,
@@ -73,8 +74,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
 
 
 
-    JS_ASSERT_IF(callerFrame, options.compileAndGo);
-    JS_ASSERT_IF(staticLevel != 0, callerFrame);
+    JS_ASSERT_IF(evalCaller, options.compileAndGo);
+    JS_ASSERT_IF(staticLevel != 0, evalCaller);
 
     if (!CheckLength(cx, length))
         return UnrootedScript(NULL);
@@ -108,7 +109,10 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
     if (!pc.init())
         return UnrootedScript(NULL);
 
-    bool savedCallerFun = options.compileAndGo && callerFrame && callerFrame.isFunctionFrame();
+    bool savedCallerFun =
+        options.compileAndGo &&
+        evalCaller &&
+        (evalCaller->function() || evalCaller->savedCallerFun);
     Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), savedCallerFun,
                                                   options, staticLevel, ss, 0, length));
     if (!script)
@@ -125,13 +129,13 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
     JS_ASSERT_IF(globalScope, globalScope->isNative());
     JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
 
-    BytecodeEmitter bce( NULL, &parser, &globalsc, script, callerFrame, !!globalScope,
+    BytecodeEmitter bce( NULL, &parser, &globalsc, script, evalCaller, !!globalScope,
                         options.lineno, options.selfHostingMode);
     if (!bce.init())
         return UnrootedScript(NULL);
 
     
-    if (callerFrame && callerFrame.script()->strict)
+    if (evalCaller && evalCaller->strict)
         globalsc.strict = true;
 
     if (options.compileAndGo) {
@@ -146,13 +150,13 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
                 return UnrootedScript(NULL);
         }
 
-        if (callerFrame && callerFrame.isFunctionFrame()) {
+        if (evalCaller && evalCaller->functionOrCallerFunction()) {
             
 
 
 
 
-            JSFunction *fun = callerFrame.fun();
+            JSFunction *fun = evalCaller->functionOrCallerFunction();
             ObjectBox *funbox = parser.newFunctionBox(fun, &pc, fun->strict());
             if (!funbox)
                 return UnrootedScript(NULL);
@@ -194,11 +198,12 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
     if (!SetSourceMap(cx, tokenStream, ss, script))
         return UnrootedScript(NULL);
 
-    if (callerFrame && callerFrame.isFunctionFrame()) {
+    if (evalCaller && evalCaller->functionOrCallerFunction()) {
+        JSFunction *fun = evalCaller->functionOrCallerFunction();
         HandlePropertyName arguments = cx->names().arguments;
         for (AtomDefnRange r = pc.lexdeps->all(); !r.empty(); r.popFront()) {
             if (r.front().key() == arguments) {
-                if (callerFrame.fun()->hasRest()) {
+                if (fun->hasRest()) {
                     
                     
                     parser.reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
@@ -206,7 +211,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
                 }
                 
                 
-                RootedScript script(cx, callerFrame.fun()->nonLazyScript());
+                RootedScript script(cx, fun->nonLazyScript());
                 if (script->argumentsHasVarBinding()) {
                     if (!JSScript::argumentsOptimizationFailed(cx, script))
                         return UnrootedScript(NULL);
@@ -218,7 +223,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
         
         
         if (pc.sc->hasDebuggerStatement()) {
-            RootedObject scope(cx, callerFrame.scopeChain());
+            RootedObject scope(cx, scopeChain);
             while (scope->isScope() || scope->isDebugScope()) {
                 if (scope->isCall() && !scope->asCall().isForEval()) {
                     RootedScript script(cx, scope->asCall().callee().nonLazyScript());
@@ -324,7 +329,7 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     }
 
     BytecodeEmitter funbce( NULL, &parser, funbox, script,
-                            NullFramePtr(),
+                            NullPtr(),
                             false, options.lineno);
     if (!funbce.init())
         return false;

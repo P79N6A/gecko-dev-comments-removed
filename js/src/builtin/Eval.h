@@ -27,6 +27,13 @@ extern bool
 DirectEval(JSContext *cx, const CallArgs &args);
 
 
+extern bool
+DirectEvalFromIon(JSContext *cx,
+                  HandleObject scopeObj, HandleScript callerScript,
+                  HandleValue thisValue, HandleString str,
+                  MutableHandleValue vp);
+
+
 
 extern bool
 IsBuiltinEvalForScope(JSObject *scopeChain, const Value &v);

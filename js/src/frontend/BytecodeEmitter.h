@@ -18,6 +18,7 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 
+#include "frontend/BytecodeCompiler.h"
 #include "frontend/Parser.h"
 #include "frontend/ParseMaps.h"
 #include "frontend/SharedContext.h"
@@ -83,7 +84,7 @@ struct BytecodeEmitter
 
     Parser          *const parser;  
 
-    AbstractFramePtr callerFrame;   
+    HandleScript    evalCaller;     
 
     StmtInfoBCE     *topStmt;       
     StmtInfoBCE     *topScopeStmt;  
@@ -126,7 +127,7 @@ struct BytecodeEmitter
 
 
     BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
-                    HandleScript script, AbstractFramePtr callerFrame, bool hasGlobalScope,
+                    HandleScript script, HandleScript evalCaller, bool hasGlobalScope,
                     unsigned lineno, bool selfHostingMode = false);
     bool init();
 

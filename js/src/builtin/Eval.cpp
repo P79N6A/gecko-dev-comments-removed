@@ -144,6 +144,57 @@ class EvalScriptGuard
     }
 };
 
+enum EvalJSONResult {
+    EvalJSON_Failure,
+    EvalJSON_Success,
+    EvalJSON_NotJSON
+};
+
+static EvalJSONResult
+TryEvalJSON(JSContext *cx, JSScript *callerScript,
+            StableCharPtr chars, size_t length, MutableHandleValue rval)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (length > 2 &&
+        ((chars[0] == '[' && chars[length - 1] == ']') ||
+        (chars[0] == '(' && chars[length - 1] == ')')) &&
+         (!callerScript || !callerScript->strict))
+    {
+        
+        
+        
+        
+        
+        
+        for (const jschar *cp = &chars[1], *end = &chars[length - 2]; ; cp++) {
+            if (*cp == 0x2028 || *cp == 0x2029)
+                break;
+
+            if (cp == end) {
+                bool isArray = (chars[0] == '[');
+                JSONParser parser(cx, isArray ? chars : chars + 1U, isArray ? length : length - 2,
+                                  JSONParser::StrictJSON, JSONParser::NoError);
+                RootedValue tmp(cx);
+                if (!parser.parse(&tmp))
+                    return EvalJSON_Failure;
+                if (tmp.isUndefined())
+                    return EvalJSON_NotJSON;
+                rval.set(tmp);
+                return EvalJSON_Success;
+            }
+        }
+    }
+    return EvalJSON_NotJSON;
+}
+
 
 enum EvalType { DIRECT_EVAL = EXECUTE_DIRECT_EVAL, INDIRECT_EVAL = EXECUTE_INDIRECT_EVAL };
 
@@ -215,48 +266,14 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, AbstractFrame
     StableCharPtr chars = stableStr->chars();
     size_t length = stableStr->length();
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (length > 2 &&
-        ((chars[0] == '[' && chars[length - 1] == ']') ||
-        (chars[0] == '(' && chars[length - 1] == ')')) &&
-         (!caller || !caller.script()->strict))
-    {
-        
-        
-        
-        
-        
-        
-        for (const jschar *cp = &chars[1], *end = &chars[length - 2]; ; cp++) {
-            if (*cp == 0x2028 || *cp == 0x2029)
-                break;
+    JSPrincipals *principals = PrincipalsForCompiledCode(args, cx);
 
-            if (cp == end) {
-                bool isArray = (chars[0] == '[');
-                JSONParser parser(cx, isArray ? chars : chars + 1U, isArray ? length : length - 2,
-                                  JSONParser::StrictJSON, JSONParser::NoError);
-                RootedValue tmp(cx);
-                if (!parser.parse(&tmp))
-                    return false;
-                if (tmp.isUndefined())
-                    break;
-                args.rval().set(tmp);
-                return true;
-            }
-        }
-    }
+    JSScript *callerScript = caller ? caller.script() : NULL;
+    EvalJSONResult ejr = TryEvalJSON(cx, callerScript, chars, length, args.rval());
+    if (ejr != EvalJSON_NotJSON)
+        return ejr == EvalJSON_Success;
 
     EvalScriptGuard esg(cx);
-
-    JSPrincipals *principals = PrincipalsForCompiledCode(args, cx);
 
     if (evalType == DIRECT_EVAL && caller.isNonEvalFunctionFrame())
         esg.lookupInEvalCache(stableStr, caller.fun(), staticLevel);
@@ -275,7 +292,8 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, AbstractFrame
                .setNoScriptRval(false)
                .setPrincipals(principals)
                .setOriginPrincipals(originPrincipals);
-        UnrootedScript compiled = frontend::CompileScript(cx, scopeobj, caller, options,
+        RootedScript callerScript(cx, caller ? caller.script() : NULL);
+        UnrootedScript compiled = frontend::CompileScript(cx, scopeobj, callerScript, options,
                                                           chars.get(), length, stableStr, staticLevel);
         if (!compiled)
             return false;
@@ -285,6 +303,71 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, AbstractFrame
 
     return ExecuteKernel(cx, esg.script(), *scopeobj, thisv, ExecuteType(evalType),
                          NullFramePtr() , args.rval().address());
+}
+
+bool
+js::DirectEvalFromIon(JSContext *cx,
+                      HandleObject scopeobj, HandleScript callerScript,
+                      HandleValue thisValue, HandleString str,
+                      MutableHandleValue vp)
+{
+    AssertInnerizedScopeChain(cx, *scopeobj);
+
+    Rooted<GlobalObject*> scopeObjGlobal(cx, &scopeobj->global());
+    if (!GlobalObject::isRuntimeCodeGenEnabled(cx, scopeObjGlobal)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CSP_BLOCKED_EVAL);
+        return false;
+    }
+
+    
+
+    unsigned staticLevel = callerScript->staticLevel + 1;
+
+    Rooted<JSStableString*> stableStr(cx, str->ensureStable(cx));
+    if (!stableStr)
+        return false;
+
+    StableCharPtr chars = stableStr->chars();
+    size_t length = stableStr->length();
+
+    EvalJSONResult ejr = TryEvalJSON(cx, callerScript, chars, length, vp);
+    if (ejr != EvalJSON_NotJSON)
+        return ejr == EvalJSON_Success;
+
+    EvalScriptGuard esg(cx);
+
+    
+    JSPrincipals *principals = cx->compartment->principals;
+
+    esg.lookupInEvalCache(stableStr, callerScript->function(), staticLevel);
+
+    if (!esg.foundScript()) {
+        unsigned lineno;
+        const char *filename;
+        JSPrincipals *originPrincipals;
+        CurrentScriptFileLineOrigin(cx, &filename, &lineno, &originPrincipals,
+                                    CALLED_FROM_JSOP_EVAL);
+
+        CompileOptions options(cx);
+        options.setFileAndLine(filename, lineno)
+               .setCompileAndGo(true)
+               .setNoScriptRval(false)
+               .setPrincipals(principals)
+               .setOriginPrincipals(originPrincipals);
+        UnrootedScript compiled = frontend::CompileScript(cx, scopeobj, callerScript, options,
+                                                          chars.get(), length, stableStr, staticLevel);
+        if (!compiled)
+            return false;
+
+        esg.setNewScript(compiled);
+    }
+
+    
+    
+    JS_ASSERT(thisValue.isObject() || thisValue.isUndefined() || thisValue.isNull());
+
+    return ExecuteKernel(cx, esg.script(), *scopeobj, thisValue, ExecuteType(DIRECT_EVAL),
+                         NullFramePtr() , vp.address());
 }
 
 

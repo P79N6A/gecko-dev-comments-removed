@@ -107,6 +107,7 @@ class PowPolicy : public BoxInputsPolicy
 };
 
 
+template <unsigned Op>
 class StringPolicy : public BoxInputsPolicy
 {
   public:

@@ -328,7 +328,7 @@ IsInlinableCall(jsbytecode *pc)
     
     
     
-    return op == JSOP_CALL || op == JSOP_FUNCALL || op == JSOP_FUNAPPLY ||
+    return op == JSOP_CALL || op == JSOP_FUNCALL || op == JSOP_FUNAPPLY || op == JSOP_EVAL ||
 #ifdef JS_ION
            op == JSOP_NEW ||
 #endif
