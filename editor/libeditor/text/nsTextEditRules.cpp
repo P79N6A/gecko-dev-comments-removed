@@ -104,7 +104,7 @@ nsTextEditRules::Init(nsPlaintextEditor *aEditor)
   mEditor = aEditor;  
   nsCOMPtr<nsISelection> selection;
   mEditor->GetSelection(getter_AddRefs(selection));
-  NS_ASSERTION(selection, "editor cannot get selection");
+  NS_WARN_IF_FALSE(selection, "editor cannot get selection");
 
   
   

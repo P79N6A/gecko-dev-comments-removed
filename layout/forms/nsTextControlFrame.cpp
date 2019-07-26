@@ -296,50 +296,53 @@ nsTextControlFrame::EnsureEditorInitialized()
 
   
   
-  nsAutoScriptBlocker scriptBlocker;
+  {
+    nsAutoScriptBlocker scriptBlocker;
 
-  
-  
-  nsCxPusher pusher;
-  pusher.PushNull();
+    
+    
+    nsCxPusher pusher;
+    pusher.PushNull();
 
-  
-  class EnsureSetFocus {
-  public:
-    explicit EnsureSetFocus(nsTextControlFrame* aFrame)
-      : mFrame(aFrame) {}
-    ~EnsureSetFocus() {
-      if (nsContentUtils::IsFocusedContent(mFrame->GetContent()))
-        mFrame->SetFocus(true, false);
-    }
-  private:
-    nsTextControlFrame *mFrame;
-  };
-  EnsureSetFocus makeSureSetFocusHappens(this);
+    
+    class EnsureSetFocus {
+    public:
+      explicit EnsureSetFocus(nsTextControlFrame* aFrame)
+        : mFrame(aFrame) {}
+      ~EnsureSetFocus() {
+        if (nsContentUtils::IsFocusedContent(mFrame->GetContent()))
+          mFrame->SetFocus(true, false);
+      }
+    private:
+      nsTextControlFrame *mFrame;
+    };
+    EnsureSetFocus makeSureSetFocusHappens(this);
 
 #ifdef DEBUG
-  
-  
-  const EditorInitializerEntryTracker tracker(*this);
-  NS_ASSERTION(!tracker.EnteredMoreThanOnce(),
-               "EnsureEditorInitialized has been called while a previous call was in progress");
+    
+    
+    const EditorInitializerEntryTracker tracker(*this);
+    NS_ASSERTION(!tracker.EnteredMoreThanOnce(),
+                 "EnsureEditorInitialized has been called while a previous call was in progress");
 #endif
 
-  
-  nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
-  NS_ASSERTION(txtCtrl, "Content not a text control element");
-  nsresult rv = txtCtrl->CreateEditor();
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
+    NS_ASSERTION(txtCtrl, "Content not a text control element");
+    nsresult rv = txtCtrl->CreateEditor();
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_STATE(weakFrame.IsAlive());
 
-  
-  
-  mUseEditor = true;
+    
+    
+    mUseEditor = true;
 
-  
-  if (weakFrame.IsAlive()) {
-    SetSelectionEndPoints(0, 0);
+    
+    if (weakFrame.IsAlive()) {
+      SetSelectionEndPoints(0, 0);
+    }
   }
-
+  NS_ENSURE_STATE(weakFrame.IsAlive());
   return NS_OK;
 }
 
@@ -1089,8 +1092,10 @@ nsTextControlFrame::GetSelectionRange(int32_t* aSelectionStart,
     return NS_OK;
   }
 
-  nsContentUtils::GetSelectionInTextControl(typedSel,
-    GetRootNodeAndInitializeEditor(), *aSelectionStart, *aSelectionEnd);
+  mozilla::dom::Element* root = GetRootNodeAndInitializeEditor();
+  NS_ENSURE_STATE(root);
+  nsContentUtils::GetSelectionInTextControl(typedSel, root,
+                                            *aSelectionStart, *aSelectionEnd);
 
   return NS_OK;
 }
