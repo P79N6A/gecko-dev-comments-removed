@@ -346,12 +346,16 @@ int VP8EncoderImpl::Encode(const I420VideoFrame& input_image,
     if (ret < 0) {
       return ret;
     }
+#ifndef LIBVPX_ENCODER_CONFIG_ON_RESIZE 
+    frame_type = kKeyFrame;
+#endif
   }
+
   
   
-  raw_->planes[PLANE_Y] = const_cast<uint8_t*>(input_image.buffer(kYPlane));
-  raw_->planes[PLANE_U] = const_cast<uint8_t*>(input_image.buffer(kUPlane));
-  raw_->planes[PLANE_V] = const_cast<uint8_t*>(input_image.buffer(kVPlane));
+  raw_->planes[VPX_PLANE_Y] = const_cast<uint8_t*>(input_image.buffer(kYPlane));
+  raw_->planes[VPX_PLANE_U] = const_cast<uint8_t*>(input_image.buffer(kUPlane));
+  raw_->planes[VPX_PLANE_V] = const_cast<uint8_t*>(input_image.buffer(kVPlane));
   
   raw_->stride[VPX_PLANE_Y] = input_image.stride(kYPlane);
   raw_->stride[VPX_PLANE_U] = input_image.stride(kUPlane);
@@ -413,7 +417,15 @@ int VP8EncoderImpl::UpdateCodecFrameSize(const I420VideoFrame& input_image) {
   
   config_->g_w = codec_.width;
   config_->g_h = codec_.height;
+#ifndef LIBVPX_ENCODER_CONFIG_ON_RESIZE
+  
+  
+  
+  vpx_codec_flags_t flags = VPX_CODEC_USE_OUTPUT_PARTITION;
+  if (vpx_codec_enc_init(encoder_, vpx_codec_vp8_cx(), config_, flags)) {
+#else
   if (vpx_codec_enc_config_set(encoder_, config_)) {
+#endif
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
   return WEBRTC_VIDEO_CODEC_OK;
