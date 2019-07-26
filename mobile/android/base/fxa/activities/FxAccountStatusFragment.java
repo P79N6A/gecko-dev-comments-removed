@@ -11,11 +11,12 @@ import java.util.Set;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.preferences.PreferenceFragment;
-import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.login.Married;
 import org.mozilla.gecko.fxa.login.State;
+import org.mozilla.gecko.fxa.sync.FxAccountSyncStatusHelper;
 import org.mozilla.gecko.sync.SyncConfiguration;
 
 import android.content.ContentResolver;
@@ -70,6 +71,8 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
   
   
   protected Runnable requestSyncRunnable;
+
+  protected final SyncStatusDelegate syncStatusDelegate = new SyncStatusDelegate();
 
   protected Preference ensureFindPreference(String key) {
     Preference preference = findPreference(key);
@@ -237,6 +240,38 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
     setCheckboxesEnabled(true);
   }
 
+  protected class SyncStatusDelegate implements FxAccountSyncStatusHelper.Delegate {
+    protected final Runnable refreshRunnable = new Runnable() {
+      @Override
+      public void run() {
+        refresh();
+      }
+    };
+
+    @Override
+    public AndroidFxAccount getAccount() {
+      return fxAccount;
+    }
+
+    @Override
+    public void handleSyncStarted() {
+      if (fxAccount == null) {
+        return;
+      }
+      Logger.info(LOG_TAG, "Got sync started message; refreshing.");
+      getActivity().runOnUiThread(refreshRunnable);
+    }
+
+    @Override
+    public void handleSyncFinished() {
+      if (fxAccount == null) {
+        return;
+      }
+      Logger.info(LOG_TAG, "Got sync finished message; refreshing.");
+      getActivity().runOnUiThread(refreshRunnable);
+    }
+  }
+
   
 
 
@@ -259,7 +294,21 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
     
     requestSyncRunnable = new RequestSyncRunnable();
 
+    
+    
+    
+    
+    
+    
+    FxAccountSyncStatusHelper.getInstance().startObserving(syncStatusDelegate);
+
     refresh();
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    FxAccountSyncStatusHelper.getInstance().stopObserving(syncStatusDelegate);
   }
 
   protected void refresh() {
@@ -440,9 +489,7 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
         return;
       }
       Logger.info(LOG_TAG, "Requesting a sync sometime soon.");
-      
-      ContentResolver.requestSync(fxAccount.getAndroidAccount(), BrowserContract.AUTHORITY, Bundle.EMPTY);
-      
+      fxAccount.requestSync();
     }
   }
 
@@ -459,10 +506,8 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
       } else if ("debug_dump".equals(key)) {
         fxAccount.dump();
       } else if ("debug_force_sync".equals(key)) {
-        Logger.info(LOG_TAG, "Syncing.");
-        final Bundle extras = new Bundle();
-        extras.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        fxAccount.requestSync(extras);
+        Logger.info(LOG_TAG, "Force syncing.");
+        fxAccount.requestSync(FirefoxAccounts.FORCE);
         
       } else if ("debug_forget_certificate".equals(key)) {
         State state = fxAccount.getState();

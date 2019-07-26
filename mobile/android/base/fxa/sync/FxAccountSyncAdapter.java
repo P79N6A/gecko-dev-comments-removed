@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,6 +23,7 @@ import org.mozilla.gecko.browserid.JSONWebTokenUtils;
 import org.mozilla.gecko.browserid.RSACryptoImplementation;
 import org.mozilla.gecko.browserid.verifier.BrowserIDRemoteVerifierClient;
 import org.mozilla.gecko.browserid.verifier.BrowserIDVerifierDelegate;
+import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.authenticator.AccountPickler;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
@@ -64,7 +66,10 @@ import android.os.SystemClock;
 public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
   private static final String LOG_TAG = FxAccountSyncAdapter.class.getSimpleName();
 
-  public static final int NOTIFICATION_ID = LOG_TAG.hashCode();
+  public static final String SYNC_EXTRAS_RESPECT_LOCAL_RATE_LIMIT = "respect_local_rate_limit";
+  public static final String SYNC_EXTRAS_RESPECT_REMOTE_SERVER_BACKOFF = "respect_remote_server_backoff";
+
+  protected static final int NOTIFICATION_ID = LOG_TAG.hashCode();
 
   
   private static final String PREF_BACKOFF_STORAGE_HOST = "backoffStorageHost";
@@ -423,6 +428,14 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     Logger.setThreadLogTag(FxAccountConstants.GLOBAL_LOG_TAG);
     Logger.resetLogging();
 
+    Logger.info(LOG_TAG, "Syncing FxAccount" +
+        " account named like " + Utils.obfuscateEmail(account.name) +
+        " for authority " + authority +
+        " with instance " + this + ".");
+
+    final EnumSet<FirefoxAccounts.SyncHint> syncHints = FirefoxAccounts.getHintsToSyncFromBundle(extras);
+    FirefoxAccounts.logSyncHints(syncHints);
+
     
     if (this.lastSyncRealtimeMillis > 0L &&
         (this.lastSyncRealtimeMillis + MINIMUM_SYNC_DELAY_MILLIS) > SystemClock.elapsedRealtime()) {
@@ -430,11 +443,6 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
                            ": minimum interval not met.");
       return;
     }
-
-    Logger.info(LOG_TAG, "Syncing FxAccount" +
-        " account named like " + Utils.obfuscateEmail(account.name) +
-        " for authority " + authority +
-        " with instance " + this + ".");
 
     final Context context = getContext();
     final AndroidFxAccount fxAccount = new AndroidFxAccount(context, account);
@@ -480,7 +488,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
       
       final boolean isImmediate = (extras != null) &&
                                   (extras.getBoolean(ContentResolver.SYNC_EXTRAS_UPLOAD, false) ||
-                                   extras.getBoolean(ContentResolver.SYNC_EXTRAS_FORCE, false));
+                                   extras.getBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, false));
 
       
       
