@@ -39,7 +39,7 @@ function test() {
     let sandbox = new Cu.Sandbox(workerWindow);
     
     
-    sandbox.importFunction(workerWindow.postMessage, "postMessage");
+    sandbox.importFunction(workerWindow.postMessage.bind(workerWindow), "postMessage");
     sandbox.importFunction(workerWindow.XMLHttpRequest, "XMLHttpRequest");
     Cu.evalInSandbox(sandboxCode, sandbox, "1.8");
   }, true);
