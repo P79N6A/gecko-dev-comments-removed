@@ -63,6 +63,9 @@ SECStatus GenerateKeyPair( ScopedSECKEYPublicKey& publicKey,
                            ScopedSECKEYPrivateKey& privateKey);
 
 
+const SECItem* ASCIIToDERName(PLArenaPool* arena, const char* cn);
+
+
 
 
 enum Version { v1 = 0, v2 = 1, v3 = 2 };
@@ -80,7 +83,8 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 SECItem* CreateEncodedCertificate(PLArenaPool* arena, long version,
-                                  SECOidTag signature, SECItem* serialNumber,
+                                  SECOidTag signature,
+                                  const SECItem* serialNumber,
                                   const SECItem* issuerNameDER,
                                   PRTime notBefore, PRTime notAfter,
                                   const SECItem* subjectNameDER,
@@ -88,6 +92,8 @@ SECItem* CreateEncodedCertificate(PLArenaPool* arena, long version,
                       SECKEYPrivateKey* issuerPrivateKey,
                                   SECOidTag signatureHashAlg,
                            ScopedSECKEYPrivateKey& privateKey);
+
+SECItem* CreateEncodedSerialNumber(PLArenaPool* arena, long value);
 
 MOZILLA_PKIX_ENUM_CLASS ExtensionCriticality { NotCritical = 0, Critical = 1 };
 
