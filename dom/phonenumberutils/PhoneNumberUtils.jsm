@@ -36,19 +36,22 @@ this.PhoneNumberUtils = {
 
 #ifdef MOZ_B2G_RIL
     
-    if (mobileConnection.voiceConnectionInfo &&
-        mobileConnection.voiceConnectionInfo.network) {
-      mcc = mobileConnection.voiceConnectionInfo.network.mcc;
+    let voice = mobileConnection.voiceConnectionInfo;
+    if (voice && voice.network && voice.network.mcc) {
+      mcc = voice.network.mcc;
+    }
+
+    
+    let iccInfo = mobileConnection.iccInfo;
+    if (!mcc && iccInfo.mcc) {
+      mcc = iccInfo.mcc;
     }
 
     
     if (!mcc) {
-      mcc = mobileConnection.iccInfo.mcc;
-    }
-
-    
-    if (!mcc && mobileConnection.voiceConnectionInfo) {
-      mcc = mobileConnection.voiceConnectionInfo.lastKnownMcc;
+      try {
+        mcc = Services.prefs.getCharPref("ril.lastKnownSimMcc");
+      } catch (e) {}
     }
 
     

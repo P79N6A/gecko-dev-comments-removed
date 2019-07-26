@@ -43,17 +43,10 @@ let ContactService = {
     this._db = new ContactDB(myGlobal);
     this._db.init(myGlobal);
 
-    let countryName = PhoneNumberUtils.getCountryName();
-    if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
-      if (DEBUG) debug("Enable Substring Matching for Phone Numbers: " + countryName);
-      let val = Services.prefs.getIntPref("dom.phonenumber.substringmatching." + countryName);
-      if (val && val > 0) {
-        this._db.enableSubstringMatching(val);
-      }
-    }
+    this.configureSubstringMatching();
 
     Services.obs.addObserver(this, "profile-before-change", false);
-    Services.prefs.addObserver("dom.phonenumber.substringmatching", this, false);
+    Services.prefs.addObserver("ril.lastKnownSimMcc", this, false);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -71,16 +64,23 @@ let ContactService = {
       this._db = null;
       this._children = null;
       this._cursors = null;
-    } else if (aTopic === 'nsPref:changed' && aData.contains("dom.phonenumber.substringmatching")) {
-      
-      let countryName = PhoneNumberUtils.getCountryName();
-      if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
-        let val = Services.prefs.getIntPref("dom.phonenumber.substringmatching." + countryName);
-        if (val && val > 0) {
-          this._db.enableSubstringMatching(val);
-        }
+    } else if (aTopic === 'nsPref:changed' && aData === "ril.lastKnownSimMcc") {
+      this.configureSubstringMatching();
+    }
+  },
+
+  configureSubstringMatching: function() {
+    let countryName = PhoneNumberUtils.getCountryName();
+    if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
+      let val = Services.prefs.getIntPref("dom.phonenumber.substringmatching." + countryName);
+      if (val) {
+        this._db.enableSubstringMatching(val);
+        return;
       }
     }
+    
+    
+    this._db.disableSubstringMatching();
   },
 
   assertPermission: function(aMessage, aPerm) {

@@ -36,7 +36,6 @@ function testConnectionInfo() {
   is(voice.emergencyCallsOnly, false);
   is(voice.roaming, false);
   isAndroidNetwork(voice.network);
-  is(voice.lastKnownMcc, "310");
 
   let data = connection.data;
   
@@ -45,7 +44,6 @@ function testConnectionInfo() {
   is(data.emergencyCallsOnly, false);
   is(data.roaming, false);
   isAndroidNetwork(data.network);
-  is(data.lastKnownMcc, null);
 
   testGetNetworks();
 }

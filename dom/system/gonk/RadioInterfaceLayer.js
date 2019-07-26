@@ -650,7 +650,6 @@ function RadioInterface(options) {
                      emergencyCallsOnly: false,
                      roaming: false,
                      network: null,
-                     lastKnownMcc: null,
                      cell: null,
                      type: null,
                      signalStrength: null,
@@ -659,17 +658,11 @@ function RadioInterface(options) {
                      emergencyCallsOnly: false,
                      roaming: false,
                      network: null,
-                     lastKnownMcc: null,
                      cell: null,
                      type: null,
                      signalStrength: null,
                      relSignalStrength: null},
   };
-
-  try {
-    this.rilContext.voice.lastKnownMcc =
-      Services.prefs.getCharPref("ril.lastKnownMcc");
-  } catch (e) {}
 
   this.voicemailInfo = {
     number: null,
@@ -1346,18 +1339,6 @@ RadioInterface.prototype = {
     let data = this.rilContext.data;
 
     if (this.networkChanged(message, voice.network)) {
-      
-      if (message.mcc) {
-        voice.lastKnownMcc = message.mcc;
-        
-        
-        if (!voice.network || voice.network.mcc != message.mcc) {
-          try {
-            Services.prefs.setCharPref("ril.lastKnownMcc", message.mcc);
-          } catch (e) {}
-        }
-      }
-
       
       if (message.mcc && message.mnc) {
         try {
@@ -2170,6 +2151,14 @@ RadioInterface.prototype = {
     
     gMessageManager.sendIccMessage("RIL:IccInfoChanged",
                                    this.clientId, message);
+
+    
+    if (message.mcc) {
+      try {
+        Services.prefs.setCharPref("ril.lastKnownSimMcc",
+                                   message.mcc.toString());
+      } catch (e) {}
+    }
 
     
     if (message.mcc && message.mnc) {
