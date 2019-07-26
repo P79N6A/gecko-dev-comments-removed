@@ -2791,5 +2791,12 @@ AutoFlushCache::flushAnyway()
     }
     used_ = false;
 }
-
+InstructionIterator::InstructionIterator(Instruction *i_) : i(i_) {
+    const PoolHeader *ph;
+    
+    
+    if (InstIsGuard(i, &ph)) {
+        i = i->next();
+    }
+}
 Assembler *Assembler::dummy = NULL;
