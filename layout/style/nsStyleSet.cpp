@@ -632,6 +632,10 @@ nsStyleSet::EndUpdate()
 void
 nsStyleSet::EnableQuirkStyleSheet(bool aEnable)
 {
+  if (!mQuirkStyleSheet) {
+    
+    return;
+  }
 #ifdef DEBUG
   bool oldEnabled;
   {

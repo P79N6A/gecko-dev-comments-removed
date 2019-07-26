@@ -74,3 +74,11 @@ foreignObject {
   mask: inherit;
   opacity: inherit;
 }
+
+
+
+
+*|*::-moz-viewport, *|*::-moz-viewport-scroll, *|*::-moz-canvas, *|*::-moz-scrolled-canvas {
+  display: block !important;
+  background-color: inherit;
+}

@@ -2,8 +2,6 @@
 
 
 
-@import url(resource://gre-resources/html.css);
-
 @namespace parsererror url(http://www.mozilla.org/newlayout/xml/parsererror.xml);
 @namespace xul url(http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul);
 

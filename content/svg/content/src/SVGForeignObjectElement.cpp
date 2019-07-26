@@ -6,6 +6,7 @@
 #include "mozilla/ArrayUtils.h"
 
 #include "nsCOMPtr.h"
+#include "mozilla/dom/SVGDocument.h"
 #include "mozilla/dom/SVGForeignObjectElement.h"
 #include "mozilla/dom/SVGForeignObjectElementBinding.h"
 
@@ -106,6 +107,31 @@ SVGForeignObjectElement::HasValidDimensions() const
 
 
 
+
+nsresult
+SVGForeignObjectElement::BindToTree(nsIDocument* aDocument,
+                                    nsIContent* aParent,
+                                    nsIContent* aBindingParent,
+                                    bool aCompileEventHandlers)
+{
+  nsresult rv = SVGGraphicsElement::BindToTree(aDocument, aParent,
+                                               aBindingParent,
+                                               aCompileEventHandlers);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aDocument && aDocument->IsSVG()) {
+    
+    
+    
+    
+    
+    
+    
+    aDocument->AsSVGDocument()->EnsureNonSVGUserAgentStyleSheetsLoaded();
+  }
+
+  return rv;
+}
 
 NS_IMETHODIMP_(bool)
 SVGForeignObjectElement::IsAttributeMapped(const nsIAtom* name) const

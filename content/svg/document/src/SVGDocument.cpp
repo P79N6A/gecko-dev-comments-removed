@@ -4,6 +4,7 @@
 
 
 #include "mozilla/dom/SVGDocument.h"
+#include "nsLayoutStylesheetCache.h"
 #include "nsString.h"
 #include "nsLiteralString.h"
 #include "nsIDOMSVGElement.h"
@@ -66,6 +67,21 @@ SVGDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
   NS_ENSURE_SUCCESS(rv, rv);
 
   return CallQueryInterface(clone.get(), aResult);
+}
+
+void
+SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
+{
+  if (mHasLoadedNonSVGUserAgentStyleSheets) {
+    return;
+  }
+
+  mHasLoadedNonSVGUserAgentStyleSheets = true;
+
+  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::NumberControlSheet());
+  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::FormsSheet());
+  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::HTMLSheet());
+  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::UASheet());
 }
 
 JSObject*

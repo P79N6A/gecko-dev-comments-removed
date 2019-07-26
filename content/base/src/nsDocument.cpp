@@ -4005,6 +4005,10 @@ nsDocument::AddOnDemandBuiltInUASheet(nsCSSStyleSheet* aSheet)
     
     nsCOMPtr<nsIPresShell> shell = GetShell();
     if (shell) {
+      
+      
+      
+      
       shell->StyleSet()->PrependStyleSheet(nsStyleSet::eAgentSheet, aSheet);
     }
   }
