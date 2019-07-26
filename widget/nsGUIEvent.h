@@ -1110,6 +1110,16 @@ public:
 
   nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
   bool userCancelled;
+
+  
+  void AssignDragEventData(const nsDragEvent& aEvent, bool aCopyTargets)
+  {
+    AssignMouseEventData(aEvent, aCopyTargets);
+
+    dataTransfer = aEvent.dataTransfer;
+    
+    userCancelled = false;
+  }
 };
 
 
