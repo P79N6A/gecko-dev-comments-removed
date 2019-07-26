@@ -66,30 +66,31 @@ rdtsc(void)
 #endif
 
 const char* const TraceLogging::type_name[] = {
-    "start,script",
-    "stop,script",
-    "start,ion_compile",
-    "stop,ion_compile",
-    "start,yarr_jit_execute",
-    "stop,yarr_jit_execute",
-    "start,gc",
-    "stop,gc",
-    "start,minor_gc",
-    "stop,minor_gc",
-    "start,parser_script",
-    "stop,parser_script",
-    "start,parser_lazy",
-    "stop,parser_lazy",
-    "start,parser_function",
-    "stop,parser_function",
-    "info,engine,interpreter",
-    "info,engine,baseline",
-    "info,engine,ionmonkey"
+    "1,s",  
+    "0,s",  
+    "1,c",  
+    "0,c",  
+    "1,r",  
+    "0,r",  
+    "1,G",  
+    "0,G",  
+    "1,g",  
+    "0,g",  
+    "1,ps", 
+    "0,ps", 
+    "1,pl", 
+    "0,pl", 
+    "1,pf", 
+    "0,pf", 
+    "e,i",  
+    "e,b",  
+    "e,o"   
 };
 TraceLogging* TraceLogging::_defaultLogger = NULL;
 
 TraceLogging::TraceLogging()
   : loggingTime(0),
+    startupTime(rdtsc()),
     entries(NULL),
     curEntry(0),
     numEntries(1000000),
@@ -131,7 +132,7 @@ TraceLogging::grow()
 void
 TraceLogging::log(Type type, const char* file, unsigned int lineno)
 {
-    uint64_t now = rdtsc();
+    uint64_t now = rdtsc() - startupTime;
 
     
     if (entries == NULL) {
@@ -155,7 +156,7 @@ TraceLogging::log(Type type, const char* file, unsigned int lineno)
     
     
     
-    loggingTime += rdtsc()-now;
+    loggingTime += rdtsc() - startupTime - now;
 }
 
 void
@@ -193,7 +194,7 @@ TraceLogging::flush()
     for (unsigned int i = 0; i < curEntry; i++) {
         int written;
         if (entries[i].type() == INFO) {
-            written = fprintf(out, "INFO,%s\n", entries[i].file());
+            written = fprintf(out, "I,%s\n", entries[i].file());
         } else {
             if (entries[i].file() == NULL) {
                 written = fprintf(out, "%llu,%s\n",
