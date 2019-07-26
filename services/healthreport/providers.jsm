@@ -1186,69 +1186,18 @@ SearchCountMeasurement1.prototype = Object.freeze({
 
 
 
-function SearchCountMeasurement2() {
-  this._fieldSpecs = null;
-  this._interestingEngines = null;   
-
+function SearchCountMeasurementBase() {
+  this._fieldSpecs = {};
   Metrics.Measurement.call(this);
 }
 
-SearchCountMeasurement2.prototype = Object.freeze({
+SearchCountMeasurementBase.prototype = Object.freeze({
   __proto__: Metrics.Measurement.prototype,
 
-  name: "counts",
-  version: 2,
 
-  
-
-
-  getDefaultEngines: function () {
-    return Services.search.getDefaultEngines();
-  },
-
-  _initialize: function () {
-    
-    
-    
-    
-    
-    
-    this._fieldSpecs = {};
-    this._interestingEngines = {};
-
-    for (let source of this.SOURCES) {
-      this._fieldSpecs["other." + source] = DAILY_COUNTER_FIELD;
-    }
-
-    let engines = this.getDefaultEngines();
-    for (let engine of engines) {
-      let id = engine.identifier;
-      if (!id || (this.PROVIDERS.indexOf(id) == -1)) {
-        continue;
-      }
-
-      this._interestingEngines[engine.name] = id;
-      let fieldPrefix = id + ".";
-      for (let source of this.SOURCES) {
-        this._fieldSpecs[fieldPrefix + source] = DAILY_COUNTER_FIELD;
-      }
-    }
-  },
-
-  
   
   get fields() {
-    if (!this._fieldSpecs) {
-      this._initialize();
-    }
     return this._fieldSpecs;
-  },
-
-  get interestingEngines() {
-    if (!this._fieldSpecs) {
-      this._initialize();
-    }
-    return this._interestingEngines;
   },
 
   
@@ -1280,107 +1229,65 @@ SearchCountMeasurement2.prototype = Object.freeze({
     return Metrics.Storage.FIELD_DAILY_COUNTER;
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PROVIDERS: [
-    "amazon-co-uk",
-    "amazon-de",
-    "amazon-en-GB",
-    "amazon-france",
-    "amazon-it",
-    "amazon-jp",
-    "amazondotcn",
-    "amazondotcom",
-    "amazondotcom-de",
-
-    "aol-en-GB",
-    "aol-web-search",
-
-    "bing",
-
-    "eBay",
-    "eBay-de",
-    "eBay-en-GB",
-    "eBay-es",
-    "eBay-fi",
-    "eBay-france",
-    "eBay-hu",
-    "eBay-in",
-    "eBay-it",
-
-    "google",
-    "google-jp",
-    "google-ku",
-    "google-maps-zh-TW",
-
-    "mailru",
-
-    "mercadolibre-ar",
-    "mercadolibre-cl",
-    "mercadolibre-mx",
-
-    "seznam-cz",
-
-    "twitter",
-    "twitter-de",
-    "twitter-ja",
-
-    "yahoo",
-    "yahoo-NO",
-    "yahoo-answer-zh-TW",
-    "yahoo-ar",
-    "yahoo-bid-zh-TW",
-    "yahoo-br",
-    "yahoo-ch",
-    "yahoo-cl",
-    "yahoo-de",
-    "yahoo-en-GB",
-    "yahoo-es",
-    "yahoo-fi",
-    "yahoo-france",
-    "yahoo-fy-NL",
-    "yahoo-id",
-    "yahoo-in",
-    "yahoo-it",
-    "yahoo-jp",
-    "yahoo-jp-auctions",
-    "yahoo-mx",
-    "yahoo-sv-SE",
-    "yahoo-zh-TW",
-
-    "yandex",
-    "yandex-ru",
-    "yandex-slovari",
-    "yandex-tr",
-    "yandex.by",
-    "yandex.ru-be",
-  ],
-
   SOURCES: [
     "abouthome",
     "contextmenu",
     "searchbar",
     "urlbar",
   ],
+});
+
+function SearchCountMeasurement2() {
+  SearchCountMeasurementBase.call(this);
+}
+
+SearchCountMeasurement2.prototype = Object.freeze({
+  __proto__: SearchCountMeasurementBase.prototype,
+  name: "counts",
+  version: 2,
+});
+
+function SearchCountMeasurement3() {
+  this.nameMappings = null;
+  SearchCountMeasurementBase.call(this);
+}
+
+SearchCountMeasurement3.prototype = Object.freeze({
+  __proto__: SearchCountMeasurementBase.prototype,
+  name: "counts",
+  version: 3,
+
+  getEngines: function () {
+    return Services.search.getEngines();
+  },
+
+  _initialize: function () {
+    this.nameMappings = {};
+    let engines = this.getEngines();
+    for (let engine of engines) {
+      let name = engine.name;
+      if (!name) {
+        
+        
+        continue;
+      }
+
+      let id = engine.identifier;
+      if (!id) {
+        continue;
+      }
+
+      
+      this.nameMappings[name] = id;
+    }
+  },
+
+  getEngineID: function (engineName) {
+    if (!this.nameMappings) {
+      this._initialize();
+    }
+    return this.nameMappings[engineName] || "other-" + engineName;
+  },
 });
 
 this.SearchesProvider = function () {
@@ -1394,6 +1301,7 @@ this.SearchesProvider.prototype = Object.freeze({
   measurementTypes: [
     SearchCountMeasurement1,
     SearchCountMeasurement2,
+    SearchCountMeasurement3,
   ],
 
   
@@ -1421,18 +1329,32 @@ this.SearchesProvider.prototype = Object.freeze({
 
 
 
+
   recordSearch: function (engine, source) {
-    let m = this.getMeasurement("counts", 2);
+    let m = this.getMeasurement("counts", 3);
 
     if (m.SOURCES.indexOf(source) == -1) {
       throw new Error("Unknown source for search: " + source);
     }
 
-    let id = m.interestingEngines[engine] || "other";
-    let field = id + "." + source;
-    return this.enqueueStorageOperation(function recordSearch() {
-      return m.incrementDailyCounter(field);
-    });
+    let field = m.getEngineID(engine) + "." + source;
+    if (this.storage.hasFieldFromMeasurement(m.id, field,
+                                             this.storage.FIELD_DAILY_COUNTER)) {
+      let fieldID = this.storage.fieldIDFromMeasurement(m.id, field);
+      return this.enqueueStorageOperation(function recordSearchKnownField() {
+        return this.storage.incrementDailyCounterFromFieldID(fieldID);
+      }.bind(this));
+    }
+
+    
+    return this.enqueueStorageOperation(function recordFieldAndSearch() {
+      
+      return Task.spawn(function () {
+        let fieldID = yield this.storage.registerField(m.id, field,
+                                                       this.storage.FIELD_DAILY_COUNTER);
+        yield this.storage.incrementDailyCounterFromFieldID(fieldID);
+      }.bind(this));
+    }.bind(this));
   },
 });
 
