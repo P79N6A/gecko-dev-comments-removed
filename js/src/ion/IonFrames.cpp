@@ -451,7 +451,7 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
 static void
 MarkIonActivation(JSTracer *trc, uint8 *top)
 {
-    for (IonFrameIterator frames(top); frames.more(); ++frames) {
+    for (IonFrameIterator frames(top); !frames.done(); ++frames) {
         switch (frames.type()) {
           case IonFrame_Exit:
             
@@ -730,3 +730,57 @@ MachineState::FromBailout(uintptr_t regs[Registers::Total],
     return machine;
 }
 
+bool
+InlineFrameIterator::isConstructing(IonActivation *activation) const
+{
+    
+    if (more()) {
+        InlineFrameIterator parent(*this);
+        ++parent;
+
+        
+        JS_ASSERT(js_CodeSpec[*parent.pc()].format & JOF_INVOKE);
+
+        return (JSOp)*parent.pc() == JSOP_NEW;
+    }
+
+    return frame_->isConstructing(activation);
+}
+
+bool
+IonFrameIterator::isConstructing(IonActivation *activation) const
+{
+    IonFrameIterator parent(*this);
+
+    
+    do {
+        ++parent;
+    } while (!parent.done() && !parent.isScripted());
+
+    if (parent.isScripted()) {
+        
+        InlineFrameIterator inlinedParent(&parent);
+        JS_ASSERT(js_CodeSpec[*inlinedParent.pc()].format & JOF_INVOKE);
+
+        return (JSOp)*inlinedParent.pc() == JSOP_NEW;
+    }
+
+    JS_ASSERT(parent.done());
+    return activation->entryfp()->isConstructing();
+}
+
+JSObject *
+InlineFrameIterator::thisObject() const
+{
+    
+    SnapshotIterator s(si_);
+
+    
+    s.skip();
+
+    
+    
+    Value v = s.read();
+    JS_ASSERT(v.isObject());
+    return &v.toObject();
+}
