@@ -217,7 +217,8 @@ ImageListener::OnStartRequest(nsIRequest* request, nsISupports *ctxt)
 }
 
 ImageDocument::ImageDocument()
-  : mOriginalZoomLevel(1.0)
+  : MediaDocument(true),
+    mOriginalZoomLevel(1.0)
 {
   
   
