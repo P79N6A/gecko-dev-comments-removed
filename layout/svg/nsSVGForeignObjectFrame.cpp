@@ -118,6 +118,23 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
   return NS_OK;
 }
 
+ void
+nsSVGForeignObjectFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
+{
+  nsSVGForeignObjectFrameBase::DidSetStyleContext(aOldStyleContext);
+
+  
+  
+  
+  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
+    
+    
+    nsSVGEffects::InvalidateRenderingObservers(this);
+    nsSVGUtils::ScheduleReflowSVG(this);
+  }
+}
+
 NS_IMETHODIMP
 nsSVGForeignObjectFrame::Reflow(nsPresContext*           aPresContext,
                                 nsHTMLReflowMetrics&     aDesiredSize,
