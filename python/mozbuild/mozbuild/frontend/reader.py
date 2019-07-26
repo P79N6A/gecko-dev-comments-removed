@@ -768,11 +768,13 @@ class BuildReader(object):
             
             
             from .gyp_reader import read_from_gyp
-            gyp_sandboxes.extend(read_from_gyp(self.config,
-                                               mozpath.join(curdir, gyp_dir.input),
-                                               mozpath.join(sandbox['OBJDIR'],
-                                                            target_dir),
-                                               gyp_dir.variables))
+            for gyp_sandbox in read_from_gyp(self.config,
+                                             mozpath.join(curdir, gyp_dir.input),
+                                             mozpath.join(sandbox['OBJDIR'],
+                                                          target_dir),
+                                             gyp_dir.variables):
+                gyp_sandbox.update(gyp_dir.sandbox_vars)
+                gyp_sandboxes.append(gyp_sandbox)
 
         
         
