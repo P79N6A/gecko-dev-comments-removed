@@ -244,19 +244,16 @@ var DebuggerServer = {
 
 
 
+
   connectPipe: function DH_connectPipe() {
     this._checkInit();
 
-    let toServer = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
-    toServer.init(true, true, 0, 0, null);
-    let toClient = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
-    toClient.init(true, true, 0, 0, null);
-
-    let serverTransport = new DebuggerTransport(toServer.inputStream,
-                                                toClient.outputStream);
+    let serverTransport = new LocalDebuggerTransport;
+    let clientTransport = new LocalDebuggerTransport(serverTransport);
+    serverTransport.other = clientTransport;
     this._onConnection(serverTransport);
 
-    return new DebuggerTransport(toClient.inputStream, toServer.outputStream);
+    return clientTransport;
   },
 
 

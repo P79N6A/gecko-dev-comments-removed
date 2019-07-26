@@ -164,9 +164,8 @@ DebuggerTransport.prototype = {
 
     try {
       dumpn("Got: " + packet);
-      let thr = Cc["@mozilla.org/thread-manager;1"].getService().currentThread;
       let self = this;
-      thr.dispatch({run: function() {
+      Services.tm.currentThread.dispatch({run: function() {
         self.hooks.onPacket(parsed);
       }}, 0);
     } catch(e) {
@@ -177,3 +176,82 @@ DebuggerTransport.prototype = {
     return true;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+function LocalDebuggerTransport(aOther)
+{
+  this.other = aOther;
+  this.hooks = null;
+}
+
+LocalDebuggerTransport.prototype = {
+  
+
+
+
+  send: function LDT_send(aPacket) {
+    try {
+      
+      if (wantLogging) {
+        dumpn("Got: " + uneval(aPacket));
+      }
+      this._deepFreeze(aPacket);
+      let self = this;
+      Services.tm.currentThread.dispatch({run: function() {
+        self.other.hooks.onPacket(aPacket);
+      }}, 0);
+    } catch(e) {
+      dumpn("Error handling incoming packet: " + e + " - " + e.stack);
+      dumpn("Packet was: " + aPacket);
+    }
+  },
+
+  
+
+
+  close: function LDT_close() {
+    if (this.other) {
+      
+      
+      let other = this.other;
+      delete this.other;
+      other.close();
+    }
+    this.hooks.onClosed();
+  },
+
+  
+
+
+  ready: function LDT_ready() {},
+
+  
+
+
+  _deepFreeze: function LDT_deepFreeze(aObject) {
+    Object.freeze(aObject);
+    for (let prop in aObject) {
+      
+      
+      
+      
+      if (aObject.hasOwnProperty(prop) && typeof aObject === "object" &&
+          !Object.isFrozen(aObject)) {
+        this._deepFreeze(o[prop]);
+      }
+    }
+  }
+
+}
+
