@@ -389,16 +389,8 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *emptyRange)
     
     
     
-    if (lhs->canHaveFractionalPart_ != rhs->canHaveFractionalPart_ &&
-        newExponent < MaxInt32Exponent)
-    {
-        
-        int32_t limit = (uint32_t(1) << (newExponent + 1)) - 1;
-        if (limit != INT32_MIN) {
-            newUpper = Min(newUpper, limit);
-            newLower = Max(newLower, -limit);
-        }
-    }
+    if (lhs->canHaveFractionalPart_ != rhs->canHaveFractionalPart_)
+        refineInt32BoundsByExponent(newExponent, &newLower, &newUpper);
 
     return new Range(newLower, newHasInt32LowerBound, newUpper, newHasInt32UpperBound,
                      newFractional, newExponent);
@@ -1941,10 +1933,17 @@ Range::clampToInt32()
 void
 Range::wrapAroundToInt32()
 {
-    if (!hasInt32Bounds())
+    if (!hasInt32Bounds()) {
         setInt32(JSVAL_INT_MIN, JSVAL_INT_MAX);
-    else if (canHaveFractionalPart())
+    } else if (canHaveFractionalPart()) {
         canHaveFractionalPart_ = false;
+
+        
+        
+        refineInt32BoundsByExponent(max_exponent_, &lower_, &upper_);
+
+        assertInvariants();
+    }
 }
 
 void
