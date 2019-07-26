@@ -1540,7 +1540,14 @@ public:
 
 
 
-  static ViewportInfo GetViewportInfo(nsIDocument* aDocument);
+
+
+
+
+
+  static ViewportInfo GetViewportInfo(nsIDocument* aDocument,
+                                      uint32_t aDisplayWidth,
+                                      uint32_t aDisplayHeight);
 
   
   
