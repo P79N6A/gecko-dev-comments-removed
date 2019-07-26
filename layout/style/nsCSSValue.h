@@ -718,6 +718,7 @@ struct nsCSSValueList_heap : public nsCSSValueList {
 
 struct nsCSSValueSharedList {
   nsCSSValueSharedList()
+    : mHead(nullptr)
   {
     MOZ_COUNT_CTOR(nsCSSValueSharedList);
   }
