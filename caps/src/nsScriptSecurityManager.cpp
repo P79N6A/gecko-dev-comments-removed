@@ -61,6 +61,10 @@
 #include "mozilla/StandardInteger.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticPtr.h"
+#include "nsContentUtils.h"
+
+
+#define WEBAPPS_PERM_NAME "webapps-manage"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1404,6 +1408,24 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     {
         
         
+        
+        
+
+        bool hasFlags;
+        rv = NS_URIChainHasFlags(targetBaseURI,
+                                 nsIProtocolHandler::URI_CROSS_ORIGIN_NEEDS_WEBAPPS_PERM,
+                                 &hasFlags);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (hasFlags) {
+            
+            
+            
+            if (!SecurityCompareURIs(sourceBaseURI,targetBaseURI) &&
+                !nsContentUtils::IsExactSitePermAllow(aPrincipal,WEBAPPS_PERM_NAME)){
+                return NS_ERROR_DOM_BAD_URI;
+            }
+        }
         return NS_OK;
     }
 

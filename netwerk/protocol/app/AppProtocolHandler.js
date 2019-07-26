@@ -26,9 +26,9 @@ AppProtocolHandler.prototype = {
   scheme: "app",
   defaultPort: -1,
   
-  protocolFlags2: Ci.nsIProtocolHandler.URI_NORELATIVE |
-                  Ci.nsIProtocolHandler.URI_NOAUTH |
-                  Ci.nsIProtocolHandler.URI_LOADABLE_BY_ANYONE,
+  protocolFlags: Ci.nsIProtocolHandler.URI_NOAUTH |
+                 Ci.nsIProtocolHandler.URI_DANGEROUS_TO_LOAD |
+                 Ci.nsIProtocolHandler.URI_CROSS_ORIGIN_NEEDS_WEBAPPS_PERM,
 
   getBasePath: function app_phGetBasePath(aId) {
 

@@ -571,6 +571,22 @@ public:
   static bool IsSitePermDeny(nsIPrincipal* aPrincipal, const char* aType);
 
   
+  
+  
+  
+  
+  
+  static bool IsExactSitePermAllow(nsIPrincipal* aPrincipal, const char* aType);
+
+  
+  
+  
+  
+  
+  
+  static bool IsExactSitePermDeny(nsIPrincipal* aPrincipal, const char* aType);
+
+  
   static bool HaveEqualPrincipals(nsIDocument* aDoc1, nsIDocument* aDoc2);
 
   static nsILineBreaker* LineBreaker()
