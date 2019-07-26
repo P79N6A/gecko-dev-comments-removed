@@ -1575,6 +1575,27 @@ ${codeOnFailure}
 }
 ${target} = tmp.forget();""").substitute(self.substitution)
 
+def dictionaryHasSequenceMember(dictionary):
+    return (any(typeIsSequenceOrHasSequenceMember(m.type) for m in
+                dictionary.members) or
+            (dictionary.parent and
+             dictionaryHasSequenceMember(dictionary.parent)))
+
+def typeIsSequenceOrHasSequenceMember(type):
+    if type.nullable():
+        type = type.inner
+    if type.isSequence():
+        return True
+    if  type.isArray():
+        elementType = type.inner
+        return typeIsSequenceOrHasSequenceMember(elementType)
+    if type.isDictionary():
+        return dictionaryHasSequenceMember(type.inner)
+    if type.isUnion():
+        return any(typeIsSequenceOrHasSequenceMember(m.type) for m in
+                   type.flatMemberTypes)
+    return False
+
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
                                     isMember=False,
@@ -1600,7 +1621,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     if isMember is True, we're being converted from a property of some
     JS object, not from an actual method argument, so we can't rely on
-    our jsval being rooted or outliving us in any way.
+    our jsval being rooted or outliving us in any way.  Any caller
+    passing true needs to ensure that it is handled correctly in
+    typeIsSequenceOrHasSequenceMember.
 
     If isOptional is true, then we are doing conversion of an optional
     argument with no default value.
@@ -1721,14 +1744,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if type.isSequence():
         assert not isEnforceRange and not isClamp
 
-        if isMember:
-            
-            
-            
-            
-            
-            
-            raise TypeError("Can't handle unrooted sequences")
         if failureCode is not None:
             raise TypeError("Can't handle sequences when failureCode is not None")
         nullable = type.nullable();
@@ -1737,8 +1752,23 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             elementType = type.inner.inner
         else:
             elementType = type.inner
+
         
         
+        
+        
+        
+        
+        
+        
+        
+        
+        if typeIsSequenceOrHasSequenceMember(elementType):
+            raise TypeError("Can't handle a sequence containing another "
+                            "sequence as an element or member of an element.  "
+                            "See the big comment explaining why.\n%s" %
+                            str(type.location))
+
         (elementTemplate, elementDeclType,
          elementHolderType, dealWithOptional) = getJSToNativeConversionTemplate(
             elementType, descriptorProvider, isMember=True)
