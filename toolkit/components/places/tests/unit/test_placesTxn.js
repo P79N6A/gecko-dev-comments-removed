@@ -119,8 +119,8 @@ add_test(function test_create_folder_with_description() {
 
   
   
-  txnManager.beginBatch();
-  txnManager.endBatch();
+  txnManager.beginBatch(null);
+  txnManager.endBatch(false);
   txnManager.undoTransaction();
 
   let folderId = observer._itemAddedId;

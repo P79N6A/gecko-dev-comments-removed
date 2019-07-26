@@ -166,6 +166,8 @@ class nsInlineEventHandlersTearoff;
 namespace mozilla {
 namespace dom {
 
+class UndoManager;
+
 class FragmentOrElement : public nsIContent
 {
 public:
@@ -311,6 +313,12 @@ public:
 
 
     nsDOMStringMap* mDataset; 
+
+    
+
+
+
+    nsRefPtr<UndoManager> mUndoManager;
 
     
 

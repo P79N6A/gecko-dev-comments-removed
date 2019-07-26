@@ -323,6 +323,9 @@ protected:
   nsresult SetTokenList(nsIAtom* aAtom, nsIVariant* aValue);
 public:
   nsresult SetContentEditable(const nsAString &aContentEditable);
+  virtual already_AddRefed<mozilla::dom::UndoManager> GetUndoManager();
+  virtual bool UndoScope();
+  virtual void SetUndoScope(bool aUndoScope, mozilla::ErrorResult& aError);
   nsresult GetDataset(nsISupports** aDataset);
   
   nsresult ClearDataset();
@@ -1021,6 +1024,8 @@ protected:
 
 
   bool IsEditableRoot() const;
+
+  nsresult SetUndoScopeInternal(bool aUndoScope);
 
 private:
   void ChangeEditableState(int32_t aChange);

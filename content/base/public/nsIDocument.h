@@ -90,6 +90,7 @@ class DocumentType;
 class DOMImplementation;
 class Element;
 class Link;
+class UndoManager;
 template<typename> class Sequence;
 } 
 } 
@@ -1646,6 +1647,8 @@ public:
 
 
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
+
+  virtual already_AddRefed<mozilla::dom::UndoManager> GetUndoManager() = 0;
 
   nsresult ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback,
                                         int32_t *aHandle);
