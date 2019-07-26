@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsIMemoryReporter.h"
 #include "nsCOMArray.h"
 #include "mozilla/Mutex.h"
@@ -11,44 +12,19 @@
 
 using mozilla::Mutex;
 
-class nsMemoryReporter MOZ_FINAL : public nsIMemoryReporter
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIMEMORYREPORTER
-
-  nsMemoryReporter(nsACString& process,
-                   nsACString& path, 
-                   int32_t kind,
-                   int32_t units,
-                   int64_t amount,
-                   nsACString& desc);
-
-  ~nsMemoryReporter();
-
-protected:
-  nsCString mProcess;
-  nsCString mPath;
-  int32_t   mKind;
-  int32_t   mUnits;
-  int64_t   mAmount;
-  nsCString mDesc;
-};
-
-
 class nsMemoryReporterManager : public nsIMemoryReporterManager
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIMEMORYREPORTERMANAGER
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIMEMORYREPORTERMANAGER
 
-    nsMemoryReporterManager();
-    virtual ~nsMemoryReporterManager();
+  nsMemoryReporterManager();
+  virtual ~nsMemoryReporterManager();
 
 private:
-    nsCOMArray<nsIMemoryReporter>      mReporters;
-    nsCOMArray<nsIMemoryMultiReporter> mMultiReporters;
-    Mutex                              mMutex;
+  nsCOMArray<nsIMemoryReporter>      mReporters;
+  nsCOMArray<nsIMemoryMultiReporter> mMultiReporters;
+  Mutex                              mMutex;
 };
 
 #define NS_MEMORY_REPORTER_MANAGER_CID \
