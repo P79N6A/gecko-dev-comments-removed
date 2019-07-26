@@ -11,21 +11,13 @@ const NS_ALERT_HORIZONTAL = 1;
 const NS_ALERT_LEFT = 2;
 const NS_ALERT_TOP = 4;
 
-var gFinalSize;
-var gCurrentSize = 1;
-
-var gSlideIncrement = 1;
-var gSlideTime = 10;
-var gOpenTime = 3000; 
 var gOrigin = 0; 
-var gDisableSlideEffect = false;
  
 var gAlertListener = null;
 var gAlertTextClickable = false;
 var gAlertCookie = "";
 
-function prefillAlertInfo()
-{
+function prefillAlertInfo() {
   
   
   
@@ -35,8 +27,7 @@ function prefillAlertInfo()
   
   
 
-  switch (window.arguments.length)
-  {
+  switch (window.arguments.length) {
     default:
     case 7:
       gAlertListener = window.arguments[6];
@@ -61,58 +52,26 @@ function prefillAlertInfo()
   }
 }
 
-function onAlertLoad()
-{
-  gSlideIncrement     = Services.prefs.getIntPref("alerts.slideIncrement");
-  gSlideTime          = Services.prefs.getIntPref("alerts.slideIncrementTime");
-  gOpenTime           = Services.prefs.getIntPref("alerts.totalOpenTime");
-  gDisableSlideEffect = Services.prefs.getBoolPref("alerts.disableSlidingEffect");
-
-  var alertBox = document.getElementById("alertBox");
+function onAlertLoad() {
   
   
   
   
-  if (gOrigin & NS_ALERT_HORIZONTAL)
-  {
-    if (gOrigin & NS_ALERT_LEFT) {
+  if (gOrigin & NS_ALERT_HORIZONTAL) {
+    if (gOrigin & NS_ALERT_LEFT)
       document.documentElement.pack = "end";
-      alertBox.setAttribute("origin", "left");
-    } else {
-      alertBox.setAttribute("origin", "right");
-    }
 
     
     document.documentElement.orient = "horizontal";
-  }
-  else
-  {
-    if (gOrigin & NS_ALERT_TOP) {
+  } else {
+    if (gOrigin & NS_ALERT_TOP)
       document.documentElement.pack = "end";
-      alertBox.setAttribute("origin", "top");
-    } else {
-      alertBox.setAttribute("origin", "bottom");
-    }
   }
 
+  var alertBox = document.getElementById("alertBox");
   alertBox.orient = (gOrigin & NS_ALERT_HORIZONTAL) ? "vertical" : "horizontal";
 
   sizeToContent();
-
-  
-  gCurrentSize = 1;
-
-  
-  if (gOrigin & NS_ALERT_HORIZONTAL)
-  {
-    gFinalSize = window.outerWidth;
-    window.outerWidth = gCurrentSize;
-  }
-  else
-  {
-    gFinalSize = window.outerHeight;
-    window.outerHeight = gCurrentSize;
-  }
 
   
   var x = gOrigin & NS_ALERT_LEFT ? screen.availLeft :
@@ -121,70 +80,32 @@ function onAlertLoad()
           screen.availTop + screen.availHeight - window.outerHeight;
 
   
-  if (gOrigin & NS_ALERT_HORIZONTAL)
-    y += gOrigin & NS_ALERT_TOP ? 10 : -10;
-  else
-    x += gOrigin & NS_ALERT_LEFT ? 10 : -10;
+  y += gOrigin & NS_ALERT_TOP ? 10 : -10;
+  x += gOrigin & NS_ALERT_LEFT ? 10 : -10;
 
   window.moveTo(x, y);
 
-  setTimeout(animateAlert, gSlideTime);
-}
-
-function animate(step)
-{
-  gCurrentSize += step;
-
-  if (gFinalSize < gCurrentSize)
-    gCurrentSize = gFinalSize;
-
-  if (gOrigin & NS_ALERT_HORIZONTAL)
-  {
-    if (!(gOrigin & NS_ALERT_LEFT))
-      window.screenX -= step;
-    window.outerWidth = gCurrentSize;
+  if (Services.prefs.getBoolPref("alerts.disableSlidingEffect")) {
+    setTimeout(closeAlert, 4000);
+    return;
   }
-  else
-  {
-    if (!(gOrigin & NS_ALERT_TOP))
-      window.screenY -= step;
-    window.outerHeight = gCurrentSize;
-  }
-}
 
-function animateAlert()
-{
-  if (gCurrentSize < gFinalSize)
-  {
-    if (gDisableSlideEffect)
-      animate(gFinalSize); 
-    else
-      animate(gSlideIncrement);
-    setTimeout(animateAlert, gSlideTime);
-  }
-  else
-    setTimeout(animateCloseAlert, gOpenTime);  
-}
-
-function animateCloseAlert()
-{
-  if (gCurrentSize > 1 && !gDisableSlideEffect)
-  {
-    animate(-gSlideIncrement);
-    setTimeout(animateCloseAlert, gSlideTime);
-  }
-  else
-    closeAlert();
+  alertBox.addEventListener("animationend", function hideAlert(event) {
+    if (event.animationName == "alert-animation") {
+      alertBox.removeEventListener("animationend", hideAlert, false);
+      closeAlert();
+    }
+  }, false);
+  alertBox.setAttribute("animate", true);
 }
 
 function closeAlert() {
   if (gAlertListener)
-    gAlertListener.observe(null, "alertfinished", gAlertCookie); 
-  window.close(); 
+    gAlertListener.observe(null, "alertfinished", gAlertCookie);
+  window.close();
 }
 
-function onAlertClick()
-{
+function onAlertClick() {
   if (gAlertListener && gAlertTextClickable)
     gAlertListener.observe(null, "alertclickcallback", gAlertCookie);
   closeAlert();

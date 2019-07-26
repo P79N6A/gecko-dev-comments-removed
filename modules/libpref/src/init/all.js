@@ -3674,9 +3674,6 @@ pref("network.buffer.cache.size",  32768);
 pref("notification.feature.enabled", false);
 
 
-pref("alerts.slideIncrement", 1);
-pref("alerts.slideIncrementTime", 10);
-pref("alerts.totalOpenTime", 4000);
 pref("alerts.disableSlidingEffect", false);
 
 

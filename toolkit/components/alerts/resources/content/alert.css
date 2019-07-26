@@ -1,0 +1,15 @@
+
+
+
+
+#alertBox[animate] {
+  animation-duration: 4s;
+  animation-fill-mode: both;
+  animation-name: alert-animation;
+}
+
+@keyframes alert-animation {
+  to {
+    visibility: hidden;
+  }
+}
