@@ -5,7 +5,10 @@
 
 
 #include "imgTools.h"
+
 #include "nsCOMPtr.h"
+#include "nsIDocument.h"
+#include "nsIDOMDocument.h"
 #include "nsString.h"
 #include "nsError.h"
 #include "imgLoader.h"
@@ -26,9 +29,6 @@
 #include "imgIScriptedNotificationObserver.h"
 
 using namespace mozilla::image;
-
-class nsIDOMDocument;
-class nsIDocument;
 
 
 

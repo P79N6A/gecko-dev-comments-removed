@@ -4,6 +4,8 @@
 
 
 #include "nsDOMSerializer.h"
+
+#include "nsIDocument.h"
 #include "nsIDocumentEncoder.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentCID.h"
