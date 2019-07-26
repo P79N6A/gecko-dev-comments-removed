@@ -57,6 +57,52 @@ typedef Vector<JSCompartment *, 1, SystemAllocPolicy> CompartmentVector;
 
 namespace JS {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct Zone : private JS::shadow::Zone, public js::gc::GraphNodeBase<JS::Zone>
 {
     JSRuntime                    *rt;
