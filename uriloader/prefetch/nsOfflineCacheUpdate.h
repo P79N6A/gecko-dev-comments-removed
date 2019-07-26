@@ -239,6 +239,8 @@ private:
     nsresult Finish();
     nsresult FinishNoNotify();
 
+    void AsyncFinishWithError();
+
     
     nsresult EvictOneNonPinned();
 
@@ -355,6 +357,7 @@ private:
 
     bool mDisabled;
     bool mUpdateRunning;
+    bool mLowFreeSpace;
 };
 
 #endif
