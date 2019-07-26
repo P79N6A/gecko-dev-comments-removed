@@ -36,10 +36,17 @@
 #include <X11/Xatom.h>
 #endif
 
+#ifdef MOZ_ENABLE_DBUS
+#include <dbus/dbus.h>
+#endif
+
 #if (MOZ_PLATFORM_MAEMO == 5)
 struct DBusMessage;  
 
+#ifndef MOZ_ENABLE_DBUS
 #include <dbus/dbus.h>
+#endif
+
 #include <dbus/dbus-protocol.h>
 #include <libosso.h>
 
@@ -398,6 +405,13 @@ NS_IMETHODIMP
 nsNativeAppSupportUnix::Start(bool *aRetVal)
 {
   NS_ASSERTION(gAppData, "gAppData must not be null.");
+
+
+
+
+#ifdef MOZ_ENABLE_DBUS
+  dbus_threads_init_default();
+#endif
 
 #if (MOZ_WIDGET_GTK == 2)
   if (gtk_major_version < MIN_GTK_MAJOR_VERSION ||
