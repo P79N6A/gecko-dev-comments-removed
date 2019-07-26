@@ -531,13 +531,19 @@ CssHtmlTree.prototype = {
       }
     }
 
-    
     if (target.classList.contains("property-value")) {
       let propValue = target;
       let propName = target.parentNode.querySelector(".property-name");
+
+      
       if (propName.textContent === "transform") {
         return this.tooltip.setCssTransformContent(propValue.textContent,
           this.pageStyle, this.viewedElement);
+      }
+
+      
+      if (propName.textContent === "font-family") {
+        return this.tooltip.setFontFamilyContent(propValue.textContent);
       }
     }
 

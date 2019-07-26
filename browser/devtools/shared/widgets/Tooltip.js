@@ -746,6 +746,40 @@ Tooltip.prototype = {
     }
 
     return def.promise;
+  },
+
+  
+
+
+
+
+
+
+
+  setFontFamilyContent: function(font) {
+    let def = promise.defer();
+
+    if (font) {
+      
+      let vbox = this.doc.createElement("vbox");
+      vbox.setAttribute("flex", "1");
+
+      
+      let previewer = this.doc.createElement("description");
+      previewer.setAttribute("flex", "1");
+      previewer.style.fontFamily = font;
+      previewer.classList.add("devtools-tooltip-font-previewer-text");
+      previewer.textContent = "(ABCabc123&@%)";
+      vbox.appendChild(previewer);
+
+      this.content = vbox;
+
+      def.resolve();
+    } else {
+      def.reject();
+    }
+
+    return def.promise;
   }
 };
 
