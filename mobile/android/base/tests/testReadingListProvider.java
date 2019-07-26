@@ -1,3 +1,7 @@
+
+
+
+
 package org.mozilla.gecko.tests;
 
 import java.util.HashSet;
@@ -7,7 +11,6 @@ import java.util.concurrent.Callable;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.db.BrowserContract.ReadingListItems;
 import org.mozilla.gecko.db.ReadingListProvider;
-import org.mozilla.gecko.db.TransactionalProvider;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
@@ -68,12 +71,13 @@ public class testReadingListProvider extends ContentProviderTest {
         }
     }
 
-    public void testReadingListProvider() throws Exception {
+    public void testReadingListProviderTests() throws Exception {
         for (Runnable test : mTests) {
             setTestName(test.getClass().getSimpleName());
             ensureEmptyDatabase();
             test.run();
         }
+
         
         
         blockForGeckoReady();
