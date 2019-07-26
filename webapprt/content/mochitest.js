@@ -11,9 +11,6 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
 
-const MANIFEST_URL_BASE = Services.io.newURI(
-  "http://mochi.test:8888/webapprtChrome/webapprt/test/chrome/", null, null);
-
 
 
 
@@ -70,6 +67,6 @@ function becomeWebapp(manifestURL, parameters, onBecome) {
   Services.obs.addObserver(observeInstall, "webapps-ask-install", false);
 
   
-  let url = Services.io.newURI(manifestURL, null, MANIFEST_URL_BASE);
+  let url = Services.io.newURI(manifestURL, null, null);
   navigator.mozApps.install(url.spec, parameters);
 }

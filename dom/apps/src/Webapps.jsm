@@ -2783,7 +2783,7 @@ this.DOMApplicationRegistry = {
       
       try {
         aOnSuccess();
-      } catch(e) {
+      } catch(ex) {
         Cu.reportError("DOMApplicationRegistry: Exception on app uninstall: " +
                        ex + "\n" + ex.stack);
       }
