@@ -3821,11 +3821,7 @@ Parser<FullParseHandler>::forStatement()
 
 
 
-        pn2 = NULL;
         if (forDecl) {
-            
-            pn1->pn_xflags |= PNX_FORINVAR;
-
             pn2 = pn1->pn_head;
             if ((pn2->isKind(PNK_NAME) && pn2->maybeExpr())
 #if JS_HAS_DESTRUCTURING
@@ -3858,8 +3854,6 @@ Parser<FullParseHandler>::forStatement()
 
 
 
-
-                pn1->pn_xflags &= ~PNX_FORINVAR;
                 pn1->pn_xflags |= PNX_POPVAR;
                 pn1 = NULL;
 
@@ -6061,7 +6055,6 @@ Parser<FullParseHandler>::comprehensionTail(ParseNode *kid, unsigned blockid, bo
         vars->pn_pos = pn3->pn_pos;
         vars->makeEmpty();
         vars->append(pn3);
-        vars->pn_xflags |= PNX_FORINVAR;
 
         
         pn3 = cloneLeftHandSide(pn3);
