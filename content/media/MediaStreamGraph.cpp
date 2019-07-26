@@ -1900,6 +1900,12 @@ MediaStream::ChangeExplicitBlockerCount(int32_t aDelta)
     }
     int32_t mDelta;
   };
+
+  
+  
+  if (mMainThreadDestroyed) {
+    return;
+  }
   GraphImpl()->AppendMessage(new Message(this, aDelta));
 }
 
