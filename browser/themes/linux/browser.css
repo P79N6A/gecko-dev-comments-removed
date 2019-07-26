@@ -683,14 +683,6 @@ toolbar > .customization-target > toolbarpaletteitem > #history-panelmenu {
   -moz-image-region: rect(0px 120px 24px 96px);
 }
 
-
-
-
-
-
-
-
-
 #zoom-out-button {
   list-style-image: url("moz-icon://stock/gtk-zoom-out?size=toolbar") !important;
 }
