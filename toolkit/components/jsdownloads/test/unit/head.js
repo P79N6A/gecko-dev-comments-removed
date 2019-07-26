@@ -310,8 +310,13 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
 
 
 
-function promiseStartExternalHelperAppServiceDownload() {
-  let sourceURI = NetUtil.newURI(httpUrl("interruptible_resumable.txt"));
+
+
+
+
+function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
+  let sourceURI = NetUtil.newURI(aSourceUrl ||
+                                 httpUrl("interruptible_resumable.txt"));
 
   let deferred = Promise.defer();
 

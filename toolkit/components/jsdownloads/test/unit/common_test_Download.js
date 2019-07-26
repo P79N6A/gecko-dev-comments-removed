@@ -207,6 +207,23 @@ add_task(function test_basic()
 
 
 
+
+
+add_task(function test_basic_tryToKeepPartialData()
+{
+  let download = yield promiseStartDownload_tryToKeepPartialData();
+  continueResponses();
+  yield promiseDownloadStopped(download);
+
+  
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+});
+
+
+
+
 add_task(function test_referrer()
 {
   let sourcePath = "/test_referrer.txt";
@@ -358,6 +375,36 @@ add_task(function test_empty_progress()
   do_check_eq(download.contentType, "text/plain");
 
   do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
+});
+
+
+
+
+
+add_task(function test_empty_progress_tryToKeepPartialData()
+{
+  
+  let download;
+  if (!gUseLegacySaver) {
+    let targetFilePath = getTempFile(TEST_TARGET_FILE_NAME).path;
+    download = yield Downloads.createDownload({
+      source: httpUrl("empty.txt"),
+      target: { path: targetFilePath,
+                partFilePath: targetFilePath + ".part" },
+    });
+    download.tryToKeepPartialData = true;
+    download.start();
+  } else {
+    
+    
+    download = yield promiseStartExternalHelperAppServiceDownload(
+                                                         httpUrl("empty.txt"));
+  }
+  yield promiseDownloadStopped(download);
+
+  
+  do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
 });
 
 

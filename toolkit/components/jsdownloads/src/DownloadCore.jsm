@@ -1539,12 +1539,22 @@ DownloadLegacySaver.prototype = {
         
         
         
-        try {
+        
+        
+        if (this.download.target.partFilePath) {
+          yield OS.File.move(this.download.target.partFilePath,
+                             this.download.target.path);
+        } else {
           
-          let file = yield OS.File.open(this.download.target.path,
-                                        { create: true });
-          yield file.close();
-        } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) { }
+          
+          
+          try {
+            
+            let file = yield OS.File.open(this.download.target.path,
+                                          { create: true });
+            yield file.close();
+          } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) { }
+        }
       } finally {
         
         this.request = null;
