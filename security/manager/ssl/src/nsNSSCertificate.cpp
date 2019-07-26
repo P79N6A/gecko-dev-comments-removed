@@ -856,10 +856,18 @@ nsNSSCertificate::GetChain(nsIArray **_rvChain)
                                  nullptr, 
                                  CertVerifier::FLAG_LOCAL_ONLY,
                                  &pkixNssChain);
+  
+  
+  const int otherUsagesToTest = certificateUsageSSLClient |
+                                certificateUsageSSLCA |
+                                certificateUsageEmailSigner |
+                                certificateUsageEmailRecipient |
+                                certificateUsageObjectSigner |
+                                certificateUsageStatusResponder;
   for (int usage = certificateUsageSSLClient;
        usage < certificateUsageAnyCA && !pkixNssChain;
        usage = usage << 1) {
-    if (usage == certificateUsageSSLServer) {
+    if ((usage & otherUsagesToTest) == 0) {
       continue;
     }
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("pipnss: PKIX attempting chain(%d) for '%s'\n",usage, mCert->nickname));
