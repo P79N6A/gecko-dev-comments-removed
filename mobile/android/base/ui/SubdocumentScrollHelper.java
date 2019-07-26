@@ -25,7 +25,6 @@ class SubdocumentScrollHelper implements GeckoEventListener {
     private static String MESSAGE_SCROLL = "Gesture:Scroll";
     private static String MESSAGE_SCROLL_ACK = "Gesture:ScrollAck";
 
-    private final PanZoomController mPanZoomController;
     private final Handler mUiHandler;
     private final EventDispatcher mEventDispatcher;
 
@@ -49,8 +48,7 @@ class SubdocumentScrollHelper implements GeckoEventListener {
 
     private boolean mScrollSucceeded;
 
-    SubdocumentScrollHelper(PanZoomController controller, EventDispatcher eventDispatcher) {
-        mPanZoomController = controller;
+    SubdocumentScrollHelper(EventDispatcher eventDispatcher) {
         
         mUiHandler = new Handler();
         mPendingDisplacement = new PointF();
