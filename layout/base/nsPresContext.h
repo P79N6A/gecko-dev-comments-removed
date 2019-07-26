@@ -34,7 +34,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
 #include "prclist.h"
-#include "Layers.h"
+#include "nsThreadUtils.h"
 
 #ifdef IBMBIDI
 class nsBidiPresUtils;
@@ -77,7 +77,10 @@ class nsRenderingContext;
 #endif
 
 namespace mozilla {
-  class RestyleManager;
+class RestyleManager;
+namespace layers {
+class ContainerLayer;
+}
 }
 
 
@@ -124,17 +127,6 @@ public:
 
   nsTArray<Request> mRequests;
 };
-
-
-
-
-
-
-class ContainerLayerPresContext : public mozilla::layers::LayerUserData {
-public:
-  nsPresContext* mPresContext;
-};
-extern uint8_t gNotifySubDocInvalidationData;
 
 
 #define NS_AUTHOR_SPECIFIED_BACKGROUND      (1 << 0)
@@ -897,6 +889,8 @@ public:
   
   static void NotifySubDocInvalidation(mozilla::layers::ContainerLayer* aContainer,
                                        const nsIntRegion& aRegion);
+  void SetNotifySubDocInvalidationData(mozilla::layers::ContainerLayer* aContainer);
+  static void ClearNotifySubDocInvalidationData(mozilla::layers::ContainerLayer* aContainer);
   bool IsDOMPaintEventPending();
   void ClearMozAfterPaintEvents() {
     mInvalidateRequestsSinceLastPaint.mRequests.Clear();
