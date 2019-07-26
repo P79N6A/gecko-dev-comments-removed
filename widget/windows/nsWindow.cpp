@@ -6639,7 +6639,11 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
   LayerManagerPrefs prefs;
   GetLayerManagerPrefs(&prefs);
 
-  if (!prefs.mDisableAcceleration) {
+  
+  
+  
+  if (!(prefs.mDisableAcceleration ||
+        mTransparencyMode == eTransparencyTransparent)) {
     if (prefs.mPreferOpenGL) {
       aHints.AppendElement(LAYERS_OPENGL);
     }
