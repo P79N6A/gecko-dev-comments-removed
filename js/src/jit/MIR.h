@@ -1907,6 +1907,40 @@ class MCall
         return this;
     }
     AliasSet getAliasSet() const {
+        if (isDOMFunction()) {
+            JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
+
+            const JSJitInfo* jitInfo = getSingleTarget()->jitInfo();
+            JS_ASSERT(jitInfo);
+
+            if (jitInfo->isPure && jitInfo->argTypes) {
+                uint32_t argIndex = 0;
+                for (const JSJitInfo::ArgType* argType = jitInfo->argTypes;
+                     *argType != JSJitInfo::ArgTypeListEnd;
+                     ++argType, ++argIndex)
+                {
+                    if (argIndex >= numActualArgs()) {
+                        
+                        continue;
+                    }
+                    
+                    MDefinition *arg = getArg(argIndex+1);
+                    MIRType actualType = arg->type();
+                    
+                    
+                    
+                    if ((actualType == MIRType_Value || actualType == MIRType_Object) &&
+                        (*argType &
+                         (JSJitInfo::Boolean | JSJitInfo::String | JSJitInfo::Numeric)))
+                    {
+                        return AliasSet::Store(AliasSet::Any);
+                    }
+                }
+                
+                
+                return AliasSet::Load(AliasSet::DOMProperty);
+            }
+        }
         return AliasSet::Store(AliasSet::Any);
     }
 
