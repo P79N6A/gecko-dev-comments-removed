@@ -190,7 +190,7 @@ def parse_args():
 
     
     options.hide_progress = (options.tinderbox or
-                             ProgressBar.conservative_isatty() or
+                             not ProgressBar.conservative_isatty() or
                              options.hide_progress)
 
     return (options, requested_paths, excluded_paths)
