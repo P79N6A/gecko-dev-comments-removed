@@ -467,7 +467,7 @@ class ParsedSDP {
 
     
     std::string sdp;
-    for(int i=0; i < sdp_lines.size(); i++)
+    for (size_t i = 0; i < sdp_lines.size(); i++)
     {
       sdp += sdp_lines[i];
     }
@@ -760,7 +760,7 @@ void CreateAnswer(sipcc::MediaConstraints& constraints, std::string offer,
   void CloseReceiveStreams() {
     std::vector<nsDOMMediaStream *> streams =
                             pObserver->GetStreams();
-    for(int i=0; i < streams.size(); i++) {
+    for (size_t i = 0; i < streams.size(); i++) {
       streams[i]->GetStream()->AsSourceStream()->StopStream();
     }
   }
