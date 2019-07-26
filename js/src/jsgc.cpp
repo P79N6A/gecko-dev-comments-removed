@@ -4329,7 +4329,7 @@ static JS_NEVER_INLINE void
 GCCycle(JSRuntime *rt, bool incremental, int64_t budget, JSGCInvocationKind gckind, gcreason::Reason reason)
 {
     
-    JS_ASSERT(!rt->isHeapBusy());
+    AutoAssertNoGC nogc;
 
 #ifdef DEBUG
     for (ZonesIter zone(rt); !zone.done(); zone.next())
