@@ -14,7 +14,7 @@ const { DebuggerServer } = require("devtools/server/main");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 const { dbg_assert, dumpn, update } = DevToolsUtils;
 const { SourceMapConsumer, SourceMapGenerator } = require("source-map");
-const { all, defer, resolve } = promise;
+const { defer, resolve, reject, all } = require("devtools/toolkit/deprecated-sync-thenables");
 
 Cu.import("resource://gre/modules/NetUtil.jsm");
 
@@ -37,7 +37,7 @@ let addonManager = null;
 
 
 function mapURIToAddonID(uri, id) {
-  if (Services.appinfo.ID == B2G_ID) {
+  if ((Services.appinfo.ID || undefined) == B2G_ID) {
     return false;
   }
 
@@ -3041,6 +3041,7 @@ let stringifiers = {
 
 function ObjectActor(aObj, aThreadActor)
 {
+  dbg_assert(!aObj.optimizedOut, "Should not create object actors for optimized out values!");
   this.obj = aObj;
   this.threadActor = aThreadActor;
 }
@@ -4552,10 +4553,16 @@ EnvironmentActor.prototype = {
     }
     for each (let name in parameterNames) {
       let arg = {};
+
+      let value = this.obj.getVariable(name);
+      if (value && value.optimizedOut) {
+        continue;
+      }
+
       
       
       let desc = {
-        value: this.obj.getVariable(name),
+        value: value,
         configurable: false,
         writable: true,
         enumerable: true
@@ -4584,15 +4591,12 @@ EnvironmentActor.prototype = {
         continue;
       }
 
-      
-      
-      let desc = {
-        configurable: false,
-        writable: true,
-        enumerable: true
-      };
+      let value;
       try {
-        desc.value = this.obj.getVariable(name);
+        value = this.obj.getVariable(name);
+        if (value && value.optimizedOut) {
+          continue;
+        }
       } catch (e) {
         
         
@@ -4600,6 +4604,16 @@ EnvironmentActor.prototype = {
           throw e;
         }
       }
+
+      
+      
+      let desc = {
+        value: value,
+        configurable: false,
+        writable: true,
+        enumerable: true
+      };
+
       
       let descForm = {
         enumerable: true,
