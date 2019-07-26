@@ -1048,10 +1048,10 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   
   
   uint32_t cattrs = mContent->GetAttrCount();
-  if (cattrs < 0x0000FFFD) {
+  if (cattrs < 0x0000FFFC) {
     mNumCachedAttrs = static_cast<uint16_t>(cattrs);
   } else {
-    mNumCachedAttrs = 0xFFFD;
+    mNumCachedAttrs = 0xFFFC;
   }
 
   
@@ -1081,7 +1081,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   mydomElement->GetElementsByTagNameNS(xhtml_ns, NS_LITERAL_STRING("param"),
                                        getter_AddRefs(allParams));
   if (allParams) {
-    uint32_t numAllParams; 
+    uint32_t numAllParams;
     allParams->GetLength(&numAllParams);
     for (uint32_t i = 0; i < numAllParams; i++) {
       nsCOMPtr<nsIDOMNode> pnode;
@@ -1146,10 +1146,23 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 
   
   
-  nsAdoptingCString wmodeType = Preferences::GetCString("plugins.force.wmode");
-  if (!wmodeType.IsEmpty()) {
+  
+  nsCString wmodeType;
+  nsAdoptingCString wmodePref = Preferences::GetCString("plugins.force.wmode");
+  if (!wmodePref.IsEmpty()) {
     mNumCachedAttrs++;
+    wmodeType = wmodePref;
   }
+#if defined(XP_WIN) || defined(XP_LINUX)
+  
+  
+  
+  
+  else if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    mNumCachedAttrs++;
+    wmodeType.AssignLiteral("transparent");
+  }
+#endif
 
   
   
