@@ -1119,7 +1119,7 @@ class DebugScopeProxy : public BaseProxyHandler
         
         if (scope->isCall() && !scope->asCall().isForEval()) {
             CallObject &callobj = scope->asCall();
-            JSScript *script = callobj.callee().script();
+            RootedScript script(cx, callobj.callee().script());
             if (!script->ensureHasTypes(cx))
                 return false;
 

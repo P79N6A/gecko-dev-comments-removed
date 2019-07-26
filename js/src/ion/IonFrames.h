@@ -262,7 +262,7 @@ GetTopIonJSScript(JSContext *cx,
                   void **returnAddrOut = NULL);
 
 void
-GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes);
+GetPcScript(JSContext *cx, MutableHandleScript scriptRes, jsbytecode **pcRes);
 
 
 

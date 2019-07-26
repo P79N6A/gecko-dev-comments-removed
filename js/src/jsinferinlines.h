@@ -479,7 +479,7 @@ GetTypeCallerInitObject(JSContext *cx, JSProtoKey key)
 {
     if (cx->typeInferenceEnabled()) {
         jsbytecode *pc;
-        JSScript *script = cx->stack.currentScript(&pc);
+        RootedScript script(cx, cx->stack.currentScript(&pc));
         if (script)
             return TypeScript::InitObject(cx, script, pc, key);
     }
@@ -636,14 +636,20 @@ FixObjectType(JSContext *cx, HandleObject obj)
 }
 
 
-extern void TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Value &rval);
-extern void TypeDynamicResult(JSContext *cx, JSScript *script, jsbytecode *pc, js::types::Type type);
+extern void TypeMonitorResult(JSContext *cx, HandleScript script, jsbytecode *pc,
+                              const js::Value &rval);
+extern void TypeDynamicResult(JSContext *cx, HandleScript script, jsbytecode *pc,
+                              js::types::Type type);
 
 inline bool
 UseNewTypeAtEntry(JSContext *cx, StackFrame *fp)
 {
-    return fp->isConstructing() && cx->typeInferenceEnabled() &&
-           fp->prev() && UseNewType(cx, fp->prev()->script(), fp->prevpc());
+
+    if (!fp->isConstructing() || !cx->typeInferenceEnabled() || !fp->prev())
+        return false;
+
+    RootedScript prevScript(cx, fp->prev()->script());
+    return UseNewType(cx, prevScript, fp->prevpc());
 }
 
 inline bool
@@ -676,7 +682,7 @@ UseNewTypeForClone(JSFunction *fun)
 
 
 
-    JSScript *script = fun->script();
+    RawScript script = fun->script();
 
     if (script->length >= 50)
         return false;
@@ -705,20 +711,20 @@ UseNewTypeForClone(JSFunction *fun)
 
 
  inline unsigned
-TypeScript::NumTypeSets(JSScript *script)
+TypeScript::NumTypeSets(RawScript script)
 {
     return script->nTypeSets + analyze::TotalSlots(script);
 }
 
  inline HeapTypeSet *
-TypeScript::ReturnTypes(JSScript *script)
+TypeScript::ReturnTypes(RawScript script)
 {
     TypeSet *types = script->types->typeArray() + script->nTypeSets + js::analyze::CalleeSlot();
     return types->toHeapTypeSet();
 }
 
  inline StackTypeSet *
-TypeScript::ThisTypes(JSScript *script)
+TypeScript::ThisTypes(RawScript script)
 {
     TypeSet *types = script->types->typeArray() + script->nTypeSets + js::analyze::ThisSlot();
     return types->toStackTypeSet();
@@ -731,7 +737,7 @@ TypeScript::ThisTypes(JSScript *script)
 
 
  inline StackTypeSet *
-TypeScript::ArgTypes(JSScript *script, unsigned i)
+TypeScript::ArgTypes(RawScript script, unsigned i)
 {
     JS_ASSERT(i < script->function()->nargs);
     TypeSet *types = script->types->typeArray() + script->nTypeSets + js::analyze::ArgSlot(i);
@@ -739,7 +745,7 @@ TypeScript::ArgTypes(JSScript *script, unsigned i)
 }
 
  inline StackTypeSet *
-TypeScript::LocalTypes(JSScript *script, unsigned i)
+TypeScript::LocalTypes(RawScript script, unsigned i)
 {
     JS_ASSERT(i < script->nfixed);
     TypeSet *types = script->types->typeArray() + script->nTypeSets + js::analyze::LocalSlot(script, i);
@@ -747,7 +753,7 @@ TypeScript::LocalTypes(JSScript *script, unsigned i)
 }
 
  inline StackTypeSet *
-TypeScript::SlotTypes(JSScript *script, unsigned slot)
+TypeScript::SlotTypes(RawScript script, unsigned slot)
 {
     JS_ASSERT(slot < js::analyze::TotalSlots(script));
     TypeSet *types = script->types->typeArray() + script->nTypeSets + slot;
@@ -755,7 +761,7 @@ TypeScript::SlotTypes(JSScript *script, unsigned slot)
 }
 
  inline TypeObject *
-TypeScript::StandardType(JSContext *cx, JSScript *script, JSProtoKey key)
+TypeScript::StandardType(JSContext *cx, HandleScript script, JSProtoKey key)
 {
     js::RootedObject proto(cx);
     if (!js_GetClassPrototype(cx, key, &proto, NULL))
@@ -785,7 +791,7 @@ struct AllocationSiteKey {
 };
 
  inline TypeObject *
-TypeScript::InitObject(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey kind)
+TypeScript::InitObject(JSContext *cx, HandleScript script, jsbytecode *pc, JSProtoKey kind)
 {
     JS_ASSERT(!UseNewTypeForInitializer(cx, script, pc, kind));
 
@@ -841,35 +847,35 @@ SetInitializerObjectType(JSContext *cx, HandleScript script, jsbytecode *pc, Han
 }
 
  inline void
-TypeScript::Monitor(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Value &rval)
+TypeScript::Monitor(JSContext *cx, HandleScript script, jsbytecode *pc, const js::Value &rval)
 {
     if (cx->typeInferenceEnabled())
         TypeMonitorResult(cx, script, pc, rval);
 }
 
  inline void
-TypeScript::MonitorOverflow(JSContext *cx, JSScript *script, jsbytecode *pc)
+TypeScript::MonitorOverflow(JSContext *cx, HandleScript script, jsbytecode *pc)
 {
     if (cx->typeInferenceEnabled())
         TypeDynamicResult(cx, script, pc, Type::DoubleType());
 }
 
  inline void
-TypeScript::MonitorString(JSContext *cx, JSScript *script, jsbytecode *pc)
+TypeScript::MonitorString(JSContext *cx, HandleScript script, jsbytecode *pc)
 {
     if (cx->typeInferenceEnabled())
         TypeDynamicResult(cx, script, pc, Type::StringType());
 }
 
  inline void
-TypeScript::MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc)
+TypeScript::MonitorUnknown(JSContext *cx, HandleScript script, jsbytecode *pc)
 {
     if (cx->typeInferenceEnabled())
         TypeDynamicResult(cx, script, pc, Type::UnknownType());
 }
 
  inline void
-TypeScript::GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc)
+TypeScript::GetPcScript(JSContext *cx, MutableHandleScript script, jsbytecode **pc)
 {
 #ifdef JS_ION
     if (cx->fp()->beginsIonActivation()) {
@@ -877,14 +883,14 @@ TypeScript::GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc)
         return;
     }
 #endif
-    *script = cx->fp()->script();
+    script.set(cx->fp()->script());
     *pc = cx->regs().pc;
 }
 
  inline void
 TypeScript::MonitorOverflow(JSContext *cx)
 {
-    JSScript *script;
+    RootedScript script(cx);
     jsbytecode *pc;
     GetPcScript(cx, &script, &pc);
     MonitorOverflow(cx, script, pc);
@@ -893,7 +899,7 @@ TypeScript::MonitorOverflow(JSContext *cx)
  inline void
 TypeScript::MonitorString(JSContext *cx)
 {
-    JSScript *script;
+    RootedScript script(cx);
     jsbytecode *pc;
     GetPcScript(cx, &script, &pc);
     MonitorString(cx, script, pc);
@@ -902,7 +908,7 @@ TypeScript::MonitorString(JSContext *cx)
  inline void
 TypeScript::MonitorUnknown(JSContext *cx)
 {
-    JSScript *script;
+    RootedScript script(cx);
     jsbytecode *pc;
     GetPcScript(cx, &script, &pc);
     MonitorUnknown(cx, script, pc);
@@ -911,7 +917,7 @@ TypeScript::MonitorUnknown(JSContext *cx)
  inline void
 TypeScript::Monitor(JSContext *cx, const js::Value &rval)
 {
-    JSScript *script;
+    RootedScript script(cx);
     jsbytecode *pc;
     GetPcScript(cx, &script, &pc);
     Monitor(cx, script, pc, rval);
@@ -937,7 +943,7 @@ TypeScript::MonitorAssign(JSContext *cx, HandleObject obj, jsid id)
 }
 
  inline void
-TypeScript::SetThis(JSContext *cx, JSScript *script, Type type)
+TypeScript::SetThis(JSContext *cx, HandleScript script, Type type)
 {
     if (!cx->typeInferenceEnabled())
         return;
@@ -959,14 +965,14 @@ TypeScript::SetThis(JSContext *cx, JSScript *script, Type type)
 }
 
  inline void
-TypeScript::SetThis(JSContext *cx, JSScript *script, const js::Value &value)
+TypeScript::SetThis(JSContext *cx, HandleScript script, const js::Value &value)
 {
     if (cx->typeInferenceEnabled())
         SetThis(cx, script, GetValueType(cx, value));
 }
 
  inline void
-TypeScript::SetLocal(JSContext *cx, JSScript *script, unsigned local, Type type)
+TypeScript::SetLocal(JSContext *cx, HandleScript script, unsigned local, Type type)
 {
     if (!cx->typeInferenceEnabled())
         return;
@@ -982,7 +988,7 @@ TypeScript::SetLocal(JSContext *cx, JSScript *script, unsigned local, Type type)
 }
 
  inline void
-TypeScript::SetLocal(JSContext *cx, JSScript *script, unsigned local, const js::Value &value)
+TypeScript::SetLocal(JSContext *cx, HandleScript script, unsigned local, const js::Value &value)
 {
     if (cx->typeInferenceEnabled()) {
         Type type = GetValueType(cx, value);
@@ -991,7 +997,7 @@ TypeScript::SetLocal(JSContext *cx, JSScript *script, unsigned local, const js::
 }
 
  inline void
-TypeScript::SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type)
+TypeScript::SetArgument(JSContext *cx, HandleScript script, unsigned arg, Type type)
 {
     if (!cx->typeInferenceEnabled())
         return;
@@ -1007,7 +1013,7 @@ TypeScript::SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type
 }
 
  inline void
-TypeScript::SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value)
+TypeScript::SetArgument(JSContext *cx, HandleScript script, unsigned arg, const js::Value &value)
 {
     if (cx->typeInferenceEnabled()) {
         Type type = GetValueType(cx, value);
