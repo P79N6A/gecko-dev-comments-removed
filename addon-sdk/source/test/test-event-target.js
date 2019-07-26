@@ -115,7 +115,7 @@ exports['test remove a listener'] = function(assert) {
     })
   });
 
-  target.removeListener('message'); 
+  target.off('message'); 
   emit(target, 'message');
   assert.deepEqual([ 1 ], actual, 'first listener called');
   emit(target, 'message');

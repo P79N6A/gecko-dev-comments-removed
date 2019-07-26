@@ -52,6 +52,8 @@ const WindowTabTracker = Trait.compose({
 
     
     this._onTabReady = this._emitEvent.bind(this, "ready");
+    this._onTabLoad = this._emitEvent.bind(this, "load");
+    this._onTabPageShow = this._emitEvent.bind(this, "pageshow");
     this._onTabOpen = this._onTabEvent.bind(this, "open");
     this._onTabClose = this._onTabEvent.bind(this, "close");
     this._onTabActivate = this._onTabEvent.bind(this, "activate");
@@ -109,17 +111,23 @@ const WindowTabTracker = Trait.compose({
         return;
 
       
-      if (type === "open")
+      if (type === "open") {
         wrappedTab.on("ready", this._onTabReady);
+        wrappedTab.on("load", this._onTabLoad);
+        wrappedTab.on("pageshow", this._onTabPageShow);
+      }
 
       this._emitEvent(type, wrappedTab);
     }
   },
-  _emitEvent: function _emitEvent(type, tab) {
+  _emitEvent: function _emitEvent(type, tag) {
     
-    tabs._emit(type, tab);
     
-    this._tabs._emit(type, tab);
+    let args = Array.slice(arguments);
+    
+    tabs._emit.apply(tabs, args);
+    
+    this._tabs._emit.apply(this._tabs, args);
   }
 });
 exports.WindowTabTracker = WindowTabTracker;

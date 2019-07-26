@@ -280,6 +280,15 @@ exports.windows = windows;
 
 
 
+function isInteractive(window)
+  window.document.readyState === "interactive" || isDocumentLoaded(window)
+exports.isInteractive = isInteractive;
+
+
+
+
+
+
 
 function isDocumentLoaded(window) {
   return window.document.readyState == "complete";

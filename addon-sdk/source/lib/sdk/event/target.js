@@ -75,6 +75,9 @@ const EventTarget = Class({
     
     
     off(this, type, listener);
+  },
+  off: function(type, listener) {
+    off(this, type, listener)
   }
 });
 exports.EventTarget = EventTarget;

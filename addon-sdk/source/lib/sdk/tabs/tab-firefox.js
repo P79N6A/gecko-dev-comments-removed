@@ -6,6 +6,7 @@
 const { Trait } = require("../deprecated/traits");
 const { EventEmitter } = require("../deprecated/events");
 const { defer } = require("../lang/functional");
+const { has } = require("../util/array");
 const { EVENTS } = require("./events");
 const { getThumbnailURIForWindow } = require("../content/thumbnail");
 const { getFaviconURIForLocation } = require("../io/data");
@@ -33,6 +34,8 @@ const TabTrait = Trait.compose(EventEmitter, {
   window: null,
   constructor: function Tab(options) {
     this._onReady = this._onReady.bind(this);
+    this._onLoad = this._onLoad.bind(this);
+    this._onPageShow = this._onPageShow.bind(this);
     this._tab = options.tab;
     
     let window = this.window = options.window || require('../windows').BrowserWindow({ window: getOwnerWindow(this._tab) });
@@ -40,14 +43,19 @@ const TabTrait = Trait.compose(EventEmitter, {
     
     for each (let type in EVENTS) {
       let listener = options[type.listener];
-      if (listener)
+      if (listener) {
         this.on(type.name, options[type.listener]);
-      if ('ready' != type.name) 
+      }
+      
+      if (!has(['ready', 'load', 'pageshow'], (type.name)))
         window.tabs.on(type.name, this._onEvent.bind(this, type.name));
     }
 
     this.on(EVENTS.close.name, this.destroy.bind(this));
+
     this._browser.addEventListener(EVENTS.ready.dom, this._onReady, true);
+    this._browser.addEventListener(EVENTS.load.dom, this._onLoad, true);
+    this._browser.addEventListener(EVENTS.pageshow.dom, this._onPageShow, true);
 
     if (options.isPinned)
       this.pin();
@@ -65,8 +73,11 @@ const TabTrait = Trait.compose(EventEmitter, {
     if (this._tab) {
       let browser = this._browser;
       
-      if (browser)
+      if (browser) {
         browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
+        browser.removeEventListener(EVENTS.load.dom, this._onLoad, true);
+        browser.removeEventListener(EVENTS.pageshow.dom, this._onPageShow, true);
+      }
       this._tab = null;
       TABS.splice(TABS.indexOf(this), 1);
     }
@@ -80,6 +91,28 @@ const TabTrait = Trait.compose(EventEmitter, {
     
     if (event.target == this._contentDocument)
       this._emit(EVENTS.ready.name, this._public);
+  },
+  
+  
+
+
+
+  _onLoad: function _onLoad(event) {
+    
+    if (event.target == this._contentDocument) {
+      this._emit(EVENTS.load.name, this._public);
+    }
+  },
+
+  
+
+
+
+  _onPageShow: function _onPageShow(event) {
+    
+    if (event.target == this._contentDocument) {
+      this._emit(EVENTS.pageshow.name, this._public, event.persisted);
+    }
   },
   
 

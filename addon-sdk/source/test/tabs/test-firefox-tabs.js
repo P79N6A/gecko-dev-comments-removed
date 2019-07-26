@@ -8,6 +8,11 @@ const { Loader } = require('sdk/test/loader');
 const timer = require('sdk/timers');
 const { StringBundle } = require('sdk/deprecated/app-strings');
 
+const base64png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYA" +
+                  "AABzenr0AAAASUlEQVRYhe3O0QkAIAwD0eyqe3Q993AQ3cBSUKpygfsNTy" +
+                  "N5ugbQpK0BAADgP0BRDWXWlwEAAAAAgPsA3rzDaAAAAHgPcGrpgAnzQ2FG" +
+                  "bWRR9AAAAABJRU5ErkJggg%3D%3D";
+
 
 exports.testActiveTab_getter = function(test) {
   test.waitUntilDone();
@@ -178,10 +183,26 @@ exports.testTabProperties = function(test) {
         test.assertEqual(tab.index, 1, "index of the new tab matches");
         test.assertNotEqual(tab.getThumbnail(), null, "thumbnail of the new tab matches");
         test.assertNotEqual(tab.id, null, "a tab object always has an id property.");
-        closeBrowserWindow(window, function() test.done());
+        onReadyOrLoad(window);
+      },
+      onLoad: function(tab) {
+        test.assertEqual(tab.title, "foo", "title of the new tab matches");
+        test.assertEqual(tab.url, url, "URL of the new tab matches");
+        test.assert(tab.favicon, "favicon of the new tab is not empty");
+        test.assertEqual(tab.style, null, "style of the new tab matches");
+        test.assertEqual(tab.index, 1, "index of the new tab matches");
+        test.assertNotEqual(tab.getThumbnail(), null, "thumbnail of the new tab matches");
+        test.assertNotEqual(tab.id, null, "a tab object always has an id property.");
+        onReadyOrLoad(window);
       }
     });
   });
+
+  let count = 0;
+  function onReadyOrLoad (window) {
+    if (count++)
+      closeBrowserWindow(window, function() test.done());
+  }
 };
 
 
@@ -960,6 +981,113 @@ exports['test unique tab ids'] = function(test) {
   
   next(0);
 }
+
+
+exports.testOnLoadEventWithDOM = function(test) {
+  test.waitUntilDone();
+
+  openBrowserWindow(function(window, browser) {
+    let tabs = require('sdk/tabs');
+    let count = 0;
+    tabs.on('load', function onLoad(tab) {
+      test.assertEqual(tab.title, 'tab', 'tab passed in as arg, load called');
+      if (!count++) {
+        tab.reload();
+      }
+      else {
+        
+        tabs.removeListener('load', onLoad);
+        test.pass('onLoad event called on reload');
+        closeBrowserWindow(window, function() test.done());
+      }
+    });
+
+    
+    tabs.open({
+      url: 'data:text/html;charset=utf-8,<title>tab</title>',
+      inBackground: true
+    });
+  });
+};
+
+
+exports.testOnLoadEventWithImage = function(test) {
+  test.waitUntilDone();
+
+  openBrowserWindow(function(window, browser) {
+    let tabs = require('sdk/tabs');
+    let count = 0;
+    tabs.on('load', function onLoad(tab) {
+      if (!count++) {
+        tab.reload();
+      }
+      else {
+        
+        tabs.removeListener('load', onLoad);
+        test.pass('onLoad event called on reload with image');
+        closeBrowserWindow(window, function() test.done());
+      }
+    });
+
+    
+    tabs.open({
+      url: base64png,
+      inBackground: true
+    });
+  });
+};
+
+exports.testOnPageShowEvent = function (test) {
+  test.waitUntilDone();
+
+  let firstUrl = 'about:home';
+  let secondUrl = 'about:newtab';
+
+  openBrowserWindow(function(window, browser) {
+    let tabs = require('sdk/tabs');
+
+    let wait = 500;
+    let counter = 1;
+    tabs.on('pageshow', function setup(tab, persisted) {
+      if (counter === 1)
+        test.assert(!persisted, 'page should not be cached on initial load');
+
+      if (wait > 5000) {
+        test.fail('Page was not cached after 5s')
+        closeBrowserWindow(window, function() test.done());
+      }
+
+      if (tab.url === firstUrl) {
+        
+        if (persisted) {
+          tabs.removeListener('pageshow', setup);
+          test.pass('pageshow event called on history.back()');
+          closeBrowserWindow(window, function() test.done());
+        }
+        
+        
+        
+        
+        else {
+          counter++;
+          timer.setTimeout(function () {
+            tab.url = secondUrl;
+            wait *= 2;
+          }, wait);
+        }
+      }
+      else {
+        tab.attach({
+          contentScript: 'setTimeout(function () { window.history.back(); }, 0)'
+        });
+      }
+    });
+
+    tabs.open({
+      url: firstUrl
+    });
+  });
+};
 
 
 

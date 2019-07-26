@@ -12,6 +12,8 @@ const TAB_PREFIX = "Tab";
 
 const EVENTS = {
   ready: "DOMContentLoaded",
+  load: "load", 
+  pageshow: "pageshow", 
   open: "TabOpen",
   close: "TabClose",
   activate: "TabSelect",
