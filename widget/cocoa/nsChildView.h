@@ -254,10 +254,18 @@ typedef NSInteger NSEventGestureAxis;
     eGestureState_None,
     eGestureState_StartGesture,
     eGestureState_MagnifyGesture,
-    eGestureState_RotateGesture
+    eGestureState_RotateGesture,
+    eGestureState_TapGesture
   } mGestureState;
   float mCumulativeMagnification;
   float mCumulativeRotation;
+
+  
+  
+  
+  
+  
+  NSTimeInterval mFirstTapTime;
 
   BOOL mDidForceRefreshOpenGL;
   BOOL mWaitingForPaint;
@@ -324,6 +332,10 @@ typedef NSInteger NSEventGestureAxis;
 - (void)magnifyWithEvent:(NSEvent *)anEvent;
 - (void)rotateWithEvent:(NSEvent *)anEvent;
 - (void)endGestureWithEvent:(NSEvent *)anEvent;
+
+
+
+- (void)tapWithEvent:(NSEvent *)anEvent;
 
 
 #ifdef __LP64__
