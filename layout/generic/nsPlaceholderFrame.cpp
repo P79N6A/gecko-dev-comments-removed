@@ -97,33 +97,6 @@ nsPlaceholderFrame::Reflow(nsPresContext*           aPresContext,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
-#ifdef DEBUG
-  
-  
-  
-  if ((GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
-      !(mOutOfFlowFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-
-    
-    
-    
-    bool isInContinuation = false;
-    nsIFrame* ancestor = this;
-    while ((ancestor = ancestor->GetParent())) {
-      if (ancestor->GetPrevContinuation()) {
-        isInContinuation = true;
-        break;
-      }
-    }
-
-    if (isInContinuation) {
-      NS_WARNING("Out-of-flow frame got reflowed before its placeholder");
-    } else {
-      NS_ERROR("Out-of-flow frame got reflowed before its placeholder");
-    }
-  }
-#endif
-
   DO_GLOBAL_REFLOW_COUNT("nsPlaceholderFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   aDesiredSize.width = 0;
