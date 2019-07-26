@@ -59,7 +59,8 @@ public:
     : mSuccess(aSuccess)
     , mError(aError)
     , mErrorMsg(aErrorMsg)
-    , mWindowID(aWindowID) {}
+    , mWindowID(aWindowID)
+    , mManager(MediaManager::GetInstance()) {}
 
   NS_IMETHOD
   Run()
@@ -70,7 +71,7 @@ public:
     nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
     nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
 
-    if (!(MediaManager::Get()->IsWindowStillActive(mWindowID))) {
+    if (!(mManager->IsWindowStillActive(mWindowID))) {
       return NS_OK;
     }
     
@@ -84,6 +85,7 @@ private:
   already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
   const nsString mErrorMsg;
   uint64_t mWindowID;
+  nsRefPtr<MediaManager> mManager; 
 };
 
 
@@ -102,7 +104,8 @@ public:
     : mSuccess(aSuccess)
     , mError(aError)
     , mFile(aFile)
-    , mWindowID(aWindowID) {}
+    , mWindowID(aWindowID)
+    , mManager(MediaManager::GetInstance()) {}
 
   NS_IMETHOD
   Run()
@@ -113,7 +116,7 @@ public:
     nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
     nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
 
-    if (!(MediaManager::Get()->IsWindowStillActive(mWindowID))) {
+    if (!(mManager->IsWindowStillActive(mWindowID))) {
       return NS_OK;
     }
     
@@ -127,6 +130,7 @@ private:
   already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
   nsCOMPtr<nsIDOMFile> mFile;
   uint64_t mWindowID;
+  nsRefPtr<MediaManager> mManager; 
 };
 
 
@@ -244,7 +248,8 @@ public:
     , mError(aError)
     , mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
-    , mWindowID(aWindowID) {}
+    , mWindowID(aWindowID)
+    , mManager(MediaManager::GetInstance()) {}
 
   ~GetUserMediaStreamRunnable() {}
 
@@ -255,7 +260,7 @@ public:
 
     
     
-    StreamListeners* listeners = MediaManager::Get()->GetWindowListeners(mWindowID);
+    StreamListeners* listeners = mManager->GetWindowListeners(mWindowID);
     if (!listeners) {
       
       return NS_OK;
@@ -306,7 +311,7 @@ public:
     nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
     nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
 
-    if (!(MediaManager::Get()->IsWindowStillActive(mWindowID))) {
+    if (!(mManager->IsWindowStillActive(mWindowID))) {
       return NS_OK;
     }
     
@@ -323,6 +328,7 @@ private:
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
   uint64_t mWindowID;
+  nsRefPtr<MediaManager> mManager; 
 };
 
 
@@ -353,6 +359,7 @@ public:
     , mWindowID(aWindowID)
     , mDeviceChosen(true)
     , mBackendChosen(false)
+    , mManager(MediaManager::GetInstance())
     {
       if (mAudio) {
         mAudioDevice = aAudioDevice;
@@ -373,7 +380,8 @@ public:
     , mError(aError)
     , mWindowID(aWindowID)
     , mDeviceChosen(false)
-    , mBackendChosen(false) {}
+    , mBackendChosen(false)
+    , mManager(MediaManager::GetInstance()) {}
 
   
 
@@ -391,7 +399,8 @@ public:
     , mWindowID(aWindowID)
     , mDeviceChosen(false)
     , mBackendChosen(true)
-    , mBackend(aBackend) {}
+    , mBackend(aBackend)
+    , mManager(MediaManager::GetInstance()) {}
 
   ~GetUserMediaRunnable() {
     if (mBackendChosen) {
@@ -403,8 +412,6 @@ public:
   Run()
   {
     NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
-
-    mManager = MediaManager::Get();
 
     
     if (!mBackendChosen) {
@@ -623,7 +630,7 @@ private:
   bool mBackendChosen;
 
   MediaEngine* mBackend;
-  MediaManager* mManager;
+  nsRefPtr<MediaManager> mManager; 
 };
 
 
@@ -639,7 +646,9 @@ public:
     already_AddRefed<nsIGetUserMediaDevicesSuccessCallback> aSuccess,
     already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError)
     : mSuccess(aSuccess)
-    , mError(aError) {}
+    , mError(aError)
+    , mManager(MediaManager::GetInstance())
+    {}
   ~GetUserMediaDevicesRunnable() {}
 
   NS_IMETHOD
@@ -648,14 +657,13 @@ public:
     NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
     uint32_t audioCount, videoCount, i;
-    MediaManager* manager = MediaManager::Get();
 
     nsTArray<nsRefPtr<MediaEngineVideoSource> > videoSources;
-    manager->GetBackend()->EnumerateVideoDevices(&videoSources);
+    mManager->GetBackend()->EnumerateVideoDevices(&videoSources);
     videoCount = videoSources.Length();
 
     nsTArray<nsRefPtr<MediaEngineAudioSource> > audioSources;
-    manager->GetBackend()->EnumerateAudioDevices(&audioSources);
+    mManager->GetBackend()->EnumerateAudioDevices(&audioSources);
     audioCount = audioSources.Length();
 
     nsTArray<nsCOMPtr<nsIMediaDevice> > *devices =
@@ -689,6 +697,7 @@ public:
 private:
   already_AddRefed<nsIGetUserMediaDevicesSuccessCallback> mSuccess;
   already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
+  nsRefPtr<MediaManager> mManager;
 };
 
 NS_IMPL_THREADSAFE_ISUPPORTS2(MediaManager, nsIMediaManagerService, nsIObserver)
