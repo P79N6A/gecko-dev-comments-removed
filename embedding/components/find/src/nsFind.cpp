@@ -117,7 +117,7 @@ private:
   int32_t mStartOffset;
   nsCOMPtr<nsIDOMNode> mEndNode;
   int32_t mEndOffset;
-  
+
   nsCOMPtr<nsIContent> mStartOuterContent;
   nsCOMPtr<nsIContent> mEndOuterContent;
   bool mFindBackward;
@@ -183,7 +183,7 @@ nsFindContentIterator::Next()
   else {
     mOuterIterator->Next();
   }
-  MaybeSetupInnerIterator();  
+  MaybeSetupInnerIterator();
 }
 
 void
@@ -359,7 +359,7 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
   if (!innerRange || !outerRange) {
     return;
   }
-     
+
   
   mInnerIterator = do_CreateInstance(kCPreContentIteratorCID);
 
@@ -473,7 +473,7 @@ nsFind::InitIterator(nsIDOMNode* aStartNode, int32_t aStartOffset,
   NS_ENSURE_ARG_POINTER(aEndNode);
 
 #ifdef DEBUG_FIND
-  printf("InitIterator search range:\n"); 
+  printf("InitIterator search range:\n");
   printf(" -- start %d, ", aStartOffset); DumpNode(aStartNode);
   printf(" -- end %d, ", aEndOffset); DumpNode(aEndNode);
 #endif
@@ -945,7 +945,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
         pindex = (mFindBackward ? patLen : 0);
         inWhitespace = false;
       }
- 
+
       
       tc = do_QueryInterface(mIterNode);
       if (!tc || !(frag = tc->GetText())) 
@@ -1139,7 +1139,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
             matchStartOffset = mao;
             matchEndOffset = findex+1;
           }
-          if (startParent && endParent && 
+          if (startParent && endParent &&
               IsVisibleNode(startParent) && IsVisibleNode(endParent))
           {
             range->SetStart(startParent, matchStartOffset);
@@ -1180,7 +1180,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
           printf("Advancing pindex to %d\n", pindex);
 #endif
         }
-      
+
         continue;
       }
     }
@@ -1222,7 +1222,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
     pindex = (mFindBackward ? patLen : 0);
 #ifdef DEBUG_FIND
     printf("Setting findex back to %d, pindex to %d\n", findex, pindex);
-           
+
 #endif
   } 
 
