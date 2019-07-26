@@ -1,10 +1,10 @@
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SharedSurfaceEGL.h"
-#include "GLContext.h"
+#include "GLContextEGL.h"
 #include "GLBlitHelper.h"
 #include "ScopedGLHelpers.h"
 #include "SharedSurfaceGL.h"
@@ -96,8 +96,8 @@ SharedSurface_EGLImage::~SharedSurface_EGLImage()
     }
 
     if (mSync) {
-        
-        
+        // We can't call this unless we have the ext, but we will always have
+        // the ext if we have something to destroy.
         mEGL->fDestroySync(Display(), mSync);
         mSync = 0;
     }
@@ -134,7 +134,7 @@ CreateTexturePipe(GLLibraryEGL* const egl, GLContext* const gl,
     if (!tex)
         return false;
 
-    EGLContext context = (EGLContext) gl->GetNativeData(GLContext::NativeGLContext);
+    EGLContext context = GLContextEGL::Cast(gl)->GetEGLContext();
     MOZ_ASSERT(context);
     EGLClientBuffer buffer = reinterpret_cast<EGLClientBuffer>(tex);
     EGLImage image = egl->fCreateImage(egl->Display(), context,
@@ -145,7 +145,7 @@ CreateTexturePipe(GLLibraryEGL* const egl, GLContext* const gl,
         return false;
     }
 
-    
+    // Success.
     *out_tex = tex;
     *out_image = image;
     return true;
@@ -214,16 +214,16 @@ SharedSurface_EGLImage::WaitSync()
 {
     MutexAutoLock lock(mMutex);
     if (!mSync) {
-        
+        // We must not be needed.
         return true;
     }
     MOZ_ASSERT(mEGL->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync));
 
-    
-    
-    
-    
-    
+    // Wait FOREVER, primarily because some NVIDIA (at least Tegra) drivers
+    // have ClientWaitSync returning immediately if the timeout delay is anything
+    // else than FOREVER.
+    //
+    // FIXME: should we try to use a finite timeout delay where possible?
     EGLint status = mEGL->fClientWaitSync(Display(),
                                           mSync,
                                           0,
@@ -287,10 +287,10 @@ SurfaceFactory_EGLImage*
 SurfaceFactory_EGLImage::Create(GLContext* prodGL,
                                         const SurfaceCaps& caps)
 {
-    EGLContext context = prodGL->GetNativeData(GLContext::NativeGLContext);
+    EGLContext context = GLContextEGL::Cast(prodGL)->GetEGLContext();
 
     return new SurfaceFactory_EGLImage(prodGL, context, caps);
 }
 
-} 
-} 
+} /* namespace gfx */
+} /* namespace mozilla */

@@ -1,10 +1,10 @@
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SharedSurfaceIO.h"
-#include "GLContext.h"
+#include "GLContextCGL.h"
 #include "gfxImageSurface.h"
 #include "mozilla/gfx/MacIOSurface.h"
 #include "mozilla/DebugOnly.h"
@@ -15,7 +15,7 @@ namespace gl {
 
 using namespace gfx;
 
- SharedSurface_IOSurface*
+/* static */ SharedSurface_IOSurface*
 SharedSurface_IOSurface::Create(MacIOSurface* surface, GLContext *gl, bool hasAlpha)
 {
     MOZ_ASSERT(surface);
@@ -36,11 +36,11 @@ bool
 SharedSurface_IOSurface::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                                     GLenum format, GLenum type, GLvoid *pixels)
 {
-    
-    
-    
-    
-    
+    // Calling glReadPixels when an IOSurface is bound to the current framebuffer
+    // can cause corruption in following glReadPixel calls (even if they aren't
+    // reading from an IOSurface).
+    // We workaround this by copying to a temporary texture, and doing the readback
+    // from that.
     ScopedTexture texture(mGL);
     ScopedBindTexture bindTex(mGL, texture.Texture());
     mGL->fCopyTexImage2D(LOCAL_GL_TEXTURE_2D, 0,
@@ -80,7 +80,7 @@ SharedSurface_IOSurface::SharedSurface_IOSurface(MacIOSurface* surface,
                         LOCAL_GL_TEXTURE_WRAP_T,
                         LOCAL_GL_CLAMP_TO_EDGE);
 
-    CGLContextObj ctx = static_cast<CGLContextObj>(mGL->GetNativeData(GLContext::NativeCGLContext));
+    CGLContextObj ctx = GLContextCGL::Cast(mGL)->GetCGLContext();
     MOZ_ASSERT(ctx);
 
     surface->CGLTexImageIOSurface2D(ctx);

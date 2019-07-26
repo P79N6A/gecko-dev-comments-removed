@@ -83,15 +83,13 @@ public:
 
     bool SetupLookupFunction();
 
-    void *GetNativeData(NativeDataType aType);
-
     bool SwapBuffers();
 
     
     
     void HoldSurface(gfxASurface *aSurf);
 
-    EGLContext Context() {
+    EGLContext GetEGLContext() {
         return mContext;
     }
 

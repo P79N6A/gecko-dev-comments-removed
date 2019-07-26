@@ -2,8 +2,7 @@
 
 
 
-#include "GLContext.h"
-#include "GLLibraryEGL.h"
+#include "GLContextEGL.h"
 #include "GLSharedHandleHelpers.h"
 #ifdef MOZ_WIDGET_ANDROID
 #include "nsSurfaceTexture.h"
@@ -75,7 +74,7 @@ public:
         static const EGLint eglAttributes[] = {
             LOCAL_EGL_NONE
         };
-        EGLContext eglContext = (EGLContext)ctx->GetNativeData(GLContext::NativeGLContext);
+        EGLContext eglContext = GLContextEGL::Cast(ctx)->GetEGLContext();
         mEGLImage = sEGLLibrary.fCreateImage(EGL_DISPLAY(), eglContext, LOCAL_EGL_GL_TEXTURE_2D,
                                              (EGLClientBuffer)texture, eglAttributes);
         if (!mEGLImage) {
