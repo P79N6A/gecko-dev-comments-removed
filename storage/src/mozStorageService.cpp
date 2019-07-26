@@ -60,6 +60,10 @@ namespace storage {
 
 
 
+#ifdef MOZ_DMD
+static mozilla::Atomic<size_t> gSqliteMemoryUsed;
+#endif
+
 static int64_t
 StorageSQLiteDistinguishedAmount()
 {
@@ -138,6 +142,13 @@ public:
                         SQLITE_DBSTATUS_SCHEMA_USED, &totalConnSize);
         NS_ENSURE_SUCCESS(rv, rv);
       }
+
+#ifdef MOZ_DMD
+      if (::sqlite3_memory_used() != int64_t(gSqliteMemoryUsed)) {
+        NS_WARNING("memory consumption reported by SQLite doesn't match "
+                   "our measurements");
+      }
+#endif
     }
 
     int64_t other = ::sqlite3_memory_used() - totalConnSize;
@@ -389,6 +400,9 @@ namespace {
 
 
 
+
+
+
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_ALLOC_FUN(SqliteMallocSizeOfOnAlloc)
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_FREE_FUN(SqliteMallocSizeOfOnFree)
 
@@ -398,7 +412,7 @@ static void *sqliteMemMalloc(int n)
 {
   void* p = ::moz_malloc(n);
 #ifdef MOZ_DMD
-  SqliteMallocSizeOfOnAlloc(p);
+  gSqliteMemoryUsed += SqliteMallocSizeOfOnAlloc(p);
 #endif
   return p;
 }
@@ -406,7 +420,7 @@ static void *sqliteMemMalloc(int n)
 static void sqliteMemFree(void *p)
 {
 #ifdef MOZ_DMD
-  SqliteMallocSizeOfOnFree(p);
+  gSqliteMemoryUsed -= SqliteMallocSizeOfOnFree(p);
 #endif
   ::moz_free(p);
 }
@@ -414,13 +428,13 @@ static void sqliteMemFree(void *p)
 static void *sqliteMemRealloc(void *p, int n)
 {
 #ifdef MOZ_DMD
-  SqliteMallocSizeOfOnFree(p);
+  gSqliteMemoryUsed -= SqliteMallocSizeOfOnFree(p);
   void *pnew = ::moz_realloc(p, n);
   if (pnew) {
-    SqliteMallocSizeOfOnAlloc(pnew);
+    gSqliteMemoryUsed += SqliteMallocSizeOfOnAlloc(pnew);
   } else {
     
-    SqliteMallocSizeOfOnAlloc(p);
+    gSqliteMemoryUsed += SqliteMallocSizeOfOnAlloc(p);
   }
   return pnew;
 #else
