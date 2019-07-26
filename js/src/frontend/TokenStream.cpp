@@ -216,7 +216,7 @@ TokenStream::SourceCoords::lineIndexOf(uint32_t offset) const
     
     iMax = lineStartOffsets_.length() - 2;
     while (iMax > iMin) {
-        iMid = (iMin + iMax) / 2;
+        iMid = iMin + (iMax - iMin) / 2;
         if (offset >= lineStartOffsets_[iMid + 1])
             iMin = iMid + 1;    
         else
