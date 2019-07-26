@@ -24,6 +24,7 @@
 #include "gfxPattern.h"
 #include "mozilla/HashFunctions.h"
 #include "nsIMemoryReporter.h"
+#include "nsIObserver.h"
 #include "gfxFontFeatures.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/Attributes.h"
@@ -409,7 +410,10 @@ public:
     
     gr_face* GetGrFace();
     virtual void ReleaseGrFace(gr_face* aFace);
+
     
+    void DisconnectSVG();
+
     
     virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                      FontListSizes*    aSizes) const;
@@ -961,6 +965,15 @@ protected:
     public:
         NS_DECL_ISUPPORTS
         NS_DECL_NSIMEMORYMULTIREPORTER
+    };
+
+    
+    class Observer MOZ_FINAL
+        : public nsIObserver
+    {
+    public:
+        NS_DECL_ISUPPORTS
+        NS_DECL_NSIOBSERVER
     };
 
     void DestroyFont(gfxFont *aFont);
