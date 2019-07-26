@@ -2,6 +2,8 @@
 
 
 
+const { LongStringActor } = devtools.require("devtools/server/actors/script");
+
 function run_test()
 {
   Cu.import("resource://gre/modules/jsdebugger.jsm");

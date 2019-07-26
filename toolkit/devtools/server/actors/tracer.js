@@ -505,7 +505,7 @@ MapStack.prototype = {
 
 
   get: function(aKey) {
-    return this._map[aKey];
+    return this._map[aKey] || undefined;
   },
 
   

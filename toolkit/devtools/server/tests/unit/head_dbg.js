@@ -12,6 +12,7 @@ const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const Services = devtools.require("Services");
 const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
+const { DebuggerServer } = devtools.require("devtools/server/main");
 
 
 
@@ -29,13 +30,9 @@ function tryImport(url) {
   }
 }
 
-tryImport("resource://gre/modules/devtools/dbg-server.jsm");
 tryImport("resource://gre/modules/devtools/dbg-client.jsm");
 tryImport("resource://gre/modules/devtools/Loader.jsm");
 tryImport("resource://gre/modules/devtools/Console.jsm");
-
-let { RootActor } = devtools.require("devtools/server/actors/root");
-let { BreakpointStore, LongStringActor, ThreadActor } = devtools.require("devtools/server/actors/script");
 
 function testExceptionHook(ex) {
   try {
@@ -361,6 +358,39 @@ function executeSoon(aFunc) {
     run: DevToolsUtils.makeInfallible(aFunc)
   }, Ci.nsIThread.DISPATCH_NORMAL);
 }
+
+
+
+
+
+
+
+
+
+let do_check_true_old = do_check_true;
+let do_check_true = function (condition) {
+  do_check_true_old(condition);
+};
+
+let do_check_false_old = do_check_false;
+let do_check_false = function (condition) {
+  do_check_false_old(condition);
+};
+
+let do_check_eq_old = do_check_eq;
+let do_check_eq = function (left, right) {
+  do_check_eq_old(left, right);
+};
+
+let do_check_neq_old = do_check_neq;
+let do_check_neq = function (left, right) {
+  do_check_neq_old(left, right);
+};
+
+let do_check_matches_old = do_check_matches;
+let do_check_matches = function (pattern, value) {
+  do_check_matches_old(pattern, value);
+};
 
 
 

@@ -904,7 +904,7 @@ function pattern_matcher(pattern) {
     var matchers = [[p, pattern_matcher(pattern[p])] for (p in pattern)];
     
     
-    ld = Object.getOwnPropertyDescriptor(pattern, 'length');
+    var ld = Object.getOwnPropertyDescriptor(pattern, 'length');
     if (ld && !ld.enumerable) {
       matchers.push(['length', pattern_matcher(pattern.length)])
     }

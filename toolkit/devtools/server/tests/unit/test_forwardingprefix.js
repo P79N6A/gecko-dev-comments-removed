@@ -3,6 +3,8 @@
 
 
 
+const { RootActor } = devtools.require("devtools/server/actors/root");
+
 var gMainConnection, gMainTransport;
 var gSubconnection1, gSubconnection2;
 var gClient;
