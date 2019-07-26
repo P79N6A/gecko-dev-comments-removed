@@ -855,6 +855,33 @@ struct MakeUnsigned
 
 
 
+template<typename T>
+struct RemoveExtent
+{
+    typedef T Type;
+};
+
+template<typename T>
+struct RemoveExtent<T[]>
+{
+    typedef T Type;
+};
+
+template<typename T, decltype(sizeof(1)) N>
+struct RemoveExtent<T[N]>
+{
+    typedef T Type;
+};
+
+
+
+
+
+
+
+
+
+
 
 
 
