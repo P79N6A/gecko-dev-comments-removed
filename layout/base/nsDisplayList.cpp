@@ -1123,11 +1123,6 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
 
   bool forceTransparentSurface = false;
 
-  nsIFrame* displayPortRoot = nullptr;
-  if (aDisplayPortFrame) {
-    displayPortRoot = aDisplayPortFrame->PresContext()->PresShell()->GetRootFrame();
-  }
-
   for (int32_t i = elements.Length() - 1; i >= 0; --i) {
     nsDisplayItem* item = elements[i];
     nsDisplayItem* belowItem = i < 1 ? nullptr : elements[i - 1];
@@ -1176,19 +1171,12 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
       
       
       
+      
+      
       bool occlude = true;
-      if (aDisplayPortFrame) {
-        for (nsIFrame* frame = item->Frame(); frame && frame != displayPortRoot;
-             frame = nsLayoutUtils::GetCrossDocParentFrame(frame)) {
-          
-          
-          if (frame->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED &&
-              frame->GetParent() && !frame->GetParent()->GetParent()) {
-            if (frame->PresContext() == aDisplayPortFrame->PresContext()) {
-              occlude = false;
-            }
-            break;
-          }
+      if (aDisplayPortFrame && item->IsInFixedPos()) {
+        if (item->Frame()->PresContext() == aDisplayPortFrame->PresContext()) {
+          occlude = false;
         }
       }
 
