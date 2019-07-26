@@ -17,6 +17,9 @@
 const kDisableOnScrollDistance = 25;
 
 
+const kDragHysteresisDistance = 10;
+
+
 
 
 
@@ -99,6 +102,8 @@ Marker.prototype = {
   _selectionHelperUI: null,
   _xPos: 0,
   _yPos: 0,
+  _xDrag: 0,
+  _yDrag: 0,
   _tag: "",
   _hPlane: 0,
   _vPlane: 0,
@@ -174,6 +179,8 @@ Marker.prototype = {
   },
 
   dragStart: function dragStart(aX, aY) {
+    this._xDrag = 0;
+    this._yDrag = 0;
     this._selectionHelperUI.markerDragStart(this);
   },
 
@@ -184,7 +191,15 @@ Marker.prototype = {
   moveBy: function moveBy(aDx, aDy, aClientX, aClientY) {
     this._xPos -= aDx;
     this._yPos -= aDy;
-    let direction = (aDx >= 0 && aDy >= 0 ? "start" : "end");
+    this._xDrag -= aDx;
+    this._yDrag -= aDy;
+    
+    
+    let direction = "tbd";
+    if (Math.abs(this._xDrag) > kDragHysteresisDistance ||
+        Math.abs(this._yDrag) > kDragHysteresisDistance) {
+      direction = (this._xDrag <= 0 && this._yDrag <= 0 ? "start" : "end");
+    }
     
     
     if (this._selectionHelperUI.markerDragMove(this, direction)) {
@@ -975,9 +990,14 @@ var SelectionHelperUI = {
     if (aMarker.tag == "caret") {
       
       
-      
-      this._transitionFromCaretToSelection(aDirection);
-      return false;
+      if (aDirection != "tbd") {
+        
+        
+        
+        this._transitionFromCaretToSelection(aDirection);
+        return false;
+      }
+      return true;
     }
     let json = this._getMarkerBaseMessage();
     json.change = aMarker.tag;
