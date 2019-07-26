@@ -27,7 +27,6 @@ class nsRenderingContext;
 class nsBlockInFlowLineIterator;
 class nsStyleContext;
 template<class T> class nsTHashtable;
-namespace mozilla { class WritingMode; }
 
 
 
@@ -160,9 +159,7 @@ public:
 
 
   static void ReorderFrames(nsIFrame*            aFirstFrameOnLine,
-                            int32_t              aNumFramesOnLine,
-                            mozilla::WritingMode aLineWM,
-                            nscoord&             aLineWidth);
+                            int32_t              aNumFramesOnLine);
 
   
 
@@ -380,7 +377,7 @@ private:
                              nsBlockInFlowLineIterator* aLineIter,
                              nsIFrame*                  aCurrentFrame,
                              BidiParagraphData*         aBpd);
-
+  
   
 
 
@@ -394,13 +391,10 @@ private:
 
 
 
-
   static void RepositionFrame(nsIFrame*              aFrame,
-                              bool                   aIsEvenLevel,
-                              nscoord&               aStart,
-                              nsContinuationStates*  aContinuationStates,
-                              mozilla::WritingMode   aLineWM,
-                              nscoord&               aLineWidth);
+                              bool                   aIsOddLevel,
+                              nscoord&               aLeft,
+                              nsContinuationStates*  aContinuationStates);
 
   
 
@@ -428,10 +422,10 @@ private:
 
 
 
-   static void IsFirstOrLast(nsIFrame*              aFrame,
-                             nsContinuationStates*  aContinuationStates,
-                             bool&                  aIsFirst ,
-                             bool&                  aIsLast );
+   static void IsLeftOrRightMost(nsIFrame*              aFrame,
+                                 nsContinuationStates*  aContinuationStates,
+                                 bool&                aIsLeftMost ,
+                                 bool&                aIsRightMost );
 
   
 
@@ -441,9 +435,7 @@ private:
 
 
   static void RepositionInlineFrames(BidiLineData* aBld,
-                                     nsIFrame* aFirstChild,
-                                     mozilla::WritingMode aLineWM,
-                                     nscoord& aLineWidth);
+                                     nsIFrame* aFirstChild);
   
   
 

@@ -34,8 +34,11 @@ class FramePropertyTable;
 
 
 #ifdef DEBUG
-#define CRAZY_COORD (1000000*60)
-#define CRAZY_SIZE(_x) (((_x) < -CRAZY_COORD) || ((_x) > CRAZY_COORD))
+#define CRAZY_W (1000000*60)
+#define CRAZY_H CRAZY_W
+
+#define CRAZY_WIDTH(_x) (((_x) < -CRAZY_W) || ((_x) > CRAZY_W))
+#define CRAZY_HEIGHT(_y) (((_y) < -CRAZY_H) || ((_y) > CRAZY_H))
 #endif
 
 

@@ -188,10 +188,21 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     nsHTMLReflowState rs(aPresContext, aReflowState, kid, availSize);
     nsLineLayout ll(aPresContext, nullptr, &aReflowState, nullptr);
 
+    
+    
+    
+    
+    uint8_t direction;
+    nsIFrame* containerFrame = ll.LineContainerFrame();
+    if (containerFrame->StyleTextReset()->mUnicodeBidi &
+        NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
+      FramePropertyTable *propTable = aPresContext->PropertyTable();
+      direction = NS_PTR_TO_INT32(propTable->Get(kid, BaseLevelProperty())) & 1;
+    } else {
+      direction = containerFrame->StyleVisibility()->mDirection;
+    }
     ll.BeginLineReflow(bp.left, bp.top, availSize.width, NS_UNCONSTRAINEDSIZE,
-                       false, true,
-                       ll.LineContainerFrame()->GetWritingMode(kid),
-                       aReflowState.AvailableWidth());
+                       false, true, direction);
     rs.mLineLayout = &ll;
     ll.SetInFirstLetter(true);
     ll.SetFirstLetterStyleOK(true);

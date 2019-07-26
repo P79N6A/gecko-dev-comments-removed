@@ -1228,10 +1228,8 @@ nsBidiPresUtils::ResolveParagraphWithinBlock(nsBlockFrame* aBlockFrame,
 }
 
 void
-nsBidiPresUtils::ReorderFrames(nsIFrame*   aFirstFrameOnLine,
-                               int32_t     aNumFramesOnLine,
-                               WritingMode aLineWM,
-                               nscoord&    aLineWidth)
+nsBidiPresUtils::ReorderFrames(nsIFrame*            aFirstFrameOnLine,
+                               int32_t              aNumFramesOnLine)
 {
   
   if (aFirstFrameOnLine->GetType() == nsGkAtoms::lineFrame) {
@@ -1244,7 +1242,7 @@ nsBidiPresUtils::ReorderFrames(nsIFrame*   aFirstFrameOnLine,
   }
 
   BidiLineData bld(aFirstFrameOnLine, aNumFramesOnLine);
-  RepositionInlineFrames(&bld, aFirstFrameOnLine, aLineWM, aLineWidth);
+  RepositionInlineFrames(&bld, aFirstFrameOnLine);
 }
 
 nsIFrame*
@@ -1284,13 +1282,15 @@ nsBidiPresUtils::GetFrameBaseLevel(nsIFrame* aFrame)
 }
 
 void
-nsBidiPresUtils::IsFirstOrLast(nsIFrame*             aFrame,
-                               nsContinuationStates* aContinuationStates,
-                               bool&                 aIsFirst ,
-                               bool&                 aIsLast )
+nsBidiPresUtils::IsLeftOrRightMost(nsIFrame*              aFrame,
+                                   nsContinuationStates*  aContinuationStates,
+                                   bool&                aIsLeftMost ,
+                                   bool&                aIsRightMost )
 {
-  
+  const nsStyleVisibility* vis = aFrame->StyleVisibility();
+  bool isLTR = (NS_STYLE_DIRECTION_LTR == vis->mDirection);
 
+  
 
 
 
@@ -1334,18 +1334,20 @@ nsBidiPresUtils::IsFirstOrLast(nsIFrame*             aFrame,
     }
     frameState->mHasContOnNextLines = (frame != nullptr);
 
-    aIsFirst = !frameState->mHasContOnPrevLines;
+    aIsLeftMost = isLTR ? !frameState->mHasContOnPrevLines
+                        : !frameState->mHasContOnNextLines;
     firstFrameState = frameState;
   } else {
     
-    aIsFirst = false;
+    aIsLeftMost = false;
     firstFrameState = aContinuationStates->GetEntry(frameState->mFirstVisualFrame);
   }
 
-  aIsLast = (firstFrameState->mFrameCount == 1 &&
-             !firstFrameState->mHasContOnNextLines);
+  aIsRightMost = (firstFrameState->mFrameCount == 1) &&
+                 (isLTR ? !firstFrameState->mHasContOnNextLines
+                        : !firstFrameState->mHasContOnPrevLines);
 
-  if ((aIsFirst || aIsLast) &&
+  if ((aIsLeftMost || aIsRightMost) &&
       (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
     
     
@@ -1353,11 +1355,19 @@ nsBidiPresUtils::IsFirstOrLast(nsIFrame*             aFrame,
     nsIFrame* firstContinuation = aFrame->FirstContinuation();
     if (firstContinuation->FrameIsNonLastInIBSplit()) {
       
-      aIsLast = false;
+      if (isLTR) {
+        aIsRightMost = false;
+      } else {
+        aIsLeftMost = false;
+      }
     }
     if (firstContinuation->FrameIsNonFirstInIBSplit()) {
       
-      aIsFirst = false;
+      if (isLTR) {
+        aIsLeftMost = false;
+      } else {
+        aIsRightMost = false;
+      }
     }
   }
 
@@ -1366,39 +1376,29 @@ nsBidiPresUtils::IsFirstOrLast(nsIFrame*             aFrame,
 }
 
 void
-nsBidiPresUtils::RepositionFrame(nsIFrame*             aFrame,
-                                 bool                  aIsEvenLevel,
-                                 nscoord&              aStart,
-                                 nsContinuationStates* aContinuationStates,
-                                 WritingMode           aLineWM,
-                                 nscoord&              aLineWidth)
+nsBidiPresUtils::RepositionFrame(nsIFrame*              aFrame,
+                                 bool                   aIsOddLevel,
+                                 nscoord&               aLeft,
+                                 nsContinuationStates*  aContinuationStates)
 {
   if (!aFrame)
     return;
 
-  bool isFirst, isLast;
-  IsFirstOrLast(aFrame,
-                aContinuationStates,
-                isFirst ,
-                isLast );
+  bool isLeftMost, isRightMost;
+  IsLeftOrRightMost(aFrame,
+                    aContinuationStates,
+                    isLeftMost ,
+                    isRightMost );
 
-  WritingMode frameWM = aFrame->GetWritingMode();
   nsInlineFrame* testFrame = do_QueryFrame(aFrame);
-
-  
-  bool isLeftMost = false, isRightMost = false;
   if (testFrame) {
     aFrame->AddStateBits(NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET);
 
-    isLeftMost = ((isFirst && frameWM.IsBidiLTR()) ||
-                 (isLast && !frameWM.IsBidiLTR()));
     if (isLeftMost)
       aFrame->AddStateBits(NS_INLINE_FRAME_BIDI_VISUAL_IS_LEFT_MOST);
     else
       aFrame->RemoveStateBits(NS_INLINE_FRAME_BIDI_VISUAL_IS_LEFT_MOST);
 
-    isRightMost =  ((isLast && frameWM.IsBidiLTR()) ||
-                    (isFirst && !frameWM.IsBidiLTR()));
     if (isRightMost)
       aFrame->AddStateBits(NS_INLINE_FRAME_BIDI_VISUAL_IS_RIGHT_MOST);
     else
@@ -1407,30 +1407,26 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*             aFrame,
   
   
   
-  LogicalMargin margin(frameWM, aFrame->GetUsedMargin());
-  if (isFirst) {
-    aStart += margin.IStart(frameWM);
-  }
+  nsMargin margin = aFrame->GetUsedMargin();
+  if (isLeftMost)
+    aLeft += margin.left;
 
-  nscoord start = aStart;
-  nscoord frameWidth = aFrame->GetSize().width;
+  nscoord start = aLeft;
 
   if (!IsBidiLeaf(aFrame))
   {
-    nscoord iCoord = 0;
-    LogicalMargin borderPadding(frameWM, aFrame->GetUsedBorderAndPadding());
-    if (isFirst) {
-      iCoord += borderPadding.IStart(frameWM);
+    nscoord x = 0;
+    nsMargin borderPadding = aFrame->GetUsedBorderAndPadding();
+    if (isLeftMost) {
+      x += borderPadding.left;
     }
 
     
     
     
-    
-    bool reverseOrder = aIsEvenLevel != frameWM.IsBidiLTR();
     nsTArray<nsIFrame*> childList;
     nsIFrame *frame = aFrame->GetFirstPrincipalChild();
-    if (frame && reverseOrder) {
+    if (frame && aIsOddLevel) {
       childList.AppendElement((nsIFrame*)nullptr);
       while (frame) {
         childList.AppendElement(frame);
@@ -1443,33 +1439,27 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*             aFrame,
     int32_t index = 0;
     while (frame) {
       RepositionFrame(frame,
-                      aIsEvenLevel,
-                      iCoord,
-                      aContinuationStates,
-                      frameWM,
-                      frameWidth);
+                      aIsOddLevel,
+                      x,
+                      aContinuationStates);
       index++;
-      frame = reverseOrder ?
+      frame = aIsOddLevel ?
                 childList[childList.Length() - index - 1] :
                 frame->GetNextSibling();
     }
 
-    if (isLast) {
-      iCoord += borderPadding.IEnd(frameWM);
+    if (isRightMost) {
+      x += borderPadding.right;
     }
-    aStart += iCoord;
+    aLeft += x;
   } else {
-    aStart += frameWidth;
+    aLeft += aFrame->GetSize().width;
   }
+  nsRect rect = aFrame->GetRect();
+  aFrame->SetRect(nsRect(start, rect.y, aLeft - start, rect.height));
 
-  LogicalRect logicalRect(aLineWM, aFrame->GetRect(), aLineWidth);
-  logicalRect.IStart(aLineWM) = start;
-  logicalRect.ISize(aLineWM) = aStart - start;
-  aFrame->SetRect(aLineWM, logicalRect, aLineWidth);
-
-  if (isLast) {
-    aStart += margin.IEnd(frameWM);
-  }
+  if (isRightMost)
+    aLeft += margin.right;
 }
 
 void
@@ -1494,23 +1484,21 @@ nsBidiPresUtils::InitContinuationStates(nsIFrame*              aFrame,
 
 void
 nsBidiPresUtils::RepositionInlineFrames(BidiLineData *aBld,
-                                        nsIFrame* aFirstChild,
-                                        WritingMode aLineWM,
-                                        nscoord& aLineWidth)
+                                        nsIFrame* aFirstChild)
 {
-  nscoord startSpace = 0;
+  const nsStyleVisibility* vis = aFirstChild->StyleVisibility();
+  bool isLTR = (NS_STYLE_DIRECTION_LTR == vis->mDirection);
+  nscoord leftSpace = 0;
 
   
   
   
-  WritingMode frameWM = aFirstChild->GetWritingMode();
-  LogicalMargin margin(frameWM, aFirstChild->GetUsedMargin());
+  nsMargin margin = aFirstChild->GetUsedMargin();
   if (!aFirstChild->GetPrevContinuation() &&
       !aFirstChild->FrameIsNonFirstInIBSplit())
-    startSpace = margin.IStart(frameWM);
+    leftSpace = isLTR ? margin.left : margin.right;
 
-  nscoord start = LogicalRect(aLineWM, aFirstChild->GetRect(),
-                              aLineWidth).IStart(aLineWM) - startSpace;
+  nscoord left = aFirstChild->GetPosition().x - leftSpace;
   nsIFrame* frame;
   int32_t count = aBld->mVisualFrames.Length();
   int32_t index;
@@ -1523,25 +1511,13 @@ nsBidiPresUtils::RepositionInlineFrames(BidiLineData *aBld,
   }
 
   
-  int32_t step, limit;
-  if (aLineWM.IsBidiLTR()) {
-    index = 0;
-    step = 1;
-    limit = count;
-  } else {
-    index = count - 1;
-    step = -1;
-    limit = -1;
-  }
-  for (; index != limit; index += step) {
+  for (index = 0; index < count; index++) {
     frame = aBld->VisualFrameAt(index);
     RepositionFrame(frame,
-                    !(aBld->mLevels[aBld->mIndexMap[index]] & 1),
-                    start,
-                    &continuationStates,
-                    aLineWM,
-                    aLineWidth);
-  }
+                    (aBld->mLevels[aBld->mIndexMap[index]] & 1),
+                    left,
+                    &continuationStates);
+  } 
 }
 
 bool
