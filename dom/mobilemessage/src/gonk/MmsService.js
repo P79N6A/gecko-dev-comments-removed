@@ -59,8 +59,9 @@ const _HTTP_STATUS_ACQUIRE_TIMEOUT             = -4;
 const _MMS_ERROR_MESSAGE_DELETED               = -1;
 const _MMS_ERROR_RADIO_DISABLED                = -2;
 const _MMS_ERROR_NO_SIM_CARD                   = -3;
-const _MMS_ERROR_SHUTDOWN                      = -4;
-const _MMS_ERROR_USER_CANCELLED_NO_REASON      = -5;
+const _MMS_ERROR_SIM_CARD_CHANGED              = -4;
+const _MMS_ERROR_SHUTDOWN                      = -5;
+const _MMS_ERROR_USER_CANCELLED_NO_REASON      = -6;
 
 const CONFIG_SEND_REPORT_NEVER       = 0;
 const CONFIG_SEND_REPORT_DEFAULT_NO  = 1;
@@ -841,8 +842,12 @@ NotifyResponseTransaction.prototype = {
 
 
 
-function CancellableTransaction(cancellableId) {
+
+
+
+function CancellableTransaction(cancellableId, serviceId) {
   this.cancellableId = cancellableId;
+  this.serviceId = serviceId;
   this.isCancelled = false;
 }
 CancellableTransaction.prototype = {
@@ -864,6 +869,7 @@ CancellableTransaction.prototype = {
       Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
       Services.obs.addObserver(this, kMobileMessageDeletedObserverTopic, false);
       Services.prefs.addObserver(kPrefRilRadioDisabled, this, false);
+      Services.prefs.addObserver(kPrefDefaultServiceId, this, false);
       this.isObserversAdded = true;
     }
 
@@ -876,6 +882,7 @@ CancellableTransaction.prototype = {
       Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
       Services.obs.removeObserver(this, kMobileMessageDeletedObserverTopic);
       Services.prefs.removeObserver(kPrefRilRadioDisabled, this);
+      Services.prefs.removeObserver(kPrefDefaultServiceId, this);
       this.isObserversAdded = false;
     }
   },
@@ -941,6 +948,9 @@ CancellableTransaction.prototype = {
           } catch (e) {
             if (DEBUG) debug("Failed to get preference of 'ril.radio.disabled'.");
           }
+        } else if (data === kPrefDefaultServiceId &&
+                   this.serviceId != getDefaultServiceId()) {
+          this.cancelRunning(_MMS_ERROR_SIM_CARD_CHANGED);
         }
         break;
       }
@@ -958,7 +968,7 @@ function RetrieveTransaction(mmsConnection, cancellableId, contentLocation) {
   this.mmsConnection = mmsConnection;
 
   
-  CancellableTransaction.call(this, cancellableId);
+  CancellableTransaction.call(this, cancellableId, mmsConnection.serviceId);
 
   this.contentLocation = contentLocation;
 }
@@ -1060,7 +1070,7 @@ function SendTransaction(mmsConnection, cancellableId, msg, requestDeliveryRepor
   this.mmsConnection = mmsConnection;
 
   
-  CancellableTransaction.call(this, cancellableId);
+  CancellableTransaction.call(this, cancellableId, mmsConnection.serviceId);
 
   msg.headers["x-mms-message-type"] = MMS.MMS_PDU_TYPE_SEND_REQ;
   if (!msg.headers["x-mms-transaction-id"]) {
@@ -1639,7 +1649,8 @@ MmsService.prototype = {
     
     if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
       if (mmsStatus != _MMS_ERROR_RADIO_DISABLED &&
-          mmsStatus != _MMS_ERROR_NO_SIM_CARD) {
+          mmsStatus != _MMS_ERROR_NO_SIM_CARD &&
+          mmsStatus != _MMS_ERROR_SIM_CARD_CHANGED) {
         let transaction = new NotifyResponseTransaction(mmsConnection,
                                                         transactionId,
                                                         mmsStatus,
@@ -2190,6 +2201,8 @@ MmsService.prototype = {
           errorCode = Ci.nsIMobileMessageCallback.RADIO_DISABLED_ERROR;
         } else if (aMmsStatus == _MMS_ERROR_NO_SIM_CARD) {
           errorCode = Ci.nsIMobileMessageCallback.NO_SIM_CARD_ERROR;
+        } else if (aMmsStatus == _MMS_ERROR_SIM_CARD_CHANGED) {
+          errorCode = Ci.nsIMobileMessageCallback.NON_ACTIVE_SIM_CARD_ERROR;
         } else if (aMmsStatus != MMS.MMS_PDU_ERROR_OK) {
           errorCode = Ci.nsIMobileMessageCallback.INTERNAL_ERROR;
         } else {
@@ -2304,6 +2317,8 @@ MmsService.prototype = {
             errorCode = Ci.nsIMobileMessageCallback.RADIO_DISABLED_ERROR;
           } else if (mmsStatus == _MMS_ERROR_NO_SIM_CARD) {
             errorCode = Ci.nsIMobileMessageCallback.NO_SIM_CARD_ERROR;
+          } else if (mmsStatus == _MMS_ERROR_SIM_CARD_CHANGED) {
+            errorCode = Ci.nsIMobileMessageCallback.NON_ACTIVE_SIM_CARD_ERROR;
           }
           gMobileMessageDatabaseService
             .setMessageDeliveryByMessageId(aMessageId,
