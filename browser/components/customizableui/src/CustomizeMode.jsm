@@ -627,7 +627,11 @@ CustomizeMode.prototype = {
     if (aContainer.id == CustomizableUI.AREA_PANEL) {
       this._removePanelCustomizationPlaceholders();
     }
-    this.unwrapToolbarItem(aNodeToChange.parentNode);
+    
+    
+    if (aNodeToChange.parentNode) {
+      this.unwrapToolbarItem(aNodeToChange.parentNode);
+    }
     if (aSecondaryNode) {
       this.unwrapToolbarItem(aSecondaryNode.parentNode);
     }

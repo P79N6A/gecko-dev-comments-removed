@@ -59,8 +59,8 @@ let PanelWideWidgetTracker = {
   },
   
   onWidgetDestroyed: function(aWidgetId) {
-    gSeenWidgets.remove(aWidgetId);
-    gWideWidgets.remove(aWidgetId);
+    gSeenWidgets.delete(aWidgetId);
+    gWideWidgets.delete(aWidgetId);
   },
   shouldMoveForward: function(aWidgetId, aPosition) {
     let currentWidgetAtPosition = gPanelPlacements[aPosition];
