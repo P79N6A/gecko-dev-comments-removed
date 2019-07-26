@@ -2990,6 +2990,11 @@ nsDownload::Resume()
   rv = NS_NewChannel(getter_AddRefs(channel), mSource, nullptr, nullptr, ir);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(channel);
+  if (pbChannel) {
+    pbChannel->SetPrivate(mDownloadManager->mInPrivateBrowsing);
+  }
+
   
   
   nsCOMPtr<nsIFile> targetLocalFile(mTempFile);
