@@ -370,30 +370,6 @@ private:
 
 
 
-class nsStyleSheetListSH : public nsArraySH
-{
-protected:
-  nsStyleSheetListSH(nsDOMClassInfoData* aData) : nsArraySH(aData)
-  {
-  }
-
-  virtual ~nsStyleSheetListSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, uint32_t aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult) MOZ_OVERRIDE;
-
-public:
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsStyleSheetListSH(aData);
-  }
-};
-
-
-
-
 class nsCSSRuleListSH : public nsArraySH
 {
 protected:
