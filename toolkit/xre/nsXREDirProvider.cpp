@@ -954,6 +954,28 @@ GetRegWindowsAppDataFolder(bool aLocal, nsAString& _retval)
 
   return NS_OK;
 }
+
+static bool
+GetCachedHash(HKEY rootKey, const nsAString &regPath, const nsAString &path,
+              nsAString &cachedHash)
+{
+  HKEY baseKey;
+  if (RegOpenKeyExW(rootKey, regPath.BeginReading(), 0, KEY_READ, &baseKey) !=
+      ERROR_SUCCESS) {
+    return false;
+  }
+
+  wchar_t cachedHashRaw[512];
+  DWORD bufferSize = sizeof(cachedHashRaw);
+  LONG result = RegQueryValueExW(baseKey, path.BeginReading(), 0, NULL,
+                                 (LPBYTE)cachedHashRaw, &bufferSize);
+  RegCloseKey(baseKey);
+  if (result == ERROR_SUCCESS) {
+    cachedHash.Assign(cachedHashRaw);
+  }
+  return ERROR_SUCCESS == result;
+}
+
 #endif
 
 nsresult
@@ -976,6 +998,46 @@ nsXREDirProvider::GetUpdateRootDir(nsIFile* *aResult)
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef XP_WIN
+
+  nsAutoString pathHash;
+  bool pathHashResult = false;
+
+  nsAutoString appDirPath;
+  if (gAppData->vendor && !getenv("MOZ_UPDATE_NO_HASH_DIR") &&
+      SUCCEEDED(updRoot->GetPath(appDirPath))) {
+
+    
+    wchar_t regPath[1024] = { L'\0' };
+    swprintf_s(regPath, mozilla::ArrayLength(regPath), L"SOFTWARE\\%S\\%S\\TaskBarIDs",
+               gAppData->vendor, MOZ_APP_NAME);
+
+    
+    pathHashResult = GetCachedHash(HKEY_LOCAL_MACHINE,
+                                   nsDependentString(regPath), appDirPath,
+                                   pathHash);
+    if (!pathHashResult) {
+      pathHashResult = GetCachedHash(HKEY_CURRENT_USER,
+                                     nsDependentString(regPath), appDirPath,
+                                     pathHash);
+    }
+  }
+
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIFile> localDir;
+  if (pathHashResult && (gAppData->vendor || gAppData->name) &&
+      NS_SUCCEEDED(GetUserDataDirectoryHome(getter_AddRefs(localDir), true)) &&
+      NS_SUCCEEDED(localDir->AppendNative(nsDependentCString(gAppData->vendor ?
+                                          gAppData->vendor : gAppData->name))) &&
+      NS_SUCCEEDED(localDir->Append(NS_LITERAL_STRING("updates"))) &&
+      NS_SUCCEEDED(localDir->Append(pathHash))) {
+    NS_ADDREF(*aResult = localDir);
+    return NS_OK;
+  }
+
   nsAutoString appPath;
   rv = updRoot->GetPath(appPath);
   NS_ENSURE_SUCCESS(rv, rv);
