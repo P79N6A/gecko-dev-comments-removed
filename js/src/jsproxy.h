@@ -46,6 +46,8 @@ class JS_FRIEND_API(Wrapper);
 
 
 
+
+
 class JS_FRIEND_API(BaseProxyHandler) {
     void *mFamily;
     bool mHasPrototype;
@@ -135,12 +137,9 @@ class JS_FRIEND_API(BaseProxyHandler) {
 
 
 
-
-
-
-class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
-  public:
-    explicit IndirectProxyHandler(void *family);
+class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler {
+public:
+    explicit DirectProxyHandler(void *family);
 
     
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
@@ -157,6 +156,20 @@ class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
                          bool *bp) MOZ_OVERRIDE;
     virtual bool enumerate(JSContext *cx, JSObject *proxy,
                            AutoIdVector &props) MOZ_OVERRIDE;
+
+    
+    virtual bool has(JSContext *cx, JSObject *proxy, jsid id,
+                     bool *bp) MOZ_OVERRIDE;
+    virtual bool hasOwn(JSContext *cx, JSObject *proxy, jsid id,
+                        bool *bp) MOZ_OVERRIDE;
+    virtual bool get(JSContext *cx, JSObject *proxy, JSObject *receiver,
+                     jsid id, Value *vp) MOZ_OVERRIDE;
+    virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver,
+                     jsid id, bool strict, Value *vp) MOZ_OVERRIDE;
+    virtual bool keys(JSContext *cx, JSObject *proxy,
+                      AutoIdVector &props) MOZ_OVERRIDE;
+    virtual bool iterate(JSContext *cx, JSObject *proxy, unsigned flags,
+                         Value *vp) MOZ_OVERRIDE;
 
     
     virtual bool nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
@@ -176,33 +189,6 @@ class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
     virtual bool iteratorNext(JSContext *cx, JSObject *proxy,
                               Value *vp) MOZ_OVERRIDE;
     virtual JSObject *weakmapKeyDelegate(JSObject *proxy);
-};
-
-
-
-
-
-
-
-
-
-class JS_PUBLIC_API(DirectProxyHandler) : public IndirectProxyHandler {
-public:
-    explicit DirectProxyHandler(void *family);
-
-    
-    virtual bool has(JSContext *cx, JSObject *proxy, jsid id,
-                     bool *bp) MOZ_OVERRIDE;
-    virtual bool hasOwn(JSContext *cx, JSObject *proxy, jsid id,
-                        bool *bp) MOZ_OVERRIDE;
-    virtual bool get(JSContext *cx, JSObject *proxy, JSObject *receiver,
-                     jsid id, Value *vp) MOZ_OVERRIDE;
-    virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver,
-                     jsid id, bool strict, Value *vp) MOZ_OVERRIDE;
-    virtual bool keys(JSContext *cx, JSObject *proxy,
-                      AutoIdVector &props) MOZ_OVERRIDE;
-    virtual bool iterate(JSContext *cx, JSObject *proxy, unsigned flags,
-                         Value *vp) MOZ_OVERRIDE;
 };
 
 
