@@ -485,6 +485,22 @@ File.prototype = {
   setPosition: function setPosition(pos, whence) {
     return Scheduler.post("File_prototype_setPosition",
       [this._fdmsg, pos, whence]);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  flush: function flush() {
+    return Scheduler.post("File_prototype_flush",
+      [this._fdmsg]);
   }
 };
 
