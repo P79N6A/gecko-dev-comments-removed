@@ -720,23 +720,12 @@ function getTreesByProcess(aProcessMemoryReports, aTreesByProcess,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
   function ignoreSingle(aUnsafePath)
   {
     return (isSmapsPath(aUnsafePath) && !gVerbose && !aForceShowSmaps) ||
            aUnsafePath.startsWith("compartments/") ||
-           aUnsafePath.startsWith("ghost-windows/") ||
-           aUnsafePath == "resident-fast";
+           aUnsafePath.startsWith("ghost-windows/");
   }
 
   function ignoreMulti(aMRName)

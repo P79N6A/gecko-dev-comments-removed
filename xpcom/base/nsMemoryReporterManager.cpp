@@ -242,11 +242,6 @@ static nsresult GetResident(int64_t *n)
     return NS_OK;
 }
 
-static nsresult GetResidentFast(int64_t *n)
-{
-    return GetResident(n);
-}
-
 #elif defined(XP_MACOSX)
 
 #include <mach/mach_init.h>
@@ -274,17 +269,16 @@ static nsresult GetVsize(int64_t *n)
     return NS_OK;
 }
 
-
-
-
-
-
-
-
-static nsresult GetResident(int64_t *n, bool aDoPurge)
+static nsresult GetResident(int64_t *n)
 {
 #ifdef HAVE_JEMALLOC_STATS
-    if (aDoPurge)
+    
+    
+    
+    
+    
+    
+    
     {
       Telemetry::AutoTimer<Telemetry::MEMORY_FREE_PURGED_PAGES_MS> timer;
       jemalloc_purge_freed_pages();
@@ -297,16 +291,6 @@ static nsresult GetResident(int64_t *n, bool aDoPurge)
 
     *n = ti.resident_size;
     return NS_OK;
-}
-
-static nsresult GetResidentFast(int64_t *n)
-{
-    return GetResident(n,  false);
-}
-
-static nsresult GetResident(int64_t *n)
-{
-    return GetResident(n,  true);
 }
 
 #elif defined(XP_WIN)
@@ -339,11 +323,6 @@ static nsresult GetResident(int64_t *n)
 
     *n = pmc.WorkingSetSize;
     return NS_OK;
-}
-
-static nsresult GetResidentFast(int64_t *n)
-{
-    return GetResident(n);
 }
 
 #define HAVE_PRIVATE_REPORTER
@@ -398,18 +377,6 @@ NS_FALLIBLE_MEMORY_REPORTER_IMPLEMENT(Resident,
     "but it depends both on other processes being run and details of the OS "
     "kernel and so is best used for comparing the memory usage of a single "
     "process at different points in time.")
-
-NS_FALLIBLE_MEMORY_REPORTER_IMPLEMENT(ResidentFast,
-    "resident-fast",
-    KIND_OTHER,
-    UNITS_BYTES,
-    GetResidentFast,
-    "This reporter measures the same value as the resident memory reporter, but "
-    "it tries to be as fast as possible, at the expense of accuracy.  On most "
-    "platforms this is identical to the vanilla resident reporter, but on MacOS"
-    "in particular, this reporter may over-count our RSS.  You should use "
-    "resident-fast where you care about latency of collection (e.g. in "
-    "telemetry).  Otherwise you should use the regular resident reporter.")
 #endif  
 
 #ifdef HAVE_PAGE_FAULT_REPORTERS
@@ -698,7 +665,6 @@ nsMemoryReporterManager::Init()
 #ifdef HAVE_VSIZE_AND_RESIDENT_REPORTERS
     REGISTER(Vsize);
     REGISTER(Resident);
-    REGISTER(ResidentFast);
 #endif
 
 #ifdef HAVE_PAGE_FAULT_REPORTERS
