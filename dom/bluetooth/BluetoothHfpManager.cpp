@@ -72,6 +72,12 @@ namespace {
   
   
   static int sWaitingForDialingInterval = 2000; 
+
+  
+  
+  
+  
+  static int sBusyToneInterval = 3700; 
 } 
 
 
@@ -277,6 +283,17 @@ public:
 private:
   nsString mNumber;
   int mType;
+};
+
+class BluetoothHfpManager::CloseScoTask : public Task
+{
+private:
+  void Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(gBluetoothHfpManager);
+
+    gBluetoothHfpManager->DisconnectSco();
+  }
 };
 
 static bool
@@ -1398,7 +1415,16 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       if (mCurrentCallArray.Length() - 1 ==
           GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_DISCONNECTED)) {
         
-        DisconnectSco();
+        
+        if (prevCallState != nsITelephonyProvider::CALL_STATE_BUSY) {
+          DisconnectSco();
+        } else {
+          
+          MessageLoop::current()->PostDelayedTask(FROM_HERE,
+                                                  new CloseScoTask(),
+                                                  sBusyToneInterval);
+        }
+
         ResetCallArray();
       }
       break;
@@ -1678,8 +1704,14 @@ BluetoothHfpManager::ConnectSco(BluetoothReplyRunnable* aRunnable)
 bool
 BluetoothHfpManager::DisconnectSco()
 {
-  if (!mScoSocket) {
+  if (!IsConnected()) {
     NS_WARNING("BluetoothHfpManager is not connected");
+    return false;
+  }
+
+  SocketConnectionStatus status = mScoSocket->GetConnectionStatus();
+  if (status != SOCKET_CONNECTED && status != SOCKET_CONNECTING) {
+    NS_WARNING("No SCO exists");
     return false;
   }
 
@@ -1725,4 +1757,3 @@ BluetoothHfpManager::IsScoConnected()
 }
 
 NS_IMPL_ISUPPORTS1(BluetoothHfpManager, nsIObserver)
-
