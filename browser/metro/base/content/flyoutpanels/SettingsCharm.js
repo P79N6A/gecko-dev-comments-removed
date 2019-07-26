@@ -54,11 +54,9 @@ var SettingsCharm = {
 
     
     this.addEntry({
-        
-        
-        label: Elements.feedbackLabel.value,
+        label: Strings.browser.GetStringFromName("feedbackCharm"),
         onselected: function() {
-          let url = Elements.feedbackLabel.getAttribute("href");
+          let url = Services.urlFormatter.formatURLPref("app.support.inputURL");
           BrowserUI.addAndShowTab(url, Browser.selectedTab);
         }
     });
