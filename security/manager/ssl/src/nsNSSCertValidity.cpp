@@ -3,13 +3,13 @@
 
 
 #include "nsNSSCertValidity.h"
-#include "nsNSSCertHeader.h"
 #include "nsCOMPtr.h"
 #include "nsIDateTimeFormat.h"
 #include "nsDateTimeFormatCID.h"
 #include "nsComponentManagerUtils.h"
 #include "nsReadableUtils.h"
 #include "nsNSSShutDown.h"
+#include "cert.h"
 
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsX509CertValidity, nsIX509CertValidity)

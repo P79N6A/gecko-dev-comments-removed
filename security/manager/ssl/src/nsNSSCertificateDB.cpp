@@ -2,6 +2,11 @@
 
 
 
+
+
+
+#define CERT_AddTempCertToPerm __CERT_AddTempCertToPerm
+
 #include "nsNSSComponent.h"
 #include "nsNSSCertificateDB.h"
 #include "nsCOMPtr.h"
@@ -379,9 +384,9 @@ nsNSSCertificateDB::handleCACertDownload(nsIArray *x509Certs,
                    !!(trustBits & nsIX509CertDB::TRUSTED_EMAIL),
                    !!(trustBits & nsIX509CertDB::TRUSTED_OBJSIGN));
 
-  SECStatus srv = CERT_AddTempCertToPerm(tmpCert, 
-                                         const_cast<char*>(nickname.get()), 
-                                         trust.GetTrust()); 
+  SECStatus srv = __CERT_AddTempCertToPerm(tmpCert,
+                                           const_cast<char*>(nickname.get()),
+                                           trust.GetTrust());
 
   if (srv != SECSuccess)
     return NS_ERROR_FAILURE;
@@ -1735,9 +1740,9 @@ NS_IMETHODIMP nsNSSCertificateDB::AddCertFromBase64(const char *aBase64, const c
 
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Created nick \"%s\"\n", nickname.get()));
 
-  SECStatus srv = CERT_AddTempCertToPerm(tmpCert, 
-                                         const_cast<char*>(nickname.get()), 
-                                         trust.GetTrust()); 
+  SECStatus srv = __CERT_AddTempCertToPerm(tmpCert,
+                                           const_cast<char*>(nickname.get()),
+                                           trust.GetTrust());
 
 
   return (srv == SECSuccess) ? NS_OK : NS_ERROR_FAILURE;
