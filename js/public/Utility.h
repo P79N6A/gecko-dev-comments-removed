@@ -87,6 +87,7 @@ extern JS_PUBLIC_API(void) JS_Abort(void);
 
 
 
+
 extern JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations; 
 extern JS_PUBLIC_DATA(uint32_t) OOM_counter; 
 
