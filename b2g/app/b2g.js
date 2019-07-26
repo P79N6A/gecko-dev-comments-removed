@@ -821,9 +821,6 @@ pref("gfx.canvas.skiagl.dynamic-cache", true);
 pref("ril.cellbroadcast.disabled", false);
 
 
-pref("dom.icc.enabled", true);
-
-
 pref("dom.mobileconnection.enabled", true);
 
 
