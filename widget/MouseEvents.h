@@ -277,6 +277,15 @@ public:
   {
     return message == NS_CONTEXTMENU && context == eContextMenuKey;
   }
+
+  
+
+
+
+  bool IsReal() const
+  {
+    return reason == eReal;
+  }
 };
 
 
