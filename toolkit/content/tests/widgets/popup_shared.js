@@ -210,6 +210,17 @@ function goNextStep()
 
 function goNext()
 {
+  
+  
+  window.requestAnimationFrame(
+    function() {
+      setTimeout(goNextStepSync, 0);
+    }
+  );
+}
+
+function goNextStepSync()
+{
   if (gTestIndex >= 0 && "end" in gPopupTests[gTestIndex] && gPopupTests[gTestIndex].end) {
     finish();
     return;
