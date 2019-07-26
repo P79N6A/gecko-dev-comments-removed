@@ -137,6 +137,23 @@ private:
   void Eos();
 
   
+
+
+  static void PlayElementAddedCb(GstBin *aBin, GstElement *aElement,
+                                 gpointer *aUserData);
+
+  
+
+  static bool ShouldAutoplugFactory(GstElementFactory* aFactory, GstCaps* aCaps);
+
+  
+
+
+  static GValueArray* AutoplugSortCb(GstElement* aElement,
+                                     GstPad* aPad, GstCaps* aCaps,
+                                     GValueArray* aFactories);
+
+  
   nsresult ParseMP3Headers();
 
   

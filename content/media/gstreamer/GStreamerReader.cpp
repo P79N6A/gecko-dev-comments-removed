@@ -175,6 +175,8 @@ nsresult GStreamerReader::Init(MediaDecoderReader* aCloneDonor)
 
   g_signal_connect(G_OBJECT(mPlayBin), "notify::source",
                    G_CALLBACK(GStreamerReader::PlayBinSourceSetupCb), this);
+  g_signal_connect(G_OBJECT(mPlayBin), "element-added",
+                   G_CALLBACK(GStreamerReader::PlayElementAddedCb), this);
 
   return NS_OK;
 }
@@ -921,6 +923,11 @@ GstFlowReturn GStreamerReader::AllocateVideoBufferFull(GstPad* aPad,
 {
   
   ImageContainer* container = mDecoder->GetImageContainer();
+  if (!container) {
+    
+    
+    return GST_FLOW_NOT_SUPPORTED;
+  }
   PlanarYCbCrImage* img =
     reinterpret_cast<PlanarYCbCrImage*>(
       container->CreateImage(ImageFormat::PLANAR_YCBCR).get());
@@ -1066,6 +1073,76 @@ void GStreamerReader::Eos()
     
     mon.NotifyAll();
   }
+}
+
+
+
+
+
+
+
+void
+GStreamerReader::PlayElementAddedCb(GstBin *aBin, GstElement *aElement,
+                                    gpointer *aUserData)
+{
+  const static char sUriDecodeBinPrefix[] = "uridecodebin";
+  gchar *name = gst_element_get_name(aElement);
+
+  
+  if (!strncmp(name, sUriDecodeBinPrefix, sizeof(sUriDecodeBinPrefix) - 1)) {
+    g_signal_connect(G_OBJECT(aElement), "autoplug-sort",
+                     G_CALLBACK(GStreamerReader::AutoplugSortCb), aUserData);
+  }
+
+  g_free(name);
+}
+
+bool
+GStreamerReader::ShouldAutoplugFactory(GstElementFactory* aFactory, GstCaps* aCaps)
+{
+  bool autoplug;
+  const gchar *klass = gst_element_factory_get_klass(aFactory);
+  if (strstr(klass, "Demuxer") && !strstr(klass, "Metadata")) {
+    autoplug = GStreamerFormatHelper::Instance()->CanHandleContainerCaps(aCaps);
+  } else if (strstr(klass, "Decoder") && !strstr(klass, "Generic")) {
+    autoplug = GStreamerFormatHelper::Instance()->CanHandleCodecCaps(aCaps);
+  } else {
+    
+    autoplug = true;
+  }
+
+  return autoplug;
+}
+
+
+
+
+
+
+
+GValueArray*
+GStreamerReader::AutoplugSortCb(GstElement* aElement, GstPad* aPad,
+                                GstCaps* aCaps, GValueArray* aFactories)
+{
+  if (!aFactories->n_values) {
+    return nullptr;
+  }
+
+  
+
+
+  GstElementFactory *factory = (GstElementFactory*) g_value_get_object(g_value_array_get_nth(aFactories, 0));
+  if (!ShouldAutoplugFactory(factory, aCaps)) {
+    
+
+
+    return g_value_array_new(0);
+  }
+
+  
+
+
+  return nullptr;
 }
 
 
