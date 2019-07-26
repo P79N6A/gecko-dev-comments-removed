@@ -94,6 +94,7 @@ private:
   
   nsSVGPathGeometryFrame *mMarkedFrame;
   float mStrokeWidth, mX, mY, mAutoAngle;
+  bool mIsStart;  
 
   
   virtual gfxMatrix GetCanvasTM(uint32_t aFor) MOZ_OVERRIDE;

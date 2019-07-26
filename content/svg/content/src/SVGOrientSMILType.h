@@ -25,6 +25,12 @@ class nsSMILValue;
 
 
 
+
+
+
+
+
+
 namespace mozilla {
 
 class SVGOrientSMILType : public nsISMILType
