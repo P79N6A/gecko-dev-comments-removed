@@ -15,6 +15,8 @@ import android.preference.Preference;
 import android.util.AttributeSet;
 
 class SyncPreference extends Preference {
+    private static final boolean DEFAULT_TO_FXA = false;
+
     private Context mContext;
 
     public SyncPreference(Context context, AttributeSet attrs) {
@@ -40,6 +42,21 @@ class SyncPreference extends Preference {
 
     @Override
     protected void onClick() {
-        openSync11Settings();
+        
+        if (!DEFAULT_TO_FXA) {
+            openSync11Settings();
+            return;
+        }
+
+        
+        
+        if (SyncAccounts.syncAccountsExist(mContext)) {
+            SyncAccounts.openSyncSettings(mContext);
+            return;
+        }
+
+        
+        
+        launchFxASetup();
     }
 }
