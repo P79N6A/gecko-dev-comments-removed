@@ -903,16 +903,9 @@ pref("toolbar.customization.usesheet", true);
 pref("toolbar.customization.usesheet", false);
 #endif
 
-
-
 #ifdef XP_MACOSX
 
-pref("dom.ipc.plugins.enabled.i386", false);
-pref("dom.ipc.plugins.enabled.i386.flash player.plugin", true);
-pref("dom.ipc.plugins.enabled.i386.javaplugin2_npapi.plugin", true);
-pref("dom.ipc.plugins.enabled.i386.javaappletplugin.plugin", true);
-pref("dom.ipc.plugins.enabled.i386.silverlight.plugin", true);
-
+pref("dom.ipc.plugins.enabled.i386", true);
 pref("dom.ipc.plugins.enabled.x86_64", true);
 #else
 pref("dom.ipc.plugins.enabled", true);
