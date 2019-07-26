@@ -1340,10 +1340,13 @@ function getDirectoryEntries(aDir, aSortEntries) {
     return entries
   }
   catch (e) {
-    return null;
+    logger.warn("Can't iterate directory " + aDir.path, e);
+    return [];
   }
   finally {
-    dirEnum.close();
+    if (dirEnum) {
+      dirEnum.close();
+    }
   }
 }
 
