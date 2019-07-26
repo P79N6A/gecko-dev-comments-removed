@@ -1008,7 +1008,7 @@ nsHTMLInputElement::GetValue(nsAString& aValue)
   nsresult rv = GetValueInternal(aValue);
 
   
-  if (mType == NS_FORM_INPUT_NUMBER) {
+  if (IsExperimentalMobileType(mType)) {
     SanitizeValue(aValue);
   }
 
@@ -2483,7 +2483,9 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   if (aVisitor.mEvent->message == NS_BLUR_CONTENT) {
     
-    if (mType == NS_FORM_INPUT_NUMBER) {
+    
+    
+    if (IsExperimentalMobileType(mType)) {
       nsAutoString aValue;
       GetValueInternal(aValue);
       SetValueInternal(aValue, false, false);
@@ -2773,7 +2775,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
                keyEvent->keyCode == NS_VK_ENTER) &&
                (IsSingleLineTextControl(false, mType) ||
                 IsExperimentalMobileType(mType))) {
-            FireChangeEventIfNeeded();   
+            FireChangeEventIfNeeded();
             rv = MaybeSubmitForm(aVisitor.mPresContext);
             NS_ENSURE_SUCCESS(rv, rv);
           }
