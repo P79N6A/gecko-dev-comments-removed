@@ -132,7 +132,7 @@ this.Downloads = {
 
 
 
-  startDirect: function (aSource, aTarget, aOptions) {
+  fetch: function (aSource, aTarget, aOptions) {
     return this.createDownload({
       source: aSource,
       target: aTarget,
