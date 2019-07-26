@@ -64,6 +64,14 @@ private:
 
   MediaStreamSource(const MediaStreamSource &);
   MediaStreamSource &operator=(const MediaStreamSource &);
+
+#ifdef MOZ_ANDROID_HTC_WORKAROUND
+  
+  
+  
+  
+  virtual uint32_t MagicalHTCIncantation() { return 0x3f0; }
+#endif
 };
 
 MediaStreamSource::MediaStreamSource(PluginHost *aPluginHost, Decoder *aDecoder) :
