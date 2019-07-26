@@ -138,6 +138,10 @@ var NodeActor = protocol.ActorClass({
 
   
   form: function(detail) {
+    if (detail === "actorid") {
+      return this.actorID;
+    }
+
     let parentNode = this.walker.parentNode(this);
 
     
@@ -308,6 +312,10 @@ let NodeFront = protocol.FrontClass(NodeActor, {
 
   
   form: function(form, detail, ctx) {
+    if (detail === "actorid") {
+      this.actorID = form;
+      return;
+    }
     
     
     this._form = object.merge(form);
