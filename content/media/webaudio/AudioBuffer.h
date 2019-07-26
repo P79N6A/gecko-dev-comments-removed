@@ -91,7 +91,10 @@ public:
   
 
 
-  ThreadSharedFloatArrayBufferList* GetThreadSharedChannelsForRate(JSContext* aContext);
+
+  ThreadSharedFloatArrayBufferList* GetThreadSharedChannelsForRate(JSContext* aContext,
+                                                                   uint32_t* aRate,
+                                                                   uint32_t* aLength);
 
   
   
