@@ -2145,6 +2145,10 @@ protected:
     mDirectionality = aDir;
   }
 
+  
+  
+  bool PostCreateWrapper(JSContext* aCx, JSObject *aNewObject);
+
   nsCString mReferrer;
   nsString mLastModified;
 
