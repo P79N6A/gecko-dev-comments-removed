@@ -700,3 +700,157 @@ function ResolveLocale(availableLocales, requestedLocales, options, relevantExte
     result.locale = foundLocale;
     return result;
 }
+
+
+
+
+
+
+
+
+
+function LookupSupportedLocales(availableLocales, requestedLocales) {
+    
+    var len = requestedLocales.length;
+    var subset = new List();
+
+    
+    var k = 0;
+    while (k < len) {
+        
+        var locale = requestedLocales[k];
+        var noExtensionsLocale = callFunction(std_String_replace, locale, unicodeLocaleExtensionSequenceGlobalRE, "");
+
+        
+        var availableLocale = BestAvailableLocale(availableLocales, noExtensionsLocale);
+        if (availableLocale !== undefined)
+            subset.push(locale);
+
+        
+        k++;
+    }
+
+    
+    return subset.slice(0);
+}
+
+
+
+
+
+
+
+
+
+function BestFitSupportedLocales(availableLocales, requestedLocales) {
+    
+    return LookupSupportedLocales(availableLocales, requestedLocales);
+}
+
+
+
+
+
+
+
+
+
+function SupportedLocales(availableLocales, requestedLocales, options) {
+    
+    var matcher;
+    if (options !== undefined) {
+        
+        options = ToObject(options);
+        matcher = options.localeMatcher;
+
+        
+        if (matcher !== undefined) {
+            matcher = ToString(matcher);
+            if (matcher !== "lookup" && matcher !== "best fit")
+                ThrowError(JSMSG_INVALID_LOCALE_MATCHER, matcher);
+        }
+    }
+
+    
+    var subset = (matcher === undefined || matcher === "best fit") ?
+                 BestFitSupportedLocales(availableLocales, requestedLocales) :
+                 LookupSupportedLocales(availableLocales, requestedLocales);
+
+    
+    for (var i = 0; i < subset.length; i++)
+        std_Object_defineProperty(subset, i, {value: subset[i], writable: false, enumerable: true, configurable: false});
+
+
+
+    
+    return subset;
+}
+
+
+
+
+
+
+
+
+
+function GetOption(options, property, type, values, fallback) {
+    
+    var value = options[property];
+
+    
+    if (value !== undefined) {
+        
+        if (type === "boolean")
+            value = ToBoolean(value);
+        else if (type === "string")
+            value = ToString(value);
+        else
+            assert(false, "GetOption");
+
+        
+        if (values !== undefined && callFunction(std_Array_indexOf, values, value) === -1)
+            ThrowError(JSMSG_INVALID_OPTION_VALUE, property, value);
+
+        
+        return value;
+    }
+
+    
+    return fallback;
+}
+
+
+
+
+
+
+
+
+function GetNumberOption(options, property, minimum, maximum, fallback) {
+    assert(typeof minimum === "number", "GetNumberOption");
+    assert(typeof maximum === "number", "GetNumberOption");
+    assert(fallback === undefined || (fallback >= minimum && fallback <= maximum), "GetNumberOption");
+
+    
+    var value = options[property];
+
+    
+    if (value !== undefined) {
+        value = ToNumber(value);
+        if (std_isNaN(value) || value < minimum || value > maximum)
+            ThrowError(JSMSG_INVALID_DIGITS_VALUE, value);
+        return std_Math_floor(value);
+    }
+
+    
+    return fallback;
+}
+
+
+
+var runtimeAvailableLocales = (function () {
+    var o = std_Object_create(null);
+    o[RuntimeDefaultLocale()] = true;
+    return addOldStyleLanguageTags(o);
+}());
