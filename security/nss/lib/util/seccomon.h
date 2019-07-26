@@ -56,6 +56,13 @@ struct SECItemStr {
     unsigned int len;
 };
 
+typedef struct SECItemArrayStr SECItemArray;
+
+struct SECItemArrayStr {
+    SECItem *items;
+    unsigned int len;
+};
+
 
 
 

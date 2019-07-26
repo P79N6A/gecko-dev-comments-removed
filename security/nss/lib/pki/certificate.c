@@ -3,7 +3,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: certificate.c,v $ $Revision: 1.70 $ $Date: 2012/05/17 21:39:40 $";
+static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif 
 
 #ifndef NSSPKI_H

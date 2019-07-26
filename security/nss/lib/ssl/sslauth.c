@@ -8,6 +8,7 @@
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "pk11func.h"
+#include "ocsp.h"
 
 
 CERTCertificate *
@@ -214,6 +215,9 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     sslSocket *        ss;
     SECCertUsage       certUsage;
     const char *             hostname    = NULL;
+    PRTime             now = PR_Now();
+    SECItemArray *certStatusArray;
+    unsigned int i;
     
     ss = ssl_FindSocket(fd);
     PORT_Assert(ss != NULL);
@@ -222,12 +226,18 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     }
 
     handle = (CERTCertDBHandle *)arg;
+    certStatusArray = &ss->sec.ci.sid->peerCertStatus;
+
+    for (i = 0; i < certStatusArray->len; ++i) {
+        CERT_CacheOCSPResponseFromSideChannel(handle, ss->sec.peerCert,
+					now, &certStatusArray->items[i], arg);
+    }
 
     
     certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
 
-    rv = CERT_VerifyCertNow(handle, ss->sec.peerCert, checkSig, certUsage,
-			    ss->pkcs11PinArg);
+    rv = CERT_VerifyCert(handle, ss->sec.peerCert, checkSig, certUsage,
+			 now, ss->pkcs11PinArg, NULL);
 
     if ( rv != SECSuccess || isServer )
 	return rv;

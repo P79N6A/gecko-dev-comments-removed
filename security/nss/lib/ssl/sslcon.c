@@ -3102,7 +3102,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 
 	return rv;
     }
-#if defined(NSS_ENABLE_ECC) && !defined(NSS_ECC_MORE_THAN_SUITE_B)
+#if defined(NSS_ENABLE_ECC)
     
     ssl3_DisableECCSuites(ss, NULL); 
     if (ss->cipherSpecs != NULL) {

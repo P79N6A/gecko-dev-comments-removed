@@ -3,7 +3,7 @@
 
 
 #ifdef DEBUG
-static const char CKDBM_CVS_ID[] = "@(#) $RCSfile: ckdbm.h,v $ $Revision: 1.4 $ $Date: 2012/04/25 14:49:30 $";
+static const char CKDBM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif 
 
 #ifndef CKDBM_H

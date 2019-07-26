@@ -250,7 +250,7 @@ SECStatus AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
                          CRLDPCache** dpcache, PRBool* writeLocked);
 
 
-dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+dpcacheStatus DPCache_Lookup(CRLDPCache* cache, const SECItem* sn,
                              CERTCrlEntry** returned);
 
 
@@ -359,7 +359,7 @@ SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc);
 
 
 CERTGeneralName *
-cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena);
+cert_GetSubjectAltNameList(const CERTCertificate *cert, PRArenaPool *arena);
 
 
 PRUint32

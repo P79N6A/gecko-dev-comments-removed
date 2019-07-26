@@ -61,6 +61,15 @@ static PRInt32 ssl3_SendUseSRTPXtn(sslSocket *ss, PRBool append,
     PRUint32 maxBytes);
 static SECStatus ssl3_HandleUseSRTPXtn(sslSocket * ss, PRUint16 ex_type,
     SECItem *data);
+static SECStatus ssl3_ServerSendStatusRequestXtn(sslSocket * ss,
+    PRBool      append, PRUint32    maxBytes);
+static SECStatus ssl3_ServerHandleStatusRequestXtn(sslSocket *ss,
+    PRUint16 ex_type, SECItem *data);
+static SECStatus ssl3_ClientHandleStatusRequestXtn(sslSocket *ss,
+                                                  PRUint16 ex_type,
+                                                  SECItem *data);
+static PRInt32 ssl3_ClientSendStatusRequestXtn(sslSocket * ss, PRBool append,
+                                              PRUint32 maxBytes);
 
 
 
@@ -222,6 +231,7 @@ static const ssl3HelloExtensionHandler clientHelloHandlers[] = {
     { ssl_renegotiation_info_xtn, &ssl3_HandleRenegotiationInfoXtn },
     { ssl_next_proto_nego_xtn,    &ssl3_ServerHandleNextProtoNegoXtn },
     { ssl_use_srtp_xtn,           &ssl3_HandleUseSRTPXtn },
+    { ssl_cert_status_xtn,        &ssl3_ServerHandleStatusRequestXtn },
     { -1, NULL }
 };
 
@@ -234,6 +244,7 @@ static const ssl3HelloExtensionHandler serverHelloHandlersTLS[] = {
     { ssl_renegotiation_info_xtn, &ssl3_HandleRenegotiationInfoXtn },
     { ssl_next_proto_nego_xtn,    &ssl3_ClientHandleNextProtoNegoXtn },
     { ssl_use_srtp_xtn,           &ssl3_HandleUseSRTPXtn },
+    { ssl_cert_status_xtn,        &ssl3_ClientHandleStatusRequestXtn },
     { -1, NULL }
 };
 
@@ -258,7 +269,8 @@ ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] = {
 #endif
     { ssl_session_ticket_xtn,     &ssl3_SendSessionTicketXtn },
     { ssl_next_proto_nego_xtn,    &ssl3_ClientSendNextProtoNegoXtn },
-    { ssl_use_srtp_xtn,           &ssl3_SendUseSRTPXtn }
+    { ssl_use_srtp_xtn,           &ssl3_SendUseSRTPXtn },
+    { ssl_cert_status_xtn,        &ssl3_ClientSendStatusRequestXtn }
     
 };
 
@@ -646,6 +658,101 @@ ssl3_ClientSendNextProtoNegoXtn(sslSocket * ss, PRBool append,
 
 loser:
     return -1;
+}
+
+static SECStatus
+ssl3_ClientHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
+                                 SECItem *data)
+{
+    
+    if (data->len != 0)
+       return SECFailure;
+
+    
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+
+    return SECSuccess;
+}
+
+static PRInt32
+ssl3_ServerSendStatusRequestXtn(
+			sslSocket * ss,
+			PRBool      append,
+			PRUint32    maxBytes)
+{
+    PRInt32 extension_length;
+    SECStatus rv;
+
+    if (!ss->certStatusArray)
+	return 0;
+
+    extension_length = 2 + 2;
+    if (append && maxBytes >= extension_length) {
+	
+	rv = ssl3_AppendHandshakeNumber(ss, ssl_cert_status_xtn, 2);
+	if (rv != SECSuccess)
+	    return -1;
+	
+	rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
+	if (rv != SECSuccess)
+	    return -1;
+    }
+
+    return extension_length;
+}
+
+
+
+static PRInt32
+ssl3_ClientSendStatusRequestXtn(sslSocket * ss, PRBool append,
+                               PRUint32 maxBytes)
+{
+    PRInt32 extension_length;
+
+    if (!ss->opt.enableOCSPStapling)
+       return 0;
+
+    
+
+
+
+
+
+    extension_length = 9;
+
+    if (append && maxBytes >= extension_length) {
+       SECStatus rv;
+       TLSExtensionData *xtnData;
+
+       
+       rv = ssl3_AppendHandshakeNumber(ss, ssl_cert_status_xtn, 2);
+       if (rv != SECSuccess)
+           return -1;
+       rv = ssl3_AppendHandshakeNumber(ss, extension_length - 4, 2);
+       if (rv != SECSuccess)
+           return -1;
+       rv = ssl3_AppendHandshakeNumber(ss, 1 , 1);
+       if (rv != SECSuccess)
+           return -1;
+       
+
+       rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
+       if (rv != SECSuccess)
+           return -1;
+       
+
+
+       rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
+       if (rv != SECSuccess)
+           return -1;
+
+       xtnData = &ss->xtnData;
+       xtnData->advertised[xtnData->numAdvertised++] = ssl_cert_status_xtn;
+    } else if (maxBytes < extension_length) {
+       PORT_Assert(0);
+       return 0;
+    }
+    return extension_length;
 }
 
 
@@ -1628,6 +1735,22 @@ ssl3_SendRenegotiationInfoXtn(
 	}
     }
     return needed;
+}
+
+static SECStatus
+ssl3_ServerHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
+				  SECItem *data)
+{
+    SECStatus rv = SECSuccess;
+    PRUint32 len = 0;
+
+    
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+    PORT_Assert(ss->sec.isServer);
+    
+    rv = ssl3_RegisterServerHelloExtensionSender(ss, ex_type,
+					    ssl3_ServerSendStatusRequestXtn);
+    return rv;
 }
 
 

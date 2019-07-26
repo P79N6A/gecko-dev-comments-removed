@@ -174,6 +174,7 @@ CERT_DecodeCertPackage(char *certbuf,
 
 
 
+
     if (certlen < 17) {
 	PORT_SetError(SEC_ERROR_INPUT_LEN);
 	return(SECFailure);
@@ -258,9 +259,11 @@ CERT_DecodeCertPackage(char *certbuf,
 	    
 	    switch ( oiddata->offset ) {
 	      case SEC_OID_PKCS7_SIGNED_DATA:
+		
 		return(SEC_ReadPKCS7Certs(&certitem, f, arg));
 		break;
 	      case SEC_OID_NS_TYPE_CERT_SEQUENCE:
+		
 		return(SEC_ReadCertSequence(&certitem, f, arg));
 		break;
 	      default:

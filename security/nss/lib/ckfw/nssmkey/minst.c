@@ -2,7 +2,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: minst.c,v $ $Revision: 1.2 $ $Date: 2012/04/25 14:49:40 $";
+static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif 
 
 #include "ckmk.h"

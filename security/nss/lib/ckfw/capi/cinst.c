@@ -2,7 +2,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: cinst.c,v $ $Revision: 1.3 $ $Date: 2012/04/25 14:49:30 $";
+static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif 
 
 #include "ckcapi.h"

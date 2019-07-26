@@ -1276,13 +1276,17 @@ SEC_PKCS7ContentIsSigned(SEC_PKCS7ContentInfo *cinfo)
 
 
 
+
+
+
+
 static PRBool
 sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 			   SECCertUsage certusage,
 			   const SECItem *detached_digest,
 			   HASH_HashType digest_type,
 			   PRBool keepcerts,
-			   PRTime atTime)
+			   const PRTime *atTime)
 {
     SECAlgorithmID **digestalgs, *bulkid;
     const SECItem *digest;
@@ -1438,10 +1442,14 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 
 
 
-    verificationTime = atTime ? atTime
-			      : (encoded_stime ? stime : PR_Now());
-    if (CERT_VerifyCert (certdb, cert, PR_TRUE, certusage,
-			 verificationTime,
+    if (atTime) {
+	verificationTime = *atTime;
+    } else if (encoded_stime != NULL) {
+	verificationTime = stime;
+    } else {
+	verificationTime = PR_Now();
+    }
+    if (CERT_VerifyCert (certdb, cert, PR_TRUE, certusage, verificationTime,
 			 cinfo->pwfn_arg, NULL) != SECSuccess)
 	{
 	
@@ -1522,14 +1530,6 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 	goto done;
     }
 
-#ifndef NSS_ECC_MORE_THAN_SUITE_B
-    if (encTag == SEC_OID_ANSIX962_EC_PUBLIC_KEY) {
-	PORT_SetError(SEC_ERROR_PKCS7_BAD_SIGNATURE);
-	goto done;
-    }
-#endif
-
-
     if (signerinfo->authAttr != NULL) {
 	SEC_PKCS7Attribute *attr;
 	SECItem *value;
@@ -1593,7 +1593,6 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 	    PORT_SetError (SEC_ERROR_PKCS7_BAD_SIGNATURE);
 	    goto done;
 	}
-
 
 	goodsig = (PRBool)(VFY_VerifyDataDirect(encoded_attrs.data, 
 				   encoded_attrs.len,
@@ -1783,8 +1782,9 @@ SEC_PKCS7VerifyDetachedSignature(SEC_PKCS7ContentInfo *cinfo,
 {
     return sec_pkcs7_verify_signature (cinfo, certusage,
 				       detached_digest, digest_type,
-				       keepcerts, 0);
+				       keepcerts, NULL);
 }
+
 
 
 
@@ -1803,13 +1803,9 @@ SEC_PKCS7VerifyDetachedSignatureAtTime(SEC_PKCS7ContentInfo *cinfo,
 				       PRBool keepcerts,
 				       PRTime atTime)
 {
-    if (!atTime) {
-	atTime = PR_Now();
-    }
-
     return sec_pkcs7_verify_signature (cinfo, certusage,
 				       detached_digest, digest_type,
-				       keepcerts, atTime);
+				       keepcerts, &atTime);
 }
 
 

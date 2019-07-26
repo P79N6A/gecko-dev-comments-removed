@@ -236,7 +236,7 @@ void PK11_DestroyMergeLog(PK11MergeLog *log);
 
 
 
-CK_MECHANISM_TYPE PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len);
+CK_KEY_TYPE PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len);
 CK_MECHANISM_TYPE PK11_GetKeyGen(CK_MECHANISM_TYPE type);
 int PK11_GetBlockSize(CK_MECHANISM_TYPE type,SECItem *params);
 int PK11_GetIVLength(CK_MECHANISM_TYPE type);
@@ -507,6 +507,17 @@ SECKEYPrivateKey * PK11_FindKeyByAnyCert(CERTCertificate *cert, void *wincx);
 SECKEYPrivateKey * PK11_FindKeyByKeyID(PK11SlotInfo *slot, SECItem *keyID,
 				       void *wincx);
 int PK11_GetPrivateModulusLen(SECKEYPrivateKey *key); 
+
+SECStatus PK11_Decrypt(PK11SymKey *symkey,
+		       CK_MECHANISM_TYPE mechanism, SECItem *param,
+		       unsigned char *out, unsigned int *outLen,
+		       unsigned int maxLen,
+		       const unsigned char *enc, unsigned int encLen);
+SECStatus PK11_Encrypt(PK11SymKey *symKey,
+		       CK_MECHANISM_TYPE mechanism, SECItem *param,
+		       unsigned char *out, unsigned int *outLen,
+		       unsigned int maxLen,
+		       const unsigned char *data, unsigned int dataLen);
 
 
 SECStatus PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,

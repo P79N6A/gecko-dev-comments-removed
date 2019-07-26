@@ -176,7 +176,7 @@ DER_SetUInteger(PRArenaPool *arena, SECItem *it, PRUint32 ui)
 
 
 long
-DER_GetInteger(SECItem *it)
+DER_GetInteger(const SECItem *it)
 {
     long ival = 0;
     unsigned len = it->len;

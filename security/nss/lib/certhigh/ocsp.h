@@ -300,7 +300,7 @@ CERT_DestroyOCSPRequest(CERTOCSPRequest *request);
 
 
 extern CERTOCSPResponse *
-CERT_DecodeOCSPResponse(SECItem *src);
+CERT_DecodeOCSPResponse(const SECItem *src);
 
 
 
@@ -551,7 +551,7 @@ extern SECStatus
 CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
 				      CERTCertificate *cert,
 				      PRTime time,
-				      SECItem *encodedResponse,
+				      const SECItem *encodedResponse,
 				      void *pwArg);
 
 

@@ -158,6 +158,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 
 #define SSL_CBC_RANDOM_IV 23
+#define SSL_ENABLE_OCSP_STAPLING       24 /* Request OCSP stapling (client) */
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 
@@ -396,6 +397,45 @@ SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 
 
 SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SSL_IMPORT const SECItemArray * SSL_PeerStapledOCSPResponses(PRFileDesc *fd);
+
+
+
+
+
+
+
+
+SSL_IMPORT SECStatus
+SSL_SetStapledOCSPResponses(PRFileDesc *fd, SECItemArray *responses,
+			    PRBool takeOwnership);
+
+
+
+
+
+
+
+
+
+
 
 
 

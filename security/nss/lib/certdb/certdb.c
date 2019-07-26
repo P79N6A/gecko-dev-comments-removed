@@ -1,12 +1,12 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * Certificate handling code
- *
- * $Id: certdb.c,v 1.124 2013/01/07 04:11:50 ryan.sleevi%gmail.com Exp $
- */
+
+
+
+
+
+
+
+
 
 #include "nssilock.h"
 #include "prmon.h"
@@ -28,7 +28,7 @@
 #include "secerr.h"
 #include "sslerr.h"
 #include "pk11func.h"
-#include "xconst.h"   /* for  CERT_DecodeAltNameExtension */
+#include "xconst.h"   
 
 #include "pki.h"
 #include "pki3hack.h"
@@ -39,9 +39,9 @@ SEC_ASN1_MKSUB(SEC_BitStringTemplate)
 SEC_ASN1_MKSUB(SEC_IntegerTemplate)
 SEC_ASN1_MKSUB(SEC_SkipTemplate)
 
-/*
- * Certificate database handling code
- */
+
+
+
 
 
 const SEC_ASN1Template CERT_CertExtensionTemplate[] = {
@@ -49,7 +49,7 @@ const SEC_ASN1Template CERT_CertExtensionTemplate[] = {
 	  0, NULL, sizeof(CERTCertExtension) },
     { SEC_ASN1_OBJECT_ID,
 	  offsetof(CERTCertExtension,id) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_BOOLEAN,		/* XXX DER_DEFAULT */
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_BOOLEAN,		
 	  offsetof(CERTCertExtension,critical) },
     { SEC_ASN1_OCTET_STRING,
 	  offsetof(CERTCertExtension,value) },
@@ -83,7 +83,7 @@ const SEC_ASN1Template CERT_CertificateTemplate[] = {
     { SEC_ASN1_SEQUENCE,
       0, NULL, sizeof(CERTCertificate) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | 
-	  SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0, /* XXX DER_DEFAULT */ 
+	  SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,  
 	  offsetof(CERTCertificate,version),
 	  SEC_ASN1_SUB(SEC_IntegerTemplate) },
     { SEC_ASN1_INTEGER,
@@ -138,67 +138,67 @@ const SEC_ASN1Template SEC_SignedCertificateTemplate[] =
     { 0 }
 };
 
-/*
- * Find the subjectName in a DER encoded certificate
- */
+
+
+
 const SEC_ASN1Template SEC_CertSubjectTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(SECItem) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | 
 	  SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
-	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	/* version */
-    { SEC_ASN1_SKIP },		/* serial number */
-    { SEC_ASN1_SKIP },		/* signature algorithm */
-    { SEC_ASN1_SKIP },		/* issuer */
-    { SEC_ASN1_SKIP },		/* validity */
-    { SEC_ASN1_ANY, 0, NULL },		/* subject */
+	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	
+    { SEC_ASN1_SKIP },		
+    { SEC_ASN1_SKIP },		
+    { SEC_ASN1_SKIP },		
+    { SEC_ASN1_SKIP },		
+    { SEC_ASN1_ANY, 0, NULL },		
     { SEC_ASN1_SKIP_REST },
     { 0 }
 };
 
-/*
- * Find the issuerName in a DER encoded certificate
- */
+
+
+
 const SEC_ASN1Template SEC_CertIssuerTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(SECItem) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | 
 	  SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
-	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	/* version */
-    { SEC_ASN1_SKIP },		/* serial number */
-    { SEC_ASN1_SKIP },		/* signature algorithm */
-    { SEC_ASN1_ANY, 0, NULL },		/* issuer */
+	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	
+    { SEC_ASN1_SKIP },		
+    { SEC_ASN1_SKIP },		
+    { SEC_ASN1_ANY, 0, NULL },		
     { SEC_ASN1_SKIP_REST },
     { 0 }
 };
-/*
- * Find the subjectName in a DER encoded certificate
- */
+
+
+
 const SEC_ASN1Template SEC_CertSerialNumberTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(SECItem) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | 
 	  SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
-	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	/* version */
-    { SEC_ASN1_ANY, 0, NULL }, /* serial number */
+	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	
+    { SEC_ASN1_ANY, 0, NULL }, 
     { SEC_ASN1_SKIP_REST },
     { 0 }
 };
 
-/*
- * Find the issuer and serialNumber in a DER encoded certificate.
- * This data is used as the database lookup key since its the unique
- * identifier of a certificate.
- */
+
+
+
+
+
 const SEC_ASN1Template CERT_CertKeyTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(CERTCertKey) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | 
 	  SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
-	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	/* version */ 
+	  0, SEC_ASN1_SUB(SEC_SkipTemplate) },	 
     { SEC_ASN1_INTEGER,
 	  offsetof(CERTCertKey,serialNumber) },
-    { SEC_ASN1_SKIP },		/* signature algorithm */
+    { SEC_ASN1_SKIP },		
     { SEC_ASN1_ANY,
 	  offsetof(CERTCertKey,derIssuer) },
     { SEC_ASN1_SKIP_REST },
@@ -225,10 +225,10 @@ CERT_KeyFromIssuerAndSN(PRArenaPool *arena, SECItem *issuer, SECItem *sn,
 	goto loser;
     }
 
-    /* copy the serialNumber */
+    
     PORT_Memcpy(key->data, sn->data, sn->len);
 
-    /* copy the issuer */
+    
     PORT_Memcpy(&key->data[sn->len], issuer->data, issuer->len);
 
     return(SECSuccess);
@@ -238,9 +238,9 @@ loser:
 }
 
 
-/*
- * Extract the subject name from a DER certificate
- */
+
+
+
 SECStatus
 CERT_NameFromDERCert(SECItem *derCert, SECItem *derName)
 {
@@ -373,10 +373,10 @@ loser:
     return(SECFailure);
 }
 
-/*
- * Generate a database key, based on serial number and issuer, from a
- * DER certificate.
- */
+
+
+
+
 SECStatus
 CERT_KeyFromDERCert(PRArenaPool *reqArena, SECItem *derCert, SECItem *key)
 {
@@ -411,10 +411,10 @@ loser:
     return(SECFailure);
 }
 
-/*
- * fill in keyUsage field of the cert based on the cert extension
- * if the extension is not critical, then we allow all uses
- */
+
+
+
+
 static SECStatus
 GetKeyUsage(CERTCertificate *cert)
 {
@@ -423,7 +423,7 @@ GetKeyUsage(CERTCertificate *cert)
     
     rv = CERT_FindKeyUsageExtension(cert, &tmpitem);
     if ( rv == SECSuccess ) {
-	/* remember the actual value of the extension */
+	
 	cert->rawKeyUsage = tmpitem.data[0];
 	cert->keyUsagePresent = PR_TRUE;
 	cert->keyUsage = tmpitem.data[0];
@@ -432,7 +432,7 @@ GetKeyUsage(CERTCertificate *cert)
 	tmpitem.data = NULL;
 	
     } else {
-	/* if the extension is not present, then we allow all uses */
+	
 	cert->keyUsage = KU_ALL;
 	cert->rawKeyUsage = KU_ALL;
 	cert->keyUsagePresent = PR_FALSE;
@@ -468,21 +468,21 @@ findOIDinOIDSeqByTagNum(CERTOidSequence *seq, SECOidTag tagnum)
     return rv;
 }
 
-/*
- * fill in nsCertType field of the cert based on the cert extension
- */
+
+
+
 SECStatus
 cert_GetCertType(CERTCertificate *cert)
 {
     PRUint32 nsCertType;
 
     if (cert->nsCertType) {
-        /* once set, no need to recalculate */
+        
         return SECSuccess;
     }
     nsCertType = cert_ComputeCertType(cert);
 
-    /* Assert that it is safe to cast &cert->nsCertType to "PRInt32 *" */
+    
     PORT_Assert(sizeof(cert->nsCertType) == sizeof(PRInt32));
     PR_ATOMIC_SET((PRInt32 *)&cert->nsCertType, nsCertType);
     return SECSuccess;
@@ -518,30 +518,30 @@ cert_ComputeCertType(CERTCertificate *cert)
 	    nsCertType = tmpitem.data[0];
 	}
 
-	/* free tmpitem data pointer to avoid memory leak */
+	
 	PORT_Free(tmpitem.data);
 	tmpitem.data = NULL;
 	
-	/*
-	 * for this release, we will allow SSL certs with an email address
-	 * to be used for email
-	 */
+	
+
+
+
 	if ( ( nsCertType & NS_CERT_TYPE_SSL_CLIENT ) &&
 	    cert->emailAddr && cert->emailAddr[0]) {
 	    nsCertType |= NS_CERT_TYPE_EMAIL;
 	}
-	/*
-	 * for this release, we will allow SSL intermediate CAs to be
-	 * email intermediate CAs too.
-	 */
+	
+
+
+
 	if ( nsCertType & NS_CERT_TYPE_SSL_CA ) {
 	    nsCertType |= NS_CERT_TYPE_EMAIL_CA;
 	}
-	/*
-	 * allow a cert with the extended key usage of EMail Protect
-	 * to be used for email or as an email CA, if basic constraints
-	 * indicates that it is a CA.
-	 */
+	
+
+
+
+
 	if (findOIDinOIDSeqByTagNum(extKeyUsage, 
 				    SEC_OID_EXT_KEY_USAGE_EMAIL_PROTECT) ==
 	    SECSuccess) {
@@ -562,10 +562,10 @@ cert_ComputeCertType(CERTCertificate *cert)
 		nsCertType |= NS_CERT_TYPE_SSL_SERVER;
 	    }
 	}
-	/*
-	 * Treat certs with step-up OID as also having SSL server type.
- 	 * COMODO needs this behaviour until June 2020.  See Bug 737802.
-	 */
+	
+
+
+
 	if (findOIDinOIDSeqByTagNum(extKeyUsage, 
 				    SEC_OID_NS_KEY_USAGE_GOVT_APPROVED) ==
 	    SECSuccess){
@@ -607,18 +607,18 @@ cert_ComputeCertType(CERTCertificate *cert)
 	    nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
 	}
     } else {
-	/* If no NS Cert Type extension and no EKU extension, then */
+	
 	nsCertType = 0;
 	if (CERT_IsCACert(cert, &nsCertType))
 	    nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
-	/* if the basic constraint extension says the cert is a CA, then
-	   allow SSL CA and EMAIL CA and Status Responder */
+	
+
 	if (basicConstraintPresent && basicConstraint.isCA ) {
 	    nsCertType |= (NS_CERT_TYPE_SSL_CA   |
 		           NS_CERT_TYPE_EMAIL_CA |
 		           EXT_KEY_USAGE_STATUS_RESPONDER);
 	}
-	/* allow any ssl or email (no ca or object signing. */
+	
 	nsCertType |= NS_CERT_TYPE_SSL_CLIENT | NS_CERT_TYPE_SSL_SERVER |
 	              NS_CERT_TYPE_EMAIL;
     }
@@ -632,9 +632,9 @@ cert_ComputeCertType(CERTCertificate *cert)
     return nsCertType;
 }
 
-/*
- * cert_GetKeyID() - extract or generate the subjectKeyID from a certificate
- */
+
+
+
 SECStatus
 cert_GetKeyID(CERTCertificate *cert)
 {
@@ -643,7 +643,7 @@ cert_GetKeyID(CERTCertificate *cert)
     
     cert->subjectKeyID.len = 0;
 
-    /* see of the cert has a key identifier extension */
+    
     rv = CERT_FindSubjectKeyIDExtension(cert, &tmpitem);
     if ( rv == SECSuccess ) {
 	cert->subjectKeyID.data = (unsigned char*) PORT_ArenaAlloc(cert->arena, tmpitem.len);
@@ -656,12 +656,12 @@ cert_GetKeyID(CERTCertificate *cert)
 	PORT_Free(tmpitem.data);
     }
     
-    /* if the cert doesn't have a key identifier extension, then generate one*/
+    
     if ( cert->subjectKeyID.len == 0 ) {
-	/*
-	 * pkix says that if the subjectKeyID is not present, then we should
-	 * use the SHA-1 hash of the DER-encoded publicKeyInfo from the cert
-	 */
+	
+
+
+
 	cert->subjectKeyID.data = (unsigned char *)PORT_ArenaAlloc(cert->arena, SHA1_LENGTH);
 	if ( cert->subjectKeyID.data != NULL ) {
 	    rv = PK11_HashBuf(SEC_OID_SHA1,cert->subjectKeyID.data,
@@ -686,31 +686,31 @@ cert_IsRootCert(CERTCertificate *cert)
     SECStatus rv;
     SECItem tmpitem;
 
-    /* cache the authKeyID extension, if present */
+    
     cert->authKeyID = CERT_FindAuthKeyIDExten(cert->arena, cert);
 
-    /* it MUST be self-issued to be a root */
+    
     if (cert->derIssuer.len == 0 ||
         !SECITEM_ItemsAreEqual(&cert->derIssuer, &cert->derSubject))
     {
 	return PR_FALSE;
     }
 
-    /* check the authKeyID extension */
+    
     if (cert->authKeyID) {
-	/* authority key identifier is present */
+	
 	if (cert->authKeyID->keyID.len > 0) {
-	    /* the keyIdentifier field is set, look for subjectKeyID */
+	    
 	    rv = CERT_FindSubjectKeyIDExtension(cert, &tmpitem);
 	    if (rv == SECSuccess) {
 		PRBool match;
-		/* also present, they MUST match for it to be a root */
+		
 		match = SECITEM_ItemsAreEqual(&cert->authKeyID->keyID,
 		                              &tmpitem);
 		PORT_Free(tmpitem.data);
-		if (!match) return PR_FALSE; /* else fall through */
+		if (!match) return PR_FALSE; 
 	    } else {
-		/* the subject key ID is required when AKI is present */
+		
 		return PR_FALSE;
 	    }
 	}
@@ -722,25 +722,25 @@ cert_IsRootCert(CERTCertificate *cert)
 	    if (caName) {
 		if (!SECITEM_ItemsAreEqual(&cert->derIssuer, caName)) {
 		    return PR_FALSE;
-		} /* else fall through */
-	    } /* else ??? could not get general name as directory name? */
+		} 
+	    } 
 	}
 	if (cert->authKeyID->authCertSerialNumber.len > 0) {
 	    if (!SECITEM_ItemsAreEqual(&cert->serialNumber,
 	                         &cert->authKeyID->authCertSerialNumber)) {
 		return PR_FALSE;
-	    } /* else fall through */
+	    } 
 	}
-	/* all of the AKI fields that were present passed the test */
+	
 	return PR_TRUE;
     }
-    /* else the AKI was not present, so this is a root */
+    
     return PR_TRUE;
 }
 
-/*
- * take a DER certificate and decode it into a certificate structure
- */
+
+
+
 CERTCertificate *
 CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 			 char *nickname)
@@ -752,14 +752,14 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     int len;
     char *tmpname;
     
-    /* make a new arena */
+    
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     
     if ( !arena ) {
 	return 0;
     }
 
-    /* allocate the certificate structure */
+    
     cert = (CERTCertificate *)PORT_ArenaZAlloc(arena, sizeof(CERTCertificate));
     
     if ( !cert ) {
@@ -769,7 +769,7 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     cert->arena = arena;
     
     if ( copyDER ) {
-	/* copy the DER data for the cert into this arena */
+	
 	data = (void *)PORT_ArenaAlloc(arena, derSignedCert->len);
 	if ( !data ) {
 	    goto loser;
@@ -778,11 +778,11 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 	cert->derCert.len = derSignedCert->len;
 	PORT_Memcpy(data, derSignedCert->data, derSignedCert->len);
     } else {
-	/* point to passed in DER data */
+	
 	cert->derCert = *derSignedCert;
     }
 
-    /* decode the certificate info */
+    
     rv = SEC_QuickDERDecodeItem(arena, cert, SEC_SignedCertificateTemplate,
 		    &cert->derCert);
 
@@ -794,18 +794,18 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
         cert->options.bits.hasUnsupportedCriticalExt = PR_TRUE;
     }
 
-    /* generate and save the database key for the cert */
+    
     rv = CERT_KeyFromIssuerAndSN(arena, &cert->derIssuer, &cert->serialNumber,
 			&cert->certKey);
     if ( rv ) {
 	goto loser;
     }
 
-    /* set the nickname */
+    
     if ( nickname == NULL ) {
 	cert->nickname = NULL;
     } else {
-	/* copy and install the nickname */
+	
 	len = PORT_Strlen(nickname) + 1;
 	cert->nickname = (char*)PORT_ArenaAlloc(arena, len);
 	if ( cert->nickname == NULL ) {
@@ -815,25 +815,25 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 	PORT_Memcpy(cert->nickname, nickname, len);
     }
 
-    /* set the email address */
+    
     cert->emailAddr = cert_GetCertificateEmailAddresses(cert);
     
-    /* initialize the subjectKeyID */
+    
     rv = cert_GetKeyID(cert);
     if ( rv != SECSuccess ) {
 	goto loser;
     }
 
-    /* initialize keyUsage */
+    
     rv = GetKeyUsage(cert);
     if ( rv != SECSuccess ) {
 	goto loser;
     }
 
-    /* determine if this is a root cert */
+    
     cert->isRoot = cert_IsRootCert(cert);
 
-    /* initialize the certType */
+    
     rv = cert_GetCertType(cert);
     if ( rv != SECSuccess ) {
 	goto loser;
@@ -930,23 +930,23 @@ CERT_DestroyValidity(CERTValidity *v)
     return;
 }
 
-/*
-** Amount of time that a certifiate is allowed good before it is actually
-** good. This is used for pending certificates, ones that are about to be
-** valid. The slop is designed to allow for some variance in the clocks
-** of the machine checking the certificate.
-*/
+
+
+
+
+
+
 #define PENDING_SLOP (24L*60L*60L)		/* seconds per day */
-static PRInt32 pendingSlop = PENDING_SLOP;	/* seconds */
+static PRInt32 pendingSlop = PENDING_SLOP;	
 
 PRInt32
 CERT_GetSlopTime(void)
 {
-    return pendingSlop;			/* seconds */
+    return pendingSlop;			
 }
 
 SECStatus
-CERT_SetSlopTime(PRInt32 slop)		/* seconds */
+CERT_SetSlopTime(PRInt32 slop)		
 {
     if (slop < 0)
 	return SECFailure;
@@ -955,7 +955,7 @@ CERT_SetSlopTime(PRInt32 slop)		/* seconds */
 }
 
 SECStatus
-CERT_GetCertTimes(CERTCertificate *c, PRTime *notBefore, PRTime *notAfter)
+CERT_GetCertTimes(const CERTCertificate *c, PRTime *notBefore, PRTime *notAfter)
 {
     SECStatus rv;
 
@@ -964,13 +964,13 @@ CERT_GetCertTimes(CERTCertificate *c, PRTime *notBefore, PRTime *notAfter)
         return SECFailure;
     }
     
-    /* convert DER not-before time */
+    
     rv = DER_DecodeTimeChoice(notBefore, &c->validity.notBefore);
     if (rv) {
 	return(SECFailure);
     }
     
-    /* convert DER not-after time */
+    
     rv = DER_DecodeTimeChoice(notAfter, &c->validity.notAfter);
     if (rv) {
 	return(SECFailure);
@@ -979,11 +979,12 @@ CERT_GetCertTimes(CERTCertificate *c, PRTime *notBefore, PRTime *notAfter)
     return(SECSuccess);
 }
 
-/*
- * Check the validity times of a certificate
- */
+
+
+
 SECCertTimeValidity
-CERT_CheckCertValidTimes(CERTCertificate *c, PRTime t, PRBool allowOverride)
+CERT_CheckCertValidTimes(const CERTCertificate *c, PRTime t,
+                         PRBool allowOverride)
 {
     PRTime notBefore, notAfter, llPendingSlop, tmp1;
     SECStatus rv;
@@ -992,7 +993,7 @@ CERT_CheckCertValidTimes(CERTCertificate *c, PRTime t, PRBool allowOverride)
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return(secCertTimeUndetermined);
     }
-    /* if cert is already marked OK, then don't bother to check */
+    
     if ( allowOverride && c->timeOK ) {
 	return(secCertTimeValid);
     }
@@ -1000,11 +1001,11 @@ CERT_CheckCertValidTimes(CERTCertificate *c, PRTime t, PRBool allowOverride)
     rv = CERT_GetCertTimes(c, &notBefore, &notAfter);
     
     if (rv) {
-	return(secCertTimeExpired); /*XXX is this the right thing to do here?*/
+	return(secCertTimeExpired); 
     }
     
     LL_I2L(llPendingSlop, pendingSlop);
-    /* convert to micro seconds */
+    
     LL_UI2L(tmp1, PR_USEC_PER_SEC);
     LL_MUL(llPendingSlop, llPendingSlop, tmp1);
     LL_SUB(notBefore, notBefore, llPendingSlop);
@@ -1025,13 +1026,13 @@ SEC_GetCrlTimes(CERTCrl *date, PRTime *notBefore, PRTime *notAfter)
 {
     int rv;
     
-    /* convert DER not-before time */
+    
     rv = DER_DecodeTimeChoice(notBefore, &date->lastUpdate);
     if (rv) {
 	return(SECFailure);
     }
     
-    /* convert DER not-after time */
+    
     if (date->nextUpdate.data) {
 	rv = DER_DecodeTimeChoice(notAfter, &date->nextUpdate);
 	if (rv) {
@@ -1044,9 +1045,9 @@ SEC_GetCrlTimes(CERTCrl *date, PRTime *notBefore, PRTime *notAfter)
     return(SECSuccess);
 }
 
-/* These routines should probably be combined with the cert
- * routines using an common extraction routine.
- */
+
+
+
 SECCertTimeValidity
 SEC_CheckCrlTimes(CERTCrl *crl, PRTime t) {
     PRTime notBefore, notAfter, llPendingSlop, tmp1;
@@ -1059,7 +1060,7 @@ SEC_CheckCrlTimes(CERTCrl *crl, PRTime t) {
     }
 
     LL_I2L(llPendingSlop, pendingSlop);
-    /* convert to micro seconds */
+    
     LL_I2L(tmp1, PR_USEC_PER_SEC);
     LL_MUL(llPendingSlop, llPendingSlop, tmp1);
     LL_SUB(notBefore, notBefore, llPendingSlop);
@@ -1067,9 +1068,9 @@ SEC_CheckCrlTimes(CERTCrl *crl, PRTime t) {
 	return(secCertTimeNotValidYet);
     }
 
-    /* If next update is omitted and the test for notBefore passes, then
-       we assume that the crl is up to date.
-     */
+    
+
+
     if ( LL_IS_ZERO(notAfter) ) {
 	return(secCertTimeValid);
     }
@@ -1087,21 +1088,21 @@ SEC_CrlIsNewer(CERTCrl *inNew, CERTCrl *old) {
     PRTime oldNotBefore, oldNotAfter;
     SECStatus rv;
 
-    /* problems with the new CRL? reject it */
+    
     rv = SEC_GetCrlTimes(inNew, &newNotBefore, &newNotAfter);
     if (rv) return PR_FALSE;
 
-    /* problems with the old CRL? replace it */
+    
     rv = SEC_GetCrlTimes(old, &oldNotBefore, &oldNotAfter);
     if (rv) return PR_TRUE;
 
-    /* Question: what about the notAfter's? */
+    
     return ((PRBool)LL_CMP(oldNotBefore, <, newNotBefore));
 }
    
-/*
- * return required key usage and cert type based on cert usage 
- */
+
+
+
 SECStatus
 CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 				 PRBool ca,
@@ -1156,11 +1157,11 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
     } else {
 	switch ( usage ) {
 	  case certUsageSSLClient:
-	    /* 
-	     * RFC 5280 lists digitalSignature and keyAgreement for
-	     * id-kp-clientAuth.  NSS does not support the *_fixed_dh and
-	     * *_fixed_ecdh client certificate types.
-	     */
+	    
+
+
+
+
 	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
 	    requiredCertType = NS_CERT_TYPE_SSL_CLIENT;
 	    break;
@@ -1186,7 +1187,7 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 	    requiredCertType = NS_CERT_TYPE_EMAIL;
 	    break;
 	  case certUsageObjectSigner:
-	    /* RFC 5280 lists only digitalSignature for id-kp-codeSigning. */
+	    
 	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
 	    requiredCertType = NS_CERT_TYPE_OBJECT_SIGNING;
 	    break;
@@ -1212,9 +1213,9 @@ loser:
     return(SECFailure);
 }
 
-/*
- * check the key usage of a cert against a set of required values
- */
+
+
+
 SECStatus
 CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 {
@@ -1222,12 +1223,12 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
-    /* choose between key agreement or key encipherment based on key
-     * type in cert
-     */
+    
+
+
     if ( requiredUsage & KU_KEY_AGREEMENT_OR_ENCIPHERMENT ) {
 	KeyType keyType = CERT_GetCertKeyType(&cert->subjectPublicKeyInfo);
-	/* turn off the special bit */
+	
 	requiredUsage &= (~KU_KEY_AGREEMENT_OR_ENCIPHERMENT);
 
 	switch (keyType) {
@@ -1241,7 +1242,7 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 	    requiredUsage |= KU_KEY_AGREEMENT;
 	    break;
 	case ecKey:
-	    /* Accept either signature or agreement. */
+	    
 	    if (!(cert->keyUsage & (KU_DIGITAL_SIGNATURE | KU_KEY_AGREEMENT)))
 		 goto loser;
 	    break;
@@ -1250,9 +1251,9 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 	}
     }
 
-    /* Allow either digital signature or non-repudiation */
+    
     if ( requiredUsage & KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION ) {
-	/* turn off the special bit */
+	
 	requiredUsage &= (~KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION);
 
         if (!(cert->keyUsage & (KU_DIGITAL_SIGNATURE | KU_NON_REPUDIATION)))
@@ -1278,10 +1279,10 @@ CERT_DupCertificate(CERTCertificate *c)
     return c;
 }
 
-/*
- * Allow use of default cert database, so that apps(such as mozilla) don't
- * have to pass the handle all over the place.
- */
+
+
+
+
 static CERTCertDBHandle *default_cert_db_handle = 0;
 
 void
@@ -1298,7 +1299,7 @@ CERT_GetDefaultCertDB(void)
     return(default_cert_db_handle);
 }
 
-/* XXX this would probably be okay/better as an xp routine? */
+
 static void
 sec_lower_string(char *s)
 {
@@ -1323,10 +1324,10 @@ cert_IsIPAddr(const char *hn)
     return isIPaddr;
 }
 
-/*
-** Add a domain name to the list of names that the user has explicitly
-** allowed (despite cert name mismatches) for use with a server cert.
-*/
+
+
+
+
 SECStatus
 CERT_AddOKDomainName(CERTCertificate *cert, const char *hn)
 {
@@ -1340,23 +1341,23 @@ CERT_AddOKDomainName(CERTCertificate *cert, const char *hn)
     domainOK = (CERTOKDomainName *)PORT_ArenaZAlloc(cert->arena, 
 				  (sizeof *domainOK) + newNameLen);
     if (!domainOK) 
-    	return SECFailure;	/* error code is already set. */
+    	return SECFailure;	
 
     PORT_Strcpy(domainOK->name, hn);
     sec_lower_string(domainOK->name);
 
-    /* put at head of list. */
+    
     domainOK->next = cert->domainOK;
     cert->domainOK = domainOK;
     return SECSuccess;
 }
 
-/* returns SECSuccess if hn matches pattern cn,
-** returns SECFailure with SSL_ERROR_BAD_CERT_DOMAIN if no match,
-** returns SECFailure with some other error code if another error occurs.
-**
-** This function may modify string cn, so caller must pass a modifiable copy.
-*/
+
+
+
+
+
+
 static SECStatus
 cert_TestHostName(char * cn, const char * hn)
 {
@@ -1366,11 +1367,11 @@ cert_TestHostName(char * cn, const char * hn)
         useShellExp = (NULL != PR_GetEnv("NSS_USE_SHEXP_IN_CERT_NAME"));
     }
     if (useShellExp) {
-    	/* Backward compatible code, uses Shell Expressions (SHEXP). */
+    	
 	int regvalid = PORT_RegExpValid(cn);
 	if (regvalid != NON_SXP) {
 	    SECStatus rv;
-	    /* cn is a regular expression, try to match the shexp */
+	    
 	    int match = PORT_RegExpCaseSearch(hn, cn);
 
 	    if ( match == 0 ) {
@@ -1382,30 +1383,30 @@ cert_TestHostName(char * cn, const char * hn)
 	    return rv;
 	}
     } else {
-	/* New approach conforms to RFC 2818. */
+	
 	char *wildcard    = PORT_Strchr(cn, '*');
 	char *firstcndot  = PORT_Strchr(cn, '.');
 	char *secondcndot = firstcndot ? PORT_Strchr(firstcndot+1, '.') : NULL;
 	char *firsthndot  = PORT_Strchr(hn, '.');
 
-	/* For a cn pattern to be considered valid, the wildcard character...
-	 * - may occur only in a DNS name with at least 3 components, and
-	 * - may occur only as last character in the first component, and
-	 * - may be preceded by additional characters
-	 */
+	
+
+
+
+
 	if (wildcard && secondcndot && secondcndot[1] && firsthndot 
 	    && firstcndot  - wildcard  == 1
 	    && secondcndot - firstcndot > 1
 	    && PORT_Strrchr(cn, '*') == wildcard
 	    && !PORT_Strncasecmp(cn, hn, wildcard - cn)
 	    && !PORT_Strcasecmp(firstcndot, firsthndot)) {
-	    /* valid wildcard pattern match */
+	    
 	    return SECSuccess;
 	}
     }
-    /* String cn has no wildcard or shell expression.  
-     * Compare entire string hn with cert name. 
-     */
+    
+
+
     if (PORT_Strcasecmp(hn, cn) == 0) {
 	return SECSuccess;
     }
@@ -1416,7 +1417,7 @@ cert_TestHostName(char * cn, const char * hn)
 
 
 SECStatus
-cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
+cert_VerifySubjectAltName(const CERTCertificate *cert, const char *hn)
 {
     PRArenaPool *     arena          = NULL;
     CERTGeneralName * nameList       = NULL;
@@ -1456,15 +1457,15 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 	switch (current->type) {
 	case certDNSName:
 	    if (!isIPaddr) {
-		/* DNS name current->name.other.data is not null terminated.
-		** so must copy it.  
-		*/
+		
+
+
 		int cnLen = current->name.other.len;
 		rv = CERT_RFC1485_EscapeAndQuote(cn, cnBufLen, 
 					    (char *)current->name.other.data,
 					    cnLen);
 		if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_OUTPUT_LEN) {
-		    cnBufLen = cnLen * 3 + 3; /* big enough for worst case */
+		    cnBufLen = cnLen * 3 + 3; 
 		    cn = (char *)PORT_ArenaAlloc(arena, cnBufLen);
 		    if (!cn)
 			goto fail;
@@ -1483,28 +1484,28 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 	    if (isIPaddr) {
 		int match = 0;
 		PRIPv6Addr v6Addr;
-		if (current->name.other.len == 4 &&         /* IP v4 address */
+		if (current->name.other.len == 4 &&         
 		    netAddr.inet.family == PR_AF_INET) {
 		    match = !memcmp(&netAddr.inet.ip, 
 		                    current->name.other.data, 4);
-		} else if (current->name.other.len == 16 && /* IP v6 address */
+		} else if (current->name.other.len == 16 && 
 		    netAddr.ipv6.family == PR_AF_INET6) {
 		    match = !memcmp(&netAddr.ipv6.ip,
 		                     current->name.other.data, 16);
-		} else if (current->name.other.len == 16 && /* IP v6 address */
+		} else if (current->name.other.len == 16 && 
 		    netAddr.inet.family == PR_AF_INET) {
-		    /* convert netAddr to ipv6, then compare. */
-		    /* ipv4 must be in Network Byte Order on input. */
+		    
+		    
 		    PR_ConvertIPv4AddrToIPv6(netAddr.inet.ip, &v6Addr);
 		    match = !memcmp(&v6Addr, current->name.other.data, 16);
-		} else if (current->name.other.len == 4 &&  /* IP v4 address */
+		} else if (current->name.other.len == 4 &&  
 		    netAddr.inet.family == PR_AF_INET6) {
-		    /* convert netAddr to ipv6, then compare. */
+		    
 		    PRUint32 ipv4 = (current->name.other.data[0] << 24) |
 		                    (current->name.other.data[1] << 16) |
 				    (current->name.other.data[2] <<  8) |
 				     current->name.other.data[3];
-		    /* ipv4 must be in Network Byte Order on input. */
+		    
 		    PR_ConvertIPv4AddrToIPv6(PR_htonl(ipv4), &v6Addr);
 		    match = !memcmp(&netAddr.ipv6.ip, &v6Addr, 16);
 		} 
@@ -1524,7 +1525,7 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 fail:
 
     if (!(isIPaddr ? IPextCount : DNSextCount)) {
-	/* no relevant value in the extension was found. */
+	
 	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
     } else {
 	PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
@@ -1533,7 +1534,7 @@ fail:
 
 finish:
 
-    /* Don't free nameList, it's part of the arena. */
+    
     if (arena) {
 	PORT_FreeArena(arena, PR_FALSE);
     }
@@ -1545,15 +1546,15 @@ finish:
     return rv;
 }
 
-/*
- * If found:
- *   - subAltName contains the extension (caller must free)
- *   - return value is the decoded namelist (allocated off arena)
- * if not found, or if failure to decode:
- *   - return value is NULL
- */
+
+
+
+
+
+
+
 CERTGeneralName *
-cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena)
+cert_GetSubjectAltNameList(const CERTCertificate *cert, PRArenaPool *arena)
 {
     CERTGeneralName * nameList       = NULL;
     SECStatus         rv             = SECFailure;
@@ -1603,11 +1604,11 @@ cert_CountDNSPatterns(CERTGeneralName *firstName)
 #define INET6_ADDRSTRLEN 46
 #endif
 
-/* will fill nickNames, 
- * will allocate all data from nickNames->arena,
- * numberOfGeneralNames should have been obtained from cert_CountDNSPatterns,
- * will ensure the numberOfGeneralNames matches the number of output entries.
- */
+
+
+
+
+
 SECStatus
 cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
                                     PRUint32 numberOfGeneralNames, 
@@ -1633,15 +1634,15 @@ cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
         PRNetAddr addr;
 
         if (numberOfGeneralNames < 1) {
-          /* internal consistency error */
+          
           return SECFailure;
         }
 
         switch (currentInput->type) {
         case certDNSName:
-            /* DNS name currentInput->name.other.data is not null terminated.
-            ** so must copy it.  
-            */
+            
+
+
             cn = (char *)PORT_ArenaAlloc(nickNames->arena, 
                                          currentInput->name.other.len + 1);
             if (!cn)
@@ -1681,12 +1682,12 @@ cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
     return (numberOfGeneralNames == 0) ? SECSuccess : SECFailure;
 }
 
-/*
- * Collect all valid DNS names from the given cert.
- * The output arena will reference some temporaray data,
- * but this saves us from dealing with two arenas.
- * The caller may free all data by freeing CERTCertNicknames->arena.
- */
+
+
+
+
+
+
 CERTCertNicknames *
 CERT_GetValidDNSPatternsFromCert(CERTCertificate *cert)
 {
@@ -1706,7 +1707,7 @@ CERT_GetValidDNSPatternsFromCert(CERTCertificate *cert)
       return NULL;
     }
 
-    /* init the structure */
+    
     nickNames->arena = arena;
     nickNames->head = NULL;
     nickNames->numnicknames = 0;
@@ -1723,19 +1724,19 @@ CERT_GetValidDNSPatternsFromCert(CERTCertificate *cert)
                                                           numNames, nickNames);
       }
 
-      /* if there were names, we'll exit now, either with success or failure */
+      
       if (numNames) {
         if (rv_getnames == SECSuccess) {
           return nickNames;
         }
 
-        /* failure to produce output */
+        
         PORT_FreeArena(arena, PR_FALSE);
         return NULL;
       }
     }
 
-    /* no SAN extension or no names found in extension */
+    
     singleName = CERT_GetCommonName(&cert->subject);
     if (singleName) {
       nickNames->numnicknames = 1;
@@ -1745,7 +1746,7 @@ CERT_GetValidDNSPatternsFromCert(CERTCertificate *cert)
       }
       PORT_Free(singleName);
 
-      /* Did we allocate both the buffer of pointers and the string? */
+      
       if (nickNames->nicknames && *nickNames->nicknames) {
         return nickNames;
       }
@@ -1755,12 +1756,12 @@ CERT_GetValidDNSPatternsFromCert(CERTCertificate *cert)
     return NULL;
 }
 
-/* Make sure that the name of the host we are connecting to matches the
- * name that is incoded in the common-name component of the certificate
- * that they are using.
- */
+
+
+
+
 SECStatus
-CERT_VerifyCertName(CERTCertificate *cert, const char *hn)
+CERT_VerifyCertName(const CERTCertificate *cert, const char *hn)
 {
     char *    cn;
     SECStatus rv;
@@ -1771,16 +1772,16 @@ CERT_VerifyCertName(CERTCertificate *cert, const char *hn)
 	return SECFailure;
     }
 
-    /* if the name is one that the user has already approved, it's OK. */
+    
     for (domainOK = cert->domainOK; domainOK; domainOK = domainOK->next) {
 	if (0 == PORT_Strcasecmp(hn, domainOK->name)) {
 	    return SECSuccess;
     	}
     }
 
-    /* Per RFC 2818, if the SubjectAltName extension is present, it must
-    ** be used as the cert's identity.
-    */
+    
+
+
     rv = cert_VerifySubjectAltName(cert, hn);
     if (rv == SECSuccess || PORT_GetError() != SEC_ERROR_EXTENSION_NOT_FOUND)
     	return rv;
@@ -1805,12 +1806,12 @@ CERT_VerifyCertName(CERTCertificate *cert, const char *hn)
 }
 
 PRBool
-CERT_CompareCerts(CERTCertificate *c1, CERTCertificate *c2)
+CERT_CompareCerts(const CERTCertificate *c1, const CERTCertificate *c2)
 {
     SECComparison comp;
     
     comp = SECITEM_CompareItem(&c1->derCert, &c2->derCert);
-    if ( comp == SECEqual ) { /* certs are the same */
+    if ( comp == SECEqual ) { 
 	return(PR_TRUE);
     } else {
 	return(PR_FALSE);
@@ -1820,17 +1821,17 @@ CERT_CompareCerts(CERTCertificate *c1, CERTCertificate *c2)
 static SECStatus
 StringsEqual(char *s1, char *s2) {
     if ( ( s1 == NULL ) || ( s2 == NULL ) ) {
-	if ( s1 != s2 ) { /* only one is null */
+	if ( s1 != s2 ) { 
 	    return(SECFailure);
 	}
-	return(SECSuccess); /* both are null */
+	return(SECSuccess); 
     }
 	
     if ( PORT_Strcmp( s1, s2 ) != 0 ) {
-	return(SECFailure); /* not equal */
+	return(SECFailure); 
     }
 
-    return(SECSuccess); /* strings are equal */
+    return(SECSuccess); 
 }
 
 
@@ -1842,17 +1843,17 @@ CERT_CompareCertsForRedirection(CERTCertificate *c1, CERTCertificate *c2)
     SECStatus eq;
     
     comp = SECITEM_CompareItem(&c1->derCert, &c2->derCert);
-    if ( comp == SECEqual ) { /* certs are the same */
+    if ( comp == SECEqual ) { 
 	return(PR_TRUE);
     }
 	
-    /* check if they are issued by the same CA */
+    
     comp = SECITEM_CompareItem(&c1->derIssuer, &c2->derIssuer);
-    if ( comp != SECEqual ) { /* different issuer */
+    if ( comp != SECEqual ) { 
 	return(PR_FALSE);
     }
 
-    /* check country name */
+    
     c1str = CERT_GetCountryName(&c1->subject);
     c2str = CERT_GetCountryName(&c2->subject);
     eq = StringsEqual(c1str, c2str);
@@ -1862,7 +1863,7 @@ CERT_CompareCertsForRedirection(CERTCertificate *c1, CERTCertificate *c2)
 	return(PR_FALSE);
     }
 
-    /* check locality name */
+    
     c1str = CERT_GetLocalityName(&c1->subject);
     c2str = CERT_GetLocalityName(&c2->subject);
     eq = StringsEqual(c1str, c2str);
@@ -1872,7 +1873,7 @@ CERT_CompareCertsForRedirection(CERTCertificate *c1, CERTCertificate *c2)
 	return(PR_FALSE);
     }
 	
-    /* check state name */
+    
     c1str = CERT_GetStateName(&c1->subject);
     c2str = CERT_GetStateName(&c2->subject);
     eq = StringsEqual(c1str, c2str);
@@ -1882,7 +1883,7 @@ CERT_CompareCertsForRedirection(CERTCertificate *c1, CERTCertificate *c2)
 	return(PR_FALSE);
     }
 
-    /* check org name */
+    
     c1str = CERT_GetOrgName(&c1->subject);
     c2str = CERT_GetOrgName(&c2->subject);
     eq = StringsEqual(c1str, c2str);
@@ -1893,11 +1894,11 @@ CERT_CompareCertsForRedirection(CERTCertificate *c1, CERTCertificate *c2)
     }
 
 #ifdef NOTDEF	
-    /* check orgUnit name */
-    /*
-     * We need to revisit this and decide which fields should be allowed to be
-     * different
-     */
+    
+    
+
+
+
     c1str = CERT_GetOrgUnitName(&c1->subject);
     c2str = CERT_GetOrgUnitName(&c2->subject);
     eq = StringsEqual(c1str, c2str);
@@ -1908,12 +1909,12 @@ CERT_CompareCertsForRedirection(CERTCertificate *c1, CERTCertificate *c2)
     }
 #endif
 
-    return(PR_TRUE); /* all fields but common name are the same */
+    return(PR_TRUE); 
 }
 
 
-/* CERT_CertChainFromCert and CERT_DestroyCertificateList moved
-   to certhigh.c */
+
+
 
 
 CERTIssuerAndSN *
@@ -1974,8 +1975,8 @@ CERT_MakeCANickname(CERTCertificate *cert)
 	}
     }
 
-    /* can only fail if PORT_Strdup fails, in which case
-     * we're having memory problems. */
+    
+
     if (org == NULL) {
 	goto done;
     }
@@ -2001,17 +2002,17 @@ CERT_MakeCANickname(CERTCertificate *cert)
 	    goto done;
 	}
 
-	/* look up the nickname to make sure it isn't in use already */
+	
 	dummycert = CERT_FindCertByNickname(cert->dbhandle, nickname);
 
 	if ( dummycert == NULL ) {
 	    goto done;
 	}
 	
-	/* found a cert, destroy it and loop */
+	
 	CERT_DestroyCertificate(dummycert);
 
-	/* free the nickname */
+	
 	PORT_Free(nickname);
 
 	count++;
@@ -2028,7 +2029,7 @@ done:
     return(nickname);
 }
 
-/* CERT_Import_CAChain moved to certhigh.c */
+
 
 void
 CERT_DestroyCrl (CERTSignedCrl *crl)
@@ -2090,10 +2091,10 @@ cert_ComputeTrustOverrides(CERTCertificate *cert, unsigned int cType)
     return cType;
 }
 
-/*
- * Does a cert belong to a CA?  We decide based on perm database trust
- * flags, Netscape Cert Type Extension, and KeyUsage Extension.
- */
+
+
+
+
 PRBool
 CERT_IsCACert(CERTCertificate *cert, unsigned int *rettype)
 {
@@ -2114,13 +2115,13 @@ CERT_IsCACert(CERTCertificate *cert, unsigned int *rettype)
 	} 
     }
 
-    /* finally check if it's an X.509 v1 root CA */
+    
     if (!ret && 
         (cert->isRoot && cert_Version(cert) < SEC_CERTIFICATE_VERSION_3)) {
 	ret = PR_TRUE;
 	cType |= (NS_CERT_TYPE_SSL_CA | NS_CERT_TYPE_EMAIL_CA);
     }
-    /* Now apply trust overrides, if any */
+    
     cType = cert_ComputeTrustOverrides(cert, cType);
     ret = (cType & (NS_CERT_TYPE_SSL_CA | NS_CERT_TYPE_EMAIL_CA |
                     NS_CERT_TYPE_OBJECT_SIGNING_CA)) ? PR_TRUE : PR_FALSE;
@@ -2136,7 +2137,7 @@ CERT_IsCADERCert(SECItem *derCert, unsigned int *type) {
     CERTCertificate *cert;
     PRBool isCA;
 
-    /* This is okay -- only looks at extensions */
+    
     cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
     if (cert == NULL) return PR_FALSE;
 
@@ -2151,7 +2152,7 @@ CERT_IsRootDERCert(SECItem *derCert)
     CERTCertificate *cert;
     PRBool isRoot;
 
-    /* This is okay -- only looks at extensions */
+    
     cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
     if (cert == NULL) return PR_FALSE;
 
@@ -2178,31 +2179,31 @@ CERT_CompareValidityTimes(CERTValidity* val_a, CERTValidity* val_b)
         return certValidityUndetermined;
     }
 
-    /* sanity check */
+    
     if (LL_CMP(notBeforeA,>,notAfterA) || LL_CMP(notBeforeB,>,notAfterB)) {
         PORT_SetError(SEC_ERROR_INVALID_TIME);
         return certValidityUndetermined;
     }
 
     if (LL_CMP(notAfterA,!=,notAfterB)) {
-        /* one cert validity goes farther into the future, select it */
+        
         return LL_CMP(notAfterA,<,notAfterB) ?
             certValidityChooseB : certValidityChooseA;
     }
-    /* the two certs have the same expiration date */
+    
     PORT_Assert(LL_CMP(notAfterA, == , notAfterB));
-    /* do they also have the same start date ? */
+    
     if (LL_CMP(notBeforeA,==,notBeforeB)) {
 	return certValidityEqual;
     }
-    /* choose cert with the later start date */
+    
     return LL_CMP(notBeforeA,<,notBeforeB) ?
         certValidityChooseB : certValidityChooseA;
 }
 
-/*
- * is certa newer than certb?  If one is expired, pick the other one.
- */
+
+
+
 PRBool
 CERT_IsNewer(CERTCertificate *certa, CERTCertificate *certb)
 {
@@ -2238,19 +2239,19 @@ CERT_IsNewer(CERTCertificate *certa, CERTCertificate *certb)
 	return(PR_FALSE);
     }
 
-    /* get current time */
+    
     now = PR_Now();
 
     if ( newerbefore ) {
-	/* cert A was issued after cert B, but expires sooner */
-	/* if A is expired, then pick B */
+	
+	
 	if ( LL_CMP(notAfterA, <, now ) ) {
 	    return(PR_FALSE);
 	}
 	return(PR_TRUE);
     } else {
-	/* cert B was issued after cert A, but expires sooner */
-	/* if B is expired, then pick A */
+	
+	
 	if ( LL_CMP(notAfterB, <, now ) ) {
 	    return(PR_TRUE);
 	}
@@ -2286,13 +2287,13 @@ CERT_FixupEmailAddr(const char *emailAddr)
 	return(NULL);
     }
     
-    /* copy the string */
+    
     str = retaddr = PORT_Strdup(emailAddr);
     if ( str == NULL ) {
 	return(NULL);
     }
     
-    /* make it lower case */
+    
     while ( *str ) {
 	*str = tolower( *str );
 	str++;
@@ -2301,9 +2302,9 @@ CERT_FixupEmailAddr(const char *emailAddr)
     return(retaddr);
 }
 
-/*
- * NOTE - don't allow encode of govt-approved or invisible bits
- */
+
+
+
 SECStatus
 CERT_DecodeTrustString(CERTCertTrust *trust, const char *trusts)
 {
@@ -2444,7 +2445,7 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 	    return(SECFailure);
 	}
     
-	/* decode all of the certs into the temporary DB */
+	
 	for ( i = 0, fcerts= 0; i < ncerts; i++) {
 	    certs[fcerts] = CERT_NewTempCertificate(certdb,
 	                                            derCerts[i],
@@ -2477,12 +2478,12 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
                 }
 
 		if(isCA && (fcerts > 1)) {
-		    /* if we are importing only a single cert and specifying
-		     * a nickname, we want to use that nickname if it a CA,
-		     * otherwise if there are more than one cert, we don't
-		     * know which cert it belongs to. But we still may try
-                     * the individual canickname from the cert itself.
-		     */
+		    
+
+
+
+
+
 		    rv = CERT_AddTempCertToPerm(certs[i], canickname, NULL);
 		} else {
 		    rv = CERT_AddTempCertToPerm(certs[i],
@@ -2490,7 +2491,7 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 		}
 
                 PORT_Free(canickname);
-		/* don't care if it fails - keep going */
+		
 	    }
 	}
     }
@@ -2506,10 +2507,10 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
     return ((fcerts || !ncerts) ? SECSuccess : SECFailure);
 }
 
-/*
- * a real list of certificates - need to convert CERTCertificateList
- * stuff and ASN 1 encoder/decoder over to using this...
- */
+
+
+
+
 CERTCertList *
 CERT_NewCertList(void)
 {
@@ -2578,7 +2579,7 @@ CERT_AddCertToListTailWithData(CERTCertList *certs,
     }
     
     PR_INSERT_BEFORE(&node->links, &certs->list);
-    /* certs->count++; */
+    
     node->cert = cert;
     node->appData = appData;
     return(SECSuccess);
@@ -2611,7 +2612,7 @@ CERT_AddCertToListHeadWithData(CERTCertList *certs,
     }
     
     PR_INSERT_BEFORE(&node->links, &head->links);
-    /* certs->count++; */
+    
     node->cert = cert;
     node->appData = appData;
     return(SECSuccess);
@@ -2626,10 +2627,10 @@ CERT_AddCertToListHead(CERTCertList *certs, CERTCertificate *cert)
     return CERT_AddCertToListHeadWithData(certs, cert, NULL);
 }
 
-/*
- * Sort callback function to determine if cert a is newer than cert b.
- * Not valid certs are considered older than valid certs.
- */
+
+
+
+
 PRBool
 CERT_SortCBValidity(CERTCertificate *certa,
 		    CERTCertificate *certb,
@@ -2661,29 +2662,29 @@ CERT_SortCBValidity(CERTCertificate *certa,
 	newerafter = PR_TRUE;
     }
 
-    /* check if A is valid at sorttime */
+    
     if ( CERT_CheckCertValidTimes(certa, sorttime, PR_FALSE)
 	!= secCertTimeValid ) {
 	aNotValid = PR_TRUE;
     }
 
-    /* check if B is valid at sorttime */
+    
     if ( CERT_CheckCertValidTimes(certb, sorttime, PR_FALSE)
 	!= secCertTimeValid ) {
 	bNotValid = PR_TRUE;
     }
 
-    /* a is valid, b is not */
+    
     if ( bNotValid && ( ! aNotValid ) ) {
 	return(PR_TRUE);
     }
 
-    /* b is valid, a is not */
+    
     if ( aNotValid && ( ! bNotValid ) ) {
 	return(PR_FALSE);
     }
     
-    /* a and b are either valid or not valid */
+    
     if ( newerbefore && newerafter ) {
 	return(PR_TRUE);
     }
@@ -2693,10 +2694,10 @@ CERT_SortCBValidity(CERTCertificate *certa,
     }
 
     if ( newerbefore ) {
-	/* cert A was issued after cert B, but expires sooner */
+	
 	return(PR_TRUE);
     } else {
-	/* cert B was issued after cert A, but expires sooner */
+	
 	return(PR_FALSE);
     }
 }
@@ -2722,16 +2723,16 @@ CERT_AddCertToListSorted(CERTCertList *certs,
     
     while ( !CERT_LIST_END(head, certs) ) {
 
-	/* if cert is already in the list, then don't add it again */
+	
 	if ( cert == head->cert ) {
-	    /*XXX*/
-	    /* don't keep a reference */
+	    
+	    
 	    CERT_DestroyCertificate(cert);
 	    goto done;
 	}
 	
 	ret = (* f)(cert, head->cert, arg);
-	/* if sort function succeeds, then insert before current node */
+	
 	if ( ret ) {
 	    PR_INSERT_BEFORE(&node->links, &head->links);
 	    goto done;
@@ -2739,11 +2740,11 @@ CERT_AddCertToListSorted(CERTCertList *certs,
 
 	head = CERT_LIST_NEXT(head);
     }
-    /* if we get to the end, then just insert it at the tail */
+    
     PR_INSERT_BEFORE(&node->links, &certs->list);
 
 done:    
-    /* certs->count++; */
+    
     node->cert = cert;
     return(SECSuccess);
     
@@ -2751,14 +2752,14 @@ loser:
     return(SECFailure);
 }
 
-/* This routine is here because pcertdb.c still has a call to it.
- * The SMIME profile code in pcertdb.c should be split into high (find
- * the email cert) and low (store the profile) code.  At that point, we
- * can move this to certhigh.c where it belongs.
- *
- * remove certs from a list that don't have keyUsage and certType
- * that match the given usage.
- */
+
+
+
+
+
+
+
+
 SECStatus
 CERT_FilterCertListByUsage(CERTCertList *certList, SECCertUsage usage,
 			   PRBool ca)
@@ -2782,19 +2783,19 @@ CERT_FilterCertListByUsage(CERTCertList *certList, SECCertUsage usage,
 
 	PRBool bad = (PRBool)(!node->cert);
 
-	/* bad key usage ? */
+	
 	if ( !bad && 
 	     CERT_CheckKeyUsage(node->cert, requiredKeyUsage) != SECSuccess ) {
 	    bad = PR_TRUE;
 	}
-	/* bad cert type ? */
+	
 	if ( !bad ) {
 	    unsigned int certType = 0;
 	    if ( ca ) {
-		/* This function returns a more comprehensive cert type that
-		 * takes trust flags into consideration.  Should probably
-		 * fix the cert decoding code to do this.
-		 */
+		
+
+
+
 		(void)CERT_IsCACert(node->cert, &certType);
 	    } else {
 		certType = node->cert->nsCertType;
@@ -2805,7 +2806,7 @@ CERT_FilterCertListByUsage(CERTCertList *certList, SECCertUsage usage,
 	}
 
 	if ( bad ) {
-	    /* remove the node if it is bad */
+	    
 	    savenode = CERT_LIST_NEXT(node);
 	    CERT_RemoveCertListNode(node);
 	    node = savenode;
@@ -2850,12 +2851,12 @@ CERT_FilterCertListForUserCerts(CERTCertList *certList)
     while ( ! CERT_LIST_END(node, certList) ) {
 	cert = node->cert;
 	if ( PR_TRUE != CERT_IsUserCert(cert) ) {
-	    /* Not a User Cert, so remove this cert from the list */
+	    
 	    freenode = node;
 	    node = CERT_LIST_NEXT(node);
 	    CERT_RemoveCertListNode(freenode);
 	} else {
-	    /* Is a User cert, so leave it in the list */
+	    
 	    node = CERT_LIST_NEXT(node);
 	}
     }
@@ -2865,12 +2866,12 @@ CERT_FilterCertListForUserCerts(CERTCertList *certList)
 
 static PZLock *certRefCountLock = NULL;
 
-/*
- * Acquire the cert reference count lock
- * There is currently one global lock for all certs, but I'm putting a cert
- * arg here so that it will be easy to make it per-cert in the future if
- * that turns out to be necessary.
- */
+
+
+
+
+
+
 void
 CERT_LockCertRefCount(CERTCertificate *cert)
 {
@@ -2879,9 +2880,9 @@ CERT_LockCertRefCount(CERTCertificate *cert)
     return;
 }
 
-/*
- * Free the cert reference count lock
- */
+
+
+
 void
 CERT_UnlockCertRefCount(CERTCertificate *cert)
 {
@@ -2898,14 +2899,14 @@ CERT_UnlockCertRefCount(CERTCertificate *cert)
 
 static PZLock *certTrustLock = NULL;
 
-/*
- * Acquire the cert trust lock
- * There is currently one global lock for all certs, but I'm putting a cert
- * arg here so that it will be easy to make it per-cert in the future if
- * that turns out to be necessary.
- */
+
+
+
+
+
+
 void
-CERT_LockCertTrust(CERTCertificate *cert)
+CERT_LockCertTrust(const CERTCertificate *cert)
 {
     PORT_Assert(certTrustLock != NULL);
     PZ_Lock(certTrustLock);
@@ -2959,11 +2960,11 @@ cert_DestroyLocks(void)
     return rv;
 }
 
-/*
- * Free the cert trust lock
- */
+
+
+
 void
-CERT_UnlockCertTrust(CERTCertificate *cert)
+CERT_UnlockCertTrust(const CERTCertificate *cert)
 {
     PRStatus prstat;
 
@@ -2977,19 +2978,19 @@ CERT_UnlockCertTrust(CERTCertificate *cert)
 }
 
 
-/*
- * Get the StatusConfig data for this handle
- */
+
+
+
 CERTStatusConfig *
 CERT_GetStatusConfig(CERTCertDBHandle *handle)
 {
   return handle->statusConfig;
 }
 
-/*
- * Set the StatusConfig data for this handle.  There
- * should not be another configuration set.
- */
+
+
+
+
 void
 CERT_SetStatusConfig(CERTCertDBHandle *handle, CERTStatusConfig *statusConfig)
 {
@@ -2997,9 +2998,9 @@ CERT_SetStatusConfig(CERTCertDBHandle *handle, CERTStatusConfig *statusConfig)
   handle->statusConfig = statusConfig;
 }
 
-/*
- * Code for dealing with subjKeyID to cert mappings.
- */
+
+
+
 
 static PLHashTable *gSubjKeyIDHash = NULL;
 static PRLock      *gSubjKeyIDLock = NULL;
@@ -3037,10 +3038,10 @@ static PLHashAllocOps cert_AllocOps = {
 SECStatus
 cert_CreateSubjectKeyIDSlotCheckHash(void)
 {
-    /*
-     * This hash is used to remember the series of a slot
-     * when we last checked for user certs
-     */
+    
+
+
+
     gSubjKeyIDSlotCheckHash = PL_NewHashTable(0, SECITEM_Hash,
                                              SECITEM_HashCompare,
                                              SECITEM_HashCompare,
@@ -3076,7 +3077,7 @@ cert_CreateSubjectKeyIDHashTable(void)
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return SECFailure;
     }
-    /* initialize the companion hash (for remembering slot series) */
+    
     if (cert_CreateSubjectKeyIDSlotCheckHash() != SECSuccess) {
 	cert_DestroySubjectKeyIDHashTable();
 	return SECFailure;
@@ -3091,7 +3092,7 @@ cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert)
     SECStatus rv = SECFailure;
 
     if (!gSubjKeyIDLock) {
-	/* If one is created, then both are there.  So only check for one. */
+	
 	return SECFailure;
     }
 
@@ -3108,11 +3109,11 @@ cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert)
     }
 
     PR_Lock(gSubjKeyIDLock);
-    /* The hash table implementation does not free up the memory 
-     * associated with the key of an already existing entry if we add a 
-     * duplicate, so we would wind up leaking the previously allocated 
-     * key if we don't remove before adding.
-     */
+    
+
+
+
+
     oldVal = (SECItem*)PL_HashTableLookup(gSubjKeyIDHash, subjKeyID);
     if (oldVal) {
         PL_HashTableRemove(gSubjKeyIDHash, subjKeyID);
@@ -3160,10 +3161,10 @@ cert_UpdateSubjectKeyIDSlotCheck(SECItem *slotid, int series)
     PR_Lock(gSubjKeyIDSlotCheckLock);
     oldSeries = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
     if (oldSeries) {
-	/* 
-	 * make sure we don't leak the key of an existing entry
-	 * (similar to cert_AddSubjectKeyIDMapping, see comment there)
-	 */
+	
+
+
+
         PL_HashTableRemove(gSubjKeyIDSlotCheckHash, slotid);
     }
     rv = (PL_HashTableAdd(gSubjKeyIDSlotCheckHash, newSlotid, newSeries)) ?
@@ -3197,12 +3198,12 @@ cert_SubjectKeyIDSlotCheckSeries(SECItem *slotid)
     PR_Lock(gSubjKeyIDSlotCheckLock);
     seriesItem = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
     PR_Unlock(gSubjKeyIDSlotCheckLock);
-     /* getting a null series just means we haven't registered one yet, 
-      * just return 0 */
+     
+
     if (seriesItem == NULL) {
 	return 0;
     }
-    /* if we got a series back, assert if it's not the proper length. */
+    
     PORT_Assert(seriesItem->len == sizeof(int));
     if (seriesItem->len != sizeof(int)) {
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);

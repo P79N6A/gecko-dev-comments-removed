@@ -237,6 +237,9 @@ mp_err ec_group_set_gf2m193(ECGroup *group, ECCurveName name);
 mp_err ec_group_set_gf2m233(ECGroup *group, ECCurveName name);
 
 
+mp_err ec_group_set_gfp256_32(ECGroup *group, ECCurveName name);
+
+
 #ifdef ECL_USE_FP
 mp_err ec_group_set_secp160r1_fp(ECGroup *group);
 mp_err ec_group_set_nistp192_fp(ECGroup *group);

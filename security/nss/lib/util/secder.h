@@ -73,7 +73,7 @@ extern SECStatus DER_SetUInteger(PLArenaPool *arena, SECItem *dst, PRUint32 src)
 
 
 
-extern long DER_GetInteger(SECItem *src);
+extern long DER_GetInteger(const SECItem *src);
 
 
 

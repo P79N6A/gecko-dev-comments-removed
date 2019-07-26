@@ -143,12 +143,13 @@ extern PRBool SEC_PKCS7VerifyDetachedSignature(SEC_PKCS7ContentInfo *cinfo,
 
 
 
-extern PRBool SEC_PKCS7VerifyDetachedSignatureAtTime(SEC_PKCS7ContentInfo *cinfo,
-						     SECCertUsage certusage,
-						     const SECItem *detached_digest,
-						     HASH_HashType digest_type,
-						     PRBool keepcerts,
-						     PRTime atTime);
+extern PRBool
+SEC_PKCS7VerifyDetachedSignatureAtTime(SEC_PKCS7ContentInfo *cinfo,
+				       SECCertUsage certusage,
+				       const SECItem *detached_digest,
+				       HASH_HashType digest_type,
+				       PRBool keepcerts,
+				       PRTime atTime);
 
 
 
