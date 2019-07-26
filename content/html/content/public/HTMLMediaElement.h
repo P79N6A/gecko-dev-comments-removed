@@ -17,6 +17,7 @@
 #include "DecoderTraits.h"
 #include "nsIAudioChannelAgent.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/dom/TextTrackManager.h"
 
 
@@ -513,12 +514,8 @@ public:
 
   double MozFragmentEnd();
 
-  
-
-  void SetMozAudioChannelType(const nsAString& aValue, ErrorResult& aRv)
-  {
-    SetHTMLAttr(nsGkAtoms::mozaudiochannel, aValue, aRv);
-  }
+  AudioChannel MozAudioChannelType() const;
+  void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
 
   TextTrackList* TextTracks() const;
 
