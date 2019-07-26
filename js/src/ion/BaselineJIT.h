@@ -311,6 +311,9 @@ struct BaselineBailoutInfo
 
     
     uint32_t numFrames;
+
+    
+    BailoutKind bailoutKind;
 };
 
 uint32_t
