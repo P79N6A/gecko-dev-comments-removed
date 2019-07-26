@@ -26,6 +26,7 @@ class nsIContent;
 class nsIPrincipal;
 class nsIURI;
 class nsIWidget;
+class nsILoadContext;
 class CpowHolder;
 
 namespace mozilla {
@@ -58,7 +59,7 @@ class TabParent : public PBrowserParent
     typedef mozilla::layout::ScrollingBehavior ScrollingBehavior;
 
 public:
-    TabParent(ContentParent* aManager, const TabContext& aContext);
+    TabParent(ContentParent* aManager, const TabContext& aContext, uint32_t aChromeFlags);
     virtual ~TabParent();
     Element* GetOwnerElement() const { return mFrameElement; }
     void SetOwnerElement(Element* aElement);
@@ -80,6 +81,8 @@ public:
     void SetBrowserDOMWindow(nsIBrowserDOMWindow* aBrowserDOMWindow) {
         mBrowserDOMWindow = aBrowserDOMWindow;
     }
+
+    already_AddRefed<nsILoadContext> GetLoadContext();
 
     
 
@@ -372,6 +375,10 @@ private:
     bool mIsDestroyed;
     
     bool mAppPackageFileDescriptorSent;
+
+    uint32_t mChromeFlags;
+
+    nsCOMPtr<nsILoadContext> mLoadContext;
 };
 
 } 
