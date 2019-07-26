@@ -122,8 +122,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-  {0xb0f585b5, 0x199b, 0x4cd7, \
-    {0x9c, 0xee, 0xea, 0xfd, 0x40, 0xc4, 0x88, 0x6f}}
+{ 0x0841d094, 0xdebf, 0x4255, \
+  { 0xbc, 0x7c, 0xc6, 0xff, 0x63, 0x8b, 0x2c, 0x83 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1236,7 +1236,6 @@ public:
     PAINT_LAYERS = 0x01,
     
     PAINT_COMPOSITE = 0x02,
-    PAINT_WILL_SEND_DID_PAINT = 0x80
   };
   virtual void Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
                      uint32_t aFlags) = 0;
@@ -1252,13 +1251,13 @@ public:
 
 
 
-  virtual void WillPaint(bool aWillSendDidPaint) = 0;
+  virtual void WillPaint() = 0;
   
 
 
 
 
-  virtual void WillPaintWindow(bool aWillSendDidPaint) = 0;
+  virtual void WillPaintWindow() = 0;
   
 
 
