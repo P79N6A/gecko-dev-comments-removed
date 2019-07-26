@@ -92,6 +92,9 @@ void utb__finish_sync_buffer(ThreadProfile* aProfile,
 void utb__release_sync_buffer(LinkedUWTBuffer* utb);
 
 
+void utb__end_sync_buffer_unwind(LinkedUWTBuffer* utb);
+
+
 typedef void (*UTB_RELEASE_FUNC)(ThreadProfile*,UnwinderThreadBuffer*,void*);
 
 #if defined(SPS_OS_android) || defined(SPS_OS_linux)

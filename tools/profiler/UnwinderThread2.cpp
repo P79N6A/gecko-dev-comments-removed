@@ -117,6 +117,11 @@ utb__release_sync_buffer(LinkedUWTBuffer* utb)
 {
 }
 
+void
+utb__end_sync_buffer_unwind(LinkedUWTBuffer* utb)
+{
+}
+
 
 void
 uwt__release_full_buffer(ThreadProfile* aProfile,
@@ -170,6 +175,9 @@ static void finish_sync_buffer(ThreadProfile* aProfile,
 
 
 static void release_sync_buffer(LinkedUWTBuffer* utb);
+
+
+static void end_sync_buffer_unwind(LinkedUWTBuffer* utb);
 
 
 
@@ -257,6 +265,12 @@ void utb__finish_sync_buffer(ThreadProfile* profile,
 void utb__release_sync_buffer(LinkedUWTBuffer* buff)
 {
   release_sync_buffer(buff);
+}
+
+void
+utb__end_sync_buffer_unwind(LinkedUWTBuffer* utb)
+{
+  end_sync_buffer_unwind(utb);
 }
 
 
@@ -1086,6 +1100,16 @@ static ProfileEntry utb_get_profent(UnwinderThreadBuffer* buff, uintptr_t i)
 }
 
 
+static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix);
+
+static void process_sync_buffer(ProfileEntry& ent)
+{
+  UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
+  buff->state = S_EMPTYING;
+  process_buffer(buff, -1);
+}
+
+
 
 
 
@@ -1167,8 +1191,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
       if (ent.is_ent('B')) {
-        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
-        process_buffer(buff, -1);
+        process_sync_buffer(ent);
         continue;
       }
       
@@ -1205,8 +1228,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
       if (ent.is_ent('B')) {
-        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
-        process_buffer(buff, -1);
+        process_sync_buffer(ent);
         continue;
       }
       
@@ -1232,8 +1254,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
       if (ent.is_ent('B')) {
-        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
-        process_buffer(buff, -1);
+        process_sync_buffer(ent);
         continue;
       }
       
@@ -1265,8 +1286,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
       if (ent.is_ent('B')) {
-        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
-        process_buffer(buff, -1);
+        process_sync_buffer(ent);
         continue;
       }
       
@@ -1747,8 +1767,16 @@ static void finish_sync_buffer(ThreadProfile* profile,
 static void release_sync_buffer(LinkedUWTBuffer* buff)
 {
   SyncUnwinderThreadBuffer* data = static_cast<SyncUnwinderThreadBuffer*>(buff);
-  MOZ_ASSERT(data->GetBuffer()->state == S_EMPTY);
+  
+  MOZ_ASSERT(data->GetBuffer()->state == S_EMPTY ||
+             data->GetBuffer()->state == S_FILLING);
   delete data;
+}
+
+static void end_sync_buffer_unwind(LinkedUWTBuffer* buff)
+{
+  SyncUnwinderThreadBuffer* data = static_cast<SyncUnwinderThreadBuffer*>(buff);
+  data->GetBuffer()->state = S_EMPTY;
 }
 
 
