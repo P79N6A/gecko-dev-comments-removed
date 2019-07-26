@@ -230,7 +230,7 @@ template <class T> class MediaQueue : private nsDeque {
    MediaQueue()
      : nsDeque(new MediaQueueDeallocator<T>()),
        mReentrantMonitor("mediaqueue"),
-       mEndOfStream(0)
+       mEndOfStream(false)
    {}
   
   ~MediaQueue() {
