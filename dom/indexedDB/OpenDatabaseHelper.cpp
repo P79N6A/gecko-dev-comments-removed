@@ -1517,8 +1517,7 @@ public:
         
         
         
-        indexedDB::IndexedDatabaseManager* manager =
-          indexedDB::IndexedDatabaseManager::Get();
+        IndexedDatabaseManager* manager = IndexedDatabaseManager::Get();
         NS_ASSERTION(manager, "Huh?");
         manager->AbortCloseDatabasesForWindow(owner);
 
