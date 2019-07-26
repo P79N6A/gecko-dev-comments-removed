@@ -233,7 +233,12 @@ GonkDiskSpaceWatcher::OnFileCanReadWithoutBlocking(int aFd)
   } while(len == -1 && errno == EINTR);
 
   
-  if (len <= 0 || (len % sizeof(*fem) != 0)) {
+  if (len < 0 && errno == ETXTBSY) {
+    return;
+  }
+
+  
+  if (len <= 0 || (len % FAN_EVENT_METADATA_LEN != 0)) {
     printf_stderr("About to crash: fanotify_event_metadata read error.");
     MOZ_CRASH();
   }
