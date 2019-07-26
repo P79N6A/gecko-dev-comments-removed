@@ -198,7 +198,7 @@ class CallObject : public ScopeObject
     static CallObject *createForFunction(JSContext *cx, HandleObject enclosing, HandleFunction callee);
 
     static CallObject *createForFunction(JSContext *cx, AbstractFramePtr frame);
-    static CallObject *createForStrictEval(JSContext *cx, StackFrame *fp);
+    static CallObject *createForStrictEval(JSContext *cx, AbstractFramePtr frame);
 
     
     inline bool isForEval() const;
