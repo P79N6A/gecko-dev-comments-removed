@@ -224,6 +224,13 @@ private:
   
   
   
+  void DownmixToStereo(nsAutoArrayPtr<AudioDataValue>& buffer,
+                     uint32_t& channel, int32_t frames);
+
+  
+  
+  
+  
   
   nsresult DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold);
 
