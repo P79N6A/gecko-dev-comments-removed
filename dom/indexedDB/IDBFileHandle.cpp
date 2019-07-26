@@ -41,13 +41,6 @@ IDBFileHandle::IDBFileHandle(IDBDatabase* aOwner)
 }
 
 
-JSObject*
-IDBFileHandle::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
-{
-  return IDBFileHandleBinding::Wrap(aCx, aScope, this);
-}
-
-
 already_AddRefed<IDBFileHandle>
 IDBFileHandle::Create(IDBDatabase* aDatabase,
                       const nsAString& aName,
@@ -111,6 +104,13 @@ IDBFileHandle::CreateFileObject(mozilla::dom::file::LockedFile* aLockedFile,
     mName, mType, aFileSize, mFile, aLockedFile, mFileInfo);
 
   return file.forget();
+}
+
+
+JSObject*
+IDBFileHandle::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+{
+  return IDBFileHandleBinding::Wrap(aCx, aScope, this);
 }
 
 IDBDatabase*
