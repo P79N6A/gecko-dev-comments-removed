@@ -678,8 +678,15 @@ this.PushService = {
     else if (this._currentState == STATE_READY) {
       
       
-      this._ws.sendMsg('{}');
-      debug("Sent ping.");
+      
+      
+      
+      
+      try {
+        this._ws.sendMsg('{}');
+      } catch (e) {
+      }
+
       this._waitingForPong = true;
       this._setAlarm(prefs.get("requestTimeout"));
     }
