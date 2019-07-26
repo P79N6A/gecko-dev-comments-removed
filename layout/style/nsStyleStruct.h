@@ -1819,7 +1819,7 @@ struct nsStyleDisplay {
   nsStyleCoord mChildPerspective; 
   nsStyleCoord mPerspectiveOrigin[2]; 
 
-  nsAutoTArray<nsTransition, 1> mTransitions; 
+  AutoFallibleTArray<nsTransition, 1> mTransitions; 
   
   
   uint32_t mTransitionTimingFunctionCount,
@@ -1827,7 +1827,7 @@ struct nsStyleDisplay {
            mTransitionDelayCount,
            mTransitionPropertyCount;
 
-  nsAutoTArray<nsAnimation, 1> mAnimations; 
+  AutoFallibleTArray<nsAnimation, 1> mAnimations; 
   
   
   uint32_t mAnimationTimingFunctionCount,
