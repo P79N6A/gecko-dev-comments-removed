@@ -618,10 +618,24 @@ public:
 
   
   
-  void UpdatePlaybackRate();
+  virtual void UpdatePlaybackRate();
 
   
-  double ComputePlaybackRate(bool* aReliable);
+  
+  virtual void NotifyPlaybackStarted() {
+    GetReentrantMonitor().AssertCurrentThreadIn();
+    mPlaybackStatistics.Start();
+  }
+
+  
+  
+  virtual void NotifyPlaybackStopped() {
+    GetReentrantMonitor().AssertCurrentThreadIn();
+    mPlaybackStatistics.Stop();
+  }
+
+  
+  virtual double ComputePlaybackRate(bool* aReliable);
 
   
   
@@ -787,7 +801,7 @@ public:
   
   
   
-  Statistics GetStatistics();
+  virtual Statistics GetStatistics();
 
   
   
@@ -862,7 +876,7 @@ public:
 
   
   
-  virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) MOZ_FINAL MOZ_OVERRIDE
+  virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) MOZ_OVERRIDE
   {
     GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded);
   }
@@ -881,10 +895,6 @@ public:
   
   
   int64_t mPlaybackPosition;
-  
-  
-  
-  MediaChannelStatistics mPlaybackStatistics;
 
   
   
@@ -1049,6 +1059,11 @@ protected:
   
   
   TimeStamp mDataTime;
+
+  
+  
+  
+  MediaChannelStatistics mPlaybackStatistics;
 
   
   uint32_t mFrameBufferLength;

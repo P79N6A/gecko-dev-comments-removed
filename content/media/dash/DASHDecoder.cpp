@@ -156,9 +156,12 @@ DASHDecoder::DASHDecoder() :
   mVideoSubsegmentIdx(0),
   mAudioMetadataReadCount(0),
   mVideoMetadataReadCount(0),
-  mSeeking(false)
+  mSeeking(false),
+  mStatisticsLock("DASHDecoder.mStatisticsLock")
 {
   MOZ_COUNT_CTOR(DASHDecoder);
+  mAudioStatistics = new MediaChannelStatistics();
+  mVideoStatistics = new MediaChannelStatistics();
 }
 
 DASHDecoder::~DASHDecoder()
@@ -536,6 +539,7 @@ DASHDecoder::CreateAudioSubResource(nsIURI* aUrl,
     = MediaResource::Create(aAudioDecoder, channel);
   NS_ENSURE_TRUE(audioResource, nullptr);
 
+  audioResource->RecordStatisticsTo(mAudioStatistics);
   return audioResource;
 }
 
@@ -557,6 +561,7 @@ DASHDecoder::CreateVideoSubResource(nsIURI* aUrl,
     = MediaResource::Create(aVideoDecoder, channel);
   NS_ENSURE_TRUE(videoResource, nullptr);
 
+  videoResource->RecordStatisticsTo(mVideoStatistics);
   return videoResource;
 }
 
@@ -916,13 +921,17 @@ DASHDecoder::PossiblySwitchDecoder(DASHRepDecoder* aRepDecoder)
   NS_ASSERTION(VideoRepDecoder()->GetResource(),
                "Video resource should not be null");
   bool reliable = false;
-  double downloadRate = VideoRepDecoder()->GetResource()->GetDownloadRate(&reliable);
+  double downloadRate = 0;
+  {
+    MutexAutoLock lock(mStatisticsLock);
+    downloadRate = mVideoStatistics->GetRate(&reliable);
+  }
   uint32_t bestRepIdx = UINT32_MAX;
   bool noRepAvailable = !mMPDManager->GetBestRepForBandwidth(mVideoAdaptSetIdx,
                                                              downloadRate,
                                                              bestRepIdx);
-  LOG("downloadRate [%f] reliable [%s] bestRepIdx [%d] noRepAvailable",
-      downloadRate, (reliable ? "yes" : "no"), bestRepIdx,
+  LOG("downloadRate [%0.2f kbps] reliable [%s] bestRepIdx [%d] noRepAvailable [%s]",
+      downloadRate/1000.0, (reliable ? "yes" : "no"), bestRepIdx,
       (noRepAvailable ? "yes" : "no"));
 
   
@@ -1119,5 +1128,124 @@ DASHDecoder::SetSubsegmentIndex(DASHRepDecoder* aRepDecoder,
   }
 }
 
-} 
+double
+DASHDecoder::ComputePlaybackRate(bool* aReliable)
+{
+  GetReentrantMonitor().AssertCurrentThreadIn();
+  MOZ_ASSERT(NS_IsMainThread() || OnStateMachineThread());
+  NS_ASSERTION(aReliable, "Bool pointer aRelible should not be null!");
 
+  
+  if (mResource && !mMPDManager) {
+    return 0;
+  }
+
+  
+  
+  
+  double videoRate = 0;
+  if (VideoRepDecoder()) {
+    videoRate = VideoRepDecoder()->ComputePlaybackRate(aReliable);
+  }
+  return videoRate;
+}
+
+void
+DASHDecoder::UpdatePlaybackRate()
+{
+  MOZ_ASSERT(NS_IsMainThread() || OnStateMachineThread());
+  GetReentrantMonitor().AssertCurrentThreadIn();
+  
+  
+  if (mResource && !mMPDManager) {
+    return;
+  }
+  
+  
+  if (AudioRepDecoder()) {
+    AudioRepDecoder()->UpdatePlaybackRate();
+  }
+  if (VideoRepDecoder()) {
+    VideoRepDecoder()->UpdatePlaybackRate();
+  }
+}
+
+void
+DASHDecoder::NotifyPlaybackStarted()
+{
+  GetReentrantMonitor().AssertCurrentThreadIn();
+  
+  
+  if (mResource && !mMPDManager) {
+    return;
+  }
+  
+  
+  if (AudioRepDecoder()) {
+    AudioRepDecoder()->NotifyPlaybackStarted();
+  }
+  if (VideoRepDecoder()) {
+    VideoRepDecoder()->NotifyPlaybackStarted();
+  }
+}
+
+void
+DASHDecoder::NotifyPlaybackStopped()
+{
+  GetReentrantMonitor().AssertCurrentThreadIn();
+  
+  
+  if (mResource && !mMPDManager) {
+    return;
+  }
+  
+  
+  if (AudioRepDecoder()) {
+    AudioRepDecoder()->NotifyPlaybackStopped();
+  }
+  if (VideoRepDecoder()) {
+    VideoRepDecoder()->NotifyPlaybackStopped();
+  }
+}
+
+MediaDecoder::Statistics
+DASHDecoder::GetStatistics()
+{
+  MOZ_ASSERT(NS_IsMainThread() || OnStateMachineThread());
+  Statistics result;
+
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  if (mResource && !mMPDManager) {
+    return MediaDecoder::GetStatistics();
+  }
+
+  
+  
+  
+  if (VideoRepDecoder() && VideoRepDecoder()->GetResource()) {
+    MediaResource *resource = VideoRepDecoder()->GetResource();
+    
+    result.mDownloadRate =
+      resource->GetDownloadRate(&result.mDownloadRateReliable);
+    result.mDownloadPosition =
+      resource->GetCachedDataEnd(VideoRepDecoder()->mDecoderPosition);
+    result.mTotalBytes = resource->GetLength();
+    result.mPlaybackRate = ComputePlaybackRate(&result.mPlaybackRateReliable);
+    result.mDecoderPosition = VideoRepDecoder()->mDecoderPosition;
+    result.mPlaybackPosition = VideoRepDecoder()->mPlaybackPosition;
+  }
+  else {
+    result.mDownloadRate = 0;
+    result.mDownloadRateReliable = true;
+    result.mPlaybackRate = 0;
+    result.mPlaybackRateReliable = true;
+    result.mDecoderPosition = 0;
+    result.mPlaybackPosition = 0;
+    result.mDownloadPosition = 0;
+    result.mTotalBytes = 0;
+  }
+
+  return result;
+}
+
+} 

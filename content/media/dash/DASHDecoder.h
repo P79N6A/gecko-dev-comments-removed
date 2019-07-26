@@ -181,6 +181,31 @@ public:
 
   
   
+  double ComputePlaybackRate(bool* aReliable) MOZ_OVERRIDE;
+
+  
+  
+  
+  void UpdatePlaybackRate() MOZ_OVERRIDE;
+
+  
+  
+  virtual void NotifyPlaybackStarted() MOZ_OVERRIDE;
+
+  
+  
+  virtual void NotifyPlaybackStopped() MOZ_OVERRIDE;
+
+  
+  
+  
+  
+  
+  
+  virtual Statistics GetStatistics() MOZ_OVERRIDE;
+
+  
+  
   void ReleaseStateMachine();
 
   
@@ -320,6 +345,13 @@ private:
   
   
   bool mSeeking;
+
+  
+  Mutex mStatisticsLock;
+  
+  
+  nsRefPtr<MediaChannelStatistics> mAudioStatistics;
+  nsRefPtr<MediaChannelStatistics> mVideoStatistics;
 };
 
 } 

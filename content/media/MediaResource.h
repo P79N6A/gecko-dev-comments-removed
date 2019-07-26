@@ -46,22 +46,25 @@ class MediaDecoder;
 class MediaChannelStatistics {
 public:
   MediaChannelStatistics() { Reset(); }
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaChannelStatistics)
+
   void Reset() {
     mLastStartTime = TimeStamp();
     mAccumulatedTime = TimeDuration(0);
     mAccumulatedBytes = 0;
     mIsStarted = false;
   }
-  void Start(TimeStamp aNow) {
+  void Start() {
     if (mIsStarted)
       return;
-    mLastStartTime = aNow;
+    mLastStartTime = TimeStamp::Now();
     mIsStarted = true;
   }
-  void Stop(TimeStamp aNow) {
+  void Stop() {
     if (!mIsStarted)
       return;
-    mAccumulatedTime += aNow - mLastStartTime;
+    mAccumulatedTime += TimeStamp::Now() - mLastStartTime;
     mIsStarted = false;
   }
   void AddBytes(int64_t aBytes) {
@@ -79,10 +82,10 @@ public:
       return 0.0;
     return static_cast<double>(mAccumulatedBytes)/seconds;
   }
-  double GetRate(TimeStamp aNow, bool* aReliable) {
+  double GetRate(bool* aReliable) {
     TimeDuration time = mAccumulatedTime;
     if (mIsStarted) {
-      time += aNow - mLastStartTime;
+      time += TimeStamp::Now() - mLastStartTime;
     }
     double seconds = time.ToSeconds();
     *aReliable = seconds >= 3.0;
@@ -213,6 +216,8 @@ public:
   
   
   virtual MediaResource* CloneData(MediaDecoder* aDecoder) = 0;
+  
+  virtual void RecordStatisticsTo(MediaChannelStatistics *aStatistics) { }
 
   
   
@@ -459,6 +464,15 @@ public:
   bool IsClosed() const { return mCacheStream.IsClosed(); }
   virtual bool     CanClone();
   virtual MediaResource* CloneData(MediaDecoder* aDecoder);
+  
+  
+  void RecordStatisticsTo(MediaChannelStatistics *aStatistics) MOZ_OVERRIDE {
+    NS_ASSERTION(aStatistics, "Statistics param cannot be null!");
+    MutexAutoLock lock(mLock);
+    if (!mChannelStatistics) {
+      mChannelStatistics = aStatistics;
+    }
+  }
   virtual nsresult ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount);
   virtual void     EnsureCacheUpToDate();
 
@@ -567,7 +581,7 @@ protected:
 
   
   Mutex               mLock;
-  MediaChannelStatistics mChannelStatistics;
+  nsRefPtr<MediaChannelStatistics> mChannelStatistics;
 
   
   
