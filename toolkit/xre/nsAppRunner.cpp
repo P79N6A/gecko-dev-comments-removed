@@ -427,6 +427,7 @@ static void RemoveArg(char **argv)
 
 
 
+
 static ArgResult
 CheckArg(const char* aArg, bool aCheckOSInt = false, const char **aParam = nullptr, bool aRemArg = true)
 {
