@@ -113,6 +113,28 @@ function newUint8Worker() {
 
 
 
+function newInterceptWorker() {
+  let postedMessage;
+  let worker = newWorker({
+    postRILMessage: function(data) {
+    },
+    postMessage: function(message) {
+      postedMessage = message;
+    }
+  });
+  return {
+    get postedMessage() {
+      return postedMessage;
+    },
+    get worker() {
+      return worker;
+    }
+  };
+}
+
+
+
+
 
 
 
