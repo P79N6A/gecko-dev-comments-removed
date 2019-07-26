@@ -1584,6 +1584,9 @@ private:
   
   
   
+  
+  
+  
   void ConstructBlock(nsFrameConstructorState& aState,
                       const nsStyleDisplay*    aDisplay,
                       nsIContent*              aContent,
@@ -1592,7 +1595,7 @@ private:
                       nsStyleContext*          aStyleContext,
                       nsIFrame**               aNewFrame,
                       nsFrameItems&            aFrameItems,
-                      bool                     aAbsPosContainer,
+                      nsIFrame*                aPositionedFrameForAbsPosContainer,
                       PendingBinding*          aPendingBinding);
 
   nsIFrame* ConstructInline(nsFrameConstructorState& aState,

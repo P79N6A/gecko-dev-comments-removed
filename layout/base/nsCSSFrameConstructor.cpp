@@ -791,7 +791,12 @@ public:
   
   
   
+  
+  
+  
+  
   void PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteContainingBlock,
+                                   nsIFrame* aPositionedFrame,
                                    nsFrameConstructorSaveState& aSaveState);
 
   
@@ -1029,6 +1034,7 @@ AdjustAbsoluteContainingBlock(nsIFrame* aContainingBlockIn)
 
 void
 nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteContainingBlock,
+                                                     nsIFrame* aPositionedFrame,
                                                      nsFrameConstructorSaveState& aSaveState)
 {
   aSaveState.mItems = &mAbsoluteItems;
@@ -1044,14 +1050,14 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteConta
     mFixedItems = mAbsoluteItems;
   }
 
-  mAbsoluteItems = 
+  mAbsoluteItems =
     nsAbsoluteItems(AdjustAbsoluteContainingBlock(aNewAbsoluteContainingBlock));
 
   
 
 
-  mFixedPosIsAbsPos = aNewAbsoluteContainingBlock &&
-    aNewAbsoluteContainingBlock->StyleDisplay()->HasTransform(aNewAbsoluteContainingBlock);
+  mFixedPosIsAbsPos = aPositionedFrame &&
+      aPositionedFrame->StyleDisplay()->HasTransform(aPositionedFrame);
 
   if (aNewAbsoluteContainingBlock) {
     aNewAbsoluteContainingBlock->MarkAsAbsoluteContainingBlock();
@@ -1955,7 +1961,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
        (display->HasTransformStyle() &&
         aParentFrame->IsFrameOfType(nsIFrame::eSupportsCSSTransforms))) &&
       !aParentFrame->IsSVGText()) {
-    aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
+    aState.PushAbsoluteContainingBlock(newFrame, newFrame, absoluteSaveState);
   }
   if (aItem.mFCData->mBits & FCDATA_USE_CHILD_ITEMS) {
     ConstructFramesFromItemList(aState, aItem.mChildItems,
@@ -2357,6 +2363,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     
     mDocElementContainingBlock->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
     state.PushAbsoluteContainingBlock(mDocElementContainingBlock,
+                                      mDocElementContainingBlock,
                                       absoluteSaveState);
   }
 
@@ -2443,7 +2450,8 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
                                               mDocElementContainingBlock),
                      mDocElementContainingBlock, styleContext,
                      &contentFrame, frameItems,
-                     display->IsPositioned(contentFrame), nullptr);
+                     display->IsPositioned(contentFrame) ? contentFrame : nullptr,
+                     nullptr);
       newFrame = frameItems.FirstChild();
       NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
     }
@@ -3064,7 +3072,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
 
   newFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
   if (newFrame->IsPositioned()) {
-    aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
+    aState.PushAbsoluteContainingBlock(newFrame, newFrame, absoluteSaveState);
   }
 
   ProcessChildren(aState, content, styleContext, blockFrame, true,
@@ -3615,7 +3623,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
     nsFrameConstructorSaveState absoluteSaveState;
 
     if (bits & FCDATA_FORCE_NULL_ABSPOS_CONTAINER) {
-      aState.PushAbsoluteContainingBlock(nullptr, absoluteSaveState);
+      aState.PushAbsoluteContainingBlock(nullptr, nullptr, absoluteSaveState);
     } else if (!(bits & FCDATA_SKIP_ABSPOS_PUSH)) {
       nsIFrame* cb = maybeAbsoluteContainingBlock;
       cb->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
@@ -3624,7 +3632,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
            (maybeAbsoluteContainingBlockDisplay->HasTransformStyle() &&
             cb->IsFrameOfType(nsIFrame::eSupportsCSSTransforms))) &&
           !cb->IsSVGText()) {
-        aState.PushAbsoluteContainingBlock(cb, absoluteSaveState);
+        aState.PushAbsoluteContainingBlock(cb, primaryFrame, absoluteSaveState);
       }
     }
 
@@ -4359,7 +4367,7 @@ nsCSSFrameConstructor::ConstructScrollableBlock(nsFrameConstructorState& aState,
   ConstructBlock(aState, scrolledContentStyle->StyleDisplay(), content,
                  newFrame, newFrame, scrolledContentStyle,
                  &scrolledFrame, blockItem,
-                 aDisplay->IsPositioned(scrolledFrame),
+                 aDisplay->IsPositioned(newFrame) ? newFrame : nullptr,
                  aItem.mPendingBinding);
 
   NS_ASSERTION(blockItem.FirstChild() == scrolledFrame,
@@ -4402,7 +4410,8 @@ nsCSSFrameConstructor::ConstructNonScrollableBlock(nsFrameConstructorState& aSta
   ConstructBlock(aState, aDisplay, aItem.mContent,
                  aState.GetGeometricParent(aDisplay, aParentFrame),
                  aParentFrame, styleContext, &newFrame,
-                 aFrameItems, aDisplay->IsPositioned(newFrame),
+                 aFrameItems,
+                 aDisplay->IsPositioned(newFrame) ? newFrame : nullptr,
                  aItem.mPendingBinding);
   return newFrame;
 }
@@ -10894,7 +10903,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
                                       nsStyleContext*          aStyleContext,
                                       nsIFrame**               aNewFrame,
                                       nsFrameItems&            aFrameItems,
-                                      bool                     aAbsPosContainer,
+                                      nsIFrame*                aPositionedFrameForAbsPosContainer,
                                       PendingBinding*          aPendingBinding)
 {
   
@@ -10939,9 +10948,9 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   
   nsFrameConstructorSaveState absoluteSaveState;
   (*aNewFrame)->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
-  if (aAbsPosContainer) {
+  if (aPositionedFrameForAbsPosContainer) {
     
-    aState.PushAbsoluteContainingBlock(*aNewFrame, absoluteSaveState);
+    aState.PushAbsoluteContainingBlock(*aNewFrame, aPositionedFrameForAbsPosContainer, absoluteSaveState);
   }
 
   
@@ -11040,7 +11049,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   if (positioned) {
     
     
-    aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
+    aState.PushAbsoluteContainingBlock(newFrame, newFrame, absoluteSaveState);
   }
 
   
