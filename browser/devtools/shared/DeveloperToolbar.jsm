@@ -699,7 +699,7 @@ Object.defineProperty(OutputPanel.prototype, 'scrollbarWidth', {
     return this.__scrollbarWidth;
   },
   enumerable: true
-};
+});
 
 
 
