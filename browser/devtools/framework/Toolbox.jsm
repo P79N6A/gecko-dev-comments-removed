@@ -696,6 +696,10 @@ Toolbox.prototype = {
       outstanding.push(panel.destroy());
     }
 
+    let container = this.doc.getElementById("toolbox-buttons");
+    while(container.firstChild)
+      container.removeChild(container.firstChild);
+
     outstanding.push(this._host.destroy());
 
     
