@@ -157,9 +157,7 @@ using mozilla::DefaultXDisplay;
 static PRLogModuleInfo *nsObjectFrameLM = PR_NewLogModule("nsObjectFrame");
 #endif 
 
-#if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
-
-#define MAC_CARBON_PLUGINS
+#if defined(XP_MACOSX) && !defined(__LP64__)
 
 
 
@@ -1345,7 +1343,7 @@ nsObjectFrame::PrintPlugin(nsRenderingContext& aRenderingContext,
   window.clipRect.left = 0; window.clipRect.right = 0;
 
 
-#ifdef MAC_CARBON_PLUGINS
+#if defined(XP_MACOSX) && !defined(__LP64__)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   
   
@@ -1815,30 +1813,6 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
         nativeDrawing.EndNativeDrawing();
         return;
       }
-#ifndef NP_NO_CARBON
-      if (mInstanceOwner->GetEventModel() == NPEventModelCarbon &&
-          !mInstanceOwner->SetPluginPortAndDetectChange()) {
-        NS_WARNING("null plugin port during PaintPlugin");
-        nativeDrawing.EndNativeDrawing();
-        return;
-      }
-
-      
-      
-      
-      
-      
-      
-      
-      
-      NP_CGContext* windowContext = static_cast<NP_CGContext*>(window->window);
-      if (mInstanceOwner->GetEventModel() == NPEventModelCarbon &&
-          windowContext->context != cgContext) {
-        windowContext->context = cgContext;
-        cgPluginPortCopy->context = cgContext;
-        mInstanceOwner->SetPluginPortChanged(true);
-      }
-#endif
 
       mInstanceOwner->BeginCGPaint();
       if (mInstanceOwner->GetDrawingModel() == NPDrawingModelCoreAnimation ||
@@ -2121,16 +2095,6 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
     return rv;
   }
 #endif
-
-
-
-
-
-
-
-
-
-
 
   return nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
 }

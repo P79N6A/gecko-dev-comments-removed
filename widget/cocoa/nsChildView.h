@@ -92,29 +92,6 @@ class LayerManagerOGL;
 }
 }
 
-#ifndef NP_NO_CARBON
-enum {
-  
-  
-  
-  
-  kFocusedChildViewTSMDocPropertyTag  = 'GKFV', 
-};
-
-
-
-
-
-
-
-
-
-
-
-
-extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
-#endif 
-
 @interface NSEvent (Undocumented)
 
 

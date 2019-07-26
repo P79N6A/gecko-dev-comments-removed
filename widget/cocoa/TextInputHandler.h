@@ -627,7 +627,7 @@ public:
   static void ConvertCocoaKeyEventToNPCocoaEvent(NSEvent* aCocoaEvent,
                                                  NPCocoaEvent& aPluginEvent);
 
-#ifndef NP_NO_CARBON
+#ifndef __LP64__
 
   
 
@@ -660,31 +660,9 @@ protected:
   PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   ~PluginTextInputHandler();
 
-#ifndef NP_NO_CARBON
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  static void ConvertCocoaKeyEventToCarbonEvent(
-                NSEvent* aCocoaKeyEvent,
-                EventRecord& aCarbonKeyEvent,
-                bool aMakeKeyDownEventIfNSFlagsChanged = false);
-
-#endif 
-
 private:
 
-#ifndef NP_NO_CARBON
+#ifndef __LP64__
   TSMDocumentID mPluginTSMDoc;
 
   bool mPluginTSMInComposition;
@@ -711,7 +689,7 @@ private:
 
   bool IsInPluginComposition();
 
-#ifndef NP_NO_CARBON
+#ifndef __LP64__
 
   
 
@@ -733,17 +711,6 @@ private:
 
 
   void HandleCarbonPluginKeyEvent(EventRef aKeyEvent);
-
-  
-
-
-
-
-
-
-
-  static bool ConvertUnicodeToCharCode(PRUnichar aUniChar,
-                                         unsigned char* aOutChar);
 
   
 
