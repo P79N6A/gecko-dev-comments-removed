@@ -2114,7 +2114,8 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         continue;
       }
 
-      if (item->IsInvalid()) {
+      nsRect invalid;
+      if (item->IsInvalid(invalid)) {
         ownLayer->SetInvalidRectToVisibleRegion();
       }
 
@@ -2254,6 +2255,8 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
     static_cast<ThebesDisplayItemLayerUserData*>(newThebesLayer->GetUserData(&gThebesDisplayItemLayerUserData));
   
   
+  
+  nsRect invalid;
   nsRegion combined;
   if (!oldLayer) {
     
@@ -2262,7 +2265,7 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
 #ifdef DEBUG_INVALIDATIONS
     printf("Display item type %s(%p) added to layer %p!\n", aItem->Name(), f, aNewLayer);
 #endif
-  } else if (aItem->IsInvalid()) {
+  } else if (aItem->IsInvalid(invalid) && invalid.IsEmpty()) {
     
     combined.Or(geometry->ComputeInvalidationRegion(), oldGeometry->ComputeInvalidationRegion());
 #ifdef DEBUG_INVALIDATIONS
@@ -2277,6 +2280,9 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
     oldClip->AddOffsetAndComputeDifference(shift, oldGeometry->ComputeInvalidationRegion(),
                                            aClip, geometry->ComputeInvalidationRegion(),
                                            &combined);
+
+    
+    combined = combined.Or(combined, invalid);
 #ifdef DEBUG_INVALIDATIONS
     if (!combined.IsEmpty()) {
       printf("Display item type %s(%p) (in layer %p) changed geometry!\n", aItem->Name(), f, aNewLayer);

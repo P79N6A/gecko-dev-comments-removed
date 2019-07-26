@@ -320,6 +320,10 @@ typedef uint64_t nsFrameState;
 #define NS_FRAME_ALL_DESCENDANTS_NEED_PAINT         NS_FRAME_STATE_BIT(51)
 
 
+
+#define NS_FRAME_HAS_INVALID_RECT                   NS_FRAME_STATE_BIT(52)
+
+
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
 #define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 
@@ -954,6 +958,8 @@ public:
   NS_DECLARE_FRAME_PROPERTY(LineBaselineOffset, nullptr)
 
   NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImage, DestroySurface)
+
+  NS_DECLARE_FRAME_PROPERTY(InvalidationRect, DestroyRect)
 
   
 
@@ -2179,6 +2185,15 @@ public:
 
 
   virtual void InvalidateFrame();
+
+  
+
+
+
+
+
+
+  virtual void InvalidateFrameWithRect(const nsRect& aRect);
   
   
 
@@ -2193,7 +2208,12 @@ public:
 
 
 
-  bool IsInvalid();
+
+
+
+
+
+  bool IsInvalid(nsRect& aRect);
  
   
 
