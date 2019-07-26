@@ -18,9 +18,9 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 #endif
 
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://services-common/log4moz.js");
-Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-common/utils.js");
 
 
@@ -556,12 +556,6 @@ Provider.prototype = Object.freeze({
 
     let self = this;
     return Task.spawn(function init() {
-      let pre = self.preInit();
-      if (!pre || typeof(pre.then) != "function") {
-        throw new Error("preInit() does not return a promise.");
-      }
-      yield pre;
-
       for (let measurementType of self.measurementTypes) {
         let measurement = new measurementType();
 
@@ -579,11 +573,13 @@ Provider.prototype = Object.freeze({
                               measurement);
       }
 
-      let post = self.postInit();
-      if (!post || typeof(post.then) != "function") {
-        throw new Error("postInit() does not return a promise.");
+      let promise = self.onInit();
+
+      if (!promise || typeof(promise.then) != "function") {
+        throw new Error("onInit() does not return a promise.");
       }
-      yield post;
+
+      yield promise;
     });
   },
 
@@ -605,23 +601,8 @@ Provider.prototype = Object.freeze({
 
 
 
-  preInit: function () {
-    return CommonUtils.laterTickResolvingPromise();
-  },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  postInit: function () {
+  onInit: function () {
     return CommonUtils.laterTickResolvingPromise();
   },
 

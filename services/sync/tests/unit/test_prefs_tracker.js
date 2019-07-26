@@ -1,7 +1,7 @@
 
 
 
-Cu.import("resource://services-common/preferences.js");
+Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines/prefs.js");

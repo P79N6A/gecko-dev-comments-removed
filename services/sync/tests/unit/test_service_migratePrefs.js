@@ -1,7 +1,7 @@
 
 
 
-Cu.import("resource://services-common/preferences.js");
+Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://services-sync/util.js");
 
 function test_migrate_logging() {
