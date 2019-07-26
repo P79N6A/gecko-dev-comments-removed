@@ -26,6 +26,7 @@
 #include "nsContentUtils.h" 
 #include "nsLayoutUtils.h"
 #include "Layers.h"
+#include "gfxPlatform.h"
 
 
 
@@ -435,6 +436,14 @@ void nsViewManager::FlushDirtyRegionToWidget(nsView* aView)
   }
   nsRegion r =
     ConvertRegionBetweenViews(*dirtyRegion, aView, nearestViewWithWidget);
+
+  
+  
+  if (gfxPlatform::DrawFrameCounter()) {
+    nsRect counterBounds = gfxPlatform::FrameCounterBounds().ToAppUnits(AppUnitsPerDevPixel());
+    r = r.Or(r, counterBounds);
+  }
+
   nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
   widgetVM->InvalidateWidgetArea(nearestViewWithWidget, r);
   dirtyRegion->SetEmpty();

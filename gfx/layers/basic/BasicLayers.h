@@ -178,6 +178,8 @@ protected:
 
   void FlashWidgetUpdateArea(gfxContext* aContext);
 
+  void RenderDebugOverlay();
+
   
   
   nsIWidget* mWidget;
