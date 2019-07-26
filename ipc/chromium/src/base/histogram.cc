@@ -973,6 +973,14 @@ BooleanHistogram::BooleanHistogram(const std::string& name)
     : LinearHistogram(name, 1, 2, 3) {
 }
 
+void
+BooleanHistogram::Accumulate(Sample value, Count count, size_t index)
+{
+  
+  
+  LinearHistogram::Accumulate(!!value, count, value ? 1 : 0);
+}
+
 
 
 
