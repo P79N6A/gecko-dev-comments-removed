@@ -175,60 +175,6 @@ BluetoothService::ToggleBtAck::Run()
   return NS_OK;
 }
 
-class BluetoothService::ToggleBtTask : public nsRunnable
-{
-public:
-  ToggleBtTask(bool aEnabled, bool aIsStartup)
-    : mEnabled(aEnabled)
-    , mIsStartup(aIsStartup)
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
-
-  NS_IMETHOD Run()
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    
-
-
-
-
-
-
-
-
-
-
-    if (!mIsStartup && mEnabled == sBluetoothService->IsEnabled()) {
-      BT_WARNING("Bluetooth has already been enabled/disabled before.");
-      nsCOMPtr<nsIRunnable> ackTask = new BluetoothService::ToggleBtAck(mEnabled);
-      if (NS_FAILED(NS_DispatchToMainThread(ackTask))) {
-        BT_WARNING("Failed to dispatch to main thread!");
-      }
-    } else {
-      
-      if (mEnabled) {
-        if (NS_FAILED(sBluetoothService->StartInternal())) {
-          BT_WARNING("Bluetooth service failed to start!");
-          mEnabled = !mEnabled;
-        }
-      } else {
-        if (NS_FAILED(sBluetoothService->StopInternal())) {
-          BT_WARNING("Bluetooth service failed to stop!");
-          mEnabled = !mEnabled;
-        }
-      }
-    }
-
-    return NS_OK;
-  }
-
-private:
-  bool mEnabled;
-  bool mIsStartup;
-};
-
 class BluetoothService::StartupTask : public nsISettingsServiceCallback
 {
 public:
@@ -459,9 +405,25 @@ BluetoothService::StartBluetooth(bool aIsStartup)
 
   mAdapterAddedReceived = false;
 
-  nsCOMPtr<nsIRunnable> runnable = new ToggleBtTask(true, aIsStartup);
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+
+
+
+
+
+
+  if (aIsStartup || !sBluetoothService->IsEnabled()) {
+    
+    if (NS_FAILED(sBluetoothService->StartInternal())) {
+      BT_WARNING("Bluetooth service failed to start!");
+    }
+  } else {
+    BT_WARNING("Bluetooth has already been enabled before.");
+    nsRefPtr<nsRunnable> runnable = new BluetoothService::ToggleBtAck(true);
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+      BT_WARNING("Failed to dispatch to main thread!");
+    }
+  }
 
   return NS_OK;
 }
@@ -504,9 +466,25 @@ BluetoothService::StopBluetooth(bool aIsStartup)
 
   mAdapterAddedReceived = false;
 
-  nsCOMPtr<nsIRunnable> runnable = new ToggleBtTask(false, aIsStartup);
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+
+
+
+
+
+
+  if (aIsStartup || sBluetoothService->IsEnabled()) {
+    
+    if (NS_FAILED(sBluetoothService->StopInternal())) {
+      BT_WARNING("Bluetooth service failed to stop!");
+    }
+  } else {
+    BT_WARNING("Bluetooth has already been enabled/disabled before.");
+    nsRefPtr<nsRunnable> runnable = new BluetoothService::ToggleBtAck(false);
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+      BT_WARNING("Failed to dispatch to main thread!");
+    }
+  }
 
   return NS_OK;
 }
