@@ -26,73 +26,140 @@ static const uint8_t IS_URL_CHAR   = 0x08;
 static const uint8_t IS_HSPACE     = 0x10;
 static const uint8_t IS_VSPACE     = 0x20;
 static const uint8_t IS_SPACE      = IS_HSPACE|IS_VSPACE;
+static const uint8_t IS_STRING     = 0x40;
 
 #define H    IS_HSPACE
 #define V    IS_VSPACE
 #define I    IS_IDCHAR
-#define U                                      IS_URL_CHAR
-#define S              IS_IDSTART
-#define UI   IS_IDCHAR                        |IS_URL_CHAR
-#define USI  IS_IDCHAR|IS_IDSTART             |IS_URL_CHAR
-#define UXI  IS_IDCHAR           |IS_HEX_DIGIT|IS_URL_CHAR
-#define UXSI IS_IDCHAR|IS_IDSTART|IS_HEX_DIGIT|IS_URL_CHAR
+#define J    IS_IDSTART
+#define U    IS_URL_CHAR
+#define S    IS_STRING
+#define X    IS_HEX_DIGIT
+
+#define SH    S|H
+#define SU    S|U
+#define SUI   S|U|I
+#define SUIJ  S|U|I|J
+#define SUIX  S|U|I|X
+#define SUIJX S|U|I|J|X
 
 static const uint8_t gLexTable[] = {
 
-   0,  0,  0,  0,  0,  0,  0,  0,  0,  H,  V,  0,  V,  V,  0,  0,
+    0,    S,    S,    S,    S,    S,    S,    S,
 
-   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    S,   SH,    V,    S,    V,    V,    S,    S,
 
-   H,  U,  0,  U,  U,  U,  U,  0,  0,  0,  U,  U,  U,  UI, U,  U,
+    S,    S,    S,    S,    S,    S,    S,    S,
 
-   UXI,UXI,UXI,UXI,UXI,UXI,UXI,UXI,UXI,UXI,U,  U,  U,  U,  U,  U,
+    S,    S,    S,    S,    S,    S,    S,    S,
 
-   U,UXSI,UXSI,UXSI,UXSI,UXSI,UXSI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
+   SH,   SU,    0,   SU,   SU,   SU,   SU,    0,
 
-   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,U,  S,  U,  U,  USI,
+    S,    S,   SU,   SU,   SU,  SUI,   SU,   SU,
 
-   U,UXSI,UXSI,UXSI,UXSI,UXSI,UXSI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
+ SUIX, SUIX, SUIX, SUIX, SUIX, SUIX, SUIX, SUIX,
 
-   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,U,  U,  U,  U,  0
+ SUIX, SUIX,   SU,   SU,   SU,   SU,   SU,   SU,
+
+   SU,SUIJX,SUIJX,SUIJX,SUIJX,SUIJX,SUIJX, SUIJ,
+
+ SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ,
+
+ SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ,
+
+ SUIJ, SUIJ, SUIJ,   SU,    J,   SU,   SU, SUIJ,
+
+   SU,SUIJX,SUIJX,SUIJX,SUIJX,SUIJX,SUIJX, SUIJ,
+
+ SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ,
+
+ SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ, SUIJ,
+
+ SUIJ, SUIJ, SUIJ,   SU,   SU,   SU,   SU,    S,
 };
 
 MOZ_STATIC_ASSERT(MOZ_ARRAY_LENGTH(gLexTable) == 128,
                   "gLexTable expected to cover all 128 ASCII characters");
 
-#undef H
-#undef V
-#undef S
 #undef I
+#undef J
 #undef U
-#undef UI
-#undef USI
-#undef UXI
-#undef UXSI
+#undef S
+#undef X
+#undef SH
+#undef SU
+#undef SUI
+#undef SUIJ
+#undef SUIX
+#undef SUIJX
+
+
+
+
+
 
 static inline bool
-IsHorzSpace(int32_t ch) {
-  return uint32_t(ch) < 128 && (gLexTable[ch] & IS_HSPACE) != 0;
+IsOpenCharClass(int32_t ch, uint8_t cls) {
+  return ch >= 0 && (ch >= 128 || (gLexTable[ch] & cls) != 0);
 }
 
+
+
+
+
+
 static inline bool
-IsVertSpace(int32_t ch) {
-  return uint32_t(ch) < 128 && (gLexTable[ch] & IS_VSPACE) != 0;
+IsClosedCharClass(int32_t ch, uint8_t cls) {
+  return uint32_t(ch) < 128 && (gLexTable[ch] & cls) != 0;
 }
+
+
+
+
 
 static inline bool
 IsWhitespace(int32_t ch) {
-  return uint32_t(ch) < 128 && (gLexTable[ch] & IS_SPACE) != 0;
+  return IsClosedCharClass(ch, IS_SPACE);
 }
+
+
+
+
+static inline bool
+IsHorzSpace(int32_t ch) {
+  return IsClosedCharClass(ch, IS_HSPACE);
+}
+
+
+
+
+
+static inline bool
+IsVertSpace(int32_t ch) {
+  return IsClosedCharClass(ch, IS_VSPACE);
+}
+
+
+
+
 
 static inline bool
 IsIdentChar(int32_t ch) {
-  return ch >= 0 && (ch >= 128 || (gLexTable[ch] & IS_IDCHAR) != 0);
+  return IsOpenCharClass(ch, IS_IDCHAR);
 }
+
+
+
+
 
 static inline bool
 IsIdentStart(int32_t ch) {
-  return ch >= 0 && (ch >= 128 || (gLexTable[ch] & IS_IDSTART) != 0);
+  return IsOpenCharClass(ch, IS_IDSTART);
 }
+
+
+
+
 
 static inline bool
 StartsIdent(int32_t aFirstChar, int32_t aSecondChar)
@@ -101,26 +168,33 @@ StartsIdent(int32_t aFirstChar, int32_t aSecondChar)
     (aFirstChar == '-' && IsIdentStart(aSecondChar));
 }
 
-static inline bool
-IsURLChar(int32_t ch) {
-  return ch >= 0 && (ch >= 128 || (gLexTable[ch] & IS_URL_CHAR) != 0);
-}
+
+
 
 static inline bool
 IsDigit(int32_t ch) {
   return (ch >= '0') && (ch <= '9');
 }
 
+
+
+
 static inline bool
 IsHexDigit(int32_t ch) {
-  return uint32_t(ch) < 128 && (gLexTable[ch] & IS_HEX_DIGIT) != 0;
+  return IsClosedCharClass(ch, IS_HEX_DIGIT);
 }
+
+
+
 
 static inline uint32_t
 DecimalDigitValue(int32_t ch)
 {
   return ch - '0';
 }
+
+
+
 
 static inline uint32_t
 HexDigitValue(int32_t ch)
@@ -134,6 +208,11 @@ HexDigitValue(int32_t ch)
     return (ch & 0x7) + 9;
   }
 }
+
+
+
+
+
 
 static inline nsCSSTokenType
 MatchOperatorType(int32_t ch)
@@ -528,47 +607,49 @@ nsCSSScanner::GatherEscape(nsString& aOutput, bool aInString)
 
 
 
-bool
-nsCSSScanner::GatherIdent(nsString& aIdent)
-{
-  int32_t ch = Peek();
-  MOZ_ASSERT(IsIdentChar(ch) || ch == '\\',
-             "should not have been called");
-#ifdef DEBUG
-  uint32_t n = aIdent.Length();
-#endif
 
-  if (ch == '\\') {
-    if (!GatherEscape(aIdent, false)) {
-      return false;
-    }
-  }
+
+bool
+nsCSSScanner::GatherText(uint8_t aClass, nsString& aText)
+{
+  
+  
+  
+  MOZ_ASSERT(aClass == IS_STRING ||
+             aClass == IS_IDCHAR ||
+             aClass == IS_URL_CHAR,
+             "possibly-inappropriate character class");
+
+  uint32_t start = mOffset;
+  bool inString = aClass == IS_STRING;
+
   for (;;) {
     
     uint32_t n = mOffset;
-    while (n < mCount && IsIdentChar(mBuffer[n])) {
+    while (n < mCount && IsOpenCharClass(mBuffer[n], aClass)) {
       n++;
     }
-    
     if (n > mOffset) {
-      aIdent.Append(&mBuffer[mOffset], n - mOffset);
+      aText.Append(&mBuffer[mOffset], n - mOffset);
       mOffset = n;
     }
+    if (n == mCount) {
+      break;
+    }
 
-    ch = Peek();
-    if (ch == '\\') {
-      if (!GatherEscape(aIdent, false)) {
-        break;
-      }
-    } else {
-      MOZ_ASSERT(!IsIdentChar(ch), "should not have exited the inner loop");
+    int32_t ch = Peek();
+    MOZ_ASSERT(!IsOpenCharClass(ch, aClass),
+               "should not have exited the inner loop");
+
+    if (ch != '\\') {
+      break;
+    }
+    if (!GatherEscape(aText, inString)) {
       break;
     }
   }
 
-  
-  MOZ_ASSERT(aIdent.Length() > n);
-  return true;
+  return mOffset > start;
 }
 
 
@@ -580,7 +661,7 @@ nsCSSScanner::GatherIdent(nsString& aIdent)
 bool
 nsCSSScanner::ScanIdent(nsCSSToken& aToken)
 {
-  if (MOZ_UNLIKELY(!GatherIdent(aToken.mIdent))) {
+  if (MOZ_UNLIKELY(!GatherText(IS_IDCHAR, aToken.mIdent))) {
     aToken.mSymbol = Peek();
     Advance();
     return true;
@@ -614,7 +695,7 @@ nsCSSScanner::ScanAtKeyword(nsCSSToken& aToken)
 
   int32_t ch = Peek();
   if (StartsIdent(ch, Peek(1))) {
-     if (GatherIdent(aToken.mIdent)) {
+    if (GatherText(IS_IDCHAR, aToken.mIdent)) {
        aToken.mType = eCSSToken_AtKeyword;
      }
   }
@@ -640,7 +721,7 @@ nsCSSScanner::ScanHash(nsCSSToken& aToken)
     nsCSSTokenType type =
       StartsIdent(ch, Peek(1)) ? eCSSToken_ID : eCSSToken_Hash;
     aToken.mIdent.SetLength(0);
-    if (GatherIdent(aToken.mIdent)) {
+    if (GatherText(IS_IDCHAR, aToken.mIdent)) {
       aToken.mType = type;
     }
   }
@@ -779,7 +860,7 @@ nsCSSScanner::ScanNumber(nsCSSToken& aToken)
   
   if (c >= 0) {
     if (StartsIdent(c, Peek(1))) {
-      if (GatherIdent(ident)) {
+      if (GatherText(IS_IDCHAR, ident)) {
         type = eCSSToken_Dimension;
       }
     } else if (c == '%') {
@@ -809,42 +890,26 @@ nsCSSScanner::ScanString(nsCSSToken& aToken)
   Advance();
 
   for (;;) {
-    
-    uint32_t n = mOffset;
-    int32_t ch = -1;
-    while (n < mCount) {
-      ch = mBuffer[n];
-      if (ch == aStop || ch == '\\' || IsVertSpace(ch)) {
-        break;
-      }
-      n++;
-    }
-    if (n > mOffset) {
-      aToken.mIdent.Append(&mBuffer[mOffset], n - mOffset);
-      mOffset = n;
-    }
-    if (n == mCount) {
+    GatherText(IS_STRING, aToken.mIdent);
+
+    int32_t ch = Peek();
+    if (ch == -1) {
       break; 
     }
     if (ch == aStop) {
       Advance();
       break;
     }
-    if (IsVertSpace(ch)) {
-      aToken.mType = eCSSToken_Bad_String;
-      mReporter->ReportUnexpected("SEUnterminatedString", aToken);
-      break;
+    
+    if (ch == '"' || ch == '\'') {
+      aToken.mIdent.Append(ch);
+      Advance();
+      continue;
     }
-    MOZ_ASSERT(ch == '\\', "should not have exited the inner loop");
-    if (!GatherEscape(aToken.mIdent, true)) {
-      
-      
-      
-      
-      aToken.mType = eCSSToken_Bad_String;
-      mReporter->ReportUnexpected("SEUnterminatedString", aToken);
-      break;
-    }
+
+    aToken.mType = eCSSToken_Bad_String;
+    mReporter->ReportUnexpected("SEUnterminatedString", aToken);
+    break;
   }
   return true;
 }
@@ -965,33 +1030,7 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
 
   } else {
     
-    aToken.mSymbol = PRUnichar(0);
-    for (;;) {
-      
-      uint32_t n = mOffset;
-      while (n < mCount) {
-        ch = mBuffer[n];
-        if (!IsURLChar(ch)) {
-          break;
-        }
-        n++;
-      }
-      if (n > mOffset) {
-        aToken.mIdent.Append(&mBuffer[mOffset], n - mOffset);
-        mOffset = n;
-      }
-      if (n == mCount) {
-        break; 
-      }
-      if (ch != '\\') {
-        break;
-      }
-      if (!GatherEscape(aToken.mIdent, false)) {
-        break; 
-               
-               
-      }
-    }
+    GatherText(IS_URL_CHAR, aToken.mIdent);
   }
 
   
