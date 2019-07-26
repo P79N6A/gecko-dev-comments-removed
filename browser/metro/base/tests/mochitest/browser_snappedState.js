@@ -114,15 +114,54 @@ gTests.push({
     yield restoreViewstate();
   }
 });
+gTests.push({
+  desc: "Test tile selection is cleared and disabled",
+  setUp: function() {
+    BookmarksTestHelper.setup();
+    HistoryTestHelper.setup();
+    showStartUI();
+  },
+  run: function() {
+    
+    function makeMockEvent(item) {
+      return {
+        stopPropagation: function() {},
+        target: item
+      };
+    }
+    let startWin = Browser.selectedBrowser.contentWindow;
+    
+    startWin.StartUI.onNarrowTitleClick("start-bookmarks");
+    let bookmarksGrid = startWin.document.querySelector("#start-bookmarks-grid");
+    
+    ok(bookmarksGrid, "matched bookmarks grid");
+    ok(bookmarksGrid.children[0], "bookmarks grid has items");
+    
+    let mockEvent = makeMockEvent(bookmarksGrid.children[0]);
+    bookmarksGrid.handleItemContextMenu(bookmarksGrid.children[0], mockEvent);
+    
+    is(bookmarksGrid.selectedItems.length, 1, "Tile got selected in landscape view");
+    
+    yield setSnappedViewstate();
+    is(bookmarksGrid.selectedItems.length, 0, "grid items selection cleared in snapped view");
+    
+    mockEvent = makeMockEvent(bookmarksGrid.children[0]);
+    bookmarksGrid.handleItemContextMenu(bookmarksGrid.children[0], mockEvent);
+    is(bookmarksGrid.selectedItems.length, 0, "no grid item selections possible in snapped view");
+  },
+  tearDown: function() {
+    BookmarksTestHelper.restore();
+    HistoryTestHelper.restore();
+    yield restoreViewstate();
+  }
+});
 
 gTests.push({
   desc: "Navbar contextual buttons are not shown in snapped",
   setUp: setUpSnapped,
   run: function() {
     let toolbarContextual = document.getElementById("toolbar-contextual");
-
     let visibility = getComputedStyle(toolbarContextual).getPropertyValue("visibility");
-
     ok(visibility === "collapse" || visibility === "hidden", "Contextual buttons not shown in navbar");
   },
   tearDown: restoreViewstate

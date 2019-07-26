@@ -356,21 +356,23 @@ gTests.push({
     ok(grid.selectedItems.length, "There are selectedItems after grid.selectItem");
 
     
-    grid.selectItem(grid.items[0]);
-    grid.selectItem(grid.items[1]);
-    grid.clearSelection();
-    is(grid.selectedItems.length, 0, "Nothing selected when we clearSelection");
-    is(grid.selectedIndex, -1, "selectedIndex resets after clearSelection");
-
-    
     
     
     let handler = {
       handleEvent: function(aEvent) {}
     };
     let handlerStub = stubMethod(handler, "handleEvent");
+
+    grid.items[1].selected = true;
+
     doc.defaultView.addEventListener("select", handler, false);
     info("select listener added");
+
+    
+    grid.clearSelection();
+    is(grid.selectedItems.length, 0, "Nothing selected when we clearSelection");
+    is(grid.selectedIndex, -1, "selectedIndex resets after clearSelection");
+    is(handlerStub.callCount, 0, "clearSelection should not fire a selectionchange event");
 
     info("calling selectItem, currently it is:" + grid.items[0].selected);
     
@@ -413,14 +415,6 @@ gTests.push({
     is(grid.selectedItems.length, 0, "Nothing selected when we toggleItemSelection again");
 
     
-    grid.items[0].selected=true;
-    grid.items[1].selected=true;
-    is(grid.selectedItems.length, 2, "Both items are selected before calling clearSelection");
-    grid.clearSelection();
-    is(grid.selectedItems.length, 0, "Nothing selected when we clearSelection");
-    ok(!(grid.items[0].selected || grid.items[1].selected), "selected properties all falsy when we clearSelection");
-
-    
     
     
     let handler = {
@@ -429,6 +423,15 @@ gTests.push({
     let handlerStub = stubMethod(handler, "handleEvent");
     doc.defaultView.addEventListener("selectionchange", handler, false);
     info("selectionchange listener added");
+
+    
+    grid.items[0].selected=true;
+    grid.items[1].selected=true;
+    is(grid.selectedItems.length, 2, "Both items are selected before calling clearSelection");
+    grid.clearSelection();
+    is(grid.selectedItems.length, 0, "Nothing selected when we clearSelection");
+    ok(!(grid.items[0].selected || grid.items[1].selected), "selected properties all falsy when we clearSelection");
+    is(handlerStub.callCount, 0, "clearSelection should not fire a selectionchange event");
 
     info("calling toggleItemSelection, currently it is:" + grid.items[0].selected);
     
@@ -439,6 +442,39 @@ gTests.push({
     is(handlerStub.callCount, 1, "selectionchange event handler was called when we selected an item");
     is(handlerStub.calledWith[0].type, "selectionchange", "handler got a selectionchange event");
     is(handlerStub.calledWith[0].target, grid, "select event had the originating grid as the target");
+    handlerStub.restore();
+    doc.defaultView.removeEventListener("selectionchange", handler, false);
+  }
+});
+
+gTests.push({
+  desc: "selectNone",
+  run: function() {
+    let grid = doc.querySelector("#grid-select2");
+
+    is(typeof grid.selectNone, "function", "selectNone is a function on the grid");
+
+    is(grid.itemCount, 2, "2 items initially");
+
+    
+    let handler = {
+      handleEvent: function(aEvent) {}
+    };
+    let handlerStub = stubMethod(handler, "handleEvent");
+    doc.defaultView.addEventListener("selectionchange", handler, false);
+    info("selectionchange listener added");
+
+    grid.items[0].selected=true;
+    grid.items[1].selected=true;
+    is(grid.selectedItems.length, 2, "Both items are selected before calling selectNone");
+    grid.selectNone();
+
+    is(grid.selectedItems.length, 0, "Nothing selected when we selectNone");
+    ok(!(grid.items[0].selected || grid.items[1].selected), "selected properties all falsy when we selectNone");
+
+    is(handlerStub.callCount, 1, "selectionchange event handler was called when we selectNone");
+    is(handlerStub.calledWith[0].type, "selectionchange", "handler got a selectionchange event");
+    is(handlerStub.calledWith[0].target, grid, "selectionchange event had the originating grid as the target");
     handlerStub.restore();
     doc.defaultView.removeEventListener("selectionchange", handler, false);
   }
