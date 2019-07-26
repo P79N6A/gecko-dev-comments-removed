@@ -2397,6 +2397,7 @@ this.CustomizableUI = {
 
 
 
+
   createWidget: function(aProperties) {
     return CustomizableUIInternal.wrapWidget(
       CustomizableUIInternal.createWidget(aProperties)
@@ -2416,15 +2417,100 @@ this.CustomizableUI = {
   destroyWidget: function(aWidgetId) {
     CustomizableUIInternal.destroyWidget(aWidgetId);
   },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getWidget: function(aWidgetId) {
     return CustomizableUIInternal.wrapWidget(aWidgetId);
   },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   getUnusedWidgets: function(aWindowPalette) {
     return CustomizableUIInternal.getUnusedWidgets(aWindowPalette).map(
       CustomizableUIInternal.wrapWidget,
       CustomizableUIInternal
     );
   },
+  
+
+
+
+
+
+
+
+
+
+
   getWidgetIdsInArea: function(aArea) {
     if (!gAreas.has(aArea)) {
       throw new Error("Unknown customization area: " + aArea);
@@ -2436,67 +2522,261 @@ this.CustomizableUI = {
     
     return [...gPlacements.get(aArea)];
   },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getWidgetsInArea: function(aArea) {
     return this.getWidgetIdsInArea(aArea).map(
       CustomizableUIInternal.wrapWidget,
       CustomizableUIInternal
     );
   },
+  
+
+
+
+
   get areas() {
     return [area for ([area, props] of gAreas)];
   },
+  
+
+
+
+
+
+
+
+
+
   getAreaType: function(aArea) {
     let area = gAreas.get(aArea);
     return area ? area.get("type") : null;
   },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getCustomizeTargetForArea: function(aArea, aWindow) {
     return CustomizableUIInternal.getCustomizeTargetForArea(aArea, aWindow);
   },
+  
+
+
+
+
+
+
   reset: function() {
     CustomizableUIInternal.reset();
   },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getPlacementOfWidget: function(aWidgetId) {
     return CustomizableUIInternal.getPlacementOfWidget(aWidgetId, true);
   },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   isWidgetRemovable: function(aWidgetId) {
     return CustomizableUIInternal.isWidgetRemovable(aWidgetId);
   },
+  
+
+
+
+
+
+
+
+
+
   canWidgetMoveToArea: function(aWidgetId, aArea) {
     return CustomizableUIInternal.canWidgetMoveToArea(aWidgetId, aArea);
   },
+  
+
+
+
+
+
+
   get inDefaultState() {
     return CustomizableUIInternal.inDefaultState;
   },
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getLocalizedProperty: function(aWidget, aProp, aFormatArgs, aDef) {
     return CustomizableUIInternal.getLocalizedProperty(aWidget, aProp,
       aFormatArgs, aDef);
   },
+  
+
+
+
+
+
   hidePanelForNode: function(aNode) {
     CustomizableUIInternal.hidePanelForNode(aNode);
   },
+  
+
+
+
+
   isSpecialWidget: function(aWidgetId) {
     return CustomizableUIInternal.isSpecialWidget(aWidgetId);
   },
+  
+
+
+
+
+
   addPanelCloseListeners: function(aPanel) {
     CustomizableUIInternal.addPanelCloseListeners(aPanel);
   },
+  
+
+
+
+
+
+
   removePanelCloseListeners: function(aPanel) {
     CustomizableUIInternal.removePanelCloseListeners(aPanel);
   },
+  
+
+
+
+
+
+
   onWidgetDrag: function(aWidgetId, aArea) {
     CustomizableUIInternal.notifyListeners("onWidgetDrag", aWidgetId, aArea);
   },
+  
+
+
+
+
   notifyStartCustomizing: function(aWindow) {
     CustomizableUIInternal.notifyListeners("onCustomizeStart", aWindow);
   },
+  
+
+
+
+
   notifyEndCustomizing: function(aWindow) {
     CustomizableUIInternal.notifyListeners("onCustomizeEnd", aWindow);
   },
+  
+
+
+
+
+
   isAreaOverflowable: function(aAreaId) {
     let area = gAreas.get(aAreaId);
     return area ? area.get("type") == this.TYPE_TOOLBAR && area.get("overflowable")
                 : false;
   },
+  
+
+
+
+
+
+
+
+
+
   getPlaceForItem: function(aElement) {
     let place;
     let node = aElement;
