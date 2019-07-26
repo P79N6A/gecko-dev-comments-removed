@@ -1127,11 +1127,18 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 
   
   const PRUnichar unsafeBidiCharacters[] = {
+    PRUnichar(0x061c), 
+    PRUnichar(0x200e), 
+    PRUnichar(0x200f), 
     PRUnichar(0x202a), 
     PRUnichar(0x202b), 
     PRUnichar(0x202c), 
     PRUnichar(0x202d), 
-    PRUnichar(0x202e)  
+    PRUnichar(0x202e), 
+    PRUnichar(0x2066), 
+    PRUnichar(0x2067), 
+    PRUnichar(0x2068), 
+    PRUnichar(0x2069)  
   };
   for (uint32_t i = 0; i < ArrayLength(unsafeBidiCharacters); ++i) {
     mSuggestedFileName.ReplaceChar(unsafeBidiCharacters[i], '_');

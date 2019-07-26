@@ -82,17 +82,6 @@ nsresult HandleNumbers(PRUnichar* aBuffer, uint32_t aSize, uint32_t aNumFlag)
   return NS_OK;
 }
 
-#define LRM_CHAR 0x200e
-#define LRE_CHAR 0x202a
-#define RLO_CHAR 0x202e
-bool IsBidiControl(uint32_t aChar)
-{
-  
-  
-  return ((LRE_CHAR <= aChar && aChar <= RLO_CHAR) ||
-          ((aChar)&0xfffffe)==LRM_CHAR);
-}
-
 bool HasRTLChars(const nsAString& aString)
 {
 
