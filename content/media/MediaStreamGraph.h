@@ -568,11 +568,8 @@ public:
 
 
 
-
-
-  bool AppendToTrack(TrackID aID, MediaSegment* aSegment);
+  void AppendToTrack(TrackID aID, MediaSegment* aSegment);
   
-
 
 
   bool HaveEnoughBuffered(TrackID aID);
@@ -581,11 +578,9 @@ public:
 
 
 
-
   void DispatchWhenNotEnoughBuffered(TrackID aID,
       nsIThread* aSignalThread, nsIRunnable* aSignalRunnable);
   
-
 
 
 
@@ -658,6 +653,7 @@ protected:
         return &mUpdateTracks[i];
       }
     }
+    NS_ERROR("Bad track ID!");
     return nullptr;
   }
 

@@ -100,10 +100,6 @@ public:
 
 
   virtual void AppendNullData(TrackTicks aDuration) = 0;
-  
-
-
-  virtual void Clear() = 0;
 
 protected:
   MediaSegment(Type aType) : mDuration(0), mType(aType)
@@ -189,11 +185,6 @@ public:
       mChunks.AppendElement()->SetNull(aDuration);
     }
     mDuration += aDuration;
-  }
-  virtual void Clear()
-  {
-    mDuration = 0;
-    mChunks.Clear();
   }
 
   class ChunkIterator {
