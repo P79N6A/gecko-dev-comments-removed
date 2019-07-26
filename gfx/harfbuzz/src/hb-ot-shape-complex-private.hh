@@ -283,16 +283,22 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
       else
 	return &_hb_ot_complex_shaper_default;
 
+
     case HB_SCRIPT_KHMER:
       
-      if (!planner->map.found_script[0] ||
+
+
+
+
+
+      if (planner->map.found_script[0] &&
 	  hb_ot_layout_language_find_feature (planner->face, HB_OT_TAG_GSUB,
 					      planner->map.script_index[0],
 					      planner->map.language_index[0],
-					      HB_TAG ('l','i','g','a'), NULL))
-	return &_hb_ot_complex_shaper_default;
-      else
+					      HB_TAG ('p','r','e','f'), NULL))
 	return &_hb_ot_complex_shaper_indic;
+      else
+	return &_hb_ot_complex_shaper_default;
 
 
     case HB_SCRIPT_MYANMAR:
