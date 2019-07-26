@@ -167,7 +167,7 @@ NS_IMETHODIMP nsXPCTestParams::TestWstring(const PRUnichar * a, PRUnichar * *b, 
 
     
     
-    NS_Free(const_cast<PRUnichar*>(bprime.get()));
+    NS_Free((void*)bprime.get());
 
     return NS_OK;
 }
