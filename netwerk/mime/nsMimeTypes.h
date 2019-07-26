@@ -136,6 +136,9 @@
 #define VIDEO_OGG                           "video/ogg"
 #define VIDEO_WEBM                          "video/webm"
 #define APPLICATION_OGG                     "application/ogg"
+#ifdef MOZ_DASH
+#define APPLICATION_DASH                    "application/dash+xml"
+#endif
 
 
 #define UUENCODE_APPLE_SINGLE               "x-uuencode-apple-single"

@@ -981,7 +981,6 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
 
   if (mByteRangeDownloads) {
     
-    
     nsresult rv;
     {
       ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);

@@ -711,7 +711,7 @@ public:
    virtual void NotifyAudioAvailableListener();
 
   
-  void DecodeError();
+  virtual void DecodeError();
 
   
   

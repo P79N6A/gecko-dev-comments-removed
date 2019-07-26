@@ -530,7 +530,7 @@ public:
   virtual void SetIndexByteRange(MediaByteRange &aByteRange) { }
 
   
-  nsresult GetIndexByteRanges(nsTArray<MediaByteRange>& aByteRanges) {
+  virtual nsresult GetIndexByteRanges(nsTArray<MediaByteRange>& aByteRanges) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 

@@ -376,24 +376,6 @@ VideoData* nsBuiltinDecoderReader::FindStartTime(int64_t& aOutStartTime)
   return videoData;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
 {
   
