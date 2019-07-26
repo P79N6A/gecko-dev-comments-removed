@@ -40,4 +40,11 @@
     
     
     branch.setBoolPref("layout.testing.overlay-scrollbars.always-visible", true);
-
+    
+    
+    
+    
+    
+    
+    
+    branch.setBoolPref("layout.interruptible-reflow.enabled", false);
