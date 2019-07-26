@@ -1,7 +1,11 @@
+
+
+
 Cu.import("resource://services-sync/engines.js");
+Cu.import("resource://services-sync/service.js");
 
 function run_test() {
-  let tracker = new Tracker();
+  let tracker = new Tracker("Tracker", Service);
   let id = "the_id!";
 
   _("Make sure nothing exists yet..");

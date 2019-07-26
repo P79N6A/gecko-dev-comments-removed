@@ -1,6 +1,11 @@
+
+
+
 Cu.import("resource://services-sync/engines/tabs.js");
-Cu.import("resource://services-sync/engines/clients.js");
+Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
+
+let clientsEngine = Service.clientsEngine;
 
 function fakeSvcWinMediator() {
   
@@ -42,13 +47,13 @@ function fakeSvcSession() {
 }
 
 function run_test() {
-  let engine = new TabEngine();
+  let engine = Service.engineManager.get("tabs");
 
   _("We assume that tabs have changed at startup.");
   let tracker = engine._tracker;
   do_check_true(tracker.modified);
   do_check_true(Utils.deepEquals(Object.keys(engine.getChangedIDs()),
-                                 [Clients.localID]));
+                                 [clientsEngine.localID]));
 
   let logs;
 
@@ -92,7 +97,7 @@ function run_test() {
     tracker.onTab({type: evttype , originalTarget: evttype});
     do_check_true(tracker.modified);
     do_check_true(Utils.deepEquals(Object.keys(engine.getChangedIDs()),
-                                   [Clients.localID]));
+                                   [clientsEngine.localID]));
     do_check_eq(logs.length, idx+1);
     do_check_eq(logs[idx].target, evttype);
     do_check_eq(logs[idx].prop, "weaveLastUsed");
@@ -106,7 +111,7 @@ function run_test() {
 
   tracker.onTab({type: "pageshow", originalTarget: "pageshow"});
   do_check_true(Utils.deepEquals(Object.keys(engine.getChangedIDs()),
-                                 [Clients.localID]));
+                                 [clientsEngine.localID]));
   do_check_eq(logs.length, idx); 
   if (tracker._lazySave) {
     tracker._lazySave.clear();

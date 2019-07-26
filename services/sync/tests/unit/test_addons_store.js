@@ -6,6 +6,7 @@
 Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-sync/addonutils.js");
 Cu.import("resource://services-sync/engines/addons.js");
+Cu.import("resource://services-sync/service.js");
 
 const HTTP_PORT = 8888;
 
@@ -16,8 +17,8 @@ prefs.set("extensions.getAddons.get.url", "http://localhost:8888/search/guid:%ID
 loadAddonTestFunctions();
 startupManager();
 
-Engines.register(AddonsEngine);
-let engine     = Engines.get("addons");
+Service.engineManager.register(AddonsEngine);
+let engine     = Service.engineManager.get("addons");
 let tracker    = engine._tracker;
 let store      = engine._store;
 let reconciler = engine._reconciler;
@@ -417,31 +418,5 @@ add_test(function test_wipe() {
 
   Svc.Prefs.reset("addons.ignoreRepositoryChecking");
 
-  run_next_test();
-});
-
-add_test(function test_wipe_and_install() {
-  _("Ensure wipe followed by install works.");
-
-  
-  
-  
-  let installed = installAddon("test_bootstrap1_1");
-
-  let record = createRecordForThisApp(installed.syncGUID, installed.id, true,
-                                      false);
-
-  Svc.Prefs.set("addons.ignoreRepositoryChecking", true);
-  store.wipe();
-
-  let deleted = getAddonFromAddonManagerByID(installed.id);
-  do_check_null(deleted);
-
-  store.applyIncoming(record);
-
-  let fetched = getAddonFromAddonManagerByID(record.addonID);
-  do_check_true(!!fetched);
-
-  Svc.Prefs.reset("addons.ignoreRepositoryChecking");
   run_next_test();
 });

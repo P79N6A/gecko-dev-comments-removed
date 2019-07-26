@@ -1,11 +1,15 @@
-Cu.import("resource://services-sync/engines/bookmarks.js");
-Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://services-sync/engines.js");
-Cu.import("resource://services-sync/util.js");
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
-Engines.register(BookmarksEngine);
-let engine = Engines.get("bookmarks");
+
+
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://services-sync/constants.js");
+Cu.import("resource://services-sync/engines/bookmarks.js");
+Cu.import("resource://services-sync/engines.js");
+Cu.import("resource://services-sync/service.js");
+Cu.import("resource://services-sync/util.js");
+
+Service.engineManager.register(BookmarksEngine);
+let engine = Service.engineManager.get("bookmarks");
 let store  = engine._store;
 store.wipe();
 

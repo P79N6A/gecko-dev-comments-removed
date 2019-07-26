@@ -1,8 +1,12 @@
+
+
+
 Cu.import("resource://services-sync/engines.js");
+Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
 
 function makeSteamEngine() {
-  return new SyncEngine('Steam');
+  return new SyncEngine('Steam', Service);
 }
 
 function test_url_attributes() {

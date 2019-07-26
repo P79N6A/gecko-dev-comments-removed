@@ -1,5 +1,7 @@
+
+
+
 Cu.import("resource://services-sync/engines.js");
-Cu.import("resource://services-sync/engines/clients.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
@@ -23,20 +25,20 @@ function shared_setup() {
   Service.clusterURL = TEST_CLUSTER_URL;
 
   
-  Engines._engines = {};
-  Engines.register(RotaryEngine);
-  let engine = Engines.get("rotary");
+  Service.engineManager._engines = {};
+  Service.engineManager.register(RotaryEngine);
+  let engine = Service.engineManager.get("rotary");
   engine.enabled = true;
   engine.lastSync = 123; 
   engine._store.items = {flying: "LNER Class A3 4472",
                          scotsman: "Flying Scotsman"};
   engine._tracker.addChangedID('scotsman', 0);
-  do_check_eq(1, Engines.getEnabled().length);
+  do_check_eq(1, Service.engineManager.getEnabled().length);
 
   let engines = {rotary:  {version: engine.version,
                            syncID:  engine.syncID},
-                 clients: {version: Clients.version,
-                           syncID:  Clients.syncID}};
+                 clients: {version: Service.clientsEngine.version,
+                           syncID:  Service.clientsEngine.syncID}};
 
   
   let global      = new ServerWBO("global", {engines: engines});
