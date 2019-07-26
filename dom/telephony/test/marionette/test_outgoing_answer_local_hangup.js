@@ -1,7 +1,7 @@
 
 
 
-MARIONETTE_TIMEOUT = 10000;
+MARIONETTE_TIMEOUT = 60000;
 
 SpecialPowers.addPermission("telephony", true, document);
 
