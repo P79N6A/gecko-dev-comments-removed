@@ -2228,12 +2228,6 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   
   
-  if (mBytesDecoded > mSourceData.Length())
-    return NS_OK;
-
-  
-  
-  
   if (mFinishing)
     return NS_OK;
 
@@ -2267,6 +2261,12 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   }
 
   MutexAutoLock lock(mDecodingMutex);
+
+  
+  
+  
+  if (mBytesDecoded > mSourceData.Length())
+    return NS_OK;
 
   
   if (mDecodeRequest &&
