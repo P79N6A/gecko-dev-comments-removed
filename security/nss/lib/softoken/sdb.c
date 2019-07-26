@@ -30,8 +30,11 @@
 #include "prenv.h"
 #include "prsystem.h" 
 #include "sys/stat.h"
-#if defined (_WIN32)
+#if defined(_WIN32)
 #include <io.h>
+#include <windows.h>
+#elif defined(XP_UNIX)
+#include <unistd.h>
 #endif
 
 #ifdef SQLITE_UNSAFE_THREADS
@@ -190,103 +193,65 @@ sdb_done(int err, int *count)
 
 
 
-
-
-
+#if defined(_WIN32)
 static char *
-sdb_strndup(const char *file, int len)
+sdb_getTempDir(void)
 {
-   char *result = PORT_Alloc(len+1);
+    
 
-   if (result == NULL) {
-	return result;
-   }
 
-   PORT_Memcpy(result, file, len);
-   result[len] = 0;
-   return result;
+
+
+    char path[MAX_PATH];
+    DWORD rv;
+    size_t len;
+
+    rv = GetTempPathA(MAX_PATH, path);
+    if (rv > MAX_PATH || rv == 0)
+        return NULL;
+    len = strlen(path);
+    if (len == 0)
+        return NULL;
+    
+    if (path[len - 1] == '\\')
+        path[len - 1] = '\0';
+    return PORT_Strdup(path);
 }
-
-
-
-
-
-static int 
-sdb_getTempDirCallback(void *arg, int columnCount, char **cval, char **cname)
-{
-    int i;
-    int found = 0;
-    char *file = NULL;
-    char *end, *dir;
-    char dirsep;
-
-    
-    if (*(char **)arg) {
-	return SQLITE_OK;
-    }
-
-    
-
-    for (i=0; i < columnCount; i++) {
-	if (PORT_Strcmp(cname[i],"name") == 0) {
-	    if (PORT_Strcmp(cval[i], "temp") == 0) {
-		found++;
-		continue;
-	    }
-	}
-	if (PORT_Strcmp(cname[i],"file") == 0) {
-	    if (cval[i] && (*cval[i] != 0)) {
-		file = cval[i];
-	    }
-	}
-    }
-
-    
-    if (!found || !file) {
-	return SQLITE_OK;
-    }
-
-    
-    dirsep = PR_GetDirectorySeparator();
-    end = PORT_Strrchr(file, dirsep);
-    if (!end) {
-	return SQLITE_OK;
-    }
-    dir = sdb_strndup(file, end-file);
-
-    *(char **)arg = dir;
-    return SQLITE_OK;
-}
-
-
-
-
-
+#elif defined(XP_UNIX)
 static char *
-sdb_getTempDir(sqlite3 *sqlDB)
+sdb_getTempDir(void)
 {
-    char *tempDir = NULL;
-    int sqlerr;
+    const char *azDirs[] = {
+        NULL,
+        NULL,
+        "/var/tmp",
+        "/usr/tmp",
+        "/tmp",
+        NULL     
+    };
+    unsigned int i;
+    struct stat buf;
+    const char *zDir = NULL;
 
-    
-    sqlerr = sqlite3_exec(sqlDB, "CREATE TEMPORARY TABLE myTemp (id)",
-			  NULL, 0, NULL);
-    if (sqlerr != SQLITE_OK) {
-	return NULL;
+    azDirs[0] = sqlite3_temp_directory;
+    azDirs[1] = getenv("TMPDIR");
+
+    for (i = 0; i < PR_ARRAY_SIZE(azDirs); i++) {
+        zDir = azDirs[i];
+        if (zDir == NULL) continue;
+        if (stat(zDir, &buf)) continue;
+        if (!S_ISDIR(buf.st_mode)) continue;
+        if (access(zDir, 07)) continue;
+        break;
     }
-    
-    sqlerr = sqlite3_exec(sqlDB, "PRAGMA database_list", 
-		sdb_getTempDirCallback, &tempDir, NULL);
 
-    
-    sqlite3_exec(sqlDB, "DROP TABLE myTemp", NULL, 0, NULL);
-
-    if (sqlerr != SQLITE_OK) {
-	return NULL;
-    }
-    return tempDir;
+    if (zDir == NULL)
+        return NULL;
+    return PORT_Strdup(zDir);
 }
-
+#else
+#error "sdb_getTempDir not implemented"
+#endif
 
 
 
@@ -1827,7 +1792,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 
 
 
-	tempDir = sdb_getTempDir(sqlDB);
+	tempDir = sdb_getTempDir();
 	if (tempDir) {
 	    tempOps = sdb_measureAccess(tempDir);
 	    PORT_Free(tempDir);

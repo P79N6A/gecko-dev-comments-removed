@@ -127,6 +127,17 @@ static const SECOidData oids[] = {
 
 static const unsigned int numOids = (sizeof oids) / (sizeof oids[0]);
 
+
+void
+SECU_cert_fetchOID(SECOidTag *data, const SECOidData *src)
+{
+    if (*data == SEC_OID_UNKNOWN) {
+        
+
+        *data = SECOID_AddEntry(src);
+    }
+}
+
 SECStatus
 SECU_RegisterDynamicOids(void)
 {

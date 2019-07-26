@@ -470,7 +470,7 @@ RNG_RNGInit(void)
     
     PR_CallOnce(&coRNGInit, rng_init);
     
-    return (globalrng != NULL) ? PR_SUCCESS : PR_FAILURE;
+    return (globalrng != NULL) ? SECSuccess : SECFailure;
 }
 
 

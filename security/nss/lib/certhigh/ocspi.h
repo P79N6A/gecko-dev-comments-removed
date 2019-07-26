@@ -135,6 +135,6 @@ ocsp_GetResponderLocation(CERTCertDBHandle *handle,
 
 
 PRBool
-ocsp_FetchingFailureIsVerificationFailure();
+ocsp_FetchingFailureIsVerificationFailure(void);
 
 #endif 
