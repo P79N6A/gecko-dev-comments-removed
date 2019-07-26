@@ -3,6 +3,7 @@
 
 
 
+
 #include "base/basictypes.h"
 
 #include "gfxAndroidPlatform.h"
@@ -29,69 +30,74 @@ using namespace mozilla::gfx;
 
 static FT_Library gPlatformFTLibrary = nullptr;
 
-static int64_t sFreetypeMemoryUsed;
-static FT_MemoryRec_ sFreetypeMemoryRecord;
-
-static int64_t
-GetFreetypeSize()
+class FreetypeReporter MOZ_FINAL : public MemoryReporterBase
 {
-    return sFreetypeMemoryUsed;
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(Freetype,
-    "explicit/freetype",
-    KIND_HEAP,
-    UNITS_BYTES,
-    GetFreetypeSize,
-    "Memory used by Freetype."
-)
-
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_ALLOC_FUN(FreetypeMallocSizeOfOnAlloc)
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_FREE_FUN(FreetypeMallocSizeOfOnFree)
-
-static void*
-CountingAlloc(FT_Memory memory, long size)
-{
-    void *p = malloc(size);
-    sFreetypeMemoryUsed += FreetypeMallocSizeOfOnAlloc(p);
-    return p;
-}
-
-static void
-CountingFree(FT_Memory memory, void* p)
-{
-    sFreetypeMemoryUsed -= FreetypeMallocSizeOfOnFree(p);
-    free(p);
-}
-
-static void*
-CountingRealloc(FT_Memory memory, long cur_size, long new_size, void* p)
-{
-    sFreetypeMemoryUsed -= FreetypeMallocSizeOfOnFree(p);
-    void *pnew = realloc(p, new_size);
-    if (pnew) {
-        sFreetypeMemoryUsed += FreetypeMallocSizeOfOnAlloc(pnew);
-    } else {
+public:
+    FreetypeReporter()
+      : MemoryReporterBase("explicit/freetype", KIND_HEAP, UNITS_BYTES,
+                           "Memory used by Freetype.")
+    {
+#ifdef DEBUG
         
-        sFreetypeMemoryUsed += FreetypeMallocSizeOfOnAlloc(p);
+        
+        static bool hasRun = false;
+        MOZ_ASSERT(!hasRun);
+        hasRun = true;
+#endif
     }
-    return pnew;
-}
+
+    static void* CountingAlloc(FT_Memory, long size)
+    {
+        void *p = malloc(size);
+        sAmount += MallocSizeOfOnAlloc(p);
+        return p;
+    }
+
+    static void CountingFree(FT_Memory, void* p)
+    {
+        sAmount -= MallocSizeOfOnFree(p);
+        free(p);
+    }
+
+    static void*
+    CountingRealloc(FT_Memory, long cur_size, long new_size, void* p)
+    {
+        sAmount -= MallocSizeOfOnFree(p);
+        void *pnew = realloc(p, new_size);
+        if (pnew) {
+            sAmount += MallocSizeOfOnAlloc(pnew);
+        } else {
+            
+            sAmount += MallocSizeOfOnAlloc(p);
+        }
+        return pnew;
+    }
+
+private:
+    int64_t Amount() MOZ_OVERRIDE { return sAmount; }
+
+    static int64_t sAmount;
+};
+
+int64_t FreetypeReporter::sAmount = 0;
+
+static FT_MemoryRec_ sFreetypeMemoryRecord;
 
 gfxAndroidPlatform::gfxAndroidPlatform()
 {
     
     sFreetypeMemoryRecord.user    = nullptr;
-    sFreetypeMemoryRecord.alloc   = CountingAlloc;
-    sFreetypeMemoryRecord.free    = CountingFree;
-    sFreetypeMemoryRecord.realloc = CountingRealloc;
+    sFreetypeMemoryRecord.alloc   = FreetypeReporter::CountingAlloc;
+    sFreetypeMemoryRecord.free    = FreetypeReporter::CountingFree;
+    sFreetypeMemoryRecord.realloc = FreetypeReporter::CountingRealloc;
 
     
     
     FT_New_Library(&sFreetypeMemoryRecord, &gPlatformFTLibrary);
     FT_Add_Default_Modules(gPlatformFTLibrary);
 
-    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(Freetype));
+    mFreetypeReporter = new FreetypeReporter();
+    NS_RegisterMemoryReporter(mFreetypeReporter);
 
     nsCOMPtr<nsIScreenManager> screenMgr = do_GetService("@mozilla.org/gfx/screenmanager;1");
     nsCOMPtr<nsIScreen> screen;
@@ -112,6 +118,8 @@ gfxAndroidPlatform::gfxAndroidPlatform()
 gfxAndroidPlatform::~gfxAndroidPlatform()
 {
     cairo_debug_reset_static_data();
+
+    NS_UnregisterMemoryReporter(mFreetypeReporter);
 
     FT_Done_Library(gPlatformFTLibrary);
     gPlatformFTLibrary = nullptr;
