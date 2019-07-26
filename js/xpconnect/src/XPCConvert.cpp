@@ -1032,25 +1032,22 @@ XPCConvert::JSObject2NativeInterface(JSContext* cx,
         
         
         
-        JSObject* inner = js::UnwrapObjectChecked(src,  false);
-
-        
-        
-        
-        
-        
-        if (!inner && MOZ_UNLIKELY(xpc::WrapperFactory::IsCOW(src)))
-            inner = js::UnwrapObject(src);
-        if (!inner) {
-            if (pErr)
-                *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;
-            return false;
+        JSObject* inner = nullptr;
+        if (XPCWrapper::IsSecurityWrapper(src)) {
+            inner = XPCWrapper::Unwrap(cx, src, false);
+            if (!inner) {
+                if (pErr)
+                    *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+                return false;
+            }
         }
 
         
-        XPCWrappedNative* wrappedNative = nullptr;
-        if (IS_WN_WRAPPER(inner))
-            wrappedNative = XPCWrappedNative::Get(inner);
+        XPCWrappedNative* wrappedNative =
+                    XPCWrappedNative::GetWrappedNativeOfJSObject(cx,
+                                                                 inner
+                                                                 ? inner
+                                                                 : src);
         if (wrappedNative) {
             iface = wrappedNative->GetIdentityObject();
             return NS_SUCCEEDED(iface->QueryInterface(*iid, dest));
@@ -1177,12 +1174,9 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
         }
 
         
-        JSObject *unwrapped = js::UnwrapObjectChecked(obj,  false);
-        if (!unwrapped)
-            return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
-        XPCWrappedNative* wrapper = IS_WN_WRAPPER(unwrapped) ? XPCWrappedNative::Get(unwrapped)
-                                                             : nullptr;
-        if (wrapper) {
+        XPCWrappedNative* wrapper;
+        if (nullptr != (wrapper =
+                       XPCWrappedNative::GetWrappedNativeOfJSObject(cx,obj))) {
             nsISupports* supports = wrapper->GetIdentityObject();
             nsCOMPtr<nsIException> iface = do_QueryInterface(supports);
             if (iface) {
