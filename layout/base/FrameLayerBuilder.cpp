@@ -1018,21 +1018,19 @@ GetDefaultLayerManagerDataForFrame(nsIFrame* aFrame)
   return static_cast<LayerManagerData*>(props.Get(FrameLayerBuilder::LayerManagerDataProperty()));
 }
 
- FrameLayerBuilder::DisplayItemData*
-FrameLayerBuilder::GetDisplayItemDataForManager(nsIFrame* aFrame, uint32_t aDisplayItemKey, LayerManager* aManager)
+static LayerManagerData*
+GetSecondaryLayerManagerDataForFrame(nsIFrame* aFrame)
 {
-  LayerManagerData *data;
-  if (!aManager) {
-    data = GetDefaultLayerManagerDataForFrame(aFrame);
-  } else {
-    data = static_cast<LayerManagerData*>(aManager->GetUserData(&gLayerManagerUserData));
-  }
-  
-  if (!data) {
-    return nullptr;
-  }
+  FrameProperties props = aFrame->Properties();
+  return static_cast<LayerManagerData*>(props.Get(FrameLayerBuilder::LayerManagerSecondaryDataProperty()));
+}
 
-  DisplayItemDataEntry *entry = data->mFramesWithLayers.GetEntry(aFrame);
+ FrameLayerBuilder::DisplayItemData*
+FrameLayerBuilder::GetDisplayItemDataForManager(nsIFrame* aFrame,
+                                                uint32_t aDisplayItemKey,
+                                                LayerManagerData* aData)
+{
+  DisplayItemDataEntry *entry = aData->mFramesWithLayers.GetEntry(aFrame);
   if (!entry) {
     return nullptr;
   }
@@ -1047,7 +1045,23 @@ FrameLayerBuilder::GetDisplayItemDataForManager(nsIFrame* aFrame, uint32_t aDisp
 }
 
  FrameLayerBuilder::DisplayItemData*
-FrameLayerBuilder::GetDisplayItemDataForManager(nsDisplayItem* aItem, LayerManager* aManager)
+FrameLayerBuilder::GetDisplayItemDataForManager(nsIFrame* aFrame, 
+                                                uint32_t aDisplayItemKey, 
+                                                LayerManager* aManager)
+{
+  LayerManagerData *data = 
+    static_cast<LayerManagerData*>(aManager->GetUserData(&gLayerManagerUserData));
+  
+  if (!data) {
+    return nullptr;
+  }
+
+  return GetDisplayItemDataForManager(aFrame, aDisplayItemKey, data);
+}
+
+ FrameLayerBuilder::DisplayItemData*
+FrameLayerBuilder::GetDisplayItemDataForManager(nsDisplayItem* aItem, 
+                                                LayerManager* aManager)
 {
   DisplayItemData* data = 
     GetDisplayItemDataForManager(aItem->GetUnderlyingFrame(), 
@@ -1071,6 +1085,19 @@ FrameLayerBuilder::GetDisplayItemDataForManager(nsDisplayItem* aItem, LayerManag
   return nullptr;
 }
 
+ FrameLayerBuilder::DisplayItemData*
+FrameLayerBuilder::GetDisplayItemDataForManager(nsIFrame* aFrame, 
+                                                uint32_t aDisplayItemKey)
+{
+  LayerManagerData *data = GetDefaultLayerManagerDataForFrame(aFrame);
+  
+  if (!data) {
+    return nullptr;
+  }
+  
+  return GetDisplayItemDataForManager(aFrame, aDisplayItemKey, data);
+}
+
 bool
 FrameLayerBuilder::HasRetainedLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey, LayerManager* aManager)
 {
@@ -1081,6 +1108,20 @@ FrameLayerBuilder::HasRetainedLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKe
       
       return true;
     }
+  }
+  return false;
+}
+
+bool
+FrameLayerBuilder::HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey)
+{
+  LayerManagerData* data = GetDefaultLayerManagerDataForFrame(aFrame);
+  if (data && GetDisplayItemDataForManager(aFrame, aDisplayItemKey, data)) {
+    return true;
+  }
+  data = GetSecondaryLayerManagerDataForFrame(aFrame);
+  if (data && GetDisplayItemDataForManager(aFrame, aDisplayItemKey, data)) {
+    return true;
   }
   return false;
 }
@@ -2915,6 +2956,19 @@ FrameLayerBuilder::InvalidateAllLayers(LayerManager* aManager)
   }
 }
 
+ void
+FrameLayerBuilder::InvalidateAllLayersForFrame(nsIFrame *aFrame)
+{
+  LayerManagerData* data = GetDefaultLayerManagerDataForFrame(aFrame);
+  if (data) {
+    data->mInvalidateAllLayers = true;
+  }
+  data = GetSecondaryLayerManagerDataForFrame(aFrame);
+  if (data) {
+    data->mInvalidateAllLayers = true;
+  }
+}
+
 
 Layer*
 FrameLayerBuilder::GetDedicatedLayer(nsIFrame* aFrame, uint32_t aDisplayItemKey)
@@ -2923,7 +2977,7 @@ FrameLayerBuilder::GetDedicatedLayer(nsIFrame* aFrame, uint32_t aDisplayItemKey)
   
   
 
-  DisplayItemData *data = GetDisplayItemDataForManager(aFrame, aDisplayItemKey, nullptr);
+  DisplayItemData *data = GetDisplayItemDataForManager(aFrame, aDisplayItemKey);
   if (!data) {
     return nullptr;
   }
