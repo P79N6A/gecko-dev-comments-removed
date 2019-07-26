@@ -335,25 +335,23 @@ nsInProcessTabChildGlobal::InitTabChildGlobal()
 class nsAsyncScriptLoad : public nsRunnable
 {
 public:
-    nsAsyncScriptLoad(nsInProcessTabChildGlobal* aTabChild, const nsAString& aURL,
-                      bool aRunInGlobalScope)
-      : mTabChild(aTabChild), mURL(aURL), mRunInGlobalScope(aRunInGlobalScope) {}
+  nsAsyncScriptLoad(nsInProcessTabChildGlobal* aTabChild, const nsAString& aURL)
+  : mTabChild(aTabChild), mURL(aURL) {}
 
   NS_IMETHOD Run()
   {
-    mTabChild->LoadFrameScript(mURL, mRunInGlobalScope);
+    mTabChild->LoadFrameScript(mURL);
     return NS_OK;
   }
   nsRefPtr<nsInProcessTabChildGlobal> mTabChild;
   nsString mURL;
-  bool mRunInGlobalScope;
 };
 
 void
-nsInProcessTabChildGlobal::LoadFrameScript(const nsAString& aURL, bool aRunInGlobalScope)
+nsInProcessTabChildGlobal::LoadFrameScript(const nsAString& aURL)
 {
   if (!nsContentUtils::IsSafeToRunScript()) {
-    nsContentUtils::AddScriptRunner(new nsAsyncScriptLoad(this, aURL, aRunInGlobalScope));
+    nsContentUtils::AddScriptRunner(new nsAsyncScriptLoad(this, aURL));
     return;
   }
   if (!mInitialized) {
@@ -362,7 +360,7 @@ nsInProcessTabChildGlobal::LoadFrameScript(const nsAString& aURL, bool aRunInGlo
   }
   bool tmp = mLoadingScript;
   mLoadingScript = true;
-  LoadFrameScriptInternal(aURL, aRunInGlobalScope);
+  LoadFrameScriptInternal(aURL);
   mLoadingScript = tmp;
   if (!mLoadingScript && mDelayedDisconnect) {
     mDelayedDisconnect = false;
