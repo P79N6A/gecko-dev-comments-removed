@@ -34,6 +34,9 @@
 #include "nsIOService.h"
 #include <algorithm>
 
+#ifdef MOZ_WIDGET_GONK
+#include "nsINetworkStatsServiceProxy.h"
+#endif
 
 using namespace mozilla;
 
@@ -121,6 +124,9 @@ nsHttpTransaction::nsHttpTransaction()
     , mSubmittedRatePacing(false)
     , mPassedRatePacing(false)
     , mSynchronousRatePaceRequest(false)
+    , mCountRecv(0)
+    , mCountSent(0)
+    , mAppId(NECKO_NO_APP_ID)
 {
     LOG(("Creating nsHttpTransaction @%p\n", this));
     gHttpHandler->GetMaxPipelineObjectSize(&mMaxPipelineObjectSize);
@@ -222,6 +228,18 @@ nsHttpTransaction::Init(uint32_t caps,
         
         activityDistributorActive = false;
         mActivityDistributor = nullptr;
+    }
+
+    
+    bool isInBrowser;
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(eventsink);
+    if (channel) {
+        NS_GetAppInfo(channel, &mAppId, &isInBrowser);
+    }
+
+    
+    if (mAppId != NECKO_NO_APP_ID) {
+        GetActiveNetwork();
     }
 
     
@@ -565,6 +583,7 @@ nsHttpTransaction::ReadRequestSegment(nsIInputStream *stream,
                               "net::http::first-write");
     }
 
+    trans->CountSentBytes(*countRead);
     trans->mSentData = true;
     return NS_OK;
 }
@@ -641,6 +660,7 @@ nsHttpTransaction::WritePipeSegment(nsIOutputStream *stream,
     }
 
     MOZ_ASSERT(*countWritten > 0, "bad writer");
+    trans->CountRecvBytes(*countWritten);
     trans->mReceivedData = true;
 
     
@@ -685,6 +705,118 @@ nsHttpTransaction::WriteSegments(nsAHttpSegmentWriter *writer,
     }
 
     return rv;
+}
+
+void
+nsHttpTransaction::GetActiveNetwork()
+{
+#ifdef MOZ_WIDGET_GONK
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsresult rv;
+    nsCOMPtr<nsINetworkManager> networkManager =
+        do_GetService("@mozilla.org/network/manager;1", &rv);
+
+    if (NS_FAILED(rv) || !networkManager) {
+        mActiveNetwork = nullptr;
+        return;
+    }
+
+    nsCOMPtr<nsINetworkInterface> activeNetwork;
+    networkManager->GetActive(getter_AddRefs(activeNetwork));
+    mActiveNetwork =
+        new nsMainThreadPtrHolder<nsINetworkInterface>(activeNetwork);
+#endif
+}
+
+
+
+
+
+#ifdef MOZ_WIDGET_GONK
+namespace {
+class SaveNetworkStatsEvent : public nsRunnable {
+public:
+    SaveNetworkStatsEvent(uint32_t aAppId,
+                          nsMainThreadPtrHandle<nsINetworkInterface> &aActiveNetwork,
+                          uint64_t aCountRecv,
+                          uint64_t aCountSent)
+        : mAppId(aAppId),
+          mActiveNetwork(aActiveNetwork),
+          mCountRecv(aCountRecv),
+          mCountSent(aCountSent)
+    {
+        MOZ_ASSERT(mAppId != NECKO_NO_APP_ID);
+        MOZ_ASSERT(mActiveNetwork);
+    }
+
+    NS_IMETHOD Run()
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+
+        nsresult rv;
+        nsCOMPtr<nsINetworkStatsServiceProxy> mNetworkStatsServiceProxy =
+            do_GetService("@mozilla.org/networkstatsServiceProxy;1", &rv);
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
+
+        
+        mNetworkStatsServiceProxy->SaveAppStats(mAppId,
+                                                mActiveNetwork,
+                                                PR_Now() / 1000,
+                                                mCountRecv,
+                                                mCountSent,
+                                                nullptr);
+
+        return NS_OK;
+    }
+private:
+    uint32_t mAppId;
+    nsMainThreadPtrHandle<nsINetworkInterface> mActiveNetwork;
+    uint64_t mCountRecv;
+    uint64_t mCountSent;
+};
+};
+#endif
+
+nsresult
+nsHttpTransaction::SaveNetworkStats(bool enforce)
+{
+#ifdef MOZ_WIDGET_GONK
+    
+    if (!mActiveNetwork || mAppId == NECKO_NO_APP_ID) {
+        return NS_OK;
+    }
+
+    if (mCountRecv <= 0 && mCountSent <= 0) {
+        
+        return NS_OK;
+    }
+
+    
+    
+    
+    uint64_t totalBytes = mCountRecv + mCountSent;
+    if (!enforce && totalBytes < NETWORK_STATS_THRESHOLD) {
+        return NS_OK;
+    }
+
+    
+    
+    nsRefPtr<nsRunnable> event =
+        new SaveNetworkStatsEvent(mAppId, mActiveNetwork,
+                                  mCountRecv, mCountSent);
+    NS_DispatchToMainThread(event);
+
+    
+    mCountSent = 0;
+    mCountRecv = 0;
+
+    return NS_OK;
+#else
+    return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 void
@@ -827,6 +959,9 @@ nsHttpTransaction::Close(nsresult reason)
 
     if (relConn && mConnection)
         NS_RELEASE(mConnection);
+
+    
+    SaveNetworkStats(true);
 
     mStatus = reason;
     mTransactionDone = true; 
