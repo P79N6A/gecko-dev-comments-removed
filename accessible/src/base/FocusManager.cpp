@@ -297,6 +297,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   
   if (target->IsARIARole(nsGkAtoms::menuitem)) {
     
+    bool tryOwnsParent = true;
     Accessible* ARIAMenubar = nullptr;
     Accessible* child = target;
     Accessible* parent = child->Parent();
@@ -312,14 +313,19 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
         if (roleMap->Is(nsGkAtoms::menuitem) || roleMap->Is(nsGkAtoms::menu)) {
           child = parent;
           parent = child->Parent();
+          tryOwnsParent = true;
           continue;
         }
       }
 
       
+      if (!tryOwnsParent)
+        break;
+
       RelatedAccIterator iter(child->Document(), child->GetContent(),
                               nsGkAtoms::aria_owns);
       parent = iter.Next();
+      tryOwnsParent = false;
     }
 
     if (ARIAMenubar != mActiveARIAMenubar) {
