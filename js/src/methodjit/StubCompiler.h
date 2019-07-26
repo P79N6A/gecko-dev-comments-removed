@@ -4,6 +4,7 @@
 
 
 
+
 #if !defined(jsstub_compiler_h__) && defined(JS_METHODJIT)
 #define jsstub_compiler_h__
 

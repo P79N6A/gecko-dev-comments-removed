@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef Stack_inl_h__
 #define Stack_inl_h__
 

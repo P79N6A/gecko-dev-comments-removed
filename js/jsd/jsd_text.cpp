@@ -7,7 +7,6 @@
 
 
 
-
 #include <ctype.h>
 #include "jsd.h"
 

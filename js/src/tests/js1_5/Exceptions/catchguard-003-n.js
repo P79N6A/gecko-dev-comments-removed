@@ -4,6 +4,7 @@
 
 
 
+
 DESCRIPTION = "Illegally constructed catchguard should have thrown an exception.";
 EXPECTED = "error";
 

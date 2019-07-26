@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsfuninlines_h___
 #define jsfuninlines_h___
 

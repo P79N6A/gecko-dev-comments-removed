@@ -4,6 +4,7 @@
 
 
 
+
 #include "mozilla/DebugOnly.h"
 
 #include "MethodJIT.h"

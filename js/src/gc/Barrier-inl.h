@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsgc_barrier_inl_h___
 #define jsgc_barrier_inl_h___
 

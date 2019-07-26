@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = '58946';
 var stat =  'Testing a return statement inside a catch statement inside a function';
 

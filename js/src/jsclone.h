@@ -3,7 +3,6 @@
 
 
 
-
 #ifndef jsclone_h___
 #define jsclone_h___
 

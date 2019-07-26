@@ -4,6 +4,7 @@
 
 
 
+
 #ifdef DEBUG
 
 #ifndef jsion_c1spewer_h__

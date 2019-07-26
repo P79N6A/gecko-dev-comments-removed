@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_assembler_shared_h__
 #define jsion_assembler_shared_h__
 

@@ -1,8 +1,9 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jsion_codegen_arm_h__
 #define jsion_codegen_arm_h__
@@ -23,12 +24,12 @@ class CodeGeneratorARM : public CodeGeneratorShared
     CodeGeneratorARM *thisFromCtor() {return this;}
 
   protected:
-    
+    // Label for the common return path.
     HeapLabel *returnLabel_;
     HeapLabel *deoptLabel_;
-    
-    
-    
+    // ugh.  this is not going to be pretty to move over.
+    // stack slotted variables are not useful on arm.
+    // it looks like this will need to return one of two types.
     inline Operand ToOperand(const LAllocation &a) {
         if (a.isGeneralReg())
             return Operand(a.toGeneralReg()->reg());
@@ -56,14 +57,14 @@ class CodeGeneratorARM : public CodeGeneratorShared
 
     void emitRoundDouble(const FloatRegister &src, const Register &dest, Label *fail);
 
-    
-    
+    // Emits a branch that directs control flow to the true block if |cond| is
+    // true, and the false block if |cond| is false.
     void emitBranch(Assembler::Condition cond, MBasicBlock *ifTrue, MBasicBlock *ifFalse);
 
     bool emitTableSwitchDispatch(MTableSwitch *mir, const Register &index, const Register &base);
 
   public:
-    
+    // Instruction visitors.
     virtual bool visitMinMaxD(LMinMaxD *ins);
     virtual bool visitAbsD(LAbsD *ins);
     virtual bool visitSqrtD(LSqrtD *ins);
@@ -102,7 +103,7 @@ class CodeGeneratorARM : public CodeGeneratorShared
     virtual bool visitRound(LRound *lir);
     virtual bool visitTruncateDToInt32(LTruncateDToInt32 *ins);
 
-    
+    // Out of line visitors.
     bool visitOutOfLineBailout(OutOfLineBailout *ool);
     bool visitOutOfLineTableSwitch(OutOfLineTableSwitch *ool);
 
@@ -111,7 +112,7 @@ class CodeGeneratorARM : public CodeGeneratorShared
     ValueOperand ToOutValue(LInstruction *ins);
     ValueOperand ToTempValue(LInstruction *ins, size_t pos);
 
-    
+    // Functions for LTestVAndBranch.
     Register splitTagForTest(const ValueOperand &value);
 
     void storeElementTyped(const LAllocation *value, MIRType valueType, MIRType elementType,
@@ -169,7 +170,7 @@ class CodeGeneratorARM : public CodeGeneratorShared
 
 typedef CodeGeneratorARM CodeGeneratorSpecific;
 
-
+// An out-of-line bailout thunk.
 class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorARM>
 {
     LSnapshot *snapshot_;
@@ -188,8 +189,8 @@ class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorARM>
     }
 };
 
-} 
-} 
+} // namespace ion
+} // namespace js
 
-#endif 
+#endif // jsion_codegen_arm_h__
 

@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jscompartment_inlines_h___
 #define jscompartment_inlines_h___
 

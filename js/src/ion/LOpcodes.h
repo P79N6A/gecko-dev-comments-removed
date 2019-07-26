@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_lir_opcodes_common_h__
 #define jsion_lir_opcodes_common_h__
 

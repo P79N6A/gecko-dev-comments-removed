@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef StringObject_h___
 #define StringObject_h___
 

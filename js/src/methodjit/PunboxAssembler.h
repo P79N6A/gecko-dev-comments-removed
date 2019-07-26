@@ -4,6 +4,7 @@
 
 
 
+
 #if !defined jsjaeger_assembler64_h__ && defined JS_METHODJIT && defined JS_PUNBOX64
 #define jsjaeger_assembler64_h__
 

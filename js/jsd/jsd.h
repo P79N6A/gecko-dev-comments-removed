@@ -7,7 +7,6 @@
 
 
 
-
 #ifndef jsd_h___
 #define jsd_h___
 
