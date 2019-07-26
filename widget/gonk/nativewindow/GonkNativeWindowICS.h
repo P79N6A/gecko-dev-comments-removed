@@ -30,10 +30,10 @@
 #include <utils/String8.h>
 #include <utils/threads.h>
 
-#include "mozilla/layers/LayersSurfaces.h"
-#include "mozilla/layers/ImageBridgeChild.h"
-#include "GrallocImages.h"
 #include "CameraCommon.h"
+#include "GrallocImages.h"
+#include "mozilla/layers/LayersSurfaces.h"
+#include "mozilla/layers/TextureClient.h"
 
 namespace android {
 
@@ -48,8 +48,7 @@ class GonkNativeWindow : public BnSurfaceTexture
 {
     friend class GonkNativeWindowClient;
 
-    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
-    typedef mozilla::layers::GraphicBufferLocked GraphicBufferLocked;
+    typedef mozilla::layers::TextureClient TextureClient;
 
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
@@ -63,11 +62,11 @@ public:
 
     
     
-    already_AddRefed<GraphicBufferLocked> getCurrentBuffer();
+    mozilla::TemporaryRef<TextureClient> getCurrentBuffer();
 
     
     
-    bool returnBuffer(uint32_t index, uint32_t generation);
+    void returnBuffer(TextureClient* client);
 
     
     
@@ -139,18 +138,16 @@ public:
     
     void abandon();
 
-    SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
+    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+
+    static void RecycleCallback(TextureClient* client, void* closure);
 
 protected:
 
     
     
     
-    void freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList);
-
-    
-    
-    void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
+    void freeAllBuffersLocked();
 
     
     
@@ -162,6 +159,8 @@ private:
     void init();
 
     int getSlotFromBufferLocked(android_native_buffer_t* buffer) const;
+
+    int getSlotFromTextureClientLocked(TextureClient* client) const;
 
     enum { INVALID_BUFFER_SLOT = -1 };
 
@@ -178,7 +177,7 @@ private:
         sp<GraphicBuffer> mGraphicBuffer;
 
         
-        SurfaceDescriptor mSurfaceDescriptor;
+        mozilla::RefPtr<TextureClient> mTextureClient;
 
         
         
@@ -289,63 +288,7 @@ private:
     
     uint64_t mFrameCounter;
 
-    
-    uint32_t mGeneration;
-
     GonkNativeWindowNewFrameCallback* mNewFrameCallback;
-};
-
-
-
-class CameraGraphicBuffer : public mozilla::layers::GraphicBufferLocked
-{
-    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
-    typedef mozilla::layers::ImageBridgeChild ImageBridgeChild;
-
-public:
-    CameraGraphicBuffer(GonkNativeWindow* aNativeWindow,
-                        uint32_t aIndex,
-                        uint32_t aGeneration,
-                        SurfaceDescriptor aBuffer)
-        : GraphicBufferLocked(aBuffer)
-        , mNativeWindow(aNativeWindow)
-        , mIndex(aIndex)
-        , mGeneration(aGeneration)
-        , mLocked(true)
-    {
-        DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-    }
-
-    virtual ~CameraGraphicBuffer()
-    {
-        DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-    }
-
-protected:
-    
-    
-    virtual void Unlock() MOZ_OVERRIDE
-    {
-        if (mLocked) {
-            
-            
-            sp<GonkNativeWindow> window = mNativeWindow.promote();
-            if (window.get() && window->returnBuffer(mIndex, mGeneration)) {
-                mLocked = false;
-            } else {
-                
-                
-                ImageBridgeChild *ibc = ImageBridgeChild::GetSingleton();
-                ibc->DeallocSurfaceDescriptorGralloc(mSurfaceDescriptor);
-            }
-        }
-    }
-
-protected:
-    wp<GonkNativeWindow> mNativeWindow;
-    uint32_t mIndex;
-    uint32_t mGeneration;
-    bool mLocked;
 };
 
 }; 

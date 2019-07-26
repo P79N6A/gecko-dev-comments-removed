@@ -16,9 +16,10 @@
 
 
 #include "base/basictypes.h"
+#include "mozilla/layers/GrallocTextureClient.h"
+#include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
-#include "mozilla/layers/ImageBridgeChild.h"
 #include "GonkNativeWindow.h"
 #include "nsDebug.h"
 
@@ -36,6 +37,24 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 
+class nsProxyReleaseTask : public CancelableTask
+{
+public:
+    nsProxyReleaseTask(TextureClient* aClient)
+        : mTextureClient(aClient) {
+    }
+
+    virtual void Run() MOZ_OVERRIDE
+    {
+        mTextureClient = nullptr;
+    }
+
+    virtual void Cancel() MOZ_OVERRIDE {}
+
+private:
+    mozilla::RefPtr<TextureClient> mTextureClient;
+};
+
 GonkNativeWindow::GonkNativeWindow() :
     mAbandoned(false),
     mDefaultWidth(1),
@@ -44,43 +63,35 @@ GonkNativeWindow::GonkNativeWindow() :
     mBufferCount(MIN_BUFFER_SLOTS + 1),
     mConnectedApi(NO_CONNECTED_API),
     mFrameCounter(0),
-    mGeneration(0),
     mNewFrameCallback(nullptr) {
 }
 
 GonkNativeWindow::~GonkNativeWindow() {
-    nsAutoTArray<SurfaceDescriptor, NUM_BUFFER_SLOTS> freeList;
-    freeAllBuffersLocked(freeList);
-    releaseBufferFreeListUnlocked(freeList);
+    freeAllBuffersLocked();
 }
 
 void GonkNativeWindow::abandon()
 {
     CNW_LOGD("abandon");
-    nsAutoTArray<SurfaceDescriptor, NUM_BUFFER_SLOTS> freeList;
-    {
-        Mutex::Autolock lock(mMutex);
-        mQueue.clear();
-        mAbandoned = true;
-        freeAllBuffersLocked(freeList);
-    }
-
-    releaseBufferFreeListUnlocked(freeList);
+    Mutex::Autolock lock(mMutex);
+    mQueue.clear();
+    mAbandoned = true;
+    freeAllBuffersLocked();
     mDequeueCondition.signal();
 }
 
-void GonkNativeWindow::freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList)
+void GonkNativeWindow::freeAllBuffersLocked()
 {
-    CNW_LOGD("freeAllBuffersLocked: from generation %d", mGeneration);
-    ++mGeneration;
+    CNW_LOGD("freeAllBuffersLocked");
 
     for (int i = 0; i < NUM_BUFFER_SLOTS; ++i) {
         if (mSlots[i].mGraphicBuffer != NULL) {
-            
-            
-            if (mSlots[i].mBufferState != BufferSlot::RENDERING) {
-                SurfaceDescriptor* desc = freeList.AppendElement();
-                *desc = mSlots[i].mSurfaceDescriptor;
+            if (mSlots[i].mTextureClient) {
+              mSlots[i].mTextureClient->ClearRecycleCallback();
+              
+              nsProxyReleaseTask* task = new nsProxyReleaseTask(mSlots[i].mTextureClient);
+              mSlots[i].mTextureClient = NULL;
+              ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(FROM_HERE, task);
             }
             mSlots[i].mGraphicBuffer = NULL;
             mSlots[i].mBufferState = BufferSlot::FREE;
@@ -89,32 +100,21 @@ void GonkNativeWindow::freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeLis
     }
 }
 
-void GonkNativeWindow::releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList)
-{
-    
-    
-
-    CNW_LOGD("releaseBufferFreeListUnlocked: E");
-    ImageBridgeChild *ibc = ImageBridgeChild::GetSingleton();
-
-    for (uint32_t i = 0; i < freeList.Length(); ++i) {
-        ibc->DeallocSurfaceDescriptorGralloc(freeList[i]);
-    }
-
-    freeList.Clear();
-    CNW_LOGD("releaseBufferFreeListUnlocked: X");
-}
-
 void GonkNativeWindow::clearRenderingStateBuffersLocked()
 {
-    ++mGeneration;
-    CNW_LOGD("clearRenderingStateBuffersLocked: mGeneration=%d\n", mGeneration);
+    CNW_LOGD("clearRenderingStateBuffersLocked");
 
     for (int i = 0; i < NUM_BUFFER_SLOTS; ++i) {
         if (mSlots[i].mGraphicBuffer != NULL) {
             
-            
             if (mSlots[i].mBufferState == BufferSlot::RENDERING) {
+                if (mSlots[i].mTextureClient) {
+                  mSlots[i].mTextureClient->ClearRecycleCallback();
+                  
+                  nsProxyReleaseTask* task = new nsProxyReleaseTask(mSlots[i].mTextureClient);
+                  mSlots[i].mTextureClient = NULL;
+                  ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(FROM_HERE, task);
+                }
                 mSlots[i].mGraphicBuffer = NULL;
                 mSlots[i].mBufferState = BufferSlot::FREE;
                 mSlots[i].mFrameNumber = 0;
@@ -126,53 +126,47 @@ void GonkNativeWindow::clearRenderingStateBuffersLocked()
 status_t GonkNativeWindow::setBufferCount(int bufferCount)
 {
     CNW_LOGD("setBufferCount: count=%d", bufferCount);
-    nsAutoTArray<SurfaceDescriptor, NUM_BUFFER_SLOTS> freeList;
+    Mutex::Autolock lock(mMutex);
 
-    {
-        Mutex::Autolock lock(mMutex);
-
-        if (mAbandoned) {
-            CNW_LOGE("setBufferCount: GonkNativeWindow has been abandoned!");
-            return NO_INIT;
-        }
-
-        if (bufferCount > NUM_BUFFER_SLOTS) {
-            CNW_LOGE("setBufferCount: bufferCount larger than slots available");
-            return BAD_VALUE;
-        }
-
-        if (bufferCount < MIN_BUFFER_SLOTS) {
-            CNW_LOGE("setBufferCount: requested buffer count (%d) is less than "
-                    "minimum (%d)", bufferCount, MIN_BUFFER_SLOTS);
-            return BAD_VALUE;
-        }
-
-        
-        for (int i=0 ; i<mBufferCount ; i++) {
-            if (mSlots[i].mBufferState == BufferSlot::DEQUEUED) {
-                CNW_LOGE("setBufferCount: client owns some buffers");
-                return -EINVAL;
-            }
-        }
-
-        if (bufferCount >= mBufferCount) {
-            mBufferCount = bufferCount;
-            
-            clearRenderingStateBuffersLocked();
-            mQueue.clear();
-            mDequeueCondition.signal();
-            return OK;
-        }
-
-        
-        
-        freeAllBuffersLocked(freeList);
-        mBufferCount = bufferCount;
-        mQueue.clear();
-        mDequeueCondition.signal();
+    if (mAbandoned) {
+        CNW_LOGE("setBufferCount: GonkNativeWindow has been abandoned!");
+        return NO_INIT;
     }
 
-    releaseBufferFreeListUnlocked(freeList);
+    if (bufferCount > NUM_BUFFER_SLOTS) {
+        CNW_LOGE("setBufferCount: bufferCount larger than slots available");
+        return BAD_VALUE;
+    }
+
+    if (bufferCount < MIN_BUFFER_SLOTS) {
+        CNW_LOGE("setBufferCount: requested buffer count (%d) is less than "
+                "minimum (%d)", bufferCount, MIN_BUFFER_SLOTS);
+        return BAD_VALUE;
+    }
+
+    
+    for (int i=0 ; i<mBufferCount ; i++) {
+        if (mSlots[i].mBufferState == BufferSlot::DEQUEUED) {
+            CNW_LOGE("setBufferCount: client owns some buffers");
+            return -EINVAL;
+        }
+    }
+
+    if (bufferCount >= mBufferCount) {
+        mBufferCount = bufferCount;
+        
+        clearRenderingStateBuffersLocked();
+        mQueue.clear();
+        mDequeueCondition.signal();
+        return OK;
+    }
+
+    
+    
+    freeAllBuffersLocked();
+    mBufferCount = bufferCount;
+    mQueue.clear();
+    mDequeueCondition.signal();
     return OK;
 }
 
@@ -219,14 +213,11 @@ status_t GonkNativeWindow::dequeueBuffer(int *outBuf, uint32_t w, uint32_t h,
 
     status_t returnFlags(OK);
     bool updateFormat = false;
-    uint32_t generation;
     bool alloc = false;
     int buf = INVALID_BUFFER_SLOT;
-    SurfaceDescriptor descOld;
 
     {
         Mutex::Autolock lock(mMutex);
-        generation = mGeneration;
 
         int found = -1;
         int dequeuedCount = 0;
@@ -326,80 +317,58 @@ status_t GonkNativeWindow::dequeueBuffer(int *outBuf, uint32_t w, uint32_t h,
         mSlots[buf].mBufferState = BufferSlot::DEQUEUED;
 
         const sp<GraphicBuffer>& gbuf(mSlots[buf].mGraphicBuffer);
-        alloc = (gbuf == NULL);
-        if ((gbuf!=NULL) &&
+        if ((gbuf == NULL) ||
            ((uint32_t(gbuf->width)  != w) ||
             (uint32_t(gbuf->height) != h) ||
             (uint32_t(gbuf->format) != format) ||
             ((uint32_t(gbuf->usage) & usage) != usage))) {
+            mSlots[buf].mGraphicBuffer = NULL;
+            mSlots[buf].mRequestBufferCalled = false;
+            if (mSlots[buf].mTextureClient) {
+                mSlots[buf].mTextureClient->ClearRecycleCallback();
+                
+                nsProxyReleaseTask* task = new nsProxyReleaseTask(mSlots[buf].mTextureClient);
+                mSlots[buf].mTextureClient = NULL;
+                ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(FROM_HERE, task);
+            }
             alloc = true;
-            descOld = mSlots[buf].mSurfaceDescriptor;
         }
-    }
-    
-    
-    
-    
-    
-    
-    
+    }  
 
-    SurfaceDescriptor desc;
-    ImageBridgeChild* ibc = nullptr;
     sp<GraphicBuffer> graphicBuffer;
     if (alloc) {
+        RefPtr<GrallocTextureClientOGL> textureClient =
+            new GrallocTextureClientOGL(ImageBridgeChild::GetSingleton(),
+                                        gfx::SurfaceFormat::UNKNOWN,
+                                        gfx::BackendType::NONE,
+                                        TEXTURE_DEALLOCATE_CLIENT);
         usage |= GraphicBuffer::USAGE_HW_TEXTURE;
-        status_t error;
-        ibc = ImageBridgeChild::GetSingleton();
-        CNW_LOGD("dequeueBuffer: about to alloc surface descriptor");
-        ibc->AllocSurfaceDescriptorGralloc(IntSize(w, h),
-                                           format,
-                                           usage,
-                                           &desc);
-        
-        
-        CNW_LOGD("dequeueBuffer: got surface descriptor");
-        if (SurfaceDescriptor::TSurfaceDescriptorGralloc != desc.type()) {
-            MOZ_ASSERT(SurfaceDescriptor::T__None == desc.type());
+        bool result = textureClient->AllocateGralloc(IntSize(w, h), format, usage);
+        sp<GraphicBuffer> graphicBuffer = textureClient->GetGraphicBuffer();
+        if (!result || !graphicBuffer.get()) {
             CNW_LOGE("dequeueBuffer: failed to alloc gralloc buffer");
             return -ENOMEM;
         }
-        graphicBuffer = GrallocBufferActor::GetFrom(desc.get_SurfaceDescriptorGralloc());
-        error = graphicBuffer->initCheck();
-        if (error != NO_ERROR) {
-            CNW_LOGE("dequeueBuffer: createGraphicBuffer failed with error %d", error);
-            return error;
-        }
-    }
 
-    bool tooOld = false;
-    {
-        Mutex::Autolock lock(mMutex);
-        if (generation == mGeneration) {
+        { 
+            Mutex::Autolock lock(mMutex);
+
+            if (mAbandoned) {
+                CNW_LOGE("dequeueBuffer: SurfaceTexture has been abandoned!");
+                return NO_INIT;
+            }
+
             if (updateFormat) {
                 mPixelFormat = format;
             }
-            if (alloc) {
-                mSlots[buf].mGraphicBuffer = graphicBuffer;
-                mSlots[buf].mSurfaceDescriptor = desc;
-                mSlots[buf].mSurfaceDescriptor.get_SurfaceDescriptorGralloc().external() = true;
-                mSlots[buf].mRequestBufferCalled = false;
+            mSlots[buf].mGraphicBuffer = graphicBuffer;
+            mSlots[buf].mTextureClient = textureClient;
 
-                returnFlags |= ISurfaceTexture::BUFFER_NEEDS_REALLOCATION;
-            }
+            returnFlags |= ISurfaceTexture::BUFFER_NEEDS_REALLOCATION;
+
             CNW_LOGD("dequeueBuffer: returning slot=%d buf=%p ", buf,
                     mSlots[buf].mGraphicBuffer->handle);
-        } else {
-            tooOld = true;
         }
-    }
-
-    if (alloc && IsSurfaceDescriptorValid(descOld)) {
-        ibc->DeallocSurfaceDescriptorGralloc(descOld);
-    }
-
-    if (alloc && tooOld) {
-        ibc->DeallocSurfaceDescriptorGralloc(desc);
     }
 
     CNW_LOGD("dequeueBuffer: returning slot=%d buf=%p ", buf,
@@ -431,8 +400,25 @@ int GonkNativeWindow::getSlotFromBufferLocked(
     return BAD_VALUE;
 }
 
-mozilla::layers::SurfaceDescriptor *
-GonkNativeWindow::getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer)
+int GonkNativeWindow::getSlotFromTextureClientLocked(
+        TextureClient* client) const
+{
+    if (client == NULL) {
+        CNW_LOGE("getSlotFromBufferLocked: encountered NULL buffer");
+        return BAD_VALUE;
+    }
+
+    for (int i = 0; i < NUM_BUFFER_SLOTS; i++) {
+        if (mSlots[i].mTextureClient == client) {
+            return i;
+        }
+    }
+    CNW_LOGE("getSlotFromBufferLocked: unknown TextureClient: %p", client);
+    return BAD_VALUE;
+}
+
+TemporaryRef<TextureClient>
+GonkNativeWindow::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
 {
   int buf = getSlotFromBufferLocked(buffer);
   if (buf < 0 || buf >= mBufferCount ||
@@ -440,7 +426,7 @@ GonkNativeWindow::getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer)
     return nullptr;
   }
 
-  return &mSlots[buf].mSurfaceDescriptor;
+  return mSlots[buf].mTextureClient;
 }
 
 status_t GonkNativeWindow::queueBuffer(int buf, int64_t timestamp,
@@ -493,9 +479,8 @@ status_t GonkNativeWindow::queueBuffer(int buf, int64_t timestamp,
 }
 
 
-already_AddRefed<GraphicBufferLocked>
-GonkNativeWindow::getCurrentBuffer()
-{
+TemporaryRef<TextureClient>
+GonkNativeWindow::getCurrentBuffer() {
   CNW_LOGD("GonkNativeWindow::getCurrentBuffer");
   Mutex::Autolock lock(mMutex);
 
@@ -515,43 +500,48 @@ GonkNativeWindow::getCurrentBuffer()
 
   mSlots[buf].mBufferState = BufferSlot::RENDERING;
 
-  nsRefPtr<GraphicBufferLocked> ret =
-    new CameraGraphicBuffer(this, buf, mGeneration, mSlots[buf].mSurfaceDescriptor);
   mQueue.erase(front);
   mDequeueCondition.signal();
-  return ret.forget();
+
+  mSlots[buf].mTextureClient->SetRecycleCallback(GonkNativeWindow::RecycleCallback, this);
+  return mSlots[buf].mTextureClient;
 }
 
-bool
-GonkNativeWindow::returnBuffer(uint32_t aIndex, uint32_t aGeneration)
-{
-  CNW_LOGD("GonkNativeWindow::returnBuffer: slot=%d (generation=%d)", aIndex, aGeneration);
+
+ void
+GonkNativeWindow::RecycleCallback(TextureClient* client, void* closure) {
+  GonkNativeWindow* nativeWindow =
+    static_cast<GonkNativeWindow*>(closure);
+
+  client->ClearRecycleCallback();
+  nativeWindow->returnBuffer(client);
+}
+
+void GonkNativeWindow::returnBuffer(TextureClient* client) {
+  CNW_LOGD("GonkNativeWindow::returnBuffer");
   Mutex::Autolock lock(mMutex);
 
   if (mAbandoned) {
     CNW_LOGD("returnBuffer: GonkNativeWindow has been abandoned!");
-    return false;
+    return;
   }
 
-  if (aGeneration != mGeneration) {
-    CNW_LOGD("returnBuffer: buffer is from generation %d (current is %d)",
-      aGeneration, mGeneration);
-    return false;
-  }
-  if (static_cast<int>(aIndex) >= mBufferCount) {
+  int index = getSlotFromTextureClientLocked(client);
+  if (index < 0 || index >= mBufferCount) {
     CNW_LOGE("returnBuffer: slot index out of range [0, %d]: %d",
-             mBufferCount, aIndex);
-    return false;
-  }
-  if (mSlots[aIndex].mBufferState != BufferSlot::RENDERING) {
-    CNW_LOGE("returnBuffer: slot %d is not owned by the compositor (state=%d)",
-                  aIndex, mSlots[aIndex].mBufferState);
-    return false;
+             mBufferCount, index);
+    return;
   }
 
-  mSlots[aIndex].mBufferState = BufferSlot::FREE;
+  if (mSlots[index].mBufferState != BufferSlot::RENDERING) {
+    CNW_LOGE("returnBuffer: slot %d is not owned by the compositor (state=%d)",
+                  index, mSlots[index].mBufferState);
+    return;
+  }
+
+  mSlots[index].mBufferState = BufferSlot::FREE;
   mDequeueCondition.signal();
-  return true;
+  return;
 }
 
 void GonkNativeWindow::cancelBuffer(int buf) {
@@ -623,39 +613,35 @@ status_t GonkNativeWindow::disconnect(int api) {
     CNW_LOGD("disconnect: api=%d", api);
 
     int err = NO_ERROR;
-    nsAutoTArray<SurfaceDescriptor, NUM_BUFFER_SLOTS> freeList;
-    {
-        Mutex::Autolock lock(mMutex);
+    Mutex::Autolock lock(mMutex);
 
-        if (mAbandoned) {
-            
-            
-            return NO_ERROR;
-        }
-
-        switch (api) {
-            case NATIVE_WINDOW_API_EGL:
-            case NATIVE_WINDOW_API_CPU:
-            case NATIVE_WINDOW_API_MEDIA:
-            case NATIVE_WINDOW_API_CAMERA:
-                if (mConnectedApi == api) {
-                    mQueue.clear();
-                    freeAllBuffersLocked(freeList);
-                    mConnectedApi = NO_CONNECTED_API;
-                    mDequeueCondition.signal();
-                } else {
-                    CNW_LOGE("disconnect: connected to another api (cur=%d, req=%d)",
-                            mConnectedApi, api);
-                    err = -EINVAL;
-                }
-                break;
-            default:
-                CNW_LOGE("disconnect: unknown API %d", api);
-                err = -EINVAL;
-                break;
-        }
+    if (mAbandoned) {
+        
+        
+        return NO_ERROR;
     }
-    releaseBufferFreeListUnlocked(freeList);
+
+    switch (api) {
+        case NATIVE_WINDOW_API_EGL:
+        case NATIVE_WINDOW_API_CPU:
+        case NATIVE_WINDOW_API_MEDIA:
+        case NATIVE_WINDOW_API_CAMERA:
+            if (mConnectedApi == api) {
+                mQueue.clear();
+                freeAllBuffersLocked();
+                mConnectedApi = NO_CONNECTED_API;
+                mDequeueCondition.signal();
+            } else {
+                CNW_LOGE("disconnect: connected to another api (cur=%d, req=%d)",
+                        mConnectedApi, api);
+                err = -EINVAL;
+            }
+            break;
+        default:
+            CNW_LOGE("disconnect: unknown API %d", api);
+            err = -EINVAL;
+            break;
+    }
     return err;
 }
 

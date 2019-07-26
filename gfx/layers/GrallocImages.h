@@ -31,63 +31,6 @@ class GrallocTextureClientOGL;
 
 
 
-class GraphicBufferLocked
-  : public AtomicRefCountedWithFinalize<GraphicBufferLocked>
-{
-
-public:
-  GraphicBufferLocked(SurfaceDescriptor aGraphicBuffer)
-    : mSurfaceDescriptor(aGraphicBuffer)
-  {}
-
-  virtual ~GraphicBufferLocked() {}
-
-  SurfaceDescriptor GetSurfaceDescriptor()
-  {
-    return mSurfaceDescriptor;
-  }
-
-  void SetReleaseFenceHandle(const FenceHandle& aReleaseFenceHandle)
-  {
-    mReleaseFenceHandle = aReleaseFenceHandle;
-  }
-
-  const FenceHandle& GetReleaseFenceHandle() const
-  {
-    return mReleaseFenceHandle;
-  }
-
-protected:
-  virtual void Unlock() {}
-
-private:
-  
-
-
-
-
-
-  void Finalize()
-  {
-    Unlock();
-  }
-
-  friend class AtomicRefCountedWithFinalize<GraphicBufferLocked>;
-
-protected:
-  SurfaceDescriptor mSurfaceDescriptor;
-  FenceHandle mReleaseFenceHandle;
-};
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -107,7 +50,7 @@ class GrallocImage : public PlanarYCbCrImage
   static uint32_t sColorIdMap[];
 public:
   struct GrallocData {
-    nsRefPtr<GraphicBufferLocked> mGraphicBuffer;
+    nsRefPtr<TextureClient> mGraphicBuffer;
     gfx::IntSize mPicSize;
   };
 
@@ -141,23 +84,11 @@ public:
   virtual already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
 
-  void* GetNativeBuffer()
-  {
-    if (IsValid()) {
-      return GrallocBufferActor::GetFrom(GetSurfaceDescriptor())->getNativeBuffer();
-    } else {
-      return nullptr;
-    }
-  }
+  void* GetNativeBuffer();
 
   virtual bool IsValid() { return GetSurfaceDescriptor().type() != SurfaceDescriptor::T__None; }
 
-  SurfaceDescriptor GetSurfaceDescriptor() {
-    if (mGraphicBufferLocked.get()) {
-      return mGraphicBufferLocked->GetSurfaceDescriptor();
-    }
-    return SurfaceDescriptor();
-  }
+  SurfaceDescriptor GetSurfaceDescriptor();
 
   virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
 
@@ -169,8 +100,6 @@ public:
   }
 
 private:
-  bool mBufferAllocated;
-  nsRefPtr<GraphicBufferLocked> mGraphicBufferLocked;
   RefPtr<GrallocTextureClientOGL> mTextureClient;
 };
 

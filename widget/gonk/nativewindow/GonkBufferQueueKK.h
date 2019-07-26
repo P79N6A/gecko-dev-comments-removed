@@ -31,6 +31,7 @@
 #include <utils/threads.h>
 
 #include "mozilla/layers/LayersSurfaces.h"
+#include "mozilla/layers/TextureClient.h"
 
 namespace android {
 
@@ -38,7 +39,7 @@ namespace android {
 class GonkBufferQueue : public BnGraphicBufferProducer,
                     public BnGonkGraphicBufferConsumer,
                     private IBinder::DeathRecipient {
-    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+    typedef mozilla::layers::TextureClient TextureClient;
 
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
@@ -312,22 +313,19 @@ public:
     
     virtual void dump(String8& result, const char* prefix) const;
 
-    int getGeneration();
-    SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
+     mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+
+    int getSlotFromTextureClientLocked(TextureClient* client) const;
 
 private:
     
     
-    void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
-
-    
-    
     
 
     
     
     
-    void freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList);
+    void freeAllBuffersLocked();
 
     
     
@@ -366,8 +364,7 @@ private:
     struct BufferSlot {
 
         BufferSlot()
-        : mSurfaceDescriptor(SurfaceDescriptor()),
-          mBufferState(BufferSlot::FREE),
+        : mBufferState(BufferSlot::FREE),
           mRequestBufferCalled(false),
           mFrameNumber(0),
           mAcquireCalled(false),
@@ -379,7 +376,7 @@ private:
         sp<GraphicBuffer> mGraphicBuffer;
 
         
-        SurfaceDescriptor mSurfaceDescriptor;
+        mozilla::RefPtr<TextureClient> mTextureClient;
 
         
         
@@ -565,9 +562,6 @@ private:
 
     
     sp<IBinder> mConnectedProducerToken;
-
-    
-    uint32_t mGeneration;
 };
 
 

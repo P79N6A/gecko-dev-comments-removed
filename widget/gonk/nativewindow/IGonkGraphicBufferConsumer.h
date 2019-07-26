@@ -29,6 +29,13 @@
 
 #include "mozilla/layers/LayersSurfaces.h"
 
+namespace mozilla {
+
+namespace layers {
+class TextureClient;
+}
+}
+
 namespace android {
 
 
@@ -37,7 +44,7 @@ class GraphicBuffer;
 class Fence;
 
 class IGonkGraphicBufferConsumer : public IInterface {
-    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+    typedef mozilla::layers::TextureClient TextureClient;
 public:
 
     
@@ -97,9 +104,6 @@ public:
         
         
         bool mTransformToDisplayInverse;
-
-        
-        SurfaceDescriptor mSurfaceDescriptor;
     };
 
 

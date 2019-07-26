@@ -33,6 +33,7 @@
 #include <utils/threads.h>
 
 #include "mozilla/layers/LayersSurfaces.h"
+#include "mozilla/layers/TextureClient.h"
 
 #if ANDROID_VERSION == 17
 #define IGraphicBufferProducer ISurfaceTexture
@@ -46,7 +47,7 @@ class GonkBufferQueue : public BnSurfaceTexture {
 #else
 class GonkBufferQueue : public BnGraphicBufferProducer {
 #endif
-    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+    typedef mozilla::layers::TextureClient TextureClient;
 
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
@@ -261,7 +262,6 @@ public:
 
         BufferItem()
          :
-           mSurfaceDescriptor(SurfaceDescriptor()),
            mTransform(0),
            mScalingMode(NATIVE_WINDOW_SCALING_MODE_FREEZE),
            mTimestamp(0),
@@ -273,9 +273,6 @@ public:
         
         
         sp<GraphicBuffer> mGraphicBuffer;
-
-        
-        SurfaceDescriptor mSurfaceDescriptor;
 
         
         Rect mCrop;
@@ -387,23 +384,19 @@ public:
     
     status_t setTransformHint(uint32_t hint);
 
-    uint32_t getGeneration();
+    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
 
-    SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
+    int getSlotFromTextureClientLocked(TextureClient* client) const;
 
 private:
     
     
-    void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
-
-    
-    
     
 
     
     
     
-    void freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList);
+    void freeAllBuffersLocked();
 
     
     
@@ -435,8 +428,7 @@ private:
     struct BufferSlot {
 
         BufferSlot()
-        : mSurfaceDescriptor(SurfaceDescriptor()),
-          mBufferState(BufferSlot::FREE),
+        : mBufferState(BufferSlot::FREE),
           mRequestBufferCalled(false),
           mTransform(0),
           mScalingMode(NATIVE_WINDOW_SCALING_MODE_FREEZE),
@@ -452,7 +444,7 @@ private:
         sp<GraphicBuffer> mGraphicBuffer;
 
         
-        SurfaceDescriptor mSurfaceDescriptor;
+        mozilla::RefPtr<TextureClient> mTextureClient;
 
         
         
@@ -652,8 +644,6 @@ private:
     
     uint32_t mTransformHint;
 
-    
-    uint32_t mGeneration;
 };
 
 

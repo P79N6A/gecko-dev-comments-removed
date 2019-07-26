@@ -13,10 +13,13 @@
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include <ui/GraphicBuffer.h>
 
+
+namespace android {
+class MediaBuffer;
+};
+
 namespace mozilla {
 namespace layers {
-
-class GraphicBufferLocked;
 
 
 
@@ -102,15 +105,26 @@ public:
 
   virtual size_t GetBufferSize() const MOZ_OVERRIDE;
 
-  void SetGraphicBufferLocked(GraphicBufferLocked* aBufferLocked);
+  
+
+
+
+
+  void SetMediaBuffer(android::MediaBuffer* aMediaBuffer)
+  {
+    mMediaBuffer = aMediaBuffer;
+  }
+
+  android::MediaBuffer* GetMediaBuffer()
+  {
+    return mMediaBuffer;
+  }
 
 protected:
   
 
 
   GrallocBufferActor* mGrallocActor;
-
-  RefPtr<GraphicBufferLocked> mBufferLocked;
 
   android::sp<android::GraphicBuffer> mGraphicBuffer;
 
@@ -128,6 +142,8 @@ protected:
 
 
   gfx::IntSize mSize;
+
+  android::MediaBuffer* mMediaBuffer;
 };
 
 } 
