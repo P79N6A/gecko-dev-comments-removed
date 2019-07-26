@@ -282,18 +282,12 @@ public:
 
   
   
-  
-  
-  nsresult ScheduleStateMachine();
-
-  
-  
   void ScheduleStateMachineWithLockAndWakeDecoder();
 
   
   
   
-  nsresult ScheduleStateMachine(int64_t aUsecs);
+  nsresult ScheduleStateMachine(int64_t aUsecs = 0);
 
   
   
@@ -797,6 +791,8 @@ private:
   VideoInfo mInfo;
 
   mozilla::MediaMetadataManager mMetadataManager;
+
+  MediaDecoderOwner::NextFrameStatus mLastFrameStatus;
 };
 
 } 
