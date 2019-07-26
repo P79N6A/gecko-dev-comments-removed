@@ -17,6 +17,7 @@
 #include "nsISupportsImpl.h"            
 #include "nsRegion.h"
 #include <vector>
+#include "mozilla/WidgetUtils.h"
 
 
 
@@ -201,6 +202,7 @@ public:
     : mCompositorID(0)
     , mDiagnosticTypes(DIAGNOSTIC_NONE)
     , mParent(aParent)
+    , mScreenRotation(ROTATION_0)
   {
     MOZ_COUNT_CTOR(Compositor);
   }
@@ -480,6 +482,30 @@ public:
     return nullptr;
   }
 
+  ScreenRotation GetScreenRotation() const {
+    return mScreenRotation;
+  }
+
+  void SetScreenRotation(ScreenRotation aRotation) {
+    mScreenRotation = aRotation;
+  }
+
+  
+  
+  
+  
+  
+  gfx::Rect ClipRectInLayersCoordinates(gfx::Rect aClip) const {
+    switch (mScreenRotation) {
+      case ROTATION_90:
+      case ROTATION_270:
+        return gfx::Rect(aClip.y, aClip.x, aClip.height, aClip.width);
+      case ROTATION_0:
+      case ROTATION_180:
+      default:
+        return aClip;
+    }
+  }
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,
                                const gfx::Rect& aVisibleRect,
@@ -504,6 +530,8 @@ protected:
 
   size_t mPixelsPerFrame;
   size_t mPixelsFilled;
+
+  ScreenRotation mScreenRotation;
 
 private:
   static LayersBackend sBackend;
