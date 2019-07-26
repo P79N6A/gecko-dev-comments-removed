@@ -1,8 +1,8 @@
 
 
 
-Cu.import("resource:///modules/devtools/dbg-server.jsm");
-Cu.import("resource:///modules/devtools/dbg-client.jsm");
+Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
+Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 
 var gClient;
 var gDebuggee;

@@ -15,8 +15,8 @@ Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 
-Cu.import("resource:///modules/devtools/dbg-server.jsm");
-Cu.import("resource:///modules/devtools/dbg-client.jsm");
+Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
+Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 
 
 function scriptErrorFlagsToKind(aFlags) {
