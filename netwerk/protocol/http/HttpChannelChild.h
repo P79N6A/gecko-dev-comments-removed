@@ -27,6 +27,7 @@
 #include "nsIAssociatedContentSecurity.h"
 #include "nsIChildChannel.h"
 #include "nsIHttpChannelChild.h"
+#include "nsIDivertableChannel.h"
 #include "mozilla/net/DNS.h"
 
 namespace mozilla {
@@ -42,6 +43,7 @@ class HttpChannelChild : public PHttpChannelChild
                        , public nsIAssociatedContentSecurity
                        , public nsIChildChannel
                        , public nsIHttpChannelChild
+                       , public nsIDivertableChannel
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -53,6 +55,7 @@ public:
   NS_DECL_NSIASSOCIATEDCONTENTSECURITY
   NS_DECL_NSICHILDCHANNEL
   NS_DECL_NSIHTTPCHANNELCHILD
+  NS_DECL_NSIDIVERTABLECHANNEL
 
   HttpChannelChild();
   virtual ~HttpChannelChild();
@@ -89,6 +92,8 @@ public:
   void ReleaseIPDLReference();
 
   bool IsSuspended();
+
+  void FlushedForDiversion();
 
 protected:
   bool RecvOnStartRequest(const nsHttpResponseHead& responseHead,
@@ -141,6 +146,15 @@ private:
   bool mIPCOpen;
   bool mKeptAlive;            
   nsRefPtr<ChannelEventQueue> mEventQ;
+
+  
+  bool mDivertingToParent;
+  
+  
+  bool mFlushedForDiversion;
+  
+  
+  bool mSuspendSent;
 
   
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }
