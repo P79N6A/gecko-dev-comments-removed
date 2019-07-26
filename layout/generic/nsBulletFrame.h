@@ -77,13 +77,18 @@ public:
 
 
   
-  static bool AppendCounterText(int32_t aListStyleType,
-                                  int32_t aOrdinal,
-                                  nsString& aResult);
+  static void AppendCounterText(int32_t aListStyleType,
+                                int32_t aOrdinal,
+                                nsString& aResult,
+                                bool& aIsRTL);
 
   
-  bool GetListItemText(const nsStyleList& aStyleList,
-                         nsString& aResult);
+  static void GetListItemSuffix(int32_t aListStyleType,
+                                nsString& aResult,
+                                bool& aSuppressPadding);
+
+  
+  void GetListItemText(const nsStyleList& aStyleList, nsString& aResult);
                          
   void PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
                    const nsRect& aDirtyRect, uint32_t aFlags);
@@ -119,6 +124,12 @@ protected:
   nsSize mIntrinsicSize;
   int32_t mOrdinal;
   bool mTextIsRTL;
+
+  
+  
+  
+  
+  bool mSuppressPadding;
 
 private:
 
