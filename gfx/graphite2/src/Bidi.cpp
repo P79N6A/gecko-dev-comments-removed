@@ -37,10 +37,10 @@ enum DirCode {
         R          =  2,   
         AL         =  3,   
         EN         =  4,   
-        ES         =  5,   
+        EUS        =  5,   
         ET         =  6,   
         AN         =  7,   
-        CS         =  8,   
+        CUS        =  8,   
         WS         =  9,   
         BN         = 10,   
 
