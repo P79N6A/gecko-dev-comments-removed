@@ -525,10 +525,9 @@ NewSlots(JSRuntime *rt, unsigned nslots)
 }
 
 JSObject *
-NewCallObject(JSContext *cx, HandleScript script,
-              HandleShape shape, HandleTypeObject type, HeapSlot *slots)
+NewCallObject(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots)
 {
-    JSObject *obj = CallObject::create(cx, script, shape, type, slots);
+    JSObject *obj = CallObject::create(cx, shape, type, slots);
     if (!obj)
         return nullptr;
 
@@ -538,6 +537,25 @@ NewCallObject(JSContext *cx, HandleScript script,
     
     if (!IsInsideNursery(cx->runtime(), obj))
         cx->runtime()->gcStoreBuffer.putWholeCell(obj);
+#endif
+
+    return obj;
+}
+
+JSObject *
+NewSingletonCallObject(JSContext *cx, HandleShape shape, HeapSlot *slots)
+{
+    JSObject *obj = CallObject::createSingleton(cx, shape, slots);
+    if (!obj)
+        return nullptr;
+
+#ifdef JSGC_GENERATIONAL
+    
+    
+    
+    MOZ_ASSERT(!IsInsideNursery(cx->runtime(), obj),
+               "singletons are created in the tenured heap");
+    cx->runtime()->gcStoreBuffer.putWholeCell(obj);
 #endif
 
     return obj;

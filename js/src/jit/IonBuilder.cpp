@@ -4682,7 +4682,11 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
     
     
     
-    MNewCallObject *callObj = MNewCallObject::New(alloc(), templateObj, script()->treatAsRunOnce(), slots);
+    MUnaryInstruction *callObj;
+    if (script()->treatAsRunOnce())
+        callObj = MNewRunOnceCallObject::New(alloc(), templateObj, slots);
+    else
+        callObj = MNewCallObject::New(alloc(), templateObj, slots);
     current->add(callObj);
 
     
