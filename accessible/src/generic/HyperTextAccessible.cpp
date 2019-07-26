@@ -772,9 +772,9 @@ HyperTextAccessible::GetRelativeOffset(nsIPresShell* aPresShell,
 }
 
 int32_t
-HyperTextAccessible::FindBoundary(int32_t aOffset, nsDirection aDirection,
-                                  nsSelectionAmount aAmount,
-                                  EWordMovementType aWordMovementType)
+HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
+                                nsSelectionAmount aAmount,
+                                EWordMovementType aWordMovementType)
 {
   
   int32_t offsetInFrame = aOffset, notUsedOffset = aOffset;
@@ -801,6 +801,81 @@ HyperTextAccessible::FindBoundary(int32_t aOffset, nsDirection aDirection,
                            accAtOffset, aAmount, aDirection,
                            (aWordMovementType == eStartWord || aAmount == eSelectBeginLine),
                            aWordMovementType);
+}
+
+int32_t
+HyperTextAccessible::FindLineBoundary(int32_t aOffset,
+                                      EWhichLineBoundary aWhichLineBoundary)
+{
+  
+  
+  
+  switch (aWhichLineBoundary) {
+    case ePrevLineBegin: {
+      
+      
+      if (IsEmptyLastLineOffset(aOffset))
+        return FindOffset(aOffset, eDirPrevious, eSelectBeginLine);
+
+      int32_t tmpOffset = FindOffset(aOffset, eDirPrevious, eSelectLine);
+      return FindOffset(tmpOffset, eDirPrevious, eSelectBeginLine);
+    }
+
+    case ePrevLineEnd: {
+      if (IsEmptyLastLineOffset(aOffset))
+        return aOffset - 1;
+
+      
+      int32_t tmpOffset = FindOffset(aOffset, eDirPrevious, eSelectBeginLine);
+      if (tmpOffset == 0)
+        return 0;
+
+      
+      
+      tmpOffset = FindOffset(aOffset, eDirPrevious, eSelectLine);
+      return FindOffset(tmpOffset, eDirNext, eSelectEndLine);
+    }
+
+    case eThisLineBegin:
+      if (IsEmptyLastLineOffset(aOffset))
+        return aOffset;
+
+      
+      return FindOffset(aOffset, eDirPrevious, eSelectBeginLine);
+
+    case eThisLineEnd:
+      if (IsEmptyLastLineOffset(aOffset))
+        return aOffset;
+
+      
+      return FindOffset(aOffset, eDirNext, eSelectEndLine);
+
+    case eNextLineBegin: {
+      if (IsEmptyLastLineOffset(aOffset))
+        return aOffset;
+
+      
+      
+      int32_t tmpOffset = FindOffset(aOffset, eDirNext, eSelectLine);
+      if (tmpOffset == CharacterCount())
+        return tmpOffset;
+
+      return FindOffset(tmpOffset, eDirPrevious, eSelectBeginLine);
+    }
+
+    case eNextLineEnd: {
+      if (IsEmptyLastLineOffset(aOffset))
+        return aOffset;
+
+      
+      int32_t tmpOffset = FindOffset(aOffset, eDirNext, eSelectLine);
+      if (tmpOffset != CharacterCount())
+        return FindOffset(tmpOffset, eDirNext, eSelectEndLine);
+      return tmpOffset;
+    }
+  }
+
+  return -1;
 }
 
 
@@ -1029,54 +1104,21 @@ HyperTextAccessible::GetTextBeforeOffset(int32_t aOffset,
       return GetText(*aStartOffset, *aEndOffset, aText);
     }
 
-    case BOUNDARY_LINE_START: {
+    case BOUNDARY_LINE_START:
       if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
         offset = AdjustCaretOffset(offset);
 
-      
-      
-      if (IsEmptyLastLineOffset(offset)) {
-        *aStartOffset = FindLineBoundary(offset, eDirPrevious, eSelectBeginLine);
-        *aEndOffset = offset;
-        return GetText(*aStartOffset, *aEndOffset, aText);
-      }
-
-      
-      *aEndOffset = FindLineBoundary(offset, eDirPrevious, eSelectBeginLine);
-      *aStartOffset = FindLineBoundary(offset, eDirPrevious, eSelectLine);
-      *aStartOffset = FindLineBoundary(*aStartOffset, eDirPrevious, eSelectBeginLine);
-
+      *aStartOffset = FindLineBoundary(offset, ePrevLineBegin);
+      *aEndOffset = FindLineBoundary(offset, eThisLineBegin);
       return GetText(*aStartOffset, *aEndOffset, aText);
-    }
 
-    case BOUNDARY_LINE_END: {
+    case BOUNDARY_LINE_END:
       if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
         offset = AdjustCaretOffset(offset);
 
-      
-      int32_t tmpOffset = FindLineBoundary(offset, eDirPrevious, eSelectBeginLine);
-      if (tmpOffset == 0) {
-        *aStartOffset = *aEndOffset = 0;
-        return NS_OK;
-      }
-
-      
-      if (IsEmptyLastLineOffset(offset)) { 
-        tmpOffset = FindLineBoundary(offset, eDirPrevious, eSelectLine);
-        *aStartOffset = FindLineBoundary(tmpOffset, eDirNext, eSelectEndLine);
-        *aEndOffset = offset - 1;
-        return GetText(*aStartOffset, *aEndOffset, aText);
-      }
-
-      tmpOffset = FindLineBoundary(offset, eDirPrevious, eSelectLine);
-      *aEndOffset = FindLineBoundary(tmpOffset, eDirNext, eSelectEndLine);
-      tmpOffset = FindLineBoundary(*aEndOffset, eDirPrevious, eSelectLine);
-      *aStartOffset = FindLineBoundary(tmpOffset, eDirNext, eSelectEndLine);
-      if (*aStartOffset == *aEndOffset) 
-        *aStartOffset = 0;
-
+      *aEndOffset = FindLineBoundary(offset, ePrevLineEnd);
+      *aStartOffset = FindLineBoundary(*aEndOffset, ePrevLineEnd);
       return GetText(*aStartOffset, *aEndOffset, aText);
-    }
 
     case BOUNDARY_ATTRIBUTE_RANGE:
       return GetTextHelper(eGetBefore, aBoundaryType, aOffset,
@@ -1118,56 +1160,22 @@ HyperTextAccessible::GetTextAtOffset(int32_t aOffset,
       *aStartOffset = FindWordBoundary(*aEndOffset, eDirPrevious, eEndWord);
       return GetText(*aStartOffset, *aEndOffset, aText);
 
-    case BOUNDARY_LINE_START: {
-      
-      
-      
-      if (IsEmptyLastLineOffset(offset)) {
-        *aStartOffset = *aEndOffset = offset;
-        return NS_OK;
-      }
+    case BOUNDARY_LINE_START:
+      if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
+        offset = AdjustCaretOffset(offset);
 
+      *aStartOffset = FindLineBoundary(offset, eThisLineBegin);
+      *aEndOffset = FindLineBoundary(offset, eNextLineBegin);
+      return GetText(*aStartOffset, *aEndOffset, aText);
+
+    case BOUNDARY_LINE_END:
       if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
         offset = AdjustCaretOffset(offset);
 
       
-      
-      
-      *aStartOffset = FindLineBoundary(offset, eDirPrevious, eSelectBeginLine);
-      *aEndOffset = FindLineBoundary(offset, eDirNext, eSelectLine);
-      int32_t tmpOffset = FindLineBoundary(*aEndOffset, eDirPrevious, eSelectBeginLine);
-      if (tmpOffset != *aStartOffset)
-        *aEndOffset = tmpOffset;
-
+      *aStartOffset = FindLineBoundary(offset, ePrevLineEnd);
+      *aEndOffset = FindLineBoundary(offset, eThisLineEnd);
       return GetText(*aStartOffset, *aEndOffset, aText);
-    }
-
-    case BOUNDARY_LINE_END: {
-      
-      
-      
-      if (IsEmptyLastLineOffset(offset)) {
-        *aStartOffset = offset - 1;
-        *aEndOffset = offset;
-        aText.AssignLiteral("\n");
-        return NS_OK;
-      }
-
-      if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
-        offset = AdjustCaretOffset(offset);
-
-      
-      
-      
-      
-      *aEndOffset = FindLineBoundary(offset, eDirNext, eSelectEndLine);
-      int32_t tmpOffset = FindLineBoundary(offset, eDirPrevious, eSelectLine);
-      *aStartOffset = FindLineBoundary(tmpOffset, eDirNext, eSelectEndLine);
-      if (*aStartOffset == *aEndOffset)
-        *aStartOffset = 0;
-
-      return GetText(*aStartOffset, *aEndOffset, aText);
-    }
 
     case BOUNDARY_ATTRIBUTE_RANGE:
       return GetTextHelper(eGetAt, aBoundaryType, aOffset,
@@ -1223,36 +1231,16 @@ HyperTextAccessible::GetTextAfterOffset(int32_t aOffset,
       if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
         offset = AdjustCaretOffset(offset);
 
-      
-      *aStartOffset = FindLineBoundary(offset, eDirNext, eSelectLine);
-      if (*aStartOffset != CharacterCount()) {
-        *aStartOffset = FindLineBoundary(*aStartOffset, eDirPrevious, eSelectBeginLine);
-        *aEndOffset = FindLineBoundary(*aStartOffset, eDirNext, eSelectLine);
-        if (*aEndOffset != CharacterCount())
-          *aEndOffset = FindLineBoundary(*aEndOffset, eDirPrevious, eSelectBeginLine);
-      } else {
-        *aEndOffset = CharacterCount();
-      }
+      *aStartOffset = FindLineBoundary(offset, eNextLineBegin);
+      *aEndOffset = FindLineBoundary(*aStartOffset, eNextLineBegin);
       return GetText(*aStartOffset, *aEndOffset, aText);
 
     case BOUNDARY_LINE_END:
       if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
         offset = AdjustCaretOffset(offset);
 
-      
-      
-      
-      if (IsEmptyLastLineOffset(offset)) {
-        *aStartOffset = *aEndOffset = offset;
-        return NS_OK;
-      }
-
-      
-      *aStartOffset = FindLineBoundary(offset, eDirNext, eSelectEndLine);
-      *aEndOffset = FindLineBoundary(*aStartOffset, eDirNext, eSelectLine);
-      if (*aEndOffset != CharacterCount())
-        *aEndOffset = FindLineBoundary(*aEndOffset, eDirNext, eSelectEndLine);
-
+      *aStartOffset = FindLineBoundary(offset, eThisLineEnd);
+      *aEndOffset = FindLineBoundary(offset, eNextLineEnd);
       return GetText(*aStartOffset, *aEndOffset, aText);
 
     case BOUNDARY_ATTRIBUTE_RANGE:
