@@ -260,7 +260,7 @@ public:
   virtual ~nsContentList();
 
   
-  using nsWrapperCache::GetWrapper;
+  using nsWrapperCache::GetWrapperPreserveColor;
   virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
                                bool *triedToWrap);
 
