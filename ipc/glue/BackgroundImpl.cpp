@@ -980,6 +980,7 @@ ParentImpl::ShutdownBackgroundThread()
   AssertIsOnMainThread();
   MOZ_ASSERT_IF(!sBackgroundThread, !sBackgroundThreadMessageLoop);
   MOZ_ASSERT_IF(!sShutdownHasStarted, !sLiveActorCount);
+  MOZ_ASSERT_IF(!sBackgroundThread, !sLiveActorCount);
   MOZ_ASSERT_IF(sBackgroundThread, sShutdownTimer);
 
   if (sPendingCallbacks) {
@@ -1001,6 +1002,12 @@ ParentImpl::ShutdownBackgroundThread()
     }
   }
 
+  nsCOMPtr<nsITimer> shutdownTimer;
+  if (sShutdownHasStarted) {
+    shutdownTimer = sShutdownTimer.get();
+    sShutdownTimer = nullptr;
+  }
+
   if (sBackgroundThread) {
     nsCOMPtr<nsIThread> thread = sBackgroundThread.get();
     nsAutoPtr<nsTArray<ParentImpl*>> liveActors(sLiveActorsForBackgroundThread);
@@ -1015,8 +1022,6 @@ ParentImpl::ShutdownBackgroundThread()
       
       
       
-      nsCOMPtr<nsITimer> shutdownTimer = sShutdownTimer.get();
-      sShutdownTimer = nullptr;
 
       if (sLiveActorCount) {
         TimerCallbackClosure closure(thread, liveActors);
