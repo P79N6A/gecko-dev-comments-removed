@@ -200,6 +200,43 @@ IndirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props
     GET(IndirectProxyHandler::enumerate(cx, wrapper, props));
 }
 
+
+
+
+
+
+
+
+
+
+
+
+bool
+IndirectWrapper::defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint, Value *vp)
+{
+    RootedObject wrapper(cx, wrapper_);
+
+    bool status;
+    if (!enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status)) {
+        RootedValue v(cx);
+        JS_ClearPendingException(cx);
+        if (!DefaultValue(cx, wrapper, hint, &v))
+            return false;
+        *vp = v;
+        return true;
+    }
+    
+
+
+
+
+
+
+
+    AutoCompartment call(cx, wrappedObject(wrapper));
+    return IndirectProxyHandler::defaultValue(cx, wrapper_, hint, vp);
+}
+
 DirectWrapper::DirectWrapper(unsigned flags, bool hasPrototype) : Wrapper(flags),
         DirectProxyHandler(&sWrapperFamily)
 {
@@ -260,6 +297,43 @@ DirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
     
     static jsid id = JSID_VOID;
     GET(DirectProxyHandler::enumerate(cx, wrapper, props));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+DirectWrapper::defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint, Value *vp)
+{
+    RootedObject wrapper(cx, wrapper_);
+
+    bool status;
+    if (!enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status)) {
+        RootedValue v(cx);
+        JS_ClearPendingException(cx);
+        if (!DefaultValue(cx, wrapper, hint, &v))
+            return false;
+        *vp = v;
+        return true;
+    }
+    
+
+
+
+
+
+
+
+    AutoCompartment call(cx, wrappedObject(wrapper));
+    return DirectProxyHandler::defaultValue(cx, wrapper_, hint, vp);
 }
 
 bool
@@ -752,11 +826,8 @@ CrossCompartmentWrapper::regexp_toShared(JSContext *cx, JSObject *wrapper, RegEx
 bool
 CrossCompartmentWrapper::defaultValue(JSContext *cx, JSObject *wrapper, JSType hint, Value *vp)
 {
-    {
-        AutoCompartment call(cx, wrappedObject(wrapper));
-        if (!IndirectProxyHandler::defaultValue(cx, wrapper, hint, vp))
-            return false;
-    }
+    if (!DirectWrapper::defaultValue(cx, wrapper, hint, vp))
+        return false;
     return cx->compartment->wrap(cx, vp);
 }
 
