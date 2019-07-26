@@ -195,6 +195,26 @@ const BackgroundPageThumbs = {
 
     this._parentWin.document.documentElement.appendChild(browser);
 
+    
+    
+    browser.addEventListener("oop-browser-crashed", () => {
+      Cu.reportError("BackgroundThumbnails remote process crashed - recovering");
+      this._destroyBrowser();
+      let curCapture = this._captureQueue.length ? this._captureQueue[0] : null;
+      
+      
+      
+      
+      
+      if (curCapture && curCapture.pending) {
+        curCapture._done(null);
+        
+      }
+      
+      
+      
+    });
+
     browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
     this._thumbBrowser = browser;
   },
@@ -226,6 +246,7 @@ const BackgroundPageThumbs = {
   },
 
   
+
 
 
   _onCaptureOrTimeout: function (capture) {
