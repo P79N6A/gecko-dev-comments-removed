@@ -16,6 +16,7 @@
 #include "mozilla/TimeStamp_windows.h"
 #endif
 #include "mozilla/TypedEnum.h"
+#include "mozilla/IntegerTypeTraits.h"
 
 #include <stdint.h>
 
@@ -101,39 +102,64 @@ namespace IPC {
 
 
 
-
-
-
-
-
-
-
-
-
-
-template <typename E, E smallestLegal, E highBound>
+template <typename E, typename EnumValidator>
 struct EnumSerializer {
   typedef E paramType;
-
-  static bool IsLegalValue(const paramType &aValue) {
-    return smallestLegal <= aValue && aValue < highBound;
-  }
+  typedef typename mozilla::UnsignedStdintTypeForSize<sizeof(paramType)>::Type
+          uintParamType;
 
   static void Write(Message* aMsg, const paramType& aValue) {
-    MOZ_ASSERT(IsLegalValue(aValue));
-    WriteParam(aMsg, (int32_t)aValue);
+    MOZ_ASSERT(EnumValidator::IsLegalValue(aValue));
+    WriteParam(aMsg, uintParamType(aValue));
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
-    int32_t value;
+    uintParamType value;
     if(!ReadParam(aMsg, aIter, &value) ||
-       !IsLegalValue(paramType(value))) {
+       !EnumValidator::IsLegalValue(paramType(value))) {
       return false;
     }
     *aResult = paramType(value);
     return true;
   }
 };
+
+template <typename E,
+          E MinLegal,
+          E HighBound>
+struct ContiguousEnumValidator
+{
+  static bool IsLegalValue(E e)
+  {
+    return MinLegal <= e && e < HighBound;
+  }
+};
+
+template <typename E,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
+class ContiguousTypedEnumValidator
+{
+  
+  
+  
+  template <typename T>
+  static bool IsLessThanOrEqual(T a, T b) { return a <= b; }
+
+public:
+  static bool IsLegalValue(E e)
+  {
+    typedef MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) ActualEnumType;
+    return IsLessThanOrEqual(MinLegal, ActualEnumType(e)) &&
+           ActualEnumType(e) < HighBound;
+  }
+};
+
+
+
+
+
+
 
 
 
@@ -146,37 +172,31 @@ struct EnumSerializer {
 
 
 template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) smallestLegal,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) highBound>
-struct TypedEnumSerializer {
-  typedef E paramType;
-  typedef MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) intParamType;
+          E MinLegal,
+          E HighBound>
+struct ContiguousEnumSerializer
+  : EnumSerializer<E,
+                   ContiguousEnumValidator<E, MinLegal, HighBound>>
+{};
 
-  static bool IsLegalValue(const paramType &aValue) {
-    return smallestLegal <= intParamType(aValue) && intParamType(aValue) < highBound;
-  }
 
-  static void Write(Message* aMsg, const paramType& aValue) {
-    MOZ_ASSERT(IsLegalValue(aValue));
-    WriteParam(aMsg, int32_t(intParamType(aValue)));
-  }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
-    int32_t value;
-    if(!ReadParam(aMsg, aIter, &value) ||
-       !IsLegalValue(intParamType(value))) {
-      return false;
-    }
-    *aResult = intParamType(value);
-    return true;
-  }
-};
+
+
+
+template <typename E,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
+struct ContiguousTypedEnumSerializer
+  : EnumSerializer<E,
+                   ContiguousTypedEnumValidator<E, MinLegal, HighBound>>
+{};
 
 template <>
 struct ParamTraits<base::ChildPrivileges>
-  : public EnumSerializer<base::ChildPrivileges,
-                          base::PRIVILEGES_DEFAULT,
-                          base::PRIVILEGES_LAST>
+  : public ContiguousEnumSerializer<base::ChildPrivileges,
+                                    base::PRIVILEGES_DEFAULT,
+                                    base::PRIVILEGES_LAST>
 { };
 
 template<>
@@ -477,9 +497,9 @@ struct ParamTraits<float>
 
 template <>
 struct ParamTraits<nsCSSProperty>
-  : public EnumSerializer<nsCSSProperty,
-                          eCSSProperty_UNKNOWN,
-                          eCSSProperty_COUNT>
+  : public ContiguousEnumSerializer<nsCSSProperty,
+                                    eCSSProperty_UNKNOWN,
+                                    eCSSProperty_COUNT>
 {};
 
 template<>
