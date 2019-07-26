@@ -259,7 +259,9 @@ let MozLoopServiceInternal = {
     }
 
     
-    this.registrationCallbacks.push(callback);
+    if (callback) {
+      this.registrationCallbacks.push(callback);
+    }
 
     
     if (this.registrationInProgress) {
