@@ -15,7 +15,7 @@ public class testAboutHomeVisibility extends UITest {
         
         mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE);
         mAboutHome.assertVisible()
-                  .assertCurrentPage(PanelType.TOP_SITES);
+                  .assertCurrentPanel(PanelType.TOP_SITES);
 
         
         NavigationHelper.enterAndLoadUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
@@ -30,7 +30,7 @@ public class testAboutHomeVisibility extends UITest {
         
         mToolbar.enterEditingMode();
         mAboutHome.assertVisible()
-                  .assertCurrentPage(PanelType.TOP_SITES);
+                  .assertCurrentPanel(PanelType.TOP_SITES);
 
         
         mToolbar.dismissEditingMode();
@@ -40,7 +40,7 @@ public class testAboutHomeVisibility extends UITest {
         NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
         mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE);
         mAboutHome.assertVisible()
-                  .assertCurrentPage(PanelType.TOP_SITES);
+                  .assertCurrentPanel(PanelType.TOP_SITES);
 
         
     }

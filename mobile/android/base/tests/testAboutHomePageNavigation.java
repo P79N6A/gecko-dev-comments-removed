@@ -16,13 +16,13 @@ public class testAboutHomePageNavigation extends UITest {
         GeckoHelper.blockForReady();
 
         mAboutHome.assertVisible()
-                  .assertCurrentPage(PanelType.TOP_SITES);
+                  .assertCurrentPanel(PanelType.TOP_SITES);
 
-        mAboutHome.swipeToPageOnRight();
-        mAboutHome.assertCurrentPage(PanelType.BOOKMARKS);
+        mAboutHome.swipeToPanelOnRight();
+        mAboutHome.assertCurrentPanel(PanelType.BOOKMARKS);
 
-        mAboutHome.swipeToPageOnRight();
-        mAboutHome.assertCurrentPage(PanelType.READING_LIST);
+        mAboutHome.swipeToPanelOnRight();
+        mAboutHome.assertCurrentPanel(PanelType.READING_LIST);
 
         
         
@@ -34,47 +34,47 @@ public class testAboutHomePageNavigation extends UITest {
     }
 
     private void helperTestTablet() {
-        mAboutHome.swipeToPageOnRight();
-        mAboutHome.assertCurrentPage(PanelType.HISTORY);
+        mAboutHome.swipeToPanelOnRight();
+        mAboutHome.assertCurrentPanel(PanelType.HISTORY);
 
         
-        mAboutHome.swipeToPageOnRight();
-        mAboutHome.assertCurrentPage(PanelType.HISTORY);
+        mAboutHome.swipeToPanelOnRight();
+        mAboutHome.assertCurrentPanel(PanelType.HISTORY);
 
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.READING_LIST);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.READING_LIST);
 
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.BOOKMARKS);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.BOOKMARKS);
 
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.TOP_SITES);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.TOP_SITES);
 
         
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.TOP_SITES);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.TOP_SITES);
     }
 
     private void helperTestPhone() {
         
-        mAboutHome.swipeToPageOnRight();
-        mAboutHome.assertCurrentPage(PanelType.READING_LIST);
+        mAboutHome.swipeToPanelOnRight();
+        mAboutHome.assertCurrentPanel(PanelType.READING_LIST);
 
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.BOOKMARKS);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.BOOKMARKS);
 
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.TOP_SITES);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.TOP_SITES);
 
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.HISTORY);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.HISTORY);
 
         
-        mAboutHome.swipeToPageOnLeft();
-        mAboutHome.assertCurrentPage(PanelType.HISTORY);
+        mAboutHome.swipeToPanelOnLeft();
+        mAboutHome.assertCurrentPanel(PanelType.HISTORY);
 
-        mAboutHome.swipeToPageOnRight();
-        mAboutHome.assertCurrentPage(PanelType.TOP_SITES);
+        mAboutHome.swipeToPanelOnRight();
+        mAboutHome.assertCurrentPanel(PanelType.TOP_SITES);
     }
 
     
