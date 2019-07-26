@@ -46,19 +46,6 @@ let gPage = {
   
 
 
-
-  get allowBackgroundCaptures() {
-    
-    
-    
-    return inPrivateBrowsingMode() ||
-           document.documentElement.getAttribute("allow-background-captures") ==
-           "true";
-  },
-
-  
-
-
   observe: function Page_observe(aSubject, aTopic, aData) {
     if (aTopic == "nsPref:changed") {
       let enabled = gAllPages.enabled;
@@ -85,7 +72,7 @@ let gPage = {
 
 
   update: function Page_update(aOnlyIfHidden=false) {
-    let skipUpdate = aOnlyIfHidden && this.allowBackgroundCaptures;
+    let skipUpdate = aOnlyIfHidden && !document.hidden;
     
     if (gGrid.ready && !skipUpdate) {
       gGrid.refresh();
@@ -117,45 +104,14 @@ let gPage = {
 
     this._initialized = true;
 
+    
     gSearch.init();
 
-    this._mutationObserver = new MutationObserver(() => {
-      if (this.allowBackgroundCaptures) {
-        Services.telemetry.getHistogramById("NEWTAB_PAGE_SHOWN").add(true);
-
-        
-        let directoryCount = {};
-        for (let type of DirectoryLinksProvider.linkTypes) {
-          directoryCount[type] = 0;
-        }
-
-        for (let site of gGrid.sites) {
-          if (site) {
-            site.captureIfMissing();
-            let {type} = site.link;
-            if (type in directoryCount) {
-              directoryCount[type]++;
-            }
-          }
-        }
-
-        
-        
-        for (let [type, count] of Iterator(directoryCount)) {
-          let shownId = "NEWTAB_PAGE_DIRECTORY_" + type.toUpperCase() + "_SHOWN";
-          let shownCount = Math.min(10, count);
-          Services.telemetry.getHistogramById(shownId).add(shownCount);
-        }
-
-        
-        
-        gSearch.setUpInitialState();
-      }
-    });
-    this._mutationObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["allow-background-captures"],
-    });
+    if (document.hidden) {
+      addEventListener("visibilitychange", this);
+    } else {
+      this.onPageFirstVisible();
+    }
 
     
     gGrid.init();
@@ -204,8 +160,6 @@ let gPage = {
   handleEvent: function Page_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "unload":
-        if (this._mutationObserver)
-          this._mutationObserver.disconnect();
         gAllPages.unregister(this);
         break;
       case "click":
@@ -236,6 +190,43 @@ let gPage = {
           aEvent.stopPropagation();
         }
         break;
+      case "visibilitychange":
+        setTimeout(() => this.onPageFirstVisible());
+        removeEventListener("visibilitychange", this);
+        break;
     }
+  },
+
+  onPageFirstVisible: function () {
+    
+    Services.telemetry.getHistogramById("NEWTAB_PAGE_SHOWN").add(true);
+
+    
+    let directoryCount = {};
+    for (let type of DirectoryLinksProvider.linkTypes) {
+      directoryCount[type] = 0;
+    }
+
+    for (let site of gGrid.sites) {
+      if (site) {
+        site.captureIfMissing();
+        let {type} = site.link;
+        if (type in directoryCount) {
+          directoryCount[type]++;
+        }
+      }
+    }
+
+    
+    
+    for (let type of Object.keys(directoryCount)) {
+      let count = directoryCount[type];
+      let shownId = "NEWTAB_PAGE_DIRECTORY_" + type.toUpperCase() + "_SHOWN";
+      let shownCount = Math.min(10, count);
+      Services.telemetry.getHistogramById(shownId).add(shownCount);
+    }
+
+    
+    gSearch.setUpInitialState();
   }
 };

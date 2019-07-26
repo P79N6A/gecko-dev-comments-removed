@@ -144,7 +144,7 @@ Site.prototype = {
 
 
   captureIfMissing: function Site_captureIfMissing() {
-    if (gPage.allowBackgroundCaptures && !this.link.imageURI) {
+    if (!document.hidden && !this.link.imageURI) {
       BackgroundPageThumbs.captureIfMissing(this.url);
     }
   },

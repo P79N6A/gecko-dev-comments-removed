@@ -53,37 +53,14 @@ function runTests() {
 
   
   let doc = tab.linkedBrowser.contentDocument;
-  isnot(doc.documentElement.getAttribute("allow-background-captures"), "true",
-        "Pre-loaded docshell just synchronously swapped, so background " +
-        "captures should not be allowed yet");
 
   
   Services.prefs.setBoolPref(CAPTURE_PREF, false);
 
   
-  
-  let allowBackgroundCaptures = false;
-  let mutationObserver = new MutationObserver(() => {
-    mutationObserver.disconnect();
-    allowBackgroundCaptures = true;
-    is(doc.documentElement.getAttribute("allow-background-captures"), "true",
-       "allow-background-captures should now be true");
-    info("Waiting for thumbnail to be created after observing " +
-         "allow-background-captures change");
-  });
-  mutationObserver.observe(doc.documentElement, {
-    attributes: true,
-    attributeFilter: ["allow-background-captures"],
-  });
-
-  
-  
   Services.obs.addObserver(function onCreate(subj, topic, data) {
     if (data != url)
       return;
-    ok(allowBackgroundCaptures,
-       "page-thumbnail:create should be observed after " +
-       "allow-background-captures was set");
     Services.obs.removeObserver(onCreate, "page-thumbnail:create");
     
     Services.prefs.setBoolPref(CAPTURE_PREF, originalDisabledState);
@@ -91,7 +68,7 @@ function runTests() {
     TestRunner.next();
   }, "page-thumbnail:create", false);
 
-  info("Waiting for allow-background-captures change");
+  info("Waiting for thumbnail capture");
   yield true;
 }
 
