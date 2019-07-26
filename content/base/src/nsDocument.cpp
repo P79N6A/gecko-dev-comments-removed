@@ -11329,57 +11329,6 @@ nsDocument::Evaluate(const nsAString& aExpression, nsIDOMNode* aContextNode,
                                     aInResult, aResult);
 } 
 
-
-
-JSObject*
-nsIDocument::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aScope)
-{
-  MOZ_ASSERT(IsDOMBinding());
-
-  JS::Rooted<JSObject*> obj(aCx, nsINode::WrapObject(aCx, aScope));
-  if (!obj) {
-    return nullptr;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(GetInnerWindow());
-  if (!win) {
-    
-    return obj;
-  }
-
-  if (this != win->GetExtantDoc()) {
-    
-    return obj;
-  }
-
-  JSAutoCompartment ac(aCx, obj);
-
-  JS::Rooted<JS::Value> winVal(aCx);
-  nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  nsresult rv = nsContentUtils::WrapNative(aCx, obj, win,
-                                           &NS_GET_IID(nsIDOMWindow),
-                                           &winVal,
-                                           getter_AddRefs(holder),
-                                           false);
-  if (NS_FAILED(rv)) {
-    Throw(aCx, rv);
-    return nullptr;
-  }
-
-  NS_NAMED_LITERAL_STRING(doc_str, "document");
-
-  if (!JS_DefineUCProperty(aCx, JSVAL_TO_OBJECT(winVal),
-                           reinterpret_cast<const jschar *>
-                                           (doc_str.get()),
-                           doc_str.Length(), JS::ObjectValue(*obj),
-                           JS_PropertyStub, JS_StrictPropertyStub,
-                           JSPROP_READONLY | JSPROP_ENUMERATE)) {
-    return nullptr;
-  }
-
-  return obj;
-}
-
 XPathEvaluator*
 nsIDocument::XPathEvaluator()
 {
