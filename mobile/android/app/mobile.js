@@ -443,6 +443,8 @@ pref("dom.ipc.plugins.enabled", false);
 
 pref("plugins.click_to_play", true);
 
+pref("plugin.default.state", 1);
+
 
 
 pref("breakpad.reportURL", "https://crash-stats.mozilla.com/report/index/");
