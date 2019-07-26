@@ -1,11 +1,7 @@
 
 
 
-Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-common/async.js");
-Cu.import("resource://services-sync/util.js");
-Cu.import("resource://services-sync/record.js");
-Cu.import("resource://services-sync/engines.js");
 
 let provider = {
   getFile: function(prop, persistent) {
@@ -121,15 +117,6 @@ function uninstallAddon(addon) {
   addon.uninstall();
   Async.waitForSyncCallback(cb);
 }
-
-
-
-_("Setting the identity for passphrase");
-Cu.import("resource://services-sync/identity.js");
-
-
-
-
 
 function generateNewKeys(collectionKeys, collections=null) {
   let wbo = collectionKeys.generateNewKeysWBO(collections);

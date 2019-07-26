@@ -1,3 +1,8 @@
+
+
+
+Cu.import("resource://services-sync/util.js");
+
 function run_test() {
   Log4Moz.repository.getLogger("Sync.Test.Server").level = Log4Moz.Level.Trace;
   initTestLogging();
