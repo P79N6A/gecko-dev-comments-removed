@@ -172,8 +172,7 @@ public:
   static bool IsShmem(SurfaceDescriptor* aSurface);
 
 protected:
-  
-  
+
   virtual bool IsOnCompositorSide() const = 0;
   bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
   virtual bool PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,

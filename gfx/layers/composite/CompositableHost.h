@@ -46,7 +46,6 @@ struct TiledLayerProperties
 };
 
 class Layer;
-class DeprecatedTextureHost;
 class SurfaceDescriptor;
 class Compositor;
 class ISurfaceAllocator;
@@ -162,12 +161,6 @@ public:
   
 
 
-  virtual bool Update(const SurfaceDescriptor& aImage,
-                      SurfaceDescriptor* aResult = nullptr);
-
-  
-
-
 
 
   virtual bool UpdateThebes(const ThebesBufferData& aData,
@@ -216,8 +209,6 @@ public:
   {
     MOZ_ASSERT(false, "should be implemented or not used");
   }
-
-  virtual DeprecatedTextureHost* GetDeprecatedTextureHost() { return nullptr; }
 
   
 
@@ -296,7 +287,6 @@ public:
   virtual void Dump(FILE* aFile=nullptr,
                     const char* aPrefix="",
                     bool aDumpHtml=false) { }
-  static void DumpDeprecatedTextureHost(FILE* aFile, DeprecatedTextureHost* aTexture);
   static void DumpTextureHost(FILE* aFile, TextureHost* aTexture);
 
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() { return nullptr; }
