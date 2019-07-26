@@ -2550,8 +2550,9 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   aDesiredSize.width = desiredContentBoxSize.width +
     containerBorderPadding.LeftRight();
+  
   aDesiredSize.height = desiredContentBoxSize.height +
-    containerBorderPadding.TopBottom();
+    containerBorderPadding.top;
 
   if (flexContainerAscent == nscoord_MIN) {
     
@@ -2562,11 +2563,35 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
                      "Have flex items but didn't get an ascent - that's odd "
                      "(or there are just gigantic sizes involved)");
     
-    flexContainerAscent = aDesiredSize.height -
-      aReflowState.mComputedBorderPadding.bottom;
+    flexContainerAscent = aDesiredSize.height;
   }
-
   aDesiredSize.ascent = flexContainerAscent;
+
+  
+  
+  
+  
+  
+  
+  
+  if (NS_FRAME_IS_COMPLETE(aStatus)) {
+    
+    
+    
+    
+    nscoord desiredHeightWithBottomBP =
+      aDesiredSize.height + aReflowState.mComputedBorderPadding.bottom;
+
+    if (aDesiredSize.height == 0 ||
+        desiredHeightWithBottomBP <= aReflowState.availableHeight ||
+        aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
+      
+      aDesiredSize.height = desiredHeightWithBottomBP;
+    } else {
+      
+      NS_FRAME_SET_INCOMPLETE(aStatus);
+    }
+  }
 
   
   aDesiredSize.SetOverflowAreasToDesiredBounds();
