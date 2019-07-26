@@ -17,8 +17,6 @@ function test()
   
   gGestureSupport.init(false);
 
-  
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   test_utils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
     getInterface(Components.interfaces.nsIDOMWindowUtils);
 
