@@ -4,6 +4,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "nsHttp.h"
 #include "nsHttpChannel.h"
 #include "nsHttpHandler.h"

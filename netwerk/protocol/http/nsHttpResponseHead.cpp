@@ -4,7 +4,9 @@
 
 
 
-#include <stdlib.h>
+
+#include "HttpLog.h"
+
 #include "nsHttpResponseHead.h"
 #include "nsPrintfCString.h"
 #include "prprf.h"

@@ -2,6 +2,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "nsHttpHandler.h"
 #include "HttpInfo.h"
 

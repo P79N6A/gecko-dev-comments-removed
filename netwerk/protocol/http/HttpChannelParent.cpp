@@ -4,6 +4,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/net/NeckoParent.h"

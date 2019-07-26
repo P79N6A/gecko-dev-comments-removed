@@ -3,6 +3,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "nsHttpChunkedDecoder.h"
 #include "nsHttp.h"
 #include <algorithm>

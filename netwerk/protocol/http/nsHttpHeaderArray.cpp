@@ -4,6 +4,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "nsHttpHeaderArray.h"
 #include "nsHttp.h"
 

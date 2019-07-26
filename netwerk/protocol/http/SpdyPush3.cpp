@@ -4,6 +4,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include <algorithm>
 
 #include "nsDependentString.h"

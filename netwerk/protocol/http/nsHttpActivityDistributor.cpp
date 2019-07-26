@@ -2,6 +2,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "nsHttpActivityDistributor.h"
 #include "nsIChannel.h"
 #include "nsCOMPtr.h"

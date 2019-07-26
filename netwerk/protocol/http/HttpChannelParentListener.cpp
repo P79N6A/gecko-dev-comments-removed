@@ -4,6 +4,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "HttpChannelParentListener.h"
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"

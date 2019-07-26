@@ -4,6 +4,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "mozilla/Telemetry.h"
 #include "nsAlgorithm.h"
 #include "nsHttp.h"

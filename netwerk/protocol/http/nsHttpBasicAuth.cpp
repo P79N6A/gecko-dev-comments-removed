@@ -3,11 +3,12 @@
 
 
 
-#include <stdlib.h>
+
+#include "HttpLog.h"
+
 #include "nsHttp.h"
 #include "nsHttpBasicAuth.h"
 #include "plbase64.h"
-#include "plstr.h"
 #include "nsString.h"
 
 

@@ -3,7 +3,9 @@
 
 
 
-#include <stdlib.h>
+
+#include "HttpLog.h"
+
 #include "nsHttp.h"
 #include "nsHttpNTLMAuth.h"
 #include "nsIComponentManager.h"

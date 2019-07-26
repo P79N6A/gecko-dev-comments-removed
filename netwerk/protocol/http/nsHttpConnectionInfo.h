@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsHttpConnectionInfo_h__
 #define nsHttpConnectionInfo_h__
 
@@ -15,6 +16,8 @@
 #include "nsCRT.h"
 #include "nsIProtocolProxyService.h"
 
+extern PRLogModuleInfo *gHttpLog;
+
 
 
 
@@ -24,31 +27,11 @@ class nsHttpConnectionInfo
 public:
     nsHttpConnectionInfo(const nsACString &host, int32_t port,
                          nsProxyInfo* proxyInfo,
-                         bool usingSSL=false)
-        : mRef(0)
-        , mProxyInfo(proxyInfo)
-        , mUsingSSL(usingSSL)
-        , mUsingConnect(false)
-    {
-        LOG(("Creating nsHttpConnectionInfo @%x\n", this));
-
-        mUsingHttpProxy = (proxyInfo && proxyInfo->IsHTTP());
-
-        if (mUsingHttpProxy) {
-            mUsingConnect = mUsingSSL;  
-            uint32_t resolveFlags = 0;
-            if (NS_SUCCEEDED(mProxyInfo->GetResolveFlags(&resolveFlags)) &&
-                resolveFlags & nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL) {
-                mUsingConnect = true;
-            }
-        }
-
-        SetOriginServer(host, port);
-    }
+                         bool usingSSL=false);
 
    ~nsHttpConnectionInfo()
     {
-        LOG(("Destroying nsHttpConnectionInfo @%x\n", this));
+        PR_LOG(gHttpLog, 4, ("Destroying nsHttpConnectionInfo @%x\n", this));
     }
 
     nsrefcnt AddRef()

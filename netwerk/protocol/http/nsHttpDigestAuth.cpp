@@ -4,7 +4,9 @@
 
 
 
-#include <stdlib.h>
+
+#include "HttpLog.h"
+
 #include "nsHttp.h"
 #include "nsHttpDigestAuth.h"
 #include "nsIHttpAuthenticableChannel.h"
@@ -17,7 +19,6 @@
 #include "nsEscape.h"
 #include "nsNetCID.h"
 #include "plbase64.h"
-#include "plstr.h"
 #include "prprf.h"
 #include "nsCRT.h"
 

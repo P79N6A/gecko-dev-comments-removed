@@ -3,6 +3,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "nsHttpAuthCache.h"
 #include <stdlib.h>
 #include "base/compiler_specific.h"

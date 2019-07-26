@@ -4,6 +4,9 @@
 
 
 
+
+#include "HttpLog.h"
+
 #include "nsHttpConnectionMgr.h"
 #include "nsHttpConnection.h"
 #include "SpdySession2.h"
