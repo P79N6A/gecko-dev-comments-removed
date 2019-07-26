@@ -63,6 +63,7 @@ this.PushDB.prototype = {
 
     
     objectStore.createIndex("pushEndpoint", "pushEndpoint", { unique: true });
+
     
     
     
@@ -732,7 +733,7 @@ this.PushService = {
     debug("sendRequest() " + action);
     if (typeof data.channelID !== "string") {
       debug("Received non-string channelID");
-      return;
+      return Promise.reject("Received non-string channelID");
     }
 
     var deferred = Promise.defer();
@@ -927,9 +928,7 @@ this.PushService = {
     let uuidGenerator = Cc["@mozilla.org/uuid-generator;1"]
                           .getService(Ci.nsIUUIDGenerator);
     
-    var channelID = uuidGenerator.generateUUID().toString()
-                      .slice(1)
-                      .slice(0, -1);
+    var channelID = uuidGenerator.generateUUID().toString().slice(1, -1);
 
     this._sendRequest("register", {channelID: channelID})
       .then(
@@ -940,7 +939,7 @@ this.PushService = {
         function(message) {
           aMessageManager.sendAsyncMessage("PushService:Register:OK", message);
         },
-        function() {
+        function(message) {
           aMessageManager.sendAsyncMessage("PushService:Register:KO", message);
       });
   },
