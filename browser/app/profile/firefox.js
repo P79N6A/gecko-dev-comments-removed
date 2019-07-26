@@ -1212,6 +1212,11 @@ pref("devtools.webconsole.persistlog", false);
 
 
 
+
+pref("devtools.webconsole.timestampMessages", false);
+
+
+
 pref("devtools.hud.loglimit.network", 200);
 pref("devtools.hud.loglimit.cssparser", 200);
 pref("devtools.hud.loglimit.exception", 200);
