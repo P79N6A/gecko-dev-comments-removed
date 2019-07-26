@@ -390,9 +390,9 @@ IsOffsetParent(nsIFrame* aFrame)
 }
 
 Element*
-nsGenericHTMLElement::GetOffsetRect(nsRect& aRect)
+nsGenericHTMLElement::GetOffsetRect(CSSIntRect& aRect)
 {
-  aRect = nsRect();
+  aRect = CSSIntRect();
 
   nsIFrame* frame = GetStyledFrame();
   if (!frame) {
@@ -480,15 +480,11 @@ nsGenericHTMLElement::GetOffsetRect(nsRect& aRect)
   
 
   
-  aRect.x = nsPresContext::AppUnitsToIntCSSPixels(origin.x);
-  aRect.y = nsPresContext::AppUnitsToIntCSSPixels(origin.y);
-
-  
   
   
   nsRect rcFrame = nsLayoutUtils::GetAllInFlowRectsUnion(frame, frame);
-  aRect.width = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.width);
-  aRect.height = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.height);
+  rcFrame.MoveTo(origin);
+  aRect = CSSIntRect::FromAppUnitsRounded(rcFrame);
 
   return offsetParent ? offsetParent->AsElement() : nullptr;
 }
