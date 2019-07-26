@@ -49,9 +49,23 @@ typedef bool (*PropertyEnabled)(JSContext* cx, JSObject* global);
 template<typename T>
 struct Prefable {
   inline bool isEnabled(JSContext* cx, JSObject* obj) const {
-    return enabled &&
-      (!enabledFunc ||
-       enabledFunc(cx, js::GetGlobalForObjectCrossCompartment(obj)));
+    if (!enabled) {
+      return false;
+    }
+    if (!enabledFunc && !availableFunc) {
+      return true;
+    }
+    
+    JS::Rooted<JSObject*> rootedObj(cx, obj);
+    if (enabledFunc &&
+        !enabledFunc(cx, js::GetGlobalForObjectCrossCompartment(rootedObj))) {
+      return false;
+    }
+    if (availableFunc &&
+        !availableFunc(cx, js::GetGlobalForObjectCrossCompartment(rootedObj))) {
+      return false;
+    }
+    return true;
   }
 
   
@@ -60,6 +74,11 @@ struct Prefable {
   
   
   PropertyEnabled enabledFunc;
+  
+  
+  
+  
+  PropertyEnabled availableFunc;
   
   
   
