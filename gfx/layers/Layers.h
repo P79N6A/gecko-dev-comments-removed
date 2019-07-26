@@ -576,7 +576,13 @@ public:
 
 
 
-    CONTENT_PRESERVE_3D = 0x04
+    CONTENT_PRESERVE_3D = 0x04,
+    
+
+
+
+
+    CONTENT_MAY_CHANGE_TRANSFORM = 0x08
   };
   
 
@@ -1082,6 +1088,14 @@ protected:
   gfx3DMatrix SnapTransform(const gfx3DMatrix& aTransform,
                             const gfxRect& aSnapRect,
                             gfxMatrix* aResidualTransform);
+
+  
+
+
+
+
+
+  bool MayResample();
 
   LayerManager* mManager;
   ContainerLayer* mParent;
