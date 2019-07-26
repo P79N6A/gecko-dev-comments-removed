@@ -464,7 +464,7 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
 
 static void
 HandleExceptionBaseline(JSContext *cx, const JitFrameIterator &frame, ResumeFromException *rfe,
-                        bool *calledDebugEpilogue)
+                        jsbytecode **unwoundScopeToPc, bool *calledDebugEpilogue)
 {
     JS_ASSERT(frame.isBaselineJS());
     JS_ASSERT(!*calledDebugEpilogue);
@@ -528,17 +528,8 @@ HandleExceptionBaseline(JSContext *cx, const JitFrameIterator &frame, ResumeFrom
 
         
         if (cx->isExceptionPending()) {
-            jsbytecode *unwindPc = script->main() + tn->start;
-            UnwindScope(cx, si, unwindPc);
-
-            
-            
-            
-            if (tn->kind != JSTRY_CATCH && tn->kind != JSTRY_FINALLY &&
-                cx->compartment()->debugMode() && !*calledDebugEpilogue)
-            {
-                frame.baselineFrame()->setUnwoundScopeOverridePc(unwindPc);
-            }
+            *unwoundScopeToPc = script->main() + tn->start;
+            UnwindScope(cx, si, *unwoundScopeToPc);
         }
 
         
@@ -670,7 +661,10 @@ HandleException(ResumeFromException *rfe)
             
             bool calledDebugEpilogue = false;
 
-            HandleExceptionBaseline(cx, iter, rfe, &calledDebugEpilogue);
+            
+            jsbytecode *unwoundScopeToPc = nullptr;
+
+            HandleExceptionBaseline(cx, iter, rfe, &unwoundScopeToPc, &calledDebugEpilogue);
 
             
             
@@ -694,6 +688,12 @@ HandleException(ResumeFromException *rfe)
             iter.baselineFrame()->unsetPushedSPSFrame();
 
             if (cx->compartment()->debugMode() && !calledDebugEpilogue) {
+                
+                
+                
+                if (unwoundScopeToPc)
+                    iter.baselineFrame()->setUnwoundScopeOverridePc(unwoundScopeToPc);
+
                 
                 
                 BaselineFrame *frame = iter.baselineFrame();
