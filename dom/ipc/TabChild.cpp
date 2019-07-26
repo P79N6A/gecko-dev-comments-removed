@@ -463,20 +463,27 @@ TabChild::HandlePossibleViewportChange()
   metrics.mScrollableRect = gfx::Rect(0.0f, 0.0f, pageWidth, pageHeight);
   metrics.mCompositionBounds = nsIntRect(0, 0, mInnerSize.width, mInnerSize.height);
 
-  gfxSize intrinsicScale =
-      AsyncPanZoomController::CalculateIntrinsicScale(metrics);
   
   
-  
-  if (viewportInfo.defaultZoom < 0.01f) {
-    viewportInfo.defaultZoom = intrinsicScale.width;
+  bool isFirstPaint;
+  nsresult rv = utils->GetIsFirstPaint(&isFirstPaint);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  if (NS_FAILED(rv) || isFirstPaint) {
+    gfxSize intrinsicScale =
+        AsyncPanZoomController::CalculateIntrinsicScale(metrics);
+    
+    
+    
+    if (viewportInfo.defaultZoom < 0.01f) {
+      viewportInfo.defaultZoom = intrinsicScale.width;
+    }
+    MOZ_ASSERT(viewportInfo.minZoom <= viewportInfo.defaultZoom &&
+               viewportInfo.defaultZoom <= viewportInfo.maxZoom);
+    
+    
+    metrics.mZoom = gfxSize(viewportInfo.defaultZoom / intrinsicScale.width,
+                            viewportInfo.defaultZoom / intrinsicScale.height);
   }
-  MOZ_ASSERT(viewportInfo.minZoom <= viewportInfo.defaultZoom &&
-             viewportInfo.defaultZoom <= viewportInfo.maxZoom);
-  
-  
-  metrics.mZoom = gfxSize(viewportInfo.defaultZoom / intrinsicScale.width,
-                          viewportInfo.defaultZoom / intrinsicScale.height);
 
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
     
