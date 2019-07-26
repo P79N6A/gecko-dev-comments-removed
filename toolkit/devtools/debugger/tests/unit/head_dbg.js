@@ -58,6 +58,10 @@ let listener = {
       }
     }
 
+    
+    while (DebuggerServer.xpcInspector.eventLoopNestLevel > 0) {
+      DebuggerServer.xpcInspector.exitNestedEventLoop();
+    }
     do_throw("head_dbg.js got console message: " + string + "\n");
   }
 };
