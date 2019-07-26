@@ -140,8 +140,6 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
     
     if (native == intrinsic_IsCallable)
         return inlineIsCallable(callInfo);
-    if (native == intrinsic_NewObjectWithClassPrototype)
-        return inlineNewObjectWithClassPrototype(callInfo);
     if (native == intrinsic_HaveSameClass)
         return inlineHaveSameClass(callInfo);
     if (native == intrinsic_ToObject)
@@ -1450,34 +1448,6 @@ IonBuilder::inlineUnsafeGetReservedSlot(CallInfo &callInfo)
 
     
     pushTypeBarrier(load, getInlineReturnTypeSet(), true);
-
-    return InliningStatus_Inlined;
-}
-
-IonBuilder::InliningStatus
-IonBuilder::inlineNewObjectWithClassPrototype(CallInfo &callInfo)
-{
-    if (callInfo.argc() != 1 || callInfo.constructing())
-        return InliningStatus_NotInlined;
-    if (callInfo.getArg(0)->type() != MIRType_Object)
-        return InliningStatus_NotInlined;
-
-    MDefinition *arg = callInfo.getArg(0)->toPassArg()->getArgument();
-    if (!arg->isConstant())
-        return InliningStatus_NotInlined;
-    JSObject *proto = &arg->toConstant()->value().toObject();
-
-    JSObject *templateObject = NewObjectWithGivenProto(cx, proto->getClass(), proto, cx->global());
-    if (!templateObject)
-        return InliningStatus_Error;
-
-    MNewObject *newObj = MNewObject::New(templateObject,
-                                          true);
-    current->add(newObj);
-    current->push(newObj);
-
-    if (!resumeAfter(newObj))
-        return InliningStatus_Error;
 
     return InliningStatus_Inlined;
 }
