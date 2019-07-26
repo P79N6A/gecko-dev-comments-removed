@@ -699,11 +699,9 @@ protected:
 
 
 
-
-  virtual nsresult CreateContinuationFor(nsBlockReflowState& aState,
-                                         nsLineBox*          aLine,
-                                         nsIFrame*           aFrame,
-                                         bool&             aMadeNewFrame);
+  bool CreateContinuationFor(nsBlockReflowState& aState,
+                             nsLineBox*          aLine,
+                             nsIFrame*           aFrame);
 
   
 
