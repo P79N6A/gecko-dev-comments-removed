@@ -39,41 +39,16 @@ var localIPLiterals = localIPv4Literals.concat(localIPv6Literals);
 
 
 
-
-
-
-
-var remoteIPv4Literals =
-    [ "93.184.216.119", 
-      "74.125.239.130", 
-      "63.245.217.105", 
-      "173.252.110.27"  
-    ];
-
-var remoteIPv6Literals =
-    [ "2607:f8b0:4005:802::1009",        
-      "2620:101:8008:5::2:1",            
-      "2a03:2880:2110:df07:face:b00c::1" 
-    ];
-
-var remoteIPLiterals = remoteIPv4Literals.concat(remoteIPv6Literals);
-
-
-
 var testList =
     [ test_speculative_connect,
       test_hostnames_resolving_to_local_addresses,
-      test_hostnames_resolving_to_remote_addresses,
-      test_proxies_with_local_addresses,
-      test_proxies_with_remote_addresses
+      test_proxies_with_local_addresses
     ];
 
 var testDescription =
     [ "Expect pass with localhost",
       "Expect failure with resolved local IPs",
-      "Expect success with resolved remote IPs",
-      "Expect failure for proxies with local IPs",
-      "Expect success for proxies with remote IPs"
+      "Expect failure for proxies with local IPs"
     ];
 
 var testIdx = 0;
@@ -256,30 +231,6 @@ function test_hostnames_resolving_to_local_addresses() {
 
 
 
-
-
-
-
-
-
-function test_hostnames_resolving_to_remote_addresses() {
-    if (hostIdx >= remoteIPLiterals.length) {
-        
-        next_test();
-        return;
-    }
-    var host = remoteIPLiterals[hostIdx++];
-    
-    var next = test_hostnames_resolving_to_remote_addresses;
-    test_hostnames_resolving_to_addresses(host, true, next);
-}
-
-
-
-
-
-
-
 function test_proxies(proxyHost, expectSuccess, next) {
     do_print("Proxy: " + proxyHost);
     var sts = Cc["@mozilla.org/network/socket-transport-service;1"]
@@ -346,30 +297,6 @@ function test_proxies_with_local_addresses() {
     
     var next = test_proxies_with_local_addresses;
     test_proxies(host, false, next);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function test_proxies_with_remote_addresses() {
-    if (hostIdx >= remoteIPLiterals.length) {
-        
-        next_test();
-        return;
-    }
-    var host = remoteIPLiterals[hostIdx++];
-    
-    var next = test_proxies_with_remote_addresses;
-    test_proxies(host, true, next);
 }
 
 
