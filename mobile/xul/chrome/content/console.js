@@ -192,7 +192,9 @@ let ConsoleView = {
   },
 
   appendInitialItems: function cv_appendInitialItems() {
-    let messages = Services.console.getMessageArray();
+    let out = {}; 
+    Services.console.getMessageArray(out, {});
+    let messages = out.value;
 
     
     if (!messages)
