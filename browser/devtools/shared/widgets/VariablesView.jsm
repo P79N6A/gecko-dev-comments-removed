@@ -11,8 +11,6 @@ const Cu = Components.utils;
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const LAZY_EMPTY_DELAY = 150; 
 const LAZY_EXPAND_DELAY = 50; 
-const LAZY_APPEND_DELAY = 100; 
-const LAZY_APPEND_BATCH = 100; 
 const PAGE_SIZE_SCROLL_HEIGHT_RATIO = 100;
 const PAGE_SIZE_MAX_JUMPS = 30;
 const SEARCH_ACTION_MAX_DELAY = 300; 
@@ -224,18 +222,6 @@ VariablesView.prototype = {
 
 
   lazyEmpty: false,
-
-  
-
-
-
-  lazyAppend: true,
-
-  
-
-
-
-  lazyExpand: true,
 
   
 
@@ -1201,7 +1187,6 @@ function Scope(aView, aName, aFlags = {}) {
   this._onClick = this._onClick.bind(this);
   this._openEnum = this._openEnum.bind(this);
   this._openNonEnum = this._openNonEnum.bind(this);
-  this._batchAppend = this._batchAppend.bind(this);
 
   
   
@@ -1230,6 +1215,11 @@ Scope.prototype = {
   
 
 
+  targetClassName: "variables-view-scope",
+
+  
+
+
 
 
 
@@ -1242,6 +1232,7 @@ Scope.prototype = {
   },
 
   
+
 
 
 
@@ -1432,32 +1423,15 @@ Scope.prototype = {
 
 
   expand: function() {
-    if (this._isExpanded || this._locked) {
+    if (this._isExpanded || this._isLocked) {
       return;
     }
-    
-    
-    
-    
-    if (!this._isExpanding &&
-         this._variablesView.lazyExpand &&
-         this._store.size > LAZY_APPEND_BATCH) {
-      this._isExpanding = true;
-
-      
-      
-      this._startThrobber();
-      this.window.setTimeout(this.expand.bind(this), LAZY_EXPAND_DELAY);
-      return;
-    }
-
     if (this._variablesView._enumVisible) {
       this._openEnum();
     }
     if (this._variablesView._nonEnumVisible) {
       Services.tm.currentThread.dispatch({ run: this._openNonEnum }, 0);
     }
-    this._isExpanding = false;
     this._isExpanded = true;
 
     if (this.onexpand) {
@@ -1469,7 +1443,7 @@ Scope.prototype = {
 
 
   collapse: function() {
-    if (!this._isExpanded || this._locked) {
+    if (!this._isExpanded || this._isLocked) {
       return;
     }
     this._arrow.removeAttribute("open");
@@ -1576,7 +1550,7 @@ Scope.prototype = {
 
 
 
-  get locked() this._locked,
+  get locked() this._isLocked,
 
   
 
@@ -1606,7 +1580,7 @@ Scope.prototype = {
 
 
 
-  set locked(aFlag) this._locked = aFlag,
+  set locked(aFlag) this._isLocked = aFlag,
 
   
 
@@ -1699,7 +1673,7 @@ Scope.prototype = {
 
   _init: function(aName, aFlags) {
     this._idString = generateId(this._nameString = aName);
-    this._displayScope(aName, "variables-view-scope", "devtools-toolbar");
+    this._displayScope(aName, this.targetClassName, "devtools-toolbar");
     this._addEventListeners();
     this.parentNode.appendChild(this._target);
   },
@@ -1714,12 +1688,12 @@ Scope.prototype = {
 
 
 
-  _displayScope: function(aName, aClassName, aTitleClassName) {
+  _displayScope: function(aName, aTargetClassName, aTitleClassName = "") {
     let document = this.document;
 
     let element = this._target = document.createElement("vbox");
     element.id = this._idString;
-    element.className = aClassName;
+    element.className = aTargetClassName;
 
     let arrow = this._arrow = document.createElement("hbox");
     arrow.className = "arrow";
@@ -1729,7 +1703,7 @@ Scope.prototype = {
     name.setAttribute("value", aName);
 
     let title = this._title = document.createElement("hbox");
-    title.className = "title " + (aTitleClassName || "");
+    title.className = "title " + aTitleClassName;
     title.setAttribute("align", "center");
 
     let enumerable = this._enum = document.createElement("vbox");
@@ -1769,96 +1743,9 @@ Scope.prototype = {
   
 
 
-
-
-
-
-
-
-
-
-
-
-  _lazyAppend: function(aImmediateFlag, aEnumerableFlag, aChild) {
-    
-    if (aImmediateFlag || !this._variablesView.lazyAppend) {
-      if (aEnumerableFlag) {
-        this._enum.appendChild(aChild);
-      } else {
-        this._nonenum.appendChild(aChild);
-      }
-      return;
-    }
-
-    let window = this.window;
-    let batchItems = this._batchItems;
-
-    window.clearTimeout(this._batchTimeout);
-    batchItems.push({ enumerableFlag: aEnumerableFlag, child: aChild });
-
-    
-    
-    if (batchItems.length > LAZY_APPEND_BATCH) {
-      
-      Services.tm.currentThread.dispatch({ run: this._batchAppend }, 1);
-      return;
-    }
-    
-    
-    this._batchTimeout = window.setTimeout(this._batchAppend, LAZY_APPEND_DELAY);
-  },
-
-  
-
-
-
-  _batchAppend: function() {
-    let document = this.document;
-    let batchItems = this._batchItems;
-
-    
-    
-    let frags = [document.createDocumentFragment(), document.createDocumentFragment()];
-
-    for (let item of batchItems) {
-      frags[~~item.enumerableFlag].appendChild(item.child);
-    }
-    batchItems.length = 0;
-    this._enum.appendChild(frags[1]);
-    this._nonenum.appendChild(frags[0]);
-  },
-
-  
-
-
-  _startThrobber: function() {
-    if (this._throbber) {
-      this._throbber.hidden = false;
-      return;
-    }
-    let throbber = this._throbber = this.document.createElement("hbox");
-    throbber.className = "variables-view-throbber";
-    throbber.setAttribute("optional-visibility", "");
-    this._title.insertBefore(throbber, this._spacer);
-  },
-
-  
-
-
-  _stopThrobber: function() {
-    if (!this._throbber) {
-      return;
-    }
-    this._throbber.hidden = true;
-  },
-
-  
-
-
   _openEnum: function() {
     this._arrow.setAttribute("open", "");
     this._enum.setAttribute("open", "");
-    this._stopThrobber();
   },
 
   
@@ -1866,7 +1753,6 @@ Scope.prototype = {
 
   _openNonEnum: function() {
     this._nonenum.setAttribute("open", "");
-    this._stopThrobber();
   },
 
   
@@ -2108,10 +1994,7 @@ Scope.prototype = {
   _fetched: false,
   _retrieved: false,
   _committed: false,
-  _batchItems: null,
-  _batchTimeout: null,
-  _locked: false,
-  _isExpanding: false,
+  _isLocked: false,
   _isExpanded: false,
   _isContentVisible: true,
   _isHeaderVisible: true,
@@ -2125,7 +2008,6 @@ Scope.prototype = {
   _title: null,
   _enum: null,
   _nonenum: null,
-  _throbber: null
 };
 
 
@@ -2134,7 +2016,6 @@ Scope.prototype = {
 DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_store", Map);
 DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_enumItems", Array);
 DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_nonEnumItems", Array);
-DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_batchItems", Array);
 
 
 
@@ -2172,6 +2053,11 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
   get shouldPrefetch(){
     return this.name == "window" || this.name == "this";
   },
+
+  
+
+
+  targetClassName: "variables-view-variable variable-or-property",
 
   
 
@@ -2415,33 +2301,21 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
   _init: function(aName, aDescriptor) {
     this._idString = generateId(this._nameString = aName);
-    this._displayScope(aName, "variables-view-variable variable-or-property");
-
+    this._displayScope(aName, this.targetClassName);
     this._displayVariable();
     this._customizeVariable();
     this._prepareTooltips();
     this._setAttributes();
     this._addEventListeners();
 
-    this._onInit(this.ownerView._store.size < LAZY_APPEND_BATCH);
-  },
-
-  
-
-
-
-
-
-
-  _onInit: function(aImmediateFlag) {
     if (this._initialDescriptor.enumerable ||
         this._nameString == "this" ||
         this._nameString == "<return>" ||
         this._nameString == "<exception>") {
-      this.ownerView._lazyAppend(aImmediateFlag, true, this._target);
+      this.ownerView._enum.appendChild(this._target);
       this.ownerView._enumItems.push(this);
     } else {
-      this.ownerView._lazyAppend(aImmediateFlag, false, this._target);
+      this.ownerView._nonenum.appendChild(this._target);
       this.ownerView._nonEnumItems.push(this);
     }
   },
@@ -2870,40 +2744,7 @@ Property.prototype = Heritage.extend(Variable.prototype, {
   
 
 
-
-
-
-
-
-  _init: function(aName = "", aDescriptor) {
-    this._idString = generateId(this._nameString = aName);
-    this._displayScope(aName, "variables-view-property variable-or-property");
-
-    this._displayVariable();
-    this._customizeVariable();
-    this._prepareTooltips();
-    this._setAttributes();
-    this._addEventListeners();
-
-    this._onInit(this.ownerView._store.size < LAZY_APPEND_BATCH);
-  },
-
-  
-
-
-
-
-
-
-  _onInit: function(aImmediateFlag) {
-    if (this._initialDescriptor.enumerable) {
-      this.ownerView._lazyAppend(aImmediateFlag, true, this._target);
-      this.ownerView._enumItems.push(this);
-    } else {
-      this.ownerView._lazyAppend(aImmediateFlag, false, this._target);
-      this.ownerView._nonEnumItems.push(this);
-    }
-  }
+  targetClassName: "variables-view-property variable-or-property"
 });
 
 
@@ -3365,7 +3206,6 @@ Editable.prototype = {
     this._variable.collapse();
     this._variable.hideArrow();
     this._variable.locked = true;
-    this._variable._stopThrobber();
   },
 
   
@@ -3383,7 +3223,6 @@ Editable.prototype = {
     this._variable.locked = false;
     this._variable.twisty = this._prevExpandable;
     this._variable.expanded = this._prevExpanded;
-    this._variable._stopThrobber();
   },
 
   
