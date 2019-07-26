@@ -70,6 +70,13 @@ public:
 
   virtual bool ProcessContentOrNormalChannelIsActive(uint64_t aChildID);
 
+  
+
+
+
+  virtual void SetDefaultVolumeControlChannel(AudioChannelType aType,
+                                              bool aHidden);
+
 protected:
   void Notify();
 
@@ -92,6 +99,10 @@ protected:
   
   void UpdateChannelType(AudioChannelType aType, uint64_t aChildID,
                          bool aElementHidden, bool aElementWasHidden);
+
+  
+  void SetDefaultVolumeControlChannelInternal(AudioChannelType aType,
+                                              bool aHidden, uint64_t aChildID);
 
   AudioChannelService();
   virtual ~AudioChannelService();
@@ -153,6 +164,8 @@ protected:
   nsCOMPtr<nsITimer> mDeferTelChannelTimer;
   bool mTimerElementHidden;
   uint64_t mTimerChildID;
+
+  uint64_t mDefChannelChildID;
 
   
   
