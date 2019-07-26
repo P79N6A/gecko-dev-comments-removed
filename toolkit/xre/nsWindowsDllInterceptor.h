@@ -166,7 +166,7 @@ public:
     
 
     for (int i = -5; i <= -1; i++) {
-      if (fn[i] != 0x90) 
+      if (fn[i] != 0x90 && fn[i] != 0xcc) 
         return false;
     }
 
