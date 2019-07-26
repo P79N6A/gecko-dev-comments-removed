@@ -16,10 +16,21 @@ let devtools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devto
 
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyGetter(this, "NetworkMonitor", () => {
+  return devtools.require("devtools/toolkit/webconsole/network-monitor")
+         .NetworkMonitor;
+});
+XPCOMUtils.defineLazyGetter(this, "NetworkMonitorChild", () => {
+  return devtools.require("devtools/toolkit/webconsole/network-monitor")
+         .NetworkMonitorChild;
+});
+XPCOMUtils.defineLazyGetter(this, "ConsoleProgressListener", () => {
+  return devtools.require("devtools/toolkit/webconsole/network-monitor")
+         .ConsoleProgressListener;
+});
 
 for (let name of ["WebConsoleUtils", "ConsoleServiceListener",
-                  "ConsoleAPIListener", "ConsoleProgressListener",
-                  "JSTermHelpers", "JSPropertyProvider", "NetworkMonitor",
+                  "ConsoleAPIListener", "JSTermHelpers", "JSPropertyProvider",
                   "ConsoleReflowListener"]) {
   Object.defineProperty(this, name, {
     get: function(prop) {
@@ -65,6 +76,10 @@ function WebConsoleActor(aConnection, aParentActor)
     Services.obs.addObserver(this._onObserverNotification,
                              "last-pb-context-exited", false);
   }
+
+  this.traits = {
+    customNetworkRequest: !this._parentIsContentActor,
+  };
 }
 
 WebConsoleActor.l10n = new WebConsoleUtils.l10n("chrome://global/locale/console.properties");
@@ -114,6 +129,23 @@ WebConsoleActor.prototype =
 
 
   conn: null,
+
+  
+
+
+
+  traits: null,
+
+  
+
+
+
+
+
+  get _parentIsContentActor() {
+    return "ContentActor" in DebuggerServer &&
+            this.parentActor instanceof DebuggerServer.ContentActor;
+  },
 
   
 
@@ -253,13 +285,6 @@ WebConsoleActor.prototype =
 
 
   _jstermHelpersCache: null,
-
-  
-
-
-
-  get saveRequestAndResponseBodies()
-    this._prefs["NetworkMonitor.saveRequestAndResponseBodies"] || null,
 
   actorPrefix: "console",
 
@@ -477,6 +502,14 @@ WebConsoleActor.prototype =
   {
     let startedListeners = [];
     let window = !this.parentActor.isRootActor ? this.window : null;
+    let appId = null;
+    let messageManager = null;
+
+    if (this._parentIsContentActor) {
+      
+      appId = this.parentActor.docShell.appId;
+      messageManager = this.parentActor._chromeGlobal;
+    }
 
     while (aRequest.listeners.length > 0) {
       let listener = aRequest.listeners.shift();
@@ -499,8 +532,13 @@ WebConsoleActor.prototype =
           break;
         case "NetworkActivity":
           if (!this.networkMonitor) {
-            this.networkMonitor =
-              new NetworkMonitor(window, this);
+            if (appId && messageManager) {
+              this.networkMonitor =
+                new NetworkMonitorChild(appId, messageManager, this);
+            }
+            else {
+              this.networkMonitor = new NetworkMonitor({ window: window }, this);
+            }
             this.networkMonitor.init();
           }
           startedListeners.push(listener);
@@ -526,6 +564,7 @@ WebConsoleActor.prototype =
     return {
       startedListeners: startedListeners,
       nativeConsoleAPI: this.hasNativeConsoleAPI(this.window),
+      traits: this.traits,
     };
   },
 
@@ -821,6 +860,11 @@ WebConsoleActor.prototype =
   {
     for (let key in aRequest.preferences) {
       this._prefs[key] = aRequest.preferences[key];
+
+      if (key == "NetworkMonitor.saveRequestAndResponseBodies" &&
+          this.networkMonitor) {
+        this.networkMonitor.saveRequestAndResponseBodies = this._prefs[key];
+      }
     }
     return { updated: Object.keys(aRequest.preferences) };
   },
@@ -1135,6 +1179,8 @@ WebConsoleActor.prototype =
 
 
 
+
+
   onNetworkEvent: function WCA_onNetworkEvent(aEvent, aChannel)
   {
     let actor = this.getNetworkEventActor(aChannel);
@@ -1152,6 +1198,8 @@ WebConsoleActor.prototype =
   },
 
   
+
+
 
 
 

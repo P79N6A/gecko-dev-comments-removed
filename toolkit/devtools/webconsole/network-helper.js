@@ -194,6 +194,40 @@ let NetworkHelper = {
 
 
 
+
+  getAppIdForRequest: function NH_getAppIdForRequest(aRequest)
+  {
+    try {
+      return this.getRequestLoadContext(aRequest).appId;
+    } catch (ex) {
+      
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+
+  getTopFrameForRequest: function NH_getTopFrameForRequest(aRequest)
+  {
+    try {
+      return this.getRequestLoadContext(aRequest).topFrameElement;
+    } catch (ex) {
+      
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
   getWindowForRequest: function NH_getWindowForRequest(aRequest)
   {
     try {

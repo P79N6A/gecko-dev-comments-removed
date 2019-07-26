@@ -19,16 +19,19 @@ loader.lazyImporter(this, "LongStringClient", "resource://gre/modules/devtools/d
 
 
 
-function WebConsoleClient(aDebuggerClient, aActor)
+
+function WebConsoleClient(aDebuggerClient, aResponse)
 {
-  this._actor = aActor;
+  this._actor = aResponse.from;
   this._client = aDebuggerClient;
   this._longStrings = {};
+  this.traits = aResponse.traits || {};
 }
 exports.WebConsoleClient = WebConsoleClient;
 
 WebConsoleClient.prototype = {
   _longStrings: null,
+  traits: null,
 
   get actor() { return this._actor; },
 

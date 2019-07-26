@@ -183,7 +183,8 @@ RootActor.prototype = {
         
         
         
-        urlToImageDataResolver: true
+        urlToImageDataResolver: true,
+        networkMonitor: true,
       }
     };
   },
