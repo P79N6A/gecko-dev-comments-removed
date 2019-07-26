@@ -9,7 +9,6 @@
 #include "nsIPrincipal.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/unused.h"
-#include "nsComponentManagerUtils.h"
 
 using mozilla::unused;          
 using namespace mozilla::dom;

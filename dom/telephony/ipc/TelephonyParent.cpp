@@ -4,7 +4,6 @@
 
 
 #include "mozilla/dom/telephony/TelephonyParent.h"
-#include "nsServiceManagerUtils.h"
 
 USING_TELEPHONY_NAMESPACE
 
