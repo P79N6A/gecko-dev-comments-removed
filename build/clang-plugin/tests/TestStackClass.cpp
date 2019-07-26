@@ -45,3 +45,6 @@ struct MOZ_STACK_CLASS RandomStackClass {
 
 struct BadInherit : Stack {}; 
 struct MOZ_STACK_CLASS GoodInherit : Stack {};
+
+BadInherit moreInvalid; 
+RandomClass evenMoreInvalid; 

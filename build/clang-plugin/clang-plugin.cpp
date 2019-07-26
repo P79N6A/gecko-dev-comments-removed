@@ -11,6 +11,7 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Sema/Sema.h"
+#include "llvm/ADT/DenseMap.h"
 
 #define CLANG_VERSION_FULL (CLANG_VERSION_MAJOR * 100 + CLANG_VERSION_MINOR)
 
@@ -32,6 +33,7 @@ private:
   class StackClassChecker : public MatchFinder::MatchCallback {
   public:
     virtual void run(const MatchFinder::MatchResult &Result);
+    void noteInferred(QualType T, DiagnosticsEngine &Diag);
   };
 
   StackClassChecker stackClassChecker;
@@ -87,16 +89,6 @@ public:
         if (hasCustomAnnotation(*M, "moz_must_override"))
           must_overrides.push_back(*M);
       }
-
-      
-      
-      if (hasCustomAnnotation(parent, "moz_stack_class") &&
-          !hasCustomAnnotation(d, "moz_stack_class")) {
-        unsigned badInheritID = Diag.getDiagnosticIDs()->getCustomDiagID(
-            DiagnosticIDs::Error, "%0 inherits from a stack class %1");
-        Diag.Report(d->getLocation(), badInheritID)
-          << d->getDeclName() << parent->getDeclName();
-      }
     }
 
     for (OverridesVector::iterator it = must_overrides.begin();
@@ -123,6 +115,60 @@ public:
     return true;
   }
 };
+
+DenseMap<const CXXRecordDecl *, const Decl *> stackClassCauses;
+
+bool isStackClass(QualType T);
+
+bool isStackClass(CXXRecordDecl *D) {
+  
+  
+  if (!D->hasDefinition())
+    return false;
+  D = D->getDefinition();
+  
+  if (MozChecker::hasCustomAnnotation(D, "moz_stack_class"))
+    return true;
+
+  
+  DenseMap<const CXXRecordDecl *, const Decl *>::iterator it =
+    stackClassCauses.find(D);
+  if (it != stackClassCauses.end()) {
+    
+    return it->second != NULL;
+  }
+
+  
+  for (CXXRecordDecl::base_class_iterator base = D->bases_begin(),
+       e = D->bases_end(); base != e; ++base) {
+    if (isStackClass(base->getType())) {
+      stackClassCauses.insert(std::make_pair(D,
+        base->getType()->getAsCXXRecordDecl()));
+      return true;
+    }
+  }
+
+  
+  for (RecordDecl::field_iterator field = D->field_begin(), e = D->field_end();
+       field != e; ++field) {
+    if (isStackClass(field->getType())) {
+      stackClassCauses.insert(std::make_pair(D, *field));
+      return true;
+    }
+  }
+
+  
+  stackClassCauses.insert(std::make_pair(D, (const Decl*)0));
+  return false;
+}
+
+bool isStackClass(QualType T) {
+  while (const ArrayType *arrTy = T->getAsArrayTypeUnsafe())
+    T = arrTy->getElementType();
+  CXXRecordDecl *clazz = T->getAsCXXRecordDecl();
+  return clazz && isStackClass(clazz);
+}
+
 }
 
 namespace clang {
@@ -131,11 +177,7 @@ namespace ast_matchers {
 
 
 AST_MATCHER(QualType, stackClassAggregate) {
-  QualType t = Node;
-  while (const ArrayType *arrTy = t->getAsArrayTypeUnsafe())
-    t = arrTy->getElementType();
-  CXXRecordDecl *clazz = t->getAsCXXRecordDecl();
-  return clazz && MozChecker::hasCustomAnnotation(clazz, "moz_stack_class");
+  return isStackClass(Node);
 }
 }
 }
@@ -151,10 +193,6 @@ DiagnosticsMatcher::DiagnosticsMatcher() {
   astMatcher.addMatcher(newExpr(hasType(pointerType(
       pointee(stackClassAggregate())
     ))).bind("node"), &stackClassChecker);
-  
-  
-  astMatcher.addMatcher(fieldDecl(hasType(stackClassAggregate())).bind("field"),
-    &stackClassChecker);
 }
 
 void DiagnosticsMatcher::StackClassChecker::run(
@@ -166,26 +204,46 @@ void DiagnosticsMatcher::StackClassChecker::run(
     
     if (d->hasLocalStorage())
       return;
+
     Diag.Report(d->getLocation(), stackID) << d->getType();
+    noteInferred(d->getType(), Diag);
   } else if (const CXXNewExpr *expr =
       Result.Nodes.getNodeAs<CXXNewExpr>("node")) {
     
     if (expr->getNumPlacementArgs() > 0)
       return;
     Diag.Report(expr->getStartLoc(), stackID) << expr->getAllocatedType();
-  } else if (const FieldDecl *field =
-      Result.Nodes.getNodeAs<FieldDecl>("field")) {
-    
-    const RecordDecl *parent = field->getParent();
-    if (!MozChecker::hasCustomAnnotation(parent, "moz_stack_class")) {
-      
-      unsigned stackID = Diag.getDiagnosticIDs()->getCustomDiagID(
-        DiagnosticIDs::Error,
-        "member of type %0 in class %1 that is not a stack class");
-      Diag.Report(field->getLocation(), stackID) << field->getType() <<
-        parent->getDeclName();
-    }
+    noteInferred(expr->getAllocatedType(), Diag);
   }
+}
+
+void DiagnosticsMatcher::StackClassChecker::noteInferred(QualType T,
+    DiagnosticsEngine &Diag) {
+  unsigned inheritsID = Diag.getDiagnosticIDs()->getCustomDiagID(
+    DiagnosticIDs::Note,
+    "%0 is a stack class because it inherits from a stack class %1");
+  unsigned memberID = Diag.getDiagnosticIDs()->getCustomDiagID(
+    DiagnosticIDs::Note,
+    "%0 is a stack class because member %1 is a stack class %2");
+
+  
+  while (const ArrayType *arrTy = T->getAsArrayTypeUnsafe())
+    T = arrTy->getElementType();
+  CXXRecordDecl *clazz = T->getAsCXXRecordDecl();
+
+  
+  if (MozChecker::hasCustomAnnotation(clazz, "moz_stack_class"))
+    return;
+
+  const Decl *cause = stackClassCauses[clazz];
+  if (const CXXRecordDecl *CRD = dyn_cast<CXXRecordDecl>(cause)) {
+    Diag.Report(clazz->getLocation(), inheritsID) << T << CRD->getDeclName();
+  } else if (const FieldDecl *FD = dyn_cast<FieldDecl>(cause)) {
+    Diag.Report(FD->getLocation(), memberID) << T << FD << FD->getType();
+  }
+  
+  
+  noteInferred(cast<ValueDecl>(cause)->getType(), Diag);
 }
 
 class MozCheckAction : public PluginASTAction {
