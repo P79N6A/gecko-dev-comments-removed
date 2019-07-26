@@ -3519,17 +3519,21 @@ JSTerm.prototype = {
 
 
 
-  _variablesViewEvaluate: function JST__variablesViewEvaluate(aOptions, aString)
+
+
+  _variablesViewEvaluate:
+  function JST__variablesViewEvaluate(aOptions, aVar, aValue)
   {
     let updater = this._updateVariablesView.bind(this, aOptions);
     let onEval = this._silentEvalCallback.bind(this, updater);
+    let string = aVar.evaluationMacro(aVar, aValue);
 
     let evalOptions = {
       frame: this.SELECTED_FRAME,
       bindObjectActor: aOptions.objectActor.actor,
     };
 
-    this.requestEvaluation(aString, evalOptions).then(onEval, onEval);
+    this.requestEvaluation(string, evalOptions).then(onEval, onEval);
   },
 
   

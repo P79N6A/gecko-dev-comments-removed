@@ -1173,7 +1173,7 @@ VariablesView.getterOrSetterDeleteCallback = function(aItem) {
 
   
   
-  aItem.ownerView.eval(aItem.evaluationMacro(aItem, ""));
+  aItem.ownerView.eval(aItem, "");
 
   return true; 
 };
@@ -2295,7 +2295,37 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
 
+
   get symbolicName() this._symbolicName,
+
+  
+
+
+
+
+  get symbolicPath() {
+    if (this._symbolicPath) {
+      return this._symbolicPath;
+    }
+    this._symbolicPath = this._buildSymbolicPath();
+    return this._symbolicPath;
+  },
+
+  
+
+
+
+
+
+  _buildSymbolicPath: function(path = []) {
+    if (this.name) {
+      path.unshift(this.name);
+      if (this.ownerView instanceof Variable) {
+        return this.ownerView._buildSymbolicPath(path);
+      }
+    }
+    return path;
+  },
 
   
 
@@ -2715,7 +2745,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
         if (!this._variablesView.preventDisableOnChange) {
           this._disable();
         }
-        this.ownerView.eval(this.evaluationMacro(this, aString));
+        this.ownerView.eval(this, aString);
       }
     }, e);
   },
@@ -2806,6 +2836,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
   },
 
   _symbolicName: "",
+  _symbolicPath: null,
   _absoluteName: "",
   _initialDescriptor: null,
   _separatorLabel: null,
