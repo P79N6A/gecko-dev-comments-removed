@@ -26,15 +26,15 @@
   -moz-box-flex: 1; 
 }
 
-#main-window[tabsintitlebar][sizemode="normal"] #toolbar-menubar[autohide="true"][inactive="true"]:not([customizing="true"]) {
-  visibility: hidden;
+
+
+
+#toolbar-menubar:not([inactive]) {
+  margin-bottom: 3px;
 }
 
-#main-window[sizemode="normal"] #toolbar-menubar,
-
-
-#main-window:not([sizemode="fullscreen"]) #toolbar-menubar:-moz-any(:not([autohide="true"]), :not([inactive="true"])) {
-  margin-bottom: 4px;
+#main-window[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] {
+  margin-bottom: 15px;
 }
 
 #toolbar-menubar:not([autohide="true"]) {
