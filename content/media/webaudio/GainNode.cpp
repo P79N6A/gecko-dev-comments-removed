@@ -70,8 +70,13 @@ public:
       aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
     } else if (mGain.HasSimpleValue()) {
       
-      *aOutput = aInput;
-      aOutput->mVolume *= mGain.GetValue();
+      float gain = mGain.GetValue();
+      if (gain == 0.0f) {
+        aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
+      } else {
+        *aOutput = aInput;
+        aOutput->mVolume *= gain;
+      }
     } else {
       
       
