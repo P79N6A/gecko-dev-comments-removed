@@ -2885,7 +2885,7 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 
 
 
-    for (AllFramesIter i(cx->runtime()); !i.done(); ++i) {
+    for (AllFramesIter i(cx); !i.done(); ++i) {
         
 
 
@@ -2895,7 +2895,7 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 
 
 
-        if (i.isIonOptimizedJS())
+        if (i.isIon())
             continue;
         AbstractFramePtr frame = i.abstractFramePtr();
         if (frame.isFunctionFrame() && frame.script() == script) {

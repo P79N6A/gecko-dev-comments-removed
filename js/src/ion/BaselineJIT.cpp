@@ -116,8 +116,10 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode, bool osr)
     {
         AssertCompartmentUnchanged pcc(cx);
         IonContext ictx(cx, NULL);
-        IonActivation activation(cx, fp);
+        JitActivation activation(cx, fp->isConstructing());
         JSAutoResolveFlags rf(cx, RESOLVE_INFER);
+
+        fp->setRunningInJit();
 
         
         JSObject *scopeChain = NULL;
@@ -132,6 +134,8 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode, bool osr)
         
         enter(jitcode, maxArgc, maxArgv, osr ? fp : NULL, calleeToken, scopeChain, numStackValues,
               result.address());
+
+        fp->clearRunningInJit();
     }
 
     JS_ASSERT(fp == cx->fp());
@@ -813,7 +817,7 @@ ion::ToggleBaselineSPS(JSRuntime *runtime, bool enable)
 }
 
 static void
-MarkActiveBaselineScripts(JSContext *cx, const IonActivationIterator &activation)
+MarkActiveBaselineScripts(JSContext *cx, const JitActivationIterator &activation)
 {
     for (ion::IonFrameIterator iter(activation); !iter.done(); ++iter) {
         switch (iter.type()) {
@@ -838,8 +842,8 @@ ion::MarkActiveBaselineScripts(Zone *zone)
 {
     
     
-    IonActivationIterator iter(zone->rt);
-    if (!iter.more())
+    JitActivationIterator iter(zone->rt);
+    if (iter.done())
         return;
 
     
@@ -847,7 +851,7 @@ ion::MarkActiveBaselineScripts(Zone *zone)
     if (!ion::IsBaselineEnabled(cx))
         return;
 
-    for (; iter.more(); ++iter) {
+    for (; !iter.done(); ++iter) {
         if (iter.activation()->compartment()->zone() == zone)
             MarkActiveBaselineScripts(cx, iter);
     }

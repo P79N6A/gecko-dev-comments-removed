@@ -1079,7 +1079,7 @@ ScopeIter::settle()
             type_ = Call;
             hasScopeObject_ = false;
         }
-    } else if (frame_.isNonStrictDirectEvalFrame() && cur_ == frame_.evalPrevScopeChain(cx->runtime())) {
+    } else if (frame_.isNonStrictDirectEvalFrame() && cur_ == frame_.evalPrevScopeChain(cx)) {
         if (block_) {
             JS_ASSERT(!block_->needsClone());
             type_ = Block;
@@ -1091,7 +1091,7 @@ ScopeIter::settle()
         JS_ASSERT(cur_ == frame_.fun()->environment());
         frame_ = NullFramePtr();
     } else if (frame_.isStrictEvalFrame() && !frame_.hasCallObj()) {
-        JS_ASSERT(cur_ == frame_.evalPrevScopeChain(cx->runtime()));
+        JS_ASSERT(cur_ == frame_.evalPrevScopeChain(cx));
         frame_ = NullFramePtr();
     } else if (cur_->isWith()) {
         JS_ASSERT_IF(frame_.isFunctionFrame(), frame_.fun()->isHeavyweight());
@@ -1956,12 +1956,12 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 
 
 
-    for (AllFramesIter i(cx->runtime()); !i.done(); ++i) {
+    for (AllFramesIter i(cx); !i.done(); ++i) {
         
 
 
 
-        if (i.isIonOptimizedJS())
+        if (i.isIon())
             continue;
 
         AbstractFramePtr frame = i.abstractFramePtr();

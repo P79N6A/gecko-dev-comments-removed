@@ -129,7 +129,6 @@ class MathCache;
 
 namespace ion {
 class IonRuntime;
-class IonActivation;
 }
 
 class WeakMapBase;
@@ -491,23 +490,29 @@ class PerThreadData : public js::PerThreadDataFriendFields
     
 
 
-    js::ion::IonActivation  *ionActivation;
-
-    
-
-
 
 
 
 
 
   private:
+    friend class js::Activation;
+    friend class js::ActivationIterator;
     friend class js::AsmJSActivation;
+
+    
+
+
+
+    js::Activation *activation_;
 
     
     js::AsmJSActivation *asmJSActivationStack_;
 
   public:
+    static unsigned offsetOfActivation() {
+        return offsetof(PerThreadData, activation_);
+    }
     static unsigned offsetOfAsmJSActivationStackReadOnly() {
         return offsetof(PerThreadData, asmJSActivationStack_);
     }
@@ -517,6 +522,16 @@ class PerThreadData : public js::PerThreadDataFriendFields
     }
     js::AsmJSActivation *asmJSActivationStackFromOwnerThread() const {
         return asmJSActivationStack_;
+    }
+
+    js::Activation *activation() const {
+        return activation_;
+    }
+    bool currentlyRunningInInterpreter() const {
+        return activation_->isInterpreter();
+    }
+    bool currentlyRunningInJit() const {
+        return activation_->isJit();
     }
 
     

@@ -15,6 +15,10 @@ class JSFunction;
 class JSScript;
 
 namespace js {
+    class ActivationIterator;
+};
+
+namespace js {
 namespace ion {
 
 enum FrameType
@@ -65,10 +69,9 @@ class IonCommonFrameLayout;
 class IonJSFrameLayout;
 class IonExitFrameLayout;
 
-class IonActivation;
-class IonActivationIterator;
-
 class BaselineFrame;
+
+class JitActivation;
 
 class IonFrameIterator
 {
@@ -80,7 +83,7 @@ class IonFrameIterator
 
   private:
     mutable const SafepointIndex *cachedSafepointIndex_;
-    const IonActivation *activation_;
+    const JitActivation *activation_;
 
     void dumpBaseline() const;
 
@@ -94,7 +97,7 @@ class IonFrameIterator
         activation_(NULL)
     { }
 
-    IonFrameIterator(const IonActivationIterator &activations);
+    IonFrameIterator(const ActivationIterator &activations);
     IonFrameIterator(IonJSFrameLayout *fp);
 
     
@@ -201,32 +204,6 @@ class IonFrameIterator
     void dump() const;
 
     inline BaselineFrame *baselineFrame() const;
-};
-
-class IonActivationIterator
-{
-    uint8_t *top_;
-    IonActivation *activation_;
-
-  private:
-    void settle();
-
-  public:
-    IonActivationIterator(JSContext *cx);
-    IonActivationIterator(JSRuntime *rt);
-
-    IonActivationIterator &operator++();
-
-    IonActivation *activation() const {
-        return activation_;
-    }
-    uint8_t *top() const {
-        return top_;
-    }
-    bool more() const;
-
-    
-    void ionStackRange(uintptr_t *&min, uintptr_t *&end);
 };
 
 class IonJSFrameLayout;

@@ -1465,7 +1465,7 @@ FindStartPC(JSContext *cx, ScriptFrameIter &iter, int spindex, int skipStackHits
 
 
 
-    if (iter.isIonOptimizedJS())
+    if (iter.isIon())
         return true;
 
     *valuepc = NULL;

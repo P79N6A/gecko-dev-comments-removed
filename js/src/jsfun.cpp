@@ -877,17 +877,14 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-
-
         
-        StackFrame *fp = cx->fp();
 
 #ifdef JS_ION
         
         
         
-        if (fp->beginsIonActivation()) {
-            ion::IonActivationIterator activations(cx);
+        if (cx->mainThread().currentlyRunningInJit()) {
+            ion::JitActivationIterator activations(cx->runtime());
             ion::IonFrameIterator frame(activations);
             if (frame.isNative()) {
                 
@@ -931,6 +928,7 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
         } else
 #endif
         {
+            StackFrame *fp = cx->fp();
             unsigned length = fp->numActualArgs();
             JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
 

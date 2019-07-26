@@ -28,7 +28,6 @@ typedef void (*EnterIonCode)(void *code, int argc, Value *argv, StackFrame *fp,
                              CalleeToken calleeToken, JSObject *scopeChain,
                              size_t numStackValues, Value *vp);
 
-class IonActivation;
 class IonBuilder;
 
 typedef Vector<IonBuilder*, 0, SystemAllocPolicy> OffThreadCompilationVector;
@@ -175,7 +174,7 @@ class IonRuntime
 
 class IonCompartment
 {
-    friend class IonActivation;
+    friend class JitActivation;
 
     
     IonRuntime *rt;
@@ -307,63 +306,6 @@ class IonCompartment
     }
     OptimizedICStubSpace *optimizedStubSpace() {
         return &optimizedStubSpace_;
-    }
-};
-
-class IonActivation
-{
-  private:
-    JSContext *cx_;
-    JSCompartment *compartment_;
-    IonActivation *prev_;
-    StackFrame *entryfp_;
-    uint8_t *prevIonTop_;
-    JSContext *prevIonJSContext_;
-
-    
-    
-    jsbytecode *prevpc_;
-
-  public:
-    IonActivation(JSContext *cx, StackFrame *fp);
-    ~IonActivation();
-
-    StackFrame *entryfp() const {
-        return entryfp_;
-    }
-    IonActivation *prev() const {
-        return prev_;
-    }
-    uint8_t *prevIonTop() const {
-        return prevIonTop_;
-    }
-    jsbytecode *prevpc() const {
-        JS_ASSERT_IF(entryfp_, entryfp_->callingIntoIon());
-        return prevpc_;
-    }
-    void setEntryFp(StackFrame *fp) {
-        JS_ASSERT_IF(fp, !entryfp_);
-        entryfp_ = fp;
-    }
-    void setPrevPc(jsbytecode *pc) {
-        JS_ASSERT_IF(pc, !prevpc_);
-        prevpc_ = pc;
-    }
-    JSCompartment *compartment() const {
-        return compartment_;
-    }
-    bool empty() const {
-        
-        
-        
-        return !entryfp_ && !prevpc_;
-    }
-
-    static inline size_t offsetOfPrevPc() {
-        return offsetof(IonActivation, prevpc_);
-    }
-    static inline size_t offsetOfEntryFp() {
-        return offsetof(IonActivation, entryfp_);
     }
 };
 

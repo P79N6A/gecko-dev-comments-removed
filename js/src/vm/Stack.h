@@ -111,7 +111,6 @@ struct ScopeCoordinate;
 
 
 
-
 enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 
 
@@ -227,7 +226,7 @@ class AbstractFramePtr
     inline bool prevUpToDate() const;
     inline void setPrevUpToDate() const;
 
-    JSObject *evalPrevScopeChain(JSRuntime *rt) const;
+    JSObject *evalPrevScopeChain(JSContext *cx) const;
 
     inline void *maybeHookData() const;
     inline void setHookData(void *data) const;
@@ -302,11 +301,13 @@ class StackFrame
         HAS_PUSHED_SPS_FRAME =  0x10000,  
 
         
-        RUNNING_IN_ION     =    0x20000,  
-        CALLING_INTO_ION   =    0x40000,  
+
+
+
+        RUNNING_IN_JIT     =    0x20000,
 
         
-        USE_NEW_TYPE       =    0x80000   
+        USE_NEW_TYPE       =    0x40000   
     };
 
   private:
@@ -326,10 +327,7 @@ class StackFrame
     ArgumentsObject     *argsObj_;      
     jsbytecode          *prevpc_;       
     void                *hookData_;     
-#ifdef JS_ION
-    ion::BaselineFrame  *prevBaselineFrame_; 
-
-#endif
+    AbstractFramePtr    evalInFramePrev_; 
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(StackFrame, rval_) % sizeof(Value) == 0);
@@ -477,18 +475,10 @@ class StackFrame
         return prev_;
     }
 
-#ifdef JS_ION
-    
-
-
-
-
-
-    ion::BaselineFrame *prevBaselineFrame() const {
+    AbstractFramePtr evalInFramePrev() const {
         JS_ASSERT(isEvalFrame());
-        return prevBaselineFrame_;
+        return evalInFramePrev_;
     }
-#endif
 
     inline void resetGeneratorPrev(JSContext *cx);
 
@@ -987,28 +977,14 @@ class StackFrame
     void mark(JSTracer *trc);
 
     
-    bool runningInIon() const {
-        return !!(flags_ & RUNNING_IN_ION);
+    bool runningInJit() const {
+        return !!(flags_ & RUNNING_IN_JIT);
     }
-    
-    bool callingIntoIon() const {
-        return !!(flags_ & CALLING_INTO_ION);
+    void setRunningInJit() {
+        flags_ |= RUNNING_IN_JIT;
     }
-    
-    bool beginsIonActivation() const {
-        return !!(flags_ & (RUNNING_IN_ION | CALLING_INTO_ION));
-    }
-    void setRunningInIon() {
-        flags_ |= RUNNING_IN_ION;
-    }
-    void setCallingIntoIon() {
-        flags_ |= CALLING_INTO_ION;
-    }
-    void clearRunningInIon() {
-        flags_ &= ~RUNNING_IN_ION;
-    }
-    void clearCallingIntoIon() {
-        flags_ &= ~CALLING_INTO_ION;
+    void clearRunningInJit() {
+        flags_ &= ~RUNNING_IN_JIT;
     }
 };
 
@@ -1071,18 +1047,6 @@ class FrameRegs
         sp = newsp;
         fp_ = fp_->prev();
         JS_ASSERT(fp_);
-    }
-
-    
-    void popPartialFrame(Value *newsp) {
-        sp = newsp;
-        fp_ = fp_->prev();
-        JS_ASSERT(fp_);
-    }
-
-    
-    void restorePartialFrame(Value *newfp) {
-        fp_ = (StackFrame *) newfp;
     }
 
     
@@ -1528,6 +1492,225 @@ struct DefaultHasher<AbstractFramePtr> {
 
 
 
+class InterpreterActivation;
+
+namespace ion {
+    class JitActivation;
+};
+
+
+
+
+
+
+
+
+
+
+class Activation
+{
+  protected:
+    JSContext *cx_;
+    JSCompartment *compartment_;
+    Activation *prev_;
+
+    
+    
+    
+    
+    size_t savedFrameChain_;
+
+    enum Kind { Interpreter, Jit };
+    Kind kind_;
+
+    inline Activation(JSContext *cx, Kind kind_);
+    inline ~Activation();
+
+  public:
+    JSContext *cx() const {
+        return cx_;
+    }
+    JSCompartment *compartment() const {
+        return compartment_;
+    }
+    Activation *prev() const {
+        return prev_;
+    }
+
+    bool isInterpreter() const {
+        return kind_ == Interpreter;
+    }
+    bool isJit() const {
+        return kind_ == Jit;
+    }
+
+    InterpreterActivation *asInterpreter() const {
+        JS_ASSERT(isInterpreter());
+        return (InterpreterActivation *)this;
+    }
+    ion::JitActivation *asJit() const {
+        JS_ASSERT(isJit());
+        return (ion::JitActivation *)this;
+    }
+
+    void saveFrameChain() {
+        savedFrameChain_++;
+    }
+    void restoreFrameChain() {
+        JS_ASSERT(savedFrameChain_ > 0);
+        savedFrameChain_--;
+    }
+    bool hasSavedFrameChain() const {
+        return savedFrameChain_ > 0;
+    }
+
+  private:
+    Activation(const Activation &other) MOZ_DELETE;
+    void operator=(const Activation &other) MOZ_DELETE;
+};
+
+class InterpreterFrameIterator;
+
+class InterpreterActivation : public Activation
+{
+    friend class js::InterpreterFrameIterator;
+
+    StackFrame *const entry_; 
+    StackFrame *current_;     
+    FrameRegs &regs_;
+
+  public:
+    inline InterpreterActivation(JSContext *cx, StackFrame *entry, FrameRegs &regs);
+    inline ~InterpreterActivation();
+
+    void pushFrame(StackFrame *frame) {
+        JS_ASSERT(frame->script()->compartment() == compartment_);
+        current_ = frame;
+    }
+    void popFrame(StackFrame *frame) {
+        JS_ASSERT(current_ == frame);
+        JS_ASSERT(current_ != entry_);
+
+        current_ = frame->prev();
+        JS_ASSERT(current_);
+    }
+    StackFrame *current() const {
+        JS_ASSERT(current_);
+        return current_;
+    }
+};
+
+
+class ActivationIterator
+{
+    uint8_t *jitTop_;
+
+  protected:
+    Activation *activation_;
+
+  public:
+    explicit ActivationIterator(JSRuntime *rt);
+
+    ActivationIterator &operator++();
+
+    Activation *activation() const {
+        return activation_;
+    }
+    uint8_t *jitTop() const {
+        JS_ASSERT(activation_->isJit());
+        return jitTop_;
+    }
+    bool done() const {
+        return activation_ == NULL;
+    }
+};
+
+namespace ion {
+
+
+class JitActivation : public Activation
+{
+    uint8_t *prevIonTop_;
+    JSContext *prevIonJSContext_;
+    bool firstFrameIsConstructing_;
+
+  public:
+    JitActivation(JSContext *cx, bool firstFrameIsConstructing);
+    ~JitActivation();
+
+    uint8_t *prevIonTop() const {
+        return prevIonTop_;
+    }
+    JSCompartment *compartment() const {
+        return compartment_;
+    }
+    bool firstFrameIsConstructing() const {
+        return firstFrameIsConstructing_;
+    }
+};
+
+
+class JitActivationIterator : public ActivationIterator
+{
+    void settle() {
+        while (!done() && !activation_->isJit())
+            ActivationIterator::operator++();
+    }
+
+  public:
+    explicit JitActivationIterator(JSRuntime *rt)
+      : ActivationIterator(rt)
+    {
+        settle();
+    }
+
+    JitActivationIterator &operator++() {
+        ActivationIterator::operator++();
+        settle();
+        return *this;
+    }
+
+    
+    void jitStackRange(uintptr_t *&min, uintptr_t *&end);
+};
+
+} 
+
+
+class InterpreterFrameIterator
+{
+    InterpreterActivation *activation_;
+    StackFrame *fp_;
+    jsbytecode *pc_;
+
+  public:
+    explicit InterpreterFrameIterator(InterpreterActivation *activation)
+      : activation_(activation),
+        fp_(NULL),
+        pc_(NULL)
+    {
+        if (activation) {
+            fp_ = activation->current();
+            pc_ = activation->regs_.pc;
+        }
+    }
+
+    StackFrame *frame() const {
+        JS_ASSERT(!done());
+        return fp_;
+    }
+    jsbytecode *pc() const {
+        JS_ASSERT(!done());
+        return pc_;
+    }
+
+    InterpreterFrameIterator &operator++();
+
+    bool done() const {
+        return fp_ == NULL;
+    }
+};
+
 
 
 
@@ -1550,7 +1733,8 @@ class ScriptFrameIter
 {
   public:
     enum SavedOption { STOP_AT_SAVED, GO_THROUGH_SAVED };
-    enum State { DONE, SCRIPTED, ION };
+    enum ContextOption { CURRENT_CONTEXT, ALL_CONTEXTS };
+    enum State { DONE, SCRIPTED, JIT };
 
     
 
@@ -1561,21 +1745,21 @@ class ScriptFrameIter
         PerThreadData *perThread_;
         JSContext    *cx_;
         SavedOption  savedOption_;
+        ContextOption contextOption_;
 
         State        state_;
 
-        StackFrame   *fp_;
-
-        StackSegment *seg_;
         jsbytecode   *pc_;
 
+        InterpreterFrameIterator interpFrames_;
+        ActivationIterator activations_;
+
 #ifdef JS_ION
-        ion::IonActivationIterator ionActivations_;
         ion::IonFrameIterator ionFrames_;
 #endif
 
-        Data(JSContext *cx, PerThreadData *perThread, SavedOption savedOption);
-        Data(JSContext *cx, JSRuntime *rt, StackSegment *seg);
+        Data(JSContext *cx, PerThreadData *perThread, SavedOption savedOption,
+             ContextOption contextOption);
         Data(const Data &other);
     };
 
@@ -1587,20 +1771,17 @@ class ScriptFrameIter
     ion::InlineFrameIterator ionInlineFrames_;
 #endif
 
-    void poisonRegs();
-    void popFrame();
+    void popActivation();
+    void popInterpreterFrame();
 #ifdef JS_ION
-    void nextIonFrame();
-    void popIonFrame();
-    void popBaselineDebuggerFrame();
+    void nextJitFrame();
+    void popJitFrame();
 #endif
-    void settleOnNewSegment();
-    void settleOnNewState();
-    void startOnSegment(StackSegment *seg);
+    void settleOnActivation();
 
   public:
     ScriptFrameIter(JSContext *cx, SavedOption = STOP_AT_SAVED);
-    ScriptFrameIter(JSRuntime *rt, StackSegment &seg);
+    ScriptFrameIter(JSContext *cx, ContextOption, SavedOption);
     ScriptFrameIter(const ScriptFrameIter &iter);
     ScriptFrameIter(const Data &data);
 
@@ -1609,9 +1790,6 @@ class ScriptFrameIter
 
     Data *copyData() const;
 
-    bool operator==(const ScriptFrameIter &rhs) const;
-    bool operator!=(const ScriptFrameIter &rhs) const { return !(*this == rhs); }
-
     JSCompartment *compartment() const;
 
     JSScript *script() const {
@@ -1619,7 +1797,7 @@ class ScriptFrameIter
         if (data_.state_ == SCRIPTED)
             return interpFrame()->script();
 #ifdef JS_ION
-        JS_ASSERT(data_.state_ == ION);
+        JS_ASSERT(data_.state_ == JIT);
         if (data_.ionFrames_.isOptimizedJS())
             return ionInlineFrames_.script();
         return data_.ionFrames_.script();
@@ -1627,22 +1805,22 @@ class ScriptFrameIter
         return NULL;
 #endif
     }
-    bool isIon() const {
+    bool isJit() const {
         JS_ASSERT(!done());
-        return data_.state_ == ION;
+        return data_.state_ == JIT;
     }
 
-    bool isIonOptimizedJS() const {
+    bool isIon() const {
 #ifdef JS_ION
-        return isIon() && data_.ionFrames_.isOptimizedJS();
+        return isJit() && data_.ionFrames_.isOptimizedJS();
 #else
         return false;
 #endif
     }
 
-    bool isIonBaselineJS() const {
+    bool isBaseline() const {
 #ifdef JS_ION
-        return isIon() && data_.ionFrames_.isBaselineJS();
+        return isJit() && data_.ionFrames_.isBaselineJS();
 #else
         return false;
 #endif
@@ -1665,7 +1843,12 @@ class ScriptFrameIter
 
 
 
-    StackFrame *interpFrame() const { JS_ASSERT(data_.state_ == SCRIPTED); return data_.fp_; }
+    StackFrame *interpFrame() const {
+        JS_ASSERT(data_.state_ == SCRIPTED);
+        return data_.interpFrames_.frame();
+    }
+
+    Activation *activation() const { return data_.activations_.activation(); }
 
     jsbytecode *pc() const { JS_ASSERT(!done()); return data_.pc_; }
     void        updatePcQuadratic();
@@ -1710,7 +1893,7 @@ class NonBuiltinScriptFrameIter : public ScriptFrameIter
 
   public:
     NonBuiltinScriptFrameIter(JSContext *cx, ScriptFrameIter::SavedOption opt = ScriptFrameIter::STOP_AT_SAVED)
-        : ScriptFrameIter(cx, opt) { settle(); }
+      : ScriptFrameIter(cx, opt) { settle(); }
 
     NonBuiltinScriptFrameIter(const ScriptFrameIter::Data &data)
       : ScriptFrameIter(data)
@@ -1723,46 +1906,12 @@ class NonBuiltinScriptFrameIter : public ScriptFrameIter
 
 
 
-
-
-
-class AllFramesIter
+class AllFramesIter : public ScriptFrameIter
 {
   public:
-    AllFramesIter(JSRuntime *rt);
-
-    bool done() const { return state_ == DONE; }
-    AllFramesIter& operator++();
-
-    bool isIon() const { return state_ == ION; }
-    bool isIonOptimizedJS() const {
-#ifdef JS_ION
-        return isIon() && ionFrames_.isOptimizedJS();
-#else
-        return false;
-#endif
-    }
-    StackFrame *interpFrame() const { JS_ASSERT(state_ == SCRIPTED); return fp_; }
-    StackSegment *seg() const { return seg_; }
-
-    AbstractFramePtr abstractFramePtr() const;
-
-  private:
-    enum State { DONE, SCRIPTED, ION };
-
-#ifdef JS_ION
-    void popIonFrame();
-#endif
-    void settleOnNewState();
-
-    StackSegment *seg_;
-    StackFrame *fp_;
-    State state_;
-
-#ifdef JS_ION
-    ion::IonActivationIterator ionActivations_;
-    ion::IonFrameIterator ionFrames_;
-#endif
+    AllFramesIter(JSContext *cx)
+      : ScriptFrameIter(cx, ScriptFrameIter::ALL_CONTEXTS, ScriptFrameIter::GO_THROUGH_SAVED)
+    {}
 };
 
 }  
