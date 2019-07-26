@@ -5849,16 +5849,16 @@ TypeCompartment::sweep(FreeOp *fop)
     pendingArray = NULL;
     pendingCapacity = 0;
 
-    sweepCompilerOutputs(fop, true);
+    sweepCompilerOutputs(fop);
 }
 
 void
-TypeCompartment::sweepCompilerOutputs(FreeOp *fop, bool discardConstraints)
+TypeCompartment::sweepCompilerOutputs(FreeOp *fop)
 {
     if (constrainedOutputs) {
         bool isCompiling = compiledInfo.outputIndex != RecompileInfo::NoCompilerRunning;
-        if (discardConstraints) {
-            JS_ASSERT(!isCompiling);
+        if (isCompiling && !compartment()->activeAnalysis)
+        {
 #if DEBUG
             for (unsigned i = 0; i < constrainedOutputs->length(); i++) {
                 CompilerOutput &co = (*constrainedOutputs)[i];
@@ -5869,6 +5869,7 @@ TypeCompartment::sweepCompilerOutputs(FreeOp *fop, bool discardConstraints)
             fop->delete_(constrainedOutputs);
             constrainedOutputs = NULL;
         } else {
+            
             
             
             
