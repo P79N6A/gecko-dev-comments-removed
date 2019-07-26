@@ -401,7 +401,12 @@ public class BrowserSearch extends HomeFragment
                     
                     
                     Tab tab = Tabs.getInstance().getSelectedTab();
-                    if (tab == null || !tab.isPrivate()) {
+                    final boolean isPrivate = (tab != null && tab.isPrivate());
+
+                    
+                    
+                    
+                    if (mSuggestClient == null && !isPrivate) {
                         mSuggestClient = new SuggestClient(getActivity(), suggestTemplate,
                                 SUGGESTION_TIMEOUT, SUGGESTION_MAX);
                     }
