@@ -2884,7 +2884,7 @@ TryAttachStringGetPropStub(JSContext *cx, HandleScript script, ICGetProp_Fallbac
     
     RootedId propId(cx, NameToId(name));
     RootedShape shape(cx, stringProto->nativeLookup(cx, propId));
-    if (!shape)
+    if (!shape || !shape->hasSlot() || !shape->hasDefaultGetter())
         return true;
 
     bool isFixedSlot;
