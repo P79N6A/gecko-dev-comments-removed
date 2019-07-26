@@ -348,7 +348,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
 
   
   
-#ifdef ANDROID_VERSION <= 15
+#if ANDROID_VERSION <= 15
   char propValue[PROPERTY_VALUE_MAX];
   property_get("ro.product.device", propValue, "None");
   if (strcmp("crespo",propValue) == 0) {
