@@ -7,10 +7,18 @@
 #include "MediaShutdownManager.h"
 #include "nsContentUtils.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/ClearOnShutdown.h"
 #include "MediaDecoder.h"
+#include "SharedThreadPool.h"
+#include "prlog.h"
 
 namespace mozilla {
+
+#ifdef PR_LOGGING
+extern PRLogModuleInfo* gMediaDecoderLog;
+#define DECODER_LOG(type, msg) PR_LOG(gMediaDecoderLog, type, msg)
+#else
+#define DECODER_LOG(type, msg)
+#endif
 
 NS_IMPL_ISUPPORTS1(MediaShutdownManager, nsIObserver)
 
@@ -109,6 +117,8 @@ MediaShutdownManager::Shutdown()
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(sInstance);
 
+  DECODER_LOG(PR_LOG_DEBUG, ("MediaShutdownManager::Shutdown() start..."));
+
   
   
   
@@ -117,7 +127,12 @@ MediaShutdownManager::Shutdown()
   
   
   mDecoders.EnumerateEntries(ShutdownMediaDecoder, nullptr);
- 
+
+  
+  
+  
+  SharedThreadPool::SpinUntilShutdown();
+
   
   
   nsContentUtils::UnregisterShutdownObserver(this);
@@ -127,6 +142,8 @@ MediaShutdownManager::Shutdown()
   
   
   sInstance = nullptr;
+
+  DECODER_LOG(PR_LOG_DEBUG, ("MediaShutdownManager::Shutdown() end."));
 }
 
 } 

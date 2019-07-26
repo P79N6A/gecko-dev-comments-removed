@@ -37,6 +37,10 @@ public:
 
   
   
+  static void SpinUntilShutdown();
+
+  
+  
   
   
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
