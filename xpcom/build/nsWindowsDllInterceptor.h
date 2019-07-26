@@ -355,9 +355,14 @@ protected:
         {
           
           nBytes += 2;
-        } else if (((b & 0xc0) == 0x40) && ((b & 0x38) != 0x20)) {
-          
-          nBytes += 3;
+        } else if ((b & 0xc0) == 0x40) {
+          if ((b & 0x07) == 0x04) {
+            
+            nBytes += 4;
+          } else {
+            
+            nBytes += 3;
+          }
         } else {
           
           return;
