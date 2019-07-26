@@ -41,7 +41,11 @@ void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation = false);
 bool nsCycleCollector_doDeferredDeletion();
 
 void nsCycleCollector_collect(nsICycleCollectorListener *aManualListener);
-void nsCycleCollector_scheduledCollect();
+
+
+
+
+void nsCycleCollector_scheduledCollect(int64_t aSliceTime);
 
 uint32_t nsCycleCollector_suspectedCount();
 void nsCycleCollector_shutdown();
