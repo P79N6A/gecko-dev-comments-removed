@@ -593,6 +593,60 @@ SmsDatabaseService.prototype = {
     return true;
   },
 
+  onNextMessageInMultiNumbersGot: function onNextMessageInMultiNumbersGot(
+      aObjectStore, aMessageList, aContextIndex,
+      aQueueIndex, aMessageId, aTimestamp) {
+
+    if (DEBUG) {
+      debug("onNextMessageInMultiNumbersGot: "
+            + aQueueIndex + ", " + aMessageId + ", " + aTimestamp);
+    }
+    let queues = aMessageList.numberQueues;
+    let q = queues[aQueueIndex];
+    if (aMessageId) {
+      if (!aQueueIndex) {
+        
+        q.results.push({
+          id: aMessageId,
+          timestamp: aTimestamp
+        });
+      } else {
+        
+        q.results.push(aMessageId);
+      }
+      return true;
+    }
+
+    q.processing -= 1;
+    if (queues[0].processing || queues[1].processing) {
+      
+      
+      
+      return false;
+    }
+
+    let tres = queues[0].results;
+    let qres = queues[1].results;
+    tres = tres.filter(function (element) {
+      return qres.indexOf(element.id) != -1;
+    });
+    if (aContextIndex < 0) {
+      for (let i = 0; i < tres.length; i++) {
+        this.onNextMessageInListGot(aObjectStore, aMessageList, tres[i].id);
+      }
+      this.onNextMessageInListGot(aObjectStore, aMessageList, 0);
+    } else {
+      for (let i = 0; i < tres.length; i++) {
+        this.onNextMessageInMultiFiltersGot(aObjectStore, aMessageList,
+                                            aContextIndex,
+                                            tres[i].id, tres[i].timestamp);
+      }
+      this.onNextMessageInMultiFiltersGot(aObjectStore, aMessageList,
+                                          aContextIndex, 0, 0);
+    }
+    return false;
+  },
+
   saveMessage: function saveMessage(message) {
     this.lastKey += 1;
     message.id = this.lastKey;
@@ -938,6 +992,8 @@ SmsDatabaseService.prototype = {
         
         contexts: null,
         
+        numberQueues: null,
+        
         requestWaiting: aRequest,
         results: []
       };
@@ -1060,8 +1116,81 @@ SmsDatabaseService.prototype = {
         
         if (filter.numbers) {
           if (DEBUG) debug("filter.numbers " + filter.numbers.join(", "));
-          
-          createSimpleRangedRequest("number", filter.numbers[0]);
+          let multiNumbers = filter.numbers.length > 1;
+          if (!multiNumbers) {
+            createSimpleRangedRequest("number", filter.numbers[0]);
+          } else {
+            let contextIndex = -1;
+            if (!singleFilter) {
+              contextIndex = numberOfContexts++;
+              messageList.contexts.push({
+                processing: true,
+                results: []
+              });
+            }
+
+            let multiNumbersGotCb =
+              self.onNextMessageInMultiNumbersGot
+                  .bind(self, store, messageList, contextIndex);
+
+            let multiNumbersSuccessCb = function onmnsuccess(queueIndex, event) {
+              if (messageList.stop) {
+                return;
+              }
+
+              let cursor = event.target.result;
+              if (cursor) {
+                
+                
+                let key = queueIndex ? cursor.key[1] : cursor.key;
+                if (multiNumbersGotCb(queueIndex, cursor.primaryKey, key)) {
+                  cursor.continue();
+                }
+              } else {
+                multiNumbersGotCb(queueIndex, 0, 0);
+              }
+            };
+
+            let multiNumbersErrorCb = function onmnerror(queueIndex, event) {
+              if (messageList.stop) {
+                return;
+              }
+
+              
+              multiNumbersGotCb(queueIndex, 0, 0);
+            };
+
+            messageList.numberQueues = [{
+              
+              processing: 1,
+              results: []
+            }, {
+              
+              processing: filter.numbers.length,
+              results: []
+	    }];
+
+            let timeRange = null;
+            if (filter.startDate != null && filter.endDate != null) {
+              timeRange = IDBKeyRange.bound(filter.startDate.getTime(),
+                                            filter.endDate.getTime());
+            } else if (filter.startDate != null) {
+              timeRange = IDBKeyRange.lowerBound(filter.startDate.getTime());
+            } else if (filter.endDate != null) {
+              timeRange = IDBKeyRange.upperBound(filter.endDate.getTime());
+            }
+
+            let timeRequest = store.index("timestamp")
+                                   .openKeyCursor(timeRange, direction);
+            timeRequest.onsuccess = multiNumbersSuccessCb.bind(null, 0);
+            timeRequest.onerror = multiNumbersErrorCb.bind(null, 0);
+
+            for (let i = 0; i < filter.numbers.length; i++) {
+              let request = createRangedRequest("number", filter.numbers[i]);
+              request.onsuccess = multiNumbersSuccessCb.bind(null, 1);
+              request.onerror = multiNumbersErrorCb.bind(null, 1);
+            }
+          }
         }
 
         
