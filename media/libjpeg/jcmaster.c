@@ -602,7 +602,7 @@ jinit_c_master_control (j_compress_ptr cinfo, boolean transcode_only)
     cinfo->num_scans = 1;
   }
 
-  if (cinfo->progressive_mode)	
+  if (cinfo->progressive_mode && !cinfo->arith_code)	
     cinfo->optimize_coding = TRUE; 
 
   

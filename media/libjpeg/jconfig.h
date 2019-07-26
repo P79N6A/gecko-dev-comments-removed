@@ -5,7 +5,7 @@
 #define JPEG_LIB_VERSION 62
 
 
-#define LIBJPEG_TURBO_VERSION 1.3.0
+#define LIBJPEG_TURBO_VERSION 1.3.1
 
 
 
@@ -39,6 +39,9 @@
 
 
 
+
+
+#undef SIZEOF_LONG
 
 
 #define WITH_SIMD 1
