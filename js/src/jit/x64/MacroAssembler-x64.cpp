@@ -389,17 +389,20 @@ void
 MacroAssemblerX64::branchPtrInNurseryRange(Register ptr, Register temp, Label *label)
 {
     JS_ASSERT(ptr != temp);
-    JS_ASSERT(temp != InvalidReg);
+    JS_ASSERT(ptr != ScratchReg);
+    
 
     const Nursery &nursery = GetIonContext()->runtime->gcNursery();
-    movePtr(ImmWord(-ptrdiff_t(nursery.start())), temp);
-    addPtr(ptr, temp);
-    branchPtr(Assembler::Below, temp, Imm32(Nursery::NurserySize), label);
+    movePtr(ImmWord(-ptrdiff_t(nursery.start())), ScratchReg);
+    addPtr(ptr, ScratchReg);
+    branchPtr(Assembler::Below, ScratchReg, Imm32(Nursery::NurserySize), label);
 }
 
 void
 MacroAssemblerX64::branchValueIsNurseryObject(ValueOperand value, Register temp, Label *label)
 {
+    JS_ASSERT(temp != InvalidReg);
+
     Label done;
 
     branchTestObject(Assembler::NotEqual, value, &done);

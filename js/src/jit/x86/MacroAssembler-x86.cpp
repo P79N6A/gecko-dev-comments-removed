@@ -434,7 +434,7 @@ void
 MacroAssemblerX86::branchPtrInNurseryRange(Register ptr, Register temp, Label *label)
 {
     JS_ASSERT(ptr != temp);
-    JS_ASSERT(temp != InvalidReg);
+    JS_ASSERT(temp != InvalidReg);  
 
     const Nursery &nursery = GetIonContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), temp);
@@ -448,17 +448,7 @@ MacroAssemblerX86::branchValueIsNurseryObject(ValueOperand value, Register temp,
     Label done;
 
     branchTestObject(Assembler::NotEqual, value, &done);
-
-    Register obj = extractObject(value, temp);
-    
-    
-    if (obj == temp) {
-        const Nursery &nursery = GetIonContext()->runtime->gcNursery();
-        addPtr(ImmWord(-ptrdiff_t(nursery.start())), obj);
-        branchPtr(Assembler::Below, obj, Imm32(Nursery::NurserySize), label);
-    } else {
-        branchPtrInNurseryRange(obj, temp, label);
-    }
+    branchPtrInNurseryRange(value.payloadReg(), temp, label);
 
     bind(&done);
 }
