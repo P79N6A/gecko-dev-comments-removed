@@ -2,7 +2,6 @@
 
 
 
-#include "prtypes.h"
 #include "nsIAtom.h"
 #include "nsString.h"
 #include "jArray.h"
