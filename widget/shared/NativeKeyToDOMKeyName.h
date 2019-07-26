@@ -420,6 +420,112 @@ KEY_MAP_ANDROID (PrintScreen, AKEYCODE_SYSRQ)
 
 
 
+
+
+KEY_MAP_GTK     (AllCandidates, GDK_MultipleCandidate) 
+KEY_MAP_QT      (AllCandidates, Qt::Key_MultipleCandidate)
+
+
+KEY_MAP_WIN_JPN (Alphanumeric, VK_OEM_ATTN)
+KEY_MAP_GTK     (Alphanumeric, GDK_Eisu_Shift)
+KEY_MAP_GTK     (Alphanumeric, GDK_Eisu_toggle)
+KEY_MAP_QT      (Alphanumeric, Qt::Key_Eisu_Shift)
+KEY_MAP_QT      (Alphanumeric, Qt::Key_Eisu_toggle)
+
+
+KEY_MAP_GTK     (CodeInput, GDK_Codeinput) 
+KEY_MAP_QT      (CodeInput, Qt::Key_Codeinput)
+
+
+KEY_MAP_GTK     (Compose, GDK_Multi_key) 
+KEY_MAP_QT      (Compose, Qt::Key_Multi_key)
+
+
+KEY_MAP_WIN     (Convert, VK_CONVERT)
+KEY_MAP_GTK     (Convert, GDK_Henkan)
+KEY_MAP_QT      (Convert, Qt::Key_Henkan)
+KEY_MAP_ANDROID (Convert, AKEYCODE_HENKAN)
+
+
+KEY_MAP_WIN     (FinalMode, VK_FINAL)
+
+
+KEY_MAP_WIN     (ModeChange, VK_MODECHANGE)
+KEY_MAP_ANDROID (ModeChange, AKEYCODE_SWITCH_CHARSET)
+
+
+KEY_MAP_WIN     (Nonconvert, VK_NONCONVERT)
+KEY_MAP_GTK     (Nonconvert, GDK_Muhenkan)
+KEY_MAP_QT      (Nonconvert, Qt::Key_Muhenkan)
+KEY_MAP_ANDROID (Nonconvert, AKEYCODE_MUHENKAN)
+
+
+KEY_MAP_GTK     (PreviousCandidate, GDK_PreviousCandidate) 
+KEY_MAP_QT      (PreviousCandidate, Qt::Key_PreviousCandidate)
+
+
+
+
+
+KEY_MAP_WIN_KOR (HangulMode, VK_HANGUL )
+
+
+KEY_MAP_WIN_KOR (HanjaMode, VK_HANJA )
+
+
+KEY_MAP_WIN     (JunjaMode, VK_JUNJA)
+
+
+
+
+
+KEY_MAP_WIN_JPN (HalfWidth, VK_OEM_AUTO)
+KEY_MAP_GTK     (HalfWidth, GDK_Hankaku)
+KEY_MAP_QT      (HalfWidth, Qt::Key_Hankaku)
+
+
+KEY_MAP_WIN_JPN (Hiragana, VK_OEM_COPY)
+KEY_MAP_GTK     (Hiragana, GDK_Hiragana)
+KEY_MAP_QT      (Hiragana, Qt::Key_Hiragana)
+
+
+
+
+KEY_MAP_WIN_JPN (KanaMode, VK_KANA )
+KEY_MAP_WIN_JPN (KanaMode, VK_ATTN)
+KEY_MAP_GTK     (KanaMode, GDK_Kana_Lock)
+KEY_MAP_GTK     (KanaMode, GDK_Kana_Shift)
+KEY_MAP_QT      (KanaMode, Qt::Key_Kana_Lock)
+KEY_MAP_QT      (KanaMode, Qt::Key_Kana_Shift)
+
+
+KEY_MAP_WIN_JPN (KanjiMode, VK_KANJI )
+KEY_MAP_COCOA   (KanjiMode, kVK_JIS_Kana) 
+KEY_MAP_GTK     (KanjiMode, GDK_Kanji) 
+KEY_MAP_QT      (KanjiMode, Qt::Key_Kanji)
+
+KEY_MAP_ANDROID (KanjiMode, AKEYCODE_KANA)
+
+
+KEY_MAP_WIN_JPN (Katakana, VK_OEM_FINISH)
+KEY_MAP_GTK     (Katakana, GDK_Katakana)
+KEY_MAP_QT      (Katakana, Qt::Key_Katakana)
+
+
+KEY_MAP_WIN_JPN (RomanCharacters, VK_OEM_BACKTAB)
+KEY_MAP_COCOA   (RomanCharacters, kVK_JIS_Eisu)
+KEY_MAP_GTK     (RomanCharacters, GDK_Romaji)
+KEY_MAP_QT      (RomanCharacters, Qt::Key_Romaji)
+
+KEY_MAP_ANDROID (RomanCharacters, AKEYCODE_EISU)
+
+
+KEY_MAP_WIN_JPN (FullWidth, VK_OEM_ENLW)
+KEY_MAP_GTK     (FullWidth, GDK_Zenkaku)
+KEY_MAP_QT      (FullWidth, Qt::Key_Zenkaku)
+
+
+
 KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
 
 
@@ -831,107 +937,6 @@ KEY_MAP_QT      (DeadVoicedSound, Qt::Key_Dead_Voiced_Sound)
 
 KEY_MAP_GTK     (DeadSemivoicedSound, GDK_dead_semivoiced_sound)
 KEY_MAP_QT      (DeadSemivoicedSound, Qt::Key_Dead_Semivoiced_Sound)
-
-
-KEY_MAP_WIN_JPN (Alphanumeric, VK_OEM_ATTN)
-KEY_MAP_GTK     (Alphanumeric, GDK_Eisu_Shift)
-KEY_MAP_GTK     (Alphanumeric, GDK_Eisu_toggle)
-KEY_MAP_QT      (Alphanumeric, Qt::Key_Eisu_Shift)
-KEY_MAP_QT      (Alphanumeric, Qt::Key_Eisu_toggle)
-
-
-
-
-KEY_MAP_GTK     (Compose, GDK_Multi_key) 
-KEY_MAP_QT      (Compose, Qt::Key_Multi_key)
-
-
-KEY_MAP_GTK     (AllCandidates, GDK_MultipleCandidate) 
-KEY_MAP_QT      (AllCandidates, Qt::Key_MultipleCandidate)
-
-
-
-
-KEY_MAP_GTK     (PreviousCandidate, GDK_PreviousCandidate) 
-KEY_MAP_QT      (PreviousCandidate, Qt::Key_PreviousCandidate)
-
-
-KEY_MAP_GTK     (CodeInput, GDK_Codeinput) 
-KEY_MAP_QT      (CodeInput, Qt::Key_Codeinput)
-
-
-KEY_MAP_WIN     (Convert, VK_CONVERT)
-KEY_MAP_GTK     (Convert, GDK_Henkan)
-KEY_MAP_QT      (Convert, Qt::Key_Henkan)
-KEY_MAP_ANDROID (Convert, AKEYCODE_HENKAN)
-
-
-KEY_MAP_WIN     (Nonconvert, VK_NONCONVERT)
-KEY_MAP_GTK     (Nonconvert, GDK_Muhenkan)
-KEY_MAP_QT      (Nonconvert, Qt::Key_Muhenkan)
-KEY_MAP_ANDROID (Nonconvert, AKEYCODE_MUHENKAN)
-
-
-KEY_MAP_WIN     (FinalMode, VK_FINAL)
-
-
-KEY_MAP_WIN_JPN (FullWidth, VK_OEM_ENLW)
-KEY_MAP_GTK     (FullWidth, GDK_Zenkaku)
-KEY_MAP_QT      (FullWidth, Qt::Key_Zenkaku)
-
-
-KEY_MAP_WIN_JPN (HalfWidth, VK_OEM_AUTO)
-KEY_MAP_GTK     (HalfWidth, GDK_Hankaku)
-KEY_MAP_QT      (HalfWidth, Qt::Key_Hankaku)
-
-
-KEY_MAP_WIN     (ModeChange, VK_MODECHANGE)
-KEY_MAP_ANDROID (ModeChange, AKEYCODE_SWITCH_CHARSET)
-
-
-KEY_MAP_WIN_JPN (RomanCharacters, VK_OEM_BACKTAB)
-KEY_MAP_COCOA   (RomanCharacters, kVK_JIS_Eisu)
-KEY_MAP_GTK     (RomanCharacters, GDK_Romaji)
-KEY_MAP_QT      (RomanCharacters, Qt::Key_Romaji)
-
-KEY_MAP_ANDROID (RomanCharacters, AKEYCODE_EISU)
-
-
-KEY_MAP_WIN_KOR (HangulMode, VK_HANGUL )
-
-
-KEY_MAP_WIN_KOR (HanjaMode, VK_HANJA )
-
-
-KEY_MAP_WIN     (JunjaMode, VK_JUNJA)
-
-
-KEY_MAP_WIN_JPN (Hiragana, VK_OEM_COPY)
-KEY_MAP_GTK     (Hiragana, GDK_Hiragana)
-KEY_MAP_QT      (Hiragana, Qt::Key_Hiragana)
-
-
-
-
-KEY_MAP_WIN_JPN (KanaMode, VK_KANA )
-KEY_MAP_WIN_JPN (KanaMode, VK_ATTN)
-KEY_MAP_GTK     (KanaMode, GDK_Kana_Lock)
-KEY_MAP_GTK     (KanaMode, GDK_Kana_Shift)
-KEY_MAP_QT      (KanaMode, Qt::Key_Kana_Lock)
-KEY_MAP_QT      (KanaMode, Qt::Key_Kana_Shift)
-
-
-KEY_MAP_WIN_JPN (KanjiMode, VK_KANJI )
-KEY_MAP_COCOA   (KanjiMode, kVK_JIS_Kana) 
-KEY_MAP_GTK     (KanjiMode, GDK_Kanji) 
-KEY_MAP_QT      (KanjiMode, Qt::Key_Kanji)
-
-KEY_MAP_ANDROID (KanjiMode, AKEYCODE_KANA)
-
-
-KEY_MAP_WIN_JPN (Katakana, VK_OEM_FINISH)
-KEY_MAP_GTK     (Katakana, GDK_Katakana)
-KEY_MAP_QT      (Katakana, Qt::Key_Katakana)
 
 
 
