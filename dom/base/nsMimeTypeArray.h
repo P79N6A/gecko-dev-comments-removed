@@ -12,9 +12,9 @@
 #include "nsTArray.h"
 #include "nsWeakReference.h"
 #include "nsWrapperCache.h"
+#include "nsPluginArray.h"
 
 class nsPIDOMWindow;
-class nsPluginElement;
 class nsMimeType;
 
 class nsMimeTypeArray MOZ_FINAL : public nsISupports,
@@ -73,11 +73,6 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 
-  void Invalidate()
-  {
-    mPluginElement = nullptr;
-  }
-
   const nsString& Type() const
   {
     return mType;
@@ -93,7 +88,10 @@ protected:
   nsWeakPtr mWindow;
 
   
-  nsPluginElement *mPluginElement;
+  
+  
+  
+  nsRefPtr<nsPluginElement> mPluginElement;
   uint32_t mPluginTagMimeIndex;
   nsString mType;
 };
