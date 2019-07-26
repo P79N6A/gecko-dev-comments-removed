@@ -877,6 +877,91 @@ class AutoIdRooter : private AutoGCRooter
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS SourceBufferHolder MOZ_FINAL
+{
+  public:
+    enum Ownership {
+      NoOwnership,
+      GiveOwnership
+    };
+
+    SourceBufferHolder(const jschar *data, size_t dataLength, Ownership ownership)
+      : data_(data),
+        length_(dataLength),
+        ownsChars_(ownership == GiveOwnership)
+    {
+        
+        
+        static const jschar NullChar_ = 0;
+        if (!get()) {
+            data_ = &NullChar_;
+            length_ = 0;
+            ownsChars_ = false;
+        }
+    }
+
+    ~SourceBufferHolder() {
+        if (ownsChars_)
+            js_free(const_cast<jschar *>(data_));
+    }
+
+    
+    const jschar *get() const { return data_; }
+
+    
+    size_t length() const { return length_; }
+
+    
+    
+    bool ownsChars() const { return ownsChars_; }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    jschar *take() {
+        JS_ASSERT(ownsChars_);
+        ownsChars_ = false;
+        return const_cast<jschar *>(data_);
+    }
+
+  private:
+    SourceBufferHolder(SourceBufferHolder &) MOZ_DELETE;
+    SourceBufferHolder &operator=(SourceBufferHolder &) MOZ_DELETE;
+
+    const jschar *data_;
+    size_t length_;
+    bool ownsChars_;
+};
+
 } 
 
 
