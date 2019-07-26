@@ -94,12 +94,12 @@ let FormAssistant = {
           return;
 
         if (target && this.isFocusableElement(target))
-          this.handleIMEStateEnabled(target);
+          this.showKeyboard(target);
         break;
 
       case "blur":
         if (this.focusedElement)
-          this.handleIMEStateDisabled();
+          this.hideKeyboard();
         break;
 
       case 'mousedown':
@@ -116,7 +116,7 @@ let FormAssistant = {
         
         if (this.focusedElement.selectionStart !== this.selectionStart ||
             this.focusedElement.selectionEnd !== this.selectionEnd) {
-          this.tryShowIme(this.focusedElement);
+          this.sendKeyboardState(this.focusedElement);
         }
         break;
 
@@ -203,9 +203,9 @@ let FormAssistant = {
 
         if (shouldOpen) {
           if (!this.focusedElement && this.isFocusableElement(target))
-            this.handleIMEStateEnabled(target);
+            this.showKeyboard(target);
         } else if (this._focusedElement == target) {
-          this.handleIMEStateDisabled();
+          this.hideKeyboard();
         }
         break;
 
@@ -227,21 +227,21 @@ let FormAssistant = {
     return disabled;
   },
 
-  handleIMEStateEnabled: function fa_handleIMEStateEnabled(target) {
+  showKeyboard: function fa_showKeyboard(target) {
     if (this.isKeyboardOpened)
       return;
 
     if (target instanceof HTMLOptionElement)
       target = target.parentNode;
 
-    let kbOpened = this.tryShowIme(target);
+    let kbOpened = this.sendKeyboardState(target);
     if (this.isTextInputElement(target))
       this.isKeyboardOpened = kbOpened;
 
     this.setFocusedElement(target);
   },
 
-  handleIMEStateDisabled: function fa_handleIMEStateDisabled() {
+  hideKeyboard: function fa_hideKeyboard() {
     sendAsyncMessage("Forms:Input", { "type": "blur" });
     this.isKeyboardOpened = false;
     this.setFocusedElement(null);
@@ -270,7 +270,7 @@ let FormAssistant = {
            (element.contentEditable && element.contentEditable == "true");
   },
 
-  tryShowIme: function(element) {
+  sendKeyboardState: function(element) {
     
     
     let readonly = element.getAttribute("readonly");
