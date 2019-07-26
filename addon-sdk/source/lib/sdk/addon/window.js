@@ -54,4 +54,7 @@ exports.ready = promise;
 exports.window = window;
 
 
-unload(function() { window.close() });
+unload(function() {
+  window.close()
+  frame.parentNode.removeChild(frame);
+});

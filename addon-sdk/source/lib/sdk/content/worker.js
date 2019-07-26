@@ -463,48 +463,55 @@ const Worker = EventEmitter.compose({
   constructor: function Worker(options) {
     options = options || {};
 
-    if ('window' in options)
-      this._window = options.window;
     if ('contentScriptFile' in options)
       this.contentScriptFile = options.contentScriptFile;
     if ('contentScriptOptions' in options)
       this.contentScriptOptions = options.contentScriptOptions;
     if ('contentScript' in options)
       this.contentScript = options.contentScript;
-    if ('onError' in options)
-      this.on('error', options.onError);
-    if ('onMessage' in options)
-      this.on('message', options.onMessage);
-    if ('onDetach' in options)
-      this.on('detach', options.onDetach);
+
+    this._setListeners(options);
 
     
     
     if ('exposeUnlockKey' in options && options.exposeUnlockKey === PRIVATE_KEY)
       this._expose_key = true;
 
-    
-    
-    
-    
-    this._windowID = getInnerId(this._window);
-    observers.add("inner-window-destroyed",
-                  this._documentUnload = this._documentUnload.bind(this));
-
-    
-    
-    this._window.addEventListener("pageshow",
-                                  this._pageShow = this._pageShow.bind(this),
-                                  true);
-    this._window.addEventListener("pagehide",
-                                  this._pageHide = this._pageHide.bind(this),
-                                  true);
-
     unload.ensure(this._public, "destroy");
 
     
     
     this.port;
+
+    this._documentUnload = this._documentUnload.bind(this);
+    this._pageShow = this._pageShow.bind(this);
+    this._pageHide = this._pageHide.bind(this);
+
+    if ("window" in options) this._attach(options.window);
+  },
+
+  _setListeners: function(options) {
+    if ('onError' in options)
+      this.on('error', options.onError);
+    if ('onMessage' in options)
+      this.on('message', options.onMessage);
+    if ('onDetach' in options)
+      this.on('detach', options.onDetach);
+  },
+
+  _attach: function(window) {
+    this._window = window;
+    
+    
+    
+    
+    this._windowID = getInnerId(this._window);
+    observers.add("inner-window-destroyed", this._documentUnload);
+
+    
+    
+    this._window.addEventListener("pageshow", this._pageShow, true);
+    this._window.addEventListener("pagehide", this._pageHide, true);
 
     
     this._contentWorker = WorkerSandbox(this);

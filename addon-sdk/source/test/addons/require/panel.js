@@ -1,5 +1,0 @@
-
-
-
-
-exports.id = "local-panel";

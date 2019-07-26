@@ -96,8 +96,15 @@ MatchPattern.prototype = {
       return true;
     if (this.exactURL && this.exactURL == urlStr)
       return true;
+
+    
+    
+    
+    
+    
     if (this.domain && url.host &&
-        url.host.slice(-this.domain.length) == this.domain)
+         (url.host === this.domain ||
+          url.host.slice(-this.domain.length - 1) === "." + this.domain))
       return true;
     if (this.urlPrefix && 0 == urlStr.indexOf(this.urlPrefix))
       return true;

@@ -13,33 +13,49 @@ let { Class } = require("./heritage");
 let { on, off } = require('../system/events');
 let unloadSubject = require('@loader/unload');
 
-function DisposeHandler(disposable) {
-  return function onDisposal({subject}) {
-    if (subject.wrappedJSObject === unloadSubject) {
-      off("sdk:loader:destroy", onDisposal);
-      disposable.destroy();
+let disposables = WeakMap();
+
+function initialize(instance) {
+  
+  function handler(event) {
+    if (event.subject.wrappedJSObject === unloadSubject) {
+      dispose(instance);
+      instance.dispose();
     }
   }
+
+  
+  
+  
+  
+  
+  
+  disposables.set(instance, handler);
+  on("sdk:loader:destroy", handler);
 }
+exports.initialize = initialize;
+
+function dispose(instance) {
+  
+  
+  
+
+  let handler = disposables.get(instance);
+  if (handler) off("sdk:loader:destroy", handler);
+  disposables.delete(instance);
+}
+exports.dispose = dispose;
 
 
 
 let Disposable = Class({
-  initialize: function dispose() {
-    this.setupDisposal();
+  initialize: function setupDisposable() {
+    
+    
+    
     this.setup.apply(this, arguments);
+    initialize(this);
   },
-  setupDisposal: function setupDisposal() {
-    
-    
-    Object.defineProperty(this, "onDisposal", { value: DisposeHandler(this) });
-    on("sdk:loader:destroy", this.onDisposal);
-  },
-  teardownDisposable: function tearDisposal() {
-    
-    off("sdk:loader:destroy", this.onDisposal);
-  },
-
   setup: function setup() {
     
   },
@@ -50,9 +66,8 @@ let Disposable = Class({
   destroy: function destroy() {
     
     
-    this.teardownDisposable();
+    dispose(this);
     this.dispose();
   }
 });
-
 exports.Disposable = Disposable;

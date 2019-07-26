@@ -340,3 +340,21 @@ function getFrames(window) {
   }, [])
 }
 exports.getFrames = getFrames;
+
+function getOwnerBrowserWindow(node) {
+  
+
+
+
+  let window = node.ownerDocument.defaultView.top;
+  
+  if (isBrowser(window)) return window;
+  
+  
+  let document = window.document;
+  let browsers = windows("navigator:browser", { includePrivate: true });
+  return array.find(browsers, function isTargetBrowser(window) {
+    return !!window.gBrowser.getBrowserForDocument(document);
+  });
+}
+exports.getOwnerBrowserWindow = getOwnerBrowserWindow;

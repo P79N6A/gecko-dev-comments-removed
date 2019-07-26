@@ -14,405 +14,238 @@ module.metadata = {
 
 const { Ci } = require("chrome");
 const { validateOptions: valid } = require('./deprecated/api-utils');
-const { Symbiont } = require('./content/content');
-const { EventEmitter } = require('./deprecated/events');
 const { setTimeout } = require('./timers');
-const { on, off, emit } = require('./system/events');
-const runtime = require('./system/runtime');
-const { getDocShell } = require("./frame/utils");
-const { getWindow } = require('./panel/window');
 const { isPrivateBrowsingSupported } = require('./self');
 const { isWindowPBSupported } = require('./private-browsing/utils');
-const { getNodeView } = require('./view/core');
+const { Class } = require("./core/heritage");
+const { merge } = require("./util/object");
+const { WorkerHost, Worker, detach, attach } = require("./worker/utils");
+const { Disposable } = require("./core/disposable");
+const { contract: loaderContract } = require("./content/loader");
+const { contract } = require("./util/contract");
+const { on, off, emit, setListeners } = require("./event/core");
+const { EventTarget } = require("./event/target");
+const domPanel = require("./panel/utils");
+const { events } = require("./panel/events");
+const systemEvents = require("./system/events");
+const { filter, pipe } = require("./event/utils");
+const { getNodeView } = require("./view/core");
 
-const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
-      ON_SHOW = 'popupshown',
-      ON_HIDE = 'popuphidden',
-      validNumber = { is: ['number', 'undefined', 'null'] },
-      validBoolean = { is: ['boolean', 'undefined', 'null'] },
-      ADDON_ID = require('./self').id;
-
-if (isPrivateBrowsingSupported && isWindowPBSupported) {
+if (isPrivateBrowsingSupported && isWindowPBSupported)
   throw Error('The panel module cannot be used with per-window private browsing at the moment, see Bug 816257');
+
+let isArray = Array.isArray;
+let assetsURI = require("./self").data.url();
+
+function isAddonContent({ contentURL }) {
+  return typeof(contentURL) === "string" && contentURL.indexOf(assetsURI) === 0;
+}
+
+function hasContentScript({ contentScript, contentScriptFile }) {
+  return (isArray(contentScript) ? contentScript.length > 0 :
+         !!contentScript) ||
+         (isArray(contentScriptFile) ? contentScriptFile.length > 0 :
+         !!contentScriptFile);
+}
+
+function requiresAddonGlobal(model) {
+  return isAddonContent(model) && !hasContentScript(model);
+}
+
+function getAttachEventType(model) {
+  let when = model.contentScriptWhen;
+  return requiresAddonGlobal(model) ? "sdk-panel-content-changed" :
+         when === "start" ? "sdk-panel-content-changed" :
+         when === "end" ? "sdk-panel-document-loaded" :
+         when === "ready" ? "sdk-panel-content-loaded" :
+         null;
 }
 
 
+let number = { is: ['number', 'undefined', 'null'] };
+let boolean = { is: ['boolean', 'undefined', 'null'] };
+
+let panelContract = contract(merge({
+  width: number,
+  height: number,
+  focus: boolean,
+}, loaderContract.rules));
 
 
-const Panel = Symbiont.resolve({
-  constructor: '_init',
-  _onInit: '_onSymbiontInit',
-  destroy: '_symbiontDestructor',
-  _documentUnload: '_workerDocumentUnload'
-}).compose({
-  _frame: Symbiont.required,
-  _init: Symbiont.required,
-  _onSymbiontInit: Symbiont.required,
-  _symbiontDestructor: Symbiont.required,
-  _emit: Symbiont.required,
-  on: Symbiont.required,
-  removeListener: Symbiont.required,
+function isDisposed(panel) !views.has(panel);
 
-  _inited: false,
+let panels = new WeakMap();
+let models = new WeakMap();
+let views = new WeakMap();
+let workers = new WeakMap();
 
-  
+function viewFor(panel) views.get(panel)
+exports.viewFor = viewFor;
+
+function modelFor(panel) models.get(panel)
+function panelFor(view) panels.get(view)
+function workerFor(panel) workers.get(panel)
 
 
 
+let setupAutoHide = new function() {
+  let refs = new WeakMap();
 
-
-  set _frameLoadersSwapped(value) {
-    if (this.__frameLoadersSwapped == value) return;
-    this._frame.QueryInterface(Ci.nsIFrameLoaderOwner)
-      .swapFrameLoaders(this._viewFrame);
-    this.__frameLoadersSwapped = value;
-  },
-  __frameLoadersSwapped: false,
-
-  constructor: function Panel(options) {
-    this._onShow = this._onShow.bind(this);
-    this._onHide = this._onHide.bind(this);
-    this._onAnyPanelShow = this._onAnyPanelShow.bind(this);
-    on('sdk-panel-show', this._onAnyPanelShow);
-
-    this.on('inited', this._onSymbiontInit.bind(this));
-    this.on('propertyChange', this._onChange.bind(this));
-
-    options = options || {};
-    if ('onShow' in options)
-      this.on('show', options.onShow);
-    if ('onHide' in options)
-      this.on('hide', options.onHide);
-    if ('width' in options)
-      this.width = options.width;
-    if ('height' in options)
-      this.height = options.height;
-    if ('contentURL' in options)
-      this.contentURL = options.contentURL;
-    if ('focus' in options) {
-      var value = options.focus;
-      var validatedValue = valid({ $: value }, { $: validBoolean }).$;
-      this._focus =
-        (typeof validatedValue == 'boolean') ? validatedValue : this._focus;
+  return function setupAutoHide(panel) {
+    
+    
+    function listener({subject}) {
+      
+      
+      let view = viewFor(panel);
+      if (!view) systemEvents.off("sdk-panel-show", listener);
+      else if (subject !== view) panel.hide();
     }
 
-    this._init(options);
-  },
-  _destructor: function _destructor() {
-    this.hide();
-    this._removeAllListeners('show');
-    this._removeAllListeners('hide');
-    this._removeAllListeners('propertyChange');
-    this._removeAllListeners('inited');
-    off('sdk-panel-show', this._onAnyPanelShow);
     
-    this._xulPanel = null;
-    this._symbiontDestructor(this);
-    this._removeAllListeners();
+    
+    
+    systemEvents.on("sdk-panel-show", listener);
+    
+    
+    
+    refs.set(panel, listener);
+  }
+}
+
+const Panel = Class({
+  implements: [
+    
+    
+    panelContract.properties(modelFor),
+    EventTarget,
+    Disposable
+  ],
+  extends: WorkerHost(workerFor),
+  setup: function setup(options) {
+    let model = merge({
+      width: 320,
+      height: 240,
+      focus: true,
+    }, panelContract(options));
+    models.set(this, model);
+
+    
+    setListeners(this, options);
+
+    
+    let view = domPanel.make();
+    panels.set(view, this);
+    views.set(this, view);
+
+    
+    domPanel.setURL(view, model.contentURL);
+
+    setupAutoHide(this);
+
+    let worker = new Worker(options);
+    workers.set(this, worker);
+
+    
+    pipe(worker, this);
   },
-  destroy: function destroy() {
-    this._destructor();
+  dispose: function dispose() {
+    this.hide();
+    off(this);
+
+    detach(workerFor(this));
+
+    domPanel.dispose(viewFor(this));
+
+    
+    
+    
+    views.delete(this);
   },
   
-  get width() this._width,
-  set width(value)
-    this._width = valid({ $: value }, { $: validNumber }).$ || this._width,
-  _width: 320,
+  get width() modelFor(this).width,
+  set width(value) this.resize(value, this.height),
   
-  get height() this._height,
-  set height(value)
-    this._height =  valid({ $: value }, { $: validNumber }).$ || this._height,
-  _height: 240,
-  
-  get focus() this._focus,
-  _focus: true,
+  get height() modelFor(this).height,
+  set height(value) this.resize(this.width, value),
 
   
-  get isShowing() !!this._xulPanel && this._xulPanel.state == "open",
+  get focus() modelFor(this).focus,
+
+  get contentURL() modelFor(this).contentURL,
+  set contentURL(value) {
+    let model = modelFor(this);
+    model.contentURL = panelContract({ contentURL: value }).contentURL;
+    domPanel.setURL(viewFor(this), model.contentURL);
+  },
+
+  
+  get isShowing() !isDisposed(this) && domPanel.isOpen(viewFor(this)),
 
   
   show: function show(anchor) {
-    anchor = anchor ? getNodeView(anchor) : null;
-    let anchorWindow = getWindow(anchor);
+    let model = modelFor(this);
+    let view = viewFor(this);
+    let anchorView = getNodeView(anchor);
 
-    
-    
-    if (!anchorWindow) {
-      return;
-    }
+    if (!isDisposed(this))
+      domPanel.show(view, model.width, model.height, model.focus, anchorView);
 
-    let document = anchorWindow.document;
-    let xulPanel = this._xulPanel;
-    let panel = this;
-    if (!xulPanel) {
-      xulPanel = this._xulPanel = document.createElementNS(XUL_NS, 'panel');
-      xulPanel.setAttribute("type", "arrow");
-
-      
-      
-      
-      
-      let css = ".panel-inner-arrowcontent, .panel-arrowcontent {padding: 0;}";
-      let originalXBL = "chrome://global/content/bindings/popup.xml#arrowpanel";
-      let binding =
-      '<bindings xmlns="http://www.mozilla.org/xbl">' +
-        '<binding id="id" extends="' + originalXBL + '">' +
-          '<resources>' +
-            '<stylesheet src="data:text/css;charset=utf-8,' +
-              document.defaultView.encodeURIComponent(css) + '"/>' +
-          '</resources>' +
-        '</binding>' +
-      '</bindings>';
-      xulPanel.style.MozBinding = 'url("data:text/xml;charset=utf-8,' +
-        document.defaultView.encodeURIComponent(binding) + '")';
-
-      let frame = document.createElementNS(XUL_NS, 'iframe');
-      frame.setAttribute('type', 'content');
-      frame.setAttribute('flex', '1');
-      frame.setAttribute('transparent', 'transparent');
-
-      if (runtime.OS === "Darwin") {
-        frame.style.borderRadius = "6px";
-        frame.style.padding = "1px";
-      }
-
-      
-      
-      frame.setAttribute("src","data:;charset=utf-8,");
-
-      xulPanel.appendChild(frame);
-      document.getElementById("mainPopupSet").appendChild(xulPanel);
-    }
-    let { width, height, focus } = this, x, y, position;
-
-    if (!anchor) {
-      
-      x = document.documentElement.clientWidth / 2 - width / 2;
-      y = document.documentElement.clientHeight / 2 - height / 2;
-      position = null;
-    }
-    else {
-      
-      let rect = anchor.getBoundingClientRect();
-
-      let window = anchor.ownerDocument.defaultView;
-
-      let zoom = window.mozScreenPixelsPerCSSPixel;
-      let screenX = rect.left + window.mozInnerScreenX * zoom;
-      let screenY = rect.top + window.mozInnerScreenY * zoom;
-
-      
-      
-      let horizontal, vertical;
-      if (screenY > window.screen.availHeight / 2 + height)
-        vertical = "top";
-      else
-        vertical = "bottom";
-
-      if (screenY > window.screen.availWidth / 2 + width)
-        horizontal = "left";
-      else
-        horizontal = "right";
-
-      let verticalInverse = vertical == "top" ? "bottom" : "top";
-      position = vertical + "center " + verticalInverse + horizontal;
-
-      
-      
-      
-      xulPanel.setAttribute("flip","both");
-    }
-
-    
-    
-    xulPanel.firstChild.style.width = width + "px";
-    xulPanel.firstChild.style.height = height + "px";
-
-    
-    
-    
-    emit('sdk-panel-show', { data: ADDON_ID, subject: xulPanel });
-
-    
-    
-    xulPanel.setAttribute("noautofocus",!focus);
-
-    
-    function waitForBinding() {
-      if (!xulPanel.openPopup) {
-        setTimeout(waitForBinding, 50);
-        return;
-      }
-
-      if (xulPanel.state !== 'hiding') {
-        xulPanel.openPopup(anchor, position, x, y);
-      }
-    }
-    waitForBinding();
-
-    return this._public;
+    return this;
   },
+
   
   hide: function hide() {
     
-    
-    
-    
-    
-    
-    
-    let xulPanel = this._xulPanel;
-    if (xulPanel && "hidePopup" in xulPanel)
-      xulPanel.hidePopup();
-    return this._public;
+    domPanel.close(viewFor(this));
+
+    return this;
   },
 
   
   resize: function resize(width, height) {
-    this.width = width;
-    this.height = height;
-    
-    
-    let xulPanel = this._xulPanel;
-    if (xulPanel) {
-      xulPanel.firstChild.style.width = width + "px";
-      xulPanel.firstChild.style.height = height + "px";
-    }
-  },
+    let model = modelFor(this);
+    let view = viewFor(this);
+    let change = panelContract({
+      width: width || model.width,
+      height: height || model.height
+    });
 
-  
-  
-  get _xulPanel() this.__xulPanel,
-  set _xulPanel(value) {
-    let xulPanel = this.__xulPanel;
-    if (value === xulPanel) return;
-    if (xulPanel) {
-      xulPanel.removeEventListener(ON_HIDE, this._onHide, false);
-      xulPanel.removeEventListener(ON_SHOW, this._onShow, false);
-      xulPanel.parentNode.removeChild(xulPanel);
-    }
-    if (value) {
-      value.addEventListener(ON_HIDE, this._onHide, false);
-      value.addEventListener(ON_SHOW, this._onShow, false);
-    }
-    this.__xulPanel = value;
-  },
-  __xulPanel: null,
-  get _viewFrame() this.__xulPanel.children[0],
-  
+    model.width = change.width
+    model.height = change.height
 
+    domPanel.resize(view, model.width, model.height);
 
-
-  _onHide: function _onHide() {
-    try {
-      this._frameLoadersSwapped = false;
-      this._xulPanel = null;
-      this._emit('hide');
-    } catch(e) {
-      this._emit('error', e);
-    }
-  },
-
-  
-
-
-
-
-  _applyStyleToDocument: function _applyStyleToDocument() {
-    if (this._defaultStyleApplied)
-      return;
-    try {
-      let win = this._xulPanel.ownerDocument.defaultView;
-      let node = win.document.getAnonymousElementByAttribute(
-        this._xulPanel, "class", "panel-arrowcontent");
-      if (!node) {
-        
-        
-        node = win.document.getAnonymousElementByAttribute(
-          this._xulPanel, "class", "panel-inner-arrowcontent");
-      }
-      let textColor = win.getComputedStyle(node).getPropertyValue("color");
-      let doc = this._xulPanel.firstChild.contentDocument;
-      let style = doc.createElement("style");
-      style.textContent = "body { color: " + textColor + "; }";
-      let container = doc.head ? doc.head : doc.documentElement;
-
-      if (container.firstChild)
-        container.insertBefore(style, container.firstChild);
-      else
-        container.appendChild(style);
-      this._defaultStyleApplied = true;
-    }
-    catch(e) {
-      console.error("Unable to apply panel style");
-      console.exception(e);
-    }
-  },
-
-  
-
-
-
-  _onShow: function _onShow() {
-    try {
-      if (!this._inited) { 
-        this.on('inited', this._onShow.bind(this));
-      } else {
-        this._frameLoadersSwapped = true;
-        this._applyStyleToDocument();
-        this._emit('show');
-      }
-    } catch(e) {
-      this._emit('error', e);
-    }
-  },
-
-  
-
-
-
-  _onAnyPanelShow: function _onAnyPanelShow(e) {
-    if (e.subject !== this._xulPanel)
-      this.hide();
-  },
-
-  
-
-
-  _onInit: function _onInit() {
-    this._inited = true;
-
-    
-    
-    let docShell = getDocShell(this._frame);
-    if (docShell && "allowWindowControl" in docShell)
-      docShell.allowWindowControl = false;
-
-    
-    
-    
-    this._emit('inited');
-  },
-
-  
-  
-  _documentUnload: function(subject, topic, data) {
-    if (this._workerDocumentUnload(subject, topic, data)) {
-      this._initFrame(this._frame);
-      return true;
-    }
-    return false;
-  },
-
-  _onChange: function _onChange(e) {
-    this._frameLoadersSwapped = false;
-    if ('contentURL' in e && this._frame) {
-      
-      
-      this._workerCleanup();
-      this._initFrame(this._frame);
-    }
+    return this;
   }
 });
-exports.Panel = function(options) Panel(options)
-exports.Panel.prototype = Panel.prototype;
+exports.Panel = Panel;
+
+
+let panelEvents = filter(function({target}) panelFor(target), events);
+
+
+let shows = filter(function({type}) type === "sdk-panel-shown", panelEvents);
+
+
+let hides = filter(function({type}) type === "sdk-panel-hidden", panelEvents);
+
+
+
+
+
+let ready = filter(function({type, target})
+  getAttachEventType(modelFor(panelFor(target))) === type, panelEvents);
+
+
+let change = filter(function({type}) type === "sdk-panel-content-changed",
+                    panelEvents);
+
+
+on(shows, "data", function({target}) emit(panelFor(target), "show"));
+on(hides, "data", function({target}) emit(panelFor(target), "hide"));
+
+on(ready, "data", function({target}) {
+  let worker = workerFor(panelFor(target));
+  attach(worker, domPanel.getContentDocument(target).defaultView);
+});

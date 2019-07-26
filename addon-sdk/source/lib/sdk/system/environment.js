@@ -41,7 +41,10 @@ exports.env = Proxy.create({
   
   
   defineProperty: function(name, { value }) set(name, value),
-  delete: function(name) set(name, null),
+  delete: function(name) {
+    set(name, null);
+    return true;
+  },
 
   
   has: function(name) this.hasOwn(name),
