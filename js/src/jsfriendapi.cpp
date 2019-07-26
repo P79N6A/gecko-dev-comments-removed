@@ -218,7 +218,7 @@ JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals
         
         
         
-        JS_ASSERT(compartment->zone()->isSystemCompartment == isSystem);
+        JS_ASSERT(compartment->zone()->isSystem == isSystem);
     }
 
     
@@ -228,7 +228,7 @@ JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals
     }
 
     
-    compartment->zone()->isSystemCompartment = isSystem;
+    compartment->zone()->isSystem = isSystem;
 }
 
 JS_FRIEND_API(JSBool)
@@ -318,7 +318,7 @@ AutoSwitchCompartment::~AutoSwitchCompartment()
 JS_FRIEND_API(bool)
 js::IsSystemCompartment(const JSCompartment *c)
 {
-    return c->zone()->isSystemCompartment;
+    return c->zone()->isSystem;
 }
 
 JS_FRIEND_API(bool)
