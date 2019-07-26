@@ -98,10 +98,6 @@ let gPolicyCounter = 0;
 let gExperimentsCounter = 0;
 let gExperimentEntryCounter = 0;
 
-
-
-let gActiveInstallURLs = new Set();
-
 let gLogger;
 let gLogDumping = false;
 
@@ -212,10 +208,6 @@ function uninstallAddons(addons) {
   AddonManager.addAddonListener(listener);
 
   for (let addon of addons) {
-    
-    
-    
-    addon.userDisabled = true;
     addon.uninstall();
   }
 
@@ -367,7 +359,7 @@ Experiments.Experiments.prototype = {
     AsyncShutdown.profileBeforeChange.addBlocker("Experiments.jsm shutdown",
       this.uninit.bind(this));
 
-    this._startWatchingAddons();
+    AddonManager.addAddonListener(this);
 
     this._loadTask = Task.spawn(this._loadFromCache.bind(this));
     this._loadTask.then(
@@ -388,7 +380,7 @@ Experiments.Experiments.prototype = {
 
   uninit: function () {
     if (!this._shutdown) {
-      this._stopWatchingAddons();
+      AddonManager.removeAddonListener(this);
 
       gPrefs.ignore(PREF_LOGGING, configureLogging);
       gPrefs.ignore(PREF_MANIFEST_URI, this.updateManifest, this);
@@ -406,16 +398,6 @@ Experiments.Experiments.prototype = {
       return this._mainTask;
     }
     return Promise.resolve();
-  },
-
-  _startWatchingAddons: function () {
-    AddonManager.addAddonListener(this);
-    AddonManager.addInstallListener(this);
-  },
-
-  _stopWatchingAddons: function () {
-    AddonManager.removeInstallListener(this);
-    AddonManager.removeAddonListener(this);
   },
 
   
@@ -662,40 +644,6 @@ Experiments.Experiments.prototype = {
     this.disableExperiment();
   },
 
-  onInstallStarted: function (install) {
-    if (install.addon.type != "experiment") {
-      return;
-    }
-
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    if (this._trackedAddonIds.has(install.addon.id)) {
-      return;
-    }
-
-    if (gActiveInstallURLs.has(install.sourceURI.spec)) {
-      this._log.info("onInstallStarted allowing install because install " +
-                     "tracked by us.");
-      return;
-    }
-
-    this._log.warn("onInstallStarted cancelling install of unknown " +
-                   "experiment add-on: " + install.addon.id);
-    return false;
-  },
-
   
 
   _getExperimentByAddonId: function (addonId) {
@@ -906,13 +854,6 @@ Experiments.Experiments.prototype = {
   
 
 
-  get _trackedAddonIds() {
-    return new Set([e._addonId for ([,e] of this._experiments) if (e._addonId)]);
-  },
-
-  
-
-
 
   _evaluateExperiments: function*() {
     this._log.trace("_evaluateExperiments");
@@ -934,7 +875,7 @@ Experiments.Experiments.prototype = {
     
     
     let installedExperiments = yield installedExperimentAddons();
-    let expectedAddonIds = this._trackedAddonIds;
+    let expectedAddonIds = new Set([e._addonId for ([,e] of this._experiments)]);
     let unknownAddons = [a for (a of installedExperiments) if (!expectedAddonIds.has(a.id))];
     if (unknownAddons.length) {
       this._log.warn("_evaluateExperiments() - unknown add-ons in AddonManager: " +
@@ -976,8 +917,6 @@ Experiments.Experiments.prototype = {
           }
           this._dirty = true;
           activeChanged = true;
-        } else {
-          yield activeExperiment.ensureActive();
         }
       } finally {
         this._pendingUninstall = null;
@@ -1463,14 +1402,11 @@ Experiments.ExperimentEntry.prototype = {
 
     let install = yield addonInstallForURL(this._manifestData.xpiURL,
                                            this._manifestData.xpiHash);
-    gActiveInstallURLs.add(install.sourceURI.spec);
-
     let failureHandler = (install, handler) => {
       let message = "AddonInstall " + handler + " for " + this.id + ", state=" +
                    (install.state || "?") + ", error=" + install.error;
       this._log.error("_installAddon() - " + message);
       this._failedStart = true;
-      gActiveInstallURLs.delete(install.sourceURI.spec);
 
       TelemetryLog.log(TELEMETRY_LOG.ACTIVATION_KEY,
                       [TELEMETRY_LOG.ACTIVATION.INSTALL_FAILURE, this.id]);
@@ -1479,8 +1415,6 @@ Experiments.ExperimentEntry.prototype = {
     };
 
     let listener = {
-      _expectedID: null,
-
       onDownloadEnded: install => {
         this._log.trace("_installAddon() - onDownloadEnded for " + this.id);
 
@@ -1505,12 +1439,13 @@ Experiments.ExperimentEntry.prototype = {
           this._log.error("_installAddon() - onInstallStarted, wrong addon type");
           return false;
         }
+
+        
+        install.addon.userDisabled = false;
       },
 
       onInstallEnded: install => {
         this._log.trace("_installAddon() - install ended for " + this.id);
-        gActiveInstallURLs.delete(install.sourceURI.spec);
-
         this._lastChangedDate = this._policy.now();
         this._startDate = this._policy.now();
         this._enabled = true;
@@ -1524,26 +1459,6 @@ Experiments.ExperimentEntry.prototype = {
         this._description = addon.description || "";
         this._homepageURL = addon.homepageURL || "";
 
-        
-        if (addon.userDisabled) {
-          this._log.trace("Add-on is disabled. Enabling.");
-          listener._expectedID = addon.id;
-          AddonManager.addAddonListener(listener);
-          addon.userDisabled = false;
-        } else {
-          this._log.trace("Add-on is enabled. start() completed.");
-          deferred.resolve();
-        }
-      },
-
-      onEnabled: addon => {
-        this._log.info("onEnabled() for " + addon.id);
-
-        if (addon.id != listener._expectedID) {
-          return;
-        }
-
-        AddonManager.removeAddonListener(listener);
         deferred.resolve();
       },
     };
@@ -1581,7 +1496,7 @@ Experiments.ExperimentEntry.prototype = {
       this._endDate = now;
     };
 
-    this._getAddon().then((addon) => {
+    AddonManager.getAddonByID(this._addonId, addon => {
       if (!addon) {
         let message = "could not get Addon for " + this.id;
         this._log.warn("stop() - " + message);
@@ -1594,61 +1509,6 @@ Experiments.ExperimentEntry.prototype = {
       this._logTermination(terminationKind, terminationReason);
       deferred.resolve(uninstallAddons([addon]));
     });
-
-    return deferred.promise;
-  },
-
-  
-
-
-
-
-
-
-
-  ensureActive: Task.async(function* () {
-    this._log.trace("ensureActive() for " + this.id);
-
-    let addon = yield this._getAddon();
-    if (!addon) {
-      this._log.warn("Experiment is not installed: " + this._addonId);
-      throw new Error("Experiment is not installed: " + this._addonId);
-    }
-
-    
-    
-    if (!addon.userDisabled) {
-      return;
-    }
-
-    let deferred = Promise.defer();
-
-    let listener = {
-      onEnabled: enabledAddon => {
-        if (enabledAddon.id != addon.id) {
-          return;
-        }
-
-        AddonManager.removeAddonListener(listener);
-        deferred.resolve();
-      },
-    };
-
-    this._log.info("Activating add-on: " + addon.id);
-    AddonManager.addAddonListener(listener);
-    addon.userDisabled = false;
-    yield deferred.promise;
-  }),
-
-  
-
-
-
-
-  _getAddon: function () {
-    let deferred = Promise.defer();
-
-    AddonManager.getAddonByID(this._addonId, deferred.resolve);
 
     return deferred.promise;
   },
