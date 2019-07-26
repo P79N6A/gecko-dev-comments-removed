@@ -294,7 +294,7 @@ protected:
   nsCSSStyleSheet*      mParent;    
   mozilla::css::ImportRule* mOwnerRule; 
 
-  CSSRuleListImpl*      mRuleCollection;
+  nsRefPtr<CSSRuleListImpl> mRuleCollection;
   nsIDocument*          mDocument; 
   nsIDOMNode*           mOwningNode; 
   bool                  mDisabled;
