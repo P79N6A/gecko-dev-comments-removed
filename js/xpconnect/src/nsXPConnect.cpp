@@ -1029,7 +1029,8 @@ CheckTypeInference(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
 namespace xpc {
 
 JSObject*
-CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
+CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
+                   JS::ZoneSpecifier zoneSpec)
 {
     
     
@@ -1038,7 +1039,7 @@ CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
     NS_ABORT_IF_FALSE(NS_IsMainThread(), "using a principal off the main thread?");
     MOZ_ASSERT(principal);
 
-    JSObject *global = JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal));
+    JSObject *global = JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal), zoneSpec);
     if (!global)
         return nullptr;
     JSAutoCompartment ac(cx, global);
@@ -1074,6 +1075,7 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
                                              nsISupports *aCOMObj,
                                              nsIPrincipal * aPrincipal,
                                              uint32_t aFlags,
+                                             JS::ZoneSpecifier zoneSpec,
                                              nsIXPConnectJSObjectHolder **_retval)
 {
     NS_ASSERTION(aJSContext, "bad param");
@@ -1094,6 +1096,7 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     nsresult rv =
         XPCWrappedNative::WrapNewGlobal(ccx, helper, aPrincipal,
                                         aFlags & nsIXPConnect::INIT_JS_STANDARD_CLASSES,
+                                        zoneSpec,
                                         getter_AddRefs(wrappedGlobal));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2364,14 +2367,14 @@ TraverseObjectShim(void *data, void *thing)
 
 
 
-class JSCompartmentParticipant : public nsCycleCollectionParticipant
+class JSZoneParticipant : public nsCycleCollectionParticipant
 {
 public:
-    static NS_METHOD TraverseImpl(JSCompartmentParticipant *that, void *p,
+    static NS_METHOD TraverseImpl(JSZoneParticipant *that, void *p,
                                   nsCycleCollectionTraversalCallback &cb)
     {
         MOZ_ASSERT(!cb.WantAllTraces());
-        JSCompartment *c = static_cast<JSCompartment*>(p);
+        JS::Zone *zone = static_cast<JS::Zone *>(p);
 
         
 
@@ -2383,9 +2386,10 @@ public:
 
 
 
-        cb.DescribeGCedNode(false, "JS Compartment");
+        cb.DescribeGCedNode(false, "JS Zone");
 
         
+
 
 
 
@@ -2396,13 +2400,13 @@ public:
         JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->GetJSRuntime();
         JS_TracerInit(&trc, rt, NoteJSChildTracerShim);
         trc.eagerlyTraceWeakMaps = DoNotTraceWeakMaps;
-        js::VisitGrayWrapperTargets(c, NoteJSChildGrayWrapperShim, &trc);
+        js::VisitGrayWrapperTargets(zone, NoteJSChildGrayWrapperShim, &trc);
 
         
 
 
 
-        js::IterateGrayObjects(c, TraverseObjectShim, &cb);
+        js::IterateGrayObjects(zone, TraverseObjectShim, &cb);
 
         return NS_OK;
     }
@@ -2411,7 +2415,7 @@ public:
     {
         return NS_OK;
     }
-    
+
     static NS_METHOD UnlinkImpl(void *p)
     {
         return NS_OK;
@@ -2427,15 +2431,15 @@ public:
     }
 };
 
-static const CCParticipantVTable<JSCompartmentParticipant>::Type
-JSCompartment_cycleCollectorGlobal = {
-    NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(JSCompartmentParticipant)
+static const CCParticipantVTable<JSZoneParticipant>::Type
+JSZone_cycleCollectorGlobal = {
+    NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(JSZoneParticipant)
 };
 
 nsCycleCollectionParticipant *
-xpc_JSCompartmentParticipant()
+xpc_JSZoneParticipant()
 {
-    return JSCompartment_cycleCollectorGlobal.GetParticipant();
+    return JSZone_cycleCollectorGlobal.GetParticipant();
 }
 
 NS_IMETHODIMP

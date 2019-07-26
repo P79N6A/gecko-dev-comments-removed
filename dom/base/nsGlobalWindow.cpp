@@ -1949,12 +1949,23 @@ CreateNativeGlobalForInner(JSContext* aCx,
   MOZ_ASSERT(aNativeGlobal);
   MOZ_ASSERT(aHolder);
 
+  nsGlobalWindow *top = NULL;
+  if (aNewInner->GetOuterWindow()) {
+    top = aNewInner->GetTop();
+  }
+  JS::ZoneSpecifier zoneSpec = JS::FreshZone;
+  if (top) {
+    if (top->GetGlobalJSObject()) {
+      zoneSpec = JS::SameZoneAs(top->GetGlobalJSObject());
+    }
+  }
+
   nsIXPConnect* xpc = nsContentUtils::XPConnect();
 
   nsRefPtr<nsIXPConnectJSObjectHolder> jsholder;
   nsresult rv = xpc->InitClassesWithNewWrappedGlobal(
     aCx, ToSupports(aNewInner),
-    aPrincipal, 0, getter_AddRefs(jsholder));
+    aPrincipal, 0, zoneSpec, getter_AddRefs(jsholder));
   NS_ENSURE_SUCCESS(rv, rv);
 
   MOZ_ASSERT(jsholder);
@@ -2668,16 +2679,17 @@ nsGlobalWindow::GetIsTabModalPromptAllowed()
   return allowTabModal;
 }
 
-EventTarget*
+nsIDOMEventTarget*
 nsGlobalWindow::GetTargetForDOMEvent()
 {
-  return GetOuterWindowInternal();
+  return static_cast<nsIDOMEventTarget*>(GetOuterWindowInternal());
 }
 
-EventTarget*
+nsIDOMEventTarget*
 nsGlobalWindow::GetTargetForEventTargetChain()
 {
-  return IsInnerWindow() ? this : GetCurrentInnerWindowInternal();
+  return IsInnerWindow() ?
+    this : static_cast<nsIDOMEventTarget*>(GetCurrentInnerWindowInternal());
 }
 
 nsresult

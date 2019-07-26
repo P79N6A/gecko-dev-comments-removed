@@ -589,7 +589,7 @@ class ParallelDo : public ForkJoinOp
 
         
         
-        IonContext icx(cx_, cx_->compartment, NULL);
+        IonContext icx(cx_, NULL);
 
         JS_ASSERT(pendingInvalidations[slice.sliceId] == NULL);
 

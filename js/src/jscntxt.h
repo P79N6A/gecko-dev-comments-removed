@@ -618,7 +618,11 @@ struct MallocProvider
 namespace gc {
 class MarkingValidator;
 } 
+
 class JS_FRIEND_API(AutoEnterPolicy);
+
+typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
+
 } 
 
 struct JSRuntime : js::RuntimeFriendFields,
@@ -640,7 +644,13 @@ struct JSRuntime : js::RuntimeFriendFields,
     JSCompartment       *atomsCompartment;
 
     
-    js::CompartmentVector compartments;
+    JS::Zone            *systemZone;
+
+    
+    js::ZoneVector      zones;
+
+    
+    size_t              numCompartments;
 
     
     JSLocaleCallbacks *localeCallbacks;
@@ -729,6 +739,12 @@ struct JSRuntime : js::RuntimeFriendFields,
 #endif
     js::ion::IonRuntime *getIonRuntime(JSContext *cx) {
         return ionRuntime_ ? ionRuntime_ : createIonRuntime(cx);
+    }
+    js::ion::IonRuntime *ionRuntime() {
+        return ionRuntime_;
+    }
+    bool hasIonRuntime() const {
+        return !!ionRuntime_;
     }
 
     
@@ -1352,11 +1368,12 @@ struct JSRuntime : js::RuntimeFriendFields,
         return 0;
 #endif
     }
+
 #ifdef DEBUG
   public:
     js::AutoEnterPolicy *enteredPolicy;
-
 #endif
+
   private:
     
 
@@ -1438,7 +1455,7 @@ struct JSContext : js::ContextFriendFields,
     JSContext *thisDuringConstruction() { return this; }
     ~JSContext();
 
-    inline JS::Zone *zone();
+    inline JS::Zone *zone() const;
     js::PerThreadData &mainThread() { return runtime->mainThread; }
 
   private:
@@ -1462,7 +1479,7 @@ struct JSContext : js::ContextFriendFields,
     
     bool                generatingError;
 
-    inline void setCompartment(JSCompartment *c) { compartment = c; }
+    inline void setCompartment(JSCompartment *comp);
 
     
 
@@ -2062,7 +2079,7 @@ namespace js {
 
 #ifdef JS_METHODJIT
 namespace mjit {
-    void ExpandInlineFrames(JSCompartment *compartment);
+void ExpandInlineFrames(JS::Zone *zone);
 }
 #endif
 
