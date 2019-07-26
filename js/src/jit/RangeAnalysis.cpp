@@ -998,15 +998,11 @@ MPhi::computeRange(TempAllocator &alloc)
         return;
 
     Range *range = nullptr;
-    JS_ASSERT(!isOSRLikeValue(getOperand(0)));
     for (size_t i = 0, e = numOperands(); i < e; i++) {
         if (getOperand(i)->block()->unreachable()) {
             IonSpew(IonSpew_Range, "Ignoring unreachable input %d", getOperand(i)->id());
             continue;
         }
-
-        if (isOSRLikeValue(getOperand(i)))
-            continue;
 
         
         
