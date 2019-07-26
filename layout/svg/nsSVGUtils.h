@@ -645,6 +645,16 @@ public:
   static bool GetSVGGlyphExtents(Element* aElement,
                                  const gfxMatrix& aSVGToAppSpace,
                                  gfxRect* aResult);
+
+  
+
+
+
+
+  static nsRect
+  ToCanvasBounds(const gfxRect &aUserspaceRect,
+                 const gfxMatrix &aToCanvas,
+                 const nsPresContext *presContext);
 };
 
 #endif
