@@ -182,6 +182,28 @@ StyleEditorChrome.prototype = {
 
 
 
+  get isDirty()
+  {
+    if (this._markedDirty === true) {
+      return true;
+    }
+    return this.editors.some(function(editor) {
+      return editor.sourceEditor && editor.sourceEditor.dirty;
+    });
+  },
+
+  
+
+
+  markDirty: function SEC_markDirty() {
+    this._markedDirty = true;
+  },
+
+  
+
+
+
+
 
 
 
