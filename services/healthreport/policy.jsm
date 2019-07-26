@@ -640,6 +640,22 @@ HealthReportPolicy.prototype = {
 
     let now = this.now();
     let nowT = now.getTime();
+    let nextSubmissionDate = this.nextDataSubmissionDate;
+
+    
+    
+    
+    
+    if (nextSubmissionDate.getTime() >= nowT + 3 * MILLISECONDS_PER_DAY) {
+      this._log.warn("Next data submission time is far away. Was the system " +
+                     "clock recently readjusted? " + nextSubmissionDate);
+
+      
+      
+      this._moveScheduleForward24h();
+
+      
+    }
 
     
     if (!this.ensureNotifyResponse(now)) {
@@ -654,8 +670,6 @@ HealthReportPolicy.prototype = {
 
     
     
-
-    let nextSubmissionDate = this.nextDataSubmissionDate;
 
     if (nowT < nextSubmissionDate.getTime()) {
       this._log.debug("Next data submission is scheduled in the future: " +
