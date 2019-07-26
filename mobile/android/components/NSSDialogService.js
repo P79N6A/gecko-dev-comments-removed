@@ -146,12 +146,6 @@ NSSDialogs.prototype = {
     this.showPrompt(p);
   },
 
-  crlImportStatusDialog: function(aCtx, aCrl) {
-    
-    
-    throw "Unimplemented";
-  },
-
   viewCertDetails: function(details) {
     let p = this.getPrompt(this.getString("clientAuthAsk.message3"),
                     '',

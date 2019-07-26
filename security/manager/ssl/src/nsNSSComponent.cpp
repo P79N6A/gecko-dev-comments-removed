@@ -11,28 +11,12 @@
 #include "nsNSSComponent.h"
 
 #include "CertVerifier.h"
-#include "nsNSSCallbacks.h"
-#include "nsNSSIOLayer.h"
 #include "nsCertVerificationThread.h"
-
-#include "nsNetUtil.h"
 #include "nsAppDirectoryServiceDefs.h"
-#include "nsDirectoryService.h"
-#include "nsIStreamListener.h"
-#include "nsIStringBundle.h"
-#include "nsIDirectoryService.h"
 #include "nsCURILoader.h"
 #include "nsDirectoryServiceDefs.h"
-#include "nsIX509Cert.h"
-#include "nsIX509CertDB.h"
-#include "nsNSSCertificate.h"
-#include "nsNSSHelper.h"
-#include "prlog.h"
+#include "nsICertOverrideService.h"
 #include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
-#include "nsIDateTimeFormat.h"
-#include "nsDateTimeFormatCID.h"
-#include "nsThreadUtils.h"
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
 #include "nsIDOMNode.h"
@@ -50,22 +34,13 @@
 #endif
 
 #include "nsCRT.h"
-#include "nsCRLInfo.h"
-#include "nsCertOverrideService.h"
 #include "nsNTLMAuthModule.h"
 
 #include "nsIWindowWatcher.h"
 #include "nsIPrompt.h"
 #include "nsCertificatePrincipal.h"
-#include "nsReadableUtils.h"
-#include "nsIDateTimeFormat.h"
-#include "prtypes.h"
-#include "nsIEntropyCollector.h"
 #include "nsIBufEntropyCollector.h"
-#include "nsIServiceManager.h"
-#include "nsIFile.h"
 #include "nsITokenPasswordDialogs.h"
-#include "nsICRLManager.h"
 #include "nsNSSShutDown.h"
 #include "GeneratedEvents.h"
 #include "SharedSSLState.h"
@@ -76,19 +51,15 @@
 #include "secmod.h"
 #include "secmime.h"
 #include "ocsp.h"
-#include "nssckbi.h"
-#include "base64.h"
 #include "secerr.h"
 #include "sslerr.h"
 
 #include "nsXULAppAPI.h"
-#include <algorithm>
 
 #ifdef XP_WIN
 #include "nsILocalFileWin.h"
 #endif
 
-#include "pkcs12.h"
 #include "p12plcy.h"
 
 using namespace mozilla;
@@ -112,35 +83,6 @@ extern char* pk11PasswordPrompt(PK11SlotInfo *slot, PRBool retry, void *arg);
 
 #define PIPNSS_STRBUNDLE_URL "chrome://pipnss/locale/pipnss.properties"
 #define NSSERR_STRBUNDLE_URL "chrome://pipnss/locale/nsserrors.properties"
-
-class CRLDownloadEvent : public nsRunnable {
-public:
-  CRLDownloadEvent(const nsCSubstring &urlString, nsIStreamListener *listener)
-    : mURLString(urlString)
-    , mListener(listener)
-  {}
-
-  
-  
-  
-  NS_IMETHOD Run()
-  {
-    if (!mListener || mURLString.IsEmpty())
-      return NS_OK;
-
-    nsCOMPtr<nsIURI> uri;
-    nsresult rv = NS_NewURI(getter_AddRefs(uri), mURLString);
-    if (NS_SUCCEEDED(rv)){
-      NS_OpenURI(mListener, nullptr, uri);
-    }
-
-    return NS_OK;
-  }
-
-private:
-  nsCString mURLString;
-  nsCOMPtr<nsIStreamListener> mListener;
-};
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
 
@@ -264,7 +206,6 @@ bool EnsureNSSInitialized(EnsureNSSOperator op)
 nsNSSComponent::nsNSSComponent()
   :mutex("nsNSSComponent.mutex"),
    mNSSInitialized(false),
-   mCrlTimerLock("nsNSSComponent.mCrlTimerLock"),
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
    mThreadList(nullptr),
 #endif
@@ -275,10 +216,6 @@ nsNSSComponent::nsNSSComponent()
     gPIPNSSLog = PR_NewLogModule("pipnss");
 #endif
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::ctor\n"));
-  mUpdateTimerInitialized = false;
-  crlDownloadTimerOn = false;
-  crlsScheduledForDownload = nullptr;
-  mTimer = nullptr;
   mObserversRegistered = false;
 
 #ifndef NSS_NO_LIBPKIX
@@ -325,22 +262,6 @@ nsNSSComponent::~nsNSSComponent()
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::dtor\n"));
 
   deleteBackgroundThreads();
-
-  if (mUpdateTimerInitialized) {
-    {
-      MutexAutoLock lock(mCrlTimerLock);
-      if (crlDownloadTimerOn) {
-        mTimer->Cancel();
-      }
-      crlDownloadTimerOn = false;
-    }
-    if (crlsScheduledForDownload) {
-      crlsScheduledForDownload->Reset();
-      delete crlsScheduledForDownload;
-    }
-
-    mUpdateTimerInitialized = false;
-  }
 
   
 
@@ -1111,285 +1032,6 @@ nsNSSComponent::SkipOcspOff()
   return NS_OK;
 }
 
-nsresult
-nsNSSComponent::PostCRLImportEvent(const nsCSubstring &urlString,
-                                   nsIStreamListener *listener)
-{
-  
-  nsCOMPtr<nsIRunnable> event = new CRLDownloadEvent(urlString, listener);
-
-  
-  return NS_DispatchToMainThread(event);
-}
-
-nsresult
-nsNSSComponent::DownloadCRLDirectly(nsAutoString url, nsAutoString key)
-{
-  
-  
-  nsCOMPtr<nsIStreamListener> listener =
-      new PSMContentDownloader(PSMContentDownloader::PKCS7_CRL);
-  
-  NS_ConvertUTF16toUTF8 url8(url);
-  return PostCRLImportEvent(url8, listener);
-}
-
-nsresult nsNSSComponent::DownloadCrlSilently()
-{
-  
-  nsStringKey hashKey(mCrlUpdateKey.get());
-  crlsScheduledForDownload->Put(&hashKey,(void *)nullptr);
-    
-  
-  RefPtr<PSMContentDownloader> psmDownloader(
-      new PSMContentDownloader(PSMContentDownloader::PKCS7_CRL));
-  psmDownloader->setSilentDownload(true);
-  psmDownloader->setCrlAutodownloadKey(mCrlUpdateKey);
-  
-  
-  NS_ConvertUTF16toUTF8 url8(mDownloadURL);
-  return PostCRLImportEvent(url8, psmDownloader);
-}
-
-nsresult nsNSSComponent::getParamsForNextCrlToDownload(nsAutoString *url, PRTime *time, nsAutoString *key)
-{
-  const char *updateEnabledPref = CRL_AUTOUPDATE_ENABLED_PREF;
-  const char *updateTimePref = CRL_AUTOUPDATE_TIME_PREF;
-  const char *updateURLPref = CRL_AUTOUPDATE_URL_PREF;
-  char **allCrlsToBeUpdated;
-  uint32_t noOfCrls;
-  PRTime nearestUpdateTime = 0;
-  nsAutoString crlKey;
-  char *tempUrl;
-  nsresult rv;
-  
-  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID,&rv);
-  if(NS_FAILED(rv)){
-    return rv;
-  }
-
-  rv = pref->GetChildList(updateEnabledPref, &noOfCrls, &allCrlsToBeUpdated);
-  if ( (NS_FAILED(rv)) || (noOfCrls==0) ){
-    return NS_ERROR_FAILURE;
-  }
-
-  for(uint32_t i=0;i<noOfCrls;i++) {
-    
-    bool autoUpdateEnabled = false;
-    rv = pref->GetBoolPref(*(allCrlsToBeUpdated+i), &autoUpdateEnabled);
-    if (NS_FAILED(rv) || !autoUpdateEnabled) {
-      continue;
-    }
-
-    nsAutoString tempCrlKey;
-
-    
-    nsAutoCString enabledPrefCString(*(allCrlsToBeUpdated+i));
-    enabledPrefCString.ReplaceSubstring(updateEnabledPref,".");
-    tempCrlKey.AssignWithConversion(enabledPrefCString.get());
-      
-    
-    
-    
-    
-    nsStringKey hashKey(tempCrlKey.get());
-    if(crlsScheduledForDownload->Exists(&hashKey)){
-      continue;
-    }
-
-    char *tempTimeString;
-    PRTime tempTime;
-    nsAutoCString timingPrefCString(updateTimePref);
-    LossyAppendUTF16toASCII(tempCrlKey, timingPrefCString);
-    
-    rv = pref->GetCharPref(timingPrefCString.get(), &tempTimeString);
-    if (NS_FAILED(rv)){
-      
-      tempTime = PR_Now();
-      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-             ("get %s failed: forcing download\n", timingPrefCString.get()));
-    } else {
-      tempTime = (PRTime)nsCRT::atoll(tempTimeString);
-      nsMemory::Free(tempTimeString);
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (tempTime == 0)
-        tempTime = PR_Now();
-#ifdef PR_LOGGING
-      PRExplodedTime explodedTime;
-      PR_ExplodeTime(tempTime, PR_GMTParameters, &explodedTime);
-      
-      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-             ("%s tempTime(%lli) "
-              "(m/d/y h:m:s = %02d/%02d/%d %02d:%02d:%02d GMT\n",
-              timingPrefCString.get(), tempTime,
-              explodedTime.tm_month+1, explodedTime.tm_mday,
-              explodedTime.tm_year, explodedTime.tm_hour,
-              explodedTime.tm_min, explodedTime.tm_sec));
-#endif
-    }
-
-    if(nearestUpdateTime == 0 || tempTime < nearestUpdateTime){
-      nsAutoCString urlPrefCString(updateURLPref);
-      LossyAppendUTF16toASCII(tempCrlKey, urlPrefCString);
-      rv = pref->GetCharPref(urlPrefCString.get(), &tempUrl);
-      if (NS_FAILED(rv) || (!tempUrl)){
-        continue;
-      }
-      nearestUpdateTime = tempTime;
-      crlKey = tempCrlKey;
-    }
-  }
-
-  if(noOfCrls > 0)
-    NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(noOfCrls, allCrlsToBeUpdated);
-
-  if(nearestUpdateTime > 0){
-    *time = nearestUpdateTime;
-    url->AssignWithConversion((const char *)tempUrl);
-    nsMemory::Free(tempUrl);
-    *key = crlKey;
-    rv = NS_OK;
-  } else{
-    rv = NS_ERROR_FAILURE;
-  }
-
-  return rv;
-}
-
-NS_IMETHODIMP
-nsNSSComponent::Notify(nsITimer *timer)
-{
-  
-  {
-    MutexAutoLock lock(mCrlTimerLock);
-    crlDownloadTimerOn = false;
-  }
-
-  
-  DownloadCrlSilently();
-
-  
-  
-  DefineNextTimer();
-  return NS_OK;
-}
-
-nsresult
-nsNSSComponent::RemoveCrlFromList(nsAutoString key)
-{
-  nsStringKey hashKey(key.get());
-  if(crlsScheduledForDownload->Exists(&hashKey)){
-    crlsScheduledForDownload->Remove(&hashKey);
-  }
-  return NS_OK;
-}
-
-nsresult
-nsNSSComponent::DefineNextTimer()
-{
-  PRTime nextFiring;
-  PRTime now = PR_Now();
-  uint32_t interval;
-  uint32_t primaryDelay = CRL_AUTOUPDATE_DEFAULT_DELAY;
-  nsresult rv;
-
-  if(!mTimer){
-    mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-    if(NS_FAILED(rv))
-      return rv;
-  }
-
-  
-  
-  
-  
-
-  MutexAutoLock lock(mCrlTimerLock);
-
-  if (crlDownloadTimerOn) {
-    mTimer->Cancel();
-  }
-
-  rv = getParamsForNextCrlToDownload(&mDownloadURL, &nextFiring, &mCrlUpdateKey);
-  
-  if(NS_FAILED(rv)){
-    
-    return NS_OK;
-  }
-     
-  
-  if ( now < nextFiring) {
-    interval = uint32_t(nextFiring - now);
-    
-    interval = interval/PR_USEC_PER_MSEC;
-  }else {
-    interval = primaryDelay;
-  }
-  
-  mTimer->InitWithCallback(static_cast<nsITimerCallback*>(this), 
-                           interval,
-                           nsITimer::TYPE_ONE_SHOT);
-  crlDownloadTimerOn = true;
-
-  return NS_OK;
-}
-
-
-
-
-nsresult
-nsNSSComponent::StopCRLUpdateTimer()
-{
-  
-  
-  if (mUpdateTimerInitialized) {
-    if (crlsScheduledForDownload) {
-      crlsScheduledForDownload->Reset();
-      delete crlsScheduledForDownload;
-      crlsScheduledForDownload = nullptr;
-    }
-    {
-      MutexAutoLock lock(mCrlTimerLock);
-      if (crlDownloadTimerOn) {
-        mTimer->Cancel();
-      }
-      crlDownloadTimerOn = false;
-    }
-    mUpdateTimerInitialized = false;
-  }
-
-  return NS_OK;
-}
-
-nsresult
-nsNSSComponent::InitializeCRLUpdateTimer()
-{
-  nsresult rv;
-    
-  
-  if (!mUpdateTimerInitialized) {
-    mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-    if(NS_FAILED(rv)){
-      return rv;
-    }
-    crlsScheduledForDownload = new nsHashtable(16, true);
-    DefineNextTimer();
-    mUpdateTimerInitialized = true;  
-  } 
-
-  return NS_OK;
-}
-
 static void configureMD5(bool enabled)
 {
   if (enabled) { 
@@ -1754,7 +1396,6 @@ nsNSSComponent::Init()
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  InitializeCRLUpdateTimer();
   RegisterPSMContentListener();
 
   nsCOMPtr<nsIEntropyCollector> ec
@@ -1776,13 +1417,12 @@ nsNSSComponent::Init()
 }
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS6(nsNSSComponent,
+NS_IMPL_THREADSAFE_ISUPPORTS5(nsNSSComponent,
                               nsISignatureVerifier,
                               nsIEntropyCollector,
                               nsINSSComponent,
                               nsIObserver,
-                              nsISupportsWeakReference,
-                              nsITimerCallback)
+                              nsISupportsWeakReference)
 
 
 
@@ -1980,8 +1620,6 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
         PR_LOG(gPIPNSSLog, PR_LOG_ERROR, ("Unable to Initialize NSS after profile switch.\n"));
       }
     }
-
-    InitializeCRLUpdateTimer();
   }
   else if (nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
 
@@ -2227,8 +1865,6 @@ nsNSSComponent::DoProfileBeforeChange(nsISupports* aSubject)
     }
   }
     
-  StopCRLUpdateTimer();
-
   if (needsCleanup) {
     ShutdownNSS();
   }
@@ -2352,8 +1988,7 @@ setPassword(PK11SlotInfo *slot, nsIInterfaceRequestor *ctx)
 
 PSMContentDownloader::PSMContentDownloader(uint32_t type)
   : mByteData(nullptr),
-    mType(type),
-    mDoSilentDownload(false)
+    mType(type)
 {
 }
 
@@ -2443,14 +2078,12 @@ PSMContentDownloader::OnStopRequest(nsIRequest* request,
   
   
   if (NS_FAILED(aStatus)){
-    handleContentDownloadError(aStatus);
     return aStatus;
   }
 
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CertDownloader::OnStopRequest\n"));
 
   nsCOMPtr<nsIX509CertDB> certdb;
-  nsCOMPtr<nsICRLManager> crlManager;
 
   nsresult rv;
   nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
@@ -2461,9 +2094,6 @@ PSMContentDownloader::OnStopRequest(nsIRequest* request,
   case PSMContentDownloader::X509_EMAIL_CERT:
     certdb = do_GetService(NS_X509CERTDB_CONTRACTID);
     break;
-
-  case PSMContentDownloader::PKCS7_CRL:
-    crlManager = do_GetService(NS_CRLMANAGER_CONTRACTID);
 
   default:
     break;
@@ -2476,8 +2106,6 @@ PSMContentDownloader::OnStopRequest(nsIRequest* request,
     return certdb->ImportUserCertificate((uint8_t*)mByteData, mBufferOffset, ctx);
   case PSMContentDownloader::X509_EMAIL_CERT:
     return certdb->ImportEmailCertificate((uint8_t*)mByteData, mBufferOffset, ctx); 
-  case PSMContentDownloader::PKCS7_CRL:
-    return crlManager->ImportCrl((uint8_t*)mByteData, mBufferOffset, mURI, SEC_CRL_TYPE, mDoSilentDownload, mCrlAutoDownloadKey.get());
   default:
     rv = NS_ERROR_FAILURE;
     break;
@@ -2485,83 +2113,6 @@ PSMContentDownloader::OnStopRequest(nsIRequest* request,
   
   return rv;
 }
-
-
-nsresult
-PSMContentDownloader::handleContentDownloadError(nsresult errCode)
-{
-  nsString tmpMessage;
-  nsresult rv;
-  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
-  if(NS_FAILED(rv)){
-    return rv;
-  }
-      
-  
-  switch (mType){
-  case PSMContentDownloader::PKCS7_CRL:
-
-    
-    
-    nssComponent->GetPIPNSSBundleString("CrlImportFailureNetworkProblem", tmpMessage);
-      
-    if (mDoSilentDownload) {
-      
-      nsAutoCString updateErrCntPrefStr(CRL_AUTOUPDATE_ERRCNT_PREF);
-      nsAutoCString updateErrDetailPrefStr(CRL_AUTOUPDATE_ERRDETAIL_PREF);
-      nsCString errMsg;
-      int32_t errCnt;
-
-      nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID,&rv);
-      if(NS_FAILED(rv)){
-        return rv;
-      }
-      
-      LossyAppendUTF16toASCII(mCrlAutoDownloadKey, updateErrCntPrefStr);
-      LossyAppendUTF16toASCII(mCrlAutoDownloadKey, updateErrDetailPrefStr);
-      errMsg.AssignWithConversion(tmpMessage.get());
-      
-      rv = pref->GetIntPref(updateErrCntPrefStr.get(),&errCnt);
-      if( (NS_FAILED(rv)) || (errCnt == 0) ){
-        pref->SetIntPref(updateErrCntPrefStr.get(),1);
-      }else{
-        pref->SetIntPref(updateErrCntPrefStr.get(),errCnt+1);
-      }
-      pref->SetCharPref(updateErrDetailPrefStr.get(),errMsg.get());
-      nsCOMPtr<nsIPrefService> prefSvc(do_QueryInterface(pref));
-      prefSvc->SavePrefFile(nullptr);
-    }else{
-      nsString message;
-      nssComponent->GetPIPNSSBundleString("CrlImportFailure1x", message);
-      message.Append(NS_LITERAL_STRING("\n").get());
-      message.Append(tmpMessage);
-      nssComponent->GetPIPNSSBundleString("CrlImportFailure2", tmpMessage);
-      message.Append(NS_LITERAL_STRING("\n").get());
-      message.Append(tmpMessage);
-      nsNSSComponent::ShowAlertWithConstructedString(message);
-    }
-    break;
-  default:
-    break;
-  }
-
-  return NS_OK;
-
-}
-
-void 
-PSMContentDownloader::setSilentDownload(bool flag)
-{
-  mDoSilentDownload = flag;
-}
-
-void
-PSMContentDownloader::setCrlAutodownloadKey(nsAutoString key)
-{
-  mCrlAutoDownloadKey = key;
-}
-
-
 
 
 
@@ -2585,12 +2136,7 @@ getPSMContentType(const char * aContentType)
     return PSMContentDownloader::X509_USER_CERT;
   else if (!nsCRT::strcasecmp(aContentType, "application/x-x509-email-cert"))
     return PSMContentDownloader::X509_EMAIL_CERT;
-  else if (!nsCRT::strcasecmp(aContentType, "application/x-pkcs7-crl"))
-    return PSMContentDownloader::PKCS7_CRL;
-  else if (!nsCRT::strcasecmp(aContentType, "application/x-x509-crl"))
-    return PSMContentDownloader::PKCS7_CRL;
-  else if (!nsCRT::strcasecmp(aContentType, "application/pkix-crl"))
-    return PSMContentDownloader::PKCS7_CRL;
+
   return PSMContentDownloader::UNKNOWN_TYPE;
 }
 
