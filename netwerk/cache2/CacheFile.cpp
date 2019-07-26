@@ -177,8 +177,10 @@ CacheFile::~CacheFile()
   LOG(("CacheFile::~CacheFile() [this=%p]", this));
 
   MutexAutoLock lock(mLock);
-  if (!mMemoryOnly)
+  if (!mMemoryOnly && mReady) {
+    
     WriteMetadataIfNeededLocked(true);
+  }
 }
 
 nsresult
@@ -1334,6 +1336,11 @@ CacheFile::WriteMetadataIfNeededLocked(bool aFireAndForget)
 
   AssertOwnsLock();
   MOZ_ASSERT(!mMemoryOnly);
+
+  if (!mMetadata) {
+    MOZ_CRASH("Must have metadata here");
+    return;
+  }
 
   if (!aFireAndForget) {
     
