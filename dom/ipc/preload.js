@@ -94,6 +94,7 @@ const BrowserElementIsPreloaded = true;
   
   try {
     Services.scriptloader.loadSubScript("chrome://browser/content/forms.js", global);
+    Services.scriptloader.loadSubScript("chrome://browser/content/ErrorPage.js", global);
   } catch (e) {
   }
   Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js", global);

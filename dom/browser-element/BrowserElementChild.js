@@ -27,6 +27,7 @@ if (!('BrowserElementIsPreloaded' in this)) {
   
   try {
     Services.scriptloader.loadSubScript("chrome://browser/content/forms.js");
+    Services.scriptloader.loadSubScript("chrome://browser/content/ErrorPage.js");
   } catch (e) {
   }
   Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js");
