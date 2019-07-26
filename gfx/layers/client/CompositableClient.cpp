@@ -211,15 +211,14 @@ CompositableClient::CreateTextureClientForDrawing(SurfaceFormat aFormat,
       !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
     result = new TextureClientD3D11(aFormat, aTextureFlags);
   }
-  
   if (parentBackend == LAYERS_D3D9 &&
       !GetForwarder()->ForwardsToDifferentProcess() &&
       !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
     
-    if (ContentForFormat(aFormat) == GFX_CONTENT_COLOR_ALPHA) {
-      
+    if (ContentForFormat(aFormat) != GFX_CONTENT_COLOR) {
+      result = new DIBTextureClientD3D9(aFormat, aTextureFlags);
     } else {
-      
+      result = new CairoTextureClientD3D9(aFormat, aTextureFlags);
     }
   }
 #endif
