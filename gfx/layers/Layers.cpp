@@ -947,29 +947,94 @@ RefLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   aAttrs = RefLayerAttributes(GetReferentId());
 }
 
-void
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+uint32_t
 LayerManager::StartFrameTimeRecording()
 {
-  mLastFrameTime = TimeStamp::Now();
-  mPaintStartTime = mLastFrameTime;
+  if (mRecording.mIsPaused) {
+    mRecording.mIsPaused = false;
+
+    if (!mRecording.mIntervals.Length()) { 
+      const uint32_t kRecordingMinSize = 60 * 10; 
+      const uint32_t kRecordingMaxSize = 60 * 60 * 60; 
+      uint32_t bufferSize = Preferences::GetUint("toolkit.framesRecording.bufferSize",
+                                                 kRecordingMinSize);
+      bufferSize = std::min(bufferSize, kRecordingMaxSize);
+      bufferSize = std::max(bufferSize, kRecordingMinSize);
+
+      if (!mRecording.mIntervals.SetLength(bufferSize) || !mRecording.mPaints.SetLength(bufferSize)) {
+        mRecording.mIsPaused = true; 
+        mRecording.mIntervals.Clear();
+        mRecording.mPaints.Clear();
+      }
+    }
+
+    
+    mRecording.mLastFrameTime = TimeStamp::Now();
+    mRecording.mPaintStartTime = mRecording.mLastFrameTime;
+
+    
+    mRecording.mCurrentRunStartIndex = mRecording.mNextIndex;
+  }
+
+  
+  
+  mRecording.mLatestStartIndex = mRecording.mNextIndex;
+  return mRecording.mNextIndex;
 }
 
 void
 LayerManager::SetPaintStartTime(TimeStamp& aTime)
 {
-  if (!mLastFrameTime.IsNull()) {
-    mPaintStartTime = aTime;
+  if (!mRecording.mIsPaused) {
+    mRecording.mPaintStartTime = aTime;
   }
 }
 
 void
 LayerManager::PostPresent()
 {
-  if (!mLastFrameTime.IsNull()) {
+  if (!mRecording.mIsPaused) {
     TimeStamp now = TimeStamp::Now();
-    mFrameIntervals.AppendElement((now - mLastFrameTime).ToMilliseconds());
-    mPaintTimes.AppendElement((now - mPaintStartTime).ToMilliseconds());
-    mLastFrameTime = now;
+    uint32_t i = mRecording.mNextIndex % mRecording.mIntervals.Length();
+    mRecording.mIntervals[i] = static_cast<float>((now - mRecording.mLastFrameTime)
+                                                  .ToMilliseconds());
+    mRecording.mPaints[i]    = static_cast<float>((now - mRecording.mPaintStartTime)
+                                                  .ToMilliseconds());
+    mRecording.mNextIndex++;
+    mRecording.mLastFrameTime = now;
+
+    if (mRecording.mNextIndex > (mRecording.mLatestStartIndex + mRecording.mIntervals.Length())) {
+      
+      mRecording.mIsPaused = true;
+    }
   }
   if (!mTabSwitchStart.IsNull()) {
     Telemetry::Accumulate(Telemetry::FX_TAB_SWITCH_TOTAL_MS,
@@ -979,13 +1044,33 @@ LayerManager::PostPresent()
 }
 
 void
-LayerManager::StopFrameTimeRecording(nsTArray<float>& aFrameIntervals, nsTArray<float>& aPaintTimes)
+LayerManager::StopFrameTimeRecording(uint32_t         aStartIndex,
+                                     nsTArray<float>& aFrameIntervals,
+                                     nsTArray<float>& aPaintTimes)
 {
-  mLastFrameTime = TimeStamp();
-  aFrameIntervals.SwapElements(mFrameIntervals);
-  aPaintTimes.SwapElements(mPaintTimes);
-  mFrameIntervals.Clear();
-  mPaintTimes.Clear();
+  uint32_t bufferSize = mRecording.mIntervals.Length();
+  uint32_t length = mRecording.mNextIndex - aStartIndex;
+  if (mRecording.mIsPaused || length > bufferSize || aStartIndex < mRecording.mCurrentRunStartIndex) {
+    
+    
+    length = 0;
+  }
+
+  
+  if (!length || !aFrameIntervals.SetLength(length) || !aPaintTimes.SetLength(length)) {
+    aFrameIntervals.Clear();
+    aPaintTimes.Clear();
+    return; 
+  }
+
+  uint32_t cyclicPos = aStartIndex % bufferSize;
+  for (uint32_t i = 0; i < length; i++, cyclicPos++) {
+    if (cyclicPos == bufferSize) {
+      cyclicPos = 0;
+    }
+    aFrameIntervals[i] = mRecording.mIntervals[cyclicPos];
+    aPaintTimes[i]     = mRecording.mPaints[cyclicPos];
+  }
 }
 
 void

@@ -489,9 +489,32 @@ public:
 
   void LogSelf(const char* aPrefix="");
 
-  void StartFrameTimeRecording();
+  
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+  uint32_t StartFrameTimeRecording();
+
+  
+
+
+
+  void StopFrameTimeRecording(uint32_t         aStartIndex,
+                              nsTArray<float>& aFrameIntervals,
+                              nsTArray<float>& aPaintTimes);
+
   void SetPaintStartTime(TimeStamp& aTime);
-  void StopFrameTimeRecording(nsTArray<float>& aFrameTimes, nsTArray<float>& aProcessingTimes);
 
   void PostPresent();
 
@@ -526,10 +549,25 @@ protected:
   uint64_t mId;
   bool mInTransaction;
 private:
-  TimeStamp mLastFrameTime;
-  TimeStamp mPaintStartTime;
-  nsTArray<float> mFrameIntervals;
-  nsTArray<float> mPaintTimes;
+  struct FramesTimingRecording
+  {
+    
+    
+    FramesTimingRecording()
+      : mIsPaused(true)
+      , mNextIndex(0)
+    {}
+    bool mIsPaused;
+    uint32_t mNextIndex;
+    TimeStamp mLastFrameTime;
+    TimeStamp mPaintStartTime;
+    nsTArray<float> mIntervals;
+    nsTArray<float> mPaints;
+    uint32_t mLatestStartIndex;
+    uint32_t mCurrentRunStartIndex;
+  };
+  FramesTimingRecording mRecording;
+
   TimeStamp mTabSwitchStart;
 };
 
