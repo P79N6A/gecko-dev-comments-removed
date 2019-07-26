@@ -43,6 +43,30 @@ wrap(_ZdaPv)(void *ptr)
 {
   wrap(free)(ptr);
 }
+
+MOZ_EXPORT_API(void *)
+wrap(_ZnwjRKSt9nothrow_t)(unsigned int size)
+{
+  return wrap(malloc)(size);
+}
+
+MOZ_EXPORT_API(void *)
+wrap(_ZnajRKSt9nothrow_t)(unsigned int size)
+{
+  return wrap(malloc)(size);
+}
+
+MOZ_EXPORT_API(void)
+wrap(_ZdlPvRKSt9nothrow_t)(void *ptr)
+{
+  wrap(free)(ptr);
+}
+
+MOZ_EXPORT_API(void)
+wrap(_ZdaPvRKSt9nothrow_t)(void *ptr)
+{
+  wrap(free)(ptr);
+}
 #endif
 
 #ifdef wrap
