@@ -1126,8 +1126,15 @@ ContentChild::RecvAppInfo(const nsCString& version, const nsCString& buildID)
 {
     mAppInfo.version.Assign(version);
     mAppInfo.buildID.Assign(buildID);
-
-    PreloadSlowThings();
+    
+    
+    
+    
+    
+    if ((mIsForApp || mIsForBrowser) &&
+        Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
+        PreloadSlowThings();
+    }
     return true;
 }
 

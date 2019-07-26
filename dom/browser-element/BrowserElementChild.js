@@ -80,6 +80,11 @@ BrowserElementChild.prototype = {
 
   _init: function() {
     debug("Starting up.");
+
+    
+    
+    docShell.isActive = true;
+
     sendAsyncMsg("hello");
 
     
