@@ -1492,8 +1492,6 @@ protected:
   nsCOMPtr<nsIDOMStorage>      mLocalStorage;
   nsCOMPtr<nsIDOMStorage>      mSessionStorage;
 
-  nsCOMPtr<nsIXPConnectJSObjectHolder> mInnerWindowHolder;
-
   
   nsRefPtr<mozilla::EventListenerManager> mListenerManager;
   
