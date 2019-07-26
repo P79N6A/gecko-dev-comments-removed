@@ -498,26 +498,6 @@ GetWrappedNative(JSObject *obj)
     return static_cast<XPCWrappedNative *>(js::GetObjectPrivate(obj));
 }
 
-static inline JSObject *
-FindWrapper(JSContext *cx, JSObject *wrapper_)
-{
-    RootedObject wrapper(cx, wrapper_);
-    while (!js::IsWrapper(wrapper) ||
-           !(Wrapper::wrapperHandler(wrapper)->flags() &
-             WrapperFactory::IS_XRAY_WRAPPER_FLAG)) {
-        if (js::IsWrapper(wrapper) &&
-            js::GetProxyHandler(wrapper) == &sandboxProxyHandler) {
-            wrapper = SandboxProxyHandler::wrappedObject(wrapper);
-        } else {
-            if (!js::GetObjectProto(cx, wrapper, wrapper.address()))
-                return nullptr;
-        }
-        
-    }
-
-    return wrapper;
-}
-
 JSObject*
 XrayTraits::getHolder(JSObject *wrapper)
 {
@@ -552,12 +532,12 @@ XPCWrappedNativeXrayTraits::isResolving(JSContext *cx, JSObject *holder,
 
 
 JSBool
-holder_get(JSContext *cx, HandleObject wrapperArg, HandleId id, MutableHandleValue vp)
+holder_get(JSContext *cx, HandleObject wrapper, HandleId id, MutableHandleValue vp)
 {
-    RootedObject wrapper(cx, FindWrapper(cx, wrapperArg));
-    if (!wrapper)
-        return false;
-
+    
+    
+    
+    NS_ENSURE_TRUE(WrapperFactory::IsXrayWrapper(wrapper), true);
     JSObject *holder = GetHolder(wrapper);
 
     XPCWrappedNative *wn = XPCWrappedNativeXrayTraits::getWN(wrapper);
@@ -576,12 +556,12 @@ holder_get(JSContext *cx, HandleObject wrapperArg, HandleId id, MutableHandleVal
 }
 
 JSBool
-holder_set(JSContext *cx, HandleObject wrapperArg, HandleId id, JSBool strict, MutableHandleValue vp)
+holder_set(JSContext *cx, HandleObject wrapper, HandleId id, JSBool strict, MutableHandleValue vp)
 {
-    RootedObject wrapper(cx, FindWrapper(cx, wrapperArg));
-    if (!wrapper)
-        return false;
-
+    
+    
+    
+    NS_ENSURE_TRUE(WrapperFactory::IsXrayWrapper(wrapper), true);
     JSObject *holder = GetHolder(wrapper);
     if (XPCWrappedNativeXrayTraits::isResolving(cx, holder, id)) {
         return true;
