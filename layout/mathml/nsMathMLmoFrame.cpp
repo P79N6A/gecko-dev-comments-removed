@@ -100,7 +100,9 @@ nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     nsRect selectedRect;
     nsIFrame* firstChild = mFrames.FirstChild();
     if (IsFrameInSelection(firstChild)) {
-      selectedRect = firstChild->GetRect();
+      mMathMLChar.GetRect(selectedRect);
+      
+      selectedRect.Inflate(nsPresContext::CSSPixelsToAppUnits(1));
       isSelected = true;
     }
     rv = mMathMLChar.Display(aBuilder, this, aLists, 0, isSelected ? &selectedRect : nullptr);
