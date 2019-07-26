@@ -127,6 +127,12 @@ public class GLController {
 
 
     private EGLSurface provideEGLSurface() {
+        synchronized (this) {
+            if (!mSurfaceValid) {
+                return null;
+            }
+        }
+
         if (mEGL == null) {
             initEGL();
         }

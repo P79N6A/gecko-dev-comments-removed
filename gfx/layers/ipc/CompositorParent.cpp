@@ -346,12 +346,17 @@ CompositorParent::ResumeComposition()
 
   MonitorAutoLock lock(mResumeCompositionMonitor);
 
-  mPaused = false;
-
 #ifdef MOZ_WIDGET_ANDROID
-  static_cast<LayerManagerOGL*>(mLayerManager.get())->gl()->RenewSurface();
+  if (!static_cast<LayerManagerOGL*>(mLayerManager.get())->gl()->RenewSurface()) {
+    
+    
+    __android_log_print(ANDROID_LOG_INFO, "CompositorParent", "Unable to renew compositor surface; remaining in paused state");
+    lock.NotifyAll();
+    return;
+  }
 #endif
 
+  mPaused = false;
   Composite();
 
   
@@ -402,7 +407,7 @@ CompositorParent::SchedulePauseOnCompositorThread()
   lock.Wait();
 }
 
-void
+bool
 CompositorParent::ScheduleResumeOnCompositorThread(int width, int height)
 {
   MonitorAutoLock lock(mResumeCompositionMonitor);
@@ -413,6 +418,8 @@ CompositorParent::ScheduleResumeOnCompositorThread(int width, int height)
 
   
   lock.Wait();
+
+  return !mPaused;
 }
 
 void
