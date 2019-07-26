@@ -459,7 +459,7 @@ nsXBLService::IsChromeOrResourceURI(nsIURI* aURI)
 
 nsresult
 nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
-                           nsIPrincipal* aOriginPrincipal, bool aAugmentFlag,
+                           nsIPrincipal* aOriginPrincipal,
                            nsXBLBinding** aBinding, bool* aResolveStyle) 
 {
   NS_PRECONDITION(aOriginPrincipal, "Must have an origin principal");
@@ -482,7 +482,7 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
   nsBindingManager *bindingManager = document->BindingManager();
   
   nsXBLBinding *binding = bindingManager->GetBinding(aContent);
-  if (binding && !aAugmentFlag) {
+  if (binding) {
     nsXBLBinding *styleBinding = binding->GetFirstStyleBinding();
     if (styleBinding) {
       if (binding->MarkedForDeath()) {
@@ -520,31 +520,14 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  if (aAugmentFlag) {
-    nsXBLBinding *baseBinding;
-    nsXBLBinding *nextBinding = newBinding;
-    do {
-      baseBinding = nextBinding;
-      nextBinding = baseBinding->GetBaseBinding();
-      baseBinding->SetIsStyleBinding(false);
-    } while (nextBinding);
-
+  
+  if (binding) {
     
-    
-    
-    baseBinding->SetBaseBinding(binding);
-    bindingManager->SetBinding(aContent, newBinding);
+    binding->RootBinding()->SetBaseBinding(newBinding);
   }
   else {
     
-    if (binding) {
-      
-      binding->RootBinding()->SetBaseBinding(newBinding);
-    }
-    else {
-      
-      bindingManager->SetBinding(aContent, newBinding);
-    }
+    bindingManager->SetBinding(aContent, newBinding);
   }
 
   {

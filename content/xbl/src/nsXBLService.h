@@ -47,7 +47,7 @@ class nsXBLService : public nsIObserver,
   
   
   nsresult LoadBindings(nsIContent* aContent, nsIURI* aURL,
-                        nsIPrincipal* aOriginPrincipal, bool aAugmentFlag,
+                        nsIPrincipal* aOriginPrincipal,
                         nsXBLBinding** aBinding, bool* aResolveStyle);
 
   
