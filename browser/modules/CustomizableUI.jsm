@@ -729,6 +729,10 @@ let CustomizableUIInternal = {
         throw new Error("Could not find the view node with id: " + aWidget.viewId);
       }
 
+      
+      
+      viewNode.classList.add("PanelUI-subView");
+
       for (let eventName of kSubviewEvents) {
         let handler = "on" + eventName;
         if (typeof aWidget[handler] == "function") {
