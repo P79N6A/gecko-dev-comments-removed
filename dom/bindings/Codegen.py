@@ -7930,7 +7930,9 @@ class CGBindingRoot(CGThing):
         cgthings.extend([CGDescriptor(x) for x in descriptors])
 
         
-        cgthings.extend([CGCallbackInterface(x) for x in callbackDescriptors])
+        
+        cgthings.extend([CGCallbackInterface(x) for x in callbackDescriptors if
+                         not x.workers])
 
         
         def getParentDescriptor(desc):
