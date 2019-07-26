@@ -234,7 +234,7 @@ pref("gfx.font_rendering.graphite.enabled", false);
 
 #ifdef XP_MACOSX
 
-pref("gfx.font_rendering.harfbuzz.scripts", 71);
+pref("gfx.font_rendering.harfbuzz.scripts", -1);
 #else
 #ifdef ANDROID
 
