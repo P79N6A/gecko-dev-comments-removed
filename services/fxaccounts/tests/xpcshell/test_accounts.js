@@ -418,7 +418,7 @@ add_task(function test_getAssertion() {
   _("delta: " + Date.parse(payload.exp - start) + "\n");
   let exp = Number(payload.exp);
 
-  do_check_eq(exp, now + TWO_MINUTES_MS);
+  do_check_eq(exp, now + ASSERTION_LIFETIME);
 
   
   fxa.internal._d_signCertificate = Promise.defer();
@@ -456,7 +456,7 @@ add_task(function test_getAssertion() {
   do_check_eq(keyPair.validUntil, start + KEY_LIFETIME);
   do_check_eq(cert.validUntil, start + CERT_LIFETIME);
   exp = Number(payload.exp);
-  do_check_eq(exp, now + TWO_MINUTES_MS);
+  do_check_eq(exp, now + ASSERTION_LIFETIME);
 
   
   
@@ -479,7 +479,7 @@ add_task(function test_getAssertion() {
   do_check_eq(cert.validUntil, now + CERT_LIFETIME);
   exp = Number(payload.exp);
 
-  do_check_eq(exp, now + TWO_MINUTES_MS);
+  do_check_eq(exp, now + ASSERTION_LIFETIME);
   _("----- DONE ----\n");
 });
 

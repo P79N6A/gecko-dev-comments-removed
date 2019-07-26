@@ -33,7 +33,14 @@ this.DATA_FORMAT_VERSION = 1;
 this.DEFAULT_STORAGE_FILENAME = "signedInUser.json";
 
 
-this.ASSERTION_LIFETIME = 1000 * 60 * 5;    
+
+
+
+this.ASSERTION_LIFETIME = 1000 * 3600 * 24 * 365 * 25; 
+
+
+
+this.ASSERTION_USE_PERIOD = 1000 * 60 * 5; 
 this.CERT_LIFETIME      = 1000 * 3600 * 6;  
 this.KEY_LIFETIME       = 1000 * 3600 * 12; 
 
