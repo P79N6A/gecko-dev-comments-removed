@@ -274,13 +274,6 @@ var PlacesOrganizer = {
 
 
   updateDetailsPane: function PO_updateDetailsPane() {
-    let detailsDeck = document.getElementById("detailsDeck");
-    let detailsPaneDisabled = detailsDeck.hidden =
-      !ContentArea.currentViewOptions.showDetailsPane;
-    if (detailsPaneDisabled) {
-      return;
-    }
-
     let view = PlacesUIUtils.getViewForNode(document.activeElement);
     if (view) {
       let selectedNodes = view.selectedNode ?
@@ -1268,10 +1261,10 @@ let ContentArea = {
   function CA_getContentViewForQueryString(aQueryString) {
     try {
       if (this._specialViews.has(aQueryString)) {
-        let { view, options } = this._specialViews.get(aQueryString);
+        let view = this._specialViews.get(aQueryString);
         if (typeof view == "function") {
           view = view();
-          this._specialViews.set(aQueryString, { view: view, options: options });
+          this._specialViews.set(aQueryString, view);
         }
         return view;
       }
@@ -1291,17 +1284,13 @@ let ContentArea = {
 
 
 
-
-
-
   setContentViewForQueryString:
-  function CA_setContentViewForQueryString(aQueryString, aView, aOptions) {
+  function CA_setContentViewForQueryString(aQueryString, aView) {
     if (!aQueryString ||
         typeof aView != "object" && typeof aView != "function")
       throw new Error("Invalid arguments");
 
-    this._specialViews.set(aQueryString, { view: aView,
-                                           options: aOptions || new Object() });
+    this._specialViews.set(aQueryString, aView);
   },
 
   get currentView() PlacesUIUtils.getViewForNode(this._deck.selectedPanel),
@@ -1318,23 +1307,6 @@ let ContentArea = {
     return aQueryString;
   },
 
-  
-
-
-
-
-  get currentViewOptions() {
-    
-    let viewOptions = ContentTree.viewOptions;
-    if (this._specialViews.has(this.currentPlace)) {
-      let { view, options } = this._specialViews.get(this.currentPlace);
-      for (let option in options) {
-        viewOptions[option] = options[option];
-      }
-    }
-    return viewOptions;
-  },
-
   focus: function() {
     this._deck.selectedPanel.focus();
   }
@@ -1346,8 +1318,6 @@ let ContentTree = {
   },
 
   get view() this._view,
-
-  get viewOptions() Object.seal({ showDetailsPane: true }),
 
   openSelectedNode: function CT_openSelectedNode(aEvent) {
     let view = this.view;
