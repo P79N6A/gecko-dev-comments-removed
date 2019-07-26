@@ -553,7 +553,9 @@ abstract public class BrowserApp extends GeckoApp
                         } else {
                             
                             
-                            mAboutHomeContent.setPadding(0, 0, 0, 0);
+                            if (mAboutHomeContent != null) {
+                                mAboutHomeContent.setPadding(0, 0, 0, 0);
+                            }
                             mBrowserToolbar.cancelVisibilityAnimation();
                             mBrowserToolbar.getLayout().scrollTo(0, 0);
                         }
