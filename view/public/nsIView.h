@@ -13,10 +13,15 @@
 #include "nsNativeWidget.h"
 #include "nsIWidget.h"
 #include "nsWidgetInitData.h"
+#include "nsRegion.h"
+#include "nsCRT.h"
+#include "nsIFactory.h"
+#include "nsEvent.h"
+#include "nsIWidgetListener.h"
+#include <stdio.h>
 
 class nsIViewManager;
 class nsViewManager;
-class nsView;
 class nsIWidget;
 class nsIFrame;
 
@@ -30,8 +35,8 @@ enum nsViewVisibility {
 };
 
 #define NS_IVIEW_IID    \
-  { 0xa4577c1d, 0xbc80, 0x444c, \
-    { 0xb0, 0x9d, 0x5b, 0xef, 0x94, 0x7c, 0x43, 0x31 } }
+{ 0x7f979fcc, 0xa15a, 0x4f8a, \
+  { 0x8b, 0x68, 0xa4, 0x16, 0xa1, 0x87, 0xad, 0xdc } }
 
 
 
@@ -61,10 +66,15 @@ enum nsViewVisibility {
 
 
 
-class nsIView
+class nsIView MOZ_FINAL : public nsIWidgetListener
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IVIEW_IID)
+
+  nsIView(nsViewManager* aViewManager = nullptr,
+          nsViewVisibility aVisibility = nsViewVisibility_kShow);
+
+  NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
 
   
 
@@ -110,12 +120,6 @@ public:
     return nsPoint(mPosX, mPosY);
   }
 
-  
-
-
-
-  virtual void SetPosition(nscoord aX, nscoord aY) = 0;
-  
   
 
 
@@ -190,22 +194,19 @@ public:
 
 
 
-  nsIView* GetParent() const { return reinterpret_cast<nsIView*>(mParent); }
+  nsIView* GetParent() const { return mParent; }
 
   
 
 
 
-  nsIView* GetFirstChild() const { return reinterpret_cast<nsIView*>(mFirstChild); }
+  nsIView* GetFirstChild() const { return mFirstChild; }
 
   
 
 
 
-  nsIView* GetNextSibling() const { return reinterpret_cast<nsIView*>(mNextSibling); }
-  void SetNextSibling(nsIView *aSibling) {
-    mNextSibling = reinterpret_cast<nsView*>(aSibling);
-  }
+  nsIView* GetNextSibling() const { return mNextSibling; }
 
   
 
@@ -352,13 +353,135 @@ public:
   
   nsPoint ViewToWidgetOffset() const { return mViewToWidgetOffset; }
 
+  NS_IMETHOD  QueryInterface(const nsIID& aIID, void** aInstancePtr);
+
+  
+
+
+
+
+
+  virtual void SetPosition(nscoord aX, nscoord aY);
+  
+
+
+
+
+
+  virtual void SetDimensions(const nsRect &aRect, bool aPaint = true,
+                             bool aResizeWidget = true);
+
+  
+
+
+
+
+  NS_IMETHOD  SetVisibility(nsViewVisibility visibility);
+
+  
+
+
+
+
+
+
+
+
+  void SetZIndex(bool aAuto, int32_t aZIndex, bool aTopMost);
+
+  
+
+
+
+
+
+
+
+  NS_IMETHOD  SetFloating(bool aFloatingView);
+
+  
+  
+  void DropMouseGrabbing();
+
+  nsViewManager* GetViewManagerInternal() const { return mViewManager; }
+  int32_t GetZIndex() const { return mZIndex; }
+  bool GetZIndexIsAuto() const { return (mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0; }
+  
+  nsRect GetBoundsInParentUnits() const;
+
+  
+  
+
+  bool HasNonEmptyDirtyRegion() {
+    return mDirtyRegion && !mDirtyRegion->IsEmpty();
+  }
+  nsRegion* GetDirtyRegion() {
+    if (!mDirtyRegion) {
+      NS_ASSERTION(!mParent || GetFloating(),
+                   "Only display roots should have dirty regions");
+      mDirtyRegion = new nsRegion();
+      NS_ASSERTION(mDirtyRegion, "Out of memory!");
+    }
+    return mDirtyRegion;
+  }
+
+  void InsertChild(nsIView *aChild, nsIView *aSibling);
+  void RemoveChild(nsIView *aChild);
+
+  void SetParent(nsIView *aParent) { mParent = aParent; }
+  void SetNextSibling(nsIView *aSibling)
+  {
+    NS_ASSERTION(aSibling != this, "Can't be our own sibling!");
+    mNextSibling = aSibling;
+  }
+
+  uint32_t GetViewFlags() const { return mVFlags; }
+  void SetViewFlags(uint32_t aFlags) { mVFlags = aFlags; }
+
+  void SetTopMost(bool aTopMost) { aTopMost ? mVFlags |= NS_VIEW_FLAG_TOPMOST : mVFlags &= ~NS_VIEW_FLAG_TOPMOST; }
+  bool IsTopMost() { return((mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
+
+  void ResetWidgetBounds(bool aRecurse, bool aForceSync);
+  void AssertNoWindow();
+
+  void NotifyEffectiveVisibilityChanged(bool aEffectivelyVisible);
+
+  
+  
+  
+  
+  void InvalidateHierarchy(nsViewManager *aViewManagerParent);
+
+  
+  virtual nsIPresShell* GetPresShell();
+  virtual nsIView* GetView() { return this; }
+  bool WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y);
+  bool WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight);
+  bool RequestWindowClose(nsIWidget* aWidget);
+  void WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint);
+  bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion, uint32_t aFlags);
+  void DidPaintWindow();
+  void RequestRepaint() MOZ_OVERRIDE;
+  nsEventStatus HandleEvent(nsGUIEvent* aEvent, bool aUseAttachedEvents);
+
+  virtual ~nsIView();
+
+  nsPoint GetOffsetTo(const nsIView* aOther, const int32_t aAPD) const;
+  nsIWidget* GetNearestWidget(nsPoint* aOffset, const int32_t aAPD) const;
+
 protected:
+  
+  
+  void DoResetWidgetBounds(bool aMoveOnly, bool aInvalidateChangedSize);
+  void InitializeWindow(bool aEnableDragDrop, bool aResetVisibility);
+
   nsViewManager     *mViewManager;
-  nsView            *mParent;
+  nsIView           *mParent;
   nsIWidget         *mWindow;
-  nsView            *mNextSibling;
-  nsView            *mFirstChild;
+  nsIView           *mNextSibling;
+  nsIView           *mFirstChild;
   nsIFrame          *mFrame;
+  nsRegion          *mDirtyRegion;
   int32_t           mZIndex;
   nsViewVisibility  mVis;
   
@@ -372,12 +495,6 @@ protected:
   bool              mWidgetIsTopLevel;
   bool              mForcedRepaint;
   bool              mInAlternatePaint;
-
-  virtual ~nsIView() {}
-
-private:
-  nsView* Impl();
-  const nsView* Impl() const;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIView, NS_IVIEW_IID)
