@@ -122,11 +122,7 @@ function addAddon(aUrl) {
     let listener = {
       onInstallEnded: function(aAddon, aAddonInstall) {
         aInstaller.removeListener(listener);
-
-        
-        executeSoon(function() {
-          deferred.resolve(aAddonInstall);
-        });
+        deferred.resolve(aAddonInstall);
       }
     };
     aInstaller.addListener(listener);
