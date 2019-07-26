@@ -501,16 +501,6 @@ protected:
 
 
 
-
-
-  bool RemovePropTableFrame(nsPresContext*                 aPresContext,
-                              nsIFrame*                      aFrame,
-                              const FramePropertyDescriptor* aProperty);
-
-  
-
-
-
   nsresult SetPropTableFrames(nsPresContext*                 aPresContext,
                               nsFrameList*                   aFrameList,
                               const FramePropertyDescriptor* aProperty);

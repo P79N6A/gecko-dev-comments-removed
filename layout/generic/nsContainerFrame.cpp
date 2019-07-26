@@ -1450,33 +1450,6 @@ nsContainerFrame::RemovePropTableFrames(nsPresContext*                 aPresCont
   return static_cast<nsFrameList*>(propTable->Remove(this, aProperty));
 }
 
-bool
-nsContainerFrame::RemovePropTableFrame(nsPresContext*                 aPresContext,
-                                       nsIFrame*                      aFrame,
-                                       const FramePropertyDescriptor* aProperty)
-{
-  nsFrameList* frameList = RemovePropTableFrames(aPresContext, aProperty);
-  if (!frameList) {
-    
-    return false;
-  }
-  if (!frameList->RemoveFrameIfPresent(aFrame)) {
-    
-    SetPropTableFrames(aPresContext, frameList, aProperty);
-    return false;
-  }
-
-  if (frameList->IsEmpty()) {
-    
-    delete frameList;
-  }
-  else {
-    
-    SetPropTableFrames(aPresContext, frameList, aProperty);
-  }
-  return true;
-}
-
 nsresult
 nsContainerFrame::SetPropTableFrames(nsPresContext*                 aPresContext,
                                      nsFrameList*                   aFrameList,
