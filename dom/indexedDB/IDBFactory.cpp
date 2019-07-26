@@ -300,39 +300,19 @@ IDBFactory::GetConnection(const nsAString& aDatabaseFilePath,
   rv = ss->OpenDatabaseWithFileURL(dbFileUrl, getter_AddRefs(connection));
   NS_ENSURE_SUCCESS(rv, nullptr);
 
-  rv = SetDefaultPragmas(connection);
+  
+  
+  
+  
+  
+  
+  rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "PRAGMA foreign_keys = ON; "
+    "PRAGMA recursive_triggers = ON;"
+  ));
   NS_ENSURE_SUCCESS(rv, nullptr);
 
   return connection.forget();
-}
-
-
-nsresult
-IDBFactory::SetDefaultPragmas(mozIStorageConnection* aConnection)
-{
-  NS_ASSERTION(aConnection, "Null connection!");
-
-  nsresult rv = aConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    
-    "PRAGMA foreign_keys = ON; "
-
-    
-    
-    
-    
-    
-    "PRAGMA recursive_triggers = ON; "
-
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
-    
-    
-    
-    "PRAGMA journal_mode = TRUNCATE; "
-#endif
-  ));
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
-  return NS_OK;
 }
 
 inline

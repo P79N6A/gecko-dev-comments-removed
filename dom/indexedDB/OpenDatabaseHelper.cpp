@@ -36,7 +36,7 @@ MOZ_STATIC_ASSERT(JS_STRUCTURED_CLONE_VERSION == 1,
                   "Need to update the major schema version.");
 
 
-const uint32_t kMajorSchemaVersion = 13;
+const uint32_t kMajorSchemaVersion = 12;
 
 
 
@@ -1323,33 +1323,6 @@ UpgradeSchemaFrom11_0To12_0(mozIStorageConnection* aConnection)
   return NS_OK;
 }
 
-nsresult
-UpgradeSchemaFrom12_0To13_0(mozIStorageConnection* aConnection,
-                            bool* aVacuumNeeded)
-{
-  nsresult rv;
-
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
-  int32_t defaultPageSize;
-  rv = aConnection->GetDefaultPageSize(&defaultPageSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsAutoCString upgradeQuery("PRAGMA auto_vacuum = FULL; PRAGMA page_size = ");
-  upgradeQuery.AppendInt(defaultPageSize);
-
-  rv = aConnection->ExecuteSimpleSQL(upgradeQuery);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aVacuumNeeded = true;
-#endif
-
-  rv = aConnection->SetSchemaVersion(MakeSchemaVersion(13, 0));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
 class VersionChangeEventsRunnable;
 
 class SetVersionHelper : public AsyncConnectionHelper,
@@ -1841,9 +1814,6 @@ OpenDatabaseHelper::CreateDatabaseConnection(
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = IDBFactory::SetDefaultPragmas(connection);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   rv = connection->EnableModule(NS_LITERAL_CSTRING("filesystem"));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1866,17 +1836,6 @@ OpenDatabaseHelper::CreateDatabaseConnection(
   bool vacuumNeeded = false;
 
   if (schemaVersion != kSQLiteSchemaVersion) {
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
-    if (!schemaVersion) {
-      
-      rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        
-        "PRAGMA auto_vacuum = FULL; "
-      ));
-      NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-    }
-#endif
-
     mozStorageTransaction transaction(connection, false,
                                   mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
@@ -1904,7 +1863,7 @@ OpenDatabaseHelper::CreateDatabaseConnection(
     }
     else  {
       
-      MOZ_STATIC_ASSERT(kSQLiteSchemaVersion == int32_t((13 << 4) + 0),
+      MOZ_STATIC_ASSERT(kSQLiteSchemaVersion == int32_t((12 << 4) + 0),
                         "Need upgrade code from schema version increase.");
 
       while (schemaVersion != kSQLiteSchemaVersion) {
@@ -1933,9 +1892,6 @@ OpenDatabaseHelper::CreateDatabaseConnection(
         else if (schemaVersion == MakeSchemaVersion(11, 0)) {
           rv = UpgradeSchemaFrom11_0To12_0(connection);
         }
-        else if (schemaVersion == MakeSchemaVersion(12, 0)) {
-          rv = UpgradeSchemaFrom12_0To13_0(connection, &vacuumNeeded);
-        }
         else {
           NS_WARNING("Unable to open IndexedDB database, no upgrade path is "
                      "available!");
@@ -1950,7 +1906,7 @@ OpenDatabaseHelper::CreateDatabaseConnection(
       NS_ASSERTION(schemaVersion == kSQLiteSchemaVersion, "Huh?!");
     }
 
-    rv = transaction.Commit();
+    rv = transaction.Commit();    
     if (rv == NS_ERROR_FILE_NO_DEVICE_SPACE) {
       
       
@@ -1960,9 +1916,17 @@ OpenDatabaseHelper::CreateDatabaseConnection(
   }
 
   if (vacuumNeeded) {
-    rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM;"));
+    rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "VACUUM;"
+    ));
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  
+  rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "PRAGMA foreign_keys = ON;"
+  ));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   connection.forget(aConnection);
   return NS_OK;
@@ -2503,21 +2467,6 @@ DeleteDatabaseHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 
       quotaManager->DecreaseUsageForOrigin(mASCIIOrigin, fileSize);
     }
-  }
-
-  nsCOMPtr<nsIFile> dbJournalFile;
-  rv = directory->Clone(getter_AddRefs(dbJournalFile));
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
-  rv = dbJournalFile->Append(filename + NS_LITERAL_STRING(".sqlite-journal"));
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
-  rv = dbJournalFile->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
-  if (exists) {
-    rv = dbJournalFile->Remove(false);
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
   }
 
   nsCOMPtr<nsIFile> fmDirectory;
