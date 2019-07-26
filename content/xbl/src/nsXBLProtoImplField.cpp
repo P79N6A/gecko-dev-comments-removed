@@ -217,8 +217,13 @@ FieldGetterImpl(JSContext *cx, JS::CallArgs args)
 
   js::Rooted<JSObject*> thisObj(cx, &thisv.toObject());
 
+  
+  
+  
+  
+  
   bool installed = false;
-  js::Rooted<JSObject*> callee(cx, &args.calleev().toObject());
+  js::Rooted<JSObject*> callee(cx, js::UnwrapObject(&args.calleev().toObject()));
   js::Rooted<jsid> id(cx);
   if (!InstallXBLField(cx, callee, thisObj, id.address(), &installed)) {
     return false;
@@ -253,8 +258,13 @@ FieldSetterImpl(JSContext *cx, JS::CallArgs args)
 
   js::Rooted<JSObject*> thisObj(cx, &thisv.toObject());
 
+  
+  
+  
+  
+  
   bool installed = false;
-  js::Rooted<JSObject*> callee(cx, &args.calleev().toObject());
+  js::Rooted<JSObject*> callee(cx, js::UnwrapObject(&args.calleev().toObject()));
   js::Rooted<jsid> id(cx);
   if (!InstallXBLField(cx, callee, thisObj, id.address(), &installed)) {
     return false;
