@@ -97,6 +97,10 @@ public:
   {
     return mAudioParamStream;
   }
+  const AudioChunk& LastChunk() const
+  {
+    return mLastChunk;
+  }
 
   
   AudioNodeEngine* Engine() { return mEngine; }

@@ -22,6 +22,11 @@ const int GUESS_AUDIO_CHANNELS = 2;
 
 
 
+const uint32_t WEBAUDIO_BLOCK_SIZE_BITS = 7;
+const uint32_t WEBAUDIO_BLOCK_SIZE = 1 << WEBAUDIO_BLOCK_SIZE_BITS;
+
+
+
 
 
 
