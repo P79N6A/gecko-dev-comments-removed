@@ -15,6 +15,7 @@
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
+#include "mozilla/layers/ImageBridgeChild.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsISupportsImpl.h"            
 
@@ -35,6 +36,12 @@ SharedPlanarYCbCrImage::SharedPlanarYCbCrImage(ImageClient* aCompositable)
 
 SharedPlanarYCbCrImage::~SharedPlanarYCbCrImage() {
   MOZ_COUNT_DTOR(SharedPlanarYCbCrImage);
+
+  if (mCompositable->GetAsyncID() != 0 &&
+      !InImageBridgeChildThread()) {
+    ImageBridgeChild::DispatchReleaseTextureClient(mTextureClient.forget().drop());
+    ImageBridgeChild::DispatchReleaseImageClient(mCompositable.forget().drop());
+  }
 }
 
 

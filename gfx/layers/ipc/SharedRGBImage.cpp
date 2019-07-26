@@ -11,6 +11,7 @@
 #include "mozilla/layers/ImageClient.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/TextureClient.h"  
+#include "mozilla/layers/ImageBridgeChild.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
@@ -183,6 +184,12 @@ SharedRGBImage::SharedRGBImage(ImageClient* aCompositable)
 SharedRGBImage::~SharedRGBImage()
 {
   MOZ_COUNT_DTOR(SharedRGBImage);
+
+  if (mCompositable->GetAsyncID() != 0 &&
+      !InImageBridgeChildThread()) {
+    ImageBridgeChild::DispatchReleaseTextureClient(mTextureClient.forget().drop());
+    ImageBridgeChild::DispatchReleaseImageClient(mCompositable.forget().drop());
+  }
 }
 
 bool
