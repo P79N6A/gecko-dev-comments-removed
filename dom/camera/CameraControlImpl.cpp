@@ -38,6 +38,17 @@ CameraControlImpl::CameraControlImpl(uint32_t aCameraId)
     sCameraThread = do_GetWeakReference(mCameraThread);
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   mListenerLock = PR_NewRWLock(PR_RWLOCK_RANK_NONE, "CameraControlImpl.Listeners.Lock");
 }
 
@@ -128,6 +139,20 @@ CameraControlImpl::OnAutoFocusMoving(bool aIsMoving)
   for (uint32_t i = 0; i < mListeners.Length(); ++i) {
     CameraControlListener* l = mListeners[i];
     l->OnAutoFocusMoving(aIsMoving);
+  }
+}
+
+void
+CameraControlImpl::OnFacesDetected(const nsTArray<Face>& aFaces)
+{
+  
+  
+  
+  RwLockAutoEnterRead lock(mListenerLock);
+
+  for (uint32_t i = 0; i < mListeners.Length(); ++i) {
+    CameraControlListener* l = mListeners[i];
+    l->OnFacesDetected(aFaces);
   }
 }
 
@@ -413,6 +438,50 @@ CameraControlImpl::AutoFocus(bool aCancelExistingCall)
 
   return mCameraThread->Dispatch(
     new Message(this, CameraControlListener::kInAutoFocus, aCancelExistingCall), NS_DISPATCH_NORMAL);
+}
+
+nsresult
+CameraControlImpl::StartFaceDetection()
+{
+  class Message : public ControlMessage
+  {
+  public:
+    Message(CameraControlImpl* aCameraControl,
+            CameraControlListener::CameraErrorContext aContext)
+      : ControlMessage(aCameraControl, aContext)
+    { }
+
+    nsresult
+    RunImpl() MOZ_OVERRIDE
+    {
+      return mCameraControl->StartFaceDetectionImpl();
+    }
+  };
+
+  return mCameraThread->Dispatch(
+    new Message(this, CameraControlListener::kInStartFaceDetection), NS_DISPATCH_NORMAL);
+}
+
+nsresult
+CameraControlImpl::StopFaceDetection()
+{
+  class Message : public ControlMessage
+  {
+  public:
+    Message(CameraControlImpl* aCameraControl,
+            CameraControlListener::CameraErrorContext aContext)
+      : ControlMessage(aCameraControl, aContext)
+    { }
+
+    nsresult
+    RunImpl() MOZ_OVERRIDE
+    {
+      return mCameraControl->StopFaceDetectionImpl();
+    }
+  };
+
+  return mCameraThread->Dispatch(
+    new Message(this, CameraControlListener::kInStopFaceDetection), NS_DISPATCH_NORMAL);
 }
 
 nsresult
