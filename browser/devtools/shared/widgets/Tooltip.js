@@ -525,7 +525,6 @@ Tooltip.prototype = {
     if (options.naturalWidth && options.naturalHeight) {
       label.textContent = this._getImageDimensionLabel(options.naturalWidth,
         options.naturalHeight);
-      this.setSize(vbox.width, vbox.height);
     } else {
       
       label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
@@ -535,7 +534,6 @@ Tooltip.prototype = {
         imgObj.onload = null;
         label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
           imgObj.naturalHeight);
-        this.setSize(vbox.width, vbox.height);
       }
     }
     vbox.appendChild(label);
@@ -634,11 +632,8 @@ Tooltip.prototype = {
         let previewer = new CSSTransformPreviewer(root);
         this.content = root;
         if (!previewer.preview(transform, origin, width, height)) {
-          
           def.reject();
         } else {
-          
-          this.setSize(previewer.canvas.width, previewer.canvas.height);
           def.resolve();
         }
       });
