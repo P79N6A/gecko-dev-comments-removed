@@ -85,4 +85,14 @@ WaiveXrayWrapper::construct(JSContext *cx, JS::Handle<JSObject*> wrapper,
            WrapperFactory::WaiveXrayAndWrap(cx, rval.address());
 }
 
+
+
+bool
+WaiveXrayWrapper::nativeCall(JSContext *cx, JS::IsAcceptableThis test,
+                             JS::NativeImpl impl, JS::CallArgs args)
+{
+    return CrossCompartmentWrapper::nativeCall(cx, test, impl, args) &&
+           WrapperFactory::WaiveXrayAndWrap(cx, args.rval().address());
+}
+
 }
