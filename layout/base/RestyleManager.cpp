@@ -34,6 +34,7 @@
 #include "nsContentUtils.h"
 #include "nsIFrameInlines.h"
 #include "ActiveLayerTracker.h"
+#include "nsDisplayList.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -237,7 +238,16 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
       
       
       if (!needInvalidatingPaint) {
-        needInvalidatingPaint |= !aFrame->TryUpdateTransformOnly();
+        Layer* layer;
+        needInvalidatingPaint |= !aFrame->TryUpdateTransformOnly(&layer);
+
+        if (!needInvalidatingPaint) {
+          
+          
+          MOZ_ASSERT(layer, "this can't happen if there's no layer");
+          nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(layer,
+            nullptr, nullptr, aFrame, eCSSProperty_transform);
+        }
       }
     }
     if (aChange & nsChangeHint_ChildrenOnlyTransform) {

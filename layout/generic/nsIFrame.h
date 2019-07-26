@@ -2107,7 +2107,10 @@ public:
 
 
 
-  bool TryUpdateTransformOnly();
+
+
+
+  bool TryUpdateTransformOnly(Layer** aLayerResult);
 
   
 
