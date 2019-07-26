@@ -164,10 +164,10 @@ const ThreadStateTypes = {
 
 
 const UnsolicitedNotifications = {
+  "eventNotification": "eventNotification",
   "newScript": "newScript",
   "tabDetached": "tabDetached",
-  "tabNavigated": "tabNavigated",
-  "profilerStateChanged": "profilerStateChanged"
+  "tabNavigated": "tabNavigated"
 };
 
 
