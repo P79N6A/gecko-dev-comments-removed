@@ -1865,8 +1865,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   
 
   tmp->mIdentifierMap.Clear();
-  ++tmp->mExpandoAndGeneration.generation;
-  tmp->mExpandoAndGeneration.expando = JS::UndefinedValue();
+  tmp->mExpandoAndGeneration.Unlink();
 
   tmp->mCustomPrototypes.Clear();
 
