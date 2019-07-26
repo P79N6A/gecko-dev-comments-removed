@@ -20,6 +20,8 @@ Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 
+this.EXPORTED_SYMBOLS = ["PushService"];
+
 const prefs = new Preferences("services.push.");
 
 const kPUSHDB_DB_NAME = "push";
@@ -263,16 +265,6 @@ this.PushWebSocketListener.prototype = {
 
 
 
-
-
-
-function PushService()
-{
-  debug("PushService Constructor.");
-}
-
-
-
 const STATE_SHUT_DOWN = 0;
 
 
@@ -282,26 +274,14 @@ const STATE_WAITING_FOR_HELLO = 2;
 
 const STATE_READY = 3;
 
-PushService.prototype = {
-  classID : Components.ID("{0ACE8D15-9B15-41F4-992F-C88820421DBF}"),
 
-  QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver,
-                                          Ci.nsIUDPServerSocketListener]),
 
+
+
+
+this.PushService = {
   observe: function observe(aSubject, aTopic, aData) {
     switch (aTopic) {
-      case "app-startup":
-
-        if (!prefs.get("enabled"))
-          return;
-
-        Services.obs.addObserver(this, "final-ui-startup", false);
-        Services.obs.addObserver(this, "profile-change-teardown", false);
-        Services.obs.addObserver(this,
-                                 "network-interface-state-changed",
-                                 false);
-        Services.obs.addObserver(this, "webapps-uninstall", false);
-        break;
       case "final-ui-startup":
         Services.obs.removeObserver(this, "final-ui-startup");
         this.init();
@@ -383,6 +363,7 @@ PushService.prototype = {
           debug("Error in getAllByManifestURL: url " + app.manifestURL);
         });
 
+        break;
     }
   },
 
@@ -442,6 +423,13 @@ PushService.prototype = {
 
   init: function() {
     debug("init()");
+    if (!prefs.get("enabled"))
+        return null;
+
+    Services.obs.addObserver(this, "profile-change-teardown", false);
+    Services.obs.addObserver(this, "network-interface-state-changed",
+                             false);
+    Services.obs.addObserver(this, "webapps-uninstall", false);
     this._db = new PushDB(this);
 
     let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
@@ -487,8 +475,15 @@ PushService.prototype = {
 
   _shutdown: function() {
     debug("_shutdown()");
-    this._db.close();
-    this._db = null;
+
+    Services.obs.removeObserver(this, "network-interface-state-changed",
+                                false);
+    Services.obs.removeObserver(this, "webapps-uninstall", false);
+
+    if (this._db) {
+      this._db.close();
+      this._db = null;
+    }
 
     if (this._udpServer) {
       this._udpServer.close();
@@ -498,6 +493,15 @@ PushService.prototype = {
     
     
     this._shutdownWS();
+
+    
+    
+    
+    if (this._retryTimeoutTimer)
+      this._retryTimeoutTimer.cancel();
+
+    if (this._requestTimeoutTimer)
+      this._requestTimeoutTimer.cancel();
 
     debug("shutdown complete!");
   },
@@ -1173,6 +1177,7 @@ PushService.prototype = {
 
   _wsOnStop: function(context, statusCode) {
     debug("wsOnStop()");
+
     if (statusCode != Cr.NS_OK &&
         !(statusCode == Cr.NS_BASE_STREAM_CLOSED && this._willBeWokenUpByUDP)) {
       debug("Socket error " + statusCode);
@@ -1320,4 +1325,4 @@ PushService.prototype = {
   }
 }
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([PushService]);
+PushService.init();
