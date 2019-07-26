@@ -76,6 +76,10 @@ onconnect = function(e) {
       case "test-worker-chat":
         apiPort.postMessage({topic: "social.request-chat", data: event.data.data });
         break;
+      case "test-worker-spam-message":
+        
+        apiPort.postMessage({topic: "social.cookies-get"});
+        break;
       case "social.initialize":
         
         apiPort = port;
