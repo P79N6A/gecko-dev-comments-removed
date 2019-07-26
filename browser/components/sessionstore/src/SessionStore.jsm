@@ -80,7 +80,6 @@ Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm", this);
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
 
 XPCOMUtils.defineLazyServiceGetter(this, "gSessionStartup",
   "@mozilla.org/browser/sessionstartup;1", "nsISessionStartup");
@@ -236,18 +235,7 @@ this.SessionStore = {
 
   checkPrivacyLevel: function ss_checkPrivacyLevel(aIsHTTPS, aUseDefaultPref) {
     return SessionStoreInternal.checkPrivacyLevel(aIsHTTPS, aUseDefaultPref);
-  },
-
-  
-
-
-
-  get _internal() {
-    if (Services.prefs.getBoolPref("browser.sessionstore.debug")) {
-      return SessionStoreInternal;
-    }
-    return undefined;
-  },
+  }
 };
 
 
@@ -262,6 +250,9 @@ let SessionStoreInternal = {
 
   
   _loadState: STATE_STOPPED,
+
+  
+  _initialState: null,
 
   
   
@@ -425,11 +416,6 @@ let SessionStoreInternal = {
                 }
               };
               this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
-            } else if (this._hasSingleTabWithURL(this._initialState.windows,
-                                                 "about:welcomeback")) {
-              
-              
-              this._initialState.windows[0].tabs[0].entries[0].url = "about:sessionrestore";
             }
           }
 
@@ -468,50 +454,9 @@ let SessionStoreInternal = {
 
     this._initEncoding();
 
-    this._performUpgradeBackup();
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     this._sessionInitialized = true;
     this._promiseInitialization.resolve();
-  },
-
-  
-
-
-
-  _performUpgradeBackup: function ssi_performUpgradeBackup() {
-    
-    const PREF_UPGRADE = "sessionstore.upgradeBackup.latestBuildID";
-
-    let buildID = Services.appinfo.platformBuildID;
-    let latestBackup = this._prefBranch.getCharPref(PREF_UPGRADE);
-    if (latestBackup == buildID) {
-      return Promise.resolve();
-    }
-    return Task.spawn(function task() {
-      try {
-        
-        yield _SessionFile.createUpgradeBackupCopy("-" + buildID);
-
-        this._prefBranch.setCharPref(PREF_UPGRADE, buildID);
-
-        
-        yield _SessionFile.removeUpgradeBackup("-" + latestBackup);
-      } catch (ex) {
-        debug("Could not perform upgrade backup " + ex);
-        debug(ex.stack);
-      }
-    }.bind(this));
   },
 
   _initEncoding : function ssi_initEncoding() {
@@ -758,7 +703,7 @@ let SessionStoreInternal = {
           
           
           this._deferredInitialState = this._initialState;
-          delete this._initialState;
+          this._initialState = null;
 
           
           Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
@@ -769,11 +714,12 @@ let SessionStoreInternal = {
           this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
           this.restoreWindow(aWindow, this._initialState,
                              this._isCmdLineEmpty(aWindow, this._initialState));
-          delete this._initialState;
 
           
           
-          this.saveState(true);
+          this._initialState.session.state = STATE_RUNNING_STR;
+          this._saveStateObject(this._initialState);
+          this._initialState = null;
         }
       }
       else {
@@ -2077,12 +2023,6 @@ let SessionStoreInternal = {
     if (aEntry.referrerURI)
       entry.referrer = aEntry.referrerURI.spec;
 
-    if (aEntry.srcdocData)
-      entry.srcdocData = aEntry.srcdocData;
-
-    if (aEntry.isSrcdocEntry)
-      entry.isSrcdocEntry = aEntry.isSrcdocEntry;
-
     if (aEntry.contentType)
       entry.contentType = aEntry.contentType;
 
@@ -2262,8 +2202,7 @@ let SessionStoreInternal = {
     }
     var isHTTPS = this._getURIFromString((aContent.parent || aContent).
                                          document.location.href).schemeIs("https");
-    let topURL = aContent.top.document.location.href;
-    let isAboutSR = topURL == "about:sessionrestore" || topURL == "about:welcomeback";
+    let isAboutSR = aContent.top.document.location.href == "about:sessionrestore";
     if (aFullData || this.checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
       if (aFullData || aUpdateFormData) {
         let formData = DocumentUtils.getFormData(aContent.document);
@@ -3323,8 +3262,6 @@ let SessionStoreInternal = {
       shEntry.contentType = aEntry.contentType;
     if (aEntry.referrer)
       shEntry.referrerURI = this._getURIFromString(aEntry.referrer);
-    if (aEntry.isSrcdocEntry)
-      shEntry.srcdocData = aEntry.srcdocData;
 
     if (aEntry.cacheKey) {
       var cacheKey = Cc["@mozilla.org/supports-PRUint32;1"].
@@ -3466,7 +3403,7 @@ let SessionStoreInternal = {
         
         
         
-        if ((aData.url == "about:sessionrestore" || aData.url == "about:welcomeback") &&
+        if (aData.url == "about:sessionrestore" &&
             "sessionData" in formdata.id &&
             typeof formdata.id["sessionData"] == "object") {
           formdata.id["sessionData"] =
@@ -4090,10 +4027,11 @@ let SessionStoreInternal = {
       return false;
 
     
-    if (this._hasSingleTabWithURL(winData, "about:sessionrestore") ||
-        this._hasSingleTabWithURL(winData, "about:welcomeback")) {
+    if (winData.length == 1 && winData[0].tabs &&
+        winData[0].tabs.length == 1 && winData[0].tabs[0].entries &&
+        winData[0].tabs[0].entries.length == 1 &&
+        winData[0].tabs[0].entries[0].url == "about:sessionrestore")
       return false;
-    }
 
     
     if (Services.appinfo.inSafeMode)
@@ -4107,23 +4045,6 @@ let SessionStoreInternal = {
     return max_resumed_crashes != -1 &&
            (aRecentCrashes > max_resumed_crashes ||
             sessionAge && sessionAge >= SIX_HOURS_IN_MS);
-  },
-
-  
-
-
-
-
-  _hasSingleTabWithURL: function(aWinData, aURL) {
-    if (aWinData &&
-        aWinData.length == 1 &&
-        aWinData[0].tabs &&
-        aWinData[0].tabs.length == 1 &&
-        aWinData[0].tabs[0].entries &&
-        aWinData[0].tabs[0].entries.length == 1) {
-      return aURL == aWinData[0].tabs[0].entries[0].url;
-    }
-    return false;
   },
 
   
