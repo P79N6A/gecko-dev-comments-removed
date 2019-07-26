@@ -7,6 +7,13 @@ var PeerConnection = {
   pc1_offer : null,
   pc2_answer : null,
 
+  
+
+
+
+
+
+
   handShake: function PC_handShake(aPCLocal, aPCRemote, aSuccessCallback) {
 
     function onCreateOfferSuccess(aOffer) {
@@ -40,5 +47,25 @@ var PeerConnection = {
     }
 
     aPCLocal.createOffer(onCreateOfferSuccess, unexpectedCallbackAndFinish);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  findStream: function PC_findStream(aMediaStreamList, aMediaStream) {
+    for (var index = 0; index < aMediaStreamList.length; index++) {
+      if (aMediaStreamList[index] === aMediaStream) {
+        return index;
+      }
+    }
+
+    return -1
   }
 };
