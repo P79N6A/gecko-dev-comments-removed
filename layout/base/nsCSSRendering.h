@@ -393,7 +393,8 @@ struct nsCSSRendering {
                                        const nsRect& aBorderArea,
                                        const nsRect& aClipRect,
                                        const nsStyleBackground& aBackground,
-                                       const nsStyleBackground::Layer& aLayer);
+                                       const nsStyleBackground::Layer& aLayer,
+                                       uint32_t aFlags);
 
   
 
