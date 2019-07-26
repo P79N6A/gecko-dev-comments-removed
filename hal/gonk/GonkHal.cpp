@@ -497,6 +497,11 @@ bool sScreenEnabled = true;
 
 bool sCpuSleepAllowed = true;
 
+
+
+
+int32_t sInternalLockCpuCount = 0;
+
 } 
 
 bool
@@ -549,6 +554,30 @@ SetScreenBrightness(double brightness)
   hal::SetLight(hal::eHalLightID_Buttons, aConfig);
 }
 
+static Monitor* sInternalLockCpuMonitor = nullptr;
+
+static void
+UpdateCpuSleepState()
+{
+  sInternalLockCpuMonitor->AssertCurrentThreadOwns();
+  bool allowed = sCpuSleepAllowed && !sInternalLockCpuCount;
+  WriteToFile(allowed ? wakeUnlockFilename : wakeLockFilename, "gecko");
+}
+
+static void
+InternalLockCpu() {
+  MonitorAutoLock monitor(*sInternalLockCpuMonitor);
+  ++sInternalLockCpuCount;
+  UpdateCpuSleepState();
+}
+
+static void
+InternalUnlockCpu() {
+  MonitorAutoLock monitor(*sInternalLockCpuMonitor);
+  --sInternalLockCpuCount;
+  UpdateCpuSleepState();
+}
+
 bool
 GetCpuSleepAllowed()
 {
@@ -558,8 +587,9 @@ GetCpuSleepAllowed()
 void
 SetCpuSleepAllowed(bool aAllowed)
 {
-  WriteToFile(aAllowed ? wakeUnlockFilename : wakeLockFilename, "gecko");
+  MonitorAutoLock monitor(*sInternalLockCpuMonitor);
   sCpuSleepAllowed = aAllowed;
+  UpdateCpuSleepState();
 }
 
 static light_device_t* sLights[hal::eHalLightID_Count];	
@@ -803,34 +833,37 @@ UnlockScreenOrientation()
 static pthread_t sAlarmFireWatcherThread;
 
 
-typedef struct AlarmData {
-
+struct AlarmData {
 public:
-  AlarmData(int aFd) : mFd(aFd), mGeneration(sNextGeneration++), mShuttingDown(false) {}
+  AlarmData(int aFd) : mFd(aFd),
+                       mGeneration(sNextGeneration++),
+                       mShuttingDown(false) {}
   ScopedClose mFd;
   int mGeneration;
   bool mShuttingDown;
 
   static int sNextGeneration;
 
-} AlarmData;
+};
 
 int AlarmData::sNextGeneration = 0;
 
 AlarmData* sAlarmData = NULL;
 
 class AlarmFiredEvent : public nsRunnable {
-
 public:
   AlarmFiredEvent(int aGeneration) : mGeneration(aGeneration) {}
 
   NS_IMETHOD Run() {
     
     
-    if (sAlarmData && !sAlarmData->mShuttingDown && mGeneration == sAlarmData->mGeneration) {
+    if (sAlarmData && !sAlarmData->mShuttingDown &&
+        mGeneration == sAlarmData->mGeneration) {
       hal::NotifyAlarmFired();
     }
-
+    
+    
+    InternalUnlockCpu();
     return NS_OK;
   }
 
@@ -871,11 +904,18 @@ WaitForAlarm(void* aData)
     
     do {
       alarmTypeFlags = ioctl(alarmData->mFd, ANDROID_ALARM_WAIT);
-    } while (alarmTypeFlags < 0 && errno == EINTR && !alarmData->mShuttingDown);
+    } while (alarmTypeFlags < 0 && errno == EINTR &&
+             !alarmData->mShuttingDown);
 
-    if (!alarmData->mShuttingDown &&
-        alarmTypeFlags >= 0 && (alarmTypeFlags & ANDROID_ALARM_RTC_WAKEUP_MASK)) {
-      NS_DispatchToMainThread(new AlarmFiredEvent(alarmData->mGeneration));
+    if (!alarmData->mShuttingDown && alarmTypeFlags >= 0 &&
+        (alarmTypeFlags & ANDROID_ALARM_RTC_WAKEUP_MASK)) {
+      
+      
+      
+      InternalLockCpu();
+      nsRefPtr<AlarmFiredEvent> event =
+        new AlarmFiredEvent(alarmData->mGeneration);
+      NS_DispatchToMainThread(event);
     }
   }
 
@@ -910,10 +950,15 @@ EnableAlarm()
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  int status = pthread_create(&sAlarmFireWatcherThread, &attr, WaitForAlarm, alarmData.get());
+  
+  
+  sInternalLockCpuMonitor = new Monitor("sInternalLockCpuMonitor");
+  int status = pthread_create(&sAlarmFireWatcherThread, &attr, WaitForAlarm,
+                              alarmData.get());
   if (status) {
     alarmData = NULL;
-    HAL_LOG(("Failed to create alarm watcher thread. Status: %d.", status));
+    delete sInternalLockCpuMonitor;
+    HAL_LOG(("Failed to create alarm-watcher thread. Status: %d.", status));
     return false;
   }
 
@@ -936,6 +981,8 @@ DisableAlarm()
   
   DebugOnly<int> err = pthread_kill(sAlarmFireWatcherThread, SIGUSR1);
   MOZ_ASSERT(!err);
+
+  delete sInternalLockCpuMonitor;
 }
 
 bool
@@ -951,7 +998,8 @@ SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
   ts.tv_nsec = aNanoseconds;
 
   
-  const int result = ioctl(sAlarmData->mFd, ANDROID_ALARM_SET(ANDROID_ALARM_RTC_WAKEUP), &ts);
+  const int result = ioctl(sAlarmData->mFd,
+                           ANDROID_ALARM_SET(ANDROID_ALARM_RTC_WAKEUP), &ts);
 
   if (result < 0) {
     HAL_LOG(("Unable to set alarm: %s.", strerror(errno)));
