@@ -485,7 +485,14 @@ TileClient::DiscardBackBuffer()
 {
   if (mBackBuffer) {
     MOZ_ASSERT(mBackLock);
-    mManager->GetTexturePool(mBackBuffer->GetFormat())->ReturnTextureClient(mBackBuffer);
+    if (!mBackBuffer->ImplementsLocking() && mBackLock->GetReadCount() > 1) {
+      
+      
+      
+      mManager->GetTexturePool(mBackBuffer->GetFormat())->ReportClientLost();
+    } else {
+      mManager->GetTexturePool(mBackBuffer->GetFormat())->ReturnTextureClient(mBackBuffer);
+    }
     mBackLock->ReadUnlock();
     mBackBuffer = nullptr;
     mBackLock = nullptr;
