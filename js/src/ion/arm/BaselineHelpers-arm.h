@@ -68,6 +68,12 @@ EmitReturnFromIC(MacroAssembler &masm)
 }
 
 inline void
+EmitChangeICReturnAddress(MacroAssembler &masm, Register reg)
+{
+    masm.ma_mov(reg, lr);
+}
+
+inline void
 EmitTailCallVM(IonCode *target, MacroAssembler &masm, uint32_t argSize)
 {
     
