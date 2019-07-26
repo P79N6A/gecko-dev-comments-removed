@@ -42,7 +42,7 @@ namespace {
 
 
 
-dom::CanvasRenderingContext2D* gCtx = NULL;
+dom::CanvasRenderingContext2D* gCtx = nullptr;
 
 
 uint32_t gInstCount = 0;
@@ -93,7 +93,7 @@ TaskbarPreview::TaskbarPreview(ITaskbarList4 *aTaskbar, nsITaskbarPreviewControl
     mDocShell(do_GetWeakReference(aShell))
 {
   
-  ::CoInitialize(NULL);
+  ::CoInitialize(nullptr);
 
   gInstCount++;
 
@@ -110,7 +110,7 @@ TaskbarPreview::~TaskbarPreview() {
   NS_ASSERTION(!mWnd, "TaskbarPreview::DetachFromNSWindow was not called before destruction");
 
   
-  mTaskbar = NULL;
+  mTaskbar = nullptr;
 
   if (--gInstCount == 0)
     NS_IF_RELEASE(gCtx);
@@ -170,7 +170,7 @@ TaskbarPreview::SetActive(bool active) {
   if (active)
     sActivePreview = this;
   else if (sActivePreview == this)
-    sActivePreview = NULL;
+    sActivePreview = nullptr;
 
   return CanMakeTaskbarCalls() ? ShowActive(active) : NS_OK;
 }
@@ -250,7 +250,7 @@ void
 TaskbarPreview::DetachFromNSWindow() {
   WindowHook &hook = GetWindowHook();
   hook.RemoveMonitor(WM_DESTROY, MainWindowHook, this);
-  mWnd = NULL;
+  mWnd = nullptr;
 }
 
 LRESULT
@@ -407,7 +407,7 @@ TaskbarPreview::MainWindowHook(void *aContext,
   if (nMsg == WM_DESTROY) {
     
     
-    preview->mWnd = NULL;
+    preview->mWnd = nullptr;
   } else {
     nsWindow *window = WinUtils::GetNSWindowPtr(preview->mWnd);
     if (window) {
