@@ -33,6 +33,10 @@ private:
   
   
   
+#ifdef _MSC_VER
+  
+  __pragma(warning(disable:4265))
+#endif
   ~nsHTTPListener();
 
 public:
