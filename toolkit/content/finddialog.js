@@ -4,6 +4,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 var dialog;     
 var gFindInst;   
 var gFindInstData; 
@@ -112,7 +114,8 @@ function onAccept()
   {
     if (!dialog.bundle)
       dialog.bundle = document.getElementById("findBundle");
-    window.alert(dialog.bundle.getString("notFoundWarning"));
+    Services.prompt.alert(window, dialog.bundle.getString("notFoundTitle"),
+                                  dialog.bundle.getString("notFoundWarning"));
     dialog.findKey.select();
     dialog.findKey.focus();
   } 
