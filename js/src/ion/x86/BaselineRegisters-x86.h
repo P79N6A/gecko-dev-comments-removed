@@ -14,25 +14,25 @@
 namespace js {
 namespace ion {
 
-static const Register BaselineFrameReg = ebp;
-static const Register BaselineStackReg = esp;
+static MOZ_CONSTEXPR_VAR Register BaselineFrameReg = ebp;
+static MOZ_CONSTEXPR_VAR Register BaselineStackReg = esp;
 
 
-static const ValueOperand R0(ecx, edx);
-static const ValueOperand R1(eax, ebx);
-static const ValueOperand R2(esi, edi);
+static MOZ_CONSTEXPR_VAR ValueOperand R0(ecx, edx);
+static MOZ_CONSTEXPR_VAR ValueOperand R1(eax, ebx);
+static MOZ_CONSTEXPR_VAR ValueOperand R2(esi, edi);
 
 
 
-static const Register BaselineTailCallReg = esi;
-static const Register BaselineStubReg     = edi;
+static MOZ_CONSTEXPR_VAR Register BaselineTailCallReg = esi;
+static MOZ_CONSTEXPR_VAR Register BaselineStubReg     = edi;
 
-static const Register ExtractTemp0        = InvalidReg;
-static const Register ExtractTemp1        = InvalidReg;
+static MOZ_CONSTEXPR_VAR Register ExtractTemp0        = InvalidReg;
+static MOZ_CONSTEXPR_VAR Register ExtractTemp1        = InvalidReg;
 
 
-static const FloatRegister FloatReg0      = xmm0;
-static const FloatRegister FloatReg1      = xmm1;
+static MOZ_CONSTEXPR_VAR FloatRegister FloatReg0      = xmm0;
+static MOZ_CONSTEXPR_VAR FloatRegister FloatReg1      = xmm1;
 
 } 
 } 
