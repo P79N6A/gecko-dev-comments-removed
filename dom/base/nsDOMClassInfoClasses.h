@@ -192,7 +192,6 @@ DOMCI_CLASS(SVGDocument)
 
 
 DOMCI_CLASS(SVGAElement)
-DOMCI_CLASS(SVGMpathElement)
 DOMCI_CLASS(TimeEvent)
 DOMCI_CLASS(SVGClipPathElement)
 DOMCI_CLASS(SVGFEBlendElement)
