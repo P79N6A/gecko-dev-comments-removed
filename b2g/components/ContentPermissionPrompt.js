@@ -88,12 +88,32 @@ ContentPermissionPrompt.prototype = {
     return false;
   },
 
-  _id: 0,
   prompt: function(request) {
     
     if (this.handleExistingPermission(request))
        return;
 
+    
+    
+    let frame = request.element;
+
+    if (!frame) {
+      this.delegatePrompt(request);
+    }
+
+    var self = this;
+    frame.wrappedJSObject.getVisible().onsuccess = function gv_success(evt) {
+      if (!evt.target.result) {
+        request.cancel();
+        return;
+      }
+
+      self.delegatePrompt(request);
+    };
+  },
+
+  _id: 0,
+  delegatePrompt: function(request) {
     let browser = Services.wm.getMostRecentWindow("navigator:browser");
     let content = browser.getContentWindow();
     if (!content)
