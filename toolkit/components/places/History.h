@@ -75,8 +75,7 @@ public:
 
 
 
-
-  nsresult FetchPageInfo(VisitData& _place, bool* _exists);
+  bool FetchPageInfo(VisitData& _place);
 
   
 

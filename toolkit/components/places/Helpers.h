@@ -137,7 +137,7 @@ nsresult GenerateGUID(nsCString& _guid);
 
 
 
-bool IsValidGUID(const nsACString& aGUID);
+bool IsValidGUID(const nsCString& aGUID);
 
 
 
