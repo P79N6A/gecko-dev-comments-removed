@@ -590,6 +590,9 @@ class types::CompilerConstraintList
 
   private:
 
+    
+    bool failed_;
+
 #ifdef JS_ION
     
     Vector<CompilerConstraint *, 0, jit::IonAllocPolicy> constraints;
@@ -597,9 +600,6 @@ class types::CompilerConstraintList
     
     Vector<FrozenScript, 1, jit::IonAllocPolicy> frozenScripts;
 #endif
-
-    
-    bool failed_;
 
   public:
     CompilerConstraintList(jit::TempAllocator &alloc)
