@@ -939,6 +939,20 @@ TabChild::Init()
   NS_ENSURE_TRUE(webProgress, NS_ERROR_FAILURE);
   webProgress->AddProgressListener(this, nsIWebProgress::NOTIFY_LOCATION);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(WebNavigation());
+  NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
+  nsCOMPtr<EventTarget> chromeHandler =
+    do_QueryInterface(window->GetChromeEventHandler());
+  docShell->SetChromeEventHandler(chromeHandler);
+
   return NS_OK;
 }
 
