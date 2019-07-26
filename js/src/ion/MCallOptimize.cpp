@@ -178,11 +178,11 @@ IonBuilder::inlineMathFunction(MMathFunction::Function function, uint32 argc, bo
 IonBuilder::InliningStatus
 IonBuilder::inlineArray(uint32 argc, bool constructing)
 {
+    uint32_t initLength = 0;
+
     
     if (argc >= 2)
-        return InliningStatus_NotInlined;
-
-    uint32_t initLength = 0;
+        initLength = argc;
 
     
     if (argc == 1) {
@@ -207,8 +207,31 @@ IonBuilder::inlineArray(uint32 argc, bool constructing)
     current->add(ins);
     current->push(ins);
 
-    if (!resumeAfter(ins))
-        return InliningStatus_Error;
+    if (argc >= 2) {
+        
+        MElements *elements = MElements::New(ins);
+        current->add(elements);
+
+        
+        
+        
+        MConstant *id = NULL;
+        for (uint32_t i = 0; i < initLength; i++) {
+            id = MConstant::New(Int32Value(i));
+            current->add(id);
+
+            MStoreElement *store = MStoreElement::New(elements, id, argv[i + 1]);
+            current->add(store);
+        }
+
+        
+        MSetInitializedLength *length = MSetInitializedLength::New(elements, id);
+        current->add(length);
+
+        if (!resumeAfter(length))
+            return InliningStatus_Error;
+    }
+
     return InliningStatus_Inlined;
 }
 

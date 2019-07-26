@@ -1074,7 +1074,9 @@ class MNewArray : public MNullaryInstruction
     INSTRUCTION_HEADER(NewArray);
 
     MNewArray(uint32 count, types::TypeObject *type, AllocatingBehaviour allocating)
-        : count_(count), type_(type), allocating_(allocating)
+      : count_(count),
+        type_(type),
+        allocating_(allocating)
     {
         setResultType(MIRType_Object);
     }
@@ -1086,9 +1088,19 @@ class MNewArray : public MNullaryInstruction
     types::TypeObject *type() const {
         return type_;
     }
-    
+
     bool isAllocating() const {
         return allocating_ == NewArray_Allocating;
+    }
+
+    
+    
+    
+    
+    
+    
+    virtual AliasSet getAliasSet() const {
+        return AliasSet::None();
     }
 };
 
