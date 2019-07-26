@@ -132,7 +132,7 @@ JSRuntime::createJitRuntime(JSContext *cx)
     
     
     
-    AutoLockForOperationCallback lock(this);
+    AutoLockForInterrupt lock(this);
 
     JS_ASSERT(!jitRuntime_);
 

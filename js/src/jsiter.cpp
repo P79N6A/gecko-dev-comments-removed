@@ -1351,7 +1351,7 @@ ForOfIterator::nextFromOptimizedArray(MutableHandleValue vp, bool *done)
 {
     JS_ASSERT(index != NOT_ARRAY);
 
-    if (!JS_CHECK_OPERATION_LIMIT(cx_))
+    if (!CheckForInterrupt(cx_))
         return false;
 
     JS_ASSERT(iterator->isNative());

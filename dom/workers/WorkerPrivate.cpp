@@ -2242,7 +2242,7 @@ WorkerPrivateParent<Derived>::DispatchControlRunnable(
       JSRuntime* rt = JS_GetRuntime(cx);
       MOZ_ASSERT(rt);
 
-      JS_TriggerOperationCallback(rt);
+      JS_RequestInterruptCallback(rt);
     }
 
     mCondVar.Notify();
@@ -4191,7 +4191,7 @@ WorkerPrivate::ShutdownGCTimers()
 }
 
 bool
-WorkerPrivate::OperationCallback(JSContext* aCx)
+WorkerPrivate::InterruptCallback(JSContext* aCx)
 {
   AssertIsOnWorkerThread();
 
@@ -4313,7 +4313,7 @@ WorkerPrivate::BlockAndCollectRuntimeStats(JS::RuntimeStats* aRtStats)
   
   
   if (!mBlockedForMemoryReporter) {
-    JS_TriggerOperationCallback(rt);
+    JS_RequestInterruptCallback(rt);
 
     
     while (!mBlockedForMemoryReporter) {

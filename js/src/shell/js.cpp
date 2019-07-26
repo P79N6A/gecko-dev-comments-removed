@@ -365,7 +365,7 @@ GetContextData(JSContext *cx)
 }
 
 static bool
-ShellOperationCallback(JSContext *cx)
+ShellInterruptCallback(JSContext *cx)
 {
     if (!gTimedOut)
         return true;
@@ -3201,7 +3201,7 @@ WatchdogMain(void *arg)
 
 
 
-                JS_TriggerOperationCallback(rt);
+                JS_RequestInterruptCallback(rt);
             }
 
             uint64_t sleepDuration = PR_INTERVAL_NO_TIMEOUT;
@@ -3322,7 +3322,7 @@ static void
 CancelExecution(JSRuntime *rt)
 {
     gTimedOut = true;
-    JS_TriggerOperationCallback(rt);
+    JS_RequestInterruptCallback(rt);
 
     if (!gTimeoutFunc.isNull()) {
         static const char msg[] = "Script runs for too long, terminating.\n";
@@ -6185,7 +6185,7 @@ main(int argc, char **argv, char **envp)
     JS_SetSecurityCallbacks(rt, &ShellPrincipals::securityCallbacks);
     JS_InitDestroyPrincipalsCallback(rt, ShellPrincipals::destroy);
 
-    JS_SetOperationCallback(rt, ShellOperationCallback);
+    JS_SetInterruptCallback(rt, ShellInterruptCallback);
     JS::SetAsmJSCacheOps(rt, &asmJSCacheOps);
 
     JS_SetNativeStackQuota(rt, gMaxStackSize);

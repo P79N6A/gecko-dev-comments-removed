@@ -1122,7 +1122,7 @@ public:
         ASSERT(context->term < static_cast<int>(disjunction->terms.size()));
 
         
-        if (!JS_CHECK_OPERATION_LIMIT(this->cx))
+        if (!CheckForInterrupt(this->cx))
             return JSRegExpErrorInternal;
 
         switch (currentTerm().type) {
@@ -1284,7 +1284,7 @@ public:
         ASSERT(context->term < static_cast<int>(disjunction->terms.size()));
 
         
-        if (!JS_CHECK_OPERATION_LIMIT(this->cx))
+        if (!CheckForInterrupt(this->cx))
             return JSRegExpErrorInternal;
 
         switch (currentTerm().type) {

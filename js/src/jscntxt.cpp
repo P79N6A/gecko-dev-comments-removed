@@ -1001,7 +1001,7 @@ js_GetErrorMessage(void *userRef, const char *locale, const unsigned errorNumber
 }
 
 bool
-js_InvokeOperationCallback(JSContext *cx)
+js::InvokeInterruptCallback(JSContext *cx)
 {
     JS_ASSERT_REQUEST_DEPTH(cx);
 
@@ -1032,7 +1032,7 @@ js_InvokeOperationCallback(JSContext *cx)
     
     
     
-    JSOperationCallback cb = cx->runtime()->operationCallback;
+    JSInterruptCallback cb = cx->runtime()->interruptCallback;
     if (!cb || cb(cx))
         return true;
 
@@ -1049,10 +1049,10 @@ js_InvokeOperationCallback(JSContext *cx)
 }
 
 bool
-js_HandleExecutionInterrupt(JSContext *cx)
+js::HandleExecutionInterrupt(JSContext *cx)
 {
     if (cx->runtime()->interrupt)
-        return js_InvokeOperationCallback(cx);
+        return InvokeInterruptCallback(cx);
     return true;
 }
 

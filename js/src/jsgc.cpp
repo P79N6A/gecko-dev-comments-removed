@@ -596,7 +596,7 @@ FinalizeArenas(FreeOp *fop,
       {
         
         
-        JSRuntime::AutoLockForOperationCallback lock(fop->runtime());
+        JSRuntime::AutoLockForInterrupt lock(fop->runtime());
         return FinalizeTypedArenas<jit::JitCode>(fop, src, dest, thingKind, budget);
       }
 #endif
@@ -2104,14 +2104,14 @@ js::MarkCompartmentActive(StackFrame *fp)
 }
 
 static void
-TriggerOperationCallback(JSRuntime *rt, JS::gcreason::Reason reason)
+RequestInterrupt(JSRuntime *rt, JS::gcreason::Reason reason)
 {
     if (rt->gcIsNeeded)
         return;
 
     rt->gcIsNeeded = true;
     rt->gcTriggerReason = reason;
-    rt->triggerOperationCallback(JSRuntime::TriggerCallbackMainThread);
+    rt->requestInterrupt(JSRuntime::RequestInterruptMainThread);
 }
 
 bool
@@ -2124,7 +2124,7 @@ js::TriggerGC(JSRuntime *rt, JS::gcreason::Reason reason)
     }
 
     
-    if (rt->currentThreadOwnsOperationCallbackLock())
+    if (rt->currentThreadOwnsInterruptLock())
         return false;
 
     JS_ASSERT(CurrentThreadCanAccessRuntime(rt));
@@ -2134,7 +2134,7 @@ js::TriggerGC(JSRuntime *rt, JS::gcreason::Reason reason)
         return false;
 
     JS::PrepareForFullGC(rt);
-    TriggerOperationCallback(rt, reason);
+    RequestInterrupt(rt, reason);
     return true;
 }
 
@@ -2157,7 +2157,7 @@ js::TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
     JSRuntime *rt = zone->runtimeFromMainThread();
 
     
-    if (rt->currentThreadOwnsOperationCallbackLock())
+    if (rt->currentThreadOwnsInterruptLock())
         return false;
 
     
@@ -2176,7 +2176,7 @@ js::TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
     }
 
     PrepareZoneForGC(zone);
-    TriggerOperationCallback(rt, reason);
+    RequestInterrupt(rt, reason);
     return true;
 }
 

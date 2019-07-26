@@ -6200,7 +6200,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     
     
-    JSRuntime::AutoLockForOperationCallback lock(cx->runtime());
+    JSRuntime::AutoLockForInterrupt lock(cx->runtime());
 
     
     

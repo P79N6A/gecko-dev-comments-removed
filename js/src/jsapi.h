@@ -720,7 +720,7 @@ typedef void
 (* JSFinalizeCallback)(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartment);
 
 typedef bool
-(* JSOperationCallback)(JSContext *cx);
+(* JSInterruptCallback)(JSContext *cx);
 
 typedef void
 (* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
@@ -3844,14 +3844,14 @@ Call(JSContext *cx, JS::HandleValue thisv, JS::HandleObject funObj, const JS::Ha
 
 
 
-extern JS_PUBLIC_API(JSOperationCallback)
-JS_SetOperationCallback(JSRuntime *rt, JSOperationCallback callback);
+extern JS_PUBLIC_API(JSInterruptCallback)
+JS_SetInterruptCallback(JSRuntime *rt, JSInterruptCallback callback);
 
-extern JS_PUBLIC_API(JSOperationCallback)
-JS_GetOperationCallback(JSRuntime *rt);
+extern JS_PUBLIC_API(JSInterruptCallback)
+JS_GetInterruptCallback(JSRuntime *rt);
 
 extern JS_PUBLIC_API(void)
-JS_TriggerOperationCallback(JSRuntime *rt);
+JS_RequestInterruptCallback(JSRuntime *rt);
 
 extern JS_PUBLIC_API(bool)
 JS_IsRunning(JSContext *cx);

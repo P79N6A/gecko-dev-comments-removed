@@ -818,29 +818,36 @@ js_strdup(js::ExclusiveContext *cx, const char *s);
 # define JS_ASSERT_REQUEST_DEPTH(cx)  ((void) 0)
 #endif
 
-
-
-
-
-extern bool
-js_InvokeOperationCallback(JSContext *cx);
-
-extern bool
-js_HandleExecutionInterrupt(JSContext *cx);
+namespace js {
 
 
 
 
 
+bool
+InvokeInterruptCallback(JSContext *cx);
 
-static MOZ_ALWAYS_INLINE bool
-JS_CHECK_OPERATION_LIMIT(JSContext *cx)
+bool
+HandleExecutionInterrupt(JSContext *cx);
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline bool
+CheckForInterrupt(JSContext *cx)
 {
     JS_ASSERT_REQUEST_DEPTH(cx);
-    return !cx->runtime()->interrupt || js_InvokeOperationCallback(cx);
+    return !cx->runtime()->interrupt || InvokeInterruptCallback(cx);
 }
-
-namespace js {
 
 
 

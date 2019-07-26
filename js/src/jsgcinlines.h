@@ -434,9 +434,7 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
 
         if (rt->interrupt) {
             
-
-
-
+            
             js::gc::GCIfNeeded(ncx);
         }
 

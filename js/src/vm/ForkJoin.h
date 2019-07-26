@@ -468,8 +468,7 @@ bool InExclusiveParallelSection();
 
 bool ParallelTestsShouldPass(JSContext *cx);
 
-void TriggerOperationCallbackForForkJoin(JSRuntime *rt,
-                                         JSRuntime::OperationCallbackTrigger trigger);
+void RequestInterruptForForkJoin(JSRuntime *rt, JSRuntime::InterruptMode mode);
 
 bool intrinsic_SetForkJoinTargetRegion(JSContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo intrinsic_SetForkJoinTargetRegionInfo;

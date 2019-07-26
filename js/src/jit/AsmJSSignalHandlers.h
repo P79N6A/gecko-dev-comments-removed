@@ -24,7 +24,7 @@ EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt);
 
 
 extern void
-TriggerOperationCallbackForAsmJSCode(JSRuntime *rt);
+RequestInterruptForAsmJSCode(JSRuntime *rt);
 
 
 

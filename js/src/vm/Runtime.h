@@ -484,7 +484,7 @@ AtomStateOffsetToName(const JSAtomState &atomState, size_t offset)
 enum RuntimeLock {
     ExclusiveAccessLock,
     WorkerThreadStateLock,
-    OperationCallbackLock,
+    InterruptLock,
     GCLock
 };
 
@@ -707,8 +707,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     bool handlingSignal;
 
-    
-    JSOperationCallback operationCallback;
+    JSInterruptCallback interruptCallback;
 
 #ifdef DEBUG
     void assertCanLock(js::RuntimeLock which);
@@ -722,44 +721,44 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 #ifdef JS_THREADSAFE
-    PRLock *operationCallbackLock;
-    PRThread *operationCallbackOwner;
+    PRLock *interruptLock;
+    PRThread *interruptLockOwner;
 #else
-    bool operationCallbackLockTaken;
+    bool interruptLockTaken;
 #endif 
   public:
 
-    class AutoLockForOperationCallback {
+    class AutoLockForInterrupt {
         JSRuntime *rt;
       public:
-        AutoLockForOperationCallback(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
+        AutoLockForInterrupt(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
             MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-            rt->assertCanLock(js::OperationCallbackLock);
+            rt->assertCanLock(js::InterruptLock);
 #ifdef JS_THREADSAFE
-            PR_Lock(rt->operationCallbackLock);
-            rt->operationCallbackOwner = PR_GetCurrentThread();
+            PR_Lock(rt->interruptLock);
+            rt->interruptLockOwner = PR_GetCurrentThread();
 #else
-            rt->operationCallbackLockTaken = true;
+            rt->interruptLockTaken = true;
 #endif 
         }
-        ~AutoLockForOperationCallback() {
-            JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+        ~AutoLockForInterrupt() {
+            JS_ASSERT(rt->currentThreadOwnsInterruptLock());
 #ifdef JS_THREADSAFE
-            rt->operationCallbackOwner = nullptr;
-            PR_Unlock(rt->operationCallbackLock);
+            rt->interruptLockOwner = nullptr;
+            PR_Unlock(rt->interruptLock);
 #else
-            rt->operationCallbackLockTaken = false;
+            rt->interruptLockTaken = false;
 #endif 
         }
 
         MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
     };
 
-    bool currentThreadOwnsOperationCallbackLock() {
+    bool currentThreadOwnsInterruptLock() {
 #if defined(JS_THREADSAFE)
-        return operationCallbackOwner == PR_GetCurrentThread();
+        return interruptLockOwner == PR_GetCurrentThread();
 #else
-        return operationCallbackLockTaken;
+        return interruptLockTaken;
 #endif
     }
 
@@ -1692,14 +1691,14 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     
-    enum OperationCallbackTrigger {
-        TriggerCallbackMainThread,
-        TriggerCallbackAnyThread,
-        TriggerCallbackAnyThreadDontStopIon,
-        TriggerCallbackAnyThreadForkJoin
+    enum InterruptMode {
+        RequestInterruptMainThread,
+        RequestInterruptAnyThread,
+        RequestInterruptAnyThreadDontStopIon,
+        RequestInterruptAnyThreadForkJoin
     };
 
-    void triggerOperationCallback(OperationCallbackTrigger trigger);
+    void requestInterrupt(InterruptMode mode);
 
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes *runtime);
 
@@ -1946,7 +1945,7 @@ class MOZ_STACK_CLASS AutoKeepAtoms
 inline void
 PerThreadData::setJitStackLimit(uintptr_t limit)
 {
-    JS_ASSERT(runtime_->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(runtime_->currentThreadOwnsInterruptLock());
     jitStackLimit = limit;
 }
 

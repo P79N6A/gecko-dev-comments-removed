@@ -88,7 +88,7 @@ class Linker
 #else
         
         
-        JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+        JS_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
 
         JSC::ExecutableAllocator *alloc = cx->runtime()->jitRuntime()->getIonAlloc(cx);
         if (!alloc)

@@ -347,7 +347,7 @@ HandleSimulatorInterrupt(JSRuntime *rt, AsmJSActivation *activation, void *fault
         module.containsPC(faultingAddress))
     {
         activation->setResumePC(nullptr);
-        int32_t nextpc = int32_t(module.operationCallbackExit());
+        int32_t nextpc = int32_t(module.interruptExit());
         rt->mainThread.simulator()->set_resume_pc(nextpc);
         return true;
     }
@@ -457,9 +457,9 @@ HandleException(PEXCEPTION_POINTERS exception)
     
     if (module.containsPC(faultingAddress)) {
         activation->setResumePC(pc);
-        *ppc = module.operationCallbackExit();
+        *ppc = module.interruptExit();
 
-        JSRuntime::AutoLockForOperationCallback lock(rt);
+        JSRuntime::AutoLockForInterrupt lock(rt);
         module.unprotectCode(rt);
         return true;
     }
@@ -645,7 +645,7 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
 
     const AsmJSModule &module = activation->module();
     if (HandleSimulatorInterrupt(rt, activation, faultingAddress)) {
-        JSRuntime::AutoLockForOperationCallback lock(rt);
+        JSRuntime::AutoLockForInterrupt lock(rt);
         module.unprotectCode(rt);
         return true;
     }
@@ -660,9 +660,9 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
     
     if (module.containsPC(faultingAddress)) {
         activation->setResumePC(pc);
-        *ppc = module.operationCallbackExit();
+        *ppc = module.interruptExit();
 
-        JSRuntime::AutoLockForOperationCallback lock(rt);
+        JSRuntime::AutoLockForInterrupt lock(rt);
         module.unprotectCode(rt);
 
         
@@ -895,7 +895,7 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
 
     const AsmJSModule &module = activation->module();
     if (HandleSimulatorInterrupt(rt, activation, faultingAddress)) {
-        JSRuntime::AutoLockForOperationCallback lock(rt);
+        JSRuntime::AutoLockForInterrupt lock(rt);
         module.unprotectCode(rt);
         return true;
     }
@@ -910,9 +910,9 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
     
     if (module.containsPC(faultingAddress)) {
         activation->setResumePC(pc);
-        *ppc = module.operationCallbackExit();
+        *ppc = module.interruptExit();
 
-        JSRuntime::AutoLockForOperationCallback lock(rt);
+        JSRuntime::AutoLockForInterrupt lock(rt);
         module.unprotectCode(rt);
         return true;
     }
@@ -1025,9 +1025,9 @@ js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 
 
 void
-js::TriggerOperationCallbackForAsmJSCode(JSRuntime *rt)
+js::RequestInterruptForAsmJSCode(JSRuntime *rt)
 {
-    JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(rt->currentThreadOwnsInterruptLock());
 
     AsmJSActivation *activation = rt->mainThread.asmJSActivationStackFromAnyThread();
     if (!activation)

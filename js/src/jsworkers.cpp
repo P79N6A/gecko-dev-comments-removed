@@ -801,7 +801,7 @@ WorkerThread::handleIonWorkload()
     
     
     
-    rt->triggerOperationCallback(JSRuntime::TriggerCallbackAnyThreadDontStopIon);
+    rt->requestInterrupt(JSRuntime::RequestInterruptAnyThreadDontStopIon);
 
     
     WorkerThreadState().notifyAll(GlobalWorkerThreadState::CONSUMER);

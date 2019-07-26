@@ -246,12 +246,12 @@ class JitRuntime
     }
 
     JSC::ExecutableAllocator *getIonAlloc(JSContext *cx) {
-        JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+        JS_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
         return ionAlloc_ ? ionAlloc_ : createIonAlloc(cx);
     }
 
     JSC::ExecutableAllocator *ionAlloc(JSRuntime *rt) {
-        JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+        JS_ASSERT(rt->currentThreadOwnsInterruptLock());
         return ionAlloc_;
     }
 

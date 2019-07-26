@@ -1927,7 +1927,7 @@ DoMatchGlobal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearS
     const jschar *chars = input->chars();
     RegExpShared &re = g.regExp();
     for (size_t searchIndex = 0; searchIndex <= charsLen; ) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         
@@ -2186,7 +2186,7 @@ DoMatchForReplaceGlobal(JSContext *cx, RegExpStatics *res, Handle<JSLinearString
     size_t charsLen = linearStr->length();
     ScopedMatchPairs matches(&cx->tempLifoAlloc());
     for (size_t count = 0, i = 0; i <= charsLen; ++count) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         RegExpRunStatus status = re.execute(cx, linearStr->chars(), charsLen, &i, matches);
@@ -2716,7 +2716,7 @@ StrReplaceRegexpRemove(JSContext *cx, HandleString str, RegExpShared &re, Mutabl
 
     
     while (startIndex <= charsLen) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         RegExpRunStatus status =

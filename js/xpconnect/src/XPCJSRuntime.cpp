@@ -1296,7 +1296,7 @@ WatchdogMain(void *arg)
             if (dbg)
                 dbg->GetIsDebuggerAttached(&debuggerAttached);
             if (!debuggerAttached)
-                JS_TriggerOperationCallback(manager->Runtime()->Runtime());
+                JS_RequestInterruptCallback(manager->Runtime()->Runtime());
         }
     }
 
@@ -1350,7 +1350,7 @@ XPCJSRuntime::CTypesActivityCallback(JSContext *cx, js::CTypesActivityType type)
 
 
 bool
-XPCJSRuntime::OperationCallback(JSContext *cx)
+XPCJSRuntime::InterruptCallback(JSContext *cx)
 {
     XPCJSRuntime *self = XPCJSRuntime::Get();
 
@@ -3124,7 +3124,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     js::SetDefaultJSContextCallback(runtime, DefaultJSContextCallback);
     js::SetActivityCallback(runtime, ActivityCallback, this);
     js::SetCTypesActivityCallback(runtime, CTypesActivityCallback);
-    JS_SetOperationCallback(runtime, OperationCallback);
+    JS_SetInterruptCallback(runtime, InterruptCallback);
     JS::SetOutOfMemoryCallback(runtime, OutOfMemoryCallback);
 
     

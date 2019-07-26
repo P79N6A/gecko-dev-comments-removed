@@ -180,7 +180,7 @@ bool
 JitRuntime::initialize(JSContext *cx)
 {
     JS_ASSERT(cx->runtime()->currentThreadHasExclusiveAccess());
-    JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
 
     AutoCompartment ac(cx, cx->atomsCompartment());
 
@@ -319,7 +319,7 @@ JitRuntime::freeOsrTempData()
 JSC::ExecutableAllocator *
 JitRuntime::createIonAlloc(JSContext *cx)
 {
-    JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
 
     ionAlloc_ = js_new<JSC::ExecutableAllocator>();
     if (!ionAlloc_)
@@ -330,7 +330,7 @@ JitRuntime::createIonAlloc(JSContext *cx)
 void
 JitRuntime::ensureIonCodeProtected(JSRuntime *rt)
 {
-    JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(rt->currentThreadOwnsInterruptLock());
 
     if (!rt->signalHandlersInstalled() || ionCodeProtected_ || !ionAlloc_)
         return;
@@ -352,13 +352,13 @@ JitRuntime::handleAccessViolation(JSRuntime *rt, void *faultingAddress)
     
     
     
-    JS_ASSERT(!rt->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(!rt->currentThreadOwnsInterruptLock());
 #endif
 
     
     
     
-    JSRuntime::AutoLockForOperationCallback lock(rt);
+    JSRuntime::AutoLockForInterrupt lock(rt);
 
     
     
@@ -370,7 +370,7 @@ JitRuntime::handleAccessViolation(JSRuntime *rt, void *faultingAddress)
 void
 JitRuntime::ensureIonCodeAccessible(JSRuntime *rt)
 {
-    JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(rt->currentThreadOwnsInterruptLock());
 
     
     
@@ -415,19 +415,18 @@ JitRuntime::patchIonBackedges(JSRuntime *rt, BackedgeTarget target)
 }
 
 void
-jit::TriggerOperationCallbackForIonCode(JSRuntime *rt,
-                                        JSRuntime::OperationCallbackTrigger trigger)
+jit::RequestInterruptForIonCode(JSRuntime *rt, JSRuntime::InterruptMode mode)
 {
     JitRuntime *jitRuntime = rt->jitRuntime();
     if (!jitRuntime)
         return;
 
-    JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(rt->currentThreadOwnsInterruptLock());
 
     
     
-    switch (trigger) {
-      case JSRuntime::TriggerCallbackMainThread:
+    switch (mode) {
+      case JSRuntime::RequestInterruptMainThread:
         
         
         
@@ -436,7 +435,7 @@ jit::TriggerOperationCallbackForIonCode(JSRuntime *rt,
         jitRuntime->ensureIonCodeAccessible(rt);
         break;
 
-      case JSRuntime::TriggerCallbackAnyThread:
+      case JSRuntime::RequestInterruptAnyThread:
         
         
         
@@ -445,14 +444,14 @@ jit::TriggerOperationCallbackForIonCode(JSRuntime *rt,
         jitRuntime->ensureIonCodeProtected(rt);
         break;
 
-      case JSRuntime::TriggerCallbackAnyThreadDontStopIon:
-      case JSRuntime::TriggerCallbackAnyThreadForkJoin:
+      case JSRuntime::RequestInterruptAnyThreadDontStopIon:
+      case JSRuntime::RequestInterruptAnyThreadForkJoin:
         
         
         break;
 
       default:
-        MOZ_ASSUME_UNREACHABLE("Bad trigger");
+        MOZ_ASSUME_UNREACHABLE("Bad interrupt mode");
     }
 }
 
@@ -672,7 +671,7 @@ JitCode::finalize(FreeOp *fop)
 {
     
     
-    JS_ASSERT(fop->runtime()->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(fop->runtime()->currentThreadOwnsInterruptLock());
 
 #ifdef DEBUG
     
@@ -1572,6 +1571,8 @@ AttachFinishedCompilations(JSContext *cx)
             }
 
             if (!success) {
+                
+                
                 
                 
                 cx->clearPendingException();

@@ -361,7 +361,7 @@ class AsmJSModule
     
     struct StaticLinkData
     {
-        uint32_t operationCallbackExitOffset;
+        uint32_t interruptExitOffset;
         RelativeLinkVector relativeLinks;
         AbsoluteLinkVector absoluteLinks;
 
@@ -415,7 +415,7 @@ class AsmJSModule
     } pod;
 
     uint8_t *                             code_;
-    uint8_t *                             operationCallbackExit_;
+    uint8_t *                             interruptExit_;
 
     StaticLinkData                        staticLinkData_;
     bool                                  dynamicallyLinked_;
@@ -427,7 +427,6 @@ class AsmJSModule
 
     FunctionCountsVector                  functionCounts_;
 
-    
     
     
     mutable bool                          codeIsProtected_;
@@ -751,8 +750,8 @@ class AsmJSModule
     bool addAbsoluteLink(AbsoluteLink link) {
         return staticLinkData_.absoluteLinks.append(link);
     }
-    void setOperationCallbackOffset(uint32_t offset) {
-        staticLinkData_.operationCallbackExitOffset = offset;
+    void setInterruptOffset(uint32_t offset) {
+        staticLinkData_.interruptExitOffset = offset;
     }
 
     void restoreToInitialState(ArrayBufferObject *maybePrevBuffer, ExclusiveContext *cx);
@@ -764,8 +763,8 @@ class AsmJSModule
         return code_;
     }
 
-    uint8_t *operationCallbackExit() const {
-        return operationCallbackExit_;
+    uint8_t *interruptExit() const {
+        return interruptExit_;
     }
 
     void setIsDynamicallyLinked() {

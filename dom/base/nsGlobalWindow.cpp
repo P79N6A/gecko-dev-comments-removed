@@ -10652,14 +10652,14 @@ nsGlobalWindow::ShowSlowScriptDialog()
 
   
   JSRuntime* rt = JS_GetRuntime(cx);
-  JSOperationCallback old = JS_SetOperationCallback(rt, nullptr);
+  JSInterruptCallback old = JS_SetInterruptCallback(rt, nullptr);
 
   
   rv = prompt->ConfirmEx(title, msg, buttonFlags, waitButton, stopButton,
                          debugButton, neverShowDlg, &neverShowDlgChk,
                          &buttonPressed);
 
-  JS_SetOperationCallback(rt, old);
+  JS_SetInterruptCallback(rt, old);
 
   if (NS_SUCCEEDED(rv) && (buttonPressed == 0)) {
     return neverShowDlgChk ? AlwaysContinueSlowScript : ContinueSlowScript;

@@ -53,7 +53,7 @@ function executeSoon(fn) {
 
 function checkWatchdog(expectInterrupt, continuation) {
   var lastWatchdogWakeup = Cu.getWatchdogTimestamp("WatchdogWakeup");
-  setOperationCallback(function() {
+  setInterruptCallback(function() {
     
     
     
@@ -61,7 +61,7 @@ function checkWatchdog(expectInterrupt, continuation) {
       return true;
     }
     do_check_true(expectInterrupt);
-    setOperationCallback(undefined);
+    setInterruptCallback(undefined);
     
     executeSoon(continuation);
     return false;
@@ -69,7 +69,7 @@ function checkWatchdog(expectInterrupt, continuation) {
   executeSoon(function() {
     busyWait(3000);
     do_check_true(!expectInterrupt);
-    setOperationCallback(undefined);
+    setInterruptCallback(undefined);
     continuation();
   });
 }
