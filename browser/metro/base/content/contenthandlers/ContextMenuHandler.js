@@ -42,9 +42,6 @@ var ContextMenuHandler = {
       case "Browser:ContextCommand":
         this._onContextCommand(aMessage);
       break;
-      case "Browser:InvokeContextAtPoint":
-        this._onContextAtPoint(aMessage);
-      break;
     }
   },
 
@@ -77,18 +74,6 @@ var ContextMenuHandler = {
         this._onCopyImage();
         break;
     }
-  },
-
-  
-
-
-  _onContextAtPoint: function _onContextAtPoint(aMessage) {
-    
-    
-    let { element, frameX, frameY } =
-      elementFromPoint(aMessage.json.xPos, aMessage.json.yPos);
-    this._processPopupNode(element, frameX, frameY,
-                           Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
   },
 
   
