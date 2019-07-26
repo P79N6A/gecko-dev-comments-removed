@@ -2268,6 +2268,34 @@ struct nsStyleSVG {
   }
 };
 
+struct nsStyleFilter {
+  nsStyleFilter();
+  nsStyleFilter(const nsStyleFilter& aSource);
+  ~nsStyleFilter();
+
+  bool operator==(const nsStyleFilter& aOther) const;
+
+  enum Type {
+    eNull,
+    eURL,
+    eBlur,
+    eBrightness,
+    eContrast,
+    eInvert,
+    eOpacity,
+    eGrayscale,
+    eSaturate,
+    eSepia,
+  };
+
+  Type mType;
+  union {
+    nsIURI* mURL;
+    nsStyleCoord mCoord;
+    
+  };
+};
+
 struct nsStyleSVGReset {
   nsStyleSVGReset();
   nsStyleSVGReset(const nsStyleSVGReset& aSource);
@@ -2286,8 +2314,17 @@ struct nsStyleSVGReset {
     return NS_CombineHint(nsChangeHint_UpdateEffects, NS_STYLE_HINT_REFLOW);
   }
 
+  
+  
+  
+  nsIURI* SingleFilter() const {
+    return (mFilters.Length() == 1 &&
+            mFilters[0].mType == nsStyleFilter::Type::eURL) ?
+            mFilters[0].mURL : nullptr;
+  }
+
   nsCOMPtr<nsIURI> mClipPath;         
-  nsCOMPtr<nsIURI> mFilter;           
+  nsTArray<nsStyleFilter> mFilters;   
   nsCOMPtr<nsIURI> mMask;             
   nscolor          mStopColor;        
   nscolor          mFloodColor;       

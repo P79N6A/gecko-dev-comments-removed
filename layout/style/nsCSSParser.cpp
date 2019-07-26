@@ -605,6 +605,10 @@ protected:
   bool ParseTransformOrigin(bool aPerspective);
 
   
+  bool ParseFilter();
+  bool ParseSingleFilter(nsCSSValue* aValue);
+
+  
 
 
   int32_t GetNamespaceIdForPrefix(const nsString& aPrefix);
@@ -6470,6 +6474,8 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseCounterData(aPropID);
   case eCSSProperty_cursor:
     return ParseCursor();
+  case eCSSProperty_filter:
+    return ParseFilter();
   case eCSSProperty_flex:
     return ParseFlex();
   case eCSSProperty_font:
@@ -10029,6 +10035,144 @@ bool CSSParserImpl::ParseTransformOrigin(bool aPerspective)
 
     AppendValue(prop, value);
   }
+  return true;
+}
+
+
+
+
+
+bool
+CSSParserImpl::ParseSingleFilter(nsCSSValue* aValue)
+{
+  if (ParseVariant(*aValue, VARIANT_URL, nullptr)) {
+    return true;
+  }
+
+  if (!nsLayoutUtils::CSSFiltersEnabled()) {
+    
+    REPORT_UNEXPECTED_TOKEN(PEExpectedNoneOrURL);
+    return false;
+  }
+
+  if (!GetToken(true)) {
+    REPORT_UNEXPECTED_EOF(PEFilterEOF);
+    return false;
+  }
+
+  if (mToken.mType != eCSSToken_Function) {
+    REPORT_UNEXPECTED_TOKEN(PEExpectedNoneOrURLOrFilterFunction);
+    return false;
+  }
+
+  
+  int32_t variantMask = VARIANT_PN;
+  bool rejectNegativeArgument = true;
+  bool clampArgumentToOne = false;
+  nsCSSKeyword functionName = nsCSSKeywords::LookupKeyword(mToken.mIdent);
+  switch (functionName) {
+    case eCSSKeyword_blur:
+      variantMask = VARIANT_LCALC | VARIANT_NONNEGATIVE_DIMENSION;
+      
+      rejectNegativeArgument = false;
+      break;
+    case eCSSKeyword_grayscale:
+    case eCSSKeyword_invert:
+    case eCSSKeyword_sepia:
+    case eCSSKeyword_opacity:
+      clampArgumentToOne = true;
+      break;
+    case eCSSKeyword_brightness:
+    case eCSSKeyword_contrast:
+    case eCSSKeyword_saturate:
+      break;
+    default:
+      
+      REPORT_UNEXPECTED_TOKEN(PEExpectedNoneOrURLOrFilterFunction);
+      SkipUntil(')');
+      return false;
+  }
+
+  
+  uint16_t minElems = 1U;
+  uint16_t maxElems = 1U;
+  uint32_t allVariants = 0;
+  if (!ParseFunction(functionName, &variantMask, allVariants,
+                     minElems, maxElems, *aValue)) {
+    REPORT_UNEXPECTED(PEFilterFunctionArgumentsParsingError);
+    return false;
+  }
+
+  
+  NS_ABORT_IF_FALSE(aValue->GetUnit() == eCSSUnit_Function,
+                    "expected a filter function");
+  NS_ABORT_IF_FALSE(aValue->UnitHasArrayValue(),
+                    "filter function should be an array");
+  NS_ABORT_IF_FALSE(aValue->GetArrayValue()->Count() == 2,
+                    "filter function should have exactly one argument");
+  nsCSSValue& arg = aValue->GetArrayValue()->Item(1);
+
+  if (rejectNegativeArgument &&
+      ((arg.GetUnit() == eCSSUnit_Percent && arg.GetPercentValue() < 0.0f) ||
+       (arg.GetUnit() == eCSSUnit_Number && arg.GetFloatValue() < 0.0f))) {
+    REPORT_UNEXPECTED(PEExpectedNonnegativeNP);
+    return false;
+  }
+
+  if (clampArgumentToOne) {
+    if (arg.GetUnit() == eCSSUnit_Number &&
+        arg.GetFloatValue() > 1.0f) {
+      arg.SetFloatValue(1.0f, arg.GetUnit());
+    } else if (arg.GetUnit() == eCSSUnit_Percent &&
+               arg.GetPercentValue() > 1.0f) {
+      arg.SetPercentValue(1.0f);
+    }
+  }
+
+  return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseFilter()
+{
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
+    
+    if (!ExpectEndProperty()) {
+      return false;
+    }
+  } else {
+    nsCSSValueList* cur = value.SetListValue();
+    while (cur) {
+      if (!ParseSingleFilter(&cur->mValue)) {
+        return false;
+      }
+      if (CheckEndProperty()) {
+        break;
+      }
+      if (!nsLayoutUtils::CSSFiltersEnabled()) {
+        
+        
+        REPORT_UNEXPECTED_TOKEN(PEExpectEndValue);
+        return false;
+      }
+      cur->mNext = new nsCSSValueList;
+      cur = cur->mNext;
+    }
+  }
+  AppendValue(eCSSProperty_filter, value);
   return true;
 }
 
