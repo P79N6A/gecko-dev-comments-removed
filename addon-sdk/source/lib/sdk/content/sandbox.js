@@ -134,11 +134,6 @@ const WorkerSandbox = Class({
 
     
     
-    let apiSandbox = sandbox(principals, { wantXrays: true, sameZoneAs: window });
-    apiSandbox.console = console;
-
-    
-    
     let content = sandbox(principals, {
       sandboxPrototype: proto,
       wantXrays: true,
@@ -171,9 +166,7 @@ const WorkerSandbox = Class({
     });
 
     
-    
-    
-    load(apiSandbox, CONTENT_WORKER_URL);
+    let ContentWorker = load(content, CONTENT_WORKER_URL);
 
     
     let options = 'contentScriptOptions' in worker ?
@@ -189,9 +182,8 @@ const WorkerSandbox = Class({
     
     
     let onEvent = onContentEvent.bind(null, this);
-    
     let chromeAPI = createChromeAPI();
-    let result = apiSandbox.ContentWorker.inject(content, chromeAPI, onEvent, options);
+    let result = Cu.waiveXrays(ContentWorker).inject(content, chromeAPI, onEvent, options);
 
     
     

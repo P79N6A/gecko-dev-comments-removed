@@ -2,7 +2,7 @@
 
 
 
-const ContentWorker = Object.freeze({
+Object.freeze({
   
   
 
@@ -70,6 +70,7 @@ const ContentWorker = Object.freeze({
 
 
   createPipe: function createPipe(emitToChrome) {
+    let ContentWorker = this;
     function onEvent(type, ...args) {
       
       
@@ -271,6 +272,7 @@ const ContentWorker = Object.freeze({
 
   injectMessageAPI: function injectMessageAPI(exports, pipe, console) {
 
+    let ContentWorker = this;
     let { eventEmitter: port, emit : portEmit } =
       ContentWorker.createEventEmitter(pipe.emit.bind(null, "event"));
     pipe.on("event", portEmit);
@@ -322,6 +324,7 @@ const ContentWorker = Object.freeze({
   },
 
   inject: function (exports, chromeAPI, emitToChrome, options) {
+    let ContentWorker = this;
     let { pipe, onChromeEvent, hasListenerFor } =
       ContentWorker.createPipe(emitToChrome);
 

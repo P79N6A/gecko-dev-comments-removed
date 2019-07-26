@@ -147,11 +147,6 @@ const WorkerSandbox = EventEmitter.compose({
 
     
     
-    let apiSandbox = sandbox(principals, { wantXrays: true, sameZoneAs: window });
-    apiSandbox.console = console;
-
-    
-    
     let content = this._sandbox = sandbox(principals, {
       sandboxPrototype: proto,
       wantXrays: true,
@@ -181,9 +176,7 @@ const WorkerSandbox = EventEmitter.compose({
     });
 
     
-    
-    
-    load(apiSandbox, CONTENT_WORKER_URL);
+    let ContentWorker = load(content, CONTENT_WORKER_URL);
 
     
     let options = 'contentScriptOptions' in worker ?
@@ -223,8 +216,7 @@ const WorkerSandbox = EventEmitter.compose({
       }
     };
     let onEvent = this._onContentEvent.bind(this);
-    
-    let result = apiSandbox.ContentWorker.inject(content, chromeAPI, onEvent, options);
+    let result = Cu.waiveXrays(ContentWorker).inject(content, chromeAPI, onEvent, options);
     this._emitToContent = result.emitToContent;
     this._hasListenerFor = result.hasListenerFor;
 
