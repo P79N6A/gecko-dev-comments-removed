@@ -16,6 +16,11 @@
 
 using namespace mozilla;
 
+
+
+
+
+
 static bool gLocaleNumberGroupingEnabled;
 static const char LOCALE_NUMBER_GROUPING_PREF_STR[] = "dom.forms.number.grouping";
 
@@ -28,7 +33,7 @@ LocaleNumberGroupingIsEnabled()
     
     Preferences::AddBoolVarCache(&gLocaleNumberGroupingEnabled,
                                  LOCALE_NUMBER_GROUPING_PREF_STR,
-                                 true);
+                                 false);
     sInitialized = true;
   }
 
