@@ -196,8 +196,6 @@ private:
   bool mTouchStartDefaultPrevented;
   bool mTouchMoveDefaultPrevented;
   bool mIsFirstTouchMove;
-  bool mCancelable;
-  bool mTouchCancelSent;
 
   
   
@@ -264,6 +262,7 @@ private:
 
   
   void DeliverNextQueuedEventIgnoreStatus();
+  nsEventStatus DeliverNextQueuedEvent();
   nsEventStatus DeliverNextQueuedTouchEvent();
 
   
@@ -272,9 +271,8 @@ private:
 
   
   void DispatchEventIgnoreStatus(nsGUIEvent *aEvent);
-  void DispatchTouchCancel();
 
-  nsDeque mInputEventQueue;
+   nsDeque mInputEventQueue;
   static nsEventStatus sThrowawayStatus;
 };
 
