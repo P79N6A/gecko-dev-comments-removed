@@ -3472,6 +3472,9 @@ const BrowserSearch = {
 
 
 
+
+
+
   loadSearch: function BrowserSearch_search(searchText, useNewTab, purpose) {
     var engine;
 
@@ -3488,8 +3491,9 @@ const BrowserSearch = {
     
     
     
-    if (!submission)
-      return;
+    if (!submission) {
+      return null;
+    }
 
     let inBackground = Services.prefs.getBoolPref("browser.search.context.loadInBackground");
     openLinkIn(submission.uri.spec,
@@ -3497,6 +3501,21 @@ const BrowserSearch = {
                { postData: submission.postData,
                  inBackground: inBackground,
                  relatedToCurrent: true });
+
+    return engine.name;
+  },
+
+  
+
+
+
+
+
+  loadSearchFromContext: function (terms) {
+    let engine = BrowserSearch.loadSearch(terms, true, "contextmenu");
+    if (engine) {
+      BrowserSearch.recordSearchInHealthReport(engine, "contextmenu");
+    }
   },
 
   
