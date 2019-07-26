@@ -249,6 +249,7 @@ class BaseShape : public js::gc::Cell
 
 
 
+
         DELEGATE           =    0x8,
         NOT_EXTENSIBLE     =   0x10,
         INDEXED            =   0x20,

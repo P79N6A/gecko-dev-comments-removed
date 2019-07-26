@@ -367,6 +367,7 @@ class JSObject : public js::ObjectImpl
 
     bool setFlag(JSContext *cx,  uint32_t flag,
                  GenerateShape generateShape = GENERATE_NONE);
+    bool clearFlag(JSContext *cx,  uint32_t flag);
 
   public:
     inline bool nativeEmpty() const;
@@ -628,10 +629,25 @@ class JSObject : public js::ObjectImpl
     static bool sparsifyDenseElements(JSContext *cx, js::HandleObject obj);
 
     
+    static const unsigned MIN_SPARSE_INDEX = 1000;
+
+    
+
+
+
+    static const unsigned SPARSE_DENSITY_RATIO = 8;
+
+    
 
 
 
     bool willBeSparseElements(unsigned requiredCapacity, unsigned newElementsHint);
+
+    
+
+
+
+    static EnsureDenseResult maybeDensifySparseElements(JSContext *cx, js::HandleObject obj);
 
     
     inline uint32_t getArrayLength() const;
@@ -1331,7 +1347,7 @@ js_NativeGet(JSContext *cx, js::Handle<JSObject*> obj, js::Handle<JSObject*> pob
 
 extern JSBool
 js_NativeSet(JSContext *cx, js::Handle<JSObject*> obj, js::Handle<JSObject*> receiver,
-             js::Handle<js::Shape*> shape, bool added, bool strict, js::MutableHandleValue vp);
+             js::Handle<js::Shape*> shape, bool strict, js::MutableHandleValue vp);
 
 namespace js {
 
