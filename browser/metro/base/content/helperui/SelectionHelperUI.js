@@ -227,6 +227,7 @@ var SelectionHelperUI = {
   _activeSelectionRect: null,
   _selectionHandlerActive: false,
   _selectionMarkIds: [],
+  _targetIsEditable: false,
 
   
 
@@ -370,8 +371,12 @@ var SelectionHelperUI = {
 
 
 
-  closeEditSessionAndClear: function closeEditSessionAndClear() {
-    this._sendAsyncMessage("Browser:SelectionClear");
+
+
+
+  closeEditSessionAndClear: function closeEditSessionAndClear(aClearFocus) {
+    let clearFocus = aClearFocus || false;
+    this._sendAsyncMessage("Browser:SelectionClear", { clearFocus: clearFocus });
     this.closeEditSession();
   },
 
@@ -387,6 +392,10 @@ var SelectionHelperUI = {
     this._selectionMarkIds = ["selectionhandle-mark1",
                               "selectionhandle-mark2",
                               "selectionhandle-mark3"];
+
+    
+    this._activeSelectionRect = Util.getCleanRect();
+    this._targetElementRect = Util.getCleanRect();
 
     
     messageManager.addMessageListener("Content:SelectionRange", this);
@@ -591,25 +600,44 @@ var SelectionHelperUI = {
 
 
 
+
   _onTap: function _onTap(aEvent) {
+    
     if (this.startMark.hitTest(aEvent.clientX, aEvent.clientY) ||
         this.endMark.hitTest(aEvent.clientX, aEvent.clientY)) {
+      aEvent.stopPropagation();
+      aEvent.preventDefault();
       return;
     }
 
     
     
-    if (this.caretMark.visible &&
-        Util.pointWithinRect(aEvent.clientX, aEvent.clientY,
-                             this._targetElementRect)) {
+    
+    let pointInTargetElement =
+      Util.pointWithinRect(aEvent.clientX, aEvent.clientY,
+                           this._targetElementRect);
+
+    
+    
+    if (this.caretMark.visible && pointInTargetElement) {
       
       this._setCaretPositionAtPoint(aEvent.clientX, aEvent.clientY);
       return;
     }
 
+    
+    
     if (this.caretMark.visible) {
       
-      this.closeEditSessionAndClear();
+      this.closeEditSessionAndClear(true);
+      return;
+    }
+
+    
+    
+    if (this.startMark.visible && !pointInTargetElement &&
+        this._targetIsEditable) {
+      this.closeEditSessionAndClear(true);
       return;
     }
 
@@ -660,6 +688,7 @@ var SelectionHelperUI = {
     }
     this._activeSelectionRect = json.selection;
     this._targetElementRect = json.element;
+    this._targetIsEditable = json.targetIsEditable;
   },
 
   _onSelectionFail: function _onSelectionFail() {
