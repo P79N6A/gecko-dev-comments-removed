@@ -248,6 +248,22 @@ public:
 
   static void UnlinkUserData(nsINode *aNode);
 
+  
+
+
+
+
+  static bool IsTemplateElement(const nsINode *aNode);
+
+  
+
+
+
+
+
+
+  static nsIContent* GetFirstChildOfTemplateOrNode(nsINode* aNode);
+
 private:
   
 

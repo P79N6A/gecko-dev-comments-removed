@@ -864,6 +864,8 @@ public:
     MaybeRescheduleAnimationFrameNotifications();
   }
 
+  virtual nsIDocument* GetTemplateContentsOwner();
+
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDocument,
                                                                    nsIDocument)
 
@@ -1290,6 +1292,10 @@ protected:
   
   nsCOMPtr<nsIChannel> mChannel;
   nsRefPtr<nsHTMLCSSStyleSheet> mStyleAttrStyleSheet;
+
+  
+  
+  nsCOMPtr<nsIDocument> mTemplateContentsOwner;
 
   
   uint32_t mUpdateNestLevel;

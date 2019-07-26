@@ -1211,6 +1211,15 @@ const nsHTMLElement gHTMLElements[] = {
                 &gInTable,&gTableElemKids,
   },
   {
+                                 eHTMLTag_template,
+              eHTMLTag_unknown,eHTMLTag_unknown,
+              &gRootTags,&gRootTags,
+     0,0,0,0,
+              kNone, kNone, kNone,
+           0,kDefaultPropRange,
+                0,0,
+  },
+  {
                                  eHTMLTag_time,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,

@@ -1634,6 +1634,12 @@ public:
 
 
 
+  virtual nsIDocument* GetTemplateContentsOwner() = 0;
+
+  
+
+
+
   bool IsStaticDocument() { return mIsStaticDocument; }
 
   
