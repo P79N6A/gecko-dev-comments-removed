@@ -5,13 +5,18 @@
 
 "use strict";
 
-let {TiltMath} = require("devtools/tilt/tilt-math");
+const Cu = Components.utils;
+
+Cu.import("resource:///modules/devtools/TiltMath.jsm");
+
+this.EXPORTED_SYMBOLS = ["TiltVisualizerStyle"];
 let rgba = TiltMath.hex2rgba;
 
 
 
 
-module.exports = {
+this.TiltVisualizerStyle = {
+
   canvas: {
     background: "linear-gradient(#454545 0%, #000 100%)",
   },

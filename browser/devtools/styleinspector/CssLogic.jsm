@@ -37,8 +37,9 @@
 
 
 
-
-const {Cc, Ci, Cu} = require("chrome");
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
 
 const RX_UNIVERSAL_SELECTOR = /\s*\*\s*/g;
 const RX_NOT = /:not\((.*?)\)/g;
@@ -51,13 +52,13 @@ const RX_PSEUDO = /\s*:?:([\w-]+)(\(?\)?)\s*/g;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-function CssLogic()
+this.EXPORTED_SYMBOLS = ["CssLogic", "CssSelector"];
+
+this.CssLogic = function CssLogic()
 {
   
   _propertyInfos: {};
 }
-
-exports.CssLogic = CssLogic;
 
 
 
@@ -1246,7 +1247,7 @@ CssRule.prototype = {
 
 
 
-function CssSelector(aCssRule, aSelector, aIndex)
+this.CssSelector = function CssSelector(aCssRule, aSelector, aIndex)
 {
   this._cssRule = aCssRule;
   this.text = aSelector;
@@ -1254,8 +1255,6 @@ function CssSelector(aCssRule, aSelector, aIndex)
   this._specificity = null;
   this.selectorIndex = aIndex;
 }
-
-exports.CssSelector = CssSelector;
 
 CssSelector.prototype = {
   _matchId: null,

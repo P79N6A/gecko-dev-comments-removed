@@ -4,10 +4,14 @@
 
 
 
-const {Cc, Cu, Ci} = require("chrome");
+const Cc = Components.classes;
+const Cu = Components.utils;
+const Ci = Components.interfaces;
 
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 const ENSURE_SELECTION_VISIBLE_DELAY = 50; 
+
+this.EXPORTED_SYMBOLS = ["HTMLBreadcrumbs"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/DOMHelpers.jsm");
@@ -40,7 +44,7 @@ const LOW_PRIORITY_ELEMENTS = {
 
 
 
-function HTMLBreadcrumbs(aInspector)
+this.HTMLBreadcrumbs = function HTMLBreadcrumbs(aInspector)
 {
   this.inspector = aInspector;
   this.selection = this.inspector.selection;
@@ -49,8 +53,6 @@ function HTMLBreadcrumbs(aInspector)
   this.DOMHelpers = new DOMHelpers(this.chromeWin);
   this._init();
 }
-
-exports.HTMLBreadcrumbs = HTMLBreadcrumbs;
 
 HTMLBreadcrumbs.prototype = {
   _init: function BC__init()

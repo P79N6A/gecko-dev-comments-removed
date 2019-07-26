@@ -1,8 +1,9 @@
 
 
 
-let {devtools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
-let TargetFactory = devtools.TargetFactory;
+let tempScope = {};
+Cu.import("resource:///modules/devtools/Target.jsm", tempScope);
+let TargetFactory = tempScope.TargetFactory;
 
 function test() {
   waitForExplicitFinish();

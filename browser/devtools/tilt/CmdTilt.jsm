@@ -7,18 +7,9 @@ this.EXPORTED_SYMBOLS = [ ];
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
-Components.utils.import("resource:///modules/devtools/gDevTools.jsm");
 
-
-
-
-Object.defineProperty(this, "TiltManager", {
-  get: function() {
-    return devtools.require("devtools/tilt/tilt").TiltManager;
-  },
-  enumerable: true
-});
-
+XPCOMUtils.defineLazyModuleGetter(this, "TiltManager",
+                                  "resource:///modules/devtools/Tilt.jsm");
 
 
 

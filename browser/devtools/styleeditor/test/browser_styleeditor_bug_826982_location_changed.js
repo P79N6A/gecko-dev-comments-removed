@@ -1,6 +1,10 @@
 
 
 
+let tempScope = {};
+Cu.import("resource:///modules/devtools/Target.jsm", tempScope);
+let TargetFactory = tempScope.TargetFactory;
+
 function test() {
   let notificationBox, styleEditor;
   let alertActive1_called = false;
