@@ -89,6 +89,7 @@ class nsNodeInfoManager;
 class nsPIDOMWindow;
 class nsPresContext;
 class nsScriptObjectTracer;
+class nsStringBuffer;
 class nsStringHashKey;
 class nsTextFragment;
 class nsViewportInfo;
@@ -1685,6 +1686,14 @@ public:
 
 
   static void PlatformToDOMLineBreaks(nsString &aString);
+
+  
+
+
+
+
+  static void PopulateStringFromStringBuffer(nsStringBuffer* aBuf,
+                                             nsAString& aResultString);
 
   static bool IsHandlingKeyBoardEvent()
   {

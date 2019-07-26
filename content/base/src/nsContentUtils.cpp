@@ -5922,6 +5922,27 @@ nsContentUtils::PlatformToDOMLineBreaks(nsString &aString)
   }
 }
 
+void
+nsContentUtils::PopulateStringFromStringBuffer(nsStringBuffer* aBuf,
+                                               nsAString& aResultString)
+{
+  MOZ_ASSERT(aBuf, "Expecting a non-null string buffer");
+
+  uint32_t stringLen = NS_strlen(static_cast<PRUnichar*>(aBuf->Data()));
+
+  
+  
+  
+  
+  
+  uint32_t allocStringLen = (aBuf->StorageSize() / sizeof(PRUnichar)) - 1;
+  MOZ_ASSERT(stringLen <= allocStringLen,
+             "string buffer lacks null terminator!");
+  stringLen = std::min(stringLen, allocStringLen);
+
+  aBuf->ToString(stringLen, aResultString);
+}
+
 nsIPresShell*
 nsContentUtils::FindPresShellForDocument(const nsIDocument* aDoc)
 {

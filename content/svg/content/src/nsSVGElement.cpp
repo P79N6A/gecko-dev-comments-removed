@@ -10,6 +10,7 @@
 
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGTests.h"
+#include "nsContentUtils.h"
 #include "nsICSSDeclaration.h"
 #include "nsIDocument.h"
 #include "nsIDOMMutationEvent.h"
@@ -1312,22 +1313,8 @@ ParseMappedAttrAnimValueCallback(void*    aObject,
   nsStringBuffer* animValBuf = static_cast<nsStringBuffer*>(aPropertyValue);
   MOZ_ASSERT(animValBuf, "animated value should be non-null");
 
-  PRUnichar* animValBufData = static_cast<PRUnichar*>(animValBuf->Data());
-  uint32_t logicalStringLen = NS_strlen(animValBufData);
-  
-  
-  
-  
-  
-  uint32_t allocStringLen =
-    (animValBuf->StorageSize() / sizeof(PRUnichar)) - 1;
-
-  MOZ_ASSERT(logicalStringLen <= allocStringLen,
-             "The string in our string buffer wasn't null-terminated!!");
-
   nsString animValStr;
-  animValBuf->ToString(std::min(logicalStringLen, allocStringLen),
-                       animValStr);
+  nsContentUtils::PopulateStringFromStringBuffer(animValBuf, animValStr);
 
   mappedAttrParser->ParseMappedAttrValue(aPropertyName, animValStr);
 }

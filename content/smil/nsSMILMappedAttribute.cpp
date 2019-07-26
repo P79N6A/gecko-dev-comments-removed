@@ -5,7 +5,7 @@
 
 
 #include "nsSMILMappedAttribute.h"
-#include "nsAttrValue.h"
+#include "nsContentUtils.h"
 #include "nsError.h" 
 #include "nsSMILValue.h"
 #include "nsSMILCSSValueType.h"
@@ -94,8 +94,13 @@ nsSMILMappedAttribute::SetAnimValue(const nsSMILValue& aValue)
   nsRefPtr<nsIAtom> attrName = GetAttrNameAtom();
   nsStringBuffer* oldValStrBuf = static_cast<nsStringBuffer*>
     (mElement->GetProperty(SMIL_MAPPED_ATTR_ANIMVAL, attrName));
-  if (oldValStrBuf && valStr.Equals(nsCheapString(oldValStrBuf))) {
-    return NS_OK;
+  if (oldValStrBuf) {
+    nsString oldValStr;
+    nsContentUtils::PopulateStringFromStringBuffer(oldValStrBuf, oldValStr);
+    if (valStr.Equals(oldValStr)) {
+      
+      return NS_OK;
+    }
   }
 
   
