@@ -7,16 +7,28 @@
 #include "BluetoothRilListener.h"
 
 #include "BluetoothHfpManager.h"
-#include "nsIDOMMobileConnection.h"
-#include "nsIRadioInterfaceLayer.h"
+#include "nsIIccProvider.h"
+#include "nsIMobileConnectionProvider.h"
+#include "nsITelephonyProvider.h"
 #include "nsRadioInterfaceLayer.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
 
 USING_BLUETOOTH_NAMESPACE
 
+namespace {
 
 
+
+
+class IccListener : public nsIIccListener
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIICCLISTENER
+
+  IccListener() { }
+};
 
 NS_IMPL_ISUPPORTS1(IccListener, nsIIccListener)
 
@@ -24,7 +36,7 @@ NS_IMETHODIMP
 IccListener::NotifyIccInfoChanged()
 {
   BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  hfp->HandleIccInfoChanged(mOwner->mClientId);
+  hfp->HandleIccInfoChanged();
 
   return NS_OK;
 }
@@ -47,31 +59,17 @@ IccListener::NotifyCardStateChanged()
   return NS_OK;
 }
 
-bool
-IccListener::Listen(bool aStart)
+
+
+
+class MobileConnectionListener : public nsIMobileConnectionListener
 {
-  nsCOMPtr<nsIIccProvider> provider =
-    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
-  NS_ENSURE_TRUE(provider, false);
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIMOBILECONNECTIONLISTENER
 
-  nsresult rv;
-  if (aStart) {
-    rv = provider->RegisterIccMsg(mOwner->mClientId, this);
-  } else {
-    rv = provider->UnregisterIccMsg(mOwner->mClientId, this);
-  }
-
-  return NS_SUCCEEDED(rv);
-}
-
-void
-IccListener::SetOwner(BluetoothRilListener *aOwner)
-{
-  mOwner = aOwner;
-}
-
-
-
+  MobileConnectionListener() { }
+};
 
 NS_IMPL_ISUPPORTS1(MobileConnectionListener, nsIMobileConnectionListener)
 
@@ -79,7 +77,7 @@ NS_IMETHODIMP
 MobileConnectionListener::NotifyVoiceChanged()
 {
   BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  hfp->HandleVoiceConnectionChanged(mClientId);
+  hfp->HandleVoiceConnectionChanged();
 
   return NS_OK;
 }
@@ -133,25 +131,19 @@ MobileConnectionListener::NotifyIccChanged()
   return NS_OK;
 }
 
-bool
-MobileConnectionListener::Listen(bool aStart)
+
+
+
+
+
+class TelephonyListener : public nsITelephonyListener
 {
-  nsCOMPtr<nsIMobileConnectionProvider> provider =
-    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
-  NS_ENSURE_TRUE(provider, false);
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSITELEPHONYLISTENER
 
-  nsresult rv;
-  if (aStart) {
-    rv = provider->RegisterMobileConnectionMsg(mClientId, this);
-  } else {
-    rv = provider->UnregisterMobileConnectionMsg(mClientId, this);
-  }
-
-  return NS_SUCCEEDED(rv);
-}
-
-
-
+  TelephonyListener() { }
+};
 
 NS_IMPL_ISUPPORTS1(TelephonyListener, nsITelephonyListener)
 
@@ -251,109 +243,36 @@ TelephonyListener::NotifyCdmaCallWaiting(uint32_t aServiceId,
   return NS_OK;
 }
 
-bool
-TelephonyListener::Listen(bool aStart)
-{
-  nsCOMPtr<nsITelephonyProvider> provider =
-    do_GetService(TELEPHONY_PROVIDER_CONTRACTID);
-  NS_ENSURE_TRUE(provider, false);
-
-  nsresult rv;
-  if (aStart) {
-    rv = provider->RegisterListener(this);
-  } else {
-    rv = provider->UnregisterListener(this);
-  }
-
-  return NS_SUCCEEDED(rv);
-}
+} 
 
 
 
 
 BluetoothRilListener::BluetoothRilListener()
 {
-  
-  uint32_t numOfClients;
-  nsCOMPtr<nsIRadioInterfaceLayer> radioInterfaceLayer =
-    do_GetService(NS_RADIOINTERFACELAYER_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(radioInterfaceLayer);
-
-  radioInterfaceLayer->GetNumRadioInterfaces(&numOfClients);
-
-  
-  for (uint32_t i = 0; i < numOfClients; i++) {
-    MobileConnectionListener listener(i);
-    mMobileConnListeners.AppendElement(listener);
-  }
-  mIccListener.SetOwner(this);
-
-  
-  SelectClient();
+  mIccListener = new IccListener();
+  mMobileConnectionListener = new MobileConnectionListener();
+  mTelephonyListener = new TelephonyListener();
 }
 
 bool
-BluetoothRilListener::Listen(bool aStart)
+BluetoothRilListener::StartListening()
 {
-  NS_ENSURE_TRUE(ListenMobileConnAndIccInfo(aStart), false);
-  NS_ENSURE_TRUE(mTelephonyListener.Listen(aStart), false);
+  NS_ENSURE_TRUE(StartIccListening(), false);
+  NS_ENSURE_TRUE(StartMobileConnectionListening(), false);
+  NS_ENSURE_TRUE(StartTelephonyListening(), false);
 
   return true;
 }
 
-void
-BluetoothRilListener::SelectClient()
+bool
+BluetoothRilListener::StopListening()
 {
-  
-  mClientId = mMobileConnListeners.Length();
+  NS_ENSURE_TRUE(StopIccListening(), false);
+  NS_ENSURE_TRUE(StopMobileConnectionListening(), false);
+  NS_ENSURE_TRUE(StopTelephonyListening(), false);
 
-  nsCOMPtr<nsIMobileConnectionProvider> connection =
-    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(connection);
-
-  uint32_t i;
-  for (i = 0; i < mMobileConnListeners.Length(); i++) {
-    nsCOMPtr<nsIDOMMozMobileConnectionInfo> voiceInfo;
-    connection->GetVoiceConnectionInfo(i, getter_AddRefs(voiceInfo));
-    if (!voiceInfo) {
-      BT_WARNING("%s: Failed to get voice connection info", __FUNCTION__);
-      continue;
-    }
-
-    nsString regState;
-    voiceInfo->GetState(regState);
-    if (regState.EqualsLiteral("registered")) {
-      
-      mClientId = i;
-      return;
-    }
-  }
-}
-
-void
-BluetoothRilListener::ServiceChanged(uint32_t aClientId, bool aRegistered)
-{
-  
-  ListenMobileConnAndIccInfo(false);
-
-  
-
-
-
-
-
-
-  if (aRegistered) {
-    mClientId = aClientId;
-  } else {
-    SelectClient();
-  }
-
-  
-  ListenMobileConnAndIccInfo(true);
-
-  BT_LOGR("%s: %d client %d. new mClientId %d", __FUNCTION__, aRegistered, aClientId,
-    (mClientId < mMobileConnListeners.Length()) ? mClientId : -1);
+  return true;
 }
 
 void
@@ -363,32 +282,78 @@ BluetoothRilListener::EnumerateCalls()
     do_GetService(TELEPHONY_PROVIDER_CONTRACTID);
   NS_ENSURE_TRUE_VOID(provider);
 
-  nsCOMPtr<nsITelephonyListener> listener(
-    do_QueryInterface(&mTelephonyListener));
+  provider->EnumerateCalls(mTelephonyListener);
+}
 
-  provider->EnumerateCalls(listener);
+
+bool
+BluetoothRilListener::StartIccListening()
+{
+  nsCOMPtr<nsIIccProvider> provider =
+    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
+  NS_ENSURE_TRUE(provider, false);
+
+  
+  nsresult rv = provider->RegisterIccMsg(0, mIccListener);
+  return NS_SUCCEEDED(rv);
 }
 
 bool
-BluetoothRilListener::ListenMobileConnAndIccInfo(bool aStart)
+BluetoothRilListener::StopIccListening()
 {
+  nsCOMPtr<nsIIccProvider> provider =
+    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
+  NS_ENSURE_TRUE(provider, false);
+
   
+  nsresult rv = provider->UnregisterIccMsg(0, mIccListener);
+  return NS_SUCCEEDED(rv);
+}
 
+bool
+BluetoothRilListener::StartMobileConnectionListening()
+{
+  nsCOMPtr<nsIMobileConnectionProvider> provider =
+    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
+  NS_ENSURE_TRUE(provider, false);
 
+  
+  nsresult rv = provider->
+                  RegisterMobileConnectionMsg(0, mMobileConnectionListener);
+  return NS_SUCCEEDED(rv);
+}
 
+bool
+BluetoothRilListener::StopMobileConnectionListening()
+{
+  nsCOMPtr<nsIMobileConnectionProvider> provider =
+    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
+  NS_ENSURE_TRUE(provider, false);
 
+  
+  nsresult rv = provider->
+                  UnregisterMobileConnectionMsg(0, mMobileConnectionListener);
+  return NS_SUCCEEDED(rv);
+}
 
+bool
+BluetoothRilListener::StartTelephonyListening()
+{
+  nsCOMPtr<nsITelephonyProvider> provider =
+    do_GetService(TELEPHONY_PROVIDER_CONTRACTID);
+  NS_ENSURE_TRUE(provider, false);
 
+  nsresult rv = provider->RegisterListener(mTelephonyListener);
+  return NS_SUCCEEDED(rv);
+}
 
+bool
+BluetoothRilListener::StopTelephonyListening()
+{
+  nsCOMPtr<nsITelephonyProvider> provider =
+    do_GetService(TELEPHONY_PROVIDER_CONTRACTID);
+  NS_ENSURE_TRUE(provider, false);
 
-  if (mClientId < mMobileConnListeners.Length()) {
-    NS_ENSURE_TRUE(mMobileConnListeners[mClientId].Listen(aStart), false);
-    NS_ENSURE_TRUE(mIccListener.Listen(aStart), false);
-  } else {
-    for (uint32_t i = 0; i < mMobileConnListeners.Length(); i++) {
-      NS_ENSURE_TRUE(mMobileConnListeners[i].Listen(aStart), false);
-    }
-  }
-
-  return true;
+  nsresult rv = provider->UnregisterListener(mTelephonyListener);
+  return NS_SUCCEEDED(rv);
 }
