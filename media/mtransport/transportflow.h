@@ -139,5 +139,13 @@ class TransportFlow : public nsISupports,
   nsCOMPtr<nsIEventTarget> target_;
 };
 
+
+
+template<>
+struct HasDangerousPublicDestructor<TransportFlow>
+{
+  static const bool value = true;
+};
+
 }  
 #endif
