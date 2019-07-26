@@ -593,11 +593,24 @@ SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat)
     return FORMAT_R5G6B5;
   case android::PIXEL_FORMAT_A_8:
     return FORMAT_A8;
-  case 17: 
+  case HAL_PIXEL_FORMAT_YCbCr_422_SP:
+  case HAL_PIXEL_FORMAT_YCrCb_420_SP:
+  case HAL_PIXEL_FORMAT_YCbCr_422_I:
+  case HAL_PIXEL_FORMAT_YV12:
     return FORMAT_B8G8R8A8; 
   default:
-    MOZ_NOT_REACHED("Unknown Android pixel format");
-    return FORMAT_UNKNOWN;
+    if (aFormat >= 0x100 && aFormat <= 0x1FF) {
+      
+      return FORMAT_B8G8R8A8;
+    } else {
+      
+      
+      
+      
+      
+      MOZ_ASSERT(false, "Unknown Android pixel format.");
+      return FORMAT_UNKNOWN;
+    }
   }
 }
 
@@ -605,10 +618,29 @@ static GLenum
 TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
 {
   switch (aFormat) {
-  case 17: 
+  case HAL_PIXEL_FORMAT_YCbCr_422_SP:
+  case HAL_PIXEL_FORMAT_YCrCb_420_SP:
+  case HAL_PIXEL_FORMAT_YCbCr_422_I:
+  case HAL_PIXEL_FORMAT_YV12:
     return LOCAL_GL_TEXTURE_EXTERNAL;
-  default:
+  case android::PIXEL_FORMAT_RGBA_8888:
+  case android::PIXEL_FORMAT_RGBX_8888:
+  case android::PIXEL_FORMAT_RGB_565:
+  case android::PIXEL_FORMAT_A_8:
     return LOCAL_GL_TEXTURE_2D;
+  default:
+    if (aFormat >= 0x100 && aFormat <= 0x1FF) {
+      
+      return LOCAL_GL_TEXTURE_EXTERNAL;
+    } else {
+      
+      
+      
+      
+      
+      MOZ_ASSERT(false, "Unknown Android pixel format.");
+      return LOCAL_GL_TEXTURE_EXTERNAL;
+    }
   }
 }
 
