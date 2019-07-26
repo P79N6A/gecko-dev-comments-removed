@@ -1272,8 +1272,9 @@ nsHTMLEditRules::WillInsertText(EditAction aAction,
   int32_t selOffset;
 
   
+  
   if (!aSelection->Collapsed()) {
-    res = mHTMLEditor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
+    res = mHTMLEditor->DeleteSelection(nsIEditor::eNone, nsIEditor::eNoStrip);
     NS_ENSURE_SUCCESS(res, res);
   }
 
