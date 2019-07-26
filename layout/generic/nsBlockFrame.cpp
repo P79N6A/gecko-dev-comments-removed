@@ -1727,8 +1727,6 @@ nsBlockFrame::PropagateFloatDamage(nsBlockReflowState& aState,
   }
 }
 
-static void PlaceFrameView(nsIFrame* aFrame);
-
 static bool LineHasClear(nsLineBox* aLine) {
   return aLine->IsBlock()
     ? (aLine->GetBreakTypeBefore() ||
@@ -2143,7 +2141,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
   
   if (repositionViews)
-    ::PlaceFrameView(this);
+    nsContainerFrame::PlaceFrameView(this);
 
   
   
@@ -2558,15 +2556,6 @@ nsBlockFrame::PullFrameFrom(nsLineBox*           aLine,
   return frame;
 }
 
-static void
-PlaceFrameView(nsIFrame* aFrame)
-{
-  if (aFrame->HasView())
-    nsContainerFrame::PositionFrameView(aFrame);
-  else
-    nsContainerFrame::PositionChildViews(aFrame);
-}
-
 void
 nsBlockFrame::SlideLine(nsBlockReflowState& aState,
                         nsLineBox* aLine, nscoord aDY)
@@ -2588,7 +2577,7 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
     }
 
     
-    ::PlaceFrameView(kid);
+    nsContainerFrame::PlaceFrameView(kid);
   }
   else {
     
@@ -2601,7 +2590,7 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
         kid->MovePositionBy(nsPoint(0, aDY));
       }
       
-      ::PlaceFrameView(kid);
+      nsContainerFrame::PlaceFrameView(kid);
       kid = kid->GetNextSibling();
     }
   }
