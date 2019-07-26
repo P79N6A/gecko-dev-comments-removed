@@ -11,6 +11,7 @@ from urlparse import urlparse
 __all__ = [
   "ZipFileReader",
   "addCommonOptions",
+  "checkForCrashes",
   "dumpLeakLog",
   "isURL",
   "processLeakLog",
@@ -130,6 +131,95 @@ def addCommonOptions(parser, defaults={}):
                     action = "store_true", dest = "debuggerInteractive",
                     help = "prevents the test harness from redirecting "
                         "stdout and stderr for interactive debuggers")
+
+def checkForCrashes(dumpDir, symbolsPath, testName=None):
+  stackwalkPath = os.environ.get('MINIDUMP_STACKWALK', None)
+  
+  if testName is None:
+    try:
+      testName = os.path.basename(sys._getframe(1).f_code.co_filename)
+    except:
+      testName = "unknown"
+
+  
+  dumps = glob.glob(os.path.join(dumpDir, '*.dmp'))
+  if len(dumps) == 0:
+    return False
+
+  try:
+    removeSymbolsPath = False
+
+    
+    if symbolsPath and isURL(symbolsPath):
+      print "Downloading symbols from: " + symbolsPath
+      removeSymbolsPath = True
+      
+      data = urllib2.urlopen(symbolsPath)
+      symbolsFile = tempfile.TemporaryFile()
+      symbolsFile.write(data.read())
+      
+      
+      symbolsPath = tempfile.mkdtemp()
+      zfile = ZipFileReader(symbolsFile)
+      zfile.extractall(symbolsPath)
+
+    for d in dumps:
+      stackwalkOutput = []
+      stackwalkOutput.append("Crash dump filename: " + d)
+      topFrame = None
+      if symbolsPath and stackwalkPath and os.path.exists(stackwalkPath):
+        
+        p = subprocess.Popen([stackwalkPath, d, symbolsPath],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        if len(out) > 3:
+          
+          stackwalkOutput.append(out)
+          
+          
+          
+          
+          
+          
+          lines = out.splitlines()
+          for i, line in enumerate(lines):
+            if "(crashed)" in line:
+              match = re.search(r"^ 0  (?:.*!)?(?:void )?([^\[]+)", lines[i+1])
+              if match:
+                topFrame = "@ %s" % match.group(1).strip()
+              break
+        else:
+          stackwalkOutput.append("stderr from minidump_stackwalk:")
+          stackwalkOutput.append(err)
+        if p.returncode != 0:
+          stackwalkOutput.append("minidump_stackwalk exited with return code %d" % p.returncode)
+      else:
+        if not symbolsPath:
+          stackwalkOutput.append("No symbols path given, can't process dump.")
+        if not stackwalkPath:
+          stackwalkOutput.append("MINIDUMP_STACKWALK not set, can't process dump.")
+        elif stackwalkPath and not os.path.exists(stackwalkPath):
+          stackwalkOutput.append("MINIDUMP_STACKWALK binary not found: %s" % stackwalkPath)
+      if not topFrame:
+        topFrame = "Unknown top frame"
+      log.info("PROCESS-CRASH | %s | application crashed [%s]", testName, topFrame)
+      print '\n'.join(stackwalkOutput)
+      dumpSavePath = os.environ.get('MINIDUMP_SAVE_PATH', None)
+      if dumpSavePath:
+        shutil.move(d, dumpSavePath)
+        print "Saved dump as %s" % os.path.join(dumpSavePath,
+                                                os.path.basename(d))
+      else:
+        os.remove(d)
+      extra = os.path.splitext(d)[0] + ".extra"
+      if os.path.exists(extra):
+        os.remove(extra)
+  finally:
+    if removeSymbolsPath:
+      shutil.rmtree(symbolsPath)
+
+  return True
 
 def getFullPath(directory, path):
   "Get an absolute path relative to 'directory'."

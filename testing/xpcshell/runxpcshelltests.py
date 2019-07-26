@@ -19,24 +19,6 @@ import time
 from automationutils import *
 
 
-
-
-here = os.path.dirname(__file__)
-mozbase = os.path.realpath(os.path.join(os.path.dirname(here), 'mozbase'))
-
-try:
-    import mozcrash
-except:
-    deps = ['mozcrash',
-            'mozlog']
-    for dep in deps:
-        module = os.path.join(mozbase, dep)
-        if module not in sys.path:
-            sys.path.append(module)
-    import mozcrash
-
-
-
 def parse_json(j):
     """
     Awful hack to parse a restricted subset of JSON strings into Python dicts.
@@ -912,7 +894,7 @@ class XPCShellTests(object):
                         self.todoCount += 1
                         xunitResult["todo"] = True
 
-                if mozcrash.check_for_crashes(testdir, self.symbolsPath, test_name=name):
+                if checkForCrashes(testdir, self.symbolsPath, testName=name):
                     message = "PROCESS-CRASH | %s | application crashed" % name
                     self.failCount += 1
                     xunitResult["passed"] = False
