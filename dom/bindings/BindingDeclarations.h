@@ -48,6 +48,12 @@ struct AllTypedArraysBase {
 };
 
 
+
+
+struct AllOwningUnionBase {
+};
+
+
 struct EnumEntry {
   const char* value;
   size_t length;

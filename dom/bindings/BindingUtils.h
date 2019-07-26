@@ -1657,7 +1657,8 @@ public:
 
 template<typename T,
          bool isDictionary=IsBaseOf<DictionaryBase, T>::value,
-         bool isTypedArray=IsBaseOf<AllTypedArraysBase, T>::value>
+         bool isTypedArray=IsBaseOf<AllTypedArraysBase, T>::value,
+         bool isOwningUnion=IsBaseOf<AllOwningUnionBase, T>::value>
 class SequenceTracer
 {
   explicit SequenceTracer() MOZ_DELETE; 
@@ -1665,7 +1666,7 @@ class SequenceTracer
 
 
 template<>
-class SequenceTracer<JSObject*, false, false>
+class SequenceTracer<JSObject*, false, false, false>
 {
   explicit SequenceTracer() MOZ_DELETE; 
 
@@ -1679,7 +1680,7 @@ public:
 
 
 template<>
-class SequenceTracer<JS::Value, false, false>
+class SequenceTracer<JS::Value, false, false, false>
 {
   explicit SequenceTracer() MOZ_DELETE; 
 
@@ -1693,7 +1694,7 @@ public:
 
 
 template<typename T>
-class SequenceTracer<Sequence<T>, false, false>
+class SequenceTracer<Sequence<T>, false, false, false>
 {
   explicit SequenceTracer() MOZ_DELETE; 
 
@@ -1707,7 +1708,7 @@ public:
 
 
 template<typename T>
-class SequenceTracer<nsTArray<T>, false, false>
+class SequenceTracer<nsTArray<T>, false, false, false>
 {
   explicit SequenceTracer() MOZ_DELETE; 
 
@@ -1721,7 +1722,7 @@ public:
 
 
 template<typename T>
-class SequenceTracer<T, true, false>
+class SequenceTracer<T, true, false, false>
 {
   explicit SequenceTracer() MOZ_DELETE; 
 
@@ -1735,7 +1736,7 @@ public:
 
 
 template<typename T>
-class SequenceTracer<T, false, true>
+class SequenceTracer<T, false, true, false>
 {
   explicit SequenceTracer() MOZ_DELETE; 
 
@@ -1749,7 +1750,21 @@ public:
 
 
 template<typename T>
-class SequenceTracer<Nullable<T>, false, false>
+class SequenceTracer<T, false, false, true>
+{
+  explicit SequenceTracer() MOZ_DELETE; 
+
+public:
+  static void TraceSequence(JSTracer* trc, T* arrayp, T* end) {
+    for (; arrayp != end; ++arrayp) {
+      arrayp->TraceUnion(trc);
+    }
+  }
+};
+
+
+template<typename T>
+class SequenceTracer<Nullable<T>, false, false, false>
 {
   explicit SequenceTracer() MOZ_DELETE; 
 
