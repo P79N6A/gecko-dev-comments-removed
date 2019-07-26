@@ -1508,7 +1508,7 @@ let SessionStoreInternal = {
 
     TabStateCache.delete(aTab);
     this._setWindowStateBusy(window);
-    this.restoreHistoryPrecursor(window, [aTab], [tabState], 0);
+    this.restoreTabs(window, [aTab], [tabState], 0);
   },
 
   duplicateTab: function ssi_duplicateTab(aWindow, aTab, aDelta = 0) {
@@ -1528,8 +1528,8 @@ let SessionStoreInternal = {
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
 
-    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0,
-                                 true );
+    this.restoreTabs(aWindow, [newTab], [tabState], 0,
+                     true );
 
     return newTab;
   },
@@ -1608,7 +1608,7 @@ let SessionStoreInternal = {
     let tab = tabbrowser.addTab();
 
     
-    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1);
+    this.restoreTabs(aWindow, [tab], [closedTabState], 1);
 
     
     tabbrowser.moveTabTo(tab, closedTab.pos);
@@ -2380,7 +2380,7 @@ let SessionStoreInternal = {
       this._windows[aWindow.__SSi]._closedTabs = winData._closedTabs || [];
     }
 
-    this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
+    this.restoreTabs(aWindow, tabs, winData.tabs,
       (overwriteTabs ? (parseInt(winData.selected) || 1) : 0));
 
     if (aState.scratchpads) {
@@ -2474,8 +2474,8 @@ let SessionStoreInternal = {
 
     return [aTabs, aTabData];
   },
+
   
-  
 
 
 
@@ -2489,9 +2489,8 @@ let SessionStoreInternal = {
 
 
 
-  restoreHistoryPrecursor:
-    function ssi_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
-                                         aRestoreImmediately = false)
+  restoreTabs: function (aWindow, aTabs, aTabData, aSelectTab,
+                         aRestoreImmediately = false)
   {
 
     var tabbrowser = aWindow.gBrowser;
