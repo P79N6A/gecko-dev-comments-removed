@@ -200,13 +200,7 @@ let Scheduler = {
 
 
   push: function(code) {
-    let promise = this.queue.then(function() {
-      if (this.shutdown) {
-        LOG("OS.File is not available anymore. Request has been rejected.");
-        throw new Error("OS.File has been shut down.");
-      }
-      return code();
-    }.bind(this));
+    let promise = this.queue.then(code);
     
     this.queue = promise.then(null, () => undefined);
     
@@ -414,13 +408,14 @@ function warnAboutUnclosedFiles(shutdown = true) {
     
     
     
-    Scheduler.shutdown = Scheduler.shutdown || shutdown;
     return null;
   }
   let promise = Scheduler.post("Meta_getUnclosedResources");
 
   
-  Scheduler.shutdown = Scheduler.shutdown || shutdown;
+  if (shutdown) {
+    Scheduler.shutdown = true;
+  }
 
   return promise.then(function onSuccess(opened) {
     let msg = "";
