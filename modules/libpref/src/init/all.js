@@ -488,6 +488,9 @@ pref("devtools.debugger.enable-content-actors", true);
 pref("devtools.debugger.forbid-certified-apps", true);
 
 
+pref("devtools.defaultColorUnit", "hex");
+
+
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
