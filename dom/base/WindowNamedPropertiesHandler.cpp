@@ -176,6 +176,15 @@ WindowNamedPropertiesHandler::ownPropNames(JSContext* aCx,
   nsGlobalWindow* win = GetWindowFromGlobal(JS_GetGlobalForObject(aCx, aProxy));
   nsTArray<nsString> names;
   win->GetSupportedNames(names);
+  
+  
+  for (size_t i = names.Length(); i > 0; ) {
+    --i; 
+    nsIDOMWindow* childWin = win->GetChildWindow(names[i]);
+    if (!childWin || !ShouldExposeChildWindow(names[i], childWin)) {
+      names.RemoveElementAt(i);
+    }
+  }
   if (!AppendNamedPropertyIds(aCx, aProxy, names, false, aProps)) {
     return false;
   }
