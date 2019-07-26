@@ -2268,6 +2268,11 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     } else {
       
       
+      if (!mBuilder) {
+        mBuilder = new nsDOMBlobBuilder();
+      }
+      
+      
       nsAutoCString contentType;
       mChannel->GetContentType(contentType);
       mBuilder->GetBlobInternal(NS_ConvertASCIItoUTF16(contentType),
