@@ -714,6 +714,33 @@ bool MinidumpCallback(
 }
 
 #ifdef XP_WIN
+static void* gBreakpadReservedVM;
+
+
+
+
+
+
+static const SIZE_T kReserveSize = 0xc00000; 
+
+static void
+ReserveBreakpadVM()
+{
+  if (!gBreakpadReservedVM) {
+    gBreakpadReservedVM = VirtualAlloc(NULL, kReserveSize, MEM_RESERVE, 0);
+  }
+}
+
+static void
+FreeBreakpadVM()
+{
+  if (gBreakpadReservedVM) {
+    VirtualFree(gBreakpadReservedVM, kReserveSize, MEM_RELEASE);
+  }
+}
+
+
+
 
 
 
@@ -721,8 +748,10 @@ bool MinidumpCallback(
 static bool FPEFilter(void* context, EXCEPTION_POINTERS* exinfo,
                       MDRawAssertionInfo* assertion)
 {
-  if (!exinfo)
+  if (!exinfo) {
+    FreeBreakpadVM();
     return true;
+  }
 
   PEXCEPTION_RECORD e = (PEXCEPTION_RECORD)exinfo->ExceptionRecord;
   switch (e->ExceptionCode) {
@@ -737,6 +766,7 @@ static bool FPEFilter(void* context, EXCEPTION_POINTERS* exinfo,
     case STATUS_FLOAT_MULTIPLE_TRAPS:
       return false; 
   }
+  FreeBreakpadVM();
   return true;
 }
 #endif 
@@ -901,6 +931,8 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
 #endif
 
 #ifdef XP_WIN32
+  ReserveBreakpadVM();
+
   MINIDUMP_TYPE minidump_type = MiniDumpNormal;
 
   
