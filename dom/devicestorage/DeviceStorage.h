@@ -224,6 +224,8 @@ public:
   already_AddRefed<DOMRequest> UsedSpace(ErrorResult& aRv);
   already_AddRefed<DOMRequest> Available(ErrorResult& aRv);
 
+  bool Default();
+
   
 
   static void CreateDeviceStorageFor(nsPIDOMWindow* aWin,
