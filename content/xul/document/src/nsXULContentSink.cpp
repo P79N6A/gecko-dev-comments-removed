@@ -890,7 +890,8 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           
           
           nsAutoString lang(aAttributes[1]);
-          if (nsContentUtils::IsJavaScriptLanguage(lang, &version)) {
+          if (nsContentUtils::IsJavaScriptLanguage(lang)) {
+              version = JSVERSION_DEFAULT;
               langID = nsIProgrammingLanguage::JAVASCRIPT;
           }
       }

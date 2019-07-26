@@ -1979,7 +1979,7 @@ public:
 
 
 
-  static bool IsJavaScriptLanguage(const nsString& aName, uint32_t *aVerFlags);
+  static bool IsJavaScriptLanguage(const nsString& aName);
 
   
 

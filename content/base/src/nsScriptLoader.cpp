@@ -458,14 +458,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       nsAutoString language;
       scriptContent->GetAttr(kNameSpaceID_None, nsGkAtoms::language, language);
       if (!language.IsEmpty()) {
-        
-        
-        
-        
-        
-        
-        uint32_t dummy;
-        if (!nsContentUtils::IsJavaScriptLanguage(language, &dummy)) {
+        if (!nsContentUtils::IsJavaScriptLanguage(language)) {
           return false;
         }
       }
