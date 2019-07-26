@@ -1210,6 +1210,21 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
 
 
 
+
+  compact: function () {
+    let self = this;
+    return this.enqueueOperation(function doCompact() {
+      self._connection.discardCachedStatements();
+      return self._connection.shrinkMemory();
+    });
+  },
+
+  
+
+
+
+
+
   _ensureFieldType: function (id, type) {
     let info = this._fieldsByID.get(id);
 
