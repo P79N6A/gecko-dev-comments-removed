@@ -983,7 +983,7 @@ var WalkerActor = protocol.ActorClass({
     let node = actor.rawNode;
     
     
-    actor.observer = actor.rawNode.defaultView.MutationObserver(this.onMutations);
+    actor.observer = new actor.rawNode.defaultView.MutationObserver(this.onMutations);
     actor.observer.observe(node, {
       attributes: true,
       characterData: true,
