@@ -700,6 +700,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   _enableFilter: function (aType) {
     
+    if (Object.keys(this._allFilterPredicates).indexOf(aType) == -1) {
+      return;
+    }
+
+    
     this._activeFilters.push(aType);
 
     
@@ -717,18 +722,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   get _filterPredicate() {
-    let filterPredicates = {
-      "all": () => true,
-      "html": this.isHtml,
-      "css": this.isCss,
-      "js": this.isJs,
-      "xhr": this.isXHR,
-      "fonts": this.isFont,
-      "images": this.isImage,
-      "media": this.isMedia,
-      "flash": this.isFlash,
-      "other": this.isOther
-    };
+    let filterPredicates = this._allFilterPredicates;
 
      if (this._activeFilters.length === 1) {
        
@@ -742,6 +736,22 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
        };
      }
   },
+
+  
+
+
+  get _allFilterPredicates() ({
+    all: () => true,
+    html: this.isHtml,
+    css: this.isCss,
+    js: this.isJs,
+    xhr: this.isXHR,
+    fonts: this.isFont,
+    images: this.isImage,
+    media: this.isMedia,
+    flash: this.isFlash,
+    other: this.isOther
+  }),
 
   
 
