@@ -50,6 +50,9 @@ struct Opaque : public Policy {
     {
         return false;
     }
+    static bool isSafeToUnwrap() {
+        return false;
+    }
 };
 
 
@@ -67,6 +70,8 @@ struct OnlyIfSubjectIsSystem : public Policy {
     {
         return AccessCheck::isSystemOnlyAccessPermitted(cx);
     }
+
+    static bool isSafeToUnwrap();
 };
 
 
@@ -82,6 +87,10 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
     {
         return false;
     }
+
+    static bool isSafeToUnwrap() {
+        return false;
+    }
 };
 
 
@@ -94,6 +103,10 @@ struct ExposedPropertiesOnly : public Policy {
         return act == js::Wrapper::GET;
     }
     static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl);
+
+    static bool isSafeToUnwrap() {
+        return false;
+    }
 };
 
 
@@ -104,6 +117,10 @@ struct ComponentsObjectPolicy : public Policy {
         return false;
     }
     static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl) {
+        return false;
+    }
+
+    static bool isSafeToUnwrap() {
         return false;
     }
 };
