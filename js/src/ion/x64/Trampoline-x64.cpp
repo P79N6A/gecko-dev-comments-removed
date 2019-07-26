@@ -25,7 +25,7 @@ using namespace js::ion;
 
 
 IonCode *
-IonCompartment::generateEnterJIT(JSContext *cx)
+IonRuntime::generateEnterJIT(JSContext *cx)
 {
     MacroAssembler masm(cx);
 
@@ -180,21 +180,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 }
 
 IonCode *
-IonCompartment::generateReturnError(JSContext *cx)
-{
-    MacroAssembler masm(cx);
-
-    masm.pop(r14);              
-    masm.xorl(Imm32(0x1), r14); 
-    masm.addq(r14, rsp);        
-    masm.pop(r11);              
-
-    Linker linker(masm);
-    return linker.newCode(cx);
-}
-
-IonCode *
-IonCompartment::generateInvalidator(JSContext *cx)
+IonRuntime::generateInvalidator(JSContext *cx)
 {
     AutoIonContextAlloc aica(cx);
     MacroAssembler masm(cx);
@@ -236,7 +222,7 @@ IonCompartment::generateInvalidator(JSContext *cx)
 }
 
 IonCode *
-IonCompartment::generateArgumentsRectifier(JSContext *cx)
+IonRuntime::generateArgumentsRectifier(JSContext *cx)
 {
     
 
@@ -359,14 +345,14 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
 }
 
 IonCode *
-IonCompartment::generateBailoutTable(JSContext *cx, uint32 frameClass)
+IonRuntime::generateBailoutTable(JSContext *cx, uint32 frameClass)
 {
     JS_NOT_REACHED("x64 does not use bailout tables");
     return NULL;
 }
 
 IonCode *
-IonCompartment::generateBailoutHandler(JSContext *cx)
+IonRuntime::generateBailoutHandler(JSContext *cx)
 {
     MacroAssembler masm;
 
@@ -377,7 +363,7 @@ IonCompartment::generateBailoutHandler(JSContext *cx)
 }
 
 IonCode *
-IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
+IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 {
     typedef MoveResolver::MoveOperand MoveOperand;
 
@@ -531,7 +517,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 }
 
 IonCode *
-IonCompartment::generatePreBarrier(JSContext *cx)
+IonRuntime::generatePreBarrier(JSContext *cx)
 {
     MacroAssembler masm;
 
