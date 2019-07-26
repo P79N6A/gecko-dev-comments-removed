@@ -4,18 +4,15 @@
 
 
 
+#include "gc/Marking.h"
+
 #include "mozilla/DebugOnly.h"
 
-#include "jsprf.h"
-#include "jsstr.h"
-
-#include "gc/Marking.h"
 #include "ion/IonCode.h"
 #include "vm/Shape.h"
 
 #include "jscompartmentinlines.h"
 
-#include "gc/Nursery-inl.h"
 #include "vm/Shape-inl.h"
 #include "vm/String-inl.h"
 

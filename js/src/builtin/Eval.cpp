@@ -4,12 +4,14 @@
 
 
 
+#include "builtin/Eval.h"
+
+#include "mozilla/HashFunctions.h"
+
 #include "jscntxt.h"
 #include "jsonparser.h"
 
-#include "builtin/Eval.h"
 #include "frontend/BytecodeCompiler.h"
-#include "mozilla/HashFunctions.h"
 #include "vm/GlobalObject.h"
 
 #include "vm/Interpreter-inl.h"

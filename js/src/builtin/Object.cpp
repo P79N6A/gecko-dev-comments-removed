@@ -4,16 +4,16 @@
 
 
 
+#include "builtin/Object.h"
+
 #include "mozilla/Util.h"
 
 #include "jscntxt.h"
 #include "jsobj.h"
 
-#include "builtin/Object.h"
 #include "frontend/BytecodeCompiler.h"
 #include "vm/StringBuffer.h"
 
-#include "jsfuninlines.h"
 #include "jsobjinlines.h"
 
 using namespace js;

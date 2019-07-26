@@ -9,7 +9,6 @@
 
 #include "jscntxt.h"
 
-#include "frontend/ParseNode.h" 
 #include "frontend/ParseMaps.h"
 
 namespace js {

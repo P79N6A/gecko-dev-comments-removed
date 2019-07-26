@@ -4,15 +4,12 @@
 
 
 
-#include <stddef.h>
 #include <assert.h>
+#include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <ctype.h>
-
-#include "jsversion.h"
 
 #include "vm/Keywords.h"
 

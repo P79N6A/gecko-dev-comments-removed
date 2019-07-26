@@ -9,6 +9,8 @@
 
 
 
+#include "builtin/Intl.h"
+
 #include <string.h>
 
 #include "jsapi.h"
@@ -16,7 +18,6 @@
 #include "jscntxt.h"
 #include "jsobj.h"
 
-#include "builtin/Intl.h"
 #include "vm/DateTime.h"
 #include "vm/GlobalObject.h"
 #include "vm/Interpreter.h"

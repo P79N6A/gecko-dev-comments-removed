@@ -4,13 +4,9 @@
 
 
 
-#include "mozilla/Assertions.h"
-
-#include "jsapi.h"
+#include "gc/Memory.h"
 
 #include "js/HeapAPI.h"
-#include "js/Utility.h"
-#include "gc/Memory.h"
 
 using namespace js;
 using namespace js::gc;
@@ -307,7 +303,6 @@ gc::GetPageFaultCount()
 #elif defined(XP_UNIX) || defined(XP_MACOSX) || defined(DARWIN)
 
 #include <sys/mman.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
 

@@ -5,7 +5,6 @@
 
 
 #include "jscntxt.h"
-#include "jscompartment.h"
 #include "FullParseHandler.h"
 #include "SyntaxParseHandler.h"
 
