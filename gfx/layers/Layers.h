@@ -743,31 +743,6 @@ public:
 
 
 
-  void IntersectClipRect(const nsIntRect& aRect)
-  {
-    if (mUseClipRect) {
-      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) IntersectClipRect was %d,%d,%d,%d intersecting with %d,%d,%d,%d", this,
-        mClipRect.x, mClipRect.y, mClipRect.width, mClipRect.height, aRect.x, aRect.y, aRect.width, aRect.height));
-      mClipRect.IntersectRect(mClipRect, aRect);
-    } else {
-      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) IntersectClipRect was <none> intersecting with %d,%d,%d,%d", this,
-        aRect.x, aRect.y, aRect.width, aRect.height));
-      mUseClipRect = true;
-      mClipRect = aRect;
-    }
-    Mutated();
-  }
-
-  
-
-
-
-
-
-
-
-
-
 
 
 
