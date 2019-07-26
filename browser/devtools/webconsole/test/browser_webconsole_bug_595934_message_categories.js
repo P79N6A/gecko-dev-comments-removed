@@ -16,11 +16,6 @@ const TESTS = [
     matchString: "text/css",
   },
   { 
-    file: "test-bug-595934-dom-html.html",
-    category: "DOM:HTML",
-    matchString: "getElementById",
-  },
-  { 
     file: "test-bug-595934-imagemap.html",
     category: "ImageMap",
     matchString: "shape=\"rect\"",
@@ -49,11 +44,6 @@ const TESTS = [
     file: "test-bug-595934-svg.xhtml",
     category: "SVG",
     matchString: "fooBarSVG",
-  },
-  { 
-    file: "test-bug-595934-dom-html-external.html",
-    category: "DOM:HTML",
-    matchString: "document.all",
   },
   { 
     file: "test-bug-595934-canvas.html",
