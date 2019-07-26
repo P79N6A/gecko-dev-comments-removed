@@ -6799,6 +6799,20 @@ var SearchEngines = {
       onSuccess: function() {
         
         NativeWindow.toast.show(Strings.browser.formatStringFromName("alertSearchEngineAddedToast", [engine.title], 1), "long");
+      },
+
+      onError: function(aCode) {
+        let errorMessage;
+        if (aCode == 2) {
+          
+          errorMessage = "alertSearchEngineDuplicateToast";
+
+        } else {
+          
+          errorMessage = "alertSearchEngineErrorToast";
+        }
+
+        NativeWindow.toast.show(Strings.browser.formatStringFromName(errorMessage, [engine.title], 1), "long");
       }
     });
   },
