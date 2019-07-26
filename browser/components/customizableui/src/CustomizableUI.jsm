@@ -685,6 +685,7 @@ let CustomizableUIInternal = {
     if (aWidget.disabled) {
       node.setAttribute("disabled", true);
     }
+    node.setAttribute("removable", aWidget.removable);
     node.setAttribute("label", aWidget.name);
     node.setAttribute("tooltiptext", aWidget.description);
     
@@ -1197,6 +1198,7 @@ let CustomizableUIInternal = {
       source: aSource || "addon",
       instances: new Map(),
       currentArea: null,
+      removable: false,
       defaultArea: null,
       allowedAreas: [],
       shortcut: null,
@@ -1222,6 +1224,10 @@ let CustomizableUIInternal = {
       if (typeof aData[prop] == "string") {
         widget[prop] = aData[prop];
       }
+    }
+
+    if ("removable" in aData && typeof aData.removable == "boolean") {
+      widget.removable = aData.removable;
     }
 
     if (aData.defaultArea && gAreas.has(aData.defaultArea)) {
