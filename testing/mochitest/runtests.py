@@ -844,8 +844,14 @@ class Mochitest(MochitestUtilsMixin):
                                        dump_screen_on_timeout=not debuggerInfo,
       )
 
+    def timeoutHandler():
+      browserProcessId = outputHandler.browserProcessId
+      self.handleTimeout(timeout, proc, utilityPath, debuggerInfo, browserProcessId)
+    kp_kwargs = {'kill_on_timeout': False,
+                 'onTimeout': [timeoutHandler]}
     
-    kp_kwargs = {} if outputHandler.pipe else {'processOutputLine': [outputHandler]}
+    if not outputHandler.pipe:
+      kp_kwargs['processOutputLine'] = [outputHandler]
 
     
     self.lastTestSeen = self.test_name
@@ -901,11 +907,6 @@ class Mochitest(MochitestUtilsMixin):
 
     
     outputHandler.finish(didTimeout)
-
-    
-    if didTimeout:
-      browserProcessId = outputHandler.browserProcessId
-      self.handleTimeout(timeout, proc, utilityPath, debuggerInfo, browserProcessId)
 
     
     if status:
