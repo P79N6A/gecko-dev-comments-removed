@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_x64_h__
-#define jsion_lir_x64_h__
+#ifndef ion_x64_LIR_x64_h
+#define ion_x64_LIR_x64_h
 
 namespace js {
 namespace ion {
@@ -97,4 +97,3 @@ class LAsmJSLoadFuncPtr : public LInstructionHelper<1, 1, 1>
 } 
 
 #endif 
-

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_frame_iterator_inl_h__
-#define jsion_frame_iterator_inl_h__
+#ifndef ion_IonFrameIterator_inl_h
+#define ion_IonFrameIterator_inl_h
 
 #ifdef JS_ION
 

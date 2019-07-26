@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_linearscan_h__
-#define js_ion_linearscan_h__
+#ifndef ion_LinearScan_h
+#define ion_LinearScan_h
 
 #include "LiveRangeAllocator.h"
 #include "BitSet.h"
@@ -134,4 +134,4 @@ class LinearScanAllocator : public LiveRangeAllocator<LinearScanVirtualRegister>
 } 
 } 
 
-#endif
+#endif 

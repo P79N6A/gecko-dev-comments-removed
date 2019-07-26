@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_analysis_h__
-#define jsion_ion_analysis_h__
+#ifndef ion_IonAnalysis_h
+#define ion_IonAnalysis_h
 
 
 
@@ -129,4 +129,3 @@ class LinearSum
 } 
 
 #endif 
-

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_bailouts_h__
-#define jsion_bailouts_h__
+#ifndef ion_Bailouts_h
+#define ion_Bailouts_h
 
 #include "jstypes.h"
 #include "vm/Stack.h"
@@ -164,4 +164,3 @@ bool CheckFrequentBailouts(JSContext *cx, JSScript *script);
 } 
 
 #endif 
-

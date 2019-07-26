@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_linker_h__
-#define jsion_linker_h__
+#ifndef ion_IonLinker_h
+#define ion_IonLinker_h
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -77,4 +77,3 @@ class Linker
 } 
 
 #endif 
-

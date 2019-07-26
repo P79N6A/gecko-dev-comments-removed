@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_spewer_h__
-#define jsion_ion_spewer_h__
+#ifndef ion_IonSpewer_h
+#define ion_IonSpewer_h
 
 #include <stdarg.h>
 
@@ -198,4 +198,3 @@ class AutoDisableSpew
 } 
 
 #endif 
-

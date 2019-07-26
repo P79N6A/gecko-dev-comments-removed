@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_licm_h__
-#define jsion_licm_h__
+#ifndef ion_LICM_h
+#define ion_LICM_h
 
 #include "ion/IonAllocPolicy.h"
 #include "ion/IonAnalysis.h"

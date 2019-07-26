@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_frame_h__
-#define jsion_baseline_frame_h__
+#ifndef ion_BaselineFrame_h
+#define ion_BaselineFrame_h
 
 #ifdef JS_ION
 
@@ -404,4 +404,3 @@ JS_STATIC_ASSERT(((sizeof(BaselineFrame) + BaselineFrame::FramePointerOffset) % 
 #endif 
 
 #endif 
-

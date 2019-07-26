@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_architecture_x86_h__
-#define jsion_architecture_x86_h__
+#ifndef ion_x86_Architecture_x86_h
+#define ion_x86_Architecture_x86_h
 
 #include "assembler/assembler/MacroAssembler.h"
 
@@ -134,4 +134,3 @@ class FloatRegisters {
 } 
 
 #endif 
-

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_common_h__
-#define jsion_lir_common_h__
+#ifndef ion_LIR_Common_h
+#define ion_LIR_Common_h
 
 #include "ion/shared/Assembler-shared.h"
 
@@ -4771,4 +4771,3 @@ class LAsmJSCheckOverRecursed : public LInstructionHelper<0, 0, 0>
 } 
 
 #endif 
-

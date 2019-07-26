@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_asmjs_h__
-#define jsion_asmjs_h__
+#ifndef ion_AsmJS_h
+#define ion_AsmJS_h
 
 #ifdef XP_MACOSX
 # include <pthread.h>

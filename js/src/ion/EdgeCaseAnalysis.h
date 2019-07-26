@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_edge_case_analysis_h__
-#define jsion_ion_edge_case_analysis_h__
+#ifndef ion_EdgeCaseAnalysis_h
+#define ion_EdgeCaseAnalysis_h
 
 namespace js {
 namespace ion {
@@ -27,4 +27,3 @@ class EdgeCaseAnalysis
 } 
 
 #endif 
-

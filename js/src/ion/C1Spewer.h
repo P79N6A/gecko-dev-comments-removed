@@ -4,10 +4,10 @@
 
 
 
-#ifdef DEBUG
+#ifndef ion_C1Spewer_h
+#define ion_C1Spewer_h
 
-#ifndef jsion_c1spewer_h__
-#define jsion_c1spewer_h__
+#ifdef DEBUG
 
 #include "jsscript.h"
 
@@ -53,4 +53,3 @@ class C1Spewer
 #endif 
 
 #endif 
-

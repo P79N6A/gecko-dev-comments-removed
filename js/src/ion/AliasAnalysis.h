@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_alias_analysis_h__
-#define jsion_alias_analysis_h__
+#ifndef ion_AliasAnalysis_h
+#define ion_AliasAnalysis_h
 
 #include "MIR.h"
 #include "MIRGraph.h"

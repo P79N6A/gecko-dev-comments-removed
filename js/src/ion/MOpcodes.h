@@ -4,9 +4,8 @@
 
 
 
-
-#ifndef jsion_mir_opcodes_h__
-#define jsion_mir_opcodes_h__
+#ifndef ion_MOpcodes_h
+#define ion_MOpcodes_h
 
 namespace js {
 namespace ion {
@@ -222,4 +221,3 @@ class MInstructionVisitorWithDefaults : public MInstructionVisitor
 } 
 
 #endif 
-

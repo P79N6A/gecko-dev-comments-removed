@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_frame_layouts_x86_h__
-#define js_ion_frame_layouts_x86_h__
+#ifndef ion_shared_IonFrames_x86_shared_h
+#define ion_shared_IonFrames_x86_shared_h
 
 #include "ion/shared/IonFrames-shared.h"
 
@@ -536,4 +536,3 @@ class InvalidationBailoutStack
 }
 
 #endif 
-

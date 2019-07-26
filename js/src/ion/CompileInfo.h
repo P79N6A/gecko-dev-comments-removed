@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_compileinfo_h__
-#define jsion_compileinfo_h__
+#ifndef ion_CompileInfo_h
+#define ion_CompileInfo_h
 
 #include "Registers.h"
 
@@ -200,4 +200,4 @@ class CompileInfo
 } 
 } 
 
-#endif
+#endif 

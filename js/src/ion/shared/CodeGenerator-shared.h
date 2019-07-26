@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_codegen_shared_h__
-#define jsion_codegen_shared_h__
+#ifndef ion_shared_CodeGenerator_shared_h
+#define ion_shared_CodeGenerator_shared_h
 
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
@@ -660,4 +660,3 @@ class OutOfLinePropagateParallelAbort : public OutOfLineCode
 } 
 
 #endif 
-

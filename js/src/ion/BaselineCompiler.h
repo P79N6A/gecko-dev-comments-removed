@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_compiler_h__
-#define jsion_baseline_compiler_h__
+#ifndef ion_BaselineCompiler_h
+#define ion_BaselineCompiler_h
 
 #ifdef JS_ION
 
@@ -270,4 +270,3 @@ class BaselineCompiler : public BaselineCompilerSpecific
 #endif 
 
 #endif 
-

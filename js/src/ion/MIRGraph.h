@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_mirgraph_h__
-#define jsion_mirgraph_h__
+#ifndef ion_MIRGraph_h
+#define ion_MIRGraph_h
 
 
 
@@ -720,4 +720,3 @@ class MDefinitionIterator
 } 
 
 #endif 
-

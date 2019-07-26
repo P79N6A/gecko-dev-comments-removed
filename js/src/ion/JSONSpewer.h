@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_jsonspewer_h__
-#define js_ion_jsonspewer_h__
+#ifndef ion_JSONSpewer_h
+#define ion_JSONSpewer_h
 
 #include <stdio.h>
 
@@ -77,4 +77,3 @@ class JSONSpewer
 } 
 
 #endif 
-

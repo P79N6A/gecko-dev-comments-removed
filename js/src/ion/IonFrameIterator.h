@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_frame_iterator_h__
-#define jsion_frame_iterator_h__
+#ifndef ion_IonFrameIterator_h
+#define ion_IonFrameIterator_h
 
 #ifdef JS_ION
 
@@ -336,4 +336,3 @@ typedef InlineFrameIteratorMaybeGC<NoGC> InlineFrameIteratorNoGC;
 #endif 
 
 #endif 
-

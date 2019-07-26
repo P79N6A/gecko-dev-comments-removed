@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_cpu_x86_assembler_h__
-#define jsion_cpu_x86_assembler_h__
+#ifndef ion_x86_Assembler_x86_h
+#define ion_x86_Assembler_x86_h
 
 #include "ion/shared/Assembler-shared.h"
 #include "assembler/assembler/X86Assembler.h"

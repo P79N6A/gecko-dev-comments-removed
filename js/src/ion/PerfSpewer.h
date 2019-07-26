@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_perfspewer_h__
-#define js_ion_perfspewer_h__
+#ifndef ion_PerfSpewer_h
+#define ion_PerfSpewer_h
 
 #include <stdio.h>
 
@@ -76,4 +76,3 @@ class PerfSpewer
 } 
 
 #endif
-

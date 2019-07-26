@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_caches_h__
-#define jsion_caches_h__
+#ifndef ion_IonCaches_h
+#define ion_IonCaches_h
 
 #include "IonCode.h"
 #include "Registers.h"

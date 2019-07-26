@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baselinecompiler_arm_h__
-#define jsion_baselinecompiler_arm_h__
+#ifndef ion_arm_BaselineCompiler_arm_h
+#define ion_arm_BaselineCompiler_arm_h
 
 #include "ion/shared/BaselineCompiler-shared.h"
 

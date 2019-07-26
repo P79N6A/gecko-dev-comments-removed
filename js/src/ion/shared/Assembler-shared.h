@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_assembler_shared_h__
-#define jsion_assembler_shared_h__
+#ifndef ion_shared_Assembler_shared_h
+#define ion_shared_Assembler_shared_h
 
 #include <limits.h>
 
@@ -566,4 +566,3 @@ class CodeLocationLabel
 } 
 
 #endif 
-

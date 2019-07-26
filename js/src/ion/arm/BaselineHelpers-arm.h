@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_helpers_arm_h__
-#define jsion_baseline_helpers_arm_h__
+#ifndef ion_arm_BaselineHelpers_arm_h
+#define ion_arm_BaselineHelpers_arm_h
 
 #ifdef JS_ION
 

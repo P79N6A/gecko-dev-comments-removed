@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_instrumentation_h__
-#define jsion_ion_instrumentation_h__
+#ifndef ion_IonInstrumentation_h
+#define ion_IonInstrumentation_h
 
 namespace js {
 

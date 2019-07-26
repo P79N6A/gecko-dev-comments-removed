@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_stack_slot_allocator_h_
-#define jsion_stack_slot_allocator_h_
+#ifndef ion_StackSlotAllocator_h
+#define ion_StackSlotAllocator_h
 
 #include "Registers.h"
 
@@ -62,4 +62,3 @@ class StackSlotAllocator
 } 
 
 #endif 
-

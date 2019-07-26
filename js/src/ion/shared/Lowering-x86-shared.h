@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_lowering_x86_shared_h__
-#define jsion_ion_lowering_x86_shared_h__
+#ifndef ion_shared_Lowering_x86_shared_h
+#define ion_shared_Lowering_x86_shared_h
 
 #include "ion/shared/Lowering-shared.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef pcscriptcache_h__
-#define pcscriptcache_h__
+#ifndef ion_PcScriptCache_h
+#define ion_PcScriptCache_h
 
 
 

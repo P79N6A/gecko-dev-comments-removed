@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_alloc_policy_h__
-#define jsion_ion_alloc_policy_h__
+#ifndef ion_IonAllocPolicy_h
+#define ion_IonAllocPolicy_h
 
 #include "mozilla/GuardObjects.h"
 
@@ -162,4 +162,3 @@ class TempObjectPool
 } 
 
 #endif 
-

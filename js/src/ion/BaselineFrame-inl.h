@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_frame_inl_h__
-#define jsion_baseline_frame_inl_h__
+#ifndef ion_BaselineFrame_inl_h
+#define ion_BaselineFrame_inl_h
 
 #ifdef JS_ION
 
@@ -83,4 +83,3 @@ BaselineFrame::callObj() const
 #endif 
 
 #endif 
-

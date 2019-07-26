@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_cpu_arm_assembler_h__
-#define jsion_cpu_arm_assembler_h__
+#ifndef ion_arm_Assembler_arm_h
+#define ion_arm_Assembler_arm_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/MathAlgorithms.h"

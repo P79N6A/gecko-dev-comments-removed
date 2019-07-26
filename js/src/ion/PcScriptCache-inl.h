@@ -4,8 +4,8 @@
 
 
 
-#ifndef pcscriptcache_inl_h__
-#define pcscriptcache_inl_h__
+#ifndef ion_PcScriptCache_inl_h
+#define ion_PcScriptCache_inl_h
 
 #include "PcScriptCache.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_opcodes_common_h__
-#define jsion_lir_opcodes_common_h__
+#ifndef ion_LOpcodes_h
+#define ion_LOpcodes_h
 
 #define LIR_COMMON_OPCODE_LIST(_)   \
     _(Label)                        \
@@ -253,4 +253,3 @@
     LIR_CPU_OPCODE_LIST(_)
 
 #endif 
-

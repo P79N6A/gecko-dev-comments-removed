@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_bitset_h__
-#define jsion_bitset_h__
+#ifndef ion_BitSet_h
+#define ion_BitSet_h
 
 #include "IonAllocPolicy.h"
 
@@ -170,4 +170,4 @@ class BitSet::Iterator
 }
 }
 
-#endif
+#endif 

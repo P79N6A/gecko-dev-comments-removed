@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_asmjsmodule_h__
-#define jsion_asmjsmodule_h__
+#ifndef ion_AsmJSModule_h
+#define ion_AsmJSModule_h
 
 #ifdef JS_ION
 
@@ -751,4 +751,3 @@ SetAsmJSModuleObject(JSFunction *moduleFun, JSObject *moduleObj);
 #endif  
 
 #endif
-

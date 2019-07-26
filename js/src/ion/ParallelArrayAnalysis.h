@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_parallel_array_analysis_h__
-#define jsion_parallel_array_analysis_h__
+#ifndef ion_ParallelArrayAnalysis_h
+#define ion_ParallelArrayAnalysis_h
 
 #include "MIR.h"
 #include "CompileInfo.h"

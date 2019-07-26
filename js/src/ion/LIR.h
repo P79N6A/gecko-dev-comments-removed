@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_h__
-#define jsion_lir_h__
+#ifndef ion_LIR_h
+#define ion_LIR_h
 
 
 
@@ -1447,4 +1447,3 @@ LAllocation::toRegister() const
 #include "LIR-inl.h"
 
 #endif 
-

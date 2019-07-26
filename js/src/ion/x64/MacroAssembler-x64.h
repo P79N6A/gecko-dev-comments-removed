@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_macro_assembler_x64_h__
-#define jsion_macro_assembler_x64_h__
+#ifndef ion_x64_MacroAssembler_x64_h
+#define ion_x64_MacroAssembler_x64_h
 
 #include "ion/shared/MacroAssembler-x86-shared.h"
 #include "ion/MoveResolver.h"
@@ -1116,4 +1116,3 @@ typedef MacroAssemblerX64 MacroAssemblerSpecific;
 } 
 
 #endif 
-

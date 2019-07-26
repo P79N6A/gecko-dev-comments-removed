@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lowering_shared_h__
-#define jsion_lowering_shared_h__
+#ifndef ion_shared_Lowering_shared_h
+#define ion_shared_Lowering_shared_h
 
 
 
@@ -186,5 +186,3 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
 } 
 
 #endif 
-
-

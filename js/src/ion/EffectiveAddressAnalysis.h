@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_effective_address_analysis_h__
-#define jsion_effective_address_analysis_h__
+#ifndef ion_EffectiveAddressAnalysis_h
+#define ion_EffectiveAddressAnalysis_h
 
 #include "MIR.h"
 #include "MIRGraph.h"
@@ -28,4 +28,4 @@ class EffectiveAddressAnalysis
 } 
 } 
 
-#endif
+#endif 

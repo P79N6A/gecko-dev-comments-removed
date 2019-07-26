@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_snapshots_h__
-#define jsion_snapshots_h__
+#ifndef ion_SnapshotReader_h
+#define ion_SnapshotReader_h
 
 #include "IonTypes.h"
 #include "IonCode.h"
@@ -232,4 +232,3 @@ class SnapshotReader
 }
 
 #endif 
-

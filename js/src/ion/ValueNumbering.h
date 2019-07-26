@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_value_numbering_h__
-#define jsion_value_numbering_h__
+#ifndef ion_ValueNumbering_h
+#define ion_ValueNumbering_h
 
 #include "MIR.h"
 #include "MIRGraph.h"
@@ -137,4 +137,3 @@ class ValueNumberData : public TempObject {
 } 
 
 #endif 
-

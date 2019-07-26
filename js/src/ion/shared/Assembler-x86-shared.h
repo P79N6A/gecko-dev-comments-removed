@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_assembler_x86_shared__
-#define jsion_assembler_x86_shared__
+#ifndef ion_shared_Assembler_x86_shared_h
+#define ion_shared_Assembler_x86_shared_h
 #include <cstddef>
 #include "assembler/assembler/X86Assembler.h"
 
@@ -1359,4 +1359,3 @@ class AssemblerX86Shared
 } 
 
 #endif 
-

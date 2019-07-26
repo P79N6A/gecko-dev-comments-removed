@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_jit_h__
-#define jsion_baseline_jit_h__
+#ifndef ion_BaselineJIT_h
+#define ion_BaselineJIT_h
 
 #ifdef JS_ION
 
@@ -338,4 +338,3 @@ MarkActiveBaselineScripts(Zone *zone);
 #endif 
 
 #endif 
-

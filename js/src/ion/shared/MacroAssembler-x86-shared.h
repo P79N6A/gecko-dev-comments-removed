@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_macro_assembler_x86_shared_h__
-#define jsion_macro_assembler_x86_shared_h__
+#ifndef ion_shared_MacroAssembler_x86_shared_h
+#define ion_shared_MacroAssembler_x86_shared_h
 
 #include "mozilla/DebugOnly.h"
 
@@ -504,4 +504,3 @@ class MacroAssemblerX86Shared : public Assembler
 } 
 
 #endif 
-

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_architecture_arm_h__
-#define jsion_architecture_arm_h__
+#ifndef ion_arm_Architecture_arm_h
+#define ion_arm_Architecture_arm_h
 
 #include <limits.h>
 

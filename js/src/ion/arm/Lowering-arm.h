@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_lowering_arm_h__
-#define jsion_ion_lowering_arm_h__
+#ifndef ion_arm_Lowering_arm_h
+#define ion_arm_Lowering_arm_h
 
 #include "ion/shared/Lowering-shared.h"
 

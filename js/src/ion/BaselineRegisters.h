@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_registers_h__
-#define jsion_baseline_registers_h__
+#ifndef ion_BaselineRegisters_h
+#define ion_BaselineRegisters_h
 
 #ifdef JS_ION
 
@@ -26,4 +26,3 @@ namespace ion {
 #endif 
 
 #endif 
-

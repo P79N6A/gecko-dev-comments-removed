@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_registers_x64_h__
-#define jsion_baseline_registers_x64_h__
+#ifndef ion_x64_BaselineRegisters_x64_h
+#define ion_x64_BaselineRegisters_x64_h
 
 #ifdef JS_ION
 
@@ -39,4 +39,3 @@ static const FloatRegister FloatReg1      = xmm1;
 #endif 
 
 #endif 
-

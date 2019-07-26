@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_lowering_inl_h__
-#define jsion_ion_lowering_inl_h__
+#ifndef ion_shared_Lowering_shared_inl_h
+#define ion_shared_Lowering_shared_inl_h
 
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
@@ -458,4 +458,3 @@ LIRGeneratorShared::fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir)
 } 
 
 #endif 
-

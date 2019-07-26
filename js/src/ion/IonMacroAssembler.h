@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_macro_assembler_h__
-#define jsion_macro_assembler_h__
+#ifndef ion_IonMacroAssembler_h
+#define ion_IonMacroAssembler_h
 
 #ifdef JS_ION
 

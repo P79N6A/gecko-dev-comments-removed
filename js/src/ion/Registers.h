@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_cpu_registers_h__
-#define jsion_cpu_registers_h__
+#ifndef ion_Registers_h
+#define ion_Registers_h
 
 #include "jsutil.h"
 #include "IonTypes.h"
@@ -122,4 +122,3 @@ class MachineState
 } 
 
 #endif 
-

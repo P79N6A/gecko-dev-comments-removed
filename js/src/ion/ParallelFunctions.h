@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_parallel_functions_h__
-#define jsion_parallel_functions_h__
+#ifndef ion_ParallelFunctions_h
+#define ion_ParallelFunctions_h
 
 #include "vm/ThreadPool.h"
 #include "vm/ForkJoin.h"

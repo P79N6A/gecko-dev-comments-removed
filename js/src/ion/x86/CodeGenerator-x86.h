@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_codegen_x86_h__
-#define jsion_codegen_x86_h__
+#ifndef ion_x86_CodeGenerator_x86_h
+#define ion_x86_CodeGenerator_x86_h
 
 #include "Assembler-x86.h"
 #include "ion/shared/CodeGenerator-x86-shared.h"
@@ -77,4 +77,3 @@ typedef CodeGeneratorX86 CodeGeneratorSpecific;
 } 
 
 #endif 
-

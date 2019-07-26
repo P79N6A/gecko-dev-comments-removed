@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_stupidallocator_h__
-#define js_ion_stupidallocator_h__
+#ifndef ion_StupidAllocator_h
+#define ion_StupidAllocator_h
 
 #include "RegisterAllocator.h"
 
@@ -80,4 +80,4 @@ class StupidAllocator : public RegisterAllocator
 } 
 } 
 
-#endif
+#endif 

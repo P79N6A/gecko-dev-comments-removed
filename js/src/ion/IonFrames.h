@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_frames_h__
-#define jsion_frames_h__
+#ifndef ion_IonFrames_h
+#define ion_IonFrames_h
 
 #ifdef JS_ION
 
@@ -335,4 +335,3 @@ MarkCalleeToken(JSTracer *trc, CalleeToken token);
 #endif 
 
 #endif 
-

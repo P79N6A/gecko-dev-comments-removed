@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_x86_shared_h__
-#define jsion_lir_x86_shared_h__
+#ifndef ion_shared_LIR_x86_shared_h
+#define ion_shared_LIR_x86_shared_h
 
 namespace js {
 namespace ion {
@@ -281,4 +281,3 @@ class LMulI : public LBinaryMath<0, 1>
 } 
 
 #endif
-

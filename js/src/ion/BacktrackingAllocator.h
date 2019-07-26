@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_backtrackingallocator_h__
-#define js_ion_backtrackingallocator_h__
+#ifndef ion_BacktrackingAllocator_h
+#define ion_BacktrackingAllocator_h
 
 #include "LiveRangeAllocator.h"
 
@@ -234,4 +234,4 @@ class BacktrackingAllocator : public LiveRangeAllocator<BacktrackingVirtualRegis
 } 
 } 
 
-#endif
+#endif 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_codegen_arm_h__
-#define jsion_codegen_arm_h__
+#ifndef ion_arm_CodeGenerator_arm_h
+#define ion_arm_CodeGenerator_arm_h
 
 #include "Assembler-arm.h"
 #include "ion/shared/CodeGenerator-shared.h"
@@ -196,4 +196,3 @@ class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorARM>
 } 
 
 #endif 
-

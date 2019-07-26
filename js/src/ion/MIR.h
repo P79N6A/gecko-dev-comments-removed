@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_mir_h__
-#define jsion_mir_h__
+#ifndef ion_MIR_h
+#define ion_MIR_h
 
 
 
@@ -8291,4 +8291,3 @@ bool PropertyWriteNeedsTypeBarrier(JSContext *cx, MBasicBlock *current, MDefinit
 } 
 
 #endif 
-

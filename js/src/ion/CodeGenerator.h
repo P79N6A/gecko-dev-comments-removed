@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_codegen_h__
-#define jsion_codegen_h__
+#ifndef ion_CodeGenerator_h
+#define ion_CodeGenerator_h
 
 #if defined(JS_CPU_X86)
 # include "x86/CodeGenerator-x86.h"

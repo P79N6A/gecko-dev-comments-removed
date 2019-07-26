@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_include_safepoints_h_
-#define jsion_include_safepoints_h_
+#ifndef ion_Safepoints_h
+#define ion_Safepoints_h
 
 #include "Registers.h"
 #include "CompactBuffer.h"
@@ -108,4 +108,3 @@ class SafepointReader
 } 
 
 #endif 
-

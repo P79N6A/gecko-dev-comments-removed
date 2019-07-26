@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_inline_list_h__
-#define js_inline_list_h__
+#ifndef ion_InlineList_h
+#define ion_InlineList_h
 
 #include "mozilla/DebugOnly.h"
 

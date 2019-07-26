@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_lowering_x64_h__
-#define jsion_ion_lowering_x64_h__
+#ifndef ion_x64_Lowering_x64_h
+#define ion_x64_Lowering_x64_h
 
 #include "ion/shared/Lowering-x86-shared.h"
 

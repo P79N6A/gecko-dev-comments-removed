@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ionframes_arm_h__
-#define jsion_ionframes_arm_h__
+#ifndef ion_arm_IonFrames_arm_h
+#define ion_arm_IonFrames_arm_h
 
 #include "ion/shared/IonFrames-shared.h"
 

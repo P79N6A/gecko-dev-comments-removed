@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_assembler_buffer_with_constant_pools_h__
-#define jsion_ion_assembler_buffer_with_constant_pools_h__
+#ifndef ion_shared_IonAssemblerBufferWithConstantPools_h
+#define ion_shared_IonAssemblerBufferWithConstantPools_h
 #include "ion/shared/IonAssemblerBuffer.h"
 #include "assembler/wtf/SegmentedVector.h"
 #include "ion/IonSpewer.h"

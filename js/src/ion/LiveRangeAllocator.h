@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_liverangeallocator_h__
-#define js_ion_liverangeallocator_h__
+#ifndef ion_LiveRangeAllocator_h
+#define ion_LiveRangeAllocator_h
 
 #include "mozilla/DebugOnly.h"
 
@@ -649,4 +649,4 @@ class LiveRangeAllocator : public RegisterAllocator
 } 
 } 
 
-#endif
+#endif 

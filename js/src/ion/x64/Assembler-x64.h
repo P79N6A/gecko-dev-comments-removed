@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_cpu_x64_assembler_h__
-#define jsion_cpu_x64_assembler_h__
+#ifndef ion_x64_Assembler_x64_h
+#define ion_x64_Assembler_x64_h
 
 #include "ion/shared/Assembler-shared.h"
 #include "ion/CompactBuffer.h"

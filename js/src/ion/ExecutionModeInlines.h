@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_executionmodeinlines_h__
-#define jsion_executionmodeinlines_h__
+#ifndef ion_ExecutionModeInlines_h
+#define ion_ExecutionModeInlines_h
 
 #ifdef JS_ION
 
@@ -109,4 +109,4 @@ CompilerOutputKind(ExecutionMode cmode)
 
 #endif  
 
-#endif  
+#endif 

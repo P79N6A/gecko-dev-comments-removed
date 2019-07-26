@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_coderef_h__
-#define jsion_coderef_h__
+#ifndef ion_IonCode_h
+#define ion_IonCode_h
 
 #include "mozilla/PodOperations.h"
 
@@ -725,4 +725,3 @@ IsMarked(const ion::VMFunction *)
 } 
 
 #endif 
-

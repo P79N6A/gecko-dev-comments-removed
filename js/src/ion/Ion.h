@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_h__
-#define jsion_ion_h__
+#ifndef ion_Ion_h
+#define ion_Ion_h
 
 #ifdef JS_ION
 
@@ -359,4 +359,3 @@ void TraceIonScripts(JSTracer* trc, JSScript *script);
 #endif 
 
 #endif 
-

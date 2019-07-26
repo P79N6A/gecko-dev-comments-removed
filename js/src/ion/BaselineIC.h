@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_ic_h__
-#define jsion_baseline_ic_h__
+#ifndef ion_BaselineIC_h
+#define ion_BaselineIC_h
 
 #ifdef JS_ION
 

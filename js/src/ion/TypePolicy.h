@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_type_policy_h__
-#define jsion_type_policy_h__
+#ifndef ion_TypePolicy_h
+#define ion_TypePolicy_h
 
 #include "IonTypes.h"
 
@@ -255,4 +255,3 @@ CoercesToDouble(MIRType type)
 } 
 
 #endif 
-

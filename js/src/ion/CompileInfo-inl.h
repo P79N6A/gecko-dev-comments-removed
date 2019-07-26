@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_compileinfo_inl_h__
-#define jsion_compileinfo_inl_h__
+#ifndef ion_CompileInfo_inl_h
+#define ion_CompileInfo_inl_h
 
 #include "CompileInfo.h"
 #include "jsgcinlines.h"

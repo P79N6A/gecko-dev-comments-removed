@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_mirgen_h__
-#define jsion_mirgen_h__
+#ifndef ion_MIRGenerator_h
+#define ion_MIRGenerator_h
 
 
 
@@ -158,4 +158,3 @@ class MIRGenerator
 } 
 
 #endif 
-

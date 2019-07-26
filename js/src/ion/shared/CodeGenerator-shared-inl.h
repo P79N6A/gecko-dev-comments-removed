@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_codegen_inl_h__
-#define jsion_codegen_inl_h__
+#ifndef ion_shared_CodeGenerator_shared_inl_h
+#define ion_shared_CodeGenerator_shared_inl_h
 
 namespace js {
 namespace ion {
@@ -161,4 +161,3 @@ CodeGeneratorShared::restoreLiveIgnore(LInstruction *ins, RegisterSet ignore)
 } 
 
 #endif 
-

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_unreachable_code_elimination_h__
-#define jsion_unreachable_code_elimination_h__
+#ifndef ion_UnreachableCodeElimination_h
+#define ion_UnreachableCodeElimination_h
 
 #include "MIR.h"
 #include "MIRGraph.h"
@@ -49,4 +49,4 @@ class UnreachableCodeElimination
 } 
 } 
 
-#endif
+#endif 

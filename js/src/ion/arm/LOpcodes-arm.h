@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_opcodes_arm_h__
-#define jsion_lir_opcodes_arm_h__
+#ifndef ion_arm_LOpcodes_arm_h
+#define ion_arm_LOpcodes_arm_h
 
 #define LIR_CPU_OPCODE_LIST(_)  \
     _(Unbox)                    \
@@ -24,4 +24,3 @@
 
 
 #endif 
-

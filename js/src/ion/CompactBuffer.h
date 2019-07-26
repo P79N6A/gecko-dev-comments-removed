@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_compact_buffer_h__
-#define jsion_compact_buffer_h__
+#ifndef ion_Compactbuffer_h
+#define ion_Compactbuffer_h
 
 #include "js/Vector.h"
 #include "jsalloc.h"
@@ -158,4 +158,3 @@ CompactBufferReader::CompactBufferReader(const CompactBufferWriter &writer)
 } 
 
 #endif 
-

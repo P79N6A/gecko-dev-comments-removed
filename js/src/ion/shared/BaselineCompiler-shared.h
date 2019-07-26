@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baselinecompiler_shared_h__
-#define jsion_baselinecompiler_shared_h__
+#ifndef ion_shared_BaselineCompiler_shared_h
+#define ion_shared_BaselineCompiler_shared_h
 
 #include "jscntxt.h"
 #include "ion/BaselineFrameInfo.h"

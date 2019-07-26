@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baselinecompiler_x86_h__
-#define jsion_baselinecompiler_x86_h__
+#ifndef ion_x86_BaselineCompiler_x86_h
+#define ion_x86_BaselineCompiler_x86_h
 
 #include "ion/shared/BaselineCompiler-x86-shared.h"
 

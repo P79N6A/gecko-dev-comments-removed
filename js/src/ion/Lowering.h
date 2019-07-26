@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_lowering_h__
-#define jsion_ion_lowering_h__
+#ifndef ion_Lowering_h
+#define ion_Lowering_h
 
 
 
@@ -250,4 +250,3 @@ class LIRGenerator : public LIRGeneratorSpecific
 } 
 
 #endif 
-

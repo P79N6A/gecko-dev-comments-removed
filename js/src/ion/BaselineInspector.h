@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_inspector_h__
-#define jsion_baseline_inspector_h__
+#ifndef ion_BaselineInspector_h
+#define ion_BaselineInspector_h
 
 #ifdef JS_ION
 
@@ -117,4 +117,3 @@ class BaselineInspector
 #endif 
 
 #endif 
-

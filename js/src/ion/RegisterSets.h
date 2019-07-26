@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_cpu_registersets_h__
-#define jsion_cpu_registersets_h__
+#ifndef ion_RegisterSets_h
+#define ion_RegisterSets_h
 
 #include "Registers.h"
 #include "ion/IonAllocPolicy.h"

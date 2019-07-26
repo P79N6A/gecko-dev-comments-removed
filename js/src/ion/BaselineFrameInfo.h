@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_frameinfo_h__
-#define jsion_baseline_frameinfo_h__
+#ifndef ion_BaselineFrameInfo_h
+#define ion_BaselineFrameInfo_h
 
 #ifdef JS_ION
 
@@ -334,4 +334,3 @@ class FrameInfo
 #endif 
 
 #endif 
-

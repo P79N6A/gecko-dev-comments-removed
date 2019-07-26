@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_macro_assembler_arm_h__
-#define jsion_macro_assembler_arm_h__
+#ifndef ion_arm_MacroAssembler_arm_h
+#define ion_arm_MacroAssembler_arm_h
 
 #include "mozilla/DebugOnly.h"
 

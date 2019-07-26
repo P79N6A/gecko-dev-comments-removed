@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_fixed_arity_list_h__
-#define jsion_ion_fixed_arity_list_h__
+#ifndef ion_FixedArityList_h
+#define ion_FixedArityList_h
 
 namespace js {
 namespace ion {
@@ -50,4 +50,3 @@ class FixedArityList<T, 0>
 } 
 
 #endif 
-

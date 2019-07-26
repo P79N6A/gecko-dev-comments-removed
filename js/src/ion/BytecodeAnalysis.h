@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_bytecodeanalysis_h__
-#define jsion_bytecodeanalysis_h__
+#ifndef ion_BytecodeAnalysis_h
+#define ion_BytecodeAnalysis_h
 
 #include "jscntxt.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_arm_h__
-#define jsion_lir_arm_h__
+#ifndef ion_arm_LIR_arm_h
+#define ion_arm_LIR_arm_h
 
 namespace js {
 namespace ion {

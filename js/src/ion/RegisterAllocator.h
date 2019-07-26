@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_ion_registerallocator_h__
-#define js_ion_registerallocator_h__
+#ifndef ion_RegisterAllocator_h
+#define ion_RegisterAllocator_h
 
 #include "mozilla/Attributes.h"
 
@@ -363,4 +363,4 @@ class RegisterAllocator
 } 
 } 
 
-#endif
+#endif 

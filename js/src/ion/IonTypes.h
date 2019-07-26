@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_types_h_
-#define jsion_types_h_
+#ifndef ion_IonTypes_h
+#define ion_IonTypes_h
 
 #include "js/Value.h"
 #include <jstypes.h>
@@ -212,4 +212,3 @@ IsNullOrUndefined(MIRType type)
 } 
 
 #endif 
-

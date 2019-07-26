@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_codegen_x86_shared_h__
-#define jsion_codegen_x86_shared_h__
+#ifndef ion_shared_CodeGenerator_x86_shared_h
+#define ion_shared_CodeGenerator_x86_shared_h
 
 #include "ion/shared/CodeGenerator-shared.h"
 
@@ -142,4 +142,3 @@ class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 } 
 
 #endif 
-

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_fixed_list_h__
-#define jsion_ion_fixed_list_h__
+#ifndef ion_FixedList_h
+#define ion_FixedList_h
 
 namespace js {
 namespace ion {
@@ -72,4 +72,3 @@ class FixedList
 } 
 
 #endif 
-

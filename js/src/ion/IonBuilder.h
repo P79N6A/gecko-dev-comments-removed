@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_bytecode_analyzer_h__
-#define jsion_bytecode_analyzer_h__
+#ifndef ion_IonBuilder_h
+#define ion_IonBuilder_h
 
 #ifdef JS_ION
 

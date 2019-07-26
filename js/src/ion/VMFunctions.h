@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_vm_functions_h__
-#define jsion_vm_functions_h__
+#ifndef ion_VMFunctions_h
+#define ion_VMFunctions_h
 
 #include "jspubtd.h"
 
@@ -621,4 +621,3 @@ bool InitBaselineFrameForOsr(BaselineFrame *frame, StackFrame *interpFrame,
 } 
 
 #endif
-

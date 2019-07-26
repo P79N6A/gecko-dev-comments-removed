@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_compartment_h__
-#define jsion_ion_compartment_h__
+#ifndef ion_IonCompartment_h
+#define ion_IonCompartment_h
 
 #ifdef JS_ION
 
@@ -344,4 +344,3 @@ void FinishInvalidation(FreeOp *fop, JSScript *script);
 #endif 
 
 #endif 
-

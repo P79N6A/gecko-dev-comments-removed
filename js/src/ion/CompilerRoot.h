@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_ion_gc_h__
-#define jsion_ion_gc_h__
+#ifndef ion_CompilerRoot_h
+#define ion_CompilerRoot_h
 
 #ifdef JS_ION
 
@@ -66,4 +66,3 @@ typedef CompilerRoot<Value> CompilerRootValue;
 #endif 
 
 #endif 
-

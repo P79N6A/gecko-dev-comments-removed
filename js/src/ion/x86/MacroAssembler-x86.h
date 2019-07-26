@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_macro_assembler_x86_h__
-#define jsion_macro_assembler_x86_h__
+#ifndef ion_x86_MacroAssembler_x86_h
+#define ion_x86_MacroAssembler_x86_h
 
 #include "ion/shared/MacroAssembler-x86-shared.h"
 #include "ion/IonFrames.h"
@@ -982,4 +982,3 @@ typedef MacroAssemblerX86 MacroAssemblerSpecific;
 } 
 
 #endif 
-

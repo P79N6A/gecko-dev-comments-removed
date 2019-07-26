@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_snapshot_writer_h__
-#define jsion_snapshot_writer_h__
+#ifndef ion_SnapshotWriter_h
+#define ion_SnapshotWriter_h
 
 #include "Ion.h"
 #include "IonCode.h"
@@ -74,4 +74,3 @@ class SnapshotWriter
 }
 
 #endif 
-

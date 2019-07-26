@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_lir_inl_h__
-#define jsion_lir_inl_h__
+#ifndef ion_LIR_inl_h
+#define ion_LIR_inl_h
 
 namespace js {
 namespace ion {
@@ -81,4 +81,3 @@ BaseOfNunboxSlot(LDefinition::Type type, unsigned slot)
 } 
 
 #endif 
-

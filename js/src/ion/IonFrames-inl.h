@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_frames_inl_h__
-#define jsion_frames_inl_h__
+#ifndef ion_IonFrames_inl_h
+#define ion_IonFrames_inl_h
 
 #ifdef JS_ION
 
@@ -152,4 +152,3 @@ GetTopBaselineFrame(JSContext *cx)
 #endif 
 
 #endif 
-

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_range_analysis_h__
-#define jsion_range_analysis_h__
+#ifndef ion_RangeAnalysis_h
+#define ion_RangeAnalysis_h
 
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
@@ -370,4 +370,3 @@ class Range : public TempObject {
 } 
 
 #endif 
-

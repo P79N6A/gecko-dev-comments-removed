@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_baseline_helpers_x64_h__
-#define jsion_baseline_helpers_x64_h__
+#ifndef ion_x64_BaselineHelpers_x64_h
+#define ion_x64_BaselineHelpers_x64_h
 
 #ifdef JS_ION
 
@@ -279,4 +279,3 @@ EmitStubGuardFailure(MacroAssembler &masm)
 #endif 
 
 #endif 
-

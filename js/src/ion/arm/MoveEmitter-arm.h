@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_move_resolver_arm_shared_h__
-#define jsion_move_resolver_arm_shared_h__
+#ifndef ion_arm_MoveEmitter_arm_h
+#define ion_arm_MoveEmitter_arm_h
 
 #include "ion/MoveResolver.h"
 #include "ion/IonMacroAssembler.h"
@@ -66,4 +66,3 @@ typedef MoveEmitterARM MoveEmitter;
 } 
 
 #endif 
-

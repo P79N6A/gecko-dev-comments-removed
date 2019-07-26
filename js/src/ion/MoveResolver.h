@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsion_move_group_resolver_h__
-#define jsion_move_group_resolver_h__
+#ifndef ion_MoveResolver_h
+#define ion_MoveResolver_h
 
 #include "Registers.h"
 #include "InlineList.h"
@@ -214,4 +214,3 @@ class MoveResolver
 } 
 
 #endif
-
