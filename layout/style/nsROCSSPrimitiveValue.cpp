@@ -180,8 +180,8 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
     case CSS_RGBCOLOR :
       {
         NS_ASSERTION(mValue.mColor, "mValue.mColor should never be null");
+        ErrorResult error;
         NS_NAMED_LITERAL_STRING(comma, ", ");
-        nsCOMPtr<nsIDOMCSSPrimitiveValue> colorCSSValue;
         nsAutoString colorValue;
         if (mValue.mColor->HasAlpha())
           tmpStr.AssignLiteral("rgba(");
@@ -189,39 +189,27 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
           tmpStr.AssignLiteral("rgb(");
 
         
-        result = mValue.mColor->GetRed(getter_AddRefs(colorCSSValue));
-        if (NS_FAILED(result))
-          break;
-        result = colorCSSValue->GetCssText(colorValue);
-        if (NS_FAILED(result))
+        mValue.mColor->Red()->GetCssText(colorValue, error);
+        if (error.Failed())
           break;
         tmpStr.Append(colorValue + comma);
 
         
-        result = mValue.mColor->GetGreen(getter_AddRefs(colorCSSValue));
-        if (NS_FAILED(result))
-          break;
-        result = colorCSSValue->GetCssText(colorValue);
-        if (NS_FAILED(result))
+        mValue.mColor->Green()->GetCssText(colorValue, error);
+        if (error.Failed())
           break;
         tmpStr.Append(colorValue + comma);
 
         
-        result = mValue.mColor->GetBlue(getter_AddRefs(colorCSSValue));
-        if (NS_FAILED(result))
-          break;
-        result = colorCSSValue->GetCssText(colorValue);
-        if (NS_FAILED(result))
+        mValue.mColor->Blue()->GetCssText(colorValue, error);
+        if (error.Failed())
           break;
         tmpStr.Append(colorValue);
 
         if (mValue.mColor->HasAlpha()) {
           
-          result = mValue.mColor->GetAlpha(getter_AddRefs(colorCSSValue));
-          if (NS_FAILED(result))
-            break;
-          result = colorCSSValue->GetCssText(colorValue);
-          if (NS_FAILED(result))
+          mValue.mColor->Alpha()->GetCssText(colorValue, error);
+          if (error.Failed())
             break;
           tmpStr.Append(comma + colorValue);
         }
