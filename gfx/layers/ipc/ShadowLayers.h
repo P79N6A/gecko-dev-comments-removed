@@ -18,6 +18,7 @@
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/dom/ScreenOrientation.h"
 #include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/CompositorTypes.h"
 
 class gfxSharedImageSurface;
 
@@ -38,12 +39,12 @@ class PLayerChild;
 class PLayerTransactionChild;
 class PLayerTransactionParent;
 class ShadowableLayer;
-class ShadowThebesLayer;
-class ShadowContainerLayer;
-class ShadowImageLayer;
-class ShadowColorLayer;
-class ShadowCanvasLayer;
-class ShadowRefLayer;
+class ThebesLayerComposite;
+class ContainerLayerComposite;
+class ImageLayerComposite;
+class ColorLayerComposite;
+class CanvasLayerComposite;
+class RefLayerComposite;
 class SurfaceDescriptor;
 class ThebesBuffer;
 class TiledLayerComposer;
@@ -56,12 +57,6 @@ class CompositableChild;
 class ImageClient;
 class CanvasClient;
 class ContentClient;
-
-enum OpenMode {
-  OPEN_READ_ONLY,
-  OPEN_READ_WRITE
-};
-
 
 
 
@@ -432,66 +427,6 @@ private:
   bool mIsFirstPaint;
 };
 
-class ShadowLayerManager : public LayerManager
-{
-public:
-  virtual ~ShadowLayerManager() {}
-
-  virtual void GetBackendName(nsAString& name) { name.AssignLiteral("Shadow"); }
-
-  
-  virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer() = 0;
-  
-  virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer() = 0;
-  
-  virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer() = 0;
-  
-  virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer() = 0;
-  
-  virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer() = 0;
-  
-  virtual already_AddRefed<ShadowRefLayer> CreateShadowRefLayer() { return nullptr; }
-
-  virtual void NotifyShadowTreeTransaction() {}
-
-  
-
-
-
-
-  static already_AddRefed<gl::TextureImage>
-  OpenDescriptorForDirectTexturing(gl::GLContext* aContext,
-                                   const SurfaceDescriptor& aDescriptor,
-                                   GLenum aWrapMode);
-
-  
-
-
-
-  static bool SupportsDirectTexturing();
-
-  static void PlatformSyncBeforeReplyUpdate();
-
-  void SetCompositorID(uint32_t aID)
-  {
-    NS_ASSERTION(mCompositor, "No compositor");
-    mCompositor->SetCompositorID(aID);
-  }
-
-  Compositor* GetCompositor() const
-  {
-    return mCompositor;
-  }
-
-protected:
-  ShadowLayerManager()
-  : mCompositor(nullptr)
-  {}
-
-  bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
-  RefPtr<Compositor> mCompositor;
-};
-
 class CompositableClient;
 
 
@@ -524,199 +459,6 @@ protected:
   ShadowableLayer() : mShadow(NULL) {}
 
   PLayerChild* mShadow;
-};
-
-
-
-
-
-
-
-
-
-class ShadowLayer
-{
-public:
-  virtual ~ShadowLayer() {}
-
-  virtual void DestroyFrontBuffer() { }
-
-  
-
-
-
-
-
-
-  void SetShadowVisibleRegion(const nsIntRegion& aRegion)
-  {
-    mShadowVisibleRegion = aRegion;
-  }
-
-  void SetShadowOpacity(float aOpacity)
-  {
-    mShadowOpacity = aOpacity;
-  }
-
-  void SetShadowClipRect(const nsIntRect* aRect)
-  {
-    mUseShadowClipRect = aRect != nullptr;
-    if (aRect) {
-      mShadowClipRect = *aRect;
-    }
-  }
-
-  void SetShadowTransform(const gfx3DMatrix& aMatrix)
-  {
-    mShadowTransform = aMatrix;
-  }
-
-  
-  float GetShadowOpacity() { return mShadowOpacity; }
-  const nsIntRect* GetShadowClipRect() { return mUseShadowClipRect ? &mShadowClipRect : nullptr; }
-  const nsIntRegion& GetShadowVisibleRegion() { return mShadowVisibleRegion; }
-  const gfx3DMatrix& GetShadowTransform() { return mShadowTransform; }
-
-protected:
-  ShadowLayer()
-    : mShadowOpacity(1.0f)
-    , mUseShadowClipRect(false)
-  {}
-
-  nsIntRegion mShadowVisibleRegion;
-  gfx3DMatrix mShadowTransform;
-  nsIntRect mShadowClipRect;
-  float mShadowOpacity;
-  bool mUseShadowClipRect;
-};
-
-
-class ShadowThebesLayer : public ShadowLayer,
-                          public ThebesLayer
-{
-public:
-  virtual void InvalidateRegion(const nsIntRegion& aRegion)
-  {
-    NS_RUNTIMEABORT("ShadowThebesLayers can't fill invalidated regions");
-  }
-
-  
-
-
-  virtual void SetValidRegion(const nsIntRegion& aRegion)
-  {
-    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ValidRegion", this));
-    mValidRegion = aRegion;
-    Mutated();
-  }
-
-  const nsIntRegion& GetValidRegion() { return mValidRegion; }
-
-  virtual void
-  Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
-       OptionalThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
-       OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion) {
-    NS_RUNTIMEABORT("should not use layer swap");
-  };
-
-  virtual ShadowLayer* AsShadowLayer() { return this; }
-
-  MOZ_LAYER_DECL_NAME("ShadowThebesLayer", TYPE_SHADOW)
-
-protected:
-  ShadowThebesLayer(LayerManager* aManager, void* aImplData)
-    : ThebesLayer(aManager, aImplData)
-  {}
-};
-
-
-class ShadowContainerLayer : public ShadowLayer,
-                             public ContainerLayer
-{
-public:
-  virtual ShadowLayer* AsShadowLayer() { return this; }
-
-  MOZ_LAYER_DECL_NAME("ShadowContainerLayer", TYPE_SHADOW)
-
-protected:
-  ShadowContainerLayer(LayerManager* aManager, void* aImplData)
-    : ContainerLayer(aManager, aImplData)
-  {}
-};
-
-
-class ShadowCanvasLayer : public ShadowLayer,
-                          public CanvasLayer
-{
-public:
-  
-
-
-
-
-
-
-  virtual void Swap(const SurfaceDescriptor& aNewFront, bool needYFlip,
-                    SurfaceDescriptor* aNewBack) = 0;
-
-  virtual ShadowLayer* AsShadowLayer() { return this; }
-
-  void SetBounds(nsIntRect aBounds) { mBounds = aBounds; }
-
-  MOZ_LAYER_DECL_NAME("ShadowCanvasLayer", TYPE_SHADOW)
-
-protected:
-  ShadowCanvasLayer(LayerManager* aManager, void* aImplData)
-    : CanvasLayer(aManager, aImplData)
-  {}
-};
-
-
-class ShadowImageLayer : public ShadowLayer,
-                         public ImageLayer
-{
-public:
-  
-
-
-
-  virtual ShadowLayer* AsShadowLayer() { return this; }
-
-  MOZ_LAYER_DECL_NAME("ShadowImageLayer", TYPE_SHADOW)
-
-protected:
-  ShadowImageLayer(LayerManager* aManager, void* aImplData)
-    : ImageLayer(aManager, aImplData)
-  {}
-};
-
-
-class ShadowColorLayer : public ShadowLayer,
-                         public ColorLayer
-{
-public:
-  virtual ShadowLayer* AsShadowLayer() { return this; }
-
-  MOZ_LAYER_DECL_NAME("ShadowColorLayer", TYPE_SHADOW)
-
-protected:
-  ShadowColorLayer(LayerManager* aManager, void* aImplData)
-    : ColorLayer(aManager, aImplData)
-  {}
-};
-
-class ShadowRefLayer : public ShadowLayer,
-                       public RefLayer
-{
-public:
-  virtual ShadowLayer* AsShadowLayer() { return this; }
-
-  MOZ_LAYER_DECL_NAME("ShadowRefLayer", TYPE_SHADOW)
-
-protected:
-  ShadowRefLayer(LayerManager* aManager, void* aImplData)
-    : RefLayer(aManager, aImplData)
-  {}
 };
 
 } 

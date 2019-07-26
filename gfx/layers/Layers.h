@@ -60,10 +60,10 @@ class CanvasLayer;
 class ReadbackLayer;
 class ReadbackProcessor;
 class RefLayer;
-class ShadowLayer;
+class LayerComposite;
 class ShadowableLayer;
 class ShadowLayerForwarder;
-class ShadowLayerManager;
+class LayerManagerComposite;
 class SpecificLayerAttributes;
 class SurfaceDescriptor;
 class Compositor;
@@ -168,7 +168,7 @@ public:
   virtual ShadowLayerForwarder* AsShadowForwarder()
   { return nullptr; }
 
-  virtual ShadowLayerManager* AsShadowManager()
+  virtual LayerManagerComposite* AsLayerManagerComposite()
   { return nullptr; }
 
   
@@ -1018,19 +1018,13 @@ public:
 
 
 
-  virtual ShadowLayer* AsShadowLayer() { return nullptr; }
+  virtual LayerComposite* AsLayerComposite() { return nullptr; }
 
   
 
 
 
   virtual ShadowableLayer* AsShadowableLayer() { return nullptr; }
-
-  
-
-
-
-  virtual LayerComposite* AsLayerComposite() { return nullptr; }
 
   
   

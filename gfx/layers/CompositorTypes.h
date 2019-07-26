@@ -137,6 +137,15 @@ struct TextureInfo
 };
 
 
+
+
+
+
+enum OpenMode {
+  OPEN_READ_ONLY,
+  OPEN_READ_WRITE
+};
+
 } 
 } 
 

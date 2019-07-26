@@ -591,25 +591,6 @@ ISurfaceAllocator::PlatformDestroySharedSurface(SurfaceDescriptor*)
   return false;
 }
 
- already_AddRefed<TextureImage>
-ShadowLayerManager::OpenDescriptorForDirectTexturing(GLContext*,
-                                                     const SurfaceDescriptor&,
-                                                     GLenum)
-{
-  return nullptr;
-}
-
- bool
-ShadowLayerManager::SupportsDirectTexturing()
-{
-  return false;
-}
-
- void
-ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
-{
-}
-
 #endif  
 
 AutoOpenSurface::AutoOpenSurface(OpenMode aMode,
