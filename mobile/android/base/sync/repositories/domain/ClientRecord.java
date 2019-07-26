@@ -19,6 +19,9 @@ public class ClientRecord extends Record {
   public static final long CLIENTS_TTL = 21 * 24 * 60 * 60; 
   public static final String DEFAULT_CLIENT_NAME = "Default Name";
 
+  public static final String PROTOCOL_LEGACY_SYNC = "1.1";
+  
+
   
 
 
@@ -36,6 +39,7 @@ public class ClientRecord extends Record {
   public String type = ClientRecord.CLIENT_TYPE;
   public String version = null;                      
   public JSONArray commands;
+  public JSONArray protocols;
 
   public ClientRecord(String guid, String collection, long lastModified, boolean deleted) {
     super(guid, collection, lastModified, deleted);
@@ -74,6 +78,13 @@ public class ClientRecord extends Record {
       Logger.debug(LOG_TAG, "Got non-array commands in client record " + guid, e);
       commands = null;
     }
+
+    try {
+      protocols = payload.getArray("protocols");
+    } catch (NonArrayJSONException e) {
+      Logger.debug(LOG_TAG, "Got non-array protocols in client record " + guid, e);
+      protocols = null;
+    }
   }
 
   @Override
@@ -85,6 +96,10 @@ public class ClientRecord extends Record {
 
     if (this.commands != null) {
       payload.put("commands",  this.commands);
+    }
+
+    if (this.protocols != null) {
+      payload.put("protocols",  this.protocols);
     }
   }
 
@@ -104,6 +119,7 @@ public class ClientRecord extends Record {
     }
 
     
+    
     ClientRecord other = (ClientRecord) o;
     if (!RepoUtils.stringsEqual(other.name, this.name) ||
         !RepoUtils.stringsEqual(other.type, this.type)) {
@@ -122,6 +138,7 @@ public class ClientRecord extends Record {
     out.name = this.name;
     out.type = this.type;
     out.version = this.version;
+    out.protocols = this.protocols;
     return out;
   }
 
