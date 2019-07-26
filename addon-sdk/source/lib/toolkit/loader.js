@@ -39,6 +39,9 @@ const { loadSubScript } = Cc['@mozilla.org/moz/jssubscript-loader;1'].
 const { notifyObservers } = Cc['@mozilla.org/observer-service;1'].
                         getService(Ci.nsIObserverService);
 const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
+const { Reflect } = Cu.import("resource://gre/modules/reflect.jsm", {});
+const { console } = Cu.import("resource://gre/modules/devtools/Console.jsm");
+const { join: pathJoin, normalize, dirname } = Cu.import("resource://gre/modules/osfile/ospath_unix.jsm");
 
 
 const bind = Function.call.bind(Function.bind);
@@ -49,6 +52,7 @@ const prototypeOf = Object.getPrototypeOf;
 const create = Object.create;
 const keys = Object.keys;
 
+const NODE_MODULES = ["assert", "buffer_ieee754", "buffer", "child_process", "cluster", "console", "constants", "crypto", "_debugger", "dgram", "dns", "domain", "events", "freelist", "fs", "http", "https", "_linklist", "module", "net", "os", "path", "punycode", "querystring", "readline", "repl", "stream", "string_decoder", "sys", "timers", "tls", "tty", "url", "util", "vm", "zlib"];
 
 const COMPONENT_ERROR = '`Components` is not available in this context.\n' +
   'Functionality provided by Components may be available in an SDK\n' +
@@ -122,7 +126,6 @@ const override = iced(function override(target, source) {
 });
 exports.override = override;
 
-
 function sourceURI(uri) { return String(uri).split(" -> ").pop(); }
 exports.sourceURI = iced(sourceURI);
 
@@ -171,6 +174,19 @@ function readURI(uri) {
 }
 
 
+function join (...paths) {
+  let resolved = normalize(pathJoin(...paths))
+  
+  
+  
+  resolved = resolved.replace(/^resource\:\/([^\/])/, 'resource://$1');
+  resolved = resolved.replace(/^file\:\/([^\/])/, 'file:///$1');
+  resolved = resolved.replace(/^chrome\:\/([^\/])/, 'chrome://$1');
+  return resolved;
+}
+exports.join = join;
+
+
 
 
 
@@ -200,6 +216,8 @@ const Sandbox = iced(function Sandbox(options) {
                           options.wantGlobalProperties : [],
     sandboxPrototype: 'prototype' in options ? options.prototype : {},
     sameGroupAs: 'sandbox' in options ? options.sandbox : null,
+    invisibleToDebugger: 'invisibleToDebugger' in options ?
+                         options.invisibleToDebugger : false,
     metadata: 'metadata' in options ? options.metadata : {}
   };
 
@@ -270,6 +288,7 @@ const load = iced(function load(loader, module) {
     prototype: create(globals, descriptors),
     wantXrays: false,
     wantGlobalProperties: module.id == "sdk/indexed-db" ? ["indexedDB"] : [],
+    invisibleToDebugger: loader.invisibleToDebugger,
     metadata: {
       addonID: loader.id,
       URI: module.uri
@@ -324,38 +343,172 @@ const load = iced(function load(loader, module) {
 exports.load = load;
 
 
-function isRelative(id) { return id[0] === '.'; }
-
-function normalize(uri) {
+function normalizeExt (uri) {
   return isJSURI(uri) ? uri :
          isJSONURI(uri) ? uri :
+         isJSMURI(uri) ? uri :
          uri + '.js';
 }
 
 
 
+function stripBase (rootURI, string) {
+  return string.replace(rootURI, './');
+}
+
+
+
+
 const resolve = iced(function resolve(id, base) {
   if (!isRelative(id)) return id;
-  let paths = id.split('/');
-  let result = base.split('/');
-  result.pop();
-  while (paths.length) {
-    let path = paths.shift();
-    if (path === '..')
-      result.pop();
-    else if (path !== '.')
-      result.push(path);
-  }
-  return result.join('/');
+  let basePaths = base.split('/');
+  
+  
+  
+  basePaths.pop();
+  if (!basePaths.length)
+    return normalize(id);
+  let resolved = join(basePaths.join('/'), id);
+
+  
+  
+  if (isRelative(base))
+    resolved = './' + resolved;
+
+  return resolved;
 });
 exports.resolve = resolve;
 
+
+
+
+
+
+const nodeResolve = iced(function nodeResolve(id, requirer, { manifest, rootURI }) {
+  
+  id = exports.resolve(id, requirer);
+
+  
+  
+
+  let fullId = join(rootURI, id);
+
+  let resolvedPath;
+  if (resolvedPath = loadAsFile(fullId))
+    return stripBase(rootURI, resolvedPath);
+  else if (resolvedPath = loadAsDirectory(fullId))
+    return stripBase(rootURI, resolvedPath);
+  
+  
+  else if (manifest.dependencies) {
+    let dirs = getNodeModulePaths(dirname(join(rootURI, requirer))).map(dir => join(dir, id));
+    for (let i = 0; i < dirs.length; i++) {
+      if (resolvedPath = loadAsFile(dirs[i]))
+        return stripBase(rootURI, resolvedPath);
+      if (resolvedPath = loadAsDirectory(dirs[i]))
+        return stripBase(rootURI, resolvedPath);
+    }
+  }
+
+  
+  
+  
+  return void 0;
+});
+exports.nodeResolve = nodeResolve;
+
+
+
+function loadAsFile (path) {
+  let found;
+
+  
+  
+  
+  
+  try {
+    
+    path = normalizeExt(path);
+    readURI(path);
+    found = path;
+  } catch (e) {}
+
+  return found;
+}
+
+
+
+function loadAsDirectory (path) {
+  let found;
+  try {
+    
+    
+    let main = getManifestMain(JSON.parse(readURI(path + '/package.json')));
+    if (main != null) {
+      let tmpPath = join(path, main);
+      if (found = loadAsFile(tmpPath))
+        return found
+    }
+    try {
+      let tmpPath = path + '/index.js';
+      readURI(tmpPath);
+      return tmpPath;
+    } catch (e) {}
+  } catch (e) {
+    try {
+      let tmpPath = path + '/index.js';
+      readURI(tmpPath);
+      return tmpPath;
+    } catch (e) {}
+  }
+  return void 0;
+}
+
+
+
+function getNodeModulePaths (start) {
+  
+  let moduleDir = 'node_modules';
+
+  let parts = start.split('/');
+  let dirs = [];
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (parts[i] === moduleDir) continue;
+    let dir = join(parts.slice(0, i + 1).join('/'), moduleDir);
+    dirs.push(dir);
+  }
+  return dirs;
+}
+
+
+function addTrailingSlash (path) {
+  return !path ? null : !path.endsWith('/') ? path + '/' : path;
+}
+
+
+
+function isNodeModule (name) {
+  return !!~NODE_MODULES.indexOf(name);
+}
+
+
+
+function sortPaths (paths) {
+  return keys(paths).
+    sort(function(a, b) { return b.length - a.length }).
+    map(function(path) { return [ path, paths[path] ] });
+}
+
 const resolveURI = iced(function resolveURI(id, mapping) {
   let count = mapping.length, index = 0;
+
+  
+  if (isResourceURI(id)) return normalizeExt(id);
+
   while (index < count) {
     let [ path, uri ] = mapping[index ++];
     if (id.indexOf(path) === 0)
-      return normalize(id.replace(path, uri));
+      return normalizeExt(id.replace(path, uri));
   }
   return void 0; 
 });
@@ -366,18 +519,60 @@ exports.resolveURI = resolveURI;
 
 
 const Require = iced(function Require(loader, requirer) {
-  let { modules, mapping, resolve, load } = loader;
+  let {
+    modules, mapping, resolve, load, manifest, rootURI, isNative, requireMap
+  } = loader;
 
   function require(id) {
     if (!id) 
       throw Error('you must provide a module name when calling require() from '
                   + requirer.id, requirer.uri);
 
-    
-    let requirement = requirer ? resolve(id, requirer.id) : id;
+    let requirement;
+    let uri;
 
     
-    let uri = resolveURI(requirement, mapping);
+    
+
+    if (isNative) {
+      
+      
+      if (requireMap && requireMap[requirer.id])
+        requirement = requireMap[requirer.id][id];
+
+      
+      
+      
+      if (!requirement && modules[id])
+        uri = requirement = id;
+
+      
+      
+      if (!requirement && !isNodeModule(id)) {
+        
+        
+        
+        
+        requirement = resolve(id, requirer.id, {
+          manifest: manifest,
+          rootURI: rootURI
+        });
+      }
+
+      
+      
+      
+      
+      if (!requirement) {
+        requirement = isRelative(id) ? exports.resolve(id, requirer.id) : id;
+      }
+    } else {
+      
+      requirement = requirer ? resolve(id, requirer.id) : id;
+    }
+
+    
+    uri = uri || resolveURI(requirement, mapping);
 
     if (!uri) 
       throw Error('Module: Can not resolve "' + id + '" module required by ' +
@@ -387,6 +582,11 @@ const Require = iced(function Require(loader, requirer) {
     
     if (uri in modules) {
       module = modules[uri];
+    }
+    else if (isJSMURI(uri)) {
+      module = modules[uri] = Module(requirement, uri);
+      module.exports = Cu.import(uri, {});
+      freeze(module);
     }
     else if (isJSONURI(uri)) {
       let data;
@@ -426,7 +626,11 @@ const Require = iced(function Require(loader, requirer) {
 exports.Require = Require;
 
 const main = iced(function main(loader, id) {
-  let uri = resolveURI(id, loader.mapping)
+  
+  
+  if (!id && loader.isNative)
+    id = getManifestMain(loader.manifest);
+  let uri = resolveURI(id, loader.mapping);
   let module = loader.main = loader.modules[uri] = Module(id, uri);
   return loader.load(loader, module).exports;
 });
@@ -472,11 +676,15 @@ exports.unload = unload;
 
 
 const Loader = iced(function Loader(options) {
-  let { modules, globals, resolve, paths } = override({
+  let {
+    modules, globals, resolve, paths, rootURI, manifest, requireMap, isNative
+  } = override({
     paths: {},
     modules: {},
     globals: {},
-    resolve: exports.resolve
+    resolve: options.isNative ?
+      exports.nodeResolve :
+      exports.resolve,
   }, options);
 
   
@@ -486,11 +694,7 @@ const Loader = iced(function Loader(options) {
   
   let destructor = freeze(create(null));
 
-  
-  
-  let mapping = keys(paths).
-    sort(function(a, b) { return b.length - a.length }).
-    map(function(path) { return [ path, paths[path] ] });
+  let mapping = sortPaths(paths);
 
   
   modules = override({
@@ -507,6 +711,10 @@ const Loader = iced(function Loader(options) {
   modules = keys(modules).reduce(function(result, id) {
     
     let uri = resolveURI(id, mapping);
+    
+    
+    if (isNative && !uri)
+      uri = id;
     let module = Module(id, uri);
     module.exports = freeze(modules[id]);
     result[uri] = freeze(module);
@@ -516,7 +724,7 @@ const Loader = iced(function Loader(options) {
   
   
   
-  return freeze(create(null, {
+  let returnObj = {
     destructor: { enumerable: false, value: destructor },
     globals: { enumerable: false, value: globals },
     mapping: { enumerable: false, value: mapping },
@@ -527,6 +735,9 @@ const Loader = iced(function Loader(options) {
     resolve: { enumerable: false, value: resolve },
     
     id: { enumerable: false, value: options.id },
+    
+    invisibleToDebugger: { enumerable: false,
+                           value: options.invisibleToDebugger || false },
     load: { enumerable: false, value: options.load || load },
     
     
@@ -539,12 +750,155 @@ const Loader = iced(function Loader(options) {
         set: function(module) { main = main || module; }
       }
     }
-  }));
+  };
+
+  if (isNative) {
+    returnObj.isNative = { enumerable: false, value: true };
+    returnObj.manifest = { enumerable: false, value: manifest };
+    returnObj.requireMap = { enumerable: false, value: requireMap };
+    returnObj.rootURI = { enumerable: false, value: addTrailingSlash(rootURI) };
+  }
+
+  return freeze(create(null, returnObj));
 });
 exports.Loader = Loader;
 
 let isJSONURI = uri => uri.substr(-5) === '.json';
+let isJSMURI = uri => uri.substr(-4) === '.jsm';
 let isJSURI = uri => uri.substr(-3) === '.js';
+let isResourceURI = uri => uri.substr(0, 11) === 'resource://';
+let isRelative = id => id[0] === '.'
+
+const generateMap = iced(function generateMap(options, callback) {
+  let { rootURI, resolve, paths } = override({
+    paths: {},
+    resolve: exports.nodeResolve
+  }, options);
+
+  rootURI = addTrailingSlash(rootURI);
+
+  let manifest;
+  let manifestURI = join(rootURI, 'package.json');
+
+  if (rootURI)
+    manifest = JSON.parse(readURI(manifestURI));
+  else
+    throw new Error('No `rootURI` given to generate map');
+
+  let main = getManifestMain(manifest);
+
+  findAllModuleIncludes(main, {
+    resolve: resolve,
+    manifest: manifest,
+    rootURI: rootURI
+  }, {}, callback);
+
+});
+exports.generateMap = generateMap;
+
+
+
+function getManifestMain (manifest) {
+  let main = manifest.main || './index.js';
+  return isRelative(main) ? main : './' + main;
+}
+
+function findAllModuleIncludes (uri, options, results, callback) {
+  let { resolve, manifest, rootURI } = options;
+  results = results || {};
+
+  
+  if (isJSONURI(uri) || isJSMURI(uri)) {
+    callback(results);
+    return void 0;
+  }
+
+  findModuleIncludes(join(rootURI, uri), modules => {
+    
+    if (!modules.length) {
+      callback(results);
+      return void 0;
+    }
+
+    results[uri] = modules.reduce((agg, mod) => {
+      let resolved = resolve(mod, uri, { manifest: manifest, rootURI: rootURI });
+
+      
+      
+      if (!resolved)
+        return agg;
+      agg[mod] = resolved;
+      return agg;
+    }, {});
+
+    let includes = keys(results[uri]);
+    let count = 0;
+    let subcallback = () => { if (++count >= includes.length) callback(results) };
+    includes.map(id => {
+      let moduleURI = results[uri][id];
+      if (!results[moduleURI])
+        findAllModuleIncludes(moduleURI, options, results, subcallback);
+      else
+        subcallback();
+    });
+  });
+}
+
+
+
+
+
+
+function findModuleIncludes (uri, callback) {
+  let src = isResourceURI(uri) ? readURI(uri) : uri;
+  let modules = [];
+
+  walk(src, function (node) {
+    if (isRequire(node))
+      modules.push(node.arguments[0].value);
+  });
+
+  callback(modules);
+}
+
+function walk (src, callback) {
+  let nodes = Reflect.parse(src);
+  traverse(nodes, callback);
+}
+
+function traverse (node, cb) {
+  if (Array.isArray(node)) {
+    node.map(x => {
+      if (x != null) {
+        x.parent = node;
+        traverse(x, cb);
+      }
+    });
+  }
+  else if (node && typeof node === 'object') {
+    cb(node);
+    keys(node).map(key => {
+      if (key === 'parent' || !node[key]) return;
+      node[key].parent = node;
+      traverse(node[key], cb);
+    });
+  }
+}
+
+
+
+
+
+
+function isRequire (node) {
+  var c = node.callee;
+  return c
+    && node.type === 'CallExpression'
+    && c.type === 'Identifier'
+    && c.name === 'require'
+    && node.arguments.length
+   && node.arguments[0].type === 'Literal';
+}
 
 });
 

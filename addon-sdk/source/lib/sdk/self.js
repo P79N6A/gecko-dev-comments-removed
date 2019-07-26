@@ -15,9 +15,8 @@ const { readURISync } = require('./net/url');
 
 const addonDataURI = prefixURI + name + '/data/';
 
-function uri(path) {
-  return addonDataURI + (path || '');
-}
+const uri = (path="") =>
+  path.contains(":") ? path : addonDataURI + path;
 
 
 

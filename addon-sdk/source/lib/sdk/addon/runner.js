@@ -140,7 +140,10 @@ function run(options) {
 
     
     
-    setDefaultPrefs(options.prefsURI);
+    if (options.prefsURI) {
+      
+      setDefaultPrefs(options.prefsURI);
+    }
 
     
     let program = main(options.loader, options.main);

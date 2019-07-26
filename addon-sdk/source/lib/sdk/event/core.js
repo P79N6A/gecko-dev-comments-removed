@@ -21,6 +21,7 @@ const EVENT_TYPE_PATTERN = /^on([A-Z]\w+$)/;
 
 
 const observers = function observers(target, type) {
+  if (!target) throw TypeError("Event target must be an object");
   let listeners = event(target);
   return type in listeners ? listeners[type] : listeners[type] = [];
 };

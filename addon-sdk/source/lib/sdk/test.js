@@ -8,6 +8,9 @@ module.metadata = {
   "stability": "unstable"
 };
 
+const { Cu } = require("chrome");
+const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
+const { defer } = require("sdk/core/promise");
 const BaseAssert = require("sdk/test/assert").Assert;
 const { isFunction, isObject } = require("sdk/lang/type");
 
@@ -52,11 +55,21 @@ function defineTestSuite(target, suite, prefix) {
 
           
           let assert = Assert(options);
+          assert.end = () => options.done();
+
+          
+          
+          if (test.isGenerator && test.isGenerator()) {
+            options.waitUntilDone();
+            Task.spawn(test.bind(null, assert)).
+                then(null, assert.fail).
+                then(assert.end);
+          }
 
           
           
           
-          if (1 < test.length) {
+          else if (1 < test.length) {
 
             
             

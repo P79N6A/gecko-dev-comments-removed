@@ -443,11 +443,30 @@ const WidgetViewTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
 
     
     
-    if ("click" == type && !this._listeners("click").length && this.panel)
+    if ("click" == type && !this._listeners("click").length && this.panel) {
       
       
       
-      this.panel.show(null, getNodeView.implement({}, function() domNode));
+      
+
+      let anchor = domNode;
+      let { CustomizableUI, window } = domNode.ownerDocument.defaultView;
+
+      if (CustomizableUI) {
+        ({anchor}) = CustomizableUI.getWidget(domNode.id).forWindow(window);
+
+        
+        
+        
+        if (anchor !== domNode)
+          CustomizableUI.hidePanelForNode(domNode);
+      }
+
+      
+      
+      
+      this.panel.show(null, getNodeView.implement({}, () => anchor));
+    }
   },
 
   _isInWindow: function WidgetView__isInWindow(window) {

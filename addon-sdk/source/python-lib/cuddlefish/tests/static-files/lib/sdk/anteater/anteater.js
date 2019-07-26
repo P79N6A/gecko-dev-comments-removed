@@ -1,7 +1,0 @@
-
-
-
-
-module.metadata = {
-  "stability": "experimental"
-};

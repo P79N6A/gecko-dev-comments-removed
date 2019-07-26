@@ -1,0 +1,100 @@
+
+
+
+"use strict";
+
+const { Cc, Ci, Cr } = require("chrome");
+const { Input, start, stop, end, receive, outputs } = require("../event/utils");
+const { once, off } = require("../event/core");
+const { id: addonID } = require("../self");
+
+const unloadMessage = require("@loader/unload");
+const { addObserver, removeObserver } = Cc['@mozilla.org/observer-service;1'].
+                                          getService(Ci.nsIObserverService);
+
+const addonUnloadTopic = "sdk:loader:destroy";
+
+
+
+
+const isLegacyWrapper = x =>
+    x && x.wrappedJSObject &&
+    "observersModuleSubjectWrapper" in x.wrappedJSObject;
+
+const unwrapLegacy = x => x.wrappedJSObject.object;
+
+
+
+
+
+
+
+
+
+
+
+const InputPort = function InputPort({id, topic, initial}) {
+  this.id = id || topic;
+  this.topic = topic || "sdk:" + addonID + ":" + id;
+  this.value = initial === void(0) ? null : initial;
+  this.observing = false;
+  this[outputs] = [];
+};
+
+
+InputPort.prototype = new Input();
+InputPort.prototype.constructor = InputPort;
+
+
+
+InputPort.start = input => {
+  addObserver(input, input.topic, false);
+  
+  
+  addObserver(input, addonUnloadTopic, false);
+};
+InputPort.prototype[start] = InputPort.start;
+
+
+
+
+
+InputPort.stop = input => {
+  removeObserver(input, input.topic);
+  removeObserver(input, addonUnloadTopic);
+};
+InputPort.prototype[stop] = InputPort.stop;
+
+
+
+InputPort.prototype.QueryInterface = function(iid) {
+  if (!iid.equals(Ci.nsIObserver) && !iid.equals(Ci.nsISupportsWeakReference))
+    throw Cr.NS_ERROR_NO_INTERFACE;
+
+  return this;
+};
+
+
+
+
+InputPort.prototype.observe = function(subject, topic, data) {
+  
+  
+  
+  const message = subject === null ? null :
+        isLegacyWrapper(subject) ? unwrapLegacy(subject) :
+        subject.wrappedJSObject ? subject.wrappedJSObject :
+        subject;
+
+  
+  if (topic === this.topic) {
+    receive(this, message);
+  }
+
+  
+  if (topic === addonUnloadTopic && message === unloadMessage) {
+    end(this);
+  }
+};
+
+exports.InputPort = InputPort;
