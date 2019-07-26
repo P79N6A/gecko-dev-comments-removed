@@ -32,6 +32,14 @@
 
 
 
+#ifndef DEBUG
+#define ParallelSpew(args)
+#endif
+
+
+
+
+
 function ComputeNumChunks(length) {
   var chunks = length >>> CHUNK_SHIFT;
   if (chunks << CHUNK_SHIFT === length)

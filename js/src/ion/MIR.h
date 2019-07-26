@@ -7368,7 +7368,6 @@ class MParDump
 
 
 
-
 class MTypeBarrier
   : public MUnaryInstruction,
     public BoxInputsPolicy
