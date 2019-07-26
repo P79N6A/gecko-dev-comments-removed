@@ -549,8 +549,10 @@ AudioBufferSourceNode::SendOffsetAndDurationParametersToStream(AudioNodeStream* 
     
     
     
-    ErrorResult rv;
-    Stop(0.0, rv);
+    
+    if (mStartCalled) {
+      aStream->SetBuffer(nullptr);
+    }
     return;
   }
 
