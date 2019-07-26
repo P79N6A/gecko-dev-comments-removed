@@ -524,7 +524,67 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
     appliedTransform = true;
   }
 
+  if (container->GetIsScrollbar()) {
+    ApplyAsyncTransformToScrollbar(container);
+  }
   return appliedTransform;
+}
+
+void
+AsyncCompositionManager::ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer)
+{
+  
+  
+  
+  
+  
+  
+  
+  for (Layer* scrollTarget = aLayer->GetPrevSibling();
+       scrollTarget;
+       scrollTarget = scrollTarget->GetPrevSibling()) {
+    if (!scrollTarget->AsContainerLayer()) {
+      continue;
+    }
+    AsyncPanZoomController* apzc = scrollTarget->AsContainerLayer()->GetAsyncPanZoomController();
+    if (!apzc) {
+      continue;
+    }
+    const FrameMetrics& metrics = scrollTarget->AsContainerLayer()->GetFrameMetrics();
+    if (metrics.mScrollId != aLayer->GetScrollbarTargetContainerId()) {
+      continue;
+    }
+
+    gfx3DMatrix asyncTransform = gfx3DMatrix(apzc->GetCurrentAsyncTransform());
+    gfx3DMatrix nontransientTransform = apzc->GetNontransientAsyncTransform();
+    gfx3DMatrix transientTransform = asyncTransform * nontransientTransform.Inverse();
+
+    gfx3DMatrix scrollbarTransform;
+    if (aLayer->GetScrollbarDirection() == Layer::VERTICAL) {
+      float scale = metrics.CalculateCompositedRectInCssPixels().height / metrics.mScrollableRect.height;
+      scrollbarTransform.ScalePost(1.f, 1.f / transientTransform.GetYScale(), 1.f);
+      scrollbarTransform.TranslatePost(gfxPoint3D(0, -transientTransform._42 * scale, 0));
+    }
+    if (aLayer->GetScrollbarDirection() == Layer::HORIZONTAL) {
+      float scale = metrics.CalculateCompositedRectInCssPixels().width / metrics.mScrollableRect.width;
+      scrollbarTransform.ScalePost(1.f / transientTransform.GetXScale(), 1.f, 1.f);
+      scrollbarTransform.TranslatePost(gfxPoint3D(-transientTransform._41 * scale, 0, 0));
+    }
+
+    gfx3DMatrix transform = scrollbarTransform * aLayer->GetTransform();
+    
+    
+    
+    transform.Scale(1.0f/aLayer->GetPreXScale(),
+                    1.0f/aLayer->GetPreYScale(),
+                    1);
+    transform.ScalePost(1.0f/aLayer->GetPostXScale(),
+                        1.0f/aLayer->GetPostYScale(),
+                        1);
+    aLayer->AsLayerComposite()->SetShadowTransform(transform);
+
+    return;
+  }
 }
 
 void
