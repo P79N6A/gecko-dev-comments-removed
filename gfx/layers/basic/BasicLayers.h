@@ -290,10 +290,12 @@ public:
 
 
 
+
   bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
                                  gfx::Rect& aViewport,
                                  float& aScaleX,
-                                 float& aScaleY);
+                                 float& aScaleY,
+                                 bool aDrawingCritical);
 
 private:
   
