@@ -4,56 +4,68 @@
 
 
 
-import SimpleHTTPServer
-import SocketServer
+from mozprofile import FirefoxProfile, Profile, Preferences
+from mozprofile.permissions import ServerLocations
+from mozrunner import FirefoxRunner, CLI
+from mozhttpd import MozHttpd
+import json
 import socket
 import threading
 import os
 import sys
 import shutil
+import tempfile
 from datetime import datetime
-
-SCRIPT_DIR = os.path.abspath(os.path.realpath(os.path.dirname(sys.argv[0])))
-sys.path.insert(0, SCRIPT_DIR)
-from automation import Automation
-from automationutils import getDebuggerInfo, addCommonOptions
+from mozbuild.base import MozbuildObject
 
 PORT = 8888
-PROFILE_DIRECTORY = os.path.abspath(os.path.join(SCRIPT_DIR, "./pgoprofile"))
-MOZ_JAR_LOG_FILE = os.path.abspath(os.getenv("JARLOG_FILE"))
-os.chdir(SCRIPT_DIR)
-
-class EasyServer(SocketServer.TCPServer):
-  allow_reuse_address = True
 
 if __name__ == '__main__':
-  from optparse import OptionParser
-  automation = Automation()
+  cli = CLI()
+  debug_args, interactive = cli.debugger_arguments()
 
-  parser = OptionParser()
-  addCommonOptions(parser)
+  build = MozbuildObject.from_environment()
+  httpd = MozHttpd(port=PORT,
+                   docroot=os.path.join(build.topsrcdir, "build", "pgo"))
+  httpd.start(block=False)
 
-  options, args = parser.parse_args()
+  locations = ServerLocations()
+  locations.add_host(host='127.0.0.1',
+                     port=PORT,
+                     options='primary,privileged')
 
-  debuggerInfo = getDebuggerInfo(".", options.debugger, options.debuggerArgs,
-          options.debuggerInteractive)
-
-  httpd = EasyServer(("", PORT), SimpleHTTPServer.SimpleHTTPRequestHandler)
-  t = threading.Thread(target=httpd.serve_forever)
-  t.setDaemon(True) 
-  t.start()
   
-  automation.setServerInfo("localhost", PORT)
-  automation.initializeProfile(PROFILE_DIRECTORY)
-  browserEnv = automation.environment()
-  browserEnv["XPCOM_DEBUG_BREAK"] = "warn"
-  browserEnv["MOZ_JAR_LOG_FILE"] = MOZ_JAR_LOG_FILE
+  profilePath = tempfile.mkdtemp()
+  try:
+    
+    prefpath = os.path.join(build.topsrcdir, "testing", "profiles", "prefs_general.js")
+    prefs = {}
+    prefs.update(Preferences.read_prefs(prefpath))
+    interpolation = { "server": "%s:%d" % httpd.httpd.server_address,
+                      "OOP": "false"}
+    prefs = json.loads(json.dumps(prefs) % interpolation)
+    for pref in prefs:
+      prefs[pref] = Preferences.cast(prefs[pref])
+    profile = FirefoxProfile(profile=profilePath,
+                             preferences=prefs,
+                             
+                             locations=locations)
 
-  url = "http://localhost:%d/index.html" % PORT
-  appPath = os.path.join(SCRIPT_DIR, automation.DEFAULT_APP)
-  status = automation.runApp(url, browserEnv, appPath, PROFILE_DIRECTORY, {},
-                             debuggerInfo=debuggerInfo,
-                             
-                             
-                             timeout = None)
-  sys.exit(status)
+    env = os.environ.copy()
+    env["MOZ_CRASHREPORTER_NO_REPORT"] = "1"
+    env["XPCOM_DEBUG_BREAK"] = "warn"
+    jarlog = os.getenv("JARLOG_FILE")
+    if jarlog:
+      env["MOZ_JAR_LOG_FILE"] = os.path.abspath(jarlog)
+      print "jarlog: %s" % env["MOZ_JAR_LOG_FILE"]
+
+    cmdargs = ["http://localhost:%d/index.html" % PORT]
+    runner = FirefoxRunner(profile=profile,
+                           binary=build.get_binary_path(where="staged-package"),
+                           cmdargs=cmdargs,
+                           env=env)
+    runner.start(debug_args=debug_args, interactive=interactive)
+    runner.wait()
+    httpd.stop()
+  finally:
+    shutil.rmtree(profilePath)
