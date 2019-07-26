@@ -1559,6 +1559,7 @@ nsDisplayBackgroundImage::nsDisplayBackgroundImage(nsDisplayListBuilder* aBuilde
   , mLayer(aLayer)
   , mIsThemed(aIsThemed)
   , mIsBottommostLayer(true)
+  , mIsAnimated(false)
 {
   MOZ_COUNT_CTOR(nsDisplayBackgroundImage);
 
@@ -1820,6 +1821,7 @@ nsDisplayBackgroundImage::TryOptimizeToImageLayer(LayerManager* aManager,
   int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   mDestRect = nsLayoutUtils::RectToGfxRect(state.mDestArea, appUnitsPerDevPixel);
   mImageContainer = imageContainer;
+  mIsAnimated = imageRenderer->IsAnimatedImage();
 
   
   return true;
@@ -1843,31 +1845,35 @@ nsDisplayBackgroundImage::GetLayerState(nsDisplayListBuilder* aBuilder,
                                         LayerManager* aManager,
                                         const FrameLayerBuilder::ContainerParameters& aParameters)
 {
-  if (!aManager->IsCompositingCheap() ||
-      !nsLayoutUtils::GPUImageScalingEnabled() ||
-      !TryOptimizeToImageLayer(aManager, aBuilder)) {
-    return LAYER_NONE;
+  if (!TryOptimizeToImageLayer(aManager, aBuilder) ||
+      !mIsAnimated) {
+    if (!aManager->IsCompositingCheap() ||
+        !nsLayoutUtils::GPUImageScalingEnabled()) {
+      return LAYER_NONE;
+    }
   }
 
-  gfxSize imageSize = mImageContainer->GetCurrentSize();
-  NS_ASSERTION(imageSize.width != 0 && imageSize.height != 0, "Invalid image size!");
+  if (!mIsAnimated) {
+    gfxSize imageSize = mImageContainer->GetCurrentSize();
+    NS_ASSERTION(imageSize.width != 0 && imageSize.height != 0, "Invalid image size!");
 
-  gfxRect destRect = mDestRect;
+    gfxRect destRect = mDestRect;
 
-  destRect.width *= aParameters.mXScale;
-  destRect.height *= aParameters.mYScale;
+    destRect.width *= aParameters.mXScale;
+    destRect.height *= aParameters.mYScale;
 
-  
-  gfxSize scale = gfxSize(destRect.width / imageSize.width, destRect.height / imageSize.height);
+    
+    gfxSize scale = gfxSize(destRect.width / imageSize.width, destRect.height / imageSize.height);
 
-  
-  if (scale.width == 1.0f && scale.height == 1.0f) {
-    return LAYER_NONE;
-  }
+    
+    if (scale.width == 1.0f && scale.height == 1.0f) {
+      return LAYER_NONE;
+    }
 
-  
-  if (destRect.width * destRect.height < 64 * 64) {
-    return LAYER_NONE;
+    
+    if (destRect.width * destRect.height < 64 * 64) {
+      return LAYER_NONE;
+    }
   }
 
   return LAYER_ACTIVE;
