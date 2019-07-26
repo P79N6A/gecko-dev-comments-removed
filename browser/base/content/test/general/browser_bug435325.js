@@ -51,6 +51,11 @@ function checkPage() {
   
   ok(gBrowser.contentDocument.getElementById("errorTryAgain"),
     "The error page has got a #errorTryAgain element");
+
+  
+  
+  Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
+
   gBrowser.contentDocument.getElementById("errorTryAgain").click();
 
   ok(!Services.io.offline, "After clicking the Try Again button, we're back " +
@@ -60,7 +65,6 @@ function checkPage() {
 }
 
 registerCleanupFunction(function() {
-  Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
   Services.prefs.setBoolPref("browser.cache.disk.enable", true);
   Services.prefs.setBoolPref("browser.cache.memory.enable", true);
   Services.io.offline = false;
