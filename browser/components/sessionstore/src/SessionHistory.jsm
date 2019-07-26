@@ -74,7 +74,9 @@ let SessionHistoryInternal = {
         debug("SessionStore failed gathering complete history " +
               "for the focused window/tab. See bug 669196.");
       }
-      data.index = history.index + 1;
+
+      
+      data.index = Math.min(history.index + 1, data.entries.length);
     } else {
       let uri = webNavigation.currentURI.spec;
       
