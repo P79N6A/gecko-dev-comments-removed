@@ -346,12 +346,7 @@ BrowserElementChild.prototype = {
     debug("Entering modal state (outerWindowID=" + outerWindowID + ", " +
                                 "innerWindowID=" + innerWindowID + ")");
 
-    
-    
-    
-    
-    
-    var modalStateWin = utils.enterModalStateWithWindow();
+    utils.enterModalState();
 
     
     
@@ -388,7 +383,7 @@ BrowserElementChild.prototype = {
     delete win.modalReturnValue;
 
     if (!this._shuttingDown) {
-      utils.leaveModalStateWithWindow(modalStateWin);
+      utils.leaveModalState();
     }
 
     debug("Leaving modal state (outerID=" + outerWindowID + ", " +

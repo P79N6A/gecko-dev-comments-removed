@@ -399,7 +399,7 @@ function openTabPrompt(domWin, tabPrompt, args) {
 
     let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
                          .getInterface(Ci.nsIDOMWindowUtils);
-    let callerWin = winUtils.enterModalStateWithWindow();
+    winUtils.enterModalState();
 
     
     
@@ -413,7 +413,7 @@ function openTabPrompt(domWin, tabPrompt, args) {
         if (newPrompt)
             tabPrompt.removePrompt(newPrompt);
 
-        winUtils.leaveModalStateWithWindow(callerWin);
+        winUtils.leaveModalState();
 
         PromptUtils.fireDialogEvent(domWin, "DOMModalDialogClosed");
     }
