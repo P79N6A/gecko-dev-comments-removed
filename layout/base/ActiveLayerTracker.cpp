@@ -7,9 +7,6 @@
 #include "nsExpirationTracker.h"
 #include "nsIFrame.h"
 #include "nsIContent.h"
-#include "nsRefreshDriver.h"
-#include "nsPIDOMWindow.h"
-#include "nsIDocument.h"
 
 namespace mozilla {
 
@@ -133,28 +130,6 @@ ActiveLayerTracker::NotifyAnimated(nsIFrame* aFrame, nsCSSProperty aProperty)
   uint8_t& mutationCount = layerActivity->RestyleCountForProperty(aProperty);
   
   mutationCount = 0xFF;
-}
-
-static bool
-IsPresContextInScriptAnimationCallback(nsPresContext* aPresContext)
-{
-  if (aPresContext->RefreshDriver()->IsInRefresh()) {
-    return true;
-  }
-  
-  
-  nsPIDOMWindow* win = aPresContext->Document()->GetInnerWindow();
-  return win && win->IsRunningTimeout();
-}
-
- void
-ActiveLayerTracker::NotifyInlineStyleRuleModified(nsIFrame* aFrame,
-                                                  nsCSSProperty aProperty)
-{
-  if (!IsPresContextInScriptAnimationCallback(aFrame->PresContext())) {
-    return;
-  }
-  NotifyAnimated(aFrame, aProperty);
 }
 
  bool
