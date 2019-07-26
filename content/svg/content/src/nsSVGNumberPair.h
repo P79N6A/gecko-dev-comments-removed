@@ -60,9 +60,12 @@ public:
   bool IsExplicitlySet() const
     { return mIsAnimated || mIsBaseSet; }
 
-  nsresult ToDOMAnimatedNumber(nsIDOMSVGAnimatedNumber **aResult,
+  nsresult ToDOMAnimatedNumber(nsIDOMSVGAnimatedNumber** aResult,
                                PairIndex aIndex,
                                nsSVGElement* aSVGElement);
+  already_AddRefed<nsIDOMSVGAnimatedNumber>
+    ToDOMAnimatedNumber(PairIndex aIndex,
+                        nsSVGElement* aSVGElement);
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
