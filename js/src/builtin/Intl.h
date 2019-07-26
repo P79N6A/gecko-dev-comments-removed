@@ -69,6 +69,30 @@ intl_availableCollations(JSContext *cx, unsigned argc, Value *vp);
 extern JSBool
 intl_CompareStrings(JSContext *cx, unsigned argc, Value *vp);
 
+
+
+
+
+
+
+
+
+
+
+
+extern JSBool
+intl_NumberFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+
+extern JSBool
+intl_numberingSystem(JSContext *cx, unsigned argc, Value *vp);
+
 } 
 
 #endif 

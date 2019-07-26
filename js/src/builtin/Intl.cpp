@@ -1034,16 +1034,22 @@ js::intl_CompareStrings(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+static void numberFormat_finalize(FreeOp *fop, JSObject *obj);
+
+static const uint32_t UNUMBER_FORMAT_SLOT = 0;
+static const uint32_t NUMBER_FORMAT_SLOTS_COUNT = 1;
+
 static Class NumberFormatClass = {
     js_Object_str,
-    0,
+    JSCLASS_HAS_RESERVED_SLOTS(NUMBER_FORMAT_SLOTS_COUNT),
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
-    JS_ConvertStub
+    JS_ConvertStub,
+    numberFormat_finalize
 };
 
 #if JS_HAS_TOSOURCE
@@ -1091,6 +1097,7 @@ NumberFormat(JSContext *cx, unsigned argc, Value *vp)
             obj = ToObject(cx, self);
             if (!obj)
                 return false;
+
             
             if (!obj->isExtensible())
                 return Throw(cx, obj, JSMSG_OBJECT_NOT_EXTENSIBLE);
@@ -1107,11 +1114,14 @@ NumberFormat(JSContext *cx, unsigned argc, Value *vp)
         obj = NewObjectWithGivenProto(cx, &NumberFormatClass, proto, cx->global());
         if (!obj)
             return false;
+
+        obj->setReservedSlot(UNUMBER_FORMAT_SLOT, PrivateValue(NULL));
     }
 
     
     RootedValue locales(cx, args.length() > 0 ? args[0] : UndefinedValue());
     RootedValue options(cx, args.length() > 1 ? args[1] : UndefinedValue());
+
     
     if (!IntlInitialize(cx, obj, cx->names().InitializeNumberFormat, locales, options))
         return false;
@@ -1119,6 +1129,14 @@ NumberFormat(JSContext *cx, unsigned argc, Value *vp)
     
     args.rval().setObject(*obj);
     return true;
+}
+
+static void
+numberFormat_finalize(FreeOp *fop, JSObject *obj)
+{
+    UNumberFormat *nf = static_cast<UNumberFormat *>(obj->getReservedSlot(UNUMBER_FORMAT_SLOT).toPrivate());
+    if (nf)
+        unum_close(nf);
 }
 
 static JSObject *
@@ -1153,7 +1171,8 @@ InitNumberFormatClass(JSContext *cx, HandleObject Intl, Handle<GlobalObject*> gl
     RootedValue undefinedValue(cx, UndefinedValue());
     if (!JSObject::defineProperty(cx, proto, cx->names().format, undefinedValue,
                                   JS_DATA_TO_FUNC_PTR(JSPropertyOp, &getter.toObject()),
-                                  NULL, JSPROP_GETTER)) {
+                                  NULL, JSPROP_GETTER))
+    {
         return NULL;
     }
 
@@ -1166,7 +1185,8 @@ InitNumberFormatClass(JSContext *cx, HandleObject Intl, Handle<GlobalObject*> gl
     
     RootedValue ctorValue(cx, ObjectValue(*ctor));
     if (!JSObject::defineProperty(cx, Intl, cx->names().NumberFormat, ctorValue,
-                                  JS_PropertyStub, JS_StrictPropertyStub, 0)) {
+                                  JS_PropertyStub, JS_StrictPropertyStub, 0))
+    {
         return NULL;
     }
 
@@ -1179,10 +1199,52 @@ GlobalObject::initNumberFormatProto(JSContext *cx, Handle<GlobalObject*> global)
     RootedObject proto(cx, global->createBlankPrototype(cx, &NumberFormatClass));
     if (!proto)
         return false;
+    proto->setReservedSlot(UNUMBER_FORMAT_SLOT, PrivateValue(NULL));
     global->setReservedSlot(NUMBER_FORMAT_PROTO, ObjectValue(*proto));
     return true;
 }
 
+JSBool
+js::intl_NumberFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(args.length() == 0);
+
+    RootedValue result(cx);
+    if (!intl_availableLocales(cx, unum_countAvailable, unum_getAvailable, &result))
+        return false;
+    args.rval().set(result);
+    return true;
+}
+
+JSBool
+js::intl_numberingSystem(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(args.length() == 1);
+    JS_ASSERT(args[0].isString());
+
+    JSAutoByteString locale(cx, args[0].toString());
+    if (!locale)
+        return false;
+
+    
+    
+    Locale ulocale(locale.ptr());
+    UErrorCode status = U_ZERO_ERROR;
+    NumberingSystem *numbers = NumberingSystem::createInstance(ulocale, status);
+    if (U_FAILURE(status)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INTERNAL_INTL_ERROR);
+        return false;
+    }
+    const char *name = numbers->getName();
+    JSString *jsname = JS_NewStringCopyZ(cx, name);
+    delete numbers;
+    if (!jsname)
+        return false;
+    args.rval().setString(jsname);
+    return true;
+}
 
 
 
