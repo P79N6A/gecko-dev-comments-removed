@@ -484,6 +484,8 @@ CompositorD3D9::BeginFrame(const nsIntRegion& aInvalidRegion,
     
     
     mParent->SendInvalidateAll();
+    CancelCompositing(aRenderBoundsOut);
+    return;
   }
 
   if (!mDeviceManager->VerifyReadyForRendering()) {
