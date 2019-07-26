@@ -609,9 +609,8 @@ WindowGlobalOrNull(JSObject *aObj)
 static void
 CompartmentDestroyedCallback(JSFreeOp *fop, JSCompartment *compartment)
 {
-    XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
-    if (!self)
-        return;
+    
+    
 
     
     
@@ -1521,6 +1520,13 @@ XPCJSRuntime::~XPCJSRuntime()
 {
     
     
+    
+    
+    js::SetActivityCallback(Runtime(), nullptr, nullptr);
+    JS_SetFinalizeCallback(Runtime(), nullptr);
+
+    
+    
     SetPendingException(nullptr);
 
     JS::SetGCSliceCallback(Runtime(), mPrevGCSliceCallback);
@@ -1538,40 +1544,51 @@ XPCJSRuntime::~XPCJSRuntime()
     JS_SetRuntimePrivate(Runtime(), nullptr);
 
     
-    
-    
-    
-    DestroyRuntime();
-
-    
     if (mWrappedJSMap) {
         mWrappedJSMap->ShutdownMarker();
         delete mWrappedJSMap;
+        mWrappedJSMap = nullptr;
     }
 
-    if (mWrappedJSClassMap)
+    if (mWrappedJSClassMap) {
         delete mWrappedJSClassMap;
+        mWrappedJSClassMap = nullptr;
+    }
 
-    if (mIID2NativeInterfaceMap)
+    if (mIID2NativeInterfaceMap) {
         delete mIID2NativeInterfaceMap;
+        mIID2NativeInterfaceMap = nullptr;
+    }
 
-    if (mClassInfo2NativeSetMap)
+    if (mClassInfo2NativeSetMap) {
         delete mClassInfo2NativeSetMap;
+        mClassInfo2NativeSetMap = nullptr;
+    }
 
-    if (mNativeSetMap)
+    if (mNativeSetMap) {
         delete mNativeSetMap;
+        mNativeSetMap = nullptr;
+    }
 
-    if (mThisTranslatorMap)
+    if (mThisTranslatorMap) {
         delete mThisTranslatorMap;
+        mThisTranslatorMap = nullptr;
+    }
 
-    if (mNativeScriptableSharedMap)
+    if (mNativeScriptableSharedMap) {
         delete mNativeScriptableSharedMap;
+        mNativeScriptableSharedMap = nullptr;
+    }
 
-    if (mDyingWrappedNativeProtoMap)
+    if (mDyingWrappedNativeProtoMap) {
         delete mDyingWrappedNativeProtoMap;
+        mDyingWrappedNativeProtoMap = nullptr;
+    }
 
-    if (mDetachedWrappedNativeProtoMap)
+    if (mDetachedWrappedNativeProtoMap) {
         delete mDetachedWrappedNativeProtoMap;
+        mDetachedWrappedNativeProtoMap = nullptr;
+    }
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
     
