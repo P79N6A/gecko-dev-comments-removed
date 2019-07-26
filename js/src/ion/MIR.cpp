@@ -818,8 +818,8 @@ MDiv::analyzeEdgeCasesBackward()
 void
 MDiv::analyzeTruncateBackward()
 {
-    if (!isTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
-        setTruncated(true);
+    if (!isTruncated())
+        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
 }
 
 bool
@@ -829,7 +829,8 @@ MDiv::updateForReplacement(MDefinition *ins_)
     MDiv *ins = ins_->toDiv();
     
     
-    setTruncated(isTruncated() && ins->isTruncated());
+    if (isTruncated())
+        setTruncated(Max(isTruncated(), ins->isTruncated()));
     return true;
 }
 
@@ -856,8 +857,8 @@ MMod::foldsTo(bool useValueNumbers)
 void
 MAdd::analyzeTruncateBackward()
 {
-    if (!isTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
-        setTruncated(true);
+    if (!isTruncated())
+        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
 }
 
 bool
@@ -865,21 +866,29 @@ MAdd::updateForReplacement(MDefinition *ins_)
 {
     JS_ASSERT(ins_->isAdd());
     MAdd *ins = ins_->toAdd();
-    setTruncated(isTruncated() && ins->isTruncated());
+    if (isTruncated())
+        setTruncated(Max(isTruncated(), ins->isTruncated()));
     return true;
 }
 
 bool
 MAdd::fallible()
 {
-    return !isTruncated() && (!range() || !range()->isFinite());
+    
+    
+    
+    
+    
+    
+    
+    return (!isTruncated() || isTruncated() > 20) && (!range() || !range()->isFinite());
 }
 
 void
 MSub::analyzeTruncateBackward()
 {
-    if (!isTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
-        setTruncated(true);
+    if (!isTruncated())
+        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
 }
 
 bool
@@ -887,14 +896,16 @@ MSub::updateForReplacement(MDefinition *ins_)
 {
     JS_ASSERT(ins_->isSub());
     MSub *ins = ins_->toSub();
-    setTruncated(isTruncated() && ins->isTruncated());
+    if (isTruncated())
+        setTruncated(Max(isTruncated(), ins->isTruncated()));
     return true;
 }
 
 bool
 MSub::fallible()
 {
-    return !isTruncated() && (!range() || !range()->isFinite());
+    
+    return (!isTruncated() || isTruncated() > 20) && (!range() || !range()->isFinite());
 }
 
 MDefinition *

@@ -61,9 +61,12 @@ EdgeCaseAnalysis::analyzeEarly()
     return true;
 }
 
-bool
+int
 EdgeCaseAnalysis::AllUsesTruncate(MInstruction *m)
 {
+    
+    
+    int ret = 1;
     for (MUseIterator use = m->usesBegin(); use != m->usesEnd(); use++) {
         
         if (use->node()->isResumePoint())
@@ -84,12 +87,16 @@ EdgeCaseAnalysis::AllUsesTruncate(MInstruction *m)
             continue;
         if (def->isBitNot())
             continue;
-        if (def->isAdd() && def->toAdd()->isTruncated())
+        if (def->isAdd() && def->toAdd()->isTruncated()) {
+            ret = Max(ret, def->toAdd()->isTruncated() + 1);
             continue;
-        if (def->isSub() && def->toSub()->isTruncated())
+        }
+        if (def->isSub() && def->toSub()->isTruncated()) {
+            ret = Max(ret, def->toSub()->isTruncated() + 1);
             continue;
+        }
         
-        return false;
+        return 0;
     }
-    return true;
+    return ret;
 }
