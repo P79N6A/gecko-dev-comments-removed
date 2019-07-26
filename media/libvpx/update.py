@@ -284,9 +284,6 @@ def prepare_upstream(prefix, commit=None):
             configure += ['--enable-pic']
         if 'linux' in target:
             configure += ['--enable-pic']
-            
-            
-            configure += ['--disable-avx2']
         
         if target == 'x86-linux-gcc':
             configure += ['--disable-use-x86inc']
