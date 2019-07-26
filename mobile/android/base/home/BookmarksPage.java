@@ -18,12 +18,15 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewStub;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import java.util.List;
 
 
 
@@ -42,6 +45,9 @@ public class BookmarksPage extends HomeFragment {
 
     
     private BookmarksListAdapter mListAdapter;
+
+    
+    private List<Pair<Integer, String>> mSavedParentStack;
 
     
     private View mEmptyView;
@@ -83,7 +89,7 @@ public class BookmarksPage extends HomeFragment {
         final Activity activity = getActivity();
 
         
-        mListAdapter = new BookmarksListAdapter(activity, null);
+        mListAdapter = new BookmarksListAdapter(activity, null, mSavedParentStack);
         mListAdapter.setOnRefreshFolderListener(new OnRefreshFolderListener() {
             @Override
             public void onRefreshFolder(int folderId) {
@@ -125,6 +131,10 @@ public class BookmarksPage extends HomeFragment {
         
         
         if (isVisible()) {
+            
+            
+            mSavedParentStack = mListAdapter.getParentStack();
+
             getFragmentManager().beginTransaction()
                                 .detach(this)
                                 .attach(this)
