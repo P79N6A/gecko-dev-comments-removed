@@ -86,10 +86,23 @@ function run_test() {
   do_check_true(TelemetryStopwatch.finish(HIST_NAME));
   do_check_true(TelemetryStopwatch.finish(HIST_NAME, refObj));
 
-
   do_check_false(TelemetryStopwatch.finish("unknown-mark")); 
   do_check_false(TelemetryStopwatch.finish("unknown-mark", {})); 
   do_check_false(TelemetryStopwatch.finish(HIST_NAME, {})); 
+
+  
+  do_check_true(TelemetryStopwatch.start(HIST_NAME));
+  do_check_true(TelemetryStopwatch.start(HIST_NAME, refObj));
+  do_check_true(TelemetryStopwatch.cancel(HIST_NAME));
+  do_check_true(TelemetryStopwatch.cancel(HIST_NAME, refObj));
+
+  
+  do_check_false(TelemetryStopwatch.cancel(HIST_NAME));
+  do_check_false(TelemetryStopwatch.cancel(HIST_NAME, refObj));
+
+  
+  do_check_false(TelemetryStopwatch.finish(HIST_NAME));
+  do_check_false(TelemetryStopwatch.finish(HIST_NAME, refObj));
 
   finishTest();
 }

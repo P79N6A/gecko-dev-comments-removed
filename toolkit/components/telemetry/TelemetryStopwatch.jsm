@@ -73,6 +73,38 @@ let TelemetryStopwatch = {
 
 
 
+
+  cancel: function ts_cancel(aHistogram, aObj) {
+    if (!validTypes(aHistogram, aObj))
+      return false;
+
+    let timers = aObj
+                 ? objectTimers.get(aObj, {})
+                 : simpleTimers;
+
+    if (timers.hasOwnProperty(aHistogram)) {
+      delete timers[aHistogram];
+      return true;
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   finish: function(aHistogram, aObj) {
     if (!validTypes(aHistogram, aObj))
       return false;
