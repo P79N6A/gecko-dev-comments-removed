@@ -1218,11 +1218,13 @@ MediaStreamGraphImpl::RunInStableState()
 
     if (mCurrentTaskMessageQueue.IsEmpty()) {
       if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP && IsEmpty()) {
-        NS_ASSERTION(gGraph == this, "Not current graph??");
         
         
-        LOG(PR_LOG_DEBUG, ("Disconnecting MediaStreamGraph %p", gGraph));
-        gGraph = nullptr;
+        LOG(PR_LOG_DEBUG, ("Disconnecting MediaStreamGraph %p", this));
+        if (this == gGraph) {
+          
+          gGraph = nullptr;
+        }
         
         
         
