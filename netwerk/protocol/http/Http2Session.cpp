@@ -230,7 +230,8 @@ static Http2ControlFx sControlFunctions[] = {
   Http2Session::RecvGoAway,
   Http2Session::RecvWindowUpdate,
   Http2Session::RecvContinuation,
-  Http2Session::RecvAltSvc
+  Http2Session::RecvAltSvc,
+  Http2Session::RecvBlocked
 };
 
 bool
@@ -699,20 +700,18 @@ Http2Session::GenerateSettingsAck()
 }
 
 void
-Http2Session::GeneratePriority(uint32_t aID, uint32_t aPriorityGroup,
-                               uint8_t aPriorityGroupWeight)
+Http2Session::GeneratePriority(uint32_t aID, uint8_t aPriorityWeight)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
-  LOG3(("Http2Session::GeneratePriority %p %X %X %X\n",
-        this, aID, aPriorityGroup, aPriorityGroupWeight));
+  LOG3(("Http2Session::GeneratePriority %p %X %X\n",
+        this, aID, aPriorityWeight));
 
   char *packet = EnsureOutputBuffer(13);
   mOutputQueueUsed += 13;
 
-  CreateFrameHeader(packet, 5, FRAME_TYPE_PRIORITY, kFlag_PRIORITY_GROUP, aID);
-  aPriorityGroup = PR_htonl(aPriorityGroup);
-  memcpy(packet + 8, &aPriorityGroup, 4);
-  memcpy(packet + 12, &aPriorityGroupWeight, 1);
+  CreateFrameHeader(packet, 5, FRAME_TYPE_PRIORITY, 0, aID);
+  memset(packet + 8, 0, 4);
+  memcpy(packet + 12, &aPriorityWeight, 1);
   LogIO(this, nullptr, "Generate Priority", packet, 13);
   FlushOutputQueue();
 }
@@ -780,7 +779,7 @@ Http2Session::SendHello()
 
   
   
-  static const uint32_t maxSettings = 3;
+  static const uint32_t maxSettings = 4;
   static const uint32_t maxDataLen = 24 + 8 + maxSettings * 5 + 12;
   char *packet = EnsureOutputBuffer(maxDataLen);
   memcpy(packet, kMagicHello, 24);
@@ -793,6 +792,7 @@ Http2Session::SendHello()
   
   uint8_t numberOfEntries = 0;
 
+  
   
   
   
@@ -815,6 +815,12 @@ Http2Session::SendHello()
   packet[8 + 5 * numberOfEntries] = SETTINGS_TYPE_INITIAL_WINDOW;
   uint32_t rwin = PR_htonl(mPushAllowance);
   memcpy(packet + 9 + 5 * numberOfEntries, &rwin, 4);
+  numberOfEntries++;
+
+  
+  
+  packet[8 + 5 * numberOfEntries] = SETTINGS_TYPE_COMPRESS_DATA;
+  
   numberOfEntries++;
 
   MOZ_ASSERT(numberOfEntries <= maxSettings);
@@ -1056,16 +1062,9 @@ Http2Session::RecvHeaders(Http2Session *self)
   else
     self->mExpectedHeaderID = self->mInputFrameID;
 
-  if ((self->mInputFrameFlags & kFlag_PRIORITY_GROUP) &&
-      (self->mInputFrameFlags & kFlag_PRIORITY_DEPENDENCY)) {
-    RETURN_SESSION_ERROR(self, PROTOCOL_ERROR);
-  }
-
   uint32_t priorityLen = 0;
-  if (self->mInputFrameFlags & kFlag_PRIORITY_GROUP) {
+  if (self->mInputFrameFlags & kFlag_PRIORITY) {
     priorityLen = 5;
-  } else if (self->mInputFrameFlags & kFlag_PRIORITY_DEPENDENCY) {
-    priorityLen = 4;
   }
   self->SetInputFrameDataStream(self->mInputFrameID);
 
@@ -1080,13 +1079,12 @@ Http2Session::RecvHeaders(Http2Session *self)
   }
 
   LOG3(("Http2Session::RecvHeaders %p stream 0x%X priorityLen=%d stream=%p "
-        "end_stream=%d end_headers=%d priority_group=%d priority_dependency=%d "
+        "end_stream=%d end_headers=%d priority_group=%d "
         "paddingLength=%d pad_high_flag=%d pad_low_flag=%d\n",
         self, self->mInputFrameID, priorityLen, self->mInputFrameDataStream,
         self->mInputFrameFlags & kFlag_END_STREAM,
         self->mInputFrameFlags & kFlag_END_HEADERS,
-        self->mInputFrameFlags & kFlag_PRIORITY_GROUP,
-        self->mInputFrameFlags & kFlag_PRIORITY_DEPENDENCY,
+        self->mInputFrameFlags & kFlag_PRIORITY,
         paddingLength,
         self->mInputFrameFlags & kFlag_PAD_HIGH,
         self->mInputFrameFlags & kFlag_PAD_LOW));
@@ -1177,27 +1175,7 @@ Http2Session::RecvPriority(Http2Session *self)
 {
   MOZ_ASSERT(self->mInputFrameType == FRAME_TYPE_PRIORITY);
 
-  if ((self->mInputFrameFlags & kFlag_PRIORITY_GROUP) &&
-      (self->mInputFrameFlags & kFlag_PRIORITY_DEPENDENCY)) {
-    self->GenerateRstStream(PROTOCOL_ERROR, self->mInputFrameID);
-    self->ResetDownstreamState();
-    return NS_OK;
-  }
-
-  if (!(self->mInputFrameFlags & (kFlag_PRIORITY_GROUP | kFlag_PRIORITY_DEPENDENCY))) {
-    self->GenerateRstStream(PROTOCOL_ERROR, self->mInputFrameID);
-    self->ResetDownstreamState();
-    return NS_OK;
-  }
-
-  uint32_t dataLength = 0;
-  if (self->mInputFrameFlags & kFlag_PRIORITY_GROUP) {
-    dataLength = 5;
-  } else { 
-    dataLength = 4;
-  }
-
-  if (self->mInputFrameDataSize != dataLength) {
+  if (self->mInputFrameDataSize != 5) {
     LOG3(("Http2Session::RecvPriority %p wrong length data=%d\n",
           self, self->mInputFrameDataSize));
     RETURN_SESSION_ERROR(self, PROTOCOL_ERROR);
@@ -1212,24 +1190,15 @@ Http2Session::RecvPriority(Http2Session *self)
   if (NS_FAILED(rv))
     return rv;
 
-  if (self->mInputFrameFlags & kFlag_PRIORITY_GROUP) {
-    uint32_t newPriorityGroup =
-      PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
-    newPriorityGroup &= 0x7fffffff;
-    uint8_t newPriorityGroupWeight = *(self->mInputFrameBuffer.get() + 12);
-    if (self->mInputFrameDataStream) {
-      self->mInputFrameDataStream->SetPriorityGroup(newPriorityGroup,
-                                                    newPriorityGroupWeight);
-    }
-  } else { 
-    uint32_t newPriorityDependency =
-      PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
-    bool exclusive = !!(newPriorityDependency & 0x80000000);
-    newPriorityDependency &= 0x7fffffff;
-    if (self->mInputFrameDataStream) {
-      self->mInputFrameDataStream->SetPriorityDependency(newPriorityDependency,
-                                                         exclusive);
-    }
+  uint32_t newPriorityDependency =
+    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
+  bool exclusive = !!(newPriorityDependency & 0x80000000);
+  newPriorityDependency &= 0x7fffffff;
+  uint8_t newPriorityWeight = *(self->mInputFrameBuffer.get() + 12);
+  if (self->mInputFrameDataStream) {
+    self->mInputFrameDataStream->SetPriorityDependency(newPriorityDependency,
+                                                       newPriorityWeight,
+                                                       exclusive);
   }
 
   self->ResetDownstreamState();
@@ -1346,6 +1315,11 @@ Http2Session::RecvSettings(Http2Session *self)
         self->mStreamTransactionHash.Enumerate(UpdateServerRwinEnumerator,
                                                &delta);
       }
+      break;
+
+    case SETTINGS_TYPE_COMPRESS_DATA:
+      LOG3(("Received DATA compression setting: %d\n", value));
+      
       break;
 
     default:
@@ -1557,11 +1531,10 @@ Http2Session::RecvPushPromise(Http2Session *self)
 
   static_assert(Http2Stream::kWorstPriority >= 0,
                 "kWorstPriority out of range");
-  uint32_t unsignedPriorityGroup = static_cast<uint32_t>(Http2Stream::kWorstPriority);
-  uint8_t priorityGroupWeight = (nsISupportsPriority::PRIORITY_LOWEST + 1) -
+  uint8_t priorityWeight = (nsISupportsPriority::PRIORITY_LOWEST + 1) -
     (Http2Stream::kWorstPriority - Http2Stream::kNormalPriority);
-  pushedStream->SetPriority(unsignedPriorityGroup);
-  self->GeneratePriority(promisedID, unsignedPriorityGroup, priorityGroupWeight);
+  pushedStream->SetPriority(Http2Stream::kWorstPriority);
+  self->GeneratePriority(promisedID, priorityWeight);
   self->ResetDownstreamState();
   return NS_OK;
 }
@@ -1776,8 +1749,7 @@ Http2Session::RecvContinuation(Http2Session *self)
 
   
   if (self->mExpectedHeaderID) {
-    self->mInputFrameFlags &= ~kFlag_PRIORITY_GROUP;
-    self->mInputFrameFlags &= ~kFlag_PRIORITY_DEPENDENCY;
+    self->mInputFrameFlags &= ~kFlag_PRIORITY;
     return RecvHeaders(self);
   }
 
@@ -1795,6 +1767,21 @@ Http2Session::RecvAltSvc(Http2Session *self)
   MOZ_ASSERT(self->mInputFrameType == FRAME_TYPE_ALTSVC);
   LOG3(("Http2Session::RecvAltSvc %p Flags 0x%X id 0x%X\n", self,
         self->mInputFrameFlags, self->mInputFrameID));
+
+  
+  self->ResetDownstreamState();
+  return NS_OK;
+}
+
+nsresult
+Http2Session::RecvBlocked(Http2Session *self)
+{
+  MOZ_ASSERT(self->mInputFrameType == FRAME_TYPE_BLOCKED);
+  LOG3(("Http2Session::RecvBlocked %p id 0x%X\n", self, self->mInputFrameID));
+
+  if (self->mInputFrameDataSize) {
+    RETURN_SESSION_ERROR(self, FRAME_SIZE_ERROR);
+  }
 
   
   self->ResetDownstreamState();
@@ -1971,6 +1958,12 @@ Http2Session::ReadyToProcessDataFrame(enum internalStateType newState)
   if (!mInputFrameID) {
     LOG3(("Http2Session::ReadyToProcessDataFrame %p data frame stream 0\n",
           this));
+    RETURN_SESSION_ERROR(this, PROTOCOL_ERROR);
+  }
+
+  if (mInputFrameFlags & kFlag_COMPRESSED) {
+    LOG3(("Http2Session::ReadyToProcessDataFrame %p streamID 0x%X compressed\n",
+          this, mInputFrameID));
     RETURN_SESSION_ERROR(this, PROTOCOL_ERROR);
   }
 

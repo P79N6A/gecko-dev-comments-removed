@@ -109,10 +109,9 @@ public:
 
   bool     BlockedOnRwin() { return mBlockedOnRwin; }
 
-  uint32_t Priority() { return mPriorityGroup; }
+  uint32_t Priority() { return mPriority; }
   void SetPriority(uint32_t);
-  void SetPriorityGroup(uint32_t, uint8_t);
-  void SetPriorityDependency(uint32_t, bool);
+  void SetPriorityDependency(uint32_t, uint8_t, bool);
 
   
   
@@ -238,8 +237,8 @@ private:
   
   int64_t                      mRequestBodyLenRemaining;
 
-  uint32_t                     mPriorityGroup;
-  uint8_t                      mPriorityGroupWeight;
+  uint32_t                     mPriority;
+  uint8_t                      mPriorityWeight;
 
   
   

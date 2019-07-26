@@ -83,7 +83,8 @@ public:
     FRAME_TYPE_WINDOW_UPDATE = 8,
     FRAME_TYPE_CONTINUATION = 9,
     FRAME_TYPE_ALTSVC = 10,
-    FRAME_TYPE_LAST = 11
+    FRAME_TYPE_BLOCKED = 11,
+    FRAME_TYPE_LAST = 12
   };
 
   
@@ -113,14 +114,15 @@ public:
   const static uint8_t kFlag_END_SEGMENT = 0x02; 
   const static uint8_t kFlag_PAD_LOW = 0x08; 
   const static uint8_t kFlag_PAD_HIGH = 0x10; 
-  const static uint8_t kFlag_PRIORITY_GROUP = 0x20; 
-  const static uint8_t kFlag_PRIORITY_DEPENDENCY = 0x40; 
+  const static uint8_t kFlag_COMPRESSED = 0x20; 
+  const static uint8_t kFlag_PRIORITY = 0x20; 
 
   enum {
     SETTINGS_TYPE_HEADER_TABLE_SIZE = 1, 
     SETTINGS_TYPE_ENABLE_PUSH = 2,     
     SETTINGS_TYPE_MAX_CONCURRENT = 3,  
-    SETTINGS_TYPE_INITIAL_WINDOW = 4  
+    SETTINGS_TYPE_INITIAL_WINDOW = 4,  
+    SETTINGS_TYPE_COMPRESS_DATA = 5 
   };
 
   
@@ -162,6 +164,7 @@ public:
   static nsresult RecvWindowUpdate(Http2Session *);
   static nsresult RecvContinuation(Http2Session *);
   static nsresult RecvAltSvc(Http2Session *);
+  static nsresult RecvBlocked(Http2Session *);
 
   template<typename T>
   static void EnsureBuffer(nsAutoArrayPtr<T> &,
@@ -233,7 +236,7 @@ private:
   nsresult    UncompressAndDiscard();
   void        GeneratePing(bool);
   void        GenerateSettingsAck();
-  void        GeneratePriority(uint32_t, uint32_t, uint8_t);
+  void        GeneratePriority(uint32_t, uint8_t);
   void        GenerateRstStream(uint32_t, uint32_t);
   void        GenerateGoAway(uint32_t);
   void        CleanupStream(Http2Stream *, nsresult, errorType);
