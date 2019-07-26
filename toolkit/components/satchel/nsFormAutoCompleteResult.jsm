@@ -155,6 +155,15 @@ FormAutoCompleteResult.prototype = {
 
 
 
+
+  getFinalCompleteValueAt: function(index) {
+    return this.getValueAt(index);
+  },
+
+  
+
+
+
   removeValueAt: function(index, removeFromDatabase) {
     this._checkIndexBounds(index);
     

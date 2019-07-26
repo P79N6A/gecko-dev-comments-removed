@@ -545,6 +545,13 @@ TagAutoCompleteResult.prototype = {
   
 
 
+  getFinalCompleteValueAt: function PTACR_getFinalCompleteValueAt(index) {
+    return this.getValueAt(index);
+  },
+
+  
+
+
 
 
   removeValueAt: function PTACR_removeValueAt(index, removeFromDb) {

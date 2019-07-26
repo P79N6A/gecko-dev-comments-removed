@@ -1404,9 +1404,7 @@ urlInlineComplete.prototype = {
           untrimmedHost = null;
         }
 
-        
-        
-        ac._result.appendMatch(ac._strippedPrefix + trimmedHost, untrimmedHost);
+        ac._result.appendMatch(ac._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
 
         
         
@@ -1480,9 +1478,7 @@ urlInlineComplete.prototype = {
           untrimmedURL = null;
          }
 
-        
-        
-        ac._result.appendMatch(ac._strippedPrefix + url, untrimmedURL);
+        ac._result.appendMatch(ac._strippedPrefix + url, "", "", "", untrimmedURL);
 
         
         
