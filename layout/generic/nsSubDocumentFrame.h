@@ -107,6 +107,12 @@ public:
     return !frameLoader || frameLoader->ShouldClampScrollPosition();
   }
 
+  
+
+
+
+  bool PassPointerEventsToChildren();
+
 protected:
   friend class AsyncFrameInit;
 
@@ -134,12 +140,6 @@ protected:
 
 
   nsIFrame* ObtainIntrinsicSizeFrame();
-
-  
-
-
-
-  bool PassPointerEventsToChildren();
 
   nsRefPtr<nsFrameLoader> mFrameLoader;
   nsView* mInnerView;
