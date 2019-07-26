@@ -14,20 +14,36 @@ const { Services } = Cu.import("resource://gre/modules/Services.jsm");
 let gClient, gActor;
 
 function connect(onDone) {
-  
-  DebuggerServer.init(function () { return true; });
-  
-  
 
   if (Services.appinfo.name == "B2G") {
-    DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
-    DebuggerServer.addActors('chrome://browser/content/dbg-browser-actors.js');
-    DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/webapps.js");
-   } else {
+    
+    let settingsService = Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
+    settingsService.createLock().set("devtools.debugger.remote-enabled", true, null);
+    
+    
+    
+    let observer = {
+      observe: function (subject, topic, data) {
+        Services.obs.removeObserver(observer, "debugger-server-started");
+        let transport = debuggerSocketConnect("127.0.0.1", 6000);
+        startClient(transport, onDone);
+      }
+    };
+    Services.obs.addObserver(observer, "debugger-server-started", false);
+  } else {
+    
+    DebuggerServer.init(function () { return true; });
+    
+    
     DebuggerServer.addBrowserActors();
-   }
+    let transport = DebuggerServer.connectPipe();
+    startClient(transport, onDone);
+  }
+}
+
+function startClient(transport, onDone) {
   
-  gClient = new DebuggerClient(DebuggerServer.connectPipe());
+  gClient = new DebuggerClient(transport);
   gClient.connect(function onConnect() {
     gClient.listTabs(function onListTabs(aResponse) {
       gActor = aResponse.webappsActor;
