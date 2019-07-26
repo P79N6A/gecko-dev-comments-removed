@@ -2670,7 +2670,7 @@ protected:
   nsSVGString mStringAttributes[1];
   static StringInfo sStringInfo[1];
 };
- 
+
 nsSVGElement::StringInfo nsSVGFEFloodElement::sStringInfo[1] =
 {
   { &nsGkAtoms::result, kNameSpaceID_None, true }
@@ -2891,6 +2891,151 @@ static int32_t WrapInterval(int32_t aVal, int32_t aMax)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static inline void
+ComputePartialTileExtents(int32_t *aLesserSidePartialMatchSize,
+                          int32_t *aHigherSidePartialMatchSize,
+                          int32_t *aCentreSize,
+                          int32_t aLesserTargetExtent,
+                          int32_t aTargetSize,
+                          int32_t aLesserTileExtent,
+                          int32_t aTileSize)
+{
+  int32_t targetExtentMost = aLesserTargetExtent + aTargetSize;
+  int32_t tileExtentMost = aLesserTileExtent + aTileSize;
+
+  int32_t lesserSidePartialMatchSize;
+  if (aLesserTileExtent < aLesserTargetExtent) {
+    lesserSidePartialMatchSize = tileExtentMost - aLesserTargetExtent;
+  } else {
+    lesserSidePartialMatchSize = (aLesserTileExtent - aLesserTargetExtent) %
+                                    aTileSize;
+  }
+
+  int32_t higherSidePartialMatchSize;
+  if (lesserSidePartialMatchSize > aTargetSize) {
+    lesserSidePartialMatchSize = aTargetSize;
+    higherSidePartialMatchSize = 0;
+  } else if (tileExtentMost > targetExtentMost) {
+      higherSidePartialMatchSize = targetExtentMost - aLesserTileExtent;
+  } else {
+    higherSidePartialMatchSize = (targetExtentMost - tileExtentMost) %
+                                    aTileSize;
+  }
+
+  if (lesserSidePartialMatchSize + higherSidePartialMatchSize >
+        aTargetSize) {
+    higherSidePartialMatchSize = aTargetSize - lesserSidePartialMatchSize;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int32_t centreSize;
+  if (lesserSidePartialMatchSize == aTargetSize ||
+        lesserSidePartialMatchSize + higherSidePartialMatchSize ==
+        aTargetSize) {
+    centreSize = 0;
+  } else {
+    centreSize = aTargetSize -
+                   (lesserSidePartialMatchSize + higherSidePartialMatchSize);
+  }
+
+  *aLesserSidePartialMatchSize = lesserSidePartialMatchSize;
+  *aHigherSidePartialMatchSize = higherSidePartialMatchSize;
+  *aCentreSize = centreSize;
+}
+
+static inline void
+TilePixels(uint8_t *aTargetData,
+           const uint8_t *aSourceData,
+           const nsIntRect &targetRegion,
+           const nsIntRect &aTile,
+           uint32_t aStride)
+{
+  if (targetRegion.IsEmpty()) {
+    return;
+  }
+
+  uint32_t tileRowCopyMemSize = aTile.width * 4;
+  uint32_t numTimesToCopyTileRows = targetRegion.width / aTile.width;
+
+  uint8_t *targetFirstRowOffset = aTargetData + 4 * targetRegion.x;
+  const uint8_t *tileFirstRowOffset = aSourceData + 4 * aTile.x;
+
+  int32_t tileYOffset = 0;
+  for (int32_t targetY = targetRegion.y;
+       targetY < targetRegion.YMost();
+       ++targetY) {
+    uint8_t *targetRowOffset = targetFirstRowOffset + aStride * targetY;
+    const uint8_t *tileRowOffset = tileFirstRowOffset +
+                                             aStride * (aTile.y + tileYOffset);
+
+    for (uint32_t i = 0; i < numTimesToCopyTileRows; ++i) {
+      memcpy(targetRowOffset + i * tileRowCopyMemSize,
+             tileRowOffset,
+             tileRowCopyMemSize);
+    }
+
+    tileYOffset = (tileYOffset + 1) % aTile.height;
+  }
+}
+
 nsresult
 nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
                            const nsTArray<const Image*>& aSources,
@@ -2903,7 +3048,8 @@ nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
   
 
   nsIntRect tile;
-  bool res = gfxUtils::GfxRectToIntRect(aSources[0]->mFilterPrimitiveSubregion, &tile);
+  bool res = gfxUtils::GfxRectToIntRect(aSources[0]->mFilterPrimitiveSubregion,
+                                        &tile);
 
   NS_ENSURE_TRUE(res, NS_ERROR_FAILURE); 
   if (tile.IsEmpty())
@@ -2916,6 +3062,9 @@ nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
   }
 
   
+  tile = tile.Intersect(surfaceRect);
+
+  
   tile -= surfaceRect.TopLeft();
 
   uint8_t* sourceData = aSources[0]->mImage->Data();
@@ -2923,20 +3072,160 @@ nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
   uint32_t stride = aTarget->mImage->Stride();
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+  int32_t leftPartialTileWidth;
+  int32_t rightPartialTileWidth;
+  int32_t centreWidth;
+  ComputePartialTileExtents(&leftPartialTileWidth,
+                            &rightPartialTileWidth,
+                            &centreWidth,
+                            rect.x,
+                            rect.width,
+                            tile.x,
+                            tile.width);
+
+  int32_t topPartialTileHeight;
+  int32_t bottomPartialTileHeight;
+  int32_t centreHeight;
+  ComputePartialTileExtents(&topPartialTileHeight,
+                            &bottomPartialTileHeight,
+                            &centreHeight,
+                            rect.y,
+                            rect.height,
+                            tile.y,
+                            tile.height);
+
   
-  
-  nsIntPoint offset(-tile.x + tile.width, -tile.y + tile.height);
-  for (int32_t y = rect.y; y < rect.YMost(); y++) {
-    uint32_t tileY = tile.y + WrapInterval(y + offset.y, tile.height);
-    if (tileY < (uint32_t)surfaceRect.height) {
-      for (int32_t x = rect.x; x < rect.XMost(); x++) {
-        uint32_t tileX = tile.x + WrapInterval(x + offset.x, tile.width);
-        if (tileX < (uint32_t)surfaceRect.width) {
-          *(uint32_t*)(targetData + y * stride + 4 * x) =
-            *(uint32_t*)(sourceData + tileY * stride + 4 * tileX);
-        }
-      }
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsIntRect targetRects[] = {
+    
+    nsIntRect(rect.x, rect.y, leftPartialTileWidth, topPartialTileHeight),
+    
+    nsIntRect(rect.x + leftPartialTileWidth,
+              rect.y,
+              centreWidth,
+              topPartialTileHeight),
+    
+    nsIntRect(rect.XMost() - rightPartialTileWidth,
+              rect.y,
+              rightPartialTileWidth,
+              topPartialTileHeight),
+    
+    nsIntRect(rect.x,
+              rect.y + topPartialTileHeight,
+              leftPartialTileWidth,
+              centreHeight),
+    
+    nsIntRect(rect.x + leftPartialTileWidth,
+              rect.y + topPartialTileHeight,
+              centreWidth,
+              centreHeight),
+    
+    nsIntRect(rect.XMost() - rightPartialTileWidth,
+              rect.y + topPartialTileHeight,
+              rightPartialTileWidth,
+              centreHeight),
+    
+    nsIntRect(rect.x,
+              rect.YMost() - bottomPartialTileHeight,
+              leftPartialTileWidth,
+              bottomPartialTileHeight),
+    
+    nsIntRect(rect.x + leftPartialTileWidth,
+              rect.YMost() - bottomPartialTileHeight,
+              centreWidth,
+              bottomPartialTileHeight),
+    
+    nsIntRect(rect.XMost() - rightPartialTileWidth,
+              rect.YMost() - bottomPartialTileHeight,
+              rightPartialTileWidth,
+              bottomPartialTileHeight)
+  };
+
+  nsIntRect tileRects[] = {
+    
+    nsIntRect(tile.XMost() - leftPartialTileWidth,
+              tile.YMost() - topPartialTileHeight,
+              leftPartialTileWidth,
+              topPartialTileHeight),
+    
+    nsIntRect(tile.x,
+              tile.YMost() - topPartialTileHeight,
+              tile.width,
+              topPartialTileHeight),
+    
+    nsIntRect(tile.x,
+              tile.YMost() - topPartialTileHeight,
+              rightPartialTileWidth,
+              topPartialTileHeight),
+    
+    nsIntRect(tile.XMost() - leftPartialTileWidth,
+              tile.y,
+              leftPartialTileWidth,
+              tile.height),
+    
+    nsIntRect(tile.x,
+              tile.y,
+              tile.width,
+              tile.height),
+    
+    nsIntRect(tile.x,
+              tile.y,
+              rightPartialTileWidth,
+              tile.height),
+    
+    nsIntRect(tile.XMost() - leftPartialTileWidth,
+              tile.y,
+              leftPartialTileWidth,
+              bottomPartialTileHeight),
+    
+    nsIntRect(tile.x,
+              tile.y,
+              tile.width,
+              bottomPartialTileHeight),
+    
+    nsIntRect(tile.x,
+              tile.y,
+              rightPartialTileWidth,
+              bottomPartialTileHeight)
+  };
+
+  for (uint32_t i = 0; i < ArrayLength(targetRects); ++i) {
+    TilePixels(targetData,
+               sourceData,
+               targetRects[i],
+               tileRects[i],
+               stride);
   }
 
   return NS_OK;
@@ -2946,9 +3235,9 @@ bool
 nsSVGFETileElement::AttributeAffectsRendering(int32_t aNameSpaceID,
                                               nsIAtom* aAttribute) const
 {
-  return nsSVGFETileElementBase::AttributeAffectsRendering(aNameSpaceID, aAttribute) ||
-         (aNameSpaceID == kNameSpaceID_None &&
-          aAttribute == nsGkAtoms::in);
+  return nsSVGFETileElementBase::AttributeAffectsRendering(aNameSpaceID, 
+                                                           aAttribute) ||
+           (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::in);
 }
 
 
@@ -5576,7 +5865,7 @@ nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   return rv;
 }
- 
+
 void
 nsSVGFEImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
