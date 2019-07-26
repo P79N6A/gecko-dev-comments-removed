@@ -465,6 +465,38 @@ public:
   
 
 
+  bool GetHasMixedDisplayContentLoaded()
+  {
+    return mHasMixedDisplayContentLoaded;
+  }
+
+  
+
+
+  void SetHasMixedDisplayContentLoaded(bool aHasMixedDisplayContentLoaded)
+  {
+    mHasMixedDisplayContentLoaded = aHasMixedDisplayContentLoaded;
+  }
+
+  
+
+
+  bool GetHasMixedDisplayContentBlocked()
+  {
+    return mHasMixedDisplayContentBlocked;
+  }
+
+  
+
+
+  void SetHasMixedDisplayContentBlocked(bool aHasMixedDisplayContentBlocked)
+  {
+    mHasMixedDisplayContentBlocked = aHasMixedDisplayContentBlocked;
+  }
+
+  
+
+
 
   uint32_t GetSandboxFlags() const
   {
@@ -2183,6 +2215,12 @@ protected:
 
   
   bool mHasMixedActiveContentBlocked;
+
+  
+  bool mHasMixedDisplayContentLoaded;
+
+  
+  bool mHasMixedDisplayContentBlocked;
 
   
   bool mBFCacheDisallowed;
