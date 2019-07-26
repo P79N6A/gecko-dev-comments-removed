@@ -88,13 +88,14 @@ mbslen(const char *s, size_t *ncharsp)
     for (i=0; i<strlen(my_locale); i++)
         my_locale[i] = toupper(my_locale[i]);
 
-    if (!strstr(my_locale, "UTF-8"))
+    if (!strstr(my_locale, "UTF-8") && !strstr(my_locale, "UTF8"))
         ABORT(R_NOT_FOUND);
 #else
     
     
     char *locale = setlocale(LC_CTYPE, 0);
-    if (!locale || !strcasestr(locale, "UTF-8"))
+    
+    if (!locale || (!strcasestr(locale, "UTF-8") && !strcasestr(locale, "UTF8")))
         ABORT(R_NOT_FOUND);
 #endif
 
@@ -112,11 +113,9 @@ mbslen(const char *s, size_t *ncharsp)
 #endif 
     {
         if (nbytes == (size_t)-1)    {
-            assert(0);
             ABORT(R_INTERNAL);
         }
         if (nbytes == (size_t)-2)    {
-            assert(0);
             ABORT(R_BAD_DATA);
         }
 
