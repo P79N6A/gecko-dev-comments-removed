@@ -586,6 +586,7 @@ let gHistorySwipeAnimation = {
     this._maxSnapshots = this._getMaxSnapshots();
     this._lastSwipeDir = "";
     this._direction = "horizontal";
+    this._scale = window.matchMedia("(resolution: 2dppx)").matches ? 2 : 1;
 
     
     
@@ -645,9 +646,9 @@ let gHistorySwipeAnimation = {
       this._canGoBack = this.canGoBack();
       this._canGoForward = this.canGoForward();
       if (this.active) {
+        this._addBoxes();
         this._takeSnapshot();
         this._installPrevAndNextSnapshots();
-        this._addBoxes();
         this._lastSwipeDir = "";
       }
     }
@@ -950,15 +951,15 @@ let gHistorySwipeAnimation = {
       let browser = gBrowser.selectedBrowser;
       let r = browser.getBoundingClientRect();
       canvas = document.createElementNS("http://www.w3.org/1999/xhtml",
-                                            "canvas");
+                                        "canvas");
       canvas.mozOpaque = true;
-      canvas.width = r.width;
-      canvas.height = r.height;
+      canvas.width = r.width * this._scale;
+      canvas.height = r.height * this._scale;
       let ctx = canvas.getContext("2d");
-      let zoom = browser.markupDocumentViewer.fullZoom;
+      let zoom = browser.markupDocumentViewer.fullZoom * this._scale;
       ctx.scale(zoom, zoom);
       ctx.drawWindow(browser.contentWindow,
-                     0, 0, r.width / zoom, r.height / zoom, "white",
+                     0, 0, canvas.width / zoom, canvas.height / zoom, "white",
                      ctx.DRAWWINDOW_DO_NOT_FLUSH | ctx.DRAWWINDOW_DRAW_VIEW |
                      ctx.DRAWWINDOW_ASYNC_DECODE_IMAGES |
                      ctx.DRAWWINDOW_USE_WIDGET_LAYERS);
@@ -1005,11 +1006,16 @@ let gHistorySwipeAnimation = {
     
     
     
-    snapshots[currIndex] = aCanvas;
+    snapshots[currIndex] = {
+      image: aCanvas,
+      scale: this._scale
+    };
 
     
     aCanvas.toBlob(function(aBlob) {
-        snapshots[currIndex] = aBlob;
+        if (snapshots[currIndex]) {
+          snapshots[currIndex].image = aBlob;
+        }
       }, "image/png"
     );
   },
@@ -1060,6 +1066,7 @@ let gHistorySwipeAnimation = {
 
     while (arr.length > this._maxSnapshots) {
       let lastElem = arr[arr.length - 1];
+      delete lastElem.browser.snapshots[lastElem.index].image;
       delete lastElem.browser.snapshots[lastElem.index];
       arr.splice(-1, 1);
     }
@@ -1106,17 +1113,47 @@ let gHistorySwipeAnimation = {
 
 
 
+
+  _scaleSnapshot: function HSA__scaleSnapshot(aSnapshot, aScale, aBox) {
+    if (aSnapshot && aScale != 1 && aBox) {
+      if (aSnapshot instanceof HTMLCanvasElement) {
+        aBox.style.backgroundSize =
+          aSnapshot.width / aScale + "px " + aSnapshot.height / aScale + "px";
+      } else {
+        
+        aSnapshot.addEventListener("load", function() {
+          aBox.style.backgroundSize =
+            aSnapshot.width / aScale + "px " + aSnapshot.height / aScale + "px";
+        });
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
   _installCurrentPageSnapshot:
   function HSA__installCurrentPageSnapshot(aCanvas) {
     let currSnapshot = aCanvas;
+    let scale = this._scale;
     if (!currSnapshot) {
       let snapshots = gBrowser.selectedBrowser.snapshots || {};
       let currIndex = this._historyIndex;
-      if (currIndex in snapshots)
-        currSnapshot = this._convertToImg(snapshots[currIndex]);
+      if (currIndex in snapshots) {
+        currSnapshot = this._convertToImg(snapshots[currIndex].image);
+        scale = snapshots[currIndex].scale;
+      }
     }
+    this._scaleSnapshot(currSnapshot, scale, this._curBox ? this._curBox :
+                                                            null);
     document.mozSetImageElement("historySwipeAnimationCurrentPageSnapshot",
-                                  currSnapshot);
+                                currSnapshot);
   },
 
   
@@ -1129,15 +1166,21 @@ let gHistorySwipeAnimation = {
     let currIndex = this._historyIndex;
     let prevIndex = currIndex - 1;
     let prevSnapshot = null;
-    if (prevIndex in snapshots)
-      prevSnapshot = this._convertToImg(snapshots[prevIndex]);
+    if (prevIndex in snapshots) {
+      prevSnapshot = this._convertToImg(snapshots[prevIndex].image);
+      this._scaleSnapshot(prevSnapshot, snapshots[prevIndex].scale,
+                          this._prevBox);
+    }
     document.mozSetImageElement("historySwipeAnimationPreviousPageSnapshot",
                                 prevSnapshot);
 
     let nextIndex = currIndex + 1;
     let nextSnapshot = null;
-    if (nextIndex in snapshots)
-      nextSnapshot = this._convertToImg(snapshots[nextIndex]);
+    if (nextIndex in snapshots) {
+      nextSnapshot = this._convertToImg(snapshots[nextIndex].image);
+      this._scaleSnapshot(nextSnapshot, snapshots[nextIndex].scale,
+                          this._nextBox);
+    }
     document.mozSetImageElement("historySwipeAnimationNextPageSnapshot",
                                 nextSnapshot);
   },
