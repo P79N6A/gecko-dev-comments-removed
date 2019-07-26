@@ -571,6 +571,18 @@ public:
     TracksAvailableCallback* tracksAvailableCallback =
       new TracksAvailableCallback(mManager, mSuccess, mWindowID, trackunion);
 
+    
+    
+    
+    
+    nsIThread *mediaThread = MediaManager::GetThread();
+    nsRefPtr<MediaOperationRunnable> runnable(
+      new MediaOperationRunnable(MEDIA_START, mListener, trackunion,
+                                 tracksAvailableCallback,
+                                 mAudioSource, mVideoSource, false, mWindowID,
+                                 mError.forget()));
+    mediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+
 #ifdef MOZ_WEBRTC
     
     nsresult rv;
@@ -600,18 +612,6 @@ public:
       }
     }
 #endif
-
-    
-    
-    
-    
-    nsIThread *mediaThread = MediaManager::GetThread();
-    nsRefPtr<MediaOperationRunnable> runnable(
-      new MediaOperationRunnable(MEDIA_START, mListener, trackunion,
-                                 tracksAvailableCallback,
-                                 mAudioSource, mVideoSource, false, mWindowID,
-                                 mError.forget()));
-    mediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 
     
     mError = nullptr;
