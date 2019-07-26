@@ -657,6 +657,10 @@ nsXULTooltipListener::DestroyTooltip()
   nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
   if (currentTooltip) {
     
+    
+    mCurrentTooltip = nullptr;
+
+    
     nsCOMPtr<nsIDocument> doc = currentTooltip->GetDocument();
     if (doc) {
       
@@ -669,11 +673,7 @@ nsXULTooltipListener::DestroyTooltip()
     }
 
     
-    
-    mCurrentTooltip = nullptr;
-
-    
-    currentTooltip->RemoveEventListener(NS_LITERAL_STRING("popuphiding"), this, false);
+    currentTooltip->RemoveSystemEventListener(NS_LITERAL_STRING("popuphiding"), this, false);
   }
 
   
