@@ -1560,7 +1560,7 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
   , mMayHaveDirtyFixedChildren(false)
   , mUpdateScrollbarAttributes(false)
   , mCollapsedResizer(false)
-  , mShouldBuildLayer(false)
+  , mShouldBuildScrollableLayer(false)
   , mHasBeenScrolled(false)
 {
   mScrollingActive = IsAlwaysActive();
@@ -2131,12 +2131,6 @@ nsGfxScrollFrameInner::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
   }
 }
 
-bool
-nsGfxScrollFrameInner::ShouldBuildLayer() const
-{
-  return mShouldBuildLayer;
-}
-
 class ScrollLayerWrapper : public nsDisplayWrapper
 {
 public:
@@ -2343,8 +2337,9 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
+  bool shouldBuildLayer = false;
   if (usingDisplayport) {
-    mShouldBuildLayer = true;
+    shouldBuildLayer = true;
   } else {
     nsRect scrollRange = GetScrollRange();
     ScrollbarStyles styles = GetScrollbarStylesFromFrame();
@@ -2359,18 +2354,20 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       wantSubAPZC = true;
     }
 #endif
-    mShouldBuildLayer =
+    shouldBuildLayer =
       wantSubAPZC &&
       hasScrollableOverflow &&
       (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument());
   }
 
-  if (ShouldBuildLayer()) {
+  mShouldBuildScrollableLayer = false;
+  if (shouldBuildLayer) {
     
     
     ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
 
     if (usingDisplayport) {
+      mShouldBuildScrollableLayer = true;
       DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
       

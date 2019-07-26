@@ -65,8 +65,6 @@ public:
   void PostOverflowEvent();
   void Destroy();
 
-  bool ShouldBuildLayer() const;
-
   void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                         const nsRect&           aDirtyRect,
                         const nsDisplayListSet& aLists);
@@ -268,7 +266,7 @@ public:
   nscoord GetNondisappearingScrollbarWidth(nsBoxLayoutState* aState);
   bool IsLTR() const;
   bool IsScrollbarOnRight() const;
-  bool IsScrollingActive() const { return mScrollingActive || ShouldBuildLayer(); }
+  bool IsScrollingActive() const { return mScrollingActive || mShouldBuildScrollableLayer; }
   void ResetScrollPositionForLayerPixelAlignment()
   {
     mScrollPosForLayerPixelAlignment = GetScrollPosition();
@@ -388,7 +386,7 @@ public:
 
   
   
-  bool mShouldBuildLayer:1;
+  bool mShouldBuildScrollableLayer:1;
 
   
   bool mHasBeenScrolled:1;
