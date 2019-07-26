@@ -762,11 +762,18 @@ function isPlainTextField(element) {
     return false;
   }
 
-  return element instanceof HTMLInputElement ||
-         element instanceof HTMLTextAreaElement;
+  return element instanceof HTMLTextAreaElement ||
+         (element instanceof HTMLInputElement &&
+          element.mozIsTextField(false));
 }
 
 function getJSON(element, focusCounter) {
+  
+  
+  
+  
+  element = element.ownerNumberControl || element;
+
   let type = element.type || "";
   let value = element.value || "";
   let max = element.max || "";
