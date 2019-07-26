@@ -82,10 +82,10 @@
 typedef struct {
 
   
-  uint64_t	regs[MD_FLOATINGSAVEAREA_SPARC_FPR_COUNT];
+  uint64_t      regs[MD_FLOATINGSAVEAREA_SPARC_FPR_COUNT];
 
-  uint64_t	filler;
-  uint64_t	fsr;        
+  uint64_t      filler;
+  uint64_t      fsr;        
 } MDFloatingSaveAreaSPARC;  
 
 #define MD_CONTEXT_SPARC_GPR_COUNT 32
@@ -94,8 +94,8 @@ typedef struct {
   
 
 
-  uint32_t	context_flags;
-  uint32_t	flag_pad;
+  uint32_t      context_flags;
+  uint32_t      flag_pad;
   
 
 

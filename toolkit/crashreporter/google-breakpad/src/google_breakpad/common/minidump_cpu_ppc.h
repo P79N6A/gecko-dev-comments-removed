@@ -94,11 +94,11 @@ typedef struct {
 typedef struct {
   
 
-  uint128_t save_vr[MD_VECTORSAVEAREA_PPC_VR_COUNT];
-  uint128_t save_vscr;  
-  uint32_t  save_pad5[4];
-  uint32_t  save_vrvalid;  
-  uint32_t  save_pad6[7];
+  uint128_struct save_vr[MD_VECTORSAVEAREA_PPC_VR_COUNT];
+  uint128_struct save_vscr;  
+  uint32_t       save_pad5[4];
+  uint32_t       save_vrvalid;  
+  uint32_t       save_pad6[7];
 } MDVectorSaveAreaPPC;  
 
 
@@ -117,21 +117,21 @@ typedef struct {
   
 
 
-  uint32_t             context_flags;
+  uint32_t              context_flags;
 
-  uint32_t             srr0;    
+  uint32_t              srr0;    
 
-  uint32_t             srr1;    
+  uint32_t              srr1;    
 
   
 
-  uint32_t             gpr[MD_CONTEXT_PPC_GPR_COUNT];
-  uint32_t             cr;      
-  uint32_t             xer;     
-  uint32_t             lr;      
-  uint32_t             ctr;     
-  uint32_t             mq;      
-  uint32_t             vrsave;  
+  uint32_t              gpr[MD_CONTEXT_PPC_GPR_COUNT];
+  uint32_t              cr;      
+  uint32_t              xer;     
+  uint32_t              lr;      
+  uint32_t              ctr;     
+  uint32_t              mq;      
+  uint32_t              vrsave;  
 
   
 

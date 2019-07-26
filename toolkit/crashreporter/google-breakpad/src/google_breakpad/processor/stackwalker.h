@@ -43,6 +43,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
@@ -57,6 +58,7 @@ class MinidumpContext;
 class StackFrameSymbolizer;
 
 using std::set;
+using std::vector;
 
 class Stackwalker {
  public:
@@ -66,7 +68,15 @@ class Stackwalker {
   
   
   
-  bool Walk(CallStack* stack);
+  
+  
+  
+  
+  
+  
+  
+  bool Walk(CallStack* stack,
+            vector<const CodeModule*>* modules_without_symbols);
 
   
   

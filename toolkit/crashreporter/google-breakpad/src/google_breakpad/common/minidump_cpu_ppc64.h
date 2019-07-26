@@ -90,20 +90,20 @@ typedef struct {
   
 
 
-  uint64_t             context_flags;
+  uint64_t              context_flags;
 
-  uint64_t             srr0;    
+  uint64_t              srr0;    
 
-  uint64_t             srr1;    
+  uint64_t              srr1;    
 
   
 
-  uint64_t             gpr[MD_CONTEXT_PPC64_GPR_COUNT];
-  uint64_t             cr;      
-  uint64_t             xer;     
-  uint64_t             lr;      
-  uint64_t             ctr;     
-  uint64_t             vrsave;  
+  uint64_t              gpr[MD_CONTEXT_PPC64_GPR_COUNT];
+  uint64_t              cr;      
+  uint64_t              xer;     
+  uint64_t              lr;      
+  uint64_t              ctr;     
+  uint64_t              vrsave;  
 
   
 

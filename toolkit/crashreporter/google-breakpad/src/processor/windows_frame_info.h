@@ -132,12 +132,12 @@ struct WindowsFrameInfo {
 
     rva                           = strtoull(tokens[1],  NULL, 16);
     code_size                     = strtoull(tokens[2],  NULL, 16);
-    uint32_t prolog_size         =  strtoul(tokens[3],  NULL, 16);
-    uint32_t epilog_size         =  strtoul(tokens[4],  NULL, 16);
-    uint32_t parameter_size      =  strtoul(tokens[5],  NULL, 16);
-    uint32_t saved_register_size =  strtoul(tokens[6],  NULL, 16);
-    uint32_t local_size          =  strtoul(tokens[7],  NULL, 16);
-    uint32_t max_stack_size      =  strtoul(tokens[8],  NULL, 16);
+    uint32_t prolog_size          =  strtoul(tokens[3],  NULL, 16);
+    uint32_t epilog_size          =  strtoul(tokens[4],  NULL, 16);
+    uint32_t parameter_size       =  strtoul(tokens[5],  NULL, 16);
+    uint32_t saved_register_size  =  strtoul(tokens[6],  NULL, 16);
+    uint32_t local_size           =  strtoul(tokens[7],  NULL, 16);
+    uint32_t max_stack_size       =  strtoul(tokens[8],  NULL, 16);
     int has_program_string        =  strtoul(tokens[9], NULL, 16);
 
     const char *program_string = "";

@@ -125,7 +125,7 @@ static inline void Swap(uint64_t* value) {
 
 
 
-static void Normalize128(uint128_t* value, bool is_big_endian) {
+static void Normalize128(uint128_struct* value, bool is_big_endian) {
   
   
   if (!is_big_endian) {
@@ -137,7 +137,7 @@ static void Normalize128(uint128_t* value, bool is_big_endian) {
 
 
 
-static void Swap(uint128_t* value) {
+static void Swap(uint128_struct* value) {
   Swap(&value->low);
   Swap(&value->high);
 }

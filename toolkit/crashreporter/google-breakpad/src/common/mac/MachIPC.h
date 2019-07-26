@@ -210,7 +210,7 @@ class MachMessage {
   struct MessageDataPacket {
     int32_t      id;          
     int32_t      data_length; 
-    uint8_t     data[1];     
+    uint8_t      data[1];     
   };
 
   MessageDataPacket* GetDataPacket();
@@ -223,7 +223,7 @@ class MachMessage {
 
   mach_msg_header_t  head;
   mach_msg_body_t    body;
-  uint8_t           padding[1024]; 
+  uint8_t            padding[1024]; 
 };
 
 

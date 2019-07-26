@@ -77,10 +77,10 @@
 
 
 typedef struct {
-  uint64_t	fpscr;      
+  uint64_t      fpscr;      
 
   
-  uint64_t	regs[MD_FLOATINGSAVEAREA_ARM_FPR_COUNT];
+  uint64_t      regs[MD_FLOATINGSAVEAREA_ARM_FPR_COUNT];
 
   
   uint32_t     extra[MD_FLOATINGSAVEAREA_ARM_FPEXTRA_COUNT];
@@ -92,7 +92,7 @@ typedef struct {
   
 
 
-  uint32_t	context_flags;
+  uint32_t      context_flags;
 
   
 
