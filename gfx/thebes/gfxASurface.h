@@ -199,6 +199,14 @@ public:
 
     virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
     virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+    
+    
+    
+    
+    
+    
+    
+    virtual bool SizeOfIsMeasured() const { return false; }
 
     
 

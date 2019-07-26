@@ -813,7 +813,6 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocat
     n += n2;
   }
 
-  
 #ifdef USE_WIN_SURFACE
   if (mWinSurface && aLocation == mWinSurface->GetMemoryLocation()) {
     n += mWinSurface->KnownMemoryUsed();
@@ -836,7 +835,16 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocat
   }
 
   if (mOptSurface && aLocation == mOptSurface->GetMemoryLocation()) {
-    n += mOptSurface->KnownMemoryUsed();
+    size_t n2 = 0;
+    if (aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP &&
+        mOptSurface->SizeOfIsMeasured()) {
+      
+      n2 = mOptSurface->SizeOfIncludingThis(aMallocSizeOf);
+    }
+    if (n2 == 0) {  
+      n2 = mOptSurface->KnownMemoryUsed();
+    }
+    n += n2;
   }
 
   return n;

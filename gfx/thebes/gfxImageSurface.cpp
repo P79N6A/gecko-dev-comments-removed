@@ -190,6 +190,12 @@ gfxImageSurface::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
+bool
+gfxImageSurface::SizeOfIsMeasured() const
+{
+    return true;
+}
+
 
 static void
 CopyForStride(unsigned char* aDest, unsigned char* aSrc, const gfxIntSize& aSize, long aDestStride, long aSrcStride)
