@@ -50,6 +50,18 @@ enum HeapState {
     MinorCollecting   
 };
 
+struct ExtraTracer {
+    JSTraceDataOp op;
+    void *data;
+
+    ExtraTracer()
+      : op(nullptr), data(nullptr)
+        {}
+    ExtraTracer(JSTraceDataOp op, void *data)
+      : op(op), data(data)
+        {}
+};
+
 namespace jit {
     class JitCode;
 }
