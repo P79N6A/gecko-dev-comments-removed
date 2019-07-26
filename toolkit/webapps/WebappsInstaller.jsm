@@ -229,8 +229,8 @@ NativeApp.prototype = {
       
       
       if (this.iconURI.scheme == "app") {
-        let zipFile = getFile(this.tmpInstallDir, "application.zip");
-        let zipUrl = Services.io.newFileURI(zipFile).spec;
+        let zipUrl = OS.Path.toFileURI(OS.Path.join(this.tmpInstallDir,
+                                                    "application.zip"));
 
         let filePath = this.iconURI.QueryInterface(Ci.nsIURL).filePath;
 
