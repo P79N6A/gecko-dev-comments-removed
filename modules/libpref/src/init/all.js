@@ -27,10 +27,6 @@ pref("general.useragent.compatMode.firefox", false);
 
 pref("general.useragent.site_specific_overrides", true);
 
-
-
-pref("general.useragent.enable_overrides", false);
-
 pref("general.config.obscure_value", 13); 
 
 pref("general.warnOnAboutConfig", true);
