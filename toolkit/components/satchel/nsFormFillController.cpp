@@ -681,6 +681,11 @@ nsFormFillController::PerformInputListAutoComplete(nsIAutoCompleteResult* aPrevi
     }
   } else {
     result = aPreviousResult;
+
+    
+    
+    
+    mLastSearchResult = nullptr;
   }
 
   if (mLastListener) {
