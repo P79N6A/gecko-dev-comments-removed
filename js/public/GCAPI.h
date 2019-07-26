@@ -95,17 +95,50 @@ enum Reason {
 
 } 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern JS_FRIEND_API(void)
 PrepareZoneForGC(Zone *zone);
+
+
+
 
 extern JS_FRIEND_API(void)
 PrepareForFullGC(JSRuntime *rt);
 
+
+
+
+
+
 extern JS_FRIEND_API(void)
 PrepareForIncrementalGC(JSRuntime *rt);
 
+
+
+
+
 extern JS_FRIEND_API(bool)
 IsGCScheduled(JSRuntime *rt);
+
+
+
+
 
 extern JS_FRIEND_API(void)
 SkipZoneForGC(Zone *zone);
@@ -117,17 +150,61 @@ SkipZoneForGC(Zone *zone);
 
 
 
+
+
+
+
 extern JS_FRIEND_API(void)
 GCForReason(JSRuntime *rt, gcreason::Reason reason);
+
+
+
+
+
 
 extern JS_FRIEND_API(void)
 ShrinkingGC(JSRuntime *rt, gcreason::Reason reason);
 
-extern JS_FRIEND_API(void)
-ShrinkGCBuffers(JSRuntime *rt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 extern JS_FRIEND_API(void)
 IncrementalGC(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
+
+
+
+
+
+
 
 extern JS_FRIEND_API(void)
 FinishIncrementalGC(JSRuntime *rt, gcreason::Reason reason);
@@ -162,6 +239,11 @@ struct JS_FRIEND_API(GCDescription) {
 typedef void
 (* GCSliceCallback)(JSRuntime *rt, GCProgress progress, const GCDescription &desc);
 
+
+
+
+
+
 extern JS_FRIEND_API(GCSliceCallback)
 SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
 
@@ -169,32 +251,43 @@ SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
 
 
 
-extern JS_FRIEND_API(void)
-NotifyDidPaint(JSRuntime *rt);
 
-extern JS_FRIEND_API(bool)
-IsIncrementalGCEnabled(JSRuntime *rt);
-
-JS_FRIEND_API(bool)
-IsIncrementalGCInProgress(JSRuntime *rt);
 
 extern JS_FRIEND_API(void)
 DisableIncrementalGC(JSRuntime *rt);
 
-extern JS_FRIEND_API(void)
-DisableGenerationalGC(JSRuntime *rt);
 
-extern JS_FRIEND_API(void)
-EnableGenerationalGC(JSRuntime *rt);
+
+
+
+
+
+
 
 extern JS_FRIEND_API(bool)
-IsGenerationalGCEnabled(JSRuntime *rt);
+IsIncrementalGCEnabled(JSRuntime *rt);
+
+
+
+
+
+JS_FRIEND_API(bool)
+IsIncrementalGCInProgress(JSRuntime *rt);
+
+
+
+
+
 
 extern JS_FRIEND_API(bool)
 IsIncrementalBarrierNeeded(JSRuntime *rt);
 
 extern JS_FRIEND_API(bool)
 IsIncrementalBarrierNeeded(JSContext *cx);
+
+
+
+
 
 extern JS_FRIEND_API(void)
 IncrementalReferenceBarrier(void *ptr, JSGCTraceKind kind);
@@ -205,15 +298,67 @@ IncrementalValueBarrier(const Value &v);
 extern JS_FRIEND_API(void)
 IncrementalObjectBarrier(JSObject *obj);
 
-extern JS_FRIEND_API(void)
-PokeGC(JSRuntime *rt);
+
 
 
 extern JS_FRIEND_API(bool)
 WasIncrementalGC(JSRuntime *rt);
 
+
+
+
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(void)
+DisableGenerationalGC(JSRuntime *rt);
+
+
+
+
+extern JS_FRIEND_API(void)
+EnableGenerationalGC(JSRuntime *rt);
+
+
+
+
+
+extern JS_FRIEND_API(bool)
+IsGenerationalGCEnabled(JSRuntime *rt);
+
+
+
+
+
+
 extern JS_FRIEND_API(size_t)
 GetGCNumber();
+
+
+
+
+
+
+extern JS_FRIEND_API(void)
+ShrinkGCBuffers(JSRuntime *rt);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class JS_PUBLIC_API(AutoAssertNoGC)
 {
@@ -345,6 +490,20 @@ MarkStringAsLive(Zone *zone, JSString *string)
     JSRuntime *rt = JS::shadow::Zone::asShadowZone(zone)->runtimeFromMainThread();
     MarkGCThingAsLive(rt, string, JSTRACE_STRING);
 }
+
+
+
+
+
+
+extern JS_FRIEND_API(void)
+PokeGC(JSRuntime *rt);
+
+
+
+
+extern JS_FRIEND_API(void)
+NotifyDidPaint(JSRuntime *rt);
 
 } 
 
