@@ -19,7 +19,6 @@
 #endif
 
 #include "js/RootingAPI.h"
-#include "js/Value.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/GuardObjects.h"
@@ -109,6 +108,10 @@ template<class E> class nsCOMArray;
 template<class E> class nsTArray;
 template<class K, class V> class nsDataHashtable;
 template<class K, class V> class nsRefPtrHashtable;
+
+namespace JS {
+class Value;
+} 
 
 namespace mozilla {
 class ErrorResult;
@@ -1661,7 +1664,8 @@ public:
   static bool CanAccessNativeAnon();
 
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, const nsIID* aIID, jsval *vp,
+                             nsISupports *native, const nsIID* aIID,
+                             JS::Value *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nullptr,
@@ -1673,7 +1677,7 @@ public:
 
   
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, jsval *vp,
+                             nsISupports *native, JS::Value *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nullptr,
@@ -1684,7 +1688,7 @@ public:
   }
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
                              nsISupports *native, nsWrapperCache *cache,
-                             jsval *vp,
+                             JS::Value *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nullptr,
@@ -1702,7 +1706,7 @@ public:
 
   static nsresult CreateBlobBuffer(JSContext* aCx,
                                    const nsACString& aData,
-                                   jsval& aBlob);
+                                   JS::Value& aBlob);
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
 
@@ -2110,7 +2114,7 @@ private:
 
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
                              nsISupports *native, nsWrapperCache *cache,
-                             const nsIID* aIID, jsval *vp,
+                             const nsIID* aIID, JS::Value *vp,
                              nsIXPConnectJSObjectHolder** aHolder,
                              bool aAllowWrapping);
                             
