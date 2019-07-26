@@ -4520,7 +4520,7 @@ var TabsProgressListener = {
         
         aBrowser._clickToPlayDoorhangerShown = false;
         aBrowser._clickToPlayPluginsActivated = false;
-        aBrowser._pluginScriptedState = PLUGIN_SCRIPTED_STATE_NONE;
+        aBrowser._pluginScriptedState = gPluginHandler.PLUGIN_SCRIPTED_STATE_NONE;
       }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
