@@ -115,6 +115,16 @@
 
 
 
+#ifdef __clang_analyzer__
+#  if __has_extension(attribute_analyzer_noreturn)
+#    define MOZ_HAVE_ANALYZER_NORETURN __attribute__((analyzer_noreturn))
+#  endif
+#endif
+
+
+
+
+
 
 
 
@@ -183,6 +193,27 @@
 #  define MOZ_NORETURN          MOZ_HAVE_NORETURN
 #else
 #  define MOZ_NORETURN
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(MOZ_HAVE_ANALYZER_NORETURN)
+#  define MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS          MOZ_HAVE_ANALYZER_NORETURN
+#else
+#  define MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
 #endif
 
 
