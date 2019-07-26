@@ -132,7 +132,7 @@ extern JSBool
 js_NewbornArrayPush(JSContext *cx, js::HandleObject obj, const js::Value &v);
 
 JSBool
-js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
+js_PrototypeHasIndexedProperties(JSObject *obj);
 
 
 

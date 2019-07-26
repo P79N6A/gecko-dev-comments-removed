@@ -1544,20 +1544,6 @@ GuessArrayGCKind(size_t numSlots)
 
 
 
-static inline gc::AllocKind
-NewObjectGCKind(JSContext *cx, js::Class *clasp)
-{
-    if (clasp == &ArrayClass || clasp == &SlowArrayClass)
-        return gc::FINALIZE_OBJECT8;
-    if (clasp == &FunctionClass)
-        return gc::FINALIZE_OBJECT2;
-    return gc::FINALIZE_OBJECT4;
-}
-
-
-
-
-
 inline bool
 PreallocateObjectDynamicSlots(JSContext *cx, Shape *shape, HeapSlot **slots)
 {
