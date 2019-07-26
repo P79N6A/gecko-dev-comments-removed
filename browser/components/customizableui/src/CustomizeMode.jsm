@@ -599,7 +599,7 @@ CustomizeMode.prototype = {
       return;
     }
 
-    let targetNode = this._getDragOverNode(aEvent.target);
+    let targetNode = this._getDragOverNode(aEvent.target, targetArea);
     let targetParent = targetNode.parentNode;
 
     
@@ -657,7 +657,7 @@ CustomizeMode.prototype = {
       return;
     }
 
-    let targetNode = this._getDragOverNode(aEvent.target);
+    let targetNode = this._getDragOverNode(aEvent.target, targetArea);
 
     
     
