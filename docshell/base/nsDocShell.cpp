@@ -9281,19 +9281,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
         if (doShortCircuitedLoad) {
             
-            
-            
-            
-            
-            
-            
-            
-            
-            if (aSHEntry && mDocumentRequest) {
-                mDocumentRequest->Cancel(NS_BINDING_ABORTED);
-            }
-
-            
             nscoord cx = 0, cy = 0;
             GetCurScrollPos(ScrollOrientation_X, &cx);
             GetCurScrollPos(ScrollOrientation_Y, &cy);
@@ -9323,6 +9310,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             }
 
             mURIResultedInDocument = true;
+
+            nsCOMPtr<nsISHEntry> oldLSHE = mLSHE;
 
             
 
@@ -9404,7 +9393,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
 
 
-            SetHistoryEntry(&mLSHE, nullptr);
+            SetHistoryEntry(&mLSHE, oldLSHE);
             
 
 
