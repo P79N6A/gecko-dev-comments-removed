@@ -53,8 +53,8 @@
 
 #include "mozilla/CheckedInt.h"
 
-#if defined(DEBUG) || defined(PR_LOGGING)
-GFX2D_API PRLogModuleInfo *
+#ifdef PR_LOGGING
+PRLogModuleInfo *
 GetGFX2DLog()
 {
   static PRLogModuleInfo *sLog;
@@ -156,7 +156,7 @@ namespace mozilla {
 namespace gfx {
 
 
-GFX2D_API int sGfxLogLevel = LOG_DEBUG;
+int sGfxLogLevel = LOG_DEBUG;
 
 #ifdef WIN32
 ID3D10Device1 *Factory::mD3D10Device;

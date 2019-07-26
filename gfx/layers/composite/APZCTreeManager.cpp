@@ -16,11 +16,9 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/mozalloc.h"           
 #include "mozilla/TouchEvents.h"
-#include "mozilla/Preferences.h"        
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
 #include "nsThreadUtils.h"              
-#include "mozilla/gfx/Logging.h"        
 
 #include <algorithm>                    
 
@@ -32,19 +30,12 @@ namespace layers {
 
 float APZCTreeManager::sDPI = 160.0;
 
-
-static bool gPrintApzcTree = false;
-
-gfx::TreeLog sApzcTreeLog("apzctree");
-
 APZCTreeManager::APZCTreeManager()
     : mTreeLock("APZCTreeLock"),
       mTouchCount(0)
 {
   MOZ_ASSERT(NS_IsMainThread());
   AsyncPanZoomController::InitializeGlobalState();
-  Preferences::AddBoolVarCache(&gPrintApzcTree, "apz.printtree", gPrintApzcTree);
-  sApzcTreeLog.ConditionOnPref(&gPrintApzcTree);
 }
 
 APZCTreeManager::~APZCTreeManager()
@@ -125,7 +116,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Laye
   mRootApzc = nullptr;
 
   if (aRoot) {
-    sApzcTreeLog << "[start]\n";
     UpdatePanZoomControllerTree(aCompositor,
                                 aRoot,
                                 
@@ -133,7 +123,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Laye
                                 gfx3DMatrix(), nullptr, nullptr,
                                 aIsFirstPaint, aFirstPaintLayersId,
                                 &apzcsToDestroy);
-    sApzcTreeLog << "[end]\n";
   }
 
   for (size_t i = 0; i < apzcsToDestroy.Length(); i++) {
@@ -155,7 +144,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
   ContainerLayer* container = aLayer->AsContainerLayer();
   AsyncPanZoomController* apzc = nullptr;
-  sApzcTreeLog << aLayer->Name() << '\t';
   if (container) {
     if (container->GetFrameMetrics().IsScrollable()) {
       const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
@@ -170,8 +158,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         
-        ScrollableLayerGuid guid(aLayersId, container->GetFrameMetrics());
-        if (apzc && !apzc->Matches(guid)) {
+        if (apzc && !apzc->Matches(ScrollableLayerGuid(aLayersId, container->GetFrameMetrics()))) {
           apzc = nullptr;
         }
 
@@ -182,8 +169,9 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         if (apzc == nullptr) {
+          ScrollableLayerGuid target(aLayersId, container->GetFrameMetrics());
           for (size_t i = 0; i < aApzcsToDestroy->Length(); i++) {
-            if (aApzcsToDestroy->ElementAt(i)->Matches(guid)) {
+            if (aApzcsToDestroy->ElementAt(i)->Matches(target)) {
               apzc = aApzcsToDestroy->ElementAt(i);
               break;
             }
@@ -234,11 +222,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                                                               visible.width, visible.height,
                                                                               apzc);
 
-        sApzcTreeLog << "APZC " << guid
-                     << "\tcb=" << visible
-                     << "\tsr=" << container->GetFrameMetrics().mScrollableRect
-                     << "\t" << container->GetFrameMetrics().GetContentDescription();
-
         
         if (aNextSibling) {
           aNextSibling->SetPrevSibling(apzc);
@@ -273,7 +256,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
     container->SetAsyncPanZoomController(apzc);
   }
-  sApzcTreeLog << '\n';
 
   
   
@@ -291,7 +273,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   
   AsyncPanZoomController* next = apzc ? nullptr : aNextSibling;
   for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
-    gfx::TreeAutoIndent indent(sApzcTreeLog);
     next = UpdatePanZoomControllerTree(aCompositor, child, childLayersId, aTransform, aParent, next,
                                        aIsFirstPaint, aFirstPaintLayersId, aApzcsToDestroy);
   }
