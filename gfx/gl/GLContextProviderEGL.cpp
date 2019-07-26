@@ -2601,38 +2601,13 @@ GLContextProviderEGL::CreateOffscreen(const gfxIntSize& aSize,
 #endif
 }
 
+
+
+
 GLContext *
 GLContextProviderEGL::GetGlobalContext(const ContextFlags)
 {
-
-
-
-#ifdef ANDROID
     return nullptr;
-#endif
-
-
-
-#ifdef XP_WIN
-    return nullptr;
-#endif
-
-
-    static bool triedToCreateContext = false;
-    if (!triedToCreateContext && !gGlobalContext) {
-        triedToCreateContext = true;
-        
-        
-        nsRefPtr<GLContext> ctx =
-            GLContextProviderEGL::CreateOffscreen(gfxIntSize(16, 16),
-                                                  ContextFormat(ContextFormat::BasicRGB24),
-                                                  GLContext::ContextFlagsGlobal);
-        gGlobalContext = ctx;
-        if (gGlobalContext)
-            gGlobalContext->SetIsGlobalSharedContext(true);
-    }
-
-    return gGlobalContext;
 }
 
 void
