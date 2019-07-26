@@ -230,6 +230,10 @@ static uint32_t CountNewlinesInNativeLength(nsIContent* aContent,
 nsContentEventHandler::GetNativeTextLength(nsIContent* aContent, uint32_t aMaxLength)
 {
   if (aContent->IsNodeOfType(nsINode::eTEXT)) {
+    
+    if (!aContent->GetPrimaryFrame()) {
+      return 0;
+    }
     uint32_t textLengthDifference =
 #if defined(XP_MACOSX)
       
@@ -309,6 +313,10 @@ static nsresult GenerateFlatTextContent(nsRange* aRange,
     nsIContent* content = static_cast<nsIContent*>(node);
 
     if (content->IsNodeOfType(nsINode::eTEXT)) {
+      
+      if (!content->GetPrimaryFrame()) {
+        continue;
+      }
       if (content == startNode)
         AppendSubString(aString, content, aRange->StartOffset(),
                         content->TextLength() - aRange->StartOffset());
