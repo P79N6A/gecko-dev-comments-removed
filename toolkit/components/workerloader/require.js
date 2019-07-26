@@ -172,18 +172,17 @@
       }
       modules.set(path, module);
 
-
-      
-      let xhr = new XMLHttpRequest();
-      xhr.open("GET", uri, false);
-      xhr.responseType = "text";
-      xhr.send();
-
-
-      let source = xhr.responseText;
       let name = ":" + path;
       let objectURL;
       try {
+        
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", uri, false);
+        xhr.responseType = "text";
+        xhr.send();
+
+
+        let source = xhr.responseText;
         if (source == "") {
           
           throw new Error("Could not find module " + path);
