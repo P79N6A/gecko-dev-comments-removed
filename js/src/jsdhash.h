@@ -84,9 +84,21 @@ struct JSDHashEntryHdr {
     JSDHashNumber       keyHash;        
 };
 
-#define JS_DHASH_ENTRY_IS_FREE(entry)   ((entry)->keyHash == 0)
-#define JS_DHASH_ENTRY_IS_BUSY(entry)   (!JS_DHASH_ENTRY_IS_FREE(entry))
-#define JS_DHASH_ENTRY_IS_LIVE(entry)   ((entry)->keyHash >= 2)
+MOZ_ALWAYS_INLINE bool
+JS_DHASH_ENTRY_IS_FREE(JSDHashEntryHdr* entry)
+{
+    return entry->keyHash == 0;
+}
+MOZ_ALWAYS_INLINE bool
+JS_DHASH_ENTRY_IS_BUSY(JSDHashEntryHdr* entry)
+{
+    return !JS_DHASH_ENTRY_IS_FREE(entry);
+}
+MOZ_ALWAYS_INLINE bool
+JS_DHASH_ENTRY_IS_LIVE(JSDHashEntryHdr* entry)
+{
+    return entry->keyHash >= 2;
+}
 
 
 
