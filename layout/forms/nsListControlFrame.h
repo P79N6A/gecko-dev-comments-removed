@@ -24,6 +24,11 @@
 #include "nsAutoPtr.h"
 #include "nsSelectsAreaFrame.h"
 
+
+#ifdef KeyPress
+#undef KeyPress
+#endif
+
 class nsIDOMHTMLSelectElement;
 class nsIDOMHTMLOptionsCollection;
 class nsIComboboxControlFrame;

@@ -1383,3 +1383,5 @@ nsRefreshDriver::RevokeFrameRequestCallbacks(nsIDocument* aDocument)
   
   
 }
+
+#undef LOG
