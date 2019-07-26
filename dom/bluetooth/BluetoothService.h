@@ -22,6 +22,7 @@ class BluetoothReplyRunnable;
 class BluetoothSignal;
 
 class BluetoothService : public nsIObserver
+                       , public BluetoothSignalObserver
 {
   class ToggleBtAck;
   friend class ToggleBtAck;
@@ -116,6 +117,12 @@ public:
 
 
   void UnregisterManager(BluetoothManager* aManager);
+
+  
+
+
+
+  void Notify(const BluetoothSignal& aParam);
 
   
 
@@ -281,8 +288,7 @@ protected:
     mBluetoothSignalObserverTable.Init();
   }
 
-  virtual ~BluetoothService()
-  { }
+  ~BluetoothService();
 
   nsresult StartStopBluetooth(bool aStart);
 
