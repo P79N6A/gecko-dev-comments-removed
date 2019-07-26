@@ -444,14 +444,16 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
+        
         bool isWhitelisted =
           cModel.Equals("LT28h", nsCaseInsensitiveCStringComparator()) ||
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator()) ||
           cModel.Equals("galaxy nexus", nsCaseInsensitiveCStringComparator()); 
 
-        if (cModel.Equals("SGH-I717", nsCaseInsensitiveCStringComparator()) ||
-            cModel.Equals("SGH-I727", nsCaseInsensitiveCStringComparator()) ||
-            cModel.Equals("SGH-T989", nsCaseInsensitiveCStringComparator()))
+        if (cModel.Find("SGH-I717", true) != -1 ||
+            cModel.Find("SGH-I727", true) != -1 ||
+            cModel.Find("SGH-I757", true) != -1 ||
+            cModel.Find("SGH-T989", true) != -1)
         {
           isWhitelisted = false;
         }
