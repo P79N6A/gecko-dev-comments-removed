@@ -398,8 +398,16 @@ AutoMounter::UpdateState()
     RefPtr<Volume>  vol = mAutoVolume[volIndex];
     Volume::STATE   volState = vol->State();
 
-    LOG("UpdateState: Volume %s is %s and %s", vol->NameStr(), vol->StateStr(),
-        vol->MediaPresent() ? "inserted" : "missing");
+    if (vol->State() == nsIVolume::STATE_MOUNTED) {
+      LOG("UpdateState: Volume %s is %s and %s @ %s gen %d locked %d",
+          vol->NameStr(), vol->StateStr(),
+          vol->MediaPresent() ? "inserted" : "missing",
+          vol->MountPoint().get(), vol->MountGeneration(),
+          (int)vol->IsMountLocked());
+    } else {
+      LOG("UpdateState: Volume %s is %s and %s", vol->NameStr(), vol->StateStr(),
+          vol->MediaPresent() ? "inserted" : "missing");
+    }
     if (!vol->MediaPresent()) {
       
       continue;
@@ -409,17 +417,24 @@ AutoMounter::UpdateState()
       
       switch (volState) {
         case nsIVolume::STATE_MOUNTED: {
+          if (vol->IsMountLocked()) {
+            
+            
+            DBG("UpdateState: Mounted volume %s is locked, leaving",
+                vol->NameStr());
+            break;
+          }
           
           
           DBG("UpdateState: Unmounting %s", vol->NameStr());
           vol->StartUnmount(mResponseCallback);
-          return;
+          return; 
         }
         case nsIVolume::STATE_IDLE: {
           
           DBG("UpdateState: Sharing %s", vol->NameStr());
           vol->StartShare(mResponseCallback);
-          return;
+          return; 
         }
         default: {
           
@@ -433,14 +448,14 @@ AutoMounter::UpdateState()
           
           DBG("UpdateState: Unsharing %s", vol->NameStr());
           vol->StartUnshare(mResponseCallback);
-          return;
+          return; 
         }
         case nsIVolume::STATE_IDLE: {
           
 
           DBG("UpdateState: Mounting %s", vol->NameStr());
           vol->StartMount(mResponseCallback);
-          return;
+          return; 
         }
         default: {
           

@@ -42,7 +42,9 @@ public:
   
   const nsCString &MountPoint() const { return mMountPoint; }
 
-  bool MediaPresent() const     { return mMediaPresent; }
+  int32_t MountGeneration() const     { return mMountGeneration; }
+  bool IsMountLocked() const          { return mMountLocked; }
+  bool MediaPresent() const           { return mMediaPresent; }
 
   typedef mozilla::Observer<Volume *>     EventObserver;
   typedef mozilla::ObserverList<Volume *> EventObserverList;
@@ -53,6 +55,7 @@ public:
 
 private:
   friend class AutoMounter;         
+  friend class nsVolume;            
   friend class VolumeManager;       
   friend class VolumeListCallback;  
 
@@ -71,10 +74,16 @@ private:
 
   void HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer &aTokenizer);
 
+  static void UpdateMountLock(const nsACString &aVolumeName,
+                              const int32_t &aMountGeneration,
+                              const bool &aMountLocked);
+
   bool              mMediaPresent;
   STATE             mState;
   const nsCString   mName;
   nsCString         mMountPoint;
+  int32_t           mMountGeneration;
+  bool              mMountLocked;
 
   static EventObserverList mEventObserverList;
 };

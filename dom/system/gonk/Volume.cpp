@@ -18,10 +18,46 @@ Volume::EventObserverList Volume::mEventObserverList;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int32_t sMountGeneration = 0;
+
+
+
 Volume::Volume(const nsCSubstring &aName)
   : mMediaPresent(true),
     mState(nsIVolume::STATE_INIT),
-    mName(aName)
+    mName(aName),
+    mMountGeneration(-1),
+    mMountLocked(true)  
 {
   DBG("Volume %s: created", NameStr());
 }
@@ -68,9 +104,12 @@ Volume::SetState(Volume::STATE aNewState)
     return;
   }
   if (aNewState == nsIVolume::STATE_MOUNTED) {
-    LOG("Volume %s: changing state from %s to %s @ '%s' (%d observers)",
+    mMountGeneration = ++sMountGeneration;
+    LOG("Volume %s: changing state from %s to %s @ '%s' (%d observers) "
+        "mountGeneration = %d, locked = %d",
         NameStr(), StateStr(mState),
-        StateStr(aNewState), mMountPoint.get(), mEventObserverList.Length());
+        StateStr(aNewState), mMountPoint.get(), mEventObserverList.Length(),
+        mMountGeneration, (int)mMountLocked);
   } else {
     LOG("Volume %s: changing state from %s to %s (%d observers)",
         NameStr(), StateStr(mState),
@@ -147,6 +186,23 @@ Volume::UnregisterObserver(Volume::EventObserver *aObserver)
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   mEventObserverList.RemoveObserver(aObserver);
+}
+
+
+void
+Volume::UpdateMountLock(const nsACString &aVolumeName,
+                        const int32_t &aMountGeneration,
+                        const bool &aMountLocked)
+{
+  RefPtr<Volume> vol = VolumeManager::FindVolumeByName(aVolumeName);
+  if (!vol || (vol->mMountGeneration != aMountGeneration)) {
+    return;
+  }
+  if (vol->mMountLocked != aMountLocked) {
+    vol->mMountLocked = aMountLocked;
+    DBG("Volume::UpdateMountLock for '%s' to %d\n", vol->NameStr(), (int)aMountLocked);
+    mEventObserverList.Broadcast(vol);
+  }
 }
 
 void
