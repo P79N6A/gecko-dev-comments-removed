@@ -268,9 +268,15 @@ protected:
                            const nsIntRect& aRect,
                            uint32_t aFlags);
 
+  void CreateBackBuffer(const nsIntRect& aBufferRect);
+
+
   
   
-  virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) = 0;
+  virtual void EnsureBackBufferIfFrontBuffer() {}
+
+  
+  
   virtual void DestroyFrontBuffer() {}
 
   bool CreateAndAllocateTextureClient(RefPtr<TextureClient>& aClient,
@@ -331,8 +337,9 @@ public:
 
   virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) MOZ_OVERRIDE;
 
+  virtual void EnsureBackBufferIfFrontBuffer() MOZ_OVERRIDE;
+
 protected:
-  virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) MOZ_OVERRIDE;
   virtual void DestroyFrontBuffer() MOZ_OVERRIDE;
 
 private:
@@ -373,9 +380,6 @@ public:
   virtual ~ContentClientSingleBuffered() {}
 
   virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) MOZ_OVERRIDE;
-
-protected:
-  virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) MOZ_OVERRIDE {}
 };
 
 
