@@ -111,6 +111,7 @@ XRE_SetupDllBlocklistType XRE_SetupDllBlocklist;
 XRE_TelemetryAccumulateType XRE_TelemetryAccumulate;
 XRE_StartupTimelineRecordType XRE_StartupTimelineRecord;
 XRE_mainType XRE_main;
+XRE_DisableWritePoisoningType XRE_DisableWritePoisoning;
 
 static const nsDynamicFunctionLoad kXULFuncs[] = {
     { "XRE_GetFileFromPath", (NSFuncPtr*) &XRE_GetFileFromPath },
@@ -122,6 +123,7 @@ static const nsDynamicFunctionLoad kXULFuncs[] = {
     { "XRE_TelemetryAccumulate", (NSFuncPtr*) &XRE_TelemetryAccumulate },
     { "XRE_StartupTimelineRecord", (NSFuncPtr*) &XRE_StartupTimelineRecord },
     { "XRE_main", (NSFuncPtr*) &XRE_main },
+    { "XRE_DisableWritePoisoning", (NSFuncPtr*) &XRE_DisableWritePoisoning },
     { nullptr, nullptr }
 };
 
@@ -387,5 +389,19 @@ int main(int argc, char* argv[])
   }
 
   XPCOMGlueShutdown();
+
+
+#ifdef XP_MACOSX
+  
+  
+  
+  
+  
+
+  
+  
+  XRE_DisableWritePoisoning();
+#endif
+
   return result;
 }
