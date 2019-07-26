@@ -1008,7 +1008,6 @@ var gBrowserInit = {
     if ("arguments" in window && window.arguments[0])
       var uriToLoad = window.arguments[0];
 
-    var isLoadingBlank = isBlankPageURL(uriToLoad);
     var mustLoadSidebar = false;
 
     gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver, false);
@@ -1094,44 +1093,6 @@ var gBrowserInit = {
 
     
     gGestureSupport.init(true);
-
-
-    if (uriToLoad && uriToLoad != "about:blank") {
-      if (uriToLoad instanceof Ci.nsISupportsArray) {
-        let count = uriToLoad.Count();
-        let specs = [];
-        for (let i = 0; i < count; i++) {
-          let urisstring = uriToLoad.GetElementAt(i).QueryInterface(Ci.nsISupportsString);
-          specs.push(urisstring.data);
-        }
-
-        
-        
-        try {
-          gBrowser.loadTabs(specs, false, true);
-        } catch (e) {}
-      }
-      else if (uriToLoad instanceof XULElement) {
-        
-        
-
-        
-        gBrowser.stop();
-        
-        gBrowser.docShell;
-
-        gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, uriToLoad);
-      }
-      else if (window.arguments.length >= 3) {
-        loadURI(uriToLoad, window.arguments[2], window.arguments[3] || null,
-                window.arguments[4] || false);
-        window.focus();
-      }
-      
-      
-      else
-        loadOneOrMoreURIs(uriToLoad);
-    }
 
     if (window.opener && !window.opener.closed) {
       let openerSidebarBox = window.opener.document.getElementById("sidebar-box");
@@ -1242,7 +1203,7 @@ var gBrowserInit = {
     retrieveToolbarIconsizesFromTheme();
 
     
-    this._boundDelayedStartup = this._delayedStartup.bind(this, isLoadingBlank, mustLoadSidebar);
+    this._boundDelayedStartup = this._delayedStartup.bind(this, uriToLoad, mustLoadSidebar);
     window.addEventListener("MozAfterPaint", this._boundDelayedStartup);
 
     gStartupRan = true;
@@ -1253,13 +1214,52 @@ var gBrowserInit = {
     this._boundDelayedStartup = null;
   },
 
-  _delayedStartup: function(isLoadingBlank, mustLoadSidebar) {
+  _delayedStartup: function(uriToLoad, mustLoadSidebar) {
     let tmp = {};
     Cu.import("resource:///modules/TelemetryTimestamps.jsm", tmp);
     let TelemetryTimestamps = tmp.TelemetryTimestamps;
     TelemetryTimestamps.add("delayedStartupStarted");
 
     this._cancelDelayedStartup();
+
+    var isLoadingBlank = isBlankPageURL(uriToLoad);
+
+    if (uriToLoad && uriToLoad != "about:blank") {
+      if (uriToLoad instanceof Ci.nsISupportsArray) {
+        let count = uriToLoad.Count();
+        let specs = [];
+        for (let i = 0; i < count; i++) {
+          let urisstring = uriToLoad.GetElementAt(i).QueryInterface(Ci.nsISupportsString);
+          specs.push(urisstring.data);
+        }
+
+        
+        
+        try {
+          gBrowser.loadTabs(specs, false, true);
+        } catch (e) {}
+      }
+      else if (uriToLoad instanceof XULElement) {
+        
+        
+
+        
+        gBrowser.stop();
+        
+        gBrowser.docShell;
+
+        gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, uriToLoad);
+      }
+      else if (window.arguments.length >= 3) {
+        loadURI(uriToLoad, window.arguments[2], window.arguments[3] || null,
+                window.arguments[4] || false);
+        window.focus();
+      }
+      
+      
+      else
+        loadOneOrMoreURIs(uriToLoad);
+    }
 
 #ifdef MOZ_SAFE_BROWSING
     
