@@ -265,6 +265,9 @@ typedef void
 extern JS_FRIEND_API(void)
 VisitGrayWrapperTargets(JSCompartment *comp, GCThingCallback *callback, void *closure);
 
+extern JS_FRIEND_API(JSObject *)
+GetWeakmapKeyDelegate(JSObject *key);
+
 
 
 
