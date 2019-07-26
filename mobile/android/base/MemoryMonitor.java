@@ -5,6 +5,8 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.db.BrowserDB;
+
 import android.content.BroadcastReceiver;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
@@ -106,8 +108,7 @@ class MemoryMonitor extends BroadcastReceiver {
         if (Intent.ACTION_DEVICE_STORAGE_LOW.equals(intent.getAction())) {
             Log.d(LOGTAG, "Device storage is low");
             mStoragePressure = true;
-            
-            
+            GeckoAppShell.getHandler().post(new StorageReducer());
         } else if (Intent.ACTION_DEVICE_STORAGE_OK.equals(intent.getAction())) {
             Log.d(LOGTAG, "Device storage is ok");
             mStoragePressure = false;
@@ -199,6 +200,25 @@ class MemoryMonitor extends BroadcastReceiver {
 
             
             GeckoAppShell.getHandler().postDelayed(this, DECREMENT_DELAY);
+        }
+    }
+
+    class StorageReducer implements Runnable {
+        @Override
+        public void run() {
+            
+            if (!GeckoApp.checkLaunchState(GeckoApp.LaunchState.GeckoRunning)) {
+                GeckoAppShell.getHandler().postDelayed(this, 10000);
+                return;
+            }
+
+            if (!mStoragePressure) {
+                
+                return;
+            }
+
+            BrowserDB.removeThumbnails(Tabs.getInstance().getContentResolver());
+            
         }
     }
 }
