@@ -464,27 +464,35 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   gfxContextMatrixAutoSaveRestore matrixAutoSaveRestore(gfx);
 
   nsPoint firstFrameOffset = GetOffsetToBoundingBox(firstFrame);
-  nsPoint offset = aBuilder->ToReferenceFrame(firstFrame) - firstFrameOffset;
-  nsPoint offsetWithoutSVGGeomFramePos;
-  if (firstFrame->IsFrameOfType(nsIFrame::eSVG)) {
-    offsetWithoutSVGGeomFramePos = offset;
-  } else {
+  nsPoint offsetToBoundingBox = aBuilder->ToReferenceFrame(firstFrame) - firstFrameOffset;
+  if (!firstFrame->IsFrameOfType(nsIFrame::eSVG)) {
     
 
-    offsetWithoutSVGGeomFramePos = nsPoint(
-      aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(offset.x),
-      aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(offset.y));
-  }
-  nsPoint svgGeomFramePos;
-  if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
-      aFrame->IsSVGText()) {
-    
-    
-    svgGeomFramePos = aFrame->GetPosition();
-    offsetWithoutSVGGeomFramePos -= svgGeomFramePos;
+    offsetToBoundingBox = nsPoint(
+      aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(offsetToBoundingBox.x),
+      aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(offsetToBoundingBox.y));
   }
 
-  aCtx->Translate(offsetWithoutSVGGeomFramePos);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  gfxPoint toUserSpaceGfx = nsSVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(aFrame);
+  nsPoint toUserSpace(nsPresContext::CSSPixelsToAppUnits(float(toUserSpaceGfx.x)),
+                      nsPresContext::CSSPixelsToAppUnits(float(toUserSpaceGfx.y)));
+  nsPoint offsetToUserSpace = offsetToBoundingBox - toUserSpace;
+
+  NS_ASSERTION(hasSVGLayout || offsetToBoundingBox == offsetToUserSpace,
+               "For non-SVG frames there shouldn't be any additional offset");
+
+  aCtx->Translate(offsetToUserSpace);
 
   gfxMatrix cssPxToDevPxMatrix = GetCSSPxToDevPxMatrix(aFrame);
 
@@ -496,7 +504,7 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
     complexEffects = true;
     gfx->Save();
     aCtx->IntersectClip(aFrame->GetVisualOverflowRectRelativeToSelf() +
-                        svgGeomFramePos);
+                        toUserSpace);
     gfx->PushGroup(gfxContentType::COLOR_ALPHA);
   }
 
@@ -511,13 +519,14 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   
   if (effectProperties.HasValidFilter()) {
     RegularFramePaintCallback callback(aBuilder, aLayerManager,
-                                       offsetWithoutSVGGeomFramePos);
-    nsRect dirtyRect = aDirtyRect - offset;
+                                       offsetToUserSpace);
+
+    nsRect dirtyRect = aDirtyRect - offsetToBoundingBox;
     nsFilterInstance::PaintFilteredFrame(aCtx, aFrame, &callback, &dirtyRect);
   } else {
     gfx->SetMatrix(matrixAutoSaveRestore.Matrix());
     aLayerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer, aBuilder);
-    aCtx->Translate(offsetWithoutSVGGeomFramePos);
+    aCtx->Translate(offsetToUserSpace);
   }
 
   if (clipPathFrame && isTrivialClip) {

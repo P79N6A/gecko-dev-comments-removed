@@ -589,30 +589,5 @@ nsFilterInstance::FilterSpaceToFrameSpace(const nsIntRect& aRect) const
 gfxMatrix
 nsFilterInstance::GetUserSpaceToFrameSpaceInCSSPxTransform() const
 {
-  gfxMatrix userToFrameSpaceInCSSPx;
-
-  if ((mTargetFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (mTargetFrame->GetType() == nsGkAtoms::svgInnerSVGFrame) {
-      userToFrameSpaceInCSSPx =
-        static_cast<nsSVGElement*>(mTargetFrame->GetContent())->
-          PrependLocalTransformsTo(gfxMatrix());
-    } else {
-      gfxPoint targetsUserSpaceOffset =
-        nsLayoutUtils::RectToGfxRect(mTargetFrame->GetRect(),
-                                     mAppUnitsPerCSSPx).TopLeft();
-      userToFrameSpaceInCSSPx.Translate(-targetsUserSpaceOffset);
-    }
-  }
-  
-  return userToFrameSpaceInCSSPx;
+  return gfxMatrix().Translate(-nsSVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(mTargetFrame));
 }
