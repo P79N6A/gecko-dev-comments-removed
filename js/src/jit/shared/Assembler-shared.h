@@ -104,39 +104,77 @@ struct ImmWord
     { }
 };
 
+#ifdef DEBUG
+static inline bool
+IsCompilingAsmJS()
+{
+    
+    IonContext *ictx = MaybeGetIonContext();
+    return ictx && ictx->compartment == NULL;
+}
+#endif
+
 
 struct ImmPtr
 {
     void *value;
 
     explicit ImmPtr(const void *value) : value(const_cast<void*>(value))
-    { }
+    {
+        
+        
+        JS_ASSERT(!IsCompilingAsmJS());
+    }
 
     template <class R>
     explicit ImmPtr(R (*pf)())
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
-    { }
+    {
+        JS_ASSERT(!IsCompilingAsmJS());
+    }
 
     template <class R, class A1>
     explicit ImmPtr(R (*pf)(A1))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
-    { }
+    {
+        JS_ASSERT(!IsCompilingAsmJS());
+    }
 
     template <class R, class A1, class A2>
     explicit ImmPtr(R (*pf)(A1, A2))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
-    { }
+    {
+        JS_ASSERT(!IsCompilingAsmJS());
+    }
 
     template <class R, class A1, class A2, class A3>
     explicit ImmPtr(R (*pf)(A1, A2, A3))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
-    { }
+    {
+        JS_ASSERT(!IsCompilingAsmJS());
+    }
 
     template <class R, class A1, class A2, class A3, class A4>
     explicit ImmPtr(R (*pf)(A1, A2, A3, A4))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
-    { }
+    {
+        JS_ASSERT(!IsCompilingAsmJS());
+    }
 
+};
+
+
+
+
+struct PatchedImmPtr {
+    void *value;
+
+    explicit PatchedImmPtr()
+      : value(NULL)
+    { }
+    explicit PatchedImmPtr(const void *value)
+      : value(const_cast<void*>(value))
+    { }
 };
 
 
@@ -148,6 +186,9 @@ struct ImmGCPtr
     {
         JS_ASSERT(!IsPoisonedPtr(ptr));
         JS_ASSERT_IF(ptr, ptr->isTenured());
+
+        
+        JS_ASSERT(!IsCompilingAsmJS());
     }
 
   protected:
@@ -161,6 +202,9 @@ struct ImmMaybeNurseryPtr : public ImmGCPtr
     {
         this->value = reinterpret_cast<uintptr_t>(ptr);
         JS_ASSERT(!IsPoisonedPtr(ptr));
+
+        
+        JS_ASSERT(!IsCompilingAsmJS());
     }
 };
 
@@ -171,7 +215,10 @@ struct AbsoluteAddress {
 
     explicit AbsoluteAddress(const void *addr)
       : addr(const_cast<void*>(addr))
-    { }
+    {
+        
+        JS_ASSERT(!IsCompilingAsmJS());
+    }
 
     AbsoluteAddress offset(ptrdiff_t delta) {
         return AbsoluteAddress(((uint8_t *) addr) + delta);
@@ -625,6 +672,75 @@ struct AsmJSGlobalAccess
 
 typedef Vector<AsmJSGlobalAccess, 0, IonAllocPolicy> AsmJSGlobalAccessVector;
 
+
+
+
+enum AsmJSImmKind
+{
+    AsmJSImm_Runtime,
+    AsmJSImm_StackLimit,
+    AsmJSImm_ReportOverRecursed,
+    AsmJSImm_HandleExecutionInterrupt,
+    AsmJSImm_InvokeFromAsmJS_Ignore,
+    AsmJSImm_InvokeFromAsmJS_ToInt32,
+    AsmJSImm_InvokeFromAsmJS_ToNumber,
+    AsmJSImm_CoerceInPlace_ToInt32,
+    AsmJSImm_CoerceInPlace_ToNumber,
+    AsmJSImm_ToInt32,
+    AsmJSImm_EnableActivationFromAsmJS,
+    AsmJSImm_DisableActivationFromAsmJS,
+#if defined(JS_CPU_ARM)
+    AsmJSImm_aeabi_idivmod,
+    AsmJSImm_aeabi_uidivmod,
+#endif
+    AsmJSImm_ModD,
+    AsmJSImm_SinD,
+    AsmJSImm_CosD,
+    AsmJSImm_TanD,
+    AsmJSImm_ASinD,
+    AsmJSImm_ACosD,
+    AsmJSImm_ATanD,
+    AsmJSImm_CeilD,
+    AsmJSImm_FloorD,
+    AsmJSImm_ExpD,
+    AsmJSImm_LogD,
+    AsmJSImm_PowD,
+    AsmJSImm_ATan2D
+};
+
+
+class AsmJSImmPtr
+{
+    AsmJSImmKind kind_;
+  public:
+    AsmJSImmKind kind() const { return kind_; }
+    AsmJSImmPtr(AsmJSImmKind kind) : kind_(kind) { JS_ASSERT(IsCompilingAsmJS()); }
+    AsmJSImmPtr() {}
+};
+
+
+
+class AsmJSAbsoluteAddress
+{
+    AsmJSImmKind kind_;
+  public:
+    AsmJSImmKind kind() const { return kind_; }
+    AsmJSAbsoluteAddress(AsmJSImmKind kind) : kind_(kind) { JS_ASSERT(IsCompilingAsmJS()); }
+    AsmJSAbsoluteAddress() {}
+};
+
+
+
+
+struct AsmJSAbsoluteLink
+{
+    AsmJSAbsoluteLink(CodeOffsetLabel patchAt, AsmJSImmKind target)
+      : patchAt(patchAt), target(target) {}
+    CodeOffsetLabel patchAt;
+    AsmJSImmKind target;
+};
+
+typedef Vector<AsmJSAbsoluteLink, 0, SystemAllocPolicy> AsmJSAbsoluteLinkVector;
 
 } 
 } 

@@ -268,6 +268,8 @@ struct ThreadSafeContext : ContextFriendFields,
     FreeOp *defaultFreeOp() { return runtime_->defaultFreeOp(); }
     bool useHelperThreads() { return runtime_->useHelperThreads(); }
     size_t helperThreadCount() { return runtime_->helperThreadCount(); }
+    void *runtimeAddressForJit() { return runtime_; }
+    void *stackLimitAddress(StackKind kind) { return &runtime_->mainThread.nativeStackLimit[kind]; }
 
     
     uint64_t gcNumber() { return runtime_->gcNumber; }
