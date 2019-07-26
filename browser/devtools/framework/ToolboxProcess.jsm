@@ -16,12 +16,8 @@ Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource://gre/modules/devtools/Loader.jsm");
 let require = devtools.require;
 let Telemetry = require("devtools/shared/telemetry");
-let EventEmitter = require("devtools/toolkit/event-emitter");
-const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 this.EXPORTED_SYMBOLS = ["BrowserToolboxProcess"];
-
-let processes = Set();
 
 
 
@@ -34,33 +30,15 @@ let processes = Set();
 
 
 this.BrowserToolboxProcess = function BrowserToolboxProcess(aOnClose, aOnRun, aOptions) {
-  let emitter = new EventEmitter();
-  this.on = emitter.on.bind(emitter);
-  this.off = emitter.off.bind(emitter);
-  this.once = emitter.once.bind(emitter);
-  
-  this.emit = function(...args) {
-    emitter.emit(...args);
-    BrowserToolboxProcess.emit(...args);
-  }
-
   
   
   if (typeof aOnClose === "object") {
-    if (aOnClose.onClose) {
-      this.on("close", aOnClose.onClose);
-    }
-    if (aOnClose.onRun) {
-      this.on("run", aOnClose.onRun);
-    }
+    this._closeCallback = aOnClose.onClose;
+    this._runCallback = aOnClose.onRun;
     this._options = aOnClose;
   } else {
-    if (aOnClose) {
-      this.on("close", aOnClose);
-    }
-    if (aOnRun) {
-      this.on("run", aOnRun);
-    }
+    this._closeCallback = aOnClose;
+    this._runCallback = aOnRun;
     this._options = aOptions || {};
   }
 
@@ -71,11 +49,7 @@ this.BrowserToolboxProcess = function BrowserToolboxProcess(aOnClose, aOnRun, aO
   this._initServer();
   this._initProfile();
   this._create();
-
-  processes.add(this);
 };
-
-EventEmitter.decorate(BrowserToolboxProcess);
 
 
 
@@ -83,25 +57,6 @@ EventEmitter.decorate(BrowserToolboxProcess);
 
 BrowserToolboxProcess.init = function(aOnClose, aOnRun, aOptions) {
   return new BrowserToolboxProcess(aOnClose, aOnRun, aOptions);
-};
-
-
-
-
-
-
-
-
-
-
-BrowserToolboxProcess.setAddonOptions = function DSC_setAddonOptions(aId, aOptions) {
-  let promises = [];
-
-  for (let process of processes.values()) {
-    promises.push(process.debuggerServer.setAddonOptions(aId, aOptions));
-  }
-
-  return promise.all(promises);
 };
 
 BrowserToolboxProcess.prototype = {
@@ -122,9 +77,6 @@ BrowserToolboxProcess.prototype = {
       this.loader.main("devtools/server/main");
       this.debuggerServer = this.loader.DebuggerServer;
       dumpn("Created a separate loader instance for the DebuggerServer.");
-
-      
-      this.debuggerServer.on("connectionchange", this.emit.bind(this));
     }
 
     if (!this.debuggerServer.initialized) {
@@ -217,7 +169,9 @@ BrowserToolboxProcess.prototype = {
     this._telemetry.toolOpened("jsbrowserdebugger");
 
     dumpn("Chrome toolbox is now running...");
-    this.emit("run", this);
+    if (typeof this._runCallback == "function") {
+      this._runCallback.call({}, this);
+    }
   },
 
   
@@ -242,8 +196,9 @@ BrowserToolboxProcess.prototype = {
 
     dumpn("Chrome toolbox is now closed...");
     this.closed = true;
-    this.emit("close", this);
-    processes.delete(this);
+    if (typeof this._closeCallback == "function") {
+      this._closeCallback.call({}, this);
+    }
   }
 };
 
