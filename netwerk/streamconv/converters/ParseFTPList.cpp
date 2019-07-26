@@ -833,6 +833,8 @@ int ParseFTPList(const char *line, struct list_state *state,
         result->fe_time.tm_min = atoi(tokens[1]+3);
         if ((tokens[1][5]) == 'P' && result->fe_time.tm_hour < 12)
           result->fe_time.tm_hour += 12;
+	else if ((tokens[1][5]) == 'A' && result->fe_time.tm_hour == 12)
+          result->fe_time.tm_hour = 0;
 
         
 
