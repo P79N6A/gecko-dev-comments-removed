@@ -15,6 +15,9 @@
 
 
 
+
+
+
 Cu.import("resource://testing-common/httpd.js");
 
 var httpserver = null;
@@ -80,6 +83,29 @@ MyListener.prototype = {
   },
   onStopRequest: function(request, context, status) {
     this.continueFn(request, this._buffer);
+  }
+};
+
+var case_8_range_request = false;
+function FailedChannelListener(continueFn) {
+  this.continueFn = continueFn;
+}
+FailedChannelListener.prototype = {
+  QueryInterface: function(iid) {
+    if (iid.equals(Ci.nsIStreamListener) ||
+        iid.equals(Ci.nsIRequestObserver) ||
+        iid.equals(Ci.nsISupports))
+      return this;
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  },
+  onStartRequest: function(request, context) { },
+
+  onDataAvailable: function(request, context, stream, offset, count) { },
+
+  onStopRequest: function(request, context, status) {
+    if (case_8_range_request)
+      do_check_eq(status, Components.results.NS_ERROR_CORRUPTED_CONTENT);
+    this.continueFn(request, null);
   }
 };
 
@@ -226,10 +252,97 @@ function received_partial_6(request, data) {
   chan.asyncOpen(new ChannelListener(received_cleartext, null), null);
 }
 
+const simpleBody = "0123456789";
+
+function received_simple(request, data) {
+  do_check_eq(simpleBody, data);
+  testFinished();
+}
+
+var case_7_request_no = 0;
+function handler_7(metadata, response) {
+  switch (case_7_request_no) {
+    case 0:
+      do_check_false(metadata.hasHeader("Range"));
+      response.setHeader("Content-Type", "text/plain", false);
+      response.setHeader("ETag", "test7Etag");
+      response.setHeader("Accept-Ranges", "bytes");
+      response.setHeader("Cache-Control", "max-age=360000");
+      response.setHeader("Content-Length", "10");
+      response.processAsync();
+      response.bodyOutputStream.write(simpleBody.slice(0, 4), 4);
+      response.finish();
+      break;
+    case 1:
+      response.setHeader("Content-Type", "text/plain", false);
+      response.setHeader("ETag", "test7Etag");
+      if (metadata.hasHeader("Range")) {
+	  do_check_true(metadata.hasHeader("If-Range"));
+	  response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
+	  response.setHeader("Content-Range", "4-9/10");
+	  response.setHeader("Content-Length", "6");
+	  response.bodyOutputStream.write(simpleBody.slice(4), 6);
+      } else {
+	  response.setHeader("Content-Length", "10");
+	  response.bodyOutputStream.write(simpleBody, 10);
+      }
+      break;
+    default:
+      response.setStatusLine(metadata.httpVersion, 404, "Not Found");
+  }
+  case_7_request_no++;
+}
+function received_partial_7(request, data) {
+  
+  do_check_eq(4, data.length);
+  
+  var chan = make_channel("http://localhost:" + port + "/test_7");
+  chan.asyncOpen(new ChannelListener(received_simple, null), null);
+}
+
+var case_8_request_no = 0;
+function handler_8(metadata, response) {
+  switch (case_8_request_no) {
+    case 0:
+      do_check_false(metadata.hasHeader("Range"));
+      response.setHeader("Content-Type", "text/plain", false);
+      response.setHeader("ETag", "test8Etag");
+      response.setHeader("Accept-Ranges", "bytes");
+      response.setHeader("Cache-Control", "max-age=360000");
+      response.setHeader("Content-Length", "10");
+      response.processAsync();
+      response.bodyOutputStream.write(simpleBody.slice(0, 4), 4);
+      response.finish();
+      break;
+    case 1:
+      if (metadata.hasHeader("Range")) {
+	  do_check_true(metadata.hasHeader("If-Range"));
+	  case_8_range_request = true;
+      }
+      response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
+      response.setHeader("Content-Type", "text/plain", false);
+      response.setHeader("ETag", "test8Etag");
+      response.setHeader("Content-Range", "4-8/9"); 
+      response.setHeader("Content-Length", "5");
+      response.bodyOutputStream.write(simpleBody.slice(4), 5);
+      break;
+    default:
+      response.setStatusLine(metadata.httpVersion, 404, "Not Found");
+  }
+  case_8_request_no++;
+}
+function received_partial_8(request, data) {
+  
+  do_check_eq(4, data.length);
+  
+  var chan = make_channel("http://localhost:" + port + "/test_8");
+  chan.asyncOpen(new FailedChannelListener(testFinished, null, CL_EXPECT_LATE_FAILURE), null);
+}
+
 
 var numTestsFinished = 0;
 function testFinished() {
-  if (++numTestsFinished == 5)
+  if (++numTestsFinished == 7)
     httpserver.stop(do_test_finished);
 }
 
@@ -240,6 +353,8 @@ function run_test() {
   httpserver.registerPathHandler("/test_4", handler_4);
   httpserver.registerPathHandler("/test_5", handler_5);
   httpserver.registerPathHandler("/test_6", handler_6);
+  httpserver.registerPathHandler("/test_7", handler_7);
+  httpserver.registerPathHandler("/test_8", handler_8);
   httpserver.start(-1);
 
   port = httpserver.identity.primaryPort;
@@ -266,6 +381,14 @@ function run_test() {
   
   var chan = make_channel("http://localhost:" + port + "/test_6");
   chan.asyncOpen(new MyListener(received_partial_6), null);
+
+  
+  var chan = make_channel("http://localhost:" + port + "/test_7");
+  chan.asyncOpen(new MyListener(received_partial_7), null);
+
+  
+  var chan = make_channel("http://localhost:" + port + "/test_8");
+  chan.asyncOpen(new MyListener(received_partial_8), null);
 
   do_test_pending();
 }
