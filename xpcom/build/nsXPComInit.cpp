@@ -48,6 +48,7 @@
 #include "xptinfo.h"
 #include "nsIInterfaceInfoManager.h"
 #include "xptiprivate.h"
+#include "mozilla/XPTInterfaceInfoManager.h"
 
 #include "nsTimerImpl.h"
 #include "TimerThread.h"
@@ -126,6 +127,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 
 #include "GeckoProfiler.h"
 
+using namespace mozilla;
 using base::AtExitManager;
 using mozilla::ipc::BrowserProcessSubThread;
 #ifdef MOZ_VISUAL_EVENT_TRACER
@@ -228,7 +230,7 @@ nsXPTIInterfaceInfoManagerGetSingleton(nsISupports* outer,
     NS_ENSURE_TRUE(!outer, NS_ERROR_NO_AGGREGATION);
 
     nsCOMPtr<nsIInterfaceInfoManager> iim
-        (xptiInterfaceInfoManager::GetSingleton());
+        (XPTInterfaceInfoManager::GetSingleton());
     if (!iim)
         return NS_ERROR_FAILURE;
 
@@ -470,7 +472,7 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 
     
     
-    (void) xptiInterfaceInfoManager::GetSingleton();
+    (void) XPTInterfaceInfoManager::GetSingleton();
 
     
     
@@ -688,7 +690,7 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
     
     
     
-    xptiInterfaceInfoManager::FreeInterfaceInfoManager();
+    XPTInterfaceInfoManager::FreeInterfaceInfoManager();
 
     
     
