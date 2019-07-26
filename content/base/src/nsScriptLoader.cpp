@@ -498,28 +498,6 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     return false;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIScriptGlobalObject> globalObject =
-    do_QueryInterface(mDocument->GetWindow());
-  if (!globalObject) {
-    return false;
-  }
-  
-  nsIScriptContext *context = globalObject->GetScriptContext();
-
-  
-  
-  if (!context || !context->GetScriptsEnabled()) {
-    return false;
-  }
-
   JSVersion version = JSVERSION_DEFAULT;
 
   
