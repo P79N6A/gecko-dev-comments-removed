@@ -7,6 +7,8 @@
 #ifndef js_SliceBudget_h
 #define js_SliceBudget_h
 
+#include <stdint.h>
+
 namespace js {
 
 
@@ -15,7 +17,8 @@ namespace js {
 
 
 
-struct JS_PUBLIC_API(SliceBudget) {
+struct JS_PUBLIC_API(SliceBudget)
+{
     int64_t deadline; 
     intptr_t counter;
 
