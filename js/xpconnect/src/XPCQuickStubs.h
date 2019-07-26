@@ -633,7 +633,7 @@ GeneratePropertyOp(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigne
 
     
     
-    JSObject *ptrobj = JS_NewObject(cx, &PointerHolderClass, nullptr, funobj);
+    JSObject *ptrobj = JS_NewObject(cx, &PointerHolderClass, JS::NullPtr(), funobj);
     if (!ptrobj)
         return nullptr;
     Op *popp = new Op;

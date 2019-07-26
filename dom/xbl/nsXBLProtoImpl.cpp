@@ -89,7 +89,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   if (scopeObject != globalObject) {
 
     
-    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr, scopeObject);
+    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), scopeObject);
     NS_ENSURE_TRUE(propertyHolder, NS_ERROR_OUT_OF_MEMORY);
 
     
