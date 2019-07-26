@@ -329,7 +329,7 @@ regexp_construct(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if (!IsConstructing(args)) {
+    if (!args.isConstructing()) {
         
 
 
