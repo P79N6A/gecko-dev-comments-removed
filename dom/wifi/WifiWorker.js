@@ -2427,7 +2427,11 @@ WifiWorker.prototype = {
       return;
     }
 
+    let sent = false;
     let callback = (function (networks) {
+      if (sent)
+        return;
+      sent = true;
       this._sendMessage(message, networks !== null, networks, msg);
     }).bind(this);
     this.waitForScan(callback);
@@ -2438,10 +2442,12 @@ WifiWorker.prototype = {
         return;
 
       
-      this.wantScanResults.splice(this.wantScanResults.indexOf(callback), 1);
+      if (sent)
+        return;
 
       
       
+      sent = true;
       this._sendMessage(message, false, "ScanFailed", msg);
     }).bind(this));
   },
