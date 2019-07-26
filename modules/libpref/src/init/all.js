@@ -2060,6 +2060,10 @@ pref("dom.ipc.plugins.java.enabled", false);
 pref("dom.ipc.plugins.flash.subprocess.crashreporter.enabled", true);
 pref("dom.ipc.plugins.reportCrashURL", true);
 
+
+
+pref("dom.ipc.plugins.unloadTimeoutSecs", 30);
+
 pref("dom.ipc.processCount", 1);
 
 
