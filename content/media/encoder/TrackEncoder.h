@@ -148,6 +148,16 @@ public:
                                 uint32_t aTrackEvents,
                                 const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
 
+  
+
+
+
+
+
+  static void InterleaveTrackData(AudioChunk& aChunk, int32_t aDuration,
+                                  uint32_t aOutputChannels,
+                                  AudioDataValue* aOutput);
+
 protected:
   
 
@@ -178,15 +188,6 @@ protected:
 
 
   virtual void NotifyEndOfStream() MOZ_OVERRIDE;
-
-  
-
-
-
-
-
-  void InterleaveTrackData(AudioChunk& aChunk, int32_t aDuration,
-                           uint32_t aOutputChannels, AudioDataValue* aOutput);
 
   
 
