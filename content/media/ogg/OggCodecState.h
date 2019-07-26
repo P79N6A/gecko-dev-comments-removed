@@ -96,6 +96,8 @@ public:
   
   
   
+  
+  
   virtual bool DecodeHeader(ogg_packet* aPacket) {
     return (mDoneReadingHeaders = true);
   }
