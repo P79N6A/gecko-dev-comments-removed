@@ -901,7 +901,7 @@ let test_system_shutdown = maketest("system_shutdown", function system_shutdown(
         setTimeout(function() {
           test.info("waitObservation timeout exceeded.");
           waitObservation.reject();
-        }, 500);
+        }, 1000);
         yield waitObservation.promise;
       });
     }
