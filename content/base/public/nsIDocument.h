@@ -2390,6 +2390,14 @@ protected:
   
   bool mDidDocumentOpen;
 
+#ifdef DEBUG
+  
+
+
+
+  bool mIsLinkUpdateRegistrationsForbidden;
+#endif
+
   
   
   
