@@ -1579,6 +1579,17 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
         aLayerMetrics.mScrollOffset.x, aLayerMetrics.mScrollOffset.y);
 
       mFrameMetrics.mScrollOffset = aLayerMetrics.mScrollOffset;
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      needContentRepaint = true;
     }
   }
 
