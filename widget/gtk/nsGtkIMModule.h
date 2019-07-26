@@ -13,6 +13,7 @@
 
 #include "nsString.h"
 #include "nsAutoPtr.h"
+#include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsIWidget.h"
 #include "mozilla/EventForwards.h"
@@ -268,7 +269,7 @@ protected:
     void GetCompositionString(nsAString &aCompositionString);
 
     
-    void SetTextRangeList(nsTArray<mozilla::TextRange>& aTextRangeList);
+    already_AddRefed<mozilla::TextRangeArray> CreateTextRangeArray();
 
     
     void SetCursorPosition(uint32_t aTargetOffset);
