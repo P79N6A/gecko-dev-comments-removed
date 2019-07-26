@@ -131,6 +131,10 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   { "opnx.dll", MAKE_VERSION(1, 3, 334, 9) },
   { "prnx.dll", MAKE_VERSION(1, 3, 334, 9) },
 
+  
+  
+  { "beid35cardlayer.dll", MAKE_VERSION(3, 5, 6, 6968) },
+
   { NULL, 0 }
 };
 
