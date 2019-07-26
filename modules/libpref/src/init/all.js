@@ -1043,10 +1043,6 @@ pref("network.jar.open-unsafe-types", false);
 
 
 
-pref("network.enableIDN", true);
-
-
-
 
 pref("network.IDN_show_punycode", false);
 
