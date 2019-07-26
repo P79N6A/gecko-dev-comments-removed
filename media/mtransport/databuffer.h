@@ -17,6 +17,8 @@ namespace mozilla {
 
 class DataBuffer;
 
+
+
 template<>
 struct HasDangerousPublicDestructor<DataBuffer>
 {

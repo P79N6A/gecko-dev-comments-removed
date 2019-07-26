@@ -44,6 +44,8 @@ static size_t kStunMessageLen = sizeof(kStunMessage);
 
 class DummySocket;
 
+
+
 namespace mozilla {
 template<>
 struct HasDangerousPublicDestructor<DummySocket>
