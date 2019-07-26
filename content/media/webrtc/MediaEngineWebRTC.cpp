@@ -60,6 +60,8 @@ MediaEngineWebRTC::MediaEngineWebRTC(MediaEnginePrefs &aPrefs)
 #else
   AsyncLatencyLogger::Get()->AddRef();
 #endif
+  
+  gFarendObserver = new AudioOutputObserver();
 }
 
 void
