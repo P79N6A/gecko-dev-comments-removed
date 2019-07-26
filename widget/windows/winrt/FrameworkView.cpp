@@ -141,7 +141,7 @@ FrameworkView::Run()
   
   mDispatcher->ProcessEvents(ABI::Windows::UI::Core::CoreProcessEventsOption::CoreProcessEventsOption_ProcessUntilQuit);
 
-  Log(L"Exiting FrameworkView::Run()");
+  Log("Exiting FrameworkView::Run()");
   return S_OK;
 }
 
