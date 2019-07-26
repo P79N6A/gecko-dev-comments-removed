@@ -400,6 +400,16 @@ public:
   void RemoveListenerImpl(MediaStreamListener* aListener);
   void RemoveAllListenersImpl();
   void SetTrackEnabledImpl(TrackID aTrackID, bool aEnabled);
+  
+
+
+
+
+
+  virtual bool IsIntrinsicallyConsumed() const
+  {
+    return !mAudioOutputs.IsEmpty() || !mVideoOutputs.IsEmpty();
+  }
 
   void AddConsumer(MediaInputPort* aPort)
   {
