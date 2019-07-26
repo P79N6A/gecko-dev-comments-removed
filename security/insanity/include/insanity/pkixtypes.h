@@ -75,6 +75,9 @@ public:
   
   
   
+  
+  
+  
   virtual SECStatus FindPotentialIssuers(const SECItem* encodedIssuerName,
                                          PRTime time,
                                   ScopedCERTCertList& results) = 0;

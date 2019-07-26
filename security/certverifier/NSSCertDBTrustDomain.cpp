@@ -57,15 +57,6 @@ NSSCertDBTrustDomain::FindPotentialIssuers(
   
   results = CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
                                        encodedIssuerName, time, true);
-  if (!results) {
-    
-    
-    if (PR_GetError() == SEC_ERROR_BAD_DATABASE) {
-      PR_SetError(SEC_ERROR_UNKNOWN_ISSUER, 0);
-    }
-    return SECFailure;
-  }
-
   return SECSuccess;
 }
 
