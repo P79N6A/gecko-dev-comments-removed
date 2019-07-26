@@ -139,12 +139,6 @@ public:
 
   static nsIMEUpdatePreference GetIMEUpdatePreference();
 
-  static void CompositionTimerCallbackFunc(nsITimer *aTimer, void *aClosure)
-  {
-    nsTextStore *ts = static_cast<nsTextStore*>(aClosure);
-    ts->OnCompositionTimer();
-  }
-
   static bool CanOptimizeKeyAndIMEMessages()
   {
     
@@ -185,7 +179,7 @@ public:
 
   static bool     IsComposing()
   {
-    return (sTsfTextStore && sTsfTextStore->mCompositionView != nullptr);
+    return (sTsfTextStore && sTsfTextStore->mComposition.mView != nullptr);
   }
 
   static bool     IsComposingOn(nsWindowBase* aWidget)
@@ -239,7 +233,7 @@ protected:
   HRESULT  UpdateCompositionExtent(ITfRange* pRangeNew);
   HRESULT  SendTextEventForCompositionString();
   HRESULT  SaveTextEvent(const nsTextEvent* aEvent);
-  nsresult OnCompositionTimer();
+  nsresult OnLayoutChange();
   HRESULT  ProcessScopeRequest(DWORD dwFlags,
                                ULONG cFilterAttrs,
                                const TS_ATTRID *paFilterAttrs);
@@ -263,32 +257,53 @@ protected:
   DWORD                        mLockQueued;
   
   TS_TEXTCHANGE                mTextChange;
+
+  class Composition MOZ_FINAL
+  {
+  public:
+    
+    nsRefPtr<ITfCompositionView> mView;
+
+    
+    
+    
+    
+    
+    
+    nsString mString;
+
+    
+    
+    nsString mLastData;
+
+    
+    
+    
+    
+    
+    TS_SELECTION_ACP mSelection;
+
+    
+    LONG mStart;
+    LONG mLength;
+
+    void StartLayoutChangeTimer(nsTextStore* aTextStore);
+    void EnsureLayoutChangeTimerStopped();
+
+  private:
+    
+    
+    nsCOMPtr<nsITimer> mLayoutChangeTimer;
+
+    static void TimerCallback(nsITimer* aTimer, void *aClosure);
+    static uint32_t GetLayoutChangeIntervalTime();
+  };
   
-  nsRefPtr<ITfCompositionView> mCompositionView;
-  
-  
-  
-  
-  
-  nsString                     mCompositionString;
-  
-  
-  
-  
-  
-  TS_SELECTION_ACP             mCompositionSelection;
-  
-  LONG                         mCompositionStart;
-  LONG                         mCompositionLength;
+  Composition mComposition;
+
   
   
   nsTextEvent*                 mLastDispatchedTextEvent;
-  
-  
-  nsString                     mLastDispatchedCompositionString;
-  
-  
-  nsCOMPtr<nsITimer>           mCompositionTimer;
   
   nsTArray<InputScope>         mInputScopes;
   bool                         mInputScopeDetected;
