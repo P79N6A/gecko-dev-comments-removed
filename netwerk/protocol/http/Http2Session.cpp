@@ -126,6 +126,19 @@ Http2Session::Http2Session(nsAHttpTransaction *aHttpTransaction,
     mPingThreshold = gHttpHandler->SpdyPingThreshold();
 }
 
+
+
+template<typename charType> static void
+CopyAsNetwork32(charType dest,   
+                uint32_t number) 
+{
+  number = PR_htonl(number);
+  memcpy(dest, &number, sizeof(number));
+}
+
+template void CopyAsNetwork32(char *dest, uint32_t number);
+template void CopyAsNetwork32(uint8_t *dest, uint32_t number);
+
 PLDHashOperator
 Http2Session::ShutdownEnumerator(nsAHttpTransaction *key,
                                  nsAutoPtr<Http2Stream> &stream,
@@ -601,12 +614,11 @@ Http2Session::CreateFrameHeader(charType dest, uint16_t frameLength,
   MOZ_ASSERT(!(streamID & 0x80000000));
 
   frameLength = PR_htons(frameLength);
-  streamID = PR_htonl(streamID);
 
   memcpy(dest, &frameLength, 2);
   dest[2] = frameType;
   dest[3] = frameFlags;
-  memcpy(dest + 4, &streamID, 4);
+  CopyAsNetwork32(dest + 4, streamID);
 }
 
 char *
@@ -710,7 +722,7 @@ Http2Session::GeneratePriority(uint32_t aID, uint8_t aPriorityWeight)
   mOutputQueueUsed += 13;
 
   CreateFrameHeader(packet, 5, FRAME_TYPE_PRIORITY, 0, aID);
-  memset(packet + 8, 0, 4);
+  CopyAsNetwork32(packet + 8, 0);
   memcpy(packet + 12, &aPriorityWeight, 1);
   LogIO(this, nullptr, "Generate Priority", packet, 13);
   FlushOutputQueue();
@@ -736,8 +748,7 @@ Http2Session::GenerateRstStream(uint32_t aStatusCode, uint32_t aID)
   mOutputQueueUsed += 12;
   CreateFrameHeader(packet, 4, FRAME_TYPE_RST_STREAM, 0, aID);
 
-  aStatusCode = PR_htonl(aStatusCode);
-  memcpy(packet + 8, &aStatusCode, 4);
+  CopyAsNetwork32(packet + 8, aStatusCode);
 
   LogIO(this, nullptr, "Generate Reset", packet, 12);
   FlushOutputQueue();
@@ -755,12 +766,10 @@ Http2Session::GenerateGoAway(uint32_t aStatusCode)
   CreateFrameHeader(packet, 8, FRAME_TYPE_GOAWAY, 0, 0);
 
   
-  uint32_t goAway = PR_htonl(mOutgoingGoAwayID);
-  memcpy(packet + 8, &goAway, 4);
+  CopyAsNetwork32(packet + 8, mOutgoingGoAwayID);
 
   
-  aStatusCode = PR_htonl(aStatusCode);
-  memcpy(packet + 12, &aStatusCode, 4);
+  CopyAsNetwork32(packet + 12, aStatusCode);
 
   LogIO(this, nullptr, "Generate GoAway", packet, 16);
   FlushOutputQueue();
@@ -812,8 +821,7 @@ Http2Session::SendHello()
   
   
   packet[8 + 5 * numberOfEntries] = SETTINGS_TYPE_INITIAL_WINDOW;
-  uint32_t rwin = PR_htonl(mPushAllowance);
-  memcpy(packet + 9 + 5 * numberOfEntries, &rwin, 4);
+  CopyAsNetwork32(packet + 9 + 5 * numberOfEntries, mPushAllowance);
   numberOfEntries++;
 
   
@@ -835,16 +843,15 @@ Http2Session::SendHello()
     goto sendHello_complete;
 
   
-  sessionWindowBump = PR_htonl(sessionWindowBump);
   mLocalSessionWindow = ASpdySession::kInitialRwin;
 
   packet = mOutputQueueBuffer.get() + mOutputQueueUsed;
   CreateFrameHeader(packet, 4, FRAME_TYPE_WINDOW_UPDATE, 0, 0);
   mOutputQueueUsed += 12;
-  memcpy(packet + 8, &sessionWindowBump, 4);
+  CopyAsNetwork32(packet + 8, sessionWindowBump);
 
   LOG3(("Session Window increase at start of session %p %u\n",
-        this, PR_ntohl(sessionWindowBump)));
+        this, sessionWindowBump));
   LogIO(this, nullptr, "Session Window Bump ", packet, 12);
 
 sendHello_complete:
@@ -2480,8 +2487,7 @@ Http2Session::UpdateLocalStreamWindow(Http2Stream *stream, uint32_t bytes)
   MOZ_ASSERT(mOutputQueueUsed <= mOutputQueueSize);
 
   CreateFrameHeader(packet, 4, FRAME_TYPE_WINDOW_UPDATE, 0, stream->StreamID());
-  toack = PR_htonl(toack);
-  memcpy(packet + 8, &toack, 4);
+  CopyAsNetwork32(packet + 8, toack);
 
   LogIO(this, stream, "Stream Window Update", packet, 12);
   
@@ -2519,8 +2525,7 @@ Http2Session::UpdateLocalSessionWindow(uint32_t bytes)
   MOZ_ASSERT(mOutputQueueUsed <= mOutputQueueSize);
 
   CreateFrameHeader(packet, 4, FRAME_TYPE_WINDOW_UPDATE, 0, 0);
-  toack = PR_htonl(toack);
-  memcpy(packet + 8, &toack, 4);
+  CopyAsNetwork32(packet + 8, toack);
 
   LogIO(this, nullptr, "Session Window Update", packet, 12);
   
