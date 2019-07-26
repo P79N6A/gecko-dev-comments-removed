@@ -281,7 +281,7 @@ struct JSCompartment
     JSObject                     *gcIncomingGrayPointers;
 
     
-    js::ArrayBufferVector        gcLiveArrayBuffers;
+    js::ArrayBufferObject        *gcLiveArrayBuffers;
 
     
     js::WeakMapBase              *gcWeakMapList;

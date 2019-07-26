@@ -3125,7 +3125,7 @@ JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg);
 
 
 extern JS_PUBLIC_API(JSObject *)
-JS_NewArrayBufferWithContents(JSContext *cx, size_t nbytes, void *contents, bool mapped = false);
+JS_NewArrayBufferWithContents(JSContext *cx, void *contents);
 
 
 
@@ -3133,8 +3133,11 @@ JS_NewArrayBufferWithContents(JSContext *cx, size_t nbytes, void *contents, bool
 
 
 
-extern JS_PUBLIC_API(void *)
-JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj);
+
+
+
+extern JS_PUBLIC_API(bool)
+JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj, void **contents, uint8_t **data);
 
 
 
@@ -3142,16 +3145,21 @@ JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj);
 
 
 
-extern JS_PUBLIC_API(void *)
-JS_AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes);
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+JS_AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes, void **contents, uint8_t **data);
 
 
 
 
 
 
-extern JS_PUBLIC_API(void *)
-JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void *oldContents, uint32_t oldNbytes);
+extern JS_PUBLIC_API(bool)
+JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void **contents, uint8_t **data);
 
 
 
@@ -3159,8 +3167,9 @@ JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void *oldConten
 
 
 
-extern JS_PUBLIC_API(void *)
-JS_CreateMappedArrayBufferContents(int fd, int *new_fd, size_t offset, size_t length);
+extern JS_PUBLIC_API(bool)
+JS_CreateMappedArrayBufferContents(int fd, int *new_fd, size_t offset,
+                                   size_t length, void **contents);
 
 
 
