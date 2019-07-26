@@ -4976,27 +4976,6 @@ ComputeEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect,
   
   r.UnionRect(r, nsLayoutUtils::GetBoxShadowRectForFrame(aFrame, aNewSize));
 
-  const nsStyleOutline* outline = aFrame->StyleOutline();
-  uint8_t outlineStyle = outline->GetOutlineStyle();
-  if (outlineStyle != NS_STYLE_BORDER_STYLE_NONE) {
-    nscoord width;
-    DebugOnly<bool> result = outline->GetOutlineWidth(width);
-    NS_ASSERTION(result, "GetOutlineWidth had no cached outline width");
-    if (width > 0) {
-      aFrame->Properties().
-        Set(nsIFrame::OutlineInnerRectProperty(), new nsRect(r));
-
-      nscoord offset = outline->mOutlineOffset;
-      nscoord inflateBy = std::max(width + offset, 0);
-      
-      
-      
-      
-      
-      r.Inflate(inflateBy, inflateBy);
-    }
-  }
-
   
   
   
@@ -6854,6 +6833,172 @@ IsInlineFrame(nsIFrame *aFrame)
   return type == nsGkAtoms::inlineFrame;
 }
 
+
+
+
+
+
+static nsRect
+UnionBorderBoxes(nsIFrame* aFrame, bool aApplyTransform,
+                 const nsSize* aSizeOverride = nullptr)
+{
+  const nsRect bounds(nsPoint(0, 0),
+                      aSizeOverride ? *aSizeOverride : aFrame->GetSize());
+
+  
+  
+  nsRect u;
+  bool doTransform = aApplyTransform && aFrame->IsTransformed();
+  if (doTransform) {
+    u = nsDisplayTransform::TransformRect(bounds, aFrame,
+                                          nsPoint(0, 0), &bounds);
+  } else {
+    u = bounds;
+  }
+
+  
+  
+  
+  const nsStyleDisplay* disp = aFrame->StyleDisplay();
+  nsIAtom* fType = aFrame->GetType();
+  if (!u.IsEqualEdges(aFrame->GetVisualOverflowRect()) &&
+      !u.IsEqualEdges(aFrame->GetScrollableOverflowRect()) &&
+      !nsFrame::ShouldApplyOverflowClipping(aFrame, disp) &&
+      fType != nsGkAtoms::scrollFrame &&
+      fType != nsGkAtoms::svgOuterSVGFrame) {
+
+    nsRect clipPropClipRect;
+    bool hasClipPropClip =
+      aFrame->GetClipPropClipRect(disp, &clipPropClipRect, bounds.Size());
+
+    
+    const nsIFrame::ChildListIDs skip(nsIFrame::kPopupList |
+                                      nsIFrame::kSelectPopupList);
+    for (nsIFrame::ChildListIterator childLists(aFrame);
+         !childLists.IsDone(); childLists.Next()) {
+      if (skip.Contains(childLists.CurrentID())) {
+        continue;
+      }
+
+      nsFrameList children = childLists.CurrentList();
+      for (nsFrameList::Enumerator e(children); !e.AtEnd(); e.Next()) {
+        nsIFrame* child = e.get();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        nsRect childRect = UnionBorderBoxes(child, true) +
+                           child->GetPosition();
+
+        if (hasClipPropClip) {
+          
+          childRect.IntersectRect(childRect, clipPropClipRect);
+        }
+
+        
+        
+        
+        
+        
+        
+        if (doTransform && !child->Preserves3D()) {
+          childRect = nsDisplayTransform::TransformRect(childRect, aFrame,
+                                                        nsPoint(0, 0), &bounds);
+        }
+        u.UnionRectEdges(u, childRect);
+      }
+    }
+  }
+
+  return u;
+}
+
+static void
+ComputeAndIncludeOutlineArea(nsIFrame* aFrame, nsOverflowAreas& aOverflowAreas,
+                             const nsSize& aNewSize)
+{
+  const nsStyleOutline* outline = aFrame->StyleOutline();
+  if (outline->GetOutlineStyle() == NS_STYLE_BORDER_STYLE_NONE) {
+    return;
+  }
+
+  nscoord width;
+  DebugOnly<bool> result = outline->GetOutlineWidth(width);
+  NS_ASSERTION(result, "GetOutlineWidth had no cached outline width");
+  if (width <= 0) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  nsIFrame *frameForArea = aFrame;
+  do {
+    nsIAtom *pseudoType = frameForArea->StyleContext()->GetPseudo();
+    if (pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
+        pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock)
+      break;
+    
+    frameForArea = frameForArea->GetFirstPrincipalChild();
+    NS_ASSERTION(frameForArea, "anonymous block with no children?");
+  } while (frameForArea);
+
+  
+  
+  
+  
+  
+  
+  
+  nsRect innerRect;
+  if (frameForArea == aFrame) {
+    innerRect = UnionBorderBoxes(aFrame, false, &aNewSize);
+  } else {
+    for (; frameForArea; frameForArea = frameForArea->GetNextSibling()) {
+      nsRect r(UnionBorderBoxes(frameForArea, true));
+
+      
+      
+      
+      for (nsIFrame *f = frameForArea, *parent = f->GetParent();
+           ;
+           f = parent, parent = f->GetParent()) {
+        r += f->GetPosition();
+        if (parent == aFrame) {
+          break;
+        }
+        if (parent->IsTransformed() && !f->Preserves3D()) {
+          r = nsDisplayTransform::TransformRect(r, parent, nsPoint(0, 0));
+        }
+      }
+
+      innerRect.UnionRect(innerRect, r);
+    }
+  }
+
+  aFrame->Properties().Set(nsIFrame::OutlineInnerRectProperty(),
+                           new nsRect(innerRect));
+
+  nscoord offset = outline->mOutlineOffset;
+  nscoord inflateBy = std::max(width + offset, 0);
+
+  
+  
+  nsRect outerRect(innerRect);
+  outerRect.Inflate(inflateBy, inflateBy);
+
+  nsRect& vo = aOverflowAreas.VisualOverflow();
+  vo.UnionRectEdges(vo, outerRect);
+}
+
 bool
 nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                                  nsSize aNewSize, nsSize* aOldSize)
@@ -6932,6 +7077,8 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
       vo.UnionRectEdges(vo, r);
     }
   }
+
+  ComputeAndIncludeOutlineArea(this, aOverflowAreas, aNewSize);
 
   
   aOverflowAreas.VisualOverflow() =
