@@ -164,6 +164,7 @@ public:
   
   
   
+  
   void OnTracksAvailable(OnTracksAvailableCallback* aCallback);
 
   
@@ -182,6 +183,7 @@ protected:
   void InitSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
   void InitTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
   void InitStreamCommon(MediaStream* aStream);
+
   void CheckTracksAvailable();
 
   class StreamListener;
