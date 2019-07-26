@@ -124,23 +124,33 @@ let Agent = {
   
 
 
-  write: function (stateString, options) {
+  write: function (stateString) {
+    let exn;
     let telemetry = {};
+
     if (!this.hasWrittenState) {
-      if (options && options.backupOnFirstWrite) {
-        try {
-          let startMs = Date.now();
-          File.move(this.path, this.backupPath);
-          telemetry.FX_SESSION_RESTORE_BACKUP_FILE_MS = Date.now() - startMs;
-        } catch (ex if isNoSuchFileEx(ex)) {
-          
-        }
+      try {
+        let startMs = Date.now();
+        File.move(this.path, this.backupPath);
+        telemetry.FX_SESSION_RESTORE_BACKUP_FILE_MS = Date.now() - startMs;
+      } catch (ex if isNoSuchFileEx(ex)) {
+        
+      } catch (ex) {
+        
+        
+        exn = ex;
       }
 
       this.hasWrittenState = true;
     }
 
-    return this._write(stateString, telemetry);
+    let ret = this._write(stateString, telemetry);
+
+    if (exn) {
+      throw exn;
+    }
+
+    return ret;
   },
 
   

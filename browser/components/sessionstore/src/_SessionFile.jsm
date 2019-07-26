@@ -67,8 +67,8 @@ this._SessionFile = {
   
 
 
-  write: function (aData, aOptions = {}) {
-    return SessionFileInternal.write(aData, aOptions);
+  write: function (aData) {
+    return SessionFileInternal.write(aData);
   },
   
 
@@ -209,13 +209,13 @@ let SessionFileInternal = {
     });
   },
 
-  write: function (aData, aOptions) {
+  write: function (aData) {
     let refObj = {};
     return TaskUtils.spawn(function task() {
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
       try {
-        let promise = SessionWorker.post("write", [aData, aOptions]);
+        let promise = SessionWorker.post("write", [aData]);
         
         TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
