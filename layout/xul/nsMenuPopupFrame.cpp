@@ -1417,9 +1417,6 @@ nsMenuPopupFrame::GetConstraintRect(const nsRect& aAnchorRect,
     }
   }
 
-  
-  screenRectPixels.SizeTo(screenRectPixels.width - 3, screenRectPixels.height - 3);
-
   nsRect screenRect = screenRectPixels.ToAppUnits(presContext->AppUnitsPerDevPixel());
   if (mInContentShell) {
     
