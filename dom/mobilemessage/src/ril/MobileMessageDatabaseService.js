@@ -855,10 +855,13 @@ MobileMessageDatabaseService.prototype = {
 
   saveRecord: function saveRecord(aMessageRecord, aAddresses, aCallback) {
     let isOverriding = (aMessageRecord.id !== undefined);
+    let oldThreadId = 0;
     if (!isOverriding) {
       
       this.lastMessageId += 1;
       aMessageRecord.id = this.lastMessageId;
+    } else {
+      oldThreadId = aMessageRecord.threadId;
     }
     if (DEBUG) debug("Going to store " + JSON.stringify(aMessageRecord));
 
@@ -898,18 +901,6 @@ MobileMessageDatabaseService.prototype = {
           return;
         }
 
-        
-        
-        
-        if (isOverriding &&
-            (!threadRecord || threadRecord.id != aMessageRecord.threadId)) {
-          self.updateThreadByMessageChange(messageStore,
-                                           threadStore,
-                                           aMessageRecord.threadId,
-                                           aMessageRecord.id,
-                                           aMessageRecord.read);
-        }
-
         let insertMessageRecord = function (threadId) {
           
           aMessageRecord.threadId = threadId;
@@ -921,6 +912,17 @@ MobileMessageDatabaseService.prototype = {
           }
           
           messageStore.put(aMessageRecord);
+
+          
+          
+          
+          if (isOverriding && threadId != oldThreadId) {
+            self.updateThreadByMessageChange(messageStore,
+                                             threadStore,
+                                             oldThreadId,
+                                             aMessageRecord.id,
+                                             aMessageRecord.read);
+          }
         };
 
         let timestamp = aMessageRecord.timestamp;
