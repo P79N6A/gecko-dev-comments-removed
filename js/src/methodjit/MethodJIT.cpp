@@ -40,12 +40,6 @@ using namespace js::mjit;
 # define CFI(str)
 #endif
 
-
-
-
-
-CFI(asm(".cfi_sections .debug_frame");)
-
 js::mjit::CompilerAllocPolicy::CompilerAllocPolicy(JSContext *cx, Compiler &compiler)
 : TempAllocPolicy(cx),
   oomFlag(&compiler.oomInVector)
