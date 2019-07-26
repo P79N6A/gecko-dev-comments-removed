@@ -8,7 +8,6 @@
 const { Ci, Cu } = require("chrome");
 
 let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
-let { setTimeout, clearTimeout } = Cu.import("resource://gre/modules/Timer.jsm", {});
 
 
 
@@ -28,8 +27,6 @@ exports.safeErrorString = function safeErrorString(aError) {
         }
       } catch (ee) { }
 
-      
-      
       if (typeof aError.lineNumber == "number" && typeof aError.columnNumber == "number") {
         errorString += "Line: " + aError.lineNumber + ", column: " + aError.columnNumber;
       }
@@ -116,42 +113,11 @@ exports.zip = function zip(a, b) {
   return pairs;
 };
 
-
-
-
-exports.executeSoon = function executeSoon(aFn) {
+const executeSoon = aFn => {
   Services.tm.mainThread.dispatch({
     run: exports.makeInfallible(aFn)
   }, Ci.nsIThread.DISPATCH_NORMAL);
 };
-
-
-
-
-
-
-
-exports.waitForTick = function waitForTick() {
-  let deferred = promise.defer();
-  exports.executeSoon(deferred.resolve);
-  return deferred.promise;
-};
-
-
-
-
-
-
-
-
-
-exports.waitForTime = function waitForTime(aDelay) {
-  let deferred = promise.defer();
-  setTimeout(deferred.resolve, aDelay);
-  return deferred.promise;
-};
-
-
 
 
 
@@ -171,7 +137,6 @@ exports.yieldingEach = function yieldingEach(aArray, aFn) {
 
   let i = 0;
   let len = aArray.length;
-  let outstanding = [deferred.promise];
 
   (function loop() {
     const start = Date.now();
@@ -182,12 +147,12 @@ exports.yieldingEach = function yieldingEach(aArray, aFn) {
       
       
       if (Date.now() - start > 16) {
-        exports.executeSoon(loop);
+        executeSoon(loop);
         return;
       }
 
       try {
-        outstanding.push(aFn(aArray[i], i++));
+        aFn(aArray[i++]);
       } catch (e) {
         deferred.reject(e);
         return;
@@ -197,8 +162,9 @@ exports.yieldingEach = function yieldingEach(aArray, aFn) {
     deferred.resolve();
   }());
 
-  return promise.all(outstanding);
+  return deferred.promise;
 }
+
 
 
 
@@ -300,3 +266,4 @@ exports.isSafeJSObject = function isSafeJSObject(aObj) {
 
   return Cu.isXrayWrapper(aObj);
 };
+
