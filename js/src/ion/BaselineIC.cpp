@@ -5328,13 +5328,14 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, JSO
     if (useNewType || op == JSOP_EVAL)
         return true;
 
-    RootedValue callee(cx, vp[0]);
-    RootedValue thisv(cx, vp[1]);
-
     if (stub->numOptimizedStubs() >= ICCall_Fallback::MAX_OPTIMIZED_STUBS) {
+        
         
         return true;
     }
+
+    RootedValue callee(cx, vp[0]);
+    RootedValue thisv(cx, vp[1]);
 
     if (!callee.isObject())
         return true;
@@ -5349,12 +5350,37 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, JSO
         if (!calleeScript->hasBaselineScript() && !calleeScript->hasIonScript())
             return true;
 
+        
+        if (stub->scriptedStubsAreGeneralized()) {
+            IonSpew(IonSpew_BaselineIC, "  Chain already has generalized scripted call stub!");
+            return true;
+        }
+
+        if (stub->scriptedStubCount() >= ICCall_Fallback::MAX_SCRIPTED_STUBS) {
+            
+            IonSpew(IonSpew_BaselineIC, "  Generating Call_AnyScripted stub (cons=%s)", 
+                    constructing ? "yes" : "no");
+
+            ICCallScriptedCompiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
+                                            constructing);
+            ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+            if (!newStub)
+                return false;
+
+            
+            stub->unlinkStubsWithKind(cx, ICStub::Call_Scripted);
+
+            
+            stub->addNewStub(newStub);
+            return true;
+        }
+
         IonSpew(IonSpew_BaselineIC,
                 "  Generating Call_Scripted stub (fun=%p, %s:%d, cons=%s)",
                 fun.get(), fun->nonLazyScript()->filename, fun->nonLazyScript()->lineno,
                 constructing ? "yes" : "no");
-        ICCall_Scripted::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
-                                           calleeScript, constructing);
+        ICCallScriptedCompiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
+                                        calleeScript, constructing);
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
         if (!newStub)
             return false;
@@ -5364,6 +5390,15 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, JSO
     }
 
     if (fun->isNative() && (!constructing || (constructing && fun->isNativeConstructor()))) {
+
+        
+        JS_ASSERT(!stub->nativeStubsAreGeneralized());
+
+        if (stub->nativeStubCount() >= ICCall_Fallback::MAX_NATIVE_STUBS) {
+            IonSpew(IonSpew_BaselineIC, "  Too many Call_Native stubs. TODO: add Call_AnyNative!");
+            return true;
+        }
+
         IonSpew(IonSpew_BaselineIC, "  Generating Call_Native stub (fun=%p, cons=%s)", fun.get(),
                 constructing ? "yes" : "no");
         ICCall_Native::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
@@ -5518,13 +5553,16 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     leaveStubFrame(masm, true);
 
     
+    regs = availableGeneralRegs(2);
+    Register scratch = regs.takeAny();
+
+    
     
     JS_ASSERT(JSReturnOperand == R0);
     Label skipThisReplace;
-    masm.branch32(Assembler::Equal,
-                  Address(BaselineStubReg, ICCall_Fallback::offsetOfIsConstructing()),
-                  Imm32(0),
-                  &skipThisReplace);
+    masm.load16ZeroExtend(Address(BaselineStubReg, ICStub::offsetOfExtra()), scratch);
+    masm.branchTest32(Assembler::Zero, scratch, Imm32(ICCall_Fallback::CONSTRUCTING_FLAG),
+                      &skipThisReplace);
     masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
     masm.moveValue(R1, R0);
 #ifdef DEBUG
@@ -5557,7 +5595,7 @@ typedef bool (*CreateThisFn)(JSContext *cx, HandleObject callee, MutableHandleVa
 static const VMFunction CreateThisInfo = FunctionInfo<CreateThisFn>(CreateThis);
 
 bool
-ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
+ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
 {
     Label failure;
     GeneralRegisterSet regs(availableGeneralRegs(0));
@@ -5572,10 +5610,12 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
         regs.take(BaselineTailCallReg);
 
     
+    
     BaseIndex calleeSlot(BaselineStackReg, argcReg, TimesEight, ICStackValueOffset + sizeof(Value));
     masm.loadValue(calleeSlot, R1);
     regs.take(R1);
 
+    
     masm.branchTestObject(Assembler::NotEqual, R1, &failure);
 
     
@@ -5583,9 +5623,18 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestObjClass(Assembler::NotEqual, callee, regs.getAny(), &FunctionClass, &failure);
 
     
-    masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
-    Address expectedScript(BaselineStubReg, ICCall_Scripted::offsetOfCalleeScript());
-    masm.branchPtr(Assembler::NotEqual, expectedScript, callee, &failure);
+    
+    if (calleeScript_) {
+        JS_ASSERT(kind == ICStub::Call_Scripted);
+
+        
+        masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
+        Address expectedScript(BaselineStubReg, ICCall_Scripted::offsetOfCalleeScript());
+        masm.branchPtr(Assembler::NotEqual, expectedScript, callee, &failure);
+    } else {
+        masm.branchIfFunctionHasNoScript(callee, &failure);
+        masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
+    }
 
     
     masm.loadBaselineOrIonCode(callee, regs.getAny(), &failure);
@@ -5621,8 +5670,17 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
             return false;
 
         
+#ifdef DEBUG
+        Label createdThisIsObject;
+        masm.branchTestObject(Assembler::Equal, JSReturnOperand, &createdThisIsObject);
+        masm.breakpoint();
+        masm.bind(&createdThisIsObject);
+#endif
+
+        
+        JS_ASSERT(JSReturnOperand == R0);
         regs = availableGeneralRegs(0);
-        regs.take(JSReturnOperand);
+        regs.take(R0);
         regs.take(ArgumentsRectifierReg);
         argcReg = regs.takeAny();
 
@@ -5631,25 +5689,34 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
         masm.pop(argcReg);
 
         
+        
+        
+        BaseIndex thisSlot(BaselineStackReg, argcReg, TimesEight, STUB_FRAME_SIZE);
+        masm.storeValue(R0, thisSlot);
+
+        
         masm.loadPtr(Address(BaselineStackReg, STUB_FRAME_SAVED_STUB_OFFSET), BaselineStubReg);
 
         
         
         
         
-        callee = regs.takeAny();
 
         
-        
-        masm.loadPtr(expectedScript, callee);
+        BaseIndex calleeSlot3(BaselineStackReg, argcReg, TimesEight,
+                               sizeof(Value) + STUB_FRAME_SIZE);
+        masm.loadValue(calleeSlot3, R0);
+        callee = masm.extractObject(R0, ExtractTemp0);
+        regs.add(R0);
+        regs.takeUnchecked(callee);
+        masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
         Register loadScratch = ArgumentsRectifierReg;
         masm.loadBaselineOrIonCode(callee, loadScratch, &failureLeaveStubFrame);
-        regs.add(callee);
-
         
-        BaseIndex thisSlot(BaselineStackReg, argcReg, TimesEight, STUB_FRAME_SIZE);
-        masm.storeValue(JSReturnOperand, thisSlot);
-        regs.add(JSReturnOperand);
+        
+        
+        if (callee != ExtractTemp0)
+            regs.add(callee);
 
         
         code = regs.takeAny();
