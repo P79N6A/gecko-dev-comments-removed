@@ -8,10 +8,7 @@
 #ifndef mozilla_Attributes_h_
 #define mozilla_Attributes_h_
 
-
-
-
-
+#include "mozilla/Compiler.h"
 
 
 
@@ -81,28 +78,18 @@
 #  endif
 #elif defined(__GNUC__)
 #  if defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L
-#    if __GNUC__ > 4
-#      define MOZ_HAVE_CXX11_DELETE
+#    if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
 #      define MOZ_HAVE_CXX11_OVERRIDE
 #      define MOZ_HAVE_CXX11_FINAL       final
-#    elif __GNUC__ == 4
-#      if __GNUC_MINOR__ >= 7
-#        define MOZ_HAVE_CXX11_OVERRIDE
-#        define MOZ_HAVE_CXX11_FINAL     final
-#      endif
-#      if __GNUC_MINOR__ >= 6
-#        define MOZ_HAVE_CXX11_CONSTEXPR
-#      endif
-#      define MOZ_HAVE_CXX11_DELETE
 #    endif
+#    if MOZ_GCC_VERSION_AT_LEAST(4, 6, 0)
+#      define MOZ_HAVE_CXX11_CONSTEXPR
+#    endif
+#    define MOZ_HAVE_CXX11_DELETE
 #  else
      
-#    if __GNUC__ > 4
+#    if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
 #      define MOZ_HAVE_CXX11_FINAL       __final
-#    elif __GNUC__ == 4
-#      if __GNUC_MINOR__ >= 7
-#        define MOZ_HAVE_CXX11_FINAL     __final
-#      endif
 #    endif
 #  endif
 #  define MOZ_HAVE_NEVER_INLINE          __attribute__((noinline))
