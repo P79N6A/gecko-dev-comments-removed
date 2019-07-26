@@ -181,6 +181,8 @@ class StoreBuffer
 
         
         void put(const T &v) {
+            JS_ASSERT(!owner->inParallelSection());
+
             
             if (!pos)
                 return;
@@ -229,6 +231,7 @@ class StoreBuffer
 
         
         void unput(const T &v) {
+            JS_ASSERT(!this->owner->inParallelSection());
             MonoTypeBuffer<T>::put(v.tagged());
         }
     };
@@ -261,6 +264,8 @@ class StoreBuffer
 
         template <typename T>
         void put(const T &t) {
+            JS_ASSERT(!owner->inParallelSection());
+
             
             if (!pos)
                 return;
@@ -492,6 +497,9 @@ class StoreBuffer
     bool coalesceForVerification();
     void releaseVerificationData();
     bool containsEdgeAt(void *loc) const;
+
+    
+    bool inParallelSection() const;
 
     
     void setAboutToOverflow();
