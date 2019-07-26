@@ -75,7 +75,11 @@ var SelectionHandler = {
   observe: function sh_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "Gesture:SingleTap": {
-        if (this._activeType == this.TYPE_CURSOR) {
+        if (this._activeType == this.TYPE_SELECTION) {
+          let data = JSON.parse(aData);
+          if (!this._pointInSelection(data.x, data.y))
+            this._closeSelection();
+        } else if (this._activeType == this.TYPE_CURSOR) {
           
           
           this._deactivate();
