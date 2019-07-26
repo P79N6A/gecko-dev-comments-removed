@@ -30,6 +30,7 @@ namespace mozilla {
 namespace net {
 
 class CacheFileMetadata;
+class FileOpenHelper;
 
 typedef struct {
   
@@ -327,8 +328,20 @@ public:
 
   void Log() {
     LOG(("CacheIndexStats::Log() [count=%u, notInitialized=%u, removed=%u, "
-         "dirty=%u, fresh=%u, empty=%u, size=%lld]", mCount, mNotInitialized,
+         "dirty=%u, fresh=%u, empty=%u, size=%u]", mCount, mNotInitialized,
          mRemoved, mDirty, mFresh, mEmpty, mSize));
+  }
+
+  void Clear() {
+    MOZ_ASSERT(!mStateLogged, "CacheIndexStats::Clear() - state logged!");
+
+    mCount = 0;
+    mNotInitialized = 0;
+    mRemoved = 0;
+    mDirty = 0;
+    mFresh = 0;
+    mEmpty = 0;
+    mSize = 0;
   }
 
 #ifdef DEBUG
@@ -512,6 +525,9 @@ public:
                               const uint32_t      *aExpirationTime,
                               const uint32_t      *aSize);
 
+  
+  static nsresult RemoveAll();
+
   enum EntryStatus {
     EXISTS         = 0,
     DOES_NOT_EXIST = 1,
@@ -538,10 +554,13 @@ private:
   friend class CacheIndexEntryAutoManage;
   friend class CacheIndexAutoLock;
   friend class CacheIndexAutoUnlock;
+  friend class FileOpenHelper;
 
   virtual ~CacheIndex();
 
   NS_IMETHOD OnFileOpened(CacheFileHandle *aHandle, nsresult aResult);
+  nsresult   OnFileOpenedInternal(FileOpenHelper *aOpener,
+                                  CacheFileHandle *aHandle, nsresult aResult);
   NS_IMETHOD OnDataWritten(CacheFileHandle *aHandle, const char *aBuf,
                            nsresult aResult);
   NS_IMETHOD OnDataRead(CacheFileHandle *aHandle, char *aBuf, nsresult aResult);
@@ -682,24 +701,23 @@ private:
 
   
   
-  static void DelayedBuildUpdate(nsITimer *aTimer, void *aClosure);
+  static void DelayedUpdate(nsITimer *aTimer, void *aClosure);
   
-  nsresult ScheduleBuildUpdateTimer(uint32_t aDelay);
+  nsresult ScheduleUpdateTimer(uint32_t aDelay);
   nsresult SetupDirectoryEnumerator();
   void InitEntryFromDiskData(CacheIndexEntry *aEntry,
                              CacheFileMetadata *aMetaData,
                              int64_t aFileSize);
   
-  void StartBuildingIndex();
+  bool IsUpdatePending();
   
   
   void BuildIndex();
-  
-  void FinishBuild(bool aSucceeded);
 
   bool StartUpdatingIndexIfNeeded(bool aSwitchingToReadyState = false);
   
-  void StartUpdatingIndex();
+  
+  void StartUpdatingIndex(bool aRebuild);
   
   
   
@@ -798,6 +816,12 @@ private:
   
   bool           mIndexNeedsUpdate;
   
+  
+  
+  
+  
+  bool           mRemovingAll;
+  
   bool           mIndexOnDiskIsValid;
   
   
@@ -812,7 +836,9 @@ private:
   TimeStamp      mLastDumpTime;
 
   
-  nsCOMPtr<nsITimer> mTimer;
+  nsCOMPtr<nsITimer> mUpdateTimer;
+  
+  bool               mUpdateEventPending;
 
   
   
@@ -829,18 +855,18 @@ private:
   nsRefPtr<CacheHash>       mRWHash;
 
   
-  
-  
-  uint32_t                  mReadOpenCount;
-  
-  bool                      mReadFailed;
-  
   bool                      mJournalReadSuccessfully;
 
   
   nsRefPtr<CacheFileHandle> mIndexHandle;
   
   nsRefPtr<CacheFileHandle> mJournalHandle;
+  
+  nsRefPtr<CacheFileHandle> mTmpHandle;
+
+  nsRefPtr<FileOpenHelper>  mIndexFileOpener;
+  nsRefPtr<FileOpenHelper>  mJournalFileOpener;
+  nsRefPtr<FileOpenHelper>  mTmpFileOpener;
 
   
   nsCOMPtr<nsIDirectoryEnumerator> mDirEnumerator;
