@@ -184,6 +184,14 @@ InspectorPanel.prototype = {
 
 
   setupSearchBox: function InspectorPanel_setupSearchBox() {
+    let searchDoc;
+    if (this.target.isLocalTab) {
+      searchDoc = this.browser.contentDocument;
+    } else if (this.target.window) {
+      searchDoc = this.target.window.document;
+    } else {
+      return;
+    }
     
     let setNodeFunction = function(node) {
       this.selection.setNode(node, "selectorsearch");
@@ -193,9 +201,7 @@ InspectorPanel.prototype = {
       this.searchSuggestions = null;
     }
     this.searchBox = this.panelDoc.getElementById("inspector-searchbox");
-    this.searchSuggestions = new SelectorSearch(this.browser.contentDocument,
-                                                this.searchBox,
-                                                setNodeFunction);
+    this.searchSuggestions = new SelectorSearch(searchDoc, this.searchBox, setNodeFunction);
   },
 
   
