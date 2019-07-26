@@ -1152,6 +1152,38 @@ public:
   nsRect        mImageRegion;           
 };
 
+struct nsStyleGridTrackList {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsTArray<nsTArray<nsString>> mLineNameLists;
+  nsTArray<nsStyleCoord> mMinTrackSizingFunctions;
+  nsTArray<nsStyleCoord> mMaxTrackSizingFunctions;
+
+  inline bool operator!=(const nsStyleGridTrackList& aOther) const {
+    return mLineNameLists != aOther.mLineNameLists ||
+           mMinTrackSizingFunctions != aOther.mMinTrackSizingFunctions ||
+           mMaxTrackSizingFunctions != aOther.mMaxTrackSizingFunctions;
+  }
+};
+
 struct nsStylePosition {
   nsStylePosition(void);
   nsStylePosition(const nsStylePosition& aOther);
@@ -1196,6 +1228,12 @@ struct nsStylePosition {
   float         mFlexGrow;              
   float         mFlexShrink;            
   nsStyleCoord  mZIndex;                
+  
+  
+  
+  
+  nsStyleGridTrackList mGridTemplateColumns;
+  nsStyleGridTrackList mGridTemplateRows;
 
   bool WidthDependsOnContainer() const
     { return WidthCoordDependsOnContainer(mWidth); }

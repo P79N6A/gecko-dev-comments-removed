@@ -632,6 +632,12 @@ protected:
   bool ParseFlexFlow();
 
   
+  bool ParseGridLineNames(nsCSSValue& aValue);
+  bool ParseGridTrackBreadth(nsCSSValue& aValue);
+  bool ParseGridTrackSize(nsCSSValue& aValue);
+  bool ParseGridTrackList(nsCSSProperty aPropID);
+
+  
   bool ParseRect(nsCSSProperty aPropID);
   bool ParseColumns();
   bool ParseContent();
@@ -781,6 +787,24 @@ protected:
   bool ParseOneOrLargerVariant(nsCSSValue& aValue,
                                int32_t aVariantMask,
                                const KTableValue aKeywordTable[]);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool ParseCustomIdent(nsCSSValue& aValue,
+                        const nsAutoString& aIdentValue,
+                        const nsCSSKeyword aExcludedKeywords[] = nullptr,
+                        const nsCSSProps::KTableValue aPropertyKTable[] = nullptr);
   bool ParseCounter(nsCSSValue& aValue);
   bool ParseAttr(nsCSSValue& aValue);
   bool SetValueToURL(nsCSSValue& aValue, const nsString& aURL);
@@ -6159,6 +6183,9 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
         
         
         
+
+        
+        
         if (eCSSKeyword_inherit == keyword) {
           aValue.SetInheritValue();
           return true;
@@ -6392,6 +6419,40 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
   return false;
 }
 
+bool
+CSSParserImpl::ParseCustomIdent(nsCSSValue& aValue,
+                                const nsAutoString& aIdentValue,
+                                const nsCSSKeyword aExcludedKeywords[],
+                                const nsCSSProps::KTableValue aPropertyKTable[])
+{
+  nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(aIdentValue);
+  if (keyword == eCSSKeyword_UNKNOWN) {
+    
+    aValue.SetStringValue(mToken.mIdent, eCSSUnit_Ident);
+    return true;
+  }
+  if (keyword == eCSSKeyword_inherit ||
+      keyword == eCSSKeyword_initial ||
+      keyword == eCSSKeyword_unset ||
+      keyword == eCSSKeyword_default ||
+      (aPropertyKTable &&
+        nsCSSProps::FindIndexOfKeyword(keyword, aPropertyKTable) >= 0)) {
+    return false;
+  }
+  if (aExcludedKeywords) {
+    for (uint32_t i = 0;; i++) {
+      nsCSSKeyword excludedKeyword = aExcludedKeywords[i];
+      if (excludedKeyword == eCSSKeyword_UNKNOWN) {
+        break;
+      }
+      if (excludedKeyword == keyword) {
+        return false;
+      }
+    }
+  }
+  aValue.SetStringValue(mToken.mIdent, eCSSUnit_Ident);
+  return true;
+}
 
 bool
 CSSParserImpl::ParseCounter(nsCSSValue& aValue)
@@ -6805,6 +6866,136 @@ CSSParserImpl::ParseFlexFlow()
   for (size_t i = 0; i < numProps; i++) {
     AppendValue(kFlexFlowSubprops[i], values[i]);
   }
+  return true;
+}
+
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
+{
+  MOZ_ASSERT(aValue.GetUnit() == eCSSUnit_Null,
+             "Unexpected unit, aValue should not be initialized yet");
+  if (!GetToken(true)) {
+    return true;
+  }
+  if (!mToken.IsSymbol('(')) {
+    UngetToken();
+    return true;
+  }
+  if (!GetToken(true) || mToken.IsSymbol(')')) {
+    return true;
+  }
+  
+
+  nsCSSValueList* item = aValue.SetListValue();
+  for (;;) {
+    if (!(eCSSToken_Ident == mToken.mType &&
+          ParseCustomIdent(item->mValue, mToken.mIdent))) {
+      UngetToken();
+      SkipUntil(')');
+      return false;
+    }
+    if (!GetToken(true) || mToken.IsSymbol(')')) {
+      return true;
+    }
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+  }
+}
+
+
+bool
+CSSParserImpl::ParseGridTrackBreadth(nsCSSValue& aValue)
+{
+  if (ParseNonNegativeVariant(aValue,
+                              VARIANT_LPCALC | VARIANT_KEYWORD,
+                              nsCSSProps::kGridTrackBreadthKTable)) {
+    return true;
+  }
+
+  
+  if (!GetToken(true)) {
+    return false;
+  }
+  if (!(eCSSToken_Dimension == mToken.mType &&
+        mToken.mIdent.LowerCaseEqualsLiteral("fr") &&
+        mToken.mNumber >= 0)) {
+    UngetToken();
+    return false;
+  }
+  aValue.SetFloatValue(mToken.mNumber, eCSSUnit_FlexFraction);
+  return true;
+}
+
+
+bool
+CSSParserImpl::ParseGridTrackSize(nsCSSValue& aValue)
+{
+  
+  if (ParseGridTrackBreadth(aValue) ||
+      ParseVariant(aValue, VARIANT_AUTO, nullptr)) {
+    return true;
+  }
+
+  
+  if (!GetToken(true)) {
+    return false;
+  }
+  if (!(eCSSToken_Function == mToken.mType &&
+        mToken.mIdent.LowerCaseEqualsLiteral("minmax"))) {
+    UngetToken();
+    return false;
+  }
+  nsCSSValue::Array* func = aValue.InitFunction(eCSSKeyword_minmax, 2);
+  if (ParseGridTrackBreadth(func->Item(1)) &&
+      ExpectSymbol(',', true) &&
+      ParseGridTrackBreadth(func->Item(2)) &&
+      ExpectSymbol(')', true)) {
+    return true;
+  }
+  SkipUntil(')');
+  return false;
+}
+
+bool
+CSSParserImpl::ParseGridTrackList(nsCSSProperty aPropID)
+{
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
+    AppendValue(aPropID, value);
+    return true;
+  }
+  
+
+  
+  
+  
+  nsCSSValueList* item = value.SetListValue();
+  if (!ParseGridLineNames(item->mValue)) {
+    return false;
+  }
+  do {
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+    
+    if (!ParseGridTrackSize(item->mValue)) {
+      return false;
+    }
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+    if (!ParseGridLineNames(item->mValue)) {
+      return false;
+    }
+  } while (!CheckEndProperty());
+  MOZ_ASSERT(value.GetListValue() && value.GetListValue()->mNext &&
+             value.GetListValue()->mNext->mNext,
+             "<track-list> should have a minimum length of 3");
+  AppendValue(aPropID, value);
   return true;
 }
 
@@ -7822,6 +8013,9 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseFlexFlow();
   case eCSSProperty_font:
     return ParseFont();
+  case eCSSProperty_grid_template_columns:
+  case eCSSProperty_grid_template_rows:
+    return ParseGridTrackList(aPropID);
   case eCSSProperty_image_region:
     return ParseRect(eCSSProperty_image_region);
   case eCSSProperty_list_style:
@@ -9799,6 +9993,10 @@ CSSParserImpl::ParseContent()
 bool
 CSSParserImpl::ParseCounterData(nsCSSProperty aPropID)
 {
+  static const nsCSSKeyword kCounterDataKTable[] = {
+    eCSSKeyword_none,
+    eCSSKeyword_UNKNOWN
+  };
   nsCSSValue value;
   if (!ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
     if (!GetToken(true) || mToken.mType != eCSSToken_Ident) {
@@ -9807,17 +10005,9 @@ CSSParserImpl::ParseCounterData(nsCSSProperty aPropID)
 
     nsCSSValuePairList *cur = value.SetPairListValue();
     for (;;) {
-      
-      
-      nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
-      if (keyword == eCSSKeyword_inherit ||
-          keyword == eCSSKeyword_default ||
-          keyword == eCSSKeyword_none ||
-          keyword == eCSSKeyword_unset ||
-          keyword == eCSSKeyword_initial) {
+      if (!ParseCustomIdent(cur->mXValue, mToken.mIdent, kCounterDataKTable)) {
         return false;
       }
-      cur->mXValue.SetStringValue(mToken.mIdent, eCSSUnit_Ident);
       if (!GetToken(true)) {
         break;
       }

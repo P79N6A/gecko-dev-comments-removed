@@ -258,7 +258,10 @@ enum nsCSSUnit {
 
   
   eCSSUnit_Seconds      = 3000,    
-  eCSSUnit_Milliseconds = 3001     
+  eCSSUnit_Milliseconds = 3001,    
+
+  
+  eCSSUnit_FlexFraction = 4000     
 };
 
 struct nsCSSValueGradient;
