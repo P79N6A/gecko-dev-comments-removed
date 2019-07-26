@@ -588,6 +588,11 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                 proxy = AnimatorProxy.create(mMenu);
                 proxy.setTranslationX(curveTranslation);
             }
+
+            proxy = AnimatorProxy.create(mReader);
+            proxy.setAlpha(0);
+            proxy = AnimatorProxy.create(mStop);
+            proxy.setAlpha(0);
         }
 
         final PropertyAnimator contentAnimator = new PropertyAnimator(250);
@@ -673,12 +678,10 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         mLayout.setSelected(true);
 
         
-        contentAnimator.attach(mReader,
-                               PropertyAnimator.Property.ALPHA,
-                               0);
-        contentAnimator.attach(mStop,
-                               PropertyAnimator.Property.ALPHA,
-                               0);
+        AnimatorProxy proxy = AnimatorProxy.create(mReader);
+        proxy.setAlpha(0);
+        proxy = AnimatorProxy.create(mStop);
+        proxy.setAlpha(0);
 
         
         contentAnimator.attach(mAwesomeBarRightEdge,
