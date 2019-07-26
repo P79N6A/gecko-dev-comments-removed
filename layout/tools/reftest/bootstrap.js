@@ -33,8 +33,6 @@ function setDefaultPrefs() {
     branch.setIntPref("urlclassifier.updateinterval", 172800);
     
     branch.setBoolPref("image.high_quality_downscaling.enabled", false);
-    
-    branch.setIntPref("media.volume_scale", "0.05");
 }
 
 var windowListener = {
