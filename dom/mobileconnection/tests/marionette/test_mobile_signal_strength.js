@@ -1,132 +1,98 @@
 
 
 
-MARIONETTE_TIMEOUT = 30000;
-MARIONETTE_HEAD_JS = "mobile_header.js";
+MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = "head.js";
 
 
-function setEmulatorGsmSignalStrength(rssi) {
-  emulatorHelper.sendCommand("gsm signal " + rssi);
-}
+const DEFAULT_RSSI = 7;
 
-
-function setEmulatorLteSignalStrength(rxlev, rsrp, rssnr) {
-  let lteSignal = rxlev + " " + rsrp + " " + rssnr;
-  emulatorHelper.sendCommand("gsm lte_signal " + lteSignal);
-}
-
-function waitForVoiceChangeEvent(callback) {
-  mobileConnection.addEventListener("voicechange", function onvoicechange() {
-    mobileConnection.removeEventListener("voicechange", onvoicechange);
-
-    if (callback && typeof callback === "function") {
-      callback();
+const TEST_DATA = [
+  
+  {
+    input: {
+      rxlev: 99,
+      rsrp: 65535,
+      rssnr: 65535
+    },
+    expect: {
+      signalStrength: null,
+      relSignalStrength: null
     }
-  });
-}
+  },
+  
+  {
+    input: {
+      rxlev: 63,
+      rsrp: 65535,
+      rssnr: 65535
+    },
+    expect: {
+      signalStrength: -48,
+      relSignalStrength: 100
+    }
+  },
+  
+  {
+    input: {
+      rxlev: 12,
+      rsrp: 65535,
+      rssnr: 65535
+    },
+    expect: {
+      signalStrength: -99,
+      relSignalStrength: 100
+    }
+  },
+  
+  {
+    input: {
+      rxlev: 0,
+      rsrp: 65535,
+      rssnr: 65535
+    },
+    expect: {
+      signalStrength: -111,
+      relSignalStrength: 0
+    }
+  }
+];
 
-
-taskHelper.push(function testInitialSignalStrengthInfo() {
+function testInitialSignalStrengthInfo() {
   log("Test initial signal strength info");
 
   let voice = mobileConnection.voice;
   
   is(voice.signalStrength, -99, "check voice.signalStrength");
   is(voice.relSignalStrength, 44, "check voice.relSignalStrength");
+}
 
-  taskHelper.runNext();
-});
+function testLteSignalStrength(aInput, aExpect) {
+  log("Test setting LTE signal strength to " + JSON.stringify(aInput));
 
-
-taskHelper.push(function testLteSignalStrength() {
-  
-  function doTestLteSignalStrength(input, expect, callback) {
-    log("Test LTE signal info with data : " + JSON.stringify(input));
-
-    waitForVoiceChangeEvent(function() {
+  return setEmulatorLteSignalStrengthAndWait(aInput.rxlev, aInput.rsrp, aInput.rssnr)
+    .then(() => {
       let voice = mobileConnection.voice;
-      is(voice.signalStrength, expect.signalStrength,
+      is(voice.signalStrength, aExpect.signalStrength,
          "check voice.signalStrength");
-      is(voice.relSignalStrength, expect.relSignalStrength,
+      is(voice.relSignalStrength, aExpect.relSignalStrength,
          "check voice.relSignalStrength");
-
-      if (callback && typeof callback === "function") {
-        callback();
-      }
     });
+}
 
-    setEmulatorLteSignalStrength(input.rxlev, input.rsrp, input.rssnr);
-  }
 
-  let testData = [
-    
-    {input: {
-      rxlev: 99,
-      rsrp: 65535,
-      rssnr: 65535},
-     expect: {
-      signalStrength: null,
-      relSignalStrength: null}
-    },
-    
-    {input: {
-      rxlev: 63,
-      rsrp: 65535,
-      rssnr: 65535},
-     expect: {
-      signalStrength: -48,
-      relSignalStrength: 100}
-    },
-    
-    {input: {
-      rxlev: 12,
-      rsrp: 65535,
-      rssnr: 65535},
-     expect: {
-      signalStrength: -99,
-      relSignalStrength: 100}
-    },
-    
-    {input: {
-      rxlev: 0,
-      rsrp: 65535,
-      rssnr: 65535},
-     expect: {
-      signalStrength: -111,
-      relSignalStrength: 0}
-    }
-  ];
+startTestCommon(function() {
+  
+  testInitialSignalStrengthInfo();
 
   
-  (function do_call() {
-    let next = testData.shift();
-    if (!next) {
-      taskHelper.runNext();
-      return;
-    }
-    doTestLteSignalStrength(next.input, next.expect, do_call);
-  })();
-});
-
-
-taskHelper.push(function testResetSignalStrengthInfo() {
-  
-  function doResetSignalStrength(rssi) {
-    waitForVoiceChangeEvent(function() {
-      let voice = mobileConnection.voice;
-      is(voice.signalStrength, -99, "check voice.signalStrength");
-      is(voice.relSignalStrength, 44, "check voice.relSignalStrength");
-
-      taskHelper.runNext();
-    });
-
-    setEmulatorGsmSignalStrength(rssi);
+  let promise = Promise.resolve();
+  for (let i = 0; i < TEST_DATA.length; i++) {
+    let data = TEST_DATA[i];
+    promise = promise.then(() => testLteSignalStrength(data.input,
+                                                       data.expect));
   }
 
   
-  
-  doResetSignalStrength(7);
+  return promise.then(() => setEmulatorGsmSignalStrengthAndWait(DEFAULT_RSSI));
 });
-
-
-taskHelper.runNext();

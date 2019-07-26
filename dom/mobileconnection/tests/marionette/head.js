@@ -1007,6 +1007,94 @@ function setEmulatorOperatorNamesAndWait(aOperator, aLongName, aShortName,
   return Promise.all(promises);
 }
 
+
+
+
+
+
+
+
+
+
+
+function setEmulatorGsmSignalStrength(aRssi) {
+  let cmd = "gsm signal " + aRssi;
+  return runEmulatorCmdSafe(cmd);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setEmulatorGsmSignalStrengthAndWait(aRssi,
+                                             aWaitVoice = true,
+                                             aWaitData = false) {
+  let promises = [];
+  if (aWaitVoice) {
+    promises.push(waitForManagerEvent("voicechange"));
+  }
+  if (aWaitData) {
+    promises.push(waitForManagerEvent("datachange"));
+  }
+  promises.push(setEmulatorGsmSignalStrength(aRssi));
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setEmulatorLteSignalStrength(aRxlev, aRsrp, aRssnr) {
+  let cmd = "gsm lte_signal " + aRxlev + " " + aRsrp + " " + aRssnr;
+  return runEmulatorCmdSafe(cmd);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setEmulatorLteSignalStrengthAndWait(aRxlev, aRsrp, aRssnr,
+                                             aWaitVoice = true,
+                                             aWaitData = false) {
+  let promises = [];
+  if (aWaitVoice) {
+    promises.push(waitForManagerEvent("voicechange"));
+  }
+  if (aWaitData) {
+    promises.push(waitForManagerEvent("datachange"));
+  }
+  promises.push(setEmulatorLteSignalStrength(aRxlev, aRsrp, aRssnr));
+  return Promise.all(promises);
+}
+
 let _networkManager;
 
 
