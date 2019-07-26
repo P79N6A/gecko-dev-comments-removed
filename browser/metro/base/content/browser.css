@@ -2,6 +2,10 @@
 
 
 
+browser[tabmodalPromptShowing] {
+  -moz-user-focus: none !important;
+}
+
 browser[remote="false"] {
   -moz-binding: url("chrome://browser/content/bindings/browser.xml#local-browser");
 }
