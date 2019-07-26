@@ -24,6 +24,8 @@
 #include "nsIObjectFrame.h"
 #include "nsIPermissionManager.h"
 #include "nsPluginHost.h"
+#include "nsJSNPRuntime.h"
+#include "nsIJSContextStack.h"
 #include "nsIPresShell.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
@@ -2274,6 +2276,7 @@ nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
   NS_ASSERTION(mType == eType_Plugin, "PluginCrashed at non-plugin type");
 
   
+  TeardownProtoChain();
   mInstanceOwner = nullptr;
   CloseChannel();
 
@@ -2508,6 +2511,7 @@ nsObjectLoadingContent::DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner,
     NS_ASSERTION(pluginHost, "No plugin host?");
     pluginHost->StopPluginInstance(inst);
   }
+  TeardownProtoChain();
 
   aInstanceOwner->Destroy();
   mIsStopping = false;
@@ -2874,6 +2878,51 @@ nsObjectLoadingContent::SetupProtoChain(JSContext* aCx, JSObject* aObject)
                                                           scriptContext,
                                                           this);
     nsContentUtils::AddScriptRunner(runner);
+  }
+}
+
+void
+nsObjectLoadingContent::TeardownProtoChain()
+{
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+
+  
+  
+  JSContext *cx = nsContentUtils::GetSafeJSContext();
+  JSObject *obj = thisContent->GetWrapper();
+  NS_ENSURE_TRUE(obj, );
+
+  JSObject *proto;
+  JSAutoRequest ar(cx);
+  JSAutoCompartment ac(cx, obj);
+
+  
+  
+  bool removed = false;
+  while (obj) {
+    if (!::JS_GetPrototype(cx, obj, &proto)) {
+      return;
+    }
+    if (!proto) {
+      break;
+    }
+    
+    
+    if (JS_GetClass(js::UnwrapObject(proto)) == &sNPObjectJSWrapperClass) {
+      
+      if (!::JS_GetPrototype(cx, proto, &proto)) {
+        return;
+      }
+
+      MOZ_ASSERT(!removed, "more than one NPObject in prototype chain");
+      removed = true;
+
+      
+      ::JS_SetPrototype(cx, obj, proto);
+    }
+
+    obj = proto;
   }
 }
 

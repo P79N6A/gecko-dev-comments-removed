@@ -148,7 +148,7 @@ static JSBool
 CreateNPObjectMember(NPP npp, JSContext *cx, JSObject *obj, NPObject *npobj,
                      jsid id, NPVariant* getPropertyResult, jsval *vp);
 
-static JSClass sNPObjectJSWrapperClass =
+JSClass sNPObjectJSWrapperClass =
   {
     NPRUNTIME_JSCLASS_NAME,
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_NEW_RESOLVE | JSCLASS_NEW_ENUMERATE,
@@ -1987,76 +1987,6 @@ nsJSNPRuntime::OnPluginDestroy(NPP npp)
     NppAndCx nppcx = { npp, cx };
     PL_DHashTableEnumerate(&sNPObjWrappers,
                            NPObjWrapperPluginDestroyedCallback, &nppcx);
-  }
-
-  
-  
-  
-  
-  if (!npp) {
-    return;
-  }
-
-  
-  
-  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)npp->ndata;
-  if (!inst)
-    return;
-
-  nsCOMPtr<nsIDOMElement> element;
-  inst->GetDOMElement(getter_AddRefs(element));
-  if (!element)
-    return;
-
-  
-  nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID()));
-  if (!xpc)
-    return;
-
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIContent> content(do_QueryInterface(element));
-  if (!content) {
-    return;
-  }
-
-  JSObject *obj = content->GetWrapper();
-  JSObject *proto;
-
-  Maybe<JSAutoCompartment> ac;
-  if (obj) {
-    ac.construct(cx, obj);
-  }
-
-  
-  
-  
-  
-  
-  while (obj) {
-    if (!::JS_GetPrototype(cx, obj, &proto)) {
-      return;
-    }
-    if (!proto) {
-      break;
-    }
-    
-    
-    if (JS_GetClass(js::UnwrapObject(proto)) == &sNPObjectJSWrapperClass) {
-      
-      if (!::JS_GetPrototype(cx, proto, &proto)) {
-        return;
-      }
-
-      
-      ::JS_SetPrototype(cx, obj, proto);
-    }
-
-    obj = proto;
   }
 }
 

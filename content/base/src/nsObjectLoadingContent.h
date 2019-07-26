@@ -164,6 +164,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     void SetupProtoChain(JSContext* aCx, JSObject* aObject);
 
     
+    void TeardownProtoChain();
+
+    
     bool DoNewResolve(JSContext* aCx, JSHandleObject aObject, JSHandleId aId,
                       unsigned aFlags, JSMutableHandleObject aObjp);
 
