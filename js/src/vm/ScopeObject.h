@@ -308,15 +308,7 @@ class DeclEnvObject : public ScopeObject
 
 class NestedScopeObject : public ScopeObject
 {
-  protected:
-    static const unsigned DEPTH_SLOT = 1;
-
   public:
-    
-    uint32_t stackDepth() const {
-        return getReservedSlot(DEPTH_SLOT).toPrivateUint32();
-    }
-
     
 
 
@@ -362,7 +354,7 @@ class NestedScopeObject : public ScopeObject
 class StaticWithObject : public NestedScopeObject
 {
   public:
-    static const unsigned RESERVED_SLOTS = 2;
+    static const unsigned RESERVED_SLOTS = 1;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT2_BACKGROUND;
 
     static const Class class_;
@@ -373,18 +365,17 @@ class StaticWithObject : public NestedScopeObject
 
 class DynamicWithObject : public NestedScopeObject
 {
-    static const unsigned OBJECT_SLOT = 2;
-    static const unsigned THIS_SLOT = 3;
+    static const unsigned OBJECT_SLOT = 1;
+    static const unsigned THIS_SLOT = 2;
 
   public:
-    static const unsigned RESERVED_SLOTS = 4;
+    static const unsigned RESERVED_SLOTS = 3;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
 
     static const Class class_;
 
     static DynamicWithObject *
-    create(JSContext *cx, HandleObject object, HandleObject enclosing, uint32_t depth,
-           HandleObject staticWith);
+    create(JSContext *cx, HandleObject object, HandleObject enclosing, HandleObject staticWith);
 
     StaticWithObject& staticWith() const {
         return getProto()->as<StaticWithObject>();
@@ -403,11 +394,19 @@ class DynamicWithObject : public NestedScopeObject
 
 class BlockObject : public NestedScopeObject
 {
+  protected:
+    static const unsigned DEPTH_SLOT = 1;
+
   public:
     static const unsigned RESERVED_SLOTS = 2;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
 
     static const Class class_;
+
+    
+    uint32_t stackDepth() const {
+        return getReservedSlot(DEPTH_SLOT).toPrivateUint32();
+    }
 
     
     uint32_t slotCount() const {

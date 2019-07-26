@@ -544,8 +544,6 @@ NonLocalExitScope::prepareForNonLocalJump(StmtInfoBCE *toStmt)
             break;
 
           case STMT_WITH:
-            
-            FLUSH_POPS();
             if (Emit1(cx, bce, JSOP_LEAVEWITH) < 0)
                 return false;
             JS_ASSERT(stmt->isNestedScope);
