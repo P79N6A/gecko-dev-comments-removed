@@ -517,17 +517,11 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
     mRequest = chan;
   }
 
-  imgStatusTracker& statusTracker = GetStatusTracker();
-  statusTracker.RecordStartRequest();
+  GetStatusTracker().OnStartRequest();
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   if (channel)
     channel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    statusTracker.SendStartRequest(iter.GetNext());
-  }
 
   
   nsCOMPtr<nsIChannel> chan(do_QueryInterface(aRequest));
@@ -616,11 +610,7 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
     this->Cancel(status);
   }
 
-  
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator srIter(GetStatusTracker().GetConsumers());
-  while (srIter.HasMore()) {
-    statusTracker.SendStopRequest(srIter.GetNext(), lastPart, status);
-  }
+  GetStatusTracker().OnStopRequest(lastPart, status);
 
   mTimedChannel = nullptr;
   return NS_OK;
@@ -721,11 +711,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       }
       mImage->SetInnerWindowID(mInnerWindowId);
 
-      
-    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-      while (iter.HasMore()) {
-        iter.GetNext()->SetHasImage();
-      }
+      GetStatusTracker().OnDataAvailable();
 
       
       nsCOMPtr<nsISupportsCString> contentType(do_CreateInstance("@mozilla.org/supports-cstring;1"));
