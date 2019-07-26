@@ -125,7 +125,10 @@ ReverbConvolver::ReverbConvolver(const float* impulseResponseData, size_t impuls
     
     
     if (this->useBackgroundThreads() && m_backgroundStages.Length() > 0) {
-        m_backgroundThread.Start();
+        if (!m_backgroundThread.Start()) {
+          NS_WARNING("Cannot start convolver thread.");
+          return;
+        }
         CancelableTask* task = NewRunnableMethod(this, &ReverbConvolver::backgroundThreadEntry);
         m_backgroundThread.message_loop()->PostTask(FROM_HERE, task);
     }
