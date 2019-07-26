@@ -3777,18 +3777,8 @@ Tab.prototype = {
 
       
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_START && aRequest && aWebProgress.isTopLevel) {
-          this.browser.engines = null;
-
-          
-          let newEngineMessage = {
-            type: "Link:OpenSearch",
-            tabID: this.id,
-            visible: false
-          };
-
-          sendMessageToJava(newEngineMessage);
-
-          this.browser.feeds = null;
+        this.browser.engines = null;
+        this.browser.feeds = null;
       }
 
       
