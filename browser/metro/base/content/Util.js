@@ -259,6 +259,13 @@ let Util = {
   },
 
   
+  getEmptyURLTabTitle: function getEmptyURLTabTitle() {
+    let browserStrings = Services.strings.createBundle("chrome://browser/locale/browser.properties");
+
+    return browserStrings.GetStringFromName("tabs.emptyTabTitle");
+  },
+
+  
   isURLMemorable: function isURLMemorable(aURL) {
     return !(aURL == "about:blank" ||
              aURL == "about:empty" ||
