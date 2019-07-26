@@ -78,7 +78,9 @@ ArithPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 
         
         
-        if (in->type() == MIRType_Object || in->type() == MIRType_String ||
+        if (in->type() == MIRType_Object ||
+            in->type() == MIRType_String ||
+            in->type() == MIRType_Symbol ||
             (in->type() == MIRType_Undefined && specialization_ == MIRType_Int32))
         {
             in = boxAt(alloc, ins, in);
@@ -327,6 +329,7 @@ TestPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
       case MIRType_Int32:
       case MIRType_Double:
       case MIRType_Float32:
+      case MIRType_Symbol:
       case MIRType_Object:
         break;
 
@@ -475,7 +478,11 @@ DoublePolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
         return true;
 
     
-    if (in->type() == MIRType_Object || in->type() == MIRType_String) {
+    
+    if (in->type() == MIRType_Object ||
+        in->type() == MIRType_String ||
+        in->type() == MIRType_Symbol)
+    {
         MBox *box = MBox::New(alloc, in);
         def->block()->insertBefore(def, box);
 
@@ -503,7 +510,11 @@ Float32Policy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
         return true;
 
     
-    if (in->type() == MIRType_Object || in->type() == MIRType_String) {
+    
+    if (in->type() == MIRType_Object ||
+        in->type() == MIRType_String ||
+        in->type() == MIRType_Symbol)
+    {
         MToDouble *toDouble = MToDouble::New(alloc, in);
         def->block()->insertBefore(def, toDouble);
 
@@ -517,7 +528,6 @@ Float32Policy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
         def->block()->insertBefore(def, toFloat32);
 
         def->replaceOperand(Op, unbox);
-
         return true;
     }
 
@@ -581,8 +591,12 @@ bool
 ToDoublePolicy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
 {
     MDefinition *in = ins->getOperand(0);
-    if (in->type() != MIRType_Object && in->type() != MIRType_String)
+    if (in->type() != MIRType_Object &&
+        in->type() != MIRType_String &&
+        in->type() != MIRType_Symbol)
+    {
         return true;
+    }
 
     in = boxAt(alloc, ins, in);
     ins->replaceOperand(0, in);
@@ -598,6 +612,7 @@ ToInt32Policy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
     switch (in->type()) {
       case MIRType_Object:
       case MIRType_String:
+      case MIRType_Symbol:
       case MIRType_Undefined:
         
         in = boxAt(alloc, ins, in);
@@ -615,7 +630,8 @@ ToStringPolicy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
 {
     JS_ASSERT(ins->isToString());
 
-    if (ins->getOperand(0)->type() == MIRType_Object) {
+    MIRType type = ins->getOperand(0)->type();
+    if (type == MIRType_Object || type == MIRType_Symbol) {
         ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
         return true;
     }
@@ -726,6 +742,7 @@ StoreTypedArrayPolicy::adjustValueInput(TempAllocator &alloc, MInstruction *ins,
         break;
       case MIRType_Object:
       case MIRType_String:
+      case MIRType_Symbol:
         value = boxAt(alloc, ins, value);
         break;
       default:
