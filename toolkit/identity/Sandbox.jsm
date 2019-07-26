@@ -99,8 +99,8 @@ this.Sandbox.prototype = {
     docShell.allowAuth = false;
     docShell.allowPlugins = false;
     docShell.allowImages = false;
+    docShell.allowMedia = false;
     docShell.allowWindowControl = false;
-    
 
     
     let markupDocViewer = docShell.contentViewer
