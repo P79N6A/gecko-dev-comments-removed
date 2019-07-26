@@ -57,6 +57,22 @@ public:
              JS::Handle<JSObject*> callable) MOZ_OVERRIDE;
   bool unwatch(JSContext* cx, JS::Handle<JSObject*> proxy,
                JS::Handle<jsid> id) MOZ_OVERRIDE;
+  virtual bool getOwnPropertyNames(JSContext* cx, JS::Handle<JSObject*> proxy,
+                                   JS::AutoIdVector &props) MOZ_OVERRIDE;
+  
+  
+  
+  
+  virtual bool keys(JSContext* cx, JS::Handle<JSObject*> proxy,
+                    JS::AutoIdVector &props) MOZ_OVERRIDE;
+
+protected:
+  
+  
+  
+  virtual bool ownPropNames(JSContext* cx, JS::Handle<JSObject*> proxy,
+                            unsigned flags,
+                            JS::AutoIdVector& props) = 0;
 };
 
 class DOMProxyHandler : public BaseDOMProxyHandler
