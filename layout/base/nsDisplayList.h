@@ -2030,8 +2030,6 @@ protected:
   bool mIsThemed;
   
   bool mIsBottommostLayer;
-  
-  bool mIsAnimated;
 };
 
 class nsDisplayBackgroundColor : public nsDisplayItem
