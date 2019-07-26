@@ -167,6 +167,6 @@ notification[type="critical"] {
 %endif
 
 .popup-notification-closebutton {
-  -moz-margin-end: -8px;
-  margin-top: -4px;
+  -moz-margin-end: -14px;
+  margin-top: -10px;
 }
