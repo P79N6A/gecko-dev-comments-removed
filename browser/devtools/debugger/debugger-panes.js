@@ -1552,6 +1552,13 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
 
   addListener: function(aListener, aOptions = {}) {
     let { node: { selector }, function: { url }, type } = aListener;
+    if (!type) return;
+
+    
+    
+    if (!url) {
+      url = this._inNativeCodeString;
+    }
 
     
     
@@ -1625,12 +1632,6 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
       group = L10N.getStr("touchEvents");
     } else {
       group = L10N.getStr("otherEvents");
-    }
-
-    
-    
-    if (!url) {
-      url = this._inNativeCodeString;
     }
 
     
