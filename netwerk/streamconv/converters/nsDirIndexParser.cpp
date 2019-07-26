@@ -35,7 +35,24 @@ nsDirIndexParser::Init() {
   mLineStart = 0;
   mHasDescription = false;
   mFormat = nullptr;
-  mozilla::dom::FallbackEncoding::FromLocale(mEncoding);
+
+  
+  
+  NS_NAMED_LITERAL_CSTRING(kFallbackEncoding, "ISO-8859-1");
+  nsXPIDLString defCharset;
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (prefs) {
+    nsCOMPtr<nsIPrefLocalizedString> prefVal;
+    prefs->GetComplexValue("intl.charset.default",
+                           NS_GET_IID(nsIPrefLocalizedString),
+                           getter_AddRefs(prefVal));
+    if (prefVal)
+      prefVal->ToString(getter_Copies(defCharset));
+  }
+  if (!defCharset.IsEmpty())
+    LossyCopyUTF16toASCII(defCharset, mEncoding); 
+  else
+    mEncoding.Assign(kFallbackEncoding);
  
   nsresult rv;
   

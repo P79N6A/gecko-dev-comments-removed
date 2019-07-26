@@ -45,9 +45,17 @@ function InitDetectorTests()
     $("testframe").onload = DoDetectionTest;
 
     if (gExpectedCharset == "default") {
-        
-        
-        gExpectedCharset = "windows-1252";
+        try {
+            gExpectedCharset = prefService
+                .getComplexValue("intl.charset.default",
+                                 Ci.nsIPrefLocalizedString)
+                .data;
+            if (gExpectedCharset == "ISO-8859-1") {
+                gExpectedCharset = "windows-1252";
+            }
+        } catch (e) {
+            gExpectedCharset = "windows-1252";
+        }
     }
 
     

@@ -564,8 +564,7 @@ function queryCharsetFromCode(aCode) {
   if (codes[aCode])
     return codes[aCode];
 
-  
-  return "windows-1252";
+  return getLocalizedPref("intl.charset.default", DEFAULT_QUERY_CHARSET);
 }
 function fileCharsetFromCode(aCode) {
   const codes = [
