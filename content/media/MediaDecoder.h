@@ -327,11 +327,6 @@ public:
   virtual nsresult Play();
 
   
-  
-  
-  virtual nsresult PlaybackRateChanged();
-
-  
   virtual void Pause();
   
   virtual void SetVolume(double aVolume);
