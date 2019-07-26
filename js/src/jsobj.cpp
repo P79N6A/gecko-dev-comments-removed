@@ -188,8 +188,7 @@ js::NewPropertyDescriptorObject(JSContext *cx, const PropertyDescriptor *desc,
     }
 
     
-    PropDesc d;
-    PropDesc::AutoRooter dRoot(cx, &d);
+    AutoPropDescRooter d(cx);
 
     d.initFromPropertyDescriptor(*desc);
     if (!d.makeObject(cx))

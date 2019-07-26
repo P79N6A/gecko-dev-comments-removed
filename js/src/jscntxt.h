@@ -71,7 +71,7 @@ struct CallsiteCloneKey {
     
     uint32_t offset;
 
-    CallsiteCloneKey() { mozilla::PodZero(this); }
+    CallsiteCloneKey(JSFunction *f, JSScript *s, uint32_t o) : original(f), script(s), offset(o) {}
 
     typedef CallsiteCloneKey Lookup;
 
