@@ -351,9 +351,14 @@ class Build(MachCommandBase):
 
                 
                 for make_dir, make_target in target_pairs:
+                    
+                    
+                    
+                    
                     status = self._run_make(directory=make_dir, target=make_target,
                         line_handler=output.on_line, log=False, print_directory=False,
-                        ensure_exit_code=False, num_jobs=jobs, silent=not verbose)
+                        ensure_exit_code=False, num_jobs=jobs, silent=not verbose,
+                        append_env={b'NO_BUILDSTATUS_MESSAGES': b'1'})
 
                     if status != 0:
                         break
