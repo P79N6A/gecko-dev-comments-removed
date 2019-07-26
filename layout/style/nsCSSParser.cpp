@@ -3758,12 +3758,21 @@ CSSParserImpl::ParsePseudoSelector(int32_t&       aDataMask,
     }
   }
   else if (!parsingPseudoElement && isPseudoClass) {
-    if (aSelector.IsPseudoElement() && !pseudoClassIsUserAction) {
-      
-      
-      REPORT_UNEXPECTED_TOKEN(PEPseudoClassNotUserAction);
-      UngetToken();
-      return eSelectorParsingStatus_Error;
+    if (aSelector.IsPseudoElement()) {
+      nsCSSPseudoElements::Type type = aSelector.PseudoType();
+      if (!nsCSSPseudoElements::PseudoElementSupportsUserActionState(type)) {
+        
+        REPORT_UNEXPECTED_TOKEN(PEPseudoSelNoUserActionPC);
+        UngetToken();
+        return eSelectorParsingStatus_Error;
+      }
+      if (!pseudoClassIsUserAction) {
+        
+        
+        REPORT_UNEXPECTED_TOKEN(PEPseudoClassNotUserAction);
+        UngetToken();
+        return eSelectorParsingStatus_Error;
+      }
     }
     aDataMask |= SEL_MASK_PCLASS;
     if (eCSSToken_Function == mToken.mType) {
