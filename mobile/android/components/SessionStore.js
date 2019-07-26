@@ -78,6 +78,7 @@ SessionStore.prototype = {
         observerService.addObserver(this, "domwindowclosed", true);
         observerService.addObserver(this, "browser:purge-session-history", true);
         observerService.addObserver(this, "Session:Restore", true);
+        observerService.addObserver(this, "Session:StoreTab", true);
         observerService.addObserver(this, "application-background", true);
         break;
       case "final-ui-startup":
@@ -117,6 +118,7 @@ SessionStore.prototype = {
         }
         break;
       case "Session:Restore": {
+        Services.obs.removeObserver(this, "Session:Restore");
         if (aData) {
           
           let window = Services.wm.getMostRecentWindow("navigator:browser");
@@ -147,6 +149,12 @@ SessionStore.prototype = {
         }
         break;
       }
+      case "Session:StoreTab": {
+        let window = Services.wm.getMostRecentWindow("navigator:browser");
+        let tab = window.BrowserApp.getTabForId(aData);
+        this.onTabLoad(window, tab.browser);
+        break;
+      }
       case "application-background":
         
         
@@ -174,13 +182,6 @@ SessionStore.prototype = {
       case "TabSelect": {
         let browser = aEvent.target;
         this.onTabSelect(window, browser);
-        break;
-      }
-      case "pageshow": {
-        let browser = aEvent.currentTarget;
-        
-        if (aEvent.originalTarget == browser.contentDocument)
-          this.onTabLoad(window, browser, aEvent.persisted);
         break;
       }
     }
@@ -246,15 +247,12 @@ SessionStore.prototype = {
   },
 
   onTabAdd: function ss_onTabAdd(aWindow, aBrowser, aNoNotification) {
-    aBrowser.addEventListener("pageshow", this, true);
     if (!aNoNotification)
       this.saveStateDelayed();
     this._updateCrashReportURL(aWindow);
   },
 
   onTabRemove: function ss_onTabRemove(aWindow, aBrowser, aNoNotification) {
-    aBrowser.removeEventListener("pageshow", this, true);
-
     
     if (aBrowser.__SS_restore)
       return;
@@ -282,7 +280,7 @@ SessionStore.prototype = {
     }
   },
 
-  onTabLoad: function ss_onTabLoad(aWindow, aBrowser, aPersisted) {
+  onTabLoad: function ss_onTabLoad(aWindow, aBrowser) {
     
     if (aBrowser.__SS_restore)
       return;
@@ -293,32 +291,26 @@ SessionStore.prototype = {
 
     let history = aBrowser.sessionHistory;
 
-    if (aPersisted && aBrowser.__SS_data) {
+    
+    let entries = [];
+    let index = history.index + 1;
+    for (let i = 0; i < history.count; i++) {
+      let historyEntry = history.getEntryAtIndex(i, false);
       
-      aBrowser.__SS_data.index = history.index + 1;
-      this.saveStateDelayed();
-    } else {
-      
-      let entries = [];
-      let index = history.index + 1;
-      for (let i = 0; i < history.count; i++) {
-        let historyEntry = history.getEntryAtIndex(i, false);
+      if (historyEntry.URI.schemeIs("wyciwyg")) {
         
-        if (historyEntry.URI.schemeIs("wyciwyg")) {
-          
-          if (i <= history.index)
-            index--;
-          continue;
-        }
-        let entry = this._serializeHistoryEntry(historyEntry);
-        entries.push(entry);
+        if (i <= history.index)
+          index--;
+        continue;
       }
-      let data = { entries: entries, index: index };
-
-      delete aBrowser.__SS_data;
-      this._collectTabData(aWindow, aBrowser, data);
-      this.saveState();
+      let entry = this._serializeHistoryEntry(historyEntry);
+      entries.push(entry);
     }
+    let data = { entries: entries, index: index };
+
+    delete aBrowser.__SS_data;
+    this._collectTabData(aWindow, aBrowser, data);
+    this.saveStateDelayed();
 
     this._updateCrashReportURL(aWindow);
   },
