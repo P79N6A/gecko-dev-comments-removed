@@ -1140,6 +1140,14 @@ MetroInput::DeliverNextQueuedTouchEvent()
       mContentConsumingTouch = (nsEventStatus_eConsumeNoDefault == status);
       
       
+      
+      if (mContentConsumingTouch) {
+        mCancelable = false;
+        mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
+        DispatchTouchCancel(event);
+      }
+      
+      
       mRecognizerWantsEvents = !(nsEventStatus_eConsumeNoDefault == status);
     } else if (event->message == NS_TOUCH_MOVE) {
       mCancelable = false;
