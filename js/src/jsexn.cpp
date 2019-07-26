@@ -470,7 +470,13 @@ js_ErrorFromException(jsval exn)
     if (JSVAL_IS_PRIMITIVE(exn))
         return NULL;
 
-    JSObject *obj = JSVAL_TO_OBJECT(exn);
+    
+    
+    
+    
+    
+    
+    JSObject *obj = UncheckedUnwrap(JSVAL_TO_OBJECT(exn));
     if (!obj->isError())
         return NULL;
 
