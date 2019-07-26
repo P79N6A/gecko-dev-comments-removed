@@ -80,6 +80,11 @@ static struct sock_filter seccomp_filter[] = {
   ALLOW_SYSCALL(_llseek),
 #endif
   ALLOW_SYSCALL(lseek),
+  
+  ALLOW_SYSCALL(ftruncate),
+#if SYSCALL_EXISTS(ftruncate64)
+  ALLOW_SYSCALL(ftruncate64),
+#endif
 
   
 
@@ -209,7 +214,6 @@ static struct sock_filter seccomp_filter[] = {
   ALLOW_SYSCALL(pread64),
   ALLOW_SYSCALL(statfs),
   ALLOW_SYSCALL(pipe),
-  ALLOW_SYSCALL(ftruncate),
   ALLOW_SYSCALL(getrlimit),
   ALLOW_SYSCALL(shutdown),
   ALLOW_SYSCALL(getpeername),
