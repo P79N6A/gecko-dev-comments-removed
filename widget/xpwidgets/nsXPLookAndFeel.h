@@ -59,7 +59,8 @@ public:
   
   
   virtual bool GetFontImpl(FontID aID, nsString& aName,
-                           gfxFontStyle& aStyle) = 0;
+                           gfxFontStyle& aStyle,
+                           float aDevPixPerCSSPixel) = 0;
 
   virtual void RefreshImpl();
 

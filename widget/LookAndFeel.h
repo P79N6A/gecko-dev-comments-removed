@@ -492,7 +492,9 @@ public:
 
 
 
-  static bool GetFont(FontID aID, nsString& aName, gfxFontStyle& aStyle);
+
+  static bool GetFont(FontID aID, nsString& aName, gfxFontStyle& aStyle,
+                      float aDevPixPerCSSPixel);
 
   
 
