@@ -103,17 +103,10 @@ public:
   void Clear(ErrorResult& aError);
   already_AddRefed<nsIDOMSVGLength> Initialize(nsIDOMSVGLength *newItem,
                                                ErrorResult& error);
-  nsIDOMSVGLength* GetItem(uint32_t index, ErrorResult& error)
-  {
-    bool found;
-    nsIDOMSVGLength* item = IndexedGetter(index, found, error);
-    if (!found) {
-      error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
-    }
-    return item;
-  }
-  nsIDOMSVGLength* IndexedGetter(uint32_t index, bool& found,
-                                 ErrorResult& error);
+  already_AddRefed<nsIDOMSVGLength> GetItem(uint32_t index,
+                                            ErrorResult& error);
+  already_AddRefed<nsIDOMSVGLength> IndexedGetter(uint32_t index, bool& found,
+                                                  ErrorResult& error);
   already_AddRefed<nsIDOMSVGLength> InsertItemBefore(nsIDOMSVGLength *newItem,
                                                      uint32_t index,
                                                      ErrorResult& error);
@@ -164,7 +157,7 @@ private:
   SVGLengthList& InternalList() const;
 
   
-  void EnsureItemAt(uint32_t aIndex);
+  already_AddRefed<nsIDOMSVGLength> GetItemAt(uint32_t aIndex);
 
   void MaybeInsertNullInAnimValListAt(uint32_t aIndex);
   void MaybeRemoveItemFromAnimValListAt(uint32_t aIndex);

@@ -176,7 +176,18 @@ DOMSVGLengthList::Initialize(nsIDOMSVGLength *newItem,
   return InsertItemBefore(newItem, 0, error);
 }
 
-nsIDOMSVGLength*
+already_AddRefed<nsIDOMSVGLength>
+DOMSVGLengthList::GetItem(uint32_t index, ErrorResult& error)
+{
+  bool found;
+  nsRefPtr<nsIDOMSVGLength> item = IndexedGetter(index, found, error);
+  if (!found) {
+    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+  }
+  return item.forget();
+}
+
+already_AddRefed<nsIDOMSVGLength>
 DOMSVGLengthList::IndexedGetter(uint32_t index, bool& found, ErrorResult& error)
 {
   if (IsAnimValList()) {
@@ -184,8 +195,7 @@ DOMSVGLengthList::IndexedGetter(uint32_t index, bool& found, ErrorResult& error)
   }
   found = index < LengthNoFlush();
   if (found) {
-    EnsureItemAt(index);
-    return mItems[index];
+    return GetItemAt(index);
   }
   return nullptr;
 }
@@ -308,12 +318,11 @@ DOMSVGLengthList::RemoveItem(uint32_t index,
   MaybeRemoveItemFromAnimValListAt(index);
 
   
-  EnsureItemAt(index);
+  nsCOMPtr<nsIDOMSVGLength> result = GetItemAt(index);
 
   
   
   mItems[index]->RemovingFromList();
-  nsCOMPtr<nsIDOMSVGLength> result = mItems[index];
 
   InternalList().RemoveItem(index);
   mItems.RemoveElementAt(index);
@@ -327,12 +336,16 @@ DOMSVGLengthList::RemoveItem(uint32_t index,
   return result.forget();
 }
 
-void
-DOMSVGLengthList::EnsureItemAt(uint32_t aIndex)
+already_AddRefed<nsIDOMSVGLength>
+DOMSVGLengthList::GetItemAt(uint32_t aIndex)
 {
+  MOZ_ASSERT(aIndex < mItems.Length());
+
   if (!mItems[aIndex]) {
     mItems[aIndex] = new DOMSVGLength(this, AttrEnum(), aIndex, IsAnimValList());
   }
+  nsRefPtr<nsIDOMSVGLength> result = mItems[aIndex];
+  return result.forget();
 }
 
 void
