@@ -219,7 +219,6 @@ def p_TranslationUnit(p):
         tu.namespaces = tu.protocol.namespaces
         tu.name = tu.protocol.name
     else:
-        print tu.filetype
         assert tu.filetype == 'header'
         
         
