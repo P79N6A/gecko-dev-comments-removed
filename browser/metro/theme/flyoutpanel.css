@@ -1,0 +1,71 @@
+
+
+
+
+flyoutpanel {
+  height: 100%;
+  border-width: 2px;
+  border-color: #d7d6d6;
+  background-color: #ffffff;
+  -moz-border-start-style: solid;
+  visibility: collapse;
+  position: fixed;
+  transition: transform 0.2s ease-out;
+  font-size: 11pt;
+  right: 0;
+}
+
+flyoutpanel:-moz-dir(rtl) {
+  left: 0;
+  right: auto;
+}
+
+flyoutpanel[visible] {
+  visibility: visible;
+}
+
+
+
+.flyoutpanel-wrapper {
+  height: 100%;
+  width: 100%;
+}
+
+.flyoutpanel-header {
+  background-color: #002147;
+  height: 80px;
+  width: 100%;
+  color: #ffffff;
+  font-weight: lighter;
+  font-size: 20pt;
+}
+
+.flyout-close-button {
+  margin-top: 30px !important;
+  -moz-margin-start: 40px !important;
+}
+
+.flyout-header-label {
+  margin-top: 30px !important;
+  -moz-margin-start: 10px !important;
+}
+
+.flyoutpanel-contents {
+  padding: 40px;
+  width: 100%;
+}
+
+.flyout-close-button {
+  border: 0 none;
+  -moz-appearance: none;
+  list-style-image: url(chrome://browser/skin/images/flyout-back-button.png);
+  -moz-image-region: rect(0 32px 32px 0);
+}
+
+.flyout-close-button:hover {
+  -moz-image-region: rect(0 64px 32px 32px);
+}
+
+.flyout-close-button:active {
+  -moz-image-region: rect(0 96px 32px 64px);
+}
