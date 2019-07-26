@@ -8,6 +8,7 @@
 
 #include "prmjtime.h"
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 
 #ifdef SOLARIS
@@ -66,6 +67,8 @@ extern int gettimeofday(struct timeval *tv);
 #define G2037GMTMICROHI        0x00e45fab /* micro secs to 2037 high */
 #define G2037GMTMICROLOW       0x7a238000 /* micro secs to 2037 low */
 
+using mozilla::DebugOnly;
+
 #if defined(XP_WIN)
 
 
@@ -106,13 +109,14 @@ static void
 NowCalibrate()
 {
     if (calibration.freq == 0.0) {
+        
+        
+        
         LARGE_INTEGER liFreq;
-        if (!QueryPerformanceFrequency(&liFreq)) {
-            
-            calibration.freq = -1.0;
-            return;
-        }
+        DebugOnly<BOOL> res = QueryPerformanceFrequency(&liFreq);
+        MOZ_ASSERT(res);
         calibration.freq = double(liFreq.QuadPart);
+        MOZ_ASSERT(calibration.freq > 0.0);
     }
     if (calibration.freq > 0.0) {
         
@@ -195,67 +199,6 @@ PRMJ_Now()
 #else
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int64_t
 PRMJ_Now()
 {
@@ -268,7 +211,7 @@ PRMJ_Now()
 #ifdef JS_THREADSAFE
     PR_CallOnce(&calibrationOnce, NowInit);
 #endif
-    do {
+    while (true) {
         if (!calibration.calibrated || needsCalibration) {
             MUTEX_LOCK(&calibration.calibration_lock);
             MUTEX_LOCK(&calibration.data_lock);
@@ -290,91 +233,85 @@ PRMJ_Now()
             MUTEX_UNLOCK(&calibration.calibration_lock);
         }
 
-
         
         FILETIME ft;
         GetSystemTimeAsFileTime(&ft);
         double lowresTime = FileTimeToUnixMicroseconds(ft);
 
-        if (calibration.freq > 0.0) {
-            
-            LARGE_INTEGER now;
-            QueryPerformanceCounter(&now);
-            double highresTimerValue = double(now.QuadPart);
+        
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        double highresTimerValue = double(now.QuadPart);
 
-            MUTEX_LOCK(&calibration.data_lock);
-            double highresTime = calibration.offset + PRMJ_USEC_PER_SEC *
-                 (highresTimerValue-calibration.timer_offset)/calibration.freq;
-            cachedOffset = calibration.offset;
+        MUTEX_LOCK(&calibration.data_lock);
+        double highresTime = calibration.offset + PRMJ_USEC_PER_SEC *
+            (highresTimerValue-calibration.timer_offset)/calibration.freq;
+        cachedOffset = calibration.offset;
 
-            
-            
-            calibration.last = js::Max(calibration.last, int64_t(highresTime));
-            returnedTime = calibration.last;
-            MUTEX_UNLOCK(&calibration.data_lock);
+        
+        
+        calibration.last = js::Max(calibration.last, int64_t(highresTime));
+        returnedTime = calibration.last;
+        MUTEX_UNLOCK(&calibration.data_lock);
 
-            
-            double skewThreshold;
-            DWORD timeAdjustment, timeIncrement;
-            BOOL timeAdjustmentDisabled;
-            if (GetSystemTimeAdjustment(&timeAdjustment,
-                                        &timeIncrement,
-                                        &timeAdjustmentDisabled)) {
-                if (timeAdjustmentDisabled) {
-                    
-                    skewThreshold = timeAdjustment/10.0;
-                } else {
-                    
-                    skewThreshold = timeIncrement/10.0;
-                }
+        
+        double skewThreshold;
+        DWORD timeAdjustment, timeIncrement;
+        BOOL timeAdjustmentDisabled;
+        if (GetSystemTimeAdjustment(&timeAdjustment,
+                                    &timeIncrement,
+                                    &timeAdjustmentDisabled)) {
+            if (timeAdjustmentDisabled) {
+                
+                skewThreshold = timeAdjustment/10.0;
             } else {
                 
-                skewThreshold = 15625.25;
+                skewThreshold = timeIncrement/10.0;
             }
-
-            
-            double diff = lowresTime - highresTime;
-
-            
-            
-            
-            
-            
-            if (mozilla::Abs(diff) <= 2 * skewThreshold) {
-                
-                return int64_t(highresTime);
-            }
-
-            if (calibrated) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                return int64_t(lowresTime);
-            }
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            needsCalibration = true;
         } else {
             
-            returnedTime = int64_t(lowresTime);
+            skewThreshold = 15625.25;
         }
-    } while (needsCalibration);
 
-    return returnedTime;
+        
+        double diff = lowresTime - highresTime;
+
+        
+        
+        
+        
+        
+        if (mozilla::Abs(diff) <= 2 * skewThreshold) {
+            
+            return int64_t(highresTime);
+        }
+
+        if (calibrated) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            return int64_t(lowresTime);
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        needsCalibration = true;
+    }
+
+    MOZ_ASSUME_UNREACHABLE("Shouldn't get here");
 }
 #endif
 
