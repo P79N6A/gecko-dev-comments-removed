@@ -89,7 +89,8 @@ var CastingApps = {
       case "ended": {
         let video = aEvent.target;
         if (video instanceof HTMLVideoElement) {
-          this._updatePageActionForVideo(video);
+          
+          this._updatePageActionForVideo(aEvent.type === "playing" ? video : null);
         }
         break;
       }
@@ -289,8 +290,7 @@ var CastingApps = {
   },
 
   _updatePageActionForVideo: function _updatePageActionForVideo(aVideo) {
-    
-    this._updatePageAction(aEvent.type == "playing" ? video : null);
+    this._updatePageAction(aVideo);
   },
 
   _updatePageAction: function _updatePageAction(aVideo) {
