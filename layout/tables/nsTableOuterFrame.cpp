@@ -851,8 +851,19 @@ nsTableOuterFrame::OuterDoReflowChild(nsPresContext*             aPresContext,
 
   
   nsPoint childPt = aChildFrame->GetPosition();
+  uint32_t flags = NS_FRAME_NO_MOVE_FRAME;
+
+  
+  
+  
+  
+  
+  if (aChildFrame == InnerTableFrame()) {
+    flags |= NS_FRAME_NO_DELETE_NEXT_IN_FLOW_CHILD;
+  }
+
   return ReflowChild(aChildFrame, aPresContext, aMetrics, aChildRS,
-                     childPt.x, childPt.y, NS_FRAME_NO_MOVE_FRAME, aStatus);
+                     childPt.x, childPt.y, flags, aStatus);
 }
 
 void 
@@ -1047,6 +1058,13 @@ NS_METHOD nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   UpdateReflowMetrics(captionSide, aDesiredSize, innerMargin, captionMargin);
+
+  if (GetPrevInFlow()) {
+    ReflowOverflowContainerChildren(aPresContext, aOuterRS,
+                                    aDesiredSize.mOverflowAreas, 0,
+                                    aStatus);
+  }
+
   FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aOuterRS, aStatus);
 
   
