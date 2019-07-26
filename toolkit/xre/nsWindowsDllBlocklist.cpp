@@ -436,8 +436,6 @@ continue_loading:
   printf_stderr("LdrLoadDll: continuing load... ('%S')\n", moduleFileName->Buffer);
 #endif
 
-  NS_SetHasLoadedNewDLLs();
-
   if (gInXPCOMLoadOnMainThread && NS_IsMainThread()) {
     
     full_fname = getFullPath(filePath, fname);
