@@ -607,6 +607,10 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
             movl(src.payloadReg(), dest);
     }
 
+    void notBoolean(const ValueOperand &val) {
+        xorl(Imm32(1), val.payloadReg());
+    }
+
     
     
     
