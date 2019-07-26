@@ -463,66 +463,47 @@ nsDiskCacheStreamIO::Flush()
     }
 
     
+    NS_ASSERTION(mStreamEnd <= kMaxBufferSize, "stream is bigger than buffer");
+
     nsDiskCacheMap *cacheMap = mDevice->CacheMap();  
-    nsresult rv;
+    nsDiskCacheRecord * record = &mBinding->mRecord;
+    nsresult rv = NS_OK;
 
-    bool written = false;
+    
+    if (record->DataLocationInitialized()) {
+        rv = cacheMap->DeleteStorage(record, nsDiskCache::kData);
+        NS_ENSURE_SUCCESS(rv, rv);
 
-    if (mStreamEnd <= kMaxBufferSize) {
         
-
         
-        nsDiskCacheRecord * record = &mBinding->mRecord;
-        if (record->DataLocationInitialized()) {
-            rv = cacheMap->DeleteStorage(record, nsDiskCache::kData);
+        if ((mStreamEnd == 0) && (!mBinding->mDoomed)) {
+            rv = cacheMap->UpdateRecord(record);
             if (NS_FAILED(rv)) {
-                NS_WARNING("cacheMap->DeleteStorage() failed.");
-                return rv;
-            }
-        }
-
-        
-        written = true;
-        if (mStreamEnd > 0) {
-            rv = cacheMap->WriteDataCacheBlocks(mBinding, mBuffer, mStreamEnd);
-            if (NS_FAILED(rv)) {
-                NS_WARNING("WriteDataCacheBlocks() failed.");
-                written = false;
+                NS_WARNING("cacheMap->UpdateRecord() failed.");
+                return rv;   
             }
         }
     }
+  
+    if (mStreamEnd == 0) return NS_OK;     
+ 
+    
+    rv = cacheMap->WriteDataCacheBlocks(mBinding, mBuffer, mStreamEnd);
+    if (NS_FAILED(rv)) {
+        NS_WARNING("WriteDataCacheBlocks() failed.");
 
-    if (!written && mStreamEnd > 0) {
         
         rv = FlushBufferToFile(); 
-
         if (mFD) {
-          
-          UpdateFileSize();
-
-          
-          (void) PR_Close(mFD);
-          mFD = nullptr;
+            UpdateFileSize();
+            (void) PR_Close(mFD);
+            mFD = nullptr;
         }
         else
-          NS_WARNING("no file descriptor");
-
-        
-        
-        NS_ENSURE_SUCCESS(rv, rv);
+            NS_WARNING("no file descriptor");
     }
-    
-    
-    
-    if (!mBinding->mDoomed) {
-        rv = cacheMap->UpdateRecord(&mBinding->mRecord);
-        if (NS_FAILED(rv)) {
-            NS_WARNING("cacheMap->UpdateRecord() failed.");
-            return rv;   
-        }
-    }
-    
-    return NS_OK;
+   
+    return rv;
 }
 
 
