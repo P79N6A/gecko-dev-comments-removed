@@ -732,7 +732,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
         return;
 
     switch (status) {
-        case JSFINALIZE_START:
+        case JSFINALIZE_GROUP_START:
         {
             NS_ASSERTION(!self->mDoingFinalization, "bad state");
 
@@ -760,7 +760,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
             self->mDoingFinalization = true;
             break;
         }
-        case JSFINALIZE_END:
+        case JSFINALIZE_GROUP_END:
         {
             NS_ASSERTION(self->mDoingFinalization, "bad state");
             self->mDoingFinalization = false;
@@ -768,6 +768,29 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
             
             
             DoDeferredRelease(self->mWrappedJSToReleaseArray);
+
+            
+            XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC();
+
+            
+            
+            { 
+                XPCAutoLock lock(self->GetMapLock());
+                NS_ASSERTION(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
+                self->mThreadRunningGC = nullptr;
+                xpc_NotifyAll(self->GetMapLock());
+            }
+
+            break;
+        }
+        case JSFINALIZE_COLLECTION_END:
+        {
+            
+            { 
+                XPCAutoLock lock(self->GetMapLock());
+                NS_ASSERTION(!self->mThreadRunningGC, "bad state");
+                self->mThreadRunningGC = PR_GetCurrentThread();
+            }
 
 #ifdef XPC_REPORT_NATIVE_INTERFACE_AND_SET_FLUSHING
             printf("--------------------------------------------------------------\n");
@@ -870,9 +893,6 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
 #endif
 
             
-            XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC();
-
-            
             
             
             
@@ -924,7 +944,6 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
 
             self->mDyingWrappedNativeProtoMap->
                 Enumerate(DyingProtoKiller, nullptr);
-
 
             
             

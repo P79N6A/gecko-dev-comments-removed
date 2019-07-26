@@ -1862,8 +1862,25 @@ typedef void
 (* JSGCCallback)(JSRuntime *rt, JSGCStatus status);
 
 typedef enum JSFinalizeStatus {
-    JSFINALIZE_START,
-    JSFINALIZE_END
+    
+
+
+
+
+    JSFINALIZE_GROUP_START,
+
+    
+
+
+
+
+
+    JSFINALIZE_GROUP_END,
+
+    
+
+
+    JSFINALIZE_COLLECTION_END
 } JSFinalizeStatus;
 
 typedef void
