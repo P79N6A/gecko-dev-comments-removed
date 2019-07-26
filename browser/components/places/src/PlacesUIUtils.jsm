@@ -338,26 +338,22 @@ this.PlacesUIUtils = {
 
 
 
-
-
-
   showBookmarkDialog:
-  function PUIU_showBookmarkDialog(aInfo, aParentWindow, aResizable) {
+  function PUIU_showBookmarkDialog(aInfo, aParentWindow) {
     
     
     
     
     let hasFolderPicker = !("hiddenRows" in aInfo) ||
                           aInfo.hiddenRows.indexOf("folderPicker") == -1;
-    let resizable = aResizable !== undefined ? aResizable : hasFolderPicker;
     
     
-    let dialogURL = resizable ?
+    let dialogURL = hasFolderPicker ?
                     "chrome://browser/content/places/bookmarkProperties2.xul" :
                     "chrome://browser/content/places/bookmarkProperties.xul";
 
     let features =
-      "centerscreen,chrome,modal,resizable=" + (resizable ? "yes" : "no");
+      "centerscreen,chrome,modal,resizable=" + (hasFolderPicker ? "yes" : "no");
 
     aParentWindow.openDialog(dialogURL, "",  features, aInfo);
     return ("performed" in aInfo && aInfo.performed);
