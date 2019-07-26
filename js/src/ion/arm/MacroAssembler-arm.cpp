@@ -2365,22 +2365,13 @@ MacroAssemblerARMCompat::storeValue(ValueOperand val, Register base, Register in
 }
 
 void
-MacroAssemblerARMCompat::loadValue(Register base, Register index, ValueOperand val)
+MacroAssemblerARMCompat::loadValue(Register base, Register index, ValueOperand val, Imm32 off)
 {
-    if (isValueDTRDCandidate(val)) {
-        ma_lsl(Imm32(TimesEight), index, ScratchRegister);
-        ma_ldrd(EDtrAddr(base, EDtrOffReg(ScratchRegister)), val.payloadReg(), val.typeReg());
-    } else {
-        
-        
-        
-        
-        
-        ma_alu(base, lsl(index, TimesEight), ScratchRegister, op_add);
 
-        
-        loadValue(Address(ScratchRegister, 0), val);
-    }
+    ma_alu(base, lsl(index, TimesEight), ScratchRegister, op_add);
+
+    
+    loadValue(Address(ScratchRegister, off.value), val);
 }
 
 void
