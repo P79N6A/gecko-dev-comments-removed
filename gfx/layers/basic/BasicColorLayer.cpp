@@ -65,20 +65,19 @@ public:
     if (IsHidden()) {
       return;
     }
-    gfxContextAutoSaveRestore contextSR(aContext);
-    gfxContext::GraphicsOperator mixBlendMode = DeprecatedGetEffectiveMixBlendMode();
-    AutoSetOperator setOptimizedOperator(aContext,
-                                         mixBlendMode != gfxContext::OPERATOR_OVER ?
-                                           mixBlendMode :
-                                           DeprecatedGetOperator());
 
-    aContext->SetColor(mColor);
+    gfxRect snapped(mBounds.x, mBounds.y, mBounds.width, mBounds.height);
+    if (aContext->UserToDevicePixelSnapped(snapped, true)) {
+      gfxMatrix mat = aContext->CurrentMatrix();
+      mat.Invert();
+      snapped = mat.TransformBounds(snapped);
+    }
 
-    nsIntRect bounds = GetBounds();
-    aContext->NewPath();
-    aContext->SnappedRectangle(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height));
-
-    FillWithMask(aContext, GetEffectiveOpacity(), aMaskLayer);
+    FillRectWithMask(aContext->GetDrawTarget(),
+                     Rect(snapped.x, snapped.y, snapped.width, snapped.height),
+                     ToColor(mColor),
+                     DrawOptions(GetEffectiveOpacity(), GetEffectiveOperator(this)),
+                     aMaskLayer);
   }
 
 protected:
