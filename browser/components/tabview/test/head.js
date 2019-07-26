@@ -1,6 +1,8 @@
 
 
 
+const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
 
 
 
@@ -417,4 +419,18 @@ function promiseWindowClosed(win) {
 
   win.close();
   return deferred.promise;
+}
+
+
+function waitForOnBeforeUnloadDialog(browser, callback) {
+  browser.addEventListener("DOMWillOpenModalDialog", function onModalDialog() {
+    browser.removeEventListener("DOMWillOpenModalDialog", onModalDialog, true);
+
+    executeSoon(() => {
+      let stack = browser.parentNode;
+      let dialogs = stack.getElementsByTagNameNS(XUL_NS, "tabmodalprompt");
+      let {button0, button1} = dialogs[0].ui;
+      callback(button0, button1);
+    });
+  }, true);
 }
