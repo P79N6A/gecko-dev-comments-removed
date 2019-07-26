@@ -38,7 +38,7 @@ public:
 
 protected:
     GLLibraryEGL* const mEGL;
-    layers::ISurfaceAllocator* const mAllocator;
+    WeakPtr<layers::ISurfaceAllocator> mAllocator;
     
     
     
@@ -64,7 +64,7 @@ protected:
                            size,
                            hasAlpha)
         , mEGL(egl)
-        , mAllocator(allocator)
+        , mAllocator(allocator->asWeakPtr())
         , mDesc(desc)
         , mProdTex(prodTex)
     {}
