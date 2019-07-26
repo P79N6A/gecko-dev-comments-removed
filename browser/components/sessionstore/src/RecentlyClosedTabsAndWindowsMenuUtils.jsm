@@ -30,7 +30,13 @@ this.RecentlyClosedTabsAndWindowsMenuUtils = {
 
 
 
-  getTabsFragment: function(aWindow, aTagName) {
+
+
+
+
+
+  getTabsFragment: function(aWindow, aTagName, aPrefixRestoreAll=false,
+                            aRestoreAllLabel="menuRestoreAllTabs.label") {
     let doc = aWindow.document;
     let fragment = doc.createDocumentFragment();
     if (ss.getClosedTabCount(aWindow) != 0) {
@@ -62,11 +68,17 @@ this.RecentlyClosedTabsAndWindowsMenuUtils = {
         fragment.appendChild(element);
       }
 
-      fragment.appendChild(doc.createElementNS(kNSXUL, "menuseparator"));
-      let restoreAllTabs = fragment.appendChild(doc.createElementNS(kNSXUL, aTagName));
-      restoreAllTabs.setAttribute("label", navigatorBundle.GetStringFromName("menuRestoreAllTabs.label"));
+      let restoreAllTabs = doc.createElementNS(kNSXUL, aTagName);
+      restoreAllTabs.classList.add("restoreallitem");
+      restoreAllTabs.setAttribute("label", navigatorBundle.GetStringFromName(aRestoreAllLabel));
       restoreAllTabs.setAttribute("oncommand",
               "for (var i = 0; i < " + closedTabs.length + "; i++) undoCloseTab();");
+      if (!aPrefixRestoreAll) {
+        fragment.appendChild(doc.createElementNS(kNSXUL, "menuseparator"));
+        fragment.appendChild(restoreAllTabs);
+      } else {
+        fragment.insertBefore(restoreAllTabs, fragment.firstChild);
+      }
     }
     return fragment;
   },
@@ -79,7 +91,13 @@ this.RecentlyClosedTabsAndWindowsMenuUtils = {
 
 
 
-  getWindowsFragment: function(aWindow, aTagName) {
+
+
+
+
+
+  getWindowsFragment: function(aWindow, aTagName, aPrefixRestoreAll=false,
+                            aRestoreAllLabel="menuRestoreAllWindows.label") {
     let closedWindowData = JSON.parse(ss.getClosedWindowData());
     let fragment = aWindow.document.createDocumentFragment();
     if (closedWindowData.length != 0) {
@@ -118,11 +136,17 @@ this.RecentlyClosedTabsAndWindowsMenuUtils = {
       }
 
       
-      fragment.appendChild(doc.createElementNS(kNSXUL, "menuseparator"));
-      let restoreAllWindows = fragment.appendChild(doc.createElementNS(kNSXUL, aTagName));
-      restoreAllWindows.setAttribute("label", navigatorBundle.GetStringFromName("menuRestoreAllWindows.label"));
+      let restoreAllWindows = doc.createElementNS(kNSXUL, aTagName);
+      restoreAllWindows.classList.add("restoreallitem");
+      restoreAllWindows.setAttribute("label", navigatorBundle.GetStringFromName(aRestoreAllLabel));
       restoreAllWindows.setAttribute("oncommand",
         "for (var i = 0; i < " + closedWindowData.length + "; i++) undoCloseWindow();");
+      if (!aPrefixRestoreAll) {
+        fragment.appendChild(doc.createElementNS(kNSXUL, "menuseparator"));
+        fragment.appendChild(restoreAllWindows);
+      } else {
+        fragment.insertBefore(restoreAllWindows, fragment.firstChild);
+      }
     }
     return fragment;
   },
