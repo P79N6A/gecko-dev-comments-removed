@@ -4,16 +4,17 @@
 
 
 
-#include "nsIURI.h"
-#include "nsIRequest.h"
+#ifndef MOZILLA_IMAGELIB_IMAGEFACTORY_H_
+#define MOZILLA_IMAGELIB_IMAGEFACTORY_H_
 
-#include "imgIContainer.h"
-#include "imgStatusTracker.h"
-
-#include "Image.h"
+class nsIRequest;
+class nsIURI;
+class imgStatusTracker;
 
 namespace mozilla {
 namespace image {
+
+class Image;
 
 class ImageFactory
 {
@@ -65,3 +66,5 @@ private:
 
 } 
 } 
+
+#endif 

@@ -4,18 +4,24 @@
 
 
 
+#include <algorithm>
+
 #include "mozilla/Preferences.h"
 #include "mozilla/Likely.h"
 
 #include "nsIHttpChannel.h"
 #include "nsSimpleURI.h"
 #include "nsMimeTypes.h"
+#include "nsIURI.h"
+#include "nsIRequest.h"
 
+#include "imgIContainer.h"
+#include "imgStatusTracker.h"
 #include "RasterImage.h"
 #include "VectorImage.h"
+#include "Image.h"
 
 #include "ImageFactory.h"
-#include <algorithm>
 
 namespace mozilla {
 namespace image {
@@ -123,7 +129,6 @@ ImageFactory::CreateAnonymousImage(const nsCString& aMimeType)
 }
 
  already_AddRefed<Image>
-
 ImageFactory::CreateRasterImage(nsIRequest* aRequest,
                                 imgStatusTracker* aStatusTracker,
                                 const nsCString& aMimeType,
