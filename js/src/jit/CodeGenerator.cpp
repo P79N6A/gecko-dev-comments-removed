@@ -644,6 +644,9 @@ CodeGenerator::testValueTruthy(const ValueOperand &value,
 Label *
 CodeGenerator::getJumpLabelForBranch(MBasicBlock *block)
 {
+    
+    block = skipTrivialBlocks(block);
+
     if (!labelForBackedgeWithImplicitCheck(block))
         return block->lir()->label();
 
@@ -717,17 +720,17 @@ CodeGenerator::visitFunctionDispatch(LFunctionDispatch *lir)
     if (!mir->hasFallback()) {
         JS_ASSERT(mir->numCases() > 0);
         casesWithFallback = mir->numCases();
-        lastLabel = mir->getCaseBlock(mir->numCases() - 1)->lir()->label();
+        lastLabel = skipTrivialBlocks(mir->getCaseBlock(mir->numCases() - 1))->lir()->label();
     } else {
         casesWithFallback = mir->numCases() + 1;
-        lastLabel = mir->getFallback()->lir()->label();
+        lastLabel = skipTrivialBlocks(mir->getFallback())->lir()->label();
     }
 
     
     for (size_t i = 0; i < casesWithFallback - 1; i++) {
         JS_ASSERT(i < mir->numCases());
         JSFunction *func = mir->getCase(i);
-        LBlock *target = mir->getCaseBlock(i)->lir();
+        LBlock *target = skipTrivialBlocks(mir->getCaseBlock(i))->lir();
         masm.branchPtr(Assembler::Equal, input, ImmGCPtr(func), target->label());
     }
 
@@ -751,7 +754,7 @@ CodeGenerator::visitTypeObjectDispatch(LTypeObjectDispatch *lir)
     InlinePropertyTable *propTable = mir->propTable();
     for (size_t i = 0; i < mir->numCases(); i++) {
         JSFunction *func = mir->getCase(i);
-        LBlock *target = mir->getCaseBlock(i)->lir();
+        LBlock *target = skipTrivialBlocks(mir->getCaseBlock(i))->lir();
 
         DebugOnly<bool> found = false;
         for (size_t j = 0; j < propTable->numEntries(); j++) {
@@ -765,7 +768,7 @@ CodeGenerator::visitTypeObjectDispatch(LTypeObjectDispatch *lir)
     }
 
     
-    LBlock *fallback = mir->getFallback()->lir();
+    LBlock *fallback = skipTrivialBlocks(mir->getFallback())->lir();
     masm.jump(fallback->label());
     return true;
 }
@@ -1263,7 +1266,7 @@ bool
 CodeGenerator::visitTableSwitch(LTableSwitch *ins)
 {
     MTableSwitch *mir = ins->mir();
-    Label *defaultcase = mir->getDefault()->lir()->label();
+    Label *defaultcase = skipTrivialBlocks(mir->getDefault())->lir()->label();
     const LAllocation *temp;
 
     if (mir->getOperand(0)->type() != MIRType_Int32) {
@@ -1283,7 +1286,7 @@ bool
 CodeGenerator::visitTableSwitchV(LTableSwitchV *ins)
 {
     MTableSwitch *mir = ins->mir();
-    Label *defaultcase = mir->getDefault()->lir()->label();
+    Label *defaultcase = skipTrivialBlocks(mir->getDefault())->lir()->label();
 
     Register index = ToRegister(ins->tempInt());
     ValueOperand value = ToValue(ins, LTableSwitchV::InputValue);
@@ -3365,6 +3368,13 @@ CodeGenerator::generateBody()
 
     for (size_t i = 0; i < graph.numBlocks(); i++) {
         current = graph.getBlock(i);
+
+        
+        
+        
+        if (current->isTrivial())
+            continue; 
+
         masm.bind(current->label());
 
         mozilla::Maybe<ScriptCountBlockState> blockCounts;

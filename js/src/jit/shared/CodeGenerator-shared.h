@@ -308,8 +308,30 @@ class CodeGeneratorShared : public LInstructionVisitor
     void emitPreBarrier(Register base, const LAllocation *index, MIRType type);
     void emitPreBarrier(Address address, MIRType type);
 
+    
+    
+    
+    MBasicBlock *skipTrivialBlocks(MBasicBlock *block) {
+        while (block->lir()->isTrivial()) {
+            JS_ASSERT(block->lir()->rbegin()->numSuccessors() == 1);
+            block = block->lir()->rbegin()->getSuccessor(0);
+        }
+        return block;
+    }
+
+    
+    
     inline bool isNextBlock(LBlock *block) {
-        return current->mir()->id() + 1 == block->mir()->id();
+        uint32_t target = skipTrivialBlocks(block->mir())->id();
+        uint32_t i = current->mir()->id() + 1;
+        if (target < i)
+            return false;
+        
+        for (; i != target; ++i) {
+            if (!graph.getBlock(i)->isTrivial())
+                return false;
+        }
+        return true;
     }
 
   public:

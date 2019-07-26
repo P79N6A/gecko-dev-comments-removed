@@ -1631,16 +1631,6 @@ GenerateLIR(MIRGenerator *mir)
             return nullptr;
     }
 
-    {
-        AutoTraceLog log(logger, TraceLogger::UnsplitEdges);
-        
-        
-        if (!UnsplitEdges(lir))
-            return nullptr;
-        IonSpewPass("Unsplit Critical Edges");
-        AssertBasicGraphCoherency(graph);
-    }
-
     return lir;
 }
 

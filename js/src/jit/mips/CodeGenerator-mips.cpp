@@ -86,6 +86,9 @@ void
 CodeGeneratorMIPS::branchToBlock(Assembler::FloatFormat fmt, FloatRegister lhs, FloatRegister rhs,
                                  MBasicBlock *mir, Assembler::DoubleCondition cond)
 {
+    
+    mir = skipTrivialBlocks(mir);
+
     Label *label = mir->lir()->label();
     if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
         

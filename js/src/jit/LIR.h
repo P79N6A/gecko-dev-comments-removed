@@ -797,11 +797,24 @@ class LBlock : public TempObject
     }
     uint32_t firstId();
     uint32_t lastId();
+
+    
     Label *label() {
+        JS_ASSERT(!isTrivial());
         return &label_;
     }
+
     LMoveGroup *getEntryMoveGroup(TempAllocator &alloc);
     LMoveGroup *getExitMoveGroup(TempAllocator &alloc);
+
+    
+    
+    bool isTrivial() {
+        LInstructionIterator ins(begin());
+        while (ins->isLabel())
+            ++ins;
+        return ins->isGoto() && !mir()->isLoopHeader();
+    }
 
     void dump(FILE *fp);
     void dump();

@@ -978,6 +978,9 @@ void
 CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
 {
     
+    mir = skipTrivialBlocks(mir);
+
+    
     if (isNextBlock(mir->lir()))
         return;
 
@@ -999,6 +1002,9 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
 void
 CodeGeneratorShared::jumpToBlock(MBasicBlock *mir, Assembler::Condition cond)
 {
+    
+    mir = skipTrivialBlocks(mir);
+
     if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
         
         
