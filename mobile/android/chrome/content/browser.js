@@ -1912,10 +1912,8 @@ var NativeWindow = {
               icon: item.icon,
               label: item.label,
               id: id,
-              isGroup: false,
-              inGroup: false,
               disabled: item.disabled,
-              isParent: item instanceof Ci.nsIDOMHTMLMenuElement
+              parent: item instanceof Ci.nsIDOMHTMLMenuElement
             }
           }
         };
@@ -2040,36 +2038,36 @@ var NativeWindow = {
       if (itemArray.length == 0)
         return;
 
-      let msg = {
-        type: "Prompt:Show",
-        title: title,
-        listitems: itemArray
-      };
-      let data = JSON.parse(sendMessageToJava(msg));
-      if (data.button == -1) {
-        
-        return;
-      }
-
-      let selectedId = itemArray[data.button].id;
-      let selectedItem = this._getMenuItemForId(selectedId);
-
-      this.menuitems = null;
-      if (selectedItem && selectedItem.callback) {
-        if (selectedItem.matches) {
+      let prompt = new Promt({
+        window: aTarget.ownerDocument.defaultView,
+        title: title
+      }).setSingleChoiceItems(itemArray)
+      .show(function(data) {
+        if (data.button == -1) {
           
-          while (aTarget) {
-            if (selectedItem.matches(aTarget, aX, aY)) {
-              selectedItem.callback.call(selectedItem, aTarget, aX, aY);
-              break;
-            }
-            aTarget = aTarget.parentNode;
-          }
-        } else {
-          
-          selectedItem.callback.call(selectedItem, aTarget, aX, aY);
+          return;
         }
-      }
+
+        let selectedId = itemArray[data.button].id;
+        let selectedItem = this._getMenuItemForId(selectedId);
+
+        this.menuitems = null;
+        if (selectedItem && selectedItem.callback) {
+          if (selectedItem.matches) {
+            
+            while (aTarget) {
+              if (selectedItem.matches(aTarget, aX, aY)) {
+                selectedItem.callback.call(selectedItem, aTarget, aX, aY);
+                break;
+              }
+              aTarget = aTarget.parentNode;
+            }
+          } else {
+            
+            selectedItem.callback.call(selectedItem, aTarget, aX, aY);
+          }
+        }
+      });
     },
 
     handleEvent: function(aEvent) {
