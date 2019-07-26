@@ -271,6 +271,14 @@ protected:
 
     NS_HIDDEN_(bool) CanUseProxy(nsIURI *uri, int32_t defaultPort);
 
+    
+
+
+
+
+
+    NS_HIDDEN_(void) MaybeDisableDNSPrefetch(nsIProxyInfo *aProxy);
+
 private:
     nsresult SetupPACThread();
     nsresult ResetPACThread();
