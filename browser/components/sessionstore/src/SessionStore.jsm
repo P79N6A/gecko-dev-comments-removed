@@ -2134,17 +2134,21 @@ let SessionStoreInternal = {
       recentCrashes: this._recentCrashes
     };
 
-    
-    let scratchpads = ScratchpadManager.getSessionState();
-
     let state = {
       windows: total,
       selectedWindow: ix + 1,
       _closedWindows: lastClosedWindowsCopy,
       session: session,
-      scratchpads: scratchpads,
       global: this._globalState.getState()
     };
+
+    if (Cu.isModuleLoaded("resource:///modules/devtools/scratchpad-manager.jsm")) {
+      
+      let scratchpads = ScratchpadManager.getSessionState();
+      if (scratchpads && scratchpads.length) {
+        state.scratchpads = scratchpads;
+      }
+    }
 
     
     if (LastSession.canRestore) {
