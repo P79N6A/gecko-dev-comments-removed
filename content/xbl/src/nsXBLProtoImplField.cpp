@@ -408,9 +408,6 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                "Shouldn't get here when an exception is pending!");
 
   
-  nsCOMPtr<nsIScriptContext> context = aContext;
-
-  
   
   JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScope(cx, aBoundNode));
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
@@ -424,11 +421,11 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   JS::CompileOptions options(cx);
   options.setFileAndLine(uriSpec.get(), mLineNumber)
          .setVersion(JSVERSION_LATEST);
-  rv = context->EvaluateString(nsDependentString(mFieldText,
-                                                 mFieldTextLength),
-                               wrappedNode, options,
-                                false,
-                               result.address());
+  rv = aContext->EvaluateString(nsDependentString(mFieldText,
+                                                  mFieldTextLength),
+                                wrappedNode, options,
+                                 false,
+                                result.address());
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -451,8 +448,7 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
 }
 
 nsresult
-nsXBLProtoImplField::Read(nsIScriptContext* aContext,
-                          nsIObjectInputStream* aStream)
+nsXBLProtoImplField::Read(nsIObjectInputStream* aStream)
 {
   nsAutoString name;
   nsresult rv = aStream->ReadString(name);
@@ -473,8 +469,7 @@ nsXBLProtoImplField::Read(nsIScriptContext* aContext,
 }
 
 nsresult
-nsXBLProtoImplField::Write(nsIScriptContext* aContext,
-                           nsIObjectOutputStream* aStream)
+nsXBLProtoImplField::Write(nsIObjectOutputStream* aStream)
 {
   XBLBindingSerializeDetails type = XBLBinding_Serialize_Field;
 
