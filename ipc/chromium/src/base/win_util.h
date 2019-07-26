@@ -52,28 +52,6 @@ bool GetUserSidString(std::wstring* user_sid);
 bool GetLogonSessionOnlyDACL(SECURITY_DESCRIPTOR** security_descriptor);
 
 
-WNDPROC SetWindowProc(HWND hwnd, WNDPROC wndproc);
-
-
-bool IsSubclassed(HWND window, WNDPROC subclass_proc);
-
-
-
-
-
-bool Subclass(HWND window, WNDPROC subclass_proc);
-
-
-
-
-
-bool Unsubclass(HWND window, WNDPROC subclass_proc);
-
-
-
-WNDPROC GetSuperclassWNDPROC(HWND window);
-
-
 bool IsShiftPressed();
 
 
