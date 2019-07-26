@@ -298,8 +298,10 @@ nsHTMLEditor::IsSimpleModifiableNode(nsIContent* aContent,
     nsCOMPtr<nsIAtom> atom = do_GetAtom(*aAttribute);
     MOZ_ASSERT(atom);
 
+    nsString attrValue;
     if (element->IsHTML(aProperty) && IsOnlyAttribute(element, *aAttribute) &&
-        element->AttrValueIs(kNameSpaceID_None, atom, *aValue, eIgnoreCase)) {
+        element->GetAttr(kNameSpaceID_None, atom, attrValue) &&
+        attrValue.Equals(*aValue, nsCaseInsensitiveStringComparator())) {
       
       
       

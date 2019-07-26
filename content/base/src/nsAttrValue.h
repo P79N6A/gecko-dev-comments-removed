@@ -200,6 +200,7 @@ public:
 
   uint32_t HashValue() const;
   bool Equals(const nsAttrValue& aOther) const;
+  
   bool Equals(const nsAString& aValue, nsCaseTreatment aCaseSensitive) const;
   bool Equals(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
 
