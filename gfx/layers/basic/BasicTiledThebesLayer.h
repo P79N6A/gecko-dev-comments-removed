@@ -175,6 +175,7 @@ public:
   
   virtual Layer* AsLayer() { return this; }
   virtual void InvalidateRegion(const nsIntRegion& aRegion) {
+    mInvalidRegion.Or(mInvalidRegion, aRegion);
     mValidRegion.Sub(mValidRegion, aRegion);
   }
 

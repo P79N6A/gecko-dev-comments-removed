@@ -2129,8 +2129,21 @@ public:
 
 class nsDisplayOwnLayer : public nsDisplayWrapList {
 public:
+
+  
+
+
+  enum {
+    GENERATE_SUBDOC_INVALIDATIONS = 0x01
+  };
+
+  
+
+
+
+
   nsDisplayOwnLayer(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                    nsDisplayList* aList);
+                    nsDisplayList* aList, uint32_t aFlags = 0);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayOwnLayer();
 #endif
@@ -2150,6 +2163,8 @@ public:
     return false;
   }
   NS_DISPLAY_DECL_NAME("OwnLayer", TYPE_OWN_LAYER)
+private:
+  uint32_t mFlags;
 };
 
 
@@ -2384,9 +2399,13 @@ public:
 
 
 
+
+
+
   nsDisplayZoom(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                 nsDisplayList* aList,
-                int32_t aAPD, int32_t aParentAPD);
+                int32_t aAPD, int32_t aParentAPD,
+                uint32_t aFlags = 0);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayZoom();
 #endif

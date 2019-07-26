@@ -2230,7 +2230,7 @@ public:
 
 
 
-  Layer* InvalidateLayer(const nsRect& aDamageRect, uint32_t aDisplayItemKey);
+  Layer* InvalidateLayer(uint32_t aDisplayItemKey, const nsIntRect* aDamageRect = nullptr);
 
   
 
