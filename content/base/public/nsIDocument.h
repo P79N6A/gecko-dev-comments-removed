@@ -13,6 +13,7 @@
 #include "nsCompatibility.h"             
 #include "nsCOMPtr.h"                    
 #include "nsGkAtoms.h"                   
+#include "nsIChannel.h"                  
 #include "nsIDocumentEncoder.h"          
 #include "nsIDocumentObserver.h"         
 #include "nsIFrameRequestCallback.h"     
@@ -257,8 +258,12 @@ public:
 
 
 
+
   nsIURI* GetDocBaseURI() const
   {
+    if (mIsSrcdocDocument && mParentDocument) {
+      return mParentDocument->GetDocBaseURI();
+    }
     return mDocumentBaseURI ? mDocumentBaseURI : mDocumentURI;
   }
   virtual already_AddRefed<nsIURI> GetBaseURI() const MOZ_OVERRIDE
@@ -627,6 +632,28 @@ public:
   virtual bool WillIgnoreCharsetOverride() {
     return true;
   }
+
+  
+
+
+  bool IsSrcdocDocument() const {
+    return mIsSrcdocDocument;
+  }
+
+  
+
+
+  void SetIsSrcdocDocument(bool aIsSrcdocDocument) {
+    mIsSrcdocDocument = aIsSrcdocDocument;
+  }
+
+  
+
+
+
+
+  nsresult GetSrcdocData(nsAString& aSrcdocData);
+
 
 protected:
   virtual Element *GetRootElementInternal() const = 0;
@@ -2297,6 +2324,9 @@ protected:
   bool mStyleSheetChangeEventsEnabled;
 
   
+  bool mIsSrcdocDocument;
+
+  
   
   
   nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
@@ -2315,6 +2345,9 @@ protected:
   uint32_t mSandboxFlags;
 
   nsCString mContentLanguage;
+
+  
+  nsCOMPtr<nsIChannel> mChannel;
 private:
   nsCString mContentType;
 protected:

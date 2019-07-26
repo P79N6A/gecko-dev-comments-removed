@@ -1291,9 +1291,6 @@ protected:
   nsInterfaceHashtable<nsPtrHashKey<nsIContent>, nsPIBoxObject> *mBoxObjectTable;
 
   
-  nsCOMPtr<nsIChannel> mChannel;
-
-  
   
   nsCOMPtr<nsIDocument> mTemplateContentsOwner;
 
