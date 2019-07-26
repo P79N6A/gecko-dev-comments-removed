@@ -161,10 +161,6 @@ var ignoreFunctions = {
     "NS_DebugBreak": true,
 
     
-    "PrefHashEntry* pref_HashTableLookup(void*)": true,
-    "uint8 mozilla::Preferences::InitStaticMembers()": true, 
-
-    
     
     "void js::AutoCompartment::~AutoCompartment(int32)" : true,
     "void JSAutoCompartment::~JSAutoCompartment(int32)" : true,
