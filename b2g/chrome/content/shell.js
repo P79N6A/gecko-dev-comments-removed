@@ -103,7 +103,7 @@ var shell = {
     } catch(e) { }
 
     
-    if (!crashID) {
+    if (!crashID && !this.CrashSubmit.pendingIDs().length) {
       return;
     }
 
@@ -126,9 +126,19 @@ var shell = {
   },
 
   
+  
+  submitQueuedCrashes: function shell_submitQueuedCrashes() {
+    
+    let pending = shell.CrashSubmit.pendingIDs();
+    for (let crashid of pending) {
+      shell.CrashSubmit.submit(crashid);
+    }
+  },
+
+  
   submitCrash: function shell_submitCrash(aCrashID) {
     if (this.onlineForCrashReport()) {
-      this.CrashSubmit.submit(aCrashID);
+      this.submitQueuedCrashes();
       return;
     }
 
@@ -136,13 +146,7 @@ var shell = {
       let network = subject.QueryInterface(Ci.nsINetworkInterface);
       if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED
           && network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
-        shell.CrashSubmit.submit(aCrashID);
-
-        
-        let pending = shell.CrashSubmit.pendingIDs();
-        for (let crashid of pending) {
-          shell.CrashSubmit.submit(crashid);
-        }
+        shell.submitQueuedCrashes();
 
         Services.obs.removeObserver(observer, topic);
       }
