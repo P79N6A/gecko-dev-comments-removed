@@ -114,7 +114,6 @@ PushStatementPC(ParseContext *pc, StmtInfoPC *stmt, StmtType type)
 {
     stmt->blockid = pc->blockid();
     PushStatement(pc, stmt, type);
-    stmt->isFunctionBodyBlock = false;
 }
 
 
@@ -711,11 +710,6 @@ ParseNode *
 Parser::functionBody(FunctionBodyType type)
 {
     JS_ASSERT(pc->sc->isFunction);
-
-    StmtInfoPC stmtInfo(context);
-    PushStatementPC(pc, &stmtInfo, STMT_BLOCK);
-    stmtInfo.isFunctionBodyBlock = true;
-
     JS_ASSERT(!pc->funHasReturnExpr && !pc->funHasReturnVoid);
 
     ParseNode *pn;
@@ -750,9 +744,6 @@ Parser::functionBody(FunctionBodyType type)
 
     if (!pn)
         return NULL;
-
-    JS_ASSERT(!pc->topStmt->isBlockScope);
-    FinishPopStatement(pc);
 
     
     if (context->hasStrictOption() && pc->funHasReturnExpr &&
@@ -3584,7 +3575,7 @@ Parser::letStatement()
         if (stmt && stmt->isBlockScope) {
             JS_ASSERT(pc->blockChain == stmt->blockObj);
         } else {
-            if (!stmt || stmt->isFunctionBodyBlock) {
+            if (pc->atBodyLevel()) {
                 
 
 

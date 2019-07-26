@@ -31,10 +31,7 @@ struct StmtInfoPC : public StmtInfoBase {
 
     uint32_t        blockid;        
 
-    
-    bool            isFunctionBodyBlock;
-
-    StmtInfoPC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
+    StmtInfoPC(JSContext *cx) : StmtInfoBase(cx) {}
 };
 
 typedef HashSet<JSAtom *> FuncStmtSet;
