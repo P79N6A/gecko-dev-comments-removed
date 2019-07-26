@@ -130,6 +130,8 @@ public:
   void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuffer);
   void ProcessUploadQueue();
 
+  void MemoryPressure();
+
   
   void RenderTile(const TiledTexture& aTile,
                   const gfx3DMatrix& aTransform,

@@ -54,6 +54,7 @@ protected:
 
 private:
   nsRefPtr<LayerManager> mLayerManager;
+  nsCOMPtr<nsIObserver> mMemoryPressureObserver;
 
   
   

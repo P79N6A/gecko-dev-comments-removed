@@ -151,6 +151,12 @@ public:
   static void StartUpWithExistingThread(MessageLoop* aMsgLoop,
                                         PlatformThreadId aThreadID);
 
+  
+
+
+  bool
+  RecvMemoryPressure();
+
 protected:
   virtual PLayersParent* AllocPLayers(const LayersBackend& aBackendHint,
                                       const uint64_t& aId,
