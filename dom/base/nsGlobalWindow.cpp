@@ -5474,12 +5474,32 @@ nsGlobalWindow::SizeToContent()
 
   
   
-  
   nsCOMPtr<nsIContentViewer> cv;
   mDocShell->GetContentViewer(getter_AddRefs(cv));
   nsCOMPtr<nsIMarkupDocumentViewer> markupViewer(do_QueryInterface(cv));
   NS_ENSURE_TRUE(markupViewer, NS_ERROR_FAILURE);
-  NS_ENSURE_SUCCESS(markupViewer->SizeToContent(), NS_ERROR_FAILURE);
+
+  int32_t width, height;
+  NS_ENSURE_SUCCESS(markupViewer->GetContentSize(&width, &height),
+                    NS_ERROR_FAILURE);
+
+  
+  
+  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+  GetTreeOwner(getter_AddRefs(treeOwner));
+  NS_ENSURE_TRUE(treeOwner, NS_ERROR_FAILURE);
+
+  nsIntSize cssSize(DevToCSSIntPixels(nsIntSize(width, height)));
+  NS_ENSURE_SUCCESS(CheckSecurityWidthAndHeight(&cssSize.width,
+                                                &cssSize.height),
+                    NS_ERROR_FAILURE);
+
+  nsIntSize newDevSize(CSSToDevIntPixels(cssSize));
+
+  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem = do_QueryInterface(mDocShell);
+  NS_ENSURE_SUCCESS(treeOwner->SizeShellTo(docShellAsItem,
+                                           newDevSize.width, newDevSize.height),
+                    NS_ERROR_FAILURE);
 
   return NS_OK;
 }
