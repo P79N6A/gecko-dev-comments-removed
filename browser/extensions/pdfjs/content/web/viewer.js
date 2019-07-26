@@ -771,8 +771,6 @@ var PDFFindController = {
 
   resumePageIdx: null,
 
-  resumeCallback: null,
-
   state: null,
 
   dirtyMatch: false,
@@ -785,7 +783,7 @@ var PDFFindController = {
 
   initialize: function(options) {
     if(typeof PDFFindBar === 'undefined' || PDFFindBar === null) {
-        throw 'PDFFindController cannot be initialized ' +
+      throw 'PDFFindController cannot be initialized ' +
             'without a PDFFindController instance';
     }
 
@@ -845,10 +843,8 @@ var PDFFindController = {
     this.pageMatches[pageIndex] = matches;
     this.updatePage(pageIndex);
     if (this.resumePageIdx === pageIndex) {
-      var callback = this.resumeCallback;
       this.resumePageIdx = null;
-      this.resumeCallback = null;
-      callback();
+      this.nextPageMatch();
     }
   },
 
@@ -937,7 +933,6 @@ var PDFFindController = {
       this.offset.pageIdx = currentPageIndex;
       this.offset.matchIdx = null;
       this.hadMatch = false;
-      this.resumeCallback = null;
       this.resumePageIdx = null;
       this.pageMatches = [];
       var self = this;
@@ -964,7 +959,7 @@ var PDFFindController = {
     }
 
     
-    if (this.resumeCallback) {
+    if (this.resumePageIdx) {
       return;
     }
 
@@ -990,48 +985,49 @@ var PDFFindController = {
     this.nextPageMatch();
   },
 
-  nextPageMatch: function() {
-    if (this.resumePageIdx !== null)
-      console.error('There can only be one pending page.');
-
-    var matchesReady = function(matches) {
-      var offset = this.offset;
-      var numMatches = matches.length;
-      var previous = this.state.findPrevious;
-      if (numMatches) {
-        
-        this.hadMatch = true;
-        offset.matchIdx = previous ? numMatches - 1 : 0;
-        this.updateMatch(true);
-      } else {
-        
-        this.advanceOffsetPage(previous);
-        if (offset.wrapped) {
-          offset.matchIdx = null;
-          if (!this.hadMatch) {
-            
-            this.updateMatch(false);
-            return;
-          }
+  matchesReady: function(matches) {
+    var offset = this.offset;
+    var numMatches = matches.length;
+    var previous = this.state.findPrevious;
+    if (numMatches) {
+      
+      this.hadMatch = true;
+      offset.matchIdx = previous ? numMatches - 1 : 0;
+      this.updateMatch(true);
+      
+      return true;
+    } else {
+      
+      this.advanceOffsetPage(previous);
+      if (offset.wrapped) {
+        offset.matchIdx = null;
+        if (!this.hadMatch) {
+          
+          this.updateMatch(false);
+          
+          
+          return true;
         }
-        
-        this.nextPageMatch();
       }
-    }.bind(this);
-
-    var pageIdx = this.offset.pageIdx;
-    var pageMatches = this.pageMatches;
-    if (!pageMatches[pageIdx]) {
       
-      
-      this.resumeCallback = function() {
-        matchesReady(pageMatches[pageIdx]);
-      };
-      this.resumePageIdx = pageIdx;
-      return;
+      return false;
     }
-    
-    matchesReady(pageMatches[pageIdx]);
+  },
+
+  nextPageMatch: function() {
+    if (this.resumePageIdx !== null) {
+      console.error('There can only be one pending page.');
+    }
+    do {
+      var pageIdx = this.offset.pageIdx;
+      var matches = this.pageMatches[pageIdx];
+      if (!matches) {
+        
+        
+        this.resumePageIdx = pageIdx;
+        break;
+      }
+    } while (!this.matchesReady(matches));
   },
 
   advanceOffsetPage: function(previous) {
@@ -1909,16 +1905,17 @@ var GrabToPan = (function GrabToPanClosure() {
     this._onmousedown = this._onmousedown.bind(this);
     this._onmousemove = this._onmousemove.bind(this);
     this._endPan = this._endPan.bind(this);
+
+    
+    
+    var overlay = this.overlay = document.createElement('div');
+    overlay.className = 'grab-to-pan-grabbing';
   }
   GrabToPan.prototype = {
     
 
 
     CSS_CLASS_GRAB: 'grab-to-pan-grab',
-    
-
-
-    CSS_CLASS_GRABBING: 'grab-to-pan-grabbing',
 
     
 
@@ -2001,7 +1998,6 @@ var GrabToPan = (function GrabToPanClosure() {
       this.element.addEventListener('scroll', this._endPan, true);
       event.preventDefault();
       event.stopPropagation();
-      this.element.classList.remove(this.CSS_CLASS_GRAB);
       this.document.documentElement.classList.add(this.CSS_CLASS_GRABBING);
     },
 
@@ -2011,13 +2007,16 @@ var GrabToPan = (function GrabToPanClosure() {
     _onmousemove: function GrabToPan__onmousemove(event) {
       this.element.removeEventListener('scroll', this._endPan, true);
       if (isLeftMouseReleased(event)) {
-        this.document.removeEventListener('mousemove', this._onmousemove, true);
+        this._endPan();
         return;
       }
       var xDiff = event.clientX - this.clientXStart;
       var yDiff = event.clientY - this.clientYStart;
       this.element.scrollTop = this.scrollTopStart - yDiff;
       this.element.scrollLeft = this.scrollLeftStart - xDiff;
+      if (!this.overlay.parentNode) {
+        document.body.appendChild(this.overlay);
+      }
     },
 
     
@@ -2027,8 +2026,9 @@ var GrabToPan = (function GrabToPanClosure() {
       this.element.removeEventListener('scroll', this._endPan, true);
       this.document.removeEventListener('mousemove', this._onmousemove, true);
       this.document.removeEventListener('mouseup', this._endPan, true);
-      this.document.documentElement.classList.remove(this.CSS_CLASS_GRABBING);
-      this.element.classList.add(this.CSS_CLASS_GRAB);
+      if (this.overlay.parentNode) {
+        this.overlay.parentNode.removeChild(this.overlay);
+      }
     }
   };
 
@@ -2186,7 +2186,7 @@ var DocumentProperties = {
     this.fileName = getPDFFileNameFromURL(PDFView.url);
 
     
-    PDFView.pdfDocument.dataLoaded().then(function(data) {
+    PDFView.pdfDocument.getDownloadInfo().then(function(data) {
       self.setFileSize(data.length);
     });
 
@@ -2681,6 +2681,11 @@ var PDFView = {
     };
 
     window.addEventListener('message', function windowMessage(e) {
+      if (e.source !== null) {
+        
+        console.warn('Rejected untrusted message from ' + e.origin);
+        return;
+      }
       var args = e.data;
 
       if (typeof args !== 'object' || !('pdfjsLoadAction' in args))
@@ -2989,7 +2994,7 @@ var PDFView = {
     var errorWrapper = document.getElementById('errorWrapper');
     errorWrapper.setAttribute('hidden', 'true');
 
-    pdfDocument.dataLoaded().then(function() {
+    pdfDocument.getDownloadInfo().then(function() {
       PDFView.loadingBar.hide();
       var outerContainer = document.getElementById('outerContainer');
       outerContainer.classList.remove('loadingInProgress');
@@ -5181,30 +5186,6 @@ window.addEventListener('hashchange', function webViewerHashchange(evt) {
   }
 });
 
-window.addEventListener('change', function webViewerChange(evt) {
-  var files = evt.target.files;
-  if (!files || files.length === 0)
-    return;
-
-  
-  var fileReader = new FileReader();
-  fileReader.onload = function webViewerChangeFileReaderOnload(evt) {
-    var buffer = evt.target.result;
-    var uint8Array = new Uint8Array(buffer);
-    PDFView.open(uint8Array, 0);
-  };
-
-  var file = files[0];
-  fileReader.readAsArrayBuffer(file);
-  PDFView.setTitleUsingUrl(file.name);
-
-  
-  document.getElementById('viewBookmark').setAttribute('hidden', 'true');
-  document.getElementById('secondaryViewBookmark').
-    setAttribute('hidden', 'true');
-  document.getElementById('download').setAttribute('hidden', 'true');
-  document.getElementById('secondaryDownload').setAttribute('hidden', 'true');
-}, true);
 
 function selectScaleOption(value) {
   var options = document.getElementById('scaleSelect').options;
@@ -5294,19 +5275,22 @@ window.addEventListener('pagechange', function pagechange(evt) {
   document.getElementById('next').disabled = (page >= PDFView.pages.length);
 }, true);
 
+function handleMouseWheel(evt) {
+  var MOUSE_WHEEL_DELTA_FACTOR = 40;
+  var ticks = (evt.type === 'DOMMouseScroll') ? -evt.detail :
+              evt.wheelDelta / MOUSE_WHEEL_DELTA_FACTOR;
+  var direction = (ticks < 0) ? 'zoomOut' : 'zoomIn';
 
-window.addEventListener('DOMMouseScroll', function(evt) {
-  if (evt.ctrlKey) {
+  if (evt.ctrlKey) { 
     evt.preventDefault();
-
-    var ticks = evt.detail;
-    var direction = (ticks > 0) ? 'zoomOut' : 'zoomIn';
     PDFView[direction](Math.abs(ticks));
   } else if (PresentationMode.active) {
-    var FIREFOX_DELTA_FACTOR = -40;
-    PDFView.mouseScroll(evt.detail * FIREFOX_DELTA_FACTOR);
+    PDFView.mouseScroll(ticks * MOUSE_WHEEL_DELTA_FACTOR);
   }
-}, false);
+}
+
+window.addEventListener('DOMMouseScroll', handleMouseWheel);
+window.addEventListener('mousewheel', handleMouseWheel);
 
 window.addEventListener('click', function click(evt) {
   if (!PresentationMode.active) {
