@@ -35,7 +35,6 @@
 class mozIApplication;
 class nsConsoleService;
 class nsIDOMBlob;
-class nsDOMFileBase;
 
 namespace mozilla {
 
@@ -131,9 +130,8 @@ public:
         return mSendPermissionUpdates;
     }
 
-    bool GetParamsForBlob(nsDOMFileBase* aBlob,
-                          BlobConstructorParams* aOutParams);
     BlobParent* GetOrCreateActorForBlob(nsIDOMBlob* aBlob);
+
     
 
 
