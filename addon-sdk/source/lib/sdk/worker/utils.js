@@ -76,9 +76,6 @@ function Worker(options) {
   ["pageshow", "pagehide", "detach", "message", "error"].forEach(function(key) {
     trait.on(key, function() {
       emit.apply(emit, [worker, key].concat(Array.slice(arguments)));
-      
-      
-      emit.apply(emit, [worker, "*", key].concat(Array.slice(arguments)));
     });
   });
   traits.set(worker, trait);
