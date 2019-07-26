@@ -45,7 +45,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/ipc/ProcessPriorityManager.h"
+#include "mozilla/ProcessPriorityManager.h"
 
 #include "Layers.h"
 
@@ -207,7 +207,7 @@ WebGLContext::~WebGLContext()
 }
 
 JSObject*
-WebGLContext::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+WebGLContext::WrapObject(JSContext *cx, JSObject *scope)
 {
     return dom::WebGLRenderingContextBinding::Wrap(cx, scope, this);
 }
