@@ -22,7 +22,6 @@
 
 class nsClientRect;
 class nsClientRectList;
-class nsIDOMDocumentFragment;
 
 namespace mozilla {
 class ErrorResult;
@@ -89,7 +88,7 @@ public:
 
   
   NS_DECL_NSIDOMRANGE
-  
+
   nsINode* GetRoot() const
   {
     return mRoot;
@@ -235,10 +234,10 @@ private:
 
   nsresult CutContents(mozilla::dom::DocumentFragment** frag);
 
-  static nsresult CloneParentsBetween(nsIDOMNode *aAncestor,
-                                      nsIDOMNode *aNode,
-                                      nsIDOMNode **aClosestAncestor,
-                                      nsIDOMNode **aFarthestAncestor);
+  static nsresult CloneParentsBetween(nsINode* aAncestor,
+                                      nsINode* aNode,
+                                      nsINode** aClosestAncestor,
+                                      nsINode** aFarthestAncestor);
 
 public:
 
