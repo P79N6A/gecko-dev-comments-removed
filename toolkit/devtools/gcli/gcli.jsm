@@ -26,9 +26,13 @@
 
 this.EXPORTED_SYMBOLS = [ "gcli" ];
 
-Components.utils.import("resource://gre/modules/devtools/Require.jsm");
-Components.utils.import("resource://gre/modules/devtools/Console.jsm");
-Components.utils.import("resource:///modules/devtools/Browser.jsm");
+var define = Components.utils.import("resource://gre/modules/devtools/Require.jsm", {}).define;
+var require = Components.utils.import("resource://gre/modules/devtools/Require.jsm", {}).require;
+var console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {}).console;
+var setTimeout = Components.utils.import("resource://gre/modules/Timer.jsm", {}).setTimeout;
+var clearTimeout = Components.utils.import("resource://gre/modules/Timer.jsm", {}).clearTimeout;
+var Node = Components.interfaces.nsIDOMNode;
+var HTMLElement = Components.interfaces.nsIDOMHTMLElement;
 
 
 
@@ -54,8 +58,19 @@ var mozl10n = {};
 
   var temp = {};
   Components.utils.import("resource://gre/modules/Services.jsm", temp);
-  var stringBundle = temp.Services.strings.createBundle(
-          "chrome://browser/locale/devtools/gclicommands.properties");
+
+  var stringBundle;
+  try {
+    stringBundle = temp.Services.strings.createBundle(
+            "chrome://browser/locale/devtools/gclicommands.properties");
+  }
+  catch (ex) {
+    console.error("Using string fallbacks");
+    stringBundle = {
+      GetStringFromName: function(name) { return name; },
+      formatStringFromName: function(name) { return name; }
+    };
+  }
 
   
 
@@ -88,18 +103,20 @@ var mozl10n = {};
 
 })(mozl10n);
 
-define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/command', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/types/selection', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/canon', 'gcli/converters', 'gcli/ui/ffdisplay'], function(require, exports, module) {
+define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/selection', 'gcli/types/command', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/connect', 'gcli/commands/context', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/canon', 'gcli/converters', 'gcli/ui/ffdisplay'], function(require, exports, module) {
 
   'use strict';
 
   
+  
   require('gcli/types/basic').startup();
+  require('gcli/types/selection').startup();
+
   require('gcli/types/command').startup();
   require('gcli/types/javascript').startup();
   require('gcli/types/node').startup();
   require('gcli/types/resource').startup();
   require('gcli/types/setting').startup();
-  require('gcli/types/selection').startup();
 
   require('gcli/settings').startup();
   require('gcli/ui/intro').startup();
@@ -108,6 +125,8 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
   require('gcli/ui/fields/javascript').startup();
   require('gcli/ui/fields/selection').startup();
 
+  require('gcli/commands/connect').startup();
+  require('gcli/commands/context').startup();
   require('gcli/commands/help').startup();
   require('gcli/commands/pref').startup();
 
@@ -187,21 +206,21 @@ var ArrayArgument = require('gcli/argument').ArrayArgument;
 
 
 exports.startup = function() {
-  types.registerType(StringType);
-  types.registerType(NumberType);
-  types.registerType(BooleanType);
-  types.registerType(BlankType);
-  types.registerType(DelegateType);
-  types.registerType(ArrayType);
+  types.addType(StringType);
+  types.addType(NumberType);
+  types.addType(BooleanType);
+  types.addType(BlankType);
+  types.addType(DelegateType);
+  types.addType(ArrayType);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(StringType);
-  types.unregisterType(NumberType);
-  types.unregisterType(BooleanType);
-  types.unregisterType(BlankType);
-  types.unregisterType(DelegateType);
-  types.unregisterType(ArrayType);
+  types.removeType(StringType);
+  types.removeType(NumberType);
+  types.removeType(BooleanType);
+  types.removeType(BlankType);
+  types.removeType(DelegateType);
+  types.removeType(ArrayType);
 };
 
 
@@ -477,6 +496,12 @@ Object.defineProperty(DelegateType.prototype, 'isImportant', {
   enumerable: true
 });
 
+
+
+
+
+DelegateType.prototype.isDelegate = true;
+
 DelegateType.prototype.name = 'delegate';
 
 exports.DelegateType = DelegateType;
@@ -517,7 +542,7 @@ function ArrayType(typeSpec) {
   Object.keys(typeSpec).forEach(function(key) {
     this[key] = typeSpec[key];
   }, this);
-  this.subtype = types.getType(this.subtype);
+  this.subtype = types.createType(this.subtype);
 }
 
 ArrayType.prototype = Object.create(Type.prototype);
@@ -965,11 +990,18 @@ exports.promiseEach = function(array, action, scope) {
 
 
 exports.errorHandler = function(ex) {
-  console.error(ex);
   if (ex instanceof Error) {
     
-    
-    console.error(ex.stack);
+    if (ex.stack.indexOf(ex.message) !== -1) {
+      console.error(ex.stack);
+    }
+    else {
+      console.error('' + ex);
+      console.error(ex.stack);
+    }
+  }
+  else {
+    console.error(ex);
   }
 };
 
@@ -1294,56 +1326,6 @@ exports.createUrlLookup = function(callingModule) {
       return filename + '/' + path;
     }
   };
-};
-
-
-
-
-
-function withCommand(element, action) {
-  var command = element.getAttribute('data-command');
-  if (!command) {
-    command = element.querySelector('*[data-command]')
-            .getAttribute('data-command');
-  }
-
-  if (command) {
-    action(command);
-  }
-  else {
-    console.warn('Missing data-command for ' + util.findCssSelector(element));
-  }
-}
-
-
-
-
-
-
-
-
-
-exports.updateCommand = function(element, context) {
-  withCommand(element, function(command) {
-    context.update(command);
-  });
-};
-
-
-
-
-
-
-
-
-
-exports.executeCommand = function(element, context) {
-  withCommand(element, function(command) {
-    context.exec({
-      visible: true,
-      typed: command
-    });
-  });
 };
 
 
@@ -2022,16 +2004,28 @@ exports.getTypeNames = function() {
 
 
 
-exports.registerType = function(type) {
+exports.addType = function(type) {
   if (typeof type === 'object') {
+    if (!type.name) {
+      throw new Error('All registered types must have a name');
+    }
+
     if (type instanceof Type) {
-      if (!type.name) {
-        throw new Error('All registered types must have a name');
-      }
       registeredTypes[type.name] = type;
     }
     else {
-      throw new Error('Can\'t registerType using: ' + type);
+      if (!type.parent) {
+        throw new Error('\'parent\' property required for object declarations');
+      }
+      var name = type.name;
+      var parent = type.parent;
+      type.name = parent;
+      delete type.parent;
+
+      registeredTypes[name] = exports.createType(type);
+
+      type.name = name;
+      type.parent = parent;
     }
   }
   else if (typeof type === 'function') {
@@ -2045,47 +2039,58 @@ exports.registerType = function(type) {
   }
 };
 
-exports.registerTypes = function registerTypes(newTypes) {
-  Object.keys(newTypes).forEach(function(name) {
-    var type = newTypes[name];
-    type.name = name;
-    newTypes.registerType(type);
-  });
-};
 
 
 
-
-exports.deregisterType = function(type) {
+exports.removeType = function(type) {
   delete registeredTypes[type.name];
 };
 
 
 
 
-exports.getType = function(typeSpec) {
-  var type;
+exports.createType = function(typeSpec) {
   if (typeof typeSpec === 'string') {
-    type = registeredTypes[typeSpec];
-    if (typeof type === 'function') {
-      type = new type({});
-    }
-    return type;
+    typeSpec = { name: typeSpec };
   }
 
-  if (typeof typeSpec === 'object') {
-    if (!typeSpec.name) {
-      throw new Error('Missing \'name\' member to typeSpec');
-    }
-
-    type = registeredTypes[typeSpec.name];
-    if (typeof type === 'function') {
-      type = new type(typeSpec);
-    }
-    return type;
+  if (typeof typeSpec !== 'object') {
+    throw new Error('Can\'t extract type from ' + typeSpec);
   }
 
-  throw new Error('Can\'t extract type from ' + typeSpec);
+  if (!typeSpec.name) {
+    throw new Error('Missing \'name\' member to typeSpec');
+  }
+
+  var newType;
+  var type = registeredTypes[typeSpec.name];
+
+  if (!type) {
+    console.error('Known types: ' + Object.keys(registeredTypes).join(', '));
+    throw new Error('Unknown type: \'' + typeSpec.name + '\'');
+  }
+
+  if (typeof type === 'function') {
+    newType = new type(typeSpec);
+  }
+  else {
+    
+    newType = {};
+    for (var key in type) {
+      newType[key] = type[key];
+    }
+
+    
+    for (var key in typeSpec) {
+      newType[key] = typeSpec[key];
+    }
+
+    if (typeof newType.constructor === 'function') {
+      newType.constructor();
+    }
+  }
+
+  return newType;
 };
 
 
@@ -2723,11 +2728,11 @@ var BlankArgument = require('gcli/argument').BlankArgument;
 
 
 exports.startup = function() {
-  types.registerType(SelectionType);
+  types.addType(SelectionType);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(SelectionType);
+  types.removeType(SelectionType);
 };
 
 
@@ -3062,6 +3067,12 @@ SelectionType.prototype._findValue = function(lookup, value) {
   return index;
 };
 
+
+
+
+
+SelectionType.prototype.isSelection = true;
+
 SelectionType.prototype.name = 'selection';
 
 exports.SelectionType = SelectionType;
@@ -3222,13 +3233,13 @@ var Conversion = require('gcli/types').Conversion;
 
 
 exports.startup = function() {
-  types.registerType(CommandType);
-  types.registerType(ParamType);
+  types.addType(CommandType);
+  types.addType(ParamType);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(CommandType);
-  types.unregisterType(ParamType);
+  types.removeType(CommandType);
+  types.removeType(ParamType);
 };
 
 
@@ -3366,10 +3377,9 @@ CommandType.prototype.parse = function(arg, context) {
 
 
 
-define('gcli/canon', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/types', 'gcli/types/basic', 'gcli/types/selection'], function(require, exports, module) {
+define('gcli/canon', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/types'], function(require, exports, module) {
 
 'use strict';
-var canon = exports;
 
 var Promise = require('util/promise');
 var util = require('util/util');
@@ -3377,8 +3387,6 @@ var l10n = require('util/l10n');
 
 var types = require('gcli/types');
 var Status = require('gcli/types').Status;
-var BooleanType = require('gcli/types/basic').BooleanType;
-var SelectionType = require('gcli/types/selection').SelectionType;
 
 
 
@@ -3500,7 +3508,7 @@ function Command(commandSpec) {
   }, this);
 }
 
-canon.Command = Command;
+exports.Command = Command;
 
 
 
@@ -3533,7 +3541,7 @@ function Parameter(paramSpec, command, groupName) {
   }
 
   var typeSpec = this.type;
-  this.type = types.getType(typeSpec);
+  this.type = types.createType(typeSpec);
   if (this.type == null) {
     console.error('Known types: ' + types.getTypeNames().join(', '));
     throw new Error('In ' + this.command.name + '/' + this.name +
@@ -3542,7 +3550,7 @@ function Parameter(paramSpec, command, groupName) {
 
   
   
-  if (this.type instanceof BooleanType &&
+  if (this.type.name === 'boolean' &&
       this.paramSpec.defaultValue !== undefined) {
     throw new Error('In ' + this.command.name + '/' + this.name +
                     ': boolean parameters can not have a defaultValue.' +
@@ -3576,7 +3584,7 @@ function Parameter(paramSpec, command, groupName) {
   
   
   if (!this.isPositionalAllowed && this.paramSpec.defaultValue === undefined &&
-      this.type.getBlank == null && !(this.type instanceof BooleanType)) {
+      this.type.getBlank == null && !(this.type.name === 'boolean')) {
     throw new Error('In ' + this.command.name + '/' + this.name +
                     ': Missing defaultValue for optional parameter.');
   }
@@ -3673,48 +3681,48 @@ Object.defineProperty(Parameter.prototype, 'isPositionalAllowed', {
   enumerable: true
 });
 
-canon.Parameter = Parameter;
+exports.Parameter = Parameter;
 
 
 
 
 
-var commands = {};
+function Canon() {
+  
+  this._commands = {};
+  
+  this._commandNames = [];
+  
+  this._commandSpecs = {};
+
+  
+  this.onCanonChange = util.createEvent('canon.onCanonChange');
+}
 
 
 
 
-var commandNames = [];
 
 
 
 
-var commandSpecs = {};
-
-
-
-
-
-
-
-
-canon.addCommand = function addCommand(commandSpec) {
-  if (commands[commandSpec.name] != null) {
+Canon.prototype.addCommand = function(commandSpec) {
+  if (this._commands[commandSpec.name] != null) {
     
-    delete commands[commandSpec.name];
-    commandNames = commandNames.filter(function(test) {
+    delete this._commands[commandSpec.name];
+    this._commandNames = this._commandNames.filter(function(test) {
       return test !== commandSpec.name;
     });
   }
 
   var command = new Command(commandSpec);
-  commands[commandSpec.name] = command;
-  commandNames.push(commandSpec.name);
-  commandNames.sort();
+  this._commands[commandSpec.name] = command;
+  this._commandNames.push(commandSpec.name);
+  this._commandNames.sort();
 
-  commandSpecs[commandSpec.name] = commandSpec;
+  this._commandSpecs[commandSpec.name] = commandSpec;
 
-  canon.onCanonChange();
+  this.onCanonChange();
   return command;
 };
 
@@ -3724,23 +3732,23 @@ canon.addCommand = function addCommand(commandSpec) {
 
 
 
-canon.removeCommand = function removeCommand(commandOrName) {
+Canon.prototype.removeCommand = function(commandOrName) {
   var name = typeof commandOrName === 'string' ?
           commandOrName :
           commandOrName.name;
 
-  if (!commands[name]) {
+  if (!this._commands[name]) {
     return false;
   }
 
   
-  delete commands[name];
-  delete commandSpecs[name];
-  commandNames = commandNames.filter(function(test) {
+  delete this._commands[name];
+  delete this._commandSpecs[name];
+  this._commandNames = this._commandNames.filter(function(test) {
     return test !== name;
   });
 
-  canon.onCanonChange();
+  this.onCanonChange();
   return true;
 };
 
@@ -3748,40 +3756,135 @@ canon.removeCommand = function removeCommand(commandOrName) {
 
 
 
-canon.getCommand = function getCommand(name) {
+Canon.prototype.getCommand = function(name) {
   
-  return commands[name] || undefined;
+  return this._commands[name] || undefined;
 };
 
 
 
 
-canon.getCommands = function getCommands() {
-  
-  return Object.keys(commands).map(function(name) {
-    return commands[name];
+Canon.prototype.getCommands = function() {
+  return Object.keys(this._commands).map(function(name) {
+    return this._commands[name];
   }, this);
 };
 
 
 
 
-canon.getCommandNames = function getCommandNames() {
-  return commandNames.slice(0);
+Canon.prototype.getCommandNames = function() {
+  return this._commandNames.slice(0);
 };
 
 
 
 
 
-canon.getCommandSpecs = function getCommandSpecs() {
-  return commandSpecs;
+Canon.prototype.getCommandSpecs = function() {
+  var specs = {};
+
+  Object.keys(this._commandSpecs).forEach(function(name) {
+    var spec = this._commandSpecs[name];
+    if (spec.exec == null) {
+      spec.isParent = true;
+    }
+    specs[name] = spec;
+  }.bind(this));
+
+  return specs;
 };
 
 
 
 
-canon.onCanonChange = util.createEvent('canon.onCanonChange');
+
+
+
+
+
+
+
+
+Canon.prototype.addProxyCommands = function(prefix, commandSpecs, remoter, to) {
+  var names = Object.keys(commandSpecs);
+
+  if (this._commands[prefix] != null) {
+    throw new Error(l10n.lookupFormat('canonProxyExists', [ prefix ]));
+  }
+
+  
+  
+  this.addCommand({
+    name: prefix,
+    isProxy: true,
+    description: l10n.lookupFormat('canonProxyDesc', [ to ]),
+    manual: l10n.lookupFormat('canonProxyManual', [ to ])
+  });
+
+  names.forEach(function(name) {
+    var commandSpec = commandSpecs[name];
+
+    if (!commandSpec.isParent) {
+      commandSpec.exec = function(args, context) {
+        context.commandName = name;
+        return remoter(args, context);
+      }.bind(this);
+    }
+
+    commandSpec.name = prefix + ' ' + commandSpec.name;
+    commandSpec.isProxy = true;
+    this.addCommand(commandSpec);
+  }.bind(this));
+};
+
+
+
+
+
+
+
+
+
+
+
+
+Canon.prototype.removeProxyCommands = function(prefix) {
+  var toRemove = [];
+  Object.keys(this._commandSpecs).forEach(function(name) {
+    if (name.indexOf(prefix) === 0) {
+      toRemove.push(name);
+    }
+  }.bind(this));
+
+  var removed = [];
+  toRemove.forEach(function(name) {
+    var command = this.getCommand(name);
+    if (command.isProxy) {
+      this.removeCommand(name);
+      removed.push(name);
+    }
+    else {
+      console.error('Skipping removal of \'' + name +
+                    '\' because it is not a proxy command.');
+    }
+  }.bind(this));
+
+  return removed;
+};
+
+var canon = new Canon();
+
+exports.Canon = Canon;
+exports.addCommand = canon.addCommand.bind(canon);
+exports.removeCommand = canon.removeCommand.bind(canon);
+exports.onCanonChange = canon.onCanonChange;
+exports.getCommands = canon.getCommands.bind(canon);
+exports.getCommand = canon.getCommand.bind(canon);
+exports.getCommandNames = canon.getCommandNames.bind(canon);
+exports.getCommandSpecs = canon.getCommandSpecs.bind(canon);
+exports.addProxyCommands = canon.addProxyCommands.bind(canon);
+exports.removeProxyCommands = canon.removeProxyCommands.bind(canon);
 
 
 
@@ -3796,7 +3899,7 @@ function CommandOutputManager() {
   this.onOutput = util.createEvent('CommandOutputManager.onOutput');
 }
 
-canon.CommandOutputManager = CommandOutputManager;
+exports.CommandOutputManager = CommandOutputManager;
 
 
 });
@@ -3833,11 +3936,11 @@ var Status = types.Status;
 
 
 exports.startup = function() {
-  types.registerType(JavascriptType);
+  types.addType(JavascriptType);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(JavascriptType);
+  types.removeType(JavascriptType);
 };
 
 
@@ -4398,13 +4501,13 @@ var BlankArgument = require('gcli/argument').BlankArgument;
 
 
 exports.startup = function() {
-  types.registerType(NodeType);
-  types.registerType(NodeListType);
+  types.addType(NodeType);
+  types.addType(NodeListType);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(NodeType);
-  types.unregisterType(NodeListType);
+  types.removeType(NodeType);
+  types.removeType(NodeListType);
 };
 
 
@@ -4640,11 +4743,11 @@ var SelectionType = require('gcli/types/selection').SelectionType;
 
 
 exports.startup = function() {
-  types.registerType(ResourceType);
+  types.addType(ResourceType);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(ResourceType);
+  types.removeType(ResourceType);
   exports.clearResourceCache();
 };
 
@@ -4944,73 +5047,66 @@ var ResourceCache = {
 
 
 
-define('gcli/types/setting', ['require', 'exports', 'module' , 'gcli/settings', 'gcli/types', 'gcli/types/selection', 'gcli/types/basic'], function(require, exports, module) {
+define('gcli/types/setting', ['require', 'exports', 'module' , 'gcli/settings', 'gcli/types'], function(require, exports, module) {
 
 'use strict';
 
 var settings = require('gcli/settings');
 var types = require('gcli/types');
-var SelectionType = require('gcli/types/selection').SelectionType;
-var DelegateType = require('gcli/types/basic').DelegateType;
 
+
+
+
+var settingType = {
+  constructor: function() {
+    settings.onChange.add(function(ev) {
+      this.clearCache();
+    }, this);
+  },
+  name: 'setting',
+  parent: 'selection',
+  cacheable: true,
+  lookup: function() {
+    return settings.getAll().map(function(setting) {
+      return { name: setting.name, value: setting };
+    });
+  }
+};
+
+
+
+
+
+
+
+var settingValueType = {
+  name: 'settingValue',
+  parent: 'delegate',
+  settingParamName: 'setting',
+  delegateType: function(context) {
+    if (context != null) {
+      var setting = context.getArgsObject()[this.settingParamName];
+      if (setting != null) {
+        return setting.type;
+      }
+    }
+
+    return types.createType('blank');
+  }
+};
 
 
 
 
 exports.startup = function() {
-  types.registerType(SettingType);
-  types.registerType(SettingValueType);
+  types.addType(settingType);
+  types.addType(settingValueType);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(SettingType);
-  types.unregisterType(SettingValueType);
+  types.removeType(settingType);
+  types.removeType(settingValueType);
 };
-
-
-
-
-function SettingType(typeSpec) {
-  settings.onChange.add(function(ev) {
-    this.clearCache();
-  }, this);
-}
-
-SettingType.prototype = new SelectionType({ cacheable: true });
-
-SettingType.prototype.lookup = function() {
-  return settings.getAll().map(function(setting) {
-    return { name: setting.name, value: setting };
-  });
-};
-
-SettingType.prototype.name = 'setting';
-
-
-
-
-
-
-
-
-function SettingValueType(typeSpec) {
-  this.settingParamName = typeSpec.settingParamName || 'setting';
-}
-
-SettingValueType.prototype = Object.create(DelegateType.prototype);
-
-SettingValueType.prototype.delegateType = function(context) {
-  if (context != null) {
-    var setting = context.getArgsObject()[this.settingParamName];
-    if (setting != null) {
-      return setting.type;
-    }
-  }
-
-  return types.getType('blank');
-};
-
-SettingValueType.prototype.name = 'settingValue';
 
 
 });
@@ -5093,13 +5189,13 @@ Object.defineProperty(Setting.prototype, 'type', {
   get: function() {
     switch (imports.prefBranch.getPrefType(this.name)) {
       case imports.prefBranch.PREF_BOOL:
-        return types.getType('boolean');
+        return types.createType('boolean');
 
       case imports.prefBranch.PREF_INT:
-        return types.getType('number');
+        return types.createType('number');
 
       case imports.prefBranch.PREF_STRING:
-        return types.getType('string');
+        return types.createType('string');
 
       default:
         throw new Error('Unknown type for ' + this.name);
@@ -5323,11 +5419,10 @@ exports.removeSetting = function() { };
 
 
 
-define('gcli/ui/intro', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'gcli/settings', 'gcli/ui/view', 'gcli/cli', 'text!gcli/ui/intro.html'], function(require, exports, module) {
+define('gcli/ui/intro', ['require', 'exports', 'module' , 'util/l10n', 'gcli/settings', 'gcli/ui/view', 'gcli/cli', 'text!gcli/ui/intro.html'], function(require, exports, module) {
 
 'use strict';
 
-var util = require('util/util');
 var l10n = require('util/l10n');
 var settings = require('gcli/settings');
 var view = require('gcli/ui/view');
@@ -5359,7 +5454,7 @@ exports.shutdown = function() {
 
 
 
-exports.maybeShowIntro = function(commandOutputManager, context) {
+exports.maybeShowIntro = function(commandOutputManager, conversionContext) {
   if (hideIntro.value) {
     return;
   }
@@ -5368,25 +5463,25 @@ exports.maybeShowIntro = function(commandOutputManager, context) {
   output.type = 'view';
   commandOutputManager.onOutput({ output: output });
 
-  var viewData = this.createView(context, output);
+  var viewData = this.createView(conversionContext, output);
 
-  output.complete(viewData);
+  output.complete({ isTypedData: true, type: 'view', data: viewData });
 };
 
 
 
 
-exports.createView = function(context, output) {
+exports.createView = function(conversionContext, output) {
   return view.createView({
     html: require('text!gcli/ui/intro.html'),
     options: { stack: 'intro.html' },
     data: {
       l10n: l10n.propertyLookup,
       onclick: function(ev) {
-        util.updateCommand(ev.currentTarget, context);
+        conversionContext.update(ev.currentTarget);
       },
       ondblclick: function(ev) {
-        util.executeCommand(ev.currentTarget, context);
+        conversionContext.updateExec(ev.currentTarget);
       },
       showHideButton: (output != null),
       onGotIt: function(ev) {
@@ -5510,7 +5605,7 @@ define('util/domtemplate', ['require', 'exports', 'module' ], function(require, 
   'use strict';
 
   var obj = {};
-  Components.utils.import('resource:///modules/devtools/Templater.jsm', obj);
+  Components.utils.import('resource://gre/modules/devtools/Templater.jsm', obj);
   exports.template = obj.template;
 
 });
@@ -5530,7 +5625,7 @@ define('util/domtemplate', ['require', 'exports', 'module' ], function(require, 
 
 
 
-define('gcli/cli', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/ui/view', 'gcli/canon', 'gcli/types', 'gcli/types/basic', 'gcli/argument'], function(require, exports, module) {
+define('gcli/cli', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/ui/view', 'gcli/canon', 'gcli/types', 'gcli/argument'], function(require, exports, module) {
 
 'use strict';
 
@@ -5544,10 +5639,6 @@ var CommandOutputManager = require('gcli/canon').CommandOutputManager;
 
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
-var ArrayType = require('gcli/types/basic').ArrayType;
-var StringType = require('gcli/types/basic').StringType;
-var BooleanType = require('gcli/types/basic').BooleanType;
-var NumberType = require('gcli/types/basic').NumberType;
 
 var Argument = require('gcli/argument').Argument;
 var ArrayArgument = require('gcli/argument').ArrayArgument;
@@ -5845,7 +5936,7 @@ function UnassignedAssignment(requisition, arg) {
   this.onAssignmentChange = util.createEvent('UnassignedAssignment.onAssignmentChange');
 
   
-  var parsed = this.param.type.parse(arg, requisition.context);
+  var parsed = this.param.type.parse(arg, requisition.executionContext);
   this.conversion = util.synchronize(parsed);
   this.conversion.assign(this);
 }
@@ -5856,6 +5947,7 @@ UnassignedAssignment.prototype.getStatus = function(arg) {
   return this.conversion.getStatus();
 };
 
+exports.logErrors = true;
 
 
 
@@ -5897,7 +5989,6 @@ function Requisition(environment, doc, commandOutputManager) {
       
     }
   }
-  this.context = exports.createExecutionContext(this);
 
   this.commandOutputManager = commandOutputManager || new CommandOutputManager();
 
@@ -5929,6 +6020,10 @@ function Requisition(environment, doc, commandOutputManager) {
   
   this._structuralChangeInProgress = false;
 
+  
+  
+  this.prefix = '';
+
   this.commandAssignment.onAssignmentChange.add(this._commandAssignmentChanged, this);
   this.commandAssignment.onAssignmentChange.add(this._assignmentChanged, this);
 
@@ -5946,6 +6041,110 @@ Requisition.prototype.destroy = function() {
   delete this.document;
   delete this.environment;
 };
+
+var legacy = false;
+
+
+
+
+Object.defineProperty(Requisition.prototype, 'executionContext', {
+  get: function() {
+    if (this._executionContext == null) {
+      this._executionContext = {
+        defer: function() {
+          return Promise.defer();
+        },
+        typedData: function(type, data) {
+          return {
+            isTypedData: true,
+            data: data,
+            type: type
+          };
+        },
+        getArgsObject: this.getArgsObject.bind(this)
+      };
+
+      
+      var requisition = this;
+      Object.defineProperty(this._executionContext, 'typed', {
+        get: function() { return requisition.toString(); },
+        enumerable: true
+      });
+      Object.defineProperty(this._executionContext, 'environment', {
+        get: function() { return requisition.environment; },
+        enumerable: true
+      });
+
+      
+
+
+
+      Object.defineProperty(this._executionContext, '__dlhjshfw', {
+        get: function() { return requisition; },
+        enumerable: false
+      });
+
+      if (legacy) {
+        this._executionContext.createView = view.createView;
+        this._executionContext.exec = this.exec.bind(this);
+        this._executionContext.update = this.update.bind(this);
+        this._executionContext.updateExec = this.updateExec.bind(this);
+
+        Object.defineProperty(this._executionContext, 'document', {
+          get: function() { return requisition.document; },
+          enumerable: true
+        });
+      }
+    }
+
+    return this._executionContext;
+  },
+  enumerable: true
+});
+
+
+
+
+Object.defineProperty(Requisition.prototype, 'conversionContext', {
+  get: function() {
+    if (this._conversionContext == null) {
+      this._conversionContext = {
+        defer: function() {
+          return Promise.defer();
+        },
+
+        createView: view.createView,
+        exec: this.exec.bind(this),
+        update: this.update.bind(this),
+        updateExec: this.updateExec.bind(this)
+      };
+
+      
+      var requisition = this;
+
+      Object.defineProperty(this._conversionContext, 'document', {
+        get: function() { return requisition.document; },
+        enumerable: true
+      });
+      Object.defineProperty(this._conversionContext, 'environment', {
+        get: function() { return requisition.environment; },
+        enumerable: true
+      });
+
+      
+
+
+
+      Object.defineProperty(this._conversionContext, '__dlhjshfw', {
+        get: function() { return requisition; },
+        enumerable: false
+      });
+    }
+
+    return this._conversionContext;
+  },
+  enumerable: true
+});
 
 
 
@@ -6197,7 +6396,7 @@ Requisition.prototype.setAssignment = function(assignment, arg, options) {
     setAssignmentInternal(arg);
   }
   else {
-    var parsed = assignment.param.type.parse(arg, this.context);
+    var parsed = assignment.param.type.parse(arg, this.executionContext);
     return parsed.then(function(conversion) {
       setAssignmentInternal(conversion);
     }.bind(this));
@@ -6328,9 +6527,10 @@ Requisition.prototype._addSpace = function(assignment) {
 
 Requisition.prototype.decrement = function(assignment) {
   var replacement = assignment.param.type.decrement(assignment.conversion.value,
-                                                    this.context);
+                                                    this.executionContext);
   if (replacement != null) {
-    var str = assignment.param.type.stringify(replacement, this.context);
+    var str = assignment.param.type.stringify(replacement,
+                                              this.executionContext);
     var arg = assignment.conversion.arg.beget({ text: str });
     var promise = this.setAssignment(assignment, arg);
     util.synchronize(promise);
@@ -6342,9 +6542,10 @@ Requisition.prototype.decrement = function(assignment) {
 
 Requisition.prototype.increment = function(assignment) {
   var replacement = assignment.param.type.increment(assignment.conversion.value,
-                                                    this.context);
+                                                    this.executionContext);
   if (replacement != null) {
-    var str = assignment.param.type.stringify(replacement, this.context);
+    var str = assignment.param.type.stringify(replacement,
+                                              this.executionContext);
     var arg = assignment.conversion.arg.beget({ text: str });
     var promise = this.setAssignment(assignment, arg);
     util.synchronize(promise);
@@ -6370,7 +6571,7 @@ Requisition.prototype.toCanonicalString = function() {
     
     if (assignment.value !== assignment.param.defaultValue) {
       line.push(' ');
-      line.push(type.stringify(assignment.value, this.context));
+      line.push(type.stringify(assignment.value, this.executionContext));
     }
   }, this);
 
@@ -6665,20 +6866,23 @@ Requisition.prototype.exec = function(options) {
   };
 
   var onError = function(ex) {
-    output.complete({
+    if (exports.logErrors) {
+      util.errorHandler(ex);
+    }
+
+    var data = ex.isTypedData ? ex : {
       isTypedData: true,
       data: ex,
-      type: "exception"
-    }, true);
+      type: 'error'
+    };
+    output.complete(data, true);
   };
 
   try {
-    var reply = command.exec(args, this.context);
-
-    this._then(reply, onDone, onError);
+    var reply = command.exec(args, this.executionContext);
+    Promise.resolve(reply).then(onDone, onError);
   }
   catch (ex) {
-    console.error(ex);
     onError(ex);
   }
 
@@ -6708,8 +6912,9 @@ Requisition.prototype.clear = function() {
   this._args = [ arg ];
 
   var commandType = this.commandAssignment.param.type;
-  var conversion = util.synchronize(commandType.parse(arg, this.context));
-  this.setAssignment(this.commandAssignment, conversion,
+  var promise = commandType.parse(arg, this.executionContext);
+  this.setAssignment(this.commandAssignment,
+                     util.synchronize(promise),
                      { skipArgUpdate: true });
 
   this._structuralChangeInProgress = false;
@@ -6719,30 +6924,14 @@ Requisition.prototype.clear = function() {
 
 
 
-
-
-
-
-
-Requisition.prototype._then = function(thing, onDone, onError) {
-  var then = null;
-  if (thing != null && typeof thing.then === 'function') {
-    
-    then = thing.then;
+function getDataCommandAttribute(element) {
+  var command = element.getAttribute('data-command');
+  if (!command) {
+    command = element.querySelector('*[data-command]')
+                     .getAttribute('data-command');
   }
-  else if (thing != null && thing.promise != null &&
-                typeof thing.promise.then === 'function') {
-    
-    then = thing.promise.then;
-  }
-
-  if (then != null) {
-    then(onDone, onError);
-  }
-  else {
-    onDone(thing);
-  }
-};
+  return command;
+}
 
 
 
@@ -6758,7 +6947,7 @@ Requisition.prototype.update = function(typed) {
 
   this._structuralChangeInProgress = true;
 
-  this._args = this._tokenize(typed);
+  this._args = exports.tokenize(typed);
   var args = this._args.slice(0); 
 
   return this._split(args).then(function() {
@@ -6849,7 +7038,7 @@ var In = {
 
 
 
-Requisition.prototype._tokenize = function(typed) {
+exports.tokenize = function(typed) {
   
   if (typed == null || typed.length === 0) {
     return [ new Argument('', '', '') ];
@@ -7052,14 +7241,32 @@ Requisition.prototype._split = function(args) {
 
   var argsUsed = 1;
 
+  var promise;
   var commandType = this.commandAssignment.param.type;
   while (argsUsed <= args.length) {
     var arg = (argsUsed === 1) ?
               args[0] :
               new MergedArgument(args, 0, argsUsed);
+
     
     
-    conversion = util.synchronize(commandType.parse(arg, this.context));
+
+    if (this.prefix != null && this.prefix != '') {
+      var prefixArg = new Argument(this.prefix, '', ' ');
+      var prefixedArg = new MergedArgument([ prefixArg, arg ]);
+
+      promise = commandType.parse(prefixedArg, this.executionContext);
+      conversion = util.synchronize(promise);
+
+      if (conversion.value == null) {
+        promise = commandType.parse(arg, this.executionContext);
+        conversion = util.synchronize(promise);
+      }
+    }
+    else {
+      promise = commandType.parse(arg, this.executionContext);
+      conversion = util.synchronize(promise);
+    }
 
     
     
@@ -7125,7 +7332,7 @@ Requisition.prototype._assign = function(args) {
   
   if (this.assignmentCount === 1) {
     var assignment = this.getAssignment(0);
-    if (assignment.param.type instanceof StringType) {
+    if (assignment.param.type.name === 'string') {
       var arg = (args.length === 1) ? args[0] : new MergedArgument(args);
       outstanding.push(this.setAssignment(assignment, arg, noArgUp));
       return util.all(outstanding);
@@ -7152,7 +7359,7 @@ Requisition.prototype._assign = function(args) {
         });
 
         
-        if (assignment.param.type instanceof BooleanType) {
+        if (assignment.param.type.name === 'boolean') {
           arg = new TrueNamedArgument(arg);
         }
         else {
@@ -7163,7 +7370,7 @@ Requisition.prototype._assign = function(args) {
           arg = new NamedArgument(arg, valueArg);
         }
 
-        if (assignment.param.type instanceof ArrayType) {
+        if (assignment.param.type.name === 'array') {
           var arrayArg = arrayArgs[assignment.param.name];
           if (!arrayArg) {
             arrayArg = new ArrayArgument();
@@ -7195,7 +7402,7 @@ Requisition.prototype._assign = function(args) {
 
     
     
-    if (assignment.param.type instanceof ArrayType) {
+    if (assignment.param.type.name === 'array') {
       var arrayArg = arrayArgs[assignment.param.name];
       if (!arrayArg) {
         arrayArg = new ArrayArgument();
@@ -7212,7 +7419,7 @@ Requisition.prototype._assign = function(args) {
         var arg = args.splice(0, 1)[0];
         
         
-        var isIncompleteName = assignment.param.type instanceof NumberType ?
+        var isIncompleteName = assignment.param.type.name === 'number' ?
             /-[-a-zA-Z_]/.test(arg.text) :
             arg.text.charAt(0) === '-';
 
@@ -7251,107 +7458,53 @@ function Output(options) {
   this.canonical = options.canonical || '';
   this.hidden = options.hidden === true ? true : false;
 
-  this.type = this.command.returnType;
+  this.type = undefined;
   this.data = undefined;
   this.completed = false;
   this.error = false;
   this.start = new Date();
 
-  this.deferred = Promise.defer();
-  this.then = this.deferred.promise.then;
+  this._deferred = Promise.defer();
+  this.promise = this._deferred.promise;
 
   this.onClose = util.createEvent('Output.onClose');
-  this.onChange = util.createEvent('Output.onChange');
 }
 
 
 
 
 
+Output.prototype.complete = function(data, error) {
+  this.end = new Date();
+  this.duration = this.end.getTime() - this.start.getTime();
+  this.completed = true;
+  this.error = error;
 
-
-
-
-Output.prototype.changed = function(data, ev) {
   if (data != null && data.isTypedData) {
     this.data = data.data;
     this.type = data.type;
   }
   else {
     this.data = data;
+    this.type = this.command.returnType;
     if (this.type == null) {
-      this.type = typeof this.data;
+      this.type = (this.data == null) ? 'undefined' : typeof this.data;
     }
   }
 
-  ev = ev || {};
-  ev.output = this;
-  this.onChange(ev);
-};
-
-
-
-
-
-Output.prototype.complete = function(data, error, ev) {
-  this.end = new Date();
-  this.duration = this.end.getTime() - this.start.getTime();
-  this.completed = true;
-  this.error = error;
-
-  this.changed(data, ev);
+  if (this.type === 'object') {
+    throw new Error('No type from output of ' + this.typed);
+  }
 
   if (error) {
-    this.deferred.reject();
+    this._deferred.reject();
   }
   else {
-    this.deferred.resolve();
+    this._deferred.resolve();
   }
 };
 
 exports.Output = Output;
-
-
-
-
-exports.createExecutionContext = function(requisition) {
-  var context = {
-    exec: requisition.exec.bind(requisition),
-    update: requisition.update.bind(requisition),
-    updateExec: requisition.updateExec.bind(requisition),
-    createView: view.createView,
-    typedData: function(data, type) {
-      return {
-        isTypedData: true,
-        data: data,
-        type: type
-      };
-    },
-    getArgsObject: requisition.getArgsObject.bind(requisition),
-    defer: function() {
-      return Promise.defer();
-    },
-    
-
-
-
-    createPromise: function() {
-      return Promise.defer();
-    }
-  };
-
-  Object.defineProperty(context, 'environment', {
-    get: function() { return requisition.environment; },
-    enumerable : true
-  });
-
-  Object.defineProperty(context, 'document', {
-    get: function() { return requisition.document; },
-    enumerable : true
-  });
-
-  return context;
-};
 
 
 });
@@ -7807,7 +7960,7 @@ exports.FocusManager = FocusManager;
 
 
 
-define('gcli/ui/fields/basic', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'gcli/argument', 'gcli/types', 'gcli/types/basic', 'gcli/ui/fields'], function(require, exports, module) {
+define('gcli/ui/fields/basic', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'gcli/argument', 'gcli/types', 'gcli/ui/fields'], function(require, exports, module) {
 
 'use strict';
 
@@ -7819,12 +7972,6 @@ var TrueNamedArgument = require('gcli/argument').TrueNamedArgument;
 var FalseNamedArgument = require('gcli/argument').FalseNamedArgument;
 var ArrayArgument = require('gcli/argument').ArrayArgument;
 var ArrayConversion = require('gcli/types').ArrayConversion;
-
-var StringType = require('gcli/types/basic').StringType;
-var NumberType = require('gcli/types/basic').NumberType;
-var BooleanType = require('gcli/types/basic').BooleanType;
-var DelegateType = require('gcli/types/basic').DelegateType;
-var ArrayType = require('gcli/types/basic').ArrayType;
 
 var Field = require('gcli/ui/fields').Field;
 var fields = require('gcli/ui/fields');
@@ -7890,7 +8037,7 @@ StringField.prototype.getConversion = function() {
 };
 
 StringField.claim = function(type, context) {
-  return type instanceof StringType ? Field.MATCH : Field.BASIC;
+  return type.name === 'string' ? Field.MATCH : Field.BASIC;
 };
 
 
@@ -7922,7 +8069,7 @@ function NumberField(type, options) {
 NumberField.prototype = Object.create(Field.prototype);
 
 NumberField.claim = function(type, context) {
-  return type instanceof NumberType ? Field.MATCH : Field.NO_MATCH;
+  return type.name === 'number' ? Field.MATCH : Field.NO_MATCH;
 };
 
 NumberField.prototype.destroy = function() {
@@ -7967,7 +8114,7 @@ function BooleanField(type, options) {
 BooleanField.prototype = Object.create(Field.prototype);
 
 BooleanField.claim = function(type, context) {
-  return type instanceof BooleanType ? Field.MATCH : Field.NO_MATCH;
+  return type.name === 'boolean' ? Field.MATCH : Field.NO_MATCH;
 };
 
 BooleanField.prototype.destroy = function() {
@@ -8034,7 +8181,7 @@ DelegateField.prototype.update = function() {
 };
 
 DelegateField.claim = function(type, context) {
-  return type instanceof DelegateType ? Field.MATCH : Field.NO_MATCH;
+  return type.isDelegate ? Field.MATCH : Field.NO_MATCH;
 };
 
 DelegateField.prototype.destroy = function() {
@@ -8096,7 +8243,7 @@ function ArrayField(type, options) {
 ArrayField.prototype = Object.create(Field.prototype);
 
 ArrayField.claim = function(type, context) {
-  return type instanceof ArrayType ? Field.MATCH : Field.NO_MATCH;
+  return type.name === 'array' ? Field.MATCH : Field.NO_MATCH;
 };
 
 ArrayField.prototype.destroy = function() {
@@ -8188,15 +8335,13 @@ ArrayField.prototype._onAdd = function(ev, subConversion) {
 
 
 
-define('gcli/ui/fields', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'gcli/types/basic'], function(require, exports, module) {
+define('gcli/ui/fields', ['require', 'exports', 'module' , 'util/promise', 'util/util'], function(require, exports, module) {
 
 'use strict';
 
 var Promise = require('util/promise');
 var util = require('util/util');
 var KeyEvent = require('util/util').KeyEvent;
-
-var BlankType = require('gcli/types/basic').BlankType;
 
 
 
@@ -8408,7 +8553,7 @@ function BlankField(type, options) {
 BlankField.prototype = Object.create(Field.prototype);
 
 BlankField.claim = function(type, context) {
-  return type instanceof BlankType ? Field.MATCH : Field.NO_MATCH;
+  return type.name === 'blank' ? Field.MATCH : Field.NO_MATCH;
 };
 
 BlankField.prototype.setConversion = function(conversion) {
@@ -8439,7 +8584,7 @@ exports.addField(BlankField);
 
 
 
-define('gcli/ui/fields/javascript', ['require', 'exports', 'module' , 'util/util', 'util/promise', 'gcli/types', 'gcli/argument', 'gcli/types/javascript', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
+define('gcli/ui/fields/javascript', ['require', 'exports', 'module' , 'util/util', 'util/promise', 'gcli/types', 'gcli/argument', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
 
 'use strict';
 
@@ -8449,7 +8594,6 @@ var Promise = require('util/promise');
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
 var ScriptArgument = require('gcli/argument').ScriptArgument;
-var JavascriptType = require('gcli/types/javascript').JavascriptType;
 
 var Menu = require('gcli/ui/fields/menu').Menu;
 var Field = require('gcli/ui/fields').Field;
@@ -8506,7 +8650,7 @@ function JavascriptField(type, options) {
 JavascriptField.prototype = Object.create(Field.prototype);
 
 JavascriptField.claim = function(type, context) {
-  return type instanceof JavascriptType ? Field.TOOLTIP_MATCH : Field.NO_MATCH;
+  return type.name === 'javascript' ? Field.TOOLTIP_MATCH : Field.NO_MATCH;
 };
 
 JavascriptField.prototype.destroy = function() {
@@ -8526,7 +8670,7 @@ JavascriptField.prototype.setConversion = function(conversion) {
   this.input.value = conversion.arg.text;
 
   var prefixLen = 0;
-  if (this.type instanceof JavascriptType) {
+  if (this.type.name === 'javascript') {
     var typed = conversion.arg.text;
     var lastDot = typed.lastIndexOf('.');
     if (lastDot !== -1) {
@@ -8837,7 +8981,7 @@ define("text!gcli/ui/fields/menu.html", [], "\n" +
 
 
 
-define('gcli/ui/fields/selection', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/argument', 'gcli/types', 'gcli/types/basic', 'gcli/types/selection', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
+define('gcli/ui/fields/selection', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/argument', 'gcli/types', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
 
 'use strict';
 
@@ -8848,8 +8992,6 @@ var l10n = require('util/l10n');
 var Argument = require('gcli/argument').Argument;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
-var BooleanType = require('gcli/types/basic').BooleanType;
-var SelectionType = require('gcli/types/selection').SelectionType;
 
 var Menu = require('gcli/ui/fields/menu').Menu;
 var Field = require('gcli/ui/fields').Field;
@@ -8905,10 +9047,10 @@ function SelectionField(type, options) {
 SelectionField.prototype = Object.create(Field.prototype);
 
 SelectionField.claim = function(type, context) {
-  if (type instanceof BooleanType) {
+  if (type.name === 'boolean') {
     return Field.BASIC;
   }
-  return type instanceof SelectionType ? Field.DEFAULT : Field.NO_MATCH;
+  return type.isSelection ? Field.DEFAULT : Field.NO_MATCH;
 };
 
 SelectionField.prototype.destroy = function() {
@@ -8967,7 +9109,7 @@ function SelectionTooltipField(type, options) {
 SelectionTooltipField.prototype = Object.create(Field.prototype);
 
 SelectionTooltipField.claim = function(type, context) {
-  return type.getType(context) instanceof SelectionType ?
+  return type.getType(context).isSelection ?
       Field.TOOLTIP_MATCH :
       Field.NO_MATCH;
 };
@@ -9061,20 +9203,515 @@ SelectionTooltipField.DEFAULT_VALUE = '__SelectionTooltipField.DEFAULT_VALUE';
 
 
 
-define('gcli/commands/help', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'gcli/canon', 'gcli/ui/view', 'text!gcli/commands/help_man.html', 'text!gcli/commands/help_list.html', 'text!gcli/commands/help.css'], function(require, exports, module) {
+define('gcli/commands/connect', ['require', 'exports', 'module' , 'util/l10n', 'gcli/types', 'gcli/canon', 'util/connect/connector'], function(require, exports, module) {
 
 'use strict';
 
-var util = require('util/util');
+var l10n = require('util/l10n');
+var types = require('gcli/types');
+var canon = require('gcli/canon');
+var connector = require('util/connect/connector');
+
+
+
+
+var connections = {};
+
+
+
+
+var connect = {
+  name: 'connect',
+  description: l10n.lookup('connectDesc'),
+  manual: l10n.lookup('connectManual'),
+  params: [
+    {
+      name: 'prefix',
+      type: 'string',
+      description: l10n.lookup('connectPrefixDesc')
+    },
+    {
+      name: 'host',
+      type: 'string',
+      description: l10n.lookup('connectHostDesc'),
+      defaultValue: 'localhost',
+      option: true
+    },
+    {
+      name: 'port',
+      type: { name: 'number', max: 65536, min: 0 },
+      description: l10n.lookup('connectPortDesc'),
+      defaultValue: connector.defaultPort,
+      option: true
+    }
+  ],
+  returnType: 'string',
+
+  exec: function(args, context) {
+    if (connections[args.prefix] != null) {
+      throw new Error(l10n.lookupFormat('connectDupReply', [ args.prefix ]));
+    }
+
+    var cxp = connector.connect(args.prefix, args.host, args.port);
+    return cxp.then(function(connection) {
+      connections[args.prefix] = connection;
+
+      return connection.getCommandSpecs().then(function(commandSpecs) {
+        var remoter = this.createRemoter(args.prefix, connection);
+        canon.addProxyCommands(args.prefix, commandSpecs, remoter);
+
+        
+        return l10n.lookupFormat('connectReply',
+                                 [ Object.keys(commandSpecs).length + 1 ]);
+      }.bind(this));
+    }.bind(this));
+  },
+
+  
+
+
+
+  createRemoter: function(prefix, connection) {
+    return function(cmdArgs, context) {
+      var typed = context.typed;
+      if (typed.indexOf(prefix) !== 0) {
+        throw new Error("Missing prefix");
+      }
+      typed = typed.substring(prefix.length).replace(/^ */, "");
+
+      return connection.execute(typed, cmdArgs).then(function(reply) {
+        var typedData = context.typedData(reply.type, reply.data);
+        if (!reply.error) {
+          return typedData;
+        }
+        else {
+          throw typedData;
+        }
+      });
+    }.bind(this);
+  }
+};
+
+
+
+
+var connection = {
+  name: 'connection',
+  parent: 'selection',
+  lookup: function() {
+    return Object.keys(connections).map(function(prefix) {
+      return { name: prefix, value: connections[prefix] };
+    });
+  }
+};
+
+
+
+
+var disconnect = {
+  name: 'disconnect',
+  description: l10n.lookup('disconnectDesc'),
+  manual: l10n.lookup('disconnectManual'),
+  params: [
+    {
+      name: 'prefix',
+      type: 'connection',
+      description: l10n.lookup('disconnectPrefixDesc'),
+    }
+  ],
+  returnType: 'string',
+
+  exec: function(args, context) {
+    return args.prefix.disconnect().then(function() {
+      var removed = canon.removeProxyCommands(args.prefix.prefix);
+      delete connections[args.prefix.prefix];
+      return l10n.lookupFormat('disconnectReply', [ removed.length ]);
+    });
+  }
+};
+
+
+
+
+
+exports.startup = function() {
+  types.addType(connection);
+
+  canon.addCommand(connect);
+  canon.addCommand(disconnect);
+};
+
+exports.shutdown = function() {
+  canon.removeCommand(connect);
+  canon.removeCommand(disconnect);
+
+  types.removeType(connection);
+};
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('util/connect/connector', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+'use strict';
+
+var debuggerSocketConnect = Components.utils.import('resource://gre/modules/devtools/dbg-client.jsm', {}).debuggerSocketConnect;
+var DebuggerClient = Components.utils.import('resource://gre/modules/devtools/dbg-client.jsm', {}).DebuggerClient;
+
+
+
+
+Object.defineProperty(exports, 'defaultPort', {
+  get: function() {
+    var Services = Components.utils.import('resource://gre/modules/Services.jsm', {}).Services;
+    try {
+      return Services.prefs.getIntPref('devtools.debugger.chrome-debugging-port');
+    }
+    catch (ex) {
+      console.error('Can\'t use default port from prefs. Using 9999');
+      return 9999;
+    }
+  },
+  enumerable: true
+});
+
+
+
+
+
+exports.connect = function(prefix, host, port) {
+  var connection = new Connection(prefix, host, port);
+  return connection.connect().then(function() {
+    return connection;
+  });
+};
+
+
+
+
+function Connection(prefix, host, port) {
+  this.prefix = prefix;
+  this.host = host;
+  this.port = port;
+
+  
+  this.actor = undefined;
+  this.transport = undefined;
+  this.client = undefined;
+
+  this.requests = {};
+  this.nextRequestId = 0;
+}
+
+
+
+
+
+
+
+Connection.prototype.connect = function() {
+  var deferred = Promise.defer();
+
+  this.transport = debuggerSocketConnect(this.host, this.port);
+  this.client = new DebuggerClient(this.transport);
+
+  this.client.connect(function() {
+    this.client.listTabs(function(response) {
+      this.actor = response.gcliActor;
+      deferred.resolve();
+    }.bind(this));
+  }.bind(this));
+
+  return deferred.promise;
+};
+
+
+
+
+
+Connection.prototype.getCommandSpecs = function() {
+  var deferred = Promise.defer();
+
+  var request = { to: this.actor, type: 'getCommandSpecs' };
+
+  this.client.request(request, function(response) {
+    deferred.resolve(response.commandSpecs);
+  });
+
+  return deferred.promise;
+};
+
+
+
+
+Connection.prototype.execute = function(typed, cmdArgs) {
+  var deferred = Promise.defer();
+
+  var request = {
+    to: this.actor,
+    type: 'execute',
+    typed: typed,
+    args: cmdArgs
+  };
+
+  this.client.request(request, function(response) {
+    deferred.resolve(response.reply);
+  });
+
+  return deferred.promise;
+};
+
+
+
+
+Connection.prototype.execute = function(typed, cmdArgs) {
+  var request = new Request(this.actor, typed, cmdArgs);
+  this.requests[request.json.id] = request;
+
+  this.client.request(request.json, function(response) {
+    var request = this.requests[response.id];
+    delete this.requests[response.id];
+
+    request.complete(response.error, response.type, response.data);
+  }.bind(this));
+
+  return request.promise;
+};
+
+
+
+
+Connection.prototype.disconnect = function() {
+  var deferred = Promise.defer();
+
+  this.client.close(function() {
+    deferred.resolve();
+  });
+
+  return request.promise;
+};
+
+
+
+
+
+function Request(actor, typed, args) {
+  this.json = {
+    to: actor,
+    type: 'execute',
+    typed: typed,
+    args: args,
+    id: Request._nextRequestId++,
+  };
+
+  this._deferred = Promise.defer();
+  this.promise = this._deferred.promise;
+}
+
+Request._nextRequestId = 0;
+
+
+
+
+
+
+
+Request.prototype.complete = function(error, type, data) {
+  this._deferred.resolve({
+    error: error,
+    type: type,
+    data: data
+  });
+};
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/commands/context', ['require', 'exports', 'module' , 'util/l10n', 'gcli/canon'], function(require, exports, module) {
+
+'use strict';
+
 var l10n = require('util/l10n');
 var canon = require('gcli/canon');
-var view = require('gcli/ui/view');
 
 
 
-exports.helpManHtml = require('text!gcli/commands/help_man.html');
-exports.helpListHtml = require('text!gcli/commands/help_list.html');
-exports.helpCss = require('text!gcli/commands/help.css');
+
+var contextCmdSpec = {
+  name: 'context',
+  description: l10n.lookup('contextDesc'),
+  manual: l10n.lookup('contextManual'),
+  params: [
+   {
+     name: 'prefix',
+     type: 'command',
+     description: l10n.lookup('contextPrefixDesc'),
+     defaultValue: null
+   }
+  ],
+  returnType: 'string',
+  exec: function echo(args, context) {
+    
+    var requisition = context.__dlhjshfw;
+
+    if (args.prefix == null) {
+      requisition.prefix = null;
+      return l10n.lookup('contextEmptyReply');
+    }
+
+    if (args.prefix.exec != null) {
+      throw new Error(l10n.lookupFormat('contextNotParentError',
+                                        [ args.prefix.name ]));
+    }
+
+    requisition.prefix = args.prefix.name;
+    return l10n.lookupFormat('contextReply', [ args.prefix.name ]);
+  }
+};
+
+
+
+
+exports.startup = function() {
+  canon.addCommand(contextCmdSpec);
+};
+
+exports.shutdown = function() {
+  canon.removeCommand(contextCmdSpec);
+};
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/commands/help', ['require', 'exports', 'module' , 'util/l10n', 'gcli/canon', 'gcli/converters', 'text!gcli/commands/help_man.html', 'text!gcli/commands/help_list.html', 'text!gcli/commands/help.css'], function(require, exports, module) {
+
+'use strict';
+
+var l10n = require('util/l10n');
+var canon = require('gcli/canon');
+var converters = require('gcli/converters');
+
+var helpManHtml = require('text!gcli/commands/help_man.html');
+var helpListHtml = require('text!gcli/commands/help_list.html');
+var helpCss = require('text!gcli/commands/help.css');
+
+
+
+
+var commandConverterSpec = {
+  from: 'commandData',
+  to: 'view',
+  exec: function(commandData, context) {
+    return context.createView({
+      html: helpManHtml,
+      options: { allowEval: true, stack: 'help_man.html' },
+      data: {
+        l10n: l10n.propertyLookup,
+        onclick: context.update,
+        ondblclick: context.updateExec,
+        describe: function(item) {
+          return item.manual || item.description;
+        },
+        getTypeDescription: function(param) {
+          var input = '';
+          if (param.defaultValue === undefined) {
+            input = l10n.lookup('helpManRequired');
+          }
+          else if (param.defaultValue === null) {
+            input = l10n.lookup('helpManOptional');
+          }
+          else {
+            input = param.defaultValue;
+          }
+          return '(' + param.type.name + ', ' + input + ')';
+        },
+        command: commandData.command,
+        subcommands: commandData.subcommands
+      },
+      css: helpCss,
+      cssId: 'gcli-help'
+    });
+  }
+};
+
+
+
+
+var commandsConverterSpec = {
+  from: 'commandsData',
+  to: 'view',
+  exec: function(commandsData, context) {
+    var heading;
+    if (commandsData.commands.length === 0) {
+      heading = l10n.lookupFormat('helpListNone', [ commandsData.prefix ]);
+    }
+    else if (commandsData.prefix == null) {
+      heading = l10n.lookup('helpListAll');
+    }
+    else {
+      heading = l10n.lookupFormat('helpListPrefix', [ commandsData.prefix ]);
+    }
+
+    return context.createView({
+      html: helpListHtml,
+      options: { allowEval: true, stack: 'help_list.html' },
+      data: {
+        l10n: l10n.propertyLookup,
+        includeIntro: commandsData.prefix == null,
+        heading: heading,
+        onclick: context.update,
+        ondblclick: context.updateExec,
+        matchingCommands: commandsData.commands
+      },
+      css: helpCss,
+      cssId: 'gcli-help'
+    });
+  }
+};
 
 
 
@@ -9092,26 +9729,19 @@ var helpCommandSpec = {
       defaultValue: null
     }
   ],
-  returnType: 'view',
 
   exec: function(args, context) {
-    var match = canon.getCommand(args.search || undefined);
-    if (match) {
-      return view.createView({
-        html: exports.helpManHtml,
-        options: { allowEval: true, stack: 'help_man.html' },
-        data: getManTemplateData(match, context),
-        css: exports.helpCss,
-        cssId: 'gcli-help'
+    var command = canon.getCommand(args.search || undefined);
+    if (command) {
+      return context.typedData('commandData', {
+        command: command,
+        subcommands: getSubCommands(command)
       });
     }
 
-    return view.createView({
-      html: exports.helpListHtml,
-      options: { allowEval: true, stack: 'help_list.html' },
-      data: getListTemplateData(args, context),
-      css: exports.helpCss,
-      cssId: 'gcli-help'
+    return context.typedData('commandsData', {
+      prefix: args.search,
+      commands: getMatchingCommands(args.search)
     });
   }
 };
@@ -9121,113 +9751,360 @@ var helpCommandSpec = {
 
 exports.startup = function() {
   canon.addCommand(helpCommandSpec);
+  converters.addConverter(commandConverterSpec);
+  converters.addConverter(commandsConverterSpec);
 };
 
 exports.shutdown = function() {
   canon.removeCommand(helpCommandSpec);
+  converters.removeConverter(commandConverterSpec);
+  converters.removeConverter(commandsConverterSpec);
 };
 
 
 
 
-function getListTemplateData(args, context) {
-  var matchingCommands = canon.getCommands().filter(function(command) {
+function getMatchingCommands(prefix) {
+  var commands = canon.getCommands().filter(function(command) {
     if (command.hidden) {
       return false;
     }
 
-    if (args.search && command.name.indexOf(args.search) !== 0) {
+    if (prefix && command.name.indexOf(prefix) !== 0) {
       
       return false;
     }
-    if (!args.search && command.name.indexOf(' ') != -1) {
+    if (!prefix && command.name.indexOf(' ') != -1) {
       
       return false;
     }
     return true;
   });
-  matchingCommands.sort(function(c1, c2) {
+  commands.sort(function(c1, c2) {
     return c1.name.localeCompare(c2.name);
   });
 
-  var heading;
-  if (matchingCommands.length === 0) {
-    heading = l10n.lookupFormat('helpListNone', [ args.search ]);
-  }
-  else if (args.search == null) {
-    heading = l10n.lookup('helpListAll');
-  }
-  else {
-    heading = l10n.lookupFormat('helpListPrefix', [ args.search ]);
-  }
-
-  return {
-    l10n: l10n.propertyLookup,
-    includeIntro: args.search == null,
-    matchingCommands: matchingCommands,
-    heading: heading,
-
-    onclick: function(ev) {
-      util.updateCommand(ev.currentTarget, context);
-    },
-
-    ondblclick: function(ev) {
-      util.executeCommand(ev.currentTarget, context);
-    }
-  };
+  return commands;
 }
 
 
 
 
-function getManTemplateData(command, context) {
-  var manTemplateData = {
-    l10n: l10n.propertyLookup,
-    command: command,
+function getSubCommands(command) {
+  if (command.exec != null) {
+    return [];
+  }
 
-    onclick: function(ev) {
-      util.updateCommand(ev.currentTarget, context);
-    },
-
-    ondblclick: function(ev) {
-      util.executeCommand(ev.currentTarget, context);
-    },
-
-    describe: function(item) {
-      return item.manual || item.description;
-    },
-
-    getTypeDescription: function(param) {
-      var input = '';
-      if (param.defaultValue === undefined) {
-        input = l10n.lookup('helpManRequired');
-      }
-      else if (param.defaultValue === null) {
-        input = l10n.lookup('helpManOptional');
-      }
-      else {
-        input = param.defaultValue;
-      }
-      return '(' + param.type.name + ', ' + input + ')';
-    }
-  };
-
-  Object.defineProperty(manTemplateData, 'subcommands', {
-    get: function() {
-      var matching = canon.getCommands().filter(function(subcommand) {
-        return subcommand.name.indexOf(command.name) === 0 &&
-                subcommand.name !== command.name;
-      });
-      matching.sort(function(c1, c2) {
-        return c1.name.localeCompare(c2.name);
-      });
-      return matching;
-    },
-    enumerable: true
+  var subcommands = canon.getCommands().filter(function(subcommand) {
+    return subcommand.name.indexOf(command.name) === 0 &&
+            subcommand.name !== command.name;
   });
 
-  return manTemplateData;
+  subcommands.sort(function(c1, c2) {
+    return c1.name.localeCompare(c2.name);
+  });
+
+  return subcommands;
 }
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/converters', ['require', 'exports', 'module' , 'util/util', 'util/promise'], function(require, exports, module) {
+
+'use strict';
+
+var util = require('util/util');
+var Promise = require('util/promise');
+
+
+
+
+
+
+var fallbackDomConverter = {
+  from: '*',
+  to: 'dom',
+  exec: function(data, conversionContext) {
+    if (data == null) {
+      return conversionContext.document.createTextNode('');
+    }
+
+    if (typeof HTMLElement !== 'undefined' && data instanceof HTMLElement) {
+      return data;
+    }
+
+    var node = util.createElement(conversionContext.document, 'p');
+    util.setContents(node, data.toString());
+    return node;
+  }
+};
+
+
+
+
+var fallbackStringConverter = {
+  from: '*',
+  to: 'string',
+  exec: function(data, conversionContext) {
+    if (data.isView) {
+      return data.toDom(conversionContext.document).textContent;
+    }
+
+    if (typeof HTMLElement !== 'undefined' && data instanceof HTMLElement) {
+      return data.textContent;
+    }
+
+    return data == null ? '' : data.toString();
+  }
+};
+
+
+
+
+var viewDomConverter = {
+  from: 'view',
+  to: 'dom',
+  exec: function(view, conversionContext) {
+    return view.toDom(conversionContext.document);
+  }
+};
+
+
+
+
+var viewStringConverter = {
+  from: 'view',
+  to: 'string',
+  exec: function(view, conversionContext) {
+    return view.toDom(conversionContext.document).textContent;
+  }
+};
+
+
+
+
+var terminalDomConverter = {
+  from: 'terminal',
+  to: 'dom',
+  createTextArea: function(text, conversionContext) {
+    var node = util.createElement(conversionContext.document, 'textarea');
+    node.classList.add('gcli-row-subterminal');
+    node.readOnly = true;
+    node.textContent = text;
+    return node;
+  },
+  exec: function(data, context) {
+    if (Array.isArray(data)) {
+      var node = util.createElement(conversionContext.document, 'div');
+      data.forEach(function(member) {
+        node.appendChild(this.createTextArea(member, conversionContext));
+      });
+      return node;
+    }
+    return this.createTextArea(data);
+  }
+};
+
+
+
+
+function nodeFromDataToString(data, conversionContext) {
+  var node = util.createElement(conversionContext.document, 'p');
+  node.textContent = data.toString();
+  return node;
+}
+
+
+
+
+var stringDomConverter = {
+  from: 'string',
+  to: 'dom',
+  exec: nodeFromDataToString
+};
+
+
+
+
+var numberDomConverter = {
+  from: 'number',
+  to: 'dom',
+  exec: nodeFromDataToString
+};
+
+
+
+
+var booleanDomConverter = {
+  from: 'boolean',
+  to: 'dom',
+  exec: nodeFromDataToString
+};
+
+
+
+
+var undefinedDomConverter = {
+  from: 'undefined',
+  to: 'dom',
+  exec: function(data, conversionContext) {
+    return util.createElement(conversionContext.document, 'span');
+  }
+};
+
+
+
+
+var errorDomConverter = {
+  from: 'error',
+  to: 'dom',
+  exec: function(ex, conversionContext) {
+    var node = util.createElement(conversionContext.document, 'p');
+    node.className = "gcli-error";
+    node.textContent = ex;
+    return node;
+  }
+};
+
+
+
+
+function getChainConverter(first, second) {
+  if (first.to !== second.from) {
+    throw new Error('Chain convert impossible: ' + first.to + '!=' + second.from);
+  }
+  return {
+    from: first.from,
+    to: second.to,
+    exec: function(data, conversionContext) {
+      var intermediate = first.exec(data, conversionContext);
+      return second.exec(intermediate, conversionContext);
+    }
+  };
+}
+
+
+
+
+var converters = {
+  from: {}
+};
+
+
+
+
+exports.addConverter = function(converter) {
+  var fromMatch = converters.from[converter.from];
+  if (fromMatch == null) {
+    fromMatch = {};
+    converters.from[converter.from] = fromMatch;
+  }
+
+  fromMatch[converter.to] = converter;
+};
+
+
+
+
+exports.removeConverter = function(converter) {
+  var fromMatch = converters.from[converter.from];
+  if (fromMatch == null) {
+    return;
+  }
+
+  if (fromMatch[converter.to] === converter) {
+    fromMatch[converter.to] = null;
+  }
+};
+
+
+
+
+function getConverter(from, to) {
+  var fromMatch = converters.from[from];
+  if (fromMatch == null) {
+    return getFallbackConverter(from, to);
+  }
+
+  var converter = fromMatch[to];
+  if (converter == null) {
+    
+    
+    
+    
+    if (to === 'dom') {
+      converter = fromMatch['view'];
+      if (converter != null) {
+        return getChainConverter(converter, viewDomConverter);
+      }
+    }
+    if (to === 'string') {
+      converter = fromMatch['view'];
+      if (converter != null) {
+        return getChainConverter(converter, viewStringConverter);
+      }
+    }
+    return getFallbackConverter(from, to);
+  }
+  return converter;
+}
+
+
+
+
+function getFallbackConverter(from, to) {
+  console.error('No converter from ' + from + ' to ' + to + '. Using fallback');
+
+  if (to === 'dom') {
+    return fallbackDomConverter;
+  }
+
+  if (to === 'string') {
+    return fallbackStringConverter;
+  }
+
+  throw new Error('No conversion possible from ' + from + ' to ' + to + '.');
+}
+
+
+
+
+
+
+
+
+
+exports.convert = function(data, from, to, conversionContext) {
+  if (from === to) {
+    return Promise.resolve(data);
+  }
+  return Promise.resolve(getConverter(from, to).exec(data, conversionContext));
+};
+
+exports.addConverter(viewDomConverter);
+exports.addConverter(viewStringConverter);
+exports.addConverter(terminalDomConverter);
+exports.addConverter(stringDomConverter);
+exports.addConverter(numberDomConverter);
+exports.addConverter(booleanDomConverter);
+exports.addConverter(undefinedDomConverter);
+exports.addConverter(errorDomConverter);
+
 
 });
 define("text!gcli/commands/help_man.html", [], "\n" +
@@ -9390,7 +10267,7 @@ var prefSetCmdSpec = {
   exec: function(args, context) {
     if (!exports.allowSet.value &&
         args.setting.name !== exports.allowSet.name) {
-      return context.typedData(null, 'prefSetWarning');
+      return context.typedData('prefSetWarning', null);
     }
 
     args.setting.value = args.value;
@@ -9407,7 +10284,7 @@ var prefSetWarningConverterSpec = {
       data: {
         l10n: l10n.propertyLookup,
         activate: function() {
-          context.exec('pref set ' + exports.allowSet.name + ' true');
+          context.updateExec('pref set ' + exports.allowSet.name + ' true');
         }
       }
     });
@@ -9457,245 +10334,6 @@ exports.shutdown = function() {
   settings.removeSetting(allowSetSettingSpec);
   exports.allowSet = undefined;
 };
-
-
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-define('gcli/converters', ['require', 'exports', 'module' , 'util/util', 'util/promise'], function(require, exports, module) {
-
-'use strict';
-
-var util = require('util/util');
-var Promise = require('util/promise');
-
-
-
-
-
-
-var fallbackDomConverter = {
-  from: '*',
-  to: 'dom',
-  exec: function(data, context) {
-    if (data == null) {
-      return context.document.createTextNode('');
-    }
-
-    if (typeof HTMLElement !== 'undefined' && data instanceof HTMLElement) {
-      return data;
-    }
-
-    var node = util.createElement(context.document, 'p');
-    util.setContents(node, data.toString());
-    return node;
-  }
-};
-
-
-
-
-var fallbackStringConverter = {
-  from: '*',
-  to: 'string',
-  exec: function(data, context) {
-    if (data.isView) {
-      return data.toDom(context.document).textContent;
-    }
-
-    if (typeof HTMLElement !== 'undefined' && data instanceof HTMLElement) {
-      return data.textContent;
-    }
-
-    return data == null ? '' : data.toString();
-  }
-};
-
-
-
-
-var viewDomConverter = {
-  from: 'view',
-  to: 'dom',
-  exec: function(data, context) {
-    return data.toDom(context.document);
-  }
-};
-
-
-
-
-var terminalDomConverter = {
-  from: 'terminal',
-  to: 'dom',
-  createTextArea: function(text) {
-    var node = util.createElement(context.document, 'textarea');
-    node.classList.add('gcli-row-subterminal');
-    node.readOnly = true;
-    node.textContent = text;
-    return node;
-  },
-  exec: function(data, context) {
-    if (Array.isArray(data)) {
-      var node = util.createElement(context.document, 'div');
-      data.forEach(function(member) {
-        node.appendChild(this.createTextArea(member));
-      });
-      return node;
-    }
-    return this.createTextArea(data);
-  }
-};
-
-
-
-
-var stringDomConverter = {
-  from: 'string',
-  to: 'dom',
-  exec: function(data, context) {
-    var node = util.createElement(context.document, 'p');
-    node.textContent = data;
-    return node;
-  }
-};
-
-
-
-
-var exceptionDomConverter = {
-  from: 'exception',
-  to: 'dom',
-  exec: function(ex, context) {
-    var node = util.createElement(context.document, 'p');
-    node.className = "gcli-exception";
-    node.textContent = ex;
-    return node;
-  }
-};
-
-
-
-
-function getChainConverter(first, second) {
-  if (first.to !== second.from) {
-    throw new Error('Chain convert impossible: ' + first.to + '!=' + second.from);
-  }
-  return {
-    from: first.from,
-    to: second.to,
-    exec: function(data, context) {
-      var intermediate = first.exec(data, context);
-      return second.exec(intermediate, context);
-    }
-  };
-}
-
-
-
-
-var converters = {
-  from: {}
-};
-
-
-
-
-exports.addConverter = function(converter) {
-  var fromMatch = converters.from[converter.from];
-  if (fromMatch == null) {
-    fromMatch = {};
-    converters.from[converter.from] = fromMatch;
-  }
-
-  fromMatch[converter.to] = converter;
-};
-
-
-
-
-exports.removeConverter = function(converter) {
-  var fromMatch = converters.from[converter.from];
-  if (fromMatch == null) {
-    return;
-  }
-
-  if (fromMatch[converter.to] === converter) {
-    fromMatch[converter.to] = null;
-  }
-};
-
-
-
-
-function getConverter(from, to) {
-  var fromMatch = converters.from[from];
-  if (fromMatch == null) {
-    return getFallbackConverter(to);
-  }
-  var converter = fromMatch[to];
-  if (converter == null) {
-    
-    
-    
-    
-    if (to === 'dom') {
-      converter = fromMatch['view'];
-      if (converter != null) {
-        return getChainConverter(converter, viewDomConverter);
-      }
-    }
-    return getFallbackConverter(to);
-  }
-  return converter;
-}
-
-
-
-
-function getFallbackConverter(to) {
-  if (to == 'dom') {
-    return fallbackDomConverter;
-  }
-  if (to == 'string') {
-    return fallbackStringConverter;
-  }
-  throw new Error('No conversion possible from ' + from + ' to ' + to + '.');
-}
-
-
-
-
-
-
-
-
-
-exports.convert = function(data, from, to, context) {
-  if (from === to) {
-    return data;
-  }
-  return Promise.resolve(getConverter(from, to).exec(data, context));
-};
-
-exports.addConverter(viewDomConverter);
-exports.addConverter(terminalDomConverter);
-exports.addConverter(stringDomConverter);
-exports.addConverter(exceptionDomConverter);
 
 
 });
