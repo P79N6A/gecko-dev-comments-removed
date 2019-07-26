@@ -11,6 +11,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/devtools/SourceMap.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 const promise = require("sdk/core/promise");
 const events = require("sdk/event/core");
@@ -94,18 +95,7 @@ let StyleSheetsActor = protocol.ActorClass({
     let window = this.window;
     var domReady = () => {
       window.removeEventListener("DOMContentLoaded", domReady, true);
-
-      let documents = [this.document];
-      let actors = [];
-      for (let doc of documents) {
-        let sheets = this._addStyleSheets(doc.styleSheets);
-        actors = actors.concat(sheets);
-        
-        for (let iframe of doc.getElementsByTagName("iframe")) {
-          documents.push(iframe.contentDocument);
-        }
-      }
-      deferred.resolve(actors);
+      this._addAllStyleSheets().then(deferred.resolve, Cu.reportError);
     };
 
     if (window.document.readyState === "loading") {
@@ -127,22 +117,48 @@ let StyleSheetsActor = protocol.ActorClass({
 
 
 
+  _addAllStyleSheets: function() {
+    return Task.spawn(function() {
+      let documents = [this.document];
+      let actors = [];
+
+      for (let doc of documents) {
+        let sheets = yield this._addStyleSheets(doc.styleSheets);
+        actors = actors.concat(sheets);
+
+        
+        for (let iframe of doc.getElementsByTagName("iframe")) {
+          documents.push(iframe.contentDocument);
+        }
+      }
+      throw new Task.Result(actors);
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
 
 
   _addStyleSheets: function(styleSheets)
   {
-    let sheets = [];
-    for (let i = 0; i < styleSheets.length; i++) {
-      let styleSheet = styleSheets[i];
-      sheets.push(styleSheet);
+    return Task.spawn(function() {
+      let actors = [];
+      for (let i = 0; i < styleSheets.length; i++) {
+        let actor = this._createStyleSheetActor(styleSheets[i]);
+        actors.push(actor);
 
-      
-      let imports = this._getImported(styleSheet);
-      sheets = sheets.concat(imports);
-    }
-    let actors = sheets.map(this._createStyleSheetActor.bind(this));
-
-    return actors;
+        
+        let imports = yield this._getImported(actor);
+        actors = actors.concat(imports);
+      }
+      throw new Task.Result(actors);
+    }.bind(this));
   },
 
   
@@ -154,27 +170,33 @@ let StyleSheetsActor = protocol.ActorClass({
 
 
   _getImported: function(styleSheet) {
-   let imported = [];
+    return Task.spawn(function() {
+      let rules = yield styleSheet.getCSSRules();
+      let imported = [];
 
-   for (let i = 0; i < styleSheet.cssRules.length; i++) {
-      let rule = styleSheet.cssRules[i];
-      if (rule.type == Ci.nsIDOMCSSRule.IMPORT_RULE) {
-        
-        
-        if (!rule.styleSheet) {
-          continue;
+      for (let i = 0; i < rules.length; i++) {
+        let rule = rules[i];
+        if (rule.type == Ci.nsIDOMCSSRule.IMPORT_RULE) {
+          
+          
+          if (!rule.styleSheet) {
+            continue;
+          }
+          let actor = this._createStyleSheetActor(rule.styleSheet);
+          imported.push(actor);
+
+          
+          let children = yield this._getImported(actor);
+          imported = imported.concat(children);
         }
-        imported.push(rule.styleSheet);
+        else if (rule.type != Ci.nsIDOMCSSRule.CHARSET_RULE) {
+          
+          break;
+        }
+      }
 
-        
-        imported = imported.concat(this._getImported(rule.styleSheet));
-      }
-      else if (rule.type != Ci.nsIDOMCSSRule.CHARSET_RULE) {
-        
-        break;
-      }
-    }
-    return imported;
+      throw new Task.Result(imported);
+    }.bind(this));
   },
 
   
@@ -319,17 +341,50 @@ let StyleSheetActor = protocol.ActorClass({
     this._styleSheetIndex = -1;
 
     this._transitionRefCount = 0;
+  },
+
+  
+
+
+
+
+
+  getCSSRules: function() {
+    let rules;
+    try {
+      rules = this.rawSheet.cssRules;
+    }
+    catch (e) {
+      
+    }
+
+    if (rules) {
+      return promise.resolve(rules);
+    }
+
+    let ownerNode = this.rawSheet.ownerNode;
+    if (!ownerNode) {
+      return promise.resolve([]);
+    }
+
+    if (this._cssRules) {
+      return this._cssRules;
+    }
+
+    let deferred = promise.defer();
+
+    let onSheetLoaded = function(event) {
+      ownerNode.removeEventListener("load", onSheetLoaded, false);
+
+      deferred.resolve(this.rawSheet.cssRules);
+    }.bind(this);
+
+    ownerNode.addEventListener("load", onSheetLoaded, false);
 
     
-    let ownerNode = this.rawSheet.ownerNode;
-    if (ownerNode) {
-      let onSheetLoaded = function(event) {
-        ownerNode.removeEventListener("load", onSheetLoaded, false);
-        this._notifyPropertyChanged("ruleCount");
-      }.bind(this);
+    this._cssRules = deferred.promise;
 
-      ownerNode.addEventListener("load", onSheetLoaded, false);
-    }
+    return this._cssRules;
   },
 
   
@@ -369,6 +424,9 @@ let StyleSheetActor = protocol.ActorClass({
     }
     catch(e) {
       
+      this.getCSSRules().then(() => {
+        this._notifyPropertyChanged("ruleCount");
+      });
     }
     return form;
   },
