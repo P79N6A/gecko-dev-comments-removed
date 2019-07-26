@@ -44,12 +44,12 @@ const BUFFER_SEND_DELAY = 50;
 
 
 
-const MAX_ARGUMENTS = 5;
+const MAX_ARGUMENTS = 3;
 
 
 
 
-const MAX_PROPERTIES = 5;
+const MAX_PROPERTIES = 3;
 
 
 
@@ -315,7 +315,6 @@ TraceActor.prototype = {
 
 
   onEnterFrame: function(aFrame) {
-    let callee = aFrame.callee;
     let packet = {
       type: "enteredFrame",
       sequence: this._sequence++
@@ -365,7 +364,7 @@ TraceActor.prototype = {
         if (i++ > MAX_ARGUMENTS) {
           break;
         }
-        packet.arguments.push(createValueGrip(arg, true));
+        packet.arguments.push(createValueSnapshot(arg, true));
       }
     }
 
@@ -415,16 +414,16 @@ TraceActor.prototype = {
     }
 
     if (aCompletion) {
-      if (this._requestsForTraceType.return) {
-        packet.return = createValueGrip(aCompletion.return, true);
+      if (this._requestsForTraceType.return && "return" in aCompletion) {
+        packet.return = createValueSnapshot(aCompletion.return, true);
       }
 
-      if (this._requestsForTraceType.throw) {
-        packet.throw = createValueGrip(aCompletion.throw, true);
+      else if (this._requestsForTraceType.throw && "throw" in aCompletion) {
+        packet.throw = createValueSnapshot(aCompletion.throw, true);
       }
 
-      if (this._requestsForTraceType.yield) {
-        packet.yield = createValueGrip(aCompletion.yield, true);
+      else if (this._requestsForTraceType.yield && "yield" in aCompletion) {
+        packet.yield = createValueSnapshot(aCompletion.yield, true);
       }
     }
 
@@ -549,27 +548,7 @@ MapStack.prototype = {
 
 
 function getOffsetColumn(aOffset, aScript) {
-  let bestOffsetMapping = null;
-  for (let offsetMapping of aScript.getAllColumnOffsets()) {
-    if (!bestOffsetMapping ||
-        (offsetMapping.offset <= aOffset &&
-         offsetMapping.offset > bestOffsetMapping.offset)) {
-      bestOffsetMapping = offsetMapping;
-    }
-  }
-
-  if (!bestOffsetMapping) {
-    
-    
-    
-    
-    reportException("TraceActor",
-                    new Error("Could not find a column for offset " + aOffset +
-                              " in the script " + aScript));
-    return 0;
-  }
-
-  return bestOffsetMapping.columnNumber;
+  return 0;
 }
 
 
@@ -588,7 +567,7 @@ function getOffsetColumn(aOffset, aScript) {
 
 
 
-function createValueGrip(aValue, aUseDescriptor) {
+function createValueSnapshot(aValue, aDetailed=false) {
   switch (typeof aValue) {
     case "boolean":
       return aValue;
@@ -618,7 +597,9 @@ function createValueGrip(aValue, aUseDescriptor) {
       if (aValue === null) {
         return { type: "null" };
       }
-      return aUseDescriptor ? objectDescriptor(aValue) : objectGrip(aValue);
+      return aDetailed
+        ? detailedObjectSnapshot(aValue)
+        : objectSnapshot(aValue);
     default:
       reportException("TraceActor",
                       new Error("Failed to provide a grip for: " + aValue));
@@ -632,39 +613,11 @@ function createValueGrip(aValue, aUseDescriptor) {
 
 
 
-function objectGrip(aObject) {
-  let g = {
+function objectSnapshot(aObject) {
+  return {
     "type": "object",
     "class": aObject.class,
-    "extensible": aObject.isExtensible(),
-    "frozen": aObject.isFrozen(),
-    "sealed": aObject.isSealed()
   };
-
-  
-  if (aObject.class === "Function") {
-    if (aObject.name) {
-      g.name = aObject.name;
-    }
-    if (aObject.displayName) {
-      g.displayName = aObject.displayName;
-    }
-
-    
-    
-    let name = aObject.getOwnPropertyDescriptor("displayName");
-    if (name && name.value && typeof name.value == "string") {
-      g.userDisplayName = createValueGrip(name.value, aObject);
-    }
-
-    
-    if (aObject.script) {
-      g.url = aObject.script.url;
-      g.line = aObject.script.startLine;
-    }
-  }
-
-  return g;
 }
 
 
@@ -673,32 +626,24 @@ function objectGrip(aObject) {
 
 
 
+function detailedObjectSnapshot(aObject) {
+  let desc = objectSnapshot(aObject);
+  let ownProperties = desc.ownProperties = Object.create(null);
 
-
-function objectDescriptor(aObject) {
-  let desc = objectGrip(aObject);
-  let ownProperties = Object.create(null);
-
-  if (Cu.isDeadWrapper(aObject)) {
-    desc.prototype = createValueGrip(null);
-    desc.ownProperties = ownProperties;
-    desc.safeGetterValues = Object.create(null);
+  if (aObject.class == "DeadObject") {
     return desc;
   }
 
-  const names = aObject.getOwnPropertyNames();
   let i = 0;
-  for (let name of names) {
+  for (let name of aObject.getOwnPropertyNames()) {
     if (i++ > MAX_PROPERTIES) {
       break;
     }
-    let desc = propertyDescriptor(name, aObject);
+    let desc = propertySnapshot(name, aObject);
     if (desc) {
       ownProperties[name] = desc;
     }
   }
-
-  desc.ownProperties = ownProperties;
 
   return desc;
 }
@@ -715,8 +660,7 @@ function objectDescriptor(aObject) {
 
 
 
-
-function propertyDescriptor(aName, aObject) {
+function propertySnapshot(aName, aObject) {
   let desc;
   try {
     desc = aObject.getOwnPropertyDescriptor(aName);
@@ -733,25 +677,17 @@ function propertyDescriptor(aName, aObject) {
   }
 
   
-  if (!desc || typeof desc.value == "object" && desc.value !== null) {
+  
+  if (!desc
+      || typeof desc.value == "object" && desc.value !== null
+      || !("value" in desc)) {
     return undefined;
   }
 
-  let retval = {
+  return {
     configurable: desc.configurable,
-    enumerable: desc.enumerable
+    enumerable: desc.enumerable,
+    writable: desc.writable,
+    value: createValueSnapshot(desc.value)
   };
-
-  if ("value" in desc) {
-    retval.writable = desc.writable;
-    retval.value = createValueGrip(desc.value);
-  } else {
-    if ("get" in desc) {
-      retval.get = createValueGrip(desc.get);
-    }
-    if ("set" in desc) {
-      retval.set = createValueGrip(desc.set);
-    }
-  }
-  return retval;
 }

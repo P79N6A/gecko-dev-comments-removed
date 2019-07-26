@@ -83,11 +83,37 @@ this.makeInfallible = function makeInfallible(aHandler, aName) {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+this.zip = function zip(a, b) {
+  if (!b) {
+    return a;
+  }
+  if (!a) {
+    return b;
+  }
+  const pairs = [];
+  for (let i = 0, aLength = a.length, bLength = b.length;
+       i < aLength || i < bLength;
+       i++) {
+    pairs.push([a[i], b[i]]);
+  }
+  return pairs;
+};
+
 const executeSoon = aFn => {
   Services.tm.mainThread.dispatch({
     run: this.makeInfallible(aFn)
   }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
-}
+};
 
 
 

@@ -93,7 +93,10 @@ function test_enter_exit_frame()
       
       
       
-      check_location(traces[1].location, { url: url, line: 4, column: 2 });
+      
+      
+      
+      check_location(traces[1].location, { url: url, line: 4, column: 0 });
       check_location(traces[1].callsite, { url: url, line: 8, column: 0 });
 
       do_check_eq(typeof traces[1].parameterNames, "object");
