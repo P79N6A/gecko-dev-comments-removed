@@ -111,7 +111,7 @@ function openConnection(options) {
       log.warn("Could not open connection: " + status);
       deferred.reject(new Error("Could not open connection: " + status));
     }
-    log.warn("Connection opened");
+    log.info("Connection opened");
     try {
       deferred.resolve(
         new OpenedConnection(connection.QueryInterface(Ci.mozIStorageAsyncConnection), basename, number,
@@ -124,6 +124,83 @@ function openConnection(options) {
   return deferred.promise;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function cloneStorageConnection(options) {
+  let log = Log.repository.getLogger("Sqlite.ConnectionCloner");
+
+  let source = options && options.connection;
+  if (!source) {
+    throw new TypeError("connection not specified in clone options.");
+  }
+  if (!source instanceof Ci.mozIStorageAsyncConnection) {
+    throw new TypeError("Connection must be a valid Storage connection.")
+  }
+
+  let openedOptions = {};
+
+  if ("shrinkMemoryOnConnectionIdleMS" in options) {
+    if (!Number.isInteger(options.shrinkMemoryOnConnectionIdleMS)) {
+      throw new TypeError("shrinkMemoryOnConnectionIdleMS must be an integer. " +
+                          "Got: " + options.shrinkMemoryOnConnectionIdleMS);
+    }
+    openedOptions.shrinkMemoryOnConnectionIdleMS =
+      options.shrinkMemoryOnConnectionIdleMS;
+  }
+
+  let path = source.databaseFile.path;
+  let basename = OS.Path.basename(path);
+  let number = connectionCounters.get(basename) || 0;
+  connectionCounters.set(basename, number + 1);
+  let identifier = basename + "#" + number;
+
+  log.info("Cloning database: " + path + " (" + identifier + ")");
+  let deferred = Promise.defer();
+
+  source.asyncClone(!!options.readOnly, (status, connection) => {
+    if (!connection) {
+      log.warn("Could not clone connection: " + status);
+      deferred.reject(new Error("Could not clone connection: " + status));
+    }
+    log.info("Connection cloned");
+    try {
+      let conn = connection.QueryInterface(Ci.mozIStorageAsyncConnection);
+      deferred.resolve(new OpenedConnection(conn, basename, number,
+                                            openedOptions));
+    } catch (ex) {
+      log.warn("Could not clone database: " + CommonUtils.exceptionStr(ex));
+      deferred.reject(ex);
+    }
+  });
+  return deferred.promise;
+}
 
 
 
@@ -291,6 +368,35 @@ OpenedConnection.prototype = Object.freeze({
     this._inProgressTransaction = null;
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  clone: function (readOnly=false) {
+    this._ensureOpen();
+
+    this._log.debug("Request to clone connection.");
+
+    let options = {
+      connection: this._connection,
+      readOnly: readOnly,
+    };
+    if (this._idleShrinkMS)
+      options.shrinkMemoryOnConnectionIdleMS = this._idleShrinkMS;
+
+    return cloneStorageConnection(options);
   },
 
   _finalize: function (deferred) {
@@ -834,4 +940,5 @@ OpenedConnection.prototype = Object.freeze({
 
 this.Sqlite = {
   openConnection: openConnection,
+  cloneStorageConnection: cloneStorageConnection
 };

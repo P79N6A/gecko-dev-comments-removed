@@ -833,3 +833,76 @@ add_task(function test_direct() {
   yield deferred.promise;
 });
 
+
+
+
+add_task(function* test_cloneStorageConnection() {
+  let file = new FileUtils.File(OS.Path.join(OS.Constants.Path.profileDir,
+                                             "test_cloneStorageConnection.sqlite"));
+  let c = yield new Promise((success, failure) => {
+    Services.storage.openAsyncDatabase(file, null, (status, db) => {
+      if (Components.isSuccessCode(status)) {
+        success(db.QueryInterface(Ci.mozIStorageAsyncConnection));
+      } else {
+        failure(new Error(status));
+      }
+    });
+  });
+
+  let clone = yield Sqlite.cloneStorageConnection({ connection: c, readOnly: true });
+  
+  yield clone.execute("SELECT 1");
+
+  let clone2 = yield Sqlite.cloneStorageConnection({ connection: c, readOnly: false });
+  
+  yield clone2.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)");
+
+  
+  yield c.asyncClose();
+  yield clone2.close();
+  yield clone.close();
+});
+
+
+
+
+add_task(function* test_cloneStorageConnection() {
+  try {
+    let clone = yield Sqlite.cloneStorageConnection({ connection: null });
+    do_throw(new Error("Should throw on invalid connection"));
+  } catch (ex if ex.name == "TypeError") {}
+});
+
+
+
+
+add_task(function* test_clone() {
+  let c = yield getDummyDatabase("clone");
+
+  let clone = yield c.clone();
+  
+  yield clone.execute("SELECT 1");
+  
+  yield c.close();
+  yield clone.close();
+});
+
+
+
+
+add_task(function* test_readOnly_clone() {
+  let path = OS.Path.join(OS.Constants.Path.profileDir, "test_readOnly_clone.sqlite");
+  let c = yield Sqlite.openConnection({path: path, sharedMemoryCache: false});
+
+  let clone = yield c.clone(true);
+  
+  yield clone.execute("SELECT 1");
+  
+  try {
+    yield clone.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)");
+    do_throw(new Error("Should not be able to write to a read-only clone."));
+  } catch (ex) {}
+  
+  yield c.close();
+  yield clone.close();
+});
