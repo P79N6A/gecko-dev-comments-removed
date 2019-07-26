@@ -657,8 +657,6 @@ pref("plugins.update.notifyUser", false);
 
 pref("plugins.click_to_play", true);
 
-pref("plugins.hideMissingPluginsNotification", false);
-
 #ifdef RELEASE_BUILD
 
 
@@ -953,6 +951,9 @@ pref("toolkit.crashreporter.infoURL",
 
 
 pref("app.support.baseURL", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
+
+
+pref("app.feedback.baseURL", "https://input.mozilla.org/%LOCALE%/feedback/%APP%/%VERSION%/");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
@@ -1384,10 +1385,5 @@ pref("identity.fxaccounts.settings.uri", "https://accounts.firefox.com/settings"
 pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");
 
 
-#ifdef MOZ_WIDGET_GTK
-pref("ui.key.menuAccessKeyFocuses", true);
-#endif
 
-
-
-pref("browser.cache.auto_delete_cache_version", 1);
+pref("browser.cache.use_new_backend_temp", true);
