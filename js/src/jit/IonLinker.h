@@ -82,7 +82,7 @@ class Linker
     }
 
     JitCode *newCodeForIonScript(JSContext *cx) {
-#ifdef JS_CPU_ARM
+#ifdef JS_CODEGEN_ARM
         
         return newCode<CanGC>(cx, JSC::ION_CODE);
 #else

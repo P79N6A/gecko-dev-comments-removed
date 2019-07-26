@@ -414,7 +414,7 @@ BaselineCompiler::emitOutOfLinePostBarrierSlot()
     regs.take(objReg);
     regs.take(BaselineFrameReg);
     Register scratch = regs.takeAny();
-#if defined(JS_CPU_ARM)
+#if defined(JS_CODEGEN_ARM)
     
     
     masm.push(lr);

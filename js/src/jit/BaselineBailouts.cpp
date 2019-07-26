@@ -337,12 +337,12 @@ struct BaselineStackBuilder
         
         
         size_t priorOffset = IonJSFrameLayout::Size() + topFrame->prevFrameLocalSize();
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
         
         JS_ASSERT(BaselineFrameReg == FramePointer);
         priorOffset -= sizeof(void *);
         return virtualPointerAtStackOffset(priorOffset);
-#elif defined(JS_CPU_X64) || defined(JS_CPU_ARM)
+#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM)
         
         
         BufferPointer<IonRectifierFrameLayout> priorFrame =
@@ -1141,7 +1141,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     size_t startOfRectifierFrame = builder.framePushed();
 
     
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
     if (!builder.writePtr(prevFramePtr, "PrevFramePtr-X86Only"))
         return false;
 #endif

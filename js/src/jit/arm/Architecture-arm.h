@@ -12,7 +12,7 @@
 
 
 #ifdef __ARM_PCS_VFP
-#define JS_CPU_ARM_HARDFP
+#define JS_CODEGEN_ARM_HARDFP
 #endif
 namespace js {
 namespace jit {

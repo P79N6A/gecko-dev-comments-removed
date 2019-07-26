@@ -64,7 +64,7 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
         
         
         
-#ifdef JS_CPU_ARM
+#ifdef JS_CODEGEN_ARM
         bool forceAlign = true;
 #else
         bool forceAlign = false;
