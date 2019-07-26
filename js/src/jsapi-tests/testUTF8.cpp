@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/Range.h"
+
 #include "jsapi.h"
 #include "jsstr.h"
 
@@ -38,7 +40,7 @@ END_TEST(testUTF8_bigUTF8)
 BEGIN_TEST(testUTF8_badSurrogate)
 {
     static const jschar badSurrogate[] = { 'A', 'B', 'C', 0xDEEE, 'D', 'E', 0 };
-    JS::TwoByteChars tbchars(badSurrogate, js_strlen(badSurrogate));
+    mozilla::Range<const jschar> tbchars(badSurrogate, js_strlen(badSurrogate));
     JS::Latin1CharsZ latin1 = JS::LossyTwoByteCharsToNewLatin1CharsZ(cx, tbchars);
     CHECK(latin1);
     CHECK(latin1[3] == 0x00EE);
