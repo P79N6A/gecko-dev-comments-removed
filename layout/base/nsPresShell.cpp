@@ -8560,9 +8560,8 @@ PresShell::VerifyIncrementalReflow()
   
   
   nsAutoPtr<nsStyleSet> newSet(CloneStyleSet(mStyleSet));
-  nsCOMPtr<nsIPresShell> sh;
-  rv = mDocument->CreateShell(cx, vm, newSet, getter_AddRefs(sh));
-  NS_ENSURE_SUCCESS(rv, false);
+  nsCOMPtr<nsIPresShell> sh = mDocument->CreateShell(cx, vm, newSet);
+  NS_ENSURE_TRUE(sh, false);
   newSet.forget();
   
   sh->SetVerifyReflowEnable(false); 
