@@ -223,6 +223,15 @@ let gFuturePlacements = new Map();
 
 
 let gDefaultPlacements = new Map([
+  ["toolbar-menubar", [
+    "menubar-items",
+  ]],
+  ["TabsToolbar", [
+    "tabbrowser-tabs",
+    "new-tab-button",
+    "alltabs-button",
+    "tabs-closebutton"
+  ]],
   ["nav-bar", [
     "unified-back-forward-button",
     "urlbar-container",
@@ -235,6 +244,9 @@ let gDefaultPlacements = new Map([
     "home-button",
     "social-toolbar-button",
     "share-page"
+  ]],
+  ["PersonalToolbar", [
+    "personal-bookmarks",
   ]],
   ["PanelUI-contents", [
     "new-window-button",
@@ -294,6 +306,9 @@ let CustomizableUIInternal = {
 
     this.registerArea(CustomizableUI.AREA_PANEL);
     this.registerArea(CustomizableUI.AREA_NAVBAR, ["legacy"]);
+    this.registerArea(CustomizableUI.AREA_MENUBAR, ["legacy"]);
+    this.registerArea(CustomizableUI.AREA_TABSTRIP, ["legacy"]);
+    this.registerArea(CustomizableUI.AREA_BOOKMARKS, ["legacy"]);
   },
 
   _defineBuiltInWidgets: function() {
@@ -347,7 +362,7 @@ let CustomizableUIInternal = {
     let area = aToolbar.id;
 
     if (!gAreas.has(area)) {
-      throw new Error("Unknown customization area");
+      throw new Error("Unknown customization area: " + area);
     }
 
     if (this.isBuildAreaRegistered(area, aToolbar)) {
@@ -361,12 +376,6 @@ let CustomizableUIInternal = {
       if (legacyState) {
         legacyState = legacyState.split(",");
       }
-      
-      
-      
-      
-      
-      
 
       
       this.restoreStateForArea(area, legacyState);
@@ -395,6 +404,7 @@ let CustomizableUIInternal = {
     let currentNode = container.firstChild;
     for (let id of aPlacements) {
       if (currentNode && currentNode.id == id) {
+        this._addParentFlex(currentNode);
         currentNode = currentNode.nextSibling;
         continue;
       }
@@ -483,6 +493,7 @@ let CustomizableUIInternal = {
                this.buildWidget(aDocument, null, widget) ];
     }
 
+    LOG("Searching for " + aWidgetId + " in toolbox.");
     let node = this.findWidgetInToolbox(aWidgetId, aToolbox, aDocument);
     if (node) {
       return [ CustomizableUI.PROVIDER_XUL, node ];
@@ -815,7 +826,7 @@ let CustomizableUIInternal = {
     LOG("Iterating the actual nodes of the window palette");
     for (let node of aWindowPalette.children) {
       LOG("In palette children: " + node.id);
-      if (!this.getPlacementOfWidget(node.id)) {
+      if (node.id && !this.getPlacementOfWidget(node.id)) {
         widgets.add(node.id);
       }
     }
@@ -838,7 +849,7 @@ let CustomizableUIInternal = {
 
   addWidgetToArea: function(aWidgetId, aArea, aPosition) {
     if (!gAreas.has(aArea)) {
-      throw new Error("Unknown customization area");
+      throw new Error("Unknown customization area: " + aArea);
     }
 
     
@@ -1465,6 +1476,9 @@ Object.freeze(CustomizableUIInternal);
 this.CustomizableUI = {
   get AREA_PANEL() "PanelUI-contents",
   get AREA_NAVBAR() "nav-bar",
+  get AREA_MENUBAR() "toolbar-menubar",
+  get AREA_TABSTRIP() "TabsToolbar",
+  get AREA_BOOKMARKS() "PersonalToolbar",
 
   get PROVIDER_XUL() "xul",
   get PROVIDER_API() "api",
@@ -1525,7 +1539,7 @@ this.CustomizableUI = {
   },
   getWidgetsInArea: function(aArea) {
     if (!gAreas.has(aArea)) {
-      throw new Error("Unknown customization area");
+      throw new Error("Unknown customization area: " + aArea);
     }
     if (!gPlacements.has(aArea)) {
       throw new Error("Area not yet restored");
