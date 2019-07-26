@@ -204,10 +204,6 @@ private:
 
 
 
-
-
-
-
   bool ComputeProgressiveUpdateRegion(const nsIntRegion& aInvalidRegion,
                                       const nsIntRegion& aOldValidRegion,
                                       nsIntRegion& aRegionToPaint,
