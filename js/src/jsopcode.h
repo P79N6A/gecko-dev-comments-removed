@@ -390,6 +390,7 @@ class Sprinter
     char                    *base;          
     size_t                  size;           
     ptrdiff_t               offset;         
+    bool                    reportedOOM;    
 
     bool realloc_(size_t newSize);
 
@@ -438,6 +439,16 @@ class Sprinter
     
     ptrdiff_t getOffset() const;
     ptrdiff_t getOffsetOf(const char *string) const;
+
+    
+
+
+
+
+    void reportOutOfMemory();
+
+    
+    bool hadOutOfMemory() const;
 };
 
 extern ptrdiff_t
