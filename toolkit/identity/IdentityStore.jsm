@@ -14,7 +14,7 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-const EXPORTED_SYMBOLS = ["IdentityStore"];
+this.EXPORTED_SYMBOLS = ["IdentityStore"];
 
 
 
@@ -94,4 +94,4 @@ IDServiceStore.prototype = {
   },
 };
 
-let IdentityStore = new IDServiceStore();
+this.IdentityStore = new IDServiceStore();

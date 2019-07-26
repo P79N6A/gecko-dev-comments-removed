@@ -37,6 +37,27 @@ ReadCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
 }
 
 nsresult
+ReadCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
+                   nsIPrincipal *systemPrincipal, JSFunction **functionp)
+{
+    return NS_ERROR_FAILURE;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+nsresult
 WriteCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
                   nsIPrincipal *systemPrincipal, JSScript *script)
 {
@@ -52,4 +73,22 @@ WriteCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
     nsresult rv = cache->PutBuffer(PromiseFlatCString(uri).get(), static_cast<char *>(data), size);
     js_free(data);
     return rv;
+}
+
+nsresult
+WriteCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
+                    nsIPrincipal *systemPrincipal, JSFunction *function)
+{
+    return NS_ERROR_FAILURE;
+
+
+
+
+
+
+
+
+
+
+
 }

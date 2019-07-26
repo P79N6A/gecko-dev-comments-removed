@@ -5,7 +5,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["ScratchpadManager"];
+this.EXPORTED_SYMBOLS = ["ScratchpadManager"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -21,7 +21,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-var ScratchpadManager = {
+this.ScratchpadManager = {
 
   _nextUid: 1,
   _scratchpads: [],

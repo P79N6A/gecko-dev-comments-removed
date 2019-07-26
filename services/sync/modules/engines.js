@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "EngineManager",
   "Engine",
   "SyncEngine",
@@ -33,7 +33,7 @@ Cu.import("resource://services-sync/util.js");
 
 
 
-function Tracker(name, engine) {
+this.Tracker = function Tracker(name, engine) {
   if (!engine) {
     throw new Error("Tracker must be associated with an Engine instance.");
   }
@@ -171,7 +171,7 @@ Tracker.prototype = {
 
 
 
-function Store(name, engine) {
+this.Store = function Store(name, engine) {
   if (!engine) {
     throw new Error("Store must be associated with an Engine instance.");
   }
@@ -362,7 +362,7 @@ Store.prototype = {
   }
 };
 
-function EngineManager(service) {
+this.EngineManager = function EngineManager(service) {
   this.service = service;
 
   this._engines = {};
@@ -449,7 +449,7 @@ EngineManager.prototype = {
   },
 };
 
-function Engine(name, service) {
+this.Engine = function Engine(name, service) {
   if (!service) {
     throw new Error("Engine must be associated with a Service instance.");
   }
@@ -527,7 +527,7 @@ Engine.prototype = {
   }
 };
 
-function SyncEngine(name, service) {
+this.SyncEngine = function SyncEngine(name, service) {
   Engine.call(this, name || "SyncEngine", service);
 
   this.loadToFetch();

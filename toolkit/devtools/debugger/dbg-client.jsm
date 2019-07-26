@@ -10,9 +10,9 @@ const Cc = Components.classes;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-var EXPORTED_SYMBOLS = ["DebuggerTransport",
-                        "DebuggerClient",
-                        "debuggerSocketConnect"];
+this.EXPORTED_SYMBOLS = ["DebuggerTransport",
+                         "DebuggerClient",
+                         "debuggerSocketConnect"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
@@ -197,7 +197,7 @@ const ROOT_ACTOR_NAME = "root";
 
 
 
-function DebuggerClient(aTransport)
+this.DebuggerClient = function DebuggerClient(aTransport)
 {
   this._transport = aTransport;
   this._transport.hooks = this;
@@ -1284,7 +1284,7 @@ eventSource(BreakpointClient.prototype);
 
 
 
-function debuggerSocketConnect(aHost, aPort)
+this.debuggerSocketConnect = function debuggerSocketConnect(aHost, aPort)
 {
   let s = socketTransportService.createTransport(null, 0, aHost, aPort, null);
   let transport = new DebuggerTransport(s.openInputStream(0, 0, 0),

@@ -2,12 +2,12 @@
 
 
 
-var EXPORTED_SYMBOLS = [ "InlineSpellChecker" ];
+this.EXPORTED_SYMBOLS = [ "InlineSpellChecker" ];
 var gLanguageBundle;
 var gRegionBundle;
 const MAX_UNDO_STACK_DEPTH = 1;
 
-function InlineSpellChecker(aEditor) {
+this.InlineSpellChecker = function InlineSpellChecker(aEditor) {
   this.init(aEditor);
   this.mAddedWordStack = []; 
 }

@@ -11,7 +11,7 @@ const Ci = Components.interfaces;
 
 
 
-let EXPORTED_SYMBOLS = ["DOMApplicationRegistry"];
+this.EXPORTED_SYMBOLS = ["DOMApplicationRegistry"];
 
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -20,7 +20,7 @@ function debug(s) {
   
 }
 
-let DOMApplicationRegistry = {
+this.DOMApplicationRegistry = {
   init: function init() {
     debug("init");
     this.cpmm = Cc["@mozilla.org/childprocessmessagemanager;1"]

@@ -2,7 +2,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["baz", "qux"];
+this.EXPORTED_SYMBOLS = ["baz", "qux"];
 
 function baz() {
   return "baz";

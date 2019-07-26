@@ -2,7 +2,7 @@
 
 
 
-let EXPORTED_SYMBOLS = ["Observers"];
+this.EXPORTED_SYMBOLS = ["Observers"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -17,7 +17,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
-let Observers = {
+this.Observers = {
   
 
 

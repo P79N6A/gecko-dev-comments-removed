@@ -54,7 +54,7 @@
 
 
 
-var EXPORTED_SYMBOLS = [ 'helpers' ];
+this.EXPORTED_SYMBOLS = [ 'helpers' ];
 
 var test = { };
 
@@ -496,7 +496,7 @@ DeveloperToolbarTest.closeAllTabs = function() {
 
 
 
-var helpers = {};
+this.helpers = {};
 
 helpers._display = undefined;
 

@@ -20,8 +20,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
 
-var EXPORTED_SYMBOLS = ["CSPRep", "CSPSourceList", "CSPSource", "CSPHost",
-                        "CSPdebug", "CSPViolationReportListener", "CSPLocalizer"];
+this.EXPORTED_SYMBOLS = ["CSPRep", "CSPSourceList", "CSPSource", "CSPHost",
+                         "CSPdebug", "CSPViolationReportListener", "CSPLocalizer"];
 
 var STRINGS_URI = "chrome://global/locale/security/csp.properties";
 
@@ -94,7 +94,7 @@ var gPrefObserver = {
   },
 };
 
-function CSPdebug(aMsg) {
+this.CSPdebug = function CSPdebug(aMsg) {
   if (!gPrefObserver.debugEnabled) return;
 
   aMsg = 'CSP debug: ' + aMsg + "\n";
@@ -160,7 +160,7 @@ CSPPolicyURIListener.prototype = {
 
 
 
-function CSPRep() {
+this.CSPRep = function CSPRep() {
   
   
   this._isInitialized = false;
@@ -664,7 +664,7 @@ CSPRep.prototype = {
 
 
 
-function CSPSourceList() {
+this.CSPSourceList = function CSPSourceList() {
   this._sources = [];
   this._permitAllSources = false;
 
@@ -900,7 +900,7 @@ CSPSourceList.prototype = {
 
 
 
-function CSPSource() {
+this.CSPSource = function CSPSource() {
   this._scheme = undefined;
   this._port = undefined;
   this._host = undefined;
@@ -1387,7 +1387,7 @@ CSPSource.prototype = {
 
 
 
-function CSPHost() {
+this.CSPHost = function CSPHost() {
   this._segments = [];
 }
 
@@ -1556,7 +1556,7 @@ CSPHost.prototype = {
 
 
 
-function CSPViolationReportListener(reportURI) {
+this.CSPViolationReportListener = function CSPViolationReportListener(reportURI) {
   this._reportURI = reportURI;
 }
 
@@ -1636,7 +1636,7 @@ function cspWarn(aCSPRep, aMessage) {
 
 
 
-CSPLocalizer = {
+this.CSPLocalizer = {
   
 
 

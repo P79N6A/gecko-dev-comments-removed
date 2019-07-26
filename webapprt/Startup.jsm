@@ -8,7 +8,7 @@
 
 
 
-const EXPORTED_SYMBOLS = [];
+this.EXPORTED_SYMBOLS = [];
 
 const Ci = Components.interfaces;
 const Cu = Components.utils;

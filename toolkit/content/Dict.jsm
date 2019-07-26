@@ -4,7 +4,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["Dict"];
+this.EXPORTED_SYMBOLS = ["Dict"];
 
 
 
@@ -31,7 +31,7 @@ function unconvert(aProp) {
 
 
 
-function Dict(aInitial) {
+this.Dict = function Dict(aInitial) {
   if (aInitial === undefined)
     aInitial = {};
   if (typeof aInitial == "string")

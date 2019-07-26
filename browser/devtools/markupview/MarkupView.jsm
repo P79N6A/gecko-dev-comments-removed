@@ -13,7 +13,7 @@ const PAGE_SIZE = 10;
 
 const PREVIEW_AREA = 700;
 
-var EXPORTED_SYMBOLS = ["MarkupView"];
+this.EXPORTED_SYMBOLS = ["MarkupView"];
 
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource:///modules/devtools/CssRuleView.jsm");
@@ -39,7 +39,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-function MarkupView(aInspector, aFrame)
+this.MarkupView = function MarkupView(aInspector, aFrame)
 {
   this._inspector = aInspector;
   this._frame = aFrame;
@@ -867,11 +867,7 @@ function ElementEditor(aContainer, aNode)
         return;
       }
 
-      try {
-        this._applyAttributes(aVal);
-      } catch (x) {
-        return;
-      }
+      this._applyAttributes(aVal);
     }.bind(this)
   });
 
@@ -967,15 +963,10 @@ ElementEditor.prototype = {
 
           
           
-          
-          this._removeAttribute(this.node, aAttr.name);
-          try {
-            this._applyAttributes(aVal, attr);
-            this.undo.endBatch();
-          } catch (e) {
-            this.undo.endBatch();
-            this.undo.undo();
-          }
+          this._removeAttribute(this.node, aAttr.name)
+          this._applyAttributes(aVal, attr);
+
+          this.undo.endBatch();
         }.bind(this)
       });
 
@@ -997,7 +988,6 @@ ElementEditor.prototype = {
 
 
 
-
   _applyAttributes: function EE__applyAttributes(aValue, aAttrNode)
   {
     
@@ -1006,7 +996,6 @@ ElementEditor.prototype = {
     let parseTag = (this.node.namespaceURI.match(/svg/i) ? "svg" :
                    (this.node.namespaceURI.match(/mathml/i) ? "math" : "div"));
     let parseText = "<" + parseTag + " " + aValue + "/>";
-    
     dummyNode.innerHTML = parseText;
     let parsedNode = dummyNode.firstChild;
 

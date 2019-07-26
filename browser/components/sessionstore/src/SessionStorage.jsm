@@ -2,7 +2,7 @@
 
 
 
-let EXPORTED_SYMBOLS = ["SessionStorage"];
+this.EXPORTED_SYMBOLS = ["SessionStorage"];
 
 const Cu = Components.utils;
 
@@ -12,7 +12,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
 
-let SessionStorage = {
+this.SessionStorage = {
   
 
 

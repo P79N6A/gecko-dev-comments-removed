@@ -4,7 +4,7 @@
 
 
 
-let EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "DownloadTaskbarProgress",
 ];
 
@@ -19,7 +19,7 @@ const kTaskbarID = "@mozilla.org/windows-taskbar;1";
 
 
 
-const DownloadTaskbarProgress =
+this.DownloadTaskbarProgress =
 {
   
 

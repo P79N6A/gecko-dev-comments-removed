@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "ClientEngine",
   "ClientsRec"
 ];
@@ -18,7 +18,7 @@ Cu.import("resource://services-sync/util.js");
 const CLIENTS_TTL = 1814400; 
 const CLIENTS_TTL_REFRESH = 604800; 
 
-function ClientsRec(collection, id) {
+this.ClientsRec = function ClientsRec(collection, id) {
   CryptoWrapper.call(this, collection, id);
 }
 ClientsRec.prototype = {
@@ -30,7 +30,7 @@ ClientsRec.prototype = {
 Utils.deferGetSet(ClientsRec, "cleartext", ["name", "type", "commands"]);
 
 
-function ClientEngine(service) {
+this.ClientEngine = function ClientEngine(service) {
   SyncEngine.call(this, "Clients", service);
 
   

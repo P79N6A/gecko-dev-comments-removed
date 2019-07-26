@@ -88,7 +88,7 @@ Protocol.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIProtocolHandler])
 };
 
-let NSGetFactory = XPCOMUtils.generateNSGetFactory([Protocol]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([Protocol]);
 
 
 

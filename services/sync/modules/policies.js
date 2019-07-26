@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "ErrorHandler",
   "SyncScheduler",
 ];
@@ -15,7 +15,7 @@ Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/util.js");
 
-function SyncScheduler(service) {
+this.SyncScheduler = function SyncScheduler(service) {
   this.service = service;
   this.init();
 }
@@ -467,7 +467,7 @@ SyncScheduler.prototype = {
 const LOG_PREFIX_SUCCESS = "success-";
 const LOG_PREFIX_ERROR   = "error-";
 
-function ErrorHandler(service) {
+this.ErrorHandler = function ErrorHandler(service) {
   this.service = service;
   this.init();
 }

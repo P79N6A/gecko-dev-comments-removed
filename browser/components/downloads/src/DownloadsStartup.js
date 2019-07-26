@@ -273,4 +273,4 @@ DownloadsStartup.prototype = {
 
 
 
-const NSGetFactory = XPCOMUtils.generateNSGetFactory([DownloadsStartup]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([DownloadsStartup]);

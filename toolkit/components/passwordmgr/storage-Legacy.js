@@ -1459,4 +1459,4 @@ LoginManagerStorage_legacy.prototype = {
     }
 }; 
 
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([LoginManagerStorage_legacy]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([LoginManagerStorage_legacy]);

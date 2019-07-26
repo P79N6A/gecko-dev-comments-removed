@@ -15,8 +15,8 @@
 
 
 if (typeof Components != "undefined") {
-  var EXPORTED_SYMBOLS = ["OS"];
-  Components.utils.import("resource://gre/modules/osfile/osfile_unix_allthreads.jsm");
+  this.EXPORTED_SYMBOLS = ["OS"];
+  Components.utils.import("resource://gre/modules/osfile/osfile_unix_allthreads.jsm", this);
 }
 (function(exports) {
    "use strict";

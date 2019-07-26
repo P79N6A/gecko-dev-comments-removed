@@ -15,7 +15,7 @@ Cu.import("resource:///modules/inspector.jsm");
 
 
 
-var EXPORTED_SYMBOLS = [];
+this.EXPORTED_SYMBOLS = [];
 
 
 

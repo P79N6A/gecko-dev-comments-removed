@@ -4,7 +4,7 @@
 
 
 
-var EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "DownloadPaths",
 ];
 
@@ -26,7 +26,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-const DownloadPaths = {
+this.DownloadPaths = {
   
 
 

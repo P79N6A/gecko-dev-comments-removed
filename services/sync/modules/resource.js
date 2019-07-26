@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "AsyncResource",
   "Resource"
 ];
@@ -48,7 +48,7 @@ const DEFAULT_LOAD_FLAGS =
 
 
 
-function AsyncResource(uri) {
+this.AsyncResource = function AsyncResource(uri) {
   this._log = Log4Moz.repository.getLogger(this._logName);
   this._log.level =
     Log4Moz.Level[Svc.Prefs.get("log.logger.network.resources")];
@@ -350,7 +350,7 @@ AsyncResource.prototype = {
 
 
 
-function Resource(uri) {
+this.Resource = function Resource(uri) {
   AsyncResource.call(this, uri);
 }
 Resource.prototype = {

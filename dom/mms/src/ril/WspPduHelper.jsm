@@ -6,7 +6,7 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
-Cu.import("resource://gre/modules/wap_consts.js");
+Cu.import("resource://gre/modules/wap_consts.js", this);
 
 let DEBUG; 
 
@@ -26,7 +26,7 @@ const ASCIIS = 128;
 
 
 
-function CodeError(message) {
+this.CodeError = function CodeError(message) {
   this.name = "CodeError";
   this.message = message || "Invalid format";
 }
@@ -56,7 +56,7 @@ NullCharError.prototype.constructor = NullCharError;
 
 
 
-function FatalCodeError(message) {
+this.FatalCodeError = function FatalCodeError(message) {
   this.name = "FatalCodeError";
   this.message = message || "Decoding fails";
 }
@@ -76,7 +76,7 @@ FatalCodeError.prototype.constructor = FatalCodeError;
 
 
 
-function NotWellKnownEncodingError(message) {
+this.NotWellKnownEncodingError = function NotWellKnownEncodingError(message) {
   this.name = "NotWellKnownEncodingError";
   this.message = message || "Not well known encoding";
 }
@@ -96,7 +96,7 @@ NotWellKnownEncodingError.prototype.constructor = NotWellKnownEncodingError;
 
 
 
-function ensureHeader(headers, name) {
+this.ensureHeader = function ensureHeader(headers, name) {
   let value = headers[name];
   
   if (value === undefined) {
@@ -130,7 +130,7 @@ function ensureHeader(headers, name) {
 
 
 
-function skipValue(data) {
+this.skipValue = function skipValue(data) {
   let begin = data.offset;
   let value = Octet.decode(data);
   if (value <= 31) {
@@ -165,7 +165,7 @@ function skipValue(data) {
 
 
 
-function decodeAlternatives(data, options) {
+this.decodeAlternatives = function decodeAlternatives(data, options) {
   let begin = data.offset;
   for (let i = 2; i < arguments.length; i++) {
     try {
@@ -191,7 +191,7 @@ function decodeAlternatives(data, options) {
 
 
 
-function encodeAlternatives(data, value, options) {
+this.encodeAlternatives = function encodeAlternatives(data, value, options) {
   let begin = data.offset;
   for (let i = 3; i < arguments.length; i++) {
     try {
@@ -208,7 +208,7 @@ function encodeAlternatives(data, value, options) {
   }
 }
 
-let Octet = {
+this.Octet = {
   
 
 
@@ -315,7 +315,7 @@ let Octet = {
 
 
 
-let Text = {
+this.Text = {
   
 
 
@@ -399,7 +399,7 @@ let Text = {
   },
 };
 
-let NullTerminatedTexts = {
+this.NullTerminatedTexts = {
   
 
 
@@ -443,7 +443,7 @@ let NullTerminatedTexts = {
 
 
 
-let Token = {
+this.Token = {
   
 
 
@@ -519,7 +519,7 @@ let Token = {
 
 
 
-let URIC = {
+this.URIC = {
   
 
 
@@ -555,7 +555,7 @@ let URIC = {
 
 
 
-let TextString = {
+this.TextString = {
   
 
 
@@ -611,7 +611,7 @@ let TextString = {
 
 
 
-let TokenText = {
+this.TokenText = {
   
 
 
@@ -654,7 +654,7 @@ let TokenText = {
 
 
 
-let QuotedString = {
+this.QuotedString = {
   
 
 
@@ -693,7 +693,7 @@ let QuotedString = {
 
 
 
-let ShortInteger = {
+this.ShortInteger = {
   
 
 
@@ -739,7 +739,7 @@ let ShortInteger = {
 
 
 
-let LongInteger = {
+this.LongInteger = {
   
 
 
@@ -821,7 +821,7 @@ let LongInteger = {
 
 
 
-let UintVar = {
+this.UintVar = {
   
 
 
@@ -874,7 +874,7 @@ let UintVar = {
 
 
 
-let ConstrainedEncoding = {
+this.ConstrainedEncoding = {
   
 
 
@@ -908,7 +908,7 @@ let ConstrainedEncoding = {
 
 
 
-let ValueLength = {
+this.ValueLength = {
   
 
 
@@ -950,7 +950,7 @@ let ValueLength = {
 
 
 
-let NoValue = {
+this.NoValue = {
   
 
 
@@ -981,7 +981,7 @@ let NoValue = {
 
 
 
-let TextValue = {
+this.TextValue = {
   
 
 
@@ -1008,7 +1008,7 @@ let TextValue = {
 
 
 
-let IntegerValue = {
+this.IntegerValue = {
   
 
 
@@ -1044,7 +1044,7 @@ let IntegerValue = {
 
 
 
-let DateValue = {
+this.DateValue = {
   
 
 
@@ -1087,7 +1087,7 @@ let DateValue = {
 
 
 
-let DeltaSecondsValue = IntegerValue;
+this.DeltaSecondsValue = IntegerValue;
 
 
 
@@ -1097,7 +1097,7 @@ let DeltaSecondsValue = IntegerValue;
 
 
 
-let QValue = {
+this.QValue = {
   
 
 
@@ -1153,7 +1153,7 @@ let QValue = {
 
 
 
-let VersionValue = {
+this.VersionValue = {
   
 
 
@@ -1218,7 +1218,7 @@ let VersionValue = {
 
 
 
-let UriValue = {
+this.UriValue = {
   
 
 
@@ -1245,7 +1245,7 @@ let UriValue = {
 
 
 
-let TypeValue = {
+this.TypeValue = {
   
 
 
@@ -1306,7 +1306,7 @@ let TypeValue = {
 
 
 
-let Parameter = {
+this.Parameter = {
   
 
 
@@ -1500,7 +1500,7 @@ let Parameter = {
 
 
 
-let Header = {
+this.Header = {
   
 
 
@@ -1551,7 +1551,7 @@ let Header = {
 
 
 
-let WellKnownHeader = {
+this.WellKnownHeader = {
   
 
 
@@ -1617,7 +1617,7 @@ let WellKnownHeader = {
 
 
 
-let ApplicationHeader = {
+this.ApplicationHeader = {
   
 
 
@@ -1674,7 +1674,7 @@ let ApplicationHeader = {
 
 
 
-let FieldName = {
+this.FieldName = {
   
 
 
@@ -1726,7 +1726,7 @@ let FieldName = {
 
 
 
-let AcceptCharsetValue = {
+this.AcceptCharsetValue = {
   
 
 
@@ -1841,7 +1841,7 @@ let AcceptCharsetValue = {
 
 
 
-let WellKnownCharset = {
+this.WellKnownCharset = {
   
 
 
@@ -1915,7 +1915,7 @@ let WellKnownCharset = {
 
 
 
-let ContentTypeValue = {
+this.ContentTypeValue = {
   
 
 
@@ -2103,7 +2103,7 @@ let ContentTypeValue = {
 
 
 
-let ApplicationIdValue = {
+this.ApplicationIdValue = {
   
 
 
@@ -2139,7 +2139,7 @@ let ApplicationIdValue = {
   },
 };
 
-let PduHelper = {
+this.PduHelper = {
   
 
 
@@ -2380,7 +2380,7 @@ let PduHelper = {
 
 
 
-const WSP_HEADER_FIELDS = (function () {
+this.WSP_HEADER_FIELDS = (function () {
   let names = {};
   function add(name, number, coder) {
     let entry = {
@@ -2476,7 +2476,7 @@ const WSP_HEADER_FIELDS = (function () {
 
 
 
-const WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
+this.WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
   let types = {};
 
   function add(type, number) {
@@ -2504,7 +2504,7 @@ const WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
 
 
 
-const WSP_WELL_KNOWN_PARAMS = (function () {
+this.WSP_WELL_KNOWN_PARAMS = (function () {
   let params = {};
 
   function add(name, number, coder) {
@@ -2559,7 +2559,7 @@ const WSP_WELL_KNOWN_PARAMS = (function () {
 
 
 
-const WSP_WELL_KNOWN_CHARSETS = (function () {
+this.WSP_WELL_KNOWN_CHARSETS = (function () {
   let charsets = {};
 
   function add(name, number, converter) {
@@ -2582,7 +2582,7 @@ const WSP_WELL_KNOWN_CHARSETS = (function () {
 
 
 
-const OMNA_PUSH_APPLICATION_IDS = (function () {
+this.OMNA_PUSH_APPLICATION_IDS = (function () {
   let ids = {};
 
   function add(urn, number) {
@@ -2608,7 +2608,7 @@ if (DEBUG) {
   debug = function (s) {};
 }
 
-const EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
+this.EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
   
   "WSP_HEADER_FIELDS",
   "WSP_WELL_KNOWN_CONTENT_TYPES",
@@ -2663,4 +2663,3 @@ const EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
   
   "PduHelper",
 ]);
-

@@ -6,7 +6,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "DownloadsCommon",
 ];
 
@@ -89,7 +89,7 @@ const kPartialDownloadSuffix = ".part";
 
 
 
-const DownloadsCommon = {
+this.DownloadsCommon = {
   
 
 

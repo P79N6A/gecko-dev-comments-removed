@@ -51,7 +51,7 @@ XPCOMUtils.defineLazyGetter(this, "CertUtils", function certUtilsLazyGetter() {
 });
 
 
-var EXPORTED_SYMBOLS = [ "AddonManager", "AddonManagerPrivate" ];
+this.EXPORTED_SYMBOLS = [ "AddonManager", "AddonManagerPrivate" ];
 
 const CATEGORY_PROVIDER_MODULE = "addon-provider-module";
 
@@ -2027,7 +2027,7 @@ var AddonManagerInternal = {
 
 
 
-var AddonManagerPrivate = {
+this.AddonManagerPrivate = {
   startup: function AMP_startup() {
     AddonManagerInternal.startup();
   },
@@ -2086,7 +2086,7 @@ var AddonManagerPrivate = {
 
 
 
-var AddonManager = {
+this.AddonManager = {
   
   
   STATE_AVAILABLE: 0,

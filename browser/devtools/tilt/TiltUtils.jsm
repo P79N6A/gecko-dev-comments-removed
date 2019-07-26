@@ -13,12 +13,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 
-let EXPORTED_SYMBOLS = ["TiltUtils"];
+this.EXPORTED_SYMBOLS = ["TiltUtils"];
 
 
 
 
-let TiltUtils = {};
+this.TiltUtils = {};
 
 
 

@@ -2,7 +2,7 @@
 
 
 
-let EXPORTED_SYMBOLS = ["Preferences"];
+this.EXPORTED_SYMBOLS = ["Preferences"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -18,7 +18,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 const MAX_INT = Math.pow(2, 31) - 1;
 const MIN_INT = -MAX_INT;
 
-function Preferences(args) {
+this.Preferences =
+  function Preferences(args) {
     if (isObject(args)) {
       if (args.branch)
         this._prefBranch = args.branch;
